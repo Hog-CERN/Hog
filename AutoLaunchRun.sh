@@ -38,8 +38,8 @@ ALL_GOOD=1
 AT_LEAST_ONE=0
 COMMIT=`git log --format=%h -1`
 
-#if ! git diff --quiet remotes/origin/$FROM_BRANCH; then
-if [ 1 ]; then
+if ! git diff --quiet remotes/origin/$FROM_BRANCH; then
+#if [ 1 ]; then
     touch $LOCK
     git pull  --quiet
 

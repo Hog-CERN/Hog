@@ -1,34 +1,33 @@
 #!/bin/bash
 if [ "$#" -lt 2 ]; then  
-    echo "Usage $0 <source branch> <destination branch> [revision dir] [web dir]"
+    echo "Usage $0 <repository path> <source branch> <destination branch> [revision dir] [web dir]"
     echo
     exit -1
 fi
 
 REVISION_DIR=/mnt/big/eFEX-revision
 WEB_DIR=/eos/user/e/efex/www/revision
-if [ "$#" -gt 2 ]; then  
-    REVISION_DIR=$3
-fi
 if [ "$#" -gt 3 ]; then  
-    WEB_DIR=$4
+    REVISION_DIR=$4
+fi
+if [ "$#" -gt 4 ]; then  
+    WEB_DIR=$5
 fi
 
 
 LOCK=$REVISION_DIR/lock
-OLD_DIR=`pwd`
-DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-cd $DIR
 if [ -f $LOCK ]; then
     exit
 fi
-cd ..
+
+OLD_DIR=`pwd`
+DIR=$1
+cd $DIR
 git submodule init --quiet
 git submodule update --quiet
 git clean -xdf --quiet
-cd $DIR
-FROM_BRANCH=$1
-TO_BRANCH=$2
+FROM_BRANCH=$2
+TO_BRANCH=$3
 git reset --hard HEAD --quiet
 git checkout $FROM_BRANCH --quiet
 git fetch  --quiet
@@ -100,7 +99,7 @@ $PROJECT
 	else
 	    ZIP_TIMING=
 	fi    
-	cd -
+	cd $DIR
 	cd $UTIL_DIR
 	if [ `ls * 2>/dev/null` ]; then 
 	    tar czf $ZIP_UTIL *
@@ -108,7 +107,7 @@ $PROJECT
 	else
 	    ZIP_UTIL=
 	fi    
-	cd -
+	cd $DIR
 	printf "$MSG" | mail -s "Completed design flow for $PROJECT ($COMMIT)" $ZIP_TIMING $ZIP_UTIL atlas-l1calo-efex@cern.ch
     fi
 
@@ -118,10 +117,12 @@ $PROJECT
 	git checkout $TO_BRANCH --quiet
 	git merge --no-ff -m "Merge $FROM_BRANCH into $TO_BRANCH after successful automatic test" -m "$GIT_MESSAGE" $FROM_BRANCH --quiet
 	git push origin $TO_BRANCH --quiet 2>&1 > /dev/null
-	cd .. #go to git repository main directory
+	cd $DIR
 	echo "" >> doxygen/doxygen.conf
 	echo -e "\nPROJECT_NUMBER = $COMMIT" >> doxygen/doxygen.conf
-	/usr/bin/doxygen doxygen/doxygen.conf 2>&1 > $WEB_DIR/../doc/doxygen-$COMMIT.log
+	rm -rf ../Doc
+	mkdir -p ../Doc/html
+	/usr/bin/doxygen doxygen/doxygen.conf 2>&1 > ../Doc/html/doxygen-$COMMIT.log
 	rm -r $WEB_DIR/../doc/*
 	cp -r ../Doc/html/* $WEB_DIR/../doc/
     else

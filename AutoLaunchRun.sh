@@ -5,8 +5,8 @@ if [ "$#" -lt 2 ]; then
     exit -1
 fi
 
-REVISION_DIR=/mnt/vd/eFEX-revision/test
-WEB_DIR=/eos/user/e/efex/www/test
+REVISION_DIR=/mnt/vd/eFEX-revision/
+WEB_DIR=/eos/user/e/efex/www/
 if [ "$#" -gt 3 ]; then  
     REVISION_DIR=$4
 fi
@@ -122,7 +122,7 @@ $PROJECT
 	git reset --hard HEAD --quiet
 	git clean -xdf --quiet
 	git checkout $TO_BRANCH --quiet
-	git merge --no-ff -m "Merge $FROM_BRANCH into $TO_BRANCH after successful automatic test" -m "$GIT_MESSAGE" $FROM_BRANCH --quiet
+	git merge --no-ff -m "Merge $FROM_BRANCH ($COMMIT) into $TO_BRANCH after successful automatic test" -m "$GIT_MESSAGE" $FROM_BRANCH --quiet
 	git push origin $TO_BRANCH --quiet 2>&1 > /dev/null
 	cd $DIR
 	echo "" >> doxygen/doxygen.conf

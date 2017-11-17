@@ -71,13 +71,17 @@ if ! git diff --quiet remotes/origin/$FROM_BRANCH; then
 	cp $OUT_DIR/*/*$PROJECT\_utilization_synth.rpt* $UTIL_DIR 2>/dev/null
 	TIMING_REP=`ls $OUT_DIR/*/*$PROJECT\_timing_summary_routed.rpt* 2>/dev/null | head -1`
 	BITFILE=`ls $OUT_DIR/*/*$PROJECT.bit 2>/dev/null | head -1`
+	BINFILE=`ls $OUT_DIR/*/*$PROJECT.bin 2>/dev/null | head -1`
 	if [ ! -z $BITFILE ] && [ -f $BITFILE ]; then
 	    AT_LEAST_ONE=1
 	    GOOD_MESSAGE=$GOOD_MESSAGE"\n$PROJECT\n"`cat $TIMING_REP | grep "Design Timing Summary" -B1 -A12 | grep -v "\-\-\-"`
 	    GIT_MESSAGE=$GIT_MESSAGE"
 $PROJECT
 "`cat $TIMING_REP | grep "Design Timing Summary" -B1 -A12 | grep -v "\-\-\-"`
-	    mv $BITFILE $OUT_DIR/$(basename $BITFILE .bit)-$COMMIT.bit	    
+	    mv $BITFILE $OUT_DIR/../$(basename $BITFILE .bit)-$COMMIT.bit	    
+	    if [ ! -z $BINFILE ] && [ -f $BINFILE ]; then
+	    	mv $BINFILE $OUT_DIR/../$(basename $BINFILE .bin)-$COMMIT.bin	    
+	    fi
 	else
 	    MESSAGE=`cat $JOURNAL_FILE $WEB_DIR/status`
 	    printf $MESSAGE  | mail -s "Error in design flow for $PROJECT ($COMMIT)" -a $LOG_FILE atlas-l1calo-efex@cern.ch

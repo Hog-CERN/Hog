@@ -36,13 +36,11 @@ git checkout $FROM_BRANCH --quiet
 git fetch  --quiet
 ALL_GOOD=1
 AT_LEAST_ONE=0
-COMMIT=`git log --format=%h -1`
-
 if ! git diff --quiet remotes/origin/$FROM_BRANCH; then
 #if [ 1 ]; then
     touch $LOCK
     git pull  --quiet
-
+    COMMIT=`git log --format=%h -1`
     TIME_DIR=$REVISION_DIR/$COMMIT/timing
     UTIL_DIR=$REVISION_DIR/$COMMIT/utilization
     mkdir -p $TIME_DIR
@@ -121,7 +119,7 @@ $PROJECT
 	git clean -xdf --quiet
 	git checkout $TO_BRANCH --quiet
 	git merge --no-ff -m "Merge $FROM_BRANCH into $TO_BRANCH after successful automatic test" -m "$GIT_MESSAGE" $FROM_BRANCH --quiet
-	#git push origin $TO_BRANCH --quiet 2>&1 > /dev/null
+	git push origin $TO_BRANCH --quiet 2>&1 > /dev/null
 	cd $DIR
 	echo "" >> doxygen/doxygen.conf
 	echo -e "\nPROJECT_NUMBER = $COMMIT" >> doxygen/doxygen.conf
@@ -134,7 +132,7 @@ $PROJECT
 	echo Errors were encountered, will not commit to $TO_BRANCH. 
     fi
 else
-    echo Repository up to date on $FROM_BRANCH branch at $COMMIT 
+    echo Repository up to date on $FROM_BRANCH branch at `git log --format=%h -1` 
 fi
 rm -f $LOCK
 cd $OLD_DIR

@@ -100,7 +100,7 @@ $PROJECT
 	ZIP_TIMING=$REVISION_DIR/$COMMIT/timing.tar.gz 
 	ZIP_UTIL=$REVISION_DIR/$COMMIT/utilization.tar.gz
 	cd $TIME_DIR
-	if [ `ls * 2>/dev/null` ]; then 
+	if [ "$(ls -A . 2>/dev/null)" ]; then 
 	    tar czf $ZIP_TIMING *
 	    ZIP_TIMING="-a $ZIP_TIMING"
 	else
@@ -108,7 +108,7 @@ $PROJECT
 	fi    
 	cd $DIR
 	cd $UTIL_DIR
-	if [ `ls * 2>/dev/null` ]; then 
+	if [ "$(ls -A . 2>/dev/null)" ]; then 
 	    tar czf $ZIP_UTIL *
 	    ZIP_UTIL="-a $ZIP_UTIL"
 	else

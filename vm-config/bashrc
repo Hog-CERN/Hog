@@ -36,6 +36,7 @@
 # If not running interactively, don't do anything
 [ -z "$PS1" ] && return
 
+complete -cf sudo
 
 #-------------------------------------------------------------
 # Source global definitions (if any)
@@ -161,13 +162,21 @@ NC="\e[m"               # Color Reset
 ALERT=${BWhite}${On_Red} # Bold White on red background
 
 
-
-echo -e "${BCyan}This is BASH ${BRed}${BASH_VERSION%.*}${BCyan}\
+echo -e ${Blue}
+echo -e "         _____________  __";
+echo -e "   ___  / ____/ ____/ |/ /";
+echo -e "  / _ \/ /_  / __/  |   / ";
+echo -e " /  __/ __/ / /___ /   |  ";
+echo -e " \___/_/   /_____//_/|_|   ${NC}";
+echo
+echo -e " This is BASH ${BRed}${BASH_VERSION%.*}$\
 - DISPLAY on ${BRed}$DISPLAY${NC}\n"
-date
+uptime
+echo " `date`"
 if [ -x /usr/games/fortune ]; then
     /usr/games/fortune -s     # Makes our day a bit more fun.... :-)
 fi
+echo
 
 function _exit()              # Function to run upon exit of shell.
 {

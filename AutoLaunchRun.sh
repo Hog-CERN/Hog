@@ -21,6 +21,7 @@ if [ -f $LOCK ]; then
     exit
 fi
 
+ARCHIVE_DIR=$WEB_DIR/firmware
 OLD_DIR=`pwd`
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 DIR=$1
@@ -78,10 +79,27 @@ if ! git diff --quiet remotes/origin/$FROM_BRANCH; then
 	    GIT_MESSAGE=$GIT_MESSAGE"
 $PROJECT
 "`cat $TIMING_REP | grep "Design Timing Summary" -B1 -A12 | grep -v "\-\-\-"`
-	    mv $BITFILE $OUT_DIR/../$(basename $BITFILE .bit)-$COMMIT.bit	    
+
+	    # rename and move bitfile
+	    NEW_BITFILE=$OUT_DIR/../$PROJECT-$COMMIT.bit
+	    mv $BITFILE $NEW_BITFILE
+
+	    # archive bitfile
+	    mkdir -p $ARCHIVE_DIR/$COMMIT/$PROJECT/reports
+	    cp $NEW_BITFILE $ARCHIVE_DIR/$COMMIT 
+
 	    if [ ! -z $BINFILE ] && [ -f $BINFILE ]; then
-	    	mv $BINFILE $OUT_DIR/../$(basename $BINFILE .bin)-$COMMIT.bin	    
+		NEW_BINFILE=$OUT_DIR/../$PROJECT-$COMMIT.bin	    
+	    	mv $BINFILE $NEW_BINFILE
+		cp $NEW_BINFILE $ARCHIVE_DIR/$COMMIT
 	    fi
+	    
+	    #copy xml
+	    cp -r $OUT_DIR/xml $ARCHIVE_DIR/$COMMIT/$PROJECT/
+	    
+	    #copy reports
+	    cp $OUT_DIR/*/*.rpt $ARCHIVE_DIR/$COMMIT/$PROJECT/reports
+
 	else
 	    MESSAGE=`cat $JOURNAL_FILE $WEB_DIR/status`
 	    printf $MESSAGE  | mail -s "Error in design flow for $PROJECT ($COMMIT)" -a $LOG_FILE atlas-l1calo-efex@cern.ch
@@ -119,6 +137,8 @@ $PROJECT
     fi
 
     if [ $ALL_GOOD -eq 1 ]; then
+
+	# Clean and push on git branch
 	git reset --hard HEAD --quiet
 	git clean -xdf --quiet
 	git checkout $TO_BRANCH --quiet
@@ -129,9 +149,12 @@ $PROJECT
 	echo -e "\nPROJECT_NUMBER = $COMMIT" >> doxygen/doxygen.conf
 	rm -rf ../Doc
 	mkdir -p ../Doc/html
+
+	# Doxygen
 	/usr/bin/doxygen doxygen/doxygen.conf 2>&1 > ../Doc/html/doxygen-$COMMIT.log
 	rm -r $WEB_DIR/../doc/*
 	cp -r ../Doc/html/* $WEB_DIR/../doc/
+
     else
 	echo Errors were encountered, will not commit to $TO_BRANCH. 
     fi

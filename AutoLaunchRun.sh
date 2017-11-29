@@ -57,15 +57,15 @@ if ! git diff --quiet remotes/origin/$FROM_BRANCH; then
 	mkdir -p $OUT_DIR
 	LOG_FILE=$OUT_DIR/viv.log
 	JOURNAL_FILE=$OUT_DIR/viv.jou
-	echo "Project: $PROJECT ($COMMIT) from branch $FROM_BRANCH to $TO_BRANCH is preparing to run with $NJOBS jobs..." > $WEB_DIR/status
+	echo "Project: $PROJECT ($COMMIT) from branch $FROM_BRANCH to $TO_BRANCH is preparing to run with $NJOBS jobs..." > $WEB_DIR/status-$COMMIT-$PROJECT
 	vivado -mode batch -notrace -journal $JOURNAL_FILE -log $LOG_FILE -source ./Tcl/launch_runs.tcl -tclargs $PROJECT $RUNS_DIR $NJOBS > /dev/null
 	if [ $? -ne 0 ]; then
 	    cat $JOURNAL_FILE  | mail -s "Error during design flow for $PROJECT ($COMMIT)" -a $LOG_FILE l1calo-efex@cern.ch    
 	fi
 	sleep 10
-	/usr/bin/perl $SCRIPT_DIR/RunStatus.pl $RUNS_DIR $WEB_DIR/status
+	/usr/bin/perl $SCRIPT_DIR/RunStatus.pl $RUNS_DIR $WEB_DIR/status-$COMMIT-$PROJECT
 	sleep 10
-	/usr/bin/perl $SCRIPT_DIR/RunStatus.pl $RUNS_DIR $WEB_DIR/status
+	/usr/bin/perl $SCRIPT_DIR/RunStatus.pl $RUNS_DIR $WEB_DIR/status-$COMMIT-$PROJECT
 	sleep 10
 	cp -pr $RUNS_DIR/* $OUT_DIR
 	cp $OUT_DIR/*/*$PROJECT\_timing_summary_routed.rpt* $TIME_DIR 2>/dev/null
@@ -101,7 +101,7 @@ $PROJECT
 	    cp $OUT_DIR/*/*.rpt $ARCHIVE_DIR/$COMMIT/$PROJECT/reports
 
 	else
-	    MESSAGE=`cat $JOURNAL_FILE $WEB_DIR/status`
+	    MESSAGE=`cat $JOURNAL_FILE $WEB_DIR/status-$COMMIT-$PROJECT`
 	    printf $MESSAGE  | mail -s "Error in design flow for $PROJECT ($COMMIT)" -a $LOG_FILE atlas-l1calo-efex@cern.ch
 	    ALL_GOOD=0
 	    #break

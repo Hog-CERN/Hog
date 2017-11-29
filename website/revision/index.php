@@ -20,16 +20,27 @@
 <a href="../"> Back </a>
 <hr>
 <?php
-$minc = file_get_contents("status");
-$stat = explode("\n", $minc);
-$filename = "status";
-date_default_timezone_set("Europe/London"); 
-echo "<h2>Last design flow time: </h2>".date("F d Y H:i:s",filemtime($filename))."<br/><br/>";
-$handle = fopen($filename, "rb");
-$fsize = filesize($filename);
-$contents = fread($handle, $fsize);
-fclose($handle);
-echo $minc;
+   $stati = glob("status*");
+   if(count($stati)) {
+    natcasesort($stati);
+    $i=0;
+    foreach($stati as $filename) {
+     echo "<h1> $filename </h1>";
+     $content = file_get_contents($filename);
+     date_default_timezone_set("Europe/London"); 
+     echo "<h2>Last design flow time: </h2>".date("F d Y H:i:s",filemtime($filename))."<br/><br/>";
+     echo $content;
+     echo "<br/>\n";
+   }
+   
+   } else {
+   echo "<p> Sorry, no status file found... </p>";
+   }
+   
+
+
+
+
 ?>
 </div>
 

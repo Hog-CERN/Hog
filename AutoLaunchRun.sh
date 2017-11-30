@@ -137,7 +137,7 @@ $PROJECT
 	    ZIP_UTIL=
 	fi    
 	cd $DIR
-	printf "$MSG" | mail -s "Completed design flow for $PROJECT ($COMMIT)" $ZIP_TIMING $ZIP_UTIL atlas-l1calo-efex@cern.ch
+	printf "$MSG" | mail -s "Completed design flow for $COMMIT" $ZIP_TIMING $ZIP_UTIL atlas-l1calo-efex@cern.ch
     fi
 
     if [ $ALL_GOOD -eq 1 ]; then

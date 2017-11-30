@@ -30,21 +30,21 @@ OLD_DIR=`pwd`
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 DIR=$1
 cd $DIR
-git submodule init --quiet
-git submodule update --quiet
-git clean -xdf --quiet
+git submodule init #--quiet
+git submodule update #--quiet
+git clean -xdf #--quiet
 FROM_BRANCH=$2
 TO_BRANCH=$3
 echo "repo: $DIR, from: $FROM_BRANCH to $TO_BRANCH, rev $REVISION_DIR, web $WEB_DIR"
-git reset --hard HEAD --quiet
-git checkout $FROM_BRANCH --quiet
-git fetch  --quiet
+git reset --hard HEAD #--quiet
+git checkout $FROM_BRANCH #--quiet
+git fetch  #--quiet
 ALL_GOOD=1
 AT_LEAST_ONE=0
 if ! git diff --quiet remotes/origin/$FROM_BRANCH; then
 #if [ 1 ]; then
     touch $LOCK
-    git pull  --quiet
+    git pull  #--quiet
     COMMIT=`git log --format=%h -1`
     TIME_DIR=$REVISION_DIR/$COMMIT/timing
     UTIL_DIR=$REVISION_DIR/$COMMIT/utilization
@@ -62,7 +62,7 @@ if ! git diff --quiet remotes/origin/$FROM_BRANCH; then
 	LOG_FILE=$OUT_DIR/viv.log
 	JOURNAL_FILE=$OUT_DIR/viv.jou
 	echo "Project: $PROJECT ($COMMIT) from branch $FROM_BRANCH to $TO_BRANCH is preparing to run with $NJOBS jobs..." > $WEB_DIR/status-$COMMIT-$PROJECT
-	vivado -mode batch -notrace -journal $JOURNAL_FILE -log $LOG_FILE -source ./Tcl/launch_runs.tcl -tclargs $PROJECT $RUNS_DIR $NJOBS > /dev/null
+	vivado -mode batch -notrace -journal $JOURNAL_FILE -log $LOG_FILE -source ./Tcl/launch_runs.tcl -tclargs $PROJECT $RUNS_DIR $NJOBS # > /dev/null
 	if [ $? -ne 0 ]; then
 	    cat $JOURNAL_FILE  | mail -s "Error during design flow for $PROJECT ($COMMIT)" -a $LOG_FILE l1calo-efex@cern.ch    
 	fi
@@ -143,11 +143,11 @@ $PROJECT
     if [ $ALL_GOOD -eq 1 ]; then
 
 	# Clean and push on git branch
-	git reset --hard HEAD --quiet
-	git clean -xdf --quiet
-	git checkout $TO_BRANCH --quiet
-	git merge --no-ff -m "Merge $FROM_BRANCH ($COMMIT) into $TO_BRANCH after successful automatic test" -m "$GIT_MESSAGE" $FROM_BRANCH --quiet
-	git push origin $TO_BRANCH --quiet 2>&1 > /dev/null
+	git reset --hard HEAD #--quiet
+	git clean -xdf #--quiet
+	git checkout $TO_BRANCH #--quiet
+	git merge --no-ff -m "Merge $FROM_BRANCH ($COMMIT) into $TO_BRANCH after successful automatic test" -m "$GIT_MESSAGE" $FROM_BRANCH #--quiet
+	git push origin $TO_BRANCH #--quiet 2>&1 > /dev/null
 	cd $DIR
 	echo "" >> doxygen/doxygen.conf
 	echo -e "\nPROJECT_NUMBER = $COMMIT" >> doxygen/doxygen.conf

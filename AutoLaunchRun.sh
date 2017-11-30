@@ -70,8 +70,9 @@ if ! git diff --quiet remotes/origin/$FROM_BRANCH; then #is this check still nec
 	    echo [AutoLaunchRun] Project $PROJECT has not changed since last synthesis, skipping design-flow
 	    continue
 	fi
+	cd -
 	RUNS_DIR=./VivadoProject/$PROJECT/$PROJECT.runs
-	echo "Creating project $PROJECT..."
+	echo [AutoLaunchRun] Creating project $PROJECT...
 	OUT_DIR=$REVISION_DIR/$COMMIT/$PROJECT
 	mkdir -p $OUT_DIR
 	LOG_FILE=$OUT_DIR/viv.log

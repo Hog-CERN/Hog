@@ -3,7 +3,8 @@ Description=eFEX Automatic Workflow System
 After=network.target
 
 [Service]
-Environment="DIM_DNS_NODE=na62server"
+Environment="PATH=/sbin:/bin:/usr/sbin:/usr/bin:/opt/Xilinx/Vivado/2017.3/bin/"
+Environment="XILINXD_LICENSE_FILE=2112@lxlicen01,2112@lxlicen02,2112@lxlicen03"
 Type=simple
 User=efex
 ExecStart=/home/efex/AutomationScripts/hooks.py 8000

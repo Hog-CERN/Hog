@@ -41,9 +41,18 @@ git checkout $FROM_BRANCH #--quiet
 git fetch  #--quiet
 ALL_GOOD=1
 AT_LEAST_ONE=0
-if ! git diff --quiet remotes/origin/$FROM_BRANCH; then
+
+
+if ! git diff --quiet remotes/origin/$FROM_BRANCH; then #is this check still necessary?
 #if [ 1 ]; then
     touch $LOCK
+    declare -A PROJ_COMM
+    for PR in `ls ./Top`
+    do
+	cd ./Top/$PR
+	PROJ_COMM[$PR]=`git log --format=%h -1 -- $(cat ./list/*) .`
+    done
+
     git pull  #--quiet
     COMMIT=`git log --format=%h -1`
     TIME_DIR=$REVISION_DIR/$COMMIT/timing
@@ -55,6 +64,12 @@ if ! git diff --quiet remotes/origin/$FROM_BRANCH; then
     # Loop over projects here
     for PROJECT in `ls ./Top`
     do
+	cd ./Top/$PROJECT
+	if [ "$(git log --format=%h -1 -- $(cat ./list/* ) .)" == ${PROJ_COMM[$PROJECT]} ]; then
+	    cd -
+	    echo [AutoLaunchRun] Project $PROJECT has not changed since last synthesis, skipping design-flow
+	    continue
+	fi
 	RUNS_DIR=./VivadoProject/$PROJECT/$PROJECT.runs
 	echo "Creating project $PROJECT..."
 	OUT_DIR=$REVISION_DIR/$COMMIT/$PROJECT
@@ -141,26 +156,28 @@ $PROJECT
     fi
 
     if [ $ALL_GOOD -eq 1 ]; then
-
-	# Clean and push on git branch
-	git reset --hard HEAD #--quiet
-	git clean -xdf #--quiet
-	git checkout $TO_BRANCH #--quiet
-	git merge --no-ff -m "Merge $FROM_BRANCH ($COMMIT) into $TO_BRANCH after successful automatic test" -m "$GIT_MESSAGE" $FROM_BRANCH #--quiet
-	git push origin $TO_BRANCH #--quiet 2>&1 > /dev/null
-	cd $DIR
-	echo "" >> doxygen/doxygen.conf
-	echo -e "\nPROJECT_NUMBER = $COMMIT" >> doxygen/doxygen.conf
-	rm -rf ../Doc
-	mkdir -p ../Doc/html
-
-	# Doxygen
-	/usr/bin/doxygen doxygen/doxygen.conf 2>&1 > ../Doc/html/doxygen-$COMMIT.log
-	rm -r $WEB_DIR/../doc/*
-	cp -r ../Doc/html/* $WEB_DIR/../doc/
-
+	if [ $AT_LEAST_ONE -eq 1 ]; then
+	    # Clean and push on git branch
+	    git reset --hard HEAD #--quiet
+	    git clean -xdf #--quiet
+	    git checkout $TO_BRANCH #--quiet
+	    git merge --no-ff -m "Merge $FROM_BRANCH ($COMMIT) into $TO_BRANCH after successful automatic test" -m "$GIT_MESSAGE" $FROM_BRANCH #--quiet
+	    git push origin $TO_BRANCH #--quiet 2>&1 > /dev/null
+	    cd $DIR
+	    echo "" >> doxygen/doxygen.conf
+	    echo -e "\nPROJECT_NUMBER = $COMMIT" >> doxygen/doxygen.conf
+	    rm -rf ../Doc
+	    mkdir -p ../Doc/html
+	    
+	    # Doxygen
+	    /usr/bin/doxygen doxygen/doxygen.conf 2>&1 > ../Doc/html/doxygen-$COMMIT.log
+	    rm -r $WEB_DIR/../doc/*
+	    cp -r ../Doc/html/* $WEB_DIR/../doc/
+	else
+	    echo [AutoLaunchRun] All project were skipped, will not commit to $TO_BRANCH or generate Doxygen. 
+	fi
     else
-	echo [AutoLaunchRun] Errors were encountered, will not commit to $TO_BRANCH. 
+	echo [AutoLaunchRun] Errors were encountered, will not commit to $TO_BRANCH or generate Doxygen. 
     fi
 else
     echo [AutoLaunchRun] Repository up to date on $FROM_BRANCH branch at `git log --format=%h -1` 

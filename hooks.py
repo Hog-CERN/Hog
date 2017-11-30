@@ -2,6 +2,7 @@
 import web
 import json
 import os
+import sys
 from pprint import pprint
 
 urls = ('/.*', 'hooks')
@@ -40,7 +41,7 @@ class hooks:
 
         # For pre merging test use
         #if status == 'can_be_merged' and state == 'opened' and not wip:
-        if status == 'can_be_merged' and tb= 'master' and state == 'merged' and not wip:
+        if status == 'can_be_merged' and tb == 'master' and state == 'merged' and not wip:
             print "*******************************************"
             print "Launching run for merge request {0}".format(n)
             print "From: {0}   To: {1}".format(sb,tb)
@@ -52,8 +53,9 @@ class hooks:
             print "*******************************************"
             cmd = "kinit -kt /home/efex/efex.keytab efex; /usr/bin/eosfusebind krb5; /bin/bash /home/efex/AutomationScripts/AutoLaunchRun.sh /home/efex/eFEXFirmware {0} {1} /mnt/vd/eFEX-revision /eos/user/e/efex/www/revision".format(sb,tb)
             print "Executing {0}".format(cmd)
-            #        os.system(cmd + "&")
+            os.system(cmd + "&")
 
+        sys.stdout.flush()
         return 'OK'
 
         

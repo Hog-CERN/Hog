@@ -1,0 +1,13 @@
+[Unit]
+Description=eFEX Automatic Workflow System
+After=network.target
+
+[Service]
+Environment="DIM_DNS_NODE=na62server"
+Type=simple
+User=efex
+ExecStart=/home/efex/AutomationScripts/hooks.py 8000
+#Restart=on-abort
+
+[Install]
+WantedBy=multi-user.target

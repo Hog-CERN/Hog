@@ -42,3 +42,6 @@ swapon /swapfile
 firewall-cmd --zone=public --add-port=8000/tcp --permanent
 firewall-cmd --reload
 
+# install AWS service
+cp efex-aws.service /etc/systemd/system
+systemctl enable efex-aws.service

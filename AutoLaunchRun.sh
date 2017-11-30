@@ -1,6 +1,6 @@
 #!/bin/bash
 if [ "$#" -lt 2 ]; then  
-    echo "Usage $0 <repository path> <source branch> <destination branch> [revision dir] [web dir]"
+    echo "Usage $0 <repository path> <source branch> <tag number> [revision dir] [web dir]"
     echo
     exit -1
 fi
@@ -34,8 +34,8 @@ git submodule init #--quiet
 git submodule update #--quiet
 git clean -xdf #--quiet
 FROM_BRANCH=$2
-TO_BRANCH=$3
-echo "repo: $DIR, from: $FROM_BRANCH to $TO_BRANCH, rev $REVISION_DIR, web $WEB_DIR"
+TAG_NUMBER=$3
+echo "repo: $DIR, from: $FROM_BRANCH Tag: $TAG_NUMBER, rev $REVISION_DIR, web $WEB_DIR"
 git reset --hard HEAD #--quiet
 git checkout $FROM_BRANCH #--quiet
 git fetch  #--quiet
@@ -54,7 +54,7 @@ if ! git diff --quiet remotes/origin/$FROM_BRANCH; then #is this check still nec
     done
 
     git pull  #--quiet
-    COMMIT=`git log --format=%h -1`
+    COMMIT=`git describe --always --match v*`
     TIME_DIR=$REVISION_DIR/$COMMIT/timing
     UTIL_DIR=$REVISION_DIR/$COMMIT/utilization
     mkdir -p $TIME_DIR
@@ -77,7 +77,7 @@ if ! git diff --quiet remotes/origin/$FROM_BRANCH; then #is this check still nec
 	mkdir -p $OUT_DIR
 	LOG_FILE=$OUT_DIR/viv.log
 	JOURNAL_FILE=$OUT_DIR/viv.jou
-	echo "Project: $PROJECT ($COMMIT) from branch $FROM_BRANCH to $TO_BRANCH is preparing to run with $NJOBS jobs..." > $WEB_DIR/status-$COMMIT-$PROJECT
+	echo "Project: $PROJECT ($COMMIT) from branch $FROM_BRANCH is preparing to run with $NJOBS jobs..." > $WEB_DIR/status-$COMMIT-$PROJECT
 	vivado -mode batch -notrace -journal $JOURNAL_FILE -log $LOG_FILE -source ./Tcl/launch_runs.tcl -tclargs $PROJECT $RUNS_DIR $NJOBS # > /dev/null
 	if [ $? -ne 0 ]; then
 	    cat $JOURNAL_FILE  | mail -s "Error during design flow for $PROJECT ($COMMIT)" -a $LOG_FILE l1calo-efex@cern.ch    
@@ -161,9 +161,10 @@ $PROJECT
 	    # Clean and push on git branch
 	    git reset --hard HEAD #--quiet
 	    git clean -xdf #--quiet
-	    git checkout $TO_BRANCH #--quiet
-	    git merge --no-ff -m "Merge $FROM_BRANCH ($COMMIT) into $TO_BRANCH after successful automatic test" -m "$GIT_MESSAGE" $FROM_BRANCH #--quiet
-	    git push origin $TO_BRANCH #--quiet 2>&1 > /dev/null
+	    #git checkout $TO_BRANCH #--quiet
+	    #git merge --no-ff -m "Merge $FROM_BRANCH ($COMMIT) into $TO_BRANCH after successful automatic test" -m "$GIT_MESSAGE" $FROM_BRANCH #--quiet
+	    #git push origin $TO_BRANCH #--quiet 2>&1 > /dev/null
+	    git tag aws$MERGE_REQUEST -m "Automatic tag ($TAG_NUMBER) after successful automatic test" -m "$GIT_MESSAGE"
 	    cd $DIR
 	    echo "" >> doxygen/doxygen.conf
 	    echo -e "\nPROJECT_NUMBER = $COMMIT" >> doxygen/doxygen.conf
@@ -175,13 +176,13 @@ $PROJECT
 	    rm -r $WEB_DIR/../doc/*
 	    cp -r ../Doc/html/* $WEB_DIR/../doc/
 	else
-	    echo [AutoLaunchRun] All project were skipped, will not commit to $TO_BRANCH or generate Doxygen. 
+	    echo [AutoLaunchRun] All project were skipped, will not tag nor generate Doxygen. 
 	fi
     else
-	echo [AutoLaunchRun] Errors were encountered, will not commit to $TO_BRANCH or generate Doxygen. 
+	echo [AutoLaunchRun] Errors were encountered, will not tag nor generate Doxygen. 
     fi
 else
-    echo [AutoLaunchRun] Repository up to date on $FROM_BRANCH branch at `git log --format=%h -1` 
+    echo [AutoLaunchRun] Repository up to date on $FROM_BRANCH branch at `git describe --always --match v*` 
 fi
 rm -f $LOCK
 cd $OLD_DIR

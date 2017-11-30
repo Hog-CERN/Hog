@@ -22,13 +22,14 @@
 <?php
    $stati = glob("status*");
    if(count($stati)) {
-    natcasesort($stati);
+    //natcasesort($stati);
+   usort($stati, create_function('$b,$a', 'return filemtime($a) - filemtime($b);'));
     $i=0;
     foreach($stati as $filename) {
      echo "<h1> $filename </h1>";
      $content = file_get_contents($filename);
      date_default_timezone_set("Europe/London"); 
-     echo "<h2>Last design flow time: </h2>".date("F d Y H:i:s",filemtime($filename))."<br/><br/>";
+     echo "<p style=\"color:#36c\">".date("F d Y H:i:s",filemtime($filename))."</p>";
      echo $content;
      echo "<br/>\n";
    }
@@ -36,11 +37,6 @@
    } else {
    echo "<p> Sorry, no status file found... </p>";
    }
-   
-
-
-
-
 ?>
 </div>
 

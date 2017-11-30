@@ -45,7 +45,7 @@ class hooks:
             print "*******************************************"
             print "Launching run for merge request {0}".format(n)
             print "From: {0}   To: {1}".format(sb,tb)
-            print "Title: ".format(title)
+            print "Title: {0}".format(title)
             print 
             print "Description: "
             print description

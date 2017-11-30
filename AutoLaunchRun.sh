@@ -49,7 +49,8 @@ if ! git diff --quiet remotes/origin/$FROM_BRANCH; then #is this check still nec
     for PR in `ls ./Top`
     do
 	cd ./Top/$PR
-	PROJ_COMM[$PR]=`git log --format=%h -1 -- $(cat ./list/*) .`
+	PROJ_COMM[$PR]=$(git log --format=%h -1 -- $(cat ./list/*) .)
+	cd -
     done
 
     git pull  #--quiet

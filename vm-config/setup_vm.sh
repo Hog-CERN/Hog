@@ -1,6 +1,6 @@
 #!/bin/bash
 
-yum install htop emacs git eos-fuse doxygen
+yum install htop emacs git eos-fuse doxygen python-webpy
 
 mkfs.ex4 /dev/vdb
 mkdir /mnt/vd
@@ -37,3 +37,8 @@ dd if=/dev/zero of=/swapfile bs=1024 count=16777216
 chmod 600 /swapfile
 mkswap /swapfile
 swapon /swapfile
+
+#firewall
+firewall-cmd --zone=public --add-port=8000/tcp --permanent
+firewall-cmd --reload
+

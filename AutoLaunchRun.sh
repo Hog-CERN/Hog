@@ -42,7 +42,6 @@ git fetch  #--quiet
 ALL_GOOD=1
 AT_LEAST_ONE=0
 
-
 if ! git diff --quiet remotes/origin/$FROM_BRANCH; then #is this check still necessary?
 #if [ 1 ]; then
     touch $LOCK

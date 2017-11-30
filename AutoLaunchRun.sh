@@ -16,10 +16,14 @@ fi
 
 
 LOCK=$REVISION_DIR/lock
-if [ -f $LOCK ]; then
-    echo "lock file found"
-    exit
-fi
+#if [ -f $LOCK ]; then
+#    echo "lock file found"
+#    exit
+#fi
+while [ -f $LOCK ]; do
+    echo "[AutoLaunchRun] waiting for lock file to disappear..."
+    sleep 10
+done
 
 ARCHIVE_DIR=$WEB_DIR/firmware
 OLD_DIR=`pwd`
@@ -156,10 +160,10 @@ $PROJECT
 	cp -r ../Doc/html/* $WEB_DIR/../doc/
 
     else
-	echo Errors were encountered, will not commit to $TO_BRANCH. 
+	echo [AutoLaunchRun] Errors were encountered, will not commit to $TO_BRANCH. 
     fi
 else
-    echo Repository up to date on $FROM_BRANCH branch at `git log --format=%h -1` 
+    echo [AutoLaunchRun] Repository up to date on $FROM_BRANCH branch at `git log --format=%h -1` 
 fi
 rm -f $LOCK
 cd $OLD_DIR

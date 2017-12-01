@@ -20,17 +20,16 @@
 <a href="../"> Back </a>
 <hr>
 <?php
+   date_default_timezone_set("Europe/London"); 
    $stati = glob("status*");
    if(count($stati)) {
     //natcasesort($stati);
    usort($stati, create_function('$b,$a', 'return filemtime($a) - filemtime($b);'));
     $i=0;
     foreach($stati as $filename) {
-     echo "<h1> $filename </h1>";
-     $content = file_get_contents($filename);
-     date_default_timezone_set("Europe/London"); 
+     echo "<h1> ". preg_replace("/status-/", "", $filename)." </h1>";
      echo "<p style=\"color:#36c\">".date("F d Y H:i:s",filemtime($filename))."</p>";
-     echo $content;
+     echo file_get_contents($filename);
      echo "<br/>\n";
    }
    

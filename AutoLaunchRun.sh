@@ -164,7 +164,8 @@ $PROJECT
 	    #git checkout $TO_BRANCH #--quiet
 	    #git merge --no-ff -m "Merge $FROM_BRANCH ($COMMIT) into $TO_BRANCH after successful automatic test" -m "$GIT_MESSAGE" $FROM_BRANCH #--quiet
 	    #git push origin $TO_BRANCH #--quiet 2>&1 > /dev/null
-	    git tag aws$MERGE_REQUEST -m "Automatic tag ($TAG_NUMBER) after successful automatic test" -m "$GIT_MESSAGE"
+	    git tag aws$TAG_NUMBER -m "Automatic tag ($TAG_NUMBER) after successful automatic test" -m "$GIT_MESSAGE"
+	    git push origin aws$TAG_NUMBER
 	    cd $DIR
 	    echo "" >> doxygen/doxygen.conf
 	    echo -e "\nPROJECT_NUMBER = $COMMIT" >> doxygen/doxygen.conf

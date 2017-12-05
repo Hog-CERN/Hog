@@ -3,6 +3,8 @@ import web
 import json
 import os
 import sys
+import requests
+import time
 from pprint import pprint
 
 urls = ('/.*', 'hooks')
@@ -14,20 +16,19 @@ class hooks:
         self.queue = []
 
     def POST(self):
+        #request webpage here!!
         data = json.loads(web.data())
         sb=data['object_attributes']['source_branch']
         tb=data['object_attributes']['target_branch']
-        n=data['object_attributes']['iid']
         state=data['object_attributes']['state']
         wip=data['object_attributes']['work_in_progress']        
-        status=data['object_attributes']['merge_status']
         description=data['object_attributes']['description']
         title=data['object_attributes']['title']
-
+        n=data['object_attributes']['iid']
+        url=data['object_attributes']['url']
         print
-        print 'DATA RECEIVED:'
+        print 'MERGE REQUEST RECEIVED:'
         print "--------------------------------"
-        #pprint(data)
         print
         print "Merge request N: ", n
         print "Source branch:   ", sb 
@@ -36,6 +37,12 @@ class hooks:
         print "Work in progress:", wip 
         print "Title:           ", title 
         print "Description:     ", description 
+        time.sleep(1)
+        u = requests.get(url, headers={'PRIVATE-TOKEN': 'CbWF_XrjGbEGMssj9fkZ'})
+        time.sleep(1)
+        r = requests.get("https://gitlab.cern.ch/api/v4/projects/atlas-l1calo-efex%2FeFEXFirmware/merge_requests/{0}".format(n), headers={'PRIVATE-TOKEN': 'CbWF_XrjGbEGMssj9fkZ'})
+        data_web=json.loads(r.text)
+        status=data_web['merge_status']
         print "Merge status:    ", status 
         print "--------------------------------"
 

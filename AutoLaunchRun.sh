@@ -176,15 +176,19 @@ $PROJECT
 	    /usr/bin/doxygen doxygen/doxygen.conf 2>&1 > ../Doc/html/doxygen-$COMMIT.log
 	    rm -r $WEB_DIR/../doc/*
 	    cp -r ../Doc/html/* $WEB_DIR/../doc/
+	    RET_VAL=0
 	else
 	    echo [AutoLaunchRun] All project were skipped, will not tag nor generate Doxygen. 
+	    RET_VAL=2
 	fi
     else
 	echo [AutoLaunchRun] Errors were encountered, will not tag nor generate Doxygen. 
+	RET_VAL=3
     fi
 else
     echo [AutoLaunchRun] Repository up to date on $FROM_BRANCH branch at `git describe --always --match v*` 
+    RET_VAL=1
 fi
 rm -f $LOCK
 cd $OLD_DIR
-
+return $RET_VAL

@@ -18,6 +18,7 @@ class hooks:
     def POST(self):
         #request webpage here!!
         data = json.loads(web.data())
+        #pprint(data)
         sb=data['object_attributes']['source_branch']
         tb=data['object_attributes']['target_branch']
         state=data['object_attributes']['state']
@@ -45,6 +46,8 @@ class hooks:
         status=data_web['merge_status']
         print "Merge status:    ", status 
         print "--------------------------------"
+        #pprint(data_web)
+        n = requests.get(url, headers={'PRIVATE-TOKEN': 'CbWF_XrjGbEGMssj9fkZ'})
 
         # For pre merging test use
         #if status == 'can_be_merged' and state == 'opened' and not wip:
@@ -60,6 +63,8 @@ class hooks:
             print "*******************************************"
             cmd = "kinit -kt /home/efex/efex.keytab efex; /usr/bin/eosfusebind krb5; /bin/bash /home/efex/AutomationScripts/AutoLaunchRun.sh /home/efex/eFEXFirmware {0} {1} /mnt/vd/eFEX-revision /eos/user/e/efex/www/revision".format('master',n)
             # when pre merging use sb and tb here intead of master and Tested
+            message="Launching automatic work flow"
+            u = requests.post("https://gitlab.cern.ch/api/v4/projects/atlas-l1calo-efex%2FeFEXFirmware/merge_requests/{0}/notes".format(n), data={'body':message}, headers={'PRIVATE-TOKEN': 'CbWF_XrjGbEGMssj9fkZ'})
             print "Executing {0}".format(cmd)
             os.system(cmd + "&")
 

@@ -11,7 +11,7 @@ head ={'PRIVATE-TOKEN': 'CbWF_XrjGbEGMssj9fkZ'}
 urls = ('/.*', 'hooks')
 
 app = web.application(urls, globals())
-session = web.session.Session(app, web.session.DiskStore('sessions'))
+session = web.session.Session(app, web.session.DiskStore('/home/efex/sessions'))
 
 class hooks:
     def __init__(self):
@@ -49,11 +49,11 @@ class hooks:
         print "Merge status:    ", status 
         print "--------------------------------"
         #pprint(data_web)
-        n = requests.get(url, headers=head)
+        requests.get(url, headers=head)
 
         # For pre merging test use
         #if status == 'can_be_merged' and state == 'opened' and not wip:
-        if status == 'can_be_merged' and tb == 'master' and state == 'merged' and not wip:
+        if status == 'can_be_merged' and tb == 'master' and state == 'opened' and not wip:
             print "*******************************************"
             print "Launching run for merge request {0}".format(n)
             print "From: {0}   To: {1}".format(sb,tb)
@@ -63,22 +63,23 @@ class hooks:
             print description
             print
             print "*******************************************"
-            cmd = "kinit -kt /home/efex/efex.keytab efex; /usr/bin/eosfusebind krb5; /bin/bash /home/efex/AutomationScripts/AutoLaunchRun.sh /home/efex/eFEXFirmware {0} {1} /mnt/vd/eFEX-revision /eos/user/e/efex/www/revision".format('master',n)
-            # when pre merging use sb and tb here intead of master and Tested
+            cmd = "kinit -kt /home/efex/efex.keytab efex; /usr/bin/eosfusebind krb5; /bin/bash /home/efex/AutomationScripts/AutoLaunchRun.sh /home/efex/eFEXFirmware {0} {1} {2} /mnt/vd/eFEX-revision /eos/user/e/efex/www/revision".format(sb,tb,n)
             message="Launching automatic work flow..."
-            n = requests.post("https://gitlab.cern.ch/api/v4/projects/atlas-l1calo-efex%2FeFEXFirmware/merge_requests/{0}/notes".format(n), data={'body':message}, headers=head)
+            note = requests.post("https://gitlab.cern.ch/api/v4/projects/atlas-l1calo-efex%2FeFEXFirmware/merge_requests/{0}/notes".format(n), data={'body':message}, headers=head)
             print "Executing {0}".format(cmd)
-            val = os.system(cmd)
-            if val == 0 or val ==2:
-                if val == 2:
+            val = os.system(cmd) >> 8
+            if val < 2:
+                if val == 1:
                     message="This merge request does not modify any file that is revelant for projects, so it will be approved"
                 else:
                     message="Automatic design flow successful, will approve this merge reqest"
-                n = requests.post("https://gitlab.cern.ch/api/v4/projects/atlas-l1calo-efex%2FeFEXFirmware/merge_requests/{0}/notes".format(n), data={'body':message}, headers=head)
-                a = requests.post("https://gitlab.cern.ch/api/v4/projects/atlas-l1calo-efex%2FeFEXFirmware/merge_requests/{0}/approve".format(n), headers=head)
+                    print "Sending note: {0}".format(message)
+                note = requests.post("https://gitlab.cern.ch/api/v4/projects/atlas-l1calo-efex%2FeFEXFirmware/merge_requests/{0}/notes".format(n), data={'body':message}, headers=head)
+                approve = requests.post("https://gitlab.cern.ch/api/v4/projects/atlas-l1calo-efex%2FeFEXFirmware/merge_requests/{0}/approve".format(n), headers=head)
             else:
+                print "Auto launch run returned value {0}".format(val)
                 message="Automatic design flow failed, will not approve this merge reqest"
-                n = requests.post("https://gitlab.cern.ch/api/v4/projects/atlas-l1calo-efex%2FeFEXFirmware/merge_requests/{0}/notes".format(n), data={'body':message}, headers=head)
+                note = requests.post("https://gitlab.cern.ch/api/v4/projects/atlas-l1calo-efex%2FeFEXFirmware/merge_requests/{0}/notes".format(n), data={'body':message}, headers=head)
         sys.stdout.flush()
         return 'OK'
 

@@ -1,19 +1,22 @@
 #!/bin/bash
 if [ "$#" -lt 2 ]; then  
-    echo "Usage $0 <repository path> <source branch> <tag number> [revision dir] [web dir]"
+    echo "Usage $0 <repository path> <source branch> <target branch> <tag number> [revision dir] [web dir]"
     echo
     exit -1
 fi
 
+DIR=$1
+FROM_BRANCH=$2
+TO_BRANCH=$3
+TAG_NUMBER=$4
 REVISION_DIR=/mnt/vd/eFEX-revision/
 WEB_DIR=/eos/user/e/efex/www/
-if [ "$#" -gt 3 ]; then  
-    REVISION_DIR=$4
-fi
 if [ "$#" -gt 4 ]; then  
-    WEB_DIR=$5
+    REVISION_DIR=$5
 fi
-
+if [ "$#" -gt 5 ]; then  
+    WEB_DIR=$6
+fi
 
 LOCK=$REVISION_DIR/lock
 #if [ -f $LOCK ]; then
@@ -24,36 +27,34 @@ while [ -f $LOCK ]; do
     echo "[AutoLaunchRun] waiting for lock file to disappear..."
     sleep 10
 done
+touch $LOCK
 
 ARCHIVE_DIR=$WEB_DIR/firmware
 OLD_DIR=`pwd`
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-DIR=$1
 cd $DIR
-git submodule init #--quiet
-git submodule update #--quiet
-git clean -xdf #--quiet
-FROM_BRANCH=$2
-TAG_NUMBER=$3
-echo "repo: $DIR, from: $FROM_BRANCH Tag: $TAG_NUMBER, rev $REVISION_DIR, web $WEB_DIR"
-git reset --hard HEAD #--quiet
-git checkout $FROM_BRANCH #--quiet
-git fetch  #--quiet
+echo "repo: $DIR, from: $FROM_BRANCH to: $TO_BRANCH Tag: $TAG_NUMBER, rev $REVISION_DIR, web $WEB_DIR"
+git submodule init
+git submodule update
+git clean -xdf
+git reset --hard HEAD
+git checkout $TO_BRANCH
+git fetch
 ALL_GOOD=1
 AT_LEAST_ONE=0
 
-if ! git diff --quiet remotes/origin/$FROM_BRANCH; then #is this check still necessary?
-#if [ 1 ]; then
-    touch $LOCK
-    declare -A PROJ_COMM
-    for PR in `ls ./Top`
-    do
-	cd ./Top/$PR
-	PROJ_COMM[$PR]=$(git log --format=%h -1 -- $(cat ./list/*) .)
-	cd -
-    done
+declare -A PROJ_COMM
+for PR in `ls ./Top`
+do
+    cd ./Top/$PR
+    PROJ_COMM[$PR]=$(git log --format=%h -1 -- $(cat ./list/*) .)
+    cd -
+done
 
-    git pull  #--quiet
+git checkout $FROM_BRANCH
+git pull
+git merge -m "Merging $FROM_BRANCH into $TO_BRANCH before automatic workflow" $TO_BRANCH
+if [ $? -eq 0 ]; then
     COMMIT=`git describe --always --match v*`
     TIME_DIR=$REVISION_DIR/$COMMIT/timing
     UTIL_DIR=$REVISION_DIR/$COMMIT/utilization
@@ -124,7 +125,6 @@ $PROJECT
 	    MESSAGE=`cat $JOURNAL_FILE $WEB_DIR/status-$COMMIT-$PROJECT`
 	    printf $MESSAGE  | mail -s "Error in design flow for $PROJECT ($COMMIT)" -a $LOG_FILE atlas-l1calo-efex@cern.ch
 	    ALL_GOOD=0
-	    #break
 	fi
     done
 
@@ -159,11 +159,8 @@ $PROJECT
     if [ $ALL_GOOD -eq 1 ]; then
 	if [ $AT_LEAST_ONE -eq 1 ]; then
 	    # Clean and push on git branch
-	    git reset --hard HEAD #--quiet
-	    git clean -xdf #--quiet
-	    #git checkout $TO_BRANCH #--quiet
-	    #git merge --no-ff -m "Merge $FROM_BRANCH ($COMMIT) into $TO_BRANCH after successful automatic test" -m "$GIT_MESSAGE" $FROM_BRANCH #--quiet
-	    #git push origin $TO_BRANCH #--quiet 2>&1 > /dev/null
+	    git reset --hard HEAD
+	    git clean -xdf
 	    git tag aws$TAG_NUMBER -m "Automatic tag ($TAG_NUMBER) after successful automatic test" -m "$GIT_MESSAGE"
 	    git push origin aws$TAG_NUMBER
 	    cd $DIR
@@ -176,19 +173,20 @@ $PROJECT
 	    /usr/bin/doxygen doxygen/doxygen.conf 2>&1 > ../Doc/html/doxygen-$COMMIT.log
 	    rm -r $WEB_DIR/../doc/*
 	    cp -r ../Doc/html/* $WEB_DIR/../doc/
+	    echo [AutoLaunchRun] Automatic workflow successful
 	    RET_VAL=0
 	else
-	    echo [AutoLaunchRun] All project were skipped, will not tag nor generate Doxygen. 
-	    RET_VAL=2
+	    echo [AutoLaunchRun] No errors encountered but all project were skipped, will not tag nor generate Doxygen. 
+	    RET_VAL=1
 	fi
     else
 	echo [AutoLaunchRun] Errors were encountered, will not tag nor generate Doxygen. 
-	RET_VAL=3
+	RET_VAL=2
     fi
 else
-    echo [AutoLaunchRun] Repository up to date on $FROM_BRANCH branch at `git describe --always --match v*` 
-    RET_VAL=1
+    echo [AutoLaunchRun] Impossible to merge $TO_BRANCH into $FROM_BRANCH aborting...
+    RET_VAL=3
 fi
 rm -f $LOCK
 cd $OLD_DIR
-return $RET_VAL
+exit $RET_VAL

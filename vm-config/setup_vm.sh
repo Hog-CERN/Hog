@@ -1,6 +1,11 @@
 #!/bin/bash
 
+#install uhal from ipbus
+curl http://ipbus.web.cern.ch/ipbus/doc/user/html/_downloads/ipbus-sw.centos7.x86_64.repo > ipbus-sw.repo
+cp ipbus-sw.repo /etc/yum.repos.d/
+
 yum install htop emacs git eos-fuse doxygen python-webpy
+yum groupinstall uhal
 
 mkfs.ex4 /dev/vdb
 mkdir /mnt/vd
@@ -45,3 +50,4 @@ firewall-cmd --reload
 # install AWS service
 cp efex-aws.service /etc/systemd/system
 systemctl enable efex-aws.service
+

@@ -157,10 +157,12 @@ $PROJECT
     fi
 
     if [ $ALL_GOOD -eq 1 ]; then
+	git reset --hard HEAD
+	git clean -xdf
+	git push origin $FROM_BRANCH
+
 	if [ $AT_LEAST_ONE -eq 1 ]; then
 	    # Clean and push on git branch
-	    git reset --hard HEAD
-	    git clean -xdf
 	    git tag aws$TAG_NUMBER -m "Automatic tag ($TAG_NUMBER) after successful automatic test" -m "$GIT_MESSAGE"
 	    git push origin aws$TAG_NUMBER
 	    cd $DIR
@@ -173,10 +175,11 @@ $PROJECT
 	    /usr/bin/doxygen doxygen/doxygen.conf 2>&1 > ../Doc/html/doxygen-$COMMIT.log
 	    rm -r $WEB_DIR/../doc/*
 	    cp -r ../Doc/html/* $WEB_DIR/../doc/
+	    git reset --hard HEAD
 	    echo [AutoLaunchRun] Automatic workflow successful
 	    RET_VAL=0
 	else
-	    echo [AutoLaunchRun] No errors encountered but all project were skipped, will not tag nor generate Doxygen. 
+	    echo [AutoLaunchRun] No errors encountered but all projects were skipped, will not tag nor generate Doxygen. 
 	    RET_VAL=1
 	fi
     else

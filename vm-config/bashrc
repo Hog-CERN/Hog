@@ -930,7 +930,7 @@ export WWW=/eos/user/e/efex/www
 export EDITOR="emacs -nw"
 export GIT_EDITOR="emacs -nw"
 export XILINXD_LICENSE_FILE=2112@lxlicen01,2112@lxlicen02,2112@lxlicen03
-export PATH=$PATH:~/na62fw/NA62Reconstruction/:/mnt/big/Xilinx/Vivado/2017.1/bin/:/opt/Xilinx/Vivado/2017.3/bin/
+export PATH=$PATH:~/na62fw/NA62Reconstruction/:/mnt/big/Xilinx/Vivado/2017.1/bin/:/opt/Xilinx/Vivado/2017.3/bin/:/opt/cactus/bin/uhal/tools/
 export EOS_MGM_URL=root://eosuser.cern.ch
 eosfusebind krb5
 

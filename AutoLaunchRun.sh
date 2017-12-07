@@ -173,9 +173,11 @@ $PROJECT
 	git push origin $FROM_BRANCH
 
 	if [ $AT_LEAST_ONE -eq 1 ]; then
-	    echo [AutoLaunchRun] Tagging aws$TAG_NUMBER and pushing...
-	    git tag aws$TAG_NUMBER -m "Automatic tag ($TAG_NUMBER) after successful automatic test" -m "$GIT_MESSAGE"
-	    git push origin aws$TAG_NUMBER
+	    TAGS=`git tag -l aws$TAG_NUMBER*| wc -l`
+	    TAG_NAME=aws$TAG_NUMBER.$TAGS
+	    echo [AutoLaunchRun] Tagging aws$TAG_NAME and pushing...
+	    git tag $TAG_NAME -m "Automatic tag ($TAG_NAME) after successful automatic test" -m "$GIT_MESSAGE"
+	    git push origin aws$TAG_NAME
 	    cd $DIR
 	    echo "" >> doxygen/doxygen.conf
 	    echo -e "\nPROJECT_NUMBER = $COMMIT" >> doxygen/doxygen.conf
@@ -183,7 +185,6 @@ $PROJECT
 	    mkdir -p ../Doc/html
 	    
 	    echo [AutoLaunchRun] Launching doxygen...
-	    aws$TAG_NUMBER
 	    /usr/bin/doxygen doxygen/doxygen.conf 2>&1 > ../Doc/html/doxygen-$COMMIT.log
 	    rm -r $WEB_DIR/../doc/*
 	    cp -r ../Doc/html/* $WEB_DIR/../doc/

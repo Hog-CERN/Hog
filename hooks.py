@@ -30,6 +30,7 @@ class hooks:
         n=data['object_attributes']['iid']
         url=data['object_attributes']['url']
         last_commit_author=data['object_attributes']['last_commit']['author']['name']
+        action=data['object_attributes']['action']
 
         print
         print 'MERGE REQUEST RECEIVED:'
@@ -43,6 +44,7 @@ class hooks:
         print "Title:               ", title 
         print "Description:         ", description 
         print "Last commit author:  ", last_commit_author 
+        print "Action:              ", action
         time.sleep(1)
         u = requests.get(url, headers={'PRIVATE-TOKEN': 'CbWF_XrjGbEGMssj9fkZ'})
         time.sleep(1)
@@ -57,7 +59,7 @@ class hooks:
 
         # For pre merging test use
         #if status == 'can_be_merged' and state == 'opened' and not wip:
-        if status == 'can_be_merged' and tb == 'master' and state == 'opened' and last_commit_author != 'efex' and not wip:
+        if status == 'can_be_merged' and tb == 'master' and state == 'opened' and last_commit_author != 'efex' and action != 'approved' and not wip:
             print "*******************************************"
             print "Launching run for merge request {0}".format(n)
             print "From: {0}   To: {1}".format(sb,tb)

@@ -38,6 +38,7 @@ git submodule init
 git submodule update
 git clean -xdf
 git reset --hard HEAD
+echo [AutoLaunchRun] Checking out destination branch $TO_BRANCH ...
 git checkout $TO_BRANCH
 git fetch
 ALL_GOOD=1
@@ -51,23 +52,28 @@ do
     cd -
 done
 
+echo [AutoLaunchRun] Checking out source branch $FROM_BRANCH ...
 git checkout $FROM_BRANCH
+echo [AutoLaunchRun] Pulling ...
 git pull
-git merge -m "Merging $FROM_BRANCH into $TO_BRANCH before automatic workflow" $TO_BRANCH
+echo [AutoLaunchRun] Merginging $TO_BRANCH into $FROM_BRANCH before automatic workflow...
+git merge -m "Merging $TO_BRANCH into $FROM_BRANCH before automatic workflow" $TO_BRANCH
 if [ $? -eq 0 ]; then
+    echo [AutoLaunchRun] Merge was successful
     COMMIT=`git describe --always --match v*`
+    echo [AutoLaunchRun] Project is now at $COMMIT on $FROM_BRANCH
     TIME_DIR=$REVISION_DIR/$COMMIT/timing
     UTIL_DIR=$REVISION_DIR/$COMMIT/utilization
     mkdir -p $TIME_DIR
     mkdir -p $UTIL_DIR
     NJOBS=`/usr/bin/nproc`
     
-    # Loop over projects here
+    echo [AutoLaunchRun] Looping over projects...
     for PROJECT in `ls ./Top`
     do
 	cd ./Top/$PROJECT
 	if [ "$(git log --format=%h -1 -- $(cat ./list/* ) .)" == ${PROJ_COMM[$PROJECT]} ]; then
-	    cd -
+	    cd - > /dev/null
 	    echo [AutoLaunchRun] Project $PROJECT has not changed since last synthesis, skipping design-flow
 	    continue
 	fi
@@ -95,6 +101,7 @@ if [ $? -eq 0 ]; then
 	BITFILE=`ls $OUT_DIR/*/*$PROJECT.bit 2>/dev/null | head -1`
 	BINFILE=`ls $OUT_DIR/*/*$PROJECT.bin 2>/dev/null | head -1`
 	if [ ! -z $BITFILE ] && [ -f $BITFILE ]; then
+	    echo [AutoLaunchRun] Found bitfile $BITFILE
 	    AT_LEAST_ONE=1
 	    GOOD_MESSAGE=$GOOD_MESSAGE"\n$PROJECT\n"`cat $TIMING_REP | grep "Design Timing Summary" -B1 -A12 | grep -v "\-\-\-"`
 	    GIT_MESSAGE=$GIT_MESSAGE"
@@ -110,18 +117,20 @@ $PROJECT
 	    cp $NEW_BITFILE $ARCHIVE_DIR/$COMMIT 
 
 	    if [ ! -z $BINFILE ] && [ -f $BINFILE ]; then
+		echo [AutoLaunchRun] Found binfile $BINFILE
 		NEW_BINFILE=$OUT_DIR/../$PROJECT-$COMMIT.bin	    
 	    	mv $BINFILE $NEW_BINFILE
 		cp $NEW_BINFILE $ARCHIVE_DIR/$COMMIT
 	    fi
 	    
-	    #copy xml
+	    echo [AutoLaunchRun] Copyin xml...
 	    cp -r $OUT_DIR/xml $ARCHIVE_DIR/$COMMIT/$PROJECT/
 	    
-	    #copy reports
+	    echo [AutoLaunchRun] Copyin reports...
 	    cp $OUT_DIR/*/*.rpt $ARCHIVE_DIR/$COMMIT/$PROJECT/reports
 
 	else
+	    echo "[AutoLaunchRun] Error in design flow for $PROJECT ($COMMIT)"
 	    MESSAGE=`cat $JOURNAL_FILE $WEB_DIR/status-$COMMIT-$PROJECT`
 	    printf $MESSAGE  | mail -s "Error in design flow for $PROJECT ($COMMIT)" -a $LOG_FILE atlas-l1calo-efex@cern.ch
 	    ALL_GOOD=0
@@ -157,12 +166,14 @@ $PROJECT
     fi
 
     if [ $ALL_GOOD -eq 1 ]; then
+	echo [AutoLaunchRun] Resetting and cleaning...
 	git reset --hard HEAD
 	git clean -xdf
+	echo [AutoLaunchRun] Pushing $FROM_BRANCH 
 	git push origin $FROM_BRANCH
 
 	if [ $AT_LEAST_ONE -eq 1 ]; then
-	    # Clean and push on git branch
+	    echo [AutoLaunchRun] Tagging aws$TAG_NUMBER and pushing...
 	    git tag aws$TAG_NUMBER -m "Automatic tag ($TAG_NUMBER) after successful automatic test" -m "$GIT_MESSAGE"
 	    git push origin aws$TAG_NUMBER
 	    cd $DIR
@@ -171,11 +182,11 @@ $PROJECT
 	    rm -rf ../Doc
 	    mkdir -p ../Doc/html
 	    
-	    # Doxygen
+	    echo [AutoLaunchRun] Launching doxygen...
+	    aws$TAG_NUMBER
 	    /usr/bin/doxygen doxygen/doxygen.conf 2>&1 > ../Doc/html/doxygen-$COMMIT.log
 	    rm -r $WEB_DIR/../doc/*
 	    cp -r ../Doc/html/* $WEB_DIR/../doc/
-	    git reset --hard HEAD
 	    echo [AutoLaunchRun] Automatic workflow successful
 	    RET_VAL=0
 	else

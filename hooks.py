@@ -14,44 +14,41 @@ urls = ('/.*', 'hooks')
 app = web.application(urls, globals())
 session = web.session.Session(app, web.session.DiskStore('/home/efex/sessions'))
 
+def SendNote(msg, merge_request_number):
+    print "Sending note: {0}".format(msg)
+    sys.stdout.flush()
+    note = requests.post("https://gitlab.cern.ch/api/v4/projects/atlas-l1calo-efex%2FeFEXFirmware/merge_requests/{0}/notes".format(merge_request_number), data={'body':msg}, headers=head)
+    return note
+
 def StartWorkflow(sb,tb,n):
     print "*******************************************"
     print "Launching run for merge request {0}".format(n)
     print "From: {0}   To: {1}".format(sb,tb)
-    print 
-    print "Description: "
-    print
     print "*******************************************"
     sys.stdout.flush()
     cmd="kinit -kt /home/efex/efex.keytab efex; /usr/bin/eosfusebind krb5; /bin/bash /home/efex/AutomationScripts/AutoLaunchRun.sh /home/efex/eFEXFirmware {0} {1} {2} /mnt/vd/eFEX-revision /eos/user/e/efex/www/revision".format(sb,tb,n)
-    message="This merge request matches all the required criteria, I shall launch the automatic work flow now."
-    note = requests.post("https://gitlab.cern.ch/api/v4/projects/atlas-l1calo-efex%2FeFEXFirmware/merge_requests/{0}/notes".format(n), data={'body':message}, headers=head)
+    SendNote('This merge request matches all the required criteria, I shall launch the automatic work flow now.', n)
     print "Executing {0}".format(cmd)
     sys.stdout.flush()
     val = os.system(cmd) >> 8
     if val < 2:
         if val == 1:
-            message="This merge request does not modify any file that is revelant for any of the projects, so I shall approve it"
+            SendNote('This merge request does not modify any file that is revelant for any of the projects, so I shall approve it', n)
         else:
-            message="The automatic design flow was successful, so I shall approve this merge reqest"
-        print "Sending note: {0}".format(message)
-        sys.stdout.flush()
-        note = requests.post("https://gitlab.cern.ch/api/v4/projects/atlas-l1calo-efex%2FeFEXFirmware/merge_requests/{0}/notes".format(n), data={'body':message}, headers=head)
+            SendNote('The automatic design flow was successful, so I shall approve this merge reqest', n)
         approve = requests.post("https://gitlab.cern.ch/api/v4/projects/atlas-l1calo-efex%2FeFEXFirmware/merge_requests/{0}/approve".format(n), headers=head)
     else:
         print "Auto launch run returned value {0}".format(val)
-        message="The automatic design flow have failed, so I'm afraid I shall not be able to approve this merge reqest."
-        note = requests.post("https://gitlab.cern.ch/api/v4/projects/atlas-l1calo-efex%2FeFEXFirmware/merge_requests/{0}/notes".format(n), data={'body':message}, headers=head)
+        SendNote('The automatic design flow have failed, so I am afraid I shall not be able to approve this merge reqest.', n)
     sys.stdout.flush()
         
 
 
 class hooks:
-    def __init__(self):
-        self.queue = []
+    #def __init__(self):
+    #    self.queue = []
 
     def POST(self):
-        #request webpage here!!
         data = json.loads(web.data())
         #pprint(data)
         sb=data['object_attributes']['source_branch']
@@ -88,21 +85,10 @@ class hooks:
         print "--------------------------------"
         sys.stdout.flush()
         #pprint(data_web)
-        requests.get(url, headers=head)
-
-        # For pre merging test use
-        #if status == 'can_be_merged' and state == 'opened' and not wip:
         if status == 'can_be_merged' and tb == 'master' and state == 'opened' and last_commit_author != 'efex' and action != 'approved' and not wip:
-            #StartWorkflow(sb,tb,n ) #elmicc
             thread = Thread(target = StartWorkflow, args = (sb,tb,n))
             thread.start()
-            print "Auto workflow launched..."
-            sys.stdout.flush()
         return 'OK'
-
-    def AddSynth(self, from_branch, to_branch):
-        print "Adding to queue: {0} {1}".format(from_branch, to_branch)
-        self.queue.append((from_branch, to_branch))
 
 if __name__ == '__main__':
     app.run()

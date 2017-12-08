@@ -48,7 +48,7 @@ declare -A PROJ_COMM
 for PR in `ls ./Top`
 do
     cd ./Top/$PR
-    PROJ_COMM[$PR]=$(git log --format=%h -1 -- $(cat ./list/*) .)
+    PROJ_COMM[$PR]=$(git log --format=%h -1 -- $(awk '!/^ *#/ && NF {print $1}' ./list/*) .)
     cd -
 done
 
@@ -175,9 +175,9 @@ $PROJECT
 	if [ $AT_LEAST_ONE -eq 1 ]; then
 	    TAGS=`git tag -l aws$TAG_NUMBER*| wc -l`
 	    TAG_NAME=aws$TAG_NUMBER.$TAGS
-	    echo [AutoLaunchRun] Tagging aws$TAG_NAME and pushing...
-	    git tag $TAG_NAME -m "Automatic tag ($TAG_NAME) after successful automatic test" -m "$GIT_MESSAGE"
-	    git push origin aws$TAG_NAME
+	    echo [AutoLaunchRun] Tagging $TAG_NAME and pushing...
+	    git tag $TAG_NAME -m "Automatic tag ($TAG_NAME) after successful automatic work flow" -m "$GIT_MESSAGE"
+	    git push origin $TAG_NAME
 	    cd $DIR
 	    echo "" >> doxygen/doxygen.conf
 	    echo -e "\nPROJECT_NUMBER = $COMMIT" >> doxygen/doxygen.conf

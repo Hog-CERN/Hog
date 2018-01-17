@@ -19,10 +19,6 @@ if [ "$#" -gt 5 ]; then
 fi
 
 LOCK=$REVISION_DIR/lock
-#if [ -f $LOCK ]; then
-#    echo "lock file found"
-#    exit
-#fi
 while [ -f $LOCK ]; do
     echo "[AutoLaunchRun] waiting for lock file to disappear..."
     sleep 10
@@ -40,7 +36,8 @@ git clean -xdf
 git reset --hard HEAD
 echo [AutoLaunchRun] Checking out destination branch $TO_BRANCH ...
 git checkout $TO_BRANCH
-git fetch
+echo [AutoLaunchRun] Pulling from repository ...
+git pull
 ALL_GOOD=1
 AT_LEAST_ONE=0
 
@@ -48,7 +45,9 @@ declare -A PROJ_COMM
 for PR in `ls ./Top`
 do
     cd ./Top/$PR
-    PROJ_COMM[$PR]=$(git log --format=%h -1 -- $(awk '!/^ *#/ && NF {print $1}' ./list/*) .)
+    STATUS=$(git log --format=%h -1 -- $(awk '!/^ *#/ && NF {print $1}' ./list/*) .)
+    echo [AutoLaunchRun] Saving current status $STATUS for project $PR...
+    PROJ_COMM[$PR]=$STATUS
     cd -
 done
 

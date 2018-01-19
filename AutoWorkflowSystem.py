@@ -1,6 +1,7 @@
 #!/usr/bin/python
 import subprocess
-import shutil
+from shutil import move, copy2 as copy
+
 
 def Run(command, path='.', verbose=False):
     if verbose:

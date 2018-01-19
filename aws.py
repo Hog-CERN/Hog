@@ -36,7 +36,11 @@ def VivadoStatus(Path, StatusFile,
                  error_file = ".vivado.error.rst",
                  queue_file = ".Vivado_Synthesis.queue.rst",
                  log_file = "runme.log"):
-    Project = re.search(re.compile("(\w+).runs"),Path).group(0)
+    m = re.search(re.compile("(\w+).runs"),Path)
+    if m:
+        Project = m.group(0)
+    else:
+        Project = Path 
     if not path.isdir(Path):
         print "[VivadoStatus] Error! {0} does not exist".format(Path)
         return -1

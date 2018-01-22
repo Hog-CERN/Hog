@@ -14,7 +14,6 @@ def Alive(pid):
     else:
         return True
 
-
 class Runner():
     def __init__(self, path='.'):
         self.SetPath(path)
@@ -62,7 +61,6 @@ class VivadoProjects():
         self.runner.SetPath(self.RepoPath)
         self.VivadoCommand = "vivado -mode batch -notrace -journal {JournalFile} -log {LogFile} -source ./Tcl/launch_runs.tcl -tclargs {Project} {RunsDir} {NJobs}"
 
-
     def Scan(self):
         s = Runner()
         for name in listdir(self.TopPath):
@@ -78,7 +76,6 @@ class VivadoProjects():
                     self.Paths[name]= d
                 else:
                     print "[Vivado Projects] WARNING: list direcotry not found in project {0}, skipping...".format(name)
-
 
     def Exists(self, proj):
         if proj in self.Names:
@@ -120,7 +117,6 @@ class VivadoProjects():
                 print "[VivadoProjects] New project found: {0}".format(np)
                 self.SetToDo(np)
 
-
     def TimePath(self):
         return self.RevisionPath+'/'+self.Commit+'/'+'timing'
 
@@ -142,20 +138,19 @@ class VivadoProjects():
                 print "[VivadoProjects] Preparing run for: {0}, path: {1}".format(Project, self.Path(Project))
                 RunsDir="./VivadoProject/{0}/{0}.runs".format(Project)
                 OutDir="{0}/{1}/{2}".format(self.RevisionPath,self.Commit,Project)
-                print "[VivadoProjects] Creating directory {0} for project {1}...".format(OutDir, Project)
-                MakeDir(OutDir)
                 LogFile=OutDir+"/viv.log"
                 JournalFile=OutDir+"/viv.jou"
+                MakeDir(OutDir)
                 self.EvaluateNJobs()
-                print "[VivadoProjects] Preparing run for project: {0} ({1}) from branch {2} to {3}, with {4} jobs...".format(Project,self.Commit, self.SourceBranch, self.TargetBranch, self.NJobs)
-                # write this to $WEB_DIR/status-$COMMIT-$PROJECT
-                #r.Run
+                msg="Preparing run for project: {0} ({1}) from branch {2} to {3}, with {4} jobs.".format(Project,self.Commit,self.SourceBranch,self.TargetBranch,self.NJobs)
+                f_status=open(self.WebPath+'/status-'+self.Commit+'-'+Project,'w')
+                f_status.write(msg)
                 print "[VivadoProjects] Command: " + self.VivadoCommand.format(JournalFile=JournalFile, LogFile=LogFile, Project=Project, RunsDir=RunsDir, NJobs=self.NJobs)
+                # Run Command here...
         else:
             print "[VivadoProjects] No projects to run"
 
-
-    def LaunchVivadoRun(self):
+    def LaunchRun(self):
 		RetVal = 0
 		name='[LaunchVivadoRun] '
 		r=Runner()
@@ -167,7 +162,7 @@ class VivadoProjects():
 		        print name + "Error! {0} does not exist".format(p)
 		        return -1
 		
-		LockFile=self.RevisionPath+"/lock2"
+		LockFile=self.RevisionPath+"/lock"
 		while path.isfile(LockFile):
 		    print name+"Waiting for lockfile {0} to disappear...".format(LockFile)
 		    sleep(10)
@@ -179,8 +174,7 @@ class VivadoProjects():
 		#chek git version maybe...
 		
 		r.SetPath(self.RepoPath)
-		r.SetVerbose()
-		r.Run('git submodule init')
+                r.Run('git submodule init')
 		r.Run('git submodule update')
 		r.Run('git clean -xdf')
 		r.Run('git reset --hard HEAD')
@@ -188,9 +182,6 @@ class VivadoProjects():
 		r.Run("git checkout {0}".format(self.TargetBranch))
 		print name+"Pulling from repository ..."
 		r.Run('git pull')
-		AllGood=True
-		AtLeastOne=False
-		s=Runner()
 		OldProj = VivadoProjects(self.RepoPath)
 		OldProj.Scan()
 		print name+"Checking out source branch {0} ...".format(self.SourceBranch)
@@ -208,20 +199,13 @@ class VivadoProjects():
 		    self.Scan()
 		    self.Commit=r.Run('git describe --always --match v*')[0]
 		    print name+"Project is now at {0} on {1}".format(self.Commit,self.SourceBranch)
-		    self.EvaluateNJobs()
-		    print name+"Found {0} CPUs".format(self.NJobs)
 		    self.Compare(OldProj)
-		    self.EvaluateNJobs()
 		    self.Start()
 		
 		print name+"Removing lock file"
 		remove(LockFile)
 		return RetVal
 ###################################################
-
-
-
-
 
 def MakeDir(directory, verbose=True):
     if verbose:
@@ -320,6 +304,3 @@ def VivadoStatus(Path, StatusFile,
     OUT.write("<p> All done for: {0} </p>\n".format(Project))
     OUT.close()
 
-
-
-#VivadoStatus("../eFEXFirmware/VivadoProject/process_fpga/process_fpga.runs/", "test")

@@ -115,5 +115,11 @@ def VivadoStatus(Path, StatusFile,
     OUT.write("<p> All done for: {0} </p>\n".format(Project))
     OUT.close()
 
+def LaunchVivadoRun(RepoPath, SourceBranch, TargetBranch, MergeRequestNumber, RevisionPath, WebPath):
+    for p in [RepoPath, RevisionPath, WebPath]:
+        if not path.isdir(p):
+            print "[LaunchVivadoRun] Error! {0} does not exist".format(p)
+            return -1
+
 
 VivadoStatus("../eFEXFirmware/VivadoProject/process_fpga/process_fpga.runs/", "test")

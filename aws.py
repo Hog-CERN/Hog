@@ -46,12 +46,16 @@ class Runner():
 class VivadoProjects():
     def __init__(self, repo_path, s_branch="", t_branch="", merge_n=0, revision_path="", web_path=""):
         self.Names = []
+        self.StartRunEnabled = False
         self.Paths = {}
         self.Statuses = {}
         self.ToDo = {}
+        self.OutDirs = {}
+        self.RunsDirs = {}
         self.RepoPath = repo_path
         self.TopPath = self.RepoPath+'/Top'
         self.Commit = ""
+        self.LockFile = ""
         self.SourceBranch = s_branch
         self.TargetBranch = t_branch
         self.NJobs  = 0
@@ -59,7 +63,7 @@ class VivadoProjects():
         self.WebPath = web_path
         self.runner = Runner()
         self.runner.SetPath(self.RepoPath)
-        self.VivadoCommand = "vivado -mode batch -notrace -journal {JournalFile} -log {LogFile} -source ./Tcl/launch_runs.tcl -tclargs {Project} {RunsDir} {NJobs}"
+        self.VivadoCommandLine = "vivado -mode batch -notrace -journal {JournalFile} -log {LogFile} -source ./Tcl/launch_runs.tcl -tclargs {Project} {RunsDir} {NJobs}"
 
     def Scan(self):
         s = Runner()
@@ -76,6 +80,9 @@ class VivadoProjects():
                     self.Paths[name]= d
                 else:
                     print "[Vivado Projects] WARNING: list direcotry not found in project {0}, skipping...".format(name)
+
+    def VivadoCommand(self, proj):
+        return self.VivadoCommandLine.format(JournalFile=self.JournalFile(proj), LogFile=self.LogFile(proj), Project=proj, RunsDir=self.RunsDir(proj), NJobs=self.NJobs)
 
     def Exists(self, proj):
         if proj in self.Names:
@@ -99,11 +106,39 @@ class VivadoProjects():
         if self.Exists(proj):
             self.ToDo[proj] = True
 
+    def OutDir(self, proj):
+        return "{0}/{1}/{2}".format(self.RevisionPath,self.Commit,proj)
+
+    def RunsDir(self, proj):
+        if proj in self.RunsDirs:
+            return "./VivadoProject/{0}/{0}.runs".format(proj)
+        else:
+            return ""
+
+    def JournalFile(self, proj):
+        if proj in self.OutDirs:
+            return self.OutDir(proj)+"/viv.jou"
+        else:
+            return ""
+
+    def LogFile(self, proj):
+        if self.isToDo(proj):
+            return self.OutDir(proj)+"/viv.log"
+        else:
+            return ""
+            
     def isToDo(self, proj):
         if self.Exists(proj) and proj in self.ToDo:
             return True
         else:
             return False
+
+    def WriteStatus(self, proj):
+        msg="Preparing run for project: {0} ({1}) from branch {2} to {3}, with {4} jobs.".format(proj,self.Commit,self.SourceBranch,self.TargetBranch,self.NJobs)
+        f_status=open(self.WebPath+'/status-'+self.Commit+'-'+proj,'w')
+        f_status.write(msg)
+        f_status.close
+
 
     def Compare(self, OldProjects):
         for np in self.Names:
@@ -128,29 +163,32 @@ class VivadoProjects():
         self.NJobs = int(self.runner.Run('/usr/bin/nproc')[0])
         print "[VivadoProjects] Found {0} CPUs".format(self.NJobs)
 
-    def Start(self):
-        if len(self.ToDo.keys()) > 0:
-            print "[VivadoProjects] Creating global directories"
-            MakeDir(self.TimePath())
-            MakeDir(self.UtilPath())
-            print "[VivadoProjects] Looping over projects..."
-            for Project in self.ToDo.keys():
-                print "[VivadoProjects] Preparing run for: {0}, path: {1}".format(Project, self.Path(Project))
-                RunsDir="./VivadoProject/{0}/{0}.runs".format(Project)
-                OutDir="{0}/{1}/{2}".format(self.RevisionPath,self.Commit,Project)
-                LogFile=OutDir+"/viv.log"
-                JournalFile=OutDir+"/viv.jou"
-                MakeDir(OutDir)
-                self.EvaluateNJobs()
-                msg="Preparing run for project: {0} ({1}) from branch {2} to {3}, with {4} jobs.".format(Project,self.Commit,self.SourceBranch,self.TargetBranch,self.NJobs)
-                f_status=open(self.WebPath+'/status-'+self.Commit+'-'+Project,'w')
-                f_status.write(msg)
-                print "[VivadoProjects] Command: " + self.VivadoCommand.format(JournalFile=JournalFile, LogFile=LogFile, Project=Project, RunsDir=RunsDir, NJobs=self.NJobs)
-                # Run Command here...
-        else:
-            print "[VivadoProjects] No projects to run"
+    def EnableStartRun(self, enable=True):
+        self.StartRunEnabled = enable
 
-    def LaunchRun(self):
+    def StartRun(self):
+        if self.StartRunEnabled:
+            if len(self.ToDo.keys()) > 0:
+                self.EvaluateNJobs()
+                print "[VivadoProjects] Creating global directories"
+                MakeDir(self.TimePath())
+                MakeDir(self.UtilPath())
+                print "[VivadoProjects] Looping over projects..."
+                for Project in self.ToDo.keys():
+                    print "[VivadoProjects] Preparing run for: {0}, path: {1}".format(Project, self.Path(Project))
+                    MakeDir(self.OutDir(Project))
+                    self.WriteStatus(Project)
+                    print "[VivadoProjects] Command: " + self.VivadoCommand(Project) 
+                    # Run Command here...
+            else:
+                print "[StartRun] No projects to run"
+        else:
+                print "[StartRun] Start Run not enabled, run PrepareRun first"
+        print "[VivadoProjects] Removing lock file"
+        remove(self.LockFile)
+
+
+    def PrepareRun(self):
 		RetVal = 0
 		name='[LaunchVivadoRun] '
 		r=Runner()
@@ -162,11 +200,11 @@ class VivadoProjects():
 		        print name + "Error! {0} does not exist".format(p)
 		        return -1
 		
-		LockFile=self.RevisionPath+"/lock"
-		while path.isfile(LockFile):
-		    print name+"Waiting for lockfile {0} to disappear...".format(LockFile)
+		self.LockFile=self.RevisionPath+"/lock"
+		while path.isfile(self.LockFile):
+		    print name+"Waiting for lockfile {0} to disappear...".format(self.LockFile)
 		    sleep(10)
-		lf=open(LockFile, 'w')
+		lf=open(self.LockFile, 'w')
 		#maybe write something to it?
 		lf.close()
 		
@@ -193,18 +231,20 @@ class VivadoProjects():
 		r.Run("git merge -m \" {0} \" {1}".format(message,self.TargetBranch))
 		if not r.ReturnCode == 0:
 		    print name+"ERROR: Problems during merging {0} into {1}, aborting...".format(self.TargetBranch,self.SourceBranch)
-		    RetVal= 3
+                    print name+"Removing lock file"
+                    remove(self.LockFile)
+                    return 3
 		else:
 		    print name+"Merge was successful"
 		    self.Scan()
 		    self.Commit=r.Run('git describe --always --match v*')[0]
 		    print name+"Project is now at {0} on {1}".format(self.Commit,self.SourceBranch)
 		    self.Compare(OldProj)
-		    self.Start()
-		
-		print name+"Removing lock file"
-		remove(LockFile)
-		return RetVal
+		    self.EnableStartRun()
+		    print name+"StartRun enabled"
+                    return 0		
+
+
 ###################################################
 
 def MakeDir(directory, verbose=True):

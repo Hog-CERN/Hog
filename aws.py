@@ -3,7 +3,7 @@ import subprocess
 import re
 from time import sleep
 from shutil import move, copy2 as copy
-from os import path, listdir, kill, remove, makedirs
+from os import path, listdir, kill, remove, makedirs, system
 
 def Alive(pid):        
     """ Check For the existence of a unix pid. """
@@ -13,239 +13,6 @@ def Alive(pid):
         return False
     else:
         return True
-
-class Runner():
-    def __init__(self, path='.'):
-        self.SetPath(path)
-        self.Verbose = False
-
-    def SetPath(self, directory):
-        if path.isdir(directory):
-            self.Path=directory
-        else:
-            print "[Runner] Error, path {0} does not exist".format(path)
-            self.Path= ""
-
-    def SetVerbose(self, v=True):
-        self.Verbose = v
-
-    def Run(self, command):
-        if self.Verbose:
-            print "Running: '", command, "' From: '", self.Path, "'"
-        cmd = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, cwd=self.Path)
-        result = [x.rstrip() for x in list(cmd.stdout)]
-        if self.Verbose:
-            print 'Result:'
-            print result
-            print '-------'
-        cmd.wait()
-        self.ReturnCode = cmd.returncode
-        return result
-
-
-class VivadoProjects():
-    def __init__(self, repo_path, s_branch="", t_branch="", merge_n=0, revision_path="", web_path=""):
-        self.Names = []
-        self.StartRunEnabled = False
-        self.Paths = {}
-        self.Statuses = {}
-        self.ToDo = {}
-        self.OutDirs = {}
-        self.RunsDirs = {}
-        self.RepoPath = repo_path
-        self.TopPath = self.RepoPath+'/Top'
-        self.Commit = ""
-        self.LockFile = ""
-        self.SourceBranch = s_branch
-        self.TargetBranch = t_branch
-        self.NJobs  = 0
-        self.RevisionPath = revision_path
-        self.WebPath = web_path
-        self.runner = Runner()
-        self.runner.SetPath(self.RepoPath)
-        self.VivadoCommandLine = "vivado -mode batch -notrace -journal {JournalFile} -log {LogFile} -source ./Tcl/launch_runs.tcl -tclargs {Project} {RunsDir} {NJobs}"
-
-    def Scan(self):
-        s = Runner()
-        for name in listdir(self.TopPath):
-            d=self.TopPath+"/"+name
-            if path.isdir(d):
-                s.SetPath(d)
-                ListDir = "{0}/list".format(d)
-                if path.isdir(ListDir):
-                    Status = s.Run("git log --format=%h -1 -- $(awk '!/^ *#/ && NF {{print $1}}' {0}/list/*) .".format(d))[0]
-                    print "[VivadoProjects] Status of project {0} is {1}".format(name,Status)
-                    self.Names.append(name)
-                    self.Statuses[name]=Status
-                    self.Paths[name]= d
-                else:
-                    print "[Vivado Projects] WARNING: list direcotry not found in project {0}, skipping...".format(name)
-
-    def VivadoCommand(self, proj):
-        return self.VivadoCommandLine.format(JournalFile=self.JournalFile(proj), LogFile=self.LogFile(proj), Project=proj, RunsDir=self.RunsDir(proj), NJobs=self.NJobs)
-
-    def Exists(self, proj):
-        if proj in self.Names:
-            return True
-        else:
-            return False
-        
-    def Status(self, proj):
-        if self.Exists(proj):
-            return self.Statuses[proj]
-        else:
-            return 0
-
-    def Path(self, proj):
-        if self.Exists(proj):
-            return self.Paths[proj]
-        else:
-            return 0
-
-    def SetToDo(self, proj):
-        if self.Exists(proj):
-            self.ToDo[proj] = True
-
-    def OutDir(self, proj):
-        return "{0}/{1}/{2}".format(self.RevisionPath,self.Commit,proj)
-
-    def RunsDir(self, proj):
-        if proj in self.RunsDirs:
-            return "./VivadoProject/{0}/{0}.runs".format(proj)
-        else:
-            return ""
-
-    def JournalFile(self, proj):
-        if proj in self.OutDirs:
-            return self.OutDir(proj)+"/viv.jou"
-        else:
-            return ""
-
-    def LogFile(self, proj):
-        if self.isToDo(proj):
-            return self.OutDir(proj)+"/viv.log"
-        else:
-            return ""
-            
-    def isToDo(self, proj):
-        if self.Exists(proj) and proj in self.ToDo:
-            return True
-        else:
-            return False
-
-    def WriteStatus(self, proj):
-        msg="Preparing run for project: {0} ({1}) from branch {2} to {3}, with {4} jobs.".format(proj,self.Commit,self.SourceBranch,self.TargetBranch,self.NJobs)
-        f_status=open(self.WebPath+'/status-'+self.Commit+'-'+proj,'w')
-        f_status.write(msg)
-        f_status.close
-
-
-    def Compare(self, OldProjects):
-        for np in self.Names:
-            if OldProjects.Exists(np):
-                if OldProjects.Status(np) == self.Status(np):
-                    print "[VivadoProjects] Project {0} will not be influenced by this merge, design-flow will be skipped...".format(np)
-                else:
-                    print "[VivadoProjects] Project {0} was at {1} and is now at {2}".format(np, OldProjects.Status(np), self.Status(np))
-                    self.SetToDo(np)
-            else:
-                print "[VivadoProjects] New project found: {0}".format(np)
-                self.SetToDo(np)
-
-    def TimePath(self):
-        return self.RevisionPath+'/'+self.Commit+'/'+'timing'
-
-    def UtilPath(self):
-        return self.RevisionPath+'/'+self.Commit+'/'+'util'
-
-    def EvaluateNJobs(self):
-        # add some control here...
-        self.NJobs = int(self.runner.Run('/usr/bin/nproc')[0])
-        print "[VivadoProjects] Found {0} CPUs".format(self.NJobs)
-
-    def EnableStartRun(self, enable=True):
-        self.StartRunEnabled = enable
-
-    def StartRun(self):
-        if self.StartRunEnabled:
-            if len(self.ToDo.keys()) > 0:
-                self.EvaluateNJobs()
-                print "[VivadoProjects] Creating global directories"
-                MakeDir(self.TimePath())
-                MakeDir(self.UtilPath())
-                print "[VivadoProjects] Looping over projects..."
-                for Project in self.ToDo.keys():
-                    print "[VivadoProjects] Preparing run for: {0}, path: {1}".format(Project, self.Path(Project))
-                    MakeDir(self.OutDir(Project))
-                    self.WriteStatus(Project)
-                    print "[VivadoProjects] Command: " + self.VivadoCommand(Project) 
-                    # Run Command here...
-            else:
-                print "[StartRun] No projects to run"
-        else:
-                print "[StartRun] Start Run not enabled, run PrepareRun first"
-        print "[VivadoProjects] Removing lock file"
-        remove(self.LockFile)
-
-
-    def PrepareRun(self):
-		RetVal = 0
-		name='[LaunchVivadoRun] '
-		r=Runner()
-		for p in [self.RepoPath, self.RevisionPath, self.WebPath]:
-		    r.Run('kinit -kt /home/efex/efex.keytab efex')
-		    r.Run('/usr/bin/eosfusebind krb5')
-		
-		    if not path.isdir(p):
-		        print name + "Error! {0} does not exist".format(p)
-		        return -1
-		
-		self.LockFile=self.RevisionPath+"/lock"
-		while path.isfile(self.LockFile):
-		    print name+"Waiting for lockfile {0} to disappear...".format(self.LockFile)
-		    sleep(10)
-		lf=open(self.LockFile, 'w')
-		#maybe write something to it?
-		lf.close()
-		
-		#check if git,awk,nproc exist
-		#chek git version maybe...
-		
-		r.SetPath(self.RepoPath)
-                r.Run('git submodule init')
-		r.Run('git submodule update')
-		r.Run('git clean -xdf')
-		r.Run('git reset --hard HEAD')
-		print name+"Checking out target branch {0} ...".format(self.TargetBranch)
-		r.Run("git checkout {0}".format(self.TargetBranch))
-		print name+"Pulling from repository ..."
-		r.Run('git pull')
-		OldProj = VivadoProjects(self.RepoPath)
-		OldProj.Scan()
-		print name+"Checking out source branch {0} ...".format(self.SourceBranch)
-		r.Run("git checkout {0}".format(self.SourceBranch))
-		print name+"Pulling from repository ..."
-		r.Run('git pull')
-		message="Merginging {0} into {1} before automatic workflow...".format(self.TargetBranch,self.SourceBranch)
-		print name+message
-		r.Run("git merge -m \" {0} \" {1}".format(message,self.TargetBranch))
-		if not r.ReturnCode == 0:
-		    print name+"ERROR: Problems during merging {0} into {1}, aborting...".format(self.TargetBranch,self.SourceBranch)
-                    print name+"Removing lock file"
-                    remove(self.LockFile)
-                    return 3
-		else:
-		    print name+"Merge was successful"
-		    self.Scan()
-		    self.Commit=r.Run('git describe --always --match v*')[0]
-		    print name+"Project is now at {0} on {1}".format(self.Commit,self.SourceBranch)
-		    self.Compare(OldProj)
-		    self.EnableStartRun()
-		    print name+"StartRun enabled"
-                    return 0		
-
-
-###################################################
 
 def MakeDir(directory, verbose=True):
     if verbose:
@@ -265,6 +32,9 @@ def VivadoStatus(Path, StatusFile,
                  error_file = ".vivado.error.rst",
                  queue_file = ".Vivado_Synthesis.queue.rst",
                  log_file = "runme.log"):
+
+    print "[VivadoStatus] Monitoring Vivado workflow status in {0} and writing status to {1}...".format(Path,StatusFile)
+
     m = re.search(re.compile("(\w+).runs"),Path)
     if m:
         Project = m.group(0)
@@ -343,4 +113,263 @@ def VivadoStatus(Path, StatusFile,
     OUT = open (StatusFile,"a")
     OUT.write("<p> All done for: {0} </p>\n".format(Project))
     OUT.close()
+
+##########################################################
+
+class Runner():
+    def __init__(self, path='.'):
+        self.SetPath(path)
+        self.Verbose = False
+
+    def SetPath(self, directory):
+        if path.isdir(directory):
+            self.Path=directory
+        else:
+            print "[Runner] ERROR: path {0} does not exist".format(directory)
+            self.Path= ""
+
+    def SetVerbose(self, v=True):
+        self.Verbose = v
+
+
+    def RealTime (self, command):
+        #cmd = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, cwd=self.Path)
+        #while cmd.poll() is None:
+        #    print cmd.stdout.readline()
+        #self.ReturnCode = cmd.returncode
+        cmd = system("cd {0}; ".format(self.Path)+command)
+        self.ReturnCode = cmd >> 8
+
+
+    def Run(self, command):
+        if self.Verbose:
+            print "Running: '", command, "' From: '", self.Path, "'"
+        cmd = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, cwd=self.Path)
+        result = [x.rstrip() for x in list(cmd.stdout)]
+        cmd.wait()
+        if self.Verbose:
+            print 'Result:'
+            print result
+            print '-------'
+        self.ReturnCode = cmd.returncode
+        return result
+
+##########################################################
+
+class VivadoProjects():
+    def __init__(self, repo_path, s_branch="", t_branch="", merge_n=0, revision_path="", web_path=""):
+        self.Names = []
+        self.StartRunEnabled = False
+        self.Paths = {}
+        self.Statuses = {}
+        self.ToDo = {}
+        self.RepoPath = repo_path
+        self.TopPath = self.RepoPath+'/Top'
+        self.Commit = ""
+        self.LockFile = ""
+        self.SourceBranch = s_branch
+        self.TargetBranch = t_branch
+        self.NJobs  = 0
+        self.RevisionPath = revision_path
+        self.WebPath = web_path
+        self.runner = Runner()
+        self.runner.SetPath(self.RepoPath)
+        self.State = {}
+        self.VivadoCommandLine = "vivado -mode batch -notrace -journal {JournalFile} -log {LogFile} -source ./Tcl/launch_runs.tcl -tclargs {Project} {RunsDir} {NJobs}"
+
+    def Scan(self):
+        s = Runner()
+        for name in listdir(self.TopPath):
+            d=self.TopPath+"/"+name
+            if path.isdir(d):
+                s.SetPath(d)
+                ListDir = "{0}/list".format(d)
+                if path.isdir(ListDir):
+                    Status = s.Run("git log --format=%h -1 -- $(awk '!/^ *#/ && NF {{print $1}}' {0}/list/*) .".format(d))[0]
+                    print "[VivadoProjects] Status of project {0} is {1}".format(name,Status)
+                    self.Names.append(name)
+                    self.Statuses[name]=Status
+                    self.Paths[name]= d
+                    self.State[name] = 'new'
+                else:
+                    print "[Vivado Projects] WARNING: list direcotry not found in project {0}, skipping...".format(name)
+
+    def VivadoCommand(self, proj):
+        return self.VivadoCommandLine.format(JournalFile=self.JournalFile(proj), LogFile=self.LogFile(proj), Project=proj, RunsDir=self.RunsDir(proj), NJobs=self.NJobs)
+
+    def Exists(self, proj):
+        if proj in self.Names:
+            return True
+        else:
+            return False
+        
+    def Status(self, proj):
+        if self.Exists(proj):
+            return self.Statuses[proj]
+        else:
+            return 0
+
+    def Path(self, proj):
+        if self.Exists(proj):
+            return self.Paths[proj]
+        else:
+            return 0
+
+    def SetToDo(self, proj):
+        if self.Exists(proj):
+            self.ToDo[proj] = True
+
+    def OutDir(self, proj):
+        return "{0}/{1}/{2}".format(self.RevisionPath,self.Commit,proj)
+
+    def RunsDir(self, proj):
+        if self.isToDo(proj):
+            return self.RepoPath+"/VivadoProject/{0}/{0}.runs".format(proj)
+        else:
+            return ""
+
+    def JournalFile(self, proj):
+        if self.isToDo(proj):
+            return self.OutDir(proj)+"/viv.jou"
+        else:
+            return ""
+
+    def LogFile(self, proj):
+        if self.isToDo(proj):
+            return self.OutDir(proj)+"/viv.log"
+        else:
+            return ""
+            
+    def isToDo(self, proj):
+        if self.Exists(proj) and proj in self.ToDo:
+            return True
+        else:
+            return False
+
+    def StatusFile(self, proj):
+        return self.WebPath+'/status-'+self.Commit+'-'+proj    
+
+    def WriteStatus(self, proj):
+        msg="Preparing run for project: {0} ({1}) from branch {2} to {3}, with {4} jobs.".format(proj,self.Commit,self.SourceBranch,self.TargetBranch,self.NJobs)
+        f_status=open(self.StatusFile(proj),'w')
+        f_status.write(msg)
+        f_status.close
+
+
+    def Compare(self, OldProjects):
+        for np in self.Names:
+            if OldProjects.Exists(np):
+                if OldProjects.Status(np) == self.Status(np):
+                    print "[VivadoProjects] Project {0} will not be influenced by this merge, design-flow will be skipped...".format(np)
+                else:
+                    print "[VivadoProjects] Project {0} was at {1} and is now at {2}".format(np, OldProjects.Status(np), self.Status(np))
+                    self.SetToDo(np)
+            else:
+                print "[VivadoProjects] New project found: {0}".format(np)
+                self.SetToDo(np)
+
+    def TimePath(self):
+        return self.RevisionPath+'/'+self.Commit+'/'+'timing'
+
+    def UtilPath(self):
+        return self.RevisionPath+'/'+self.Commit+'/'+'util'
+
+    def EvaluateNJobs(self):
+        # add some control here...
+        self.NJobs = int(self.runner.Run('/usr/bin/nproc')[0])
+        print "[VivadoProjects] Found {0} CPUs".format(self.NJobs)
+
+    def EnableStartRun(self, enable=True):
+        self.StartRunEnabled = enable
+
+    def PrepareRun(self):
+		RetVal = 0
+		name='[LaunchVivadoRun] '
+		r=Runner()
+		for p in [self.RepoPath, self.RevisionPath, self.WebPath]:
+		    r.Run('kinit -kt /home/efex/efex.keytab efex')
+		    r.Run('/usr/bin/eosfusebind krb5')
+		
+		    if not path.isdir(p):
+		        print name + "Error! {0} does not exist".format(p)
+		        return -1
+		
+		self.LockFile=self.RevisionPath+"/lock"
+		while path.isfile(self.LockFile):
+		    print name+"Waiting for lockfile {0} to disappear...".format(self.LockFile)
+		    sleep(10)
+		lf=open(self.LockFile, 'w')
+		#maybe write something to it?
+		lf.close()
+		
+		#check if git,awk,nproc exist
+		#chek git version maybe...
+		
+		r.SetPath(self.RepoPath)
+                r.Run('git submodule init')
+		r.Run('git submodule update')
+		r.Run('git clean -xdf')
+		r.Run('git reset --hard HEAD')
+		print name+"Checking out target branch {0} ...".format(self.TargetBranch)
+		r.Run("git checkout {0}".format(self.TargetBranch))
+		print name+"Pulling from repository ..."
+		r.Run('git pull')
+		OldProj = VivadoProjects(self.RepoPath)
+		OldProj.Scan()
+		print name+"Checking out source branch {0} ...".format(self.SourceBranch)
+		r.Run("git checkout {0}".format(self.SourceBranch))
+		print name+"Pulling from repository ..."
+		r.Run('git pull')
+		message="Merginging {0} into {1} before automatic workflow...".format(self.TargetBranch,self.SourceBranch)
+		print name+message
+		r.Run("git merge -m \" {0} \" {1}".format(message,self.TargetBranch))
+		if not r.ReturnCode == 0:
+		    print name+"ERROR: Problems during merging {0} into {1}, aborting...".format(self.TargetBranch,self.SourceBranch)
+                    print name+"Removing lock file"
+                    remove(self.LockFile)
+                    return 3
+		else:
+		    print name+"Merge was successful"
+		    self.Scan()
+		    self.Commit=r.Run('git describe --always --match v*')[0]
+		    print name+"Project is now at {0} on {1}".format(self.Commit,self.SourceBranch)
+		    self.Compare(OldProj)
+		    self.EnableStartRun()
+		    print name+"StartRun enabled"
+                    return 0		
+
+
+    def StartRun(self):
+        if self.StartRunEnabled:
+            if len(self.ToDo.keys()) > 0:
+                self.EvaluateNJobs()
+                print "[StartRun] Creating global directories"
+                MakeDir(self.TimePath())
+                MakeDir(self.UtilPath())
+                print "[StartRun] Looping over projects..."
+                for Project in self.ToDo.keys():
+                    print "[VivadoProjects] Preparing run for: {0}, path: {1}".format(Project, self.Path(Project))
+                    MakeDir(self.OutDir(Project))
+                    self.WriteStatus(Project)
+                    print "[StartRun] Command: " + self.VivadoCommand(Project) 
+                    print "[StartRun] ***** STARTING VIVADO *****"
+                    self.runner.RealTime(self.VivadoCommand(Project))
+                    print "[StartRun] ***** VIVADO END *****"
+                    if self.runner.ReturnCode() == 0:
+                        VivadoStatus(self.RunsDir(Project), self.StatusFile(Project))                    
+                    else:
+                        print "[StartRun] ERROR: Vivado returned an error status"
+                        self.State[Project] = "error vivado"
+            else:
+                print "[StartRun] No projects to run"
+                self.State[Project] = "error vivado"
+        else:
+                print "[StartRun] Start Run not enabled, run PrepareRun first"
+        print "[VivadoProjects] Removing lock file, if any"
+        if path.isfile(self.LockFile):
+            remove(self.LockFile)
+
+
+
+###################################################
 

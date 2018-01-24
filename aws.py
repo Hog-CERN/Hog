@@ -355,7 +355,7 @@ class VivadoProjects():
                     print "[StartRun] ***** STARTING VIVADO *****"
                     self.runner.RealTime(self.VivadoCommand(Project))
                     print "[StartRun] ***** VIVADO END *****"
-                    if self.runner.ReturnCode() == 0:
+                    if self.runner.ReturnCode == 0:
                         VivadoStatus(self.RunsDir(Project), self.StatusFile(Project))                    
                     else:
                         print "[StartRun] ERROR: Vivado returned an error status"

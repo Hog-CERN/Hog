@@ -1,6 +1,7 @@
 #!/usr/bin/python
 import subprocess
 import re
+import glob
 from time import sleep
 from shutil import move, copy2 as copy
 from os import path, listdir, kill, remove, makedirs, system
@@ -271,6 +272,10 @@ class VivadoProjects():
         else:
             return ""
 
+    def ArchiveDir(self, proj):
+        return "{0}/firmware/{1}/{2}".format(self.WebPath,self.Commit,proj)
+
+
     def JournalFile(self, proj):
         if self.isToDo(proj):
             return self.OutDir(proj)+"/viv.jou"
@@ -331,6 +336,17 @@ class VivadoProjects():
             remove(self.LockFile)
         else:
             print "[VivadoProjects] Lockfile {0} not found".format(self.LockFile)
+
+
+    def StoreFiles(self, proj):
+        copy(self.RunsDir(proj), self.OutDir(proj))
+        copy(self.OutDir(proj)+'/xml', self.ArchiveDir(proj))
+        rpt_dir = self.ArchiveDir()+"/reports"
+        MakeDir(rpt_dir)
+        for report in glob.iglob(self.RunsDir(proj)+'/**/*.rpt'  recursive=True):
+            copy(report, rpt_dir)
+        
+
 
     def PrepareRun(self, RepoReset=True):
 		RetVal = 0
@@ -418,10 +434,19 @@ class VivadoProjects():
                     self.runner.RealTime(self.VivadoCommand(Project))
                     print "[StartRun] ***** VIVADO END for {0} *****".format(Project)
                     if self.runner.ReturnCode == 0:
-                        VivadoStatus(self.RunsDir(Project), self.StatusFile(Project))                    
+                        ret = VivadoStatus(self.RunsDir(Project), self.StatusFile(Project))                    
+                        if ret == 0:
+                            print "[StartRun] Vivado run was successful for {0} *****".format(Project)
+                            self.State[Project] = "success"                                                        
+                            # send some message here?
+                        else:
+                            print "[StartRun] WARNING something went wrong with Vivado run for {0} *****".format(Project)
+                            self.State[Project] = "error vivado flow"                            
+                        self.StoreFiles(Project)
+
                     else:
                         print "[StartRun] ERROR: Vivado returned an error status"
-                        self.State[Project] = "error vivado"
+                        self.State[Project] = "error vivado launch"
             else:
                 print "[StartRun] No projects to run"
                 self.State[Project] = "error vivado"

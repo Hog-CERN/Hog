@@ -44,57 +44,73 @@ def VivadoStatus(Path, StatusFile,
         print "[VivadoStatus] Error! {0} does not exist".format(Path)
         return -1
     Status = {}
+    Phase = {}
+    Names = {}
     Log = {}
-    AllDone = False
-    while not AllDone:
+    AllDone = 3
+    AllSuccess = True
+    NoErrors = True
+    while AllDone>0:
 	    for d in listdir(Path):
+                name=d
 	        d=Path+'/'+d
 	        if path.isdir(d):
-	                if path.isfile(d+'/'+end_file):
+                    Names[d]= name
+	            if path.isfile(d+'/'+end_file):
 	                    Status[d] = "<font style=\"font-weight:bold;color:Green\";> done successfully </font>"
 	                    tails=40
-	                elif path.isfile(d+'/'+error_file):
+	            elif path.isfile(d+'/'+error_file):
 	                    Status[d] = "<font style=\"font-weight:bold;color:Red\";> error </font>"
 	                    tails=100
-	                elif path.isfile(d+'/'+begin_file):
+	            elif path.isfile(d+'/'+begin_file):
 	                    with open(d+'/'+begin_file) as f:
 	                        lines = f.read().splitlines()
 	                    r = re.compile("Pid=\"(\d+)\"")
 	                    l = " ".join(lines)
 	                    m=re.search(r,l)
 	                    if m:
-	                        pid = m.group(0)
+	                        pid = m.group(1)
 	                    else:
-	                        print "[RunStatus] Couldnt parse pid out of {0}".format(d+'/'+begin_file)
+	                        print "[RunStatus] WARNING: Couldnt parse pid out of {0}".format(d+'/'+begin_file)
 	                        pid = 0
 	                    Status[d] = pid;
+                            r = re.compile("(\w+\_\w+)\.(begin|end|error)\.rst")
+                            for f in listdir(d):
+                                m=re.search(r,f)
+                                if m:
+                                    if not d in Phase:
+                                        Phase[d]= {}
+                                    Phase[d][m.group(1)] = m.group(2)
 	                    tails=100
-	                elif path.isfile(d+'/'+queue_file):
+	            elif path.isfile(d+'/'+queue_file):
 	                    Status[d] = "queued"
 	                    tails=20
 	                                                    
-	                if path.isfile(d+'/'+log_file):
+	            if path.isfile(d+'/'+log_file):
 	                    with open(d+'/'+log_file) as f:
 	                        lines = f.read().splitlines()
 	                    Log[d] = "\n".join(lines[-tails:-1])
-	                else:
+	            else:
 	                    Log[d] = 'No log file found';
 	
 	            # Writing on status file
-	    AllDone = True
 	    OUT = open (StatusFile,"w")
 	    OUT.write("<h2> Project: {0} </h2>\n".format(Project))
+            AllQueued= True
 	    for key, value in Status.iteritems():
+                Running = False
 	        OUT.write("<strong> Run {0} </strong>\n".format(key))
 	        if value.isdigit():
 	            OUT.write("<font style=\"font-weight:bold;color:Orange\";> is running with PID={0}</font>".format(value))
 	            if Alive(int(value)):
 	                OUT.write("<font style=\"font-weight:bold;color:Green\";> Process {0} is alive</font>".format(value))
+                        Running = True
 	            else:
 	                OUT.write("<font style=\"font-weight:bold;color:Red\";> Process {0} is dead</font>".format(value))
 	        else:
 	            OUT.write(value)
 	                
+
 	        if key in Log:
 	            OUT.write("<label for=\"{0}\"> <font style=\"color:white;background-color:#36c\";> view </font> </label>\n".format(key))
 	            OUT.write("<input type=\"checkbox\" id=\"{0}\" style=\"display:none;\">\n".format(key))
@@ -102,17 +118,44 @@ def VivadoStatus(Path, StatusFile,
 	            OUT.write(Log[key])
 	            OUT.write("</pre></div>\n")
 	
+	        if key in Phase:
+                    OUT.write("&nbsp &nbsp ( &nbsp &nbsp \n")                  
+                    for ph, st in Phase[key].iteritems():
+                        OUT.write("<font style=\"color:Seagreen\">{0}: {1} &nbsp &nbsp  </font>\n".format(ph,st))
+                    OUT.write(")\n")                  
+
 	        OUT.write( "<br>\n")
 	        
-	        if value == "queued" or value.isdigit():
-	            AllDone = False;
-	
+                if (value.isdigit() and Running):
+                    AllDone = 3
+
+                if (not "queued" in value):
+                    AllQueued = False;
+
+                if (not "done successfully" in value):
+                    AllSuccess = False;
+
+                if (value.isdigit() and not Running or "error" in value):
+                    NoErrors = False;
+
 	    OUT.write("<hr>\n")
 	    OUT.close()
+            if AllQueued or not NoErrors:
+                AllDone = AllDone-1
+            if AllSuccess:
+                AllDone = -10
 	    sleep(5)
+    if NoErrors and not AllQueued:
+        msg = "All done successfully for: {0}".format(Project)
+    elif AllQueued:
+        msg = "All process are queued for a while for: {0}".format(Project)
+    else:
+        msg = "All process are queued, dead, or in error for: {0}".format(Project)
+
     OUT = open (StatusFile,"a")
-    OUT.write("<p> All done for: {0} </p>\n".format(Project))
+    OUT.write("<p> " + msg +"</p>\n")
     OUT.close()
+    print "[RunStatus] "+ msg
 
 ##########################################################
 
@@ -282,22 +325,29 @@ class VivadoProjects():
     def EnableStartRun(self, enable=True):
         self.StartRunEnabled = enable
 
-    def PrepareRun(self):
+    def RemoveLockFile(self):
+        print "[VivadoProjects] Removing lockfile {0} if exists".format(self.LockFile)
+        if path.isfile(self.LockFile):
+            remove(self.LockFile)
+        else:
+            print "[VivadoProjects] Lockfile {0} not found".format(self.LockFile)
+
+    def PrepareRun(self, RepoReset=True):
 		RetVal = 0
-		name='[LaunchVivadoRun] '
+		name='[PrepareRun] '
 		r=Runner()
 		for p in [self.RepoPath, self.RevisionPath, self.WebPath]:
 		    r.Run('kinit -kt /home/efex/efex.keytab efex')
 		    r.Run('/usr/bin/eosfusebind krb5')
 		
 		    if not path.isdir(p):
-		        print name + "Error! {0} does not exist".format(p)
+		        print name + "ERROR: {0} does not exist".format(p)
 		        return -1
 		
 		self.LockFile=self.RevisionPath+"/lock"
 		while path.isfile(self.LockFile):
 		    print name+"Waiting for lockfile {0} to disappear...".format(self.LockFile)
-		    sleep(10)
+		    sleep(30)
 		lf=open(self.LockFile, 'w')
 		#maybe write something to it?
 		lf.close()
@@ -306,10 +356,24 @@ class VivadoProjects():
 		#chek git version maybe...
 		
 		r.SetPath(self.RepoPath)
+                r.Run('git fetch')
+                r.Run("git rev-parse --verify {0}".format(self.SourceBranch))
+                if not r.ReturnCode == 0:
+                    print name+"ERROR: source branch {0} does not exist".format(self.SourceBranch)
+                    self.RemoveLockFile()
+                    return 4
+                r.Run("git rev-parse --verify {0}".format(self.TargetBranch))
+                if not r.ReturnCode == 0:
+                    print name+"ERROR: target branch {0} does not exist".format(self.TargetBranch)
+                    self.RemoveLockFile()
+                    return 5
+
                 r.Run('git submodule init')
 		r.Run('git submodule update')
-		r.Run('git clean -xdf')
-		r.Run('git reset --hard HEAD')
+                if RepoReset:
+                    print name+"Cleaning and resetting repository..."
+                    r.Run('git clean -xdf')
+                    r.Run('git reset --hard HEAD')
 		print name+"Checking out target branch {0} ...".format(self.TargetBranch)
 		r.Run("git checkout {0}".format(self.TargetBranch))
 		print name+"Pulling from repository ..."
@@ -325,8 +389,7 @@ class VivadoProjects():
 		r.Run("git merge -m \" {0} \" {1}".format(message,self.TargetBranch))
 		if not r.ReturnCode == 0:
 		    print name+"ERROR: Problems during merging {0} into {1}, aborting...".format(self.TargetBranch,self.SourceBranch)
-                    print name+"Removing lock file"
-                    remove(self.LockFile)
+                    self.RemoveLockFile()
                     return 3
 		else:
 		    print name+"Merge was successful"
@@ -337,7 +400,6 @@ class VivadoProjects():
 		    self.EnableStartRun()
 		    print name+"StartRun enabled"
                     return 0		
-
 
     def StartRun(self):
         if self.StartRunEnabled:
@@ -352,9 +414,9 @@ class VivadoProjects():
                     MakeDir(self.OutDir(Project))
                     self.WriteStatus(Project)
                     print "[StartRun] Command: " + self.VivadoCommand(Project) 
-                    print "[StartRun] ***** STARTING VIVADO *****"
+                    print "[StartRun] ***** STARTING VIVADO for {0} *****".format(Project)
                     self.runner.RealTime(self.VivadoCommand(Project))
-                    print "[StartRun] ***** VIVADO END *****"
+                    print "[StartRun] ***** VIVADO END for {0} *****".format(Project)
                     if self.runner.ReturnCode == 0:
                         VivadoStatus(self.RunsDir(Project), self.StatusFile(Project))                    
                     else:
@@ -366,10 +428,7 @@ class VivadoProjects():
         else:
                 print "[StartRun] Start Run not enabled, run PrepareRun first"
         print "[VivadoProjects] Removing lock file, if any"
-        if path.isfile(self.LockFile):
-            remove(self.LockFile)
-
-
+        self.RemoveLockFile()
 
 ###################################################
 

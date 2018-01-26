@@ -3,7 +3,8 @@ import subprocess
 import re
 import glob
 from time import sleep
-from shutil import move, copy2 as copy
+from distutils.dir_util import copy_tree
+from distutils.file_util import copy_file,move_file
 from os import path, listdir, kill, remove, makedirs, system
 
 def Alive(pid):        
@@ -25,7 +26,7 @@ def MakeDir(directory, verbose=True):
 
 def SendMail(txt, subject, address):
     a=Runner()
-    a.Run("echo \"{0}\" | mail -s \"{1}\" {2}".format(txt, subject,address))
+    a.Run("echo \"{0}\" | mail -s \"{1}\" {2}".format(txt, subject, address))
 
 def VivadoStatus(Path, StatusFile,
                  begin_file = ".vivado.begin.rst",
@@ -45,6 +46,7 @@ def VivadoStatus(Path, StatusFile,
         print "[VivadoStatus] Error! {0} does not exist".format(Path)
         return -1
     Status = {}
+    Report = {}
     Phase = {}
     Names = {}
     Log = {}
@@ -316,12 +318,6 @@ class VivadoProjects():
                 print "[VivadoProjects] New project found: {0}".format(np)
                 self.SetToDo(np)
 
-    def TimePath(self):
-        return self.RevisionPath+'/'+self.Commit+'/'+'timing'
-
-    def UtilPath(self):
-        return self.RevisionPath+'/'+self.Commit+'/'+'util'
-
     def EvaluateNJobs(self):
         # add some control here...
         self.NJobs = int(self.runner.Run('/usr/bin/nproc')[0])
@@ -337,18 +333,59 @@ class VivadoProjects():
         else:
             print "[VivadoProjects] Lockfile {0} not found".format(self.LockFile)
 
+    def StoreRun(self, proj):
+        # copy the whole runs dir for debug
+        print "[StoreRun] Copying {0} to {1}".format(self.RunsDir(proj), self.OutDir(proj))
+        copy_tree(self.RunsDir(proj), self.OutDir(proj), verbose=1)
+
+    def StoreBitFile(self, proj):
+        # Look for bitfile
+        print "[StoreBitFile] Looking for bitfiles..."
+        Found = False
+        for bit_file in glob.iglob(self.RunsDir(proj)+"/**/*{0}.bit".format(proj)):
+            Found = True
+            dst=self.ArchiveDir(proj)+"/{0}-{1}.bit".format(proj, self.Commit)
+            print "[StoreBitFile] Found bitfile: {0}, moving it to {1}".format(bit_file, dst)
+            move_file(bit_file, dst)
+        print "[StoreBitFile] Looking for binfiles..."
+        for bin_file in glob.iglob(self.RunsDir(proj)+"/**/*{0}.bin".format(proj)):
+            dst=self.ArchiveDir(proj)+"/{0}-{1}.bin".format(proj, self.Commit)
+            print "[StoreBitFile] Found binfile: {0}, moving it to {1}".format(bin_file, dst)
+            move_file(bin_file, dst)
+        return Found
 
     def StoreFiles(self, proj):
-        copy(self.RunsDir(proj), self.OutDir(proj))
-        copy(self.OutDir(proj)+'/xml', self.ArchiveDir(proj))
-        rpt_dir = self.ArchiveDir()+"/reports"
+        xml_dir=self.ArchiveDir(proj)+'/xml'
+        MakeDir(xml_dir)
+        copy_tree(self.OutDir(proj)+'/xml', xml_dir)
+        rpt_dir = self.ArchiveDir(proj)+"/reports"
         MakeDir(rpt_dir)
-        for report in glob.iglob(self.RunsDir(proj)+'/**/*.rpt'  recursive=True):
-            copy(report, rpt_dir)
-        
+        for report in glob.iglob(self.RunsDir(proj)+'/**/*.rpt'):
+            copy_file(report, rpt_dir)
+            if 'timing' in report and proj in report:
+                with open(report) as f:
+                    lines = f.read().splitlines()
+                    try:
+                        start=lines.index([x for x in lines if "Design Timing Summary" in x][0])
+                        titles= re.split('\s\s+', lines[start+4].strip())
+                        values= re.split('\s\s+', lines[start+6].strip())
+                        timing= ["{0} = {1}".format(t,v) for t,v in zip(titles,values)]
+                        timing.append(lines[start+9])
+                        ret= "\n".join(timing)
+                        self.Report[proj] = ret
+                    except ValueError:
+                        ret = '[StoreFiles] ERROR: could not parse timing report'
+                        print ret
+            else:
+                ret = '[StoreFiles] ERROR: could not find timing report'
+                print ret
 
 
-    def PrepareRun(self, RepoReset=True):
+        return ret
+
+
+
+    def PrepareRun(self, RepoReset=True, Force=False):
 		RetVal = 0
 		name='[PrepareRun] '
 		r=Runner()
@@ -361,9 +398,10 @@ class VivadoProjects():
 		        return -1
 		
 		self.LockFile=self.RevisionPath+"/lock"
-		while path.isfile(self.LockFile):
-		    print name+"Waiting for lockfile {0} to disappear...".format(self.LockFile)
-		    sleep(30)
+                if not Force:
+                    while path.isfile(self.LockFile):
+                        print name+"Waiting for lockfile {0} to disappear...".format(self.LockFile)
+                        sleep(5)
 		lf=open(self.LockFile, 'w')
 		#maybe write something to it?
 		lf.close()
@@ -421,9 +459,6 @@ class VivadoProjects():
         if self.StartRunEnabled:
             if len(self.ToDo.keys()) > 0:
                 self.EvaluateNJobs()
-                print "[StartRun] Creating global directories"
-                MakeDir(self.TimePath())
-                MakeDir(self.UtilPath())
                 print "[StartRun] Looping over projects..."
                 for Project in self.ToDo.keys():
                     print "[VivadoProjects] Preparing run for: {0}, path: {1}".format(Project, self.Path(Project))
@@ -437,8 +472,13 @@ class VivadoProjects():
                         ret = VivadoStatus(self.RunsDir(Project), self.StatusFile(Project))                    
                         if ret == 0:
                             print "[StartRun] Vivado run was successful for {0} *****".format(Project)
-                            self.State[Project] = "success"                                                        
-                            # send some message here?
+                            self.StoreRun(Project)
+                            if self.StoreBitFile(Project):
+                                self.State[Project] = "success"                                                        
+                                self.StoreFiles(Project)
+                                # write msg project successfull
+                            else:
+                                self.State[Project] = "error bitfile"                                                        
                         else:
                             print "[StartRun] WARNING something went wrong with Vivado run for {0} *****".format(Project)
                             self.State[Project] = "error vivado flow"                            

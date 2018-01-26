@@ -1,7 +1,5 @@
 #!/usr/bin/python
-import subprocess
-import re
-import glob
+import subprocess, re, glob, requests
 from time import sleep
 from distutils.dir_util import copy_tree
 from distutils.file_util import copy_file,move_file
@@ -27,6 +25,11 @@ def MakeDir(directory, verbose=True):
 def SendMail(txt, subject, address):
     a=Runner()
     a.Run("echo \"{0}\" | mail -s \"{1}\" {2}".format(txt, subject, address))
+
+def SendNote(msg, merge_request_number):
+    print "[SendNote] Sending note: {0}".format(msg)
+    note = requests.post("https://gitlab.cern.ch/api/v4/projects/atlas-l1calo-efex%2FeFEXFirmware/merge_requests/{0}/notes".format(merge_request_number), data={'body':msg}, headers=head)
+    return note
 
 def VivadoStatus(Path, StatusFile,
                  begin_file = ".vivado.begin.rst",
@@ -147,6 +150,7 @@ def VivadoStatus(Path, StatusFile,
                 AllDone = AllDone-1
             if AllSuccess:
                 AllDone = -10
+            print '[debug] ', AllDone, ', Queued: ', AllQueued,', Success: ', AllSuccess,', noErr: ', NoErrors
 	    sleep(5)
     if NoErrors and not AllQueued:
         msg = "All done successfully for: {0}".format(Project)
@@ -496,4 +500,3 @@ class VivadoProjects():
         self.RemoveLockFile()
 
 ###################################################
-

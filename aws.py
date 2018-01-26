@@ -54,8 +54,6 @@ def VivadoStatus(Path, StatusFile,
     Names = {}
     Log = {}
     AllDone = 3
-    AllSuccess = True
-    NoErrors = True
     while AllDone>0:
 	    for d in listdir(Path):
                 name=d
@@ -103,6 +101,8 @@ def VivadoStatus(Path, StatusFile,
 	    OUT = open (StatusFile,"w")
 	    OUT.write("<h2> Project: {0} </h2>\n".format(Project))
             AllQueued= True
+            AllSuccess = True
+            NoErrors = True
 	    for key, value in Status.iteritems():
                 Running = False
 	        OUT.write("<strong> Run {0} </strong>\n".format(key))

@@ -483,6 +483,8 @@ class VivadoProjects():
                             if self.StoreBitFile(Project):
                                 self.State[Project] = "success"                                                        
                                 self.StoreFiles(Project)
+                                # clean repo?? let's try not to
+                                #push from branch: git push origin $FROM_BRANCH
                                 SendNote("Project {} was successfull".format(Project))
                             else:
                                 self.State[Project] = "error bitfile"                                                        
@@ -500,5 +502,29 @@ class VivadoProjects():
                 print "[StartRun] Start Run not enabled, run PrepareRun first"
         print "[VivadoProjects] Removing lock file, if any"
         self.RemoveLockFile()
+
+    def CheckRuns(self):
+        #look in self.State if all Runs are successfull...
+        # return something or send note
+        pass
+
+    def TagRepo(self):
+        #TAGS=`git tag -l aws$TAG_NUMBER*| wc -l`
+        #TAG_NAME=aws$TAG_NUMBER.$TAGS
+        #echo [AutoLaunchRun] Tagging $TAG_NAME and pushing...
+        #git tag $TAG_NAME -m "Automatic tag ($TAG_NAME) after successful automatic work flow" -m "$GIT_MESSAGE"
+        #git push origin $TAG_NAME
+        pass
+
+    def LaunchDoxygen(self):
+        #echo "" >> doxygen/doxygen.conf
+        #echo -e "\nPROJECT_NUMBER = $COMMIT" >> doxygen/doxygen.conf
+        #rm -rf ../Doc
+        #mkdir -p ../Doc/html
+        #echo [AutoLaunchRun] Launching doxygen...
+        #/usr/bin/doxygen doxygen/doxygen.conf 2>&1 > ../Doc/html/doxygen-$COMMIT.log
+        #rm -r $WEB_DIR/../doc/*
+        #cp -r ../Doc/html/* $WEB_DIR/../doc/
+        pass
 
 ###################################################

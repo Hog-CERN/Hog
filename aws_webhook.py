@@ -71,13 +71,13 @@ def StartWorkflow(sb,tb,n):
     val= Run.StartRun()
     if val < 2:
         if val == 1:
-            aws.SendNote('This merge request does not modify any file that is revelant for any of the projects, so I shall approve it', n)
+            aws.SendNote('This merge request does not modify any file that is revelant for any of the projects, so I shall approve it.', n)
         else:
-            aws.SendNote('The automatic design flow was successful, so I shall approve this merge reqest', n)
+            aws.SendNote('The automatic design flow was successful, so I shall approve this merge reqest.', n)
         approve = requests.post("https://gitlab.cern.ch/api/v4/projects/atlas-l1calo-efex%2FeFEXFirmware/merge_requests/{0}/approve".format(n), headers=head)
     else:
         print "Auto launch run returned value {0}".format(val)
-        aws.SendNote('The automatic design flow have failed, so I am afraid I shall not be able to approve this merge reqest.', n)
+        aws.SendNote('The automatic design flow has failed, so I am afraid I shall not be able to approve this merge reqest.', n)
     sys.stdout.flush()
         
 if __name__ == '__main__':

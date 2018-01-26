@@ -27,6 +27,7 @@ def SendMail(txt, subject, address):
     a.Run("echo \"{0}\" | mail -s \"{1}\" {2}".format(txt, subject, address))
 
 def SendNote(msg, merge_request_number):
+    head ={'PRIVATE-TOKEN': 'CbWF_XrjGbEGMssj9fkZ'}
     print "[SendNote] Sending note: {0}".format(msg)
     note = requests.post("https://gitlab.cern.ch/api/v4/projects/atlas-l1calo-efex%2FeFEXFirmware/merge_requests/{0}/notes".format(merge_request_number), data={'body':msg}, headers=head)
     return note
@@ -150,20 +151,22 @@ def VivadoStatus(Path, StatusFile,
                 AllDone = AllDone-1
             if AllSuccess:
                 AllDone = -10
-            print '[debug] ', AllDone, ', Queued: ', AllQueued,', Success: ', AllSuccess,', noErr: ', NoErrors
-	    sleep(5)
+	    sleep(30)
     if NoErrors and not AllQueued:
         msg = "All done successfully for: {0}".format(Project)
+        ret_val=0
     elif AllQueued:
         msg = "All process are queued for a while for: {0}".format(Project)
+        re_val =-1
     else:
         msg = "All process are queued, dead, or in error for: {0}".format(Project)
+        re_val =-2
 
     OUT = open (StatusFile,"a")
     OUT.write("<p> " + msg +"</p>\n")
     OUT.close()
     print "[RunStatus] "+ msg
-
+    return ret_val
 ##########################################################
 
 class Runner():
@@ -405,7 +408,7 @@ class VivadoProjects():
                 if not Force:
                     while path.isfile(self.LockFile):
                         print name+"Waiting for lockfile {0} to disappear...".format(self.LockFile)
-                        sleep(5)
+                        sleep(30)
 		lf=open(self.LockFile, 'w')
 		#maybe write something to it?
 		lf.close()
@@ -480,13 +483,12 @@ class VivadoProjects():
                             if self.StoreBitFile(Project):
                                 self.State[Project] = "success"                                                        
                                 self.StoreFiles(Project)
-                                # write msg project successfull
+                                SendNote("Project {} was successfull".format(Project))
                             else:
                                 self.State[Project] = "error bitfile"                                                        
                         else:
                             print "[StartRun] WARNING something went wrong with Vivado run for {0} *****".format(Project)
                             self.State[Project] = "error vivado flow"                            
-                        self.StoreFiles(Project)
 
                     else:
                         print "[StartRun] ERROR: Vivado returned an error status"

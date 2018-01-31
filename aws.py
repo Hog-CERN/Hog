@@ -2,7 +2,8 @@
 import subprocess, re, glob, requests
 from time import sleep
 from distutils.dir_util import copy_tree
-from distutils.file_util import copy_file,move_file
+from distutils.file_util import copy_file
+from shutil import move
 from os import path, listdir, kill, remove, makedirs, system
 
 def Alive(pid):        
@@ -353,12 +354,12 @@ class VivadoProjects():
             Found = True
             dst=self.ArchiveDir(proj)+"/{0}-{1}.bit".format(proj, self.Commit)
             print "[StoreBitFile] Found bitfile: {0}, moving it to {1}".format(bit_file, dst)
-            move_file(bit_file, dst)
+            move(bit_file, dst)
         print "[StoreBitFile] Looking for binfiles..."
         for bin_file in glob.iglob(self.RunsDir(proj)+"/**/*{0}.bin".format(proj)):
             dst=self.ArchiveDir(proj)+"/{0}-{1}.bin".format(proj, self.Commit)
             print "[StoreBitFile] Found binfile: {0}, moving it to {1}".format(bin_file, dst)
-            move_file(bin_file, dst)
+            move(bin_file, dst)
         return Found
 
     def StoreFiles(self, proj):

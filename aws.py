@@ -30,13 +30,13 @@ def SendMail(txt, subject, address):
 def SendNote(msg, merge_request_number):
     head ={'PRIVATE-TOKEN': 'CbWF_XrjGbEGMssj9fkZ'}
     print "[SendNote] Sending note: {0}".format(msg)
-    note = requests.post("https://gitlab.cern.ch/api/v4/projects/atlas-l1calo-efex%2FeFEXFirmware/merge_requests/{0}/notes".format(merge_request_number), data={'body':msg}, headers=head)
+    note = requests.post("https://gitlab.cern.ch/api/v4/projects/atlas-l1calo-efex%2FeFEXFirmware/merge_requests/{0}/notes".format(merge_request_number), data={'body':msg}, headers=head).status_code
     return note
 
 def MakeRelease(msg, tag):
     head ={'PRIVATE-TOKEN': 'CbWF_XrjGbEGMssj9fkZ'}
     print "[SendNote] Sending note: {0}".format(msg)
-    release = requests.post("https://gitlab.cern.ch/api/v4/projects/atlas-l1calo-efex%2FeFEXFirmware/repository/tags/{0}/release".format(tag), data={'tag':tag,'description':msg}, headers=head)
+    release = requests.post("https://gitlab.cern.ch/api/v4/projects/atlas-l1calo-efex%2FeFEXFirmware/repository/tags/{0}/release".format(tag), data={'tag':tag,'description':msg}, headers=head).status_code
     return release
 
 def VivadoStatus(Path, StatusFile,

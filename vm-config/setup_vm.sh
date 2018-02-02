@@ -4,7 +4,7 @@
 curl http://ipbus.web.cern.ch/ipbus/doc/user/html/_downloads/ipbus-sw.centos7.x86_64.repo > ipbus-sw.repo
 cp ipbus-sw.repo /etc/yum.repos.d/
 
-yum install htop emacs git eos-fuse doxygen python-webpy
+yum install htop emacs git eos-fuse doxygen python-webpy screen
 yum groupinstall uhal
 
 mkfs.ex4 /dev/vdb

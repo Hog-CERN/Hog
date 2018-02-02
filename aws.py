@@ -218,6 +218,7 @@ class VivadoProjects():
         self.Statuses = {}
         self.ToDo = {}
         self.RepoPath = repo_path
+        self.MergeRequestNumber = merge_n
         self.TopPath = self.RepoPath+'/Top'
         self.Commit = ""
         self.LockFile = ""
@@ -229,6 +230,7 @@ class VivadoProjects():
         self.runner = Runner()
         self.runner.SetPath(self.RepoPath)
         self.State = {}
+        self.Report = {}
         self.VivadoCommandLine = "vivado -mode batch -notrace -journal {JournalFile} -log {LogFile} -source ./Tcl/launch_runs.tcl -tclargs {Project} {RunsDir} {NJobs}"
 
     def Scan(self):
@@ -348,6 +350,8 @@ class VivadoProjects():
 
     def StoreBitFile(self, proj):
         # Look for bitfile
+        print "[StoreBitFile] Creating archive directory..."
+        MakeDir(self.ArchiveDir(proj))
         print "[StoreBitFile] Looking for bitfiles..."
         Found = False
         for bit_file in glob.iglob(self.RunsDir(proj)+"/**/*{0}.bit".format(proj)):
@@ -384,11 +388,10 @@ class VivadoProjects():
                     except ValueError:
                         ret = '[StoreFiles] ERROR: could not parse timing report'
                         print ret
-            else:
-                ret = '[StoreFiles] ERROR: could not find timing report'
-                print ret
-
-
+                    break
+        if not proj in self.Report:
+            ret = '[StoreFiles] ERROR: could not find timing report'
+            print ret
         return ret
 
 
@@ -486,7 +489,7 @@ class VivadoProjects():
                                 self.StoreFiles(Project)
                                 # clean repo?? let's try not to
                                 #push from branch: git push origin $FROM_BRANCH
-                                SendNote("Project {} was successfull".format(Project))
+                                SendNote("Work-flow for project {} was successfull".format(Project), self.MergeRequestNumber)
                             else:
                                 self.State[Project] = "error bitfile"                                                        
                         else:

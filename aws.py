@@ -33,6 +33,12 @@ def SendNote(msg, merge_request_number):
     note = requests.post("https://gitlab.cern.ch/api/v4/projects/atlas-l1calo-efex%2FeFEXFirmware/merge_requests/{0}/notes".format(merge_request_number), data={'body':msg}, headers=head)
     return note
 
+def MakeRelease(msg, tag):
+    head ={'PRIVATE-TOKEN': 'CbWF_XrjGbEGMssj9fkZ'}
+    print "[SendNote] Sending note: {0}".format(msg)
+    release = requests.post("https://gitlab.cern.ch/api/v4/projects/atlas-l1calo-efex%2FeFEXFirmware/repository/tags/{0}/release".format(tag), data={'tag':tag,'description':msg}, headers=head)
+    return release
+
 def VivadoStatus(Path, StatusFile,
                  begin_file = ".vivado.begin.rst",
                  end_file=".vivado.end.rst",
@@ -383,7 +389,7 @@ class VivadoProjects():
                         values= re.split('\s\s+', lines[start+6].strip())
                         timing= ["{0} = {1}".format(t,v) for t,v in zip(titles,values)]
                         timing.append(lines[start+9])
-                        ret= "\n".join(timing)
+                        ret= "\n  ".join(timing)
                         self.Report[proj] = ret
                     except ValueError:
                         ret = '[StoreFiles] ERROR: could not parse timing report'
@@ -486,10 +492,10 @@ class VivadoProjects():
                             self.StoreRun(Project)
                             if self.StoreBitFile(Project):
                                 self.State[Project] = "success"                                                        
-                                self.StoreFiles(Project)
+                                time_rep = self.StoreFiles(Project)
                                 # clean repo?? let's try not to
                                 #push from branch: git push origin $FROM_BRANCH
-                                SendNote("Work-flow for project {} was successfull".format(Project), self.MergeRequestNumber)
+                                SendNote("Work-flow for project {} was successfull\n\n -----------\n# Timing report\n\n{}".format(Project, time_rep), self.MergeRequestNumber)
                             else:
                                 self.State[Project] = "error bitfile"                                                        
                         else:

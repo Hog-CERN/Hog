@@ -53,7 +53,16 @@ class hooks:
         if status == 'can_be_merged' and tb == 'master' and state == 'opened' and last_commit_author != 'efex' and action != 'approved' and not wip:
             thread = Thread(target = StartWorkflow, args = (sb,tb,n))
             thread.start()
+        elif tb == 'master' and state == 'merged' and not wip:
+            #TAG VERSION
+            #move file and folders in official path
+            #run doxygen
+
         return 'OK'
+
+
+
+
 
 def StartWorkflow(sb,tb,n):
     print "*******************************************"

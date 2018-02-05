@@ -472,7 +472,7 @@ class VivadoProjects():
 		    print name+"StartRun enabled"
                     return 0		
 
-    def StartRun(self):
+    def StartRun(self, DryRun=False):
         if self.StartRunEnabled:
             if len(self.ToDo.keys()) > 0:
                 self.EvaluateNJobs()
@@ -483,7 +483,11 @@ class VivadoProjects():
                     self.WriteStatus(Project)
                     print "[StartRun] Command: " + self.VivadoCommand(Project) 
                     print "[StartRun] ***** STARTING VIVADO for {0} *****".format(Project)
-                    self.runner.RealTime(self.VivadoCommand(Project))
+                    if not DryRun:
+                        self.runner.RealTime(self.VivadoCommand(Project))
+                    else:
+                        print "[StartRun] WARNING: This is a dry run, will return a successful status"
+                        self.runner.ReturnCode = 0
                     print "[StartRun] ***** VIVADO END for {0} *****".format(Project)
                     if self.runner.ReturnCode == 0:
                         ret = VivadoStatus(self.RunsDir(Project), self.StatusFile(Project))                    
@@ -532,6 +536,8 @@ class VivadoProjects():
         
 
     def PushBranch(self):
+        r = Runner()
+        r.SetPath(self.RepoPath)
         print "[PushBranch] Pushing source branch: {} after successful workflow...".format(self.SourceBranch)
         r.Run("git push origin {0}".format(self.SourceBranch))
 

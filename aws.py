@@ -455,7 +455,7 @@ class VivadoProjects():
 		r.Run("git checkout {0}".format(self.SourceBranch))
 		print name+"Pulling from repository ..."
 		r.Run('git pull')
-		message="Merginging {0} into {1} before automatic workflow...".format(self.TargetBranch,self.SourceBranch)
+		message="Merging {0} into {1} before automatic workflow...".format(self.TargetBranch,self.SourceBranch)
 		print name+message
 		r.Run("git merge -m \" {0} \" {1}".format(message,self.TargetBranch))
 		if not r.ReturnCode == 0:
@@ -491,17 +491,15 @@ class VivadoProjects():
                             print "[StartRun] Vivado run was successful for {0} *****".format(Project)
                             self.StoreRun(Project)
                             if self.StoreBitFile(Project):
-                                self.State[Project] = "success"                                                        
+                                self.State[Project] == 'success'                                                        
                                 time_rep = self.StoreFiles(Project)
                                 # clean repo?? let's try not to
-                                #push from branch: git push origin $FROM_BRANCH
-                                SendNote("Work-flow for project {} was successfull\n\n -----------\n# Timing report\n\n{}".format(Project, time_rep), self.MergeRequestNumber)
+                                SendNote("# Project: {}\n\nWork-flow was successfull\n\n# Timing report\n\n{}".format(Project, time_rep), self.MergeRequestNumber)
                             else:
                                 self.State[Project] = "error bitfile"                                                        
                         else:
                             print "[StartRun] WARNING something went wrong with Vivado run for {0} *****".format(Project)
                             self.State[Project] = "error vivado flow"                            
-
                     else:
                         print "[StartRun] ERROR: Vivado returned an error status"
                         self.State[Project] = "error vivado launch"
@@ -510,13 +508,33 @@ class VivadoProjects():
                 self.State[Project] = "error vivado"
         else:
                 print "[StartRun] Start Run not enabled, run PrepareRun first"
+
+    def Finalise(self):
+        if self.CheckRuns():
+            print "[CheckRuns] All runs were successful"
+            self.PushBranch()
+            # Tag Repo
+            # Launch Doxygen
+        else:
+            print "[CheckRuns] WARNING: Not all runs were successful"
         print "[VivadoProjects] Removing lock file, if any"
         self.RemoveLockFile()
 
     def CheckRuns(self):
-        #look in self.State if all Runs are successfull...
-        # return something or send note
-        pass
+        AllGood = True
+        for proj, state in self.State.iteritems():
+            if state not = "success":
+                print "[CheckRuns] WARNING: State for project {} is {}".format(proj, state)
+                AllGood = False
+            else:
+                print "[CheckRuns] State for project {} is {}".format(proj, state)
+        return AllGood
+        
+
+    def PushBranch(self):
+        print "[PushBranch] Pushing source branch: {} after successful workflow...".format(self.SourceBranch))
+        r.Run("git push origin {0}".format(self.SourceBranch))
+
 
     def TagRepo(self):
         #TAGS=`git tag -l aws$TAG_NUMBER*| wc -l`

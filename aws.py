@@ -389,7 +389,7 @@ class VivadoProjects():
                         values= re.split('\s\s+', lines[start+6].strip())
                         timing= ["{0} = {1}".format(t,v) for t,v in zip(titles,values)]
                         timing.append(lines[start+9])
-                        ret= "\n  ".join(timing)
+                        ret= "  \n".join(timing)
                         self.Report[proj] = ret
                     except ValueError:
                         ret = '[StoreFiles] ERROR: could not parse timing report'

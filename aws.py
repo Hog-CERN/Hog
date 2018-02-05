@@ -491,7 +491,7 @@ class VivadoProjects():
                             print "[StartRun] Vivado run was successful for {0} *****".format(Project)
                             self.StoreRun(Project)
                             if self.StoreBitFile(Project):
-                                self.State[Project] == 'success'                                                        
+                                self.State[Project] = 'success'                                                        
                                 time_rep = self.StoreFiles(Project)
                                 # clean repo?? let's try not to
                                 SendNote("# Project: {}\n\nWork-flow was successfull\n\n# Timing report\n\n{}".format(Project, time_rep), self.MergeRequestNumber)
@@ -523,7 +523,7 @@ class VivadoProjects():
     def CheckRuns(self):
         AllGood = True
         for proj, state in self.State.iteritems():
-            if state not = "success":
+            if not state == 'success':
                 print "[CheckRuns] WARNING: State for project {} is {}".format(proj, state)
                 AllGood = False
             else:
@@ -532,7 +532,7 @@ class VivadoProjects():
         
 
     def PushBranch(self):
-        print "[PushBranch] Pushing source branch: {} after successful workflow...".format(self.SourceBranch))
+        print "[PushBranch] Pushing source branch: {} after successful workflow...".format(self.SourceBranch)
         r.Run("git push origin {0}".format(self.SourceBranch))
 
 

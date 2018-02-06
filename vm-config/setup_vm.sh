@@ -10,7 +10,7 @@ yum groupinstall uhal
 mkfs.ex4 /dev/vdb
 mkdir /mnt/vd
 chmod a+xrw /mnt/vd
-mount /dev/vdb /mnt/v
+mount /dev/vdb /mnt/vd
 
 addusercern efex
 # making efex home
@@ -26,7 +26,7 @@ cp -r bashrc /home/efex/.bashrc
 # change home directory in /etc/passwd
 
 # go to vivado installation dir
-./xsetup --agree XilinxEULA,3rdPartyEULA,WebTalkTerms --batch Install --config ../install_config.txt
+#./xsetup --agree XilinxEULA,3rdPartyEULA,WebTalkTerms --batch Install --config ../install_config.txt
 
 # copy eos config files from lxplus
 cp ./eos_config/* /etc/sysconfig/
@@ -38,6 +38,7 @@ systemctl enable eosd.service
 systemctl start eosd.service
 eosfusebind krb5
 
+echo "[VM Setup] Creating swap file, this might take a while"
 dd if=/dev/zero of=/swapfile bs=1024 count=16777216
 chmod 600 /swapfile
 mkswap /swapfile

@@ -15,16 +15,6 @@ curl http://ipbus.web.cern.ch/ipbus/doc/user/html/_downloads/ipbus-sw.centos7.x8
 cp ipbus-sw.repo /etc/yum.repos.d/
 yum groupinstall uhal
 
-if [ -e /dev/vdb ]; then
-    echo "[VM Setup] Formatting and mounting /dev/vdb..."
-    mkfs.ex4 /dev/vdb
-    mkdir /mnt/vd
-    chmod a+xrw /mnt/vd
-    mount /dev/vdb /mnt/vd
-else
-    echo "[VM Setup] WARINING /dev/vdb not found"
-fi
-
 echo "[VM Setup] Config files into efex's home"
 cp gitconfig /home/efex/.gitconfig
 cp -r ssh/ /home/efex/.ssh
@@ -59,6 +49,16 @@ dd if=/dev/zero of=/swapfile bs=1024 count=16777216
 chmod 600 /swapfile
 mkswap /swapfile
 swapon /swapfile
+
+if [ -e /dev/vdb ]; then
+    echo "[VM Setup] Formatting and mounting /dev/vdb..."
+    mkfs.ex4 /dev/vdb
+    mkdir /mnt/vd
+    chmod a+xrw /mnt/vd
+    mount /dev/vdb /mnt/vd
+else
+    echo "[VM Setup] WARINING /dev/vdb not found"
+fi
 
 if [[ -x "$VIVADO_DIR/xsetup" ]]; then
     echo "[VM Setup] Installing Vivado, this might take more than a while..."

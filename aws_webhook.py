@@ -54,6 +54,7 @@ class hooks:
             thread = Thread(target = StartWorkflow, args = (sb,tb,n))
             thread.start()
         elif tb == 'master' and state == 'merged' and not wip:
+            pass
             #TAG VERSION
             #move file and folders in official path
             #run doxygen

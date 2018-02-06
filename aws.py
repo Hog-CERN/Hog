@@ -216,6 +216,38 @@ class Runner():
 
 ##########################################################
 
+class Version():
+    def __init__(self, x,y,z, n=0):
+        self.x = [x,y,z]
+        self.n = n
+
+    def FromCommit (self, commit):
+        #"b(\d+)\.(\d+)\.(\d+)(-(\d+)-g([abcdef0123456789]{7})?"
+        regex = re.compile("b(\d+)\.(\d+)\.(\d+)-(\d+)")
+        m=re.search(regex,commit)
+        if m:
+            self.x = m.groups()[0:3]
+            self.n = m.group(4)
+        else:
+            print "[Version] ERROR: Something wrong with parsing git describe"
+            
+    def Increase(self, what):
+        self.x[what] += 1
+        self.x[what+1:len(self.x)] = [0 for y in self.x[what+1:len(self.x)]]
+        return self
+        
+    def Tag(self, b=True):
+        if b:
+            Type = 'b'
+            end = '-' + str(self.n)
+        else:
+            Type = 'v'
+            end = ''
+            
+        return Type+str(self.x[0])+'.'+str(self.x[1])+'.'+str(self.x[2])+end
+
+##########################################################
+
 class VivadoProjects():
     def __init__(self, repo_path, s_branch="", t_branch="", merge_n=0, revision_path="", web_path=""):
         self.Names = []
@@ -237,6 +269,7 @@ class VivadoProjects():
         self.runner.SetPath(self.RepoPath)
         self.State = {}
         self.Report = {}
+        self.Ver = Version(0,0,0,0)
         self.VivadoCommandLine = "vivado -mode batch -notrace -journal {JournalFile} -log {LogFile} -source ./Tcl/launch_runs.tcl -tclargs {Project} {RunsDir} {NJobs}"
 
     def Scan(self):
@@ -465,7 +498,10 @@ class VivadoProjects():
 		else:
 		    print name+"Merge was successful"
 		    self.Scan()
-		    self.Commit=r.Run('git describe --always --match v*')[0]
+                    OldVer.FromCommit(r.Run('git describe --always --match [v|b]*')[0])
+                    self.Ver = OldVer.Increase(2)
+                    r.Run('git tag -m "bla bla" {}'.format(self.Ver.Tag())) 
+		    self.Commit = r.Run('git describe --always --match [v|b]*')[0]
 		    print name+"Project is now at {0} on {1}".format(self.Commit,self.SourceBranch)
 		    self.Compare(OldProj)
 		    self.EnableStartRun()

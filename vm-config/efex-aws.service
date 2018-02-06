@@ -7,7 +7,7 @@ Environment="PATH=/sbin:/bin:/usr/sbin:/usr/bin:/opt/Xilinx/Vivado/2017.3/bin/"
 Environment="XILINXD_LICENSE_FILE=2112@lxlicen01,2112@lxlicen02,2112@lxlicen03"
 Type=simple
 User=efex
-ExecStart=/home/efex/AutomationScripts/was_webhook.py 8000
+ExecStart=/home/efex/AutomationScripts/aws_webhook.py 8000
 #Restart=on-abort
 
 [Install]

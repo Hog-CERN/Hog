@@ -218,33 +218,56 @@ class Runner():
 
 class Version():
     def __init__(self, x,y,z, n=0):
-        self.x = [x,y,z]
-        self.n = n
+        self.x = [x,y,z,n]
+        self.mr = None
 
     def FromCommit (self, commit):
         #"b(\d+)\.(\d+)\.(\d+)(-(\d+)-g([abcdef0123456789]{7})?"
-        regex = re.compile("b(\d+)\.(\d+)\.(\d+)-(\d+)")
+        regex = re.compile("^(?:b(\d+))?v(\d+)\.(\d+)\.(\d+)(?:-(\d+))?(?:-\d+-g[abcdef0123456789]{7})?$")
         m=re.search(regex,commit)
         if m:
-            self.x = m.groups()[0:3]
-            self.n = m.group(4)
+            self.x[0:3] = [int(j) for j in list(m.groups()[1:4])]
+            if m.groups()[0] is not None:
+                self.mr = int(m.groups()[0]) 
+            else:
+                self.mr = None
+
+            if m.groups()[4] is not None:
+                self.x[3] = int(m.groups()[4])
+            else:
+                self.x[3] = 0
         else:
             print "[Version] ERROR: Something wrong with parsing git describe"
             
-    def Increase(self, what):
+    def Increase(self, what=0):
+        what = 3-what 
         self.x[what] += 1
         self.x[what+1:len(self.x)] = [0 for y in self.x[what+1:len(self.x)]]
         return self
         
-    def Tag(self, b=True):
-        if b:
-            Type = 'b'
-            end = '-' + str(self.n)
+    def isBeta(self):
+        if self.mr is not None:
+            return True
         else:
-            Type = 'v'
+            return False
+
+    def SetBeta(self, mr):
+        self.mr = mr
+        self.n = 0
+
+    def Tag(self):
+        if self.isBeta():
+            Type = 'b'+ str(self.mr)
+            end = '-' + str(self.x[3])
+        else:
+            Type = ''
             end = ''
             
-        return Type+str(self.x[0])+'.'+str(self.x[1])+'.'+str(self.x[2])+end
+        return Type+'v'+str(self.x[0])+'.'+str(self.x[1])+'.'+str(self.x[2])+end
+
+    def __repr__(self):
+        return self.Tag()
+
 
 ##########################################################
 
@@ -435,78 +458,98 @@ class VivadoProjects():
 
 
 
-    def PrepareRun(self, RepoReset=True, Force=False):
-		RetVal = 0
-		name='[PrepareRun] '
-		r=Runner()
-		for p in [self.RepoPath, self.RevisionPath, self.WebPath]:
-		    r.Run('kinit -kt /home/efex/efex.keytab efex')
-		    r.Run('/usr/bin/eosfusebind krb5')
-		
-		    if not path.isdir(p):
-		        print name + "ERROR: {0} does not exist".format(p)
-		        return -1
-		
-		self.LockFile=self.RevisionPath+"/lock"
-                if not Force:
-                    while path.isfile(self.LockFile):
-                        print name+"Waiting for lockfile {0} to disappear...".format(self.LockFile)
-                        sleep(30)
-		lf=open(self.LockFile, 'w')
-		#maybe write something to it?
-		lf.close()
-		
-		#check if git,awk,nproc exist
-		#chek git version maybe...
-		
-		r.SetPath(self.RepoPath)
-                r.Run('git fetch')
-                r.Run("git rev-parse --verify {0}".format(self.SourceBranch))
-                if not r.ReturnCode == 0:
-                    print name+"ERROR: source branch {0} does not exist".format(self.SourceBranch)
-                    self.RemoveLockFile()
-                    return 4
-                r.Run("git rev-parse --verify {0}".format(self.TargetBranch))
-                if not r.ReturnCode == 0:
-                    print name+"ERROR: target branch {0} does not exist".format(self.TargetBranch)
-                    self.RemoveLockFile()
-                    return 5
+    def PrepareRun(self, VersionLevel=0, DryRun=False, Force=False):
+	name='[PrepareRun] '
+        if not VersionLevel in [0,1,2]:
+            print name + "ERROR: VersionLevel must be 0,1,2"
+            return -1
 
-                r.Run('git submodule init')
-		r.Run('git submodule update')
-                if RepoReset:
-                    print name+"Cleaning and resetting repository..."
-                    r.Run('git clean -xdf')
-                    r.Run('git reset --hard HEAD')
-		print name+"Checking out target branch {0} ...".format(self.TargetBranch)
-		r.Run("git checkout {0}".format(self.TargetBranch))
-		print name+"Pulling from repository ..."
-		r.Run('git pull')
-		OldProj = VivadoProjects(self.RepoPath)
-		OldProj.Scan()
-		print name+"Checking out source branch {0} ...".format(self.SourceBranch)
-		r.Run("git checkout {0}".format(self.SourceBranch))
-		print name+"Pulling from repository ..."
-		r.Run('git pull')
-		message="Merging {0} into {1} before automatic workflow...".format(self.TargetBranch,self.SourceBranch)
-		print name+message
-		r.Run("git merge -m \" {0} \" {1}".format(message,self.TargetBranch))
-		if not r.ReturnCode == 0:
-		    print name+"ERROR: Problems during merging {0} into {1}, aborting...".format(self.TargetBranch,self.SourceBranch)
-                    self.RemoveLockFile()
-                    return 3
-		else:
-		    print name+"Merge was successful"
-		    self.Scan()
-                    OldVer.FromCommit(r.Run('git describe --always --match [v|b]*')[0])
-                    self.Ver = OldVer.Increase(2)
-                    r.Run('git tag -m "bla bla" {}'.format(self.Ver.Tag())) 
-		    self.Commit = r.Run('git describe --always --match [v|b]*')[0]
-		    print name+"Project is now at {0} on {1}".format(self.Commit,self.SourceBranch)
-		    self.Compare(OldProj)
-		    self.EnableStartRun()
-		    print name+"StartRun enabled"
-                    return 0		
+	r=Runner()
+	for p in [self.RepoPath, self.RevisionPath, self.WebPath]:
+	    r.Run('kinit -kt /home/efex/efex.keytab efex')
+	    r.Run('/usr/bin/eosfusebind krb5')
+	
+	    if not path.isdir(p):
+	        print name + "ERROR: {0} does not exist".format(p)
+	        return -1
+	
+	self.LockFile=self.RevisionPath+"/lock"
+        if not Force:
+            while path.isfile(self.LockFile):
+                print name+"Waiting for lockfile {0} to disappear...".format(self.LockFile)
+                sleep(30)
+	lf=open(self.LockFile, 'w')
+	#maybe write something to it?
+	lf.close()
+	
+	#check if git,awk,nproc exist
+	#chek git version maybe...
+	
+	r.SetPath(self.RepoPath)
+        r.Run('git fetch')
+        r.Run("git rev-parse --verify {0}".format(self.SourceBranch))
+        if not r.ReturnCode == 0:
+            print name+"ERROR: source branch {0} does not exist".format(self.SourceBranch)
+            self.RemoveLockFile()
+            return 4
+        r.Run("git rev-parse --verify {0}".format(self.TargetBranch))
+        if not r.ReturnCode == 0:
+            print name+"ERROR: target branch {0} does not exist".format(self.TargetBranch)
+            self.RemoveLockFile()
+            return 5
+
+        r.Run('git submodule init')
+	r.Run('git submodule update')
+        if not DryRun:
+            print name+"Cleaning and resetting repository..."
+            r.Run('git clean -xdf')
+            r.Run('git reset --hard HEAD')
+	print name+"Checking out target branch {0} ...".format(self.TargetBranch)
+	r.Run("git checkout {0}".format(self.TargetBranch))
+	print name+"Pulling from repository ..."
+	r.Run('git pull')
+	OldProj = VivadoProjects(self.RepoPath)
+	OldProj.Scan()
+	print name+"Checking out source branch {0} ...".format(self.SourceBranch)
+	r.Run("git checkout {0}".format(self.SourceBranch))
+	print name+"Pulling from repository ..."
+	r.Run('git pull')
+	message="Merging {0} into {1} before automatic workflow...".format(self.TargetBranch,self.SourceBranch)
+	print name+message
+	git_response=r.Run("git merge -m \" {0} \" {1}".format(message,self.TargetBranch))
+	if not r.ReturnCode == 0:
+	    print name+"ERROR: Problems during merging {0} into {1}, aborting...".format(self.TargetBranch,self.SourceBranch)
+            print git_response
+            self.RemoveLockFile()
+            return 3
+	else:
+	    print name+"Merge was successful"
+	    self.Scan()
+            OldVer = Version(0,0,0)
+            OldVer.FromCommit(r.Run('git describe --always --match "[v|b]*" --long')[0])
+            # decide which version number to increase
+            if OldVer.isBeta():
+                self.Ver = OldVer.Increase()
+                print name+"This is attempt number {} for this merge request ({}), version will be: {}".format(self.Ver.x[3], self.Ver.mr, self.Ver.Tag())
+                if not self.Ver.mr == self.MergeRequestNumber:
+                    print name +"WARNING: merge request number mismatch, from repository tag is {} from gitlab webhook is {}, I shall trust gitlab...".format(self.Ver.mr, self.MergeRequestNumber)
+                    self.Ver.mr = self.MergeRequestNumber
+            else:
+                print name+"Most recent version found: {}".format(OldVer.Tag())
+                self.Ver = OldVer.Increase(VersionLevel)
+                self.Ver.SetBeta(self.MergeRequestNumber)
+
+            if not DryRun:
+                print name+"Tagging version".format(self.Ver.Tag())
+                r.Run('git tag -m "Preliminary beta version for merge request {} for branch {} to branch {}" {}'.format(self.MergeRequestNumber, self.SourceBranch, self.TargetBranch, self.Ver.Tag())) 
+            else:
+                print name+"This is a DRY RUN so i'm not tagging version".format(self.Ver.Tag())
+	    self.Commit = r.Run('git describe --always --match "[v|b]*" --long')[0]
+	    print name+"Project is now at {0} on {1}".format(self.Commit,self.SourceBranch)
+	    self.Compare(OldProj)
+	    self.EnableStartRun()
+	    print name+"StartRun enabled"
+            return 0		
 
     def StartRun(self, DryRun=False):
         if self.StartRunEnabled:

@@ -3,3 +3,5 @@
 	email = e.fex@cern.ch
 [color]
 	ui = auto
+[push]
+	default = simple

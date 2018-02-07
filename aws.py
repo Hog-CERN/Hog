@@ -35,7 +35,7 @@ def SendNote(msg, merge_request_number):
 
 def MakeRelease(msg, tag):
     head ={'PRIVATE-TOKEN': 'CbWF_XrjGbEGMssj9fkZ'}
-    print "[SendNote] Sending note: {0}".format(msg)
+    print "[MAkeRelease] Making release note: {0}".format(msg)
     release = requests.post("https://gitlab.cern.ch/api/v4/projects/atlas-l1calo-efex%2FeFEXFirmware/repository/tags/{0}/release".format(tag), data={'tag':tag,'description':msg}, headers=head).status_code
     return release
 
@@ -383,6 +383,7 @@ class VivadoProjects():
             if OldProjects.Exists(np):
                 if OldProjects.Status(np) == self.Status(np):
                     print "[VivadoProjects] Project {0} will not be influenced by this merge, design-flow will be skipped...".format(np)
+                    self.State[np] = 'not to do'                                                        
                 else:
                     print "[VivadoProjects] Project {0} was at {1} and is now at {2}".format(np, OldProjects.Status(np), self.Status(np))
                     self.SetToDo(np)
@@ -443,9 +444,12 @@ class VivadoProjects():
                         start=lines.index([x for x in lines if "Design Timing Summary" in x][0])
                         titles= re.split('\s\s+', lines[start+4].strip())
                         values= re.split('\s\s+', lines[start+6].strip())
-                        timing= ["{0} = {1}".format(t,v) for t,v in zip(titles,values)]
+                        timing= ["{0} | {1}".format(t,v) for t,v in zip(titles,values)]
+                        timing.insert(0,"- | -")
+                        timing.insert(0,"Parameter | Value")
+                        timing.append("\n")
                         timing.append(lines[start+9])
-                        ret= "  \n".join(timing)
+                        ret= "\n".join(timing)
                         self.Report[proj] = ret
                     except ValueError:
                         ret = '[StoreFiles] ERROR: could not parse timing report'
@@ -456,6 +460,8 @@ class VivadoProjects():
             print ret
         return ret
 
+
+    
 
 
     def PrepareRun(self, VersionLevel=0, DryRun=False, Force=False):
@@ -549,6 +555,12 @@ class VivadoProjects():
 	    self.Compare(OldProj)
 	    self.EnableStartRun()
 	    print name+"StartRun enabled"
+            msg = "Starting automatic workflow for version {}, branch name {}\n\n".format(self.Ver.Tag(), self.SourceBranch)
+            msg += "Project | State | Old SHA | new SHA\n"
+            msg += "--------|-------|---------|--------\n"
+            for n, s in self.State.iteritems():
+                msg += "{} | {} | {} | {}\n".format(n,s,OldProj.Status(n), self.Status(n))
+            SendNote(msg, self.MergeRequestNumber)
             return 0		
 
     def StartRun(self, DryRun=False):
@@ -565,7 +577,10 @@ class VivadoProjects():
                     if not DryRun:
                         self.runner.RealTime(self.VivadoCommand(Project))
                     else:
-                        print "[StartRun] WARNING: This is a dry run, will return a successful status"
+                        print "[StartRun] WARNING: This is a DRY RUN, will return a successful status"
+                        print "[StartRun] Creating dummy bitfiles..."
+                        MakeDir(self.ArchiveDir(Project))
+                        self.runner.Run("touch {}/impl_1/dummy_{}.bit".format(self.RunsDir(Project),Project))
                         self.runner.ReturnCode = 0
                     print "[StartRun] ***** VIVADO END for {0} *****".format(Project)
                     if self.runner.ReturnCode == 0:
@@ -577,7 +592,7 @@ class VivadoProjects():
                                 self.State[Project] = 'success'                                                        
                                 time_rep = self.StoreFiles(Project)
                                 # clean repo?? let's try not to
-                                SendNote("# Project: {}\n\nWork-flow was successfull\n\n# Timing report\n\n{}".format(Project, time_rep), self.MergeRequestNumber)
+                                SendNote("## Project: {}\n\nWork-flow was successfull\n\n## Timing report\n\n{}".format(Project, time_rep), self.MergeRequestNumber)
                             else:
                                 self.State[Project] = "error bitfile"                                                        
                         else:
@@ -592,21 +607,26 @@ class VivadoProjects():
         else:
                 print "[StartRun] Start Run not enabled, run PrepareRun first"
 
-    def Finalise(self):
+    def Finalise(self, DryRun=False):
+        RetVal = -1
         if self.CheckRuns():
             print "[CheckRuns] All runs were successful"
-            self.PushBranch()
-            # Tag Repo
-            # Launch Doxygen
+            RetVal = 0
+            if not DryRun:
+                self.PushBranch()
+            else:
+                print "[CheckRuns] This is a DRY RUN, will not push"                
         else:
             print "[CheckRuns] WARNING: Not all runs were successful"
         print "[VivadoProjects] Removing lock file, if any"
         self.RemoveLockFile()
+        return RetVal
+
 
     def CheckRuns(self):
         AllGood = True
         for proj, state in self.State.iteritems():
-            if not state == 'success':
+            if self.isToDo(proj) and not state == 'success':
                 print "[CheckRuns] WARNING: State for project {} is {}".format(proj, state)
                 AllGood = False
             else:
@@ -619,6 +639,8 @@ class VivadoProjects():
         r.SetPath(self.RepoPath)
         print "[PushBranch] Pushing source branch: {} after successful workflow...".format(self.SourceBranch)
         r.Run("git push origin {0}".format(self.SourceBranch))
+        print "[PushBranch] Pushing tag {}...".format(self.Ver.Tag())
+        r.Run("git push origin {0}".format(self.Ver.Tag()))
 
 
     def TagRepo(self):

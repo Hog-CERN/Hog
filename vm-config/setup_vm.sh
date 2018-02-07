@@ -17,9 +17,13 @@ yum groupinstall uhal
 
 echo "[VM Setup] Config files into efex's home"
 cp gitconfig /home/efex/.gitconfig
+chown efex:zp /home/efex/.gitconfig
 cp -r ssh/ /home/efex/.ssh
+chown efex:zp /home/efex/.ssh
 cp bash_profile /home/efex/.bash_profile
+chown efex:zp /home/efex/.bash_profile
 cp -r bashrc /home/efex/.bashrc
+chown efex:zp /home/efex/.bashrc
 
 echo "[VM Setup] ***************************** "
 echo "[VM Setup] ACTION NEEDED: Please change home directory of efex user to /home/efex in /etc/passwd"

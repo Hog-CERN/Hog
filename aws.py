@@ -42,6 +42,19 @@ def NewTag(tag, ref, msg, release_description=None):
     release = requests.post("https://gitlab.cern.ch/api/v4/projects/atlas-l1calo-efex%2FeFEXFirmware/repository/tags", data=data, headers=head).status_code
     return release
 
+def UploadFile(filename):
+    head ={'PRIVATE-TOKEN': 'CbWF_XrjGbEGMssj9fkZ'}
+    files = {'file': open(filename, 'rb')}
+    r = requests.post("https://gitlab.cern.ch/api/v4/projects/atlas-l1calo-efex%2FeFEXFirmware/uploads", headers=head, files=files)
+    if r.status_code == 200 or r.status_code == 201:
+        print('[UploadFile] Uploading the file {0}....'.format(filename))
+    else:
+        print('[UploadFile] File {0} was not uploaded'.format(filename))
+
+    markdown = r.json()['markdown']
+    return markdown
+
+
 def VivadoStatus(Path, StatusFile,
                  begin_file = ".vivado.begin.rst",
                  end_file=".vivado.end.rst",

@@ -33,10 +33,13 @@ def SendNote(msg, merge_request_number):
     note = requests.post("https://gitlab.cern.ch/api/v4/projects/atlas-l1calo-efex%2FeFEXFirmware/merge_requests/{0}/notes".format(merge_request_number), data={'body':msg}, headers=head).status_code
     return note
 
-def MakeRelease(msg, tag):
+def NewTag(tag, ref, msg, release_description=None):
     head ={'PRIVATE-TOKEN': 'CbWF_XrjGbEGMssj9fkZ'}
-    print "[MAkeRelease] Making release note: {0}".format(msg)
-    release = requests.post("https://gitlab.cern.ch/api/v4/projects/atlas-l1calo-efex%2FeFEXFirmware/repository/tags/{0}/release".format(tag), data={'tag':tag,'description':msg}, headers=head).status_code
+    print "[NewTag] Making new tag: {0}".format(tag)
+    data={'tag_name':tag,'message':msg,'ref':ref, 'message':msg}
+    if release_description is not None:
+        data['release_description'] = release_description
+    release = requests.post("https://gitlab.cern.ch/api/v4/projects/atlas-l1calo-efex%2FeFEXFirmware/repository/tags", data=data, headers=head).status_code
     return release
 
 def VivadoStatus(Path, StatusFile,
@@ -222,7 +225,6 @@ class Version():
         self.mr = None
 
     def FromCommit (self, commit):
-        #"b(\d+)\.(\d+)\.(\d+)(-(\d+)-g([abcdef0123456789]{7})?"
         regex = re.compile("^(?:b(\d+))?v(\d+)\.(\d+)\.(\d+)(?:-(\d+))?(?:-\d+-g[abcdef0123456789]{7})?$")
         m=re.search(regex,commit)
         if m:
@@ -272,7 +274,13 @@ class Version():
 ##########################################################
 
 class VivadoProjects():
-    def __init__(self, repo_path, s_branch="", t_branch="", merge_n=0, revision_path="", web_path=""):
+    def __init__(self, repo_path, s_branch="", t_branch="", merge_n=0, revision_path="", web_path="", version_level=0):
+        if not version_level in [0,1,2]:
+            print "ERROR: VersionLevel must be 0,1,2, I'll set it to 0"
+            self.VersionLevel=0
+        else:
+            self.VersionLevel=version_level
+
         self.Names = []
         self.StartRunEnabled = False
         self.Paths = {}
@@ -379,6 +387,7 @@ class VivadoProjects():
 
 
     def Compare(self, OldProjects):
+        AtLeastOne=False
         for np in self.Names:
             if OldProjects.Exists(np):
                 if OldProjects.Status(np) == self.Status(np):
@@ -387,9 +396,12 @@ class VivadoProjects():
                 else:
                     print "[VivadoProjects] Project {0} was at {1} and is now at {2}".format(np, OldProjects.Status(np), self.Status(np))
                     self.SetToDo(np)
+                    AtLeastOne=True
             else:
                 print "[VivadoProjects] New project found: {0}".format(np)
                 self.SetToDo(np)
+                AtLeastOne=True
+        return AtLeastOne
 
     def EvaluateNJobs(self):
         # add some control here...
@@ -464,12 +476,8 @@ class VivadoProjects():
     
 
 
-    def PrepareRun(self, VersionLevel=0, DryRun=False, Force=False):
+    def PrepareRun(self, DryRun=False, Force=False):
 	name='[PrepareRun] '
-        if not VersionLevel in [0,1,2]:
-            print name + "ERROR: VersionLevel must be 0,1,2"
-            return -1
-
 	r=Runner()
 	for p in [self.RepoPath, self.RevisionPath, self.WebPath]:
 	    r.Run('kinit -kt /home/efex/efex.keytab efex')
@@ -497,12 +505,12 @@ class VivadoProjects():
         if not r.ReturnCode == 0:
             print name+"ERROR: source branch {0} does not exist".format(self.SourceBranch)
             self.RemoveLockFile()
-            return 4
+            return -4
         r.Run("git rev-parse --verify {0}".format(self.TargetBranch))
         if not r.ReturnCode == 0:
             print name+"ERROR: target branch {0} does not exist".format(self.TargetBranch)
             self.RemoveLockFile()
-            return 5
+            return -5
 
         r.Run('git submodule init')
 	r.Run('git submodule update')
@@ -527,7 +535,7 @@ class VivadoProjects():
 	    print name+"ERROR: Problems during merging {0} into {1}, aborting...".format(self.TargetBranch,self.SourceBranch)
             print git_response
             self.RemoveLockFile()
-            return 3
+            return -3
 	else:
 	    print name+"Merge was successful"
 	    self.Scan()
@@ -542,7 +550,7 @@ class VivadoProjects():
                     self.Ver.mr = self.MergeRequestNumber
             else:
                 print name+"Most recent version found: {}".format(OldVer.Tag())
-                self.Ver = OldVer.Increase(VersionLevel)
+                self.Ver = OldVer.Increase(self.VersionLevel)
                 self.Ver.SetBeta(self.MergeRequestNumber)
 
             if not DryRun:
@@ -552,7 +560,7 @@ class VivadoProjects():
                 print name+"This is a DRY RUN so i'm not tagging version".format(self.Ver.Tag())
 	    self.Commit = r.Run('git describe --always --match "[v|b]*" --long')[0]
 	    print name+"Project is now at {0} on {1}".format(self.Commit,self.SourceBranch)
-	    self.Compare(OldProj)
+	    AtLEastOne=self.Compare(OldProj)
 	    self.EnableStartRun()
 	    print name+"StartRun enabled"
             msg = "Starting automatic workflow for version {}, branch name {}\n\n".format(self.Ver.Tag(), self.SourceBranch)
@@ -561,7 +569,10 @@ class VivadoProjects():
             for n, s in self.State.iteritems():
                 msg += "{} | {} | {} | {}\n".format(n,s,OldProj.Status(n), self.Status(n))
             SendNote(msg, self.MergeRequestNumber)
-            return 0		
+            if AtLEastOne:
+                return 0	
+            else:
+                return 1
 
     def StartRun(self, DryRun=False):
         if self.StartRunEnabled:
@@ -642,24 +653,23 @@ class VivadoProjects():
         print "[PushBranch] Pushing tag {}...".format(self.Ver.Tag())
         r.Run("git push origin {0}".format(self.Ver.Tag()))
 
-
-    def TagRepo(self):
-        #TAGS=`git tag -l aws$TAG_NUMBER*| wc -l`
-        #TAG_NAME=aws$TAG_NUMBER.$TAGS
-        #echo [AutoLaunchRun] Tagging $TAG_NAME and pushing...
-        #git tag $TAG_NAME -m "Automatic tag ($TAG_NAME) after successful automatic work flow" -m "$GIT_MESSAGE"
-        #git push origin $TAG_NAME
-        pass
-
-    def LaunchDoxygen(self):
-        #echo "" >> doxygen/doxygen.conf
-        #echo -e "\nPROJECT_NUMBER = $COMMIT" >> doxygen/doxygen.conf
-        #rm -rf ../Doc
-        #mkdir -p ../Doc/html
-        #echo [AutoLaunchRun] Launching doxygen...
-        #/usr/bin/doxygen doxygen/doxygen.conf 2>&1 > ../Doc/html/doxygen-$COMMIT.log
-        #rm -r $WEB_DIR/../doc/*
-        #cp -r ../Doc/html/* $WEB_DIR/../doc/
-        pass
+def TagRepo(path):
+    r =Runner(path)
+    v = Version(0,0,0)
+    v.FromCommit(r.Run('git describe --always --match "[v|b]*" --long')[0])
+    print "[TagRepo] Version is now {}".format(v)
+    #git push origin $TAG_NAME
+    pass
+ 
+def LaunchDoxygen(path):
+    #echo "" >> doxygen/doxygen.conf
+    #echo -e "\nPROJECT_NUMBER = $COMMIT" >> doxygen/doxygen.conf
+    #rm -rf ../Doc
+    #mkdir -p ../Doc/html
+    #echo [AutoLaunchRun] Launching doxygen...
+    #/usr/bin/doxygen doxygen/doxygen.conf 2>&1 > ../Doc/html/doxygen-$COMMIT.log
+    #rm -r $WEB_DIR/../doc/*
+    #cp -r ../Doc/html/* $WEB_DIR/../doc/
+    pass
 
 ###################################################

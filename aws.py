@@ -255,7 +255,11 @@ class Version():
 
     def SetBeta(self, mr):
         self.mr = mr
-        self.n = 0
+        self.x[3] = 0
+
+    def SetAlpha(self):
+        self.mr = None
+        self.x[3] = 0
 
     def Tag(self):
         if self.isBeta():
@@ -300,6 +304,7 @@ class VivadoProjects():
         self.runner.SetPath(self.RepoPath)
         self.State = {}
         self.Report = {}
+        self.Recap = ""
         self.Ver = Version(0,0,0,0)
         self.VivadoCommandLine = "vivado -mode batch -notrace -journal {JournalFile} -log {LogFile} -source ./Tcl/launch_runs.tcl -tclargs {Project} {RunsDir} {NJobs}"
 
@@ -568,6 +573,7 @@ class VivadoProjects():
             msg += "--------|-------|---------|--------\n"
             for n, s in self.State.iteritems():
                 msg += "{} | {} | {} | {}\n".format(n,s,OldProj.Status(n), self.Status(n))
+            self.Recap = msg
             SendNote(msg, self.MergeRequestNumber)
             if AtLEastOne:
                 return 0	

@@ -1,16 +1,17 @@
 #!/usr/bin/python
-import web
-import json
-import os
-import sys
-import requests
-import time
+import web, json, os, sys, requests, time, pickle
+import aws
 from pprint import pprint
 from threading import Thread
 
+REPO_PATH= '/home/efex/eFEXFirmware'
+REVISION_PATH= '/mnt/vd/eFEX-revision'                                                        
+WEB_PATH= '/eos/user/e/efex/www/revision'                               
+AWS_FILE = REVISION_PATH+'/merge_request{}.aws'
+
 class hooks:
     def __init__(self):
-        self.verbose = False
+        self.Verbose = False
 
     def POST(self):
         data = json.loads(web.data())
@@ -48,48 +49,63 @@ class hooks:
         print "Merge status:        ", status 
         print "--------------------------------"
         sys.stdout.flush()
-        if self.verbose:
+        if self.Verbose:
             pprint(data_web)
         if status == 'can_be_merged' and tb == 'master' and state == 'opened' and last_commit_author != 'efex' and action != 'approved' and not wip:
-            thread = Thread(target = StartWorkflow, args = (sb,tb,n))
+            if 'DRYRUN' in description:
+                DryRun = True
+            else:
+                DryRun=False
+            VersionLevel = 0
+            thread = Thread(target = StartWorkflow, args = (sb,tb,n, VersionLevel, DryRun))
             thread.start()
         elif tb == 'master' and state == 'merged' and not wip:
-            pass
-            #TAG VERSION
+            print "Tagging new official version..."
+            f_name = AWS_FILE.format(n)
+            print "Open aws file {}...".format(f_name)
+            f = open (f_name, 'w')
+            Run = pickle.load(f)
+            f.close()
+            old_tag = Run.Ver.Tag()
+            Run.Ver.SetAlpha()
+            new_tag = Run.Ver.Tag()
+            aws.NewTag(old_tag, new_tag, "this is the tag message", "this is the release note")
             #move file and folders in official path
             #run doxygen
 
         return 'OK'
 
-
-
-
-
-def StartWorkflow(sb,tb,n):
+def StartWorkflow(sb,tb,n,v_level=0,DryRun=False):
     print "*******************************************"
     print "Launching run for merge request {0}".format(n)
     print "From: {0}   To: {1}".format(sb,tb)
     print "*******************************************"
     sys.stdout.flush()
-    REPO_PATH= '/home/efex/eFEXTest' #'/home/efex/eFEXTest'
-    REVISION_PATH= '/home/efex/test' #'/mnt/vd/eFEX-revision'                                                        
-    WEB_PATH= '/eos/user/e/efex/www/test' #'/eos/user/e/efex/www/revision'                               
     aws.SendNote('This merge request matches all the required criteria, I shall launch the automatic work flow now.', n)
-    Run = aws.VivadoProjects(REPO_PATH, sb, tb, n, REVISION_PATH, WEB_PATH)
-    Run.PrepareRun()
-    # Send note with projects                                                                                                  
-    val= Run.StartRun()
-    if val < 2:
-        if val == 1:
+    Run = aws.VivadoProjects(REPO_PATH, sb, tb, n, REVISION_PATH, WEB_PATH, v_level)
+    prep = Run.PrepareRun()
+    if prep >= 0:
+        if prep == 1:
             aws.SendNote('This merge request does not modify any file that is revelant for any of the projects, so I shall approve it.', n)
         else:
-            aws.SendNote('The automatic design flow was successful, so I shall approve this merge reqest.', n)
-        approve = requests.post("https://gitlab.cern.ch/api/v4/projects/atlas-l1calo-efex%2FeFEXFirmware/merge_requests/{0}/approve".format(n), headers=head)
+            Run.StartRun()
+            final=Run.Finalise()
+            if final == 0:
+                aws.SendNote('The automatic design flow was successful, so I shall approve this merge reqest.', n)
+                approve = requests.post("https://gitlab.cern.ch/api/v4/projects/atlas-l1calo-efex%2FeFEXFirmware/merge_requests/{0}/approve".format(n), headers=head)
+                f_name = AWS_FILE.format(n)
+                print "Writing run into aws file {}...".format(f_name)
+                f = open (f_name, 'w')
+                pickle.dump(Run, f)
+                f.close()
+            else:
+                aws.SendNote('The automatic design flow has failed, so I am afraid I shall not be able to approve this merge reqest.', n)
     else:
-        print "Auto launch run returned value {0}".format(val)
-        aws.SendNote('The automatic design flow has failed, so I am afraid I shall not be able to approve this merge reqest.', n)
+        print "Auto launch run preparation returned value {0}".format(prep)
+        aws.SendNote('The automatic design flow preparation has failed, so I am afraid I shall not be able to approve this merge reqest.', n)
     sys.stdout.flush()
         
+
 if __name__ == '__main__':
     head ={'PRIVATE-TOKEN': 'CbWF_XrjGbEGMssj9fkZ'}
     urls = ('/.*', 'hooks')

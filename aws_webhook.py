@@ -53,7 +53,8 @@ class hooks:
             pprint(data_web)
         if status == 'can_be_merged' and tb == 'master' and state == 'opened' and last_commit_author != 'efex' and action != 'approved' and not wip:
             if 'DRYRUN' in description:
-                DryRun = True
+                DryRun=True
+                print "This is a DRY RUN"
             else:
                 DryRun=False
             VersionLevel = 0
@@ -83,13 +84,13 @@ def StartWorkflow(sb,tb,n,v_level=0,DryRun=False):
     sys.stdout.flush()
     aws.SendNote('This merge request matches all the required criteria, I shall launch the automatic work flow now.', n)
     Run = aws.VivadoProjects(REPO_PATH, sb, tb, n, REVISION_PATH, WEB_PATH, v_level)
-    prep = Run.PrepareRun()
+    prep = Run.PrepareRun(DryRun=DryRun)
     if prep >= 0:
         if prep == 1:
             aws.SendNote('This merge request does not modify any file that is revelant for any of the projects, so I shall approve it.', n)
         else:
-            Run.StartRun()
-            final=Run.Finalise()
+            Run.StartRun(DryRun=DryRun)
+            final=Run.Finalise(DryRun=DryRun)
             if final == 0:
                 aws.SendNote('The automatic design flow was successful, so I shall approve this merge reqest.', n)
                 approve = requests.post("https://gitlab.cern.ch/api/v4/projects/atlas-l1calo-efex%2FeFEXFirmware/merge_requests/{0}/approve".format(n), headers=head)

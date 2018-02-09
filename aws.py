@@ -35,7 +35,7 @@ def SendNote(msg, merge_request_number):
 
 def NewTag(tag, ref, msg, release_description=None):
     head ={'PRIVATE-TOKEN': 'CbWF_XrjGbEGMssj9fkZ'}
-    print "[NewTag] Making new tag: {0}".format(tag)
+    print "[NewTag] Making new tag: {0} from {1}".format(tag, ref)
     data={'tag_name':tag,'message':msg,'ref':ref, 'message':msg}
     if release_description is not None:
         data['release_description'] = release_description
@@ -375,6 +375,9 @@ class VivadoProjects():
     def ArchiveDir(self, proj):
         return "{0}/firmware/{1}/{2}".format(self.WebPath,self.Commit,proj)
 
+    def OfficialDir(self, proj):
+        self.Ver.SetAlpha()
+        return "{0}/official/{1}/{2}".format(self.WebPath,self.Ver.Tag(),proj)
 
     def JournalFile(self, proj):
         if self.isToDo(proj):
@@ -441,29 +444,41 @@ class VivadoProjects():
         print "[StoreRun] Copying {0} to {1}".format(self.RunsDir(proj), self.OutDir(proj))
         copy_tree(self.RunsDir(proj), self.OutDir(proj), verbose=1)
 
-    def StoreBitFile(self, proj):
+    def StoreBitFile(self, proj, Official=False):
         # Look for bitfile
+        if Official:
+            DestinationDir = self.OfficialDir(proj)
+            bitfiles_dir = self.ArchiveDir(proj)+"/{0}*.bit".format(proj)            
+        else:
+            DestinationDir = self.ArchiveDir(proj)
+            bitfiles_dir = self.RunsDir(proj)+"/**/*{0}.bit".format(proj)
         print "[StoreBitFile] Creating archive directory..."
-        MakeDir(self.ArchiveDir(proj))
-        print "[StoreBitFile] Looking for bitfiles..."
+        MakeDir(DestinationDir)
+        print "[StoreBitFile] Looking for bitfiles in {}...".format(bitfiles_dir)
         Found = False
-        for bit_file in glob.iglob(self.RunsDir(proj)+"/**/*{0}.bit".format(proj)):
+        
+        for bit_file in glob.iglob(bitfiles_dir):
             Found = True
-            dst=self.ArchiveDir(proj)+"/{0}-{1}.bit".format(proj, self.Commit)
+            dst=DestinationDir+"/{0}-{1}.bit".format(proj, self.Ver.Tag())
             print "[StoreBitFile] Found bitfile: {0}, moving it to {1}".format(bit_file, dst)
             move(bit_file, dst)
         print "[StoreBitFile] Looking for binfiles..."
         for bin_file in glob.iglob(self.RunsDir(proj)+"/**/*{0}.bin".format(proj)):
-            dst=self.ArchiveDir(proj)+"/{0}-{1}.bin".format(proj, self.Commit)
+            dst=DestinationDir+"/{0}-{1}.bin".format(proj, self.Ver.Tag())
             print "[StoreBitFile] Found binfile: {0}, moving it to {1}".format(bin_file, dst)
             move(bin_file, dst)
         return Found
 
-    def StoreFiles(self, proj):
-        xml_dir=self.ArchiveDir(proj)+'/xml'
+    def StoreFiles(self, proj,Official=False):
+        if Official:
+            DestinationDir = self.OfficialDir(proj)
+        else:
+            DestinationDir = self.ArchiveDir(proj)
+
+        xml_dir=DestinationDir+'/xml'
         MakeDir(xml_dir)
         copy_tree(self.OutDir(proj)+'/xml', xml_dir)
-        rpt_dir = self.ArchiveDir(proj)+"/reports"
+        rpt_dir = DestinationDir+"/reports"
         MakeDir(rpt_dir)
         for report in glob.iglob(self.RunsDir(proj)+'/**/*.rpt'):
             copy_file(report, rpt_dir)
@@ -546,7 +561,7 @@ class VivadoProjects():
 	r.Run("git checkout {0}".format(self.SourceBranch))
 	print name+"Pulling from repository ..."
 	r.Run('git pull')
-	message="Merging {0} into {1} before automatic workflow...".format(self.TargetBranch,self.SourceBranch)
+	message="Merging {0} into {1} before automatic wrokflow...".format(self.TargetBranch,self.SourceBranch)
 	print name+message
 	git_response=r.Run("git merge -m \" {0} \" {1}".format(message,self.TargetBranch))
 	if not r.ReturnCode == 0:
@@ -558,8 +573,7 @@ class VivadoProjects():
 	    print name+"Merge was successful"
 	    self.Scan()
             OldVer = Version(0,0,0)
-            OldVer.FromCommit(r.Run('git describe --always --match "[v|b]*" --long')[0])
-            # decide which version number to increase
+            OldVer.FromCommit(r.Run('git describe --always --match "[v|b]*" --long --tags')[0])
             if OldVer.isBeta():
                 self.Ver = OldVer.Increase()
                 print name+"This is attempt number {} for this merge request ({}), version will be: {}".format(self.Ver.x[3], self.Ver.mr, self.Ver.Tag())
@@ -567,16 +581,15 @@ class VivadoProjects():
                     print name +"WARNING: merge request number mismatch, from repository tag is {} from gitlab webhook is {}, I shall trust gitlab...".format(self.Ver.mr, self.MergeRequestNumber)
                     self.Ver.mr = self.MergeRequestNumber
             else:
-                print name+"Most recent version found: {}".format(OldVer.Tag())
-                self.Ver = OldVer.Increase(self.VersionLevel)
+                print name+"Most recent version found is official: {}".format(OldVer.Tag())
+                self.Ver = OldVer
                 self.Ver.SetBeta(self.MergeRequestNumber)
+                self.Ver.Increase(self.VersionLevel+1)
 
-            if not DryRun:
-                print name+"Tagging version".format(self.Ver.Tag())
-                r.Run('git tag -m "Preliminary beta version for merge request {} for branch {} to branch {}" {}'.format(self.MergeRequestNumber, self.SourceBranch, self.TargetBranch, self.Ver.Tag())) 
-            else:
-                print name+"This is a DRY RUN so i'm not tagging version".format(self.Ver.Tag())
-	    self.Commit = r.Run('git describe --always --match "[v|b]*" --long')[0]
+            print name+"Tagging version: {}".format(self.Ver.Tag())
+            # Can't use lightweight tag, because the annotated ones are alwys preferred by git
+            r.Run('git tag -m "Preliminary version for merge request {} for branch {} to branch {}" {}'.format(self.MergeRequestNumber, self.SourceBranch, self.TargetBranch, self.Ver.Tag()))
+	    self.Commit = r.Run('git describe --always --match "b*" --long --tags')[0]
 	    print name+"Project is now at {0} on {1}".format(self.Commit,self.SourceBranch)
 	    AtLEastOne=self.Compare(OldProj)
 	    self.EnableStartRun()
@@ -672,23 +685,31 @@ class VivadoProjects():
         print "[PushBranch] Pushing tag {}...".format(self.Ver.Tag())
         r.Run("git push origin {0}".format(self.Ver.Tag()))
 
-def TagRepo(path):
-    r =Runner(path)
-    v = Version(0,0,0)
-    v.FromCommit(r.Run('git describe --always --match "[v|b]*" --long')[0])
-    print "[TagRepo] Version is now {}".format(v)
-    #git push origin $TAG_NAME
-    pass
- 
-def LaunchDoxygen(path):
-    #echo "" >> doxygen/doxygen.conf
-    #echo -e "\nPROJECT_NUMBER = $COMMIT" >> doxygen/doxygen.conf
-    #rm -rf ../Doc
-    #mkdir -p ../Doc/html
-    #echo [AutoLaunchRun] Launching doxygen...
-    #/usr/bin/doxygen doxygen/doxygen.conf 2>&1 > ../Doc/html/doxygen-$COMMIT.log
-    #rm -r $WEB_DIR/../doc/*
-    #cp -r ../Doc/html/* $WEB_DIR/../doc/
-    pass
+    def Doxygen(self, path):
+        print "[Doxygen] Checking out target branch {}".format(self.TargetBranch)
+	self.Runner.Run("git checkout {0}".format(self.TargetBranch))
+        #echo "" >> doxygen/doxygen.conf
+        # ( cat doxygen/doxygen.conf ; echo -e "\nPROJECT_NUMBER=1.0" ) | doxygen -
+        #rm -rf ../Doc
+        #mkdir -p ../Doc/html
+        #echo [AutoLaunchRun] Launching doxygen...
+        # ( cat doxygen/doxygen.conf ; echo -e "\nPROJECT_NUMBER=1.0" ) | doxygen -
+        #rm -r $WEB_DIR/../doc/*
+        #cp -r ../Doc/html/* $WEB_DIR/../doc/
+        pass
+
+    def TagMsg(self):
+        return "This is the tag message"
+        pass
+
+    def TagNote(self):
+        return "##Title\n this is the tag note  \nin markup format"
+        pass
+
+    def MoveFileOfficial(self):
+        for Project in self.ToDo.keys():
+            self.StoreBitFile(Project, Official=True)
+            self.StoreFiles(Project, Official=True)
+
 
 ###################################################

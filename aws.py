@@ -448,28 +448,29 @@ class VivadoProjects():
         # Look for bitfile
         if Official:
             DestinationDir = self.OfficialDir(proj)
-            bitfiles_dir = self.ArchiveDir(proj)+"/{0}*.bit".format(proj)            
+            bitfiles_dir = self.ArchiveDir(proj)+"/{0}*.bi".format(proj)            
         else:
             DestinationDir = self.ArchiveDir(proj)
-            bitfiles_dir = self.RunsDir(proj)+"/**/*{0}.bit".format(proj)
+            bitfiles_dir = self.OutDir(proj)+"/**/*{0}.bi".format(proj)
+
         print "[StoreBitFile] Creating archive directory..."
         MakeDir(DestinationDir)
         print "[StoreBitFile] Looking for bitfiles in {}...".format(bitfiles_dir)
         Found = False
         
-        for bit_file in glob.iglob(bitfiles_dir):
+        for bit_file in glob.iglob(bitfiles_dir+'t'):
             Found = True
             dst=DestinationDir+"/{0}-{1}.bit".format(proj, self.Ver.Tag())
             print "[StoreBitFile] Found bitfile: {0}, moving it to {1}".format(bit_file, dst)
             move(bit_file, dst)
         print "[StoreBitFile] Looking for binfiles..."
-        for bin_file in glob.iglob(self.RunsDir(proj)+"/**/*{0}.bin".format(proj)):
+        for bin_file in glob.iglob(bitfiles_dir+'n'):
             dst=DestinationDir+"/{0}-{1}.bin".format(proj, self.Ver.Tag())
             print "[StoreBitFile] Found binfile: {0}, moving it to {1}".format(bin_file, dst)
             move(bin_file, dst)
         return Found
 
-    def StoreFiles(self, proj,Official=False):
+    def StoreFiles(self,proj,Official=False):
         if Official:
             DestinationDir = self.OfficialDir(proj)
         else:
@@ -480,7 +481,7 @@ class VivadoProjects():
         copy_tree(self.OutDir(proj)+'/xml', xml_dir)
         rpt_dir = DestinationDir+"/reports"
         MakeDir(rpt_dir)
-        for report in glob.iglob(self.RunsDir(proj)+'/**/*.rpt'):
+        for report in glob.iglob(self.OutDir(proj)+'/**/*.rpt'):
             copy_file(report, rpt_dir)
             if 'timing' in report and proj in report:
                 with open(report) as f:

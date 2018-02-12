@@ -62,6 +62,8 @@ class hooks:
             elif 'MAJOR_VERSION' in title:
                 VersionLevel = 2
                 print "[aws_webhook] This is a major version release candidate x.y.z will become (x+1).0.0..."                
+            else:
+                VersionLevel = 0
 
             thread = Thread(target = StartWorkflow, args = (sb,tb,n, VersionLevel, DryRun))
             thread.start()

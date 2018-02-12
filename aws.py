@@ -287,6 +287,27 @@ class Version():
     def __repr__(self):
         return self.Tag()
 
+    def to_number(self):
+        res = 0
+        for i in range(0,len(self.x)):
+            res += 100**(3-i)*self.x[i]
+        return res
+
+    def __eq__(self, other):
+        return self.to_number() == other.to_number()
+
+    def __gt__(self, other):
+        return self.to_number() > other.to_number()
+
+    def __lt__(self, other):
+        return self.to_number() < other.to_number()
+
+    def __ge__(self, other):
+        return self.to_number() >= other.to_number()
+
+    def __le__(self, other):
+        return self.to_number() <= other.to_number()
+
 
 ##########################################################
 
@@ -574,21 +595,31 @@ class VivadoProjects():
 	    print name+"Merge was successful"
 	    self.Scan()
             OldVer = Version(0,0,0)
+            OldOfficial = Version(0,0,0)
+            # gets the previous tag
             OldVer.FromCommit(r.Run('git describe --always --match "[v|b]*" --long --tags')[0])
-            if OldVer.isBeta():
+            # get the previous official tag
+            OldOfficial.FromCommit(r.Run('git describe --always --match "v*" --long --tags')[0])
+	    print name+"Repository is at {}, last official version is {}".format(OldVer,OldOfficial)            
+            # Increase it by the proper Version Level
+            OldOfficial.Increase(self.VersionLevel+1)
+            if OldVer.isBeta() and not OldVer < OldOfficial:
                 self.Ver = OldVer.Increase()
                 print name+"This is attempt number {} for this merge request ({}), version will be: {}".format(self.Ver.x[3], self.Ver.mr, self.Ver.Tag())
                 if not self.Ver.mr == self.MergeRequestNumber:
                     print name +"WARNING: merge request number mismatch, from repository tag is {} from gitlab webhook is {}, I shall trust gitlab...".format(self.Ver.mr, self.MergeRequestNumber)
                     self.Ver.mr = self.MergeRequestNumber
             else:
-                print name+"Most recent version found is official: {}".format(OldVer.Tag())
-                self.Ver = OldVer
-                self.Ver.SetBeta(self.MergeRequestNumber)
-                self.Ver.Increase(self.VersionLevel+1)
 
+                if OldVer < OldOfficial:
+                    print name+"Most recent version found {} is smaller than the required official: {}".format(OldVer,OldOfficial)
+                    self.Ver = OldOfficial
+                else:
+                    print name+"Most recent version found is official: {}".format(OldVer)
+                    self.Ver = OldVer.Increase(self.VersionLevel+1)
+                self.Ver.SetBeta(self.MergeRequestNumber)
             print name+"Tagging version: {}".format(self.Ver.Tag())
-            # Can't use lightweight tag, because the annotated ones are alwys preferred by git
+            # Can't use lightweight tag, because the annotated ones are always preferred by git
             r.Run('git tag -m "Preliminary version for merge request {} for branch {} to branch {}" {}'.format(self.MergeRequestNumber, self.SourceBranch, self.TargetBranch, self.Ver.Tag()))
 	    self.Commit = r.Run('git describe --always --match "b*" --long --tags')[0]
 	    print name+"Project is now at {0} on {1}".format(self.Commit,self.SourceBranch)

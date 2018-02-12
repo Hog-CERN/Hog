@@ -3,7 +3,7 @@ import subprocess, re, glob, requests
 from time import sleep
 from distutils.dir_util import copy_tree
 from distutils.file_util import copy_file
-from shutil import move
+from shutil import move,rmtree
 from os import path, listdir, kill, remove, makedirs, system
 
 def Alive(pid):        
@@ -27,9 +27,10 @@ def SendMail(txt, subject, address):
     a=Runner()
     a.Run("echo \"{0}\" | mail -s \"{1}\" {2}".format(txt, subject, address))
 
-def SendNote(msg, merge_request_number):
+def SendNote(msg, merge_request_number,verbose=True):
     head ={'PRIVATE-TOKEN': 'CbWF_XrjGbEGMssj9fkZ'}
-    print "[SendNote] Sending note: {0}".format(msg)
+    if verbose:
+        print "[SendNote] Sending note: {0}".format(msg)
     note = requests.post("https://gitlab.cern.ch/api/v4/projects/atlas-l1calo-efex%2FeFEXFirmware/merge_requests/{0}/notes".format(merge_request_number), data={'body':msg}, headers=head).status_code
     return note
 
@@ -56,6 +57,7 @@ def UploadFile(filename):
 
 
 def VivadoStatus(Path, StatusFile,
+                 wait_time = 30,
                  begin_file = ".vivado.begin.rst",
                  end_file=".vivado.end.rst",
                  error_file = ".vivado.error.rst",
@@ -174,7 +176,7 @@ def VivadoStatus(Path, StatusFile,
                 AllDone = AllDone-1
             if AllSuccess:
                 AllDone = -10
-	    sleep(30)
+	    sleep(wait_time)
     if NoErrors and not AllQueued:
         msg = "All done successfully for: {0}".format(Project)
         ret_val=0
@@ -196,6 +198,7 @@ class Runner():
     def __init__(self, path='.'):
         self.SetPath(path)
         self.Verbose = False
+        self.Silent = False
 
     def SetPath(self, directory):
         if path.isdir(directory):
@@ -220,7 +223,11 @@ class Runner():
     def Run(self, command):
         if self.Verbose:
             print "Running: '", command, "' From: '", self.Path, "'"
-        cmd = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, cwd=self.Path)
+        if self.Silent:
+            std_err=subprocess.STDOUT
+        else:
+            std_err = None
+        cmd = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, cwd=self.Path, stderr=std_err)
         result = [x.rstrip() for x in list(cmd.stdout)]
         cmd.wait()
         if self.Verbose:
@@ -384,17 +391,21 @@ class VivadoProjects():
         if self.Exists(proj):
             self.ToDo[proj] = True
 
-    def OutDir(self, proj):
-        return "{0}/{1}/{2}".format(self.RevisionPath,self.Commit,proj)
-
     def RunsDir(self, proj):
         if self.isToDo(proj):
             return self.RepoPath+"/VivadoProject/{0}/{0}.runs".format(proj)
         else:
             return ""
 
+    def OutDir(self, proj):
+        return "{0}/{1}/{2}".format(self.RevisionPath,self.Commit,proj)
+
+    def DoxygenDir(self):
+        return "{0}/{1}/doxygen".format(self.RevisionPath,self.Commit)
+
     def ArchiveDir(self, proj):
         return "{0}/firmware/{1}/{2}".format(self.WebPath,self.Commit,proj)
+
 
     def OfficialDir(self, proj):
         self.Ver.SetAlpha()
@@ -651,7 +662,9 @@ class VivadoProjects():
                     print "[StartRun] ***** STARTING VIVADO for {0} *****".format(Project)
                     if not DryRun:
                         self.runner.RealTime(self.VivadoCommand(Project))
+                        wait_time = 30
                     else:
+                        wait_time = 2
                         print "[StartRun] WARNING: This is a DRY RUN, will return a successful status"
                         print "[StartRun] Creating dummy bitfiles..."
                         MakeDir(self.ArchiveDir(Project))
@@ -659,7 +672,7 @@ class VivadoProjects():
                         self.runner.ReturnCode = 0
                     print "[StartRun] ***** VIVADO END for {0} *****".format(Project)
                     if self.runner.ReturnCode == 0:
-                        ret = VivadoStatus(self.RunsDir(Project), self.StatusFile(Project))                    
+                        ret = VivadoStatus(self.RunsDir(Project), self.StatusFile(Project), wait_time)                    
                         if ret == 0:
                             print "[StartRun] Vivado run was successful for {0} *****".format(Project)
                             self.StoreRun(Project)
@@ -686,6 +699,8 @@ class VivadoProjects():
         RetVal = -1
         if self.CheckRuns():
             print "[CheckRuns] All runs were successful"
+            print "[CheckRuns] Running doxigen..."
+            self.RunDoxygen()
             RetVal = 0
             if not DryRun:
                 self.PushBranch()
@@ -697,7 +712,6 @@ class VivadoProjects():
         self.RemoveLockFile()
         return RetVal
 
-
     def CheckRuns(self):
         AllGood = True
         for proj, state in self.State.iteritems():
@@ -708,7 +722,6 @@ class VivadoProjects():
                 print "[CheckRuns] State for project {} is {}".format(proj, state)
         return AllGood
         
-
     def PushBranch(self):
         r = Runner()
         r.SetPath(self.RepoPath)
@@ -717,18 +730,20 @@ class VivadoProjects():
         print "[PushBranch] Pushing tag {}...".format(self.Ver.Tag())
         r.Run("git push origin {0}".format(self.Ver.Tag()))
 
-    def Doxygen(self, path):
-        print "[Doxygen] Checking out target branch {}".format(self.TargetBranch)
-	self.Runner.Run("git checkout {0}".format(self.TargetBranch))
-        #echo "" >> doxygen/doxygen.conf
-        # ( cat doxygen/doxygen.conf ; echo -e "\nPROJECT_NUMBER=1.0" ) | doxygen -
-        #rm -rf ../Doc
-        #mkdir -p ../Doc/html
-        #echo [AutoLaunchRun] Launching doxygen...
-        # ( cat doxygen/doxygen.conf ; echo -e "\nPROJECT_NUMBER=1.0" ) | doxygen -
-        #rm -r $WEB_DIR/../doc/*
-        #cp -r ../Doc/html/* $WEB_DIR/../doc/
-        pass
+    def RunDoxygen(self):
+        # check that version is >= 1.8.13
+        new_ver = self.Ver
+        new_ver.SetAlpha()
+        print "[RunDoxygen] Project version will be set to {}".format(new_ver)
+        print "[RunDoxygen] Running doxygen, this may take a while..."
+        self.runner.Silent = True;
+        DoxygenReport = self.runner.Run('(cat doxygen/doxygen.conf; echo -e "\nPROJECT_NUMBER={}") | doxygen -'.format(new_ver))
+        self.runner.Silent = False;
+        SendNote("## Doxygen report\n "+"  \n".join(DoxygenReport),self.MergeRequestNumber,False)
+        src = self.RepoPath+"/../Doc/html"
+        dst = self.DoxygenDir()
+        print "[RunDoxygen] Moving {} to {}".format(src,dst)
+        move(src,dst)
 
     def TagMsg(self):
         return "This is the tag message"
@@ -742,6 +757,12 @@ class VivadoProjects():
         for Project in self.ToDo.keys():
             self.StoreBitFile(Project, Official=True)
             self.StoreFiles(Project, Official=True)
+        dst=self.WebPath+"/../doc"
+        if path.isdir(dst):
+            print '[MoveFileOfficial] Deleting doxygen directory {}...'.format(dst)
+            rmtree(dst)
+        print '[MoveFileOfficial] Copying doxygen documentation from {} to {}...'.format(self.DoxygenDir(), dst)
+        self.runner.Run("cp -r {} {}".format(self.DoxygenDir(), dst))
 
 
 ###################################################

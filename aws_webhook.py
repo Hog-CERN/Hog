@@ -56,9 +56,17 @@ class hooks:
                 print "[aws_webhook] This is a DRY RUN"
             else:
                 DryRun=False
-            VersionLevel = 0
+            if 'MINOR_VERSION' in title:
+                VersionLevel = 1
+                print "[aws_webhook] This is a minor version release candidate x.y.z will become x.(y+1).0..."                
+            elif 'MAJOR_VERSION' in title:
+                VersionLevel = 2
+                print "[aws_webhook] This is a major version release candidate x.y.z will become (x+1).0.0..."                
+
             thread = Thread(target = StartWorkflow, args = (sb,tb,n, VersionLevel, DryRun))
             thread.start()
+
+
         elif (tb == 'master' and state == 'merged' and not wip) or 'TEST_MERGE' in description:
             print "[aws_webhook] Merge request was merged. Tagging new official version..."
             f_name = AWS_FILE.format(n)

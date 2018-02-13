@@ -126,7 +126,7 @@ def StartWorkflow(sb,tb,n,v_level=0,DryRun=False):
         
 
 if __name__ == '__main__':
-    head ={'PRIVATE-TOKEN': 'CbWF_XrjGbEGMssj9fkZ'}
+    head ={'PRIVATE-TOKEN': aws.GetPrivateToken()}
     urls = ('/.*', 'hooks')
     app = web.application(urls, globals())
     session = web.session.Session(app, web.session.DiskStore('/home/efex/sessions'))

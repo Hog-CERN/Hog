@@ -4,7 +4,7 @@ from time import sleep
 from distutils.dir_util import copy_tree
 from distutils.file_util import copy_file
 from shutil import move,rmtree
-from os import path, listdir, kill, remove, makedirs, system
+from os import path, listdir, kill, remove, makedirs, system, environ
 
 def Alive(pid):        
     """ Check For the existence of a unix pid. """
@@ -27,15 +27,18 @@ def SendMail(txt, subject, address):
     a=Runner()
     a.Run("echo \"{0}\" | mail -s \"{1}\" {2}".format(txt, subject, address))
 
+def GetPrivateToken():
+    return environ['PRIVATE_TOKEN']
+
 def SendNote(msg, merge_request_number,verbose=True):
-    head ={'PRIVATE-TOKEN': 'CbWF_XrjGbEGMssj9fkZ'}
+    head ={'PRIVATE-TOKEN': GetPrivateToken()}
     if verbose:
         print "[SendNote] Sending note: {0}".format(msg)
     note = requests.post("https://gitlab.cern.ch/api/v4/projects/atlas-l1calo-efex%2FeFEXFirmware/merge_requests/{0}/notes".format(merge_request_number), data={'body':msg}, headers=head).status_code
     return note
 
 def NewTag(tag, ref, msg, release_description=None):
-    head ={'PRIVATE-TOKEN': 'CbWF_XrjGbEGMssj9fkZ'}
+    head ={'PRIVATE-TOKEN': GetPrivateToken()}
     print "[NewTag] Making new tag: {0} from {1}".format(tag, ref)
     data={'tag_name':tag,'message':msg,'ref':ref, 'message':msg}
     if release_description is not None:
@@ -44,7 +47,7 @@ def NewTag(tag, ref, msg, release_description=None):
     return release
 
 def UploadFile(filename):
-    head ={'PRIVATE-TOKEN': 'CbWF_XrjGbEGMssj9fkZ'}
+    head ={'PRIVATE-TOKEN': GetPrivateToken()}
     files = {'file': open(filename, 'rb')}
     r = requests.post("https://gitlab.cern.ch/api/v4/projects/atlas-l1calo-efex%2FeFEXFirmware/uploads", headers=head, files=files)
     if r.status_code == 200 or r.status_code == 201:

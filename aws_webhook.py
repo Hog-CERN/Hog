@@ -56,16 +56,23 @@ class hooks:
                 print "[aws_webhook] This is a DRY RUN"
             else:
                 DryRun=False
+
+            if 'NO_TIME' in description:
+                NoTime=1
+                print "[aws_webhook] Time and date will not be added to firmware registers"
+            else:
+                NoTime=0
+
             if 'MINOR_VERSION' in title:
                 VersionLevel = 1
-                print "[aws_webhook] This is a minor version release candidate x.y.z will become x.(y+1).0..."                
+                print "[aws_webhook] This is a minor version release candidate x.y.z will become x.(y+1).0 ..."                
             elif 'MAJOR_VERSION' in title:
                 VersionLevel = 2
-                print "[aws_webhook] This is a major version release candidate x.y.z will become (x+1).0.0..."                
+                print "[aws_webhook] This is a major version release candidate x.y.z will become (x+1).0.0 ..."                
             else:
                 VersionLevel = 0
 
-            thread = Thread(target = StartWorkflow, args = (sb,tb,n, VersionLevel, DryRun))
+            thread = Thread(target = StartWorkflow, args = (sb,tb,n, VersionLevel, DryRun, NoTime))
             thread.start()
 
 
@@ -92,14 +99,14 @@ class hooks:
             print "[aws_webhook] All done."
         return 'OK'
 
-def StartWorkflow(sb,tb,n,v_level=0,DryRun=False):
+def StartWorkflow(sb,tb,n,v_level=0,DryRun=False,NoTime=0):
     print "[aws_webhook] *******************************************"
     print "[aws_webhook] Launching run for merge request {0}".format(n)
     print "[aws_webhook] From: {0}   To: {1}".format(sb,tb)
     print "[aws_webhook] *******************************************"
     sys.stdout.flush()
     aws.SendNote('This merge request matches all the required criteria, I shall launch the automatic work flow now.', n)
-    Run = aws.VivadoProjects(REPO_PATH, sb, tb, n, REVISION_PATH, WEB_PATH, v_level)
+    Run = aws.VivadoProjects(REPO_PATH, sb, tb, n, REVISION_PATH, WEB_PATH, v_level, NoTime)
     prep = Run.PrepareRun(DryRun=DryRun)
     if prep >= 0:
         if prep == 1:

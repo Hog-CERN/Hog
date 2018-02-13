@@ -318,7 +318,7 @@ class Version():
 ##########################################################
 
 class VivadoProjects():
-    def __init__(self, repo_path, s_branch="", t_branch="", merge_n=0, revision_path="", web_path="", version_level=0):
+    def __init__(self, repo_path, s_branch="", t_branch="", merge_n=0, revision_path="", web_path="", version_level=0, no_time=0):
         if not version_level in [0,1,2]:
             print "ERROR: VersionLevel must be 0,1,2, I'll set it to 0"
             self.VersionLevel=0
@@ -346,7 +346,8 @@ class VivadoProjects():
         self.Report = {}
         self.Recap = ""
         self.Ver = Version(0,0,0,0)
-        self.VivadoCommandLine = "vivado -mode batch -notrace -journal {JournalFile} -log {LogFile} -source ./Tcl/launch_runs.tcl -tclargs {Project} {RunsDir} {NJobs}"
+        self.NoTime=no_time
+        self.VivadoCommandLine = "vivado -mode batch -notrace -journal {JournalFile} -log {LogFile} -source ./Tcl/launch_runs.tcl -tclargs {Project} {RunsDir} {NJobs} {no_time}"
 
     def Scan(self):
         s = Runner()
@@ -366,7 +367,7 @@ class VivadoProjects():
                     print "[Vivado Projects] WARNING: list direcotry not found in project {0}, skipping...".format(name)
 
     def VivadoCommand(self, proj):
-        return self.VivadoCommandLine.format(JournalFile=self.JournalFile(proj), LogFile=self.LogFile(proj), Project=proj, RunsDir=self.RunsDir(proj), NJobs=self.NJobs)
+        return self.VivadoCommandLine.format(JournalFile=self.JournalFile(proj), LogFile=self.LogFile(proj), Project=proj, RunsDir=self.RunsDir(proj), NJobs=self.NJobs, no_time=self.NoTime)
 
     def Exists(self, proj):
         if proj in self.Names:

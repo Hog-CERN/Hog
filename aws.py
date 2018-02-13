@@ -747,14 +747,15 @@ class VivadoProjects():
 
     def TagNote(self):
         note = "# Version: {}\n".format(self.Ver.Tag(True))
-        note += "*Source branch:* {}\n\n".format(self.SourceBranch)
-        note += "*Target branch:* {}\n\n".format(self.TargetBranch)
+        note += "*Source branch:* {}\n\n\n".format(self.SourceBranch)
+        note += "*Target branch:* {}\n\n\n".format(self.TargetBranch)
         note += "-------------------\n\n"
         note += self.Recap
         note += "-------------------\n\n"
         for p, r in self.Report.iteritems():
             note += "## {}: timing report\n".format(p)
             note += r
+            note += "\n\n-------------------\n\n\n"
         return note
         pass
 

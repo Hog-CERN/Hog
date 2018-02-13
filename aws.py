@@ -280,12 +280,8 @@ class Version():
         self.mr = mr
         self.x[3] = 0
 
-    def SetAlpha(self):
-        self.mr = None
-        self.x[3] = 0
-
-    def Tag(self):
-        if self.isBeta():
+    def Tag(self, alpha=False):
+        if self.isBeta() and not alpha:
             Type = 'b'+ str(self.mr)
             end = '-' + str(self.x[3])
         else:
@@ -411,8 +407,7 @@ class VivadoProjects():
 
 
     def OfficialDir(self, proj):
-        self.Ver.SetAlpha()
-        return "{0}/official/{1}/{2}".format(self.WebPath,self.Ver.Tag(),proj)
+        return "{0}/official/{1}/{2}".format(self.WebPath,self.Ver.Tag(True),proj)
 
     def JournalFile(self, proj):
         if self.isToDo(proj):
@@ -641,11 +636,11 @@ class VivadoProjects():
 	    self.EnableStartRun()
 	    print name+"StartRun enabled"
             msg = "Starting automatic workflow for version {}, branch name {}\n\n".format(self.Ver.Tag(), self.SourceBranch)
-            msg += "Project | State | Old SHA | new SHA\n"
-            msg += "--------|-------|---------|--------\n"
+            self.Recap += "Project | State | Old SHA | new SHA\n"
+            self.Recap += "--------|-------|---------|--------\n"
             for n, s in self.State.iteritems():
-                msg += "{} | {} | {} | {}\n".format(n,s,OldProj.Status(n), self.Status(n))
-            self.Recap = msg
+                self.Recap += "{} | {} | {} | {}\n".format(n,s,OldProj.Status(n), self.Status(n))
+            msg += self.Recap
             SendNote(msg, self.MergeRequestNumber)
             if AtLEastOne:
                 return 0	
@@ -735,8 +730,7 @@ class VivadoProjects():
 
     def RunDoxygen(self):
         # check that version is >= 1.8.13
-        new_ver = self.Ver
-        new_ver.SetAlpha()
+        new_ver = self.Ver.Tag(True)
         print "[RunDoxygen] Project version will be set to {}".format(new_ver)
         print "[RunDoxygen] Running doxygen, this may take a while..."
         self.runner.Silent = True;
@@ -749,11 +743,19 @@ class VivadoProjects():
         move(src,dst)
 
     def TagMsg(self):
-        return "This is the tag message"
-        pass
+        return "Version: {}".format(self.Ver.Tag(True))
 
     def TagNote(self):
-        return "##Title\n this is the tag note  \nin markup format"
+        note = "# Version: {}\n".format(self.Ver.Tag(True))
+        note += "*Source branch:* {}\n\n".format(self.SourceBranch)
+        note += "*Target branch:* {}\n\n".format(self.TargetBranch)
+        note += "-------------------\n\n"
+        note += self.Recap
+        note += "-------------------\n\n"
+        for p, r in self.Report.iteritems():
+            note += "## {}: timing report\n".format(p)
+            note += r
+        return note
         pass
 
     def MoveFileOfficial(self):

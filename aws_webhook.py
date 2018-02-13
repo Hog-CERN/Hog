@@ -77,8 +77,7 @@ class hooks:
             Run = pickle.load(f)
             f.close()
             old_tag = Run.Ver.Tag()
-            Run.Ver.SetAlpha()
-            new_tag = Run.Ver.Tag()
+            new_tag = Run.Ver.Tag(True)
             print "[aws_webhook] New tag is {}".format(new_tag)
             tag_msg = ""
             tag_note = "##Note:\n this is the release note  \n in markup *format*"

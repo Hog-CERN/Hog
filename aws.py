@@ -58,6 +58,22 @@ def UploadFile(filename):
     markdown = r.json()['markdown']
     return markdown
 
+def Compare(f,g):
+    F = []
+    G = [] 
+    for line in open(f):
+        li=line.strip()
+        if not li.startswith("--"):
+            F.append(line.rstrip())
+    for line in open(g):
+        li=line.strip()
+        if not li.startswith("--"):
+            G.append(line.rstrip())
+    if F==G:
+        return True
+    else:
+        return False
+
 
 def VivadoStatus(Path, StatusFile,
                  wait_time = 30,
@@ -641,8 +657,11 @@ class VivadoProjects():
             self.Recap += "--------|-------|---------|--------\n"
             for n, s in self.State.iteritems():
                 self.Recap += "{} | {} | {} | {}\n".format(n,s,OldProj.Status(n), self.Status(n))
+                msg = self.CheckXML(s)
+                SendNote(msg, self.MergeRequestNumber)                
             msg += self.Recap
             SendNote(msg, self.MergeRequestNumber)
+
             if AtLEastOne:
                 return 0	
             else:
@@ -771,5 +790,49 @@ class VivadoProjects():
         print '[MoveFileOfficial] Copying doxygen documentation from {} to {}...'.format(self.DoxygenDir(), dst)
         self.runner.Run("cp -r {} {}".format(self.DoxygenDir(), dst))
 
+
+    def XML(self, proj):
+        ret = []
+        for xml in glob.iglob(self.Path(proj)+'/xml/*.xml'):
+            ret.append(xml)
+        return ret        
+
+    def AddressTables(self):
+        ret = []
+        for vhdl in glob.iglob(self.RepoPath+'/**/address_table/*.vhd'):
+            ret.append(vhdl)
+        return ret
+
+    def CheckXML(self, proj):
+        addr_table = self.AddressTables()
+        RetVals = ""
+        for xml in self.XML(proj):
+            basename = path.basename(xml)
+            Path =  path.dirname(xml)
+            name, ext = path.splitext(basename)
+            vhdl = "ipbus_decode_" + name + ".vhd"
+            match = [x for x in addr_table if vhdl in x]
+            if len(match) == 1:
+                old_vhdl = match[0]
+                print "[CheckXML] Comparing {} with {}...".format(xml,old_vhdl)
+                self.runner.Run("gen_ipbus_addr_decode {}".format(xml))
+
+                if Compare(self.runner.Path+"/"+vhdl, old_vhdl):
+                    RetVal =  "Files {} and {} match".format(xml,old_vhdl)
+                    print "[CheckXML] "+ RetVal
+                else:
+                    print "[CheckXML] Files do not match"
+                    RetVal = "  \n".join(self.runner.Run("diff {} {}".format(vhdl,old_vhdl)))
+                    RetVal = "Address file generated from {} differs from {} \n\n ------------------------------- \n\n".format(xml,old_vhdl) + RetVal
+                remove(self.runner.Path+"/"+vhdl)
+                
+            elif len(match) == 0:
+                RetVal = "File {} - corresponding to {} - was not found".format(vhdl,xml)
+                print "[CheckXML] WARNING: "+ RetVal 
+            elif len(match) > 1:
+                RetVal = "More than one file correspond to {}".format(xml)
+                print "[CheckXML] WARNING: "+ RetVal 
+            RetVals = RetVals + RetVal + "\n\n"
+        return "## XML files report for project {} \n\n".format(proj) + RetVals
 
 ###################################################

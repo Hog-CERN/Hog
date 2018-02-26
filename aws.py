@@ -657,8 +657,8 @@ class VivadoProjects():
             self.Recap += "--------|-------|---------|--------\n"
             for n, s in self.State.iteritems():
                 self.Recap += "{} | {} | {} | {}\n".format(n,s,OldProj.Status(n), self.Status(n))
-                msg = self.CheckXML(n)
-                SendNote(msg, self.MergeRequestNumber)                
+                Msg = self.CheckXML(n)
+                SendNote(Msg, self.MergeRequestNumber)                
             msg += self.Recap
             SendNote(msg, self.MergeRequestNumber)
 
@@ -823,7 +823,7 @@ class VivadoProjects():
                 else:
                     print "[CheckXML] Files do not match"
                     RetVal = "  \n".join(self.runner.Run("diff {} {}".format(vhdl,old_vhdl)))
-                    RetVal = "Address file generated from {} differs from {} \n\n ------------------------------- \n\n".format(xml,old_vhdl) + RetVal
+                    RetVal = "Address file generated from {} differs from {} \n\n ```diff\n".format(xml,old_vhdl) + RetVal + "\n```\n\n"
                 remove(self.runner.Path+"/"+vhdl)
                 
             elif len(match) == 0:

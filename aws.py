@@ -657,7 +657,7 @@ class VivadoProjects():
             self.Recap += "--------|-------|---------|--------\n"
             for n, s in self.State.iteritems():
                 self.Recap += "{} | {} | {} | {}\n".format(n,s,OldProj.Status(n), self.Status(n))
-                msg = self.CheckXML(s)
+                msg = self.CheckXML(n)
                 SendNote(msg, self.MergeRequestNumber)                
             msg += self.Recap
             SendNote(msg, self.MergeRequestNumber)

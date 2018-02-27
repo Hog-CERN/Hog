@@ -201,10 +201,10 @@ def VivadoStatus(Path, StatusFile,
         ret_val=0
     elif AllQueued:
         msg = "All process are queued for a while for: {0}".format(Project)
-        re_val =-1
+        ret_val=-1
     else:
         msg = "All process are queued, dead, or in error for: {0}".format(Project)
-        re_val =-2
+        ret_val=-2
 
     OUT = open (StatusFile,"a")
     OUT.write("<p> " + msg +"</p>\n")

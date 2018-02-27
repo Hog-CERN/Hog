@@ -78,6 +78,7 @@ class hooks:
 
         elif (tb == 'master' and state == 'merged' and not wip) or 'TEST_MERGE' in description:
             print "[aws_webhook] Merge request was merged. Tagging new official version..."
+            sys.stdout.flush()
             f_name = AWS_FILE.format(n)
             print "[aws_webhook] Open aws file {}...".format(f_name)
             f = open (f_name, 'r')
@@ -86,6 +87,7 @@ class hooks:
             old_tag = Run.Ver.Tag()
             new_tag = Run.Ver.Tag(True)
             print "[aws_webhook] New tag is {}".format(new_tag)
+            sys.stdout.flush()
             tag_msg = ""
             tag_note = "##Note:\n this is the release note  \n in markup *format*"
             ret=  aws.NewTag(new_tag, old_tag, Run.TagMsg(), Run.TagNote())
@@ -94,9 +96,8 @@ class hooks:
             else:
                 print "[aws_webhook] WARNING: error creating new tag ({})".format(ret)
             Run.MoveFileOfficial()
-            #run doxygen
-            # Run.Doxygen()
             print "[aws_webhook] All done."
+            sys.stdout.flush()
         return 'OK'
 
 def StartWorkflow(sb,tb,n,v_level=0,DryRun=False,NoTime=0):
@@ -137,4 +138,5 @@ if __name__ == '__main__':
     app = web.application(urls, globals())
     session = web.session.Session(app, web.session.DiskStore('/home/efex/sessions'))
     print "[aws_webhook] AWS WebHook started, waiting for merge requests."
+    sys.stdout.flush()
     app.run()

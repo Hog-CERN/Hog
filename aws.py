@@ -548,6 +548,14 @@ class VivadoProjects():
                         ret = '[StoreFiles] ERROR: could not parse timing report'
                         print ret
                     break
+
+        rx = re.compile("^.*\/(.*)\/runme.log$")
+        for logfile in glob.iglob(self.OutDir(proj)+'/**/runme.log'):
+            m = re.search(rx,logfile)
+            if m:
+                new_name = m.group(1)
+                copy_file(logfile, rpt_dir+"/"+new_name+".log")
+
         if not proj in self.Report:
             ret = '[StoreFiles] ERROR: could not find timing report'
             print ret

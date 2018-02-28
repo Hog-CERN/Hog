@@ -296,8 +296,8 @@ class Version():
         self.mr = mr
         self.x[3] = 0
 
-    def Tag(self, alpha=False):
-        if self.isBeta() and not alpha:
+    def Tag(self, official=False):
+        if self.isBeta() and not official:
             Type = 'b'+ str(self.mr)
             end = '-' + str(self.x[3])
         else:

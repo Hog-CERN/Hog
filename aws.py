@@ -590,12 +590,12 @@ class VivadoProjects():
 	
 	r.SetPath(self.RepoPath)
         r.Run('git fetch')
-        r.Run("git rev-parse --verify {0}".format(self.SourceBranch))
+        r.Run("git rev-parse --verify remotes/origin/{0}".format(self.SourceBranch))
         if not r.ReturnCode == 0:
             print name+"ERROR: source branch {0} does not exist".format(self.SourceBranch)
             self.RemoveLockFile()
             return -4
-        r.Run("git rev-parse --verify {0}".format(self.TargetBranch))
+        r.Run("git rev-parse --verify remotes/origin/{0}".format(self.TargetBranch))
         if not r.ReturnCode == 0:
             print name+"ERROR: target branch {0} does not exist".format(self.TargetBranch)
             self.RemoveLockFile()

@@ -5,6 +5,7 @@ After=network.target
 [Service]
 Environment="PATH=/sbin:/bin:/usr/sbin:/usr/local/bin:/usr/bin:/opt/Xilinx/Vivado/2017.3/bin/:/opt/cactus/bin/uhal/tools/"
 Environment="XILINXD_LICENSE_FILE=2112@lxlicen01,2112@lxlicen02,2112@lxlicen03"
+Environment="LD_LIBRARY_PATH=/opt/cactus/lib:"
 Environment="PRIVATE_TOKEN=PutPrivateTokenHere"
 Type=simple
 User=efex

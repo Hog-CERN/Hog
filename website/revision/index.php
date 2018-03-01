@@ -1,7 +1,7 @@
 <html>
 <head>
   <title>eFEX firmware flow status</title>
-  <link rel="shortcut icon" href="../images/favicon.png" type="image/png">
+  <link rel="shortcut icon" href="http://atlas.cern/sites/atlas-public.web.cern.ch/files/favicon_0.ico" type="image/vnd.microsoft.icon">
 </head>
 <link href="/efex/doxygen.css" rel="stylesheet" type="text/css" media="screen" />
 <link href="/efex/style.css" rel="stylesheet" type="text/css" media="screen" />

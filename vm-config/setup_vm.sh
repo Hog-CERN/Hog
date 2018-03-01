@@ -23,7 +23,8 @@ echo "[VM Setup] Config files into efex's home"
 cp gitconfig /home/efex/.gitconfig
 chown efex:zp /home/efex/.gitconfig
 cp -r ssh/ /home/efex/.ssh
-chown efex:zp /home/efex/.ssh
+chown -R efex:zp /home/efex/.ssh
+chmod 600 /home/efex/.ssh/*
 cp bash_profile /home/efex/.bash_profile
 chown efex:zp /home/efex/.bash_profile
 cp -r bashrc /home/efex/.bashrc

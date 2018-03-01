@@ -9,6 +9,10 @@ fi
 echo "[VM Setup] Installing useful packages..."
 yum install htop emacs git eos-fuse doxygen python-webpy screen
 
+echo "[VM Setup] Installing wandisco repository..."
+yum install http://opensource.wandisco.com/centos/6/git/x86_64/wandisco-git-release-6-1.noarch.rpm
+echo "[VM Setup] Updating to recent version of git from wandisco..."
+yum --disablerepo=base,updates  update git
 
 echo "[VM Setup] Installing uhal from ipbus..."
 curl http://ipbus.web.cern.ch/ipbus/doc/user/html/_downloads/ipbus-sw.centos7.x86_64.repo > ipbus-sw.repo

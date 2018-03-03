@@ -495,13 +495,13 @@ class VivadoProjects():
         # Look for bitfile
         if Official:
             DestinationDir = self.OfficialDir(proj)
-            bitfiles_dir = self.ArchiveDir(proj)+"/{0}*.bi".format(proj)            
+            bitfiles_dir = self.OfficialDir(proj)+"/{0}*.bi".format(proj)            
         else:
             DestinationDir = self.ArchiveDir(proj)
             bitfiles_dir = self.OutDir(proj)+"/**/*{0}.bi".format(proj)
+            print "[StoreBitFile] Creating archive directory..."
+            MakeDir(DestinationDir)
 
-        print "[StoreBitFile] Creating archive directory..."
-        MakeDir(DestinationDir)
         print "[StoreBitFile] Looking for bitfiles in {}...".format(bitfiles_dir)
         Found = False
         
@@ -791,8 +791,8 @@ class VivadoProjects():
 
     def MoveFileOfficial(self):
         for Project in self.ToDo.keys():
-            self.StoreBitFile(Project, Official=True)
             self.StoreFiles(Project, Official=True)
+            self.StoreBitFile(Project, Official=True)
         dst=self.WebPath+"/../doc"
         if path.isdir(dst):
             print '[MoveFileOfficial] Deleting doxygen directory {}...'.format(dst)

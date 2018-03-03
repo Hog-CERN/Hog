@@ -507,12 +507,12 @@ class VivadoProjects():
         
         for bit_file in glob.iglob(bitfiles_dir+'t'):
             Found = True
-            dst=DestinationDir+"/{0}-{1}.bit".format(proj, self.Ver.Tag())
+            dst=DestinationDir+"/{0}-{1}.bit".format(proj, self.Ver.Tag(Official))
             print "[StoreBitFile] Found bitfile: {0}, moving it to {1}".format(bit_file, dst)
             move(bit_file, dst)
         print "[StoreBitFile] Looking for binfiles..."
         for bin_file in glob.iglob(bitfiles_dir+'n'):
-            dst=DestinationDir+"/{0}-{1}.bin".format(proj, self.Ver.Tag())
+            dst=DestinationDir+"/{0}-{1}.bin".format(proj, self.Ver.Tag(Official))
             print "[StoreBitFile] Found binfile: {0}, moving it to {1}".format(bin_file, dst)
             move(bin_file, dst)
         return Found
@@ -681,6 +681,8 @@ class VivadoProjects():
                 self.EvaluateNJobs()
                 print "[StartRun] Looping over projects..."
                 for Project in self.ToDo.keys():
+                    self.runner.Run('kinit -kt /home/efex/efex.keytab efex')
+                    self.runner.Run('/usr/bin/eosfusebind krb5')
                     print "[VivadoProjects] Preparing run for: {0}, path: {1}".format(Project, self.Path(Project))
                     MakeDir(self.OutDir(Project))
                     self.WriteStatus(Project)

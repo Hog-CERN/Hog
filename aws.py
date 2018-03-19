@@ -635,6 +635,8 @@ class VivadoProjects():
             return -3
 	else:
 	    print name+"Merge was successful"
+	    print name+"Pushing new commit to repository..."
+            r.Run('git push')
 	    self.Scan()
             OldVer = Version(0,0,0)
             OldOfficial = Version(0,0,0)

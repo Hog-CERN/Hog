@@ -61,14 +61,22 @@ def UploadFile(filename):
 def Compare(f,g):
     F = []
     G = [] 
-    for line in open(f):
-        li=line.strip()
-        if not li.startswith("--"):
-            F.append(line.rstrip())
-    for line in open(g):
-        li=line.strip()
-        if not li.startswith("--"):
-            G.append(line.rstrip())
+    try:
+        for line in open(f):
+            li=line.strip()
+            if not li.startswith("--"):
+                F.append(line.rstrip())
+    except IOError:
+        print "[Compare] Error opening {}".format(f)
+
+    try:
+        for line in open(g):
+            li=line.strip()
+            if not li.startswith("--"):
+                G.append(line.rstrip())
+    except IOError:
+        print "[Compare] Error opening {}".format(g)
+
     if F==G:
         return True
     else:
@@ -825,17 +833,19 @@ class VivadoProjects():
             if len(match) == 1:
                 old_vhdl = match[0]
                 print "[CheckXML] Comparing {} with {}...".format(xml,old_vhdl)
-                self.runner.Run("gen_ipbus_addr_decode {}".format(xml))
-
-                if Compare(self.runner.Path+"/"+vhdl, old_vhdl):
-                    RetVal =  "Files {} and {} match".format(xml,old_vhdl)
-                    print "[CheckXML] "+ RetVal
+                gen_ipbus = self.runner.Run("gen_ipbus_addr_decode {}".format(xml))
+                if path.isfile(self.runner.Path+"/"+vhdl):
+	                if Compare(self.runner.Path+"/"+vhdl, old_vhdl):
+	                    RetVal =  "Files {} and {} match".format(xml,old_vhdl)
+	                    print "[CheckXML] "+ RetVal
+	                else:
+	                    print "[CheckXML] Files do not match"
+	                    RetVal = "  \n".join(self.runner.Run("diff {} {}".format(vhdl,old_vhdl)))
+	                    RetVal = "Address file generated from {} differs from {} \n\n ```diff\n".format(xml,old_vhdl) + RetVal + "\n```\n\n"
+	                remove(self.runner.Path+"/"+vhdl)
                 else:
-                    print "[CheckXML] Files do not match"
-                    RetVal = "  \n".join(self.runner.Run("diff {} {}".format(vhdl,old_vhdl)))
-                    RetVal = "Address file generated from {} differs from {} \n\n ```diff\n".format(xml,old_vhdl) + RetVal + "\n```\n\n"
-                remove(self.runner.Path+"/"+vhdl)
-                
+                    RetVal = "Error creating vhdl from {}. Error: {}".format(xml, gen_ipbus)                    
+                    print "[CheckXML] WARNING: " + RetVal 
             elif len(match) == 0:
                 RetVal = "File {} - corresponding to {} - was not found".format(vhdl,xml)
                 print "[CheckXML] WARNING: "+ RetVal 

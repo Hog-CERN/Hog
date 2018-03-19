@@ -635,8 +635,6 @@ class VivadoProjects():
             return -3
 	else:
 	    print name+"Merge was successful"
-	    print name+"Pushing new commit to repository..."
-            r.Run('git push')
 	    self.Scan()
             OldVer = Version(0,0,0)
             OldOfficial = Version(0,0,0)
@@ -665,6 +663,10 @@ class VivadoProjects():
             print name+"Tagging version: {}".format(self.Ver.Tag())
             # Can't use lightweight tag, because the annotated ones are always preferred by git
             r.Run('git tag -m "Preliminary version for merge request {} for branch {} to branch {}" {}'.format(self.MergeRequestNumber, self.SourceBranch, self.TargetBranch, self.Ver.Tag()))
+            if not DryRun:
+                self.PushBranch()
+            else:
+                print "[CheckRuns] This is a DRY RUN, will not push"                
 	    self.Commit = r.Run('git describe --always --match "b*" --long --tags')[0]
 	    print name+"Project is now at {0} on {1}".format(self.Commit,self.SourceBranch)
 	    AtLEastOne=self.Compare(OldProj)
@@ -740,10 +742,6 @@ class VivadoProjects():
             print "[CheckRuns] Running doxigen..."
             self.RunDoxygen()
             RetVal = 0
-            if not DryRun:
-                self.PushBranch()
-            else:
-                print "[CheckRuns] This is a DRY RUN, will not push"                
         else:
             print "[CheckRuns] WARNING: Not all runs were successful"
         print "[VivadoProjects] Removing lock file, if any"
@@ -763,7 +761,7 @@ class VivadoProjects():
     def PushBranch(self):
         r = Runner()
         r.SetPath(self.RepoPath)
-        print "[PushBranch] Pushing source branch: {} after successful workflow...".format(self.SourceBranch)
+        print "[PushBranch] Pushing source branch: {}...".format(self.SourceBranch)
         r.Run("git push origin {0}".format(self.SourceBranch))
         print "[PushBranch] Pushing tag {}...".format(self.Ver.Tag())
         r.Run("git push origin {0}".format(self.Ver.Tag()))

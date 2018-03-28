@@ -27,7 +27,8 @@ set post_synth_file ""
 set post_impl_file  ""
 set post_bit_file   ""
 
-set repo_path        "[file normalize [file dirname [info script]]]/../"
+set tcl_path         "[file normalize [file dirname [info script]]]"
+set repo_path        "$tcl_path/../../"
 set top_path         "$repo_path/Top/$DESIGN"
 set list_path        "$top_path/list"
 set BUILD_DIR        "$repo_path/VivadoProject/$DESIGN"
@@ -36,12 +37,12 @@ set sim_do_file      "$repo_path/sim/$sim_do_file_name"
 set synth_top_module "top_$DESIGN"
 set synth_top_file   "$top_path/top_$DESIGN.vhd"
 
-set pre_synth  "$repo_path/Tcl/$pre_synth_file"
-set post_synth "$repo_path/Tcl/$post_synth_file"
-set post_impl  "$repo_path/Tcl/$post_impl_file"
-set post_bit   "$repo_path/Tcl/$post_bit_file"
+set pre_synth  "$tcl_path/$pre_synth_file"
+set post_synth "$tcl_path/$post_synth_file"
+set post_impl  "$tcl_path/$post_impl_file"
+set post_bit   "$tcl_path/$post_bit_file"
 
-source $repo_path/Tcl/functions.tcl
+source $tcl_path/functions.tcl
 
 ## Create Project
 create_project -force $DESIGN $BUILD_DIR -part $FPGA

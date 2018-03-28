@@ -2,7 +2,7 @@
 echo [Init] Initialising repository...
 OLD_DIR=`pwd`
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-cd $DIR
+cd $DIR/..
 
 echo [Init] Initialising ipbus submodule...
 git submodule init
@@ -15,10 +15,10 @@ then
     if [ `which vsim` ]
     then
 	echo [Init] Compiling Modelsim libraries into ./ModelsimLib...
-	$VIVADO -mode batch -notrace -source ./Tcl/compile_library.tcl
-	rm -f Tcl/.cxl.questasim.version
-	rm -f Tcl/compile_simlib.log
-	rm -f Tcl/modelsim.ini
+	$VIVADO -mode batch -notrace -source ./Hog/Tcl/compile_library.tcl
+	rm -f ./Hog/Tcl/.cxl.questasim.version
+	rm -f ./Hog/Tcl/compile_simlib.log
+	rm -f ./Hog/Tcl/modelsim.ini
     else
 	echo [Init] "WARNING: No modelsim executable found, will not compile libraries\n"
     fi
@@ -30,7 +30,7 @@ then
     for f in $proj
     do
 	echo [Init] Creating Vivado project: $f...
-	./CreateProject.sh $f
+	./Hog/CreateProject.sh $f
     done
 else
     echo [Init] "WARNING: No vivado executable found\n"

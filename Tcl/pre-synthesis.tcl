@@ -10,9 +10,11 @@ if [file exists ../no_time] {
     set no_time 0
 }
 set old_path [pwd]
-set path [file dirname [info script]]
-cd $path
-source functions.tcl
+set tcl_path [file dirname [info script]]
+source $tcl_path/functions.tcl
+
+# Go to repository path
+cd ../../../../ 
 
 set proj_file [get_property parent.project_path [current_project]]
 set proj_dir [file normalize [file dirname $proj_file]]
@@ -38,17 +40,17 @@ if { [exec git status --untracked-files=no  --porcelain] eq "" } {
     }
 }
 
-lassign [GetVer ../Top/$proj_name/ ../Top/$proj_name/] top_ver top_hash dummy
+lassign [GetVer ./Top/$proj_name/ ./Top/$proj_name/] top_ver top_hash dummy
 
 # Read list files
 set libs ""
 set vers ""
 set hashes ""
-set list_files [glob  "../Top/$proj_name/list/*.src"]
+set list_files [glob  "./Top/$proj_name/list/*.src"]
 foreach f $list_files {
     set name [file rootname [file tail $f]]
     if {$name ne "ipbus_lib"} {
-	lassign [GetVer  $f ../Top/$proj_name/] ver hash dummy
+	lassign [GetVer  $f ./Top/$proj_name/] ver hash dummy
 	Info $NAME 1 "Found source file $f, version: $ver commit SHA: $hash"
 	lappend libs $name
 	lappend vers $ver
@@ -57,7 +59,7 @@ foreach f $list_files {
 }
 
 # IPBUS submodule
-cd "../eFEX-ipbus"
+cd "./eFEX-ipbus"
 if { [exec git status --untracked-files=no  --porcelain] eq "" } {
     Info $NAME 2 "IPBus Git working directory [pwd] clean."
     set ipbus_hash [GetHash ALL ./]
@@ -106,14 +108,14 @@ foreach l $libs v $vers h $hashes {
 Status $NAME 3 " -----------------------------------------------------------------"
 
 cd $old_path
-if {$clean eq "yes" && $ipb_clean eq "yes"} {
-    Info $NAME 5 "Creating certificate file..."
-    set cfile [open ../commit-hash w] 
-    puts $cfile $commit
-    close $cfile
-} else {
-    Info $NAME 5 "Deleting certificate file..."
-    file delete -force ../commit-hash
-}
+#if {$clean eq "yes" && $ipb_clean eq "yes"} {
+#    Info $NAME 5 "Creating certificate file..."
+#    set cfile [open ../commit-hash w] 
+#    puts $cfile $commit
+#    close $cfile
+#} else {
+#    Info $NAME 5 "Deleting certificate file..."
+#    file delete -force ../commit-hash
+#}
 
 Info $NAME 6 "All done."

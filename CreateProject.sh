@@ -7,10 +7,10 @@ then
     echo "USAGE: $0 <project name>"
     echo 
     echo " Possible projects are:"
-    ls -1 ./Top
+    ls -1 ../Top
     echo 
 else
-    DIR="./Top/$1"
+    DIR="../Top/$1"
     if [ -d $DIR ]
     then
 	if [ `which vivado` ]
@@ -37,7 +37,7 @@ else
 	    echo "INFO: using vivado executable: $VIVADO"
 	fi
 	
-	OUT_DIR="./VivadoProject"
+	OUT_DIR="../VivadoProject"
 	if [ ! -d $OUT_DIR ]
 	then
 	    mkdir $OUT_DIR
@@ -50,11 +50,11 @@ else
 	if [ $? != 0 ]
 	then
 	    echo "INFO: Vivado returned an error state, if the error is \"ERROR: [Common 17-53] User Exception: Project already exists on disk\""
-	    echo "      please remove the project manually: rm -rf $THIS_DIR/VivadoProject/$1 "
+	    echo "      please remove the project manually: rm -rf VivadoProject/$1 "
 	fi
 
     else
-	echo "ERROR: project $1 not found: possible projects are: `ls ./Top`"
+	echo "ERROR: project $1 not found: possible projects are: `ls ../Top`"
 	echo
     fi
 fi

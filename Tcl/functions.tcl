@@ -252,8 +252,8 @@ proc GetVer {FILE path} {
 	    }
 	}
     } else {
-	Warning GetVer 1 "Error while trying to find tag for $SHA"
-	set ver "error"
+	Warning GetVer 1 "Error while trying to find tag for $SHA in file: $FILE, path: [pwd]"
+	set ver "error: $result"
     }
     if {[regexp {^b(?:\d+)v(\d+)\.(\d+).(\d+)-(\d+)$} $ver -> M m c n]} {
 	# official not yet merged (beta)
@@ -290,5 +290,6 @@ proc GetVer {FILE path} {
     }
     set comm [format %07X 0x$comm]
     return [list $M$m$c $comm $official$n]
+    cd $old_path
 }
 ########################################################

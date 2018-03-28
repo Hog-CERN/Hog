@@ -7,7 +7,7 @@ if { $::argc eq 0 } {
     if { $::argc > 1 } {
 	set main_folder [file normalize [lindex $argv 1]]
     } else {
-	set main_folder [file normalize "../VivadoProject/$project/$project.runs/"]
+	set main_folder [file normalize "../../VivadoProject/$project/$project.runs/"]
     }
 
     if { $::argc > 2 } {
@@ -29,10 +29,10 @@ cd $path
 source ./functions.tcl
 Info $Name 1 "Number of jobs set to $NJOBS."
 
-set commit [GetHash ALL ./]
+set commit [GetHash ALL ../../]
 
 Info $Name 2 "Running project script: $project.tcl..."
-source -notrace ../Top/$project/$project.tcl
+source -notrace ../../Top/$project/$project.tcl
 Info $Name 3 "Upgrading IPs..."
 upgrade_ip [get_ips *]
 Info $Name 4 "Creating directory and buypass file..."
@@ -48,5 +48,5 @@ if {$no_time == 1 } {
 Info $Name 5 "Starting complete design flow..."
 launch_runs impl_1 -to_step write_bitstream -jobs $NJOBS -dir $main_folder
 Info $Name 6 "Copying xml files to $main_folder..."
-file copy -force ../Top/$project/xml $main_folder/
+file copy -force ../../Top/$project/xml $main_folder/
 cd $old_path

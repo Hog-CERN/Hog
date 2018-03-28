@@ -503,7 +503,7 @@ class VivadoProjects():
         # Look for bitfile
         if Official:
             DestinationDir = self.OfficialDir(proj)
-            bitfiles_dir = self.OfficialDir(proj)+"/{0}*.bi".format(proj)            
+            bitfiles_dir = self.ArchiveDir(proj)+"/{0}*.bi".format(proj)            
         else:
             DestinationDir = self.ArchiveDir(proj)
             bitfiles_dir = self.OutDir(proj)+"/**/*{0}.bi".format(proj)
@@ -798,6 +798,8 @@ class VivadoProjects():
         pass
 
     def MoveFileOfficial(self):
+        self.runner.Run('kinit -kt /home/efex/efex.keytab efex')
+        self.runner.Run('/usr/bin/eosfusebind krb5')
         for Project in self.ToDo.keys():
             self.StoreFiles(Project, Official=True)
             self.StoreBitFile(Project, Official=True)

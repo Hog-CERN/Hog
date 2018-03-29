@@ -1,25 +1,25 @@
 #!/bin/bash
-if [ -v AWE_NAME]; then
+if [ -v AWE_NAME ]; then
     echo "[awe-VM Setup] Project name set to $AWE_NAME"
 else
     echo "[awe-VM Setup] variable AWE_NAME should be set to the name of the project"
     exit 1
 fi
-if [ -v AWE_PATH]; then
+if [ -v AWE_PATH ]; then
     echo "[awe-VM Setup] awe-compatible HDL repository path set to $AWE_PATH"
 else
     echo "[awe-VM Setup] variable AWE_PATH should be set to the root of the repository containing Hog/awe"
     exit 1
 fi
 
-if [ -v AWE_REPO]; then
+if [ -v AWE_REPO ]; then
     echo "[awe-VM Setup] awe-compatible HDL repository set to $AWE_REPO"
 else
     echo "[awe-VM Setup] variable AWE_REPO should be set to the name of the HDL repository containing Hog/awe"
     exit 1
 fi
 
-if [ -v AWE_VIVADO_DIR]; then
+if [ -v AWE_VIVADO_DIR ]; then
     echo "[awe-VM Setup] Vivado installation direcotry is set to $AWE_VIVADO_DIR"
 else
     VIVADO_DIR=/afs/cern.ch/work/f/fgonnell/Xilinx_Vivado_SDK_2017.3_1005_1/
@@ -27,28 +27,28 @@ else
     exit 1
 fi
 
-if [ -v AWE_USERNAME]; then
+if [ -v AWE_USERNAME ]; then
     echo "[awe-VM Setup] The user awe will use is: $AWE_USERNAME"
 else
     echo "[awe-VM Setup] ERROR: variable AWE_USERNAME should be set with a valid CERN user name"
     exit 2
 fi
 
-if [ -v AWE_USEREMAIL]; then
+if [ -v AWE_USEREMAIL ]; then
     echo "[awe-VM Setup] The user email awe will use is: $AWE_USEREMAIL"
 else
     echo "[awe-VM Setup] ERROR: variable AWE_USEREMAIL should be set with a valid CERN user email"
     exit 2
 fi
 
-if [ -v AWE_USERGROUP]; then
+if [ -v AWE_USERGROUP ]; then
     echo "[awe-VM Setup] The user group awe will use is: $AWE_USERGROUP"
 else
     echo "[awe-VM Setup] ERROR: variable AWE_USERGROUP should be set with a valid CERN user group"
     exit 3
 fi
 
-if [ -v AWE_PRIVATETOKEN]; then
+if [ -v AWE_PRIVATETOKEN ]; then
     echo "[awe-VM Setup] The private token for gitlab acces is set to : $AWE_PRIVATETOKEN"
 else
     echo "[awe-VM Setup] ERROR: variable AWE_PRIVATETOKEN should be set with a valid gitlab private token"

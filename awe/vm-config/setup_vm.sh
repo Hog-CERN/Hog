@@ -2,20 +2,20 @@
 if [ -v AWE_NAME ]; then
     echo "[awe-VM Setup] Project name set to $AWE_NAME"
 else
-    echo "[awe-VM Setup] variable AWE_NAME should be set to the name of the project"
+    echo "[awe-VM Setup] ERROR: Variable AWE_NAME should be set to the name of the project"
     exit 1
 fi
 if [ -v AWE_PATH ]; then
     echo "[awe-VM Setup] awe-compatible HDL repository path set to $AWE_PATH"
 else
-    echo "[awe-VM Setup] variable AWE_PATH should be set to the root of the repository containing Hog/awe"
+    echo "[awe-VM Setup] ERROR: Variable AWE_PATH should be set to the root of the repository containing Hog/awe"
     exit 1
 fi
 
 if [ -v AWE_REPO ]; then
     echo "[awe-VM Setup] awe-compatible HDL repository set to $AWE_REPO"
 else
-    echo "[awe-VM Setup] variable AWE_REPO should be set to the name of the HDL repository containing Hog/awe"
+    echo "[awe-VM Setup] ERROR: Variable AWE_REPO should be set to the name of the HDL repository containing Hog/awe"
     exit 1
 fi
 
@@ -60,6 +60,10 @@ if [ -z "$AWE_WEB_PATH" ] || [ -z "$AWE_REVISION_PATH" ] || [ -z "$AWE_KEYTAB" ]
   exit 1
 fi
 
+if [ "$(whoami)" != "root" ]; then
+    echo "Script must be run as root"
+    exit -1
+fi
 
 echo [awe-VM Setup] Adding $AWE_USERNAME user...
 addusercern $AWE_USERNAME
@@ -69,17 +73,17 @@ chmod a+rxw /home/$AWE_USERNAME
 chown $AWE_USERNAME:$AWE_USERGROUP /home/$AWE_USERNAME
 
 echo "[awe-VM Setup] Installing useful packages..."
-yum install htop emacs git eos-fuse doxygen python-webpy screen
+yum -y install htop emacs git eos-fuse doxygen python-webpy screen
 
 echo "[awe-VM Setup] Installing wandisco repository..."
-yum install http://opensource.wandisco.com/centos/6/git/x86_64/wandisco-git-release-6-1.noarch.rpm
+yum -y install http://opensource.wandisco.com/centos/6/git/x86_64/wandisco-git-release-6-1.noarch.rpm
 echo "[awe-VM Setup] Updating to recent version of git from wandisco..."
-yum --disablerepo=base,updates  update git
+yum -y --disablerepo=base,updates  update git
 
 echo "[awe-VM Setup] Installing uhal from ipbus..."
 curl http://ipbus.web.cern.ch/ipbus/doc/user/html/_downloads/ipbus-sw.centos7.x86_64.repo > ipbus-sw.repo
 cp ipbus-sw.repo /etc/yum.repos.d/
-yum groupinstall uhal
+yum -y groupinstall uhal
 
 echo "[awe-VM Setup] Config files into $AWE_USERNAME's home"
 envsubst < gitconfig > /home/$AWE_USERNAME/.gitconfig

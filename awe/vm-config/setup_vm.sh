@@ -130,7 +130,7 @@ swapon /swapfile
 
 if [ -e /dev/vdb ]; then
     echo "[awe-VM Setup] Formatting and mounting /dev/vdb..."
-    mkfs.ex4 /dev/vdb
+    mkfs.ext4 /dev/vdb
     mkdir /mnt/vd
     chmod a+xrw /mnt/vd
     mount /dev/vdb /mnt/vd

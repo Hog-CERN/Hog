@@ -1,15 +1,15 @@
 [Unit]
-Description=eFEX Automatic Workflow System
+Description=Automatic Workflow Engine unit
 After=network.target
 
 [Service]
 Environment="PATH=/sbin:/bin:/usr/sbin:/usr/local/bin:/usr/bin:/opt/Xilinx/Vivado/2017.3/bin/:/opt/cactus/bin/uhal/tools/"
 Environment="XILINXD_LICENSE_FILE=2112@lxlicen01,2112@lxlicen02,2112@lxlicen03"
 Environment="LD_LIBRARY_PATH=/opt/cactus/lib:"
-Environment="PRIVATE_TOKEN=PutPrivateTokenHere"
+Environment="PRIVATE_TOKEN=$AWE_PRIVATETOKEN"
 Type=simple
 User=efex
-ExecStart=/home/efex/AutomationScripts/aws_webhook.py 8000
+ExecStart=/home/$AWE_USERNAME/AutomationScripts/aws_webhook.py 8000
 #Restart=on-abort
 
 [Install]

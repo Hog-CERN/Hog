@@ -82,7 +82,7 @@ cp ipbus-sw.repo /etc/yum.repos.d/
 yum groupinstall uhal
 
 echo "[awe-VM Setup] Config files into $AWE_USERNAME's home"
-cp gitconfig /home/$AWE_USERNAME/.gitconfig
+envsubst < gitconfig > /home/$AWE_USERNAME/.gitconfig
 chown $AWE_USERNAME:$AWE_USERGROUP /home/$AWE_USERNAME/.gitconfig
 cp -r ssh/ /home/$AWE_USERNAME/.ssh
 chown -R $AWE_USERNAME:$AWE_USERGROUP /home/$AWE_USERNAME/.ssh

@@ -34,6 +34,13 @@ else
     exit 2
 fi
 
+if [ -v AWE_USEREMAIL]; then
+    echo "[awe-VM Setup] The user email awe will use is: $AWE_USEREMAIL"
+else
+    echo "[awe-VM Setup] ERROR: variable AWE_USEREMAIL should be set with a valid CERN user email"
+    exit 2
+fi
+
 if [ -v AWE_USERGROUP]; then
     echo "[awe-VM Setup] The user group awe will use is: $AWE_USERGROUP"
 else

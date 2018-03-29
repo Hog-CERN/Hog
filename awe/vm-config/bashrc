@@ -163,11 +163,13 @@ ALERT=${BWhite}${On_Red} # Bold White on red background
 
 
 echo -e ${Blue}
-echo -e "         _____________  __";
-echo -e "   ___  / ____/ ____/ |/ /";
-echo -e "  / _ \/ /_  / __/  |   / ";
-echo -e " /  __/ __/ / /___ /   |  ";
-echo -e " \___/_/   /_____//_/|_|   ${NC}";
+echo -e "                       ";
+echo -e "    ____ __      _____ ";
+echo -e "   / __ \`/ | /| / / _ \ ";
+echo -e "  / /_/ /| |/ |/ /  __/";
+echo -e "  \__,_/ |__/|__/\___/ ";
+echo -e "                       ";
+echo -e "   Automatic Workflow Engine for Hog ${NC}";
 echo
 echo -e " This is BASH ${BRed}${BASH_VERSION%.*}$\
 - DISPLAY on ${BRed}$DISPLAY${NC}\n"
@@ -906,7 +908,6 @@ _killall()
 complete -F _killall killall killps
 
 export LD_LIBRARY_PATH=/opt/cactus/lib:$LD_LIBRARY_PATH
-export WWW=/eos/user/e/efex/www
 export EDITOR="emacs -nw"
 export GIT_EDITOR="emacs -nw"
 export XILINXD_LICENSE_FILE=2112@lxlicen01,2112@lxlicen02,2112@lxlicen03

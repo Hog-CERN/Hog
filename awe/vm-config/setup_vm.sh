@@ -99,9 +99,8 @@ chown $AWE_USERNAME:$AWE_USERGROUP /home/$AWE_USERNAME/.bashrc
 echo "[awe-VM Setup] Copying keytab file to $AWE_USERNAME home..."
 cp $AWE_KEYTAB /home/$AWE_USERNAME/
 
-echo "[awe-VM Setup] ***************************** "
-echo "[awe-VM Setup] ACTION NEEDED: Please change home directory of $AWE_USERNAME user to /home/$AWE_USERNAME in /etc/passwd"
-echo "[awe-VM Setup] ***************************** "
+echo "[awe-VM Setup] Changing home directory of $AWE_USERNAME user to /home/$AWE_USERNAME..."
+usermod -m -d /home/$AWE_USERNAME $AWE_USERNAME
 
 echo "[awe-VM Setup] Copying eos config files..."
 cp ./eos_config/* /etc/sysconfig/
@@ -119,9 +118,9 @@ firewall-cmd --zone=public --add-port=8000/tcp --permanent
 firewall-cmd --reload
 
 echo "[awe-VM Setup] Installing awe service..."
-envsubst < awe.service > /etc/systemd/system/awe.service
+envsubst < awe@.service > /etc/systemd/system/awe@.service
 envsubst < awe.conf > /etc/awe-$AWE_NAME.conf
-systemctl enable awe.service@$AWE_NAME
+systemctl enable awe@$AWE_NAME
 
 echo "[awe-VM Setup] Creating swap file, this might take a while..."
 dd if=/dev/zero of=/swapfile bs=1024 count=16777216

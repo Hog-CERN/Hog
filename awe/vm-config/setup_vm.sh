@@ -1,8 +1,21 @@
 #!/bin/bash
+if [ -v AWE_NAME]; then
+    echo "[awe-VM Setup] Project name set to $AWE_NAME"
+else
+    echo "[awe-VM Setup] variable AWE_NAME should be set to the name of the project"
+    exit 1
+fi
 if [ -v AWE_PATH]; then
-    echo "[awe-VM Setup] awe repository path set to $AWE_PATH"
+    echo "[awe-VM Setup] awe-compatible HDL repository path set to $AWE_PATH"
 else
     echo "[awe-VM Setup] variable AWE_PATH should be set to the root of the repository containing Hog/awe"
+    exit 1
+fi
+
+if [ -v AWE_REPO]; then
+    echo "[awe-VM Setup] awe-compatible HDL repository set to $AWE_REPO"
+else
+    echo "[awe-VM Setup] variable AWE_REPO should be set to the name of the HDL repository containing Hog/awe"
     exit 1
 fi
 
@@ -35,8 +48,8 @@ else
     exit 3
 fi
 
-if [ -z "$AWE_WEB_PATH" ] || [ -z "$AWE_REVISION_PATH" ] || [ -z "$AWE_PATH" ]; then
-  echo "[awe-VM Setup] ERROR: variable AWE_WEB_PATH, AWE_REVISION_PATH should be set with a valid path"
+if [ -z "$AWE_WEB_PATH" ] || [ -z "$AWE_REVISION_PATH" ] || [ -z "$AWE_KEYTAB" ]; then
+  echo "[awe-VM Setup] ERROR: variable AWE_WEB_PATH, AWE_REVISION_PATH, AWE_KEYTAB should be set with a valid value"
   exit 1
 fi
 
@@ -72,6 +85,9 @@ chown $AWE_USERNAME:$AWE_USERGROUP /home/$AWE_USERNAME/.bash_profile
 cp -r bashrc /home/$AWE_USERNAME/.bashrc
 chown $AWE_USERNAME:$AWE_USERGROUP /home/$AWE_USERNAME/.bashrc
 
+echo "[awe-VM Setup] Copying keytab file to $AWE_USERNAME home..."
+cp $AWE_KEYTAB /home/$AWE_USERNAME/
+
 echo "[awe-VM Setup] ***************************** "
 echo "[awe-VM Setup] ACTION NEEDED: Please change home directory of $AWE_USERNAME user to /home/$AWE_USERNAME in /etc/passwd"
 echo "[awe-VM Setup] ***************************** "
@@ -93,8 +109,8 @@ firewall-cmd --reload
 
 echo "[awe-VM Setup] Installing awe service..."
 envsubst < awe.service > /etc/systemd/system/awe.service
-envsubst < awe.conf > /etc/awe.conf
-systemctl enable awe.service
+envsubst < awe.conf > /etc/awe-$AWE_NAME.conf
+systemctl enable awe.service@$AWE_NAME
 
 echo "[awe-VM Setup] Creating swap file, this might take a while..."
 dd if=/dev/zero of=/swapfile bs=1024 count=16777216

@@ -1,5 +1,5 @@
 [Unit]
-Description=Automatic Workflow Engine unit
+Description=Automatic Workflow Engine unit for %I
 After=network.target
 
 [Service]
@@ -8,8 +8,8 @@ Environment="XILINXD_LICENSE_FILE=2112@lxlicen01,2112@lxlicen02,2112@lxlicen03"
 Environment="LD_LIBRARY_PATH=/opt/cactus/lib:"
 Environment="PRIVATE_TOKEN=$AWE_PRIVATETOKEN"
 Type=simple
-User=efex
-ExecStart=/home/$AWE_USERNAME/AutomationScripts/aws_webhook.py 8000
+User=$AWE_USERNAME
+ExecStart=/home/$AWE_USERNAME/AutomationScripts/aws_webhook.py %I
 #Restart=on-abort
 
 [Install]

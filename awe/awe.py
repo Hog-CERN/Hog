@@ -471,10 +471,12 @@ class VivadoProjects():
                     self.State[np] = 'not to do'                                                        
                 else:
                     print "[VivadoProjects] Project {0} was at {1} and is now at {2}".format(np, OldProjects.Status(np), self.Status(np))
+                    self.State[np] = 'to do'                                                        
                     self.SetToDo(np)
                     AtLeastOne=True
             else:
                 print "[VivadoProjects] New project found: {0}".format(np)
+                self.State[np] = 'new'                                                        
                 self.SetToDo(np)
                 AtLeastOne=True
         return AtLeastOne

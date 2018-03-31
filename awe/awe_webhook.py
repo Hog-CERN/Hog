@@ -134,20 +134,21 @@ def StartWorkflow(sb,tb,n,v_level=0,DryRun=False,NoTime=0):
         
 
 if __name__ == '__main__':
-    ConfigFile = "/etc/awe-{}.conf".format(sys.argv[1])
-    Port = 8000
+    # first argument is port, second is project name
+    ConfigFile = "/etc/awe-{}.conf".format(sys.argv[2])
 
     head ={'PRIVATE-TOKEN': awe.GetPrivateToken()}
     urls = ('/.*', 'hooks')
     RepoAddress = urllib.quote_plus(REPO_NAME)
     AweFile = REVISION_PATH+'/merge_request{}.awe'
-    app = web.application(urls, port=Port)
+    app = web.application(urls)
     session = web.session.Session(app, web.session.DiskStore('/home/{}/sessions'.format(USERNAME)))
 
     print "[awe_webhook] AWE WebHook started"
     print "[awe_webhook] Reading config file {}...".format(ConfigFile)                                  
     config = ConfigParser.RawConfigParser()
     config.optionxform = str #make it case sensitive
+    config.read(ConfigFile)
     AweConfiguration = {}
     for s in config.items('awe'):
         AweConfiguration[s[0]] =  s[1]
@@ -159,7 +160,7 @@ if __name__ == '__main__':
     USERNAME=AweConfiguration['Username']
     
     print "[awe_webhook] Configuration: {}".format(AweConfiguration)    
-    print "[awe_webhook] Waiting for merge requests on port {}...".format(Port)
+    print "[awe_webhook] Waiting for merge requests..."
 
     sys.stdout.flush()
     app.run()

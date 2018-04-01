@@ -112,10 +112,6 @@ proc ReadListFile {list_file path lib src} {
 	}
     }
     Info ReadListFile 1 "$cnt file/s added to $lib..."
-    if {$n ne $cnt} {
-	Warning ReadListFile 1 "The number of files in the list differs form the number of files added to project..."
-    }
-    
 }
 
 ########################################################

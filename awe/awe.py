@@ -600,7 +600,7 @@ class HDLProj():
 	#check if git,awk,nproc exist
 	#chek git version maybe...
 
-        self.MakeDir(self.WebPath+'/revision')
+        MakeDir(self.WebPath+'/revision')
 	r.SetPath(self.RepoPath)
         r.Run('git fetch')
         r.Run("git rev-parse --verify remotes/origin/{0}".format(self.SourceBranch))

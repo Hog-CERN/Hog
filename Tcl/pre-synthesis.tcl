@@ -102,7 +102,7 @@ if {$no_time == 1} {
 
 
 # set global generic varibles
-set generic_string "GLOBAL_FWDATE=32'h$date GLOBAL_FWTIME=32'h$timee OFFICIAL=32'h$official GLOBAL_FWHASH=32'h$commit TOP_FWHASH=32'h$top_hash GLOBAL_FWVERSION=32'h$version TOP_FWVERSION=32'h$top_ver HOG_FWHASH=32'h$ipbus_hash"
+set generic_string "GLOBAL_FWDATE=32'h$date GLOBAL_FWTIME=32'h$timee OFFICIAL=32'h$official GLOBAL_FWHASH=32'h$commit TOP_FWHASH=32'h$top_hash GLOBAL_FWVERSION=32'h$version TOP_FWVERSION=32'h$top_ver HOG_FWHASH=32'h$hog_hash"
 
 #set project specific lists
 foreach l $libs v $vers h $hashes {

@@ -167,7 +167,7 @@ if __name__ == '__main__':
     USERNAME=AweConfiguration['Username']
     GITLAB_URL=AweConfiguration['GitlabURL']
     KEYTAB=AweConfiguration['KeytabFile']
-    REPO_URL=urllib.quote_plus("{}/{}".format(GITLAB_URL,REPO_NAME))
+    REPO_URL="{}/{}".format(GITLAB_URL,urllib.quote_plus(REPO_NAME))
 
     print "[awe_webhook] Configuration: {}".format(AweConfiguration)    
     print "[awe_webhook] Waiting for merge requests..."

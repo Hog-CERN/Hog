@@ -98,6 +98,7 @@ chown $AWE_USERNAME:$AWE_USERGROUP /home/$AWE_USERNAME/.bashrc
 
 echo "[awe-VM Setup] Copying keytab file to $AWE_USERNAME home..."
 cp $AWE_KEYTAB /home/$AWE_USERNAME/
+chown $AWE_USERNAME:$AWE_USERGROUP /home/$AWE_USERNAME/$AWE_USERNAME.keytab
 
 echo "[awe-VM Setup] Changing home directory of $AWE_USERNAME user to /home/$AWE_USERNAME..."
 usermod -m -d /home/$AWE_USERNAME $AWE_USERNAME

@@ -107,28 +107,28 @@ def StartWorkflow(sb,tb,n,v_level=0,DryRun=False,NoTime=0):
     print "[awe_webhook] From: {0}   To: {1}".format(sb,tb)
     print "[awe_webhook] *******************************************"
     sys.stdout.flush()
-    awe.SendNote('This merge request matches all the required criteria, I shall launch the automatic work flow now.', n)
-    Run = awe.VivadoProjects(REPO_PATH, sb, tb, n, REVISION_PATH, WEB_PATH, v_level, NoTime)
+    awe.SendNote('This merge request matches all the required criteria, I shall launch the automatic work flow now.', n, REPO_URL)
+    Run = awe.HDLProj(REPO_PATH, sb, tb, n, REVISION_PATH, WEB_PATH, v_level, NoTime, REPO_URL, KEYTAB, USERNAME)
     prep = Run.PrepareRun(DryRun=DryRun)
     if prep >= 0:
         if prep == 1:
-            awe.SendNote('This merge request does not modify any file that is revelant for any of the projects, so I shall approve it.', n)
+            awe.SendNote('This merge request does not modify any file that is revelant for any of the projects, so I shall approve it.', n, REPO_URL)
         else:
             Run.StartRun(DryRun=DryRun)
             final=Run.Finalise(DryRun=DryRun)
             if final == 0:
-                awe.SendNote('The automatic design flow was successful, so I shall approve this merge reqest.', n)
-                approve = requests.post("https://gitlab.cern.ch/api/v4/projects/{}/merge_requests/{0}/approve".format(RepoAddress,n), headers=head)
+                awe.SendNote('The automatic design flow was successful, so I shall approve this merge reqest.', n, REPO_URL)
+                approve = requests.post("{}/{}/merge_requests/{}/approve".format(GITLAB_URL,RepoAddress,n), headers=head)
                 f_name = AweFile.format(n)
                 print "[awe_webhook] Writing run into awe file {}...".format(f_name)
                 f = open (f_name, 'w')
                 pickle.dump(Run, f)
                 f.close()
             else:
-                awe.SendNote('The automatic design flow has failed, so I am afraid I shall not be able to approve this merge reqest.', n)
+                awe.SendNote('The automatic design flow has failed, so I am afraid I shall not be able to approve this merge reqest.', n, REPO_URL)
     else:
         print "[awe_webhook] Auto launch run preparation returned value {0}".format(prep)
-        awe.SendNote('The automatic design flow preparation has failed, so I am afraid I shall not be able to approve this merge reqest.', n)
+        awe.SendNote('The automatic design flow preparation has failed, so I am afraid I shall not be able to approve this merge reqest.', n, REPO_URL)
     print "[awe_webhook] All done."
     sys.stdout.flush()
         
@@ -158,7 +158,10 @@ if __name__ == '__main__':
     WEB_PATH=AweConfiguration['WebPath']
     REPO_NAME=AweConfiguration['Repository']
     USERNAME=AweConfiguration['Username']
-    
+    GITLAB_URL=AweConfiguration['GitlabURL']
+    KEYTAB=AweConfiguration['KeytabFile']
+    REPO_URL=urllib.quote_plus("{}/{}".format(GITLAB_URL,REPO_NAME))
+
     print "[awe_webhook] Configuration: {}".format(AweConfiguration)    
     print "[awe_webhook] Waiting for merge requests..."
 

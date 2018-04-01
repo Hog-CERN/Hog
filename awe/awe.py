@@ -30,11 +30,11 @@ def SendMail(txt, subject, address):
 def GetPrivateToken():
     return environ['PRIVATE_TOKEN']
 
-def SendNote(msg, merge_request_number,verbose=True):
+def SendNote(msg, merge_request_number, repo_url, verbose=True):
     head ={'PRIVATE-TOKEN': GetPrivateToken()}
     if verbose:
         print "[SendNote] Sending note: {0}".format(msg)
-    note = requests.post("https://gitlab.cern.ch/api/v4/projects/atlas-l1calo-efex%2FeFEXFirmware/merge_requests/{0}/notes".format(merge_request_number), data={'body':msg}, headers=head).status_code
+    note = requests.post("{}/merge_requests/{0}/notes".format(repo_URL, merge_request_number), data={'body':msg}, headers=head).status_code
     return note
 
 def NewTag(tag, ref, msg, release_description=None):
@@ -43,13 +43,13 @@ def NewTag(tag, ref, msg, release_description=None):
     data={'tag_name':tag,'message':msg,'ref':ref, 'message':msg}
     if release_description is not None:
         data['release_description'] = release_description
-    release = requests.post("https://gitlab.cern.ch/api/v4/projects/atlas-l1calo-efex%2FeFEXFirmware/repository/tags", data=data, headers=head).status_code
+    release = requests.post("{}/repository/tags".format(self.RepoURL), data=data, headers=head).status_code
     return release
 
 def UploadFile(filename):
     head ={'PRIVATE-TOKEN': GetPrivateToken()}
     files = {'file': open(filename, 'rb')}
-    r = requests.post("https://gitlab.cern.ch/api/v4/projects/atlas-l1calo-efex%2FeFEXFirmware/uploads", headers=head, files=files)
+    r = requests.post("{}/uploads".format(self.RepoURL, headers=head, files=files))
     if r.status_code == 200 or r.status_code == 201:
         print('[UploadFile] Uploading the file {0}....'.format(filename))
     else:
@@ -341,14 +341,15 @@ class Version():
 
 ##########################################################
 
-class VivadoProjects():
-    def __init__(self, repo_path, s_branch="", t_branch="", merge_n=0, revision_path="", web_path="", version_level=0, no_time=0):
+class HDLProj():
+    def __init__(self, repo_path, s_branch="", t_branch="", merge_n=0,
+                 revision_path="", web_path="", version_level=0, no_time=0,
+                 repo_URL="", keytab="", username=""):
         if not version_level in [0,1,2]:
             print "ERROR: VersionLevel must be 0,1,2, I'll set it to 0"
             self.VersionLevel=0
         else:
             self.VersionLevel=version_level
-
         self.Names = []
         self.StartRunEnabled = False
         self.Paths = {}
@@ -371,7 +372,10 @@ class VivadoProjects():
         self.Recap = ""
         self.Ver = Version(0,0,0,0)
         self.NoTime=no_time
-        self.VivadoCommandLine = "vivado -mode batch -notrace -journal {JournalFile} -log {LogFile} -source ./Tcl/launch_runs.tcl -tclargs {Project} {RunsDir} {NJobs} {no_time}"
+        self.RepoURL = repo_URL
+        self.KinitCommand = 'kinit -kt {} {}'.format(keytab, username)
+        self.EOSCommand = '/usr/bin/eosfusebind krb5'
+        self.VivadoCommandLine = "vivado -mode batch -notrace -journal {JournalFile} -log {LogFile} -source .Hog/Tcl/launch_runs.tcl -tclargs {Project} {RunsDir} {NJobs} {no_time}"
 
     def Scan(self):
         s = Runner()
@@ -382,7 +386,7 @@ class VivadoProjects():
                 ListDir = "{0}/list".format(d)
                 if path.isdir(ListDir):
                     Status = s.Run("git log --format=%h -1 -- $(awk '!/^ *#/ && NF {{print $1}}' {0}/list/*) .".format(d))[0]
-                    print "[VivadoProjects] Status of project {0} is {1}".format(name,Status)
+                    print "[HDLProj] Status of project {0} is {1}".format(name,Status)
                     self.Names.append(name)
                     self.Statuses[name]=Status
                     self.Paths[name]= d
@@ -467,15 +471,15 @@ class VivadoProjects():
         for np in self.Names:
             if OldProjects.Exists(np):
                 if OldProjects.Status(np) == self.Status(np):
-                    print "[VivadoProjects] Project {0} will not be influenced by this merge, design-flow will be skipped...".format(np)
+                    print "[HDLProj] Project {0} will not be influenced by this merge, design-flow will be skipped...".format(np)
                     self.State[np] = 'not to do'                                                        
                 else:
-                    print "[VivadoProjects] Project {0} was at {1} and is now at {2}".format(np, OldProjects.Status(np), self.Status(np))
+                    print "[HDLProj] Project {0} was at {1} and is now at {2}".format(np, OldProjects.Status(np), self.Status(np))
                     self.State[np] = 'to do'                                                        
                     self.SetToDo(np)
                     AtLeastOne=True
             else:
-                print "[VivadoProjects] New project found: {0}".format(np)
+                print "[HDLProj] New project found: {0}".format(np)
                 self.State[np] = 'new'                                                        
                 self.SetToDo(np)
                 AtLeastOne=True
@@ -484,17 +488,17 @@ class VivadoProjects():
     def EvaluateNJobs(self):
         # add some control here...
         self.NJobs = int(self.runner.Run('/usr/bin/nproc')[0])
-        print "[VivadoProjects] Found {0} CPUs".format(self.NJobs)
+        print "[HDLProj] Found {0} CPUs".format(self.NJobs)
 
     def EnableStartRun(self, enable=True):
         self.StartRunEnabled = enable
 
     def RemoveLockFile(self):
-        print "[VivadoProjects] Removing lockfile {0} if exists".format(self.LockFile)
+        print "[HDLProj] Removing lockfile {0} if exists".format(self.LockFile)
         if path.isfile(self.LockFile):
             remove(self.LockFile)
         else:
-            print "[VivadoProjects] Lockfile {0} not found".format(self.LockFile)
+            print "[HDLProj] Lockfile {0} not found".format(self.LockFile)
 
     def StoreRun(self, proj):
         # copy the whole runs dir for debug
@@ -579,8 +583,8 @@ class VivadoProjects():
 	name='[PrepareRun] '
 	r=Runner()
 	for p in [self.RepoPath, self.RevisionPath, self.WebPath]:
-	    r.Run('kinit -kt /home/efex/efex.keytab efex')
-	    r.Run('/usr/bin/eosfusebind krb5')
+            r.Run(self.KinitCommand)
+	    r.Run(self.EOSCommand)
 	
 	    if not path.isdir(p):
 	        print name + "ERROR: {0} does not exist".format(p)
@@ -621,7 +625,7 @@ class VivadoProjects():
 	r.Run("git checkout {0}".format(self.TargetBranch))
 	print name+"Pulling from repository ..."
 	r.Run('git pull')
-	OldProj = VivadoProjects(self.RepoPath)
+	OldProj = HDLProj(self.RepoPath)
 	OldProj.Scan()
 	print name+"Checking out source branch {0} ...".format(self.SourceBranch)
 	r.Run("git checkout {0}".format(self.SourceBranch))
@@ -680,9 +684,9 @@ class VivadoProjects():
             for n, s in self.State.iteritems():
                 self.Recap += "{} | {} | {} | {}\n".format(n,s,OldProj.Status(n), self.Status(n))
                 Msg = self.CheckXML(n)
-                SendNote(Msg, self.MergeRequestNumber)                
+                SendNote(Msg, self.MergeRequestNumber, self.RepoURL)                
             msg += self.Recap
-            SendNote(msg, self.MergeRequestNumber)
+            SendNote(msg, self.MergeRequestNumber, self.RepoURL)
 
             if AtLEastOne:
                 return 0	
@@ -695,9 +699,9 @@ class VivadoProjects():
                 self.EvaluateNJobs()
                 print "[StartRun] Looping over projects..."
                 for Project in self.ToDo.keys():
-                    self.runner.Run('kinit -kt /home/efex/efex.keytab efex')
-                    self.runner.Run('/usr/bin/eosfusebind krb5')
-                    print "[VivadoProjects] Preparing run for: {0}, path: {1}".format(Project, self.Path(Project))
+                    self.runner.Run(self.KinitCommand)
+                    self.runner.Run(self.EOSCommand)
+                    print "[HDLProj] Preparing run for: {0}, path: {1}".format(Project, self.Path(Project))
                     MakeDir(self.OutDir(Project))
                     self.WriteStatus(Project)
                     print "[StartRun] Command: " + self.VivadoCommand(Project) 
@@ -722,7 +726,7 @@ class VivadoProjects():
                                 self.State[Project] = 'success'                                                        
                                 time_rep = self.StoreFiles(Project)
                                 # clean repo?? let's try not to
-                                SendNote("## Project: {}\n\nWork-flow was successfull\n\n## Timing report\n\n{}".format(Project, time_rep), self.MergeRequestNumber)
+                                SendNote("## Project: {}\n\nWork-flow was successfull\n\n## Timing report\n\n{}".format(Project, time_rep), self.MergeRequestNumber, self.RepoURL)
                             else:
                                 self.State[Project] = "error bitfile"                                                        
                         else:
@@ -746,7 +750,7 @@ class VivadoProjects():
             RetVal = 0
         else:
             print "[CheckRuns] WARNING: Not all runs were successful"
-        print "[VivadoProjects] Removing lock file, if any"
+        print "[HDLProj] Removing lock file, if any"
         self.RemoveLockFile()
         return RetVal
 
@@ -776,7 +780,7 @@ class VivadoProjects():
         self.runner.Silent = True;
         DoxygenReport = self.runner.Run('(cat doxygen/doxygen.conf; echo -e "\nPROJECT_NUMBER={}") | doxygen -'.format(new_ver))
         self.runner.Silent = False;
-        SendNote("## Doxygen report\n "+"  \n".join(DoxygenReport),self.MergeRequestNumber,False)
+        SendNote("## Doxygen report\n "+"  \n".join(DoxygenReport),self.MergeRequestNumber,self.RepoURL,False)
         src = self.RepoPath+"/../Doc/html"
         dst = self.DoxygenDir()
         print "[RunDoxygen] Moving {} to {}".format(src,dst)
@@ -800,8 +804,8 @@ class VivadoProjects():
         pass
 
     def MoveFileOfficial(self):
-        self.runner.Run('kinit -kt /home/efex/efex.keytab efex')
-        self.runner.Run('/usr/bin/eosfusebind krb5')
+        self.runner.Run(self.KinitCommand)
+        self.runner.Run(self.EOSCommand)
         for Project in self.ToDo.keys():
             self.StoreFiles(Project, Official=True)
             self.StoreBitFile(Project, Official=True)

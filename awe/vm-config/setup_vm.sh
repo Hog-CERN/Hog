@@ -96,12 +96,12 @@ chown $AWE_USERNAME:$AWE_USERGROUP /home/$AWE_USERNAME/.bash_profile
 cp -r bashrc /home/$AWE_USERNAME/.bashrc
 chown $AWE_USERNAME:$AWE_USERGROUP /home/$AWE_USERNAME/.bashrc
 
-echo "[awe-VM Setup] Copying keytab file to $AWE_USERNAME home..."
-cp $AWE_KEYTAB /home/$AWE_USERNAME/
-chown $AWE_USERNAME:$AWE_USERGROUP /home/$AWE_USERNAME/$AWE_USERNAME.keytab
-
 echo "[awe-VM Setup] Changing home directory of $AWE_USERNAME user to /home/$AWE_USERNAME..."
 usermod -m -d /home/$AWE_USERNAME $AWE_USERNAME
+
+echo "[awe-VM Setup] Copying keytab file to $AWE_USERNAME home and renaming it..."
+cp $AWE_KEYTAB /home/$AWE_USERNAME/$AWE_USERNAME.keytab
+chown $AWE_USERNAME:$AWE_USERGROUP /home/$AWE_USERNAME/$AWE_USERNAME.keytab
 
 echo "[awe-VM Setup] Copying eos config files..."
 cp ./eos_config/* /etc/sysconfig/

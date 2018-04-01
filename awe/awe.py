@@ -34,7 +34,7 @@ def SendNote(msg, merge_request_number, repo_url, verbose=True):
     head ={'PRIVATE-TOKEN': GetPrivateToken()}
     if verbose:
         print "[SendNote] Sending note: {0}".format(msg)
-    note = requests.post("{}/merge_requests/{0}/notes".format(repo_URL, merge_request_number), data={'body':msg}, headers=head).status_code
+    note = requests.post("{}/merge_requests/{}/notes".format(repo_url, merge_request_number), data={'body':msg}, headers=head).status_code
     return note
 
 def NewTag(tag, ref, msg, release_description=None):
@@ -375,7 +375,7 @@ class HDLProj():
         self.RepoURL = repo_URL
         self.KinitCommand = 'kinit -kt {} {}'.format(keytab, username)
         self.EOSCommand = '/usr/bin/eosfusebind krb5'
-        self.VivadoCommandLine = "vivado -mode batch -notrace -journal {JournalFile} -log {LogFile} -source .Hog/Tcl/launch_runs.tcl -tclargs {Project} {RunsDir} {NJobs} {no_time}"
+        self.VivadoCommandLine = "vivado -mode batch -notrace -journal {JournalFile} -log {LogFile} -source ./Hog/Tcl/launch_runs.tcl -tclargs {Project} {RunsDir} {NJobs} {no_time}"
 
     def Scan(self):
         s = Runner()

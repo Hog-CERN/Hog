@@ -50,7 +50,7 @@ class hooks:
 	    print "[awe_webhook] Merge status:        ", status 
 	    print "[awe_webhook] --------------------------------"
 	    sys.stdout.flush()
-	    if self.Verbose
+	    if self.Verbose:
 	        pprint(data_web)
 	    if status == 'can_be_merged' and tb == 'master' and state == 'opened' and last_commit_author != USERNAME and action != 'approved' and not wip and not 'TEST_MERGE' in description:
 	        if 'DRYRUN' in description:

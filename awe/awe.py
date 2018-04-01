@@ -579,7 +579,7 @@ class HDLProj():
     
 
 
-    def PrepareRun(self, DryRun=False, Force=False):
+    def PrepareRun(self, DryRun=False, Force=False, QuickRun=False):
 	name='[PrepareRun] '
 	r=Runner()
         r.Run(self.KinitCommand)
@@ -616,7 +616,7 @@ class HDLProj():
 
         r.Run('git submodule init')
 	r.Run('git submodule update')
-        if not DryRun:
+        if not DryRun and not QuickRun:
             print name+"Cleaning and resetting repository..."
             r.Run('git clean -xdf')
             r.Run('git reset --hard HEAD')

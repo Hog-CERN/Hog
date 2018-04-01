@@ -58,6 +58,12 @@ class hooks:
 	            print "[awe_webhook] This is a DRY RUN"
 	        else:
 	            DryRun=False
+
+	        if 'QUICKRUN' in description:
+	            QuickRun=True
+	            print "[awe_webhook] This is a QUICK RUN"
+	        else:
+	            QuickRun=False
 	    
 	        if 'NO_TIME' in description:
 	            NoTime=1
@@ -74,7 +80,7 @@ class hooks:
 	        else:
 	            VersionLevel = 0
 	    
-	        thread = Thread(target = StartWorkflow, args = (sb,tb,n, VersionLevel, DryRun, NoTime))
+	        thread = Thread(target = StartWorkflow, args = (sb,tb,n, VersionLevel, DryRun, NoTime, QuickRun))
 	        thread.start()
 	    
 	    
@@ -109,7 +115,7 @@ class hooks:
             pprint(data_web)
             return 'ERROR'
 
-def StartWorkflow(sb,tb,n,v_level=0,DryRun=False,NoTime=0):
+def StartWorkflow(sb,tb,n,v_level=0,DryRun=False,NoTime=0,QuickRun=False):
     print "[awe_webhook] *******************************************"
     print "[awe_webhook] Launching run for merge request {0}".format(n)
     print "[awe_webhook] From: {0}   To: {1}".format(sb,tb)
@@ -117,7 +123,7 @@ def StartWorkflow(sb,tb,n,v_level=0,DryRun=False,NoTime=0):
     sys.stdout.flush()
     awe.SendNote('This merge request matches all the required criteria, I shall launch the automatic work flow now.', n, REPO_URL)
     Run = awe.HDLProj(REPO_PATH, sb, tb, n, REVISION_PATH, WEB_PATH, v_level, NoTime, REPO_URL, KEYTAB, USERNAME)
-    prep = Run.PrepareRun(DryRun=DryRun)
+    prep = Run.PrepareRun(DryRun=DryRun,QuickRun=QuickRun)
     if prep >= 0:
         if prep == 1:
             awe.SendNote('This merge request does not modify any file that is revelant for any of the projects, so I shall approve it.', n, REPO_URL)

@@ -49,25 +49,46 @@ set hashes ""
 set list_files [glob  "./Top/$proj_name/list/*.src"]
 foreach f $list_files {
     set name [file rootname [file tail $f]]
-    if {$name ne "ipbus_lib"} {
-	lassign [GetVer  $f ./Top/$proj_name/] ver hash dummy
-	Info $NAME 1 "Found source file $f, version: $ver commit SHA: $hash"
-	lappend libs $name
-	lappend vers $ver
-	lappend hashes $hash
+    lassign [GetVer  $f ./Top/$proj_name/] ver hash dummy
+    Info $NAME 1 "Found source file $f, version: $ver commit SHA: $hash"
+    lappend libs $name
+    lappend vers $ver
+    lappend hashes $hash
+}
+
+# Submodules
+set subs ""
+set subs_hashes ""
+set sub_files [glob  "./Top/$proj_name/list/*.sub"]
+foreach f $sub_files {
+    set sub_dir [file rootname [file tail $f]]
+    if [file exists ./$sub_dir] {
+	cd "./$sub_dir"
+	lappend subs $sub_dir
+	if { [exec git status --untracked-files=no  --porcelain] eq "" } {
+	    Info $NAME 2 "$sub_dir submodule clean."
+	    lappend subs_hashes [GetHash ALL ./]
+	} else {
+	    Warning $NAME 2 "$sub_dir submodule not clean, commit hash will be set to 0."
+	    lappend subs_hashes "0000000"    
+	}
+	cd ..
+    } else {
+	Warning $NAME 2 "$sub_dir submodule not found"
     }
 }
 
-# IPBUS submodule
-cd "./eFEX-ipbus"
+# Hog submodule
+cd "./Hog"
 if { [exec git status --untracked-files=no  --porcelain] eq "" } {
-    Info $NAME 2 "IPBus Git working directory [pwd] clean."
-    set ipbus_hash [GetHash ALL ./]
-    set ipb_clean "yes"
+    Info $NAME 2 "Hog submodule [pwd] clean."
+    set hog_hash [GetHash ALL ./]
+    set hog_clean "yes"
 } else {
-    Warning $NAME 2 "IPBus Git working directory [pwd] not clean, commit hash will be set to 0."
-    set ipbus_hash "0000000"    
-    set ipb_clean "no"
+    Warning $NAME 2 "Hog submodule [pwd] not clean, commit hash will be set to 0."
+    # Maybe an error would be better here...
+    set hog_hash "0000000"    
+    set hog_clean "no"
 }
 
 set clock_seconds [clock seconds]
@@ -81,13 +102,19 @@ if {$no_time == 1} {
 
 
 # set global generic varibles
-set generic_string "GLOBAL_FWDATE=32'h$date GLOBAL_FWTIME=32'h$timee OFFICIAL=32'h$official GLOBAL_FWHASH=32'h$commit TOP_FWHASH=32'h$top_hash GLOBAL_FWVERSION=32'h$version TOP_FWVERSION=32'h$top_ver IPBUS_FWHASH=32'h$ipbus_hash"
+set generic_string "GLOBAL_FWDATE=32'h$date GLOBAL_FWTIME=32'h$timee OFFICIAL=32'h$official GLOBAL_FWHASH=32'h$commit TOP_FWHASH=32'h$top_hash GLOBAL_FWVERSION=32'h$version TOP_FWVERSION=32'h$top_ver HOG_FWHASH=32'h$ipbus_hash"
 
-#set project specific generic variables
+#set project specific lists
 foreach l $libs v $vers h $hashes {
     set ver "[string toupper $l]_FWVERSION=32'h$v "
     set hash "[string toupper $l]_FWHASH=32'h$h"
     set generic_string "$generic_string $ver $hash"
+}
+
+#set project specific sub modules
+foreach s $subs h $subs_hashes {
+    set hash "[string toupper $s]_FWHASH=32'h$h"
+    set generic_string "$generic_string $hash"
 }
 
 Info $NAME 4 "Generic String: $generic_string"
@@ -99,11 +126,15 @@ Status $NAME 3 " $tt"
 Status $NAME 3 " Firmware date and time: $date, $timee"
 Status $NAME 3 " Global SHA: $commit, VER: $version"
 Status $NAME 3 " Top SHA: $top_hash, VER: $top_ver"
-Status $NAME 3 " IPBus SHA: $ipbus_hash"
+Status $NAME 3 " Hog SHA: $hog_hash"
 Status $NAME 3 " Official reg: $official"
 Status $NAME 3 " --- Libraries ---"
 foreach l $libs v $vers h $hashes {
     Status $NAME 3 " $l SHA: $h, VER: $v"    
+}
+Status $NAME 3 " --- Submodules ---"
+foreach s $subs sh $subs_hashes {
+    Status $NAME 3 " $s SHA: $sh"    
 }
 Status $NAME 3 " -----------------------------------------------------------------"
 

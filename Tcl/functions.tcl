@@ -135,6 +135,7 @@ proc ReadListFile {list_file path lib src} {
 # LIB_NAME : the Vivado library you want to include the file to
 # FILE_SET : the Vivado file set you want to include the file to:
 # * .src : for source files (corresponding to sources_1)
+# * .sub : for source files in a git submodule (corresponding to sources_1)
 # * .sim : for simulation files (corresponding to sim_1)
 # * .con : for constraint files (corresponding to constrs_1)
 # any other file extension will cause an error
@@ -144,6 +145,9 @@ proc SmartListFile {list_file path} {
     set lib [file rootname [file tail $list_file]]
     switch $ext {
 	.src {
+	    set file_set "sources_1"
+	}
+	.sub {
 	    set file_set "sources_1"
 	}
 	.sim {

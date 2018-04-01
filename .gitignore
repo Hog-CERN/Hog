@@ -1,2 +1,4 @@
-hooks.pyc
-sessions
+*~
+vivado*.jou
+*.log
+vivado*.str

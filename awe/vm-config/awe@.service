@@ -9,7 +9,7 @@ Environment="LD_LIBRARY_PATH=/opt/cactus/lib:"
 Environment="PRIVATE_TOKEN=$AWE_PRIVATETOKEN"
 Type=simple
 User=$AWE_USERNAME
-ExecStart=/home/$AWE_USERNAME/$AWE_PATH/Hog/awe/awe_webhook.py 8000 %I
+ExecStart=$AWE_PATH/Hog/awe/awe_webhook.py 8000 %I
 #Restart=on-abort
 
 [Install]

@@ -44,13 +44,13 @@ class hooks:
 	    time.sleep(1)
 	    u = requests.get(url, headers=head)
 	    time.sleep(1)
-	    r = requests.get("https://gitlab.cern.ch/api/v4/projects/{}/merge_requests/{}".format(RepoAddress,n), headers=head)
+	    r = requests.get("{}/merge_requests/{}".format(REPO_URL,n), headers=head)
 	    data_web=json.loads(r.text)
 	    status=data_web['merge_status']
 	    print "[awe_webhook] Merge status:        ", status 
 	    print "[awe_webhook] --------------------------------"
 	    sys.stdout.flush()
-	    if self.Verbose:
+	    if self.Verbose
 	        pprint(data_web)
 	    if status == 'can_be_merged' and tb == 'master' and state == 'opened' and last_commit_author != USERNAME and action != 'approved' and not wip and not 'TEST_MERGE' in description:
 	        if 'DRYRUN' in description:
@@ -103,11 +103,17 @@ class hooks:
             return 'OK'
         except KeyError as k:
             print "[awe_webhook] ERROR: key {} not found in data from Gitlab".format(k)
+            print "[awe_webhook] ***** Not updated data:"
             pprint(data)
+            print "[awe_webhook] ***** Updated data:"
+            pprint(data_web)
             return 'ERROR'
         except:
-            print "[awe_webhook] ERROR: unexpected error"
+            print "[awe_webhook] ERROR: Unexpected error!"
+            print "[awe_webhook] ***** Not updated data:"
             pprint(data)
+            print "[awe_webhook] ***** Updated data:"
+            pprint(data_web)
             return 'ERROR'
 
 def StartWorkflow(sb,tb,n,v_level=0,DryRun=False,NoTime=0):
@@ -127,7 +133,7 @@ def StartWorkflow(sb,tb,n,v_level=0,DryRun=False,NoTime=0):
             final=Run.Finalise(DryRun=DryRun)
             if final == 0:
                 awe.SendNote('The automatic design flow was successful, so I shall approve this merge reqest.', n, REPO_URL)
-                approve = requests.post("{}/{}/merge_requests/{}/approve".format(GITLAB_URL,RepoAddress,n), headers=head)
+                approve = requests.post("{}/merge_requests/{}/approve".format(REPO_URL,n), headers=head)
                 f_name = AweFile.format(n)
                 print "[awe_webhook] Writing run into awe file {}...".format(f_name)
                 f = open (f_name, 'w')
@@ -148,7 +154,6 @@ if __name__ == '__main__':
 
     head ={'PRIVATE-TOKEN': awe.GetPrivateToken()}
     urls = ('/.*', 'hooks')
-    RepoAddress = urllib.quote_plus(REPO_NAME)
     AweFile = REVISION_PATH+'/merge_request{}.awe'
     app = web.application(urls, globals())
     session = web.session.Session(app, web.session.DiskStore('/home/{}/sessions'.format(USERNAME)))

@@ -625,12 +625,16 @@ class HDLProj():
 	r.Run("git checkout {0}".format(self.TargetBranch))
 	print name+"Pulling from repository ..."
 	r.Run('git pull')
+	r.Run('git submodule init')
+	r.Run('git submodule update')
 	OldProj = HDLProj(self.RepoPath)
 	OldProj.Scan()
 	print name+"Checking out source branch {0} ...".format(self.SourceBranch)
 	r.Run("git checkout {0}".format(self.SourceBranch))
 	print name+"Pulling from repository ..."
 	r.Run('git pull')
+	r.Run('git submodule init')
+	r.Run('git submodule update')
 	message="Merging {0} into {1} before automatic wrokflow...".format(self.TargetBranch,self.SourceBranch)
 	print name+message
 	git_response=r.Run("git merge -m \" {0} \" {1}".format(message,self.TargetBranch))

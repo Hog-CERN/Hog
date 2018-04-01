@@ -139,6 +139,10 @@ else
     echo "[awe-VM Setup] WARINING /dev/vdb not found"
 fi
 
+cd /home/$AWE_USERNAME
+su $AWE_USERNAME -c "git clone ssh://git@gitlab.cern.ch:7999/$AWE_REPO"
+cd -
+
 if [[ -x "$AWE_VIVADO_DIR/xsetup" ]]; then
     echo "[awe-VM Setup] Installing Vivado, this might take more than a while..."
     $AWE_VIVADO_DIR/xsetup --agree XilinxEULA,3rdPartyEULA,WebTalkTerms --batch Install --config ./install_config.txt

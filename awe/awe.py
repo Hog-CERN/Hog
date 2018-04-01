@@ -432,11 +432,11 @@ class HDLProj():
         return "{0}/{1}/doxygen".format(self.RevisionPath,self.Commit)
 
     def ArchiveDir(self, proj):
-        return "{0}/firmware/{1}/{2}".format(self.WebPath,self.Commit,proj)
+        return "{0}/revision/firmware/{1}/{2}".format(self.WebPath,self.Commit,proj)
 
 
     def OfficialDir(self, proj):
-        return "{0}/official/{1}/{2}".format(self.WebPath,self.Ver.Tag(True),proj)
+        return "{0}/revision/official/{1}/{2}".format(self.WebPath,self.Ver.Tag(True),proj)
 
     def JournalFile(self, proj):
         if self.isToDo(proj):
@@ -457,7 +457,7 @@ class HDLProj():
             return False
 
     def StatusFile(self, proj):
-        return self.WebPath+'/status-'+self.Commit+'-'+proj    
+        return self.WebPath+'/revision/status-'+self.Commit+'-'+proj    
 
     def WriteStatus(self, proj):
         msg="Preparing run for project: {0} ({1}) from branch {2} to {3}, with {4} jobs.".format(proj,self.Commit,self.SourceBranch,self.TargetBranch,self.NJobs)
@@ -582,14 +582,12 @@ class HDLProj():
     def PrepareRun(self, DryRun=False, Force=False):
 	name='[PrepareRun] '
 	r=Runner()
+        r.Run(self.KinitCommand)
+        r.Run(self.EOSCommand)
 	for p in [self.RepoPath, self.RevisionPath, self.WebPath]:
-            r.Run(self.KinitCommand)
-	    r.Run(self.EOSCommand)
-	
 	    if not path.isdir(p):
 	        print name + "ERROR: {0} does not exist".format(p)
 	        return -1
-	
 	self.LockFile=self.RevisionPath+"/lock"
         if not Force:
             while path.isfile(self.LockFile):
@@ -601,7 +599,8 @@ class HDLProj():
 	
 	#check if git,awk,nproc exist
 	#chek git version maybe...
-	
+
+        self.MakeDir(self.WebPath+'/revision')
 	r.SetPath(self.RepoPath)
         r.Run('git fetch')
         r.Run("git rev-parse --verify remotes/origin/{0}".format(self.SourceBranch))
@@ -813,7 +812,7 @@ class HDLProj():
         for Project in self.ToDo.keys():
             self.StoreFiles(Project, Official=True)
             self.StoreBitFile(Project, Official=True)
-        dst=self.WebPath+"/../doc"
+        dst=self.WebPath+"/doc"
         if path.isdir(dst):
             print '[MoveFileOfficial] Deleting doxygen directory {}...'.format(dst)
             rmtree(dst)

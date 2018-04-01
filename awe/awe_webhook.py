@@ -141,7 +141,7 @@ if __name__ == '__main__':
     urls = ('/.*', 'hooks')
     RepoAddress = urllib.quote_plus(REPO_NAME)
     AweFile = REVISION_PATH+'/merge_request{}.awe'
-    app = web.application(urls)
+    app = web.application(urls, globals())
     session = web.session.Session(app, web.session.DiskStore('/home/{}/sessions'.format(USERNAME)))
 
     print "[awe_webhook] AWE WebHook started"

@@ -108,13 +108,6 @@ class hooks:
             print "[awe_webhook] ***** Updated data:"
             pprint(data_web)
             return 'ERROR'
-        except:
-            print "[awe_webhook] ERROR: Unexpected error!"
-            print "[awe_webhook] ***** Not updated data:"
-            pprint(data)
-            print "[awe_webhook] ***** Updated data:"
-            pprint(data_web)
-            return 'ERROR'
 
 def StartWorkflow(sb,tb,n,v_level=0,DryRun=False,NoTime=0):
     print "[awe_webhook] *******************************************"

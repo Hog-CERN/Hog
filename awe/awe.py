@@ -737,7 +737,7 @@ class HDLProj():
                      queue_file = ".Vivado_Synthesis.queue.rst",
                      log_file = "runme.log"):
         Path = self.RunsDir(Project)
-        File = self.StatusFile(Project), 
+        File = self.StatusFile(Project)
         print "[VivadoStatus] Monitoring Vivado workflow status in {0} and writing status to {1}...".format(Path,File)
         m = re.search(re.compile("(\w+).runs"),Path)
         if m:

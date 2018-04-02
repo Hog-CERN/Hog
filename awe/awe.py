@@ -240,7 +240,7 @@ class HDLProj():
         self.EOSCommand = '/usr/bin/eosfusebind krb5'
         self.VivadoCommandLine="vivado -mode batch -notrace -journal {JournalFile} -log {LogFile} -source ./Hog/Tcl/launch_runs.tcl -tclargs {Project} {RunsDir} {NJobs} {no_time}"
 
-    def Kinit():
+    def Kinit(self):
         self.runner.Run(self.KinitCommand)
         self.runner.Run(self.EOSCommand)
 

@@ -737,8 +737,8 @@ class HDLProj():
                      queue_file = ".Vivado_Synthesis.queue.rst",
                      log_file = "runme.log"):
         Path = self.RunsDir(Project)
-        StatusFile = self.StatusFile(Project), 
-        print "[VivadoStatus] Monitoring Vivado workflow status in {0} and writing status to {1}...".format(Path,StatusFile)
+        File = self.StatusFile(Project), 
+        print "[VivadoStatus] Monitoring Vivado workflow status in {0} and writing status to {1}...".format(Path,File)
         m = re.search(re.compile("(\w+).runs"),Path)
         if m:
             Project = m.group(0)
@@ -798,7 +798,7 @@ class HDLProj():
 
                 # Writing on status file
                 self.Kinit()
-                OUT = open (StatusFile,"w")
+                OUT = open (File,"w")
                 OUT.write("<h2> Project: {0} </h2>\n".format(Project))
                 AllQueued= True
                 AllSuccess = True
@@ -860,7 +860,7 @@ class HDLProj():
             msg = "All process are queued, dead, or in error for: {0}".format(Project)
             ret_val=-2
 
-        OUT = open (StatusFile,"a")
+        OUT = open (File,"a")
         OUT.write("<p> " + msg +"</p>\n")
         OUT.close()
         print "[VivadoStatus] "+ msg

@@ -238,7 +238,11 @@ class HDLProj():
         self.RepoURL = repo_URL
         self.KinitCommand = 'kinit -kt {} {}'.format(keytab, username)
         self.EOSCommand = '/usr/bin/eosfusebind krb5'
-        self.VivadoCommandLine = "vivado -mode batch -notrace -journal {JournalFile} -log {LogFile} -source ./Hog/Tcl/launch_runs.tcl -tclargs {Project} {RunsDir} {NJobs} {no_time}"
+        self.VivadoCommandLine="vivado -mode batch -notrace -journal {JournalFile} -log {LogFile} -source ./Hog/Tcl/launch_runs.tcl -tclargs {Project} {RunsDir} {NJobs} {no_time}"
+
+    def Kinit():
+        self.runner.Run(self.KinitCommand)
+        self.runner.Run(self.EOSCommand)
 
     def Scan(self):
         s = Runner()
@@ -445,8 +449,7 @@ class HDLProj():
     def PrepareRun(self, DryRun=False, Force=False, QuickRun=False):
 	name='[PrepareRun] '
 	r=Runner()
-        r.Run(self.KinitCommand)
-        r.Run(self.EOSCommand)
+        self.Kinit()
 	for p in [self.RepoPath, self.RevisionPath, self.WebPath]:
 	    if not path.isdir(p):
 	        print name + "ERROR: {0} does not exist".format(p)
@@ -565,8 +568,7 @@ class HDLProj():
                 self.EvaluateNJobs()
                 print "[StartRun] Looping over projects..."
                 for Project in self.ToDo.keys():
-                    self.runner.Run(self.KinitCommand)
-                    self.runner.Run(self.EOSCommand)
+                    self.Kinit()
                     print "[HDLProj] Preparing run for: {0}, path: {1}".format(Project, self.Path(Project))
                     MakeDir(self.OutDir(Project))
                     self.WriteStatus(Project)
@@ -670,8 +672,7 @@ class HDLProj():
         pass
 
     def MoveFileOfficial(self):
-        self.runner.Run(self.KinitCommand)
-        self.runner.Run(self.EOSCommand)
+        self.Kinit()
         for Project in self.ToDo.keys():
             self.StoreFiles(Project, Official=True)
             self.StoreBitFile(Project, Official=True)

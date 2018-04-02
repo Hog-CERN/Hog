@@ -82,144 +82,7 @@ def Compare(f,g):
     else:
         return False
 
-
-def VivadoStatus(Path, StatusFile,
-                 wait_time = 30,
-                 begin_file = ".vivado.begin.rst",
-                 end_file=".vivado.end.rst",
-                 error_file = ".vivado.error.rst",
-                 queue_file = ".Vivado_Synthesis.queue.rst",
-                 log_file = "runme.log"):
-
-    print "[VivadoStatus] Monitoring Vivado workflow status in {0} and writing status to {1}...".format(Path,StatusFile)
-
-    m = re.search(re.compile("(\w+).runs"),Path)
-    if m:
-        Project = m.group(0)
-    else:
-        Project = Path 
-    if not path.isdir(Path):
-        print "[VivadoStatus] Error! {0} does not exist".format(Path)
-        return -1
-    Status = {}
-    Report = {}
-    Phase = {}
-    Names = {}
-    Log = {}
-    AllDone = 3
-    while AllDone>0:
-	    for d in listdir(Path):
-                name=d
-	        d=Path+'/'+d
-	        if path.isdir(d):
-                    Names[d]= name
-	            if path.isfile(d+'/'+end_file):
-	                    Status[d] = "<font style=\"font-weight:bold;color:Green\";> done successfully </font>"
-	                    tails=40
-	            elif path.isfile(d+'/'+error_file):
-	                    Status[d] = "<font style=\"font-weight:bold;color:Red\";> error </font>"
-	                    tails=100
-	            elif path.isfile(d+'/'+begin_file):
-	                    with open(d+'/'+begin_file) as f:
-	                        lines = f.read().splitlines()
-	                    r = re.compile("Pid=\"(\d+)\"")
-	                    l = " ".join(lines)
-	                    m=re.search(r,l)
-	                    if m:
-	                        pid = m.group(1)
-	                    else:
-	                        print "[RunStatus] WARNING: Couldnt parse pid out of {0}".format(d+'/'+begin_file)
-	                        pid = 0
-	                    Status[d] = pid;
-                            r = re.compile("(\w+\_\w+)\.(begin|end|error)\.rst")
-                            for f in listdir(d):
-                                m=re.search(r,f)
-                                if m:
-                                    if not d in Phase:
-                                        Phase[d]= {}
-                                    Phase[d][m.group(1)] = m.group(2)
-	                    tails=100
-	            elif path.isfile(d+'/'+queue_file):
-	                    Status[d] = "queued"
-	                    tails=20
-	                                                    
-	            if path.isfile(d+'/'+log_file):
-	                    with open(d+'/'+log_file) as f:
-	                        lines = f.read().splitlines()
-	                    Log[d] = "\n".join(lines[-tails:-1])
-	            else:
-	                    Log[d] = 'No log file found';
-	
-	            # Writing on status file
-	    OUT = open (StatusFile,"w")
-	    OUT.write("<h2> Project: {0} </h2>\n".format(Project))
-            AllQueued= True
-            AllSuccess = True
-            NoErrors = True
-	    for key, value in Status.iteritems():
-                Running = False
-	        OUT.write("<strong> Run {0} </strong>\n".format(key))
-	        if value.isdigit():
-	            OUT.write("<font style=\"font-weight:bold;color:Orange\";> is running with PID={0}</font>".format(value))
-	            if Alive(int(value)):
-	                OUT.write("<font style=\"font-weight:bold;color:Green\";> Process {0} is alive</font>".format(value))
-                        Running = True
-	            else:
-	                OUT.write("<font style=\"font-weight:bold;color:Red\";> Process {0} is dead</font>".format(value))
-	        else:
-	            OUT.write(value)
-	                
-
-	        if key in Log:
-	            OUT.write("<label for=\"{0}\"> <font style=\"color:white;background-color:#36c\";> view </font> </label>\n".format(key))
-	            OUT.write("<input type=\"checkbox\" id=\"{0}\" style=\"display:none;\">\n".format(key))
-	            OUT.write("<div id=\"hidden\"><pre>\n")
-	            OUT.write(Log[key])
-	            OUT.write("</pre></div>\n")
-	
-	        if key in Phase:
-                    OUT.write("&nbsp &nbsp ( &nbsp &nbsp \n")                  
-                    for ph, st in Phase[key].iteritems():
-                        OUT.write("<font style=\"color:Seagreen\">{0}: {1} &nbsp &nbsp  </font>\n".format(ph,st))
-                    OUT.write(")\n")                  
-
-	        OUT.write( "<br>\n")
-	        
-                if (value.isdigit() and Running):
-                    AllDone = 3
-
-                if (not "queued" in value):
-                    AllQueued = False;
-
-                if (not "done successfully" in value):
-                    AllSuccess = False;
-
-                if (value.isdigit() and not Running or "error" in value):
-                    NoErrors = False;
-
-	    OUT.write("<hr>\n")
-	    OUT.close()
-            if AllQueued or not NoErrors:
-                AllDone = AllDone-1
-            if AllSuccess:
-                AllDone = -10
-	    sleep(wait_time)
-    if NoErrors and not AllQueued:
-        msg = "All done successfully for: {0}".format(Project)
-        ret_val=0
-    elif AllQueued:
-        msg = "All process are queued for a while for: {0}".format(Project)
-        ret_val=-1
-    else:
-        msg = "All process are queued, dead, or in error for: {0}".format(Project)
-        ret_val=-2
-
-    OUT = open (StatusFile,"a")
-    OUT.write("<p> " + msg +"</p>\n")
-    OUT.close()
-    print "[RunStatus] "+ msg
-    return ret_val
-##########################################################
+###########################################################
 
 class Runner():
     def __init__(self, path='.'):
@@ -721,7 +584,7 @@ class HDLProj():
                         self.runner.ReturnCode = 0
                     print "[StartRun] ***** VIVADO END for {0} *****".format(Project)
                     if self.runner.ReturnCode == 0:
-                        ret = VivadoStatus(self.RunsDir(Project), self.StatusFile(Project), wait_time)                    
+                        ret = self.VivadoStatus(Project, wait_time)                    
                         if ret == 0:
                             print "[StartRun] Vivado run was successful for {0} *****".format(Project)
                             self.StoreRun(Project)
@@ -866,4 +729,139 @@ class HDLProj():
             RetVals = RetVals + RetVal + "\n\n"
         return "## XML files report for project {} \n\n".format(proj) + RetVals
 
-###################################################
+    def VivadoStatus(self, Project, wait_time = 30,
+                     begin_file = ".vivado.begin.rst",
+                     end_file=".vivado.end.rst",
+                     error_file = ".vivado.error.rst",
+                     queue_file = ".Vivado_Synthesis.queue.rst",
+                     log_file = "runme.log"):
+        Path = self.RunsDir(Project)
+        StatusFile = self.StatusFile(Project), 
+        print "[VivadoStatus] Monitoring Vivado workflow status in {0} and writing status to {1}...".format(Path,StatusFile)
+        m = re.search(re.compile("(\w+).runs"),Path)
+        if m:
+            Project = m.group(0)
+        else:
+            Project = Path 
+        if not path.isdir(Path):
+            print "[VivadoStatus] Error! {0} does not exist".format(Path)
+            return -1
+        Status = {}
+        Report = {}
+        Phase = {}
+        Names = {}
+        Log = {}
+        AllDone = 3
+        while AllDone>0:
+                for d in listdir(Path):
+                    name=d
+                    d=Path+'/'+d
+                    if path.isdir(d):
+                        Names[d]= name
+                        if path.isfile(d+'/'+end_file):
+                                Status[d] = "<font style=\"font-weight:bold;color:Green\";> done successfully </font>"
+                                tails=40
+                        elif path.isfile(d+'/'+error_file):
+                                Status[d] = "<font style=\"font-weight:bold;color:Red\";> error </font>"
+                                tails=100
+                        elif path.isfile(d+'/'+begin_file):
+                                with open(d+'/'+begin_file) as f:
+                                    lines = f.read().splitlines()
+                                r = re.compile("Pid=\"(\d+)\"")
+                                l = " ".join(lines)
+                                m=re.search(r,l)
+                                if m:
+                                    pid = m.group(1)
+                                else:
+                                    print "[VivadoStatus] WARNING: Couldnt parse pid out of {0}".format(d+'/'+begin_file)
+                                    pid = 0
+                                Status[d] = pid;
+                                r = re.compile("(\w+\_\w+)\.(begin|end|error)\.rst")
+                                for f in listdir(d):
+                                    m=re.search(r,f)
+                                    if m:
+                                        if not d in Phase:
+                                            Phase[d]= {}
+                                        Phase[d][m.group(1)] = m.group(2)
+                                tails=100
+                        elif path.isfile(d+'/'+queue_file):
+                                Status[d] = "queued"
+                                tails=20
+
+                        if path.isfile(d+'/'+log_file):
+                                with open(d+'/'+log_file) as f:
+                                    lines = f.read().splitlines()
+                                Log[d] = "\n".join(lines[-tails:-1])
+                        else:
+                                Log[d] = 'No log file found';
+
+                # Writing on status file
+                self.Kinit()
+                OUT = open (StatusFile,"w")
+                OUT.write("<h2> Project: {0} </h2>\n".format(Project))
+                AllQueued= True
+                AllSuccess = True
+                NoErrors = True
+                for key, value in Status.iteritems():
+                    Running = False
+                    OUT.write("<strong> Run {0} </strong>\n".format(key))
+                    if value.isdigit():
+                        OUT.write("<font style=\"font-weight:bold;color:Orange\";> is running with PID={0}</font>".format(value))
+                        if Alive(int(value)):
+                            OUT.write("<font style=\"font-weight:bold;color:Green\";> Process {0} is alive</font>".format(value))
+                            Running = True
+                        else:
+                            OUT.write("<font style=\"font-weight:bold;color:Red\";> Process {0} is dead</font>".format(value))
+                    else:
+                        OUT.write(value)
+
+                    if key in Log:
+                        OUT.write("<label for=\"{0}\"> <font style=\"color:white;background-color:#36c\";> view </font> </label>\n".format(key))
+                        OUT.write("<input type=\"checkbox\" id=\"{0}\" style=\"display:none;\">\n".format(key))
+                        OUT.write("<div id=\"hidden\"><pre>\n")
+                        OUT.write(Log[key])
+                        OUT.write("</pre></div>\n")
+
+                    if key in Phase:
+                        OUT.write("&nbsp &nbsp ( &nbsp &nbsp \n")                  
+                        for ph, st in Phase[key].iteritems():
+                            OUT.write("<font style=\"color:Seagreen\">{0}: {1} &nbsp &nbsp  </font>\n".format(ph,st))
+                        OUT.write(")\n")                  
+
+                    OUT.write( "<br>\n")
+
+                    if (value.isdigit() and Running):
+                        AllDone = 3
+
+                    if (not "queued" in value):
+                        AllQueued = False;
+
+                    if (not "done successfully" in value):
+                        AllSuccess = False;
+
+                    if (value.isdigit() and not Running or "error" in value):
+                        NoErrors = False;
+
+                OUT.write("<hr>\n")
+                OUT.close()
+                if AllQueued or not NoErrors:
+                    AllDone = AllDone-1
+                if AllSuccess:
+                    AllDone = -10
+                sleep(wait_time)
+        if NoErrors and not AllQueued:
+            msg = "All done successfully for: {0}".format(Project)
+            ret_val=0
+        elif AllQueued:
+            msg = "All process are queued for a while for: {0}".format(Project)
+            ret_val=-1
+        else:
+            msg = "All process are queued, dead, or in error for: {0}".format(Project)
+            ret_val=-2
+
+        OUT = open (StatusFile,"a")
+        OUT.write("<p> " + msg +"</p>\n")
+        OUT.close()
+        print "[VivadoStatus] "+ msg
+        return ret_val
+##########################################################

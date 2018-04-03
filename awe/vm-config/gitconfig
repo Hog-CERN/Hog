@@ -1,7 +1,0 @@
-[user]
-	name = $AWE_USERNAME
-	email = $AWE_USEREMAIL
-[color]
-	ui = auto
-[push]
-	default = simple

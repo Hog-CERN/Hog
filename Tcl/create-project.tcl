@@ -42,7 +42,7 @@ set post_synth "$tcl_path/$post_synth_file"
 set post_impl  "$tcl_path/$post_impl_file"
 set post_bit   "$tcl_path/$post_bit_file"
 
-source $tcl_path/functions.tcl
+source $tcl_path/hog.tcl
 
 ## Create Project
 create_project -force $DESIGN $BUILD_DIR -part $FPGA

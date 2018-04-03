@@ -11,7 +11,7 @@ if [file exists ../no_time] {
 }
 set old_path [pwd]
 set tcl_path [file dirname [info script]]
-source $tcl_path/functions.tcl
+source $tcl_path/hog.tcl
 
 # Go to repository path
 cd ../../../../ 

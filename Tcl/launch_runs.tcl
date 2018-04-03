@@ -26,7 +26,7 @@ if { $::argc eq 0 } {
 set old_path [pwd]
 set path [file normalize [file dirname [info script]]]
 cd $path
-source ./functions.tcl
+source ./hog.tcl
 Info $Name 1 "Number of jobs set to $NJOBS."
 
 set commit [GetHash ALL ../../]

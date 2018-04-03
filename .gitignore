@@ -1,4 +1,2 @@
 *~
-vivado*.jou
-*.log
-vivado*.str
+*.pyc

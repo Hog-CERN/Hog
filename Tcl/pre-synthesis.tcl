@@ -46,7 +46,7 @@ lassign [GetVer ./Top/$proj_name/ ./Top/$proj_name/] top_ver top_hash dummy
 set libs ""
 set vers ""
 set hashes ""
-set list_files [glob  "./Top/$proj_name/list/*.src"]
+set list_files [glob  -nocomplain "./Top/$proj_name/list/*.src"]
 foreach f $list_files {
     set name [file rootname [file tail $f]]
     lassign [GetVer  $f ./Top/$proj_name/] ver hash dummy
@@ -59,7 +59,7 @@ foreach f $list_files {
 # Submodules
 set subs ""
 set subs_hashes ""
-set sub_files [glob  "./Top/$proj_name/list/*.sub"]
+set sub_files [glob -nocomplain "./Top/$proj_name/list/*.sub"]
 foreach f $sub_files {
     set sub_dir [file rootname [file tail $f]]
     if [file exists ./$sub_dir] {

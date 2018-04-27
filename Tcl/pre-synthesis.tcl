@@ -121,32 +121,35 @@ Info $NAME 4 "Generic String: $generic_string"
 
 set_property generic $generic_string [current_fileset]
 
+# writing info into status file
+set status_file [open "$old_path/../versions" "w"]
+
 Status $NAME 3 " ------------------------- PRE SYNTHESIS -------------------------"
 Status $NAME 3 " $tt"
 Status $NAME 3 " Firmware date and time: $date, $timee"
+puts $status_file "Date, $date, $timee"
 Status $NAME 3 " Global SHA: $commit, VER: $version"
+puts $status_file "Global, $commit, $version"
 Status $NAME 3 " Top SHA: $top_hash, VER: $top_ver"
+puts $status_file "Top, $top_hash, $top_ver"
 Status $NAME 3 " Hog SHA: $hog_hash"
+puts $status_file "Hog, $hog_hash, 00000000"
 Status $NAME 3 " Official reg: $official"
+puts $status_file "Official, $official, 00000000"
 Status $NAME 3 " --- Libraries ---"
 foreach l $libs v $vers h $hashes {
     Status $NAME 3 " $l SHA: $h, VER: $v"    
+    puts $status_file "$l, $h, $v"
 }
 Status $NAME 3 " --- Submodules ---"
 foreach s $subs sh $subs_hashes {
-    Status $NAME 3 " $s SHA: $sh"    
+    Status $NAME 3 " $s SHA: $sh"
+    puts $status_file "$s, $sh, 00000000"    
 }
 Status $NAME 3 " -----------------------------------------------------------------"
+close $status_file
+
 
 cd $old_path
-#if {$clean eq "yes" && $ipb_clean eq "yes"} {
-#    Info $NAME 5 "Creating certificate file..."
-#    set cfile [open ../commit-hash w] 
-#    puts $cfile $commit
-#    close $cfile
-#} else {
-#    Info $NAME 5 "Deleting certificate file..."
-#    file delete -force ../commit-hash
-#}
 
 Info $NAME 6 "All done."

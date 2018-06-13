@@ -78,9 +78,8 @@ if [file exists ./Top/$proj_name/xml/xml.lst] {
     # version of the directory if no list file exists
     set xml_target  ./Top/$proj_name/xml
     lassign [GetVer $xml_target ./Top/$proj_name/] xml_ver xml_hash dummy
+    file copy -force ./Top/$proj_name/xml $xml_dst/..
 }
-
-
 
 # Submodules
 set subs ""

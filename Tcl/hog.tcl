@@ -242,7 +242,6 @@ proc GetVer {FILE path} {
 	    set ver "none"
 	} else {
 	    set vers [split $result "\n"]
-	    puts "Tags found: $vers"
 	    set ver [lindex $vers 0]	    
 	    foreach v $vers {
 		if {[regexp {^v.*$} $v]} {

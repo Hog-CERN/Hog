@@ -293,3 +293,57 @@ proc GetVer {FILE path} {
     cd $old_path
 }
 ########################################################
+
+## Read a XML list file and copy files to destination
+#
+# Additional information is provided with text separated from the file name with one or more spaces
+#
+# Arguments:
+# * lsit_file:   file containing list of XML files with optional properties
+# * path:        the path the XML files are referred to in the list file
+# * Destination: the path the XML files must be copyed to
+proc CopyXMLsFromListFile {list_file path xml_version destination} {
+    set list_file
+    set fp [open $list_file r]
+    set file_data [read $fp]
+    close $fp
+
+    set dst $destination/xml
+    Info RealistFile 0 "Creating xml directory into $destination..."
+    file mkdir $dst
+    #  Process data file
+    set data [split $file_data "\n"]
+    set n [llength $data]
+    Info ReadListFile 1 "$n lines read from $list_file"
+    set cnt 0
+    foreach line $data {
+	if {![regexp {^ *$} $line] & ![regexp {^ *\#} $line] } { #Exclude empty lines and comments
+	    set file_and_prop [regexp -all -inline {\S+} $line]
+	    set xmlfile [lindex $file_and_prop 0]
+	    set xmlfile "$path/$xmlfile"
+	    if {[file exists $xmlfile]} {
+		set xmlfile [file normalize $xmlfile]
+		Info ReadListFile 2 "Copying $xmlfile to $dst..."
+		set in  [open $xmlfile r]
+		set out [open $dst/[file tail $xmlfile] w]
+
+		while {[gets $in line] != -1} {
+		    set new_line [regsub {(.*)__VERSION__(.*)} $line "\\1$xml_version\\2"]
+		    puts $out $new_line
+		}
+		close $in
+		close $out
+		incr cnt
+		if {[llength $file_and_prop] > 1} {
+		    set prop [lrange $file_and_prop 1 end]
+		    set type [lindex $prop 0]
+		}
+	    } else {
+		Info ReadListFile 0 "err: XML file $xmlfile not found"
+	    }
+	}
+    }
+    Info ReadListFile 1 "$cnt file/s copied"
+}
+
+########################################################

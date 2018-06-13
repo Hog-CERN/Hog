@@ -47,6 +47,4 @@ if {$no_time == 1 } {
 }
 Info $Name 5 "Starting complete design flow..."
 launch_runs impl_1 -to_step write_bitstream -jobs $NJOBS -dir $main_folder
-Info $Name 6 "Copying xml files to $main_folder..."
-file copy -force ../../Top/$project/xml $main_folder/
 cd $old_path

@@ -40,6 +40,7 @@ if { [exec git status --untracked-files=no  --porcelain] eq "" } {
     }
 }
 
+# Top project directory
 lassign [GetVer ./Top/$proj_name/ ./Top/$proj_name/] top_ver top_hash dummy
 
 # Read list files
@@ -55,6 +56,24 @@ foreach f $list_files {
     lappend vers $ver
     lappend hashes $hash
 }
+
+# XML
+if [file exists ./Top/$proj_name/xml/xml.lst] {
+    Info $NAME 2 "XML list file found, using version of listed XMLs"
+    # version of xml in list files is used if list file exists
+    set xml_target  ./Top/$proj_name/xml/xml.ls
+    set xml_dst $old_path/xml
+    Info $NAME 3 "Creating XML directory $xml_dst..."
+    mkdir $xml_dst
+    Info $NAME 4 "Copying xml files to $xml_dst and adding xml version $xml_ver..."
+    CopyXMLsFromListFile ./Top/$proj_name/xml/xml.lst ./Top/$proj_name $xml_ver $xml_dst
+
+} else {
+    Info $NAME 2 "XML list file not found, using version of XML directory"
+    # version of the directory if no list file exists
+    set xml_target  ./Top/$proj_name/xml
+}
+lassign [GetVer $xml_target ./Top/$proj_name/] xml_ver xml_hash dummy
 
 # Submodules
 set subs ""
@@ -102,7 +121,7 @@ if {$no_time == 1} {
 
 
 # set global generic varibles
-set generic_string "GLOBAL_FWDATE=32'h$date GLOBAL_FWTIME=32'h$timee OFFICIAL=32'h$official GLOBAL_FWHASH=32'h$commit TOP_FWHASH=32'h$top_hash GLOBAL_FWVERSION=32'h$version TOP_FWVERSION=32'h$top_ver HOG_FWHASH=32'h$hog_hash"
+set generic_string "GLOBAL_FWDATE=32'h$date GLOBAL_FWTIME=32'h$timee OFFICIAL=32'h$official GLOBAL_FWHASH=32'h$commit TOP_FWHASH=32'h$top_hash XML_HASH=32'h$xml_hash GLOBAL_FWVERSION=32'h$version TOP_FWVERSION=32'h$top_ver XML_VERSION=32'h$xml_ver HOG_FWHASH=32'h$hog_hash"
 
 #set project specific lists
 foreach l $libs v $vers h $hashes {
@@ -130,6 +149,8 @@ Status $NAME 3 " Firmware date and time: $date, $timee"
 puts $status_file "Date, $date, $timee"
 Status $NAME 3 " Global SHA: $commit, VER: $version"
 puts $status_file "Global, $commit, $version"
+Status $NAME 3 " XML SHA: $top_hash, VER: $top_ver"
+puts $status_file "XML, $xml_hash, $xml_ver"
 Status $NAME 3 " Top SHA: $top_hash, VER: $top_ver"
 puts $status_file "Top, $top_hash, $top_ver"
 Status $NAME 3 " Hog SHA: $hog_hash"

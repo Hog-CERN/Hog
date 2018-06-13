@@ -61,13 +61,13 @@ foreach f $list_files {
 if [file exists ./Top/$proj_name/xml/xml.lst] {
     Info $NAME 2 "XML list file found, using version of listed XMLs"
     # version of xml in list files is used if list file exists
-    set xml_target  ./Top/$proj_name/xml/xml.ls
+    set xml_target  ./Top/$proj_name/xml/xml.lst
     set xml_dst $old_path/xml
     Info $NAME 3 "Creating XML directory $xml_dst..."
     file mkdir $xml_dst
     lassign [GetVer $xml_target ./Top/$proj_name/] xml_ver xml_hash dummy
     Info $NAME 4 "Copying xml files to $xml_dst and adding xml version $xml_ver..."
-    CopyXMLsFromListFile ./Top/$proj_name/xml/xml.lst ./Top/$proj_name $xml_ver $xml_dst
+    CopyXMLsFromListFile $xml_target ./Top/$proj_name $xml_ver $xml_dst
 
 } else {
     Info $NAME 2 "XML list file not found, using version of XML directory"

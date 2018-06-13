@@ -302,15 +302,13 @@ proc GetVer {FILE path} {
 # * lsit_file:   file containing list of XML files with optional properties
 # * path:        the path the XML files are referred to in the list file
 # * Destination: the path the XML files must be copyed to
-proc CopyXMLsFromListFile {list_file path xml_version destination} {
+proc CopyXMLsFromListFile {list_file path xml_version dst} {
     set list_file
     set fp [open $list_file r]
     set file_data [read $fp]
     close $fp
 
-    set dst $destination/xml
     Info RealistFile 0 "Creating xml directory into $destination..."
-    file mkdir $dst
     #  Process data file
     set data [split $file_data "\n"]
     set n [llength $data]

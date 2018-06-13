@@ -66,8 +66,12 @@ if [file exists ./Top/$proj_name/xml/xml.lst] {
     Info $NAME 3 "Creating XML directory $xml_dst..."
     file mkdir $xml_dst
     lassign [GetVer $xml_target ./Top/$proj_name/] xml_ver xml_hash dummy
-    Info $NAME 4 "Copying xml files to $xml_dst and adding xml version $xml_ver..."
-    CopyXMLsFromListFile $xml_target ./Top/$proj_name $xml_ver $xml_dst
+    scan [string range $xml_ver 0 1] %x M
+    scan [string range $xml_ver 2 3] %x m
+    scan [string range $xml_ver 4 7] %x c
+    set xml_ver_formatted "$M.$m.$c"
+    Info $NAME 4 "Copying xml files to $xml_dst and adding xml version $xml_ver_formatted..."
+    CopyXMLsFromListFile $xml_target ./Top/$proj_name $xml_ver_formatted $xml_dst
 
 } else {
     Info $NAME 2 "XML list file not found, using version of XML directory"

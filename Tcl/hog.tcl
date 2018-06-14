@@ -301,7 +301,7 @@ proc GetVer {FILE path} {
 # * lsit_file: file containing list of XML files with optional properties
 # * path:      the path the XML files are referred to in the list file
 # * dst:       the path the XML files must be copyed to
-proc CopyXMLsFromListFile {list_file path xml_version dst} {
+proc CopyXMLsFromListFile {list_file path xml_version xml_sha dst} {
     set list_file
     set fp [open $list_file r]
     set file_data [read $fp]
@@ -324,7 +324,8 @@ proc CopyXMLsFromListFile {list_file path xml_version dst} {
 
 		while {[gets $in line] != -1} {
 		    set new_line [regsub {(.*)__VERSION__(.*)} $line "\\1$xml_version\\2"]
-		    puts $out $new_line
+		    set new_line2 [regsub {(.*)__GIT_SHA__(.*)} $new_line "\\1$xml_sha\\2"]		    
+		    puts $out $new_line2
 		}
 		close $in
 		close $out

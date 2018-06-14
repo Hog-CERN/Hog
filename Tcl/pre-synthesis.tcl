@@ -58,11 +58,11 @@ foreach f $list_files {
 }
 
 # XML
+set xml_dst $old_path/../xml
 if [file exists ./Top/$proj_name/xml/xml.lst] {
     Info $NAME 2 "XML list file found, using version of listed XMLs"
     # version of xml in list files is used if list file exists
     set xml_target  ./Top/$proj_name/xml/xml.lst
-    set xml_dst $old_path/../xml
     Info $NAME 3 "Creating XML directory $xml_dst..."
     file mkdir $xml_dst
     lassign [GetVer $xml_target ./Top/$proj_name/] xml_ver xml_hash dummy

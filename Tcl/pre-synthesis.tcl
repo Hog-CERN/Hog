@@ -73,12 +73,14 @@ if [file exists ./Top/$proj_name/xml/xml.lst] {
     Info $NAME 4 "Copying xml files to $xml_dst and adding xml version $xml_ver_formatted..."
     CopyXMLsFromListFile $xml_target ./Top/$proj_name $xml_ver_formatted $xml_hash $xml_dst
 
-} else {
+} elseif [file exists ./Top/$proj_name/xml] {
     Info $NAME 2 "XML list file not found, using version of XML directory"
     # version of the directory if no list file exists
     set xml_target  ./Top/$proj_name/xml
     lassign [GetVer $xml_target ./Top/$proj_name/] xml_ver xml_hash dummy
     file copy -force $xml_target $old_path/..
+} else {
+    Info $NAME 2 "This project does not have XMLs"
 }
 
 # Submodules

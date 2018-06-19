@@ -69,6 +69,10 @@ proc Error            {title id msg} { send_msg_id $title-$id {ERROR} $msg}
 
 ########################################################
 
+proc GetRepoPath {} {
+    return "[file normalize [file dirname [info script]]]/../../"
+}
+
 ## Read a list file and adds the files to Vivado project, adding the additional information as file type.
 #
 # Additional information is provided with text separated from the file name with one or more spaces
@@ -104,7 +108,28 @@ proc ReadListFile {list_file path lib src} {
 		    set prop [lrange $file_and_prop 1 end]
 		    set type [lindex $prop 0]
 		    if {$type eq "2008" } {set type "VHDL 2008"}
-		    set_property -name "file_type" -value $type -objects $file_obj
+		    if {$type eq "topsim"} {
+			Info ReadListFile 1 "Found top for simulation module"
+			# if the property name is topsim, then we expect other properties
+			# the next property is the name of the top module
+			if {[llength $prop] > 1} {
+			    set top_module [lindex $prop 1]
+			    Info ReadListFile 1 "Setting $top_module as top module for simulation file set $src..."
+			    set_property "top"  $top_module [get_filesets $src]
+			}
+			# if there is another property it is the do file
+			if {[llength $prop] > 2} {
+			    set do_file [lindex $prop 2]
+			    set r_path [GetRepoPath]
+			    set file_name "$r_path/sim/$do_file"
+			    Info ReadListFile 1 "Setting $file_name as do file for simulation file set $src..."
+			    set_property "modelsim.simulate.custom_udo" $file_name [get_filesets $src]
+			}
+			current_fileset -simset [get_filesets $src]
+
+		    } else {
+			set_property -name "file_type" -value $type -objects $file_obj
+		    }
 		}
 	    } else {
 		Error ReadListFile 0 "File $vhdlfile not found"
@@ -147,7 +172,14 @@ proc SmartListFile {list_file path} {
 	    set file_set "sources_1"
 	}
 	.sim {
-	    set file_set "sim_1"	    
+	    set file_set "$lib\_sim"
+	    # if this simulation fileset was not created we do it now
+	    if {[string equal [get_filesets -quiet $file_set] ""]} {
+		create_fileset -simset $file_set
+		set simulation  [get_filesets $file_set]
+		set_property -name {modelsim.compile.vhdl_syntax} -value {2008} -objects $simulation
+		set_property SOURCE_SET sources_1 $simulation
+	    }
 	}
 	.con {
 	    set file_set "constrs_1"

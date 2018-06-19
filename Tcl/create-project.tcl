@@ -1,13 +1,7 @@
 ## Define the following variables before sourcing this script:
-
-# set sim_do_file_name "filename.do"
-# set sim_top_module   "modulename"
-# 
-# set pre_synth_file  "pre-synthesis.tcl"
-# set post_synth_file ""
-# set post_impl_file  ""
-# set post_bit_file   ""
+#
 # set bin_file 1
+# set use_questa_simulator 1
 # 
 # ## FPGA and Vivado strategies and flows
 # set FPGA xc7vx550tffg1927-2
@@ -33,7 +27,6 @@ set top_path         "$repo_path/Top/$DESIGN"
 set list_path        "$top_path/list"
 set BUILD_DIR        "$repo_path/VivadoProject/$DESIGN"
 set modelsim_path    "$repo_path/ModelsimLib"
-set sim_do_file      "$repo_path/sim/$sim_do_file_name"
 set synth_top_module "top_$DESIGN"
 set synth_top_file   "$top_path/top_$DESIGN.vhd"
 
@@ -53,8 +46,9 @@ set_property "simulator_language" "Mixed" $obj
 set_property "target_language" "VHDL" $obj
 set_property "compxlib.modelsim_compiled_library_dir" $modelsim_path $obj
 set_property "default_lib" "xil_defaultlib" $obj
-set_property "target_simulator" "ModelSim" $obj
-
+if {$use_questa_simulator == 1} { 
+    set_property "target_simulator" "ModelSim" $obj
+}
 ## Enable VHDL 2008
 set_param project.enableVHDL2008 1
 set_property "enable_vhdl_2008" 1 $obj
@@ -84,25 +78,6 @@ if {[string equal [get_filesets -quiet constrs_1] ""]} {
 # Set 'constrs_1' fileset object
 set constraints [get_filesets constrs_1]
 
-
-##############
-# SIMULATION #
-##############
-if {[string equal [get_filesets -quiet sim_1] ""]} {
-  create_fileset -simset sim_1
-}
-set simulation  [get_filesets sim_1]
-
-set_property -name {modelsim.compile.vhdl_syntax} -value {2008} -objects $simulation
-set_property SOURCE_SET sources_1 $simulation
-
-## Set simulation top
-if {$sim_do_file_name ne ""} { 
-set_property "modelsim.simulate.custom_udo" $sim_do_file $simulation
-}
-if {$sim_top_module ne ""} {
-    set_property "top" $sim_top_module $simulation
-}
 
 ##############
 # READ FILES #
@@ -227,7 +202,6 @@ if {[string equal [get_property -quiet report_strategy $obj] ""]} {
     }
 }
 
-current_fileset -simset $simulation
 # set the current impl run
 current_run -implementation [get_runs impl_1]
 

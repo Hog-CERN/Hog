@@ -49,8 +49,7 @@ else
 	$VIVADO -mode batch -notrace -source $1.tcl
 	if [ $? != 0 ]
 	then
-	    echo "INFO: Vivado returned an error state, if the error is \"ERROR: [Common 17-53] User Exception: Project already exists on disk\""
-	    echo "      please remove the project manually: rm -rf VivadoProject/$1 "
+	    echo "ERROR: Vivado returned an error state."
 	fi
 
     else

@@ -28,7 +28,7 @@ set path [file normalize [file dirname [info script]]]
 cd $path
 source ./hog.tcl
 
-if {1} { #check if project exists here
+if [file exists ../../VivadoProject/$project/$project.xpr] {
     Info $Name 1 "Opening project $project..."
     open_project ../../VivadoProject/$project/$project.xpr
 } else {

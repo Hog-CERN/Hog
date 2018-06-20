@@ -33,8 +33,11 @@ set commit [GetHash ALL ../../]
 
 Info $Name 2 "Running project script: $project.tcl..."
 source -notrace ../../Top/$project/$project.tcl
-Info $Name 3 "Upgrading IPs..."
-upgrade_ip [get_ips *]
+Info $Name 3 "Upgrading IPs if any..."
+set ips [get_ips *]
+if {$ips != ""} {
+    upgrade_ip $ips
+}
 Info $Name 4 "Creating directory and buypass file..."
 file mkdir $main_folder
 set cfile [open $main_folder/buypass_commit w]

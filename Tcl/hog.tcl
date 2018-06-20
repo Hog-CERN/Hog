@@ -117,12 +117,20 @@ proc ReadListFile {list_file path lib src} {
 			    Info ReadListFile 1 "Setting $top_module as top module for simulation file set $src..."
 			    set_property "top"  $top_module [get_filesets $src]
 			}
-			# if there is another property it is the do file
+			# if there is another property it is the wave do file
 			if {[llength $prop] > 2} {
 			    set do_file [lindex $prop 2]
 			    set r_path [GetRepoPath]
 			    set file_name "$r_path/sim/$do_file"
-			    Info ReadListFile 1 "Setting $file_name as do file for simulation file set $src..."
+			    Info ReadListFile 1 "Setting $file_name as wave do file for simulation file set $src..."
+			    set_property "modelsim.simulate.custom_wave_do" $file_name [get_filesets $src]
+			}
+			# if there is still another property it is the do file
+			if {[llength $prop] > 3} {
+			    set do_file [lindex $prop 3]
+			    set r_path [GetRepoPath]
+			    set file_name "$r_path/sim/$do_file"
+			    Info ReadListFile 1 "Setting $file_name as udo file for simulation file set $src..."
 			    set_property "modelsim.simulate.custom_udo" $file_name [get_filesets $src]
 			}
 			current_fileset -simset [get_filesets $src]

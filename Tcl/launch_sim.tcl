@@ -48,7 +48,7 @@ Info $Name 2 "Looping over simulation filesets..."
 foreach s $sims {
     set top [get_property TOP $s]
     set do  [get_property MODELSIM.SIMULATE.CUSTOM_UDO $s]
-    if {$top != ""} {
+    if {$top != "" && $do != ""} {
 	Info $Name 3 "Simulating set $s with top file: $top and do file: $do"
 	launch_simulation -simset $s 
     }

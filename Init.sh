@@ -3,6 +3,9 @@ OLD_DIR=`pwd`
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd $DIR
 
+echo [hon init] Creating links to hooks...
+ln -s git-hooks/* ../.git/hooks
+
 if [ `which vivado` ]
 then
     VIVADO=`which vivado`

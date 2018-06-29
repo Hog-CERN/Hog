@@ -4,10 +4,15 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd $DIR
 
 echo [hog init] Creating links to hooks...
-ln -s git-hooks/* ../.git/hooks
+cd ../.git/hooks
+for h in `ls ../../Hog/git-hooks/*`
+do
+    ln -s $h
+done
+
+cd ../..
 
 echo [hog init] Ignoring Xilinx IP xml locally
-cd ..
 xci=`find . -name *.xci`
 for f in $xci
 do

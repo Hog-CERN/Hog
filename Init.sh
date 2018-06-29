@@ -3,8 +3,23 @@ OLD_DIR=`pwd`
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd $DIR
 
-echo [hon init] Creating links to hooks...
+echo [hog init] Creating links to hooks...
 ln -s git-hooks/* ../.git/hooks
+
+echo [hog init] Ignoring Xilinx IP xml locally
+cd ..
+xci=`find . -name *.xci`
+for f in $xci
+do
+    ext="${f##*.}"
+    name="${f%.*}"
+    if [ -e "$name.xml" ]
+    then
+	echo [git init] Assuming unchanged: $name.xml
+	git update-index --assume-unchanged $name.xml
+    fi
+done
+cd $DIR
 
 if [ `which vivado` ]
 then
@@ -17,7 +32,7 @@ then
 	rm -f ./Tcl/compile_simlib.log
 	rm -f ./Tcl/modelsim.ini
     else
-	echo [hog init] "WARNING: No modelsim executable found, will not compile libraries\n"
+	echo [hog init] "WARNING: No modelsim executable found, will not compile libraries"
     fi
 
     cd ../Top
@@ -30,7 +45,7 @@ then
 	./Hog/CreateProject.sh $f
     done
 else
-    echo [hog init] "WARNING: No vivado executable found\n"
+    echo [hog init] "WARNING: No vivado executable found"
 fi
 
 echo [hog init] All done.

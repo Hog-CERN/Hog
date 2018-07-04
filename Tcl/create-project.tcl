@@ -19,7 +19,7 @@
 set pre_synth_file  "pre-synthesis.tcl"
 set post_synth_file ""
 set post_impl_file  ""
-set post_bit_file   "post-bistream.tcl"
+set post_bit_file   "post-bitstream.tcl"
 
 set tcl_path         [file normalize [file dirname [info script]]]
 set repo_path        [file normalize "$tcl_path/../../"]

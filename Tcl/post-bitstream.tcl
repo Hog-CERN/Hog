@@ -3,32 +3,28 @@ set old_path [pwd]
 set tcl_path [file dirname [info script]]
 source $tcl_path/hog.tcl
 
-# Go to repository path
-cd ../../../../ 
-
 set proj_file [get_property parent.project_path [current_project]]
 set proj_dir [file normalize [file dirname $proj_file]]
 set proj_name [file rootname [file tail $proj_file]]
+set bit_file [file normalize "$old_path/$proj_name.bit"]
+set bin_file [file normalize "$old_path/$proj_name.bin"]
+
+# Go to repository path
+cd $tcl_path/../../ 
 
 Info $NAME 0 "Evaluating git describe..."
-# look for bit and bin file
-# rename them with git describe and copy them close to $old_path/..
-# some commands if [file exists ./Top/$proj_name/xml/xml.lst] {
-if { [exec git status --untracked-files=no  --porcelain] eq "" } {
-    Info $NAME 1 "Git working directory [pwd] clean."
-    lassign [GetVer ALL ./] version commit official
-    set clean "yes"
-} else {
-    if {$buypass_commit == 1} {
-	Info $NAME 1 "Buypassing commit check."
-	lassign [GetVer ALL ./] version commit official
-	set clean "yes"
-    } else {
-	Warning $NAME 1 "Git working directory [pwd] not clean, commit hash, official, and version will be set to 0."
-	set official "00000000"
-	set commit   "0000000"
-	set version  "00000000"    
-	set clean    "no"
-    }
-}
+set describe=[exec git describe --always]
 
+set dst_bit [file normalize ["$proj_dir/$proj_name-$describe.bit"]]
+set dst_bin [file normalize ["$proj_dir/$proj_name-$describe.bin"]]
+
+if [file exists $bit_file] {
+    Info $NAME 1 "Copying bit file $bit_file into $dst_bit"
+    file copy $bit_file $dst
+    if [file exists $bin_file] {
+	Info $NAME 2 "Copying bin file $bin_file into $dst_bin"
+	file copy $bin_file $dst
+    }
+} else {
+   puts Warn $NAME 3 "Bit file $src_file not found"
+}

@@ -1,6 +1,21 @@
 #!/bin/bash
 OLD_DIR=`pwd`
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+if [ "$1" == "-h" ] || [ "$1" == "-help" ] || [ "$1" == "--help" ] || [ "$1" == "-H" ]; then
+    echo
+    echo " Hog - Initialise repository"
+    echo " ---------------------------"
+    echo " Initialise your Hog-handled firmware repository"
+    echo " - Create links to Hog git-hooks"
+    echo " - Locally ignore Xilinx IP xml files"
+    echo " - Initialise and update your submodules"
+    echo " - Create vivado projects (if vivado exacutable is found)"
+    echo " - Compile questasim libraries (if questasim executable is found)"
+    echo
+    exit 0
+fi
+
 cd $DIR
 
 echo [hog init] Creating links to hooks...

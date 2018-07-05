@@ -1,12 +1,23 @@
 #!/bin/bash
 OLD_DIR=`pwd`
 THIS_DIR="$(dirname "$0")"
+if [ "$1" == "-h" ] || [ "$1" == "-help" ] || [ "$1" == "--help" ] || [ "$1" == "-H" ]; then
+    echo
+    echo " Hog - Create Vivado project"
+    echo " ---------------------------"
+    echo " Create the secified Vivado project"
+    echo
+    echo " Usage: $0 <project name>"
+    echo
+    exit 0
+fi
+
 cd $THIS_DIR
 if [ "a$1" == "a" ]
 then
-    echo "USAGE: $0 <project name>"
+    echo " Usage: $0 <project name>"
     echo 
-    echo " Possible projects are:"
+    echo "  Possible projects are:"
     ls -1 ../Top
     echo 
 else

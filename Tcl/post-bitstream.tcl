@@ -15,8 +15,8 @@ cd $tcl_path/../../
 Info $NAME 0 "Evaluating git describe..."
 set describe [exec git describe --always]
 
-set dst_bit [file normalize "$proj_dir/$proj_name\-$describe.bit"]
-set dst_bin [file normalize "$proj_dir/$proj_name\-$describe.bin"]
+set dst_bit [file normalize "$old_path/../$proj_name\-$describe.bit"]
+set dst_bin [file normalize "$old_path/../$proj_name\-$describe.bin"]
 
 if [file exists $bit_file] {
     Info $NAME 1 "Copying bit file $bit_file into $dst_bit"

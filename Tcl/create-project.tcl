@@ -115,29 +115,28 @@ if {$post_synth_file ne ""} {
 ## set the current synth run
 current_run -synthesis $obj
 
-## Report Strategy
-if {[string equal [get_property -quiet report_strategy $obj] ""]} {
-    # No report strategy needed
-    Info CreateProject 0 "No report strategy needed for syntesis"
-    
-} else {
-    # Report strategy needed since version 2017.3
-    set_property -name "report_strategy" -value "Vivado Synthesis Default Reports" -objects $obj
-
-    set reports [get_report_configs -of_objects $obj]
-    if { [llength $reports ] > 0 } {
-	delete_report_config [get_report_configs -of_objects $obj]
-    }
-    # Create 'synthesis_synth_report_utilization_0' report (if not found)
-    if { [ string equal [get_report_configs -of_objects [get_runs synth_1] synth_1_synth_report_utilization_0] "" ] } {
-	create_report_config -report_name synth_1_synth_report_utilization_0 -report_type report_utilization:1.0 -steps synth_design -runs synth_1
-    }
-    set obj [get_report_configs -of_objects [get_runs synth_1] synth_1_synth_report_utilization_0]
-    if { $obj != "" } {
-	
-    }
-}
-
+## Report Strategy (Uncomment for a post synthesis utilization report)
+#if {[string equal [get_property -quiet report_strategy $obj] ""]} {
+#    # No report strategy needed
+#    Info CreateProject 0 "No report strategy needed for syntesis"
+#    
+#} else {
+#    # Report strategy needed since version 2017.3
+#    set_property -name "report_strategy" -value "Vivado Synthesis Default Reports" -objects $obj
+#
+#    set reports [get_report_configs -of_objects $obj]
+#    if { [llength $reports ] > 0 } {
+#	delete_report_config [get_report_configs -of_objects $obj]
+#    }
+#    # Create 'synthesis_synth_report_utilization_0' report (if not found)
+#    if { [ string equal [get_report_configs -of_objects [get_runs synth_1] synth_1_synth_report_utilization_0] "" ] } {
+#	create_report_config -report_name synth_1_synth_report_utilization_0 -report_type report_utilization:1.0 -steps synth_design -runs synth_1
+#    }
+#    set obj [get_report_configs -of_objects [get_runs synth_1] synth_1_synth_report_utilization_0]
+#    if { $obj != "" } {
+#	
+#    }
+#}
 
 ### IMPL_1 ###
 # Create 'impl_1' run (if not found)
@@ -183,13 +182,13 @@ if {[string equal [get_property -quiet report_strategy $obj] ""]} {
 	delete_report_config [get_report_configs -of_objects $obj]
     }
 
-    # Create 'impl_1_route_report_timing_summary_0' report (if not found)
-    if { [ string equal [get_report_configs -of_objects [get_runs impl_1] impl_1_route_report_timing_summary_0] "" ] } {
-	create_report_config -report_name impl_1_route_report_timing_summary_0 -report_type report_timing_summary:1.0 -steps route_design -runs impl_1
+    # Create 'impl_1_post_route_phys_opt_report_utilization_0' report (if not found)                                                                                            
+    if { [ string equal [get_report_configs -of_objects [get_runs impl_1] impl_1_post_route_phys_opt_report_utilization_0] "" ] } {
+	create_report_config -report_name impl_1_post_route_phys_opt_report_utilization_0 -report_type report_utilization:1.0 -steps post_route_phys_opt_design -runs impl_1
     }
-    set obj [get_report_configs -of_objects [get_runs impl_1] impl_1_route_report_timing_summary_0]
-    if { $obj != "" } {
-	
+    set obj [get_report_configs -of_objects [get_runs impl_1] impl_1_post_route_phys_opt_report_utilization_0]
+    if { $obj != "" } {                                                                                                                                                       
+	Info CreateProject 1 "Report utilization created successfully"
     }
 
     # Create 'impl_1_post_route_phys_opt_report_timing_summary_0' report (if not found)
@@ -198,7 +197,7 @@ if {[string equal [get_property -quiet report_strategy $obj] ""]} {
     }
     set obj [get_report_configs -of_objects [get_runs impl_1] impl_1_post_route_phys_opt_report_timing_summary_0]
     if { $obj != "" } {
-	
+	Info CreateProject 1 "Report timing summary created successfully"
     }
 }
 

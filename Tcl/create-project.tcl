@@ -200,6 +200,7 @@ if {[string equal [get_property -quiet report_strategy $obj] ""]} {
     if { $obj != "" } {
 	Info CreateProject 1 "Report utilization created successfully"	
     }
+}
 
 # set the current impl run
 current_run -implementation [get_runs impl_1]

@@ -7,7 +7,7 @@ if [ "$1" == "-h" ] || [ "$1" == "-help" ] || [ "$1" == "--help" ] || [ "$1" == 
     echo " Hog - Ignore IP XML"
     echo " -------------------"
     echo " Locally ignore Xilinx IP xml files using git update-index."
-    echo " Modification to XML files located in the same path as an XCI file with the same name, will be ignored."
+    echo " Modification to XML files located in the same path as an xci file with the same name will be ignored."
     echo " Each XML file will be automatically added to commit if the relative XCI file is modified, thanks to pre-commit git hook."
     echo
     echo " Usage $0 [-undo]"

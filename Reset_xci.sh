@@ -7,7 +7,7 @@ if [ "$1" == "-h" ] || [ "$1" == "-help" ] || [ "$1" == "--help" ] || [ "$1" == 
     echo " Hog - Reset XCI files"
     echo " ---------------------"
     echo " Reset all modified xci files in the repository to their committed version."
-    echo " Can be used when xci are modified automatically bt Vvado and you do not want to commit the changes."
+    echo " Can be used when xci files are modified automatically by Vivado and you do not want to commit the changes."
     echo " e.g. When you upgrade IPs to a different Vivado version"
     echo
     exit 0

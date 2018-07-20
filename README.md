@@ -22,7 +22,7 @@ To guarantee binary file traceability, we link it permanently to a specific git 
 
 # Hog features
 ## Project creation shell script
-Re create the vivado project starting from text files commitet to the repository
+Developers must re-create the Vivado project every time a file is added or removed to project, or when a file is renamed.
 
 ## Pre-synthesis Tcl script
 Integrate git SHA and version into the firmware via VHDL generics
@@ -38,52 +38,54 @@ This repository (Hog) should be included as a submodule into your HDL repository
 Hog relies on the following assumptions:
 - Hog must be in the root path of your repository
 - The directory name must be "Hog"
+
 Let's assume the your HDL repository is called Repo, then Hog must be in:
-```
-Repo/Hog
-```
+
+    Repo/Hog
+
 HDL source files, together with constraint files, simulation files can be located anywhere in the repository, even if a directory structure that reflects the __libraries__ in the project is advised.
 A Hog-based repository can contain many projects. You should use many projects in the same repository when they share a significant amount of code: e.g. many FPGAs on the same board. If this is not the case you may think of having different repositories. In this case, you may include the little amount of shared code as a git submodule, that is also handled by Hog.
 Hog is a simple project, meant to be useful to speed up work. It is not extremely configuralbe: the scripts rely on special directory structure and file naming to be respected as explained in the following paragraphs.
 
 ## Top directory
 The __Top__ directory is located in the root folder of the repository:
-```
-Repo/Top
-```
+
+    Repo/Top
+
 It contains one directory for every project (say proj_1, proj_2, proj_3) in the repository:
-```
-Repo/Top/proj_1
-Repo/Top/proj_2
-Repo/Top/proj_3
-```
+
+    Repo/Top/proj_1
+    Repo/Top/proj_2
+    Repo/Top/proj_3
+
 Each of these directories must contain:
 - the top vhdl file of the project
 - the tcl file that generates the project
+
 They must be named as follows:
-```
-Repo/Top/proj_1/proj_1.tcl
-Repo/Top/proj_1/top_proj_1.vhd
-```
+
+    Repo/Top/proj_1/proj_1.tcl
+    Repo/Top/proj_1/top_proj_1.vhd
+
 A directory named _list_ must be in the __Top__ directory as well. This directory contains the list files which in turn contain the filenames to be added to the _proj_1_ project.
 There are 4 kinds of list files, depending on the extension: src, sub, sim, con.
 An example of list files for _proj_1_ is listed here:
-```
-Repo/Top/proj_1/list/lib_a.src
-Repo/Top/proj_1/list/lib_b.src
-Repo/Top/proj_1/list/lib_c.src
-Repo/Top/proj_1/list/lib_a.sim
-Repo/Top/proj_1/list/lib_b.sim
-Repo/Top/proj_1/list/sub_1.sub
-Repo/Top/proj_1/list/xdc.con
-```
+
+    Repo/Top/proj_1/list/lib_a.src
+    Repo/Top/proj_1/list/lib_b.src
+    Repo/Top/proj_1/list/lib_c.src
+    Repo/Top/proj_1/list/lib_a.sim
+    Repo/Top/proj_1/list/lib_b.sim
+    Repo/Top/proj_1/list/sub_1.sub
+    Repo/Top/proj_1/list/xdc.con
+
 #### .src files
 HDL files used for synthesis taken from the repository. HDL files coming from one .src list-file, are  included into the Vivado project in the same library, named after the .src file itself. For example if we have a lib_1.src file in our list directory, containing 5 filenames inside, like this:
-```
-../../lib_1/hdl/file1.vhd
-../../lib_1/hdl/file2.vhd
-../../lib_1/hdl/file3.vhd
-```
+
+    ../../lib_1/hdl/file1.vhd
+    ../../lib_1/hdl/file2.vhd
+    ../../lib_1/hdl/file3.vhd
+
 they will be included into the Vivado project in the lib_1 library, so for example in VHDL to use them in the top file you should use the following syntax:
 
 ```vhdl
@@ -100,11 +102,11 @@ dout => dout
 ):
 ```
 Properties, like VHDL 2008 compatibility, can be specified afer the file name in the list file, separated by any number of spaces. If _file_3.vhd_  requires VHDL 2008, for example, you should specify it like this:
-```
-../../lib_1/hdl/file1.vhd 
-../../lib_1/hdl/file2.vhd
-../../lib_1/hdl/file3.vhd 2008
-```
+
+    ../../lib_1/hdl/file1.vhd 
+    ../../lib_1/hdl/file2.vhd
+    ../../lib_1/hdl/file3.vhd 2008
+
 
 ### .sub files
 HDL files used for synthesis taken from git submodules in the project.
@@ -116,10 +118,10 @@ Constraint files
 
 ## Git submodules
 Hog can handle Git submodules. The must be placed anywhere in your repository, but it is advised to place them in the root directory. Subbose that you have 2 submodules called _sub_1_ and _sub_2_:
-```
-Repo/Top/sub_1
-Repo/Top/sub_2
-```
+
+    Repo/Top/sub_1
+    Repo/Top/sub_2
+
 To add files from a submodule to your Project you must list them in a .sub list file. This is to explain Hog that those files are taken from a submodule rather than from a library belonging to the main HDL repository. Hog will not try to evaluate the version of those files, but it will evaluate the git SHA of the submodule.
 
 ## doxygen
@@ -134,15 +136,15 @@ You can always delete any of these directory with no bog consequences: they can 
 
 ### VivadoProjects
 When you generate a project with Hog, it will create a sub-directory here. When everything is generated,  this directory contains one subdirectory for each project in the repository, containing the Vivado project-file. The name of the sub-directory and of the project file are always matching. In our case:
-```
-Repo/VivadoProjects/proj_1/proj_1.xpr
-Repo/VivadoProjects/proj_2/proj_2.xpr
-Repo/VivadoProjects/proj_3/proj_3.xpr
-```
+
+    Repo/VivadoProjects/proj_1/proj_1.xpr
+    Repo/VivadoProjects/proj_2/proj_2.xpr
+    Repo/VivadoProjects/proj_3/proj_3.xpr
+
 The _Repo/VivadoProjects/proj_3/_ directory also contains Vivado automatically generated files, among which the Runs directory:
-```
-Repo/VivadoProjects/proj_1/proj_1.runs/
-```
+
+    Repo/VivadoProjects/proj_1/proj_1.runs/
+
 That contains one subfolder for every Vivado run: alle the IPs in your project, the default Vivado synthesis run (synth_1) and implementation run (impl_1).
 Hog will also copy ipbus XMLs and generated bitfiles into _Repo/VivadoProjects/proj_1/proj_1.runs/_ at synthesis/implementation time.
 

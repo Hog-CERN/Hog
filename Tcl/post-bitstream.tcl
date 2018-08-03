@@ -3,7 +3,6 @@ set old_path [pwd]
 set tcl_path [file dirname [info script]]
 source $tcl_path/hog.tcl
 
-
 set bit_file [file normalize [lindex [glob -nocomplain "$old_path/*.bit"] 0]]
 if [file exists $bit_file] {
 
@@ -24,7 +23,6 @@ if [file exists $bit_file] {
     set dst_bit [file normalize "$dst_dir/$proj_name\-$describe.bit"]
     set dst_bin [file normalize "$dst_dir/$proj_name\-$describe.bin"]
     set dst_xml [file normalize "$dst_dir/xml"]
-    
     
     Info $NAME 1 "Creating $dst_dir..."
     file mkdir $dst_dir

@@ -4,8 +4,11 @@ set tcl_path [file dirname [info script]]
 source $tcl_path/hog.tcl
 
 set proj_file [get_property parent.project_path [current_project]]
-set proj_dir [file normalize [file dirname $proj_file]]
 set proj_name [file rootname [file tail $proj_file]]
+if {$proj_name == ""} {
+    set proj_name [current_project]
+}
+
 set bit_file [file normalize "$old_path/top_$proj_name.bit"]
 set bin_file [file normalize "$old_path/top_$proj_name.bin"]
 set xml_dir [file normalize "$old_path/../xml"]
@@ -15,7 +18,7 @@ cd $tcl_path/../../
 
 Info $NAME 0 "Evaluating git describe..."
 set describe [exec git describe --always --dirty]
-set ts [clock format [clock seconds] -format {%Y-%m-%d--%H-%M}]
+set ts [clock format [clock seconds] -format {%Y-%m-%d-%H-%M}]
 set prefix $ts-$describe
 
 set dst_dir [file normalize "$old_path/../$prefix"]
@@ -27,17 +30,18 @@ if [file exists $bit_file] {
     Info $NAME 1 "Creating $dst_dir..."
     file mkdir $dst_dir
     Info $NAME 2 "Copying bit file $bit_file into $dst_bit..."
-    file copy $bit_file $dst_bit
+    file copy -force $bit_file $dst_bit
     if [file exists $xml_dir] {
-	Info 2 "XML directory found, copying xml files from $xml_dir to $xml_dst..." 
-	file copy $xml_dir $dst_xml
+	Info $NAME 2 "XML directory found, copying xml files from $xml_dir to $dst_xml..." 
+	file copy -force $xml_dir $dst_xml
     }
     if [file exists $bin_file] {
 	Info $NAME 4 "Copying bin file $bin_file into $dst_bin..."
-	file copy $bin_file $dst_bin
+	file copy -force $bin_file $dst_bin
     }
 } else {
    Warning $NAME 5 "Bit file $bit_file not found."
 }
 
+cd $old_path
 Info $NAME 6 "All done."

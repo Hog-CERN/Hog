@@ -8,23 +8,33 @@ set proj_dir [file normalize [file dirname $proj_file]]
 set proj_name [file rootname [file tail $proj_file]]
 set bit_file [file normalize "$old_path/top_$proj_name.bit"]
 set bin_file [file normalize "$old_path/top_$proj_name.bin"]
+set xml_dir [file normalize "$old_path/../xml"]
 
 # Go to repository path
 cd $tcl_path/../../ 
 
 Info $NAME 0 "Evaluating git describe..."
-set describe [exec git describe --always]
+set describe [exec git describe --always --dirty]
+set ts [clock format [clock seconds] -format {%Y-%m-%d--%H-%M}]
+set prefix $ts-$describe
 
-set dst_bit [file normalize "$old_path/../$proj_name\-$describe.bit"]
-set dst_bin [file normalize "$old_path/../$proj_name\-$describe.bin"]
+set dst_dir [file normalize "$old_path/../$prefix"]
+set dst_bit [file normalize "$dst_dir/$proj_name\-$describe.bit"]
+set dst_bin [file normalize "$dst_dir/$proj_name\-$describe.bin"]
+set dst_xml [file normalize "$dst_dir/xml"]
 
 if [file exists $bit_file] {
-    Info $NAME 1 "Copying bit file $bit_file into $dst_bit"
+    Info $NAME 2 "Creating $dst_dir..."
+    file mkdir $dst_dir
+    Info $NAME 2 "Copying bit file $bit_file into $dst_bit"
     file copy $bit_file $dst_bit
+    if [file exists $xml_dir] {
+	file copy $xml_dir $dst_xml
+    }
     if [file exists $bin_file] {
-	Info $NAME 2 "Copying bin file $bin_file into $dst_bin"
+	Info $NAME 4 "Copying bin file $bin_file into $dst_bin"
 	file copy $bin_file $dst_bin
     }
 } else {
-   Warn $NAME 3 "Bit file $bit_file not found"
+   Warn $NAME 5 "Bit file $bit_file not found"
 }

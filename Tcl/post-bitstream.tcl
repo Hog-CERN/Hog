@@ -24,17 +24,20 @@ set dst_bin [file normalize "$dst_dir/$proj_name\-$describe.bin"]
 set dst_xml [file normalize "$dst_dir/xml"]
 
 if [file exists $bit_file] {
-    Info $NAME 2 "Creating $dst_dir..."
+    Info $NAME 1 "Creating $dst_dir..."
     file mkdir $dst_dir
-    Info $NAME 2 "Copying bit file $bit_file into $dst_bit"
+    Info $NAME 2 "Copying bit file $bit_file into $dst_bit..."
     file copy $bit_file $dst_bit
     if [file exists $xml_dir] {
+	Info 2 "XML directory found, copying xml files from $xml_dir to $xml_dst..." 
 	file copy $xml_dir $dst_xml
     }
     if [file exists $bin_file] {
-	Info $NAME 4 "Copying bin file $bin_file into $dst_bin"
+	Info $NAME 4 "Copying bin file $bin_file into $dst_bin..."
 	file copy $bin_file $dst_bin
     }
 } else {
-   Warn $NAME 5 "Bit file $bit_file not found"
+   Warning $NAME 5 "Bit file $bit_file not found."
 }
+
+Info $NAME 6 "All done."

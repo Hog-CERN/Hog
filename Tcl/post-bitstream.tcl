@@ -3,26 +3,29 @@ set old_path [pwd]
 set tcl_path [file dirname [info script]]
 source $tcl_path/hog.tcl
 
-set proj_name [current_project]
 
-set bit_file [file normalize "$old_path/top_$proj_name.bit"]
-set bin_file [file normalize "$old_path/top_$proj_name.bin"]
-set xml_dir [file normalize "$old_path/../xml"]
-
-# Go to repository path
-cd $tcl_path/../../ 
-
-Info $NAME 0 "Evaluating git describe..."
-set describe [exec git describe --always --dirty]
-set ts [clock format [clock seconds] -format {%Y-%m-%d-%H-%M}]
-set prefix $ts-$describe
-
-set dst_dir [file normalize "$old_path/../$prefix"]
-set dst_bit [file normalize "$dst_dir/$proj_name\-$describe.bit"]
-set dst_bin [file normalize "$dst_dir/$proj_name\-$describe.bin"]
-set dst_xml [file normalize "$dst_dir/xml"]
-
+set bit_file [file normalize [lindex [glob -nocomplain "$old_path/*.bit"] 0]]
 if [file exists $bit_file] {
+
+    set proj_name [string map {"top_" ""} [file rootname [file tail $bit_file]]]
+    set bit_file [file normalize "$old_path/top_$proj_name.bit"]
+    set bin_file [file normalize "$old_path/top_$proj_name.bin"]
+    set xml_dir [file normalize "$old_path/../xml"]
+    
+    # Go to repository path
+    cd $tcl_path/../../ 
+    
+    Info $NAME 0 "Evaluating git describe..."
+    set describe [exec git describe --always --dirty]
+    set ts [clock format [clock seconds] -format {%Y-%m-%d-%H-%M}]
+    set prefix $ts-$describe
+    
+    set dst_dir [file normalize "$old_path/../$prefix"]
+    set dst_bit [file normalize "$dst_dir/$proj_name\-$describe.bit"]
+    set dst_bin [file normalize "$dst_dir/$proj_name\-$describe.bin"]
+    set dst_xml [file normalize "$dst_dir/xml"]
+    
+    
     Info $NAME 1 "Creating $dst_dir..."
     file mkdir $dst_dir
     Info $NAME 2 "Copying bit file $bit_file into $dst_bit..."
@@ -35,9 +38,9 @@ if [file exists $bit_file] {
 	Info $NAME 4 "Copying bin file $bin_file into $dst_bin..."
 	file copy -force $bin_file $dst_bin
     }
-} else {
-   Warning $NAME 5 "Bit file $bit_file not found."
-}
 
+} else {
+    Warning $NAME 5 "Bit file not found."
+}
 cd $old_path
 Info $NAME 6 "All done."

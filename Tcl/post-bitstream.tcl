@@ -3,11 +3,7 @@ set old_path [pwd]
 set tcl_path [file dirname [info script]]
 source $tcl_path/hog.tcl
 
-set proj_file [get_property parent.project_path [current_project]]
-set proj_name [file rootname [file tail $proj_file]]
-if {$proj_name == ""} {
-    set proj_name [current_project]
-}
+set proj_name [current_project]
 
 set bit_file [file normalize "$old_path/top_$proj_name.bit"]
 set bin_file [file normalize "$old_path/top_$proj_name.bin"]

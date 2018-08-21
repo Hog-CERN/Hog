@@ -37,7 +37,8 @@ EOF
 	exit 1
 fi
 
-list=`git diff --pretty="" --name-only --cached`
+list=`git diff --pretty="" --name-only --cached --diff-filter=MA`
+
 warning_done="no"
 for f in $list; do
     ext="${f##*.}"
@@ -48,10 +49,10 @@ for f in $list; do
 	then
 	    warning_done="yes"
 	    echo
-	    echo "ATTENTION: you are about to commit Xilinx IP files, do not do it unless you mean to"
+	    echo "[Hog hook] ATTENTION: you are about to commit Xilinx IP files, do not do so unless you mean to."
 	    echo
 	fi
-	echo "Found xci in commit: $f, adding xml $name.xml as well..."
+	echo "[Hog hook] Found xci in commit: $f, adding xml $name.xml as well..."
 	if [ -e  $name.xml ]
 	then
 	    git update-index --no-assume-unchanged $name.xml
@@ -59,10 +60,80 @@ for f in $list; do
 	    git update-index --assume-unchanged $name.xml
 	else
 	    echo
-	    echo "WARNING $name.xml not found!"
+	    echo "[Hog hook] WARNING $name.xml not found!"
 	    echo
 	fi     
-	       
+    fi
+done
+
+list_deleted=`git diff --pretty="" --name-only --cached --diff-filter=D`
+warning_done="no"
+for f in $list_deleted; do
+    ext="${f##*.}"
+    name="${f%.*}"
+    if [ "$ext" = "xci" ]
+    then
+	if [ "$warning_done" = "no" ]
+	then
+	    warning_done="yes"
+	    echo
+	    echo "[Hog hook] ATTENTION: you are about to remove Xilinx IP files, do not do so unless you mean to."
+	    echo
+	fi
+	echo "[Hog hook] Found deleted xci in commit: $f, deleting xml $name.xml as well..."
+	if [ -e  $name.xml ]
+	then
+	    git update-index --no-assume-unchanged $name.xml
+	    git rm $name.xml
+	else
+	    echo
+	    echo "[Hog hook] WARNING $name.xml not found!"
+	    echo
+	fi     
+    fi
+done
+
+list_renamed_from=`git diff --pretty="" --cached --diff-filter=R | grep "rename from" | awk '{print $3}'`
+list_renamed_to=`git diff --pretty="" --cached --diff-filter=R | grep "rename to" | awk '{print $3}'`
+warning_done="no"
+for i in ${!list_renamed_from[*]}; do
+    f=${list_renamed_to[$i]}
+    g=${list_renamed_from[$i]}    
+    ext="${f##*.}"
+    name="${f%.*}"
+    from_ext="${g##*.}"
+    from_name="${g%.*}"
+
+    if [ "$from_ext" = "xci" ]
+    then
+	if [ "$ext" = "xci" ]
+	then
+	    if [ "$warning_done" = "no" ]
+	    then
+		warning_done="yes"
+		echo
+		echo "[Hog hook] ATTENTION: you are about to rename a Xilinx IP files, do not do so unless you mean to."
+		echo
+	    fi
+	    echo "[Hog hook] Found renamed xci in commit: from $g to $f, renaming $from_name.xml to $name.xml as well..."
+	    if [ -e  $from_name.xml ]
+	    then
+		git update-index --no-assume-unchanged $from_name.xml
+		mv $from_name.xml $name.xml
+		git rm $from_name.xml
+		git add $name.xml	    
+		git update-index --assume-unchanged $name.xml	    
+	    else
+		echo
+		echo "[Hog hook] WARNING $from_name.xml not found!"
+		echo
+	    fi
+	else
+	    echo
+	    echo "[Hog hook] WARNING Renaming xci file $g into another file type $f, will stop assuming $from_name.xml unchanged..."
+	    echo
+	    git update-index --no-assume-unchanged $from_name.xml	    
+	fi
     fi
 done
 

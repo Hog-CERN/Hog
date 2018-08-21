@@ -49,6 +49,7 @@ set_property "default_lib" "xil_defaultlib" $obj
 if {$use_questa_simulator == 1} { 
     set_property "target_simulator" "ModelSim" $obj
 }
+
 ## Enable VHDL 2008
 set_param project.enableVHDL2008 1
 set_property "enable_vhdl_2008" 1 $obj
@@ -194,7 +195,17 @@ if {[string equal [get_property -quiet report_strategy $obj] ""]} {
     }
 }
 
+##############
+# SIMULATION #
+##############
+
+
+Info CreateProject 3 "Setting load_glbl parameter to false for every fileset..."
+foreach f [get_filesets -quiet *_sim] {
+    set_property -name {xsim.elaborate.load_glbl} -value {false} -objects $f
+}
+
 # set the current impl run
 current_run -implementation [get_runs impl_1]
 
-Info CreateProject 3 "Project $DESIGN created succesfully"
+Info CreateProject 4 "Project $DESIGN created succesfully"

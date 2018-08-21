@@ -15,7 +15,8 @@ if [file exists $bit_file] {
     cd $tcl_path/../../ 
     
     Info $NAME 0 "Evaluating git describe..."
-    set describe [exec git describe --always --dirty]
+    set describe [exec git describe --always --dirty --match=v*]
+    Info $NAME 1 "Git describe: $describe"
     set ts [clock format [clock seconds] -format {%Y-%m-%d-%H-%M}]
     set prefix $ts-$describe
     
@@ -24,25 +25,25 @@ if [file exists $bit_file] {
     set dst_bin [file normalize "$dst_dir/$proj_name\-$describe.bin"]
     set dst_xml [file normalize "$dst_dir/xml"]
     
-    Info $NAME 1 "Creating $dst_dir..."
+    Info $NAME 2 "Creating $dst_dir..."
     file mkdir $dst_dir
-    Info $NAME 2 "Copying bit file $bit_file into $dst_bit..."
+    Info $NAME 3 "Copying bit file $bit_file into $dst_bit..."
     file copy -force $bit_file $dst_bit
     if [file exists $xml_dir] {
-	Info $NAME 3 "XML directory found, copying xml files from $xml_dir to $dst_xml..." 
+	Info $NAME 4 "XML directory found, copying xml files from $xml_dir to $dst_xml..." 
 	if [file exists $dst_xml] {
-	    Info $NAME 4 "Directory $dst_xml exists, deleting it..." 
+	    Info $NAME 5 "Directory $dst_xml exists, deleting it..." 
 	    file delete -force $dst_xml
 	}
 	file copy -force $xml_dir $dst_xml
     }
     if [file exists $bin_file] {
-	Info $NAME 5 "Copying bin file $bin_file into $dst_bin..."
+	Info $NAME 6 "Copying bin file $bin_file into $dst_bin..."
 	file copy -force $bin_file $dst_bin
     }
 
 } else {
-    Warning $NAME 6 "Bit file not found."
+    Warning $NAME 7 "Bit file not found."
 }
 cd $old_path
-Info $NAME 7 "All done."
+Info $NAME 8 "All done."

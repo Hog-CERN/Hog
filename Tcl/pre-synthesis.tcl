@@ -5,9 +5,9 @@ if [file exists ../buypass_commit] {
     set buypass_commit 0
 }
 if [file exists ../no_time] {
-    set no_time 1
+    set real_time 1
 } else  {
-    set no_time 0
+    set real_time 0
 }
 set old_path [pwd]
 set tcl_path [file dirname [info script]]
@@ -119,12 +119,13 @@ if { [exec git status --untracked-files=no  --porcelain] eq "" } {
 }
 
 set clock_seconds [clock seconds]
-set date [clock format $clock_seconds  -format {%d%m%Y}]
-set timee [clock format $clock_seconds -format {00%H%M%S}]
+set date [exec git log -1 --format=%cd --date=format:'%d%m%Y']
+set timee [exec git log -1 --format=%cd --date=format:'00%H%M%S']
 set tt [clock format $clock_seconds -format {%d/%m/%Y at %H:%M:%S}]
-if {$no_time == 1} {
-    set date  "21041926"
-    set timee "00024000"
+
+if {$real_time == 1} {
+    set date [clock format $clock_seconds  -format {%d%m%Y}]
+    set timee [clock format $clock_seconds -format {00%H%M%S}]
 }
 
 

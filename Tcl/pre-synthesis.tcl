@@ -20,6 +20,20 @@ set proj_file [get_property parent.project_path [current_project]]
 set proj_dir [file normalize [file dirname $proj_file]]
 set proj_name [file rootname [file tail $proj_file]]
 
+# Calculating flavour if any
+set flavour [string map {. ""} [file ext $proj_name]]
+if {$flavour != ""} {
+    if [string is integer $flavour] {
+	Info $NAME 0 "Project $proj_name has flavour = $flavour, the generic variable FLAVUOR will be set to $flavour"
+    } else {
+	Warning $NAME 0 "Project name has a non numeric extension, flavour will be set to 0"
+    }
+
+} else {
+    set flavour 0
+}
+
+
 Info $NAME 0 "Evaluating firmware date and, possibly, git commit hash..."
 
 if { [exec git status --untracked-files=no  --porcelain] eq "" } {
@@ -145,6 +159,10 @@ foreach s $subs h $subs_hashes {
     set generic_string "$generic_string $hash"
 }
 
+if {$flavour != 0} {
+   set generic_string "$generic_string FLAVOUR=1"
+}
+
 Info $NAME 4 "Generic String: $generic_string"
 
 set_property generic $generic_string [current_fileset]
@@ -156,6 +174,9 @@ Status $NAME 3 " ------------------------- PRE SYNTHESIS -----------------------
 Status $NAME 3 " $tt"
 Status $NAME 3 " Firmware date and time: $date, $timee"
 puts $status_file "Date, $date, $timee"
+if {$flavour != 0} {
+    Status $NAME 3 " Project flavour: $flavour"
+}
 Status $NAME 3 " Global SHA: $commit, VER: $version"
 puts $status_file "Global, $commit, $version"
 Status $NAME 3 " XML SHA: $top_hash, VER: $top_ver"

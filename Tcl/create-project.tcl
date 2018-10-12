@@ -27,7 +27,8 @@ set top_path         "$repo_path/Top/$DESIGN"
 set list_path        "$top_path/list"
 set BUILD_DIR        "$repo_path/VivadoProject/$DESIGN"
 set modelsim_path    "$repo_path/ModelsimLib"
-set synth_top_module "top_$DESIGN"
+set top_name [file root $DESIGN]
+set synth_top_module "top_$top_name"
 set synth_top_file   "$top_path/top_$DESIGN.vhd"
 
 set pre_synth  [file normalize "$tcl_path/$pre_synth_file"]
@@ -36,6 +37,11 @@ set post_impl  [file normalize "$tcl_path/$post_impl_file"]
 set post_bit   [file normalize "$tcl_path/$post_bit_file"]
 
 source $tcl_path/hog.tcl
+
+if {$top_name != $DESIGN} {
+ Info CreateProject 0 "This project has got a flavour, the top module name will differ from the project name."
+}
+
 
 ## Create Project
 create_project -force $DESIGN $BUILD_DIR -part $FPGA
@@ -64,7 +70,13 @@ if {[string equal [get_filesets -quiet sources_1] ""]} {
 set sources [get_filesets sources_1]
 
 ## Set synthesis TOP
-add_files -norecurse -fileset $sources $synth_top_file
+if [file exists $synth_top_file] {
+    Info CreateProject 0 "Adding top file found in Top folder $synth_top_file" 
+    add_files -norecurse -fileset $sources $synth_top_file
+} else {
+    Info CreateProject 0 "No top file found in Top folder, please make sure that the top file is included in one of the libraries"     
+}
+    
 set_property "top" $synth_top_module $sources
 
 

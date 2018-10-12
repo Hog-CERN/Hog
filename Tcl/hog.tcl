@@ -72,6 +72,7 @@ proc Error            {title id msg} { send_msg_id $title-$id {ERROR} $msg}
 proc GetRepoPath {} {
     return "[file normalize [file dirname [info script]]]/../../"
 }
+########################################################
 
 ## Read a list file and adds the files to Vivado project, adding the additional information as file type.
 #
@@ -100,43 +101,49 @@ proc ReadListFile {list_file path lib src} {
 	    set vhdlfile "$path/$vhdlfile"
 	    if {[file exists $vhdlfile]} {
 		set vhdlfile [file normalize $vhdlfile]
-		add_files -norecurse -fileset $src $vhdlfile
-		incr cnt
-		set file_obj [get_files -of_objects [get_filesets $src] [list "*$vhdlfile"]]
-		if {$lib ne ""} {set_property -name "library" -value $lib -objects $file_obj}
-		if {[llength $file_and_prop] > 1} {
-		    set prop [lrange $file_and_prop 1 end]
-		    set type [lindex $prop 0]
-		    if {$type eq "2008" } {set type "VHDL 2008"}
-		    if {$type eq "topsim"} {
-			Info ReadListFile 1 "Found top for simulation module"
-			# if the property name is topsim, then we expect other properties
-			# the next property is the name of the top module
-			if {[llength $prop] > 1} {
-			    set top_module [lindex $prop 1]
-			    Info ReadListFile 1 "Setting $top_module as top module for simulation file set $src..."
-			    set_property "top"  $top_module [get_filesets $src]
+		set extension [file ext $vhdlfile]
+		if { [lsearch {.src .sim .con .sub} $extension] >= 0 } {
+		    Info ReadListFile 1 "List file $vhdlfile found in list file, recoursively opening it..."
+		    SmartListFile $vhdlfile $path
+		} else {
+		    add_files -norecurse -fileset $src $vhdlfile
+		    incr cnt
+		    set file_obj [get_files -of_objects [get_filesets $src] [list "*$vhdlfile"]]
+		    if {$lib ne ""} {set_property -name "library" -value $lib -objects $file_obj}
+		    if {[llength $file_and_prop] > 1} {
+			set prop [lrange $file_and_prop 1 end]
+			set type [lindex $prop 0]
+			if {$type eq "2008" } {set type "VHDL 2008"}
+			if {$type eq "topsim"} {
+			    Info ReadListFile 1 "Found top for simulation module"
+			    # if the property name is topsim, then we expect other properties
+			    # the next property is the name of the top module
+			    if {[llength $prop] > 1} {
+				set top_module [lindex $prop 1]
+				Info ReadListFile 1 "Setting $top_module as top module for simulation file set $src..."
+				set_property "top"  $top_module [get_filesets $src]
+			    }
+			    # if there is another property it is the wave do file
+			    if {[llength $prop] > 2} {
+				set do_file [lindex $prop 2]
+				set r_path [GetRepoPath]
+				set file_name "$r_path/sim/$do_file"
+				Info ReadListFile 1 "Setting $file_name as wave do file for simulation file set $src..."
+				set_property "modelsim.simulate.custom_wave_do" $file_name [get_filesets $src]
+			    }
+			    # if there is still another property it is the do file
+			    if {[llength $prop] > 3} {
+				set do_file [lindex $prop 3]
+				set r_path [GetRepoPath]
+				set file_name "$r_path/sim/$do_file"
+				Info ReadListFile 1 "Setting $file_name as udo file for simulation file set $src..."
+				set_property "modelsim.simulate.custom_udo" $file_name [get_filesets $src]
+			    }
+			    current_fileset -simset [get_filesets $src]
+			    
+			} else {
+			    set_property -name "file_type" -value $type -objects $file_obj
 			}
-			# if there is another property it is the wave do file
-			if {[llength $prop] > 2} {
-			    set do_file [lindex $prop 2]
-			    set r_path [GetRepoPath]
-			    set file_name "$r_path/sim/$do_file"
-			    Info ReadListFile 1 "Setting $file_name as wave do file for simulation file set $src..."
-			    set_property "modelsim.simulate.custom_wave_do" $file_name [get_filesets $src]
-			}
-			# if there is still another property it is the do file
-			if {[llength $prop] > 3} {
-			    set do_file [lindex $prop 3]
-			    set r_path [GetRepoPath]
-			    set file_name "$r_path/sim/$do_file"
-			    Info ReadListFile 1 "Setting $file_name as udo file for simulation file set $src..."
-			    set_property "modelsim.simulate.custom_udo" $file_name [get_filesets $src]
-			}
-			current_fileset -simset [get_filesets $src]
-
-		    } else {
-			set_property -name "file_type" -value $type -objects $file_obj
 		    }
 		}
 	    } else {
@@ -146,7 +153,6 @@ proc ReadListFile {list_file path lib src} {
     }
     Info ReadListFile 1 "$cnt file/s added to $lib..."
 }
-
 ########################################################
 
 ## Read a list file and adds the files to Vivado project, adding the additional information as file type.
@@ -199,7 +205,6 @@ proc SmartListFile {list_file path} {
     Info SmartListFile 0 "Reading sources from file $list_file, lib: $lib, file-set: $file_set"
     ReadListFile $list_file $path $lib $file_set
 }
-
 ########################################################
 
 ## Get git SHA of a vivado library
@@ -217,25 +222,19 @@ proc GetHashLib {lib} {
 
     return $ret
 }
-
 ########################################################
 
-## Get git SHA of a subset of list file
+## Recursively gets file names from list file
 #
 # Arguments:\n
-# * FILE: list file or path containing the subset of files whose latest commit hash will be returned
-# * path:      the path the vhdl file are referred to in the list file (not used if FILE is a path or "ALL")
+# * FILE: list file to open
+# * path: the path the files are referred to in the list file
 #
-# if the special string "ALL" is used, returns the global hash
-proc GetHash {FILE path} {
-    if {$FILE eq "ALL"} {
-	set ret [exec git log --format=%h -1]
-    } elseif {[file isfile $FILE]} {
-
+# if the list file contains files with extension .src .sim .con .sub, it will recursively open them
+proc GetFileList {FILE path} {
 	set fp [open $FILE r]
 	set file_data [read $fp]
 	close $fp
-	
 	#  Process data file
 	set data [split $file_data "\n"]
 	foreach line $data {
@@ -244,13 +243,35 @@ proc GetHash {FILE path} {
 		set vhdlfile [lindex $file_and_prop 0]
 		set vhdlfile "$path/$vhdlfile"
 		if {[file exists $vhdlfile]} {
-		    lappend lista $vhdlfile
+		    set extension [file ext $vhdlfile]
+		    if { [lsearch {.src .sim .con .sub} $extension] >= 0 } {
+			lappend lista {*}[GetFileList $vhdlfile $path]]
+		    } else {
+			lappend lista $vhdlfile
+		    }
 		} else { 
-		    Warning GetHash 0 "File $vhdlfile not found"
+		    Warning GetFileList 0 "File $vhdlfile not found"
 		}
 	    }
 	}
 
+    return $lista
+}
+########################################################
+
+## Get git SHA of a subset of list file
+#
+# Arguments:\n
+# * FILE: list file or path containing the subset of files whose latest commit hash will be returned
+# * path:      the path the vhdl files are referred to in the list file (not used if FILE is a path or "ALL")
+#
+# if the special string "ALL" is used, returns the global hash
+proc GetHash {FILE path} {
+    if {$FILE eq "ALL"} {
+	set ret [exec git log --format=%h -1]
+    } elseif {[file isfile $FILE]} {
+	set lista [GetFileList $FILE $path]
+	puts "********* DEBUG $lista"
 	set ret [exec git log --format=%h -1 -- {*}$lista ]
 	
     } elseif {[file isdirectory $FILE]} {
@@ -381,5 +402,4 @@ proc CopyXMLsFromListFile {list_file path xml_version xml_sha dst} {
     }
     Info ReadListFile 1 "$cnt file/s copied"
 }
-
 ########################################################

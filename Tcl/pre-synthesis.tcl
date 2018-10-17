@@ -85,7 +85,7 @@ if [file exists ./Top/$proj_name/xml/xml.lst] {
     scan [string range $xml_ver 4 7] %x c
     set xml_ver_formatted "$M.$m.$c"
     Info $NAME 4 "Copying xml files to $xml_dst and adding xml version $xml_ver_formatted..."
-    CopyXMLsFromListFile $xml_target ./Top/$proj_name $xml_ver_formatted $xml_hash $xml_dst
+    CopyXMLsFromListFile $xml_target ./Top/$proj_name $xml_dst $xml_ver_formatted $xml_hash 
 
 } elseif [file exists ./Top/$proj_name/xml] {
     Info $NAME 2 "XML list file not found, using version of XML directory"

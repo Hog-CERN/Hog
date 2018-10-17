@@ -9,8 +9,13 @@
 # * title: The name of the script displaying the message
 # * id: A progressive number used as message ID
 # * msg: the message text
-proc Info {title id msg} { send_msg_id $title-$id {INFO} $msg}
-
+proc Info {title id msg} {
+    if {[info commands send_msg_id] != ""} {
+	send_msg_id $title-$id {INFO} $msg
+    } else {
+	puts "*** $title-$id INFO $msg"
+    }
+}
 ########################################################
 
 ## Display Vivado Info message and wrtite it into a log file
@@ -20,13 +25,12 @@ proc Info {title id msg} { send_msg_id $title-$id {INFO} $msg}
 # * title: The name of the script displaying the message
 # * id: A progressive number used as message ID
 # * msg: the message text
-proc fInfo            {File title id msg} {
+proc fInfo {File title id msg} {
     Info $title $id $msg
     set f [open $File a+]
     puts $f $msg
     close $f
 }
-
 ########################################################
 
 ## Display Vivado Status message
@@ -35,8 +39,13 @@ proc fInfo            {File title id msg} {
 # * title: The name of the script displaying the message
 # * id: A progressive number used as message ID
 # * msg: the message text
-proc Status           {title id msg} { send_msg_id $title-$id {STATUS} $msg}
-
+proc Status {title id msg} {
+    if {[info commands send_msg_id] != ""} {
+	send_msg_id $title-$id {STATUS} $msg
+    } else {
+	puts "*** $title-$id STATUS $msg"
+    }
+}
 ########################################################
 
 ## Display Vivado Warning message
@@ -45,8 +54,13 @@ proc Status           {title id msg} { send_msg_id $title-$id {STATUS} $msg}
 # * title: The name of the script displaying the message
 # * id: A progressive number used as message ID
 # * msg: the message text
-proc Warning          {title id msg} { send_msg_id $title-$id {WARNING} $msg}
-
+proc Warning {title id msg} {
+    if {[info commands send_msg_id] != ""} {
+	send_msg_id $title-$id {WARNING} $msg
+    } else {
+	puts "*** $title-$id WARNING $msg"
+    }
+}
 ########################################################
 
 ## Display Vivado Critical Warning message
@@ -55,8 +69,13 @@ proc Warning          {title id msg} { send_msg_id $title-$id {WARNING} $msg}
 # * title: The name of the script displaying the message
 # * id: A progressive number used as message ID
 # * msg: the message text
-proc CriticalWarining {title id msg} { send_msg_id $title-$id {CRITICAL WARNING} $msg}
-
+proc CriticalWarining {title id msg} {
+    if {[info commands send_msg_id] != ""} {
+	send_msg_id $title-$id {CRITICAL WARNING} $msg
+    } else {
+	puts "*** $title-$id CRITICAL WARNING $msg"
+    }
+}
 ########################################################
 
 ## Display Vivado Error message
@@ -65,7 +84,13 @@ proc CriticalWarining {title id msg} { send_msg_id $title-$id {CRITICAL WARNING}
 # * title: The name of the script displaying the message
 # * id: A progressive number used as message ID
 # * msg: the message text
-proc Error            {title id msg} { send_msg_id $title-$id {ERROR} $msg}
+proc Error            {title id msg} {
+    if {[info commands send_msg_id] != ""} {
+	send_msg_id $title-$id {ERROR} $msg
+    } else {
+	puts "*** $title-$id ERROR $msg"
+    }
+}
 
 ########################################################
 
@@ -393,10 +418,13 @@ proc GetVer {FILE path} {
 # Additional information is provided with text separated from the file name with one or more spaces
 #
 # Arguments:
-# * lsit_file: file containing list of XML files with optional properties
-# * path:      the path the XML files are referred to in the list file
-# * dst:       the path the XML files must be copyed to
-proc CopyXMLsFromListFile {list_file path xml_version xml_sha dst} {
+# * lsit_file:   file containing list of XML files with optional properties
+# * path:        the path the XML files are referred to in the list file
+# * dst:         the path the XML files must be copyed to
+# * xml_version: the M.m.p version to be used to replace the __VERSION__ placeholder in any of the xml files
+# * xml_sha:     the Git-SHA to be used to replace the __GIT_SHA__ placeholder in any of the xml files
+
+proc CopyXMLsFromListFile {list_file path dst {xml_version "0.0.0"} {xml_sha "00000000"} } {
     set list_file
     set fp [open $list_file r]
     set file_data [read $fp]

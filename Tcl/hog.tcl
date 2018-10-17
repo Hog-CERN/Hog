@@ -110,39 +110,73 @@ proc ReadListFile {list_file path lib src} {
 		    incr cnt
 		    set file_obj [get_files -of_objects [get_filesets $src] [list "*$vhdlfile"]]
 		    if {$lib ne ""} {set_property -name "library" -value $lib -objects $file_obj}
-		    if {[llength $file_and_prop] > 1} {
-			set prop [lrange $file_and_prop 1 end]
-			set type [lindex $prop 0]
-			if {$type eq "2008" } {set type "VHDL 2008"}
-			if {$type eq "topsim"} {
-			    Info ReadListFile 1 "Found top for simulation module"
-			    # if the property name is topsim, then we expect other properties
-			    # the next property is the name of the top module
-			    if {[llength $prop] > 1} {
-				set top_module [lindex $prop 1]
-				Info ReadListFile 1 "Setting $top_module as top module for simulation file set $src..."
-				set_property "top"  $top_module [get_filesets $src]
-			    }
-			    # if there is another property it is the wave do file
-			    if {[llength $prop] > 2} {
-				set do_file [lindex $prop 2]
-				set r_path [GetRepoPath]
-				set file_name "$r_path/sim/$do_file"
-				Info ReadListFile 1 "Setting $file_name as wave do file for simulation file set $src..."
-				set_property "modelsim.simulate.custom_wave_do" $file_name [get_filesets $src]
-			    }
-			    # if there is still another property it is the do file
-			    if {[llength $prop] > 3} {
-				set do_file [lindex $prop 3]
-				set r_path [GetRepoPath]
-				set file_name "$r_path/sim/$do_file"
-				Info ReadListFile 1 "Setting $file_name as udo file for simulation file set $src..."
-				set_property "modelsim.simulate.custom_udo" $file_name [get_filesets $src]
-			    }
-			    current_fileset -simset [get_filesets $src]
-			    
+
+		    ### Set file properties
+		    set prop [lrange $file_and_prop 1 end]
+		    # VHDL 2008 compatibility
+		    if {[lsearch -inline -regex $prop "2008"] >= 0} {
+			Info ReadListFile 1 "Setting filetype VHDL 2008 for $vhdlfile"
+			set_property -name "file_type" -value "VHDL 2008" -objects $file_obj
+		    }
+
+		    # XDC
+		    if {[lsearch -inline -regex $prop "XDC"] >= 0 || [file ext $vhdlfile] == ".xdc"} {
+			Info ReadListFile 1 "Setting filetype XDC for $vhdlfile"
+			    set_property -name "file_type" -value "XDC" -objects $file_obj
+		    }
+
+		    # Not used in synthesis
+		    if {[lsearch -inline -regex $prop "nosynth"] >= 0} {
+			Info ReadListFile 1 "Setting not used in synthesis for $vhdlfile..."
+			set_property -name "used_in_synthesis" -value "false" -objects $file_obj
+		    }
+
+		    # Not used in implementation
+		    if {[lsearch -inline -regex $prop "noimpl"] >= 0} {
+			Info ReadListFile 1 "Setting not used in implementation for $vhdlfile..."
+			set_property -name "used_in_implementation" -value "false" -objects $file_obj
+		    }
+
+		    # Not used in simulation
+		    if {[lsearch -inline -regex $prop "nosim"] >= 0} {
+			Info ReadListFile 1 "Setting not used in simulation for $vhdlfile..."
+			set_property -name "used_in_simulation" -value "false" -objects $file_obj
+		    }
+
+
+		    ## Simulation properties
+		    # Top simulation module
+		    set top_sim [lindex [split [lsearch -inline -regex $prop topsim=] =] 1]
+		    if { $top_sim != "" } {
+			Info ReadListFile 1 "Setting $top_sim as top module for simulation file set $src..."
+			set_property "top"  $top_sim [get_filesets $src]
+			current_fileset -simset [get_filesets $src]
+		    }
+
+		    # Wave do file
+		    set wave_file [lindex [split [lsearch -inline -regex $prop wavefile=] =] 1]
+		    if { $wave_file != "" } {
+			set r_path [GetRepoPath]
+			set file_name "$r_path/sim/$wave_file"
+			Info ReadListFile 1 "Setting $file_name as wave do file for simulation file set $src..."
+			# check if file exists...
+			if [file exists $file_name] {
+			    set_property "modelsim.simulate.custom_wave_do" $file_name [get_filesets $src]
 			} else {
-			    set_property -name "file_type" -value $type -objects $file_obj
+			    Warning ReadlistFIle 1 "File $file_name was not found."
+			}
+		    }
+
+		    #Do file
+		    set do_file [lindex [split [lsearch -inline -regex $prop dofile=] =] 1]
+		    if { $do_file != "" } {
+			set r_path [GetRepoPath]
+			set file_name "$r_path/sim/$do_file"
+			Info ReadListFile 1 "Setting $file_name as udo file for simulation file set $src..."
+			if [file exists $file_name] {
+			    set_property "modelsim.simulate.custom_udo" $file_name [get_filesets $src]
+			} else {
+			    Warning ReadlistFIle 1 "File $file_name was not found."
 			}
 		    }
 		}

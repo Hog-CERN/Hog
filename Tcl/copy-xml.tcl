@@ -3,7 +3,7 @@ set tcl_path [file dirname [info script]]
 set repo_path $tcl_path/../..
 
 if {$argc != 2} {
-    puts "Usage: $argv0 <XML list file> <destination directory>"
+    puts "\nUsage: $argv0 <XML list file> <destination directory>\n\n"
     exit
 }
 

@@ -1,4 +1,4 @@
-#!/usr/bin/tclsh
+#!/usr/bin/env tclsh
 set tcl_path [file dirname [info script]]
 set repo_path $tcl_path/../..
 

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/env bash
 OLD_DIR=`pwd`
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
@@ -13,10 +13,10 @@ if [ "$1" == "-h" ] || [ "$1" == "-help" ] || [ "$1" == "--help" ] || [ "$1" == 
     exit 0
 fi
 
-cd $DIR/..
+cd "${DIR}"/..
 
 echo [hog reset xci] Checking out commited version of all modified xci files
 git checkout -- `git ls-files -m *.xci`
 
 echo [hog reset xci] All done.
-cd $OLD_DIR
+cd "${OLD_DIR}"

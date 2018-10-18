@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/env bash
 OLD_DIR=`pwd`
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
@@ -17,7 +17,7 @@ if [ "$1" == "-h" ] || [ "$1" == "-help" ] || [ "$1" == "--help" ] || [ "$1" == 
     exit 0
 fi
 
-cd $DIR/..
+cd "${DIR}"/..
 
 if [ "$1" == "-undo" ]; then
     command="--no-assume-unchanged"
@@ -30,7 +30,7 @@ fi
 
 echo [hog ip xml] Ignoring Xilinx IP xml locally
 xci=`find . -name *.xci`
-for f in $xci
+for f in "${xci}"
 do
     ext="${f##*.}"
     name="${f%.*}"
@@ -41,4 +41,4 @@ do
     fi
 done
 
-cd $OLD_DIR
+cd "${OLD_DIR}"

@@ -69,7 +69,7 @@ then
 	proj=`ls`
 	cd ..
 	echo [hog init] Creating projects for: $proj...
-	for f in "${proj}"
+	for f in $proj
 	do
 	    echo [hog init] Creating Vivado project: $f...
 	    ./Hog/CreateProject.sh "${f}"

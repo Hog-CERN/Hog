@@ -9,6 +9,7 @@
 # set SYNTH_FLOW {Vivado Synthesis 2016}
 # set IMPL_STRATEGY "Vivado Implementation Defaults"
 # set IMPL_FLOW {Vivado Implementation 2016}
+# set PROPERTIES [dict create synth_1 [dict create opt_speed true opt_area false] impl_1 [dict create keep_registers true retiming true]]
 
 ############################################################
 
@@ -210,12 +211,29 @@ if {[string equal [get_property -quiet report_strategy $obj] ""]} {
 ##############
 # SIMULATION #
 ##############
-
-
 Info CreateProject 3 "Setting load_glbl parameter to false for every fileset..."
 foreach f [get_filesets -quiet *_sim] {
     set_property -name {xsim.elaborate.load_glbl} -value {false} -objects $f
 }
+
+##################
+# RUN PROPERTIES #
+##################
+if [info exists PROPERTIES] {
+    foreach run [get_runs -quiet] {
+	if [dict exists $PROPERTIES $run] {
+	    Info CreateProject 1 "Setting properties for run: $run..."
+	    set run_props [dict get $PROPERTIES $run]
+	    dict for {prop_name prop_val} $run_props {
+		Info CreateProject 1 "Setting $prop_name = $prop_val"
+		set_property $prop_name $prop_val $run
+	    }
+	}
+    }
+}
+
+
+
 
 # set the current impl run
 current_run -implementation [get_runs impl_1]

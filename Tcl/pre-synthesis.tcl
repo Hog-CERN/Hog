@@ -139,12 +139,11 @@ if {$real_time == 1} {
     set date [clock format $clock_seconds  -format {%d%m%Y}]
     set timee [clock format $clock_seconds -format {00%H%M%S}]
 } else {
-    try {
+    if [GitVersion 2.13.6] {
 	set date [exec git log -1 --format=%cd --date=format:'%d%m%Y']
 	set timee [exec git log -1 --format=%cd --date=format:'00%H%M%S']
-    } trap CHILDSTATUS {res opt} {
-	
-	Warning $NAME 3 "Could not get the date of last commit, probably due to an old version of Git. Using current date and time instead."
+    } else {
+	Warning $NAME 3 "Found an old version of Git. Using current date and time instead of commit time."
 	set date [clock format $clock_seconds  -format {%d%m%Y}]
 	set timee [clock format $clock_seconds -format {00%H%M%S}]
     }

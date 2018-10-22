@@ -330,7 +330,6 @@ proc GetHash {FILE path} {
 	set ret [exec git log --format=%h -1]
     } elseif {[file isfile $FILE]} {
 	set lista [GetFileList $FILE $path]
-	puts "********* DEBUG $lista"
 	set ret [exec git log --format=%h -1 -- {*}$lista ]
 	
     } elseif {[file isdirectory $FILE]} {

@@ -133,13 +133,21 @@ if { [exec git status --untracked-files=no  --porcelain] eq "" } {
 }
 
 set clock_seconds [clock seconds]
-set date [exec git log -1 --format=%cd --date=format:'%d%m%Y']
-set timee [exec git log -1 --format=%cd --date=format:'00%H%M%S']
 set tt [clock format $clock_seconds -format {%d/%m/%Y at %H:%M:%S}]
 
 if {$real_time == 1} {
     set date [clock format $clock_seconds  -format {%d%m%Y}]
     set timee [clock format $clock_seconds -format {00%H%M%S}]
+} else {
+    try {
+	set date [exec git log -1 --format=%cd --date=format:'%d%m%Y']
+	set timee [exec git log -1 --format=%cd --date=format:'00%H%M%S']
+    } trap CHILDSTATUS {res opt} {
+	
+	Warning $NAME 3 "Could not get the date of last commit, probably due to an old version of Git. Using current date and time instead."
+	set date [clock format $clock_seconds  -format {%d%m%Y}]
+	set timee [clock format $clock_seconds -format {00%H%M%S}]
+    }
 }
 
 

@@ -30,7 +30,7 @@ fi
 
 echo [hog ip xml] Ignoring Xilinx IP xml locally
 xci=`find . -name *.xci`
-for f in "${xci}"
+for f in $xci
 do
     ext="${f##*.}"
     name="${f%.*}"

@@ -426,6 +426,22 @@ proc GetVer {FILE path} {
 }
 ########################################################
 
+
+## Read a XML list file and evaluate the Git SHA and version of the listed XML files contained
+#
+# Arguments:
+# * xml_lsit_file: file containing list of XML files with optional properties
+# * path:          the path the XML files are referred to in the list file
+proc GetXMLVer {xml_list_file path} {
+    lassign [GetVer $xml_list_file $path] xml_ver xml_hash dummy
+    scan [string range $xml_ver 0 1] %x M
+    scan [string range $xml_ver 2 3] %x m
+    scan [string range $xml_ver 4 7] %x c
+    set xml_ver_formatted "$M.$m.$c"
+    return [list $xml_hash $xml_ver_formatted]
+}
+########################################################
+
 ## Read a XML list file and copy files to destination
 #
 # Additional information is provided with text separated from the file name with one or more spaces

@@ -79,13 +79,13 @@ if [file exists ./Top/$proj_name/xml/xml.lst] {
     set xml_target  ./Top/$proj_name/xml/xml.lst
     Info $NAME 3 "Creating XML directory $xml_dst..."
     file mkdir $xml_dst
-    lassign [GetVer $xml_target ./Top/$proj_name/] xml_ver xml_hash dummy
-    scan [string range $xml_ver 0 1] %x M
-    scan [string range $xml_ver 2 3] %x m
-    scan [string range $xml_ver 4 7] %x c
-    lassign [GetXMLVer xml_target ./Top/$proj_name/] xml_hash xml_ver_formatted
-    Info $NAME 4 "Copying xml files to $xml_dst and adding xml version $xml_ver_formatted..."
-    CopyXMLsFromListFile $xml_target ./Top/$proj_name $xml_dst $xml_ver_formatted $xml_hash 
+    lassign [GetVer $xml_target ./Top/$proj_name/] xml_ver_unformatted xml_hash dummy
+    scan [string range $xml_ver_unformatted 0 1] %x M
+    scan [string range $xml_ver_unformatted 2 3] %x m
+    scan [string range $xml_ver_unformatted 4 7] %x c
+    lassign [GetXMLVer $xml_target ./Top/$proj_name/] xml_hash xml_ver
+    Info $NAME 4 "Copying xml files to $xml_dst and adding xml version $xml_ver..."
+    CopyXMLsFromListFile $xml_target ./Top/$proj_name $xml_dst $xml_ver $xml_hash 
 
 } elseif [file exists ./Top/$proj_name/xml] {
     Info $NAME 2 "XML list file not found, using version of XML directory"
@@ -95,6 +95,8 @@ if [file exists ./Top/$proj_name/xml/xml.lst] {
     file copy -force $xml_target $old_path/..
 } else {
     Info $NAME 2 "This project does not have XMLs"
+    set xml_ver 0.0.0
+    set xml_hash 0000000
 }
 
 # Submodules
@@ -186,7 +188,7 @@ if {$flavour != 0} {
 }
 Status $NAME 3 " Global SHA: $commit, VER: $version"
 puts $status_file "Global, $commit, $version"
-Status $NAME 3 " XML SHA: $top_hash, VER: $top_ver"
+Status $NAME 3 " XML SHA: $xml_hash, VER: $xml_ver"
 puts $status_file "XML, $xml_hash, $xml_ver"
 Status $NAME 3 " Top SHA: $top_hash, VER: $top_ver"
 puts $status_file "Top, $top_hash, $top_ver"

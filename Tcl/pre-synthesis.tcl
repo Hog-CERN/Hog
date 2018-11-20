@@ -83,7 +83,7 @@ if [file exists ./Top/$proj_name/xml/xml.lst] {
     scan [string range $xml_ver 0 1] %x M
     scan [string range $xml_ver 2 3] %x m
     scan [string range $xml_ver 4 7] %x c
-    set xml_ver_formatted "$M.$m.$c"
+    lassign [GetXMLVer xml_target ./Top/$proj_name/] xml_hash xml_ver_formatted
     Info $NAME 4 "Copying xml files to $xml_dst and adding xml version $xml_ver_formatted..."
     CopyXMLsFromListFile $xml_target ./Top/$proj_name $xml_dst $xml_ver_formatted $xml_hash 
 

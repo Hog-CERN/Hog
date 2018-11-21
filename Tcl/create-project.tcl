@@ -9,6 +9,7 @@
 # set SYNTH_FLOW {Vivado Synthesis 2016}
 # set IMPL_STRATEGY "Vivado Implementation Defaults"
 # set IMPL_FLOW {Vivado Implementation 2016}
+# set PROPERTIES [dict create synth_1 [dict create opt_speed true opt_area false] impl_1 [dict create keep_registers true retiming true]]
 
 ############################################################
 
@@ -27,7 +28,8 @@ set top_path         "$repo_path/Top/$DESIGN"
 set list_path        "$top_path/list"
 set BUILD_DIR        "$repo_path/VivadoProject/$DESIGN"
 set modelsim_path    "$repo_path/ModelsimLib"
-set synth_top_module "top_$DESIGN"
+set top_name [file root $DESIGN]
+set synth_top_module "top_$top_name"
 set synth_top_file   "$top_path/top_$DESIGN.vhd"
 
 set pre_synth  [file normalize "$tcl_path/$pre_synth_file"]
@@ -36,6 +38,11 @@ set post_impl  [file normalize "$tcl_path/$post_impl_file"]
 set post_bit   [file normalize "$tcl_path/$post_bit_file"]
 
 source $tcl_path/hog.tcl
+
+if {$top_name != $DESIGN} {
+ Info CreateProject 0 "This project has got a flavour, the top module name will differ from the project name."
+}
+
 
 ## Create Project
 create_project -force $DESIGN $BUILD_DIR -part $FPGA
@@ -64,7 +71,13 @@ if {[string equal [get_filesets -quiet sources_1] ""]} {
 set sources [get_filesets sources_1]
 
 ## Set synthesis TOP
-add_files -norecurse -fileset $sources $synth_top_file
+if [file exists $synth_top_file] {
+    Info CreateProject 0 "Adding top file found in Top folder $synth_top_file" 
+    add_files -norecurse -fileset $sources $synth_top_file
+} else {
+    Info CreateProject 0 "No top file found in Top folder, please make sure that the top file is included in one of the libraries"     
+}
+    
 set_property "top" $synth_top_module $sources
 
 
@@ -198,12 +211,29 @@ if {[string equal [get_property -quiet report_strategy $obj] ""]} {
 ##############
 # SIMULATION #
 ##############
-
-
 Info CreateProject 3 "Setting load_glbl parameter to false for every fileset..."
 foreach f [get_filesets -quiet *_sim] {
     set_property -name {xsim.elaborate.load_glbl} -value {false} -objects $f
 }
+
+##################
+# RUN PROPERTIES #
+##################
+if [info exists PROPERTIES] {
+    foreach run [get_runs -quiet] {
+	if [dict exists $PROPERTIES $run] {
+	    Info CreateProject 1 "Setting properties for run: $run..."
+	    set run_props [dict get $PROPERTIES $run]
+	    dict for {prop_name prop_val} $run_props {
+		Info CreateProject 1 "Setting $prop_name = $prop_val"
+		set_property $prop_name $prop_val $run
+	    }
+	}
+    }
+}
+
+
+
 
 # set the current impl run
 current_run -implementation [get_runs impl_1]

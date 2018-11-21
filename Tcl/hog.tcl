@@ -1,4 +1,4 @@
-## @file
+# @file
 # Collection of Tcl functions used in vivado scripts
 
 ########################################################
@@ -9,8 +9,13 @@
 # * title: The name of the script displaying the message
 # * id: A progressive number used as message ID
 # * msg: the message text
-proc Info {title id msg} { send_msg_id $title-$id {INFO} $msg}
-
+proc Info {title id msg} {
+    if {[info commands send_msg_id] != ""} {
+	send_msg_id $title-$id {INFO} $msg
+    } else {
+	puts "*** $title-$id INFO $msg"
+    }
+}
 ########################################################
 
 ## Display Vivado Info message and wrtite it into a log file
@@ -20,13 +25,12 @@ proc Info {title id msg} { send_msg_id $title-$id {INFO} $msg}
 # * title: The name of the script displaying the message
 # * id: A progressive number used as message ID
 # * msg: the message text
-proc fInfo            {File title id msg} {
+proc fInfo {File title id msg} {
     Info $title $id $msg
     set f [open $File a+]
     puts $f $msg
     close $f
 }
-
 ########################################################
 
 ## Display Vivado Status message
@@ -35,8 +39,13 @@ proc fInfo            {File title id msg} {
 # * title: The name of the script displaying the message
 # * id: A progressive number used as message ID
 # * msg: the message text
-proc Status           {title id msg} { send_msg_id $title-$id {STATUS} $msg}
-
+proc Status {title id msg} {
+    if {[info commands send_msg_id] != ""} {
+	send_msg_id $title-$id {STATUS} $msg
+    } else {
+	puts "*** $title-$id STATUS $msg"
+    }
+}
 ########################################################
 
 ## Display Vivado Warning message
@@ -45,8 +54,13 @@ proc Status           {title id msg} { send_msg_id $title-$id {STATUS} $msg}
 # * title: The name of the script displaying the message
 # * id: A progressive number used as message ID
 # * msg: the message text
-proc Warning          {title id msg} { send_msg_id $title-$id {WARNING} $msg}
-
+proc Warning {title id msg} {
+    if {[info commands send_msg_id] != ""} {
+	send_msg_id $title-$id {WARNING} $msg
+    } else {
+	puts "*** $title-$id WARNING $msg"
+    }
+}
 ########################################################
 
 ## Display Vivado Critical Warning message
@@ -55,8 +69,13 @@ proc Warning          {title id msg} { send_msg_id $title-$id {WARNING} $msg}
 # * title: The name of the script displaying the message
 # * id: A progressive number used as message ID
 # * msg: the message text
-proc CriticalWarining {title id msg} { send_msg_id $title-$id {CRITICAL WARNING} $msg}
-
+proc CriticalWarining {title id msg} {
+    if {[info commands send_msg_id] != ""} {
+	send_msg_id $title-$id {CRITICAL WARNING} $msg
+    } else {
+	puts "*** $title-$id CRITICAL WARNING $msg"
+    }
+}
 ########################################################
 
 ## Display Vivado Error message
@@ -65,13 +84,34 @@ proc CriticalWarining {title id msg} { send_msg_id $title-$id {CRITICAL WARNING}
 # * title: The name of the script displaying the message
 # * id: A progressive number used as message ID
 # * msg: the message text
-proc Error            {title id msg} { send_msg_id $title-$id {ERROR} $msg}
+proc Error            {title id msg} {
+    if {[info commands send_msg_id] != ""} {
+	send_msg_id $title-$id {ERROR} $msg
+    } else {
+	puts "*** $title-$id ERROR $msg"
+    }
+}
 
 ########################################################
 
 proc GetRepoPath {} {
     return "[file normalize [file dirname [info script]]]/../../"
 }
+
+
+########################################################
+## Return 1 if the system Git version is greater or equal to the target
+
+proc GitVersion {target_version} {
+    set ver [split $target_version "."]
+    set current_ver [split [lindex [exec git --version] 2] "."]
+    set target [expr [lindex $ver 0]*100000 + [lindex $ver 1]*100 + [lindex $ver 0]]
+    set current [expr [lindex $current_ver 0]*100000 + [lindex $current_ver 1]*100 + [lindex $current_ver 0]]
+    
+    return [expr $target <= $current]
+}
+
+########################################################
 
 ## Read a list file and adds the files to Vivado project, adding the additional information as file type.
 #
@@ -100,43 +140,83 @@ proc ReadListFile {list_file path lib src} {
 	    set vhdlfile "$path/$vhdlfile"
 	    if {[file exists $vhdlfile]} {
 		set vhdlfile [file normalize $vhdlfile]
-		add_files -norecurse -fileset $src $vhdlfile
-		incr cnt
-		set file_obj [get_files -of_objects [get_filesets $src] [list "*$vhdlfile"]]
-		if {$lib ne ""} {set_property -name "library" -value $lib -objects $file_obj}
-		if {[llength $file_and_prop] > 1} {
-		    set prop [lrange $file_and_prop 1 end]
-		    set type [lindex $prop 0]
-		    if {$type eq "2008" } {set type "VHDL 2008"}
-		    if {$type eq "topsim"} {
-			Info ReadListFile 1 "Found top for simulation module"
-			# if the property name is topsim, then we expect other properties
-			# the next property is the name of the top module
-			if {[llength $prop] > 1} {
-			    set top_module [lindex $prop 1]
-			    Info ReadListFile 1 "Setting $top_module as top module for simulation file set $src..."
-			    set_property "top"  $top_module [get_filesets $src]
-			}
-			# if there is another property it is the wave do file
-			if {[llength $prop] > 2} {
-			    set do_file [lindex $prop 2]
-			    set r_path [GetRepoPath]
-			    set file_name "$r_path/sim/$do_file"
-			    Info ReadListFile 1 "Setting $file_name as wave do file for simulation file set $src..."
-			    set_property "modelsim.simulate.custom_wave_do" $file_name [get_filesets $src]
-			}
-			# if there is still another property it is the do file
-			if {[llength $prop] > 3} {
-			    set do_file [lindex $prop 3]
-			    set r_path [GetRepoPath]
-			    set file_name "$r_path/sim/$do_file"
-			    Info ReadListFile 1 "Setting $file_name as udo file for simulation file set $src..."
-			    set_property "modelsim.simulate.custom_udo" $file_name [get_filesets $src]
-			}
-			current_fileset -simset [get_filesets $src]
+		set extension [file ext $vhdlfile]
+		if { [lsearch {.src .sim .con .sub} $extension] >= 0 } {
+		    Info ReadListFile 1 "List file $vhdlfile found in list file, recoursively opening it..."
+		    SmartListFile $vhdlfile $path
+		} else {
+		    add_files -norecurse -fileset $src $vhdlfile
+		    incr cnt
+		    set file_obj [get_files -of_objects [get_filesets $src] [list "*$vhdlfile"]]
+		    if {$lib ne ""} {set_property -name "library" -value $lib -objects $file_obj}
 
-		    } else {
-			set_property -name "file_type" -value $type -objects $file_obj
+		    ### Set file properties
+		    set prop [lrange $file_and_prop 1 end]
+		    # VHDL 2008 compatibility
+		    if {[lsearch -inline -regex $prop "2008"] >= 0} {
+			Info ReadListFile 1 "Setting filetype VHDL 2008 for $vhdlfile"
+			set_property -name "file_type" -value "VHDL 2008" -objects $file_obj
+		    }
+
+		    # XDC
+		    if {[lsearch -inline -regex $prop "XDC"] >= 0 || [file ext $vhdlfile] == ".xdc"} {
+			Info ReadListFile 1 "Setting filetype XDC for $vhdlfile"
+			    set_property -name "file_type" -value "XDC" -objects $file_obj
+		    }
+
+		    # Not used in synthesis
+		    if {[lsearch -inline -regex $prop "nosynth"] >= 0} {
+			Info ReadListFile 1 "Setting not used in synthesis for $vhdlfile..."
+			set_property -name "used_in_synthesis" -value "false" -objects $file_obj
+		    }
+
+		    # Not used in implementation
+		    if {[lsearch -inline -regex $prop "noimpl"] >= 0} {
+			Info ReadListFile 1 "Setting not used in implementation for $vhdlfile..."
+			set_property -name "used_in_implementation" -value "false" -objects $file_obj
+		    }
+
+		    # Not used in simulation
+		    if {[lsearch -inline -regex $prop "nosim"] >= 0} {
+			Info ReadListFile 1 "Setting not used in simulation for $vhdlfile..."
+			set_property -name "used_in_simulation" -value "false" -objects $file_obj
+		    }
+
+
+		    ## Simulation properties
+		    # Top simulation module
+		    set top_sim [lindex [split [lsearch -inline -regex $prop topsim=] =] 1]
+		    if { $top_sim != "" } {
+			Info ReadListFile 1 "Setting $top_sim as top module for simulation file set $src..."
+			set_property "top"  $top_sim [get_filesets $src]
+			current_fileset -simset [get_filesets $src]
+		    }
+
+		    # Wave do file
+		    set wave_file [lindex [split [lsearch -inline -regex $prop wavefile=] =] 1]
+		    if { $wave_file != "" } {
+			set r_path [GetRepoPath]
+			set file_name "$r_path/sim/$wave_file"
+			Info ReadListFile 1 "Setting $file_name as wave do file for simulation file set $src..."
+			# check if file exists...
+			if [file exists $file_name] {
+			    set_property "modelsim.simulate.custom_wave_do" $file_name [get_filesets $src]
+			} else {
+			    Warning ReadlistFIle 1 "File $file_name was not found."
+			}
+		    }
+
+		    #Do file
+		    set do_file [lindex [split [lsearch -inline -regex $prop dofile=] =] 1]
+		    if { $do_file != "" } {
+			set r_path [GetRepoPath]
+			set file_name "$r_path/sim/$do_file"
+			Info ReadListFile 1 "Setting $file_name as udo file for simulation file set $src..."
+			if [file exists $file_name] {
+			    set_property "modelsim.simulate.custom_udo" $file_name [get_filesets $src]
+			} else {
+			    Warning ReadlistFIle 1 "File $file_name was not found."
+			}
 		    }
 		}
 	    } else {
@@ -146,7 +226,6 @@ proc ReadListFile {list_file path lib src} {
     }
     Info ReadListFile 1 "$cnt file/s added to $lib..."
 }
-
 ########################################################
 
 ## Read a list file and adds the files to Vivado project, adding the additional information as file type.
@@ -199,7 +278,6 @@ proc SmartListFile {list_file path} {
     Info SmartListFile 0 "Reading sources from file $list_file, lib: $lib, file-set: $file_set"
     ReadListFile $list_file $path $lib $file_set
 }
-
 ########################################################
 
 ## Get git SHA of a vivado library
@@ -217,25 +295,19 @@ proc GetHashLib {lib} {
 
     return $ret
 }
-
 ########################################################
 
-## Get git SHA of a subset of list file
+## Recursively gets file names from list file
 #
 # Arguments:\n
-# * FILE: list file or path containing the subset of files whose latest commit hash will be returned
-# * path:      the path the vhdl file are referred to in the list file (not used if FILE is a path or "ALL")
+# * FILE: list file to open
+# * path: the path the files are referred to in the list file
 #
-# if the special string "ALL" is used, returns the global hash
-proc GetHash {FILE path} {
-    if {$FILE eq "ALL"} {
-	set ret [exec git log --format=%h -1]
-    } elseif {[file isfile $FILE]} {
-
+# if the list file contains files with extension .src .sim .con .sub, it will recursively open them
+proc GetFileList {FILE path} {
 	set fp [open $FILE r]
 	set file_data [read $fp]
 	close $fp
-	
 	#  Process data file
 	set data [split $file_data "\n"]
 	foreach line $data {
@@ -244,13 +316,34 @@ proc GetHash {FILE path} {
 		set vhdlfile [lindex $file_and_prop 0]
 		set vhdlfile "$path/$vhdlfile"
 		if {[file exists $vhdlfile]} {
-		    lappend lista $vhdlfile
+		    set extension [file ext $vhdlfile]
+		    if { [lsearch {.src .sim .con .sub} $extension] >= 0 } {
+			lappend lista {*}[GetFileList $vhdlfile $path]]
+		    } else {
+			lappend lista $vhdlfile
+		    }
 		} else { 
-		    Warning GetHash 0 "File $vhdlfile not found"
+		    Warning GetFileList 0 "File $vhdlfile not found"
 		}
 	    }
 	}
 
+    return $lista
+}
+########################################################
+
+## Get git SHA of a subset of list file
+#
+# Arguments:\n
+# * FILE: list file or path containing the subset of files whose latest commit hash will be returned
+# * path:      the path the vhdl files are referred to in the list file (not used if FILE is a path or "ALL")
+#
+# if the special string "ALL" is used, returns the global hash
+proc GetHash {FILE path} {
+    if {$FILE eq "ALL"} {
+	set ret [exec git log --format=%h -1]
+    } elseif {[file isfile $FILE]} {
+	set lista [GetFileList $FILE $path]
 	set ret [exec git log --format=%h -1 -- {*}$lista ]
 	
     } elseif {[file isdirectory $FILE]} {
@@ -333,15 +426,34 @@ proc GetVer {FILE path} {
 }
 ########################################################
 
+
+## Read a XML list file and evaluate the Git SHA and version of the listed XML files contained
+#
+# Arguments:
+# * xml_lsit_file: file containing list of XML files with optional properties
+# * path:          the path the XML files are referred to in the list file
+proc GetXMLVer {xml_list_file path} {
+    lassign [GetVer $xml_list_file $path] xml_ver xml_hash dummy
+    scan [string range $xml_ver 0 1] %x M
+    scan [string range $xml_ver 2 3] %x m
+    scan [string range $xml_ver 4 7] %x c
+    set xml_ver_formatted "$M.$m.$c"
+    return [list $xml_hash $xml_ver_formatted]
+}
+########################################################
+
 ## Read a XML list file and copy files to destination
 #
 # Additional information is provided with text separated from the file name with one or more spaces
 #
 # Arguments:
-# * lsit_file: file containing list of XML files with optional properties
-# * path:      the path the XML files are referred to in the list file
-# * dst:       the path the XML files must be copyed to
-proc CopyXMLsFromListFile {list_file path xml_version xml_sha dst} {
+# * lsit_file:   file containing list of XML files with optional properties
+# * path:        the path the XML files are referred to in the list file
+# * dst:         the path the XML files must be copyed to
+# * xml_version: the M.m.p version to be used to replace the __VERSION__ placeholder in any of the xml files
+# * xml_sha:     the Git-SHA to be used to replace the __GIT_SHA__ placeholder in any of the xml files
+
+proc CopyXMLsFromListFile {list_file path dst {xml_version "0.0.0"} {xml_sha "00000000"} } {
     set list_file
     set fp [open $list_file r]
     set file_data [read $fp]
@@ -381,5 +493,4 @@ proc CopyXMLsFromListFile {list_file path xml_version xml_sha dst} {
     }
     Info ReadListFile 1 "$cnt file/s copied"
 }
-
 ########################################################

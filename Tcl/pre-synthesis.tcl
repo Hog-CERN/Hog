@@ -5,9 +5,9 @@ if [file exists ../buypass_commit] {
     set buypass_commit 0
 }
 if [file exists ../no_time] {
-    set no_time 1
+    set real_time 1
 } else  {
-    set no_time 0
+    set real_time 0
 }
 set old_path [pwd]
 set tcl_path [file dirname [info script]]
@@ -19,6 +19,20 @@ cd ../../../../
 set proj_file [get_property parent.project_path [current_project]]
 set proj_dir [file normalize [file dirname $proj_file]]
 set proj_name [file rootname [file tail $proj_file]]
+
+# Calculating flavour if any
+set flavour [string map {. ""} [file ext $proj_name]]
+if {$flavour != ""} {
+    if [string is integer $flavour] {
+	Info $NAME 0 "Project $proj_name has flavour = $flavour, the generic variable FLAVUOR will be set to $flavour"
+    } else {
+	Warning $NAME 0 "Project name has a non numeric extension, flavour will be set to 0"
+    }
+
+} else {
+    set flavour 0
+}
+
 
 Info $NAME 0 "Evaluating firmware date and, possibly, git commit hash..."
 
@@ -65,13 +79,13 @@ if [file exists ./Top/$proj_name/xml/xml.lst] {
     set xml_target  ./Top/$proj_name/xml/xml.lst
     Info $NAME 3 "Creating XML directory $xml_dst..."
     file mkdir $xml_dst
-    lassign [GetVer $xml_target ./Top/$proj_name/] xml_ver xml_hash dummy
-    scan [string range $xml_ver 0 1] %x M
-    scan [string range $xml_ver 2 3] %x m
-    scan [string range $xml_ver 4 7] %x c
-    set xml_ver_formatted "$M.$m.$c"
-    Info $NAME 4 "Copying xml files to $xml_dst and adding xml version $xml_ver_formatted..."
-    CopyXMLsFromListFile $xml_target ./Top/$proj_name $xml_ver_formatted $xml_hash $xml_dst
+    lassign [GetVer $xml_target ./Top/$proj_name/] xml_ver_unformatted xml_hash dummy
+    scan [string range $xml_ver_unformatted 0 1] %x M
+    scan [string range $xml_ver_unformatted 2 3] %x m
+    scan [string range $xml_ver_unformatted 4 7] %x c
+    lassign [GetXMLVer $xml_target ./Top/$proj_name/] xml_hash xml_ver
+    Info $NAME 4 "Copying xml files to $xml_dst and adding xml version $xml_ver..."
+    CopyXMLsFromListFile $xml_target ./Top/$proj_name $xml_dst $xml_ver $xml_hash 
 
 } elseif [file exists ./Top/$proj_name/xml] {
     Info $NAME 2 "XML list file not found, using version of XML directory"
@@ -81,6 +95,8 @@ if [file exists ./Top/$proj_name/xml/xml.lst] {
     file copy -force $xml_target $old_path/..
 } else {
     Info $NAME 2 "This project does not have XMLs"
+    set xml_ver 0.0.0
+    set xml_hash 0000000
 }
 
 # Submodules
@@ -119,12 +135,20 @@ if { [exec git status --untracked-files=no  --porcelain] eq "" } {
 }
 
 set clock_seconds [clock seconds]
-set date [clock format $clock_seconds  -format {%d%m%Y}]
-set timee [clock format $clock_seconds -format {00%H%M%S}]
 set tt [clock format $clock_seconds -format {%d/%m/%Y at %H:%M:%S}]
-if {$no_time == 1} {
-    set date  "21041926"
-    set timee "00024000"
+
+if {$real_time == 1} {
+    set date [clock format $clock_seconds  -format {%d%m%Y}]
+    set timee [clock format $clock_seconds -format {00%H%M%S}]
+} else {
+    if [GitVersion 2.13.6] {
+	set date [exec git log -1 --format=%cd --date=format:'%d%m%Y']
+	set timee [exec git log -1 --format=%cd --date=format:'00%H%M%S']
+    } else {
+	Warning $NAME 3 "Found an old version of Git. Using current date and time instead of commit time."
+	set date [clock format $clock_seconds  -format {%d%m%Y}]
+	set timee [clock format $clock_seconds -format {00%H%M%S}]
+    }
 }
 
 
@@ -144,6 +168,10 @@ foreach s $subs h $subs_hashes {
     set generic_string "$generic_string $hash"
 }
 
+if {$flavour != 0} {
+   set generic_string "$generic_string FLAVOUR=1"
+}
+
 Info $NAME 4 "Generic String: $generic_string"
 
 set_property generic $generic_string [current_fileset]
@@ -155,9 +183,12 @@ Status $NAME 3 " ------------------------- PRE SYNTHESIS -----------------------
 Status $NAME 3 " $tt"
 Status $NAME 3 " Firmware date and time: $date, $timee"
 puts $status_file "Date, $date, $timee"
+if {$flavour != 0} {
+    Status $NAME 3 " Project flavour: $flavour"
+}
 Status $NAME 3 " Global SHA: $commit, VER: $version"
 puts $status_file "Global, $commit, $version"
-Status $NAME 3 " XML SHA: $top_hash, VER: $top_ver"
+Status $NAME 3 " XML SHA: $xml_hash, VER: $xml_ver"
 puts $status_file "XML, $xml_hash, $xml_ver"
 Status $NAME 3 " Top SHA: $top_hash, VER: $top_ver"
 puts $status_file "Top, $top_hash, $top_ver"

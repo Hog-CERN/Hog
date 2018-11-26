@@ -79,10 +79,7 @@ if [file exists ./Top/$proj_name/xml/xml.lst] {
     set xml_target  ./Top/$proj_name/xml/xml.lst
     Info $NAME 3 "Creating XML directory $xml_dst..."
     file mkdir $xml_dst
-    lassign [GetVer $xml_target ./Top/$proj_name/] xml_ver_unformatted xml_hash dummy
-    scan [string range $xml_ver_unformatted 0 1] %x M
-    scan [string range $xml_ver_unformatted 2 3] %x m
-    scan [string range $xml_ver_unformatted 4 7] %x c
+    lassign [GetVer $xml_target ./Top/$proj_name/] xml_ver_hex xml_hash dummy
     lassign [GetXMLVer $xml_target ./Top/$proj_name/] xml_hash xml_ver
     Info $NAME 4 "Copying xml files to $xml_dst and adding xml version $xml_ver..."
     CopyXMLsFromListFile $xml_target ./Top/$proj_name $xml_dst $xml_ver $xml_hash 
@@ -91,11 +88,17 @@ if [file exists ./Top/$proj_name/xml/xml.lst] {
     Info $NAME 2 "XML list file not found, using version of XML directory"
     # version of the directory if no list file exists
     set xml_target  ./Top/$proj_name/xml
-    lassign [GetVer $xml_target ./Top/$proj_name/] xml_ver xml_hash dummy
+    lassign [GetVer $xml_target ./Top/$proj_name/] xml_ver_hex xml_hash dummy
+    scan [string range $xml_ver_hex 0 1] %x M
+    scan [string range $xml_ver_hex 2 3] %x m
+    scan [string range $xml_ver_hex 4 7] %x c
+    set xml_ver "$M.$m.$c"
     file copy -force $xml_target $old_path/..
+
 } else {
     Info $NAME 2 "This project does not have XMLs"
     set xml_ver 0.0.0
+    set xml_ver_hex 0000000
     set xml_hash 0000000
 }
 
@@ -153,7 +156,7 @@ if {$real_time == 1} {
 
 
 # set global generic varibles
-set generic_string "GLOBAL_FWDATE=32'h$date GLOBAL_FWTIME=32'h$timee OFFICIAL=32'h$official GLOBAL_FWHASH=32'h$commit TOP_FWHASH=32'h$top_hash XML_HASH=32'h$xml_hash GLOBAL_FWVERSION=32'h$version TOP_FWVERSION=32'h$top_ver XML_VERSION=32'h$xml_ver HOG_FWHASH=32'h$hog_hash"
+set generic_string "GLOBAL_FWDATE=32'h$date GLOBAL_FWTIME=32'h$timee OFFICIAL=32'h$official GLOBAL_FWHASH=32'h$commit TOP_FWHASH=32'h$top_hash XML_HASH=32'h$xml_hash GLOBAL_FWVERSION=32'h$version TOP_FWVERSION=32'h$top_ver XML_VERSION=32'h$xml_ver_hex HOG_FWHASH=32'h$hog_hash"
 
 #set project specific lists
 foreach l $libs v $vers h $hashes {
@@ -188,8 +191,8 @@ if {$flavour != 0} {
 }
 Status $NAME 3 " Global SHA: $commit, VER: $version"
 puts $status_file "Global, $commit, $version"
-Status $NAME 3 " XML SHA: $xml_hash, VER: $xml_ver"
-puts $status_file "XML, $xml_hash, $xml_ver"
+Status $NAME 3 " XML SHA: $xml_hash, VER: $xml_ver_hex"
+puts $status_file "XML, $xml_hash, $xml_ver_hex"
 Status $NAME 3 " Top SHA: $top_hash, VER: $top_ver"
 puts $status_file "Top, $top_hash, $top_ver"
 Status $NAME 3 " Hog SHA: $hog_hash"

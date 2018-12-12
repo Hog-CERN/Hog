@@ -172,7 +172,7 @@ foreach s $subs h $subs_hashes {
 }
 
 if {$flavour != 0} {
-   set generic_string "$generic_string FLAVOUR=1"
+   set generic_string "$generic_string FLAVOUR=$flavour"
 }
 
 Info $NAME 4 "Generic String: $generic_string"

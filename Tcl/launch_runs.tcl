@@ -50,4 +50,5 @@ if {$no_time == 1 } {
 }
 Info $Name 5 "Starting complete design flow..."
 launch_runs impl_1 -to_step write_bitstream -jobs $NJOBS -dir $main_folder
+wait_on_run impl_1
 cd $old_path

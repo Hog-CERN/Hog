@@ -11,22 +11,24 @@ if { $::argc eq 0 } {
 set old_path [pwd]
 cd $path
 source ./hog.tcl
-Info $Name 1 "Number of jobs set to $NJOBS."
 
-Info $Name 2 "Running project script: $project.tcl..."
+Info $Name 1 "Running project script: $project.tcl..."
 source -notrace ../../Top/$project/$project.tcl
-Info $Name 3 "Upgrading IPs if any..."
+Info $Name 2 "Upgrading IPs if any..."
 set ips [get_ips *]
 if {$ips != ""} {
     upgrade_ip $ips
 }
 
-foreach ip in $ips {
-    puts "Launching run for $ip..."
-    launch_runs [get_runs $ip*]  -dir $main_folder
-    wait_on_run [get_runs $ip*]
-    puts [get_property PROGRESS [get_runs $ip*]]
-    puts [get_property STATUS [get_runs $ip*]]
+foreach ip $ips {
+    Info $Name 3 "Launching run for $ip..."
+    if { [get_runs $ip*] != "" }{
+	set run_name [get_runs $ip*]
+	launch_runs $run_name  -dir $main_folder
+	wait_on_run $run_name
+	puts [get_property PROGRESS $run_name]
+	puts [get_property STATUS $run_name]
+    }
 }
 
 

@@ -22,14 +22,13 @@ if {$ips != ""} {
 
 foreach ip $ips {
     Info $Name 3 "Launching run for $ip..."
-    if { [get_runs $ip*] != "" }{
+    if {[get_runs $ip*] != ""} {
 	set run_name [get_runs $ip*]
-	launch_runs $run_name  -dir $main_folder
+	launch_runs $run_name -dir $main_folder
 	wait_on_run $run_name
 	puts [get_property PROGRESS $run_name]
 	puts [get_property STATUS $run_name]
     }
 }
-
 
 cd $old_path

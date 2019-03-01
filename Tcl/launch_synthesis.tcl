@@ -22,8 +22,8 @@ Info $Name 3 "Starting complete design flow..."
 launch_runs synth_1  -jobs $NJOBS -dir $main_folder
 wait_on_run synth_1
 
-set prog [get_property PROGRESS synth_1]
-set status [get_property STATUS synth_1]
+set prog [get_property PROGRESS [get_runs synth_1]]
+set status [get_property STATUS [get_runs synth_1]]
 Info $Name 4 "Run: synth_1 progress: $prog, status : $status"
 
 Info $Name 5 "All done."

@@ -22,8 +22,8 @@ Info $Name 5 "Starting implementation flow..."
 launch_runs impl_1 -to_step write_bitstream -jobs 4 -dir $main_folder
 wait_on_run impl_1
 
-set prog [get_property PROGRESS impl_1]
-set status [get_property STATUS impl_1]
+set prog [get_property PROGRESS [get_runs impl_1]]
+set status [get_property STATUS [get_runs impl_1]]
 
 Info $Name 6 "Run: impl_1 progress: $prog, status : $status"
 Info $Name 7 "All done."

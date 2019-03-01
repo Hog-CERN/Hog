@@ -20,15 +20,18 @@ if {$ips != ""} {
     upgrade_ip $ips
 }
 
-foreach ip $ips {
-    Info $Name 3 "Launching run for $ip..."
-    if {[get_runs $ip*] != ""} {
-	set run_name [get_runs $ip*]
-	launch_runs $run_name -dir $main_folder
-	wait_on_run $run_name
-	puts [get_property PROGRESS $run_name]
-	puts [get_property STATUS $run_name]
-    }
-}
+#foreach ip $ips {
+#    Info $Name 3 "Launching run for $ip..."
+#    if {[get_runs $ip*] != ""} {
+#	set run_name [get_runs $ip*]
+#	launch_runs $run_name -dir $main_folder
+#	wait_on_run $run_name
+#	puts [get_property PROGRESS $run_name]
+#	puts [get_property STATUS $run_name]
+#    }
+#}
+
+launch_runs synth_1 -dir $main_folder -jobs 4  
+wait_on_run synth_1
 
 cd $old_path

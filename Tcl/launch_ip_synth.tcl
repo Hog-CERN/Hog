@@ -15,15 +15,11 @@ source ./hog.tcl
 Info $Name 1 "Opening project $project..."
 open_project ../../VivadoProject/$project/$project.xpr
 
-Info $Name 2 "Upgrading IPs if any..."
-set ips [get_ips *]
-if {$ips != ""} {
-    upgrade_ip $ips
-}
 
 Info $Name 2 "Preparing runs..."
 launch_runs -scripts_only synth_1
 
+set ips [get_ips *]
 foreach ip $ips {
     Info $Name 3 "Launching run for $ip..."
     if {[get_runs $ip*] != ""} {

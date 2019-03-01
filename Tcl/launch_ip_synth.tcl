@@ -22,12 +22,15 @@ launch_runs -scripts_only synth_1
 set ips [get_ips *]
 foreach ip $ips {
     Info $Name 3 "Launching run for $ip..."
-    if {[get_runs $ip*] != ""} {
-        set run_name [get_runs $ip/_synth_1]
+    if { [get_runs $ip\_synth_1] != "" } {
+	set run_name [get_runs $ip\_synth_1]
+        set run_name [get_runs $ip\_synth_1]
         launch_runs $run_name -dir $main_folder
         wait_on_run $run_name
         puts [get_property PROGRESS $run_name]
         puts [get_property STATUS $run_name]
+    } else {
+	Warning $Name 3 "No run found for $ip."
     }
 }
 

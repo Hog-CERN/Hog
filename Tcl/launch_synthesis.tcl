@@ -15,7 +15,7 @@ source ./hog.tcl
 Info $Name 1 "Number of jobs set to $NJOBS."
 set commit [GetHash ALL ../../]
 
-Info $Name 2 "Running project script: $project.tcl..."
+Info $Name 2 "Opening $project..."
 open_project ../../VivadoProject/$project/$project.xpr
 
 Info $Name 3 "Starting complete design flow..."

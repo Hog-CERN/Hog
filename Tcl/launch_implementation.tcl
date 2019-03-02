@@ -14,8 +14,8 @@ source ./hog.tcl
 
 set commit [GetHash ALL ../../]
 
-Info $Name 2 "Opening project: $project.tcl..."
-open_project ../../VivadoProject/$project/$project.tcl
+Info $Name 2 "Opening $project..."
+open_project ../../VivadoProject/$project/$project.xpr
 
 Info $Name 5 "Starting implementation flow..."
 

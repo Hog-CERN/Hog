@@ -427,6 +427,37 @@ proc GetVer {FILE path} {
 ########################################################
 
 
+## Return the new tag to be given to the repository
+# Arguments:\n
+# * merge_request_number: Gitlab merge request number to be used in candidate version
+# * version_level:        0 if patch is to be increased (default), 1 if minor level is to be increase, 2 if major lav´e is to be increased
+
+proc TagRepository {merge_request_number version_level} {
+    catch {exec git tag --sort=taggerdate} last_tag
+    set vers [split $last_tag "\n"]
+    set ver [lindex $vers 0]
+
+    if {[regexp {^(?:b(\d+))?v(\d+)\.(\d+).(\d+)(?:-(\d+))?$} $ver -> mr M m c n]} {
+	#OK
+    } else {
+	Warning GetVer 1 "Could not parse git describe: $ver"
+	set M [format %02X 0]
+	set m [format %02X 0]
+	set c [format %04X 0]
+	set n [format %04X 0]
+	set official [format %04X 0x0008]
+	set comm $SHA
+    }
+
+    return [list $M$m$c $comm $official$n]
+    cd $old_path
+}
+########################################################
+
+
+
+
+
 ## Read a XML list file and evaluate the Git SHA and version of the listed XML files contained
 #
 # Arguments:

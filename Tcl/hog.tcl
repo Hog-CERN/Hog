@@ -471,7 +471,7 @@ proc TagRepository {merge_request_number {version_level 0}} {
 		Info TagRepository 3 "New tag $new_tag created successully."
 	    }
 	} else {
-	    Warning TagRepository 1 "Could not parse git describe: $ver"
+	    Warning TagRepository 1 "Could not parse git describe: $last_tag"
 	}
     }
 }

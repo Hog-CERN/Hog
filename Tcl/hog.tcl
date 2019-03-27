@@ -434,7 +434,7 @@ proc GetVer {FILE path} {
 
 proc TagRepository {merge_request_number {version_level 0}} {
     if [catch {exec git tag --sort=taggerdate} last_tag] {
-	Warning TagRepository 1 "No tags found in this repository, staartin from v0.0.1..."
+	Warning TagRepository 1 "No tags found in this repository, starting from v0.0.1..."
 	set new_tag b${mr}v0.0.1-0
     } else {
 	set vers [split $last_tag "\n"]
@@ -458,7 +458,7 @@ proc TagRepository {merge_request_number {version_level 0}} {
 	    } else {
 		Info TagRepository 1 "Found candidate for version $M.$m.$p, merge request number $mr, attempt number $n."
 		if {$mr != $merge_request_number} {
-		    Warning TagRepository 2 "Merge request number $merge_request_number differs from the one found in the tag $mr, will use $merge_request_number."
+		    Error TagRepository 1 "Merge request number $merge_request_number differs from the one found in the tag $mr, will use $merge_request_number."
 		    set mr $merge_request_number
 		}
 		incr n
@@ -466,12 +466,12 @@ proc TagRepository {merge_request_number {version_level 0}} {
 	    set new_tag b${mr}v$M.$m.$p-$n
 
 	    if [catch {exec git tag $new_tag} msg] {
-		Warning TagRepository 3 "Could not create new tag $new_tag: $msg"
+		Error TagRepository 2 "Could not create new tag $new_tag: $msg"
 	    } else {
 		Info TagRepository 3 "New tag $new_tag created successully."
 	    }
 	} else {
-	    Warning TagRepository 1 "Could not parse git describe: $last_tag"
+	    Error TagRepository 3 "Could not parse git describe: $last_tag"
 	}
     }
 }

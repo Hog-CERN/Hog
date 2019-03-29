@@ -23,18 +23,6 @@ stages:
     - synthesis
     - implementation
 
-merge_and_tag:
-     <<: *only-default
-     stage: merge
-     variables:
-       GIT_STRATEGY: clone
-     script:
-      - git merge --no-commit origin/master     
-      - git tag b$CI_MERGE_REQUEST_IID-v`date '+%s'`
-      - git push origin $CI_COMMIT_REF_NAME
-      - git push --tags origin $CI_COMMIT_REF_NAME      
-
-
 .vars: &vars
     GIT_STRATEGY: clone
 
@@ -95,3 +83,14 @@ merge_and_tag:
         paths:
             - $CI_PROJECT_DIR/VivadoProject/$PROJECT_NAME/$PROJECT_NAME.runs/impl_1/*.bi*
         expire_in: 10 years 
+
+merge_and_tag:
+     <<: *only-default
+     stage: merge
+     variables:
+       GIT_STRATEGY: clone
+     script:
+      - git merge --no-commit origin/master     
+      - vivado -mode batch -notrace -source ./Hog/Tcl/tag_repository.tcl -tclargs $CI_MERGE_REQUEST_IID 0
+      - git push origin $CI_COMMIT_REF_NAME
+      - git push --tags origin $CI_COMMIT_REF_NAME      

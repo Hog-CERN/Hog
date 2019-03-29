@@ -432,25 +432,48 @@ proc GetVer {FILE path} {
 # * merge_request_number: Gitlab merge request number to be used in candidate version
 # * version_level:        0 if patch is to be increased (default), 1 if minor level is to be increase, 2 if major lav´e is to be increased
 
-proc TagRepository {merge_request_number version_level} {
-    catch {exec git tag --sort=taggerdate} last_tag
-    set vers [split $last_tag "\n"]
-    set ver [lindex $vers 0]
-
-    if {[regexp {^(?:b(\d+))?v(\d+)\.(\d+).(\d+)(?:-(\d+))?$} $ver -> mr M m c n]} {
-	#OK
+proc TagRepository {merge_request_number {version_level 0}} {
+    if [catch {exec git tag --sort=taggerdate} last_tag] {
+	Warning TagRepository 1 "No tags found in this repository, starting from v0.0.1..."
+	set new_tag b${mr}v0.0.1-0
     } else {
-	Warning GetVer 1 "Could not parse git describe: $ver"
-	set M [format %02X 0]
-	set m [format %02X 0]
-	set c [format %04X 0]
-	set n [format %04X 0]
-	set official [format %04X 0x0008]
-	set comm $SHA
-    }
+	set vers [split $last_tag "\n"]
+	set ver [lindex $vers 0]
+	
+	if {[regexp {^(?:b(\d+))?v(\d+)\.(\d+).(\d+)(?:-(\d+))?$} $ver -> mr M m p n]} {
+	    if {$mr == "" } {
+		Info TagRepository 1 "Found official version $M.$m.$p."
+		if {$version_level >=2} {
+		    incr M
+		    set m 0
+		    set p 0
+		} elseif {$version_level ==1} {
+		    incr m
+		    set p 0
+		} else {
+		    incr p
+		}
+		set mr $merge_request_number
+		set n 0
+	    } else {
+		Info TagRepository 1 "Found candidate for version $M.$m.$p, merge request number $mr, attempt number $n."
+		if {$mr != $merge_request_number} {
+		    Error TagRepository 1 "Merge request number $merge_request_number differs from the one found in the tag $mr, will use $merge_request_number."
+		    set mr $merge_request_number
+		}
+		incr n
+	    }
+	    set new_tag b${mr}v$M.$m.$p-$n
 
-    return [list $M$m$c $comm $official$n]
-    cd $old_path
+	    if [catch {exec git tag $new_tag} msg] {
+		Error TagRepository 2 "Could not create new tag $new_tag: $msg"
+	    } else {
+		Info TagRepository 3 "New tag $new_tag created successully."
+	    }
+	} else {
+	    Error TagRepository 3 "Could not parse git describe: $last_tag"
+	}
+    }
 }
 ########################################################
 

@@ -1,0 +1,97 @@
+before_script:
+    - git remote set-url origin https://${HOG_USER}:${HOG_PUSH_TOKEN}@gitlab.cern.ch/atlas-l1calo-efex/hog-ci-test.git
+    - git config user.email ${HOG_EMAIL}
+    - git config user.name ${HOG_USER}
+    - git checkout $CI_COMMIT_REF_NAME
+    - git submodule init
+    - git submodule update
+    - export XILINXD_LICENSE_FILE=${HOG_XIL_LICENSE}
+    - export PATH=$PATH:${HOG_PATH}
+
+.only-default: &only-default
+  only:
+    - master
+    - merge_requests
+
+.vars: &vars
+    GIT_STRATEGY: clone
+
+stages:
+    - merge
+    - creation
+    - ip
+    - synthesis
+    - implementation
+
+merge_and_tag:
+     <<: *only-default
+     stage: merge
+     variables:
+       GIT_STRATEGY: clone
+     script:
+      - git merge --no-commit origin/master     
+      - git tag b$CI_MERGE_REQUEST_IID-v`date '+%s'`
+      - git push origin $CI_COMMIT_REF_NAME
+      - git push --tags origin $CI_COMMIT_REF_NAME      
+
+
+.vars: &vars
+    GIT_STRATEGY: clone
+
+.only-default: &only-default
+  only:
+    - master
+    - merge_requests
+
+.create_project: &create_project
+     <<: *only-default
+     stage: creation
+     variables:
+        <<: *vars
+     script:
+      - env
+      - ./CreateProject.sh $PROJECT_NAME
+     artifacts:
+       name: vivado_projects
+       paths:
+         - $CI_PROJECT_DIR/VivadoProject
+       expire_in: 2 day
+
+.synthesise_ips: &synthesise_ips
+    <<: *only-default
+    stage: ip
+    variables:
+        <<: *vars    
+    script:
+        - vivado -mode batch -notrace -source ./Hog/Tcl/launch_ip_synth.tcl -tclargs $PROJECT_NAME
+    artifacts:
+        name: vivado_runs
+        paths:
+            - $CI_PROJECT_DIR/VivadoProject/$PROJECT_NAME/$PROJECT_NAME.runs
+        expire_in: 2 day
+
+.synthesise_project: &synthesise_project
+    <<: *only-default
+    stage: synthesis
+    variables:
+        <<: *vars        
+    script:
+        - vivado -mode batch -notrace -source ./Hog/Tcl/launch_synthesis.tcl -tclargs $PROJECT_NAME
+    artifacts:
+        name: vivado_synth
+        paths:
+            - $CI_PROJECT_DIR/VivadoProject/$PROJECT_NAME/$PROJECT_NAME.runs/
+        expire_in: 2 day
+
+.implement_project: &implement_project
+    <<: *only-default    
+    stage: implementation
+    variables:
+        <<: *vars        
+    script:
+        - vivado -mode batch -notrace -source ./Hog/Tcl/launch_implementation.tcl -tclargs $PROJECT_NAME
+    artifacts:
+        name: bitfiles
+        paths:
+            - $CI_PROJECT_DIR/VivadoProject/$PROJECT_NAME/$PROJECT_NAME.runs/impl_1/*.bi*
+        expire_in: 10 years 

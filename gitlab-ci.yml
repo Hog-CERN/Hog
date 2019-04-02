@@ -8,8 +8,8 @@ before_script:
     - export XILINXD_LICENSE_FILE=${HOG_XIL_LICENSE}
     - export PATH=$PATH:${HOG_PATH}
     - "MR_PARAMETERS=`curl --header \"PRIVATE-TOKEN: ${HOG_PUSH_TOKEN}\" ${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/merge_requests/${CI_MERGE_REQUEST_IID}`"
-    - WIP=`echo $MR_PARAMETERS | jq -r '.work_in_progress'`
-    - MERGE_STATUS=`echo $MR_PARAMETERS | jq -r '.merge_status'`
+    - export WIP=`echo $MR_PARAMETERS | jq -r '.work_in_progress'`
+    - export MERGE_STATUS=`echo $MR_PARAMETERS | jq -r '.merge_status'`
     - DESCRIPTION=`echo $MR_PARAMETERS | jq -r '.description'`
     - "echo \"wip ${WIP} merge_status ${MERGE_STATUS}  Description ${DESCRIPTION}\""
     - export VERSION=0
@@ -24,7 +24,7 @@ before_script:
   except:
     variables:
      - $WIP == "true"
-     - MERGE_STATUS != "can_be_merged"
+     - $MERGE_STATUS != "can_be_merged"
 
 .vars: &vars
     GIT_STRATEGY: clone

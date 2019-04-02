@@ -433,7 +433,7 @@ proc GetVer {FILE path} {
 # * version_level:        0 if patch is to be increased (default), 1 if minor level is to be increase, 2 if major lav´e is to be increased
 
 proc TagRepository {merge_request_number {version_level 0}} {
-    if [catch {exec git tag --sort=taggerdate} last_tag] {
+    if [catch {exec git tag --sort=-creatordate} last_tag] {
 	Warning TagRepository 1 "No tags found in this repository, starting from v0.0.1..."
 	set new_tag b${mr}v0.0.1-0
     } else {

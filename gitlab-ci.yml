@@ -7,15 +7,15 @@ before_script:
     - git submodule update
     - export XILINXD_LICENSE_FILE=${HOG_XIL_LICENSE}
     - export PATH=$PATH:${HOG_PATH}
-    - MR_PARAMETERS=`curl --header "PRIVATE-TOKEN: ${HOG_PUSH_TOKEN}" "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/merge_requests/$CI_MERGE_REQUEST_IID`
+    - "MR_PARAMETERS=`curl --header \"PRIVATE-TOKEN: ${HOG_PUSH_TOKEN}\" ${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/merge_requests/${CI_MERGE_REQUEST_IID}`"
     - WIP=`echo $MR_PARAMETERS | jq -r '.work_in_progress'`
     - MERGE_STATUS=`echo $MR_PARAMETERS | jq -r '.merge_status'`
     - DESCRIPTION=`echo $MR_PARAMETERS | jq -r '.description'`
-    - echo "wip: $WIP   merge_status: $MERGE_STATUS  description: $DESCRIPTION"
+    - "echo \"wip ${WIP} merge_status ${MERGE_STATUS}  Description ${DESCRIPTION}\""
     - export VERSION=0
-    - [[ $DESCRIPTION =~ .*MAJOR_VERSION.* ]] && export VERSION=1
-    - [[ $DESCRIPTION =~ .*MINOR_VERSION.* ]] && export VERSION=2
-    - echo "Version Level: $VERSION"
+    - "if [[ $DESCRIPTION =~ .*MAJOR_VERSION.* ]]; then export VERSION=1; fi"
+    - "if [[ $DESCRIPTION =~ .*MINOR_VERSION.* ]]; then export VERSION=2; fi"
+    - "echo \"Version Level $VERSION\""
 
 .only-default: &only-default
   only:

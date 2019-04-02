@@ -11,9 +11,11 @@ before_script:
     - WIP=`echo $MR_PARAMETERS | jq -r '.work_in_progress'`
     - MERGE_STATUS=`echo $MR_PARAMETERS | jq -r '.merge_status'`
     - DESCRIPTION=`echo $MR_PARAMETERS | jq -r '.description'`
+    - echo "wip: $WIP   merge_status: $MERGE_STATUS  description: $DESCRIPTION"
     - export VERSION=0
     - [[ $DESCRIPTION =~ .*MAJOR_VERSION.* ]] && export VERSION=1
     - [[ $DESCRIPTION =~ .*MINOR_VERSION.* ]] && export VERSION=2
+    - echo "Version Level: $VERSION"
 
 .only-default: &only-default
   only:

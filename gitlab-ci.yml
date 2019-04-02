@@ -21,10 +21,9 @@ before_script:
   only:
     - master
     - merge_requests
-  except:
     variables:
-     - $WIP == "true"
-     - $MERGE_STATUS != "can_be_merged"
+     - $WIP == "false"
+     - $MERGE_STATUS == "can_be_merged"
 
 .vars: &vars
     GIT_STRATEGY: clone

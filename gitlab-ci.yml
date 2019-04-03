@@ -21,9 +21,10 @@ before_script:
   only:
     - master
     - merge_requests
+  except:
     variables:
-     - $WIP == "false"
-     - $MERGE_STATUS == "can_be_merged"
+     - $WIP == "true"
+     - $MERGE_STATUS != "can_be_merged"
 
 .vars: &vars
     GIT_STRATEGY: clone
@@ -63,8 +64,6 @@ stages:
     variables:
         <<: *vars    
     script:
-        - ./Hog/Ignore_ip_xml.sh
-        - git status
         - vivado -mode batch -notrace -source ./Hog/Tcl/launch_ip_synth.tcl -tclargs $PROJECT_NAME
     artifacts:
         name: vivado_runs
@@ -91,6 +90,8 @@ stages:
     variables:
         <<: *vars        
     script:
+        - ./Hog/Ignore_ip.sh
+        - git status
         - vivado -mode batch -notrace -source ./Hog/Tcl/launch_implementation.tcl -tclargs $PROJECT_NAME
     artifacts:
         name: bitfiles

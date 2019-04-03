@@ -32,7 +32,7 @@ before_script:
 stages:
     - merge
     - creation
-#    - ip
+    - ip
     - synthesis
     - implementation
 

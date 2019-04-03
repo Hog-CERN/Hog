@@ -64,7 +64,7 @@ stages:
         <<: *vars    
     script:
         - ./Hog/Ignore_ip_xml.sh
-	- git status
+        - git status
         - vivado -mode batch -notrace -source ./Hog/Tcl/launch_ip_synth.tcl -tclargs $PROJECT_NAME
     artifacts:
         name: vivado_runs

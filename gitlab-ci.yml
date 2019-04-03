@@ -32,7 +32,7 @@ before_script:
 stages:
     - merge
     - creation
-    - ip
+#    - ip
     - synthesis
     - implementation
 
@@ -77,6 +77,8 @@ stages:
     variables:
         <<: *vars        
     script:
+        - ./Hog/Ignore_ip.sh
+        - git status
         - vivado -mode batch -notrace -source ./Hog/Tcl/launch_synthesis.tcl -tclargs $PROJECT_NAME
     artifacts:
         name: vivado_synth
@@ -90,8 +92,6 @@ stages:
     variables:
         <<: *vars        
     script:
-        - ./Hog/Ignore_ip.sh
-        - git status
         - vivado -mode batch -notrace -source ./Hog/Tcl/launch_implementation.tcl -tclargs $PROJECT_NAME
     artifacts:
         name: bitfiles

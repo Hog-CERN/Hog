@@ -77,7 +77,7 @@ stages:
     variables:
         <<: *vars        
     script:
-        - ./Hog/Ignore_ip.sh
+        - ./Hog/Ignore_ip_xml.sh
         - git status
         - vivado -mode batch -notrace -source ./Hog/Tcl/launch_synthesis.tcl -tclargs $PROJECT_NAME
     artifacts:

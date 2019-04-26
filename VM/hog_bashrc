@@ -911,11 +911,5 @@ export LD_LIBRARY_PATH=/opt/cactus/lib:$LD_LIBRARY_PATH
 export EDITOR="emacs -nw"
 export GIT_EDITOR="emacs -nw"
 export XILINXD_LICENSE_FILE=2112@lxlicen01,2112@lxlicen02,2112@lxlicen03
-export PATH=$PATH:~/na62fw/NA62Reconstruction/:/mnt/big/Xilinx/Vivado/2017.1/bin/:/opt/Xilinx/Vivado/2017.3/bin/:/opt/cactus/bin/uhal/tools/
+export PATH=$PATH:/opt/Xilinx/Vivado/2017.3/bin/:/opt/cactus/bin/uhal/tools/
 export EOS_MGM_URL=root://eosuser.cern.ch
-eosfusebind krb5
-
-# Local Variables:
-# mode:shell-script
-# sh-shell:bash
-# End:

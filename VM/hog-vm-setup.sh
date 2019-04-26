@@ -19,7 +19,7 @@ chown $HOG_USERNAME:$HOG_USERGROUP /home/$HOG_USERNAME
 
 echo "[awe-VM Setup] Installing useful packages..."
 curl -L https://packages.gitlab.com/install/repositories/runner/gitlab-runner/script.rpm.sh | bash
-yum -y install gitlab-runner jq
+yum -y install gitlab-runner jq emacs
 
 
 echo "[awe-VM Setup] Creating swap file, this might take a while..."

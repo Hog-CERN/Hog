@@ -8,20 +8,24 @@ if [ "$(whoami)" != "root" ]; then
     exit -1
 fi
 
+echo
 echo [Hog VM Setup] Adding $HOG_USERNAME user...
 addusercern $HOG_USERNAME
+echo
 echo [Hog VM Setup] Adding $HOG_USERNAME to systemd_journal group...
 usermod -a -G systemd-journal $HOG_USERNAME
+echo
 echo [Hog VM Setup] Making $HOG_USERNAME home...
 mkdir /home/$HOG_USERNAME
 chmod a+rxw /home/$HOG_USERNAME
 chown $HOG_USERNAME:$HOG_USERGROUP /home/$HOG_USERNAME
 
+echo
 echo "[Hog VM Setup] Installing useful packages..."
 curl -L https://packages.gitlab.com/install/repositories/runner/gitlab-runner/script.rpm.sh | bash
 yum -y install gitlab-runner jq emacs
 
-
+echo
 echo "[Hog VM Setup] Creating swap file, this might take a while..."
 dd if=/dev/zero of=/swapfile bs=1024 count=16777216
 chmod 600 /swapfile
@@ -50,9 +54,11 @@ if [ -e /dev/vdb ]; then
         --locked="false"
     gitlab-runner start
 else
+    echo
     echo "[Hog VM Setup] WARINING /dev/vdb not found"
 fi
 
+echo
 echo "[Hog VM Setup] Adding lines into fstab..."
 echo " " >> /etc/fstab
 echo "# Lines added by awe #" >> /etc/fstab
@@ -60,9 +66,11 @@ echo "/swapfile   swap    swap    sw  0   0" >> /etc/fstab
 echo "/dev/vdb  /mnt/vd  ext4    rw,relatime,seclabel,data=ordered 0 0" >> /etc/fstab
 
 if [[ -x "$HOG_VIVADO_DIR/xsetup" ]]; then
+    echo
     echo "[Hog VM Setup] Installing Vivado, this might take more than a while..."
     $HOG_VIVADO_DIR/xsetup --agree XilinxEULA,3rdPartyEULA,WebTalkTerms --batch Install --config ./install_config.txt
 else
+    echo
     echo "[Hog VM Setup] Vivado setup not found in $VIVADO_DIR..."
 fi
 

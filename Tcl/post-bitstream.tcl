@@ -16,10 +16,11 @@ if [file exists $bit_file] {
     cd $tcl_path/../../ 
     
     Info $NAME 0 "Evaluating git describe..."
-    set describe [exec git describe --always --dirty --match=v*]
+    set describe [exec git describe --always --dirty]
     Info $NAME 1 "Git describe: $describe"
     set ts [clock format [clock seconds] -format {%Y-%m-%d-%H-%M}]
-    set prefix $ts-$describe
+    #set prefix $ts-$describe
+    set prefix $describe    
     
     set dst_dir [file normalize "$old_path/../$prefix"]
     set dst_bit [file normalize "$dst_dir/$proj_name\-$describe.bit"]
@@ -31,8 +32,8 @@ if [file exists $bit_file] {
     Info $NAME 3 "Copying bit file $bit_file into $dst_bit..."
     file copy -force $bit_file $dst_bit
     # Reports
-    file mkdir $dst_dir/reports    
-    file copy -force {*}[glob -nocomplain "$run_dir/*/*.rpt"] {$dst_dir/reports}
+    file mkdir $dst_dir/reports
+    file copy -force {*}[glob -nocomplain "$run_dir/*/*.rpt"] $dst_dir/reports
     
     # XML
     if [file exists $xml_dir] {

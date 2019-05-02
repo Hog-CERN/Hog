@@ -471,7 +471,7 @@ proc TagRepository {merge_request_number {version_level 0}} {
 		Info TagRepository 3 "New tag $new_tag created successully."
 	    }
 	} else {
-	    Error TagRepository 3 "Could not parse git describe: $last_tag"
+	    Error TagRepository 3 "Could not parse tag: $last_tag"
 	}
     }
 }
@@ -480,7 +480,7 @@ proc TagRepository {merge_request_number {version_level 0}} {
 
 ## Tags the repository with the official tag taken from the beta tag
 proc TagOfficial {} {
-    if [catch {exec git tag --sort=-creatordate --contaions HEAD} last_tag] {
+    if [catch {exec git tag --sort=-creatordate --contains HEAD} last_tag] {
 	Warning TagOfficial 1 "No tag contains current commit"
 	set new_tag 0
     } else {
@@ -488,22 +488,19 @@ proc TagOfficial {} {
 	set ver [lindex $vers 0]
 	if {[regexp {^(?:b(\d+))?v(\d+)\.(\d+).(\d+)(?:-(\d+))?$} $ver -> mr M m p n]} {
 	    if {$mr == "" } {
-		Warning TagOfficial "Version is already official: $M.$m.$p."
-		set new_tag 0
-
+		Warning TagOfficial 1 "Version is already official: $M.$m.$p."
 	    } else {
 		Info TagOfficial 1 "Found candidate for version $M.$m.$p, merge request number $mr, attempt number $n."
 		set new_tag v$M.$m.$p
 		Info TagOfficial 2 "Turning into official tag $new_tag"		
-	    }
-	    
-	    if {{$new_tag != 0} && [catch {exec git tag $new_tag} msg] }{
-		Error TagRepository 2 "Could not create new tag $new_tag: $msg"
-	    } else {
-		Info TagRepository 3 "New tag $new_tag created successully."
+		if [catch {exec git tag -m "Official version $M.$m.$p" $new_tag } msg] {
+		    Error TagOfficial 2 "Could not create new tag $new_tag: $msg"
+		} else {
+		    Info TagOfficial 3 "New tag $new_tag created successully."
+		}
 	    }
 	} else {
-	    Error TagRepository 3 "Could not parse git describe: $last_tag"
+	    Error TagOfficial 3 "Could not parse tag: $last_tag"
 	}
     }
 }

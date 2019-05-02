@@ -10,6 +10,7 @@ if [file exists $bit_file] {
     set bit_file [file normalize "$old_path/top_$proj_name.bit"]
     set bin_file [file normalize "$old_path/top_$proj_name.bin"]
     set xml_dir [file normalize "$old_path/../xml"]
+    set run_dir [file normalize "$old_path/.."]    
     
     # Go to repository path
     cd $tcl_path/../../ 
@@ -29,6 +30,11 @@ if [file exists $bit_file] {
     file mkdir $dst_dir
     Info $NAME 3 "Copying bit file $bit_file into $dst_bit..."
     file copy -force $bit_file $dst_bit
+    # Reports
+    file mkdir $dst_dir/reports    
+    file copy -force {*}[glob -nocomplain "$run_dir/*/*.rpt"] {$dst_dir/reports}
+    
+    # XML
     if [file exists $xml_dir] {
 	Info $NAME 4 "XML directory found, copying xml files from $xml_dir to $dst_xml..." 
 	if [file exists $dst_xml] {
@@ -37,6 +43,7 @@ if [file exists $bit_file] {
 	}
 	file copy -force $xml_dir $dst_xml
     }
+    # bin File
     if [file exists $bin_file] {
 	Info $NAME 6 "Copying bin file $bin_file into $dst_bin..."
 	file copy -force $bin_file $dst_bin

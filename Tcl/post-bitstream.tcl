@@ -33,8 +33,13 @@ if [file exists $bit_file] {
     file copy -force $bit_file $dst_bit
     # Reports
     file mkdir $dst_dir/reports
-    file copy -force {*}[glob -nocomplain "$run_dir/*/*.rpt"] $dst_dir/reports
-    
+    set reps [glob -nocomplain "$run_dir/*/*.rpt"]
+    if [file exists [lindex $reps 0]] {
+	file copy -force {*}$reps $dst_dir/reports
+    } else {
+	Warning $NAME 4 "No reports found in $run_dir subfolders"
+    }
+	    
     # XML
     if [file exists $xml_dir] {
 	Info $NAME 4 "XML directory found, copying xml files from $xml_dir to $dst_xml..." 
@@ -56,18 +61,28 @@ if [file exists $bit_file] {
     set whs [get_property STATS.WHS [get_runs impl_1]]
     set whs [get_property STATS.WHS [get_runs impl_1]]    
     
-    if {{$wns == 0} && {$whs == 0}} {
+    if {$wns == 0 && $whs == 0} {
 	Info $NAME 7 "Time requirements are met"
+	set status_file [open "$dst_dir/timing_ok.txt" "w"]
     } else {
 	CriticalWarning $NAME 7 "Time requirements are NOT met"
+	set status_file [open "$dst_dir/timing_error.txt" "w"]
     }
-    Info $NAME 8 "WNS: $wns"
-    Info $NAME 8 "TNS: $tns"
-    Info $NAME 8 "WHS: $whs"
-    Info $NAME 8 "THS: $ths"    
-    
+
+    Status $NAME 8 "WNS: $wns"
+    Status $NAME 8 "TNS: $tns"
+    Status $NAME 8 "WHS: $whs"
+    Status $NAME 8 "THS: $ths"
+
+    puts $status_file "WNS: $wns"
+    puts $status_file "TNS: $tns"
+    puts $status_file "WHS: $whs"
+    puts $status_file "THS: $ths"        
+    close $status_file
+
 } else {
-    Warning $NAME 7 "Bit file not found."
+    CriticalWarning $NAME 7 "Bit file not found."
 }
+
 cd $old_path
 Info $NAME 8 "All done."

@@ -69,7 +69,7 @@ proc Warning {title id msg} {
 # * title: The name of the script displaying the message
 # * id: A progressive number used as message ID
 # * msg: the message text
-proc CriticalWarining {title id msg} {
+proc CriticalWarning {title id msg} {
     if {[info commands send_msg_id] != ""} {
 	send_msg_id $title-$id {CRITICAL WARNING} $msg
     } else {

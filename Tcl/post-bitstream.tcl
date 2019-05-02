@@ -50,6 +50,22 @@ if [file exists $bit_file] {
 	file copy -force $bin_file $dst_bin
     }
 
+    # Check timing
+    set wns [get_property STATS.WNS [get_runs impl_1]]
+    set tns [get_property STATS.TNS [get_runs impl_1]]
+    set whs [get_property STATS.WHS [get_runs impl_1]]
+    set whs [get_property STATS.WHS [get_runs impl_1]]    
+    
+    if {{$wns == 0} && {$whs == 0}} {
+	Info $NAME 7 "Time requirements are met"
+    } else {
+	CriticalWarning $NAME 7 "Time requirements are NOT met"
+    }
+    Info $NAME 8 "WNS: $wns"
+    Info $NAME 8 "TNS: $tns"
+    Info $NAME 8 "WHS: $whs"
+    Info $NAME 8 "THS: $ths"    
+    
 } else {
     Warning $NAME 7 "Bit file not found."
 }

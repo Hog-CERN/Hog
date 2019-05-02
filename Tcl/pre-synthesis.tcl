@@ -144,11 +144,11 @@ if {$real_time == 1} {
     set date [clock format $clock_seconds  -format {%d%m%Y}]
     set timee [clock format $clock_seconds -format {00%H%M%S}]
 } else {
-    if [GitVersion 2.13.6] {
+    if [GitVersion 2.9.3] {
 	set date [exec git log -1 --format=%cd --date=format:'%d%m%Y']
 	set timee [exec git log -1 --format=%cd --date=format:'00%H%M%S']
     } else {
-	Warning $NAME 3 "Found an old version of Git. Using current date and time instead of commit time."
+	Warning $NAME 3 "Found Git version older than 2.9.3. Using current date and time instead of commit time."
 	set date [clock format $clock_seconds  -format {%d%m%Y}]
 	set timee [clock format $clock_seconds -format {00%H%M%S}]
     }

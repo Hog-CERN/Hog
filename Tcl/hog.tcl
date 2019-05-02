@@ -427,7 +427,7 @@ proc GetVer {FILE path} {
 ########################################################
 
 
-## Return the new tag to be given to the repository
+## Tags the repository with a new version calculated on the basis of the previous tags
 # Arguments:\n
 # * merge_request_number: Gitlab merge request number to be used in candidate version
 # * version_level:        0 if patch is to be increased (default), 1 if minor level is to be increase, 2 if major lav´e is to be increased
@@ -478,6 +478,36 @@ proc TagRepository {merge_request_number {version_level 0}} {
 ########################################################
 
 
+## Tags the repository with the official tag taken from the beta tag
+proc TagOfficial {} {
+    if [catch {exec git tag --sort=-creatordate --contaions HEAD} last_tag] {
+	Warning TagOfficial 1 "No tag contains current commit"
+	set new_tag 0
+    } else {
+	set vers [split $last_tag "\n"]
+	set ver [lindex $vers 0]
+	if {[regexp {^(?:b(\d+))?v(\d+)\.(\d+).(\d+)(?:-(\d+))?$} $ver -> mr M m p n]} {
+	    if {$mr == "" } {
+		Warning TagOfficial "Version is already official: $M.$m.$p."
+		set new_tag 0
+
+	    } else {
+		Info TagOfficial 1 "Found candidate for version $M.$m.$p, merge request number $mr, attempt number $n."
+		set new_tag v$M.$m.$p
+		Info TagOfficial 2 "Turning into official tag $new_tag"		
+	    }
+	    
+	    if {{$new_tag != 0} && [catch {exec git tag $new_tag} msg] }{
+		Error TagRepository 2 "Could not create new tag $new_tag: $msg"
+	    } else {
+		Info TagRepository 3 "New tag $new_tag created successully."
+	    }
+	} else {
+	    Error TagRepository 3 "Could not parse git describe: $last_tag"
+	}
+    }
+}
+########################################################
 
 
 

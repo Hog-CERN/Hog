@@ -99,7 +99,7 @@ stages:
     artifacts:
         name: bitfiles
         paths:
-            - $CI_PROJECT_DIR/VivadoProject/$PROJECT_NAME/$PROJECT_NAME.runs/OutputFiles_*
+            - $CI_PROJECT_DIR/bin
         expire_in: 10 years 
 
 merge_and_tag:

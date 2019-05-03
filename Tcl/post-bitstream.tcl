@@ -7,10 +7,12 @@ set bit_file [file normalize [lindex [glob -nocomplain "$old_path/*.bit"] 0]]
 if [file exists $bit_file] {
 
     set proj_name [string map {"top_" ""} [file rootname [file tail $bit_file]]]
+    set name [get_projects]
     set bit_file [file normalize "$old_path/top_$proj_name.bit"]
     set bin_file [file normalize "$old_path/top_$proj_name.bin"]
     set xml_dir [file normalize "$old_path/../xml"]
     set run_dir [file normalize "$old_path/.."]    
+    set bin_dir [file normalize "$old_path/../../../../bin"]    
     
     # Go to repository path
     cd $tcl_path/../../ 
@@ -20,11 +22,12 @@ if [file exists $bit_file] {
     Info $NAME 1 "Git describe: $describe"
     set ts [clock format [clock seconds] -format {%Y-%m-%d-%H-%M}]
     #set prefix $ts-$describe
-    set prefix OutputFiles_$describe
+    set prefix $name\_$describe
 
-    set dst_dir [file normalize "$old_path/../$prefix"]
-    set dst_bit [file normalize "$dst_dir/$proj_name\-$describe.bit"]
-    set dst_bin [file normalize "$dst_dir/$proj_name\-$describe.bin"]
+    
+    set dst_dir [file normalize "$bin_dir/$prefix"]
+    set dst_bit [file normalize "$dst_dir/$name\-$describe.bit"]
+    set dst_bin [file normalize "$dst_dir/$name\-$describe.bin"]
     set dst_xml [file normalize "$dst_dir/xml"]
     
     Info $NAME 2 "Creating $dst_dir..."
@@ -62,7 +65,7 @@ if [file exists $bit_file] {
     set wns [get_property STATS.WNS [get_runs impl_1]]
     set tns [get_property STATS.TNS [get_runs impl_1]]
     set whs [get_property STATS.WHS [get_runs impl_1]]
-    set whs [get_property STATS.WHS [get_runs impl_1]]    
+    set ths [get_property STATS.THS [get_runs impl_1]]    
     
     if {$wns == 0 && $whs == 0} {
 	Info $NAME 7 "Time requirements are met"
@@ -83,6 +86,9 @@ if [file exists $bit_file] {
     puts $status_file "THS: $ths"        
     close $status_file
 
+    #Version table
+    file copy -force $run_dir/versions $dst_dir
+    
 } else {
     CriticalWarning $NAME 7 "Bit file not found."
 }

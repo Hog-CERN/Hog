@@ -435,7 +435,6 @@ proc GetVer {FILE path} {
 proc TagRepository {merge_request_number {version_level 0}} {
     if [catch {exec git tag --sort=-creatordate} last_tag] {
 	Warning TagRepository 1 "No tags found in this repository, starting from v0.0.1..."
-	set new_tag b${mr}v0.0.1-0
     } else {
 	set vers [split $last_tag "\n"]
 	set ver [lindex $vers 0]

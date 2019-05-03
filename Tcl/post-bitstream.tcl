@@ -20,8 +20,8 @@ if [file exists $bit_file] {
     Info $NAME 1 "Git describe: $describe"
     set ts [clock format [clock seconds] -format {%Y-%m-%d-%H-%M}]
     #set prefix $ts-$describe
-    set prefix $describe    
-    
+    set prefix OutputFiles_$describe
+
     set dst_dir [file normalize "$old_path/../$prefix"]
     set dst_bit [file normalize "$dst_dir/$proj_name\-$describe.bit"]
     set dst_bin [file normalize "$dst_dir/$proj_name\-$describe.bin"]

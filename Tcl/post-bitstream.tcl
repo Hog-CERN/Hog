@@ -55,6 +55,9 @@ if [file exists $bit_file] {
 	file copy -force $bin_file $dst_bin
     }
 
+    #Version table
+    file copy -force $run_dir/versions $dst_dir
+    
     # Check timing
     set wns [get_property STATS.WNS [get_runs impl_1]]
     set tns [get_property STATS.TNS [get_runs impl_1]]

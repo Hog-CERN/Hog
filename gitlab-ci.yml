@@ -1,5 +1,6 @@
 before_script:
-    - git remote set-url origin https://${HOG_USER}:${HOG_PUSH_TOKEN}@gitlab.cern.ch/atlas-l1calo-efex/hog-ci-test.git
+    - env
+    - git remote set-url origin https://${HOG_USER}:${HOG_PUSH_TOKEN}@gitlab.cern.ch/atlas-l1calo-efex/eFEXFirmware.git
     - git config user.email ${HOG_EMAIL}
     - git config user.name ${HOG_USER}
     - git checkout $CI_COMMIT_REF_NAME

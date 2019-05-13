@@ -42,11 +42,6 @@ stages:
 .vars: &vars
     GIT_STRATEGY: clone
 
-.only-default: &only-default
-  only:
-    - master
-    - merge_requests
-
 .create_project: &create_project
      <<: *only-default
      stage: creation

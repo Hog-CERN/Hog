@@ -22,10 +22,6 @@ before_script:
   only:
     - master
     - merge_requests
-  except:
-    variables:
-     - $WIP == "true"
-     - $MERGE_STATUS != "can_be_merged"
   tags:
      - hog
 

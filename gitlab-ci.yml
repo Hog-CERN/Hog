@@ -25,6 +25,8 @@ before_script:
     variables:
      - $WIP == "true"
      - $MERGE_STATUS != "can_be_merged"
+  tags:
+     - hog
 
 .vars: &vars
     GIT_STRATEGY: clone

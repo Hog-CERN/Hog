@@ -86,9 +86,6 @@ if [file exists $bit_file] {
     puts $status_file "THS: $ths"        
     close $status_file
 
-    #Version table
-    file copy -force $run_dir/versions $dst_dir
-    
 } else {
     CriticalWarning $NAME 7 "Bit file not found."
 }

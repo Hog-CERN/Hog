@@ -1,6 +1,7 @@
 before_script:
     - env
-    - git remote set-url origin https://${HOG_USER}:${HOG_PUSH_TOKEN}@gitlab.cern.ch/atlas-l1calo-efex/eFEXFirmware.git
+    - export REPO=`echo $CI_PROJECT_URL | sed -e "s/https:\/\///"
+    - git remote set-url origin https://${HOG_USER}:${HOG_PUSH_TOKEN}@$REPO
     - git config user.email ${HOG_EMAIL}
     - git config user.name ${HOG_USER}
     - git checkout $CI_COMMIT_REF_NAME
@@ -12,7 +13,7 @@ before_script:
     - export WIP=`echo $MR_PARAMETERS | jq -r '.work_in_progress'`
     - export MERGE_STATUS=`echo $MR_PARAMETERS | jq -r '.merge_status'`
     - DESCRIPTION=`echo $MR_PARAMETERS | jq -r '.description'`
-    - "echo \"wip ${WIP} merge_status ${MERGE_STATUS}  Description ${DESCRIPTION}\""
+    - "echo \"WIP: ${WIP} , Mere Request Status: ${MERGE_STATUS}  Description: ${DESCRIPTION}\""
     - export VERSION=0
     - "if [[ $DESCRIPTION =~ .*MAJOR_VERSION.* ]]; then export VERSION=1; fi"
     - "if [[ $DESCRIPTION =~ .*MINOR_VERSION.* ]]; then export VERSION=2; fi"

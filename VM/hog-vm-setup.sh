@@ -4,7 +4,7 @@ HOG_VIVADO_DIR=/afs/cern.ch/work/f/fgonnell/Xilinx_Vivado_SDK_2017.3_1005_1/
 HOG_TOKEN=LDRqe3_ExsUByTmEduxs
 
 if [ "$(whoami)" != "root" ]; then
-    echo "Script must be run as root"
+    echo "[Hog VM Setup] FATAL: Script must be run as root."
     exit -1
 fi
 
@@ -23,7 +23,19 @@ chown $HOG_USERNAME:$HOG_USERGROUP /home/$HOG_USERNAME
 echo
 echo "[Hog VM Setup] Installing useful packages..."
 curl -L https://packages.gitlab.com/install/repositories/runner/gitlab-runner/script.rpm.sh | bash
-yum -y install gitlab-runner jq emacs
+yum -y install gitlab-runner jq emacs doxygen
+
+echo
+echo "[Hog VM Setup] Installing wandisco repository..."
+yum -y install http://opensource.wandisco.com/centos/6/git/x86_64/wandisco-git-release-6-1.noarch.rpm
+echo "[Hog VM Setup] Updating to recent version of git from wandisco..."
+yum -y --disablerepo=base,updates  update git
+
+echo
+echo "[Hog VM Setup] Installing uhal from ipbus..."
+curl http://ipbus.web.cern.ch/ipbus/doc/user/html/_downloads/ipbus-sw.centos7.x86_64.repo > ipbus-sw.repo
+cp ipbus-sw.repo /etc/yum.repos.d/
+yum -y groupinstall uhal
 
 echo
 echo "[Hog VM Setup] Creating swap file, this might take a while..."

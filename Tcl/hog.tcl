@@ -457,7 +457,7 @@ proc TagRepository {merge_request_number {version_level 0}} {
 	    } else {
 		Info TagRepository 1 "Found candidate for version $M.$m.$p, merge request number $mr, attempt number $n."
 		if {$mr != $merge_request_number} {
-		    Error TagRepository 1 "Merge request number $merge_request_number differs from the one found in the tag $mr, will use $merge_request_number."
+		    Warning TagRepository 1 "Merge request number $merge_request_number differs from the one found in the tag $mr, will use $merge_request_number."
 		    set mr $merge_request_number
 		}
 		incr n

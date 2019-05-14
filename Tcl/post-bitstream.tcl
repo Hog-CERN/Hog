@@ -7,7 +7,7 @@ set bit_file [file normalize [lindex [glob -nocomplain "$old_path/*.bit"] 0]]
 if [file exists $bit_file] {
 
     set proj_name [string map {"top_" ""} [file rootname [file tail $bit_file]]]
-    set name [get_projects]
+    set name [file rootname [file tail [file normalize [pwd]/..]]]
     set bit_file [file normalize "$old_path/top_$proj_name.bit"]
     set bin_file [file normalize "$old_path/top_$proj_name.bin"]
     set xml_dir [file normalize "$old_path/../xml"]
@@ -65,14 +65,25 @@ if [file exists $bit_file] {
     }
 
     #Version table
-    file copy -force $run_dir/versions $dst_dir
-
+    if [file exists $run_dir/versions] {
+	file copy -force $run_dir/versions $dst_dir
+    } else {
+	Warning $NAME 7 "No versions file found"
+    }
     #Timing file
-    file copy -force $run_dir/timing_* $dst_dir
+    puts $run_dir
+    puts [glob -nocomplain "$run_dir/timing_*"]
+    set timing_file [file normalize [lindex [glob -nocomplain "$run_dir/timing_*"] 0]]
+    if [file exists $timing_file] {
+	file copy -force $timing_file $dst_dir
+    } else {
+	Warning $NAME 7 "No timing file found"
+    }
+    
 
 } else {
-    CriticalWarning $NAME 7 "Bit file not found."
+    CriticalWarning $NAME 8 "Bit file not found."
 }
 
 cd $old_path
-Info $NAME 8 "All done."
+Info $NAME 9 "All done."

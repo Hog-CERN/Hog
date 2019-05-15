@@ -36,7 +36,7 @@ stages:
     - ip
     - synthesis
     - implementation
-    - bistream    
+    - bitstream    
 
 .vars: &vars
     GIT_STRATEGY: clone

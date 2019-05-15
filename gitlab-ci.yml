@@ -134,9 +134,9 @@ merge_and_tag:
       - git push --tags origin $CI_COMMIT_REF_NAME      
 
 this_is_wip:
-  only:
-    variables:
-      - $CI_MERGE_REQUEST_TITLE =~ /^.*$/
+#  only:
+#    variables:
+#      - $CI_MERGE_REQUEST_TITLE =~ /^.*$/
   stage: merge
   script:
     - echo This is WIP $CI_MERGE_REQUEST_TITLE

@@ -52,7 +52,7 @@ stages:
      artifacts:
        name: vivado_projects
        paths:
-         - $CI_PROJECT_DIR/VivadoProject
+         - $CI_PROJECT_DIR/VivadoProject/$PROJECT_NAME
        expire_in: 2 day
 
 .synthesise_ips: &synthesise_ips
@@ -66,9 +66,9 @@ stages:
         name: vivado_runs
         paths:
             - $CI_PROJECT_DIR/VivadoProject/$PROJECT_NAME/$PROJECT_NAME.runs
-            - $CI_PROJECT_DIR/$IP_PATH1
-            - $CI_PROJECT_DIR/$IP_PATH2
-            - $CI_PROJECT_DIR/$IP_PATH3
+            - $CI_PROJECT_DIR/$IP_PATH_A
+            - $CI_PROJECT_DIR/$IP_PATH_B
+            - $CI_PROJECT_DIR/$IP_PATH_C
         expire_in: 2 day
 
 .synthesise_project: &synthesise_project

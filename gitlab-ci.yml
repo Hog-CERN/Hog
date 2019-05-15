@@ -23,10 +23,12 @@ before_script:
 .only-default: &only-default
   only:
     - merge_requests
+    variables:
+      #- $CI_COMMIT_REF_NAME =~ /^feature\/.*$/i
   except:
     variables:
-      - $CI_MERGE_REQUEST_TITLE =~ /^AWIP:.*$/
-      - $CI_COMMIT_REF_NAME =~ /^test.*$/i
+      #- $CI_MERGE_REQUEST_TITLE =~ /^WIP:.*$/
+      - $CI_COMMIT_REF_NAME =~ /^test\/.*$/i
       
   tags:
      - hog

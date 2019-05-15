@@ -53,7 +53,7 @@ stages:
        name: vivado_projects
        paths:
          - $CI_PROJECT_DIR/VivadoProject/$PROJECT_NAME
-       expire_in: 2 day
+       expire_in: 1 day
 
 .synthesise_ips: &synthesise_ips
     <<: *only-default
@@ -65,11 +65,11 @@ stages:
     artifacts:
         name: vivado_runs
         paths:
-            - $CI_PROJECT_DIR/VivadoProject/$PROJECT_NAME/$PROJECT_NAME.runs
+            - $CI_PROJECT_DIR/VivadoProject/$PROJECT_NAME
             - $CI_PROJECT_DIR/$IP_PATH_A
             - $CI_PROJECT_DIR/$IP_PATH_B
             - $CI_PROJECT_DIR/$IP_PATH_C
-        expire_in: 2 day
+        expire_in: 1 day
 
 .synthesise_project: &synthesise_project
     <<: *only-default
@@ -82,7 +82,7 @@ stages:
     artifacts:
         name: vivado_synth
         paths:
-            - $CI_PROJECT_DIR/VivadoProject/$PROJECT_NAME/$PROJECT_NAME.runs/
+            - $CI_PROJECT_DIR/VivadoProject/$PROJECT_NAME
         expire_in: 2 day
 
 .implement_project: &implement_project
@@ -95,8 +95,8 @@ stages:
     artifacts:
         name: vivado_impl
         paths:
-            - $CI_PROJECT_DIR/VivadoProject/$PROJECT_NAME/$PROJECT_NAME.runs/
-        expire_in: 2 days
+            - $CI_PROJECT_DIR/VivadoProject/$PROJECT_NAME	
+        expire_in: 7 days
 
 .write_bitstream: &write_bitstream
     <<: *only-default    

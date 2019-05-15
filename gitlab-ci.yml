@@ -32,8 +32,6 @@ before_script:
     variables:
       - $CI_COMMIT_REF_NAME =~ /^test\/.*$/i
       - $CI_MERGE_REQUEST_TITLE =~ /^WIP:.*$/
-
-
   tags:
      - hog
 
@@ -48,9 +46,6 @@ stages:
     - synthesis
     - implementation
     - bitstream    
-
-.vars: &vars
-    GIT_STRATEGY: clone
 
 .create_project: &create_project
      <<: *only-default
@@ -137,6 +132,8 @@ this_is_wip:
 #  only:
 #    variables:
 #      - $CI_MERGE_REQUEST_TITLE =~ /^.*$/
+  tags:
+     - hog
   stage: merge
-  script:
-    - echo This is WIP $CI_MERGE_REQUEST_TITLE
+    script:
+      - echo This is WIP $CI_MERGE_REQUEST_TITLE

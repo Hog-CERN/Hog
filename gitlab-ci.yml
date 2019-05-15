@@ -136,7 +136,7 @@ merge_and_tag:
 this_is_wip:
   only:
     variables:
-      - $CI_MERGE_REQUEST_TITLE =~ /^WIP:.*$/
+      - $CI_MERGE_REQUEST_TITLE =~ /^.*$/
   stage: merge
   script:
-    - echo "This is WIP"
+    - echo "This is WIP: $CI_MERGE_REQUEST_TITLE"

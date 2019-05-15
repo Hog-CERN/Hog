@@ -29,6 +29,7 @@ before_script:
 
 .vars: &vars
     GIT_STRATEGY: clone
+    CI_DEBUG_TRACE: "true"
 
 stages:
     - merge

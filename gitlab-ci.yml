@@ -22,15 +22,16 @@ before_script:
 
 .only-default: &only-default
   only:
-    - merge_requests
+    refs:
+      - merge_requests
     variables:
       - $CI_COMMIT_REF_NAME =~ /^feature\/.*$/i
       - $CI_COMMIT_REF_NAME =~ /^bugfix\/.*$/i
-      - $CI_COMMIT_REF_NAME =~ /^test\/.*$/i      
+#      - $CI_COMMIT_REF_NAME =~ /^test\/.*$/i      
   except:
     variables:
-      - $CI_COMMIT_REF_NAME =~ /^atest\/.*$/i
-      - $CI_MERGE_REQUEST_TITLE =~ /^AWIP:.*$/
+      - $CI_COMMIT_REF_NAME =~ /^test\/.*$/i
+      - $CI_MERGE_REQUEST_TITLE =~ /^WIP:.*$/
 
 
   tags:
@@ -131,3 +132,10 @@ merge_and_tag:
       - vivado -mode batch -notrace -source ./Hog/Tcl/tag_repository.tcl -tclargs $CI_MERGE_REQUEST_IID $VERSION
       - git push origin $CI_COMMIT_REF_NAME
       - git push --tags origin $CI_COMMIT_REF_NAME      
+
+this_is_wip:
+  only:
+    variables:
+      - $CI_MERGE_REQUEST_TITLE =~ /^WIP:.*$/
+  script:
+    - echo "This is WIP"

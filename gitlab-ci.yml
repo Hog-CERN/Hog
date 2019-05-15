@@ -36,6 +36,7 @@ stages:
     - ip
     - synthesis
     - implementation
+    - bistream    
 
 .vars: &vars
     GIT_STRATEGY: clone
@@ -99,7 +100,7 @@ stages:
 
 .write_bistream: &write_bitstream
     <<: *only-default    
-    stage: implementation
+    stage: biststream
     variables:
         <<: *vars        
     script:

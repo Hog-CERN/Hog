@@ -129,9 +129,11 @@ merge_and_tag:
       - git push --tags origin $CI_COMMIT_REF_NAME      
 
 this_is_wip:
-#  only:
-#    variables:
-#      - $CI_MERGE_REQUEST_TITLE =~ /^.*$/
+  only:
+    refs:
+      - merge_requests
+    variables:
+      - $CI_MERGE_REQUEST_TITLE =~ /^.*$/
   tags:
      - hog
   stage: merge

@@ -100,7 +100,7 @@ stages:
 
 .write_bitstream: &write_bitstream
     <<: *only-default    
-    stage: biststream
+    stage: bitstream
     variables:
         <<: *vars        
     script:

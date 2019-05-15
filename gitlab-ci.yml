@@ -98,13 +98,13 @@ stages:
             - $CI_PROJECT_DIR/VivadoProject/$PROJECT_NAME/$PROJECT_NAME.runs/
         expire_in: 2 days
 
-.write_bistream: &write_bitstream
+.write_bitstream: &write_bitstream
     <<: *only-default    
     stage: biststream
     variables:
         <<: *vars        
     script:
-        - vivado -mode batch -notrace -source ./Hog/Tcl/launch_write_bistream.tcl -tclargs $PROJECT_NAME
+        - vivado -mode batch -notrace -source ./Hog/Tcl/launch_write_bitstream.tcl -tclargs $PROJECT_NAME
     artifacts:
         name: bitfiles
         paths:

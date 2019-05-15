@@ -29,9 +29,10 @@ before_script:
       - $CI_COMMIT_REF_NAME =~ /^test\/.*$/i      
   except:
     variables:
-      #- $CI_MERGE_REQUEST_TITLE =~ /^WIP:.*$/
       - $CI_COMMIT_REF_NAME =~ /^atest\/.*$/i
-      
+#     - $CI_MERGE_REQUEST_TITLE =~ /^WIP:.*$/
+
+
   tags:
      - hog
 

@@ -18,7 +18,7 @@ before_script:
     variables:
       - $CI_COMMIT_REF_NAME =~ /^feature\/.*$/i
       - $CI_COMMIT_REF_NAME =~ /^bugfix\/.*$/i
-      - $CI_COMMIT_REF_NAME =~ /^test.*$/i #remove this
+      - $CI_COMMIT_REF_NAME =~ /^test\/.*$/i #remove this
   except:
     variables:
       - $CI_COMMIT_REF_NAME =~ /^XXXtest\/.*$/i #change this
@@ -133,8 +133,8 @@ this_is_wip:
     refs:
       - merge_requests
     variables:
-      - $CI_PIPELINE_SOURCE = push
-      - $CI_COMMIT_REF_SLUG = master
+      - $CI_PIPELINE_SOURCE == "push"
+      - $CI_COMMIT_REF_SLUG == "master"
   tags:
      - hog
   stage: merge

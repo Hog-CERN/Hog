@@ -135,5 +135,5 @@ this_is_wip:
   tags:
      - hog
   stage: merge
-    script:
-      - echo This is WIP $CI_MERGE_REQUEST_TITLE
+  script:
+     - echo This is WIP $CI_MERGE_REQUEST_TITLE

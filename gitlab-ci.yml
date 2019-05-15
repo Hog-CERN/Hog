@@ -24,7 +24,8 @@ before_script:
   only:
     - merge_requests
   except:
-    - master    
+    - master
+    - /^test\/.*/i
   tags:
      - hog
 

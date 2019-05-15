@@ -17,20 +17,13 @@ if [file exists $bit_file] {
     # Go to repository path
     cd $tcl_path/../../ 
     
-    set git_status [exec git status]
-    Status $NAME 1 " *********************** GIT STATUS ************************************** "
-    Status $NAME 1 "$git_status"
-    Status $NAME 1 " *********************** END OF GIT STATUS ******************************* "    
-    
     Info $NAME 0 "Evaluating git describe..."
-    set describe [exec git describe --always --dirty]
+    set describe [exec git describe --always --dirty --tags]
     Info $NAME 1 "Git describe: $describe"
 
     set ts [clock format [clock seconds] -format {%Y-%m-%d-%H-%M}]
-    #set prefix $ts-$describe
     set prefix $name\_$describe
 
-    
     set dst_dir [file normalize "$bin_dir/$prefix"]
     set dst_bit [file normalize "$dst_dir/$name\-$describe.bit"]
     set dst_bin [file normalize "$dst_dir/$name\-$describe.bin"]

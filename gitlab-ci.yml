@@ -28,7 +28,7 @@ before_script:
 
 .vars: &vars
     GIT_STRATEGY: clone
-    CI_DEBUG_TRACE: "true"
+#   CI_DEBUG_TRACE: "true"
 
 stages:
     - merge
@@ -123,12 +123,12 @@ merge_and_tag:
       - "if [[ $DESCRIPTION =~ .*MAJOR_VERSION.* ]]; then export VERSION=1; fi"
       - "if [[ $DESCRIPTION =~ .*MINOR_VERSION.* ]]; then export VERSION=2; fi"
       - "echo \"Version Level $VERSION\""
-      - git merge --no-commit origin/master     
+      - git merge --no-commit origin/master
       - vivado -mode batch -notrace -source ./Hog/Tcl/tag_repository.tcl -tclargs $CI_MERGE_REQUEST_IID $VERSION
       - git push origin $CI_COMMIT_REF_NAME
-      - git push --tags origin $CI_COMMIT_REF_NAME      
+      - git push --tags origin $CI_COMMIT_REF_NAME
 
-this_is_wip:
+tag_official_version:
   only:
     refs:
       - merge_requests
@@ -140,3 +140,6 @@ this_is_wip:
   stage: merge
   script:
      - echo This is a merge request that was merged
+     - vivado -mode batch -notrace -source ./Hog/Tcl/tag_repository.tcl -tclargs $CI_MERGE_REQUEST_IID 3
+     - git push origin $CI_COMMIT_REF_NAME
+     - git push --tags origin $CI_COMMIT_REF_NAME

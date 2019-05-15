@@ -24,11 +24,10 @@ before_script:
   only:
     - merge_requests
   except:
-    refs:
-      - master
-      - /^test.*$/i
-#    variables:
-#      - $CI_MERGE_REQUEST_TITLE =~ /^WIP:.*$/
+    variables:
+      - $CI_MERGE_REQUEST_TITLE =~ /^AWIP:.*$/
+      - $CI_COMMIT_REF_NAME =~ /^test.*$/i
+      
   tags:
      - hog
 

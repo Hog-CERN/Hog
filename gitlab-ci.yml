@@ -18,11 +18,11 @@ before_script:
     variables:
       - $CI_COMMIT_REF_NAME =~ /^feature\/.*$/i
       - $CI_COMMIT_REF_NAME =~ /^bugfix\/.*$/i
-#      - $CI_COMMIT_REF_NAME =~ /^test\/.*$/i      
+      - $CI_COMMIT_REF_NAME =~ /^test\/.*$/i #remove this
   except:
     variables:
-      - $CI_COMMIT_REF_NAME =~ /^test\/.*$/i
-      - $CI_MERGE_REQUEST_TITLE =~ /^WIP:.*$/
+      - $CI_COMMIT_REF_NAME =~ /^XXXatest\/.*$/i #change this
+      - $CI_MERGE_REQUEST_TITLE =~ /^XXXWIP:.*$/ # chenge this
   tags:
      - hog
 
@@ -133,9 +133,10 @@ this_is_wip:
     refs:
       - merge_requests
     variables:
-      - $CI_MERGE_REQUEST_TITLE =~ /^WIP:.*$/
+      - $CI_PIPELINE_SOURCE = push
+      - $CI_COMMIT_REF_SLUG = master
   tags:
      - hog
   stage: merge
   script:
-     - echo This is WIP $CI_MERGE_REQUEST_TITLE
+     - echo This is a merge request that was merged

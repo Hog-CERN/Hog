@@ -137,5 +137,6 @@ this_is_wip:
   only:
     variables:
       - $CI_MERGE_REQUEST_TITLE =~ /^WIP:.*$/
+  stage: merge
   script:
     - echo "This is WIP"

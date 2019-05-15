@@ -139,4 +139,4 @@ this_is_wip:
       - $CI_MERGE_REQUEST_TITLE =~ /^.*$/
   stage: merge
   script:
-    - echo "This is WIP: $CI_MERGE_REQUEST_TITLE"
+    - echo This is WIP: $CI_MERGE_REQUEST_TITLE

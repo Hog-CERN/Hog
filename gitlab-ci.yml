@@ -7,6 +7,7 @@ before_script:
     - git checkout $CI_COMMIT_REF_NAME
     - git submodule init
     - git submodule update
+    - ./Hog/Ignore_ip_xml.sh
     - export XILINXD_LICENSE_FILE=${HOG_XIL_LICENSE}
     - export PATH=$PATH:${HOG_PATH}
     - "MR_PARAMETERS=`curl --header \"PRIVATE-TOKEN: ${HOG_PUSH_TOKEN}\" ${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/merge_requests/${CI_MERGE_REQUEST_IID}`"
@@ -75,7 +76,6 @@ stages:
     variables:
         <<: *vars        
     script:
-        - ./Hog/Ignore_ip_xml.sh
         - git status
         - vivado -mode batch -notrace -source ./Hog/Tcl/launch_synthesis.tcl -tclargs $PROJECT_NAME
     artifacts:
@@ -91,6 +91,19 @@ stages:
         <<: *vars        
     script:
         - vivado -mode batch -notrace -source ./Hog/Tcl/launch_implementation.tcl -tclargs $PROJECT_NAME
+    artifacts:
+        name: vivado_impl
+        paths:
+            - $CI_PROJECT_DIR/VivadoProject/$PROJECT_NAME/$PROJECT_NAME.runs/
+        expire_in: 2 days
+
+.write_bistream: &write_bitstream
+    <<: *only-default    
+    stage: implementation
+    variables:
+        <<: *vars        
+    script:
+        - vivado -mode batch -notrace -source ./Hog/Tcl/launch_write_bistream.tcl -tclargs $PROJECT_NAME
     artifacts:
         name: bitfiles
         paths:

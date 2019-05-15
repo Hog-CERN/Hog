@@ -133,7 +133,7 @@ this_is_wip:
     refs:
       - merge_requests
     variables:
-      - $CI_MERGE_REQUEST_TITLE =~ /^.*$/
+      - $CI_MERGE_REQUEST_TITLE =~ /^WIP:.*$/
   tags:
      - hog
   stage: merge

@@ -27,8 +27,8 @@ before_script:
     refs:
       - master
       - /^test.*$/i
-    variables:
-      - $CI_MERGE_REQUEST_TITLE =~ /^WIP:.*$/
+#    variables:
+#      - $CI_MERGE_REQUEST_TITLE =~ /^WIP:.*$/
   tags:
      - hog
 

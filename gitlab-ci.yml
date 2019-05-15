@@ -22,8 +22,9 @@ before_script:
 
 .only-default: &only-default
   only:
-    - master
     - merge_requests
+  except:
+    - master    
   tags:
      - hog
 

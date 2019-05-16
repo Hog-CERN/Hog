@@ -18,11 +18,10 @@ before_script:
     variables:
       - $CI_COMMIT_REF_NAME =~ /^feature\/.*$/i
       - $CI_COMMIT_REF_NAME =~ /^bugfix\/.*$/i
-      - $CI_COMMIT_REF_NAME =~ /^test\/.*$/i #remove this
   except:
     variables:
-      - $CI_COMMIT_REF_NAME =~ /^XXXtest\/.*$/i #change this
-      - $CI_MERGE_REQUEST_TITLE =~ /^XXXWIP:.*$/ # chenge this
+      - $CI_COMMIT_REF_NAME =~ /^test\/.*$/i
+      - $CI_MERGE_REQUEST_TITLE =~ /^WIP:.*$/
   tags:
      - hog
 

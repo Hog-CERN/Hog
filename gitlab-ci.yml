@@ -11,8 +11,6 @@ before_script:
     - ./Hog/Ignore_ip_xml.sh
     - export XILINXD_LICENSE_FILE=${HOG_XIL_LICENSE}
     - export PATH=$PATH:${HOG_PATH}
-    - eos ls
-    - eos ls /eos/user/e/efex/www/
   
 .only-default: &only-default
   only:

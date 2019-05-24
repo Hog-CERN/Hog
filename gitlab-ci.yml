@@ -10,6 +10,8 @@ before_script:
     - ./Hog/Ignore_ip_xml.sh
     - export XILINXD_LICENSE_FILE=${HOG_XIL_LICENSE}
     - export PATH=$PATH:${HOG_PATH}
+    - eos ls
+    - eos ls /eos/user/e/efex/www/
   
 .only-default: &only-default
   only:
@@ -91,7 +93,7 @@ stages:
     artifacts:
         name: vivado_impl
         paths:
-            - $CI_PROJECT_DIR/VivadoProject/$PROJECT_NAME	
+            - $CI_PROJECT_DIR/VivadoProject/$PROJECT_NAME       
         expire_in: 7 days
 
 .write_bitstream: &write_bitstream
@@ -101,7 +103,7 @@ stages:
         <<: *vars        
     script:
         - vivado -mode batch -notrace -source ./Hog/Tcl/launch_write_bitstream.tcl -tclargs $PROJECT_NAME
-        - eos cp -r $CI_PROJECT_DIR/bin/* $HOG_UNOFFICIAL_BIN_EOS_PATH
+        #- eos cp -r $CI_PROJECT_DIR/bin/* $HOG_UNOFFICIAL_BIN_EOS_PATH
 
     artifacts:
         name: bitfiles

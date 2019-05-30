@@ -10,6 +10,7 @@ if [file exists $bit_file] {
     set name [file rootname [file tail [file normalize [pwd]/..]]]
     set bit_file [file normalize "$old_path/top_$proj_name.bit"]
     set bin_file [file normalize "$old_path/top_$proj_name.bin"]
+    set ltx_file [file normalize "$old_path/top_$proj_name.ltx"]    
     set xml_dir [file normalize "$old_path/../xml"]
     set run_dir [file normalize "$old_path/.."]    
     set bin_dir [file normalize "$old_path/../../../../bin"]    
@@ -27,6 +28,7 @@ if [file exists $bit_file] {
     set dst_dir [file normalize "$bin_dir/$prefix"]
     set dst_bit [file normalize "$dst_dir/$name\-$describe.bit"]
     set dst_bin [file normalize "$dst_dir/$name\-$describe.bin"]
+    set dst_ltx [file normalize "$dst_dir/$name\-$describe.ltx"]    
     set dst_xml [file normalize "$dst_dir/xml"]
     
     Info $NAME 2 "Creating $dst_dir..."
@@ -55,6 +57,16 @@ if [file exists $bit_file] {
     if [file exists $bin_file] {
 	Info $NAME 6 "Copying bin file $bin_file into $dst_bin..."
 	file copy -force $bin_file $dst_bin
+    } else {
+	Info $NAME 6 "No bin file found: $bin_file, that is not a problem"
+    }
+    
+    # ltx File
+    if [file exists $ltx_file] {
+	Info $NAME 6 "Copying ltx file $ltx_file into $dst_ltx..."
+	file copy -force $ltx_file $dst_ltx
+    } else {
+	Info $NAME 6 "No ltx file found: $ltx_file, that is not a problem"
     }
 
     #Version table
@@ -70,7 +82,7 @@ if [file exists $bit_file] {
     if [file exists $timing_file] {
 	file copy -force $timing_file $dst_dir
     } else {
-	Warning $NAME 7 "No timing file found"
+	Warning $NAME 7 "No timing file found, not a problem if running locally"
     }
     
 

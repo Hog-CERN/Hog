@@ -60,6 +60,8 @@ if [file exists $bit_file] {
     } else {
 	Info $NAME 6 "No bin file found: $bin_file, that is not a problem"
     }
+
+    write_debug_probes -quiet $ltx_file
     
     # ltx File
     if [file exists $ltx_file] {

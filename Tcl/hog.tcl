@@ -69,7 +69,7 @@ proc Warning {title id msg} {
 # * title: The name of the script displaying the message
 # * id: A progressive number used as message ID
 # * msg: the message text
-proc CriticalWarining {title id msg} {
+proc CriticalWarning {title id msg} {
     if {[info commands send_msg_id] != ""} {
 	send_msg_id $title-$id {CRITICAL WARNING} $msg
     } else {
@@ -425,6 +425,92 @@ proc GetVer {FILE path} {
     cd $old_path
 }
 ########################################################
+
+
+## Tags the repository with a new version calculated on the basis of the previous tags
+# Arguments:\n
+# * merge_request_number: Gitlab merge request number to be used in candidate version
+# * version_level:        0 if patch is to be increased (default), 1 if minor level is to be increase, 2 if major lav´e is to be increased, 3 or bigger is used to tag an official version from a candidate
+
+proc TagRepository {merge_request_number {version_level 0}} {
+    if [catch {exec git tag --sort=-creatordate} last_tag] {
+	Error TagRepository 1 "No Hog version tags found in this repository."
+    } else {
+	set vers [split $last_tag "\n"]
+	set ver [lindex $vers 0]
+	
+	if {[regexp {^(?:b(\d+))?v(\d+)\.(\d+).(\d+)(?:-(\d+))?$} $ver -> mr M m p n]} {
+	    if {$mr == "" } {
+		Info TagRepository 1 "Found official version $M.$m.$p."
+		if {$version_level == 2} {
+		    incr M
+		    set m 0
+		    set p 0
+		} elseif {$version_level == 1} {
+		    incr m
+		    set p 0
+		} elseif {$version_level >= 3} {
+		    Error TagRepository 1 "Last tag is already official, cannot make it more official than this"		    
+		} else {
+		    incr p
+		}
+		set mr $merge_request_number
+		set n 0
+	    } else {
+		Info TagRepository 1 "Found candidate for version $M.$m.$p, merge request number $mr, attempt number $n."
+		if {$mr != $merge_request_number} {
+		    Warning TagRepository 1 "Merge request number $merge_request_number differs from the one found in the tag $mr, will use $merge_request_number."
+		    set mr $merge_request_number
+		}
+		incr n
+	    }
+	    if {$version_level >= 3} {
+		Info TagRepository 1 "Creating official version v$M.$m.$p..."
+		set new_tag "v$M.$m.$p -m 'Official version $M.$m.$p'"
+	    } else {
+		set new_tag b${mr}v$M.$m.$p-$n
+	    }
+	    if [catch {exec git tag $new_tag} msg] {
+		Error TagRepository 2 "Could not create new tag $new_tag: $msg"
+	    } else {
+		Info TagRepository 3 "New tag $new_tag created successully."
+	    }
+	} else {
+	    Error TagRepository 3 "Could not parse tag: $last_tag"
+	}
+    }
+}
+########################################################
+
+
+## Tags the repository with the official tag taken from the beta tag
+proc TagOfficial {} {
+    if [catch {exec git tag --sort=-creatordate --contains HEAD} last_tag] {
+	Warning TagOfficial 1 "No tag contains current commit"
+	set new_tag 0
+    } else {
+	set vers [split $last_tag "\n"]
+	set ver [lindex $vers 0]
+	if {[regexp {^(?:b(\d+))?v(\d+)\.(\d+).(\d+)(?:-(\d+))?$} $ver -> mr M m p n]} {
+	    if {$mr == "" } {
+		Warning TagOfficial 1 "Version is already official: $M.$m.$p."
+	    } else {
+		Info TagOfficial 1 "Found candidate for version $M.$m.$p, merge request number $mr, attempt number $n."
+		set new_tag v$M.$m.$p
+		Info TagOfficial 2 "Turning into official tag $new_tag"		
+		if [catch {exec git tag -m "Official version $M.$m.$p" $new_tag } msg] {
+		    Error TagOfficial 2 "Could not create new tag $new_tag: $msg"
+		} else {
+		    Info TagOfficial 3 "New tag $new_tag created successully."
+		}
+	    }
+	} else {
+	    Error TagOfficial 3 "Could not parse tag: $last_tag"
+	}
+    }
+}
+########################################################
+
 
 
 ## Read a XML list file and evaluate the Git SHA and version of the listed XML files contained

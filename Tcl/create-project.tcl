@@ -19,7 +19,7 @@
 
 set pre_synth_file  "pre-synthesis.tcl"
 set post_synth_file ""
-set post_impl_file  ""
+set post_impl_file  "post-implementation.tcl"
 set post_bit_file   "post-bitstream.tcl"
 
 set tcl_path         [file normalize [file dirname [info script]]]
@@ -238,4 +238,15 @@ if [info exists PROPERTIES] {
 # set the current impl run
 current_run -implementation [get_runs impl_1]
 
-Info CreateProject 4 "Project $DESIGN created succesfully"
+
+##############
+# UPGRADE IP #
+##############
+Info CreateProject 4 "Upgrading IPs if any..."
+set ips [get_ips *]
+if {$ips != ""} {
+    upgrade_ip $ips
+}
+
+
+Info CreateProject 5 "Project $DESIGN created succesfully"

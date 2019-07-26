@@ -14,7 +14,7 @@ before_script:
     - export XILINXD_LICENSE_FILE=${HOG_XIL_LICENSE}
     - export PATH=$PATH:${HOG_PATH}
     - echo $HOG_PASSWORD | kinit $HOG_USER
-    - eos xrdcp -rf $CI_PROJECT_DIR/Hog/README.md $EOS_MGM_URL///$HOG_UNOFFICIAL_BIN_EOS_PATH
+    - xrdcp -rf $CI_PROJECT_DIR/Hog/README.md $EOS_MGM_URL///$HOG_UNOFFICIAL_BIN_EOS_PATH
 
 .only-default: &only-default
   only:

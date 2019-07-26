@@ -106,7 +106,8 @@ stages:
         <<: *vars        
     script:
         - vivado -mode batch -notrace -source ./Hog/Tcl/launch_write_bitstream.tcl -tclargs $PROJECT_NAME
-        #- eos cp -r $CI_PROJECT_DIR/bin/* $HOG_UNOFFICIAL_BIN_EOS_PATH
+        - echo $HOG_PASSWORD | kinit $HOG_USER
+        - xrdcp -rf $CI_PROJECT_DIR/bin $EOS_MGM_URL///$HOG_UNOFFICIAL_BIN_EOS_PATH
 
     artifacts:
         name: bitfiles

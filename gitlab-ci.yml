@@ -107,7 +107,7 @@ stages:
     script:
         - vivado -mode batch -notrace -source ./Hog/Tcl/launch_write_bitstream.tcl -tclargs $PROJECT_NAME
         - echo $HOG_PASSWORD | kinit $HOG_USER
-        - xrdcp -rf $CI_PROJECT_DIR/bin $EOS_MGM_URL///$HOG_UNOFFICIAL_BIN_EOS_PATH
+        - xrdcp -rf $CI_PROJECT_DIR/bin/* $EOS_MGM_URL///$HOG_UNOFFICIAL_BIN_EOS_PATH
 
     artifacts:
         name: bitfiles

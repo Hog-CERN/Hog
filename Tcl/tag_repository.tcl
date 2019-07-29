@@ -16,6 +16,11 @@ cd $path
 source ./hog.tcl
 cd ../../
 
-TagRepository $merge_request $version_level
+set tags [TagRepository $merge_request $version_level]
+set old_tag [lindex $tags 0]
+set new_tag [lindex $tags 1]
+exec export HOG_OLD_TAG=$old_tag
+exec export HOG_NEW_TAG=$new_tag
+Info tag_repository 1 "Environment varibles exported: HOG_OLD_TAG=$old_tag and HOG_NEW_TAG=$new_tag"
 
 cd $old_path

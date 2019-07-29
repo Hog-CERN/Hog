@@ -139,6 +139,7 @@ tag_official_version:
   only:
     refs:
       - push
+      - web      
     variables:
       - $CI_PIPELINE_SOURCE == "push"
       - $CI_COMMIT_REF_SLUG == "master"

@@ -139,10 +139,11 @@ tag_official_version:
   only:
     refs:
       - push
-      - web      
+      - web
+  except:
     variables:
-      - $CI_PIPELINE_SOURCE == "push"
-      - $CI_COMMIT_REF_SLUG == "master"
+      - $CI_PIPELINE_SOURCE != "push"
+      - $CI_COMMIT_REF_SLUG != "master"
   tags:
      - hog
   stage: merge

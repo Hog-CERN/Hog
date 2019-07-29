@@ -23,7 +23,7 @@ Info $Name 1 "Old tag was: $old_tag and new tag is: $new_tag"
 set official $env(HOG_OFFICIAL_BIN_EOS_PATH)
 set unofficial $env(HOG_UNOFFICIAL_BIN_EOS_PATH)
 
-if {$version_leve >= 3} {
+if {$version_level >= 3} {
     set wild_card $unofficial/*$old_tag*
     set status [catch {exec eos ls $wild_card} folders]
     if {$status == 0} {

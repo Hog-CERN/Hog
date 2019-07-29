@@ -484,7 +484,7 @@ proc TagRepository {merge_request_number {version_level 0}} {
 	}
     }
     
-    return [list $last_tag $new_tag]
+    return [list $ver $new_tag]
 }
 ########################################################
 

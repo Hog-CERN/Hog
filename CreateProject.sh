@@ -1,4 +1,4 @@
-#!/bin/env bash
+#!/usr/bin/env bash
 OLD_DIR=`pwd`
 THIS_DIR="$(dirname "$0")"
 if [ "$1" == "-h" ] || [ "$1" == "-help" ] || [ "$1" == "--help" ] || [ "$1" == "-H" ]; then

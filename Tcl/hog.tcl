@@ -440,7 +440,7 @@ proc TagRepository {merge_request_number {version_level 0}} {
 	set ver [lindex $vers 0]
 	
 	if {[regexp {^(?:b(\d+))?v(\d+)\.(\d+).(\d+)(?:-(\d+))?$} $ver -> mr M m p n]} {
-	    if {$mr == "" } {
+	    if {$mr == "" } { # Tag is official, no b at the beginning
 		Info TagRepository 1 "Found official version $M.$m.$p."
 		if {$version_level == 2} {
 		    incr M
@@ -456,62 +456,37 @@ proc TagRepository {merge_request_number {version_level 0}} {
 		}
 		set mr $merge_request_number
 		set n 0
-	    } else {
-		Info TagRepository 1 "Found candidate for version $M.$m.$p, merge request number $mr, attempt number $n."
-		if {$mr != $merge_request_number} {
-		    Warning TagRepository 1 "Merge request number $merge_request_number differs from the one found in the tag $mr, will use $merge_request_number."
-		    set mr $merge_request_number
-		}
+
+	    } else { # Tag is not official, just increment the attempt
+		    Info TagRepository 1 "Found candidate for version $M.$m.$p, merge request number $mr, attempt number $n."
+		    if {$mr != $merge_request_number} {
+		        Warning TagRepository 1 "Merge request number $merge_request_number differs from the one found in the tag $mr, will use $merge_request_number."
+		        set mr $merge_request_number
+		    }
 		incr n
 	    }
 	    if {$version_level >= 3} {
-		Info TagRepository 1 "Creating official version v$M.$m.$p..."
-		set new_tag "v$M.$m.$p -m 'Official version $M.$m.$p'"
+		    Info TagRepository 1 "Creating official version v$M.$m.$p..."
+		    set new_tag "-m 'Official version $M.$m.$p' v$M.$m.$p"
 	    } else {
-		set new_tag b${mr}v$M.$m.$p-$n
+		    set new_tag b${mr}v$M.$m.$p-$n
 	    }
+
+	    # Tagging repositroy
 	    if [catch {exec git tag $new_tag} msg] {
-		Error TagRepository 2 "Could not create new tag $new_tag: $msg"
+		    Error TagRepository 2 "Could not create new tag $new_tag: $msg"
 	    } else {
-		Info TagRepository 3 "New tag $new_tag created successully."
+		    Info TagRepository 3 "New tag $new_tag created successully."
 	    }
+	    
 	} else {
 	    Error TagRepository 3 "Could not parse tag: $last_tag"
 	}
     }
+    
+    return [list $ver $new_tag]
 }
 ########################################################
-
-
-## Tags the repository with the official tag taken from the beta tag
-proc TagOfficial {} {
-    if [catch {exec git tag --sort=-creatordate --contains HEAD} last_tag] {
-	Warning TagOfficial 1 "No tag contains current commit"
-	set new_tag 0
-    } else {
-	set vers [split $last_tag "\n"]
-	set ver [lindex $vers 0]
-	if {[regexp {^(?:b(\d+))?v(\d+)\.(\d+).(\d+)(?:-(\d+))?$} $ver -> mr M m p n]} {
-	    if {$mr == "" } {
-		Warning TagOfficial 1 "Version is already official: $M.$m.$p."
-	    } else {
-		Info TagOfficial 1 "Found candidate for version $M.$m.$p, merge request number $mr, attempt number $n."
-		set new_tag v$M.$m.$p
-		Info TagOfficial 2 "Turning into official tag $new_tag"		
-		if [catch {exec git tag -m "Official version $M.$m.$p" $new_tag } msg] {
-		    Error TagOfficial 2 "Could not create new tag $new_tag: $msg"
-		} else {
-		    Info TagOfficial 3 "New tag $new_tag created successully."
-		}
-	    }
-	} else {
-	    Error TagOfficial 3 "Could not parse tag: $last_tag"
-	}
-    }
-}
-########################################################
-
-
 
 ## Read a XML list file and evaluate the Git SHA and version of the listed XML files contained
 #

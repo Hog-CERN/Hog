@@ -4,7 +4,7 @@ before_script:
     - git remote set-url origin https://${HOG_USER}:${HOG_PUSH_TOKEN}@$REPO
     - git config user.email ${HOG_EMAIL}
     - git config user.name ${HOG_USER}
-    - git fetch --unshallow 
+    - git fetch 
     - git fetch origin $CI_COMMIT_REF_NAME    
     - git fetch origin $CI_MERGE_REQUEST_TARGET_BRANCH_NAME
     - git checkout $CI_COMMIT_REF_NAME
@@ -13,7 +13,9 @@ before_script:
     - ./Hog/Ignore_ip_xml.sh
     - export XILINXD_LICENSE_FILE=${HOG_XIL_LICENSE}
     - export PATH=$PATH:${HOG_PATH}
-  
+    - echo $HOG_PASSWORD | kinit $HOG_USER
+    - xrdcp -rf $CI_PROJECT_DIR/Hog/README.md $EOS_MGM_URL///$HOG_UNOFFICIAL_BIN_EOS_PATH
+
 .only-default: &only-default
   only:
     refs:
@@ -104,7 +106,8 @@ stages:
         <<: *vars        
     script:
         - vivado -mode batch -notrace -source ./Hog/Tcl/launch_write_bitstream.tcl -tclargs $PROJECT_NAME
-        #- eos cp -r $CI_PROJECT_DIR/bin/* $HOG_UNOFFICIAL_BIN_EOS_PATH
+        - echo $HOG_PASSWORD | kinit $HOG_USER
+        - xrdcp -rf $CI_PROJECT_DIR/bin/* $EOS_MGM_URL///$HOG_UNOFFICIAL_BIN_EOS_PATH
 
     artifacts:
         name: bitfiles
@@ -135,15 +138,16 @@ merge_and_tag:
 tag_official_version:
   only:
     refs:
-      - merge_requests
+      - push
+      - web
+  except:
     variables:
-      - $CI_PIPELINE_SOURCE == "push"
-      - $CI_COMMIT_REF_SLUG == "master"
+      - $CI_PIPELINE_SOURCE != "push"
+      - $CI_COMMIT_REF_SLUG != "master"
   tags:
      - hog
   stage: merge
   script:
-     - echo This is a merge request that was merged
-     - vivado -mode batch -notrace -source ./Hog/Tcl/tag_repository.tcl -tclargs $CI_MERGE_REQUEST_IID 3
+     - vivado -mode batch -notrace -source ./Hog/Tcl/tag_repository.tcl -tclargs 0 3
      - git push origin $CI_COMMIT_REF_NAME
      - git push --tags origin $CI_COMMIT_REF_NAME

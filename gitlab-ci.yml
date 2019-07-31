@@ -127,8 +127,8 @@ merge_and_tag:
       - DESCRIPTION=`echo $MR_PARAMETERS | jq -r '.description'`
       - "echo \"WIP: ${WIP},  Merge Request Status: ${MERGE_STATUS}   Description: ${DESCRIPTION}\""
       - export VERSION=0
-      - "if [[ $DESCRIPTION =~ .*MAJOR_VERSION.* ]]; then export VERSION=1; fi"
-      - "if [[ $DESCRIPTION =~ .*MINOR_VERSION.* ]]; then export VERSION=2; fi"
+      - "if [[ $DESCRIPTION =~ .*MINOR_VERSION.* ]]; then export VERSION=1; fi"
+      - "if [[ $DESCRIPTION =~ .*MAJOR_VERSION.* ]]; then export VERSION=2; fi"
       - "echo \"Version Level $VERSION\""
       - git merge --no-commit origin/master
       - vivado -mode batch -notrace -source ./Hog/Tcl/tag_repository.tcl -tclargs $CI_MERGE_REQUEST_IID $VERSION

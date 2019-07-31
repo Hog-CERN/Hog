@@ -529,12 +529,18 @@ proc CopyXMLsFromListFile {list_file path dst {xml_version "0.0.0"} {xml_sha "00
 	    set file_and_prop [regexp -all -inline {\S+} $line]
 	    set xmlfile [lindex $file_and_prop 0]
 	    set xmlfile "$path/$xmlfile"
+	    if [llength $file_and_prop] > 1 {
+		set vhdlfile [lindex $file_and_prop 1]
+		set vhdlfile "$path/$vhdlfile"		
+	    } else {
+		set vhdlfile 0
+	    }
 	    if {[file exists $xmlfile]} {
 		set xmlfile [file normalize $xmlfile]
-		Info ReadListFile 2 "Copying $xmlfile to $dst..."
+		Info CopyXMLs 2 "Copying $xmlfile to $dst..."
 		set in  [open $xmlfile r]
 		set out [open $dst/[file tail $xmlfile] w]
-
+		
 		while {[gets $in line] != -1} {
 		    set new_line [regsub {(.*)__VERSION__(.*)} $line "\\1$xml_version\\2"]
 		    set new_line2 [regsub {(.*)__GIT_SHA__(.*)} $new_line "\\1$xml_sha\\2"]		    
@@ -548,10 +554,11 @@ proc CopyXMLsFromListFile {list_file path dst {xml_version "0.0.0"} {xml_sha "00
 		    set type [lindex $prop 0]
 		}
 	    } else {
-		Info ReadListFile 0 "err: XML file $xmlfile not found"
+		Warning CopyXMLs 0 "XML file $xmlfile not found"
 	    }
+	    
 	}
     }
-    Info ReadListFile 1 "$cnt file/s copied"
+    Info CopyXMLs 1 "$cnt file/s copied"
 }
 ########################################################

@@ -458,25 +458,25 @@ proc TagRepository {merge_request_number {version_level 0}} {
 		set n 0
 
 	    } else { # Tag is not official, just increment the attempt
-		Info TagRepository 1 "Found candidate for version $M.$m.$p, merge request number $mr, attempt number $n."
-		if {$mr != $merge_request_number} {
-		    Warning TagRepository 1 "Merge request number $merge_request_number differs from the one found in the tag $mr, will use $merge_request_number."
-		    set mr $merge_request_number
-		}
+		    Info TagRepository 1 "Found candidate for version $M.$m.$p, merge request number $mr, attempt number $n."
+		    if {$mr != $merge_request_number} {
+		        Warning TagRepository 1 "Merge request number $merge_request_number differs from the one found in the tag $mr, will use $merge_request_number."
+		        set mr $merge_request_number
+		    }
 		incr n
 	    }
 	    if {$version_level >= 3} {
-		Info TagRepository 1 "Creating official version v$M.$m.$p..."
-		set new_tag "v$M.$m.$p -m 'Official version $M.$m.$p'"
+		    Info TagRepository 1 "Creating official version v$M.$m.$p..."
+		    set new_tag "-m 'Official version $M.$m.$p' v$M.$m.$p"
 	    } else {
-		set new_tag b${mr}v$M.$m.$p-$n
+		    set new_tag b${mr}v$M.$m.$p-$n
 	    }
 
 	    # Tagging repositroy
 	    if [catch {exec git tag $new_tag} msg] {
-		Error TagRepository 2 "Could not create new tag $new_tag: $msg"
+		    Error TagRepository 2 "Could not create new tag $new_tag: $msg"
 	    } else {
-		Info TagRepository 3 "New tag $new_tag created successully."
+		    Info TagRepository 3 "New tag $new_tag created successully."
 	    }
 	    
 	} else {

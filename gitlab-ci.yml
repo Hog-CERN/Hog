@@ -66,9 +66,7 @@ stages:
         name: vivado_runs
         paths:
             - $CI_PROJECT_DIR/VivadoProject/$PROJECT_NAME
-            - $CI_PROJECT_DIR/$IP_PATH_A
-            - $CI_PROJECT_DIR/$IP_PATH_B
-            - $CI_PROJECT_DIR/$IP_PATH_C
+            - $CI_PROJECT_DIR/$IP_PATH
         expire_in: 1 day
 
 .synthesise_project: &synthesise_project

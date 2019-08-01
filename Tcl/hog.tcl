@@ -522,14 +522,14 @@ proc CopyXMLsFromListFile {list_file path dst {xml_version "0.0.0"} {xml_sha "00
     #  Process data file
     set data [split $file_data "\n"]
     set n [llength $data]
-    Info ReadListFile 1 "$n lines read from $list_file"
+    Info CopyXMLs 1 "$n lines read from $list_file"
     set cnt 0
     foreach line $data {
 	if {![regexp {^ *$} $line] & ![regexp {^ *\#} $line] } { #Exclude empty lines and comments
 	    set file_and_prop [regexp -all -inline {\S+} $line]
 	    set xmlfile [lindex $file_and_prop 0]
 	    set xmlfile "$path/$xmlfile"
-	    if [llength $file_and_prop] > 1 {
+	    if {[llength $file_and_prop] > 1} {
 		set vhdlfile [lindex $file_and_prop 1]
 		set vhdlfile "$path/$vhdlfile"		
 	    } else {

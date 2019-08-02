@@ -76,6 +76,8 @@ stages:
         <<: *vars        
     script:
         - git status
+        - git diff
+        - git stash
         - vivado -mode batch -notrace -source ./Hog/Tcl/launch_synthesis.tcl -tclargs $PROJECT_NAME
     artifacts:
         name: vivado_synth

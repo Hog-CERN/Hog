@@ -26,5 +26,9 @@ set prog [get_property PROGRESS [get_runs synth_1]]
 set status [get_property STATUS [get_runs synth_1]]
 Info $Name 4 "Run: synth_1 progress: $prog, status : $status"
 
-Info $Name 5 "All done."
+if {$status ne "Complete!"} {
+    Error $Name 5 "Synthesis error"
+}
+
+Info $Name 6 "All done."
 cd $old_path

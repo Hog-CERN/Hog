@@ -26,5 +26,8 @@ set prog [get_property PROGRESS [get_runs impl_1]]
 set status [get_property STATUS [get_runs impl_1]]
 Info $Name 6 "Run: impl_1 progress: $prog, status : $status"
 
+if {$status ne "Complete!"} {
+    Error $Name 5 "Write bitstream error"
+}
 Info $Name 7 "All done."
 cd $old_path

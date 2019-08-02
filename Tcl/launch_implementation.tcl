@@ -51,5 +51,9 @@ puts $status_file "WHS: $whs"
 puts $status_file "THS: $ths"        
 close $status_file
 
+if {$status ne "Complete!"} {
+    Error $Name 5 "Implementation error"
+}
+
 Info $Name 7 "All done."
 cd $old_path

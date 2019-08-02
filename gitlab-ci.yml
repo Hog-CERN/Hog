@@ -49,7 +49,7 @@ stages:
         <<: *vars
      script:
       - env
-      - ./CreateProject.sh $PROJECT_NAME
+      - ./Hog/CreateProject.sh $PROJECT_NAME
      artifacts:
        name: vivado_projects
        paths:

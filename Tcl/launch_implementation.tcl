@@ -51,7 +51,7 @@ puts $status_file "WHS: $whs"
 puts $status_file "THS: $ths"        
 close $status_file
 
-if {$status ne "Complete!"} {
+if {$prog ne "100%"} {
     Error $Name 5 "Implementation error"
 }
 

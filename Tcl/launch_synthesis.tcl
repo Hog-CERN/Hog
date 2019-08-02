@@ -26,8 +26,8 @@ set prog [get_property PROGRESS [get_runs synth_1]]
 set status [get_property STATUS [get_runs synth_1]]
 Info $Name 4 "Run: synth_1 progress: $prog, status : $status"
 
-if {$status ne "Complete!"} {
-    Error $Name 5 "Synthesis error"
+if {$prog ne "100%"} {
+    Error $Name 5 "Synthesis error, status is: $status"
 }
 
 Info $Name 6 "All done."

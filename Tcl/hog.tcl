@@ -467,7 +467,7 @@ proc TagRepository {merge_request_number {version_level 0}} {
 	    }
 	    if {$version_level >= 3} {
 		    Info TagRepository 1 "Creating official version v$M.$m.$p..."
-		    set new_tag "-m 'Official version $M.$m.$p' v$M.$m.$p"
+		    set new_tag "-m  v$M.$m.$p 'Official_version_$M.$m.$p'"
 	    } else {
 		    set new_tag b${mr}v$M.$m.$p-$n
 	    }

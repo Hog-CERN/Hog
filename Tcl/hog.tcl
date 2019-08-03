@@ -466,14 +466,16 @@ proc TagRepository {merge_request_number {version_level 0}} {
 		incr n
 	    }
 	    if {$version_level >= 3} {
-		    Info TagRepository 1 "Creating official version v$M.$m.$p..."
-		    set new_tag "-m  v$M.$m.$p 'Official_version_$M.$m.$p'"
+		Info TagRepository 1 "Creating official version v$M.$m.$p..."
+		set new_tag v$M.$m.$p 
+		set tag_opt "-m 'Official_version_$M.$m.$p'"
 	    } else {
-		    set new_tag b${mr}v$M.$m.$p-$n
+		set new_tag b${mr}v$M.$m.$p-$n
+		set tag_opt ""
 	    }
 
 	    # Tagging repositroy
-	    if [catch {exec git tag {*}$new_tag} msg] {
+	    if [catch {exec git tag "$new_tag $tag_opt"} msg] {
 		    Error TagRepository 2 "Could not create new tag $new_tag: $msg"
 	    } else {
 		    Info TagRepository 3 "New tag $new_tag created successully."

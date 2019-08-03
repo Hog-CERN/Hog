@@ -475,7 +475,7 @@ proc TagRepository {merge_request_number {version_level 0}} {
 	    }
 
 	    # Tagging repositroy
-	    if [catch {exec git tag $new_tag $tag_opt} msg] {
+	    if [catch {exec git tag {*}"$new_tag $tag_opt"} msg] {
 		    Error TagRepository 2 "Could not create new tag $new_tag: $msg"
 	    } else {
 		    Info TagRepository 3 "New tag $new_tag created successully."

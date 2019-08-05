@@ -93,6 +93,7 @@ if [file exists ./Top/$proj_name/xml/xml.lst] {
     scan [string range $xml_ver_hex 2 3] %x m
     scan [string range $xml_ver_hex 4 7] %x c
     set xml_ver "$M.$m.$c"
+
     file delete -force $old_path/../xml
     file copy -force $xml_target $old_path/..
 

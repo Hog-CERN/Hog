@@ -54,7 +54,16 @@ foreach run_name $runs {
     set prog [get_property PROGRESS $run_name]
     set status [get_property STATUS $run_name]
     Info $Name 6 "Run: $run_name progress: $prog, status : $status"
+    if {$prog ne "100%"} {
+	set failure 1
+    } else {
+	set failure 0
+    }
 }
 
-Info $Name 7 "All done."
+if {$failure eq 1} {
+    Error $Name 7 "At least on IP synthesis failed"
+}
+
+Info $Name 8 "All done."
 cd $old_path

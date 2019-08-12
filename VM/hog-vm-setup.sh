@@ -57,7 +57,7 @@ cp -f ./hog_bashrc /home/$HOG_USERNAME/.bashrc
 echo
 echo "[Hog VM Setup] Installing useful packages..."
 curl -L https://packages.gitlab.com/install/repositories/runner/gitlab-runner/script.rpm.sh | bash
-yum -y install gitlab-runner jq emacs doxygen
+yum -y install gitlab-runner jq emacs doxygen eos-client
 
 echo
 echo "[Hog VM Setup] Installing wandisco repository..."

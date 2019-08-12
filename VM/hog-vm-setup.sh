@@ -19,10 +19,10 @@ else
     exit -1
 fi
 
-if [ -v HOG_PRIVATETOKEN ]; then
-    echo "[Hog VM Setup] The private token for gitlab acces is set to : $HOG_PRIVATETOKEN"
+if [ -v HOG_TOKEN ]; then
+    echo "[Hog VM Setup] The private token for gitlab acces is set to : $HOG_TOKEN"
 else
-    echo "[Hog VM Setup] ERROR: variable HOG_PRIVATETOKEN should be set with a valid gitlab private token"
+    echo "[Hog VM Setup] ERROR: variable HOG_TOKEN should be set with a valid gitlab private token"
     exit 3
 fi
 

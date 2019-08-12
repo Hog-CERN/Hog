@@ -378,6 +378,7 @@ proc GetVer {FILE path} {
 	    set ver [lindex $vers 0]	    
 	    foreach v $vers {
 		if {[regexp {^v.*$} $v]} {
+		    set un_ver $ver
 		    set ver $v
 		    break
 		}
@@ -400,8 +401,19 @@ proc GetVer {FILE path} {
 	set M [format %02X $M]
 	set m [format %02X $m]
 	set c [format %04X $c]
-	set n [format %04X 0]
-	set official [format %04X 0x8000]
+	if {[regexp {^b(?:\d+)v(\d+)\.(\d+).(\d+)-(\d+)$} $un_ver -> M_u m_u c_u n]} {
+	    Info GetVer 1 "Beta version $un_ver was found for official version $ver, using attempt number $n"
+	    if {$M != $M_u || $m != $m_u || $c != $c_u} {
+		Warning GetVer 1 "Beta version $un_ver and official version $ver do not match"		
+	    }
+	    set n [format %04X $n]
+
+	} else {
+	    Warning GetVer 1 "No beta version was found for official version $ver"
+	    set n [format %04X 0]
+	}
+	
+	set official [format %04X 0xc000]
 	set comm $SHA
     } elseif {$ver == "none"} {
 	# Unofficial done locally but properly committed

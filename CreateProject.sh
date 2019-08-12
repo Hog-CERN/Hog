@@ -15,11 +15,19 @@ fi
 cd "${THIS_DIR}"
 if [ "a$1" == "a" ]
 then
-    echo " Usage: $0 <project name>"
-    echo 
-    echo "  Possible projects are:"
-    ls -1 ../Top
-    echo 
+    if [ -e ../Top ]
+       then
+	   echo " Usage: $0 <project name>"
+	   echo 
+	   echo "  Possible projects are:"
+	   ls -1 ../Top
+	   echo
+    else
+	    echo "ERROR: Top folder not found, Hog is not in a Hog-compatible HDL repository."
+	    echo
+	    cd "${OLD_DIR}"
+	    exit -1
+    fi
 else
     DIR="../Top/$1"
     if [ -d "${DIR}" ]
@@ -33,7 +41,7 @@ else
 	    echo "ERROR: No vivado executable found and no variable VIVADO_PATH set\n"
 	    echo " "
 	    cd "${OLD_DIR}"
-	    exit 
+	    exit -1
 	    else
 		echo "VIVADO_PATH is set to '$VIVADO_PATH'"
 		VIVADO="$VIVADO_PATH/vivado"
@@ -43,7 +51,8 @@ else
 	if [ ! -f "${VIVADO}" ]
 	then
 	    echo "ERROR: Vivado executable $VIVADO not found"
-	    exit
+	    cd "${OLD_DIR}"
+	    exit -1
 	else
 	    echo "INFO: using vivado executable: $VIVADO"
 	fi
@@ -61,6 +70,8 @@ else
 	if [ $? != 0 ]
 	then
 	    echo "ERROR: Vivado returned an error state."
+	    cd "${OLD_DIR}"
+	    exit -1
 	fi
 
     else

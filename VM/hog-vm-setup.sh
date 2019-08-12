@@ -19,6 +19,11 @@ echo [Hog VM Setup] Making $HOG_USERNAME home...
 mkdir /home/$HOG_USERNAME
 chmod a+rxw /home/$HOG_USERNAME
 chown $HOG_USERNAME:$HOG_USERGROUP /home/$HOG_USERNAME
+/sbin/usermod -m -d /home/$AWE_USERNAME $AWE_USERNAME
+
+echo [Hog VM Setup] Copying files to $HOG_USERNAME home...
+cp -f ./hog_bash_profile /home/$HOG_USERNAME/.bash_profile
+cp -f ./hog_bashrc /home/$HOG_USERNAME/.bashrc
 
 echo
 echo "[Hog VM Setup] Installing useful packages..."

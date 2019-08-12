@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+OLD_DIR=`pwd`
+THIS_DIR="$(dirname "$0")"
 
 if [ "$(whoami)" != "root" ]; then
     echo "[Hog VM Setup] FATAL: Script must be run as root."
@@ -23,7 +25,7 @@ if [ -v HOG_TOKEN ]; then
     echo "[Hog VM Setup] The private token for gitlab acces is set to : $HOG_TOKEN"
 else
     echo "[Hog VM Setup] ERROR: variable HOG_TOKEN should be set with a valid gitlab private token"
-    exit 3
+    exit -1
 fi
 
 if [ -v HOG_VIVADO_DIR ]; then
@@ -33,7 +35,7 @@ else
     exit -1
 fi
 
-
+cd "${THIS_DIR}"
 
 echo
 echo [Hog VM Setup] Adding $HOG_USERNAME user...
@@ -117,4 +119,6 @@ else
     echo
     echo "[Hog VM Setup] Vivado setup not found in $VIVADO_DIR..."
 fi
+
+cd "${OLD_DIR}"
 

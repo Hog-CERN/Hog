@@ -1,12 +1,41 @@
-HOG_USERNAME=efex
-HOG_USERGROUP=zp
-HOG_VIVADO_DIR=/afs/cern.ch/work/f/fgonnell/Xilinx_Vivado_SDK_2017.3_1005_1/
-HOG_TOKEN=LDRqe3_ExsUByTmEduxs
+#!/usr/bin/env bash
+OLD_DIR=`pwd`
+THIS_DIR="$(dirname "$0")"
 
 if [ "$(whoami)" != "root" ]; then
     echo "[Hog VM Setup] FATAL: Script must be run as root."
     exit -1
 fi
+
+if [ -v HOG_USERNAME ]; then
+    echo "[Hog VM Setup] The user Hog will use is: $HOG_USERNAME"
+else
+    echo "[Hog VM Setup] ERROR: variable HOG_USERNAME should be set with a valid CERN user name"
+    exit -1
+fi
+
+if [ -v HOG_USERGROUP ]; then
+    echo "[Hog VM Setup] The user group Hog will use is: $HOG_USERGROUP"
+else
+    echo "[Hog VM Setup] ERROR: variable HOG_USERGROUP should be set with a valid CERN user group"
+    exit -1
+fi
+
+if [ -v HOG_TOKEN ]; then
+    echo "[Hog VM Setup] The private token for gitlab acces is set to : $HOG_TOKEN"
+else
+    echo "[Hog VM Setup] ERROR: variable HOG_TOKEN should be set with a valid gitlab private token"
+    exit -1
+fi
+
+if [ -v HOG_VIVADO_DIR ]; then
+    echo "[Hog VM Setup] Vivado installation direcotry is set to $HOG_VIVADO_DIR"
+else
+    echo "[Hog VM Setup] ERROR: variable HOG_VIVADO_DIR should be set and point to a valid Xilinx Vivado SDK installation directory (containing the xsetup file)."
+    exit -1
+fi
+
+cd "${THIS_DIR}"
 
 echo
 echo [Hog VM Setup] Adding $HOG_USERNAME user...
@@ -19,6 +48,11 @@ echo [Hog VM Setup] Making $HOG_USERNAME home...
 mkdir /home/$HOG_USERNAME
 chmod a+rxw /home/$HOG_USERNAME
 chown $HOG_USERNAME:$HOG_USERGROUP /home/$HOG_USERNAME
+/sbin/usermod -m -d /home/$HOG_USERNAME $HOG_USERNAME
+
+echo [Hog VM Setup] Copying files to $HOG_USERNAME home...
+cp -f ./hog_bash_profile /home/$HOG_USERNAME/.bash_profile
+cp -f ./hog_bashrc /home/$HOG_USERNAME/.bashrc
 
 echo
 echo "[Hog VM Setup] Installing useful packages..."
@@ -73,7 +107,7 @@ fi
 echo
 echo "[Hog VM Setup] Adding lines into fstab..."
 echo " " >> /etc/fstab
-echo "# Lines added by awe #" >> /etc/fstab
+echo "# Lines added by Hog #" >> /etc/fstab
 echo "/swapfile   swap    swap    sw  0   0" >> /etc/fstab
 echo "/dev/vdb  /mnt/vd  ext4    rw,relatime,seclabel,data=ordered 0 0" >> /etc/fstab
 
@@ -85,4 +119,6 @@ else
     echo
     echo "[Hog VM Setup] Vivado setup not found in $VIVADO_DIR..."
 fi
+
+cd "${OLD_DIR}"
 

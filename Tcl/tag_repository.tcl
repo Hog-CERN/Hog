@@ -37,15 +37,15 @@ if {$version_level >= 3} {
 
     # Run doxygen
     set doxygen_conf "./doxygen/doxygen.conf"
-     if {[file exists $doxygen_conf]} {
-	 Info $name 2 "Running doxygen with $doxygen_conf..."
-	 set outfile [open $doxygen_conf a]
-	 puts $outfile \nPROJECT_NUMBER=$new_tag
-	 close $outfile
-	 exec doxygen $doxygen_conf
-     } else {
-	 Info $name 2 "Could not find $doxygen_conf, will not run doxygen"
-    {
+    if {[file exists $doxygen_conf] & [DoxygenVersion 1.8.15]} {
+	Info $name 2 "Running doxygen with $doxygen_conf..."
+	set outfile [open $doxygen_conf a]
+	puts $outfile \nPROJECT_NUMBER=$new_tag
+	close $outfile
+	exec doxygen $doxygen_conf
+    } else {
+	Info $name 2 "Could not find $doxygen_conf, will not run doxygen"
+    }
     set wild_card $unofficial/*$old_tag*
     set status [catch {exec eos ls $wild_card} folders]
     if {$status == 0} {

@@ -91,26 +91,37 @@ proc Error            {title id msg} {
 	puts "*** $title-$id ERROR $msg"
     }
 }
-
 ########################################################
 
 proc GetRepoPath {} {
     return "[file normalize [file dirname [info script]]]/../../"
 }
-
-
 ########################################################
-## Return 1 if the system Git version is greater or equal to the target
 
+## Return 1 if the system Git version is greater or equal to the target
 proc GitVersion {target_version} {
     set ver [split $target_version "."]
-    set current_ver [split [lindex [exec git --version] 2] "."]
-    set target [expr [lindex $ver 0]*100000 + [lindex $ver 1]*100 + [lindex $ver 0]]
-    set current [expr [lindex $current_ver 0]*100000 + [lindex $current_ver 1]*100 + [lindex $current_ver 0]]
-    
+    set v [exec git --version]
+    Info GitVersion 0 "Found doxygen version: $v"
+    set current_ver [split [lindex $v 2] "."]
+    set target [expr [lindex $ver 0]*100000 + [lindex $ver 1]*100 + [lindex $ver 2]]
+    set current [expr [lindex $current_ver 0]*100000 + [lindex $current_ver 1]*100 + [lindex $current_ver 2]]
+
     return [expr $target <= $current]
 }
+########################################################
 
+## Return 1 if the system Doxygen version is greater or equal to the target
+proc DoxygenVersion {target_version} {
+    set ver [split $target_version "."]
+    set v [exec doxygen --version]
+    Info DoxygenVersion 0 "Found doxygen version: $v"
+    set current_ver [split $v "."]
+    set target [expr [lindex $ver 0]*100000 + [lindex $ver 1]*100 + [lindex $ver 2]]
+    set current [expr [lindex $current_ver 0]*100000 + [lindex $current_ver 1]*100 + [lindex $current_ver 2]]
+
+    return [expr $target <= $current]
+}
 ########################################################
 
 ## Read a list file and adds the files to Vivado project, adding the additional information as file type.

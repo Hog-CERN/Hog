@@ -25,6 +25,7 @@ set official $env(HOG_OFFICIAL_BIN_EOS_PATH)
 set unofficial $env(HOG_UNOFFICIAL_BIN_EOS_PATH)
 
 if {$version_level >= 3} {
+    # Delete unofficial tags
     Info $Name 2 "Looking for unofficial tags to delete for official version $new_tag..."
     set res [ catch {exec git tag {*}"-l b*$new_tag*"} tags_to_delete]
     set number_of_tags [llength $tags_to_delete]
@@ -34,6 +35,17 @@ if {$version_level >= 3} {
 	Info $Name 2 "Tags deleted: $deleted_tags"
     }
 
+    # Run doxygen
+    set doxygen_conf "./doxygen/doxygen.conf"
+     if {[file exists $doxygen_conf]} {
+	 Info $name 2 "Running doxygen with $doxygen_conf..."
+	 set outfile [open $doxygen_conf a]
+	 puts $outfile \nPROJECT_NUMBER=$new_tag
+	 close $outfile
+	 exec doxygen $doxygen_conf
+     } else {
+	 Info $name 2 "Could not find $doxygen_conf, will not run doxygen"
+    {
     set wild_card $unofficial/*$old_tag*
     set status [catch {exec eos ls $wild_card} folders]
     if {$status == 0} {
@@ -42,7 +54,14 @@ if {$version_level >= 3} {
 	set new_dir $official/$new_tag
 	Info $Name 4 "Creating $new_dir"
 	exec eos mkdir $new_dir
-	
+	# Copying doxygen
+	if {[file exists ../Doc/html]} {
+	    set dox_dir $official/$new_tag/doc
+	    Info $Name 4 "Creating doxygen dir $dox_dir..."
+	    exec eos mkdir $dox_dir
+	    Info $Name 4 "Copying doxygen files..."
+	    exec -ignorestderr eos cp -r ../Doc/html/* $dox_dir
+	}
 	foreach f $folders {
 	    set dst $new_dir/[regsub "(.*)_$old_tag\(.*\)" $f "\\1\\2"]
 	    Info $Name 4 "Copying $f into $dst..."

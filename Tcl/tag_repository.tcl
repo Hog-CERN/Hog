@@ -20,10 +20,20 @@ set tags [TagRepository $merge_request $version_level]
 set old_tag [lindex $tags 0]
 set new_tag [lindex $tags 1]
 Info $Name 1 "Old tag was: $old_tag and new tag is: $new_tag"
+
 set official $env(HOG_OFFICIAL_BIN_EOS_PATH)
 set unofficial $env(HOG_UNOFFICIAL_BIN_EOS_PATH)
 
 if {$version_level >= 3} {
+    Info $Name 2 "Looking for unofficial tags to delete for official version $new_tag..."
+    set res [ catch {exec git tag {*}"-l b*$new_tag*"} tags_to_delete]
+    set number_of_tags [llength $tags_to_delete]
+    Info $Name 2 "Found $number_of_tags tags to delete: $tags_to_delete"
+    if {$number_of_tags > 0} {
+	set res [catch {exec git push origin {*}"-d $tags_to_delete"} deleted_tags]
+	Info $Name 2 "Tags deleted: $deleted_tags"
+    }
+
     set wild_card $unofficial/*$old_tag*
     set status [catch {exec eos ls $wild_card} folders]
     if {$status == 0} {

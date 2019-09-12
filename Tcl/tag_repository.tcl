@@ -23,6 +23,7 @@ Info $Name 1 "Old tag was: $old_tag and new tag is: $new_tag"
 
 set official $env(HOG_OFFICIAL_BIN_EOS_PATH)
 set unofficial $env(HOG_UNOFFICIAL_BIN_EOS_PATH)
+set use_doxygen $env(HOG_USE_DOXYGEN)
 
 if {$version_level >= 3} {
     # Delete unofficial tags
@@ -37,14 +38,17 @@ if {$version_level >= 3} {
 
     # Run doxygen
     set doxygen_conf "./doxygen/doxygen.conf"
-    if {[file exists $doxygen_conf] & [DoxygenVersion 1.8.15]} {
-	Info $name 2 "Running doxygen with $doxygen_conf..."
-	set outfile [open $doxygen_conf a]
-	puts $outfile \nPROJECT_NUMBER=$new_tag
-	close $outfile
-	exec doxygen $doxygen_conf
-    } else {
-	Info $name 2 "Could not find $doxygen_conf, will not run doxygen"
+
+    if {$use_doxygen == 1} {
+	if {[file exists $doxygen_conf] & [DoxygenVersion 1.8.13]} {
+	    Info $Name 2 "Running doxygen with $doxygen_conf..."
+	    set outfile [open $doxygen_conf a]
+	    puts $outfile \nPROJECT_NUMBER=$new_tag
+	    close $outfile
+	    exec doxygen $doxygen_conf
+	} else {
+	    Info $Name 2 "Could not find $doxygen_conf, or Doxygen version is older than 1.8.13. Will not run doxygen."
+	}
     }
     set wild_card $unofficial/*$old_tag*
     set status [catch {exec eos ls $wild_card} folders]
@@ -54,7 +58,8 @@ if {$version_level >= 3} {
 	set new_dir $official/$new_tag
 	Info $Name 4 "Creating $new_dir"
 	exec eos mkdir $new_dir
-	# Copying doxygen
+
+	# Copying doxygen documentation if files were created
 	if {[file exists ../Doc/html]} {
 	    set dox_dir $official/$new_tag/doc
 	    Info $Name 4 "Creating doxygen dir $dox_dir..."

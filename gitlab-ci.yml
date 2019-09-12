@@ -146,6 +146,8 @@ tag_official_version:
      - hog
   stage: merge
   script:
+     - git status
+     - git pull
      - vivado -mode batch -notrace -source ./Hog/Tcl/tag_repository.tcl -tclargs 0 3
      - git push origin $CI_COMMIT_REF_NAME
      - git push --tags origin $CI_COMMIT_REF_NAME

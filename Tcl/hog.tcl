@@ -587,3 +587,69 @@ proc CopyXMLsFromListFile {list_file path dst {xml_version "0.0.0"} {xml_sha "00
     Info CopyXMLs 1 "$cnt file/s copied"
 }
 ########################################################
+
+## Returns the dst path relative to base                                                                                                                                                                  
+#                                                                                                                                                                                                         
+# Arguments:                                                                                                                                                                                              
+# * base   the path with respect to witch the dst path is calculated                                                                                                                                      
+# * dst:   the path to be calculated with respect to base                                                                                                                                                 
+
+proc relative {base dst} {
+    if {![string equal [file pathtype $base] [file pathtype $dst]]} {
+        return -code error "Unable to compute relation for paths of different pathtypes: [file pathtype $base] vs. [file pathtype $dst], ($base vs. $dst)"
+    }
+
+    set base [file normalize [file join [pwd] $base]]
+    set dst  [file normalize [file join [pwd] $dst]]
+
+    set save $dst
+    set base [file split $base]
+    set dst  [file split $dst]
+
+    while {[string equal [lindex $dst 0] [lindex $base 0]]} {
+        set dst  [lrange $dst  1 end]
+        set base [lrange $base 1 end]
+        if {![llength $dst]} {break}
+    }
+
+    set dstlen  [llength $dst]
+    set baselen [llength $base]
+
+    if {($dstlen == 0) && ($baselen == 0)} {
+        # Cases:                                                                                                                                                                                          
+        # (a) base == dst                                                                                                                                                                                 
+
+        set dst .
+    } else {
+        # Cases:                                                                                                                                                                                          
+        # (b) base is: base/sub = sub                                                                                                                                                                     
+        #     dst  is: base     = {}                                                                                                                                                                      
+
+        # (c) base is: base     = {}                                                                                                                                                                      
+        #     dst  is: base/sub = sub                                                                                                                                                                     
+
+        while {$baselen > 0} {
+            set dst [linsert $dst 0 ..]
+            incr baselen -1
+        }
+        # 8.5: set dst [file join {*}$dst]                                                                                                                                                                
+        set dst [eval [linsert $dst 0 file join]]
+    }
+
+    return $dst
+}
+########################################################                                                                                                                                                  
+proc ListFiles {} {
+    set all_files [get_files]
+    foreach f $all_files {
+	if { [get_property  IS_GENERATED [get_files $f]] == 0} {
+	    lappend files $f 
+	}
+	
+    }
+
+    foreach f $files {
+	Status ListFiles 1 "$f :  [get_property FILE_TYPE [get_files $f]] [get_property LIBRARY [get_files $f]] "
+    }
+return $files
+}

@@ -641,15 +641,52 @@ proc relative {base dst} {
 ########################################################                                                                                                                                                  
 proc ListFiles {} {
     set all_files [get_files]
+    set libraries [dict create]
+    set properties [dict create]    
+    
     foreach f $all_files {
 	if { [get_property  IS_GENERATED [get_files $f]] == 0} {
 	    lappend files $f 
+	    set type  [get_property FILE_TYPE [get_files $f]]
+	    set lib [get_property LIBRARY [get_files $f]]
+
+	    # Type can be complex like VHDL 2008, in that case we want the second part to be a property
+	    if {[llength $type] > 1} {
+		set prop [lrange $type 1 [llength $type]]
+		set type [lindex $type 0]
+	    } else {
+		set prop ""
+	    } 
+
+	    #check where the file is used and add it to prop
+	    if {[string equal $type "VHDL"]} {
+		dict lappend libraries $lib $f
+		dict lappend properties $f $prop
+	    } elseif {[string equal $type "IP"]} {
+		dict lappend libraries "IP" $f
+	    } elseif {[string equal $type "XDC"]} {
+		dict lappend libraries "XDC" $f
+		dict lappend properties $f "XDC"		
+	    } else {
+		dict lappend libraries "OTHER" $f
+	    }
+	    
 	}
 	
     }
 
-    foreach f $files {
-	Status ListFiles 1 "$f :  [get_property FILE_TYPE [get_files $f]] [get_property LIBRARY [get_files $f]] "
+   
+    Status ListFiles 1 "FILES: $files"
+ 
+
+    dict for {lib f} $libraries {
+	Status ListFiles 1 "   Library: $lib: \n *******"
+	foreach n $f {
+	    Status ListFiles 1 "$n"
+	}
+	
+	Status ListFiles 1 "*******"
     }
+    
 return $files
 }

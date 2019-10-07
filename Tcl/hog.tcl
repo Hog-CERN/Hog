@@ -167,10 +167,11 @@ proc ReadListFile {list_file path lib src {no_add 0}} {
 		set extension [file ext $vhdlfile]
 		if { [lsearch {.src .sim .con .sub} $extension] >= 0 } {
 		    Info ReadListFile 1 "List file $vhdlfile found in list file, recoursively opening it..."
-		    SmartListFile $vhdlfile $path $no_add
+        	    lassign [SmartListFile $vhdlfile $path $no_add] l p
+		    set libraries [dict merge $l $libraries]
+		    set properties [dict merge $p $properties]		    
 		} else {
 		    if {$no_add == 0} { add_files -norecurse -fileset $src $vhdlfile }
-		    lappend all_files $vhdlfile
 		    incr cnt
 		    set file_obj [get_files -of_objects [get_filesets $src] [list "*$vhdlfile"]]
 		    if {$lib ne ""} {
@@ -260,7 +261,7 @@ proc ReadListFile {list_file path lib src {no_add 0}} {
 	}
     }
     Info ReadListFile 1 "$cnt file/s added to $lib..."
-    return [list $all_files $libraries $properties]
+    return [list $libraries $properties]
 }
 ########################################################
 
@@ -312,7 +313,7 @@ proc SmartListFile {list_file path {no_add 0}} {
 	}
     }
     Info SmartListFile 0 "Reading sources from file $list_file, lib: $lib, file-set: $file_set"
-    ReadListFile $list_file $path $lib $file_set $no_add
+    return [ReadListFile $list_file $path $lib $file_set $no_add]
 }
 ########################################################
 
@@ -727,7 +728,6 @@ proc GetHogFiles {{proj_path 0}} {
     }
     set proj_name [file tail $proj_path]
     Info ReadListFiles 1 "Project name is: $proj_name"
-    set all_files {}
     set top_path [file normalize $proj_path/../../Top/$proj_name]
     set list_path $top_path/list
     set libraries [dict create]
@@ -737,8 +737,7 @@ proc GetHogFiles {{proj_path 0}} {
     set list_files [glob -directory $list_path "*"]
     
     foreach f $list_files {
-    	lassign [SmartListFile $f $top_path 1] g l p
-	set all_files [concat $all_files $g]
+    	lassign [SmartListFile $f $top_path 1] l p
 	set libraries [dict merge $l $libraries]
 	set properties [dict merge $p $properties]
     }

@@ -9,6 +9,8 @@
 # * title: The name of the script displaying the message
 # * id: A progressive number used as message ID
 # * msg: the message text
+#
+# If launched outside Vivado it just prints the message
 proc Info {title id msg} {
     if {[info commands send_msg_id] != ""} {
 	send_msg_id Hog:$title-$id {INFO} $msg
@@ -39,6 +41,7 @@ proc fInfo {File title id msg} {
 # * title: The name of the script displaying the message
 # * id: A progressive number used as message ID
 # * msg: the message text
+# If launched outside Vivado it just prints the message
 proc Status {title id msg} {
     if {[info commands send_msg_id] != ""} {
 	send_msg_id  Hog:$title-$id {STATUS} $msg
@@ -54,6 +57,8 @@ proc Status {title id msg} {
 # * title: The name of the script displaying the message
 # * id: A progressive number used as message ID
 # * msg: the message text
+#
+# If launched outside Vivado it just prints the message
 proc Warning {title id msg} {
     if {[info commands send_msg_id] != ""} {
 	send_msg_id Hog:$title-$id {WARNING} $msg
@@ -69,6 +74,8 @@ proc Warning {title id msg} {
 # * title: The name of the script displaying the message
 # * id: A progressive number used as message ID
 # * msg: the message text
+#
+# If launched outside Vivado it just prints the message
 proc CriticalWarning {title id msg} {
     if {[info commands send_msg_id] != ""} {
 	send_msg_id Hog:$title-$id {CRITICAL WARNING} $msg
@@ -84,6 +91,8 @@ proc CriticalWarning {title id msg} {
 # * title: The name of the script displaying the message
 # * id: A progressive number used as message ID
 # * msg: the message text
+#
+# If launched outside Vivado it just prints the message
 proc Error            {title id msg} {
     if {[info commands send_msg_id] != ""} {
 	send_msg_id Hog:$title-$id {ERROR} $msg
@@ -102,7 +111,7 @@ proc GetRepoPath {} {
 proc GitVersion {target_version} {
     set ver [split $target_version "."]
     set v [exec git --version]
-    Info GitVersion 0 "Found doxygen version: $v"
+    Info GitVersion 0 "Found Git version: $v"
     set current_ver [split [lindex $v 2] "."]
     set target [expr [lindex $ver 0]*100000 + [lindex $ver 1]*100 + [lindex $ver 2]]
     set current [expr [lindex $current_ver 0]*100000 + [lindex $current_ver 1]*100 + [lindex $current_ver 2]]
@@ -332,30 +341,30 @@ proc GetHashLib {lib} {
 #
 # if the list file contains files with extension .src .sim .con .sub, it will recursively open them
 proc GetFileList {FILE path} {
-	set fp [open $FILE r]
-	set file_data [read $fp]
-	close $fp
-	#  Process data file
-	set data [split $file_data "\n"]
-	foreach line $data {
-	    if {![regexp {^ *$} $line] & ![regexp {^ *\#} $line] } { #Exclude empty lines and comments
-		set file_and_prop [regexp -all -inline {\S+} $line]
-		set vhdlfile [lindex $file_and_prop 0]
-		set vhdlfile "$path/$vhdlfile"
-		if {[file exists $vhdlfile]} {
-		    set extension [file ext $vhdlfile]
-		    if { [lsearch {.src .sim .con .sub} $extension] >= 0 } {
-			lappend lista {*}[GetFileList $vhdlfile $path]]
-		    } else {
-			lappend lista $vhdlfile
-		    }
-		} else { 
-		    Warning GetFileList 0 "File $vhdlfile not found"
-		}
+    set fp [open $FILE r]
+    set file_data [read $fp]
+    close $fp
+    #  Process data file
+    set data [split $file_data "\n"]
+    foreach line $data {
+	if {![regexp {^ *$} $line] & ![regexp {^ *\#} $line] } { #Exclude empty lines and comments
+	    set file_and_prop [regexp -all -inline {\S+} $line]
+	    set vhdlfile [lindex $file_and_prop 0]
+	    set vhdlfile "$path/$vhdlfile"
+	    if {[file exists $vhdlfile]} {
+		set extension [file ext $vhdlfile]
+		if { [lsearch {.src .sim .con .sub} $extension] >= 0 } {
+		    lappend lista {*}[GetFileList $vhdlfile $path]]
+	    } else {
+		lappend lista $vhdlfile
 	    }
+	} else { 
+	    Warning GetFileList 0 "File $vhdlfile not found"
 	}
+    }
+}
 
-    return $lista
+return $lista
 }
 ########################################################
 
@@ -497,11 +506,11 @@ proc TagRepository {merge_request_number {version_level 0}} {
 		set n 0
 
 	    } else { # Tag is not official, just increment the attempt
-		    Info TagRepository 1 "Found candidate for version $M.$m.$p, merge request number $mr, attempt number $n."
-		    if {$mr != $merge_request_number} {
-		        Warning TagRepository 1 "Merge request number $merge_request_number differs from the one found in the tag $mr, will use $merge_request_number."
-		        set mr $merge_request_number
-		    }
+		Info TagRepository 1 "Found candidate for version $M.$m.$p, merge request number $mr, attempt number $n."
+		if {$mr != $merge_request_number} {
+		    Warning TagRepository 1 "Merge request number $merge_request_number differs from the one found in the tag $mr, will use $merge_request_number."
+		    set mr $merge_request_number
+		}
 		incr n
 	    }
 	    if {$version_level >= 3} {
@@ -515,9 +524,9 @@ proc TagRepository {merge_request_number {version_level 0}} {
 
 	    # Tagging repositroy
 	    if [catch {exec git tag {*}"$new_tag $tag_opt"} msg] {
-		    Error TagRepository 2 "Could not create new tag $new_tag: $msg"
+		Error TagRepository 2 "Could not create new tag $new_tag: $msg"
 	    } else {
-		    Info TagRepository 3 "New tag $new_tag created successully."
+		Info TagRepository 3 "New tag $new_tag created successully."
 	    }
 	    
 	} else {
@@ -604,11 +613,10 @@ proc CopyXMLsFromListFile {list_file path dst {xml_version "0.0.0"} {xml_sha "00
 }
 ########################################################
 
-## Returns the dst path relative to base                                                                                                                                                                  
-#                                                                                                                                                                                                         
-# Arguments:                                                                                                                                                                                              
-# * base   the path with respect to witch the dst path is calculated                                                                                                                                      
-# * dst:   the path to be calculated with respect to base                                                                                                                                                 
+## Returns the dst path relative to base
+## Arguments:
+# * base   the path with respect to witch the dst path is calculated                             
+# * dst:   the path to be calculated with respect to base
 
 proc relative {base dst} {
     if {![string equal [file pathtype $base] [file pathtype $dst]]} {
@@ -632,29 +640,24 @@ proc relative {base dst} {
     set baselen [llength $base]
 
     if {($dstlen == 0) && ($baselen == 0)} {
-        # Cases:                                                                                                                                                                                          
-        # (a) base == dst                                                                                                                                                                                 
-
         set dst .
     } else {
-        # Cases:                                                                                                                                                                                          
-        # (b) base is: base/sub = sub                                                                                                                                                                     
-        #     dst  is: base     = {}                                                                                                                                                                      
-
-        # (c) base is: base     = {}                                                                                                                                                                      
-        #     dst  is: base/sub = sub                                                                                                                                                                     
-
         while {$baselen > 0} {
             set dst [linsert $dst 0 ..]
             incr baselen -1
         }
-        # 8.5: set dst [file join {*}$dst]                                                                                                                                                                
         set dst [eval [linsert $dst 0 file join]]
     }
 
     return $dst
 }
 ########################################################                                                                                                                                                  
+## Returns a list of 2 dictionaries: libraries and properties
+# - libraries has library name as keys and a list of filenames as values
+# - properties has as file names as keys and a list of properties as values
+#
+# Files, libraries and properties are extracted from the current Vivado project
+
 proc GetProjectFiles {} {
     
     set all_files [get_files]
@@ -704,6 +707,18 @@ proc GetProjectFiles {} {
     
     return [list $libraries $properties]
 }
+########################################################
+
+
+## Returns a list of 2 dictionaries: libraries and properties
+# - libraries has library name as keys and a list of filenames as values
+# - properties has as file names as keys and a list of properties as values
+#
+# Files, libraries and properties are extracted from the project's Hog list files
+#
+# Arguments:
+# - proj_path: the path of the Vivado project xpr file inside the Hog repository.
+#     If not given it will be automatically evaluated if the function is called from within Vivado.
 
 proc GetHogFiles {{proj_path 0}} {
     if {$proj_path == 0} {
@@ -739,3 +754,4 @@ proc GetHogFiles {{proj_path 0}} {
 
     return [list $libraries $properties]
 }
+########################################################

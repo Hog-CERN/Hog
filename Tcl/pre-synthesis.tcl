@@ -26,11 +26,12 @@ if {$flavour != ""} {
     if [string is integer $flavour] {
 	Info $NAME 0 "Project $proj_name has flavour = $flavour, the generic variable FLAVUOR will be set to $flavour"
     } else {
-	Warning $NAME 0 "Project name has a non numeric extension, flavour will be set to 0"
+	Warning $NAME 0 "Project name has a non numeric extension, flavour will be set to -1"
+	set flavour -1
     }
 
 } else {
-    set flavour 0
+    set flavour -1
 }
 
 
@@ -173,7 +174,7 @@ foreach s $subs h $subs_hashes {
     set generic_string "$generic_string $hash"
 }
 
-if {$flavour != 0} {
+if {$flavour != -1} {
    set generic_string "$generic_string FLAVOUR=$flavour"
 }
 
@@ -188,7 +189,7 @@ Status $NAME 3 " ------------------------- PRE SYNTHESIS -----------------------
 Status $NAME 3 " $tt"
 Status $NAME 3 " Firmware date and time: $date, $timee"
 puts $status_file "Date, $date, $timee"
-if {$flavour != 0} {
+if {$flavour != -1} {
     Status $NAME 3 " Project flavour: $flavour"
 }
 Status $NAME 3 " Global SHA: $commit, VER: $version"

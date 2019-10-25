@@ -9,11 +9,13 @@
 # * title: The name of the script displaying the message
 # * id: A progressive number used as message ID
 # * msg: the message text
+#
+# If launched outside Vivado it just prints the message
 proc Info {title id msg} {
     if {[info commands send_msg_id] != ""} {
-	send_msg_id $title-$id {INFO} $msg
+	send_msg_id Hog:$title-$id {INFO} $msg
     } else {
-	puts "*** $title-$id INFO $msg"
+	puts "*** Hog:$title-$id INFO $msg"
     }
 }
 ########################################################
@@ -39,11 +41,12 @@ proc fInfo {File title id msg} {
 # * title: The name of the script displaying the message
 # * id: A progressive number used as message ID
 # * msg: the message text
+# If launched outside Vivado it just prints the message
 proc Status {title id msg} {
     if {[info commands send_msg_id] != ""} {
-	send_msg_id $title-$id {STATUS} $msg
+	send_msg_id  Hog:$title-$id {STATUS} $msg
     } else {
-	puts "*** $title-$id STATUS $msg"
+	puts "***  Hog:$title-$id STATUS $msg"
     }
 }
 ########################################################
@@ -54,11 +57,13 @@ proc Status {title id msg} {
 # * title: The name of the script displaying the message
 # * id: A progressive number used as message ID
 # * msg: the message text
+#
+# If launched outside Vivado it just prints the message
 proc Warning {title id msg} {
     if {[info commands send_msg_id] != ""} {
-	send_msg_id $title-$id {WARNING} $msg
+	send_msg_id Hog:$title-$id {WARNING} $msg
     } else {
-	puts "*** $title-$id WARNING $msg"
+	puts "*** Hog:$title-$id WARNING $msg"
     }
 }
 ########################################################
@@ -69,11 +74,13 @@ proc Warning {title id msg} {
 # * title: The name of the script displaying the message
 # * id: A progressive number used as message ID
 # * msg: the message text
+#
+# If launched outside Vivado it just prints the message
 proc CriticalWarning {title id msg} {
     if {[info commands send_msg_id] != ""} {
-	send_msg_id $title-$id {CRITICAL WARNING} $msg
+	send_msg_id Hog:$title-$id {CRITICAL WARNING} $msg
     } else {
-	puts "*** $title-$id CRITICAL WARNING $msg"
+	puts "***  Hog:$title-$id CRITICAL WARNING $msg"
     }
 }
 ########################################################
@@ -84,11 +91,13 @@ proc CriticalWarning {title id msg} {
 # * title: The name of the script displaying the message
 # * id: A progressive number used as message ID
 # * msg: the message text
+#
+# If launched outside Vivado it just prints the message
 proc Error            {title id msg} {
     if {[info commands send_msg_id] != ""} {
-	send_msg_id $title-$id {ERROR} $msg
+	send_msg_id Hog:$title-$id {ERROR} $msg
     } else {
-	puts "*** $title-$id ERROR $msg"
+	puts "*** Hog:$title-$id ERROR $msg"
     }
 }
 ########################################################
@@ -102,7 +111,7 @@ proc GetRepoPath {} {
 proc GitVersion {target_version} {
     set ver [split $target_version "."]
     set v [exec git --version]
-    Info GitVersion 0 "Found doxygen version: $v"
+    Info GitVersion 0 "Found Git version: $v"
     set current_ver [split [lindex $v 2] "."]
     set target [expr [lindex $ver 0]*100000 + [lindex $ver 1]*100 + [lindex $ver 2]]
     set current [expr [lindex $current_ver 0]*100000 + [lindex $current_ver 1]*100 + [lindex $current_ver 2]]
@@ -130,14 +139,18 @@ proc DoxygenVersion {target_version} {
 #
 # Arguments:
 # * lsit_file: file containing vhdl list with optional properties
-# * path:      the path the vhdl file are referred to in the list file
-# * lib :      the name of the library files will be added to
-# * src :      the name of VivadoFileSet files will be added to
-proc ReadListFile {list_file path lib src} {
+# * path     : path the vhdl file are referred to in the list file
+# * lib      : name of the library files will be added to
+# * src      : name of VivadoFileSet files will be added to
+# * no_add   : if a value is specified, the files will added to memory only, not to the project
+proc ReadListFile {list_file path lib src {no_add 0}} {
     set list_file 
     set fp [open $list_file r]
     set file_data [read $fp]
     close $fp
+
+    set libraries [dict create]
+    set properties [dict create]
 
     #  Process data file
     set data [split $file_data "\n"]
@@ -154,79 +167,91 @@ proc ReadListFile {list_file path lib src} {
 		set extension [file ext $vhdlfile]
 		if { [lsearch {.src .sim .con .sub} $extension] >= 0 } {
 		    Info ReadListFile 1 "List file $vhdlfile found in list file, recoursively opening it..."
-		    SmartListFile $vhdlfile $path
+        	    lassign [SmartListFile $vhdlfile $path $no_add] l p
+		    set libraries [dict merge $l $libraries]
+		    set properties [dict merge $p $properties]		    
 		} else {
-		    add_files -norecurse -fileset $src $vhdlfile
+		    if {$no_add == 0} { add_files -norecurse -fileset $src $vhdlfile }
 		    incr cnt
 		    set file_obj [get_files -of_objects [get_filesets $src] [list "*$vhdlfile"]]
-		    if {$lib ne ""} {set_property -name "library" -value $lib -objects $file_obj}
-
-		    ### Set file properties
-		    set prop [lrange $file_and_prop 1 end]
-		    # VHDL 2008 compatibility
-		    if {[lsearch -inline -regex $prop "2008"] >= 0} {
-			Info ReadListFile 1 "Setting filetype VHDL 2008 for $vhdlfile"
-			set_property -name "file_type" -value "VHDL 2008" -objects $file_obj
-		    }
-
-		    # XDC
-		    if {[lsearch -inline -regex $prop "XDC"] >= 0 || [file ext $vhdlfile] == ".xdc"} {
-			Info ReadListFile 1 "Setting filetype XDC for $vhdlfile"
-			    set_property -name "file_type" -value "XDC" -objects $file_obj
-		    }
-
-		    # Not used in synthesis
-		    if {[lsearch -inline -regex $prop "nosynth"] >= 0} {
-			Info ReadListFile 1 "Setting not used in synthesis for $vhdlfile..."
-			set_property -name "used_in_synthesis" -value "false" -objects $file_obj
-		    }
-
-		    # Not used in implementation
-		    if {[lsearch -inline -regex $prop "noimpl"] >= 0} {
-			Info ReadListFile 1 "Setting not used in implementation for $vhdlfile..."
-			set_property -name "used_in_implementation" -value "false" -objects $file_obj
-		    }
-
-		    # Not used in simulation
-		    if {[lsearch -inline -regex $prop "nosim"] >= 0} {
-			Info ReadListFile 1 "Setting not used in simulation for $vhdlfile..."
-			set_property -name "used_in_simulation" -value "false" -objects $file_obj
-		    }
-
-
-		    ## Simulation properties
-		    # Top simulation module
-		    set top_sim [lindex [split [lsearch -inline -regex $prop topsim=] =] 1]
-		    if { $top_sim != "" } {
-			Info ReadListFile 1 "Setting $top_sim as top module for simulation file set $src..."
-			set_property "top"  $top_sim [get_filesets $src]
-			current_fileset -simset [get_filesets $src]
-		    }
-
-		    # Wave do file
-		    set wave_file [lindex [split [lsearch -inline -regex $prop wavefile=] =] 1]
-		    if { $wave_file != "" } {
-			set r_path [GetRepoPath]
-			set file_name "$r_path/sim/$wave_file"
-			Info ReadListFile 1 "Setting $file_name as wave do file for simulation file set $src..."
-			# check if file exists...
-			if [file exists $file_name] {
-			    set_property "modelsim.simulate.custom_wave_do" $file_name [get_filesets $src]
+		    if {$lib ne ""} {
+			if {$no_add == 0} {set_property -name "library" -value $lib -objects $file_obj}
+			if {[string equal $extension ".xci"]} {
+			    dict lappend libraries "IP" $vhdlfile
 			} else {
-			    Warning ReadlistFIle 1 "File $file_name was not found."
+			    dict lappend libraries $lib $vhdlfile
 			}
 		    }
 
-		    #Do file
-		    set do_file [lindex [split [lsearch -inline -regex $prop dofile=] =] 1]
-		    if { $do_file != "" } {
-			set r_path [GetRepoPath]
-			set file_name "$r_path/sim/$do_file"
-			Info ReadListFile 1 "Setting $file_name as udo file for simulation file set $src..."
-			if [file exists $file_name] {
-			    set_property "modelsim.simulate.custom_udo" $file_name [get_filesets $src]
-			} else {
-			    Warning ReadlistFIle 1 "File $file_name was not found."
+		    ### Set file properties
+		    set prop [lrange $file_and_prop 1 end]
+		    dict lappend properties $vhdlfile $prop
+		    if {$no_add == 0} {
+			# VHDL 2008 compatibility
+			if {[lsearch -inline -regex $prop "2008"] >= 0} {
+			    Info ReadListFile 1 "Setting filetype VHDL 2008 for $vhdlfile"
+			    set_property -name "file_type" -value "VHDL 2008" -objects $file_obj
+			}
+			
+			# XDC
+			if {[lsearch -inline -regex $prop "XDC"] >= 0 || [file ext $vhdlfile] == ".xdc"} {
+			    Info ReadListFile 1 "Setting filetype XDC for $vhdlfile"
+			    set_property -name "file_type" -value "XDC" -objects $file_obj
+			}
+
+			# Not used in synthesis
+			if {[lsearch -inline -regex $prop "nosynth"] >= 0} {
+			    Info ReadListFile 1 "Setting not used in synthesis for $vhdlfile..."
+			    set_property -name "used_in_synthesis" -value "false" -objects $file_obj
+			}
+
+			# Not used in implementation
+			if {[lsearch -inline -regex $prop "noimpl"] >= 0} {
+			    Info ReadListFile 1 "Setting not used in implementation for $vhdlfile..."
+			    set_property -name "used_in_implementation" -value "false" -objects $file_obj
+			}
+
+			# Not used in simulation
+			if {[lsearch -inline -regex $prop "nosim"] >= 0} {
+			    Info ReadListFile 1 "Setting not used in simulation for $vhdlfile..."
+			    set_property -name "used_in_simulation" -value "false" -objects $file_obj
+			}
+
+
+			## Simulation properties
+			# Top simulation module
+			set top_sim [lindex [split [lsearch -inline -regex $prop topsim=] =] 1]
+			if { $top_sim != "" } {
+			    Info ReadListFile 1 "Setting $top_sim as top module for simulation file set $src..."
+			    set_property "top"  $top_sim [get_filesets $src]
+			    current_fileset -simset [get_filesets $src]
+			}
+
+			# Wave do file
+			set wave_file [lindex [split [lsearch -inline -regex $prop wavefile=] =] 1]
+			if { $wave_file != "" } {
+			    set r_path [GetRepoPath]
+			    set file_name "$r_path/sim/$wave_file"
+			    Info ReadListFile 1 "Setting $file_name as wave do file for simulation file set $src..."
+			    # check if file exists...
+			    if [file exists $file_name] {
+				set_property "modelsim.simulate.custom_wave_do" $file_name [get_filesets $src]
+			    } else {
+				Warning ReadlistFIle 1 "File $file_name was not found."
+			    }
+			}
+			
+			#Do file
+			set do_file [lindex [split [lsearch -inline -regex $prop dofile=] =] 1]
+			if { $do_file != "" } {
+			    set r_path [GetRepoPath]
+			    set file_name "$r_path/sim/$do_file"
+			    Info ReadListFile 1 "Setting $file_name as udo file for simulation file set $src..."
+			    if [file exists $file_name] {
+				set_property "modelsim.simulate.custom_udo" $file_name [get_filesets $src]
+			    } else {
+				Warning ReadlistFIle 1 "File $file_name was not found."
+			    }
 			}
 		    }
 		}
@@ -236,6 +261,7 @@ proc ReadListFile {list_file path lib src} {
 	}
     }
     Info ReadListFile 1 "$cnt file/s added to $lib..."
+    return [list $libraries $properties]
 }
 ########################################################
 
@@ -259,7 +285,7 @@ proc ReadListFile {list_file path lib src} {
 # * .con : for constraint files (corresponding to constrs_1)
 # any other file extension will cause an error
 
-proc SmartListFile {list_file path} {
+proc SmartListFile {list_file path {no_add 0}} {
     set ext [file extension $list_file]
     set lib [file rootname [file tail $list_file]]
     switch $ext {
@@ -287,7 +313,7 @@ proc SmartListFile {list_file path} {
 	}
     }
     Info SmartListFile 0 "Reading sources from file $list_file, lib: $lib, file-set: $file_set"
-    ReadListFile $list_file $path $lib $file_set
+    return [ReadListFile $list_file $path $lib $file_set $no_add]
 }
 ########################################################
 
@@ -316,30 +342,30 @@ proc GetHashLib {lib} {
 #
 # if the list file contains files with extension .src .sim .con .sub, it will recursively open them
 proc GetFileList {FILE path} {
-	set fp [open $FILE r]
-	set file_data [read $fp]
-	close $fp
-	#  Process data file
-	set data [split $file_data "\n"]
-	foreach line $data {
-	    if {![regexp {^ *$} $line] & ![regexp {^ *\#} $line] } { #Exclude empty lines and comments
-		set file_and_prop [regexp -all -inline {\S+} $line]
-		set vhdlfile [lindex $file_and_prop 0]
-		set vhdlfile "$path/$vhdlfile"
-		if {[file exists $vhdlfile]} {
-		    set extension [file ext $vhdlfile]
-		    if { [lsearch {.src .sim .con .sub} $extension] >= 0 } {
-			lappend lista {*}[GetFileList $vhdlfile $path]]
-		    } else {
-			lappend lista $vhdlfile
-		    }
-		} else { 
-		    Warning GetFileList 0 "File $vhdlfile not found"
-		}
+    set fp [open $FILE r]
+    set file_data [read $fp]
+    close $fp
+    #  Process data file
+    set data [split $file_data "\n"]
+    foreach line $data {
+	if {![regexp {^ *$} $line] & ![regexp {^ *\#} $line] } { #Exclude empty lines and comments
+	    set file_and_prop [regexp -all -inline {\S+} $line]
+	    set vhdlfile [lindex $file_and_prop 0]
+	    set vhdlfile "$path/$vhdlfile"
+	    if {[file exists $vhdlfile]} {
+		set extension [file ext $vhdlfile]
+		if { [lsearch {.src .sim .con .sub} $extension] >= 0 } {
+		    lappend lista {*}[GetFileList $vhdlfile $path]]
+	    } else {
+		lappend lista $vhdlfile
 	    }
+	} else { 
+	    Warning GetFileList 0 "File $vhdlfile not found"
 	}
+    }
+}
 
-    return $lista
+return $lista
 }
 ########################################################
 
@@ -481,11 +507,11 @@ proc TagRepository {merge_request_number {version_level 0}} {
 		set n 0
 
 	    } else { # Tag is not official, just increment the attempt
-		    Info TagRepository 1 "Found candidate for version $M.$m.$p, merge request number $mr, attempt number $n."
-		    if {$mr != $merge_request_number} {
-		        Warning TagRepository 1 "Merge request number $merge_request_number differs from the one found in the tag $mr, will use $merge_request_number."
-		        set mr $merge_request_number
-		    }
+		Info TagRepository 1 "Found candidate for version $M.$m.$p, merge request number $mr, attempt number $n."
+		if {$mr != $merge_request_number} {
+		    Warning TagRepository 1 "Merge request number $merge_request_number differs from the one found in the tag $mr, will use $merge_request_number."
+		    set mr $merge_request_number
+		}
 		incr n
 	    }
 	    if {$version_level >= 3} {
@@ -499,9 +525,9 @@ proc TagRepository {merge_request_number {version_level 0}} {
 
 	    # Tagging repositroy
 	    if [catch {exec git tag {*}"$new_tag $tag_opt"} msg] {
-		    Error TagRepository 2 "Could not create new tag $new_tag: $msg"
+		Error TagRepository 2 "Could not create new tag $new_tag: $msg"
 	    } else {
-		    Info TagRepository 3 "New tag $new_tag created successully."
+		Info TagRepository 3 "New tag $new_tag created successully."
 	    }
 	    
 	} else {
@@ -585,5 +611,146 @@ proc CopyXMLsFromListFile {list_file path dst {xml_version "0.0.0"} {xml_sha "00
 	}
     }
     Info CopyXMLs 1 "$cnt file/s copied"
+}
+########################################################
+
+## Returns the dst path relative to base
+## Arguments:
+# * base   the path with respect to witch the dst path is calculated                             
+# * dst:   the path to be calculated with respect to base
+
+proc relative {base dst} {
+    if {![string equal [file pathtype $base] [file pathtype $dst]]} {
+        return -code error "Unable to compute relation for paths of different pathtypes: [file pathtype $base] vs. [file pathtype $dst], ($base vs. $dst)"
+    }
+
+    set base [file normalize [file join [pwd] $base]]
+    set dst  [file normalize [file join [pwd] $dst]]
+
+    set save $dst
+    set base [file split $base]
+    set dst  [file split $dst]
+
+    while {[string equal [lindex $dst 0] [lindex $base 0]]} {
+        set dst  [lrange $dst  1 end]
+        set base [lrange $base 1 end]
+        if {![llength $dst]} {break}
+    }
+
+    set dstlen  [llength $dst]
+    set baselen [llength $base]
+
+    if {($dstlen == 0) && ($baselen == 0)} {
+        set dst .
+    } else {
+        while {$baselen > 0} {
+            set dst [linsert $dst 0 ..]
+            incr baselen -1
+        }
+        set dst [eval [linsert $dst 0 file join]]
+    }
+
+    return $dst
+}
+########################################################                                                                                                                                                  
+## Returns a list of 2 dictionaries: libraries and properties
+# - libraries has library name as keys and a list of filenames as values
+# - properties has as file names as keys and a list of properties as values
+#
+# Files, libraries and properties are extracted from the current Vivado project
+
+proc GetProjectFiles {} {
+    
+    set all_files [get_files]
+    set libraries [dict create]
+    set properties [dict create]
+
+    foreach f $all_files {
+	if { [get_property  IS_GENERATED [get_files $f]] == 0} {
+	    set f [file normalize $f]
+	    lappend files $f 
+	    set type  [get_property FILE_TYPE [get_files $f]]
+	    set lib [get_property LIBRARY [get_files $f]]
+
+	    # Type can be complex like VHDL 2008, in that case we want the second part to be a property
+	    if {[llength $type] > 1} {
+		set prop [lrange $type 1 [llength $type]]
+		set type [lindex $type 0]
+	    } else {
+		set prop ""
+	    } 
+
+	    #check where the file is used and add it to prop
+	    if {[string equal $type "VHDL"]} {
+		dict lappend libraries $lib $f
+		dict lappend properties $f $prop
+	    } elseif {[string equal $type "IP"]} {
+		dict lappend libraries "IP" $f
+	    } elseif {[string equal $type "XDC"]} {
+		dict lappend libraries "XDC" $f
+		dict lappend properties $f "XDC"		
+	    } else {
+		dict lappend libraries "OTHER" $f
+	    }
+	    
+	}
+	
+    }
+
+    #    dict for {lib f} $libraries {
+    #	Status ListFiles 1 "   Library: $lib: \n *******"
+    #	foreach n $f {
+    #	    Status ListFiles 1 "$n"
+    #	}
+    #	
+    #	Status ListFiles 1 "*******"
+    #    }
+    
+    return [list $libraries $properties]
+}
+########################################################
+
+
+## Returns a list of 2 dictionaries: libraries and properties
+# - libraries has library name as keys and a list of filenames as values
+# - properties has as file names as keys and a list of properties as values
+#
+# Files, libraries and properties are extracted from the project's Hog list files
+#
+# Arguments:
+# - proj_path: the path of the Vivado project xpr file inside the Hog repository.
+#     If not given it will be automatically evaluated if the function is called from within Vivado.
+
+proc GetHogFiles {{proj_path 0}} {
+    if {$proj_path == 0} {
+	set proj_path [get_property DIRECTORY [get_projects]]
+	Info ReadListFiles 0 "Project path is: $proj_path"
+    }
+    set proj_name [file tail $proj_path]
+    Info ReadListFiles 1 "Project name is: $proj_name"
+    set top_path [file normalize $proj_path/../../Top/$proj_name]
+    set list_path $top_path/list
+    set libraries [dict create]
+    set properties [dict create]
+    
+    puts $list_path
+    set list_files [glob -directory $list_path "*"]
+    
+    foreach f $list_files {
+    	lassign [SmartListFile $f $top_path 1] l p
+	set libraries [dict merge $l $libraries]
+	set properties [dict merge $p $properties]
+    }
+
+    #   dict for {lib f} $libraries {
+    #	Status Verify 1 "   Library: $lib: \n *******"
+    #	foreach n $f {
+    #	    Status Verify 1 "$n"
+    #	}
+    #	
+    #	Status Verify 1 "*******"
+    #   }    
+
+    return [list $libraries $properties]
 }
 ########################################################

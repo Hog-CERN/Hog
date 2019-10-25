@@ -26,16 +26,6 @@ set unofficial $env(HOG_UNOFFICIAL_BIN_EOS_PATH)
 set use_doxygen $env(HOG_USE_DOXYGEN)
 
 if {$version_level >= 3} {
-    # Delete unofficial tags
-    Info $Name 2 "Looking for unofficial tags to delete for official version $new_tag..."
-    set res [ catch {exec git tag {*}"-l b*$new_tag*"} tags_to_delete]
-    set number_of_tags [llength $tags_to_delete]
-    Info $Name 2 "Found $number_of_tags tags to delete: $tags_to_delete"
-    if {$number_of_tags > 0} {
-	set res [catch {exec git push origin {*}"-d $tags_to_delete"} deleted_tags]
-	Info $Name 2 "Tags deleted: $deleted_tags"
-    }
-
     # Run doxygen
     set doxygen_conf "./doxygen/doxygen.conf"
 
@@ -45,9 +35,9 @@ if {$version_level >= 3} {
 	    set outfile [open $doxygen_conf a]
 	    puts $outfile \nPROJECT_NUMBER=$new_tag
 	    close $outfile
-	    exec doxygen $doxygen_conf
+	    exec -ignorestderr doxygen $doxygen_conf
 	} else {
-	    Info $Name 2 "Could not find $doxygen_conf, or Doxygen version is older than 1.8.13. Will not run doxygen."
+	    Info $Name 2 "Could not find $doxygen_conf or Doxygen version is older than 1.8.13. Will not run doxygen."
 	}
     }
     set wild_card $unofficial/*$old_tag*
@@ -82,6 +72,20 @@ if {$version_level >= 3} {
 		exec eos mv $old_name $new_name
 	    }
 	}
+
+    # Delete unofficial tags
+    Info $Name 2 "Looking for unofficial tags to delete for official version $new_tag..."
+    set res [ catch {exec git tag {*}"-l b*$new_tag*"} tags_to_delete]
+    set number_of_tags [llength $tags_to_delete]
+    Info $Name 2 "Found $number_of_tags tags to delete: $tags_to_delete"
+    if {$number_of_tags > 0} {
+	set res [catch {exec git push origin {*}"-d $tags_to_delete"} deleted_tags]
+	set res [catch {exec git tag {*}"-d $tags_to_delete"} loc_deleted_tags]	
+	Info $Name 2 "Tags deleted. Remote response:\n $deleted_tags"
+	Info $Name 2 "Local response: \n response\n $loc_deleted_tags"	
+    }
+
+	
     } else {
 	Warning $Name 5 "Could not find anything useful using $wild_card."
     }

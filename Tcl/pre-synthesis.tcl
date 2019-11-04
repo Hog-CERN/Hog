@@ -139,6 +139,7 @@ if { [exec git status --untracked-files=no  --porcelain] eq "" } {
     set hog_hash "0000000"    
     set hog_clean "no"
 }
+cd ..
 
 set clock_seconds [clock seconds]
 set tt [clock format $clock_seconds -format {%d/%m/%Y at %H:%M:%S}]

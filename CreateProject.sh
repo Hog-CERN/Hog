@@ -7,75 +7,105 @@ if [ "$1" == "-h" ] || [ "$1" == "-help" ] || [ "$1" == "--help" ] || [ "$1" == 
     echo " ---------------------------"
     echo " Create the secified Vivado project"
     echo
-    echo " Usage: $0 <project name>"
+    echo " Usage: $0 [-hls] <project name>"
     echo
     exit 0
 fi
 
 cd "${THIS_DIR}"
+if [ -e ../Top ]
+then
+    DIR=../Top
+elif [ -e ../TopHLS ]
+then
+    DIR=../TopHLS
+else
+    echo "Hog-ERROR: Top folder not found, Hog is not in a Hog-compatible HDL repository."
+    echo
+    cd "${OLD_DIR}"
+    exit -1
+fi
+
 if [ "a$1" == "a" ]
 then
-    if [ -e ../Top ]
-       then
-	   echo " Usage: $0 <project name>"
-	   echo 
-	   echo "  Possible projects are:"
-	   ls -1 ../Top
-	   echo
-    else
-	    echo "ERROR: Top folder not found, Hog is not in a Hog-compatible HDL repository."
-	    echo
-	    cd "${OLD_DIR}"
-	    exit -1
-    fi
+    echo " Usage: $0 [-hls] <project name>"
+    echo 
+    echo "  Possible projects are:"
+    ls -1 $DIR
+    echo
 else
-    DIR="../Top/$1"
+    if [ "$1" == "-hls" ] || [ "$1" == "-HLS" ]
+    then
+	echo "Hog-INFO: High-Level Synthesis mode"
+	PROJ_DIR="../TopHLS"
+	viv="vivado_hls"
+	VIVADO_OPT="-f"
+	if [ "a$2" == "a" ]
+	then
+	    echo "Hog-ERROR: No HLS project name was specified."
+	    echo " Usage: $0 -hls <project name>"
+	    echo 
+	    echo "  Possible projects are: $DIR"
+	    ls -1 $DIR
+	    echo	    
+	    exit -1
+	else
+	    PROJ=$2
+	fi
+    else
+	PROJ_DIR="../Top"
+	viv="vivado"
+	VIVADO_OPT="-mode batch -notrace -source"
+	PROJ=$1
+    fi
+    DIR="$PROJ_DIR/$PROJ"
+    
     if [ -d "${DIR}" ]
     then
-	if [ `which vivado` ]
+	if [ `which $viv` ]
 	then
-	    VIVADO=`which vivado`
+	    VIVADO=`which $viv`
 	else
 	    if [ -z ${VIVADO_PATH+x} ]
 	    then
-	    echo "ERROR: No vivado executable found and no variable VIVADO_PATH set\n"
+	    echo "Hog-ERROR: No vivado executable found and no variable VIVADO_PATH set\n"
 	    echo " "
 	    cd "${OLD_DIR}"
 	    exit -1
 	    else
 		echo "VIVADO_PATH is set to '$VIVADO_PATH'"
-		VIVADO="$VIVADO_PATH/vivado"
+		VIVADO="$VIVADO_PATH/$viv"
 	    fi
 	fi
 	
 	if [ ! -f "${VIVADO}" ]
 	then
-	    echo "ERROR: Vivado executable $VIVADO not found"
+	    echo "Hog-ERROR: Vivado executable $VIVADO not found"
 	    cd "${OLD_DIR}"
 	    exit -1
 	else
-	    echo "INFO: using vivado executable: $VIVADO"
+	    echo "Hog-INFO: using executable: $VIVADO"
 	fi
 	
 	OUT_DIR="../VivadoProject"
 	if [ ! -d "${OUT_DIR}" ]
 	then
 	    mkdir "${OUT_DIR}"
-	    echo "INFO: Creating directory $DIR"
+	    echo "Hog-INFO: Creating directory $OUT_DIR"
 	fi
 
-    	echo "INFO: Creating project $1..."
+    	echo "Hog-INFO: Creating project $PROJ..."
 	cd "${DIR}"
-	"${VIVADO}" -mode batch -notrace -source $1.tcl
+	"${VIVADO}" $VIV_OPT $PROJ.tcl
 	if [ $? != 0 ]
 	then
-	    echo "ERROR: Vivado returned an error state."
+	    echo "Hog-ERROR: Vivado returned an error state."
 	    cd "${OLD_DIR}"
 	    exit -1
 	fi
 
     else
-	echo "ERROR: project $1 not found: possible projects are: `ls ../Top`"
+	echo "Hog-ERROR: project $PROJ not found: possible projects are: `ls $DIR`"
 	echo
     fi
 fi

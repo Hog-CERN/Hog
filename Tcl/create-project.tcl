@@ -31,6 +31,7 @@ set modelsim_path    "$repo_path/ModelsimLib"
 set top_name [file root $DESIGN]
 set synth_top_module "top_$top_name"
 set synth_top_file   "$top_path/top_$DESIGN.vhd"
+set user_ip_repo     "$repo_path/IP_repository"
 
 set pre_synth  [file normalize "$tcl_path/$pre_synth_file"]
 set post_synth [file normalize "$tcl_path/$post_synth_file"]
@@ -60,6 +61,14 @@ if {$use_questa_simulator == 1} {
 ## Enable VHDL 2008
 set_param project.enableVHDL2008 1
 set_property "enable_vhdl_2008" 1 $obj
+
+## Setting user IP repository to default Hog directory
+if [file exists $user_ip_repo] {
+    Info CreateProject 0 "Found directory $user_ip_repo, setting it as user IP repository..."
+    set_property  ip_repo_paths $user_ip_repo [current_project]
+} else {
+    Info CreateProject 0 "$user_ip_repo not found, no user IP repository will be set." 
+}
 
 ##############
 # SYNTHESIS  #

@@ -96,7 +96,7 @@ else
 
     	echo "Hog-INFO: Creating project $PROJ..."
 	cd "${DIR}"
-	"${VIVADO}" $VIV_OPT $PROJ.tcl
+	"${VIVADO}" $VIVADO_OPT $PROJ.tcl
 	if [ $? != 0 ]
 	then
 	    echo "Hog-ERROR: Vivado returned an error state."

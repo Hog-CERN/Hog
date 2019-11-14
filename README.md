@@ -158,4 +158,5 @@ Modelsim compiled libraries will be placed here
 
 
 ## Hog Continuous integration (Hog-CI)
-(../VM/README.md)
+
+[HOG-CI](./VM/README.md)

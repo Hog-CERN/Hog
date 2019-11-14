@@ -33,7 +33,7 @@ In order to handle tasks on the VM, you will need a CERN service account.
 - Become root
 - Export the following system variables:
   - __HOG_USERNAME__= The name of you service account, e.g. john
-  - __HOG\_VIVADO_DIR__= Path of your Vivado SDK installation directory containing the xsetup executable
+  - __HOG_VIVADO_DIR__= Path of your Vivado SDK installation directory containing the xsetup executable
   - __HOG_TOKEN__= a valid gitlab private token for your service accaount
 
 - Go to the VM directory and launch the __hog-vm-setup.sh__ script
@@ -49,15 +49,15 @@ If something goes wrong, please report it
 
 ## Setup Runners
 ### Define the following variables:
-    - __HOG_USER__= Your service accounr (john)
-    - __HOG_EMAIL__= Your service account's email  address (john@cern.ch)
-    - __HOG_PASSWORD__= The password of your service account (should be masked)
-    - __EOS_MGM_URL__= root://eosuser.cern.ch
-    - __HOG_UNOFFICIAL_BIN_EOS_PATH___= The EOS path for the binfiles coming out of your CIs
-    - __HOG_OFFICIAL_BIN_EOS_PATH__= The EOS path for archiving the official bitfiles of your firmware
-    - __HOG_PATH__= The PATH variable for your VM, should include Vivado's bin directory, 
-    - __HOG_PUSH_TOKEN__= The push token you generated for your service account (should be masked)
-    - __HOG_USE_DOXYGEN__= Should be set to 1 if you want the Hog CI to run doxygen
-    - __HOG_XIL_LICENSE__= Should contain the Xilinx license servers, separated by a comma
+- __HOG_USER__= Your service accounr (john)
+- __HOG_EMAIL__= Your service account's email  address (john@cern.ch)
+- __HOG_PASSWORD__= The password of your service account (should be masked)
+- __EOS_MGM_URL__= root://eosuser.cern.ch
+- __HOG_UNOFFICIAL_BIN_EOS_PATH___= The EOS path for the binfiles coming out of your CIs
+- __HOG_OFFICIAL_BIN_EOS_PATH__= The EOS path for archiving the official bitfiles of your firmware
+- __HOG_PATH__= The PATH variable for your VM, should include Vivado's bin directory, 
+- __HOG_PUSH_TOKEN__= The push token you generated for your service account (should be masked)
+- __HOG_USE_DOXYGEN__= Should be set to 1 if you want the Hog CI to run doxygen
+- __HOG_XIL_LICENSE__= Should contain the Xilinx license servers, separated by a comma
 
 

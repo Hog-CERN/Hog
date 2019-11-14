@@ -32,6 +32,11 @@ Automatically copy and rename bitfiles
 
 ## Vivado IP handling
 Git hooks to ignore locally ignore xml files
+All IPs should be sotred in the path:
+
+    Repo/IP path
+
+This is done to have a single path for the updload/downald of artefacts in Hog-CI.
 
 # HDL repository structure and methodology
 This repository (Hog) should be included as a submodule into your HDL repository.
@@ -150,3 +155,7 @@ Hog will also copy ipbus XMLs and generated bitfiles into _Repo/VivadoProjects/p
 
 ### ModelsimLib
 Modelsim compiled libraries will be placed here
+
+
+## Hog Continuous integration (Hog-CI)
+(../VM/README.md)

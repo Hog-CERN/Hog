@@ -1,3 +1,5 @@
+#!/usr/bin/env tclsh
+
 set Name tag_repository
 if { $::argc eq 0 } {
     puts "USAGE: $::argv0 <merge request> \[version level\]"

@@ -88,7 +88,7 @@ if [ -e /dev/vdb ]; then
     
     echo "[Hog VM Setup] Setting up Gitlab runner..."
     gitlab-runner uninstall
-    gitlab-runner install --user=efex --working-directory=/mnt/vd/runner
+    gitlab-runner install --user=$HOG_USERNAME --working-directory=/mnt/vd/runner
     gitlab-runner register \
         --non-interactive \
         --url "https://gitlab.cern.ch" \

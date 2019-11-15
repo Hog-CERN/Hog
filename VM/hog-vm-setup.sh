@@ -63,6 +63,7 @@ echo
 echo "[Hog VM Setup] Installing wandisco repository..."
 yum -y install http://opensource.wandisco.com/centos/6/git/x86_64/wandisco-git-release-6-1.noarch.rpm
 echo "[Hog VM Setup] Updating to recent version of git from wandisco..."
+yum install perl-YAML cvsps perl-CGI perl-DBI subversion-perl cvs tk perl subversion
 yum -y --disablerepo=base,updates  update git
 
 echo

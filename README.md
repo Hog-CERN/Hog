@@ -34,7 +34,7 @@ Automatically copy and rename bitfiles
 Git hooks to ignore locally ignore xml files
 All IPs should be sotred in the path:
 
-    Repo/IP path
+    Repo/IP
 
 This is done to have a single path for the updload/downald of artefacts in Hog-CI.
 
@@ -43,6 +43,19 @@ This repository (Hog) should be included as a submodule into your HDL repository
 Hog relies on the following assumptions:
 - Hog must be in the root path of your repository
 - The directory name must be "Hog"
+- The repository should not include the protocol explicitely, instead it must be added with a relative path.
+
+E.g. in .gitmouldes you sould write:
+
+    [submodule "Hog"]
+	path = Hog
+    url = ../../hog/Hog.git
+    
+rather than:
+
+    [submodule "Hog"]
+	path = Hog
+	url = ssh://git@gitlab.cern.ch:7999/hog/Hog.git    
 
 Let's assume the your HDL repository is called Repo, then Hog must be in:
 

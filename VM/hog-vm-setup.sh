@@ -2,6 +2,17 @@
 OLD_DIR=`pwd`
 THIS_DIR="$(dirname "$0")"
 
+NO_VIVADO=0
+
+while getopts ":x" opt; do
+  case ${opt} in
+    x ) NO_VIVADO=1
+      ;;
+    \? ) echo "Usage: ./hog-vm-setup.sh [-x]"
+      ;;
+  esac
+done
+
 if [ "$(whoami)" != "root" ]; then
     echo "[Hog VM Setup] FATAL: Script must be run as root."
     exit -1
@@ -28,11 +39,14 @@ else
     exit -1
 fi
 
-if [ -v HOG_VIVADO_DIR ]; then
-    echo "[Hog VM Setup] Vivado installation direcotry is set to $HOG_VIVADO_DIR"
-else
-    echo "[Hog VM Setup] ERROR: variable HOG_VIVADO_DIR should be set and point to a valid Xilinx Vivado SDK installation directory (containing the xsetup file)."
-    exit -1
+if [ $NO_VIVADO == 0 ]
+    then
+    if [ -v HOG_VIVADO_DIR ]; then
+        echo "[Hog VM Setup] Vivado installation direcotry is set to $HOG_VIVADO_DIR"
+    else
+        echo "[Hog VM Setup] ERROR: variable HOG_VIVADO_DIR should be set and point to a valid Xilinx Vivado SDK installation directory (containing the xsetup file)."
+        exit -1
+    fi
 fi
 
 cd "${THIS_DIR}"
@@ -86,7 +100,7 @@ if [ -e /dev/vdb ]; then
     chmod a+xrw /mnt/vd
     mount /dev/vdb /mnt/vd
     mkdir /mnt/vd/runner
-    
+
     echo "[Hog VM Setup] Setting up Gitlab runner..."
     gitlab-runner uninstall
     gitlab-runner install --user=$HOG_USERNAME --working-directory=/mnt/vd/runner
@@ -112,13 +126,16 @@ echo "# Lines added by Hog #" >> /etc/fstab
 echo "/swapfile   swap    swap    sw  0   0" >> /etc/fstab
 echo "/dev/vdb  /mnt/vd  ext4    rw,relatime,seclabel,data=ordered 0 0" >> /etc/fstab
 
-if [[ -x "$HOG_VIVADO_DIR/xsetup" ]]; then
-    echo
-    echo "[Hog VM Setup] Installing Vivado, this might take more than a while..."
-    $HOG_VIVADO_DIR/xsetup --agree XilinxEULA,3rdPartyEULA,WebTalkTerms --batch Install --config ./install_config.txt
-else
-    echo
-    echo "[Hog VM Setup] Vivado setup not found in $VIVADO_DIR..."
+if [ $NO_VIVADO == 0 ]
+    then
+        if [[ -x "$HOG_VIVADO_DIR/xsetup" ]]; then
+            echo
+            echo "[Hog VM Setup] Installing Vivado, this might take more than a while..."
+            $HOG_VIVADO_DIR/xsetup --agree XilinxEULA,3rdPartyEULA,WebTalkTerms --batch Install --config ./install_config.txt
+        else
+            echo
+            echo "[Hog VM Setup] Vivado setup not found in $VIVADO_DIR..."
+        fi
 fi
 
 cd "${OLD_DIR}"

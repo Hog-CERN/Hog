@@ -62,6 +62,7 @@ Now take the following actions:
   - __HOG_USERNAME__= The name of you service account, e.g. john
   - __HOG_VIVADO_DIR__= Path of your Vivado SDK installation directory containing the xsetup executable
   - __HOG_TOKEN__= a valid gitlab private token for your service accaount
+  - __HOG_USERGROUP__= The name of your user group, e.g. "zp" for ATLAS
 - Go to the VM directory and launch the __hog-vm-setup.sh__ script
 - Once the script has finished, you can login to the VM as your service account (john)
 

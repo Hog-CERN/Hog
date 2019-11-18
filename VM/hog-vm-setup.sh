@@ -138,5 +138,8 @@ if [ $NO_VIVADO == 0 ]
         fi
 fi
 
+# Do a final yum upgrade
+yum upgrade
+
 cd "${OLD_DIR}"
 

@@ -61,7 +61,7 @@ stages:
     variables:
         <<: *vars    
     script:
-        - vivado -mode batch -notrace -source ./Hog/Tcl/launch_ip_synth.tcl -tclargs $PROJECT_NAME
+        - vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_ip_synth.tcl -tclargs $PROJECT_NAME
     artifacts:
         name: vivado_runs
         paths:
@@ -78,7 +78,7 @@ stages:
         - git status
         - git diff
         - git stash
-        - vivado -mode batch -notrace -source ./Hog/Tcl/launch_synthesis.tcl -tclargs $PROJECT_NAME
+        - vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_synthesis.tcl -tclargs $PROJECT_NAME
     artifacts:
         name: vivado_synth
         paths:
@@ -91,7 +91,7 @@ stages:
     variables:
         <<: *vars        
     script:
-        - vivado -mode batch -notrace -source ./Hog/Tcl/launch_implementation.tcl -tclargs $PROJECT_NAME
+        - vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_implementation.tcl -tclargs $PROJECT_NAME
     artifacts:
         name: vivado_impl
         paths:
@@ -104,7 +104,7 @@ stages:
     variables:
         <<: *vars        
     script:
-        - vivado -mode batch -notrace -source ./Hog/Tcl/launch_write_bitstream.tcl -tclargs $PROJECT_NAME
+        - vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_write_bitstream.tcl -tclargs $PROJECT_NAME
         - xrdcp -rf $CI_PROJECT_DIR/bin/* $EOS_MGM_URL///$HOG_UNOFFICIAL_BIN_EOS_PATH
 
     artifacts:

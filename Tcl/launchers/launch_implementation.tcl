@@ -1,5 +1,5 @@
 set Name LaunchImplementation
-set path [file normalize [file dirname [info script]]]
+set path [file normalize "../[file dirname [info script]]"]
 if { $::argc eq 0 } {
     puts "USAGE: $::argv0 <project>"
     exit 1

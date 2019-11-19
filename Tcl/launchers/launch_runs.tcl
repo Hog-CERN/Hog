@@ -1,4 +1,5 @@
 set Name LaunchRuns
+set path "../[file normalize [file dirname [info script]]"]
 if { $::argc eq 0 } {
     puts "USAGE: $::argv0 <project> \[output directory\] \[number of jobs\]"
     exit 1
@@ -7,7 +8,7 @@ if { $::argc eq 0 } {
     if { $::argc > 1 } {
 	set main_folder [file normalize [lindex $argv 1]]
     } else {
-	set main_folder [file normalize "../../VivadoProject/$project/$project.runs/"]
+	set main_folder [file normalize "$path/../../VivadoProject/$project/$project.runs/"]
     }
 
     if { $::argc > 2 } {
@@ -24,7 +25,6 @@ if { $::argc eq 0 } {
 }
 
 set old_path [pwd]
-set path [file normalize [file dirname [info script]]]
 cd $path
 source ./hog.tcl
 Info $Name 1 "Number of jobs set to $NJOBS."

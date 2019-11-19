@@ -24,7 +24,7 @@ if { $::argc eq 0 } {
 }
 
 set old_path [pwd]
-set path [file normalize [file dirname [info script]]]
+set path [file normalize "../[file dirname [info script]]"]
 cd $path
 source ./hog.tcl
 

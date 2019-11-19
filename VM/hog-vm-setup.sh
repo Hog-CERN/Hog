@@ -100,6 +100,9 @@ if [ -e /dev/vdb ]; then
     chmod a+xrw /mnt/vd
     mount /dev/vdb /mnt/vd
     mkdir /mnt/vd/runner
+    
+    chmod a+rxw /mnt/vd/runner
+    chown $HOG_USERNAME:$HOG_USERGROUP /mnt/vd/runner
 
     echo "[Hog VM Setup] Setting up Gitlab runner..."
     gitlab-runner uninstall

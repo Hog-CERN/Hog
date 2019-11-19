@@ -19,7 +19,7 @@ open_project ../../VivadoProject/$project/$project.xpr
 
 Info $Name 5 "Starting implementation flow..."
 
-launch_runs impl_1 -to_step route_design -jobs 4 -dir $main_folder
+launch_runs impl_1 -jobs 4 -dir $main_folder
 wait_on_run impl_1
 
 set prog [get_property PROGRESS [get_runs impl_1]]
@@ -51,9 +51,9 @@ puts $status_file "WHS: $whs"
 puts $status_file "THS: $ths"        
 close $status_file
 
-set prog [get_property PROGRESS [get_runs impl_1]]
-set status [get_property STATUS [get_runs impl_1]]
-Info $Name 9 "Run: impl_1 progress: $prog, status : $status"
+# set prog [get_property PROGRESS [get_runs impl_1]]
+# set status [get_property STATUS [get_runs impl_1]]
+# Info $Name 9 "Run: impl_1 progress: $prog, status : $status"
 
 
 if {$prog ne "100%"} {

@@ -66,5 +66,32 @@ Now take the following actions:
 - Go to the VM directory and launch the __hog-vm-setup.sh__ script
 - Once the script has finished, you can login to the VM as your service account (john)
 
+### Allowing concurrent jobs on a single Openstack VM
+- Log into your Openstack machine
+- Open with your preferred editor with sudo rights `/etc/gitlab-runner/config.toml`
+- In the `global section` add ``concurrent = NUMBER_OF_CONCURRENT_CPU``:  limits how many jobs globally can be run concurrently. That means, it applies to all the runners on the machine independently of the executor [docker, ssh, kubernetes etc]
+- In the `runner section` add ``limit = MAX_NUMBER_OF_CONCURRENT_JOB_PER_RUNNER``: Limit how many jobs can be handled concurrently by this token. Suppose that we have 2 runners registered by 2 different tokens, then its limit could be adjusted separately : runner-one limit = 3, runner-two limit =5,…
+- In the `runner section` add ``request_concurrency = NUMBER_OF_CONCURRENT_REQUESTS_PER_NEW_JOBS`` : Limit number of concurrent requests for new jobs from GitLab (default 1)
+- [Have a look here for more info](https://medium.com/faun/maximize-your-gitlab-runner-power-with-ci-cd-concurrent-pipelines-a5dcc092cee7)
+- Example ``config.toml``
+``` 
+concurrent = 4
+check_interval = 0
+
+[session_server]
+  session_timeout = 1800
+
+[[runners]]
+  limit = 4
+  request_concurrency = 4
+  name = "HOG vivado runner on mypc"
+  url = "https://gitlab.cern.ch"
+  token = "ibsaidbasdhubavsuod"
+  executor = "shell"
+  [runners.custom_build_dir]
+  [runners.cache]
+    [runners.cache.s3]
+    [runners.cache.gcs]
+```
 If something goes wrong, please report it
 

@@ -109,16 +109,16 @@ set constraints [get_filesets constrs_1]
 # READ FILES #
 ##############
 set list_files [glob -directory $list_path "*"]
-set ext_string "ext.src"
+# set ext_string "ext.src"
 
 foreach f $list_files {
-    puts $f 
-    puts [string first $ext_string $f ]
-    if {[string first $ext_string $f ] != -1} {
-        SmartListFile $f $EXTERNAL_PATH
-    } else {
-        SmartListFile $f $top_path
-    }
+    # puts $f 
+    # puts [string first $ext_string $f ]
+    # if {[string first $ext_string $f ] != -1} {
+    #     SmartListFile $f $EXTERNAL_PATH
+    # } else {
+    SmartListFile $f $top_path
+    # }
 }
 
 

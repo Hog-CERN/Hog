@@ -161,9 +161,9 @@ proc ReadListFile {list_file path lib src {no_add 0}} {
 	if {![regexp {^ *$} $line] & ![regexp {^ *\#} $line] } { #Exclude empty lines and comments
 	    set file_and_prop [regexp -all -inline {\S+} $line]
 	    set vhdlfile [lindex $file_and_prop 0]
-	    if { [string first "$" $vhdlfile ] == -1 } {
-    	    set vhdlfile "$path/$vhdlfile"
-	    }
+	    # if { [string first "$" $vhdlfile ] == -1 } {
+	    set vhdlfile "$path/$vhdlfile"
+	    # }
 	    if {[file exists $vhdlfile]} {
 		set vhdlfile [file normalize $vhdlfile]
 		set extension [file ext $vhdlfile]

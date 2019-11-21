@@ -1,6 +1,6 @@
 set NAME "Post_Bitstream"
 set old_path [pwd]
-set tcl_path [file dirname [info script]]
+set tcl_path [file normalize "[file dirname [info script]]/.."]
 source $tcl_path/hog.tcl
 
 set bit_file [file normalize [lindex [glob -nocomplain "$old_path/*.bit"] 0]]

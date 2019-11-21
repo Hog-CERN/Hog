@@ -10,11 +10,11 @@ if [file exists ../no_time] {
     set real_time 0
 }
 set old_path [pwd]
-set tcl_path [file dirname [info script]]
+set tcl_path [file normalize "[file dirname [info script]]/.."]
 source $tcl_path/hog.tcl
 
 # Go to repository path
-cd ../../../../ 
+cd "$tcl_path/../.."
 
 set proj_file [get_property parent.project_path [current_project]]
 set proj_dir [file normalize [file dirname $proj_file]]

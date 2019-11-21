@@ -21,8 +21,7 @@ set pre_synth_file  "pre-synthesis.tcl"
 set post_synth_file ""
 set post_impl_file  "post-implementation.tcl"
 set post_bit_file   "post-bitstream.tcl"
-
-set tcl_path         [file normalize [file dirname [info script]]]
+set tcl_path         [file normalize "[file dirname [info script]]/.."]
 set repo_path        [file normalize "$tcl_path/../../"]
 set top_path         "$repo_path/Top/$DESIGN"
 set list_path        "$top_path/list"
@@ -33,10 +32,10 @@ set synth_top_module "top_$top_name"
 set synth_top_file   "$top_path/top_$DESIGN.vhd"
 set user_ip_repo     "$repo_path/IP_repository"
 
-set pre_synth  [file normalize "$tcl_path/$pre_synth_file"]
-set post_synth [file normalize "$tcl_path/$post_synth_file"]
-set post_impl  [file normalize "$tcl_path/$post_impl_file"]
-set post_bit   [file normalize "$tcl_path/$post_bit_file"]
+set pre_synth  [file normalize "$tcl_path/integrated/$pre_synth_file"]
+set post_synth [file normalize "$tcl_path/integrated/$post_synth_file"]
+set post_impl  [file normalize "$tcl_path/integrated/$post_impl_file"]
+set post_bit   [file normalize "$tcl_path/integrated/$post_bit_file"]
 
 source $tcl_path/hog.tcl
 

@@ -19,7 +19,7 @@ open_project ../../VivadoProject/$project/$project.xpr
 
 Info $Name 5 "Starting implementation flow..."
 
-launch_runs impl_1 -to_step route_design -jobs 4 -dir $main_folder
+launch_runs impl_1 -jobs 4 -dir $main_folder
 wait_on_run impl_1
 
 set prog [get_property PROGRESS [get_runs impl_1]]

@@ -2,6 +2,17 @@
 OLD_DIR=`pwd`
 THIS_DIR="$(dirname "$0")"
 
+NO_VIVADO=0
+
+while getopts ":x" opt; do
+  case ${opt} in
+    x ) NO_VIVADO=1
+      ;;
+    \? ) echo "Usage: ./hog-vm-setup.sh [-x]"
+      ;;
+  esac
+done
+
 if [ "$(whoami)" != "root" ]; then
     echo "[Hog VM Setup] FATAL: Script must be run as root."
     exit -1
@@ -28,11 +39,14 @@ else
     exit -1
 fi
 
-if [ -v HOG_VIVADO_DIR ]; then
-    echo "[Hog VM Setup] Vivado installation direcotry is set to $HOG_VIVADO_DIR"
-else
-    echo "[Hog VM Setup] ERROR: variable HOG_VIVADO_DIR should be set and point to a valid Xilinx Vivado SDK installation directory (containing the xsetup file)."
-    exit -1
+if [ $NO_VIVADO == 0 ]
+    then
+    if [ -v HOG_VIVADO_DIR ]; then
+        echo "[Hog VM Setup] Vivado installation direcotry is set to $HOG_VIVADO_DIR"
+    else
+        echo "[Hog VM Setup] ERROR: variable HOG_VIVADO_DIR should be set and point to a valid Xilinx Vivado SDK installation directory (containing the xsetup file)."
+        exit -1
+    fi
 fi
 
 cd "${THIS_DIR}"
@@ -63,6 +77,7 @@ echo
 echo "[Hog VM Setup] Installing wandisco repository..."
 yum -y install http://opensource.wandisco.com/centos/6/git/x86_64/wandisco-git-release-6-1.noarch.rpm
 echo "[Hog VM Setup] Updating to recent version of git from wandisco..."
+yum -y install perl-YAML cvsps perl-CGI perl-DBI subversion-perl cvs tk perl subversion
 yum -y --disablerepo=base,updates  update git
 
 echo
@@ -86,6 +101,9 @@ if [ -e /dev/vdb ]; then
     mount /dev/vdb /mnt/vd
     mkdir /mnt/vd/runner
     
+    chmod a+rxw /mnt/vd/runner
+    chown $HOG_USERNAME:$HOG_USERGROUP /mnt/vd/runner
+
     echo "[Hog VM Setup] Setting up Gitlab runner..."
     gitlab-runner uninstall
     gitlab-runner install --user=$HOG_USERNAME --working-directory=/mnt/vd/runner
@@ -111,14 +129,20 @@ echo "# Lines added by Hog #" >> /etc/fstab
 echo "/swapfile   swap    swap    sw  0   0" >> /etc/fstab
 echo "/dev/vdb  /mnt/vd  ext4    rw,relatime,seclabel,data=ordered 0 0" >> /etc/fstab
 
-if [[ -x "$HOG_VIVADO_DIR/xsetup" ]]; then
-    echo
-    echo "[Hog VM Setup] Installing Vivado, this might take more than a while..."
-    $HOG_VIVADO_DIR/xsetup --agree XilinxEULA,3rdPartyEULA,WebTalkTerms --batch Install --config ./install_config.txt
-else
-    echo
-    echo "[Hog VM Setup] Vivado setup not found in $VIVADO_DIR..."
+if [ $NO_VIVADO == 0 ]
+    then
+        if [[ -x "$HOG_VIVADO_DIR/xsetup" ]]; then
+            echo
+            echo "[Hog VM Setup] Installing Vivado, this might take more than a while..."
+            $HOG_VIVADO_DIR/xsetup --agree XilinxEULA,3rdPartyEULA,WebTalkTerms --batch Install --config ./install_config.txt
+        else
+            echo
+            echo "[Hog VM Setup] Vivado setup not found in $VIVADO_DIR..."
+        fi
 fi
+
+# Do a final yum upgrade
+yum -y upgrade
 
 cd "${OLD_DIR}"
 

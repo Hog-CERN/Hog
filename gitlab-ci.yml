@@ -19,9 +19,6 @@ before_script:
   only:
     refs:
       - merge_requests
-    variables:
-      - $CI_COMMIT_REF_NAME =~ /^feature\/.*$/i
-      - $CI_COMMIT_REF_NAME =~ /^bugfix\/.*$/i
   except:
     variables:
       - $CI_COMMIT_REF_NAME =~ /^test\/.*$/i

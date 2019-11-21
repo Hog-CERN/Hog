@@ -51,11 +51,6 @@ puts $status_file "WHS: $whs"
 puts $status_file "THS: $ths"        
 close $status_file
 
-# set prog [get_property PROGRESS [get_runs impl_1]]
-# set status [get_property STATUS [get_runs impl_1]]
-# Info $Name 9 "Run: impl_1 progress: $prog, status : $status"
-
-
 if {$prog ne "100%"} {
     Error $Name 5 "Implementation error"
 }

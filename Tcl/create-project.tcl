@@ -79,7 +79,6 @@ if {[string equal [get_filesets -quiet sources_1] ""]} {
 set sources [get_filesets sources_1]
 
 ## Set synthesis TOP
-puts $synth_top_file
 if [file exists $synth_top_file.v] {
     Info CreateProject 0 "Adding top file found in Top folder $synth_top_file.v" 
     add_files -norecurse -fileset $sources $synth_top_file.v
@@ -87,7 +86,7 @@ if [file exists $synth_top_file.v] {
     Info CreateProject 0 "Adding top file found in Top folder $synth_top_file.vhd" 
     add_files -norecurse -fileset $sources $synth_top_file.vhd
 } else {
-    Info CreateProject 0 "No top file found in Top folder, please make sure that the top file is included in one of the libraries"     
+    Info CreateProject 0 "No top file found in Top folder, please make sure that the top file - i.e. containing a module called $synth_top_module - is included in one of the libraries"     
 }
     
 set_property "top" $synth_top_module $sources

@@ -93,7 +93,6 @@ stages:
         name: vivado_impl
         paths:
             - $CI_PROJECT_DIR/VivadoProject/$PROJECT_NAME
-            - $CI_PROJECT_DIR/$IP_PATH
         expire_in: 30 days
 
 .write_bitstream: &write_bitstream

@@ -19,7 +19,6 @@ open_project ../../VivadoProject/$project/$project.xpr
 
 Info $Name 5 "Starting write bitstream flow..."
 
-ForceUpToDate
 launch_runs impl_1 -to_step write_bitstream -jobs 4 -dir $main_folder
 wait_on_run impl_1
 

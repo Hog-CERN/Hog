@@ -89,10 +89,12 @@ stages:
         <<: *vars        
     script:
         - vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_implementation.tcl -tclargs $PROJECT_NAME
+        - "if [ -z ${HOG_NO_BITSTREAM_STAGE+x} ]; then echo 'Will create bitstream in next stage...'; else vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_write_bitstream.tcl -tclargs $PROJECT_NAME; fi"
     artifacts:
         name: vivado_impl
         paths:
             - $CI_PROJECT_DIR/VivadoProject/$PROJECT_NAME
+            - $CI_PROJECT_DIR/bin           
         expire_in: 30 days
 
 .write_bitstream: &write_bitstream
@@ -101,7 +103,7 @@ stages:
     variables:
         <<: *vars        
     script:
-        - vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_write_bitstream.tcl -tclargs $PROJECT_NAME
+        - "if [ -z ${HOG_NO_BITSTREAM_STAGE+x} ]; then vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_write_bitstream.tcl -tclargs $PROJECT_NAME; fi"
         - xrdcp -rf $CI_PROJECT_DIR/bin/* $EOS_MGM_URL///$HOG_UNOFFICIAL_BIN_EOS_PATH
 
     artifacts:

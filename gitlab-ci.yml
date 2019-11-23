@@ -1,4 +1,5 @@
 before_script:
+    - echo Welcome to Hog-CI
     - env
     - export REPO=`echo $CI_PROJECT_URL | sed -e s#https://##`
     - git remote set-url origin https://${HOG_USER}:${HOG_PUSH_TOKEN}@$REPO

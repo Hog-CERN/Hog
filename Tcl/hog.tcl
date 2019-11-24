@@ -754,3 +754,16 @@ proc GetHogFiles {{proj_path 0}} {
     return [list $libraries $properties]
 }
 ########################################################
+
+## Forces all the Vivado runs to look up to date, useful before write bitstream
+#
+
+proc ForceUpToDate {} {
+    Info ForceUpToDate 0 "Forcing all the runs to look up to date..."
+    set runs [get_runs]
+    foreach r $runs {
+	Info ForceUpToDate 1 "Forcing $r..."
+	set_property needs_refresh false [get_runs $r]
+    }
+}
+########################################################

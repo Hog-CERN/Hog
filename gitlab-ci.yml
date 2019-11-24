@@ -19,9 +19,6 @@ before_script:
   only:
     refs:
       - merge_requests
-    variables:
-      - $CI_COMMIT_REF_NAME =~ /^feature\/.*$/i
-      - $CI_COMMIT_REF_NAME =~ /^bugfix\/.*$/i
   except:
     variables:
       - $CI_COMMIT_REF_NAME =~ /^test\/.*$/i
@@ -47,13 +44,12 @@ stages:
      variables:
         <<: *vars
      script:
-      - env
       - ./Hog/CreateProject.sh $PROJECT_NAME
      artifacts:
        name: vivado_projects
        paths:
          - $CI_PROJECT_DIR/VivadoProject/$PROJECT_NAME
-       expire_in: 1 day
+       expire_in: 30 day
 
 .synthesise_ips: &synthesise_ips
     <<: *only-default
@@ -61,13 +57,13 @@ stages:
     variables:
         <<: *vars    
     script:
-        - vivado -mode batch -notrace -source ./Hog/Tcl/launch_ip_synth.tcl -tclargs $PROJECT_NAME
+        - vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_ip_synth.tcl -tclargs $PROJECT_NAME
     artifacts:
         name: vivado_runs
         paths:
             - $CI_PROJECT_DIR/VivadoProject/$PROJECT_NAME
             - $CI_PROJECT_DIR/$IP_PATH
-        expire_in: 1 day
+        expire_in: 30 day
 
 .synthesise_project: &synthesise_project
     <<: *only-default
@@ -78,12 +74,12 @@ stages:
         - git status
         - git diff
         - git stash
-        - vivado -mode batch -notrace -source ./Hog/Tcl/launch_synthesis.tcl -tclargs $PROJECT_NAME
+        - vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_synthesis.tcl -tclargs $PROJECT_NAME
     artifacts:
         name: vivado_synth
         paths:
             - $CI_PROJECT_DIR/VivadoProject/$PROJECT_NAME
-        expire_in: 2 day
+        expire_in: 30 day
 
 .implement_project: &implement_project
     <<: *only-default    
@@ -91,12 +87,14 @@ stages:
     variables:
         <<: *vars        
     script:
-        - vivado -mode batch -notrace -source ./Hog/Tcl/launch_implementation.tcl -tclargs $PROJECT_NAME
+        - vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_implementation.tcl -tclargs $PROJECT_NAME
+        - "if [ -z ${HOG_NO_BITSTREAM_STAGE+x} ]; then echo 'Will create bitstream in next stage...'; else vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_write_bitstream.tcl -tclargs $PROJECT_NAME; fi"
     artifacts:
         name: vivado_impl
         paths:
-            - $CI_PROJECT_DIR/VivadoProject/$PROJECT_NAME       
-        expire_in: 7 days
+            - $CI_PROJECT_DIR/VivadoProject/$PROJECT_NAME
+            - $CI_PROJECT_DIR/bin           
+        expire_in: 30 days
 
 .write_bitstream: &write_bitstream
     <<: *only-default    
@@ -104,7 +102,7 @@ stages:
     variables:
         <<: *vars        
     script:
-        - vivado -mode batch -notrace -source ./Hog/Tcl/launch_write_bitstream.tcl -tclargs $PROJECT_NAME
+        - "if [ -z ${HOG_NO_BITSTREAM_STAGE+x} ]; then vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_write_bitstream.tcl -tclargs $PROJECT_NAME; fi"
         - xrdcp -rf $CI_PROJECT_DIR/bin/* $EOS_MGM_URL///$HOG_UNOFFICIAL_BIN_EOS_PATH
 
     artifacts:

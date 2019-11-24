@@ -1,3 +1,5 @@
+#!/usr/bin/env tclsh
+
 set Name tag_repository
 if { $::argc eq 0 } {
     puts "USAGE: $::argv0 <merge request> \[version level\]"
@@ -21,11 +23,11 @@ set old_tag [lindex $tags 0]
 set new_tag [lindex $tags 1]
 Info $Name 1 "Old tag was: $old_tag and new tag is: $new_tag"
 
-set official $env(HOG_OFFICIAL_BIN_EOS_PATH)
-set unofficial $env(HOG_UNOFFICIAL_BIN_EOS_PATH)
-set use_doxygen $env(HOG_USE_DOXYGEN)
 
 if {$version_level >= 3} {
+    set official $env(HOG_OFFICIAL_BIN_EOS_PATH)
+    set unofficial $env(HOG_UNOFFICIAL_BIN_EOS_PATH)
+    set use_doxygen $env(HOG_USE_DOXYGEN)
     # Run doxygen
     set doxygen_conf "./doxygen/doxygen.conf"
 

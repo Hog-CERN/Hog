@@ -109,7 +109,12 @@ set constraints [get_filesets constrs_1]
 set list_files [glob -directory $list_path "*"]
 
 foreach f $list_files {
-    SmartListFile $f $top_path
+    # IF LIST IS EXTERNAL path is external
+    if {[string first ".ext" $f ] != -1} {
+        SmartListFile $f $EXTERNAL_PATH
+    } else {
+        SmartListFile $f $top_path
+    }
 }
 
 

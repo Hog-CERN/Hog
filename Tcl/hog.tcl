@@ -143,11 +143,12 @@ proc DoxygenVersion {target_version} {
 # * lib      : name of the library files will be added to
 # * src      : name of VivadoFileSet files will be added to
 # * no_add   : if a value is specified, the files will added to memory only, not to the project
-proc ReadListFile {list_file path lib src {no_add 0}} {
+proc ReadListFile {list_file path lib src ext {no_add 0}} {
     set list_file 
     set fp [open $list_file r]
     set file_data [read $fp]
     close $fp
+
 
     set libraries [dict create]
     set properties [dict create]
@@ -183,8 +184,22 @@ proc ReadListFile {list_file path lib src {no_add 0}} {
 			}
 		    }
 
+		    set prop_position 1
+		    ### Check checksum of files
+		    if {[string equal ".ext" $ext ]} {
+		    	Info ReadlistFile 1 "Checking checksums of external library files"
+		    	set hash [lindex $file_and_prop 1]
+		    	set current_hash [exec md5sum $vhdlfile]
+		    	set current_hash [lindex $current_hash 0]
+		    	if {[string first $hash $current_hash] == -1} {
+		    		Error ReadExternalListFile 0 "File $vhdlfile has a wrong hash. Current checksum: $current_hash, expected: $hash"
+		    	}
+		    	set prop_position 2
+   		    }
+		    
+
 		    ### Set file properties
-		    set prop [lrange $file_and_prop 1 end]
+		    set prop [lrange $file_and_prop $prop_position end]
 		    dict lappend properties $vhdlfile $prop
 		    if {$no_add == 0} {
 			# VHDL 2008 compatibility
@@ -450,16 +465,15 @@ proc SmartListFile {list_file path {no_add 0}} {
 	}
 	.ext {
 		set file_set "sources_1"
-		Info SmartListFile 0 "Reading sources from file $list_file, lib: $lib, file-set: $file_set"
-		return [ReadExternalListFile $list_file $path $lib $file_set $no_add]
-
+		# Info SmartListFile 0 "Reading sources from file $list_file, lib: $lib, file-set: $file_set"
+		# return [ReadExternalListFile $list_file $path $lib $file_set $no_add]
 	}	
 	default {
 	    Error SmartListFile 0 "Unknown extension $ext"
 	}
     }
     Info SmartListFile 0 "Reading sources from file $list_file, lib: $lib, file-set: $file_set"
-    return [ReadListFile $list_file $path $lib $file_set $no_add]
+    return [ReadListFile $list_file $path $lib $file_set $ext $no_add]
 }
 ########################################################
 

@@ -75,19 +75,28 @@ foreach f $list_files {
 }
 
 # Read external library files
+set ext_hashes ""
 set ext_files [glob -nocomplain "./Top/$proj_name/list/*.ext"]
+set ext_names ""
 foreach f $ext_files {
+    
+    set name [file rootname [file tail $f]]
+    set hash [exec git log --format=%h -1 $f ]
+    Info $NAME 1 "Found source file $f, commit SHA: $hash"
+    lappend ext_names $name
+    lappend ext_hashes $hash
+
     set fp [open $f r]
     set file_data [read $fp]
     close $fp
     set data [split $file_data "\n"]
+    Info $NAME 1 "Checking checksums of external library files in $f"
     foreach line $data {
         if {![regexp {^ *$} $line] & ![regexp {^ *\#} $line] } { #Exclude empty lines and comments
             set file_and_prop [regexp -all -inline {\S+} $line]
             set hdlfile [lindex $file_and_prop 0]
             set hdlfile "$external_libs_path/$hdlfile"
             if { [file exists $hdlfile] } {
-                Info $NAME 1 "Checking checksums of external library files"
                 set hash [lindex $file_and_prop 1]
                 set current_hash [exec md5sum $hdlfile]
                 set current_hash [lindex $current_hash 0]
@@ -97,6 +106,7 @@ foreach f $ext_files {
             }
         }
     }
+
 }
 
 # XML
@@ -202,6 +212,11 @@ foreach s $subs h $subs_hashes {
     set generic_string "$generic_string $hash"
 }
 
+foreach e $ext_names h $ext_hashes {
+    set hash "[string toupper $e]_FWHASH=32'h$h"
+    set generic_string "$generic_string $hash"
+}
+
 if {$flavour != -1} {
    set generic_string "$generic_string FLAVOUR=$flavour"
 }
@@ -239,6 +254,11 @@ Status $NAME 3 " --- Submodules ---"
 foreach s $subs sh $subs_hashes {
     Status $NAME 3 " $s SHA: $sh"
     puts $status_file "$s, $sh, 00000000"    
+}
+Status $NAME 3 " --- External Libraries ---"
+foreach e $ext_names eh $ext_hashes {
+    Status $NAME 3 " $e SHA: $eh"
+    puts $status_file "$e, $eh, 00000000"    
 }
 Status $NAME 3 " -----------------------------------------------------------------"
 close $status_file

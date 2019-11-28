@@ -111,7 +111,7 @@ set list_files [glob -directory $list_path "*"]
 
 foreach f $list_files {
     # IF LIST IS EXTERNAL path is external
-    if {[string first ".ext" [file extension $f]] != -1} {
+    if {[string first ".ext" [file ext $f]] != -1} {
         SmartListFile $f $env(HOG_EXTERNAL_PATH)
     } else {
         SmartListFile $f $top_path

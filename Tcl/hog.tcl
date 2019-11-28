@@ -143,12 +143,12 @@ proc DoxygenVersion {target_version} {
 # * lib      : name of the library files will be added to
 # * src      : name of VivadoFileSet files will be added to
 # * no_add   : if a value is specified, the files will added to memory only, not to the project
-proc ReadListFile {list_file path lib src ext {no_add 0}} {
+proc ReadListFile {list_file path lib src {no_add 0}} {
     set list_file 
     set fp [open $list_file r]
     set file_data [read $fp]
     close $fp
-
+    set list_file_ext [file ext $list_file]
 
     set libraries [dict create]
     set properties [dict create]
@@ -186,7 +186,7 @@ proc ReadListFile {list_file path lib src ext {no_add 0}} {
 
 			    set prop_position 1
 			    ### Check checksum of files
-			    if {[string equal ".ext" $ext ]} {
+			    if {[string equal ".ext" $list_file_ext ]} {
 			    	Info ReadlistFile 1 "Checking checksums of external library files"
 			    	set hash [lindex $file_and_prop 1]
 			    	set current_hash [exec md5sum $vhdlfile]
@@ -335,7 +335,7 @@ proc SmartListFile {list_file path {no_add 0}} {
 	}
     }
     Info SmartListFile 0 "Reading sources from file $list_file, lib: $lib, file-set: $file_set"
-    return [ReadListFile $list_file $path $lib $file_set $ext $no_add]
+    return [ReadListFile $list_file $path $lib $file_set $no_add]
 }
 ########################################################
 
@@ -746,10 +746,10 @@ proc GetProjectFiles {} {
 proc GetHogFiles {{proj_path 0}} {
     if {$proj_path == 0} {
 	set proj_path [get_property DIRECTORY [get_projects]]
-	Info ReadListFiles 0 "Project path is: $proj_path"
+	Info GetHogFiles 0 "Project path is: $proj_path"
     }
     set proj_name [file tail $proj_path]
-    Info ReadListFiles 1 "Project name is: $proj_name"
+    Info GetHogFiles 1 "Project name is: $proj_name"
     set top_path [file normalize $proj_path/../../Top/$proj_name]
     set list_path $top_path/list
     set libraries [dict create]

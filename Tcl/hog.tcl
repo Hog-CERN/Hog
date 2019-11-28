@@ -163,113 +163,113 @@ proc ReadListFile {list_file path lib src ext {no_add 0}} {
 	    set file_and_prop [regexp -all -inline {\S+} $line]
 	    set vhdlfile [lindex $file_and_prop 0]
 	    set vhdlfile "$path/$vhdlfile"
-	    if {[file exists $vhdlfile]} {
-		set vhdlfile [file normalize $vhdlfile]
-		set extension [file ext $vhdlfile]
-		if { [lsearch {.src .sim .con .sub} $extension] >= 0 } {
-		    Info ReadListFile 1 "List file $vhdlfile found in list file, recoursively opening it..."
-        	    lassign [SmartListFile $vhdlfile $path $no_add] l p
-		    set libraries [dict merge $l $libraries]
-		    set properties [dict merge $p $properties]		    
-		} else {
-		    if {$no_add == 0} { add_files -norecurse -fileset $src $vhdlfile }
-		    incr cnt
-		    set file_obj [get_files -of_objects [get_filesets $src] [list "*$vhdlfile"]]
-		    if {$lib ne ""} {
-			if {$no_add == 0} {set_property -name "library" -value $lib -objects $file_obj}
-			if {[string equal $extension ".xci"]} {
-			    dict lappend libraries "IP" $vhdlfile
+	    if { [file exists $vhdlfile] } {
+			set vhdlfile [file normalize $vhdlfile]
+			set extension [file ext $vhdlfile]
+			if { [lsearch {.src .sim .con .sub} $extension] >= 0 } {
+			    Info ReadListFile 1 "List file $vhdlfile found in list file, recoursively opening it..."
+	        	    lassign [SmartListFile $vhdlfile $path $no_add] l p
+			    set libraries [dict merge $l $libraries]
+			    set properties [dict merge $p $properties]		    
 			} else {
-			    dict lappend libraries $lib $vhdlfile
-			}
-		    }
+			    if {$no_add == 0} { add_files -norecurse -fileset $src $vhdlfile }
+			    incr cnt
+			    set file_obj [get_files -of_objects [get_filesets $src] [list "*$vhdlfile"]]
+			    if {$lib ne ""} {
+				if {$no_add == 0} {set_property -name "library" -value $lib -objects $file_obj}
+				if {[string equal $extension ".xci"]} {
+				    dict lappend libraries "IP" $vhdlfile
+				} else {
+				    dict lappend libraries $lib $vhdlfile
+				}
+			    }
 
-		    set prop_position 1
-		    ### Check checksum of files
-		    if {[string equal ".ext" $ext ]} {
-		    	Info ReadlistFile 1 "Checking checksums of external library files"
-		    	set hash [lindex $file_and_prop 1]
-		    	set current_hash [exec md5sum $vhdlfile]
-		    	set current_hash [lindex $current_hash 0]
-		    	if {[string first $hash $current_hash] == -1} {
-		    		Error ReadExternalListFile 0 "File $vhdlfile has a wrong hash. Current checksum: $current_hash, expected: $hash"
-		    	}
-		    	set prop_position 2
-   		    }
-		    
+			    set prop_position 1
+			    ### Check checksum of files
+			    if {[string equal ".ext" $ext ]} {
+			    	Info ReadlistFile 1 "Checking checksums of external library files"
+			    	set hash [lindex $file_and_prop 1]
+			    	set current_hash [exec md5sum $vhdlfile]
+			    	set current_hash [lindex $current_hash 0]
+			    	if {[string first $hash $current_hash] == -1} {
+			    		Error ReadExternalListFile 0 "File $vhdlfile has a wrong hash. Current checksum: $current_hash, expected: $hash"
+			    	}
+			    	set prop_position 2
+	   		    }
+			    
 
-		    ### Set file properties
-		    set prop [lrange $file_and_prop $prop_position end]
-		    dict lappend properties $vhdlfile $prop
-		    if {$no_add == 0} {
-			# VHDL 2008 compatibility
-			if {[lsearch -inline -regex $prop "2008"] >= 0} {
-			    Info ReadListFile 1 "Setting filetype VHDL 2008 for $vhdlfile"
-			    set_property -name "file_type" -value "VHDL 2008" -objects $file_obj
-			}
-			
-			# XDC
-			if {[lsearch -inline -regex $prop "XDC"] >= 0 || [file ext $vhdlfile] == ".xdc"} {
-			    Info ReadListFile 1 "Setting filetype XDC for $vhdlfile"
-			    set_property -name "file_type" -value "XDC" -objects $file_obj
-			}
+			    ### Set file properties
+			    set prop [lrange $file_and_prop $prop_position end]
+			    dict lappend properties $vhdlfile $prop
+			    if {$no_add == 0} {
+				# VHDL 2008 compatibility
+				if {[lsearch -inline -regex $prop "2008"] >= 0} {
+				    Info ReadListFile 1 "Setting filetype VHDL 2008 for $vhdlfile"
+				    set_property -name "file_type" -value "VHDL 2008" -objects $file_obj
+				}
+				
+				# XDC
+				if {[lsearch -inline -regex $prop "XDC"] >= 0 || [file ext $vhdlfile] == ".xdc"} {
+				    Info ReadListFile 1 "Setting filetype XDC for $vhdlfile"
+				    set_property -name "file_type" -value "XDC" -objects $file_obj
+				}
 
-			# Not used in synthesis
-			if {[lsearch -inline -regex $prop "nosynth"] >= 0} {
-			    Info ReadListFile 1 "Setting not used in synthesis for $vhdlfile..."
-			    set_property -name "used_in_synthesis" -value "false" -objects $file_obj
-			}
+				# Not used in synthesis
+				if {[lsearch -inline -regex $prop "nosynth"] >= 0} {
+				    Info ReadListFile 1 "Setting not used in synthesis for $vhdlfile..."
+				    set_property -name "used_in_synthesis" -value "false" -objects $file_obj
+				}
 
-			# Not used in implementation
-			if {[lsearch -inline -regex $prop "noimpl"] >= 0} {
-			    Info ReadListFile 1 "Setting not used in implementation for $vhdlfile..."
-			    set_property -name "used_in_implementation" -value "false" -objects $file_obj
-			}
+				# Not used in implementation
+				if {[lsearch -inline -regex $prop "noimpl"] >= 0} {
+				    Info ReadListFile 1 "Setting not used in implementation for $vhdlfile..."
+				    set_property -name "used_in_implementation" -value "false" -objects $file_obj
+				}
 
-			# Not used in simulation
-			if {[lsearch -inline -regex $prop "nosim"] >= 0} {
-			    Info ReadListFile 1 "Setting not used in simulation for $vhdlfile..."
-			    set_property -name "used_in_simulation" -value "false" -objects $file_obj
-			}
+				# Not used in simulation
+				if {[lsearch -inline -regex $prop "nosim"] >= 0} {
+				    Info ReadListFile 1 "Setting not used in simulation for $vhdlfile..."
+				    set_property -name "used_in_simulation" -value "false" -objects $file_obj
+				}
 
 
-			## Simulation properties
-			# Top simulation module
-			set top_sim [lindex [split [lsearch -inline -regex $prop topsim=] =] 1]
-			if { $top_sim != "" } {
-			    Info ReadListFile 1 "Setting $top_sim as top module for simulation file set $src..."
-			    set_property "top"  $top_sim [get_filesets $src]
-			    current_fileset -simset [get_filesets $src]
-			}
+				## Simulation properties
+				# Top simulation module
+				set top_sim [lindex [split [lsearch -inline -regex $prop topsim=] =] 1]
+				if { $top_sim != "" } {
+				    Info ReadListFile 1 "Setting $top_sim as top module for simulation file set $src..."
+				    set_property "top"  $top_sim [get_filesets $src]
+				    current_fileset -simset [get_filesets $src]
+				}
 
-			# Wave do file
-			set wave_file [lindex [split [lsearch -inline -regex $prop wavefile=] =] 1]
-			if { $wave_file != "" } {
-			    set r_path [GetRepoPath]
-			    set file_name "$r_path/sim/$wave_file"
-			    Info ReadListFile 1 "Setting $file_name as wave do file for simulation file set $src..."
-			    # check if file exists...
-			    if [file exists $file_name] {
-				set_property "modelsim.simulate.custom_wave_do" $file_name [get_filesets $src]
-			    } else {
-				Warning ReadlistFIle 1 "File $file_name was not found."
+				# Wave do file
+				set wave_file [lindex [split [lsearch -inline -regex $prop wavefile=] =] 1]
+				if { $wave_file != "" } {
+				    set r_path [GetRepoPath]
+				    set file_name "$r_path/sim/$wave_file"
+				    Info ReadListFile 1 "Setting $file_name as wave do file for simulation file set $src..."
+				    # check if file exists...
+				    if [file exists $file_name] {
+					set_property "modelsim.simulate.custom_wave_do" $file_name [get_filesets $src]
+				    } else {
+					Warning ReadlistFIle 1 "File $file_name was not found."
+				    }
+				}
+				
+				#Do file
+				set do_file [lindex [split [lsearch -inline -regex $prop dofile=] =] 1]
+				if { $do_file != "" } {
+				    set r_path [GetRepoPath]
+				    set file_name "$r_path/sim/$do_file"
+				    Info ReadListFile 1 "Setting $file_name as udo file for simulation file set $src..."
+				    if [file exists $file_name] {
+					set_property "modelsim.simulate.custom_udo" $file_name [get_filesets $src]
+				    } else {
+					Warning ReadlistFIle 1 "File $file_name was not found."
+				    }
+				}
 			    }
 			}
-			
-			#Do file
-			set do_file [lindex [split [lsearch -inline -regex $prop dofile=] =] 1]
-			if { $do_file != "" } {
-			    set r_path [GetRepoPath]
-			    set file_name "$r_path/sim/$do_file"
-			    Info ReadListFile 1 "Setting $file_name as udo file for simulation file set $src..."
-			    if [file exists $file_name] {
-				set_property "modelsim.simulate.custom_udo" $file_name [get_filesets $src]
-			    } else {
-				Warning ReadlistFIle 1 "File $file_name was not found."
-			    }
-			}
-		    }
-		}
 	    } else {
 		Error ReadListFile 0 "File $vhdlfile not found"
 	    }

@@ -31,6 +31,8 @@ set top_name [file root $DESIGN]
 set synth_top_module "top_$top_name"
 set synth_top_file   "$top_path/top_$DESIGN"
 set user_ip_repo     "$repo_path/IP_repository"
+set external_libs_path [set env(HOG_EXTERNAL_PATH)]
+
 
 set pre_synth  [file normalize "$tcl_path/integrated/$pre_synth_file"]
 set post_synth [file normalize "$tcl_path/integrated/$post_synth_file"]
@@ -111,7 +113,7 @@ set list_files [glob -directory $list_path "*"]
 foreach f $list_files {
     # IF LIST IS EXTERNAL path is external
     if {[string first ".ext" $f ] != -1} {
-        SmartListFile $f $EXTERNAL_PATH
+        SmartListFile $f $external_libs_path
     } else {
         SmartListFile $f $top_path
     }

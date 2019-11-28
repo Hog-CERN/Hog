@@ -19,6 +19,8 @@ cd "$tcl_path/../.."
 set proj_file [get_property parent.project_path [current_project]]
 set proj_dir [file normalize [file dirname $proj_file]]
 set proj_name [file rootname [file tail $proj_file]]
+set external_libs_path   [set env(HOG_EXTERNAL_PATH)]
+
 
 # Calculating flavour if any
 set flavour [string map {. ""} [file ext $proj_name]]
@@ -70,6 +72,31 @@ foreach f $list_files {
     lappend libs $name
     lappend vers $ver
     lappend hashes $hash
+}
+
+# Read external library files
+set ext_files [glob -nocomplain "./Top/$proj_name/list/*.ext"]
+foreach f $ext_files {
+    set fp [open $f r]
+    set file_data [read $fp]
+    close $fp
+    set data [split $file_data "\n"]
+    foreach line $data {
+        if {![regexp {^ *$} $line] & ![regexp {^ *\#} $line] } { #Exclude empty lines and comments
+            set file_and_prop [regexp -all -inline {\S+} $line]
+            set hdlfile [lindex $file_and_prop 0]
+            set hdlfile "$external_libs_path/$hdlfile"
+            if { [file exists $hdlfile] } {
+                Info $NAME 1 "Checking checksums of external library files"
+                set hash [lindex $file_and_prop 1]
+                set current_hash [exec md5sum $hdlfile]
+                set current_hash [lindex $current_hash 0]
+                if {[string first $hash $current_hash] == -1} {
+                    Error $NAME 0 "File $hdlfile has a wrong hash. Current checksum: $current_hash, expected: $hash"
+                }
+            }
+        }
+    }
 }
 
 # XML

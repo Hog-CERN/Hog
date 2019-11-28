@@ -192,7 +192,7 @@ proc ReadListFile {list_file path lib src ext {no_add 0}} {
 			    	set current_hash [exec md5sum $vhdlfile]
 			    	set current_hash [lindex $current_hash 0]
 			    	if {[string first $hash $current_hash] == -1} {
-			    		Error ReadExternalListFile 0 "File $vhdlfile has a wrong hash. Current checksum: $current_hash, expected: $hash"
+			    		CriticalWarning ReadExternalListFile 0 "File $vhdlfile has a wrong hash. Current checksum: $current_hash, expected: $hash"
 			    	}
 			    	set prop_position 2
 	   		    }

@@ -49,7 +49,7 @@ if { [exec git status --untracked-files=no  --porcelain] eq "" } {
 	lassign [GetVer ALL ./] version commit official
 	set clean "yes"
     } else {
-	Warning $NAME 1 "Git working directory [pwd] not clean, commit hash, official, and version will be set to 0."
+	CriticalWarning $NAME 1 "Git working directory [pwd] not clean, commit hash, official, and version will be set to 0."
 	set official "00000000"
 	set commit   "0000000"
 	set version  "00000000"    
@@ -101,7 +101,7 @@ foreach f $ext_files {
                 set current_hash [exec md5sum $hdlfile]
                 set current_hash [lindex $current_hash 0]
                 if {[string first $hash $current_hash] == -1} {
-                    Error $NAME 0 "File $hdlfile has a wrong hash. Current checksum: $current_hash, expected: $hash"
+                    CriticalWarning $NAME 0 "File $hdlfile has a wrong hash. Current checksum: $current_hash, expected: $hash"
                 }
             }
         }
@@ -155,12 +155,12 @@ foreach f $sub_files {
 	    Info $NAME 2 "$sub_dir submodule clean."
 	    lappend subs_hashes [GetHash ALL ./]
 	} else {
-	    Warning $NAME 2 "$sub_dir submodule not clean, commit hash will be set to 0."
+	    CriticalWarning $NAME 2 "$sub_dir submodule not clean, commit hash will be set to 0."
 	    lappend subs_hashes "0000000"    
 	}
 	cd ..
     } else {
-	Warning $NAME 2 "$sub_dir submodule not found"
+	CriticalWarning $NAME 2 "$sub_dir submodule not found"
     }
 }
 
@@ -171,7 +171,7 @@ if { [exec git status --untracked-files=no  --porcelain] eq "" } {
     set hog_hash [GetHash ALL ./]
     set hog_clean "yes"
 } else {
-    Warning $NAME 2 "Hog submodule [pwd] not clean, commit hash will be set to 0."
+    CriticalWarning $NAME 2 "Hog submodule [pwd] not clean, commit hash will be set to 0."
     # Maybe an error would be better here...
     set hog_hash "0000000"    
     set hog_clean "no"

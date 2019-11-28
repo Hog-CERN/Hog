@@ -1,5 +1,5 @@
 set Name LaunchRuns
-set path "[file normalize [file dirname [info script]]/.."]
+set path [file normalize "[file dirname [info script]]/.."]
 if { $::argc eq 0 } {
     puts "USAGE: $::argv0 <project> \[output directory\] \[number of jobs\]"
     exit 1

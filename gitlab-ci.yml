@@ -126,7 +126,7 @@ merge_and_tag:
       - "if [[ $DESCRIPTION =~ .*MINOR_VERSION.* ]]; then export VERSION=1; fi"
       - "if [[ $DESCRIPTION =~ .*MAJOR_VERSION.* ]]; then export VERSION=2; fi"
       - "echo \"Version Level $VERSION\""
-      - git merge --no-commit origin/master
+      - git merge --no-commit origin/master --allow-unrelated-histories
       - vivado -mode batch -notrace -source ./Hog/Tcl/tag_repository.tcl -tclargs $CI_MERGE_REQUEST_IID $VERSION
       - git push origin $CI_COMMIT_REF_NAME
       - git push --tags origin $CI_COMMIT_REF_NAME

@@ -19,7 +19,7 @@ cd "$tcl_path/../.."
 set proj_file [get_property parent.project_path [current_project]]
 set proj_dir [file normalize [file dirname $proj_file]]
 set proj_name [file rootname [file tail $proj_file]]
-set external_libs_path   [set env(HOG_EXTERNAL_PATH)]
+
 
 
 # Calculating flavour if any
@@ -95,7 +95,7 @@ foreach f $ext_files {
         if {![regexp {^ *$} $line] & ![regexp {^ *\#} $line] } { #Exclude empty lines and comments
             set file_and_prop [regexp -all -inline {\S+} $line]
             set hdlfile [lindex $file_and_prop 0]
-            set hdlfile "$external_libs_path/$hdlfile"
+            set hdlfile "$env(HOG_EXTERNAL_PATH)/$hdlfile"
             if { [file exists $hdlfile] } {
                 set hash [lindex $file_and_prop 1]
                 set current_hash [exec md5sum $hdlfile]

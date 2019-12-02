@@ -1,0 +1,7 @@
+[xrootd-stable]
+name=XRootD Stable repository
+baseurl=http://xrootd.org/binaries/stable/slc/7/$basearch http://xrootd.cern.ch/sw/repos/stable/slc/7/$basearch
+gpgcheck=1
+enabled=1
+protect=0
+gpgkey=http://xrootd.cern.ch/sw/releases/RPM-GPG-KEY.txt

@@ -103,7 +103,7 @@ stages:
         <<: *vars        
     script:
         - "if [ -z ${HOG_NO_BITSTREAM_STAGE+x} ]; then vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_write_bitstream.tcl -tclargs $PROJECT_NAME; fi"
-        - xrdcp -rf $CI_PROJECT_DIR/bin/* $EOS_MGM_URL///$HOG_UNOFFICIAL_BIN_EOS_PATH
+        - eos cp -r $CI_PROJECT_DIR/bin/* $HOG_UNOFFICIAL_BIN_EOS_PATH
 
     artifacts:
         name: bitfiles

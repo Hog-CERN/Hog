@@ -87,6 +87,12 @@ cp ipbus-sw.repo /etc/yum.repos.d/
 yum -y groupinstall uhal
 
 echo
+echo "[Hog VM Setup] Installing EOS Citrine client..."
+cp xrootd.repo /etc/yum.repos.d/
+cp eos.repo /etc/yum.repos.d/
+yum -y install eos-client
+
+echo
 echo "[Hog VM Setup] Creating swap file, this might take a while..."
 dd if=/dev/zero of=/swapfile bs=1024 count=16777216
 chmod 600 /swapfile

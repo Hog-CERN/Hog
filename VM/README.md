@@ -50,7 +50,6 @@ Now take the following actions:
   - __HOG_PUSH_TOKEN__= The push token you generated for your service account (should be masked)
   - __HOG_USE_DOXYGEN__= Should be set to 1 if you want the Hog CI to run doxygen (in progress...)
   - __HOG_XIL_LICENSE__= Should contain the Xilinx license servers, separated by a comma
-  - __EOS_MGM_URL__=root://eosuser.cern.ch
 
 ### Create an CERN Openstack Virtual Machine
 - Create an instance (I recommend 40GB HD and 16 GB of RAM)

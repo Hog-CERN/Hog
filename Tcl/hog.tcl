@@ -58,16 +58,39 @@ proc WrtieToFile {File msg} {
     puts $f $msg
     close $f
 }
+
 ########################################################
 proc  SetProperty {property value object} {
-    set_property $property $value $object
+    if {[info commands set_property] != ""} {
+        # Vivado
+	set_property $property $value $object 
+        
+    } elseif {[info commands quartus_command] != ""} {
+        # Quartus
+	
+    } else {
+        # Tcl Shell
+	puts "***DEBUG Hog:SetProperty $property to $value of $object"
+    }
+
+
 }
 ########################################################
 
 ########################################################
 proc  GetProperty {property object} {
-    set a [get_property -quiet $property $object]
-    return a
+    if {[info commands get_property] != ""} {
+        # Vivado
+	return [get_property -quiet $property $object]
+        
+    } elseif {[info commands quartus_command] != ""} {
+        # Quartus
+	return ""
+    } else {
+        # Tcl Shell
+	puts "***DEBUG Hog:GetProperty $property of $object"
+	return "DEBUG_propery_value"
+    }
 }
 ########################################################
 
@@ -81,18 +104,49 @@ proc  CreateProject {proj dir fpga} {
 }
 
 proc GetProject {proj} {
-    set a  [get_projects $proj]
-    return  $a
+    if {[info commands get_projects] != ""} {
+        # Vivado
+	return [get_projects $proj]
+        
+    } elseif {[info commands quartus_command] != ""} {
+        # Quartus
+	return ""
+    } else {
+        # Tcl Shell
+	puts "***DEBUG Hog:GetProject $project"
+	return "DEBUG_project"
+    }
+
 }
 
 proc GetRun {run} {
-    set a  [get_runs -quiet $run]
-    return  $a
+    if {[info commands get_projects] != ""} {
+        # Vivado
+	return [get_runs -quiet $run]
+        
+    } elseif {[info commands quartus_command] != ""} {
+        # Quartus
+	return ""
+    } else {
+        # Tcl Shell
+	puts "***DEBUG Hog:GetRun $run"
+	return "DEBUG_run"
+    }
 }
 
 proc GetFile {file} {
-    set a  [get_projects $file]
-    return  $a
+        if {[info commands get_files] != ""} {
+        # Vivado
+	return [get_files $file]
+        
+    } elseif {[info commands quartus_command] != ""} {
+        # Quartus
+	return ""
+    } else {
+        # Tcl Shell
+	puts "***DEBUG Hog:GetFile $file"
+	return "DEBUG_file"
+    }
 }
 
 proc CreateFileSet {fileset} {

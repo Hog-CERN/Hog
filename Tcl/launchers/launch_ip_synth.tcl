@@ -11,11 +11,11 @@ if { $::argc eq 0 } {
 set old_path [pwd]
 cd $path
 source ./hog.tcl
-Info $Name 1 "Opening project $project..."
+Msg Info "Opening project $project..."
 open_project ../../VivadoProject/$project/$project.xpr
 
 
-Info $Name 2 "Preparing runs..."
+Msg Info "Preparing runs..."
 reset_run synth_1
 launch_runs -scripts_only synth_1
 reset_run synth_1
@@ -23,20 +23,20 @@ reset_run synth_1
 set ips [get_ips *]
 if { [get_ips *] != ""} {
 	foreach ip $ips {
-    	Info $Name 3 "Adding run for $ip..."
+    	Msg Info "Adding run for $ip..."
     	if { [get_runs $ip\_synth_1] != "" } {
         	set run_name [get_runs $ip\_synth_1]
         	reset_run $run_name
 		lappend runs $run_name
     	} else {
-        	Warning $Name 3 "No run found for $ip."
+        	Msg Warning "No run found for $ip."
 	    }
 	}
 
 set jobs 4
 if { $runs != "" } {
 foreach run_name $runs {
-    Info $Name 4 "Launching $run_name..."
+    Msg Info "Launching $run_name..."
     launch_runs $run_name -dir $main_folder
     lappend running $run_name
     if {[llength $running] >= $jobs} {
@@ -46,7 +46,7 @@ foreach run_name $runs {
 }
 }
 while {[llength $running] > 0} {
-    Info $Name 5 "Checking [lindex $running 0]..."
+    Msg Info "Checking [lindex $running 0]..."
     wait_on_run [get_runs [lindex $running 0]]
     set running [lreplace $running 0 0]
 }
@@ -54,7 +54,7 @@ if { $runs != "" } {
 foreach run_name $runs {
     set prog [get_property PROGRESS $run_name]
     set status [get_property STATUS $run_name]
-    Info $Name 6 "Run: $run_name progress: $prog, status : $status"
+    Msg Info "Run: $run_name progress: $prog, status : $status"
     if {$prog ne "100%"} {
 	set failure 1
     } else {
@@ -64,9 +64,9 @@ foreach run_name $runs {
 }
 
 if {$failure eq 1} {
-    Error $Name 7 "At least on IP synthesis failed"
+    Msg Error "At least on IP synthesis failed"
 }
 
 }
-Info $Name 8 "All done."
+Msg Info "All done."
 cd $old_path

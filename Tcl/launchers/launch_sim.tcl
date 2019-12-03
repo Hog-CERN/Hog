@@ -29,30 +29,30 @@ cd $path
 source ./hog.tcl
 
 if [file exists ../../VivadoProject/$project/$project.xpr] {
-    Info $Name 1 "Opening project $project..."
+    Msg Info "Opening project $project..."
     open_project ../../VivadoProject/$project/$project.xpr
 } else {
-    Info $Name 2 "Running project script: $project.tcl..."
+    Msg Info "Running project script: $project.tcl..."
     source -notrace ../../Top/$project/$project.tcl
 }
 
-Info $Name 3 "Upgrading IPs if any..."
+Msg Info "Upgrading IPs if any..."
 set ips [get_ips *]
 if {$ips != ""} {
     upgrade_ip $ips
 }
 
 set sims [get_filesets -regexp .*_sim]
-Info $Name 1 "Simulations file sets found: $sims"
-Info $Name 2 "Looping over simulation filesets..."
+Msg Info "Simulations file sets found: $sims"
+Msg Info "Looping over simulation filesets..."
 foreach s $sims {
     set top [get_property TOP $s]
     set do  [get_property MODELSIM.SIMULATE.CUSTOM_UDO $s]
     if {$top != "" && $do != ""} {
-	Info $Name 3 "Simulating set $s with top file: $top and do file: $do"
+	Msg Info "Simulating set $s with top file: $top and do file: $do"
 	launch_simulation -simset $s 
     }
 }
 
-Info $Name 1 "All done."
+Msg Info "All done."
 cd $old_path

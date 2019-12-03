@@ -26,9 +26,9 @@ set proj_name [file rootname [file tail $proj_file]]
 set flavour [string map {. ""} [file ext $proj_name]]
 if {$flavour != ""} {
     if [string is integer $flavour] {
-	Info $NAME 0 "Project $proj_name has flavour = $flavour, the generic variable FLAVUOR will be set to $flavour"
+	Msg Info "Project $proj_name has flavour = $flavour, the generic variable FLAVUOR will be set to $flavour"
     } else {
-	Warning $NAME 0 "Project name has a non numeric extension, flavour will be set to -1"
+	Msg Warning "Project name has a non numeric extension, flavour will be set to -1"
 	set flavour -1
     }
 
@@ -37,19 +37,19 @@ if {$flavour != ""} {
 }
 
 
-Info $NAME 0 "Evaluating firmware date and, possibly, git commit hash..."
+Msg Info "Evaluating firmware date and, possibly, git commit hash..."
 
 if { [exec git status --untracked-files=no  --porcelain] eq "" } {
-    Info $NAME 1 "Git working directory [pwd] clean."
+    Msg Info "Git working directory [pwd] clean."
     lassign [GetVer ALL ./] version commit official
     set clean "yes"
 } else {
     if {$buypass_commit == 1} {
-	Info $NAME 1 "Buypassing commit check."
+	Msg Info "Buypassing commit check."
 	lassign [GetVer ALL ./] version commit official
 	set clean "yes"
     } else {
-	CriticalWarning $NAME 1 "Git working directory [pwd] not clean, commit hash, official, and version will be set to 0."
+	Msg CriticalWarning "Git working directory [pwd] not clean, commit hash, official, and version will be set to 0."
 	set official "00000000"
 	set commit   "0000000"
 	set version  "00000000"    
@@ -68,7 +68,7 @@ set list_files [glob  -nocomplain "./Top/$proj_name/list/*.src"]
 foreach f $list_files {
     set name [file rootname [file tail $f]]
     lassign [GetVer  $f ./Top/$proj_name/] ver hash dummy
-    Info $NAME 1 "Found source file $f, version: $ver commit SHA: $hash"
+    Msg Info "Found source file $f, version: $ver commit SHA: $hash"
     lappend libs $name
     lappend vers $ver
     lappend hashes $hash
@@ -82,7 +82,7 @@ foreach f $ext_files {
     
     set name [file rootname [file tail $f]]
     set hash [exec git log --format=%h -1 $f ]
-    Info $NAME 1 "Found source file $f, commit SHA: $hash"
+    Msg Info "Found source file $f, commit SHA: $hash"
     lappend ext_names $name
     lappend ext_hashes $hash
 
@@ -90,7 +90,7 @@ foreach f $ext_files {
     set file_data [read $fp]
     close $fp
     set data [split $file_data "\n"]
-    Info $NAME 1 "Checking checksums of external library files in $f"
+    Msg Info "Checking checksums of external library files in $f"
     foreach line $data {
         if {![regexp {^ *$} $line] & ![regexp {^ *\#} $line] } { #Exclude empty lines and comments
             set file_and_prop [regexp -all -inline {\S+} $line]
@@ -101,7 +101,7 @@ foreach f $ext_files {
                 set current_hash [exec md5sum $hdlfile]
                 set current_hash [lindex $current_hash 0]
                 if {[string first $hash $current_hash] == -1} {
-                    CriticalWarning $NAME 0 "File $hdlfile has a wrong hash. Current checksum: $current_hash, expected: $hash"
+                    Msg CriticalWarning "File $hdlfile has a wrong hash. Current checksum: $current_hash, expected: $hash"
                 }
             }
         }
@@ -112,18 +112,18 @@ foreach f $ext_files {
 # XML
 set xml_dst $old_path/../xml
 if [file exists ./Top/$proj_name/xml/xml.lst] {
-    Info $NAME 2 "XML list file found, using version of listed XMLs"
+    Msg Info "XML list file found, using version of listed XMLs"
     # version of xml in list files is used if list file exists
     set xml_target  ./Top/$proj_name/xml/xml.lst
-    Info $NAME 3 "Creating XML directory $xml_dst..."
+    Msg Info "Creating XML directory $xml_dst..."
     file mkdir $xml_dst
     lassign [GetVer $xml_target ./Top/$proj_name/] xml_ver_hex xml_hash dummy
     lassign [GetXMLVer $xml_target ./Top/$proj_name/] xml_hash xml_ver
-    Info $NAME 4 "Copying xml files to $xml_dst and adding xml version $xml_ver..."
+    Msg Info "Copying xml files to $xml_dst and adding xml version $xml_ver..."
     CopyXMLsFromListFile $xml_target ./Top/$proj_name $xml_dst $xml_ver $xml_hash 
 
 } elseif [file exists ./Top/$proj_name/xml] {
-    Info $NAME 2 "XML list file not found, using version of XML directory"
+    Msg Info "XML list file not found, using version of XML directory"
     # version of the directory if no list file exists
     set xml_target  ./Top/$proj_name/xml
     lassign [GetVer $xml_target ./Top/$proj_name/] xml_ver_hex xml_hash dummy
@@ -136,7 +136,7 @@ if [file exists ./Top/$proj_name/xml/xml.lst] {
     file copy -force $xml_target $old_path/..
 
 } else {
-    Info $NAME 2 "This project does not have XMLs"
+    Msg Info "This project does not have XMLs"
     set xml_ver 0.0.0
     set xml_ver_hex 0000000
     set xml_hash 0000000
@@ -152,26 +152,26 @@ foreach f $sub_files {
 	cd "./$sub_dir"
 	lappend subs $sub_dir
 	if { [exec git status --untracked-files=no  --porcelain] eq "" } {
-	    Info $NAME 2 "$sub_dir submodule clean."
+	    Msg Info "$sub_dir submodule clean."
 	    lappend subs_hashes [GetHash ALL ./]
 	} else {
-	    CriticalWarning $NAME 2 "$sub_dir submodule not clean, commit hash will be set to 0."
+	    Msg CriticalWarning "$sub_dir submodule not clean, commit hash will be set to 0."
 	    lappend subs_hashes "0000000"    
 	}
 	cd ..
     } else {
-	CriticalWarning $NAME 2 "$sub_dir submodule not found"
+	Msg CriticalWarning "$sub_dir submodule not found"
     }
 }
 
 # Hog submodule
 cd "./Hog"
 if { [exec git status --untracked-files=no  --porcelain] eq "" } {
-    Info $NAME 2 "Hog submodule [pwd] clean."
+    Msg Info "Hog submodule [pwd] clean."
     set hog_hash [GetHash ALL ./]
     set hog_clean "yes"
 } else {
-    CriticalWarning $NAME 2 "Hog submodule [pwd] not clean, commit hash will be set to 0."
+    Msg CriticalWarning "Hog submodule [pwd] not clean, commit hash will be set to 0."
     # Maybe an error would be better here...
     set hog_hash "0000000"    
     set hog_clean "no"
@@ -189,7 +189,7 @@ if {$real_time == 1} {
 	set date [exec git log -1 --format=%cd --date=format:'%d%m%Y']
 	set timee [exec git log -1 --format=%cd --date=format:'00%H%M%S']
     } else {
-	Warning $NAME 3 "Found Git version older than 2.9.3. Using current date and time instead of commit time."
+	Msg Warning "Found Git version older than 2.9.3. Using current date and time instead of commit time."
 	set date [clock format $clock_seconds  -format {%d%m%Y}]
 	set timee [clock format $clock_seconds -format {00%H%M%S}]
     }
@@ -221,49 +221,49 @@ if {$flavour != -1} {
    set generic_string "$generic_string FLAVOUR=$flavour"
 }
 
-Info $NAME 4 "Generic String: $generic_string"
+Msg Info "Generic String: $generic_string"
 
 set_property generic $generic_string [current_fileset]
 
 # writing info into status file
 set status_file [open "$old_path/../versions" "w"]
 
-Status $NAME 3 " ------------------------- PRE SYNTHESIS -------------------------"
-Status $NAME 3 " $tt"
-Status $NAME 3 " Firmware date and time: $date, $timee"
+Msg Status " ------------------------- PRE SYNTHESIS -------------------------"
+Msg Status " $tt"
+Msg Status " Firmware date and time: $date, $timee"
 puts $status_file "Date, $date, $timee"
 if {$flavour != -1} {
-    Status $NAME 3 " Project flavour: $flavour"
+    Msg Status " Project flavour: $flavour"
 }
-Status $NAME 3 " Global SHA: $commit, VER: $version"
+Msg Status " Global SHA: $commit, VER: $version"
 puts $status_file "Global, $commit, $version"
-Status $NAME 3 " XML SHA: $xml_hash, VER: $xml_ver_hex"
+Msg Status " XML SHA: $xml_hash, VER: $xml_ver_hex"
 puts $status_file "XML, $xml_hash, $xml_ver_hex"
-Status $NAME 3 " Top SHA: $top_hash, VER: $top_ver"
+Msg Status " Top SHA: $top_hash, VER: $top_ver"
 puts $status_file "Top, $top_hash, $top_ver"
-Status $NAME 3 " Hog SHA: $hog_hash"
+Msg Status " Hog SHA: $hog_hash"
 puts $status_file "Hog, $hog_hash, 00000000"
-Status $NAME 3 " Official reg: $official"
+Msg Status " Official reg: $official"
 puts $status_file "Official, $official, 00000000"
-Status $NAME 3 " --- Libraries ---"
+Msg Status " --- Libraries ---"
 foreach l $libs v $vers h $hashes {
-    Status $NAME 3 " $l SHA: $h, VER: $v"    
+    Msg Status " $l SHA: $h, VER: $v"    
     puts $status_file "$l, $h, $v"
 }
-Status $NAME 3 " --- Submodules ---"
+Msg Status " --- Submodules ---"
 foreach s $subs sh $subs_hashes {
-    Status $NAME 3 " $s SHA: $sh"
+    Msg Status " $s SHA: $sh"
     puts $status_file "$s, $sh, 00000000"    
 }
-Status $NAME 3 " --- External Libraries ---"
+Msg Status " --- External Libraries ---"
 foreach e $ext_names eh $ext_hashes {
-    Status $NAME 3 " $e SHA: $eh"
+    Msg Status " $e SHA: $eh"
     puts $status_file "$e, $eh, 00000000"    
 }
-Status $NAME 3 " -----------------------------------------------------------------"
+Msg Status " -----------------------------------------------------------------"
 close $status_file
 
 
 cd $old_path
 
-Info $NAME 6 "All done."
+Msg Info "All done."

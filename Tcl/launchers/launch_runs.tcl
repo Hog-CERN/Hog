@@ -27,18 +27,18 @@ if { $::argc eq 0 } {
 set old_path [pwd]
 cd $path
 source ./hog.tcl
-Info $Name 1 "Number of jobs set to $NJOBS."
+Msg Info "Number of jobs set to $NJOBS."
 
 set commit [GetHash ALL ../../]
 
-Info $Name 2 "Running project script: $project.tcl..."
+Msg Info "Running project script: $project.tcl..."
 source -notrace ../../Top/$project/$project.tcl
-Info $Name 3 "Upgrading IPs if any..."
+Msg Info "Upgrading IPs if any..."
 set ips [get_ips *]
 if {$ips != ""} {
     upgrade_ip $ips
 }
-Info $Name 4 "Creating directory and buypass file..."
+Msg Info "Creating directory and buypass file..."
 file mkdir $main_folder
 set cfile [open $main_folder/buypass_commit w]
 puts $cfile $commit
@@ -48,6 +48,6 @@ if {$no_time == 1 } {
     puts $cfile $commit
     close $cfile
 }
-Info $Name 5 "Starting complete design flow..."
+Msg Info "Starting complete design flow..."
 launch_runs impl_1 -to_step write_bitstream -jobs $NJOBS -dir $main_folder
 cd $old_path

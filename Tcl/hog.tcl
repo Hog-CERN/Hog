@@ -211,7 +211,7 @@ proc ReadListFile {list_file path lib src {no_add 0}} {
 				    if [file exists $file_name] {
 					set_property "modelsim.simulate.custom_wave_do" $file_name [get_filesets $src]
 				    } else {
-					Warning ReadlistFIle 1 "File $file_name was not found."
+					Msg Warning "File $file_name was not found."
 				    }
 				}
 				
@@ -224,7 +224,7 @@ proc ReadListFile {list_file path lib src {no_add 0}} {
 				    if [file exists $file_name] {
 					set_property "modelsim.simulate.custom_udo" $file_name [get_filesets $src]
 				    } else {
-					Warning ReadlistFIle 1 "File $file_name was not found."
+					Msg Warning "File $file_name was not found."
 				    }
 				}
 			    }
@@ -341,7 +341,7 @@ proc GetFileList {FILE path} {
 		lappend lista $vhdlfile
 	    }
 	} else { 
-	    Warning GetFileList 0 "File $vhdlfile not found"
+	    Msg Warning "File $vhdlfile not found"
 	}
     }
 }
@@ -389,7 +389,7 @@ proc GetVer {FILE path} {
     set status [catch {exec git tag --sort=taggerdate --contain $SHA} result]
     if {$status == 0} {
 	if {[regexp {^ *$} $result]} {
-	    Warning GetVer 1 "No tag contains $SHA"
+	    Msg Warning "No tag contains $SHA"
 	    set ver "none"
 	} else {
 	    set vers [split $result "\n"]
@@ -403,7 +403,7 @@ proc GetVer {FILE path} {
 	    }
 	}
     } else {
-	Warning GetVer 1 "Error while trying to find tag for $SHA in file: $FILE, path: [pwd]"
+	Msg Warning "Error while trying to find tag for $SHA in file: $FILE, path: [pwd]"
 	set ver "error: $result"
     }
     if {[regexp {^b(?:\d+)v(\d+)\.(\d+).(\d+)-(\d+)$} $ver -> M m c n]} {
@@ -422,12 +422,12 @@ proc GetVer {FILE path} {
 	if {[regexp {^b(?:\d+)v(\d+)\.(\d+).(\d+)-(\d+)$} $un_ver -> M_u m_u c_u n]} {
 	    Msg Info "Beta version $un_ver was found for official version $ver, using attempt number $n"
 	    if {$M != $M_u || $m != $m_u || $c != $c_u} {
-		Warning GetVer 1 "Beta version $un_ver and official version $ver do not match"		
+		Msg Warning "Beta version $un_ver and official version $ver do not match"		
 	    }
 	    set n [format %04X $n]
 
 	} else {
-	    Warning GetVer 1 "No beta version was found for official version $ver"
+	    Msg Warning "No beta version was found for official version $ver"
 	    set n [format %04X 0]
 	}
 	
@@ -442,7 +442,7 @@ proc GetVer {FILE path} {
 	set official [format %04X 0x2000]
 	set comm $SHA
     } else {
-	Warning GetVer 1 "Could not parse git describe: $ver"
+	Msg Warning "Could not parse git describe: $ver"
 	set M [format %02X 0]
 	set m [format %02X 0]
 	set c [format %04X 0]
@@ -490,7 +490,7 @@ proc TagRepository {merge_request_number {version_level 0}} {
 	    } else { # Tag is not official, just increment the attempt
 		Msg Info "Found candidate for version $M.$m.$p, merge request number $mr, attempt number $n."
 		if {$mr != $merge_request_number} {
-		    Warning TagRepository 1 "Merge request number $merge_request_number differs from the one found in the tag $mr, will use $merge_request_number."
+		    Msg Warning "Merge request number $merge_request_number differs from the one found in the tag $mr, will use $merge_request_number."
 		    set mr $merge_request_number
 		}
 		incr n
@@ -586,7 +586,7 @@ proc CopyXMLsFromListFile {list_file path dst {xml_version "0.0.0"} {xml_sha "00
 		    set type [lindex $prop 0]
 		}
 	    } else {
-		Warning CopyXMLs 0 "XML file $xmlfile not found"
+		Msg Warning "XML file $xmlfile not found"
 	    }
 	    
 	}

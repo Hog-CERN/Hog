@@ -41,7 +41,7 @@ set post_bit   [file normalize "$tcl_path/integrated/$post_bit_file"]
 source $tcl_path/hog.tcl
 
 if {$top_name != $DESIGN} {
- Info CreateProject 0 "This project has got a flavour, the top module name will differ from the project name."
+ Msg Info "This project has got a flavour, the top module name will differ from the project name."
 }
 
 ## Create Project
@@ -63,10 +63,10 @@ set_property "enable_vhdl_2008" 1 $obj
 
 ## Setting user IP repository to default Hog directory
 if [file exists $user_ip_repo] {
-    Info CreateProject 0 "Found directory $user_ip_repo, setting it as user IP repository..."
+    Msg Info "Found directory $user_ip_repo, setting it as user IP repository..."
     set_property  ip_repo_paths $user_ip_repo [current_project]
 } else {
-    Info CreateProject 0 "$user_ip_repo not found, no user IP repository will be set." 
+    Msg Info "$user_ip_repo not found, no user IP repository will be set." 
 }
 
 ##############
@@ -80,13 +80,13 @@ set sources [get_filesets sources_1]
 
 ## Set synthesis TOP
 if [file exists $synth_top_file.v] {
-    Info CreateProject 0 "Adding top file found in Top folder $synth_top_file.v" 
+    Msg Info "Adding top file found in Top folder $synth_top_file.v" 
     add_files -norecurse -fileset $sources $synth_top_file.v
 } elseif [file exists $synth_top_file.vhd] {
-    Info CreateProject 0 "Adding top file found in Top folder $synth_top_file.vhd" 
+    Msg Info "Adding top file found in Top folder $synth_top_file.vhd" 
     add_files -norecurse -fileset $sources $synth_top_file.vhd
 } else {
-    Info CreateProject 0 "No top file found in Top folder, please make sure that the top file - i.e. containing a module called $synth_top_module - is included in one of the libraries"     
+    Msg Info "No top file found in Top folder, please make sure that the top file - i.e. containing a module called $synth_top_module - is included in one of the libraries"     
 }
     
 set_property "top" $synth_top_module $sources
@@ -149,7 +149,7 @@ current_run -synthesis $obj
 ## Report Strategy
 if {[string equal [get_property -quiet report_strategy $obj] ""]} {
     # No report strategy needed
-    Info CreateProject 0 "No report strategy needed for syntesis"
+    Msg Info "No report strategy needed for syntesis"
     
 } else {
     # Report strategy needed since version 2017.3
@@ -195,7 +195,7 @@ if {$post_bit_file ne ""} {
 ## Report Strategy
 if {[string equal [get_property -quiet report_strategy $obj] ""]} {
     # No report strategy needed
-    Info CreateProject 1 "No report strategy needed for implementation"
+    Msg Info "No report strategy needed for implementation"
     
 } else {
     # Report strategy needed since version 2017.3
@@ -212,7 +212,7 @@ if {[string equal [get_property -quiet report_strategy $obj] ""]} {
     }
     set obj [get_report_configs -of_objects [get_runs impl_1] $DESIGN\_impl_1_route_report_timing_summary]
     if { $obj != "" } {
-	Info CreateProject 1 "Report timing created successfully"	
+	Msg Info "Report timing created successfully"	
     }
 
     # Create 'impl_1_route_report_utilization' report (if not found)
@@ -221,14 +221,14 @@ if {[string equal [get_property -quiet report_strategy $obj] ""]} {
     }
     set obj [get_report_configs -of_objects [get_runs impl_1] $DESIGN\_impl_1_route_report_utilization]
     if { $obj != "" } {
-	Info CreateProject 1 "Report utilization created successfully"	
+	Msg Info "Report utilization created successfully"	
     }
 }
 
 ##############
 # SIMULATION #
 ##############
-Info CreateProject 3 "Setting load_glbl parameter to false for every fileset..."
+Msg Info "Setting load_glbl parameter to false for every fileset..."
 foreach f [get_filesets -quiet *_sim] {
     set_property -name {xsim.elaborate.load_glbl} -value {false} -objects $f
 }
@@ -239,10 +239,10 @@ foreach f [get_filesets -quiet *_sim] {
 if [info exists PROPERTIES] {
     foreach run [get_runs -quiet] {
 	if [dict exists $PROPERTIES $run] {
-	    Info CreateProject 1 "Setting properties for run: $run..."
+	    Msg Info "Setting properties for run: $run..."
 	    set run_props [dict get $PROPERTIES $run]
 	    dict for {prop_name prop_val} $run_props {
-		Info CreateProject 1 "Setting $prop_name = $prop_val"
+		Msg Info "Setting $prop_name = $prop_val"
 		set_property $prop_name $prop_val $run
 	    }
 	}
@@ -259,11 +259,11 @@ current_run -implementation [get_runs impl_1]
 ##############
 # UPGRADE IP #
 ##############
-Info CreateProject 4 "Upgrading IPs if any..."
+Msg Info "Upgrading IPs if any..."
 set ips [get_ips *]
 if {$ips != ""} {
     upgrade_ip $ips
 }
 
 
-Info CreateProject 5 "Project $DESIGN created succesfully"
+Msg Info "Project $DESIGN created succesfully"

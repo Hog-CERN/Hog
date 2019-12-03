@@ -23,7 +23,7 @@ proc Msg {level msg {title ""}} {
     } elseif {$level == 2 || $level == "warning"} {
 	set vlevel {WARNING}
 	set qlevel warning	
-    } elseif {$level == 3 || [string first "critical" $level !=-1} {
+    } elseif {$level == 3 || [string first "critical" $level] !=-1} {
 	set vlevel {CRITICAL WARNING}
 	set qlevel critial_warning
     } elseif {$level == 4 || $level == "error"} {
@@ -43,7 +43,7 @@ proc Msg {level msg {title ""}} {
 	post_message -type $qlevel "Hog:$title $msg"
     } else {
 	# Tcl Shell
-	puts "*** Hog:$title INFO $msg"
+	puts "*** Hog:$title $vlevel $msg"
     }
 }
 ########################################################

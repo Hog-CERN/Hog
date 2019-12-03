@@ -59,6 +59,92 @@ proc WrtieToFile {File msg} {
     close $f
 }
 ########################################################
+proc  SetProperty {property value object} {
+    set_property $property $value $object
+}
+########################################################
+
+########################################################
+proc  GetProperty {property object} {
+    set a [get_property -quiet $property $object]
+    return a
+}
+########################################################
+
+########################################################
+proc  SetParameter {parameter value } {
+    set_param $parameter $value
+}
+########################################################
+proc  CreateProject {proj dir fpga} {
+    create_project -force $proj $dir -part $fpga
+}
+
+proc GetProject {proj} {
+    set a  [get_projects $proj]
+    return  $a
+}
+
+proc GetRun {run} {
+    set a  [get_runs -quiet $run]
+    return  $a
+}
+
+proc GetFile {file} {
+    set a  [get_projects $file]
+    return  $a
+}
+
+proc CreateFileSet {fileset} {
+    set a  [create_fileset -srcset $fileset]
+    return  $a
+}
+
+proc GetFileSet {fileset} {
+    set a  [get_filesets $fileset]
+    return  $a
+}
+
+proc AddFile {file fileset} {
+    add_files -norecurse -fileset $fileset $file 
+}
+
+
+proc CreateReportStrategy {} {
+    ## Report Strategy
+    if {[string equal [get_property -quiet report_strategy $obj] ""]} {
+	# No report strategy needed
+	Msg Info "No report strategy needed for implementation"
+	
+    } else {
+	# Report strategy needed since version 2017.3
+	set_property -name "report_strategy" -value "Vivado Implementation Default Reports" -objects $obj
+	
+	set reports [get_report_configs -of_objects $obj]
+	if { [llength $reports ] > 0 } {
+	    delete_report_config [get_report_configs -of_objects $obj]
+	}
+	
+	# Create 'impl_1_route_report_timing_summary' report (if not found)
+	if { [ string equal [get_report_configs -of_objects [get_runs impl_1] $DESIGN\_impl_1_route_report_timing_summary] "" ] } {
+	    create_report_config -report_name $DESIGN\_impl_1_route_report_timing_summary -report_type report_timing_summary:1.0 -steps route_design -runs impl_1
+	}
+	set obj [get_report_configs -of_objects [get_runs impl_1] $DESIGN\_impl_1_route_report_timing_summary]
+	if { $obj != "" } {
+	    Msg Info "Report timing created successfully"	
+	}
+	
+	# Create 'impl_1_route_report_utilization' report (if not found)
+	if { [ string equal [get_report_configs -of_objects [get_runs impl_1] $DESIGN\_impl_1_route_report_utilization] "" ] } {
+	    create_report_config -report_name $DESIGN\_impl_1_route_report_utilization -report_type report_utilization:1.0 -steps route_design -runs impl_1
+	}
+	set obj [get_report_configs -of_objects [get_runs impl_1] $DESIGN\_impl_1_route_report_utilization]
+	if { $obj != "" } {
+	    Msg Info "Report utilization created successfully"	
+	}
+    }
+}
+########################################################
 
 
 proc GetRepoPath {} {

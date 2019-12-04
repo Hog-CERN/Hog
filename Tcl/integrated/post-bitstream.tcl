@@ -72,8 +72,8 @@ if [file exists $bit_file] {
     }
 
     #Version table
-    if [file exists $run_dir/versions] {
-	file copy -force $run_dir/versions $dst_dir
+    if [file exists $run_dir/versions.txt] {
+	file copy -force $run_dir/versions.txt $dst_dir
     } else {
 	Msg Warning "No versions file found"
     }

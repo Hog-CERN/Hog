@@ -235,22 +235,29 @@ if {[info commands set_property] != ""} {
     Msg Info "Generic String: $generic_string"
     
     set_property generic $generic_string [current_fileset]
+    set status_file "$old_path/../versions.txt"
 
 } elseif {[info commands quartus_command] != ""} {
     ### QUARTUS
+    set  status_file "$old_path/../versions.txt"
 
 } else {
     ### Tcl Shell
-    puts "***DEBUG GLOBAL_FWDATE=32'h$date GLOBAL_FWTIME=32'h$timee OFFICIAL=32'h$official GLOBAL_FWHASH=32'h$commit TOP_FWHASH=32'h$top_hash XML_HASH=32'h$xml_hash GLOBAL_FWVERSION=32'h$version TOP_FWVERSION=32'h$top_ver XML_VERSION=32'h$xml_ver_hex HOG_FWHASH=32'h$hog_hash"
-    puts "LIBS: $libs $vers $hashes"
-    puts "SUBS: $subs $subs_hashes"
-    puts "EXT: $ext_names $ext_hashes"
-    puts "FLAVOUR: $flavour"
+    puts "Hog:DEBUG GLOBAL_FWDATE=$date GLOBAL_FWTIME=$timee OFFICIAL=$official"
+    puts "Hog:DEBUG GLOBAL_FWHASH=$commit TOP_FWHASH=$top_hash"
+    puts "Hog:DEBUG XML_HASH=$xml_hash GLOBAL_FWVERSION=$version TOP_FWVERSION=$top_ver"
+    puts "Hog:DEBUG XML_VERSION=$xml_ver_hex HOG_FWHASH=$hog_hash"
+    puts "Hog:DEBUG LIBS: $libs $vers $hashes"
+    puts "Hog:DEBUG SUBS: $subs $subs_hashes"
+    puts "Hog:DEBUG EXT: $ext_names $ext_hashes"
+    puts "Hog:DEBUG FLAVOUR: $flavour"
+    set  status_file "$old_path/versions.txt"
     
 } 
-    
+Msg Info "Opening version file $status_file..."
+set status_file [open $status_file "w"]
 # writing info into status file
-set status_file [open "$old_path/../versions" "w"]
+
 
 Msg Status " ------------------------- PRE SYNTHESIS -------------------------"
 Msg Status " $tt"

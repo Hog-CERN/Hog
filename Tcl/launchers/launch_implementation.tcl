@@ -34,10 +34,10 @@ set ths [get_property STATS.THS [get_runs [current_run]]]
 
 if {$wns >= 0 && $whs >= 0} {
     Msg Info "Time requirements are met"
-    set status_file [open "$main_folder/timing_ok" "w"]
+    set status_file [open "$main_folder/timing_ok.txt" "w"]
 } else {
     Msg CriticalWarning "Time requirements are NOT met"
-    set status_file [open "$main_folder/timing_error" "w"]
+    set status_file [open "$main_folder/timing_error.txt" "w"]
 }
 
 Msg Status "WNS: $wns"

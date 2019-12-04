@@ -3,14 +3,39 @@ set old_path [pwd]
 set tcl_path [file normalize "[file dirname [info script]]/.."]
 source $tcl_path/hog.tcl
 
-set bit_file [file normalize [lindex [glob -nocomplain "$old_path/*.bit"] 0]]
-if [file exists $bit_file] {
-
-    set proj_name [string map {"top_" ""} [file rootname [file tail $bit_file]]]
+if {[info commands get_property] != ""} {
+    #Vivado
+    set fw_file [file normalize [lindex [glob -nocomplain "$old_path/*.bit"] 0]]
+    set proj_name [string map {"top_" ""} [file rootname [file tail $fw_file]]]
     set name [file rootname [file tail [file normalize [pwd]/..]]]
     set bit_file [file normalize "$old_path/top_$proj_name.bit"]
     set bin_file [file normalize "$old_path/top_$proj_name.bin"]
     set ltx_file [file normalize "$old_path/top_$proj_name.ltx"]    
+    
+} elseif {[info commands quartus_command] != ""} {
+    # Quartus
+    set fw_file [file normalize [lindex [glob -nocomplain "$old_path/*.bit"] 0]]
+
+    set proj_name [string map {"top_" ""} [file rootname [file tail $fw_file]]]
+    set name [file rootname [file tail [file normalize [pwd]/..]]]
+    set bit_file [file normalize "$old_path/top_$proj_name.bit"]
+    set bin_file [file normalize "$old_path/top_$proj_name.bin"]
+    set ltx_file [file normalize "$old_path/top_$proj_name.ltx"]    
+
+    
+} else {
+    #tcl shell
+    set fw_file [file normalize [lindex [glob -nocomplain "$old_path/*.bit"] 0]]
+
+    set proj_name [string map {"top_" ""} [file rootname [file tail $fw_file]]]
+    set name [file rootname [file tail [file normalize [pwd]/..]]]
+    set bit_file [file normalize "$old_path/top_$proj_name.bit"]
+    set bin_file [file normalize "$old_path/top_$proj_name.bin"]
+    set ltx_file [file normalize "$old_path/top_$proj_name.ltx"]        
+}
+if [file exists $fw_file] {
+
+
     set xml_dir [file normalize "$old_path/../xml"]
     set run_dir [file normalize "$old_path/.."]    
     set bin_dir [file normalize "$old_path/../../../../bin"]    
@@ -44,7 +69,7 @@ if [file exists $bit_file] {
 	Msg Warning "No reports found in $run_dir subfolders"
     }
 	    
-    # XML
+    # IPbus XML
     if [file exists $xml_dir] {
 	Msg Info "XML directory found, copying xml files from $xml_dir to $dst_xml..." 
 	if [file exists $dst_xml] {
@@ -89,7 +114,7 @@ if [file exists $bit_file] {
     
 
 } else {
-    Msg CriticalWarning "Bit file not found."
+    Msg CriticalWarning "Firmware binary file not found."
 }
 
 cd $old_path

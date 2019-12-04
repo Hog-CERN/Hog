@@ -25,6 +25,8 @@ if {[info commands get_property] != ""} {
 } else {
     #Tclssh
     set proj_file $old_path/[file tail $old_path].xpr
+    # This is useful to test this script from tclsh if you run it from the project directory
+    # for example Repo/VivadoProject/fpga1/
 }
 	
 set proj_dir [file normalize [file dirname $proj_file]]

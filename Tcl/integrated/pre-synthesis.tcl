@@ -16,7 +16,17 @@ source $tcl_path/hog.tcl
 # Go to repository path
 cd "$tcl_path/../.."
 
-set proj_file [get_property parent.project_path [current_project]]
+if {[info commands get_property] != ""} {
+    # Vivado
+    set proj_file [get_property parent.project_path [current_project]]
+} elseif {[info commands quartus_command] != ""} {
+    # Quartus
+    set proj_file "/q/a/r/Quartus_project.qpf"
+} else {
+    #Tclssh
+    set proj_file "/a/b/c/DEBUG_project.proj"
+}
+	
 set proj_dir [file normalize [file dirname $proj_file]]
 set proj_name [file rootname [file tail $proj_file]]
 
@@ -136,7 +146,7 @@ if [file exists ./Top/$proj_name/xml/xml.lst] {
     file copy -force $xml_target $old_path/..
 
 } else {
-    Msg Info "This project does not have XMLs"
+    Msg Info "This project does not use IPbus XMLs"
     set xml_ver 0.0.0
     set xml_ver_hex 0000000
     set xml_hash 0000000
@@ -172,7 +182,6 @@ if { [exec git status --untracked-files=no  --porcelain] eq "" } {
     set hog_clean "yes"
 } else {
     Msg CriticalWarning "Hog submodule [pwd] not clean, commit hash will be set to 0."
-    # Maybe an error would be better here...
     set hog_hash "0000000"    
     set hog_clean "no"
 }
@@ -195,36 +204,53 @@ if {$real_time == 1} {
     }
 }
 
+#####  Passing Hog genric to top file
+if {[info commands set_property] != ""} {
+    ### VIVADO
+    # set global generic varibles
+    set generic_string "GLOBAL_FWDATE=32'h$date GLOBAL_FWTIME=32'h$timee OFFICIAL=32'h$official GLOBAL_FWHASH=32'h$commit TOP_FWHASH=32'h$top_hash XML_HASH=32'h$xml_hash GLOBAL_FWVERSION=32'h$version TOP_FWVERSION=32'h$top_ver XML_VERSION=32'h$xml_ver_hex HOG_FWHASH=32'h$hog_hash"
+    
+    #set project specific lists
+    foreach l $libs v $vers h $hashes {
+	set ver "[string toupper $l]_FWVERSION=32'h$v "
+	set hash "[string toupper $l]_FWHASH=32'h$h"
+	set generic_string "$generic_string $ver $hash"
+    }
+    
+    #set project specific sub modules
+    foreach s $subs h $subs_hashes {
+	set hash "[string toupper $s]_FWHASH=32'h$h"
+	set generic_string "$generic_string $hash"
+    }
+    
+    foreach e $ext_names h $ext_hashes {
+	set hash "[string toupper $e]_FWHASH=32'h$h"
+	set generic_string "$generic_string $hash"
+    }
+    
+    if {$flavour != -1} {
+	set generic_string "$generic_string FLAVOUR=$flavour"
+    }
+    
+    Msg Info "Generic String: $generic_string"
+    
+    set_property generic $generic_string [current_fileset]
 
-# set global generic varibles
-set generic_string "GLOBAL_FWDATE=32'h$date GLOBAL_FWTIME=32'h$timee OFFICIAL=32'h$official GLOBAL_FWHASH=32'h$commit TOP_FWHASH=32'h$top_hash XML_HASH=32'h$xml_hash GLOBAL_FWVERSION=32'h$version TOP_FWVERSION=32'h$top_ver XML_VERSION=32'h$xml_ver_hex HOG_FWHASH=32'h$hog_hash"
+} elseif {[info commands quartus_command] != ""} {
+    ### QUARTUS
 
-#set project specific lists
-foreach l $libs v $vers h $hashes {
-    set ver "[string toupper $l]_FWVERSION=32'h$v "
-    set hash "[string toupper $l]_FWHASH=32'h$h"
-    set generic_string "$generic_string $ver $hash"
-}
-
-#set project specific sub modules
-foreach s $subs h $subs_hashes {
-    set hash "[string toupper $s]_FWHASH=32'h$h"
-    set generic_string "$generic_string $hash"
-}
-
-foreach e $ext_names h $ext_hashes {
-    set hash "[string toupper $e]_FWHASH=32'h$h"
-    set generic_string "$generic_string $hash"
-}
-
-if {$flavour != -1} {
-   set generic_string "$generic_string FLAVOUR=$flavour"
-}
-
-Msg Info "Generic String: $generic_string"
-
-set_property generic $generic_string [current_fileset]
-
+} else {
+    ### Tcl Shell
+    puts "***DEBUG GLOBAL_FWDATE=32'h$date GLOBAL_FWTIME=32'h$timee OFFICIAL=32'h$official GLO\|        # Vivado                                                                                     
+BAL_FWHASH=32'h$commit TOP_FWHASH=32'h$top_hash XML_HASH=32'h$xml_hash GLOBAL_FWVERSION=32'h$versio\|        set_property $property $value $object
+n TOP_FWVERSION=32'h$top_ver XML_VERSION=32'h$xml_ver_hex HOG_FWHASH=32'h$hog_hash"
+    puts "LIBS: $libs $vers $hashes"
+    puts "SUBS: $subs $subs_hashes"
+    puts "EXT: $ext_names $ext_hashes"
+    puts "FLAVOUR: $flavour"
+    
+} 
+    
 # writing info into status file
 set status_file [open "$old_path/../versions" "w"]
 

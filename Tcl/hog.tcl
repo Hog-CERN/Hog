@@ -8,8 +8,8 @@
 ## Display a Vivado/Quartus/Tcl-shell info message
 #
 # Arguments:
-# * level: the severity level of the message given as string or integer: status/extra_info 0, info 1, warning 2, critical warning 3, error 4. Default is info.
-# * msg: the message text
+# * level: the severity level of the message given as string or integer: status/extra_info 0, info 1, warning 2, critical warning 3, error 4.
+# * msg: the message text.
 # * title: the name of the script displaying the message, if not given, the calling script name will be used by default.
 #
 proc Msg {level msg {title ""}} { 
@@ -198,9 +198,9 @@ proc CreateReportStrategy {} {
 		Msg Info "Report utilization created successfully"	
 	    }
 	}
-    }
-} else {
-    puts "Won't create any report strategy, not in Vivado"
+    } else {
+	puts "Won't create any report strategy, not in Vivado"
+    } 
 }
 ########################################################
 

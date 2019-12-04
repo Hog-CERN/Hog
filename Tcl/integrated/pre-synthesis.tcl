@@ -24,7 +24,7 @@ if {[info commands get_property] != ""} {
     set proj_file "/q/a/r/Quartus_project.qpf"
 } else {
     #Tclssh
-    set proj_file "/a/b/c/DEBUG_project.proj"
+    set proj_file $old_path/[file tail $old_path].xpr
 }
 	
 set proj_dir [file normalize [file dirname $proj_file]]
@@ -241,9 +241,7 @@ if {[info commands set_property] != ""} {
 
 } else {
     ### Tcl Shell
-    puts "***DEBUG GLOBAL_FWDATE=32'h$date GLOBAL_FWTIME=32'h$timee OFFICIAL=32'h$official GLO\|        # Vivado                                                                                     
-BAL_FWHASH=32'h$commit TOP_FWHASH=32'h$top_hash XML_HASH=32'h$xml_hash GLOBAL_FWVERSION=32'h$versio\|        set_property $property $value $object
-n TOP_FWVERSION=32'h$top_ver XML_VERSION=32'h$xml_ver_hex HOG_FWHASH=32'h$hog_hash"
+    puts "***DEBUG GLOBAL_FWDATE=32'h$date GLOBAL_FWTIME=32'h$timee OFFICIAL=32'h$official GLOBAL_FWHASH=32'h$commit TOP_FWHASH=32'h$top_hash XML_HASH=32'h$xml_hash GLOBAL_FWVERSION=32'h$version TOP_FWVERSION=32'h$top_ver XML_VERSION=32'h$xml_ver_hex HOG_FWHASH=32'h$hog_hash"
     puts "LIBS: $libs $vers $hashes"
     puts "SUBS: $subs $subs_hashes"
     puts "EXT: $ext_names $ext_hashes"

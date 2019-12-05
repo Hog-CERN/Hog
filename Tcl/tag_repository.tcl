@@ -49,20 +49,20 @@ if {$version_level >= 3} {
 	Info $Name 4 "Copying files to official directory..."
 	set new_dir $official/$new_tag
 	Info $Name 4 "Creating $new_dir"
-	exec eos mkdir $new_dir
+	exec eos mkdir -p $new_dir
 
 	# Copying doxygen documentation if files were created
 	if {[file exists ../Doc/html]} {
 	    set dox_dir $official/$new_tag/doc
 	    Info $Name 4 "Creating doxygen dir $dox_dir..."
-	    exec eos mkdir $dox_dir
+	    exec eos mkdir -p  $dox_dir
 	    Info $Name 4 "Copying doxygen files..."
 	    exec -ignorestderr eos cp -r ../Doc/html/* $dox_dir
 	}
 	foreach f $folders {
 	    set dst $new_dir/[regsub "(.*)_$old_tag\(.*\)" $f "\\1\\2"]
 	    Info $Name 4 "Copying $f into $dst..."
-	    exec eos mkdir $dst
+	    exec eos mkdir -p $dst
 	    exec -ignorestderr eos cp -r $unofficial/$f/* $dst/
 	    
 	    Info $Name 5 "Ranaming bit and bin files..."

@@ -18,7 +18,7 @@ Info $Name 2 "Opening $project..."
 open_project ../../VivadoProject/$project/$project.xpr
 
 Info $Name 5 "Starting implementation flow..."
-
+reset_run impl_1
 launch_runs impl_1 -jobs 4 -dir $main_folder
 wait_on_run impl_1
 

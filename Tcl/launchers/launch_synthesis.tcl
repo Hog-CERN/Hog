@@ -19,6 +19,7 @@ Info $Name 2 "Opening $project..."
 open_project ../../VivadoProject/$project/$project.xpr
 
 Info $Name 3 "Starting complete design flow..."
+reset_run synth_1
 launch_runs synth_1  -jobs $NJOBS -dir $main_folder
 wait_on_run synth_1
 

@@ -99,9 +99,122 @@ proc  SetParameter {parameter value } {
     set_param $parameter $value
 }
 ########################################################
-proc  CreateProject {proj dir fpga} {
-    create_project -force $proj $dir -part $fpga
+proc add_top_file {top_module top_file sources} {
+	if {info commands launch_chipscope_analyzer] != ""} {
+		#VIVADO_ONLY
+		add_files -norecurse -fileset $sources $top_file
+		set_property "top" $synth_top_module $sources
+	} elseif {info commands project_new] != ""} {
+		#QUARTUS ONLY
+		set file_type [FindFileType $vhdlfile]
+		set_global_assignment -name $file_type $top_file -hdl_version VHDL_2008
+		set_global_assignment -name TOP_LEVEL_ENTITY $top_module
+	} else {
+		puts "Adding project top module $top_module" 
+	}
 }
+
+########################################################
+proc CreateProject {DESIGN BUILD_DIR FPGA FAMILY} {
+	if {info commands create_project] != ""} {
+		#VIVADO_ONLY
+		create_project -force $DESIGN $BUILD_DIR -part $FPGA
+
+		## Set project properties
+		set obj [get_projects $DESIGN]
+		set_property "simulator_language" "Mixed" $obj
+		set_property "target_language" "VHDL" $obj
+		set_property "compxlib.modelsim_compiled_library_dir" $modelsim_path $obj
+		set_property "default_lib" "xil_defaultlib" $obj
+		if {$use_questa_simulator == 1} { 
+			set_property "target_simulator" "ModelSim" $obj
+		}
+
+		## Enable VHDL 2008
+		set_param project.enableVHDL2008 1
+		set_property "enable_vhdl_2008" 1 $obj
+
+		## Setting user IP repository to default Hog directory
+		if [file exists $user_ip_repo] {
+			Msg Info "Found directory $user_ip_repo, setting it as user IP repository..."
+			set_property  ip_repo_paths $user_ip_repo [current_project]
+		} else {
+			Msg Info "$user_ip_repo not found, no user IP repository will be set." 
+		}
+	}
+	else if {info commands project_new] != ""} {
+		#QUARTUS_ONLY
+		project_new -family $FAMILY -overwrite -part $FPGA $DESIGN
+		set_global_assignment -name ERROR_CHECK_FREQUENCY_DIVISOR 256
+		set_global_assignment -name EDA_DESIGN_ENTRY_SYNTHESIS_TOOL "Precision Synthesis"
+		set_global_assignment -name EDA_LMF_FILE mentor.lmf -section_id eda_design_synthesis
+		set_global_assignment -name EDA_INPUT_DATA_FORMAT VQM -section_id eda_design_synthesis
+		set_global_assignment -name EDA_SIMULATION_TOOL "QuestaSim (Verilog)"
+		set_global_assignment -name EDA_TIME_SCALE "1 ps" -section_id eda_simulation
+		set_global_assignment -name EDA_OUTPUT_DATA_FORMAT "VERILOG HDL" -section_id eda_simulation	
+		set_global_assignment -name VHDL_INPUT_VERSION VHDL_2008
+		set_global_assignment -name PROJECT_OUTPUT_DIRECTORY output_files
+
+	}
+	else {
+		puts "Creating project for FPGA part $FPGA"
+		puts "Configuring project settings:"
+		puts "	- simulator_language: Mixed"
+		puts "	- target_language: VHDL"
+		puts "	- simulator: QuestaSim"
+		puts "Adding IP directory \"$user_ip_repo\" to the project "
+	}
+
+
+	#ADD PROJECT FILES
+	if {info commands create_fileset] != ""} {
+		#VIVADO_ONLY
+		## Create fileset src
+		if {[string equal [get_filesets -quiet sources_1] ""]} {
+		  create_fileset -srcset sources_1
+		}
+		set sources [get_filesets sources_1]
+	} else {
+		set sources 0
+	}
+
+	## Set synthesis TOP
+	if [file exists $synth_top_file.v] {
+		Msg Info "Adding top file found in Top folder $synth_top_file.v" 
+		add_top_file $synth_top_module $synth_top_file.v  $sources
+	} elseif [file exists $synth_top_file.vhd] {
+		Msg Info "Adding top file found in Top folder $synth_top_file.vhd" 
+		add_top_file $synth_top_module $synth_top_file.vhd  $sources
+	} else {
+		Msg Info "No top file found in Top folder, please make sure that the top file - i.e. containing a module called $synth_top_module - is included in one of the libraries"     
+	}
+
+
+	###############
+	# CONSTRAINTS #
+	###############
+	if {info commands launch_chipscope_analyzer] != ""} {
+		#VIVADO_ONLY
+		# Create 'constrs_1' fileset (if not found)
+		if {[string equal [get_filesets -quiet constrs_1] ""]} {
+		  create_fileset -constrset constrs_1
+		}
+
+		# Set 'constrs_1' fileset object
+		set constraints [get_filesets constrs_1]
+	}
+
+	##############
+	# READ FILES #
+	##############
+	set list_files [glob -directory $list_path "*"]
+
+	foreach f $list_files {
+		SmartListFile $f $top_path
+	}
+}
+########################################################
+
 
 proc GetProject {proj} {
     if {[info commands get_projects] != ""} {

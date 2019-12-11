@@ -28,7 +28,7 @@ proc Msg {level msg {title ""}} {
 	set qlevel critial_warning
     } elseif {$level == 4 || $level == "error"} {
 	set vlevel {ERROR}
-	set qlevel 'error'
+	set qlevel "error"
     } else {
 	puts "Hog Error: level $level not defined"
 	exit -1

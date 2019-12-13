@@ -107,16 +107,44 @@ proc add_top_file {top_module top_file sources} {
 	} elseif {info commands project_new] != ""} {
 		#QUARTUS ONLY
 		set file_type [FindFileType $vhdlfile]
-		set_global_assignment -name $file_type $top_file -hdl_version VHDL_2008
+		set hdl_version [FindVhdlVersion $vhdlfile]
+		set_global_assignment -name $file_type $top_file 
 		set_global_assignment -name TOP_LEVEL_ENTITY $top_module
 	} else {
 		puts "Adding project top module $top_module" 
 	}
 }
 
+set tcl_path         [file normalize "[file dirname [info script]]"]
+puts $tcl_path
+proc DeriveVariables {DESIGN} {
+
+	uplevel {set pre_synth_file  "pre-synthesis.tcl"}
+	uplevel {set post_synth_file ""}
+	uplevel {set post_impl_file  "post-implementation.tcl"}
+	uplevel {set post_bit_file   "post-bitstream.tcl"}
+	uplevel {set tcl_path         [file normalize "[file dirname [info script]]"]}
+	uplevel {set repo_path        [file normalize "$tcl_path/../../"]}
+	uplevel {set top_path         "$repo_path/Top/$DESIGN"}
+	uplevel {set list_path        "$top_path/list"}
+	uplevel {set BUILD_DIR        "$repo_path/Project/$DESIGN"}
+	uplevel {set modelsim_path    "$repo_path/ModelsimLib"}
+	uplevel {set top_name [file root $DESIGN]}
+	uplevel {set synth_top_module "top_$top_name"}
+	uplevel {set synth_top_file   "$top_path/top_$DESIGN"}
+	uplevel {set user_ip_repo     "$repo_path/IP_repository"}
+
+
+	uplevel {set pre_synth  [file normalize "$tcl_path/integrated/$pre_synth_file"]}
+	uplevel {set post_synth [file normalize "$tcl_path/integrated/$post_synth_file"]}
+	uplevel {set post_impl  [file normalize "$tcl_path/integrated/$post_impl_file"]}
+	uplevel {set post_bit   [file normalize "$tcl_path/integrated/$post_bit_file"]}
+}
+
 ########################################################
 proc CreateProject {DESIGN BUILD_DIR FPGA FAMILY} {
-	if {info commands create_project] != ""} {
+	DeriveVariables $DESIGN
+	if {[info commands create_project] != ""} {
 		#VIVADO_ONLY
 		create_project -force $DESIGN $BUILD_DIR -part $FPGA
 
@@ -141,10 +169,20 @@ proc CreateProject {DESIGN BUILD_DIR FPGA FAMILY} {
 		} else {
 			Msg Info "$user_ip_repo not found, no user IP repository will be set." 
 		}
-	}
-	else if {info commands project_new] != ""} {
+	} elseif {[info commands project_new] != ""} {
+		package require ::quartus::project
 		#QUARTUS_ONLY
-		project_new -family $FAMILY -overwrite -part $FPGA $DESIGN
+
+
+		file mkdir $BUILD_DIR
+		cd $BUILD_DIR
+		if {[is_project_open]} {
+			project_close
+		}
+
+		file delete {*}[glob -nocomplain $DESIGN.q*]
+
+		project_new -family $FAMILY -overwrite -part $FPGA  $DESIGN
 		set_global_assignment -name ERROR_CHECK_FREQUENCY_DIVISOR 256
 		set_global_assignment -name EDA_DESIGN_ENTRY_SYNTHESIS_TOOL "Precision Synthesis"
 		set_global_assignment -name EDA_LMF_FILE mentor.lmf -section_id eda_design_synthesis
@@ -155,8 +193,7 @@ proc CreateProject {DESIGN BUILD_DIR FPGA FAMILY} {
 		set_global_assignment -name VHDL_INPUT_VERSION VHDL_2008
 		set_global_assignment -name PROJECT_OUTPUT_DIRECTORY output_files
 
-	}
-	else {
+	} else {
 		puts "Creating project for FPGA part $FPGA"
 		puts "Configuring project settings:"
 		puts "	- simulator_language: Mixed"
@@ -167,7 +204,7 @@ proc CreateProject {DESIGN BUILD_DIR FPGA FAMILY} {
 
 
 	#ADD PROJECT FILES
-	if {info commands create_fileset] != ""} {
+	if {[info commands create_fileset] != ""} {
 		#VIVADO_ONLY
 		## Create fileset src
 		if {[string equal [get_filesets -quiet sources_1] ""]} {
@@ -193,7 +230,7 @@ proc CreateProject {DESIGN BUILD_DIR FPGA FAMILY} {
 	###############
 	# CONSTRAINTS #
 	###############
-	if {info commands launch_chipscope_analyzer] != ""} {
+	if {[info commands launch_chipscope_analyzer] != ""} {
 		#VIVADO_ONLY
 		# Create 'constrs_1' fileset (if not found)
 		if {[string equal [get_filesets -quiet constrs_1] ""]} {
@@ -207,6 +244,7 @@ proc CreateProject {DESIGN BUILD_DIR FPGA FAMILY} {
 	##############
 	# READ FILES #
 	##############
+	Msg Error $list_path
 	set list_files [glob -directory $list_path "*"]
 
 	foreach f $list_files {
@@ -356,7 +394,7 @@ proc FindFileType {file_name} {
 	set extension [file ext $file_name]
 	switch $extension {
 		.vhd {
-			set file_extension "VHDL_FILE -hdl_version VHDL_2008"
+			set file_extension "VHDL_FILE"
 		}
 		.v {
 			set file_extension "VERILOG_FILE"
@@ -377,6 +415,20 @@ proc FindFileType {file_name} {
 	}
 
 	return $file_extension
+}
+
+proc FindVhdlVersion {file_name} {
+	set extension [file ext $file_name]
+	switch $extension {
+		.vhd {
+			set vhdl_version "-hdl_version VHDL_2008"
+		}
+		default {
+			set vhdl_version ""
+		}
+	}
+
+	return $vhdl_version
 }
 
 
@@ -513,18 +565,20 @@ proc ReadListFile {list_file path lib src {no_add 0}} {
 								} else {
 									Msg Warning "File $file_name was not found."
 								}
-						} elseif {info commands project_new] != ""} {
+							}
+						} elseif {[info commands project_new] != ""} {
 							#QUARTUS ONLY
 							set file_type [FindFileType $vhdlfile]
+							set hdl_version [FindVhdlVersion $vhdlfile]
 							if {$lib ne ""} {
-								set_global_assignment -name $file_type $vhdlfile  -library $lib
+								Msg Warning "set_global_assignment -name $file_type $vhdlfile -library $lib "
+								set_global_assignment -name $file_type $vhdlfile  -library $lib 
 							} else {
-								set_global_assignment  -name $file_type $vhdlfile 
+								set_global_assignment  -name $file_type $vhdlfile  $hdl_version
 							}
 							#missing : ADDING QUARTUS FILE PROPERTIES
 
-						}
-						else {
+						} else {
 							#default
 							puts "Adding file $vhdlfile to project into library $lib"
 						}

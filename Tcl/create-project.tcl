@@ -17,34 +17,15 @@
 # DERIVED VARIABLES #
 #####################
 
-set pre_synth_file  "pre-synthesis.tcl"
-set post_synth_file ""
-set post_impl_file  "post-implementation.tcl"
-set post_bit_file   "post-bitstream.tcl"
 set tcl_path         [file normalize "[file dirname [info script]]"]
-set repo_path        [file normalize "$tcl_path/../../"]
-set top_path         "$repo_path/Top/$DESIGN"
-set list_path        "$top_path/list"
-set BUILD_DIR        "$repo_path/VivadoProject/$DESIGN"
-set modelsim_path    "$repo_path/ModelsimLib"
-set top_name [file root $DESIGN]
-set synth_top_module "top_$top_name"
-set synth_top_file   "$top_path/top_$DESIGN"
-set user_ip_repo     "$repo_path/IP_repository"
-
-
-set pre_synth  [file normalize "$tcl_path/integrated/$pre_synth_file"]
-set post_synth [file normalize "$tcl_path/integrated/$post_synth_file"]
-set post_impl  [file normalize "$tcl_path/integrated/$post_impl_file"]
-set post_bit   [file normalize "$tcl_path/integrated/$post_bit_file"]
-
 source $tcl_path/hog.tcl
+DeriveVariables $DESIGN
 
 if {$top_name != $DESIGN} {
  Msg Info "This project has got a flavour, the top module name will differ from the project name."
 }
 
-create_project $DESIGN $BUILD_DIR $FPGA $FAMILY
+CreateProject $DESIGN $BUILD_DIR $FPGA $FAMILY
 
 
 ##############
@@ -52,116 +33,116 @@ create_project $DESIGN $BUILD_DIR $FPGA $FAMILY
 ##############
 
 ### SYNTH ###
-
-## Create 'synthesis ' run (if not found)
-if {[string equal [get_runs -quiet synth_1] ""]} {
-    create_run -name synth_1 -part $FPGA -flow $SYNTH_FLOW -strategy $SYNTH_STRATEGY -constrset constrs_1
-} else {
-    set_property strategy $SYNTH_STRATEGY [get_runs synth_1]
-    set_property flow $SYNTH_FLOW [get_runs synth_1]
-}
-
-set obj [get_runs synth_1]
-set_property "part" $FPGA $obj
-## set pre synthesis script
-if {$pre_synth_file ne ""} { 
-    set_property STEPS.SYNTH_DESIGN.TCL.PRE $pre_synth $obj
-}
-## set post synthesis script
-if {$post_synth_file ne ""} { 
-    set_property STEPS.SYNTH_DESIGN.TCL.POST $post_synth $obj
-}
-## set the current synth run
-current_run -synthesis $obj
-
-## Report Strategy
-if {[string equal [get_property -quiet report_strategy $obj] ""]} {
-    # No report strategy needed
-    Msg Info "No report strategy needed for syntesis"
-    
-} else {
-    # Report strategy needed since version 2017.3
-    set_property -name "report_strategy" -value "Vivado Synthesis Default Reports" -objects $obj
-
-    set reports [get_report_configs -of_objects $obj]
-    if { [llength $reports ] > 0 } {
-	delete_report_config [get_report_configs -of_objects $obj]
-    }
-}
-
-
-### IMPL_1 ###
-# Create 'impl_1' run (if not found)
-if {[string equal [get_runs -quiet impl_1] ""]} {
-    create_run -name impl_1 -part $FPGA -flow $IMPL_FLOW -strategy $IMPL_STRATEGY -constrset constrs_1 -parent_run synth_1
-} else {
-    set_property strategy $IMPL_STRATEGY [get_runs impl_1]
-    set_property flow $IMPL_FLOW [get_runs impl_1]
-}
-
-set obj [get_runs impl_1]
-set_property "part" $FPGA $obj
-
-set_property "steps.write_bitstream.args.readback_file" "0" $obj
-set_property "steps.write_bitstream.args.verbose" "0" $obj
-
-## set binfile production
-if {$bin_file == 1} {
-    set_property "steps.write_bitstream.args.bin_file" "1" $obj
-} else {
-   set_property "steps.write_bitstream.args.bin_file" "0" $obj
-}
-
-## set post routing script
-if {$post_impl_file ne ""} { 
-    set_property STEPS.ROUTE_DESIGN.TCL.POST $post_impl $obj
-}
-## set post write bitstream script
-if {$post_bit_file ne ""} { 
-    set_property STEPS.WRITE_BITSTREAM.TCL.POST $post_bit $obj
-}
-
-CreateReportStrategy
-
-##############
-# SIMULATION #
-##############
-Msg Info "Setting load_glbl parameter to false for every fileset..."
-foreach f [get_filesets -quiet *_sim] {
-    set_property -name {xsim.elaborate.load_glbl} -value {false} -objects $f
-}
-
-##################
-# RUN PROPERTIES #
-##################
-if [info exists PROPERTIES] {
-    foreach run [get_runs -quiet] {
-	if [dict exists $PROPERTIES $run] {
-	    Msg Info "Setting properties for run: $run..."
-	    set run_props [dict get $PROPERTIES $run]
-	    dict for {prop_name prop_val} $run_props {
-		Msg Info "Setting $prop_name = $prop_val"
-		set_property $prop_name $prop_val $run
-	    }
+if {[info commands send_msg_id] != ""} {
+	## Create 'synthesis ' run (if not found)
+	if {[string equal [get_runs -quiet synth_1] ""]} {
+		create_run -name synth_1 -part $FPGA -flow $SYNTH_FLOW -strategy $SYNTH_STRATEGY -constrset constrs_1
+	} else {
+		set_property strategy $SYNTH_STRATEGY [get_runs synth_1]
+		set_property flow $SYNTH_FLOW [get_runs synth_1]
 	}
-    }
+
+	set obj [get_runs synth_1]
+	set_property "part" $FPGA $obj
+	## set pre synthesis script
+	if {$pre_synth_file ne ""} { 
+		set_property STEPS.SYNTH_DESIGN.TCL.PRE $pre_synth $obj
+	}
+	## set post synthesis script
+	if {$post_synth_file ne ""} { 
+		set_property STEPS.SYNTH_DESIGN.TCL.POST $post_synth $obj
+	}
+	## set the current synth run
+	current_run -synthesis $obj
+
+	## Report Strategy
+	if {[string equal [get_property -quiet report_strategy $obj] ""]} {
+		# No report strategy needed
+		Msg Info "No report strategy needed for syntesis"
+		
+	} else {
+		# Report strategy needed since version 2017.3
+		set_property -name "report_strategy" -value "Vivado Synthesis Default Reports" -objects $obj
+
+		set reports [get_report_configs -of_objects $obj]
+		if { [llength $reports ] > 0 } {
+		delete_report_config [get_report_configs -of_objects $obj]
+		}
+	}
+
+
+	### IMPL_1 ###
+	# Create 'impl_1' run (if not found)
+	if {[string equal [get_runs -quiet impl_1] ""]} {
+		create_run -name impl_1 -part $FPGA -flow $IMPL_FLOW -strategy $IMPL_STRATEGY -constrset constrs_1 -parent_run synth_1
+	} else {
+		set_property strategy $IMPL_STRATEGY [get_runs impl_1]
+		set_property flow $IMPL_FLOW [get_runs impl_1]
+	}
+
+	set obj [get_runs impl_1]
+	set_property "part" $FPGA $obj
+
+	set_property "steps.write_bitstream.args.readback_file" "0" $obj
+	set_property "steps.write_bitstream.args.verbose" "0" $obj
+
+	## set binfile production
+	if {$bin_file == 1} {
+		set_property "steps.write_bitstream.args.bin_file" "1" $obj
+	} else {
+	   set_property "steps.write_bitstream.args.bin_file" "0" $obj
+	}
+
+	## set post routing script
+	if {$post_impl_file ne ""} { 
+		set_property STEPS.ROUTE_DESIGN.TCL.POST $post_impl $obj
+	}
+	## set post write bitstream script
+	if {$post_bit_file ne ""} { 
+		set_property STEPS.WRITE_BITSTREAM.TCL.POST $post_bit $obj
+	}
+
+	CreateReportStrategy
+
+	##############
+	# SIMULATION #
+	##############
+	Msg Info "Setting load_glbl parameter to false for every fileset..."
+	foreach f [get_filesets -quiet *_sim] {
+		set_property -name {xsim.elaborate.load_glbl} -value {false} -objects $f
+	}
+
+	##################
+	# RUN PROPERTIES #
+	##################
+	if [info exists PROPERTIES] {
+		foreach run [get_runs -quiet] {
+		if [dict exists $PROPERTIES $run] {
+			Msg Info "Setting properties for run: $run..."
+			set run_props [dict get $PROPERTIES $run]
+			dict for {prop_name prop_val} $run_props {
+			Msg Info "Setting $prop_name = $prop_val"
+			set_property $prop_name $prop_val $run
+			}
+		}
+		}
+	}
+
+
+
+
+	# set the current impl run
+	current_run -implementation [get_runs impl_1]
+
+
+	##############
+	# UPGRADE IP #
+	##############
+	Msg Info "Upgrading IPs if any..."
+	set ips [get_ips *]
+	if {$ips != ""} {
+		upgrade_ip $ips
+	}
 }
-
-
-
-
-# set the current impl run
-current_run -implementation [get_runs impl_1]
-
-
-##############
-# UPGRADE IP #
-##############
-Msg Info "Upgrading IPs if any..."
-set ips [get_ips *]
-if {$ips != ""} {
-    upgrade_ip $ips
-}
-
 
 Msg Info "Project $DESIGN created succesfully"

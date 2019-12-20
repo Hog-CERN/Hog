@@ -19,13 +19,9 @@
 
 set tcl_path         [file normalize "[file dirname [info script]]"]
 source $tcl_path/hog.tcl
+
 DeriveVariables $DESIGN
-
-if {$top_name != $DESIGN} {
- Msg Info "This project has got a flavour, the top module name will differ from the project name."
-}
-
-CreateProject $DESIGN $BUILD_DIR $FPGA $FAMILY
+CreateProject $DESIGN $FPGA
 
 
 ##############
@@ -102,7 +98,7 @@ if {[info commands send_msg_id] != ""} {
 		set_property STEPS.WRITE_BITSTREAM.TCL.POST $post_bit $obj
 	}
 
-	CreateReportStrategy
+	CreateReportStrategy $DESIGN $obj
 
 	##############
 	# SIMULATION #

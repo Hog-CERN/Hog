@@ -37,7 +37,7 @@ proc Msg {level msg {title ""}} {
     if {$title == ""} {set title [lindex [info level [expr [info level]-1]] 0]}
     if {[info commands send_msg_id] != ""} {
 	# Vivado
-	send_msg_id Hog:$title-0 {$vlevel} $msg
+	send_msg_id Hog:$title-0 $vlevel $msg
     } elseif {[info commands post_message] != ""} {
 	# Quartus
 	post_message -type $qlevel "Hog:$title $msg"
@@ -142,10 +142,13 @@ proc DeriveVariables {DESIGN} {
 }
 
 ########################################################
-proc CreateProject {DESIGN BUILD_DIR FPGA FAMILY} {
+proc CreateProject {DESIGN FPGA {FAMILY 'quartus_only'}} {
 	DeriveVariables $DESIGN
 	if {[info commands create_project] != ""} {
-		#VIVADO_ONLY
+	        #VIVADO_ONLY
+	        if {$top_name != $DESIGN} {
+		    Msg Info "This project has got a flavour, the top module name will differ from the project name."
+		}
 		create_project -force $DESIGN $BUILD_DIR -part $FPGA
 
 		## Set project properties
@@ -154,9 +157,9 @@ proc CreateProject {DESIGN BUILD_DIR FPGA FAMILY} {
 		set_property "target_language" "VHDL" $obj
 		set_property "compxlib.modelsim_compiled_library_dir" $modelsim_path $obj
 		set_property "default_lib" "xil_defaultlib" $obj
-		if {$use_questa_simulator == 1} { 
+		##if {$use_questa_simulator == 1} { 
 			set_property "target_simulator" "ModelSim" $obj
-		}
+		##}
 
 		## Enable VHDL 2008
 		set_param project.enableVHDL2008 1
@@ -170,10 +173,11 @@ proc CreateProject {DESIGN BUILD_DIR FPGA FAMILY} {
 			Msg Info "$user_ip_repo not found, no user IP repository will be set." 
 		}
 	} elseif {[info commands project_new] != ""} {
-		package require ::quartus::project
+	    package require ::quartus::project
 		#QUARTUS_ONLY
-
-
+	    if {[string equal $FAMILY "quartus_only"]} {
+		Msg Error "You must specify a device Familty for Quartus"
+	    } else {
 		file mkdir $BUILD_DIR
 		cd $BUILD_DIR
 		if {[is_project_open]} {
@@ -192,7 +196,7 @@ proc CreateProject {DESIGN BUILD_DIR FPGA FAMILY} {
 		set_global_assignment -name EDA_OUTPUT_DATA_FORMAT "VERILOG HDL" -section_id eda_simulation	
 		set_global_assignment -name VHDL_INPUT_VERSION VHDL_2008
 		set_global_assignment -name PROJECT_OUTPUT_DIRECTORY output_files
-
+	    }
 	} else {
 		puts "Creating project for FPGA part $FPGA"
 		puts "Configuring project settings:"
@@ -244,7 +248,6 @@ proc CreateProject {DESIGN BUILD_DIR FPGA FAMILY} {
 	##############
 	# READ FILES #
 	##############
-	Msg Error $list_path
 	set list_files [glob -directory $list_path "*"]
 
 	foreach f $list_files {
@@ -315,7 +318,7 @@ proc AddFile {file fileset} {
 }
 
 
-proc CreateReportStrategy {} {
+proc CreateReportStrategy {DESIGN obj} {
     if {[info commands create_report_config] != ""} {
 	## Viavado Report Strategy
 	if {[string equal [get_property -quiet report_strategy $obj] ""]} {

@@ -19,7 +19,7 @@ cd "$tcl_path/../.."
 if {[info commands get_property] != ""} {
     # Vivado
     set proj_file [get_property parent.project_path [current_project]]
-} elseif {[info commands quartus_command] != ""} {
+} elseif {[info commands commands project_new] != ""} {
     # Quartus
     set proj_file "/q/a/r/Quartus_project.qpf"
 } else {

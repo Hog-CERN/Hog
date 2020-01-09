@@ -37,7 +37,7 @@ proc Msg {level msg {title ""}} {
     if {$title == ""} {set title [lindex [info level [expr [info level]-1]] 0]}
     if {[info commands send_msg_id] != ""} {
 	# Vivado
-	send_msg_id Hog:$title-0 $vlevel $msg
+	send_msg_id Hog:$title-0 {$vlevel} $msg
     } elseif {[info commands post_message] != ""} {
 	# Quartus
 	post_message -type $qlevel "Hog:$title $msg"
@@ -107,48 +107,17 @@ proc add_top_file {top_module top_file sources} {
 	} elseif {info commands project_new] != ""} {
 		#QUARTUS ONLY
 		set file_type [FindFileType $vhdlfile]
-		set hdl_version [FindVhdlVersion $vhdlfile]
-		set_global_assignment -name $file_type $top_file 
+		set_global_assignment -name $file_type $top_file -hdl_version VHDL_2008
 		set_global_assignment -name TOP_LEVEL_ENTITY $top_module
 	} else {
 		puts "Adding project top module $top_module" 
 	}
 }
 
-set tcl_path         [file normalize "[file dirname [info script]]"]
-puts $tcl_path
-proc DeriveVariables {DESIGN} {
-
-	uplevel {set pre_synth_file  "pre-synthesis.tcl"}
-	uplevel {set post_synth_file ""}
-	uplevel {set post_impl_file  "post-implementation.tcl"}
-	uplevel {set post_bit_file   "post-bitstream.tcl"}
-	uplevel {set tcl_path         [file normalize "[file dirname [info script]]"]}
-	uplevel {set repo_path        [file normalize "$tcl_path/../../"]}
-	uplevel {set top_path         "$repo_path/Top/$DESIGN"}
-	uplevel {set list_path        "$top_path/list"}
-	uplevel {set BUILD_DIR        "$repo_path/Project/$DESIGN"}
-	uplevel {set modelsim_path    "$repo_path/ModelsimLib"}
-	uplevel {set top_name [file root $DESIGN]}
-	uplevel {set synth_top_module "top_$top_name"}
-	uplevel {set synth_top_file   "$top_path/top_$DESIGN"}
-	uplevel {set user_ip_repo     "$repo_path/IP_repository"}
-
-
-	uplevel {set pre_synth  [file normalize "$tcl_path/integrated/$pre_synth_file"]}
-	uplevel {set post_synth [file normalize "$tcl_path/integrated/$post_synth_file"]}
-	uplevel {set post_impl  [file normalize "$tcl_path/integrated/$post_impl_file"]}
-	uplevel {set post_bit   [file normalize "$tcl_path/integrated/$post_bit_file"]}
-}
-
 ########################################################
-proc CreateProject {DESIGN FPGA {FAMILY 'quartus_only'}} {
-	DeriveVariables $DESIGN
-	if {[info commands create_project] != ""} {
-	        #VIVADO_ONLY
-	        if {$top_name != $DESIGN} {
-		    Msg Info "This project has got a flavour, the top module name will differ from the project name."
-		}
+proc CreateProject {DESIGN BUILD_DIR FPGA FAMILY} {
+	if {info commands create_project] != ""} {
+		#VIVADO_ONLY
 		create_project -force $DESIGN $BUILD_DIR -part $FPGA
 
 		## Set project properties
@@ -157,9 +126,9 @@ proc CreateProject {DESIGN FPGA {FAMILY 'quartus_only'}} {
 		set_property "target_language" "VHDL" $obj
 		set_property "compxlib.modelsim_compiled_library_dir" $modelsim_path $obj
 		set_property "default_lib" "xil_defaultlib" $obj
-		##if {$use_questa_simulator == 1} { 
+		if {$use_questa_simulator == 1} { 
 			set_property "target_simulator" "ModelSim" $obj
-		##}
+		}
 
 		## Enable VHDL 2008
 		set_param project.enableVHDL2008 1
@@ -172,21 +141,10 @@ proc CreateProject {DESIGN FPGA {FAMILY 'quartus_only'}} {
 		} else {
 			Msg Info "$user_ip_repo not found, no user IP repository will be set." 
 		}
-	} elseif {[info commands project_new] != ""} {
-	    package require ::quartus::project
+	}
+	else if {info commands project_new] != ""} {
 		#QUARTUS_ONLY
-	    if {[string equal $FAMILY "quartus_only"]} {
-		Msg Error "You must specify a device Familty for Quartus"
-	    } else {
-		file mkdir $BUILD_DIR
-		cd $BUILD_DIR
-		if {[is_project_open]} {
-			project_close
-		}
-
-		file delete {*}[glob -nocomplain $DESIGN.q*]
-
-		project_new -family $FAMILY -overwrite -part $FPGA  $DESIGN
+		project_new -family $FAMILY -overwrite -part $FPGA $DESIGN
 		set_global_assignment -name ERROR_CHECK_FREQUENCY_DIVISOR 256
 		set_global_assignment -name EDA_DESIGN_ENTRY_SYNTHESIS_TOOL "Precision Synthesis"
 		set_global_assignment -name EDA_LMF_FILE mentor.lmf -section_id eda_design_synthesis
@@ -196,8 +154,9 @@ proc CreateProject {DESIGN FPGA {FAMILY 'quartus_only'}} {
 		set_global_assignment -name EDA_OUTPUT_DATA_FORMAT "VERILOG HDL" -section_id eda_simulation	
 		set_global_assignment -name VHDL_INPUT_VERSION VHDL_2008
 		set_global_assignment -name PROJECT_OUTPUT_DIRECTORY output_files
-	    }
-	} else {
+
+	}
+	else {
 		puts "Creating project for FPGA part $FPGA"
 		puts "Configuring project settings:"
 		puts "	- simulator_language: Mixed"
@@ -208,7 +167,7 @@ proc CreateProject {DESIGN FPGA {FAMILY 'quartus_only'}} {
 
 
 	#ADD PROJECT FILES
-	if {[info commands create_fileset] != ""} {
+	if {info commands create_fileset] != ""} {
 		#VIVADO_ONLY
 		## Create fileset src
 		if {[string equal [get_filesets -quiet sources_1] ""]} {
@@ -234,7 +193,7 @@ proc CreateProject {DESIGN FPGA {FAMILY 'quartus_only'}} {
 	###############
 	# CONSTRAINTS #
 	###############
-	if {[info commands launch_chipscope_analyzer] != ""} {
+	if {info commands launch_chipscope_analyzer] != ""} {
 		#VIVADO_ONLY
 		# Create 'constrs_1' fileset (if not found)
 		if {[string equal [get_filesets -quiet constrs_1] ""]} {
@@ -255,210 +214,6 @@ proc CreateProject {DESIGN FPGA {FAMILY 'quartus_only'}} {
 	}
 }
 ########################################################
-
-
-### SYNTH ###
-
-proc configureSynth {} {
-
-	if {[info commands send_msg_id] != ""} {
-		#VIVADO ONLY
-		## Create 'synthesis ' run (if not found)
-		if {[string equal [get_runs -quiet synth_1] ""]} {
-			create_run -name synth_1 -part $FPGA -flow $SYNTH_FLOW -strategy $SYNTH_STRATEGY -constrset constrs_1
-		} else {
-			set_property strategy $SYNTH_STRATEGY [get_runs synth_1]
-			set_property flow $SYNTH_FLOW [get_runs synth_1]
-		}
-
-		set obj [get_runs synth_1]
-		set_property "part" $FPGA $obj
-	}
-
-	## set pre synthesis script
-	if {$pre_synth_file ne ""} { 
-		if {[info commands send_msg_id] != ""} {
-			#Vivado Only
-			set_property STEPS.SYNTH_DESIGN.TCL.PRE $pre_synth $obj
-		} else if {[info commands project_new] != ""} {
-			#QUARTUS only
-			set_global_assignment -name PRE_FLOW_SCRIPT_FILE quartus_sh:$pre_synth
-
-		} else {
-			Msg info "Configuring $pre_synth script before syntesis"
-		}
-	}
-
-	## set post synthesis script
-	if {$post_synth_file ne ""} { 
-		if {[info commands send_msg_id] != ""} {
-			#Vivado Only
-			set_property STEPS.SYNTH_DESIGN.TCL.POST $post_synth $obj
-		} else if {[info commands project_new] != ""} {
-			#QUARTUS only
-			set_global_assignment -name POST_MODULE_SCRIPT_FILE quartus_sh:$post_synth
-
-		} else {
-			Msg info "Configuring $post_synth script after syntesis"
-		}
-	} 
-
-	
-	if {[info commands send_msg_id] != ""} {
-		#VIVADO ONLY
-		## set the current synth run
-		current_run -synthesis $obj
-
-		## Report Strategy
-		if {[string equal [get_property -quiet report_strategy $obj] ""]} {
-			# No report strategy needed
-			Msg Info "No report strategy needed for syntesis"
-			
-		} else {
-			# Report strategy needed since version 2017.3
-			set_property -name "report_strategy" -value "Vivado Synthesis Default Reports" -objects $obj
-
-			set reports [get_report_configs -of_objects $obj]
-			if { [llength $reports ] > 0 } {
-			delete_report_config [get_report_configs -of_objects $obj]
-			}
-		}
-	} else if {[info commands project_new] != ""} {
-		#QUARTUS only
-		#TO BE DONE
-
-	} else {
-		Msg info "Reporting strategy for syntesis"
-	}
-} 
-
-proc configureImpl {} {
-	if {[info commands send_msg_id] != ""} {
-		# Create 'impl_1' run (if not found)
-		if {[string equal [get_runs -quiet impl_1] ""]} {
-			create_run -name impl_1 -part $FPGA -flow $IMPL_FLOW -strategy $IMPL_STRATEGY -constrset constrs_1 -parent_run synth_1
-		} else {
-			set_property strategy $IMPL_STRATEGY [get_runs impl_1]
-			set_property flow $IMPL_FLOW [get_runs impl_1]
-		}
-
-		set obj [get_runs impl_1]
-		set_property "part" $FPGA $obj
-
-		set_property "steps.write_bitstream.args.readback_file" "0" $obj
-		set_property "steps.write_bitstream.args.verbose" "0" $obj
-
-		## set binfile production
-		if {$bin_file == 1} {
-			set_property "steps.write_bitstream.args.bin_file" "1" $obj
-		} else {
-		   set_property "steps.write_bitstream.args.bin_file" "0" $obj
-		}
-	}
-
-	## set post routing script
-	if {$post_impl_file ne ""} { 
-		if {[info commands send_msg_id] != ""} {
-			#Vivado Only
-			set_property STEPS.ROUTE_DESIGN.TCL.POST $post_impl $obj
-		} else if {[info commands project_new] != ""} {
-			#QUARTUS only
-			set_global_assignment -name POST_MODULE_SCRIPT_FILE quartus_sh:$post_impl
-
-		} else {
-			Msg info "Configuring $post_impl script after implementation"
-		}
-	} 
-
-	## set post write bitstream script
-	if {$post_bit_file ne ""} { 
-		if {[info commands send_msg_id] != ""} {
-			#Vivado Only
-			set_property STEPS.WRITE_BITSTREAM.TCL.POST $post_bit $obj
-		} else if {[info commands project_new] != ""} {
-			#QUARTUS only
-			set_global_assignment -name POST_FLOW_SCRIPT_FILE quartus_sh:$post_bit
-
-		} else {
-			Msg info "Configuring $post_bit script after bitfile generation"
-		}
-	}
-
-	CreateReportStrategy $DESIGN $obj
-}
-
-
-
-
-proc configureSimulation {} {
-	if {[info commands send_msg_id] != ""} {
-
-		##############
-		# SIMULATION #
-		##############
-		Msg Info "Setting load_glbl parameter to false for every fileset..."
-		foreach f [get_filesets -quiet *_sim] {
-			set_property -name {xsim.elaborate.load_glbl} -value {false} -objects $f
-		}
-	}  else if {[info commands project_new] != ""} {
-			#QUARTUS only
-			#TO BE DONE
-
-	} else {
-		Msg info "Configuring simulation"
-	}
-}
-
-proc configureProperties {} {
-	if {[info commands send_msg_id] != ""} {
-		##################
-		# RUN PROPERTIES #
-		##################
-		if [info exists PROPERTIES] {
-			foreach run [get_runs -quiet] {
-			if [dict exists $PROPERTIES $run] {
-				Msg Info "Setting properties for run: $run..."
-				set run_props [dict get $PROPERTIES $run]
-				dict for {prop_name prop_val} $run_props {
-				Msg Info "Setting $prop_name = $prop_val"
-				set_property $prop_name $prop_val $run
-				}
-			}
-			}
-		}
-	}  else if {[info commands project_new] != ""} {
-		#QUARTUS only
-		#TO BE DONE
-	} else {
-		Msg info "Configuring Properties"
-	}
-}
-
-
-proc upgradeIP {} {
-	if {[info commands send_msg_id] != ""} {
-		# set the current impl run
-		current_run -implementation [get_runs impl_1]
-
-
-		##############
-		# UPGRADE IP #
-		##############
-		Msg Info "Upgrading IPs if any..."
-		set ips [get_ips *]
-		if {$ips != ""} {
-			upgrade_ip $ips
-		}
-	} else if {[info commands project_new] != ""} {
-			#QUARTUS only
-			#TO BE DONE
-
-	} else {
-		Msg info "Upgrading IPs"
-	}
-}
-
-
 
 
 proc GetProject {proj} {
@@ -522,7 +277,7 @@ proc AddFile {file fileset} {
 }
 
 
-proc CreateReportStrategy {DESIGN obj} {
+proc CreateReportStrategy {} {
     if {[info commands create_report_config] != ""} {
 	## Viavado Report Strategy
 	if {[string equal [get_property -quiet report_strategy $obj] ""]} {
@@ -601,7 +356,7 @@ proc FindFileType {file_name} {
 	set extension [file ext $file_name]
 	switch $extension {
 		.vhd {
-			set file_extension "VHDL_FILE"
+			set file_extension "VHDL_FILE -hdl_version VHDL_2008"
 		}
 		.v {
 			set file_extension "VERILOG_FILE"
@@ -622,20 +377,6 @@ proc FindFileType {file_name} {
 	}
 
 	return $file_extension
-}
-
-proc FindVhdlVersion {file_name} {
-	set extension [file ext $file_name]
-	switch $extension {
-		.vhd {
-			set vhdl_version "-hdl_version VHDL_2008"
-		}
-		default {
-			set vhdl_version ""
-		}
-	}
-
-	return $vhdl_version
 }
 
 
@@ -772,20 +513,18 @@ proc ReadListFile {list_file path lib src {no_add 0}} {
 								} else {
 									Msg Warning "File $file_name was not found."
 								}
-							}
-						} elseif {[info commands project_new] != ""} {
+						} elseif {info commands project_new] != ""} {
 							#QUARTUS ONLY
 							set file_type [FindFileType $vhdlfile]
-							set hdl_version [FindVhdlVersion $vhdlfile]
 							if {$lib ne ""} {
-								Msg Warning "set_global_assignment -name $file_type $vhdlfile -library $lib "
-								set_global_assignment -name $file_type $vhdlfile  -library $lib 
+								set_global_assignment -name $file_type $vhdlfile  -library $lib
 							} else {
-								set_global_assignment  -name $file_type $vhdlfile  $hdl_version
+								set_global_assignment  -name $file_type $vhdlfile 
 							}
 							#missing : ADDING QUARTUS FILE PROPERTIES
 
-						} else {
+						}
+						else {
 							#default
 							puts "Adding file $vhdlfile to project into library $lib"
 						}

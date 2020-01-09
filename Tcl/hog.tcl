@@ -259,8 +259,8 @@ proc CreateProject {DESIGN FPGA {FAMILY 'quartus_only'}} {
 
 ### SYNTH ###
 
-proc configureSynth {} {
-
+proc configureSynth {DESIGN} {
+	DeriveVariables $DESIGN
 	if {[info commands send_msg_id] != ""} {
 		#VIVADO ONLY
 		## Create 'synthesis ' run (if not found)
@@ -280,7 +280,7 @@ proc configureSynth {} {
 		if {[info commands send_msg_id] != ""} {
 			#Vivado Only
 			set_property STEPS.SYNTH_DESIGN.TCL.PRE $pre_synth $obj
-		} else if {[info commands project_new] != ""} {
+		} elseif {[info commands project_new] != ""} {
 			#QUARTUS only
 			set_global_assignment -name PRE_FLOW_SCRIPT_FILE quartus_sh:$pre_synth
 
@@ -294,7 +294,7 @@ proc configureSynth {} {
 		if {[info commands send_msg_id] != ""} {
 			#Vivado Only
 			set_property STEPS.SYNTH_DESIGN.TCL.POST $post_synth $obj
-		} else if {[info commands project_new] != ""} {
+		} elseif {[info commands project_new] != ""} {
 			#QUARTUS only
 			set_global_assignment -name POST_MODULE_SCRIPT_FILE quartus_sh:$post_synth
 
@@ -323,7 +323,7 @@ proc configureSynth {} {
 			delete_report_config [get_report_configs -of_objects $obj]
 			}
 		}
-	} else if {[info commands project_new] != ""} {
+	} elseif {[info commands project_new] != ""} {
 		#QUARTUS only
 		#TO BE DONE
 
@@ -332,7 +332,8 @@ proc configureSynth {} {
 	}
 } 
 
-proc configureImpl {} {
+proc configureImpl {DESIGN} {
+	DeriveVariables $DESIGN
 	if {[info commands send_msg_id] != ""} {
 		# Create 'impl_1' run (if not found)
 		if {[string equal [get_runs -quiet impl_1] ""]} {
@@ -354,6 +355,9 @@ proc configureImpl {} {
 		} else {
 		   set_property "steps.write_bitstream.args.bin_file" "0" $obj
 		}
+	} elseif {[info commands project_new] != ""} {
+			#QUARTUS only
+			set obj ""
 	}
 
 	## set post routing script
@@ -361,7 +365,7 @@ proc configureImpl {} {
 		if {[info commands send_msg_id] != ""} {
 			#Vivado Only
 			set_property STEPS.ROUTE_DESIGN.TCL.POST $post_impl $obj
-		} else if {[info commands project_new] != ""} {
+		} elseif {[info commands project_new] != ""} {
 			#QUARTUS only
 			set_global_assignment -name POST_MODULE_SCRIPT_FILE quartus_sh:$post_impl
 
@@ -375,7 +379,7 @@ proc configureImpl {} {
 		if {[info commands send_msg_id] != ""} {
 			#Vivado Only
 			set_property STEPS.WRITE_BITSTREAM.TCL.POST $post_bit $obj
-		} else if {[info commands project_new] != ""} {
+		} elseif {[info commands project_new] != ""} {
 			#QUARTUS only
 			set_global_assignment -name POST_FLOW_SCRIPT_FILE quartus_sh:$post_bit
 
@@ -390,7 +394,8 @@ proc configureImpl {} {
 
 
 
-proc configureSimulation {} {
+proc configureSimulation {DESIGN} {
+	DeriveVariables $DESIGN
 	if {[info commands send_msg_id] != ""} {
 
 		##############
@@ -400,7 +405,7 @@ proc configureSimulation {} {
 		foreach f [get_filesets -quiet *_sim] {
 			set_property -name {xsim.elaborate.load_glbl} -value {false} -objects $f
 		}
-	}  else if {[info commands project_new] != ""} {
+	}  elseif {[info commands project_new] != ""} {
 			#QUARTUS only
 			#TO BE DONE
 
@@ -409,7 +414,8 @@ proc configureSimulation {} {
 	}
 }
 
-proc configureProperties {} {
+proc configureProperties {DESIGN} {
+	DeriveVariables $DESIGN
 	if {[info commands send_msg_id] != ""} {
 		##################
 		# RUN PROPERTIES #
@@ -426,7 +432,7 @@ proc configureProperties {} {
 			}
 			}
 		}
-	}  else if {[info commands project_new] != ""} {
+	}  elseif {[info commands project_new] != ""} {
 		#QUARTUS only
 		#TO BE DONE
 	} else {
@@ -435,7 +441,8 @@ proc configureProperties {} {
 }
 
 
-proc upgradeIP {} {
+proc upgradeIP {DESIGN} {
+	DeriveVariables $DESIGN
 	if {[info commands send_msg_id] != ""} {
 		# set the current impl run
 		current_run -implementation [get_runs impl_1]
@@ -449,7 +456,7 @@ proc upgradeIP {} {
 		if {$ips != ""} {
 			upgrade_ip $ips
 		}
-	} else if {[info commands project_new] != ""} {
+	} elseif {[info commands project_new] != ""} {
 			#QUARTUS only
 			#TO BE DONE
 

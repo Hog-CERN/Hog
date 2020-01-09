@@ -21,12 +21,12 @@ set tcl_path         [file normalize "[file dirname [info script]]"]
 source $tcl_path/hog.tcl
 
 DeriveVariables $DESIGN
-CreateProject $DESIGN $FPGA
-configureSynth
-configureImpl
-configureSimulation
-configureProperties
-upgradeIP
+CreateProject $DESIGN $FPGA $FAMILY
+configureSynth $DESIGN
+configureImpl $DESIGN
+configureSimulation $DESIGN
+configureProperties $DESIGN
+upgradeIP $DESIGN
 ##############
 #    RUNS    #
 ##############

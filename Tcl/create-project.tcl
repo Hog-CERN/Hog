@@ -21,7 +21,12 @@ set tcl_path         [file normalize "[file dirname [info script]]"]
 source $tcl_path/hog.tcl
 
 DeriveVariables $DESIGN
-CreateProject $DESIGN $FPGA $FAMILY
+if {[info exists FAMILY]} {
+    CreateProject $DESIGN $FPGA $FAMILY
+} else {
+    CreateProject $DESIGN $FPGA
+}
+
 configureSynth $DESIGN
 configureImpl $DESIGN
 configureSimulation $DESIGN

@@ -17,6 +17,7 @@ namespace eval globalSettings {
     variable IMPL_STRATEGY
     variable IMPL_FLOW
     variable DESIGN
+    variable PROPERTIES
     variable path_repo
     
     variable pre_synth_file
@@ -429,11 +430,11 @@ proc configureProperties {} {
 		##################
 		# RUN PROPERTIES #
 		##################
-		if [info exists PROPERTIES] {
+		if [info exists $globalSettings::PROPERTIES] {
 			foreach run [get_runs -quiet] {
-			if [dict exists $PROPERTIES $run] {
+			if [dict exists $globalSettings::PROPERTIES $run] {
 				Msg Info "Setting properties for run: $run..."
-				set run_props [dict get $PROPERTIES $run]
+				set run_props [dict get $globalSettings::PROPERTIES $run]
 				dict for {prop_name prop_val} $run_props {
 				Msg Info "Setting $prop_name = $prop_val"
 				set_property $prop_name $prop_val $run

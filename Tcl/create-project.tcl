@@ -17,7 +17,9 @@
 set tcl_path         [file normalize "[file dirname [info script]]"]
 source $tcl_path/hog.tcl
 
-         
+#this path_repo should be done better
+set globalSettings::path_repo $::path_repo
+
 set globalSettings::FPGA $::FPGA
 
 set globalSettings::SYNTH_STRATEGY $::SYNTH_STRATEGY
@@ -28,10 +30,17 @@ set globalSettings::SYNTH_FLOW $::SYNTH_FLOW
 set globalSettings::IMPL_STRATEGY $::IMPL_STRATEGY
 set globalSettings::IMPL_FLOW $::IMPL_FLOW
 set globalSettings::DESIGN $::DESIGN
-set globalSettings::path_repo $::path_repo
 
-set globalSettings::bin_file $::bin_file
 
+if {[info exist ::bin_file]} { 
+    set globalSettings::bin_file $::bin_file
+} else {
+   set globalSettings::bin_file 0
+}
+
+set globalSettings::PROPERTIES $::PROPERTIES
+
+#Derived varibles from now on...
 set globalSettings::pre_synth_file   "pre-synthesis.tcl"
 set globalSettings::post_synth_file  ""
 set globalSettings::post_impl_file   "post-implementation.tcl"

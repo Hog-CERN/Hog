@@ -19,6 +19,8 @@ Msg Info "Opening $project..."
 open_project ../../VivadoProject/$project/$project.xpr
 
 Msg Info "Starting complete design flow..."
+reset_run synth_1
+
 launch_runs synth_1  -jobs $NJOBS -dir $main_folder
 wait_on_run synth_1
 

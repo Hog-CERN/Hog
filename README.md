@@ -173,3 +173,12 @@ Modelsim compiled libraries will be placed here
 ## Hog Continuous integration (Hog-CI)
 
 [HOG-CI](./VM/README.md)
+
+## Wrapper scripts
+There are three scripts that can be used to run synthesis, implementation and bitstream writing without opening the vivado gui. The commands to launch them are
+
+	./Hog/LaunchSynthesis.sh <proj_name>
+	./Hog/LaunchImplementation.sh <proj_name>
+	./Hog/LaunchWriteBistream.sh <proj_name>
+
+Launching the implementation or the bistream writing without having launched the synthesis beforehand will run the synthesis stage too.

@@ -13,25 +13,53 @@
 
 ############################################################
 
-#####################
-# DERIVED VARIABLES #
-#####################
-
+#IMPLEMENT SETTINGS NAMESPACE
 set tcl_path         [file normalize "[file dirname [info script]]"]
 source $tcl_path/hog.tcl
 
-DeriveVariables $DESIGN
-if {[info exists FAMILY]} {
-    CreateProject $DESIGN $FPGA $FAMILY
-} else {
-    CreateProject $DESIGN $FPGA
-}
+         
+set globalSettings::FPGA $FPGA
 
-configureSynth $DESIGN
-configureImpl $DESIGN
-configureSimulation $DESIGN
-configureProperties $DESIGN
-upgradeIP $DESIGN
+set globalSettings::SYNTH_STRATEGY $::SYNTH_STRATEGY
+if {[info exists ::FAMILY]} {
+	set globalSettings::FAMILY $::FAMILY
+}
+set globalSettings::SYNTH_FLOW $::SYNTH_FLOW
+set globalSettings::IMPL_STRATEGY $::IMPL_STRATEGY
+set globalSettings::IMPL_FLOW $::IMPL_FLOW
+set globalSettings::DESIGN $::DESIGN
+set globalSettings::path_repo $::path_repo
+
+set globalSettings::pre_synth_file   "pre-synthesis.tcl"
+set globalSettings::post_synth_file  ""
+set globalSettings::post_impl_file   "post-implementation.tcl"
+set globalSettings::post_bit_file    "post-bitstream.tcl"
+set globalSettings::tcl_path         [file normalize "[file dirname [info script]]"]
+set globalSettings::repo_path        [file normalize "$globalSettings::tcl_path/../../"]
+set globalSettings::top_path         "$globalSettings::repo_path/Top/$DESIGN"
+set globalSettings::list_path        "$globalSettings::top_path/list"
+set globalSettings::BUILD_DIR        "$globalSettings::repo_path/Project/$DESIGN"
+set globalSettings::modelsim_path    "$globalSettings::repo_path/ModelsimLib"
+set globalSettings::top_name          [file root $globalSettings::DESIGN]
+set globalSettings::synth_top_module "top_$globalSettings::top_name"
+set globalSettings::synth_top_file   "$globalSettings::top_path/top_$globalSettings::DESIGN"
+set globalSettings::user_ip_repo     "$globalSettings::repo_path/IP_repository"
+
+
+set globalSettings::pre_synth  [file normalize "$globalSettings::tcl_path/integrated/$globalSettings::pre_synth_file"]
+set globalSettings::post_synth [file normalize "$globalSettings::tcl_path/integrated/$globalSettings::post_synth_file"]
+set globalSettings::post_impl  [file normalize "$globalSettings::tcl_path/integrated/$globalSettings::post_impl_file"]
+set globalSettings::post_bit   [file normalize "$globalSettings::tcl_path/integrated/$globalSettings::post_bit_file"]
+
+
+CreateProject
+
+configureSynth
+configureImpl
+configureSimulation
+configureProperties
+upgradeIP
+
 ##############
 #    RUNS    #
 ##############

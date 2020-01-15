@@ -5,6 +5,43 @@
 #################### Hog Wrappers ######################
 
 ########################################################
+## Namespace of all the project settings
+#
+#
+namespace eval globalSettings {
+	variable $globalSettings::FPGA
+
+	variable SYNTH_STRATEGY
+	variable FAMILY
+	variable SYNTH_FLOW
+	variable IMPL_STRATEGY
+	variable IMPL_FLOW
+	variable DESIGN
+	variable path_repo
+
+	variable pre_synth_file
+	variable post_synth_file
+	variable post_impl_file
+	variable post_bit_file
+	variable tcl_path
+	variable repo_path
+	variable top_path
+	variable list_path
+	variable BUILD_DIR
+	variable modelsim_path
+	variable top_name
+	variable synth_top_module
+	variable synth_top_file
+	variable user_ip_repo
+
+
+	variable pre_synth
+	variable post_synth
+	variable post_impl
+	variable post_bit
+
+}
+########################################################
 ## Display a Vivado/Quartus/Tcl-shell info message
 #
 # Arguments:
@@ -103,7 +140,7 @@ proc add_top_file {top_module top_file sources} {
 	if {info commands launch_chipscope_analyzer] != ""} {
 		#VIVADO_ONLY
 		add_files -norecurse -fileset $sources $top_file
-		set_property "top" $synth_top_module $sources
+		set_property "top" $globalSettings::synth_top_module $sources
 	} elseif {info commands project_new] != ""} {
 		#QUARTUS ONLY
 		set file_type [FindFileType $vhdlfile]
@@ -115,47 +152,21 @@ proc add_top_file {top_module top_file sources} {
 	}
 }
 
-set tcl_path         [file normalize "[file dirname [info script]]"]
-puts $tcl_path
-proc DeriveVariables {DESIGN} {
-
-	uplevel {set pre_synth_file  "pre-synthesis.tcl"}
-	uplevel {set post_synth_file ""}
-	uplevel {set post_impl_file  "post-implementation.tcl"}
-	uplevel {set post_bit_file   "post-bitstream.tcl"}
-	uplevel {set tcl_path         [file normalize "[file dirname [info script]]"]}
-	uplevel {set repo_path        [file normalize "$tcl_path/../../"]}
-	uplevel {set top_path         "$repo_path/Top/$DESIGN"}
-	uplevel {set list_path        "$top_path/list"}
-	uplevel {set BUILD_DIR        "$repo_path/Project/$DESIGN"}
-	uplevel {set modelsim_path    "$repo_path/ModelsimLib"}
-	uplevel {set top_name [file root $DESIGN]}
-	uplevel {set synth_top_module "top_$top_name"}
-	uplevel {set synth_top_file   "$top_path/top_$DESIGN"}
-	uplevel {set user_ip_repo     "$repo_path/IP_repository"}
-
-
-	uplevel {set pre_synth  [file normalize "$tcl_path/integrated/$pre_synth_file"]}
-	uplevel {set post_synth [file normalize "$tcl_path/integrated/$post_synth_file"]}
-	uplevel {set post_impl  [file normalize "$tcl_path/integrated/$post_impl_file"]}
-	uplevel {set post_bit   [file normalize "$tcl_path/integrated/$post_bit_file"]}
-}
 
 ########################################################
-proc CreateProject {DESIGN FPGA {FAMILY 'quartus_only'}} {
-	DeriveVariables $DESIGN
+proc CreateProject {} {
 	if {[info commands create_project] != ""} {
 	        #VIVADO_ONLY
-	        if {$top_name != $DESIGN} {
+	        if {$globalSettings::top_name != $globalSettings::DESIGN} {
 		    Msg Info "This project has got a flavour, the top module name will differ from the project name."
 		}
-		create_project -force $DESIGN $BUILD_DIR -part $FPGA
+		create_project -force $globalSettings::DESIGN $globalSettings::BUILD_DIR -part $$globalSettings::FPGA
 
 		## Set project properties
-		set obj [get_projects $DESIGN]
+		set obj [get_projects $globalSettings::DESIGN]
 		set_property "simulator_language" "Mixed" $obj
 		set_property "target_language" "VHDL" $obj
-		set_property "compxlib.modelsim_compiled_library_dir" $modelsim_path $obj
+		set_property "compxlib.modelsim_compiled_library_dir" $globalSettings::modelsim_path $obj
 		set_property "default_lib" "xil_defaultlib" $obj
 		##if {$use_questa_simulator == 1} { 
 			set_property "target_simulator" "ModelSim" $obj
@@ -166,27 +177,27 @@ proc CreateProject {DESIGN FPGA {FAMILY 'quartus_only'}} {
 		set_property "enable_vhdl_2008" 1 $obj
 
 		## Setting user IP repository to default Hog directory
-		if [file exists $user_ip_repo] {
-			Msg Info "Found directory $user_ip_repo, setting it as user IP repository..."
-			set_property  ip_repo_paths $user_ip_repo [current_project]
+		if [file exists $globalSettings::user_ip_repo] {
+			Msg Info "Found directory $globalSettings::user_ip_repo, setting it as user IP repository..."
+			set_property  ip_repo_paths $globalSettings::user_ip_repo [current_project]
 		} else {
-			Msg Info "$user_ip_repo not found, no user IP repository will be set." 
+			Msg Info "$globalSettings::user_ip_repo not found, no user IP repository will be set." 
 		}
 	} elseif {[info commands project_new] != ""} {
 	    package require ::quartus::project
 		#QUARTUS_ONLY
-	    if {[string equal $FAMILY "quartus_only"]} {
+	    if {[string equal $globalSettings::FAMILY "quartus_only"]} {
 		Msg Error "You must specify a device Familty for Quartus"
 	    } else {
-		file mkdir $BUILD_DIR
-		cd $BUILD_DIR
+		file mkdir $globalSettings::BUILD_DIR
+		cd $globalSettings::BUILD_DIR
 		if {[is_project_open]} {
 			project_close
 		}
 
-		file delete {*}[glob -nocomplain $DESIGN.q*]
+		file delete {*}[glob -nocomplain $globalSettings::DESIGN.q*]
 
-		project_new -family $FAMILY -overwrite -part $FPGA  $DESIGN
+		project_new -family $globalSettings::FAMILY -overwrite -part $$globalSettings::FPGA  $globalSettings::DESIGN
 		set_global_assignment -name ERROR_CHECK_FREQUENCY_DIVISOR 256
 		set_global_assignment -name EDA_DESIGN_ENTRY_SYNTHESIS_TOOL "Precision Synthesis"
 		set_global_assignment -name EDA_LMF_FILE mentor.lmf -section_id eda_design_synthesis
@@ -198,12 +209,12 @@ proc CreateProject {DESIGN FPGA {FAMILY 'quartus_only'}} {
 		set_global_assignment -name PROJECT_OUTPUT_DIRECTORY output_files
 	    }
 	} else {
-		puts "Creating project for FPGA part $FPGA"
+		puts "Creating project for $globalSettings::FPGA part $$globalSettings::FPGA"
 		puts "Configuring project settings:"
 		puts "	- simulator_language: Mixed"
 		puts "	- target_language: VHDL"
 		puts "	- simulator: QuestaSim"
-		puts "Adding IP directory \"$user_ip_repo\" to the project "
+		puts "Adding IP directory \"$globalSettings::user_ip_repo\" to the project "
 	}
 
 
@@ -220,14 +231,14 @@ proc CreateProject {DESIGN FPGA {FAMILY 'quartus_only'}} {
 	}
 
 	## Set synthesis TOP
-	if [file exists $synth_top_file.v] {
-		Msg Info "Adding top file found in Top folder $synth_top_file.v" 
-		add_top_file $synth_top_module $synth_top_file.v  $sources
-	} elseif [file exists $synth_top_file.vhd] {
-		Msg Info "Adding top file found in Top folder $synth_top_file.vhd" 
-		add_top_file $synth_top_module $synth_top_file.vhd  $sources
+	if [file exists $globalSettings::synth_top_file.v] {
+		Msg Info "Adding top file found in Top folder $globalSettings::synth_top_file.v" 
+		add_top_file $globalSettings::synth_top_module $globalSettings::synth_top_file.v  $sources
+	} elseif [file exists $globalSettings::synth_top_file.vhd] {
+		Msg Info "Adding top file found in Top folder $globalSettings::synth_top_file.vhd" 
+		add_top_file $globalSettings::synth_top_module $globalSettings::synth_top_file.vhd  $sources
 	} else {
-		Msg Info "No top file found in Top folder, please make sure that the top file - i.e. containing a module called $synth_top_module - is included in one of the libraries"     
+		Msg Info "No top file found in Top folder, please make sure that the top file - i.e. containing a module called $globalSettings::synth_top_module - is included in one of the libraries"     
 	}
 
 
@@ -248,10 +259,10 @@ proc CreateProject {DESIGN FPGA {FAMILY 'quartus_only'}} {
 	##############
 	# READ FILES #
 	##############
-	set list_files [glob -directory $list_path "*"]
+	set list_files [glob -directory $globalSettings::list_path "*"]
 
 	foreach f $list_files {
-		SmartListFile $f $top_path
+		SmartListFile $f $globalSettings::top_path
 	}
 }
 ########################################################
@@ -259,47 +270,46 @@ proc CreateProject {DESIGN FPGA {FAMILY 'quartus_only'}} {
 
 ### SYNTH ###
 
-proc configureSynth {DESIGN} {
-	DeriveVariables $DESIGN
+proc configureSynth {} {
 	if {[info commands send_msg_id] != ""} {
 		#VIVADO ONLY
 		## Create 'synthesis ' run (if not found)
 		if {[string equal [get_runs -quiet synth_1] ""]} {
-			create_run -name synth_1 -part $FPGA -flow $SYNTH_FLOW -strategy $SYNTH_STRATEGY -constrset constrs_1
+			create_run -name synth_1 -part $$globalSettings::FPGA -flow $globalSettings::SYNTH_FLOW -strategy $globalSettings::SYNTH_STRATEGY -constrset constrs_1
 		} else {
-			set_property strategy $SYNTH_STRATEGY [get_runs synth_1]
-			set_property flow $SYNTH_FLOW [get_runs synth_1]
+			set_property strategy $globalSettings::SYNTH_STRATEGY [get_runs synth_1]
+			set_property flow $globalSettings::SYNTH_FLOW [get_runs synth_1]
 		}
 
 		set obj [get_runs synth_1]
-		set_property "part" $FPGA $obj
+		set_property "part" $$globalSettings::FPGA $obj
 	}
 
 	## set pre synthesis script
-	if {$pre_synth_file ne ""} { 
+	if {$globalSettings::pre_synth_file ne ""} { 
 		if {[info commands send_msg_id] != ""} {
 			#Vivado Only
-			set_property STEPS.SYNTH_DESIGN.TCL.PRE $pre_synth $obj
+			set_property STEPS.SYNTH_DESIGN.TCL.PRE $globalSettings::pre_synth $obj
 		} elseif {[info commands project_new] != ""} {
 			#QUARTUS only
-			set_global_assignment -name PRE_FLOW_SCRIPT_FILE quartus_sh:$pre_synth
+			set_global_assignment -name PRE_FLOW_SCRIPT_FILE quartus_sh:$globalSettings::pre_synth
 
 		} else {
-			Msg info "Configuring $pre_synth script before syntesis"
+			Msg info "Configuring $globalSettings::pre_synth script before syntesis"
 		}
 	}
 
 	## set post synthesis script
-	if {$post_synth_file ne ""} { 
+	if {$globalSettings::post_synth_file ne ""} { 
 		if {[info commands send_msg_id] != ""} {
 			#Vivado Only
-			set_property STEPS.SYNTH_DESIGN.TCL.POST $post_synth $obj
+			set_property STEPS.SYNTH_DESIGN.TCL.POST $globalSettings::post_synth $obj
 		} elseif {[info commands project_new] != ""} {
 			#QUARTUS only
-			set_global_assignment -name POST_MODULE_SCRIPT_FILE quartus_sh:$post_synth
+			set_global_assignment -name POST_MODULE_SCRIPT_FILE quartus_sh:$globalSettings::post_synth
 
 		} else {
-			Msg info "Configuring $post_synth script after syntesis"
+			Msg info "Configuring $globalSettings::post_synth script after syntesis"
 		}
 	} 
 
@@ -332,19 +342,18 @@ proc configureSynth {DESIGN} {
 	}
 } 
 
-proc configureImpl {DESIGN} {
-	DeriveVariables $DESIGN
+proc configureImpl {} {
 	if {[info commands send_msg_id] != ""} {
 		# Create 'impl_1' run (if not found)
 		if {[string equal [get_runs -quiet impl_1] ""]} {
-			create_run -name impl_1 -part $FPGA -flow $IMPL_FLOW -strategy $IMPL_STRATEGY -constrset constrs_1 -parent_run synth_1
+			create_run -name impl_1 -part $$globalSettings::FPGA -flow $globalSettings::IMPL_FLOW -strategy $globalSettings::IMPL_STRATEGY -constrset constrs_1 -parent_run synth_1
 		} else {
-			set_property strategy $IMPL_STRATEGY [get_runs impl_1]
-			set_property flow $IMPL_FLOW [get_runs impl_1]
+			set_property strategy $globalSettings::IMPL_STRATEGY [get_runs impl_1]
+			set_property flow $globalSettings::IMPL_FLOW [get_runs impl_1]
 		}
 
 		set obj [get_runs impl_1]
-		set_property "part" $FPGA $obj
+		set_property "part" $$globalSettings::FPGA $obj
 
 		set_property "steps.write_bitstream.args.readback_file" "0" $obj
 		set_property "steps.write_bitstream.args.verbose" "0" $obj
@@ -361,41 +370,40 @@ proc configureImpl {DESIGN} {
 	}
 
 	## set post routing script
-	if {$post_impl_file ne ""} { 
+	if {$globalSettings::post_impl_file ne ""} { 
 		if {[info commands send_msg_id] != ""} {
 			#Vivado Only
-			set_property STEPS.ROUTE_DESIGN.TCL.POST $post_impl $obj
+			set_property STEPS.ROUTE_DESIGN.TCL.POST $globalSettings::post_impl $obj
 		} elseif {[info commands project_new] != ""} {
 			#QUARTUS only
-			set_global_assignment -name POST_MODULE_SCRIPT_FILE quartus_sh:$post_impl
+			set_global_assignment -name POST_MODULE_SCRIPT_FILE quartus_sh:$globalSettings::post_impl
 
 		} else {
-			Msg info "Configuring $post_impl script after implementation"
+			Msg info "Configuring $globalSettings::post_impl script after implementation"
 		}
 	} 
 
 	## set post write bitstream script
-	if {$post_bit_file ne ""} { 
+	if {$globalSettings::post_bit_file ne ""} { 
 		if {[info commands send_msg_id] != ""} {
 			#Vivado Only
-			set_property STEPS.WRITE_BITSTREAM.TCL.POST $post_bit $obj
+			set_property STEPS.WRITE_BITSTREAM.TCL.POST $globalSettings::post_bit $obj
 		} elseif {[info commands project_new] != ""} {
 			#QUARTUS only
-			set_global_assignment -name POST_FLOW_SCRIPT_FILE quartus_sh:$post_bit
+			set_global_assignment -name POST_FLOW_SCRIPT_FILE quartus_sh:$globalSettings::post_bit
 
 		} else {
-			Msg info "Configuring $post_bit script after bitfile generation"
+			Msg info "Configuring $globalSettings::post_bit script after bitfile generation"
 		}
 	}
 
-	CreateReportStrategy $DESIGN $obj
+	CreateReportStrategy $globalSettings::DESIGN $obj
 }
 
 
 
 
-proc configureSimulation {DESIGN} {
-	DeriveVariables $DESIGN
+proc configureSimulation {} {
 	if {[info commands send_msg_id] != ""} {
 
 		##############
@@ -414,8 +422,7 @@ proc configureSimulation {DESIGN} {
 	}
 }
 
-proc configureProperties {DESIGN} {
-	DeriveVariables $DESIGN
+proc configureProperties {} {
 	if {[info commands send_msg_id] != ""} {
 		##################
 		# RUN PROPERTIES #
@@ -441,8 +448,7 @@ proc configureProperties {DESIGN} {
 }
 
 
-proc upgradeIP {DESIGN} {
-	DeriveVariables $DESIGN
+proc upgradeIP {} {
 	if {[info commands send_msg_id] != ""} {
 		# set the current impl run
 		current_run -implementation [get_runs impl_1]
@@ -546,19 +552,19 @@ proc CreateReportStrategy {DESIGN obj} {
 	    }
 	    
 	    # Create 'impl_1_route_report_timing_summary' report (if not found)
-	    if { [ string equal [get_report_configs -of_objects [get_runs impl_1] $DESIGN\_impl_1_route_report_timing_summary] "" ] } {
-		create_report_config -report_name $DESIGN\_impl_1_route_report_timing_summary -report_type report_timing_summary:1.0 -steps route_design -runs impl_1
+	    if { [ string equal [get_report_configs -of_objects [get_runs impl_1] $globalSettings::DESIGN\_impl_1_route_report_timing_summary] "" ] } {
+		create_report_config -report_name $globalSettings::DESIGN\_impl_1_route_report_timing_summary -report_type report_timing_summary:1.0 -steps route_design -runs impl_1
 	    }
-	    set obj [get_report_configs -of_objects [get_runs impl_1] $DESIGN\_impl_1_route_report_timing_summary]
+	    set obj [get_report_configs -of_objects [get_runs impl_1] $globalSettings::DESIGN\_impl_1_route_report_timing_summary]
 	    if { $obj != "" } {
 		Msg Info "Report timing created successfully"	
 	    }
 	    
 	    # Create 'impl_1_route_report_utilization' report (if not found)
-	    if { [ string equal [get_report_configs -of_objects [get_runs impl_1] $DESIGN\_impl_1_route_report_utilization] "" ] } {
-		create_report_config -report_name $DESIGN\_impl_1_route_report_utilization -report_type report_utilization:1.0 -steps route_design -runs impl_1
+	    if { [ string equal [get_report_configs -of_objects [get_runs impl_1] $globalSettings::DESIGN\_impl_1_route_report_utilization] "" ] } {
+		create_report_config -report_name $globalSettings::DESIGN\_impl_1_route_report_utilization -report_type report_utilization:1.0 -steps route_design -runs impl_1
 	    }
-	    set obj [get_report_configs -of_objects [get_runs impl_1] $DESIGN\_impl_1_route_report_utilization]
+	    set obj [get_report_configs -of_objects [get_runs impl_1] $globalSettings::DESIGN\_impl_1_route_report_utilization]
 	    if { $obj != "" } {
 		Msg Info "Report utilization created successfully"	
 	    }
@@ -1278,15 +1284,15 @@ proc GetHogFiles {{proj_path 0}} {
     set proj_name [file tail $proj_path]
     Msg Info "Project name is: $proj_name"
     set top_path [file normalize $proj_path/../../Top/$proj_name]
-    set list_path $top_path/list
+    set list_path $globalSettings::top_path/list
     set libraries [dict create]
     set properties [dict create]
     
-    puts $list_path
-    set list_files [glob -directory $list_path "*"]
+    puts $globalSettings::list_path
+    set list_files [glob -directory $globalSettings::list_path "*"]
     
     foreach f $list_files {
-    	lassign [SmartListFile $f $top_path 1] l p
+    	lassign [SmartListFile $f $globalSettings::top_path 1] l p
 	set libraries [dict merge $l $libraries]
 	set properties [dict merge $p $properties]
     }

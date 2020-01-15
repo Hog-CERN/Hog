@@ -9,7 +9,7 @@
 #
 #
 namespace eval globalSettings {
-	variable $globalSettings::FPGA
+	variable FPGA
 
 	variable SYNTH_STRATEGY
 	variable FAMILY

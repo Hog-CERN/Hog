@@ -18,7 +18,7 @@ set tcl_path         [file normalize "[file dirname [info script]]"]
 source $tcl_path/hog.tcl
 
          
-set globalSettings::FPGA $FPGA
+set globalSettings::FPGA $::FPGA
 
 set globalSettings::SYNTH_STRATEGY $::SYNTH_STRATEGY
 if {[info exists ::FAMILY]} {

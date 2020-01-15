@@ -160,7 +160,7 @@ proc CreateProject {} {
 	        if {$globalSettings::top_name != $globalSettings::DESIGN} {
 		    Msg Info "This project has got a flavour, the top module name will differ from the project name."
 		}
-		create_project -force $globalSettings::DESIGN $globalSettings::BUILD_DIR -part $$globalSettings::FPGA
+		create_project -force $globalSettings::DESIGN $globalSettings::BUILD_DIR -part $globalSettings::FPGA
 
 		## Set project properties
 		set obj [get_projects $globalSettings::DESIGN]
@@ -197,7 +197,7 @@ proc CreateProject {} {
 
 		file delete {*}[glob -nocomplain $globalSettings::DESIGN.q*]
 
-		project_new -family $globalSettings::FAMILY -overwrite -part $$globalSettings::FPGA  $globalSettings::DESIGN
+		project_new -family $globalSettings::FAMILY -overwrite -part $globalSettings::FPGA  $globalSettings::DESIGN
 		set_global_assignment -name ERROR_CHECK_FREQUENCY_DIVISOR 256
 		set_global_assignment -name EDA_DESIGN_ENTRY_SYNTHESIS_TOOL "Precision Synthesis"
 		set_global_assignment -name EDA_LMF_FILE mentor.lmf -section_id eda_design_synthesis
@@ -209,7 +209,7 @@ proc CreateProject {} {
 		set_global_assignment -name PROJECT_OUTPUT_DIRECTORY output_files
 	    }
 	} else {
-		puts "Creating project for $globalSettings::FPGA part $$globalSettings::FPGA"
+		puts "Creating project for $globalSettings::DESIGN part $globalSettings::FPGA"
 		puts "Configuring project settings:"
 		puts "	- simulator_language: Mixed"
 		puts "	- target_language: VHDL"
@@ -275,14 +275,14 @@ proc configureSynth {} {
 		#VIVADO ONLY
 		## Create 'synthesis ' run (if not found)
 		if {[string equal [get_runs -quiet synth_1] ""]} {
-			create_run -name synth_1 -part $$globalSettings::FPGA -flow $globalSettings::SYNTH_FLOW -strategy $globalSettings::SYNTH_STRATEGY -constrset constrs_1
+			create_run -name synth_1 -part $globalSettings::FPGA -flow $globalSettings::SYNTH_FLOW -strategy $globalSettings::SYNTH_STRATEGY -constrset constrs_1
 		} else {
 			set_property strategy $globalSettings::SYNTH_STRATEGY [get_runs synth_1]
 			set_property flow $globalSettings::SYNTH_FLOW [get_runs synth_1]
 		}
 
 		set obj [get_runs synth_1]
-		set_property "part" $$globalSettings::FPGA $obj
+		set_property "part" $globalSettings::FPGA $obj
 	}
 
 	## set pre synthesis script
@@ -346,14 +346,14 @@ proc configureImpl {} {
 	if {[info commands send_msg_id] != ""} {
 		# Create 'impl_1' run (if not found)
 		if {[string equal [get_runs -quiet impl_1] ""]} {
-			create_run -name impl_1 -part $$globalSettings::FPGA -flow $globalSettings::IMPL_FLOW -strategy $globalSettings::IMPL_STRATEGY -constrset constrs_1 -parent_run synth_1
+			create_run -name impl_1 -part $globalSettings::FPGA -flow $globalSettings::IMPL_FLOW -strategy $globalSettings::IMPL_STRATEGY -constrset constrs_1 -parent_run synth_1
 		} else {
 			set_property strategy $globalSettings::IMPL_STRATEGY [get_runs impl_1]
 			set_property flow $globalSettings::IMPL_FLOW [get_runs impl_1]
 		}
 
 		set obj [get_runs impl_1]
-		set_property "part" $$globalSettings::FPGA $obj
+		set_property "part" $globalSettings::FPGA $obj
 
 		set_property "steps.write_bitstream.args.readback_file" "0" $obj
 		set_property "steps.write_bitstream.args.verbose" "0" $obj

@@ -17,7 +17,9 @@ set commit [GetHash ALL ../../]
 Msg Info "Opening $project..."
 open_project ../../VivadoProject/$project/$project.xpr
 
+
 Msg Info "Starting implementation flow..."
+reset_run impl_1
 
 launch_runs impl_1 -jobs 4 -dir $main_folder
 wait_on_run impl_1

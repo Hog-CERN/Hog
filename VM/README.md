@@ -30,15 +30,15 @@ For this reason you need to create a CERN service account [What is it?](https://
 - Select Fast-forward merge
 
 #### Setup Runners
-Unfortunately we cannot used shared runners because we need to use big and slow and licensed software (Xilinx Vivado, Mentor Graphics Questasim). So we need to setup our own machines pysical or virtual.
-The official Gitlab intructions can be fount [here](https://docs.gitlab.com/runner/install/), however we will see how to create a virtual machine on CERN Openstack in the next paragraph.
+Unfortunately we cannot use shared runners because big, slow, and licensed software (Xilinx Vivado, Mentor Graphics Questasim) are required. So we need to setup our own physical or virtual machines.
+The official Gitlab intructions can be found [here](https://docs.gitlab.com/runner/install/), however we will see how to create a virtual machine on CERN Openstack in the next paragraph.
 So we have our Gitlab runners running on our machines with all the software we need.
 Now take the following actions:
-- Go to Settings -> CI/CD
-- Expand Runners
-- On the right click "Disable shared runners for this project"
+- Go to `Settings` -> `CI/CD`
+- Expand `Runners`
+- On the right click `Disable shared runners for this project`
 - On the left enable the private runners that you have installed on your machines
-- Now collpase Runners and epand Variables
+- Now collpase `Runners` and expand `Variables`
 - Define the following variables:
   - __HOG_USER__= Your service accounr (john)
   - __HOG_EMAIL__= Your service account's email  address (john@cern.ch)
@@ -93,5 +93,5 @@ check_interval = 0
     [runners.cache.s3]
     [runners.cache.gcs]
 ```
-If something goes wrong, please report it
+If something goes wrong, please report it.
 

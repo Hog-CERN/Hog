@@ -48,21 +48,23 @@ if {$version_level >= 3} {
 	Msg Info "Found these files using $wild_card: $folders"
 	Msg Info "Copying files to official directory..."
 	set new_dir $official/$new_tag
+
 	Msg Info "Creating $new_dir"
-	exec eos mkdir $new_dir
+	exec eos mkdir -p $new_dir
+
 
 	# Copying doxygen documentation if files were created
 	if {[file exists ../Doc/html]} {
 	    set dox_dir $official/$new_tag/doc
 	    Msg Info "Creating doxygen dir $dox_dir..."
-	    exec eos mkdir $dox_dir
+	    exec eos mkdir -p $dox_dir
 	    Msg Info "Copying doxygen files..."
 	    exec -ignorestderr eos cp -r ../Doc/html/* $dox_dir
 	}
 	foreach f $folders {
 	    set dst $new_dir/[regsub "(.*)_$old_tag\(.*\)" $f "\\1\\2"]
 	    Msg Info "Copying $f into $dst..."
-	    exec eos mkdir $dst
+	    exec eos mkdir -p $dst
 	    exec -ignorestderr eos cp -r $unofficial/$f/* $dst/
 	    
 	    Msg Info "Ranaming bit and bin files..."

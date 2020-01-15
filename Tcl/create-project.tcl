@@ -30,6 +30,8 @@ set globalSettings::IMPL_FLOW $::IMPL_FLOW
 set globalSettings::DESIGN $::DESIGN
 set globalSettings::path_repo $::path_repo
 
+set globalSettings::bin_file $::bin_file
+
 set globalSettings::pre_synth_file   "pre-synthesis.tcl"
 set globalSettings::post_synth_file  ""
 set globalSettings::post_impl_file   "post-implementation.tcl"

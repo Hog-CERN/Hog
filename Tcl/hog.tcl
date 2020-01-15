@@ -9,38 +9,40 @@
 #
 #
 namespace eval globalSettings {
-	variable FPGA
+    variable FPGA
+    
+    variable SYNTH_STRATEGY
+    variable FAMILY
+    variable SYNTH_FLOW
+    variable IMPL_STRATEGY
+    variable IMPL_FLOW
+    variable DESIGN
+    variable path_repo
+    
+    variable pre_synth_file
+    variable post_synth_file
+    variable post_impl_file
+    variable post_bit_file
+    variable tcl_path
+    variable repo_path
+    variable top_path
+    variable list_path
+    variable BUILD_DIR
+    variable modelsim_path
+    variable top_name
+    variable synth_top_module
+    variable synth_top_file
+    variable user_ip_repo
+    
+    variable bin_file
 
-	variable SYNTH_STRATEGY
-	variable FAMILY
-	variable SYNTH_FLOW
-	variable IMPL_STRATEGY
-	variable IMPL_FLOW
-	variable DESIGN
-	variable path_repo
 
-	variable pre_synth_file
-	variable post_synth_file
-	variable post_impl_file
-	variable post_bit_file
-	variable tcl_path
-	variable repo_path
-	variable top_path
-	variable list_path
-	variable BUILD_DIR
-	variable modelsim_path
-	variable top_name
-	variable synth_top_module
-	variable synth_top_file
-	variable user_ip_repo
-
-
-	variable pre_synth
-	variable post_synth
-	variable post_impl
-	variable post_bit
-
+    variable pre_synth
+    variable post_synth
+    variable post_impl
+    variable post_bit
 }
+
 ########################################################
 ## Display a Vivado/Quartus/Tcl-shell info message
 #
@@ -359,7 +361,7 @@ proc configureImpl {} {
 		set_property "steps.write_bitstream.args.verbose" "0" $obj
 
 		## set binfile production
-		if {$bin_file == 1} {
+		if {$globalSettings::bin_file == 1} {
 			set_property "steps.write_bitstream.args.bin_file" "1" $obj
 		} else {
 		   set_property "steps.write_bitstream.args.bin_file" "0" $obj

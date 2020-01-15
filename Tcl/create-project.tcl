@@ -37,8 +37,9 @@ if {[info exist ::bin_file]} {
 } else {
    set globalSettings::bin_file 0
 }
-
-set globalSettings::PROPERTIES $::PROPERTIES
+if {[info exists ::PROPERTIES]} {
+	set globalSettings::PROPERTIES $::PROPERTIES
+}
 
 #Derived varibles from now on...
 set globalSettings::pre_synth_file   "pre-synthesis.tcl"

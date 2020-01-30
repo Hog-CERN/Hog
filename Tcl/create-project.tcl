@@ -41,6 +41,21 @@ if {[info exists ::PROPERTIES]} {
 	set globalSettings::PROPERTIES $::PROPERTIES
 }
 
+
+## BUILD_DIR=VivadoProject if vivado or QuartusProject if quartus or Project if tclshell
+if {[info commands send_msg_id] != ""} {
+	    #Vivado only
+		set BUILD_DIR_NAME "VivadoProject"
+	}  elseif {[info commands project_new] != ""} {
+		#QUARTUS only
+		set BUILD_DIR_NAME "QuartusProject"
+	} else {
+	    set BUILD_DIR_NAME "Project"
+	}
+
+
+
+
 #Derived varibles from now on...
 set globalSettings::pre_synth_file   "pre-synthesis.tcl"
 set globalSettings::post_synth_file  ""
@@ -50,7 +65,7 @@ set globalSettings::tcl_path         [file normalize "[file dirname [info script
 set globalSettings::repo_path        [file normalize "$globalSettings::tcl_path/../../"]
 set globalSettings::top_path         "$globalSettings::repo_path/Top/$DESIGN"
 set globalSettings::list_path        "$globalSettings::top_path/list"
-set globalSettings::BUILD_DIR        "$globalSettings::repo_path/Project/$DESIGN"
+set globalSettings::BUILD_DIR        "$globalSettings::repo_path/$BUILD_DIR_NAME/$DESIGN"
 set globalSettings::modelsim_path    "$globalSettings::repo_path/ModelsimLib"
 set globalSettings::top_name          [file root $globalSettings::DESIGN]
 set globalSettings::synth_top_module "top_$globalSettings::top_name"

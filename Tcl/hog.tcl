@@ -140,7 +140,7 @@ proc  SetParameter {parameter value } {
 }
 ########################################################
 proc add_top_file {top_module top_file sources} {
-	if {info commands launch_chipscope_analyzer] != ""} {
+	if {[info commands launch_chipscope_analyzer] != ""} {
 		#VIVADO_ONLY
 		add_files -norecurse -fileset $sources $top_file
 		set_property "top" $globalSettings::synth_top_module $sources

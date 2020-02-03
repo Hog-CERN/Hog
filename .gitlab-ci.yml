@@ -1,0 +1,22 @@
+stages:
+      - build
+      - deploy
+
+building:
+      stage: build
+      image: gitlab-registry.cern.ch/authoring/documentation/mkdocs:stable
+      script:
+        - mkdocs build --clean --site-dir public
+      artifacts:
+        paths:
+          - public
+        expire_in: 1 hour
+
+deploying:
+      stage: deploy
+      image: gitlab-registry.cern.ch/ci-tools/ci-web-deployer:latest
+      only:
+        - master
+      script:
+        - deploy-eos
+

@@ -430,7 +430,7 @@ proc configureProperties {} {
 		##################
 		# RUN PROPERTIES #
 		##################
-		if [info exists $globalSettings::PROPERTIES] {
+		if [info exists globalSettings::PROPERTIES] {
 			foreach run [get_runs -quiet] {
 			if [dict exists $globalSettings::PROPERTIES $run] {
 				Msg Info "Setting properties for run: $run..."

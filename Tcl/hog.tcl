@@ -1,106 +1,583 @@
 # @file
 # Collection of Tcl functions used in vivado scripts
 
-########################################################
 
-## Display Vivado Info message
+#################### Hog Wrappers ######################
+
+########################################################
+## Namespace of all the project settings
+#
+#
+namespace eval globalSettings {
+    variable FPGA
+    
+    variable SYNTH_STRATEGY
+    variable FAMILY
+    variable SYNTH_FLOW
+    variable IMPL_STRATEGY
+    variable IMPL_FLOW
+    variable DESIGN
+    variable PROPERTIES
+    variable path_repo
+    
+    variable pre_synth_file
+    variable post_synth_file
+    variable post_impl_file
+    variable post_bit_file
+    variable tcl_path
+    variable repo_path
+    variable top_path
+    variable list_path
+    variable BUILD_DIR
+    variable modelsim_path
+    variable top_name
+    variable synth_top_module
+    variable synth_top_file
+    variable user_ip_repo
+    
+    variable bin_file
+
+
+    variable pre_synth
+    variable post_synth
+    variable post_impl
+    variable post_bit
+}
+
+########################################################
+## Display a Vivado/Quartus/Tcl-shell info message
 #
 # Arguments:
-# * title: The name of the script displaying the message
-# * id: A progressive number used as message ID
-# * msg: the message text
+# * level: the severity level of the message given as string or integer: status/extra_info 0, info 1, warning 2, critical warning 3, error 4.
+# * msg: the message text.
+# * title: the name of the script displaying the message, if not given, the calling script name will be used by default.
 #
-# If launched outside Vivado it just prints the message
-proc Info {title id msg} {
-    if {[info commands send_msg_id] != ""} {
-	send_msg_id Hog:$title-$id {INFO} $msg
+proc Msg {level msg {title ""}} { 
+    set level [string tolower $level]
+    if {$level == 0 || $level == "status" || $level == "extra_info"} {
+	set vlevel {STATUS}
+	set qlevel extra_info
+    } elseif {$level == 1 || $level == "info"} {
+	set vlevel {INFO}
+	set qlevel info	
+    } elseif {$level == 2 || $level == "warning"} {
+	set vlevel {WARNING}
+	set qlevel warning	
+    } elseif {$level == 3 || [string first "critical" $level] !=-1} {
+	set vlevel {CRITICAL WARNING}
+	set qlevel critial_warning
+    } elseif {$level == 4 || $level == "error"} {
+	set vlevel {ERROR}
+	set qlevel "error"
     } else {
-	puts "*** Hog:$title-$id INFO $msg"
+	puts "Hog Error: level $level not defined"
+	exit -1
+    }
+
+    if {$title == ""} {set title [lindex [info level [expr [info level]-1]] 0]}
+    if {[info commands send_msg_id] != ""} {
+	# Vivado
+	send_msg_id Hog:$title-0 $vlevel $msg
+    } elseif {[info commands post_message] != ""} {
+	# Quartus
+	post_message -type $qlevel "Hog:$title $msg"
+    } else {
+	# Tcl Shell
+	puts "*** Hog:$title $vlevel $msg"
     }
 }
 ########################################################
 
-## Display Vivado Info message and wrtite it into a log file
+## Write a into file, if the file exists, it will append the string
 #
 # Arguments:
 # * File: The log file onto which write the message
-# * title: The name of the script displaying the message
-# * id: A progressive number used as message ID
-# * msg: the message text
-proc fInfo {File title id msg} {
-    Info $title $id $msg
+# * msg:  The message text
+proc WrtieToFile {File msg} {
     set f [open $File a+]
     puts $f $msg
     close $f
 }
+
+########################################################
+proc  SetProperty {property value object} {
+    if {[info commands set_property] != ""} {
+        # Vivado
+	set_property $property $value $object 
+        
+    } elseif {[info commands quartus_command] != ""} {
+        # Quartus
+	
+    } else {
+        # Tcl Shell
+	puts "***DEBUG Hog:SetProperty $property to $value of $object"
+    }
+
+
+}
 ########################################################
 
-## Display Vivado Status message
-#
-# Arguments:
-# * title: The name of the script displaying the message
-# * id: A progressive number used as message ID
-# * msg: the message text
-# If launched outside Vivado it just prints the message
-proc Status {title id msg} {
-    if {[info commands send_msg_id] != ""} {
-	send_msg_id  Hog:$title-$id {STATUS} $msg
+########################################################
+proc  GetProperty {property object} {
+    if {[info commands get_property] != ""} {
+        # Vivado
+	return [get_property -quiet $property $object]
+        
+    } elseif {[info commands quartus_command] != ""} {
+        # Quartus
+	return ""
     } else {
-	puts "***  Hog:$title-$id STATUS $msg"
+        # Tcl Shell
+	puts "***DEBUG Hog:GetProperty $property of $object"
+	return "DEBUG_propery_value"
     }
 }
 ########################################################
 
-## Display Vivado Warning message
-#
-# Arguments:
-# * title: The name of the script displaying the message
-# * id: A progressive number used as message ID
-# * msg: the message text
-#
-# If launched outside Vivado it just prints the message
-proc Warning {title id msg} {
-    if {[info commands send_msg_id] != ""} {
-	send_msg_id Hog:$title-$id {WARNING} $msg
-    } else {
-	puts "*** Hog:$title-$id WARNING $msg"
-    }
+########################################################
+proc  SetParameter {parameter value } {
+    set_param $parameter $value
+}
+########################################################
+proc add_top_file {top_module top_file sources} {
+	if {[info commands launch_chipscope_analyzer] != ""} {
+		#VIVADO_ONLY
+		add_files -norecurse -fileset $sources $top_file
+		set_property "top" $globalSettings::synth_top_module $sources
+	} elseif {info commands project_new] != ""} {
+		#QUARTUS ONLY
+		set file_type [FindFileType $vhdlfile]
+		set hdl_version [FindVhdlVersion $vhdlfile]
+		set_global_assignment -name $file_type $top_file 
+		set_global_assignment -name TOP_LEVEL_ENTITY $top_module
+	} else {
+		puts "Adding project top module $top_module" 
+	}
+}
+
+
+########################################################
+proc CreateProject {} {
+	if {[info commands create_project] != ""} {
+	        #VIVADO_ONLY
+	        if {$globalSettings::top_name != $globalSettings::DESIGN} {
+		    Msg Info "This project has got a flavour, the top module name will differ from the project name."
+		}
+		create_project -force $globalSettings::DESIGN $globalSettings::BUILD_DIR -part $globalSettings::FPGA
+
+		## Set project properties
+		set obj [get_projects $globalSettings::DESIGN]
+		set_property "simulator_language" "Mixed" $obj
+		set_property "target_language" "VHDL" $obj
+		set_property "compxlib.modelsim_compiled_library_dir" $globalSettings::modelsim_path $obj
+		set_property "default_lib" "xil_defaultlib" $obj
+		##if {$use_questa_simulator == 1} { 
+			set_property "target_simulator" "ModelSim" $obj
+		##}
+
+		## Enable VHDL 2008
+		set_param project.enableVHDL2008 1
+		set_property "enable_vhdl_2008" 1 $obj
+
+		## Setting user IP repository to default Hog directory
+		if [file exists $globalSettings::user_ip_repo] {
+			Msg Info "Found directory $globalSettings::user_ip_repo, setting it as user IP repository..."
+			set_property  ip_repo_paths $globalSettings::user_ip_repo [current_project]
+		} else {
+			Msg Info "$globalSettings::user_ip_repo not found, no user IP repository will be set." 
+		}
+	} elseif {[info commands project_new] != ""} {
+	    package require ::quartus::project
+		#QUARTUS_ONLY
+	    if {[string equal $globalSettings::FAMILY "quartus_only"]} {
+		Msg Error "You must specify a device Familty for Quartus"
+	    } else {
+		file mkdir $globalSettings::BUILD_DIR
+		cd $globalSettings::BUILD_DIR
+		if {[is_project_open]} {
+			project_close
+		}
+
+		file delete {*}[glob -nocomplain $globalSettings::DESIGN.q*]
+
+		project_new -family $globalSettings::FAMILY -overwrite -part $globalSettings::FPGA  $globalSettings::DESIGN
+		set_global_assignment -name ERROR_CHECK_FREQUENCY_DIVISOR 256
+		set_global_assignment -name EDA_DESIGN_ENTRY_SYNTHESIS_TOOL "Precision Synthesis"
+		set_global_assignment -name EDA_LMF_FILE mentor.lmf -section_id eda_design_synthesis
+		set_global_assignment -name EDA_INPUT_DATA_FORMAT VQM -section_id eda_design_synthesis
+		set_global_assignment -name EDA_SIMULATION_TOOL "QuestaSim (Verilog)"
+		set_global_assignment -name EDA_TIME_SCALE "1 ps" -section_id eda_simulation
+		set_global_assignment -name EDA_OUTPUT_DATA_FORMAT "VERILOG HDL" -section_id eda_simulation	
+		set_global_assignment -name VHDL_INPUT_VERSION VHDL_2008
+		set_global_assignment -name PROJECT_OUTPUT_DIRECTORY output_files
+	    }
+	} else {
+		puts "Creating project for $globalSettings::DESIGN part $globalSettings::FPGA"
+		puts "Configuring project settings:"
+		puts "	- simulator_language: Mixed"
+		puts "	- target_language: VHDL"
+		puts "	- simulator: QuestaSim"
+		puts "Adding IP directory \"$globalSettings::user_ip_repo\" to the project "
+	}
+
+
+	#ADD PROJECT FILES
+	if {[info commands create_fileset] != ""} {
+		#VIVADO_ONLY
+		## Create fileset src
+		if {[string equal [get_filesets -quiet sources_1] ""]} {
+		  create_fileset -srcset sources_1
+		}
+		set sources [get_filesets sources_1]
+	} else {
+		set sources 0
+	}
+
+	## Set synthesis TOP
+	if [file exists $globalSettings::synth_top_file.v] {
+		Msg Info "Adding top file found in Top folder $globalSettings::synth_top_file.v" 
+		add_top_file $globalSettings::synth_top_module $globalSettings::synth_top_file.v  $sources
+	} elseif [file exists $globalSettings::synth_top_file.vhd] {
+		Msg Info "Adding top file found in Top folder $globalSettings::synth_top_file.vhd" 
+		add_top_file $globalSettings::synth_top_module $globalSettings::synth_top_file.vhd  $sources
+	} else {
+		Msg Info "No top file found in Top folder, please make sure that the top file - i.e. containing a module called $globalSettings::synth_top_module - is included in one of the libraries"     
+	}
+
+
+	###############
+	# CONSTRAINTS #
+	###############
+	if {[info commands launch_chipscope_analyzer] != ""} {
+		#VIVADO_ONLY
+		# Create 'constrs_1' fileset (if not found)
+		if {[string equal [get_filesets -quiet constrs_1] ""]} {
+		  create_fileset -constrset constrs_1
+		}
+
+		# Set 'constrs_1' fileset object
+		set constraints [get_filesets constrs_1]
+	}
+
+	##############
+	# READ FILES #
+	##############
+	set list_files [glob -directory $globalSettings::list_path "*"]
+
+	foreach f $list_files {
+		SmartListFile $f $globalSettings::top_path
+	}
 }
 ########################################################
 
-## Display Vivado Critical Warning message
-#
-# Arguments:
-# * title: The name of the script displaying the message
-# * id: A progressive number used as message ID
-# * msg: the message text
-#
-# If launched outside Vivado it just prints the message
-proc CriticalWarning {title id msg} {
-    if {[info commands send_msg_id] != ""} {
-	send_msg_id Hog:$title-$id {CRITICAL WARNING} $msg
+
+### SYNTH ###
+
+proc configureSynth {} {
+	if {[info commands send_msg_id] != ""} {
+		#VIVADO ONLY
+		## Create 'synthesis ' run (if not found)
+		if {[string equal [get_runs -quiet synth_1] ""]} {
+			create_run -name synth_1 -part $globalSettings::FPGA -flow $globalSettings::SYNTH_FLOW -strategy $globalSettings::SYNTH_STRATEGY -constrset constrs_1
+		} else {
+			set_property strategy $globalSettings::SYNTH_STRATEGY [get_runs synth_1]
+			set_property flow $globalSettings::SYNTH_FLOW [get_runs synth_1]
+		}
+
+		set obj [get_runs synth_1]
+		set_property "part" $globalSettings::FPGA $obj
+	}
+
+	## set pre synthesis script
+	if {$globalSettings::pre_synth_file ne ""} { 
+		if {[info commands send_msg_id] != ""} {
+			#Vivado Only
+			set_property STEPS.SYNTH_DESIGN.TCL.PRE $globalSettings::pre_synth $obj
+		} elseif {[info commands project_new] != ""} {
+			#QUARTUS only
+			set_global_assignment -name PRE_FLOW_SCRIPT_FILE quartus_sh:$globalSettings::pre_synth
+
+		} else {
+			Msg info "Configuring $globalSettings::pre_synth script before syntesis"
+		}
+	}
+
+	## set post synthesis script
+	if {$globalSettings::post_synth_file ne ""} { 
+		if {[info commands send_msg_id] != ""} {
+			#Vivado Only
+			set_property STEPS.SYNTH_DESIGN.TCL.POST $globalSettings::post_synth $obj
+		} elseif {[info commands project_new] != ""} {
+			#QUARTUS only
+			set_global_assignment -name POST_MODULE_SCRIPT_FILE quartus_sh:$globalSettings::post_synth
+
+		} else {
+			Msg info "Configuring $globalSettings::post_synth script after syntesis"
+		}
+	} 
+
+	
+	if {[info commands send_msg_id] != ""} {
+		#VIVADO ONLY
+		## set the current synth run
+		current_run -synthesis $obj
+
+		## Report Strategy
+		if {[string equal [get_property -quiet report_strategy $obj] ""]} {
+			# No report strategy needed
+			Msg Info "No report strategy needed for syntesis"
+			
+		} else {
+			# Report strategy needed since version 2017.3
+			set_property -name "report_strategy" -value "Vivado Synthesis Default Reports" -objects $obj
+
+			set reports [get_report_configs -of_objects $obj]
+			if { [llength $reports ] > 0 } {
+			delete_report_config [get_report_configs -of_objects $obj]
+			}
+		}
+	} elseif {[info commands project_new] != ""} {
+		#QUARTUS only
+		#TO BE DONE
+
+	} else {
+		Msg info "Reporting strategy for syntesis"
+	}
+} 
+
+proc configureImpl {} {
+	if {[info commands send_msg_id] != ""} {
+		# Create 'impl_1' run (if not found)
+		if {[string equal [get_runs -quiet impl_1] ""]} {
+			create_run -name impl_1 -part $globalSettings::FPGA -flow $globalSettings::IMPL_FLOW -strategy $globalSettings::IMPL_STRATEGY -constrset constrs_1 -parent_run synth_1
+		} else {
+			set_property strategy $globalSettings::IMPL_STRATEGY [get_runs impl_1]
+			set_property flow $globalSettings::IMPL_FLOW [get_runs impl_1]
+		}
+
+		set obj [get_runs impl_1]
+		set_property "part" $globalSettings::FPGA $obj
+
+		set_property "steps.write_bitstream.args.readback_file" "0" $obj
+		set_property "steps.write_bitstream.args.verbose" "0" $obj
+
+		## set binfile production
+		if {$globalSettings::bin_file == 1} {
+			set_property "steps.write_bitstream.args.bin_file" "1" $obj
+		} else {
+		   set_property "steps.write_bitstream.args.bin_file" "0" $obj
+		}
+	} elseif {[info commands project_new] != ""} {
+			#QUARTUS only
+			set obj ""
+	}
+
+	## set post routing script
+	if {$globalSettings::post_impl_file ne ""} { 
+		if {[info commands send_msg_id] != ""} {
+			#Vivado Only
+			set_property STEPS.ROUTE_DESIGN.TCL.POST $globalSettings::post_impl $obj
+		} elseif {[info commands project_new] != ""} {
+			#QUARTUS only
+			set_global_assignment -name POST_MODULE_SCRIPT_FILE quartus_sh:$globalSettings::post_impl
+
+		} else {
+			Msg info "Configuring $globalSettings::post_impl script after implementation"
+		}
+	} 
+
+	## set post write bitstream script
+	if {$globalSettings::post_bit_file ne ""} { 
+		if {[info commands send_msg_id] != ""} {
+			#Vivado Only
+			set_property STEPS.WRITE_BITSTREAM.TCL.POST $globalSettings::post_bit $obj
+		} elseif {[info commands project_new] != ""} {
+			#QUARTUS only
+			set_global_assignment -name POST_FLOW_SCRIPT_FILE quartus_sh:$globalSettings::post_bit
+
+		} else {
+			Msg info "Configuring $globalSettings::post_bit script after bitfile generation"
+		}
+	}
+
+	CreateReportStrategy $globalSettings::DESIGN $obj
+}
+
+
+
+
+proc configureSimulation {} {
+	if {[info commands send_msg_id] != ""} {
+
+		##############
+		# SIMULATION #
+		##############
+		Msg Info "Setting load_glbl parameter to false for every fileset..."
+		foreach f [get_filesets -quiet *_sim] {
+			set_property -name {xsim.elaborate.load_glbl} -value {false} -objects $f
+		}
+	}  elseif {[info commands project_new] != ""} {
+			#QUARTUS only
+			#TO BE DONE
+
+	} else {
+		Msg info "Configuring simulation"
+	}
+}
+
+proc configureProperties {} {
+	if {[info commands send_msg_id] != ""} {
+		##################
+		# RUN PROPERTIES #
+		##################
+		if [info exists globalSettings::PROPERTIES] {
+			foreach run [get_runs -quiet] {
+			if [dict exists $globalSettings::PROPERTIES $run] {
+				Msg Info "Setting properties for run: $run..."
+				set run_props [dict get $globalSettings::PROPERTIES $run]
+				dict for {prop_name prop_val} $run_props {
+				Msg Info "Setting $prop_name = $prop_val"
+				set_property $prop_name $prop_val $run
+				}
+			}
+			}
+		}
+	}  elseif {[info commands project_new] != ""} {
+		#QUARTUS only
+		#TO BE DONE
+	} else {
+		Msg info "Configuring Properties"
+	}
+}
+
+
+proc upgradeIP {} {
+	if {[info commands send_msg_id] != ""} {
+		# set the current impl run
+		current_run -implementation [get_runs impl_1]
+
+
+		##############
+		# UPGRADE IP #
+		##############
+		Msg Info "Upgrading IPs if any..."
+		set ips [get_ips *]
+		if {$ips != ""} {
+			upgrade_ip $ips
+		}
+	} elseif {[info commands project_new] != ""} {
+			#QUARTUS only
+			#TO BE DONE
+
+	} else {
+		Msg info "Upgrading IPs"
+	}
+}
+
+
+
+
+proc GetProject {proj} {
+    if {[info commands get_projects] != ""} {
+        # Vivado
+	return [get_projects $proj]
+        
+    } elseif {[info commands quartus_command] != ""} {
+        # Quartus
+	return ""
     } else {
-	puts "***  Hog:$title-$id CRITICAL WARNING $msg"
+        # Tcl Shell
+	puts "***DEBUG Hog:GetProject $project"
+	return "DEBUG_project"
     }
+
+}
+
+proc GetRun {run} {
+    if {[info commands get_projects] != ""} {
+        # Vivado
+	return [get_runs -quiet $run]
+        
+    } elseif {[info commands quartus_command] != ""} {
+        # Quartus
+	return ""
+    } else {
+        # Tcl Shell
+	puts "***DEBUG Hog:GetRun $run"
+	return "DEBUG_run"
+    }
+}
+
+proc GetFile {file} {
+        if {[info commands get_files] != ""} {
+        # Vivado
+	return [get_files $file]
+        
+    } elseif {[info commands quartus_command] != ""} {
+        # Quartus
+	return ""
+    } else {
+        # Tcl Shell
+	puts "***DEBUG Hog:GetFile $file"
+	return "DEBUG_file"
+    }
+}
+
+proc CreateFileSet {fileset} {
+    set a  [create_fileset -srcset $fileset]
+    return  $a
+}
+
+proc GetFileSet {fileset} {
+    set a  [get_filesets $fileset]
+    return  $a
+}
+
+proc AddFile {file fileset} {
+    add_files -norecurse -fileset $fileset $file 
+}
+
+
+proc CreateReportStrategy {DESIGN obj} {
+    if {[info commands create_report_config] != ""} {
+	## Viavado Report Strategy
+	if {[string equal [get_property -quiet report_strategy $obj] ""]} {
+	    # No report strategy needed
+	    Msg Info "No report strategy needed for implementation"
+	    
+	} else {
+	    # Report strategy needed since version 2017.3
+	    set_property -name "report_strategy" -value "Vivado Implementation Default Reports" -objects $obj
+	    
+	    set reports [get_report_configs -of_objects $obj]
+	    if { [llength $reports ] > 0 } {
+		delete_report_config [get_report_configs -of_objects $obj]
+	    }
+	    
+	    # Create 'impl_1_route_report_timing_summary' report (if not found)
+	    if { [ string equal [get_report_configs -of_objects [get_runs impl_1] $globalSettings::DESIGN\_impl_1_route_report_timing_summary] "" ] } {
+		create_report_config -report_name $globalSettings::DESIGN\_impl_1_route_report_timing_summary -report_type report_timing_summary:1.0 -steps route_design -runs impl_1
+	    }
+	    set obj [get_report_configs -of_objects [get_runs impl_1] $globalSettings::DESIGN\_impl_1_route_report_timing_summary]
+	    if { $obj != "" } {
+		Msg Info "Report timing created successfully"	
+	    }
+	    
+	    # Create 'impl_1_route_report_utilization' report (if not found)
+	    if { [ string equal [get_report_configs -of_objects [get_runs impl_1] $globalSettings::DESIGN\_impl_1_route_report_utilization] "" ] } {
+		create_report_config -report_name $globalSettings::DESIGN\_impl_1_route_report_utilization -report_type report_utilization:1.0 -steps route_design -runs impl_1
+	    }
+	    set obj [get_report_configs -of_objects [get_runs impl_1] $globalSettings::DESIGN\_impl_1_route_report_utilization]
+	    if { $obj != "" } {
+		Msg Info "Report utilization created successfully"	
+	    }
+	}
+    } else {
+	puts "Won't create any report strategy, not in Vivado"
+    } 
 }
 ########################################################
 
-## Display Vivado Error message
-#
-# Arguments:
-# * title: The name of the script displaying the message
-# * id: A progressive number used as message ID
-# * msg: the message text
-#
-# If launched outside Vivado it just prints the message
-proc Error            {title id msg} {
-    if {[info commands send_msg_id] != ""} {
-	send_msg_id Hog:$title-$id {ERROR} $msg
-    } else {
-	puts "*** Hog:$title-$id ERROR $msg"
-    }
-}
-########################################################
 
 proc GetRepoPath {} {
     return "[file normalize [file dirname [info script]]]/../../"
@@ -111,7 +588,7 @@ proc GetRepoPath {} {
 proc GitVersion {target_version} {
     set ver [split $target_version "."]
     set v [exec git --version]
-    Info GitVersion 0 "Found Git version: $v"
+    Msg Info "Found Git version: $v"
     set current_ver [split [lindex $v 2] "."]
     set target [expr [lindex $ver 0]*100000 + [lindex $ver 1]*100 + [lindex $ver 2]]
     set current [expr [lindex $current_ver 0]*100000 + [lindex $current_ver 1]*100 + [lindex $current_ver 2]]
@@ -124,7 +601,7 @@ proc GitVersion {target_version} {
 proc DoxygenVersion {target_version} {
     set ver [split $target_version "."]
     set v [exec doxygen --version]
-    Info DoxygenVersion 0 "Found doxygen version: $v"
+    Msg Info "Found doxygen version: $v"
     set current_ver [split $v "."]
     set target [expr [lindex $ver 0]*100000 + [lindex $ver 1]*100 + [lindex $ver 2]]
     set current [expr [lindex $current_ver 0]*100000 + [lindex $current_ver 1]*100 + [lindex $current_ver 2]]
@@ -133,7 +610,55 @@ proc DoxygenVersion {target_version} {
 }
 ########################################################
 
-## Read a list file and adds the files to Vivado project, adding the additional information as file type.
+## Quartus only: determine file type from extension
+#
+## Return FILE_TYPE
+proc FindFileType {file_name} {
+	set extension [file ext $file_name]
+	switch $extension {
+		.vhd {
+			set file_extension "VHDL_FILE"
+		}
+		.v {
+			set file_extension "VERILOG_FILE"
+		}
+		.sv {
+			set file_extension "SYSTEMVERILOG_FILE"
+		}
+		.ip {
+			set file_extension "IP_FILE"
+		}
+		.ip {
+			set file_extension "COMMAND_MACRO_FILE"
+		}
+		default {
+			set file_extension "ERROR"	
+			Error FindFileType 0 "Unknown file extension $extension"
+		}
+	}
+
+	return $file_extension
+}
+
+proc FindVhdlVersion {file_name} {
+	set extension [file ext $file_name]
+	switch $extension {
+		.vhd {
+			set vhdl_version "-hdl_version VHDL_2008"
+		}
+		default {
+			set vhdl_version ""
+		}
+	}
+
+	return $vhdl_version
+}
+
+
+
+########################################################
+
+## Read a list file and adds the files to Vivado/Quartus, adding the additional information as file type.
 #
 # Additional information is provided with text separated from the file name with one or more spaces
 #
@@ -156,133 +681,144 @@ proc ReadListFile {list_file path lib src {no_add 0}} {
     #  Process data file
     set data [split $file_data "\n"]
     set n [llength $data]
-    Info ReadListFile 0 "$n lines read from $list_file"
+    Msg Info "$n lines read from $list_file"
     set cnt 0
     foreach line $data {
-	if {![regexp {^ *$} $line] & ![regexp {^ *\#} $line] } { #Exclude empty lines and comments
-	    set file_and_prop [regexp -all -inline {\S+} $line]
-	    set vhdlfile [lindex $file_and_prop 0]
-	    set vhdlfile "$path/$vhdlfile"
-	    if { [file exists $vhdlfile] } {
-			set vhdlfile [file normalize $vhdlfile]
-			set extension [file ext $vhdlfile]
-			if { [lsearch {.src .sim .con .sub} $extension] >= 0 } {
-			    Info ReadListFile 1 "List file $vhdlfile found in list file, recoursively opening it..."
-	        	    lassign [SmartListFile $vhdlfile $path $no_add] l p
-			    set libraries [dict merge $l $libraries]
-			    set properties [dict merge $p $properties]		    
-			} else {
-			    if {$no_add == 0} { add_files -norecurse -fileset $src $vhdlfile }
-			    incr cnt
-			    set file_obj [get_files -of_objects [get_filesets $src] [list "*$vhdlfile"]]
-			    if {$lib ne ""} {
-				if {$no_add == 0} {set_property -name "library" -value $lib -objects $file_obj}
-				if {[string equal $extension ".xci"]} {
-				    dict lappend libraries "IP" $vhdlfile
+		if {![regexp {^ *$} $line] & ![regexp {^ *\#} $line] } { #Exclude empty lines and comments
+			set file_and_prop [regexp -all -inline {\S+} $line]
+			set vhdlfile [lindex $file_and_prop 0]
+			set vhdlfile "$path/$vhdlfile"
+			if {[file exists $vhdlfile]} {
+				set vhdlfile [file normalize $vhdlfile]
+				set extension [file ext $vhdlfile]
+				if { [lsearch {.src .sim .con .sub} $extension] >= 0 } {
+					Msg Info "List file $vhdlfile found in list file, recoursively opening it..."
+					    lassign [SmartListFile $vhdlfile $path $no_add] l p
+					set libraries [dict merge $l $libraries]
+					set properties [dict merge $p $properties]		    
 				} else {
-				    dict lappend libraries $lib $vhdlfile
-				}
-			    }
-
-			    set prop_position 1
-			    ### Check checksum of files
-			    if {[string equal ".ext" $list_file_ext ]} {
-			    	Info ReadlistFile 1 "Checking checksums of external library files"
-			    	set hash [lindex $file_and_prop 1]
-			    	set current_hash [exec md5sum $vhdlfile]
-			    	set current_hash [lindex $current_hash 0]
-			    	if {[string first $hash $current_hash] == -1} {
-			    		CriticalWarning ReadExternalListFile 0 "File $vhdlfile has a wrong hash. Current checksum: $current_hash, expected: $hash"
-			    	}
-			    	set prop_position 2
-	   		    }
-			    
-
-			    ### Set file properties
-			    set prop [lrange $file_and_prop $prop_position end]
-			    dict lappend properties $vhdlfile $prop
-			    if {$no_add == 0} {
-				# VHDL 2008 compatibility
-				if {[lsearch -inline -regex $prop "2008"] >= 0} {
-				    Info ReadListFile 1 "Setting filetype VHDL 2008 for $vhdlfile"
-				    set_property -name "file_type" -value "VHDL 2008" -objects $file_obj
-				}
-				
-				# XDC
-				if {[lsearch -inline -regex $prop "XDC"] >= 0 || [file ext $vhdlfile] == ".xdc"} {
-				    Info ReadListFile 1 "Setting filetype XDC for $vhdlfile"
-				    set_property -name "file_type" -value "XDC" -objects $file_obj
-				}
-
-				# Not used in synthesis
-				if {[lsearch -inline -regex $prop "nosynth"] >= 0} {
-				    Info ReadListFile 1 "Setting not used in synthesis for $vhdlfile..."
-				    set_property -name "used_in_synthesis" -value "false" -objects $file_obj
-				}
-
-				# Not used in implementation
-				if {[lsearch -inline -regex $prop "noimpl"] >= 0} {
-				    Info ReadListFile 1 "Setting not used in implementation for $vhdlfile..."
-				    set_property -name "used_in_implementation" -value "false" -objects $file_obj
-				}
-
-				# Not used in simulation
-				if {[lsearch -inline -regex $prop "nosim"] >= 0} {
-				    Info ReadListFile 1 "Setting not used in simulation for $vhdlfile..."
-				    set_property -name "used_in_simulation" -value "false" -objects $file_obj
-				}
 
 
-				## Simulation properties
-				# Top simulation module
-				set top_sim [lindex [split [lsearch -inline -regex $prop topsim=] =] 1]
-				if { $top_sim != "" } {
-				    Info ReadListFile 1 "Setting $top_sim as top module for simulation file set $src..."
-				    set_property "top"  $top_sim [get_filesets $src]
-				    current_fileset -simset [get_filesets $src]
-				}
+					### Set file properties
+					set prop [lrange $file_and_prop 1 end]
+					dict lappend properties $vhdlfile $prop
 
-				# Wave do file
-				set wave_file [lindex [split [lsearch -inline -regex $prop wavefile=] =] 1]
-				if { $wave_file != "" } {
-				    set r_path [GetRepoPath]
-				    set file_name "$r_path/sim/$wave_file"
-				    Info ReadListFile 1 "Setting $file_name as wave do file for simulation file set $src..."
-				    # check if file exists...
-				    if [file exists $file_name] {
-					set_property "modelsim.simulate.custom_wave_do" $file_name [get_filesets $src]
-				    } else {
-					Warning ReadlistFIle 1 "File $file_name was not found."
-				    }
+					#Adding IP library
+					if {[string equal $extension ".xci"] || [string equal $extension ".ip"] } {
+						dict lappend libraries "IP" $vhdlfile
+					} else {
+						dict lappend libraries $lib $vhdlfile
+					}
+
+					if {$no_add == 0} {
+						if {[info commands add_files] != ""} {
+							#VIVADO_ONLY
+
+							add_files -norecurse -fileset $src $vhdlfile 
+							
+							set file_obj [get_files -of_objects [get_filesets $src] [list "*$vhdlfile"]]
+
+							#ADDING LIBRARY
+							if {$lib ne ""} {
+								set_property -name "library" -value $lib -objects $file_obj
+							}
+
+							#ADDING FILE PROPERTIES
+							if {[lsearch -inline -regex $prop "2008"] >= 0} {
+								Msg Info "Setting filetype VHDL 2008 for $vhdlfile"
+								set_property -name "file_type" -value "VHDL 2008" -objects $file_obj
+							}
+							
+							# XDC
+							if {[lsearch -inline -regex $prop "XDC"] >= 0 || [file ext $vhdlfile] == ".xdc"} {
+								Msg Info "Setting filetype XDC for $vhdlfile"
+								set_property -name "file_type" -value "XDC" -objects $file_obj
+							}
+
+							# Not used in synthesis
+							if {[lsearch -inline -regex $prop "nosynth"] >= 0} {
+								Msg Info "Setting not used in synthesis for $vhdlfile..."
+								set_property -name "used_in_synthesis" -value "false" -objects $file_obj
+							}
+
+							# Not used in implementation
+							if {[lsearch -inline -regex $prop "noimpl"] >= 0} {
+								Msg Info "Setting not used in implementation for $vhdlfile..."
+								set_property -name "used_in_implementation" -value "false" -objects $file_obj
+							}
+
+							# Not used in simulation
+							if {[lsearch -inline -regex $prop "nosim"] >= 0} {
+								Msg Info "Setting not used in simulation for $vhdlfile..."
+								set_property -name "used_in_simulation" -value "false" -objects $file_obj
+							}
+
+
+							## Simulation properties
+							# Top simulation module
+							set top_sim [lindex [split [lsearch -inline -regex $prop topsim=] =] 1]
+							if { $top_sim != "" } {
+								Msg Info "Setting $top_sim as top module for simulation file set $src..."
+								set_property "top"  $top_sim [get_filesets $src]
+								current_fileset -simset [get_filesets $src]
+							}
+
+							# Wave do file
+							set wave_file [lindex [split [lsearch -inline -regex $prop wavefile=] =] 1]
+							if { $wave_file != "" } {
+								set r_path [GetRepoPath]
+								set file_name "$r_path/sim/$wave_file"
+								Msg Info "Setting $file_name as wave do file for simulation file set $src..."
+								# check if file exists...
+								if [file exists $file_name] {
+								set_property "modelsim.simulate.custom_wave_do" $file_name [get_filesets $src]
+								} else {
+								Msg Warning "File $file_name was not found."
+								}
+							}
+							
+							#Do file
+							set do_file [lindex [split [lsearch -inline -regex $prop dofile=] =] 1]
+							if { $do_file != "" } {
+								set r_path [GetRepoPath]
+								set file_name "$r_path/sim/$do_file"
+								Msg Info "Setting $file_name as udo file for simulation file set $src..."
+								if [file exists $file_name] {
+									set_property "modelsim.simulate.custom_udo" $file_name [get_filesets $src]
+								} else {
+									Msg Warning "File $file_name was not found."
+								}
+							}
+						} elseif {[info commands project_new] != ""} {
+							#QUARTUS ONLY
+							set file_type [FindFileType $vhdlfile]
+							set hdl_version [FindVhdlVersion $vhdlfile]
+							if {$lib ne ""} {
+								Msg Warning "set_global_assignment -name $file_type $vhdlfile -library $lib "
+								set_global_assignment -name $file_type $vhdlfile  -library $lib 
+							} else {
+								set_global_assignment  -name $file_type $vhdlfile  $hdl_version
+							}
+							#missing : ADDING QUARTUS FILE PROPERTIES
+
+						} else {
+							#default
+							puts "Adding file $vhdlfile to project into library $lib"
+						}
+					}
+					incr cnt
 				}
-				
-				#Do file
-				set do_file [lindex [split [lsearch -inline -regex $prop dofile=] =] 1]
-				if { $do_file != "" } {
-				    set r_path [GetRepoPath]
-				    set file_name "$r_path/sim/$do_file"
-				    Info ReadListFile 1 "Setting $file_name as udo file for simulation file set $src..."
-				    if [file exists $file_name] {
-					set_property "modelsim.simulate.custom_udo" $file_name [get_filesets $src]
-				    } else {
-					Warning ReadlistFIle 1 "File $file_name was not found."
-				    }
-				}
-			    }
+			} else {
+				Msg Error  "File $vhdlfile not found"
 			}
-	    } else {
-		Error ReadListFile 0 "File $vhdlfile not found"
-	    }
-	}
+		}
     }
-    Info ReadListFile 1 "$cnt file/s added to $lib..."
+    Msg Info "$cnt file/s added to $lib..."
     return [list $libraries $properties]
 }
-
-
 ########################################################
 
-## Read a list file and adds the files to Vivado project, adding the additional information as file type.
+## Read a list file and adds the files to Vivado/Quartus, adding the additional information as file type.
 # This procedure extracts the Vivado fileset and the library name from the list-file name.
 #
 # Additional information is provided with text separated from the file name with one or more spaces
@@ -327,14 +863,14 @@ proc SmartListFile {list_file path {no_add 0}} {
 	}
 	.ext {
 		set file_set "sources_1"
-		# Info SmartListFile 0 "Reading sources from file $list_file, lib: $lib, file-set: $file_set"
+		# Msg Info "Reading sources from file $list_file, lib: $lib, file-set: $file_set"
 		# return [ReadExternalListFile $list_file $path $lib $file_set $no_add]
 	}	
 	default {
-	    Error SmartListFile 0 "Unknown extension $ext"
+	    Msg Error "Unknown extension $ext"
 	}
     }
-    Info SmartListFile 0 "Reading sources from file $list_file, lib: $lib, file-set: $file_set"
+    Msg Info "Reading sources from file $list_file, lib: $lib, file-set: $file_set"
     return [ReadListFile $list_file $path $lib $file_set $no_add]
 }
 ########################################################
@@ -382,7 +918,7 @@ proc GetFileList {FILE path} {
 		lappend lista $vhdlfile
 	    }
 	} else { 
-	    Warning GetFileList 0 "File $vhdlfile not found"
+	    Msg Warning "File $vhdlfile not found"
 	}
     }
 }
@@ -430,7 +966,7 @@ proc GetVer {FILE path} {
     set status [catch {exec git tag --sort=taggerdate --contain $SHA} result]
     if {$status == 0} {
 	if {[regexp {^ *$} $result]} {
-	    Warning GetVer 1 "No tag contains $SHA"
+	    Msg Warning "No tag contains $SHA"
 	    set ver "none"
 	} else {
 	    set vers [split $result "\n"]
@@ -444,7 +980,7 @@ proc GetVer {FILE path} {
 	    }
 	}
     } else {
-	Warning GetVer 1 "Error while trying to find tag for $SHA in file: $FILE, path: [pwd]"
+	Msg Warning "Error while trying to find tag for $SHA in file: $FILE, path: [pwd]"
 	set ver "error: $result"
     }
     if {[regexp {^b(?:\d+)v(\d+)\.(\d+).(\d+)-(\d+)$} $ver -> M m c n]} {
@@ -461,14 +997,14 @@ proc GetVer {FILE path} {
 	set m [format %02X $m]
 	set c [format %04X $c]
 	if {[regexp {^b(?:\d+)v(\d+)\.(\d+).(\d+)-(\d+)$} $un_ver -> M_u m_u c_u n]} {
-	    Info GetVer 1 "Beta version $un_ver was found for official version $ver, using attempt number $n"
+	    Msg Info "Beta version $un_ver was found for official version $ver, using attempt number $n"
 	    if {$M != $M_u || $m != $m_u || $c != $c_u} {
-		Warning GetVer 1 "Beta version $un_ver and official version $ver do not match"		
+		Msg Warning "Beta version $un_ver and official version $ver do not match"		
 	    }
 	    set n [format %04X $n]
 
 	} else {
-	    Warning GetVer 1 "No beta version was found for official version $ver"
+	    Msg Warning "No beta version was found for official version $ver"
 	    set n [format %04X 0]
 	}
 	
@@ -483,7 +1019,7 @@ proc GetVer {FILE path} {
 	set official [format %04X 0x2000]
 	set comm $SHA
     } else {
-	Warning GetVer 1 "Could not parse git describe: $ver"
+	Msg Warning "Could not parse git describe: $ver"
 	set M [format %02X 0]
 	set m [format %02X 0]
 	set c [format %04X 0]
@@ -505,14 +1041,14 @@ proc GetVer {FILE path} {
 
 proc TagRepository {merge_request_number {version_level 0}} {
     if [catch {exec git tag --sort=-creatordate} last_tag] {
-	Error TagRepository 1 "No Hog version tags found in this repository."
+	Msg Error "No Hog version tags found in this repository."
     } else {
 	set vers [split $last_tag "\n"]
 	set ver [lindex $vers 0]
 	
 	if {[regexp {^(?:b(\d+))?v(\d+)\.(\d+).(\d+)(?:-(\d+))?$} $ver -> mr M m p n]} {
 	    if {$mr == "" } { # Tag is official, no b at the beginning
-		Info TagRepository 1 "Found official version $M.$m.$p."
+		Msg Info "Found official version $M.$m.$p."
 		if {$version_level == 2} {
 		    incr M
 		    set m 0
@@ -521,7 +1057,7 @@ proc TagRepository {merge_request_number {version_level 0}} {
 		    incr m
 		    set p 0
 		} elseif {$version_level >= 3} {
-		    Error TagRepository 1 "Last tag is already official, cannot make it more official than this"		    
+		    Msg Error "Last tag is already official, cannot make it more official than this"		    
 		} else {
 		    incr p
 		}
@@ -529,15 +1065,15 @@ proc TagRepository {merge_request_number {version_level 0}} {
 		set n 0
 
 	    } else { # Tag is not official, just increment the attempt
-		Info TagRepository 1 "Found candidate for version $M.$m.$p, merge request number $mr, attempt number $n."
+		Msg Info "Found candidate for version $M.$m.$p, merge request number $mr, attempt number $n."
 		if {$mr != $merge_request_number} {
-		    Warning TagRepository 1 "Merge request number $merge_request_number differs from the one found in the tag $mr, will use $merge_request_number."
+		    Msg Warning "Merge request number $merge_request_number differs from the one found in the tag $mr, will use $merge_request_number."
 		    set mr $merge_request_number
 		}
 		incr n
 	    }
 	    if {$version_level >= 3} {
-		Info TagRepository 1 "Creating official version v$M.$m.$p..."
+		Msg Info "Creating official version v$M.$m.$p..."
 		set new_tag v$M.$m.$p 
 		set tag_opt "-m 'Official_version_$M.$m.$p'"
 	    } else {
@@ -547,13 +1083,13 @@ proc TagRepository {merge_request_number {version_level 0}} {
 
 	    # Tagging repositroy
 	    if [catch {exec git tag {*}"$new_tag $tag_opt"} msg] {
-		Error TagRepository 2 "Could not create new tag $new_tag: $msg"
+		Msg Error "Could not create new tag $new_tag: $msg"
 	    } else {
-		Info TagRepository 3 "New tag $new_tag created successully."
+		Msg Info "New tag $new_tag created successully."
 	    }
 	    
 	} else {
-	    Error TagRepository 3 "Could not parse tag: $last_tag"
+	    Msg Error "Could not parse tag: $last_tag"
 	}
     }
     
@@ -595,7 +1131,7 @@ proc CopyXMLsFromListFile {list_file path dst {xml_version "0.0.0"} {xml_sha "00
     #  Process data file
     set data [split $file_data "\n"]
     set n [llength $data]
-    Info CopyXMLs 1 "$n lines read from $list_file"
+    Msg Info "$n lines read from $list_file"
     set cnt 0
     foreach line $data {
 	if {![regexp {^ *$} $line] & ![regexp {^ *\#} $line] } { #Exclude empty lines and comments
@@ -610,7 +1146,7 @@ proc CopyXMLsFromListFile {list_file path dst {xml_version "0.0.0"} {xml_sha "00
 	    }
 	    if {[file exists $xmlfile]} {
 		set xmlfile [file normalize $xmlfile]
-		Info CopyXMLs 2 "Copying $xmlfile to $dst..."
+		Msg Info "Copying $xmlfile to $dst..."
 		set in  [open $xmlfile r]
 		set out [open $dst/[file tail $xmlfile] w]
 		
@@ -627,12 +1163,12 @@ proc CopyXMLsFromListFile {list_file path dst {xml_version "0.0.0"} {xml_sha "00
 		    set type [lindex $prop 0]
 		}
 	    } else {
-		Warning CopyXMLs 0 "XML file $xmlfile not found"
+		Msg Warning "XML file $xmlfile not found"
 	    }
 	    
 	}
     }
-    Info CopyXMLs 1 "$cnt file/s copied"
+    Msg Info "$cnt file/s copied"
 }
 ########################################################
 
@@ -720,12 +1256,12 @@ proc GetProjectFiles {} {
     }
 
     #    dict for {lib f} $libraries {
-    #	Status ListFiles 1 "   Library: $lib: \n *******"
+    #	Msg Status "   Library: $lib: \n *******"
     #	foreach n $f {
-    #	    Status ListFiles 1 "$n"
+    #	    Msg Status "$n"
     #	}
     #	
-    #	Status ListFiles 1 "*******"
+    #	Msg Status "*******"
     #    }
     
     return [list $libraries $properties]
@@ -746,31 +1282,31 @@ proc GetProjectFiles {} {
 proc GetHogFiles {{proj_path 0}} {
     if {$proj_path == 0} {
 	set proj_path [get_property DIRECTORY [get_projects]]
-	Info GetHogFiles 0 "Project path is: $proj_path"
+	Msg Info "Project path is: $proj_path"
     }
     set proj_name [file tail $proj_path]
-    Info GetHogFiles 1 "Project name is: $proj_name"
+    Msg Info "Project name is: $proj_name"
     set top_path [file normalize $proj_path/../../Top/$proj_name]
-    set list_path $top_path/list
+    set list_path $globalSettings::top_path/list
     set libraries [dict create]
     set properties [dict create]
     
-    puts $list_path
-    set list_files [glob -directory $list_path "*"]
+    puts $globalSettings::list_path
+    set list_files [glob -directory $globalSettings::list_path "*"]
     
     foreach f $list_files {
-    	lassign [SmartListFile $f $top_path 1] l p
+    	lassign [SmartListFile $f $globalSettings::top_path 1] l p
 	set libraries [dict merge $l $libraries]
 	set properties [dict merge $p $properties]
     }
 
     #   dict for {lib f} $libraries {
-    #	Status Verify 1 "   Library: $lib: \n *******"
+    #	Msg Status "   Library: $lib: \n *******"
     #	foreach n $f {
-    #	    Status Verify 1 "$n"
+    #	    Msg Status "$n"
     #	}
     #	
-    #	Status Verify 1 "*******"
+    #	Msg Status "*******"
     #   }    
 
     return [list $libraries $properties]
@@ -781,10 +1317,10 @@ proc GetHogFiles {{proj_path 0}} {
 #
 
 proc ForceUpToDate {} {
-    Info ForceUpToDate 0 "Forcing all the runs to look up to date..."
+    Msg Info "Forcing all the runs to look up to date..."
     set runs [get_runs]
     foreach r $runs {
-	Info ForceUpToDate 1 "Forcing $r..."
+	Msg Info "Forcing $r..."
 	set_property needs_refresh false [get_runs $r]
     }
 }

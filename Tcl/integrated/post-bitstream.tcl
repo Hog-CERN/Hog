@@ -3,14 +3,39 @@ set old_path [pwd]
 set tcl_path [file normalize "[file dirname [info script]]/.."]
 source $tcl_path/hog.tcl
 
-set bit_file [file normalize [lindex [glob -nocomplain "$old_path/*.bit"] 0]]
-if [file exists $bit_file] {
-
-    set proj_name [string map {"top_" ""} [file rootname [file tail $bit_file]]]
+if {[info commands get_property] != ""} {
+    #Vivado
+    set fw_file [file normalize [lindex [glob -nocomplain "$old_path/*.bit"] 0]]
+    set proj_name [string map {"top_" ""} [file rootname [file tail $fw_file]]]
     set name [file rootname [file tail [file normalize [pwd]/..]]]
     set bit_file [file normalize "$old_path/top_$proj_name.bit"]
     set bin_file [file normalize "$old_path/top_$proj_name.bin"]
     set ltx_file [file normalize "$old_path/top_$proj_name.ltx"]    
+    
+} elseif {[info commands quartus_command] != ""} {
+    # Quartus
+    set fw_file [file normalize [lindex [glob -nocomplain "$old_path/*.bit"] 0]]
+
+    set proj_name [string map {"top_" ""} [file rootname [file tail $fw_file]]]
+    set name [file rootname [file tail [file normalize [pwd]/..]]]
+    set bit_file [file normalize "$old_path/top_$proj_name.bit"]
+    set bin_file [file normalize "$old_path/top_$proj_name.bin"]
+    set ltx_file [file normalize "$old_path/top_$proj_name.ltx"]    
+
+    
+} else {
+    #tcl shell
+    set fw_file [file normalize [lindex [glob -nocomplain "$old_path/*.bit"] 0]]
+
+    set proj_name [string map {"top_" ""} [file rootname [file tail $fw_file]]]
+    set name [file rootname [file tail [file normalize [pwd]/..]]]
+    set bit_file [file normalize "$old_path/top_$proj_name.bit"]
+    set bin_file [file normalize "$old_path/top_$proj_name.bin"]
+    set ltx_file [file normalize "$old_path/top_$proj_name.ltx"]        
+}
+if [file exists $fw_file] {
+
+
     set xml_dir [file normalize "$old_path/../xml"]
     set run_dir [file normalize "$old_path/.."]    
     set bin_dir [file normalize "$old_path/../../../../bin"]    
@@ -18,9 +43,9 @@ if [file exists $bit_file] {
     # Go to repository path
     cd $tcl_path/../../ 
     
-    Info $NAME 0 "Evaluating git describe..."
+    Msg Info "Evaluating git describe..."
     set describe [exec git describe --always --dirty --tags]
-    Info $NAME 1 "Git describe: $describe"
+    Msg Info "Git describe: $describe"
 
     set ts [clock format [clock seconds] -format {%Y-%m-%d-%H-%M}]
     set prefix $name\_$describe
@@ -31,9 +56,9 @@ if [file exists $bit_file] {
     set dst_ltx [file normalize "$dst_dir/$name\-$describe.ltx"]    
     set dst_xml [file normalize "$dst_dir/xml"]
     
-    Info $NAME 2 "Creating $dst_dir..."
+    Msg Info "Creating $dst_dir..."
     file mkdir $dst_dir
-    Info $NAME 3 "Copying bit file $bit_file into $dst_bit..."
+    Msg Info "Copying bit file $bit_file into $dst_bit..."
     file copy -force $bit_file $dst_bit
     # Reports
     file mkdir $dst_dir/reports
@@ -41,41 +66,41 @@ if [file exists $bit_file] {
     if [file exists [lindex $reps 0]] {
 	file copy -force {*}$reps $dst_dir/reports
     } else {
-	Warning $NAME 4 "No reports found in $run_dir subfolders"
+	Msg Warning "No reports found in $run_dir subfolders"
     }
 	    
-    # XML
+    # IPbus XML
     if [file exists $xml_dir] {
-	Info $NAME 4 "XML directory found, copying xml files from $xml_dir to $dst_xml..." 
+	Msg Info "XML directory found, copying xml files from $xml_dir to $dst_xml..." 
 	if [file exists $dst_xml] {
-	    Info $NAME 5 "Directory $dst_xml exists, deleting it..." 
+	    Msg Info "Directory $dst_xml exists, deleting it..." 
 	    file delete -force $dst_xml
 	}
 	file copy -force $xml_dir $dst_xml
     }
     # bin File
     if [file exists $bin_file] {
-	Info $NAME 6 "Copying bin file $bin_file into $dst_bin..."
+	Msg Info "Copying bin file $bin_file into $dst_bin..."
 	file copy -force $bin_file $dst_bin
     } else {
-	Info $NAME 6 "No bin file found: $bin_file, that is not a problem"
+	Msg Info "No bin file found: $bin_file, that is not a problem"
     }
 
     write_debug_probes -quiet $ltx_file
     
     # ltx File
     if [file exists $ltx_file] {
-	Info $NAME 6 "Copying ltx file $ltx_file into $dst_ltx..."
+	Msg Info "Copying ltx file $ltx_file into $dst_ltx..."
 	file copy -force $ltx_file $dst_ltx
     } else {
-	Info $NAME 6 "No ltx file found: $ltx_file, that is not a problem"
+	Msg Info "No ltx file found: $ltx_file, that is not a problem"
     }
 
     #Version table
-    if [file exists $run_dir/versions] {
-	file copy -force $run_dir/versions $dst_dir
+    if [file exists $run_dir/versions.txt] {
+	file copy -force $run_dir/versions.txt $dst_dir
     } else {
-	Warning $NAME 7 "No versions file found"
+	Msg Warning "No versions file found"
     }
     #Timing file
     puts $run_dir
@@ -84,13 +109,13 @@ if [file exists $bit_file] {
     if [file exists $timing_file] {
 	file copy -force $timing_file $dst_dir
     } else {
-	Warning $NAME 7 "No timing file found, not a problem if running locally"
+	Msg Warning "No timing file found, not a problem if running locally"
     }
     
 
 } else {
-    CriticalWarning $NAME 8 "Bit file not found."
+    Msg CriticalWarning "Firmware binary file not found."
 }
 
 cd $old_path
-Info $NAME 9 "All done."
+Msg Info "All done."

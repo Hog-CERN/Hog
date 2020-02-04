@@ -12,24 +12,25 @@ if { $::argc eq 0 } {
 set old_path [pwd]
 cd $path
 source ./hog.tcl
-Info $Name 1 "Number of jobs set to $NJOBS."
+Msg Info "Number of jobs set to $NJOBS."
 set commit [GetHash ALL ../../]
 
-Info $Name 2 "Opening $project..."
+Msg Info "Opening $project..."
 open_project ../../VivadoProject/$project/$project.xpr
 
-Info $Name 3 "Starting complete design flow..."
+Msg Info "Starting complete design flow..."
 reset_run synth_1
+
 launch_runs synth_1  -jobs $NJOBS -dir $main_folder
 wait_on_run synth_1
 
 set prog [get_property PROGRESS [get_runs synth_1]]
 set status [get_property STATUS [get_runs synth_1]]
-Info $Name 4 "Run: synth_1 progress: $prog, status : $status"
+Msg Info "Run: synth_1 progress: $prog, status : $status"
 
 if {$prog ne "100%"} {
-    Error $Name 5 "Synthesis error, status is: $status"
+    Msg Error "Synthesis error, status is: $status"
 }
 
-Info $Name 6 "All done."
+Msg Info "All done."
 cd $old_path

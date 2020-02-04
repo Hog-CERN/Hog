@@ -265,12 +265,5 @@ if {$ips != ""} {
     upgrade_ip $ips
 }
 
-set syntax [check_syntax -return_string]
-
-if {[string first "CRITICAL" $syntax ] != -1} {
-	check_syntax
-	exit 1
-}
-
 
 Info CreateProject 5 "Project $DESIGN created succesfully"

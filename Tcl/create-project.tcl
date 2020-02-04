@@ -265,5 +265,6 @@ if {$ips != ""} {
     upgrade_ip $ips
 }
 
+check_syntax
 
 Info CreateProject 5 "Project $DESIGN created succesfully"

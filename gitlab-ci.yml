@@ -112,7 +112,7 @@ stages:
             - $CI_PROJECT_DIR/bin
         expire_in: 10 years 
 
-.make_documentation: &make_documentation
+make_documentation:
     <<: *only-default
     stage: doxygen
     variables:

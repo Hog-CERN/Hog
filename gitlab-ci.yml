@@ -118,7 +118,7 @@ make_documentation:
     variables:
         <<: *vars
     script:
-        - "if [ -f "${CI_PROJECT_DIR}/doxygen.conf" ]; then doxygen ${CI_PROJECT_DIR}/doxygen.conf else doxygen ./Hog/doxygen.conf; fi"
+        - "if [ -f ${CI_PROJECT_DIR}/doxygen.conf ]; then doxygen ${CI_PROJECT_DIR}/doxygen.conf; else doxygen ./Hog/doxygen.conf; fi"
         - eos cp -r $CI_PROJECT_DIR/html $HOG_UNOFFICIAL_BIN_EOS_PATH/html
         - eos cp -r $CI_PROJECT_DIR/latex $HOG_UNOFFICIAL_BIN_EOS_PATH/latex
     artifacts:

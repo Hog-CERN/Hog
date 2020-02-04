@@ -18,13 +18,6 @@ set commit [GetHash ALL ../../]
 Info $Name 2 "Opening $project..."
 open_project ../../VivadoProject/$project/$project.xpr
 
-set syntax [check_syntax -return_string]
-
-if {[string first "CRITICAL" $syntax ] != -1} {
-	check_syntax
-	exit 1
-}
-
 Info $Name 3 "Starting complete design flow..."
 reset_run synth_1
 launch_runs synth_1  -jobs $NJOBS -dir $main_folder

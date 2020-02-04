@@ -46,6 +46,7 @@ stages:
         <<: *vars
      script:
       - ./Hog/CreateProject.sh $PROJECT_NAME
+      - "if [ -z ${HOG_CHECK_SYNTAX+x} ]; then echo 'Syntax checker is disabled'; else vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_check_syntax.tcl -tclargs $PROJECT_NAME; fi"
      artifacts:
        name: vivado_projects
        paths:

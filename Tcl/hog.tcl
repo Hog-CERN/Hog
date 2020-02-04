@@ -692,7 +692,7 @@ proc ReadListFile {list_file path lib src {no_add 0}} {
 				set vhdlfile [file normalize $vhdlfile]
 				set extension [file ext $vhdlfile]
 				if { [lsearch {.src .sim .con .sub} $extension] >= 0 } {
-					Info ReadListFile 1 "List file $vhdlfile found in list file, recoursively opening it..."
+					Msg Info "List file $vhdlfile found in list file, recoursively opening it..."
 					    lassign [SmartListFile $vhdlfile $path $no_add] l p
 					set libraries [dict merge $l $libraries]
 					set properties [dict merge $p $properties]		    

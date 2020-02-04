@@ -11,9 +11,12 @@ if { $::argc eq 0 } {
 set old_path [pwd]
 cd $path
 source ./hog.tcl
-Info $Name 1 "Opening project $project..."
+Msg Info "Opening project $project..."
+
 open_project ../../VivadoProject/$project/$project.xpr
 
+
+Msg Info "Checkin syntax for project $project..."
 set syntax [check_syntax -return_string]
 
 if {[string first "CRITICAL" $syntax ] != -1} {

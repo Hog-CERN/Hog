@@ -27,7 +27,8 @@ Msg Info "Old tag was: $old_tag and new tag is: $new_tag"
 if {$version_level >= 3} {
     set official $env(HOG_OFFICIAL_BIN_EOS_PATH)
     set unofficial $env(HOG_UNOFFICIAL_BIN_EOS_PATH)
-    
+    set wild_card $unofficial/*$old_tag*
+
     if {[info exists $env(HOG_USE_DOXYGEN)]} {
     	set use_doxygen $env(HOG_USE_DOXYGEN)
     
@@ -45,7 +46,6 @@ if {$version_level >= 3} {
 		    Msg Info "Could not find $doxygen_conf or Doxygen version is older than 1.8.13. Will not run doxygen."
 		}
 	    }
-	    set wild_card $unofficial/*$old_tag*
 	    set status [catch {exec eos ls $wild_card} folders]
 	    if {$status == 0} {
 		Msg Info "Found these files using $wild_card: $folders"

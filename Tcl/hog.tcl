@@ -975,7 +975,7 @@ proc GetVer {FILE path} {
 		lassign [ExtractVersionFromTag $tag] M m p n mr
 		incr p
 		Msg Info "No tag contains $SHA for $FILE, will use most recent tag $tag and increase patch level to $p. This is not a problem if you are running locally but points to a missing tag if you see this message in Hog-CI."
-		set ver b0v$M.$m.$p-0
+		set ver v$M.$m.$p
 	    }
 
 	} else {

@@ -119,7 +119,7 @@ make_documentation:
     variables:
         <<: *vars
     script:
-        - "if [ -f ${CI_PROJECT_DIR}/doxygen/doxygen.conf ]; then doxygen ${CI_PROJECT_DIR}/doxygen.conf; else echo "./doxygen/doxygen.conf  file not found, using ./Hog/doxygen.conf to generate documentation" doxygen ./Hog/doxygen.conf; fi"
+        - "if [ -f ${CI_PROJECT_DIR}/doxygen/doxygen.conf ]; then doxygen ${CI_PROJECT_DIR}/doxygen.conf; else echo './doxygen/doxygen.conf  file not found, using ./Hog/doxygen.conf to generate documentation'; doxygen ./Hog/doxygen.conf; fi"
         - eos mkdir $HOG_UNOFFICIAL_BIN_EOS_PATH/$CI_COMMIT_SHORT_SHA
         - eos cp -r $CI_PROJECT_DIR/html $HOG_UNOFFICIAL_BIN_EOS_PATH/$CI_COMMIT_SHORT_SHA/html
         - eos cp -r $CI_PROJECT_DIR/latex $HOG_UNOFFICIAL_BIN_EOS_PATH/$CI_COMMIT_SHORT_SHA/latex

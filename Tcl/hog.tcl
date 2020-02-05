@@ -974,7 +974,7 @@ proc GetVer {FILE path} {
 		set tag [lindex $tags 0]
 		lassign [ExtractVersionFromTag $tag] M m p n mr
 		incr p
-		Msg Info "No tag contains $SHA for $FILE, will use most recent tag $tag and increase patch level to $p. This is not a problem if you are running locally but points to a missing tag if you see this message in Hog-CI."
+		Msg Info "No tag contains $SHA for $FILE, will use most recent tag $tag and increase patch level to $p."
 		set ver v$M.$m.$p
 		
 	    }
@@ -997,8 +997,7 @@ proc GetVer {FILE path} {
 
     lassign [ExtractVersionFromTag $ver] M m c n mr
     
-
-    if {$mr == -1} { # Candidate for version not yet merged
+    if {$mr > -1} { # Candidate for version not yet merged
 	set M [format %02X $M]
 	set m [format %02X $m]
 	set c [format %04X $c]
@@ -1009,17 +1008,7 @@ proc GetVer {FILE path} {
 	set M [format %02X $M]
 	set m [format %02X $m]
 	set c [format %04X $c]
-	#if {[regexp {^b(?:\d+)v(\d+)\.(\d+).(\d+)-(\d+)$} $un_ver -> M_u m_u c_u n]} {
-	#    Msg Info "Beta version $un_ver was found for official version $ver, using attempt number $n"
-	#    if {$M != $M_u || $m != $m_u || $c != $c_u} {
-        #	Msg Warning "Beta version $un_ver and official version $ver do not match"		
-	#    }
 	set n [format %04X 0]
-
-	#} else {
-	#    Msg Warning "No beta version was found for official version $ver"
-	#    set n [format %04X 0]
-	#}
 	set official [format %04X 0xc000]
 	set comm $SHA
     } else {

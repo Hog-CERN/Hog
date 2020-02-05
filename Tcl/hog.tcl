@@ -966,8 +966,18 @@ proc GetVer {FILE path} {
     set status [catch {exec git tag --sort=taggerdate --contain $SHA} result]
     if {$status == 0} {
 	if {[regexp {^ *$} $result]} {
-	    Msg Warning "No tag contains $SHA"
-	    set ver "none"
+	    if [catch {exec git tag --sort=-creatordate} last_tag] {
+		Msg CriticalWarning "No Hog version tags found in this repository."
+		set ver v0.0.0
+	    } else {
+		set tags [split $last_tag "\n"]
+		set tag [lindex $tags 0]
+		lassign [ExtractVersionFromTag $tag] M m p n mr
+		incr p
+		Msg Info "No tag contains $SHA for $FILE, will use most recent tag $tag and increase patch level to $p. This is not a problem if you are running locally but points to a missing tag if you see this message in Hog-CI."
+		set ver b0v$M.$m.$p-0
+	    }
+
 	} else {
 	    set vers [split $result "\n"]
 	    set ver [lindex $vers 0]	    
@@ -983,16 +993,18 @@ proc GetVer {FILE path} {
 	Msg Warning "Error while trying to find tag for $SHA in file: $FILE, path: [pwd]"
 	set ver "error: $result"
     }
-    if {[regexp {^b(?:\d+)v(\d+)\.(\d+).(\d+)-(\d+)$} $ver -> M m c n]} {
-	# official not yet merged (beta)
+
+    lassign [ExtractVersionFromTag $ver] M m c n mr
+    
+
+    if {$mr == -1} { # Candidate for version not yet merged
 	set M [format %02X $M]
 	set m [format %02X $m]
 	set c [format %04X $c]
 	set n [format %04X $n]
 	set official [format %04X 0xc000]
 	set comm $SHA
-    } elseif {[regexp {^v(\d+)\.(\d+).(\d+)$} $ver -> M m c]} {
-	# official merged
+    } elseif { $M > -1 } { # official tag
 	set M [format %02X $M]
 	set m [format %02X $m]
 	set c [format %04X $c]
@@ -1010,14 +1022,6 @@ proc GetVer {FILE path} {
 	
 	set official [format %04X 0xc000]
 	set comm $SHA
-    } elseif {$ver == "none"} {
-	# Unofficial done locally but properly committed
-	set M [format %02X 0]
-	set m [format %02X 0]
-	set c [format %04X 0]
-	set n [format %04X 0]
-	set official [format %04X 0x2000]
-	set comm $SHA
     } else {
 	Msg Warning "Could not parse git describe: $ver"
 	set M [format %02X 0]
@@ -1033,20 +1037,39 @@ proc GetVer {FILE path} {
 }
 ########################################################
 
+## Tags the repository with a new version calculated on the basis of the previous tags
+# Arguments:\n
+# * tag: a tag in the Hog format: v$M.$m.$p or b$mrv$M.$m.$p-$n
+
+proc ExtractVersionFromTag {tag} {
+    if {[regexp {^(?:b(\d+))?v(\d+)\.(\d+).(\d+)(?:-(\d+))?$} $tag -> mr M m p n]} {
+
+    } else {
+	Msg Warning "Repository tag $tag is not in a Hog-compatible format."
+	set mr -1
+	set M -1
+	set m -1
+	set p -1
+	set n -1	
+    }
+    return [list $M $m $p $n $mr]
+}
+
 
 ## Tags the repository with a new version calculated on the basis of the previous tags
 # Arguments:\n
 # * merge_request_number: Gitlab merge request number to be used in candidate version
-# * version_level:        0 if patch is to be increased (default), 1 if minor level is to be increase, 2 if major lav´e is to be increased, 3 or bigger is used to tag an official version from a candidate
+# * version_level:        0 if patch is to be increased (default), 1 if minor level is to be increase, 2 if major level is to be increased, 3 or bigger is used to trasform a candidate for a version (starting with b) into an official version
 
 proc TagRepository {merge_request_number {version_level 0}} {
     if [catch {exec git tag --sort=-creatordate} last_tag] {
 	Msg Error "No Hog version tags found in this repository."
     } else {
-	set vers [split $last_tag "\n"]
-	set ver [lindex $vers 0]
+	set tags [split $last_tag "\n"]
+	set tag [lindex $tags 0]
+	lassign [ExtractVersionFromTag $tag] M m p n mr
 	
-	if {[regexp {^(?:b(\d+))?v(\d+)\.(\d+).(\d+)(?:-(\d+))?$} $ver -> mr M m p n]} {
+	if { $M > -1 } { # M=-1 means that the tag could not be parsed following a Hog format
 	    if {$mr == "" } { # Tag is official, no b at the beginning
 		Msg Info "Found official version $M.$m.$p."
 		if {$version_level == 2} {
@@ -1089,11 +1112,11 @@ proc TagRepository {merge_request_number {version_level 0}} {
 	    }
 	    
 	} else {
-	    Msg Error "Could not parse tag: $last_tag"
+	    Msg Error "Could not parse tag: $tag"
 	}
     }
     
-    return [list $ver $new_tag]
+    return [list $tag $new_tag]
 }
 ########################################################
 

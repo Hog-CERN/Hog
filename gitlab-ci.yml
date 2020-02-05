@@ -12,7 +12,7 @@ before_script:
     - git submodule update
     - ./Hog/Ignore_ip_xml.sh
     - export XILINXD_LICENSE_FILE=${HOG_XIL_LICENSE}
-    - export PATH=$PATH:${HOG_PATH}
+    - export PATH=${HOG_PATH}:$PATH
     - echo $HOG_PASSWORD | kinit $HOG_USER
 
 .only-default: &only-default

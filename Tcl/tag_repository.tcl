@@ -52,7 +52,7 @@ if {$version_level >= 3} {
                 exec eos mv $old_name $new_name
             }                                                               
         }
-    }
+    
     # Delete unofficial tags
     Msg Info "Looking for unofficial tags to delete for official version $new_tag..."
     set res [ catch {exec git tag {*}"-l b*$new_tag*"} tags_to_delete]

@@ -24,11 +24,11 @@ set doxygen_conf "./doxygen/doxygen.conf"
 if {[file exists $doxygen_conf] & [DoxygenVersion 1.8.13]} {
     Msg Info "Running doxygen with $doxygen_conf..."
     exec -ignorestderr doxygen $doxygen_conf
-    } elseif {[DoxygenVersion 1.8.13]} {
-        Msg Info "Running doxygen with ./Hog/doxygen.conf..."
-        exec -ignorestderr doxygen "./Hog/doxygen.conf"
-    }
+} elseif {[DoxygenVersion 1.8.13]} {
+    Msg Info "Running doxygen with ./Hog/doxygen.conf..."
+    exec -ignorestderr doxygen "./Hog/doxygen.conf"
 }
+
 
 # Copy documentation to eos
 set official $env(HOG_OFFICIAL_BIN_EOS_PATH)

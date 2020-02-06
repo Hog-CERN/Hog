@@ -20,12 +20,11 @@ if [catch {exec git tag --sort=-creatordate} last_tag] {
 
 # Run doxygen
 set doxygen_conf "./doxygen/doxygen.conf"
-puts $doxygen_conf
 
 if {[file exists $doxygen_conf] & [DoxygenVersion 1.8.13]} {
     Msg Info "Running doxygen with $doxygen_conf..."
     exec -ignorestderr doxygen $doxygen_conf
-    } else if {[DoxygenVersion 1.8.13]} {
+    } elseif {[DoxygenVersion 1.8.13]} {
         Msg Info "Running doxygen with ./Hog/doxygen.conf..."
         exec -ignorestderr doxygen "./Hog/doxygen.conf"
     }

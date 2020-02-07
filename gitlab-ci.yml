@@ -1,5 +1,4 @@
 before_script:
-    - env
     - export REPO=`echo $CI_PROJECT_URL | sed -e s#https://##`
     - git remote set-url origin https://${HOG_USER}:${HOG_PUSH_TOKEN}@$REPO
     - git config user.email ${HOG_EMAIL}
@@ -13,7 +12,6 @@ before_script:
     - ./Hog/Ignore_ip_xml.sh
     - export XILINXD_LICENSE_FILE=${HOG_XIL_LICENSE}
     - export PATH=$PATH:${HOG_PATH}
-    - echo $HOG_PASSWORD | kinit $HOG_USER
 
 .only-default: &only-default
   only:
@@ -106,6 +104,7 @@ stages:
         <<: *vars        
     script:
         - "if [ -z ${HOG_NO_BITSTREAM_STAGE+x} ]; then vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_write_bitstream.tcl -tclargs $PROJECT_NAME; fi"
+        - until echo $HOG_PASSWORD | kinit $HOG_USER ; do echo "Retrying"; sleep 2; done
         - eos cp -r $CI_PROJECT_DIR/bin/* $HOG_UNOFFICIAL_BIN_EOS_PATH
 
     artifacts:
@@ -121,6 +120,7 @@ stages:
         <<: *vars
     script:
         - "if [ -f ${CI_PROJECT_DIR}/doxygen/doxygen.conf ]; then doxygen ${CI_PROJECT_DIR}/doxygen/doxygen.conf; else echo './doxygen/doxygen.conf  file not found, using ./Hog/doxygen.conf to generate documentation'; doxygen ./Hog/doxygen.conf; fi"
+        - until echo $HOG_PASSWORD | kinit $HOG_USER ; do echo "Retrying"; sleep 2; done
         - eos mkdir $HOG_UNOFFICIAL_BIN_EOS_PATH/$CI_COMMIT_SHORT_SHA
         - eos cp -r $CI_PROJECT_DIR/Doc $HOG_UNOFFICIAL_BIN_EOS_PATH/$CI_COMMIT_SHORT_SHA/Doc
     artifacts:
@@ -167,6 +167,7 @@ tag_official_version:
      - git status
      - git pull
      - git submodule update
+     - until echo $HOG_PASSWORD | kinit $HOG_USER ; do echo "Retrying"; sleep 2; done
      - vivado -mode batch -notrace -source ./Hog/Tcl/tag_repository.tcl -tclargs 0 3
      - git push origin $CI_COMMIT_REF_NAME
      - git push --tags origin $CI_COMMIT_REF_NAME
@@ -187,5 +188,6 @@ make_official_doc:
      - git status
      - git pull
      - git submodule update
+     - until echo $HOG_PASSWORD | kinit $HOG_USER ; do echo "Retrying"; sleep 2; done
      - vivado -mode batch -notrace -source ./Hog/Tcl/make_doxygen.tcl
   allow_failure: true

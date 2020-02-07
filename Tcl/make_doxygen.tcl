@@ -31,16 +31,17 @@ if {[file exists $doxygen_conf] & [DoxygenVersion 1.8.13]} {
 
 
 # Copy documentation to eos
-set official $env(HOG_OFFICIAL_BIN_EOS_PATH)
-set new_dir $official/$version
-Msg Info "Creating $new_dir"
-exec eos mkdir -p $new_dir
-if {[file exists ./Doc/html]} {
-    set dox_dir $official/$version/doc
-    Msg Info "Creating doxygen dir $dox_dir..."
-    exec eos mkdir -p $dox_dir
-    Msg Info "Copying doxygen files..."
-    exec -ignorestderr eos cp -r ./Doc/html/* $dox_dir
+if {[info exists env(HOG_OFFICIAL_BIN_EOS_PATH)]} {
+    set official $env(HOG_OFFICIAL_BIN_EOS_PATH)
+    set new_dir $official/$version
+    Msg Info "Creating $new_dir"
+    exec eos mkdir -p $new_dir
+    if {[file exists ./Doc/html]} {
+        set dox_dir $official/$version/doc
+        Msg Info "Creating doxygen dir $dox_dir..."
+        exec eos mkdir -p $dox_dir
+        Msg Info "Copying doxygen files..."
+        exec -ignorestderr eos cp -r ./Doc/html/* $dox_dir
+    }
 }
-
 cd $old_path

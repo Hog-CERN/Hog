@@ -1,4 +1,3 @@
-set NAME "Pre_Synthesis"
 if [file exists ../buypass_commit] {
     set buypass_commit 1
 } else  {
@@ -9,6 +8,7 @@ if [file exists ../no_time] {
 } else  {
     set real_time 0
 }
+
 set old_path [pwd]
 set tcl_path [file normalize "[file dirname [info script]]/.."]
 source $tcl_path/hog.tcl
@@ -25,8 +25,7 @@ if {[info commands get_property] != ""} {
 } else {
     #Tclssh
     set proj_file $old_path/[file tail $old_path].xpr
-    # This is useful to test this script from tclsh if you run it from the project directory
-    # for example Repo/VivadoProject/fpga1/
+    Msg CriticalWarning "You seem to be running locally on tclsh, so this is a debug, the project file will be set to $proj_file and was derived from the path you launched this script from: $old_path. IF you want this script to work properly in debug mode, please launch it from the top folder of one project, for example Repo/VivadoProject/fpga1/ or Repo/Top/fpga1/"
 }
 	
 set proj_dir [file normalize [file dirname $proj_file]]

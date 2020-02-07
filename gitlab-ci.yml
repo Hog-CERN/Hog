@@ -1,5 +1,4 @@
 before_script:
-    - env
     - export REPO=`echo $CI_PROJECT_URL | sed -e s#https://##`
     - git remote set-url origin https://${HOG_USER}:${HOG_PUSH_TOKEN}@$REPO
     - git config user.email ${HOG_EMAIL}
@@ -13,7 +12,6 @@ before_script:
     - ./Hog/Ignore_ip_xml.sh
     - export XILINXD_LICENSE_FILE=${HOG_XIL_LICENSE}
     - export PATH=${HOG_PATH}:$PATH
-    - echo $HOG_PASSWORD | kinit $HOG_USER
 
 .only-default: &only-default
   only:
@@ -37,6 +35,7 @@ stages:
     - synthesis
     - implementation
     - bitstream    
+    - doxygen
 
 .create_project: &create_project
      <<: *only-default
@@ -45,6 +44,7 @@ stages:
         <<: *vars
      script:
       - ./Hog/CreateProject.sh $PROJECT_NAME
+      - "if [ -z ${HOG_CHECK_SYNTAX+x} ]; then echo 'Syntax checker is disabled'; else vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_check_syntax.tcl -tclargs $PROJECT_NAME; fi"
      artifacts:
        name: vivado_projects
        paths:
@@ -63,6 +63,7 @@ stages:
         paths:
             - $CI_PROJECT_DIR/VivadoProject/$PROJECT_NAME
             - $CI_PROJECT_DIR/$IP_PATH
+            - $CI_PROJECT_DIR/$BD_PATH
         expire_in: 30 day
 
 .synthesise_project: &synthesise_project
@@ -103,6 +104,7 @@ stages:
         <<: *vars        
     script:
         - "if [ -z ${HOG_NO_BITSTREAM_STAGE+x} ]; then vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_write_bitstream.tcl -tclargs $PROJECT_NAME; fi"
+        - until echo $HOG_PASSWORD | kinit $HOG_USER ; do echo "Retrying"; sleep 2; done
         - eos cp -r $CI_PROJECT_DIR/bin/* $HOG_UNOFFICIAL_BIN_EOS_PATH
 
     artifacts:
@@ -110,6 +112,24 @@ stages:
         paths:
             - $CI_PROJECT_DIR/bin
         expire_in: 10 years 
+
+.make_documentation: &make_documentation
+    <<: *only-default
+    stage: doxygen
+    variables:
+        <<: *vars
+    script:
+        - "if [ -f ${CI_PROJECT_DIR}/doxygen/doxygen.conf ]; then doxygen ${CI_PROJECT_DIR}/doxygen/doxygen.conf; else echo './doxygen/doxygen.conf  file not found, using ./Hog/doxygen.conf to generate documentation'; doxygen ./Hog/doxygen.conf; fi"
+        - until echo $HOG_PASSWORD | kinit $HOG_USER ; do echo "Retrying"; sleep 2; done
+        - eos mkdir $HOG_UNOFFICIAL_BIN_EOS_PATH/$CI_COMMIT_SHORT_SHA
+        - eos cp -r $CI_PROJECT_DIR/Doc $HOG_UNOFFICIAL_BIN_EOS_PATH/$CI_COMMIT_SHORT_SHA/Doc
+    artifacts:
+        name: docs
+        paths:
+            - $CI_PROJECT_DIR/Doc
+        expire_in: 10 years
+    allow_failure: true
+        
 
 merge_and_tag:
      <<: *only-default
@@ -147,6 +167,27 @@ tag_official_version:
      - git status
      - git pull
      - git submodule update
+     - until echo $HOG_PASSWORD | kinit $HOG_USER ; do echo "Retrying"; sleep 2; done
      - vivado -mode batch -notrace -source ./Hog/Tcl/tag_repository.tcl -tclargs 0 3
      - git push origin $CI_COMMIT_REF_NAME
      - git push --tags origin $CI_COMMIT_REF_NAME
+
+make_official_doc:
+  only:
+    refs:
+      - push
+      - web
+  except:
+    variables:
+      - $CI_PIPELINE_SOURCE != "push"
+      - $CI_COMMIT_REF_SLUG != "master"
+  tags:
+     - hog
+  stage: doxygen
+  script:
+     - git status
+     - git pull
+     - git submodule update
+     - until echo $HOG_PASSWORD | kinit $HOG_USER ; do echo "Retrying"; sleep 2; done
+     - vivado -mode batch -notrace -source ./Hog/Tcl/make_doxygen.tcl
+  allow_failure: true

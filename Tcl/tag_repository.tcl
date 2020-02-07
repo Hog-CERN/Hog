@@ -51,21 +51,7 @@ if {$version_level >= 3} {
                 Msg Info "Moving $old_name into $new_name..."
                 exec eos mv $old_name $new_name
             }                                                               
-        }
-    
-    # Delete unofficial tags
-    Msg Info "Looking for unofficial tags to delete for official version $new_tag..."
-    set res [ catch {exec git tag {*}"-l b*$new_tag*"} tags_to_delete]
-    set number_of_tags [llength $tags_to_delete]
-    Msg Info "Found $number_of_tags tags to delete: $tags_to_delete"
-    if {$number_of_tags > 0} {
-        set res [catch {exec git push origin {*}"-d $tags_to_delete"} deleted_tags]
-        set res [catch {exec git tag {*}"-d $tags_to_delete"} loc_deleted_tags] 
-        Msg Info "Tags deleted. Remote response:\n $deleted_tags"
-        Msg Info "Local response: \n response\n $loc_deleted_tags"  
-    }
-
-    
+        }    
 } else {
     Msg Warning "Could not find anything useful using $wild_card."
 }

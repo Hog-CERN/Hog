@@ -233,9 +233,6 @@ if {[info commands set_property] != ""} {
 	set generic_string "$generic_string FLAVOUR=$flavour"
     }
     
-    Msg Info "Generic String: $generic_string"
-
-    
     set_property generic $generic_string [current_fileset]
     set status_file "$old_path/../versions.txt"
 

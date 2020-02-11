@@ -6,7 +6,7 @@
 -- Author      : Davide Cieri davide.cieri@cern.ch
 -- Company     : Max-Planck-Institute For Physics, Munich
 -- Created     : Tue Feb 11 13:50:27 2020
--- Last update : Tue Feb 11 14:04:31 2020
+-- Last update : Tue Feb 11 14:08:57 2020
 -- Standard    : <VHDL-2008 | VHDL-2002 | VHDL-1993 | VHDL-1987>
 --------------------------------------------------------------------------------
 -- Copyright (c) 2020 Max-Planck-Institute For Physics, Munich
@@ -19,15 +19,12 @@
 -- on revision history.
 -------------------------------------------------------------------------------
 
-
-
-
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
 
--- Change 'myproj' to your project name
-entity top_myproj is
+-- Change <myproj> to your project name
+entity top_<myproj> is
     generic (
         -- Global Generic Variables
         GLOBAL_FWDATE       : std_logic_vector(7 downto 0);
@@ -40,24 +37,24 @@ entity top_myproj is
         XML_VERSION         : std_logic_vector(7 downto 0);
         HOG_FWHASH          : std_logic_vector(7 downto 0);
         -- Project Specific Lists (One for each .src file in your Top/myproj/list folder)
-        MYLIB0_FWVERSION    : std_logic_vector(7 downto 0);
-        MYLIB0_FWHASH       : std_logic_vector(7 downto 0);
-        MYLIB1_FWVERSION    : std_logic_vector(7 downto 0);
-        MYLIB1_FWHASH       : std_logic_vector(7 downto 0);
+        <MYLIB0>_FWVERSION    : std_logic_vector(7 downto 0);
+        <MYLIB0>_FWHASH       : std_logic_vector(7 downto 0);
+        <MYLIB1>_FWVERSION    : std_logic_vector(7 downto 0);
+        <MYLIB1>_FWHASH       : std_logic_vector(7 downto 0);
         -- Submodule Specific variables (only if you have a submodule, one per submodule)
-        SUBMODULE0_FWHASH    : std_logic_vector(7 downto 0);
-        SUBMODULE1_FWHASH    : std_logic_vector(7 downto 0);
+        <MYSUBMODULE0>_FWHASH : std_logic_vector(7 downto 0);
+        <MYSUBMODULE1>_FWHASH : std_logic_vector(7 downto 0);
         -- External library specific variables (only if you have an external library)
-        EXTLIB_FWHASH       : std_logic_vector(7 downto 0);
+        <MYEXTLIB>_FWHASH       : std_logic_vector(7 downto 0);
         -- Project flavour
         FLAVOUR             : integer
     );
   port (
-    clock
+    
   ) ;
 end entity ; -- top_myproj
 
-architecture behaviour of top_myproj is
+architecture behaviour of top_<myproj> is
 
 begin
     

@@ -12,6 +12,8 @@ before_script:
     - ./Hog/Ignore_ip_xml.sh
     - export XILINXD_LICENSE_FILE=${HOG_XIL_LICENSE}
     - export PATH=${HOG_PATH}:$PATH
+    - export IP_PATH=IP
+    - export BD_PATH=BD
 
 .only-default: &only-default
   only:

@@ -6,7 +6,7 @@
 -- Author      : Davide Cieri davide.cieri@cern.ch
 -- Company     : Max-Planck-Institute For Physics, Munich
 -- Created     : Tue Feb 11 13:50:27 2020
--- Last update : Tue Feb 11 14:08:57 2020
+-- Last update : Tue Feb 11 14:26:02 2020
 -- Standard    : <VHDL-2008 | VHDL-2002 | VHDL-1993 | VHDL-1987>
 --------------------------------------------------------------------------------
 -- Copyright (c) 2020 Max-Planck-Institute For Physics, Munich
@@ -18,6 +18,14 @@
 -- the revision control system (RCS).  The RCS should be consulted
 -- on revision history.
 -------------------------------------------------------------------------------
+
+
+-- Doxygen-compatible comments
+--! @file
+--! @brief top_<myproj>
+--! @details 
+--! Any details you want to add
+--! @author Name Surname
 
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;

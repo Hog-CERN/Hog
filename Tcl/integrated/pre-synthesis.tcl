@@ -257,7 +257,6 @@ Msg Info "Opening version file $status_file..."
 set status_file [open $status_file "w"]
 # writing info into status file
 
-
 Msg Status " ------------------------- PRE SYNTHESIS -------------------------"
 Msg Status " $tt"
 Msg Status " Firmware date and time: $date, $timee"
@@ -293,6 +292,37 @@ foreach e $ext_names eh $ext_hashes {
 Msg Status " -----------------------------------------------------------------"
 close $status_file
 
+
+#####  Check if Hog version matches the ref in yml file
+# Go to repository path
+cd "$tcl_path/../.."
+#get .gitlab-ci ref
+##Comment from Nico: what if there are multiple refs in the gitlab-ci?
+set fd [open .gitlab-ci.yml r]
+set data [split [read $fd] "\n"]
+close $fd
+#puts $data
+set YML_REF  [lindex [lsearch  -inline $data "*ref:*"] 1]
+if {$YML_REF == ""} {
+	Msg Warning "Hog version not specified in the .gitlab-ci.yml. Assuming that master branch is used"
+	set YML_REF_F [exec git name-rev --tags --name-only master]
+} else {
+	set YML_REF_F $YML_REF
+}
+
+#getting Hog repository tag and commit
+cd "Hog"
+set HOG_REV [exec git name-rev --tags --name-only [exec git rev-parse HEAD]]
+set HOG_SHA [exec git rev-parse HEAD]
+
+if {$YML_REF_F == "'$HOG_REV'"} {
+	Msg Info "Hog version matches with project .gitlab-ci.yml."
+
+} elseif {$YML_REF_F == "'$HOG_SHA'"} {
+	Msg Info "Hog SHA matches with project .gitlab-ci.yml."
+} else {
+	Msg CriticalWarning "Hog SHA/version does not match with project .gitlab-ci.yml. Did you forget to update the .gitlab-ci.yml file?\nFrom .gitlab-ci.yml:   $YML_REF.\nFrom Hog:     $HOG_REV\n              $HOG_SHA"
+}
 
 cd $old_path
 

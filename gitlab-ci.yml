@@ -12,8 +12,6 @@ before_script:
 #    - ./Hog/Ignore_ip_xml.sh
     - export XILINXD_LICENSE_FILE=${HOG_XIL_LICENSE}
     - export PATH=${HOG_PATH}:$PATH
-    - export IP_PATH=IP
-    - export BD_PATH=BD
 
 .only-default: &only-default
   only:
@@ -64,8 +62,8 @@ stages:
         name: vivado_runs
         paths:
             - $CI_PROJECT_DIR/VivadoProject/$PROJECT_NAME
-            - $CI_PROJECT_DIR/$IP_PATH
-            - $CI_PROJECT_DIR/$BD_PATH
+            - $CI_PROJECT_DIR/IP
+            - $CI_PROJECT_DIR/BD
         expire_in: 30 day
 
 .synthesise_project: &synthesise_project

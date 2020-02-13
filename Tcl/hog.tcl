@@ -143,18 +143,27 @@ proc add_top_file {top_module top_file sources} {
 	if {[info commands launch_chipscope_analyzer] != ""} {
 		#VIVADO_ONLY
 		add_files -norecurse -fileset $sources $top_file
-		set_property "top" $globalSettings::synth_top_module $sources
 	} elseif {info commands project_new] != ""} {
 		#QUARTUS ONLY
-		set file_type [FindFileType $vhdlfile]
-		set hdl_version [FindVhdlVersion $vhdlfile]
+		set file_type [FindFileType $top_file]
+		set hdl_version [FindVhdlVersion $top_file]
 		set_global_assignment -name $file_type $top_file 
-		set_global_assignment -name TOP_LEVEL_ENTITY $top_module
 	} else {
 		puts "Adding project top module $top_module" 
 	}
 }
+########################################################
+proc SetTopProperty {top_module sources} {
+	Msg Info "Setting TOP property to $top_module module" 
+	if {[info commands launch_chipscope_analyzer] != ""} {
+		#VIVADO_ONLY
+		set_property "top" $top_module $sources
+	} elseif {info commands project_new] != ""} {
+		#QUARTUS ONLY
+		set_global_assignment -name TOP_LEVEL_ENTITY $top_module
+	}
 
+}
 
 ########################################################
 proc CreateProject {} {
@@ -244,6 +253,7 @@ proc CreateProject {} {
 		Msg Info "No top file found in Top folder, please make sure that the top file - i.e. containing a module called $globalSettings::synth_top_module - is included in one of the libraries"     
 	}
 
+	SetTopProperty $globalSettings::synth_top_module $sources
 
 	###############
 	# CONSTRAINTS #

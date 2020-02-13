@@ -154,12 +154,13 @@ proc add_top_file {top_module top_file sources} {
 }
 ########################################################
 proc SetTopProperty {top_module sources} {
+	Msg Info "Setting TOP property to $top_module module" 
 	if {[info commands launch_chipscope_analyzer] != ""} {
-		set_property "top" $globalSettings::synth_top_module $sources
+		#VIVADO_ONLY
+		set_property "top" $top_module $sources
 	} elseif {info commands project_new] != ""} {
+		#QUARTUS ONLY
 		set_global_assignment -name TOP_LEVEL_ENTITY $top_module
-	} else {
-		puts "Setting TOP property to $top_module module" 
 	}
 
 }

@@ -307,21 +307,23 @@ if {$YML_REF == ""} {
 	Msg Warning "Hog version not specified in the .gitlab-ci.yml. Assuming that master branch is used"
 	set YML_REF_F [exec git name-rev --tags --name-only master]
 } else {
-	set YML_REF_F $YML_REF
+	set YML_REF_F [regsub -all "'" $YML_REF ""]
 }
 
 #getting Hog repository tag and commit
 cd "Hog"
-set HOG_REV [exec git name-rev --tags --name-only [exec git rev-parse HEAD]]
-set HOG_SHA [exec git rev-parse HEAD]
-
-if {$YML_REF_F == "'$HOG_REV'"} {
-	Msg Info "Hog version matches with project .gitlab-ci.yml."
-
-} elseif {$YML_REF_F == "'$HOG_SHA'"} {
-	Msg Info "Hog SHA matches with project .gitlab-ci.yml."
+set HOGYML_SHA [exec git log --format=%H -1 --  gitlab-ci.yml ]
+if { [catch {exec git log --format=%H -1 $YML_REF_F gitlab-ci.yml} results]} {
+	Msg Error "Error in project .gitlab-ci.yml. ref: $YML_REF not found"
+	set EXPECTEDYML_SHA ""
 } else {
-	Msg CriticalWarning "Hog SHA/version does not match with project .gitlab-ci.yml. Did you forget to update the .gitlab-ci.yml file?\nFrom .gitlab-ci.yml:   $YML_REF.\nFrom Hog:     $HOG_REV\n              $HOG_SHA"
+	set EXPECTEDYML_SHA [exec git log --format=%H -1 $YML_REF_F gitlab-ci.yml ]
+	if {$HOGYML_SHA == $EXPECTEDYML_SHA} {
+		Msg Info "Hog gitlab-ci.yml SHA matches with project .gitlab-ci.yml."
+
+	} else {
+		Msg Error "HOG gitlab-ci.yml SHA mismatch. \nFrom Hog submodule: $HOGYML_SHA\nFrom project .gitlab-ci.yml: $EXPECTEDYML_SHA\nFix this by:\n\tA) edit project .gitlab-ci.yml ---> ref: '$HOGYML_SHA'\n\tB) modify Hog submodule: git checkout $EXPECTEDYML_SHA"
+	}
 }
 
 cd $old_path

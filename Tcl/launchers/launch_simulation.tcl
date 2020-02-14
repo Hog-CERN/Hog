@@ -34,9 +34,11 @@ foreach s [get_filesets] {
     if {$type eq "SimulationSrcs"} {
 	if {!($s eq "sim_1")} { 
 	    Msg Info "Creating simulation scripts for $s..."
-	    export_simulation -of_objects [get_filesets $s] -simulator questa -lib_map_path $lib_path -directory $main_folder/../hog_sim_$s -force
+	    current_fileset -simset $s
+	    set sim_dir $main_folder/$s
+	    export_simulation -of_objects [get_filesets $s] -simulator questa -lib_map_path $lib_path -directory $sim_dir -force
 	    set top_name [get_property TOP $s]
-	    set sim_script  [file normalize $main_folder/../hog_sim_$s/questa/$top_name.sh] 
+	    set sim_script  [file normalize $sim_dir/questa/$top_name.sh] 
 	    Msg Info "Adding simulation script location $sim_script for $s..."
 	    lappend sim_scripts $sim_script
 	}

@@ -35,7 +35,7 @@ foreach s [get_filesets] {
 	if {!($s eq "sim_1")} { 
 	    Msg Info "Creating simulation scripts for $s..."
 	    current_fileset -simset $s
-	    set sim_dir $main_folder/$s
+	    set sim_dir $main_folder/behav/$s
 	    export_simulation -of_objects [get_filesets $s] -simulator questa -lib_map_path $lib_path -directory $sim_dir -force
 	    set top_name [get_property TOP $s]
 	    set sim_script  [file normalize $sim_dir/questa/$top_name.sh] 
@@ -45,14 +45,19 @@ foreach s [get_filesets] {
     }
 }
 
+Msg Info "Generating IP simulation targets, if any..."
+
+foreach ip [get_ips] {
+    generate_target simulation $ip
+}
+
 set errors 0
 if [info exists sim_scripts] {
-    foreach  s $sim_scripts {
+    foreach s $sim_scripts {
 	cd [file dir $s]
 	set cmd ./[file tail $s]
 	Msg Info "Simulating: $cmd..."
-	set status [catch {exec $cmd} result]
-	Msg Status "Simulation result\n******************\n$result"
+	set status [exec $cmd]
 	if {$status == 0} {
 	    Msg Info "Simulation successful for $s."
 	} else {

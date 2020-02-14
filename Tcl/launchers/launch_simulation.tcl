@@ -57,19 +57,21 @@ if [info exists sim_scripts] {
 	cd [file dir $s]
 	set cmd ./[file tail $s]
 	Msg Info "Simulating: $cmd..."
-	set status [exec $cmd]
-	if {$status == 0} {
-	    Msg Info "Simulation successful for $s."
-	} else {
-	    Msg CriticalWarning "Simulation failed for $s, see above."
+
+	if { [catch { exec $cmd } log] } {
+	    Msg CriticalWarning "Simulation failed for $s, error info: $::errorInfo"
 	    incr errors
 	}
-
+	Msg Info "Simulation log starts:"
+	Msg Status "\n\n$log\n\n"
+	Msg Info "Simulation log ends"
     }
     
     if {$errors > 0} {
 	Msg Error "Simualtion failed, there were $errors failures. Look above for details."
 	exit -1
+    } else {
+	Msg Info "All simulations were successful."
     }
 
 } else {

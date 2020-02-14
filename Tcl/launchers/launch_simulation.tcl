@@ -14,14 +14,20 @@ if { $::argc eq 0 } {
     }
 }
 
+
 set old_path [pwd]
 cd $path
 source ./hog.tcl
+Msg Info "Simulation library path is set to $lib_path."
+if !([file exists $lib_path]) {
+    Msg Error "Could not find simulation library path: $lib_path."
+    exit -1
+}
+
 Msg Info "Opening project $project..."
 open_project ../../VivadoProject/$project/$project.xpr
-
+set_property "compxlib.modelsim_compiled_library_dir" $lib_path [current_project]
 Msg Info "Retrieving list of simulation sets..."
-
 
 foreach s [get_filesets] {
     set type [get_property FILESET_TYPE $s]
@@ -37,7 +43,34 @@ foreach s [get_filesets] {
 }
 
 if [info exists simdirs] {
-    puts $simdirs
+    foreach  s $simdirs {
+	cd $s
+	set cmd "./compile.sh"
+	Msg Info "Compiling: $cmd..."
+	set status [catch {exec $cmd} result]
+	Msg Status "Compilation result\n******************\n$result"
+	if {$status == 0} {
+	    Msg Info "Compilation successful for $s."
+	} else {
+	    Msg Error "Compilation failed foir $s"
+	    exit -1
+	}
+
+	set cmd "./simulate.sh"
+	Msg Info "Simulating: $cmd..."
+	set status [catch {exec $cmd} result]
+	Msg Status "Simulation result\n******************\n$result"
+	if {$status == 0} {
+	    Msg Info "Simulation successful for $s."
+	} else {
+	    Msg Error "Simulation failed for $s."
+	    exit -1
+	}
+    }
+
+
 } else {
     Msg Info "No simulation set was found in this project."
 }
+
+Msg Info "All done."

@@ -1,4 +1,4 @@
-
+set simulator modelsim
 set path [file normalize "[file dirname [info script]]/.."]
 if { $::argc eq 0 } {
     puts "USAGE: $::argv0 <project> [questa library path]"
@@ -35,10 +35,12 @@ foreach s [get_filesets] {
 	if {!($s eq "sim_1")} { 
 	    Msg Info "Creating simulation scripts for $s..."
 	    current_fileset -simset $s
-	    set sim_dir $main_folder/behav/$s
-	    export_simulation -of_objects [get_filesets $s] -simulator questa -lib_map_path $lib_path -directory $sim_dir -force
+	    set sim_dir $main_folder/$s/behav
+	    #export_simulation -of_objects [get_filesets $s] -simulator $simulator -lib_map_path $lib_path -directory $sim_dir -force
+	    launch_simulation -scripts_only -simset [get_filesets $s]
 	    set top_name [get_property TOP $s]
-	    set sim_script  [file normalize $sim_dir/questa/$top_name.sh] 
+	    #set sim_script  [file normalize $sim_dir/$simulator/$top_name.sh] 
+	    set sim_script  [file normalize $sim_dir/$simulator/] 
 	    Msg Info "Adding simulation script location $sim_script for $s..."
 	    lappend sim_scripts $sim_script
 	}
@@ -54,8 +56,21 @@ foreach ip [get_ips] {
 set errors 0
 if [info exists sim_scripts] {
     foreach s $sim_scripts {
-	cd [file dir $s]
-	set cmd ./[file tail $s]
+	#cd [file dir $s]
+	#set cmd ./[file tail $s]
+	cd $s
+	set cmd ./compile.sh
+	Msg Info "Compiling: $cmd..."
+
+	if { [catch { exec $cmd } log] } {
+	    Msg CriticalWarning "Compilation failed for $s, error info: $::errorInfo"
+	    incr errors
+	}
+	Msg Info "Compilation log starts:"
+	Msg Status "\n\n$log\n\n"
+	Msg Info "Compilation log ends"
+
+	set cmd ./simulate.sh
 	Msg Info "Simulating: $cmd..."
 
 	if { [catch { exec $cmd } log] } {

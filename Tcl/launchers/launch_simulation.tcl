@@ -34,42 +34,33 @@ foreach s [get_filesets] {
     if {$type eq "SimulationSrcs"} {
 	if {!($s eq "sim_1")} { 
 	    Msg Info "Creating simulation scripts for $s..."
-	    launch_simulation -scripts_only -simset $s
-	    set sim_dir  [file normalize $main_folder/$s/behav/modelsim] 
-	    Msg Info "Setting script location for $s: $sim_dir..."
-	    lappend simdirs $sim_dir
+	    export_simulation -of_objects [get_filesets $s] -simulator questa -lib_map_path $lib_path -directory $main_folder/../hog_sim_$s -force
+	    set top_name [get_property TOP $s]
+	    set sim_script  [file normalize $main_folder/../hog_sim_$s/questa/$top_name.sh] 
+	    Msg Info "Adding simulation script location $sim_script for $s..."
+	    lappend sim_scripts $sim_script
 	}
     }
 }
 
 set errors 0
-if [info exists simdirs] {
-    foreach  s $simdirs {
-	cd $s
-	set cmd "./compile.sh"
-	Msg Info "Compiling: $cmd..."
-	set status [catch {exec $cmd} result]
-	Msg Status "Compilation result\n******************\n$result"
-	if {$status == 0} {
-	    Msg Info "Compilation successful for $s."
-	} else {
-	    Msg CriticalWarning "Compilation failed foir $s"
-	    incr errors
-	}
-
-	set cmd "./simulate.sh"
+if [info exists sim_scripts] {
+    foreach  s $sim_scripts {
+	cd [file dir $s]
+	set cmd ./[file tail $s]
 	Msg Info "Simulating: $cmd..."
 	set status [catch {exec $cmd} result]
 	Msg Status "Simulation result\n******************\n$result"
 	if {$status == 0} {
 	    Msg Info "Simulation successful for $s."
 	} else {
-	    Msg CriticalWarning "Simulation failed for $s."
+	    Msg CriticalWarning "Simulation failed for $s, see above."
 	    incr errors
 	}
+
     }
     
-    if {$errors > 0) {
+    if {$errors > 0} {
 	Msg Error "Simualtion failed, there were $errors failures. Look above for details."
 	exit -1
     }

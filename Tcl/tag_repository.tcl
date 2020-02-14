@@ -17,6 +17,10 @@ cd $path
 source ./hog.tcl
 cd ../../
 
+Msg Info "Evaluating git describe..."
+set describe [exec git describe --always --tags --long]
+Msg Info "Git describe: $describe"
+
 set tags [TagRepository $merge_request $version_level]
 set old_tag [lindex $tags 0]
 set new_tag [lindex $tags 1]
@@ -25,10 +29,6 @@ Msg Info "Old tag was: $old_tag and new tag is: $new_tag"
 if {$version_level >= 3} {
     set official $env(HOG_OFFICIAL_BIN_EOS_PATH)
     set unofficial $env(HOG_UNOFFICIAL_BIN_EOS_PATH)
-
-    Msg Info "Evaluating git describe..."
-    set describe [exec git describe --always --tags --long]
-    Msg Info "Git describe: $describe"
 
     set wild_card $unofficial/*$describe*
     

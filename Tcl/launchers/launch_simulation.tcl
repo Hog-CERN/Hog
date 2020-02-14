@@ -42,6 +42,7 @@ foreach s [get_filesets] {
     }
 }
 
+set errors 0
 if [info exists simdirs] {
     foreach  s $simdirs {
 	cd $s
@@ -52,8 +53,8 @@ if [info exists simdirs] {
 	if {$status == 0} {
 	    Msg Info "Compilation successful for $s."
 	} else {
-	    Msg Error "Compilation failed foir $s"
-	    exit -1
+	    Msg CriticalWarning "Compilation failed foir $s"
+	    incr errors
 	}
 
 	set cmd "./simulate.sh"
@@ -63,11 +64,15 @@ if [info exists simdirs] {
 	if {$status == 0} {
 	    Msg Info "Simulation successful for $s."
 	} else {
-	    Msg Error "Simulation failed for $s."
-	    exit -1
+	    Msg CriticalWarning "Simulation failed for $s."
+	    incr errors
 	}
     }
-
+    
+    if {$errors > 0) {
+	Msg Error "Simualtion failed, there were $errors failures. Look above for details."
+	exit -1
+    }
 
 } else {
     Msg Info "No simulation set was found in this project."

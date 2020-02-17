@@ -109,7 +109,7 @@ if [file exists ./Top/$proj_name/xml/xml.lst] {
     Msg Info "Creating XML directory $xml_dst..."
     file mkdir $xml_dst
     lassign [GetVer $xml_target ./Top/$proj_name/] xml_ver_hex xml_hash
-    lassign [GetXMLVer $xml_target ./Top/$proj_name/] xml_hash xml_ver
+
     Msg Info "Copying xml files to $xml_dst and adding xml version $xml_ver..."
     CopyXMLsFromListFile $xml_target ./Top/$proj_name $xml_dst $xml_ver $xml_hash 
 
@@ -118,20 +118,16 @@ if [file exists ./Top/$proj_name/xml/xml.lst] {
     # version of the directory if no list file exists
     set xml_target  ./Top/$proj_name/xml
     lassign [GetVer $xml_target ./Top/$proj_name/] xml_ver_hex xml_hash
-    scan [string range $xml_ver_hex 0 1] %x M
-    scan [string range $xml_ver_hex 2 3] %x m
-    scan [string range $xml_ver_hex 4 7] %x c
-    set xml_ver "$M.$m.$c"
-
     file delete -force $old_path/../xml
     file copy -force $xml_target $old_path/..
 
 } else {
     Msg Info "This project does not use IPbus XMLs"
-    set xml_ver 0.0.0
     set xml_ver_hex 0000000
     set xml_hash 0000000
 }
+set xml_ver [HexVersionToString $xml_ver_hex]
+
 
 # Submodules
 set subs ""

@@ -1035,9 +1035,22 @@ proc GetVer {FILE path} {
 }
 ########################################################
 
+
+## Convert hex version to M.m.p string
+# Arguments:\n
+# version: the version in 32-bt hexadecimal format to be converted
+
+proc HexVersionToString {version} {
+    scan [string range $version 0 1] %x M
+    scan [string range $version 2 3] %x m
+    scan [string range $version 4 7] %x c
+    return "$M.$m.$c"
+}
+
+
 ## Tags the repository with a new version calculated on the basis of the previous tags
 # Arguments:\n
-# * tag: a tag in the Hog format: v$M.$m.$p or b$mrv$M.$m.$p-$n
+# * tag: a tag in the Hog format: v$M.$m.$p or b$(mr)v$M.$m.$p-$n
 
 proc ExtractVersionFromTag {tag} {
     if {[regexp {^(?:b(\d+))?v(\d+)\.(\d+).(\d+)(?:-(\d+))?$} $tag -> mr M m p n]} {
@@ -1129,21 +1142,6 @@ proc TagRepository {{merge_request_number 0} {version_level 0}} {
     }
     
     return [list $tag $new_tag]
-}
-########################################################
-
-## Read a XML list file and evaluate the Git SHA and version of the listed XML files contained
-#
-# Arguments:
-# * xml_lsit_file: file containing list of XML files with optional properties
-# * path:          the path the XML files are referred to in the list file
-proc GetXMLVer {xml_list_file path} {
-    lassign [GetVer $xml_list_file $path] xml_ver xml_hash
-    scan [string range $xml_ver 0 1] %x M
-    scan [string range $xml_ver 2 3] %x m
-    scan [string range $xml_ver 4 7] %x c
-    set xml_ver_formatted "$M.$m.$c"
-    return [list $xml_hash $xml_ver_formatted]
 }
 ########################################################
 

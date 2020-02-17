@@ -39,7 +39,7 @@ stages:
 
 .simulate_project: &simulate_project
      <<: *only-default
-     stage: creation
+     stage: simulation
      variables:
         <<: *vars
      script:

@@ -1038,7 +1038,7 @@ proc GetVer {FILE path} {
 
 ## Convert hex version to M.m.p string
 # Arguments:\n
-# version: the version in 32-bt hexadecimal format to be converted
+# version: the version (in 32-bt hexadecimal format 0xMMmmpppp) to be converted
 
 proc HexVersionToString {version} {
     scan [string range $version 0 1] %x M
@@ -1046,6 +1046,7 @@ proc HexVersionToString {version} {
     scan [string range $version 4 7] %x c
     return "$M.$m.$c"
 }
+########################################################
 
 
 ## Tags the repository with a new version calculated on the basis of the previous tags

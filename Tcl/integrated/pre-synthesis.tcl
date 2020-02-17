@@ -102,6 +102,7 @@ foreach f $ext_files {
 
 # XML
 set xml_dst $old_path/../xml
+set use_ipbus 1
 if [file exists ./Top/$proj_name/xml/xml.lst] {
     Msg Info "XML list file found, using version of listed XMLs"
     # version of xml in list files is used if list file exists
@@ -125,6 +126,7 @@ if [file exists ./Top/$proj_name/xml/xml.lst] {
     Msg Info "This project does not use IPbus XMLs"
     set xml_ver_hex 0000000
     set xml_hash 0000000
+    set use_ipbus 0
 }
 set xml_ver [HexVersionToString $xml_ver_hex]
 
@@ -235,16 +237,26 @@ puts $status_file "Date, $date, $timee"
 if {$flavour != -1} {
     Msg Status " Project flavour: $flavour"
 }
+
+set version [HexVersionToString $version]
 Msg Status " Global SHA: $commit, VER: $version"
 puts $status_file "Global, $commit, $version"
-Msg Status " XML SHA: $xml_hash, VER: $xml_ver_hex"
-puts $status_file "XML, $xml_hash, $xml_ver_hex"
+
+if {$use_ipbus == 1} {
+    Msg Status " XML SHA: $xml_hash, VER: $xml_ver"
+    puts $status_file "XML, $xml_hash, $xml_ver"
+}
+set top_ver [HexVersionToString $top_ver]
 Msg Status " Top SHA: $top_hash, VER: $top_ver"
 puts $status_file "Top, $top_hash, $top_ver"
+
+set hog_ver [HexVersionToString $hog_ver]
 Msg Status " Hog SHA: $hog_hash, VER: $hog_ver"
 puts $status_file "Hog, $hog_hash, $hog_ver"
+
 Msg Status " --- Libraries ---"
 foreach l $libs v $vers h $hashes {
+    set v [HexVersionToString $v]
     Msg Status " $l SHA: $h, VER: $v"    
     puts $status_file "$l, $h, $v"
 }

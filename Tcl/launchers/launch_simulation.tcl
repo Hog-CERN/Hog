@@ -10,7 +10,7 @@ if { $::argc eq 0 } {
     if {[llength $argv] > 1} {
 	set lib_path [lindex $argv 1]
     } else {
-	set lib_path [file normalize "$main_folder/../../../ModelsimLib"]
+	set lib_path [file normalize "$main_folder/../../../SimulationLib"]
     }
 }
 

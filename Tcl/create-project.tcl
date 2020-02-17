@@ -66,7 +66,7 @@ set globalSettings::repo_path        [file normalize "$globalSettings::tcl_path/
 set globalSettings::top_path         "$globalSettings::repo_path/Top/$DESIGN"
 set globalSettings::list_path        "$globalSettings::top_path/list"
 set globalSettings::BUILD_DIR        "$globalSettings::repo_path/$BUILD_DIR_NAME/$DESIGN"
-set globalSettings::modelsim_path    "$globalSettings::repo_path/ModelsimLib"
+set globalSettings::modelsim_path    "$globalSettings::repo_path/SimulationLib"
 set globalSettings::top_name          [file root $globalSettings::DESIGN]
 set globalSettings::synth_top_module "top_$globalSettings::top_name"
 set globalSettings::synth_top_file   "$globalSettings::top_path/top_$globalSettings::DESIGN"

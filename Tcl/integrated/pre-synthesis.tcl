@@ -117,7 +117,7 @@ if [file exists ./Top/$proj_name/xml/xml.lst] {
     Msg Info "XML list file not found, using version of XML directory"
     # version of the directory if no list file exists
     set xml_target  ./Top/$proj_name/xml
-    lassign [GetVer $xml_target ./Top/$proj_name/] xml_ver_hex xml_hash dummy
+    lassign [GetVer $xml_target ./Top/$proj_name/] xml_ver_hex xml_hash
     scan [string range $xml_ver_hex 0 1] %x M
     scan [string range $xml_ver_hex 2 3] %x m
     scan [string range $xml_ver_hex 4 7] %x c

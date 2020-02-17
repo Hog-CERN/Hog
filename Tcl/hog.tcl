@@ -1138,7 +1138,7 @@ proc TagRepository {{merge_request_number 0} {version_level 0}} {
 # * xml_lsit_file: file containing list of XML files with optional properties
 # * path:          the path the XML files are referred to in the list file
 proc GetXMLVer {xml_list_file path} {
-    lassign [GetVer $xml_list_file $path] xml_ver xml_hash dummy
+    lassign [GetVer $xml_list_file $path] xml_ver xml_hash
     scan [string range $xml_ver 0 1] %x M
     scan [string range $xml_ver 2 3] %x m
     scan [string range $xml_ver 4 7] %x c

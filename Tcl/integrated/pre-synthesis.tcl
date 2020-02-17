@@ -1,14 +1,3 @@
-if [file exists ../buypass_commit] {
-    set buypass_commit 1
-} else  {
-    set buypass_commit 0
-}
-if [file exists ../no_time] {
-    set real_time 1
-} else  {
-    set real_time 0
-}
-
 set old_path [pwd]
 set tcl_path [file normalize "[file dirname [info script]]/.."]
 source $tcl_path/hog.tcl
@@ -52,24 +41,15 @@ Msg Info "Evaluating firmware date and, possibly, git commit hash..."
 
 if { [exec git status --untracked-files=no  --porcelain] eq "" } {
     Msg Info "Git working directory [pwd] clean."
-    lassign [GetVer ALL ./] version commit official
-    set clean "yes"
+    lassign [GetVer ALL ./] version commit
 } else {
-    if {$buypass_commit == 1} {
-	Msg Info "Buypassing commit check."
-	lassign [GetVer ALL ./] version commit official
-	set clean "yes"
-    } else {
-	Msg CriticalWarning "Git working directory [pwd] not clean, commit hash, official, and version will be set to 0."
-	set official "00000000"
-	set commit   "0000000"
-	set version  "00000000"    
-	set clean    "no"
-    }
+	Msg CriticalWarning "Git working directory [pwd] not clean, commit hash, and version will be set to 0."
+    set commit   "0000000"
+    set version  "00000000"    
 }
 
 # Top project directory
-lassign [GetVer ./Top/$proj_name/ ./Top/$proj_name/] top_ver top_hash dummy
+lassign [GetVer ./Top/$proj_name/ ./Top/$proj_name/] top_ver top_hash
 
 # Read list files
 set libs ""
@@ -78,7 +58,7 @@ set hashes ""
 set list_files [glob  -nocomplain "./Top/$proj_name/list/*.src"]
 foreach f $list_files {
     set name [file rootname [file tail $f]]
-    lassign [GetVer  $f ./Top/$proj_name/] ver hash dummy
+    lassign [GetVer  $f ./Top/$proj_name/] ver hash
     Msg Info "Found source file $f, version: $ver commit SHA: $hash"
     lappend libs $name
     lappend vers $ver
@@ -128,7 +108,7 @@ if [file exists ./Top/$proj_name/xml/xml.lst] {
     set xml_target  ./Top/$proj_name/xml/xml.lst
     Msg Info "Creating XML directory $xml_dst..."
     file mkdir $xml_dst
-    lassign [GetVer $xml_target ./Top/$proj_name/] xml_ver_hex xml_hash dummy
+    lassign [GetVer $xml_target ./Top/$proj_name/] xml_ver_hex xml_hash
     lassign [GetXMLVer $xml_target ./Top/$proj_name/] xml_hash xml_ver
     Msg Info "Copying xml files to $xml_dst and adding xml version $xml_ver..."
     CopyXMLsFromListFile $xml_target ./Top/$proj_name $xml_dst $xml_ver $xml_hash 
@@ -179,37 +159,31 @@ foreach f $sub_files {
 cd "./Hog"
 if { [exec git status --untracked-files=no  --porcelain] eq "" } {
     Msg Info "Hog submodule [pwd] clean."
-    set hog_hash [GetHash ALL ./]
-    set hog_clean "yes"
+    lassign [GetVer ALL ./] hog_ver hog_hash
 } else {
     Msg CriticalWarning "Hog submodule [pwd] not clean, commit hash will be set to 0."
-    set hog_hash "0000000"    
-    set hog_clean "no"
+    set hog_hash "0000000"
+    set hog_ver "0000000"
 }
 cd ..
 
 set clock_seconds [clock seconds]
 set tt [clock format $clock_seconds -format {%d/%m/%Y at %H:%M:%S}]
 
-if {$real_time == 1} {
+if [GitVersion 2.9.3] {
+    set date [exec git log -1 --format=%cd --date=format:'%d%m%Y']
+    set timee [exec git log -1 --format=%cd --date=format:'00%H%M%S']
+} else {
+    Msg Warning "Found Git version older than 2.9.3. Using current date and time instead of commit time."
     set date [clock format $clock_seconds  -format {%d%m%Y}]
     set timee [clock format $clock_seconds -format {00%H%M%S}]
-} else {
-    if [GitVersion 2.9.3] {
-	set date [exec git log -1 --format=%cd --date=format:'%d%m%Y']
-	set timee [exec git log -1 --format=%cd --date=format:'00%H%M%S']
-    } else {
-	Msg Warning "Found Git version older than 2.9.3. Using current date and time instead of commit time."
-	set date [clock format $clock_seconds  -format {%d%m%Y}]
-	set timee [clock format $clock_seconds -format {00%H%M%S}]
-    }
 }
 
 #####  Passing Hog genric to top file
 if {[info commands set_property] != ""} {
     ### VIVADO
     # set global generic varibles
-    set generic_string "GLOBAL_FWDATE=32'h$date GLOBAL_FWTIME=32'h$timee OFFICIAL=32'h$official GLOBAL_FWHASH=32'h$commit TOP_FWHASH=32'h$top_hash XML_HASH=32'h$xml_hash GLOBAL_FWVERSION=32'h$version TOP_FWVERSION=32'h$top_ver XML_VERSION=32'h$xml_ver_hex HOG_FWHASH=32'h$hog_hash"
+    set generic_string "GLOBAL_FWDATE=32'h$date GLOBAL_FWTIME=32'h$timee GLOBAL_FWHASH=32'h$commit TOP_FWHASH=32'h$top_hash XML_HASH=32'h$xml_hash GLOBAL_FWVERSION=32'h$version TOP_FWVERSION=32'h$top_ver XML_VERSION=32'h$xml_ver_hex HOG_FWHASH=32'h$hog_hash HOG_FWVERSION=32'h$hog_ver"
     
     #set project specific lists
     foreach l $libs v $vers h $hashes {
@@ -242,10 +216,10 @@ if {[info commands set_property] != ""} {
 
 } else {
     ### Tcl Shell
-    puts "Hog:DEBUG GLOBAL_FWDATE=$date GLOBAL_FWTIME=$timee OFFICIAL=$official"
+    puts "Hog:DEBUG GLOBAL_FWDATE=$date GLOBAL_FWTIME=$timee"
     puts "Hog:DEBUG GLOBAL_FWHASH=$commit TOP_FWHASH=$top_hash"
     puts "Hog:DEBUG XML_HASH=$xml_hash GLOBAL_FWVERSION=$version TOP_FWVERSION=$top_ver"
-    puts "Hog:DEBUG XML_VERSION=$xml_ver_hex HOG_FWHASH=$hog_hash"
+    puts "Hog:DEBUG XML_VERSION=$xml_ver_hex HOG_FWHASH=$hog_hash HOG_FWVERSION=$hog_ver"
     puts "Hog:DEBUG LIBS: $libs $vers $hashes"
     puts "Hog:DEBUG SUBS: $subs $subs_hashes"
     puts "Hog:DEBUG EXT: $ext_names $ext_hashes"
@@ -271,10 +245,8 @@ Msg Status " XML SHA: $xml_hash, VER: $xml_ver_hex"
 puts $status_file "XML, $xml_hash, $xml_ver_hex"
 Msg Status " Top SHA: $top_hash, VER: $top_ver"
 puts $status_file "Top, $top_hash, $top_ver"
-Msg Status " Hog SHA: $hog_hash"
-puts $status_file "Hog, $hog_hash, 00000000"
-Msg Status " Official reg: $official"
-puts $status_file "Official, $official, 00000000"
+Msg Status " Hog SHA: $hog_hash, VER: $hog_ver"
+puts $status_file "Hog, $hog_hash, $hog_ver"
 Msg Status " --- Libraries ---"
 foreach l $libs v $vers h $hashes {
     Msg Status " $l SHA: $h, VER: $v"    

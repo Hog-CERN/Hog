@@ -1014,14 +1014,12 @@ proc GetVer {FILE path} {
 	set m [format %02X $m]
 	set c [format %04X $c]
 	set n [format %04X $n]
-	set official [format %04X 0xc000]
 	set comm $SHA
     } elseif { $M > -1 } { # official tag
 	set M [format %02X $M]
 	set m [format %02X $m]
 	set c [format %04X $c]
 	set n [format %04X 0]
-	set official [format %04X 0xc000]
 	set comm $SHA
     } else {
 	Msg Warning "Could not parse git describe: $ver"
@@ -1029,11 +1027,10 @@ proc GetVer {FILE path} {
 	set m [format %02X 0]
 	set c [format %04X 0]
 	set n [format %04X 0]
-	set official [format %04X 0x0008]
 	set comm $SHA
     }
     set comm [format %07X 0x$comm]
-    return [list $M$m$c $comm $official$n]
+    return [list $M$m$c $comm]
     cd $old_path
 }
 ########################################################

@@ -6,6 +6,11 @@ cxl_error.log
 *.log
 Vivado*
 Modelsim*
+SimulationLib*
+.cxl*
+compile*
+*.ini
+transcript*
 profpga
 *.out
 bin*/
@@ -15,3 +20,4 @@ BD/*
 !BD/*.bd
 IP/*/*
 !IP/*/*.xci
+

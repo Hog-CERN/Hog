@@ -1,12 +1,15 @@
 # HDL repository structure and methodology
 
 In order to use HOG in your repository you will have to create the following directory structure.
+
 ![](./figures/directory_structure.jpg)
+
 HDL source files, together with constraint files, simulation files can be located anywhere in the repository, even if a directory structure that reflects the __libraries__ in the project is advised.\
 A Hog-based repository can contain many projects.
 You should use many projects in the same repository when they share a significant amount of code: e.g. many FPGAs on the same board. 
 If this is not the case you may think of having different repositories.
-In this case, you may include the little amount of shared code as a git submodule, that is also handled by Hog.\
+In this case, you may include the little amount of shared code as a git submodule, that is also handled by Hog.
+
 Hog is a simple project, meant to be useful to speed up work.
 It is not extremely configuralbe: the scripts rely on special directory structure and file naming to be respected as explained in the following paragraphs.
 
@@ -90,7 +93,8 @@ source $path_repo/Hog/Tcl/create-project.tcl
 
 ```
 
-This commant will instruct HOG to add all your files to the generated project.\
+This commant will instruct HOG to add all your files to the generated project.
+
 One example for a Vivado project is :
 
 ```console

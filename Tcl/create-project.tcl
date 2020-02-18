@@ -13,257 +13,82 @@
 
 ############################################################
 
-#####################
-# DERIVED VARIABLES #
-#####################
-
-set pre_synth_file  "pre-synthesis.tcl"
-set post_synth_file ""
-set post_impl_file  "post-implementation.tcl"
-set post_bit_file   "post-bitstream.tcl"
+#IMPLEMENT SETTINGS NAMESPACE
 set tcl_path         [file normalize "[file dirname [info script]]"]
-set repo_path        [file normalize "$tcl_path/../../"]
-set top_path         "$repo_path/Top/$DESIGN"
-set list_path        "$top_path/list"
-set BUILD_DIR        "$repo_path/VivadoProject/$DESIGN"
-set modelsim_path    "$repo_path/ModelsimLib"
-set top_name [file root $DESIGN]
-set synth_top_module "top_$top_name"
-set synth_top_file   "$top_path/top_$DESIGN"
-set user_ip_repo     "$repo_path/IP_repository"
-
-
-set pre_synth  [file normalize "$tcl_path/integrated/$pre_synth_file"]
-set post_synth [file normalize "$tcl_path/integrated/$post_synth_file"]
-set post_impl  [file normalize "$tcl_path/integrated/$post_impl_file"]
-set post_bit   [file normalize "$tcl_path/integrated/$post_bit_file"]
-
 source $tcl_path/hog.tcl
 
-if {$top_name != $DESIGN} {
- Info CreateProject 0 "This project has got a flavour, the top module name will differ from the project name."
+#this path_repo should be done better
+set globalSettings::path_repo $::path_repo
+
+set globalSettings::FPGA $::FPGA
+
+set globalSettings::SYNTH_STRATEGY $::SYNTH_STRATEGY
+if {[info exists ::FAMILY]} {
+	set globalSettings::FAMILY $::FAMILY
 }
+set globalSettings::SYNTH_FLOW $::SYNTH_FLOW
+set globalSettings::IMPL_STRATEGY $::IMPL_STRATEGY
+set globalSettings::IMPL_FLOW $::IMPL_FLOW
+set globalSettings::DESIGN $::DESIGN
 
-## Create Project
-create_project -force $DESIGN $BUILD_DIR -part $FPGA
 
-## Set project properties
-set obj [get_projects $DESIGN]
-set_property "simulator_language" "Mixed" $obj
-set_property "target_language" "VHDL" $obj
-set_property "compxlib.modelsim_compiled_library_dir" $modelsim_path $obj
-set_property "default_lib" "xil_defaultlib" $obj
-if {$use_questa_simulator == 1} { 
-    set_property "target_simulator" "ModelSim" $obj
-}
-
-## Enable VHDL 2008
-set_param project.enableVHDL2008 1
-set_property "enable_vhdl_2008" 1 $obj
-
-## Setting user IP repository to default Hog directory
-if [file exists $user_ip_repo] {
-    Info CreateProject 0 "Found directory $user_ip_repo, setting it as user IP repository..."
-    set_property  ip_repo_paths $user_ip_repo [current_project]
+if {[info exist ::bin_file]} { 
+    set globalSettings::bin_file $::bin_file
 } else {
-    Info CreateProject 0 "$user_ip_repo not found, no user IP repository will be set." 
+   set globalSettings::bin_file 0
+}
+if {[info exists ::PROPERTIES]} {
+	set globalSettings::PROPERTIES $::PROPERTIES
 }
 
-##############
-# SYNTHESIS  #
-##############
-## Create fileset src
-if {[string equal [get_filesets -quiet sources_1] ""]} {
-  create_fileset -srcset sources_1
-}
-set sources [get_filesets sources_1]
 
-## Set synthesis TOP
-if [file exists $synth_top_file.v] {
-    Info CreateProject 0 "Adding top file found in Top folder $synth_top_file.v" 
-    add_files -norecurse -fileset $sources $synth_top_file.v
-} elseif [file exists $synth_top_file.vhd] {
-    Info CreateProject 0 "Adding top file found in Top folder $synth_top_file.vhd" 
-    add_files -norecurse -fileset $sources $synth_top_file.vhd
+## BUILD_DIR=VivadoProject if vivado or QuartusProject if quartus or Project if tclshell
+if {[info commands send_msg_id] != ""} {
+    #Vivado only
+	set BUILD_DIR_NAME "VivadoProject"
+}  elseif {[info commands project_new] != ""} {
+	#QUARTUS only
+	set BUILD_DIR_NAME "QuartusProject"
 } else {
-    Info CreateProject 0 "No top file found in Top folder, please make sure that the top file - i.e. containing a module called $synth_top_module - is included in one of the libraries"     
-}
-    
-set_property "top" $synth_top_module $sources
-
-
-###############
-# CONSTRAINTS #
-###############
-# Create 'constrs_1' fileset (if not found)
-if {[string equal [get_filesets -quiet constrs_1] ""]} {
-  create_fileset -constrset constrs_1
+    set BUILD_DIR_NAME "Project"
 }
 
-# Set 'constrs_1' fileset object
-set constraints [get_filesets constrs_1]
 
 
-##############
-# READ FILES #
-##############
-set list_files [glob -directory $list_path "*"]
 
-foreach f $list_files {
-    # IF LIST IS EXTERNAL path is external
-    if {[string first ".ext" [file ext $f]] != -1} {
-        SmartListFile $f $env(HOG_EXTERNAL_PATH)
-    } else {
-        SmartListFile $f $top_path
-    }
-}
+#Derived varibles from now on...
+set globalSettings::pre_synth_file   "pre-synthesis.tcl"
+set globalSettings::post_synth_file  ""
+set globalSettings::post_impl_file   "post-implementation.tcl"
+set globalSettings::post_bit_file    "post-bitstream.tcl"
+set globalSettings::tcl_path         [file normalize "[file dirname [info script]]"]
+set globalSettings::repo_path        [file normalize "$globalSettings::tcl_path/../../"]
+set globalSettings::top_path         "$globalSettings::repo_path/Top/$DESIGN"
+set globalSettings::list_path        "$globalSettings::top_path/list"
+set globalSettings::BUILD_DIR        "$globalSettings::repo_path/$BUILD_DIR_NAME/$DESIGN"
+set globalSettings::modelsim_path    "$globalSettings::repo_path/SimulationLib"
+set globalSettings::top_name          [file root $globalSettings::DESIGN]
+set globalSettings::synth_top_module "top_$globalSettings::top_name"
+set globalSettings::synth_top_file   "$globalSettings::top_path/top_$globalSettings::DESIGN"
+set globalSettings::user_ip_repo     "$globalSettings::repo_path/IP_repository"
 
+
+set globalSettings::pre_synth  [file normalize "$globalSettings::tcl_path/integrated/$globalSettings::pre_synth_file"]
+set globalSettings::post_synth [file normalize "$globalSettings::tcl_path/integrated/$globalSettings::post_synth_file"]
+set globalSettings::post_impl  [file normalize "$globalSettings::tcl_path/integrated/$globalSettings::post_impl_file"]
+set globalSettings::post_bit   [file normalize "$globalSettings::tcl_path/integrated/$globalSettings::post_bit_file"]
+
+
+CreateProject
+
+configureSynth
+configureImpl
+configureSimulation
+configureProperties
+upgradeIP
 
 ##############
 #    RUNS    #
 ##############
 
-### SYNTH ###
-
-## Create 'synthesis ' run (if not found)
-if {[string equal [get_runs -quiet synth_1] ""]} {
-    create_run -name synth_1 -part $FPGA -flow $SYNTH_FLOW -strategy $SYNTH_STRATEGY -constrset constrs_1
-} else {
-    set_property strategy $SYNTH_STRATEGY [get_runs synth_1]
-    set_property flow $SYNTH_FLOW [get_runs synth_1]
-}
-
-set obj [get_runs synth_1]
-set_property "part" $FPGA $obj
-## set pre synthesis script
-if {$pre_synth_file ne ""} { 
-    set_property STEPS.SYNTH_DESIGN.TCL.PRE $pre_synth $obj
-}
-## set post synthesis script
-if {$post_synth_file ne ""} { 
-    set_property STEPS.SYNTH_DESIGN.TCL.POST $post_synth $obj
-}
-## set the current synth run
-current_run -synthesis $obj
-
-## Report Strategy
-if {[string equal [get_property -quiet report_strategy $obj] ""]} {
-    # No report strategy needed
-    Info CreateProject 0 "No report strategy needed for syntesis"
-    
-} else {
-    # Report strategy needed since version 2017.3
-    set_property -name "report_strategy" -value "Vivado Synthesis Default Reports" -objects $obj
-
-    set reports [get_report_configs -of_objects $obj]
-    if { [llength $reports ] > 0 } {
-	delete_report_config [get_report_configs -of_objects $obj]
-    }
-}
-
-
-### IMPL_1 ###
-# Create 'impl_1' run (if not found)
-if {[string equal [get_runs -quiet impl_1] ""]} {
-    create_run -name impl_1 -part $FPGA -flow $IMPL_FLOW -strategy $IMPL_STRATEGY -constrset constrs_1 -parent_run synth_1
-} else {
-    set_property strategy $IMPL_STRATEGY [get_runs impl_1]
-    set_property flow $IMPL_FLOW [get_runs impl_1]
-}
-
-set obj [get_runs impl_1]
-set_property "part" $FPGA $obj
-
-set_property "steps.write_bitstream.args.readback_file" "0" $obj
-set_property "steps.write_bitstream.args.verbose" "0" $obj
-
-## set binfile production
-if {$bin_file == 1} {
-    set_property "steps.write_bitstream.args.bin_file" "1" $obj
-} else {
-   set_property "steps.write_bitstream.args.bin_file" "0" $obj
-}
-
-## set post routing script
-if {$post_impl_file ne ""} { 
-    set_property STEPS.ROUTE_DESIGN.TCL.POST $post_impl $obj
-}
-## set post write bitstream script
-if {$post_bit_file ne ""} { 
-    set_property STEPS.WRITE_BITSTREAM.TCL.POST $post_bit $obj
-}
-## Report Strategy
-if {[string equal [get_property -quiet report_strategy $obj] ""]} {
-    # No report strategy needed
-    Info CreateProject 1 "No report strategy needed for implementation"
-    
-} else {
-    # Report strategy needed since version 2017.3
-    set_property -name "report_strategy" -value "Vivado Implementation Default Reports" -objects $obj
-
-    set reports [get_report_configs -of_objects $obj]
-    if { [llength $reports ] > 0 } {
-	delete_report_config [get_report_configs -of_objects $obj]
-    }
-
-    # Create 'impl_1_route_report_timing_summary' report (if not found)
-    if { [ string equal [get_report_configs -of_objects [get_runs impl_1] $DESIGN\_impl_1_route_report_timing_summary] "" ] } {
-	create_report_config -report_name $DESIGN\_impl_1_route_report_timing_summary -report_type report_timing_summary:1.0 -steps route_design -runs impl_1
-    }
-    set obj [get_report_configs -of_objects [get_runs impl_1] $DESIGN\_impl_1_route_report_timing_summary]
-    if { $obj != "" } {
-	Info CreateProject 1 "Report timing created successfully"	
-    }
-
-    # Create 'impl_1_route_report_utilization' report (if not found)
-    if { [ string equal [get_report_configs -of_objects [get_runs impl_1] $DESIGN\_impl_1_route_report_utilization] "" ] } {
-	create_report_config -report_name $DESIGN\_impl_1_route_report_utilization -report_type report_utilization:1.0 -steps route_design -runs impl_1
-    }
-    set obj [get_report_configs -of_objects [get_runs impl_1] $DESIGN\_impl_1_route_report_utilization]
-    if { $obj != "" } {
-	Info CreateProject 1 "Report utilization created successfully"	
-    }
-}
-
-##############
-# SIMULATION #
-##############
-Info CreateProject 3 "Setting load_glbl parameter to false for every fileset..."
-foreach f [get_filesets -quiet *_sim] {
-    set_property -name {xsim.elaborate.load_glbl} -value {false} -objects $f
-}
-
-##################
-# RUN PROPERTIES #
-##################
-if [info exists PROPERTIES] {
-    foreach run [get_runs -quiet] {
-	if [dict exists $PROPERTIES $run] {
-	    Info CreateProject 1 "Setting properties for run: $run..."
-	    set run_props [dict get $PROPERTIES $run]
-	    dict for {prop_name prop_val} $run_props {
-		Info CreateProject 1 "Setting $prop_name = $prop_val"
-		set_property $prop_name $prop_val $run
-	    }
-	}
-    }
-}
-
-
-
-
-# set the current impl run
-current_run -implementation [get_runs impl_1]
-
-
-##############
-# UPGRADE IP #
-##############
-Info CreateProject 4 "Upgrading IPs if any..."
-set ips [get_ips *]
-if {$ips != ""} {
-    upgrade_ip $ips
-}
-
-
-Info CreateProject 5 "Project $DESIGN created succesfully"
+Msg Info "Project $DESIGN created succesfully"

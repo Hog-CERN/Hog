@@ -1,0 +1,53 @@
+include:
+    - project: 'hog/Hog'
+      file: '/gitlab-ci.yml'
+      ref: 'v0.0.4' # if not specified would use the master branch
+      
+#################### example ###########################
+### Change 'example' with your project name
+
+create_project:example:
+    extends: .create_project
+    variables:
+      extends: .vars
+      PROJECT_NAME: example
+
+synthesise_ips:example:
+    extends: .synthesise_ips
+    variables:
+      extends: .vars
+      PROJECT_NAME: example
+      IP_PATH: IP # Local path to IP in project
+      BD_PATH: BD # Local path for BD in project
+    dependencies:
+        - create_project:example
+
+synthesise_project:example:
+    extends: .synthesise_project
+    variables:
+      extends: .vars
+      PROJECT_NAME: example
+    dependencies:
+        - synthesise_ips:example
+        - create_project:example
+
+implement_project:example:
+    extends: .implement_project
+    variables:
+      extends: .vars
+      PROJECT_NAME: example
+    dependencies:
+       - create_project:example
+       - synthesise_ips:example
+       - synthesise_project:example
+
+write_bitstream:example:
+    extends: .write_bitstream
+    variables:
+      extends: .vars
+      PROJECT_NAME: example
+    dependencies:
+       - create_project:example
+       - synthesise_ips:example
+       - synthesise_project:example
+       - implement_project:example

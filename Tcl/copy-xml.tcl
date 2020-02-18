@@ -15,12 +15,14 @@ set dst       [lindex $argv 1]
 
 if {[file exists $list_file]} {
     if ![file exists $dst] {
-	Warning CopyXML 0 "$dst directory not found, creating it..."
+	Msg Warning "$dst directory not found, creating it..."
 	file mkdir $dst
     }
 } else {
-    Error CopyXML 0 "$list_file not found"
+    Msg Error "$list_file not found"
     exit
 }
-lassign [GetXMLVer $list_file $tcl_path] ver sha
+lassign [GetVer $list_file $tcl_path] hex_ver sha
+
+set ver [HexVersionToString $hex_ver]
 CopyXMLsFromListFile $list_file $tcl_path $dst $ver $sha

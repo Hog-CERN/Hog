@@ -140,7 +140,7 @@ proc  SetParameter {parameter value } {
 }
 ########################################################
 proc add_top_file {top_module top_file sources} {
-	if {info commands launch_chipscope_analyzer] != ""} {
+	if {[info commands launch_chipscope_analyzer] != ""} {
 		#VIVADO_ONLY
 		add_files -norecurse -fileset $sources $top_file
 		set_property "top" $globalSettings::synth_top_module $sources
@@ -430,7 +430,7 @@ proc configureProperties {} {
 		##################
 		# RUN PROPERTIES #
 		##################
-		if [info exists $globalSettings::PROPERTIES] {
+		if [info exists globalSettings::PROPERTIES] {
 			foreach run [get_runs -quiet] {
 			if [dict exists $globalSettings::PROPERTIES $run] {
 				Msg Info "Setting properties for run: $run..."
@@ -692,7 +692,7 @@ proc ReadListFile {list_file path lib src {no_add 0}} {
 				set vhdlfile [file normalize $vhdlfile]
 				set extension [file ext $vhdlfile]
 				if { [lsearch {.src .sim .con .sub} $extension] >= 0 } {
-					Info ReadListFile 1 "List file $vhdlfile found in list file, recoursively opening it..."
+					Msg Info "List file $vhdlfile found in list file, recoursively opening it..."
 					    lassign [SmartListFile $vhdlfile $path $no_add] l p
 					set libraries [dict merge $l $libraries]
 					set properties [dict merge $p $properties]		    

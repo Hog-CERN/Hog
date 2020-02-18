@@ -39,7 +39,7 @@ else
   PROJ_DIR="../Top/"$PROJ
 fi
 
-TCL_FIRST_LINE=$(head -1 $PROJ_DIR"/"$PROJ".tcl)
+TCL_FIRST_LINE=$(head -1 $PROJ_DIR"/"$PROJ".tcl")
 
 if [[ $TCL_FIRST_LINE =~ 'vivado' ]];
 then

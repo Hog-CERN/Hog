@@ -37,15 +37,10 @@ if { [get_ips *] != ""} {
 	    } else {
 		set ret -1
 	    }
-
-#	    if {$ret == 0} {
-#		Msg Info "Will not run for $ip beacuse it was found on $ip_path and it was copied from there."
-#	    } else { 
-		Msg Info "Adding run for $ip..."
-		set run_name [get_runs $ip\_synth_1]
-		reset_run $run_name
-		lappend runs $run_name
-#	    }
+	    Msg Info "Adding run for $ip..."
+	    set run_name [get_runs $ip\_synth_1]
+	    reset_run $run_name
+	    lappend runs $run_name
 	} else {
 	    Msg Warning "No run found for $ip."
 	}

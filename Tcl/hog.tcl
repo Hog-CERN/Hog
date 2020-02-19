@@ -1362,7 +1362,9 @@ proc ForceUpToDate {} {
 
 ## Copy IP generated files from/to an EOS repository
 # Arguments:\n
-# ... 
+# - what_to_do: can be "push", if you want to copy the local IP synth result to eos or "pull" if you want to copy the files from eos to your local repository
+# - xci_fil: the local IP xci file
+# - ip_path: the path of directory you want the IP to be saved on eos
 
 proc HandleIP {what_to_do xci_file ip_path} {
     if {!($what_to_do eq "push") && !($what_to_do eq "pull")} {

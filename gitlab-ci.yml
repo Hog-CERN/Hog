@@ -70,6 +70,7 @@ stages:
     variables:
         <<: *vars    
     script:
+        - until echo $HOG_PASSWORD | kinit $HOG_USER ; do echo "Retrying"; sleep 2; done
         - vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_ip_synth.tcl -tclargs $PROJECT_NAME
     artifacts:
         name: vivado_runs

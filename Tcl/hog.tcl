@@ -1359,3 +1359,61 @@ proc ForceUpToDate {} {
     }
 }
 ########################################################
+
+## Copy IP generated files from/to an EOS repository
+# Arguments:\n
+# ... 
+
+proc HandleIP {what_to_do xci_file ip_path} {
+    if {!($what_to_do eq "push") && !($what_to_do eq "pull")} {
+	Msg Error "You must specify push or pull as first argument."
+    }
+    
+    set ip_path_path [file normalize $ip_path/..]
+    if  {[catch {exec eos ls $ip_path_path} result]} {
+	Msg CriticalWarning "Could not find mother directory for $ip_path: $ip_path_path."
+	return -1
+    } else {
+	if  {[catch {exec eos ls $ip_path} result]} {
+	    Msg Info "IP repostory path on eos does not exist, creating it now..."
+	    exec eos mkdir $ip_path
+	} else {
+	    Msg Info "IP repostory path on eos is set to: $ip_path"
+	}
+    }
+    
+    if !([file exists $xci_file]) {
+	Msg CriticalWarning "Could not find $xci_file."
+	return -1
+    }
+    
+    set xci_path [file dir $xci_file]
+    set xci_name [file tail $xci_file]
+    set xci_dir_name [file tail $xci_path]
+    
+    set hash [lindex [exec md5sum $xci_file] 0]
+    set file_name $xci_name\_$hash
+    
+    
+    if {$what_to_do eq "push"} {
+	if  {[catch {exec eos ls $ip_path/$file_name} result]} {
+	    Msg Info "Copying synthesised files for $xci_name..."
+	    exec -ignorestderr eos cp -r $xci_path $ip_path
+	    exec eos mv $ip_path/$xci_dir_name $ip_path/$file_name
+	} else {
+	    Msg Info "IP already in the repository, will not copy..."
+	}
+    } elseif {$what_to_do eq "pull"} {
+	if  {[catch {exec eos ls $ip_path/$file_name} result]} {
+	    Msg Info "Nothing for $xci_name was found in the repository, cannot pull."
+	    return -1
+	    
+	} else {
+	    Msg Info "IP found in the repository, copying it locally..."
+	    exec -ignorestderr eos cp -r $ip_path/$file_name/* $xci_path
+	} 
+    }
+    
+    return 0   
+}
+########################################################

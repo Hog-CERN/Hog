@@ -30,6 +30,7 @@ set globalSettings::SYNTH_FLOW $::SYNTH_FLOW
 set globalSettings::IMPL_STRATEGY $::IMPL_STRATEGY
 set globalSettings::IMPL_FLOW $::IMPL_FLOW
 set globalSettings::DESIGN $::DESIGN
+set globalSettings::SIMULATOR $::SIMULATOR
 
 
 if {[info exist ::bin_file]} { 
@@ -48,7 +49,7 @@ if {[info commands send_msg_id] != ""} {
 	set BUILD_DIR_NAME "VivadoProject"
 }  elseif {[info commands project_new] != ""} {
 	#QUARTUS only
-	set BUILD_DIR_NAME "QuartusProject"
+	set   "QuartusProject"
 } else {
     set BUILD_DIR_NAME "Project"
 }

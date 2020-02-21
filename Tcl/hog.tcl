@@ -180,11 +180,8 @@ proc CreateProject {} {
         set_property "target_language" "VHDL" $obj
         set_property "compxlib.modelsim_compiled_library_dir" $globalSettings::modelsim_path $obj
         set_property "default_lib" "xil_defaultlib" $obj
-        if {[string equal $globalSettings::SIMULATOR ""]} {
-            set_property "target_simulator" "ModelSim" $obj
-        } else {
-            set_property "target_simulator" $globalSettings::SIMULATOR $obj
-        }
+        set_property "target_simulator" $globalSettings::SIMULATOR $obj
+        
         ## Enable VHDL 2008
         set_param project.enableVHDL2008 1
         set_property "enable_vhdl_2008" 1 $obj

@@ -33,7 +33,7 @@ if { [get_ips *] != ""} {
     foreach ip $ips {
 	if { [get_runs $ip\_synth_1] != "" } {
 	    if {($ip_path != 0)} {
-		set ret [HandleIP pull [get_property IP_FILE $ip] $ip_path]
+		set ret [HandleIP pull [get_property IP_FILE $ip] $ip_path $main_folder]
 	    } else {
 		set ret -1
 	    }
@@ -48,6 +48,8 @@ if { [get_ips *] != ""} {
     
     set jobs 4
 }
+set failure 0
+
 if [info exists runs] {
     foreach run_name $runs {
 	Msg Info "Launching $run_name..."
@@ -58,21 +60,20 @@ if [info exists runs] {
 	    set running [lreplace $running 0 0]
 	}
     }
-}
-while {[llength $running] > 0} {
-    Msg Info "Checking [lindex $running 0]..."
-    wait_on_run [get_runs [lindex $running 0]]
-    set running [lreplace $running 0 0]
-}
-if { $runs != "" } { 
-    foreach run_name $runs {
-    set prog [get_property PROGRESS $run_name]
-	set status [get_property STATUS $run_name]
-	Msg Info "Run: $run_name progress: $prog, status : $status"
-	if {$prog ne "100%"} {
-	    set failure 1
-	} else {
-	    set failure 0
+
+    while {[llength $running] > 0} {
+	Msg Info "Checking [lindex $running 0]..."
+	wait_on_run [get_runs [lindex $running 0]]
+	set running [lreplace $running 0 0]
+    }
+    if { $runs != "" } { 
+	foreach run_name $runs {
+	    set prog [get_property PROGRESS $run_name]
+	    set status [get_property STATUS $run_name]
+	    Msg Info "Run: $run_name progress: $prog, status : $status"
+	    if {$prog ne "100%"} {
+		set failure 1
+	    }
 	}
     }
 }
@@ -84,7 +85,7 @@ if {$failure eq 1} {
 if {($ip_path != 0)} {
     Msg Info "Coying synthesised IPs to $ip_path..."
     foreach ip $ips {
-	HandleIP push [get_property IP_FILE $ip] $ip_path
+	HandleIP push [get_property IP_FILE $ip] $ip_path $main_folder
     }
 }
 

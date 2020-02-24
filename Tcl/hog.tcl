@@ -143,7 +143,7 @@ proc add_top_file {top_module top_file sources} {
 	if {[info commands launch_chipscope_analyzer] != ""} {
 		#VIVADO_ONLY
 		add_files -norecurse -fileset $sources $top_file
-	} elseif {info commands project_new] != ""} {
+	} elseif {[info commands project_new] != ""} {
 		#QUARTUS ONLY
 		set file_type [FindFileType $top_file]
 		set hdl_version [FindVhdlVersion $top_file]
@@ -158,7 +158,7 @@ proc SetTopProperty {top_module sources} {
 	if {[info commands launch_chipscope_analyzer] != ""} {
 		#VIVADO_ONLY
 		set_property "top" $top_module $sources
-	} elseif {info commands project_new] != ""} {
+	} elseif {[info commands project_new] != ""} {
 		#QUARTUS ONLY
 		set_global_assignment -name TOP_LEVEL_ENTITY $top_module
 	}

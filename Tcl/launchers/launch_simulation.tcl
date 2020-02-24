@@ -60,6 +60,10 @@ foreach s [get_filesets] {
                     lappend sim_scripts $sim_script
                 } 
             } else { #Default is modelsim
+            	set_property "target_simulator" "modelsim" [current_project]
+            	Msg Info "Creating simulation scripts for $s..."
+                current_fileset -simset $s
+                set sim_dir $main_folder/$s/behav
                 launch_simulation -scripts_only -simset [get_filesets $s]
                 set top_name [get_property TOP $s]
                 #set sim_script  [file normalize $sim_dir/$simulator/$top_name.sh] 

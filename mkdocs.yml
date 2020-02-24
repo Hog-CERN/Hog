@@ -13,5 +13,6 @@ theme:
         - 'Maintainer Manual': 03-Maintainer-Manual/index.md
         - 'Contributing':  99-Contributing/index.md
         #- 'MkDocs official documentation': https://www.mkdocs.org/
+      logo: 'assets/images/favicon.png'
 markdown_extensions:
   - footnotes

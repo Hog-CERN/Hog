@@ -26,7 +26,7 @@ if !([file exists $lib_path]) {
 
 Msg Info "Opening project $project..."
 open_project ../../VivadoProject/$project/$project.xpr
-# set_property "compxlib.modelsim_compiled_library_dir" $lib_path [current_project]
+set_property "compxlib.modelsim_compiled_library_dir" $lib_path [current_project]
 Msg Info "Retrieving list of simulation sets..."
 
 foreach s [get_filesets] {

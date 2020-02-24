@@ -43,7 +43,7 @@ stages:
      variables:
         <<: *vars
      script:
-      - "if [ -z ${HOG_SIMULATION_LIB_PATH+x} ]; then echo 'Simulation library path is not defined'; elif [ $SIMULATOR == 'vivadosim' ]; then vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_vivado_simulation.tcl -tclargs $PROJECT_NAME $HOG_SIMULATION_LIB_PATH; else vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_simulation.tcl -tclargs $PROJECT_NAME $HOG_SIMULATION_LIB_PATH; fi"
+      - "if [ -z ${HOG_SIMULATION_LIB_PATH+x} ]; then echo 'Simulation library path is not defined'; else vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_simulation.tcl -tclargs $PROJECT_NAME $HOG_SIMULATION_LIB_PATH; fi"
      artifacts:
        name: vivado_projects
        paths:

@@ -46,20 +46,32 @@ then
     VIVADO=`which vivado`
     if [ `which vsim` ]
     then
-	echo
-	read -p "Do you want to compile Questasim libraries (this might take some time)? " -n 1 -r
-	echo  
-	if [[  "${REPLY}" =~ ^[Yy]$ ]]
-	then
-	    echo [hog init] Compiling Modelsim libraries into ../ModelsimLib...
-	    "${VIVADO}" -mode batch -notrace -source ./Tcl/compile_library.tcl
-	    rm -f ./Tcl/.cxl.questasim.version
-	    rm -f ./Tcl/compile_simlib.log
-	    rm -f ./Tcl/modelsim.ini
-	fi
+		echo
+		read -p "Do you want to compile Questasim libraries (this might take some time)? " -n 1 -r
+		echo  
+		if [[  "${REPLY}" =~ ^[Yy]$ ]]
+			then
+	    	echo [hog init] Compiling Questasim libraries into ../SimulationLib...
+	    	"${VIVADO}" -mode batch -notrace -source ./Tcl/compile_questalib.tcl
+	    	rm -f ./Tcl/.cxl.questasim.version
+	    	rm -f ./Tcl/compile_simlib.log
+	    	rm -f ./Tcl/modelsim.ini
+		else
+			read -p "Do you want to compile Modelsim libraries (this might take some time)? " -n 1 -r
+    		echo  
+		    if [[  "${REPLY}" =~ ^[Yy]$ ]]
+		    then
+        		echo [hog init] Compiling Modelsim libraries into ../SimulationLib...
+		        "${VIVADO}" -mode batch -notrace -source ./Tcl/compile_modelsimlib.tcl
+        		rm -f ./Tcl/.cxl.modelsim.version
+		        rm -f ./Tcl/compile_simlib.log
+		        rm -f ./Tcl/modelsim.ini
+    		fi
+		fi
     else
-	echo [hog init] "WARNING: No modelsim executable found, will not compile libraries"
-    fi
+		echo [hog init] "WARNING: No modelsim executable found, will not compile libraries" 
+	fi
+
     echo
     read -p "Do you want to create projects now (can be done later with CreateProject.sh)? " -n 1 -r
     echo    # (optional) move to a new line

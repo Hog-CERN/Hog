@@ -9,7 +9,6 @@ before_script:
     - git checkout $CI_COMMIT_REF_NAME
     - git submodule init
     - git submodule update
-#    - ./Hog/Ignore_ip_xml.sh
     - export XILINXD_LICENSE_FILE=${HOG_XIL_LICENSE}
     - export PATH=${HOG_PATH}:$PATH
 
@@ -31,11 +30,25 @@ before_script:
 stages:
     - merge
     - creation
+    - simulation
     - ip
     - synthesis
     - implementation
     - bitstream    
     - doxygen
+
+.simulate_project: &simulate_project
+     <<: *only-default
+     stage: simulation
+     variables:
+        <<: *vars
+     script:
+      - "if [ -z ${HOG_SIMULATION_LIB_PATH+x} ]; then echo 'Simulation library path is not defined'; else vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_simulation.tcl -tclargs $PROJECT_NAME $HOG_SIMULATION_LIB_PATH; fi"
+     artifacts:
+       name: vivado_projects
+       paths:
+         - $CI_PROJECT_DIR/VivadoProject/$PROJECT_NAME/$PROJECT_NAME.sim
+       expire_in: 30 day
 
 .create_project: &create_project
      <<: *only-default

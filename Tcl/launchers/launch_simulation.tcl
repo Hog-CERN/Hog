@@ -67,7 +67,7 @@ foreach s [get_filesets] {
                 launch_simulation -scripts_only -simset [get_filesets $s]
                 set top_name [get_property TOP $s]
                 #set sim_script  [file normalize $sim_dir/$simulator/$top_name.sh] 
-                set sim_script  [file normalize $sim_dir/$simulator/] 
+                set sim_script  [file normalize $sim_dir/modelsim/] 
                 Msg Info "Adding simulation script location $sim_script for $s..."
                 lappend sim_scripts $sim_script
             } 

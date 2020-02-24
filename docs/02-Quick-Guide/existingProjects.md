@@ -15,6 +15,7 @@ This is a recap of the requirements:
 - Optionally have Questasim installed and vsim in the PATH
 
 We recommend that you read all of this section as it contains all you need to know to start working straight away without having to waste time later on.
+
 We also suggest that you learn git basics, there is plenty of useful resources online. This will ensure a fruitful usage of a very powerful tool and heavily reduce your frustration.
 
 ## Cloning the repository
@@ -62,19 +63,23 @@ We said almost normally because there is one exception: you **must not** add a n
 [^3]: If you add the file normally, your project will work locally, of course. Also, if you add the file with `git add` the new file will also be correctly stored in the repository remotely . The new file will not be part of the project remotely, this is why you have to follow the instractions explained in the following paragraph to assure that everything you do locally is correctly propagated remotely.
 
 ## Adding or renaming a file to the project
-Let's now suppose that you want to add a new file to the project and that this file is lpacated in *repo*/*dir1*/ and is called *file1.hdl*. Let's also assume that you know how to add a new file to a git repository, so we will just explain what to do as far as Hog is concerned.
+Let's now suppose that you want to add a new file to the project and that this file is loacated in *repo*/*dir1*/ and is called *file1.hdl*. Let's also assume that you know how to add a new file to a git repository (`git add <file name>; git commit -m "add new file"; git push`) and focus on Hog.
 
-This is a new file, unkown to Hog for now, but we want it to be included into the project then next time that we run the CreateProject.sh script described above. To do this, we must add the file name and path of *file1.vhd* into a Hog list file. These list files are located in *repo*/Top/*project1*/list/. Let's assume that the source file we want to add our file to is *lib1.src*.
+This is a new file, unkown to Hog for now, and we want it to be included into the project then next time that we run the CreateProject.sh script described above. To do this, you must add the file name and path of *file1.vhd* into a Hog list file. The list files are located in *repo*/Top/*project1*/list/. Let's assume that the list file you want to add our file to is *lib1.src*.
 
 Open the file with a text editor and add the file name and path in a new line. Please make the path relative to the list directory so in our case it should be ../../*dir1*/*file1.vhd*.
 
-This is typically easier than it seems, beacuse you can look at the other files listed in the src file and do exactly the same.
+This is typically easier than it seems, beacuse you can look at how the path of the other files listed in the src file is specified.
 
-Now that the new file is included in a list file, you can close the Vivado/Quartus project and re create it by typing `./Hog/CreateProject.sh <project name>` again. You will have to do this every time you add a new file to ther project. It seems like a lot of work but it actually happens quite rarely in the work process, most of the time you just modify existing files, in whichd case you don't have to do any of this.
+Now that the new file is included in a list file, you can close the Vivado/Quartus project and re-create it by typing `./Hog/CreateProject.sh <project name>` again.
 
-This procedure is valid for any kind of source file, if your file is a constraint file, just add it to a .con file in the list directory.
+Yes, you will have to do this every time you add a new file to ther project. It seems like a lot of work, but it's actually quite rare in the work process, most of the time you just modify existing files, in which case you don't have to do any of this.
 
-If you need to rename a file, do so (also on git) and then change the name in the proper list file accordingly.
+This procedure is valid for any kind of source file, if your file is a constraint file, just add it to a .con list file in the list directory.
+
+If you need to rename a file, do so (also on git `git mv <old_name> <new_name>; git commit -m "Renamed that file"; git push) and change the name in the proper list file accordingly.
+
+If you do something wrong (e.g. you add a name of a non-existing file, create a list file with an invalid extension, etc.) you will get an error when you run the CreateProject script. In this case read Hog's error message and try to fix it, hopefully it's just a typo.
 
 ### Adding a new IP 
 If you want to add a new IP core, please create it in out of context mode and save the .xci file (and only that one!) it in the repository in *repo*/IP/*ip_name*/*ip_name*.xci. Yes, the name of the folder must be the same as the xci file.

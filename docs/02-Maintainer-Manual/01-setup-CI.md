@@ -1,7 +1,5 @@
-# HOG-ci: setup
+# How to setup Hog-CI:
 How to setup Hog Continuous Itegraion on Gitlab
-
-[Back to Hog](../README.md)
 
 ## Openstack Virtual Machine setup
 ### Service account

@@ -24,4 +24,5 @@ markdown_extensions:
   - footnotes
 theme:
       name: material
-      logo: 'assets/images/favicon.png'
+      logo: 'custom/assets/images/favicon.png'
+      custom_dir: docs/custom/

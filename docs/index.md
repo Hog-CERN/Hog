@@ -1,6 +1,5 @@
-
  <div style='text-align:center'>
-   <img src="logos/_hog.png" style="height:50px">
+   <img src="assets/images/favicon.png" style="height:50px">
  </div>
  <div style='text-align:center'>
    <b style='color:black;font-size:50px'> 

@@ -42,7 +42,7 @@ To guarantee binary file traceability, we link it permanently to a specific git 
 
 Here you can find a simple user manual on the HDL On Git (HOG) tools.
 
-If you want to contribute to the project please read the [Contributing](../99-Contributing/index.md) section.
+If you want to contribute to the project please read the [Contributing](../03-Contributing) section.
 
 ## Contacts
 

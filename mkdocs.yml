@@ -8,11 +8,10 @@ theme:
       name: material
       nav:
         - 'Introduction': index.md
-        - 'Getting Started': 01-Getting-Started/index.md
-        - 'Quick Guide': 02-Quick-Guide/index.md
-        - 'Maintainer Manual': 03-Maintainer-Manual/index.md
-        - 'Contributing':  99-Contributing/index.md
-        #- 'MkDocs official documentation': https://www.mkdocs.org/
+        - 'Getting Started': 01-Getting-Started
+        - 'Maintainer Manual': 02-Maintainer-Manual
+        - 'Contributing':  03-Contributing
+        - 'MkDocs official documentation': https://www.mkdocs.org/
       logo: 'assets/images/favicon.png'
 markdown_extensions:
   - footnotes

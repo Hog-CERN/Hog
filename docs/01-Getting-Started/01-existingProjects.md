@@ -1,6 +1,6 @@
 # Working with an existing HDL project
 
-In this section we describe how to get up to speed to work in a repository that is already [set up](./setupNewHogProject.md) with Hog.
+In this section we describe how to get up to speed to work in a repository that is already [set up](./03-setupNewHogProject.md) with Hog.
 
 All the instructions below can be executed both on a LINUX shell, or on git bash[^1] on a Windows machine.
 

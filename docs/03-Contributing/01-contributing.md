@@ -1,4 +1,3 @@
-
 # Contributing 
 
 ## Contributing to Hog
@@ -64,7 +63,7 @@ If you want to contribute to Hog please follow these instructions:
 	cd path_to_workdir/TestFirmware/Hog/
 	git push
 	```
-13. push your chengs on the TestFirmware repository
+13. push your changes on the TestFirmware repository
 	```console
 	cd path_to_workdir/TestFirmware/
 	git push --set-upstream origin feature/<issue_short_name>

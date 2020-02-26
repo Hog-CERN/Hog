@@ -27,14 +27,16 @@ To obtain this you can run the following commands in the root folder of your rep
 ```console
 	
 	git submodule add https://gitlab.cern.ch/hog/Hog.git
-	git config --file=.gitmodules submodule.Hog.branch vX.Y.Z
-	git submodule sync
-	git submodule update --init --recursive --remote
-	git config --file=.gitmodules submodule.Hog.url ../../hog/Hog.git
+	git config --file=.gitmodules submodule.Hog.branch <branch_to_track>
+	git config --file=.gitmodules submodule.Hog.url ../hog/Hog.git
 	git submodule sync
 	git submodule update --init --recursive --remote
 
 ```
+
+Please note `../hog/Hog.git` must be replaced with the correct relative path for your repository. 
+Git will give you an error on `git submodule update --init --recursive --remote` if this path is not properly set.
+
 
 ## library_X directories
 

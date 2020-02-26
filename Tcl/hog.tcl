@@ -633,15 +633,24 @@ proc FindFileType {file_name} {
 		.sv {
 			set file_extension "SYSTEMVERILOG_FILE"
 		}
+    .sdc {
+      set file_extension "SDC_FILE"
+    }
+    .qsf {
+      set file_extension "SOURCE_FILE"
+    }
 		.ip {
 			set file_extension "IP_FILE"
 		}
+    .qip {
+			set file_extension "QIP_FILE"
+    }
 		.ip {
 			set file_extension "COMMAND_MACRO_FILE"
 		}
 		default {
 			set file_extension "ERROR"	
-			Error FindFileType 0 "Unknown file extension $extension"
+			Msg Error "Unknown file extension $extension"
 		}
 	}
 

@@ -65,7 +65,7 @@ proc Msg {level msg {title ""}} {
 	set qlevel warning	
     } elseif {$level == 3 || [string first "critical" $level] !=-1} {
 	set vlevel {CRITICAL WARNING}
-	set qlevel critial_warning
+	set qlevel critical_warning
     } elseif {$level == 4 || $level == "error"} {
 	set vlevel {ERROR}
 	set qlevel "error"

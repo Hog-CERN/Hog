@@ -7,7 +7,13 @@ if [ "$1" == "-h" ] || [ "$1" == "-help" ] || [ "$1" == "--help" ] || [ "$1" == 
   echo
   echo " Hog - Create HDL project"
   echo " ---------------------------"
-  echo " Create the secified Vivado or Quartus project"
+  echo " Create the specified Vivado or Quartus project"
+  echo " The project type is selected using the first line of the tcl script generating the project"
+  echo " Following options are available: "
+  echo " #vivado "
+  echo " #vivadoHLS "
+  echo " #quartus "
+  echo " #quartusHLS "
   echo
   echo " Usage: $0 <project name>"
   echo

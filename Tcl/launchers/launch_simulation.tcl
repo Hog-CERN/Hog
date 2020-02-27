@@ -29,6 +29,8 @@ open_project ../../VivadoProject/$project/$project.xpr
 set_property "compxlib.modelsim_compiled_library_dir" $lib_path [current_project]
 Msg Info "Retrieving list of simulation sets..."
 
+set errors 0
+
 foreach s [get_filesets] {
     set type [get_property FILESET_TYPE $s]
     if {$type eq "SimulationSrcs"} {
@@ -50,7 +52,10 @@ foreach s [get_filesets] {
                 current_fileset -simset $s
                 set sim_dir $main_folder/$s/behav
                 if { ($simulator eq "xsim") } {
-                    launch_simulation -simset [get_filesets $s]
+                    if { [catch { launch_simulation -simset [get_filesets $s] } log] } {
+                        Msg CriticalWarning "Simulation failed for $s, error info: $::errorInfo"
+                        incr errors
+                    }
                 } else {
                     launch_simulation -scripts_only -simset [get_filesets $s]
                     set top_name [get_property TOP $s]
@@ -83,40 +88,39 @@ foreach ip [get_ips] {
     generate_target simulation $ip
 }
 
-set errors 0
 if [info exists sim_scripts] {
     foreach s $sim_scripts {
-    #cd [file dir $s]
-    #set cmd ./[file tail $s]
-    cd $s
-    set cmd ./compile.sh
-    Msg Info "Compiling: $cmd..."
+        #cd [file dir $s]
+        #set cmd ./[file tail $s]
+        cd $s
+        set cmd ./compile.sh
+        Msg Info "Compiling: $cmd..."
 
-    if { [catch { exec $cmd } log] } {
-        Msg CriticalWarning "Compilation failed for $s, error info: $::errorInfo"
-        incr errors
-    }
-    Msg Info "Compilation log starts:"
-    Msg Status "\n\n$log\n\n"
-    Msg Info "Compilation log ends"
+        if { [catch { exec $cmd } log] } {
+            Msg CriticalWarning "Compilation failed for $s, error info: $::errorInfo"
+            incr errors
+        }
+        Msg Info "Compilation log starts:"
+        Msg Status "\n\n$log\n\n"
+        Msg Info "Compilation log ends"
 
-    set cmd ./simulate.sh
-    Msg Info "Simulating: $cmd..."
+        set cmd ./simulate.sh
+        Msg Info "Simulating: $cmd..."
 
-    if { [catch { exec $cmd } log] } {
-        Msg CriticalWarning "Simulation failed for $s, error info: $::errorInfo"
-        incr errors
-    }
-    Msg Info "Simulation log starts:"
-    Msg Status "\n\n$log\n\n"
-    Msg Info "Simulation log ends"
+        if { [catch { exec $cmd } log] } {
+            Msg CriticalWarning "Simulation failed for $s, error info: $::errorInfo"
+            incr errors
+        }
+        Msg Info "Simulation log starts:"
+        Msg Status "\n\n$log\n\n"
+        Msg Info "Simulation log ends"
     }
     
     if {$errors > 0} {
-    Msg Error "Simualtion failed, there were $errors failures. Look above for details."
-    exit -1
-    } else {
-    Msg Info "All simulations were successful."
+        Msg Error "Simualtion failed, there were $errors failures. Look above for details."
+        exit -1
+     } else {
+        Msg Info "All simulations were successful."
     }
 
 } else {

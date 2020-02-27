@@ -143,18 +143,27 @@ proc add_top_file {top_module top_file sources} {
 	if {[info commands launch_chipscope_analyzer] != ""} {
 		#VIVADO_ONLY
 		add_files -norecurse -fileset $sources $top_file
-		set_property "top" $globalSettings::synth_top_module $sources
 	} elseif {info commands project_new] != ""} {
 		#QUARTUS ONLY
-		set file_type [FindFileType $vhdlfile]
-		set hdl_version [FindVhdlVersion $vhdlfile]
+		set file_type [FindFileType $top_file]
+		set hdl_version [FindVhdlVersion $top_file]
 		set_global_assignment -name $file_type $top_file 
-		set_global_assignment -name TOP_LEVEL_ENTITY $top_module
 	} else {
 		puts "Adding project top module $top_module" 
 	}
 }
+########################################################
+proc SetTopProperty {top_module sources} {
+	Msg Info "Setting TOP property to $top_module module" 
+	if {[info commands launch_chipscope_analyzer] != ""} {
+		#VIVADO_ONLY
+		set_property "top" $top_module $sources
+	} elseif {info commands project_new] != ""} {
+		#QUARTUS ONLY
+		set_global_assignment -name TOP_LEVEL_ENTITY $top_module
+	}
 
+}
 
 ########################################################
 proc CreateProject {} {
@@ -171,9 +180,7 @@ proc CreateProject {} {
 		set_property "target_language" "VHDL" $obj
 		set_property "compxlib.modelsim_compiled_library_dir" $globalSettings::modelsim_path $obj
 		set_property "default_lib" "xil_defaultlib" $obj
-		##if {$use_questa_simulator == 1} { 
-			set_property "target_simulator" "ModelSim" $obj
-		##}
+		set_property "target_simulator" "ModelSim" $obj
 
 		## Enable VHDL 2008
 		set_param project.enableVHDL2008 1
@@ -244,6 +251,7 @@ proc CreateProject {} {
 		Msg Info "No top file found in Top folder, please make sure that the top file - i.e. containing a module called $globalSettings::synth_top_module - is included in one of the libraries"     
 	}
 
+	SetTopProperty $globalSettings::synth_top_module $sources
 
 	###############
 	# CONSTRAINTS #
@@ -966,8 +974,23 @@ proc GetVer {FILE path} {
     set status [catch {exec git tag --sort=taggerdate --contain $SHA} result]
     if {$status == 0} {
 	if {[regexp {^ *$} $result]} {
-	    Msg Warning "No tag contains $SHA"
-	    set ver "none"
+	    if [catch {exec git tag --sort=-creatordate} last_tag] {
+		Msg CriticalWarning "No Hog version tags found in this repository."
+		set ver v0.0.0
+	    } else {
+		set tags [split $last_tag "\n"]
+		set tag [lindex $tags 0]
+		lassign [ExtractVersionFromTag $tag] M m p n mr
+		if {$mr == -1} {
+		    incr p
+		    Msg Info "No tag contains $SHA for $FILE, will use most recent tag $tag. As this is an official tag, patch will be incremented to $p."
+		} else {
+		    Msg Info "No tag contains $SHA for $FILE, will use most recent tag $tag. As this is a candidate tag, the patch level will be kept at $p."
+		}
+		set ver v$M.$m.$p
+		
+	    }
+
 	} else {
 	    set vers [split $result "\n"]
 	    set ver [lindex $vers 0]	    
@@ -983,40 +1006,20 @@ proc GetVer {FILE path} {
 	Msg Warning "Error while trying to find tag for $SHA in file: $FILE, path: [pwd]"
 	set ver "error: $result"
     }
-    if {[regexp {^b(?:\d+)v(\d+)\.(\d+).(\d+)-(\d+)$} $ver -> M m c n]} {
-	# official not yet merged (beta)
+
+    lassign [ExtractVersionFromTag $ver] M m c n mr
+    
+    if {$mr > -1} { # Candidate for version not yet merged
 	set M [format %02X $M]
 	set m [format %02X $m]
 	set c [format %04X $c]
 	set n [format %04X $n]
-	set official [format %04X 0xc000]
 	set comm $SHA
-    } elseif {[regexp {^v(\d+)\.(\d+).(\d+)$} $ver -> M m c]} {
-	# official merged
+    } elseif { $M > -1 } { # official tag
 	set M [format %02X $M]
 	set m [format %02X $m]
 	set c [format %04X $c]
-	if {[regexp {^b(?:\d+)v(\d+)\.(\d+).(\d+)-(\d+)$} $un_ver -> M_u m_u c_u n]} {
-	    Msg Info "Beta version $un_ver was found for official version $ver, using attempt number $n"
-	    if {$M != $M_u || $m != $m_u || $c != $c_u} {
-		Msg Warning "Beta version $un_ver and official version $ver do not match"		
-	    }
-	    set n [format %04X $n]
-
-	} else {
-	    Msg Warning "No beta version was found for official version $ver"
-	    set n [format %04X 0]
-	}
-	
-	set official [format %04X 0xc000]
-	set comm $SHA
-    } elseif {$ver == "none"} {
-	# Unofficial done locally but properly committed
-	set M [format %02X 0]
-	set m [format %02X 0]
-	set c [format %04X 0]
 	set n [format %04X 0]
-	set official [format %04X 0x2000]
 	set comm $SHA
     } else {
 	Msg Warning "Could not parse git describe: $ver"
@@ -1024,91 +1027,122 @@ proc GetVer {FILE path} {
 	set m [format %02X 0]
 	set c [format %04X 0]
 	set n [format %04X 0]
-	set official [format %04X 0x0008]
 	set comm $SHA
     }
     set comm [format %07X 0x$comm]
-    return [list $M$m$c $comm $official$n]
+    return [list $M$m$c $comm]
     cd $old_path
+}
+########################################################
+
+
+## Convert hex version to M.m.p string
+# Arguments:\n
+# version: the version (in 32-bt hexadecimal format 0xMMmmpppp) to be converted
+
+proc HexVersionToString {version} {
+    scan [string range $version 0 1] %x M
+    scan [string range $version 2 3] %x m
+    scan [string range $version 4 7] %x c
+    return "$M.$m.$c"
 }
 ########################################################
 
 
 ## Tags the repository with a new version calculated on the basis of the previous tags
 # Arguments:\n
-# * merge_request_number: Gitlab merge request number to be used in candidate version
-# * version_level:        0 if patch is to be increased (default), 1 if minor level is to be increase, 2 if major lav´e is to be increased, 3 or bigger is used to tag an official version from a candidate
+# * tag: a tag in the Hog format: v$M.$m.$p or b$(mr)v$M.$m.$p-$n
 
-proc TagRepository {merge_request_number {version_level 0}} {
+proc ExtractVersionFromTag {tag} {
+    if {[regexp {^(?:b(\d+))?v(\d+)\.(\d+).(\d+)(?:-(\d+))?$} $tag -> mr M m p n]} {
+
+    } else {
+	Msg Warning "Repository tag $tag is not in a Hog-compatible format."
+	set mr -1
+	set M -1
+	set m -1
+	set p -1
+	set n -1	
+    }
+    return [list $M $m $p $n $mr]
+}
+
+
+## Tags the repository with a new version calculated on the basis of the previous tags
+# Arguments:\n
+# * merge_request_number: Gitlab merge request number to be used in candidate version
+# * version_level:        0 if patch is to be increased (default), 1 if minor level is to be increase, 2 if major level is to be increased, 3 or bigger is used to trasform a candidate for a version (starting with b) into an official version
+
+proc TagRepository {{merge_request_number 0} {version_level 0}} {
     if [catch {exec git tag --sort=-creatordate} last_tag] {
 	Msg Error "No Hog version tags found in this repository."
     } else {
-	set vers [split $last_tag "\n"]
-	set ver [lindex $vers 0]
+	set tags [split $last_tag "\n"]
+	set tag [lindex $tags 0]
+	lassign [ExtractVersionFromTag $tag] M m p n mr
 	
-	if {[regexp {^(?:b(\d+))?v(\d+)\.(\d+).(\d+)(?:-(\d+))?$} $ver -> mr M m p n]} {
+	if { $M > -1 } { # M=-1 means that the tag could not be parsed following a Hog format
 	    if {$mr == "" } { # Tag is official, no b at the beginning
 		Msg Info "Found official version $M.$m.$p."
 		if {$version_level == 2} {
 		    incr M
 		    set m 0
 		    set p 0
+		    set new_tag b${merge_request_number}v$M.$m.$p
+		    set tag_opt ""
+		    if {$merge_request_number <= 0} {
+			Msg Error "You should specify a valid merge request number not to risk to fail beacuse of duplicated tags"
+			return -1
+		    }
+
 		} elseif {$version_level == 1} {
 		    incr m
 		    set p 0
-		} elseif {$version_level >= 3} {
-		    Msg Error "Last tag is already official, cannot make it more official than this"		    
-		} else {
-		    incr p
-		}
-		set mr $merge_request_number
-		set n 0
+		    set new_tag b${merge_request_number}v$M.$m.$p
+		    set tag_opt ""
+		    if {$merge_request_number <= 0} {
+			Msg Error "You should specify a valid merge request number not to risk to fail beacuse of duplicated tags"
+			return -1
+		    }
 
-	    } else { # Tag is not official, just increment the attempt
-		Msg Info "Found candidate for version $M.$m.$p, merge request number $mr, attempt number $n."
-		if {$mr != $merge_request_number} {
-		    Msg Warning "Merge request number $merge_request_number differs from the one found in the tag $mr, will use $merge_request_number."
-		    set mr $merge_request_number
+		} elseif {$version_level >= 3} {
+		    # Version level >= 3 is used to create official tags from beta tags
+		    incr p
+		    #create official tag
+		    Msg Info "No major/minor version increase, new tag will be v$M.$m.$p..."
+		    set new_tag v$M.$m.$p
+		    set tag_opt "-m 'Official_version_$M.$m.$p'"
+
 		}
-		incr n
-	    }
-	    if {$version_level >= 3} {
-		Msg Info "Creating official version v$M.$m.$p..."
-		set new_tag v$M.$m.$p 
-		set tag_opt "-m 'Official_version_$M.$m.$p'"
-	    } else {
-		set new_tag b${mr}v$M.$m.$p-$n
-		set tag_opt ""
+
+	    } else { # Tag is not official
+		#Not official, do nothing unless version level is >=3, in which case convert the unofficial to official
+		Msg Info "Found candidate version for $M.$m.$p."
+		if {$version_level >= 3} {
+		    Msg Info "New tag will be an official version v$M.$m.$p..."
+		    set new_tag v$M.$m.$p
+		    set tag_opt "-m 'Official_version_$M.$m.$p'"
+		}
 	    }
 
 	    # Tagging repositroy
-	    if [catch {exec git tag {*}"$new_tag $tag_opt"} msg] {
-		Msg Error "Could not create new tag $new_tag: $msg"
+	    if [info exists new_tag] {
+		Msg Info "Tagging repository with $new_tag..."
+		if [catch {exec git tag {*}"$new_tag $tag_opt"} msg] {
+		    Msg Error "Could not create new tag $new_tag: $msg"
+		} else {
+		    Msg Info "New tag $new_tag created successully."
+		}
 	    } else {
-		Msg Info "New tag $new_tag created successully."
+		set new_tag $tag
+		Msg Info "Tagging is not needed"
 	    }
-	    
 	} else {
-	    Msg Error "Could not parse tag: $last_tag"
+	    Msg Error "Could not parse tag: $tag"
 	}
     }
     
-    return [list $ver $new_tag]
-}
-########################################################
-
-## Read a XML list file and evaluate the Git SHA and version of the listed XML files contained
-#
-# Arguments:
-# * xml_lsit_file: file containing list of XML files with optional properties
-# * path:          the path the XML files are referred to in the list file
-proc GetXMLVer {xml_list_file path} {
-    lassign [GetVer $xml_list_file $path] xml_ver xml_hash dummy
-    scan [string range $xml_ver 0 1] %x M
-    scan [string range $xml_ver 2 3] %x m
-    scan [string range $xml_ver 4 7] %x c
-    set xml_ver_formatted "$M.$m.$c"
-    return [list $xml_hash $xml_ver_formatted]
+    return [list $tag $new_tag]
 }
 ########################################################
 

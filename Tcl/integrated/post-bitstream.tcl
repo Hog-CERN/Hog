@@ -1,4 +1,3 @@
-set NAME "Post_Bitstream"
 set old_path [pwd]
 set tcl_path [file normalize "[file dirname [info script]]/.."]
 source $tcl_path/hog.tcl
@@ -44,13 +43,12 @@ if [file exists $fw_file] {
     cd $tcl_path/../../ 
     
     Msg Info "Evaluating git describe..."
-    set describe [exec git describe --always --dirty --tags]
+    set describe [exec git describe --always --dirty --tags --long]
     Msg Info "Git describe: $describe"
 
     set ts [clock format [clock seconds] -format {%Y-%m-%d-%H-%M}]
-    set prefix $name\_$describe
 
-    set dst_dir [file normalize "$bin_dir/$prefix"]
+    set dst_dir [file normalize "$bin_dir/$name\_$describe"]
     set dst_bit [file normalize "$dst_dir/$name\-$describe.bit"]
     set dst_bin [file normalize "$dst_dir/$name\-$describe.bin"]
     set dst_ltx [file normalize "$dst_dir/$name\-$describe.ltx"]    

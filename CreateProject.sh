@@ -75,7 +75,7 @@ then
   echo "Hog-ERROR: Intel HLS compiler is not supported!"
   exit -1
 else
-  echo "Hog-WARNING: Running in backward compatibility mode"
+  echo "Hog-WARNING: You should write #vivado or #quartus in your project Tcl file, assuming Vivado... "
   echo "Hog-INFO: Recognised Vivado project"
   COMMAND="vivado"
   COMMAND_OPT="-mode batch -notrace -source"

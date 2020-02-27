@@ -14,7 +14,7 @@ if {[info commands get_property] != ""} {
 } else {
     #Tclssh
     set proj_file $old_path/[file tail $old_path].xpr
-    Msg CriticalWarning "You seem to be running locally on tclsh, so this is a debug, the project file will be set to $proj_file and was derived from the path you launched this script from: $old_path. IF you want this script to work properly in debug mode, please launch it from the top folder of one project, for example Repo/VivadoProject/fpga1/ or Repo/Top/fpga1/"
+    Msg CriticalWarning "You seem to be running locally on tclsh, so this is a debug, the project file will be set to $proj_file and was derived from the path you launched this script from: $old_path. If you want this script to work properly in debug mode, please launch it from the top folder of one project, for example Repo/VivadoProject/fpga1/ or Repo/Top/fpga1/"
 }
 	
 set proj_dir [file normalize [file dirname $proj_file]]
@@ -273,41 +273,7 @@ Msg Status " -----------------------------------------------------------------"
 close $status_file
 
 
-#####  Check if Hog version matches the ref in yml file
-# Go to repository path
-cd "$tcl_path/../.."
-#get .gitlab-ci ref
-##Comment from Nico: what if there are multiple refs in the gitlab-ci?
-set fd [open .gitlab-ci.yml r]
-set data [split [read $fd] "\n"]
-close $fd
-#puts $data
-set YML_REF  [lindex [lsearch  -inline $data "*ref:*"] 1]
-if {$YML_REF == ""} {
-	Msg Warning "Hog version not specified in the .gitlab-ci.yml. Assuming that master branch is used"
-	cd Hog
-	set YML_REF_F [exec git name-rev --tags --name-only origin/master]
-	cd ..
-} else {
-	set YML_REF_F [regsub -all "'" $YML_REF ""]
-}
-
-#getting Hog repository tag and commit
-cd "Hog"
-set HOGYML_SHA [exec git log --format=%H -1 --  gitlab-ci.yml ]
-if { [catch {exec git log --format=%H -1 $YML_REF_F gitlab-ci.yml} results]} {
-	Msg Error "Error in project .gitlab-ci.yml. ref: $YML_REF not found"
-	set EXPECTEDYML_SHA ""
-} else {
-	set EXPECTEDYML_SHA [exec git log --format=%H -1 $YML_REF_F gitlab-ci.yml ]
-	if {$HOGYML_SHA == $EXPECTEDYML_SHA} {
-		Msg Info "Hog gitlab-ci.yml SHA matches with project .gitlab-ci.yml."
-
-	} else {
-		Msg Error "HOG gitlab-ci.yml SHA mismatch. \nFrom Hog submodule: $HOGYML_SHA\nFrom project .gitlab-ci.yml: $EXPECTEDYML_SHA\nFix this by:\n\tA) edit project .gitlab-ci.yml ---> ref: '$HOGYML_SHA'\n\tB) modify Hog submodule: git checkout $EXPECTEDYML_SHA"
-	}
-}
-
+CheckYmlRef $tcl_path/../..
 cd $old_path
 
 Msg Info "All done."

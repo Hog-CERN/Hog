@@ -1,0 +1,28 @@
+site_name: Hog user manual
+site_description: HDL on git user manual 
+site_author: CERN Authoring
+site_url: http://cern.ch/hog-user-manual
+repo_name: GitLab
+repo_url: https://gitlab.cern.ch/hog/Hog
+
+nav:
+- Introduction: 'index.md'
+- 'Getting Started':
+  - 01-Getting-Started/01-existingProjects.md
+  - 01-Getting-Started/02-otherFeatures.md
+  - 01-Getting-Started/03-setupNewHogProject.md
+
+- 'Maintainer Manual':
+  - 02-Maintainer-Manual/01-setup-CI.md
+
+- 'Contributing to Hog':
+  - 03-Contributing/01-contributing.md  
+
+- 'MkDocs official documentation': https://www.mkdocs.org/
+
+markdown_extensions:
+  - footnotes
+theme:
+      name: material
+      logo: 'custom/assets/images/white.png'
+      custom_dir: docs/custom/

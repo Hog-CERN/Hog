@@ -19,7 +19,6 @@
 -- on revision history.
 -------------------------------------------------------------------------------
 
-
 -- Doxygen-compatible comments
 --! @file
 --! @brief top_<myproj>
@@ -37,13 +36,13 @@ entity top_<myproj> is
         -- Global Generic Variables
         GLOBAL_FWDATE       : std_logic_vector(7 downto 0);
         GLOBAL_FWTIME       : std_logic_vector(7 downto 0);
-        OFFICIAL            : std_logic_vector(7 downto 0);
         TOP_FWHASH          : std_logic_vector(7 downto 0);
         XML_HASH            : std_logic_vector(7 downto 0);
         GLOBAL_FWVERSION    : std_logic_vector(7 downto 0);
         TOP_FWVERSION       : std_logic_vector(7 downto 0);
         XML_VERSION         : std_logic_vector(7 downto 0);
         HOG_FWHASH          : std_logic_vector(7 downto 0);
+        HOG_FWVERSION       : std_logic_vector(7 downto 0);        
         -- Project Specific Lists (One for each .src file in your Top/myproj/list folder)
         <MYLIB0>_FWVERSION    : std_logic_vector(7 downto 0);
         <MYLIB0>_FWHASH       : std_logic_vector(7 downto 0);

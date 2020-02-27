@@ -33,7 +33,7 @@ foreach s [get_filesets] {
     set type [get_property FILESET_TYPE $s]
     if {$type eq "SimulationSrcs"} {
         if {!($s eq "sim_1")} { 
-            set filename [string range $s 0 [expr {[string first "_sim" $s] -1 }]]
+            set filename [string range $s 0 [expr {[string last "_sim" $s] -1 }]]
             set fp [open "../../Top/$project/list/$filename.sim" r]
             set file_data [read $fp]
             close $fp

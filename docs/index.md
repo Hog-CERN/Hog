@@ -1,16 +1,7 @@
+# Our site is coming soon!!
+Here's a taste of what it will contain!
 
- <div style='text-align:center'>
-   <img src="logos/_hog.png" style="height:50px">
- </div>
- <div style='text-align:center'>
-   <b style='color:black;font-size:50px'> 
-   	Our site is coming soon!!
-   </b>
-   <div style='color:gray;font-size:25px'>
-   	Here's a taste of what it will contain!
-   </div>
- </div>
- <div style='height:150px'/>
+![](./custom/assets/images/hog.png) 
 
 # Hog: HDL on git
 

@@ -285,7 +285,9 @@ close $fd
 set YML_REF  [lindex [lsearch  -inline $data "*ref:*"] 1]
 if {$YML_REF == ""} {
 	Msg Warning "Hog version not specified in the .gitlab-ci.yml. Assuming that master branch is used"
-	set YML_REF_F [exec git name-rev --tags --name-only master]
+	cd Hog
+	set YML_REF_F [exec git name-rev --tags --name-only origin/master]
+	cd ..
 } else {
 	set YML_REF_F [regsub -all "'" $YML_REF ""]
 }

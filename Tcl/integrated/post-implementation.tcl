@@ -17,6 +17,13 @@ if { [exec git status --untracked-files=no  --porcelain] eq "" } {
 puts $commit
 
 # Set bitstream embedded variables
-set_property BITSTREAM.CONFIG.USERID $commit [current_design]
-set_property BITSTREAM.CONFIG.USR_ACCESS $commit [current_design]
+if {[info commands send_msg_id] != ""} {
+	#Vivado 
+	set_property BITSTREAM.CONFIG.USERID $commit [current_design]
+	set_property BITSTREAM.CONFIG.USR_ACCESS $commit [current_design]
+} elseif {[info commands post_message] != ""} {
+	# Quartus
+} else {
+	# Tclsh
+}
 Msg Info "All done."

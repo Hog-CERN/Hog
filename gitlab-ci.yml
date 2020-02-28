@@ -219,5 +219,5 @@ cleaning:
      - hog
   stage: clean
   script:
-     - if [ -z ${HOG_UNOFFICIAL_BIN_EOS_PATH+x} ] echo "HOG_UNOFFICIAL_BIN_EOS_PATH not specified, nothing to clean..."; else eos rm -r $HOG_UNOFFICIAL_BIN_EOS_PATH/*; fi
+     - if [ -z ${HOG_UNOFFICIAL_BIN_EOS_PATH+x} ]; then echo "HOG_UNOFFICIAL_BIN_EOS_PATH not specified, nothing to clean..."; else eos rm -r $HOG_UNOFFICIAL_BIN_EOS_PATH/*; fi
   allow_failure: true

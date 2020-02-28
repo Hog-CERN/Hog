@@ -36,6 +36,7 @@ stages:
     - implementation
     - bitstream    
     - doxygen
+    - clean
 
 .simulate_project: &simulate_project
      <<: *only-default
@@ -203,4 +204,20 @@ make_official_doc:
      - git submodule update
      - until echo $HOG_PASSWORD | kinit $HOG_USER ; do echo "Retrying"; sleep 2; done
      - vivado -mode batch -notrace -source ./Hog/Tcl/make_doxygen.tcl
+  allow_failure: true
+
+cleaning:
+  only:
+    refs:
+      - push
+      - web
+  except:
+    variables:
+      - $CI_PIPELINE_SOURCE != "push"
+      - $CI_COMMIT_REF_SLUG != "master"
+  tags:
+     - hog
+  stage: clean
+  script:
+     - eos rm -r $HOG_UNOFFICIAL_BIN_EOS_PATH/*
   allow_failure: true

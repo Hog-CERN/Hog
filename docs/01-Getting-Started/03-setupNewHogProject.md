@@ -1,14 +1,30 @@
-# HDL repository structure and methodology
+# Setting up a HDL repository with Hog
 
-In order to use HOG in your repository you will have to create the following directory structure.
+## Project directory structure
+In order to Hog to be simple and add little overhead work, some fixed directories and file names are needed in the HDL repository. A typical directory structure is shown in figure: 
 
 ![](./figures/directory_structure.jpg)
 
-HDL source files, together with constraint files, simulation files can be located anywhere in the repository, even if a directory structure that reflects the __libraries__ in the project is advised.\
-A Hog-based repository can contain many projects.
+HDL source files, together with constraint files, simulation files can be located anywhere in the repository. We find useful to have a directory structure that reflects the __libraries__, but you can do as
+you please.
+
+A Hog-handled repository can contain many (Vivado/Quartus) projects, each of which corresponds to a subdirectory of the __Top__ folder that we will call the "top project directory". In the figure above we have just one project called __myproj__. 
+Each top project directories **must** contain all of the following:
+
+- A tcl file that **must** be named the same as the top project folder (plus the .tcl extension), we will call this file the "project tcl file".
+- A __list__ subdirectory containing the so-called list files i.e. some text files containing the names of the source files to be included in the project.
+
+
+In figure, the project is called __myproj__ hence the project tcl file is called __myproj.tcl__.
+
+When you create the project, running the `Hog/CreateProject.sh` Hog runs the project tcl file using Vivado or Quartus and creates the complete project in another directory, in our case `VivadoProject/myproj` or `QuartusProject/myproj`. In this directory you will find the typical Vivado or Quartus file structure.
+
+
+## Multiple projects or multiple repositories?
+As is now clear, a Hog-handled repository can contain multiple projects. You may wonder when it is the case of having many projects in the same repository and when you want to create different repositories. 
 You should use many projects in the same repository when they share a significant amount of code: e.g. many FPGAs on the same board. 
-If this is not the case you may think of having different repositories.
-In this case, you may include the little amount of shared code as a git submodule, that is also handled by Hog.
+
+If this is not the case you may think of having different repositories. In this case, you may include the little amount of shared code as a git submodule, that is also handled by Hog.
 
 Hog is a simple project, meant to be useful to speed up work.
 It is not extremely configuralbe: the scripts rely on special directory structure and file naming to be respected as explained in the following paragraphs.

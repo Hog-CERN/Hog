@@ -219,5 +219,6 @@ cleaning:
      - hog
   stage: clean
   script:
+     - until echo $HOG_PASSWORD | kinit $HOG_USER ; do echo "Retrying"; sleep 2; done
      - if [ -z ${HOG_UNOFFICIAL_BIN_EOS_PATH+x} ]; then echo "HOG_UNOFFICIAL_BIN_EOS_PATH not specified, nothing to clean..."; else eos rm -r $HOG_UNOFFICIAL_BIN_EOS_PATH/*; fi
   allow_failure: true

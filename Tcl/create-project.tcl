@@ -24,12 +24,17 @@ set globalSettings::FPGA $::FPGA
 
 set globalSettings::SYNTH_STRATEGY $::SYNTH_STRATEGY
 if {[info exists ::FAMILY]} {
-	set globalSettings::FAMILY $::FAMILY
+    set globalSettings::FAMILY $::FAMILY
 }
 set globalSettings::SYNTH_FLOW $::SYNTH_FLOW
 set globalSettings::IMPL_STRATEGY $::IMPL_STRATEGY
 set globalSettings::IMPL_FLOW $::IMPL_FLOW
 set globalSettings::DESIGN $::DESIGN
+if {[info exists ::SIMULATOR]} {
+    set globalSettings::SIMULATOR $::SIMULATOR
+} else {
+    set globalSettings::SIMULATOR "ModelSim"
+}
 
 
 if {[info exist ::bin_file]} { 
@@ -38,17 +43,17 @@ if {[info exist ::bin_file]} {
    set globalSettings::bin_file 0
 }
 if {[info exists ::PROPERTIES]} {
-	set globalSettings::PROPERTIES $::PROPERTIES
+    set globalSettings::PROPERTIES $::PROPERTIES
 }
 
 
 ## BUILD_DIR=VivadoProject if vivado or QuartusProject if quartus or Project if tclshell
 if {[info commands send_msg_id] != ""} {
     #Vivado only
-	set BUILD_DIR_NAME "VivadoProject"
+    set BUILD_DIR_NAME "VivadoProject"
 }  elseif {[info commands project_new] != ""} {
-	#QUARTUS only
-	set BUILD_DIR_NAME "QuartusProject"
+    #QUARTUS only
+    set   "QuartusProject"
 } else {
     set BUILD_DIR_NAME "Project"
 }

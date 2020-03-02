@@ -1,4 +1,4 @@
-set simulator modelsim
+# set simulator xsim
 set path [file normalize "[file dirname [info script]]/.."]
 if { $::argc eq 0 } {
     puts "USAGE: $::argv0 <project> [questa library path]"
@@ -8,9 +8,9 @@ if { $::argc eq 0 } {
     set main_folder [file normalize "$path/../../VivadoProject/$project/$project.sim/"]
 
     if {[llength $argv] > 1} {
-	set lib_path [lindex $argv 1]
+    set lib_path [lindex $argv 1]
     } else {
-	set lib_path [file normalize "$main_folder/../../../SimulationLib"]
+    set lib_path [file normalize "$main_folder/../../../SimulationLib"]
     }
 }
 
@@ -29,21 +29,56 @@ open_project ../../VivadoProject/$project/$project.xpr
 set_property "compxlib.modelsim_compiled_library_dir" $lib_path [current_project]
 Msg Info "Retrieving list of simulation sets..."
 
+set errors 0
+
 foreach s [get_filesets] {
     set type [get_property FILESET_TYPE $s]
     if {$type eq "SimulationSrcs"} {
-	if {!($s eq "sim_1")} { 
-	    Msg Info "Creating simulation scripts for $s..."
-	    current_fileset -simset $s
-	    set sim_dir $main_folder/$s/behav
-	    #export_simulation -of_objects [get_filesets $s] -simulator $simulator -lib_map_path $lib_path -directory $sim_dir -force
-	    launch_simulation -scripts_only -simset [get_filesets $s]
-	    set top_name [get_property TOP $s]
-	    #set sim_script  [file normalize $sim_dir/$simulator/$top_name.sh] 
-	    set sim_script  [file normalize $sim_dir/$simulator/] 
-	    Msg Info "Adding simulation script location $sim_script for $s..."
-	    lappend sim_scripts $sim_script
-	}
+        if {!($s eq "sim_1")} { 
+            set filename [string range $s 0 [expr {[string last "_sim" $s] -1 }]]
+            set fp [open "../../Top/$project/list/$filename.sim" r]
+            set file_data [read $fp]
+            close $fp
+            set data [split $file_data "\n"]
+            set n [llength $data]
+            Msg Info "$n lines read from $filename"
+            
+            set firstline [lindex $data 0]
+            if { [regexp {^ *\#Simulator} $firstline] } {
+                set simulator_prop [regexp -all -inline {\S+} $firstline]
+                set simulator [lindex $simulator_prop 1]
+                set_property "target_simulator" $simulator [current_project]
+                Msg Info "Creating simulation scripts for $s..."
+                current_fileset -simset $s
+                set sim_dir $main_folder/$s/behav
+                if { ($simulator eq "xsim") } {
+                    if { [catch { launch_simulation -simset [get_filesets $s] } log] } {
+                        Msg CriticalWarning "Simulation failed for $s, error info: $::errorInfo"
+                        incr errors
+                    }
+                } else {
+                    launch_simulation -scripts_only -simset [get_filesets $s]
+                    set top_name [get_property TOP $s]
+                    #set sim_script  [file normalize $sim_dir/$simulator/$top_name.sh] 
+                    set sim_script  [file normalize $sim_dir/$simulator/] 
+                    Msg Info "Adding simulation script location $sim_script for $s..."
+                    lappend sim_scripts $sim_script
+                } 
+            } else { #Default is modelsim
+            	set_property "target_simulator" "modelsim" [current_project]
+            	Msg Info "Creating simulation scripts for $s..."
+                current_fileset -simset $s
+                set sim_dir $main_folder/$s/behav
+                launch_simulation -scripts_only -simset [get_filesets $s]
+                set top_name [get_property TOP $s]
+                #set sim_script  [file normalize $sim_dir/$simulator/$top_name.sh] 
+                set sim_script  [file normalize $sim_dir/modelsim/] 
+                Msg Info "Adding simulation script location $sim_script for $s..."
+                lappend sim_scripts $sim_script
+            } 
+
+            
+        }
     }
 }
 
@@ -53,40 +88,39 @@ foreach ip [get_ips] {
     generate_target simulation $ip
 }
 
-set errors 0
 if [info exists sim_scripts] {
     foreach s $sim_scripts {
-	#cd [file dir $s]
-	#set cmd ./[file tail $s]
-	cd $s
-	set cmd ./compile.sh
-	Msg Info "Compiling: $cmd..."
+        #cd [file dir $s]
+        #set cmd ./[file tail $s]
+        cd $s
+        set cmd ./compile.sh
+        Msg Info "Compiling: $cmd..."
 
-	if { [catch { exec $cmd } log] } {
-	    Msg CriticalWarning "Compilation failed for $s, error info: $::errorInfo"
-	    incr errors
-	}
-	Msg Info "Compilation log starts:"
-	Msg Status "\n\n$log\n\n"
-	Msg Info "Compilation log ends"
+        if { [catch { exec $cmd } log] } {
+            Msg CriticalWarning "Compilation failed for $s, error info: $::errorInfo"
+            incr errors
+        }
+        Msg Info "Compilation log starts:"
+        Msg Status "\n\n$log\n\n"
+        Msg Info "Compilation log ends"
 
-	set cmd ./simulate.sh
-	Msg Info "Simulating: $cmd..."
+        set cmd ./simulate.sh
+        Msg Info "Simulating: $cmd..."
 
-	if { [catch { exec $cmd } log] } {
-	    Msg CriticalWarning "Simulation failed for $s, error info: $::errorInfo"
-	    incr errors
-	}
-	Msg Info "Simulation log starts:"
-	Msg Status "\n\n$log\n\n"
-	Msg Info "Simulation log ends"
+        if { [catch { exec $cmd } log] } {
+            Msg CriticalWarning "Simulation failed for $s, error info: $::errorInfo"
+            incr errors
+        }
+        Msg Info "Simulation log starts:"
+        Msg Status "\n\n$log\n\n"
+        Msg Info "Simulation log ends"
     }
     
     if {$errors > 0} {
-	Msg Error "Simualtion failed, there were $errors failures. Look above for details."
-	exit -1
-    } else {
-	Msg Info "All simulations were successful."
+        Msg Error "Simualtion failed, there were $errors failures. Look above for details."
+        exit -1
+     } else {
+        Msg Info "All simulations were successful."
     }
 
 } else {

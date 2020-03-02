@@ -1364,7 +1364,7 @@ proc ForceUpToDate {} {
 ##  Hog submodule
 #
 proc CheckYmlRef {repo_path} {
-	if { [catch {package require yaml 0.4.1} YAMLPACKAGE]} {
+	if { [catch {package require yaml} YAMLPACKAGE]} {
 		Msg CriticalWarning "Cannot find package YAML, skipping consistency check of \"ref\" in gilab-ci.yaml file.\n Error message: $YAMLPACKAGE
 You can fix this by installing package \"tcllib\""
 		return

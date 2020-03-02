@@ -1364,16 +1364,28 @@ proc ForceUpToDate {} {
 ##  Hog submodule
 #
 proc CheckYmlRef {repo_path} {
+	if { [catch {package require yaml 0.4.1} YAMLPACKAGE]} {
+		Msg CriticalWarning "Cannot find package YAML, skipping consistency check of \"ref\" in gilab-ci.yaml file.\n Error message: $YAMLPACKAGE
+You can fix this by installing package \"tcllib\""
+		return
+	}
+
+	set thisPath [pwd]
+
 	# Go to repository path
 	cd "$repo_path"
 	if [file exists .gitlab-ci.yml] {
 		#get .gitlab-ci ref
-		##Comment from Nico: what if there are multiple refs in the gitlab-ci?
-		set fd [open .gitlab-ci.yml r]
-		set data [split [read $fd] "\n"]
-		close $fd
-		#puts $data
-		set YML_REF  [lindex [lsearch  -inline $data "*ref:*"] 1]
+
+		set YML_REF ""
+		set yamlDict [::yaml::yaml2dict -file .gitlab-ci.yml]
+		dict for {dictKey dictValue} $yamlDict {
+			#looking for Hog include in .gitlab-ci.yml
+			if {"$dictKey" == "include" && [lsearch [split $dictValue " {}"] "hog/Hog" ] != "-1"} {
+				set YML_REF [lindex [split $dictValue " {}"]  [expr [lsearch -dictionary [split $dictValue " {}"] "ref"]+1 ] ]
+			}
+		}
+
 		if {$YML_REF == ""} {
 			Msg Warning "Hog version not specified in the .gitlab-ci.yml. Assuming that master branch is used"
 			cd Hog
@@ -1411,5 +1423,5 @@ You can fix this in 2 ways: (A) by changing the ref in your repository or (B) by
 		Msg Info ".gitlab-ci.yml not found in $repo_path. Skipping this step"
 	}
 
-
+	cd "$thisPath"
 }

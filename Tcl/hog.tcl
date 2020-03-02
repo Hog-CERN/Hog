@@ -1363,7 +1363,14 @@ proc ForceUpToDate {} {
 ## Checks that "ref" in .gitlab-ci.yml actually matches the gitlab-ci file in the 
 ##  Hog submodule
 #
-proc CheckYmlRef {repo_path} {
+proc CheckYmlRef {repo_path allow_failure} {
+
+	if {$allow_failure} {
+		set MSG_TYPE CriticalWarning
+	} else {
+		set MSG_TYPE Error
+	}
+
 	if { [catch {package require yaml 0.3.3} YAMLPACKAGE]} {
 		Msg CriticalWarning "Cannot find package YAML, skipping consistency check of \"ref\" in gilab-ci.yaml file.\n Error message: $YAMLPACKAGE
 You can fix this by installing package \"tcllib\""
@@ -1400,7 +1407,7 @@ You can fix this by installing package \"tcllib\""
 		set HOGYML_SHA [exec git log --format=%H -1 --  gitlab-ci.yml ]
 		if { [catch {exec git log --format=%H -1 $YML_REF_F gitlab-ci.yml} EXPECTEDYML_SHA]} {
 			if { [catch {exec git log --format=%H -1 origin/$YML_REF_F gitlab-ci.yml} EXPECTEDYML_SHA]} {
-				Msg CriticalWarning "Error in project .gitlab-ci.yml. ref: $YML_REF not found"		
+				Msg $MSG_TYPE "Error in project .gitlab-ci.yml. ref: $YML_REF not found"		
 				set EXPECTEDYML_SHA ""
 			}
  
@@ -1411,7 +1418,7 @@ You can fix this by installing package \"tcllib\""
 				Msg Info "Hog gitlab-ci.yml SHA matches with the \"ref\" in the .gitlab-ci.yml."
 
 			} else {
-				Msg CriticalWarning "HOG gitlab-ci.yml SHA mismatch. 
+				Msg $MSG_TYPE "HOG gitlab-ci.yml SHA mismatch. 
 From Hog submodule: $HOGYML_SHA
 From .gitlab-ci.yml: $EXPECTEDYML_SHA 
 You can fix this in 2 ways: (A) by changing the ref in your repository or (B) by changing the Hog submodule commit.

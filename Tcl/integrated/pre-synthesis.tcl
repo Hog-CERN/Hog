@@ -273,7 +273,7 @@ Msg Status " -----------------------------------------------------------------"
 close $status_file
 
 
-CheckYmlRef $tcl_path/../..
+CheckYmlRef $tcl_path/../.. true
 cd $old_path
 
 Msg Info "All done."

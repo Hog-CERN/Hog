@@ -66,7 +66,7 @@ if {$prog ne "100%"} {
 }
 
 
-if $do_bitstream == 1 {
+if {$do_bitstream == 1} {
     Msg Info "Starting write bitstream flow..."
     launch_runs impl_1 -to_step write_bitstream -jobs 4 -dir $main_folder
     wait_on_run impl_1

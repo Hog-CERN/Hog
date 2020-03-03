@@ -19,11 +19,14 @@ set old_path [pwd]
 cd $path
 source ./hog.tcl
 
-set commit [GetHash ALL ../../]
+if {$do_bitstream == 1} {
+    Msg Info "Will launch implementation and write bitstream..."
+} else {
+    Msg Info "Will launch implementation only..."
+}
 
-Msg Info "Opening $project..."
+Msg Info "Opening project: $project..."
 open_project ../../VivadoProject/$project/$project.xpr
-
 
 Msg Info "Starting implementation flow..."
 reset_run impl_1

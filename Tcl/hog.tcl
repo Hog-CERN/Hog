@@ -978,9 +978,9 @@ proc GetVer {FILE path} {
         Msg CriticalWarning "No Hog version tags found in this repository."
         set ver v0.0.0
         } else {
-        set tags [split $last_tag "\n"]
-        set tag [lindex $tags 0]
-        lassign [ExtractVersionFromTag $tag] M m p n mr
+	    set tags [split $last_tag "\n"]
+	    set tag [lindex $tags 0]
+	    lassign [ExtractVersionFromTag $tag] M m p n mr
         if {$mr == -1} {
             incr p
             Msg Info "No tag contains $SHA for $FILE, will use most recent tag $tag. As this is an official tag, patch will be incremented to $p."
@@ -1009,25 +1009,25 @@ proc GetVer {FILE path} {
 
     lassign [ExtractVersionFromTag $ver] M m c n mr
     
-    if {$mr > -1} { # Candidate for version not yet merged
-    set M [format %02X $M]
-    set m [format %02X $m]
-    set c [format %04X $c]
-    set n [format %04X $n]
-    set comm $SHA
+    if {$mr > -1} { # Candidate tab
+	set M [format %02X $M]
+	set m [format %02X $m]
+	set c [format %04X $c]
+	set n [format %04X $n]
+	set comm $SHA
     } elseif { $M > -1 } { # official tag
-    set M [format %02X $M]
-    set m [format %02X $m]
-    set c [format %04X $c]
-    set n [format %04X 0]
-    set comm $SHA
+	set M [format %02X $M]
+	set m [format %02X $m]
+	set c [format %04X $c]
+	set n [format %04X 0]
+	set comm $SHA
     } else {
-    Msg Warning "Could not parse git describe: $ver"
-    set M [format %02X 0]
-    set m [format %02X 0]
-    set c [format %04X 0]
-    set n [format %04X 0]
-    set comm $SHA
+	Msg Warning "Tag does not contain a properly formatted version: $ver"
+	set M [format %02X 0]
+	set m [format %02X 0]
+	set c [format %04X 0]
+	set n [format %04X 0]
+	set comm $SHA
     }
     set comm [format %07X 0x$comm]
     return [list $M$m$c $comm]
@@ -1055,14 +1055,17 @@ proc HexVersionToString {version} {
 
 proc ExtractVersionFromTag {tag} {
     if {[regexp {^(?:b(\d+))?v(\d+)\.(\d+).(\d+)(?:-(\d+))?$} $tag -> mr M m p n]} {
-
+	if {$mr eq ""} {
+	    set mr -1
+	    set n -1
+	}
     } else {
-    Msg Warning "Repository tag $tag is not in a Hog-compatible format."
-    set mr -1
-    set M -1
-    set m -1
-    set p -1
-    set n -1    
+	Msg Warning "Repository tag $tag is not in a Hog-compatible format."
+	set mr -1
+	set M -1
+	set m -1
+	set p -1
+	set n -1    
     }
     return [list $M $m $p $n $mr]
 }

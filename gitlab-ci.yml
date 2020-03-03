@@ -35,6 +35,7 @@ stages:
     - synthesis
     - implementation
     - doxygen
+    - clean
 
 .simulate_project: &simulate_project
      <<: *only-default
@@ -57,6 +58,7 @@ stages:
      script:
       - ./Hog/CreateProject.sh $PROJECT_NAME
       - "if [ -z ${HOG_CHECK_SYNTAX+x} ]; then echo 'Syntax checker is disabled'; else vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_check_syntax.tcl -tclargs $PROJECT_NAME; fi"
+      - "if [ -z ${HOG_CHECK_YAMLREF+x} ]; then echo 'Yaml consistency checker is disabled'; else vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_check_yaml_ref.tcl ; fi" 
      artifacts:
        name: vivado_projects
        paths:
@@ -189,3 +191,20 @@ make_official_doc:
      - until echo $HOG_PASSWORD | kinit $HOG_USER ; do echo Retrying; sleep 2; done
      - vivado -mode batch -notrace -source ./Hog/Tcl/make_doxygen.tcl
   allow_failure: true
+
+# cleaning:
+#   only:
+#     refs:
+#       - push
+#       - web
+#   except:
+#     variables:
+#       - $CI_PIPELINE_SOURCE != "push"
+#       - $CI_COMMIT_REF_SLUG != "master"
+#   tags:
+#      - hog
+#   stage: clean
+#   script:
+#      - until echo $HOG_PASSWORD | kinit $HOG_USER ; do echo "Retrying"; sleep 2; done
+#      - if [ -z ${HOG_UNOFFICIAL_BIN_EOS_PATH+x} ]; then echo "HOG_UNOFFICIAL_BIN_EOS_PATH not specified, nothing to clean..."; else eos rm -r $HOG_UNOFFICIAL_BIN_EOS_PATH/; eos mkdir $HOG_UNOFFICIAL_BIN_EOS_PATH; fi
+#   allow_failure: true

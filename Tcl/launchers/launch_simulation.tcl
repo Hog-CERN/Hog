@@ -1,4 +1,3 @@
-# set simulator xsim
 set path [file normalize "[file dirname [info script]]/.."]
 if { $::argc eq 0 } {
     puts "USAGE: $::argv0 <project> [questa library path]"
@@ -47,7 +46,11 @@ foreach s [get_filesets] {
             if { [regexp {^ *\#Simulator} $firstline] } {
                 set simulator_prop [regexp -all -inline {\S+} $firstline]
                 set simulator [lindex $simulator_prop 1]
-                set_property "target_simulator" $simulator [current_project]
+		if {$simulator eq "skip_simulation"} {
+		    Msg Info "Skipping simulation for $s"
+		    continue
+		}
+		set_property "target_simulator" $simulator [current_project]
                 Msg Info "Creating simulation scripts for $s..."
                 current_fileset -simset $s
                 set sim_dir $main_folder/$s/behav

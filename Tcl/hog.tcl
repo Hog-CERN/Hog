@@ -1362,3 +1362,76 @@ proc ForceUpToDate {} {
     }
 }
 ########################################################
+
+## Checks that "ref" in .gitlab-ci.yml actually matches the gitlab-ci file in the 
+##  Hog submodule
+#
+proc CheckYmlRef {repo_path allow_failure} {
+
+	if {$allow_failure} {
+		set MSG_TYPE CriticalWarning
+	} else {
+		set MSG_TYPE Error
+	}
+
+	if { [catch {package require yaml 0.3.3} YAMLPACKAGE]} {
+		Msg CriticalWarning "Cannot find package YAML, skipping consistency check of \"ref\" in gilab-ci.yaml file.\n Error message: $YAMLPACKAGE
+You can fix this by installing package \"tcllib\""
+		return
+	}
+
+	set thisPath [pwd]
+
+	# Go to repository path
+	cd "$repo_path"
+	if [file exists .gitlab-ci.yml] {
+		#get .gitlab-ci ref
+
+		set YML_REF ""
+		set yamlDict [::yaml::yaml2dict -file .gitlab-ci.yml]
+		dict for {dictKey dictValue} $yamlDict {
+			#looking for Hog include in .gitlab-ci.yml
+			if {"$dictKey" == "include" && [lsearch [split $dictValue " {}"] "hog/Hog" ] != "-1"} {
+				set YML_REF [lindex [split $dictValue " {}"]  [expr [lsearch -dictionary [split $dictValue " {}"] "ref"]+1 ] ]
+			}
+		}
+
+		if {$YML_REF == ""} {
+			Msg Warning "Hog version not specified in the .gitlab-ci.yml. Assuming that master branch is used"
+			cd Hog
+			set YML_REF_F [exec git name-rev --tags --name-only origin/master]
+			cd ..
+		} else {
+			set YML_REF_F [regsub -all "'" $YML_REF ""]
+		}
+
+		#getting Hog repository tag and commit
+		cd "Hog"
+		set HOGYML_SHA [exec git log --format=%H -1 --  gitlab-ci.yml ]
+		if { [catch {exec git log --format=%H -1 $YML_REF_F gitlab-ci.yml} EXPECTEDYML_SHA]} {
+			if { [catch {exec git log --format=%H -1 origin/$YML_REF_F gitlab-ci.yml} EXPECTEDYML_SHA]} {
+				Msg $MSG_TYPE "Error in project .gitlab-ci.yml. ref: $YML_REF not found"		
+				set EXPECTEDYML_SHA ""
+			}
+ 
+		} 
+		if  {!($EXPECTEDYML_SHA eq "")} {
+			
+			if {$HOGYML_SHA == $EXPECTEDYML_SHA} {
+				Msg Info "Hog gitlab-ci.yml SHA matches with the \"ref\" in the .gitlab-ci.yml."
+
+			} else {
+				Msg $MSG_TYPE "HOG gitlab-ci.yml SHA mismatch. 
+From Hog submodule: $HOGYML_SHA
+From .gitlab-ci.yml: $EXPECTEDYML_SHA 
+You can fix this in 2 ways: (A) by changing the ref in your repository or (B) by changing the Hog submodule commit.
+\tA) edit project .gitlab-ci.yml ---> ref: '$HOGYML_SHA'
+\tB) modify Hog submodule: git checkout $EXPECTEDYML_SHA"
+			}
+		}
+	} else {
+		Msg Info ".gitlab-ci.yml not found in $repo_path. Skipping this step"
+	}
+
+	cd "$thisPath"
+}

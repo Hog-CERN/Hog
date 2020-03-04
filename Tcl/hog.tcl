@@ -1055,10 +1055,10 @@ proc HexVersionToString {version} {
 
 proc ExtractVersionFromTag {tag} {
     if {[regexp {^(?:b(\d+))?v(\d+)\.(\d+).(\d+)(?:-(\d+))?$} $tag -> mr M m p n]} {
-#	if {$mr eq ""} {
-#	    set mr -1
-#	    set n -1
-#	}
+	if {$mr eq ""} {
+	    set mr -1
+	    set n -1
+	}
     } else {
 	Msg Warning "Repository tag $tag is not in a Hog-compatible format."
 	set mr -1
@@ -1078,71 +1078,71 @@ proc ExtractVersionFromTag {tag} {
 
 proc TagRepository {{merge_request_number 0} {version_level 0}} {
     if [catch {exec git tag --sort=-creatordate} last_tag] {
-    Msg Error "No Hog version tags found in this repository."
+	Msg Error "No Hog version tags found in this repository."
     } else {
-    set tags [split $last_tag "\n"]
-    set tag [lindex $tags 0]
-    lassign [ExtractVersionFromTag $tag] M m p n mr
+	set tags [split $last_tag "\n"]
+	set tag [lindex $tags 0]
+	lassign [ExtractVersionFromTag $tag] M m p n mr
     
-    if { $M > -1 } { # M=-1 means that the tag could not be parsed following a Hog format
-        if {$mr == "" } { # Tag is official, no b at the beginning
-        Msg Info "Found official version $M.$m.$p."
-        if {$version_level == 2} {
-            incr M
-            set m 0
-            set p 0
-            set new_tag b${merge_request_number}v$M.$m.$p
-            set tag_opt ""
-            if {$merge_request_number <= 0} {
-            Msg Error "You should specify a valid merge request number not to risk to fail beacuse of duplicated tags"
-            return -1
-            }
-
-        } elseif {$version_level == 1} {
-            incr m
-            set p 0
-            set new_tag b${merge_request_number}v$M.$m.$p
-            set tag_opt ""
-            if {$merge_request_number <= 0} {
-            Msg Error "You should specify a valid merge request number not to risk to fail beacuse of duplicated tags"
-            return -1
-            }
-
-        } elseif {$version_level >= 3} {
+	if { $M > -1 } { # M=-1 means that the tag could not be parsed following a Hog format
+	    if {$mr == -1 } { # Tag is official, no b at the beginning (and no merge request number at the end)
+		Msg Info "Found official version $M.$m.$p."
+		if {$version_level == 2} {
+		    incr M
+		    set m 0
+		    set p 0
+		    set new_tag b${merge_request_number}v$M.$m.$p
+		    set tag_opt ""
+		    if {$merge_request_number <= 0} {
+			Msg Error "You should specify a valid merge request number not to risk to fail beacuse of duplicated tags"
+			return -1
+		    }
+		    
+		} elseif {$version_level == 1} {
+		    incr m
+		    set p 0
+		    set new_tag b${merge_request_number}v$M.$m.$p
+		    set tag_opt ""
+		    if {$merge_request_number <= 0} {
+			Msg Error "You should specify a valid merge request number not to risk to fail beacuse of duplicated tags"
+			return -1
+		    }
+		    
+		} elseif {$version_level >= 3} {
             # Version level >= 3 is used to create official tags from beta tags
-            incr p
-            #create official tag
-            Msg Info "No major/minor version increase, new tag will be v$M.$m.$p..."
-            set new_tag v$M.$m.$p
-            set tag_opt "-m 'Official_version_$M.$m.$p'"
-
-        }
-
-        } else { # Tag is not official
-        #Not official, do nothing unless version level is >=3, in which case convert the unofficial to official
-        Msg Info "Found candidate version for $M.$m.$p."
-        if {$version_level >= 3} {
-            Msg Info "New tag will be an official version v$M.$m.$p..."
-            set new_tag v$M.$m.$p
-            set tag_opt "-m 'Official_version_$M.$m.$p'"
-        }
-        }
-
+		    incr p
+		    #create official tag
+		    Msg Info "No major/minor version increase, new tag will be v$M.$m.$p..."
+		    set new_tag v$M.$m.$p
+		    set tag_opt "-m 'Official_version_$M.$m.$p'"
+		    
+		}
+		
+	    } else { # Tag is not official
+		#Not official, do nothing unless version level is >=3, in which case convert the unofficial to official
+		Msg Info "Found candidate version for $M.$m.$p."
+		if {$version_level >= 3} {
+		    Msg Info "New tag will be an official version v$M.$m.$p..."
+		    set new_tag v$M.$m.$p
+		    set tag_opt "-m 'Official_version_$M.$m.$p'"
+		}
+	    }
+	    
         # Tagging repositroy
-        if [info exists new_tag] {
-        Msg Info "Tagging repository with $new_tag..."
-        if [catch {exec git tag {*}"$new_tag $tag_opt"} msg] {
-            Msg Error "Could not create new tag $new_tag: $msg"
-        } else {
-            Msg Info "New tag $new_tag created successully."
-        }
-        } else {
-        set new_tag $tag
-        Msg Info "Tagging is not needed"
-        }
-    } else {
-        Msg Error "Could not parse tag: $tag"
-    }
+	    if [info exists new_tag] {
+		Msg Info "Tagging repository with $new_tag..."
+		if [catch {exec git tag {*}"$new_tag $tag_opt"} msg] {
+		    Msg Error "Could not create new tag $new_tag: $msg"
+		} else {
+		    Msg Info "New tag $new_tag created successully."
+		}
+	    } else {
+		set new_tag $tag
+		Msg Info "Tagging is not needed"
+	    }
+	} else {
+	    Msg Error "Could not parse tag: $tag"
+	}
     }
     
     return [list $tag $new_tag]

@@ -37,8 +37,6 @@ if {$flavour != ""} {
 }
 
 
-Msg Info "Evaluating firmware date and, possibly, git commit hash..."
-
 if { [exec git status --untracked-files=no  --porcelain] eq "" } {
     Msg Info "Git working directory [pwd] clean."
     lassign [GetVer ALL ./] version commit

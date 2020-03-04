@@ -968,14 +968,15 @@ proc GetHash {FILE path} {
 ## * FILE: list file or path containing the subset of files whose latest commit hash will be returned
 # * path:      the path the vhdl file are referred to in the list file (not used if FILE is a path or "ALL")
 #
-# if the special string "ALL" is used, returns the global hash
+# if the special string "ALL" is used, returns the global hash of the path specified in path
 proc GetVer {FILE path} {
     set SHA [GetHash $FILE $path]
+    set path [file normalize $path]
     set status [catch {exec git tag --sort=taggerdate --contain $SHA} result]
     if {$status == 0} {
     if {[regexp {^ *$} $result]} {
         if [catch {exec git tag --sort=-creatordate} last_tag] {
-        Msg CriticalWarning "No Hog version tags found in this repository."
+        Msg CriticalWarning "No Hog version tags found in this repository ($path)."
         set ver v0.0.0
         } else {
 	    set tags [split $last_tag "\n"]
@@ -983,9 +984,9 @@ proc GetVer {FILE path} {
 	    lassign [ExtractVersionFromTag $tag] M m p n mr
         if {$mr == -1} {
             incr p
-            Msg Info "No tag contains $SHA for $FILE, will use most recent tag $tag. As this is an official tag, patch will be incremented to $p."
+            Msg Info "No tag contains $SHA for $FILE ($path), will use most recent tag $tag. As this is an official tag, patch will be incremented to $p."
         } else {
-            Msg Info "No tag contains $SHA for $FILE, will use most recent tag $tag. As this is a candidate tag, the patch level will be kept at $p."
+            Msg Info "No tag contains $SHA for $FILE ($path), will use most recent tag $tag. As this is a candidate tag, the patch level will be kept at $p."
         }
         set ver v$M.$m.$p
         
@@ -1022,7 +1023,7 @@ proc GetVer {FILE path} {
 	set n [format %04X 0]
 	set comm $SHA
     } else {
-	Msg Warning "Tag does not contain a properly formatted version: $ver"
+	Msg Warning "Tag does not contain a properly formatted version: $ver in repository containing $FILE"
 	set M [format %02X 0]
 	set m [format %02X 0]
 	set c [format %04X 0]

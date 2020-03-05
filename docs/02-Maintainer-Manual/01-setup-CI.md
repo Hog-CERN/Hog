@@ -39,7 +39,6 @@ Now take the following actions:
 - On the left enable the private runners that you have installed on your machines
 - Now collpase `Runners` and expand `Variables`
 
-
 #### Environment variables
 The following variables are **needed** for Hog-CI to work, so if any of them is not defined, or defined to a wrong value, Hog-CI will fail.
 
@@ -60,8 +59,8 @@ With the following **optional** variables you can configure the behaviour of Hog
 | Name                            | Value  |
 |-----|---|
 | __HOG_USE_DOXYGEN__          | Should be set to 1 if you want the Hog CI to run doxygen (in progress...) |
-| __HOG_CHECK_SYNTAX__	       |									   |
-| __HOG_CHECK_YAMLREF__	       |									   |
+| __HOG_CHECK_SYNTAX__	       | 									   |
+| __HOG_CHECK_YAMLREF__	       | If this variable is set, Hog CI will check that "ref" in .gitlab-ci.yml actually matches the gitlab-ci file in the Hog submodule |
 | __HOG_IP_EOS_PATH__	       |									   |
 | __HOG_NO_BITSTREAM_STAGE__   |									   |
 | __HOG_SIMULATION_LIB_PATH__  |									   |

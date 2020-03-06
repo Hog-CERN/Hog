@@ -29,14 +29,24 @@ launch_runs -scripts_only synth_1
 reset_run synth_1
 
 set ips [get_ips *]
-if { [get_ips *] != ""} {
+
+if {($ip_path != 0) && ($ips != "")  } {
+    Msg Info "Closing project $project, before copying the IPs..."
+    close_project
+    Msg Info "scanning through all the IPs and possibly copying synthesis result from the EOS path..."
+    foreach ip $ips {
+	set ret [HandleIP pull [get_property IP_FILE $ip] $ip_path $main_folder]
+    }
+    Msg Info "Re creating project $project..."
+    source ../../Top/$project/$project.tcl
+    Msg Info "Opening project $project again..."
+    open_project ../../VivadoProject/$project/$project.xpr
+}
+
+
+if {$ips != ""} {
     foreach ip $ips {
 	if { [get_runs $ip\_synth_1] != "" } {
-	    if {($ip_path != 0)} {
-		set ret [HandleIP pull [get_property IP_FILE $ip] $ip_path $main_folder]
-	    } else {
-		set ret -1
-	    }
 	    Msg Info "Adding run for $ip..."
 	    set run_name [get_runs $ip\_synth_1]
 	    reset_run $run_name

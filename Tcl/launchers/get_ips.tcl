@@ -31,13 +31,21 @@ reset_run synth_1
 set ips [get_ips *]
 if {($ip_path != 0) && ($ips != "")  } {
     Msg Info "Scanning through all the IPs and possibly copying synthesis result from the EOS path..."
+    set copied_ips 0
     foreach ip $ips {
 	set ret [HandleIP pull [get_property IP_FILE $ip] $ip_path $main_folder]
+	if {$ret == 0} {
+	    incr copied_ips 
+	}
     }
-    
-    Msg Info "Re-creating project $project..."
-    close_project
-    source ../../Top/$project/$project.tcl
+
+    Msg Info "$copied_ips were copied from the EOS repository"
+
+    if {$copied_ips > 0} {
+	Msg Info "Re-creating project $project..."
+	close_project
+	source ../../Top/$project/$project.tcl
+    }
 }
 
 Msg Info "All done."

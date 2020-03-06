@@ -19,7 +19,7 @@ set list_bitfiles [split $bitfiles "\n"]
 puts $list_bitfiles
 
 foreach sha $list_master_shas {
-    foreach bitfile $list {
+    foreach bitfile $list_bitfiles {
         if {$sha == $bitfile} {
             Msg Info "Removing files corresponding to SHA $sha"
             exec eos rm -r $unofficial/$sha

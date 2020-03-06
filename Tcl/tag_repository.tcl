@@ -29,7 +29,7 @@ Msg Info "Old tag was: $old_tag and new tag is: $new_tag"
 if {$version_level >= 3} {
     set official $env(HOG_OFFICIAL_BIN_EOS_PATH)
     set unofficial $env(HOG_UNOFFICIAL_BIN_EOS_PATH)
-    set current_sha [exec git rev-parse --short master]
+    set current_sha [exec git rev-parse --short=8 master]
     set wild_card $unofficial/$current_sha/*$describe*
     
     set status [catch {exec eos ls $wild_card} folders]

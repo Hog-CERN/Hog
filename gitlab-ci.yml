@@ -104,7 +104,9 @@ stages:
         <<: *vars        
     script:
         - vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_implementation.tcl -tclargs $PROJECT_NAME $HOG_NO_BITSTREAM
-        - "if [ -e $CI_PROJECT_DIR/bin/ ]; then until echo $HOG_PASSWORD | kinit $HOG_USER ; do echo Retrying; sleep 2; done; eos cp -r $CI_PROJECT_DIR/bin/* $HOG_UNOFFICIAL_BIN_EOS_PATH; fi"
+        - "if [ -e $CI_PROJECT_DIR/bin/ ]; then until echo $HOG_PASSWORD | kinit $HOG_USER ; do echo Retrying; sleep 2; done; 
+          eos mkdir -p $HOG_UNOFFICIAL_BIN_EOS_PATH/$CI_MERGE_REQUEST_IID;
+          eos cp -r $CI_PROJECT_DIR/bin/* $HOG_UNOFFICIAL_BIN_EOS_PATH; fi"
 
     artifacts:
         name: implementaion_and_bitfiles

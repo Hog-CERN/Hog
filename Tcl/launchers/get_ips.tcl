@@ -34,6 +34,10 @@ if {($ip_path != 0) && ($ips != "")  } {
     foreach ip $ips {
 	set ret [HandleIP pull [get_property IP_FILE $ip] $ip_path $main_folder]
     }
+    
+    Msg Info "Re-creating project $project..."
+    close_project
+    source ../../Top/$project/$project.tcl
 }
 
 Msg Info "All done."

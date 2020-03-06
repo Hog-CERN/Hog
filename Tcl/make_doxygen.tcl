@@ -42,11 +42,14 @@ if {[info exists env(HOG_OFFICIAL_BIN_EOS_PATH)]} {
     Msg Info "Creating $new_dir"
     exec eos mkdir -p $new_dir
     if {[file exists ./Doc/html]} {
-        set dox_dir $official/$version/doc
+        set dox_dir $official/$version/Doc
         Msg Info "Creating doxygen dir $dox_dir..."
         exec eos mkdir -p $dox_dir
         Msg Info "Copying doxygen files..."
         exec -ignorestderr eos cp -r ./Doc/html/* $dox_dir
+        Msg Info "Updating doxygen documentation in $official/Doc"
+        exec eos mkdir -p $official/Doc
+        exec -ignorestderr eos cp -r ./Doc/html/* $official/Doc
     }
 }
 cd $old_path

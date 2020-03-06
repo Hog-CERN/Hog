@@ -968,24 +968,25 @@ proc GetHash {FILE path} {
 ## * FILE: list file or path containing the subset of files whose latest commit hash will be returned
 # * path:      the path the vhdl file are referred to in the list file (not used if FILE is a path or "ALL")
 #
-# if the special string "ALL" is used, returns the global hash
+# if the special string "ALL" is used, returns the global hash of the path specified in path
 proc GetVer {FILE path} {
     set SHA [GetHash $FILE $path]
+    set path [file normalize $path]
     set status [catch {exec git tag --sort=taggerdate --contain $SHA} result]
     if {$status == 0} {
     if {[regexp {^ *$} $result]} {
         if [catch {exec git tag --sort=-creatordate} last_tag] {
-        Msg CriticalWarning "No Hog version tags found in this repository."
+        Msg CriticalWarning "No Hog version tags found in this repository ($path)."
         set ver v0.0.0
         } else {
-        set tags [split $last_tag "\n"]
-        set tag [lindex $tags 0]
-        lassign [ExtractVersionFromTag $tag] M m p n mr
+	    set tags [split $last_tag "\n"]
+	    set tag [lindex $tags 0]
+	    lassign [ExtractVersionFromTag $tag] M m p n mr
         if {$mr == -1} {
             incr p
-            Msg Info "No tag contains $SHA for $FILE, will use most recent tag $tag. As this is an official tag, patch will be incremented to $p."
+            Msg Info "No tag contains $SHA for $FILE ($path), will use most recent tag $tag. As this is an official tag, patch will be incremented to $p."
         } else {
-            Msg Info "No tag contains $SHA for $FILE, will use most recent tag $tag. As this is a candidate tag, the patch level will be kept at $p."
+            Msg Info "No tag contains $SHA for $FILE ($path), will use most recent tag $tag. As this is a candidate tag, the patch level will be kept at $p."
         }
         set ver v$M.$m.$p
         
@@ -1009,25 +1010,25 @@ proc GetVer {FILE path} {
 
     lassign [ExtractVersionFromTag $ver] M m c n mr
     
-    if {$mr > -1} { # Candidate for version not yet merged
-    set M [format %02X $M]
-    set m [format %02X $m]
-    set c [format %04X $c]
-    set n [format %04X $n]
-    set comm $SHA
+    if {$mr > -1} { # Candidate tab
+	set M [format %02X $M]
+	set m [format %02X $m]
+	set c [format %04X $c]
+	set n [format %04X $n]
+	set comm $SHA
     } elseif { $M > -1 } { # official tag
-    set M [format %02X $M]
-    set m [format %02X $m]
-    set c [format %04X $c]
-    set n [format %04X 0]
-    set comm $SHA
+	set M [format %02X $M]
+	set m [format %02X $m]
+	set c [format %04X $c]
+	set n [format %04X 0]
+	set comm $SHA
     } else {
-    Msg Warning "Could not parse git describe: $ver"
-    set M [format %02X 0]
-    set m [format %02X 0]
-    set c [format %04X 0]
-    set n [format %04X 0]
-    set comm $SHA
+	Msg Warning "Tag does not contain a properly formatted version: $ver in repository containing $FILE"
+	set M [format %02X 0]
+	set m [format %02X 0]
+	set c [format %04X 0]
+	set n [format %04X 0]
+	set comm $SHA
     }
     set comm [format %07X 0x$comm]
     return [list $M$m$c $comm]
@@ -1055,14 +1056,17 @@ proc HexVersionToString {version} {
 
 proc ExtractVersionFromTag {tag} {
     if {[regexp {^(?:b(\d+))?v(\d+)\.(\d+).(\d+)(?:-(\d+))?$} $tag -> mr M m p n]} {
-
+	if {$mr eq ""} {
+	    set mr -1
+	    set n -1
+	}
     } else {
-    Msg Warning "Repository tag $tag is not in a Hog-compatible format."
-    set mr -1
-    set M -1
-    set m -1
-    set p -1
-    set n -1    
+	Msg Warning "Repository tag $tag is not in a Hog-compatible format."
+	set mr -1
+	set M -1
+	set m -1
+	set p -1
+	set n -1    
     }
     return [list $M $m $p $n $mr]
 }
@@ -1075,71 +1079,71 @@ proc ExtractVersionFromTag {tag} {
 
 proc TagRepository {{merge_request_number 0} {version_level 0}} {
     if [catch {exec git tag --sort=-creatordate} last_tag] {
-    Msg Error "No Hog version tags found in this repository."
+	Msg Error "No Hog version tags found in this repository."
     } else {
-    set tags [split $last_tag "\n"]
-    set tag [lindex $tags 0]
-    lassign [ExtractVersionFromTag $tag] M m p n mr
+	set tags [split $last_tag "\n"]
+	set tag [lindex $tags 0]
+	lassign [ExtractVersionFromTag $tag] M m p n mr
     
-    if { $M > -1 } { # M=-1 means that the tag could not be parsed following a Hog format
-        if {$mr == "" } { # Tag is official, no b at the beginning
-        Msg Info "Found official version $M.$m.$p."
-        if {$version_level == 2} {
-            incr M
-            set m 0
-            set p 0
-            set new_tag b${merge_request_number}v$M.$m.$p
-            set tag_opt ""
-            if {$merge_request_number <= 0} {
-            Msg Error "You should specify a valid merge request number not to risk to fail beacuse of duplicated tags"
-            return -1
-            }
-
-        } elseif {$version_level == 1} {
-            incr m
-            set p 0
-            set new_tag b${merge_request_number}v$M.$m.$p
-            set tag_opt ""
-            if {$merge_request_number <= 0} {
-            Msg Error "You should specify a valid merge request number not to risk to fail beacuse of duplicated tags"
-            return -1
-            }
-
-        } elseif {$version_level >= 3} {
+	if { $M > -1 } { # M=-1 means that the tag could not be parsed following a Hog format
+	    if {$mr == -1 } { # Tag is official, no b at the beginning (and no merge request number at the end)
+		Msg Info "Found official version $M.$m.$p."
+		if {$version_level == 2} {
+		    incr M
+		    set m 0
+		    set p 0
+		    set new_tag b${merge_request_number}v$M.$m.$p
+		    set tag_opt ""
+		    if {$merge_request_number <= 0} {
+			Msg Error "You should specify a valid merge request number not to risk to fail beacuse of duplicated tags"
+			return -1
+		    }
+		    
+		} elseif {$version_level == 1} {
+		    incr m
+		    set p 0
+		    set new_tag b${merge_request_number}v$M.$m.$p
+		    set tag_opt ""
+		    if {$merge_request_number <= 0} {
+			Msg Error "You should specify a valid merge request number not to risk to fail beacuse of duplicated tags"
+			return -1
+		    }
+		    
+		} elseif {$version_level >= 3} {
             # Version level >= 3 is used to create official tags from beta tags
-            incr p
-            #create official tag
-            Msg Info "No major/minor version increase, new tag will be v$M.$m.$p..."
-            set new_tag v$M.$m.$p
-            set tag_opt "-m 'Official_version_$M.$m.$p'"
-
-        }
-
-        } else { # Tag is not official
-        #Not official, do nothing unless version level is >=3, in which case convert the unofficial to official
-        Msg Info "Found candidate version for $M.$m.$p."
-        if {$version_level >= 3} {
-            Msg Info "New tag will be an official version v$M.$m.$p..."
-            set new_tag v$M.$m.$p
-            set tag_opt "-m 'Official_version_$M.$m.$p'"
-        }
-        }
-
+		    incr p
+		    #create official tag
+		    Msg Info "No major/minor version increase, new tag will be v$M.$m.$p..."
+		    set new_tag v$M.$m.$p
+		    set tag_opt "-m 'Official_version_$M.$m.$p'"
+		    
+		}
+		
+	    } else { # Tag is not official
+		#Not official, do nothing unless version level is >=3, in which case convert the unofficial to official
+		Msg Info "Found candidate version for $M.$m.$p."
+		if {$version_level >= 3} {
+		    Msg Info "New tag will be an official version v$M.$m.$p..."
+		    set new_tag v$M.$m.$p
+		    set tag_opt "-m 'Official_version_$M.$m.$p'"
+		}
+	    }
+	    
         # Tagging repositroy
-        if [info exists new_tag] {
-        Msg Info "Tagging repository with $new_tag..."
-        if [catch {exec git tag {*}"$new_tag $tag_opt"} msg] {
-            Msg Error "Could not create new tag $new_tag: $msg"
-        } else {
-            Msg Info "New tag $new_tag created successully."
-        }
-        } else {
-        set new_tag $tag
-        Msg Info "Tagging is not needed"
-        }
-    } else {
-        Msg Error "Could not parse tag: $tag"
-    }
+	    if [info exists new_tag] {
+		Msg Info "Tagging repository with $new_tag..."
+		if [catch {exec git tag {*}"$new_tag $tag_opt"} msg] {
+		    Msg Error "Could not create new tag $new_tag: $msg"
+		} else {
+		    Msg Info "New tag $new_tag created successully."
+		}
+	    } else {
+		set new_tag $tag
+		Msg Info "Tagging is not needed"
+	    }
+	} else {
+	    Msg Error "Could not parse tag: $tag"
+	}
     }
     
     return [list $tag $new_tag]
@@ -1424,3 +1428,77 @@ proc HandleIP {what_to_do xci_file ip_path runs_dir} {
     return 0   
 }
 ########################################################
+
+## Checks that "ref" in .gitlab-ci.yml actually matches the gitlab-ci file in the 
+##  Hog submodule
+#
+proc CheckYmlRef {repo_path allow_failure} {
+
+	if {$allow_failure} {
+		set MSG_TYPE CriticalWarning
+	} else {
+		set MSG_TYPE Error
+	}
+
+	if { [catch {package require yaml 0.3.3} YAMLPACKAGE]} {
+		Msg CriticalWarning "Cannot find package YAML, skipping consistency check of \"ref\" in gilab-ci.yaml file.\n Error message: $YAMLPACKAGE
+You can fix this by installing package \"tcllib\""
+		return
+	}
+
+	set thisPath [pwd]
+
+	# Go to repository path
+	cd "$repo_path"
+	if [file exists .gitlab-ci.yml] {
+		#get .gitlab-ci ref
+
+		set YML_REF ""
+		set yamlDict [::yaml::yaml2dict -file .gitlab-ci.yml]
+		dict for {dictKey dictValue} $yamlDict {
+			#looking for Hog include in .gitlab-ci.yml
+			if {"$dictKey" == "include" && [lsearch [split $dictValue " {}"] "hog/Hog" ] != "-1"} {
+				set YML_REF [lindex [split $dictValue " {}"]  [expr [lsearch -dictionary [split $dictValue " {}"] "ref"]+1 ] ]
+			}
+		}
+
+		if {$YML_REF == ""} {
+			Msg Warning "Hog version not specified in the .gitlab-ci.yml. Assuming that master branch is used"
+			cd Hog
+			set YML_REF_F [exec git name-rev --tags --name-only origin/master]
+			cd ..
+		} else {
+			set YML_REF_F [regsub -all "'" $YML_REF ""]
+		}
+
+		#getting Hog repository tag and commit
+		cd "Hog"
+		set HOGYML_SHA [exec git log --format=%H -1 --  gitlab-ci.yml ]
+		if { [catch {exec git log --format=%H -1 $YML_REF_F gitlab-ci.yml} EXPECTEDYML_SHA]} {
+			if { [catch {exec git log --format=%H -1 origin/$YML_REF_F gitlab-ci.yml} EXPECTEDYML_SHA]} {
+				Msg $MSG_TYPE "Error in project .gitlab-ci.yml. ref: $YML_REF not found"		
+				set EXPECTEDYML_SHA ""
+			}
+ 
+		} 
+		if  {!($EXPECTEDYML_SHA eq "")} {
+			
+			if {$HOGYML_SHA == $EXPECTEDYML_SHA} {
+				Msg Info "Hog gitlab-ci.yml SHA matches with the \"ref\" in the .gitlab-ci.yml."
+
+			} else {
+				Msg $MSG_TYPE "HOG gitlab-ci.yml SHA mismatch. 
+From Hog submodule: $HOGYML_SHA
+From .gitlab-ci.yml: $EXPECTEDYML_SHA 
+You can fix this in 2 ways: (A) by changing the ref in your repository or (B) by changing the Hog submodule commit.
+\tA) edit project .gitlab-ci.yml ---> ref: '$HOGYML_SHA'
+\tB) modify Hog submodule: git checkout $EXPECTEDYML_SHA"
+			}
+		}
+	} else {
+		Msg Info ".gitlab-ci.yml not found in $repo_path. Skipping this step"
+	}
+
+	cd "$thisPath"
+}
+

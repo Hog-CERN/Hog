@@ -7,7 +7,7 @@ cd $path
 source ./hog.tcl
 cd ../../
 
-set master_shas [exec git rev-parse --short=8 master --all]
+set master_shas [exec git rev-parse --short=8 master --remotes]
 Msg Info "Retrieving list of commits for 'master' branch..."
 set list_master_shas [split $master_shas "\n"]
 puts $list_master_shas

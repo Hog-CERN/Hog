@@ -10,7 +10,7 @@
 Unfortunately we cannot use shared runners because big, slow, and licensed software (Xilinx Vivado, Mentor Graphics Questasim) are required.
 So we need to setup our own physical or virtual machines.
 You can use either the A VM we provide or a private VM.
-Please refer to [Setting up a Virtual Machines](02-Virtual-Machines.md) section for more information.
+Please refer to [Setting up a Virtual Machines](03-Virtual-Machines.md) section for more information.
 
 Now take the following actions:
 

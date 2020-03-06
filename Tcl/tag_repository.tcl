@@ -46,7 +46,7 @@ if {$version_level >= 3} {
             set dst $new_dir/[regsub "(.*)\_$describe\(.*\)" $f "\\1"]
             Msg Info "Copying $f into $dst..."
             exec eos mkdir -p $dst
-            exec -ignorestderr eos cp -r $unofficial/$f/* $dst/
+            exec -ignorestderr eos cp -r $unofficial/$current_sha/$f/* $dst/
             
             Msg Info "Renaming bit and bin files..."
             catch {exec eos ls $dst/*$describe.*} new_files

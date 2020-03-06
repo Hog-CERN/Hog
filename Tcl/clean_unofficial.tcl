@@ -22,7 +22,8 @@ foreach sha $list_master_shas {
     foreach bitfile $list_bitfiles {
         if {$sha == $bitfile} {
             Msg Info "Removing files corresponding to SHA $sha"
-            exec eos rm -r $unofficial/$sha
+            set status [catch {exec eos rm -r $unofficial/$sha} deletion]
+            puts $status
         }
     }
 }

@@ -1,11 +1,11 @@
-## Gitlab repository setup
+# Gitlab repository setup
 
-### Remove merge commit
+## Remove merge commit
 - Go to https://gitlab.cern.ch/YourGroup/YourProject/edit
 - Expand __Merge Request settings__ 
 - Select Fast-forward merge
 
-### Setup Runners
+## Setup Runners
 
 Unfortunately we cannot use shared runners because big, slow, and licensed software (Xilinx Vivado, Mentor Graphics Questasim) are required.
 So we need to setup our own physical or virtual machines.
@@ -19,7 +19,7 @@ Now take the following actions:
 - On the right click `Disable shared runners for this project`
 - On the left enable the private runners that you have installed on your machines
 
-### Environment variables
+## Environment variables
 - Go to `Settings` -> `CI/CD`
 - Expand `Variables`
 

@@ -11,7 +11,6 @@ before_script:
     - git submodule update
     - export XILINXD_LICENSE_FILE=${HOG_XIL_LICENSE}
     - export PATH=${HOG_PATH}:$PATH
-    - env
 
 .only-default: &only-default
   only:
@@ -124,7 +123,7 @@ stages:
     script:
         - "if [ -f ${CI_PROJECT_DIR}/doxygen/doxygen.conf ]; then doxygen ${CI_PROJECT_DIR}/doxygen/doxygen.conf; else echo './doxygen/doxygen.conf  file not found, using ./Hog/Templates/doxygen.conf to generate documentation'; doxygen ./Hog/Templates/doxygen.conf; fi"
         - until echo $HOG_PASSWORD | kinit $HOG_USER ; do echo Retrying; sleep 2; done
-        - eos mkdir $HOG_UNOFFICIAL_BIN_EOS_PATH/$CI_COMMIT_SHORT_SHA
+        - eos mkdir $HOG_UNOFFICIAL_BIN_EOS_PATH/$CI_MERGE_REQUEST_TITLE
         - eos cp -r $CI_PROJECT_DIR/Doc $HOG_UNOFFICIAL_BIN_EOS_PATH/$CI_COMMIT_SHORT_SHA/Doc
     artifacts:
         name: docs
@@ -195,19 +194,19 @@ make_official_doc:
      - vivado -mode batch -notrace -source ./Hog/Tcl/make_doxygen.tcl
   allow_failure: true
 
-# cleaning:
-#   only:
-#     refs:
-#       - push
-#       - web
-#   except:
-#     variables:
-#       - $CI_PIPELINE_SOURCE != "push"
-#       - $CI_COMMIT_REF_SLUG != "master"
-#   tags:
-#      - hog
-#   stage: clean
-#   script:
-#      - until echo $HOG_PASSWORD | kinit $HOG_USER ; do echo "Retrying"; sleep 2; done
-#      - if [ -z ${HOG_UNOFFICIAL_BIN_EOS_PATH+x} ]; then echo "HOG_UNOFFICIAL_BIN_EOS_PATH not specified, nothing to clean..."; else eos rm -r $HOG_UNOFFICIAL_BIN_EOS_PATH/; eos mkdir $HOG_UNOFFICIAL_BIN_EOS_PATH; fi
-#   allow_failure: true
+cleaning:
+  only:
+    refs:
+      - push
+      - web
+  except:
+    variables:
+      - $CI_PIPELINE_SOURCE != "push"
+      - $CI_COMMIT_REF_SLUG != "master"
+  tags:
+     - hog
+  stage: clean
+  script:
+     - until echo $HOG_PASSWORD | kinit $HOG_USER ; do echo "Retrying"; sleep 2; done
+     - if [ -z ${HOG_UNOFFICIAL_BIN_EOS_PATH+x} ]; then echo "HOG_UNOFFICIAL_BIN_EOS_PATH not specified, nothing to clean..."; else eos rm -r $HOG_UNOFFICIAL_BIN_EOS_PATH/$CI_COMMIT_TITLE; fi
+  allow_failure: true

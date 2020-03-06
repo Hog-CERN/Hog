@@ -39,7 +39,7 @@ if {($ip_path != 0) && ($ips != "")  } {
 	}
     }
 
-    Msg Info "$copied_ips were copied from the EOS repository"
+    Msg Info "$copied_ips IPs were copied from the EOS repository"
 
     if {$copied_ips > 0} {
 	Msg Info "Re-creating project $project..."

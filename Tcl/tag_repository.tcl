@@ -1,7 +1,7 @@
 #!/usr/bin/env tclsh
 set Name tag_repository
 if { $::argc eq 0 } {
-    puts "USAGE: $::argv0 <merge request> \[version level\]"
+    puts "USAGE: $::argv0 <merge request> \[version level\] \[Hog?\]"
     exit 1
 } else {
     set merge_request [lindex $argv 0]
@@ -10,12 +10,17 @@ if { $::argc eq 0 } {
     } else {
     set version_level 0
     }
+	if { $::argc > 2 } {
+	set TaggingPath ../
+	} else {
+	set TaggingPath ../..
+	}
 }
 set old_path [pwd]
 set path [file dirname [info script]]
 cd $path
 source ./hog.tcl
-cd ../../
+cd $TaggingPath
 
 Msg Info "Evaluating git describe..."
 set describe [exec git describe --always --tags --long]

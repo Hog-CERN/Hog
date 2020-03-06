@@ -13,7 +13,7 @@ source ./hog.tcl
 
 if [info exists env(HOG_IP_EOS_PATH)] {
     set ip_path $env(HOG_IP_EOS_PATH)
-    Msg Info "Will use the EOS ip repository on $ip_path to speed up ip synthesis..."
+    Msg Info "Will use the EOS ip repository on $ip_path to copy synthesised IPs..."
 } else {
     set ip_path 0
 }
@@ -30,20 +30,6 @@ reset_run synth_1
 
 set ips [get_ips *]
 
-if {($ip_path != 0) && ($ips != "")  } {
-    Msg Info "Closing project $project, before copying the IPs..."
-    close_project
-    Msg Info "scanning through all the IPs and possibly copying synthesis result from the EOS path..."
-    foreach ip $ips {
-	set ret [HandleIP pull [get_property IP_FILE $ip] $ip_path $main_folder]
-    }
-    Msg Info "Re creating project $project..."
-    source ../../Top/$project/$project.tcl
-    Msg Info "Opening project $project again..."
-    open_project ../../VivadoProject/$project/$project.xpr
-}
-
-
 if {$ips != ""} {
     foreach ip $ips {
 	if { [get_runs $ip\_synth_1] != "" } {
@@ -55,9 +41,9 @@ if {$ips != ""} {
 	    Msg Warning "No run found for $ip."
 	}
     }
-    
-    set jobs 4
 }
+
+set jobs 4
 set failure 0
 
 if [info exists runs] {

@@ -610,7 +610,7 @@ proc DoxygenVersion {target_version} {
     set ver [split $target_version "."]
     set v [exec doxygen --version]
     Msg Info "Found doxygen version: $v"
-    set current_ver [split $v "."]
+	set current_ver [split $v ". "]
     set target [expr [lindex $ver 0]*100000 + [lindex $ver 1]*100 + [lindex $ver 2]]
     set current [expr [lindex $current_ver 0]*100000 + [lindex $current_ver 1]*100 + [lindex $current_ver 2]]
 

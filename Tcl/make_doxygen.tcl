@@ -31,7 +31,7 @@ if {[file exists $doxygen_conf] & [DoxygenVersion 1.8.13]} {
     puts $outfile \nPROJECT_NUMBER=$version
     close $outfile
     Msg Info "Running doxygen with ./Hog/Templates/doxygen.conf..."
-    exec -ignorestderr doxygen "./Hog/doxygen.conf"
+    exec -ignorestderr doxygen "./Hog/Templates/doxygen.conf"
 }
 
 

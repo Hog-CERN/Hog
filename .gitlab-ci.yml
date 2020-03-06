@@ -39,6 +39,7 @@ tagging:
           - git fetch 
           - git fetch origin $CI_COMMIT_REF_SLUG
           - git status
+#          - git pull
           - git pull
           - ./Tcl/tag_repository.tcl -tclargs 0 0 1
 #          - git push origin $CI_COMMIT_REF_NAME

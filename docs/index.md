@@ -72,6 +72,9 @@ Would you like to have fun with git and a Tcl? Please join us and read the [Cont
 
 ## Contacts
 
+To report an issue use the git issues in the [HOG git repository](https://gitlab.cern.ch/hog/Hog).
+Please check in existing and solved issues before submitting a new issue.
+
 For questions related to the HOG package, please get in touch with [HOG support](mailto:hog@cern.ch).
 
 For anything related to this site, please get in touch with [Nicolò Biesuz](mailto:nbiesuz@cern.ch).

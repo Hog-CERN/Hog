@@ -3,7 +3,7 @@ This chapter describes how to setup Hog Continuous Itegration on Gitlab.
  In order to access your repository and compile your HDL, the gfitlab CI will need a dedicated account. 
  Before staring please get a [service account](#service_account).
 
- Once you  have your service account you to get an [eos space](#eos_space) where to store your *bit files and your documentation.
+ Once you  have your service account you to get an [eos space](#eos_space) where to store your *.bit files and your documentation.
 
  You can now start instructing the gitlab CI on what actions must be taken in order to compile your firmware usinga [YAML file](Gitlab_CI_YAML). 
 - Create a service account (let's call it john)

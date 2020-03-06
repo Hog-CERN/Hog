@@ -81,7 +81,7 @@ Information on How to install a new gitlab runnare on your VM can be found [here
 - Log into your VM
 - Open with your preferred editor with sudo rights `/etc/gitlab-runner/config.toml`
 - In the `global section` add ``concurrent = NUMBER_OF_CONCURRENT_CPU``:  limits how many jobs globally can be run concurrently. That means, it applies to all the runners on the machine independently of the executor [docker, ssh, kubernetes etc]
-- In the `runner section` add ``limit = MAX_NUMBER_OF_CONCURRENT_JOB_PER_RUNNER``: Limit how many jobs can be handled concurrently by this token. Suppose that we have 2 runners registered by 2 different tokens, then its limit could be adjusted separately : runner-one limit = 3, runner-two limit =5,…
+- In the `runner section` add ``limit = MAX_NUMBER_OF_CONCURRENT_JOB_PER_RUNNER``: Limit how many jobs can be handled concurrently by this token. Suppose that we have 2 runners registered by 2 different tokens, then its limit could be adjusted separately : runner-one limit = 3, runner-two limit =5,
 - In the `runner section` add ``request_concurrency = NUMBER_OF_CONCURRENT_REQUESTS_PER_NEW_JOBS`` : Limit number of concurrent requests for new jobs from GitLab (default 1)
 - [Have a look here for more info](https://medium.com/faun/maximize-your-gitlab-runner-power-with-ci-cd-concurrent-pipelines-a5dcc092cee7)
 - Example ``config.toml``

@@ -72,6 +72,7 @@ stages:
         <<: *vars    
     script:
         - until echo $HOG_PASSWORD | kinit $HOG_USER ; do echo "Retrying"; sleep 2; done
+        - "if [ -z ${HOG_IP_EOS_PATH+x} ]; then echo 'No EOS path for IPs defined'; else vivado -mode batch -notrace -source ./Hog/Tcl/launchers/get_ips.tcl -tclargs $PROJECT_NAME; fi"
         - vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_ip_synth.tcl -tclargs $PROJECT_NAME
     artifacts:
         name: vivado_runs

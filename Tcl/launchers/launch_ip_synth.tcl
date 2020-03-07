@@ -23,7 +23,7 @@ Msg Info "Opening project $project..."
 open_project ../../VivadoProject/$project/$project.xpr
 
 
-Msg Info "Preparing runs..."
+Msg Info "Preparing IP nruns..."
 reset_run synth_1
 launch_runs -scripts_only synth_1
 reset_run synth_1
@@ -38,7 +38,7 @@ if {$ips != ""} {
 	    reset_run $run_name
 	    lappend runs $run_name
 	} else {
-	    Msg Warning "No run found for $ip."
+	    Msg Info "No run found for $ip."
 	}
     }
 }
@@ -81,7 +81,14 @@ if {$failure eq 1} {
 if {($ip_path != 0)} {
     Msg Info "Copying synthesised IPs to $ip_path..."
     foreach ip $ips {
-	HandleIP push [get_property IP_FILE $ip] $ip_path $main_folder
+	set force 0
+	if [info exist runs] {
+	    if {[lsearch $runs $ip\_synth_1] != -1} {
+		Msg Info "$ip was synthesized, will force the copy to EOS..."
+		set force 1
+	    }
+	}
+	HandleIP push [get_property IP_FILE $ip] $ip_path $main_folder $force
     }
 }
 

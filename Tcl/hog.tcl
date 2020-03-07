@@ -1369,8 +1369,9 @@ proc ForceUpToDate {} {
 # - what_to_do: can be "push", if you want to copy the local IP synth result to eos or "pull" if you want to copy the files from eos to your local repository
 # - xci_file: the local IP xci file
 # - ip_path: the path of directory you want the IP to be saved on eos
+# - force: if 1 pushes IP even if already on EOS
 
-proc HandleIP {what_to_do xci_file ip_path runs_dir} {
+proc HandleIP {what_to_do xci_file ip_path runs_dir {force 0}} {
     if {!($what_to_do eq "push") && !($what_to_do eq "pull")} {
 	Msg Error "You must specify push or pull as first argument."
     }
@@ -1405,12 +1406,12 @@ proc HandleIP {what_to_do xci_file ip_path runs_dir} {
     Msg Info "Preparing to handle IP: $xci_name..."
 
     if {$what_to_do eq "push"} {
-	if  {[catch {exec eos ls $ip_path/$file_name} result]} {
+	if  {([catch {exec eos ls $ip_path/$file_name} result]) || $force == 1} {
 	    set ip_synth_files [glob -nocomplain $runs_dir/$xci_ip_name*]
 	    if {[llength $ip_synth_files] > 0} {
 		Msg Info "Found some IP synthesised files matching $ip_path/$file_name*"
 		Msg Info "Creating IP directories on EOS..."
-		exec  eos mkdir -p "$ip_path/$file_name/synthesized"
+		exec eos mkdir -p "$ip_path/$file_name/synthesized"
 		Msg Info "Copying generated files for $xci_name..."
 		exec -ignorestderr eos cp -r $xci_path $ip_path/$file_name/
 		exec eos mv $ip_path/$file_name/$xci_dir_name $ip_path/$file_name/generated

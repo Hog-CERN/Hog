@@ -1358,8 +1358,8 @@ proc ForceUpToDate {} {
     Msg Info "Forcing all the runs to look up to date..."
     set runs [get_runs]
     foreach r $runs {
-    Msg Info "Forcing $r..."
-    set_property needs_refresh false [get_runs $r]
+	Msg Info "Forcing $r..."
+	set_property needs_refresh false [get_runs $r]
     }
 }
 ########################################################

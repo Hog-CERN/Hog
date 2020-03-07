@@ -45,6 +45,7 @@ if {($ip_path != 0) && ($ips != "")  } {
 	Msg Info "Re-creating project $project..."
 	close_project
 	source ../../Top/$project/$project.tcl
+	ForceUpToDate
     }
 }
 

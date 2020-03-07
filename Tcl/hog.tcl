@@ -1367,7 +1367,7 @@ proc ForceUpToDate {} {
 ## Copy IP generated files from/to an EOS repository
 # Arguments:\n
 # - what_to_do: can be "push", if you want to copy the local IP synth result to eos or "pull" if you want to copy the files from eos to your local repository
-# - xci_fil: the local IP xci file
+# - xci_file: the local IP xci file
 # - ip_path: the path of directory you want the IP to be saved on eos
 
 proc HandleIP {what_to_do xci_file ip_path runs_dir} {
@@ -1402,6 +1402,8 @@ proc HandleIP {what_to_do xci_file ip_path runs_dir} {
     set hash [lindex [exec md5sum $xci_file] 0]
     set file_name $xci_name\_$hash
     
+    Msg Info "Preparing to handle IP: $xci_name..."
+
     if {$what_to_do eq "push"} {
 	if  {[catch {exec eos ls $ip_path/$file_name} result]} {
 	    set ip_synth_files [glob -nocomplain $runs_dir/$xci_ip_name*]
@@ -1426,9 +1428,13 @@ proc HandleIP {what_to_do xci_file ip_path runs_dir} {
 	    return -1
 	    
 	} else {
-	    Msg Info "IP found in the repository, copying it locally..."
+	    Msg Info "IP $xci_name found in the repository, copying it locally..."
 	    set ret_g [catch {exec eos ls $ip_path/$file_name/generated/*} ip_gen_files]
 	    set ret_s [catch {exec eos ls $ip_path/$file_name/synthesized/*} ip_syn_files]
+	    #puts "ret g: $ret_g"
+	    Msg Status "Generated files found for $xci_ip_name ($ret_g):\n $ip_gen_files"
+	    #puts "ret s: $ret_s"
+	    Msg Status "Synthesised files found for $xci_ip_name ($ret_s):\n $ip_syn_files"
 
 	    if  {($ret_g == 0) && ([llength $ip_gen_files] > 0)} {
 		exec -ignorestderr eos cp -r $ip_path/$file_name/generated/* $xci_path

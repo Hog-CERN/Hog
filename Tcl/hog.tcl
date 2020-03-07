@@ -1427,13 +1427,16 @@ proc HandleIP {what_to_do xci_file ip_path runs_dir} {
 	    
 	} else {
 	    Msg Info "IP found in the repository, copying it locally..."
-	    if  {[catch {exec eos ls $ip_path/$file_name/generated/*} result]} {
+	    set ret_g [catch {exec eos ls $ip_path/$file_name/generated/*} ip_gen_files]
+	    set ret_s [catch {exec eos ls $ip_path/$file_name/synthesized/*} ip_syn_files]
+
+	    if  {($ret_g == 0) && ([llength $ip_gen_files] > 0)} {
 		Msg Warning "Cound not find generated IP files on EOS path" 
 	    } else {
 		exec -ignorestderr eos cp -r $ip_path/$file_name/generated/* $xci_path
 	    }
 
-	    if  {[catch {exec eos ls $ip_path/$file_name/synthesized/*} result]} {
+	    if  {($ret_s == 0) && ([llength $ip_syn_files] > 0)} {
 		Msg Warning "Cound not find synthesized IP files on EOS path" 
 	    } else {
 		exec -ignorestderr eos cp -r $ip_path/$file_name/synthesized/* $runs_dir	

@@ -79,7 +79,7 @@ if {$failure eq 1} {
 }
 
 if {($ip_path != 0)} {
-    Msg Info "Coying synthesised IPs to $ip_path..."
+    Msg Info "Copying synthesised IPs to $ip_path..."
     foreach ip $ips {
 	HandleIP push [get_property IP_FILE $ip] $ip_path $main_folder
     }

@@ -31,7 +31,7 @@ set old_tag [lindex $tags 0]
 set new_tag [lindex $tags 1]
 Msg Info "Old tag was: $old_tag and new tag is: $new_tag"
 
-if {$version_level >= 3} {
+if {$version_level >= 3 && $::argc < 2} {
     set official $env(HOG_OFFICIAL_BIN_EOS_PATH)
     set unofficial $env(HOG_UNOFFICIAL_BIN_EOS_PATH)
 

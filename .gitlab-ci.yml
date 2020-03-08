@@ -1,24 +1,24 @@
 stages:
-#      - build
-#      - deploy
+      - build
+      - deploy
       - tag
-#building:
-#      stage: build
-#      image: gitlab-registry.cern.ch/authoring/documentation/mkdocs:stable
-#      script:
-#        - mkdocs build --clean --site-dir public
-#        - cp docs/.htaccess public/
-#      artifacts:
-#        paths:
-#          - public
-#        expire_in: 1 hour
-#deploying:
-#      stage: deploy
-#      image: gitlab-registry.cern.ch/ci-tools/ci-web-deployer:latest
-#      only:
-#        - feature/documentation
-#      script:
-#        - deploy-eos
+building:
+      stage: build
+      image: gitlab-registry.cern.ch/authoring/documentation/mkdocs:stable
+      script:
+        - mkdocs build --clean --site-dir public
+        - cp docs/.htaccess public/
+      artifacts:
+        paths:
+          - public
+        expire_in: 1 hour
+deploying:
+      stage: deploy
+      image: gitlab-registry.cern.ch/ci-tools/ci-web-deployer:latest
+      only:
+        - feature/documentation
+      script:
+        - deploy-eos
 tagging:
       stage: tag
       image: tcl2020/tcl2020:latest
@@ -28,11 +28,9 @@ tagging:
       except:
           variables:
               - $CI_PIPELINE_SOURCE != "push"
-#              - $CI_COMMIT_REF_SLUG != "master"
+              - $CI_COMMIT_REF_SLUG != "19-add-a-ci-in-hog-to-tag-the-new-version"
       script:
           - export REPO=`echo $CI_PROJECT_URL | sed -e s#https://##`
-          - git --version
-          - which tclsh
           - git remote set-url origin https://hog:${HOG_PUSH_TOKEN}@$REPO
           - git config user.email "hog.cern.ch"
           - git config user.name "Hog"
@@ -42,5 +40,5 @@ tagging:
 #          - git pull
           - ./Tcl/tag_repository.tcl 0 3 1
           - echo $CI_COMMIT_REF_NAME
-#          - git push origin $CI_COMMIT_REF_NAME
-#          - git push --tags origin $CI_COMMIT_REF_NAME
+          - git push origin $CI_COMMIT_REF_NAME
+          - git push --tags origin $CI_COMMIT_REF_NAME

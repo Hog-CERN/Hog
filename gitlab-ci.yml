@@ -179,9 +179,8 @@ copy_to_eos:
   only:
     refs:
       - tags
-  except:
     variables:
-      - $CI_COMMIT_TAG != "v*"
+      - $CI_COMMIT_TAG =~ "/^v.*/"
   tags:
     - hog
   stage: copy
@@ -196,9 +195,8 @@ make_official_doc:
   only:
     refs:
       - tags
-  except:
     variables:
-      - $CI_COMMIT_TAG != "v*"
+      - $CI_COMMIT_TAG =~ "/^v.*/"
   tags:
      - hog
   stage: doxygen
@@ -214,9 +212,8 @@ cleaning:
   only:
     refs:
       - tags
-  except:
     variables:
-      - $CI_COMMIT_TAG != "v*"
+      - $CI_COMMIT_TAG =~ "/^v.*/"
   tags:
      - hog
   stage: clean

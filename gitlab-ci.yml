@@ -181,8 +181,7 @@ copy_to_eos:
       - tags
   tags:
     - hog
-  stage:
-    - copy
+  stage: copy
   script:
     - env  
 

@@ -179,21 +179,26 @@ copy_to_eos:
   only:
     refs:
       - tags
+  except:
+    variables:
+      - $CI_COMMIT_TAG != "v*"
   tags:
     - hog
   stage: copy
   script:
-    - env  
+    - git status
+    - git pull
+    - git submodule update
+    - until echo $HOG_PASSWORD | kinit $HOG_USER ; do echo Retrying; sleep 2; done
+    - vivado -mode batch -notrace -source ./Hog/Tcl/copy_to_eos.tcl
 
 make_official_doc:
   only:
     refs:
-      - push
-      - web
+      - tags
   except:
     variables:
-      - $CI_PIPELINE_SOURCE != "push"
-      - $CI_COMMIT_REF_SLUG != "master"
+      - $CI_COMMIT_TAG != "v*"
   tags:
      - hog
   stage: doxygen
@@ -208,12 +213,10 @@ make_official_doc:
 cleaning:
   only:
     refs:
-      - push
-      - web
+      - tags
   except:
     variables:
-      - $CI_PIPELINE_SOURCE != "push"
-      - $CI_COMMIT_REF_SLUG != "master"
+      - $CI_COMMIT_TAG != "v*"
   tags:
      - hog
   stage: clean

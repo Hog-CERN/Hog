@@ -15,7 +15,6 @@ if [catch {exec git tag --sort=-creatordate} last_tag] {
     lassign [ExtractVersionFromTag $tag] M m p n mr
     set version v$M.$m.$p
     Msg Info "Creating doxygen documentation for tag $version"
-
 }
 
 # Run doxygen

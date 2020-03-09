@@ -87,8 +87,7 @@ foreach f $ext_files {
             set hdlfile "$env(HOG_EXTERNAL_PATH)/$hdlfile"
             if { [file exists $hdlfile] } {
                 set hash [lindex $file_and_prop 1]
-                set current_hash [exec md5sum $hdlfile]
-                set current_hash [lindex $current_hash 0]
+                set current_hash [md5sum $hdlfile]
                 if {[string first $hash $current_hash] == -1} {
                     Msg CriticalWarning "File $hdlfile has a wrong hash. Current checksum: $current_hash, expected: $hash"
                 }

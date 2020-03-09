@@ -1400,7 +1400,7 @@ proc HandleIP {what_to_do xci_file ip_path runs_dir {force 0}} {
     set xci_ip_name [file root [file tail $xci_file]]
     set xci_dir_name [file tail $xci_path]
     
-    set hash [lindex [exec md5sum $xci_file] 0]
+    set hash [md5sum $xci_file]
     set file_name $xci_name\_$hash
     
     Msg Info "Preparing to handle IP: $xci_name..."
@@ -1473,6 +1473,25 @@ proc HandleIP {what_to_do xci_file ip_path runs_dir {force 0}} {
     
     return 0   
 }
+########################################################
+
+## Evaluates the md5 sum of af a file
+##  Argumets:
+# - file_name: guess?
+
+proc md5sum {file_name} {
+    if !([file exists $file_name]) {
+	Msg Warning "Could not find $xci_file."
+	set file_hash -1
+    }	     
+    if {[catch {package require md5 2.0.7} result]} {
+	Msg Warning "Tcl package md5 version 2.0.7 not found ($result), will use command line..."
+	set hash [lindex [exec md5sum $file_name] 0]
+    } else {
+	set file_hash [string tolower [md5::md5 -hex -file $file_name]]
+    }
+}
+
 ########################################################
 
 ## Checks that "ref" in .gitlab-ci.yml actually matches the gitlab-ci file in the 

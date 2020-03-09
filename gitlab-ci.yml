@@ -186,8 +186,6 @@ copy_to_eos:
   stage: copy
   script:
     - git status
-    - git pull
-    - git submodule update
     - until echo $HOG_PASSWORD | kinit $HOG_USER ; do echo Retrying; sleep 2; done
     - vivado -mode batch -notrace -source ./Hog/Tcl/copy_to_eos.tcl
 
@@ -202,8 +200,6 @@ make_official_doc:
   stage: doxygen
   script:
      - git status
-     - git pull
-     - git submodule update
      - until echo $HOG_PASSWORD | kinit $HOG_USER ; do echo Retrying; sleep 2; done
      - vivado -mode batch -notrace -source ./Hog/Tcl/make_doxygen.tcl
   allow_failure: true

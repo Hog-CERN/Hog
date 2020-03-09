@@ -180,7 +180,7 @@ copy_to_eos:
     refs:
       - tags
     variables:
-      - $CI_COMMIT_TAG =~ "/^v.*/"
+      - $CI_COMMIT_TAG =~ "/^v.*$/"
   tags:
     - hog
   stage: copy
@@ -196,7 +196,7 @@ make_official_doc:
     refs:
       - tags
     variables:
-      - $CI_COMMIT_TAG =~ "/^v.*/"
+     - $CI_COMMIT_TAG =~ "/^v.*$/"
   tags:
      - hog
   stage: doxygen
@@ -213,7 +213,7 @@ cleaning:
     refs:
       - tags
     variables:
-      - $CI_COMMIT_TAG =~ "/^v.*/"
+      - $CI_COMMIT_TAG =~ "/^v.*$/"
   tags:
      - hog
   stage: clean

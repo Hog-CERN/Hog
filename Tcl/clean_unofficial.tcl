@@ -7,7 +7,7 @@ cd $path
 source ./hog.tcl
 cd ../../
 
-set master_shas [exec git rev-parse --short=8 master --remotes]
+set master_shas [exec git log --pretty=format:"%h"]
 Msg Info "Retrieving list of commits for 'master' branch..."
 set list_master_shas [split $master_shas "\n"]
 puts $list_master_shas
@@ -20,9 +20,9 @@ puts $list_bitfiles
 
 foreach sha $list_master_shas {
     foreach bitfile $list_bitfiles {
-        if {$sha == $bitfile} {
-            Msg Info "Removing files corresponding to SHA $sha"
-            set status [catch {exec eos rm -r $unofficial/$sha} deletion]
+        if {[string first $sha $bitfile] != -1} {
+            Msg Info "Removing files corresponding to SHA $bitfile"
+            set status [catch {exec eos rm -r $unofficial/$bitfile} deletion]
             puts $status
         }
     }

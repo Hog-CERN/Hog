@@ -23,7 +23,7 @@ Msg Info "Opening project $project..."
 open_project ../../VivadoProject/$project/$project.xpr
 
 
-Msg Info "Preparing IP nruns..."
+Msg Info "Preparing IP runs..."
 reset_run synth_1
 launch_runs -scripts_only synth_1
 reset_run synth_1

@@ -34,6 +34,7 @@ stages:
     - ip
     - synthesis
     - implementation
+    - copy
     - doxygen
     - clean
 
@@ -173,6 +174,17 @@ tag_official_version:
      - vivado -mode batch -notrace -source ./Hog/Tcl/tag_repository.tcl -tclargs 0 3
      - git push origin $CI_COMMIT_REF_NAME
      - git push --tags origin $CI_COMMIT_REF_NAME
+
+copy_to_eos:
+  only:
+    refs:
+      - tags
+  tags:
+    - hog
+  stage:
+    - copy
+  script:
+    - env  
 
 make_official_doc:
   only:

@@ -9,7 +9,7 @@ Msg Info "Evaluating git describe..."
 set describe [exec git describe --always --tags --long]
 Msg Info "Git describe: $describe"
 
-set tag $env($CI_COMMIT_TAG)
+set tag $env(CI_COMMIT_TAG)
 lassign [ExtractVersionFromTag $tag] M m p n mr
 
 if {$mr == -1} {

@@ -1,4 +1,4 @@
-# Working with a HDL repository handled Hog
+# Working with a HDL repository handled with Hog
 
 In this section we describe how to work with a repository that is already [set up](./03-setupNewHogProject.md) with Hog.
 
@@ -94,7 +94,7 @@ If you don't commit, Hog will alert you with a Critical Warning at the beginnign
 
 
 ### Different list files
-Source files taken from different list files will be added to your project in diffferent "libraries": the name of each library being the name of the list file. This is nice to keep things tidy and separated but it also comes at a little cost: when working with files coming from different list files, you will need to formally include the libraries. For example, in VHDL:
+Source files taken from different list files will be added to your project in different "libraries": the name of each library being the name of the list file. This is nice to keep things tidy and separated but it also comes at a little cost: when working with files coming from different list files, you will need to formally include the libraries. For example, in VHDL:
 
 ```vhdl
 	library lib_1

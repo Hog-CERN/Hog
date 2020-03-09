@@ -1,4 +1,4 @@
-# How to setup Hog-CI:
+# How to setup Hog-CI
 This chapter describes how to setup Hog Continuous Itegration on Gitlab.
  In order to access your repository and compile your HDL, the gfitlab CI will need a dedicated account. 
  Before staring please get a [service account](#service_account).

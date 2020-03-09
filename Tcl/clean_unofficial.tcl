@@ -18,7 +18,6 @@ set list_bitfiles [split $bitfiles "\n"]
 # puts $list_bitfiles
 
 foreach sha $list_master_shas {
-	puts $sha
     foreach bitfile $list_bitfiles {
        if {[string first $sha $bitfile] != -1} {
            Msg Info "Removing files corresponding to SHA $bitfile"

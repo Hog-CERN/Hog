@@ -22,7 +22,7 @@ if {$mr == -1} {
     if {$status == 0} {
         Msg Info "Found these files using $wild_card: $folders"
         Msg Info "Copying files to official directory..."
-        set new_dir $official/$new_tag
+        set new_dir $official/$tag
 
         Msg Info "Creating $new_dir"
         exec eos mkdir -p $new_dir
@@ -40,7 +40,7 @@ if {$mr == -1} {
             foreach ff $new_files {
                 set old_name $dst/$ff
                 set ext [file extension $ff]
-                set new_name [regsub "(.*)\-$describe\(.*\)" $old_name "\\1-$new_tag$ext"]
+                set new_name [regsub "(.*)\-$describe\(.*\)" $old_name "\\1-$tag$ext"]
                 Msg Info "Moving $old_name into $new_name..."
                 exec eos mv $old_name $new_name
             }                                                               

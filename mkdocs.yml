@@ -16,6 +16,8 @@ nav:
   - 02-Maintainer-Manual/01-setup-CI.md
 	- 02-Maintainer-Manual/02-gitlab-repository-setup.md
 	- 02-Maintainer-Manual/03-Virtual-Machines.md
+	- 02-Maintainer-Manual/04-available-templates.md
+	- 02-Maintainer-Manual/05-supported-tools.md
 
 - 'Contributing to Hog':
   - 03-Contributing/01-contributing.md  

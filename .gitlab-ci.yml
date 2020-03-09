@@ -19,6 +19,27 @@ deploying:
         - feature/documentation
       script:
         - deploy-eos
+
+
+merge-and-tag:
+      stage: tag
+      image: tcl2020/tcl2020:latest
+      only: 
+           refs:
+              - merge_requests
+      script:
+          - export REPO=`echo $CI_PROJECT_URL | sed -e s#https://##`
+          - git remote set-url origin https://hog:${HOG_PUSH_TOKEN}@$REPO
+          - git config user.email "hog.cern.ch"
+          - git config user.name "Hog"
+          - git fetch 
+          - git fetch origin $CI_COMMIT_REF_NAME
+          - git checkout $CI_COMMIT_REF_NAME
+          - git status
+          - git pull
+          - "export MR_PARAMETERS=`curl --header \"PRIVATE-TOKEN: ${HOG_PUSH_TOKEN}\" ${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/merge_requests/${CI_MERGE_REQUEST_IID}`"
+          - ./Tcl/launchers/launch_merge_and_tag.tcl 1
+
 tagging:
       stage: tag
       image: tcl2020/tcl2020:latest
@@ -35,8 +56,10 @@ tagging:
           - git config user.email "hog.cern.ch"
           - git config user.name "Hog"
           - git fetch 
-          - git fetch origin $CI_COMMIT_REF_SLUG
+          - git fetch origin $CI_COMMIT_REF_NAME
+          - git checkout $CI_COMMIT_REF_NAME
           - git status
-#          - git pull
+          - git push origin $CI_COMMIT_REF_NAME
+          - git pull
           - ./Tcl/tag_repository.tcl 0 3 1
           - git push --tags origin $CI_COMMIT_REF_NAME

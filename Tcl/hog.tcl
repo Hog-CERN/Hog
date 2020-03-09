@@ -1436,3 +1436,36 @@ You can fix this in 2 ways: (A) by changing the ref in your repository or (B) by
 
 	cd "$thisPath"
 }
+
+########################################################
+
+## Parse JSON file
+## returns -1 in case of failure
+## returns JSON KEY VALUE in case of success
+#
+proc ParseJSON {JSON_FILE JSON_KEY} {
+	set result [catch {package require Tcl 8.4} TclFound]
+	if {"$result" != "0"} {
+		Msg CriticalWarning "Cannot find Tcl package version equal or higher than 8.4.\n $TclFound\n Exiting"
+		return -1
+	} else {
+		Msg Info "Tcl package version: $TclFound"
+	}
+
+	set result [catch {package require json} JsonFound]
+	if {"$result" != "0"} {
+		Msg CriticalWarning "Cannot find JSON package equal or higher than 8.4.\n $JsonFound\n Exiting"
+		return -1
+	} else {
+		Msg Info "JSON package version: $JsonFound"
+	}
+	set JsonDict [json::json2dict  $JSON_FILE]
+	set result [catch {dict get $JsonDict $JSON_KEY} RETURNVALUE]
+	if {"$result" != "0"} {
+		Msg CriticalWarning "Cannot find $JSON_KEY in $JSON_FILE\n Exiting"
+		return -1
+	} else {
+		Msg Info "$JSON_KEY --> $RETURNVALUE"
+		return $RETURNVALUE
+	}
+}

@@ -1,5 +1,4 @@
 #!/usr/bin/env tclsh
-set Name clean_unofficial
 
 set old_path [pwd]
 set path [file dirname [info script]]

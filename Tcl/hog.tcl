@@ -1406,12 +1406,31 @@ proc HandleIP {what_to_do xci_file ip_path runs_dir {force 0}} {
     Msg Info "Preparing to handle IP: $xci_name..."
 
     if {$what_to_do eq "push"} {
-	if  {([catch {exec eos ls $ip_path/$file_name} result]) || $force == 1} {
+	set will_copy 0
+	set will_remove 0
+	if  {([catch {exec eos ls $ip_path/$file_name} result])} {
+	    set will_copy 1
+	} else {
+	    if {$force == 0 } {
+		Msg Info "IP already in the repository, will not copy..."
+	    } else {
+		Msg Info "IP already in the repository, will forcefully replace..."
+		set will_copy 1
+		set will_remove 1
+	    }
+	}
+	if {$will_copy == 1} {
 	    set ip_synth_files [glob -nocomplain $runs_dir/$xci_ip_name*]
 	    if {[llength $ip_synth_files] > 0} {
 		Msg Info "Found some IP synthesised files matching $ip_path/$file_name*"
+		if {$will_remove == 1} {
+		    Msg Info "Removing old synthesized directory $ip_path/$file_name..."
+		    exec -ignorestderr eos rm -rf "$ip_path/$file_name"
+		}
+
 		Msg Info "Creating IP directories on EOS..."
 		exec eos mkdir -p "$ip_path/$file_name/synthesized"
+
 		Msg Info "Copying generated files for $xci_name..."
 		exec -ignorestderr eos cp -r $xci_path $ip_path/$file_name/
 		exec eos mv $ip_path/$file_name/$xci_dir_name $ip_path/$file_name/generated
@@ -1420,8 +1439,6 @@ proc HandleIP {what_to_do xci_file ip_path runs_dir {force 0}} {
 	    } else {
 		Msg Warning "Could not find synthesized files matching $ip_path/$file_name*"
 	    }
-	} else {
-	    Msg Info "IP already in the repository, will not copy..."
 	}
     } elseif {$what_to_do eq "pull"} {
 	if  {[catch {exec eos ls $ip_path/$file_name} result]} {

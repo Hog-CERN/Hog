@@ -30,7 +30,7 @@ if {$mr == -1} {
         # f Loop over projects in repository
         foreach f $folders {
             Msg Info "Copying $f into $official/$tag/$f_$tag..."
-            exec -ignorestderr eos cp -r $unofficial/$current_sha/$f $official/$tag/$f_$tag           
+            exec -ignorestderr eos cp -r $unofficial/$current_sha/$f $official/$tag/$f\_$tag           
         }
 
         set wild_card $unofficial/$current_sha/Doc

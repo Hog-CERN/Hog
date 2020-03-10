@@ -16,7 +16,7 @@ if {$mr == -1} {
     set official $env(HOG_OFFICIAL_BIN_EOS_PATH)
     set unofficial $env(HOG_UNOFFICIAL_BIN_EOS_PATH)
     set current_sha $env(CI_COMMIT_SHORT_SHA)
-    set wild_card $unofficial/$current_sha/
+    set wild_card $unofficial/$current_sha/*$describe*
     
     set status [catch {exec eos ls $wild_card} folders]
     if {$status == 0} {
@@ -43,14 +43,20 @@ if {$mr == -1} {
                 set new_name [regsub "(.*)\-$describe\(.*\)" $old_name "\\1-$tag$ext"]
                 Msg Info "Moving $old_name into $new_name..."
                 exec eos mv $old_name $new_name
-            }
-
-            if {[file exists $unofficial/$current_sha/Doc]} {
-                Msg Info "Updating official doxygen documentation in $official/Doc"
-                exec eos mkdir -p $official/Doc
-                exec -ignorestderr eos cp -r $unofficial/$current_sha/Doc/* $official/Doc
             }            
-        }    
+        }
+
+        set wild_card $unofficial/$current_sha/Doc
+        set status [catch {exec eos ls $wild_card} doc_folder]
+
+        if {$status == 0} {
+            Msg Info "Copying doxygen into $official/$tag/Doc"
+            exec eos mkdir -p $official/$tag/Doc
+            exec -ignorestderr eos cp -r $unofficial/$current_sha/Doc/* $official/$tag/Doc
+            Msg Info "Updating official doxygen documentation in $official/Doc"
+            exec eos mkdir -p $official/Doc
+            exec -ignorestderr eos cp -r $unofficial/$current_sha/Doc/* $official/Doc
+        }
     } else {
         Msg Error "Could not find anything useful using $wild_card."
     }

@@ -16,7 +16,7 @@ if {$mr == -1} {
     set official $env(HOG_OFFICIAL_BIN_EOS_PATH)
     set unofficial $env(HOG_UNOFFICIAL_BIN_EOS_PATH)
     set current_sha $env(CI_COMMIT_SHORT_SHA)
-    set wild_card $unofficial/$current_sha/*$describe*
+    set wild_card $unofficial/$current_sha/
     
     set status [catch {exec eos ls $wild_card} folders]
     if {$status == 0} {
@@ -29,30 +29,14 @@ if {$mr == -1} {
         
         # f Loop over projects in repository
         foreach f $folders {
-            set dst $new_dir/[regsub "(.*)\_$describe\(.*\)" $f "\\1"]
-            Msg Info "Copying $f into $dst..."
-            exec eos mkdir -p $dst
-            exec -ignorestderr eos cp -r $unofficial/$current_sha/$f/* $dst/
-            
-            Msg Info "Renaming bit and bin files..."
-            catch {exec eos ls $dst/*$describe.*} new_files
-            Msg Info "Found these binary files: $new_files"
-            foreach ff $new_files {
-                set old_name $dst/$ff
-                set ext [file extension $ff]
-                set new_name [regsub "(.*)\-$describe\(.*\)" $old_name "\\1-$tag$ext"]
-                Msg Info "Moving $old_name into $new_name..."
-                exec eos mv $old_name $new_name
-            }            
+            Msg Info "Copying $f into $official/$tag/$f_$tag..."
+            exec -ignorestderr eos cp -r $unofficial/$current_sha/$f $official/$tag/$f_$tag           
         }
 
         set wild_card $unofficial/$current_sha/Doc
         set status [catch {exec eos ls $wild_card} doc_folder]
 
         if {$status == 0} {
-            Msg Info "Copying doxygen into $official/$tag/Doc"
-            exec eos mkdir -p $official/$tag/Doc
-            exec -ignorestderr eos cp -r $unofficial/$current_sha/Doc/* $official/$tag/Doc
             Msg Info "Updating official doxygen documentation in $official/Doc"
             exec eos mkdir -p $official/Doc
             exec -ignorestderr eos cp -r $unofficial/$current_sha/Doc/* $official/Doc

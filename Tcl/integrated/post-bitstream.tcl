@@ -48,10 +48,10 @@ if [file exists $fw_file] {
 
     set ts [clock format [clock seconds] -format {%Y-%m-%d-%H-%M}]
 
-    set dst_dir [file normalize "$bin_dir/$name\_$describe"]
-    set dst_bit [file normalize "$dst_dir/$name\-$describe.bit"]
-    set dst_bin [file normalize "$dst_dir/$name\-$describe.bin"]
-    set dst_ltx [file normalize "$dst_dir/$name\-$describe.ltx"]    
+    set dst_dir [file normalize "$bin_dir/$name"]
+    set dst_bit [file normalize "$dst_dir/$name.bit"]
+    set dst_bin [file normalize "$dst_dir/$name.bin"]
+    set dst_ltx [file normalize "$dst_dir/$name.ltx"]    
     set dst_xml [file normalize "$dst_dir/xml"]
     
     Msg Info "Creating $dst_dir..."

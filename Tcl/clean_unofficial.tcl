@@ -19,7 +19,7 @@ set list_bitfiles [split $bitfiles "\n"]
 
 foreach bitfile $list_bitfiles {
 	puts $bitfile
-   	set status [catch {exec git branch master --contains $bitfile} contained]
+   	set status [catch {exec git branch $env(CI_COMMIT_TAG) --contains $bitfile} contained]
    	puts $contained 
    	puts $status
    	if { $status==0 && [string first "master" $contained] != -1 } {

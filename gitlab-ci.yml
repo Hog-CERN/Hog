@@ -182,7 +182,6 @@ copy_to_eos:
     - hog
   stage: copy
   script:
-    - env
     - git status
     - until echo $HOG_PASSWORD | kinit $HOG_USER ; do echo Retrying; sleep 2; done
     - vivado -mode batch -notrace -source ./Hog/Tcl/copy_to_eos.tcl

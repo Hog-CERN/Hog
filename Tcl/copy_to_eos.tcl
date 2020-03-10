@@ -43,10 +43,16 @@ if {$mr == -1} {
                 set new_name [regsub "(.*)\-$describe\(.*\)" $old_name "\\1-$tag$ext"]
                 Msg Info "Moving $old_name into $new_name..."
                 exec eos mv $old_name $new_name
-            }                                                               
+            }
+
+            if {[file exists $$unofficial/$current_sha/Doc]} {
+                Msg Info "Updating official doxygen documentation in $official/Doc"
+                exec eos mkdir -p $official/Doc
+                exec -ignorestderr eos cp -r $unofficial/$current_sha/Doc/* $official/Doc
+            }            
         }    
     } else {
-        Msg Warning "Could not find anything useful using $wild_card."
+        Msg Error "Could not find anything useful using $wild_card."
     }
 }
 

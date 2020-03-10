@@ -34,8 +34,8 @@ stages:
     - ip
     - synthesis
     - implementation
-    - copy
     - doxygen
+    - copy
     - clean
 
 .simulate_project: &simulate_project
@@ -116,23 +116,20 @@ stages:
         expire_in: 10 years
 
 
-.make_documentation: &make_documentation
+make_doxygen:
     <<: *only-default
     stage: doxygen
     variables:
         <<: *vars
     script:
-        - "if [ -f ${CI_PROJECT_DIR}/doxygen/doxygen.conf ]; then doxygen ${CI_PROJECT_DIR}/doxygen/doxygen.conf; else echo './doxygen/doxygen.conf  file not found, using ./Hog/Templates/doxygen.conf to generate documentation'; doxygen ./Hog/Templates/doxygen.conf; fi"
         - until echo $HOG_PASSWORD | kinit $HOG_USER ; do echo Retrying; sleep 2; done
-        - eos mkdir $HOG_UNOFFICIAL_BIN_EOS_PATH/$CI_MERGE_REQUEST_TITLE
-        - eos cp -r $CI_PROJECT_DIR/Doc $HOG_UNOFFICIAL_BIN_EOS_PATH/$CI_COMMIT_SHORT_SHA/Doc
+        - vivado -mode batch -notrace -source ./Hog/Tcl/make_doxygen.tcl
     artifacts:
         name: docs
         paths:
             - $CI_PROJECT_DIR/Doc
         expire_in: 10 years
-    allow_failure: true
-        
+    allow_failure: true   
 
 merge_and_tag:
      <<: *only-default
@@ -189,20 +186,20 @@ copy_to_eos:
     - until echo $HOG_PASSWORD | kinit $HOG_USER ; do echo Retrying; sleep 2; done
     - vivado -mode batch -notrace -source ./Hog/Tcl/copy_to_eos.tcl
 
-make_official_doc:
-  only:
-    refs:
-      - tags
-    # variables:
-    #  - $CI_COMMIT_TAG =~ "/^v.*$/"
-  tags:
-     - hog
-  stage: doxygen
-  script:
-     - git status
-     - until echo $HOG_PASSWORD | kinit $HOG_USER ; do echo Retrying; sleep 2; done
-     - vivado -mode batch -notrace -source ./Hog/Tcl/make_doxygen.tcl
-  allow_failure: true
+# make_official_doc:
+#   only:
+#     refs:
+#       - tags
+#     # variables:
+#     #  - $CI_COMMIT_TAG =~ "/^v.*$/"
+#   tags:
+#      - hog
+#   stage: doxygen
+#   script:
+#      - git status
+#      - until echo $HOG_PASSWORD | kinit $HOG_USER ; do echo Retrying; sleep 2; done
+#      - vivado -mode batch -notrace -source ./Hog/Tcl/make_doxygen.tcl
+#   allow_failure: true
 
 cleaning:
   only:

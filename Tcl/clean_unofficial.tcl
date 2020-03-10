@@ -18,10 +18,7 @@ set list_bitfiles [split $bitfiles "\n"]
 # puts $list_bitfiles
 
 foreach bitfile $list_bitfiles {
-	puts $bitfile
    	set status [catch {exec git branch master --contains $bitfile} contained]
-   	puts $contained 
-   	puts $status
    	if { $status==0 && [string first "master" $contained] != -1 } {
        Msg Info "Removing files corresponding to SHA $bitfile"
        set status2 [catch {exec eos rm -r $unofficial/$bitfile} deletion]

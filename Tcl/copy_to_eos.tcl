@@ -16,7 +16,7 @@ if {$mr == -1} {
     set official $env(HOG_OFFICIAL_BIN_EOS_PATH)
     set unofficial $env(HOG_UNOFFICIAL_BIN_EOS_PATH)
     set current_sha $env(CI_COMMIT_SHORT_SHA)
-    set wild_card $unofficial/$current_sha/*$describe*
+    set wild_card $unofficial/$current_sha/
     
     set status [catch {exec eos ls $wild_card} folders]
     if {$status == 0} {

@@ -7,7 +7,7 @@ cd $path
 source ./hog.tcl
 cd ../../
 
-set tags [TagRepository $merge_request $version_level]
+set tags [TagRepository 0 0]
 set version [lindex tags 0]
 Msg Info "Creating doxygen documentation for tag $version"
 

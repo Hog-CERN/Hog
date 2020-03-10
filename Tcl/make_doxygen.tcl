@@ -7,6 +7,11 @@ cd $path
 source ./hog.tcl
 cd ../../
 
+set tags [TagRepository $merge_request $version_level]
+set version [lindex tags 0]
+Msg Info "Creating doxygen documentation for tag $version"
+
+
 # Run doxygen
 set doxygen_conf "./doxygen/doxygen.conf"
 if {[file exists $doxygen_conf] & [DoxygenVersion 1.8.13]} {

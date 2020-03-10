@@ -15,11 +15,14 @@ set unofficial $env(HOG_UNOFFICIAL_BIN_EOS_PATH)
 Msg Info "Retrieving list of bitfiles in $unofficial..."
 set bitfiles [exec eos ls $unofficial]
 set list_bitfiles [split $bitfiles "\n"]
-puts $list_bitfiles
+# puts $list_bitfiles
 
 foreach bitfile $list_bitfiles {
-   set status [catch {exec git branch master --contains $bitfile} contained]
-   if { $status==0 && [string first "master" $contained] != -1 } {
+	puts $bitfile
+   	set status [catch {exec git branch master --contains $bitfile} contained]
+   	puts $contained 
+   	puts $status
+   	if { $status==0 && [string first "master" $contained] != -1 } {
        Msg Info "Removing files corresponding to SHA $bitfile"
        set status2 [catch {exec eos rm -r $unofficial/$bitfile} deletion]
    }

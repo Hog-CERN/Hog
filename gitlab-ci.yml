@@ -211,6 +211,8 @@ cleaning:
      - hog
   stage: clean
   script:
+     - git checkout master
+     - git pull
      - until echo $HOG_PASSWORD | kinit $HOG_USER ; do echo "Retrying"; sleep 2; done
      - if [ -z ${HOG_UNOFFICIAL_BIN_EOS_PATH+x} ]; then echo "HOG_UNOFFICIAL_BIN_EOS_PATH not specified, nothing to clean..."; else vivado -mode batch -notrace -source Hog/Tcl/clean_unofficial.tcl; fi
   allow_failure: true

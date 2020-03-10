@@ -45,7 +45,7 @@ if {$mr == -1} {
                 exec eos mv $old_name $new_name
             }
 
-            if {[file exists $$unofficial/$current_sha/Doc]} {
+            if {[file exists $unofficial/$current_sha/Doc]} {
                 Msg Info "Updating official doxygen documentation in $official/Doc"
                 exec eos mkdir -p $official/Doc
                 exec -ignorestderr eos cp -r $unofficial/$current_sha/Doc/* $official/Doc

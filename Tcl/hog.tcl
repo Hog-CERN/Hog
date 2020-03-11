@@ -1567,3 +1567,28 @@ You can fix this in 2 ways: (A) by changing the ref in your repository or (B) by
 	cd "$thisPath"
 }
 
+
+## Handle eos commands
+# Arguments:\n
+# - command: the eos command to be run, e.g. ls, cp, mv, rm
+# - attempts: (deafult 0) how many times the command should be attempted in case of failure
+
+proc eos {command {attempt 1}}  {
+    if ![info exists env(EOS_MGM_URL)] {
+	Msg Warning "Environment variable EOS_MGM_URL not set, setting it to default value root://eosuser.cern.ch"
+	set ::env(EOS_MGM_URL) "root://eosuser.cern.ch"
+    }
+    
+    for {set i 0} {$i < $attempt} {incr i } {
+	set ret [catch {exec -ignorestderr eos {*}$command} result]
+	if {$ret == 0} {
+	    break
+	} else {
+	    if {$attempt > 0} {
+		Msg Warning "Command $command failed($i/$attempt): $result, trying again in 2 seconds..."
+		after 2000
+	    }
+	}
+    }
+    return [list $ret $result]
+}

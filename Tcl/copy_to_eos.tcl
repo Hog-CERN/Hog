@@ -1,5 +1,5 @@
 #!/usr/bin/env tclsh
-if {$argc != 3} {
+if {$argc != 4} {
     puts "Script to copy project files and documentation from \$HOG_UNOFFICIAL_BIN_EOS_PATH to \$HOG_OFFICIAL_BIN_EOS_PATH \n"
     puts "Usage: $argv0 <hog official eos path> <hog unofficial eos path> <tag> <commit short SHA>\n"
     exit 1

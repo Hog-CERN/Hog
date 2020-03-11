@@ -1569,11 +1569,13 @@ You can fix this in 2 ways: (A) by changing the ref in your repository or (B) by
 
 
 ## Handle eos commands
+# returns a list of 2 elements: the return value (0 if no error occurred) and the output of the eos command
+# It can be used with lassign like this: lassaign [eos <eos command> ] ret result
 # Arguments:\n
 # - command: the eos command to be run, e.g. ls, cp, mv, rm
-# - attempts: (deafult 0) how many times the command should be attempted in case of failure
-
+# - attempts: (default 0) how many times the command should be attempted in case of failure
 proc eos {command {attempt 1}}  {
+    global env
     if ![info exists env(EOS_MGM_URL)] {
 	Msg Warning "Environment variable EOS_MGM_URL not set, setting it to default value root://eosuser.cern.ch"
 	set ::env(EOS_MGM_URL) "root://eosuser.cern.ch"

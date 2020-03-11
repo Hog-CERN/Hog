@@ -21,7 +21,7 @@ set describe [exec git describe --always --tags --long]
 Msg Info "Git describe: $describe"
 
 
-lassign [ExtractVersionFromTag $tag] M m p n mr
+lassign [ExtractVersionFromTag $tag] M m p mr
 
 if {$mr == -1} {
     set wild_card $unofficial/$current_sha/

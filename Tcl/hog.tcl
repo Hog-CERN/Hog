@@ -1383,7 +1383,7 @@ proc HandleIP {what_to_do xci_file ip_path runs_dir {force 0}} {
 	return -1
     } else {
 	lassign [eos  "ls $ip_path"] ret result
-	if  {ret != 0} {
+	if  {$ret != 0} {
 	    Msg Info "IP repostory path on eos does not exist, creating it now..."
 	    eos "mkdir $ip_path" 5
 	} else {
@@ -1411,7 +1411,7 @@ proc HandleIP {what_to_do xci_file ip_path runs_dir {force 0}} {
 	set will_copy 0
 	set will_remove 0
 	lassign [eos "ls $ip_path/$file_name"] ret result
-	if  {ret != 0} {
+	if  {$ret != 0} {
 	    set will_copy 1
 	} else {
 	    if {$force == 0 } {
@@ -1589,7 +1589,7 @@ proc eos {command {attempt 1}}  {
 	    break
 	} else {
 	    if {$attempt > 0} {
-		Msg Warning "Command $command failed($i/$attempt): $result, trying again in 2 seconds..."
+		Msg Warning "Command $command failed ($i/$attempt): $result, trying again in 2 seconds..."
 		after 2000
 	    }
 	}

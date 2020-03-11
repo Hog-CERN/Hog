@@ -1444,7 +1444,7 @@ proc HandleIP {what_to_do xci_file ip_path runs_dir {force 0}} {
 	    }
 	}
     } elseif {$what_to_do eq "pull"} {
-	lassign [eos ls "$ip_path/$file_name"] ret result
+	lassign [eos "ls $ip_path/$file_name"] ret result
 	if  {$ret != 0} {
 	    Msg Info "Nothing for $xci_name was found in the repository, cannot pull."
 	    return -1
@@ -1582,7 +1582,10 @@ proc eos {command {attempt 1}}  {
 	Msg Warning "Environment variable EOS_MGM_URL not set, setting it to default value root://eosuser.cern.ch"
 	set ::env(EOS_MGM_URL) "root://eosuser.cern.ch"
     }
-    
+    if {$attempt < 1} {
+	Msg Warning "The value of attempt should be 1 or more, not $attempt, setting it to 1 as default"
+	set attempt 1	
+    }
     for {set i 0} {$i < $attempt} {incr i } {
 	set ret [catch {exec -ignorestderr eos {*}$command} result]
 	if {$ret == 0} {

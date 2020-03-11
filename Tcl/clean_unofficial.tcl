@@ -1,7 +1,7 @@
 #!/usr/bin/env tclsh
 if {$argc != 1} {
     puts "Script to clean project files in $\HOG_UNOFFICIAL_BIN_EOS_PATH of commits already merged into master.\n"
-    puts "Usage: vivado -mode batch -notrace -source ./Hog/Tcl/clean_unofficial.tcl path_to_clean\n"
+    puts "Usage: $argv0 <path_to_clean> \n"
     exit 1
 } else {
     set path_to_clean [lindex $argv 0]

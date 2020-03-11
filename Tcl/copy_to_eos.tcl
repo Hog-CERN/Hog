@@ -1,7 +1,7 @@
 #!/usr/bin/env tclsh
 if {$argc != 0} {
     puts "Script to copy project files and documentation from \$HOG_UNOFFICIAL_BIN_EOS_PATH to \$HOG_OFFICIAL_BIN_EOS_PATH \n"
-    puts "Usage: vivado -mode batch -notrace -source ./Hog/Tcl/copy_to_eos.tcl\n"
+    puts "Usage: $argv0 \n"
     exit 1
 }
 

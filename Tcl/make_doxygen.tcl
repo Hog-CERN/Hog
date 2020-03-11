@@ -8,24 +8,25 @@ source ./hog.tcl
 cd ../../
 
 set tags [TagRepository 0 0]
-set version [lindex tags 0]
+set version [lindex $tags 0]
 Msg Info "Creating doxygen documentation for tag $version"
 
 
 # Run doxygen
 set doxygen_conf "./doxygen/doxygen.conf"
-if {[file exists $doxygen_conf] & [DoxygenVersion 1.8.13]} {
+if {[file exists $doxygen_conf] == 0 } {
+    # Using Default hog template
+    set doxygen_conf "./Hog/Templates/doxygen.conf"
+    Msg Info "Running doxygen with ./Hog/Templates/doxygen.conf..."
+} else {
+    Msg Info "Running doxygen with $doxygen_conf..."
+}
+
+if {[DoxygenVersion 1.8.13]} {
     set outfile [open $doxygen_conf a]
     puts $outfile \nPROJECT_NUMBER=$version
     close $outfile
-    Msg Info "Running doxygen with $doxygen_conf..."
     exec -ignorestderr doxygen $doxygen_conf
-} elseif {[DoxygenVersion 1.8.13]} {
-    set outfile [open "./Hog/Templates/doxygen.conf" a]
-    puts $outfile \nPROJECT_NUMBER=$version
-    close $outfile
-    Msg Info "Running doxygen with ./Hog/Templates/doxygen.conf..."
-    exec -ignorestderr doxygen "./Hog/Templates/doxygen.conf"
 }
 
 
@@ -38,6 +39,8 @@ if {[info exists env(HOG_UNOFFICIAL_BIN_EOS_PATH)]} {
     if {[file exists ./Doc/html]} {
         Msg Info "Copying doxygen files..."
         exec -ignorestderr eos cp -r ./Doc/html/* $output_dir
+    } else {
+        Msg Warning "Doxygen documentation not found in Doc/html/"
     }
 } else {
     Msg Error "Environmental variable HOG_UNOFFICIAL_BIN_EOS_PATH not set. Doxygen documentation cannot be copied to eos."

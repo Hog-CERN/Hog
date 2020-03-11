@@ -1,4 +1,12 @@
 #!/usr/bin/env tclsh
+if {$argc != 1} {
+    puts "Script to clean project files in $\HOG_UNOFFICIAL_BIN_EOS_PATH of commits already merged into master.\n"
+    puts "Usage: vivado -mode batch -notrace -source ./Hog/Tcl/clean_unofficial.tcl path_to_clean\n"
+    exit 1
+} else {
+    set path_to_clean [lindex $argv 0]
+}
+
 
 set old_path [pwd]
 set path [file dirname [info script]]
@@ -11,7 +19,7 @@ cd ../../
 #set list_master_shas [split $master_shas "\n"]
 # puts $list_master_shas
 
-set unofficial $env(HOG_UNOFFICIAL_BIN_EOS_PATH)
+set unofficial $path_to_clean
 Msg Info "Retrieving list of bitfiles in $unofficial..."
 set bitfiles [exec eos ls $unofficial]
 set list_bitfiles [split $bitfiles "\n"]

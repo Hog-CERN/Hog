@@ -26,8 +26,4 @@ set old_tag [lindex $tags 0]
 set new_tag [lindex $tags 1]
 Msg Info "Old tag was: $old_tag and new tag is: $new_tag"
 
-if {$version_level >= 3} {
-    Msg Info "New official version $new_tag created successfully."
-}
-
 cd $old_path

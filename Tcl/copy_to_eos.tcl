@@ -1,5 +1,5 @@
 #!/usr/bin/env tclsh
-if {$argc != 0} {
+if {$argc != 3} {
     puts "Script to copy project files and documentation from \$HOG_UNOFFICIAL_BIN_EOS_PATH to \$HOG_OFFICIAL_BIN_EOS_PATH \n"
     puts "Usage: $argv0 <hog official eos path> <hog unofficial eos path> <tag> <commit short SHA>\n"
     exit 1
@@ -9,11 +9,17 @@ set old_path [pwd]
 set path [file dirname [info script]]
 cd $path
 source ./hog.tcl
-cd ../../
 
+set $official [lindex $argv 0]
+set $unofficial [lindex $argv 1]
+set tag [lindex $argv 2]
+set $current_sha [lindex $argv 3]
+
+cd ../../
 Msg Info "Evaluating git describe..."
 set describe [exec git describe --always --tags --long]
 Msg Info "Git describe: $describe"
+
 
 lassign [ExtractVersionFromTag $tag] M m p n mr
 

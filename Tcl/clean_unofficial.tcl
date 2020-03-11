@@ -1,6 +1,6 @@
 #!/usr/bin/env tclsh
 if {$argc != 1} {
-    puts "Script to clean project files in $\HOG_UNOFFICIAL_BIN_EOS_PATH of commits already merged into master.\n"
+    puts "Script to clean EOS unofficial path of commits already merged into master.\n"
     puts "Usage: $argv0 <path_to_clean> \n"
     exit 1
 } else {
@@ -14,23 +14,18 @@ cd $path
 source ./hog.tcl
 cd ../../
 
-#set master_shas [exec git log --pretty=format:%h]
-#Msg Info "Retrieving list of commits for 'master' branch..."
-#set list_master_shas [split $master_shas "\n"]
-# puts $list_master_shas
-
 set unofficial $path_to_clean
 Msg Info "Retrieving list of bitfiles in $unofficial..."
-set bitfiles [exec eos ls $unofficial]
+
+lassign [eos "ls $unofficial"] ret bitfiles
 set list_bitfiles [split $bitfiles "\n"]
-# puts $list_bitfiles
 
 foreach bitfile $list_bitfiles {
    	set status [catch {exec git branch master --contains $bitfile} contained]
    	if { $status==0 && [string first "master" $contained] != -1 } {
-       Msg Info "Removing files corresponding to SHA $bitfile"
-       set status2 [catch {exec eos rm -r $unofficial/$bitfile} deletion]
-   }
+	    Msg Info "Removing files corresponding to SHA $bitfile"
+	    lassign [eos "rm -r $unofficial/$bitfile"] status2 deletion
+	}
 }
 
 Msg Info "Cleaning done"

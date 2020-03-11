@@ -1,6 +1,4 @@
 #!/usr/bin/env tclsh
-set Name make_doxygen
-
 set old_path [pwd]
 set path [file dirname [info script]]
 cd $path
@@ -34,11 +32,11 @@ if {[DoxygenVersion 1.8.13]} {
 if {[info exists env(HOG_UNOFFICIAL_BIN_EOS_PATH)]} {
     set output_dir $env(HOG_UNOFFICIAL_BIN_EOS_PATH)/$env(CI_COMMIT_SHORT_SHA)/Doc
     Msg Info "Creating $output_dir"
-    exec eos mkdir -p $output_dir
+    eos "mkdir -p $output_dir" 5
     
     if {[file exists ./Doc/html]} {
         Msg Info "Copying doxygen files..."
-        exec -ignorestderr eos cp -r ./Doc/html/* $output_dir
+        eos "cp -r ./Doc/html/* $output_dir" 5
     } else {
         Msg Warning "Doxygen documentation not found in Doc/html/"
     }

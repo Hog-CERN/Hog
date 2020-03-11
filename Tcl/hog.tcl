@@ -1377,13 +1377,15 @@ proc HandleIP {what_to_do xci_file ip_path runs_dir {force 0}} {
     }
     
     set ip_path_path [file normalize $ip_path/..]
-    if  {[catch {exec eos ls $ip_path_path} result]} {
+    lassign [eos  "ls $ip_path_path"] ret result
+    if  {$ret != 0} {
 	Msg CriticalWarning "Could not find mother directory for $ip_path: $ip_path_path."
 	return -1
     } else {
-	if  {[catch {exec eos ls $ip_path} result]} {
+	lassign [eos  "ls $ip_path"] ret result
+	if  {ret != 0} {
 	    Msg Info "IP repostory path on eos does not exist, creating it now..."
-	    exec eos mkdir $ip_path
+	    eos "mkdir $ip_path" 5
 	} else {
 	    Msg Info "IP repostory path on eos is set to: $ip_path"
 	}
@@ -1408,7 +1410,8 @@ proc HandleIP {what_to_do xci_file ip_path runs_dir {force 0}} {
     if {$what_to_do eq "push"} {
 	set will_copy 0
 	set will_remove 0
-	if  {([catch {exec eos ls $ip_path/$file_name} result])} {
+	lassign [eos "ls $ip_path/$file_name"] ret result
+	if  {ret != 0} {
 	    set will_copy 1
 	} else {
 	    if {$force == 0 } {
@@ -1425,49 +1428,48 @@ proc HandleIP {what_to_do xci_file ip_path runs_dir {force 0}} {
 		Msg Info "Found some IP synthesised files matching $ip_path/$file_name*"
 		if {$will_remove == 1} {
 		    Msg Info "Removing old synthesized directory $ip_path/$file_name..."
-		    exec -ignorestderr eos rm -rf "$ip_path/$file_name"
+		    eos "rm -rf $ip_path/$file_name" 5
 		}
 
 		Msg Info "Creating IP directories on EOS..."
-		exec eos mkdir -p "$ip_path/$file_name/synthesized"
+		eos "mkdir -p $ip_path/$file_name/synthesized" 5
 
 		Msg Info "Copying generated files for $xci_name..."
-		exec -ignorestderr eos cp -r $xci_path $ip_path/$file_name/
-		exec eos mv $ip_path/$file_name/$xci_dir_name $ip_path/$file_name/generated
+		eos "cp -r $xci_path $ip_path/$file_name/" 5
+		eos "mv $ip_path/$file_name/$xci_dir_name $ip_path/$file_name/generated" 5
 		Msg Info "Copying synthesised files for $xci_name..."
-		exec -ignorestderr eos cp -r $ip_synth_files $ip_path/$file_name/synthesized 
+		eos "cp -r $ip_synth_files $ip_path/$file_name/synthesized" 5
 	    } else {
 		Msg Warning "Could not find synthesized files matching $ip_path/$file_name*"
 	    }
 	}
     } elseif {$what_to_do eq "pull"} {
-	if  {[catch {exec eos ls $ip_path/$file_name} result]} {
+	lassign [eos ls "$ip_path/$file_name"] ret result
+	if  {$ret != 0} {
 	    Msg Info "Nothing for $xci_name was found in the repository, cannot pull."
 	    return -1
-	    
+
 	} else {
+
 	    Msg Info "IP $xci_name found in the repository, copying it locally..."
-	    set ret_g [catch {exec eos ls $ip_path/$file_name/generated/*} ip_gen_files]
-	    set ret_s [catch {exec eos ls $ip_path/$file_name/synthesized/*} ip_syn_files]
+	    lassign [eos "ls $ip_path/$file_name/generated/*"] ret_g ip_gen_files
+	    lassign [eos "ls $ip_path/$file_name/synthesized/*"] ret_s ip_syn_files
 	    #puts "ret g: $ret_g"
 	    Msg Status "Generated files found for $xci_ip_name ($ret_g):\n $ip_gen_files"
 	    #puts "ret s: $ret_s"
 	    Msg Status "Synthesised files found for $xci_ip_name ($ret_s):\n $ip_syn_files"
 
 	    if  {($ret_g == 0) && ([llength $ip_gen_files] > 0)} {
-		exec -ignorestderr eos cp -r $ip_path/$file_name/generated/* $xci_path
+		eos "cp -r $ip_path/$file_name/generated/* $xci_path" 5
 	    } else {
 		Msg Warning "Cound not find generated IP files on EOS path" 
 	    }
 
 	    if  {($ret_s == 0) && ([llength $ip_syn_files] > 0)} {
-		exec -ignorestderr eos cp -r $ip_path/$file_name/synthesized/* $runs_dir	
+		eos "cp -r $ip_path/$file_name/synthesized/* $runs_dir"
 	    } else {
-		Msg Warning "Cound not find synthesized IP files on EOS path" 
+		Msg Warning "Cound not find synthesized IP files on EOS path"
 	    }
-
-	
-
 	} 
     }
     

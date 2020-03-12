@@ -40,7 +40,7 @@ if {$mr == -1} {
         }
 
         set wild_card $unofficial/$current_sha/Doc
-        lassign "ls $wild_card"] status doc_folder
+        lassign [eos "ls $wild_card"] status doc_folder
 
         if {$status == 0} {
             Msg Info "Updating official doxygen documentation in $official/Doc"

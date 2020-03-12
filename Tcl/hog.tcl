@@ -981,7 +981,7 @@ proc GetVer {FILE path} {
         } else {
 	    set tags [split $last_tag "\n"]
 	    set tag [lindex $tags 0]
-	    lassign [ExtractVersionFromTag $tag] M m p n mr
+	    lassign [ExtractVersionFromTag $tag] M m p mr
         if {$mr == -1} {
             incr p
             Msg Info "No tag contains $SHA for $FILE ($path), will use most recent tag $tag. As this is an official tag, patch will be incremented to $p."
@@ -1008,26 +1008,23 @@ proc GetVer {FILE path} {
     set ver "error: $result"
     }
 
-    lassign [ExtractVersionFromTag $ver] M m c n mr
+    lassign [ExtractVersionFromTag $ver] M m c mr
     
     if {$mr > -1} { # Candidate tab
 	set M [format %02X $M]
 	set m [format %02X $m]
 	set c [format %04X $c]
-	set n [format %04X $n]
 	set comm $SHA
     } elseif { $M > -1 } { # official tag
 	set M [format %02X $M]
 	set m [format %02X $m]
 	set c [format %04X $c]
-	set n [format %04X 0]
 	set comm $SHA
     } else {
 	Msg Warning "Tag does not contain a properly formatted version: $ver in repository containing $FILE"
 	set M [format %02X 0]
 	set m [format %02X 0]
 	set c [format %04X 0]
-	set n [format %04X 0]
 	set comm $SHA
     }
     set comm [format %07X 0x$comm]
@@ -1055,10 +1052,9 @@ proc HexVersionToString {version} {
 # * tag: a tag in the Hog format: v$M.$m.$p or b$(mr)v$M.$m.$p-$n
 
 proc ExtractVersionFromTag {tag} {
-    if {[regexp {^(?:b(\d+))?v(\d+)\.(\d+).(\d+)(?:-(\d+))?$} $tag -> mr M m p n]} {
+    if {[regexp {^(?:b(\d+))?v(\d+)\.(\d+).(\d+)(?:-\d+)?$} $tag -> mr M m p]} {
 	if {$mr eq ""} {
 	    set mr -1
-	    set n -1
 	}
     } else {
 	Msg Warning "Repository tag $tag is not in a Hog-compatible format."
@@ -1066,9 +1062,8 @@ proc ExtractVersionFromTag {tag} {
 	set M -1
 	set m -1
 	set p -1
-	set n -1    
     }
-    return [list $M $m $p $n $mr]
+    return [list $M $m $p $mr]
 }
 
 
@@ -1083,7 +1078,7 @@ proc TagRepository {{merge_request_number 0} {version_level 0}} {
     } else {
 	set tags [split $last_tag "\n"]
 	set tag [lindex $tags 0]
-	lassign [ExtractVersionFromTag $tag] M m p n mr
+	lassign [ExtractVersionFromTag $tag] M m p mr
     
 	if { $M > -1 } { # M=-1 means that the tag could not be parsed following a Hog format
 	    if {$mr == -1 } { # Tag is official, no b at the beginning (and no merge request number at the end)

@@ -10,10 +10,7 @@ set path [file dirname [info script]]
 cd $path
 source ./hog.tcl
 
-set $official [lindex $argv 0]
-set $unofficial [lindex $argv 1]
-set tag [lindex $argv 2]
-set $current_sha [lindex $argv 3]
+lassign $argv official unofficial tag current_sha
 
 cd ../../
 Msg Info "Evaluating git describe..."

@@ -19,10 +19,6 @@
 // -- on revision history.
 // -------------------------------------------------------------------------------
 
-library IEEE;
-use IEEE.STD_LOGIC_1164.ALL;
-use IEEE.NUMERIC_STD.ALL;
-
 // Change <myproj> to your project name
 module top_<myproj> # (
         // Global Generic Variables

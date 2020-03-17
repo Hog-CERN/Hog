@@ -10,7 +10,7 @@ set parameters {
 	{no_bitstream    "If set, the bitstream file will not be produced. If not set, it will check the enviromental variable \$HOG_NO_BITSTREAM. If \$HOG_NO_BITSTREAM is set to a value different from 0, the bitstream file will not be produced"}
 }
 
-set usage "- USAGE: $::argv0 <project> \[OPTIONS\]\n. Options:"
+set usage "- USAGE: $::argv0 \[OPTIONS\] <project> \n. Options:"
 set path [file normalize "[file dirname [info script]]/.."]
 
 if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] ||  [llength $argv] < 1 } {

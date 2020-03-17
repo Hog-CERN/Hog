@@ -10,7 +10,7 @@ set parameters {
 	{lib_path.arg ""   "Questa library path"}
 }
 
-set usage "- USAGE: $::argv0 <project> \[OPTIONS\]\n. Options:"
+set usage "- USAGE: $::argv0 \[OPTIONS\] <project> \n. Options:"
 
 set path [file normalize "[file dirname [info script]]/.."]
 if { [catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] ||  [llength $argv] < 1 } {

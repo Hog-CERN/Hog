@@ -12,7 +12,7 @@ set parameters {
 	{no_time         "no_time"}
 }
 
-set usage "- USAGE: $::argv0 <project> \[OPTIONS\]\n. Options:"
+set usage "- USAGE: $::argv0 \[OPTIONS\] <project> \n. Options:"
 
 set Name LaunchRuns
 set path [file normalize "[file dirname [info script]]/.."]

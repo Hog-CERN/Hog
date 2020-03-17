@@ -8,5 +8,5 @@ else
 	then
 		LIBPATH="-lib_path $2"
 	fi
-    vivado -nojournal -nolog -mode batch -notrace -source $DIR/Tcl/launchers/launch_simulation.tcl -tclargs $1 $LIBPATH
+    vivado -nojournal -nolog -mode batch -notrace -source $DIR/Tcl/launchers/launch_simulation.tcl -tclargs $LIBPATH $1 
 fi

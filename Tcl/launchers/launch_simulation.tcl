@@ -1,13 +1,27 @@
+#!/usr/bin/env tclsh
+
+#parsing command options
+if {[catch {package require cmdline} ERROR]} {
+	puts "$ERROR\n If you are running this script on tclsh, you can fix this by installing 'tcllib'" 
+	return
+}
+
+set parameters {
+	{lib_path.arg ""   "Questa library path"}
+}
+
+set usage "- USAGE: $::argv0 <project> \[OPTIONS\]\n. Options:"
+
 set path [file normalize "[file dirname [info script]]/.."]
-if { $::argc eq 0 } {
-    puts "USAGE: $::argv0 <project> [questa library path]"
+if { [catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] ||  [llength $argv] < 1 } {
+    puts [cmdline::usage $parameters $usage]
     exit 1
 } else {
     set project [lindex $argv 0]
     set main_folder [file normalize "$path/../../VivadoProject/$project/$project.sim/"]
 
-    if {[llength $argv] > 1} {
-    set lib_path [lindex $argv 1]
+    if {$options(lib_path)!= ""} {
+    set lib_path $options(lib_path)
     } else {
     set lib_path [file normalize "$main_folder/../../../SimulationLib"]
     }

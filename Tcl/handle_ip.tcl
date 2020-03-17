@@ -1,6 +1,18 @@
 #!/usr/bin/env tclsh
-if { $::argc < 2 } {
-    puts "USAGE: $::argv0 <push|pull> <IP file.xci> <runs dir> <IP repository path (on eos)> "
+
+#parsing command options
+if {[catch {package require cmdline} ERROR]} {
+	puts "$ERROR\n If you are running this script on tclsh, you can fix this by installing 'tcllib'" 
+	return
+}
+set parameters {
+    {ip_repo.arg ""    "IP repository path (on eos)"}
+}
+
+set usage "USAGE: $::argv0 \[options\] <push|pull> <IP file.xci> <runs dir> \n Options:"
+
+if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] || [llength $argv] < 3 } {
+    puts [cmdline::usage $parameters $usage]
     exit 1
 } else {
     set what_to_do [lindex $argv 0]
@@ -12,8 +24,8 @@ if { $::argc < 2 } {
     set xci_file [file normalize [lindex $argv 1]]
     set runs_dir [lindex $argv 2]
 
-    if { $::argc > 3 } {
-	set ip_path [lindex $argv 3]
+    if { $options(ip_repo)!="" } {
+	set ip_path $options(ip_repo)
     } else {
 	if [info exists env(HOG_IP_EOS_PATH)] {
 	    set ip_path $env(HOG_IP_EOS_PATH)

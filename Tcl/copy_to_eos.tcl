@@ -1,15 +1,24 @@
 #!/usr/bin/env tclsh
-if {$argc != 4} {
-    puts "Script to copy project files and documentation from \$HOG_UNOFFICIAL_BIN_EOS_PATH to \$HOG_OFFICIAL_BIN_EOS_PATH \n"
-    puts "Usage: $argv0 <hog official eos path> <hog unofficial eos path> <tag> <commit short SHA>\n"
-    exit 1
+#parsing command options
+if {[catch {package require cmdline} ERROR]} {
+	puts "$ERROR\n If you are running this script on tclsh, you can fix this by installing 'tcllib'" 
+	return
 }
+set parameters {
+}
+
+set usage   "Script to copy project files and documentation from \$HOG_UNOFFICIAL_BIN_EOS_PATH to \$HOG_OFFICIAL_BIN_EOS_PATH \nUsage: $argv0 <hog official eos path> <hog unofficial eos path> <tag> <commit short SHA>\n"
+
 
 set old_path [pwd]
 set path [file dirname [info script]]
 cd $path
 source ./hog.tcl
-
+if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] || $argc != 4} {
+    Msg Info [cmdline::usage $parameters $usage]
+	cd $old_path
+    exit 1
+}
 lassign $argv official unofficial tag current_sha
 
 cd ../../

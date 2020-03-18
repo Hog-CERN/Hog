@@ -11,12 +11,12 @@ set usage   "USAGE: $::argv0 <project>"
 
 
 
+set Name LaunchCheckSyntax
+set path [file normalize "[file dirname [info script]]/.."]
 set old_path [pwd]
 cd $path
 source ./hog.tcl
 
-set Name LaunchCheckSyntax
-set path [file normalize "[file dirname [info script]]/.."]
 if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] || $::argc eq 0 } {
     Msg Info [cmdline::usage $parameters $usage]
 	cd $old_path

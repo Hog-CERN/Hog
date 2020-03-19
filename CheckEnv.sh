@@ -17,7 +17,7 @@ fi
 
 echo --------------------------------
 
-if [ `which vsim > /dev/null 2>/dev/null` ]
+if [ `which vsim 2>/dev/null` ]
 then
     CMD=`which vsim`
     echo "Modelsim/Questasim executable found in $CMD"
@@ -29,7 +29,7 @@ fi
 
 echo --------------------------------
 
-if [ `which eos > /dev/null 2>/dev/null` ]
+if [ `which eos 2>/dev/null` ]
 then
     CMD=`which eos`
     echo "eos executable found in $CMD"
@@ -41,7 +41,7 @@ fi
 
 echo --------------------------------
 
-if [ `which git > /dev/null 2>/dev/null` ]
+if [ `which git 2>/dev/null` ]
 then
     CMD=`which git`
     echo "git executable found in $CMD"

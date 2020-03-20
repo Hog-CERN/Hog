@@ -52,8 +52,10 @@ if {$mr == -1} {
                 set new_fp [string range $fp 0 [expr {[string last "-git" $fp]} - 1]]
                 set extension [string range $fp [expr {[string last "." $fp]} + 1] end]
                 if {[string last "-git" $fp] != -1} {
+                    Msg Info "eos cp -r $unofficial/$current_sha/$fp $official/$tag/$new_folder$tag/$new_fp.$extension"
                     eos "cp -r $unofficial/$current_sha/$fp $official/$tag/$new_folder\_$tag/$new_fp.$extension" 5 
                 } else {
+                    Msg Info "eos cp -r $unofficial/$current_sha/$fp $official/$tag/$new_folder$tag/$fp"
                     eos "cp -r $unofficial/$current_sha/$fp $official/$tag/$new_folder\_$tag/$fp" 5 
                 }
 

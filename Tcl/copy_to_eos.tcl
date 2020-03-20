@@ -48,6 +48,7 @@ if {$mr == -1} {
             Msg Info "Copying $f into $official/$tag/$new_folder\_$tag..."
             eos "mkdir -p $official/$tag/$new_folder\_$tag"
             foreach fp $f {
+                puts $fp
                 set new_fp [string range $fp 0 [expr {[string last "-git" $fp]}]]
                 set extension [string range $fp [expr {[string last "." $fp]} + 1] end]
                 if {[string last "-git" $fp] != -1} {

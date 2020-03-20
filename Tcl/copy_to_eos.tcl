@@ -37,8 +37,8 @@ if {$mr == -1} {
         Msg Info "Found these files using $wild_card: $folders"
         set new_dir $official/$tag
         Msg Info "Copying $wild_card into $new_dir"
-        eos "cp $wild_card $official" 5
-        eos "mv $official/$current_sha $new_dir" 5
+        eos "cp -r $wild_card $official" 5
+        eos "mv -r $official/$current_sha $new_dir" 5
         # eos "mkdir -p $new_dir" 5
         # puts "eos mkdir -p $new_dir"
 
@@ -47,7 +47,7 @@ if {$mr == -1} {
             set new_folder [string range $f 0 [expr {[string last "-git" $f]}]]
             if { $new_folder != ""} {
                 Msg Info "Renaming $f into $new_folder" 
-                eos "mv $new_dir/$f $new_dir/$new_folder" 5
+                eos "mv -r $new_dir/$f $new_dir/$new_folder" 5
                 lassign [eos "ls $new_dir/$new_folder"] sub_status sub_folders
                 foreach fp $sub_folders {
                     set new_file [string range $fp 0 [expr {[string last "-git" $fp]}]]

@@ -49,12 +49,12 @@ if {$mr == -1} {
             eos "mkdir -p $official/$tag/$new_folder\_$tag"
             foreach fp $f {
                 puts $fp
-                set new_fp [string range $fp 0 [expr {[string last "-git" $fp]}]]
+                set new_fp [string range $fp 0 [expr {[string last "-git" $fp]} - 1]]
                 set extension [string range $fp [expr {[string last "." $fp]} + 1] end]
                 if {[string last "-git" $fp] != -1} {
-                    eos "cp -r $unofficial/$current_sha/$f/$fp $official/$tag/$new_folder\_$tag/$new_fp.$extension" 5 
+                    eos "cp -r $unofficial/$current_sha/$fp $official/$tag/$new_folder\_$tag/$new_fp.$extension" 5 
                 } else {
-                    eos "cp -r $unofficial/$current_sha/$f/$fp $official/$tag/$new_folder\_$tag/$fp" 5 
+                    eos "cp -r $unofficial/$current_sha/$fp $official/$tag/$new_folder\_$tag/$fp" 5 
                 }
 
             }

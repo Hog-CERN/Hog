@@ -50,10 +50,12 @@ if {$mr == -1} {
             foreach fp $f {
                 set new_fp [string range $fp 0 [expr {[string last "-git" $fp]}]]
                 set extension [string range $fp [expr {[string last "." $fp]} + 1] end]
-                if {condition} {
-                    
+                if {[string last "-git" $fp] != -1} {
+                    eos "cp -r $unofficial/$current_sha/$f/$fp $official/$tag/$new_folder\_$tag/$new_fp.$extension" 5 
+                } else {
+                    eos "cp -r $unofficial/$current_sha/$f/$fp $official/$tag/$new_folder\_$tag/$fp" 5 
                 }
-                eos "cp -r $unofficial/$current_sha/$f/$fp $official/$tag/$new_folder\_$tag/$new_fp.$extension" 5   
+
             }
         }
 

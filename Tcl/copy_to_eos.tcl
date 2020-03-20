@@ -30,7 +30,7 @@ Msg Info "Git describe: $describe"
 lassign [ExtractVersionFromTag $tag] M m p mr
 
 if {$mr == -1} {
-    set wild_card $unofficial/$current_sha/
+    set wild_card $unofficial/$current_sha
     lassign [eos "ls $wild_card"] status folders
 
     if {$status == 0} {

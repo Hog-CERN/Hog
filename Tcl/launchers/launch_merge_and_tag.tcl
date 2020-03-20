@@ -69,6 +69,7 @@ if {$options(merged) == 0} {
 Msg Info "Version Level $VERSION"
 if {[catch {exec git merge --no-commit origin/master} MRG]} {
 	Msg Error "Branch is outdated, please merge the latest changes from master with:\n git merge --no-commit origin/master\n"
+	exit 1
 }
 
 Msg Info [exec $TclPath/tag_repository.tcl -level $VERSION $onHOG $merge_request_number]

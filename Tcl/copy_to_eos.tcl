@@ -72,8 +72,6 @@ if {$mr == -1} {
             #         Msg Info "eos cp -r $unofficial/$current_sha/$fp/* $official/$tag/$new_folder$tag/$fp"
             #         # eos "cp -r $unofficial/$current_sha/$fp/* $official/$tag/$" 5 
             #     }
-
-            }
         }
 
         set wild_card $unofficial/$current_sha/Doc*

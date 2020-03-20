@@ -44,8 +44,17 @@ if {$mr == -1} {
         
         # f Loop over projects in repository
         foreach f $folders {
-            Msg Info "Copying $f into $official/$tag/$f\_$tag..."
-            eos "cp -r $unofficial/$current_sha/$f $official/$tag/$f\_$tag" 5
+            set new_folder [string range $f 0 [expr {[string last "-git" $f]}]]
+            Msg Info "Copying $f into $official/$tag/$new_folder\_$tag..."
+            eos "mkdir -p $official/$tag/$new_folder\_$tag"
+            foreach fp $f {
+                set new_fp [string range $fp 0 [expr {[string last "-git" $fp]}]]
+                set extension [string range $fp [expr {[string last "." $fp]} + 1] end]
+                if {condition} {
+                    
+                }
+                eos "cp -r $unofficial/$current_sha/$f/$fp $official/$tag/$new_folder\_$tag/$new_fp.$extension" 5   
+            }
         }
 
         set wild_card $unofficial/$current_sha/Doc
@@ -54,7 +63,7 @@ if {$mr == -1} {
         if {$status == 0} {
             Msg Info "Updating official doxygen documentation in $official/Doc"
             eos "mkdir -p $official/Doc" 5
-            eos "cp -r $unofficial/$current_sha/Doc/* $official/Doc" 5
+            eos "cp -r $unofficial/$current_sha/Doc*/* $official/Doc/" 5
         }
     } else {
         Msg Error "Could not find anything useful using $wild_card."

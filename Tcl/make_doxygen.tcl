@@ -27,10 +27,13 @@ if {[DoxygenVersion 1.8.13]} {
     exec -ignorestderr doxygen $doxygen_conf
 }
 
+Msg Info "Evaluating git describe..."
+set describe [exec git describe --always --dirty --tags --long]
+Msg Info "Git describe: $describe"
 
 # Copy documentation to eos
 if {[info exists env(HOG_UNOFFICIAL_BIN_EOS_PATH)]} {
-    set output_dir $env(HOG_UNOFFICIAL_BIN_EOS_PATH)/$env(CI_COMMIT_SHORT_SHA)/Doc
+    set output_dir $env(HOG_UNOFFICIAL_BIN_EOS_PATH)/$env(CI_COMMIT_SHORT_SHA)/Doc-git-$describe
     Msg Info "Creating $output_dir"
     eos "mkdir -p $output_dir" 5
     

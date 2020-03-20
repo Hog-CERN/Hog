@@ -90,13 +90,15 @@ stages:
         <<: *vars        
     script:
         - git status
-        - git diff
+        - mkdir -p $CI_PROJECT_DIR/bin
+        - git diff > $CI_PROJECT_DIR/bin/diff.txt
         - git stash
         - vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_synthesis.tcl -tclargs $PROJECT_NAME
     artifacts:
         name: vivado_synth
         paths:
             - $CI_PROJECT_DIR/VivadoProject/$PROJECT_NAME
+            - $CI_PROJECT_DIR/bin
         expire_in: 30 day
 
 .implement_project: &implement_project
@@ -116,7 +118,6 @@ stages:
             - $CI_PROJECT_DIR/VivadoProject/$PROJECT_NAME
             - $CI_PROJECT_DIR/bin           
         expire_in: 10 years
-
 
 make_doxygen:
     <<: *only-default

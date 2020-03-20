@@ -36,27 +36,25 @@ if {$mr == -1} {
     if {$status == 0} {
         Msg Info "Found these files using $wild_card: $folders"
         set new_dir $official/$tag
-        Msg Info "Copying $wild_card into $official/$new_dir"
+        Msg Info "Copying $wild_card into $new_dir"
         eos "cp $wild_card $official" 5
-        eos "mv $official/$current_sha $official/$new_dir" 5
+        eos "mv $official/$current_sha $new_dir" 5
         # eos "mkdir -p $new_dir" 5
         # puts "eos mkdir -p $new_dir"
-        puts "eos cp $wild_card $official"
-        puts "eos mv $official/$current_sha $official/$new_dir"
 
         # f Loop over projects in repository
         foreach f $folders {
             set new_folder [string range $f 0 [expr {[string last "-git" $f]}]]
             if { $new_folder != ""} {
                 Msg Info "Renaming $f into $new_folder" 
-                eos "mv $official/$new_dir/$f $official/$new_dir/$new_folder" 5
-                lassign [eos "ls $official/$new_dir/$new_folder"] sub_status sub_folders
+                eos "mv $official/$new_dir/$f $new_dir/$new_folder" 5
+                lassign [eos "ls $new_dir/$new_folder"] sub_status sub_folders
                 foreach fp $sub_folders {
                     set new_file [string range $fp 0 [expr {[string last "-git" $fp]}]]
                     set extension [string range $fp [expr {[string last "." $fp]} + 1] end]
                     if {$new_file != ""} {
                         Msg Info "Renaming file $fp into $new_file.$extension"
-                        eos "mv $official/$new_dir/$new_folder/$fp $official/$new_dir/$new_folder/$new_file.$extension" 5
+                        eos "mv $official/$new_dir/$new_folder/$fp $new_dir/$new_folder/$new_file.$extension" 5
                     }
                 }
             } 

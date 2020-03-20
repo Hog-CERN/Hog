@@ -90,8 +90,6 @@ stages:
         <<: *vars        
     script:
         - git status
-        - mkdir -p $CI_PROJECT_DIR/bin
-        - git diff > $CI_PROJECT_DIR/bin/diff.txt
         - git stash
         - vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_synthesis.tcl -tclargs $PROJECT_NAME
     artifacts:

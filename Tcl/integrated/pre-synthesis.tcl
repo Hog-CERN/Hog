@@ -230,6 +230,11 @@ Msg Info "Opening version file $status_file..."
 set status_file [open $status_file "w"]
 # writing info into status file
 
+Msg Info "Evaluating difference with remote..."
+exec mkdir -p bin
+exec git diff
+exec git diff > bin/diff.txt
+
 Msg Status " ------------------------- PRE SYNTHESIS -------------------------"
 Msg Status " $tt"
 Msg Status " Firmware date and time: $date, $timee"

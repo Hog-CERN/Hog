@@ -28,7 +28,7 @@ if {[DoxygenVersion 1.8.13]} {
 }
 
 Msg Info "Evaluating git describe..."
-set describe [exec git describe --always --dirty --tags --long]
+set describe [exec git describe --always --tags --long]
 Msg Info "Git describe: $describe"
 
 # Copy documentation to eos

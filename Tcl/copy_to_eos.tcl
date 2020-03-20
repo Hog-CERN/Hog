@@ -47,14 +47,14 @@ if {$mr == -1} {
             set new_folder [string range $f 0 [expr {[string last "-git" $f]}]]
             if { $new_folder != ""} {
                 Msg Info "Renaming $f into $new_folder" 
-                eos "mv $official/$new_dir/$f $new_dir/$new_folder" 5
+                eos "mv $new_dir/$f $new_dir/$new_folder" 5
                 lassign [eos "ls $new_dir/$new_folder"] sub_status sub_folders
                 foreach fp $sub_folders {
                     set new_file [string range $fp 0 [expr {[string last "-git" $fp]}]]
                     set extension [string range $fp [expr {[string last "." $fp]} + 1] end]
                     if {$new_file != ""} {
                         Msg Info "Renaming file $fp into $new_file.$extension"
-                        eos "mv $official/$new_dir/$new_folder/$fp $new_dir/$new_folder/$new_file.$extension" 5
+                        eos "mv $new_dir/$new_folder/$fp $new_dir/$new_folder/$new_file.$extension" 5
                     }
                 }
             } 

@@ -25,6 +25,7 @@ If this line is not avalable HOG will assume your project runs under Vivado.
 ## TCL Variables
 
 The ./Hog/Tcl/create-project.tcl uses the foloowing variables to build your project.
+
 | Variable Name     | description                                                                                               | comments                                                  |
 |:------------------|:----------------------------------------------------------------------------------------------------------|:----------------------------------------------------------|
 | FPGA              | the device code, to be chosen among the ones provided by the chosen HDL compiler                          | optional,                                                 |

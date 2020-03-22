@@ -1,8 +1,8 @@
 # Project Tcl file
 
-As previoulsy stated Hog uses a TCL script located in ./Top/\<my_project\>/\<my_project\>.tcl to genenate the the HDL project.
+As previoulsy stated Hog uses a TCL script located in ./Top/<my_project>/<my_project>.tcl to genenate the the HDL project.
 
-The \<my_project\>.tcl is exected to define few basic variables containing the information needed to build your project.
+The <my_project>.tcl is exected to define few basic variables containing the information needed to build your project.
 The script will thenm call ./Hog/Tcl/create-project.tcl script which in terms will read back the variables and generate the project.
 This section contains a full recipe to builtd the tcl script for your project.
 

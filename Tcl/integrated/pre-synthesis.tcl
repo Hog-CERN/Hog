@@ -242,6 +242,7 @@ if {$diff != ""} {
     Msg Info "$diff"
     set fp [open "$dst_dir/diff_presynthesis.txt" w+]
     puts $fp "$diff"
+    close $fp
 } else {
     Msg Info "No differences with last commit."
 }

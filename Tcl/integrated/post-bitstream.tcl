@@ -63,6 +63,7 @@ if [file exists $fw_file] {
         Msg Info "$diff"
         set fp [open "$dst_dir/diff_postbistream.txt" w+]
         puts $fp "$diff"
+        close $fp
     } else {
         Msg Info "No differences with last commit."
     }

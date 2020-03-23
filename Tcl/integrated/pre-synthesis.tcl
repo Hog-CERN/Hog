@@ -242,7 +242,7 @@ if {$diff != ""} {
     Msg Info "$diff"
     exec git diff > $dst_dir/diff_presynthesis.txt  
 } else {
-    Mst Info "No differences with remote."
+    Msg Info "No differences with remote."
 }
 
 Msg Status " ------------------------- PRE SYNTHESIS -------------------------"

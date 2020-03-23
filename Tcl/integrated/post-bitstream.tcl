@@ -63,7 +63,7 @@ if [file exists $fw_file] {
         Msg Info "$diff"
         exec git diff > $dst_dir/diff_postbitstream.txt  
     } else {
-        Mst Info "No differences with remote."
+        Msg Info "No differences with remote."
     }
 
     Msg Info "Copying bit file $bit_file into $dst_bit..."

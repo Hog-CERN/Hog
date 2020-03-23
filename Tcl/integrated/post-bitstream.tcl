@@ -56,14 +56,15 @@ if [file exists $fw_file] {
     
     Msg Info "Creating $dst_dir..."
     file mkdir $dst_dir
-    Msg Info "Evaluating difference with remote..."
+    Msg Info "Evaluating differences with last commit..."
     set diff [exec git diff]
     if {$diff != ""} {
-        Msg Warning "Found differences with remote..."
+        Msg Warning "Found differences with last commit..."
         Msg Info "$diff"
-        exec git diff > $dst_dir/diff_postbitstream.txt  
+        set fp [open "$dst_dir/diff_postbistream.txt" w+]
+        puts $fp "$diff"
     } else {
-        Msg Info "No differences with remote."
+        Msg Info "No differences with last commit."
     }
 
     Msg Info "Copying bit file $bit_file into $dst_bit..."

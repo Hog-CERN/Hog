@@ -6,6 +6,7 @@ before_script:
     - git fetch 
     - git fetch origin $CI_COMMIT_REF_NAME    
     - git fetch origin $CI_MERGE_REQUEST_TARGET_BRANCH_NAME
+    - git status
     - git checkout $CI_COMMIT_REF_NAME
     - git submodule init
     - git submodule update
@@ -90,7 +91,7 @@ stages:
         <<: *vars        
     script:
         - git status
-        - git stash
+        # - git stash
         - vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_synthesis.tcl -tclargs $PROJECT_NAME
     artifacts:
         name: vivado_synth
@@ -107,7 +108,7 @@ stages:
     script:
         - git status
         - git diff
-        - git stash
+        # - git stash
         - vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_implementation.tcl -tclargs $PROJECT_NAME 
         - "if [ -e $CI_PROJECT_DIR/bin/ ]; then until echo $HOG_PASSWORD | kinit $HOG_USER ; do echo Retrying; sleep 2; done; 
           eos mkdir -p $HOG_UNOFFICIAL_BIN_EOS_PATH/$CI_COMMIT_SHORT_SHA;

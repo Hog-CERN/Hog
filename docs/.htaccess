@@ -4,5 +4,5 @@ ShibRequireSession On
 ShibRequireAll On
 ShibExportAssertion Off
 Require valid-user
-Require ADFS_GROUP "hog-group" "hog-group"
+#Require ADFS_GROUP "hog-group" "hog-group"
 

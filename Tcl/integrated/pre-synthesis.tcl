@@ -16,7 +16,7 @@ if {[info commands get_property] != ""} {
     set proj_file $old_path/[file tail $old_path].xpr
     Msg CriticalWarning "You seem to be running locally on tclsh, so this is a debug, the project file will be set to $proj_file and was derived from the path you launched this script from: $old_path. If you want this script to work properly in debug mode, please launch it from the top folder of one project, for example Repo/VivadoProject/fpga1/ or Repo/Top/fpga1/"
 }
-	
+    
 set proj_dir [file normalize [file dirname $proj_file]]
 set proj_name [file rootname [file tail $proj_file]]
 
@@ -26,10 +26,10 @@ set proj_name [file rootname [file tail $proj_file]]
 set flavour [string map {. ""} [file ext $proj_name]]
 if {$flavour != ""} {
     if [string is integer $flavour] {
-	Msg Info "Project $proj_name has flavour = $flavour, the generic variable FLAVUOR will be set to $flavour"
+    Msg Info "Project $proj_name has flavour = $flavour, the generic variable FLAVUOR will be set to $flavour"
     } else {
-	Msg Warning "Project name has a non numeric extension, flavour will be set to -1"
-	set flavour -1
+    Msg Warning "Project name has a non numeric extension, flavour will be set to -1"
+    set flavour -1
     }
 
 } else {
@@ -41,7 +41,7 @@ if { [exec git status --untracked-files=no  --porcelain] eq "" } {
     Msg Info "Git working directory [pwd] clean."
     lassign [GetVer ALL ./] version commit
 } else {
-	Msg CriticalWarning "Git working directory [pwd] not clean, commit hash, and version will be set to 0."
+    Msg CriticalWarning "Git working directory [pwd] not clean, commit hash, and version will be set to 0."
     set commit   "0000000"
     set version  "00000000"    
 }
@@ -103,23 +103,21 @@ if [file exists ./Top/$proj_name/xml] {
     set use_ipbus 1
     set xml_dst $old_path/../xml
     if [file exists ./Top/$proj_name/xml/xml.lst] {
-	Msg Info "Found IPbus XML list file, using version of listed files..."
-	# in this case, IPbus xml files are stored anywhere in the repository and listed in the xml.lst file
-	lassign [GetVer ./Top/$proj_name/xml/xml.lst ./Top/$proj_name/] xml_ver_hex xml_hash
-	set xml_ver [HexVersionToString $xml_ver_hex]    
-	Msg Info "Creating XML directory $xml_dst..."
-	file mkdir $xml_dst
-	Msg Info "Copying xml files to $xml_dst and replacing placeholders with xml version $xml_ver..."
-	CopyXMLsFromListFile ./Top/$proj_name/xml/xml.lst ./Top/$proj_name $xml_dst $xml_ver $xml_hash 
-	
+        Msg Info "Found IPbus XML list file, using version of listed files..."
+        # in this case, IPbus xml files are stored anywhere in the repository and listed in the xml.lst file
+        lassign [GetVer ./Top/$proj_name/xml/xml.lst ./Top/$proj_name/] xml_ver_hex xml_hash
+        set xml_ver [HexVersionToString $xml_ver_hex]    
+        Msg Info "Creating XML directory $xml_dst..."
+        file mkdir $xml_dst
+        Msg Info "Copying xml files to $xml_dst and replacing placeholders with xml version $xml_ver..."
+        CopyXMLsFromListFile ./Top/$proj_name/xml/xml.lst ./Top/$proj_name $xml_dst $xml_ver $xml_hash       
     } else {
-	Msg Info "IPbus XML list file not found, using version of xml directory..."
-	# in this case, IPbus xml files are just stored in the xml directory in the project folder
-	lassign [GetVer ./Top/$proj_name/xml ./Top/$proj_name/] xml_ver_hex xml_hash
-	set xml_ver [HexVersionToString $xml_ver_hex]
-	file delete -force $xml_dst
-	file copy -force $xml_target $old_path/..
-
+        Msg Info "IPbus XML list file not found, using version of xml directory..."
+        # in this case, IPbus xml files are just stored in the xml directory in the project folder
+        lassign [GetVer ./Top/$proj_name/xml ./Top/$proj_name/] xml_ver_hex xml_hash
+        set xml_ver [HexVersionToString $xml_ver_hex]
+        file delete -force $xml_dst
+        file copy -force $xml_target $old_path/..
     }
 
 } else {
@@ -139,18 +137,18 @@ set sub_files [glob -nocomplain "./Top/$proj_name/list/*.sub"]
 foreach f $sub_files {
     set sub_dir [file rootname [file tail $f]]
     if [file exists ./$sub_dir] {
-	cd "./$sub_dir"
-	lappend subs $sub_dir
-	if { [exec git status --untracked-files=no  --porcelain] eq "" } {
-	    Msg Info "$sub_dir submodule clean."
-	    lappend subs_hashes [GetHash ALL ./]
-	} else {
-	    Msg CriticalWarning "$sub_dir submodule not clean, commit hash will be set to 0."
-	    lappend subs_hashes "0000000"    
-	}
-	cd ..
+    cd "./$sub_dir"
+    lappend subs $sub_dir
+    if { [exec git status --untracked-files=no  --porcelain] eq "" } {
+        Msg Info "$sub_dir submodule clean."
+        lappend subs_hashes [GetHash ALL ./]
     } else {
-	Msg CriticalWarning "$sub_dir submodule not found"
+        Msg CriticalWarning "$sub_dir submodule not clean, commit hash will be set to 0."
+        lappend subs_hashes "0000000"    
+    }
+    cd ..
+    } else {
+    Msg CriticalWarning "$sub_dir submodule not found"
     }
 }
 
@@ -186,24 +184,24 @@ if {[info commands set_property] != ""} {
     
     #set project specific lists
     foreach l $libs v $vers h $hashes {
-	set ver "[string toupper $l]_FWVERSION=32'h$v "
-	set hash "[string toupper $l]_FWHASH=32'h$h"
-	set generic_string "$generic_string $ver $hash"
+    set ver "[string toupper $l]_FWVERSION=32'h$v "
+    set hash "[string toupper $l]_FWHASH=32'h$h"
+    set generic_string "$generic_string $ver $hash"
     }
     
     #set project specific sub modules
     foreach s $subs h $subs_hashes {
-	set hash "[string toupper $s]_FWHASH=32'h$h"
-	set generic_string "$generic_string $hash"
+    set hash "[string toupper $s]_FWHASH=32'h$h"
+    set generic_string "$generic_string $hash"
     }
     
     foreach e $ext_names h $ext_hashes {
-	set hash "[string toupper $e]_FWHASH=32'h$h"
-	set generic_string "$generic_string $hash"
+    set hash "[string toupper $e]_FWHASH=32'h$h"
+    set generic_string "$generic_string $hash"
     }
     
     if {$flavour != -1} {
-	set generic_string "$generic_string FLAVOUR=$flavour"
+    set generic_string "$generic_string FLAVOUR=$flavour"
     }
     
     set_property generic $generic_string [current_fileset]
@@ -230,10 +228,22 @@ Msg Info "Opening version file $status_file..."
 set status_file [open $status_file "w"]
 # writing info into status file
 
+Msg Info "Evaluating git describe..."
+set describe [exec git describe --always --dirty --tags --long]
+Msg Info "Git describe: $describe"
+set dst_dir [file normalize "bin/$proj_name\-git-$describe"]
+Msg Info "Creating $dst_dir..."
+file mkdir $dst_dir
+
 Msg Info "Evaluating difference with remote..."
-exec mkdir -p bin
-exec git diff
-exec git diff > bin/diff.txt
+set diff [exec git diff]
+if {$diff != ""} {
+    Msg Warning "Found differences with remote..."
+    Msg Info "$diff"
+    exec git diff > $dst_dir/diff_presynthesis.txt  
+} else {
+    Mst Info "No differences with remote."
+}
 
 Msg Status " ------------------------- PRE SYNTHESIS -------------------------"
 Msg Status " $tt"

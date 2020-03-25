@@ -142,10 +142,9 @@ merge_and_tag:
      variables:
        GIT_STRATEGY: clone
      script:
-       - ./Hog/CheckEnv.sh
+       - ./Hog/Other/CheckEnv.sh
        - "MR_PARAMETERS=`curl --header \"PRIVATE-TOKEN: ${HOG_PUSH_TOKEN}\" ${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/merge_requests/${CI_MERGE_REQUEST_IID}`"
-       - "curl --request POST --header \"PRIVATE-TOKEN: ${HOG_PUSH_TOKEN}\" --header \"Content-Type: application/json\" --data '{\"body\":\"'\"`sed -e ':a' -e 'N' -e '$!ba' -e 's/\n/\\\\n/g' README.md`\"'\"}' https://gitlab.cern.ch/api/v4/projects/${CI_PROJECT_ID}/merge_requests/${CI_MERGE_REQUEST_IID}/notes"
-       - "echo \"curl --request POST --header \"PRIVATE-TOKEN: ${HOG_PUSH_TOKEN}\" --header \"Content-Type: application/json\" --data '{\"body\":\"'\"`sed -e ':a' -e 'N' -e '$!ba' -e 's/\n/\\\\n/g' README.md`\"'\"}' https://gitlab.cern.ch/api/v4/projects/${CI_PROJECT_ID}/merge_requests/${CI_MERGE_REQUEST_IID}/notes\" "
+       - ./Hog/Other/WriteGitlabNote.sh $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $CI_MERGE_REQUEST_ID README.md
        - vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_merge_and_tag.tcl -tclargs -mr_par "{$MR_PARAMETERS}" -mr_id $CI_MERGE_REQUEST_IID -push $CI_COMMIT_REF_NAME
 
 tag_official_version:

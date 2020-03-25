@@ -250,42 +250,44 @@ if {$diff != ""} {
 Msg Status " ------------------------- PRE SYNTHESIS -------------------------"
 Msg Status " $tt"
 Msg Status " Firmware date and time: $date, $timee"
-puts $status_file "Date, $date, $timee"
 if {$flavour != -1} {
     Msg Status " Project flavour: $flavour"
 }
 
 set version [HexVersionToString $version]
+puts $status_file "## $proj_name version table"
+puts $status_file "|               | **Commit SHA** | **Version**  |"
+puts $status_file "|---------------|----------------|--------------|"
 Msg Status " Global SHA: $commit, VER: $version"
-puts $status_file "Global, $commit, $version"
+puts $status_file "| Global |  $commit | $version |"
 
 if {$use_ipbus == 1} {
-    Msg Status " XML SHA: $xml_hash, VER: $xml_ver"
-    puts $status_file "XML, $xml_hash, $xml_ver"
+    Msg Status " IPbus XML SHA: $xml_hash, VER: $xml_ver"
+    puts $status_file "| IPbus XML | $xml_hash | $xml_ver |"
 }
 set top_ver [HexVersionToString $top_ver]
 Msg Status " Top SHA: $top_hash, VER: $top_ver"
-puts $status_file "Top, $top_hash, $top_ver"
+puts $status_file "| Top directory | $top_hash | $top_ver |"
 
 set hog_ver [HexVersionToString $hog_ver]
 Msg Status " Hog SHA: $hog_hash, VER: $hog_ver"
-puts $status_file "Hog, $hog_hash, $hog_ver"
+puts $status_file "| Hog | $hog_hash | $hog_ver |"
 
 Msg Status " --- Libraries ---"
 foreach l $libs v $vers h $hashes {
     set v [HexVersionToString $v]
     Msg Status " $l SHA: $h, VER: $v"    
-    puts $status_file "$l, $h, $v"
+    puts $status_file "| Lib: $l |  $h | $v |"
 }
 Msg Status " --- Submodules ---"
 foreach s $subs sh $subs_hashes {
     Msg Status " $s SHA: $sh"
-    puts $status_file "$s, $sh, 00000000"    
+    puts $status_file "| Sub: $s |  $sh |    |"    
 }
 Msg Status " --- External Libraries ---"
 foreach e $ext_names eh $ext_hashes {
     Msg Status " $e SHA: $eh"
-    puts $status_file "$e, $eh, 00000000"    
+    puts $status_file "| Ext: $e | $eh |  |"    
 }
 Msg Status " -----------------------------------------------------------------"
 close $status_file

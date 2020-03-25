@@ -75,10 +75,13 @@ Msg Status "TNS: $tns"
 Msg Status "WHS: $whs"
 Msg Status "THS: $ths"
 
-puts $status_file "WNS: $wns"
-puts $status_file "TNS: $tns"
-puts $status_file "WHS: $whs"
-puts $status_file "THS: $ths"        
+puts $status_file "## $project Timing summary"
+puts $status_file "| **Parameter** | **value (ns)** |"
+puts $status_file "|---------------|----------------|"
+puts $status_file "|    WNS:       |      $wns      |"
+puts $status_file "|    TNS:       |      $tns      |"
+puts $status_file "|    WHS:       |      $whs      |"
+puts $status_file "|    THS:       |      $ths      |"        
 close $status_file
 
 if {$prog ne "100%"} {

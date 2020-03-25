@@ -110,7 +110,7 @@ stages:
         - git diff
         # - git stash
         - vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_implementation.tcl -tclargs $PROJECT_NAME 
-        - "if [ -e $CI_PROJECT_DIR/bin/ ] && [ '$HOG_UNOFFICIAL_BIN_EOS_PATH' != '' ]; then until echo $HOG_PASSWORD | kinit $HOG_USER ; do echo Retrying; sleep 2; done; 
+        - "if [ -e $CI_PROJECT_DIR/bin/ -a $HOG_UNOFFICIAL_BIN_EOS_PATH != '' ]; then until echo $HOG_PASSWORD | kinit $HOG_USER ; do echo Retrying; sleep 2; done; 
           eos mkdir -p $HOG_UNOFFICIAL_BIN_EOS_PATH/$CI_COMMIT_SHORT_SHA;
           eos cp -r $CI_PROJECT_DIR/bin/* $HOG_UNOFFICIAL_BIN_EOS_PATH/$CI_COMMIT_SHORT_SHA; fi"
 

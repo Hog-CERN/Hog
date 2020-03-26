@@ -154,6 +154,7 @@ make_doxygen:
         paths:
             - $CI_PROJECT_DIR/Doc
         expire_in: 10 years
+    dependencies:
     allow_failure: true   
 
 merge_and_tag:
@@ -195,8 +196,8 @@ create_official_release:
   script:
     - git fetch origin refs/notes/*:refs/notes/*
     - MR=`git notes show`
-    - ./Hog/GetGitlabArtifact.sh $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $MR bin/note.md collect_artifacts
-    - ./Hog/MakeGitlabRelease.sh  $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $CI_COMMIT_TAG note.md
+    - ./Hog/Other/GetGitlabArtifact.sh $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $MR bin/note.md collect_artifacts
+    - ./Hog/Other/MakeGitlabRelease.sh $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $CI_COMMIT_TAG note.md
   allow_failure: true
 
 copy_to_eos:

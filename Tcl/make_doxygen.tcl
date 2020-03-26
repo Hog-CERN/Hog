@@ -44,7 +44,7 @@ if {[info exists env(HOG_UNOFFICIAL_BIN_EOS_PATH)]} {
         Msg Warning "Doxygen documentation not found in Doc/html/"
     }
 } else {
-    Msg Error "Environmental variable HOG_UNOFFICIAL_BIN_EOS_PATH not set. Doxygen documentation cannot be copied to eos."
+    Msg Warning "Environmental variable HOG_UNOFFICIAL_BIN_EOS_PATH not set. Doxygen documentation cannot be copied to eos."
 }
 
 cd $old_path

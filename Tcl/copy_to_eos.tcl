@@ -43,13 +43,11 @@ if {$mr == -1} {
         foreach f $folders {
             set new_folder ""
             regexp {(.*?)(?:-v\d+\.\d+\.\d+)?-\d+-g.+} $f a new_folder 
-            # set new_folder [string range $f 0 [expr {[string last "-git" $f]}]]
             if { $new_folder != ""} {
                 Msg Info "Renaming folder $f into $new_folder-$tag" 
                 eos "mv -r $new_dir/$f $new_dir/$new_folder-$tag" 5
                 lassign [eos "ls $new_dir/$new_folder-$tag"] sub_status sub_folders
                 foreach fp $sub_folders {
-                    # set new_file [string range $fp 0 [expr {[string last "-git" $fp]}]]
                     set new_file ""
                     regexp {(.*?)(?:-v\d+\.\d+\.\d+)?-\d+-g.+} $fp a new_file 
                     set extension [string range $fp [expr {[string last "." $fp]} + 1] end]

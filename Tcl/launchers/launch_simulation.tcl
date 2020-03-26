@@ -112,7 +112,7 @@ if [info exists sim_scripts] {
 		Msg Status "\n\n$log\n\n"
 		Msg Info "Compilation log ends"
 
-		if { "$simulator" != modelsim} {
+		if { "$simulator" != "modelsim"} {
 			set cmd ./elaborate.sh
 			Msg Info "Elaborating: $cmd..."
 			if { [catch { exec $cmd } log] } {

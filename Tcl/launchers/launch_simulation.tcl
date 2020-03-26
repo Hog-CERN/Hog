@@ -8,7 +8,6 @@ if {[catch {package require cmdline} ERROR]} {
 
 set parameters {
 	{lib_path.arg ""   "Compiled simulation library path"}
-	{run_time.arg "1000ns" "Simulation run time"}
 }
 
 set usage "- USAGE: $::argv0 \[OPTIONS\] <project> \n. Options:"
@@ -40,8 +39,6 @@ if !([file exists $lib_path]) {
 
 Msg Info "Opening project $project..."
 open_project ../../VivadoProject/$project/$project.xpr
-set_property "compxlib.questa_compiled_library_dir" $lib_path [current_project]
-set_property "compxlib.modelsim_compiled_library_dir" $lib_path [current_project]
 Msg Info "Retrieving list of simulation sets..."
 
 set errors 0
@@ -75,13 +72,13 @@ foreach s [get_filesets] {
 			Msg Info "Creating simulation scripts for $s..."
 			current_fileset -simset $s
 			set sim_dir $main_folder/$s/behav			
-			set_property "$simulator.simulate.runtime" "$options(run_time)" [get_filesets $s]
 			if { ($simulator eq "xsim") } {
 				if { [catch { launch_simulation -simset [get_filesets $s] } log] } {
 					Msg CriticalWarning "Simulation failed for $s, error info: $::errorInfo"
 					incr errors
 				}
 			} else {
+				set_property "compxlib.${simulator}_compiled_library_dir" $lib_path [current_project]
 				launch_simulation -scripts_only -simset [get_filesets $s]
 				set top_name [get_property TOP $s]
 				#set sim_script  [file normalize $sim_dir/$simulator/$top_name.sh] 

@@ -1,7 +1,7 @@
 #!/bin/bash 
 if [ -z "$1" ]                                          
 then                                                    
-        echo "Usage: WriteGilabNote.sh <push token> <Gitlab api url> <projec id> <mr id> <file.md>"
+        echo "Usage: WriteGitlabNote.sh <push token> <Gitlab api url> <project id> <mr id> <file.md>"
 else                                                                                                                          
     push_token=$1
     api=$2

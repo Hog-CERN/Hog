@@ -112,13 +112,14 @@ if [info exists sim_scripts] {
 		Msg Status "\n\n$log\n\n"
 		Msg Info "Compilation log ends"
 
-		set cmd ./elaborate.sh
-		Msg Info "Elaborating: $cmd..."
-		if { [catch { exec $cmd } log] } {
-			Msg CriticalWarning "Elaboration failed for $s, error info: $::errorInfo"
-			incr errors
+		if { "$simulator" != modelsim} {
+			set cmd ./elaborate.sh
+			Msg Info "Elaborating: $cmd..."
+			if { [catch { exec $cmd } log] } {
+				Msg CriticalWarning "Elaboration failed for $s, error info: $::errorInfo"
+				incr errors
+			}
 		}
-
 		set cmd ./simulate.sh
 		Msg Info "Simulating: $cmd..."
 

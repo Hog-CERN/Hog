@@ -166,9 +166,7 @@ copy_to_eos:
     refs:
       - tags
     variables:
-      - $CI_COMMIT_TAG =~ /^v.*$/
-      - $HOG_OFFICIAL_BIN_EOS_PATH != null 
-      - $HOG_UNOFFICIAL_BIN_EOS_PATH != null 
+      - $CI_COMMIT_TAG =~ /^v.*$/ && $HOG_OFFICIAL_BIN_EOS_PATH != null && $HOG_UNOFFICIAL_BIN_EOS_PATH != null 
   tags:
     - hog
   stage: copy
@@ -183,9 +181,7 @@ cleaning:
     refs:
       - tags
     variables:
-      - $CI_COMMIT_TAG =~ /^v.*$/
-      - $HOG_OFFICIAL_BIN_EOS_PATH != null 
-      - $HOG_UNOFFICIAL_BIN_EOS_PATH != null 
+      - $CI_COMMIT_TAG =~ /^v.*$/ && $HOG_OFFICIAL_BIN_EOS_PATH != null && $HOG_UNOFFICIAL_BIN_EOS_PATH != null  
   tags:
      - hog
   stage: clean

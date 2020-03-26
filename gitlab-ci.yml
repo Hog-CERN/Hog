@@ -12,7 +12,6 @@ before_script:
     - git submodule update
     - export XILINXD_LICENSE_FILE=${HOG_XIL_LICENSE}
     - export PATH=${HOG_PATH}:$PATH
-    - echo $CI_COMMIT_REF_SLUG
 
 .only-default: &only-default
   only:
@@ -152,11 +151,10 @@ tag_official_version:
     refs:
       - push
       - web
-  only:
+  except:
     variables:
-      - $CI_PIPELINE_SOURCE == "push"
-#      - $CI_COMMIT_REF_SLUG == "master" && $HOG_TARGET_BRANCH == null
-      - $CI_COMMIT_REF_SLUG == "$HOG_TARGET_BRANCH"
+      - $CI_PIPELINE_SOURCE != "push"
+      - $CI_COMMIT_REF_SLUG != "$HOG_TARGET_BRANCH"
   tags:
      - hog
   stage: merge

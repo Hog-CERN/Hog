@@ -184,29 +184,29 @@ if {[info commands set_property] != ""} {
     
     #set project specific lists
     foreach l $libs v $vers h $hashes {
-    set ver "[string toupper $l]_FWVERSION=32'h$v "
-    set hash "[string toupper $l]_FWHASH=32'h$h"
-    set generic_string "$generic_string $ver $hash"
+	set ver "[string toupper $l]_FWVERSION=32'h$v "
+	set hash "[string toupper $l]_FWHASH=32'h$h"
+	set generic_string "$generic_string $ver $hash"
     }
     
     #set project specific sub modules
     foreach s $subs h $subs_hashes {
-    set hash "[string toupper $s]_FWHASH=32'h$h"
-    set generic_string "$generic_string $hash"
+	set hash "[string toupper $s]_FWHASH=32'h$h"
+	set generic_string "$generic_string $hash"
     }
     
     foreach e $ext_names h $ext_hashes {
-    set hash "[string toupper $e]_FWHASH=32'h$h"
-    set generic_string "$generic_string $hash"
+	set hash "[string toupper $e]_FWHASH=32'h$h"
+	set generic_string "$generic_string $hash"
     }
     
     if {$flavour != -1} {
-    set generic_string "$generic_string FLAVOUR=$flavour"
+	set generic_string "$generic_string FLAVOUR=$flavour"
     }
     
     set_property generic $generic_string [current_fileset]
     set status_file "$old_path/../versions.txt"
-
+    
 } elseif {[info commands quartus_command] != ""} {
     ### QUARTUS
     set  status_file "$old_path/../versions.txt"
@@ -263,31 +263,31 @@ puts $status_file "| Global |  $commit | $version |"
 
 if {$use_ipbus == 1} {
     Msg Status " IPbus XML SHA: $xml_hash, VER: $xml_ver"
-    puts $status_file "| IPbus XML | $xml_hash | $xml_ver |"
+    puts $status_file "| IPbus XML | [string tolower $xml_hash] | $xml_ver |"
 }
 set top_ver [HexVersionToString $top_ver]
 Msg Status " Top SHA: $top_hash, VER: $top_ver"
-puts $status_file "| Top directory | $top_hash | $top_ver |"
+puts $status_file "| Top directory | [string tolower $top_hash] | $top_ver |"
 
 set hog_ver [HexVersionToString $hog_ver]
 Msg Status " Hog SHA: $hog_hash, VER: $hog_ver"
-puts $status_file "| Hog | $hog_hash | $hog_ver |"
+puts $status_file "| Hog | [string tolower $hog_hash] | $hog_ver |"
 
 Msg Status " --- Libraries ---"
 foreach l $libs v $vers h $hashes {
     set v [HexVersionToString $v]
     Msg Status " $l SHA: $h, VER: $v"    
-    puts $status_file "| Lib: $l |  $h | $v |"
+    puts $status_file "| **Lib:** $l |  [string tolower $h] | $v |"
 }
 Msg Status " --- Submodules ---"
 foreach s $subs sh $subs_hashes {
     Msg Status " $s SHA: $sh"
-    puts $status_file "| Sub: $s |  $sh |    |"    
+    puts $status_file "| **Sub:** $s |  [string tolower $sh] |    |"    
 }
 Msg Status " --- External Libraries ---"
 foreach e $ext_names eh $ext_hashes {
     Msg Status " $e SHA: $eh"
-    puts $status_file "| Ext: $e | $eh |  |"    
+    puts $status_file "| **Ext:** $e | [string tolower $eh] |  |"    
 }
 Msg Status " -----------------------------------------------------------------"
 close $status_file

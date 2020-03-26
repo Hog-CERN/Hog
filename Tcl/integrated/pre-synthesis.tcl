@@ -231,7 +231,7 @@ set status_file [open $status_file "w"]
 Msg Info "Evaluating git describe..."
 set describe [exec git describe --always --dirty --tags --long]
 Msg Info "Git describe: $describe"
-set dst_dir [file normalize "bin/$proj_name\-git-$describe"]
+set dst_dir [file normalize "bin/$proj_name\-$describe"]
 Msg Info "Creating $dst_dir..."
 file mkdir $dst_dir
 

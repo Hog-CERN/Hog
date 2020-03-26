@@ -33,7 +33,7 @@ Msg Info "Git describe: $describe"
 
 # Copy documentation to eos
 if {[info exists env(HOG_UNOFFICIAL_BIN_EOS_PATH)]} {
-    set output_dir $env(HOG_UNOFFICIAL_BIN_EOS_PATH)/$env(CI_COMMIT_SHORT_SHA)/Doc-git-$describe
+    set output_dir $env(HOG_UNOFFICIAL_BIN_EOS_PATH)/$env(CI_COMMIT_SHORT_SHA)/Doc-$describe
     Msg Info "Creating $output_dir"
     eos "mkdir -p $output_dir" 5
     
@@ -44,7 +44,7 @@ if {[info exists env(HOG_UNOFFICIAL_BIN_EOS_PATH)]} {
         Msg Warning "Doxygen documentation not found in Doc/html/"
     }
 } else {
-    Msg Error "Environmental variable HOG_UNOFFICIAL_BIN_EOS_PATH not set. Doxygen documentation cannot be copied to eos."
+    Msg Warning "Environmental variable HOG_UNOFFICIAL_BIN_EOS_PATH not set. Doxygen documentation cannot be copied to eos."
 }
 
 cd $old_path

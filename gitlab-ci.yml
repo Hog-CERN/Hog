@@ -120,7 +120,7 @@ stages:
         paths:
             - $CI_PROJECT_DIR/VivadoProject/$PROJECT_NAME
             - $CI_PROJECT_DIR/bin           
-        expire_in: 1 week
+        expire_in: 1 month
 
 collect_artifacts:
     <<: *only-default
@@ -128,8 +128,10 @@ collect_artifacts:
     variables:
         <<: *vars
     script:
-        - ls $CI_PROJECT_DIR/bin
         - cat $CI_PROJECT_DIR/bin/*/*.txt > $CI_PROJECT_DIR/bin/note.md
+        - git fetch origin refs/notes/*:refs/notes/*
+        - git notes add -m "$CI_MERGE_REQUEST_IID"
+        - git push origin refs/notes/*
 
     artifacts:
         name: all_projects
@@ -191,9 +193,11 @@ create_official_release:
     - hog
   stage: copy
   script:
-    - git status
+    - git fetch origin refs/notes/*:refs/notes/*
+    - MR=`git notes show`
+    - ./Hog/GetGitlabArtifact.sh $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $MR bin/note.md collect_artifacts
     - ./Hog/MakeGitlabRelease.sh  $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $CI_COMMIT_TAG note.md
-
+  allow_failure: true
 
 copy_to_eos:
   only:

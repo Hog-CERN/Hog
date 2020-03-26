@@ -259,7 +259,7 @@ puts $status_file "## $proj_name version table"
 puts $status_file "|               | **Commit SHA** | **Version**  |"
 puts $status_file "|---------------|----------------|--------------|"
 Msg Status " Global SHA: $commit, VER: $version"
-puts $status_file "| Global |  $commit | $version |"
+puts $status_file "| Global        |  [string tolower $commit] | $version |"
 
 if {$use_ipbus == 1} {
     Msg Status " IPbus XML SHA: $xml_hash, VER: $xml_ver"

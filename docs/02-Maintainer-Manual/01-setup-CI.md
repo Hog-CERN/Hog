@@ -49,6 +49,7 @@ Now take the following actions:
   - __HOG_USE_DOXYGEN__= Should be set to 1 if you want the Hog CI to run doxygen (in progress...)
   - __HOG_XIL_LICENSE__= Should contain the Xilinx license servers, separated by a comma
   - __HOG_CHECK_YAMLREF__= If this variable is set, Hog CI will check that "ref" in .gitlab-ci.yml actually matches the gitlab-ci file in the Hog submodule
+  - __HOG_TARGET_BRANCH__= Project target branch. Merge request should start from this branch. Default: master
 
 
 ### Create an CERN Openstack Virtual Machine

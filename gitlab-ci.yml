@@ -151,10 +151,11 @@ tag_official_version:
     refs:
       - push
       - web
-  except:
+  only:
     variables:
       - $CI_PIPELINE_SOURCE != "push"
-      - $CI_COMMIT_REF_SLUG != "master"
+      - $CI_COMMIT_REF_SLUG == "master" && $HOG_UNOFFICIAL_BIN_EOS_PATH == null
+      - $HOG_UNOFFICIAL_BIN_EOS_PATH != null && $CI_COMMIT_REF_SLUG =~ /$HOG_TARGET_BRANCH/
   tags:
      - hog
   stage: merge

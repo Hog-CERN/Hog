@@ -35,6 +35,7 @@ stages:
     - ip
     - synthesis
     - implementation
+    - collect
     - doxygen
     - copy
     - clean
@@ -119,7 +120,24 @@ stages:
         paths:
             - $CI_PROJECT_DIR/VivadoProject/$PROJECT_NAME
             - $CI_PROJECT_DIR/bin           
+        expire_in: 1 week
+
+collect_artifacts:
+   <<: *only-default
+    stage: collect
+    variables:
+        <<: *vars
+    script:
+        - ls $CI_PROJECT_DIR/bin
+        - cat $CI_PROJECT_DIR/bin/*/*.txt > $CI_PROJECT_DIR/bin/note.md
+
+    artifacts:
+        name: all_projects
+        paths:
+            - $CI_PROJECT_DIR/bin
         expire_in: 10 years
+    allow_failure: true
+
 
 make_doxygen:
     <<: *only-default
@@ -161,6 +179,21 @@ tag_official_version:
   stage: merge
   script:
      - vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_merge_and_tag.tcl -tclargs -merged  -push $CI_COMMIT_REF_NAME
+
+
+create_official_release:
+  only:
+    refs:
+      - tags
+    variables:
+      - $CI_COMMIT_TAG =~ /^v.*$/ && $HOG_CREATE_OFFICIAL_RELEASE != null
+  tags:
+    - hog
+  stage: copy
+  script:
+    - git status
+    - ./Hog/MakeGitlabRelease.sh  $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $CI_COMMIT_TAG note.md
+
 
 copy_to_eos:
   only:

@@ -154,7 +154,7 @@ make_doxygen:
         paths:
             - $CI_PROJECT_DIR/Doc
         expire_in: 10 years
-    dependencies:
+    dependencies: []
     allow_failure: true   
 
 merge_and_tag:

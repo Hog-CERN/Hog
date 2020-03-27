@@ -156,7 +156,7 @@ tag_official_version:
   except:
     variables:
       - $CI_PIPELINE_SOURCE != "push"
-      - $CI_COMMIT_REF_SLUG != $HOG_TARGET_BRANCH
+      - $CI_COMMIT_REF_NAME != $HOG_TARGET_BRANCH
   tags:
      - hog
   stage: merge

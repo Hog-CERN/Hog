@@ -153,7 +153,7 @@ tag_official_version:
       - web
   only:
     variables:
-      - $CI_COMMIT_REF_NAME == $HOG_TARGET_BRANCH
+      - $CI_COMMIT_REF_NAME =~ $HOG_TARGET_BRANCH
   except:
     variables:
       - $CI_PIPELINE_SOURCE != "push"

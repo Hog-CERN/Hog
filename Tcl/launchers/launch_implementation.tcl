@@ -96,7 +96,7 @@ m add row  "|  WHS:  |  $whs  |"
 m add row  "|  THS:  |  $ths  |"        
 
 puts $status_file [m format 2string]
-puts $status_file "\n\n"
+puts $status_file "\n"
 if {$timing_ok == 1} {
     puts $status_file " Time requirements are met."
 } else {

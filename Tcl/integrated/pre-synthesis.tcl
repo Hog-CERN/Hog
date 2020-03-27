@@ -1,3 +1,10 @@
+#!/usr/bin/env tclsh
+
+if {[catch {package require struct::matrix} ERROR]} {
+	puts "$ERROR\n If you are running this script on tclsh, you can fix this by installing 'tcllib'" 
+	return
+}
+
 set old_path [pwd]
 set tcl_path [file normalize "[file dirname [info script]]/.."]
 source $tcl_path/hog.tcl
@@ -19,8 +26,6 @@ if {[info commands get_property] != ""} {
     
 set proj_dir [file normalize [file dirname $proj_file]]
 set proj_name [file rootname [file tail $proj_file]]
-
-package require struct::matrix
 
 # Calculating flavour if any
 set flavour [string map {. ""} [file ext $proj_name]]

@@ -12,8 +12,6 @@ before_script:
     - git submodule update
     - export XILINXD_LICENSE_FILE=${HOG_XIL_LICENSE}
     - export PATH=${HOG_PATH}:$PATH
-    - echo $CI_COMMIT_REF_SLUG
-    - echo $HOG_TARGET_BRANCH
 
 .only-default: &only-default
   only:
@@ -155,7 +153,7 @@ tag_official_version:
       - web
   only:
     variables:
-      - $CI_COMMIT_REF_NAME =~ /^$HOG_TARGET_BRANCH$/
+      - $CI_COMMIT_REF_NAME == $HOG_TARGET_BRANCH
   except:
     variables:
       - $CI_PIPELINE_SOURCE != "push"

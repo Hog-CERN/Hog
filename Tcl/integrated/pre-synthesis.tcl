@@ -20,7 +20,7 @@ if {[info commands get_property] != ""} {
 set proj_dir [file normalize [file dirname $proj_file]]
 set proj_name [file rootname [file tail $proj_file]]
 
-
+package require struct::matrix
 
 # Calculating flavour if any
 set flavour [string map {. ""} [file ext $proj_name]]
@@ -256,40 +256,46 @@ if {$flavour != -1} {
 
 set version [HexVersionToString $version]
 puts $status_file "## $proj_name version table"
-puts $status_file "|               | **Commit SHA** | **Version**  |"
-puts $status_file "|---------------|----------------|--------------|"
+struct::matrix m
+m add columns 7
+
+m add row  "| \"**File set**\" | \"**Commit SHA**\" | **Version**  |"
+m add row  "| --- | --- | --- |"
 Msg Status " Global SHA: $commit, VER: $version"
-puts $status_file "| Global        |  [string tolower $commit] | $version |"
+m add row  "| Global | [string tolower $commit] | $version |"
 
 if {$use_ipbus == 1} {
     Msg Status " IPbus XML SHA: $xml_hash, VER: $xml_ver"
-    puts $status_file "| IPbus XML | [string tolower $xml_hash] | $xml_ver |"
+    m add row "| IPbus XML | [string tolower $xml_hash] | $xml_ver |"
 }
 set top_ver [HexVersionToString $top_ver]
 Msg Status " Top SHA: $top_hash, VER: $top_ver"
-puts $status_file "| Top directory | [string tolower $top_hash] | $top_ver |"
+m add row "| \"Top dir\" | [string tolower $top_hash] | $top_ver |"
 
 set hog_ver [HexVersionToString $hog_ver]
 Msg Status " Hog SHA: $hog_hash, VER: $hog_ver"
-puts $status_file "| Hog | [string tolower $hog_hash] | $hog_ver |"
+m add row "| Hog | [string tolower $hog_hash] | $hog_ver |"
 
 Msg Status " --- Libraries ---"
 foreach l $libs v $vers h $hashes {
     set v [HexVersionToString $v]
-    Msg Status " $l SHA: $h, VER: $v"    
-    puts $status_file "| **Lib:** $l |  [string tolower $h] | $v |"
+    Msg Status " $l SHA: $h, VER: $v"
+    m add row "| \"**Lib:** $l\" |  [string tolower $h] | $v |"
 }
 Msg Status " --- Submodules ---"
 foreach s $subs sh $subs_hashes {
     Msg Status " $s SHA: $sh"
-    puts $status_file "| **Sub:** $s |  [string tolower $sh] |    |"    
+    m add row "| \"**Sub:** $s\" |  [string tolower $sh] | \" \"  |"
 }
 Msg Status " --- External Libraries ---"
 foreach e $ext_names eh $ext_hashes {
     Msg Status " $e SHA: $eh"
-    puts $status_file "| **Ext:** $e | [string tolower $eh] |  |"    
+    m add row "| \"**Ext:** $e\" | [string tolower $eh] | \" \" |"
 }
 Msg Status " -----------------------------------------------------------------"
+
+puts $status_file [m format 2string]
+puts $status_file "\n\n"
 close $status_file
 
 

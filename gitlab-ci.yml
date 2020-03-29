@@ -12,6 +12,7 @@ before_script:
     - git submodule update
     - export XILINXD_LICENSE_FILE=${HOG_XIL_LICENSE}
     - export PATH=${HOG_PATH}:$PATH
+    - if [ -z ${HOG_TARGET_BRANCH+x} ]; then export HOG_TARGET_BRANCH=master ; fi
 
 .only-default: &only-default
   only:
@@ -144,7 +145,7 @@ merge_and_tag:
      script:
        - ./Hog/CheckEnv.sh
        - "MR_PARAMETERS=`curl --header \"PRIVATE-TOKEN: ${HOG_PUSH_TOKEN}\" ${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/merge_requests/${CI_MERGE_REQUEST_IID}`"
-       - vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_merge_and_tag.tcl -tclargs -mr_par "{$MR_PARAMETERS}" -mr_id $CI_MERGE_REQUEST_IID -push $CI_COMMIT_REF_NAME
+       - vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_merge_and_tag.tcl -tclargs -mr_par "{$MR_PARAMETERS}" -mr_id $CI_MERGE_REQUEST_IID -push $CI_COMMIT_REF_NAME -main_branch $HOG_TARGET_BRANCH
 
 tag_official_version:
   only:
@@ -153,7 +154,7 @@ tag_official_version:
       - web
   only:
     variables:
-      - $CI_COMMIT_REF_NAME =~ "$HOG_TARGET_BRANCH"
+      - $CI_COMMIT_REF_NAME =~ /$HOG_TARGET_BRANCH/
   except:
     variables:
       - $CI_PIPELINE_SOURCE != "push"
@@ -161,7 +162,7 @@ tag_official_version:
      - hog
   stage: merge
   script:
-     - vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_merge_and_tag.tcl -tclargs -merged  -push $CI_COMMIT_REF_NAME
+     - vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_merge_and_tag.tcl -tclargs -merged  -push $CI_COMMIT_REF_NAME -main_branch $HOG_TARGET_BRANCH
 
 copy_to_eos:
   only:
@@ -187,7 +188,7 @@ cleaning:
      - hog
   stage: clean
   script:
-     - git checkout master
+     - git checkout $HOG_TARGET_BRANCH
      - git pull
      - until echo $HOG_PASSWORD | kinit $HOG_USER ; do echo "Retrying"; sleep 2; done
      - if [ -z ${HOG_UNOFFICIAL_BIN_EOS_PATH+x} ]; then echo "HOG_UNOFFICIAL_BIN_EOS_PATH not specified, nothing to clean..."; else vivado -mode batch -notrace -source Hog/Tcl/clean_unofficial.tcl -tclargs $HOG_UNOFFICIAL_BIN_EOS_PATH; fi

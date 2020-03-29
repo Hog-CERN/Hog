@@ -42,6 +42,7 @@ Now take the following actions:
   - __HOG_EMAIL__= Your service account's email  address (john@cern.ch)
   - __HOG_PASSWORD__= The password of your service account (should be masked)
   - __EOS_MGM_URL__= root://eosuser.cern.ch
+  - __HOG_TARGET_BRANCH__= Project target branch. Merge request should start from this branch. Default: master
   - __HOG_UNOFFICIAL_BIN_EOS_PATH___= The EOS path for the binfiles coming out of your CIs
   - __HOG_OFFICIAL_BIN_EOS_PATH__= The EOS path for archiving the official bitfiles of your firmware
   - __HOG_PATH__= The PATH variable for your VM, should include Vivado's bin directory, 
@@ -49,8 +50,6 @@ Now take the following actions:
   - __HOG_USE_DOXYGEN__= Should be set to 1 if you want the Hog CI to run doxygen (in progress...)
   - __HOG_XIL_LICENSE__= Should contain the Xilinx license servers, separated by a comma
   - __HOG_CHECK_YAMLREF__= If this variable is set, Hog CI will check that "ref" in .gitlab-ci.yml actually matches the gitlab-ci file in the Hog submodule
-  - __HOG_TARGET_BRANCH__= Project target branch. Merge request should start from this branch. Default: master
-
 
 ### Create an CERN Openstack Virtual Machine
 - Create an instance (I recommend 40GB HD and 16 GB of RAM)

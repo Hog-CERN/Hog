@@ -6,9 +6,10 @@ if {[catch {package require cmdline} ERROR]} {
 	return
 }
 set parameters {
+	{main_branch.arg "master" "Main branch (default = master)"}
 }
 
-set usage   "Script to clean EOS unofficial path of commits already merged into master.\nUsage: $argv0 <path_to_clean> \n"
+set usage   "Script to clean EOS unofficial path of commits already merged into \$HOG_TARGET_BRANCH.\nUsage: $argv0 <path_to_clean> \n"
 
 
 set old_path [pwd]
@@ -19,7 +20,7 @@ cd ../../
 
 if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] ||  [llength $argv] < 1} {
 	Msg Info [cmdline::usage $parameters $usage]
-	cd $old_path
+	cd $old_path\HOG_TARGET_BRANCH
     exit 1
 } else {
     set path_to_clean [lindex $argv 0]
@@ -32,8 +33,8 @@ lassign [eos "ls $unofficial"] ret bitfiles
 set list_bitfiles [split $bitfiles "\n"]
 
 foreach bitfile $list_bitfiles {
-   	set status [catch {exec git branch master --contains $bitfile} contained]
-   	if { $status==0 && [string first "master" $contained] != -1 } {
+   	set status [catch {exec git branch $options(main_branch) --contains $bitfile} contained]
+   	if { $status==0 && [string first "$options(main_branch)" $contained] != -1 } {
 	    Msg Info "Removing files corresponding to SHA $bitfile"
 	    lassign [eos "rm -r $unofficial/$bitfile"] status2 deletion
 	}

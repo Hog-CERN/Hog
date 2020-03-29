@@ -17,9 +17,10 @@ set parameters {
 	{mr_par.arg "" "Merge request parameters in JSON format. Ignored if -merged is set"}
 	{mr_id.arg 0 "Merge request ID. Ignored if -merged is set"}
 	{push.arg "" "Optional: git branch for push"}
+	{main_branch.arg "master" "Main branch (default = master)"}
 }
 
-set usage "- CI script that merges your branch with master and creates a new tag\n USAGE: $::argv0 \[OPTIONS\] <git branch> \n. Options:"
+set usage "- CI script that merges your branch with \$HOG_TARGET_BRANCH and creates a new tag\n USAGE: $::argv0 \[OPTIONS\] <git branch> \n. Options:"
 
 if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] } {
     Msg Info [cmdline::usage $parameters $usage]
@@ -67,8 +68,8 @@ if {$options(merged) == 0} {
 }
 
 Msg Info "Version Level $VERSION"
-if {[catch {exec git merge --no-commit origin/master} MRG]} {
-	Msg Error "Branch is outdated, please merge the latest changes from master with:\n git fetch && git merge origin/master\n"
+if {[catch {exec git merge --no-commit origin/$options(main_branch)} MRG]} {
+	Msg Error "Branch is outdated, please merge the latest changes from $options(main_branch) with:\n git fetch && git merge origin/$options(main_branch)\n"
 	exit 1	
 }
 

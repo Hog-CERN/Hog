@@ -155,7 +155,6 @@ tag_official_version:
     refs:
       - push
       - web
-  only:
     variables:
       - $HOG_TARGET_BRANCH != null && $CI_COMMIT_REF_NAME == $HOG_TARGET_BRANCH
   except:
@@ -172,9 +171,8 @@ tag_official_version_master:
     refs:
       - push
       - web
-  only:
     variables:
-      - $HOG_TARGET_BRANCH == null && $CI_COMMIT_REF_NAME == TestMasterProva1
+      - $HOG_TARGET_BRANCH == null && $CI_COMMIT_REF_NAME == "TestMasterProva1"
   except:
     variables:
       - $CI_PIPELINE_SOURCE != "push"

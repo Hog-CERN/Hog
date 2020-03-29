@@ -157,7 +157,24 @@ tag_official_version:
       - web
   only:
     variables:
-      - $CI_COMMIT_REF_NAME =~ $HOG_TARGET_BRANCH
+      - $HOG_TARGET_BRANCH != null && $CI_COMMIT_REF_NAME == $HOG_TARGET_BRANCH
+  except:
+    variables:
+      - $CI_PIPELINE_SOURCE != "push"
+  tags:
+     - hog
+  stage: merge
+  script:
+     - vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_merge_and_tag.tcl -tclargs -merged  -push $CI_COMMIT_REF_NAME -main_branch $HOG_TARGET_BRANCH
+
+tag_official_version_master:
+  only:
+    refs:
+      - push
+      - web
+  only:
+    variables:
+      - $HOG_TARGET_BRANCH == null && $CI_COMMIT_REF_NAME == TestMasterProva1
   except:
     variables:
       - $CI_PIPELINE_SOURCE != "push"

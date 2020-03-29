@@ -13,9 +13,6 @@ before_script:
     - export XILINXD_LICENSE_FILE=${HOG_XIL_LICENSE}
     - export PATH=${HOG_PATH}:$PATH
     - if [ -z ${HOG_TARGET_BRANCH+x} ]; then export HOG_TARGET_BRANCH=master ; fi
-    - echo "HOG_TARGET_BRANCH = $HOG_TARGET_BRANCH"
-    - echo "CI_COMMIT_REF_NAME = $CI_COMMIT_REF_NAME"
-    - if [[ $CI_COMMIT_REF_NAME =~ $HOG_TARGET_BRANCH ]]; then echo "Ciao"; fi
 
 .only-default: &only-default
   only:
@@ -172,7 +169,7 @@ tag_official_version_master:
       - push
       - web
     variables:
-      - $HOG_TARGET_BRANCH == null && $CI_COMMIT_REF_NAME == "TestMasterProva1"
+      - $HOG_TARGET_BRANCH == null && $CI_COMMIT_REF_NAME == "master"
   except:
     variables:
       - $CI_PIPELINE_SOURCE != "push"

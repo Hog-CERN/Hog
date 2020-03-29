@@ -197,6 +197,15 @@ fi
 echo " use EOS as a synthesised IP respository to speed up IP synthesis."
 echo --------------------------------
 
+echo -n "Variable: HOG_TARGET_BRANCH is "
+if [ -z ${HOG_TARGET_BRANCH+x} ]
+then
+    echo -n "NOT defined. Default branch for merge is \"master\""
+else
+    echo -n "Defined. Will merge to ${HOG_TARGET_BRANCH}"
+fi
+echo --------------------------------
+
 echo -n "Variable: HOG_USE_DOXYGEN is "
 if [ -z ${HOG_USE_DOXYGEN+x} ]
 then
@@ -206,6 +215,8 @@ else
 fi
 echo ================================
 echo
+
+
 
 if [ -z ${FAIL+x} ]
 then

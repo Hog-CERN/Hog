@@ -20,7 +20,7 @@ cd ../../
 
 if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] ||  [llength $argv] < 1} {
 	Msg Info [cmdline::usage $parameters $usage]
-	cd $old_path\HOG_TARGET_BRANCH
+	cd $old_path
     exit 1
 } else {
     set path_to_clean [lindex $argv 0]

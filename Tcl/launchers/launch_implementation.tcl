@@ -6,6 +6,11 @@ if {[catch {package require cmdline} ERROR]} {
 	return
 }
 
+if {[catch {package require struct::matrix} ERROR]} {
+	puts "$ERROR\n If you are running this script on tclsh, you can fix this by installing 'tcllib'" 
+	return
+}
+
 set parameters {
 	{no_bitstream    "If set, the bitstream file will not be produced. If not set, it will check the enviromental variable \$HOG_NO_BITSTREAM. If \$HOG_NO_BITSTREAM is set to a value different from 0, the bitstream file will not be produced"}
 }
@@ -64,9 +69,12 @@ set ths [get_property STATS.THS [get_runs [current_run]]]
 if {$wns >= 0 && $whs >= 0} {
     Msg Info "Time requirements are met"
     set status_file [open "$main_folder/timing_ok.txt" "w"]
+    set timing_ok 1
+
 } else {
     Msg CriticalWarning "Time requirements are NOT met"
     set status_file [open "$main_folder/timing_error.txt" "w"]
+    set timing_ok 0
 }
 
 Msg Status "*** Timing summary ***"
@@ -75,10 +83,26 @@ Msg Status "TNS: $tns"
 Msg Status "WHS: $whs"
 Msg Status "THS: $ths"
 
-puts $status_file "WNS: $wns"
-puts $status_file "TNS: $tns"
-puts $status_file "WHS: $whs"
-puts $status_file "THS: $ths"        
+struct::matrix m
+m add columns 5
+m add row 
+
+puts $status_file "## $project Timing summary"
+m add row  "| **Parameter** | \"**value (ns)**\" |"
+m add row  "| --- | --- |"
+m add row  "|  WNS:  |  $wns  |"
+m add row  "|  TNS:  |  $tns  |"
+m add row  "|  WHS:  |  $whs  |"
+m add row  "|  THS:  |  $ths  |"        
+
+puts $status_file [m format 2string]
+puts $status_file "\n"
+if {$timing_ok == 1} {
+    puts $status_file " Time requirements are met."
+} else {
+    puts $status_file "Time requirements are **NOT** met."
+}
+puts $status_file "\n\n"
 close $status_file
 
 if {$prog ne "100%"} {

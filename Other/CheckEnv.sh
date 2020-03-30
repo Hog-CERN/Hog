@@ -183,7 +183,7 @@ if [ -z ${HOG_NO_BITSTREAM+x} ]
 then
     echo "NOT defined. Hog-CI will run the implementation up to the write_bitstream stage and create bit files."
 else
-    echo "Defined.  Hog-CI will run the implementation but will NOT run the write_bitstream stage and will NOT create bit files."
+    echo "defined.  Hog-CI will run the implementation but will NOT run the write_bitstream stage and will NOT create bit files."
 fi
 echo --------------------------------
 
@@ -192,7 +192,7 @@ if [ -z ${HOG_IP_EOS_PATH+x} ]
 then
     echo -n "NOT defined. Hog-CI will NOT"
 else
-    echo -n "Defined. Hog-CI will"
+    echo -n "defined. Hog-CI will"
 fi
 echo " use EOS as a synthesised IP respository to speed up IP synthesis."
 echo --------------------------------
@@ -206,12 +206,22 @@ else
 fi
 echo --------------------------------
 
+echo -n "Variable: HOG_CREATE_OFFICIAL_RELEASE is "
+if [ -z ${HOG_CREATE_OFFICIAL_RELEASE+x} ]
+then
+    echo -n "NOT defined. Hog-CI will NOT"
+else
+    echo -n "defined. Hog-CI will"
+fi
+echo " create an official release note using the version and timing summaries taken from the artifact of the projects."
+echo --------------------------------
+
 echo -n "Variable: HOG_USE_DOXYGEN is "
 if [ -z ${HOG_USE_DOXYGEN+x} ]
 then
     echo "NOT defined. Hog-CI will not run Doxygen nor it will copy the official documentation over when you merge to the official branch."
 else
-    echo "Defined."
+    echo "defined."
 fi
 echo ================================
 echo

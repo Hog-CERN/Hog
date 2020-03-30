@@ -43,6 +43,8 @@ launch_runs -scripts_only synth_1
 reset_run synth_1
 
 set ips [get_ips *]
+set list_ip_ver {}
+set list_ip_lock {}
 set vivado_version [version -short]
 
 if {$ips != ""} {
@@ -50,9 +52,8 @@ if {$ips != ""} {
         set lock [get_property IS_LOCKED $ip]
         set ip_version [get_property SW_VERSION $ip]
         set ip_name [get_property NAME $ip]
-        if { $lock && $vivado_version != $ip_version } {
-            Msg CriticalWarning "A different version of Vivado ($vivado_version) is used with respect to the one that has been used to create the IP $ip_name ($ip_version)\nPlease upgrade your IP or use the $ip_version  version of Vivado"
-        }
+        lappend list_ip_lock $lock
+        lappend list_ip_ver $ip_version
 
         if { [get_runs $ip\_synth_1] != "" } {
             Msg Info "Adding run for $ip..."
@@ -93,6 +94,19 @@ if [info exists runs] {
         set failure 1
         }
     }
+    }
+}
+
+if {$ips != ""} {
+    foreach ip $ips {
+        set index 0
+        set ip_name [get_property NAME $ip]
+        set lock [lindex $list_ip_lock $index]
+        set ip_version [lindex $list_ip_ver $index]
+        if { $lock || $vivado_version != $ip_version } {
+            Msg CriticalWarning "A different version of Vivado ($vivado_version) is used with respect to the one that has been used to create the IP $ip_name ($ip_version)\nPlease upgrade your IP or use the $ip_version version of Vivado"
+        }
+        incr index
     }
 }
 

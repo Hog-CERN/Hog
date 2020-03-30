@@ -36,6 +36,7 @@ stages:
     - ip
     - synthesis
     - implementation
+    - collect
     - doxygen
     - copy
     - clean
@@ -92,7 +93,6 @@ stages:
         <<: *vars        
     script:
         - git status
-        # - git stash
         - vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_synthesis.tcl -tclargs $PROJECT_NAME
     artifacts:
         name: vivado_synth
@@ -109,8 +109,9 @@ stages:
     script:
         - git status
         - git diff
-        # - git stash
-        - vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_implementation.tcl -tclargs $PROJECT_NAME 
+        - vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_implementation.tcl -tclargs $PROJECT_NAME
+        - "cat $CI_PROJECT_DIR/bin/$PROJECT_NAME*/versions* $CI_PROJECT_DIR/bin/$PROJECT_NAME*/timing_* > note.md"
+        - ./Hog/Other/WriteGitlabNote.sh $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $CI_MERGE_REQUEST_IID note.md
         - "if [ -e $CI_PROJECT_DIR/bin/ -a -z '$HOG_UNOFFICIAL_BIN_EOS_PATH' ]; then until echo $HOG_PASSWORD | kinit $HOG_USER ; do echo Retrying; sleep 2; done; 
           eos mkdir -p $HOG_UNOFFICIAL_BIN_EOS_PATH/$CI_COMMIT_SHORT_SHA;
           eos cp -r $CI_PROJECT_DIR/bin/* $HOG_UNOFFICIAL_BIN_EOS_PATH/$CI_COMMIT_SHORT_SHA; fi"
@@ -120,7 +121,26 @@ stages:
         paths:
             - $CI_PROJECT_DIR/VivadoProject/$PROJECT_NAME
             - $CI_PROJECT_DIR/bin           
+        expire_in: 1 month
+
+collect_artifacts:
+    <<: *only-default
+    stage: collect
+    variables:
+        <<: *vars
+    script:
+        - cat $CI_PROJECT_DIR/bin/*/*.txt > $CI_PROJECT_DIR/bin/note.md
+        - git fetch origin refs/notes/*:refs/notes/*
+        - git notes add -m "$CI_MERGE_REQUEST_IID"
+        - git push origin refs/notes/*
+
+    artifacts:
+        name: all_projects
+        paths:
+            - $CI_PROJECT_DIR/bin
         expire_in: 10 years
+    allow_failure: true
+
 
 make_doxygen:
     <<: *only-default
@@ -135,6 +155,7 @@ make_doxygen:
         paths:
             - $CI_PROJECT_DIR/Doc
         expire_in: 10 years
+    dependencies: []
     allow_failure: true   
 
 merge_and_tag:
@@ -143,7 +164,8 @@ merge_and_tag:
      variables:
        GIT_STRATEGY: clone
      script:
-       - ./Hog/CheckEnv.sh
+       - ./Hog/Other/CheckEnv.sh
+       - ./Hog/Other/WriteGitlabNote.sh $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $CI_MERGE_REQUEST_IID README.md
        - "MR_PARAMETERS=`curl --header \"PRIVATE-TOKEN: ${HOG_PUSH_TOKEN}\" ${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/merge_requests/${CI_MERGE_REQUEST_IID}`"
        - vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_merge_and_tag.tcl -tclargs -mr_par "{$MR_PARAMETERS}" -mr_id $CI_MERGE_REQUEST_IID -push $CI_COMMIT_REF_NAME -main_branch $HOG_TARGET_BRANCH
 
@@ -178,6 +200,23 @@ tag_official_version_master:
   stage: merge
   script:
      - vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_merge_and_tag.tcl -tclargs -merged  -push $CI_COMMIT_REF_NAME -main_branch $HOG_TARGET_BRANCH
+
+
+create_official_release:
+  only:
+    refs:
+      - tags
+    variables:
+      - $CI_COMMIT_TAG =~ /^v.*$/ && $HOG_CREATE_OFFICIAL_RELEASE != null
+  tags:
+    - hog
+  stage: copy
+  script:
+    - git fetch origin refs/notes/*:refs/notes/*
+    - MR=`git notes show`
+    - ./Hog/Other/GetGitlabArtifact.sh $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $MR bin/note.md collect_artifacts > note.md
+    - ./Hog/Other/MakeGitlabRelease.sh $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $CI_COMMIT_TAG note.md
+  allow_failure: true
 
 copy_to_eos:
   only:

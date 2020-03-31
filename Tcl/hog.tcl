@@ -307,7 +307,7 @@ proc configureSynth {} {
             set_global_assignment -name PRE_FLOW_SCRIPT_FILE quartus_sh:$globalSettings::pre_synth
 
         } else {
-            Msg info "Configuring $globalSettings::pre_synth script before syntesis"
+            Msg info "Configuring $globalSettings::pre_synth script before synthesis"
         }
     }
 
@@ -321,7 +321,7 @@ proc configureSynth {} {
             set_global_assignment -name POST_MODULE_SCRIPT_FILE quartus_sh:$globalSettings::post_synth
 
         } else {
-            Msg info "Configuring $globalSettings::post_synth script after syntesis"
+            Msg info "Configuring $globalSettings::post_synth script after synthesis"
         }
     } 
 
@@ -338,12 +338,14 @@ proc configureSynth {} {
             
         } else {
             # Report strategy needed since version 2017.3
-            set_property -name "report_strategy" -value "Vivado Synthesis Default Reports" -objects $obj
-
-            set reports [get_report_configs -of_objects $obj]
-            if { [llength $reports ] > 0 } {
-            delete_report_config [get_report_configs -of_objects $obj]
+            set_property set_report_strategy_name 1 $obj
+            set_property report_strategy {Vivado Synthesis Default Reports} $obj
+            set_property set_report_strategy_name 0 $obj
+            # Create 'synth_1_synth_report_utilization_0' report (if not found)
+            if { [ string equal [get_report_configs -of_objects [get_runs synth_1] synth_1_synth_report_utilization_0] "" ] } {
+              create_report_config -report_name synth_1_synth_report_utilization_0 -report_type report_utilization:1.0 -steps synth_design -runs synth_1
             }
+            set reports [get_report_configs -of_objects [get_runs synth_1] synth_1_synth_report_utilization_0]
         }
     } elseif {[info commands project_new] != ""} {
         #QUARTUS only
@@ -556,30 +558,74 @@ proc CreateReportStrategy {DESIGN obj} {
         
     } else {
         # Report strategy needed since version 2017.3
-        set_property -name "report_strategy" -value "Vivado Implementation Default Reports" -objects $obj
-        
+        set_property set_report_strategy_name 1 $obj
+        set_property report_strategy {Vivado Implementation Default Reports} $obj
+        set_property set_report_strategy_name 0 $obj
+
         set reports [get_report_configs -of_objects $obj]
-        if { [llength $reports ] > 0 } {
-        delete_report_config [get_report_configs -of_objects $obj]
+        # if { [llength $reports ] > 0 } {
+        # delete_report_config [get_report_configs -of_objects $obj]
+        # }
+        # 
+        # Create 'impl_1_place_report_utilization_0' report (if not found)
+        if { [ string equal [get_report_configs -of_objects [get_runs impl_1] $globalSettings::DESIGN\_impl_1_place_report_utilization_0] "" ] } {
+          create_report_config -report_name $globalSettings::DESIGN\_impl_1_place_report_utilization_0 -report_type report_utilization:1.0 -steps place_design -runs impl_1
+        }
+        set obj [get_report_configs -of_objects [get_runs impl_1] $globalSettings::DESIGN\_impl_1_place_report_utilization_0]
+        if { $obj != "" } {
+
+        }
+
+        # Create 'impl_1_route_report_drc_0' report (if not found)
+        if { [ string equal [get_report_configs -of_objects [get_runs impl_1] $globalSettings::DESIGN\_impl_1_route_report_drc_0] "" ] } {
+          create_report_config -report_name $globalSettings::DESIGN\_impl_1_route_report_drc_0 -report_type report_drc:1.0 -steps route_design -runs impl_1
+        }
+        set obj [get_report_configs -of_objects [get_runs impl_1] $globalSettings::DESIGN\_impl_1_route_report_drc_0]
+        if { $obj != "" } {
+
+        }
+        
+        # Create 'impl_1_route_report_power_0' report (if not found)
+        if { [ string equal [get_report_configs -of_objects [get_runs impl_1] $globalSettings::DESIGN\_impl_1_route_report_power_0] "" ] } {
+          create_report_config -report_name $globalSettings::DESIGN\_impl_1_route_report_power_0 -report_type report_power:1.0 -steps route_design -runs impl_1
+        }
+        set obj [get_report_configs -of_objects [get_runs impl_1] $globalSettings::DESIGN\_impl_1_route_report_power_0]
+        if { $obj != "" } {
+
         }
         
         # Create 'impl_1_route_report_timing_summary' report (if not found)
         if { [ string equal [get_report_configs -of_objects [get_runs impl_1] $globalSettings::DESIGN\_impl_1_route_report_timing_summary] "" ] } {
-        create_report_config -report_name $globalSettings::DESIGN\_impl_1_route_report_timing_summary -report_type report_timing_summary:1.0 -steps route_design -runs impl_1
+            create_report_config -report_name $globalSettings::DESIGN\_impl_1_route_report_timing_summary -report_type report_timing_summary:1.0 -steps route_design -runs impl_1
         }
         set obj [get_report_configs -of_objects [get_runs impl_1] $globalSettings::DESIGN\_impl_1_route_report_timing_summary]
         if { $obj != "" } {
-        Msg Info "Report timing created successfully"   
+            Msg Info "Report timing created successfully"   
         }
         
         # Create 'impl_1_route_report_utilization' report (if not found)
         if { [ string equal [get_report_configs -of_objects [get_runs impl_1] $globalSettings::DESIGN\_impl_1_route_report_utilization] "" ] } {
-        create_report_config -report_name $globalSettings::DESIGN\_impl_1_route_report_utilization -report_type report_utilization:1.0 -steps route_design -runs impl_1
+            create_report_config -report_name $globalSettings::DESIGN\_impl_1_route_report_utilization -report_type report_utilization:1.0 -steps route_design -runs impl_1
         }
         set obj [get_report_configs -of_objects [get_runs impl_1] $globalSettings::DESIGN\_impl_1_route_report_utilization]
         if { $obj != "" } {
-        Msg Info "Report utilization created successfully"  
+            Msg Info "Report utilization created successfully"  
         }
+
+
+        # Create 'impl_1_post_route_phys_opt_report_timing_summary_0' report (if not found)
+        if { [ string equal [get_report_configs -of_objects [get_runs impl_1] $globalSettings::DESIGN\_impl_1_post_route_phys_opt_report_timing_summary_0] "" ] } {
+          create_report_config -report_name $globalSettings::DESIGN\_impl_1_post_route_phys_opt_report_timing_summary_0 -report_type report_timing_summary:1.0 -steps post_route_phys_opt_design -runs impl_1
+        }
+        set obj [get_report_configs -of_objects [get_runs impl_1] $globalSettings::DESIGN\_impl_1_post_route_phys_opt_report_timing_summary_0]
+        if { $obj != "" } {
+            set_property -name "options.max_paths" -value "10" -objects $obj
+            set_property -name "options.warn_on_violation" -value "1" -objects $obj
+        }
+
+
+
+
     }
     } else {
     puts "Won't create any report strategy, not in Vivado"

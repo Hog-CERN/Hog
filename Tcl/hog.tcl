@@ -593,7 +593,7 @@ proc CreateReportStrategy {DESIGN obj} {
         if { $obj != "" } {
 
         }
-        
+
         # Create 'impl_1_route_report_timing_summary' report (if not found)
         if { [ string equal [get_report_configs -of_objects [get_runs impl_1] $globalSettings::DESIGN\_impl_1_route_report_timing_summary] "" ] } {
             create_report_config -report_name $globalSettings::DESIGN\_impl_1_route_report_timing_summary -report_type report_timing_summary:1.0 -steps route_design -runs impl_1
@@ -821,25 +821,25 @@ proc ReadListFile {list_file path lib src {no_add 0}} {
                             # Wave do file
                             set wave_file [lindex [split [lsearch -inline -regex $prop wavefile=] =] 1]
                             if { $wave_file != "" } {
-                                set r_path [GetRepoPath]
-                                set file_name "$r_path/sim/$wave_file"
+                                set file_name "$path/$wave_file"
                                 Msg Info "Setting $file_name as wave do file for simulation file set $src..."
                                 # check if file exists...
                                 if [file exists $file_name] {
-                                set_property "modelsim.simulate.custom_wave_do" $file_name [get_filesets $src]
+                                    set_property "modelsim.simulate.custom_wave_do" $file_name [get_filesets $src]
+                                    set_property "questa.simulate.custom_wave_do" $file_name [get_filesets $src]
                                 } else {
-                                Msg Warning "File $file_name was not found."
+                                    Msg Warning "File $file_name was not found."
                                 }
                             }
                             
                             #Do file
                             set do_file [lindex [split [lsearch -inline -regex $prop dofile=] =] 1]
                             if { $do_file != "" } {
-                                set r_path [GetRepoPath]
-                                set file_name "$r_path/sim/$do_file"
+                                set file_name "$path/$do_file"
                                 Msg Info "Setting $file_name as udo file for simulation file set $src..."
                                 if [file exists $file_name] {
                                     set_property "modelsim.simulate.custom_udo" $file_name [get_filesets $src]
+                                    set_property "questa.simulate.custom_udo" $file_name [get_filesets $src]
                                 } else {
                                     Msg Warning "File $file_name was not found."
                                 }
@@ -910,6 +910,7 @@ proc SmartListFile {list_file path {no_add 0}} {
         create_fileset -simset $file_set
         set simulation  [get_filesets $file_set]
         set_property -name {modelsim.compile.vhdl_syntax} -value {2008} -objects $simulation
+        set_property -name {questa.compile.vhdl_syntax} -value {2008} -objects $simulation
         set_property SOURCE_SET sources_1 $simulation
         }
     }

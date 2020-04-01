@@ -57,7 +57,7 @@ then
   else
     echo "Hog-INFO: Recognised Vivado project"
     COMMAND="vivado"
-    COMMAND_OPT="-mode batch -notrace -source"
+    COMMAND_OPT="-nojournal -nolog -mode batch -notrace -source"
   fi
 elif [[ $TCL_FIRST_LINE =~ 'quartus' ]];
 then

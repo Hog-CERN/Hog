@@ -48,7 +48,7 @@ if [file exists $fw_file] {
 
     set ts [clock format [clock seconds] -format {%Y-%m-%d-%H-%M}]
 
-    set dst_dir [file normalize "$bin_dir/$name\_$describe"]
+    set dst_dir [file normalize "$bin_dir/$name\-$describe"]
     set dst_bit [file normalize "$dst_dir/$name\-$describe.bit"]
     set dst_bin [file normalize "$dst_dir/$name\-$describe.bin"]
     set dst_ltx [file normalize "$dst_dir/$name\-$describe.ltx"]    
@@ -56,6 +56,18 @@ if [file exists $fw_file] {
     
     Msg Info "Creating $dst_dir..."
     file mkdir $dst_dir
+    Msg Info "Evaluating differences with last commit..."
+    set diff [exec git diff]
+    if {$diff != ""} {
+        Msg Warning "Found differences with last commit..."
+        Msg Info "$diff"
+        set fp [open "$dst_dir/diff_postbistream.txt" w+]
+        puts $fp "$diff"
+        close $fp
+    } else {
+        Msg Info "No differences with last commit."
+    }
+
     Msg Info "Copying bit file $bit_file into $dst_bit..."
     file copy -force $bit_file $dst_bit
     # Reports

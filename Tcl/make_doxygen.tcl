@@ -1,55 +1,50 @@
 #!/usr/bin/env tclsh
-set Name make_doxygen
-
 set old_path [pwd]
 set path [file dirname [info script]]
 cd $path
 source ./hog.tcl
 cd ../../
 
-if [catch {exec git tag --sort=-creatordate} last_tag] {
-    Msg Error "No Hog version tags found in this repository."
-    } else {
-    set tags [split $last_tag "\n"]
-    set tag [lindex $tags 0]
-    lassign [ExtractVersionFromTag $tag] M m p n mr
-    set version v$M.$m.$p
-    Msg Info "Creating doxygen documentation for tag $version"
+set tags [TagRepository 0 0]
+set version [lindex $tags 0]
+Msg Info "Creating doxygen documentation for tag $version"
 
-}
 
 # Run doxygen
 set doxygen_conf "./doxygen/doxygen.conf"
-if {[file exists $doxygen_conf] & [DoxygenVersion 1.8.13]} {
+if {[file exists $doxygen_conf] == 0 } {
+    # Using Default hog template
+    set doxygen_conf "./Hog/Templates/doxygen.conf"
+    Msg Info "Running doxygen with ./Hog/Templates/doxygen.conf..."
+} else {
+    Msg Info "Running doxygen with $doxygen_conf..."
+}
+
+if {[DoxygenVersion 1.8.13]} {
     set outfile [open $doxygen_conf a]
     puts $outfile \nPROJECT_NUMBER=$version
     close $outfile
-    Msg Info "Running doxygen with $doxygen_conf..."
     exec -ignorestderr doxygen $doxygen_conf
-} elseif {[DoxygenVersion 1.8.13]} {
-    set outfile [open "./Hog/Templates/doxygen.conf" a]
-    puts $outfile \nPROJECT_NUMBER=$version
-    close $outfile
-    Msg Info "Running doxygen with ./Hog/Templates/doxygen.conf..."
-    exec -ignorestderr doxygen "./Hog/doxygen.conf"
 }
 
+Msg Info "Evaluating git describe..."
+set describe [exec git describe --always --tags --long]
+Msg Info "Git describe: $describe"
 
 # Copy documentation to eos
-if {[info exists env(HOG_OFFICIAL_BIN_EOS_PATH)]} {
-    set official $env(HOG_OFFICIAL_BIN_EOS_PATH)
-    set new_dir $official/$version
-    Msg Info "Creating $new_dir"
-    exec eos mkdir -p $new_dir
+if {[info exists env(HOG_UNOFFICIAL_BIN_EOS_PATH)]} {
+    set output_dir $env(HOG_UNOFFICIAL_BIN_EOS_PATH)/$env(CI_COMMIT_SHORT_SHA)/Doc-$describe
+    Msg Info "Creating $output_dir"
+    eos "mkdir -p $output_dir" 5
+    
     if {[file exists ./Doc/html]} {
-        set dox_dir $official/$version/Doc
-        Msg Info "Creating doxygen dir $dox_dir..."
-        exec eos mkdir -p $dox_dir
         Msg Info "Copying doxygen files..."
-        exec -ignorestderr eos cp -r ./Doc/html/* $dox_dir
-        Msg Info "Updating doxygen documentation in $official/Doc"
-        exec eos mkdir -p $official/Doc
-        exec -ignorestderr eos cp -r ./Doc/html/* $official/Doc
+        eos "cp -r ./Doc/html/* $output_dir" 5
+    } else {
+        Msg Warning "Doxygen documentation not found in Doc/html/"
     }
+} else {
+    Msg Warning "Environmental variable HOG_UNOFFICIAL_BIN_EOS_PATH not set. Doxygen documentation cannot be copied to eos."
 }
+
 cd $old_path

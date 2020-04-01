@@ -1,3 +1,10 @@
+#!/usr/bin/env tclsh
+
+if {[catch {package require struct::matrix} ERROR]} {
+	puts "$ERROR\n If you are running this script on tclsh, you can fix this by installing 'tcllib'" 
+	return
+}
+
 set old_path [pwd]
 set tcl_path [file normalize "[file dirname [info script]]/.."]
 source $tcl_path/hog.tcl
@@ -16,20 +23,18 @@ if {[info commands get_property] != ""} {
     set proj_file $old_path/[file tail $old_path].xpr
     Msg CriticalWarning "You seem to be running locally on tclsh, so this is a debug, the project file will be set to $proj_file and was derived from the path you launched this script from: $old_path. If you want this script to work properly in debug mode, please launch it from the top folder of one project, for example Repo/VivadoProject/fpga1/ or Repo/Top/fpga1/"
 }
-	
+    
 set proj_dir [file normalize [file dirname $proj_file]]
 set proj_name [file rootname [file tail $proj_file]]
-
-
 
 # Calculating flavour if any
 set flavour [string map {. ""} [file ext $proj_name]]
 if {$flavour != ""} {
     if [string is integer $flavour] {
-	Msg Info "Project $proj_name has flavour = $flavour, the generic variable FLAVUOR will be set to $flavour"
+    Msg Info "Project $proj_name has flavour = $flavour, the generic variable FLAVUOR will be set to $flavour"
     } else {
-	Msg Warning "Project name has a non numeric extension, flavour will be set to -1"
-	set flavour -1
+    Msg Warning "Project name has a non numeric extension, flavour will be set to -1"
+    set flavour -1
     }
 
 } else {
@@ -41,7 +46,7 @@ if { [exec git status --untracked-files=no  --porcelain] eq "" } {
     Msg Info "Git working directory [pwd] clean."
     lassign [GetVer ALL ./] version commit
 } else {
-	Msg CriticalWarning "Git working directory [pwd] not clean, commit hash, and version will be set to 0."
+    Msg CriticalWarning "Git working directory [pwd] not clean, commit hash, and version will be set to 0."
     set commit   "0000000"
     set version  "00000000"    
 }
@@ -87,8 +92,7 @@ foreach f $ext_files {
             set hdlfile "$env(HOG_EXTERNAL_PATH)/$hdlfile"
             if { [file exists $hdlfile] } {
                 set hash [lindex $file_and_prop 1]
-                set current_hash [exec md5sum $hdlfile]
-                set current_hash [lindex $current_hash 0]
+                set current_hash [md5sum $hdlfile]
                 if {[string first $hash $current_hash] == -1} {
                     Msg CriticalWarning "File $hdlfile has a wrong hash. Current checksum: $current_hash, expected: $hash"
                 }
@@ -104,23 +108,21 @@ if [file exists ./Top/$proj_name/xml] {
     set use_ipbus 1
     set xml_dst $old_path/../xml
     if [file exists ./Top/$proj_name/xml/xml.lst] {
-	Msg Info "Found IPbus XML list file, using version of listed files..."
-	# in this case, IPbus xml files are stored anywhere in the repository and listed in the xml.lst file
-	lassign [GetVer ./Top/$proj_name/xml/xml.lst ./Top/$proj_name/] xml_ver_hex xml_hash
-	set xml_ver [HexVersionToString $xml_ver_hex]    
-	Msg Info "Creating XML directory $xml_dst..."
-	file mkdir $xml_dst
-	Msg Info "Copying xml files to $xml_dst and replacing placeholders with xml version $xml_ver..."
-	CopyXMLsFromListFile ./Top/$proj_name/xml/xml.lst ./Top/$proj_name $xml_dst $xml_ver $xml_hash 
-	
+        Msg Info "Found IPbus XML list file, using version of listed files..."
+        # in this case, IPbus xml files are stored anywhere in the repository and listed in the xml.lst file
+        lassign [GetVer ./Top/$proj_name/xml/xml.lst ./Top/$proj_name/] xml_ver_hex xml_hash
+        set xml_ver [HexVersionToString $xml_ver_hex]    
+        Msg Info "Creating XML directory $xml_dst..."
+        file mkdir $xml_dst
+        Msg Info "Copying xml files to $xml_dst and replacing placeholders with xml version $xml_ver..."
+        CopyXMLsFromListFile ./Top/$proj_name/xml/xml.lst ./Top/$proj_name $xml_dst $xml_ver $xml_hash       
     } else {
-	Msg Info "IPbus XML list file not found, using version of xml directory..."
-	# in this case, IPbus xml files are just stored in the xml directory in the project folder
-	lassign [GetVer ./Top/$proj_name/xml ./Top/$proj_name/] xml_ver_hex xml_hash
-	set xml_ver [HexVersionToString $xml_ver_hex]
-	file delete -force $xml_dst
-	file copy -force $xml_target $old_path/..
-
+        Msg Info "IPbus XML list file not found, using version of xml directory..."
+        # in this case, IPbus xml files are just stored in the xml directory in the project folder
+        lassign [GetVer ./Top/$proj_name/xml ./Top/$proj_name/] xml_ver_hex xml_hash
+        set xml_ver [HexVersionToString $xml_ver_hex]
+        file delete -force $xml_dst
+        file copy -force $xml_target $old_path/..
     }
 
 } else {
@@ -140,18 +142,18 @@ set sub_files [glob -nocomplain "./Top/$proj_name/list/*.sub"]
 foreach f $sub_files {
     set sub_dir [file rootname [file tail $f]]
     if [file exists ./$sub_dir] {
-	cd "./$sub_dir"
-	lappend subs $sub_dir
-	if { [exec git status --untracked-files=no  --porcelain] eq "" } {
-	    Msg Info "$sub_dir submodule clean."
-	    lappend subs_hashes [GetHash ALL ./]
-	} else {
-	    Msg CriticalWarning "$sub_dir submodule not clean, commit hash will be set to 0."
-	    lappend subs_hashes "0000000"    
-	}
-	cd ..
+    cd "./$sub_dir"
+    lappend subs $sub_dir
+    if { [exec git status --untracked-files=no  --porcelain] eq "" } {
+        Msg Info "$sub_dir submodule clean."
+        lappend subs_hashes [GetHash ALL ./]
     } else {
-	Msg CriticalWarning "$sub_dir submodule not found"
+        Msg CriticalWarning "$sub_dir submodule not clean, commit hash will be set to 0."
+        lappend subs_hashes "0000000"    
+    }
+    cd ..
+    } else {
+    Msg CriticalWarning "$sub_dir submodule not found"
     }
 }
 
@@ -209,7 +211,7 @@ if {[info commands set_property] != ""} {
     
     set_property generic $generic_string [current_fileset]
     set status_file "$old_path/../versions.txt"
-
+    
 } elseif {[info commands quartus_command] != ""} {
     ### QUARTUS
     set  status_file "$old_path/../versions.txt"
@@ -231,47 +233,74 @@ Msg Info "Opening version file $status_file..."
 set status_file [open $status_file "w"]
 # writing info into status file
 
+Msg Info "Evaluating git describe..."
+set describe [exec git describe --always --dirty --tags --long]
+Msg Info "Git describe: $describe"
+set dst_dir [file normalize "bin/$proj_name\-$describe"]
+Msg Info "Creating $dst_dir..."
+file mkdir $dst_dir
+
+Msg Info "Evaluating differences with last commit..."
+set diff [exec git diff]
+if {$diff != ""} {
+    Msg Warning "Found differences with last commit..."
+    Msg Info "$diff"
+    set fp [open "$dst_dir/diff_presynthesis.txt" w+]
+    puts $fp "$diff"
+    close $fp
+} else {
+    Msg Info "No differences with last commit."
+}
+
 Msg Status " ------------------------- PRE SYNTHESIS -------------------------"
 Msg Status " $tt"
 Msg Status " Firmware date and time: $date, $timee"
-puts $status_file "Date, $date, $timee"
 if {$flavour != -1} {
     Msg Status " Project flavour: $flavour"
 }
 
 set version [HexVersionToString $version]
+puts $status_file "## $proj_name version table"
+struct::matrix m
+m add columns 7
+
+m add row  "| \"**File set**\" | \"**Commit SHA**\" | **Version**  |"
+m add row  "| --- | --- | --- |"
 Msg Status " Global SHA: $commit, VER: $version"
-puts $status_file "Global, $commit, $version"
+m add row  "| Global | [string tolower $commit] | $version |"
 
 if {$use_ipbus == 1} {
-    Msg Status " XML SHA: $xml_hash, VER: $xml_ver"
-    puts $status_file "XML, $xml_hash, $xml_ver"
+    Msg Status " IPbus XML SHA: $xml_hash, VER: $xml_ver"
+    m add row "| IPbus XML | [string tolower $xml_hash] | $xml_ver |"
 }
 set top_ver [HexVersionToString $top_ver]
 Msg Status " Top SHA: $top_hash, VER: $top_ver"
-puts $status_file "Top, $top_hash, $top_ver"
+m add row "| \"Top dir\" | [string tolower $top_hash] | $top_ver |"
 
 set hog_ver [HexVersionToString $hog_ver]
 Msg Status " Hog SHA: $hog_hash, VER: $hog_ver"
-puts $status_file "Hog, $hog_hash, $hog_ver"
+m add row "| Hog | [string tolower $hog_hash] | $hog_ver |"
 
 Msg Status " --- Libraries ---"
 foreach l $libs v $vers h $hashes {
     set v [HexVersionToString $v]
-    Msg Status " $l SHA: $h, VER: $v"    
-    puts $status_file "$l, $h, $v"
+    Msg Status " $l SHA: $h, VER: $v"
+    m add row "| \"**Lib:** $l\" |  [string tolower $h] | $v |"
 }
 Msg Status " --- Submodules ---"
 foreach s $subs sh $subs_hashes {
     Msg Status " $s SHA: $sh"
-    puts $status_file "$s, $sh, 00000000"    
+    m add row "| \"**Sub:** $s\" |  [string tolower $sh] | \" \"  |"
 }
 Msg Status " --- External Libraries ---"
 foreach e $ext_names eh $ext_hashes {
     Msg Status " $e SHA: $eh"
-    puts $status_file "$e, $eh, 00000000"    
+    m add row "| \"**Ext:** $e\" | [string tolower $eh] | \" \" |"
 }
 Msg Status " -----------------------------------------------------------------"
+
+puts $status_file [m format 2string]
+puts $status_file "\n\n"
 close $status_file
 
 

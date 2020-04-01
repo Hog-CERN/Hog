@@ -179,6 +179,7 @@ proc CreateProject {} {
         set_property "simulator_language" "Mixed" $obj
         set_property "target_language" "VHDL" $obj
         set_property "compxlib.modelsim_compiled_library_dir" $globalSettings::modelsim_path $obj
+        set_property "compxlib.questa_compiled_library_dir" $globalSettings::modelsim_path $obj
         set_property "default_lib" "xil_defaultlib" $obj
         set_property "target_simulator" $globalSettings::SIMULATOR $obj
         
@@ -306,7 +307,7 @@ proc configureSynth {} {
             set_global_assignment -name PRE_FLOW_SCRIPT_FILE quartus_sh:$globalSettings::pre_synth
 
         } else {
-            Msg info "Configuring $globalSettings::pre_synth script before syntesis"
+            Msg info "Configuring $globalSettings::pre_synth script before synthesis"
         }
     }
 
@@ -320,7 +321,7 @@ proc configureSynth {} {
             set_global_assignment -name POST_MODULE_SCRIPT_FILE quartus_sh:$globalSettings::post_synth
 
         } else {
-            Msg info "Configuring $globalSettings::post_synth script after syntesis"
+            Msg info "Configuring $globalSettings::post_synth script after synthesis"
         }
     } 
 
@@ -337,12 +338,14 @@ proc configureSynth {} {
             
         } else {
             # Report strategy needed since version 2017.3
-            set_property -name "report_strategy" -value "Vivado Synthesis Default Reports" -objects $obj
-
-            set reports [get_report_configs -of_objects $obj]
-            if { [llength $reports ] > 0 } {
-            delete_report_config [get_report_configs -of_objects $obj]
+            set_property set_report_strategy_name 1 $obj
+            set_property report_strategy {Vivado Synthesis Default Reports} $obj
+            set_property set_report_strategy_name 0 $obj
+            # Create 'synth_1_synth_report_utilization_0' report (if not found)
+            if { [ string equal [get_report_configs -of_objects [get_runs synth_1] synth_1_synth_report_utilization_0] "" ] } {
+              create_report_config -report_name synth_1_synth_report_utilization_0 -report_type report_utilization:1.0 -steps synth_design -runs synth_1
             }
+            set reports [get_report_configs -of_objects [get_runs synth_1] synth_1_synth_report_utilization_0]
         }
     } elseif {[info commands project_new] != ""} {
         #QUARTUS only
@@ -555,30 +558,74 @@ proc CreateReportStrategy {DESIGN obj} {
         
     } else {
         # Report strategy needed since version 2017.3
-        set_property -name "report_strategy" -value "Vivado Implementation Default Reports" -objects $obj
-        
+        set_property set_report_strategy_name 1 $obj
+        set_property report_strategy {Vivado Implementation Default Reports} $obj
+        set_property set_report_strategy_name 0 $obj
+
         set reports [get_report_configs -of_objects $obj]
-        if { [llength $reports ] > 0 } {
-        delete_report_config [get_report_configs -of_objects $obj]
+        # if { [llength $reports ] > 0 } {
+        # delete_report_config [get_report_configs -of_objects $obj]
+        # }
+        # 
+        # Create 'impl_1_place_report_utilization_0' report (if not found)
+        if { [ string equal [get_report_configs -of_objects [get_runs impl_1] $globalSettings::DESIGN\_impl_1_place_report_utilization_0] "" ] } {
+          create_report_config -report_name $globalSettings::DESIGN\_impl_1_place_report_utilization_0 -report_type report_utilization:1.0 -steps place_design -runs impl_1
+        }
+        set obj [get_report_configs -of_objects [get_runs impl_1] $globalSettings::DESIGN\_impl_1_place_report_utilization_0]
+        if { $obj != "" } {
+
+        }
+
+        # Create 'impl_1_route_report_drc_0' report (if not found)
+        if { [ string equal [get_report_configs -of_objects [get_runs impl_1] $globalSettings::DESIGN\_impl_1_route_report_drc_0] "" ] } {
+          create_report_config -report_name $globalSettings::DESIGN\_impl_1_route_report_drc_0 -report_type report_drc:1.0 -steps route_design -runs impl_1
+        }
+        set obj [get_report_configs -of_objects [get_runs impl_1] $globalSettings::DESIGN\_impl_1_route_report_drc_0]
+        if { $obj != "" } {
+
         }
         
+        # Create 'impl_1_route_report_power_0' report (if not found)
+        if { [ string equal [get_report_configs -of_objects [get_runs impl_1] $globalSettings::DESIGN\_impl_1_route_report_power_0] "" ] } {
+          create_report_config -report_name $globalSettings::DESIGN\_impl_1_route_report_power_0 -report_type report_power:1.0 -steps route_design -runs impl_1
+        }
+        set obj [get_report_configs -of_objects [get_runs impl_1] $globalSettings::DESIGN\_impl_1_route_report_power_0]
+        if { $obj != "" } {
+
+        }
+
         # Create 'impl_1_route_report_timing_summary' report (if not found)
         if { [ string equal [get_report_configs -of_objects [get_runs impl_1] $globalSettings::DESIGN\_impl_1_route_report_timing_summary] "" ] } {
-        create_report_config -report_name $globalSettings::DESIGN\_impl_1_route_report_timing_summary -report_type report_timing_summary:1.0 -steps route_design -runs impl_1
+            create_report_config -report_name $globalSettings::DESIGN\_impl_1_route_report_timing_summary -report_type report_timing_summary:1.0 -steps route_design -runs impl_1
         }
         set obj [get_report_configs -of_objects [get_runs impl_1] $globalSettings::DESIGN\_impl_1_route_report_timing_summary]
         if { $obj != "" } {
-        Msg Info "Report timing created successfully"   
+            Msg Info "Report timing created successfully"   
         }
         
         # Create 'impl_1_route_report_utilization' report (if not found)
         if { [ string equal [get_report_configs -of_objects [get_runs impl_1] $globalSettings::DESIGN\_impl_1_route_report_utilization] "" ] } {
-        create_report_config -report_name $globalSettings::DESIGN\_impl_1_route_report_utilization -report_type report_utilization:1.0 -steps route_design -runs impl_1
+            create_report_config -report_name $globalSettings::DESIGN\_impl_1_route_report_utilization -report_type report_utilization:1.0 -steps route_design -runs impl_1
         }
         set obj [get_report_configs -of_objects [get_runs impl_1] $globalSettings::DESIGN\_impl_1_route_report_utilization]
         if { $obj != "" } {
-        Msg Info "Report utilization created successfully"  
+            Msg Info "Report utilization created successfully"  
         }
+
+
+        # Create 'impl_1_post_route_phys_opt_report_timing_summary_0' report (if not found)
+        if { [ string equal [get_report_configs -of_objects [get_runs impl_1] $globalSettings::DESIGN\_impl_1_post_route_phys_opt_report_timing_summary_0] "" ] } {
+          create_report_config -report_name $globalSettings::DESIGN\_impl_1_post_route_phys_opt_report_timing_summary_0 -report_type report_timing_summary:1.0 -steps post_route_phys_opt_design -runs impl_1
+        }
+        set obj [get_report_configs -of_objects [get_runs impl_1] $globalSettings::DESIGN\_impl_1_post_route_phys_opt_report_timing_summary_0]
+        if { $obj != "" } {
+            set_property -name "options.max_paths" -value "10" -objects $obj
+            set_property -name "options.warn_on_violation" -value "1" -objects $obj
+        }
+
+
+
+
     }
     } else {
     puts "Won't create any report strategy, not in Vivado"
@@ -610,7 +657,7 @@ proc DoxygenVersion {target_version} {
     set ver [split $target_version "."]
     set v [exec doxygen --version]
     Msg Info "Found doxygen version: $v"
-    set current_ver [split $v "."]
+	set current_ver [split $v ". "]
     set target [expr [lindex $ver 0]*100000 + [lindex $ver 1]*100 + [lindex $ver 2]]
     set current [expr [lindex $current_ver 0]*100000 + [lindex $current_ver 1]*100 + [lindex $current_ver 2]]
 
@@ -774,25 +821,25 @@ proc ReadListFile {list_file path lib src {no_add 0}} {
                             # Wave do file
                             set wave_file [lindex [split [lsearch -inline -regex $prop wavefile=] =] 1]
                             if { $wave_file != "" } {
-                                set r_path [GetRepoPath]
-                                set file_name "$r_path/sim/$wave_file"
+                                set file_name "$path/$wave_file"
                                 Msg Info "Setting $file_name as wave do file for simulation file set $src..."
                                 # check if file exists...
                                 if [file exists $file_name] {
-                                set_property "modelsim.simulate.custom_wave_do" $file_name [get_filesets $src]
+                                    set_property "modelsim.simulate.custom_wave_do" $file_name [get_filesets $src]
+                                    set_property "questa.simulate.custom_wave_do" $file_name [get_filesets $src]
                                 } else {
-                                Msg Warning "File $file_name was not found."
+                                    Msg Warning "File $file_name was not found."
                                 }
                             }
                             
                             #Do file
                             set do_file [lindex [split [lsearch -inline -regex $prop dofile=] =] 1]
                             if { $do_file != "" } {
-                                set r_path [GetRepoPath]
-                                set file_name "$r_path/sim/$do_file"
+                                set file_name "$path/$do_file"
                                 Msg Info "Setting $file_name as udo file for simulation file set $src..."
                                 if [file exists $file_name] {
                                     set_property "modelsim.simulate.custom_udo" $file_name [get_filesets $src]
+                                    set_property "questa.simulate.custom_udo" $file_name [get_filesets $src]
                                 } else {
                                     Msg Warning "File $file_name was not found."
                                 }
@@ -863,6 +910,7 @@ proc SmartListFile {list_file path {no_add 0}} {
         create_fileset -simset $file_set
         set simulation  [get_filesets $file_set]
         set_property -name {modelsim.compile.vhdl_syntax} -value {2008} -objects $simulation
+        set_property -name {questa.compile.vhdl_syntax} -value {2008} -objects $simulation
         set_property SOURCE_SET sources_1 $simulation
         }
     }
@@ -981,7 +1029,7 @@ proc GetVer {FILE path} {
         } else {
 	    set tags [split $last_tag "\n"]
 	    set tag [lindex $tags 0]
-	    lassign [ExtractVersionFromTag $tag] M m p n mr
+	    lassign [ExtractVersionFromTag $tag] M m p mr
         if {$mr == -1} {
             incr p
             Msg Info "No tag contains $SHA for $FILE ($path), will use most recent tag $tag. As this is an official tag, patch will be incremented to $p."
@@ -1008,26 +1056,23 @@ proc GetVer {FILE path} {
     set ver "error: $result"
     }
 
-    lassign [ExtractVersionFromTag $ver] M m c n mr
+    lassign [ExtractVersionFromTag $ver] M m c mr
     
     if {$mr > -1} { # Candidate tab
 	set M [format %02X $M]
 	set m [format %02X $m]
 	set c [format %04X $c]
-	set n [format %04X $n]
 	set comm $SHA
     } elseif { $M > -1 } { # official tag
 	set M [format %02X $M]
 	set m [format %02X $m]
 	set c [format %04X $c]
-	set n [format %04X 0]
 	set comm $SHA
     } else {
 	Msg Warning "Tag does not contain a properly formatted version: $ver in repository containing $FILE"
 	set M [format %02X 0]
 	set m [format %02X 0]
 	set c [format %04X 0]
-	set n [format %04X 0]
 	set comm $SHA
     }
     set comm [format %07X 0x$comm]
@@ -1055,10 +1100,9 @@ proc HexVersionToString {version} {
 # * tag: a tag in the Hog format: v$M.$m.$p or b$(mr)v$M.$m.$p-$n
 
 proc ExtractVersionFromTag {tag} {
-    if {[regexp {^(?:b(\d+))?v(\d+)\.(\d+).(\d+)(?:-(\d+))?$} $tag -> mr M m p n]} {
+    if {[regexp {^(?:b(\d+))?v(\d+)\.(\d+).(\d+)(?:-\d+)?$} $tag -> mr M m p]} {
 	if {$mr eq ""} {
 	    set mr -1
-	    set n -1
 	}
     } else {
 	Msg Warning "Repository tag $tag is not in a Hog-compatible format."
@@ -1066,9 +1110,8 @@ proc ExtractVersionFromTag {tag} {
 	set M -1
 	set m -1
 	set p -1
-	set n -1    
     }
-    return [list $M $m $p $n $mr]
+    return [list $M $m $p $mr]
 }
 
 
@@ -1083,7 +1126,7 @@ proc TagRepository {{merge_request_number 0} {version_level 0}} {
     } else {
 	set tags [split $last_tag "\n"]
 	set tag [lindex $tags 0]
-	lassign [ExtractVersionFromTag $tag] M m p n mr
+	lassign [ExtractVersionFromTag $tag] M m p mr
     
 	if { $M > -1 } { # M=-1 means that the tag could not be parsed following a Hog format
 	    if {$mr == -1 } { # Tag is official, no b at the beginning (and no merge request number at the end)
@@ -1364,6 +1407,138 @@ proc ForceUpToDate {} {
 }
 ########################################################
 
+## Copy IP generated files from/to an EOS repository
+# Arguments:\n
+# - what_to_do: can be "push", if you want to copy the local IP synth result to eos or "pull" if you want to copy the files from eos to your local repository
+# - xci_file: the local IP xci file
+# - ip_path: the path of directory you want the IP to be saved on eos
+# - force: if 1 pushes IP even if already on EOS
+
+proc HandleIP {what_to_do xci_file ip_path runs_dir {force 0}} {
+    if {!($what_to_do eq "push") && !($what_to_do eq "pull")} {
+	Msg Error "You must specify push or pull as first argument."
+    }
+    
+    set ip_path_path [file normalize $ip_path/..]
+    lassign [eos  "ls $ip_path_path"] ret result
+    if  {$ret != 0} {
+	Msg CriticalWarning "Could not find mother directory for $ip_path: $ip_path_path."
+	return -1
+    } else {
+	lassign [eos  "ls $ip_path"] ret result
+	if  {$ret != 0} {
+	    Msg Info "IP repostory path on eos does not exist, creating it now..."
+	    eos "mkdir $ip_path" 5
+	} else {
+	    Msg Info "IP repostory path on eos is set to: $ip_path"
+	}
+    }
+    
+    if !([file exists $xci_file]) {
+	Msg CriticalWarning "Could not find $xci_file."
+	return -1
+    }
+    
+
+    set xci_path [file dir $xci_file]
+    set xci_name [file tail $xci_file]
+    set xci_ip_name [file root [file tail $xci_file]]
+    set xci_dir_name [file tail $xci_path]
+    
+    set hash [md5sum $xci_file]
+    set file_name $xci_name\_$hash
+    
+    Msg Info "Preparing to handle IP: $xci_name..."
+
+    if {$what_to_do eq "push"} {
+	set will_copy 0
+	set will_remove 0
+	lassign [eos "ls $ip_path/$file_name"] ret result
+	if  {$ret != 0} {
+	    set will_copy 1
+	} else {
+	    if {$force == 0 } {
+		Msg Info "IP already in the repository, will not copy..."
+	    } else {
+		Msg Info "IP already in the repository, will forcefully replace..."
+		set will_copy 1
+		set will_remove 1
+	    }
+	}
+	if {$will_copy == 1} {
+	    set ip_synth_files [glob -nocomplain $runs_dir/$xci_ip_name*]
+	    if {[llength $ip_synth_files] > 0} {
+		Msg Info "Found some IP synthesised files matching $ip_path/$file_name*"
+		if {$will_remove == 1} {
+		    Msg Info "Removing old synthesized directory $ip_path/$file_name..."
+		    eos "rm -rf $ip_path/$file_name" 5
+		}
+
+		Msg Info "Creating IP directories on EOS..."
+		eos "mkdir -p $ip_path/$file_name/synthesized" 5
+
+		Msg Info "Copying generated files for $xci_name..."
+		eos "cp -r $xci_path $ip_path/$file_name/" 5
+		eos "mv $ip_path/$file_name/$xci_dir_name $ip_path/$file_name/generated" 5
+		Msg Info "Copying synthesised files for $xci_name..."
+		eos "cp -r $ip_synth_files $ip_path/$file_name/synthesized" 5
+	    } else {
+		Msg Warning "Could not find synthesized files matching $ip_path/$file_name*"
+	    }
+	}
+    } elseif {$what_to_do eq "pull"} {
+	lassign [eos "ls $ip_path/$file_name"] ret result
+	if  {$ret != 0} {
+	    Msg Info "Nothing for $xci_name was found in the repository, cannot pull."
+	    return -1
+
+	} else {
+
+	    Msg Info "IP $xci_name found in the repository, copying it locally..."
+	    lassign [eos "ls $ip_path/$file_name/generated/*"] ret_g ip_gen_files
+	    lassign [eos "ls $ip_path/$file_name/synthesized/*"] ret_s ip_syn_files
+	    #puts "ret g: $ret_g"
+	    Msg Status "Generated files found for $xci_ip_name ($ret_g):\n $ip_gen_files"
+	    #puts "ret s: $ret_s"
+	    Msg Status "Synthesised files found for $xci_ip_name ($ret_s):\n $ip_syn_files"
+
+	    if  {($ret_g == 0) && ([llength $ip_gen_files] > 0)} {
+		eos "cp -r $ip_path/$file_name/generated/* $xci_path" 5
+	    } else {
+		Msg Warning "Cound not find generated IP files on EOS path" 
+	    }
+
+	    if  {($ret_s == 0) && ([llength $ip_syn_files] > 0)} {
+		eos "cp -r $ip_path/$file_name/synthesized/* $runs_dir"
+	    } else {
+		Msg Warning "Cound not find synthesized IP files on EOS path"
+	    }
+	} 
+    }
+    
+    return 0   
+}
+########################################################
+
+## Evaluates the md5 sum of af a file
+##  Argumets:
+# - file_name: guess?
+
+proc md5sum {file_name} {
+    if !([file exists $file_name]) {
+	Msg Warning "Could not find $xci_file."
+	set file_hash -1
+    }	     
+    if {[catch {package require md5 2.0.7} result]} {
+	Msg Warning "Tcl package md5 version 2.0.7 not found ($result), will use command line..."
+	set hash [lindex [exec md5sum $file_name] 0]
+    } else {
+	set file_hash [string tolower [md5::md5 -hex -file $file_name]]
+    }
+}
+
+########################################################
+
 ## Checks that "ref" in .gitlab-ci.yml actually matches the gitlab-ci file in the 
 ##  Hog submodule
 #
@@ -1435,4 +1610,67 @@ You can fix this in 2 ways: (A) by changing the ref in your repository or (B) by
 	}
 
 	cd "$thisPath"
+}
+
+########################################################
+
+## Parse JSON file
+## returns -1 in case of failure
+## returns JSON KEY VALUE in case of success
+#
+proc ParseJSON {JSON_FILE JSON_KEY} {
+	set result [catch {package require Tcl 8.4} TclFound]
+	if {"$result" != "0"} {
+		Msg CriticalWarning "Cannot find Tcl package version equal or higher than 8.4.\n $TclFound\n Exiting"
+		return -1
+	} else {
+		Msg Info "Tcl package version: $TclFound"
+	}
+
+	set result [catch {package require json} JsonFound]
+	if {"$result" != "0"} {
+		Msg CriticalWarning "Cannot find JSON package equal or higher than 8.4.\n $JsonFound\n Exiting"
+		return -1
+	} else {
+		Msg Info "JSON package version: $JsonFound"
+	}
+	set JsonDict [json::json2dict  $JSON_FILE]
+	set result [catch {dict get $JsonDict $JSON_KEY} RETURNVALUE]
+	if {"$result" != "0"} {
+		Msg CriticalWarning "Cannot find $JSON_KEY in $JSON_FILE\n Exiting"
+		return -1
+	} else {
+		Msg Info "$JSON_KEY --> $RETURNVALUE"
+		return $RETURNVALUE
+	}
+}
+
+## Handle eos commands
+# returns a list of 2 elements: the return value (0 if no error occurred) and the output of the eos command
+# It can be used with lassign like this: lassaign [eos <eos command> ] ret result
+# Arguments:\n
+# - command: the eos command to be run, e.g. ls, cp, mv, rm
+# - attempts: (default 0) how many times the command should be attempted in case of failure
+proc eos {command {attempt 1}}  {
+    global env
+    if ![info exists env(EOS_MGM_URL)] {
+	Msg Warning "Environment variable EOS_MGM_URL not set, setting it to default value root://eosuser.cern.ch"
+	set ::env(EOS_MGM_URL) "root://eosuser.cern.ch"
+    }
+    if {$attempt < 1} {
+	Msg Warning "The value of attempt should be 1 or more, not $attempt, setting it to 1 as default"
+	set attempt 1	
+    }
+    for {set i 0} {$i < $attempt} {incr i } {
+	set ret [catch {exec -ignorestderr eos {*}$command} result]
+	if {$ret == 0} {
+	    break
+	} else {
+	    if {$attempt > 0} {
+		Msg Warning "Command $command failed ($i/$attempt): $result, trying again in 2 seconds..."
+		after 2000
+	    }
+	}
+    }
+    return [list $ret $result]
 }

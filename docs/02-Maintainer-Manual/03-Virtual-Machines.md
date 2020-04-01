@@ -47,23 +47,23 @@ This means your VM will be accessible only from the cern domain.
 If you are not on the cern domain connect to a CERN public machine (``` lxplus ```) and then to you machine.
 
 ```bash
- ssh -i private-key.pem <machine_ip_or_name>
+  ssh -i private-key.pem <machine_ip_or_name>
  ```
 
  Once you are logged on your machine change the root password:
 
  ```bash
- sudo password root
+  sudo password root
  ```
- Please follow the IT reccomendations when chosing a new password.
+Please follow the IT reccomendations when chosing a new password.
 Mount the volume you created, make sure you own it, format it, etc...
 
 ```bash
-sudo su                             # become root
-mkfs.ext3 /dev/<diskname>           # format the disk
-mkdir /mnt/vd                       # create mounting point for the disk
-mount /dev/<diskname> /mnt/vd       # mount the disk
-chown -hR <username> /mnt/vd        # own the disk
+ sudo su                             # become root
+ mkfs.ext3 /dev/<diskname>           # format the disk
+ mkdir /mnt/vd                       # create mounting point for the disk
+ mount /dev/<diskname> /mnt/vd       # mount the disk
+ chown -hR <username> /mnt/vd        # own the disk
 ```
 
 *NOTE* there is no need to add this disk to /etc/fstab for automati mounting since HOG will later do this automatically.
@@ -91,23 +91,23 @@ Information on How to install a new gitlab runnare on your VM can be found [here
 - Example ``config.toml``
 
 ```
-concurrent = 4
-check_interval = 0
+  concurrent = 4
+  check_interval = 0
 
-[session_server]
-  session_timeout = 1800
+  [session_server]
+    session_timeout = 1800
 
-[[runners]]
-  limit = 4
-  request_concurrency = 4
-  name = "HOG vivado runner on mypc"
-  url = "https://gitlab.cern.ch"
-  token = "ibsaidbasdhubavsuod"
-  executor = "shell"
-  [runners.custom_build_dir]
-  [runners.cache]
-    [runners.cache.s3]
-    [runners.cache.gcs]
+  [[runners]]
+    limit = 4
+    request_concurrency = 4
+    name = "HOG vivado runner on mypc"
+    url = "https://gitlab.cern.ch"
+    token = "ibsaidbasdhubavsuod"
+    executor = "shell"
+    [runners.custom_build_dir]
+    [runners.cache]
+      [runners.cache.s3]
+      [runners.cache.gcs]
 ```
 If something goes wrong, please report it.
 
@@ -132,6 +132,7 @@ We provide a Virtual Machine satisfying basic requirements./
 Do not use this machine for firmware development!
 
 CREM reserved for us an instance with _ c3.2xlarge flavor_
+
 - 120 GB RAM
 - CPU: Intel(R) Xeon(R) CPU E5-2683 v4 @ 2.10GHz
 - 640 GB SSD

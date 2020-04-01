@@ -45,23 +45,27 @@ You can now connect to your machine through ssh.
 *NOTE* your machine is not fully public yet (reference the Openstack manual for this).
 This means your VM will be accessible only from the cern domain.
 If you are not on the cern domain connect to a CERN public machine (``` lxplus ```) and then to you machine.
-```
+
+```bash
  ssh -i private-key.pem <machine_ip_or_name>
  ```
 
  Once you are logged on your machine change the root password:
- ```
+
+ ```bash
  sudo password root
  ```
  Please follow the IT reccomendations when chosing a new password.
 Mount the volume you created, make sure you own it, format it, etc...
-```
+
+```bash
 sudo su                             # become root
 mkfs.ext3 /dev/<diskname>           # format the disk
 mkdir /mnt/vd                       # create mounting point for the disk
 mount /dev/<diskname> /mnt/vd       # mount the disk
 chown -hR <username> /mnt/vd        # own the disk
 ```
+
 *NOTE* there is no need to add this disk to /etc/fstab for automati mounting since HOG will later do this automatically.
 
 You are now ready to install your favourite tools!
@@ -85,7 +89,8 @@ Information on How to install a new gitlab runnare on your VM can be found [here
 - In the `runner section` add ``request_concurrency = NUMBER_OF_CONCURRENT_REQUESTS_PER_NEW_JOBS`` : Limit number of concurrent requests for new jobs from GitLab (default 1)
 - [Have a look here for more info](https://medium.com/faun/maximize-your-gitlab-runner-power-with-ci-cd-concurrent-pipelines-a5dcc092cee7)
 - Example ``config.toml``
-``` 
+
+```
 concurrent = 4
 check_interval = 0
 
@@ -136,6 +141,7 @@ In order to access this machine plese create a [CERN service account](https://ac
 After the service account has been created, send an email to [atlas-tdaq-firmware-support](mailto:atlas-tdaq-firmware-support@cern.ch), so that the account is added to the VM (no sudo rights), with its home.
 once your account has been activated, you can log into the ``` atlas-tdaq-firmware-dev ``` machine.
 the following tools are available for setup:
+
 - devtoolset-7: ``` /opt/rh/devtoolset-7 ```
 - git 2.18: ``` /opt/rh/rh-git218 ```
 - Vivado 2017.4, 2018.1, 2019.2:  ``` /opt/Xilinx/Vivado/$VERSION/ ```
@@ -150,6 +156,7 @@ Go to `Settings` -> `CI/CD` and expand the `Runners` tab.
 Copy the registration token in `Specific Runners ` column.
 
 Run `sudo gitlab/runner register` on the VM.
+
 - Enter https://gitlab.cern.ch as coordination URL.
 - Enter the token you just obtained as token.
 - Enter `shell` when asked to enter the Executor.

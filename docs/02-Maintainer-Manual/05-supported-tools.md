@@ -8,9 +8,6 @@ The list is intended as a list of tools you can use in an HOG compatible project
 The following list is not exclusive, meaning other tools might be used in your project and still work with the HOG CI scripts.
 
 - Vivado (earliest tested: <v.X.Y.Z> latest tested: <v.X.Y.Z>)
-
 - QuestaSim (earliest tested: <v.X.Y.Z> latest tested: <v.X.Y.Z>)
-
 - doxygen (earliest tested: <v.X.Y.Z> latest tested: <v.X.Y.Z>)
-
 - git (earliest tested: <v.X.Y.Z> latest tested: <v.X.Y.Z>)

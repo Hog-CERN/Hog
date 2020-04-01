@@ -1,6 +1,7 @@
 # Gitlab repository setup
 
 ## Remove merge commit
+
 - Go to https://gitlab.cern.ch/YourGroup/YourProject/edit
 - Expand __Merge Request settings__ 
 - Select Fast-forward merge
@@ -20,6 +21,7 @@ Now take the following actions:
 - On the left enable the private runners that you have installed on your machines
 
 ## Environment variables
+
 - Go to `Settings` -> `CI/CD`
 - Expand `Variables`
 

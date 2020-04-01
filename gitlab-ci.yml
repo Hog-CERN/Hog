@@ -112,7 +112,7 @@ stages:
         - vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_implementation.tcl -tclargs $PROJECT_NAME
         - "cat $CI_PROJECT_DIR/bin/$PROJECT_NAME*/versions* $CI_PROJECT_DIR/bin/$PROJECT_NAME*/timing_* > note.md"
         - ./Hog/Other/WriteGitlabNote.sh $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $CI_MERGE_REQUEST_IID note.md
-        - "if [ -e $CI_PROJECT_DIR/bin/ -a -z '$HOG_UNOFFICIAL_BIN_EOS_PATH' ]; then until echo $HOG_PASSWORD | kinit $HOG_USER ; do echo Retrying; sleep 2; done; 
+        - "if [ -e $CI_PROJECT_DIR/bin/ -a -n '$HOG_UNOFFICIAL_BIN_EOS_PATH' ]; then until echo $HOG_PASSWORD | kinit $HOG_USER ; do echo Retrying; sleep 2; done; 
           eos mkdir -p $HOG_UNOFFICIAL_BIN_EOS_PATH/$CI_COMMIT_SHORT_SHA;
           eos cp -r $CI_PROJECT_DIR/bin/* $HOG_UNOFFICIAL_BIN_EOS_PATH/$CI_COMMIT_SHORT_SHA; fi"
 
@@ -165,7 +165,6 @@ merge_and_tag:
        GIT_STRATEGY: clone
      script:
        - ./Hog/Other/CheckEnv.sh
-       - ./Hog/Other/WriteGitlabNote.sh $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $CI_MERGE_REQUEST_IID README.md
        - "MR_PARAMETERS=`curl --header \"PRIVATE-TOKEN: ${HOG_PUSH_TOKEN}\" ${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/merge_requests/${CI_MERGE_REQUEST_IID}`"
        - vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_merge_and_tag.tcl -tclargs -mr_par "{$MR_PARAMETERS}" -mr_id $CI_MERGE_REQUEST_IID -push $CI_COMMIT_REF_NAME -main_branch $HOG_TARGET_BRANCH
 

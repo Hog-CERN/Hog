@@ -1,8 +1,8 @@
-# Working with an existing HDL project
+# Working with a HDL repository handled with Hog
 
-In this section we describe how to get up to speed to work in a repository that is already [set up](./03-setupNewHogProject.md) with Hog.
+In this section we describe how to work with a repository that is already [set up](./03-setupNewHogProject.md) with Hog.
 
-All the instructions below can be executed both on a LINUX shell, or on git bash[^1] on a Windows machine.
+All the instructions below can be executed both on a Linux shell, or on git bash[^1] on a Windows machine.
 
 [^1]: To open a git bash session navigate to the directory where you want to open the bash (the root folder of your project). Right click on the folder and select open git bash here.
 
@@ -65,7 +65,7 @@ We said almost normally because there is one exception: you **must not** add a n
 ## Adding or renaming a file to the project
 Let's now suppose that you want to add a new file to the project and that this file is loacated in *repo*/*dir1*/ and is called *file1.hdl*. Let's also assume that you know how to add a new file to a git repository (`git add <file name>; git commit -m "add new file"; git push`) and focus on Hog.
 
-This is a new file, unkown to Hog for now, and we want it to be included into the project then next time that we run the CreateProject.sh script described above. To do this, you must add the file name and path of *file1.vhd* into a Hog list file. The list files are located in *repo*/Top/*project1*/list/. Let's assume that the list file you want to add our file to is *lib1.src*.
+This is a new file, unknown to Hog for now, and we want it to be included into the project then next time that we run the CreateProject.sh script described above. To do this, you must add the file name and path of *file1.vhd* into a Hog list file. The list files are located in *repo*/Top/*project1*/list/. Let's assume that the list file you want to add our file to is *lib1.src*.
 
 Open the file with a text editor and add the file name and path in a new line. Please make the path relative to the list directory so in our case it should be ../../*dir1*/*file1.vhd*.
 
@@ -93,8 +93,8 @@ All the Hog scripts handling version control will be automatically added to your
 If you don't commit, Hog will alert you with a Critical Warning at the beginnign of the synthesis.
 
 
-### Different souce files
-Source files taken from different list files will be added to your project in diffferent "libraries": the name of each library being the name of the list file. This is nice to keep things tidy and separated but it also comes at a little cost: when working with files coming from different list files, you will need to formally include the libraries. For example, in VHDL:
+### Different list files
+Source files taken from different list files will be added to your project in different "libraries": the name of each library being the name of the list file. This is nice to keep things tidy and separated but it also comes at a little cost: when working with files coming from different list files, you will need to formally include the libraries. For example, in VHDL:
 
 ```vhdl
 	library lib_1

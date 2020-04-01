@@ -106,15 +106,16 @@ The exact structure or name of this folder is not enforced.
 HOG can handle Git submodules, i.e. if you have some module contained on a git repository you can simply add it to your project using:
 
 ```bash
-	git submodule add <submodule_url>
+    git submodule add <submodule_url>
 ```
 
 They can be placed anywhere in your repository, but it is advised to place them in the root directory.
 Suppose that you have 2 submodules called _sub_1_ and _sub_2_:
 
+```
     Repo/sub_1
     Repo/sub_2
-
+```
 
 ## Top directory
 
@@ -154,24 +155,11 @@ The last line of the tcl scipt is expected to be
 source $path_repo/HOG/Tcl/create-project.tcl
 ```
 
-This commant will instruct HOG to add all your files to the generated project.
+This command will instruct HOG to add all your files to the generated project.
 
-One example for a Vivado project is :
+One example for a Vivado project is can be found in `./Hog/Templates/top.tcl`.
 
-```tcl
-############# modify these to match project ################
-set bin_file 1
-set use_questa_simulator 0
-### FPGA and Vivado strategies and flows
-set FPGA xc7a35tcpg236-1
-set SYNTH_STRATEGY "Flow_AreaOptimized_High"
-set SYNTH_FLOW "Vivado Synthesis 2018"
-set IMPL_STRATEGY "Performance_ExplorePostRoutePhysOpt"
-set IMPL_FLOW "Vivado Implementation 2018"
-set DESIGN    "[file rootname [file tail [info script]]]"
-set path_repo "[file normalize [file dirname [info script]]]/../../"
-source $path_repo/HOG/Tcl/create-project.tcl
-```
+More information on the tcl script can be founs in the [project tcl file](../02-Mainteiner-Manual/08-Project-Tcl.md) section.
 
 ### list directory
 
@@ -189,121 +177,7 @@ HOG uses different kinds of list files, identified by their extension:
 
  __.ext list file must use an absoute path__. To use the firmware CI this path must be accessible to the machine performing the git CI, e.g. can be on a protected afs folder.
 
-#### .src files
-
-Files with the .src extension are used to include HDL files belonging to a single library and the .xci files of the IPs used in the library.
-HOG will generate a new library for each .src file.
-For example if we have a lib_1.src file in our list directory, containing 5 filenames inside, like this:
-
-```
-    ../../lib_1/hdl/file1.vhd
-    ../../lib_1/hdl/file2.vhd
-    ../../lib_1/hdl/file3.vhd
-```
-
-they will be included into the Vivado project in the lib_1 library. 
-This means in VHDL to use them you should use the following syntax:
-
-```vhdl
-library lib_1
-use lib_1.all
-
-...
-
-u_1 : entity lib_1.a_component_in_lib1 
-port map(
-  clk => clk,
-din => din,
-dout => dout
-):
-```
-Properties, like VHDL 2008 compatibility, can be specified afer the file name in the list file, separated by any number of spaces. 
-Returning to our example, if _file_3.vhd_ requires VHDL 2008, then you should specify it like this:
-
-    ../../lib_1/hdl/file1.vhd 
-    ../../lib_1/hdl/file2.vhd
-    ../../lib_1/hdl/file3.vhd 2008
-
-IP to be included in you project can be 
-
-### .sub files
-
-To add files from a submodule to your Project you must list them in a .sub list file.
-This tells HOG that those files are taken from a submodule rather than from a library belonging to the main HDL repository.
-HOG will not try to evaluate the version of those files, but it will evaluate the git SHA of the submodule.
-
-### .sim files
-
-In this file are listed all the HDL files used for simulation only.
-Each line in these files has the following synthax:
-
-```
-<path_to_tb>/<test_bench>.vhd topsim=<test_top_level_entity> wavefile=<symulation_set_up>.tcl dofile=<waves>.do
-```
-
-* The first entry the file containing yout test-bench complete with its relative path from the `Top/<project_name>` folder.
-* The second entry is preceded by `topsim=`, it indicates the name of the entity you want to set as top level in your simulation.
-* The third entry is preceded by `wavefile=`, it indicates the file containing the tcl script used to lauch your simulation. *NOTE* the path assumes the default position is `<repo>/sim/`, any relative path must assume this as default location.
-* The fourth entry is preceded by `dofile=`, it indicates the file containing the signal waveforms to be observed in your simulation.
-
-### .con files
-
-All contratint files (.xdc ) must be included by adding them to the .con files
-
-### .ext files
-
-External proprietary files can be included using the .ext list file.
-__.ext list filse must use an absoute path__.
-To use the firmware CI this path must be accessible to the machine performing the git CI, e.g. can be on a protected afs folder.
-This file has to be used __ONLY__ in the exceptionalcase of files that cannot be published because of copyright.
-This file has a special synthax since md5 hash of each file must bne added after the file name, separated by one or more spaces.
-The md5 hash can be obtained by running
-
-```console
-	md5sum <filename>
-```
-HOG, at synthesis time, checks that all the files are there and that their md5 hash matches the one in the list file.
-
-### xml.lst
-
-IPBus specific. 
-This file contains a list of the xml files used to generate the IPbus modules together with the generated modules, each line has the form:
-
-```
- <path_to_xml>/<address_table>.xml <path_to_vhd>/<generated_file>.vhd
-```
-
-During Pre-synthesis, HOG will loop over the files contained tin this file to retrieve the SHA of the latest commit in which at least one of them was modified.
-The path to the generated module is needed since in the future we foresee that HOG will use IPbus python scripts to verify that the generated modules correspond to the xml files.
-
-#### IPbus xml files
-
-HOG can back annotate the included xmls with the SHA evaluated as described above.
-To your software to correctly assess the validity of the used xmls, then  you must foresee tha presence of a dedicated register where to store the value of the [HOG generic](../02-MAinteiner-Manual/07-Hog-generics).
-The node corresponding to this registers is expected to have the following structure:
-
-```xml
-    <node id="GitSHA" permission="r" address="0x-"  tags="xmlgitsha=__GIT_SHA__" description="XML Git commit 7-digit SHA of top file">
-```
-
-During Pre-synthesis, HOG will replace `__GIT_SHA__` with the SHA of the latest commit in which at least one of xmls was modified.
-HOG will also set the `XML_HASH` genertic in your top level to correspond to the same SHA.
-The user can now verify it is using the correct version of the xmls by comparing the `GitSHA` register content withe the `GitSHA` register tag.
-
-The same is valis for the xml version.
-In this case the node is expected to have the following structure:
-
-```xml
-<node id="Version" permission="r" address="0x-" tags="xmlversion=__VERSION__"  description="version of XML files">
-    <node id="Patch" mask="0xffff" description="Patch Number"/>
-    <node id="Minor_Version" mask="0xff0000" description="Minor Version Number"/>
-    <node id="Major_Version" mask="0xff000000" description="Major Version Number"/>
-</node>
-```
-
-The `__VERSION__` will be set to the version of the xml files taken from the last tag in which at least one of the xml files included in xml.lst was modified.
-The same value will be reported in the `XML_VERSION` generic of the top level of your project.
-The user can now verify it is using the correct version of the xmls by comparing the `GitSHA` register content withe the `GitSHA` register tag.
+More information on the list file can be found in the dedicated [list files](../02-Mainteiner-Manual/09-List-files.md) section.
 
 ## Auto-generated directories
 The following directories are generated at different stages of library compilation or synthesis/implementation time.
@@ -313,13 +187,17 @@ You can always delete any of these directory with no bog consequences: they can 
 ### VivadoProjects
 When you generate a project with HOG, it will create a sub-directory here. When everything is generated,  this directory contains one subdirectory for each project in the repository, containing the Vivado project-file. The name of the sub-directory and of the project file are always matching. In our case:
 
+```
     Repo/VivadoProjects/proj_1/proj_1.xpr
     Repo/VivadoProjects/proj_2/proj_2.xpr
     Repo/VivadoProjects/proj_3/proj_3.xpr
+```
 
 The _Repo/VivadoProjects/proj_3/_ directory also contains Vivado automatically generated files, among which the Runs directory:
 
+```
     Repo/VivadoProjects/proj_1/proj_1.runs/
+```
 
 That contains one subfolder for every Vivado run: alle the IPs in your project, the default Vivado synthesis run (synth_1) and implementation run (impl_1).
 HOG will also copy ipbus XMLs and generated bitfiles into _Repo/VivadoProjects/proj_1/proj_1.runs/_ at synthesis/implementation time.
@@ -334,12 +212,13 @@ The doxygen directory contains the files used to generate the HDL documentation.
 A file named _doxygen.conf_ should be in this directory, together with all the files needed to generate your doxygen documentation.
 HOG works with Doxygen version 1.8.13 ore later.
 
-
 ## Wrapper scripts
 There are three scripts that can be used to run synthesis, implementation and bitstream writing without opening the vivado gui. The commands to launch them are
-```console
+
+```bash
 	./HOG/LaunchSynthesis.sh <proj_name>
 	./HOG/LaunchImplementation.sh <proj_name>
 	./HOG/LaunchWriteBistream.sh <proj_name>
 ```
+
 Launching the implementation or the bistream writing without having launched the synthesis beforehand will run the synthesis stage too.

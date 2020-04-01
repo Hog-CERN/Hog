@@ -135,6 +135,7 @@ It contains one directory for each of your projects (say proj_1, proj_2, proj_3)
 ### project directory
 
 Each of the project directories must contain:
+
 - the top vhdl file of the project
 - the tcl file that generates the project
 
@@ -166,12 +167,13 @@ More information on the tcl script can be founs in the [project tcl file](../02-
 A directory named _list_ must be in each of the project folders.
 This directory contains the list files, that are plain text files, used to instruct HOG on how to build your project.
 Each list file contain the list filenames to be added to the _proj_1_ project.
-HOG uses different kinds of list files, identified by their extension: 
- - *.src : used to include HDL files belonging to the same library
- - *.sub : used to include HDL files belonging to a git submodule
- - *.sim : used to include files use for simulation of the same library
- - *.con : used to include contratint files
- - *.ext : used to include HDL files belonging to an external library
+HOG uses different kinds of list files, identified by their extension:
+
+ - `*.src` : used to include HDL files belonging to the same library
+ - `*.sub` : used to include HDL files belonging to a git submodule
+ - `*.sim` : used to include files use for simulation of the same library
+ - `*.con` : used to include contratint files
+ - `*.ext` : used to include HDL files belonging to an external library
 
  __.src, .sub, .sim, and .con list files must use relative paths__ to the files to be included in the project.
 

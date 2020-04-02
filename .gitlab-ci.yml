@@ -28,10 +28,11 @@ building:
         
 building-doxygen:
       stage: build
-      image: gitlab-registry.cern.ch/cholm/docker-ubuntu-doxygen:stable
+      image: cern/cc7-base
       before_script:
         - echo ""
       script:
+        - yum install -y doxygen
         - cd doxygen
         - doxygen HOG-doxygen.cfg
       artifacts:

@@ -32,7 +32,7 @@ building-doxygen:
       before_script:
         - echo ""
       script:
-        - yum install -y doxygen krb5-workstation rsync openssh-clients xrootd-client which
+        - yum install -y doxygen krb5-workstation rsync openssh-clients xrootd-client which git
         - cd doxygen
         - chmod +x ./scripts/build-and-deploy.sh
         - ./scripts/build-and-deploy.sh

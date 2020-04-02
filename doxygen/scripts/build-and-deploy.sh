@@ -1,6 +1,6 @@
 #!/bin/bash
 
-COPY_PATH="/eosy/user/h/hog/www/test-doxy"
+COPY_PATH="/eos/user/h/hog/www/test-doxy"
 DOXY_OUTPUT_DIR="./DOXY_DOCS/html/."
 
 # Exit if anything fails
@@ -26,7 +26,7 @@ fi
 : "${EOS_ACCOUNT_PASSWORD:?EOS_ACCOUNT_PASSWORD not provided}"
 
 #build documentation
-doxygen HOG-doxygen.cfg
+doxygen HOG-doxygen.cfg  2>&1 >/dev/null
 
 # Check the source directory exists
 if [ ! -d "$DOXY_OUTPUT_DIR" ]
@@ -49,7 +49,7 @@ then
   exit 1
 fi
 
-/usr/bin/xrdcp --force --recursive "$DOXY_OUTPUT_DIR" "$EOS_MGM_URL/$COPY_PATH"
+/usr/bin/xrdcp --force --recursive "$DOXY_OUTPUT_DIR" "$EOS_MGM_URL/$COPY_PATH/"
 
 # Destroy credentials
 $kdestroy

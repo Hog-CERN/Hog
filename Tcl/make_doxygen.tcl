@@ -1,4 +1,5 @@
 #!/usr/bin/env tclsh
+## @file make_doxygen.tcl
 set old_path [pwd]
 set path [file dirname [info script]]
 cd $path

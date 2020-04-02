@@ -1,4 +1,6 @@
 #!/usr/bin/env tclsh
+## @file copy_to_eos.tcl
+
 #parsing command options
 if {[catch {package require cmdline} ERROR]} {
 	puts "$ERROR\n If you are running this script on tclsh, you can fix this by installing 'tcllib'" 

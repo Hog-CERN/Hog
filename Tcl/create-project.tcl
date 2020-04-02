@@ -1,3 +1,5 @@
+## @file create-project.tcl
+
 ## Define the following variables before sourcing this script:
 #
 # set bin_file 1

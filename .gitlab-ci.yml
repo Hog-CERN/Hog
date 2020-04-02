@@ -12,6 +12,7 @@ stages:
       - tag
       - build
       - deploy
+
 building:
       stage: build
       image: gitlab-registry.cern.ch/authoring/documentation/mkdocs:stable
@@ -24,6 +25,20 @@ building:
         paths:
           - public
         expire_in: 1 hour
+        
+building-doxygen:
+      stage: build
+      image: gitlab-registry.cern.ch/cholm/docker-ubuntu-doxygen:stable
+      before_script:
+        - echo ""
+      script:
+        - cd doxygen
+        - doxygen HOG-doxygen.cfg
+      artifacts:
+        paths:
+          - doxygen/DOXY_DOCS
+        expire_in: 1 hour
+        
 deploying:
       stage: deploy
       image: gitlab-registry.cern.ch/ci-tools/ci-web-deployer:latest
@@ -33,6 +48,9 @@ deploying:
         - echo ""
       script:
         - deploy-eos
+        - CI_DOXY_OUTPUT="doxygen/DOXY_DOCS/html"
+        - EOS_DOXY_PATH="eos/user/h/hog/www/test-doxy"
+        - /usr/bin/xrdcp --force --recursive "$CI_DOXY_OUTPUT/" "$EOS_MGM_URL/$EOS_DOXY_PATH/" 2>&1 >/dev/null
 
 
 merge-and-tag:

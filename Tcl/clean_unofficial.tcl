@@ -1,4 +1,5 @@
 #!/usr/bin/env tclsh
+## @file clean_unofficial.tcl
 
 #parsing command options
 if {[catch {package require cmdline} ERROR]} {

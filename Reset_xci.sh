@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+## @file Reset_xci.sh
 OLD_DIR=`pwd`
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 

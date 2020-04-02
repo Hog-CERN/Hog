@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+## @file Init.sh
 OLD_DIR=`pwd`
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 

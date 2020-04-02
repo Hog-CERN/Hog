@@ -1,13 +1,12 @@
-# @file
-# Collection of Tcl functions used in vivado scripts
+## @file hog.tcl
+## @breif Collection of Tcl functions used in vivado scripts
 
 
 #################### Hog Wrappers ######################
 
-########################################################
-## Namespace of all the project settings
-#
-#
+
+## \c globalSettings 
+# Namespace of all the project settings
 namespace eval globalSettings {
     variable FPGA
     
@@ -44,8 +43,9 @@ namespace eval globalSettings {
     variable post_bit
 }
 
-########################################################
-## Display a Vivado/Quartus/Tcl-shell info message
+
+## @c Msg 
+# Display a Vivado/Quartus/Tcl-shell info message
 #
 # Arguments:
 # * level: the severity level of the message given as string or integer: status/extra_info 0, info 1, warning 2, critical warning 3, error 4.
@@ -86,9 +86,9 @@ proc Msg {level msg {title ""}} {
     puts "*** Hog:$title $vlevel $msg"
     }
 }
-########################################################
 
-## Write a into file, if the file exists, it will append the string
+## @c WritieToFile
+# Write a into file, if the file exists, it will append the string
 #
 # Arguments:
 # * File: The log file onto which write the message
@@ -99,7 +99,13 @@ proc WrtieToFile {File msg} {
     close $f
 }
 
-########################################################
+## @c SetProperty
+# Sets a property of an object to a given value: it automatically recognises whether it is in Vivado or Quartus mode
+#
+# Arguments:
+# * property:
+# * value:
+# * object
 proc  SetProperty {property value object} {
     if {[info commands set_property] != ""} {
         # Vivado
@@ -115,9 +121,13 @@ proc  SetProperty {property value object} {
 
 
 }
-########################################################
 
-########################################################
+## @c SetProperty
+# Retrieves the value of a property of an object: it automatically recognises whether it is in Vivado or Quartus mode
+#
+# Arguments:
+# * property:
+# * object:
 proc  GetProperty {property object} {
     if {[info commands get_property] != ""} {
         # Vivado
@@ -1518,12 +1528,10 @@ proc HandleIP {what_to_do xci_file ip_path runs_dir {force 0}} {
     
     return 0   
 }
-########################################################
 
 ## Evaluates the md5 sum of af a file
 ##  Argumets:
-# - file_name: guess?
-
+# - file_name: the name of the file of which you want to vevaluate the md5 checksum
 proc md5sum {file_name} {
     if !([file exists $file_name]) {
 	Msg Warning "Could not find $xci_file."
@@ -1536,8 +1544,6 @@ proc md5sum {file_name} {
 	set file_hash [string tolower [md5::md5 -hex -file $file_name]]
     }
 }
-
-########################################################
 
 ## Checks that "ref" in .gitlab-ci.yml actually matches the gitlab-ci file in the 
 ##  Hog submodule
@@ -1611,8 +1617,6 @@ You can fix this in 2 ways: (A) by changing the ref in your repository or (B) by
 
 	cd "$thisPath"
 }
-
-########################################################
 
 ## Parse JSON file
 ## returns -1 in case of failure

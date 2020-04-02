@@ -32,9 +32,9 @@ building-doxygen:
       before_script:
         - echo ""
       script:
-        - yum install -y doxygen
+        - yum install -y doxygen krb5-workstation rsync openssh-clients xrootd-client which
         - cd doxygen
-        - doxygen HOG-doxygen.cfg
+        - ./scripts/build-and-deploy.sh
       artifacts:
         paths:
           - doxygen/DOXY_DOCS
@@ -49,7 +49,6 @@ deploying:
         - echo ""
       script:
         - deploy-eos
-        - /usr/bin/xrdcp --force --recursive ./doxygen/DOXY_DOCS/html/ root://eosuser.cern.ch//eos/user/h/hog/www/test-doxy/ 
 
 
 merge-and-tag:

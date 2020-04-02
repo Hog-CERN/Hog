@@ -174,7 +174,7 @@ tag_official_version:
       - push
       - web
     variables:
-      - $HOG_TARGET_BRANCH != null && $CI_COMMIT_REF_NAME =~ /^$HOG_TARGET_BRANCH\d*$/
+      - $HOG_TARGET_BRANCH != null && $CI_COMMIT_REF_NAME =~ /^\${HOG_TARGET_BRANCH}\d*$/
   except:
     variables:
       - $CI_PIPELINE_SOURCE != "push"

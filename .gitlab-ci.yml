@@ -49,8 +49,8 @@ deploying:
         - echo ""
       script:
         - deploy-eos
-        - CI_DOXY_OUTPUT="doxygen/DOXY_DOCS/html"
-        - EOS_DOXY_PATH="eos/user/h/hog/www/test-doxy"
+        - CI_DOXY_OUTPUT="./doxygen/DOXY_DOCS/html"
+        - EOS_DOXY_PATH="/eos/user/h/hog/www/test-doxy"
         - /usr/bin/xrdcp --force --recursive "$CI_DOXY_OUTPUT/" "$EOS_MGM_URL/$EOS_DOXY_PATH/" 2>&1 >/dev/null
 
 

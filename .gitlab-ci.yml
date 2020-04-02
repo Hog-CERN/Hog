@@ -34,6 +34,7 @@ building-doxygen:
       script:
         - yum install -y doxygen krb5-workstation rsync openssh-clients xrootd-client which
         - cd doxygen
+        - chmod +x ./scripts/build-and-deploy.sh
         - ./scripts/build-and-deploy.sh
       artifacts:
         paths:

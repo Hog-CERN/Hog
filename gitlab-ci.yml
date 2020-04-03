@@ -171,37 +171,17 @@ merge_and_tag:
        - vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_merge_and_tag.tcl -tclargs -mr_par "{$MR_PARAMETERS}" -mr_id $CI_MERGE_REQUEST_IID -push $CI_COMMIT_REF_NAME -main_branch $CI_MERGE_REQUEST_TARGET_BRANCH_NAME
 
 tag_official_version:
-  only:
-    refs:
-      - push
-      - web
-    variables:
-      - $HOG_TARGET_BRANCH != null && $CI_COMMIT_REF_NAME == $HOG_TARGET_BRANCH
-  except:
-    variables:
-      - $CI_PIPELINE_SOURCE != "push"
   tags:
      - hog
   stage: merge
   script:
      - vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_merge_and_tag.tcl -tclargs -merged  -push $CI_COMMIT_REF_NAME -main_branch $CI_COMMIT_REF_NAME
-
-tag_official_version_master:
-  only:
-    refs:
-      - push
-      - web
-    variables:
-      - $HOG_TARGET_BRANCH == null && $CI_COMMIT_REF_NAME =~ /^master\d*$/
-  except:
-    variables:
-      - $CI_PIPELINE_SOURCE != "push"
-  tags:
-     - hog
-  stage: merge
-  script:
-     - vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_merge_and_tag.tcl -tclargs -merged  -push $CI_COMMIT_REF_NAME -main_branch $CI_COMMIT_REF_NAME
-
+  rules:
+    - if: '$HOG_TARGET_BRANCH != null && $CI_COMMIT_REF_NAME == $HOG_TARGET_BRANCH && $CI_PIPELINE_SOURCE == "push"'
+      when: always
+    - if: '$HOG_TARGET_BRANCH == null && $CI_COMMIT_REF_NAME =~ /^master\d*$/  && $CI_PIPELINE_SOURCE == "push"'
+      when: always
+    - when: never
 
 create_official_release:
   only:

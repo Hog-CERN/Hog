@@ -164,7 +164,7 @@ merge_and_tag:
      stage: merge
      variables:
        GIT_STRATEGY: clone
-       HOG_TARGET_REGEX: "/^$HOG_TARGET_REGEX\d*\$/"
+       HOG_TARGET_REGEX: "//^$HOG_TARGET_BRANCH\d*$//"
      script:
        - echo $HOG_TARGET_REGEX
        - ./Hog/Other/CheckEnv.sh
@@ -173,7 +173,7 @@ merge_and_tag:
 
 tag_official_version:
   variables:
-    HOG_TARGET_REGEX: "/^$HOG_TARGET_REGEX\d*\$/"
+    HOG_TARGET_REGEX: "//^$HOG_TARGET_BRANCH\d*$//"
   only:
     refs:
       - push

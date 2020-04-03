@@ -30,7 +30,6 @@ set unofficial $path_to_clean
 Msg Info "Retrieving list of bitfiles in $unofficial..."
 
 lassign [eos "ls $unofficial"] ret bitfiles
-set bitfiles "fb244c28a650e4\n75f3bdcc4acbc22fa82\n75f3bdcc4acbc22fa82\n0b285cc8124272ae8285"
 set list_bitfiles [split $bitfiles "\n"]
 
 foreach bitfile $list_bitfiles {

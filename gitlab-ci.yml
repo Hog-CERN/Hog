@@ -164,24 +164,18 @@ merge_and_tag:
      stage: merge
      variables:
        GIT_STRATEGY: clone
-       DOLLAR : '$'
-       HOG_TARGET_REGEX: /^$HOG_TARGET_BRANCH\d*$DOLLAR/
      script:
-       - echo $HOG_TARGET_REGEX
        - ./Hog/Other/CheckEnv.sh
        - "MR_PARAMETERS=`curl --header \"PRIVATE-TOKEN: ${HOG_PUSH_TOKEN}\" ${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/merge_requests/${CI_MERGE_REQUEST_IID}`"
        - vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_merge_and_tag.tcl -tclargs -mr_par "{$MR_PARAMETERS}" -mr_id $CI_MERGE_REQUEST_IID -push $CI_COMMIT_REF_NAME -main_branch $CI_MERGE_REQUEST_TARGET_BRANCH_NAME
 
 tag_official_version:
-  variables:
-    DOLLAR : '$'
-    HOG_TARGET_REGEX: /^$HOG_TARGET_BRANCH\d*$DOLLAR/
   only:
     refs:
       - push
       - web
     variables:
-      - $HOG_TARGET_BRANCH != null && $CI_COMMIT_REF_NAME =~ $HOG_TARGET_REGEX
+      - $HOG_TARGET_BRANCH != null && $CI_COMMIT_REF_NAME == $HOG_TARGET_BRANCH
   except:
     variables:
       - $CI_PIPELINE_SOURCE != "push"
@@ -197,7 +191,7 @@ tag_official_version_master:
       - push
       - web
     variables:
-      - $HOG_TARGET_BRANCH == null && $CI_COMMIT_REF_NAME == "master"
+      - $HOG_TARGET_BRANCH == null && $CI_COMMIT_REF_NAME =~ \^master/d*$\
   except:
     variables:
       - $CI_PIPELINE_SOURCE != "push"

@@ -165,7 +165,7 @@ merge_and_tag:
      variables:
        GIT_STRATEGY: clone
        DOLLAR : '$'
-       HOG_TARGET_REGEX: "/^$HOG_TARGET_BRANCH\\d*$DOLLAR/"
+       HOG_TARGET_REGEX: /^$HOG_TARGET_BRANCH\\d*$DOLLAR/
      script:
        - echo $HOG_TARGET_REGEX
        - ./Hog/Other/CheckEnv.sh
@@ -175,7 +175,7 @@ merge_and_tag:
 tag_official_version:
   variables:
     DOLLAR : '$'
-    HOG_TARGET_REGEX: "/^$HOG_TARGET_BRANCH\\d*$DOLLAR/"
+    HOG_TARGET_REGEX: /^$HOG_TARGET_BRANCH\\d*$DOLLAR/
   only:
     refs:
       - push

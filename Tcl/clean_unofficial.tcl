@@ -6,10 +6,9 @@ if {[catch {package require cmdline} ERROR]} {
 	return
 }
 set parameters {
-	{main_branch.arg "master" "Main branch (default = master)"}
 }
 
-set usage   "Script to clean EOS unofficial path of commits already merged into \$HOG_TARGET_BRANCH.\nUsage: $argv0 <path_to_clean> \n"
+set usage   "Script to clean EOS unofficial path of commits already merged into \$HOG_TARGET_BRANCH.\nUsage: $argv0 <path_to_clean> <git_tag>\n"
 
 
 set old_path [pwd]
@@ -18,23 +17,25 @@ cd $path
 source ./hog.tcl
 cd ../../
 
-if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] ||  [llength $argv] < 1} {
+if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] ||  [llength $argv] < 2} {
 	Msg Info [cmdline::usage $parameters $usage]
 	cd $old_path
     exit 1
 } else {
     set path_to_clean [lindex $argv 0]
+    set git_tag [lindex $argv 1]
 }
 
 set unofficial $path_to_clean
 Msg Info "Retrieving list of bitfiles in $unofficial..."
 
 lassign [eos "ls $unofficial"] ret bitfiles
+set bitfiles "fb244c28a650e4\n75f3bdcc4acbc22fa82\n75f3bdcc4acbc22fa82\n0b285cc8124272ae8285"
 set list_bitfiles [split $bitfiles "\n"]
 
 foreach bitfile $list_bitfiles {
-   	set status [catch {exec git branch $options(main_branch) --contains $bitfile} contained]
-   	if { $status==0 && [string first "$options(main_branch)" $contained] != -1 } {
+   	set status [catch {exec git tag --contains $bitfile | grep $git_tag} contained]
+   	if { $status==0 && [string first "$git_tag" $contained] != -1 } {
 	    Msg Info "Removing files corresponding to SHA $bitfile"
 	    lassign [eos "rm -r $unofficial/$bitfile"] status2 deletion
 	}

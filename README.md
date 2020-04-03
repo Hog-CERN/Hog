@@ -5,7 +5,7 @@ Hog tackles these issues by exploiting advanced Git features and being deeply in
 
 Hog is a set of Tcl/Shell scripts plus a suitable methodology to allow a fruitful use of Git as a HDL repository and guarantee synthesis reproducibility and binary file traceability.
 
-More information on the how to use Hog can be found in the [user documentation website](hog-user-docs.web.cern.ch)
+More information on the how to use Hog can be found in the [user documentation website](http://hog-user-docs.web.cern.ch/)
 
 ## Report issues or bugs
 

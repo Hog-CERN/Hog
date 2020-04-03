@@ -191,7 +191,7 @@ tag_official_version_master:
       - push
       - web
     variables:
-      - $HOG_TARGET_BRANCH == null && $CI_COMMIT_REF_NAME =~ \^master/d*$\
+      - $HOG_TARGET_BRANCH == null && $CI_COMMIT_REF_NAME =~ /^master\d*$/
   except:
     variables:
       - $CI_PIPELINE_SOURCE != "push"

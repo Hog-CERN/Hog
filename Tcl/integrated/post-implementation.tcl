@@ -48,14 +48,15 @@ set dst_dir [file normalize "$bin_dir/$proj_name\-$describe"]
 if [file exists $run_path/versions.txt] {
     file copy -force $run_path/versions.txt $dst_dir
 } else {
-        Msg Warning "No versions file found"
+    Msg Warning "No versions file found"
 }
 #Timing file
-puts $run_path
-puts [glob -nocomplain "$run_path/timing_*"]
-set timing_file [file normalize [lindex [glob -nocomplain "$run_path/timing_*"] 0]]
+# puts $run_path
+set timing_files [ glob -nocomplain "$run_path/timing_*.txt" ]
+puts $timing_files
+set timing_file [file normalize [lindex $timing_files 0]]
 puts $timing_file
-if [file exists $timing_file] {
+if [file exists $timing_file ] {
     file copy -force $timing_file $dst_dir
 } else {
     Msg Warning "No timing file found, not a problem if running locally"

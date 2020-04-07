@@ -52,11 +52,14 @@ if [file exists $run_path/versions.txt] {
 }
 #Timing file
 # puts $run_path
-exec ls $run_path/
+Msg Info "Ls $run_path"
+puts [ exec ls $run_path/ ]
+
 set timing_files [ glob -nocomplain "$run_path/timing_*.txt" ]
-puts $timing_files
+
+puts "timing_files $timing_files"
 set timing_file [file normalize [lindex $timing_files 0]]
-puts $timing_file
+puts "timing_file $timing_file"
 if [file exists $timing_file ] {
     file copy -force $timing_file $dst_dir/
 } else {

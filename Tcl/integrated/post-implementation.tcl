@@ -54,6 +54,7 @@ if [file exists $run_path/versions.txt] {
 puts $run_path
 puts [glob -nocomplain "$run_path/timing_*"]
 set timing_file [file normalize [lindex [glob -nocomplain "$run_path/timing_*"] 0]]
+puts timing_file
 if [file exists $timing_file] {
     file copy -force $timing_file $dst_dir
 } else {

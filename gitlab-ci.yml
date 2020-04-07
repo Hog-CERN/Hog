@@ -75,8 +75,8 @@ stages:
         <<: *vars    
     script:
         - until echo $HOG_PASSWORD | kinit $HOG_USER ; do echo "Retrying"; sleep 2; done
-        - "if [ -z ${HOG_IP_EOS_PATH+x} ]; then echo 'No EOS path for IPs defined'; else vivado -mode batch -notrace -source ./Hog/Tcl/launchers/get_ips.tcl -tclargs $PROJECT_NAME; fi"
-        - vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_ip_synth.tcl -tclargs $PROJECT_NAME
+        - "if [ -z ${HOG_IP_EOS_PATH+x} ]; then echo 'No EOS path for IPs defined'; else vivado -mode batch -notrace -source ./Hog/Tcl/launchers/get_ips.tcl -tclargs $PROJECT_NAME $HOG_IP_EOS_PATH; fi"
+        - vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_ip_synth.tcl -tclargs $PROJECT_NAME $HOG_IP_EOS_PATH
     artifacts:
         name: vivado_runs
         paths:
@@ -149,6 +149,12 @@ make_doxygen:
     script:
         - until echo $HOG_PASSWORD | kinit $HOG_USER ; do echo Retrying; sleep 2; done
         - vivado -mode batch -notrace -source ./Hog/Tcl/make_doxygen.tcl
+        - DESCRIBE=$(git describe --always --tags --long)
+        - "if [ -e $CI_PROJECT_DIR/Doc/html -a -n '$HOG_UNOFFICIAL_BIN_EOS_PATH' ]; then 
+          eos mkdir -p $HOG_UNOFFICIAL_BIN_EOS_PATH/$CI_COMMIT_SHORT_SHA/Doc-$DESCRIBE
+          eos cp -r ./Doc/html/* $HOG_UNOFFICIAL_BIN_EOS_PATH/$CI_COMMIT_SHORT_SHA/Doc-$DESCRIBE;
+          elif [ -e $CI_PROJECT_DIR/Doc/html ] then echo 'Environmental variable HOG_UNOFFICIAL_BIN_EOS_PATH not set. Doxygen documentation cannot be copied to eos.'; 
+          else echo 'Documentation not found in $CI_PROJECT_DIR/Doc/html'; fi"
     artifacts:
         name: docs
         paths:

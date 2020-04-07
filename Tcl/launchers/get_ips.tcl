@@ -7,7 +7,7 @@ if {[catch {package require cmdline} ERROR]} {
 set parameters {
 }
 
-set usage   "USAGE: $::argv0 <project>"
+set usage   "USAGE: $::argv0 <project> \[<eos_ip_path>\]"
 
 set path [file normalize "[file dirname [info script]]/.."]
 
@@ -20,18 +20,16 @@ if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] 
     Msg Info [cmdline::usage $parameters $usage]
 	cd $old_path
     exit 1
+} elseif { $::argc eq 1 } {
+    set project [lindex $argv 0]
+    set main_folder [file normalize "$path/../../VivadoProject/$project/$project.runs/"]
+    set ip_path 0
 } else {
     set project [lindex $argv 0]
     set main_folder [file normalize "$path/../../VivadoProject/$project/$project.runs/"]
-}
-
-if [info exists env(HOG_IP_EOS_PATH)] {
-    set ip_path $env(HOG_IP_EOS_PATH)
+    set ip_path [lindex $argv 1]
     Msg Info "Will use the EOS ip repository on $ip_path to speed up ip synthesis..."
-} else {
-    set ip_path 0
 }
-
 
 Msg Info "Opening project $project..."
 open_project ../../VivadoProject/$project/$project.xpr

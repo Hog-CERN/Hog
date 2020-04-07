@@ -2,39 +2,32 @@
 
 #parsing command options
 if {[catch {package require cmdline} ERROR]} {
-	puts "$ERROR\n If you are running this script on tclsh, you can fix this by installing 'tcllib'" 
-	return
+    puts "$ERROR\n If you are running this script on tclsh, you can fix this by installing 'tcllib'" 
+    return
 }
 
 if {[catch {package require struct::matrix} ERROR]} {
-	puts "$ERROR\n If you are running this script on tclsh, you can fix this by installing 'tcllib'" 
-	return
+    puts "$ERROR\n If you are running this script on tclsh, you can fix this by installing 'tcllib'" 
+    return
 }
 
 set parameters {
-	{no_bitstream    "If set, the bitstream file will not be produced. If not set, it will check the enviromental variable \$HOG_NO_BITSTREAM. If \$HOG_NO_BITSTREAM is set to a value different from 0, the bitstream file will not be produced"}
+    {no_bitstream    "If set, the bitstream file will not be produced."}
 }
 
 set usage "- USAGE: $::argv0 \[OPTIONS\] <project> \n. Options:"
 set path [file normalize "[file dirname [info script]]/.."]
 
 if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] ||  [llength $argv] < 1 } {
-	puts [cmdline::usage $parameters $usage]
-	exit 1
+    puts [cmdline::usage $parameters $usage]
+    exit 1
 } else {
     set project [lindex $argv 0]
     set main_folder [file normalize "$path/../../VivadoProject/$project/$project.runs/"]
     set do_bitstream 1
     if { $options(no_bitstream) == 1 } {
-		set do_bitstream 0
-    } else {
-		if [info exists env(HOG_NO_BITSTREAM)] {
-			if {$env(HOG_NO_BITSTREAM) != 0} {
-				puts "\$HOG_NO_BITSTREAM is set to a value different from 0, bitstream will not be generated"
-				set do_bitstream 0
-			} 
-		}
-	}
+        set do_bitstream 0
+    }
 }
 
 set old_path [pwd]
@@ -120,7 +113,7 @@ if {$do_bitstream == 1} {
     Msg Info "Run: impl_1 progress: $prog, status : $status"
     
     if {$prog ne "100%"} {
-	Msg Error "Write bitstream error, status is: $status"
+    Msg Error "Write bitstream error, status is: $status"
     }
 
     Msg Status "*** Timing summary (again) ***"

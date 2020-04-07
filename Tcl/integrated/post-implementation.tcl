@@ -43,7 +43,7 @@ set describe [exec git describe --always --dirty --tags --long]
 Msg Info "Git describe: $describe"
 
 set dst_dir [file normalize "$bin_dir/$proj_name\-$describe"]
-
+file mkdir $dst_dir
 #Version table
 if [file exists $run_path/versions.txt] {
     file copy -force $run_path/versions.txt $dst_dir
@@ -52,12 +52,13 @@ if [file exists $run_path/versions.txt] {
 }
 #Timing file
 # puts $run_path
+exec ls $run_path/
 set timing_files [ glob -nocomplain "$run_path/timing_*.txt" ]
 puts $timing_files
 set timing_file [file normalize [lindex $timing_files 0]]
 puts $timing_file
 if [file exists $timing_file ] {
-    file copy -force $timing_file $dst_dir
+    file copy -force $timing_file $dst_dir/
 } else {
     Msg Warning "No timing file found, not a problem if running locally"
 }

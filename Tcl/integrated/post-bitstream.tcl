@@ -54,7 +54,7 @@ if [file exists $fw_file] {
     set dst_xml [file normalize "$dst_dir/xml"]
     
     Msg Info "Creating $dst_dir..."
-    file mkdir $dst_dir
+    file mkdir -p $dst_dir
     Msg Info "Evaluating differences with last commit..."
     set diff [exec git diff]
     if {$diff != ""} {
@@ -70,7 +70,7 @@ if [file exists $fw_file] {
     Msg Info "Copying bit file $bit_file into $dst_bit..."
     file copy -force $bit_file $dst_bit
     # Reports
-    file mkdir $dst_dir/reports
+    file mkdir -p $dst_dir/reports
     set reps [glob -nocomplain "$run_dir/*/*.rpt"]
     if [file exists [lindex $reps 0]] {
 	file copy -force {*}$reps $dst_dir/reports

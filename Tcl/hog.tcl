@@ -555,7 +555,6 @@ proc CreateReportStrategy {DESIGN obj} {
     if {[string equal [get_property -quiet report_strategy $obj] ""]} {
         # No report strategy needed
         Msg Info "No report strategy needed for implementation"
-        
     } else {
         # Report strategy needed since version 2017.3
         set_property set_report_strategy_name 1 $obj

@@ -63,12 +63,13 @@ if {$wns >= 0 && $whs >= 0} {
     Msg Info "Time requirements are met"
     set status_file [open "$main_folder/timing_ok.txt" "w"]
     set timing_ok 1
-
 } else {
     Msg CriticalWarning "Time requirements are NOT met"
     set status_file [open "$main_folder/timing_error.txt" "w"]
     set timing_ok 0
 }
+puts $main_folder
+puts [ exec ls $main_folder/ ]
 
 Msg Status "*** Timing summary ***"
 Msg Status "WNS: $wns"

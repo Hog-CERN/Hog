@@ -152,7 +152,7 @@ make_doxygen:
         - vivado -mode batch -notrace -source ./Hog/Tcl/make_doxygen.tcl
         - DESCRIBE=$(git describe --always --tags --long)
         - "if [ -e $CI_PROJECT_DIR/Doc/html -a -n '$HOG_UNOFFICIAL_BIN_EOS_PATH' ]; then 
-          eos mkdir -p $HOG_UNOFFICIAL_BIN_EOS_PATH/$CI_COMMIT_SHORT_SHA/Doc-$DESCRIBE
+          eos mkdir -p $HOG_UNOFFICIAL_BIN_EOS_PATH/$CI_COMMIT_SHORT_SHA/Doc-$DESCRIBE;
           eos cp -r ./Doc/html/* $HOG_UNOFFICIAL_BIN_EOS_PATH/$CI_COMMIT_SHORT_SHA/Doc-$DESCRIBE;
           elif [ -e $CI_PROJECT_DIR/Doc/html ]; then echo \"Environmental variable HOG_UNOFFICIAL_BIN_EOS_PATH not set. Doxygen documentation cannot be copied to eos.\"; 
           else echo \"Documentation not found in $CI_PROJECT_DIR/Doc/html\"; fi"

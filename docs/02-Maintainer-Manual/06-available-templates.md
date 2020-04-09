@@ -11,8 +11,14 @@ The following file tamplates are distributed with HOG:
 - `top.vhd`:
 
 	- example of top level file in vhdl;
-	- contains the definition of the variables set by HOG to keep track of the frimware versions;
-	- to use this file copy it to the `Top/project/` direcotory, rename it and modify it to accommodate your project;
+	- contains the definition of the generics set by HOG to keep track of the frimware versions;
+	- to use this file copy it anywhere in your project, rename it and modify it to accommodate your project, remember to rename the contained entity `top_<project_name>` and to include the file in a list file in `Top/project/list/` direcotory;
+
+- `top.v`:
+
+	- example of top level file in Verilog;
+	- contains the definition of the parameters set by HOG to keep track of the frimware versions;
+	- to use this file copy it anywhere in your project, rename it and modify it to accommodate your project, remember to rename the contained module `top_<project_name>` and to include the file in a list file in `Top/project/list/` direcotory;
 
 - `gitlab-ci.yml`:
 

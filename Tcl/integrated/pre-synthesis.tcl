@@ -115,7 +115,7 @@ if [file exists ./Top/$proj_name/xml] {
         Msg Info "Creating XML directory $xml_dst..."
         file mkdir $xml_dst
         Msg Info "Copying xml files to $xml_dst and replacing placeholders with xml version $xml_ver..."
-        CopyXMLsFromListFile ./Top/$proj_name/xml/xml.lst ./Top/$proj_name $xml_dst $xml_ver $xml_hash       
+        CopyXMLsFromListFile ./Top/$proj_name/xml/xml.lst ./ $xml_dst $xml_ver $xml_hash       
     } else {
         Msg Info "IPbus XML list file not found, using version of xml directory..."
         # in this case, IPbus xml files are just stored in the xml directory in the project folder

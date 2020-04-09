@@ -44,8 +44,6 @@ namespace eval globalSettings {
     variable user_ip_repo
     
     variable bin_file
-
-
     variable pre_synth
     variable post_synth
     variable post_impl
@@ -162,7 +160,7 @@ proc CreateProject {} {
     set list_files [glob -directory $globalSettings::list_path "*"]
 
     foreach f $list_files {
-        SmartListFile $f $globalSettings::top_path
+        SmartListFile $f $globalSettings::repo_path
     }
 }
 ########################################################

@@ -423,9 +423,9 @@ proc configureSimulation {} {
         ##############
         # SIMULATION #
         ##############
-        Msg Info "Setting load_glbl parameter to false for every fileset..."
+        Msg Info "Setting load_glbl parameter to true for every fileset..."
         foreach f [get_filesets -quiet *_sim] {
-            set_property -name {xsim.elaborate.load_glbl} -value {false} -objects $f
+            set_property -name {xsim.elaborate.load_glbl} -value {true} -objects $f
         }
     }  elseif {[info commands project_new] != ""} {
             #QUARTUS only

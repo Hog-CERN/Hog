@@ -40,7 +40,6 @@ namespace eval globalSettings {
     variable modelsim_path
     variable top_name
     variable synth_top_module
-    variable synth_top_file
     variable user_ip_repo
     
     variable bin_file
@@ -51,15 +50,14 @@ namespace eval globalSettings {
 }
 
 ################# FUNCTIONS ################################
-
 proc CreateProject {} {
     if {[info commands create_project] != ""} {
-            #VIVADO_ONLY
-            if {$globalSettings::top_name != $globalSettings::DESIGN} {
-            Msg Info "This project has got a flavour, the top module name will differ from the project name."
+	#VIVADO_ONLY
+	if {$globalSettings::top_name != $globalSettings::DESIGN} {
+            Msg Info "This project has got a flavour, the top module name ($globalSettings::top_name) differs from the project name ($globalSettings::DESIGN)."
         }
         create_project -force $globalSettings::DESIGN $globalSettings::BUILD_DIR -part $globalSettings::FPGA
-
+	
         ## Set project properties
         set obj [get_projects $globalSettings::DESIGN]
         set_property "simulator_language" "Mixed" $obj
@@ -128,16 +126,7 @@ proc CreateProject {} {
     }
 
     ## Set synthesis TOP
-    if [file exists $globalSettings::synth_top_file.v] {
-        Msg Info "Adding top file found in Top folder $globalSettings::synth_top_file.v" 
-        add_top_file $globalSettings::synth_top_module $globalSettings::synth_top_file.v  $sources
-    } elseif [file exists $globalSettings::synth_top_file.vhd] {
-        Msg Info "Adding top file found in Top folder $globalSettings::synth_top_file.vhd" 
-        add_top_file $globalSettings::synth_top_module $globalSettings::synth_top_file.vhd  $sources
-    } else {
-        Msg Info "No top file found in Top folder, please make sure that the top file - i.e. containing a module called $globalSettings::synth_top_module - is included in one of the libraries"     
-    }
-
+    Msg Info "Setting module called $globalSettings::synth_top_module as top module for this project, make sure this module exists in one of the libraries."
     SetTopProperty $globalSettings::synth_top_module $sources
 
     ###############
@@ -434,7 +423,6 @@ set globalSettings::BUILD_DIR        "$globalSettings::repo_path/$BUILD_DIR_NAME
 set globalSettings::modelsim_path    "$globalSettings::repo_path/SimulationLib"
 set globalSettings::top_name          [file root $globalSettings::DESIGN]
 set globalSettings::synth_top_module "top_$globalSettings::top_name"
-set globalSettings::synth_top_file   "$globalSettings::top_path/top_$globalSettings::DESIGN"
 set globalSettings::user_ip_repo     "$globalSettings::repo_path/IP_repository"
 
 

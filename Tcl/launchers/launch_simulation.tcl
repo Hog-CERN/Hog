@@ -73,7 +73,6 @@ foreach s [get_filesets] {
             current_fileset -simset $s
             set sim_dir $main_folder/$s/behav           
             if { ($simulator eq "xsim") } {
-                set_property -name {xsim.elaborate.load_glbl} -value {true}
                 if { [catch { launch_simulation -simset [get_filesets $s] } log] } {
                     Msg CriticalWarning "Simulation failed for $s, error info: $::errorInfo"
                     incr errors

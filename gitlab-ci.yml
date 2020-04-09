@@ -78,8 +78,8 @@ stages:
         - "if [ -z ${HOG_IP_EOS_PATH+x} ]; then 
            echo 'No EOS path for IPs defined'; 
            vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_ip_synth.tcl -tclargs $PROJECT_NAME ; 
-           else vivado -mode batch -notrace -source ./Hog/Tcl/launchers/get_ips.tcl -tclargs -eos_ip_path "$HOG_IP_EOS_PATH" $PROJECT_NAME;
-            vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_ip_synth.tcl -tclargs -eos_ip_path "$HOG_IP_EOS_PATH" $PROJECT_NAME ;
+           else vivado -mode batch -notrace -source ./Hog/Tcl/launchers/get_ips.tcl -tclargs -eos_ip_path \"$HOG_IP_EOS_PATH\" $PROJECT_NAME;
+            vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_ip_synth.tcl -tclargs -eos_ip_path \"$HOG_IP_EOS_PATH\" $PROJECT_NAME ;
           fi"
         
     artifacts:

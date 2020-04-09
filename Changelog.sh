@@ -5,7 +5,7 @@ else
     TARGET_BRANCH=$1
 fi
 
-git rev-parse --verify ${TARGET_BRANCH} 2>1 >/dev/null
+git rev-parse --verify ${TARGET_BRANCH} >/dev/null 2>&1
 
 if [ $? -eq 0 ]; then
     echo "## Changelog"

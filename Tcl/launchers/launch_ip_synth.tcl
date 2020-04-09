@@ -5,9 +5,10 @@ if {[catch {package require cmdline} ERROR]} {
     return
 }
 set parameters {
+    {eos_ip_path.arg "" "Path of the EOS IP repository"}
 }
 
-set usage   "USAGE: $::argv0 <project>"
+set usage "- USAGE: $::argv0 \[OPTIONS\] <project> \n. Options:"
 
 set path [file normalize "[file dirname [info script]]/.."]
 
@@ -16,22 +17,19 @@ set old_path [pwd]
 cd $path
 source ./hog.tcl
 
-if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] || $::argc eq 0 } {
+if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] || [llength $argv] < 1 } {
     Msg Info [cmdline::usage $parameters $usage]
-    cd $old_path
     exit 1
+} elseif { $::argc eq 1 } {
+    set project [lindex $argv 0]
+    set main_folder [file normalize "$path/../../VivadoProject/$project/$project.runs/"]
+    set ip_path 0
 } else {
     set project [lindex $argv 0]
-        set main_folder [file normalize "$path/../../VivadoProject/$project/$project.runs/"]
+    set main_folder [file normalize "$path/../../VivadoProject/$project/$project.runs/"]
+    set ip_path $options(eos_ip_path)
+    Msg Info "Will use the EOS ip repository on $ip_path to speed up ip synthesis..."
 }
-
-if [info exists env(HOG_IP_EOS_PATH)] {
-    set ip_path $env(HOG_IP_EOS_PATH)
-    Msg Info "Will use the EOS ip repository on $ip_path to copy synthesised IPs..."
-} else {
-    set ip_path 0
-}
-
 
 Msg Info "Opening project $project..."
 open_project ../../VivadoProject/$project/$project.xpr

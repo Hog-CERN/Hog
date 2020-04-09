@@ -423,9 +423,9 @@ proc configureSimulation {} {
         ##############
         # SIMULATION #
         ##############
-        Msg Info "Setting load_glbl parameter to false for every fileset..."
+        Msg Info "Setting load_glbl parameter to true for every fileset..."
         foreach f [get_filesets -quiet *_sim] {
-            set_property -name {xsim.elaborate.load_glbl} -value {false} -objects $f
+            set_property -name {xsim.elaborate.load_glbl} -value {true} -objects $f
         }
     }  elseif {[info commands project_new] != ""} {
             #QUARTUS only
@@ -555,7 +555,6 @@ proc CreateReportStrategy {DESIGN obj} {
     if {[string equal [get_property -quiet report_strategy $obj] ""]} {
         # No report strategy needed
         Msg Info "No report strategy needed for implementation"
-        
     } else {
         # Report strategy needed since version 2017.3
         set_property set_report_strategy_name 1 $obj

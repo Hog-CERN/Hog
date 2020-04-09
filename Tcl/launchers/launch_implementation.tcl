@@ -18,7 +18,7 @@ set usage "- USAGE: $::argv0 \[OPTIONS\] <project> \n. Options:"
 set path [file normalize "[file dirname [info script]]/.."]
 
 if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] ||  [llength $argv] < 1 } {
-    puts [cmdline::usage $parameters $usage]
+    Msg Info [cmdline::usage $parameters $usage]
     exit 1
 } else {
     set project [lindex $argv 0]

@@ -216,6 +216,24 @@ fi
 echo " create an official release note using the version and timing summaries taken from the artifact of the projects."
 echo --------------------------------
 
+echo -n "Variable: HOG_SYNTH_NJOBS is "
+if [ -z ${HOG_SYNTH_NJOBS+x} ]
+then
+    echo -n "NOT defined. Hog-CI will run synthesis with default number of jobs (4)"
+else
+    echo -n "defined. Hog-CI will run synthesis with $HOG_SYNTH_NJOBS jobs"
+fi
+echo --------------------------------
+
+echo -n "Variable: HOG_IMPL_NJOBS is "
+if [ -z ${HOG_IMPL_NJOBS+x} ]
+then
+    echo -n "NOT defined. Hog-CI will run implementation with default number of jobs (4)"
+else
+    echo -n "defined. Hog-CI will run implementation with $HOG_IMPL_NJOBS jobs"
+fi
+echo --------------------------------
+
 echo -n "Variable: HOG_USE_DOXYGEN is "
 if [ -z ${HOG_USE_DOXYGEN+x} ]
 then

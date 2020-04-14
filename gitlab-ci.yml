@@ -13,9 +13,6 @@ before_script:
     - git submodule update
     - export XILINXD_LICENSE_FILE=${HOG_XIL_LICENSE}
     - export PATH=${HOG_PATH}:$PATH
-    - if [ -z ${HOG_TARGET_BRANCH+x} ]; then export HOG_TARGET_BRANCH=master ; fi
-    - if [ -z ${HOG_SYNTH_NJOBS+x} ]; then export HOG_SYNTH_NJOBS=4; fi
-    - if [ -z ${HOG_IMPL_NJOBS+x} ]; then export HOG_IMPL_NJOBS=4; fi
 
 .only-default: &only-default
   only:
@@ -101,6 +98,7 @@ stages:
         <<: *vars        
     script:
         - git status
+        - if [ -z ${HOG_SYNTH_NJOBS+x} ]; then export HOG_SYNTH_NJOBS=4; fi
         - vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_synthesis.tcl -tclargs -NJOBS $HOG_SYNTH_NJOBS $PROJECT_NAME
     artifacts:
         name: vivado_synth
@@ -117,7 +115,7 @@ stages:
     script:
         - git status
         - git diff
-        - echo $HOG_NO_BITSTREAM
+        - if [ -z ${HOG_IMPL_NJOBS+x} ]; then export HOG_IMPL_NJOBS=4; fi
         - "if [ $HOG_NO_BITSTREAM == '1' ]; then vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_implementation.tcl -tclargs -no_bitstream -NJOBS $HOG_IMPL_NJOBS  $PROJECT_NAME; else vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_implementation.tcl -tclargs -NJOBS $HOG_IMPL_NJOBS $PROJECT_NAME; fi"
         - "cat $CI_PROJECT_DIR/bin/$PROJECT_NAME*/versions* $CI_PROJECT_DIR/bin/$PROJECT_NAME*/timing_* > note.md"
         - ./Hog/Other/WriteGitlabNote.sh $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $CI_MERGE_REQUEST_IID note.md
@@ -126,7 +124,7 @@ stages:
           eos cp -r $CI_PROJECT_DIR/bin/* $HOG_UNOFFICIAL_BIN_EOS_PATH/$CI_COMMIT_SHORT_SHA; fi"
 
     artifacts:
-        name: implementaion_and_bitfiles
+        name: implementation_and_bitfiles
         paths:
             - $CI_PROJECT_DIR/VivadoProject/$PROJECT_NAME
             - $CI_PROJECT_DIR/bin           

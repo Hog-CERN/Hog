@@ -116,6 +116,7 @@ Linked to a detailed description:
 
  ![](./figures/Example_long.jpg)
 
+The same comment style can be used also for bash scripts provided you use functions in your script.
 
 ## Contributing to the Manual
 

@@ -75,6 +75,47 @@ If you want to contribute to Hog please follow these instructions:
 15. drop us a line at [HOG support](mailto:hog@cern.ch)
 16. check your Merge Request and address comments
 
+## Documenting the code
+
+All the code written to implement new features or correct bugs must be documented.
+The main source of documentation is doxygen and comments in the code.
+The doxygen documentation is collected in a devicated [website](https://hdl-on-git.web.cern.ch/hdl-on-git/test-doxy/index.html)
+
+An example of how to document new functions
+
+```tcl
+## @brief Brief description of this method
+#
+# After an empty line you can add a more detailed description.
+# Yopu can even use many lines
+#
+# @param[in]	param_1	the description of parameter param_1, this parameter is an input to the function
+# @param[out]	param_2	the description of parameter param_2, this parameter is an output to the function
+#
+# @returns	A description of the returned value
+#
+proc  Example {param_1 param_1} {
+    if {[info commands get_property] != ""} {
+        # some Vivado specific comments that will not end up in the documentation
+    	return "Vivado"
+
+    } elseif {[info commands quartus_command] != ""} {
+        # some Vivado specific comments that will not end up in the documentation
+    	return "Quartus"
+    } else {
+        # Tcl Shell
+   		return "DEBUG_propery_value"
+    }
+}
+```
+The resulting documentation will be a brief description in the list of available functions:
+
+ ![](./figures/Example_brief.jpg)
+
+Linked to a detailed description:
+
+ ![](./figures/Example_long.jpg)
+
 
 ## Contributing to the Manual
 

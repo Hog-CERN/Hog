@@ -50,6 +50,5 @@ With the following **optional** variables you can configure the behaviour of Hog
 | __HOG_NO_BITSTREAM_STAGE__   |									   |
 | __HOG_SIMULATION_LIB_PATH__  |									   |
 | __HOG_USE_DOXYGEN__          |                                                                           |
-
-
+| __HOG_TARGET_BRANCH__          |  Project target branch. Merge request should start from this branch. Default: master |
 

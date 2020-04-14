@@ -14,7 +14,6 @@ if {[info commands get_property] != ""} {
 } elseif {[info commands quartus_command] != ""} {
     # Quartus
     set fw_file [file normalize [lindex [glob -nocomplain "$old_path/*.bit"] 0]]
-
     set proj_name [string map {"top_" ""} [file rootname [file tail $fw_file]]]
     set name [file rootname [file tail [file normalize [pwd]/..]]]
     set bit_file [file normalize "$old_path/top_$proj_name.bit"]
@@ -55,7 +54,7 @@ if [file exists $fw_file] {
     set dst_xml [file normalize "$dst_dir/xml"]
     
     Msg Info "Creating $dst_dir..."
-    file mkdir $dst_dir
+    file mkdir -p $dst_dir
     Msg Info "Evaluating differences with last commit..."
     set diff [exec git diff]
     if {$diff != ""} {
@@ -71,7 +70,7 @@ if [file exists $fw_file] {
     Msg Info "Copying bit file $bit_file into $dst_bit..."
     file copy -force $bit_file $dst_bit
     # Reports
-    file mkdir $dst_dir/reports
+    file mkdir -p $dst_dir/reports
     set reps [glob -nocomplain "$run_dir/*/*.rpt"]
     if [file exists [lindex $reps 0]] {
 	file copy -force {*}$reps $dst_dir/reports
@@ -104,24 +103,7 @@ if [file exists $fw_file] {
 	file copy -force $ltx_file $dst_ltx
     } else {
 	Msg Info "No ltx file found: $ltx_file, that is not a problem"
-    }
-
-    #Version table
-    if [file exists $run_dir/versions.txt] {
-	file copy -force $run_dir/versions.txt $dst_dir
-    } else {
-	Msg Warning "No versions file found"
-    }
-    #Timing file
-    puts $run_dir
-    puts [glob -nocomplain "$run_dir/timing_*"]
-    set timing_file [file normalize [lindex [glob -nocomplain "$run_dir/timing_*"] 0]]
-    if [file exists $timing_file] {
-	file copy -force $timing_file $dst_dir
-    } else {
-	Msg Warning "No timing file found, not a problem if running locally"
-    }
-    
+    }    
 
 } else {
     Msg CriticalWarning "Firmware binary file not found."

@@ -1,10 +1,31 @@
 #!/usr/bin/env tclsh
+
 ## @file make_doxygen.tcl
+
+#parsing command options
+if {[catch {package require cmdline} ERROR]} {
+    puts "$ERROR\n If you are running this script on tclsh, you can fix this by installing 'tcllib'" 
+    return
+}
+set parameters {
+}
+
+set usage   "USAGE: $::argv0"
+
+>>>>>>> master
 set old_path [pwd]
 set path [file dirname [info script]]
 cd $path
 source ./hog.tcl
 cd ../../
+
+if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] || $::argc != 0 } {
+    Msg Info [cmdline::usage $parameters $usage]
+    cd $old_path
+    exit 1
+}
+
+
 
 set tags [TagRepository 0 0]
 set version [lindex $tags 0]
@@ -26,26 +47,6 @@ if {[DoxygenVersion 1.8.13]} {
     puts $outfile \nPROJECT_NUMBER=$version
     close $outfile
     exec -ignorestderr doxygen $doxygen_conf
-}
-
-Msg Info "Evaluating git describe..."
-set describe [exec git describe --always --tags --long]
-Msg Info "Git describe: $describe"
-
-# Copy documentation to eos
-if {[info exists env(HOG_UNOFFICIAL_BIN_EOS_PATH)]} {
-    set output_dir $env(HOG_UNOFFICIAL_BIN_EOS_PATH)/$env(CI_COMMIT_SHORT_SHA)/Doc-$describe
-    Msg Info "Creating $output_dir"
-    eos "mkdir -p $output_dir" 5
-    
-    if {[file exists ./Doc/html]} {
-        Msg Info "Copying doxygen files..."
-        eos "cp -r ./Doc/html/* $output_dir" 5
-    } else {
-        Msg Warning "Doxygen documentation not found in Doc/html/"
-    }
-} else {
-    Msg Warning "Environmental variable HOG_UNOFFICIAL_BIN_EOS_PATH not set. Doxygen documentation cannot be copied to eos."
 }
 
 cd $old_path

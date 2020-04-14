@@ -44,11 +44,10 @@ With the following **optional** variables you can configure the behaviour of Hog
 | Name                            | Value  |
 |-----|---|
 | __HOG_USE_DOXYGEN__          | Should be set to 1 if you want the Hog CI to run doxygen (in progress...) |
-| __HOG_CHECK_SYNTAX__	       | 									   |
-| __HOG_CHECK_YAMLREF__	       | If this variable is set, Hog CI will check that "ref" in .gitlab-ci.yml actually matches the gitlab-ci file in the Hog submodule |
+| __HOG_CHECK_SYNTAX__	       | Should be set to 1 if you want the Hog CI to run check syntax 									   |
+| __HOG_CHECK_YAMLREF__	       | If this variable is set to 1, Hog CI will check that "ref" in .gitlab-ci.yml actually matches the gitlab-ci file in the Hog submodule |
 | __HOG_IP_EOS_PATH__	         |									   |
-| __HOG_NO_BITSTREAM_STAGE__   |									   |
+| __HOG_NO_BITSTREAM__   |	If this variable is set to 1, Hog-CI will run the implementation but will NOT run the write_bitstream stage								   |
+| __HOG_CREATE_OFFICIAL_RELEASE__   |	If this variable is set to 1, Hog-CI will create an official release note using the version and timing summaries taken from the artifact of the projects.								   |
 | __HOG_SIMULATION_LIB_PATH__  |									   |
-| __HOG_USE_DOXYGEN__          |                                                                           |
 | __HOG_TARGET_BRANCH__          |  Project target branch. Merge request should start from this branch. Default: master |
-

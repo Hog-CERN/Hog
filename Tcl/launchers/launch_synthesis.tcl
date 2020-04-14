@@ -5,6 +5,7 @@ if {[catch {package require cmdline} ERROR]} {
 	return
 }
 set parameters {
+	{NJOBS.arg "Number of jobs. Default: 4"}
 }
 
 set usage   "USAGE: $::argv0 <project>"
@@ -23,9 +24,8 @@ if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] 
 } else {
     set project [lindex $argv 0]
 	set main_folder [file normalize "$path/../../VivadoProject/$project/$project.runs/"]
-	set NJOBS 4
 }
-Msg Info "Number of jobs set to $NJOBS."
+Msg Info "Number of jobs set to $options(NJOBS)."
 set commit [GetHash ALL ../../]
 
 Msg Info "Opening $project..."
@@ -33,7 +33,7 @@ open_project ../../VivadoProject/$project/$project.xpr
 
 reset_run synth_1
 
-launch_runs synth_1  -jobs $NJOBS -dir $main_folder
+launch_runs synth_1  -jobs $options(NJOBS) -dir $main_folder
 wait_on_run synth_1
 
 set prog [get_property PROGRESS [get_runs synth_1]]

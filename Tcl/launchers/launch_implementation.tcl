@@ -12,6 +12,7 @@ if {[catch {package require struct::matrix} ERROR]} {
 
 set parameters {
     {no_bitstream    "If set, the bitstream file will not be produced."}
+	{NJOBS.arg "Number of jobs. Default: 4"}
 }
 
 set usage "- USAGE: $::argv0 \[OPTIONS\] <project> \n. Options:"
@@ -44,10 +45,12 @@ if {$do_bitstream == 1} {
 Msg Info "Opening project: $project..."
 open_project ../../VivadoProject/$project/$project.xpr
 
+Msg Info "Number of jobs set to $options(NJOBS)."
+
 Msg Info "Starting implementation flow..."
 reset_run impl_1
 
-launch_runs impl_1 -jobs 4 -dir $main_folder
+launch_runs impl_1 -jobs $options(NJOBS) -dir $main_folder
 wait_on_run impl_1
 
 set prog [get_property PROGRESS [get_runs impl_1]]

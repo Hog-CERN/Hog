@@ -14,8 +14,8 @@ before_script:
     - export XILINXD_LICENSE_FILE=${HOG_XIL_LICENSE}
     - export PATH=${HOG_PATH}:$PATH
     - if [ -z ${HOG_TARGET_BRANCH+x} ]; then export HOG_TARGET_BRANCH=master ; fi
-    - if [ -z ${$HOG_SYNTH_NJOBS+x} ]; then export HOG_SYNTH_NJOBS=4; fi
-    - if [ -z ${$HOG_IMPL_NJOBS+x} ]; then export HOG_IMPL_NJOBS=4; fi
+    - if [ -z ${HOG_SYNTH_NJOBS+x} ]; then export HOG_SYNTH_NJOBS=4; fi
+    - if [ -z ${HOG_IMPL_NJOBS+x} ]; then export HOG_IMPL_NJOBS=4; fi
 
 .only-default: &only-default
   only:

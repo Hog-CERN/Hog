@@ -5,7 +5,7 @@ This chapter describes how to setup Hog Continuous Itegration on Gitlab.
 
  Once you  have your service account you to get an [eos space](#eos_space) where to store your *.bit files and your documentation.
 
- You can now start instructing the gitlab CI on what actions must be taken in order to compile your firmware usinga [YAML file](Gitlab_CI_YAML). 
+ You can now start instructing the gitlab CI on what actions must be taken in order to compile your firmware using a [YAML file](Gitlab_CI_YAML). 
 
   - Create a service account (let's call it john)
   - Log in with it to gitlab and give it access to your repository

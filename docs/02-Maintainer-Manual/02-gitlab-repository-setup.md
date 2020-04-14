@@ -50,6 +50,4 @@ With the following **optional** variables you can configure the behaviour of Hog
 | __HOG_NO_BITSTREAM__   |	If this variable is set to 1, Hog-CI will run the implementation but will NOT run the write_bitstream stage								   |
 | __HOG_CREATE_OFFICIAL_RELEASE__   |	If this variable is set to 1, Hog-CI will create an official release note using the version and timing summaries taken from the artifact of the projects.								   |
 | __HOG_SIMULATION_LIB_PATH__  |									   |
-
-
-
+| __HOG_TARGET_BRANCH__          |  Project target branch. Merge request should start from this branch. Default: master |

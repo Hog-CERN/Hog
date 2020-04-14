@@ -5,52 +5,81 @@
 #################### Hog Wrappers ######################
 
 
-## \c globalSettings 
-# Namespace of all the project settings
+## @brief Namespace for all the project settings.
+#
+# Contains the definition of all the variables needed by creatProject
+#
 namespace eval globalSettings {
-    variable FPGA
-    
-    variable SYNTH_STRATEGY
-    variable FAMILY
-    variable SYNTH_FLOW
-    variable IMPL_STRATEGY
-    variable IMPL_FLOW
-    variable DESIGN
-    variable PROPERTIES
-    variable path_repo
-    
-    variable pre_synth_file
-    variable post_synth_file
-    variable post_impl_file
-    variable post_bit_file
-    variable tcl_path
-    variable repo_path
-    variable top_path
-    variable list_path
-    variable BUILD_DIR
-    variable modelsim_path
-    variable top_name
-    variable synth_top_module
-    variable synth_top_file
-    variable user_ip_repo
-    
-    variable bin_file
+  
+  ## @brief the device code as reported in Vivado/Quartus
+  variable FPGA
+  ## @brief Vivado synthesis strategy
+  variable SYNTH_STRATEGY
+  ## @brief Device family name
+  variable FAMILY
+  ## @brief Vivado synthesis flow
+  variable SYNTH_FLOW
+  ## @brief Vivado implemenytation strategy
+  variable IMPL_STRATEGY
+  ## @brief Vivado implementation flow
+  variable IMPL_FLOW
+  ## @brief TODO
+  variable DESIGN
+  ## @brief TODO
+  variable PROPERTIES
+  ## @brief TODO
+  variable path_repo
 
+  ## @brief TODO
+  variable pre_synth_file
 
-    variable pre_synth
-    variable post_synth
-    variable post_impl
-    variable post_bit
+  ## @brief TODO
+  variable post_synth_file
+
+  ## @brief TODO
+  variable post_impl_file
+  ## @brief TODO
+  variable post_bit_file
+  ## @brief TODO
+  variable tcl_path
+  ## @brief TODO
+  variable repo_path
+  ## @brief TODO
+  variable top_path
+  ## @brief TODO
+  variable list_path
+  ## @brief TODO
+  variable BUILD_DIR
+  ## @brief TODO
+  variable modelsim_path
+  ## @brief TODO
+  variable top_name
+  ## @brief TODO
+  variable synth_top_module
+  ## @brief TODO
+  variable synth_top_file
+  ## @brief TODO
+  variable user_ip_repo
+
+  ## @brief TODO
+  variable bin_file
+
+  ## @brief TODO
+  variable pre_synth
+  ## @brief TODO
+  variable post_synth
+  ## @brief TODO
+  variable post_impl
+  ## @brief TODO
+  variable post_bit
 }
 
 
-## @c Msg 
-# Display a Vivado/Quartus/Tcl-shell info message
+## @brief Display a Vivado/Quartus/Tcl-shell info message
 #
-# Arguments:
-# * level: the severity level of the message given as string or integer: status/extra_info 0, info 1, warning 2, critical warning 3, error 4.
-# * msg: the message text.
-# * title: the name of the script displaying the message, if not given, the calling script name will be used by default.
+# @param[in] level  the severity level of the message given as string or integer: status/extra_info 0, info 1, warning 2, critical warning 3, error 4.
+# @param[in] msg    the message text.
+# @param[in] title  the name of the script displaying the message, if not given, the calling script name will be used by default.
 #
 proc Msg {level msg {title ""}} { 
     set level [string tolower $level]
@@ -87,25 +116,25 @@ proc Msg {level msg {title ""}} {
     }
 }
 
-## @c WritieToFile
-# Write a into file, if the file exists, it will append the string
+## @brief Write a into file, if the file exists, it will append the string
 #
-# Arguments:
-# * File: The log file onto which write the message
-# * msg:  The message text
-proc WrtieToFile {File msg} {
+# @param[out] File The log file onto which write the message
+# @param[in]  msg  The message text
+#
+proc WriteToFile {File msg} {
     set f [open $File a+]
     puts $f $msg
     close $f
 }
 
-## @c SetProperty
-# Sets a property of an object to a given value: it automatically recognises whether it is in Vivado or Quartus mode
+## @brief Sets a property of an object to a given value.
 #
-# Arguments:
-# * property:
-# * value:
-# * object
+# It automatically recognises whether it is in Vivado or Quartus mode
+#
+# @param[out] property:
+# @param[in] value:
+# @param[out] object
+#
 proc  SetProperty {property value object} {
     if {[info commands set_property] != ""} {
         # Vivado
@@ -122,12 +151,15 @@ proc  SetProperty {property value object} {
 
 }
 
-## @c SetProperty
-# Retrieves the value of a property of an object: it automatically recognises whether it is in Vivado or Quartus mode
+## @brief Retrieves the value of a property of an object
 #
-# Arguments:
-# * property:
-# * object:
+# It automatically recognises whether it is in Vivado or Quartus mode
+#
+# @param[in] property the mname of the property to be retrieved
+# @param[in] object   the object from which to retrieve the property
+#
+# @returns            the value of object.property 
+#
 proc  GetProperty {property object} {
     if {[info commands get_property] != ""} {
         # Vivado
@@ -142,13 +174,24 @@ proc  GetProperty {property object} {
     return "DEBUG_propery_value"
     }
 }
-########################################################
 
-########################################################
+## @brief Sets the value of a parameter to a given value.
+#
+# This function is a wrapper for set_param $parameter $value 
+#
+# @param[out] parameter the parametere whose value must be set
+# @param[in]  value     the value of the parameter
 proc  SetParameter {parameter value } {
     set_param $parameter $value
 }
-########################################################
+
+## @brief Adds the file containing the top module to the project
+#
+# It automatically recognises whether it is in Vivado or Quartus mode
+#
+# @param[in] top_module name of the top module, expected @c top_<project_name>
+# @param[in] top_file   name of the file containing the top module
+# @param[in] source     list of source files    
 proc add_top_file {top_module top_file sources} {
     if {[info commands launch_chipscope_analyzer] != ""} {
         #VIVADO_ONLY
@@ -162,7 +205,13 @@ proc add_top_file {top_module top_file sources} {
         puts "Adding project top module $top_module" 
     }
 }
-########################################################
+## @brief set the top module as top module.
+#
+# It automatically recognises whether it is in Vivado or Quartus mode
+#
+# @param[out] top_module  name of the top module
+# @param[in]  source      list of all source files in the project
+#
 proc SetTopProperty {top_module sources} {
     Msg Info "Setting TOP property to $top_module module" 
     if {[info commands launch_chipscope_analyzer] != ""} {
@@ -175,7 +224,10 @@ proc SetTopProperty {top_module sources} {
 
 }
 
-########################################################
+## @brief Creates a new project using the parameters contained in globalSettings
+#
+# It automatically recognises whether it is in Vivado or Quartus mode
+#
 proc CreateProject {} {
     if {[info commands create_project] != ""} {
             #VIVADO_ONLY
@@ -287,11 +339,11 @@ proc CreateProject {} {
         SmartListFile $f $globalSettings::top_path
     }
 }
-########################################################
 
-
-### SYNTH ###
-
+## @brief Configure the synthesis parameters by using the options contained in globalSettings namespace.
+#
+# It automatically recognises whether it is in Vivado or Quartus mode
+#
 proc configureSynth {} {
     if {[info commands send_msg_id] != ""} {
         #VIVADO ONLY
@@ -366,6 +418,10 @@ proc configureSynth {} {
     }
 } 
 
+## @brief Configure the implementation parameters by using the options contained in globalSettings namespace.
+# 
+# It automatically recognises whether it is in Vivado or Quartus mode
+#
 proc configureImpl {} {
     if {[info commands send_msg_id] != ""} {
         # Create 'impl_1' run (if not found)
@@ -426,7 +482,10 @@ proc configureImpl {} {
 
 
 
-
+## @brief Configure the simulation parameters by using the options contained in globalSettings namespace.
+#  
+#  It automatically recognises whether it is in Vivado or Quartus mode
+#
 proc configureSimulation {} {
     if {[info commands send_msg_id] != ""} {
 
@@ -471,46 +530,54 @@ proc configureProperties {} {
     }
 }
 
-
+## @brief Updates the IP contained in the project.
+#  
+#  It automatically recognises whether it is in Vivado or Quartus mode
+#
 proc upgradeIP {} {
-    if {[info commands send_msg_id] != ""} {
-        # set the current impl run
-        current_run -implementation [get_runs impl_1]
+  if {[info commands send_msg_id] != ""} {
+    # set the current impl run
+    current_run -implementation [get_runs impl_1]
 
 
-        ##############
-        # UPGRADE IP #
-        ##############
-        Msg Info "Upgrading IPs if any..."
-        set ips [get_ips *]
-        if {$ips != ""} {
-            upgrade_ip $ips
-        }
-    } elseif {[info commands project_new] != ""} {
-            #QUARTUS only
-            #TO BE DONE
+    ##############
+    # UPGRADE IP #
+    ##############
+    Msg Info "Upgrading IPs if any..."
+    set ips [get_ips *]
+    if {$ips != ""} {
+      upgrade_ip $ips
+      }
+  } elseif {[info commands project_new] != ""} {
+    #QUARTUS only
+    #TO BE DONE
 
-    } else {
-        Msg info "Upgrading IPs"
-    }
+  } else {
+    Msg info "Upgrading IPs"
+  }
 }
 
-
-
-
+## @brief Retroieveds the project named proj
+#  
+#  It automatically recognises whether it is in Vivado or Quartus mode
+#
+#  @param[in] proj  the project name
+#
+#  @return          the project $proj
+#
 proc GetProject {proj} {
-    if {[info commands get_projects] != ""} {
-        # Vivado
+  if {[info commands get_projects] != ""} {
+    # Vivado
     return [get_projects $proj]
-        
-    } elseif {[info commands quartus_command] != ""} {
-        # Quartus
+
+  } elseif {[info commands quartus_command] != ""} {
+    # Quartus
     return ""
-    } else {
-        # Tcl Shell
+  } else {
+    # Tcl Shell
     puts "***DEBUG Hog:GetProject $project"
     return "DEBUG_project"
-    }
+  }
 
 }
 
@@ -720,18 +787,19 @@ proc FindVhdlVersion {file_name} {
 
 
 
-########################################################
 
-## Read a list file and adds the files to Vivado/Quartus, adding the additional information as file type.
-#
+## @brief Read a list file and adds the files to Vivado/Quartus, adding the additional information as file type.
+#  
 # Additional information is provided with text separated from the file name with one or more spaces
 #
-# Arguments:
-# * lsit_file: file containing vhdl list with optional properties
-# * path     : path the vhdl file are referred to in the list file
-# * lib      : name of the library files will be added to
-# * src      : name of VivadoFileSet files will be added to
-# * no_add   : if a value is specified, the files will added to memory only, not to the project
+# @param[in] lsit_file file containing vhdl list with optional properties
+# @param[in] path      path the vhdl file are referred to in the list file
+# @param[in] lib       name of the library files will be added to
+# @param[in] src       name of VivadoFileSet files will be added to
+# @param[in] no_add    if a value is specified, the files will added to memory only, not to the project
+#
+# @return              A list of the files added to the project
+#
 proc ReadListFile {list_file path lib src {no_add 0}} {
     set list_file 
     set fp [open $list_file r]
@@ -880,17 +948,12 @@ proc ReadListFile {list_file path lib src {no_add 0}} {
     Msg Info "$cnt file/s added to $lib..."
     return [list $libraries $properties]
 }
-########################################################
 
-## Read a list file and adds the files to Vivado/Quartus, adding the additional information as file type.
+## @brief Read a list file and adds the files to Vivado/Quartus, adding the additional information as file type.
+# 
 # This procedure extracts the Vivado fileset and the library name from the list-file name.
-#
 # Additional information is provided with text separated from the file name with one or more spaces
 #
-# Arguments:
-# * lsit_file: file containing vhdl list with optional properties
-# * path:      the path the vhdl file are referred to in the list file
-# 
 # list_file should be formatted as follows:
 # LIB_NAME.FILE_SET
 #
@@ -901,7 +964,10 @@ proc ReadListFile {list_file path lib src {no_add 0}} {
 # * .sim : for simulation files (corresponding to sim_1)
 # * .con : for constraint files (corresponding to constrs_1)
 # any other file extension will cause an error
-
+# 
+# @param[in] lsit_file file containing vhdl list with optional properties
+# @param[in] path      the path the vhdl file are referred to in the list file
+#
 proc SmartListFile {list_file path {no_add 0}} {
     set ext [file extension $list_file]
     set lib [file rootname [file tail $list_file]]
@@ -940,12 +1006,14 @@ proc SmartListFile {list_file path {no_add 0}} {
 }
 ########################################################
 
-## Get git SHA of a vivado library
+## @brief Get git SHA of a vivado library
+# 
+# If the special string "ALL" is used, returns the global hash
 #
-# Arguments:\n
-# * lib: the name of the library whose latest commit hash will be returned
+# @param[in] lib the name of the library whose latest commit hash will be returned
 #
-# if the special string "ALL" is used, returns the global hash
+# @return        tghe git SHA of the specified library  
+#
 proc GetHashLib {lib} {
     if {$lib eq "ALL"} {
     set ret [exec git log --format=%h -1]
@@ -957,13 +1025,15 @@ proc GetHashLib {lib} {
 }
 ########################################################
 
-## Recursively gets file names from list file
+## @brief Recursively gets file names from list file
+#  
+#  If the list file contains files with extension .src .sim .con .sub, it will recursively open them
 #
-# Arguments:\n
-# * FILE: list file to open
-# * path: the path the files are referred to in the list file
+#  @param[in] FILE  list file to open
+#  @param[in] path  the path the files are referred to in the list file
 #
-# if the list file contains files with extension .src .sim .con .sub, it will recursively open them
+#  @returns         a list of the files contained in the list file
+#
 proc GetFileList {FILE path} {
     set fp [open $FILE r]
     set file_data [read $fp]
@@ -990,15 +1060,16 @@ proc GetFileList {FILE path} {
 
 return $lista
 }
-########################################################
 
-## Get git SHA of a subset of list file
+## @brief Get git SHA of a subset of list file
+#  
+# If the special string "ALL" is used, returns the global hash
 #
-# Arguments:\n
-# * FILE: list file or path containing the subset of files whose latest commit hash will be returned
-# * path:      the path the vhdl files are referred to in the list file (not used if FILE is a path or "ALL")
+# @param[in] FILE list file or path containing the subset of files whose latest commit hash will be returned
+# @param[in] path the path the vhdl files are referred to in the list file (not used if FILE is a path or "ALL")
 #
-# if the special string "ALL" is used, returns the global hash
+# @return         the value of the desired SHA
+#
 proc GetHash {FILE path} {
     if {$FILE eq "ALL"} {
     set ret [exec git log --format=%h -1]
@@ -1020,12 +1091,15 @@ proc GetHash {FILE path} {
 ########################################################
 
 
-## Get git version and commit hash of a subset of files
-# Arguments:\n
-## * FILE: list file or path containing the subset of files whose latest commit hash will be returned
-# * path:      the path the vhdl file are referred to in the list file (not used if FILE is a path or "ALL")
+## @brief Get git version and commit hash of a subset of files
+# 
+# If the special string "ALL" is used, returns the global hash of the path specified in path
+# 
+# @param[in] FILE list file or path containing the subset of files whose latest commit hash will be returned
+# @param[in] path the path the vhdl file are referred to in the list file (not used if FILE is a path or "ALL")
 #
-# if the special string "ALL" is used, returns the global hash of the path specified in path
+# @return         the desired version
+#
 proc GetVer {FILE path} {
     set SHA [GetHash $FILE $path]
     set path [file normalize $path]
@@ -1092,22 +1166,25 @@ proc GetVer {FILE path} {
 
 
 ## Convert hex version to M.m.p string
-# Arguments:\n
-# version: the version (in 32-bt hexadecimal format 0xMMmmpppp) to be converted
-
+#  
+#  @param[in] version the version (in 32-bt hexadecimal format 0xMMmmpppp) to be converted
+#
+#  @return            a string containing the version in M.m.p format
+#
 proc HexVersionToString {version} {
     scan [string range $version 0 1] %x M
     scan [string range $version 2 3] %x m
     scan [string range $version 4 7] %x c
     return "$M.$m.$c"
 }
-########################################################
 
 
-## Tags the repository with a new version calculated on the basis of the previous tags
-# Arguments:\n
-# * tag: a tag in the Hog format: v$M.$m.$p or b$(mr)v$M.$m.$p-$n
-
+## @brief Tags the repository with a new version calculated on the basis of the previous tags
+# 
+# @param[in] tag  a tag in the Hog format: v$M.$m.$p or b$(mr)v$M.$m.$p-$n
+#
+# @return         a list containing: Major minor pathch v.
+#
 proc ExtractVersionFromTag {tag} {
     if {[regexp {^(?:b(\d+))?v(\d+)\.(\d+).(\d+)(?:-\d+)?$} $tag -> mr M m p]} {
 	if {$mr eq ""} {
@@ -1124,10 +1201,10 @@ proc ExtractVersionFromTag {tag} {
 }
 
 
-## Tags the repository with a new version calculated on the basis of the previous tags
-# Arguments:\n
-# * merge_request_number: Gitlab merge request number to be used in candidate version
-# * version_level:        0 if patch is to be increased (default), 1 if minor level is to be increase, 2 if major level is to be increased, 3 or bigger is used to trasform a candidate for a version (starting with b) into an official version
+## @brief Tags the repository with a new version calculated on the basis of the previous tags
+#
+# @param[in] merge_request_number: Gitlab merge request number to be used in candidate version
+# @param[in] version_level:        0 if patch is to be increased (default), 1 if minor level is to be increase, 2 if major level is to be increased, 3 or bigger is used to trasform a candidate for a version (starting with b) into an official version
 
 proc TagRepository {{merge_request_number 0} {version_level 0}} {
     if [catch {exec git tag --sort=-creatordate} last_tag] {
@@ -1200,19 +1277,17 @@ proc TagRepository {{merge_request_number 0} {version_level 0}} {
     
     return [list $tag $new_tag]
 }
-########################################################
 
-## Read a XML list file and copy files to destination
+## @brief Read a XML list file and copy files to destination
 #
 # Additional information is provided with text separated from the file name with one or more spaces
 #
-# Arguments:
-# * lsit_file:   file containing list of XML files with optional properties
-# * path:        the path the XML files are referred to in the list file
-# * dst:         the path the XML files must be copyed to
-# * xml_version: the M.m.p version to be used to replace the __VERSION__ placeholder in any of the xml files
-# * xml_sha:     the Git-SHA to be used to replace the __GIT_SHA__ placeholder in any of the xml files
-
+# @param[in] lsit_file   file containing list of XML files with optional properties
+# @param[in] path        the path the XML files are referred to in the list file
+# @param[in] dst         the path the XML files must be copyed to
+# @param[in] xml_version the M.m.p version to be used to replace the __VERSION__ placeholder in any of the xml files
+# @param[in] xml_sha     the Git-SHA to be used to replace the __GIT_SHA__ placeholder in any of the xml files
+#
 proc CopyXMLsFromListFile {list_file path dst {xml_version "0.0.0"} {xml_sha "00000000"} } {
     set list_file
     set fp [open $list_file r]
@@ -1262,11 +1337,11 @@ proc CopyXMLsFromListFile {list_file path dst {xml_version "0.0.0"} {xml_sha "00
 }
 ########################################################
 
-## Returns the dst path relative to base
-## Arguments:
-# * base   the path with respect to witch the dst path is calculated                             
-# * dst:   the path to be calculated with respect to base
-
+## @brief Returns the dst path relative to base
+# 
+# @param[in] base   the path with respect to witch the dst path is calculated                             
+# @param[in] dst    the path to be calculated with respect to base
+#
 proc relative {base dst} {
     if {![string equal [file pathtype $base] [file pathtype $dst]]} {
         return -code error "Unable to compute relation for paths of different pathtypes: [file pathtype $base] vs. [file pathtype $dst], ($base vs. $dst)"

@@ -60,8 +60,8 @@ stages:
         <<: *vars
      script:
       - ./Hog/CreateProject.sh $PROJECT_NAME
-      - "if [ -z ${HOG_CHECK_SYNTAX+x} ]; then echo 'Syntax checker is disabled'; else vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_check_syntax.tcl -tclargs $PROJECT_NAME; fi"
-      - "if [ -z ${HOG_CHECK_YAMLREF+x} ]; then echo 'Yaml consistency checker is disabled'; else vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_check_yaml_ref.tcl ; fi" 
+      - "if [[ ${HOG_CHECK_SYNTAX} != 1 ]]; then echo 'Syntax checker is disabled'; else vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_check_syntax.tcl -tclargs $PROJECT_NAME; fi"
+      - "if [[ ${HOG_CHECK_YAMLREF} != 1 ]]; then echo 'Yaml consistency checker is disabled'; else vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_check_yaml_ref.tcl ; fi" 
      artifacts:
        name: vivado_projects
        paths:
@@ -113,7 +113,6 @@ stages:
     script:
         - git status
         - git diff
-        - echo $HOG_NO_BITSTREAM
         - "if [ $HOG_NO_BITSTREAM == '1' ]; then vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_implementation.tcl -tclargs -no_bitstream $PROJECT_NAME; else vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_implementation.tcl -tclargs $PROJECT_NAME; fi"
         - "cat $CI_PROJECT_DIR/bin/$PROJECT_NAME*/versions* $CI_PROJECT_DIR/bin/$PROJECT_NAME*/timing_* > note.md"
         - ./Hog/Other/WriteGitlabNote.sh $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $CI_MERGE_REQUEST_IID note.md
@@ -201,7 +200,7 @@ create_official_release:
     refs:
       - tags
     variables:
-      - $CI_COMMIT_TAG =~ /^v.*$/ && $HOG_CREATE_OFFICIAL_RELEASE != null
+      - $CI_COMMIT_TAG =~ /^v.*$/ && $HOG_CREATE_OFFICIAL_RELEASE == "1"
   tags:
     - hog
   stage: copy

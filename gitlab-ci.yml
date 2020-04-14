@@ -151,8 +151,8 @@ collect_artifacts:
 make_doxygen:
     <<: *only-default
     only:
-    variables:
-        - $HOG_USE_DOXYGEN == 1
+      variables:
+        - $HOG_USE_DOXYGEN == "1"
     stage: doxygen
     variables:
         <<: *vars

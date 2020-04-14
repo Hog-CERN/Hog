@@ -87,7 +87,7 @@ An example of how to document new functions
 ## @brief Brief description of this method
 #
 # After an empty line you can add a more detailed description.
-# Yopu can even use many lines
+# You can even use many lines
 #
 # @param[in]	param_1	the description of parameter param_1, this parameter is an input to the function
 # @param[out]	param_2	the description of parameter param_2, this parameter is an output to the function

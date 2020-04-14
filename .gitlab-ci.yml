@@ -29,6 +29,8 @@ building:
 building-doxygen:
       stage: build
       image: cern/cc7-base
+      only:
+        - 47-write-developer-documentation
       before_script:
         - echo ""
       script:

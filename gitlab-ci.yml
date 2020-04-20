@@ -1,3 +1,4 @@
+
 before_script:
     - export REPO=`echo $CI_PROJECT_URL | sed -e s#https://##`
     - git remote set-url origin https://${HOG_USER}:${HOG_PUSH_TOKEN}@$REPO
@@ -12,6 +13,7 @@ before_script:
     - git submodule update
     - export XILINXD_LICENSE_FILE=${HOG_XIL_LICENSE}
     - export PATH=${HOG_PATH}:$PATH
+    - if [ -z ${HOG_TARGET_BRANCH+x} ]; then export HOG_TARGET_BRANCH=master ; fi
 
 .only-default: &only-default
   only:
@@ -60,8 +62,8 @@ stages:
         <<: *vars
      script:
       - ./Hog/CreateProject.sh $PROJECT_NAME
-      - "if [ -z ${HOG_CHECK_SYNTAX+x} ]; then echo 'Syntax checker is disabled'; else vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_check_syntax.tcl -tclargs $PROJECT_NAME; fi"
-      - "if [ -z ${HOG_CHECK_YAMLREF+x} ]; then echo 'Yaml consistency checker is disabled'; else vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_check_yaml_ref.tcl ; fi" 
+      - "if [[ ${HOG_CHECK_SYNTAX} != 1 ]]; then echo 'Syntax checker is disabled'; else vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_check_syntax.tcl -tclargs $PROJECT_NAME; fi"
+      - "if [[ ${HOG_CHECK_YAMLREF} != 1 ]]; then echo 'Yaml consistency checker is disabled'; else vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_check_yaml_ref.tcl ; fi" 
      artifacts:
        name: vivado_projects
        paths:
@@ -113,7 +115,6 @@ stages:
     script:
         - git status
         - git diff
-        - echo $HOG_NO_BITSTREAM
         - "if [ $HOG_NO_BITSTREAM == '1' ]; then vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_implementation.tcl -tclargs -no_bitstream $PROJECT_NAME; else vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_implementation.tcl -tclargs $PROJECT_NAME; fi"
         - "cat $CI_PROJECT_DIR/bin/$PROJECT_NAME*/versions* $CI_PROJECT_DIR/bin/$PROJECT_NAME*/timing_* > note.md"
         - ./Hog/Other/WriteGitlabNote.sh $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $CI_MERGE_REQUEST_IID note.md
@@ -149,6 +150,11 @@ collect_artifacts:
 
 make_doxygen:
     <<: *only-default
+    only:
+      refs:
+        - merge_requests
+      variables:
+        - $HOG_USE_DOXYGEN == "1"
     stage: doxygen
     variables:
         <<: *vars
@@ -178,30 +184,27 @@ merge_and_tag:
        - ./Hog/Other/CheckEnv.sh
        - "if [[ $CI_COMMIT_MESSAGE == ResolveWIP* && $CI_MERGE_REQUEST_TITLE == WIP* ]]; then echo 'removing WIP status'; curl ${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/merge_requests/${CI_MERGE_REQUEST_IID}/notes?body=/wip --header \"PRIVATE-TOKEN: ${HOG_PUSH_TOKEN}\" --request POST; fi;"
        - "MR_PARAMETERS=`curl --header \"PRIVATE-TOKEN: ${HOG_PUSH_TOKEN}\" ${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/merge_requests/${CI_MERGE_REQUEST_IID}`"
-       - vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_merge_and_tag.tcl -tclargs -mr_par "{$MR_PARAMETERS}" -mr_id $CI_MERGE_REQUEST_IID -push $CI_COMMIT_REF_NAME
+       - vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_merge_and_tag.tcl -tclargs -mr_par "{$MR_PARAMETERS}" -mr_id $CI_MERGE_REQUEST_IID -push $CI_COMMIT_REF_NAME -main_branch $CI_MERGE_REQUEST_TARGET_BRANCH_NAME
 
 tag_official_version:
-  only:
-    refs:
-      - push
-      - web
-  except:
-    variables:
-      - $CI_PIPELINE_SOURCE != "push"
-      - $CI_COMMIT_REF_SLUG != "master"
   tags:
      - hog
   stage: merge
   script:
-     - vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_merge_and_tag.tcl -tclargs -merged  -push $CI_COMMIT_REF_NAME
-
+     - vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_merge_and_tag.tcl -tclargs -merged  -push $CI_COMMIT_REF_NAME -main_branch $CI_COMMIT_REF_NAME
+  rules:
+    - if: '$HOG_TARGET_BRANCH != null && $CI_COMMIT_REF_NAME == $HOG_TARGET_BRANCH && $CI_PIPELINE_SOURCE == "push"'
+      when: always
+    - if: '$HOG_TARGET_BRANCH == null && $CI_COMMIT_REF_NAME =~ /^master\d*$/  && $CI_PIPELINE_SOURCE == "push"'
+      when: always
+    - when: never
 
 create_official_release:
   only:
     refs:
       - tags
     variables:
-      - $CI_COMMIT_TAG =~ /^v.*$/ && $HOG_CREATE_OFFICIAL_RELEASE != null
+      - $CI_COMMIT_TAG =~ /^v.*$/ && $HOG_CREATE_OFFICIAL_RELEASE == "1"
   tags:
     - hog
   stage: copy
@@ -236,8 +239,6 @@ cleaning:
      - hog
   stage: clean
   script:
-     - git checkout master
-     - git pull
      - until echo $HOG_PASSWORD | kinit $HOG_USER ; do echo "Retrying"; sleep 2; done
-     - if [ -z ${HOG_UNOFFICIAL_BIN_EOS_PATH+x} ]; then echo "HOG_UNOFFICIAL_BIN_EOS_PATH not specified, nothing to clean..."; else vivado -mode batch -notrace -source Hog/Tcl/clean_unofficial.tcl -tclargs $HOG_UNOFFICIAL_BIN_EOS_PATH; fi
+     - if [ -z ${HOG_UNOFFICIAL_BIN_EOS_PATH+x} ]; then echo "HOG_UNOFFICIAL_BIN_EOS_PATH not specified, nothing to clean..."; else vivado -mode batch -notrace -source Hog/Tcl/clean_unofficial.tcl -tclargs $HOG_UNOFFICIAL_BIN_EOS_PATH $CI_COMMIT_TAG; fi
   allow_failure: true

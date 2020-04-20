@@ -35,7 +35,7 @@ deploying:
         - deploy-eos
 
 
-merge-and-tag:
+merge_and_tag:
       stage: tag
       image: tcl2020/tcl2020:latest
       only: 
@@ -44,6 +44,15 @@ merge-and-tag:
       script:
           - "MR_PARAMETERS=`curl --header \"PRIVATE-TOKEN: ${HOG_PUSH_TOKEN}\" ${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/merge_requests/${CI_MERGE_REQUEST_IID}`"
           - ./Tcl/launchers/launch_merge_and_tag.tcl -Hog  -mr_par "$MR_PARAMETERS" -mr_id $CI_MERGE_REQUEST_IID -push $CI_COMMIT_REF_NAME
+          - git fetch origin refs/notes/*:refs/notes/*
+          - git notes add -m "$CI_MERGE_REQUEST_IID"
+          - git push origin refs/notes/*
+          - ./Other/Changelog.sh > changelog.md
+      artifacts:
+        name: changelog
+        paths:
+          - changelog.md
+        expire_in: 1 month
 
 tagging:
       stage: tag
@@ -57,3 +66,18 @@ tagging:
               - $CI_COMMIT_REF_SLUG != "master"
       script:
           - ./Tcl/launchers/launch_merge_and_tag.tcl -Hog -merged -push $CI_COMMIT_REF_NAME
+
+create_release_note:
+        stage: tag
+        image: tcl2020/tcl2020:latest
+        only:
+          refs:
+            - tags
+          variables:
+            - $CI_COMMIT_TAG =~ /^v.*$/
+
+        script:
+          - git fetch origin refs/notes/*:refs/notes/*
+          - MR=`git notes show`
+          - ./Other/GetGitlabArtifact.sh $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $MR changelog.md merge_and_tag > note.md
+          - ./Other/MakeGitlabRelease.sh $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $CI_COMMIT_TAG note.md

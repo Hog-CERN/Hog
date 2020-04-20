@@ -182,7 +182,7 @@ proc CreateProject {} {
         set_property "compxlib.questa_compiled_library_dir" $globalSettings::modelsim_path $obj
         set_property "default_lib" "xil_defaultlib" $obj
         set_property "target_simulator" $globalSettings::SIMULATOR $obj
-        
+
         ## Enable VHDL 2008
         set_param project.enableVHDL2008 1
         set_property "enable_vhdl_2008" 1 $obj
@@ -383,6 +383,20 @@ proc configureImpl {} {
             set obj ""
     }
 
+	## set pre implementation script
+    if {$globalSettings::pre_impl_file ne ""} { 
+        if {[info commands send_msg_id] != ""} {
+            #Vivado Only
+            set_property STEPS.INIT_DESIGN.TCL.POST $globalSettings::pre_impl $obj
+        } elseif {[info commands project_new] != ""} {
+            #QUARTUS only
+            set_global_assignment -name PRE_MODULE_SCRIPT_FILE quartus_sh:$globalSettings::pre_impl
+
+        } else {
+            Msg info "Configuring $globalSettings::pre_impl script after implementation"
+        }
+    } 
+
     ## set post routing script
     if {$globalSettings::post_impl_file ne ""} { 
         if {[info commands send_msg_id] != ""} {
@@ -396,6 +410,23 @@ proc configureImpl {} {
             Msg info "Configuring $globalSettings::post_impl script after implementation"
         }
     } 
+
+	## set pre write bitstream script
+    if {$globalSettings::pre_bit_file ne ""} { 
+        if {[info commands send_msg_id] != ""} {
+            #Vivado Only
+            set_property STEPS.WRITE_BITSTREAM.TCL.PRE $globalSettings::pre_bit $obj
+        } elseif {[info commands project_new] != ""} {
+            #QUARTUS only
+            set_global_assignment -name PRE_FLOW_SCRIPT_FILE quartus_sh:$globalSettings::pre_bit
+
+        } else {
+            Msg info "Configuring $globalSettings::pre_bit script after bitfile generation"
+        }
+    }
+
+
+
 
     ## set post write bitstream script
     if {$globalSettings::post_bit_file ne ""} { 
@@ -921,6 +952,9 @@ proc SmartListFile {list_file path {no_add 0}} {
         # Msg Info "Reading sources from file $list_file, lib: $lib, file-set: $file_set"
         # return [ReadExternalListFile $list_file $path $lib $file_set $no_add]
     }   
+	.prop {
+		return
+	}
     default {
         Msg Error "Unknown extension $ext"
     }

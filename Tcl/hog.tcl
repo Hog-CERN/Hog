@@ -9,17 +9,17 @@
 # * msg: the message text.
 # * title: the name of the script displaying the message, if not given, the calling script name will be used by default.
 #
-proc Msg {level msg {title ""}} { 
+proc Msg {level msg {title ""}} {
     set level [string tolower $level]
     if {$level == 0 || $level == "status" || $level == "extra_info"} {
     set vlevel {STATUS}
     set qlevel extra_info
     } elseif {$level == 1 || $level == "info"} {
     set vlevel {INFO}
-    set qlevel info 
+    set qlevel info
     } elseif {$level == 2 || $level == "warning"} {
     set vlevel {WARNING}
-    set qlevel warning  
+    set qlevel warning
     } elseif {$level == 3 || [string first "critical" $level] !=-1} {
     set vlevel {CRITICAL WARNING}
     set qlevel critial_warning
@@ -60,11 +60,11 @@ proc WrtieToFile {File msg} {
 proc  SetProperty {property value object} {
     if {[info commands set_property] != ""} {
         # Vivado
-    set_property $property $value $object 
-        
+    set_property $property $value $object
+
     } elseif {[info commands quartus_command] != ""} {
         # Quartus
-    
+
     } else {
         # Tcl Shell
     puts "***DEBUG Hog:SetProperty $property to $value of $object"
@@ -79,7 +79,7 @@ proc GetProperty {property object} {
     if {[info commands get_property] != ""} {
         # Vivado
     return [get_property -quiet $property $object]
-        
+
     } elseif {[info commands quartus_command] != ""} {
         # Quartus
     return ""
@@ -104,14 +104,14 @@ proc add_top_file {top_module top_file sources} {
         #QUARTUS ONLY
         set file_type [FindFileType $top_file]
         set hdl_version [FindVhdlVersion $top_file]
-        set_global_assignment -name $file_type $top_file 
+        set_global_assignment -name $file_type $top_file
     } else {
-        puts "Adding project top module $top_module" 
+        puts "Adding project top module $top_module"
     }
 }
 ########################################################
 proc SetTopProperty {top_module sources} {
-    Msg Info "Setting TOP property to $top_module module" 
+    Msg Info "Setting TOP property to $top_module module"
     if {[info commands launch_chipscope_analyzer] != ""} {
         #VIVADO_ONLY
         set_property "top" $top_module $sources
@@ -126,7 +126,7 @@ proc GetProject {proj} {
     if {[info commands get_projects] != ""} {
         # Vivado
     return [get_projects $proj]
-        
+
     } elseif {[info commands quartus_command] != ""} {
         # Quartus
     return ""
@@ -142,7 +142,7 @@ proc GetRun {run} {
     if {[info commands get_projects] != ""} {
         # Vivado
     return [get_runs -quiet $run]
-        
+
     } elseif {[info commands quartus_command] != ""} {
         # Quartus
     return ""
@@ -157,7 +157,7 @@ proc GetFile {file} {
         if {[info commands get_files] != ""} {
         # Vivado
     return [get_files $file]
-        
+
     } elseif {[info commands quartus_command] != ""} {
         # Quartus
     return ""
@@ -179,7 +179,7 @@ proc GetFileSet {fileset} {
 }
 
 proc AddFile {file fileset} {
-    add_files -norecurse -fileset $fileset $file 
+    add_files -norecurse -fileset $fileset $file
 }
 
 
@@ -196,10 +196,6 @@ proc CreateReportStrategy {DESIGN obj} {
         set_property set_report_strategy_name 0 $obj
 
         set reports [get_report_configs -of_objects $obj]
-        # if { [llength $reports ] > 0 } {
-        # delete_report_config [get_report_configs -of_objects $obj]
-        # }
-        # 
         # Create 'impl_1_place_report_utilization_0' report (if not found)
         if { [ string equal [get_report_configs -of_objects [get_runs impl_1] $globalSettings::DESIGN\_impl_1_place_report_utilization_0] "" ] } {
           create_report_config -report_name $globalSettings::DESIGN\_impl_1_place_report_utilization_0 -report_type report_utilization:1.0 -steps place_design -runs impl_1
@@ -217,7 +213,7 @@ proc CreateReportStrategy {DESIGN obj} {
         if { $obj != "" } {
 
         }
-        
+
         # Create 'impl_1_route_report_power_0' report (if not found)
         if { [ string equal [get_report_configs -of_objects [get_runs impl_1] $globalSettings::DESIGN\_impl_1_route_report_power_0] "" ] } {
           create_report_config -report_name $globalSettings::DESIGN\_impl_1_route_report_power_0 -report_type report_power:1.0 -steps route_design -runs impl_1
@@ -233,16 +229,16 @@ proc CreateReportStrategy {DESIGN obj} {
         }
         set obj [get_report_configs -of_objects [get_runs impl_1] $globalSettings::DESIGN\_impl_1_route_report_timing_summary]
         if { $obj != "" } {
-            Msg Info "Report timing created successfully"   
+            Msg Info "Report timing created successfully"
         }
-        
+
         # Create 'impl_1_route_report_utilization' report (if not found)
         if { [ string equal [get_report_configs -of_objects [get_runs impl_1] $globalSettings::DESIGN\_impl_1_route_report_utilization] "" ] } {
             create_report_config -report_name $globalSettings::DESIGN\_impl_1_route_report_utilization -report_type report_utilization:1.0 -steps route_design -runs impl_1
         }
         set obj [get_report_configs -of_objects [get_runs impl_1] $globalSettings::DESIGN\_impl_1_route_report_utilization]
         if { $obj != "" } {
-            Msg Info "Report utilization created successfully"  
+            Msg Info "Report utilization created successfully"
         }
 
 
@@ -262,7 +258,7 @@ proc CreateReportStrategy {DESIGN obj} {
     }
     } else {
     puts "Won't create any report strategy, not in Vivado"
-    } 
+    }
 }
 ########################################################
 
@@ -320,7 +316,7 @@ proc FindFileType {file_name} {
             set file_extension "COMMAND_MACRO_FILE"
         }
         default {
-            set file_extension "ERROR"  
+            set file_extension "ERROR"
             Error FindFileType 0 "Unknown file extension $extension"
         }
     }
@@ -357,7 +353,7 @@ proc FindVhdlVersion {file_name} {
 # * src      : name of VivadoFileSet files will be added to
 # * no_add   : if a value is specified, the files will added to memory only, not to the project
 proc ReadListFile {list_file path lib src {no_add 0}} {
-    set list_file 
+    set list_file
     set fp [open $list_file r]
     set file_data [read $fp]
     close $fp
@@ -383,7 +379,7 @@ proc ReadListFile {list_file path lib src {no_add 0}} {
                     Msg Info "List file $vhdlfile found in list file, recoursively opening it..."
                         lassign [SmartListFile $vhdlfile $path $no_add] l p
                     set libraries [dict merge $l $libraries]
-                    set properties [dict merge $p $properties]          
+                    set properties [dict merge $p $properties]
                 } else {
 
 
@@ -402,8 +398,8 @@ proc ReadListFile {list_file path lib src {no_add 0}} {
                         if {[info commands add_files] != ""} {
                             #VIVADO_ONLY
 
-                            add_files -norecurse -fileset $src $vhdlfile 
-                            
+                            add_files -norecurse -fileset $src $vhdlfile
+
                             set file_obj [get_files -of_objects [get_filesets $src] [list "*$vhdlfile"]]
 
                             #ADDING LIBRARY
@@ -416,7 +412,7 @@ proc ReadListFile {list_file path lib src {no_add 0}} {
                                 Msg Info "Setting filetype VHDL 2008 for $vhdlfile"
                                 set_property -name "file_type" -value "VHDL 2008" -objects $file_obj
                             }
-                            
+
                             # XDC
                             if {[lsearch -inline -regex $prop "XDC"] >= 0 || [file ext $vhdlfile] == ".xdc"} {
                                 Msg Info "Setting filetype XDC for $vhdlfile"
@@ -464,7 +460,7 @@ proc ReadListFile {list_file path lib src {no_add 0}} {
                                     Msg Warning "File $file_name was not found."
                                 }
                             }
-                            
+
                             #Do file
                             set do_file [lindex [split [lsearch -inline -regex $prop dofile=] =] 1]
                             if { $do_file != "" } {
@@ -483,7 +479,7 @@ proc ReadListFile {list_file path lib src {no_add 0}} {
                             set hdl_version [FindVhdlVersion $vhdlfile]
                             if {$lib ne ""} {
                                 Msg Warning "set_global_assignment -name $file_type $vhdlfile -library $lib "
-                                set_global_assignment -name $file_type $vhdlfile  -library $lib 
+                                set_global_assignment -name $file_type $vhdlfile  -library $lib
                             } else {
                                 set_global_assignment  -name $file_type $vhdlfile  $hdl_version
                             }
@@ -514,7 +510,7 @@ proc ReadListFile {list_file path lib src {no_add 0}} {
 # Arguments:
 # * lsit_file: file containing vhdl list with optional properties
 # * path:      the path the vhdl file are referred to in the list file
-# 
+#
 # list_file should be formatted as follows:
 # LIB_NAME.FILE_SET
 #
@@ -554,7 +550,7 @@ proc SmartListFile {list_file path {no_add 0}} {
         set file_set "sources_1"
         # Msg Info "Reading sources from file $list_file, lib: $lib, file-set: $file_set"
         # return [ReadExternalListFile $list_file $path $lib $file_set $no_add]
-    }   
+    }
     default {
         Msg Error "Unknown extension $ext"
     }
@@ -606,7 +602,7 @@ proc GetFileList {FILE path} {
         } else {
         lappend lista $vhdlfile
         }
-    } else { 
+    } else {
         Msg Warning "File $vhdlfile not found"
     }
     }
@@ -629,17 +625,17 @@ proc GetHash {FILE path} {
     } elseif {[file isfile $FILE]} {
     set lista [GetFileList $FILE $path]
     set ret [exec git log --format=%h -1 -- {*}$lista ]
-    
+
     } elseif {[file isdirectory $FILE]} {
 
     set ret [exec git log --format=%h -1 $FILE ]
-    
+
     } else {
     puts "ERROR: $FILE not found"
     set ret 0
     }
     return $ret
-    
+
 }
 ########################################################
 
@@ -670,12 +666,12 @@ proc GetVer {FILE path} {
             Msg Info "No tag contains $SHA for $FILE ($path), will use most recent tag $tag. As this is a candidate tag, the patch level will be kept at $p."
         }
         set ver v$M.$m.$p
-        
+
         }
 
     } else {
         set vers [split $result "\n"]
-        set ver [lindex $vers 0]        
+        set ver [lindex $vers 0]
         foreach v $vers {
         if {[regexp {^v.*$} $v]} {
             set un_ver $ver
@@ -690,7 +686,7 @@ proc GetVer {FILE path} {
     }
 
     lassign [ExtractVersionFromTag $ver] M m c mr
-    
+
     if {$mr > -1} { # Candidate tab
 	set M [format %02X $M]
 	set m [format %02X $m]
@@ -760,7 +756,7 @@ proc TagRepository {{merge_request_number 0} {version_level 0}} {
 	set tags [split $last_tag "\n"]
 	set tag [lindex $tags 0]
 	lassign [ExtractVersionFromTag $tag] M m p mr
-    
+
 	if { $M > -1 } { # M=-1 means that the tag could not be parsed following a Hog format
 	    if {$mr == -1 } { # Tag is official, no b at the beginning (and no merge request number at the end)
 		Msg Info "Found official version $M.$m.$p."
@@ -774,7 +770,7 @@ proc TagRepository {{merge_request_number 0} {version_level 0}} {
 			Msg Error "You should specify a valid merge request number not to risk to fail beacuse of duplicated tags"
 			return -1
 		    }
-		    
+
 		} elseif {$version_level == 1} {
 		    incr m
 		    set p 0
@@ -784,7 +780,7 @@ proc TagRepository {{merge_request_number 0} {version_level 0}} {
 			Msg Error "You should specify a valid merge request number not to risk to fail beacuse of duplicated tags"
 			return -1
 		    }
-		    
+
 		} elseif {$version_level >= 3} {
             # Version level >= 3 is used to create official tags from beta tags
 		    incr p
@@ -792,9 +788,9 @@ proc TagRepository {{merge_request_number 0} {version_level 0}} {
 		    Msg Info "No major/minor version increase, new tag will be v$M.$m.$p..."
 		    set new_tag v$M.$m.$p
 		    set tag_opt "-m 'Official_version_$M.$m.$p'"
-		    
+
 		}
-		
+
 	    } else { # Tag is not official
 		#Not official, do nothing unless version level is >=3, in which case convert the unofficial to official
 		Msg Info "Found candidate version for $M.$m.$p."
@@ -804,7 +800,7 @@ proc TagRepository {{merge_request_number 0} {version_level 0}} {
 		    set tag_opt "-m 'Official_version_$M.$m.$p'"
 		}
 	    }
-	    
+
         # Tagging repositroy
 	    if [info exists new_tag] {
 		Msg Info "Tagging repository with $new_tag..."
@@ -821,7 +817,7 @@ proc TagRepository {{merge_request_number 0} {version_level 0}} {
 	    Msg Error "Could not parse tag: $tag"
 	}
     }
-    
+
     return [list $tag $new_tag]
 }
 ########################################################
@@ -854,7 +850,7 @@ proc CopyXMLsFromListFile {list_file path dst {xml_version "0.0.0"} {xml_sha "00
         set xmlfile "$path/$xmlfile"
         if {[llength $file_and_prop] > 1} {
         set vhdlfile [lindex $file_and_prop 1]
-        set vhdlfile "$path/$vhdlfile"      
+        set vhdlfile "$path/$vhdlfile"
         } else {
         set vhdlfile 0
         }
@@ -863,10 +859,10 @@ proc CopyXMLsFromListFile {list_file path dst {xml_version "0.0.0"} {xml_sha "00
         Msg Info "Copying $xmlfile to $dst..."
         set in  [open $xmlfile r]
         set out [open $dst/[file tail $xmlfile] w]
-        
+
         while {[gets $in line] != -1} {
             set new_line [regsub {(.*)__VERSION__(.*)} $line "\\1$xml_version\\2"]
-            set new_line2 [regsub {(.*)__GIT_SHA__(.*)} $new_line "\\1$xml_sha\\2"]         
+            set new_line2 [regsub {(.*)__GIT_SHA__(.*)} $new_line "\\1$xml_sha\\2"]
             puts $out $new_line2
         }
         close $in
@@ -879,7 +875,7 @@ proc CopyXMLsFromListFile {list_file path dst {xml_version "0.0.0"} {xml_sha "00
         } else {
         Msg Warning "XML file $xmlfile not found"
         }
-        
+
     }
     }
     Msg Info "$cnt file/s copied"
@@ -888,7 +884,7 @@ proc CopyXMLsFromListFile {list_file path dst {xml_version "0.0.0"} {xml_sha "00
 
 ## Returns the dst path relative to base
 ## Arguments:
-# * base   the path with respect to witch the dst path is calculated                             
+# * base   the path with respect to witch the dst path is calculated
 # * dst:   the path to be calculated with respect to base
 
 proc relative {base dst} {
@@ -924,7 +920,7 @@ proc relative {base dst} {
 
     return $dst
 }
-########################################################                                                                                                                                                  
+########################################################
 ## Returns a list of 2 dictionaries: libraries and properties
 # - libraries has library name as keys and a list of filenames as values
 # - properties has as file names as keys and a list of properties as values
@@ -932,7 +928,7 @@ proc relative {base dst} {
 # Files, libraries and properties are extracted from the current Vivado project
 
 proc GetProjectFiles {} {
-    
+
     set all_files [get_files]
     set libraries [dict create]
     set properties [dict create]
@@ -940,7 +936,7 @@ proc GetProjectFiles {} {
     foreach f $all_files {
     if { [get_property  IS_GENERATED [get_files $f]] == 0} {
         set f [file normalize $f]
-        lappend files $f 
+        lappend files $f
         set type  [get_property FILE_TYPE [get_files $f]]
         set lib [get_property LIBRARY [get_files $f]]
 
@@ -950,7 +946,7 @@ proc GetProjectFiles {} {
         set type [lindex $type 0]
         } else {
         set prop ""
-        } 
+        }
 
         #check where the file is used and add it to prop
         if {[string equal $type "VHDL"]} {
@@ -960,13 +956,13 @@ proc GetProjectFiles {} {
         dict lappend libraries "IP" $f
         } elseif {[string equal $type "XDC"]} {
         dict lappend libraries "XDC" $f
-        dict lappend properties $f "XDC"        
+        dict lappend properties $f "XDC"
         } else {
         dict lappend libraries "OTHER" $f
         }
-        
+
     }
-    
+
     }
 
     #    dict for {lib f} $libraries {
@@ -974,10 +970,10 @@ proc GetProjectFiles {} {
     #   foreach n $f {
     #       Msg Status "$n"
     #   }
-    #   
+    #
     #   Msg Status "*******"
     #    }
-    
+
     return [list $libraries $properties]
 }
 ########################################################
@@ -1004,10 +1000,10 @@ proc GetHogFiles {{proj_path 0}} {
     set list_path $globalSettings::top_path/list
     set libraries [dict create]
     set properties [dict create]
-    
+
     puts $globalSettings::list_path
     set list_files [glob -directory $globalSettings::list_path "*"]
-    
+
     foreach f $list_files {
         lassign [SmartListFile $f $globalSettings::top_path 1] l p
     set libraries [dict merge $l $libraries]
@@ -1019,9 +1015,9 @@ proc GetHogFiles {{proj_path 0}} {
     #   foreach n $f {
     #       Msg Status "$n"
     #   }
-    #   
+    #
     #   Msg Status "*******"
-    #   }    
+    #   }
 
     return [list $libraries $properties]
 }
@@ -1051,7 +1047,7 @@ proc HandleIP {what_to_do xci_file ip_path runs_dir {force 0}} {
     if {!($what_to_do eq "push") && !($what_to_do eq "pull")} {
 	Msg Error "You must specify push or pull as first argument."
     }
-    
+
     set ip_path_path [file normalize $ip_path/..]
     lassign [eos  "ls $ip_path_path"] ret result
     if  {$ret != 0} {
@@ -1066,21 +1062,21 @@ proc HandleIP {what_to_do xci_file ip_path runs_dir {force 0}} {
 	    Msg Info "IP repostory path on eos is set to: $ip_path"
 	}
     }
-    
+
     if !([file exists $xci_file]) {
 	Msg CriticalWarning "Could not find $xci_file."
 	return -1
     }
-    
+
 
     set xci_path [file dir $xci_file]
     set xci_name [file tail $xci_file]
     set xci_ip_name [file root [file tail $xci_file]]
     set xci_dir_name [file tail $xci_path]
-    
+
     set hash [md5sum $xci_file]
     set file_name $xci_name\_$hash
-    
+
     Msg Info "Preparing to handle IP: $xci_name..."
 
     if {$what_to_do eq "push"} {
@@ -1138,7 +1134,7 @@ proc HandleIP {what_to_do xci_file ip_path runs_dir {force 0}} {
 	    if  {($ret_g == 0) && ([llength $ip_gen_files] > 0)} {
 		eos "cp -r $ip_path/$file_name/generated/* $xci_path" 5
 	    } else {
-		Msg Warning "Cound not find generated IP files on EOS path" 
+		Msg Warning "Cound not find generated IP files on EOS path"
 	    }
 
 	    if  {($ret_s == 0) && ([llength $ip_syn_files] > 0)} {
@@ -1146,10 +1142,10 @@ proc HandleIP {what_to_do xci_file ip_path runs_dir {force 0}} {
 	    } else {
 		Msg Warning "Cound not find synthesized IP files on EOS path"
 	    }
-	} 
+	}
     }
-    
-    return 0   
+
+    return 0
 }
 ########################################################
 
@@ -1161,7 +1157,7 @@ proc md5sum {file_name} {
     if !([file exists $file_name]) {
 	Msg Warning "Could not find $xci_file."
 	set file_hash -1
-    }	     
+    }
     if {[catch {package require md5 2.0.7} result]} {
 	Msg Warning "Tcl package md5 version 2.0.7 not found ($result), will use command line..."
 	set hash [lindex [exec md5sum $file_name] 0]
@@ -1172,7 +1168,7 @@ proc md5sum {file_name} {
 
 ########################################################
 
-## Checks that "ref" in .gitlab-ci.yml actually matches the gitlab-ci file in the 
+## Checks that "ref" in .gitlab-ci.yml actually matches the gitlab-ci file in the
 ##  Hog submodule
 #
 proc CheckYmlRef {repo_path allow_failure} {
@@ -1219,20 +1215,20 @@ You can fix this by installing package \"tcllib\""
 		set HOGYML_SHA [exec git log --format=%H -1 --  gitlab-ci.yml ]
 		if { [catch {exec git log --format=%H -1 $YML_REF_F gitlab-ci.yml} EXPECTEDYML_SHA]} {
 			if { [catch {exec git log --format=%H -1 origin/$YML_REF_F gitlab-ci.yml} EXPECTEDYML_SHA]} {
-				Msg $MSG_TYPE "Error in project .gitlab-ci.yml. ref: $YML_REF not found"		
+				Msg $MSG_TYPE "Error in project .gitlab-ci.yml. ref: $YML_REF not found"
 				set EXPECTEDYML_SHA ""
 			}
- 
-		} 
+
+		}
 		if  {!($EXPECTEDYML_SHA eq "")} {
-			
+
 			if {$HOGYML_SHA == $EXPECTEDYML_SHA} {
 				Msg Info "Hog gitlab-ci.yml SHA matches with the \"ref\" in the .gitlab-ci.yml."
 
 			} else {
-				Msg $MSG_TYPE "HOG gitlab-ci.yml SHA mismatch. 
+				Msg $MSG_TYPE "HOG gitlab-ci.yml SHA mismatch.
 From Hog submodule: $HOGYML_SHA
-From .gitlab-ci.yml: $EXPECTEDYML_SHA 
+From .gitlab-ci.yml: $EXPECTEDYML_SHA
 You can fix this in 2 ways: (A) by changing the ref in your repository or (B) by changing the Hog submodule commit.
 \tA) edit project .gitlab-ci.yml ---> ref: '$HOGYML_SHA'
 \tB) modify Hog submodule: git checkout $EXPECTEDYML_SHA"
@@ -1292,7 +1288,7 @@ proc eos {command {attempt 1}}  {
     }
     if {$attempt < 1} {
 	Msg Warning "The value of attempt should be 1 or more, not $attempt, setting it to 1 as default"
-	set attempt 1	
+	set attempt 1
     }
     for {set i 0} {$i < $attempt} {incr i } {
 	set ret [catch {exec -ignorestderr eos {*}$command} result]

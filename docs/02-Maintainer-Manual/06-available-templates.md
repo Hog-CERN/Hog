@@ -38,4 +38,4 @@ The following file tamplates are distributed with HOG:
 	- contains [... the default doxygen configuration ...];
 	- to use this file copy it to a folder named doxygen in the root folder of your repository, modify to accommodate you project.
 
-You can find the templates in the `Hog/Template` directory
+You can find the templates in the [Hog/Template](https://gitlab.cern.ch/hog/Hog/-/tree/master/Templates) directory.

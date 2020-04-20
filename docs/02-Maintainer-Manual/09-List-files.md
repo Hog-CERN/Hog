@@ -59,6 +59,9 @@ Each line in these files has the following synthax:
 * The third entry is preceded by `wavefile=`, it indicates the file containing the tcl script used to lauch your simulation. *NOTE* the path assumes the default position is `<repo>/sim/`, any relative path must assume this as default location.
 * The fourth entry is preceded by `dofile=`, it indicates the file containing the signal waveforms to be observed in your simulation.
 
+Hog compiles the Questa or Modelsim libraries when launching the Hog/Init.sh script.
+The simulation libraries are now compiled into the SimulationLib folder by default.
+
 ## .con files
 
 All contratint files (.xdc ) must be included by adding them to the .con files

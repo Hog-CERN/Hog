@@ -101,6 +101,16 @@ HDL files can be placed anywhere in your repository, but it is advised to place 
 We suggest to put HDL files belonging to separate libraries in separate folders although this is not mandatory.
 The exact structure or name of this folder is not enforced.
 
+## Top level entity
+
+The top module of your project is expected to be called `top_<project_name>`.
+This module can be stored anywhere in the repository as long as the file conatining it is linked in a [`*.src` file](#list_directory).
+We suggest you to store the file containing the top level module for your project in the TOP folder.
+
+HOG uses generics to track the firmware version.
+A full list of the generics used by Hog can be found  in the [HOG generics](../02-Maintainer-Manual/07-Hog-generics.md) section.
+A template for the top level file (in VHLD and Verilog) is available in the [Hog/Template](https://gitlab.cern.ch/hog/Hog/-/tree/master/Templates) directory.
+A full description of the template can be found in the [available templates](../02-Maintainer-Manual/06-available-templates.md) section.
 
 ## Git submodules
 HOG can handle Git submodules, i.e. if you have some module contained on a git repository you can simply add it to your project using:
@@ -134,17 +144,16 @@ It contains one directory for each of your projects (say proj_1, proj_2, proj_3)
 
 ### project directory
 
-Each of the project directories must contain:
-
-- the top vhdl file of the project
-- the tcl file that generates the project
+Each of the project directories must contain the tcl file that generates the project
 
 They must be named as follows:
 
 ```
-    Repo/Top/<proj_1>/<proj_1>.tcl
-    Repo/Top/<proj_1>/top_<proj_1>.vhd
+    Repo/Top/<project_name>/<project_name>.tcl
 ```
+
+A template for the `<project_name>.tcl` file is available in the [Hog/Template](https://gitlab.cern.ch/hog/Hog/-/tree/master/Templates) directory.
+A full description of the template can be found in the [available templates](../02-Maintainer-Manual/06-available-templates.md) section.
 
 ### .tcl file
 

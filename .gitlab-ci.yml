@@ -47,7 +47,7 @@ merge_and_tag:
           - git fetch origin refs/notes/*:refs/notes/*
           - git notes add -m "$CI_MERGE_REQUEST_IID"
           - git push origin refs/notes/*
-          - ./Other/Changelog.sh > changelog.md
+          - ./Other/Changelog.sh $CI_MERGE_REQUEST_TARGET_BRANCH_NAME > changelog.md
       artifacts:
         name: changelog
         paths:

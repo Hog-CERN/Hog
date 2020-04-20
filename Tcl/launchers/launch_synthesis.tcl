@@ -5,7 +5,7 @@ if {[catch {package require cmdline} ERROR]} {
 	return
 }
 set parameters {
-	{NJOBS.arg "Number of jobs. Default: 4"}
+	{NJOBS.arg 4 "Number of jobs. Default: 4"}
 }
 
 set usage   "USAGE: $::argv0 <project>"

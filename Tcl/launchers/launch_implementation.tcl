@@ -12,7 +12,7 @@ if {[catch {package require struct::matrix} ERROR]} {
 
 set parameters {
     {no_bitstream    "If set, the bitstream file will not be produced."}
-	{NJOBS.arg "Number of jobs. Default: 4"}
+	{NJOBS.arg 4 "Number of jobs. Default: 4"}
 }
 
 set usage "- USAGE: $::argv0 \[OPTIONS\] <project> \n. Options:"

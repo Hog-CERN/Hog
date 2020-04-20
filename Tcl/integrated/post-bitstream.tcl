@@ -1,3 +1,8 @@
+#!/usr/bin/env tclsh
+# @file
+# The post bistream script copies binary files, reports and other files to the bin directory in your repository.
+# This script is automatically integrated into the Vivado/Quartus workflow by the Create Project script.
+
 set old_path [pwd]
 set tcl_path [file normalize "[file dirname [info script]]/.."]
 source $tcl_path/hog.tcl
@@ -9,8 +14,8 @@ if {[info commands get_property] != ""} {
     set name [file rootname [file tail [file normalize [pwd]/..]]]
     set bit_file [file normalize "$old_path/top_$proj_name.bit"]
     set bin_file [file normalize "$old_path/top_$proj_name.bin"]
-    set ltx_file [file normalize "$old_path/top_$proj_name.ltx"]    
-    
+    set ltx_file [file normalize "$old_path/top_$proj_name.ltx"]
+
 } elseif {[info commands quartus_command] != ""} {
     # Quartus
     set fw_file [file normalize [lindex [glob -nocomplain "$old_path/*.bit"] 0]]
@@ -18,9 +23,9 @@ if {[info commands get_property] != ""} {
     set name [file rootname [file tail [file normalize [pwd]/..]]]
     set bit_file [file normalize "$old_path/top_$proj_name.bit"]
     set bin_file [file normalize "$old_path/top_$proj_name.bin"]
-    set ltx_file [file normalize "$old_path/top_$proj_name.ltx"]    
+    set ltx_file [file normalize "$old_path/top_$proj_name.ltx"]
 
-    
+
 } else {
     #tcl shell
     set fw_file [file normalize [lindex [glob -nocomplain "$old_path/*.bit"] 0]]
@@ -29,18 +34,18 @@ if {[info commands get_property] != ""} {
     set name [file rootname [file tail [file normalize [pwd]/..]]]
     set bit_file [file normalize "$old_path/top_$proj_name.bit"]
     set bin_file [file normalize "$old_path/top_$proj_name.bin"]
-    set ltx_file [file normalize "$old_path/top_$proj_name.ltx"]        
+    set ltx_file [file normalize "$old_path/top_$proj_name.ltx"]
 }
 if [file exists $fw_file] {
 
 
     set xml_dir [file normalize "$old_path/../xml"]
-    set run_dir [file normalize "$old_path/.."]    
-    set bin_dir [file normalize "$old_path/../../../../bin"]    
-    
+    set run_dir [file normalize "$old_path/.."]
+    set bin_dir [file normalize "$old_path/../../../../bin"]
+
     # Go to repository path
-    cd $tcl_path/../../ 
-    
+    cd $tcl_path/../../
+
     Msg Info "Evaluating git describe..."
     set describe [exec git describe --always --dirty --tags --long]
     Msg Info "Git describe: $describe"
@@ -50,9 +55,9 @@ if [file exists $fw_file] {
     set dst_dir [file normalize "$bin_dir/$name\-$describe"]
     set dst_bit [file normalize "$dst_dir/$name\-$describe.bit"]
     set dst_bin [file normalize "$dst_dir/$name\-$describe.bin"]
-    set dst_ltx [file normalize "$dst_dir/$name\-$describe.ltx"]    
+    set dst_ltx [file normalize "$dst_dir/$name\-$describe.ltx"]
     set dst_xml [file normalize "$dst_dir/xml"]
-    
+
     Msg Info "Creating $dst_dir..."
     file mkdir -p $dst_dir
     Msg Info "Evaluating differences with last commit..."
@@ -77,12 +82,12 @@ if [file exists $fw_file] {
     } else {
 	Msg Warning "No reports found in $run_dir subfolders"
     }
-	    
+
     # IPbus XML
     if [file exists $xml_dir] {
-	Msg Info "XML directory found, copying xml files from $xml_dir to $dst_xml..." 
+	Msg Info "XML directory found, copying xml files from $xml_dir to $dst_xml..."
 	if [file exists $dst_xml] {
-	    Msg Info "Directory $dst_xml exists, deleting it..." 
+	    Msg Info "Directory $dst_xml exists, deleting it..."
 	    file delete -force $dst_xml
 	}
 	file copy -force $xml_dir $dst_xml
@@ -96,14 +101,14 @@ if [file exists $fw_file] {
     }
 
     write_debug_probes -quiet $ltx_file
-    
+
     # ltx File
     if [file exists $ltx_file] {
 	Msg Info "Copying ltx file $ltx_file into $dst_ltx..."
 	file copy -force $ltx_file $dst_ltx
     } else {
 	Msg Info "No ltx file found: $ltx_file, that is not a problem"
-    }    
+    }
 
 } else {
     Msg CriticalWarning "Firmware binary file not found."

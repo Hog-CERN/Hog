@@ -1,7 +1,9 @@
-#!/usr/bin/env tclsh
+# @file
+# Launch the IP synthesis in a vivado project in text mode
+
 #parsing command options
 if {[catch {package require cmdline} ERROR]} {
-    puts "$ERROR\n If you are running this script on tclsh, you can fix this by installing 'tcllib'" 
+    puts "$ERROR\n If you are running this script on tclsh, you can fix this by installing 'tcllib'"
     return
 }
 set parameters {
@@ -69,29 +71,29 @@ set failure 0
 
 if [info exists runs] {
     foreach run_name $runs {
-    Msg Info "Launching $run_name..."
-    launch_runs $run_name -dir $main_folder
-    lappend running $run_name
-    if {[llength $running] >= $jobs} {
-        wait_on_run [get_runs [lindex $running 0]]
-        set running [lreplace $running 0 0]
-    }
+	Msg Info "Launching $run_name..."
+	launch_runs $run_name -dir $main_folder
+	lappend running $run_name
+	if {[llength $running] >= $jobs} {
+	    wait_on_run [get_runs [lindex $running 0]]
+	    set running [lreplace $running 0 0]
+	}
     }
 
     while {[llength $running] > 0} {
-    Msg Info "Checking [lindex $running 0]..."
-    wait_on_run [get_runs [lindex $running 0]]
-    set running [lreplace $running 0 0]
+	Msg Info "Checking [lindex $running 0]..."
+	wait_on_run [get_runs [lindex $running 0]]
+	set running [lreplace $running 0 0]
     }
-    if { $runs != "" } { 
-    foreach run_name $runs {
-        set prog [get_property PROGRESS $run_name]
-        set status [get_property STATUS $run_name]
-        Msg Info "Run: $run_name progress: $prog, status : $status"
-        if {$prog ne "100%"} {
-        set failure 1
-        }
-    }
+    if { $runs != "" } {
+	foreach run_name $runs {
+	    set prog [get_property PROGRESS $run_name]
+	    set status [get_property STATUS $run_name]
+	    Msg Info "Run: $run_name progress: $prog, status : $status"
+	    if {$prog ne "100%"} {
+		set failure 1
+	    }
+	}
     }
 }
 
@@ -115,14 +117,14 @@ if {$failure eq 1} {
 if {($ip_path != 0)} {
     Msg Info "Copying synthesised IPs to $ip_path..."
     foreach ip $ips {
-    set force 0
-    if [info exist runs] {
-        if {[lsearch $runs $ip\_synth_1] != -1} {
-        Msg Info "$ip was synthesized, will force the copy to EOS..."
-        set force 1
-        }
-    }
-    HandleIP push [get_property IP_FILE $ip] $ip_path $main_folder $force
+	set force 0
+	if [info exist runs] {
+	    if {[lsearch $runs $ip\_synth_1] != -1} {
+		Msg Info "$ip was synthesized, will force the copy to EOS..."
+		set force 1
+	    }
+	}
+	HandleIP push [get_property IP_FILE $ip] $ip_path $main_folder $force
     }
 }
 

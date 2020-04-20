@@ -1,8 +1,11 @@
 #!/usr/bin/env tclsh
+# @file
+# The pre synthesis script checks the status of your git repository and stores into a set of variables that are fed as genereics to the HDL project.
+# This script is automatically integrated into the Vivado/Quartus workflow by the Create Project script.
 
 if {[catch {package require struct::matrix} ERROR]} {
-	puts "$ERROR\n If you are running this script on tclsh, you can fix this by installing 'tcllib'" 
-	return
+    puts "$ERROR\n If you are running this script on tclsh, you can fix this by installing 'tcllib'" 
+    return
 }
 
 set old_path [pwd]
@@ -23,7 +26,7 @@ if {[info commands get_property] != ""} {
     set proj_file $old_path/[file tail $old_path].xpr
     Msg CriticalWarning "You seem to be running locally on tclsh, so this is a debug, the project file will be set to $proj_file and was derived from the path you launched this script from: $old_path. If you want this script to work properly in debug mode, please launch it from the top folder of one project, for example Repo/VivadoProject/fpga1/ or Repo/Top/fpga1/"
 }
-    
+
 set proj_dir [file normalize [file dirname $proj_file]]
 set proj_name [file rootname [file tail $proj_file]]
 
@@ -31,10 +34,10 @@ set proj_name [file rootname [file tail $proj_file]]
 set flavour [string map {. ""} [file ext $proj_name]]
 if {$flavour != ""} {
     if [string is integer $flavour] {
-    Msg Info "Project $proj_name has flavour = $flavour, the generic variable FLAVUOR will be set to $flavour"
+	Msg Info "Project $proj_name has flavour = $flavour, the generic variable FLAVUOR will be set to $flavour"
     } else {
-    Msg Warning "Project name has a non numeric extension, flavour will be set to -1"
-    set flavour -1
+	Msg Warning "Project name has a non numeric extension, flavour will be set to -1"
+	set flavour -1
     }
 
 } else {
@@ -52,7 +55,7 @@ if { [exec git status --untracked-files=no  --porcelain] eq "" } {
 }
 
 # Top project directory
-lassign [GetVer ./Top/$proj_name/ ./Top/$proj_name/] top_ver top_hash
+lassign [GetVer ./Top/$proj_name/ .] top_ver top_hash
 
 # Read list files
 set libs ""
@@ -61,7 +64,7 @@ set hashes ""
 set list_files [glob  -nocomplain "./Top/$proj_name/list/*.src"]
 foreach f $list_files {
     set name [file rootname [file tail $f]]
-    lassign [GetVer  $f ./Top/$proj_name/] ver hash
+    lassign [GetVer  $f .] ver hash
     Msg Info "Found source file $f, version: $ver commit SHA: $hash"
     lappend libs $name
     lappend vers $ver
@@ -110,16 +113,16 @@ if [file exists ./Top/$proj_name/xml] {
     if [file exists ./Top/$proj_name/xml/xml.lst] {
         Msg Info "Found IPbus XML list file, using version of listed files..."
         # in this case, IPbus xml files are stored anywhere in the repository and listed in the xml.lst file
-        lassign [GetVer ./Top/$proj_name/xml/xml.lst ./Top/$proj_name/] xml_ver_hex xml_hash
+        lassign [GetVer ./Top/$proj_name/xml/xml.lst .] xml_ver_hex xml_hash
         set xml_ver [HexVersionToString $xml_ver_hex]    
         Msg Info "Creating XML directory $xml_dst..."
         file mkdir $xml_dst
         Msg Info "Copying xml files to $xml_dst and replacing placeholders with xml version $xml_ver..."
-        CopyXMLsFromListFile ./Top/$proj_name/xml/xml.lst ./Top/$proj_name $xml_dst $xml_ver $xml_hash       
+        CopyXMLsFromListFile ./Top/$proj_name/xml/xml.lst ./ $xml_dst $xml_ver $xml_hash       
     } else {
         Msg Info "IPbus XML list file not found, using version of xml directory..."
         # in this case, IPbus xml files are just stored in the xml directory in the project folder
-        lassign [GetVer ./Top/$proj_name/xml ./Top/$proj_name/] xml_ver_hex xml_hash
+        lassign [GetVer ./Top/$proj_name/xml ./] xml_ver_hex xml_hash
         set xml_ver [HexVersionToString $xml_ver_hex]
         file delete -force $xml_dst
         file copy -force $xml_target $old_path/..
@@ -140,18 +143,18 @@ set sub_files [glob -nocomplain "./Top/$proj_name/list/*.sub"]
 foreach f $sub_files {
     set sub_dir [file rootname [file tail $f]]
     if [file exists ./$sub_dir] {
-    cd "./$sub_dir"
-    lappend subs $sub_dir
-    if { [exec git status --untracked-files=no  --porcelain] eq "" } {
-        Msg Info "$sub_dir submodule clean."
-        lappend subs_hashes [GetHash ALL ./]
+	cd "./$sub_dir"
+	lappend subs $sub_dir
+	if { [exec git status --untracked-files=no  --porcelain] eq "" } {
+	    Msg Info "$sub_dir submodule clean."
+	    lappend subs_hashes [GetHash ALL ./]
+	} else {
+	    Msg CriticalWarning "$sub_dir submodule not clean, commit hash will be set to 0."
+	    lappend subs_hashes "0000000"    
+	}
+	cd ..
     } else {
-        Msg CriticalWarning "$sub_dir submodule not clean, commit hash will be set to 0."
-        lappend subs_hashes "0000000"    
-    }
-    cd ..
-    } else {
-    Msg CriticalWarning "$sub_dir submodule not found"
+	Msg CriticalWarning "$sub_dir submodule not found"
     }
 }
 

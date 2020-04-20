@@ -104,7 +104,7 @@ The exact structure or name of this folder is not enforced.
 ## Top level entity
 
 The top module of your project is expected to be called `top_<project_name>`.
-This module can be stored anywhere in the repository as long as the file conatining it is linked in a [`*.src` file](#list_directory).
+This module can be stored anywhere in the repository as long as the file conatining it is linked in a [`*.src` file](#list-directory).
 We suggest you to store the file containing the top level module for your project in the TOP folder.
 
 HOG uses generics to track the firmware version.

@@ -1,12 +1,14 @@
-#!/usr/bin/env tclsh
+# @file
+# Launch vivado implementation and possibly write bitstream in text mode
+
 #parsing command options
 if {[catch {package require cmdline} ERROR]} {
-    puts "$ERROR\n If you are running this script on tclsh, you can fix this by installing 'tcllib'" 
+    puts "$ERROR\n If you are running this script on tclsh, you can fix this by installing 'tcllib'"
     return
 }
 
 if {[catch {package require struct::matrix} ERROR]} {
-    puts "$ERROR\n If you are running this script on tclsh, you can fix this by installing 'tcllib'" 
+    puts "$ERROR\n If you are running this script on tclsh, you can fix this by installing 'tcllib'"
     return
 }
 
@@ -30,7 +32,7 @@ if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] 
 }
 
 set old_path [pwd]
-set bin_dir [file normalize "$old_path/bin"]  
+set bin_dir [file normalize "$old_path/bin"]
 puts "old_path: $old_path \n bin_dir: $bin_dir \n path: $path "
 cd $path
 source ./hog.tcl
@@ -58,7 +60,7 @@ Msg Info "Run: impl_1 progress: $prog, status : $status"
 set wns [get_property STATS.WNS [get_runs [current_run]]]
 set tns [get_property STATS.TNS [get_runs [current_run]]]
 set whs [get_property STATS.WHS [get_runs [current_run]]]
-set ths [get_property STATS.THS [get_runs [current_run]]]    
+set ths [get_property STATS.THS [get_runs [current_run]]]
 
 if {$wns >= 0 && $whs >= 0} {
     Msg Info "Time requirements are met"
@@ -78,7 +80,7 @@ Msg Status "THS: $ths"
 
 struct::matrix m
 m add columns 5
-m add row 
+m add row
 
 puts $status_file "## $project Timing summary"
 m add row  "| **Parameter** | \"**value (ns)**\" |"
@@ -86,7 +88,7 @@ m add row  "| --- | --- |"
 m add row  "|  WNS:  |  $wns  |"
 m add row  "|  TNS:  |  $tns  |"
 m add row  "|  WHS:  |  $whs  |"
-m add row  "|  THS:  |  $ths  |"        
+m add row  "|  THS:  |  $ths  |"
 
 puts $status_file [m format 2string]
 puts $status_file "\n"
@@ -106,13 +108,13 @@ if {$do_bitstream == 1} {
     Msg Info "Starting write bitstream flow..."
     launch_runs impl_1 -to_step write_bitstream -jobs 4 -dir $main_folder
     wait_on_run impl_1
-    
+
     set prog [get_property PROGRESS [get_runs impl_1]]
     set status [get_property STATUS [get_runs impl_1]]
     Msg Info "Run: impl_1 progress: $prog, status : $status"
-    
+
     if {$prog ne "100%"} {
-    Msg Error "Write bitstream error, status is: $status"
+	Msg Error "Write bitstream error, status is: $status"
     }
 
     Msg Status "*** Timing summary (again) ***"

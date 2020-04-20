@@ -12,35 +12,35 @@
 proc Msg {level msg {title ""}} {
     set level [string tolower $level]
     if {$level == 0 || $level == "status" || $level == "extra_info"} {
-    set vlevel {STATUS}
-    set qlevel extra_info
+	set vlevel {STATUS}
+	set qlevel extra_info
     } elseif {$level == 1 || $level == "info"} {
-    set vlevel {INFO}
-    set qlevel info
+	set vlevel {INFO}
+	set qlevel info
     } elseif {$level == 2 || $level == "warning"} {
-    set vlevel {WARNING}
-    set qlevel warning
+	set vlevel {WARNING}
+	set qlevel warning
     } elseif {$level == 3 || [string first "critical" $level] !=-1} {
-    set vlevel {CRITICAL WARNING}
-    set qlevel critial_warning
+	set vlevel {CRITICAL WARNING}
+	set qlevel critial_warning
     } elseif {$level == 4 || $level == "error"} {
-    set vlevel {ERROR}
-    set qlevel "error"
+	set vlevel {ERROR}
+	set qlevel "error"
     } else {
-    puts "Hog Error: level $level not defined"
-    exit -1
+	puts "Hog Error: level $level not defined"
+	exit -1
     }
 
     if {$title == ""} {set title [lindex [info level [expr [info level]-1]] 0]}
     if {[info commands send_msg_id] != ""} {
-    # Vivado
-    send_msg_id Hog:$title-0 $vlevel $msg
+	# Vivado
+	send_msg_id Hog:$title-0 $vlevel $msg
     } elseif {[info commands post_message] != ""} {
-    # Quartus
-    post_message -type $qlevel "Hog:$title $msg"
+	# Quartus
+	post_message -type $qlevel "Hog:$title $msg"
     } else {
-    # Tcl Shell
-    puts "*** Hog:$title $vlevel $msg"
+	# Tcl Shell
+	puts "*** Hog:$title $vlevel $msg"
     }
 }
 ########################################################
@@ -60,14 +60,14 @@ proc WrtieToFile {File msg} {
 proc  SetProperty {property value object} {
     if {[info commands set_property] != ""} {
         # Vivado
-    set_property $property $value $object
+	set_property $property $value $object
 
     } elseif {[info commands quartus_command] != ""} {
         # Quartus
 
     } else {
         # Tcl Shell
-    puts "***DEBUG Hog:SetProperty $property to $value of $object"
+	puts "***DEBUG Hog:SetProperty $property to $value of $object"
     }
 
 
@@ -78,15 +78,15 @@ proc  SetProperty {property value object} {
 proc GetProperty {property object} {
     if {[info commands get_property] != ""} {
         # Vivado
-    return [get_property -quiet $property $object]
+	return [get_property -quiet $property $object]
 
     } elseif {[info commands quartus_command] != ""} {
         # Quartus
-    return ""
+	return ""
     } else {
         # Tcl Shell
-    puts "***DEBUG Hog:GetProperty $property of $object"
-    return "DEBUG_propery_value"
+	puts "***DEBUG Hog:GetProperty $property of $object"
+	return "DEBUG_propery_value"
     }
 }
 ########################################################
@@ -125,15 +125,15 @@ proc SetTopProperty {top_module sources} {
 proc GetProject {proj} {
     if {[info commands get_projects] != ""} {
         # Vivado
-    return [get_projects $proj]
+	return [get_projects $proj]
 
     } elseif {[info commands quartus_command] != ""} {
         # Quartus
-    return ""
+	return ""
     } else {
         # Tcl Shell
-    puts "***DEBUG Hog:GetProject $project"
-    return "DEBUG_project"
+	puts "***DEBUG Hog:GetProject $project"
+	return "DEBUG_project"
     }
 
 }
@@ -141,30 +141,30 @@ proc GetProject {proj} {
 proc GetRun {run} {
     if {[info commands get_projects] != ""} {
         # Vivado
-    return [get_runs -quiet $run]
+	return [get_runs -quiet $run]
 
     } elseif {[info commands quartus_command] != ""} {
         # Quartus
-    return ""
+	return ""
     } else {
         # Tcl Shell
-    puts "***DEBUG Hog:GetRun $run"
-    return "DEBUG_run"
+	puts "***DEBUG Hog:GetRun $run"
+	return "DEBUG_run"
     }
 }
 
 proc GetFile {file} {
-        if {[info commands get_files] != ""} {
+    if {[info commands get_files] != ""} {
         # Vivado
-    return [get_files $file]
+	return [get_files $file]
 
     } elseif {[info commands quartus_command] != ""} {
         # Quartus
-    return ""
+	return ""
     } else {
         # Tcl Shell
-    puts "***DEBUG Hog:GetFile $file"
-    return "DEBUG_file"
+	puts "***DEBUG Hog:GetFile $file"
+	return "DEBUG_file"
     }
 }
 
@@ -185,79 +185,79 @@ proc AddFile {file fileset} {
 
 proc CreateReportStrategy {DESIGN obj} {
     if {[info commands create_report_config] != ""} {
-    ## Viavado Report Strategy
-    if {[string equal [get_property -quiet report_strategy $obj] ""]} {
-        # No report strategy needed
-        Msg Info "No report strategy needed for implementation"
+	## Viavado Report Strategy
+	if {[string equal [get_property -quiet report_strategy $obj] ""]} {
+	    # No report strategy needed
+	    Msg Info "No report strategy needed for implementation"
+	} else {
+	    # Report strategy needed since version 2017.3
+	    set_property set_report_strategy_name 1 $obj
+	    set_property report_strategy {Vivado Implementation Default Reports} $obj
+	    set_property set_report_strategy_name 0 $obj
+
+	    set reports [get_report_configs -of_objects $obj]
+	    # Create 'impl_1_place_report_utilization_0' report (if not found)
+	    if { [ string equal [get_report_configs -of_objects [get_runs impl_1] $globalSettings::DESIGN\_impl_1_place_report_utilization_0] "" ] } {
+		create_report_config -report_name $globalSettings::DESIGN\_impl_1_place_report_utilization_0 -report_type report_utilization:1.0 -steps place_design -runs impl_1
+	    }
+	    set obj [get_report_configs -of_objects [get_runs impl_1] $globalSettings::DESIGN\_impl_1_place_report_utilization_0]
+	    if { $obj != "" } {
+
+	    }
+
+	    # Create 'impl_1_route_report_drc_0' report (if not found)
+	    if { [ string equal [get_report_configs -of_objects [get_runs impl_1] $globalSettings::DESIGN\_impl_1_route_report_drc_0] "" ] } {
+		create_report_config -report_name $globalSettings::DESIGN\_impl_1_route_report_drc_0 -report_type report_drc:1.0 -steps route_design -runs impl_1
+	    }
+	    set obj [get_report_configs -of_objects [get_runs impl_1] $globalSettings::DESIGN\_impl_1_route_report_drc_0]
+	    if { $obj != "" } {
+
+	    }
+
+	    # Create 'impl_1_route_report_power_0' report (if not found)
+	    if { [ string equal [get_report_configs -of_objects [get_runs impl_1] $globalSettings::DESIGN\_impl_1_route_report_power_0] "" ] } {
+		create_report_config -report_name $globalSettings::DESIGN\_impl_1_route_report_power_0 -report_type report_power:1.0 -steps route_design -runs impl_1
+	    }
+	    set obj [get_report_configs -of_objects [get_runs impl_1] $globalSettings::DESIGN\_impl_1_route_report_power_0]
+	    if { $obj != "" } {
+
+	    }
+
+	    # Create 'impl_1_route_report_timing_summary' report (if not found)
+	    if { [ string equal [get_report_configs -of_objects [get_runs impl_1] $globalSettings::DESIGN\_impl_1_route_report_timing_summary] "" ] } {
+		create_report_config -report_name $globalSettings::DESIGN\_impl_1_route_report_timing_summary -report_type report_timing_summary:1.0 -steps route_design -runs impl_1
+	    }
+	    set obj [get_report_configs -of_objects [get_runs impl_1] $globalSettings::DESIGN\_impl_1_route_report_timing_summary]
+	    if { $obj != "" } {
+		Msg Info "Report timing created successfully"
+	    }
+
+	    # Create 'impl_1_route_report_utilization' report (if not found)
+	    if { [ string equal [get_report_configs -of_objects [get_runs impl_1] $globalSettings::DESIGN\_impl_1_route_report_utilization] "" ] } {
+		create_report_config -report_name $globalSettings::DESIGN\_impl_1_route_report_utilization -report_type report_utilization:1.0 -steps route_design -runs impl_1
+	    }
+	    set obj [get_report_configs -of_objects [get_runs impl_1] $globalSettings::DESIGN\_impl_1_route_report_utilization]
+	    if { $obj != "" } {
+		Msg Info "Report utilization created successfully"
+	    }
+
+
+	    # Create 'impl_1_post_route_phys_opt_report_timing_summary_0' report (if not found)
+	    if { [ string equal [get_report_configs -of_objects [get_runs impl_1] $globalSettings::DESIGN\_impl_1_post_route_phys_opt_report_timing_summary_0] "" ] } {
+		create_report_config -report_name $globalSettings::DESIGN\_impl_1_post_route_phys_opt_report_timing_summary_0 -report_type report_timing_summary:1.0 -steps post_route_phys_opt_design -runs impl_1
+	    }
+	    set obj [get_report_configs -of_objects [get_runs impl_1] $globalSettings::DESIGN\_impl_1_post_route_phys_opt_report_timing_summary_0]
+	    if { $obj != "" } {
+		set_property -name "options.max_paths" -value "10" -objects $obj
+		set_property -name "options.warn_on_violation" -value "1" -objects $obj
+	    }
+
+
+
+
+	}
     } else {
-        # Report strategy needed since version 2017.3
-        set_property set_report_strategy_name 1 $obj
-        set_property report_strategy {Vivado Implementation Default Reports} $obj
-        set_property set_report_strategy_name 0 $obj
-
-        set reports [get_report_configs -of_objects $obj]
-        # Create 'impl_1_place_report_utilization_0' report (if not found)
-        if { [ string equal [get_report_configs -of_objects [get_runs impl_1] $globalSettings::DESIGN\_impl_1_place_report_utilization_0] "" ] } {
-          create_report_config -report_name $globalSettings::DESIGN\_impl_1_place_report_utilization_0 -report_type report_utilization:1.0 -steps place_design -runs impl_1
-        }
-        set obj [get_report_configs -of_objects [get_runs impl_1] $globalSettings::DESIGN\_impl_1_place_report_utilization_0]
-        if { $obj != "" } {
-
-        }
-
-        # Create 'impl_1_route_report_drc_0' report (if not found)
-        if { [ string equal [get_report_configs -of_objects [get_runs impl_1] $globalSettings::DESIGN\_impl_1_route_report_drc_0] "" ] } {
-          create_report_config -report_name $globalSettings::DESIGN\_impl_1_route_report_drc_0 -report_type report_drc:1.0 -steps route_design -runs impl_1
-        }
-        set obj [get_report_configs -of_objects [get_runs impl_1] $globalSettings::DESIGN\_impl_1_route_report_drc_0]
-        if { $obj != "" } {
-
-        }
-
-        # Create 'impl_1_route_report_power_0' report (if not found)
-        if { [ string equal [get_report_configs -of_objects [get_runs impl_1] $globalSettings::DESIGN\_impl_1_route_report_power_0] "" ] } {
-          create_report_config -report_name $globalSettings::DESIGN\_impl_1_route_report_power_0 -report_type report_power:1.0 -steps route_design -runs impl_1
-        }
-        set obj [get_report_configs -of_objects [get_runs impl_1] $globalSettings::DESIGN\_impl_1_route_report_power_0]
-        if { $obj != "" } {
-
-        }
-
-        # Create 'impl_1_route_report_timing_summary' report (if not found)
-        if { [ string equal [get_report_configs -of_objects [get_runs impl_1] $globalSettings::DESIGN\_impl_1_route_report_timing_summary] "" ] } {
-            create_report_config -report_name $globalSettings::DESIGN\_impl_1_route_report_timing_summary -report_type report_timing_summary:1.0 -steps route_design -runs impl_1
-        }
-        set obj [get_report_configs -of_objects [get_runs impl_1] $globalSettings::DESIGN\_impl_1_route_report_timing_summary]
-        if { $obj != "" } {
-            Msg Info "Report timing created successfully"
-        }
-
-        # Create 'impl_1_route_report_utilization' report (if not found)
-        if { [ string equal [get_report_configs -of_objects [get_runs impl_1] $globalSettings::DESIGN\_impl_1_route_report_utilization] "" ] } {
-            create_report_config -report_name $globalSettings::DESIGN\_impl_1_route_report_utilization -report_type report_utilization:1.0 -steps route_design -runs impl_1
-        }
-        set obj [get_report_configs -of_objects [get_runs impl_1] $globalSettings::DESIGN\_impl_1_route_report_utilization]
-        if { $obj != "" } {
-            Msg Info "Report utilization created successfully"
-        }
-
-
-        # Create 'impl_1_post_route_phys_opt_report_timing_summary_0' report (if not found)
-        if { [ string equal [get_report_configs -of_objects [get_runs impl_1] $globalSettings::DESIGN\_impl_1_post_route_phys_opt_report_timing_summary_0] "" ] } {
-          create_report_config -report_name $globalSettings::DESIGN\_impl_1_post_route_phys_opt_report_timing_summary_0 -report_type report_timing_summary:1.0 -steps post_route_phys_opt_design -runs impl_1
-        }
-        set obj [get_report_configs -of_objects [get_runs impl_1] $globalSettings::DESIGN\_impl_1_post_route_phys_opt_report_timing_summary_0]
-        if { $obj != "" } {
-            set_property -name "options.max_paths" -value "10" -objects $obj
-            set_property -name "options.warn_on_violation" -value "1" -objects $obj
-        }
-
-
-
-
-    }
-    } else {
-    puts "Won't create any report strategy, not in Vivado"
+	puts "Won't create any report strategy, not in Vivado"
     }
 }
 ########################################################
@@ -286,7 +286,7 @@ proc DoxygenVersion {target_version} {
     set ver [split $target_version "."]
     set v [exec doxygen --version]
     Msg Info "Found doxygen version: $v"
-	set current_ver [split $v ". "]
+    set current_ver [split $v ". "]
     set target [expr [lindex $ver 0]*100000 + [lindex $ver 1]*100 + [lindex $ver 2]]
     set current [expr [lindex $current_ver 0]*100000 + [lindex $current_ver 1]*100 + [lindex $current_ver 2]]
 
@@ -377,7 +377,7 @@ proc ReadListFile {list_file path lib src {no_add 0}} {
                 set extension [file ext $vhdlfile]
                 if { [lsearch {.src .sim .con .sub} $extension] >= 0 } {
                     Msg Info "List file $vhdlfile found in list file, recoursively opening it..."
-                        lassign [SmartListFile $vhdlfile $path $no_add] l p
+		    lassign [SmartListFile $vhdlfile $path $no_add] l p
                     set libraries [dict merge $l $libraries]
                     set properties [dict merge $p $properties]
                 } else {
@@ -526,34 +526,34 @@ proc SmartListFile {list_file path {no_add 0}} {
     set ext [file extension $list_file]
     set lib [file rootname [file tail $list_file]]
     switch $ext {
-    .src {
-        set file_set "sources_1"
-    }
-    .sub {
-        set file_set "sources_1"
-    }
-    .sim {
-        set file_set "$lib\_sim"
-        # if this simulation fileset was not created we do it now
-        if {[string equal [get_filesets -quiet $file_set] ""]} {
-        create_fileset -simset $file_set
-        set simulation  [get_filesets $file_set]
-        set_property -name {modelsim.compile.vhdl_syntax} -value {2008} -objects $simulation
-        set_property -name {questa.compile.vhdl_syntax} -value {2008} -objects $simulation
-        set_property SOURCE_SET sources_1 $simulation
-        }
-    }
-    .con {
-        set file_set "constrs_1"
-    }
-    .ext {
-        set file_set "sources_1"
-        # Msg Info "Reading sources from file $list_file, lib: $lib, file-set: $file_set"
-        # return [ReadExternalListFile $list_file $path $lib $file_set $no_add]
-    }
-    default {
-        Msg Error "Unknown extension $ext"
-    }
+	.src {
+	    set file_set "sources_1"
+	}
+	.sub {
+	    set file_set "sources_1"
+	}
+	.sim {
+	    set file_set "$lib\_sim"
+	    # if this simulation fileset was not created we do it now
+	    if {[string equal [get_filesets -quiet $file_set] ""]} {
+		create_fileset -simset $file_set
+		set simulation  [get_filesets $file_set]
+		set_property -name {modelsim.compile.vhdl_syntax} -value {2008} -objects $simulation
+		set_property -name {questa.compile.vhdl_syntax} -value {2008} -objects $simulation
+		set_property SOURCE_SET sources_1 $simulation
+	    }
+	}
+	.con {
+	    set file_set "constrs_1"
+	}
+	.ext {
+	    set file_set "sources_1"
+	    # Msg Info "Reading sources from file $list_file, lib: $lib, file-set: $file_set"
+	    # return [ReadExternalListFile $list_file $path $lib $file_set $no_add]
+	}
+	default {
+	    Msg Error "Unknown extension $ext"
+	}
     }
     Msg Info "Reading sources from file $list_file, lib: $lib, file-set: $file_set"
     return [ReadListFile $list_file $path $lib $file_set $no_add]
@@ -568,9 +568,9 @@ proc SmartListFile {list_file path {no_add 0}} {
 # if the special string "ALL" is used, returns the global hash
 proc GetHashLib {lib} {
     if {$lib eq "ALL"} {
-    set ret [exec git log --format=%h -1]
+	set ret [exec git log --format=%h -1]
     } else {
-    set ret [exec git log --format=%h -1 {*}[get_files -filter LIBRARY==$lib]]
+	set ret [exec git log --format=%h -1 {*}[get_files -filter LIBRARY==$lib]]
     }
 
     return $ret
@@ -591,20 +591,20 @@ proc GetFileList {FILE path} {
     #  Process data file
     set data [split $file_data "\n"]
     foreach line $data {
-    if {![regexp {^ *$} $line] & ![regexp {^ *\#} $line] } { #Exclude empty lines and comments
-        set file_and_prop [regexp -all -inline {\S+} $line]
-        set vhdlfile [lindex $file_and_prop 0]
-        set vhdlfile "$path/$vhdlfile"
-        if {[file exists $vhdlfile]} {
-        set extension [file ext $vhdlfile]
-        if { [lsearch {.src .sim .con .sub} $extension] >= 0 } {
-            lappend lista {*}[GetFileList $vhdlfile $path]]
-        } else {
-        lappend lista $vhdlfile
-        }
-    } else {
-        Msg Warning "File $vhdlfile not found"
-    }
+	if {![regexp {^ *$} $line] & ![regexp {^ *\#} $line] } { #Exclude empty lines and comments
+	    set file_and_prop [regexp -all -inline {\S+} $line]
+	    set vhdlfile [lindex $file_and_prop 0]
+	    set vhdlfile "$path/$vhdlfile"
+	    if {[file exists $vhdlfile]} {
+		set extension [file ext $vhdlfile]
+		if { [lsearch {.src .sim .con .sub} $extension] >= 0 } {
+		    lappend lista {*}[GetFileList $vhdlfile $path]]
+	    } else {
+		lappend lista $vhdlfile
+	    }
+	} else {
+	    Msg Warning "File $vhdlfile not found"
+	}
     }
 }
 
@@ -621,18 +621,18 @@ return $lista
 # if the special string "ALL" is used, returns the global hash
 proc GetHash {FILE path} {
     if {$FILE eq "ALL"} {
-    set ret [exec git log --format=%h -1]
+	set ret [exec git log --format=%h -1]
     } elseif {[file isfile $FILE]} {
-    set lista [GetFileList $FILE $path]
-    set ret [exec git log --format=%h -1 -- {*}$lista ]
+	set lista [GetFileList $FILE $path]
+	set ret [exec git log --format=%h -1 -- {*}$lista ]
 
     } elseif {[file isdirectory $FILE]} {
 
-    set ret [exec git log --format=%h -1 $FILE ]
+	set ret [exec git log --format=%h -1 $FILE ]
 
     } else {
-    puts "ERROR: $FILE not found"
-    set ret 0
+	puts "ERROR: $FILE not found"
+	set ret 0
     }
     return $ret
 
@@ -651,38 +651,38 @@ proc GetVer {FILE path} {
     set path [file normalize $path]
     set status [catch {exec git tag --sort=taggerdate --contain $SHA} result]
     if {$status == 0} {
-    if {[regexp {^ *$} $result]} {
-        if [catch {exec git tag --sort=-creatordate} last_tag] {
-        Msg CriticalWarning "No Hog version tags found in this repository ($path)."
-        set ver v0.0.0
-        } else {
-	    set tags [split $last_tag "\n"]
-	    set tag [lindex $tags 0]
-	    lassign [ExtractVersionFromTag $tag] M m p mr
-        if {$mr == -1} {
-            incr p
-            Msg Info "No tag contains $SHA for $FILE ($path), will use most recent tag $tag. As this is an official tag, patch will be incremented to $p."
-        } else {
-            Msg Info "No tag contains $SHA for $FILE ($path), will use most recent tag $tag. As this is a candidate tag, the patch level will be kept at $p."
-        }
-        set ver v$M.$m.$p
+	if {[regexp {^ *$} $result]} {
+	    if [catch {exec git tag --sort=-creatordate} last_tag] {
+		Msg CriticalWarning "No Hog version tags found in this repository ($path)."
+		set ver v0.0.0
+	    } else {
+		set tags [split $last_tag "\n"]
+		set tag [lindex $tags 0]
+		lassign [ExtractVersionFromTag $tag] M m p mr
+		if {$mr == -1} {
+		    incr p
+		    Msg Info "No tag contains $SHA for $FILE ($path), will use most recent tag $tag. As this is an official tag, patch will be incremented to $p."
+		} else {
+		    Msg Info "No tag contains $SHA for $FILE ($path), will use most recent tag $tag. As this is a candidate tag, the patch level will be kept at $p."
+		}
+		set ver v$M.$m.$p
 
-        }
+	    }
 
+	} else {
+	    set vers [split $result "\n"]
+	    set ver [lindex $vers 0]
+	    foreach v $vers {
+		if {[regexp {^v.*$} $v]} {
+		    set un_ver $ver
+		    set ver $v
+		    break
+		}
+	    }
+	}
     } else {
-        set vers [split $result "\n"]
-        set ver [lindex $vers 0]
-        foreach v $vers {
-        if {[regexp {^v.*$} $v]} {
-            set un_ver $ver
-            set ver $v
-            break
-        }
-        }
-    }
-    } else {
-    Msg Warning "Error while trying to find tag for $SHA in file: $FILE, path: [pwd]"
-    set ver "error: $result"
+	Msg Warning "Error while trying to find tag for $SHA in file: $FILE, path: [pwd]"
+	set ver "error: $result"
     }
 
     lassign [ExtractVersionFromTag $ver] M m c mr
@@ -744,7 +744,7 @@ proc ExtractVersionFromTag {tag} {
 }
 
 
-## Tags the repository with a new version calculated on the basis of the previous tags
+## Tag the repository with a new version calculated on the basis of the previous tags
 # Arguments:\n
 # * merge_request_number: Gitlab merge request number to be used in candidate version
 # * version_level:        0 if patch is to be increased (default), 1 if minor level is to be increase, 2 if major level is to be increased, 3 or bigger is used to trasform a candidate for a version (starting with b) into an official version
@@ -782,7 +782,7 @@ proc TagRepository {{merge_request_number 0} {version_level 0}} {
 		    }
 
 		} elseif {$version_level >= 3} {
-            # Version level >= 3 is used to create official tags from beta tags
+		    # Version level >= 3 is used to create official tags from beta tags
 		    incr p
 		    #create official tag
 		    Msg Info "No major/minor version increase, new tag will be v$M.$m.$p..."
@@ -801,7 +801,7 @@ proc TagRepository {{merge_request_number 0} {version_level 0}} {
 		}
 	    }
 
-        # Tagging repositroy
+	    # Tagging repositroy
 	    if [info exists new_tag] {
 		Msg Info "Tagging repository with $new_tag..."
 		if [catch {exec git tag {*}"$new_tag $tag_opt"} msg] {
@@ -844,39 +844,39 @@ proc CopyXMLsFromListFile {list_file path dst {xml_version "0.0.0"} {xml_sha "00
     Msg Info "$n lines read from $list_file"
     set cnt 0
     foreach line $data {
-    if {![regexp {^ *$} $line] & ![regexp {^ *\#} $line] } { #Exclude empty lines and comments
-        set file_and_prop [regexp -all -inline {\S+} $line]
-        set xmlfile [lindex $file_and_prop 0]
-        set xmlfile "$path/$xmlfile"
-        if {[llength $file_and_prop] > 1} {
-        set vhdlfile [lindex $file_and_prop 1]
-        set vhdlfile "$path/$vhdlfile"
-        } else {
-        set vhdlfile 0
-        }
-        if {[file exists $xmlfile]} {
-        set xmlfile [file normalize $xmlfile]
-        Msg Info "Copying $xmlfile to $dst..."
-        set in  [open $xmlfile r]
-        set out [open $dst/[file tail $xmlfile] w]
+	if {![regexp {^ *$} $line] & ![regexp {^ *\#} $line] } { #Exclude empty lines and comments
+	    set file_and_prop [regexp -all -inline {\S+} $line]
+	    set xmlfile [lindex $file_and_prop 0]
+	    set xmlfile "$path/$xmlfile"
+	    if {[llength $file_and_prop] > 1} {
+		set vhdlfile [lindex $file_and_prop 1]
+		set vhdlfile "$path/$vhdlfile"
+	    } else {
+		set vhdlfile 0
+	    }
+	    if {[file exists $xmlfile]} {
+		set xmlfile [file normalize $xmlfile]
+		Msg Info "Copying $xmlfile to $dst..."
+		set in  [open $xmlfile r]
+		set out [open $dst/[file tail $xmlfile] w]
 
-        while {[gets $in line] != -1} {
-            set new_line [regsub {(.*)__VERSION__(.*)} $line "\\1$xml_version\\2"]
-            set new_line2 [regsub {(.*)__GIT_SHA__(.*)} $new_line "\\1$xml_sha\\2"]
-            puts $out $new_line2
-        }
-        close $in
-        close $out
-        incr cnt
-        if {[llength $file_and_prop] > 1} {
-            set prop [lrange $file_and_prop 1 end]
-            set type [lindex $prop 0]
-        }
-        } else {
-        Msg Warning "XML file $xmlfile not found"
-        }
+		while {[gets $in line] != -1} {
+		    set new_line [regsub {(.*)__VERSION__(.*)} $line "\\1$xml_version\\2"]
+		    set new_line2 [regsub {(.*)__GIT_SHA__(.*)} $new_line "\\1$xml_sha\\2"]
+		    puts $out $new_line2
+		}
+		close $in
+		close $out
+		incr cnt
+		if {[llength $file_and_prop] > 1} {
+		    set prop [lrange $file_and_prop 1 end]
+		    set type [lindex $prop 0]
+		}
+	    } else {
+		Msg Warning "XML file $xmlfile not found"
+	    }
 
-    }
+	}
     }
     Msg Info "$cnt file/s copied"
 }
@@ -934,34 +934,34 @@ proc GetProjectFiles {} {
     set properties [dict create]
 
     foreach f $all_files {
-    if { [get_property  IS_GENERATED [get_files $f]] == 0} {
-        set f [file normalize $f]
-        lappend files $f
-        set type  [get_property FILE_TYPE [get_files $f]]
-        set lib [get_property LIBRARY [get_files $f]]
+	if { [get_property  IS_GENERATED [get_files $f]] == 0} {
+	    set f [file normalize $f]
+	    lappend files $f
+	    set type  [get_property FILE_TYPE [get_files $f]]
+	    set lib [get_property LIBRARY [get_files $f]]
 
-        # Type can be complex like VHDL 2008, in that case we want the second part to be a property
-        if {[llength $type] > 1} {
-        set prop [lrange $type 1 [llength $type]]
-        set type [lindex $type 0]
-        } else {
-        set prop ""
-        }
+	    # Type can be complex like VHDL 2008, in that case we want the second part to be a property
+	    if {[llength $type] > 1} {
+		set prop [lrange $type 1 [llength $type]]
+		set type [lindex $type 0]
+	    } else {
+		set prop ""
+	    }
 
-        #check where the file is used and add it to prop
-        if {[string equal $type "VHDL"]} {
-        dict lappend libraries $lib $f
-        dict lappend properties $f $prop
-        } elseif {[string equal $type "IP"]} {
-        dict lappend libraries "IP" $f
-        } elseif {[string equal $type "XDC"]} {
-        dict lappend libraries "XDC" $f
-        dict lappend properties $f "XDC"
-        } else {
-        dict lappend libraries "OTHER" $f
-        }
+	    #check where the file is used and add it to prop
+	    if {[string equal $type "VHDL"]} {
+		dict lappend libraries $lib $f
+		dict lappend properties $f $prop
+	    } elseif {[string equal $type "IP"]} {
+		dict lappend libraries "IP" $f
+	    } elseif {[string equal $type "XDC"]} {
+		dict lappend libraries "XDC" $f
+		dict lappend properties $f "XDC"
+	    } else {
+		dict lappend libraries "OTHER" $f
+	    }
 
-    }
+	}
 
     }
 
@@ -991,8 +991,8 @@ proc GetProjectFiles {} {
 
 proc GetHogFiles {{proj_path 0}} {
     if {$proj_path == 0} {
-    set proj_path [get_property DIRECTORY [get_projects]]
-    Msg Info "Project path is: $proj_path"
+	set proj_path [get_property DIRECTORY [get_projects]]
+	Msg Info "Project path is: $proj_path"
     }
     set proj_name [file tail $proj_path]
     Msg Info "Project name is: $proj_name"
@@ -1006,8 +1006,8 @@ proc GetHogFiles {{proj_path 0}} {
 
     foreach f $list_files {
         lassign [SmartListFile $f $globalSettings::top_path 1] l p
-    set libraries [dict merge $l $libraries]
-    set properties [dict merge $p $properties]
+	set libraries [dict merge $l $libraries]
+	set properties [dict merge $p $properties]
     }
 
     #   dict for {lib f} $libraries {
@@ -1030,8 +1030,8 @@ proc ForceUpToDate {} {
     Msg Info "Forcing all the runs to look up to date..."
     set runs [get_runs]
     foreach r $runs {
-    Msg Info "Forcing $r..."
-    set_property needs_refresh false [get_runs $r]
+	Msg Info "Forcing $r..."
+	set_property needs_refresh false [get_runs $r]
     }
 }
 ########################################################
@@ -1173,60 +1173,60 @@ proc md5sum {file_name} {
 #
 proc CheckYmlRef {repo_path allow_failure} {
 
-	if {$allow_failure} {
-		set MSG_TYPE CriticalWarning
-	} else {
-		set MSG_TYPE Error
-	}
+    if {$allow_failure} {
+	set MSG_TYPE CriticalWarning
+    } else {
+	set MSG_TYPE Error
+    }
 
-	if { [catch {package require yaml 0.3.3} YAMLPACKAGE]} {
-		Msg CriticalWarning "Cannot find package YAML, skipping consistency check of \"ref\" in gilab-ci.yaml file.\n Error message: $YAMLPACKAGE
+    if { [catch {package require yaml 0.3.3} YAMLPACKAGE]} {
+	Msg CriticalWarning "Cannot find package YAML, skipping consistency check of \"ref\" in gilab-ci.yaml file.\n Error message: $YAMLPACKAGE
 You can fix this by installing package \"tcllib\""
-		return
+	return
+    }
+
+    set thisPath [pwd]
+
+    # Go to repository path
+    cd "$repo_path"
+    if [file exists .gitlab-ci.yml] {
+	#get .gitlab-ci ref
+
+	set YML_REF ""
+	set yamlDict [::yaml::yaml2dict -file .gitlab-ci.yml]
+	dict for {dictKey dictValue} $yamlDict {
+	    #looking for Hog include in .gitlab-ci.yml
+	    if {"$dictKey" == "include" && [lsearch [split $dictValue " {}"] "hog/Hog" ] != "-1"} {
+		set YML_REF [lindex [split $dictValue " {}"]  [expr [lsearch -dictionary [split $dictValue " {}"] "ref"]+1 ] ]
+	    }
 	}
 
-	set thisPath [pwd]
+	if {$YML_REF == ""} {
+	    Msg Warning "Hog version not specified in the .gitlab-ci.yml. Assuming that master branch is used"
+	    cd Hog
+	    set YML_REF_F [exec git name-rev --tags --name-only origin/master]
+	    cd ..
+	} else {
+	    set YML_REF_F [regsub -all "'" $YML_REF ""]
+	}
 
-	# Go to repository path
-	cd "$repo_path"
-	if [file exists .gitlab-ci.yml] {
-		#get .gitlab-ci ref
+	#getting Hog repository tag and commit
+	cd "Hog"
+	set HOGYML_SHA [exec git log --format=%H -1 --  gitlab-ci.yml ]
+	if { [catch {exec git log --format=%H -1 $YML_REF_F gitlab-ci.yml} EXPECTEDYML_SHA]} {
+	    if { [catch {exec git log --format=%H -1 origin/$YML_REF_F gitlab-ci.yml} EXPECTEDYML_SHA]} {
+		Msg $MSG_TYPE "Error in project .gitlab-ci.yml. ref: $YML_REF not found"
+		set EXPECTEDYML_SHA ""
+	    }
 
-		set YML_REF ""
-		set yamlDict [::yaml::yaml2dict -file .gitlab-ci.yml]
-		dict for {dictKey dictValue} $yamlDict {
-			#looking for Hog include in .gitlab-ci.yml
-			if {"$dictKey" == "include" && [lsearch [split $dictValue " {}"] "hog/Hog" ] != "-1"} {
-				set YML_REF [lindex [split $dictValue " {}"]  [expr [lsearch -dictionary [split $dictValue " {}"] "ref"]+1 ] ]
-			}
-		}
+	}
+	if  {!($EXPECTEDYML_SHA eq "")} {
 
-		if {$YML_REF == ""} {
-			Msg Warning "Hog version not specified in the .gitlab-ci.yml. Assuming that master branch is used"
-			cd Hog
-			set YML_REF_F [exec git name-rev --tags --name-only origin/master]
-			cd ..
-		} else {
-			set YML_REF_F [regsub -all "'" $YML_REF ""]
-		}
+	    if {$HOGYML_SHA == $EXPECTEDYML_SHA} {
+		Msg Info "Hog gitlab-ci.yml SHA matches with the \"ref\" in the .gitlab-ci.yml."
 
-		#getting Hog repository tag and commit
-		cd "Hog"
-		set HOGYML_SHA [exec git log --format=%H -1 --  gitlab-ci.yml ]
-		if { [catch {exec git log --format=%H -1 $YML_REF_F gitlab-ci.yml} EXPECTEDYML_SHA]} {
-			if { [catch {exec git log --format=%H -1 origin/$YML_REF_F gitlab-ci.yml} EXPECTEDYML_SHA]} {
-				Msg $MSG_TYPE "Error in project .gitlab-ci.yml. ref: $YML_REF not found"
-				set EXPECTEDYML_SHA ""
-			}
-
-		}
-		if  {!($EXPECTEDYML_SHA eq "")} {
-
-			if {$HOGYML_SHA == $EXPECTEDYML_SHA} {
-				Msg Info "Hog gitlab-ci.yml SHA matches with the \"ref\" in the .gitlab-ci.yml."
-
-			} else {
-				Msg $MSG_TYPE "HOG gitlab-ci.yml SHA mismatch.
+	    } else {
+		Msg $MSG_TYPE "HOG gitlab-ci.yml SHA mismatch.
 From Hog submodule: $HOGYML_SHA
 From .gitlab-ci.yml: $EXPECTEDYML_SHA
 You can fix this in 2 ways: (A) by changing the ref in your repository or (B) by changing the Hog submodule commit.
@@ -1248,30 +1248,30 @@ You can fix this in 2 ways: (A) by changing the ref in your repository or (B) by
 ## returns JSON KEY VALUE in case of success
 #
 proc ParseJSON {JSON_FILE JSON_KEY} {
-	set result [catch {package require Tcl 8.4} TclFound]
-	if {"$result" != "0"} {
-		Msg CriticalWarning "Cannot find Tcl package version equal or higher than 8.4.\n $TclFound\n Exiting"
-		return -1
-	} else {
-		Msg Info "Tcl package version: $TclFound"
-	}
+    set result [catch {package require Tcl 8.4} TclFound]
+    if {"$result" != "0"} {
+	Msg CriticalWarning "Cannot find Tcl package version equal or higher than 8.4.\n $TclFound\n Exiting"
+	return -1
+    } else {
+	Msg Info "Tcl package version: $TclFound"
+    }
 
-	set result [catch {package require json} JsonFound]
-	if {"$result" != "0"} {
-		Msg CriticalWarning "Cannot find JSON package equal or higher than 8.4.\n $JsonFound\n Exiting"
-		return -1
-	} else {
-		Msg Info "JSON package version: $JsonFound"
-	}
-	set JsonDict [json::json2dict  $JSON_FILE]
-	set result [catch {dict get $JsonDict $JSON_KEY} RETURNVALUE]
-	if {"$result" != "0"} {
-		Msg CriticalWarning "Cannot find $JSON_KEY in $JSON_FILE\n Exiting"
-		return -1
-	} else {
-		Msg Info "$JSON_KEY --> $RETURNVALUE"
-		return $RETURNVALUE
-	}
+    set result [catch {package require json} JsonFound]
+    if {"$result" != "0"} {
+	Msg CriticalWarning "Cannot find JSON package equal or higher than 8.4.\n $JsonFound\n Exiting"
+	return -1
+    } else {
+	Msg Info "JSON package version: $JsonFound"
+    }
+    set JsonDict [json::json2dict  $JSON_FILE]
+    set result [catch {dict get $JsonDict $JSON_KEY} RETURNVALUE]
+    if {"$result" != "0"} {
+	Msg CriticalWarning "Cannot find $JSON_KEY in $JSON_FILE\n Exiting"
+	return -1
+    } else {
+	Msg Info "$JSON_KEY --> $RETURNVALUE"
+	return $RETURNVALUE
+    }
 }
 
 ## Handle eos commands

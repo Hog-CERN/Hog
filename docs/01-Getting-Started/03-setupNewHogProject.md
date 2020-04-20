@@ -108,9 +108,9 @@ This module can be stored anywhere in the repository as long as the file conatin
 We suggest you to store the file containing the top level module for your project in the TOP folder.
 
 HOG uses generics to track the firmware version.
-A full list of the generics used by Hog can be found  in the [HOG generics](../02-Maintainer-Manual/07-Hog-generics) section.
+A full list of the generics used by Hog can be found  in the [HOG generics](../02-Maintainer-Manual/07-Hog-generics.md) section.
 A template for the top level file (in VHLD and Verilog) is available in the [Hog/Template](https://gitlab.cern.ch/hog/Hog/-/tree/master/Templates) directory.
-A full description of the template can be found in the [available templates](../02-Maintainer-Manual/06-available-templates) section.
+A full description of the template can be found in the [available templates](../02-Maintainer-Manual/06-available-templates.md) section.
 
 ## Git submodules
 HOG can handle Git submodules, i.e. if you have some module contained on a git repository you can simply add it to your project using:
@@ -153,7 +153,7 @@ They must be named as follows:
 ```
 
 A template for the `<project_name>.tcl` file is available in the [Hog/Template](https://gitlab.cern.ch/hog/Hog/-/tree/master/Templates) directory.
-A full description of the template can be found in the [available templates](../02-Maintainer-Manual/06-available-templates) section.
+A full description of the template can be found in the [available templates](../02-Maintainer-Manual/06-available-templates.md) section.
 
 ### .tcl file
 
@@ -169,7 +169,7 @@ This command will instruct HOG to add all your files to the generated project.
 
 One example for a Vivado project is can be found in `./Hog/Templates/top.tcl`.
 
-More information on the tcl script can be founs in the [project tcl file](../02-Mainteiner-Manual/08-Project-Tcl) section.
+More information on the tcl script can be founs in the [project tcl file](../02-Maintainer-Manual/08-Project-Tcl.md) section.
 
 ### list directory
 
@@ -188,7 +188,7 @@ HOG uses different kinds of list files, identified by their extension:
 
  __.ext list file must use an absoute path__. To use the firmware CI this path must be accessible to the machine performing the git CI, e.g. can be on a protected afs folder.
 
-More information on the list file can be found in the dedicated [list files](../02-Mainteiner-Manual/09-List-files) section.
+More information on the list file can be found in the dedicated [list files](../02-Maintainer-Manual/09-List-files.md) section.
 
 ## Auto-generated directories
 The following directories are generated at different stages of library compilation or synthesis/implementation time.

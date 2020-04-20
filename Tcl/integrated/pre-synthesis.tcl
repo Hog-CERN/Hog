@@ -52,7 +52,7 @@ if { [exec git status --untracked-files=no  --porcelain] eq "" } {
 }
 
 # Top project directory
-lassign [GetVer ./Top/$proj_name/ ./Top/$proj_name/] top_ver top_hash
+lassign [GetVer ./Top/$proj_name/ .] top_ver top_hash
 
 # Read list files
 set libs ""
@@ -61,7 +61,7 @@ set hashes ""
 set list_files [glob  -nocomplain "./Top/$proj_name/list/*.src"]
 foreach f $list_files {
     set name [file rootname [file tail $f]]
-    lassign [GetVer  $f ./Top/$proj_name/] ver hash
+    lassign [GetVer  $f .] ver hash
     Msg Info "Found source file $f, version: $ver commit SHA: $hash"
     lappend libs $name
     lappend vers $ver
@@ -110,7 +110,7 @@ if [file exists ./Top/$proj_name/xml] {
     if [file exists ./Top/$proj_name/xml/xml.lst] {
         Msg Info "Found IPbus XML list file, using version of listed files..."
         # in this case, IPbus xml files are stored anywhere in the repository and listed in the xml.lst file
-        lassign [GetVer ./Top/$proj_name/xml/xml.lst ./Top/$proj_name/] xml_ver_hex xml_hash
+        lassign [GetVer ./Top/$proj_name/xml/xml.lst .] xml_ver_hex xml_hash
         set xml_ver [HexVersionToString $xml_ver_hex]    
         Msg Info "Creating XML directory $xml_dst..."
         file mkdir $xml_dst
@@ -119,7 +119,7 @@ if [file exists ./Top/$proj_name/xml] {
     } else {
         Msg Info "IPbus XML list file not found, using version of xml directory..."
         # in this case, IPbus xml files are just stored in the xml directory in the project folder
-        lassign [GetVer ./Top/$proj_name/xml ./Top/$proj_name/] xml_ver_hex xml_hash
+        lassign [GetVer ./Top/$proj_name/xml ./] xml_ver_hex xml_hash
         set xml_ver [HexVersionToString $xml_ver_hex]
         file delete -force $xml_dst
         file copy -force $xml_target $old_path/..

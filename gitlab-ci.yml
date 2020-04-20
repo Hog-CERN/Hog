@@ -135,6 +135,7 @@ collect_artifacts:
     variables:
         <<: *vars
     script:
+        - ./Hog/Other/Changelog.sh $CI_MERGE_REQUEST_TARGET_BRANCH_NAME
         - ./Hog/Other/Changelog.sh > note.md
         - cat $CI_PROJECT_DIR/bin/*/*.txt >> $CI_PROJECT_DIR/bin/note.md
         - git fetch origin refs/notes/*:refs/notes/*

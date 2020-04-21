@@ -16,6 +16,8 @@ stages:
 doc:
       stage: build_doc
       image: gitlab-registry.cern.ch/authoring/documentation/mkdocs:stable
+      before_script:
+        - echo ""
       script:
         - mkdocs build --clean --site-dir public
         - cp docs/.htaccess public/

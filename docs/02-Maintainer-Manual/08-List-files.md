@@ -8,7 +8,7 @@ Files with the .src extension are used to include HDL files belonging to a singl
 HOG will generate a new library for each .src file.
 For example if we have a lib_1.src file in our list directory, containing 5 filenames inside, like this:
 
-```
+```bash
     ../../lib_1/hdl/file1.vhd
     ../../lib_1/hdl/file2.vhd
     ../../lib_1/hdl/file3.vhd
@@ -33,9 +33,11 @@ dout => dout
 Properties, like VHDL 2008 compatibility, can be specified afer the file name in the list file, separated by any number of spaces. 
 Returning to our example, if _file_3.vhd_ requires VHDL 2008, then you should specify it like this:
 
+```bash
     ../../lib_1/hdl/file1.vhd 
     ../../lib_1/hdl/file2.vhd
     ../../lib_1/hdl/file3.vhd 2008
+```
 
 IP to be included in you project can be 
 
@@ -75,7 +77,7 @@ This file has to be used __ONLY__ in the exceptionalcase of files that cannot be
 This file has a special synthax since md5 hash of each file must bne added after the file name, separated by one or more spaces.
 The md5 hash can be obtained by running
 
-```console
+```bash
 	md5sum <filename>
 ```
 HOG, at synthesis time, checks that all the files are there and that their md5 hash matches the one in the list file.

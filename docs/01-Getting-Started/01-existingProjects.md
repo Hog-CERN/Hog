@@ -1,6 +1,6 @@
 # Working with a HDL repository handled with Hog
 
-In this section we describe how to work with a repository that is already [set up](./03-setupNewHogProject.md) with Hog.
+In this section we describe how to work with a repository that is already [set up](./02-setupNewHogProject.md) with Hog.
 
 All the instructions below can be executed both on a Linux shell, or on git bash[^1] on a Windows machine.
 
@@ -84,6 +84,13 @@ If you do something wrong (e.g. you add a name of a non-existing file, create a 
 ### Adding a new IP 
 If you want to add a new IP core, please create it in out of context mode and save the .xci file (and only that one!) it in the repository in *repo*/IP/*ip_name*/*ip_name*.xci. Yes, the name of the folder must be the same as the xci file.
 Now you can add the .xci normally to any source list file in the list folder of your project.
+
+#### IP initialization files (.coe)
+
+Please note that the `.gitignore` template provided by HOG adds constraints on the IP folder.
+Out of all the files contained in *repo*/IP/, git will pick up only xci files.
+Files with different extensions will be ignored.
+If you have *.coe files for RAM initialization or analogous files please make sure the rules in the `.gitignore` file are set correctly or store these files in a separate folder.
 
 
 ## A couple of things before getting to work

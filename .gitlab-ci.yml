@@ -67,7 +67,7 @@ tagging:
               - $CI_PIPELINE_SOURCE != "push"
               - $CI_COMMIT_REF_SLUG != "master"
       script:
-          - ./Tcl/launchers/launch_merge_and_tag.tcl -Hog -merged -push $CI_COMMIT_REF_NAME
+          - tclsh ./Tcl/launchers/launch_merge_and_tag.tcl -Hog -merged -push $CI_COMMIT_REF_NAME
 
 create_release_note:
         stage: tag

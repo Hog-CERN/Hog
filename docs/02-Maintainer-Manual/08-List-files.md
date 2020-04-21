@@ -43,17 +43,20 @@ IP to be included in you project can be
 
 ## .sub files
 
-To add files from a submodule to your Project you must list them in a .sub list file.
+To add files coming from a submodule to your project you must list them in a .sub list file.
 This tells HOG that those files are taken from a submodule rather than from a library belonging to the main HDL repository.
 HOG will not try to evaluate the version of those files, but it will evaluate the git SHA of the submodule.
+
+*NOTE* that the list file must be called as the submodule itself. 
+Id est, if you include the submodule `repo/sub_1/` then the corresponding list file must be `repo/Top/proj/list/sub_1.sub`
 
 ## .sim files
 
 In this file are listed all the HDL files used for simulation only.
-Each line in these files has the following synthax:
+The line corresponding to the file containg the top module of your test bench has the following synthax:
 
 ```
-<path_to_tb>/<test_bench>.vhd topsim=<test_top_level_entity> wavefile=<symulation_set_up>.tcl dofile=<waves>.do
+<path_to_tb>/<test_bench>.vhd topsim=<test_top_level_entity> wavefile=<simulation_set_up>.tcl dofile=<waves>.do
 ```
 
 * The first entry the file containing yout test-bench complete with its relative path from the `Top/<project_name>` folder.
@@ -66,18 +69,32 @@ The simulation libraries are now compiled into the SimulationLib folder by defau
 
 ## .con files
 
-All contratint files (.xdc ) must be included by adding them to the .con files
+All constratint files (.xdc ) must be included by adding them to the *.con files
 
 ## .ext files
 
-External proprietary files can be included using the .ext list file.
+External proprietary files can be included using the *.ext list file.
 __.ext list filse must use an absoute path__.
-To use the firmware CI this path must be accessible to the machine performing the git CI, e.g. can be on a protected afs folder.
-This file has to be used __ONLY__ in the exceptionalcase of files that cannot be published because of copyright.
-This file has a special synthax since md5 hash of each file must bne added after the file name, separated by one or more spaces.
-The md5 hash can be obtained by running
+To be able to use the firmware CI, this path must be accessible to the machine performing the git CI, e.g. can be on a protected afs folder.
+This procedure has to be used __ONLY__ in the exceptionalcase of files that cannot be published because of copyright.
+
+The *.ext list file has a special syntax since the md5 hash of each file must be added after the file name, separated by one or more spaces:
+
+```
+/afs/cern.ch/project/p/project/restricted/file_1.vhd  725cda057150d688c7970cfc53dc6db6
+/afs/cern.ch/project/p/project/restricted/file_2.xci  c15f520db4bdef24f976cb459b1a5421
+```
+
+The md5 hash can be obtained by running the md5sum command on a bash shell
 
 ```bash
 	md5sum <filename>
 ```
-HOG, at synthesis time, checks that all the files are there and that their md5 hash matches the one in the list file.
+
+the same checksum can be obtained on the Vivado or Quartus tcl shell by using:
+
+```tcl
+md5::md5 -filename <file name>
+```
+
+HOG, at synthesis time, checks that all the files are there and that their md5 hash matches the one contained in the list file.

@@ -18,7 +18,7 @@ Now take the following actions:
 - Go to `Settings` -> `CI/CD`
 - Expand `Runners`
 - On the right click `Disable shared runners for this project`
-- On the left enable the private runners that you have installed on your machines
+- On the left enable the private runners that you have installed on your machines or the common runner provided by the ATLAS-TDAQ.
 
 ## Environment variables
 

@@ -10,22 +10,22 @@ default:
 
 stages:
       - tag
-      - build
-      - deploy
-building:
-      stage: build
+      - build_doc
+      - deploy_doc
+
+doc:
+      stage: build_doc
       image: gitlab-registry.cern.ch/authoring/documentation/mkdocs:stable
-      before_script: 
-        - echo ""
       script:
         - mkdocs build --clean --site-dir public
         - cp docs/.htaccess public/
       artifacts:
         paths:
           - public
-        expire_in: 1 hour
-deploying:
-      stage: deploy
+        expire_in: 1 day
+
+dep_doc:
+      stage: deploy_doc
       image: gitlab-registry.cern.ch/ci-tools/ci-web-deployer:latest
       only:
         - feature/documentation

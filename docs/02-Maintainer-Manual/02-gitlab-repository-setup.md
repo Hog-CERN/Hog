@@ -51,6 +51,5 @@ With the following **optional** variables you can configure the behaviour of Hog
 | __HOG_CREATE_OFFICIAL_RELEASE__   |	If this variable is set to 1, Hog-CI will create an official release note using the version and timing summaries taken from the artifact of the projects.								   |
 | __HOG_SIMULATION_LIB_PATH__  |									   |
 | __HOG_TARGET_BRANCH__          |  Project target branch. Merge request should start from this branch. Default: master |
-| __HOG_SYNTH_NJOBS__          |  Number of synthesis jobs. Default: 4 |
-| __HOG_IMPL_NJOBS__          |  Number of implementation jobs. Default: 4 |
+| __HOG_NJOBS__               |  Number of synthesis and implementation jobs. Default: 8 |
 

@@ -16,6 +16,13 @@ stages:
 doc:
       stage: build_doc
       image: gitlab-registry.cern.ch/authoring/documentation/mkdocs:stable
+      only: 
+           refs:
+              - merge_requests
+      except:
+           variables:
+              - $CI_COMMIT_REF_NAME =~ /^test\/.*$/i
+              - $CI_MERGE_REQUEST_TITLE =~ /^WIP:.*$/ && $CI_COMMIT_MESSAGE !~ /^ResolveWIP:/
       before_script:
         - echo ""
       script:
@@ -43,6 +50,10 @@ merge_and_tag:
       only: 
            refs:
               - merge_requests
+      except:
+           variables:
+              - $CI_COMMIT_REF_NAME =~ /^test\/.*$/i
+              - $CI_MERGE_REQUEST_TITLE =~ /^WIP:.*$/ && $CI_COMMIT_MESSAGE !~ /^ResolveWIP:/
       script:
           - "MR_PARAMETERS=`curl --header \"PRIVATE-TOKEN: ${HOG_PUSH_TOKEN}\" ${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/merge_requests/${CI_MERGE_REQUEST_IID}`"
           - tclsh ./Tcl/launchers/launch_merge_and_tag.tcl -Hog  -mr_par "$MR_PARAMETERS" -mr_id $CI_MERGE_REQUEST_IID -push $CI_COMMIT_REF_NAME

@@ -1,6 +1,7 @@
 # Convert existing project to hog
 
-Converting an existing project can be done by adapting it to the HOG directory structure described in section [Setting up a HDL repository with Hog](../01-Getting-Started/03-setupNewHogProject.md).
+Converting an existing project can be done by adapting it to the HOG directory structure described in section [Setting up a HDL repository with Hog](#Setting-up-a-HDL-repository-with-HOG).
+This section is intended as a practical HOW TO, please read the former section carefully before moving to this one.
 
 We will assume here you are starting from a clean repository and you want to convert a ptoject stored in a local folder.
 
@@ -25,7 +26,7 @@ First af all create a new folder where to store your firmware and initialize git
 ## Early tagging your repository
 
 Hog assumes at least a tag is present in your repository.
-It is useful to create a first tag of your repository before moving ththings around.
+It is useful to create a first tag of your repository before moving things around.
 To do this simply run  
 
 ```bash
@@ -40,8 +41,6 @@ We suggest you to create your first branch instead of working on the master:
   git checkout -a 00-building-branch
 	git push origin 00-building-branch
 ```
-
-
 
 ## Add Hog to your project
 
@@ -88,7 +87,7 @@ you have now to generate the directory structure similar to this one:
 
 ![](../01-Getting-Started/figures/directory_structure.jpg)
 
-A complete description of the meaning of each folder can be found in in section [Setting up a HDL repository with Hog](../01-Getting-Started/03-setupNewHogProject.md).
+A complete description of the meaning of each folder can be found in in section [Setting up a HDL repository with Hog](../01-Getting-Started/02-setupNewHogProject.md).
 We sugget you to have a look to that section before working on your new repository.
 
 ### Top folder
@@ -131,13 +130,21 @@ This guide will assume the presence of a unique library with the same name of yo
 ### IP files
 
 IP files must go in a separate IP folder.
+The IP folder is expected to contain a separate subfolder for each IP.
+The name of the subfolder must be the same as the *.xci file.
 This will effectively tell HOG to take the due care when evaluate the versioning for these files.
+For each IP in your project run:
 
 ```bash
-  mkdir IP
-  cp ../<old_repo>/*.xci IP/.
+  mkdir -p IP/<ip_name>/
+  cp ../<old_repo>/<ip_name>.xci IP/<ip_name>/.
+ ```
+
+ now you can run:
+ 
+ ```bash
   for i in $( ls IP/* ); do \
-    echo '../../'$i >> Top/<fancy_name>/list/<fancy_name>.src; \
+    echo '../../'$i/$i.xci >> Top/<fancy_name>/list/<fancy_name>.src; \
   done
 ```
 
@@ -150,6 +157,13 @@ If you are satisfied with the changes commit all the files.
   git add Top/<fancy_name>/list/<fancy_name>.src
   git commit -m "Adding IP Files"
 ```
+
+#### IP initialization files (.coe)
+
+Please note that the `.gitignore` template provided by HOG adds constraints on the IP folder.
+Out of all the files contained in *repo*/IP/, git will pick up only xci files.
+Files with different extensions will be ignored.
+If you have *.coe files for RAM initialization or analogous files please make sure store these files in a separate folder and point to them in the IP by using a relative path.
 
 ### Source, simulation and constraint files
 
@@ -290,4 +304,4 @@ Launching the implementation or the bistream writing without having launched the
 ### Is it all?
 
 You just created a new project compatible with the HOG CI methodology.
-You can now continue reading the [How to setup Hog-CI](01-setupCI.md) section. 
+You can now continue reading the [How to setup Hog-CI](../02-Maintainer-Manual/01-setupCI.md) section. 

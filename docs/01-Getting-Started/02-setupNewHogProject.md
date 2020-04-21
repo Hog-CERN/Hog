@@ -1,5 +1,9 @@
 # Setting up a HDL repository with HOG
 
+In this section we will describe how to setup a new project that uses HOG for the CI.
+In this section  we will make no assumptions on the code you already have.
+If you have a well established repository with lot of code in it please read this section carefully before reading the [Convert existing project to hog](#convert-existing-project-to-hog) section.
+
 ## Project directory structure
 In order to HOG to be simple and add little overhead work, some fixed directories and file names are needed in the HDL repository. A typical directory structure is shown in figure: 
 
@@ -108,9 +112,9 @@ This module can be stored anywhere in the repository as long as the file conatin
 We suggest you to store the file containing the top level module for your project in the TOP folder.
 
 HOG uses generics to track the firmware version.
-A full list of the generics used by Hog can be found  in the [HOG generics](../02-Maintainer-Manual/07-Hog-generics.md) section.
+A full list of the generics used by Hog can be found  in the [HOG generics](../02-Maintainer-Manual/06-Hog-generics.md) section.
 A template for the top level file (in VHLD and Verilog) is available in the [Hog/Template](https://gitlab.cern.ch/hog/Hog/-/tree/master/Templates) directory.
-A full description of the template can be found in the [available templates](../02-Maintainer-Manual/06-available-templates.md) section.
+A full description of the template can be found in the [available templates](../02-Maintainer-Manual/05-available-templates.md) section.
 
 ## Git submodules
 HOG can handle Git submodules, i.e. if you have some module contained on a git repository you can simply add it to your project using:
@@ -153,7 +157,7 @@ They must be named as follows:
 ```
 
 A template for the `<project_name>.tcl` file is available in the [Hog/Template](https://gitlab.cern.ch/hog/Hog/-/tree/master/Templates) directory.
-A full description of the template can be found in the [available templates](../02-Maintainer-Manual/06-available-templates.md) section.
+A full description of the template can be found in the [available templates](../02-Maintainer-Manual/05-available-templates.md) section.
 
 ### .tcl file
 
@@ -181,14 +185,25 @@ HOG uses different kinds of list files, identified by their extension:
  - `*.src` : used to include HDL files belonging to the same library
  - `*.sub` : used to include HDL files belonging to a git submodule
  - `*.sim` : used to include files use for simulation of the same library
- - `*.con` : used to include contratint files
+ - `*.con` : used to include cons   tratint files
  - `*.ext` : used to include HDL files belonging to an external library
 
  __.src, .sub, .sim, and .con list files must use relative paths__ to the files to be included in the project.
 
  __.ext list file must use an absoute path__. To use the firmware CI this path must be accessible to the machine performing the git CI, e.g. can be on a protected afs folder.
 
-More information on the list file can be found in the dedicated [list files](../02-Maintainer-Manual/09-List-files.md) section.
+More information on the list file can be found in the dedicated [list files](../02-Maintainer-Manual/08-List-files.md) section.
+
+### Adding a new IP 
+If you want to add a new IP core, please create it in out of context mode and save the .xci file (and only that one!) it in the repository in *repo*/IP/*ip_name*/*ip_name*.xci. Yes, the name of the folder must be the same as the xci file.
+Now you can add the .xci normally to any source list file in the list folder of your project.
+
+#### IP initialization files (.coe)
+
+Please note that the `.gitignore` template provided by HOG adds constraints on the IP folder.
+Out of all the files contained in *repo*/IP/, git will pick up only xci files.
+Files with different extensions will be ignored.
+If you have *.coe files for RAM initialization or analogous files please make sure store these files in a separate folder and point to them in the IP by using a relative path.
 
 ## Auto-generated directories
 The following directories are generated at different stages of library compilation or synthesis/implementation time.

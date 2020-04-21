@@ -443,9 +443,9 @@ if {[info commands send_msg_id] != ""} {
 #Derived varibles from now on...
 set globalSettings::pre_synth_file   "pre-synthesis.tcl"
 set globalSettings::post_synth_file  ""
-set globalSettings::pre_impl_file    "set-threads.tcl"
+set globalSettings::pre_impl_file    "pre-implementation.tcl"
 set globalSettings::post_impl_file   "post-implementation.tcl"
-set globalSettings::pre_bit_file     "set-threads.tcl"
+set globalSettings::pre_bit_file     "pre-bitstream.tcl"
 set globalSettings::post_bit_file    "post-bitstream.tcl"
 set globalSettings::tcl_path         [file normalize "[file dirname [info script]]"]
 set globalSettings::repo_path        [file normalize "$globalSettings::tcl_path/../../"]

@@ -555,7 +555,7 @@ proc SmartListFile {list_file path {no_add 0}} {
 			return
 		}
 		default {
-			Msg Error "Unknown extension $ext"
+			Msg CriticalWarning "Unknown extension $ext"
 		}
 	}
 	Msg Info "Reading sources from file $list_file, lib: $lib, file-set: $file_set"

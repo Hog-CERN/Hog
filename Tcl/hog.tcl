@@ -523,44 +523,44 @@ proc ReadListFile {list_file path lib src {no_add 0}} {
 # any other file extension will cause an error
 
 proc SmartListFile {list_file path {no_add 0}} {
-    set ext [file extension $list_file]
-    set lib [file rootname [file tail $list_file]]
-    switch $ext {
-    .src {
-        set file_set "sources_1"
-    }
-    .sub {
-        set file_set "sources_1"
-    }
-    .sim {
-        set file_set "$lib\_sim"
-        # if this simulation fileset was not created we do it now
-        if {[string equal [get_filesets -quiet $file_set] ""]} {
-        create_fileset -simset $file_set
-        set simulation  [get_filesets $file_set]
-        set_property -name {modelsim.compile.vhdl_syntax} -value {2008} -objects $simulation
-        set_property -name {questa.compile.vhdl_syntax} -value {2008} -objects $simulation
-        set_property SOURCE_SET sources_1 $simulation
-        }
-    }
-    .con {
-        set file_set "constrs_1"
-    }
-    .ext {
-        set file_set "sources_1"
-        # Msg Info "Reading sources from file $list_file, lib: $lib, file-set: $file_set"
-        # return [ReadExternalListFile $list_file $path $lib $file_set $no_add]
-    }   
-	.prop {
-		return
+	set ext [file extension $list_file]
+	set lib [file rootname [file tail $list_file]]
+	switch $ext {
+		.src {
+			set file_set "sources_1"
+		}
+		.sub {
+			set file_set "sources_1"
+		}
+		.sim {
+			set file_set "$lib\_sim"
+			# if this simulation fileset was not created we do it now
+			if {[string equal [get_filesets -quiet $file_set] ""]} {
+			create_fileset -simset $file_set
+			set simulation  [get_filesets $file_set]
+			set_property -name {modelsim.compile.vhdl_syntax} -value {2008} -objects $simulation
+			set_property -name {questa.compile.vhdl_syntax} -value {2008} -objects $simulation
+			set_property SOURCE_SET sources_1 $simulation
+			}
+		}
+		.con {
+			set file_set "constrs_1"
+		}
+		.ext {
+			set file_set "sources_1"
+			# Msg Info "Reading sources from file $list_file, lib: $lib, file-set: $file_set"
+			# return [ReadExternalListFile $list_file $path $lib $file_set $no_add]
+		}   
+		.prop {
+			return
+		}
+		default {
+			Msg Error "Unknown extension $ext"
+		}
 	}
-    default {
-        Msg Error "Unknown extension $ext"
-    }
-    }
-    Msg Info "Reading sources from file $list_file, lib: $lib, file-set: $file_set"
-    return [ReadListFile $list_file $path $lib $file_set $no_add]
-}
+	Msg Info "Reading sources from file $list_file, lib: $lib, file-set: $file_set"
+	return [ReadListFile $list_file $path $lib $file_set $no_add]
+	}
 ########################################################
 
 ## Get git SHA of a vivado library
@@ -1305,4 +1305,48 @@ proc eos {command {attempt 1}}  {
 	}
     }
     return [list $ret $result]
+}
+
+########################################################
+
+## Parses .prop files in Top/$proj_name/list directory and creates a dict with the values
+#
+#
+# Arguments:
+# * proj_name:   name of the project that requires the properties in the .prop file
+proc ParseProcFile {proj_name} {
+	set property_files [glob -nocomplain "./Top/$proj_name/list/*.prop"]
+	set propDict [dict create ] 
+	foreach f $property_files {
+		set fp [open $f r]
+		set file_data [read $fp]
+		close $fp
+		set data [split $file_data "\n"]
+		foreach line $data {    
+			if {![regexp {^ *$} $line] & ![regexp {^ *\#} $line] } { #Exclude empty lines and comments
+				set file_and_prop [regexp -all -inline {\S+} $line]
+				dict set propDict [lindex $file_and_prop 0] "[lindex $file_and_prop 1]"
+			}
+		}
+	}
+	return $propDict
+}
+
+
+########################################################
+
+## Gets MAX number of Threads property from .prop file in Top/$proj_name/list directory. If property 
+# is not set returns dafault = 1
+#
+#
+# Arguments:
+# * proj_name:   name of the project
+proc GetMaxThreads {proj_name} {
+	set maxThreads 1
+	set propDict [ParseProcFile $proj_name]
+	if {[dict exists $propDict maxThreads]} {
+		set maxThreads [dict get $propDict maxThreads]
+	}
+
+	return $maxThreads
 }

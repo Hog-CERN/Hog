@@ -42,22 +42,7 @@ set proj_name [file rootname [file tail $proj_file]]
 
 
 #number of threads
-set maxThreads 1
-set property_files [glob -nocomplain "./Top/$proj_name/list/*.prop"]
-foreach f $property_files {
-	set fp [open $f r]
-	set file_data [read $fp]
-	close $fp
-	set data [split $file_data "\n"]
-	foreach line $data {    
-		if {![regexp {^ *$} $line] & ![regexp {^ *\#} $line] } { #Exclude empty lines and comments
-			set file_and_prop [regexp -all -inline {\S+} $line]
-			if {[string equal [lindex $file_and_prop 0] "maxThreads"]} {
-				set maxThreads [lindex $file_and_prop 1]
-			}
-		}
-	}
-}
+set maxThreads [GetMaxThreads $proj_name]
 if {$maxThreads != 1} {
 	Msg CriticalWarning "Multithreading enabled. Bitfile is not deterministic. Number of threads: $maxThreads"
 	set commit   "0000000"

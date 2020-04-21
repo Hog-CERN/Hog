@@ -34,4 +34,5 @@ if {$maxThreads != 1} {
 
 set_param general.maxThreads $maxThreads
 
+cd $old_path
 Msg Info "All done"

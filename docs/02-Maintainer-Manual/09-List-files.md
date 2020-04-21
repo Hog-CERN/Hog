@@ -63,6 +63,12 @@ Each line in these files has the following synthax:
 
 All contratint files (.xdc ) must be included by adding them to the .con files
 
+## .prop files
+
+All files containings special project properties must be included by adding them to the .prop files.
+Currently supported properties:
+* maxThreads : by default Hog runs with only one thread to assure that the bitfile is deterministic. This feature can by overriden by setting maxThreads to the desired number of concurrent threads.
+
 ## .ext files
 
 External proprietary files can be included using the .ext list file.

@@ -15,12 +15,10 @@ stages:
 
 building:
       stage: build
-      image: gitlab-registry.cern.ch/authoring/documentation/mkdocs:stable
+      image: gitlab-registry.cern.ch/authoring/documentation/mkdocs:latest
       before_script: 
         - echo ""
       script:
-        - apt-get install git
-        - pip3 install --user -e git+https://github.com/zhaoterryy/mkdocs-pdf-export-plugin.git@master#egg=mkdocs-pdf-export
         - mkdocs build --clean --site-dir public
         - cp docs/.htaccess public/
       artifacts:

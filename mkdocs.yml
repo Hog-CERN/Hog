@@ -37,11 +37,12 @@ theme:
       logo: 'custom/assets/images/white.png'
       custom_dir: docs/custom/
 
-plugins:
-    - search
-    - pdf-export:
-        media_type: print
-        combined: true
-
 extra_css:
     - extra.css
+
+#plugins:
+#    - search
+#    - pdf-export:
+#        media_type: print
+#        combined: true
+

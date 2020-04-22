@@ -64,12 +64,22 @@ The line corresponding to the file containg the top module of your test bench ha
 * The third entry is preceded by `wavefile=`, it indicates the file containing the tcl script used to lauch your simulation. *NOTE* the path assumes the default position is `<repo>/sim/`, any relative path must assume this as default location.
 * The fourth entry is preceded by `dofile=`, it indicates the file containing the signal waveforms to be observed in your simulation.
 
+The resulting file should look like this:
+```
+../../lib_1/tb/hdl/tb_for_lib1.vhd topsim=tb_lib1 wavefile=lib1/wave_lib1.tcl dofile=lib1/dofile_lib1.do
+../../lib_1/tb/hdl/FileReader.vhd
+../../lib_1/tb/hdl/FileWriter.vhd
+```
+
 Hog compiles the Questa or Modelsim libraries when launching the Hog/Init.sh script.
 The simulation libraries are now compiled into the SimulationLib folder by default.
 
 ## .con files
 
-All constratint files (.xdc ) must be included by adding them to the *.con files
+All constratint files must be included by adding them to the *.con files.
+Both xdc (for Vivado) and Tcl files can be added.
+By specifying the property `nosynth` (after the file name, separated by any number of spaces) we can tell Vivado not to use this specific constraint file in synthesis. 
+Viceversa, `noimpl` is used to use the constraint in synthesis only
 
 ## .ext files
 

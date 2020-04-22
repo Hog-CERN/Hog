@@ -283,7 +283,7 @@ m add row  "| Global | [string tolower $commit] | $version |"
 
 if {$use_ipbus == 1} {
     Msg Status " IPbus XML SHA: $xml_hash, VER: $xml_ver"
-    m add row "| IPbus XML | [string tolower $xml_hash] | $xml_ver |"
+    m add row "| \"IPbus XML\" | [string tolower $xml_hash] | $xml_ver |"
 }
 set top_ver [HexVersionToString $top_ver]
 Msg Status " Top SHA: $top_hash, VER: $top_ver"

@@ -153,7 +153,7 @@ This can be a minimal tcl setup specifing only the general project settings.
 The last line of the tcl scipt is expected to be 
 
 ```bash
-source $path_repo/HOG/Tcl/create-project.tcl
+source $path_repo/HOG/Tcl/create_project.tcl
 ```
 
 This command will instruct HOG to add all your files to the generated project.

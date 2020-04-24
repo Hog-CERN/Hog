@@ -14,4 +14,4 @@ set IMPL_FLOW "Vivado Implementation 2018"
 ### Project name and repository path
 set DESIGN    "[file rootname [file tail [info script]]]"
 set path_repo "[file normalize [file dirname [info script]]]/../../"
-source $path_repo/HOG/Tcl/create-project.tcl
+source $path_repo/HOG/Tcl/create_project.tcl

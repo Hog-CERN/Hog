@@ -849,7 +849,7 @@ proc CopyXMLsFromListFile {list_file path dst {generate 0} {xml_version "0.0.0"}
 	    return -1
 
 	} else {
-	    Msg Warning "IPbus executable gen_ipbus_addr_decode not found or not working, will not be able to verify IPbus address tables."
+	    Msg Warning "IPbus executable gen_ipbus_addr_decode not found or not working, will not verify IPbus address tables."
 	}
     }
     
@@ -886,7 +886,7 @@ foreach line $data {
 		close $in
 		close $out
 		lappend xmls [file tail $xmlfile]
-		lappend vhdls $vhdlfile
+		lappend vhdls [file normalize $vhdlfile]
 
 	    } else {
 		Msg Warning "XML file $xmlfile not found"
@@ -918,7 +918,7 @@ foreach line $data {
 			    Msg Info "Checking $x vs $v, ignoring leadng/trailing spaces and comments"
 			    set diff [CompareVHDL $generated_vhdl $v]
 			    if {[llength $diff] > 0} {
-				Msg CriticalWarning "$v does not correspond to its xml $x, $n line/s differ:"
+				Msg CriticalWarning "$v does not correspond to its xml $x, [expr $n/3] line/s differ:"
 				Msg Status [join $diff "\n"]
 				set diff_file [open ../diff_[file root [file tail $x]].txt w]
 				puts $diff_file $diff

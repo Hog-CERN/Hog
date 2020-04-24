@@ -836,7 +836,23 @@ proc TagRepository {{merge_request_number 0} {version_level 0}} {
 # * xml_version: the M.m.p version to be used to replace the __VERSION__ placeholder in any of the xml files
 # * xml_sha:     the Git-SHA to be used to replace the __GIT_SHA__ placeholder in any of the xml files
 
-proc CopyXMLsFromListFile {list_file path dst {xml_version "0.0.0"} {xml_sha "00000000"} } {
+proc CopyXMLsFromListFile {list_file path dst {generate 0} {xml_version "0.0.0"} {xml_sha "00000000"} } {
+    if {[catch {exec gen_ipbus_addr_decode -h} msg]}  {
+	set can_generate 0
+    } else {
+	set can_generate 1
+    }
+    
+    if {$can_generate == 0} {
+	if {$generate == 1} {
+	    Msg Error "Cannot generate IPbus address files, IPbus executable gen_ipbus_addr_decode not found or not working: $msg"
+	    return -1
+
+	} else {
+	    Msg Warning "IPbus executable gen_ipbus_addr_decode not found or not working, will not be able to verify IPbus address tables."
+	}
+    }
+    
     set list_file
     set fp [open $list_file r]
     set file_data [read $fp]
@@ -846,11 +862,10 @@ proc CopyXMLsFromListFile {list_file path dst {xml_version "0.0.0"} {xml_sha "00
     set n [llength $data]
     Msg Info "$n lines read from $list_file"
     set cnt 0
-    foreach line $data {
-	if {![regexp {^ *$} $line] & ![regexp {^ *\#} $line] } { #Exclude empty lines and comments
-	    set file_and_prop [regexp -all -inline {\S+} $line]
-	    set xmlfile [lindex $file_and_prop 0]
-	    set xmlfile "$path/$xmlfile"
+foreach line $data {
+    if {![regexp {^ *$} $line] & ![regexp {^ *\#} $line] } { #Exclude empty lines and comments
+	set file_and_prop [regexp -all -inline {\S+} $line]
+	set xmlfile "$path/[lindex $file_and_prop 0]"
 	    if {[llength $file_and_prop] > 1} {
 		set vhdlfile [lindex $file_and_prop 1]
 		set vhdlfile "$path/$vhdlfile"
@@ -870,20 +885,78 @@ proc CopyXMLsFromListFile {list_file path dst {xml_version "0.0.0"} {xml_sha "00
 		}
 		close $in
 		close $out
-		incr cnt
-		if {[llength $file_and_prop] > 1} {
-		    set prop [lrange $file_and_prop 1 end]
-		    set type [lindex $prop 0]
-		}
+		lappend xmls [file tail $xmlfile]
+		lappend vhdls $vhdlfile
+
 	    } else {
 		Msg Warning "XML file $xmlfile not found"
+	    }
+	    
+	}
+    }
+    set cnt [llength $xmls]
+    Msg Info "$cnt file/s copied"
+
+    if {$can_generate == 1} {
+	set old_dir [pwd]
+	cd $dst
+	file mkdir "address_decode"
+	cd "address_decode"
+	foreach x $xmls v $vhdls {
+	    set x [file normalize ../$x]
+	    if {[file exists $x]} {
+		set status [catch {exec gen_ipbus_addr_decode {*}"-v $x"} log]
+		if {$status == 0} {
+		    set generated_vhdl ./ipbus_decode_[file root [file tail $x]].vhd
+		    if {$generate == 1} {
+			#copy (replace) file here
+			Msg Info "Copying $generated_vhdl into $v (replacing if necessary)"
+			file copy -force -- $generated_vhdl $v
+		    } else {
+			if {[file exists $v]} {
+			    #check file here
+			    Msg Info "Comparing $generated_vhdl to $v, ignoring commented lines"
+			    #compareVHDL $generated_vhdl $v
+			} else {
+			    Msg Warning "VHDL address decoder file $v not found"
+			}
+		    }
+		} else {
+		     Msg Warning "Address map generation failed fo $x: $log"
+		}
+	    } else {
+		Msg Warning "Copied XML file $x not found."
 	    }
 
 	}
     }
-    Msg Info "$cnt file/s copied"
+
+
 }
 ########################################################
+
+
+proc compare_VHDL {file1 file2} {
+    set a  [open $file1 r]
+    set b  [open $file1 r]
+    
+    while {[gets $a line] != -1} {
+	set line [regsub {^[\t\s]*(.*)?\s*} $line "\\1"]
+	if {![regexp {^$} $line] & ![regexp {^--} $line] } { #Exclude empty lines and comments
+	    lappend f1 $line
+	}
+    }
+    
+    while {[gets $b line] != -1} {
+	set line [regsub {^[\t\s]*(.*)?\s*} $line "\\1"]
+	if {![regexp {^$} $line] & ![regexp {^--} $line] } { #Exclude empty lines and comments
+	    lappend f2 $line
+	}
+    }
+    
+    close $a
+    close $b
+}
 
 ## Returns the dst path relative to base
 ## Arguments:

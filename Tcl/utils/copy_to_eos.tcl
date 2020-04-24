@@ -1,4 +1,7 @@
 #!/usr/bin/env tclsh
+# @file
+# Copy project file and documentation from  HOG_UNOFFICIAL_BIN_EOS_PATH to HOG_OFFICIAL_BIN_EOS_PATH
+
 #parsing command options
 if {[catch {package require cmdline} ERROR]} {
 	puts "$ERROR\n If you are running this script on tclsh, you can fix this by installing 'tcllib'" 

@@ -61,8 +61,8 @@ stages:
         <<: *vars
      script:
       - ./Hog/CreateProject.sh $PROJECT_NAME
-      - "if [[ ${HOG_CHECK_SYNTAX} != 1 ]]; then echo 'Syntax checker is disabled'; else vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_check_syntax.tcl -tclargs $PROJECT_NAME; fi"
-      - "if [[ ${HOG_CHECK_YAMLREF} != 1 ]]; then echo 'Yaml consistency checker is disabled'; else vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_check_yaml_ref.tcl ; fi" 
+      - "if [[ ${HOG_CHECK_SYNTAX} != 1 ]]; then echo 'Syntax checker is disabled'; else vivado -mode batch -notrace -source ./Hog/Tcl/utils/check_syntax.tcl -tclargs $PROJECT_NAME; fi"
+      - "if [[ ${HOG_CHECK_YAMLREF} != 1 ]]; then echo 'Yaml consistency checker is disabled'; else vivado -mode batch -notrace -source ./Hog/Tcl/utils/check_yaml_ref.tcl ; fi" 
      artifacts:
        name: vivado_projects
        paths:
@@ -79,7 +79,7 @@ stages:
         - "if [ -z ${HOG_IP_EOS_PATH+x} ]; then 
            echo 'No EOS path for IPs defined'; 
            vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_ip_synth.tcl -tclargs $PROJECT_NAME ; 
-           else vivado -mode batch -notrace -source ./Hog/Tcl/launchers/get_ips.tcl -tclargs -eos_ip_path \"$HOG_IP_EOS_PATH\" $PROJECT_NAME;
+           else vivado -mode batch -notrace -source ./Hog/Tcl/utils/get_ips.tcl -tclargs -eos_ip_path \"$HOG_IP_EOS_PATH\" $PROJECT_NAME;
             vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_ip_synth.tcl -tclargs -eos_ip_path \"$HOG_IP_EOS_PATH\" $PROJECT_NAME ;
           fi"
         
@@ -162,7 +162,7 @@ make_doxygen:
         <<: *vars
     script:
         - until echo $HOG_PASSWORD | kinit $HOG_USER ; do echo Retrying; sleep 2; done
-        - vivado -mode batch -notrace -source ./Hog/Tcl/make_doxygen.tcl
+        - vivado -mode batch -notrace -source ./Hog/Tcl/utils/make_doxygen.tcl
         - DESCRIBE=$(git describe --always --tags --long)
         - "if [ -e $CI_PROJECT_DIR/Doc/html -a -n '$HOG_UNOFFICIAL_BIN_EOS_PATH' ]; then 
           eos mkdir -p $HOG_UNOFFICIAL_BIN_EOS_PATH/$CI_COMMIT_SHORT_SHA/Doc-$DESCRIBE;
@@ -186,14 +186,14 @@ merge_and_tag:
        - ./Hog/Other/CheckEnv.sh
        - "if [[ $CI_COMMIT_MESSAGE == ResolveWIP* && $CI_MERGE_REQUEST_TITLE == WIP* ]]; then echo 'removing WIP status'; curl ${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/merge_requests/${CI_MERGE_REQUEST_IID}/notes?body=/wip --header \"PRIVATE-TOKEN: ${HOG_PUSH_TOKEN}\" --request POST; fi;"
        - "MR_PARAMETERS=`curl --header \"PRIVATE-TOKEN: ${HOG_PUSH_TOKEN}\" ${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/merge_requests/${CI_MERGE_REQUEST_IID}`"
-       - vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_merge_and_tag.tcl -tclargs -mr_par "{$MR_PARAMETERS}" -mr_id $CI_MERGE_REQUEST_IID -push $CI_COMMIT_REF_NAME -main_branch $CI_MERGE_REQUEST_TARGET_BRANCH_NAME
+       - vivado -mode batch -notrace -source ./Hog/Tcl/utils/merge_and_tag.tcl -tclargs -mr_par "{$MR_PARAMETERS}" -mr_id $CI_MERGE_REQUEST_IID -push $CI_COMMIT_REF_NAME -main_branch $CI_MERGE_REQUEST_TARGET_BRANCH_NAME
 
 tag_official_version:
   tags:
      - hog
   stage: merge
   script:
-     - vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_merge_and_tag.tcl -tclargs -merged  -push $CI_COMMIT_REF_NAME -main_branch $CI_COMMIT_REF_NAME
+     - vivado -mode batch -notrace -source ./Hog/Tcl/utils/merge_and_tag.tcl -tclargs -merged  -push $CI_COMMIT_REF_NAME -main_branch $CI_COMMIT_REF_NAME
   rules:
     - if: '$HOG_TARGET_BRANCH != null && $CI_COMMIT_REF_NAME == $HOG_TARGET_BRANCH && $CI_PIPELINE_SOURCE == "push"'
       when: always
@@ -229,7 +229,7 @@ copy_to_eos:
   script:
     - git status
     - until echo $HOG_PASSWORD | kinit $HOG_USER ; do echo Retrying; sleep 2; done
-    - vivado -mode batch -notrace -source ./Hog/Tcl/copy_to_eos.tcl -tclargs $HOG_OFFICIAL_BIN_EOS_PATH $HOG_UNOFFICIAL_BIN_EOS_PATH $CI_COMMIT_TAG $CI_COMMIT_SHORT_SHA
+    - vivado -mode batch -notrace -source ./Hog/Tcl/utils/copy_to_eos.tcl -tclargs $HOG_OFFICIAL_BIN_EOS_PATH $HOG_UNOFFICIAL_BIN_EOS_PATH $CI_COMMIT_TAG $CI_COMMIT_SHORT_SHA
 
 cleaning:
   only:
@@ -242,5 +242,5 @@ cleaning:
   stage: clean
   script:
      - until echo $HOG_PASSWORD | kinit $HOG_USER ; do echo "Retrying"; sleep 2; done
-     - if [ -z ${HOG_UNOFFICIAL_BIN_EOS_PATH+x} ]; then echo "HOG_UNOFFICIAL_BIN_EOS_PATH not specified, nothing to clean..."; else vivado -mode batch -notrace -source Hog/Tcl/clean_unofficial.tcl -tclargs $HOG_UNOFFICIAL_BIN_EOS_PATH $CI_COMMIT_TAG; fi
+     - if [ -z ${HOG_UNOFFICIAL_BIN_EOS_PATH+x} ]; then echo "HOG_UNOFFICIAL_BIN_EOS_PATH not specified, nothing to clean..."; else vivado -mode batch -notrace -source Hog/Tcl/utils/clean_unofficial.tcl -tclargs $HOG_UNOFFICIAL_BIN_EOS_PATH $CI_COMMIT_TAG; fi
   allow_failure: true

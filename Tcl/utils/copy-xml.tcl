@@ -1,4 +1,7 @@
 #!/usr/bin/env tclsh
+# @file
+# Copy IPBus XML files listed in a Hog list file and replace the version and SHA placeholders if they are present in any of the XML files.
+
 if {[catch {package require cmdline} ERROR]} {
 	puts "$ERROR\n If you are running this script on tclsh, you can fix this by installing 'tcllib'" 
 	return

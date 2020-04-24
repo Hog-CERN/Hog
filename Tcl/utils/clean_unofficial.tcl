@@ -1,5 +1,7 @@
 #!/usr/bin/env tclsh
-
+# @file
+# Clean the EOS unofficial paths of commits already merged into HOG_TARGET_BRANCH
+ 
 #parsing command options
 if {[catch {package require cmdline} ERROR]} {
 	puts "$ERROR\n If you are running this script on tclsh, you can fix this by installing 'tcllib'" 

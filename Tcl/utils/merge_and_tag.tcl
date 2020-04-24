@@ -1,4 +1,6 @@
 #!/usr/bin/env tclsh
+# @file
+# Merges a branch into HOG_TARGET_BRANCH (default 'master') and creates a new tag
 
 #parsing command options
 

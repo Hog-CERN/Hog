@@ -1,5 +1,6 @@
 #!/usr/bin/env tclsh
-
+# @file
+# Tags the repository
 
 set old_path [pwd]
 set path [file dirname [info script]]

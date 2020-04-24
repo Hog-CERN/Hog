@@ -1,3 +1,6 @@
+# @file
+# Compiles Questa libraries
+ 
 set old_path [pwd]
 set path [file dirname [info script]]
 cd $path

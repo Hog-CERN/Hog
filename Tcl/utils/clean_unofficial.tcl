@@ -16,8 +16,8 @@ set usage   "Script to clean EOS unofficial path of commits already merged into 
 set old_path [pwd]
 set path [file dirname [info script]]
 cd $path
-source ./hog.tcl
-cd ../../
+source ../hog.tcl
+cd ../../../
 
 if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] ||  [llength $argv] < 2} {
 	Msg Info [cmdline::usage $parameters $usage]

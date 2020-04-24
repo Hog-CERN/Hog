@@ -2,15 +2,15 @@
 # @file
 # Tags the repository
 
-set old_path [pwd]
-set path [file dirname [info script]]
-cd $path
-source ./hog.tcl
+set repo_path [pwd]
+set tcl_path [file dirname [info script]]
+cd $tcl_path
+source ../hog.tcl
 
 #parsing command options
 if {[catch {package require cmdline} ERROR]} {
 	Msg Error "$ERROR\n If you are running this script on tclsh, you can fix this by installing 'tcllib'" 
-	cd $old_path
+	cd $repo_path
 	return
 }
 
@@ -23,16 +23,16 @@ set usage "- USAGE: $::argv0 <merge request> \[options\].\n Options:"
 
 if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] || [llength $argv] < 1 } {
     Msg Info [cmdline::usage $parameters $usage]
-	cd $old_path
+	cd $repo_path
 	return
 }
 
 set merge_request [lindex $argv 0]
 
 if { $options(Hog) == 1 } {
-set TaggingPath ../
+    set TaggingPath ../..
 } else {
-set TaggingPath ../..
+    set TaggingPath $repo_path
 }
 cd $TaggingPath
 
@@ -48,4 +48,4 @@ set new_tag [lindex $tags 1]
 Msg Info "Old tag was: $old_tag and new tag is: $new_tag"
 
 
-cd $old_path
+cd $repo_path

@@ -26,8 +26,8 @@ then
 		echo  
 		if [[ "${REPLY}" =~ ^[Yy]$ ]]
 			then
-	    	echo [hog init] Compiling Questasim libraries into ../SimulationLib...
-	    	"${VIVADO}" -mode batch -notrace -source ./Tcl/compile_questalib.tcl
+	    	echo [hog init] Compiling Questasim libraries into SimulationLib...
+	    	"${VIVADO}" -mode batch -notrace -source ./Tcl/utils/compile_questalib.tcl
 	    	rm -f ./Tcl/.cxl.questasim.version
 	    	rm -f ./Tcl/compile_simlib.log
 	    	rm -f ./Tcl/modelsim.ini
@@ -36,8 +36,8 @@ then
     		echo  
 		    if [[  "${REPLY}" =~ ^[Yy]$ ]]
 		    then
-        		echo [hog init] Compiling Modelsim libraries into ../SimulationLib...
-		        "${VIVADO}" -mode batch -notrace -source ./Tcl/compile_modelsimlib.tcl
+        		echo [hog init] Compiling Modelsim libraries into SimulationLib...
+		        "${VIVADO}" -mode batch -notrace -source ./Tcl/utils/compile_modelsimlib.tcl
         		rm -f ./Tcl/.cxl.modelsim.version
 		        rm -f ./Tcl/compile_simlib.log
 		        rm -f ./Tcl/modelsim.ini

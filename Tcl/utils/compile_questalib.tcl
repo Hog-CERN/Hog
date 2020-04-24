@@ -1,7 +1,6 @@
 # @file
 # Compiles Questa libraries
  
-set old_path [pwd]
-set path [file dirname [info script]]
-cd $path
-compile_simlib -simulator questa -directory ../../SimulationLib
+set repo_path [pwd]
+cd $repo_path
+compile_simlib -simulator questa -directory SimulationLib

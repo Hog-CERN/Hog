@@ -13,18 +13,18 @@ set parameters {
 set usage   "Script to copy project files and documentation from \$HOG_UNOFFICIAL_BIN_EOS_PATH to \$HOG_OFFICIAL_BIN_EOS_PATH \nUsage: $argv0 <hog official eos path> <hog unofficial eos path> <tag> <commit short SHA>\n"
 
 
-set old_path [pwd]
-set path [file dirname [info script]]
-cd $path
-source ./hog.tcl
+set repo_path [pwd]
+set tclpath [file dirname [info script]]
+cd $tclpath
+source ../hog.tcl
 if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] || $argc != 4} {
     Msg Info [cmdline::usage $parameters $usage]
-	cd $old_path
+	cd $repo_path
     exit 1
 }
 lassign $argv official unofficial tag current_sha
 
-cd ../../
+cd ../../../
 Msg Info "Evaluating git describe..."
 set describe [exec git describe --always --tags --long]
 Msg Info "Git describe: $describe"
@@ -71,4 +71,4 @@ if {$mr == -1} {
     }
 }
 
-cd $old_path
+cd $repo_path

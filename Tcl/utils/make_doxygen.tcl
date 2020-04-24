@@ -12,15 +12,15 @@ set parameters {
 
 set usage   "USAGE: $::argv0"
 
-set old_path [pwd]
-set path [file dirname [info script]]
-cd $path
-source ./hog.tcl
-cd ../../
+set repo_path [pwd]
+set tcl_path [file dirname [info script]]
+cd $tcl_path
+source ../hog.tcl
+cd $repo_path
 
 if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] || $::argc != 0 } {
     Msg Info [cmdline::usage $parameters $usage]
-    cd $old_path
+    cd $repo_path
     exit 1
 }
 

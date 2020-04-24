@@ -12,10 +12,10 @@ set parameters {
 }
 
 set usage "- USAGE: $::argv0 \[OPTIONS\] <project> \n. Options:"
-set path [file normalize "[file dirname [info script]]/.."]
+set tcl_path [file normalize "[file dirname [info script]]/.."]
 
-set old_path [pwd]
-cd $path
+set repo_path [pwd]
+cd $tcl_path
 source ./hog.tcl
 
 if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] || [llength $argv] < 1 } {
@@ -23,17 +23,17 @@ if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] 
     exit 1
 } elseif { $::argc eq 1 } {
     set project [lindex $argv 0]
-    set main_folder [file normalize "$path/../../VivadoProject/$project/$project.runs/"]
+    set main_folder [file normalize "$repo_path/VivadoProject/$project/$project.runs/"]
     set ip_path 0
 } else {
     set project [lindex $argv 0]
-    set main_folder [file normalize "$path/../../VivadoProject/$project/$project.runs/"]
+    set main_folder [file normalize "$repo_path/VivadoProject/$project/$project.runs/"]
     set ip_path $options(eos_ip_path)
     Msg Info "Will use the EOS ip repository on $ip_path to speed up ip synthesis..."
 }
 
 Msg Info "Opening project $project..."
-open_project ../../VivadoProject/$project/$project.xpr
+open_project $repo_path/VivadoProject/$project/$project.xpr
 
 
 Msg Info "Preparing IP runs..."
@@ -57,9 +57,9 @@ if {($ip_path != 0) && ($ips != "")  } {
     if {$copied_ips > 0} {
     Msg Info "Re-creating project $project..."
     close_project
-    source ../../Top/$project/$project.tcl
+    source $repo_path/Top/$project/$project.tcl
     }
 }
 
 Msg Info "All done."
-cd $old_path
+cd $repo_path

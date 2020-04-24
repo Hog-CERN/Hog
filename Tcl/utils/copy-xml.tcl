@@ -11,8 +11,8 @@ set parameters {
 
 set usage   "Copy IPBus XML files listed in a Hog list file and replace the version and SHA placeholders if they are present in any of the XML files.\nUsage: $argv0 <XML list file> <destination directory>"
 set tcl_path [file dirname [info script]]
-set repo_path [file normalize $tcl_path/../..]
-source $tcl_path/hog.tcl
+set repo_path [file normalize $tcl_path/../../..]
+source $tcl_path/../hog.tcl
 
 if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] || $argc != 2} {
     Msg Info [cmdline::usage $parameters $usage]

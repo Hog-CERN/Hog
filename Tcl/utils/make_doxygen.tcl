@@ -48,4 +48,4 @@ if {[DoxygenVersion 1.8.13]} {
   exec -ignorestderr doxygen $doxygen_conf
 }
 
-cd $old_path
+cd $repo_path

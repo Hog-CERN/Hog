@@ -1,6 +1,6 @@
 # @file
 # Checks that the hog submodule sha matches the ref in the .gitlab-ci.yml file
- 
+
 set Name LaunchCheckYamlRef
 set hog_path [file normalize "[file dirname [info script]]/.."]
 

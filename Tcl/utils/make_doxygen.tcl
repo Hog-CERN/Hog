@@ -4,8 +4,8 @@
 
 #parsing command options
 if {[catch {package require cmdline} ERROR]} {
-    puts "$ERROR\n If you are running this script on tclsh, you can fix this by installing 'tcllib'" 
-    return
+  puts "$ERROR\n If you are running this script on tclsh, you can fix this by installing 'tcllib'" 
+  return
 }
 set parameters {
 }
@@ -19,9 +19,9 @@ source ../hog.tcl
 cd $repo_path
 
 if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] || $::argc != 0 } {
-    Msg Info [cmdline::usage $parameters $usage]
-    cd $repo_path
-    exit 1
+  Msg Info [cmdline::usage $parameters $usage]
+  cd $repo_path
+  exit 1
 }
 
 
@@ -35,17 +35,17 @@ Msg Info "Creating doxygen documentation for tag $version"
 set doxygen_conf "./doxygen/doxygen.conf"
 if {[file exists $doxygen_conf] == 0 } {
     # Using Default hog template
-    set doxygen_conf "./Hog/Templates/doxygen.conf"
-    Msg Info "Running doxygen with ./Hog/Templates/doxygen.conf..."
+  set doxygen_conf "./Hog/Templates/doxygen.conf"
+  Msg Info "Running doxygen with ./Hog/Templates/doxygen.conf..."
 } else {
-    Msg Info "Running doxygen with $doxygen_conf..."
+  Msg Info "Running doxygen with $doxygen_conf..."
 }
 
 if {[DoxygenVersion 1.8.13]} {
-    set outfile [open $doxygen_conf a]
-    puts $outfile \nPROJECT_NUMBER=$version
-    close $outfile
-    exec -ignorestderr doxygen $doxygen_conf
+  set outfile [open $doxygen_conf a]
+  puts $outfile \nPROJECT_NUMBER=$version
+  close $outfile
+  exec -ignorestderr doxygen $doxygen_conf
 }
 
 cd $old_path

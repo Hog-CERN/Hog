@@ -9,23 +9,9 @@ default:
           - git checkout $CI_COMMIT_REF_NAME
 
 stages:
-      - format
       - tag
       - build_doc
       - deploy_doc
-
-format: 
-    stage: format
-    image: tcl2020/tcl2020:latest
-    only: 
-        refs:
-          - merge_requests
-    except:
-        variables:
-            - $CI_COMMIT_REF_NAME =~ /^test\/.*$/i
-            - $CI_MERGE_REQUEST_TITLE =~ /^WIP:.*$/ && $CI_COMMIT_MESSAGE !~ /^ResolveWIP:/
-    script:
-        - ./Other/FormatTcl.sh Tcl/ 
 
 doc:
       stage: build_doc

@@ -167,7 +167,10 @@ if {$maxThreads != 1} {
   Msg Info "Disabling multithreading to assure deterministic bitfile"
 }
 
-set_param general.maxThreads $maxThreads
+if {[info commands get_property] != ""} {
+  # we are in vivado
+  set_param general.maxThreads $maxThreads
+}
 
 # Hog submodule
 cd "./Hog"

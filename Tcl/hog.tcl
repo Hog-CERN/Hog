@@ -1350,3 +1350,8 @@ proc GetMaxThreads {proj_name} {
 
   return $maxThreads
 }
+
+
+if [GitVersion 2.7.2] {
+    Msg CriticalWarning "Found Git version older than 2.7.2. Hog might not work as expected.\n"
+}

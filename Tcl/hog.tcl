@@ -684,7 +684,7 @@ proc GetVer {FILE path} {
       }
     }
   } else {
-    Msg Warning "Error while trying to find tag for $SHA in file: $FILE, path: [pwd]"
+    Msg CriticalWarning "Error while trying to find tag for $SHA in file: $FILE, path: [pwd]"
     set ver "error: $result"
   }
 

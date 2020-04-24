@@ -35,7 +35,7 @@ git add --all && git commit -m 'code formatted by gitlab-CI'
 if [ -z "${GIT_AUTHTOKEN}" ]; then
      echo "Use the login credentials to push the changes"
     url_host=`git remote get-url origin | sed -e "s/https:\/\/gitlab-ci-token:.*@//g"`
-    git remote set-url origin https://"${HOG_USER}":"${HOG_PUSH_TOKEN}"@${url_host}
+    git remote set-url origin ${url_host}
 else
     echo "Use the gitlab token to push the changes"
     url_host=`git remote get-url origin | sed -e "s/https:\/\/gitlab-ci-token:.*@//g"`

@@ -915,8 +915,11 @@ foreach line $data {
 		    } else {
 			if {[file exists $v]} {
 			    #check file here
-			    Msg Info "Comparing $generated_vhdl to $v, ignoring commented lines"
-			    #compareVHDL $generated_vhdl $v
+			    Msg Info "Checking $x vs $v, ignoring leadng/trailing spaces and comments"
+			    set diff [CompareVHDL $generated_vhdl $v]
+			    if {$diff != 0} {
+				Msg CriticalWarning "$v does not correspond to its xml $x, $diff line/s differ"
+			    }
 			} else {
 			    Msg Warning "VHDL address decoder file $v not found"
 			}
@@ -936,9 +939,9 @@ foreach line $data {
 ########################################################
 
 
-proc compare_VHDL {file1 file2} {
+proc CompareVHDL {file1 file2} {
     set a  [open $file1 r]
-    set b  [open $file1 r]
+    set b  [open $file2 r]
     
     while {[gets $a line] != -1} {
 	set line [regsub {^[\t\s]*(.*)?\s*} $line "\\1"]
@@ -956,6 +959,16 @@ proc compare_VHDL {file1 file2} {
     
     close $a
     close $b
+    set diff 0
+    foreach x $f1 y $f2 {
+	if {$x != $y} {
+	    Msg Status "> $x" 
+	    Msg Status "< $y" 
+	    incr diff
+	}
+    }
+    
+    return $diff
 }
 
 ## Returns the dst path relative to base

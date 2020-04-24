@@ -917,8 +917,12 @@ foreach line $data {
 			    #check file here
 			    Msg Info "Checking $x vs $v, ignoring leadng/trailing spaces and comments"
 			    set diff [CompareVHDL $generated_vhdl $v]
-			    if {$diff != 0} {
-				Msg CriticalWarning "$v does not correspond to its xml $x, $diff line/s differ"
+			    if {[llength $diff] > 0} {
+				Msg CriticalWarning "$v does not correspond to its xml $x, $n line/s differ:"
+				Msg Status [join $diff "\n"]
+				set diff_file [open ../diff_[file root [file tail $x]].txt w]
+				puts $diff_file $diff
+				close $diff_file
 			    }
 			} else {
 			    Msg Warning "VHDL address decoder file $v not found"
@@ -932,6 +936,9 @@ foreach line $data {
 	    }
 
 	}
+	cd ..
+	file delete -force address_decode
+	cd $old_dir
     }
 
 
@@ -959,12 +966,10 @@ proc CompareVHDL {file1 file2} {
     
     close $a
     close $b
-    set diff 0
+    set diff {}
     foreach x $f1 y $f2 {
 	if {$x != $y} {
-	    Msg Status "> $x" 
-	    Msg Status "< $y" 
-	    incr diff
+	    lappend diff "> $x\n< $y\n\n"
 	}
     }
     

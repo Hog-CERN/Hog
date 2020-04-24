@@ -27,7 +27,7 @@ if {[file exists $list_file]} {
     Msg Error "$list_file not found"
     exit
 }
-lassign [GetVer $list_file $tcl_path] hex_ver sha
+lassign [GetVer $list_file $repo_path] hex_ver sha
 
 set ver [HexVersionToString $hex_ver]
 CopyXMLsFromListFile $list_file $repo_path $dst $ver $sha

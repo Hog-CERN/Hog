@@ -31,7 +31,7 @@ Now you have all the source code and scripts you need in the *repo* folder.
 
 
 ## Create all Vivado/Quartus projects
-Now to start working, you need to create the Vivado/Quartus projects contained in the repository. To do that, jsut cd into the repository (`cd <repo>`) and type:
+Now to start working, you need to create the Vivado/Quartus projects contained in the repository. To do that, just cd into the repository (`cd <repo>`) and type:
 
 ```console
 	./Hog/Init.sh
@@ -39,7 +39,7 @@ Now to start working, you need to create the Vivado/Quartus projects contained i
 
 this script will guide you through the process and compile Questasim library and create all the projects in the *repo*/VivadoProject or *repo*/QuartusProject directory.
 
-## Create one Vivado/Quartus projects
+## Create one Vivado/Quartus project
 Alternatively you might want to create only the project you are interested in, say it's called *project1*.
 To do that, cd into the repository (`cd <repo>`) and type:
 
@@ -60,16 +60,16 @@ Now you can open your project with Vivado or Quartus and **work almost normally*
 
 We said almost normally because there is one exception: you **must not** add a new file to the project[^3] using the GUI (HDL code, constraint, IP, etc.). You **must add** the file name in one of Hog's list files and re create the project, as descirbed in the following paragraph.
 
-[^3]: If you add the file normally, your project will work locally, of course. Also, if you add the file with `git add` the new file will also be correctly stored in the repository remotely . The new file will not be part of the project remotely, this is why you have to follow the instractions explained in the following paragraph to assure that everything you do locally is correctly propagated remotely.
+[^3]: If you add the file normally, your project will work locally, of course. Also, if you add the file with `git add` the new file will also be correctly stored in the repository remotely . The new file will not be part of the project remotely, this is why you have to follow the instructions explained in the following paragraph to assure that everything you do locally is correctly propagated remotely.
 
 ## Adding or renaming a file to the project
-Let's now suppose that you want to add a new file to the project and that this file is loacated in *repo*/*dir1*/ and is called *file1.hdl*. Let's also assume that you know how to add a new file to a git repository (`git add <file name>; git commit -m "add new file"; git push`) and focus on Hog.
+Let's now suppose that you want to add a new file to the project and that this file is located in *repo*/*dir1*/ and is called *file1.hdl*. Let's also assume that you know how to add a new file to a git repository (`git add <file name>; git commit -m "add new file"; git push`) and focus on Hog.
 
-This is a new file, unknown to Hog for now, and we want it to be included into the project then next time that we run the CreateProject.sh script described above. To do this, you must add the file name and path of *file1.vhd* into a Hog list file. The list files are located in *repo*/Top/*project1*/list/. Let's assume that the list file you want to add our file to is *lib1.src*.
+This is a new file, unknown to Hog for now, and we want it to be included into the project then next time that we run the CreateProject.sh script described above. To do this, you must add the file name and path of *file1.vhd* into a Hog list file. The list files are located in *repo*/*Top*/*project1*/list/. Let's assume that the list file you want to add our file to is *lib1.src*.
 
 Open the file with a text editor and add the file name and path in a new line. Please make the path relative to the list directory so in our case it should be ../../*dir1*/*file1.vhd*.
 
-This is typically easier than it seems, beacuse you can look at how the path of the other files listed in the src file is specified.
+This is typically easier than it seems, because you can look at how the path of the other files listed in the src file is specified.
 
 Now that the new file is included in a list file, you can close the Vivado/Quartus project and re-create it by typing `./Hog/CreateProject.sh <project name>` again.
 
@@ -82,13 +82,13 @@ If you need to rename a file, do so (also on git `git mv <old_name> <new_name>; 
 If you do something wrong (e.g. you add a name of a non-existing file, create a list file with an invalid extension, etc.) you will get an error when you run the CreateProject script. In this case read Hog's error message and try to fix it, hopefully it's just a typo.
 
 ### Adding a new IP 
-If you want to add a new IP core, please create it in out of context mode and save the .xci file (and only that one!) it in the repository in *repo*/IP/*ip_name*/*ip_name*.xci. Yes, the name of the folder must be the same as the xci file.
+If you want to add a new IP core, please create it in out of context mode and save the .xci file (and only that one!) it in the repository in *repo*/*IP*/*ip_name*/*ip_name*.xci. Yes, the name of the folder must be the same as the xci file.
 Now you can add the .xci normally to any source list file in the list folder of your project.
 
 #### IP initialization files (.coe)
 
 Please note that the `.gitignore` template provided by HOG adds constraints on the IP folder.
-Out of all the files contained in *repo*/IP/, git will pick up only xci files.
+Out of all the files contained in *repo*/*IP*/, git will pick up only xci files.
 Files with different extensions will be ignored.
 If you have *.coe files for RAM initialization or analogous files please make sure the rules in the `.gitignore` file are set correctly or store these files in a separate folder.
 
@@ -97,11 +97,11 @@ If you have *.coe files for RAM initialization or analogous files please make su
 
 ### Commit before starting the workflow
 All the Hog scripts handling version control will be automatically added to your project: this means that you have the possibility to create a certified (reproducible and traceable) bitfile. There is a little price to pay though, **you must commit your local changes before running synthesys**. You don't have to push! Just commit locally, then you can push when you are sure that your work is good enough.
-If you don't commit, Hog will alert you with a Critical Warning at the beginnign of the synthesis.
+If you don't commit, Hog will alert you with a Critical Warning at the beginning of the synthesis.
 
 
 ### Different list files
-Source files taken from different list files will be added to your project in different "libraries": the name of each library being the name of the list file. This is nice to keep things tidy and separated but it also comes at a little cost: when working with files coming from different list files, you will need to formally include the libraries. For example, in VHDL:
+Source files taken from different list files will be added to your project in different "libraries": the name of each library is the name of the list file. This is nice to keep things tidy and separated but it also comes at a little cost: when working with files coming from different list files, you will need to formally include the libraries. For example, in VHDL:
 
 ```vhdl
 	library lib_1
@@ -117,4 +117,4 @@ Source files taken from different list files will be added to your project in di
 	);
 ```
 
-If working within the same library, you can normwally use the "work" library.
+If working within the same library, you can normally use the "work" library.

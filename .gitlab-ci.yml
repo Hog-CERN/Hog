@@ -25,7 +25,7 @@ format:
             - $CI_COMMIT_REF_NAME =~ /^test\/.*$/i
             - $CI_MERGE_REQUEST_TITLE =~ /^WIP:.*$/ && $CI_COMMIT_MESSAGE !~ /^ResolveWIP:/
     script:
-        - ./Other/FormatTcl.sh Tcl/
+        - ./Other/FormatTcl.sh Tcl/ 
 
 doc:
       stage: build_doc

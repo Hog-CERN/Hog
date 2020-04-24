@@ -167,7 +167,17 @@ if {$maxThreads != 1} {
 	Msg Info "Disabling multithreading to assure deterministic bitfile"
 }
 
-set_param general.maxThreads $maxThreads
+if {[info commands set_param] != ""} {
+    ### Vivado
+    set_param general.maxThreads $maxThreads
+} elseif {[info commands quartus_command] != ""} {
+    ### QUARTUS
+    quartus_command $maxThreads
+} else {
+    ### Tcl Shell
+    puts "Hog:DEBUG MAxThread is set to: $maxThreads"
+}
+
 
 # Hog submodule
 cd "./Hog"

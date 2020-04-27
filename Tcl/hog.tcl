@@ -33,13 +33,13 @@ proc Msg {level msg {title ""}} {
 
   if {$title == ""} {set title [lindex [info level [expr [info level]-1]] 0]}
   if {[info commands send_msg_id] != ""} {
-	# Vivado
+  # Vivado
     send_msg_id Hog:$title-0 $vlevel $msg
   } elseif {[info commands post_message] != ""} {
-	# Quartus
+  # Quartus
     post_message -type $qlevel "Hog:$title $msg"
   } else {
-	# Tcl Shell
+  # Tcl Shell
     puts "*** Hog:$title $vlevel $msg"
   }
 }
@@ -185,18 +185,18 @@ proc AddFile {file fileset} {
 
 proc CreateReportStrategy {DESIGN obj} {
   if {[info commands create_report_config] != ""} {
-	## Viavado Report Strategy
+  ## Viavado Report Strategy
     if {[string equal [get_property -quiet report_strategy $obj] ""]} {
-	    # No report strategy needed
+      # No report strategy needed
       Msg Info "No report strategy needed for implementation"
     } else {
-	    # Report strategy needed since version 2017.3
+      # Report strategy needed since version 2017.3
       set_property set_report_strategy_name 1 $obj
       set_property report_strategy {Vivado Implementation Default Reports} $obj
       set_property set_report_strategy_name 0 $obj
 
       set reports [get_report_configs -of_objects $obj]
-	    # Create 'impl_1_place_report_utilization_0' report (if not found)
+      # Create 'impl_1_place_report_utilization_0' report (if not found)
       if { [ string equal [get_report_configs -of_objects [get_runs impl_1] $globalSettings::DESIGN\_impl_1_place_report_utilization_0] "" ] } {
         create_report_config -report_name $globalSettings::DESIGN\_impl_1_place_report_utilization_0 -report_type report_utilization:1.0 -steps place_design -runs impl_1
       }
@@ -205,7 +205,7 @@ proc CreateReportStrategy {DESIGN obj} {
 
       }
 
-	    # Create 'impl_1_route_report_drc_0' report (if not found)
+      # Create 'impl_1_route_report_drc_0' report (if not found)
       if { [ string equal [get_report_configs -of_objects [get_runs impl_1] $globalSettings::DESIGN\_impl_1_route_report_drc_0] "" ] } {
         create_report_config -report_name $globalSettings::DESIGN\_impl_1_route_report_drc_0 -report_type report_drc:1.0 -steps route_design -runs impl_1
       }
@@ -214,7 +214,7 @@ proc CreateReportStrategy {DESIGN obj} {
 
       }
 
-	    # Create 'impl_1_route_report_power_0' report (if not found)
+      # Create 'impl_1_route_report_power_0' report (if not found)
       if { [ string equal [get_report_configs -of_objects [get_runs impl_1] $globalSettings::DESIGN\_impl_1_route_report_power_0] "" ] } {
         create_report_config -report_name $globalSettings::DESIGN\_impl_1_route_report_power_0 -report_type report_power:1.0 -steps route_design -runs impl_1
       }
@@ -223,7 +223,7 @@ proc CreateReportStrategy {DESIGN obj} {
 
       }
 
-	    # Create 'impl_1_route_report_timing_summary' report (if not found)
+      # Create 'impl_1_route_report_timing_summary' report (if not found)
       if { [ string equal [get_report_configs -of_objects [get_runs impl_1] $globalSettings::DESIGN\_impl_1_route_report_timing_summary] "" ] } {
         create_report_config -report_name $globalSettings::DESIGN\_impl_1_route_report_timing_summary -report_type report_timing_summary:1.0 -steps route_design -runs impl_1
       }
@@ -232,7 +232,7 @@ proc CreateReportStrategy {DESIGN obj} {
         Msg Info "Report timing created successfully"
       }
 
-	    # Create 'impl_1_route_report_utilization' report (if not found)
+      # Create 'impl_1_route_report_utilization' report (if not found)
       if { [ string equal [get_report_configs -of_objects [get_runs impl_1] $globalSettings::DESIGN\_impl_1_route_report_utilization] "" ] } {
         create_report_config -report_name $globalSettings::DESIGN\_impl_1_route_report_utilization -report_type report_utilization:1.0 -steps route_design -runs impl_1
       }
@@ -242,7 +242,7 @@ proc CreateReportStrategy {DESIGN obj} {
       }
 
 
-	    # Create 'impl_1_post_route_phys_opt_report_timing_summary_0' report (if not found)
+      # Create 'impl_1_post_route_phys_opt_report_timing_summary_0' report (if not found)
       if { [ string equal [get_report_configs -of_objects [get_runs impl_1] $globalSettings::DESIGN\_impl_1_post_route_phys_opt_report_timing_summary_0] "" ] } {
         create_report_config -report_name $globalSettings::DESIGN\_impl_1_post_route_phys_opt_report_timing_summary_0 -report_type report_timing_summary:1.0 -steps post_route_phys_opt_design -runs impl_1
       }
@@ -276,7 +276,6 @@ proc GitVersion {target_version} {
   set current_ver [split [lindex $v 2] "."]
   set target [expr [lindex $ver 0]*100000 + [lindex $ver 1]*100 + [lindex $ver 2]]
   set current [expr [lindex $current_ver 0]*100000 + [lindex $current_ver 1]*100 + [lindex $current_ver 2]]
-
   return [expr $target <= $current]
 }
 ########################################################
@@ -534,7 +533,7 @@ proc SmartListFile {list_file path {no_add 0}} {
     }
     .sim {
       set file_set "$lib\_sim"
-			# if this simulation fileset was not created we do it now
+      # if this simulation fileset was not created we do it now
       if {[string equal [get_filesets -quiet $file_set] ""]} {
         create_fileset -simset $file_set
         set simulation  [get_filesets $file_set]
@@ -548,9 +547,9 @@ proc SmartListFile {list_file path {no_add 0}} {
     }
     .ext {
       set file_set "sources_1"
-			# Msg Info "Reading sources from file $list_file, lib: $lib, file-set: $file_set"
-			# return [ReadExternalListFile $list_file $path $lib $file_set $no_add]
-    }   
+      # Msg Info "Reading sources from file $list_file, lib: $lib, file-set: $file_set"
+      # return [ReadExternalListFile $list_file $path $lib $file_set $no_add]
+    }
     .prop {
       return
     }
@@ -785,9 +784,9 @@ proc TagRepository {{merge_request_number 0} {version_level 0}} {
           }
 
         } elseif {$version_level >= 3} {
-		    # Version level >= 3 is used to create official tags from beta tags
+        # Version level >= 3 is used to create official tags from beta tags
           incr p
-		    #create official tag
+        #create official tag
           Msg Info "No major/minor version increase, new tag will be v$M.$m.$p..."
           set new_tag v$M.$m.$p
           set tag_opt "-m 'Official_version_$M.$m.$p'"
@@ -795,7 +794,7 @@ proc TagRepository {{merge_request_number 0} {version_level 0}} {
         }
 
       } else { # Tag is not official
-		#Not official, do nothing unless version level is >=3, in which case convert the unofficial to official
+    #Not official, do nothing unless version level is >=3, in which case convert the unofficial to official
         Msg Info "Found candidate version for $M.$m.$p."
         if {$version_level >= 3} {
           Msg Info "New tag will be an official version v$M.$m.$p..."
@@ -804,7 +803,7 @@ proc TagRepository {{merge_request_number 0} {version_level 0}} {
         }
       }
 
-	    # Tagging repositroy
+      # Tagging repositroy
       if [info exists new_tag] {
         Msg Info "Tagging repository with $new_tag..."
         if [catch {exec git tag {*}"$new_tag $tag_opt"} msg] {
@@ -836,7 +835,24 @@ proc TagRepository {{merge_request_number 0} {version_level 0}} {
 # * xml_version: the M.m.p version to be used to replace the __VERSION__ placeholder in any of the xml files
 # * xml_sha:     the Git-SHA to be used to replace the __GIT_SHA__ placeholder in any of the xml files
 
-proc CopyXMLsFromListFile {list_file path dst {xml_version "0.0.0"} {xml_sha "00000000"} } {
+
+proc CopyXMLsFromListFile {list_file path dst {generate 0} {xml_version "0.0.0"} {xml_sha "00000000"} } {
+  if {[catch {exec gen_ipbus_addr_decode -h} msg]}  {
+    set can_generate 0
+  } else {
+    set can_generate 1
+  }
+
+  if {$can_generate == 0} {
+    if {$generate == 1} {
+      Msg Error "Cannot generate IPbus address files, IPbus executable gen_ipbus_addr_decode not found or not working: $msg"
+      return -1
+
+    } else {
+      Msg Warning "IPbus executable gen_ipbus_addr_decode not found or not working, will not verify IPbus address tables."
+    }
+  }
+
   set list_file
   set fp [open $list_file r]
   set file_data [read $fp]
@@ -849,8 +865,7 @@ proc CopyXMLsFromListFile {list_file path dst {xml_version "0.0.0"} {xml_sha "00
   foreach line $data {
     if {![regexp {^ *$} $line] & ![regexp {^ *\#} $line] } { #Exclude empty lines and comments
       set file_and_prop [regexp -all -inline {\S+} $line]
-      set xmlfile [lindex $file_and_prop 0]
-      set xmlfile "$path/$xmlfile"
+      set xmlfile "$path/[lindex $file_and_prop 0]"
       if {[llength $file_and_prop] > 1} {
         set vhdlfile [lindex $file_and_prop 1]
         set vhdlfile "$path/$vhdlfile"
@@ -870,20 +885,95 @@ proc CopyXMLsFromListFile {list_file path dst {xml_version "0.0.0"} {xml_sha "00
         }
         close $in
         close $out
-        incr cnt
-        if {[llength $file_and_prop] > 1} {
-          set prop [lrange $file_and_prop 1 end]
-          set type [lindex $prop 0]
-        }
+        lappend xmls [file tail $xmlfile]
+        lappend vhdls [file normalize $vhdlfile]
+
       } else {
         Msg Warning "XML file $xmlfile not found"
       }
 
     }
   }
+  set cnt [llength $xmls]
   Msg Info "$cnt file/s copied"
+
+  if {$can_generate == 1} {
+    set old_dir [pwd]
+    cd $dst
+    file mkdir "address_decode"
+    cd "address_decode"
+    foreach x $xmls v $vhdls {
+      set x [file normalize ../$x]
+      if {[file exists $x]} {
+        set status [catch {exec gen_ipbus_addr_decode {*}"-v $x"} log]
+        if {$status == 0} {
+          set generated_vhdl ./ipbus_decode_[file root [file tail $x]].vhd
+          if {$generate == 1} {
+      #copy (replace) file here
+            Msg Info "Copying $generated_vhdl into $v (replacing if necessary)"
+            file copy -force -- $generated_vhdl $v
+          } else {
+            if {[file exists $v]} {
+          #check file here
+              Msg Info "Checking $x vs $v, ignoring leadng/trailing spaces and comments"
+              set diff [CompareVHDL $generated_vhdl $v]
+              if {[llength $diff] > 0} {
+                Msg CriticalWarning "$v does not correspond to its xml $x, [expr $n/3] line/s differ:"
+                Msg Status [join $diff "\n"]
+                set diff_file [open ../diff_[file root [file tail $x]].txt w]
+                puts $diff_file $diff
+                close $diff_file
+              }
+            } else {
+              Msg Warning "VHDL address decoder file $v not found"
+            }
+          }
+        } else {
+          Msg Warning "Address map generation failed fo $x: $log"
+        }
+      } else {
+        Msg Warning "Copied XML file $x not found."
+      }
+
+    }
+    cd ..
+    file delete -force address_decode
+    cd $old_dir
+  }
+
 }
 ########################################################
+
+
+proc CompareVHDL {file1 file2} {
+  set a  [open $file1 r]
+  set b  [open $file2 r]
+
+  while {[gets $a line] != -1} {
+    set line [regsub {^[\t\s]*(.*)?\s*} $line "\\1"]
+    if {![regexp {^$} $line] & ![regexp {^--} $line] } { #Exclude empty lines and comments
+      lappend f1 $line
+    }
+  }
+
+  while {[gets $b line] != -1} {
+    set line [regsub {^[\t\s]*(.*)?\s*} $line "\\1"]
+    if {![regexp {^$} $line] & ![regexp {^--} $line] } { #Exclude empty lines and comments
+      lappend f2 $line
+    }
+  }
+
+  close $a
+  close $b
+  set diff {}
+  foreach x $f1 y $f2 {
+    if {$x != $y} {
+      lappend diff "> $x\n< $y\n\n"
+    }
+  }
+
+  return $diff
+}
 
 ## Returns the dst path relative to base
 ## Arguments:
@@ -943,7 +1033,7 @@ proc GetProjectFiles {} {
       set type  [get_property FILE_TYPE [get_files $f]]
       set lib [get_property LIBRARY [get_files $f]]
 
-	    # Type can be complex like VHDL 2008, in that case we want the second part to be a property
+      # Type can be complex like VHDL 2008, in that case we want the second part to be a property
       if {[llength $type] > 1} {
         set prop [lrange $type 1 [llength $type]]
         set type [lindex $type 0]
@@ -951,7 +1041,7 @@ proc GetProjectFiles {} {
         set prop ""
       }
 
-	    #check where the file is used and add it to prop
+      #check where the file is used and add it to prop
       if {[string equal $type "VHDL"]} {
         dict lappend libraries $lib $f
         dict lappend properties $f $prop
@@ -1129,9 +1219,9 @@ proc HandleIP {what_to_do xci_file ip_path runs_dir {force 0}} {
       Msg Info "IP $xci_name found in the repository, copying it locally..."
       lassign [eos "ls $ip_path/$file_name/generated/*"] ret_g ip_gen_files
       lassign [eos "ls $ip_path/$file_name/synthesized/*"] ret_s ip_syn_files
-	    #puts "ret g: $ret_g"
+      #puts "ret g: $ret_g"
       Msg Status "Generated files found for $xci_ip_name ($ret_g):\n $ip_gen_files"
-	    #puts "ret s: $ret_s"
+      #puts "ret s: $ret_s"
       Msg Status "Synthesised files found for $xci_ip_name ($ret_s):\n $ip_syn_files"
 
       if  {($ret_g == 0) && ([llength $ip_gen_files] > 0)} {
@@ -1193,12 +1283,12 @@ You can fix this by installing package \"tcllib\""
     # Go to repository path
   cd "$repo_path"
   if [file exists .gitlab-ci.yml] {
-	#get .gitlab-ci ref
+  #get .gitlab-ci ref
 
     set YML_REF ""
     set yamlDict [::yaml::yaml2dict -file .gitlab-ci.yml]
     dict for {dictKey dictValue} $yamlDict {
-	    #looking for Hog include in .gitlab-ci.yml
+      #looking for Hog include in .gitlab-ci.yml
       if {"$dictKey" == "include" && [lsearch [split $dictValue " {}"] "hog/Hog" ] != "-1"} {
         set YML_REF [lindex [split $dictValue " {}"]  [expr [lsearch -dictionary [split $dictValue " {}"] "ref"]+1 ] ]
       }
@@ -1213,7 +1303,7 @@ You can fix this by installing package \"tcllib\""
       set YML_REF_F [regsub -all "'" $YML_REF ""]
     }
 
-	#getting Hog repository tag and commit
+  #getting Hog repository tag and commit
     cd "Hog"
     set HOGYML_SHA [exec git log --format=%H -1 --  gitlab-ci.yml ]
     if { [catch {exec git log --format=%H -1 $YML_REF_F gitlab-ci.yml} EXPECTEDYML_SHA]} {
@@ -1316,13 +1406,13 @@ proc eos {command {attempt 1}}  {
 # * proj_name:   name of the project that requires the properties in the .prop file
 proc ParseProcFile {proj_name} {
   set property_files [glob -nocomplain "./Top/$proj_name/list/*.prop"]
-  set propDict [dict create ] 
+  set propDict [dict create ]
   foreach f $property_files {
     set fp [open $f r]
     set file_data [read $fp]
     close $fp
     set data [split $file_data "\n"]
-    foreach line $data {    
+    foreach line $data {
       if {![regexp {^ *$} $line] & ![regexp {^ *\#} $line] } { #Exclude empty lines and comments
         set file_and_prop [regexp -all -inline {\S+} $line]
         dict set propDict [lindex $file_and_prop 0] "[lindex $file_and_prop 1]"
@@ -1335,7 +1425,7 @@ proc ParseProcFile {proj_name} {
 
 ########################################################
 
-## Gets MAX number of Threads property from .prop file in Top/$proj_name/list directory. If property 
+## Gets MAX number of Threads property from .prop file in Top/$proj_name/list directory. If property
 # is not set returns dafault = 1
 #
 #
@@ -1352,6 +1442,6 @@ proc GetMaxThreads {proj_name} {
 }
 
 
-if [GitVersion 2.7.2] {
-    Msg CriticalWarning "Found Git version older than 2.7.2. Hog might not work as expected.\n"
+if {[GitVersion 2.7.2] == 0 } {
+  Msg CriticalWarning "Found Git version older than 2.7.2. Hog might not work as expected.\n"
 }

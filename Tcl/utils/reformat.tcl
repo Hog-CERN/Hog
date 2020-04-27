@@ -1,3 +1,6 @@
+# @file
+# Format a .tcl file
+
 proc reformat {tclcode {pad 2}} {
 
   set lines [split $tclcode \n]
@@ -99,18 +102,26 @@ proc count {string char} {
   return $count
 }
 
-set usage "reformat.tcl ?-indent number? filename"
+#parsing command options
+if {[catch {package require cmdline} ERROR]} {
+  puts "$ERROR\n If you are running this script on tclsh, you can fix this by installing 'tcllib'"
+  return
+}
 
-if {[llength $argv]!=0} {
-  if {[lindex $argv 0] eq "-indent"} {
-    set indent [lindex $argv 1]
-    set argv [lrange $argv 2 end]
-  } else  {
-    set indent 4
-  }
-  if {[llength $argv]>1} {
-    error $usage
-  }
+set parameters {
+  {tab_width.arg 2 "Width of the indentation tabs. Default: "}
+}
+
+set usage "- USAGE: $::argv0 \[OPTIONS\] <tcl_file> \n. Options:"
+set old_path [pwd]
+set path [file normalize "[file dirname [info script]]/.."]
+source $path/hog.tcl
+
+if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] ||  [llength $argv] < 1 } {
+  Msg Info [cmdline::usage $parameters $usage]
+  exit 1
+} else {
+  set indent $options(tab_width)
   set f [open $argv r]
   set data [read $f]
   close $f

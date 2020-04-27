@@ -4,7 +4,7 @@
 # This script is automatically integrated into the Vivado/Quartus workflow by the Create Project script.
 
 if {[catch {package require struct::matrix} ERROR]} {
-  puts "$ERROR\n If you are running this script on tclsh, you can fix this by installing 'tcllib'" 
+  puts "$ERROR\n If you are running this script on tclsh, you can fix this by installing 'tcllib'"
   return
 }
 
@@ -51,7 +51,7 @@ if { [exec git status --untracked-files=no  --porcelain] eq "" } {
 } else {
   Msg CriticalWarning "Git working directory [pwd] not clean, commit hash, and version will be set to 0."
   set commit   "0000000"
-  set version  "00000000"    
+  set version  "00000000"
 }
 
 # Top project directory
@@ -114,11 +114,11 @@ if [file exists ./Top/$proj_name/xml] {
     Msg Info "Found IPbus XML list file, using version of listed files..."
         # in this case, IPbus xml files are stored anywhere in the repository and listed in the xml.lst file
     lassign [GetVer ./Top/$proj_name/xml/xml.lst .] xml_ver_hex xml_hash
-    set xml_ver [HexVersionToString $xml_ver_hex]    
+    set xml_ver [HexVersionToString $xml_ver_hex]
     Msg Info "Creating XML directory $xml_dst..."
     file mkdir $xml_dst
     Msg Info "Copying xml files to $xml_dst and replacing placeholders with xml version $xml_ver..."
-    CopyXMLsFromListFile ./Top/$proj_name/xml/xml.lst ./ $xml_dst $xml_ver $xml_hash       
+    CopyXMLsFromListFile ./Top/$proj_name/xml/xml.lst ./ $xml_dst $xml_ver $xml_hash
   } else {
     Msg Info "IPbus XML list file not found, using version of xml directory..."
         # in this case, IPbus xml files are just stored in the xml directory in the project folder
@@ -131,7 +131,7 @@ if [file exists ./Top/$proj_name/xml] {
 } else {
   Msg Info "This project does not use IPbus XMLs"
   set xml_ver_hex 0000000
-  set xml_ver [HexVersionToString $xml_ver_hex]    
+  set xml_ver [HexVersionToString $xml_ver_hex]
   set xml_hash 0000000
   set use_ipbus 0
 }
@@ -150,7 +150,7 @@ foreach f $sub_files {
       lappend subs_hashes [GetHash ALL ./]
     } else {
       Msg CriticalWarning "$sub_dir submodule not clean, commit hash will be set to 0."
-      lappend subs_hashes "0000000"    
+      lappend subs_hashes "0000000"
     }
     cd ..
   } else {
@@ -167,9 +167,16 @@ if {$maxThreads != 1} {
   Msg Info "Disabling multithreading to assure deterministic bitfile"
 }
 
-if {[info commands get_property] != ""} {
-  # we are in vivado
+
+if {[info commands set_param] != ""} {
+    ### Vivado
   set_param general.maxThreads $maxThreads
+} elseif {[info commands quartus_command] != ""} {
+    ### QUARTUS
+  quartus_command $maxThreads
+} else {
+    ### Tcl Shell
+  puts "Hog:DEBUG MAxThread is set to: $maxThreads"
 }
 
 # Hog submodule
@@ -243,7 +250,7 @@ if {[info commands set_property] != ""} {
   puts "Hog:DEBUG FLAVOUR: $flavour"
   set  status_file "$old_path/versions.txt"
 
-} 
+}
 Msg Info "Opening version file $status_file..."
 set status_file [open $status_file "w"]
 # writing info into status file

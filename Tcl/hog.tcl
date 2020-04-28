@@ -33,13 +33,13 @@ proc Msg {level msg {title ""}} {
 
   if {$title == ""} {set title [lindex [info level [expr [info level]-1]] 0]}
   if {[info commands send_msg_id] != ""} {
-  # Vivado
+    # Vivado
     send_msg_id Hog:$title-0 $vlevel $msg
   } elseif {[info commands post_message] != ""} {
-  # Quartus
+    # Quartus
     post_message -type $qlevel "Hog:$title $msg"
   } else {
-  # Tcl Shell
+    # Tcl Shell
     puts "*** Hog:$title $vlevel $msg"
   }
 }
@@ -361,6 +361,7 @@ proc ReadListFile {list_file path lib src {no_add 0}} {
   set libraries [dict create]
   set properties [dict create]
   set lib_files {}
+  set prop_list {}
   set ip_files {}
 
   #  Process data file
@@ -369,7 +370,8 @@ proc ReadListFile {list_file path lib src {no_add 0}} {
   Msg Info "$n lines read from $list_file"
   set cnt 0
   foreach line $data {
-    if {![regexp {^ *$} $line] & ![regexp {^ *\#} $line] } { #Exclude empty lines and comments
+    # Exclude empty lines and comments
+    if {![regexp {^ *$} $line] & ![regexp {^ *\#} $line] } { 
       set file_and_prop [regexp -all -inline {\S+} $line]
       set vhdlfile [lindex $file_and_prop 0]
       set vhdlfile "$path/$vhdlfile"
@@ -382,127 +384,32 @@ proc ReadListFile {list_file path lib src {no_add 0}} {
           set libraries [dict merge $l $libraries]
           set properties [dict merge $p $properties]
         } else {
-
-
           ### Set file properties
           set prop [lrange $file_and_prop 1 end]
           dict lappend properties $vhdlfile $prop
-
           #Adding IP library
           if {[string equal $extension ".xci"] || [string equal $extension ".ip"] } {
             dict lappend libraries "IP" $vhdlfile
+            lappend ip_files $vhdlfile
           } else {
             dict lappend libraries $lib $vhdlfile
+            lappend lib_files $vhdlfile
+            lappend prop_list $prop
           }
-
-          if {$no_add == 0} {
-            if {[info commands add_files] != ""} {
-
-              # IF FILE HAS PROPERTY ADD IT TO PROJECT
-              if {$prop ne ""} {
-                #VIVADO_ONLY
-                add_files -norecurse -fileset $src $vhdlfile
-
-                set file_obj [get_files -of_objects [get_filesets $src] [list "*$vhdlfile"]]
-
-                #ADDING LIBRARY
-                if {$lib ne ""} {
-                  set_property -name "library" -value $lib -objects $file_obj
-                }
-                #ADDING FILE PROPERTIES
-                if {[lsearch -inline -regex $prop "2008"] >= 0} {
-                  Msg Info "Setting filetype VHDL 2008 for $vhdlfile"
-                  set_property -name "file_type" -value "VHDL 2008" -objects $file_obj
-                }
-
-                # XDC
-                if {[lsearch -inline -regex $prop "XDC"] >= 0 || [file ext $vhdlfile] == ".xdc"} {
-                  Msg Info "Setting filetype XDC for $vhdlfile"
-                  set_property -name "file_type" -value "XDC" -objects $file_obj
-                }
-
-                # Not used in synthesis
-                if {[lsearch -inline -regex $prop "nosynth"] >= 0} {
-                  Msg Info "Setting not used in synthesis for $vhdlfile..."
-                  set_property -name "used_in_synthesis" -value "false" -objects $file_obj
-                }
-
-                # Not used in implementation
-                if {[lsearch -inline -regex $prop "noimpl"] >= 0} {
-                  Msg Info "Setting not used in implementation for $vhdlfile..."
-                  set_property -name "used_in_implementation" -value "false" -objects $file_obj
-                }
-
-                # Not used in simulation
-                if {[lsearch -inline -regex $prop "nosim"] >= 0} {
-                  Msg Info "Setting not used in simulation for $vhdlfile..."
-                  set_property -name "used_in_simulation" -value "false" -objects $file_obj
-                }
-
-
-                ## Simulation properties
-                # Top simulation module
-                set top_sim [lindex [split [lsearch -inline -regex $prop topsim=] =] 1]
-                if { $top_sim != "" } {
-                  Msg Info "Setting $top_sim as top module for simulation file set $src..."
-                  set_property "top"  $top_sim [get_filesets $src]
-                  current_fileset -simset [get_filesets $src]
-                }
-
-                # Wave do file
-                set wave_file [lindex [split [lsearch -inline -regex $prop wavefile=] =] 1]
-                if { $wave_file != "" } {
-                  set file_name "$path/$wave_file"
-                  Msg Info "Setting $file_name as wave do file for simulation file set $src..."
-                                  # check if file exists...
-                  if [file exists $file_name] {
-                    set_property "modelsim.simulate.custom_wave_do" $file_name [get_filesets $src]
-                    set_property "questa.simulate.custom_wave_do" $file_name [get_filesets $src]
-                  } else {
-                    Msg Warning "File $file_name was not found."
-                  }
-                }
-
-                #Do file
-                set do_file [lindex [split [lsearch -inline -regex $prop dofile=] =] 1]
-                if { $do_file != "" } {
-                  set file_name "$path/$do_file"
-                  Msg Info "Setting $file_name as udo file for simulation file set $src..."
-                  if [file exists $file_name] {
-                    set_property "modelsim.simulate.custom_udo" $file_name [get_filesets $src]
-                    set_property "questa.simulate.custom_udo" $file_name [get_filesets $src]
-                  } else {
-                    Msg Warning "File $file_name was not found."
-                  }
-                }
-              } else {
-                if {[string equal $extension ".xci"]} {
-                  lappend ip_files $vhdlfile
-                } else {
-                  lappend lib_files $vhdlfile
-                }
-              }
-
-
-            } elseif {[info commands project_new] != ""} {
-                            #QUARTUS ONLY
-              set file_type [FindFileType $vhdlfile]
-              set hdl_version [FindVhdlVersion $vhdlfile]
-              if {$lib ne ""} {
-                Msg Warning "set_global_assignment -name $file_type $vhdlfile -library $lib "
-                set_global_assignment -name $file_type $vhdlfile  -library $lib
-              } else {
-                set_global_assignment  -name $file_type $vhdlfile  $hdl_version
-              }
-                            #missing : ADDING QUARTUS FILE PROPERTIES
-
+          if {[info commands project_new] != "" && $no_add == 0 } {
+            #QUARTUS ONLY
+            set file_type [FindFileType $vhdlfile]
+            set hdl_version [FindVhdlVersion $vhdlfile]
+            if {$lib ne ""} {
+              Msg Warning "set_global_assignment -name $file_type $vhdlfile -library $lib "
+              set_global_assignment -name $file_type $vhdlfile  -library $lib
             } else {
-                            #default
-              puts "Adding file $vhdlfile to project into library $lib"
+              set_global_assignment  -name $file_type $vhdlfile  $hdl_version
             }
+            #missing : ADDING QUARTUS FILE PROPERTIES
           }
-          incr cnt
         }
+        incr cnt
       } else {
         Msg Error  "File $vhdlfile not found"
       }
@@ -520,7 +427,7 @@ proc ReadListFile {list_file path lib src {no_add 0}} {
         add_files -norecurse -fileset $src $ip_files
       }
 
-      foreach f $lib_files {
+      foreach f $lib_files p $prop_list {
         set file_obj [get_files -of_objects [get_filesets $src] [list "*$f"]]
         #ADDING LIBRARY
         if {$lib ne ""} {
@@ -531,10 +438,75 @@ proc ReadListFile {list_file path lib src {no_add 0}} {
           set_property -name "file_type" -value "XDC" -objects $file_obj
         }
 
+        #ADDING FILE PROPERTIES
+        if {[lsearch -inline -regex $p "2008"] >= 0} {
+          Msg Info "Setting filetype VHDL 2008 for $f"
+          set_property -name "file_type" -value "VHDL 2008" -objects $file_obj
+        }
+
+        # XDC
+        if {[lsearch -inline -regex $p "XDC"] >= 0 || [file ext $f] == ".xdc"} {
+          Msg Info "Setting filetype XDC for $f"
+          set_property -name "file_type" -value "XDC" -objects $file_obj
+        }
+
+        # Not used in synthesis
+        if {[lsearch -inline -regex $p "nosynth"] >= 0} {
+          Msg Info "Setting not used in synthesis for $f..."
+          set_property -name "used_in_synthesis" -value "false" -objects $file_obj
+        }
+
+        # Not used in implementation
+        if {[lsearch -inline -regex $p "noimpl"] >= 0} {
+          Msg Info "Setting not used in implementation for $f..."
+          set_property -name "used_in_implementation" -value "false" -objects $file_obj
+        }
+
+        # Not used in simulation
+        if {[lsearch -inline -regex $p "nosim"] >= 0} {
+          Msg Info "Setting not used in simulation for $f..."
+          set_property -name "used_in_simulation" -value "false" -objects $file_obj
+        }
+         
+        ## Simulation properties
+        # Top simulation module
+        set top_sim [lindex [split [lsearch -inline -regex $p topsim=] =] 1]
+        if { $top_sim != "" } {
+          Msg Info "Setting $top_sim as top module for simulation file set $src..."
+          set_property "top"  $top_sim [get_filesets $src]
+          current_fileset -simset [get_filesets $src]
+        }
+
+        # Wave do file
+        set wave_file [lindex [split [lsearch -inline -regex $p wavefile=] =] 1]
+        if { $wave_file != "" } {
+          set file_name "$path/$wave_file"
+          Msg Info "Setting $file_name as wave do file for simulation file set $src..."
+          
+          # check if file exists...
+          if [file exists $file_name] {
+            set_property "modelsim.simulate.custom_wave_do" $file_name [get_filesets $src]
+            set_property "questa.simulate.custom_wave_do" $file_name [get_filesets $src]
+          } else {
+            Msg Warning "File $file_name was not found."
+          }
+        }
+
+        #Do file
+        set do_file [lindex [split [lsearch -inline -regex $p dofile=] =] 1]
+        if { $do_file != "" } {
+          set file_name "$path/$do_file"
+          Msg Info "Setting $file_name as udo file for simulation file set $src..."
+          if [file exists $file_name] {
+            set_property "modelsim.simulate.custom_udo" $file_name [get_filesets $src]
+            set_property "questa.simulate.custom_udo" $file_name [get_filesets $src]
+          } else {
+            Msg Warning "File $file_name was not found."
+          }
+        }
       }
     }
   }
-
 
   Msg Info "$cnt file/s added to $lib..."
   return [list $libraries $properties]

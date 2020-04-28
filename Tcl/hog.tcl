@@ -420,11 +420,15 @@ proc ReadListFile {list_file path lib src {no_add 0}} {
   if {$no_add == 0} {
     if {[info commands add_files] != ""} {
       Msg Info "Adding lib and ip_files"
-      if {[llength $lib_files] > 0} {
-        add_files -norecurse -fileset $src $lib_files
-      }
+      puts [llength $lib_files]
+      puts [llength $prop_list]
+
+
       if {[llength $ip_files] > 0} {
         add_files -norecurse -fileset $src $ip_files
+      }
+      if {[llength $lib_files] > 0} {
+        add_files -norecurse -fileset $src $lib_files
       }
 
       foreach f $lib_files p $prop_list {

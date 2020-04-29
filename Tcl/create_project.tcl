@@ -268,7 +268,7 @@ proc configureImpl {} {
       set_property STEPS.INIT_DESIGN.TCL.POST $globalSettings::pre_impl $obj
     } elseif {[info commands project_new] != ""} {
             #QUARTUS only
-      set_global_assignment -name PRE_MODULE_SCRIPT_FILE quartus_sh:$globalSettings::pre_impl
+      set_global_assignment -name PRE_FLOW_SCRIPT_FILE quartus_sh:$globalSettings::pre_impl
 
     } else {
       Msg info "Configuring $globalSettings::pre_impl script after implementation"
@@ -434,7 +434,7 @@ if {[info commands send_msg_id] != ""} {
   set BUILD_DIR_NAME "VivadoProject"
 }  elseif {[info commands project_new] != ""} {
     #QUARTUS only
-  set   "QuartusProject"
+  set BUILD_DIR_NAME "QuartusProject"
 } else {
   set BUILD_DIR_NAME "Project"
 }

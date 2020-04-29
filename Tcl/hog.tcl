@@ -957,14 +957,6 @@ proc GetProjectFiles {} {
 #     If not given it will be automatically evaluated if the function is called from within Vivado.
 
 proc GetHogFiles {} {
-  # if {$proj_path == 0} {
-  #   set proj_path [get_property DIRECTORY [get_projects]]
-  #   Msg Info "Project path is: $proj_path"
-  # }
-  # set proj_name [file tail $proj_path]
-  # Msg Info "Project name is: $proj_name"
-  # set top_path [file normalize $proj_path/../../Top/$proj_name]
-  # set list_path $globalSettings::top_path/list
   set libraries [dict create]
   set properties [dict create]
 

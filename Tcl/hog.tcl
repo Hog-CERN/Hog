@@ -383,7 +383,7 @@ proc ReadListFile {list_file path lib} {
           dict lappend properties $vhdlfile $prop
           ### Set File Set
           #Adding IP library
-          if {[string equal $extension ".xci"] || [string equal $extension ".ip"] } {
+          if {[string equal $extension ".xci"] || [string equal $extension ".ip"] || [string equal $extension ".bd"]} {
             dict lappend libraries "IP" $vhdlfile
             # lappend ip_files $vhdlfile
           } else {
@@ -1075,23 +1075,20 @@ proc AddHogFiles { libraries properties } {
           }
 
           # Wave do file
-          set wave_file [lindex [split [lsearch -inline -regex $props wavefile] =] 1]
-          if { $wave_file != "" } {
-            set file_name "$path/$wave_file"
-            Msg Info "Setting $file_name as wave do file for simulation file set $file_set..."
-            
+
+          if {[lsearch -inline -regex $props "wavefile"] >= 0} {
+            Msg Info "Setting $f as wave do file for simulation file set $file_set..."
             # check if file exists...
-            if [file exists $file_name] {
-              set_property "modelsim.simulate.custom_wave_do" $file_name [get_filesets $file_set]
-              set_property "questa.simulate.custom_wave_do" $file_name [get_filesets $file_set]
+            if [file exists $f] {
+              set_property "modelsim.simulate.custom_wave_do" $f [get_filesets $file_set]
+              set_property "questa.simulate.custom_wave_do" $f [get_filesets $file_set]
             } else {
-              Msg Warning "File $file_name was not found."
+              Msg Warning "File $f was not found."
             }
           }
 
           #Do file
-          set do_file [lindex [split [lsearch -inline -regex $props dofile] =] 1]
-          if { $do_file != "" } {
+          if {[lsearch -inline -regex $props "dofile"] >= 0} {
             Msg Info "Setting $f as udo file for simulation file set $file_set..."
             if [file exists $f] {
               set_property "modelsim.simulate.custom_udo" $f [get_filesets $file_set]

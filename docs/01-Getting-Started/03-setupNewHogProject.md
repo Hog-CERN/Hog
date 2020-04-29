@@ -1,216 +1,208 @@
-# HDL repository structure and methodology
+# Setting up a HDL repository with HOG
 
-In order to use HOG in your repository you will have to create the following directory structure.
+## Project directory structure
+In order to HOG to be simple and add little overhead work, some fixed directories and file names are needed in the HDL repository. A typical directory structure is shown in figure: 
 
 ![](./figures/directory_structure.jpg)
 
-HDL source files, together with constraint files, simulation files can be located anywhere in the repository, even if a directory structure that reflects the __libraries__ in the project is advised.\
-A Hog-based repository can contain many projects.
-You should use many projects in the same repository when they share a significant amount of code: e.g. many FPGAs on the same board. 
-If this is not the case you may think of having different repositories.
-In this case, you may include the little amount of shared code as a git submodule, that is also handled by Hog.
+HDL source files, together with constraint files, simulation files can be located anywhere in the repository. We find useful to have a directory structure that reflects the __libraries__, but you can do as
+you please.
 
-Hog is a simple project, meant to be useful to speed up work.
-It is not extremely configuralbe: the scripts rely on special directory structure and file naming to be respected as explained in the following paragraphs.
+A HOG-handled repository can contain many (Vivado/Quartus) projects, each of which corresponds to a subdirectory of the __Top__ folder that we will call the "top project directory". In the figure above we have just one project called __myproj__. 
+Each top project directories **must** contain all of the following:
 
-A detailed description of the content of each directory can be found below.
+- A tcl file that **must** be named the same as the top project folder (plus the .tcl extension), we will call this file the "project tcl file".
+- A __list__ subdirectory containing the so-called list files i.e. some text files containing the names of the source files to be included in the project.
+
+
+In figure, the project is called __myproj__ hence the project tcl file is called __myproj.tcl__.
+
+When you create the project, running the `HOG/CreateProject.sh` HOG runs the project tcl file using Vivado or Quartus and creates the complete project in another directory, in our case `VivadoProject/myproj` or `QuartusProject/myproj`. In this directory you will find the typical Vivado or Quartus file structure.
+
+
+## Multiple projects or multiple repositories?
+As is now clear, a HOG-handled repository can contain multiple
+projects. You may wonder when it is the case of having many projects
+in the same repository and when you want to create different
+repositories.
+
+### Using different projects in the same git repository
+You should use many projects in the same repository when they share a
+significant amount of code.
+In this case, the version of the repository will be shared among all the
+projects. This is meaningful if the projects are strongly
+interconnected and it is unlikely for a project to change version
+without any modification to the others.
+
+A typical case when it is handy to use multiple projects in the same
+repository is when you are dealing with different FPGAs mounted on the
+same board.
+
+In order to keep different parts of the project conceptually
+separated, it is possible to use many **libraries** as explained in
+the following. In this case, the version (and the SHA) will be
+evaluated independently for each library, so it is possible to tell at
+a glance if two binary files share the same library.
+
+For example you can have an FPGA with a "infrastructure" library
+containing all the circuitry to handle communication with the external
+world,  and an "algorithm" library, containing the actual part of the
+design that processes data. HOG libraries will enable you to tell if two
+different binary files are generated using exactly the same source code
+for the algorithm but they have a different infrastructure.
+
+### Using different git repositories
+If you don't have any code sharing between two HDL projects, or if the
+shared code is minimal, you may think of having different
+repositories.
+
+In this case, everything will be decoupled, as the two repository are
+two completely unlinked things. All that is explained in this guide
+will have to be done with both repositories and you can also, in
+principle, use two different version of HOG.
+
+In case you have a shared part of the code, in order to avoid code
+repetition, you can include the shared code as a git submodule.
+This must be a third git repository, also independent from the
+previous two.
+
+If the code contained in the submodule is not meant to be working
+stand alone, it is not necessary to include HOG in it.
+
 
 ## HOG directory
-This repository (Hog) should be included as a submodule into your HDL repository.
-Hog relies on the following assumptions:
-- Hog must be in the root path of your repository
-- The directory name must be "Hog"
-- The repository should not include the protocol explicitely, instead it must be added with a relative path.
+HOG repository should be included as a submodule into your HDL
+repository, following the following rules:
+
+1. HOG must be in the root path of your repository
+2. The directory name must be "HOG"
+
+Moreover it is recommended not to include the submodule protocol
+explicitly, it is much better to inherit it from the repository HOG in
+included into.
 
 To obtain this you can run the following commands in the root folder of your repository.
 
-```console
-	
-	git submodule add https://gitlab.cern.ch/hog/Hog.git
-	git config --file=.gitmodules submodule.Hog.branch <branch_to_track>
-	git config --file=.gitmodules submodule.Hog.url ../hog/Hog.git
+```bash
+	git submodule add <protocol>://gitlab.cern.ch/HOG/HOG.git
+	git config --file=.gitmodules submodule.HOG.url ../HOG/HOG.git
 	git submodule sync
 	git submodule update --init --recursive --remote
-
 ```
 
-Please note `../hog/Hog.git` must be replaced with the correct relative path for your repository. 
-Git will give you an error on `git submodule update --init --recursive --remote` if this path is not properly set.
+Remember to chose your protocol among ssh, https, git, or krb5.
+Also note that `../HOG/HOG.git` must be replaced with the correct path, relative to your repository. 
+A git error will be generated by `git submodule update --init --recursive --remote` if the path is not properly set.
 
 
-## library_X directories
-
-library_X directories contain HDL files used for synthesis.
+## library directories
+library directories contain HDL files used for synthesis.
 HDL files can be placed anywhere in your repository, but it is advised to place them in the root/library_X directory.
 We suggest to put HDL files belonging to separate libraries in separate folders although this is not mandatory.
 The exact structure or name of this folder is not enforced.
 
 
 ## Git submodules
-Hog can handle Git submodules, i.e. if you have some module contained on a git repository you can simply add it to your project using:
+HOG can handle Git submodules, i.e. if you have some module contained on a git repository you can simply add it to your project using:
 
-```console
-	
-	git submodule add <submodule_url>
-
+```bash
+    git submodule add <submodule_url>
 ```
+
 They can be placed anywhere in your repository, but it is advised to place them in the root directory.
 Suppose that you have 2 submodules called _sub_1_ and _sub_2_:
 
+```
     Repo/sub_1
     Repo/sub_2
-
+```
 
 ## Top directory
 
 The __Top__ directory must be located in the root folder of the repository:
-
+```
     Repo/Top
+```
 
 It contains one directory for each of your projects (say proj_1, proj_2, proj_3):
 
+```
     Repo/Top/proj_1
     Repo/Top/proj_2
     Repo/Top/proj_3
+```
 
 ### project directory
 
 Each of the project directories must contain:
+
 - the top vhdl file of the project
 - the tcl file that generates the project
 
 They must be named as follows:
 
+```
     Repo/Top/<proj_1>/<proj_1>.tcl
     Repo/Top/<proj_1>/top_<proj_1>.vhd
+```
 
 ### .tcl file
 
 The .tcl file contained in the project directory must contain the instructions to build your project.
 This can be a minimal tcl setup specifing only the general project settings.
 The last line of the tcl scipt is expected to be 
-```console
 
-source $path_repo/Hog/Tcl/create-project.tcl
-
+```bash
+source $path_repo/HOG/Tcl/create_project.tcl
 ```
 
-This commant will instruct HOG to add all your files to the generated project.
+This command will instruct HOG to add all your files to the generated project.
 
-One example for a Vivado project is :
+One example for a Vivado project is can be found in `./Hog/Templates/top.tcl`.
 
-```console
-
-############# modify these to match project ################
-set bin_file 1
-set use_questa_simulator 0
-### FPGA and Vivado strategies and flows
-set FPGA xc7a35tcpg236-1
-set SYNTH_STRATEGY "Flow_AreaOptimized_High"
-set SYNTH_FLOW "Vivado Synthesis 2018"
-set IMPL_STRATEGY "Performance_ExplorePostRoutePhysOpt"
-set IMPL_FLOW "Vivado Implementation 2018"
-set DESIGN    "[file rootname [file tail [info script]]]"
-set path_repo "[file normalize [file dirname [info script]]]/../../"
-source $path_repo/Hog/Tcl/create-project.tcl
-
-```
+More information on the tcl script can be founs in the [project tcl file](../02-Mainteiner-Manual/08-Project-Tcl.md) section.
 
 ### list directory
 
 A directory named _list_ must be in each of the project folders.
-This directory contains the list files, that are plain text files, used to instruct HoG on how to build your project.
+This directory contains the list files, that are plain text files, used to instruct HOG on how to build your project.
 Each list file contain the list filenames to be added to the _proj_1_ project.
-Hog uses different kinds of list files, identified by their extension: 
- - src
- - sub
- - sim
- - con
- - ext
- __.src, .sub, .sim, and .con list files must use relative paths__ to the files to be included in the project./
- __.ext list filse must use an absoute path__. To use the firmware CI this path must be accessible to the machine performing the git CI, e.g. can be on a protected afs folder.
+HOG uses different kinds of list files, identified by their extension:
 
-#### .src files
+ - `*.src` : used to include HDL files belonging to the same library
+ - `*.sub` : used to include HDL files belonging to a git submodule
+ - `*.sim` : used to include files use for simulation of the same library
+ - `*.con` : used to include contratint files
+ - `*.ext` : used to include HDL files belonging to an external library
 
-Files with the .src extension are used to include HDL files belonging to a single library and the .xci files of the IPs used in the library.
-Hog will generate a new library for each .src file.
-For example if we have a lib_1.src file in our list directory, containing 5 filenames inside, like this:
+ __.src, .sub, .sim, and .con list files must use relative paths__ to the files to be included in the project.
 
-    ../../lib_1/hdl/file1.vhd
-    ../../lib_1/hdl/file2.vhd
-    ../../lib_1/hdl/file3.vhd
+ __.ext list file must use an absoute path__. To use the firmware CI this path must be accessible to the machine performing the git CI, e.g. can be on a protected afs folder.
 
-they will be included into the Vivado project in the lib_1 library. 
-This means in VHDL to use them you should use the following syntax:
-
-```vhdl
-library lib_1
-use lib_1.all
-
-...
-
-u_1 : entity lib_1.a_component_in_lib1 
-port map(
-  clk => clk,
-din => din,
-dout => dout
-):
-```
-Properties, like VHDL 2008 compatibility, can be specified afer the file name in the list file, separated by any number of spaces. 
-Returning to our example, if _file_3.vhd_ requires VHDL 2008, then you should specify it like this:
-
-    ../../lib_1/hdl/file1.vhd 
-    ../../lib_1/hdl/file2.vhd
-    ../../lib_1/hdl/file3.vhd 2008
-
-IP to be included in you project can be 
-
-### .sub files
-
-To add files from a submodule to your Project you must list them in a .sub list file.
-This tells Hog that those files are taken from a submodule rather than from a library belonging to the main HDL repository.
-Hog will not try to evaluate the version of those files, but it will evaluate the git SHA of the submodule.
-
-### .sim files
-
-HDL files used for simulation only.
-
-### .con files
-
-All contratint files (.xdc ) must be included by adding them to the .con files
-
-### .ext files
-
-External proprietary files can be included using the .ext list file.
-__.ext list filse must use an absoute path__.
-To use the firmware CI this path must be accessible to the machine performing the git CI, e.g. can be on a protected afs folder.
-This file has to be used __ONLY__ in the exceptionalcase of files that cannot be published because of copyright.
-This file has a special synthax since md5 hash of each file must bne added after the file name, separated by one or more spaces.
-The md5 hash can be obtained by running
-```console
-	md5sum <filename>
-```
-Hog, at synthesis time, checks that all the files are there and that their md5 hash matches the one in the list file.
-
+More information on the list file can be found in the dedicated [list files](../02-Mainteiner-Manual/09-List-files.md) section.
 
 ## Auto-generated directories
 The following directories are generated at different stages of library compilation or synthesis/implementation time.
 These directories should never be committed to the repository, for this reason they are listed in the .gitingore file.
-You can always delete any of these directory with no bog consequences: they can always be regenerated by Hog scripts.
+You can always delete any of these directory with no bog consequences: they can always be regenerated by HOG scripts.
 
 ### VivadoProjects
-When you generate a project with Hog, it will create a sub-directory here. When everything is generated,  this directory contains one subdirectory for each project in the repository, containing the Vivado project-file. The name of the sub-directory and of the project file are always matching. In our case:
+When you generate a project with HOG, it will create a sub-directory here. When everything is generated,  this directory contains one subdirectory for each project in the repository, containing the Vivado project-file. The name of the sub-directory and of the project file are always matching. In our case:
 
+```
     Repo/VivadoProjects/proj_1/proj_1.xpr
     Repo/VivadoProjects/proj_2/proj_2.xpr
     Repo/VivadoProjects/proj_3/proj_3.xpr
+```
 
 The _Repo/VivadoProjects/proj_3/_ directory also contains Vivado automatically generated files, among which the Runs directory:
 
+```
     Repo/VivadoProjects/proj_1/proj_1.runs/
+```
 
 That contains one subfolder for every Vivado run: alle the IPs in your project, the default Vivado synthesis run (synth_1) and implementation run (impl_1).
-Hog will also copy ipbus XMLs and generated bitfiles into _Repo/VivadoProjects/proj_1/proj_1.runs/_ at synthesis/implementation time.
+HOG will also copy ipbus XMLs and generated bitfiles into _Repo/VivadoProjects/proj_1/proj_1.runs/_ at synthesis/implementation time.
 
 ### ModelsimLib
 Modelsim compiled libraries will be placed here
@@ -220,14 +212,15 @@ Modelsim compiled libraries will be placed here
 ### doxygen
 The doxygen directory contains the files used to generate the HDL documentation.
 A file named _doxygen.conf_ should be in this directory, together with all the files needed to generate your doxygen documentation.
-Hog works with Doxygen version 1.8.13 ore later.
-
+HOG works with Doxygen version 1.8.13 ore later.
 
 ## Wrapper scripts
 There are three scripts that can be used to run synthesis, implementation and bitstream writing without opening the vivado gui. The commands to launch them are
-```console
-	./Hog/LaunchSynthesis.sh <proj_name>
-	./Hog/LaunchImplementation.sh <proj_name>
-	./Hog/LaunchWriteBistream.sh <proj_name>
+
+```bash
+	./HOG/LaunchSynthesis.sh <proj_name>
+	./HOG/LaunchImplementation.sh <proj_name>
+	./HOG/LaunchWriteBistream.sh <proj_name>
 ```
+
 Launching the implementation or the bistream writing without having launched the synthesis beforehand will run the synthesis stage too.

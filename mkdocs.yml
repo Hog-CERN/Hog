@@ -14,6 +14,15 @@ nav:
 
 - 'Maintainer Manual':
   - 02-Maintainer-Manual/01-setup-CI.md
+  - 02-Maintainer-Manual/02-gitlab-repository-setup.md
+  - 02-Maintainer-Manual/03-Virtual-Machines.md
+  - 02-Maintainer-Manual/04-convert-project.md
+  - 02-Maintainer-Manual/05-supported-tools.md
+  - 02-Maintainer-Manual/06-available-templates.md
+  - 02-Maintainer-Manual/07-Hog-generics.md
+  - 02-Maintainer-Manual/08-Project-Tcl.md
+  - 02-Maintainer-Manual/09-List-files.md
+  - 02-Maintainer-Manual/10-IPbus-support.md
 
 - 'Contributing to Hog':
   - 03-Contributing/01-contributing.md  
@@ -24,4 +33,5 @@ markdown_extensions:
   - footnotes
 theme:
       name: material
-      logo: 'assets/images/favicon.png'
+      logo: 'custom/assets/images/white.png'
+      custom_dir: docs/custom/

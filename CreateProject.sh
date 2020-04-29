@@ -7,7 +7,13 @@ if [ "$1" == "-h" ] || [ "$1" == "-help" ] || [ "$1" == "--help" ] || [ "$1" == 
   echo
   echo " Hog - Create HDL project"
   echo " ---------------------------"
-  echo " Create the secified Vivado or Quartus project"
+  echo " Create the specified Vivado or Quartus project"
+  echo " The project type is selected using the first line of the tcl script generating the project"
+  echo " Following options are available: "
+  echo " #vivado "
+  echo " #vivadoHLS "
+  echo " #quartus "
+  echo " #quartusHLS "
   echo
   echo " Usage: $0 <project name>"
   echo
@@ -51,7 +57,7 @@ then
   else
     echo "Hog-INFO: Recognised Vivado project"
     COMMAND="vivado"
-    COMMAND_OPT="-mode batch -notrace -source"
+    COMMAND_OPT="-nojournal -nolog -mode batch -notrace -source"
   fi
 elif [[ $TCL_FIRST_LINE =~ 'quartus' ]];
 then
@@ -69,7 +75,7 @@ then
   echo "Hog-ERROR: Intel HLS compiler is not supported!"
   exit -1
 else
-  echo "Hog-WARNING: Running in backward compatibility mode"
+  echo "Hog-WARNING: You should write #vivado or #quartus in your project Tcl file, assuming Vivado... "
   echo "Hog-INFO: Recognised Vivado project"
   COMMAND="vivado"
   COMMAND_OPT="-mode batch -notrace -source"

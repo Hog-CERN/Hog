@@ -320,7 +320,7 @@ proc FindFileType {file_name} {
     .qip {
       set file_extension "QIP_FILE"
     }
-    .ip {
+    .tcl {
       set file_extension "COMMAND_MACRO_FILE"
     }
     default {

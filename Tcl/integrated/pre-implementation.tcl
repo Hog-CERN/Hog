@@ -32,7 +32,15 @@ if {$maxThreads != 1} {
   Msg Info "Disabling multithreading to assure deterministic bitfile"
 }
 
-set_param general.maxThreads $maxThreads
+if {[info commands get_property] != ""} {
+    # Vivado
+  set_param general.maxThreads $maxThreads
+} elseif {[info commands project_new] != ""} {
+    # Quartus
+  #TO BE IMPLEMENTED
+} else {
+    #Tclssh
+}
 
 cd $old_path
 Msg Info "All done"

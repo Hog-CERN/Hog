@@ -24,10 +24,8 @@ if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] 
   exit 1
 }
 
-
-
-set tags [TagRepository 0 0]
-set version [lindex $tags 0]
+lassign [GetVer ALL ./] version commit
+set version [HexVersionToString $version]
 Msg Info "Creating doxygen documentation for tag $version"
 
 

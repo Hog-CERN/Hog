@@ -148,9 +148,6 @@ proc CreateProject {} {
     ##############
   set list_files [glob -directory $globalSettings::list_path "*"]
 
-  # foreach f $list_files {
-  #   SmartListFile $f $globalSettings::repo_path
-  # }
   lassign [GetHogFiles] libraries properties
   AddHogFiles $libraries $properties
 }

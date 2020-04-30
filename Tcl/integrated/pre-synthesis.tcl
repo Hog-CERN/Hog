@@ -205,18 +205,18 @@ if [GitVersion 2.9.3] {
 
 #####  Passing Hog genric to top file
 if {[info commands set_property] != ""} {
-    ### VIVADO
-    # set global generic varibles
+  ### VIVADO
+  # set global generic varibles
   set generic_string "GLOBAL_FWDATE=32'h$date GLOBAL_FWTIME=32'h$timee GLOBAL_FWHASH=32'h$commit TOP_FWHASH=32'h$top_hash XML_HASH=32'h$xml_hash GLOBAL_FWVERSION=32'h$version TOP_FWVERSION=32'h$top_ver XML_VERSION=32'h$xml_ver_hex HOG_FWHASH=32'h$hog_hash HOG_FWVERSION=32'h$hog_ver"
 
-    #set project specific lists
+  #set project specific lists
   foreach l $libs v $vers h $hashes {
     set ver "[string toupper $l]_FWVERSION=32'h$v "
     set hash "[string toupper $l]_FWHASH=32'h$h"
     set generic_string "$generic_string $ver $hash"
   }
 
-    #set project specific sub modules
+  #set project specific sub modules
   foreach s $subs h $subs_hashes {
     set hash "[string toupper $s]_FWHASH=32'h$h"
     set generic_string "$generic_string $hash"
@@ -239,7 +239,7 @@ if {[info commands set_property] != ""} {
   set  status_file "$old_path/../versions.txt"
 
 } else {
-    ### Tcl Shell
+  ### Tcl Shell
   puts "Hog:DEBUG GLOBAL_FWDATE=$date GLOBAL_FWTIME=$timee"
   puts "Hog:DEBUG GLOBAL_FWHASH=$commit TOP_FWHASH=$top_hash"
   puts "Hog:DEBUG XML_HASH=$xml_hash GLOBAL_FWVERSION=$version TOP_FWVERSION=$top_ver"

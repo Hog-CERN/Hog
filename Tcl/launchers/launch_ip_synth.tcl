@@ -8,6 +8,7 @@ if {[catch {package require cmdline} ERROR]} {
 }
 set parameters {
   {eos_ip_path.arg "" "Path of the EOS IP repository"}
+  {NJOBS.arg 4 "Number of jobs. Default: 4"}
 }
 
 set usage "- USAGE: $::argv0 \[OPTIONS\] <project> \n. Options:"
@@ -66,7 +67,8 @@ if {$ips != ""} {
   }
 }
 
-set jobs 4
+Msg Info "Number of jobs set to $options(NJOBS)."
+set jobs $options(NJOBS)
 set failure 0
 
 if [info exists runs] {

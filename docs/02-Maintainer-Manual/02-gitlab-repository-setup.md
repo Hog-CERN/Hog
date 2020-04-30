@@ -52,4 +52,5 @@ With the following **optional** variables you can configure the behaviour of Hog
 | __HOG_SIMULATION_LIB_PATH__  |									   |
 | __HOG_TARGET_BRANCH__          |  Project target branch. Merge request should start from this branch. Default: master |
 | __HOG_NJOBS__               |  Number of synthesis and implementation jobs. Default: 4 |
+| __HOG_IP_NJOBS__               |  Number of synthesis and implementation jobs. Default: 4 |
 

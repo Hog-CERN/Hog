@@ -2,7 +2,7 @@
 
 ## Wrapper scripts
 
-There is a set of scripts that can be used to run synthesis, implementation and bitstream writing without opening the vivado gui. The commands to launch them are
+There is a set of scripts that can be used to run synthesis, implementation and bitstream generation without opening the vivado gui. The commands to launch them are
 
 ```console
 	./Hog/LaunchSynthesis.sh <proj_name>
@@ -11,12 +11,12 @@ There is a set of scripts that can be used to run synthesis, implementation and 
 	./Hog/LaunchWriteBistream.sh <proj_name>
 ```
 
-These scripts actually call the Tcl scripts contained in Hog/Tcl/launchers that are used in the continuous integration. But as the work perfectly even locally, we wrapped them in these shell scripts so that you can use them locally if you don't want to open the GUI.
+These scripts call the Tcl scripts contained in Hog/Tcl/launchers that are used in the continuous integration. But as the work perfectly even locally, we wrapped them in these shell scripts so that you can use them locally if you don't want to open the GUI.
 
-Launching the implementation or the bistream writing without having launched the synthesis beforehand will run all the previous stages, exactly as if you clicked the GUI button.
+Launching the implementation or the bistream generation without having launched the synthesis beforehand will run all the previous stages, exactly as if you clicked the GUI button.
 
 ## Why so many list files
-There are several kinds of list files, depending on the extension: src, sub, sim, con[^4].
+There are several kinds of list files, depending on the extension: .src, .sub, .sim, .con[^4].
 [^4]: Also .ext files exist. They are used to handle external files that are protected by copyright and cannot be published on the repository. Will will not discuss that in this quick guide.
 
 ### Source list files
@@ -39,11 +39,11 @@ Properties, like VHDL 2008 compatibility, can be specified after the file name i
 ```
 
 ### Constraint list files
-**.con** files contain constraint files. Both xdc (for Vivado) and Tcl files can be added. By specifying the property `nosynth` (after the file name, separated by any number of spaces) we can tell Vivado not to use this specific constraint file in synthesis. Viceversa, `noimpl` is used to use the constraint in synthesis only. 
+**.con** files contain constraint files. Both .xdc (for Vivado) and .tcl files can be added. By specifying the property `nosynth` (after the file name, separated by any number of spaces) we can tell Vivado not to use this specific constraint file in synthesis. Viceversa, `noimpl` is used to use the constraint in synthesis only. 
 
 
 ### Simulation list files
-Each **.sim files** represent a simulation set and contains HDL files used for simulation only. More importantly, each simulation set (hence each .sim file) must incliude the HDL file containing the top module of the simulation. The name top module must be specified as a property with the keyword `topsim=`. Moreover the .do file and the wave file can be specified, as in the following example:
+Each **.sim files** represent a simulation set and contains HDL files used for simulation only. More importantly, each simulation set (hence each .sim file) must include the HDL file containing the top module of the simulation. The name of the top module must be specified as a property with the keyword `topsim=`. Moreover the .do file and the wave file can be specified, as in the following example:
 
 ```
 ../../lib_1/tb/hdl/tb_for_lib1.vhd topsim=tb_lib1 wavefile=lib1/wave_lib1.tcl dofile=lib1/dofile_lib1.do

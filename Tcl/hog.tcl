@@ -399,7 +399,7 @@ proc ReadListFile {list_file path lib} {
             # lappend lib_files $vhdlfile
             # lappend prop_list $prop
           }
-          
+
         }
         incr cnt
       } else {
@@ -1027,7 +1027,7 @@ proc AddHogFiles { libraries properties } {
           set file_obj [get_files -of_objects [get_filesets $file_set] [list "*$f"]]
           #ADDING LIBRARY
           set_property -name "library" -value $rootlib -objects $file_obj
-          
+
           if {[file ext $f] == ".xdc"} {
             Msg Info "Setting filetype XDC for $f"
             set_property -name "file_type" -value "XDC" -objects $file_obj
@@ -1035,10 +1035,12 @@ proc AddHogFiles { libraries properties } {
 
           #ADDING FILE PROPERTIES
           set props [dict get $properties $f]
-          if {[lsearch -inline -regex $props "93"] < 0} {
-            set_property -name "file_type" -value "VHDL 2008" -objects $file_obj
-          } else {
-            Msg Info "Setting filetype VHDL 93 for $f"
+          if {[file ext $f] == ".vhd"} {
+            if {[lsearch -inline -regex $props "93"] < 0} {
+              set_property -name "file_type" -value "VHDL 2008" -objects $file_obj
+            } else {
+              Msg Info "Filetype is VHDL 93 for $f"
+            }
           }
 
           # XDC
@@ -1064,7 +1066,7 @@ proc AddHogFiles { libraries properties } {
             Msg Info "Setting not used in simulation for $f..."
             set_property -name "used_in_simulation" -value "false" -objects $file_obj
           }
-          
+
           ## Simulation properties
           # Top simulation module
           set top_sim [lindex [split [lsearch -inline -regex $props topsim=] =] 1]

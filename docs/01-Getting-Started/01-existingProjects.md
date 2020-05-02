@@ -16,7 +16,8 @@ This is a recap of the requirements:
 
 We recommend that you read all of this section as it contains all you need to know to start working straight away without having to waste time later on.
 
-We also suggest that you learn git basics, there is plenty of useful resources online. This will ensure a fruitful usage of a very powerful tool and heavily reduce your frustration.
+We also suggest that you learn git basics, there is plenty of useful resources online. 
+This will ensure a fruitful usage of a very powerful tool and heavily reduce your frustration.
 
 ## Cloning the repository
 First of all, you have to clone the repository[^2], let's call it *repo* from now on:
@@ -44,7 +45,7 @@ Alternatively you might want to create only the project you are interested in, s
 To do that, cd into the repository (`cd <repo>`) and type:
 
 ```console
-	./Hog/CreateProject.sh <project name>
+	./Hog/CreateProject.sh <project_name>
 ```
 
 in our example the project name is *project1*.
@@ -73,7 +74,7 @@ This is typically easier than it seems, because you can look at how the path of 
 
 Now that the new file is included in a list file, you can close the Vivado/Quartus project and re-create it by typing `./Hog/CreateProject.sh <project name>` again.
 
-Yes, you will have to do this every time you add a new file to ther project. It seems like a lot of work, but it's actually quite rare in the work process, most of the time you just modify existing files, in which case you don't have to do any of this.
+Yes, you will have to do this every time you add a new file to the project. It seems like a lot of work, but it's actually quite rare in the work process, most of the time you just modify existing files, in which case you don't have to do any of this.
 
 This procedure is valid for any kind of source file, if your file is a constraint file, just add it to a .con list file in the list directory.
 
@@ -98,7 +99,6 @@ If you have *.coe files for RAM initialization or analogous files please make su
 ### Commit before starting the workflow
 All the Hog scripts handling version control will be automatically added to your project: this means that you have the possibility to create a certified (reproducible and traceable) bitfile. There is a little price to pay though, **you must commit your local changes before running synthesys**. You don't have to push! Just commit locally, then you can push when you are sure that your work is good enough.
 If you don't commit, Hog will alert you with a Critical Warning at the beginning of the synthesis.
-
 
 ### Different list files
 Source files taken from different list files will be added to your project in different "libraries": the name of each library is the name of the list file. This is nice to keep things tidy and separated but it also comes at a little cost: when working with files coming from different list files, you will need to formally include the libraries. For example, in VHDL:

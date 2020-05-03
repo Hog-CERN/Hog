@@ -16,14 +16,15 @@ nav:
 - 'Maintainer Manual':
   - 02-Maintainer-Manual/01-setup-CI.md
   - 02-Maintainer-Manual/02-gitlab-repository-setup.md
-  - 02-Maintainer-Manual/03-Virtual-Machines.md
-  - 02-Maintainer-Manual/04-supported-tools.md
-  - 02-Maintainer-Manual/05-available-templates.md
-  - 02-Maintainer-Manual/06-Hog-generics.md
-  - 02-Maintainer-Manual/07-Project-Tcl.md
-  - 02-Maintainer-Manual/08-List-files.md
-  - 02-Maintainer-Manual/09-IPbus-support.md
-  - 02-Maintainer-Manual/10-update-hog.md
+  - 02-Maintainer-Manual/03-HOG-CI-stages.md
+  - 02-Maintainer-Manual/04-Virtual-Machines.md
+  - 02-Maintainer-Manual/05-supported-tools.md
+  - 02-Maintainer-Manual/06-available-templates.md
+  - 02-Maintainer-Manual/07-Hog-generics.md
+  - 02-Maintainer-Manual/08-Project-Tcl.md
+  - 02-Maintainer-Manual/09-List-files.md
+  - 02-Maintainer-Manual/10-IPbus-support.md
+  - 02-Maintainer-Manual/11-update-hog.md
 
 - 'Contributing to Hog':
   - 03-Contributing/01-contributing.md  

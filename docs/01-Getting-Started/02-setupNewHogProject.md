@@ -107,9 +107,9 @@ This module can be stored anywhere in the repository as long as the file contain
 We suggest you to store the file containing the top level module for your project in the TOP folder.
 
 HOG uses generics to track the firmware version.
-A full list of the generics used by Hog can be found  in the [HOG generics](../02-Maintainer-Manual/06-Hog-generics.md) section.
+A full list of the generics used by Hog can be found  in the [HOG generics](../02-Maintainer-Manual/07-Hog-generics.md) section.
 A template for the top level file (in VHLD and Verilog) is available in the [Hog/Template](https://gitlab.cern.ch/hog/Hog/-/tree/master/Templates) directory.
-A full description of the template can be found in the [available templates](../02-Maintainer-Manual/05-available-templates.md) section.
+A full description of the template can be found in the [available templates](../02-Maintainer-Manual/06-available-templates.md) section.
 
 ## Git submodules
 HOG can handle Git submodules, i.e. if you have some module contained on a git repository you can simply add it to your project using:
@@ -152,7 +152,7 @@ They must be named as follows:
 ```
 
 A template for the `<project_name>.tcl` file is available in the [Hog/Template](https://gitlab.cern.ch/hog/Hog/-/tree/master/Templates) directory.
-A full description of the template can be found in the [available templates](../02-Maintainer-Manual/05-available-templates.md) section.
+A full description of the template can be found in the [available templates](../02-Maintainer-Manual/06-available-templates.md) section.
 
 ### .tcl file
 
@@ -174,7 +174,7 @@ More information on the tcl script can be found in the [project tcl file](../02-
 
 A directory named _list_ must be in each of the project folders.
 This directory contains the list of files, that are plain text files, used to instruct HOG on how to build your project.
-Each list file contains the list of file names to be added to the _proj_1_ project.
+Each list file contains the list of file names to be added to the *proj_1* project.
 HOG uses different kinds of list files, identified by their extension:
 
  - `*.src` : used to include HDL files belonging to the same library
@@ -188,7 +188,7 @@ HOG uses different kinds of list files, identified by their extension:
  __.ext list file must use an absolute path__. 
  To use the firmware Continuous Integration this path must be accessible to the machine performing the git CI, e.g. can be on a protected afs folder.
 
-More information on the list file can be found in the dedicated [list files](../02-Maintainer-Manual/08-List-files.md) section.
+More information on the list file can be found in the dedicated [list files](../02-Maintainer-Manual/09-List-files.md) section.
 
 ### Adding a new IP 
 If you want to add a new IP core, please create it in out of context mode and save the .xci file (and only that one!) it in the repository in *repo*/*IP*/*ip_name*/*ip_name*.xci. 
@@ -200,7 +200,7 @@ Now you can add the .xci normally to any source list file in the list folder of 
 Please note that the `.gitignore` template provided by HOG adds constraints on the IP folder.
 Out of all the files contained in *repo*/*IP*/, git will pick up only xci files.
 Files with different extensions will be ignored.
-If you have *.coe files for RAM initialization or analogous files please make sure to store these files in a separate folder and point to them in the IP directory by using a relative path.
+If you have \*.coe files for RAM initialization or analogous files please make sure to store these files in a separate folder and point to them in the IP directory by using a relative path.
 
 ## Auto-generated directories
 The following directories are generated at different stages of library compilation or synthesis/implementation time.

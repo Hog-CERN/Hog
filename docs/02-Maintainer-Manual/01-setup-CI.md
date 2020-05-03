@@ -28,6 +28,7 @@ The gitlab continuous integration uses [YAML files](https://docs.gitlab.com/ee/c
 Because of this you will need to add a .gitlab-ci.yml file to your the root folder of your repository.
 HOG can not provide a full YAML file for your project but a template file can be found under `Hog` > `Templates` > `gitlab-ci.yml`
 You can copy this file and modify it according to your needs.
+More information on how to modify this template can be found in (Set-up a gitlab YAML file)[#Set-up-a-gitlab-YAML-file].
 
 In addition you will need to act on the repository website to define few variables needed by the HOG CI.
 A full description of the used variables can be found in [Gitlab repository set-up](#gitlab-repository-setup) section.

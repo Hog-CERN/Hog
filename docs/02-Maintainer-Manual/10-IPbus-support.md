@@ -1,7 +1,7 @@
 # IPbus support
 
 HOG supports IPbus by including few features specific for this package.
-The IPbus submodule and the generated VHDL files must be included in your project using the `*.sub` and `*.src` [files](08-List-files.md).
+The IPbus submodule and the generated VHDL files must be included in your project using the `*.sub` and `*.src` [files](09-List-files.md).
 
 HOG helps you keep track of the xml file versioning by usage of dedicated generics in the VHDL and node tags in the xml.
 To allow for this your project must include a dedicated xml folder and a dedicated list file located under `./Top/<project_name>/xml/xml.lst`. Note that the xml and VHDL files can be located anywhere in your project since HOG will use this file to retrieve the needed files.

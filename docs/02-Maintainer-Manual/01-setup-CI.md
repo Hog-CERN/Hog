@@ -1,9 +1,9 @@
-# How to setup Hog-CI
-This chapter describes how to setup Hog Continuous Itegration on Gitlab.
- In order to access your repository and compile your HDL, the gfitlab CI will need a dedicated account. 
+# How to set-up Hog Continuous Integration
+This chapter describes how to set-up Hog Continuous Integration (CI) on Gitlab.
+ In order to access your repository and compile your HDL, the gitlab CI will need a dedicated account. 
  Before staring please get a [service account](#service_account).
 
- Once you  have your service account you to get an [eos space](#eos_space) where to store your *.bit files and your documentation.
+ Once you  have your service account you to get an [eos space](#eos_space) where to store your \*.bit files and your documentation.
 
  You can now start instructing the gitlab CI on what actions must be taken in order to compile your firmware usinga [YAML file](Gitlab_CI_YAML). 
 
@@ -15,7 +15,7 @@ This chapter describes how to setup Hog Continuous Itegration on Gitlab.
 # EOS space
 
 The gitlab CI will produce some artifacts.
-These include the *.bit files for your firmware and eventually additional files or the documentation for your project.
+These include the \*.bit files for your firmware and eventually additional files or the documentation for your project.
 You must foresee an eos space where to copy these files.
 For this you can use the eos space of your service account: `/eos/user/<first_letter>/<service_account>`
 In case you do not like to store your files there or you have no access to eos, we provide free eos space under `/eos/project/h/hog/`
@@ -24,24 +24,24 @@ in order to be able to use such a space get in touch with [HOG support](mailto:h
 
 # Gitlab CI YAML
 
-The gitlab continuosu integration uses [YAML files](https://docs.gitlab.com/ee/ci/yaml/) to devine wich commands it must run.
+The gitlab continuous integration uses [YAML files](https://docs.gitlab.com/ee/ci/yaml/) to define which commands it must run.
 Because of this you will need to add a .gitlab-ci.yml file to your the root folder of your repository.
 HOG can not provide a full YAML file for your project but a template file can be found under `Hog` > `Templates` > `gitlab-ci.yml`
 You can copy this file and modify it according to your needs.
 
-In addittion you will need to act on the repository website to define few variables needed by the HOG CI.
-A full description of the used variables can be found in [Gitlab repository setup](#gitlab-repository-setup) section.
+In addition you will need to act on the repository website to define few variables needed by the HOG CI.
+A full description of the used variables can be found in [Gitlab repository set-up](#gitlab-repository-setup) section.
 
-# Gitlab workflow
+# Gitlab work-flow
 
-HOG foresees that you are fully exploting the gitlab features.
+HOG foresees that you are fully exploiting the gitlab features.
 
-In detail the expected workflow starts with the creation of a new issue and a correlated merge request and branch.
+In detail the expected work-flow starts with the creation of a new issue and a correlated merge request and branch.
 To do this go to the gitlab website and navigate to your repository.
 Click on issues and open a new issue describing the fix you are to implement or the new feature you want to introduce.
 Once you have an issue you can open a merge request marked as WIP (work in progress) and a new branch simply by clicking `Create merge request` inside the issue overview.
 
-When creating the merge request please use the MINOR_VERSION and MAJOR_VERSION keywords in the merge request description to tell HOG the expected version.
+When creating the merge request please use the *MINOR_VERSION* and *MAJOR_VERSION* keywords in the merge request description to tell HOG the expected version.
 
 
 You will now have a new branch connected to the merge request.
@@ -65,12 +65,12 @@ If you have already some uncommitted/committed new feature, **DON'T PANIC!**
 You can always create a new branch, commit your code there and simply create a new merge request when ready.
 By adding `[WIP]` or `WIP:` at the beginning of the title of the merge request then the merge request will be [marked as work in progress](https://docs.gitlab.com/ee/user/project/merge_requests/work_in_progress_merge_requests.html).
 
-If you have already committed your changes to a worng branch (let's say the master) simply reset that branch to the latest correct commit. 
+If you have already committed your changes to a wrong branch (let's say the master) simply reset that branch to the latest correct commit. 
 Create a new branch, check it out and commit your code there.
 
 ## Increasing version number
 Hog uses a 32 bit integer to assign a version to your firmware.
-The final version will jave the form vMAJOR_VERSION.MINOR_VERSION.patch.
+The final version will have the form *vMAJOR_VERSION.MINOR_VERSION.patch*.
 You will be able to change these numbers by editing the merge request description.
 
 The bit 31 down to 24 are indicate a major revision number; this number can be increased by placing `MAJOR_VERSION` in the merge request description. 
@@ -89,8 +89,8 @@ While merging the merge request HOG will read the description, find no keyword a
 Let's suppose the last tag of your firmware is v1.a.ba3f, thus the corresponding version is 01 0a ba3f
 The possible scenarios are:
 
-| Merge request description        | Origninal version | Final version |
-|:---------------------------------|:-----------------:|:-------------:|
-|  without any keyword             | 01 0a ba3f        | 01 0a ba40    |
-| conatins `MINOR_VERSION` keyword | 01 0a ba3f        | 01 0b 0000    |
-| conatins `MAJOR_VERSION` keyword | 01 0a ba3f        | 02 00 0000    |
+| Merge request description        | Original version | Final version |
+|:---------------------------------|:----------------:|:-------------:|
+|  without any keyword             | 01 0a ba3f       | 01 0a ba40    |
+| conatins `MINOR_VERSION` keyword | 01 0a ba3f       | 01 0b 0000    |
+| conatins `MAJOR_VERSION` keyword | 01 0a ba3f       | 02 00 0000    |

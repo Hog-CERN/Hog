@@ -1,12 +1,12 @@
 # List Files
 
-This section conatinds the full instructions on how to build your list files.
+This section contains the full instructions on how to build your list files.
 
 ## .src files
 
 Files with the .src extension are used to include HDL files belonging to a single library and the .xci files of the IPs used in the library.
 HOG will generate a new library for each .src file.
-For example if we have a lib_1.src file in our list directory, containing 5 filenames inside, like this:
+For example if we have a lib_1.src file in our list directory, containing 5 file names inside, like this:
 
 ```bash
     ../../lib_1/hdl/file1.vhd
@@ -14,7 +14,7 @@ For example if we have a lib_1.src file in our list directory, containing 5 file
     ../../lib_1/hdl/file3.vhd
 ```
 
-they will be included into the Vivado project in the lib_1 library. 
+they will be included into the Vivado project in the `lib_1` library. 
 This means in VHDL to use them you should use the following syntax:
 
 ```vhdl
@@ -30,8 +30,8 @@ din => din,
 dout => dout
 ):
 ```
-Properties, like VHDL 2008 compatibility, can be specified afer the file name in the list file, separated by any number of spaces. 
-Returning to our example, if _file_3.vhd_ requires VHDL 2008, then you should specify it like this:
+Properties, like VHDL 2008 compatibility, can be specified after the file name in the list file, separated by any number of spaces. 
+Returning to our example, if *file_3.vhd* requires VHDL 2008, then you should specify it like this:
 
 ```bash
     ../../lib_1/hdl/file1.vhd 
@@ -53,15 +53,15 @@ Id est, if you include the submodule `repo/sub_1/` then the corresponding list f
 ## .sim files
 
 In this file are listed all the HDL files used for simulation only.
-The line corresponding to the file containg the top module of your test bench has the following synthax:
+The line corresponding to the file containing the top module of your test bench has the following syntax:
 
 ```
 <path_to_tb>/<test_bench>.vhd topsim=<test_top_level_entity> wavefile=<simulation_set_up>.tcl dofile=<waves>.do
 ```
 
-* The first entry the file containing yout test-bench complete with its relative path from the `Top/<project_name>` folder.
+* The first entry the file containing your test-bench complete with its relative path from the `Top/<project_name>` folder.
 * The second entry is preceded by `topsim=`, it indicates the name of the entity you want to set as top level in your simulation.
-* The third entry is preceded by `wavefile=`, it indicates the file containing the tcl script used to lauch your simulation. *NOTE* the path assumes the default position is `<repo>/sim/`, any relative path must assume this as default location.
+* The third entry is preceded by `wavefile=`, it indicates the file containing the tcl script used to launch your simulation.*NOTE* the path assumes the default position is `<repo>/sim/`, any relative path must assume this as default location.
 * The fourth entry is preceded by `dofile=`, it indicates the file containing the signal waveforms to be observed in your simulation.
 
 The resulting file should look like this:
@@ -71,24 +71,24 @@ The resulting file should look like this:
 ../../lib_1/tb/hdl/FileWriter.vhd
 ```
 
-Hog compiles the Questa or Modelsim libraries when launching the Hog/Init.sh script.
+Hog compiles the Questasim or Modelsim libraries when launching the Hog/Init.sh script.
 The simulation libraries are now compiled into the SimulationLib folder by default.
 
 ## .con files
 
-All constratint files must be included by adding them to the *.con files.
-Both xdc (for Vivado) and Tcl files can be added.
+All constraint files must be included by adding them to the \*.con files.
+Both xdc (for Vivado) and tcl files can be added.
 By specifying the property `nosynth` (after the file name, separated by any number of spaces) we can tell Vivado not to use this specific constraint file in synthesis. 
 Viceversa, `noimpl` is used to use the constraint in synthesis only
 
 ## .ext files
 
-External proprietary files can be included using the *.ext list file.
+External proprietary files can be included using the \*.ext list file.
 __.ext list filse must use an absoute path__.
 To be able to use the firmware CI, this path must be accessible to the machine performing the git CI, e.g. can be on a protected afs folder.
-This procedure has to be used __ONLY__ in the exceptionalcase of files that cannot be published because of copyright.
+This procedure has to be used __ONLY__ in the exceptional case of files that can not be published because of copyright.
 
-The *.ext list file has a special syntax since the md5 hash of each file must be added after the file name, separated by one or more spaces:
+The \*.ext list file has a special syntax since the md5 hash of each file must be added after the file name, separated by one or more spaces:
 
 ```
 /afs/cern.ch/project/p/project/restricted/file_1.vhd  725cda057150d688c7970cfc53dc6db6
@@ -101,7 +101,7 @@ The md5 hash can be obtained by running the md5sum command on a bash shell
 	md5sum <filename>
 ```
 
-the same checksum can be obtained on the Vivado or Quartus tcl shell by using:
+the same checksum can be obtained on the Vivado or QuartusPrime tcl shell by using:
 
 ```tcl
 md5::md5 -filename <file name>

@@ -20,7 +20,7 @@ There are several kinds of list files, depending on the extension: .src, .sub, .
 [^4]: Also .ext files exist. They are used to handle external files that are protected by copyright and cannot be published on the repository. Will will not discuss that in this quick guide.
 
 ### Source list files
-**.src files** contain HDL files used for synthesis taken from the repository. HDL files coming from one .src list-file, are  included into the Vivado project in the same library, named after the .src file itself. For example if we have a lib_1.src file in our list directory, containing filenames inside, like this:
+**.src files** contain HDL files used for synthesis taken from the repository. HDL files coming from one .src list-file, are  included into the Vivado project in the same library, named after the .src file itself. For example if we have a lib_1.src file in our list directory, containing file names inside, like this:
 
 ```
     ../../lib_1/hdl/file1.vhd
@@ -39,7 +39,9 @@ Properties, like VHDL 2008 compatibility, can be specified after the file name i
 ```
 
 ### Constraint list files
-**.con** files contain constraint files. Both .xdc (for Vivado) and .tcl files can be added. By specifying the property `nosynth` (after the file name, separated by any number of spaces) we can tell Vivado not to use this specific constraint file in synthesis. Viceversa, `noimpl` is used to use the constraint in synthesis only. 
+**.con** files contain constraint files. Both .xdc (for Vivado) and .tcl files can be added.
+By specifying the property `nosynth` (after the file name, separated by any number of spaces) we can tell Vivado not to use this specific constraint file in synthesis.
+Viceversa, `noimpl` is used to use the constraint in synthesis only. 
 
 
 ### Simulation list files

@@ -5,7 +5,7 @@ In order to allow git to implement your firmware automatically at each new push 
 The ATLAS TDAQ group provides a dedicated Virtual Machine accessible by all groups having a cern service account.
 More information on this machine can be found in the [ATLAS common firmware Virtual Machine](#ATLAS_common?firmware_virtual_machine) section.
 
-If you want to use your private Virtual Machine you can find more infromation in the [Setting up a dedicated Virtual Machine](#setting_up_a_dedicated_Virtual_Machine) section.
+If you want to use your private Virtual Machine you can find more information in the [Setting up a dedicated Virtual Machine](#setting_up_a_dedicated_Virtual_Machine) section.
 
 ## Setting up a dedicated Virtual Machine
 
@@ -16,7 +16,7 @@ In the latter case you can ignore the next section and jump directly to [Install
 
 ### Create an CERN Openstack Virtual Machine
 
-OpenStack is a cloud operating system that controls large pools of compute, storage, and networking resources throughout a datacenter, all managed and provisioned through APIs with common authentication mechanisms.
+OpenStack is a cloud operating system that controls large pools of compute, storage, and networking resources throughout a data-centre, all managed and provisioned through APIs with common authentication mechanisms.
 Openstack provides you with a [dashboard](https://openstack.cern.ch/project/) from which you can manage VM instances
 More information on Openstack can be found in the [Openstack Dashboard Documentation](https://docs.openstack.org/horizon/train/user/).
 
@@ -26,12 +26,12 @@ Openstack instances come with different flavours, meaning you can allocate only 
 The flavours available are usually not enough for the requirements of modern firmware implementation.
 Please check the requirement for the tools and devices in your project and ask for a custom flavour.
 
-BEfore creating an new instance you can add a new disk that you can use to install the needed tools.
+Before creating an new instance you can add a new disk that you can use to install the needed tools.
 To do this go under ``` Volumes > Volumes ``` on the left navbar.
 Once the Volumes summary appears you can click on ``` + Create Volume ``` and follow the instructions therein.
 We recommend having at least a 40GB HD
 
-ONce you obtained a custon flavour and a dedicated disck you can create a new instance. 
+Once you obtained a custon flavour and a dedicated disck you can create a new instance. 
 Navigate to ``` Compute > Instances ```, once you get to the instances summary click  on ``` Launch Instance ```.
 Fill in the required information on the modal that will appear.
 Under the ``` Source ``` tab * select an updated CC7 image *, this will generate a VM running under Centos 7.
@@ -80,7 +80,7 @@ The machine will need an installation of all licensed software (Xilinx Vivado, M
 
 Information on How to install a new gitlab runnare on your VM can be found [here](https://docs.gitlab.com/runner/install/)
 
-#### Allowing concurrent jobs on a single Openstack VM
+#### Allowing concurrent jobs on a single Openstack Virtual Machine
 
 - Log into your VM
 - Open with your preferred editor with sudo rights `/etc/gitlab-runner/config.toml`
@@ -111,7 +111,7 @@ Information on How to install a new gitlab runnare on your VM can be found [here
 ```
 If something goes wrong, please report it.
 
-### HOG setup on the gitlab runner
+### HOG set-up on the gitlab runner
 
 Hog will need the Virtual Machine you use as Gitlab runner to be properly set-up.
 - Clone Hog repository somewhere accessible from the VM, e.g. on you AFS home
@@ -141,7 +141,7 @@ CREM reserved for us an instance with _ c3.2xlarge flavor_
 In order to access this machine plese create a [CERN service account](https://account.cern.ch/account/Help/?kbid=011010)
 After the service account has been created, send an email to [atlas-tdaq-firmware-support](mailto:atlas-tdaq-firmware-support@cern.ch), so that the account is added to the VM (no sudo rights), with its home.
 once your account has been activated, you can log into the ``` atlas-tdaq-firmware-dev ``` machine.
-the following tools are available for setup:
+the following tools are available for set-up:
 
 - devtoolset-7: ``` /opt/rh/devtoolset-7 ```
 - git 2.18: ``` /opt/rh/rh-git218 ```

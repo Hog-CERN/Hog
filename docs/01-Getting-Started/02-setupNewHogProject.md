@@ -1,6 +1,6 @@
 # Setting up a HDL repository with HOG
 
-In this section we will describe how to setup a new project that uses HOG for the CI.
+In this section we will describe how to set-up a new project that uses HOG for the Continuous Integration (CI).
 In this section  we will make no assumptions on the code you already have.
 If you have a well established repository with lot of code in it please read this section carefully before reading the [Convert existing project to hog](#convert-existing-project-to-hog) section.
 
@@ -38,15 +38,10 @@ projects. This is meaningful if the projects are strongly
 interconnected and it is unlikely for a project to change version
 without any modification to the others.
 
-A typical case when it is handy to use multiple projects in the same
-repository is when you are dealing with different FPGAs mounted on the
-same board.
+A typical case when it is handy to use multiple projects in the same repository is when you are dealing with different devices (FPGAs) mounted on the same board.
 
-In order to keep different parts of the project conceptually
-separated, it is possible to use many **libraries** as explained in
-the following. In this case, the version (and the SHA) will be
-evaluated independently for each library, so it is possible to tell at
-a glance if two binary files share the same library.
+In order to keep different parts of the project conceptually separated, it is possible to use many **libraries** as explained in the following. 
+In this case, the version (and the SHA) will be evaluated independently for each library, so it is possible to tell at a glance if two binary files share the same library.
 
 For example you can have an FPGA with a "infrastructure" library
 containing all the circuitry to handle communication with the external
@@ -162,7 +157,7 @@ A full description of the template can be found in the [available templates](../
 ### .tcl file
 
 The .tcl file contained in the project directory must contain the instructions to build your project.
-This can be a minimal tcl setup specifing only the general project settings.
+This can be a minimal tcl set-up specifying only the general project settings.
 The last line of the tcl script is expected to be 
 
 ```bash
@@ -179,7 +174,7 @@ More information on the tcl script can be found in the [project tcl file](../02-
 
 A directory named _list_ must be in each of the project folders.
 This directory contains the list of files, that are plain text files, used to instruct HOG on how to build your project.
-Each list file contains the list of filenames to be added to the _proj_1_ project.
+Each list file contains the list of file names to be added to the _proj_1_ project.
 HOG uses different kinds of list files, identified by their extension:
 
  - `*.src` : used to include HDL files belonging to the same library
@@ -190,12 +185,14 @@ HOG uses different kinds of list files, identified by their extension:
 
  __.src, .sub, .sim, and .con list files must use relative paths__ to the files to be included in the project.
 
- __.ext list file must use an absoute path__. To use the firmware CI this path must be accessible to the machine performing the git CI, e.g. can be on a protected afs folder.
+ __.ext list file must use an absolute path__. 
+ To use the firmware Continuous Integration this path must be accessible to the machine performing the git CI, e.g. can be on a protected afs folder.
 
 More information on the list file can be found in the dedicated [list files](../02-Maintainer-Manual/08-List-files.md) section.
 
 ### Adding a new IP 
-If you want to add a new IP core, please create it in out of context mode and save the .xci file (and only that one!) it in the repository in *repo*/*IP*/*ip_name*/*ip_name*.xci. Yes, the name of the folder must be the same as the xci file.
+If you want to add a new IP core, please create it in out of context mode and save the .xci file (and only that one!) it in the repository in *repo*/*IP*/*ip_name*/*ip_name*.xci. 
+Please note that the name of the folder must be the same as the xci file.
 Now you can add the .xci normally to any source list file in the list folder of your project.
 
 #### IP initialization files (.coe)
@@ -225,7 +222,7 @@ The _Repo/VivadoProjects/proj_3/_ directory also contains Vivado automatically g
     Repo/VivadoProjects/proj_1/proj_1.runs/
 ```
 
-That contains one subfolder for every Vivado run with all the IPs in your project, the default Vivado synthesis run (synth_1) and implementation run (impl_1).
+That contains one sub-folder for every Vivado run with all the IPs in your project, the default Vivado synthesis run (synth_1) and implementation run (impl_1).
 HOG will also copy ipbus XMLs and generated bitfiles into _Repo/VivadoProjects/proj_1/proj_1.runs/_ at synthesis/implementation time.
 
 ### ModelsimLib
@@ -235,11 +232,11 @@ Modelsim compiled libraries will be placed here
 
 ### doxygen
 The doxygen directory contains the files used to generate the HDL documentation.
-A file named _doxygen.conf_ should be in this directory, together with all the files needed to generate your doxygen documentation.
+A file named _doxygen.conf_ should be in this directory, together with all the files needed to generate your Doxygen documentation.
 HOG works with Doxygen version 1.8.13 ore later.
 
 ## Wrapper scripts
-There are three scripts that can be used to run synthesis, implementation and bitstream writing without opening the vivado GUI. The commands to launch them are
+There are three scripts that can be used to run synthesis, implementation and bitstream writing without opening the Vivado GUI. The commands to launch them are
 
 ```bash
 	./HOG/LaunchSynthesis.sh <proj_name>

@@ -130,8 +130,8 @@ This guide will assume the presence of a unique library with the same name of yo
 ### IP files
 
 IP files must go in a separate IP folder.
-The IP folder is expected to contain a separate subfolder for each IP.
-The name of the subfolder must be the same as the *.xci file.
+The IP folder is expected to contain a separate sub-folder for each IP.
+The name of the sub-folder must be the same as the *.xci file.
 This will effectively tell HOG to take the due care when evaluating the versioning of these files.
 For each IP in your project run:
 
@@ -149,7 +149,7 @@ then you can run:
 ```
 
 Check that all your IPs are copied over in the IP folder.
-You can also check that the files are correctly picked up by  regenarating the Hog project.
+You can also check that the files are correctly picked up by  regenerating the Hog project.
 If you are satisfied with the changes commit all the files.
 
 ```bash
@@ -171,7 +171,7 @@ It is now time to copy over all your source files.
 In principle you can put your files wherever you feel like but we strongly encourage you to be as methodical as possible.
 We therefore suggest the source files for each library to be contained in a separate folder with the name of the library.
 
-In the current case this means creating a `lib_<fancy_name>` folder where to store all the source, simulation and contraint files
+In the current case this means creating a `lib_<fancy_name>` folder where to store all the source, simulation and constraint files
 
 ```bash
   mkdir -p lib_<fancy_name>/source lib_<fancy_name>/simulation lib_<fancy_name>/constraint
@@ -228,7 +228,11 @@ Do not forget to add the relevant source files to the suitable list file and to 
 
 ### Proprietary files
 
-External proprietary files can be included using the .ext list file. .ext list files must use an absoute path. To use the firmware CI this path must be accessible to the machine performing the git CI, e.g. can be on a protected afs folder. This file has to be used ONLY in the exceptional case of files that cannot be published because of copyright. This file has a special syntax since md5 hash of each file must bne added after the file name, separated by one or more spaces. The md5 hash can be obtained by running the following command:
+External proprietary files can be included using the .ext list file. .ext list files must use an absolute path.
+To use the firmware Continuous Integration this path must be accessible to the machine performing the git CI, e.g. can be on a protected afs folder.
+This file has to be used **ONLY** in the exceptional case of files that can not be published because of copyright.
+This file has a special syntax since md5 hash of each file must be added after the file name, separated by one or more spaces.
+The md5 hash can be obtained by running the following command:
 
 ```bash
   md5sum <filename>
@@ -244,25 +248,25 @@ You can add the following generics to your top file:
 ```vhdl
 generic (
   -- Global Generic Variables
-  GLOBAL_FWDATE       : std_logic_vector(7 downto 0);
-  GLOBAL_FWTIME       : std_logic_vector(7 downto 0);
-  TOP_FWHASH          : std_logic_vector(7 downto 0);
-  XML_HASH            : std_logic_vector(7 downto 0);
-  GLOBAL_FWVERSION    : std_logic_vector(7 downto 0);
-  TOP_FWVERSION       : std_logic_vector(7 downto 0);
-  XML_VERSION         : std_logic_vector(7 downto 0);
-  HOG_FWHASH          : std_logic_vector(7 downto 0);
-  HOG_FWVERSION       : std_logic_vector(7 downto 0);
+  GLOBAL_FWDATE       : std_logic_vector(31 downto 0);
+  GLOBAL_FWTIME       : std_logic_vector(31 downto 0);
+  TOP_FWHASH          : std_logic_vector(31 downto 0);
+  XML_HASH            : std_logic_vector(31 downto 0);
+  GLOBAL_FWVERSION    : std_logic_vector(31 downto 0);
+  TOP_FWVERSION       : std_logic_vector(31 downto 0);
+  XML_VERSION         : std_logic_vector(31 downto 0);
+  HOG_FWHASH          : std_logic_vector(31 downto 0);
+  HOG_FWVERSION       : std_logic_vector(31 downto 0);
   -- Project Specific Lists (One for each .src file in your Top/myproj/list folder)
-  <MYLIB0>_FWVERSION    : std_logic_vector(7 downto 0);
-  <MYLIB0>_FWHASH       : std_logic_vector(7 downto 0);
-  <MYLIB1>_FWVERSION    : std_logic_vector(7 downto 0);
-  <MYLIB1>_FWHASH       : std_logic_vector(7 downto 0);
+  <MYLIB0>_FWVERSION    : std_logic_vector(31 downto 0);
+  <MYLIB0>_FWHASH       : std_logic_vector(31 downto 0);
+  <MYLIB1>_FWVERSION    : std_logic_vector(31 downto 0);
+  <MYLIB1>_FWHASH       : std_logic_vector(31 downto 0);
   -- Submodule Specific variables (only if you have a submodule, one per submodule)
-  <MYSUBMODULE0>_FWHASH : std_logic_vector(7 downto 0);
-  <MYSUBMODULE1>_FWHASH : std_logic_vector(7 downto 0);
+  <MYSUBMODULE0>_FWHASH : std_logic_vector(31 downto 0);
+  <MYSUBMODULE1>_FWHASH : std_logic_vector(31 downto 0);
   -- External library specific variables (only if you have an external library)
-  <MYEXTLIB>_FWHASH       : std_logic_vector(7 downto 0);
+  <MYEXTLIB>_FWHASH       : std_logic_vector(31 downto 0);
   -- Project flavour
   FLAVOUR             : integer
 );
@@ -270,7 +274,7 @@ generic (
 ```
 
 All your source files are now compiled as a separate library called accordingly to the *.src file they are contained in.
-Therefore you have to add the library to yout project:
+Therefore you have to add the library to your project:
 
 ```vhdl
 library <fancy_name>;
@@ -282,12 +286,12 @@ do not forget to test and commit your changes.
 
 ## Optional directories
 
-### Code documenmtation
+### Code documentation
 Hog can also be used to automatically generating and deploying some documentation for your code.
-Hog works with Doxygen version 1.8.13 or later.
-If your code already uses doxygen style comments, then you can easily generate doxygen documentation.
+Hog works with (Doxygen)[http://www.doxygen.nl/] version 1.8.13 or later.
+If your code already uses Doxygen style comments, then you can easily generate Doxygen documentation.
 You just have to create a directory named `doxygen` containing the files used to generate the HDL documentation.
-A file named `doxygen.conf` should be in this directory together with all the files needed to generate your doxygen documentation.
+A file named `doxygen.conf` should be in this directory together with all the files needed to generate your Doxygen documentation.
 You can copy a template configuration from `Hog/Templates/doxygen.conf`.
 
 ## Wrapper scripts

@@ -20,7 +20,7 @@ The path to the generated module is needed since in the future we foresee that H
 ### IPbus xml files
 
 HOG can back annotate the included xmls with the SHA evaluated as described above.
-To your software to correctly assess the validity of the used xmls, then  you must foresee tha presence of a dedicated register where to store the value of the [HOG generic](../02-MAinteiner-Manual/07-Hog-generics).
+To your software to correctly assess the validity of the used xmls, then  you must foresee the presence of a dedicated register where to store the value of the [HOG generic](../02-MAinteiner-Manual/07-Hog-generics).
 The node corresponding to this registers is expected to have the following structure:
 
 ```xml
@@ -28,10 +28,10 @@ The node corresponding to this registers is expected to have the following struc
 ```
 
 During Pre-synthesis, HOG will replace `__GIT_SHA__` with the SHA of the latest commit in which at least one of xmls was modified.
-HOG will also set the `XML_HASH` genertic in your top level to correspond to the same SHA.
-The user can now verify it is using the correct version of the xmls by comparing the `GitSHA` register content withe the `GitSHA` register tag.
+HOG will also set the `XML_HASH` generic in your top level to correspond to the same SHA.
+The user can now verify it is using the correct version of the xmls by comparing the `GitSHA` register content with the `GitSHA` register tag.
 
-The same is valis for the xml version.
+The same is valid for the xml version.
 In this case the node is expected to have the following structure:
 
 ```xml
@@ -44,4 +44,4 @@ In this case the node is expected to have the following structure:
 
 The `__VERSION__` will be set to the version of the xml files taken from the last tag in which at least one of the xml files included in xml.lst was modified.
 The same value will be reported in the `XML_VERSION` generic of the top level of your project.
-The user can now verify it is using the correct version of the xmls by comparing the `GitSHA` register content withe the `GitSHA` register tag.
+The user can now verify it is using the correct version of the xmls by comparing the `GitSHA` register content with the `GitSHA` register tag.

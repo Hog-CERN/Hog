@@ -6,7 +6,7 @@ All the instructions below can be executed both on a Linux shell, or on git bash
 
 [^1]: To open a git bash session navigate to the directory where you want to open the bash (the root folder of your project). Right click on the folder and select open git bash here.
 
-For all of the following to work, Vivado (or Quartus) executable must be in your PATH: i.e. if you type `vivado` the program must run. If you intend to use Modelsim or Questasim, also the vsim executable must be in the PATH: i.e. if you type `vsim` the simulator should start.
+For all of the following to work, Vivado (or Quartus) executable must be in your PATH: i.e. if you type `Vivado` the program must run. If you intend to use Modelsim or Questasim, also the vsim executable must be in the PATH: i.e. if you type `vsim` the simulator should start.
 
 This is a recap of the requirements:
 
@@ -16,7 +16,7 @@ This is a recap of the requirements:
 
 We recommend that you read all of this section as it contains all you need to know to start working straight away without having to waste time later on.
 
-We also suggest that you learn git basics, there is plenty of useful resources online. 
+We also suggest that you learn git basics, there is plenty of useful resources on-line. 
 This will ensure a fruitful usage of a very powerful tool and heavily reduce your frustration.
 
 ## Cloning the repository
@@ -32,7 +32,7 @@ Now you have all the source code and scripts you need in the *repo* folder.
 
 
 ## Create all Vivado/Quartus projects
-Now to start working, you need to create the Vivado/Quartus projects contained in the repository. To do that, just cd into the repository (`cd <repo>`) and type:
+Now to start working, you need to create the Vivado/Quartus projects contained in the repository. To do that, just change directory into the repository (`cd <repo>`) and type:
 
 ```console
 	./Hog/Init.sh
@@ -59,7 +59,7 @@ Now you can open your project with Vivado or Quartus and **work almost normally*
 
 [^5]: The CreateProject script, integrates Hog's Tcl scripts in the Vivado/Quartus project without you noticing it. From now on, Hog scripts will run automatically, every time you start the sysnthesis or any other step in the workflow. The most important script is the pre-synthesis one that interacts with your local git repository and integrates its version and git commit SHA into your HDL project by means of HDL generic parameters.
 
-We said almost normally because there is one exception: you **must not** add a new file to the project[^3] using the GUI (HDL code, constraint, IP, etc.). You **must add** the file name in one of Hog's list files and re create the project, as descirbed in the following paragraph.
+We said almost normally because there is one exception: you **must not** add a new file to the project[^3] using the GUI (HDL code, constraint, IP, etc.). You **must add** the file name in one of Hog's list files and re create the project, as described in the following paragraph.
 
 [^3]: If you add the file normally, your project will work locally, of course. Also, if you add the file with `git add` the new file will also be correctly stored in the repository remotely . The new file will not be part of the project remotely, this is why you have to follow the instructions explained in the following paragraph to assure that everything you do locally is correctly propagated remotely.
 

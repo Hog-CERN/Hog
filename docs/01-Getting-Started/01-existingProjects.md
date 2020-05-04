@@ -118,3 +118,20 @@ Source files taken from different list files will be added to your project in di
 ```
 
 If working within the same library, you can normally use the "work" library.
+
+
+### Wrapper scripts
+
+There is a set of scripts that can be used to run synthesis, implementation and bitstream generation without opening the vivado gui. The commands to launch them are
+
+```console
+	./Hog/LaunchSynthesis.sh <proj_name>
+	./Hog/LaunchIPSynth.sh <proj_name>	
+	./Hog/LaunchImplementation.sh <proj_name>
+	./Hog/LaunchWriteBistream.sh <proj_name>
+```
+
+These scripts call the Tcl scripts contained in Hog/Tcl/launchers that are used in the continuous integration. But as the work perfectly even locally, we wrapped them in these shell scripts so that you can use them locally if you don't want to open the GUI.
+
+Launching the implementation or the bistream generation without having launched the synthesis beforehand will run all the previous stages, exactly as if you clicked the GUI button.
+

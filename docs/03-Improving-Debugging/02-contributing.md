@@ -1,6 +1,4 @@
-# Contributing 
-
-## Contributing to Hog
+# Contributing to Hog
 If you want to contribute to Hog please follow these instructions:
 
 1. go to [HOG on gitlab](https://gitlab.cern.ch/hog/Hog)
@@ -75,7 +73,7 @@ If you want to contribute to Hog please follow these instructions:
 15. drop us a line at [HOG support](mailto:hog@cern.ch)
 16. check your Merge Request and address comments
 
-## Documenting the code
+# Documenting the code
 
 All the code written to implement new features or correct bugs must be documented.
 The main source of documentation is doxygen and comments in the code.
@@ -84,7 +82,7 @@ The doxygen documentation is collected in a devicated [website](https://hdl-on-g
 An example of how to document new functions
 
 ```tcl
-## @brief Brief description of this method
+# @brief Brief description of this method
 #
 # After an empty line you can add a more detailed description.
 # You can even use many lines
@@ -118,7 +116,7 @@ Linked to a detailed description:
 
 The same comment style can be used also for bash scripts provided you use functions in your script.
 
-## Contributing to the Manual
+# Contributing to the Manual
 
 This site uses MkDocs to render the Markdown files.
 The source is hosted on GitLab: [HOG](https://gitlab.cern.ch/hog/Hog)
@@ -135,11 +133,11 @@ Sections are represented by subdirectories within `docs/` and, the section "home
 You can create further markdown files to add topics to the section.\
 Any changes you make to this repo will be automatically propagated to this website when you push your commits into the master.
 
-### Markdown
+## Markdown
 
 This manual is made in markdown, a simple language for formatting text. If you're not familiar, there is a handy cheatsheet [here](https://github.com/adam-p/markdown-here/wiki/Markdown-Cheatsheet). There are a few special cases for the specific flavor of markdown that GitLab uses (most notably for newline syntax) that are documented [here](https://docs.gitlab.com/ee/user/markdown.html).
 
-### Continuous integration set-up
+## Continuous integration set-up
 
 CI for this project was set up using the information in the [mkdocs](https://gitlab.cern.ch/authoring/documentation/mkdocs) repository. The generated website is automagically deployed [here](http://cern.ch/hog-user-manual)
 

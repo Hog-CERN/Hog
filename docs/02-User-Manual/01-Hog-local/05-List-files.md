@@ -108,3 +108,46 @@ md5::md5 -filename <file name>
 ```
 
 HOG, at synthesis time, checks that all the files are there and that their md5 hash matches the one contained in the list file.
+
+# NEXT PARTE USED TO BE SOMEWHERE ESLE
+
+## Why so many list files
+There are several kinds of list files, depending on the extension: .src, .sub, .sim, .con[^4].
+[^4]: Also .ext files exist. They are used to handle external files that are protected by copyright and cannot be published on the repository. Will will not discuss that in this quick guide.
+
+### Source list files
+**.src files** contain HDL files used for synthesis taken from the repository. HDL files coming from one .src list-file, are  included into the Vivado project in the same library, named after the .src file itself. For example if we have a lib_1.src file in our list directory, containing file names inside, like this:
+
+```
+    ../../lib_1/hdl/file1.vhd
+    ../../lib_1/hdl/file2.vhd
+    ../../lib_1/hdl/file3.vhd
+```
+
+they will be included into the Vivado project in the lib_1 library, as we have already discussed.
+
+Properties, like VHDL 2008 compatibility, can be specified after the file name in the list file, separated by any number of spaces. If _file_3.vhd_  requires VHDL 2008, for example, you should specify it like this:
+
+```
+    ../../lib_1/hdl/file1.vhd 
+    ../../lib_1/hdl/file2.vhd
+    ../../lib_1/hdl/file3.vhd 2008
+```
+
+### Constraint list files
+**.con** files contain constraint files. Both .xdc (for Vivado) and .tcl files can be added.
+By specifying the property `nosynth` (after the file name, separated by any number of spaces) we can tell Vivado not to use this specific constraint file in synthesis.
+Viceversa, `noimpl` is used to use the constraint in synthesis only. 
+
+
+### Simulation list files
+Each **.sim files** represent a simulation set and contains HDL files used for simulation only. More importantly, each simulation set (hence each .sim file) must include the HDL file containing the top module of the simulation. The name of the top module must be specified as a property with the keyword `topsim=`. Moreover the .do file and the wave file can be specified, as in the following example:
+
+```
+../../lib_1/tb/hdl/tb_for_lib1.vhd topsim=tb_lib1 wavefile=lib1/wave_lib1.tcl dofile=lib1/dofile_lib1.do
+../../lib_1/tb/hdl/FileReader.vhd
+../../lib_1/tb/hdl/FileWriter.vhd
+```
+
+### Submodule list files
+**.sub files** contain HDL files used for synthesis taken from git submodules in the project. As described in detail in the more advanced documentation, Hog extracts the version and the git SHA for every library in the project. For the files coming from a submodule though, this is not possible as the subomdule may not have tags in the Hog format. This is why files coming from a submodule must be listed in a .sub file having exactly the same name as the submodule. In this case Hog will only extract the git SHA of the submodule and embed it in the firmware.

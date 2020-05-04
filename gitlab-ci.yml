@@ -95,7 +95,7 @@ merge_and_tag:
            else vivado -mode batch -notrace -source ./Hog/Tcl/utils/get_ips.tcl -tclargs -eos_ip_path \"$HOG_IP_EOS_PATH\" $PROJECT_NAME;
             vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_ip_synth.tcl -tclargs -NJOBS $HOG_IP_NJOBS -eos_ip_path \"$HOG_IP_EOS_PATH\" $PROJECT_NAME ;
           fi"
-        - rm BD/*.bd ||:
+        - "rm BD/*.bd ||:"
 
     artifacts:
         name: vivado_runs

@@ -11,16 +11,16 @@ To do so you can define the following generics in your top level entity.
 | GLOBAL_FWTIME           | std_logic_vector   | 32 bit         | time in which the firmware is compiled it uses 00H:M:S fromat  | 
 | TOP_FWHASH              | std_logic_vector   | 32 bit         | hash code (git SHA) for the folder ./Top/\<project_name\> taken from the latest git commit   | 
 | XML_HASH                | std_logic_vector   | 32 bit         | hash code (git SHA) for the latest commit in which at least one of the files in ./Top/\<project_name\>/xml/xm.lst has been modified, available if your project uses IPbus    |
-| GLOBAL_FWVERSION        | std_logic_vector   | 32 bit         | firmware version produced by HOG, it has the form MajorMinorCommit, is produced starting from the latest tag    | 
+| GLOBAL_FWVERSION        | std_logic_vector   | 32 bit         | firmware version produced by Hog, it has the form MajorMinorCommit, is produced starting from the latest tag    | 
 | TOP_FWVERSION           | std_logic_vector   | 32 bit         | version for the ./Top/\<project_name\> folder, it has the form MajorMinorCommit, is produced from the latest tag   |
 | XML_VERSION             | std_logic_vector   | 32 bit         | version for the ./Top/\<project_name\>/xml folder, it has the form MajorMinorCommit, is produced from the latest tag(available if your project uses IPbus) | 
-| HOG_FWHASH              | std_logic_vector   | 32 bit         | hash code (git SHA) for the HOG folder   | 
-| HOG_FWVERSION           | std_logic_vector   | 32 bit         | version for the Hog folder, produced from the latest tag   |
+| Hog_FWHASH              | std_logic_vector   | 32 bit         | hash code (git SHA) for the Hog folder   | 
+| Hog_FWVERSION           | std_logic_vector   | 32 bit         | version for the Hog folder, produced from the latest tag   |
 | \<MYLIB\>_FWVERSION     | std_logic_vector   | 32 bit         | version for the list files used in defining library \<MYLIB\>  |
 | \<MYLIB\>_FWHASH        | std_logic_vector   | 32 bit         | hash code (git SHA) for the files contained \<MYLIB\> list file |
 | \<MYSUBMODULE0\>_FWHASH | std_logic_vector   | 32 bit         | hash code (git SHA) for the last commit of \<MYSUBMODULE\> submodule |
 | \<MYEXTLIB\>_FWHASH     | std_logic_vector   | 32 bit         | hash code (git SHA) for the file contained the \<MYEXTLIB\> list file |
-| FLAVOUR                 | integer            |                | flavour used for generating this bit file, set if your project uses HOG flavours to produce bit files for different devices |
+| FLAVOUR                 | integer            |                | flavour used for generating this bit file, set if your project uses Hog flavours to produce bit files for different devices |
 
 If you do not like to use the generics you are not obliged to do so.
 The Hog scripts will define a generic with the correct name and the generic will be ignored by the HDL synthesizer.

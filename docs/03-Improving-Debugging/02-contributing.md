@@ -1,7 +1,7 @@
 # Contributing to Hog
 If you want to contribute to Hog please follow these instructions:
 
-1. go to [HOG on gitlab](https://gitlab.cern.ch/hog/Hog)
+1. go to [Hog on gitlab](https://gitlab.cern.ch/hog/Hog)
 2. check in the issues list that your improvements/features are not already under development.
 3. create a new issue by clicking on "New issue" button
    - use an understandable short name
@@ -23,12 +23,12 @@ If you want to contribute to Hog please follow these instructions:
 	cd path_to_workdir/
 	git clone --recursive https://gitlab.cern.ch/hog/test/TestFirmware.git
 	```
-6. Create a new branch innthe test firmware repository with the same name as the one in the main HOG repository
+6. Create a new branch innthe test firmware repository with the same name as the one in the main Hog repository
 	```console
 	cd path_to_workdir/TestFirmware/
 	git checkout -b feature/<issue_short_name>
 	```
-7. Move HOG to your branch
+7. Move Hog to your branch
 	```console
 	cd path_to_workdir/TestFirmware/Hog/
 	git checkout feature/<issue_short_name>
@@ -67,10 +67,10 @@ If you want to contribute to Hog please follow these instructions:
 	git push --set-upstream origin feature/<issue_short_name>
 	```
 14. remove WIP status from your Merge Request
-		-  go to [HOG on gitlab](https://gitlab.cern.ch/hog/Hog)
+		-  go to [Hog on gitlab](https://gitlab.cern.ch/hog/Hog)
 		-  navigate to your merge request
 		-  click on "Resolve WIP status" button
-15. drop us a line at [HOG support](mailto:hog@cern.ch)
+15. drop us a line at [Hog support](mailto:hog@cern.ch)
 16. check your Merge Request and address comments
 
 # Documenting the code
@@ -119,7 +119,7 @@ The same comment style can be used also for bash scripts provided you use functi
 # Contributing to the Manual
 
 This site uses MkDocs to render the Markdown files.
-The source is hosted on GitLab: [HOG](https://gitlab.cern.ch/hog/Hog)
+The source is hosted on gitLab: [Hog](https://gitlab.cern.ch/hog/Hog)
 
 To contribute to the user manual plase read this section carefully.
 You should first clone the repository:
@@ -135,7 +135,7 @@ Any changes you make to this repo will be automatically propagated to this websi
 
 ## Markdown
 
-This manual is made in markdown, a simple language for formatting text. If you're not familiar, there is a handy cheatsheet [here](https://github.com/adam-p/markdown-here/wiki/Markdown-Cheatsheet). There are a few special cases for the specific flavor of markdown that GitLab uses (most notably for newline syntax) that are documented [here](https://docs.gitlab.com/ee/user/markdown.html).
+This manual is made in markdown, a simple language for formatting text. If you're not familiar, there is a handy cheatsheet [here](https://github.com/adam-p/markdown-here/wiki/Markdown-Cheatsheet). There are a few special cases for the specific flavor of markdown that gitLab uses (most notably for newline syntax) that are documented [here](https://docs.gitlab.com/ee/user/markdown.html).
 
 ## Continuous integration set-up
 

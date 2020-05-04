@@ -7,13 +7,14 @@ repo_url: https://gitlab.cern.ch/hog/Hog
 
 nav:
 - Introduction: 'index.md'
+
 - 'Getting Started':
   - 01-Getting-Started/01-existingProjects.md
   - 01-Getting-Started/02-setupNewHogProject.md
   - 01-Getting-Started/03-convert-project.md
   - 01-Getting-Started/04-update-hog.md
 
-- 'Maintainer Manual':
+- 'Hog User Manual':
   - 02-User-Manual/01-Hog-local/01-supported-tools.md
   - 02-User-Manual/01-Hog-local/02-available-templates.md
   - 02-User-Manual/01-Hog-local/03-Hog-generics.md

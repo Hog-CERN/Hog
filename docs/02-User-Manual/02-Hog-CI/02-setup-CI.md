@@ -1,11 +1,11 @@
 # How to set-up Hog Continuous Integration
-This chapter describes how to set-up Hog Continuous Integration (CI) on Gitlab.
+This chapter describes how to set-up Hog Continuous Integration (CI) on gitlab.
  In order to access your repository and compile your HDL, the gitlab CI will need a dedicated account. 
  Before staring please get a [service account](#service_account).
 
  Once you  have your service account you to get an [eos space](#eos_space) where to store your \*.bit files and your documentation.
 
- You can now start instructing the gitlab CI on what actions must be taken in order to compile your firmware usinga [YAML file](Gitlab_CI_YAML). 
+ You can now start instructing the gitlab CI on what actions must be taken in order to compile your firmware usinga [YAML file](gitlab_CI_YAML). 
 
   - Create a service account (let's call it john)
   - Log in with it to gitlab and give it access to your repository
@@ -19,30 +19,30 @@ These include the \*.bit files for your firmware and eventually additional files
 You must foresee an eos space where to copy these files.
 For this you can use the eos space of your service account: `/eos/user/<first_letter>/<service_account>`
 In case you do not like to store your files there or you have no access to eos, we provide free eos space under `/eos/project/h/hog/`
-in order to be able to use such a space get in touch with [HOG support](mailto:hog@cern.ch).
+in order to be able to use such a space get in touch with [Hog support](mailto:hog@cern.ch).
 
 
-# Gitlab CI YAML
+# gitlab CI YAML
 
 The gitlab continuous integration uses [YAML files](https://docs.gitlab.com/ee/ci/yaml/) to define which commands it must run.
 Because of this you will need to add a .gitlab-ci.yml file to your the root folder of your repository.
-HOG can not provide a full YAML file for your project but a template file can be found under `Hog` > `Templates` > `gitlab-ci.yml`
+Hog can not provide a full YAML file for your project but a template file can be found under `Hog` > `Templates` > `gitlab-ci.yml`
 You can copy this file and modify it according to your needs.
 More information on how to modify this template can be found in (Set-up a gitlab YAML file)[#Set-up-a-gitlab-YAML-file].
 
-In addition you will need to act on the repository website to define few variables needed by the HOG CI.
-A full description of the used variables can be found in [Gitlab repository set-up](#gitlab-repository-setup) section.
+In addition you will need to act on the repository website to define few variables needed by the Hog CI.
+A full description of the used variables can be found in [gitlab repository set-up](#gitlab-repository-setup) section.
 
-# Gitlab work-flow
+# gitlab work-flow
 
-HOG foresees that you are fully exploiting the gitlab features.
+Hog foresees that you are fully exploiting the gitlab features.
 
 In detail the expected work-flow starts with the creation of a new issue and a correlated merge request and branch.
 To do this go to the gitlab website and navigate to your repository.
 Click on issues and open a new issue describing the fix you are to implement or the new feature you want to introduce.
 Once you have an issue you can open a merge request marked as WIP (work in progress) and a new branch simply by clicking `Create merge request` inside the issue overview.
 
-When creating the merge request please use the *MINOR_VERSION* and *MAJOR_VERSION* keywords in the merge request description to tell HOG the expected version.
+When creating the merge request please use the *MINOR_VERSION* and *MAJOR_VERSION* keywords in the merge request description to tell Hog the expected version.
 
 
 You will now have a new branch connected to the merge request.
@@ -75,15 +75,15 @@ The final version will have the form *vMAJOR_VERSION.MINOR_VERSION.patch*.
 You will be able to change these numbers by editing the merge request description.
 
 The bit 31 down to 24 are indicate a major revision number; this number can be increased by placing `MAJOR_VERSION` in the merge request description. 
-While merging the merge request HOG will read the description, find the `MAJOR_VERSION` keyword and increase the major revision counter.
+While merging the merge request Hog will read the description, find the `MAJOR_VERSION` keyword and increase the major revision counter.
 This will also reset the minor and patch counters.
 
 The bit 23 down to 16 are indicate a minor revision number; this number can be increased by placing `MINOR_VERSION` in the merge request description. 
-While merging the merge request HOG will read the description, find the `MINOR_VERSION` keyword and increase the minor revision counter.
+While merging the merge request Hog will read the description, find the `MINOR_VERSION` keyword and increase the minor revision counter.
 This will also reset the patch counters.
 
 The bit 15 down to 0 are indicate a major revision number; this number will be increased automatically at each accepted merge request. 
-While merging the merge request HOG will read the description, find no keyword and increase the patch counter.
+While merging the merge request Hog will read the description, find no keyword and increase the patch counter.
  
 ### Examples
 

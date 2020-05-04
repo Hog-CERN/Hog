@@ -11,7 +11,7 @@ If you want to use your private Virtual Machine you can find more information in
 
 In this section you can find more information on how to set up your private gitlab runner.
 Instructions are provided assuming you have access to the CERN computing resources. 
-If this is not the case you can still use HOG provided that you have a machine running CentOS 7 set up as a gitlab runner.
+If this is not the case you can still use Hog provided that you have a machine running CentOS 7 set up as a gitlab runner.
 In the latter case you can ignore the next section and jump directly to [Install gitlab runner](#install_gitlab runner)
 
 ### Create an CERN Openstack Virtual Machine
@@ -66,7 +66,7 @@ Mount the volume you created, make sure you own it, format it, etc...
  chown -hR <username> /mnt/vd        # own the disk
 ```
 
-*NOTE* there is no need to add this disk to /etc/fstab for automati mounting since HOG will later do this automatically.
+*NOTE* there is no need to add this disk to /etc/fstab for automati mounting since Hog will later do this automatically.
 
 You are now ready to install your favourite tools!
 
@@ -86,7 +86,7 @@ Information on How to install a new gitlab runnare on your VM can be found [here
 - Open with your preferred editor with sudo rights `/etc/gitlab-runner/config.toml`
 - In the `global section` add ``concurrent = NUMBER_OF_CONCURRENT_CPU``:  limits how many jobs globally can be run concurrently. That means, it applies to all the runners on the machine independently of the executor [docker, ssh, kubernetes etc]
 - In the `runner section` add ``limit = MAX_NUMBER_OF_CONCURRENT_JOB_PER_RUNNER``: Limit how many jobs can be handled concurrently by this token. Suppose that we have 2 runners registered by 2 different tokens, then its limit could be adjusted separately : runner-one limit = 3, runner-two limit =5,
-- In the `runner section` add ``request_concurrency = NUMBER_OF_CONCURRENT_REQUESTS_PER_NEW_JOBS`` : Limit number of concurrent requests for new jobs from GitLab (default 1)
+- In the `runner section` add ``request_concurrency = NUMBER_OF_CONCURRENT_REQUESTS_PER_NEW_JOBS`` : Limit number of concurrent requests for new jobs from gitLab (default 1)
 - [Have a look here for more info](https://medium.com/faun/maximize-your-gitlab-runner-power-with-ci-cd-concurrent-pipelines-a5dcc092cee7)
 - Example ``config.toml``
 
@@ -100,7 +100,7 @@ Information on How to install a new gitlab runnare on your VM can be found [here
   [[runners]]
     limit = 4
     request_concurrency = 4
-    name = "HOG vivado runner on mypc"
+    name = "Hog vivado runner on mypc"
     url = "https://gitlab.cern.ch"
     token = "ibsaidbasdhubavsuod"
     executor = "shell"
@@ -111,17 +111,17 @@ Information on How to install a new gitlab runnare on your VM can be found [here
 ```
 If something goes wrong, please report it.
 
-### HOG set-up on the gitlab runner
+### Hog set-up on the gitlab runner
 
-Hog will need the Virtual Machine you use as Gitlab runner to be properly set-up.
+Hog will need the Virtual Machine you use as gitlab runner to be properly set-up.
 - Clone Hog repository somewhere accessible from the VM, e.g. on you AFS home
 - ssh into your virtual machine as yourself
 - Become root
 - Export the following system variables:
-  - __HOG_USERNAME__= The name of you service account, e.g. john
-  - __HOG_VIVADO_DIR__= Path of your Vivado SDK installation directory containing the xsetup executable (not required if you run the script with the ``-x`` flag)
-  - __HOG_TOKEN__= a valid gitlab private runner token: Go to `Settings` -> `CI/CD` and expand the `Runners` tab. The registration token in `Specific Runners ` column.
-  - __HOG_USERGROUP__= The name of your user group, e.g. "zp" for ATLAS
+  - __Hog_USERNAME__= The name of you service account, e.g. john
+  - __Hog_VIVADO_DIR__= Path of your Vivado SDK installation directory containing the xsetup executable (not required if you run the script with the ``-x`` flag)
+  - __Hog_TOKEN__= a valid gitlab private runner token: Go to `Settings` -> `CI/CD` and expand the `Runners` tab. The registration token in `Specific Runners ` column.
+  - __Hog_USERGROUP__= The name of your user group, e.g. "zp" for ATLAS
 - Go to the VM directory and launch the __hog-vm-setup.sh__ script
 - Once the script has finished, you can login to the VM as your service account (john)
 

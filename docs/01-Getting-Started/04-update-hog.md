@@ -1,9 +1,9 @@
-  # Update HOG
+  # Update Hog
 
 Create a new merge request and a new branch starting from master.
 Checkout the branch and there go into the Hog directory
 
-Before updating HOG go to the hog repository and checkout the release notes for the latest version of HOG.
+Before updating Hog go to the hog repository and checkout the release notes for the latest version of Hog.
 *NOTE* that any peculiarity of a specific release is reported in the release notes and may require more changes with respect to the ones reported here.
 To get the latest release simply run:
 
@@ -11,7 +11,7 @@ To get the latest release simply run:
 git describe --tags $(git rev-list --tags --max-count=1)
 ```
 
-You can now update HOG to the last release:
+You can now update Hog to the last release:
 
 ```bash
   Repo>     cd Hog
@@ -20,7 +20,7 @@ You can now update HOG to the last release:
 ```
 Here vX.Y.Z is the output of the git describe command above.
 
-*NOTE* if you want specific new features you can also use the master of the HOG repository. 
+*NOTE* if you want specific new features you can also use the master of the Hog repository. 
 Please be careful and check what you are getting.
 To use the master simply run:
 

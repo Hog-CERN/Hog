@@ -65,7 +65,7 @@ However, the most important script is `Hog/CreateProject.sh` that serves to crea
 Everything is as transparent as we could think of, designed to make you waste just little bit of time and get you to work to the HDL design as soon as possible.
 
 
-## HOG user manual
+## Hog user manual
 
 In this website you can find a quick guide to learn how to work in a [Hog-handled repository](01-Getting-Started/01-existingProjects) or to [set-up a new one](01-Getting-Started/03-setupNewHogProject) and a complete user manual to understand all the details and learn how to maintain a Hog-handled repository.
 
@@ -73,10 +73,10 @@ Would you like to have fun with git and a Tcl? Please join us and read the [Cont
 
 ## Contacts
 
-To report an issue use the git issues in the [HOG git repository](https://gitlab.cern.ch/hog/Hog).
+To report an issue use the git issues in the [Hog git repository](https://gitlab.cern.ch/hog/Hog).
 Please check in existing and solved issues before submitting a new issue.
 
-For questions related to the HOG package, please get in touch with [HOG support](mailto:hog@cern.ch).
+For questions related to the Hog package, please get in touch with [Hog support](mailto:hog@cern.ch).
 
 For anything related to this site, please get in touch with [Nicolò Biesuz](mailto:nbiesuz@cern.ch).
 

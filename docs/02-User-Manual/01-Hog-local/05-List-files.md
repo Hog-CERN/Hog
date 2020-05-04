@@ -5,7 +5,7 @@ This section contains the full instructions on how to build your list files.
 ## .src files
 
 Files with the .src extension are used to include HDL files belonging to a single library and the .xci files of the IPs used in the library.
-HOG will generate a new library for each .src file.
+Hog will generate a new library for each .src file.
 For example if we have a lib_1.src file in our list directory, containing 5 file names inside, like this:
 
 ```bash
@@ -44,8 +44,8 @@ IP to be included in you project can be
 ## .sub files
 
 To add files coming from a submodule to your project you must list them in a .sub list file.
-This tells HOG that those files are taken from a submodule rather than from a library belonging to the main HDL repository.
-HOG will not try to evaluate the version of those files, but it will evaluate the git SHA of the submodule.
+This tells Hog that those files are taken from a submodule rather than from a library belonging to the main HDL repository.
+Hog will not try to evaluate the version of those files, but it will evaluate the git SHA of the submodule.
 
 *NOTE* that the list file must be called as the submodule itself. 
 Id est, if you include the submodule `repo/sub_1/` then the corresponding list file must be `repo/Top/proj/list/sub_1.sub`
@@ -107,7 +107,7 @@ the same checksum can be obtained on the Vivado or QuartusPrime tcl shell by usi
 md5::md5 -filename <file name>
 ```
 
-HOG, at synthesis time, checks that all the files are there and that their md5 hash matches the one contained in the list file.
+Hog, at synthesis time, checks that all the files are there and that their md5 hash matches the one contained in the list file.
 
 # NEXT PARTE USED TO BE SOMEWHERE ESLE
 

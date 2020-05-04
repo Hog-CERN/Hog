@@ -88,7 +88,7 @@ Now you can add the .xci normally to any source list file in the list folder of 
 
 #### IP initialization files (.coe)
 
-Please note that the `.gitignore` template provided by HOG adds constraints on the IP folder.
+Please note that the `.gitignore` template provided by Hog adds constraints on the IP folder.
 Out of all the files contained in *repo*/*IP*/, git will pick up only xci files.
 Files with different extensions will be ignored.
 If you have *.coe files for RAM initialization or analogous files please make sure the rules in the `.gitignore` file are set correctly or store these files in a separate folder.

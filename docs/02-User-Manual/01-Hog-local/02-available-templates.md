@@ -1,23 +1,23 @@
 # Available templates
 
-The following file templates are distributed with HOG:
+The following file templates are distributed with Hog:
 
 - `top.tcl`
 
 	- example of tcl script to generate the HDL project
-	- contains the definition of the variables used by HOG to generate your project;
+	- contains the definition of the variables used by Hog to generate your project;
 	- to use this file copy it to the `Top/project/` directory, rename it and modify it to accommodate your project;
 
 - `top.vhd`:
 
 	- example of top level file in VHDL;
-	- contains the definition of the generics set by HOG to keep track of the firmware versions;
+	- contains the definition of the generics set by Hog to keep track of the firmware versions;
 	- to use this file copy it anywhere in your project, rename it and modify it to accommodate your project, remember to rename the contained entity `top_<project_name>` and to include the file in a list file in `Top/project/list/` directory;
 
 - `top.v`:
 
 	- example of top level file in Verilog;
-	- contains the definition of the parameters set by HOG to keep track of the firmware versions;
+	- contains the definition of the parameters set by Hog to keep track of the firmware versions;
 	- to use this file copy it anywhere in your project, rename it and modify it to accommodate your project, remember to rename the contained module `top_<project_name>` and to include the file in a list file in `Top/project/list/` directory;
 
 - `gitlab-ci.yml`:

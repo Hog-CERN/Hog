@@ -3,7 +3,7 @@
 As previoulsy stated Hog uses a TCL script located in `./Top/<my_project>/<my_project>.tcl` to genenate the the HDL project.
 
 The `<my_project>.tcl` is exected to define few basic variables containing the information needed to build your project.
-The tcl script is expected to call the `./Hog/Tcl/create-project.tcl` script after setting the needed environment variables.
+The tcl script is expected to call the `./Hog/Tcl/create_project.tcl` script after setting the needed environment variables.
 The latter script will read back the variables and generate the HDL project.
 This section contains a full recipe to builtd the tcl script for your project.
 
@@ -27,7 +27,7 @@ If this line is not avalable HOG will assume your project runs under Vivado.
 
 ## TCL Variables
 
-The `./Hog/Tcl/create-project.tcl` uses the following variables to build your project.
+The `./Hog/Tcl/create_project.tcl` uses the following variables to build your project.
 
 | Variable Name     | description                                                                                               | comments                                                  |
 |:------------------|:----------------------------------------------------------------------------------------------------------|:----------------------------------------------------------|

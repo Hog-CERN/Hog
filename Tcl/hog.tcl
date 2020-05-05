@@ -471,6 +471,7 @@ proc GetHashLib {lib} {
 proc GetFileList {FILE path} {
   set fp [open $FILE r]
   set file_data [read $fp]
+  set file_list {}
   close $fp
     #  Process data file
   set data [split $file_data "\n"]
@@ -482,9 +483,9 @@ proc GetFileList {FILE path} {
       if {[file exists $vhdlfile]} {
         set extension [file ext $vhdlfile]
         if { [lsearch {.src .sim .con .sub} $extension] >= 0 } {
-          lappend lista {*}[GetFileList $vhdlfile $path]]
+          lappend file_list {*}[GetFilefile_List $vhdlfile $path]]
         } else {
-          lappend lista $vhdlfile
+          lappend file_list $vhdlfile
         }
       } else {
         Msg Warning "File $vhdlfile not found"
@@ -492,7 +493,7 @@ proc GetFileList {FILE path} {
     }
   }
 
-  return $lista
+  return $file_list
 }
 ########################################################
 

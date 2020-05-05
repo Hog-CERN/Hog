@@ -483,7 +483,7 @@ proc GetFileList {FILE path} {
       if {[file exists $vhdlfile]} {
         set extension [file ext $vhdlfile]
         if { [lsearch {.src .sim .con .sub} $extension] >= 0 } {
-          lappend file_list {*}[GetFilefile_List $vhdlfile $path]]
+          lappend file_list {*}[GetFileList $vhdlfile $path]]
         } else {
           lappend file_list $vhdlfile
         }

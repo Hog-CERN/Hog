@@ -53,17 +53,10 @@ if {($ip_path != 0) && ($ips != "")  } {
     set ret [HandleIP pull [get_property IP_FILE $ip] $ip_path $main_folder]
     if {$ret == 0} {
       incr copied_ips 
-      reimport_files [get_property IP_FILE $ip]
     }
   }
 
   Msg Info "$copied_ips IPs were copied from the EOS repository"
-
-#  if {$copied_ips > 0} {
- #   Msg Info "Re-creating project $project..."
- #   close_project
- #   source $repo_path/Top/$project/$project.tcl
- # }
 }
 
 Msg Info "All done."

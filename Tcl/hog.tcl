@@ -1239,6 +1239,7 @@ proc HandleIP {what_to_do xci_file ip_path runs_dir {force 0}} {
       if  {($ret_s == 0) && ([llength $ip_syn_files] > 0)} {
         eos "cp -r $ip_path/$file_name/synthesized/* $runs_dir"
         puts $runs_dir
+        [exec ls $runs_dir]
       } else {
         Msg Warning "Cound not find synthesized IP files on EOS path"
       }

@@ -56,7 +56,7 @@ merge_and_tag:
           - "MR_PARAMETERS=`curl --header \"PRIVATE-TOKEN: ${HOG_PUSH_TOKEN}\" ${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/merge_requests/${CI_MERGE_REQUEST_IID}`"
           - tclsh ./Tcl/utils/merge_and_tag.tcl -Hog  -mr_par "$MR_PARAMETERS" -mr_id $CI_MERGE_REQUEST_IID -push $CI_COMMIT_REF_NAME
           - git fetch origin refs/notes/*:refs/notes/*
-          - git notes add -m "$CI_MERGE_REQUEST_IID"
+          - git notes add -fm "$CI_MERGE_REQUEST_IID"
           - git push origin refs/notes/*
           - ./Other/Changelog.sh $CI_MERGE_REQUEST_TARGET_BRANCH_NAME > changelog.md
       artifacts:

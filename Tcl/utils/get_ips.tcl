@@ -23,10 +23,14 @@ if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] 
   exit 1
 } elseif { $::argc eq 1 } {
   set project [lindex $argv 0]
+  Msg Info "Creating directory $repo_path/VivadoProject/$project/$project.runs"
+  file mkdir $repo_path/VivadoProject/$project/$project.runs
   set main_folder [file normalize "$repo_path/VivadoProject/$project/$project.runs/"]
   set ip_path 0
 } else {
   set project [lindex $argv 0]
+  Msg Info "Creating directory $repo_path/VivadoProject/$project/$project.runs"
+  file mkdir $repo_path/VivadoProject/$project/$project.runs
   set main_folder [file normalize "$repo_path/VivadoProject/$project/$project.runs/"]
   set ip_path $options(eos_ip_path)
   Msg Info "Will use the EOS ip repository on $ip_path to speed up ip synthesis..."
@@ -49,16 +53,17 @@ if {($ip_path != 0) && ($ips != "")  } {
     set ret [HandleIP pull [get_property IP_FILE $ip] $ip_path $main_folder]
     if {$ret == 0} {
       incr copied_ips 
+      reimport_files [get_property IP_FILE $ip]
     }
   }
 
   Msg Info "$copied_ips IPs were copied from the EOS repository"
 
-  if {$copied_ips > 0} {
-    Msg Info "Re-creating project $project..."
-    close_project
-    source $repo_path/Top/$project/$project.tcl
-  }
+#  if {$copied_ips > 0} {
+ #   Msg Info "Re-creating project $project..."
+ #   close_project
+ #   source $repo_path/Top/$project/$project.tcl
+ # }
 }
 
 Msg Info "All done."

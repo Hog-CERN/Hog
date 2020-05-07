@@ -1236,11 +1236,11 @@ proc HandleIP {what_to_do xci_file ip_path runs_dir {force 0}} {
         Msg Warning "Cound not find generated IP files on EOS path"
       }
 
-      #if  {($ret_s == 0) && ([llength $ip_syn_files] > 0)} {
-      #  eos "cp -r $ip_path/$file_name/synthesized/* $runs_dir" 5
-      #} else {
-      #  Msg Warning "Cound not find synthesized IP files on EOS path"
-      #}
+      if  {($ret_s == 0) && ([llength $ip_syn_files] > 0)} {
+        eos "cp $ip_path/$file_name/synthesized/$xci_ip_name\_synth_1/*.rpt $xci_path" 5
+      } else {
+        Msg Warning "Cound not find synthesized IP files on EOS path"
+      }
     }
   }
 

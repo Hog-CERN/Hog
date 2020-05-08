@@ -41,6 +41,8 @@ theme:
       name: material
       logo: 'custom/assets/images/white.png'
       custom_dir: docs/custom/
+      features:
+        - tabs
 
 extra_css:
     - extra.css

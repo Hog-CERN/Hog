@@ -1,23 +1,71 @@
-vivado* 
-*~ 
-*.pyc 
-.cxl.ip/ 
-cxl_error.log
-*.log
-Vivado*
-Modelsim*
-SimulationLib*
-.cxl*
-compile*
-*.ini
-transcript*
-profpga
-*.out
-bin*/
-*.Xil
-
-BD/*
-!BD/*.bd
+### Hog .gitignore ###
 IP/*/*
 !IP/*/*.xci
+
+## OS
+.DS_Store
+.DS_Store?
+.Trashes
+**.Trashes
+ehthumbs.db
+Thumbs.db
+
+## MISCELLANEA
+**.tmp
+!/.gitignore
+bin
+gitk
+*~
+**.pyc
 Doc/*
+**.log
+
+## CERNbox
+._*
+**._*
+
+## Sigasi Studio
+.library_mapping.xml
+.project
+.settings
+
+## Xilinx Vivado
+**.str
+**.jou
+.Xil/
+.Xilinx/
+Projects/
+output/
+lastbuilt.txt
+credentials.sh
+VivadoProject
+SimulationLib
+profpga
+BD/*
+!BD/*.bd
+
+## Software building
+**.depend
+**.layout
+**.o
+bin*/
+obj/
+compile*
+*.out
+
+## ModelSim, UVVM
+transcript*
+work/
+.cxl*
+# .cxl.modelsim.version # .cxl.ip/
+_Alert.txt
+_Log.txt
+_info
+**.mti
+**.mtp
+**.mpf
+**.wlf
+**.ini
+**.qdb
+**.qpg
+**.qtl

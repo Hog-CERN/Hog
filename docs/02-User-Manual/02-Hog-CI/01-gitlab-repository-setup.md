@@ -46,7 +46,7 @@ With the following **optional** variables you can configure the behaviour of Hog
 | __Hog_USE_DOXYGEN__          | Should be set to 1 if you want the Hog CI to run Doxygen (in progress...) |
 | __Hog_CHECK_SYNTAX__	       | 									   |
 | __Hog_CHECK_YAMLREF__	       | If this variable is set, Hog CI will check that "ref" in .gitlab-ci.yml actually matches the gitlab-ci file in the Hog submodule |
-| __Hog_IP_EOS_PATH__	         |									   |
+| __Hog_IP_EOS_PATH__	         |	ciao								   |
 | __Hog_NO_BITSTREAM_STAGE__   |									   |
 | __Hog_SIMULATION_LIB_PATH__  |									   |
 | __Hog_USE_DOXYGEN__          |                                                                           |

@@ -43,6 +43,9 @@ theme:
       custom_dir: docs/custom/
       features:
         - tabs
+        - instant
+
+
 
 extra_css:
     - extra.css

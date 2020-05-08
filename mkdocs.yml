@@ -6,29 +6,28 @@ repo_name: GitLab
 repo_url: https://gitlab.cern.ch/hog/Hog
 
 nav:
-- Introduction: 'index.md'
-- 'Getting Started':
-  - 01-Getting-Started/01-existingProjects.md
+- Introduction: index.md
+- Getting_Started: 01-Getting-Started/01-existingProjects.md
   - 01-Getting-Started/02-setupNewHogProject.md
   - 01-Getting-Started/03-convert-project.md
   - 01-Getting-Started/04-update-hog.md
-- 'Hog User Manual':
-  - 'Using Hog Locally':
+- Hog_User_Manual: 02-User-Manual/01-Hog-local/01-supported-tools.md
+  - Using_Hog_Locally: 02-User-Manual/01-Hog-local/01-supported-tools.md
     - 02-User-Manual/01-Hog-local/01-supported-tools.md
     - 02-User-Manual/01-Hog-local/02-available-templates.md
     - 02-User-Manual/01-Hog-local/03-Hog-generics.md
     - 02-User-Manual/01-Hog-local/04-Project-Tcl.md
     - 02-User-Manual/01-Hog-local/05-List-files.md
     - 02-User-Manual/01-Hog-local/6-IPbus-support.md
-  - 'Hog Continuous Integration':
+  - Hog_Continuous_Integration: 02-User-Manual/02-Hog-CI/01-gitlab-repository-setup.md
     - 02-User-Manual/02-Hog-CI/01-gitlab-repository-setup.md
     - 02-User-Manual/02-Hog-CI/02-setup-CI.md
     - 02-User-Manual/02-Hog-CI/03-HOG-CI-stages.md
     - 02-User-Manual/02-Hog-CI/04-Virtual-Machines.md
-- 'Contributing to Hog':
+- Contributing_to_Hog: 03-Improving-Debugging/01-reporting-bug.md
   - 03-Improving-Debugging/01-reporting-bug.md
   - 03-Improving-Debugging/02-contributing.md 
-- 'MkDocs official documentation': https://www.mkdocs.org/
+- MkDocs_official_documentation: https://www.mkdocs.org/
 
 theme:
       name: material

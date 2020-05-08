@@ -7,13 +7,11 @@ repo_url: https://gitlab.cern.ch/hog/Hog
 
 nav:
 - Introduction: 'index.md'
-
 - 'Getting Started':
   - 01-Getting-Started/01-existingProjects.md
   - 01-Getting-Started/02-setupNewHogProject.md
   - 01-Getting-Started/03-convert-project.md
   - 01-Getting-Started/04-update-hog.md
-
 - 'Hog User Manual':
   - 'Using Hog Locally':
     - 02-User-Manual/01-Hog-local/01-supported-tools.md
@@ -27,16 +25,11 @@ nav:
     - 02-User-Manual/02-Hog-CI/02-setup-CI.md
     - 02-User-Manual/02-Hog-CI/03-HOG-CI-stages.md
     - 02-User-Manual/02-Hog-CI/04-Virtual-Machines.md
-
 - 'Contributing to Hog':
   - 03-Improving-Debugging/01-reporting-bug.md
   - 03-Improving-Debugging/02-contributing.md 
-
 - 'MkDocs official documentation': https://www.mkdocs.org/
 
-
-markdown_extensions:
-  - footnotes
 theme:
       name: material
       logo: 'custom/assets/images/white.png'
@@ -45,10 +38,31 @@ theme:
         - tabs
         - instant
 
-
-
 extra_css:
     - extra.css
+
+
+markdown_extensions:
+    - toc:
+        permalink: true
+    - codehilite:
+        linenums: true
+    - admonition
+    - meta
+    - footnotes
+    - attr_list
+    - def_list
+    - abbr
+    - pymdownx.arithmatex
+    - pymdownx.details
+    - pymdownx.emoji
+    - pymdownx.magiclink
+    - pymdownx.pathconverter
+    - pymdownx.tasklist
+    - pymdownx.betterem
+    - pymdownx.superfences
+    - pymdownx.extrarawhtml
+
 
 #plugins:
 #    - search

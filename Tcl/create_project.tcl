@@ -58,7 +58,7 @@ proc CreateProject {} {
     }
     create_project -force $globalSettings::DESIGN $globalSettings::BUILD_DIR -part $globalSettings::FPGA
 
-        ## Set project properties
+    ## Set project properties
     set obj [get_projects $globalSettings::DESIGN]
     set_property "simulator_language" "Mixed" $obj
     set_property "target_language" "VHDL" $obj
@@ -368,7 +368,7 @@ proc configureProperties {} {
 
 proc upgradeIP {} {
   if {[info commands send_msg_id] != ""} {
-        # set the current impl run
+    # set the current impl run
     current_run -implementation [get_runs impl_1]
 
 

@@ -1248,7 +1248,7 @@ proc HandleIP {what_to_do xci_file ip_path runs_dir {force 0}} {
       }
 
       if  {($ret_s == 0) && ([llength $ip_syn_files] > 0)} {
-        eos "cp -r $ip_path/$file_name/synthesized/* $runs_dir" 5
+        eos "cp $ip_path/$file_name/synthesized/$xci_ip_name\_synth_1/*.rpt $xci_path" 5
       } else {
         Msg Warning "Cound not find synthesized IP files on EOS path"
       }
@@ -1395,9 +1395,10 @@ proc eos {command {attempt 1}}  {
     if {$ret == 0} {
       break
     } else {
-      if {$attempt > 0} {
-        Msg Warning "Command $command failed ($i/$attempt): $result, trying again in 2 seconds..."
-        after 2000
+      if {$attempt > 1} {
+        set wait [expr {1+int(rand()*29)}]
+        Msg Warning "Command $command failed ($i/$attempt): $result, trying again in $wait seconds..."
+        after [expr $wait*1000]
       }
     }
   }

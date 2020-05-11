@@ -46,5 +46,20 @@ if {$prog ne "100%"} {
   Msg Error "Synthesis error, status is: $status"
 }
 
+# Copy IP reports in bin/
+set ips [get_ips *]
+cd $old_path
+set describe [exec git describe --always --dirty --tags --long]
+
+foreach ip $ips {
+  set xci_file [get_property IP_FILE $ip]
+  set xci_path [file dir $xci_file]
+  set xci_ip_name [file root [file tail $xci_file]]
+  foreach rptfile [glob -nocomplain -directory $xci_path *.rpt] {
+    file copy $rptfile $old_path/bin/$project-$describe/reports
+  }
+}
+
+
 Msg Info "All done."
 cd $old_path

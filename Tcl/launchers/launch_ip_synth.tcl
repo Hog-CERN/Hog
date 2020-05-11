@@ -1,4 +1,4 @@
-# @file
+ # @file
 # Launch the IP synthesis in a vivado project in text mode
 
 #parsing command options
@@ -59,18 +59,15 @@ if {$ips != ""} {
     if { [get_runs $ip\_synth_1] != "" } {
       Msg Info "Adding run for $ip..."
       set run_name [get_runs $ip\_synth_1]
-      set prog [get_property PROGRESS [get_runs $ip\_synth_1]] 
-      set status [get_property STATUS [get_runs $ip\_synth_1]]
-      Msg Info "Run: $run_name progress: $prog, status: $status"
-      if {$prog ne "100%"} {
-      	reset_run $run_name
-        lappend runs $run_name
-      }	
+      reset_run $run_name
+      lappend runs $run_name
     } else {
       Msg Info "No run found for $ip."
     }
   }
 }
+
+
 
 Msg Info "Number of jobs set to $options(NJOBS)."
 set jobs $options(NJOBS)

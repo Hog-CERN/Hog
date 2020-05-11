@@ -260,7 +260,7 @@ set describe [exec git describe --always --dirty --tags --long]
 Msg Info "Git describe: $describe"
 set dst_dir [file normalize "bin/$proj_name\-$describe"]
 Msg Info "Creating $dst_dir..."
-file mkdir $dst_dir
+file mkdir $dst_dir/reports
 
 Msg Info "Evaluating differences with last commit..."
 set diff [exec git diff]

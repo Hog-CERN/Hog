@@ -1,0 +1,6 @@
+Hog
+HDL
+Vivado
+Quartus
+git
+Gitlab

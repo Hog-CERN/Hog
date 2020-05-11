@@ -6,32 +6,67 @@ repo_name: GitLab
 repo_url: https://gitlab.cern.ch/hog/Hog
 
 nav:
-- Introduction: 'index.md'
+- Introduction: index.md
 - 'Getting Started':
   - 01-Getting-Started/01-existingProjects.md
-  - 01-Getting-Started/02-otherFeatures.md
-  - 01-Getting-Started/03-setupNewHogProject.md
-
-- 'Maintainer Manual':
-  - 02-Maintainer-Manual/01-setup-CI.md
-  - 02-Maintainer-Manual/02-gitlab-repository-setup.md
-  - 02-Maintainer-Manual/03-Virtual-Machines.md
-  - 02-Maintainer-Manual/04-convert-project.md
-  - 02-Maintainer-Manual/05-supported-tools.md
-  - 02-Maintainer-Manual/06-available-templates.md
-  - 02-Maintainer-Manual/07-Hog-generics.md
-  - 02-Maintainer-Manual/08-Project-Tcl.md
-  - 02-Maintainer-Manual/09-List-files.md
-  - 02-Maintainer-Manual/10-IPbus-support.md
-
-- 'Contributing to Hog':
-  - 03-Contributing/01-contributing.md  
-
+  - 01-Getting-Started/02-setupNewHogProject.md
+  - 01-Getting-Started/03-convert-project.md
+  - 01-Getting-Started/04-update-hog.md
+- 'Hog User Manual': 
+  - 'Using Hog Locally': 
+    - 02-User-Manual/01-Hog-local/01-supported-tools.md
+    - 02-User-Manual/01-Hog-local/02-available-templates.md
+    - 02-User-Manual/01-Hog-local/03-Hog-generics.md
+    - 02-User-Manual/01-Hog-local/04-Project-Tcl.md
+    - 02-User-Manual/01-Hog-local/05-List-files.md
+    - 02-User-Manual/01-Hog-local/06-IPbus-support.md
+  - 'Hog Continuous Integration': 
+    - 02-User-Manual/02-Hog-CI/01-gitlab-repository-setup.md
+    - 02-User-Manual/02-Hog-CI/02-setup-CI.md
+    - 02-User-Manual/02-Hog-CI/03-HOG-CI-stages.md
+    - 02-User-Manual/02-Hog-CI/04-Virtual-Machines.md
+- 'Contributing to Hog': 
+  - 03-Improving-Debugging/01-reporting-bug.md
+  - 03-Improving-Debugging/02-contributing.md 
 - 'MkDocs official documentation': https://www.mkdocs.org/
 
-markdown_extensions:
-  - footnotes
 theme:
       name: material
       logo: 'custom/assets/images/white.png'
       custom_dir: docs/custom/
+      features:
+        - tabs
+        - instant
+
+extra_css:
+    - extra.css
+
+
+markdown_extensions:
+    - toc:
+        permalink: true
+    - codehilite:
+        linenums: true
+    - admonition
+    - meta
+    - footnotes
+    - attr_list
+    - def_list
+    - abbr
+    - pymdownx.arithmatex
+    - pymdownx.details
+    - pymdownx.emoji
+    - pymdownx.magiclink
+    - pymdownx.pathconverter
+    - pymdownx.tasklist
+    - pymdownx.betterem
+    - pymdownx.superfences
+    - pymdownx.extrarawhtml
+
+
+#plugins:
+#    - search
+#    - pdf-export:
+#        media_type: print
+#        combined: true
+

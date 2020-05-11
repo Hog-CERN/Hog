@@ -1,0 +1,6 @@
+# Hog documentation principles
+
+- Write in a more formal manner
+- Use **shall** and **must** for mandatory rules, **should** for rules that can have rare exceptions, **might** and **can** for advice that can be ignored without consequences
+- Paths and instructions between ticks
+- Use \<...\> for argiuments and [...] for options

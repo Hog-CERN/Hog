@@ -3,31 +3,67 @@
 # @brief launch /Tcl/launchers/launch_implementation.tcl using Vivado
 # @todo LaunchImplementation.sh: update for Quartus support
 # @todo LaunchImplementation.sh: check is vivado is installed an set-up in the shell (if [ which vivado ]) 
-# @todo LaunchImplementation.sh: check arg $1 and $2 before passing it to the Tcl script
 
-DIR="$( cd "$( dirname "${BASH_SOURCE[1]}" )" && pwd )"
 
-##! if called with -h or, -help or, --help or, -H optiins print help message and exit 
-if [ "$1" == "-h" ] || [ "$1" == "-help" ] || [ "$1" == "--help" ] || [ "$1" == "-H" ]; then
-  echo
-  echo " Hog - Launch Implementation"
-  echo " ---------------------------"
-  echo " Use Vivado to launch implementation for a specified project"
-  echo
-  echo "Usage:"
-  echo -e "\t ./Hog/LaunchImplementation.sh <proj_name> [-no_bitstream]\n"
-  echo
-  echo "Arguments:"
-  echo -e "\t -no_bitstream \t do not create a binary file"
-  echo
-  exit 0
+## @function argument_parser()
+#  @brief pase aguments and sets evvironment variables
+#  @param[out] NJOBS        empty or "-NJOBS $2"
+#  @param[out] NO_BITSTREAM empty or "-no_bitstream"
+#  @param[out] PARAMS       positional parameters 
+#  @return                  1 if error or help, else 0
+function argument_parser() {
+  PARAMS=""
+  while (( "$#" )); do
+    case "$1" in
+      "-h" | "-help" | "--help" |"-H")
+        echo
+        echo " Hog - Launch Implementation"
+        echo " ---------------------------"
+        echo " Use Vivado to launch implementation for a specified project"
+        echo
+        echo "Usage:"
+        echo -e "\t ./Hog/LaunchImplementation.sh <proj_name> [-no_bitstream]\n"
+        echo
+        echo "Arguments:"
+        echo -e "\t -no_bitstream \t do not create a binary file"
+        echo
+        return 1
+        ;;
+      -NJOBS)
+        NJOBS="-NJOBS $2"
+        shift 2
+        ;;
+      -no_bitstream)
+        NO_BITSTREAM="-no_bitstream"
+        shift 1
+        ;;
+      --) # end argument parsing
+        shift
+        break
+        ;;
+      -*|--*=) # unsupported flags
+        echo "Error: Unsupported flag $1" >&2
+        return 1
+        ;;
+      *) # preserve positional arguments
+        PARAMS="$PARAMS $1"
+        shift
+        ;;
+    esac
+  done
+  return 0;
+  # set positional arguments in their proper place	
+}
+
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+argument_parser $@
+if [ $? = 1 ]; then
+  exit 1
 fi
-
+eval set -- "$PARAMS"
 if [ -z "$1" ]
 then
-  ##! If no args passed then print help message
-    printf "Project name has not been specified. Usage: \n ./Hog/LaunchImplementation.sh <proj_name> [-no_bitstream]\n"
+  printf "Project name has not been specified. Usage: \n ./Hog/LaunchImplementation.sh <proj_name> [-no_bitstream] [-NJOBS <number of jobs>]\n"
 else
-  ##! Call vivado to launch script launch_implementation.tcl using args $1 and $2
-    vivado -nojournal -nolog -mode batch -notrace -source $DIR/Tcl/launchers/launch_implementation.tcl -tclargs $2 $1 
+  vivado -nojournal -nolog -mode batch -notrace -source $DIR/Tcl/launchers/launch_implementation.tcl -tclargs $NO_BITSTREAM $NJOBS $1
 fi

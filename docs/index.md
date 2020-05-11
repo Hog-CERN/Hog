@@ -3,10 +3,12 @@
 
 # Hog: HDL on git
 
+
 ## Introduction
 Coordinating firmware development among many international collaborators is becoming a very widespread problem in particle physics. Guaranteeing firmware synthesis with Place and Route **reproducibility** and assuring **traceability** of binary files is paramount.
 
 Hog tackles these issues by exploiting advanced git features and integrating itself with HDL IDE (Vivado or Quartus). The integration of these tools intends to reduce as much as possible useless overhead work for the developers.
+
 
 ## What is Hog
 Hog is a set of Tcl/Shell scripts plus a suitable methodology to handle HDL designs in a git repository.
@@ -15,10 +17,10 @@ Hog is included as a submodule in the HDL repository (a `Hog` directory is alway
 
 Hog offers you :
 - to work both with Windows and Linux
-- a template to run a continous integration in your Gitlab repository
 - the possibility of creating multiple project sharing one top level
 - to have automatic tagging for easy versioning
 - to store the output bistream on EOS
+- a template to run a continous integration in your Gitlab repository
 
 Everything is as transparent as we could think of. Hog is designed to use just a small fraction of your time to setup you local machine and get you to work to the HDL design as soon as possible.
 
@@ -53,10 +55,11 @@ The project will appear in ./VivadoProject/<project>  (or ./QuartusProject/<proj
 
 [^1]: If you don't know the project name, just run `./Hog/CreateProject` and a list will be displayed.
 
-## What's in the Hog folder?
+
+## What is in the Hog folder
 The Hog folder contains plenty of Tcl and Shell scripts. 
 
-Please run:
+E.g. you can run:
 ```console
 	./Hog/Init.sh
 ```
@@ -67,7 +70,6 @@ The most important script is `Hog/CreateProject.sh` that serves to create the Vi
 
 
 ## Other folders that you will need
-
 A folder called `Top` shall be in the root of repository and it contains a sub-folder for each Vivado/Quartus project in the repository. Each of these directories has a fixed -easy to understand- structure and contains everything that is needed to re-create the Vivado/Quartus project locally, apart from the source files[^2] that the developer can place in the repository at his/her own convenience.
 [^2]:Source files are the HDL files (.vhd, .v) but also the constraint files (.xdc, .sdc, .qsf, .tcl, ...). The IP files (.xci, .ip, .qip, ...) and the Board Design files must be stored in special folders, as explained later.
 
@@ -75,7 +77,6 @@ An `IP` (and possibly a `BD`) folder shall used to store Intellectual Properties
 
 
 ## Hog user manual
-
 In this website you can find a quick guide to learn how to work in a [Hog-handled repository](01-Getting-Started/01-existingProjects) or to [set-up a new one](01-Getting-Started/03-setupNewHogProject), as well as a complete user manual to understand all the details and learn how to maintain a Hog-handled repository.
 
 

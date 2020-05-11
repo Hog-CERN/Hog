@@ -30,7 +30,7 @@ doc:
       artifacts:
         paths:
           - public
-      expire_in: 1 day
+        expire_in: 1 day
 
 building-doxygen:
       stage: build_doc

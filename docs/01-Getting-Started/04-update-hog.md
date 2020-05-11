@@ -1,47 +1,42 @@
-  # Update Hog
+# Update Hog to a new release
 
-Create a new merge request and a new branch starting from master.
-Checkout the branch and there go into the Hog directory
+First of all, you might want to go to Hog [repository][gitlab.cern.ch/hog/Hog] and choose what version you want to update to.
+Otherwise you might just want to update to the most recent version.
 
-Before updating Hog go to the hog repository and checkout the release notes for the latest version of Hog.
-*NOTE* that any peculiarity of a specific release is reported in the release notes and may require more changes with respect to the ones reported here.
-To get the latest release simply run:
+On your project's Gitlab website, create a new merge request and a new branch starting from master.
+(You can also create a new branch locally and open the merge request on the website later.)
+Checkout the branch and go into the Hog directory
 
-```bash
-git describe --tags $(git rev-list --tags --max-count=1)
-```
 
-You can now update Hog to the last release:
+Now if you want to update Hog to the latest version:
 
 ```bash
-  Repo>     cd Hog
-  Repo/Hog> git checkout vX.Y.ZvX.Y.ZvX.Y.Z
-  Repo/Hog> git pull
-```
-Here vX.Y.Z is the output of the git describe command above.
-
-*NOTE* if you want specific new features you can also use the master of the Hog repository. 
-Please be careful and check what you are getting.
-To use the master simply run:
-
-```bash
-  Repo>     cd Hog
+  Repo>cd Hog
   Repo/Hog> git checkout master
   Repo/Hog> git pull
 ```
 
-Now check what version you got:
+Now do git describe to find out what version you got:
 
 ```bash
-  Repo/Hog> git describe
-  vX.Y.Z
+Repo/Hog>git describe
 ```
 
-Go back to your repo and edit the .gitlab-ci.yml with your favourite editor (say vim)
+You should obtain something like vX.Y.Z
+
+if you want to update to a specific version:
+
+```bash
+  Repo>cd Hog
+  Repo/Hog> git checkout vX.Y.Z
+```
+
+Now you have to update your `.gitlab-ci.yml` file. This is the file used to configure Gitlab continuous integration (CI), if you are not using  Gitlab CI you can skip this part
+Go back to your repo and edit the `.gitlab-ci.yml` with your favourite editor, say emacs:
 
 ```bash
   Repo/Hog> cd ..
-  Repo> vim .gitlab-ci.yml
+  Repo> emacs .gitlab-ci.yml
 ```
 
 At the beginning, in the include section you have a ref, similar to this:
@@ -50,7 +45,7 @@ At the beginning, in the include section you have a ref, similar to this:
   include:
     - project: 'hog/Hog'
       file: '/gitlab-ci.yml'
-      ref: 'v1.1.0'
+      ref: 'va.b.c'
 ```
 
 Change the ref to the new version you've just pulled:
@@ -62,12 +57,14 @@ Change the ref to the new version you've just pulled:
       ref: 'vX.Y.Z'
 ```
 
-Close the editor and save
-Now add the modified files and commit:
+Save the file close the editor.
+Add the modified files (`Hog` submodule and `.gitlab-ci.yml`), commit, and push:
 
 ```bash
   Repo> git add .gitlab-ci.yml Hog
   Repo> git commit -m "Update Hog to vX.Y.Z"
   Repo> git push
 ```
-Now go on-line open the merge request and merge it.
+
+Finally go to your project's Gitlab website, open a merge request for your branch (if you have not done that already) and merge it.
+You can do all of this within a branch (and merge request) that you had already open to work at some modification.

@@ -1,9 +1,9 @@
 #!/bin/bash
 ## @file LaunchSynthesis.sh
-## @brief launch /Tcl/launchers/launch_synthesis.tcl using Vivado
-## @todo LaunchSynthesis.sh: update for Quartus support
-## @todo LaunchSynthesis.sh: check is vivado is installed an set-up in the shell (if [ which vivado ])
-## @todo LaunchSynthesis.sh: check arg $1 and $2 before passing it to the Tcl script  
+# @brief launch /Tcl/launchers/launch_synthesis.tcl using Vivado
+# @todo LaunchSynthesis.sh: update for Quartus support
+# @todo LaunchSynthesis.sh: check is vivado is installed an set-up in the shell (if [ which vivado ])
+# @todo LaunchSynthesis.sh: check arg $1 and $2 before passing it to the Tcl script  
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 

@@ -1,9 +1,9 @@
 #!/bin/bash
 ## @file LaunchImplementation.sh
-## @brief launch /Tcl/launchers/launch_implementation.tcl using Vivado
-## @todo LaunchImplementation.sh: update for Quartus support
-## @todo LaunchImplementation.sh: check is vivado is installed an set-up in the shell (if [ which vivado ]) 
-## @todo LaunchImplementation.sh: check arg $1 and $2 before passing it to the Tcl script
+# @brief launch /Tcl/launchers/launch_implementation.tcl using Vivado
+# @todo LaunchImplementation.sh: update for Quartus support
+# @todo LaunchImplementation.sh: check is vivado is installed an set-up in the shell (if [ which vivado ]) 
+# @todo LaunchImplementation.sh: check arg $1 and $2 before passing it to the Tcl script
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[1]}" )" && pwd )"
 

@@ -1,9 +1,9 @@
 #!/bin/bash
 ## @file LaunchIPSynth.sh
-## @brief launch get_ips.tcl and launch_ip_synth.tcl using Vivado
-## @todo LaunchIPSynth.sh: update for Quartus support
-## @todo LaunchIPSynth.sh: check is vivado is installed an set-up in the shell (if [ which vivado ]) 
-## @todo LaunchIPSynth.sh: check arg $1 before passing it to the script
+# @brief launch get_ips.tcl and launch_ip_synth.tcl using Vivado
+# @todo LaunchIPSynth.sh: update for Quartus support
+# @todo LaunchIPSynth.sh: check is vivado is installed an set-up in the shell (if [ which vivado ]) 
+# @todo LaunchIPSynth.sh: check arg $1 before passing it to the script
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 

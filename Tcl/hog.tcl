@@ -11,66 +11,66 @@
 #
 namespace eval globalSettings {
   
-  ## @brief the device code as reported in Vivado/Quartus
+  ##! the device code as reported in Vivado/Quartus
   variable FPGA
-  ## @brief Vivado synthesis strategy
+  ##! Vivado synthesis strategy
   variable SYNTH_STRATEGY
-  ## @brief Device family name
+  ##! Device family name
   variable FAMILY
-  ## @brief Vivado synthesis flow
+  ##! Vivado synthesis flow
   variable SYNTH_FLOW
-  ## @brief Vivado implemenytation strategy
+  ##! Vivado implemenytation strategy
   variable IMPL_STRATEGY
-  ## @brief Vivado implementation flow
+  ##! Vivado implementation flow
   variable IMPL_FLOW
-  ## @brief TODO
+  ##! @todo Document variable
   variable DESIGN
-  ## @brief TODO
+  ##! @todo Document variable
   variable PROPERTIES
-  ## @brief TODO
+  ##! @todo Document variable
   variable path_repo
 
-  ## @brief TODO
+  ##! @todo Document variable
   variable pre_synth_file
 
-  ## @brief TODO
+  ##! @todo Document variable
   variable post_synth_file
 
-  ## @brief TODO
+  ##! @todo Document variable
   variable post_impl_file
-  ## @brief TODO
+  ##! @todo Document variable
   variable post_bit_file
-  ## @brief TODO
+  ##! @todo Document variable
   variable tcl_path
-  ## @brief TODO
+  ##! @todo Document variable
   variable repo_path
-  ## @brief TODO
+  ##! @todo Document variable
   variable top_path
-  ## @brief TODO
+  ##! @todo Document variable
   variable list_path
-  ## @brief TODO
+  ##! @todo Document variable
   variable BUILD_DIR
-  ## @brief TODO
+  ##! @todo Document variable
   variable modelsim_path
-  ## @brief TODO
+  ##! @todo Document variable
   variable top_name
-  ## @brief TODO
+  ##! @todo Document variable
   variable synth_top_module
-  ## @brief TODO
+  ##! @todo Document variable
   variable synth_top_file
-  ## @brief TODO
+  ##! @todo Document variable
   variable user_ip_repo
 
-  ## @brief TODO
+  ##! @todo Document variable
   variable bin_file
 
-  ## @brief TODO
+  ##! @todo Document variable
   variable pre_synth
-  ## @brief TODO
+  ##! @todo Document variable
   variable post_synth
-  ## @brief TODO
+  ##! @todo Document variable
   variable post_impl
-  ## @brief TODO
+  ##! @todo Document variable
   variable post_bit
 }
 
@@ -347,7 +347,7 @@ proc CreateProject {} {
 proc configureSynth {} {
     if {[info commands send_msg_id] != ""} {
         #VIVADO ONLY
-        ## Create 'synthesis ' run (if not found)
+        ##! Create 'synthesis ' run (if not found)
         if {[string equal [get_runs -quiet synth_1] ""]} {
             create_run -name synth_1 -part $globalSettings::FPGA -flow $globalSettings::SYNTH_FLOW -strategy $globalSettings::SYNTH_STRATEGY -constrset constrs_1
         } else {
@@ -359,7 +359,7 @@ proc configureSynth {} {
         set_property "part" $globalSettings::FPGA $obj
     }
 
-    ## set pre synthesis script
+    ##! set pre synthesis script
     if {$globalSettings::pre_synth_file ne ""} { 
         if {[info commands send_msg_id] != ""} {
             #Vivado Only
@@ -373,7 +373,7 @@ proc configureSynth {} {
         }
     }
 
-    ## set post synthesis script
+    ##! set post synthesis script
     if {$globalSettings::post_synth_file ne ""} { 
         if {[info commands send_msg_id] != ""} {
             #Vivado Only
@@ -390,10 +390,10 @@ proc configureSynth {} {
     
     if {[info commands send_msg_id] != ""} {
         #VIVADO ONLY
-        ## set the current synth run
+        ##! set the current synth run
         current_run -synthesis $obj
 
-        ## Report Strategy
+        ##! Report Strategy
         if {[string equal [get_property -quiet report_strategy $obj] ""]} {
             # No report strategy needed
             Msg Info "No report strategy needed for syntesis"
@@ -550,7 +550,7 @@ proc upgradeIP {} {
       }
   } elseif {[info commands project_new] != ""} {
     #QUARTUS only
-    #TO BE DONE
+    ##! @todo upgradeIP: quartus to be implemented
 
   } else {
     Msg info "Upgrading IPs"
@@ -572,6 +572,7 @@ proc GetProject {proj} {
 
   } elseif {[info commands quartus_command] != ""} {
     # Quartus
+    ##! @todo : quartus to be implemented
     return ""
   } else {
     # Tcl Shell
@@ -581,46 +582,90 @@ proc GetProject {proj} {
 
 }
 
+## @brief Gets a list of synthesis and implementation runs in the current project that match a run (passed as parameter)
+#
+# The run name is matched against the input parameter 
+#  
+#  @param[in] run  the run identifier
+#
+#  @return         a list of synthesis and implementation runs matching the parameter
+#
 proc GetRun {run} {
-    if {[info commands get_projects] != ""} {
-        # Vivado
+  if {[info commands get_projects] != ""} {
+    # Vivado
+    ##! call vivado get_runs command using option -quiet: ignore command errors
     return [get_runs -quiet $run]
-        
-    } elseif {[info commands quartus_command] != ""} {
-        # Quartus
+
+  } elseif {[info commands quartus_command] != ""} {
+    # Quartus
+    ##! @todo GetRun: quartus to be implemented
     return ""
-    } else {
-        # Tcl Shell
+  } else {
+    # Tcl Shell
     puts "***DEBUG Hog:GetRun $run"
     return "DEBUG_run"
-    }
+  }
 }
 
+
+## @brief Gets a list of files contained in the current project that match a file name (passed as parameter)
+#
+# The file name is matched against the input parameter.
+# IF no parameter if passed returns a list of all files in the project
+#  
+#  @param[in] file name (or part of it)
+#
+#  @return         a list of files matching the parameter
+#
 proc GetFile {file} {
-        if {[info commands get_files] != ""} {
-        # Vivado
+  if {[info commands get_files] != ""} {
+    # Vivado
+    ## if vivado then invoke get_files
     return [get_files $file]
-        
-    } elseif {[info commands quartus_command] != ""} {
-        # Quartus
+
+  } elseif {[info commands quartus_command] != ""} {
+    # Quartus
+    ##! @todo GetFile: quartus to be implemented
     return ""
-    } else {
-        # Tcl Shell
+  } else {
+    # Tcl Shell
     puts "***DEBUG Hog:GetFile $file"
     return "DEBUG_file"
-    }
+  }
 }
 
+## @brief Creates a new fileset
+#
+# A file set is a list of files with a specific function within the project.
+#
+# @param[in] fileset 
+#
+# @returns The create_fileset command returns the name of the newly created fileset
+#
 proc CreateFileSet {fileset} {
     set a  [create_fileset -srcset $fileset]
     return  $a
 }
 
+## @brief Retrieves a fileset
+#
+# Gets a list of filesets in the current project that match a specified search pattern.
+# The default command gets a list of all filesets in the project.
+#
+# @param[in] fileset  the name to be checked
+#
+# @return             a list of filesets in the current project that match the specified search pattern.
+#
 proc GetFileSet {fileset} {
     set a  [get_filesets $fileset]
     return  $a
 }
 
+## @brief Add a new file to a fileset
+#
+# @para[in] file    name of the files to add. NOTE: directories are not supported. 
+# @para[in] fileset fileset name  
+# 
 proc AddFile {file fileset} {
     add_files -norecurse -fileset $fileset $file 
 }
@@ -628,7 +673,7 @@ proc AddFile {file fileset} {
 
 proc CreateReportStrategy {DESIGN obj} {
     if {[info commands create_report_config] != ""} {
-    ## Viavado Report Strategy
+    ##! Vivado Report Strategy
     if {[string equal [get_property -quiet report_strategy $obj] ""]} {
         # No report strategy needed
         Msg Info "No report strategy needed for implementation"
@@ -709,13 +754,21 @@ proc CreateReportStrategy {DESIGN obj} {
 }
 ########################################################
 
-
+## @brief gets the full path to the /../../ folder
+#
+# @return "[file normalize [file dirname [info script]]]/../../"
+#
 proc GetRepoPath {} {
     return "[file normalize [file dirname [info script]]]/../../"
 }
 ########################################################
 
-## Return 1 if the system Git version is greater or equal to the target
+## @brief Check git version installed in this machine
+#
+# @parameter[in] target_version the version required by the current project
+#
+# @return Return 1 if the system Git version is greater or equal to the target
+#
 proc GitVersion {target_version} {
     set ver [split $target_version "."]
     set v [exec git --version]
@@ -728,7 +781,12 @@ proc GitVersion {target_version} {
 }
 ########################################################
 
-## Return 1 if the system Doxygen version is greater or equal to the target
+## @brief Checks doxygen version installed in this machine
+#
+# @parameter[in] target_version the version required by the current project
+#
+# @return Return 1 if the system Doxygen version is greater or equal to the target
+#
 proc DoxygenVersion {target_version} {
     set ver [split $target_version "."]
     set v [exec doxygen --version]
@@ -1205,7 +1263,7 @@ proc ExtractVersionFromTag {tag} {
 #
 # @param[in] merge_request_number: Gitlab merge request number to be used in candidate version
 # @param[in] version_level:        0 if patch is to be increased (default), 1 if minor level is to be increase, 2 if major level is to be increased, 3 or bigger is used to trasform a candidate for a version (starting with b) into an official version
-
+#
 proc TagRepository {{merge_request_number 0} {version_level 0}} {
     if [catch {exec git tag --sort=-creatordate} last_tag] {
 	Msg Error "No Hog version tags found in this repository."
@@ -1381,7 +1439,7 @@ proc relative {base dst} {
 # - properties has as file names as keys and a list of properties as values
 #
 # Files, libraries and properties are extracted from the current Vivado project
-
+#
 proc GetProjectFiles {} {
     
     set all_files [get_files]
@@ -1480,7 +1538,6 @@ proc GetHogFiles {{proj_path 0}} {
 
 ## Forces all the Vivado runs to look up to date, useful before write bitstream
 #
-
 proc ForceUpToDate {} {
     Msg Info "Forcing all the runs to look up to date..."
     set runs [get_runs]
@@ -1497,7 +1554,7 @@ proc ForceUpToDate {} {
 # - xci_file: the local IP xci file
 # - ip_path: the path of directory you want the IP to be saved on eos
 # - force: if 1 pushes IP even if already on EOS
-
+#
 proc HandleIP {what_to_do xci_file ip_path runs_dir {force 0}} {
     if {!($what_to_do eq "push") && !($what_to_do eq "pull")} {
 	Msg Error "You must specify push or pull as first argument."
@@ -1606,6 +1663,7 @@ proc HandleIP {what_to_do xci_file ip_path runs_dir {force 0}} {
 ## Evaluates the md5 sum of af a file
 ##  Argumets:
 # - file_name: the name of the file of which you want to vevaluate the md5 checksum
+#
 proc md5sum {file_name} {
     if !([file exists $file_name]) {
 	Msg Warning "Could not find $xci_file."

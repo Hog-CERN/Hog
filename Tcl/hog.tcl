@@ -392,7 +392,8 @@ proc ReadListFile {list_file path lib} {
           ### Set File Set
           #Adding IP library
           if {[string equal $extension ".xci"] || [string equal $extension ".ip"] || [string equal $extension ".bd"]} {
-            dict lappend libraries "IP" $vhdlfile
+            dict lappend libraries "$lib.ip" $vhdlfile
+            Msg Info "Appending $vhdlfile to IP list"
             # lappend ip_files $vhdlfile
           } else {
             dict lappend libraries $lib$list_file_ext $vhdlfile
@@ -1023,7 +1024,7 @@ proc AddHogFiles { libraries properties } {
     if {[info commands add_files] != ""} {
       add_files -norecurse -fileset $file_set $lib_files
 
-      if {$rootlib != "IP"} {
+      if {$ext != ".ip"} {
         # Add Properties
         foreach f $lib_files {
           set file_obj [get_files -of_objects [get_filesets $file_set] [list "*$f"]]

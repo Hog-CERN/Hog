@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 ## @file Init.sh
 ## @brief Scrit to create all the project in this repository and compiling Questasim or Modelsim libraries
+## @todo LaunchIPSynth.sh: update for Quartus support
 
 OLD_DIR=`pwd`
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"

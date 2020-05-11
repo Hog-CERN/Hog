@@ -1,8 +1,7 @@
 # Our site is coming soon!!
 Here's a taste of what it will contain!
 
-![](./custom/assets/images/hog.png)
-
+<img style="float: left;" width="40" src="./custom/assets/images/hog.png">
 
 
 # Hog: HDL on git

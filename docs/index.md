@@ -27,7 +27,7 @@ To do this, Hog **automatically** embeds the git **commit SHA** into the binary 
 Avoiding errors is impossible, but the goal of Hog is to leave as little room as possible.
 
 Another important principle in Hog is to **reduce to the minimum** the time needed for an external developer to **get up to speed** to work on a HDL project.
-For this reason, Hog **does not rely on any external tool** or library, only on those you must have to synthesise, implement (Vivado/Quartus) and simulate (Modelsim/Questasim) the design.
+For this reason, Hog **does not rely on any external tool** or library. Only on those you must have to synthesise, implement (Vivado/Quartus) and simulate (Modelsim/Questasim) the design.
 
 To start working on any project[^1] contained in a git repository handled with Hog, you just need to:
 
@@ -51,6 +51,7 @@ The folder called `Top` is in the root of repository and it contains a sub-folde
 
 An `IP` (and possibly a `BD`) folder is used to store Intellectual Properties (and Board Design). Apart from these few mandatory directories, any structure of subdirectories can be created in the IP (and BD) folder.
 
+
 ## What's in the Hog folder?
 The Hog folder contains plenty of Tcl and Shell scripts. 
 
@@ -63,8 +64,11 @@ to initialise the repository locally, following the instructions.
 And you can always have a look yourself. Most of the scripts have a -h option to give you detailed instructions.
 The most important script is `Hog/CreateProject.sh` that serves to create the Vivado/Quartus project locally. When creating the project, Hog integrates a set of Tcl scripts in the IDE software to handle and guarantee reproducibility and traceability.
 
-Everything is as transparent as we could think of. Hog is designed to use just a small fraction of your time to setup you local machine and get you to work to the HDL design as soon as possible.
+Hog offers you :
+- the possibility of creating multiple project sharing one top level
+- 
 
+Everything is as transparent as we could think of. Hog is designed to use just a small fraction of your time to setup you local machine and get you to work to the HDL design as soon as possible.
 
 ## Hog user manual
 

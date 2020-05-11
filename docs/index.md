@@ -1,21 +1,9 @@
 # Our site is coming soon!!
 Here's a taste of what it will contain!
 
-[comment]: <> (![](./custom/assets/images/hog.png))
+![](./custom/assets/images/hog.png)
 
-```{=html}
-<style type="text/css">
-  .figure {
-    float: right;
-    text-align: center;
-  }
-</style>
-```
 
-```
-{out.extra='style="float:right; padding:10px"'}
-knitr::include_graphics("./custom/assets/images/hog.png")
-```
 
 # Hog: HDL on git
 

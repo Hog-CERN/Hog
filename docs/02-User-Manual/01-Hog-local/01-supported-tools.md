@@ -10,6 +10,6 @@ The following list is not exclusive, meaning other tools might be used in your p
 - Vivado (earliest tested: <2017.1> latest tested: <2019.2>)
 - QuestaSim[^1] (earliest tested: <10.7a> latest tested: <2019.2>)
 - doxygen (earliest tested: <1.8.17> latest tested: <1.8.17>)
-- git (earliest tested: <2.22.0> latest tested: <2.26.2>)
+- git (earliest tested: <2.7.0> latest tested: <2.26.2>)
 
 [^1]: Depends on Vivado version used. Check the compatibility list in: https://www.xilinx.com/support/answers/68324.html

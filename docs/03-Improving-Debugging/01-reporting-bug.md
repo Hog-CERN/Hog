@@ -1,10 +1,8 @@
-# Reporting bugs and suggesting new features
-To repost bugs and suggest new features use the issues git repository: https://gitlab.cern.ch/hog/Hog/issues
+# Bug reports and suggestions
+To report bugs and suggest new features use the issues git repository: https://gitlab.cern.ch/hog/Hog/issues
 
-## Reporting bugs
+## Bug reports
 Open an issue using the label "Problem report" describing...
 
-## Proposing new features
+## Suggest new features
 Open an issue using the label "Feature proposal" etc...
-
-

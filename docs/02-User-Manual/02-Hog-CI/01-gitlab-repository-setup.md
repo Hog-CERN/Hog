@@ -1,4 +1,5 @@
-# gitlab repository set-up
+# Gitlab repository set-up
+Hog Continuous Integration makes use of the [Gitlab CI/CD tool](https://docs.gitlab.com/ee/ci/). 
 
 ## Remove merge commit
 

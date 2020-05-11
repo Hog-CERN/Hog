@@ -1,17 +1,31 @@
 # Our site is coming soon!!
 Here's a taste of what it will contain!
 
-![](./custom/assets/images/hog.png) 
+[comment]: <> (![](./custom/assets/images/hog.png))
+
+```{=html}
+<style type="text/css">
+  .figure {
+    float: right;
+    text-align: center;
+  }
+</style>
+```
+
+```
+{out.extra='style="float:right; padding:10px"'}
+knitr::include_graphics("./custom/assets/images/hog.png")
+```
 
 # Hog: HDL on git
 
 ## Introduction
-Coordinating firmware development among many international collaborators is becoming a very widespread problem in particle physics. Guaranteeing firmware synthesis with P&R **reproducibility** and assuring **traceability** of binary files is paramount.
+Coordinating firmware development among many international collaborators is becoming a very widespread problem in particle physics. Guaranteeing firmware synthesis with Place and Route **reproducibility** and assuring **traceability** of binary files is paramount.
 
 Hog tackles these issues by exploiting advanced git features and integrating itself with HDL IDE (Vivado or Quartus). The integration of these tools intends to reduce as much as possible useless overhead work for the developers.
 
 ## Rationale
-For synthesis and P&R **reproducibility**, we need absolute control of:
+For synthesis and Place and Route **reproducibility**, we need absolute control of:
 
 - HDL source files
 - Constraint files
@@ -65,8 +79,11 @@ And you can always have a look yourself. Most of the scripts have a -h option to
 The most important script is `Hog/CreateProject.sh` that serves to create the Vivado/Quartus project locally. When creating the project, Hog integrates a set of Tcl scripts in the IDE software to handle and guarantee reproducibility and traceability.
 
 Hog offers you :
+- to work both with Windows and Linux
+- a template to run a continous integration in your Gitlab repository
 - the possibility of creating multiple project sharing one top level
-- 
+- to have automatic tagging for easy versioning
+- to store the output bistream on EOS
 
 Everything is as transparent as we could think of. Hog is designed to use just a small fraction of your time to setup you local machine and get you to work to the HDL design as soon as possible.
 

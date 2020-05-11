@@ -16,6 +16,7 @@ Hog is a set of Tcl/Shell scripts plus a suitable methodology to handle HDL desi
 Hog is included as a submodule in the HDL repository (a `Hog` directory is always present in Hog-handled repository) and allows developers to create the Vivado/Quartus project(s) locally and synthesise and implement it or start working on it.
 
 Hog offers you :
+
 - to work both with Windows and Linux
 - the possibility of creating multiple project sharing one top level
 - to have automatic tagging for easy versioning

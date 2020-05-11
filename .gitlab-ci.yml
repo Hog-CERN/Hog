@@ -16,9 +16,6 @@ stages:
 doc:
       stage: build_doc
       image: gitlab-registry.cern.ch/authoring/documentation/mkdocs:stable
-      only: 
-           refs:
-              - merge_requests
       except:
            variables:
               - $CI_COMMIT_REF_NAME =~ /^test\/.*$/i

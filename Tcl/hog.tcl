@@ -34,10 +34,10 @@ proc Msg {level msg {title ""}} {
   if {$title == ""} {set title [lindex [info level [expr [info level]-1]] 0]}
   if {[info commands send_msg_id] != ""} {
     # Vivado
-      set status [catch {send_msg_id Hog:$title-0 $vlevel $msg}]
-      if {$status != 0} {
-	  exit $status
-      }
+    set status [catch {send_msg_id Hog:$title-0 $vlevel $msg}]
+    if {$status != 0} {
+      exit $status
+    }
   } elseif {[info commands post_message] != ""} {
     # Quartus
     post_message -type $qlevel "Hog:$title $msg"
@@ -1075,7 +1075,7 @@ proc AddHogFiles { libraries properties } {
 
           ## Simulation properties
           # Top simulation module
-          set top_sim [lindex [split [lsearch -inline -regex $props topsim=] =] 1]
+          set top_sim [lindex [regexp -inline {topsim\s*=\s*(.+?)\y.*} $props] 1]
           if { $top_sim != "" } {
             Msg Info "Setting $top_sim as top module for simulation file set $file_set..."
             set_property "top"  $top_sim [get_filesets $file_set]

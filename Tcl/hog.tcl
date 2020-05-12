@@ -34,7 +34,10 @@ proc Msg {level msg {title ""}} {
   if {$title == ""} {set title [lindex [info level [expr [info level]-1]] 0]}
   if {[info commands send_msg_id] != ""} {
     # Vivado
-    send_msg_id Hog:$title-0 $vlevel $msg
+      set status [catch {send_msg_id Hog:$title-0 $vlevel $msg}]
+      if {$status != 0} {
+	  exit $status
+      }
   } elseif {[info commands post_message] != ""} {
     # Quartus
     post_message -type $qlevel "Hog:$title $msg"

@@ -305,6 +305,9 @@ proc FindFileType {file_name} {
     .vhd {
       set file_extension "VHDL_FILE"
     }
+    .vhdl{
+      set file_extension "VHDL_FILE"
+    }
     .v {
       set file_extension "VERILOG_FILE"
     }
@@ -338,6 +341,9 @@ proc FindVhdlVersion {file_name} {
   set extension [file ext $file_name]
   switch $extension {
     .vhd {
+      set vhdl_version "-hdl_version VHDL_2008"
+    }
+    .vhdl {
       set vhdl_version "-hdl_version VHDL_2008"
     }
     default {
@@ -1032,9 +1038,9 @@ proc AddHogFiles { libraries properties } {
         foreach f $lib_files {
           set file_obj [get_files -of_objects [get_filesets $file_set] [list "*$f"]]
           #ADDING LIBRARY
-		  if {[file ext $f] == ".vhd"}{
-          	set_property -name "library" -value $rootlib -objects $file_obj
-		  }
+          if {[file ext $f] == ".vhd" || [file ext $f] == ".vhdl" }{
+                set_property -name "library" -value $rootlib -objects $file_obj
+          }
           if {[file ext $f] == ".xdc"} {
             Msg Info "Setting filetype XDC for $f"
             set_property -name "file_type" -value "XDC" -objects $file_obj
@@ -1042,7 +1048,7 @@ proc AddHogFiles { libraries properties } {
 
           #ADDING FILE PROPERTIES
           set props [dict get $properties $f]
-          if {[file ext $f] == ".vhd"} {
+          if {[file ext $f] == ".vhd" || [file ext $f] == ".vhdl"} {
             if {[lsearch -inline -regex $props "93"] < 0} {
               set_property -name "file_type" -value "VHDL 2008" -objects $file_obj
             } else {

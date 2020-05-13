@@ -35,7 +35,10 @@ proc Msg {level msg {title ""}} {
   if {$title == ""} {set title [lindex [info level [expr [info level]-1]] 0]}
   if {[info commands send_msg_id] != ""} {
     # Vivado
-    send_msg_id Hog:$title-0 $vlevel $msg
+    set status [catch {send_msg_id Hog:$title-0 $vlevel $msg}]
+    if {$status != 0} {
+      exit $status
+    }
   } elseif {[info commands post_message] != ""} {
     # Quartus
     post_message -type $qlevel "Hog:$title $msg"
@@ -403,7 +406,8 @@ proc ReadListFile {list_file path lib} {
           ### Set File Set
           #Adding IP library
           if {[string equal $extension ".xci"] || [string equal $extension ".ip"] || [string equal $extension ".bd"]} {
-            dict lappend libraries "IP" $vhdlfile
+            dict lappend libraries "$lib.ip" $vhdlfile
+            Msg Info "Appending $vhdlfile to IP list"
             # lappend ip_files $vhdlfile
           } else {
             dict lappend libraries $lib$list_file_ext $vhdlfile
@@ -1034,7 +1038,7 @@ proc AddHogFiles { libraries properties } {
     if {[info commands add_files] != ""} {
       add_files -norecurse -fileset $file_set $lib_files
 
-      if {$rootlib != "IP"} {
+      if {$ext != ".ip"} {
         # Add Properties
         foreach f $lib_files {
           set file_obj [get_files -of_objects [get_filesets $file_set] [list "*$f"]]
@@ -1082,7 +1086,7 @@ proc AddHogFiles { libraries properties } {
 
           ## Simulation properties
           # Top simulation module
-          set top_sim [lindex [split [lsearch -inline -regex $props topsim=] =] 1]
+          set top_sim [lindex [regexp -inline {topsim\s*=\s*(.+?)\y.*} $props] 1]
           if { $top_sim != "" } {
             Msg Info "Setting $top_sim as top module for simulation file set $file_set..."
             set_property "top"  $top_sim [get_filesets $file_set]

@@ -1032,8 +1032,9 @@ proc AddHogFiles { libraries properties } {
         foreach f $lib_files {
           set file_obj [get_files -of_objects [get_filesets $file_set] [list "*$f"]]
           #ADDING LIBRARY
-          set_property -name "library" -value $rootlib -objects $file_obj
-
+		  if {[file ext $f] == ".vhd"}{
+          	set_property -name "library" -value $rootlib -objects $file_obj
+		  }
           if {[file ext $f] == ".xdc"} {
             Msg Info "Setting filetype XDC for $f"
             set_property -name "file_type" -value "XDC" -objects $file_obj

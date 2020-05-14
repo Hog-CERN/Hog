@@ -149,7 +149,8 @@ collect_artifacts:
         <<: *vars
     script:
         - ./Hog/Other/Changelog.sh $CI_MERGE_REQUEST_TARGET_BRANCH_NAME > $CI_PROJECT_DIR/bin/note.md
-        - "if [ -n $CI_PROJECT_DIR/bin/*/*.txt ]; then
+        - files=$(shopt -s nullglob dotglob; echo $CI_PROJECT_DIR/bin/*/*.txt)
+        - "if (( ${#files} )); then
           cat $CI_PROJECT_DIR/bin/*/*.txt >> $CI_PROJECT_DIR/bin/note.md;
           fi"
         - git fetch origin refs/notes/*:refs/notes/*

@@ -330,7 +330,7 @@ proc FindFileType {file_name} {
       set file_extension "COMMAND_MACRO_FILE"
     }
     default {
-      set file_extension "ERROR"	
+      set file_extension "ERROR"
       Msg Error "Unknown file extension $extension"
     }
   }
@@ -382,7 +382,7 @@ proc ReadListFile {list_file path lib} {
   set cnt 0
   foreach line $data {
     # Exclude empty lines and comments
-    if {![regexp {^ *$} $line] & ![regexp {^ *\#} $line] } { 
+    if {![regexp {^ *$} $line] & ![regexp {^ *\#} $line] } {
       set file_and_prop [regexp -all -inline {\S+} $line]
       set vhdlfile [lindex $file_and_prop 0]
       set vhdlfile "$path/$vhdlfile"
@@ -999,7 +999,7 @@ proc GetHogFiles {} {
 # - properties has as file names as keys and a list of properties as values
 # - file_sets has as file names as keays and the corresponding vivado file_set as value
 proc AddHogFiles { libraries properties } {
-  Msg Info "Adding source files to project..."   
+  Msg Info "Adding source files to project..."
   foreach lib [dict keys $libraries] {
     # Msg Info "lib: $lib \n"
     set lib_files [dict get $libraries $lib]
@@ -1038,7 +1038,7 @@ proc AddHogFiles { libraries properties } {
         foreach f $lib_files {
           set file_obj [get_files -of_objects [get_filesets $file_set] [list "*$f"]]
           #ADDING LIBRARY
-          if {[file ext $f] == ".vhd" || [file ext $f] == ".vhdl" }{
+          if {[file ext $f] == ".vhd" || [file ext $f] == ".vhdl" } {
                 set_property -name "library" -value $rootlib -objects $file_obj
           }
           if {[file ext $f] == ".xdc"} {
@@ -1129,7 +1129,7 @@ proc AddHogFiles { libraries properties } {
         }
         #missing : ADDING QUARTUS FILE PROPERTIES
       }
-    } 
+    }
   }
 }
 

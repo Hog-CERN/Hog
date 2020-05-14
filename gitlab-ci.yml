@@ -80,8 +80,6 @@ merge_and_tag:
          - $CI_PROJECT_DIR/VivadoProject/$PROJECT_NAME/$PROJECT_NAME.sim
        expire_in: 30 day
 
-
-
 .synthesise_ips: &synthesise_ips
     <<: *only-default
     stage: ip
@@ -120,6 +118,8 @@ merge_and_tag:
         paths:
             - $CI_PROJECT_DIR/VivadoProject/$PROJECT_NAME
             - $CI_PROJECT_DIR/bin
+            - $CI_PROJECT_DIR/IP
+            - $CI_PROJECT_DIR/BD
         expire_in: 30 day
 
 .implement_project: &implement_project

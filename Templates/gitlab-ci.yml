@@ -2,7 +2,7 @@ include:
     - project: 'hog/Hog'
       file: '/gitlab-ci.yml'
       ref: 'v0.2.1' # if not specified would use the master branch
-      
+
 #################### example ###########################
 ### Change 'example' with your project name
 
@@ -23,7 +23,7 @@ synthesise_ips:example:
     extends: .synthesise_ips
     variables:
       extends: .vars
-      PROJECT_NAME: example      
+      PROJECT_NAME: example
     dependencies:
         - create_project:example
 
@@ -34,7 +34,6 @@ synthesise_project:example:
       PROJECT_NAME: example
     dependencies:
         - synthesise_ips:example
-        - create_project:example
 
 implement_project:example:
     extends: .implement_project
@@ -43,6 +42,4 @@ implement_project:example:
       PROJECT_NAME: example
       HOG_NO_BITSTREAM : 1
     dependencies:
-      - create_project:example
-      - synthesise_ips:example
       - synthesise_project:example

@@ -107,23 +107,37 @@ You have now to generate a directory structure similar to this one:
 A complete description of the meaning of each folder can be found in in section [Setting up a HDL repository with Hog]().
 
 ### Top folder
-As you can see the top level of your project is stored in a folder named `Top/fancy_project`.
-You can start by creating the new directory and adding the top file to it:
+Every Hog-handled HDL repository must have a directory called `Top`. In here, each subdirectory - that we call the **project top-direcotry** - represents a HDL project in the repository. 
+You can start by creating your project top-directory:
 
 
 ```bash
-  mkdir -p Top/<fancy_name>/list
-  cp ../<old_repo>/top_file.vhd Top/<fancy_name>/top_<fancy_name>.vhd
+  mkdir -p Top/fancy_project
 ```
 
-to create a new project Hog will use a tcl script.
-Please use the Template provided in the Template folder:
+Every project top-directory, must contain a subdirectory called `list` where the sa-called hog list file are stored. Let's create it:
+
+```bash
+  mkdir Top/fancy_project/list
+```
+
+
+Moreover a tcl script, with the same name of the projecty (plus the .tcl extension) must be in the project top-directory. Hog runs this script, called the project tcl script, to create a project.
+This is a recap of what we have learned up to now:
+
+- A `Top` folder must be in the repository
+- Inside this folder there is one subfolder for each project in the repository, called the project top-directory
+- Inside each project's top-directory there is a `list` sub-direcotry containing:
+ 1. The list files of the project
+ 2. A tcl script used to create the project
+
+In order to create the project's tcl script, we will start from the template provided in the `Hog/Templates` folder:
 
 ```bash
   cp Hog/Templates/top.tcl Top/<fancy_name>/<fancy_name>.tcl
 ```
 
-Use your favourite text editor to modify the template tcl file.
+Use your favourite text editor to modify the template Tcl file.
 This will give you a minimal configuration to generate an empty project.
 You can try running `./Hog/CreateProject.sh fancy_name`.
 This will give you an empty project under `<HDL_Compiler>Project/<fancy_name>` where `<HDL_Compiler>` should match the HDL compiler you use in your project.
@@ -131,9 +145,8 @@ This will give you an empty project under `<HDL_Compiler>Project/<fancy_name>` w
 Do not forget to commit everything you just did:
 
 ```bash
-  git add Top/<fancy_name>/top_<fancy_name>.vhd
-  git add Top/<fancy_name>/<fancy_name>.tcl
-  git commit -m "Adding top file and tcl script to the Top folder"
+  git add Top
+  git commit -m "Adding Hog Top folder"
 ```
 
 You are now ready to import the files needed to build your project.

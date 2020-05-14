@@ -270,41 +270,52 @@ Files with different extensions will be ignored.
 If you have *.coe files for RAM initialization or analogous files please make sure that you store these files in a separate folder and point to them in the IP one by using a relative path.
 
 
-## Updating your top file
+## The top file of your project
+Your project must conmtain a module called `top_fancy_name`, i.e. your project's name preceded by `top_`. Hog will pick up such module and set it as the Top of your project.
 
-Since Hog will back annotate your project to track the source code used in each build, extra generics will need to be added to your top file.
-You can add the following generics to your top file:
+Since Hog will back annotate your project to track the source code used in each build, extra generics will be provided to your top file at the beginning of the synthesis
+You can add the following generics to your top file in order to store those values in some registers:
 
 ```vhdl
 generic (
   -- Global Generic Variables
   GLOBAL_FWDATE       : std_logic_vector(31 downto 0);
   GLOBAL_FWTIME       : std_logic_vector(31 downto 0);
-  TOP_FWHASH          : std_logic_vector(31 downto 0);
+  TOP_FWVERSION       : std_logic_vector(31 downto 0);
+  TOP_FWHASH          : std_logic_vector(31 downto 0);  
+  XML_VERSION         : std_logic_vector(31 downto 0);
   XML_HASH            : std_logic_vector(31 downto 0);
   GLOBAL_FWVERSION    : std_logic_vector(31 downto 0);
-  TOP_FWVERSION       : std_logic_vector(31 downto 0);
+  GLOBAL_FWHASH       : std_logic_vector(31 downto 0);  
+  XML_HASH            : std_logic_vector(31 downto 0);
   XML_VERSION         : std_logic_vector(31 downto 0);
-  Hog_FWHASH          : std_logic_vector(31 downto 0);
-  Hog_FWVERSION       : std_logic_vector(31 downto 0);
+
+  HOG_HASH          : std_logic_vector(31 downto 0);
+  HOG_VERSION       : std_logic_vector(31 downto 0);
+
   -- Project Specific Lists (One for each .src file in your Top/myproj/list folder)
   <MYLIB0>_FWVERSION    : std_logic_vector(31 downto 0);
   <MYLIB0>_FWHASH       : std_logic_vector(31 downto 0);
   <MYLIB1>_FWVERSION    : std_logic_vector(31 downto 0);
   <MYLIB1>_FWHASH       : std_logic_vector(31 downto 0);
+
   -- Submodule Specific variables (only if you have a submodule, one per submodule)
   <MYSUBMODULE0>_FWHASH : std_logic_vector(31 downto 0);
   <MYSUBMODULE1>_FWHASH : std_logic_vector(31 downto 0);
+
   -- External library specific variables (only if you have an external library)
   <MYEXTLIB>_FWHASH       : std_logic_vector(31 downto 0);
+
   -- Project flavour
   FLAVOUR             : integer
 );
 
 ```
 
-All your source files are now compiled as a separate library called accordingly to the *.src file they are contained in.
-Therefore you have to add the library to your project:
+In our case, there is only one library called fancy_name, possibly a submodule, and no XML_VERSION, flavour or external libs. Thess are more advanced Hog features that are not treated in this guide.
+
+All your source files are now compiled as a separate library called according to the .src file they are contained in.
+So if you are using multiple .src files, you have to add the library to your project:
 
 ```vhdl
 library <fancy_name>;
@@ -312,21 +323,33 @@ use <fancy_name>.all;
 
 ```
 
-do not forget to test and commit your changes. 
+If you are using a module that is included in a different .src file with respect to your top module, you will have to specify the library when you use it:
+
+```vhdl
+u_1 : entity fancy_name.a_component_in_lib1 
+port map(
+  clk => clk,
+  din => din,
+  dout => dout
+);
+
+```
+If you work within the same library (i.e. .src file) you can normally use the `work` library.
+
 
 ## Create your project
-Now you can run `./Hog/CreateProject.sh fancy_name`. This will create your project in `VivadoProject/fancy_name/fancy_name.xpr` or `QuartusProject/fancy_name/fancy_name.qpf`. You can open the project with the GUI and check that everything looks alright. If something is wrong, try to fix it by modifying: the source files, the list files, the project tcl file. If you modify the list files or the project tcl file, you have to re create the project to see if the modifications had the desired effect. 
+As you know, if you run `./Hog/CreateProject.sh fancy_name`, Hog will create your project in `VivadoProject/fancy_name/fancy_name.xpr` or `QuartusProject/fancy_name/fancy_name.qpf`. You can open the project with the GUI and check that everything looks alright.
+Also you should try to run the complete workflow as something might have gone wrong with your IPs or the libraries.
+If something is indeed wrong, try to fix it by modifying: the source files, the list files, the project tcl file. If you modify the list files or the project tcl file, you have to re create the project to see if the modifications had the desired effect. 
 
 
-## Optional directories
-
-### Code documentation
-Hog can also be used to automatically generating and deploying some documentation for your code.
+## Code documentation
+Hog can also be used to automatically generate and deploy documentation for your code.
 Hog works with (Doxygen)[http://www.doxygen.nl/] version 1.8.13 or later.
-If your code already uses Doxygen style comments, then you can easily generate Doxygen documentation.
+If your code already uses Doxygen style comments, you can easily generate Doxygen documentation.
 You just have to create a directory named `doxygen` containing the files used to generate the HDL documentation.
 A file named `doxygen.conf` should be in this directory together with all the files needed to generate your Doxygen documentation.
-You can copy a template configuration from `Hog/Templates/doxygen.conf`.
+You can copy a template configuration from `Hog/Templates/doxygen.conf` and modify it.
 
 ## Wrapper scripts
 There are three scripts that can be used to run synthesis, implementation and bitstream generation without opening the Vivado GUI. The commands to launch them are
@@ -338,8 +361,3 @@ There are three scripts that can be used to run synthesis, implementation and bi
 ```
 
 Launching the implementation or the bistream generation without having launched the synthesis beforehand will run the synthesis stage too.
-
-### Is it all?
-
-You just created a new project compatible with the Hog CI methodology.
-You can now continue reading the [How to setup Hog-CI](../02-Maintainer-Manual/01-setupCI.md) section. 

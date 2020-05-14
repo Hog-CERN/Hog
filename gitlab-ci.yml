@@ -20,9 +20,10 @@ before_script:
   except:
     variables:
       - $CI_COMMIT_REF_NAME =~ /^test\/.*$/i
-      - CI_MERGE_REQUEST_TITLE == WIP*
+      - $CI_MERGE_REQUEST_TITLE =~ /^WIP:.*$/ && $CI_COMMIT_MESSAGE !~ /^ResolveWIP:/
   tags:
      - hog
+
 
 .vars: &vars
     GIT_STRATEGY: clone
@@ -41,14 +42,7 @@ stages:
     - clean
 
 merge_and_tag:
-  only:
-    refs:
-      - merge_requests
-  except:
-    variables:
-      - $CI_COMMIT_REF_NAME =~ /^test\/.*$/i
-  tags:
-    - hog
+  <<: *only-default
   stage: merge
   variables:
     GIT_STRATEGY: clone

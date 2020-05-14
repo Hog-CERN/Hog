@@ -52,7 +52,7 @@ To obtain this edit a file called `.gitmodules` with your favourite text editor 
   emacs .gitmodules
 ```
 
-In that file you should find a section as in the following. Modify the url value by replacing it with a relative path. Pay attention to the url that must be specified relatively to the path of your repository:
+In that file you should find a section as in the following. Modify the url value by replacing it with a relative path. Note that the url that must be specified relatively to the path of your repository:
 
 ```
 [submodule "Hog"]
@@ -68,11 +68,13 @@ This should trigger an error if you made a mistake when editing the repository p
 
 ## Copying some templates from Hog and committing
 Now that you have Hog locally, you can start setting up your repository.
-Hog provides a set of templates that you can use, we suggesgt that you add a `.gitignore` to your repository with the following command:
+Hog provides a set of templates that you can use, you can add a `.gitignore`[^4]  to your repository with the following command:
 
 ```console
   cp Hog/Templates/gitignore .gitignore
 ```
+
+[^4]:You might need to modify your `.gitignore` file if you want to do a more complicated directory structure, especially with the IP and BD files. For example, Hog template assumes that you store your IPs in `IP/ip_name/ip_name.xci`. If you do, this file would be enuogh for you. If you need a more omplicated structure, you can edit the file or you can use several .gitignore files the subfolders of the main IP directory.
 
 Let's now make our first commit:
 
@@ -115,7 +117,7 @@ You can start by creating your project top-directory:
   mkdir -p Top/fancy_project
 ```
 
-Every project top-directory, must contain a subdirectory called `list` where the sa-called hog list file are stored. Let's create it:
+Every project top-directory, must contain a subdirectory called `list` where the so-called hog list file are stored. Let's create it:
 
 ```bash
   mkdir Top/fancy_project/list
@@ -127,62 +129,136 @@ This is a recap of what we have learned up to now:
 
 - A `Top` folder must be in the repository
 - Inside this folder there is one subfolder for each project in the repository, called the project top-directory
-- Inside each project's top-directory there is a `list` sub-direcotry containing:
- 1. The list files of the project
- 2. A tcl script used to create the project
+- Inside each project's top-directory there is a `list` sub-direcotry containing: 1. the list files of the project and 2. a tcl script used to create the project
 
 In order to create the project's tcl script, we will start from the template provided in the `Hog/Templates` folder:
 
 ```bash
-  cp Hog/Templates/top.tcl Top/<fancy_name>/<fancy_name>.tcl
+  cp Hog/Templates/top.tcl Top/fancy_name/fancy_name.tcl
 ```
 
-Use your favourite text editor to modify the template Tcl file.
-This will give you a minimal configuration to generate an empty project.
-You can try running `./Hog/CreateProject.sh fancy_name`.
-This will give you an empty project under `<HDL_Compiler>Project/<fancy_name>` where `<HDL_Compiler>` should match the HDL compiler you use in your project.
+Use your favourite text editor to modify the template Tcl file. This will give you a minimal configuration to generate an empty project.
 
-Do not forget to commit everything you just did:
+Now you can commit everything you just did:
 
 ```bash
   git add Top
   git commit -m "Adding Hog Top folder"
 ```
 
-You are now ready to import the files needed to build your project.
 
-*NOTE* Source files can be split in libraries.
-Each *.src file in the list folder of your project will generate a new library.
-This guide will assume the presence of a unique library with the same name of your project.
+# Importing source files to the project
 
-### IP files
+You are now ready to import the files needed to build your project[^1].
 
-IP files must go in a separate IP folder.
-The IP folder is expected to contain a separate sub-folder for each IP.
-The name of the sub-folder must be the same as the *.xci file.
-This will effectively tell Hog to take the due care when evaluating the versioning of these files.
-For each IP in your project run:
+[^1]: Hog gives you the possibility to organise the source files in different VHDL libraries (Verilog doesn't have the concept of library). You can add your source files into several .src files in the list directory, each of these .src files will correspond to a different library with the same name as the .src file (excluding the .src extension). For simplicity, in this chapter we will assume the presence of a unique library with the same name of your project.
+
+First of all we copy the files from your local folder into the folder that contains the git repository.
+Exception made for some reserved directory (e.g. Top, IP, BD) you can put your files wherever you feel like inside your repository, orgasnising them as you see fit.
+
+In this example we will create a directory named `lib_fancy_name` where we will store all the source, simulation and constraint files.
 
 ```bash
-  mkdir -p IP/<ip_name>/
-  cp ../<old_repo>/<ip_name>.xci IP/<ip_name>/.
- ```
+  mkdir -p lib_fancy_name/source lib_fancy_name/simulation lib_fancy_name/constraint
+  cp ../old_repo/source_1.vhd lib_fancy_name/source
+  cp ../old_repo/source_2.vhd lib_fancy_name/source
+  ...
+  cp ../old_repo/simulation_1.vhd lib_fancy_name/simulation
+  cp ../old_repo/simulation_2.vhd lib_fancy_name/simulation
+  ...
+  cp ../old_repo/constraint_1.vhd lib_fancy_name/constraint
+  cp ../old_repo/constraint_2.vhd lib_fancy_name/constraint
+  ...
+```
 
-then you can run:
- 
- ```bash
-  for i in $( ls IP/* ); do \
-    echo '../../'$i/$i.xci >> Top/<fancy_name>/list/<fancy_name>.src; \
+After having added all the relevant files in your folders you have to add their path and file names to the appropriate list files. In this example, we will create:
+
+- One source list-file called `Top/fancy_name/list/fancy_name.src`, containing the source files of your project
+- One simulation list-file called `Top/fancy_name/list/fancy_name.sim`, containing the files used in the simulation (e.g. test benches, modules that read/write files, etc.)
+- One constraint list-file called `Top/fancy_name/list/fancy_name.con`, containing your constraints (.xdc, .tcl, etc.)
+
+You can copy and modify this bas script to ease this quite tedious part of the work:
+```bash
+  for i in $( ls lib_fancy_name/source/* ); do \
+    echo $i >>  Top/fancy_name/list/fancy_name.src; \
+  done
+  for i in $( ls lib_fancy_name/simulation/* ); do \
+    echo $i >>  Top/fancy_name/list/fancy_name.sim; \
+  done
+  for i in $( ls lib_fancy_name/constraint/* ); do \
+    echo $i >>  Top/fancy_name/list/fancy_name.con; \
   done
 ```
 
-Check that all your IPs are copied over in the IP folder.
-You can also check that the files are correctly picked up by  regenerating the Hog project.
-If you are satisfied with the changes commit all the files.
+Note that the path of the file is specified with respect to the main folder of the repository.
+
+If you want, you can add comment lines in the list-files starting with a `#` and you can leave empy lines (or lines containing an arbitrary number of spaces). All of these will be ignored by Hog.
+
+At this point, you might want to check that the files are correctly picked up by regenerating the Hog project: `./Hog/CreateProject.sh fancy_name`, Hog will give you an error if a file is not found.
+You can open the created project in  `VivadoProject/fancy_name/fancy_name.xpr` or `QuartusProject/fancy_name/fancy_name.qpf` with the GUI and check that all the files are there. If not, modifiy the list files and create the project again. When you are satisfied, you can commit your work:
 
 ```bash
-  git add IP/*.xci
-  git add Top/<fancy_name>/list/<fancy_name>.src
+  git add lib_fancy_name
+  git add Top/fancy_name/list/fancy_name.src
+  git add Top/fancy_name/list/fancy_name.sim
+  git add Top/fancy_name/list/fancy_name.con
+  git commit -m "Adding source files"
+```
+
+### Submodules
+If your project uses source or simulation files hosted in a separate repository you can add that repository as a git submodule.
+
+```bash
+  git jazzy_submodule add jazzy_submodule_url
+```
+You must add all your submodules in the root directory of your repository.
+
+Files taken from a submodule must be added to a special list-file having the .sub exstension. Moreover the name of the file must be the same of the submodule directory[^2].
+[^2]: In case this naming limitations complicate your work too much, please note that the submodule folder name can differ from the submodule url.
+
+Add the relevant source files to the submodule list-file. You can copy and modify the following script if you want:
+
+```bash
+for i in $( ls submodule/* ); do \
+    echo $i >> Top/fancy_name/list/jazzy_submodule.sub; \
+  done
+```
+
+Now commit the newly created .sub file:
+
+```bash
+git add Top/fancy_name/list/jazzy_submodule.sub
+git commit -m "Add a new jazzy submodule"
+```
+
+### IP files
+
+IP files must go in a special folder called `IP` in the root of your repository.
+The IP direwctory can contain all the subdirectories you want, but there is a rule: each ip file (.xci for Vivado) must be contained in a sub-folder called with the same name as the .xci file (extension excluded).
+
+Basically for each IP in your project run:
+
+```bash
+  mkdir -p IP/ip_name/
+  cp ../old_repo/ip_name.xci IP/ip_name/
+```
+
+Then you can add the xci files to the .src list file you want, in this case we will use a separate file called `IP.src`[^3]. You can use the following script if you like:
+[^3]: There is no concept of library for the IPs, so we prefer to put them in a separate .src file. You can put them in the same list file as your other source files if you wish. Just open `Top/fancy_name/list/fancy_name.src` with a text editor and add them there.
+
+
+ ```bash
+  for i in $( ls IP/* ); do \
+    echo $i/$i.xci >> Top/<fancy_name>/list/<fancy_name>.src;
+  done
+```
+
+As usual, you can check that the files are correctly picked up by regenerating the project `./Hog/CreateProject.sh fancy_name`
+If you are satisfied with the changes, you can commit your work.
+
+```bash
+  git add IP
+  git add Top/fancy_name/list/IP.src
   git commit -m "Adding IP Files"
 ```
 
@@ -193,80 +269,6 @@ Out of all the files contained in *repo*/*IP*/, git will pick up only *.xci file
 Files with different extensions will be ignored.
 If you have *.coe files for RAM initialization or analogous files please make sure that you store these files in a separate folder and point to them in the IP one by using a relative path.
 
-### Source, simulation and constraint files
-
-It is now time to copy over all your source files.
-In principle you can put your files wherever you feel like but we strongly encourage you to be as methodical as possible.
-We therefore suggest the source files for each library to be contained in a separate folder with the name of the library.
-
-In the current case this means creating a `lib_<fancy_name>` folder where to store all the source, simulation and constraint files
-
-```bash
-  mkdir -p lib_<fancy_name>/source lib_<fancy_name>/simulation lib_<fancy_name>/constraint
-  cp ../<old_repo>/<source_1>.vhd lib_<fancy_name>/source
-  cp ../<old_repo>/<source_2>.vhd lib_<fancy_name>/source
-  ...
-  cp ../<old_repo>/<simulation_1>.vhd lib_<fancy_name>/simulation
-  cp ../<old_repo>/<simulation_2>.vhd lib_<fancy_name>/simulation
-  ...
-  cp ../<old_repo>/<constraint_1>.vhd lib_<fancy_name>/constraint
-  cp ../<old_repo>/<constraint_2>.vhd lib_<fancy_name>/constraint
-  ...
-```
-
-*NOTE* we suggest you to use longer names for directories since shorter names might be reserved under some Operating Systems, e.g. *con* is reserved under Windows.
-
-Double check you added all the relevant files in your folders and add it to the correct list files
-
-```bash
-  for i in $( ls lib_<fancy_name>/source/* ); do \
-    echo '../../'$i >> Top/<fancy_name>/list/<fancy_name>.src; \
-  done
-  for i in $( ls lib_<fancy_name>/simulation/* ); do \
-    echo '../../'$i >> Top/<fancy_name>/list/<fancy_name>.sim; \
-  done
-  for i in $( ls lib_<fancy_name>/constraint/* ); do \
-    echo '../../'$i >> Top/<fancy_name>/list/<fancy_name>.con; \
-  done
-```
-
-You can also check that the files are correctly picked up by regenerating the Hog project.
-If you are satisfied with the changes commit all the files.
-
-```bash
-  git add lib_<fancy_name>
-  git add Top/<fancy_name>/list/<fancy_name>.src
-  git add Top/<fancy_name>/list/<fancy_name>.sim
-  git add Top/<fancy_name>/list/<fancy_name>.con
-  git commit -m "Adding source files from "
-```
-
-### Submodules
-
-If your project uses source or simulation files hosted in a separate repository you can add that repository as a git submodule.
-
-```bash
-  git submodule add <submodule_url>
-  for i in $( ls <submodule>/* ); do \
-    echo '../../'$i >> Top/<fancy_name>/list/<fancy_name>.sub; \
-  done
-```
-
-Do not forget to add the relevant source files to the suitable list file and to commit everything.
-
-### Proprietary files
-
-External proprietary files can be included using the .ext list file. .ext list files must use an absolute path.
-To use the firmware Continuous Integration this path must be accessible to the machine performing the git CI, e.g. can be on a protected afs folder.
-This file has to be used **ONLY** in the exceptional case of files that can not be published because of copyright.
-This file has a special syntax since md5 hash of each file must be added after the file name, separated by one or more spaces.
-The md5 hash can be obtained by running the following command:
-
-```bash
-  md5sum <filename>
-```
-
-Hog, at synthesis time, checks that all the files are there and that the md5 hash matches the one in the list file.
 
 ## Updating your top file
 
@@ -311,6 +313,10 @@ use <fancy_name>.all;
 ```
 
 do not forget to test and commit your changes. 
+
+## Create your project
+Now you can run `./Hog/CreateProject.sh fancy_name`. This will create your project in `VivadoProject/fancy_name/fancy_name.xpr` or `QuartusProject/fancy_name/fancy_name.qpf`. You can open the project with the GUI and check that everything looks alright. If something is wrong, try to fix it by modifying: the source files, the list files, the project tcl file. If you modify the list files or the project tcl file, you have to re create the project to see if the modifications had the desired effect. 
+
 
 ## Optional directories
 

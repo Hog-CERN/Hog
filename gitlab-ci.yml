@@ -149,7 +149,9 @@ collect_artifacts:
         <<: *vars
     script:
         - ./Hog/Other/Changelog.sh $CI_MERGE_REQUEST_TARGET_BRANCH_NAME > $CI_PROJECT_DIR/bin/note.md
-        - cat $CI_PROJECT_DIR/bin/*/*.txt >> $CI_PROJECT_DIR/bin/note.md
+        - "if [ -n $CI_PROJECT_DIR/bin/*/*.txt ]; then
+          cat $CI_PROJECT_DIR/bin/*/*.txt >> $CI_PROJECT_DIR/bin/note.md;
+          fi"
         - git fetch origin refs/notes/*:refs/notes/*
         - git notes add -fm "$CI_MERGE_REQUEST_IID"
         - git push origin refs/notes/*

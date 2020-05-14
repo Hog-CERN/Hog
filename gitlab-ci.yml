@@ -131,7 +131,13 @@ merge_and_tag:
         - git status
         - git diff
         - if [ -z ${HOG_NJOBS+x} ]; then export HOG_NJOBS=4; fi
-        - "if [ $HOG_NO_BITSTREAM == '1' ]; then vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_implementation.tcl -tclargs -no_bitstream -NJOBS $HOG_NJOBS  $PROJECT_NAME; else vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_implementation.tcl -tclargs -NJOBS $HOG_NJOBS $PROJECT_NAME; fi"
+        - "if [ -z ${HOG_NO_BITSTREAM+x} ]; then
+           if [ $HOG_NO_BITSTREAM == '1' ]; then
+          vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_implementation.tcl -tclargs -no_bitstream -NJOBS $HOG_NJOBS  $PROJECT_NAME;
+          else
+          vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_implementation.tcl -tclargs -NJOBS $HOG_NJOBS $PROJECT_NAME;
+          fi;
+          fi"
         - "cat $CI_PROJECT_DIR/bin/$PROJECT_NAME*/versions* $CI_PROJECT_DIR/bin/$PROJECT_NAME*/timing_* > note.md"
         - ./Hog/Other/WriteGitlabNote.sh $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $CI_MERGE_REQUEST_IID note.md
 

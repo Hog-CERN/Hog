@@ -4,11 +4,11 @@
 #  @brief Create the specified Vivado or Quartus project
 
 ## @var COMMAND
-#  @brief Global variable used to contain the command to be used 
+#  @brief Global variable used to contain the command to be used
 COMMAND=""
 
 ## @var COMMAND_OPT
-#  @brief Global variable used to contain the options associated to the command to be used 
+#  @brief Global variable used to contain the options associated to the command to be used
 COMMAND_OPT=""
 
 ## @var HDL_COMPILER
@@ -63,10 +63,10 @@ function help_message()
 #
 function select_command()
 {
-  if [ ! -f $1]
+  if [ ! -f $1 ]
   then
     echo "File: $1 not found!"
-    return 1 
+    return 1
   fi
 
   local TCL_FIRST_LINE=$(head -1 $1)
@@ -194,7 +194,7 @@ function create_project ()
   if [ "a$1" == "a" ]
   then
     echo " Usage: $0 <project name>"
-    echo 
+    echo
     echo "  Possible projects are:"
     ls -1 $DIR
     echo
@@ -213,13 +213,13 @@ function create_project ()
     if [ $? != 0 ]
     then
       echo "Failed to select project type: exiting!"
-      exit -1 
+      exit -1
     fi
-    
+
     #select full path to executable and place it in HDL_COMPILER global variable
     select_compiler_executable $COMMAND
     if [ $? != 0 ]
-    then 
+    then
       echo "Hog-ERROR: failed to get HDL compiler executable for $COMMAND"
       exit -1
     fi
@@ -256,4 +256,4 @@ function create_project ()
 
 }
 
-create_project $@ 
+create_project $@

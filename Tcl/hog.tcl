@@ -110,7 +110,7 @@ proc  SetParameter {parameter value } {
   set_param $parameter $value
 }
 ########################################################
-proc add_top_file {top_module top_file sources} {
+proc AddTopFile {top_module top_file sources} {
   if {[info commands launch_chipscope_analyzer] != ""} {
         #VIVADO_ONLY
     add_files -norecurse -fileset $sources $top_file
@@ -885,7 +885,7 @@ proc CompareVHDL {file1 file2} {
 # * base   the path with respect to witch the dst path is calculated
 # * dst:   the path to be calculated with respect to base
 
-proc relative {base dst} {
+proc Relative {base dst} {
   if {![string equal [file pathtype $base] [file pathtype $dst]]} {
     return -code error "Unable to compute relation for paths of different pathtypes: [file pathtype $base] vs. [file pathtype $dst], ($base vs. $dst)"
   }
@@ -1195,7 +1195,7 @@ proc HandleIP {what_to_do xci_file ip_path runs_dir {force 0}} {
   set xci_ip_name [file root [file tail $xci_file]]
   set xci_dir_name [file tail $xci_path]
 
-  set hash [md5sum $xci_file]
+  set hash [Md5Sum $xci_file]
   set file_name $xci_name\_$hash
 
   Msg Info "Preparing to handle IP: $xci_name..."
@@ -1272,7 +1272,7 @@ proc HandleIP {what_to_do xci_file ip_path runs_dir {force 0}} {
 ## Evaluates the md5 sum of af a file
 ##  Argumets:
 # - file_name: the name of the file of which you want to vevaluate the md5 checksum
-proc md5sum {file_name} {
+proc Md5Sum {file_name} {
   if !([file exists $file_name]) {
     Msg Warning "Could not find $xci_file."
     set file_hash -1

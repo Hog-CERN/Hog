@@ -108,7 +108,7 @@ We suggest you to store the file containing the top level module for your projec
 
 Hog uses generics to track the firmware version.
 A full list of the generics used by Hog can be found  in the [Hog generics](../02-Maintainer-Manual/07-Hog-generics.md) section.
-A template for the top level file (in VHLD and Verilog) is available in the [Hog/Template](https://gitlab.cern.ch/hog/Hog/-/tree/master/Templates) directory.
+A template for the top level file (in VHDL and Verilog) is available in the [Hog/Template](https://gitlab.cern.ch/hog/Hog/-/tree/master/Templates) directory.
 A full description of the template can be found in the [available templates](../02-Maintainer-Manual/06-available-templates.md) section.
 
 ## git submodules

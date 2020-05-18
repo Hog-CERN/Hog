@@ -316,6 +316,9 @@ proc FindFileType {file_name} {
     .vhd {
       set file_extension "VHDL_FILE"
     }
+    .vhdl{
+      set file_extension "VHDL_FILE"
+    }
     .v {
       set file_extension "VERILOG_FILE"
     }
@@ -338,7 +341,7 @@ proc FindFileType {file_name} {
       set file_extension "COMMAND_MACRO_FILE"
     }
     default {
-      set file_extension "ERROR"	
+      set file_extension "ERROR"
       Msg Error "Unknown file extension $extension"
     }
   }
@@ -349,6 +352,9 @@ proc FindVhdlVersion {file_name} {
   set extension [file ext $file_name]
   switch $extension {
     .vhd {
+      set vhdl_version "-hdl_version VHDL_2008"
+    }
+    .vhdl {
       set vhdl_version "-hdl_version VHDL_2008"
     }
     default {
@@ -387,7 +393,7 @@ proc ReadListFile {list_file path lib} {
   set cnt 0
   foreach line $data {
     # Exclude empty lines and comments
-    if {![regexp {^ *$} $line] & ![regexp {^ *\#} $line] } { 
+    if {![regexp {^ *$} $line] & ![regexp {^ *\#} $line] } {
       set file_and_prop [regexp -all -inline {\S+} $line]
       set vhdlfile [lindex $file_and_prop 0]
       set vhdlfile "$path/$vhdlfile"
@@ -1004,7 +1010,7 @@ proc GetHogFiles {} {
 # - properties has as file names as keys and a list of properties as values
 # - file_sets has as file names as keays and the corresponding vivado file_set as value
 proc AddHogFiles { libraries properties } {
-  Msg Info "Adding source files to project..."   
+  Msg Info "Adding source files to project..."
   foreach lib [dict keys $libraries] {
     # Msg Info "lib: $lib \n"
     set lib_files [dict get $libraries $lib]
@@ -1043,8 +1049,9 @@ proc AddHogFiles { libraries properties } {
         foreach f $lib_files {
           set file_obj [get_files -of_objects [get_filesets $file_set] [list "*$f"]]
           #ADDING LIBRARY
-          set_property -name "library" -value $rootlib -objects $file_obj
-
+          if {[file ext $f] == ".vhd" || [file ext $f] == ".vhdl" } {
+                set_property -name "library" -value $rootlib -objects $file_obj
+          }
           if {[file ext $f] == ".xdc"} {
             Msg Info "Setting filetype XDC for $f"
             set_property -name "file_type" -value "XDC" -objects $file_obj
@@ -1052,7 +1059,7 @@ proc AddHogFiles { libraries properties } {
 
           #ADDING FILE PROPERTIES
           set props [dict get $properties $f]
-          if {[file ext $f] == ".vhd"} {
+          if {[file ext $f] == ".vhd" || [file ext $f] == ".vhdl"} {
             if {[lsearch -inline -regex $props "93"] < 0} {
               set_property -name "file_type" -value "VHDL 2008" -objects $file_obj
             } else {
@@ -1133,7 +1140,7 @@ proc AddHogFiles { libraries properties } {
         }
         #missing : ADDING QUARTUS FILE PROPERTIES
       }
-    } 
+    }
   }
 }
 

@@ -1,4 +1,4 @@
-# Contributing to Hog
+# Add your contribution to Hog
 If you want to contribute to Hog please follow these instructions:
 
 1. go to [Hog on gitlab](https://gitlab.cern.ch/hog/Hog)
@@ -131,7 +131,7 @@ If you want to do this locally and haven't set up your permissions for local git
 Everything you'll need to edit is inside the `docs/` directory.
 Sections are represented by subdirectories within `docs/` and, the section "home" pages  come from `index.md` files in each directory.
 You can create further markdown files to add topics to the section.\
-Any changes you make to this repo will be automatically propagated to this website when you push your commits into the master.
+Any changes you make to this repo will be automatically propagated to this website when you push your commits into the $HOG_TARGET_BRANCH.
 
 ## Markdown
 

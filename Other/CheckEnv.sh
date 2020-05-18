@@ -159,10 +159,10 @@ echo
 
 echo ==== OPTIONAL ENV VARIABLES ====
 echo -n "Variable: HOG_CHECK_SYNTAX is "
-if [ -z ${HOG_CHECK_SYNTAX+x} ]
+if [[ ${HOG_CHECK_SYNTAX} != 1 ]]
 then
-    echo "is NOT defined."
-    echo "Hog will NOT check the syntax. Define this variable if you want Hog to check the syntax after creating the HDL project in Create_Project stage."
+    echo "NOT defined."
+    echo "Hog will NOT check the syntax. Set this variable to '1' if you want Hog to check the syntax after creating the HDL project in Create_Project stage."
 else
     echo "defined"
     echo "Hog will check the syntax just after creating the HDL project in Create_Project stage. The CI job will FAIL if an error is found."
@@ -170,16 +170,16 @@ fi
 echo --------------------------------
 
 echo -n "Variable: HOG_CHECK_YAMLREF is "
-if [ -z ${HOG_CHECK_YAMLREF+x} ]
+if [[ ${HOG_CHECK_YAMLREF} != 1 ]]
 then
-    echo "NOT defined. Define it to make CI failif there i coherence between the ref and the Hog."
+    echo "NOT defined. Set this variable to '1' to make CI fail if there is not coherence between the ref and the Hog."
 else
     echo "defined. Hog will check that the reference to the gitlab-ci.yml file in the Hog repository matches the version of the Hog repository."
 fi
 echo --------------------------------
 
 echo -n "Variable: HOG_NO_BITSTREAM is "
-if [ -z ${HOG_NO_BITSTREAM+x} ]
+if [[ ${HOG_NO_BITSTREAM} != 1 ]]
 then
     echo "NOT defined. Hog-CI will run the implementation up to the write_bitstream stage and create bit files."
 else
@@ -197,8 +197,17 @@ fi
 echo " use EOS as a synthesised IP respository to speed up IP synthesis."
 echo --------------------------------
 
+echo -n "Variable: HOG_TARGET_BRANCH is "
+if [ -z ${HOG_TARGET_BRANCH+x} ]
+then
+    echo "NOT defined. Default branch for merge is \"master\""
+else
+    echo "Defined. Will merge to ${HOG_TARGET_BRANCH}"
+fi
+echo --------------------------------
+
 echo -n "Variable: HOG_CREATE_OFFICIAL_RELEASE is "
-if [ -z ${HOG_CREATE_OFFICIAL_RELEASE+x} ]
+if [[ ${HOG_CREATE_OFFICIAL_RELEASE} != 1 ]]
 then
     echo -n "NOT defined. Hog-CI will NOT"
 else
@@ -207,15 +216,35 @@ fi
 echo " create an official release note using the version and timing summaries taken from the artifact of the projects."
 echo --------------------------------
 
-echo -n "Variable: HOG_USE_DOXYGEN is "
-if [ -z ${HOG_USE_DOXYGEN+x} ]
+echo -n "Variable: HOG_NJOBS is "
+if [ -z ${HOG_NJOBS+x} ]
 then
-    echo "NOT defined. Hog-CI will not run Doxygen nor it will copy the official documentation over when you merge to the official branch."
+    echo  "NOT defined. Hog-CI will run synthesis and implementation with default number of jobs (4)"
 else
-    echo "defined."
+    echo  "defined. Hog-CI will run synthesis and implementation with $HOG_NJOBS jobs"
+fi
+echo --------------------------------
+
+echo -n "Variable: HOG_IP_NJOBS is "
+if [ -z ${HOG_IP_NJOBS+x} ]
+then
+    echo  "NOT defined. Hog-CI will build IPs with default number of jobs (4)"
+else
+    echo  "defined. Hog-CI will build IPs with $HOG_IP_NJOBS jobs"
+fi
+echo --------------------------------
+
+echo -n "Variable: HOG_USE_DOXYGEN is "
+if [[ ${HOG_USE_DOXYGEN} != 1 ]]
+then
+    echo "NOT defined. Set this variable to 1 to make Hog-CI run Doxygen and copy the official documentation over when you merge to the official branch."
+else
+    echo "defined. Hog-CI will run Doxygen and copy the official documentation over when you merge to the official branch."
 fi
 echo ================================
 echo
+
+
 
 if [ -z ${FAIL+x} ]
 then

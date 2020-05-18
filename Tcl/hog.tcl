@@ -1300,14 +1300,17 @@ You can fix this by installing package \"tcllib\""
     # Go to repository path
   cd "$repo_path"
   if [file exists .gitlab-ci.yml] {
-  #get .gitlab-ci ref
-
+    #get .gitlab-ci ref
     set YML_REF ""
-    set yamlDict [::yaml::yaml2dict -file .gitlab-ci.yml]
-    dict for {dictKey dictValue} $yamlDict {
-      #looking for Hog include in .gitlab-ci.yml
-      if {"$dictKey" == "include" && [lsearch [split $dictValue " {}"] "hog/Hog" ] != "-1"} {
-        set YML_REF [lindex [split $dictValue " {}"]  [expr [lsearch -dictionary [split $dictValue " {}"] "ref"]+1 ] ]
+    if { [catch {::yaml::yaml2dict -file .gitlab-ci.yml}  yamlDict]} {
+      Msg $MSG_TYPE "Parsing .gitlab-ci.yml failed. To fix this, check that yaml syntax is respected, remember not to use tabs."
+      return
+    } else {
+       dict for {dictKey dictValue} $yamlDict {
+        #looking for Hog include in .gitlab-ci.yml
+        if {"$dictKey" == "include" && [lsearch [split $dictValue " {}"] "hog/Hog" ] != "-1"} {
+          set YML_REF [lindex [split $dictValue " {}"]  [expr [lsearch -dictionary [split $dictValue " {}"] "ref"]+1 ] ]
+        }
       }
     }
 

@@ -1,6 +1,6 @@
-# Working with a HDL repository handled with Hog
+# How to work with an existing Hog-handled repository
 
-This section is intended for a firmware developer that starts to work to an existing HDL project that is managed with Hog.
+This section is intended for a developer that starts working with an existing HDL project that is managed with Hog.
 
 All the instructions below can be executed both on a Linux shell, or on git bash[^1] on a Windows machine.
 

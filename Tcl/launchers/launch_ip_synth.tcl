@@ -61,6 +61,11 @@ if {$ips != ""} {
       set run_name [get_runs $ip\_synth_1]
       reset_run $run_name
       lappend runs $run_name
+    } elseif { [get_runs $ip\_impl_1] != ""} {
+      Msg Info "Adding run for $ip..."
+      set run_name [get_runs $ip\_impl_1]
+      reset_run $run_name
+      lappend runs $run_name
     } else {
       Msg Info "No run found for $ip."
     }
@@ -118,7 +123,7 @@ if {$failure eq 1} {
   Msg Error "At least on IP synthesis failed"
 }
 
-if {($ip_path != 0)} {
+if {($ip_path != "")} {
   Msg Info "Copying synthesised IPs to $ip_path..."
   foreach ip $ips {
     set force 0

@@ -200,9 +200,9 @@ echo --------------------------------
 echo -n "Variable: HOG_TARGET_BRANCH is "
 if [ -z ${HOG_TARGET_BRANCH+x} ]
 then
-    echo -n "NOT defined. Default branch for merge is \"master\""
+    echo "NOT defined. Default branch for merge is \"master\""
 else
-    echo -n "Defined. Will merge to ${HOG_TARGET_BRANCH}"
+    echo "Defined. Will merge to ${HOG_TARGET_BRANCH}"
 fi
 echo --------------------------------
 
@@ -219,18 +219,18 @@ echo --------------------------------
 echo -n "Variable: HOG_NJOBS is "
 if [ -z ${HOG_NJOBS+x} ]
 then
-    echo -n "NOT defined. Hog-CI will run synthesis and implementation with default number of jobs (4)"
+    echo  "NOT defined. Hog-CI will run synthesis and implementation with default number of jobs (4)"
 else
-    echo -n "defined. Hog-CI will run synthesis and implementation with $HOG_NJOBS jobs"
+    echo  "defined. Hog-CI will run synthesis and implementation with $HOG_NJOBS jobs"
 fi
 echo --------------------------------
 
 echo -n "Variable: HOG_IP_NJOBS is "
 if [ -z ${HOG_IP_NJOBS+x} ]
 then
-    echo -n "NOT defined. Hog-CI will build IPs with default number of jobs (4)"
+    echo  "NOT defined. Hog-CI will build IPs with default number of jobs (4)"
 else
-    echo -n "defined. Hog-CI will build IPs with $HOG_IP_NJOBS jobs"
+    echo  "defined. Hog-CI will build IPs with $HOG_IP_NJOBS jobs"
 fi
 echo --------------------------------
 

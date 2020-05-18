@@ -756,6 +756,7 @@ proc CopyXMLsFromListFile {list_file path dst {generate 0} {xml_version "0.0.0"}
   Msg Info "$n lines read from $list_file"
   set cnt 0
   set xmls {}
+  set vhdls {}
   foreach line $data {
     if {![regexp {^ *$} $line] & ![regexp {^ *\#} $line] } { #Exclude empty lines and comments
       set file_and_prop [regexp -all -inline {\S+} $line]

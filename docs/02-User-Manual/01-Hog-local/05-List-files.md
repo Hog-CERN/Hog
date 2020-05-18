@@ -1,6 +1,6 @@
 # List Files
 
-This section contains the full instructions on how to build your list files.
+This section contains the full instructions on how to build your list files. List files are used to create the project, and must contain the list of all the files (vhdl, verilog, testbenches, IPs, constraints, etc.) used in the project, plus some properties.
 There are several kinds of list files, depending on the extension: .src, .sim, .con, .sub, .prop, .ext.
 [^1]: Also .ext files exist. They are used to handle external files that are protected by copyright and cannot be published on the repository. Will will not discuss that in this quick guide.
 

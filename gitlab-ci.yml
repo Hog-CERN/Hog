@@ -76,10 +76,11 @@ merge_and_tag:
      script:
       - "if [ -z ${HOG_SIMULATION_LIB_PATH+x} ]; then echo 'Simulation library path is not defined'; else vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_simulation.tcl -tclargs -lib_path $HOG_SIMULATION_LIB_PATH $PROJECT_NAME ; fi"
      artifacts:
-       name: vivado_projects
+       name: simulation_files
        paths:
          - $CI_PROJECT_DIR/VivadoProject/$PROJECT_NAME/$PROJECT_NAME.sim
        expire_in: 30 day
+     allow_failure: true
 
 .synthesise_ips: &synthesise_ips
     <<: *only-default

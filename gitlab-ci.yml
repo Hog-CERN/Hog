@@ -112,9 +112,6 @@ merge_and_tag:
     variables:
         <<: *vars
     script:
-        - echo $LD_LIBRARY_PATH
-        - echo $PATH
-        - gen_ipbus_addr_decode -h
         - if [ -z ${HOG_NJOBS+x} ]; then export HOG_NJOBS=4; fi
         - vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_synthesis.tcl -tclargs -NJOBS $HOG_NJOBS $PROJECT_NAME
     artifacts:

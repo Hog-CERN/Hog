@@ -82,7 +82,7 @@ The option *-no_bitstream* is used to skip generate bitstream phase.
 Project simulation can be run using shell, Vivado/Quartus GUI or Vivado/Quartus Tcl console.
 Hog supports Vivado simulator (xsim), ModelSim and QuestaSim. 
 The simulation files and properties, such as the selected simulator, eventual wavefiles or do files are set as explained in the section
-[Simulation list files](05-List-files/(##-simulation-list-files-(.sim)).
+[Simulation list files](05-List-files/##-simulation-list-files-(.sim)).
 If ModelSim or QuestaSim are used, the Vivado libraries must be compiled by the user in a directory. 
 ModelSim/Questasim libraries can be compiled by using shell command:
 

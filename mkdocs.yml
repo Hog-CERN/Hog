@@ -12,8 +12,8 @@ nav:
   - 01-Getting-Started/02-howto-convert-project.md
   - 01-Getting-Started/03-howto-update-hog.md
 - 'Hog User Manual': 
+  - 02-User-Manual/00-what-is-hog.md
   - 'Using Hog Locally': 
-    - 02-User-Manual/01-Hog-local/00-what-is-hog.md
     - 02-User-Manual/01-Hog-local/01-supported-tools.md    
     - 02-User-Manual/01-Hog-local/02-available-templates.md
     - 02-User-Manual/01-Hog-local/03-Hog-generics.md

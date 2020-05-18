@@ -1,4 +1,4 @@
-# How to working with an existing Hog-handled repository
+# How to work with an existing Hog-handled repository
 
 This section is intended for a developer that starts working with an existing HDL project that is managed with Hog.
 

@@ -124,7 +124,7 @@ if [ -z ${HOG_PATH+x} ]
 then
     echo "NOT defined. Hog might work as long as all the necessary executable are in the PATH variable."
 else
-    echo "Defined."
+    echo "defined."
 fi
 echo "This Variable will be added in front of the regular PATH so it will override in case of conflicts. You can use it to point to the version of Vivado/Quartus and Questasim/Modelsim you want"
 echo --------------------------------
@@ -134,7 +134,7 @@ if [ -z ${HOG_LD_LIBRARY_PATH+x} ]
 then
     echo "NOT defined. Hog might work as long as all the necessary library are found."
 else
-    echo "Defined."
+    echo "defined."
 fi
 echo "This variable will be added in front of the regular LD_LIBRARY_PATH so it will override in case of conflicts."
 echo --------------------------------
@@ -144,7 +144,7 @@ if [ -z ${HOG_SIMULATION_LIB_PATH+x} ]
 then
     echo "NOT defined. Hog-CI will not be able to run Questasim/Modelsim."
 else
-    echo "Defined."
+    echo "defined."
 fi
 echo --------------------------------
 
@@ -153,7 +153,7 @@ if [ -z ${HOG_UNOFFICIAL_BIN_EOS_PATH+x} ]
 then
     echo "NOT defined. Hog-CI will not be able to copy bitfile to EOS."
 else
-    echo "Defined"
+    echo "defined"
 fi
 echo --------------------------------
 
@@ -162,7 +162,7 @@ if [ -z ${HOG_OFFICIAL_BIN_EOS_PATH+x} ]
 then
     echo "NOT defined. Hog-CI will not be able to copy official bitfile to EOS."
 else
-    echo "Defined."
+    echo "defined."
 fi
 echo ================================
 echo
@@ -212,7 +212,7 @@ if [ -z ${HOG_TARGET_BRANCH+x} ]
 then
     echo "NOT defined. Default branch for merge is \"master\""
 else
-    echo "Defined. Will merge to ${HOG_TARGET_BRANCH}"
+    echo "defined. Will merge to ${HOG_TARGET_BRANCH}"
 fi
 echo --------------------------------
 

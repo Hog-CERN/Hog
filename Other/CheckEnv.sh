@@ -126,7 +126,17 @@ then
 else
     echo "Defined."
 fi
-echo "This Variabkle will be added in front of the regular PATH so it will override in case of conflicts. You can use it to point to the version of Vivado/Quartus and Questasim/Modelsim you want"
+echo "This Variable will be added in front of the regular PATH so it will override in case of conflicts. You can use it to point to the version of Vivado/Quartus and Questasim/Modelsim you want"
+echo --------------------------------
+
+echo -n "Variable: HOG_LD_LIBRARY_PATH is "
+if [ -z ${HOG_LD_LIBRARY_PATH+x} ]
+then
+    echo "NOT defined. Hog might work as long as all the necessary library are found."
+else
+    echo "Defined."
+fi
+echo "This variable will be added in front of the regular LD_LIBRARY_PATH so it will override in case of conflicts."
 echo --------------------------------
 
 echo -n "Variable: HOG_SIMULATION_LIB_PATH is "

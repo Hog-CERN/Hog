@@ -133,7 +133,7 @@ merge_and_tag:
         - git status
         - git diff
         - if [ -z ${HOG_NJOBS+x} ]; then export HOG_NJOBS=4; fi
-        - if [ -z ${$HOG_NO_BITSTREAM+x} ]; then export HOG_NO_BITSTREAM=0; fi
+        - if [ -z ${HOG_NO_BITSTREAM+x} ]; then export HOG_NO_BITSTREAM=0; fi
         - "if [ $HOG_NO_BITSTREAM == '1' ]; then
            vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_implementation.tcl -tclargs -no_bitstream -NJOBS $HOG_NJOBS  $PROJECT_NAME;
            else vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_implementation.tcl -tclargs -NJOBS $HOG_NJOBS $PROJECT_NAME;

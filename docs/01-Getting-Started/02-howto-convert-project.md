@@ -8,7 +8,7 @@ If you are migrating beween two git repositories and you want to retain the hist
 
 If you are migrating to Hog but you are not changing repository, you can follow the instructions below ignoring the creation of the new local repository. In this case you might want to work in a new branch of your reposiutory.
 
-Let's suppose your new repository called `new_repo` with url `new_repo_url`, your project is named `fancy_project` is currently stored in some local folder `fancy_path`. If you don't have a new repository you can go on Gitlab (gitlab.cern.ch) and create one.
+Let's suppose your new repository called `new_repo` with url `new_repo_url`, your project is named `myproject` is currently stored in some local folder `mypath`. If you don't have a new repository you can go on Gitlab (gitlab.cern.ch) and create one.
 
 ## Preliminary actions
 First of all create a new folder where you will store your firmware, initialize it as a git repository and connect it to the remote repository:
@@ -114,13 +114,13 @@ You can start by creating your project top-directory:
 
 
 ```bash
-  mkdir -p Top/fancy_project
+  mkdir -p Top/myproject
 ```
 
 Every project top-directory, must contain a subdirectory called `list` where the so-called hog list file are stored. Let's create it:
 
 ```bash
-  mkdir Top/fancy_project/list
+  mkdir Top/myproject/list
 ```
 
 
@@ -134,7 +134,7 @@ This is a recap of what we have learned up to now:
 In order to create the project's tcl script, we will start from the template provided in the `Hog/Templates` folder:
 
 ```bash
-  cp Hog/Templates/top.tcl Top/fancy_name/fancy_name.tcl
+  cp Hog/Templates/top.tcl Top/myproject/myproject.tcl
 ```
 
 Use your favourite text editor to modify the template Tcl file. This will give you a minimal configuration to generate an empty project.
@@ -156,37 +156,37 @@ You are now ready to import the files needed to build your project[^1].
 First of all we copy the files from your local folder into the folder that contains the git repository.
 Exception made for some reserved directory (e.g. Top, IP, BD) you can put your files wherever you feel like inside your repository, orgasnising them as you see fit.
 
-In this example we will create a directory named `lib_fancy_name` where we will store all the source, simulation and constraint files.
+In this example we will create a directory named `lib_myproject` where we will store all the source, simulation and constraint files.
 
 ```bash
-  mkdir -p lib_fancy_name/source lib_fancy_name/simulation lib_fancy_name/constraint
-  cp ../old_repo/source_1.vhd lib_fancy_name/source
-  cp ../old_repo/source_2.vhd lib_fancy_name/source
+  mkdir -p lib_myproject/source lib_myproject/simulation lib_myproject/constraint
+  cp ../old_repo/source_1.vhd lib_myproject/source
+  cp ../old_repo/source_2.vhd lib_myproject/source
   ...
-  cp ../old_repo/simulation_1.vhd lib_fancy_name/simulation
-  cp ../old_repo/simulation_2.vhd lib_fancy_name/simulation
+  cp ../old_repo/simulation_1.vhd lib_myproject/simulation
+  cp ../old_repo/simulation_2.vhd lib_myproject/simulation
   ...
-  cp ../old_repo/constraint_1.vhd lib_fancy_name/constraint
-  cp ../old_repo/constraint_2.vhd lib_fancy_name/constraint
+  cp ../old_repo/constraint_1.vhd lib_myproject/constraint
+  cp ../old_repo/constraint_2.vhd lib_myproject/constraint
   ...
 ```
 
 After having added all the relevant files in your folders you have to add their path and file names to the appropriate list files. In this example, we will create:
 
-- One source list-file called `Top/fancy_name/list/fancy_name.src`, containing the source files of your project
-- One simulation list-file called `Top/fancy_name/list/fancy_name.sim`, containing the files used in the simulation (e.g. test benches, modules that read/write files, etc.)
-- One constraint list-file called `Top/fancy_name/list/fancy_name.con`, containing your constraints (.xdc, .tcl, etc.)
+- One source list-file called `Top/myproject/list/myproject.src`, containing the source files of your project
+- One simulation list-file called `Top/myproject/list/myproject.sim`, containing the files used in the simulation (e.g. test benches, modules that read/write files, etc.)
+- One constraint list-file called `Top/myproject/list/myproject.con`, containing your constraints (.xdc, .tcl, etc.)
 
 You can copy and modify this bas script to ease this quite tedious part of the work:
 ```bash
-  for i in $( ls lib_fancy_name/source/* ); do \
-    echo $i >>  Top/fancy_name/list/fancy_name.src; \
+  for i in $( ls lib_myproject/source/* ); do \
+    echo $i >>  Top/myproject/list/myproject.src; \
   done
-  for i in $( ls lib_fancy_name/simulation/* ); do \
-    echo $i >>  Top/fancy_name/list/fancy_name.sim; \
+  for i in $( ls lib_myproject/simulation/* ); do \
+    echo $i >>  Top/myproject/list/myproject.sim; \
   done
-  for i in $( ls lib_fancy_name/constraint/* ); do \
-    echo $i >>  Top/fancy_name/list/fancy_name.con; \
+  for i in $( ls lib_myproject/constraint/* ); do \
+    echo $i >>  Top/myproject/list/myproject.con; \
   done
 ```
 
@@ -194,14 +194,14 @@ Note that the path of the file is specified with respect to the main folder of t
 
 If you want, you can add comment lines in the list-files starting with a `#` and you can leave empy lines (or lines containing an arbitrary number of spaces). All of these will be ignored by Hog.
 
-At this point, you might want to check that the files are correctly picked up by regenerating the Hog project: `./Hog/CreateProject.sh fancy_name`, Hog will give you an error if a file is not found.
-You can open the created project in  `VivadoProject/fancy_name/fancy_name.xpr` or `QuartusProject/fancy_name/fancy_name.qpf` with the GUI and check that all the files are there. If not, modifiy the list files and create the project again. When you are satisfied, you can commit your work:
+At this point, you might want to check that the files are correctly picked up by regenerating the Hog project: `./Hog/CreateProject.sh myproject`, Hog will give you an error if a file is not found.
+You can open the created project in  `VivadoProject/myproject/myproject.xpr` or `QuartusProject/myproject/myproject.qpf` with the GUI and check that all the files are there. If not, modifiy the list files and create the project again. When you are satisfied, you can commit your work:
 
 ```bash
-  git add lib_fancy_name
-  git add Top/fancy_name/list/fancy_name.src
-  git add Top/fancy_name/list/fancy_name.sim
-  git add Top/fancy_name/list/fancy_name.con
+  git add lib_myproject
+  git add Top/myproject/list/myproject.src
+  git add Top/myproject/list/myproject.sim
+  git add Top/myproject/list/myproject.con
   git commit -m "Adding source files"
 ```
 
@@ -220,14 +220,14 @@ Add the relevant source files to the submodule list-file. You can copy and modif
 
 ```bash
 for i in $( ls submodule/* ); do \
-    echo $i >> Top/fancy_name/list/jazzy_submodule.sub; \
+    echo $i >> Top/myproject/list/jazzy_submodule.sub; \
   done
 ```
 
 Now commit the newly created .sub file:
 
 ```bash
-git add Top/fancy_name/list/jazzy_submodule.sub
+git add Top/myproject/list/jazzy_submodule.sub
 git commit -m "Add a new jazzy submodule"
 ```
 
@@ -244,21 +244,21 @@ Basically for each IP in your project run:
 ```
 
 Then you can add the xci files to the .src list file you want, in this case we will use a separate file called `IP.src`[^3]. You can use the following script if you like:
-[^3]: There is no concept of library for the IPs, so we prefer to put them in a separate .src file. You can put them in the same list file as your other source files if you wish. Just open `Top/fancy_name/list/fancy_name.src` with a text editor and add them there.
+[^3]: There is no concept of library for the IPs, so we prefer to put them in a separate .src file. You can put them in the same list file as your other source files if you wish. Just open `Top/myproject/list/myproject.src` with a text editor and add them there.
 
 
  ```bash
   for i in $( ls IP/* ); do \
-    echo $i/$i.xci >> Top/<fancy_name>/list/<fancy_name>.src;
+    echo $i/$i.xci >> Top/myproject/list/myproject.src;
   done
 ```
 
-As usual, you can check that the files are correctly picked up by regenerating the project `./Hog/CreateProject.sh fancy_name`
+As usual, you can check that the files are correctly picked up by regenerating the project `./Hog/CreateProject.sh myproject`
 If you are satisfied with the changes, you can commit your work.
 
 ```bash
   git add IP
-  git add Top/fancy_name/list/IP.src
+  git add Top/myproject/list/IP.src
   git commit -m "Adding IP Files"
 ```
 
@@ -271,7 +271,7 @@ If you have *.coe files for RAM initialization or analogous files please make su
 
 
 ## The top file of your project
-Your project must conmtain a module called `top_fancy_name`, i.e. your project's name preceded by `top_`. Hog will pick up such module and set it as the Top of your project.
+Your project must conmtain a module called `top_myproject`, i.e. your project's name preceded by `top_`. Hog will pick up such module and set it as the Top of your project.
 
 Since Hog will back annotate your project to track the source code used in each build, extra generics will be provided to your top file at the beginning of the synthesis
 You can add the following generics to your top file in order to store those values in some registers:
@@ -312,21 +312,21 @@ generic (
 
 ```
 
-In our case, there is only one library called fancy_name, possibly a submodule, and no XML_VERSION, flavour or external libs. Thess are more advanced Hog features that are not treated in this guide.
+In our case, there is only one library called myproject, possibly a submodule, and no XML_VERSION, flavour or external libs. Thess are more advanced Hog features that are not treated in this guide.
 
 All your source files are now compiled as a separate library called according to the .src file they are contained in.
 So if you are using multiple .src files, you have to add the library to your project:
 
 ```vhdl
-library <fancy_name>;
-use <fancy_name>.all;
+library myproject;
+use myproject.all;
 
 ```
 
 If you are using a module that is included in a different .src file with respect to your top module, you will have to specify the library when you use it:
 
 ```vhdl
-u_1 : entity fancy_name.a_component_in_lib1 
+u_1 : entity myproject.a_component_in_lib1 
 port map(
   clk => clk,
   din => din,
@@ -338,13 +338,14 @@ If you work within the same library (i.e. .src file) you can normally use the `w
 
 
 ## Create your project
-As you know, if you run `./Hog/CreateProject.sh fancy_name`, Hog will create your project in `VivadoProject/fancy_name/fancy_name.xpr` or `QuartusProject/fancy_name/fancy_name.qpf`. You can open the project with the GUI and check that everything looks alright.
+As you know, if you run `./Hog/CreateProject.sh myproject`, Hog will create your project in `VivadoProject/myproject/myproject.xpr` or `QuartusProject/myproject/myproject.qpf`. You can open the project with the GUI and check that everything looks alright.
+The `.gitignore` template that you copied in your repository take care of ignoring the VivadoProject directory (or QuestusProject) as we do not want to comit Vivado/Quartus files to the repository. If you decided not to use the provided template you should take care of ignoring this directory.
 Also you should try to run the complete workflow as something might have gone wrong with your IPs or the libraries.
 If something is indeed wrong, try to fix it by modifying: the source files, the list files, the project tcl file. If you modify the list files or the project tcl file, you have to re create the project to see if the modifications had the desired effect. 
 
 
 ## Code documentation
-Hog can also be used to automatically generate and deploy documentation for your code.
+Hog can be used to automatically generate and deploy documentation for your code.
 Hog works with (Doxygen)[http://www.doxygen.nl/] version 1.8.13 or later.
 If your code already uses Doxygen style comments, you can easily generate Doxygen documentation.
 You just have to create a directory named `doxygen` containing the files used to generate the HDL documentation.

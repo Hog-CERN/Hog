@@ -4,7 +4,7 @@ This section contains the instructions on how to create the project and how to r
 
 ##Create project
 This section assumes you already followed all the instructions previously detailed in this chapter. 
-Follow the instructions to recreate a Vivado/Quartus project locally, including all the source files/IP cores decleared as explained in the section [List Files](./05-List-files). 
+Follow the instructions to recreate a Vivado/Quartus project locally, including all the source files/IP cores decleared as explained in the section [List Files](../05-List-files). 
 The project can be created using shell or Vivado/Quartus Tcl console
 ###Using shell 
 
@@ -82,7 +82,7 @@ The option *-no_bitstream* is used to skip generate bitstream phase.
 Project simulation can be run using shell, Vivado/Quartus GUI or Vivado/Quartus Tcl console.
 Hog supports Vivado simulator (xsim), ModelSim and QuestaSim. 
 The simulation files and properties, such as the selected simulator, eventual wavefiles or do files are set as explained in the section
-[Simulation list files](05-List-files/##-simulation-list-files-(.sim)).
+[Simulation list files](../05-List-files/#simulation-list-files-sim).
 If ModelSim or QuestaSim are used, the Vivado libraries must be compiled by the user in a directory. 
 ModelSim/Questasim libraries can be compiled by using shell command:
 

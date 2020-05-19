@@ -12,6 +12,7 @@ before_script:
     - git submodule update
     - export XILINXD_LICENSE_FILE=${HOG_XIL_LICENSE}
     - export PATH=${HOG_PATH}:$PATH
+    - export LD_LIBRARY_PATH=${HOG_LD_LIBRARY_PATH}:$LD_LIBRARY_PATH
 
 .only-default: &only-default
   only:
@@ -75,10 +76,11 @@ merge_and_tag:
      script:
       - "if [ -z ${HOG_SIMULATION_LIB_PATH+x} ]; then echo 'Simulation library path is not defined'; else vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_simulation.tcl -tclargs -lib_path $HOG_SIMULATION_LIB_PATH $PROJECT_NAME ; fi"
      artifacts:
-       name: vivado_projects
+       name: simulation_files
        paths:
          - $CI_PROJECT_DIR/VivadoProject/$PROJECT_NAME/$PROJECT_NAME.sim
        expire_in: 30 day
+     allow_failure: true
 
 .synthesise_ips: &synthesise_ips
     <<: *only-default
@@ -110,7 +112,6 @@ merge_and_tag:
     variables:
         <<: *vars
     script:
-        - git status
         - if [ -z ${HOG_NJOBS+x} ]; then export HOG_NJOBS=4; fi
         - vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_synthesis.tcl -tclargs -NJOBS $HOG_NJOBS $PROJECT_NAME
     artifacts:
@@ -131,7 +132,7 @@ merge_and_tag:
         - git status
         - git diff
         - if [ -z ${HOG_NJOBS+x} ]; then export HOG_NJOBS=4; fi
-        - if [ -z ${$HOG_NO_BITSTREAM+x} ]; then export HOG_NO_BITSTREAM=0; fi
+        - if [ -z ${HOG_NO_BITSTREAM+x} ]; then export HOG_NO_BITSTREAM=0; fi
         - "if [ $HOG_NO_BITSTREAM == '1' ]; then
            vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_implementation.tcl -tclargs -no_bitstream -NJOBS $HOG_NJOBS  $PROJECT_NAME;
            else vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_implementation.tcl -tclargs -NJOBS $HOG_NJOBS $PROJECT_NAME;

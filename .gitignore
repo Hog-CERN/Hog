@@ -4,3 +4,4 @@ vivado*
 *.pyc
 .cxl.ip/
 cxl_error.log
+*.DS_Store

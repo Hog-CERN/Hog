@@ -1,14 +1,14 @@
 # How to set-up Hog Continuous Integration
-This chapter describes how to set-up Hog Continuous Integration (CI) on gitlab.
- In order to access your repository and compile your HDL, the gitlab CI will need a dedicated account. 
+This chapter describes how to set-up Hog Continuous Integration (CI) on Gitlab.
+ In order to access your repository and compile your HDL, the Gitlab CI will need a dedicated account.
  Before staring please get a [service account](#service_account).
 
  Once you  have your service account you to get an [eos space](#eos_space) where to store your \*.bit files and your documentation.
 
- You can now start instructing the gitlab CI on what actions must be taken in order to compile your firmware usinga [YAML file](gitlab_CI_YAML). 
+ You can now start instructing the Gitlab CI on what actions must be taken in order to compile your firmware usinga [YAML file](gitlab_CI_YAML).
 
   - Create a service account (let's call it john)
-  - Log in with it to gitlab and give it access to your repository
+  - Log in with it to Gitlab and give it access to your repository
   - Create a private access token with API rights [here](https://gitlab.cern.ch/profile/personal_access_tokens)
 
 
@@ -66,7 +66,7 @@ If you have already some uncommitted/committed new feature, **DON'T PANIC!**
 You can always create a new branch, commit your code there and simply create a new merge request when ready.
 By adding `[WIP]` or `WIP:` at the beginning of the title of the merge request then the merge request will be [marked as work in progress](https://docs.gitlab.com/ee/user/project/merge_requests/work_in_progress_merge_requests.html).
 
-If you have already committed your changes to a wrong branch (let's say the master) simply reset that branch to the latest correct commit. 
+If you have already committed your changes to a wrong branch (let's say the master) simply reset that branch to the latest correct commit.
 Create a new branch, check it out and commit your code there.
 
 ## Increasing version number
@@ -74,17 +74,17 @@ Hog uses a 32 bit integer to assign a version to your firmware.
 The final version will have the form *vMAJOR_VERSION.MINOR_VERSION.patch*.
 You will be able to change these numbers by editing the merge request description.
 
-The bit 31 down to 24 are indicate a major revision number; this number can be increased by placing `MAJOR_VERSION` in the merge request description. 
+The bit 31 down to 24 are indicate a major revision number; this number can be increased by placing `MAJOR_VERSION` in the merge request description.
 While merging the merge request Hog will read the description, find the `MAJOR_VERSION` keyword and increase the major revision counter.
 This will also reset the minor and patch counters.
 
-The bit 23 down to 16 are indicate a minor revision number; this number can be increased by placing `MINOR_VERSION` in the merge request description. 
+The bit 23 down to 16 are indicate a minor revision number; this number can be increased by placing `MINOR_VERSION` in the merge request description.
 While merging the merge request Hog will read the description, find the `MINOR_VERSION` keyword and increase the minor revision counter.
 This will also reset the patch counters.
 
-The bit 15 down to 0 are indicate a major revision number; this number will be increased automatically at each accepted merge request. 
+The bit 15 down to 0 are indicate a major revision number; this number will be increased automatically at each accepted merge request.
 While merging the merge request Hog will read the description, find no keyword and increase the patch counter.
- 
+
 ### Examples
 
 Let's suppose the last tag of your firmware is v1.a.ba3f, thus the corresponding version is 01 0a ba3f

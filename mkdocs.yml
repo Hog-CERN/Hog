@@ -20,7 +20,7 @@ nav:
     - 02-User-Manual/01-Hog-local/04-Project-Tcl.md
     - 02-User-Manual/01-Hog-local/05-List-files.md
     - 02-User-Manual/01-Hog-local/06-IPbus-support.md
- - 'Hog Continuous Integration':
+  - 'Hog Continuous Integration':
     - 02-User-Manual/02-Hog-CI/01-CI-Introduction.md
     - 02-User-Manual/02-Hog-CI/02-gitlab-repository-setup.md
     - 02-User-Manual/02-Hog-CI/03-setup-CI.md

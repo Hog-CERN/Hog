@@ -1,4 +1,4 @@
-# Creating a new HDL repository with Hog
+# What is Hog?
 
 In this section we will describe how to set-up a new project that uses Hog for the Continuous Integration (CI).
 In this section  we will make no assumptions on the code you already have.
@@ -104,7 +104,6 @@ The exact structure or name of this folder is not enforced.
 
 The top module of your project is expected to be called `top_<project_name>`.
 This module can be stored anywhere in the repository as long as the file containing it is linked in a [`*.src` file](#list-directory).
-We suggest you to store the file containing the top level module for your project in the TOP folder.
 
 Hog uses generics to track the firmware version.
 A full list of the generics used by Hog can be found  in the [Hog generics](../02-Maintainer-Manual/07-Hog-generics.md) section.

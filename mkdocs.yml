@@ -11,16 +11,16 @@ nav:
   - 01-Getting-Started/01-howto-existingProjects.md
   - 01-Getting-Started/02-howto-convert-project.md
   - 01-Getting-Started/03-howto-update-hog.md
-  - 01-Getting-Started/04-HogProject.md
-- 'Hog User Manual':
-  - 'Using Hog Locally':
-    - 02-User-Manual/01-Hog-local/01-supported-tools.md
+- 'Hog User Manual': 
+  - 02-User-Manual/00-what-is-hog.md
+  - 'Using Hog Locally': 
+    - 02-User-Manual/01-Hog-local/01-supported-tools.md    
     - 02-User-Manual/01-Hog-local/02-available-templates.md
     - 02-User-Manual/01-Hog-local/03-Hog-generics.md
     - 02-User-Manual/01-Hog-local/04-Project-Tcl.md
     - 02-User-Manual/01-Hog-local/05-List-files.md
     - 02-User-Manual/01-Hog-local/06-IPbus-support.md
-  - 'Hog Continuous Integration':
+ - 'Hog Continuous Integration':
     - 02-User-Manual/02-Hog-CI/01-CI-Introduction.md
     - 02-User-Manual/02-Hog-CI/02-gitlab-repository-setup.md
     - 02-User-Manual/02-Hog-CI/03-setup-CI.md

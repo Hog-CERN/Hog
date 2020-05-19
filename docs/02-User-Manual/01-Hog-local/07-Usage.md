@@ -1,4 +1,4 @@
-#Usage
+# Usage
 
 This section contains the instructions on how to create the project and how to run synthesis, implementation and simulation.
 
@@ -25,6 +25,9 @@ Open Vivado/Quartus Tcl console and type:
   cd Tcl/<project_name>/
   source ./<project_name>.tcl 
 ```
+
+##Run IP synthesis
+
 
 ##Run synthetis
 Project synthesis can be run using shell, Vivado/Quartus GUI or Vivado/Quartus Tcl console

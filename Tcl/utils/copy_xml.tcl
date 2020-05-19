@@ -8,7 +8,7 @@ if {[catch {package require cmdline} ERROR]} {
 }
 
 set parameters {
-  {generate  "If set, the VHDL address files will be generated and repleced if already exisiting."}
+  {generate  "If set, the VHDL address files will be generated and replaced if already exisiting."}
 }
 
 set usage   "Copy IPBus XML files listed in a Hog list file and replace the version and SHA placeholders if they are present in any of the XML files.\nUsage: $argv0 <XML list file> <destination directory> \[-generate\]"

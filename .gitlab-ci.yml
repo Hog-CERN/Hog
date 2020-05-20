@@ -65,7 +65,7 @@ merge_and_tag:
               - $CI_COMMIT_REF_NAME =~ /^test\/.*$/i
       script:
           - "MR_PARAMETERS=`curl --header \"PRIVATE-TOKEN: ${HOG_PUSH_TOKEN}\" ${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/merge_requests/${CI_MERGE_REQUEST_IID}`"
-          - tclsh ./Tcl/utils/merge_and_tag.tcl -Hog  -mr_par "$MR_PARAMETERS" -mr_id $CI_MERGE_REQUEST_IID -push $CI_COMMIT_REF_NAME
+          - tclsh ./Tcl/CI/merge_and_tag.tcl -Hog  -mr_par "$MR_PARAMETERS" -mr_id $CI_MERGE_REQUEST_IID -push $CI_COMMIT_REF_NAME
           - git fetch origin refs/notes/*:refs/notes/*
           - git notes add -fm "$CI_MERGE_REQUEST_IID"
           - git push origin refs/notes/*
@@ -87,7 +87,7 @@ tagging:
               - $CI_PIPELINE_SOURCE != "push"
               - $CI_COMMIT_REF_SLUG != "master"
       script:
-          - tclsh ./Tcl/utils/merge_and_tag.tcl -Hog -merged -push $CI_COMMIT_REF_NAME
+          - tclsh ./Tcl/CI/merge_and_tag.tcl -Hog -merged -push $CI_COMMIT_REF_NAME
 
 create_release_note:
         stage: tag

@@ -2,7 +2,7 @@
 
 Converting an existing project to Hog means: copying the source files into a git repository, adding Hog as a submodule, creating the Hog list files (text files containing the names of your source files), and creating a Tcl script able to create the Vivado/Quartus project.
 
-## Before we start
+## Before starting
 We will assume that you are starting from a clean repository and you want to convert a Vivado project stored in a local folder.
 
 If you are migrating beween two git repositories and you want to retain the history of your old repository have a look [here](https://medium.com/@ayushya/move-directory-from-one-repository-to-another-preserving-git-history-d210fa049d4b)
@@ -12,7 +12,7 @@ If you are migrating to Hog but you are not changing repository, you can follow 
 Let's suppose your new repository called `new_repo` with url `new_repo_url`, your project is named `myproject` is currently stored in some local folder `mypath`. If you don't have a new repository you can go on Gitlab (gitlab.cern.ch) and create one.
 
 ## Creating the git repository
-First of all create a new folder where you will store your firmware, initialize it as a git repository and connect it to the remote repository:
+First of all create a new folder where you will store your firmware, initialise it as a git repository and connect it to the remote repository:
 
 ```bash
   > mkdir new_repo

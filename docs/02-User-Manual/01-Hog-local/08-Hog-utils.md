@@ -1,6 +1,7 @@
 # Hog utils
 
 Hog provides a series of Tcl scripts solving different tasks that will be described in this section. All the following scripts can be found in *./Hog/Tcl/utils*. 
+Run each script with the *-h* option to see the full list of arguments/options and usage example.
 
 ## check-syntax.tcl
 
@@ -41,7 +42,7 @@ get_ips.tcl is used to retrieve IPs from EOS.
 Arguments:
 - Project name
 Options:
-- -eos_ip_path <IP PATH>
+- -eos_ip_path <IP PATH>: the EOS path where IPs are stored.
 
 Usage:
 
@@ -78,3 +79,32 @@ Usage:
 ```tcl
   source Hog/Tcl/utils/check_yaml_ref.tcl
 ```
+
+## copy_xml.tcl
+This script copies IPBus XML files listed in a Hog list file and replace the version and SHA placeholders if they are present in any of the XML files.
+Arguments:
+- XML list file;
+- destination directory;
+Options:
+- -generate: if set, the VHDL address files will be generated and replaced if already exisiting.
+Usage: 
+```yml
+copy_xml <XML list file> <destination directory> [-generate]
+```
+
+## reformat.tcl
+
+This script formats tcl scripts indentation. 
+Arguments:
+- tcl script
+
+Options:
+- -tab_width <pad width> (default = 2)
+
+Usage: 
+Usage:
+```tcl
+  source Hog/Tcl/utils/reformat.tcl -tclargs [-tab_width <pad_width>] <tcl_script> 
+```
+
+

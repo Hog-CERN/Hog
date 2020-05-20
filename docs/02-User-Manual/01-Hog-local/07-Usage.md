@@ -1,9 +1,9 @@
-# Usage
+# How to create and build project
 
 This section contains the instructions on how to create the project and how to run synthesis, implementation and simulation.
 
 ##Create project
-This section assumes you already followed all the instructions previously detailed in this chapter. 
+This section assumes that all the Hog list files and the project tcl file have been configured as previously detailed in this chapter. 
 Follow the instructions to recreate a Vivado/Quartus project locally, including all the source files/IP cores decleared as explained in the section [List Files](../05-List-files). 
 The project can be created using shell or Vivado/Quartus Tcl console
 ###Using shell 
@@ -27,10 +27,32 @@ Open Vivado/Quartus Tcl console and type:
 ```
 
 ##Run IP synthesis
+IP synthesis can be run using shell, Vivado/Quartus GUI or Vivado/Quartus Tcl console.
+###Using shell
+Open your bash shell and type:
 
+``` bash
+  ./Hog/LaunchIPSynth.sh <project_name> 
+```
+
+**Quartus projects are not yet supported**
+
+###Using Vivado/Quartus GUI
+Right click on each IP and click the "Generate Output Files" button.
+
+###Using Vivado/Quartus Tcl console
+Open Vivado/Quartus Tcl console and type:
+``` tcl
+ source ./Hog/Tcl/launchers/launch\_ip\_synth.tcl [-NJOBS <number of jobs>] [-eos_ip_path <EOS IP path>] <project_name> 
+```
+The option *-NJOBS* sets the number of jobs used to run synthesis. The default value is 4.
+If the option *-eos_ip_path* is set, the generated IPs will be copied to the selected EOS directory together with their SHA. 
+This feature is used to speed-up IPs re-generation, specially during CI.
+The IPs stored in the EOS repository can be retrieved using the [Hog/Tcl/utils/get_ips.tcl](../08-Hog_utils/#get-ipstcl) command. 
+**Quartus projects are not yet supported**
 
 ##Run synthetis
-Project synthesis can be run using shell, Vivado/Quartus GUI or Vivado/Quartus Tcl console
+Project synthesis can be run using shell, Vivado/Quartus GUI or Vivado/Quartus Tcl console.
 
 ###Using shell
 Open your bash shell and type:
@@ -87,11 +109,7 @@ Hog supports Vivado simulator (xsim), ModelSim and QuestaSim.
 The simulation files and properties, such as the selected simulator, eventual wavefiles or do files are set as explained in the section
 [Simulation list files](../05-List-files/#simulation-list-files-sim).
 If ModelSim or QuestaSim are used, the Vivado libraries must be compiled by the user in a directory. 
-ModelSim/Questasim libraries can be compiled by using shell command:
-
-``` bash
-  ./Hog/Init.sh 
-```
+ModelSim/Questasim libraries can be compiled by using shell command *Hog/Init.sh* or by using the tcl commands [Hog/Tcl/utils/compile_modelsimlib.tcl](../08-Hog-utils/#compile_modelsimlibtcl) or [Hog/Tcl/utils/compile_questalib.tcl](../08-Hog-utils/#compile_questalibtcl). 
 
 If this command is used, the simulation libraries will be stored into "./SimulationLib".
 

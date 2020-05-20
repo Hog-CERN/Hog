@@ -1,4 +1,4 @@
-# Usage
+# How to create and build project
 
 This section contains the instructions on how to create the project and how to run synthesis, implementation and simulation.
 

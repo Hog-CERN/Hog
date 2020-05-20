@@ -22,7 +22,7 @@ set parameters {
   {main_branch.arg "master" "Main branch (default = master)"}
 }
 
-set usage "- CI script that merges your branch with \$HOG_TARGET_BRANCH and creates a new tag\n USAGE: $::argv0 \[OPTIONS\] <git branch> \n. Options:"
+set usage "- CI script that merges your branch with \$HOG_TARGET_BRANCH and creates a new tag\n USAGE: $::argv0 \[OPTIONS\] \n. Options:"
 
 if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] } {
   Msg Info [cmdline::usage $parameters $usage]

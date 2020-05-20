@@ -92,23 +92,6 @@ Usage:
 copy_xml <XML list file> <destination directory> [-generate]
 ```
 
-## tag_repository.tcl
-This script creates a local tag of your project in the form of v<M>.<m>.<p> where M = major, m = minor, p = patch.
-It is run automatically by CI and its usage is unrecommended for users.
-
-## merge_and_tag.tcl
-This scripts merges your main branch (default = master) to your current branch and creates a new tag if needed. 
-It is run automatically by CI and its usage is unrecommended for users.
-
-
-## copy_to_eos.tcl
-This scripts copies the bitfiles, project files and documentation from the EOS unofficial directory to the EOS official directory. 
-It is run automatically by CI and its usage is unrecommended for users.
-
-## clean_unofficial.tcl
-This script cleans EOS unofficial path of commits already merged into your main branch.
-It is run automatically by CI and its usage is unrecommended for users.
-
 ## reformat.tcl
 
 This script formats tcl scripts indentation. 

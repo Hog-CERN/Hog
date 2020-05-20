@@ -51,7 +51,7 @@ merge_and_tag:
     - ./Hog/Other/CheckEnv.sh
     - "if [[ $CI_COMMIT_MESSAGE == ResolveWIP* && $CI_MERGE_REQUEST_TITLE == WIP* ]]; then echo 'removing WIP status'; curl ${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/merge_requests/${CI_MERGE_REQUEST_IID}/notes?body=/wip --header \"PRIVATE-TOKEN: ${HOG_PUSH_TOKEN}\" --request POST; fi;"
     - "MR_PARAMETERS=`curl --header \"PRIVATE-TOKEN: ${HOG_PUSH_TOKEN}\" ${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/merge_requests/${CI_MERGE_REQUEST_IID}`"
-    - vivado -mode batch -notrace -source ./Hog/Tcl/utils/merge_and_tag.tcl -tclargs -mr_par "{$MR_PARAMETERS}" -mr_id $CI_MERGE_REQUEST_IID -push $CI_COMMIT_REF_NAME -main_branch $CI_MERGE_REQUEST_TARGET_BRANCH_NAME
+    - vivado -mode batch -notrace -source ./Hog/Tcl/CI/merge_and_tag.tcl -tclargs -mr_par "{$MR_PARAMETERS}" -mr_id $CI_MERGE_REQUEST_IID -push $CI_COMMIT_REF_NAME -main_branch $CI_MERGE_REQUEST_TARGET_BRANCH_NAME
 
 .create_project: &create_project
      <<: *only-default
@@ -207,7 +207,7 @@ tag_official_version:
      - hog
   stage: merge
   script:
-     - vivado -mode batch -notrace -source ./Hog/Tcl/utils/merge_and_tag.tcl -tclargs -merged  -push $CI_COMMIT_REF_NAME -main_branch $CI_COMMIT_REF_NAME
+     - vivado -mode batch -notrace -source ./Hog/Tcl/CI/merge_and_tag.tcl -tclargs -merged  -push $CI_COMMIT_REF_NAME -main_branch $CI_COMMIT_REF_NAME
   rules:
     - if: '$HOG_TARGET_BRANCH != null && $CI_COMMIT_REF_NAME == $HOG_TARGET_BRANCH && $CI_PIPELINE_SOURCE == "push"'
       when: always
@@ -243,7 +243,7 @@ copy_to_eos:
   script:
     - git status
     - until echo $HOG_PASSWORD | kinit $HOG_USER ; do echo Retrying; sleep 2; done
-    - vivado -mode batch -notrace -source ./Hog/Tcl/utils/copy_to_eos.tcl -tclargs $HOG_OFFICIAL_BIN_EOS_PATH $HOG_UNOFFICIAL_BIN_EOS_PATH $CI_COMMIT_TAG $CI_COMMIT_SHORT_SHA
+    - vivado -mode batch -notrace -source ./Hog/Tcl/CI/copy_to_eos.tcl -tclargs $HOG_OFFICIAL_BIN_EOS_PATH $HOG_UNOFFICIAL_BIN_EOS_PATH $CI_COMMIT_TAG $CI_COMMIT_SHORT_SHA
 
 cleaning:
   only:
@@ -256,5 +256,5 @@ cleaning:
   stage: clean
   script:
      - until echo $HOG_PASSWORD | kinit $HOG_USER ; do echo "Retrying"; sleep 2; done
-     - if [ -z ${HOG_UNOFFICIAL_BIN_EOS_PATH+x} ]; then echo "HOG_UNOFFICIAL_BIN_EOS_PATH not specified, nothing to clean..."; else vivado -mode batch -notrace -source Hog/Tcl/utils/clean_unofficial.tcl -tclargs $HOG_UNOFFICIAL_BIN_EOS_PATH $CI_COMMIT_TAG; fi
+     - if [ -z ${HOG_UNOFFICIAL_BIN_EOS_PATH+x} ]; then echo "HOG_UNOFFICIAL_BIN_EOS_PATH not specified, nothing to clean..."; else vivado -mode batch -notrace -source Hog/Tcl/CI/clean_unofficial.tcl -tclargs $HOG_UNOFFICIAL_BIN_EOS_PATH $CI_COMMIT_TAG; fi
   allow_failure: true

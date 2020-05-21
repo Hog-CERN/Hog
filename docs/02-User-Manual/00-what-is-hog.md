@@ -118,7 +118,7 @@ Hog can handle git submodules, i.e. if you have some module contained on a git r
     git submodule add <submodule_url>
 ```
 
-They can be placed anywhere in your repository, but it is advised to place them in the root directory.
+They must be placed in the root directory.
 Suppose that you have 2 submodules called _sub_1_ and _sub_2_:
 
 ```
@@ -155,7 +155,7 @@ This can be a minimal tcl set-up specifying only the general project settings.
 The last line of the tcl script is expected to be 
 
 ```bash
-source $path_repo/Hog/Tcl/create-project.tcl
+source $path_repo/Hog/Tcl/create_project.tcl
 ```
 
 This command will instruct Hog to add all your files to the generated project.

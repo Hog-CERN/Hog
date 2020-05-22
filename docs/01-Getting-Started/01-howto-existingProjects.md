@@ -35,7 +35,10 @@ To do that, go into the repository (`cd repo`) and type:
 ```
 
 This will styart a Hog script that creates the Vivado (or Quartus) project in the directory `VivadoProjects/project1` (or `QuartusProjects/project1`).
-inside this directory you will find the Vivado xpr file (or the Quartus qpf file).
+inside this directory you will find the Vivado .xpr file (or the Quartus .qpf file).
+
+You can now open the project file with Vivado/Quartus GUI and synthesise/implement the project.
+
 
 If you don't know the project name, just run `./Hog/CreateProject.sh` and you will get a list of the existing projects present on the repository.
 

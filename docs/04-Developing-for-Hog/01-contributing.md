@@ -10,9 +10,9 @@ As a Hog developer, if you want to contribute to Hog please follow these instruc
 1. go to [Hog on gitlab](https://gitlab.cern.ch/hog/Hog)
 2. check in the issues list that your improvements/features are not already under development.
 3. create a new issue by clicking on "New issue" button
-   - use an understandable short name
-	 - write a compehensive description of the changes you what to make
-   - must be assigned to you
+   - use a meaningful short name
+	 - write a compehensive description of the changes you plan to make
+   - the issue must be assigned to you
 	 - use  labels to indicate whether it is a new feature a bug-fix, etc
 	 - (OPTIONAL) use due date to indicate when you expect to conclude your work
 4. open a new merge request
@@ -29,7 +29,7 @@ As a Hog developer, if you want to contribute to Hog please follow these instruc
 	cd path_to_workdir/
 	git clone --recursive https://gitlab.cern.ch/hog/test/TestFirmware.git
 	```
-6. Create a new branch innthe test firmware repository with the same name as the one in the main Hog repository
+6. Create a new branch in the test firmware repository with the same name as the one in the main Hog repository
 	```console
 	cd path_to_workdir/TestFirmware/
 	git checkout -b feature/<issue_short_name>
@@ -40,7 +40,7 @@ As a Hog developer, if you want to contribute to Hog please follow these instruc
 	git checkout feature/<issue_short_name>
 	```
 8. develop a test for your new feature *before writing your code*
-   -  eventually modify existing tests
+   -  eventually modify an existing tests
 	 -  commit your tests
 	```console
 	cd path_to_workdir/TestFirmware/
@@ -54,14 +54,14 @@ As a Hog developer, if you want to contribute to Hog please follow these instruc
 	git commit <file1> <file2> <...> -m "Working on feature/<issue_short_name>: <brief_commit_description>"
 	```
 10. test your code
-	 -  all test your new test must succeed
+	 -  all your new test must succeed
 	 -  all existing test must succeed
-	 -  if the test fail fix your code and commit it using --amend 
+	 -  if the test fails, fix your code and commit it using --amend 
 	```console
 	cd path_to_workdir/TestFirmware/Hog/
 	git commit --amend --no-edit 
 	```
-11. if your modification has any impact on the user/maintainer update the user [manual](#contributing_to_the_manual) accordingly
+11. if your modification has any impact on the user/maintainer part, update the user [manual](#contributing_to_the_manual) accordingly
 12. push your changes in the Hog repository
 	```console
 	cd path_to_workdir/TestFirmware/Hog/
@@ -83,7 +83,7 @@ As a Hog developer, if you want to contribute to Hog please follow these instruc
 
 All the code written to implement new features or correct bugs must be documented.
 The main source of documentation is doxygen and comments in the code.
-The doxygen documentation is collected in a devicated [website](https://hdl-on-git.web.cern.ch/hdl-on-git/test-doxy/index.html)
+The doxygen documentation is collected in a dedicated [website](https://hdl-on-git.web.cern.ch/hdl-on-git/test-doxy/index.html)
 
 An example of how to document new functions
 
@@ -133,10 +133,10 @@ You should first clone the repository:
 git clone https://gitlab.cern.ch/hog/Hog.git
 ```
 As an alternative you can use the Web IDE directly from the gitlab website. This allows you to preview the resulting page.\
-If you want to do this locally and haven't set up your permissions for local gitlab yet, follow the instructions [here](https://docs.gitlab.com/ce/ssh/README.html).\
+If you want to do this locally and haven't set up your permissions for local gitlab yet, follow the instructions [here](https://docs.gitlab.com/ce/ssh/README.html).
 Everything you'll need to edit is inside the `docs/` directory.
-Sections are represented by subdirectories within `docs/` and, the section "home" pages  come from `index.md` files in each directory.
-You can create further markdown files to add topics to the section.\
+Sections are represented by subdirectories within `docs/` while the "Introduction" section comes from `index.md`.
+You can create further markdown files to add topics to the section.
 Any changes you make to this repo will be automatically propagated to this website when you push your commits into the $HOG_TARGET_BRANCH.
 
 ## Markdown
@@ -145,5 +145,5 @@ This manual is made in markdown, a simple language for formatting text. If you'r
 
 ## Continuous integration set-up
 
-CI for this project was set up using the information in the [mkdocs](https://gitlab.cern.ch/authoring/documentation/mkdocs) repository. The generated website is automagically deployed [here](http://cern.ch/hog-user-manual)
+CI for this project was set up using the information in the [mkdocs](https://gitlab.cern.ch/authoring/documentation/mkdocs) repository. The generated website is automatically deployed [here](http://cern.ch/hog-user-manual)
 

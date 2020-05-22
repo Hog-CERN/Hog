@@ -10,4 +10,4 @@ Let us know:
 - if it's a missing feature or a feature that should change
 - what will this save or fix
 - to which part of Hog this is related to
-- how you have been testing it (e.g. operative system, IDE software, hog version etc.)
+- how you have been testing it (e.g. operative system, IDE software, Hog version etc.)

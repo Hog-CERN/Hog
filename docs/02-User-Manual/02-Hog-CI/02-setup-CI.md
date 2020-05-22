@@ -1,97 +1,127 @@
-# How to set-up Hog Continuous Integration
-This chapter describes how to set-up Hog Continuous Integration (CI) on gitlab.
- In order to access your repository and compile your HDL, the gitlab CI will need a dedicated account. 
- Before staring please get a [service account](#service_account).
+# Setting up Hog Continuous Integration
+Hog Continuous Integration makes use of the [Gitlab CI/CD tool](https://docs.gitlab.com/ee/ci/). Both the Gitlab repository and your local area must be set-up to work properly with Hog CI. In this paragraph, we assume that we are working with a Gitlab Project called `MyProject` under the Gitlab group `MyGroup`. Please, replace these with the actual names of your project and group.
 
- Once you  have your service account you to get an [eos space](#eos_space) where to store your \*.bit files and your documentation.
+# Preliminary requirements
+To run the Hog-CI, you need a CERN service account. If you don't have one, you can get one easily [here](https://account.cern.ch/account/Management/NewAccount.aspx). The service account will run the Hog CI. For that, it needs to have access to your local repository.
 
- You can now start instructing the gitlab CI on what actions must be taken in order to compile your firmware usinga [YAML file](gitlab_CI_YAML). 
+- Go to https://gitlab.cern.ch/MyGroup/MyProject/-/project_members and give *Mantainer* rights to your service account
+- Log in to Gitlab with your service account and create a private access token with API rights [here](https://gitlab.cern.ch/profile/personal_access_tokens)
 
-  - Create a service account (let's call it john)
-  - Log in with it to gitlab and give it access to your repository
-  - Create a private access token with API rights [here](https://gitlab.cern.ch/profile/personal_access_tokens)
+Once you have your service account, you should get also 1 TB of space on EOS, that can be used to store the results of Hog CI. If, for some reasons, your service account doesn't have space on EOS, you could request it [here](https://resources.web.cern.ch/resources/Manage/EOS/Default.aspx).
+
+# Set up your personal Gitlab CI YAML
+Gitlab CI uses [YAML configuration file](https://docs.gitlab.com/ee/ci/yaml/) to define which commands it must run. By default this file is called `.gitlab-ci.yml` and must be stored in the root folder of your repository. Hog cannot provide a full YAML file for your project, but a template file can be found under [`Hog` -> `Templates` -> `gitlab-ci.yml` ](https://gitlab.cern.ch/hog/Hog/-/blob/master/Templates/gitlab-ci.yml) as a reference.
+For example, suppose we want to write the `.gitlab-ci.yml` config file to run the Hog project `project\_1` on the CI. This file will actually include the Hog `gitlab-ci.yml` config file, where the CI stages are defined. To include the reference to the Hog parent file, add at the beginning of your `.gitlab-ci.yml`
+
+```yaml
+  include:
+    - project: 'hog/Hog'
+      file: '/gitlab-ci.yml'
+      ref: 'vX.Y.Z'
+```
+Here you must substitute 'vX.Y.Z' with the version of Hog you want to use. If you don't specify any `ref`, the CI will pick up the parent config file from the latest Hog master branch.
+
+Now we define the stages we want to run in the CI for our project. Hog CI runs always the stages that are not project-specific (e.g. *Merge*), therefore there is no need to declare them in our file. To add a stage `stage\_1` for our `project\_1`, we use the following syntax:
+
+```yaml
+  stage\_1:project\_1:
+    extends: .stage\_1
+    variables:
+      extends: .vars
+      VARIABLE: <variable_value>
+```
+
+In this snippet the first line is the stage name, i.e. you are defining a stage named 'stage\_1:project\_1'.
+The second line tells the script that the stage is an extension of '.stage\_1' defined in
+The third line starts the variable declaration section of the script.
+Since your script extends `.stage\_1` then it must define the variable used by this script.
+The line `extends: .vars` informs the variables section extends the `.vars` object defined in the parent Hog `gitlab-ci.yml`.
+The last line shows how to set the value for one named `VARIABLE` defined in the `.vars` object.
+
+So, for example, if we want to add a *Creation* stage for our `project\_1`, we should add to the `.gitlab-ci.yml`, the following lines:
+
+```yaml
+  create_project:project\_1:
+    extends: .create_project
+    variables:
+      extends: .vars
+      PROJECT_NAME: project\_1
+```
+
+A more detailed description of the CI stages and their YAML configuration can be found [here](04-HOG-CI-stages.md)
+
+# Remove merge commit
+
+- Go to https://gitlab.cern.ch/MyGroup/MyProject/edit
+- Expand __Merge Request settings__
+- Select *Fast-forward merge*
+
+<img style="float: middle;" width="700" src="../figures/fast-forward.png">
+
+# Pipeline configuration
+
+- Go to https://gitlab.cern.ch/MyGroup/MyProject/-/settings/ci_cd
+- Expand _General pipelines_
+- Select *git clone*
+- Set *Git shallow clone* to 0
+- Set *Timeout* to a long threshold, for example 1d
+
+<img style="float: middle;" width="700" src="../figures/pipeline.png">
 
 
-# EOS space
+# Set-up Runners
 
-The gitlab CI will produce some artifacts.
-These include the \*.bit files for your firmware and eventually additional files or the documentation for your project.
-You must foresee an eos space where to copy these files.
-For this you can use the eos space of your service account: `/eos/user/<first_letter>/<service_account>`
-In case you do not like to store your files there or you have no access to eos, we provide free eos space under `/eos/project/h/hog/`
-in order to be able to use such a space get in touch with [Hog support](mailto:hog@cern.ch).
+Unfortunately, we cannot use shared runners because big, slow, and licensed software (Xilinx Vivado, Mentor Graphics Questasim) are required.
+So we need to set-up our own physical or virtual machines.
+You can use either the Virtual Machine (VM) we provide or a private machine.
+Please refer to [Setting up a Virtual Machines](04-Virtual-Machines.md) section for more information.
 
+Now take the following actions:
 
-# gitlab CI YAML
+- Go to `Settings` -> `CI/CD`
+- Expand `Runners`
+- On the right click `Disable shared runners for this project`
+- On the left enable the private runners that you have installed on your machines or the common runner provided by the ATLAS-TDAQ.
 
-The gitlab continuous integration uses [YAML files](https://docs.gitlab.com/ee/ci/yaml/) to define which commands it must run.
-Because of this you will need to add a .gitlab-ci.yml file to your the root folder of your repository.
-Hog can not provide a full YAML file for your project but a template file can be found under `Hog` > `Templates` > `gitlab-ci.yml`
-You can copy this file and modify it according to your needs.
-More information on how to modify this template can be found in (Set-up a gitlab YAML file)[#Set-up-a-gitlab-YAML-file].
-
-In addition you will need to act on the repository website to define few variables needed by the Hog CI.
-A full description of the used variables can be found in [gitlab repository set-up](#gitlab-repository-setup) section.
-
-# gitlab work-flow
-
-Hog foresees that you are fully exploiting the gitlab features.
-
-In detail the expected work-flow starts with the creation of a new issue and a correlated merge request and branch.
-To do this go to the gitlab website and navigate to your repository.
-Click on issues and open a new issue describing the fix you are to implement or the new feature you want to introduce.
-Once you have an issue you can open a merge request marked as WIP (work in progress) and a new branch simply by clicking `Create merge request` inside the issue overview.
-
-When creating the merge request please use the *MINOR_VERSION* and *MAJOR_VERSION* keywords in the merge request description to tell Hog the expected version.
+<img style="float: middle;" width="700" src="../figures/shared_runners.png">
 
 
-You will now have a new branch connected to the merge request.
-Go to your shell, navigate to your local project folder and checkout the new branch.
-You can now develop your new feature or commit the code you have.
+# Environment variables
 
-Once you are done with your changes simply [resolve the `WIP`status](https://docs.gitlab.com/ee/user/project/merge_requests/work_in_progress_merge_requests.html).
-Remember to merge the master in your branch before resolving the `WIP`status.
-You are now able to merge the merge request by simply clicking on the merge button in the merge request!
+- Go to `Settings` -> `CI/CD`
+- Expand `Variables`
 
-## I do not want to use issues
+The following variables are **needed** for Hog-CI to work, so if any of them is not defined, or defined to a wrong value, Hog-CI will fail.
 
-Anyway you can avoid using issues by creating a new branch and a merge request connected to your branch.
-You can still use the nice `WIP` feature by adding `[WIP]` or `WIP:` at the beginning of the title of the merge request: the merge request will be [marked as work in progress](https://docs.gitlab.com/ee/user/project/merge_requests/work_in_progress_merge_requests.html).
-You can also solve the `WIP` status from command line by adding `resolveWIP` at the beginning of your last commit.
+| Name                            | Value  |
+|-----|---|
+| __HOG_USER__                    | Your service account name (e.g. my_service_account)                                              |
+| __HOG_EMAIL__                   | Your service account's email  address (e.g. service_account_mail@cern.ch)        |
+| __HOG_PASSWORD__                | The password of your service account (should be masked)        |
+| __HOG_PATH__                    | The PATH variable for your VM, should include Vivado bin directory       |
+| __HOG_PUSH_TOKEN__              | The push token you generated for your service account (should be masked) |
+| __HOG_XIL_LICENSE__             | Should contain the Xilinx license servers, separated by a comma          |
 
-## OMG I already have my code somewhere on my pc but I never committed it! OMG I Accidentally committed everything to a wrong branch!
+With the following **optional** variables you can configure the behaviour of Hog-CI:
 
-If you have already some uncommitted/committed new feature, **DON'T PANIC!**
+| Name                            | Value  |
+|-----|---|
+| __EOS_MGM_URL__                 | Set the EOS instance. If your EOS storage is a user storage use `root://eosuser.cern.ch`. For EOS projects, have a look [here](http://cernbox-manual.web.cern.ch/cernbox-manual/en/project_space/access-to-project-space.html)              |
+| __HOG_UNOFFICIAL_BIN_EOS_PATH__ | The EOS path for the binfiles coming out of your CIs        |
+| __HOG_OFFICIAL_BIN_EOS_PATH__   | The EOS path for archiving the official bitfiles of your firmware     |
+| __HOG_USE_DOXYGEN__          | Should be set to 1, if you want the Hog CI to create the doxygen documentation of your project |
+| __HOG_CHECK_SYNTAX__         | Should be set to 1, if you want the Hog CI to run check syntax                      |
+| __HOG_CHECK_YAMLREF__        | If this variable is set to 1, Hog CI will check that "ref" in `.gitlab-ci.yml` actually matches the gitlab-ci file in the Hog submodule |
+| __HOG_IP_EOS_PATH__          |  The EOS path where to store the IP generated results. If not set, the CI will syntesise the IPs each time                  |
+| __HOG_NO_BITSTREAM__   |  If this variable is set to 1, Hog-CI will run the implementation but will NOT run the write_bitstream stage                  |
+| __HOG_CREATE_OFFICIAL_RELEASE__   | If this variable is set to 1, Hog-CI will create an official release note using the version and timing summaries taken from the artifact of the projects.                  |
+| __HOG_SIMULATION_LIB_PATH__  |  The PATH in your VM, where the Simulation Lib files are stored (Vivado only)                   |
+| __HOG_TARGET_BRANCH__          |  Project target branch. Merge request should start from this branch. Default: master |
+| __HOG_NJOBS__               |  Number of CPU jobs for the synthesis and implementation. Default: 4 |
+| __HOG_IP_NJOBS__               |  Number of CPU jobs for the synthesis and implementation. Default: 4 |
 
-You can always create a new branch, commit your code there and simply create a new merge request when ready.
-By adding `[WIP]` or `WIP:` at the beginning of the title of the merge request then the merge request will be [marked as work in progress](https://docs.gitlab.com/ee/user/project/merge_requests/work_in_progress_merge_requests.html).
+# EOS space (Optional)
 
-If you have already committed your changes to a wrong branch (let's say the master) simply reset that branch to the latest correct commit. 
-Create a new branch, check it out and commit your code there.
+The Gitlab CI will produce some artefacts. These include the resulting bitstream files of your firmware projects and, optionally, the Doxygen documentation html files. Hog has also the ability to copy these files into a desired EOS repository. To enable this feature, we have to specify the following environmental variables: __EOS_MGM_URL__, __HOG_UNOFFICIAL_BIN_EOS_PATH__, __HOG_OFFICIAL_BIN_EOS_PATH__.
 
-## Increasing version number
-Hog uses a 32 bit integer to assign a version to your firmware.
-The final version will have the form *vMAJOR_VERSION.MINOR_VERSION.patch*.
-You will be able to change these numbers by editing the merge request description.
-
-The bit 31 down to 24 are indicate a major revision number; this number can be increased by placing `MAJOR_VERSION` in the merge request description. 
-While merging the merge request Hog will read the description, find the `MAJOR_VERSION` keyword and increase the major revision counter.
-This will also reset the minor and patch counters.
-
-The bit 23 down to 16 are indicate a minor revision number; this number can be increased by placing `MINOR_VERSION` in the merge request description. 
-While merging the merge request Hog will read the description, find the `MINOR_VERSION` keyword and increase the minor revision counter.
-This will also reset the patch counters.
-
-The bit 15 down to 0 are indicate a major revision number; this number will be increased automatically at each accepted merge request. 
-While merging the merge request Hog will read the description, find no keyword and increase the patch counter.
- 
-### Examples
-
-Let's suppose the last tag of your firmware is v1.a.ba3f, thus the corresponding version is 01 0a ba3f
-The possible scenarios are:
-
-| Merge request description        | Original version | Final version |
-|:---------------------------------|:----------------:|:-------------:|
-|  without any keyword             | 01 0a ba3f       | 01 0a ba40    |
-| conatins `MINOR_VERSION` keyword | 01 0a ba3f       | 01 0b 0000    |
-| conatins `MAJOR_VERSION` keyword | 01 0a ba3f       | 02 00 0000    |
+If you wish to have your files to be browsable in web browser, you should create a web page in EOS, following [these instructions](http://cernbox-manual.web.cern.ch/cernbox-manual/en/web/). For a personal project, by default, the website will be stored in `/eos/user/<initial>/<userID>/www`. The Hog EOS paths must be then sub-folders of it. To expose the files in the website, follow finally these [instructions](http://cernbox-manual.web.cern.ch/cernbox-manual/en/web/expose_files_in_website.html).

@@ -82,7 +82,6 @@ foreach s [get_filesets] {
         set_property "compxlib.${simulator}_compiled_library_dir" $lib_path [current_project]
         launch_simulation -scripts_only -simset [get_filesets $s]
         set top_name [get_property TOP $s]
-                #set sim_script  [file normalize $sim_dir/$simulator/$top_name.sh]
         set sim_script  [file normalize $sim_dir/$simulator/]
         Msg Info "Adding simulation script location $sim_script for $s..."
         lappend sim_scripts $sim_script
@@ -91,16 +90,14 @@ foreach s [get_filesets] {
   }
 }
 
-Msg Info "Generating IP simulation targets, if any..."
+if [info exists sim_scripts] { #Only for modelsim/questasim
+  Msg Info "Generating IP simulation targets, if any..."
 
-foreach ip [get_ips] {
-  generate_target simulation $ip
-}
+  foreach ip [get_ips] {
+    generate_target simulation $ip
+  }
 
-if [info exists sim_scripts] {
   foreach s $sim_scripts {
-        #cd [file dir $s]
-        #set cmd ./[file tail $s]
     cd $s
     set cmd ./compile.sh
     Msg Info "Compiling: $cmd..."
@@ -113,13 +110,16 @@ if [info exists sim_scripts] {
     Msg Status "\n\n$log\n\n"
     Msg Info "Compilation log ends"
 
-    if { "$simulator" != "modelsim"} {
+      if { [file exists "./elaborate.sh"] } {
       set cmd ./elaborate.sh
-      Msg Info "Elaborating: $cmd..."
+      Msg Info "Found eleborate script, executing: $cmd..."
       if { [catch { exec $cmd } log] } {
         Msg CriticalWarning "Elaboration failed for $s, error info: $::errorInfo"
         incr errors
       }
+      Msg Info "Elaboration log starts:"
+      Msg Status "\n\n$log\n\n"
+      Msg Info "Elaboration log ends"
     }
     set cmd ./simulate.sh
     Msg Info "Simulating: $cmd..."
@@ -132,16 +132,13 @@ if [info exists sim_scripts] {
     Msg Status "\n\n$log\n\n"
     Msg Info "Simulation log ends"
   }
+}
 
-  if {$errors > 0} {
-    Msg Error "Simualtion failed, there were $errors failures. Look above for details."
-    exit -1
-  } else {
-    Msg Info "All simulations were successful."
-  }
-
+if {$errors > 0} {
+  Msg Error "Simualtion failed, there were $errors failures. Look above for details."
+  exit -1
 } else {
-  Msg Info "No simulation set was found in this project."
+  Msg Info "All simulations (if any) were successful."
 }
 
 Msg Info "All done."

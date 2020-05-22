@@ -30,7 +30,8 @@ nav:
     - 02-User-Manual/02-Hog-CI/04-HOG-CI-stages.md
     - 02-User-Manual/02-Hog-CI/05-Virtual-Machines.md
 - 'Bug report and suggestions':
-  - 03-Report-Suggest/01-Report-Suggest.md
+  - 03-Report-Suggest/01-Report.md
+  - 03-Report-Suggest/02-Suggest.md
 - 'Developing for Hog':
   - 04-Developing-for-Hog/01-contributing.md
 - 'MkDocs official documentation': https://www.mkdocs.org/

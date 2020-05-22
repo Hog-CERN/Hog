@@ -11,11 +11,11 @@ else
     tag=$4
     file=$5
 
-    if [ "$VAR" == "-b" ]
+    if [ "$6" == "-b" ]
     then
-	version_type = "Beta"
+	version_type="Beta"
     else
-	version_type = "Official"
+	version_type="Official"
     fi
     
     curl --request POST --header "PRIVATE-TOKEN: ${push_token}" --header "Content-Type: application/json" \

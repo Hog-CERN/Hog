@@ -11,9 +11,9 @@ nav:
   - 01-Getting-Started/01-howto-existingProjects.md
   - 01-Getting-Started/02-howto-convert-project.md
   - 01-Getting-Started/03-howto-update-hog.md
-- 'Hog User Manual': 
+- 'Hog User Manual':
   - 02-User-Manual/00-what-is-hog.md
-  - 'Using Hog Locally': 
+  - 'Using Hog Locally':
     - 02-User-Manual/01-Hog-local/02-available-templates.md
     - 02-User-Manual/01-Hog-local/03-Hog-generics.md
     - 02-User-Manual/01-Hog-local/04-Project-Tcl.md
@@ -22,13 +22,14 @@ nav:
     - 02-User-Manual/01-Hog-local/07-Usage.md
     - 02-User-Manual/01-Hog-local/08-Hog-utils.md
     - 02-User-Manual/01-Hog-local/09-Special-commit.md
-    - 02-User-Manual/01-Hog-local/10-supported-tools.md    
-  - 'Hog Continuous Integration': 
-    - 02-User-Manual/02-Hog-CI/01-gitlab-repository-setup.md
+    - 02-User-Manual/01-Hog-local/10-supported-tools.md
+  - 'Hog Continuous Integration':
+    - 02-User-Manual/02-Hog-CI/01-CI-Introduction.md
     - 02-User-Manual/02-Hog-CI/02-setup-CI.md
-    - 02-User-Manual/02-Hog-CI/03-HOG-CI-stages.md
-    - 02-User-Manual/02-Hog-CI/04-Virtual-Machines.md
-- 'Contributing to Hog': 
+    - 02-User-Manual/02-Hog-CI/03-gitlab-workflow.md
+    - 02-User-Manual/02-Hog-CI/04-HOG-CI-stages.md
+    - 02-User-Manual/02-Hog-CI/05-Virtual-Machines.md
+- 'Contributing to Hog':
   - 03-Improving-Debugging/01-reporting-bug.md
   - 03-Improving-Debugging/02-contributing.md
 - 'MkDocs official documentation': https://www.mkdocs.org/

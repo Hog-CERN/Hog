@@ -25,4 +25,4 @@ To access the Hog generics/parameters you have to define the following in your t
 If you do not like to use the generics you are not obliged to do so.
 The Hog scripts will define a generic with the correct name and the generic will be ignored by the HDL synthesizer.
 
-[^1] Generics are used in VHDL language, parameters are used in verilog, systemverilog languages.
+[^1]: Generics are used in VHDL language, parameters are used in verilog, systemverilog languages.

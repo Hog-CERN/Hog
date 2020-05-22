@@ -1,7 +1,8 @@
 # How to convert an existing project to Hog
 
-Converting an existing project to Hog means creating the Hog list files (text files containing the names of your source files), creating the project Tcl files and possibly move somes file in the appropriate directory.
+Converting an existing project to Hog means: copying the source files into a git repository, adding Hog as a submodule, creating the Hog list files (text files containing the names of your source files), and creating a Tcl script able to create the Vivado/Quartus project.
 
+## Before starting
 We will assume that you are starting from a clean repository and you want to convert a Vivado project stored in a local folder.
 
 If you are migrating beween two git repositories and you want to retain the history of your old repository have a look [here](https://medium.com/@ayushya/move-directory-from-one-repository-to-another-preserving-git-history-d210fa049d4b)
@@ -10,8 +11,8 @@ If you are migrating to Hog but you are not changing repository, you can follow 
 
 Let's suppose your new repository called `new_repo` with url `new_repo_url`, your project is named `myproject` is currently stored in some local folder `mypath`. If you don't have a new repository you can go on Gitlab (gitlab.cern.ch) and create one.
 
-## Preliminary actions
-First of all create a new folder where you will store your firmware, initialize it as a git repository and connect it to the remote repository:
+## Creating the git repository
+First of all create a new folder where you will store your firmware, initialise it as a git repository and connect it to the remote repository:
 
 ```bash
   > mkdir new_repo
@@ -106,7 +107,7 @@ You have now to generate a directory structure similar to this one:
 
 ![](../01-Getting-Started/figures/directory_structure.jpg)
 
-A complete description of the meaning of each folder can be found in in section [Setting up a HDL repository with Hog]().
+A complete description of the meaning of each folder can be found in THE [Hog User Manual](../02-User-Manual)
 
 ### Top folder
 Every Hog-handled HDL repository must have a directory called `Top`. In here, each subdirectory - that we call the **project top-direcotry** - represents a HDL project in the repository. 
@@ -129,7 +130,9 @@ This is a recap of what we have learned up to now:
 
 - A `Top` folder must be in the repository
 - Inside this folder there is one subfolder for each project in the repository, called the project top-directory
-- Inside each project's top-directory there is a `list` sub-direcotry containing: 1. the list files of the project and 2. a tcl script used to create the project
+- Inside each project's top-directory there is 1. a `list` sub-direcotry containing: the list files of the project and 2. a tcl script used to create the project
+
+For more advanced Hog features, additional files and folder are located in the `Top` folder, but we don not discuss them now for simplicity.
 
 In order to create the project's tcl script, we will start from the template provided in the `Hog/Templates` folder:
 
@@ -137,7 +140,7 @@ In order to create the project's tcl script, we will start from the template pro
   cp Hog/Templates/top.tcl Top/myproject/myproject.tcl
 ```
 
-Use your favourite text editor to modify the template Tcl file. This will give you a minimal configuration to generate an empty project.
+Use your favourite text editor to modify the template Tcl file. There are several things you can edit, depending on your needs, for example the FPGA name or the synthesis or implementation strategies. The template contains comments to guide you through the process.
 
 Now you can commit everything you just did:
 
@@ -146,14 +149,13 @@ Now you can commit everything you just did:
   git commit -m "Adding Hog Top folder"
 ```
 
-
 # Importing source files to the project
 
 You are now ready to import the files needed to build your project[^1].
 
 [^1]: Hog gives you the possibility to organise the source files in different VHDL libraries (Verilog doesn't have the concept of library). You can add your source files into several .src files in the list directory, each of these .src files will correspond to a different library with the same name as the .src file (excluding the .src extension). For simplicity, in this chapter we will assume the presence of a unique library with the same name of your project.
 
-First of all we copy the files from your local folder into the folder that contains the git repository.
+First of all, copy the files from your local folder into the folder that contains the git repository.
 Exception made for some reserved directory (e.g. Top, IP, BD) you can put your files wherever you feel like inside your repository, orgasnising them as you see fit.
 
 In this example we will create a directory named `lib_myproject` where we will store all the source, simulation and constraint files.
@@ -177,7 +179,7 @@ After having added all the relevant files in your folders you have to add their 
 - One simulation list-file called `Top/myproject/list/myproject.sim`, containing the files used in the simulation (e.g. test benches, modules that read/write files, etc.)
 - One constraint list-file called `Top/myproject/list/myproject.con`, containing your constraints (.xdc, .tcl, etc.)
 
-You can copy and modify this bas script to ease this quite tedious part of the work:
+You can copy and modify this bash script to ease this quite tedious part of the work:
 ```bash
   for i in $( ls lib_myproject/source/* ); do \
     echo $i >>  Top/myproject/list/myproject.src; \
@@ -209,7 +211,7 @@ You can open the created project in  `VivadoProject/myproject/myproject.xpr` or 
 If your project uses source or simulation files hosted in a separate repository you can add that repository as a git submodule.
 
 ```bash
-  git jazzy_submodule add jazzy_submodule_url
+  git my_submodule add my_submodule_url
 ```
 You must add all your submodules in the root directory of your repository.
 
@@ -220,15 +222,15 @@ Add the relevant source files to the submodule list-file. You can copy and modif
 
 ```bash
 for i in $( ls submodule/* ); do \
-    echo $i >> Top/myproject/list/jazzy_submodule.sub; \
+    echo $i >> Top/myproject/list/my_submodule.sub; \
   done
 ```
 
 Now commit the newly created .sub file:
 
 ```bash
-git add Top/myproject/list/jazzy_submodule.sub
-git commit -m "Add a new jazzy submodule"
+git add Top/myproject/list/my_submodule.sub
+git commit -m "Add a new my submodule"
 ```
 
 ### IP files
@@ -339,14 +341,14 @@ If you work within the same library (i.e. .src file) you can normally use the `w
 
 ## Create your project
 As you know, if you run `./Hog/CreateProject.sh myproject`, Hog will create your project in `VivadoProject/myproject/myproject.xpr` or `QuartusProject/myproject/myproject.qpf`. You can open the project with the GUI and check that everything looks alright.
-The `.gitignore` template that you copied in your repository take care of ignoring the VivadoProject directory (or QuestusProject) as we do not want to comit Vivado/Quartus files to the repository. If you decided not to use the provided template you should take care of ignoring this directory.
+The `.gitignore` template, that you copied in your repository, takes care of ignoring the VivadoProject directory (or QuestusProject) as we do not want to comit Vivado/Quartus files to the repository. If you decided not to use the provided template you should take care of ignoring this directory.
 Also you should try to run the complete workflow as something might have gone wrong with your IPs or the libraries.
 If something is indeed wrong, try to fix it by modifying: the source files, the list files, the project tcl file. If you modify the list files or the project tcl file, you have to re create the project to see if the modifications had the desired effect. 
 
 
 ## Code documentation
 Hog can be used to automatically generate and deploy documentation for your code.
-Hog works with (Doxygen)[http://www.doxygen.nl/] version 1.8.13 or later.
+Hog works with [Doxygen](http://www.doxygen.nl/) version 1.8.13 or later.
 If your code already uses Doxygen style comments, you can easily generate Doxygen documentation.
 You just have to create a directory named `doxygen` containing the files used to generate the HDL documentation.
 A file named `doxygen.conf` should be in this directory together with all the files needed to generate your Doxygen documentation.

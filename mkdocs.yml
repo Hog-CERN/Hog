@@ -1,5 +1,5 @@
 site_name: Hog user manual
-site_description: HDL on git user manual 
+site_description: HDL on git user manual
 site_author: CERN Authoring
 site_url: http://cern.ch/hog-user-manual
 repo_name: GitLab
@@ -11,59 +11,62 @@ nav:
   - 01-Getting-Started/01-howto-existingProjects.md
   - 01-Getting-Started/02-howto-convert-project.md
   - 01-Getting-Started/03-howto-update-hog.md
-  - 01-Getting-Started/04-HogProject.md
-- 'Hog User Manual': 
-  - 'Using Hog Locally': 
-    - 02-User-Manual/01-Hog-local/01-supported-tools.md
+- 'Hog User Manual':
+  - 02-User-Manual/00-what-is-hog.md
+  - 'Using Hog Locally':
     - 02-User-Manual/01-Hog-local/02-available-templates.md
     - 02-User-Manual/01-Hog-local/03-Hog-generics.md
     - 02-User-Manual/01-Hog-local/04-Project-Tcl.md
     - 02-User-Manual/01-Hog-local/05-List-files.md
     - 02-User-Manual/01-Hog-local/06-IPbus-support.md
-  - 'Hog Continuous Integration': 
-    - 02-User-Manual/02-Hog-CI/01-gitlab-repository-setup.md
+    - 02-User-Manual/01-Hog-local/07-Usage.md
+    - 02-User-Manual/01-Hog-local/08-Hog-utils.md
+    - 02-User-Manual/01-Hog-local/09-Special-commit.md
+    - 02-User-Manual/01-Hog-local/10-supported-tools.md
+  - 'Hog Continuous Integration':
+    - 02-User-Manual/02-Hog-CI/01-CI-Introduction.md
     - 02-User-Manual/02-Hog-CI/02-setup-CI.md
-    - 02-User-Manual/02-Hog-CI/03-HOG-CI-stages.md
-    - 02-User-Manual/02-Hog-CI/04-Virtual-Machines.md
-- 'Contributing to Hog': 
-  - 03-Improving-Debugging/01-reporting-bug.md
-  - 03-Improving-Debugging/02-contributing.md 
+    - 02-User-Manual/02-Hog-CI/03-gitlab-workflow.md
+    - 02-User-Manual/02-Hog-CI/04-HOG-CI-stages.md
+    - 02-User-Manual/02-Hog-CI/05-Virtual-Machines.md
+- 'Bug report and suggestions':
+  - 03-Report-Suggest/01-Report.md
+  - 03-Report-Suggest/02-Suggest.md
+- 'Developing for Hog':
+  - 04-Developing-for-Hog/01-contributing.md
 - 'MkDocs official documentation': https://www.mkdocs.org/
 
 theme:
-      name: material
-      logo: 'custom/assets/images/white.png'
-      custom_dir: docs/custom/
-      features:
-        - tabs
-        - instant
+  name: material
+  logo: "custom/assets/images/white.png"
+  custom_dir: docs/custom/
+  features:
+    - tabs
+    - instant
 
 extra_css:
-    - extra.css
-
+  - extra.css
 
 markdown_extensions:
-    - toc:
-        permalink: true
-    - codehilite:
-        linenums: true
-    - admonition
-    - meta
-    - footnotes
-    - attr_list
-    - def_list
-    - abbr
-    - pymdownx.arithmatex
-    - pymdownx.details
-    - pymdownx.emoji
-    - pymdownx.magiclink
-    - pymdownx.pathconverter
-    - pymdownx.tasklist
-    - pymdownx.betterem
-    - pymdownx.superfences
-    - pymdownx.extrarawhtml
-
-
+  - toc:
+      permalink: true
+  - codehilite:
+      linenums: true
+  - admonition
+  - meta
+  - footnotes
+  - attr_list
+  - def_list
+  - abbr
+  - pymdownx.arithmatex
+  - pymdownx.details
+  - pymdownx.emoji
+  - pymdownx.magiclink
+  - pymdownx.pathconverter
+  - pymdownx.tasklist
+  - pymdownx.betterem
+  - pymdownx.superfences
+  - pymdownx.extrarawhtml
 #plugins:
 #    - search
 #    - pdf-export:

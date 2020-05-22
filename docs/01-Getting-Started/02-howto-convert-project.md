@@ -107,7 +107,7 @@ You have now to generate a directory structure similar to this one:
 
 ![](../01-Getting-Started/figures/directory_structure.jpg)
 
-A complete description of the meaning of each folder can be found in in section [Setting up a HDL repository with Hog]().
+A complete description of the meaning of each folder can be found in THE [Hog User Manual](../02-User-Manual)
 
 ### Top folder
 Every Hog-handled HDL repository must have a directory called `Top`. In here, each subdirectory - that we call the **project top-direcotry** - represents a HDL project in the repository. 

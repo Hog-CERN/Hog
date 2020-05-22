@@ -5,7 +5,7 @@
 
 
 ## Introduction
-Coordinating firmware development among many international collaborators is becoming a very widespread problem in particle physics. Guaranteeing firmware synthesis with Place and Route **reproducibility** and assuring **traceability** of binary files is paramount.
+Coordinating firmware development among many international collaborators is becoming a very widespread problem. Guaranteeing firmware synthesis with Place and Route **reproducibility** and assuring **traceability** of binary files is paramount.
 
 Hog tackles these issues by exploiting advanced git features and integrating itself with HDL IDE (Vivado or Quartus). The integration of these tools intends to reduce as much as possible useless overhead work for the developers.
 
@@ -17,11 +17,12 @@ Hog is included as a submodule in the HDL repository (a `Hog` directory is alway
 
 Hog offers you :
 
-- to work both with Windows and Linux
-- the possibility of creating multiple project sharing one top level
+- a fast way to maintain your HDL code on git
 - to have automatic tagging for easy versioning
-- to store the output bistream on EOS
 - a template to run a continous integration in your Gitlab repository
+- the possibility of creating multiple project sharing one top level
+- to store the output bistream on EOS
+- to work both with Windows and Linux
 
 Everything is as transparent as we could think of. Hog is designed to use just a small fraction of your time to setup you local machine and get you to work to the HDL design as soon as possible.
 

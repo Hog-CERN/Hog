@@ -8,54 +8,42 @@
 #  @brief pase aguments and sets evvironment variables
 #  @param[out] NJOBS        empty or "-NJOBS $2"
 #  @param[out] NO_BITSTREAM empty or "-no_bitstream"
-#  @param[out] PARAMS       positional parameters 
+#  @param[out] PARAMS       positional parameters
 #  @return                  1 if error or help, else 0
 function argument_parser() {
-  PARAMS=""
-  while (( "$#" )); do
-    case "$1" in
-      "-h" | "-help" | "--help" | "-H" )
-        echo
-        echo " Hog - Launch Synthesis"
-        echo " ---------------------------"
-        echo " Use Vivado to launch synthesis for a specified project"
-        echo
-        echo "Usage:"
-        echo -e "\t ./Hog/LaunchSynthesis.sh <proj_name>\n"
-        echo
-        return 1
-        ;;
-      -NJOBS)
-        NJOBS="-NJOBS $2"
-        shift 2
-        ;;
-      --) # end argument parsing
-        shift
-        break
-        ;;
-      -*|--*=) # unsupported flags
-        echo "Error: Unsupported flag $1" >&2
-        return 1
-        ;;
-      *) # preserve positional arguments
-        PARAMS="$PARAMS $1"
-        shift
-        ;;
-    esac
-  done
-  return 0
-  # set positional arguments in their proper place	
+	PARAMS=""
+	while (( "$#" )); do
+	  case "$1" in
+		-NJOBS)
+		  NJOBS="-NJOBS $2"
+		  shift 2
+		  ;;
+		--) # end argument parsing
+		  shift
+		  break
+		  ;;
+		-*|--*=) # unsupported flags
+		  echo "Error: Unsupported flag $1" >&2
+		  return 1
+		  ;;
+		*) # preserve positional arguments
+		  PARAMS="$PARAMS $1"
+		  shift
+		  ;;
+	  esac
+	done
+	# set positional arguments in their proper place	
 }
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 argument_parser $@
 if [ $? = 1 ]; then
-  exit 1
+	exit 1
 fi
 eval set -- "$PARAMS"
 if [ -z "$1" ]
 then
 	printf "Project name has not been specified. Usage: \n ./Hog/LaunchSynthesis.sh <proj_name> [-NJOBS <number of jobs>]\n"
 else 
-  vivado -nojournal -nolog -mode batch -notrace -source $DIR/Tcl/launchers/launch_synthesis.tcl -tclargs $NJOBS $1
+	vivado -nojournal -nolog -mode batch -notrace -source $DIR/Tcl/launchers/launch_synthesis.tcl -tclargs $NJOBS $1
 fi

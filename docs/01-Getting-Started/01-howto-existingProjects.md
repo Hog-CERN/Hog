@@ -39,10 +39,9 @@ inside this directory you will find the Vivado .xpr file (or the Quartus .qpf fi
 
 You can now open the project file with Vivado/Quartus GUI and synthesise/implement the project.
 
+If you don't know the project name, just run `./Hog/CreateProject.sh` and you will get a list of the existing projects present on the repository[^3].
 
-If you don't know the project name, just run `./Hog/CreateProject.sh` and you will get a list of the existing projects present on the repository.
-
-Alternatively, you can type `cd Top` (the Top folder is always present in a Hog handled HDL repository) and type `ls`: each directory in this path corrensponds to a Vivado/Quartus project in the repository.
+[^3]: Alternatively, you can type `cd Top` (the Top folder is always present in a Hog handled HDL repository) and type `ls`: each directory in this path corrensponds to a Vivado/Quartus project in the repository.
 
 To create all the projects in the repository, you can run the Hog initialisation script, like this:
 ```console
@@ -50,13 +49,13 @@ To create all the projects in the repository, you can run the Hog initialisation
 ```
 This script will also, if you wish, compile Modelsim/Questasim libraries.
 
-Now you can open *project1* with Vivado or Quartus and **work almost normally** with the GUI.
+## Adding a new file to the project
+When you open *project1* with Vivado or Quartus, you can **work (almost) normally** with the GUI.
 
 The CreateProject script, that you have just run, has integrated Hog's Tcl scripts in the Vivado/Quartus project. From now on, Hog scripts will run automatically, every time you start the synthesis or any other step in the workflow. In particular, the pre-synthesis script will interact with your local git repository and integrate its version and git commit SHA into your HDL project.
 
 We said **almost normally** because there is one exception: adding a new file  (HDL code, constraint, IP, etc.) to the project using the GUI is not enough. You **must also add** the file name in one of Hog's list files as explenied in the next paragraph.
 
-## Adding a new file to the project
 Let's now suppose that you want to add a new file to the project and that this file is located in `repo/dir1/` and is called `file1.hdl`.
 
 First of all, the new file (that is unkown to git) must be added to the repository:
@@ -67,8 +66,8 @@ git add ./dir1/file1.hdl
 git commit -m "add new file file1.hdl"
 git push
 ```
-Now that the file is safely on git, we have to add it to the Hog project, so that if another developer clones the repository, as you did at the beginning of this guide, the file will appear in the project[^a].
-[^a]:Not all the files stored in the git repository are part of a project: there can be non hdl files, obsolete files that are stored just in case, new files that are not ready to be used. Moreover some files could be part of a project and not of another. In our example, the repository could contain project2 and project3 that use different subsets of files in the repository.
+Now that the file is safely on git, we have to add it to the Hog project, so that if another developer clones the repository, as you did at the beginning of this guide, the file will appear in the project[^4].
+[^4]:Not all the files stored in the git repository are part of a project: there can be non hdl files, obsolete files that are stored just in case, new files that are not ready to be used. Moreover some files could be part of a project and not of another. In our example, the repository could contain project2 and project3 that use different subsets of files in the repository.
 
 This is a new file, unknown to Hog for now, and we want it to be included into the project the next time that we run the CreateProject script described above. To do this, you must add the file name and path of `file1.vhd` into a Hog list file. The list files are located in `repo/Top/project1/list/`. Let's assume that the list file you want to add your file to is `lib1.src`.
 

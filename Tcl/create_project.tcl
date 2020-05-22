@@ -1,4 +1,7 @@
 ## @file ../Tcl/create_project.tcl
+#  @brief contains all functions needed to create a new project
+#  @todo This file will need to be fully documented
+#
 # Define the following variables before sourcing this script:
 #
 # set bin_file 1

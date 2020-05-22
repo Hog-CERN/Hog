@@ -37,3 +37,7 @@ Let us know:
 - to which part of Hog this is related to
 - how you have been testing it (e.g. operative system, IDE software, hog version etc.)
 
+Bug reports and suggestions is a chapter: another chapter become a hog contributor
+-> this is only for hog users (firmware developers)
+-> this is for hog developers (do you want to become a hog developer)
+

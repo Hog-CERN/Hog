@@ -29,9 +29,10 @@ nav:
     - 02-User-Manual/02-Hog-CI/03-gitlab-workflow.md
     - 02-User-Manual/02-Hog-CI/04-HOG-CI-stages.md
     - 02-User-Manual/02-Hog-CI/05-Virtual-Machines.md
-- 'Contributing to Hog':
+- 'Bug report and suggestions':
   - 03-Improving-Debugging/01-reporting-bug.md
-  - 03-Improving-Debugging/02-contributing.md
+- 'Developing for Hog':
+  - 04-Developing-for-Hog/01-contributing.md
 - 'MkDocs official documentation': https://www.mkdocs.org/
 
 theme:

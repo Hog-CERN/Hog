@@ -1,4 +1,4 @@
-# Add your contribution to Hog
+# Developing for Hog
 If you want to contribute to Hog please follow these instructions:
 
 1. go to [Hog on gitlab](https://gitlab.cern.ch/hog/Hog)

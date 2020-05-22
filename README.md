@@ -1,9 +1,6 @@
-<<<<<<< HEAD
-# HDL On Git (HOG)
-=======
-# HDL On Git (HOG) 
->>>>>>> origin/master
-Coordinating firmware development among many international collaborators is becoming a very widespread problem in particle physics.
+# HDL on git (Hog)
+
+Coordinating firmware development among many international collaborators is becoming a very widespread problem.
 Guaranteeing firmware synthesis with P&R reproducibility and assuring traceability of binary files is paramount.
 Hog tackles these issues by exploiting advanced Git features and being deeply integrated with HDL IDE, with particular attention to Intellectual Properties (IP) handling.
 

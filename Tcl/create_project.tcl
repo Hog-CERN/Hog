@@ -1,4 +1,5 @@
-## Define the following variables before sourcing this script:
+## @file ../Tcl/create_project.tcl
+# Define the following variables before sourcing this script:
 #
 # set bin_file 1
 # set use_questa_simulator 1
@@ -11,9 +12,8 @@
 # set IMPL_FLOW {Vivado Implementation 2016}
 # set PROPERTIES [dict create synth_1 [dict create opt_speed true opt_area false] impl_1 [dict create keep_registers true retiming true]]
 
-########################################################
-########################################################
-## Namespace of all the project settings
+## @namespace globalSettings
+# @brief Namespace of all the project settings
 #
 #
 namespace eval globalSettings {

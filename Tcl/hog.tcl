@@ -1,4 +1,4 @@
-# @file
+## @file hog.tcl
 # @breif Collection of Tcl functions used in Vivado/Quartus scripts
 
 ## @brief Display a Vivado/Quartus/Tcl-shell info message

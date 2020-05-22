@@ -12,3 +12,6 @@ More information on the how to use Hog can be found in the [user documentation w
 
 You can report an issue using the git issues.
 Please check in existing and solved issues before submitting a new issue.
+
+## License
+Hog is licensed under the Apache License, Version 2.0.

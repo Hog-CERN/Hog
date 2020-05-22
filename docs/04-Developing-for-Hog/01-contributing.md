@@ -1,5 +1,11 @@
+# Become a member of the Hog community
+You are very welcome to become an active developer of Hog!
+
+Get in contact with one of us (E.g. [Francesco Gonnella](mailto:francesco.gonnella@cern.ch), such that we can have a quick feedback of your background and your expertise.
+
 # Developing for Hog
-If you want to contribute to Hog please follow these instructions:
+
+As a Hog developer, if you want to contribute to Hog please follow these instructions:
 
 1. go to [Hog on gitlab](https://gitlab.cern.ch/hog/Hog)
 2. check in the issues list that your improvements/features are not already under development.
@@ -121,7 +127,7 @@ The same comment style can be used also for bash scripts provided you use functi
 This site uses MkDocs to render the Markdown files.
 The source is hosted on gitLab: [Hog](https://gitlab.cern.ch/hog/Hog)
 
-To contribute to the user manual plase read this section carefully.
+To contribute to the user manual please read this section carefully.
 You should first clone the repository:
 ```console
 git clone https://gitlab.cern.ch/hog/Hog.git

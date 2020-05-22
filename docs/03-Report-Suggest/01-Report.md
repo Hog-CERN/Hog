@@ -1,12 +1,10 @@
-# Bug reports and suggestions
+# Bug reports
+
 We always want to improve Hog, for this reason your help is very important!
 
-To report bugs and suggest new features use the issues git repository: https://gitlab.cern.ch/hog/Hog/issues
+As a Hog user, you are very welcome to report bugs and suggest new features use the issues git repository: https://gitlab.cern.ch/hog/Hog/issues
 
-## Bug reports
-When you report bugs, please do it one at the time.
-
-Before reporting, it is very important to check if the same bug has been already reported. Take a look at the list of the reported bugs here [link?]
+When you report bugs, please do it one at the time. Before reporting, it is very important to check if the same bug has been already reported. Take a look at the list of the reported bugs here [link?]
 
 Open an issue using the label "Problem report". 
 

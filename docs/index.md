@@ -83,7 +83,7 @@ In this website you can find a quick guide to learn how to work in a [Hog-handle
 
 
 ## Contacts
-Would you like to have fun with git and a Tcl? Please join us and read the [Contributing](03-Contributing) section.
+Would you like to have fun with git and a Tcl? Please join us and read the [Developing for Hog](04-Developing-for-Hog) section.
 
 To report an issue use the git issues in the [Hog git repository](https://gitlab.cern.ch/hog/Hog).
 Please check in existing and solved issues before submitting a new issue.

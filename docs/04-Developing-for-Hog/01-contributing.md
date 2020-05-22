@@ -1,7 +1,7 @@
 # Become a member of the Hog community
-You are very welcome to become an active developer of Hog!
+You are very welcome to become an active Hog developer!
 
-Get in contact with one of us (E.g. [Francesco Gonnella](mailto:francesco.gonnella@cern.ch), such that we can have a quick feedback of your background and your expertise.
+Get in contact with one of us (e.g. [Francesco Gonnella](mailto:francesco.gonnella@cern.ch)), such that we can have a quick feedback of your background and your expertise.
 
 # Developing for Hog
 

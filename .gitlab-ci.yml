@@ -85,7 +85,7 @@ tagging:
       except:
           variables:
               - $CI_PIPELINE_SOURCE != "push"
-              - $CI_COMMIT_REF_SLUG != "master"
+              - $CI_COMMIT_REF_SLUG != "develop"
       script:
           - tclsh ./Tcl/CI/merge_and_tag.tcl -Hog -merged -push $CI_COMMIT_REF_NAME
 
@@ -102,4 +102,4 @@ create_release_note:
           - git fetch origin refs/notes/*:refs/notes/*
           - MR=`git notes show`
           - ./Other/GetGitlabArtifact.sh $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $MR changelog.md merge_and_tag > note.md
-          - ./Other/MakeGitlabRelease.sh $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $CI_COMMIT_TAG note.md
+          - ./Other/MakeGitlabRelease.sh $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $CI_COMMIT_TAG note.md -b

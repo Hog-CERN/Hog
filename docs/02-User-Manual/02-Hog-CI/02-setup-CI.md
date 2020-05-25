@@ -11,41 +11,41 @@ Once you have your service account, you should get also 1 TB of space on EOS, th
 
 # Set up your personal Gitlab CI YAML
 Gitlab CI uses [YAML configuration file](https://docs.gitlab.com/ee/ci/yaml/) to define which commands it must run. By default this file is called `.gitlab-ci.yml` and must be stored in the root folder of your repository. Hog cannot provide a full YAML file for your project, but a template file can be found under [`Hog` -> `Templates` -> `gitlab-ci.yml` ](https://gitlab.cern.ch/hog/Hog/-/blob/master/Templates/gitlab-ci.yml) as a reference.
-For example, suppose we want to write the `.gitlab-ci.yml` config file to run the Hog project `project\_1` on the CI. This file will actually include the Hog `gitlab-ci.yml` config file, where the CI stages are defined. To include the reference to the Hog parent file, add at the beginning of your `.gitlab-ci.yml`
+For example, suppose we want to write the `.gitlab-ci.yml` config file to run the Hog project `my_project` on the CI. This file will actually include the Hog `hog.yml` config file, where the CI stages are defined. To include the reference to the Hog parent file, add at the beginning of your `.gitlab-ci.yml`
 
 ```yaml
   include:
     - project: 'hog/Hog'
-      file: '/gitlab-ci.yml'
+      file: '/hog.yml'
       ref: 'vX.Y.Z'
 ```
-Here you must substitute 'vX.Y.Z' with the version of Hog you want to use. If you don't specify any `ref`, the CI will pick up the parent config file from the latest Hog master branch.
+Here you must substitute 'vX.Y.Z' with the version of Hog you want to use. The version of Hog **MUST** be specified. If you fail to do so , the CI will pick up the parent config file from the latest Hog master branch. This is an inadvisable behaviour, since Hog development could lead to not back-compatible changes that could break your CI. Moreover the pre synthesis script will check that the ref in your .gitlab-ci.yml file is consistent with your local Hog submodule, giving a Critical Warning if the two don't match
 
-Now we define the stages we want to run in the CI for our project. Hog CI runs always the stages that are not project-specific (e.g. *Merge*), therefore there is no need to declare them in our file. To add a stage `stage\_1` for our `project\_1`, we use the following syntax:
+Now we define the stages we want to run in the CI for our project. Hog CI runs always the stages that are not project-specific (e.g. *Merge*), therefore there is no need to declare them in our file. To add a stage `stage_1` for our `my_project`, we use the following syntax:
 
 ```yaml
-  stage\_1:project\_1:
-    extends: .stage\_1
+  stage_1:my_project:
+    extends: .stage_1
     variables:
       extends: .vars
       VARIABLE: <variable_value>
 ```
 
-In this snippet the first line is the stage name, i.e. you are defining a stage named 'stage\_1:project\_1'.
-The second line tells the script that the stage is an extension of '.stage\_1' defined in
+In this snippet the first line is the stage name, i.e. you are defining a stage named 'stage_1:my_project'.
+The second line tells the script that the stage is an extension of '.stage_1' defined in
 The third line starts the variable declaration section of the script.
-Since your script extends `.stage\_1` then it must define the variable used by this script.
-The line `extends: .vars` informs the variables section extends the `.vars` object defined in the parent Hog `gitlab-ci.yml`.
+Since your script extends `.stage_1` then it must define the variable used by this script.
+The line `extends: .vars` informs the variables section extends the `.vars` object defined in the parent Hog `hog.yml`.
 The last line shows how to set the value for one named `VARIABLE` defined in the `.vars` object.
 
-So, for example, if we want to add a *Creation* stage for our `project\_1`, we should add to the `.gitlab-ci.yml`, the following lines:
+So, for example, if we want to add a *Creation* stage for our `my_project`, we should add to the `.gitlab-ci.yml`, the following lines:
 
 ```yaml
-  create_project:project\_1:
+  create_project:my_project:
     extends: .create_project
     variables:
       extends: .vars
-      PROJECT_NAME: project\_1
+      PROJECT_NAME: my_project
 ```
 
 A more detailed description of the CI stages and their YAML configuration can be found [here](04-HOG-CI-stages.md)

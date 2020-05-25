@@ -16,7 +16,7 @@
 # @breif Collection of Tcl functions used in Vivado/Quartus scripts
 
 
-## @c Msg 
+## @c Msg
 # Display a Vivado/Quartus/Tcl-shell info message
 #
 # Arguments:
@@ -1300,7 +1300,7 @@ proc Md5Sum {file_name} {
   }
 }
 
-## Checks that "ref" in .gitlab-ci.yml actually matches the gitlab-ci file in the 
+## Checks that "ref" in .gitlab-ci.yml actually matches the gitlab-ci file in the
 ##  Hog submodule
 #
 proc CheckYmlRef {repo_path allow_failure} {
@@ -1347,9 +1347,9 @@ You can fix this by installing package \"tcllib\""
 
   #getting Hog repository tag and commit
     cd "Hog"
-    set HOGYML_SHA [exec git log --format=%H -1 --  gitlab-ci.yml ]
-    if { [catch {exec git log --format=%H -1 $YML_REF_F gitlab-ci.yml} EXPECTEDYML_SHA]} {
-      if { [catch {exec git log --format=%H -1 origin/$YML_REF_F gitlab-ci.yml} EXPECTEDYML_SHA]} {
+    set HOGYML_SHA [exec git log --format=%H -1 --  hog.yml ]
+    if { [catch {exec git log --format=%H -1 $YML_REF_F hog.yml} EXPECTEDYML_SHA]} {
+      if { [catch {exec git log --format=%H -1 origin/$YML_REF_F hog.yml} EXPECTEDYML_SHA]} {
         Msg $MSG_TYPE "Error in project .gitlab-ci.yml. ref: $YML_REF not found"
         set EXPECTEDYML_SHA ""
       }
@@ -1358,15 +1358,15 @@ You can fix this by installing package \"tcllib\""
     if  {!($EXPECTEDYML_SHA eq "")} {
 
       if {$HOGYML_SHA == $EXPECTEDYML_SHA} {
-        Msg Info "Hog gitlab-ci.yml SHA matches with the \"ref\" in the .gitlab-ci.yml."
+        Msg Info "Hog hog.yml SHA matches with the \"ref\" in the .gitlab-ci.yml."
 
       } else {
-        Msg $MSG_TYPE "HOG gitlab-ci.yml SHA mismatch.
-From Hog submodule: $HOGYML_SHA
-From .gitlab-ci.yml: $EXPECTEDYML_SHA
-You can fix this in 2 ways: (A) by changing the ref in your repository or (B) by changing the Hog submodule commit.
-\tA) edit project .gitlab-ci.yml ---> ref: '$HOGYML_SHA'
-\tB) modify Hog submodule: git checkout $EXPECTEDYML_SHA"
+        Msg $MSG_TYPE "HOG hog.yml SHA mismatch.
+        From Hog submodule: $HOGYML_SHA
+        From .gitlab-ci.yml: $EXPECTEDYML_SHA
+        You can fix this in 2 ways: (A) by changing the ref in your repository or (B) by changing the Hog submodule commit.
+        \tA) edit project .gitlab-ci.yml ---> ref: '$HOGYML_SHA'
+        \tB) modify Hog submodule: git checkout $EXPECTEDYML_SHA"
       }
     }
   } else {

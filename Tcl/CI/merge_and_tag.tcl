@@ -88,26 +88,27 @@ if {$options(merged) == 0} {
       set VERSION 2
     } 
     set merge_request_number $options(mr_id)
+  }
+} else {
+  set VERSION 3
+}
+
+Msg Info "Version Level $VERSION"
+if {[catch {exec git merge --no-commit origin/$options(main_branch)} MRG]} {
+  Msg Error "Branch is outdated, please merge the latest changes from $options(main_branch) with:\n git fetch && git merge origin/$options(main_branch)\n"
+  exit 1	
+}
+
+Msg Info [exec $TclPath/CI/tag_repository.tcl -level $VERSION $onHOG $merge_request_number -default_version_level $options(default_version_level)]
+if {$options(push)!= ""} {
+  if {[catch {exec git push origin $options(push)} TMP]} {
+    Msg Warning $TMP
   } else {
-    set VERSION 3
+    Msg Info $TMP
   }
-
-  Msg Info "Version Level $VERSION"
-  if {[catch {exec git merge --no-commit origin/$options(main_branch)} MRG]} {
-    Msg Error "Branch is outdated, please merge the latest changes from $options(main_branch) with:\n git fetch && git merge origin/$options(main_branch)\n"
-    exit 1	
+  if {[catch {exec git push --tags origin $options(push)} TMP]} {
+    Msg Warning $TMP
+  } else {
+    Msg Info $TMP
   }
-
-  Msg Info [exec $TclPath/CI/tag_repository.tcl -level $VERSION $onHOG $merge_request_number -default_version_level $options(default_version_level)]
-  if {$options(push)!= ""} {
-    if {[catch {exec git push origin $options(push)} TMP]} {
-      Msg Warning $TMP
-    } else {
-      Msg Info $TMP
-    }
-    if {[catch {exec git push --tags origin $options(push)} TMP]} {
-      Msg Warning $TMP
-    } else {
-      Msg Info $TMP
-    }
-  }
+}

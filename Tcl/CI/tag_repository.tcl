@@ -68,7 +68,7 @@ switch $options(default_version_level) {
     set def_l 0
   }
 }
-
+Info "MR = $merge_request, version level: $options(level), default version level: $def_l"
 set tags [TagRepository $merge_request $options(level) $def_l]
 set old_tag [lindex $tags 0]
 set new_tag [lindex $tags 1]

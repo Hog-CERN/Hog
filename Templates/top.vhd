@@ -1,3 +1,18 @@
+--   Copyright 2018-2020 The University of Birmingham
+--
+--   Licensed under the Apache License, Version 2.0 (the "License");
+--   you may not use this file except in compliance with the License.
+--   You may obtain a copy of the License at
+--
+--       http:--www.apache.org/licenses/LICENSE-2.0
+--
+--   Unless required by applicable law or agreed to in writing, software
+--   distributed under the License is distributed on an "AS IS" BASIS,
+--   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+--   See the License for the specific language governing permissions and
+--   limitations under the License.
+
+
 --------------------------------------------------------------------------------
 -- Title       : top.vhd
 -- Project     : Default Project Name
@@ -6,7 +21,7 @@
 -- Author      : Davide Cieri davide.cieri@cern.ch
 -- Company     : Max-Planck-Institute For Physics, Munich
 -- Created     : Tue Feb 11 13:50:27 2020
--- Last update : Tue Feb 11 14:26:02 2020
+-- Last update : Mon May 25 08:42:01 2020
 -- Standard    : <VHDL-2008 | VHDL-2002 | VHDL-1993 | VHDL-1987>
 --------------------------------------------------------------------------------
 -- Copyright (c) 2020 Max-Planck-Institute For Physics, Munich
@@ -22,7 +37,7 @@
 -- Doxygen-compatible comments
 --! @file
 --! @brief top_<myproj>
---! @details 
+--! @details
 --! Any details you want to add
 --! @author Name Surname
 
@@ -42,7 +57,7 @@ entity top_<myproj> is
         TOP_FWVERSION       : std_logic_vector(31 downto 0);
         XML_VERSION         : std_logic_vector(31 downto 0);
         HOG_FWHASH          : std_logic_vector(31 downto 0);
-        HOG_FWVERSION       : std_logic_vector(31 downto 0);        
+        HOG_FWVERSION       : std_logic_vector(31 downto 0);
         -- Project Specific Lists (One for each .src file in your Top/myproj/list folder)
         <MYLIB0>_FWVERSION    : std_logic_vector(31 downto 0);
         <MYLIB0>_FWHASH       : std_logic_vector(31 downto 0);
@@ -57,12 +72,12 @@ entity top_<myproj> is
         FLAVOUR             : integer
     );
   port (
-    
+
   ) ;
 end entity ; -- top_myproj
 
 architecture behaviour of top_<myproj> is
 
 begin
-    
+
 end architecture behaviour;

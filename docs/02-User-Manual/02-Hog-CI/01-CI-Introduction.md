@@ -15,7 +15,7 @@ Three pipelines are employed, triggered by the following actions:
 - **Master Pipeline**: triggered by each commit into the master branch
 - **Tag Pipeline**: triggered by the creation of a new official tag (starting with "v\*")
 
-# Merge Request Pipeline
+## Merge Request Pipeline
 The *Merge Request* pipeline simulates, synthetises and implements the chosen HDL projects. If specified, it stores the resulting outputs to an EOS repository and creates the doxygen documentation.
 
 The stages of the Merge Request pipeline are the following:
@@ -28,7 +28,7 @@ The stages of the Merge Request pipeline are the following:
 6. *Collect*: Collects all the artefacts from the previous stages. If EOS is used, it copies the implementation outputs to the EOS repository.
 7. *Doxygen*. Creates the doxygen documentation and stores it to EOS if enabled.
 
-# Master Pipeline
+## Master Pipeline
 The *Master* pipeline consists only of one stage (*Merge*), which tags the repository according to the Merge Request description. Assuming the latest tag was *vA.B.C*, the pipeline will
 
 *  increase A, if the MR description contains the keyword
@@ -37,7 +37,7 @@ The *Master* pipeline consists only of one stage (*Merge*), which tags the repos
 "MINOR_VERSION"
 *  increase C, in the other cases
 
-# Tag Pipeline
+## Tag Pipeline
 The *Tag* pipeline consists of two stages:
 
 1.  *Copy*: If EOS is enabled, copies the *Merge Request* output files from the EOS unofficial to the EOS official storage, creating a new subfolder with the name of the new tag. It writes also the release note for the new tag, with the timing results and the project versions.

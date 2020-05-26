@@ -5,3 +5,6 @@ Quartus
 git
 Gitlab
 Tcl
+Verilog
+SystemVerilog
+VHDL

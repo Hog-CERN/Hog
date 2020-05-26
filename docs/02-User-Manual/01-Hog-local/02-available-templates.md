@@ -1,10 +1,12 @@
 # Available templates
 
+Templates for some of the file needed to set-up your git repository are distributed with Hog.
+You can find the templates in the [Hog/Templates](https://gitlab.cern.ch/hog/Hog/-/tree/master/Templates) directory.
 The following file templates are distributed with Hog:
 
 - `top.tcl`
 
-	- example of tcl script to generate the HDL project
+	- example of tcl script to generate the HDL project;
 	- contains the definition of the variables used by Hog to generate your project;
 	- to use this file copy it to the `Top/project/` directory, rename it and modify it to accommodate your project;
 
@@ -38,4 +40,3 @@ The following file templates are distributed with Hog:
 	- contains [... the default Doxygen configuration ...];
 	- to use this file copy it to a folder named `doxygen` in the root folder of your repository, modify to accommodate you project.
 
-You can find the templates in the [Hog/Template](https://gitlab.cern.ch/hog/Hog/-/tree/master/Templates) directory.

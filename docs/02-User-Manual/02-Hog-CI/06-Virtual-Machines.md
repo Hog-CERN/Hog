@@ -1,61 +1,58 @@
 # Setting up a Virtual Machines for firmware implementation
-
-In order to allow git to implement your firmware automatically at each new push on the mater you will need to set-up a Virtual Machine.
-
-The ATLAS TDAQ group provides a dedicated Virtual Machine accessible by all groups having a cern service account.
-More information on this machine can be found in the [ATLAS common firmware Virtual Machine](#ATLAS_common?firmware_virtual_machine) section.
-
-If you want to use your private Virtual Machine you can find more information in the [Setting up a dedicated Virtual Machine](#setting_up_a_dedicated_Virtual_Machine) section.
+To run the Hog Continuous Integration, you need a dedicated Virtual Machine, since the available shared runners are not ideal to execute heavy software like Vivado or Quartus.
 
 ## Setting up a dedicated Virtual Machine
 
-In this section you can find more information on how to set up your private gitlab runner.
-Instructions are provided assuming you have access to the CERN computing resources. 
-If this is not the case you can still use Hog provided that you have a machine running CentOS 7 set up as a gitlab runner.
-In the latter case you can ignore the next section and jump directly to [Install gitlab runner](#install_gitlab runner)
+In this section, you can find more information on how to set up your private Gitlab runner.
+Instructions are provided assuming you have access to the CERN computing resources.
+If this is not the case, you can still use Hog assuming that you have access to  machine running CentOS 7 set up as a Gitlab runner.
 
-### Create an CERN Openstack Virtual Machine
+In this case, you can ignore the next section and jump directly to [Install Gitlab runner](#install_gitlab runner)
+
+### Create a CERN Openstack Virtual Machine
 
 OpenStack is a cloud operating system that controls large pools of compute, storage, and networking resources throughout a data-centre, all managed and provisioned through APIs with common authentication mechanisms.
-Openstack provides you with a [dashboard](https://openstack.cern.ch/project/) from which you can manage VM instances
+Openstack provides you with a [dashboard](https://openstack.cern.ch/project/) from which you can manage VM instances.
+
 More information on Openstack can be found in the [Openstack Dashboard Documentation](https://docs.openstack.org/horizon/train/user/).
 
-In order to create a new VM you have to connect to the [CERN Openstack dashboard](https://openstack.cern.ch/project/) and create a new instance.
+To create a new VM, you have to connect to the [CERN Openstack dashboard](https://openstack.cern.ch/project/) and create a new instance.
 
 Openstack instances come with different flavours, meaning you can allocate only a fixed amount of each resource to each VM.
 The flavours available are usually not enough for the requirements of modern firmware implementation.
 Please check the requirement for the tools and devices in your project and ask for a custom flavour.
 
 Before creating an new instance you can add a new disk that you can use to install the needed tools.
-To do this go under ``` Volumes > Volumes ``` on the left navbar.
+To do this go under ``` Volumes -> Volumes ``` on the left navigation bar.
 Once the Volumes summary appears you can click on ``` + Create Volume ``` and follow the instructions therein.
 We recommend having at least a 40GB HD
 
-Once you obtained a custon flavour and a dedicated disck you can create a new instance. 
-Navigate to ``` Compute > Instances ```, once you get to the instances summary click  on ``` Launch Instance ```.
-Fill in the required information on the modal that will appear.
-Under the ``` Source ``` tab * select an updated CC7 image *, this will generate a VM running under Centos 7.
-Select the custom Flavor in the ``` Flavor ``` tab.
+Once you obtained a custom flavour and a dedicated disk, you can create a new instance.
+Navigate to ``` Compute > Instances ```, once you get to the instances summary click on ``` Launch Instance ```.
+Fill in the required information in the form that will appear.
+Under the ``` Source ``` tab  select an updated *CC7 image*, this will generate a VM running under CentOs 7.
+Select the custom flavour in the ``` Flavor ``` tab.
 Generate a new key pair and save the private key, this will be needed later to access your VM.
 
 Once a new instance is running (note it might take few minutes to be generated) attach the Volume you created to the VM.
-This can be done through the dropdown menu on the right side of the instance summary by clicking on ``` attach volume ```.
+This can be done through the drop down menu on the right side of the instance summary by clicking on ``` attach volume ```.
 
 You can now connect to your machine through ssh.
+
 *NOTE* your machine is not fully public yet (reference the Openstack manual for this).
-This means your VM will be accessible only from the cern domain.
-If you are not on the cern domain connect to a CERN public machine (``` lxplus ```) and then to you machine.
+This means your VM will be accessible only from the CERN domain.
+If you are not on the CERN domain, connect to a CERN public machine (``` lxplus ```) and then to your machine.
 
 ```bash
   ssh -i private-key.pem <machine_ip_or_name>
- ```
+```
 
- Once you are logged on your machine change the root password:
+Once you are logged into your machine, change the root password:
 
- ```bash
-  sudo password root
- ```
-Please follow the IT reccomendations when chosing a new password.
+```bash
+sudo password root
+```
+Please follow the IT recommendation when choosing a new password.
 Mount the volume you created, make sure you own it, format it, etc...
 
 ```bash
@@ -66,19 +63,19 @@ Mount the volume you created, make sure you own it, format it, etc...
  chown -hR <username> /mnt/vd        # own the disk
 ```
 
-*NOTE* there is no need to add this disk to /etc/fstab for automati mounting since Hog will later do this automatically.
+*NOTE* there is no need to add this disk to /etc/fstab for automatic mounting, since Hog will later do this automatically.
 
 You are now ready to install your favourite tools!
 
-### Installing  HDL tools
+### Installing HDL tools
 
-Install al the needed tools on your brand new VM.
+Install all the needed tools on your brand new VM.
 The machine will need an installation of all licensed software (Xilinx Vivado, Mentor Graphics Questasim, ...) you use in your project.
 *NOTE* you are the one responsible for correctly licensing the software!
 
-### Install gitlab runner
+### Install Gitlab runner
 
-Information on How to install a new gitlab runnare on your VM can be found [here](https://docs.gitlab.com/runner/install/)
+Information on how to install a new Gitlab runnar on your VM can be found [here](https://docs.gitlab.com/runner/install/)
 
 #### Allowing concurrent jobs on a single Openstack Virtual Machine
 
@@ -106,25 +103,26 @@ Information on How to install a new gitlab runnare on your VM can be found [here
     executor = "shell"
     [runners.custom_build_dir]
     [runners.cache]
-      [runners.cache.s3]
-      [runners.cache.gcs]
+    [runners.cache.s3]
+    [runners.cache.gcs]
 ```
 If something goes wrong, please report it.
 
-### Hog set-up on the gitlab runner
+### Hog set-up on the Gitlab runner
 
-Hog will need the Virtual Machine you use as gitlab runner to be properly set-up.
+Hog will need the Virtual Machine you use as Gitlab runner to be properly set-up.
 - Clone Hog repository somewhere accessible from the VM, e.g. on you AFS home
 - ssh into your virtual machine as yourself
 - Become root
 - Export the following system variables:
-  - __Hog_USERNAME__= The name of you service account, e.g. john
-  - __Hog_VIVADO_DIR__= Path of your Vivado SDK installation directory containing the xsetup executable (not required if you run the script with the ``-x`` flag)
-  - __Hog_TOKEN__= a valid gitlab private runner token: Go to `Settings` -> `CI/CD` and expand the `Runners` tab. The registration token in `Specific Runners ` column.
-  - __Hog_USERGROUP__= The name of your user group, e.g. "zp" for ATLAS
+  - __HOG_USERNAME__= The name of you service account
+  - __HOG_VIVADO_DIR__= Path of your Vivado SDK installation directory containing the xsetup executable (not required if you run the script with the ``-x`` flag)
+  - __HOG_TOKEN__= a valid Gitlab private runner token: Go to `Settings` -> `CI/CD` and expand the `Runners` tab. The registration token in `Specific Runners ` column.
+  - __HOG_USERGROUP__= The name of your user group, e.g. "zp" for ATLAS
 - Go to the VM directory and launch the __hog-vm-setup.sh__ script
-- Once the script has finished, you can login to the VM as your service account (john)
+- Once the script has finished, you can login to the VM as your service account
 
+<!-- MOVE IN HOG FOR ATLAS
 ## ATLAS common firmware Virtual Machine
 
 We provide a Virtual Machine satisfying basic requirements./
@@ -152,7 +150,7 @@ the following tools are available for set-up:
 Newer version of these tools mightbe available.
 If your project needs specific tools please get in touch with [atlas-tdaq-firmware-support](mailto:atlas-tdaq-firmware-support@cern.ch)
 
-To set up this machine to run CI/CD for your project go on the gitlab page for your project. 
+To set up this machine to run CI/CD for your project go on the gitlab page for your project.
 Go to `Settings` -> `CI/CD` and expand the `Runners` tab.
 Copy the registration token in `Specific Runners ` column.
 
@@ -161,3 +159,4 @@ Run `sudo gitlab/runner register` on the VM.
 - Enter https://gitlab.cern.ch as coordination URL.
 - Enter the token you just obtained as token.
 - Enter `shell` when asked to enter the Executor.
+ -->

@@ -1,7 +1,25 @@
+#   Copyright 2018-2020 The University of Birmingham
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at
+#
+#       http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+
+# @file
+# @breif Collection of Tcl functions used in Vivado/Quartus scripts
+
+
 ## @file hog.tcl
 # @breif Collection of Tcl functions used in Vivado/Quartus scripts
 
-## @brief Display a Vivado/Quartus/Tcl-shell info message
+### @brief Display a Vivado/Quartus/Tcl-shell info message
 #
 # @param[in] level  the severity level of the message given as string or integer: status/extra_info 0, info 1, warning 2, critical warning 3, error 4.
 # @param[in] msg    the message text.
@@ -1413,9 +1431,9 @@ You can fix this by installing package \"tcllib\""
 
   #getting Hog repository tag and commit
     cd "Hog"
-    set HOGYML_SHA [exec git log --format=%H -1 --  gitlab-ci.yml ]
-    if { [catch {exec git log --format=%H -1 $YML_REF_F gitlab-ci.yml} EXPECTEDYML_SHA]} {
-      if { [catch {exec git log --format=%H -1 origin/$YML_REF_F gitlab-ci.yml} EXPECTEDYML_SHA]} {
+    set HOGYML_SHA [exec git log --format=%H -1 --  hog.yml ]
+    if { [catch {exec git log --format=%H -1 $YML_REF_F hog.yml} EXPECTEDYML_SHA]} {
+      if { [catch {exec git log --format=%H -1 origin/$YML_REF_F hog.yml} EXPECTEDYML_SHA]} {
         Msg $MSG_TYPE "Error in project .gitlab-ci.yml. ref: $YML_REF not found"
         set EXPECTEDYML_SHA ""
       }
@@ -1424,15 +1442,15 @@ You can fix this by installing package \"tcllib\""
     if  {!($EXPECTEDYML_SHA eq "")} {
 
       if {$HOGYML_SHA == $EXPECTEDYML_SHA} {
-        Msg Info "Hog gitlab-ci.yml SHA matches with the \"ref\" in the .gitlab-ci.yml."
+        Msg Info "Hog hog.yml SHA matches with the \"ref\" in the .gitlab-ci.yml."
 
       } else {
-        Msg $MSG_TYPE "HOG gitlab-ci.yml SHA mismatch.
-From Hog submodule: $HOGYML_SHA
-From .gitlab-ci.yml: $EXPECTEDYML_SHA
-You can fix this in 2 ways: (A) by changing the ref in your repository or (B) by changing the Hog submodule commit.
-\tA) edit project .gitlab-ci.yml ---> ref: '$HOGYML_SHA'
-\tB) modify Hog submodule: git checkout $EXPECTEDYML_SHA"
+        Msg $MSG_TYPE "HOG hog.yml SHA mismatch.
+        From Hog submodule: $HOGYML_SHA
+        From .gitlab-ci.yml: $EXPECTEDYML_SHA
+        You can fix this in 2 ways: (A) by changing the ref in your repository or (B) by changing the Hog submodule commit.
+        \tA) edit project .gitlab-ci.yml ---> ref: '$HOGYML_SHA'
+        \tB) modify Hog submodule: git checkout $EXPECTEDYML_SHA"
       }
     }
   } else {

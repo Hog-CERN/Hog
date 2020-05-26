@@ -29,11 +29,12 @@ if {[catch {package require cmdline} ERROR]} {
 
 set parameters {
   {Hog    "Runs merge and tag of Hog repository. Default = off. To be only used by HOG developers!!!"}
-  {merged "Set this flag to tag the new version after marging the merge_request. Default = off"}
+  {merged "Set this flag to tag the new version after merging the merge_request. Default = off"}
   {mr_par.arg "" "Merge request parameters in JSON format. Ignored if -merged is set"}
   {mr_id.arg 0 "Merge request ID. Ignored if -merged is set"}
   {push.arg "" "Optional: git branch for push"}
   {main_branch.arg "master" "Main branch (default = master)"}
+  {default_version_level.arg "patch" "Default version level to increase if nothing is psecified in the merge request description. Can be patch, minor, major (default = patch)"}
 }
 
 set usage "- CI script that merges your branch with \$HOG_TARGET_BRANCH and creates a new tag\n USAGE: $::argv0 \[OPTIONS\] \n. Options:"
@@ -50,11 +51,21 @@ if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] 
 if { $options(Hog) == 0 } {
   set onHOG ""
 } else {
-  Msg Info "You are merging and tagging Hog (only for HOG developers!!!)"
+  Msg Info "You are merging and tagging Hog (only for Hog developers!)"
   set onHOG "-Hog"
 }
+if {$options(default_version_level) == "" || $options(default_version_level) == ""} {
+  set VERSION 0
+} elseif {$options(default_version_level) == "minor"} {
+  set VERSION 1
+} elseif {$options(default_version_level) == "major"} {
+  set VERSION 2
+} else {
+    Msg Warning "Unkown version level $options(default_version_level), possible values are patch, minor, major. Will use patch as default"
+   set VERSION 0  
+}
+    
 
-set VERSION 0
 set merge_request_number 0
 if {$options(merged) == 0} {
   if {$options(mr_par) ==""} {
@@ -71,13 +82,15 @@ if {$options(merged) == 0} {
   set MERGE_STATUS [ParseJSON  $options(mr_par) "merge_status"]
   set DESCRIPTION [ParseJSON  $options(mr_par) "description"]
   Msg Info "WIP: ${WIP},  Merge Request Status: ${MERGE_STATUS}   Description: ${DESCRIPTION}"
+  if {[lsearch $DESCRIPTION "*PATCH_VERSION*" ] >= 0} {
+    set VERSION 0
+  }
   if {[lsearch $DESCRIPTION "*MINOR_VERSION*" ] >= 0} {
     set VERSION 1
   }
   if {[lsearch $DESCRIPTION "*MAJOR_VERSION*" ] >= 0} {
     set VERSION 2
   } 
-
   set merge_request_number $options(mr_id) 
 } else {
   set VERSION 3

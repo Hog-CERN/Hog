@@ -1,7 +1,7 @@
 # Available templates
 
 Templates for some of the file needed to set-up your git repository are distributed with Hog.
-You can find the templates in the [Hog/Template](https://gitlab.cern.ch/hog/Hog/-/tree/master/Templates) directory.
+You can find the templates in the [Hog/Templates](https://gitlab.cern.ch/hog/Hog/-/tree/master/Templates) directory.
 The following file templates are distributed with Hog:
 
 - `top.tcl`

@@ -54,17 +54,8 @@ if { $options(Hog) == 0 } {
   Msg Info "You are merging and tagging Hog (only for Hog developers!)"
   set onHOG "-Hog"
 }
-if {$options(default_version_level) == "" || $options(default_version_level) == ""} {
-  set VERSION 0
-} elseif {$options(default_version_level) == "minor"} {
-  set VERSION 1
-} elseif {$options(default_version_level) == "major"} {
-  set VERSION 2
-} else {
-    Msg Warning "Unkown version level $options(default_version_level), possible values are patch, minor, major. Will use patch as default"
-   set VERSION 0  
-}
-    
+
+set VERSION 0  
 
 set merge_request_number 0
 if {$options(merged) == 0} {
@@ -102,7 +93,7 @@ if {[catch {exec git merge --no-commit origin/$options(main_branch)} MRG]} {
   exit 1	
 }
 
-Msg Info [exec $TclPath/CI/tag_repository.tcl -level $VERSION $onHOG $merge_request_number]
+Msg Info [exec $TclPath/CI/tag_repository.tcl -level $VERSION $onHOG $merge_request_number -default_version_level $options(default_version_level)]
 if {$options(push)!= ""} {
   if {[catch {exec git push origin $options(push)} TMP]} {
     Msg Warning $TMP

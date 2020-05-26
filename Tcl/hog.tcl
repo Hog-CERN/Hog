@@ -104,7 +104,7 @@ proc  SetProperty {property value object} {
 # * property:
 # * object:
 proc  GetProperty {property object} {
-    if {[info commands get_property] != ""} {
+  if {[info commands get_property] != ""} {
         # Vivado
     return [get_property -quiet $property $object]
 
@@ -668,8 +668,9 @@ proc ExtractVersionFromTag {tag} {
 # Arguments:\n
 # * merge_request_number: Gitlab merge request number to be used in candidate version
 # * version_level:        0 if patch is to be increased (default), 1 if minor level is to be increase, 2 if major level is to be increased, 3 or bigger is used to trasform a candidate for a version (starting with b) into an official version
+# * default_level:        If version level is 3 or more, will specify what level to increase when creating the official tag: 0 will increase patch (default), 1 will increase minor and 2 will increase major.
 
-proc TagRepository {{merge_request_number 0} {version_level 0}} {
+proc TagRepository {{merge_request_number 0} {version_level 0} {default_level 0}} {
   if [catch {exec git tag --sort=-creatordate} last_tag] {
     Msg Error "No Hog version tags found in this repository."
   } else {
@@ -703,7 +704,23 @@ proc TagRepository {{merge_request_number 0} {version_level 0}} {
 
         } elseif {$version_level >= 3} {
         # Version level >= 3 is used to create official tags from beta tags
-          incr p
+          if {$default_level == 0} {
+            Msg Info "Default_level is set to 0, will increase patch..."
+            incr p
+          } elseif {$default_level == 1} {
+            Msg Info "Default_level is set to 1, will increase minor..."
+            set p 0
+            incr m
+          } elseif {$default_level == 2} {
+            Msg Info "Default_level is set to 1, will increase major..."		
+            set m 0
+            set p 0
+            incr M
+          } else {
+            Msg Warning "Wrong default_level $default_level, assuming 0 and increase patch."
+            incr p
+          }
+
         #create official tag
           Msg Info "No major/minor version increase, new tag will be v$M.$m.$p..."
           set new_tag v$M.$m.$p
@@ -1065,7 +1082,7 @@ proc AddHogFiles { libraries properties } {
           set file_obj [get_files -of_objects [get_filesets $file_set] [list "*$f"]]
           #ADDING LIBRARY
           if {[file ext $f] == ".vhd" || [file ext $f] == ".vhdl" } {
-                set_property -name "library" -value $rootlib -objects $file_obj
+            set_property -name "library" -value $rootlib -objects $file_obj
           }
           if {[file ext $f] == ".xdc"} {
             Msg Info "Setting filetype XDC for $f"
@@ -1328,7 +1345,7 @@ You can fix this by installing package \"tcllib\""
       Msg $MSG_TYPE "Parsing .gitlab-ci.yml failed. To fix this, check that yaml syntax is respected, remember not to use tabs."
       return
     } else {
-       dict for {dictKey dictValue} $yamlDict {
+      dict for {dictKey dictValue} $yamlDict {
         #looking for Hog include in .gitlab-ci.yml
         if {"$dictKey" == "include" && [lsearch [split $dictValue " {}"] "hog/Hog" ] != "-1"} {
           set YML_REF [lindex [split $dictValue " {}"]  [expr [lsearch -dictionary [split $dictValue " {}"] "ref"]+1 ] ]

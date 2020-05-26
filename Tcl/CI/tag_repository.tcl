@@ -30,6 +30,7 @@ if {[catch {package require cmdline} ERROR]} {
 set parameters {
   {Hog    "Runs merge and tag of Hog repository. Default = off. To be only used by HOG developers!!!"}
   {level.arg 0   "Tag version level: \n\t0 -> patch (p) \n\t1 -> minor (m)\n\t2 -> major(M)\n Tag format: M.m.p. Default = 0"}
+  {default_version_level.arg "patch" "Default version level to increase if nothing is psecified in the merge request description. Can be patch, minor, major (default = patch)"}
 }
 
 set usage "- USAGE: $::argv0 <merge request> \[options\].\n Options:"
@@ -49,16 +50,28 @@ if { $options(Hog) == 1 } {
 }
 cd $TaggingPath
 
+switch $options(default_version_level) {
+  patch {
+    Info "Patch will be used as default level"
+    set def_l 0 
+  }
+  minor {
+    Info "Minor will be used as default level"
+    set def_l 1	
+  }
+  major {
+    Info "Major will be used as default level"
+    set def_l 2 	
+  }
+  default {
+    Msg Warning "Invalid default level $options(default_version_level), assuming patch."
+    set def_l 0
+  }
+}
 
-
-Msg Info "Evaluating git describe..."
-set describe [exec git describe --always --tags --long]
-Msg Info "Git describe: $describe"
-
-set tags [TagRepository $merge_request $options(level)]
+set tags [TagRepository $merge_request $options(level) $def_l]
 set old_tag [lindex $tags 0]
 set new_tag [lindex $tags 1]
 Msg Info "Old tag was: $old_tag and new tag is: $new_tag"
-
 
 cd $old_path

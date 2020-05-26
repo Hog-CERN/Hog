@@ -43,16 +43,16 @@ At the beginning, in the include section you have a ref, similar to this:
 ```yaml
   include:
     - project: 'hog/Hog'
-      file: '/gitlab-ci.yml'
+      file: '/hog.yml'
       ref: 'va.b.c'
 ```
-
+In older Hog version the file used to be called `gitlab-ci.yml`, so if you were using an older version of Hog, please change `gitlab-ci.yml` to `hog.yml`. 
 Change the ref to the new version you've just pulled:
 
 ```yaml
   include:
     - project: 'hog/Hog'
-      file: '/gitlab-ci.yml'
+      file: '/hog.yml'
       ref: 'vX.Y.Z'
 ```
 

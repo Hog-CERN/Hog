@@ -99,7 +99,7 @@ if {[catch {exec git merge --no-commit origin/$options(main_branch)} MRG]} {
   exit 1	
 }
 
-Msg Info [exec $TclPath/CI/tag_repository.tcl -level $VERSION $onHOG $merge_request_number -default_version_level $options(default_version_level)]
+Msg Info [exec $TclPath/CI/tag_repository.tcl $merge_request_number -level $VERSION $onHOG -default_version_level $options(default_version_level)]
 if {$options(push)!= ""} {
   if {[catch {exec git push origin $options(push)} TMP]} {
     Msg Warning $TMP

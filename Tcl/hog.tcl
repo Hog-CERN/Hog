@@ -1375,6 +1375,8 @@ You can fix this by installing package \"tcllib\""
         \tA) edit project .gitlab-ci.yml ---> ref: '$HOGYML_SHA'
         \tB) modify Hog submodule: git checkout $EXPECTEDYML_SHA"
       }
+    } else {
+      Msg $MSG_TYPE "Could not find any file named $YML_NAME_F in Hog at $YML_REF"
     }
   } else {
     Msg Info ".gitlab-ci.yml not found in $repo_path. Skipping this step"

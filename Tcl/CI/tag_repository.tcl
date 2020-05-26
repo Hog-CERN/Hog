@@ -52,15 +52,15 @@ cd $TaggingPath
 
 switch $options(default_version_level) {
   patch {
-    Info "Patch will be used as default level."
+    Msg Info "Patch will be used as default level."
     set def_l 0 
   }
   minor {
-    Info "Minor will be used as default level."
+    Msg Info "Minor will be used as default level."
     set def_l 1	
   }
   major {
-    Info "Major will be used as default level."
+    Msg Info "Major will be used as default level."
     set def_l 2 	
   }
   default {

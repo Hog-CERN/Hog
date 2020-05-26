@@ -29,18 +29,18 @@ if {[catch {package require cmdline} ERROR]} {
 
 set parameters {
   {Hog    "Runs merge and tag of Hog repository. Default = off. To be only used by HOG developers!!!"}
-  {level.arg 0   "Tag version level: \n\t0 -> patch (p) \n\t1 -> minor (m)\n\t2 -> major(M)\n Tag format: M.m.p. Default = 0"}
-  {default_version_level.arg "patch" "Default version level to increase if nothing is psecified in the merge request description. Can be patch, minor, major (default = patch)"}
+  {level.arg 0   "Tag version level: \n\t0 -> patch (p) \n\t1 -> minor (m)\n\t2 -> major(M)\n Tag format: M.m.p. Default = "}
+  {default_version_level.arg "patch" "Default version level to increase if nothing is psecified in the merge request description. Can be patch, minor, major. Default = "}
 }
 
-set usage "- USAGE: $::argv0 <merge request> \[options\].\n Options:"
+set usage "- USAGE: $::argv0 \[options\] <merge request>\n Options:"
 
 if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] || [llength $argv] < 1 } {
   Msg Info [cmdline::usage $parameters $usage]
   cd $old_path
   return
 }
-
+puts $argv
 set merge_request [lindex $argv 0]
 
 if { $options(Hog) == 1 } {
@@ -50,6 +50,7 @@ if { $options(Hog) == 1 } {
 }
 cd $TaggingPath
 
+puts $options(default_version_level) 
 switch $options(default_version_level) {
   patch {
     Msg Info "Patch will be used as default level."

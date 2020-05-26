@@ -30,7 +30,7 @@ create_project:my_project:
 ```
 
 ## Simulation Stage
-The Simulation stage calls the `simulate_project` function and launches a behavioural simulation for each `.sim` list file in your Hog project. By default, simulation is executed using *modelsim*. If you wish to use another simulation software, add the following line to the top of your `.sim` list file:
+The Simulation stage calls the `simulate_project` function and launches a behavioural simulation for each `.sim` list file in your Hog project. By default, simulation is executed using *Modelsim*. If you wish to use another simulation software, add the following line to the top of your `.sim` list file:
 ```
 Simulator xsim # For Vivado Simulator
 Simulator questa # For QuestaSim
@@ -39,7 +39,7 @@ Simulator modelsim # For Modelsim
 `simulate_project` requires two variables:
 
 - `PROJECT_NAME` : (**Mandatory**) name of the Hog project you want to simulate
-- `HOG_SIMULATION_LIB_PATH`: (**Mandatory for Questa/Modelsim**) Path to the compiled simulation lib in your VM. It shall be defined in your [Gitlab CI/CD variables](02-setup-CI.md#environment-variables).
+- `HOG_SIMULATION_LIB_PATH`: (**Mandatory for Questa/Modelsim**) Path to the compiled simulation library in your VM. It shall be defined in your [Gitlab CI/CD variables](02-setup-CI.md#environment-variables).
 
 The resulting stage in your `.gitlab-ci.yml` file, for the project `my_project` is,
 
@@ -56,7 +56,7 @@ The IP stage calls the `synthesise_ips` function and generates the synthesis and
 
 - `PROJECT_NAME` : (**Mandatory**) name of the Hog project to open
 - `HOG_IP_NJOBS` : (**Optional**) number of jobs to generate the IP products. It shall be defined in your [Gitlab CI/CD variables](02-setup-CI.md#environment-variables). Default: 4
-- `HOG_IP_EOS_PATH`: (**Optional**) path to the EOS folder where the IP generated results are stored. If defined, the stage will copy the IP products from EOS without relaunching the IP synthesis/implementation to speed up the pipeline. If the IP products on EOS are outdated, the script will regenerate the products and upload them to EOS. It shall be defined in your [Gitlab CI/CD variables](02-setup-CI.md#environment-variables).
+- `HOG_IP_EOS_PATH`: (**Optional**) path to the EOS folder where the IP generated results are stored. If defined, the stage will copy the IP products from EOS without relaunching the IP synthesis/implementation to speed up the pipeline. If the IP products on EOS are outdated, the script will regenerate and upload them to EOS. It shall be defined in your [Gitlab CI/CD variables](02-setup-CI.md#environment-variables).
 
 The resulting stage in your `.gitlab-ci.yml` file, for the project `my_project` is,
 
@@ -93,7 +93,7 @@ The Implementation stage calls the `implement_project` function and runs the imp
 
 - `PROJECT_NAME`: (**Mandatory**) name of the Hog project to open
 - `HOG_NJOBS`: (**Optional**) number of jobs to run the synthesis. It shall be defined in your [Gitlab CI/CD variables](02-setup-CI.md#environment-variables). Default: 4
-- `HOG_NO_BITSTREAM`: (**Optional**) If set to 1, the script will not write a bitstream for your project. Default: 0
+- `HOG_NO_BITSTREAM`: (**Optional**) If set to 1, the script will not write a binary file for your project. Default: 0
 
 The resulting stage in your `.gitlab-ci.yml` file, for the project `my_project` is,
 
@@ -107,27 +107,4 @@ implement_project:my_project:
     dependencies:
       - synthesise_project:my_project
 ```
-
-# clean stage
-
-Script cleaning  uses the following variables:
-
- - Hog\_UNOFFICIAL\_BIN\_EOS\_PATH, taken from repository settings, see (gitlab repository set-up)[#gitlab-repository-set-up]
-
-Deletes artifacts from Hog\_UNOFFICIAL\_BIN\_EOS\_PATH.
-
-## Documentation chain
-
-This chain is composed by a single stage named `doxygen`.
-
-The merge stage verifies the merge request can be merged correctly.
-The doxygen stage builds the Doxygen documentation for your code and copies it to:
-- *Hog_UNOFFICIAL_BIN_EOS_PATH*/*CI_COMMIT_SHORT_SHA*/Doc-*FIRMWARE_VERSION*
-
-*Hog_UNOFFICIAL_BIN_EOS_PATH* is the variable you defined wile setting up the CI.
-It points to the EOS path for the unofficial coming out of your CI.
-*CI_COMMIT_SHORT_SHA* is the git SHA of the latest commit in 32-bit hexadecimal format.
-*FIRMWARE_VERSION* is the firmware version taken from the `git describe` command.
-
-Note that if you have no *Hog_UNOFFICIAL_BIN_EOS_PATH* is not set then the copy of the files will fail.
 

@@ -1347,16 +1347,17 @@ You can fix this by installing package \"tcllib\""
     }
 
     if {$YML_NAME == ""} {
-      Msg Warning "Hog included yml file not specified, assuming hog.yml"
+      Msg $MSG_TYPE "Hog included yml file not specified, assuming hog.yml"
       set YML_NAME_F hog.yml
     } else {
       set YML_NAME_F [regsub -all "^/" $YML_NAME ""]
-    } 
+    }
+    puts $YML_NAME_F
   #getting Hog repository tag and commit
     cd "Hog"
     set HOGYML_SHA [exec git log --format=%H -1 --  $YML_NAME_F ]
-    if { [catch {exec git log --format=%H -1 $YML_REF_F $YML_NAME_F} EXPECTEDYML_SHA]} {
-      if { [catch {exec git log --format=%H -1 origin/$YML_REF_F $YML_NAME_F} EXPECTEDYML_SHA]} {
+    if { [catch {exec git log --format=%H -1 $YML_REF_F -- $YML_NAME_F} EXPECTEDYML_SHA]} {
+      if { [catch {exec git log --format=%H -1 origin/$YML_REF_F -- $YML_NAME_F} EXPECTEDYML_SHA]} {
         Msg $MSG_TYPE "Error in project .gitlab-ci.yml. ref: $YML_REF not found"
         set EXPECTEDYML_SHA ""
       }

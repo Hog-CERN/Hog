@@ -5,6 +5,7 @@ Hog supports a series of special git hooks serving different purposes. The full 
 ## Merge Request description keywords
 
 When a Merge Request is created, the *description* field can be filled with the following keywords:
+
 - MAJOR_VERSION: indicates that a new major version will be released. After the branch is merged, the new tag vill be v<M+1>.<m>.<p> (where M = major, m = minor and p = patch).
 - MINOR_VERSION: indicates that a new minor version will be released. After the branch is merged, the new tag vill be v<M>.<m+1>.<p> (where M = major, m = minor and p = patch).  
 

@@ -1,6 +1,7 @@
 # Hog utils
 
-Hog provides a series of Tcl scripts solving different tasks that will be described in this section. All the following scripts can be found in *./Hog/Tcl/utils*. 
+Hog provides a series of Tcl scripts solving different tasks that will be described in this section.
+All the following scripts are located in *./Hog/Tcl/utils*. 
 Run each script with the *-h* option to see the full list of arguments/options and usage example.
 
 ## check-syntax.tcl
@@ -17,7 +18,7 @@ Usage:
 
 ## compile_modelsimlib.tcl
 
-This script compiles the Modelsim libraries needed to simulate Vivado projects with Modelsim. The libraries are stored into the directory *./SimulationLib*.
+This script compiles the ModelSim libraries needed to simulate Vivado projects with ModelSim. The libraries are stored into the directory *./SimulationLib*.
 Usage:
 
 ```tcl
@@ -26,7 +27,7 @@ Usage:
 
 ## compile_questalib.tcl
 
-This script compiles the Questasim libraries needed to simulate Vivado projects with Questasim. The libraries are stored into the directory *./SimulationLib*.
+This script compiles the QuestaSim libraries needed to simulate Vivado projects with QuestaSim. The libraries are stored into the directory *./SimulationLib*.
 Usage:
 
 ```tcl

@@ -22,7 +22,7 @@ The path to the generated module is needed since in the future we foresee that H
 
 Hog can back annotate the included xmls with the SHA evaluated as described above.
 This is needed by your software to correctly assess the validity of the used xmls.
-Indeed Hog expects you to define a dedicated register where to store the value of the [Hog generic](./07-Hog-generics): `XML_HASH`.
+Indeed Hog expects you to define a dedicated register where to store the value of the [Hog generic](../03-Hog-generics): `XML_HASH`.
 The node corresponding to this registers is expected to have the following structure:
 
 ```xml

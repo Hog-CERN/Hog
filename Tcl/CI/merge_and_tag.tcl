@@ -69,6 +69,8 @@ if {$options(merged) == 0} {
     Msg Error "Merge request id not provided! You must provide them using \"-mr_id \$MR_ID\" flag"
     cd $old_path
     exit 1
+  } else {
+    set merge_request_number $options(mr_id)
   }
   set WIP [ParseJSON  $options(mr_par) "work_in_progress"]
   set MERGE_STATUS [ParseJSON  $options(mr_par) "merge_status"]
@@ -87,7 +89,6 @@ if {$options(merged) == 0} {
     if {[lsearch $DESCRIPTION "*MAJOR_VERSION*" ] >= 0} {
       set VERSION 2
     } 
-    set merge_request_number $options(mr_id)
   }
 } else {
   set VERSION 3

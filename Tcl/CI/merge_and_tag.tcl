@@ -75,7 +75,7 @@ if {$options(merged) == 0} {
   set DESCRIPTION [ParseJSON  $options(mr_par) "description"]
   Msg Info "WIP: ${WIP},  Merge Request Status: ${MERGE_STATUS}   Description: ${DESCRIPTION}"
   if {$options(no_increase) != 0} {
-    Msg Info "Will ignore the  directives in the MR description to increase version, if any."
+    Msg Info "Will ignore the directives in the MR description to increase version, if any."
     set VERSION 0
   } else {
     if {[lsearch $DESCRIPTION "*PATCH_VERSION*" ] >= 0} {

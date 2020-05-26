@@ -64,9 +64,10 @@ merge_and_tag:
     GIT_STRATEGY: clone
   script:
     - ./Hog/Other/CheckEnv.sh
-    - "if [[ $CI_COMMIT_MESSAGE == ResolveWIP* && $CI_MERGE_REQUEST_TITLE == WIP* ]]; then echo 'removing WIP status'; curl ${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/merge_requests/${CI_MERGE_REQUEST_IID}/notes?body=/wip --header \"PRIVATE-TOKEN: ${HOG_PUSH_TOKEN}\" --request POST; fi;"
+    - "if [[ $CI_COMMIT_MESSAGE == *RESOLVE_WIP* && $CI_MERGE_REQUEST_TITLE == WIP* ]]; then echo 'removing WIP status'; curl ${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/merge_requests/${CI_MERGE_REQUEST_IID}/notes?body=/wip --header \"PRIVATE-TOKEN: ${HOG_PUSH_TOKEN}\" --request POST; fi;"
     - "MR_PARAMETERS=`curl --header \"PRIVATE-TOKEN: ${HOG_PUSH_TOKEN}\" ${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/merge_requests/${CI_MERGE_REQUEST_IID}`"
-    - vivado -mode batch -notrace -source ./Hog/Tcl/CI/merge_and_tag.tcl -tclargs -mr_par "{$MR_PARAMETERS}" -mr_id $CI_MERGE_REQUEST_IID -push $CI_COMMIT_REF_NAME -main_branch $CI_MERGE_REQUEST_TARGET_BRANCH_NAME
+    - if [[ ! -z $HOG_TARGET_BRANCH && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $HOG_TARGET_BRANCH || -z $HOG_TARGET_BRANCH && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == master* ]]; then vivado -mode batch -notrace -source ./Hog/Tcl/CI/merge_and_tag.tcl -tclargs -mr_par "{$MR_PARAMETERS}" -mr_id $CI_MERGE_REQUEST_IID -push $CI_COMMIT_REF_NAME -main_branch $CI_MERGE_REQUEST_TARGET_BRANCH_NAME; else vivado -mode batch -notrace -source ./Hog/Tcl/CI/\
+merge_and_tag.tcl -tclargs -mr_id $CI_MERGE_REQUEST_IID -push $CI_COMMIT_REF_NAME -main_branch $CI_MERGE_REQUEST_TARGET_BRANCH_NAME; fi;
 
 .create_project: &create_project
      <<: *only-default

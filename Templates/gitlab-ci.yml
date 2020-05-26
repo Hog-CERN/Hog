@@ -15,7 +15,7 @@
 include:
     - project: 'hog/Hog'
       file: '/hog.yml'
-      ref: 'v0.2.1' # if not specified would use the master branch
+      ref: 'v0.2.1'
 
 #################### example ###########################
 ### Change 'example' with your project name
@@ -31,7 +31,6 @@ simulate_project:example:
     variables:
       extends: .vars
       PROJECT_NAME: example
-      SIMULATOR: vivadosim
 
 synthesise_ips:example:
     extends: .synthesise_ips

@@ -7,7 +7,7 @@ We will assume that you are starting from a clean repository and you want to con
 
 If you are migrating beween two git repositories and you want to retain the history of your old repository have a look [here](https://medium.com/@ayushya/move-directory-from-one-repository-to-another-preserving-git-history-d210fa049d4b)
 
-If you are migrating to Hog but you are not changing repository, you can follow the instructions below ignoring the creation of the new local repository. In this case you might want to work in a new branch of your reposiutory.
+If you are migrating to Hog but you are not changing repository, you can follow the instructions below ignoring the creation of the new local repository. In this case you might want to work in a new branch of your repository.
 
 Let's suppose your new repository called `new_repo` with url `new_repo_url`, your project is named `myproject` is currently stored in some local folder `mypath`. If you don't have a new repository you can go on Gitlab (gitlab.cern.ch) and create one.
 
@@ -75,7 +75,7 @@ Hog provides a set of templates that you can use, you can add a `.gitignore`[^4]
   cp Hog/Templates/gitignore .gitignore
 ```
 
-[^4]:You might need to modify your `.gitignore` file if you want to do a more complicated directory structure, especially with the IP and BD files. For example, Hog template assumes that you store your IPs in `IP/ip_name/ip_name.xci`. If you do, this file would be enuogh for you. If you need a more omplicated structure, you can edit the file or you can use several .gitignore files the subfolders of the main IP directory.
+[^4]:You might need to modify your `.gitignore` file if you want to do a more complicated directory structure, especially with the IP and BD files. For example, Hog template assumes that you store your IPs in `IP/ip_name/ip_name.xci`. If you do, this file would be enough for you. If you need a more complicated structure, you can edit the file or you can use several .gitignore files the subfolders of the main IP directory.
 
 Let's now make our first commit:
 
@@ -93,7 +93,7 @@ If you are working in a branch that is not master, please replace the last instr
 ## Early tagging your repository
 
 Hog assumes that at least a version tag of the form **vM.m.p** is present in your repository.
-Let's now crreate the first Hog tag: 
+Let's now create the first Hog tag: 
 
 ```console
 git tag v0.0.0
@@ -125,12 +125,12 @@ Every project top-directory, must contain a subdirectory called `list` where the
 ```
 
 
-Moreover a tcl script, with the same name of the projecty (plus the .tcl extension) must be in the project top-directory. Hog runs this script, called the project tcl script, to create a project.
+Moreover a tcl script, with the same name of the project (plus the .tcl extension) must be in the project top-directory. Hog runs this script, called the project tcl script, to create a project.
 This is a recap of what we have learned up to now:
 
 - A `Top` folder must be in the repository
 - Inside this folder there is one subfolder for each project in the repository, called the project top-directory
-- Inside each project's top-directory there is 1. a `list` sub-direcotry containing: the list files of the project and 2. a tcl script used to create the project
+- Inside each project's top-directory there is 1. a `list` sub-directory containing: the list files of the project and 2. a tcl script used to create the project;
 
 For more advanced Hog features, additional files and folder are located in the `Top` folder, but we don not discuss them now for simplicity.
 
@@ -156,7 +156,7 @@ You are now ready to import the files needed to build your project[^1].
 [^1]: Hog gives you the possibility to organise the source files in different VHDL libraries (Verilog doesn't have the concept of library). You can add your source files into several .src files in the list directory, each of these .src files will correspond to a different library with the same name as the .src file (excluding the .src extension). For simplicity, in this chapter we will assume the presence of a unique library with the same name of your project.
 
 First of all, copy the files from your local folder into the folder that contains the git repository.
-Exception made for some reserved directory (e.g. Top, IP, BD) you can put your files wherever you feel like inside your repository, orgasnising them as you see fit.
+Exception made for some reserved directory (e.g. Top, IP, BD) you can put your files wherever you feel like inside your repository, organising them as you see fit.
 
 In this example we will create a directory named `lib_myproject` where we will store all the source, simulation and constraint files.
 
@@ -194,7 +194,7 @@ You can copy and modify this bash script to ease this quite tedious part of the 
 
 Note that the path of the file is specified with respect to the main folder of the repository.
 
-If you want, you can add comment lines in the list-files starting with a `#` and you can leave empy lines (or lines containing an arbitrary number of spaces). All of these will be ignored by Hog.
+If you want, you can add comment lines in the list-files starting with a `#` and you can leave empty lines (or lines containing an arbitrary number of spaces). All of these will be ignored by Hog.
 
 At this point, you might want to check that the files are correctly picked up by regenerating the Hog project: `./Hog/CreateProject.sh myproject`, Hog will give you an error if a file is not found.
 You can open the created project in  `VivadoProject/myproject/myproject.xpr` or `QuartusProject/myproject/myproject.qpf` with the GUI and check that all the files are there. If not, modifiy the list files and create the project again. When you are satisfied, you can commit your work:
@@ -236,7 +236,7 @@ git commit -m "Add a new my submodule"
 ### IP files
 
 IP files must go in a special folder called `IP` in the root of your repository.
-The IP direwctory can contain all the subdirectories you want, but there is a rule: each ip file (.xci for Vivado) must be contained in a sub-folder called with the same name as the .xci file (extension excluded).
+The IP directory can contain all the subdirectories you want, but there is a rule: each ip file (.xci for Vivado) must be contained in a sub-folder called with the same name as the .xci file (extension excluded).
 
 Basically for each IP in your project run:
 

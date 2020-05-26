@@ -1,6 +1,6 @@
 # How to update Hog to a new release
 
-This guide will help you to Update Hog to the version you want. We assume you already have a repository handled with Hog that is hoseted on Cern Gitlab.
+This guide will help you to Update Hog to the version you want. We assume you already have a repository handled with Hog that is hosted on Cern Gitlab.
 
 On your project's Gitlab website, create a new merge request and a new branch starting from master[^1].
 [^1]:If you are already working on a branch on your HDL repository, you can update Hog within that branch.

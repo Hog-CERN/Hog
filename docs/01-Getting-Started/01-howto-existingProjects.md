@@ -6,7 +6,7 @@ All the instructions below can be executed both on a Linux shell, or on git bash
 
 [^1]: To open a git bash session navigate to the directory where you want to open the bash. Right click on the folder and select open git bash here.
 
-For all of the following to work, Vivado (or Quartus) executable must be in your PATH environment varible: i.e. if you type `vivado` the program must run. If you intend to use Modelsim or Questasim, also the `vsim` executable must be in the PATH: i.e. if you type `vsim` the simulator should start.
+For all of the following to work, Vivado (or Quartus) executable must be in your PATH environment variable: i.e. if you type `vivado` the program must run. If you intend to use Modelsim or Questasim, also the `vsim` executable must be in the PATH: i.e. if you type `vsim` the simulator should start.
 
 ##Requirements
 This is a list of the requirements:
@@ -34,14 +34,14 @@ To do that, go into the repository (`cd repo`) and type:
 	./Hog/CreateProject.sh project1
 ```
 
-This will styart a Hog script that creates the Vivado (or Quartus) project in the directory `VivadoProjects/project1` (or `QuartusProjects/project1`).
+This will start a Hog script that creates the Vivado (or Quartus) project in the directory `VivadoProjects/project1` (or `QuartusProjects/project1`).
 inside this directory you will find the Vivado .xpr file (or the Quartus .qpf file).
 
 You can now open the project file with Vivado/Quartus GUI and synthesise/implement the project.
 
 If you don't know the project name, just run `./Hog/CreateProject.sh` and you will get a list of the existing projects present on the repository[^3].
 
-[^3]: Alternatively, you can type `cd Top` (the Top folder is always present in a Hog handled HDL repository) and type `ls`: each directory in this path corrensponds to a Vivado/Quartus project in the repository.
+[^3]: Alternatively, you can type `cd Top` (the Top folder is always present in a Hog handled HDL repository) and type `ls`: each directory in this path corresponds to a Vivado/Quartus project in the repository.
 
 To create all the projects in the repository, you can run the Hog initialisation script, like this:
 ```console
@@ -54,11 +54,11 @@ When you open *project1* with Vivado or Quartus, you can **work (almost) normall
 
 The CreateProject script, that you have just run, has integrated Hog's Tcl scripts in the Vivado/Quartus project. From now on, Hog scripts will run automatically, every time you start the synthesis or any other step in the workflow. In particular, the pre-synthesis script will interact with your local git repository and integrate its version and git commit SHA into your HDL project.
 
-We said **almost normally** because there is one exception: adding a new file  (HDL code, constraint, IP, etc.) to the project using the GUI is not enough. You **must also add** the file name in one of Hog's list files as explenied in the next paragraph.
+We said **almost normally** because there is one exception: adding a new file  (HDL code, constraint, IP, etc.) to the project using the GUI is not enough. You **must also add** the file name in one of Hog's list files as explained in the following.
 
 Let's now suppose that you want to add a new file to the project and that this file is located in `repo/dir1/` and is called `file1.hdl`.
 
-First of all, the new file (that is unkown to git) must be added to the repository:
+First of all, the new file (that is unknown to git) must be added to the repository:
 
 ```shell
 cd repo
@@ -75,7 +75,7 @@ Open the file with a text editor and add the file name and path in a new line.
 
 Now that the new file is included in a list file, you can close the Vivado/Quartus project and re-create it by typing `./Hog/CreateProject.sh <project name>` again.
 
-Do you really have to do this every time you add a new file to the project? There is a quicker way. You can add the file with the GUI and **also** add the file to a .src list file. If you choose to do this, in Vivado, you have to choose the correct library when adding the file. The library must have the same name of the .src file to which you added the surce file. In our example, the hdl file was added to a list file called `lib1.src`, so the library that you have to choose is *lib1*. You can select the library in the Vivado GUI from a drop-down menu when you add the file.
+Do you really have to do this every time you add a new file to the project? There is a quicker way. You can add the file with the GUI and **also** add the file to a .src list file. If you choose to do this, in Vivado, you have to choose the correct library when adding the file. The library must have the same name of the .src file to which you added the source file. In our example, the hdl file was added to a list file called `lib1.src`, so the library that you have to choose is *lib1*. You can select the library in the Vivado GUI from a drop-down menu when you add the file.
 
 This procedure is valid for any kind of source file. If your file is a constraint file, just add it to a .con list file in the list directory, e.g. `repo/Top/project1/list/lib1.con`. If your file comes form a submodule in the repository, you have to add it in the proper .sub list file.
 
@@ -91,7 +91,7 @@ git push
 
 ### What can go wrong?
 If you do something wrong (e.g. you add a name of a non-existing file, create a list file with an invalid extension, etc.) you will get an error when you run the CreateProject script. In this case read Hog's error message and try to fix it.
-If you do something wrong with Vivado library, the error will at synthesis time beacuse Vivado will not be able to find the component.
+If you do something wrong with Vivado library, the error will at synthesis time because Vivado will not be able to find the component.
 
 ## Adding a new IP 
 If you want to add a new IP core, say it's called **my_ip1**, you must create it in out-of-context mode and save the .xci file (and only that) in the repository in a subfolder of the special IP folder `repo/IP`.
@@ -100,18 +100,18 @@ Moreover, the xci file must be in a folder with the same name as the file, like 
 
 If you want to keep different sets of IPs separate you can use additional subfolders in the IP directory, for example: `repo/IP/some_folder/my_ip1/my_ip1.xci`. Now you can add the .xci normally to any source list file in the list folder of your project.
 
-When Vivado synthesises the IPs, it creates plenty of additional files whete the .xci file is located. To avoid to commit those file to the repository, a `.gitignore` file is used. This file specifies to git that every file that is not a .xci file inside the IP directory must be ignored.
+When Vivado synthesises the IPs, it creates plenty of additional files where the .xci file is located. To avoid to commit those file to the repository, a `.gitignore` file is used. This file specifies to git that every file that is not a .xci file inside the IP directory must be ignored.
 
-#### Vivado IP initialization coefficient files (.coe)
-If you have a .coe file for RAM initialization, you cannot store it inside the IP folder, otherwise it will be ignored as explained earlier. You can store it enywhere else in the reposiutory.
-Pay attantion to specify the path to this file as a **relative path**. This must be done in the text box in vivado GUI when you customise the IP.
+#### Vivado IP initialisation coefficient files (.coe)
+If you have a .coe file for RAM initialisation, you cannot store it inside the IP folder, otherwise it will be ignored as explained earlier. You can store it anywhere else in the repository.
+Pay attention to specify the path to this file as a **relative path**. This must be done in the text box in vivado GUI when you customise the IP.
 
 ## A couple of things before getting to work
 Here you can find a couple of details and suggestions that can be useful when working with Hog-handled repository.
 
 ### Commit before starting the workflow
 All the Hog scripts handling version control are automatically added to your project: this means that you have the possibility to create a reproducible and traceable bitfile, even when you run locally.
-This will happen **only if you commit your local changes before running synthesys**. You don't have to push! Just commit locally, then you can push when you are sure that your work is good enough.
+This will happen **only if you commit your local changes before running synthesis**. You don't have to push! Just commit locally, then you can push when you are sure that your work is good enough.
 If you don't commit, Hog will alert you with a Critical Warning at the beginning of the synthesis.
 
 ### Different list files

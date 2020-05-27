@@ -34,7 +34,7 @@ set parameters {
   {mr_id.arg 0 "Merge request ID. Ignored if -merged is set"}
   {push.arg "" "Optional: git branch for push"}
   {main_branch.arg "master" "Main branch (default = master)"}
-  {default_version_level.arg "patch" "Default version level to increase if nothing is specified in the merge request description. Can be patch, minor, major. Default = patch"}
+  {default_level.arg "0" "Default version level to increase if nothing is specified in the merge request description. Can be 0 (patch), 1 (minor), (2) major. Default ="}
   {no_increase "If set, prevents this script to increase the version if MAJOR_VARION, MINOR_VERSION or PATCH_VERSION directives are found in the merge request descritpion. Default = off"}
 }
 
@@ -100,7 +100,27 @@ if {[catch {exec git merge --no-commit origin/$options(main_branch)} MRG]} {
   exit 1	
 }
 
-Msg Info [exec $TclPath/CI/tag_repository.tcl -level $VERSION $onHOG -default_version_level $options(default_version_level) $merge_request_number]
+Msg Info "MR = $merge_request_number, version level: $options(level), default version level: $options(default_level)"
+
+if { $options(Hog) == 1 } {
+  #Go to Hog directory
+  Msg Info "Tagging path is set to Hog repository."    
+  set TaggingPath [file normalize $tcl_path/../..]
+} else {
+  #Go to HDL repository directory
+  Msg Info "Tagging path is set to HDL repository."      
+  set TaggingPath [file normalize $tcl_path/../../..]
+}
+
+Msg Info "Chaging directory to tagging path: $TaggingPath..."
+cd $TaggingPath
+
+set tags [TagRepository $merge_request_number $options(level) $options(default_level)]
+set old_tag [lindex $tags 0]
+set new_tag [lindex $tags 1]
+Msg Info "Old tag was: $old_tag and new tag is: $new_tag"
+
+
 if {$options(push)!= ""} {
   if {[catch {exec git push origin $options(push)} TMP]} {
     Msg Warning $TMP
@@ -113,3 +133,6 @@ if {$options(push)!= ""} {
     Msg Info $TMP
   }
 }
+
+cd $old_path
+Msg Info "All done."

@@ -104,9 +104,9 @@ tagging:
               - $CI_PIPELINE_SOURCE != "push"
               - $CI_COMMIT_REF_SLUG != "develop"
       script:
-          - "if [[ $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == master ]]; then VERSION_LEVEL=patch; fi;"
-          - "if [[ $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == develop ]]; then VERSION_LEVEL=minor; fi;"      
-          - tclsh ./Tcl/CI/merge_and_tag.tcl -Hog -merged -push $CI_COMMIT_REF_NAME -default_version_level $VERSION_LEVEL 0
+          - "if [[ $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == master ]]; then VERSION_LEVEL=0; fi;"
+          - "if [[ $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == develop ]]; then VERSION_LEVEL=1; fi;"      
+          - tclsh ./Tcl/CI/merge_and_tag.tcl -Hog -merged -push $CI_COMMIT_REF_NAME -default_level $VERSION_LEVEL 0
 
 create_release_note:
         stage: tag

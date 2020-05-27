@@ -56,7 +56,7 @@ if { $options(Hog) == 0 } {
   set onHOG "-Hog"
 }
 
-set VERSION 0  
+set version_level 0  
 
 set merge_request_number 0
 if {$options(merged) == 0} {
@@ -78,29 +78,29 @@ if {$options(merged) == 0} {
   Msg Info "WIP: ${WIP},  Merge Request Status: ${MERGE_STATUS}   Description: ${DESCRIPTION}"
   if {$options(no_increase) != 0} {
     Msg Info "Will ignore the directives in the MR description to increase version, if any."
-    set VERSION 0
+    set version_level 0
   } else {
     if {[lsearch $DESCRIPTION "*PATCH_VERSION*" ] >= 0} {
-      set VERSION 0
+      set version_level 0
     }
     if {[lsearch $DESCRIPTION "*MINOR_VERSION*" ] >= 0} {
-      set VERSION 1
+      set version_level 1
     }
     if {[lsearch $DESCRIPTION "*MAJOR_VERSION*" ] >= 0} {
-      set VERSION 2
+      set version_level 2
     } 
   }
 } else {
-  set VERSION 3
+  set version_level 3
 }
 
-Msg Info "Version Level $VERSION"
+Msg Info "Version Level $version_level"
 if {[catch {exec git merge --no-commit origin/$options(main_branch)} MRG]} {
   Msg Error "Branch is outdated, please merge the latest changes from $options(main_branch) with:\n git fetch && git merge origin/$options(main_branch)\n"
   exit 1	
 }
 
-Msg Info "MR = $merge_request_number, version level: $options(level), default version level: $options(default_level)"
+Msg Info "MR = $merge_request_number, version level: $version_level, default version level: $options(default_level)"
 
 if { $options(Hog) == 1 } {
   #Go to Hog directory
@@ -115,7 +115,7 @@ if { $options(Hog) == 1 } {
 Msg Info "Chaging directory to tagging path: $TaggingPath..."
 cd $TaggingPath
 
-set tags [TagRepository $merge_request_number $options(level) $options(default_level)]
+set tags [TagRepository $merge_request_number $version_level  $options(default_level)]
 set old_tag [lindex $tags 0]
 set new_tag [lindex $tags 1]
 Msg Info "Old tag was: $old_tag and new tag is: $new_tag"

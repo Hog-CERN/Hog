@@ -280,85 +280,6 @@ proc AddFile {file fileset} {
   add_files -norecurse -fileset $fileset $file
 }
 
-## @brief Set Vivado Report strategy for implementation
-proc CreateReportStrategy {DESIGN obj} {
-  if {[info commands create_report_config] != ""} {
-  ## Viavado Report Strategy
-    if {[string equal [get_property -quiet report_strategy $obj] ""]} {
-      # No report strategy needed
-      Msg Info "No report strategy needed for implementation"
-    } else {
-      # Report strategy needed since version 2017.3
-      set_property set_report_strategy_name 1 $obj
-      set_property report_strategy {Vivado Implementation Default Reports} $obj
-      set_property set_report_strategy_name 0 $obj
-
-      set reports [get_report_configs -of_objects $obj]
-      # Create 'impl_1_place_report_utilization_0' report (if not found)
-      if { [ string equal [get_report_configs -of_objects [get_runs impl_1] $globalSettings::DESIGN\_impl_1_place_report_utilization_0] "" ] } {
-        create_report_config -report_name $globalSettings::DESIGN\_impl_1_place_report_utilization_0 -report_type report_utilization:1.0 -steps place_design -runs impl_1
-      }
-      set obj [get_report_configs -of_objects [get_runs impl_1] $globalSettings::DESIGN\_impl_1_place_report_utilization_0]
-      if { $obj != "" } {
-
-      }
-
-      # Create 'impl_1_route_report_drc_0' report (if not found)
-      if { [ string equal [get_report_configs -of_objects [get_runs impl_1] $globalSettings::DESIGN\_impl_1_route_report_drc_0] "" ] } {
-        create_report_config -report_name $globalSettings::DESIGN\_impl_1_route_report_drc_0 -report_type report_drc:1.0 -steps route_design -runs impl_1
-      }
-      set obj [get_report_configs -of_objects [get_runs impl_1] $globalSettings::DESIGN\_impl_1_route_report_drc_0]
-      if { $obj != "" } {
-
-      }
-
-      # Create 'impl_1_route_report_power_0' report (if not found)
-      if { [ string equal [get_report_configs -of_objects [get_runs impl_1] $globalSettings::DESIGN\_impl_1_route_report_power_0] "" ] } {
-        create_report_config -report_name $globalSettings::DESIGN\_impl_1_route_report_power_0 -report_type report_power:1.0 -steps route_design -runs impl_1
-      }
-      set obj [get_report_configs -of_objects [get_runs impl_1] $globalSettings::DESIGN\_impl_1_route_report_power_0]
-      if { $obj != "" } {
-
-      }
-
-      # Create 'impl_1_route_report_timing_summary' report (if not found)
-      if { [ string equal [get_report_configs -of_objects [get_runs impl_1] $globalSettings::DESIGN\_impl_1_route_report_timing_summary] "" ] } {
-        create_report_config -report_name $globalSettings::DESIGN\_impl_1_route_report_timing_summary -report_type report_timing_summary:1.0 -steps route_design -runs impl_1
-      }
-      set obj [get_report_configs -of_objects [get_runs impl_1] $globalSettings::DESIGN\_impl_1_route_report_timing_summary]
-      if { $obj != "" } {
-        Msg Info "Report timing created successfully"
-      }
-
-      # Create 'impl_1_route_report_utilization' report (if not found)
-      if { [ string equal [get_report_configs -of_objects [get_runs impl_1] $globalSettings::DESIGN\_impl_1_route_report_utilization] "" ] } {
-        create_report_config -report_name $globalSettings::DESIGN\_impl_1_route_report_utilization -report_type report_utilization:1.0 -steps route_design -runs impl_1
-      }
-      set obj [get_report_configs -of_objects [get_runs impl_1] $globalSettings::DESIGN\_impl_1_route_report_utilization]
-      if { $obj != "" } {
-        Msg Info "Report utilization created successfully"
-      }
-
-
-      # Create 'impl_1_post_route_phys_opt_report_timing_summary_0' report (if not found)
-      if { [ string equal [get_report_configs -of_objects [get_runs impl_1] $globalSettings::DESIGN\_impl_1_post_route_phys_opt_report_timing_summary_0] "" ] } {
-        create_report_config -report_name $globalSettings::DESIGN\_impl_1_post_route_phys_opt_report_timing_summary_0 -report_type report_timing_summary:1.0 -steps post_route_phys_opt_design -runs impl_1
-      }
-      set obj [get_report_configs -of_objects [get_runs impl_1] $globalSettings::DESIGN\_impl_1_post_route_phys_opt_report_timing_summary_0]
-      if { $obj != "" } {
-        set_property -name "options.max_paths" -value "10" -objects $obj
-        set_property -name "options.warn_on_violation" -value "1" -objects $obj
-      }
-
-
-
-
-    }
-  } else {
-    puts "Won't create any report strategy, not in Vivado"
-  }
-}
-
 ## @brief gets the full path to the /../../ folder
 #
 # @return "[file normalize [file dirname [info script]]]/../../"
@@ -1073,33 +994,31 @@ proc GetProjectFiles {} {
 
   return [list $libraries $properties]
 }
-########################################################
 
 
-## Returns a list of 2 dictionaries: libraries and properties
+## @brief Extract files, libraries and properties from the project's list files
+#
+# @param[in] list_path path to the list file directory 
+# @param[in] repo_path the path of the repository root.
+# 
+# @return a list of 2 dictionaries: libraries and properties
 # - libraries has library name as keys and a list of filenames as values
 # - properties has as file names as keys and a list of properties as values
 #
-# Files, libraries and properties are extracted from the project's Hog list files
-#
-# Arguments:
-# - proj_path: the path of the Vivado project xpr file inside the Hog repository.
-#     If not given it will be automatically evaluated if the function is called from within Vivado.
-proc GetHogFiles {} {
+proc GetHogFiles {list_path repo_path} {
   set libraries [dict create]
   set properties [dict create]
 
-  puts $globalSettings::list_path
-  set list_files [glob -directory $globalSettings::list_path "*"]
+  puts $list_path
+  set list_files [glob -directory $list_path "*"]
 
   foreach f $list_files {
-    lassign [SmartListFile $f $globalSettings::repo_path] l p
+    lassign [SmartListFile $f $repo_path] l p
     set libraries [dict merge $l $libraries]
     set properties [dict merge $p $properties]
   }
   return [list $libraries $properties]
 }
-########################################################
 
 
 ## @brief  Add libraries and properties to vivado/quartus project

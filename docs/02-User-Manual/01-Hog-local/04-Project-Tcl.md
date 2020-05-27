@@ -91,11 +91,11 @@ The default Vivado run names are: synth_1 for synthesis and impl_1 for implement
 
 To find out the exact name and value of the property, use Vivado GUI to click on the checkbox you like.
 
-![](./figures/tick_gui)
+![](./figures/tick_gui.png)
 
 This will make Vivado run the set_property command in the Tcl console.
 
-![](./figures/Vivado_tcl)
+![](./figures/Vivado_tcl.png)
 
 Then copy and paste the name and the values from the Vivado Tcl console into the lines below.
 

@@ -2,8 +2,6 @@
 
 This section contains the full instructions on how to build your list files. List files are used to create the project, and must contain the list of all the files (vhdl, verilog, testbenches, IPs, constraints, etc.) used in the project, plus some properties.
 There are several kinds of list files, depending on the extension: .src, .sim, .con, .sub, .prop, .ext.
-[^1]: Also .ext files exist. They are used to handle external files that are protected by copyright and cannot be published on the repository. Will will not discuss that in this quick guide.
-
 
 ## Source list files (.src)
 
@@ -59,10 +57,10 @@ The line corresponding to the file containing the top module of your test bench 
 <path_to_tb>/<test_bench>.vhd topsim=<test_top_level_entity> wavefile=<simulation_set_up>.tcl dofile=<waves>.do
 ```
 
-* The first entry the file containing your test-bench complete with its relative path from the `Top/<project_name>` folder.
-* The second entry is preceded by `topsim=`, it indicates the name of the entity you want to set as top level in your simulation.
-* The third entry is preceded by `wavefile=`, it indicates the file containing the tcl script used to launch your simulation.
-* The fourth entry is preceded by `dofile=`, it indicates the file containing the signal waveforms to be observed in your simulation.
+* The first entry the file containing your test-bench complete with its relative path from the `Top/<project_name>` folder;
+* the second entry is preceded by `topsim=`, it indicates the name of the entity you want to set as top level in your simulation;
+* the third entry is preceded by `wavefile=`, it indicates the file containing the tcl script used to launch your simulation;
+* the fourth entry is preceded by `dofile=`, it indicates the file containing the signal waveforms to be observed in your simulation.
 
 The resulting file should look like this:
 ```
@@ -105,7 +103,7 @@ Currently supported properties:
 
 ## External proprietary files (.ext)
 
-External proprietary files that are protected by copyright can be included using the \*.ext list file.
+External proprietary files that are protected by copyright and cannot be published on the repository shall be included using the \*.ext list file.
 __.ext list filse must use an absoute path__.
 To be able to use the firmware CI, this path must be accessible to the machine performing the git CI, e.g. can be on a protected afs folder.
 This procedure has to be used __ONLY__ in the exceptional case of files that can not be published because of copyright.

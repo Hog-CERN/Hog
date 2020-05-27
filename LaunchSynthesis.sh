@@ -14,7 +14,16 @@
 #   limitations under the License.
 
 ## @file LaunchSynthesis.sh
+# @brief launch /Tcl/launchers/launch_synthesis.tcl using Vivado
+# @todo LaunchSynthesis.sh: update for Quartus support
+# @todo LaunchSynthesis.sh: check is vivado is installed an set-up in the shell (if [ which vivado ])
 
+## @function argument_parser()
+#  @brief pase aguments and sets evvironment variables
+#  @param[out] NJOBS        empty or "-NJOBS $2"
+#  @param[out] NO_BITSTREAM empty or "-no_bitstream"
+#  @param[out] PARAMS       positional parameters
+#  @return                  1 if error or help, else 0
 function argument_parser() {
 	PARAMS=""
 	while (( "$#" )); do

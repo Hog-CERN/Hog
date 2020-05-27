@@ -12,7 +12,7 @@ A template for a Vivado project can be found under `./Hog/Templates/top.tcl`.
 ## Telling Hog the HDL compiler to be used
 
 The first line of your tcl script is expected to indicate Hog which HDL compiler to be used to generate your project.
-To do this the first line in the tcl script file mus be a comment containing the name of the tool to be used. 
+To do this the first line in the tcl script file must be a comment containing the name of the tool to be used. 
 The following tools are recognised:
 
 - \#vivado
@@ -23,6 +23,7 @@ The following tools are recognised:
 If this line is not available Hog will assume your project runs under Vivado.
 
 *NOTE*: 'vivadoHLS' and 'quartus' options are currently under development. If you are willing to use the corresponding feature branch. Note that no support is guaranteed.
+
 *NOTE*: 'intelHLS' is not supported will simply return an error message.
 
 ## TCL Variables

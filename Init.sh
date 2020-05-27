@@ -22,7 +22,6 @@ if [ "$1" == "-h" ] || [ "$1" == "-help" ] || [ "$1" == "--help" ] || [ "$1" == 
     echo " Hog - Initialise repository"
     echo " ---------------------------"
     echo " Initialise your Hog-handled firmware repository"
-    echo " - Initialise and update your submodules"
     echo " - (optional) Compile questasim libraries (if questasim executable is found)"
     echo " - (optional) Create vivado projects (if vivado exacutable is found)"
     echo
@@ -31,12 +30,19 @@ fi
 
 cd "${DIR}"
 
+##! The script checks if Vivado is installed and set uop on the shell. 
+##! NOTE that these checks are performed using 'which'
 if [ `which vivado` ]
 then
     VIVADO=`which vivado`
+    ##! If Vivado is installed it checks if vsim command is defined (Questasim or Modelsim is installed and set-up in the shell). 
+    ##! NOTE that these checks are performed using 'which'
     if [ `which vsim` ]
     then
 		echo
+    ##! If Questasim or Modelsim is installed ask user if he wants to compile
+    ##! NOTE use read to grab user input
+    ##! NOTE if the user input contains Y or y then is accepted as yes
 		read -p "Do you want to compile Questasim libraries (this might take some time)? " -n 1 -r
 		echo  
 		if [[ "${REPLY}" =~ ^[Yy]$ ]]
@@ -62,6 +68,9 @@ then
 		echo [hog init] "WARNING: No modelsim executable found, will not compile libraries" 
 	fi
 
+    ##! If Vivado is installed ask user if he wants to create all projects in the repository
+    ##! NOTE use read to grab user input
+    ##! NOTE if the user input contains Y or y then is accepted as yes
     echo
     read -p "Do you want to create projects now (can be done later with CreateProject.sh)? " -n 1 -r
     echo    # (optional) move to a new line

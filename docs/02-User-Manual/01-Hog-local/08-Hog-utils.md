@@ -1,6 +1,7 @@
 # Hog utils
 
-Hog provides a series of Tcl scripts solving different tasks that will be described in this section. All the following scripts can be found in *./Hog/Tcl/utils*. 
+Hog provides a series of Tcl scripts solving different tasks that will be described in this section.
+All the following scripts are located in *./Hog/Tcl/utils*. 
 Run each script with the *-h* option to see the full list of arguments/options and usage example.
 
 ## check-syntax.tcl
@@ -17,7 +18,7 @@ Usage:
 
 ## compile_modelsimlib.tcl
 
-This script compiles the Modelsim libraries needed to simulate Vivado projects with Modelsim. The libraries are stored into the directory *./SimulationLib*.
+This script compiles the ModelSim libraries needed to simulate Vivado projects with ModelSim. The libraries are stored into the directory *./SimulationLib*.
 Usage:
 
 ```tcl
@@ -26,7 +27,7 @@ Usage:
 
 ## compile_questalib.tcl
 
-This script compiles the Questasim libraries needed to simulate Vivado projects with Questasim. The libraries are stored into the directory *./SimulationLib*.
+This script compiles the QuestaSim libraries needed to simulate Vivado projects with QuestaSim. The libraries are stored into the directory *./SimulationLib*.
 Usage:
 
 ```tcl
@@ -40,9 +41,12 @@ This is particularly useful for the CI or if the project repository has been fre
 The instructions to store the IPs to EOS are detailed in the section [IP synthesis](../07-Usage/#run-ip-synthesis).
 get_ips.tcl is used to retrieve IPs from EOS.
 Arguments:
-- Project name
+
+* Project name
+
 Options:
-- -eos_ip_path <IP PATH>: the EOS path where IPs are stored.
+
+* -eos_ip_path <IP PATH>: the EOS path where IPs are stored.
 
 Usage:
 
@@ -83,10 +87,14 @@ Usage:
 ## copy_xml.tcl
 This script copies IPBus XML files listed in a Hog list file and replace the version and SHA placeholders if they are present in any of the XML files.
 Arguments:
-- XML list file;
-- destination directory;
+
+* XML list file;
+* destination directory;
+
 Options:
-- -generate: if set, the VHDL address files will be generated and replaced if already exisiting.
+
+* -generate: if set, the VHDL address files will be generated and replaced if already exisiting.
+
 Usage: 
 ```yml
 copy_xml <XML list file> <destination directory> [-generate]
@@ -96,12 +104,13 @@ copy_xml <XML list file> <destination directory> [-generate]
 
 This script formats tcl scripts indentation. 
 Arguments:
-- tcl script
+
+* tcl script
 
 Options:
-- -tab_width <pad width> (default = 2)
 
-Usage: 
+* -tab_width <pad width> (default = 2)
+ 
 Usage:
 ```tcl
   source Hog/Tcl/utils/reformat.tcl -tclargs [-tab_width <pad_width>] <tcl_script> 

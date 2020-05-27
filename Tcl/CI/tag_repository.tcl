@@ -40,8 +40,8 @@ if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] 
   cd $old_path
   return
 }
-puts $argv
-set merge_request [lindex $argv 0]
+
+set merge_request [lindex $argv end]
 
 if { $options(Hog) == 1 } {
   set TaggingPath ../..

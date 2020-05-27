@@ -17,7 +17,7 @@ It can be configured with the following variables:
 
 - `PROJECT_NAME` : (**Mandatory**) name of the Hog project you want to create
 - `HOG_CHECK_SYNTAX` : (**Optional**) if 1, it checks the syntax of the created project. Better if defined globally as an environmental variable in your [Gitlab repository](02-setup-CI.md#environment-variables)
-- `HOG_CHECK_YAMLREF` : (**Optional**) if 1, it checks that the `hog.yml` file referenced in your `.gitlab-ci.yml` is the same as the one included in your `Hog`submodule. Better if defined globally as an environmental variable in your [Gitlab repository](02-setup-CI.md#environment-variables)
+- `HOG_CHECK_YAMLREF` : (**Optional**) if 1, it checks that the `hog.yml` file referenced in your `.gitlab-ci.yml` is the same as the one included in your `Hog` submodule. Better if defined globally as an environmental variable in your [Gitlab repository](02-setup-CI.md#environment-variables)
 
 The resulting stage in your `.gitlab-ci.yml` file, for the project `my_project` is,
 

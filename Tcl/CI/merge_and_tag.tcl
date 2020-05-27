@@ -105,11 +105,11 @@ Msg Info "MR = $merge_request_number, version level: $version_level, default ver
 if { $options(Hog) == 1 } {
   #Go to Hog directory
   Msg Info "Tagging path is set to Hog repository."    
-  set TaggingPath [file normalize $TclPath/../..]
+  set TaggingPath [file normalize $TclPath/..]
 } else {
   #Go to HDL repository directory
   Msg Info "Tagging path is set to HDL repository."      
-  set TaggingPath [file normalize $TclPath/../../..]
+  set TaggingPath [file normalize $TclPath/../..]
 }
 
 Msg Info "Chaging directory to tagging path: $TaggingPath..."

@@ -12,28 +12,6 @@
 --   See the License for the specific language governing permissions and
 --   limitations under the License.
 
-
---------------------------------------------------------------------------------
--- Title       : top.vhd
--- Project     : Default Project Name
---------------------------------------------------------------------------------
--- File        : top.vhd
--- Author      : Davide Cieri davide.cieri@cern.ch
--- Company     : Max-Planck-Institute For Physics, Munich
--- Created     : Tue Feb 11 13:50:27 2020
--- Last update : Mon May 25 08:42:01 2020
--- Standard    : <VHDL-2008 | VHDL-2002 | VHDL-1993 | VHDL-1987>
---------------------------------------------------------------------------------
--- Copyright (c) 2020 Max-Planck-Institute For Physics, Munich
--------------------------------------------------------------------------------
--- Description:  Template for a top vhdl file, with the generic variables parsed
---               by HOG
---------------------------------------------------------------------------------
--- Revisions:  Revisions and documentation are controlled by
--- the revision control system (RCS).  The RCS should be consulted
--- on revision history.
--------------------------------------------------------------------------------
-
 -- Doxygen-compatible comments
 --! @file
 --! @brief top_<myproj>
@@ -42,41 +20,47 @@
 --! @author Name Surname
 
 library IEEE;
-use IEEE.STD_LOGIC_1164.ALL;
-use IEEE.NUMERIC_STD.ALL;
+use IEEE.STD_LOGIC_1164.all;
+use IEEE.NUMERIC_STD.all;
 
--- Change <myproj> to your project name
-entity top_<myproj> is
-    generic (
-        -- Global Generic Variables
-        GLOBAL_FWDATE       : std_logic_vector(31 downto 0);
-        GLOBAL_FWTIME       : std_logic_vector(31 downto 0);
-        TOP_FWHASH          : std_logic_vector(31 downto 0);
-        XML_HASH            : std_logic_vector(31 downto 0);
-        GLOBAL_FWVERSION    : std_logic_vector(31 downto 0);
-        TOP_FWVERSION       : std_logic_vector(31 downto 0);
-        XML_VERSION         : std_logic_vector(31 downto 0);
-        HOG_FWHASH          : std_logic_vector(31 downto 0);
-        HOG_FWVERSION       : std_logic_vector(31 downto 0);
-        -- Project Specific Lists (One for each .src file in your Top/myproj/list folder)
-        <MYLIB0>_FWVERSION    : std_logic_vector(31 downto 0);
-        <MYLIB0>_FWHASH       : std_logic_vector(31 downto 0);
-        <MYLIB1>_FWVERSION    : std_logic_vector(31 downto 0);
-        <MYLIB1>_FWHASH       : std_logic_vector(31 downto 0);
-        -- Submodule Specific variables (only if you have a submodule, one per submodule)
-        <MYSUBMODULE0>_FWHASH : std_logic_vector(31 downto 0);
-        <MYSUBMODULE1>_FWHASH : std_logic_vector(31 downto 0);
-        -- External library specific variables (only if you have an external library)
-        <MYEXTLIB>_FWHASH       : std_logic_vector(31 downto 0);
-        -- Project flavour
-        FLAVOUR             : integer
+-- Change myproj to your project name
+entity top_myproj is
+  generic (
+    -- Global Generic Variables
+    GLOBAL_DATE : std_logic_vector(31 downto 0);
+    GLOBAL_TIME : std_logic_vector(31 downto 0);
+    GLOBAL_VER  : std_logic_vector(31 downto 0);
+    GLOBAL_SHA  : std_logic_vector(31 downto 0);
+    TOP_VER     : std_logic_vector(31 downto 0);
+    TOP_SHA     : std_logic_vector(31 downto 0);
+    HOG_VER     : std_logic_vector(31 downto 0);
+    HOG_SHA     : std_logic_vector(31 downto 0);
+
+    --IPBus XML
+    XML_SHA : std_logic_vector(31 downto 0);
+    XML_VER : std_logic_vector(31 downto 0);
+
+    -- Project Specific Lists (One for each .src file in your Top/myproj/list folder)
+    MYLIB0_VER : std_logic_vector(31 downto 0);
+    MYLIB0_SHA : std_logic_vector(31 downto 0);
+    MYLIB1_VER : std_logic_vector(31 downto 0);
+    MYLIB1_SHA : std_logic_vector(31 downto 0);
+
+    -- Submodule Specific variables (only if you have a submodule, one per submodule)
+    MYSUBMODULE0_SHA : std_logic_vector(31 downto 0);
+    MYSUBMODULE1_SHA : std_logic_vector(31 downto 0);
+
+    -- External library specific variables (only if you have an external library)
+    MYEXTLIB_SHA : std_logic_vector(31 downto 0);
+    -- Project flavour
+    FLAVOUR      : integer
     );
   port (
 
-  ) ;
-end entity ; -- top_myproj
+  );
+end entity;  -- top_myproj
 
-architecture behaviour of top_<myproj> is
+architecture behaviour of top_myproj is
 
 begin
 

@@ -18,7 +18,7 @@
 
 #parsing command options
 
-set old_path [pwd]
+set OldPath [pwd]
 set TclPath [file dirname [info script]]/..
 source $TclPath/hog.tcl
 
@@ -42,7 +42,7 @@ set usage "- CI script that merges your branch with \$HOG_TARGET_BRANCH and crea
 
 if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] } {
   Msg Info [cmdline::usage $parameters $usage]
-  cd $old_path
+  cd $OldPath
   return
 }
 
@@ -62,12 +62,12 @@ set merge_request_number 0
 if {$options(merged) == 0} {
   if {$options(mr_par) ==""} {
     Msg Error "Merge request parameters not provided! You must provide them using \"-mr_par \$MR_PARAMETERS\" flag"
-    cd $old_path
+    cd $OldPath
     exit 1
   }
   if {$options(mr_id) ==""} {
     Msg Error "Merge request id not provided! You must provide them using \"-mr_id \$MR_ID\" flag"
-    cd $old_path
+    cd $OldPath
     exit 1
   } else {
     set merge_request_number $options(mr_id)
@@ -105,11 +105,11 @@ Msg Info "MR = $merge_request_number, version level: $version_level, default ver
 if { $options(Hog) == 1 } {
   #Go to Hog directory
   Msg Info "Tagging path is set to Hog repository."    
-  set TaggingPath [file normalize $tcl_path/../..]
+  set TaggingPath [file normalize $TclPath/../..]
 } else {
   #Go to HDL repository directory
   Msg Info "Tagging path is set to HDL repository."      
-  set TaggingPath [file normalize $tcl_path/../../..]
+  set TaggingPath [file normalize $TclPath/../../..]
 }
 
 Msg Info "Chaging directory to tagging path: $TaggingPath..."
@@ -134,5 +134,5 @@ if {$options(push)!= ""} {
   }
 }
 
-cd $old_path
+cd $OldPath
 Msg Info "All done."

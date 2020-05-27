@@ -97,7 +97,7 @@ The following variables are **needed** for Hog-CI to work, so if any of them is 
 | __HOG_PASSWORD__                | The password of your service account (should be masked)        |
 | __HOG_PATH__                    | The PATH variable for your VM, should include Vivado bin directory       |
 | __HOG_PUSH_TOKEN__              | The push token you generated for your service account (should be masked) |
-| __HOG_XIL_LICENSE__             | Should contain the Xilinx license servers, separated by a comma          |
+| __HOG_XIL_LICENSE__[^7]             | Should contain the Xilinx license servers, separated by a comma          |
 
 With the following **optional** variables you can configure the behaviour of Hog-CI:
 
@@ -116,6 +116,8 @@ With the following **optional** variables you can configure the behaviour of Hog
 | __HOG_TARGET_BRANCH__          |  Project target branch. Merge request should start from this branch. Default: master |
 | __HOG_NJOBS__               |  Number of CPU jobs for the synthesis and implementation. Default: 4 |
 | __HOG_IP_NJOBS__               |  Number of CPU jobs for the synthesis and implementation. Default: 4 |
+
+[^7]: For Quartus there will be a dedicated variable in the future
 
 # EOS space (Optional)
 

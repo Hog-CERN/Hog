@@ -93,7 +93,7 @@ merge_and_tag:
           - changelog.md
         expire_in: 1 month
 
-tagging:
+tagging_develop:
       stage: tag
       image: tcl2020/tcl2020:latest
       only:
@@ -104,11 +104,23 @@ tagging:
               - $CI_PIPELINE_SOURCE != "push"
               - $CI_COMMIT_REF_SLUG != "develop"
       script:
-          - "if [[ $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == master ]]; then VERSION_LEVEL=0; fi;"
-          - "if [[ $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == develop ]]; then VERSION_LEVEL=1; fi;"      
-          - tclsh ./Tcl/CI/merge_and_tag.tcl -Hog -merged -push $CI_COMMIT_REF_NAME -default_level $VERSION_LEVEL 0
+          - tclsh ./Tcl/CI/merge_and_tag.tcl -Hog -merged -push $CI_COMMIT_REF_NAME -default_level 1 0
 
-create_release_note:
+tagging_master_hotfix:
+      stage: tag
+      image: tcl2020/tcl2020:latest
+      only:
+          - push
+          - web
+      except:
+          variables:
+              - $CI_PIPELINE_SOURCE != "push"
+              - $CI_COMMIT_REF_SLUG != "master"
+              - $CI_COMMIT_REF_NAME == "develop"
+      script:
+          - tclsh ./Tcl/CI/merge_and_tag.tcl -Hog -merged -push $CI_COMMIT_REF_NAME -default_level 0 0
+
+create_release_note_develop:
         stage: tag
         image: tcl2020/tcl2020:latest
         only:

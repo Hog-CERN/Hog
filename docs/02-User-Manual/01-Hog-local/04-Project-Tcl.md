@@ -90,7 +90,13 @@ The discionaries must have the names of the corresponding Vivado runs.
 The default Vivado run names are: synth_1 for synthesis and impl_1 for implementation.
 
 To find out the exact name and value of the property, use Vivado GUI to click on the checkbox you like.
+
+![](./figures/tick_gui)
+
 This will make Vivado run the set_property command in the Tcl console.
+
+![](./figures/Vivado_tcl)
+
 Then copy and paste the name and the values from the Vivado Tcl console into the lines below.
 
 An example of properties setting is:

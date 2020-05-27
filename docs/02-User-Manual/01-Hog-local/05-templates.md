@@ -1,4 +1,4 @@
-# Available templates
+# Templates
 
 Templates for some of the file needed to set-up your git repository are distributed with Hog.
 You can find the templates in the [Hog/Templates](https://gitlab.cern.ch/hog/Hog/-/tree/master/Templates) directory.

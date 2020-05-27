@@ -1,4 +1,4 @@
-# IPbus support
+# Hog and IPbus
 
 Hog supports IPbus by including few features specific for this package.
 The IPbus submodule and the generated VHDL files must be included in your project using the `*.sub` and `*.src` [files](09-List-files.md).

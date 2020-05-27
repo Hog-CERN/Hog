@@ -1,4 +1,4 @@
-# Hog Generics
+# Parameters/Generics
 
 Hog allows you to define a set of generics/parameters[^1] to keep track of the code versioning. 
 The generics are automatically filled in during the code compilation, at pre-synthesis.

@@ -121,8 +121,10 @@ This variable is optional and its default value is '0'.
 
 ## Running additional scripts
 
-The `<my_project>.tcl` script can call other additional script placed in your repository.
+The `<my_project>.tcl` script can source other additional scripts contained in your repository.
 If you wish to run some scripts before creating your project then place them before calling `./Hog/Tcl/create_project.tcl`.
+This can be used to generate additional files to be included in your project.
+
 The `./Hog/Tcl/create_project.tcl` will finish leaving you project open, you can run additional scripts on your project by placing them after `./Hog/Tcl/create_project.tcl`.
 
-*NOTE*: Do this at your own risk.
+*NOTE*: do this at your own risk.

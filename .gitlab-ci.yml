@@ -46,13 +46,13 @@ doc:
 
 building-doxygen:
       stage: build_doc
-      image: cern/cc7-base
-      only:
-        - master
+      image: gitlab-registry.cern.ch/hog/hog-docker
+      # only:
+      #   - master
       before_script:
         - echo ""
       script:
-        - yum install -y doxygen krb5-workstation rsync openssh-clients xrootd-client which git
+        # - yum install -y doxygen krb5-workstation rsync openssh-clients xrootd-client which git
         - cd doxygen
         - chmod +x ./scripts/build-and-deploy.sh
         - ./scripts/build-and-deploy.sh

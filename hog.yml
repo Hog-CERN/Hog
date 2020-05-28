@@ -169,14 +169,14 @@ collect_artifacts:
     variables:
         <<: *vars
     script:
-        - "printf \"## Repository info\n- Merge request number: $CI_MERGE_REQUEST_IID\n- Branch name: \'$CI_COMMIT_REF_NAME\'\n\n\" > $CI_PROJECT_DIR/bin/note.md"
+        - "printf \"## Repository info\n- Merge request number: $CI_MERGE_REQUEST_IID\n- Branch name: $CI_COMMIT_REF_SLUG\n\n\" > $CI_PROJECT_DIR/bin/note.md"
         - ./Hog/Other/Changelog.sh $CI_MERGE_REQUEST_TARGET_BRANCH_NAME >> $CI_PROJECT_DIR/bin/note.md
         - files=$(shopt -s nullglob dotglob; echo $CI_PROJECT_DIR/bin/*/*.txt)
         - "if (( ${#files} )); then
           cat $CI_PROJECT_DIR/bin/*/*.txt >> $CI_PROJECT_DIR/bin/note.md;
           fi"
         - git fetch origin refs/notes/*:refs/notes/*
-        - git notes add -fm "$CI_MERGE_REQUEST_IID $CI_COMMIT_REF_NAME"
+        - git notes add -fm "$CI_MERGE_REQUEST_IID $CI_COMMIT_REF_SLUG"
         - git push origin refs/notes/*
         - "if [ -e $CI_PROJECT_DIR/bin/ -a -n '$HOG_UNOFFICIAL_BIN_EOS_PATH' ]; then until echo $HOG_PASSWORD | kinit $HOG_USER ; do echo Retrying; sleep 2; done;
           eos mkdir -p $HOG_UNOFFICIAL_BIN_EOS_PATH/$CI_COMMIT_SHORT_SHA;

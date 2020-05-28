@@ -23,7 +23,7 @@ cd $hog_path
 source ./hog.tcl
 
 
-Msg Info "Checking if \"ref\" in .gitlab-ci.yml actually matches the gitlab-ci file in the Hog submodule"
+Msg Info "Checking if \"ref\" in .gitlab-ci.yml actually matches the included yml file in Hog submodule"
 
 CheckYmlRef $repo_path false
 

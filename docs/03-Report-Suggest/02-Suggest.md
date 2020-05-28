@@ -3,7 +3,7 @@ When you suggest a feature, please do it one at the time.
 
 Your feature will not be automatically added to the repository, but the Hog group will evaluate it. For this reason, it is important that you describe in detail your suggestion.
 
-Open an issue using the label "Feature proposal".
+Open an issue using the label "Feature proposal" ([at this link]((https://gitlab.cern.ch/hog/Hog/issues))).
 
 Let us know: 
 

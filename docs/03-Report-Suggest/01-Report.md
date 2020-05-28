@@ -1,4 +1,4 @@
-# Bug reports
+# Report a bug
 
 We always want to improve Hog, for this reason your help is very important!
 

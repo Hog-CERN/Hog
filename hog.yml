@@ -169,7 +169,7 @@ collect_artifacts:
     variables:
         <<: *vars
     script:
-        - "printf \"## Repository info\n\n - Merge request number: $CI_MERGE_REQUEST_IID\n- Branch name: $CI_COMMIT_REF_NAME\" > $CI_PROJECT_DIR/bin/note.md"
+        - "printf \"## Repository info\n- Merge request number: $CI_MERGE_REQUEST_IID\n- Branch name: $CI_COMMIT_REF_NAME\n\n\" > $CI_PROJECT_DIR/bin/note.md"
         - ./Hog/Other/Changelog.sh $CI_MERGE_REQUEST_TARGET_BRANCH_NAME >> $CI_PROJECT_DIR/bin/note.md
         - files=$(shopt -s nullglob dotglob; echo $CI_PROJECT_DIR/bin/*/*.txt)
         - "if (( ${#files} )); then

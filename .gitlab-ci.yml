@@ -89,7 +89,7 @@ changelog:
           - git fetch origin refs/notes/*:refs/notes/*
           - git notes add -fm "$CI_MERGE_REQUEST_IID $CI_COMMIT_REF_NAME"
           - git push origin refs/notes/*
-          - "printf \"## Repository info\n- Merge request number: $CI_MERGE_REQUEST_IID\n- Branch name: $CI_COMMIT_REF_NAME\n\n\" > changelog.md"
+          - "printf \"## Repository info\n- Merge request number: $CI_MERGE_REQUEST_IID\n- Branch name: \`$CI_COMMIT_REF_NAME\`\n\n\" > changelog.md"
           - ./Other/Changelog.sh $CI_MERGE_REQUEST_TARGET_BRANCH_NAME >> changelog.md
       artifacts:
         name: changelog

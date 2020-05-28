@@ -32,9 +32,12 @@ The firmware date and time are encoded to be readable in hexadecimal so 0xA, 0xB
 
 Names ending with _SHA are used for the 7-digit SHA of the git commit, being the SHA an hexadecimal number there is no ambiguity in its conversion. Names ending with _VER are used for a numeric version of the form M.m.p encoded in hexadecimal as 0xMMmmpppp. So for example version 7.10.255 becomes 0x070A00FF.
 
-The version and hash of a subset of files is calculated using `git log` and means the latest commit (and the latest version tag) where at least one of the files was changed. It is worth noticing that there is no one-to-one correspondence between tag and hash, because not all the commits are tagged, so a tag can correspond to several hashes, all the ones that occurred between that tag and the previous one.
+The version and hash of a subset of files is calculated using `git log` and means the latest commit (and the latest version tag) where at least one of the files was changed.
 
-Hog will provide all the generic described in the table above, but if you do not plan to use them you can just leave them unconnected or do not add them to your top module at all. The HDL synthesiser will ignore them, maybe giving a warning.
+It is worth noticing that there is no one-to-one correspondence between tag and hash, because not all the commits are tagged, so a tag can correspond to several hashes, all the ones that occurred between that tag and the previous one.
+
+Hog will provide all the parameters/generics described in the table above, but if you do not plan to use them you can just leave them unconnected or do not add them to your top module at all.
+The HDL synthesiser will ignore them, maybe giving a warning.
 
 
 [^1]: Generics are used in VHDL language, parameters are used in Verilog, SystemVerilog languages.

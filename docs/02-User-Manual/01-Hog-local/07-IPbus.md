@@ -1,15 +1,18 @@
 # Hog and IPbus
+Hog supports [IPbus](http://ipbus.web.cern.ch/ipbus/) by handling IPbus xml files and VHDL address maps.
 
-Hog supports IPbus by including few features specific for this package.
-The IPbus submodule and the generated VHDL files must be included in your project using the `*.sub` and `*.src` [files](09-List-files.md).
+To use IPbus with Hog, include it as a submodule in your HDL repository (in the root folder). Include ipbus files in a `.sub` [list file](02-List-files.md).
 
-Hog helps you keep track of the xml file versioning by usage of dedicated generics in the VHDL and, by usage of dedicated node tags in the xml.
-To allow for this your project must include a dedicated xml folder and a dedicated list file located under `./Top/<project_name>/xml/xml.lst`.
-Note that the xml and VHDL files can be located anywhere in your project since Hog will use this file to retrieve the needed files.
+## Embedding of version and SHA in the xml files
+Hog keeps track of the version and SHA of the xml files by means of two dedicated generics/parameters (XML_VER and XML_SHA) and edicated node tags in the xmls.
+
+To allow for this, your top project-directory must include an `xml` directory containing a file named: `<repository>/Top/<project_name>/xml/xml.lst`.
+
+Note that the xml and VHDL files can be located anywhere in your project.
 
 ## xml.lst
 
-This file contains a list of the xml files used to generate the IPbus modules together with the generated modules, each line has the form:
+This file contains a list of the xml files used to generate the IPbus modules together with the generated VHDL address decode files, each line has the form:
 
 ```
  <path_to_xml>/<address_table>.xml <path_to_vhd>/<generated_file>.vhd
@@ -19,10 +22,11 @@ During Pre-synthesis, Hog will loop over the files contained tin this file to re
 The path to the generated module is needed since in the future we foresee that Hog will use IPbus python scripts to verify that the generated modules correspond to the xml files.
 
 ### IPbus xml files
-
 Hog can back annotate the included xmls with the SHA evaluated as described above.
-This is needed by your software to correctly assess the validity of the used xmls.
-Indeed Hog expects you to define a dedicated register where to store the value of the [Hog generic](../03-Hog-generics): `XML_HASH`.
+This can be used by software to correctly assess if the used xmls correspond to the firmware loaded on the device.
+
+You can acheive this by defining a dedicated register where to store the value of the [Hog generic](../03-parameters-generics.md): `XML_SHA`.
+
 The node corresponding to this registers is expected to have the following structure:
 
 ```xml
@@ -30,10 +34,10 @@ The node corresponding to this registers is expected to have the following struc
 ```
 
 During Pre-synthesis, Hog will replace `__GIT_SHA__` with the SHA of the latest commit in which at least one of xmls was modified.
-Hog will also set the `XML_HASH` generic in your top level to correspond to the same SHA.
+Hog will also set the `XML_SHA` generic in your top level to correspond to the same SHA.
 The user can now verify it is using the correct version of the xmls by comparing the `gitSHA` register content with the `gitSHA` register tag.
 
-The same is valid for the xml version.
+The same procedure is done for the xml version.
 In this case the node is expected to have the following structure:
 
 ```xml
@@ -45,4 +49,6 @@ In this case the node is expected to have the following structure:
 ```
 
 The `__VERSION__` will be set to the version of the xml files taken from the last tag in which at least one of the xml files included in xml.lst was modified.
-The same value will be reported in the `XML_VERSION` generic of the top level of your project.
+The same value will be reported in the `XML_VER` generic of the top level of your project.
+
+## Automatic creation and checking of address maps against xml file

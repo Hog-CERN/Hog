@@ -8,10 +8,10 @@ Here is a list of the available tamplates:
 `top.tcl` is a Tcl script to generate the HDL project, the so colled "Tcl project-file".
 Contains an example of all the variables used by Hog to generate a project
 
-To use this file, copy it to the `Top/<project>/` directory, rename it to `<project>.tcl`  and modify it to accommodate your needs as exlained [here](./01-Project-Tcl).
+To use this file, copy it to the `Top/<project>/` directory, rename it to `<project>.tcl`  and modify it to accommodate your needs as exlained [here](../01-Project-Tcl).
 
 ## top.vhd
-`top.vhd` is an example of top level file in VHDL. It contains the definition of the generics set by Hog to keep track of the firmware versions, as exalained [here](./03-parameters-genercis).
+`top.vhd` is an example of top level file in VHDL. It contains the definition of the generics set by Hog to keep track of the firmware versions, as exalained [here](../03-parameters-genercis).
 
 To use this file, copy it anywhere in your project, rename it and modify it to accommodate your project. Remember that the contained entity must be called `top_<project_name>` and that this file name and path must be included in a .src list file in `Top/project/list/` directory.
 

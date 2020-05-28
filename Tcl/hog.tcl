@@ -577,10 +577,10 @@ proc GetHash {FILE path} {
 proc GetVer {FILE path} {
   set SHA [GetHash $FILE $path]
   set path [file normalize $path]
-  set status [catch {exec git tag --sort=-creatordate --contain $SHA -l="v*.*.*" -l="b*v*.*.*"} result]
+  set status [catch {exec git tag --sort=-creatordate --contain $SHA -l "v*.*.*" -l "b*v*.*.*"} result]
   if {$status == 0} {
     if {[regexp {^ *$} $result]} {
-      if [catch {exec git tag --sort=-creatordate -l="v*.*.*" -l="b*v*.*.*"} last_tag] {
+      if [catch {exec git tag --sort=-creatordate -l "v*.*.*" -l "b*v*.*.*"} last_tag] {
         Msg CriticalWarning "No Hog version tags found in this repository ($path)."
         set ver v0.0.0
       } else {
@@ -678,7 +678,7 @@ proc ExtractVersionFromTag {tag} {
 # @param[in] default_level:        If version level is 3 or more, will specify what level to increase when creating the official tag: 0 will increase patch (default), 1 will increase minor and 2 will increase major.
 #
 proc TagRepository {{merge_request_number 0} {version_level 0} {default_level 0}} {
-  if [catch {exec git tag --sort=-creatordate -l="v*.*.*" -l="b*v*.*.*"} last_tag] {
+  if [catch {exec git tag --sort=-creatordate -l "v*.*.*" -l "b*v*.*.*"} last_tag] {
     Msg Error "No Hog version tags found in this repository."
   } else {
     set tags [split $last_tag "\n"]

@@ -26,23 +26,6 @@ default:
 stages:
       - tag
       - build_doc
-      - deploy_doc
-
-doc:
-      stage: build_doc
-      image: gitlab-registry.cern.ch/authoring/documentation/mkdocs:stable
-      except:
-           variables:
-              - $CI_COMMIT_REF_NAME =~ /^test\/.*$/i
-      before_script:
-        - echo ""
-      script:
-        - mkdocs build --clean --site-dir public
-        - cp docs/.htaccess public/
-      artifacts:
-        paths:
-          - public
-        expire_in: 1 day
 
 building-doxygen:
       stage: build_doc
@@ -59,17 +42,6 @@ building-doxygen:
         paths:
           - doxygen/DOXY_DOCS
         expire_in: 1 hour
-
-dep_doc:
-      stage: deploy_doc
-      image: gitlab-registry.cern.ch/ci-tools/ci-web-deployer:latest
-      only:
-        - feature/documentation
-      before_script:
-        - echo ""
-      script:
-        - deploy-eos
-
 
 changelog:
       stage: tag

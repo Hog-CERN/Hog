@@ -26,7 +26,7 @@ The stages of the Merge Request pipeline are the following:
 4. *Synthesis*: synthesises the projects.
 5. *Implementation*: Implements the projects and creates the bitstreams. An option to disable the bitstream creation is available. During this stage the implementation timing results and project version are also written in the merge request page.
 6. *Collect*: Collects all the artefacts from the previous stages. If EOS is used, it copies the implementation outputs to the EOS repository.
-7. *Doxygen*. Creates the doxygen documentation and stores it to EOS if enabled.
+7. *Doxygen*: Creates the doxygen documentation and stores it to EOS if enabled.
 
 ## Master Pipeline
 The *Master* pipeline consists only of one stage (*Merge*), which tags the repository according to the Merge Request description. Assuming the latest tag was *vA.B.C*, the pipeline will

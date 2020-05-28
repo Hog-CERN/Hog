@@ -1,14 +1,21 @@
-# Hog utils
+# Additional Tcl Scripts
 
-Hog provides a series of Tcl scripts solving different tasks that will be described in this section.
-All the following scripts are located in *./Hog/Tcl/utils*. 
+Hog provides a series of Tcl scripts, which executes different common tasks. These scripts are located in *./Hog/Tcl/utils*.
+To execute the scripts, you need to open first the Vivado Tcl Shell.
+
+```bash
+vivado -mode tcl
+```
+
 Run each script with the *-h* option to see the full list of arguments/options and usage example.
 
 ## check-syntax.tcl
 
-This script checks the code syntax in a vivado project.
+This script checks the code syntax of a vivado project.
+
 Arguments:
-- Project name
+
+- `<project_name>`: the project name
 
 Usage:
 
@@ -22,7 +29,7 @@ This script compiles the ModelSim libraries needed to simulate Vivado projects w
 Usage:
 
 ```tcl
-  source Hog/Tcl/utils/compile_modelsimlib.tcl 
+  source Hog/Tcl/utils/compile_modelsimlib.tcl
 ```
 
 ## compile_questalib.tcl
@@ -31,22 +38,24 @@ This script compiles the QuestaSim libraries needed to simulate Vivado projects 
 Usage:
 
 ```tcl
-  source Hog/Tcl/utils/compile_questalib.tcl 
+  source Hog/Tcl/utils/compile_questalib.tcl
 ```
 
 ## get_ips.tcl
 
-To speed-up IPs re-generation, Hog allows the user to store compiled IPs into a EOS directory and retrieve them instead of recompile them. 
-This is particularly useful for the CI or if the project repository has been freshly cloned. The IPs are stored to EOS together with their SHA, so they are retrieved only if the .xci was not modified. 
+To speed-up IPs re-generation, Hog allows the user to store compiled IPs into an EOS directory and retrieve them instead of recompile them.
+This is particularly useful for the CI or if the project repository has been freshly cloned. The IPs are stored to EOS together with their SHA, so they are retrieved only if the `.xci` was not modified.
 The instructions to store the IPs to EOS are detailed in the section [IP synthesis](../07-Usage/#run-ip-synthesis).
 get_ips.tcl is used to retrieve IPs from EOS.
+To execute this command you need to have [EOS software](https://eos.web.cern.ch/) installed on your machine.
+
 Arguments:
 
-* Project name
+- `<project_name>`: the project name
 
 Options:
 
-* -eos_ip_path <IP PATH>: the EOS path where IPs are stored.
+* `-eos_ip_path <IP PATH>`: the EOS path where IPs are stored
 
 Usage:
 
@@ -56,8 +65,9 @@ Usage:
 
 ## make_doxygen.tcl
 
-This script is used to create the doxygen documentation. The doxygen configuration file must be stored into *./doxygen/doxygen.conf*. 
+This script is used to create the doxygen documentation. The doxygen configuration file must be stored into *./doxygen/doxygen.conf*.
 If there is no such file, the command will use *./Hog/Templates/doxygen.conf* as doxygen configuration file.
+You require a version of Doxygen newer than 1.8.13 installed on your machine, to execute this script
 
 Usage:
 
@@ -67,16 +77,10 @@ Usage:
 
 ## check_yaml_ref.tcl
 
-This script checks that the Hog submodule SHA matches the ref in the .gitlab-ci.yml file. 
-In fact .gitlab-ci.yml includes the Hog file gitlab-ci.yml:
-```yml
-include:
-    - project: 'hog/Hog'
-      file: '/gitlab-ci.yml'
-      ref: 'v0.2.64'
-```
-If the version of the gitlab-ci.yml does not match the local Hog submodule one, unexpected errors may occour. 
-The script verifies that gitlab-ci.yml in the Hog submodule matches the one defined in *ref* and, if it doesn't, suggests few solutions to fix the problem.
+This script checks that the Hog submodule SHA matches the ref in your `.gitlab-ci.yml` file. The `.gitlab-ci.yml` file defines what stages of the Hog Continuous Integration will be run. For more information, please consult the [Hog-CI chapter](../../02-Hog-CI/01-CI-Introduction.md).
+
+If the two SHAs do not match, the script returns an Error, suggests few solutions to fix the problem.
+
 This script is run by default in the pre-synthesis stage.
 
 Usage:
@@ -85,35 +89,37 @@ Usage:
 ```
 
 ## copy_xml.tcl
-This script copies IPBus XML files listed in a Hog list file and replace the version and SHA placeholders if they are present in any of the XML files.
+This script copies IPBus XML files (see [IPbus section](../07-IPbus.md)) listed in a Hog list file and replaces the version and SHA place holders, if they are present in any of the XML files.
+
 Arguments:
 
-* XML list file;
-* destination directory;
+* `<xml_list_file>`: the IPbus XML list file
+* `<dest_dir>`: the destination directory
 
 Options:
 
-* -generate: if set, the VHDL address files will be generated and replaced if already exisiting.
+* `-generate`: if set, the VHDL address files will be generated and replaced if already existing
 
-Usage: 
+Usage:
 ```yml
-copy_xml <XML list file> <destination directory> [-generate]
+copy_xml <xml_list_file> <dest_dir> [-generate]
 ```
 
 ## reformat.tcl
 
-This script formats tcl scripts indentation. 
+This script formats tcl scripts indentation.
+
 Arguments:
 
-* tcl script
+* `<tcl_script>`: the tcl script to format
 
 Options:
 
-* -tab_width <pad width> (default = 2)
- 
+* `-tab_width <pad width>`: the tab width to be used to indent the code (default = 2)
+
 Usage:
 ```tcl
-  source Hog/Tcl/utils/reformat.tcl -tclargs [-tab_width <pad_width>] <tcl_script> 
+  source Hog/Tcl/utils/reformat.tcl -tclargs [-tab_width <pad_width>] <tcl_script>
 ```
 
 

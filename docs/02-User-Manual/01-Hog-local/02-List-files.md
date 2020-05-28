@@ -92,10 +92,21 @@ In addition to the properties defined for the `.src` list, you can also specify:
 
 - `topsim=<entity_name>`: Tells Hog that the file contains the entity that will be the top level of the simulation;
 - `wavefile`: it indicates the name of the entity you want to set as top level in your simulation (Questasim/Modelsim only);
-- `dofile`: it indicates the file containing the signal waveforms to be observed in your simulation (Questasim/Modelsim only);
+- `dofile`: it indicates the file containing the signal waveforms to be observed in your simulation (Questasim/Modelsim only).
+
+It is also possible to specify the preferred simulation software to be used to simulate the file set. This can be done by adding at the top of the `.sim` list one of the following lines:
+
+```
+#Simulator xsim     # For Vivado Simulator
+#Simulator questa   # For QuestaSim Simulator
+#Simulator modelsim # For ModelSim Simulator
+```
+
+If you do not specify the simulator software, Hog will use ModelSim as default.
 
 An example `.sim` list file looks like this
 ```
+#Simulator Xsim
 tb_source_dir/tb_for_lib1.vhd topsim=tb_lib1
 wave_source_dir/wave_lib1.tcl wavefile
 do_source_dir/dofile_lib1.do dofile

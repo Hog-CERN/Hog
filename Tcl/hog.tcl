@@ -1438,10 +1438,10 @@ proc ParseJSON {JSON_FILE JSON_KEY} {
 #
 # It can be used with lassign like this: lassign [eos <eos command> ] ret result
 #
-#  @param[in] command: the eos command to be run, e.g. ls, cp, mv, rm
+#  @param[in] command: the EOS command to be run, e.g. ls, cp, mv, rm
 #  @param[in] attempts: (default 0) how many times the command should be attempted in case of failure
 #
-#  @returns a list of 2 elements: the return value (0 if no error occurred) and the output of the eos command
+#  @returns a list of 2 elements: the return value (0 if no error occurred) and the output of the EOS command
 proc eos {command {attempt 1}}  {
   global env
   if ![info exists env(EOS_MGM_URL)] {
@@ -1495,7 +1495,7 @@ proc ParseProcFile {proj_name} {
 
 ## @brief Gets MAX number of Threads property from .prop file in Top/$proj_name/list directory.
 #
-# If property is not set returns dafault = 1
+# If property is not set returns default = 1
 #
 # @param[in] proj_name:   name of the project
 #

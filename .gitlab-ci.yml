@@ -15,7 +15,6 @@
 
 default:
       before_script:
-          - env
           - export REPO=`echo $CI_PROJECT_URL | sed -e s#https://##`
           - git remote set-url origin https://hog:${HOG_PUSH_TOKEN}@$REPO
           - git config user.email "hog@cern.ch"
@@ -73,7 +72,7 @@ dep_doc:
         - deploy-eos
 
 
-merge_and_tag:
+changelog:
       stage: tag
       image: tcl2020/tcl2020:latest
       only:
@@ -88,9 +87,10 @@ merge_and_tag:
           - "MR_PARAMETERS=`curl --header \"PRIVATE-TOKEN: ${HOG_PUSH_TOKEN}\" ${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/merge_requests/${CI_MERGE_REQUEST_IID}`"
           - tclsh ./Tcl/CI/merge_and_tag.tcl -Hog  -mr_par "$MR_PARAMETERS" -mr_id $CI_MERGE_REQUEST_IID -push $CI_COMMIT_REF_NAME
           - git fetch origin refs/notes/*:refs/notes/*
-          - git notes add -fm "$CI_MERGE_REQUEST_IID"
+          - git notes add -fm "$CI_MERGE_REQUEST_IID $CI_COMMIT_REF_NAME"
           - git push origin refs/notes/*
-          - ./Other/Changelog.sh $CI_MERGE_REQUEST_TARGET_BRANCH_NAME > changelog.md
+          - printf "## Repository info\n\n - Merge request number: $CI_MERGE_REQUEST_IID\n- Branch name: $CI_COMMIT_REF_NAME" > changelog.md
+          - ./Other/Changelog.sh $CI_MERGE_REQUEST_TARGET_BRANCH_NAME >> changelog.md
       artifacts:
         name: changelog
         paths:
@@ -120,9 +120,11 @@ tagging_master_hotfix:
           variables:
               - $CI_PIPELINE_SOURCE != "push"
               - $CI_COMMIT_REF_SLUG != "master"
-              - $CI_COMMIT_REF_NAME == "develop"
       script:
-          - tclsh ./Tcl/CI/merge_and_tag.tcl -Hog -merged -push $CI_COMMIT_REF_NAME -default_level 0 0
+          - git fetch origin refs/notes/*:refs/notes/*
+          - MR_INFO=( `git notes show` )
+          - BRANCH=${MR_INFO[1]}
+          - if [[ ${BRANCH} != "develop" ]]; then tclsh ./Tcl/CI/merge_and_tag.tcl -Hog -merged -push $CI_COMMIT_REF_NAME -default_level 0 0; else echo "Skipping because it is not a hotfix"; fi;
 
 create_release_note_develop:
         stage: tag
@@ -135,6 +137,6 @@ create_release_note_develop:
 
         script:
           - git fetch origin refs/notes/*:refs/notes/*
-          - MR=`git notes show`
-          - ./Other/GetGitlabArtifact.sh $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $MR changelog.md merge_and_tag > note.md
+          - MR=( `git notes show` )
+          - ./Other/GetGitlabArtifact.sh $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $MR changelog.md changelog > note.md
           - ./Other/MakeGitlabRelease.sh $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $CI_COMMIT_TAG note.md -b

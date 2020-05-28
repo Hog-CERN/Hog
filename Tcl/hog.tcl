@@ -1317,7 +1317,7 @@ proc Md5Sum {file_name} {
   }
 }
 
-## Checks that "ref" in .gitlab-ci.yml actually matches the gitlab-ci file in the
+## Checks that "ref" in .gitlab-ci.yml matches the gitlab-ci file in the
 ##  Hog submodule
 #
 proc CheckYmlRef {repo_path allow_failure} {
@@ -1341,6 +1341,7 @@ You can fix this by installing package \"tcllib\""
   if [file exists .gitlab-ci.yml] {
     #get .gitlab-ci ref
     set YML_REF ""
+    set YML_NAME ""
     if { [catch {::yaml::yaml2dict -file .gitlab-ci.yml}  yamlDict]} {
       Msg $MSG_TYPE "Parsing .gitlab-ci.yml failed. To fix this, check that yaml syntax is respected, remember not to use tabs."
       return
@@ -1349,10 +1350,10 @@ You can fix this by installing package \"tcllib\""
         #looking for Hog include in .gitlab-ci.yml
         if {"$dictKey" == "include" && [lsearch [split $dictValue " {}"] "hog/Hog" ] != "-1"} {
           set YML_REF [lindex [split $dictValue " {}"]  [expr [lsearch -dictionary [split $dictValue " {}"] "ref"]+1 ] ]
+          set YML_NAME [lindex [split $dictValue " {}"]  [expr [lsearch -dictionary [split $dictValue " {}"] "file"]+1 ] ]
         }
       }
     }
-
     if {$YML_REF == ""} {
       Msg Warning "Hog version not specified in the .gitlab-ci.yml. Assuming that master branch is used"
       cd Hog
@@ -1362,29 +1363,38 @@ You can fix this by installing package \"tcllib\""
       set YML_REF_F [regsub -all "'" $YML_REF ""]
     }
 
+    if {$YML_NAME == ""} {
+      Msg $MSG_TYPE "Hog included yml file not specified, assuming hog.yml"
+      set YML_NAME_F hog.yml
+    } else {
+      set YML_NAME_F [regsub -all "^/" $YML_NAME ""]
+    }
+    puts $YML_NAME_F
   #getting Hog repository tag and commit
     cd "Hog"
-    set HOGYML_SHA [exec git log --format=%H -1 --  hog.yml ]
-    if { [catch {exec git log --format=%H -1 $YML_REF_F hog.yml} EXPECTEDYML_SHA]} {
-      if { [catch {exec git log --format=%H -1 origin/$YML_REF_F hog.yml} EXPECTEDYML_SHA]} {
+    set HOGYML_SHA [exec git log --format=%H -1 --  $YML_NAME_F ]
+    if { [catch {exec git log --format=%H -1 $YML_REF_F -- $YML_NAME_F} EXPECTEDYML_SHA]} {
+      if { [catch {exec git log --format=%H -1 origin/$YML_REF_F -- $YML_NAME_F} EXPECTEDYML_SHA]} {
         Msg $MSG_TYPE "Error in project .gitlab-ci.yml. ref: $YML_REF not found"
         set EXPECTEDYML_SHA ""
       }
 
     }
-    if  {!($EXPECTEDYML_SHA eq "")} {
 
+    if  {!($EXPECTEDYML_SHA eq "")} {
       if {$HOGYML_SHA == $EXPECTEDYML_SHA} {
-        Msg Info "Hog hog.yml SHA matches with the \"ref\" in the .gitlab-ci.yml."
+        Msg Info "Hog included file $YML_NAME_F SHA matches with the \"ref\" in the .gitlab-ci.yml."
 
       } else {
-        Msg $MSG_TYPE "HOG hog.yml SHA mismatch.
+        Msg $MSG_TYPE "HOG $YML_NAME_F SHA mismatch.
         From Hog submodule: $HOGYML_SHA
         From .gitlab-ci.yml: $EXPECTEDYML_SHA
         You can fix this in 2 ways: (A) by changing the ref in your repository or (B) by changing the Hog submodule commit.
         \tA) edit project .gitlab-ci.yml ---> ref: '$HOGYML_SHA'
         \tB) modify Hog submodule: git checkout $EXPECTEDYML_SHA"
       }
+    } else {
+      Msg $MSG_TYPE "Could not find any file named $YML_NAME_F in Hog at $YML_REF"
     }
   } else {
     Msg Info ".gitlab-ci.yml not found in $repo_path. Skipping this step"

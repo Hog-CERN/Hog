@@ -25,7 +25,7 @@ The path to the generated module is needed since in the future we foresee that H
 Hog can back annotate the included xmls with the SHA evaluated as described above.
 This can be used by software to correctly assess if the used xmls correspond to the firmware loaded on the device.
 
-You can acheive this by defining a dedicated register where to store the value of the [Hog generic](../03-parameters-generics.md): `XML_SHA`.
+You can acheive this by defining a dedicated register where to store the value of the [generic](03-parameters-generics.md): `XML_SHA` provided by Hog.
 
 The node corresponding to this registers is expected to have the following structure:
 
@@ -51,4 +51,24 @@ In this case the node is expected to have the following structure:
 The `__VERSION__` will be set to the version of the xml files taken from the last tag in which at least one of the xml files included in xml.lst was modified.
 The same value will be reported in the `XML_VER` generic of the top level of your project.
 
+
 ## Automatic creation and checking of address maps against xml file
+Hig provides a script `Hog/Tcl/utils/copy_xml.tcl`, it can be used from vivado or tclsh (provided that you installed the tcllib package), with this syntax:
+
+```console
+Hog/Tcl/utils/copy_xml.tcl <XML list file> <destination directory> [-generate]
+```
+
+This script will copy all the IPbus xml files listed in `<XML list file>` in the `<destination directory>` creating it if necessary.
+
+Moreover it will perform the substitution of the `__GIT_SHA__` and `__GIT_VERIOSN__` placeholders as described above.
+This is useful as ipbus xml files need to be all in the same directory to work.
+
+If the `gen_ipbus_addr_decode` IPbus script file is in yut PATH and works correctly, this script will also veryfy each xml file against its VHDL address map to see if they match. It will do this ignoring blank lines and comments and will give warnings if it find some mismatch.
+
+
+If the `-generate` options is used, this script will use the `gen_ipbus_addr_decode` to generate the VHDL address map files and replace them if necessary.
+
+You can run this script with the -generate option (even from the Vivado Tcl console) after you have modified the xml to regenerate the VHDL files automatically.
+
+This script (without the -generate option) is also run automatically in the pre-sythesis script, and copies your xml in to `<repository>/bin/<git describe>/xml`. If the `gen_ipbus_addr_decode` is availbale and working, the verification is done as well.

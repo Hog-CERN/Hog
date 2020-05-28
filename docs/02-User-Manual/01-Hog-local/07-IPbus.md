@@ -52,7 +52,7 @@ The `__VERSION__` will be set to the version of the xml files taken from the las
 The same value will be reported in the `XML_VER` generic of the top level of your project.
 
 
-## Automatic creation and checking of address maps against xml file
+## Check address maps against xml file
 Hig provides a script `Hog/Tcl/utils/copy_xml.tcl`, it can be used from vivado or tclsh (provided that you installed the tcllib package), with this syntax:
 
 ```console
@@ -66,7 +66,7 @@ This is useful as ipbus xml files need to be all in the same directory to work.
 
 If the `gen_ipbus_addr_decode` IPbus script file is in yut PATH and works correctly, this script will also veryfy each xml file against its VHDL address map to see if they match. It will do this ignoring blank lines and comments and will give warnings if it find some mismatch.
 
-
+## Generation of VHDL address maps
 If the `-generate` options is used, this script will use the `gen_ipbus_addr_decode` to generate the VHDL address map files and replace them if necessary.
 
 You can run this script with the -generate option (even from the Vivado Tcl console) after you have modified the xml to regenerate the VHDL files automatically.

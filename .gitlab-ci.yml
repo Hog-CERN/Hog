@@ -15,6 +15,7 @@
 
 default:
       before_script:
+          - env
           - export REPO=`echo $CI_PROJECT_URL | sed -e s#https://##`
           - git remote set-url origin https://hog:${HOG_PUSH_TOKEN}@$REPO
           - git config user.email "hog@cern.ch"

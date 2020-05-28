@@ -16,13 +16,14 @@
 # @breif Collection of Tcl functions used in Vivado/Quartus scripts
 
 
-## @c Msg
-# Display a Vivado/Quartus/Tcl-shell info message
+## @file hog.tcl
+# @breif Collection of Tcl functions used in Vivado/Quartus scripts
+
+### @brief Display a Vivado/Quartus/Tcl-shell info message
 #
-# Arguments:
-# * level: the severity level of the message given as string or integer: status/extra_info 0, info 1, warning 2, critical warning 3, error 4.
-# * msg: the message text.
-# * title: the name of the script displaying the message, if not given, the calling script name will be used by default.
+# @param[in] level  the severity level of the message given as string or integer: status/extra_info 0, info 1, warning 2, critical warning 3, error 4.
+# @param[in] msg    the message text.
+# @param[in] title  the name of the script displaying the message, if not given, the calling script name will be used by default.
 #
 proc Msg {level msg {title ""}} {
   set level [string tolower $level]
@@ -62,25 +63,25 @@ proc Msg {level msg {title ""}} {
   }
 }
 
-## @c WritieToFile
-# Write a into file, if the file exists, it will append the string
+## @brief Write a into file, if the file exists, it will append the string
 #
-# Arguments:
-# * File: The log file onto which write the message
-# * msg:  The message text
+# @param[out] File The log file onto which write the message
+# @param[in]  msg  The message text
+#
 proc WrtieToFile {File msg} {
   set f [open $File a+]
   puts $f $msg
   close $f
 }
 
-## @c SetProperty
-# Sets a property of an object to a given value: it automatically recognises whether it is in Vivado or Quartus mode
+## @brief Sets a property of an object to a given value.
 #
-# Arguments:
-# * property:
-# * value:
-# * object
+# It automatically recognises whether it is in Vivado or Quartus mode
+#
+# @param[out] property:
+# @param[in] value:
+# @param[out] object
+#
 proc  SetProperty {property value object} {
   if {[info commands set_property] != ""} {
         # Vivado
@@ -97,12 +98,15 @@ proc  SetProperty {property value object} {
 
 }
 
-## @c GetProperty
-# Retrieves the value of a property of an object: it automatically recognises whether it is in Vivado or Quartus mode
+## @brief Retrieves the value of a property of an object
 #
-# Arguments:
-# * property:
-# * object:
+# It automatically recognises whether it is in Vivado or Quartus mode
+#
+# @param[in] property the mname of the property to be retrieved
+# @param[in] object   the object from which to retrieve the property
+#
+# @returns            the value of object.property 
+#
 proc  GetProperty {property object} {
   if {[info commands get_property] != ""} {
         # Vivado
@@ -117,13 +121,25 @@ proc  GetProperty {property object} {
     return "DEBUG_propery_value"
   }
 }
-########################################################
 
-########################################################
+## @brief Sets the value of a parameter to a given value.
+#
+# This function is a wrapper for set_param $parameter $value 
+#
+# @param[out] parameter the parametere whose value must be set
+# @param[in]  value     the value of the parameter
+
 proc  SetParameter {parameter value } {
   set_param $parameter $value
 }
-########################################################
+
+## @brief Adds the file containing the top module to the project
+#
+# It automatically recognises whether it is in Vivado or Quartus mode
+#
+# @param[in] top_module name of the top module, expected @c top_<project_name>
+# @param[in] top_file   name of the file containing the top module
+# @param[in] source     list of source files 
 proc AddTopFile {top_module top_file sources} {
   if {[info commands launch_chipscope_analyzer] != ""} {
         #VIVADO_ONLY
@@ -137,7 +153,14 @@ proc AddTopFile {top_module top_file sources} {
     puts "Adding project top module $top_module"
   }
 }
-########################################################
+
+## @brief set the top module as top module.
+#
+# It automatically recognises whether it is in Vivado or Quartus mode
+#
+# @param[out] top_module  name of the top module
+# @param[in]  source      list of all source files in the project
+#
 proc SetTopProperty {top_module sources} {
   Msg Info "Setting TOP property to $top_module module"
   if {[info commands launch_chipscope_analyzer] != ""} {
@@ -150,6 +173,14 @@ proc SetTopProperty {top_module sources} {
 
 }
 
+## @brief Retroieveds the project named proj
+#  
+#  It automatically recognises whether it is in Vivado or Quartus mode
+#
+#  @param[in] proj  the project name
+#
+#  @return          the project $proj
+#
 proc GetProject {proj} {
   if {[info commands get_projects] != ""} {
         # Vivado
@@ -166,6 +197,14 @@ proc GetProject {proj} {
 
 }
 
+## @brief Gets a list of synthesis and implementation runs in the current project that match a run (passed as parameter)
+#
+# The run name is matched against the input parameter 
+#  
+#  @param[in] run  the run identifier
+#
+#  @return         a list of synthesis and implementation runs matching the parameter
+#
 proc GetRun {run} {
   if {[info commands get_projects] != ""} {
         # Vivado
@@ -181,6 +220,15 @@ proc GetRun {run} {
   }
 }
 
+## @brief Gets a list of files contained in the current project that match a file name (passed as parameter)
+#
+# The file name is matched against the input parameter.
+# IF no parameter if passed returns a list of all files in the project
+#  
+#  @param[in] file name (or part of it)
+#
+#  @return         a list of files matching the parameter
+#
 proc GetFile {file} {
   if {[info commands get_files] != ""} {
         # Vivado
@@ -196,107 +244,56 @@ proc GetFile {file} {
   }
 }
 
+## @brief Creates a new fileset
+#
+# A file set is a list of files with a specific function within the project.
+#
+# @param[in] fileset 
+#
+# @returns The create_fileset command returns the name of the newly created fileset
+#
 proc CreateFileSet {fileset} {
   set a  [create_fileset -srcset $fileset]
   return  $a
 }
 
+## @brief Retrieves a fileset
+#
+# Gets a list of filesets in the current project that match a specified search pattern.
+# The default command gets a list of all filesets in the project.
+#
+# @param[in] fileset  the name to be checked
+#
+# @return             a list of filesets in the current project that match the specified search pattern.
+#
 proc GetFileSet {fileset} {
   set a  [get_filesets $fileset]
   return  $a
 }
 
+## @brief Add a new file to a fileset
+#
+# @para[in] file    name of the files to add. NOTE: directories are not supported. 
+# @para[in] fileset fileset name  
+# 
 proc AddFile {file fileset} {
   add_files -norecurse -fileset $fileset $file
 }
 
-
-proc CreateReportStrategy {DESIGN obj} {
-  if {[info commands create_report_config] != ""} {
-  ## Viavado Report Strategy
-    if {[string equal [get_property -quiet report_strategy $obj] ""]} {
-      # No report strategy needed
-      Msg Info "No report strategy needed for implementation"
-    } else {
-      # Report strategy needed since version 2017.3
-      set_property set_report_strategy_name 1 $obj
-      set_property report_strategy {Vivado Implementation Default Reports} $obj
-      set_property set_report_strategy_name 0 $obj
-
-      set reports [get_report_configs -of_objects $obj]
-      # Create 'impl_1_place_report_utilization_0' report (if not found)
-      if { [ string equal [get_report_configs -of_objects [get_runs impl_1] $globalSettings::DESIGN\_impl_1_place_report_utilization_0] "" ] } {
-        create_report_config -report_name $globalSettings::DESIGN\_impl_1_place_report_utilization_0 -report_type report_utilization:1.0 -steps place_design -runs impl_1
-      }
-      set obj [get_report_configs -of_objects [get_runs impl_1] $globalSettings::DESIGN\_impl_1_place_report_utilization_0]
-      if { $obj != "" } {
-
-      }
-
-      # Create 'impl_1_route_report_drc_0' report (if not found)
-      if { [ string equal [get_report_configs -of_objects [get_runs impl_1] $globalSettings::DESIGN\_impl_1_route_report_drc_0] "" ] } {
-        create_report_config -report_name $globalSettings::DESIGN\_impl_1_route_report_drc_0 -report_type report_drc:1.0 -steps route_design -runs impl_1
-      }
-      set obj [get_report_configs -of_objects [get_runs impl_1] $globalSettings::DESIGN\_impl_1_route_report_drc_0]
-      if { $obj != "" } {
-
-      }
-
-      # Create 'impl_1_route_report_power_0' report (if not found)
-      if { [ string equal [get_report_configs -of_objects [get_runs impl_1] $globalSettings::DESIGN\_impl_1_route_report_power_0] "" ] } {
-        create_report_config -report_name $globalSettings::DESIGN\_impl_1_route_report_power_0 -report_type report_power:1.0 -steps route_design -runs impl_1
-      }
-      set obj [get_report_configs -of_objects [get_runs impl_1] $globalSettings::DESIGN\_impl_1_route_report_power_0]
-      if { $obj != "" } {
-
-      }
-
-      # Create 'impl_1_route_report_timing_summary' report (if not found)
-      if { [ string equal [get_report_configs -of_objects [get_runs impl_1] $globalSettings::DESIGN\_impl_1_route_report_timing_summary] "" ] } {
-        create_report_config -report_name $globalSettings::DESIGN\_impl_1_route_report_timing_summary -report_type report_timing_summary:1.0 -steps route_design -runs impl_1
-      }
-      set obj [get_report_configs -of_objects [get_runs impl_1] $globalSettings::DESIGN\_impl_1_route_report_timing_summary]
-      if { $obj != "" } {
-        Msg Info "Report timing created successfully"
-      }
-
-      # Create 'impl_1_route_report_utilization' report (if not found)
-      if { [ string equal [get_report_configs -of_objects [get_runs impl_1] $globalSettings::DESIGN\_impl_1_route_report_utilization] "" ] } {
-        create_report_config -report_name $globalSettings::DESIGN\_impl_1_route_report_utilization -report_type report_utilization:1.0 -steps route_design -runs impl_1
-      }
-      set obj [get_report_configs -of_objects [get_runs impl_1] $globalSettings::DESIGN\_impl_1_route_report_utilization]
-      if { $obj != "" } {
-        Msg Info "Report utilization created successfully"
-      }
-
-
-      # Create 'impl_1_post_route_phys_opt_report_timing_summary_0' report (if not found)
-      if { [ string equal [get_report_configs -of_objects [get_runs impl_1] $globalSettings::DESIGN\_impl_1_post_route_phys_opt_report_timing_summary_0] "" ] } {
-        create_report_config -report_name $globalSettings::DESIGN\_impl_1_post_route_phys_opt_report_timing_summary_0 -report_type report_timing_summary:1.0 -steps post_route_phys_opt_design -runs impl_1
-      }
-      set obj [get_report_configs -of_objects [get_runs impl_1] $globalSettings::DESIGN\_impl_1_post_route_phys_opt_report_timing_summary_0]
-      if { $obj != "" } {
-        set_property -name "options.max_paths" -value "10" -objects $obj
-        set_property -name "options.warn_on_violation" -value "1" -objects $obj
-      }
-
-
-
-
-    }
-  } else {
-    puts "Won't create any report strategy, not in Vivado"
-  }
-}
-########################################################
-
-
+## @brief gets the full path to the /../../ folder
+#
+# @return "[file normalize [file dirname [info script]]]/../../"
+#
 proc GetRepoPath {} {
   return "[file normalize [file dirname [info script]]]/../../"
 }
-########################################################
 
-## Return 1 if the system Git version is greater or equal to the target
+## @brief Check git version installed in this machine
+#
+# @parameter[in] target_version the version required by the current project
+#
+# @return Return 1 if the system Git version is greater or equal to the target
+#
 proc GitVersion {target_version} {
   set ver [split $target_version "."]
   set v [exec git --version]
@@ -306,9 +303,13 @@ proc GitVersion {target_version} {
   set current [expr [lindex $current_ver 0]*100000 + [lindex $current_ver 1]*100 + [lindex $current_ver 2]]
   return [expr $target <= $current]
 }
-########################################################
 
-## Return 1 if the system Doxygen version is greater or equal to the target
+## @brief Checks doxygen version installed in this machine
+#
+# @parameter[in] target_version the version required by the current project
+#
+# @return Return 1 if the system Doxygen version is greater or equal to the target
+#
 proc DoxygenVersion {target_version} {
   set ver [split $target_version "."]
   set v [exec doxygen --version]
@@ -319,11 +320,11 @@ proc DoxygenVersion {target_version} {
 
   return [expr $target <= $current]
 }
-########################################################
 
-## Quartus only: determine file type from extension
+## @biref determine file type from extension
+#  Used only for Quartus
 #
-## Return FILE_TYPE
+## @return FILE_TYPE the file Type
 proc FindFileType {file_name} {
   set extension [file ext $file_name]
   switch $extension {
@@ -362,6 +363,11 @@ proc FindFileType {file_name} {
   return $file_extension
 }
 
+## @brief Set VHDL version to 2008 for *.vhd files
+#
+# @param[in] file_name the name of the HDL file
+#
+# @return "-hdl_version VHDL_2008" if the file is a *.vhd files else ""
 proc FindVhdlVersion {file_name} {
   set extension [file ext $file_name]
   switch $extension {
@@ -379,18 +385,18 @@ proc FindVhdlVersion {file_name} {
   return $vhdl_version
 }
 
-
-
-########################################################
-
-## Read a list file and returns two dictionaries for the libraries and the properties.
-#
+## @brief Read a list file and adds the files to Vivado/Quartus, adding the additional information as file type.
+#  
 # Additional information is provided with text separated from the file name with one or more spaces
 #
-# Arguments:
-# * lsit_file: file containing vhdl list with optional properties
-# * path     : path the vhdl file are referred to in the list file
-# * lib      : name of the library files will be added to
+# @param[in] lsit_file file containing vhdl list with optional properties
+# @param[in] path      path the vhdl file are referred to in the list file
+# @param[in] lib       name of the library files will be added to
+# @param[in] src       name of VivadoFileSet files will be added to
+# @param[in] no_add    if a value is specified, the files will added to memory only, not to the project
+#
+# @return              A list of the files added to the project
+#
 proc ReadListFile {list_file path lib} {
   set list_file
   set fp [open $list_file r]
@@ -444,16 +450,11 @@ proc ReadListFile {list_file path lib} {
   }
   return [list $libraries $properties]
 }
-########################################################
 
-## Read a list file and adds the files to Vivado/Quartus, adding the additional information as file type.
+## @brief Read a list file and adds the files to Vivado/Quartus, adding the additional information as file type.
+# 
 # This procedure extracts the Vivado fileset and the library name from the list-file name.
-#
 # Additional information is provided with text separated from the file name with one or more spaces
-#
-# Arguments:
-# * list_file: file containing vhdl list with optional properties
-# * path:      the path the vhdl file are referred to in the list file
 #
 # list_file should be formatted as follows:
 # LIB_NAME.FILE_SET
@@ -465,7 +466,10 @@ proc ReadListFile {list_file path lib} {
 # * .sim : for simulation files (corresponding to sim_1)
 # * .con : for constraint files (corresponding to constrs_1)
 # any other file extension will cause an error
-
+# 
+# @param[in] lsit_file file containing vhdl list with optional properties
+# @param[in] path      the path the vhdl file are referred to in the list file
+#
 proc SmartListFile {list_file path} {
   set ext [file extension $list_file]
   set lib [file rootname [file tail $list_file]]
@@ -477,14 +481,15 @@ proc SmartListFile {list_file path} {
   Msg Info "Reading sources from file $list_file, lib: $lib"
   return [ReadListFile $list_file $path $lib]
 }
-########################################################
 
-## Get git SHA of a vivado library
+## @brief Get git SHA of a vivado library
+# 
+# If the special string "ALL" is used, returns the global hash
 #
-# Arguments:\n
-# * lib: the name of the library whose latest commit hash will be returned
+# @param[in] lib the name of the library whose latest commit hash will be returned
 #
-# if the special string "ALL" is used, returns the global hash
+# @return        tghe git SHA of the specified library  
+#
 proc GetHashLib {lib} {
   if {$lib eq "ALL"} {
     set ret [exec git log --format=%h -1]
@@ -494,15 +499,16 @@ proc GetHashLib {lib} {
 
   return $ret
 }
-########################################################
 
-## Recursively gets file names from list file
+## @brief Recursively gets file names from list file
+#  
+#  If the list file contains files with extension .src .sim .con .sub, it will recursively open them
 #
-# Arguments:\n
-# * FILE: list file to open
-# * path: the path the files are referred to in the list file
+#  @param[in] FILE  list file to open
+#  @param[in] path  the path the files are referred to in the list file
 #
-# if the list file contains files with extension .src .sim .con .sub, it will recursively open them
+#  @returns         a list of the files contained in the list file
+#
 proc GetFileList {FILE path} {
   set fp [open $FILE r]
   set file_data [read $fp]
@@ -530,15 +536,16 @@ proc GetFileList {FILE path} {
 
   return $file_list
 }
-########################################################
 
-## Get git SHA of a subset of list file
+## @brief Get git SHA of a subset of list file
+#  
+# If the special string "ALL" is used, returns the global hash
 #
-# Arguments:\n
-# * FILE: list file or path containing the subset of files whose latest commit hash will be returned
-# * path:      the path the vhdl files are referred to in the list file (not used if FILE is a path or "ALL")
+# @param[in] FILE list file or path containing the subset of files whose latest commit hash will be returned
+# @param[in] path the path the vhdl files are referred to in the list file (not used if FILE is a path or "ALL")
 #
-# if the special string "ALL" is used, returns the global hash
+# @return         the value of the desired SHA
+#
 proc GetHash {FILE path} {
   if {$FILE eq "ALL"} {
     set ret [exec git log --format=%h -1]
@@ -557,15 +564,16 @@ proc GetHash {FILE path} {
   return $ret
 
 }
-########################################################
 
-
-## Get git version and commit hash of a subset of files
-# Arguments:\n
-## * FILE: list file or path containing the subset of files whose latest commit hash will be returned
-# * path:      the path the vhdl file are referred to in the list file (not used if FILE is a path or "ALL")
+## @brief Get git version and commit hash of a subset of files
+# 
+# If the special string "ALL" is used, returns the global hash of the path specified in path
+# 
+# @param[in] FILE list file or path containing the subset of files whose latest commit hash will be returned
+# @param[in] path the path the vhdl file are referred to in the list file (not used if FILE is a path or "ALL")
 #
-# if the special string "ALL" is used, returns the global hash of the path specified in path
+# @return         the desired version
+#
 proc GetVer {FILE path} {
   set SHA [GetHash $FILE $path]
   set path [file normalize $path]
@@ -628,26 +636,26 @@ proc GetVer {FILE path} {
   return [list $M$m$c $comm]
   cd $old_path
 }
-########################################################
-
 
 ## Convert hex version to M.m.p string
-# Arguments:\n
-# version: the version (in 32-bt hexadecimal format 0xMMmmpppp) to be converted
-
+#  
+#  @param[in] version the version (in 32-bt hexadecimal format 0xMMmmpppp) to be converted
+#
+#  @return            a string containing the version in M.m.p format
+#
 proc HexVersionToString {version} {
   scan [string range $version 0 1] %x M
   scan [string range $version 2 3] %x m
   scan [string range $version 4 7] %x c
   return "$M.$m.$c"
 }
-########################################################
 
-
-## Tags the repository with a new version calculated on the basis of the previous tags
-# Arguments:\n
-# * tag: a tag in the Hog format: v$M.$m.$p or b$(mr)v$M.$m.$p-$n
-
+## @brief Tags the repository with a new version calculated on the basis of the previous tags
+# 
+# @param[in] tag  a tag in the Hog format: v$M.$m.$p or b$(mr)v$M.$m.$p-$n
+#
+# @return         a list containing: Major minor pathch v.
+#
 proc ExtractVersionFromTag {tag} {
   if {[regexp {^(?:b(\d+))?v(\d+)\.(\d+).(\d+)(?:-\d+)?$} $tag -> mr M m p]} {
     if {$mr eq ""} {
@@ -663,13 +671,12 @@ proc ExtractVersionFromTag {tag} {
   return [list $M $m $p $mr]
 }
 
-
-## Tag the repository with a new version calculated on the basis of the previous tags
-# Arguments:\n
-# * merge_request_number: Gitlab merge request number to be used in candidate version
-# * version_level:        0 if patch is to be increased (default), 1 if minor level is to be increase, 2 if major level is to be increased, 3 or bigger is used to trasform a candidate for a version (starting with b) into an official version
-# * default_level:        If version level is 3 or more, will specify what level to increase when creating the official tag: 0 will increase patch (default), 1 will increase minor and 2 will increase major.
-
+## @brief Tags the repository with a new version calculated on the basis of the previous tags
+#
+# @param[in] merge_request_number: Gitlab merge request number to be used in candidate version
+# @param[in] version_level:        0 if patch is to be increased (default), 1 if minor level is to be increase, 2 if major level is to be increased, 3 or bigger is used to trasform a candidate for a version (starting with b) into an official version
+# @param[in] default_level:        If version level is 3 or more, will specify what level to increase when creating the official tag: 0 will increase patch (default), 1 will increase minor and 2 will increase major.
+#
 proc TagRepository {{merge_request_number 0} {version_level 0} {default_level 0}} {
   if [catch {exec git tag --sort=-creatordate} last_tag] {
     Msg Error "No Hog version tags found in this repository."
@@ -757,20 +764,17 @@ proc TagRepository {{merge_request_number 0} {version_level 0} {default_level 0}
 
   return [list $tag $new_tag]
 }
-########################################################
 
-## Read a XML list file and copy files to destination
+## @brief Read a XML list file and copy files to destination
 #
 # Additional information is provided with text separated from the file name with one or more spaces
 #
-# Arguments:
-# * lsit_file:   file containing list of XML files with optional properties
-# * path:        the path the XML files are referred to in the list file
-# * dst:         the path the XML files must be copyed to
-# * xml_version: the M.m.p version to be used to replace the __VERSION__ placeholder in any of the xml files
-# * xml_sha:     the Git-SHA to be used to replace the __GIT_SHA__ placeholder in any of the xml files
-
-
+# @param[in] lsit_file   file containing list of XML files with optional properties
+# @param[in] path        the path the XML files are referred to in the list file
+# @param[in] dst         the path the XML files must be copyed to
+# @param[in] xml_version the M.m.p version to be used to replace the __VERSION__ placeholder in any of the xml files
+# @param[in] xml_sha     the Git-SHA to be used to replace the __GIT_SHA__ placeholder in any of the xml files
+#
 proc CopyXMLsFromListFile {list_file path dst {generate 0} {xml_version "0.0.0"} {xml_sha "00000000"} } {
   if {[catch {exec gen_ipbus_addr_decode -h} msg]}  {
     set can_generate 0
@@ -912,11 +916,11 @@ proc CompareVHDL {file1 file2} {
   return $diff
 }
 
-## Returns the dst path relative to base
-## Arguments:
-# * base   the path with respect to witch the dst path is calculated
-# * dst:   the path to be calculated with respect to base
-
+## @brief Returns the dst path relative to base
+# 
+# @param[in] base   the path with respect to witch the dst path is calculated                             
+# @param[in] dst    the path to be calculated with respect to base
+#
 proc Relative {base dst} {
   if {![string equal [file pathtype $base] [file pathtype $dst]]} {
     return -code error "Unable to compute relation for paths of different pathtypes: [file pathtype $base] vs. [file pathtype $dst], ($base vs. $dst)"
@@ -950,13 +954,14 @@ proc Relative {base dst} {
 
   return $dst
 }
-########################################################
-## Returns a list of 2 dictionaries: libraries and properties
+
+## @ brief Returns a list of 2 dictionaries: libraries and properties
 # - libraries has library name as keys and a list of filenames as values
 # - properties has as file names as keys and a list of properties as values
 #
 # Files, libraries and properties are extracted from the current Vivado project
-
+#
+# @return a list of two elements. The first elememnt is a dictionary containing all libraries. THe second elements is a disctionary containing all properties
 proc GetProjectFiles {} {
 
   set all_files [get_files]
@@ -1006,41 +1011,38 @@ proc GetProjectFiles {} {
 
   return [list $libraries $properties]
 }
-########################################################
 
 
-## Returns a list of 2 dictionaries: libraries and properties
+## @brief Extract files, libraries and properties from the project's list files
+#
+# @param[in] list_path path to the list file directory 
+# @param[in] repo_path the path of the repository root.
+# 
+# @return a list of 2 dictionaries: libraries and properties
 # - libraries has library name as keys and a list of filenames as values
 # - properties has as file names as keys and a list of properties as values
 #
-# Files, libraries and properties are extracted from the project's Hog list files
-#
-# Arguments:
-# - proj_path: the path of the Vivado project xpr file inside the Hog repository.
-#     If not given it will be automatically evaluated if the function is called from within Vivado.
-
-proc GetHogFiles {} {
+proc GetHogFiles {list_path repo_path} {
   set libraries [dict create]
   set properties [dict create]
 
-  puts $globalSettings::list_path
-  set list_files [glob -directory $globalSettings::list_path "*"]
+  puts $list_path
+  set list_files [glob -directory $list_path "*"]
 
   foreach f $list_files {
-    lassign [SmartListFile $f $globalSettings::repo_path] l p
+    lassign [SmartListFile $f $repo_path] l p
     set libraries [dict merge $l $libraries]
     set properties [dict merge $p $properties]
   }
   return [list $libraries $properties]
 }
-########################################################
 
 
-## Add libraries and properties to vivado/quartus project
-# Arguments:
-# - libraries has library name as keys and a list of filenames as values
-# - properties has as file names as keys and a list of properties as values
-# - file_sets has as file names as keays and the corresponding vivado file_set as value
+## @brief  Add libraries and properties to vivado/quartus project
+#
+# @param[in] libraries has library name as keys and a list of filenames as values
+# @param[in] properties has as file names as keys and a list of properties as values
+# 
 proc AddHogFiles { libraries properties } {
   Msg Info "Adding source files to project..."
   foreach lib [dict keys $libraries] {
@@ -1176,9 +1178,8 @@ proc AddHogFiles { libraries properties } {
   }
 }
 
-## Forces all the Vivado runs to look up to date, useful before write bitstream
+## @brief Forces all the Vivado runs to look up to date, useful before write bitstream
 #
-
 proc ForceUpToDate {} {
   Msg Info "Forcing all the runs to look up to date..."
   set runs [get_runs]
@@ -1187,14 +1188,14 @@ proc ForceUpToDate {} {
     set_property needs_refresh false [get_runs $r]
   }
 }
-########################################################
 
-## Copy IP generated files from/to an EOS repository
-# Arguments:\n
-# - what_to_do: can be "push", if you want to copy the local IP synth result to eos or "pull" if you want to copy the files from eos to your local repository
-# - xci_file: the local IP xci file
-# - ip_path: the path of directory you want the IP to be saved on eos
-# - force: if 1 pushes IP even if already on EOS
+
+## @brief Copy IP generated files from/to an EOS repository
+# 
+# @param[in] what_to_do: can be "push", if you want to copy the local IP synth result to eos or "pull" if you want to copy the files from eos to your local repository
+# @param[in] xci_file: the local IP xci file
+# @param[in] ip_path: the path of directory you want the IP to be saved on eos
+# @param[in] force: if 1 pushes IP even if already on EOS
 
 proc HandleIP {what_to_do xci_file ip_path runs_dir {force 0}} {
   if {!($what_to_do eq "push") && !($what_to_do eq "pull")} {
@@ -1301,9 +1302,9 @@ proc HandleIP {what_to_do xci_file ip_path runs_dir {force 0}} {
   return 0
 }
 
-## Evaluates the md5 sum of af a file
-##  Argumets:
-# - file_name: the name of the file of which you want to vevaluate the md5 checksum
+## @brief Evaluates the md5 sum of af a file
+# 
+#  @param[in] file_name: the name of the file of which you want to vevaluate the md5 checksum
 proc Md5Sum {file_name} {
   if !([file exists $file_name]) {
     Msg Warning "Could not find $xci_file."
@@ -1317,8 +1318,11 @@ proc Md5Sum {file_name} {
   }
 }
 
-## Checks that "ref" in .gitlab-ci.yml matches the gitlab-ci file in the
-##  Hog submodule
+
+## @brief Checks that "ref" in .gitlab-ci.yml actually matches the gitlab-ci file in the 
+#
+#  @param[in] repo_path path to the repository root
+#  @param[in] allow_failure if true throws CriticalWarnings instead of Errors
 #
 proc CheckYmlRef {repo_path allow_failure} {
 
@@ -1403,9 +1407,9 @@ You can fix this by installing package \"tcllib\""
   cd "$thisPath"
 }
 
-## Parse JSON file
-## returns -1 in case of failure
-## returns JSON KEY VALUE in case of success
+## @brief Parse JSON file
+# 
+# @returns  -1 in case of failure, JSON KEY VALUE in case of success
 #
 proc ParseJSON {JSON_FILE JSON_KEY} {
   set result [catch {package require Tcl 8.4} TclFound]
@@ -1430,12 +1434,14 @@ proc ParseJSON {JSON_FILE JSON_KEY} {
   }
 }
 
-## Handle eos commands
-# returns a list of 2 elements: the return value (0 if no error occurred) and the output of the eos command
+## @brief Handle eos commands
+# 
 # It can be used with lassign like this: lassaign [eos <eos command> ] ret result
-# Arguments:\n
-# - command: the eos command to be run, e.g. ls, cp, mv, rm
-# - attempts: (default 0) how many times the command should be attempted in case of failure
+# 
+#  @param[in] command: the eos command to be run, e.g. ls, cp, mv, rm
+#  @param[in] attempts: (default 0) how many times the command should be attempted in case of failure
+#
+#  @returns a list of 2 elements: the return value (0 if no error occurred) and the output of the eos command
 proc eos {command {attempt 1}}  {
   global env
   if ![info exists env(EOS_MGM_URL)] {
@@ -1461,13 +1467,11 @@ proc eos {command {attempt 1}}  {
   return [list $ret $result]
 }
 
-########################################################
 
-## Parses .prop files in Top/$proj_name/list directory and creates a dict with the values
+## @brief Parses .prop files in Top/$proj_name/list directory and creates a dict with the values
 #
+# @param[in] proj_name:   name of the project that requires the properties in the .prop file
 #
-# Arguments:
-# * proj_name:   name of the project that requires the properties in the .prop file
 proc ParseProcFile {proj_name} {
   set property_files [glob -nocomplain "./Top/$proj_name/list/*.prop"]
   set propDict [dict create ]
@@ -1489,12 +1493,14 @@ proc ParseProcFile {proj_name} {
 
 ########################################################
 
-## Gets MAX number of Threads property from .prop file in Top/$proj_name/list directory. If property
-# is not set returns dafault = 1
+## @brief Gets MAX number of Threads property from .prop file in Top/$proj_name/list directory.
 #
+# If property is not set returns dafault = 1
 #
-# Arguments:
-# * proj_name:   name of the project
+# @param[in] proj_name:   name of the project
+#
+# @return 1 if property is not set else the value of MaxThreads
+#
 proc GetMaxThreads {proj_name} {
   set maxThreads 1
   set propDict [ParseProcFile $proj_name]

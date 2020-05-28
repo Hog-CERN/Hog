@@ -21,43 +21,41 @@ or you can start your commit message with `ResolveWIP:` from the command line.
   MyProject> git push
 ```
 
-If you opt for the website method, remember that you need to push another commit afterwards to start the CI. Once the pipeline passes and your changes are approved, if required, you can merge your source branch simply by clicking on the merge button in the merge request!
+If you opt for the website method, remember that you need to push another commit afterwards to start the CI. Once the pipeline passes and your changes are approved, if required, you can merge your source branch simply by clicking on the merge button in the merge request.
 
 <img style="float: middle;" width="700" src="../figures/merge.png">
 
-## I do not want to use issues
+## Create a Merge Request without an issue
 
 You can avoid using issues by creating a new branch and a merge request connected to your branch.
 You can still use the nice `WIP` feature by adding `[WIP]` or `WIP:` at the beginning of the title of the merge request: the merge request will be [marked as work in progress](https://docs.gitlab.com/ee/user/project/merge_requests/work_in_progress_merge_requests.html).
 
-## OMG I already have my code somewhere on my pc but I have never committed it! OMG I Accidentally committed everything to a wrong branch!
+## Commit your code and accidental commits
 
-If you have already some uncommitted/committed new feature, **DON'T PANIC!**
+If you have already some uncommitted/committed new features, you should create a new branch, commit your code there and create a new merge request when ready.
 
-You can always create a new branch, commit your code there and simply create a new merge request when ready.
-
-If you have already committed your changes to a wrong branch (let's say the master) simply reset that branch to the latest correct commit.
+If you have already committed your changes to a wrong branch (e.g. the `master`) simply reset that branch to the latest correct commit, e.g.
 ```bash
   MyProject> git reset --hard <latest_correct_commit_hash>
   MyProject> git push origin master
 ```
 
-Create a new branch, check it out and commit your code there. To avoid direct commit to the master (or official) branch, you can configure the repository to not allow anybody to push directly in a protected branch here: https://gitlab.cern.ch/MyGroup/MyProject/-/settings/repository
+Create a new branch, check it out and commit your code there. To avoid direct commit to the master (or official) branch, you can configure the repository to forbid pushing directly in a protected branch here: https://gitlab.cern.ch/MyGroup/MyProject/-/settings/repository
 
 ## Increasing version number
-Hog uses a 32 bit integer to assign a version to your firmware.
+Hog uses a 32-bit integer to assign a version to your firmware.
 The final version will have the form *vMAJOR_VERSION.MINOR_VERSION.patch*.
 You will be able to change these numbers by editing the merge request description.
 
-The bit 31 down to 24 indicate a major revision number; this number can be increased by placing `MAJOR_VERSION` in the merge request description.
+The bits 31 down to 24 indicate a major revision number; this number can be increased by placing `MAJOR_VERSION` in the merge request description.
 While merging the merge request Hog will read the description, find the `MAJOR_VERSION` keyword and increase the major revision counter.
 This will also reset the minor and patch counters.
 
-The bit 23 down to 16 are indicate a minor revision number; this number can be increased by placing `MINOR_VERSION` in the merge request description.
+The bits 23 down to 16 indicate a minor revision number. This number can be increased by placing `MINOR_VERSION` in the merge request description.
 While merging the merge request Hog will read the description, find the `MINOR_VERSION` keyword and increase the minor revision counter.
 This will also reset the patch counters.
 
-The bit 15 down to 0 are indicate a major revision number; this number will be increased automatically at each accepted merge request.
+The bits 15 down to 0 indicate a major revision number. This number will be increased automatically at each accepted merge request.
 While merging the merge request Hog will read the description, find no keyword and increase the patch counter.
 
 ### Examples
@@ -67,11 +65,11 @@ Let's suppose the last tag of your firmware is v1.2.4, the possible scenarios ar
 | Merge request description        | Original version | Final version |
 |:---------------------------------|:----------------:|:-------------:|
 |  without any keyword             | v1.2.4     | v1.2.5    |
-| conatins `MINOR_VERSION` keyword | v1.2.4       | v1.3.0    |
-| conatins `MAJOR_VERSION` keyword | v1.2.4       | v2.0.0    |
+| contains `MINOR_VERSION` keyword | v1.2.4       | v1.3.0    |
+| contains `MAJOR_VERSION` keyword | v1.2.4       | v2.0.0    |
 
 ## Gitlab Release Notes
-When creating a new tag, Hog CI will also create a new release. Hog has the ability to write automatically the release note, by looking at the merge request commit messages. If you want that a commit message is included in the release note, you should start your commit message with the `FEATURE:` keyword. For example:
+When creating a new tag, Hog CI will also create a new release. Hog has the ability to write automatically the release note, by looking at the merge request commit messages. If you want a commit message to be included in the release note, you should start your commit message with the `FEATURE:` keyword. For example:
 
 ```bash
 git commit -m "FEATURE: Some awesome update"

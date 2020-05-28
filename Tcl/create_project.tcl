@@ -12,10 +12,13 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-## Define the following variables before sourcing this script:
+## @file create_project.tcl
+#  @brief contains all functions needed to create a new project
+#  @todo This file will need to be fully documented
 #
-# set bin_file 1
-# set use_questa_simulator 1
+# Define the following variables before sourcing this script:
+#
+# set BIN_FILE 1
 # 
 # ## FPGA and Vivado strategies and flows
 # set FPGA xc7vx550tffg1927-2
@@ -25,10 +28,11 @@
 # set IMPL_FLOW {Vivado Implementation 2016}
 # set PROPERTIES [dict create synth_1 [dict create opt_speed true opt_area false] impl_1 [dict create keep_registers true retiming true]]
 
-########################################################
-########################################################
-## Namespace of all the project settings
+## @namespace globalSettings
+# @brief Namespace of all the project settings
 #
+# Variables with capital letters are expected to be passed by the caller.
+# Variables with samll letters are evaluated in the script defined in create_project.tcl
 #
 namespace eval globalSettings {
   variable FPGA
@@ -40,26 +44,30 @@ namespace eval globalSettings {
   variable IMPL_FLOW
   variable DESIGN
   variable PROPERTIES
-  variable path_repo
+  variable PATH_REPO
+  variable BIN_FILE
 
   variable pre_synth_file
   variable post_synth_file
+  variable pre_impl_file
   variable post_impl_file
+  variable pre_bit_file
   variable post_bit_file
   variable tcl_path
   variable repo_path
   variable top_path
   variable list_path
-  variable BUILD_DIR
+  variable build_dir
   variable modelsim_path
   variable top_name
   variable synth_top_module
   variable user_ip_repo
 
-  variable bin_file
   variable pre_synth
   variable post_synth
+  variable pre_impl
   variable post_impl
+  variable pre_bit
   variable post_bit
 }
 
@@ -70,7 +78,7 @@ proc CreateProject {} {
     if {$globalSettings::top_name != $globalSettings::DESIGN} {
       Msg Info "This project has got a flavour, the top module name ($globalSettings::top_name) differs from the project name ($globalSettings::DESIGN)."
     }
-    create_project -force $globalSettings::DESIGN $globalSettings::BUILD_DIR -part $globalSettings::FPGA
+    create_project -force $globalSettings::DESIGN $globalSettings::build_dir -part $globalSettings::FPGA
 
     ## Set project properties
     set obj [get_projects $globalSettings::DESIGN]
@@ -98,8 +106,8 @@ proc CreateProject {} {
     if {[string equal $globalSettings::FAMILY "quartus_only"]} {
       Msg Error "You must specify a device Familty for Quartus"
     } else {
-      file mkdir $globalSettings::BUILD_DIR
-      cd $globalSettings::BUILD_DIR
+      file mkdir $globalSettings::build_dir
+      cd $globalSettings::build_dir
       if {[is_project_open]} {
         project_close
       }
@@ -162,15 +170,97 @@ proc CreateProject {} {
     ##############
   set list_files [glob -directory $globalSettings::list_path "*"]
 
-  lassign [GetHogFiles] libraries properties
+  lassign [GetHogFiles $globalSettings::list_path $globalSettings::repo_path] libraries properties
   AddHogFiles $libraries $properties
 }
-########################################################
 
 
-### SYNTH ###
+## @brief Set Vivado Report strategy for implementation
+#
+#  @param[in] obj tghe projet object
+#
+proc CreateReportStrategy {obj} {
+  if {[info commands create_report_config] != ""} {
+  ## Viavado Report Strategy
+    if {[string equal [get_property -quiet report_strategy $obj] ""]} {
+      # No report strategy needed
+      Msg Info "No report strategy needed for implementation"
+    } else {
+      # Report strategy needed since version 2017.3
+      set_property set_report_strategy_name 1 $obj
+      set_property report_strategy {Vivado Implementation Default Reports} $obj
+      set_property set_report_strategy_name 0 $obj
 
-proc configureSynth {} {
+      set reports [get_report_configs -of_objects $obj]
+      # Create 'impl_1_place_report_utilization_0' report (if not found)
+      if { [ string equal [get_report_configs -of_objects [get_runs impl_1] $globalSettings::DESIGN\_impl_1_place_report_utilization_0] "" ] } {
+        create_report_config -report_name $globalSettings::DESIGN\_impl_1_place_report_utilization_0 -report_type report_utilization:1.0 -steps place_design -runs impl_1
+      }
+      set obj [get_report_configs -of_objects [get_runs impl_1] $globalSettings::DESIGN\_impl_1_place_report_utilization_0]
+      if { $obj != "" } {
+
+      }
+
+      # Create 'impl_1_route_report_drc_0' report (if not found)
+      if { [ string equal [get_report_configs -of_objects [get_runs impl_1] $globalSettings::DESIGN\_impl_1_route_report_drc_0] "" ] } {
+        create_report_config -report_name $globalSettings::DESIGN\_impl_1_route_report_drc_0 -report_type report_drc:1.0 -steps route_design -runs impl_1
+      }
+      set obj [get_report_configs -of_objects [get_runs impl_1] $globalSettings::DESIGN\_impl_1_route_report_drc_0]
+      if { $obj != "" } {
+
+      }
+
+      # Create 'impl_1_route_report_power_0' report (if not found)
+      if { [ string equal [get_report_configs -of_objects [get_runs impl_1] $globalSettings::DESIGN\_impl_1_route_report_power_0] "" ] } {
+        create_report_config -report_name $globalSettings::DESIGN\_impl_1_route_report_power_0 -report_type report_power:1.0 -steps route_design -runs impl_1
+      }
+      set obj [get_report_configs -of_objects [get_runs impl_1] $globalSettings::DESIGN\_impl_1_route_report_power_0]
+      if { $obj != "" } {
+
+      }
+
+      # Create 'impl_1_route_report_timing_summary' report (if not found)
+      if { [ string equal [get_report_configs -of_objects [get_runs impl_1] $globalSettings::DESIGN\_impl_1_route_report_timing_summary] "" ] } {
+        create_report_config -report_name $globalSettings::DESIGN\_impl_1_route_report_timing_summary -report_type report_timing_summary:1.0 -steps route_design -runs impl_1
+      }
+      set obj [get_report_configs -of_objects [get_runs impl_1] $globalSettings::DESIGN\_impl_1_route_report_timing_summary]
+      if { $obj != "" } {
+        Msg Info "Report timing created successfully"
+      }
+
+      # Create 'impl_1_route_report_utilization' report (if not found)
+      if { [ string equal [get_report_configs -of_objects [get_runs impl_1] $globalSettings::DESIGN\_impl_1_route_report_utilization] "" ] } {
+        create_report_config -report_name $globalSettings::DESIGN\_impl_1_route_report_utilization -report_type report_utilization:1.0 -steps route_design -runs impl_1
+      }
+      set obj [get_report_configs -of_objects [get_runs impl_1] $globalSettings::DESIGN\_impl_1_route_report_utilization]
+      if { $obj != "" } {
+        Msg Info "Report utilization created successfully"
+      }
+
+
+      # Create 'impl_1_post_route_phys_opt_report_timing_summary_0' report (if not found)
+      if { [ string equal [get_report_configs -of_objects [get_runs impl_1] $globalSettings::DESIGN\_impl_1_post_route_phys_opt_report_timing_summary_0] "" ] } {
+        create_report_config -report_name $globalSettings::DESIGN\_impl_1_post_route_phys_opt_report_timing_summary_0 -report_type report_timing_summary:1.0 -steps post_route_phys_opt_design -runs impl_1
+      }
+      set obj [get_report_configs -of_objects [get_runs impl_1] $globalSettings::DESIGN\_impl_1_post_route_phys_opt_report_timing_summary_0]
+      if { $obj != "" } {
+        set_property -name "options.max_paths" -value "10" -objects $obj
+        set_property -name "options.warn_on_violation" -value "1" -objects $obj
+      }
+
+    }
+  } else {
+    puts "Won't create any report strategy, not in Vivado"
+  }
+}
+
+
+## @brief configure synthesis.
+#
+# The method uses the content of globalSettings::SYNTH_FLOW and globalSettings::SYNTH_STRATEGY to set the implementation strategy and flow.
+# The function also sets Hog specific pre and post synthesis scripts
+#
+proc ConfigureSynthesis {} {
   if {[info commands send_msg_id] != ""} {
         #VIVADO ONLY
         ## Create 'synthesis ' run (if not found)
@@ -244,7 +334,12 @@ proc configureSynth {} {
   }
 } 
 
-proc configureImpl {} {
+## @brief configure implementation.
+#
+# The configuration is based on the content of globalSettings::IMPL_FLOW and globalSettings::IMPL_STRATEGY
+# The function also stes Hog spoecific pre and post implementation and, pre and post implementation  scripts
+#
+proc ConfigureImplementation {} {
   if {[info commands send_msg_id] != ""} {
         # Create 'impl_1' run (if not found)
     if {[string equal [get_runs -quiet impl_1] ""]} {
@@ -261,10 +356,10 @@ proc configureImpl {} {
     set_property "steps.write_bitstream.args.verbose" "0" $obj
 
         ## set binfile production
-    if {$globalSettings::bin_file == 1} {
-      set_property "steps.write_bitstream.args.bin_file" "1" $obj
+    if {$globalSettings::BIN_FILE == 1} {
+      set_property "steps.write_bitstream.args.BIN_FILE" "1" $obj
     } else {
-      set_property "steps.write_bitstream.args.bin_file" "0" $obj
+      set_property "steps.write_bitstream.args.BIN_FILE" "0" $obj
     }
   } elseif {[info commands project_new] != ""} {
             #QUARTUS only
@@ -329,13 +424,13 @@ proc configureImpl {} {
     }
   }
 
-  CreateReportStrategy $globalSettings::DESIGN $obj
+  CreateReportStrategy $obj
 }
 
 
-
-
-proc configureSimulation {} {
+## @brief configure simulation
+#
+proc ConfigureSimulation {} {
   if {[info commands send_msg_id] != ""} {
 
         ##############
@@ -354,7 +449,9 @@ proc configureSimulation {} {
   }
 }
 
-proc configureProperties {} {
+## @brief uses the content of globalSettings::PROPERTIES to set additional project properties
+#
+proc ConfigureProperties {} {
   if {[info commands send_msg_id] != ""} {
         ##################
         # RUN PROPERTIES #
@@ -379,8 +476,9 @@ proc configureProperties {} {
   }
 }
 
-
-proc upgradeIP {} {
+## @brief upgrade IPs in the project
+#
+proc UpgradeIP {} {
   if {[info commands send_msg_id] != ""} {
     # set the current impl run
     current_run -implementation [get_runs impl_1]
@@ -403,14 +501,15 @@ proc upgradeIP {} {
   }
 }
 
-############################################################
+###########################################################################################################################################################################################
+
 
 #IMPLEMENT SETTINGS NAMESPACE
 set tcl_path         [file normalize "[file dirname [info script]]"]
 source $tcl_path/hog.tcl
 
-#this path_repo should be done better
-set globalSettings::path_repo $::path_repo
+#this PATH_REPO should be done better
+set globalSettings::PATH_REPO $::PATH_REPO
 
 set globalSettings::FPGA $::FPGA
 
@@ -430,24 +529,24 @@ if {[info exists ::SIMULATOR]} {
 
 
 if {[info exist ::bin_file]} { 
-  set globalSettings::bin_file $::bin_file
+  set globalSettings::BIN_FILE $::bin_file
 } else {
-  set globalSettings::bin_file 0
+  set globalSettings::BIN_FILE 0
 }
 if {[info exists ::PROPERTIES]} {
   set globalSettings::PROPERTIES $::PROPERTIES
 }
 
 
-## BUILD_DIR=VivadoProject if vivado or QuartusProject if quartus or Project if tclshell
+## build_dir=VivadoProject if vivado or QuartusProject if quartus or Project if tclshell
 if {[info commands send_msg_id] != ""} {
     #Vivado only
-  set BUILD_DIR_NAME "VivadoProject"
+  set build_dir_name "VivadoProject"
 }  elseif {[info commands project_new] != ""} {
     #QUARTUS only
-  set BUILD_DIR_NAME "QuartusProject"
+  set build_dir_name "QuartusProject"
 } else {
-  set BUILD_DIR_NAME "Project"
+  set build_dir_name "Project"
 }
 
 
@@ -464,28 +563,27 @@ set globalSettings::tcl_path         [file normalize "[file dirname [info script
 set globalSettings::repo_path        [file normalize "$globalSettings::tcl_path/../../"]
 set globalSettings::top_path         "$globalSettings::repo_path/Top/$DESIGN"
 set globalSettings::list_path        "$globalSettings::top_path/list"
-set globalSettings::BUILD_DIR        "$globalSettings::repo_path/$BUILD_DIR_NAME/$DESIGN"
+set globalSettings::build_dir        "$globalSettings::repo_path/$build_dir_name/$DESIGN"
 set globalSettings::modelsim_path    "$globalSettings::repo_path/SimulationLib"
 set globalSettings::top_name          [file root $globalSettings::DESIGN]
 set globalSettings::synth_top_module "top_$globalSettings::top_name"
 set globalSettings::user_ip_repo     "$globalSettings::repo_path/IP_repository"
 
-
 set globalSettings::pre_synth  [file normalize "$globalSettings::tcl_path/integrated/$globalSettings::pre_synth_file"]
 set globalSettings::post_synth [file normalize "$globalSettings::tcl_path/integrated/$globalSettings::post_synth_file"]
-set globalSettings::pre_impl  [file normalize "$globalSettings::tcl_path/integrated/$globalSettings::pre_impl_file"]
+set globalSettings::pre_impl   [file normalize "$globalSettings::tcl_path/integrated/$globalSettings::pre_impl_file"]
 set globalSettings::post_impl  [file normalize "$globalSettings::tcl_path/integrated/$globalSettings::post_impl_file"]
-set globalSettings::pre_bit   [file normalize "$globalSettings::tcl_path/integrated/$globalSettings::pre_bit_file"]
+set globalSettings::pre_bit    [file normalize "$globalSettings::tcl_path/integrated/$globalSettings::pre_bit_file"]
 set globalSettings::post_bit   [file normalize "$globalSettings::tcl_path/integrated/$globalSettings::post_bit_file"]
 
 
 CreateProject
 
-configureSynth
-configureImpl
-configureSimulation
-configureProperties
-upgradeIP
+ConfigureSynthesis
+ConfigureImplementation
+ConfigureSimulation
+ConfigureProperties
+UpgradeIP
 
 ##############
 #    RUNS    #

@@ -1,10 +1,11 @@
-# IPbus support
+# Hog and IPbus
 
 Hog supports IPbus by including few features specific for this package.
 The IPbus submodule and the generated VHDL files must be included in your project using the `*.sub` and `*.src` [files](09-List-files.md).
 
-Hog helps you keep track of the xml file versioning by usage of dedicated generics in the VHDL and node tags in the xml.
-To allow for this your project must include a dedicated xml folder and a dedicated list file located under `./Top/<project_name>/xml/xml.lst`. Note that the xml and VHDL files can be located anywhere in your project since Hog will use this file to retrieve the needed files.
+Hog helps you keep track of the xml file versioning by usage of dedicated generics in the VHDL and, by usage of dedicated node tags in the xml.
+To allow for this your project must include a dedicated xml folder and a dedicated list file located under `./Top/<project_name>/xml/xml.lst`.
+Note that the xml and VHDL files can be located anywhere in your project since Hog will use this file to retrieve the needed files.
 
 ## xml.lst
 
@@ -20,7 +21,8 @@ The path to the generated module is needed since in the future we foresee that H
 ### IPbus xml files
 
 Hog can back annotate the included xmls with the SHA evaluated as described above.
-To your software to correctly assess the validity of the used xmls, then  you must foresee the presence of a dedicated register where to store the value of the [Hog generic](../02-MAinteiner-Manual/07-Hog-generics).
+This is needed by your software to correctly assess the validity of the used xmls.
+Indeed Hog expects you to define a dedicated register where to store the value of the [Hog generic](../03-Hog-generics): `XML_HASH`.
 The node corresponding to this registers is expected to have the following structure:
 
 ```xml
@@ -44,4 +46,3 @@ In this case the node is expected to have the following structure:
 
 The `__VERSION__` will be set to the version of the xml files taken from the last tag in which at least one of the xml files included in xml.lst was modified.
 The same value will be reported in the `XML_VERSION` generic of the top level of your project.
-The user can now verify it is using the correct version of the xmls by comparing the `gitSHA` register content with the `gitSHA` register tag.

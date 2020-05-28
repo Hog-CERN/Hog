@@ -217,27 +217,30 @@ if [GitVersion 2.9.3] {
   set timee [clock format $clock_seconds -format {00%H%M%S}]
 }
 
-#####  Passing Hog genric to top file
+#####  Passing Hog generic to top file
 if {[info commands set_property] != ""} {
   ### VIVADO
   # set global generic varibles
-  set generic_string "GLOBAL_FWDATE=32'h$date GLOBAL_FWTIME=32'h$timee GLOBAL_FWHASH=32'h$commit TOP_FWHASH=32'h$top_hash XML_HASH=32'h$xml_hash GLOBAL_FWVERSION=32'h$version TOP_FWVERSION=32'h$top_ver XML_VERSION=32'h$xml_ver_hex HOG_FWHASH=32'h$hog_hash HOG_FWVERSION=32'h$hog_ver"
-
+  set generic_string "GLOBAL_DATE=32'h$date GLOBAL_TIME=32'h$timee GLOBAL_VER=32'h$version GLOBAL_SHA=32'h$commit TOP_SHA=32'h$top_hash TOP_VER=32'h$top_ver HOG_SHA=32'h$hog_hash HOG_VER=32'h$hog_ver"
+  if {$use_ipbus == 1} {
+    set generic_string "$generic_string XML_VER=32'h$xml_ver_hex XML_SHA=32'h$xml_hash"
+  }
+  
   #set project specific lists
   foreach l $libs v $vers h $hashes {
-    set ver "[string toupper $l]_FWVERSION=32'h$v "
-    set hash "[string toupper $l]_FWHASH=32'h$h"
+    set ver "[string toupper $l]_VER=32'h$v "
+    set hash "[string toupper $l]_SHA=32'h$h"
     set generic_string "$generic_string $ver $hash"
   }
 
   #set project specific sub modules
   foreach s $subs h $subs_hashes {
-    set hash "[string toupper $s]_FWHASH=32'h$h"
+    set hash "[string toupper $s]_SHA=32'h$h"
     set generic_string "$generic_string $hash"
   }
 
   foreach e $ext_names h $ext_hashes {
-    set hash "[string toupper $e]_FWHASH=32'h$h"
+    set hash "[string toupper $e]_SHA=32'h$h"
     set generic_string "$generic_string $hash"
   }
 

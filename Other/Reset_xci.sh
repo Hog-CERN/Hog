@@ -14,6 +14,8 @@
 #   limitations under the License.
 
 ## @file Reset_xci.sh
+# brief Reset all modified xci files in the repository to their committed version.
+
 OLD_DIR=`pwd`
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 

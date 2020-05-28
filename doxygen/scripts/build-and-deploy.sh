@@ -26,7 +26,9 @@ fi
 : "${EOS_ACCOUNT_PASSWORD:?EOS_ACCOUNT_PASSWORD not provided}"
 
 #build documentation
-doxygen HOG-doxygen.cfg  2>&1 >/dev/null
+LAST_TAG=$( git describe --tags )
+sed -i "s/<HOG_GIT_DESCRIBE>/\"$LAST_TAG\"/g" Hog-doxygen.cfg
+doxygen Hog-doxygen.cfg  2>&1 >/dev/null
 
 # Check the source directory exists
 if [ ! -d "$DOXY_OUTPUT_DIR" ]

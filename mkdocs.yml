@@ -13,16 +13,16 @@ nav:
   - 01-Getting-Started/03-howto-update-hog.md
 - 'Hog User Manual':
   - 02-User-Manual/00-what-is-hog.md
-  - 'Using Hog Locally':
-    - 02-User-Manual/01-Hog-local/02-available-templates.md
-    - 02-User-Manual/01-Hog-local/03-Hog-generics.md
-    - 02-User-Manual/01-Hog-local/04-Project-Tcl.md
-    - 02-User-Manual/01-Hog-local/05-List-files.md
-    - 02-User-Manual/01-Hog-local/06-IPbus-support.md
-    - 02-User-Manual/01-Hog-local/07-Usage.md
-    - 02-User-Manual/01-Hog-local/08-Hog-utils.md
-    - 02-User-Manual/01-Hog-local/09-Special-commit.md
-    - 02-User-Manual/01-Hog-local/10-supported-tools.md
+  - 'Hog on your local machine':
+    - 02-User-Manual/01-Hog-local/01-Project-Tcl.md
+    - 02-User-Manual/01-Hog-local/02-List-files.md
+    - 02-User-Manual/01-Hog-local/03-parameters-generics.md
+    - 02-User-Manual/01-Hog-local/04-Usage.md
+    - 02-User-Manual/01-Hog-local/05-templates.md
+    - 02-User-Manual/01-Hog-local/06-Hog-utils.md
+    - 02-User-Manual/01-Hog-local/07-IPbus.md
+    # - 02-User-Manual/01-Hog-local/09-Special-commit.md
+    - 02-User-Manual/01-Hog-local/08-supported-tools.md
   - 'Hog Continuous Integration':
     - 02-User-Manual/02-Hog-CI/01-CI-Introduction.md
     - 02-User-Manual/02-Hog-CI/02-setup-CI.md

@@ -36,5 +36,5 @@ If configured (`HOG_UNOFFICIAL_BIN_EOS_PATH` defined), the Hog CI will also crea
 
 The Tag pipeline creates the Gitlab Release note, as described [here](03-gitlab-workflow.md#Gitlab Release Notes) and, if `HOG_UNOFFICIAL_BIN_EOS_PATH` and `HOG_OFFICIAL_BIN_EOS_PATH` are defined, it copies the content of the latest git SHA folder in `HOG_UNOFFICIAL_BIN_EOS_PATH` to a new folder in `HOG_OFFICIAL_BIN_EOS_PATH`, named as the new tag. If doxygen has been also run, the newly generated documentation is copied also in the `Doc` folder inside `HOG_OFFICIAL_BIN_EOS_PATH`.
 
-Finally, if the copy is successful, the CI deletes all the subfolders in `HOG_UNOFFICIAL_BIN_EOS_PATH` related to the Merge Request just merged.
+Finally, if the copy is successful, the CI deletes all the sub-folders in `HOG_UNOFFICIAL_BIN_EOS_PATH` related to the Merge Request just merged.
 

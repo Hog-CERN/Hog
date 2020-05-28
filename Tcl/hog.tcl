@@ -13,11 +13,11 @@
 #   limitations under the License.
 
 # @file
-# @breif Collection of Tcl functions used in Vivado/Quartus scripts
+# @brief Collection of Tcl functions used in Vivado/Quartus scripts
 
 
 ## @file hog.tcl
-# @breif Collection of Tcl functions used in Vivado/Quartus scripts
+# @brief Collection of Tcl functions used in Vivado/Quartus scripts
 
 ### @brief Display a Vivado/Quartus/Tcl-shell info message
 #
@@ -102,7 +102,7 @@ proc  SetProperty {property value object} {
 #
 # It automatically recognises whether it is in Vivado or Quartus mode
 #
-# @param[in] property the mname of the property to be retrieved
+# @param[in] property the name of the property to be retrieved
 # @param[in] object   the object from which to retrieve the property
 #
 # @returns            the value of object.property
@@ -126,7 +126,7 @@ proc  GetProperty {property object} {
 #
 # This function is a wrapper for set_param $parameter $value
 #
-# @param[out] parameter the parametere whose value must be set
+# @param[out] parameter the parameter whose value must be set
 # @param[in]  value     the value of the parameter
 
 proc  SetParameter {parameter value } {
@@ -173,7 +173,7 @@ proc SetTopProperty {top_module sources} {
 
 }
 
-## @brief Retroieveds the project named proj
+## @brief Retrieves the project named proj
 #
 #  It automatically recognises whether it is in Vivado or Quartus mode
 #
@@ -321,7 +321,7 @@ proc DoxygenVersion {target_version} {
   return [expr $target <= $current]
 }
 
-## @biref determine file type from extension
+## @brief determine file type from extension
 #  Used only for Quartus
 #
 ## @return FILE_TYPE the file Type
@@ -654,7 +654,7 @@ proc HexVersionToString {version} {
 #
 # @param[in] tag  a tag in the Hog format: v$M.$m.$p or b$(mr)v$M.$m.$p-$n
 #
-# @return         a list containing: Major minor pathch v.
+# @return         a list containing: Major minor patch v.
 #
 proc ExtractVersionFromTag {tag} {
   if {[regexp {^(?:b(\d+))?v(\d+)\.(\d+).(\d+)(?:-\d+)?$} $tag -> mr M m p]} {
@@ -674,7 +674,7 @@ proc ExtractVersionFromTag {tag} {
 ## @brief Tags the repository with a new version calculated on the basis of the previous tags
 #
 # @param[in] merge_request_number: Gitlab merge request number to be used in candidate version
-# @param[in] version_level:        0 if patch is to be increased (default), 1 if minor level is to be increase, 2 if major level is to be increased, 3 or bigger is used to trasform a candidate for a version (starting with b) into an official version
+# @param[in] version_level:        0 if patch is to be increased (default), 1 if minor level is to be increase, 2 if major level is to be increased, 3 or bigger is used to transform a candidate for a version (starting with b) into an official version
 # @param[in] default_level:        If version level is 3 or more, will specify what level to increase when creating the official tag: 0 will increase patch (default), 1 will increase minor and 2 will increase major.
 #
 proc TagRepository {{merge_request_number 0} {version_level 0} {default_level 0}} {
@@ -771,7 +771,7 @@ proc TagRepository {{merge_request_number 0} {version_level 0} {default_level 0}
 #
 # @param[in] lsit_file   file containing list of XML files with optional properties
 # @param[in] path        the path the XML files are referred to in the list file
-# @param[in] dst         the path the XML files must be copyed to
+# @param[in] dst         the path the XML files must be copied to
 # @param[in] xml_version the M.m.p version to be used to replace the __VERSION__ placeholder in any of the xml files
 # @param[in] xml_sha     the Git-SHA to be used to replace the __GIT_SHA__ placeholder in any of the xml files
 #
@@ -961,7 +961,7 @@ proc Relative {base dst} {
 #
 # Files, libraries and properties are extracted from the current Vivado project
 #
-# @return a list of two elements. The first elememnt is a dictionary containing all libraries. THe second elements is a disctionary containing all properties
+# @return a list of two elements. The first element is a dictionary containing all libraries. The second elements is a discretionary containing all properties
 proc GetProjectFiles {} {
 
   set all_files [get_files]
@@ -1038,7 +1038,7 @@ proc GetHogFiles {list_path repo_path} {
 }
 
 
-## @brief  Add libraries and properties to vivado/quartus project
+## @brief  Add libraries and properties to Vivado/Quartus project
 #
 # @param[in] libraries has library name as keys and a list of filenames as values
 # @param[in] properties has as file names as keys and a list of properties as values
@@ -1192,7 +1192,7 @@ proc ForceUpToDate {} {
 
 ## @brief Copy IP generated files from/to an EOS repository
 #
-# @param[in] what_to_do: can be "push", if you want to copy the local IP synth result to eos or "pull" if you want to copy the files from eos to your local repository
+# @param[in] what_to_do: can be "push", if you want to copy the local IP synth result to EOS or "pull" if you want to copy the files from EOS to your local repository
 # @param[in] xci_file: the local IP xci file
 # @param[in] ip_path: the path of directory you want the IP to be saved on eos
 # @param[in] force: if 1 pushes IP even if already on EOS
@@ -1302,7 +1302,7 @@ proc HandleIP {what_to_do xci_file ip_path runs_dir {force 0}} {
   return 0
 }
 
-## @brief Evaluates the md5 sum of af a file
+## @brief Evaluates the md5 sum of a file
 #
 #  @param[in] file_name: the name of the file of which you want to vevaluate the md5 checksum
 proc Md5Sum {file_name} {
@@ -1319,7 +1319,7 @@ proc Md5Sum {file_name} {
 }
 
 
-## @brief Checks that "ref" in .gitlab-ci.yml actually matches the gitlab-ci file in the
+## @brief Checks that "ref" in .gitlab-ci.yml actually matches the hog.yml file in the
 #
 #  @param[in] repo_path path to the repository root
 #  @param[in] allow_failure if true throws CriticalWarnings instead of Errors
@@ -1436,7 +1436,7 @@ proc ParseJSON {JSON_FILE JSON_KEY} {
 
 ## @brief Handle eos commands
 #
-# It can be used with lassign like this: lassaign [eos <eos command> ] ret result
+# It can be used with lassign like this: lassign [eos <eos command> ] ret result
 #
 #  @param[in] command: the eos command to be run, e.g. ls, cp, mv, rm
 #  @param[in] attempts: (default 0) how many times the command should be attempted in case of failure

@@ -1,4 +1,4 @@
-HDL On Git (HOG)    {#mainpage}
+HDL On Git (Hog)    {#mainpage}
 ================
 
 Coordinating firmware development among many international collaborators is becoming a very widespread problem.

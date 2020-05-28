@@ -158,7 +158,7 @@ They must be named as follows:
 To trigger all Hog functionalities, the last line of the tcl script must be:
 
 ```tcl
-source $path_repo/Hog/Tcl/create_project.tcl
+source $PATH_REPO/Hog/Tcl/create_project.tcl
 ```
 
 A template for the `<project_name>.tcl` file is available in the [Hog/Template](https://gitlab.cern.ch/hog/Hog/-/tree/master/Templates) directory.

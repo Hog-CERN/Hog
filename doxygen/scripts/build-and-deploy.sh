@@ -27,8 +27,8 @@ fi
 
 #build documentation
 LAST_TAG=$( git describe --tags )
-sed -i "s/PROJECT_NUMBER.*/PROJECT_NUMBER=\"$LAST_TAG\"/g" HOG-doxygen.cfg
-doxygen HOG-doxygen.cfg  2>&1 >/dev/null
+sed -i "s/<HOG_GIT_DESCRIBE>/\"$LAST_TAG\"/g" Hog-doxygen.cfg
+doxygen Hog-doxygen.cfg  2>&1 >/dev/null
 
 # Check the source directory exists
 if [ ! -d "$DOXY_OUTPUT_DIR" ]

@@ -97,7 +97,7 @@ tagging_master_hotfix:
           - BRANCH=${MR_INFO[1]}
           - if [[ ${BRANCH} != "develop" ]]; then tclsh ./Tcl/CI/merge_and_tag.tcl -Hog -merged -push $CI_COMMIT_REF_NAME -default_level 0 0; else echo "Skipping because it is not a hotfix"; fi;
 
-create_release_note_develop:
+create_release_note:
         stage: tag
         image: tcl2020/tcl2020:latest
         only:
@@ -105,9 +105,12 @@ create_release_note_develop:
             - tags
           variables:
             - $CI_COMMIT_TAG =~ /^v.*$/
-
+            - $CI_COMMIT_TAG =~ /^Hog.*$/
         script:
           - git fetch origin refs/notes/*:refs/notes/*
           - MR=( `git notes show` )
           - ./Other/GetGitlabArtifact.sh $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $MR changelog.md changelog > note.md
-          - ./Other/MakeGitlabRelease.sh $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $CI_COMMIT_TAG note.md -b
+          - "if [ $CI_COMMIT_TAG =~ /^v.*$/ ]; then ./Other/MakeGitlabRelease.sh $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $CI_COMMIT_TAG note.md -b;
+            ./Other/UpdateDocReleases.sh note.md $CI_COMMIT_TAG -b ; fi"
+          - "if [ $CI_COMMIT_TAG =~ /^Hog.*$/ ]; then ./Other/MakeGitlabRelease.sh $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $CI_COMMIT_TAG note.md;
+            ./Other/UpdateDocReleases.sh note.md $CI_COMMIT_TAG; fi"

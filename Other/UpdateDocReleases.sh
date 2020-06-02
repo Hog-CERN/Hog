@@ -34,6 +34,7 @@ else
     else
         cp ../$file docs/05-Releases/01-Stable-Releases/$tag.md
         echo -e "# Stable Release $tag \n$(cat docs/05-Releases/01-Stable-Releases/${tag}.md)" > docs/05-Releases/01-Stable-Releases/$tag.md
+        git add docs/05-Releases/01-Stable-Releases/$tag.md
         git commit -m "New Stable Release $tag"
         git push
     fi

@@ -1375,7 +1375,6 @@ You can fix this by installing package \"tcllib\""
     } else {
       set YML_NAME_F [regsub -all "^/" $YML_NAME ""]
     }
-    puts $YML_NAME_F
   #getting Hog repository tag and commit
     cd "Hog"
     set HOGYML_SHA [exec git log --format=%H -1 --  $YML_NAME_F ]

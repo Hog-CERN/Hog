@@ -577,9 +577,11 @@ proc GetHash {FILE path} {
 proc GetVer {FILE path} {
   set SHA [GetHash $FILE $path]
   set path [file normalize $path]
+  #oldest tag containing SHA
   set status [catch {exec git tag --sort=creatordate --contain $SHA -l "v*.*.*" -l "b*v*.*.*"} result]
   if {$status == 0} {
     if {[regexp {^ *$} $result]} {
+      #newest tag of the repo (not containing SHA)  
       if [catch {exec git tag --sort=-creatordate -l "v*.*.*" -l "b*v*.*.*"} last_tag] {
         Msg CriticalWarning "No Hog version tags found in this repository ($path)."
         set ver v0.0.0

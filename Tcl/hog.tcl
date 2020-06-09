@@ -13,11 +13,11 @@
 #   limitations under the License.
 
 # @file
-# @breif Collection of Tcl functions used in Vivado/Quartus scripts
+# @brief Collection of Tcl functions used in Vivado/Quartus scripts
 
 
 ## @file hog.tcl
-# @breif Collection of Tcl functions used in Vivado/Quartus scripts
+# @brief Collection of Tcl functions used in Vivado/Quartus scripts
 
 ### @brief Display a Vivado/Quartus/Tcl-shell info message
 #
@@ -102,13 +102,13 @@ proc  SetProperty {property value object} {
 #
 # It automatically recognises whether it is in Vivado or Quartus mode
 #
-# @param[in] property the mname of the property to be retrieved
+# @param[in] property the name of the property to be retrieved
 # @param[in] object   the object from which to retrieve the property
 #
-# @returns            the value of object.property 
+# @returns            the value of object.property
 #
 proc  GetProperty {property object} {
-    if {[info commands get_property] != ""} {
+  if {[info commands get_property] != ""} {
         # Vivado
     return [get_property -quiet $property $object]
 
@@ -124,9 +124,9 @@ proc  GetProperty {property object} {
 
 ## @brief Sets the value of a parameter to a given value.
 #
-# This function is a wrapper for set_param $parameter $value 
+# This function is a wrapper for set_param $parameter $value
 #
-# @param[out] parameter the parametere whose value must be set
+# @param[out] parameter the parameter whose value must be set
 # @param[in]  value     the value of the parameter
 
 proc  SetParameter {parameter value } {
@@ -139,7 +139,7 @@ proc  SetParameter {parameter value } {
 #
 # @param[in] top_module name of the top module, expected @c top_<project_name>
 # @param[in] top_file   name of the file containing the top module
-# @param[in] source     list of source files 
+# @param[in] source     list of source files
 proc AddTopFile {top_module top_file sources} {
   if {[info commands launch_chipscope_analyzer] != ""} {
         #VIVADO_ONLY
@@ -173,8 +173,8 @@ proc SetTopProperty {top_module sources} {
 
 }
 
-## @brief Retroieveds the project named proj
-#  
+## @brief Retrieves the project named proj
+#
 #  It automatically recognises whether it is in Vivado or Quartus mode
 #
 #  @param[in] proj  the project name
@@ -199,8 +199,8 @@ proc GetProject {proj} {
 
 ## @brief Gets a list of synthesis and implementation runs in the current project that match a run (passed as parameter)
 #
-# The run name is matched against the input parameter 
-#  
+# The run name is matched against the input parameter
+#
 #  @param[in] run  the run identifier
 #
 #  @return         a list of synthesis and implementation runs matching the parameter
@@ -224,7 +224,7 @@ proc GetRun {run} {
 #
 # The file name is matched against the input parameter.
 # IF no parameter if passed returns a list of all files in the project
-#  
+#
 #  @param[in] file name (or part of it)
 #
 #  @return         a list of files matching the parameter
@@ -248,7 +248,7 @@ proc GetFile {file} {
 #
 # A file set is a list of files with a specific function within the project.
 #
-# @param[in] fileset 
+# @param[in] fileset
 #
 # @returns The create_fileset command returns the name of the newly created fileset
 #
@@ -273,9 +273,9 @@ proc GetFileSet {fileset} {
 
 ## @brief Add a new file to a fileset
 #
-# @para[in] file    name of the files to add. NOTE: directories are not supported. 
-# @para[in] fileset fileset name  
-# 
+# @para[in] file    name of the files to add. NOTE: directories are not supported.
+# @para[in] fileset fileset name
+#
 proc AddFile {file fileset} {
   add_files -norecurse -fileset $fileset $file
 }
@@ -321,7 +321,7 @@ proc DoxygenVersion {target_version} {
   return [expr $target <= $current]
 }
 
-## @biref determine file type from extension
+## @brief determine file type from extension
 #  Used only for Quartus
 #
 ## @return FILE_TYPE the file Type
@@ -386,7 +386,7 @@ proc FindVhdlVersion {file_name} {
 }
 
 ## @brief Read a list file and adds the files to Vivado/Quartus, adding the additional information as file type.
-#  
+#
 # Additional information is provided with text separated from the file name with one or more spaces
 #
 # @param[in] lsit_file file containing vhdl list with optional properties
@@ -452,7 +452,7 @@ proc ReadListFile {list_file path lib} {
 }
 
 ## @brief Read a list file and adds the files to Vivado/Quartus, adding the additional information as file type.
-# 
+#
 # This procedure extracts the Vivado fileset and the library name from the list-file name.
 # Additional information is provided with text separated from the file name with one or more spaces
 #
@@ -466,7 +466,7 @@ proc ReadListFile {list_file path lib} {
 # * .sim : for simulation files (corresponding to sim_1)
 # * .con : for constraint files (corresponding to constrs_1)
 # any other file extension will cause an error
-# 
+#
 # @param[in] lsit_file file containing vhdl list with optional properties
 # @param[in] path      the path the vhdl file are referred to in the list file
 #
@@ -483,12 +483,12 @@ proc SmartListFile {list_file path} {
 }
 
 ## @brief Get git SHA of a vivado library
-# 
+#
 # If the special string "ALL" is used, returns the global hash
 #
 # @param[in] lib the name of the library whose latest commit hash will be returned
 #
-# @return        tghe git SHA of the specified library  
+# @return        tghe git SHA of the specified library
 #
 proc GetHashLib {lib} {
   if {$lib eq "ALL"} {
@@ -501,7 +501,7 @@ proc GetHashLib {lib} {
 }
 
 ## @brief Recursively gets file names from list file
-#  
+#
 #  If the list file contains files with extension .src .sim .con .sub, it will recursively open them
 #
 #  @param[in] FILE  list file to open
@@ -538,7 +538,7 @@ proc GetFileList {FILE path} {
 }
 
 ## @brief Get git SHA of a subset of list file
-#  
+#
 # If the special string "ALL" is used, returns the global hash
 #
 # @param[in] FILE list file or path containing the subset of files whose latest commit hash will be returned
@@ -566,9 +566,9 @@ proc GetHash {FILE path} {
 }
 
 ## @brief Get git version and commit hash of a subset of files
-# 
+#
 # If the special string "ALL" is used, returns the global hash of the path specified in path
-# 
+#
 # @param[in] FILE list file or path containing the subset of files whose latest commit hash will be returned
 # @param[in] path the path the vhdl file are referred to in the list file (not used if FILE is a path or "ALL")
 #
@@ -577,10 +577,12 @@ proc GetHash {FILE path} {
 proc GetVer {FILE path} {
   set SHA [GetHash $FILE $path]
   set path [file normalize $path]
-  set status [catch {exec git tag --sort=taggerdate --contain $SHA} result]
+  #oldest tag containing SHA
+  set status [catch {exec git tag --sort=creatordate --contain $SHA -l "v*.*.*" -l "b*v*.*.*"} result]
   if {$status == 0} {
     if {[regexp {^ *$} $result]} {
-      if [catch {exec git tag --sort=-creatordate} last_tag] {
+      #newest tag of the repo (not containing SHA)  
+      if [catch {exec git tag --sort=-creatordate -l "v*.*.*" -l "b*v*.*.*"} last_tag] {
         Msg CriticalWarning "No Hog version tags found in this repository ($path)."
         set ver v0.0.0
       } else {
@@ -638,7 +640,7 @@ proc GetVer {FILE path} {
 }
 
 ## Convert hex version to M.m.p string
-#  
+#
 #  @param[in] version the version (in 32-bt hexadecimal format 0xMMmmpppp) to be converted
 #
 #  @return            a string containing the version in M.m.p format
@@ -651,10 +653,10 @@ proc HexVersionToString {version} {
 }
 
 ## @brief Tags the repository with a new version calculated on the basis of the previous tags
-# 
+#
 # @param[in] tag  a tag in the Hog format: v$M.$m.$p or b$(mr)v$M.$m.$p-$n
 #
-# @return         a list containing: Major minor pathch v.
+# @return         a list containing: Major minor patch v.
 #
 proc ExtractVersionFromTag {tag} {
   if {[regexp {^(?:b(\d+))?v(\d+)\.(\d+).(\d+)(?:-\d+)?$} $tag -> mr M m p]} {
@@ -674,10 +676,11 @@ proc ExtractVersionFromTag {tag} {
 ## @brief Tags the repository with a new version calculated on the basis of the previous tags
 #
 # @param[in] merge_request_number: Gitlab merge request number to be used in candidate version
-# @param[in] version_level:        0 if patch is to be increased (default), 1 if minor level is to be increase, 2 if major level is to be increased, 3 or bigger is used to trasform a candidate for a version (starting with b) into an official version
+# @param[in] version_level:        0 if patch is to be increased (default), 1 if minor level is to be increase, 2 if major level is to be increased, 3 or bigger is used to transform a candidate for a version (starting with b) into an official version
+# @param[in] default_level:        If version level is 3 or more, will specify what level to increase when creating the official tag: 0 will increase patch (default), 1 will increase minor and 2 will increase major.
 #
-proc TagRepository {{merge_request_number 0} {version_level 0}} {
-  if [catch {exec git tag --sort=-creatordate} last_tag] {
+proc TagRepository {{merge_request_number 0} {version_level 0} {default_level 0}} {
+  if [catch {exec git tag --sort=-creatordate -l "v*.*.*" -l "b*v*.*.*"} last_tag] {
     Msg Error "No Hog version tags found in this repository."
   } else {
     set tags [split $last_tag "\n"]
@@ -694,7 +697,7 @@ proc TagRepository {{merge_request_number 0} {version_level 0}} {
           set new_tag b${merge_request_number}v$M.$m.$p
           set tag_opt ""
           if {$merge_request_number <= 0} {
-            Msg Error "You should specify a valid merge request number not to risk to fail beacuse of duplicated tags"
+            Msg Error "You should specify a valid merge request number not to risk to fail because of duplicated tags"
             return -1
           }
 
@@ -704,13 +707,29 @@ proc TagRepository {{merge_request_number 0} {version_level 0}} {
           set new_tag b${merge_request_number}v$M.$m.$p
           set tag_opt ""
           if {$merge_request_number <= 0} {
-            Msg Error "You should specify a valid merge request number not to risk to fail beacuse of duplicated tags"
+            Msg Error "You should specify a valid merge request number not to risk to fail because of duplicated tags"
             return -1
           }
 
         } elseif {$version_level >= 3} {
         # Version level >= 3 is used to create official tags from beta tags
-          incr p
+          if {$default_level == 0} {
+            Msg Info "Default_level is set to 0, will increase patch..."
+            incr p
+          } elseif {$default_level == 1} {
+            Msg Info "Default_level is set to 1, will increase minor..."
+            set p 0
+            incr m
+          } elseif {$default_level == 2} {
+            Msg Info "Default_level is set to 1, will increase major..."
+            set m 0
+            set p 0
+            incr M
+          } else {
+            Msg Warning "Wrong default_level $default_level, assuming 0 and increase patch."
+            incr p
+          }
+
         #create official tag
           Msg Info "No major/minor version increase, new tag will be v$M.$m.$p..."
           set new_tag v$M.$m.$p
@@ -754,7 +773,7 @@ proc TagRepository {{merge_request_number 0} {version_level 0}} {
 #
 # @param[in] lsit_file   file containing list of XML files with optional properties
 # @param[in] path        the path the XML files are referred to in the list file
-# @param[in] dst         the path the XML files must be copyed to
+# @param[in] dst         the path the XML files must be copied to
 # @param[in] xml_version the M.m.p version to be used to replace the __VERSION__ placeholder in any of the xml files
 # @param[in] xml_sha     the Git-SHA to be used to replace the __GIT_SHA__ placeholder in any of the xml files
 #
@@ -900,8 +919,8 @@ proc CompareVHDL {file1 file2} {
 }
 
 ## @brief Returns the dst path relative to base
-# 
-# @param[in] base   the path with respect to witch the dst path is calculated                             
+#
+# @param[in] base   the path with respect to witch the dst path is calculated
 # @param[in] dst    the path to be calculated with respect to base
 #
 proc Relative {base dst} {
@@ -944,7 +963,7 @@ proc Relative {base dst} {
 #
 # Files, libraries and properties are extracted from the current Vivado project
 #
-# @return a list of two elements. The first elememnt is a dictionary containing all libraries. THe second elements is a disctionary containing all properties
+# @return a list of two elements. The first element is a dictionary containing all libraries. The second elements is a discretionary containing all properties
 proc GetProjectFiles {} {
 
   set all_files [get_files]
@@ -998,9 +1017,9 @@ proc GetProjectFiles {} {
 
 ## @brief Extract files, libraries and properties from the project's list files
 #
-# @param[in] list_path path to the list file directory 
+# @param[in] list_path path to the list file directory
 # @param[in] repo_path the path of the repository root.
-# 
+#
 # @return a list of 2 dictionaries: libraries and properties
 # - libraries has library name as keys and a list of filenames as values
 # - properties has as file names as keys and a list of properties as values
@@ -1021,11 +1040,11 @@ proc GetHogFiles {list_path repo_path} {
 }
 
 
-## @brief  Add libraries and properties to vivado/quartus project
+## @brief  Add libraries and properties to Vivado/Quartus project
 #
 # @param[in] libraries has library name as keys and a list of filenames as values
 # @param[in] properties has as file names as keys and a list of properties as values
-# 
+#
 proc AddHogFiles { libraries properties } {
   Msg Info "Adding source files to project..."
   foreach lib [dict keys $libraries] {
@@ -1067,7 +1086,7 @@ proc AddHogFiles { libraries properties } {
           set file_obj [get_files -of_objects [get_filesets $file_set] [list "*$f"]]
           #ADDING LIBRARY
           if {[file ext $f] == ".vhd" || [file ext $f] == ".vhdl" } {
-                set_property -name "library" -value $rootlib -objects $file_obj
+            set_property -name "library" -value $rootlib -objects $file_obj
           }
           if {[file ext $f] == ".xdc"} {
             Msg Info "Setting filetype XDC for $f"
@@ -1174,8 +1193,8 @@ proc ForceUpToDate {} {
 
 
 ## @brief Copy IP generated files from/to an EOS repository
-# 
-# @param[in] what_to_do: can be "push", if you want to copy the local IP synth result to eos or "pull" if you want to copy the files from eos to your local repository
+#
+# @param[in] what_to_do: can be "push", if you want to copy the local IP synth result to EOS or "pull" if you want to copy the files from EOS to your local repository
 # @param[in] xci_file: the local IP xci file
 # @param[in] ip_path: the path of directory you want the IP to be saved on eos
 # @param[in] force: if 1 pushes IP even if already on EOS
@@ -1285,8 +1304,8 @@ proc HandleIP {what_to_do xci_file ip_path runs_dir {force 0}} {
   return 0
 }
 
-## @brief Evaluates the md5 sum of af a file
-# 
+## @brief Evaluates the md5 sum of a file
+#
 #  @param[in] file_name: the name of the file of which you want to vevaluate the md5 checksum
 proc Md5Sum {file_name} {
   if !([file exists $file_name]) {
@@ -1301,7 +1320,8 @@ proc Md5Sum {file_name} {
   }
 }
 
-## @brief Checks that "ref" in .gitlab-ci.yml actually matches the gitlab-ci file in the 
+
+## @brief Checks that "ref" in .gitlab-ci.yml actually matches the hog.yml file in the
 #
 #  @param[in] repo_path path to the repository root
 #  @param[in] allow_failure if true throws CriticalWarnings instead of Errors
@@ -1327,18 +1347,19 @@ You can fix this by installing package \"tcllib\""
   if [file exists .gitlab-ci.yml] {
     #get .gitlab-ci ref
     set YML_REF ""
+    set YML_NAME ""
     if { [catch {::yaml::yaml2dict -file .gitlab-ci.yml}  yamlDict]} {
       Msg $MSG_TYPE "Parsing .gitlab-ci.yml failed. To fix this, check that yaml syntax is respected, remember not to use tabs."
       return
     } else {
-       dict for {dictKey dictValue} $yamlDict {
+      dict for {dictKey dictValue} $yamlDict {
         #looking for Hog include in .gitlab-ci.yml
         if {"$dictKey" == "include" && [lsearch [split $dictValue " {}"] "hog/Hog" ] != "-1"} {
           set YML_REF [lindex [split $dictValue " {}"]  [expr [lsearch -dictionary [split $dictValue " {}"] "ref"]+1 ] ]
+          set YML_NAME [lindex [split $dictValue " {}"]  [expr [lsearch -dictionary [split $dictValue " {}"] "file"]+1 ] ]
         }
       }
     }
-
     if {$YML_REF == ""} {
       Msg Warning "Hog version not specified in the .gitlab-ci.yml. Assuming that master branch is used"
       cd Hog
@@ -1348,29 +1369,37 @@ You can fix this by installing package \"tcllib\""
       set YML_REF_F [regsub -all "'" $YML_REF ""]
     }
 
+    if {$YML_NAME == ""} {
+      Msg $MSG_TYPE "Hog included yml file not specified, assuming hog.yml"
+      set YML_NAME_F hog.yml
+    } else {
+      set YML_NAME_F [regsub -all "^/" $YML_NAME ""]
+    }
   #getting Hog repository tag and commit
     cd "Hog"
-    set HOGYML_SHA [exec git log --format=%H -1 --  hog.yml ]
-    if { [catch {exec git log --format=%H -1 $YML_REF_F hog.yml} EXPECTEDYML_SHA]} {
-      if { [catch {exec git log --format=%H -1 origin/$YML_REF_F hog.yml} EXPECTEDYML_SHA]} {
+    set HOGYML_SHA [exec git log --format=%H -1 --  $YML_NAME_F ]
+    if { [catch {exec git log --format=%H -1 $YML_REF_F -- $YML_NAME_F} EXPECTEDYML_SHA]} {
+      if { [catch {exec git log --format=%H -1 origin/$YML_REF_F -- $YML_NAME_F} EXPECTEDYML_SHA]} {
         Msg $MSG_TYPE "Error in project .gitlab-ci.yml. ref: $YML_REF not found"
         set EXPECTEDYML_SHA ""
       }
 
     }
-    if  {!($EXPECTEDYML_SHA eq "")} {
 
+    if  {!($EXPECTEDYML_SHA eq "")} {
       if {$HOGYML_SHA == $EXPECTEDYML_SHA} {
-        Msg Info "Hog hog.yml SHA matches with the \"ref\" in the .gitlab-ci.yml."
+        Msg Info "Hog included file $YML_NAME_F SHA matches with the \"ref\" in the .gitlab-ci.yml."
 
       } else {
-        Msg $MSG_TYPE "HOG hog.yml SHA mismatch.
+        Msg $MSG_TYPE "HOG $YML_NAME_F SHA mismatch.
         From Hog submodule: $HOGYML_SHA
         From .gitlab-ci.yml: $EXPECTEDYML_SHA
         You can fix this in 2 ways: (A) by changing the ref in your repository or (B) by changing the Hog submodule commit.
         \tA) edit project .gitlab-ci.yml ---> ref: '$HOGYML_SHA'
         \tB) modify Hog submodule: git checkout $EXPECTEDYML_SHA"
       }
+    } else {
+      Msg $MSG_TYPE "Could not find any file named $YML_NAME_F in Hog at $YML_REF"
     }
   } else {
     Msg Info ".gitlab-ci.yml not found in $repo_path. Skipping this step"
@@ -1380,7 +1409,7 @@ You can fix this by installing package \"tcllib\""
 }
 
 ## @brief Parse JSON file
-# 
+#
 # @returns  -1 in case of failure, JSON KEY VALUE in case of success
 #
 proc ParseJSON {JSON_FILE JSON_KEY} {
@@ -1407,13 +1436,13 @@ proc ParseJSON {JSON_FILE JSON_KEY} {
 }
 
 ## @brief Handle eos commands
-# 
-# It can be used with lassign like this: lassaign [eos <eos command> ] ret result
-# 
-#  @param[in] command: the eos command to be run, e.g. ls, cp, mv, rm
+#
+# It can be used with lassign like this: lassign [eos <eos command> ] ret result
+#
+#  @param[in] command: the EOS command to be run, e.g. ls, cp, mv, rm
 #  @param[in] attempts: (default 0) how many times the command should be attempted in case of failure
 #
-#  @returns a list of 2 elements: the return value (0 if no error occurred) and the output of the eos command
+#  @returns a list of 2 elements: the return value (0 if no error occurred) and the output of the EOS command
 proc eos {command {attempt 1}}  {
   global env
   if ![info exists env(EOS_MGM_URL)] {
@@ -1467,7 +1496,7 @@ proc ParseProcFile {proj_name} {
 
 ## @brief Gets MAX number of Threads property from .prop file in Top/$proj_name/list directory.
 #
-# If property is not set returns dafault = 1
+# If property is not set returns default = 1
 #
 # @param[in] proj_name:   name of the project
 #

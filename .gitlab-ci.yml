@@ -17,8 +17,8 @@ default:
       before_script:
           - export REPO=`echo $CI_PROJECT_URL | sed -e s#https://##`
           - git remote set-url origin https://hog:${HOG_PUSH_TOKEN}@$REPO
-          - git config user.email "hog.cern.ch"
-          - git config user.name "Hog"
+          - git config --global user.email "hog@cern.ch"
+          - git config --global user.name "Hog"
           - git fetch
           - git fetch origin $CI_COMMIT_REF_NAME
           - git checkout $CI_COMMIT_REF_NAME --
@@ -26,33 +26,15 @@ default:
 stages:
       - tag
       - build_doc
-      - deploy_doc
-
-doc:
-      stage: build_doc
-      image: gitlab-registry.cern.ch/authoring/documentation/mkdocs:stable
-      except:
-           variables:
-              - $CI_COMMIT_REF_NAME =~ /^test\/.*$/i
-      before_script:
-        - echo ""
-      script:
-        - mkdocs build --clean --site-dir public
-        - cp docs/.htaccess public/
-      artifacts:
-        paths:
-          - public
-        expire_in: 1 day
 
 building-doxygen:
       stage: build_doc
-      image: cern/cc7-base
+      image: gitlab-registry.cern.ch/hog/hog-docker
       only:
         - master
       before_script:
         - echo ""
       script:
-        - yum install -y doxygen krb5-workstation rsync openssh-clients xrootd-client which git
         - cd doxygen
         - chmod +x ./scripts/build-and-deploy.sh
         - ./scripts/build-and-deploy.sh
@@ -61,23 +43,14 @@ building-doxygen:
           - doxygen/DOXY_DOCS
         expire_in: 1 hour
 
-dep_doc:
-      stage: deploy_doc
-      image: gitlab-registry.cern.ch/ci-tools/ci-web-deployer:latest
-      only:
-        - feature/documentation
-      before_script:
-        - echo ""
-      script:
-        - deploy-eos
-
-
-merge_and_tag:
+changelog:
       stage: tag
       image: tcl2020/tcl2020:latest
       only:
            refs:
               - merge_requests
+           variables:
+              - $CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /^(master|develop)$/
       except:
            variables:
               - $CI_COMMIT_REF_NAME =~ /^test\/.*$/i
@@ -85,16 +58,17 @@ merge_and_tag:
           - "MR_PARAMETERS=`curl --header \"PRIVATE-TOKEN: ${HOG_PUSH_TOKEN}\" ${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/merge_requests/${CI_MERGE_REQUEST_IID}`"
           - tclsh ./Tcl/CI/merge_and_tag.tcl -Hog  -mr_par "$MR_PARAMETERS" -mr_id $CI_MERGE_REQUEST_IID -push $CI_COMMIT_REF_NAME
           - git fetch origin refs/notes/*:refs/notes/*
-          - git notes add -fm "$CI_MERGE_REQUEST_IID"
+          - git notes add -fm "$CI_MERGE_REQUEST_IID $CI_COMMIT_REF_SLUG"
           - git push origin refs/notes/*
-          - ./Other/Changelog.sh $CI_MERGE_REQUEST_TARGET_BRANCH_NAME > changelog.md
+          - "printf \"## Repository info\n- Merge request number: $CI_MERGE_REQUEST_IID\n- Branch name: $CI_COMMIT_REF_SLUG\n\n\" > changelog.md"
+          - ./Other/Changelog.sh $CI_MERGE_REQUEST_TARGET_BRANCH_NAME >> changelog.md
       artifacts:
         name: changelog
         paths:
           - changelog.md
         expire_in: 1 month
 
-tagging:
+tagging_develop:
       stage: tag
       image: tcl2020/tcl2020:latest
       only:
@@ -105,7 +79,23 @@ tagging:
               - $CI_PIPELINE_SOURCE != "push"
               - $CI_COMMIT_REF_SLUG != "develop"
       script:
-          - tclsh ./Tcl/CI/merge_and_tag.tcl -Hog -merged -push $CI_COMMIT_REF_NAME
+          - tclsh ./Tcl/CI/merge_and_tag.tcl -Hog -merged -push $CI_COMMIT_REF_NAME -default_level 1 0
+
+tagging_master_hotfix:
+      stage: tag
+      image: tcl2020/tcl2020:latest
+      only:
+          - push
+          - web
+      except:
+          variables:
+              - $CI_PIPELINE_SOURCE != "push"
+              - $CI_COMMIT_REF_SLUG != "master"
+      script:
+          - git fetch origin refs/notes/*:refs/notes/*
+          - MR_INFO=( `git notes show` )
+          - BRANCH=${MR_INFO[1]}
+          - if [[ ${BRANCH} != "develop" ]]; then tclsh ./Tcl/CI/merge_and_tag.tcl -Hog -merged -push $CI_COMMIT_REF_NAME -default_level 0 0; else echo "Skipping because it is not a hotfix"; fi;
 
 create_release_note:
         stage: tag
@@ -114,10 +104,12 @@ create_release_note:
           refs:
             - tags
           variables:
-            - $CI_COMMIT_TAG =~ /^v.*$/
-
+            - $CI_COMMIT_TAG =~ /^(v.*)|(Hog.*)$/
         script:
           - git fetch origin refs/notes/*:refs/notes/*
-          - MR=`git notes show`
-          - ./Other/GetGitlabArtifact.sh $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $MR changelog.md merge_and_tag > note.md
-          - ./Other/MakeGitlabRelease.sh $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $CI_COMMIT_TAG note.md -b
+          - MR=( `git notes show` )
+          - ./Other/GetGitlabArtifact.sh $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $MR changelog.md changelog > note.md
+          - "if [[ $CI_COMMIT_TAG =~ ^v.*$ ]]; then ./Other/MakeGitlabRelease.sh $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $CI_COMMIT_TAG note.md -b;
+            ./Other/UpdateDocReleases.sh note.md $CI_COMMIT_TAG -b ; fi"
+          - "if [[ $CI_COMMIT_TAG =~ ^Hog.*$ ]]; then ./Other/MakeGitlabRelease.sh $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $CI_COMMIT_TAG note.md;
+            ./Other/UpdateDocReleases.sh note.md $CI_COMMIT_TAG; fi"

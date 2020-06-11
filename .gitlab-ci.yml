@@ -36,7 +36,6 @@ build-doxygen-test:
         - chmod +x ./doxygen/scripts/build-and-deploy.sh
         - export COPY_PATH="/eos/user/h/hog/www/test-doxy"
         - ./doxygen/scripts/build-and-deploy.sh
-        expire_in: 1 hour
 
 build-doxygen-official:
       stage: build_doc
@@ -49,7 +48,6 @@ build-doxygen-official:
         - chmod +x ./doxygen/scripts/build-and-deploy.sh
         - export COPY_PATH="/eos/project/a/atlas-hog/www/hog-user-docs/hog-doxygen-docs"
         - ./doxygen/scripts/build-and-deploy.sh
-        expire_in: 1 hour
 
 
 changelog:

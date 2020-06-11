@@ -1,15 +1,10 @@
 HDL On Git (Hog)                         {#mainpage}
 ============
 
-Coordinating firmware development among many international collaborators is becoming a very widespread problem.
-
-Guaranteeing firmware synthesis with P&R reproducibility and assuring traceability of binary files is paramount.
-Hog tackles these issues by exploiting advanced Git features and being deeply integrated with HDL IDE, with particular attention to Intellectual Properties (IP) handling.
-
-Hog is a set of Tcl/Shell scripts plus a suitable methodology to allow a fruitful use of Git as a HDL repository and guarantee synthesis reproducibility and binary file traceability.
+Is it really this one?
 
 More information on the how to use Hog can be found in the [user documentation website](http://hog-user-docs.web.cern.ch/)
-
+[Functions](./globals.html)
 ## Hog Releases
 Stable Hog releases are stored in the `master branch` and  are tagged as `Hog<YEAR>.<n>`, for example `Hog2020.1`.
 Pulling the `master` branch always gives you the most updated Hog stable realease.

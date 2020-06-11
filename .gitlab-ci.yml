@@ -38,7 +38,7 @@ build-doxygen-test:
         - ./doxygen/scripts/build-and-deploy.sh
       artifacts:
         paths:
-          - DOXY_DOCS
+          - ../DOXY_DOCS
         expire_in: 1 hour
 
 build-doxygen-official:
@@ -54,7 +54,7 @@ build-doxygen-official:
         - ./doxygen/scripts/build-and-deploy.sh
       artifacts:
         paths:
-          - DOXY_DOCS
+          - ../DOXY_DOCS
         expire_in: 1 hour
 
 

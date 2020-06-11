@@ -1,6 +1,6 @@
 #!/bin/bash
 
-DOXY_OUTPUT_DIR="./DOXY_DOCS/html/."
+DOXY_OUTPUT_DIR="../DOXY_DOCS/html/."
 
 # Exit if anything fails
 set -e

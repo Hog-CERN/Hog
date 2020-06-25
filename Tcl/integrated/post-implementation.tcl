@@ -40,8 +40,12 @@ if { [exec git status --untracked-files=no  --porcelain] eq "" } {
 
 
 if {[info commands get_property] != ""} {
-    # Vivado
-  set proj_file [get_property parent.project_path [current_project]]
+    # Vivado + planAhead
+    if { [string first PlanAhead [version]] == 0 } {
+        set proj_file [get_property DIRECTORY [current_project]]
+    } else {
+        set proj_file [get_property parent.project_path [current_project]]
+    }
 } elseif {[info commands project_new] != ""} {
     # Quartus
   set proj_file "/q/a/r/Quartus_project.qpf"
@@ -69,9 +73,11 @@ Msg Info "The git SHA value $commit will be set as bitstream USERID."
 
 # Set bitstream embedded variables
 if {[info commands send_msg_id] != ""} {
-  #Vivado 
-  set_property BITSTREAM.CONFIG.USERID $commit [current_design]
-  set_property BITSTREAM.CONFIG.USR_ACCESS $commit [current_design]
+  #Vivado
+  if { [string first Vivado [version]] == 0 } {
+    set_property BITSTREAM.CONFIG.USERID $commit [current_design]
+    set_property BITSTREAM.CONFIG.USR_ACCESS $commit [current_design]
+  }
 } elseif {[info commands post_message] != ""} {
   # Quartus
 } else {
@@ -80,7 +86,11 @@ if {[info commands send_msg_id] != ""} {
 
 if {[info commands get_property] != ""} {
     # Vivado
-  set proj_file [get_property parent.project_path [current_project]]
+  if { [string first PlanAhead [version]] == 0 } {
+    set proj_file [get_property DIRECTORY [current_project]]
+  } else {
+    set proj_file [get_property parent.project_path [current_project]]
+  }
 } elseif {[info commands project_new] != ""} {
     # Quartus
   set proj_file "/q/a/r/Quartus_project.qpf"

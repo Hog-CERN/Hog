@@ -22,10 +22,19 @@ set tcl_path [file normalize "[file dirname [info script]]/.."]
 source $tcl_path/hog.tcl
 
 if {[info commands get_property] != ""} {
-    #Vivado
+
+  #Vivado + planAhead
+  if { [string first PlanAhead [version]] == 0 } {
+    set old_path [get_property DIRECTORY [get_runs impl_1]]
+  }
+
   set fw_file [file normalize [lindex [glob -nocomplain "$old_path/*.bit"] 0]]
   set proj_name [string map {"top_" ""} [file rootname [file tail $fw_file]]]
-  set name [file rootname [file tail [file normalize [pwd]/..]]]
+  if { [string first PlanAhead [version]] == 0 } {
+    set name [file rootname [file tail [file normalize $old_path/../..]]]
+  } else {
+    set name [file rootname [file tail [file normalize [pwd]/..]]]
+  }
   set bit_file [file normalize "$old_path/top_$proj_name.bit"]
   set bin_file [file normalize "$old_path/top_$proj_name.bin"]
   set ltx_file [file normalize "$old_path/top_$proj_name.ltx"]
@@ -88,9 +97,14 @@ if [file exists $fw_file] {
 
   Msg Info "Copying bit file $bit_file into $dst_bit..."
   file copy -force $bit_file $dst_bit
-    # Reports
+  # Reports
   file mkdir -p $dst_dir/reports
-  set reps [glob -nocomplain "$run_dir/*/*.rpt"]
+  if { [string first PlanAhead [version]] == 0 } {
+      Msg Info "run dir = $run_dir"
+      set reps [glob -nocomplain "$run_dir/*/*{.syr,.srp,.mrp,.map,.twr,.drc,.bgn,_routed.par,_routed_pad.txt,_routed.unroutes}"]
+  } else {
+      set reps [glob -nocomplain "$run_dir/*/*.rpt"]
+  }
   if [file exists [lindex $reps 0]] {
     file copy -force {*}$reps $dst_dir/reports
   } else {

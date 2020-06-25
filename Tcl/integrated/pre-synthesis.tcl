@@ -30,8 +30,12 @@ source $tcl_path/hog.tcl
 cd "$tcl_path/../.."
 
 if {[info commands get_property] != ""} {
-    # Vivado
-  set proj_file [get_property parent.project_path [current_project]]
+  # Vivado + PlanAhead
+  if { [string first PlanAhead [version]] == 0 } {
+    set proj_file [get_property DIRECTORY [current_project]]
+  } else {
+    set proj_file [get_property parent.project_path [current_project]]
+  }
 } elseif {[info commands project_new] != ""} {
     # Quartus
   set proj_file "/q/a/r/Quartus_project.qpf"
@@ -64,7 +68,7 @@ if { [exec git status --untracked-files=no  --porcelain] eq "" } {
   lassign [GetVer ALL ./] version commit
 } else {
   Msg CriticalWarning "Git working directory [pwd] not clean, commit hash, and version will be set to 0."
-  set commit   "0000000"
+  set commit   "00000000"
   set version  "00000000"
 }
 
@@ -200,8 +204,8 @@ if { [exec git status --untracked-files=no  --porcelain] eq "" } {
   lassign [GetVer ALL ./] hog_ver hog_hash
 } else {
   Msg CriticalWarning "Hog submodule [pwd] not clean, commit hash will be set to 0."
-  set hog_hash "0000000"
-  set hog_ver "0000000"
+  set hog_hash "00000000"
+  set hog_ver  "00000000"
 }
 cd ..
 
@@ -221,7 +225,7 @@ if [GitVersion 2.9.3] {
 if {[info commands set_property] != ""} {
   ### VIVADO
   # set global generic varibles
-  set generic_string "GLOBAL_DATE=32'h$date GLOBAL_TIME=32'h$timee GLOBAL_VER=32'h$version GLOBAL_SHA=32'h$commit TOP_SHA=32'h$top_hash TOP_VER=32'h$top_ver HOG_SHA=32'h$hog_hash HOG_VER=32'h$hog_ver"
+  set generic_string "GLOBAL_DATE=32'h$date GLOBAL_TIME=32'h$timee GLOBAL_VER=32'h$version GLOBAL_SHA=32'h$commit TOP_SHA=32'h0$top_hash TOP_VER=32'h$top_ver HOG_SHA=32'h$hog_hash HOG_VER=32'h$hog_ver"
   if {$use_ipbus == 1} {
     set generic_string "$generic_string XML_VER=32'h$xml_ver_hex XML_SHA=32'h$xml_hash"
   }
@@ -229,7 +233,7 @@ if {[info commands set_property] != ""} {
   #set project specific lists
   foreach l $libs v $vers h $hashes {
     set ver "[string toupper $l]_VER=32'h$v "
-    set hash "[string toupper $l]_SHA=32'h$h"
+    set hash "[string toupper $l]_SHA=32'h0$h"
     set generic_string "$generic_string $ver $hash"
   }
 

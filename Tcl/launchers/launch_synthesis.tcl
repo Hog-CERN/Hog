@@ -46,9 +46,16 @@ Msg Info "Number of jobs set to $options(NJOBS)."
 set commit [GetHash ALL ../../]
 
 Msg Info "Opening $project..."
-open_project ../../VivadoProject/$project/$project.xpr
+if { [string first PlanAhead [version]] ==0 } {
+    open_project ../../VivadoProject/$project/$project.ppr
+} else {
+    open_project ../../VivadoProject/$project/$project.xpr
+}
 
 reset_run synth_1
+
+#if planAhead {}
+source  integrated/pre-synthesis.tcl
 
 launch_runs synth_1  -jobs $options(NJOBS) -dir $main_folder
 wait_on_run synth_1

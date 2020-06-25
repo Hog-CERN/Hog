@@ -64,5 +64,9 @@ if [ -z "$1" ]
 then
     printf "Project name has not been specified. Usage: \n ./Hog/LaunchImplementation.sh <proj_name> [-no_bitstream] [-NJOBS <number of jobs>]\n"
 else
-    vivado -nojournal -nolog -mode batch -notrace -source $DIR/Tcl/launchers/launch_implementation.tcl -tclargs $NO_BITSTREAM $NJOBS $1
+	if command -v planAhead > /dev/null ; then
+		planAhead -nojournal -nolog -mode batch -notrace -source $DIR/Tcl/launchers/launch_implementation.tcl -tclargs $NO_BITSTREAM $NJOBS $1
+	else
+		vivado -nojournal -nolog -mode batch -notrace -source $DIR/Tcl/launchers/launch_implementation.tcl -tclargs $NO_BITSTREAM $NJOBS $1
+	fi;
 fi

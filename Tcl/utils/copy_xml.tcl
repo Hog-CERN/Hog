@@ -56,4 +56,4 @@ if {[file exists $list_file]} {
 lassign [GetVer $list_file $repo_path] hex_ver sha
 
 set ver [HexVersionToString $hex_ver]
-CopyXMLsFromListFile $list_file $repo_path $dst $generate $ver $sha
+CopyXMLsFromListFile $list_file $repo_path $dst $ver $sha  $generate

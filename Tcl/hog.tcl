@@ -661,9 +661,11 @@ proc GetVerFromSHA {SHA} {
 
 proc GetRepoVersions {proj_tcl_file} {
 set old_path [pwd]
+set proj_tcl_file [file normalize $proj_tcl_file]
+set proj_dir [file dir $proj_tcl_file]
 
 # Hog submodule
-cd [file dir $proj_tcl_file]
+cd $proj_dir
 lappend SHAs [exec git log --format=%h -1 -- ../../Hog]
 cd "../../Hog"
 if { [exec git status --untracked-files=no  --porcelain] eq "" } {
@@ -675,7 +677,7 @@ if { [exec git status --untracked-files=no  --porcelain] eq "" } {
   set hog_ver "00000000"
 }
 
-cd [file normalize [file dir $proj_tcl_file]]
+cd $proj_dir
 
 if { [exec git status --untracked-files=no  --porcelain] eq "" } {
   Msg Info "Git working directory [pwd] clean."

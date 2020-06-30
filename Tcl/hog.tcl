@@ -549,16 +549,18 @@ proc GetFileList {FILE path} {
 proc GetHash {FILE path} {
   if {$FILE eq "ALL"} {
     set ret [exec git log --format=%h -1]
-  } elseif {[file isfile $FILE]} {
-    set lista [GetFileList $FILE $path]
-    set ret [exec git log --format=%h -1 -- {*}$lista ]
+  } elseif {[file isfile $FILE] && ([file ext $FILE] eq ".src" || [file ext $FILE] eq ".lst" || [file ext $FILE] eq ".con")} {
+    set file_list [GetFileList $FILE $path]
+    # Need the SHA of all the files in the list file PLUS the list file itself
+    lappend file_list $FILE
+    set ret [exec git log --format=%h -1 -- {*}$file_list ]
 
   } elseif {[file isdirectory $FILE]} {
 
     set ret [exec git log --format=%h -1 $FILE ]
 
   } else {
-    puts "ERROR: $FILE not found"
+    puts "ERROR: $FILE not found or invalid extension."
     set ret 0
   }
   return $ret
@@ -572,12 +574,22 @@ proc GetHash {FILE path} {
 # @param[in] FILE list file or path containing the subset of files whose latest commit hash will be returned
 # @param[in] path the path the vhdl file are referred to in the list file (not used if FILE is a path or "ALL")
 #
-# @return         the desired version
+# @return  a list: the git SHA, the version in hex format
 #
 proc GetVer {FILE path} {
   set SHA [GetHash $FILE $path]
   set path [file normalize $path]
   #oldest tag containing SHA
+  return [GetVerFromSHA $SHA]
+}
+
+## @brief Get git version and commit hash of a specific commit give the SHA
+#
+# @param[in] SHA the git SHA of the commit 
+#
+# @return  a list: the git SHA, the version in hex format
+#
+proc GetVerFromSHA {SHA} {
   set status [catch {exec git tag --sort=creatordate --contain $SHA -l "v*.*.*" -l "b*v*.*.*"} result]
   if {$status == 0} {
     if {[regexp {^ *$} $result]} {
@@ -636,8 +648,162 @@ proc GetVer {FILE path} {
   }
   set comm [format %07X 0x$comm]
   return [list $M$m$c $comm]
-  cd $old_path
 }
+
+## Get repository version
+#
+#  @param[in] repo_path The repository path of which all the version must be calculated
+#
+#  @return            a list conatining all the versions: global, top (project tcl file), constraints, libraries, submodules, exteral, ipbus xml
+#
+
+proc GetRepositoryVersions {proj_tcl_file} {
+set old_path [pwd]
+
+# Hog submodule
+lappend SHAs [exec git log --format=%h -1 ../../Hog]
+cd "[file dir $proj_tcl_file]../../Hog"
+if { [exec git status --untracked-files=no  --porcelain] eq "" } {
+  Msg Info "Hog submodule [pwd] clean."
+  lassign [GetVer ALL ./] hog_ver hog_hash
+} else {
+  Msg CriticalWarning "Hog submodule [pwd] not clean, commit hash will be set to 0."
+  set hog_hash "0000000"
+  set hog_ver "00000000"
+}
+
+cd [file dir $proj_tcl_file]
+
+if { [exec git status --untracked-files=no  --porcelain] eq "" } {
+  Msg Info "Git working directory [pwd] clean."
+  set clean 1
+} else {
+  Msg CriticalWarning "Git working directory [pwd] not clean, commit hash, and version will be set to 0."
+  set clean 0
+}
+
+set SHAs ""
+# Top project directory
+lassign [GetVer $proj_tcl_file .] top_ver top_hash
+lappend SHAs top_hash
+
+# Read list files
+set libs ""
+set vers ""
+set hashes ""
+set list_files [glob  -nocomplain "./list/*.src"]
+foreach f $list_files {
+  set name [file rootname [file tail $f]]
+  lassign [GetVer  $f .] ver hash
+  Msg Info "Found source list file $f, version: $ver commit SHA: $hash"
+  lappend libs $name
+  lappend vers $ver
+  lappend hashes $hash
+  lappend SHAs $hash
+}
+
+# Read constraint list files
+
+set cons_hashes ""
+set cons_files [glob  -nocomplain "./list/*.con"]
+foreach f $cons_files {
+  set name [file rootname [file tail $f]]
+  lassign [GetVer  $f .] ver hash
+  Msg Info "Found constraint list file $f, version: $ver commit SHA: $hash"
+  lappend cons_hashes $hash
+  lappend SHAs $hash
+}
+
+#Of all the constraints we get the most recent
+set cons_hash [exec git log --format=%h -1 {*}$cons_hashes]
+set cons_ver [GetVerFromSHA $cons_hash]
+
+
+# Read external library files
+set ext_hashes ""
+set ext_files [glob -nocomplain "./list/*.ext"]
+set ext_names ""
+
+foreach f $ext_files {
+  set name [file rootname [file tail $f]]
+  set hash [exec git log --format=%h -1 $f ]
+  Msg Info "Found source file $f, commit SHA: $hash"
+  lappend ext_names $name
+  lappend ext_hashes $hash
+  lappend SHAs $hash
+
+  set fp [open $f r]
+  set file_data [read $fp]
+  close $fp
+  set data [split $file_data "\n"]
+  Msg Info "Checking checksums of external library files in $f"
+  foreach line $data {
+    if {![regexp {^ *$} $line] & ![regexp {^ *\#} $line] } { #Exclude empty lines and comments
+      set file_and_prop [regexp -all -inline {\S+} $line]
+      set hdlfile [lindex $file_and_prop 0]
+      set hdlfile "$env(HOG_EXTERNAL_PATH)/$hdlfile"
+      if { [file exists $hdlfile] } {
+        set hash [lindex $file_and_prop 1]
+        set current_hash [Md5Sum $hdlfile]
+        if {[string first $hash $current_hash] == -1} {
+          Msg CriticalWarning "File $hdlfile has a wrong hash. Current checksum: $current_hash, expected: $hash"
+        }
+      }
+    }
+  }
+}
+
+# Ipbus XML
+if [file exists ./list/xml.lst] {
+  Msg Info "Found IPbus XML list file, evaluating version and SHA of listed files..."
+  lassign [GetVer ./Top/$proj_name/xml/xml.lst .] xml_ver xml_hash
+  lappend SHAs $xml_hash
+
+} else {
+  Msg Info "This project does not use IPbus XMLs"
+  set xml_ver  00000000
+  set xml_hash 0000000
+}
+
+# Submodules
+set subs ""
+set subs_hashes ""
+set subs_files [glob -nocomplain "./list/*.sub"]
+foreach f $subs_files {
+  set sub_dir [file rootname [file tail $f]]
+  if [file exists ./$sub_dir] {
+    lappend subs $sub_dir
+    #Append the SHA in which the submodule was changed, not the submodule SHA
+    lappend SHAs [exec git log --format=%h -1 $sub_dir]
+    cd "./$sub_dir"
+    if { [exec git status --untracked-files=no --porcelain] eq "" } {
+      Msg Info "$sub_dir submodule clean."
+      lappend subs_hashes [GetHash ALL ./]
+    } else {
+      Msg CriticalWarning "$sub_dir submodule not clean, commit hash will be set to 0."
+      lappend subs_hashes "0000000"
+    }
+    cd ..
+  } else {
+    Msg CriticalWarning "$sub_dir submodule not found"
+  }
+}
+
+#The global SHA and ver is the most recent among everything
+if {$clean == 1} {
+  set commit [exec git log --format=%h -1 {*}$SHAs]
+  set version [GetVerFromSHA $commit]
+} else {
+  set commit  "0000000"
+  set version "00000000"
+}
+
+cd $old_path
+
+return [list $commit $version  $hog_hash $hog_ver  $top_hash $top_ver  $libs $hashes $vers  $subs $subs_hashes  $cons_ver $cons_hash  $ext_names $ext_hashes  $xml_hash $xml_ver] 
+}
+
+
 
 ## Convert hex version to M.m.p string
 #

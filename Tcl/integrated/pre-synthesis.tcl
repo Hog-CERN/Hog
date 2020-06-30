@@ -200,12 +200,12 @@ m add row  "| --- | --- | --- |"
 Msg Status " Global SHA: $commit, VER: $version"
 m add row  "| Global | [string tolower $commit] | $version |"
 
-set $cons_ver [HexVersionToString $cons_ver]
+set cons_ver [HexVersionToString $cons_ver]
 Msg Status " Constraints SHA: $cons_hash, VER: $cons_ver"
 m add row  "| Constraints | [string tolower $cons_hash] | $cons_ver |"
 
 if {$use_ipbus == 1} {
-  set $xml_ver [HexVersionToString $xml_ver]
+  set xml_ver [HexVersionToString $xml_ver]
   Msg Status " IPbus XML SHA: $xml_hash, VER: $xml_ver"
   m add row "| \"IPbus XML\" | [string tolower $xml_hash] | $xml_ver |"
 }

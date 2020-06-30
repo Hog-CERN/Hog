@@ -658,7 +658,7 @@ proc GetVerFromSHA {SHA} {
 #  @return            a list conatining all the versions: global, top (project tcl file), constraints, libraries, submodules, exteral, ipbus xml
 #
 
-proc GetRepositoryVersions {proj_tcl_file} {
+proc GetRepoVersions {proj_tcl_file} {
 set old_path [pwd]
 
 # Hog submodule

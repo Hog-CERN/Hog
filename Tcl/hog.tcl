@@ -582,7 +582,8 @@ proc GetVer {FILE path} {
   set SHA [GetHash $FILE $path]
   set path [file normalize $path]
   #oldest tag containing SHA
-  return [GetVerFromSHA $SHA]
+  set comm [format %07X 0x$SHA]
+  return [list [GetVerFromSHA $SHA] $comm]
 }
 
 ## @brief Get git version and commit hash of a specific commit give the SHA
@@ -635,21 +636,20 @@ proc GetVerFromSHA {SHA} {
     set M [format %02X $M]
     set m [format %02X $m]
     set c [format %04X $c]
-    set comm $SHA
+
   } elseif { $M > -1 } { # official tag
     set M [format %02X $M]
     set m [format %02X $m]
     set c [format %04X $c]
-    set comm $SHA
+
   } else {
     Msg Warning "Tag does not contain a properly formatted version: $ver"
     set M [format %02X 0]
     set m [format %02X 0]
     set c [format %04X 0]
-    set comm $SHA
   }
-  set comm [format %07X 0x$comm]
-  return [list $M$m$c $comm]
+
+  return $M$m$c
 }
 
 ## Get repository version

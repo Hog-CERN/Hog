@@ -63,14 +63,14 @@ if {$flavour != ""} {
 lassign [GetRepoVersions ./Top/$proj_name/$proj_name.tcl] commit version  hog_hash hog_ver  top_hash top_ver  libs hashes vers  subs subs_hashes  cons_ver cons_hash  ext_names ext_hashes  xml_hash xml_ver 
 
 if {$xml_hash != 0} {
-    set xml_dst $old_path/../xml
-    Msg Info "Creating XML directory $xml_dst..."
-    file mkdir $xml_dst
-    Msg Info "Copying xml files to $xml_dst and replacing placeholders with xml version $xml_ver..."
-    CopyXMLsFromListFile ./Top/$proj_name/list/xml.lst ./ $xml_dst $xml_ver $xml_hash
-    set use_ipbus 1
+  set xml_dst $old_path/../xml
+  Msg Info "Creating XML directory $xml_dst..."
+  file mkdir $xml_dst
+  Msg Info "Copying xml files to $xml_dst and replacing placeholders with xml version $xml_ver..."
+  CopyXMLsFromListFile ./Top/$proj_name/list/xml.lst ./ $xml_dst $xml_ver $xml_hash
+  set use_ipbus 1
 } else {
-    set use_ipbus 0
+  set use_ipbus 0
 }
 
 
@@ -116,7 +116,7 @@ if {[info commands set_property] != ""} {
   if {$use_ipbus == 1} {
     set generic_string "$generic_string XML_VER=32'h$xml_ver XML_SHA=32'h$xml_hash"
   }
-  
+
   #set project specific lists
   foreach l $libs v $vers h $hashes {
     set ver "[string toupper $l]_VER=32'h$v "

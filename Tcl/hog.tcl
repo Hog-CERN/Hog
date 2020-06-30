@@ -664,8 +664,12 @@ set old_path [pwd]
 set proj_tcl_file [file normalize $proj_tcl_file]
 set proj_dir [file dir $proj_tcl_file]
 
+# This will be the list of all the SHAs of this project, the most recent will be picked up as GLOBAL SHA
+set SHAs ""
+
 # Hog submodule
 cd $proj_dir
+#Append the SHA in which Hog submodule was changed, not the submodule SHA
 lappend SHAs [exec git log --format=%h -1 -- ../../Hog]
 cd "../../Hog"
 if { [exec git status --untracked-files=no  --porcelain] eq "" } {
@@ -687,7 +691,6 @@ if { [exec git status --untracked-files=no  --porcelain] eq "" } {
   set clean 0
 }
 
-set SHAs ""
 # Top project directory
 lassign [GetVer $proj_tcl_file .] top_ver top_hash
 lappend SHAs $top_hash

@@ -54,8 +54,9 @@ if { [string first PlanAhead [version]] ==0 } {
 
 reset_run synth_1
 
-#if planAhead {}
-source  integrated/pre-synthesis.tcl
+if { [string first PlanAhead [version]] ==0 } {
+  source  integrated/pre-synthesis.tcl
+}
 
 launch_runs synth_1  -jobs $options(NJOBS) -dir $main_folder
 wait_on_run synth_1

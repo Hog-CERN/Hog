@@ -779,11 +779,11 @@ set subs_hashes ""
 set subs_files [glob -nocomplain "./list/*.sub"]
 foreach f $subs_files {
   set sub_dir [file rootname [file tail $f]]
-  if [file exists ./$sub_dir] {
+  if [file exists ../../$sub_dir] {
     lappend subs $sub_dir
     #Append the SHA in which the submodule was changed, not the submodule SHA
     lappend SHAs [exec git log --format=%h -1 $sub_dir]
-    cd "./$sub_dir"
+    cd "../../$sub_dir"
     if { [exec git status --untracked-files=no --porcelain] eq "" } {
       Msg Info "$sub_dir submodule clean."
       lappend subs_hashes [GetHash ALL ./]
@@ -791,7 +791,7 @@ foreach f $subs_files {
       Msg CriticalWarning "$sub_dir submodule not clean, commit hash will be set to 0."
       lappend subs_hashes "0000000"
     }
-    cd ..
+    cd $proj_dir
   } else {
     Msg CriticalWarning "$sub_dir submodule not found"
   }

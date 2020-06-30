@@ -603,9 +603,9 @@ proc GetVerFromSHA {SHA} {
         lassign [ExtractVersionFromTag $tag] M m p mr
         if {$mr == -1} {
           incr p
-          Msg Info "No tag contains $SHA for $FILE ($path), will use most recent tag $tag. As this is an official tag, patch will be incremented to $p."
+          Msg Info "No tag contains $SHA, will use most recent tag $tag. As this is an official tag, patch will be incremented to $p."
         } else {
-          Msg Info "No tag contains $SHA for $FILE ($path), will use most recent tag $tag. As this is a candidate tag, the patch level will be kept at $p."
+          Msg Info "No tag contains $SHA, will use most recent tag $tag. As this is a candidate tag, the patch level will be kept at $p."
         }
         set ver v$M.$m.$p
 

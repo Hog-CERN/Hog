@@ -661,8 +661,9 @@ proc GetRepositoryVersions {proj_tcl_file} {
 set old_path [pwd]
 
 # Hog submodule
-lappend SHAs [exec git log --format=%h -1 ../../Hog]
-cd "[file dir $proj_tcl_file]../../Hog"
+cd [file dir $proj_tcl_file]
+lappend SHAs [exec git log --format=%h -1 -- ../../Hog]
+cd "[file dir $proj_tcl_file]/../../Hog"
 if { [exec git status --untracked-files=no  --porcelain] eq "" } {
   Msg Info "Hog submodule [pwd] clean."
   lassign [GetVer ALL ./] hog_ver hog_hash

@@ -665,7 +665,7 @@ set old_path [pwd]
 # Hog submodule
 cd [file dir $proj_tcl_file]
 lappend SHAs [exec git log --format=%h -1 -- ../../Hog]
-cd "[file dir $proj_tcl_file]/../../Hog"
+cd "../../Hog"
 if { [exec git status --untracked-files=no  --porcelain] eq "" } {
   Msg Info "Hog submodule [pwd] clean."
   lassign [GetVer ALL ./] hog_ver hog_hash
@@ -675,7 +675,7 @@ if { [exec git status --untracked-files=no  --porcelain] eq "" } {
   set hog_ver "00000000"
 }
 
-cd [file dir $proj_tcl_file]
+cd [file normalize [file dir $proj_tcl_file]]
 
 if { [exec git status --untracked-files=no  --porcelain] eq "" } {
   Msg Info "Git working directory [pwd] clean."
@@ -759,7 +759,7 @@ foreach f $ext_files {
 # Ipbus XML
 if [file exists ./list/xml.lst] {
   Msg Info "Found IPbus XML list file, evaluating version and SHA of listed files..."
-  lassign [GetVer ./list/xml.lst .] xml_ver xml_hash
+  lassign [GetVer ./list/xml.lst ../../] xml_ver xml_hash
   lappend SHAs $xml_hash
 
 } else {

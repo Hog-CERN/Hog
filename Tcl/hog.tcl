@@ -623,7 +623,7 @@ proc GetVerFromSHA {SHA} {
       }
     }
   } else {
-    Msg CriticalWarning "Error while trying to find tag for $SHA in file: $FILE, path: [pwd]"
+    Msg CriticalWarning "Error while trying to find tag for $SHA"
     set ver "error: $result"
   }
 
@@ -640,7 +640,7 @@ proc GetVerFromSHA {SHA} {
     set c [format %04X $c]
     set comm $SHA
   } else {
-    Msg Warning "Tag does not contain a properly formatted version: $ver in repository containing $FILE"
+    Msg Warning "Tag does not contain a properly formatted version: $ver"
     set M [format %02X 0]
     set m [format %02X 0]
     set c [format %04X 0]

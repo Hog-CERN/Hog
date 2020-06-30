@@ -782,7 +782,7 @@ foreach f $subs_files {
   if [file exists ../../$sub_dir] {
     lappend subs $sub_dir
     #Append the SHA in which the submodule was changed, not the submodule SHA
-    lappend SHAs [exec git log --format=%h -1 $sub_dir]
+    lappend SHAs [exec git log --format=%h -1 -- ../../$sub_dir]
     cd "../../$sub_dir"
     if { [exec git status --untracked-files=no --porcelain] eq "" } {
       Msg Info "$sub_dir submodule clean."

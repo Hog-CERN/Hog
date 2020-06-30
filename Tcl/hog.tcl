@@ -687,7 +687,7 @@ if { [exec git status --untracked-files=no  --porcelain] eq "" } {
 set SHAs ""
 # Top project directory
 lassign [GetVer $proj_tcl_file .] top_ver top_hash
-lappend SHAs top_hash
+lappend SHAs $top_hash
 
 # Read list files
 set libs ""
@@ -696,7 +696,7 @@ set hashes ""
 set list_files [glob  -nocomplain "./list/*.src"]
 foreach f $list_files {
   set name [file rootname [file tail $f]]
-  lassign [GetVer  $f .] ver hash
+  lassign [GetVer  $f ../../] ver hash
   Msg Info "Found source list file $f, version: $ver commit SHA: $hash"
   lappend libs $name
   lappend vers $ver
@@ -710,7 +710,7 @@ set cons_hashes ""
 set cons_files [glob  -nocomplain "./list/*.con"]
 foreach f $cons_files {
   set name [file rootname [file tail $f]]
-  lassign [GetVer  $f .] ver hash
+  lassign [GetVer  $f ../../] ver hash
   Msg Info "Found constraint list file $f, version: $ver commit SHA: $hash"
   lappend cons_hashes $hash
   lappend SHAs $hash
@@ -758,7 +758,7 @@ foreach f $ext_files {
 # Ipbus XML
 if [file exists ./list/xml.lst] {
   Msg Info "Found IPbus XML list file, evaluating version and SHA of listed files..."
-  lassign [GetVer ./Top/$proj_name/xml/xml.lst .] xml_ver xml_hash
+  lassign [GetVer ./list/xml.lst .] xml_ver xml_hash
   lappend SHAs $xml_hash
 
 } else {

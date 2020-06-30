@@ -77,6 +77,13 @@ if {[info commands send_msg_id] != ""} {
   if { [string first Vivado [version]] == 0 } {
     set_property BITSTREAM.CONFIG.USERID $commit [current_design]
     set_property BITSTREAM.CONFIG.USR_ACCESS $commit [current_design]
+  } elseif { [string first PlanAhead [version]] == 0 } {
+    # get the existing "more options" so that we can append to them when adding the userid
+    set props [get_property "STEPS.BITGEN.ARGS.MORE OPTIONS" [get_runs impl_1]]
+    # need to trim off the curly braces that were used in creating a dictionary
+    regsub -all {\{|\}} $props "" props
+    set props  "$props -g usr_access:0x0$commit -g userid:0x0$commit"
+    set_property -name {steps.bitgen.args.More Options} -value $props -objects [get_runs impl_1]
   }
 } elseif {[info commands post_message] != ""} {
   # Quartus

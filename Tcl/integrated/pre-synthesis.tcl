@@ -60,8 +60,7 @@ if {$flavour != ""} {
 
 ############
 
-lassign [GetRepositoryVersions ./Top/$proj_name/$proj_name.tcl] commit version  hog_hash hog_ver  top_hash top_ver  libs hashes vers  subs subs_hashes  cons_ver cons_hash  ext_names ext_hashes  xml_hash xml_ver 
-
+lassign [GetRepositoryVersions [file normalize ./Top/$proj_name/$proj_name.tcl]] commit version  hog_hash hog_ver  top_hash top_ver  libs hashes vers  subs subs_hashes  cons_ver cons_hash  ext_names ext_hashes  xml_hash xml_ver 
 
 if {$xml_hash != 0} {
     set xml_dst $old_path/../xml

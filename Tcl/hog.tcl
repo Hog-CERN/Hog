@@ -550,17 +550,18 @@ proc GetHash {FILE path} {
   if {$FILE eq "ALL"} {
     set ret [exec git log --format=%h -1]
   } elseif {[file isfile $FILE] && ([file ext $FILE] eq ".src" || [file ext $FILE] eq ".lst" || [file ext $FILE] eq ".con")} {
+    Msg Info "Opening list file $FILE and evaluationg the SHA of the listed files..."
     set file_list [GetFileList $FILE $path]
     # Need the SHA of all the files in the list file PLUS the list file itself
     lappend file_list $FILE
     set ret [exec git log --format=%h -1 -- {*}$file_list ]
 
-  } elseif {[file isdirectory $FILE]} {
-
+  } elseif {[file exists $FILE]} {
+    Msg Info "Evaluating the git SHA for $FILE..."
     set ret [exec git log --format=%h -1 $FILE ]
 
   } else {
-    puts "ERROR: $FILE not found or invalid extension."
+    Msg Error "$FILE not found."
     set ret 0
   }
   return $ret

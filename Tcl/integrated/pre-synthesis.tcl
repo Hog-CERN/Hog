@@ -150,7 +150,7 @@ if {[info commands set_property] != ""} {
   ### Tcl Shell
   puts "Hog:DEBUG GLOBAL_DATE=$date GLOBAL_TIME=$timee"
   puts "Hog:DEBUG GLOBAL_SHA=$commit TOP_SHA=$top_hash"
-  puts "Hog:DEBUG CON_VER=$cons_ver CON_SHA=$con_hash"
+  puts "Hog:DEBUG CON_VER=$cons_ver CON_SHA=$cons_hash"
   puts "Hog:DEBUG XML_SHA=$xml_hash GLOBAL_VER=$version TOP_VER=$top_ver"
   puts "Hog:DEBUG XML_VER=$xml_ver HOG_SHA=$hog_hash HOG_VER=$hog_ver"
   puts "Hog:DEBUG LIBS: $libs $vers $hashes"

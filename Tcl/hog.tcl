@@ -473,7 +473,8 @@ proc ReadListFile {list_file path lib} {
 proc SmartListFile {list_file path} {
   set ext [file extension $list_file]
   set lib [file rootname [file tail $list_file]]
-  if { $ext == ".prop" } {
+  if { $ext == ".prop" || $ext == ".lst" } {
+    Msg Info "Skipping $list_file"
     return
   } elseif {[lsearch {.src .sim .con .sub .ext} $ext] < 0} {
     Msg CriticalWarning "Unknown extension $ext"

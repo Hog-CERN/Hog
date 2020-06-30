@@ -168,7 +168,7 @@ proc CreateProject {} {
     ##############
     # READ FILES #
     ##############
-  set list_files [glob -directory $globalSettings::list_path "*"]
+    set list_files [glob -directory $globalSettings::list_path "*"]
 
   lassign [GetHogFiles $globalSettings::list_path $globalSettings::repo_path] libraries properties
   AddHogFiles $libraries $properties

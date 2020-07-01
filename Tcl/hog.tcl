@@ -381,7 +381,7 @@ proc FindVhdlVersion {file_name} {
       set vhdl_version ""
     }
   }
-
+  
   return $vhdl_version
 }
 
@@ -391,96 +391,71 @@ proc FindVhdlVersion {file_name} {
 #
 # @param[in] lsit_file file containing vhdl list with optional properties
 # @param[in] path      path the vhdl file are referred to in the list file
-# @param[in] lib       name of the library files will be added to
-# @param[in] src       name of VivadoFileSet files will be added to
-# @param[in] no_add    if a value is specified, the files will added to memory only, not to the project
+# @param[in] lib       name of the library files will be added to, if not given will be extracted from the file name
+# @param[in] sha_mode  if not set to 0, the list files will be added as well and the IPs will be added to the file rather than to the special ip library. The sha mode should be used when you use the lists to calculate the git SHA, rather than to add the files to the project.
 #
-# @return              A list of the files added to the project
+# @return              a list of 2 dictionaries: "libraries" has library name as keys and a list of filenames as values, "properties" has as file names as keys and a list of properties as values
 #
-proc ReadListFile {list_file path lib} {
+proc ReadListFile {list_file path {lib ""} {sha_mode 0} } {
+  # if no library is given, work it out from the file name
+  if {$lib eq ""} {
+    set lib [file rootname [file tail $list_file]]
+  }
+  set ext [file extension $list_file]
+
   set list_file
   set fp [open $list_file r]
   set file_data [read $fp]
   close $fp
-  set list_file_ext [file ext $list_file]
-
+  
   set libraries [dict create]
   set properties [dict create]
   #  Process data file
   set data [split $file_data "\n"]
   set n [llength $data]
-  Msg Info "$n lines read from $list_file"
+  Msg Info "$n lines read from $list_file."
   set cnt 0
+  
   foreach line $data {
     # Exclude empty lines and comments
     if {![regexp {^ *$} $line] & ![regexp {^ *\#} $line] } {
       set file_and_prop [regexp -all -inline {\S+} $line]
-      set vhdlfile [lindex $file_and_prop 0]
+       set vhdlfile [lindex $file_and_prop 0]
       set vhdlfile "$path/$vhdlfile"
       if {[file exists $vhdlfile]} {
-        set vhdlfile [file normalize $vhdlfile]
-        set extension [file ext $vhdlfile]
-        if { [lsearch {.src .sim .con .sub} $extension] >= 0 } {
-          Msg Info "List file $vhdlfile found in list file, recoursively opening it..."
-          lassign [SmartListFile $vhdlfile $path] l p
-          set libraries [dict merge $l $libraries]
-          set properties [dict merge $p $properties]
-        } else {
-          ### Set file properties
-          set prop [lrange $file_and_prop 1 end]
-          dict lappend properties $vhdlfile $prop
-          ### Set File Set
-          #Adding IP library
-          if {[string equal $extension ".xci"] || [string equal $extension ".ip"] || [string equal $extension ".bd"]} {
-            dict lappend libraries "$lib.ip" $vhdlfile
-            Msg Info "Appending $vhdlfile to IP list"
-            # lappend ip_files $vhdlfile
-          } else {
-            dict lappend libraries $lib$list_file_ext $vhdlfile
-            # lappend lib_files $vhdlfile
-            # lappend prop_list $prop
-          }
-
-        }
-        incr cnt
+ 	set vhdlfile [file normalize $vhdlfile]
+ 	set extension [file ext $vhdlfile]
+	
+	if {[lsearch {.src .sim .con .sub} $extension] >= 0 } {
+	  Msg Info "List file $vhdlfile found in list file, recoursively opening it..."
+	  lassign [ReadListFile $vhdlfile $path $lib $sha_mode] l p
+	  set libraries [dict merge $l $libraries]
+	  set properties [dict merge $p $properties]
+	} else {
+	  ### Set file properties
+	  set prop [lrange $file_and_prop 1 end]
+	  dict lappend properties $vhdlfile $prop
+	  ### Set File Set
+	  #Adding IP library
+	  if {$sha_mode == 0 && [lsearch {.xci .ip .bd} $extension] >= 0} {
+	    dict lappend libraries "$lib.ip" $vhdlfile
+	    Msg Info "Appending $vhdlfile to IP list..."
+	  } else {
+	    dict lappend libraries $lib$ext $vhdlfile
+	  }
+ 	  
+	}
+ 	incr cnt
       } else {
-        Msg Error  "File $vhdlfile not found"
+ 	Msg Error  "File $vhdlfile not found."
       }
     }
   }
-  return [list $libraries $properties]
-}
-
-## @brief Read a list file and adds the files to Vivado/Quartus, adding the additional information as file type.
-#
-# This procedure extracts the Vivado fileset and the library name from the list-file name.
-# Additional information is provided with text separated from the file name with one or more spaces
-#
-# list_file should be formatted as follows:
-# LIB_NAME.FILE_SET
-#
-# LIB_NAME : the Vivado library you want to include the file to
-# FILE_SET : the Vivado file set you want to include the file to:
-# * .src : for source files (corresponding to sources_1)
-# * .sub : for source files in a git submodule (corresponding to sources_1)
-# * .sim : for simulation files (corresponding to sim_1)
-# * .con : for constraint files (corresponding to constrs_1)
-# any other file extension will cause an error
-#
-# @param[in] lsit_file file containing vhdl list with optional properties
-# @param[in] path      the path the vhdl file are referred to in the list file
-#
-proc SmartListFile {list_file path} {
-  set ext [file extension $list_file]
-  set lib [file rootname [file tail $list_file]]
-  if { $ext == ".prop" || $ext == ".lst" } {
-    Msg Info "Skipping $list_file"
-    return
-  } elseif {[lsearch {.src .sim .con .sub .ext} $ext] < 0} {
-    Msg CriticalWarning "Unknown extension $ext"
+  
+  if {$sha_mode != 0} {
+    dict lappend libraries $lib$ext $list_file
   }
-  Msg Info "Reading sources from file $list_file, lib: $lib"
-  return [ReadListFile $list_file $path $lib]
+  return [list $libraries $properties]
 }
 
 ## @brief Get git SHA of a vivado library
@@ -1060,9 +1035,14 @@ proc CopyXMLsFromListFile {list_file path dst {xml_version "0.0.0"} {xml_sha "00
   }
 
 }
-########################################################
 
-
+## @brief Compare two VHDL files ignoring spces and comments
+#
+# @param[in] file1  the first file
+# @param[in] file2  the second file
+#
+# @ return A string with the diff of the files
+#
 proc CompareVHDL {file1 file2} {
   set a  [open $file1 r]
   set b  [open $file2 r]
@@ -1199,15 +1179,15 @@ proc GetProjectFiles {} {
 # - libraries has library name as keys and a list of filenames as values
 # - properties has as file names as keys and a list of properties as values
 #
-proc GetHogFiles {list_path repo_path} {
+proc GetHogFiles {list_path repo_path {list_files {.src,.sim,.con}} } {
   set libraries [dict create]
   set properties [dict create]
 
   puts $list_path
-  set list_files [glob -directory $list_path "*"]
+  set list_files [glob -directory $list_path "*{$list_files}"]
 
   foreach f $list_files {
-    lassign [SmartListFile $f $repo_path] l p
+    lassign [ReadListFile $f $repo_path] l p
     set libraries [dict merge $l $libraries]
     set properties [dict merge $p $properties]
   }
@@ -1667,8 +1647,6 @@ proc ParseProcFile {proj_name} {
 }
 
 
-########################################################
-
 ## @brief Gets MAX number of Threads property from .prop file in Top/$proj_name/list directory.
 #
 # If property is not set returns default = 1
@@ -1683,7 +1661,7 @@ proc GetMaxThreads {proj_name} {
   if {[dict exists $propDict maxThreads]} {
     set maxThreads [dict get $propDict maxThreads]
   }
-
+  
   return $maxThreads
 }
 

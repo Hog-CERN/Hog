@@ -577,9 +577,11 @@ proc GetHash {FILE path} {
 proc GetVer {FILE path} {
   set SHA [GetHash $FILE $path]
   set path [file normalize $path]
-  set status [catch {exec git tag --sort=-creatordate --contain $SHA -l "v*.*.*" -l "b*v*.*.*"} result]
+  #oldest tag containing SHA
+  set status [catch {exec git tag --sort=creatordate --contain $SHA -l "v*.*.*" -l "b*v*.*.*"} result]
   if {$status == 0} {
     if {[regexp {^ *$} $result]} {
+      #newest tag of the repo (not containing SHA)  
       if [catch {exec git tag --sort=-creatordate -l "v*.*.*" -l "b*v*.*.*"} last_tag] {
         Msg CriticalWarning "No Hog version tags found in this repository ($path)."
         set ver v0.0.0
@@ -774,8 +776,9 @@ proc TagRepository {{merge_request_number 0} {version_level 0} {default_level 0}
 # @param[in] dst         the path the XML files must be copied to
 # @param[in] xml_version the M.m.p version to be used to replace the __VERSION__ placeholder in any of the xml files
 # @param[in] xml_sha     the Git-SHA to be used to replace the __GIT_SHA__ placeholder in any of the xml files
+# @param[in] generate    if set to 1, tells the function to generate the VHDL decode address files rather than check them 
 #
-proc CopyXMLsFromListFile {list_file path dst {generate 0} {xml_version "0.0.0"} {xml_sha "00000000"} } {
+proc CopyXMLsFromListFile {list_file path dst {xml_version "0.0.0"} {xml_sha "00000000"}  {generate 0} } {
   if {[catch {exec gen_ipbus_addr_decode -h} msg]}  {
     set can_generate 0
   } else {
@@ -1373,7 +1376,6 @@ You can fix this by installing package \"tcllib\""
     } else {
       set YML_NAME_F [regsub -all "^/" $YML_NAME ""]
     }
-    puts $YML_NAME_F
   #getting Hog repository tag and commit
     cd "Hog"
     set HOGYML_SHA [exec git log --format=%H -1 --  $YML_NAME_F ]

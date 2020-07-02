@@ -126,7 +126,7 @@ if [file exists ./Top/$proj_name/xml] {
   set xml_dst $old_path/../xml
   if [file exists ./Top/$proj_name/xml/xml.lst] {
     Msg Info "Found IPbus XML list file, using version of listed files..."
-        # in this case, IPbus xml files are stored anywhere in the repository and listed in the xml.lst file
+    # in this case, IPbus xml files are stored anywhere in the repository and listed in the xml.lst file
     lassign [GetVer ./Top/$proj_name/xml/xml.lst .] xml_ver_hex xml_hash
     set xml_ver [HexVersionToString $xml_ver_hex]
     Msg Info "Creating XML directory $xml_dst..."

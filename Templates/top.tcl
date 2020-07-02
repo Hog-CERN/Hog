@@ -43,4 +43,4 @@ set PROPERTIES [dict create \
 set DESIGN    "[file rootname [file tail [info script]]]"
 set PATH_REPO "[file normalize [file dirname [info script]]]/../../"
 
-source $PATH_REPO/HOG/Tcl/create_project.tcl
+source $PATH_REPO/Hog/Tcl/create_project.tcl

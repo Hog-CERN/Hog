@@ -1097,7 +1097,10 @@ proc AddHogFiles { libraries properties } {
           set props [dict get $properties $f]
           if {[file ext $f] == ".vhd" || [file ext $f] == ".vhdl"} {
             if {[lsearch -inline -regex $props "93"] < 0} {
-              set_property -name "file_type" -value "VHDL 2008" -objects $file_obj
+                # ISE does not support vhdl2008
+                if { [string first PlanAhead [version]] != 0 } {
+                    set_property -name "file_type" -value "VHDL 2008" -objects $file_obj
+                }
             } else {
               Msg Info "Filetype is VHDL 93 for $f"
             }

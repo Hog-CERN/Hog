@@ -721,7 +721,8 @@ proc GetRepoVersions {proj_tcl_file} {
 # Ipbus XML
   if [file exists ./list/xml.lst] {
     Msg Info "Found IPbus XML list file, evaluating version and SHA of listed files..."
-    #redo lassign [GetVer ./list/xml.lst ../../] xml_ver xml_hash
+    lassign [GetHogFiles "./list/" "xml.lst" 1] xml_files dummy
+    lassign [GetVer  [dict get $xml_files "xml.lst"] ] xml_ver xml_hash
     lappend SHAs $xml_hash
 
   } else {

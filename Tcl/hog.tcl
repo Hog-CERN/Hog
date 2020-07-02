@@ -523,7 +523,7 @@ proc GetFileList {FILE path} {
 #
 proc GetSHA {path} {
   set ret [exec git log --format=%h -1 -- {*}$path ]
-  return $ret
+  return [string toupper $ret]
 }
 
 ## @brief Get git version and commit hash of a subset of files
@@ -680,7 +680,7 @@ proc GetRepoVersions {proj_tcl_file} {
   }
 
 #Of all the constraints we get the most recent
-  set cons_hash [exec git log --format=%h -1 {*}$cons_hashes]
+  set cons_hash [string toupper [exec git log --format=%h -1 {*}$cons_hashes]]
   set cons_ver [GetVerFromSHA $cons_hash]
     Msg Info "Among all the constraint list files, if more than one, the most recent version was chosen: $cons_ver commit SHA: $cons_hash"
 

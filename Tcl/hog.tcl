@@ -517,45 +517,23 @@ proc GetFileList {FILE path} {
 #
 # If the special string "ALL" is used, returns the global hash
 #
-# @param[in] FILE list file or path containing the subset of files whose latest commit hash will be returned
-# @param[in] path the path the vhdl files are referred to in the list file (not used if FILE is a path or "ALL")
+# @param[in] path the file/path or list of files/path the git SHA should be evaluated from 
 #
 # @return         the value of the desired SHA
 #
-proc GetHash {FILE path} {
-  if {$FILE eq "ALL"} {
-    set ret [exec git log --format=%h -1]
-  } elseif {[file isfile $FILE] && ([file ext $FILE] eq ".src" || [file ext $FILE] eq ".lst" || [file ext $FILE] eq ".con")} {
-    Msg Info "Opening list file $FILE and evaluationg the SHA of the listed files..."
-    set file_list [GetFileList $FILE $path]
-    # Need the SHA of all the files in the list file PLUS the list file itself
-    lappend file_list $FILE
-    set ret [exec git log --format=%h -1 -- {*}$file_list ]
-
-  } elseif {[file exists $FILE]} {
-    Msg Info "Evaluating the git SHA for $FILE..."
-    set ret [exec git log --format=%h -1 $FILE ]
-
-  } else {
-    Msg Error "$FILE not found."
-    set ret 0
-  }
+proc GetSHA {path} {
+  set ret [exec git log --format=%h -1 -- {*}$path ]
   return $ret
-
 }
 
 ## @brief Get git version and commit hash of a subset of files
 #
-# If the special string "ALL" is used, returns the global hash of the path specified in path
-#
-# @param[in] FILE list file or path containing the subset of files whose latest commit hash will be returned
-# @param[in] path the path the vhdl file are referred to in the list file (not used if FILE is a path or "ALL")
+# @param[in] path list file or path containing the subset of files whose latest commit hash will be returned
 #
 # @return  a list: the git SHA, the version in hex format
 #
-proc GetVer {FILE path} {
-  set SHA [GetHash $FILE $path]
-  set path [file normalize $path]
+proc GetVer {path} {
+  set SHA [GetSHA $path]
   #oldest tag containing SHA
   set comm [format %07X 0x$SHA]
   return [list [GetVerFromSHA $SHA] $comm]
@@ -627,13 +605,13 @@ proc GetVerFromSHA {SHA} {
   return $M$m$c
 }
 
+
 ## Get repository version
 #
 #  @param[in] repo_path The repository path of which all the version must be calculated
 #
 #  @return            a list conatining all the versions: global, top (project tcl file), constraints, libraries, submodules, exteral, ipbus xml
 #
-
 proc GetRepoVersions {proj_tcl_file} {
   set old_path [pwd]
   set proj_tcl_file [file normalize $proj_tcl_file]
@@ -649,7 +627,7 @@ proc GetRepoVersions {proj_tcl_file} {
   cd "../../Hog"
   if { [exec git status --untracked-files=no  --porcelain] eq "" } {
     Msg Info "Hog submodule [pwd] clean."
-    lassign [GetVer ALL ./] hog_ver hog_hash
+    lassign [GetVer ./] hog_ver hog_hash
   } else {
     Msg CriticalWarning "Hog submodule [pwd] not clean, commit hash will be set to 0."
     set hog_hash "0000000"
@@ -667,17 +645,19 @@ proc GetRepoVersions {proj_tcl_file} {
   }
 
 # Top project directory
-  lassign [GetVer $proj_tcl_file .] top_ver top_hash
+  lassign [GetVer $proj_tcl_file] top_ver top_hash
   lappend SHAs $top_hash
 
 # Read list files
   set libs ""
   set vers ""
   set hashes ""
-  set list_files [glob  -nocomplain "./list/*.src"]
-  foreach f $list_files {
+  # Specyfiy sha_mode 1 for GetHogFile to get all the files, includeng the list-files themselves
+  lassign [GetHogFile "./list/" "*.src" 1] src_files dummy
+  dict for {f files} $src_files {
+    #library names have a .src extension in values returned by GetHogFiles
     set name [file rootname [file tail $f]]
-    lassign [GetVer  $f ../../] ver hash
+    lassign [GetVer  $files] ver hash
     Msg Info "Found source list file $f, version: $ver commit SHA: $hash"
     lappend libs $name
     lappend vers $ver
@@ -688,10 +668,12 @@ proc GetRepoVersions {proj_tcl_file} {
 # Read constraint list files
 
   set cons_hashes ""
-  set cons_files [glob  -nocomplain "./list/*.con"]
-  foreach f $cons_files {
+  # Specyfiy sha_mode 1 for GetHogFile to get all the files, includeng the list-files themselves
+  lassign [GetHogFile "./list/" "*.con" 1] cons_files dummy
+  dict for {f files} $cons_files {
+    #library names have a .con extension in values returned by GetHogFiles
     set name [file rootname [file tail $f]]
-    lassign [GetVer  $f ../../] ver hash
+    lassign [GetVer  $files] ver hash
     Msg Info "Found constraint list file $f, version: $ver commit SHA: $hash"
     lappend cons_hashes $hash
     lappend SHAs $hash
@@ -700,7 +682,7 @@ proc GetRepoVersions {proj_tcl_file} {
 #Of all the constraints we get the most recent
   set cons_hash [exec git log --format=%h -1 {*}$cons_hashes]
   set cons_ver [GetVerFromSHA $cons_hash]
-
+    Msg Info "Among all the constraint list files, if more than one, the most recent version was chosen: $cons_ver commit SHA: $cons_hash"
 
 # Read external library files
   set ext_hashes ""
@@ -739,7 +721,7 @@ proc GetRepoVersions {proj_tcl_file} {
 # Ipbus XML
   if [file exists ./list/xml.lst] {
     Msg Info "Found IPbus XML list file, evaluating version and SHA of listed files..."
-    lassign [GetVer ./list/xml.lst ../../] xml_ver xml_hash
+    #redo lassign [GetVer ./list/xml.lst ../../] xml_ver xml_hash
     lappend SHAs $xml_hash
 
   } else {
@@ -761,7 +743,7 @@ proc GetRepoVersions {proj_tcl_file} {
       cd "../../$sub_dir"
       if { [exec git status --untracked-files=no --porcelain] eq "" } {
         Msg Info "$sub_dir submodule clean."
-        lappend subs_hashes [GetHash ALL ./]
+        lappend subs_hashes [GetSHA ./]
       } else {
         Msg CriticalWarning "$sub_dir submodule not clean, commit hash will be set to 0."
         lappend subs_hashes "0000000"
@@ -1173,13 +1155,16 @@ proc GetProjectFiles {} {
 ## @brief Extract files, libraries and properties from the project's list files
 #
 # @param[in] list_path path to the list file directory
-# @param[in] repo_path the path of the repository root.
+# @param[in] list_files the file wildcard, if not spcified all Hog list files will be looked for
+# @param[in] sha_mode forwarded to ReadListFile, see there for info
 #
 # @return a list of 2 dictionaries: libraries and properties
 # - libraries has library name as keys and a list of filenames as values
 # - properties has as file names as keys and a list of properties as values
 #
-proc GetHogFiles {list_path repo_path {list_files {.src,.sim,.con}} } {
+proc GetHogFiles {list_path {list_files {.src,.sim,.con}} {sha_mode 0}} {
+  set repo_path [file normalize list_path/../../..]
+
   set libraries [dict create]
   set properties [dict create]
 
@@ -1187,7 +1172,7 @@ proc GetHogFiles {list_path repo_path {list_files {.src,.sim,.con}} } {
   set list_files [glob -directory $list_path "*{$list_files}"]
 
   foreach f $list_files {
-    lassign [ReadListFile $f $repo_path] l p
+    lassign [ReadListFile $f $repo_path "" $sha_mode] l p
     set libraries [dict merge $l $libraries]
     set properties [dict merge $p $properties]
   }

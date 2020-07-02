@@ -1163,13 +1163,11 @@ proc GetProjectFiles {} {
 # - libraries has library name as keys and a list of filenames as values
 # - properties has as file names as keys and a list of properties as values
 #
-proc GetHogFiles {list_path {list_files {.src,.sim,.con}} {sha_mode 0}} {
+proc GetHogFiles {list_path {list_files {.src,.con,.sub,.sim}} {sha_mode 0}} {
   set repo_path [file normalize list_path/../../..]
 
   set libraries [dict create]
   set properties [dict create]
-
-  puts $list_path
   set list_files [glob -directory $list_path "*{$list_files}"]
 
   foreach f $list_files {
@@ -1189,12 +1187,12 @@ proc GetHogFiles {list_path {list_files {.src,.sim,.con}} {sha_mode 0}} {
 proc AddHogFiles { libraries properties } {
   Msg Info "Adding source files to project..."
   foreach lib [dict keys $libraries] {
-    # Msg Info "lib: $lib \n"
+    #Msg Info "lib: $lib \n"
     set lib_files [dict get $libraries $lib]
-    # Msg Info "Files in $lib: $lib_files \n"
+    #Msg Info "Files in $lib: $lib_files \n"
     set rootlib [file rootname [file tail $lib]]
     set ext [file extension $lib]
-    # Msg Info "lib: $lib ext: $ext \n"
+    #Msg Info "lib: $lib ext: $ext \n"
     switch $ext {
       .sim {
         set file_set "$rootlib\_sim"

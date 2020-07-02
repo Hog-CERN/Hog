@@ -100,7 +100,11 @@ proc CreateProject {} {
         ## Setting user IP repository to default Hog directory
     if [file exists $globalSettings::user_ip_repo] {
       Msg Info "Found directory $globalSettings::user_ip_repo, setting it as user IP repository..."
-      set_property  ip_repo_paths $globalSettings::user_ip_repo [current_project]
+      if { [string first PlanAhead [version]]==0 } {
+        set_property  ip_repo_paths $globalSettings::user_ip_repo [current_fileset]
+      } else  {
+        set_property  ip_repo_paths $globalSettings::user_ip_repo [current_project]
+      }
     } else {
       Msg Info "$globalSettings::user_ip_repo not found, no user IP repository will be set." 
     }

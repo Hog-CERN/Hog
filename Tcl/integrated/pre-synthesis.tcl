@@ -239,12 +239,12 @@ if {[info commands set_property] != ""} {
 
   #set project specific sub modules
   foreach s $subs h $subs_hashes {
-    set hash "[string toupper $s]_SHA=32'h$h"
+    set hash "[string toupper $s]_SHA=32'h0$h"
     set generic_string "$generic_string $hash"
   }
 
   foreach e $ext_names h $ext_hashes {
-    set hash "[string toupper $e]_SHA=32'h$h"
+    set hash "[string toupper $e]_SHA=32'h0$h"
     set generic_string "$generic_string $hash"
   }
 

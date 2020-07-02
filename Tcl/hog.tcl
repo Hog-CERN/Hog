@@ -652,8 +652,8 @@ proc GetRepoVersions {proj_tcl_file} {
   set libs ""
   set vers ""
   set hashes ""
-  # Specyfiy sha_mode 1 for GetHogFile to get all the files, includeng the list-files themselves
-  lassign [GetHogFile "./list/" "*.src" 1] src_files dummy
+  # Specyfiy sha_mode 1 for GetHogFiles to get all the files, includeng the list-files themselves
+  lassign [GetHogFiles "./list/" "*.src" 1] src_files dummy
   dict for {f files} $src_files {
     #library names have a .src extension in values returned by GetHogFiles
     set name [file rootname [file tail $f]]
@@ -668,8 +668,8 @@ proc GetRepoVersions {proj_tcl_file} {
 # Read constraint list files
 
   set cons_hashes ""
-  # Specyfiy sha_mode 1 for GetHogFile to get all the files, includeng the list-files themselves
-  lassign [GetHogFile "./list/" "*.con" 1] cons_files dummy
+  # Specyfiy sha_mode 1 for GetHogFiles to get all the files, includeng the list-files themselves
+  lassign [GetHogFiles "./list/" "*.con" 1] cons_files dummy
   dict for {f files} $cons_files {
     #library names have a .con extension in values returned by GetHogFiles
     set name [file rootname [file tail $f]]

@@ -776,8 +776,9 @@ proc TagRepository {{merge_request_number 0} {version_level 0} {default_level 0}
 # @param[in] dst         the path the XML files must be copied to
 # @param[in] xml_version the M.m.p version to be used to replace the __VERSION__ placeholder in any of the xml files
 # @param[in] xml_sha     the Git-SHA to be used to replace the __GIT_SHA__ placeholder in any of the xml files
+# @param[in] generate    if set to 1, tells the function to generate the VHDL decode address files rather than check them 
 #
-proc CopyXMLsFromListFile {list_file path dst {generate 0} {xml_version "0.0.0"} {xml_sha "00000000"} } {
+proc CopyXMLsFromListFile {list_file path dst {xml_version "0.0.0"} {xml_sha "00000000"}  {generate 0} } {
   if {[catch {exec gen_ipbus_addr_decode -h} msg]}  {
     set can_generate 0
   } else {

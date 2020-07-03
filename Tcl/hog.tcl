@@ -647,7 +647,7 @@ proc GetProjectVersion {tcl_file} {
 
   if {$comp == 0} {
     Msg Info "The specified project was modified in the current official version $ret"
-  } else {
+  } elseif {$comp == -1} {
     Msg Info "The specified project was modified in a past official version $ret"
   }
   

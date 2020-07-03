@@ -638,7 +638,7 @@ proc GetProjectVersion {tcl_file} {
   # M m p are the project version
   set v_proj [ExtractVersionFromTag v[HexVersionToString $ver]]
   
-  if {[CompareVersion v_proj v_last] == 1} {
+  if {[CompareVersion $v_proj $v_last] == 1} {
     Msg Info "The specified project was modified since official version."
     set ret 0
   } else {

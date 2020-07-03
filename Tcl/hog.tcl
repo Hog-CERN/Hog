@@ -627,7 +627,7 @@ proc GetVerFromSHA {SHA} {
 }
 
 proc GetProjectVersion {tcl_file} {
-  # M m p are the latest version the repository
+  #The latest version the repository
   set v_last [ExtractVersionFromTag [exec git describe --abbrev=0 --match "v*"]]
   lassign [GetRepoVersions $tcl_file] sha ver
   if {$sha == 0} {
@@ -635,9 +635,10 @@ proc GetProjectVersion {tcl_file} {
     return -1
   }
   
-  # M m p are the project version
+  #The project version
   set v_proj [ExtractVersionFromTag v[HexVersionToString $ver]]
-  
+  puts $vlast
+  puts $v_proj
   if {[CompareVersion $v_proj $v_last] == 1} {
     Msg Info "The specified project was modified since official version."
     set ret 0

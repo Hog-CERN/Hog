@@ -159,25 +159,31 @@ if {[info commands set_property] != ""} {
 }
 Msg Info "Opening version file $status_file..."
 set status_file [open $status_file "w"]
-# writing info into status file
 
-Msg Info "Evaluating git describe..."
-set describe [exec git describe --always --dirty --tags --long]
-Msg Info "Git describe: $describe"
+lassign [GetRepoVersion ./Top/$proj_name/$proj_name.tcl] sha
+if { $sha == 0} {
+  set sha  [exec git log --format=%h -1]
+  Msg Warning "Repository is not clean, will use current SHA ($sha) and create a dirty bitfile..."
+} else  {
+  Msg Info "Found last SHA for $proj_name: $sha"
+}
+set describe [exec git describe --always --dirty --tags --long $sha --]
+Msg Info "Git describe for $sha is: $describe"
+
 set dst_dir [file normalize "bin/$proj_name\-$describe"]
 Msg Info "Creating $dst_dir..."
 file mkdir $dst_dir/reports
 
-Msg Info "Evaluating differences with last commit..."
+Msg Info "Evaluating non committed changes..."
 set diff [exec git diff]
 if {$diff != ""} {
-  Msg Warning "Found differences with last commit..."
-  Msg Info "$diff"
+  Msg Warning "Found non committed changes:..."
+  Msg Status "$diff"
   set fp [open "$dst_dir/diff_presynthesis.txt" w+]
   puts $fp "$diff"
   close $fp
 } else {
-  Msg Info "No differences with last commit."
+  Msg Info "No uncommitted changes found."
 }
 
 Msg Status " ------------------------- PRE SYNTHESIS -------------------------"

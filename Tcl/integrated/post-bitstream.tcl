@@ -62,7 +62,12 @@ if [file exists $fw_file] {
 
 
   lassign [GetRepoVersion ./Top/$proj_name/$proj_name.tcl] sha
-  Msg Info "Found last SHA for $proj_name: $sha"
+  if { $sha == 0} {
+    set sha  [exec git log --format=%h -1]
+    Msg Warning "Repository is not clean, will use current SHA ($sha) and create a dirty bitfile..."
+  } else  {
+    Msg Info "Found last SHA for $proj_name: $sha"
+  }
   set describe [exec git describe --always --dirty --tags --long $sha --]
   Msg Info "Git describe for $sha is: $describe"
 
@@ -79,13 +84,13 @@ if [file exists $fw_file] {
   Msg Info "Evaluating non committed changes..."
   set diff [exec git diff]
   if {$diff != ""} {
-    Msg Warning "Found non committed difference:"
-    Msg Info "$diff"
+    Msg Warning "Found non committed changes:"
+    Msg Status "$diff"
     set fp [open "$dst_dir/diff_postbistream.txt" w+]
     puts $fp "$diff"
     close $fp
   } else {
-    Msg Info "No differences found."
+    Msg Info "No uncommitted changes found."
   }
 
   Msg Info "Copying bit file $bit_file into $dst_bit..."

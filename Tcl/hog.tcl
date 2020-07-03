@@ -645,7 +645,7 @@ proc GetProjectVersion {tcl_file} {
     set ret [HexVersionToString $ver]
   }
 
-  if {$comp == 0 {
+  if {$comp == 0} {
     Msg Info "The specified project was modified in the current official version $ret"
   } else {
     Msg Info "The specified project was modified in a past official version $ret"

@@ -549,11 +549,13 @@ proc GetVerFromSHA {SHA} {
   set status [catch {exec git tag --sort=creatordate --contain $SHA -l "v*.*.*" -l "b*v*.*.*"} result]
   if {$status == 0} {
     if {[regexp {^ *$} $result]} {
-      #newest tag of the repo (not containing SHA)  
+      #The tag in $result does not contains the current SHA
+      #In this case we want the newest tag of the repo  
       if [catch {exec git tag --sort=-creatordate -l "v*.*.*" -l "b*v*.*.*"} last_tag] {
         Msg CriticalWarning "No Hog version tags found in this repository ($path)."
         set ver v0.0.0
       } else {
+	#The tag is found we want to incremement it only if it's official
         set tags [split $last_tag "\n"]
         set tag [lindex $tags 0]
         lassign [ExtractVersionFromTag $tag] M m p mr
@@ -568,6 +570,7 @@ proc GetVerFromSHA {SHA} {
       }
 
     } else {
+      #The tag in $result contains the current SHA
       set vers [split $result "\n"]
       set ver [lindex $vers 0]
       foreach v $vers {
@@ -1183,7 +1186,7 @@ proc GetHogFiles {list_path {list_files {.src,.con,.sub,.sim}} {sha_mode 0}} {
 
   set libraries [dict create]
   set properties [dict create]
-  set list_files [glob -directory $list_path "*{$list_files}"]
+  set list_files [glob -nocomplain -directory $list_path "*{$list_files}"]
 
   foreach f $list_files {
     lassign [ReadListFile $f $repo_path "" $sha_mode] l p

@@ -50,7 +50,7 @@ if {$flavour != ""} {
   if [string is integer $flavour] {
     Msg Info "Project $proj_name has flavour = $flavour, the generic variable FLAVUOR will be set to $flavour"
   } else {
-    Msg Warning "Project name has a non numeric extension, flavour will be set to -1"
+    Msg Warning "Project name has a unexpected non numeric extension, flavour will be set to -1"
     set flavour -1
   }
 
@@ -60,6 +60,13 @@ if {$flavour != ""} {
 
 # Getting all the versions and SHAs of the repository
 lassign [GetRepoVersions ./Top/$proj_name/$proj_name.tcl] commit version  hog_hash hog_ver  top_hash top_ver  libs hashes vers  subs subs_hashes  cons_ver cons_hash  ext_names ext_hashes  xml_hash xml_ver 
+
+if {$commit == 0 } {
+    set commit  [exec git log --format=%h -1]
+    Msg CriticalWarning "Repository is not clean, will use current SHA ($commit) and create a dirty bitfile..."
+} else {
+  Msg Info "Found last SHA for $proj_name: $commit"
+}
 
 if {$xml_hash != 0} {
   set xml_dst $old_path/../xml
@@ -160,14 +167,16 @@ if {[info commands set_property] != ""} {
 Msg Info "Opening version file $status_file..."
 set status_file [open $status_file "w"]
 
-lassign [GetRepoVersion ./Top/$proj_name/$proj_name.tcl] sha
+lassign [GetRepoVersions ./Top/$proj_name/$proj_name.tcl] sha
 if { $sha == 0} {
   set sha  [exec git log --format=%h -1]
   Msg Warning "Repository is not clean, will use current SHA ($sha) and create a dirty bitfile..."
+  set describe [exec git describe --always --dirty --tags --long]
 } else  {
   Msg Info "Found last SHA for $proj_name: $sha"
+  set describe [exec git describe --always --tags --long $sha --]
 }
-set describe [exec git describe --always --dirty --tags --long $sha --]
+
 Msg Info "Git describe for $sha is: $describe"
 
 set dst_dir [file normalize "bin/$proj_name\-$describe"]

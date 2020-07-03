@@ -288,6 +288,26 @@ proc GetRepoPath {} {
   return "[file normalize [file dirname [info script]]]/../../"
 }
 
+## @brief Compare tu semantic versions
+#
+# @parameter[in] ver1 a list of 3 numbers M m p
+# @parameter[in] ver2 a list of 3 numbers M m p
+#
+# @return Return 1 ver1 is greather than ver2, 0 if they are equal, and -1 if ver2 is greater than ver1
+#
+proc CompareVersion {ver1 ver2} {
+  set ver1 [expr [lindex $ver1 0]*100000 + [lindex $ver1 1]*1000 + [lindex $ver1 2]]
+  set ver2 [expr [lindex $ver2 0]*100000 + [lindex $ver2 1]*1000 + [lindex $ver2 2]]
+  if {$ver1 > $ver2 } {
+    set ret 1
+  } elseif {$ver1 == $ver2} {
+    set ret 0
+  } else {
+    set ret -1
+  }
+  return [expr $ret]
+}
+
 ## @brief Check git version installed in this machine
 #
 # @parameter[in] target_version the version required by the current project
@@ -566,9 +586,7 @@ proc GetVerFromSHA {SHA} {
           Msg Info "No tag contains $SHA, will use most recent tag $tag. As this is a candidate tag, the patch level will be kept at $p."
         }
         set ver v$M.$m.$p
-
       }
-
     } else {
       #The tag in $result contains the current SHA
       set vers [split $result "\n"]
@@ -606,6 +624,30 @@ proc GetVerFromSHA {SHA} {
   }
 
   return $M$m$c
+}
+
+proc GetProjectVersion {tcl_file} {
+  # M m p are the latest version the repository
+  set v_last [ExtractVersionFromTag [exec git describe --abbrev=0 --match "v*"]]
+  lassign [GetRepoVersions $tcl_file] sha ver
+  if {$sha == 0} {
+    Msg Warning "Repository is not clean"
+    return -1
+  }
+  
+  # M m p are the project version
+  set v_proj [ExtractVersionFromTag [ HexVersionToString $ver]]
+  
+  if {CompareVersion v_proj v_last} {
+    Msg Info "The specified project was modified since official version."
+    set ret 0
+  } else {
+    Msg Info "The specified project was untouched since official version $ver."
+    set ret $ver
+    
+  }
+  
+  return $ret
 }
 
 

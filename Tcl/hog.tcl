@@ -613,10 +613,10 @@ proc GetVerFromSHA {SHA} {
 #  @return            the git describe of the sha or the current one if the sha is 0
 #
 proc GetGitDescribe {sha} {
-  if {$SHA == 0 } {
+  if {$sha == 0 } {
     set describe [exec git describe --always --dirty --tags --long]
   } else {
-    set describe [exec git describe --always --tags --long $commit --]
+    set describe [exec git describe --always --tags --long $sha --]
   }
 }
 

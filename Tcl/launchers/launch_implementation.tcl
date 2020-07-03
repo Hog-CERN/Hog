@@ -144,7 +144,7 @@ if {$do_bitstream == 1} {
 
 cd $path/../../
 
-lassign [GetRepoVersion [file normalize ./Top/$project/$project.tcl]] $sha
+lassign [GetRepoVersion [file normalize ./Top/$project/$project.tcl]] sha
 set describe [GetGitDescribe $sha]
 Msg Info "Git describe set to $describe"
 

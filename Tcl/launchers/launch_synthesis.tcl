@@ -63,7 +63,7 @@ if {$prog ne "100%"} {
 set ips [get_ips *]
 cd $old_path
 
-lassign [GetRepoVersion [file normalize $path/../../Top/$project/$project.tcl]] $sha
+lassign [GetRepoVersion [file normalize $path/../../Top/$project/$project.tcl]] sha
 set describe [GetGitDescribe $sha]
 Msg Info "Git describe set to $describe"
 

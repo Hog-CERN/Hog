@@ -62,18 +62,20 @@ if {$flavour != ""} {
 lassign [GetRepoVersions ./Top/$proj_name/$proj_name.tcl] commit version  hog_hash hog_ver  top_hash top_ver  libs hashes vers  subs subs_hashes  cons_ver cons_hash  ext_names ext_hashes  xml_hash xml_ver 
 
 set this_commit  [exec git log --format=%h -1]
+
+
 if {$commit == 0 } {
   Msg CriticalWarning "Repository is not clean, will use current SHA ($this_commit) and create a dirty bitfile..."
   set commit $this_commit
-  set describe [exec git describe --always --dirty --tags --long]
 } else {
   Msg Info "Found last SHA for $proj_name: $commit"
-  set describe [exec git describe --always --tags --long $commit --]
   if {$commit != $this_commit} {
     set count [exec git rev-list --count $commit..$this_commit]
     Msg Info "The commit in which project $proj_name was last modified is $commit, that is $count commits older than current commit $this_commit."
   }
 }
+
+set describe [GetGitDescribe $commit]
 Msg Info "Git describe for $commit is: $describe"
 
 if {$xml_hash != 0} {

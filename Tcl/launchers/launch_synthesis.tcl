@@ -26,7 +26,6 @@ set parameters {
 }
 
 set usage   "USAGE: $::argv0 <project>"
-set Name launch_synthesis
 set path [file normalize "[file dirname [info script]]/.."]
 
 
@@ -63,7 +62,10 @@ if {$prog ne "100%"} {
 # Copy IP reports in bin/
 set ips [get_ips *]
 cd $old_path
-set describe [exec git describe --always --dirty --tags --long]
+
+lassign [GetRepoVersion [file normalize $path/../Top/$project/$project.tcl]] $sha
+set describe [GetGitDescribe $sha]
+Msg Info "Git describe set to $describe"
 
 foreach ip $ips {
   set xci_file [get_property IP_FILE $ip]

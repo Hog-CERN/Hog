@@ -61,15 +61,12 @@ if [file exists $fw_file] {
   cd $tcl_path/../../
 
 
+
+  Msg Info "Evaluating Git sha for $proj_name..."
   lassign [GetRepoVersion ./Top/$proj_name/$proj_name.tcl] sha
-  if { $sha == 0} {
-    set sha  [exec git log --format=%h -1]
-    Msg Warning "Repository is not clean, will use current SHA ($sha) and create a dirty bitfile..."
-  } else  {
-    Msg Info "Found last SHA for $proj_name: $sha"
-  }
-  set describe [exec git describe --always --dirty --tags --long $sha --]
-  Msg Info "Git describe for $sha is: $describe"
+
+  set describe [GetGirDescribe $sha]
+  Msg Info "Git describe set to: $describe"
 
   set ts [clock format [clock seconds] -format {%Y-%m-%d-%H-%M}]
 

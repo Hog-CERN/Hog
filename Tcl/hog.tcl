@@ -606,6 +606,20 @@ proc GetVerFromSHA {SHA} {
 }
 
 
+## Get git describe of a specific SHA
+#
+#  @param[in] sha     the git sha of the commit you want to calculate the describe of
+#
+#  @return            the git describe of the sha or the current one if the sha is 0
+#
+proc GetGitDescribe {sha} {
+  if {$SHA == 0 } {
+    set describe [exec git describe --always --dirty --tags --long]
+  } else {
+    set describe [exec git describe --always --tags --long $commit --]
+  }
+}
+
 ## Get repository version
 #
 #  @param[in] repo_path The repository path of which all the version must be calculated

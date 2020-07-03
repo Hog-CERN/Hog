@@ -144,9 +144,9 @@ if {$do_bitstream == 1} {
 
 cd $path/../../
 
-Msg Info "Evaluating git describe..."
-set describe [exec git describe --always --dirty --tags --long]
-Msg Info "Git describe: $describe"
+lassign [GetRepoVersion [file normalize ./Top/$project/$project.tcl]] $sha
+set describe [GetGitDescribe $sha]
+Msg Info "Git describe set to $describe"
 
 set dst_dir [file normalize "$bin_dir/$project\-$describe"]
 

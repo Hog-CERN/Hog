@@ -627,6 +627,11 @@ proc GetVerFromSHA {SHA} {
 }
 
 proc GetProjectVersion {tcl_file} {
+  if { ![file exists $tcl_file] } {
+    Msg CriticalWarning "$tcl_file not found"
+    return -1
+  }
+
   #The latest version the repository
   set v_last [ExtractVersionFromTag [exec git describe --abbrev=0 --match "v*"]]
   lassign [GetRepoVersions $tcl_file] sha ver
@@ -787,13 +792,13 @@ proc GetRepoVersions {proj_tcl_file} {
     lassign [GetHogFiles "./list/" "xml.lst" 1] xml_files dummy
     lassign [GetVer  [dict get $xml_files "xml.lst"] ] xml_ver xml_hash
     lappend SHAs $xml_hash
+    Msg Info "Found IPbus XML SHA: $xml_hash and version: $xml_ver."
 
   } else {
     Msg Info "This project does not use IPbus XMLs"
     set xml_ver  00000000
     set xml_hash 0000000
   }
-  Msg Info "Found IPbus XML SHA: $xml_hash and version: $xml_ver."
 
 # Submodules
   set subs ""

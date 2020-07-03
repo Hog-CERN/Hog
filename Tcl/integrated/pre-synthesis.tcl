@@ -71,7 +71,7 @@ if {$commit == 0 } {
   set describe [exec git describe --always --tags --long $commit --]
   if {$commit != $this_commit} {
     set count [exec git rev-list --count $commit..$this_commit]
-    Info "The commit in which project $proj_name was last modified is $commit, that is $count commits older than current commit $this_commit."
+    Msg Info "The commit in which project $proj_name was last modified is $commit, that is $count commits older than current commit $this_commit."
   }
 }
 Msg Info "Git describe for $commit is: $describe"

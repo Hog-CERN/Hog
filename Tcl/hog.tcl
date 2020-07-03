@@ -730,6 +730,7 @@ proc GetRepoVersions {proj_tcl_file} {
     set xml_ver  00000000
     set xml_hash 0000000
   }
+  Msg Info "Found IPbus XML SHA: $xml_hash and version: $xml_ver."
 
 # Submodules
   set subs ""
@@ -986,12 +987,12 @@ proc CopyXMLsFromListFile {list_file path dst {xml_version "0.0.0"} {xml_sha "00
           set generated_vhdl ./ipbus_decode_[file root [file tail $x]].vhd
           if {$generate == 1} {
       #copy (replace) file here
-            Msg Info "Copying $generated_vhdl into $v (replacing if necessary)"
+            Msg Info "Copying generated VHDL file $generated_vhdl into $v (replacing if necessary)"
             file copy -force -- $generated_vhdl $v
           } else {
             if {[file exists $v]} {
           #check file here
-              Msg Info "Checking $x vs $v, ignoring leadng/trailing spaces and comments"
+              Msg Info "Checking $x vs $v, ignoring leading/trailing spaces and comments..."
               set diff [CompareVHDL $generated_vhdl $v]
               if {[llength $diff] > 0} {
                 Msg CriticalWarning "$v does not correspond to its xml $x, [expr $n/3] line/s differ:"

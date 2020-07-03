@@ -43,7 +43,6 @@ if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] 
   set main_folder [file normalize "$path/../../VivadoProject/$project/$project.runs/"]
 }
 Msg Info "Number of jobs set to $options(NJOBS)."
-set commit [GetHash ALL ../../]
 
 Msg Info "Opening $project..."
 open_project ../../VivadoProject/$project/$project.xpr

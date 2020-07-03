@@ -62,14 +62,17 @@ if {$flavour != ""} {
 lassign [GetRepoVersions ./Top/$proj_name/$proj_name.tcl] commit version  hog_hash hog_ver  top_hash top_ver  libs hashes vers  subs subs_hashes  cons_ver cons_hash  ext_names ext_hashes  xml_hash xml_ver 
 
 if {$commit == 0 } {
-    set commit  [exec git log --format=%h -1]
-    Msg CriticalWarning "Repository is not clean, will use current SHA ($commit) and create a dirty bitfile..."
+  set commit  [exec git log --format=%h -1]
+  Msg CriticalWarning "Repository is not clean, will use current SHA ($commit) and create a dirty bitfile..."
+  set describe [exec git describe --always --dirty --tags --long]
 } else {
   Msg Info "Found last SHA for $proj_name: $commit"
+  set describe [exec git describe --always --tags --long $commit --]
 }
+Msg Info "Git describe for $commit is: $describe"
 
 if {$xml_hash != 0} {
-  set xml_dst $old_path/../xml
+  set xml_dst [file normalize $old_path/../xml]
   Msg Info "Creating XML directory $xml_dst..."
   file mkdir $xml_dst
   Msg Info "Copying xml files to $xml_dst and replacing placeholders with xml version $xml_ver..."
@@ -79,7 +82,6 @@ if {$xml_hash != 0} {
   set use_ipbus 0
 }
 
-
 #number of threads
 set maxThreads [GetMaxThreads $proj_name]
 if {$maxThreads != 1} {
@@ -87,7 +89,6 @@ if {$maxThreads != 1} {
 } else {
   Msg Info "Disabling multithreading to assure deterministic bitfile"
 }
-
 
 if {[info commands set_param] != ""} {
     ### Vivado
@@ -144,7 +145,7 @@ if {[info commands set_property] != ""} {
   }
 
   set_property generic $generic_string [current_fileset]
-  set status_file "$old_path/../versions.txt"
+  set status_file [file normalize "$old_path/../versions.txt"]
 
 } elseif {[info commands quartus_command] != ""} {
     ### QUARTUS
@@ -166,18 +167,6 @@ if {[info commands set_property] != ""} {
 }
 Msg Info "Opening version file $status_file..."
 set status_file [open $status_file "w"]
-
-lassign [GetRepoVersions ./Top/$proj_name/$proj_name.tcl] sha
-if { $sha == 0} {
-  set sha  [exec git log --format=%h -1]
-  Msg Warning "Repository is not clean, will use current SHA ($sha) and create a dirty bitfile..."
-  set describe [exec git describe --always --dirty --tags --long]
-} else  {
-  Msg Info "Found last SHA for $proj_name: $sha"
-  set describe [exec git describe --always --tags --long $sha --]
-}
-
-Msg Info "Git describe for $sha is: $describe"
 
 set dst_dir [file normalize "bin/$proj_name\-$describe"]
 Msg Info "Creating $dst_dir..."
@@ -252,7 +241,7 @@ puts $status_file "\n\n"
 close $status_file
 
 
-CheckYmlRef $tcl_path/../.. true
+CheckYmlRef [file normalize $tcl_path/../..] true
 cd $old_path
 
 Msg Info "All done."

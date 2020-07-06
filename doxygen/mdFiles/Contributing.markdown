@@ -1,9 +1,9 @@
-# Become a member of the Hog community
+# Become a member of the community
 You are very welcome to become an active Hog developer!
 
 Get in contact with one of us (e.g. [Francesco Gonnella](mailto:francesco.gonnella@cern.ch) or [Davide Cieri](mailto:davide.cieri@cern.ch)), such that we can have a quick feedback of your background and your expertise.
 
-# Developing for Hog
+## Developing for Hog
 As a Hog developer, if you want to contribute to Hog please follow these instructions:
 
 1. go to [Hog on gitlab](https://gitlab.cern.ch/hog/Hog)
@@ -15,63 +15,63 @@ As a Hog developer, if you want to contribute to Hog please follow these instruc
 	 - use  labels to indicate whether it is a new feature a bug-fix, etc
 	 - (OPTIONAL) use due date to indicate when you expect to conclude your work
 4. open a new merge request
-   -  starting from your newly created issue
-	    *  expand Merge Request drop-down
-      *  expand Create Merge Request
-      *  direct your merge request to `develop` branch
-			*  branch name: feature/<issue_short_name>
-	 -  click on "Create Merge Request":
-	    *  a new merge request is created
-      *  the merge request will be marked as WIP
-			*  a new development branch is created
+  - starting from your newly created issue
+    * expand Merge Request drop down menu
+    * expand Create Merge Request
+    * direct your merge request to 'develop' branch
+    * branch name: \verbatim feature/<issue_short_name> \endverbatim
+  - click on 'Create Merge Request'
+    * a new merge request is created
+    * the merge request will be marked as WIP
+		* a new development branch is created
 5. clone the TestFirmware repository
-	```console
+\verbatim 
 	cd path_to_workdir/
 	git clone --recursive https://gitlab.cern.ch/hog/test/TestFirmware.git
-	```
+\endverbatim
 6. Create a new branch in the test firmware repository with the same name as the one in the main Hog repository
-	```console
+\verbatim
 	cd path_to_workdir/TestFirmware/
 	git checkout -b feature/<issue_short_name>
-	```
+\endverbatim
 7. Move Hog to your branch
-	```console
+\verbatim
 	cd path_to_workdir/TestFirmware/Hog/
 	git checkout feature/<issue_short_name>
-	```
+\endverbatim
 8. develop a test for your new feature *before writing your code*
    -  eventually modify an existing tests
 	 -  commit your tests
-	```console
+\verbatim
 	cd path_to_workdir/TestFirmware/
 	git commit <test1> <test1> <...> -m "Adding tests for feature/<issue_short_name>: <brief_test_description>"
-	```
+\endverbatim
 9. develop the code for the new feature (IN THIS ORDER!)
    -  all code must be documented using doxygen comments in the code!
 	 -  commit your code
-	```console
+\verbatim
 	cd path_to_workdir/TestFirmware/Hog/
 	git commit <file1> <file2> <...> -m "Working on feature/<issue_short_name>: <brief_commit_description>"
-	```
+\endverbatim
 10. test your code
 	 -  all your new test must succeed
 	 -  all existing test must succeed
 	 -  if the test fails, fix your code and commit it using --amend
-	```console
+\verbatim
 	cd path_to_workdir/TestFirmware/Hog/
 	git commit --amend --no-edit
-	```
+\endverbatim
 11. if your modification has any impact on the user/maintainer part, update the user [manual](#contributing_to_the_manual) accordingly
 12. push your changes in the Hog repository
-	```console
+\verbatim
 	cd path_to_workdir/TestFirmware/Hog/
 	git push
-	```
+\endverbatim
 13. push your changes on the TestFirmware repository
-	```console
+\verbatim
 	cd path_to_workdir/TestFirmware/
 	git push --set-upstream origin feature/<issue_short_name>
-	```
+\endverbatim
 14. remove WIP status from your Merge Request
 		-  go to [Hog on gitlab](https://gitlab.cern.ch/hog/Hog)
 		-  navigate to your merge request
@@ -79,7 +79,7 @@ As a Hog developer, if you want to contribute to Hog please follow these instruc
 15. drop us a line at [Hog support](mailto:hog@cern.ch)
 16. check your Merge Request and address comments
 
-# Documenting the code
+## Documenting the code
 
 All the code written to implement new features or correct bugs must be documented.
 The main source of documentation is doxygen and comments in the code.
@@ -87,31 +87,32 @@ The doxygen documentation is collected in a dedicated [website](https://hdl-on-g
 
 An example of how to document new functions
 
-```tcl
-# @brief Brief description of this method
-#
-# After an empty line you can add a more detailed description.
-# You can even use many lines
-#
-# @param[in]	param_1	the description of parameter param_1, this parameter is an input to the function
-# @param[out]	param_2	the description of parameter param_2, this parameter is an output to the function
-#
-# @returns	A description of the returned value
-#
-proc  Example {param_1 param_1} {
-    if {[info commands get_property] != ""} {
-        # some Vivado specific comments that will not end up in the documentation
-    	return "Vivado"
+\verbatim
+  # @brief Brief description of this method
+  #
+  # After an empty line you can add a more detailed description.
+  # You can even use many lines
+  #
+  # @param[in]	param_1	the description of parameter param_1, this parameter is an input to the function
+  # @param[out]	param_2	the description of parameter param_2, this parameter is an output to the function
+  #
+  # @returns	A description of the returned value
+  #
+  proc  Example {param_1 param_1} {
+      if {[info commands get_property] != ""} {
+          # some Vivado specific comments that will not end up in the documentation
+        return "Vivado"
 
-    } elseif {[info commands quartus_command] != ""} {
-        # some Vivado specific comments that will not end up in the documentation
-    	return "Quartus"
-    } else {
-        # Tcl Shell
-   		return "DEBUG_propery_value"
-    }
-}
-```
+      } elseif {[info commands quartus_command] != ""} {
+          # some Vivado specific comments that will not end up in the documentation
+        return "Quartus"
+      } else {
+          # Tcl Shell
+        return "DEBUG_propery_value"
+      }
+  }
+\endverbatim
+
 The resulting documentation will be a brief description in the list of available functions:
 
  ![](./figures/Example_brief.jpg)
@@ -122,16 +123,18 @@ Linked to a detailed description:
 
 The same comment style can be used also for bash scripts provided you use functions in your script.
 
-# Contributing to the Manual
+## Contributing to the Manual
 
 This site uses MkDocs to render the Markdown files.
 The source is hosted on gitLab: [Hog](https://gitlab.cern.ch/hog/hog-docs)
 
 To contribute to the user manual please read this section carefully.
 You should first clone the repository:
-```console
-git clone https://gitlab.cern.ch/hog/hog-docs
-```
+
+\verbatim
+  git clone https://gitlab.cern.ch/hog/hog-docs
+\endverbatim
+
 As an alternative you can use the Web IDE directly from the Gitlab website. This allows you to preview the resulting page.\
 If you want to do this locally and haven't set up your permissions for local Gitlab yet, follow the instructions [here](https://docs.gitlab.com/ce/ssh/README.html).
 Everything you'll need to edit is inside the `docs/` directory.
@@ -139,11 +142,11 @@ Sections are represented by subdirectories within `docs/` while the "Introductio
 You can create further markdown files to add topics to the section.
 Any change you make in the repository is propagated to the website, when you push your commits into the `master` branch.
 
-## Markdown
+### Markdown
 
 This manual is made in markdown, a simple language for formatting text. If you're not familiar, there is a handy cheatsheet [here](https://github.com/adam-p/markdown-here/wiki/Markdown-Cheatsheet). There are a few special cases for the specific flavor of markdown that gitLab uses (most notably for newline syntax) that are documented [here](https://docs.gitlab.com/ee/user/markdown.html).
 
-## Continuous integration set-up
+### Continuous integration set-up
 
 CI for this project was set up using the information in the [mkdocs](https://gitlab.cern.ch/authoring/documentation/mkdocs) repository. The generated website is automatically deployed [here](https://hog-user-docs.web.cern.ch/)
 

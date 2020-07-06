@@ -1,10 +1,13 @@
 HDL On Git (Hog)                         {#mainpage}
 ============
 
-Is it really this one?
+Welcome to Hog doxygen documentation!
+
+Here you can find information on how Hog functionalities are implemented.
+you can find a list of the main functions used in HOG in the [Functions](./globals.html) list.
 
 More information on the how to use Hog can be found in the [user documentation website](http://hog-user-docs.web.cern.ch/)
-[Functions](./globals.html)
+
 ## Hog Releases
 Stable Hog releases are stored in the `master branch` and  are tagged as `Hog<YEAR>.<n>`, for example `Hog2020.1`.
 Pulling the `master` branch always gives you the most updated Hog stable realease.
@@ -19,7 +22,6 @@ You can report probems with Hog in using the issues in this repository. Please u
 - Report Problem label, if you are experiencing an unwanted behaviour
 - Feature Proposal label, if you want to propose a new Hog feature
 - Question label, if you want to ask a question about Hog
-
 
 ## License
 Hog is distributed under the Apache License, Version 2.0.

@@ -139,7 +139,7 @@ proc  SetParameter {parameter value } {
 #
 # @param[in] top_module name of the top module, expected @c top_<project_name>
 # @param[in] top_file   name of the file containing the top module
-# @param[in] source     list of source files
+# @param[in] sources     list of source files
 proc AddTopFile {top_module top_file sources} {
   if {[info commands launch_chipscope_analyzer] != ""} {
         #VIVADO_ONLY
@@ -159,7 +159,7 @@ proc AddTopFile {top_module top_file sources} {
 # It automatically recognises whether it is in Vivado or Quartus mode
 #
 # @param[out] top_module  name of the top module
-# @param[in]  source      list of all source files in the project
+# @param[in]  sources     list of all source files in the project
 #
 proc SetTopProperty {top_module sources} {
   Msg Info "Setting TOP property to $top_module module"
@@ -262,9 +262,9 @@ proc CreateFileSet {fileset} {
 # Gets a list of filesets in the current project that match a specified search pattern.
 # The default command gets a list of all filesets in the project.
 #
-# @param[in] fileset  the name to be checked
+# @param[in] fileset the name to be checked
 #
-# @return             a list of filesets in the current project that match the specified search pattern.
+# @return a list of filesets in the current project that match the specified search pattern.
 #
 proc GetFileSet {fileset} {
   set a  [get_filesets $fileset]
@@ -273,8 +273,8 @@ proc GetFileSet {fileset} {
 
 ## @brief Add a new file to a fileset
 #
-# @para[in] file    name of the files to add. NOTE: directories are not supported.
-# @para[in] fileset fileset name
+# @param[in] file    name of the files to add. NOTE: directories are not supported.
+# @param[in] fileset fileset name
 #
 proc AddFile {file fileset} {
   add_files -norecurse -fileset $fileset $file
@@ -290,7 +290,7 @@ proc GetRepoPath {} {
 
 ## @brief Check git version installed in this machine
 #
-# @parameter[in] target_version the version required by the current project
+# @param[in] target_version the version required by the current project
 #
 # @return Return 1 if the system Git version is greater or equal to the target
 #
@@ -306,7 +306,7 @@ proc GitVersion {target_version} {
 
 ## @brief Checks doxygen version installed in this machine
 #
-# @parameter[in] target_version the version required by the current project
+# @param[in] target_version the version required by the current project
 #
 # @return Return 1 if the system Doxygen version is greater or equal to the target
 #
@@ -389,11 +389,9 @@ proc FindVhdlVersion {file_name} {
 #
 # Additional information is provided with text separated from the file name with one or more spaces
 #
-# @param[in] lsit_file file containing vhdl list with optional properties
+# @param[in] list_file file containing vhdl list with optional properties
 # @param[in] path      path the vhdl file are referred to in the list file
 # @param[in] lib       name of the library files will be added to
-# @param[in] src       name of VivadoFileSet files will be added to
-# @param[in] no_add    if a value is specified, the files will added to memory only, not to the project
 #
 # @return              A list of the files added to the project
 #
@@ -467,7 +465,7 @@ proc ReadListFile {list_file path lib} {
 # * .con : for constraint files (corresponding to constrs_1)
 # any other file extension will cause an error
 #
-# @param[in] lsit_file file containing vhdl list with optional properties
+# @param[in] list_file file containing vhdl list with optional properties
 # @param[in] path      the path the vhdl file are referred to in the list file
 #
 proc SmartListFile {list_file path} {
@@ -771,7 +769,7 @@ proc TagRepository {{merge_request_number 0} {version_level 0} {default_level 0}
 #
 # Additional information is provided with text separated from the file name with one or more spaces
 #
-# @param[in] lsit_file   file containing list of XML files with optional properties
+# @param[in] list_file   file containing list of XML files with optional properties
 # @param[in] path        the path the XML files are referred to in the list file
 # @param[in] dst         the path the XML files must be copied to
 # @param[in] xml_version the M.m.p version to be used to replace the __VERSION__ placeholder in any of the xml files
@@ -1199,7 +1197,7 @@ proc ForceUpToDate {} {
 # @param[in] xci_file: the local IP xci file
 # @param[in] ip_path: the path of directory you want the IP to be saved on eos
 # @param[in] force: if 1 pushes IP even if already on EOS
-
+#
 proc HandleIP {what_to_do xci_file ip_path runs_dir {force 0}} {
   if {!($what_to_do eq "push") && !($what_to_do eq "pull")} {
     Msg Error "You must specify push or pull as first argument."
@@ -1438,7 +1436,7 @@ proc ParseJSON {JSON_FILE JSON_KEY} {
 
 ## @brief Handle eos commands
 #
-# It can be used with lassign like this: lassign [eos <eos command> ] ret result
+# It can be used with lassign like this: lassign [eos \<eos command\> ] ret result
 #
 #  @param[in] command: the EOS command to be run, e.g. ls, cp, mv, rm
 #  @param[in] attempts: (default 0) how many times the command should be attempted in case of failure

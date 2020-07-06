@@ -44,7 +44,7 @@ set proj_dir [file normalize [file dirname $proj_file]]
 set proj_name [file rootname [file tail $proj_file]]
 
 
-Msg Info "Evaluating last git SHA in which $project_name was modified..."
+Msg Info "Evaluating last git SHA in which $proj_name was modified..."
 set commit "0000000"
 if { [exec git status --untracked-files=no  --porcelain] eq "" } {
   Msg Info "Git working directory [pwd] clean."

@@ -440,7 +440,7 @@ proc ReadListFile {list_file path {lib ""} {sha_mode 0} } {
     # Exclude empty lines and comments
     if {![regexp {^ *$} $line] & ![regexp {^ *\#} $line] } {
       set file_and_prop [regexp -all -inline {\S+} $line]
-       set vhdlfile [lindex $file_and_prop 0]
+      set vhdlfile [lindex $file_and_prop 0]
       set vhdlfile "$path/$vhdlfile"
       if {[file exists $vhdlfile]} {
  	set vhdlfile [file normalize $vhdlfile]
@@ -448,7 +448,17 @@ proc ReadListFile {list_file path {lib ""} {sha_mode 0} } {
 	
 	if {[lsearch {.src .sim .con .sub} $extension] >= 0 } {
 	  Msg Info "List file $vhdlfile found in list file, recoursively opening it..."
-	  lassign [ReadListFile $vhdlfile $path $lib $sha_mode] l p
+    ### Set list file properties
+    set prop [lrange $file_and_prop 1 end]
+    set library [lindex [regexp -inline {lib\s*=\s*(.+?)\y.*} $prop] 1]
+    if { $library != "" } {
+      Msg Info "Setting $library as library for list file $vhdlfile..."
+    } else {
+      Msg Info "Setting $lib as library for list file $vhdlfile..."
+      set library $lib
+    }
+	  lassign [ReadListFile $vhdlfile $path $library $sha_mode] l p
+
 	  set libraries [dict merge $l $libraries]
 	  set properties [dict merge $p $properties]
 	} else {

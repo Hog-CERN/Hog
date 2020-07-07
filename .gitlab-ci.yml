@@ -34,7 +34,7 @@ build-doxygen-test:
         - echo ""
       script:
         - chmod +x ./doxygen/scripts/build-and-deploy.sh
-        - ./doxygen/scripts/build-and-deploy.sh /eos/user/h/hog/www/test-doxy
+        - ./doxygen/scripts/build-and-deploy.sh /eos/user/h/hog/www/test-doc/doxy
 
 build-doxygen-official:
       stage: build_doc
@@ -45,7 +45,7 @@ build-doxygen-official:
         - echo ""
       script:
         - chmod +x ./doxygen/scripts/build-and-deploy.sh
-        - ./doxygen/scripts/build-and-deploy.sh /eos/project/a/atlas-hog/www/hog-user-docs/hog-doxygen-docs
+        - ./doxygen/scripts/build-and-deploy.sh /eos/project/a/atlas-hog/www/hog-user-docs/doxy
 
 changelog:
       stage: tag

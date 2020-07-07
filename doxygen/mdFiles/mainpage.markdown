@@ -1,13 +1,21 @@
-HDL On Git (Hog)                         {#mainpage}
+Hog doxygen documentation     {#mainpage}
 ============
 
-Welcome to Hog doxygen documentation!
-
+# General information
 Here you can find information on how Hog functionalities are implemented.
 The documentation is automatically generated from the code comments using [doxygen](https://www.doxygen.nl/index.html).
-You can find a list of the main functions used in HOG in the [Functions](./globals.html) list.
 
-More information on the how to use Hog can be found in the [user documentation website](http://hog-user-docs.web.cern.ch/)
+Hog consist of a series of Tcl scrips that are contained in the `Tcl` directory.
+Inside this directory you will find the main library file `hog.tcl` containing most of Hog functions.
+An exhaustive list of Hog's functions can be found [here](./globals.html).
+
+Hog integrates a set of Tcl scripts in the firmware workflow, these scripts are located in the `Tcl/integrated` directory.
+
+Tcl script used to launch specific firmware tasks (synthesis, implementation, simulation, etc.) are located in the `Tcl/launchers` directory.
+
+Many Hog Tcl scripts can be run in debug mode using tcl shell (`tclsh`), this feature is extremely useful for developing. To do that you need to install the `tcllib` library available on yum and apt-get.
+
+Hog user documentation can be found in the [user documentation website](http://hog-user-docs.web.cern.ch/)
 
 # Become a member of the Hog community
 You are very welcome to become an active Hog developer!

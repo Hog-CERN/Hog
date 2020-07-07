@@ -1194,9 +1194,8 @@ proc ForceUpToDate {} {
 ## @brief Copy IP generated files from/to an EOS repository
 #
 # @param[in] what_to_do: can be "push", if you want to copy the local IP synth result to EOS or "pull" if you want to copy the files from EOS to your local repository
-# @param[in] xci_file: the local IP xci file
+# @param[in] runs_dir: the runs directory of the project. Typically called VivadoProject/<project name>/<project name>.runs
 # @param[in] ip_path: the path of directory you want the IP to be saved on eos
-# @param[in] force: if 1 pushes IP even if already on EOS
 #
 proc HandleIP {what_to_do xci_file ip_path runs_dir {force 0}} {
   if {!($what_to_do eq "push") && !($what_to_do eq "pull")} {
@@ -1439,7 +1438,7 @@ proc ParseJSON {JSON_FILE JSON_KEY} {
 # It can be used with lassign like this: lassign [eos \<eos command\> ] ret result
 #
 #  @param[in] command: the EOS command to be run, e.g. ls, cp, mv, rm
-#  @param[in] attempts: (default 0) how many times the command should be attempted in case of failure
+#  @param[in] attempt: (default 0) how many times the command should be attempted in case of failure
 #
 #  @returns a list of 2 elements: the return value (0 if no error occurred) and the output of the EOS command
 proc eos {command {attempt 1}}  {

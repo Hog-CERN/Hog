@@ -9,9 +9,13 @@ Hog consist of a series of Tcl scrips that are contained in the `Tcl` directory.
 Inside this directory you will find the main library file `hog.tcl` containing most of Hog functions.
 An exhaustive list of Hog's functions can be found [here](./globals.html).
 
-Hog integrates a set of Tcl scripts in the firmware workflow, these scripts are located in the `integrated` directory.
+Hog integrates a set of Tcl scripts in the firmware workflow, these scripts are located in the `Tcl/integrated` directory.
+Tcl script used to launch specific firmware tasks (synthesis, implementation, simulation, etc.) are located in the `Tcl/launchers` directory.
+Additional utilities scripts are located in the `Tcl/utils` directory.
+Tcl scripts used only in Hog-CI are located in the `Tcl/CI` directory. 
 
-Tcl script used to launch specific firmware tasks (synthesis, implementation, simulation, etc.) are located in the `launchers` directory.
+Bash scripts located in the main Hog directory are used to execute the launcher tcl scripts and to launch the project creation with Vivado/Quartus.
+Additional shell scripts are located in the `Others` directory
 
 Many Hog Tcl scripts can be run in debug mode using tcl shell (`tclsh`), this feature is extremely useful for developing. To do that you need to install the `tcllib` library available on yum and apt-get.
 

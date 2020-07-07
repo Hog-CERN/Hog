@@ -27,7 +27,16 @@ stages:
       - tag
       - build_doc
 
-building-doxygen:
+build-doxygen-test:
+      stage: build_doc
+      image: gitlab-registry.cern.ch/hog/hog-docker
+      before_script:
+        - echo ""
+      script:
+        - chmod +x ./doxygen/scripts/build-and-deploy.sh
+        - ./doxygen/scripts/build-and-deploy.sh /eos/user/h/hog/www/test-doxy
+
+build-doxygen-official:
       stage: build_doc
       image: gitlab-registry.cern.ch/hog/hog-docker
       only:
@@ -35,13 +44,8 @@ building-doxygen:
       before_script:
         - echo ""
       script:
-        - cd doxygen
-        - chmod +x ./scripts/build-and-deploy.sh
-        - ./scripts/build-and-deploy.sh
-      artifacts:
-        paths:
-          - doxygen/DOXY_DOCS
-        expire_in: 1 hour
+        - chmod +x ./doxygen/scripts/build-and-deploy.sh
+        - ./doxygen/scripts/build-and-deploy.sh /eos/project/a/atlas-hog/www/hog-user-docs/hog-doxygen-docs
 
 changelog:
       stage: tag

@@ -63,6 +63,8 @@ lassign [GetRepoVersions ./Top/$proj_name/$proj_name.tcl] commit version  hog_ha
 
 set this_commit  [exec git log --format=%h -1]
 
+set describe [GetGitDescribe $commit]
+Msg Info "Git describe for $commit is: $describe"
 
 if {$commit == 0 } {
   Msg CriticalWarning "Repository is not clean, will use current SHA ($this_commit) and create a dirty bitfile..."
@@ -74,9 +76,6 @@ if {$commit == 0 } {
     Msg Info "The commit in which project $proj_name was last modified is $commit, that is $count commits older than current commit $this_commit."
   }
 }
-
-set describe [GetGitDescribe $commit]
-Msg Info "Git describe for $commit is: $describe"
 
 if {$xml_hash != 0} {
   set xml_dst [file normalize $old_path/../xml]

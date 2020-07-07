@@ -680,7 +680,7 @@ proc GetGitDescribe {sha} {
   if {$sha == 0 } {
     set describe [exec git describe --always --dirty --tags --long]
   } else {
-    set describe [exec git describe --always --tags --long $sha --]
+    set describe [exec git describe --dirty --always --tags --long $sha --]
   }
 }
 

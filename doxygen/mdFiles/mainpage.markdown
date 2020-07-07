@@ -26,7 +26,7 @@ You are very welcome to become an active Hog developer!
 
 Get in contact with one of us (e.g. [Francesco Gonnella](mailto:francesco.gonnella@cern.ch) or [Davide Cieri](mailto:davide.cieri@cern.ch)), such that we can have a quick feedback of your background and your expertise.
 
-Please also have a look to the [contributing](../hog-user-docs/04-Developing-for-Hog/01-contributing/) section of the user manual.
+Please also have a look to the [contributing](../04-Developing-for-Hog/01-contributing/) section of the user manual.
 
 ## License
 Hog is distributed under the [Apache License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0).

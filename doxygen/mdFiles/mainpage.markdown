@@ -4,24 +4,17 @@ HDL On Git (Hog)                         {#mainpage}
 Welcome to Hog doxygen documentation!
 
 Here you can find information on how Hog functionalities are implemented.
-you can find a list of the main functions used in HOG in the [Functions](./globals.html) list.
+The documentation is automatically generated from the code comments using [doxygen](https://www.doxygen.nl/index.html).
+You can find a list of the main functions used in HOG in the [Functions](./globals.html) list.
 
 More information on the how to use Hog can be found in the [user documentation website](http://hog-user-docs.web.cern.ch/)
 
-## Hog Releases
-Stable Hog releases are stored in the `master branch` and  are tagged as `Hog<YEAR>.<n>`, for example `Hog2020.1`.
-Pulling the `master` branch always gives you the most updated Hog stable realease.
+# Become a member of the Hog community
+You are very welcome to become an active Hog developer!
 
-Hog developers use the `develop` branch, tagging functional but not
-thoroughly tested releases with the format `vM.m.p`, for example `v1.2.3`.
-So pulling the develop branch will give you the most updated Hog version but not necessarily a stable on.
+Get in contact with one of us (e.g. [Francesco Gonnella](mailto:francesco.gonnella@cern.ch) or [Davide Cieri](mailto:davide.cieri@cern.ch)), such that we can have a quick feedback of your background and your expertise.
 
-## Report issues or bugs
-You can report probems with Hog in using the issues in this repository. Please use the:
-
-- Report Problem label, if you are experiencing an unwanted behaviour
-- Feature Proposal label, if you want to propose a new Hog feature
-- Question label, if you want to ask a question about Hog
+Please also have a look to the [contributing](http://hog-user-docs.web.cern.ch/hog-user-docs/04-Developing-for-Hog/01-contributing/) section of the user manual.
 
 ## License
-Hog is distributed under the Apache License, Version 2.0.
+Hog is distributed under the [Apache License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0).

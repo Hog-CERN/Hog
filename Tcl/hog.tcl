@@ -1727,6 +1727,20 @@ proc GetMaxThreads {proj_name} {
   return $maxThreads
 }
 
+## @brief Returns the gitlab-ci.yml snippet for a CI stage and a defined project
+#
+#
+# @prama[in] stage:       name of the CI stage
+# @param[in] proj_name:   name of the project
+#
+#
+proc WriteYAMLStage {stage proj_name} {
+  set inner [huddle create "PROJECT_NAME" $proj_name "extends" ".vars"]
+  set middle [huddle create "extends" ".$stage" "variables" $inner ]
+  set outer [huddle create "$stage:$proj_name" $middle ]
+  return [ yaml::huddle2yaml $outer ]
+}
+
 
 if {[GitVersion 2.7.2] == 0 } {
   Msg CriticalWarning "Found Git version older than 2.7.2. Hog might not work as expected.\n"

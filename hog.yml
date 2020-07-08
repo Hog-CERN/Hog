@@ -65,7 +65,7 @@ generate-config:
   <<: *only-default
   stage: generate
   script: 
-    - tclsh ./Hog/utils/generate_yaml.tcl
+    - tclsh ./Hog/Tcl/utils/generate_yaml.tcl
   artifacts:
     paths:
       - generated-config.yml

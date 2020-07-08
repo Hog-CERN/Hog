@@ -31,13 +31,27 @@ puts $fp "\n"
 foreach dir [glob -type d $repo_path/Top/* ] {
     set proj [ file tail $dir ]
     set ver [ GetProjectVersion $dir/$proj.tcl ]
-
     if {$ver != 0} {
-        puts $fp [ WriteYAMLStage "create_project" $proj ]
-        puts $fp [ WriteYAMLStage "simulate_project" $proj ]
-        puts $fp [ WriteYAMLStage "synthesise_ips" $proj ]
-        puts $fp [ WriteYAMLStage "synthesise_project" $proj ]
-        puts $fp [ WriteYAMLStage "implement_project" $proj ]
+        if [ file exists $dir/ci.conf ]{
+            set cifile [open $dir/ci.conf ]
+            set input [read $cifile]
+            set lines [split $input "\n"]
+            # Loop through each line
+            foreach line $lines {
+                # Do something with line here
+                set stage_and_prop [regexp -all -inline {\S+} $line]
+                set stage [lindex $stage_and_prop 0]
+                if {$stage != "" } {
+                    puts $fp [ WriteYAMLStage $stage $proj ]
+                }
+            }
+        } else {
+            puts $fp [ WriteYAMLStage "create_project" $proj ]
+            puts $fp [ WriteYAMLStage "simulate_project" $proj ]
+            puts $fp [ WriteYAMLStage "synthesise_ips" $proj ]
+            puts $fp [ WriteYAMLStage "synthesise_project" $proj ]
+            puts $fp [ WriteYAMLStage "implement_project" $proj ]
+        }
     }   
 }
 

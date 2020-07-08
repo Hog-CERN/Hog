@@ -190,9 +190,9 @@ collect_artifacts:
 
 make_doxygen:
     <<: *only-default
-    rules:
-      - if: $HOG_USE_DOXYGEN
-      - if: $CI_MERGE_REQUEST_ID
+    # rules:
+    #   - if: $HOG_USE_DOXYGEN
+    #   - if: $CI_MERGE_REQUEST_ID
     stage: doxygen
     variables:
         <<: *vars

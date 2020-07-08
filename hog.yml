@@ -48,8 +48,6 @@ before_script:
 
 stages:
     - merge
-    - generate
-    - child
     - creation
     - simulation
     - ip
@@ -60,22 +58,6 @@ stages:
     - copy
     - clean
 
-
-generate-config:
-  <<: *only-default
-  stage: generate
-  script: 
-    - tclsh ./Hog/Tcl/utils/generate_yaml.tcl
-  artifacts:
-    paths:
-      - generated-config.yml
-
-child-pipeline:
-  stage: child
-  trigger:
-    include:
-      - artifact: generated-config.yml
-        job: generate-config
 
 merge_and_tag:
   <<: *only-default

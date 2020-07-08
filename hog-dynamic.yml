@@ -54,6 +54,7 @@ child-pipeline:
     include: 
       - artifact: generated-config.yml
         job: generate-config
+    strategy: depend
   rules:
     - if: $CI_MERGE_REQUEST_ID
 

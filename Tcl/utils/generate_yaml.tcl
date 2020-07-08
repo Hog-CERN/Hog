@@ -27,22 +27,29 @@ source ./hog.tcl
 
 set fp [open "$repo_path/generated-config.yml" w+]
 
-puts $fp "include:"
-puts $fp "      - project: 'hog/Hog'"
-puts $fp "      file: '/hog.yml'"
-puts $fp "      ref: '83-use-dynamic-yml-configuration-for-ci'"
+# puts $fp "include:"
+# puts $fp "      - project: 'hog/Hog'"
+# puts $fp "      file: '/hog.yml'"
+# puts $fp "      ref: '83-use-dynamic-yml-configuration-for-ci'"
 
-foreach dir [glob -type d $repo_path/Top/* ] {
-    set proj [ file tail $dir ]
-    set ver [ GetProjectVersion $dir/$proj.tcl ]
+# foreach dir [glob -type d $repo_path/Top/* ] {
+#     set proj [ file tail $dir ]
+#     set ver [ GetProjectVersion $dir/$proj.tcl ]
 
-    if {$ver != 0} {
-        puts $fp [ WriteYAMLStage "create_project" $proj ]
-        puts $fp [ WriteYAMLStage "simulate_project" $proj ]
-        puts $fp [ WriteYAMLStage "synthesise_ips" $proj ]
-        puts $fp [ WriteYAMLStage "syntesise_project" $proj ]
-        puts $fp [ WriteYAMLStage "implement_project" $proj ]
-    }   
-}
+#     if {$ver != 0} {
+#         puts $fp [ WriteYAMLStage "create_project" $proj ]
+#         puts $fp [ WriteYAMLStage "simulate_project" $proj ]
+#         puts $fp [ WriteYAMLStage "synthesise_ips" $proj ]
+#         puts $fp [ WriteYAMLStage "syntesise_project" $proj ]
+#         puts $fp [ WriteYAMLStage "implement_project" $proj ]
+#     }   
+# }
+
+puts $fp "test:"
+puts $fp "  stage: test"
+puts $fp "  only:"
+puts $fp "    - pushes"
+puts $fp "  script:"
+puts $fp "    - echo \"hello\""
 
 close $fp

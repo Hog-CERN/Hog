@@ -25,14 +25,14 @@ set repo_path [pwd]
 cd $tcl_path
 source ./hog.tcl
 
-file copy $repo_path/Hog/hog-dynamic.yml $repo_path/generated-config.yml
+file copy -force $repo_path/Hog/hog-dynamic.yml $repo_path/generated-config.yml
 set fp [open "$repo_path/generated-config.yml" a]
 puts $fp "\n"
 foreach dir [glob -type d $repo_path/Top/* ] {
     set proj [ file tail $dir ]
     set ver [ GetProjectVersion $dir/$proj.tcl ]
     if {$ver != 0} {
-        if [ file exists $dir/ci.conf ]{
+        if { [ file exists "$dir/ci.conf" ] == 1} {
             set cifile [open $dir/ci.conf ]
             set input [read $cifile]
             set lines [split $input "\n"]
@@ -41,7 +41,7 @@ foreach dir [glob -type d $repo_path/Top/* ] {
                 # Do something with line here
                 set stage_and_prop [regexp -all -inline {\S+} $line]
                 set stage [lindex $stage_and_prop 0]
-                if {$stage != "" } {
+                if {$stage != "" && ($stage == "create_project" || $stage == "simulate_project" || $stage == "synthesise_ips" || $stage == "synthesise_project" || $stage == "implement_project" )  } {
                     puts $fp [ WriteYAMLStage $stage $proj ]
                 }
             }

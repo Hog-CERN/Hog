@@ -29,6 +29,12 @@ before_script:
 stages:
   - merge
   - creation
+  - simulation
+  - ip
+  - synthesis
+  - implementation
+  - collect
+  - doxygen
 
 merge_and_tag:
   <<: *only-default

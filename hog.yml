@@ -45,24 +45,11 @@ before_script:
     GIT_STRATEGY: clone
 #   CI_DEBUG_TRACE: "true"
 
-generate-config:
-  stage: generate
-  script: 
-    - tclsh ./Hog/utils/generate-yaml.tcl
-  artifacts:
-    paths:
-      - generated-config.yml
-
-child-pipeline:
-  stage: merge
-  trigger:
-    include:
-      - artifact: generated-config.yml
-        job: generate-config
 
 stages:
     - generate
     - merge
+    - child
     - creation
     - simulation
     - ip
@@ -72,6 +59,24 @@ stages:
     - doxygen
     - copy
     - clean
+
+
+generate-config:
+  <<: *only-default
+  stage: generate
+  script: 
+    - tclsh ./Hog/utils/generate-yaml.tcl
+  artifacts:
+    paths:
+      - generated-config.yml
+
+child-pipeline:
+  <<: *only-default
+  stage: child
+  trigger:
+    include:
+      - artifact: generated-config.yml
+        job: generate-config
 
 merge_and_tag:
   <<: *only-default

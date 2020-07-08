@@ -47,8 +47,8 @@ before_script:
 
 
 stages:
-    - generate
     - merge
+    - generate
     - child
     - creation
     - simulation

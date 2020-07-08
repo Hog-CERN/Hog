@@ -47,8 +47,6 @@ set fp [open "$repo_path/generated-config.yml" w+]
 
 puts $fp "test:"
 puts $fp "  stage: test"
-puts $fp "  only:"
-puts $fp "    - pushes"
 puts $fp "  script:"
 puts $fp "    - echo \"hello\""
 

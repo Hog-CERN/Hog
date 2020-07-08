@@ -27,7 +27,7 @@ source ./hog.tcl
 
 file copy $repo_path/Hog/hog-dynamic.yml $repo_path/generated-config.yml
 set fp [open "$repo_path/generated-config.yml" a]
-
+puts $fp "\n"
 foreach dir [glob -type d $repo_path/Top/* ] {
     set proj [ file tail $dir ]
     set ver [ GetProjectVersion $dir/$proj.tcl ]

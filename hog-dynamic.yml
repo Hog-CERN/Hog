@@ -30,9 +30,9 @@ before_script:
     - export LD_LIBRARY_PATH=${HOG_LD_LIBRARY_PATH}:$LD_LIBRARY_PATH
 
 .only-default: &only-default
-  only:
-    refs:
-      - merge_requests
+  # only:
+  #   refs:
+  #     - merge_requests
   except:
     variables:
       - $CI_COMMIT_REF_NAME =~ /^test\/.*$/i
@@ -41,21 +41,26 @@ before_script:
      - hog
 
 
-.vars: &vars
-    GIT_STRATEGY: clone
-#   CI_DEBUG_TRACE: "true"
+# .vars: &vars
+#     GIT_STRATEGY: clone
+# #   CI_DEBUG_TRACE: "true"
+
+workflow:
+  rules:
+    - if: $CI_MERGE_REQUEST_ID
 
 stages:
     - merge
     - creation
-    - simulation
-    - ip
-    - synthesis
-    - implementation
-    - collect
-    - doxygen
-    - copy
-    - clean
+    # - simulation
+    # - ip
+    # - synthesis
+    # - implementation
+    # - collect
+    # - doxygen
+    # - copy
+    # - clean
+
 
 merge_and_tag:
   <<: *only-default
@@ -193,8 +198,8 @@ collect_artifacts:
 make_doxygen:
     <<: *only-default
     only:
-      refs:
-        - merge_requests
+      # refs:
+      #   - merge_requests
       variables:
         - $HOG_USE_DOXYGEN == "1"
     stage: doxygen
@@ -219,59 +224,59 @@ make_doxygen:
 
 
 
-tag_official_version:
-  tags:
-     - hog
-  stage: merge
-  script:
-     - vivado -mode batch -notrace -source ./Hog/Tcl/CI/merge_and_tag.tcl -tclargs -merged  -push $CI_COMMIT_REF_NAME -main_branch $CI_COMMIT_REF_NAME
-  rules:
-    - if: '$HOG_TARGET_BRANCH != null && $CI_COMMIT_REF_NAME == $HOG_TARGET_BRANCH && $CI_PIPELINE_SOURCE == "push"'
-      when: always
-    - if: '$HOG_TARGET_BRANCH == null && $CI_COMMIT_REF_NAME =~ /^master\d*$/  && $CI_PIPELINE_SOURCE == "push"'
-      when: always
-    - when: never
+# tag_official_version:
+#   tags:
+#      - hog
+#   stage: merge
+#   script:
+#      - vivado -mode batch -notrace -source ./Hog/Tcl/CI/merge_and_tag.tcl -tclargs -merged  -push $CI_COMMIT_REF_NAME -main_branch $CI_COMMIT_REF_NAME
+#   rules:
+#     - if: '$HOG_TARGET_BRANCH != null && $CI_COMMIT_REF_NAME == $HOG_TARGET_BRANCH && $CI_PIPELINE_SOURCE == "push"'
+#       when: always
+#     - if: '$HOG_TARGET_BRANCH == null && $CI_COMMIT_REF_NAME =~ /^master\d*$/  && $CI_PIPELINE_SOURCE == "push"'
+#       when: always
+#     - when: never
 
-create_official_release:
-  only:
-    refs:
-      - tags
-    variables:
-      - $CI_COMMIT_TAG =~ /^v.*$/ && $HOG_CREATE_OFFICIAL_RELEASE == "1"
-  tags:
-    - hog
-  stage: copy
-  script:
-    - git fetch origin refs/notes/*:refs/notes/*
-    - MR=( `git notes show` )
-    - ./Hog/Other/GetGitlabArtifact.sh $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $MR bin/note.md collect_artifacts > note.md
-    - ./Hog/Other/MakeGitlabRelease.sh $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $CI_COMMIT_TAG note.md
-  allow_failure: true
+# create_official_release:
+#   only:
+#     refs:
+#       - tags
+#     variables:
+#       - $CI_COMMIT_TAG =~ /^v.*$/ && $HOG_CREATE_OFFICIAL_RELEASE == "1"
+#   tags:
+#     - hog
+#   stage: copy
+#   script:
+#     - git fetch origin refs/notes/*:refs/notes/*
+#     - MR=( `git notes show` )
+#     - ./Hog/Other/GetGitlabArtifact.sh $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $MR bin/note.md collect_artifacts > note.md
+#     - ./Hog/Other/MakeGitlabRelease.sh $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $CI_COMMIT_TAG note.md
+#   allow_failure: true
 
-copy_to_eos:
-  only:
-    refs:
-      - tags
-    variables:
-      - $CI_COMMIT_TAG =~ /^v.*$/ && $HOG_OFFICIAL_BIN_EOS_PATH != null && $HOG_UNOFFICIAL_BIN_EOS_PATH != null
-  tags:
-    - hog
-  stage: copy
-  script:
-    - git status
-    - until echo $HOG_PASSWORD | kinit $HOG_USER ; do echo Retrying; sleep 2; done
-    - vivado -mode batch -notrace -source ./Hog/Tcl/CI/copy_to_eos.tcl -tclargs $HOG_OFFICIAL_BIN_EOS_PATH $HOG_UNOFFICIAL_BIN_EOS_PATH $CI_COMMIT_TAG $CI_COMMIT_SHORT_SHA
+# copy_to_eos:
+#   only:
+#     refs:
+#       - tags
+#     variables:
+#       - $CI_COMMIT_TAG =~ /^v.*$/ && $HOG_OFFICIAL_BIN_EOS_PATH != null && $HOG_UNOFFICIAL_BIN_EOS_PATH != null
+#   tags:
+#     - hog
+#   stage: copy
+#   script:
+#     - git status
+#     - until echo $HOG_PASSWORD | kinit $HOG_USER ; do echo Retrying; sleep 2; done
+#     - vivado -mode batch -notrace -source ./Hog/Tcl/CI/copy_to_eos.tcl -tclargs $HOG_OFFICIAL_BIN_EOS_PATH $HOG_UNOFFICIAL_BIN_EOS_PATH $CI_COMMIT_TAG $CI_COMMIT_SHORT_SHA
 
-cleaning:
-  only:
-    refs:
-      - tags
-    variables:
-      - $CI_COMMIT_TAG =~ /^v.*$/ && $HOG_OFFICIAL_BIN_EOS_PATH != null && $HOG_UNOFFICIAL_BIN_EOS_PATH != null
-  tags:
-     - hog
-  stage: clean
-  script:
-     - until echo $HOG_PASSWORD | kinit $HOG_USER ; do echo "Retrying"; sleep 2; done
-     - if [ -z ${HOG_UNOFFICIAL_BIN_EOS_PATH+x} ]; then echo "HOG_UNOFFICIAL_BIN_EOS_PATH not specified, nothing to clean..."; else vivado -mode batch -notrace -source Hog/Tcl/CI/clean_unofficial.tcl -tclargs $HOG_UNOFFICIAL_BIN_EOS_PATH $CI_COMMIT_TAG; fi
-  allow_failure: true
+# cleaning:
+#   only:
+#     refs:
+#       - tags
+#     variables:
+#       - $CI_COMMIT_TAG =~ /^v.*$/ && $HOG_OFFICIAL_BIN_EOS_PATH != null && $HOG_UNOFFICIAL_BIN_EOS_PATH != null
+#   tags:
+#      - hog
+#   stage: clean
+#   script:
+#      - until echo $HOG_PASSWORD | kinit $HOG_USER ; do echo "Retrying"; sleep 2; done
+#      - if [ -z ${HOG_UNOFFICIAL_BIN_EOS_PATH+x} ]; then echo "HOG_UNOFFICIAL_BIN_EOS_PATH not specified, nothing to clean..."; else vivado -mode batch -notrace -source Hog/Tcl/CI/clean_unofficial.tcl -tclargs $HOG_UNOFFICIAL_BIN_EOS_PATH $CI_COMMIT_TAG; fi
+#   allow_failure: true

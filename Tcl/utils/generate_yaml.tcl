@@ -27,10 +27,10 @@ source ./hog.tcl
 
 set fp [open "$repo_path/generated-config.yml" w+]
 
-# puts $fp "include:"
-# puts $fp "      - project: 'hog/Hog'"
-# puts $fp "      file: '/hog.yml'"
-# puts $fp "      ref: '83-use-dynamic-yml-configuration-for-ci'"
+puts $fp "include:"
+puts $fp "      - project: 'hog/Hog'"
+puts $fp "      file: '/hog-dynamic.yml'"
+puts $fp "      ref: '83-use-dynamic-yml-configuration-for-ci'"
 
 # foreach dir [glob -type d $repo_path/Top/* ] {
 #     set proj [ file tail $dir ]
@@ -45,9 +45,9 @@ set fp [open "$repo_path/generated-config.yml" w+]
 #     }   
 # }
 
-puts $fp "test:"
-puts $fp "  stage: test"
-puts $fp "  script:"
-puts $fp "    - echo \"hello\""
+# puts $fp "test:"
+# puts $fp "  stage: test"
+# puts $fp "  script:"
+# puts $fp "    - echo \"hello\""
 
 close $fp

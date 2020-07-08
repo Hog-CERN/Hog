@@ -34,10 +34,10 @@ foreach dir [glob -type d $repo_path/Top/* ] {
 
     if {$ver != 0} {
         puts $fp [ string trimleft [WriteYAMLStage "create_project" $proj] "-" ]
-        # puts $fp [ WriteYAMLStage "simulate_project" $proj ]
-        # puts $fp [ WriteYAMLStage "synthesise_ips" $proj ]
-        # puts $fp [ WriteYAMLStage "syntesise_project" $proj ]
-        # puts $fp [ WriteYAMLStage "implement_project" $proj ]
+        puts $fp [ WriteYAMLStage "simulate_project" $proj ]
+        puts $fp [ WriteYAMLStage "synthesise_ips" $proj ]
+        puts $fp [ WriteYAMLStage "syntesise_project" $proj ]
+        puts $fp [ WriteYAMLStage "implement_project" $proj ]
     }   
 }
 

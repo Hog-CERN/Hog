@@ -1,3 +1,17 @@
+#   Copyright 2018-2020 The University of Birmingham
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at
+#
+#       http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+
 before_script:
     - export REPO=`echo $CI_PROJECT_URL | sed -e s#https://##`
     - git remote set-url origin https://${HOG_USER}:${HOG_PUSH_TOKEN}@$REPO
@@ -7,193 +21,95 @@ before_script:
     - git fetch origin $CI_COMMIT_REF_NAME
     - git fetch origin $CI_MERGE_REQUEST_TARGET_BRANCH_NAME
     - git status
-    - git checkout $CI_COMMIT_REF_NAME --
-    - git submodule init
-    - git submodule update
-    - export XILINXD_LICENSE_FILE=${HOG_XIL_LICENSE}
-    - export PATH=${HOG_PATH}:$PATH
-    - export LD_LIBRARY_PATH=${HOG_LD_LIBRARY_PATH}:$LD_LIBRARY_PATH
+    - git submodule init 
+    - git submodule update Hog
 
-workflow:
+stages:
+  - generate
+  - triggers
+  - merge
+  - copy
+  - clean
+
+generate-config:
+  # only:
+  #   refs:
+  #     - merge_requests
+  stage: generate
+  image: tcl2020/tcl2020
+  script: 
+    - tclsh ./Hog/Tcl/utils/generate_yaml.tcl
+  artifacts:
+    paths:
+      - generated-config.yml
   rules:
     - if: $CI_MERGE_REQUEST_ID
 
-.only-default: &only-default
-  except:
-    variables:
-      - $CI_COMMIT_REF_NAME =~ /^test\/.*$/i
-      - $CI_MERGE_REQUEST_TITLE =~ /^WIP:.*$/ && $CI_COMMIT_MESSAGE !~ /^RESOLVE_WIP:/
+child-pipeline:
+  # only:
+  #   refs:
+  #     - merge_requests
+  stage: triggers
+  trigger:
+    include: 
+      - artifact: generated-config.yml
+        job: generate-config
+  rules:
+    - if: $CI_MERGE_REQUEST_ID
+
+tag_official_version:
   tags:
      - hog
-
-.vars: &vars
-    GIT_STRATEGY: clone
-#   CI_DEBUG_TRACE: "true"
-
-stages:
-  - merge
-  - creation
-  - simulation
-  - ip
-  - synthesis
-  - implementation
-  - collect
-  - doxygen
-
-merge_and_tag:
-  <<: *only-default
   stage: merge
-  variables:
-    GIT_STRATEGY: clone
   script:
-    - ./Hog/Other/CheckEnv.sh
-    - "if [[ $CI_COMMIT_MESSAGE == *RESOLVE_WIP* && $CI_MERGE_REQUEST_TITLE == WIP* ]]; then echo 'removing WIP status'; curl ${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/merge_requests/${CI_MERGE_REQUEST_IID}/notes?body=/wip --header \"PRIVATE-TOKEN: ${HOG_PUSH_TOKEN}\" --request POST; fi;"
-    - "MR_PARAMETERS=`curl --header \"PRIVATE-TOKEN: ${HOG_PUSH_TOKEN}\" ${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/merge_requests/${CI_MERGE_REQUEST_IID}`"
-    - if [[ ((-n $HOG_TARGET_BRANCH) && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "$HOG_TARGET_BRANCH") || ((-z $HOG_TARGET_BRANCH) && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == master*) ]]; then INCREASE=""; else INCREASE="-no_increase"; fi;
-    - vivado -mode batch -notrace -source ./Hog/Tcl/CI/merge_and_tag.tcl -tclargs -mr_par "{$MR_PARAMETERS}" -mr_id $CI_MERGE_REQUEST_IID -push $CI_COMMIT_REF_NAME -main_branch $CI_MERGE_REQUEST_TARGET_BRANCH_NAME $INCREASE
+     - vivado -mode batch -notrace -source ./Hog/Tcl/CI/merge_and_tag.tcl -tclargs -merged  -push $CI_COMMIT_REF_NAME -main_branch $CI_COMMIT_REF_NAME
+  rules:
+    - if: '$HOG_TARGET_BRANCH != null && $CI_COMMIT_REF_NAME == $HOG_TARGET_BRANCH && $CI_PIPELINE_SOURCE == "push"'
+      when: always
+    - if: '$HOG_TARGET_BRANCH == null && $CI_COMMIT_REF_NAME =~ /^master\d*$/  && $CI_PIPELINE_SOURCE == "push"'
+      when: always
+    - when: never
 
-.create_project: &create_project
-     <<: *only-default
-     stage: creation
-     variables:
-        <<: *vars
-     script:
-      - ./Hog/CreateProject.sh $PROJECT_NAME
-      - "if [[ ${HOG_CHECK_SYNTAX} != 1 ]]; then echo 'Syntax checker is disabled'; else vivado -mode batch -notrace -source ./Hog/Tcl/utils/check_syntax.tcl -tclargs $PROJECT_NAME; fi"
-      - "if [[ ${HOG_CHECK_YAMLREF} != 1 ]]; then echo 'Yaml consistency checker is disabled'; else vivado -mode batch -notrace -source ./Hog/Tcl/utils/check_yaml_ref.tcl ; fi"
-     artifacts:
-       name: vivado_projects
-       paths:
-         - $CI_PROJECT_DIR/VivadoProject/$PROJECT_NAME
-       expire_in: 30 day
-
-.simulate_project: &simulate_project
-     <<: *only-default
-     stage: simulation
-     variables:
-        <<: *vars
-     script:
-      - "if [ -z ${HOG_SIMULATION_LIB_PATH+x} ]; then echo 'Simulation library path is not defined'; else vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_simulation.tcl -tclargs -lib_path $HOG_SIMULATION_LIB_PATH $PROJECT_NAME ; fi"
-     artifacts:
-       name: simulation_files
-       paths:
-         - $CI_PROJECT_DIR/VivadoProject/$PROJECT_NAME/$PROJECT_NAME.sim
-       expire_in: 30 day
-     allow_failure: true
-
-.synthesise_ips: &synthesise_ips
-    <<: *only-default
-    stage: ip
+create_official_release:
+  only:
+    refs:
+      - tags
     variables:
-        <<: *vars
-    script:
-        - until echo $HOG_PASSWORD | kinit $HOG_USER ; do echo "Retrying"; sleep 2; done
-        - if [ -z ${HOG_IP_NJOBS+x} ]; then export HOG_IP_NJOBS=4; fi
-        - "if [ -z ${HOG_IP_EOS_PATH+x} ]; then
-           echo 'No EOS path for IPs defined';
-           vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_ip_synth.tcl -tclargs -NJOBS $HOG_IP_NJOBS $PROJECT_NAME ;
-           else vivado -mode batch -notrace -source ./Hog/Tcl/utils/get_ips.tcl -tclargs -eos_ip_path \"$HOG_IP_EOS_PATH\" $PROJECT_NAME;
-            vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_ip_synth.tcl -tclargs -NJOBS $HOG_IP_NJOBS -eos_ip_path \"$HOG_IP_EOS_PATH\" $PROJECT_NAME ;
-          fi"
-        - "rm BD/*.bd ||:"
+      - $CI_COMMIT_TAG =~ /^v.*$/ && $HOG_CREATE_OFFICIAL_RELEASE == "1"
+  tags:
+    - hog
+  stage: copy
+  script:
+    - git fetch origin refs/notes/*:refs/notes/*
+    - MR=( `git notes show` )
+    - ./Hog/Other/GetGitlabArtifact.sh $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $MR bin/note.md collect_artifacts > note.md
+    - ./Hog/Other/MakeGitlabRelease.sh $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $CI_COMMIT_TAG note.md
+  allow_failure: true
 
-    artifacts:
-        name: vivado_runs
-        paths:
-            - $CI_PROJECT_DIR/VivadoProject/$PROJECT_NAME
-            - $CI_PROJECT_DIR/IP
-            - $CI_PROJECT_DIR/BD
-        expire_in: 30 day
-
-.synthesise_project: &synthesise_project
-    <<: *only-default
-    stage: synthesis
+copy_to_eos:
+  only:
+    refs:
+      - tags
     variables:
-        <<: *vars
-    script:
-        - if [ -z ${HOG_NJOBS+x} ]; then export HOG_NJOBS=4; fi
-        - vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_synthesis.tcl -tclargs -NJOBS $HOG_NJOBS $PROJECT_NAME
-    artifacts:
-        name: vivado_synth
-        paths:
-            - $CI_PROJECT_DIR/VivadoProject/$PROJECT_NAME
-            - $CI_PROJECT_DIR/bin
-            - $CI_PROJECT_DIR/IP
-            - $CI_PROJECT_DIR/BD
-        expire_in: 30 day
+      - $CI_COMMIT_TAG =~ /^v.*$/ && $HOG_OFFICIAL_BIN_EOS_PATH != null && $HOG_UNOFFICIAL_BIN_EOS_PATH != null
+  tags:
+    - hog
+  stage: copy
+  script:
+    - git status
+    - until echo $HOG_PASSWORD | kinit $HOG_USER ; do echo Retrying; sleep 2; done
+    - vivado -mode batch -notrace -source ./Hog/Tcl/CI/copy_to_eos.tcl -tclargs $HOG_OFFICIAL_BIN_EOS_PATH $HOG_UNOFFICIAL_BIN_EOS_PATH $CI_COMMIT_TAG $CI_COMMIT_SHORT_SHA
 
-.implement_project: &implement_project
-    <<: *only-default
-    stage: implementation
+cleaning:
+  only:
+    refs:
+      - tags
     variables:
-        <<: *vars
-    script:
-        - git status
-        - git diff
-        - if [ -z ${HOG_NJOBS+x} ]; then export HOG_NJOBS=4; fi
-        - if [ -z ${HOG_NO_BITSTREAM+x} ]; then export HOG_NO_BITSTREAM=0; fi
-        - "if [ $HOG_NO_BITSTREAM == '1' ]; then
-           vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_implementation.tcl -tclargs -no_bitstream -NJOBS $HOG_NJOBS  $PROJECT_NAME;
-           else vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_implementation.tcl -tclargs -NJOBS $HOG_NJOBS $PROJECT_NAME;
-           fi"
-        - "cat $CI_PROJECT_DIR/bin/$PROJECT_NAME*/versions* $CI_PROJECT_DIR/bin/$PROJECT_NAME*/timing_* > note.md"
-        - ./Hog/Other/WriteGitlabNote.sh $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $CI_MERGE_REQUEST_IID note.md
-
-    artifacts:
-        name: implementation_and_bitfiles
-        paths:
-            - $CI_PROJECT_DIR/VivadoProject/$PROJECT_NAME
-            - $CI_PROJECT_DIR/bin
-        expire_in: 1 month
-
-collect_artifacts:
-    <<: *only-default
-    stage: collect
-    variables:
-        <<: *vars
-    script:
-        - "printf \"## Repository info\n- Merge request number: $CI_MERGE_REQUEST_IID\n- Branch name: $CI_COMMIT_REF_SLUG\n\n\" > $CI_PROJECT_DIR/bin/note.md"
-        - ./Hog/Other/Changelog.sh $CI_MERGE_REQUEST_TARGET_BRANCH_NAME >> $CI_PROJECT_DIR/bin/note.md
-        - files=$(shopt -s nullglob dotglob; echo $CI_PROJECT_DIR/bin/*/*.txt)
-        - "if (( ${#files} )); then
-          cat $CI_PROJECT_DIR/bin/*/*.txt >> $CI_PROJECT_DIR/bin/note.md;
-          fi"
-        - git fetch origin refs/notes/*:refs/notes/*
-        - git notes add -fm "$CI_MERGE_REQUEST_IID $CI_COMMIT_REF_SLUG"
-        - git push origin refs/notes/*
-        - "if [ -e $CI_PROJECT_DIR/bin/ -a -n '$HOG_UNOFFICIAL_BIN_EOS_PATH' ]; then until echo $HOG_PASSWORD | kinit $HOG_USER ; do echo Retrying; sleep 2; done;
-          eos mkdir -p $HOG_UNOFFICIAL_BIN_EOS_PATH/$CI_COMMIT_SHORT_SHA;
-          eos cp -r $CI_PROJECT_DIR/bin/* $HOG_UNOFFICIAL_BIN_EOS_PATH/$CI_COMMIT_SHORT_SHA; fi"
-
-    artifacts:
-        name: all_projects
-        paths:
-            - $CI_PROJECT_DIR/bin
-        expire_in: 10 years
-    allow_failure: true
-
-
-make_doxygen:
-    <<: *only-default
-    only:
-      variables:
-        - $HOG_USE_DOXYGEN == "1"
-    stage: doxygen
-    variables:
-        <<: *vars
-    script:
-        - until echo $HOG_PASSWORD | kinit $HOG_USER ; do echo Retrying; sleep 2; done
-        - vivado -mode batch -notrace -source ./Hog/Tcl/utils/make_doxygen.tcl
-        - DESCRIBE=$(git describe --always --tags --long)
-        - "if [ -e $CI_PROJECT_DIR/Doc/html -a -n '$HOG_UNOFFICIAL_BIN_EOS_PATH' ]; then
-          eos mkdir -p $HOG_UNOFFICIAL_BIN_EOS_PATH/$CI_COMMIT_SHORT_SHA/Doc-$DESCRIBE;
-          eos cp -r ./Doc/html/* $HOG_UNOFFICIAL_BIN_EOS_PATH/$CI_COMMIT_SHORT_SHA/Doc-$DESCRIBE;
-          elif [ -e $CI_PROJECT_DIR/Doc/html ]; then echo \"Environmental variable HOG_UNOFFICIAL_BIN_EOS_PATH not set. Doxygen documentation cannot be copied to eos.\";
-          else echo \"Documentation not found in $CI_PROJECT_DIR/Doc/html\"; fi"
-    artifacts:
-        name: docs
-        paths:
-            - $CI_PROJECT_DIR/Doc
-        expire_in: 10 years
-    dependencies: []
-    allow_failure: true
+      - $CI_COMMIT_TAG =~ /^v.*$/ && $HOG_OFFICIAL_BIN_EOS_PATH != null && $HOG_UNOFFICIAL_BIN_EOS_PATH != null
+  tags:
+     - hog
+  stage: clean
+  script:
+     - until echo $HOG_PASSWORD | kinit $HOG_USER ; do echo "Retrying"; sleep 2; done
+     - if [ -z ${HOG_UNOFFICIAL_BIN_EOS_PATH+x} ]; then echo "HOG_UNOFFICIAL_BIN_EOS_PATH not specified, nothing to clean..."; else vivado -mode batch -notrace -source Hog/Tcl/CI/clean_unofficial.tcl -tclargs $HOG_UNOFFICIAL_BIN_EOS_PATH $CI_COMMIT_TAG; fi
+  allow_failure: true

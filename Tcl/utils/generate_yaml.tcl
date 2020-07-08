@@ -25,7 +25,7 @@ set repo_path [pwd]
 cd $tcl_path
 source ./hog.tcl
 
-file copy -force $repo_path/Hog/hog-dynamic.yml $repo_path/generated-config.yml
+file copy -force $repo_path/Hog/mr-ci-stages.yml $repo_path/generated-config.yml
 set fp [open "$repo_path/generated-config.yml" a]
 puts $fp "\n"
 foreach dir [glob -type d $repo_path/Top/* ] {

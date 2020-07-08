@@ -14,6 +14,10 @@ before_script:
     - export PATH=${HOG_PATH}:$PATH
     - export LD_LIBRARY_PATH=${HOG_LD_LIBRARY_PATH}:$LD_LIBRARY_PATH
 
+workflow:
+  rules:
+    - if: $CI_MERGE_REQUEST_ID
+
 .only-default: &only-default
   except:
     variables:

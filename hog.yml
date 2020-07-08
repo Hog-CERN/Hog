@@ -71,7 +71,6 @@ generate-config:
       - generated-config.yml
 
 child-pipeline:
-  <<: *only-default
   stage: child
   trigger:
     include:

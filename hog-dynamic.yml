@@ -1,3 +1,58 @@
-job1:
-  script: 
-    - echo "hello"
+before_script:
+    - export REPO=`echo $CI_PROJECT_URL | sed -e s#https://##`
+    - git remote set-url origin https://${HOG_USER}:${HOG_PUSH_TOKEN}@$REPO
+    - git config user.email ${HOG_EMAIL}
+    - git config user.name ${HOG_USER}
+    - git fetch
+    - git fetch origin $CI_COMMIT_REF_NAME
+    - git fetch origin $CI_MERGE_REQUEST_TARGET_BRANCH_NAME
+    - git status
+    - git checkout $CI_COMMIT_REF_NAME --
+    - git submodule init
+    - git submodule update
+    - export XILINXD_LICENSE_FILE=${HOG_XIL_LICENSE}
+    - export PATH=${HOG_PATH}:$PATH
+    - export LD_LIBRARY_PATH=${HOG_LD_LIBRARY_PATH}:$LD_LIBRARY_PATH
+
+.only-default: &only-default
+  except:
+    variables:
+      - $CI_COMMIT_REF_NAME =~ /^test\/.*$/i
+      - $CI_MERGE_REQUEST_TITLE =~ /^WIP:.*$/ && $CI_COMMIT_MESSAGE !~ /^RESOLVE_WIP:/
+  tags:
+     - hog
+
+.vars: &vars
+    GIT_STRATEGY: clone
+#   CI_DEBUG_TRACE: "true"
+
+stages:
+  - merge
+  - creation
+
+merge_and_tag:
+  <<: *only-default
+  stage: merge
+  variables:
+    GIT_STRATEGY: clone
+  script:
+    - ./Hog/Other/CheckEnv.sh
+    - "if [[ $CI_COMMIT_MESSAGE == *RESOLVE_WIP* && $CI_MERGE_REQUEST_TITLE == WIP* ]]; then echo 'removing WIP status'; curl ${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/merge_requests/${CI_MERGE_REQUEST_IID}/notes?body=/wip --header \"PRIVATE-TOKEN: ${HOG_PUSH_TOKEN}\" --request POST; fi;"
+    - "MR_PARAMETERS=`curl --header \"PRIVATE-TOKEN: ${HOG_PUSH_TOKEN}\" ${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/merge_requests/${CI_MERGE_REQUEST_IID}`"
+    - if [[ ((-n $HOG_TARGET_BRANCH) && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "$HOG_TARGET_BRANCH") || ((-z $HOG_TARGET_BRANCH) && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == master*) ]]; then INCREASE=""; else INCREASE="-no_increase"; fi;
+    - vivado -mode batch -notrace -source ./Hog/Tcl/CI/merge_and_tag.tcl -tclargs -mr_par "{$MR_PARAMETERS}" -mr_id $CI_MERGE_REQUEST_IID -push $CI_COMMIT_REF_NAME -main_branch $CI_MERGE_REQUEST_TARGET_BRANCH_NAME $INCREASE
+
+.create_project: &create_project
+     <<: *only-default
+     stage: creation
+     variables:
+        <<: *vars
+     script:
+      - ./Hog/CreateProject.sh $PROJECT_NAME
+      - "if [[ ${HOG_CHECK_SYNTAX} != 1 ]]; then echo 'Syntax checker is disabled'; else vivado -mode batch -notrace -source ./Hog/Tcl/utils/check_syntax.tcl -tclargs $PROJECT_NAME; fi"
+      - "if [[ ${HOG_CHECK_YAMLREF} != 1 ]]; then echo 'Yaml consistency checker is disabled'; else vivado -mode batch -notrace -source ./Hog/Tcl/utils/check_yaml_ref.tcl ; fi"
+     artifacts:
+       name: vivado_projects
+       paths:
+         - $CI_PROJECT_DIR/VivadoProject/$PROJECT_NAME
+       expire_in: 30 day

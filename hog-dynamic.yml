@@ -66,6 +66,16 @@ child-pipeline:
     - if: $CI_MERGE_REQUEST_ID
 
 collect_artifacts:
+  before_script:
+    - git remote set-url origin https://${HOG_USER}:${HOG_PUSH_TOKEN}@$REPO
+    - git config user.email ${HOG_EMAIL}
+    - git config user.name ${HOG_USER}
+    - git fetch
+    - git fetch origin $CI_COMMIT_REF_NAME
+    - git fetch origin $CI_MERGE_REQUEST_TARGET_BRANCH_NAME
+    - git status
+    - git submodule init 
+    - git submodule update Hog
   image: gitlab-registry.cern.ch/hog/hog-docker:master
   stage: collect
   script:

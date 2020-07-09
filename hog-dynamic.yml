@@ -66,6 +66,8 @@ child-pipeline:
     - if: $CI_MERGE_REQUEST_ID
 
 collect_artifacts:
+  before_script: 
+    - echo ""
   image: python:slim
   stage: collect
   script:

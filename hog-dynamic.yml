@@ -31,7 +31,7 @@ before_script:
 stages:
   - generate
   - triggers
-  - collect_artifacts
+  - collect
   - merge
   - copy
   - clean
@@ -65,7 +65,7 @@ child-pipeline:
   rules:
     - if: $CI_MERGE_REQUEST_ID
 
-download:
+collect_artifacts:
   image: python:slim
   stage: collect
   script:

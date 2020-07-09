@@ -67,6 +67,7 @@ child-pipeline:
 
 collect_artifacts:
   before_script:
+    - export REPO=`echo $CI_PROJECT_URL | sed -e s#https://##`
     - git remote set-url origin https://${HOG_USER}:${HOG_PUSH_TOKEN}@$REPO
     - git config user.email ${HOG_EMAIL}
     - git config user.name ${HOG_USER}

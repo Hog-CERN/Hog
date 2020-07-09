@@ -206,7 +206,6 @@ make_doxygen:
         name: docs
         paths:
             - $CI_PROJECT_DIR/Doc
-            - $CI_PROJECT_DIR/bin
         expire_in: 10 years
     dependencies: []
     allow_failure: true

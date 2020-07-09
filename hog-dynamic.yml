@@ -77,10 +77,10 @@ collect_artifacts:
     - git status
     - git submodule init 
     - git submodule update Hog
-  image: gitlab-registry.cern.ch/hog/hog-docker:master
+  image: gitlab-registry.cern.ch/hog/hog-docker:ubuntu
   stage: collect
   script:
-    - python Hog/Other/DownloadChildArtifacts.py
+    - python3 Hog/Other/DownloadChildArtifacts.py
     - cat jobs/empty.txt
   coverage: '/Statements\s+:\s(\d+.?\d+)%/'
   rules:

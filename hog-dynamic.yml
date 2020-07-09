@@ -66,14 +66,11 @@ child-pipeline:
     - if: $CI_MERGE_REQUEST_ID
 
 collect_artifacts:
-  before_script: 
-    - echo ""
-  image: python:slim
+  image: gitlab-registry.cern.ch/hog/hog-docker:master
   stage: collect
   script:
-  - pip install requests envparse
-  - python Hog/Other/DownloadChildArtifacts.py
-  - cat jobs/empty.txt
+    - python Hog/Other/DownloadChildArtifacts.py
+    - cat jobs/empty.txt
   coverage: '/Statements\s+:\s(\d+.?\d+)%/'
   rules:
     - if: $CI_MERGE_REQUEST_ID

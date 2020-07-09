@@ -62,8 +62,8 @@ if [file exists $fw_file] {
 
 
 
-  Msg Info "Evaluating Git sha for $proj_name..."
-  lassign [GetRepoVersion ./Top/$proj_name/$proj_name.tcl] sha
+  Msg Info "Evaluating Git sha for $name..."
+  lassign [GetRepoVersion ./Top/$name/$name.tcl] sha
 
   set describe [GetGitDescribe $sha]
   Msg Info "Git describe set to: $describe"

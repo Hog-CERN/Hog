@@ -31,6 +31,7 @@ before_script:
 stages:
   - generate
   - triggers
+  - collect_artifacts
   - merge
   - copy
   - clean
@@ -43,9 +44,11 @@ generate-config:
   image: tcl2020/tcl2020
   script: 
     - tclsh ./Hog/Tcl/utils/generate_yaml.tcl
+    - echo "CREATE_JOB_ID=${CI_JOB_ID}" > .env
   artifacts:
     paths:
       - generated-config.yml
+      - .env
   rules:
     - if: $CI_MERGE_REQUEST_ID
 
@@ -61,6 +64,23 @@ child-pipeline:
     strategy: depend
   rules:
     - if: $CI_MERGE_REQUEST_ID
+
+download:
+  image: python:slim
+  stage: collect
+  script:
+  - pip install requests envparse
+  - python Hog/Other/DownloadChildArtifacts.py
+  - cat jobs/empty.txt
+  coverage: '/Statements\s+:\s(\d+.?\d+)%/'
+  artifacts:
+    paths:
+    - jobs/
+    expire_in: 1 day
+    reports:
+      junit:
+       - ./**/*test-result.xml
+
 
 tag_official_version:
   tags:
@@ -90,6 +110,10 @@ create_official_release:
     - ./Hog/Other/GetGitlabArtifact.sh $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $MR bin/note.md collect_artifacts > note.md
     - ./Hog/Other/MakeGitlabRelease.sh $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $CI_COMMIT_TAG note.md
   allow_failure: true
+  artifacts:
+    paths:
+      - note.md 
+
 
 copy_to_eos:
   only:

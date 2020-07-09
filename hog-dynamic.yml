@@ -21,6 +21,7 @@ before_script:
     - git fetch origin $CI_COMMIT_REF_NAME
     - git fetch origin $CI_MERGE_REQUEST_TARGET_BRANCH_NAME
     - git status
+    - git checkout $CI_COMMIT_REF_NAME --
     - git submodule init 
     - git submodule update Hog
     - export XILINXD_LICENSE_FILE=${HOG_XIL_LICENSE}

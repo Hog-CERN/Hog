@@ -41,7 +41,7 @@ if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] 
 } elseif { $::argc eq 1 } {
   set project [lindex $argv 0]
   set main_folder [file normalize "$path/../../VivadoProject/$project/$project.runs/"]
-  set ip_path 0
+  set ip_path ""
 } else {
   set project [lindex $argv 0]
   set main_folder [file normalize "$path/../../VivadoProject/$project/$project.runs/"]

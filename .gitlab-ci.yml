@@ -27,7 +27,16 @@ stages:
       - tag
       - build_doc
 
-building-doxygen:
+build-doxygen-test:
+      stage: build_doc
+      image: gitlab-registry.cern.ch/hog/hog-docker
+      before_script:
+        - echo ""
+      script:
+        - chmod +x ./doxygen/scripts/build-and-deploy.sh
+        - ./doxygen/scripts/build-and-deploy.sh /eos/user/h/hog/www/test-doc/doxy
+
+build-doxygen-official:
       stage: build_doc
       image: gitlab-registry.cern.ch/hog/hog-docker
       only:
@@ -35,13 +44,8 @@ building-doxygen:
       before_script:
         - echo ""
       script:
-        - cd doxygen
-        - chmod +x ./scripts/build-and-deploy.sh
-        - ./scripts/build-and-deploy.sh
-      artifacts:
-        paths:
-          - doxygen/DOXY_DOCS
-        expire_in: 1 hour
+        - chmod +x ./doxygen/scripts/build-and-deploy.sh
+        - ./doxygen/scripts/build-and-deploy.sh /eos/project/a/atlas-hog/www/hog-user-docs/doxy
 
 changelog:
       stage: tag
@@ -56,7 +60,7 @@ changelog:
               - $CI_COMMIT_REF_NAME =~ /^test\/.*$/i
       script:
           - "MR_PARAMETERS=`curl --header \"PRIVATE-TOKEN: ${HOG_PUSH_TOKEN}\" ${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/merge_requests/${CI_MERGE_REQUEST_IID}`"
-          - tclsh ./Tcl/CI/merge_and_tag.tcl -Hog  -mr_par "$MR_PARAMETERS" -mr_id $CI_MERGE_REQUEST_IID -push $CI_COMMIT_REF_NAME
+          - tclsh ./Tcl/CI/merge_and_tag.tcl -Hog  -mr_par "$MR_PARAMETERS" -mr_id $CI_MERGE_REQUEST_IID -push $CI_COMMIT_REF_NAME -main_branch $CI_MERGE_REQUEST_TARGET_BRANCH_NAME
           - git fetch origin refs/notes/*:refs/notes/*
           - git notes add -fm "$CI_MERGE_REQUEST_IID $CI_COMMIT_REF_SLUG"
           - git push origin refs/notes/*
@@ -79,7 +83,7 @@ tagging_develop:
               - $CI_PIPELINE_SOURCE != "push"
               - $CI_COMMIT_REF_SLUG != "develop"
       script:
-          - tclsh ./Tcl/CI/merge_and_tag.tcl -Hog -merged -push $CI_COMMIT_REF_NAME -default_level 1 0
+          - tclsh ./Tcl/CI/merge_and_tag.tcl -Hog -merged -push $CI_COMMIT_REF_NAME -main_branch develop -default_level 1 0
 
 tagging_master_hotfix:
       stage: tag

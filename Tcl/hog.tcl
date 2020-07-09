@@ -139,7 +139,7 @@ proc  SetParameter {parameter value } {
 #
 # @param[in] top_module name of the top module, expected @c top_<project_name>
 # @param[in] top_file   name of the file containing the top module
-# @param[in] source     list of source files
+# @param[in] sources     list of source files
 proc AddTopFile {top_module top_file sources} {
   if {[info commands launch_chipscope_analyzer] != ""} {
         #VIVADO_ONLY
@@ -159,7 +159,7 @@ proc AddTopFile {top_module top_file sources} {
 # It automatically recognises whether it is in Vivado or Quartus mode
 #
 # @param[out] top_module  name of the top module
-# @param[in]  source      list of all source files in the project
+# @param[in]  sources     list of all source files in the project
 #
 proc SetTopProperty {top_module sources} {
   Msg Info "Setting TOP property to $top_module module"
@@ -262,9 +262,9 @@ proc CreateFileSet {fileset} {
 # Gets a list of filesets in the current project that match a specified search pattern.
 # The default command gets a list of all filesets in the project.
 #
-# @param[in] fileset  the name to be checked
+# @param[in] fileset the name to be checked
 #
-# @return             a list of filesets in the current project that match the specified search pattern.
+# @return a list of filesets in the current project that match the specified search pattern.
 #
 proc GetFileSet {fileset} {
   set a  [get_filesets $fileset]
@@ -273,8 +273,8 @@ proc GetFileSet {fileset} {
 
 ## @brief Add a new file to a fileset
 #
-# @para[in] file    name of the files to add. NOTE: directories are not supported.
-# @para[in] fileset fileset name
+# @param[in] file    name of the files to add. NOTE: directories are not supported.
+# @param[in] fileset fileset name
 #
 proc AddFile {file fileset} {
   add_files -norecurse -fileset $fileset $file
@@ -288,9 +288,29 @@ proc GetRepoPath {} {
   return "[file normalize [file dirname [info script]]]/../../"
 }
 
+## @brief Compare tu semantic versions
+#
+# @parameter[in] ver1 a list of 3 numbers M m p
+# @parameter[in] ver2 a list of 3 numbers M m p
+#
+# @return Return 1 ver1 is greather than ver2, 0 if they are equal, and -1 if ver2 is greater than ver1
+#
+proc CompareVersion {ver1 ver2} {
+  set ver1 [expr [lindex $ver1 0]*100000 + [lindex $ver1 1]*1000 + [lindex $ver1 2]]
+  set ver2 [expr [lindex $ver2 0]*100000 + [lindex $ver2 1]*1000 + [lindex $ver2 2]]
+  if {$ver1 > $ver2 } {
+    set ret 1
+  } elseif {$ver1 == $ver2} {
+    set ret 0
+  } else {
+    set ret -1
+  }
+  return [expr $ret]
+}
+
 ## @brief Check git version installed in this machine
 #
-# @parameter[in] target_version the version required by the current project
+# @param[in] target_version the version required by the current project
 #
 # @return Return 1 if the system Git version is greater or equal to the target
 #
@@ -306,7 +326,7 @@ proc GitVersion {target_version} {
 
 ## @brief Checks doxygen version installed in this machine
 #
-# @parameter[in] target_version the version required by the current project
+# @param[in] target_version the version required by the current project
 #
 # @return Return 1 if the system Doxygen version is greater or equal to the target
 #
@@ -381,7 +401,7 @@ proc FindVhdlVersion {file_name} {
       set vhdl_version ""
     }
   }
-
+  
   return $vhdl_version
 }
 
@@ -389,28 +409,33 @@ proc FindVhdlVersion {file_name} {
 #
 # Additional information is provided with text separated from the file name with one or more spaces
 #
-# @param[in] lsit_file file containing vhdl list with optional properties
+# @param[in] list_file file containing vhdl list with optional properties
 # @param[in] path      path the vhdl file are referred to in the list file
-# @param[in] lib       name of the library files will be added to
-# @param[in] src       name of VivadoFileSet files will be added to
-# @param[in] no_add    if a value is specified, the files will added to memory only, not to the project
+# @param[in] lib       name of the library files will be added to, if not given will be extracted from the file name
+# @param[in] sha_mode  if not set to 0, the list files will be added as well and the IPs will be added to the file rather than to the special ip library. The sha mode should be used when you use the lists to calculate the git SHA, rather than to add the files to the project.
 #
-# @return              A list of the files added to the project
+# @return              a list of 2 dictionaries: "libraries" has library name as keys and a list of filenames as values, "properties" has as file names as keys and a list of properties as values
 #
-proc ReadListFile {list_file path lib} {
+proc ReadListFile {list_file path {lib ""} {sha_mode 0} } {
+  # if no library is given, work it out from the file name
+  if {$lib eq ""} {
+    set lib [file rootname [file tail $list_file]]
+  }
+  set ext [file extension $list_file]
+
   set list_file
   set fp [open $list_file r]
   set file_data [read $fp]
   close $fp
-  set list_file_ext [file ext $list_file]
-
+  
   set libraries [dict create]
   set properties [dict create]
   #  Process data file
   set data [split $file_data "\n"]
   set n [llength $data]
-  Msg Info "$n lines read from $list_file"
+  Msg Info "$n lines read from $list_file."
   set cnt 0
+  
   foreach line $data {
     # Exclude empty lines and comments
     if {![regexp {^ *$} $line] & ![regexp {^ *\#} $line] } {
@@ -418,68 +443,49 @@ proc ReadListFile {list_file path lib} {
       set vhdlfile [lindex $file_and_prop 0]
       set vhdlfile "$path/$vhdlfile"
       if {[file exists $vhdlfile]} {
-        set vhdlfile [file normalize $vhdlfile]
-        set extension [file ext $vhdlfile]
-        if { [lsearch {.src .sim .con .sub} $extension] >= 0 } {
-          Msg Info "List file $vhdlfile found in list file, recoursively opening it..."
-          lassign [SmartListFile $vhdlfile $path] l p
-          set libraries [dict merge $l $libraries]
-          set properties [dict merge $p $properties]
-        } else {
-          ### Set file properties
-          set prop [lrange $file_and_prop 1 end]
-          dict lappend properties $vhdlfile $prop
-          ### Set File Set
-          #Adding IP library
-          if {[string equal $extension ".xci"] || [string equal $extension ".ip"] || [string equal $extension ".bd"]} {
-            dict lappend libraries "$lib.ip" $vhdlfile
-            Msg Info "Appending $vhdlfile to IP list"
-            # lappend ip_files $vhdlfile
-          } else {
-            dict lappend libraries $lib$list_file_ext $vhdlfile
-            # lappend lib_files $vhdlfile
-            # lappend prop_list $prop
-          }
+ 	set vhdlfile [file normalize $vhdlfile]
+ 	set extension [file ext $vhdlfile]
+	
+	if {[lsearch {.src .sim .con .sub} $extension] >= 0 } {
+	  Msg Info "List file $vhdlfile found in list file, recoursively opening it..."
+    ### Set list file properties
+    set prop [lrange $file_and_prop 1 end]
+    set library [lindex [regexp -inline {lib\s*=\s*(.+?)\y.*} $prop] 1]
+    if { $library != "" } {
+      Msg Info "Setting $library as library for list file $vhdlfile..."
+    } else {
+      Msg Info "Setting $lib as library for list file $vhdlfile..."
+      set library $lib
+    }
+	  lassign [ReadListFile $vhdlfile $path $library $sha_mode] l p
 
-        }
-        incr cnt
+	  set libraries [dict merge $l $libraries]
+	  set properties [dict merge $p $properties]
+	} else {
+	  ### Set file properties
+	  set prop [lrange $file_and_prop 1 end]
+	  dict lappend properties $vhdlfile $prop
+	  ### Set File Set
+	  #Adding IP library
+	  if {$sha_mode == 0 && [lsearch {.xci .ip .bd} $extension] >= 0} {
+	    dict lappend libraries "$lib.ip" $vhdlfile
+	    Msg Info "Appending $vhdlfile to IP list..."
+	  } else {
+	    dict lappend libraries $lib$ext $vhdlfile
+	  }
+ 	  
+	}
+ 	incr cnt
       } else {
-        Msg Error  "File $vhdlfile not found"
+        Msg Error  "File $vhdlfile not found."
       }
     }
   }
-  return [list $libraries $properties]
-}
-
-## @brief Read a list file and adds the files to Vivado/Quartus, adding the additional information as file type.
-#
-# This procedure extracts the Vivado fileset and the library name from the list-file name.
-# Additional information is provided with text separated from the file name with one or more spaces
-#
-# list_file should be formatted as follows:
-# LIB_NAME.FILE_SET
-#
-# LIB_NAME : the Vivado library you want to include the file to
-# FILE_SET : the Vivado file set you want to include the file to:
-# * .src : for source files (corresponding to sources_1)
-# * .sub : for source files in a git submodule (corresponding to sources_1)
-# * .sim : for simulation files (corresponding to sim_1)
-# * .con : for constraint files (corresponding to constrs_1)
-# any other file extension will cause an error
-#
-# @param[in] lsit_file file containing vhdl list with optional properties
-# @param[in] path      the path the vhdl file are referred to in the list file
-#
-proc SmartListFile {list_file path} {
-  set ext [file extension $list_file]
-  set lib [file rootname [file tail $list_file]]
-  if { $ext == ".prop" } {
-    return
-  } elseif {[lsearch {.src .sim .con .sub .ext} $ext] < 0} {
-    Msg CriticalWarning "Unknown extension $ext"
+  
+  if {$sha_mode != 0} {
+    dict lappend libraries $lib$ext $list_file
   }
-  Msg Info "Reading sources from file $list_file, lib: $lib"
-  return [ReadListFile $list_file $path $lib]
+  return [list $libraries $properties]
 }
 
 ## @brief Get git SHA of a vivado library
@@ -541,65 +547,58 @@ proc GetFileList {FILE path} {
 #
 # If the special string "ALL" is used, returns the global hash
 #
-# @param[in] FILE list file or path containing the subset of files whose latest commit hash will be returned
-# @param[in] path the path the vhdl files are referred to in the list file (not used if FILE is a path or "ALL")
+# @param[in] path the file/path or list of files/path the git SHA should be evaluated from 
 #
 # @return         the value of the desired SHA
 #
-proc GetHash {FILE path} {
-  if {$FILE eq "ALL"} {
-    set ret [exec git log --format=%h -1]
-  } elseif {[file isfile $FILE]} {
-    set lista [GetFileList $FILE $path]
-    set ret [exec git log --format=%h -1 -- {*}$lista ]
-
-  } elseif {[file isdirectory $FILE]} {
-
-    set ret [exec git log --format=%h -1 $FILE ]
-
-  } else {
-    puts "ERROR: $FILE not found"
-    set ret 0
-  }
-  return $ret
-
+proc GetSHA {path} {
+  set ret [exec git log --format=%h -1 -- {*}$path ]
+  return [string toupper $ret]
 }
 
 ## @brief Get git version and commit hash of a subset of files
 #
-# If the special string "ALL" is used, returns the global hash of the path specified in path
+# @param[in] path list file or path containing the subset of files whose latest commit hash will be returned
 #
-# @param[in] FILE list file or path containing the subset of files whose latest commit hash will be returned
-# @param[in] path the path the vhdl file are referred to in the list file (not used if FILE is a path or "ALL")
+# @return  a list: the git SHA, the version in hex format
 #
-# @return         the desired version
-#
-proc GetVer {FILE path} {
-  set SHA [GetHash $FILE $path]
-  set path [file normalize $path]
+proc GetVer {path} {
+  set SHA [GetSHA $path]
   #oldest tag containing SHA
+  set comm [format %07X 0x$SHA]
+  return [list [GetVerFromSHA $SHA] $comm]
+}
+
+## @brief Get git version and commit hash of a specific commit give the SHA
+#
+# @param[in] SHA the git SHA of the commit 
+#
+# @return  a list: the git SHA, the version in hex format
+#
+proc GetVerFromSHA {SHA} {
   set status [catch {exec git tag --sort=creatordate --contain $SHA -l "v*.*.*" -l "b*v*.*.*"} result]
   if {$status == 0} {
     if {[regexp {^ *$} $result]} {
-      #newest tag of the repo (not containing SHA)  
+      #The tag in $result does not contains the current SHA
+      #In this case we want the newest tag of the repo  
       if [catch {exec git tag --sort=-creatordate -l "v*.*.*" -l "b*v*.*.*"} last_tag] {
         Msg CriticalWarning "No Hog version tags found in this repository ($path)."
         set ver v0.0.0
       } else {
+	#The tag is found we want to incremement it only if it's official
         set tags [split $last_tag "\n"]
         set tag [lindex $tags 0]
         lassign [ExtractVersionFromTag $tag] M m p mr
         if {$mr == -1} {
           incr p
-          Msg Info "No tag contains $SHA for $FILE ($path), will use most recent tag $tag. As this is an official tag, patch will be incremented to $p."
+          Msg Info "No tag contains $SHA, will use most recent tag $tag. As this is an official tag, patch will be incremented to $p."
         } else {
-          Msg Info "No tag contains $SHA for $FILE ($path), will use most recent tag $tag. As this is a candidate tag, the patch level will be kept at $p."
+          Msg Info "No tag contains $SHA, will use most recent tag $tag. As this is a candidate tag, the patch level will be kept at $p."
         }
         set ver v$M.$m.$p
-
       }
-
     } else {
+      #The tag in $result contains the current SHA
       set vers [split $result "\n"]
       set ver [lindex $vers 0]
       foreach v $vers {
@@ -611,7 +610,7 @@ proc GetVer {FILE path} {
       }
     }
   } else {
-    Msg CriticalWarning "Error while trying to find tag for $SHA in file: $FILE, path: [pwd]"
+    Msg CriticalWarning "Error while trying to find tag for $SHA"
     set ver "error: $result"
   }
 
@@ -621,23 +620,235 @@ proc GetVer {FILE path} {
     set M [format %02X $M]
     set m [format %02X $m]
     set c [format %04X $c]
-    set comm $SHA
+
   } elseif { $M > -1 } { # official tag
     set M [format %02X $M]
     set m [format %02X $m]
     set c [format %04X $c]
-    set comm $SHA
+
   } else {
-    Msg Warning "Tag does not contain a properly formatted version: $ver in repository containing $FILE"
+    Msg Warning "Tag does not contain a properly formatted version: $ver"
     set M [format %02X 0]
     set m [format %02X 0]
     set c [format %04X 0]
-    set comm $SHA
   }
-  set comm [format %07X 0x$comm]
-  return [list $M$m$c $comm]
-  cd $old_path
+
+  return $M$m$c
 }
+
+proc GetProjectVersion {tcl_file} {
+  if { ![file exists $tcl_file] } {
+    Msg CriticalWarning "$tcl_file not found"
+    return -1
+  }
+
+  #The latest version the repository
+  set v_last [ExtractVersionFromTag [exec git describe --abbrev=0 --match "v*"]]
+  lassign [GetRepoVersions $tcl_file] sha ver
+  if {$sha == 0} {
+    Msg Warning "Repository is not clean"
+    return -1
+  }
+  
+  #The project version
+  set v_proj [ExtractVersionFromTag v[HexVersionToString $ver]]
+  set comp [CompareVersion $v_proj $v_last]
+  if {$comp == 1} {
+    Msg Info "The specified project was modified since official version."
+    set ret 0
+  } else {
+    set ret v[HexVersionToString $ver]
+  }
+
+  if {$comp == 0} {
+    Msg Info "The specified project was modified in the latest official version $ret"
+  } elseif {$comp == -1} {
+    Msg Info "The specified project was modified in a past official version $ret"
+  }
+  
+  return $ret
+}
+
+
+## Get git describe of a specific SHA
+#
+#  @param[in] sha     the git sha of the commit you want to calculate the describe of
+#
+#  @return            the git describe of the sha or the current one if the sha is 0
+#
+proc GetGitDescribe {sha} {
+  if {$sha == 0 } {
+    set describe [exec git describe --always --dirty --tags --long]
+  } else {
+    set describe [exec git describe --always --tags --long $sha --]
+  }
+}
+
+## Get repository version
+#
+#  @param[in] repo_path The repository path of which all the version must be calculated
+#
+#  @return            a list conatining all the versions: global, top (project tcl file), constraints, libraries, submodules, exteral, ipbus xml
+#
+proc GetRepoVersions {proj_tcl_file} {
+  set old_path [pwd]
+  set proj_tcl_file [file normalize $proj_tcl_file]
+  set proj_dir [file dir $proj_tcl_file]
+
+# This will be the list of all the SHAs of this project, the most recent will be picked up as GLOBAL SHA
+  set SHAs ""
+
+# Hog submodule
+  cd $proj_dir
+#Append the SHA in which Hog submodule was changed, not the submodule SHA
+  lappend SHAs [exec git log --format=%h -1 -- ../../Hog]
+  cd "../../Hog"
+  if { [exec git status --untracked-files=no  --porcelain] eq "" } {
+    Msg Info "Hog submodule [pwd] clean."
+    lassign [GetVer ./] hog_ver hog_hash
+  } else {
+    Msg CriticalWarning "Hog submodule [pwd] not clean, commit hash will be set to 0."
+    set hog_hash "0000000"
+    set hog_ver "00000000"
+  }
+
+  cd $proj_dir
+
+  if { [exec git status --untracked-files=no  --porcelain] eq "" } {
+    Msg Info "Git working directory [pwd] clean."
+    set clean 1
+  } else {
+    Msg CriticalWarning "Git working directory [pwd] not clean, commit hash, and version will be set to 0."
+    set clean 0
+  }
+
+# Top project directory
+  lassign [GetVer $proj_tcl_file] top_ver top_hash
+  lappend SHAs $top_hash
+
+# Read list files
+  set libs ""
+  set vers ""
+  set hashes ""
+  # Specyfiy sha_mode 1 for GetHogFiles to get all the files, includeng the list-files themselves
+  lassign [GetHogFiles "./list/" "*.src" 1] src_files dummy
+  dict for {f files} $src_files {
+    #library names have a .src extension in values returned by GetHogFiles
+    set name [file rootname [file tail $f]]
+    lassign [GetVer  $files] ver hash
+    Msg Info "Found source list file $f, version: $ver commit SHA: $hash"
+    lappend libs $name
+    lappend vers $ver
+    lappend hashes $hash
+    lappend SHAs $hash
+  }
+
+# Read constraint list files
+
+  set cons_hashes ""
+  # Specyfiy sha_mode 1 for GetHogFiles to get all the files, includeng the list-files themselves
+  lassign [GetHogFiles "./list/" "*.con" 1] cons_files dummy
+  dict for {f files} $cons_files {
+    #library names have a .con extension in values returned by GetHogFiles
+    set name [file rootname [file tail $f]]
+    lassign [GetVer  $files] ver hash
+    Msg Info "Found constraint list file $f, version: $ver commit SHA: $hash"
+    lappend cons_hashes $hash
+    lappend SHAs $hash
+  }
+
+#Of all the constraints we get the most recent
+  set cons_hash [string toupper [exec git log --format=%h -1 {*}$cons_hashes]]
+  set cons_ver [GetVerFromSHA $cons_hash]
+    Msg Info "Among all the constraint list files, if more than one, the most recent version was chosen: $cons_ver commit SHA: $cons_hash"
+
+# Read external library files
+  set ext_hashes ""
+  set ext_files [glob -nocomplain "./list/*.ext"]
+  set ext_names ""
+
+  foreach f $ext_files {
+    set name [file rootname [file tail $f]]
+    set hash [exec git log --format=%h -1 $f ]
+    Msg Info "Found source file $f, commit SHA: $hash"
+    lappend ext_names $name
+    lappend ext_hashes $hash
+    lappend SHAs $hash
+
+    set fp [open $f r]
+    set file_data [read $fp]
+    close $fp
+    set data [split $file_data "\n"]
+    Msg Info "Checking checksums of external library files in $f"
+    foreach line $data {
+      if {![regexp {^ *$} $line] & ![regexp {^ *\#} $line] } { #Exclude empty lines and comments
+        set file_and_prop [regexp -all -inline {\S+} $line]
+        set hdlfile [lindex $file_and_prop 0]
+        set hdlfile "$env(HOG_EXTERNAL_PATH)/$hdlfile"
+        if { [file exists $hdlfile] } {
+          set hash [lindex $file_and_prop 1]
+          set current_hash [Md5Sum $hdlfile]
+          if {[string first $hash $current_hash] == -1} {
+            Msg CriticalWarning "File $hdlfile has a wrong hash. Current checksum: $current_hash, expected: $hash"
+          }
+        }
+      }
+    }
+  }
+
+# Ipbus XML
+  if [file exists ./list/xml.lst] {
+    Msg Info "Found IPbus XML list file, evaluating version and SHA of listed files..."
+    lassign [GetHogFiles "./list/" "xml.lst" 1] xml_files dummy
+    lassign [GetVer  [dict get $xml_files "xml.lst"] ] xml_ver xml_hash
+    lappend SHAs $xml_hash
+    Msg Info "Found IPbus XML SHA: $xml_hash and version: $xml_ver."
+
+  } else {
+    Msg Info "This project does not use IPbus XMLs"
+    set xml_ver  00000000
+    set xml_hash 0000000
+  }
+
+# Submodules
+  set subs ""
+  set subs_hashes ""
+  set subs_files [glob -nocomplain "./list/*.sub"]
+  foreach f $subs_files {
+    set sub_dir [file rootname [file tail $f]]
+    if [file exists ../../$sub_dir] {
+      lappend subs $sub_dir
+    #Append the SHA in which the submodule was changed, not the submodule SHA
+      lappend SHAs [exec git log --format=%h -1 -- ../../$sub_dir]
+      cd "../../$sub_dir"
+      if { [exec git status --untracked-files=no --porcelain] eq "" } {
+        Msg Info "$sub_dir submodule clean."
+        lappend subs_hashes [GetSHA ./]
+      } else {
+        Msg CriticalWarning "$sub_dir submodule not clean, commit hash will be set to 0."
+        lappend subs_hashes "0000000"
+      }
+      cd $proj_dir
+    } else {
+      Msg CriticalWarning "$sub_dir submodule not found"
+    }
+  }
+
+#The global SHA and ver is the most recent among everything
+  if {$clean == 1} {
+    set commit [exec git log --format=%h -1 {*}$SHAs]
+    set version [GetVerFromSHA $commit]
+  } else {
+    set commit  "0000000"
+    set version "00000000"
+  }
+
+  cd $old_path
+
+  return [list $commit $version  $hog_hash $hog_ver  $top_hash $top_ver  $libs $hashes $vers  $subs $subs_hashes  $cons_ver $cons_hash  $ext_names $ext_hashes  $xml_hash $xml_ver] 
+}
+
+
 
 ## Convert hex version to M.m.p string
 #
@@ -771,7 +982,7 @@ proc TagRepository {{merge_request_number 0} {version_level 0} {default_level 0}
 #
 # Additional information is provided with text separated from the file name with one or more spaces
 #
-# @param[in] lsit_file   file containing list of XML files with optional properties
+# @param[in] list_file   file containing list of XML files with optional properties
 # @param[in] path        the path the XML files are referred to in the list file
 # @param[in] dst         the path the XML files must be copied to
 # @param[in] xml_version the M.m.p version to be used to replace the __VERSION__ placeholder in any of the xml files
@@ -854,12 +1065,12 @@ proc CopyXMLsFromListFile {list_file path dst {xml_version "0.0.0"} {xml_sha "00
           set generated_vhdl ./ipbus_decode_[file root [file tail $x]].vhd
           if {$generate == 1} {
       #copy (replace) file here
-            Msg Info "Copying $generated_vhdl into $v (replacing if necessary)"
+            Msg Info "Copying generated VHDL file $generated_vhdl into $v (replacing if necessary)"
             file copy -force -- $generated_vhdl $v
           } else {
             if {[file exists $v]} {
           #check file here
-              Msg Info "Checking $x vs $v, ignoring leadng/trailing spaces and comments"
+              Msg Info "Checking $x vs $v, ignoring leading/trailing spaces and comments..."
               set diff [CompareVHDL $generated_vhdl $v]
               if {[llength $diff] > 0} {
                 Msg CriticalWarning "$v does not correspond to its xml $x, [expr $n/3] line/s differ:"
@@ -886,9 +1097,14 @@ proc CopyXMLsFromListFile {list_file path dst {xml_version "0.0.0"} {xml_sha "00
   }
 
 }
-########################################################
 
-
+## @brief Compare two VHDL files ignoring spces and comments
+#
+# @param[in] file1  the first file
+# @param[in] file2  the second file
+#
+# @ return A string with the diff of the files
+#
 proc CompareVHDL {file1 file2} {
   set a  [open $file1 r]
   set b  [open $file2 r]
@@ -1019,21 +1235,22 @@ proc GetProjectFiles {} {
 ## @brief Extract files, libraries and properties from the project's list files
 #
 # @param[in] list_path path to the list file directory
-# @param[in] repo_path the path of the repository root.
+# @param[in] list_files the file wildcard, if not spcified all Hog list files will be looked for
+# @param[in] sha_mode forwarded to ReadListFile, see there for info
 #
 # @return a list of 2 dictionaries: libraries and properties
 # - libraries has library name as keys and a list of filenames as values
 # - properties has as file names as keys and a list of properties as values
 #
-proc GetHogFiles {list_path repo_path} {
+proc GetHogFiles {list_path {list_files {.src,.con,.sub,.sim}} {sha_mode 0}} {
+  set repo_path [file normalize list_path/../../..]
+
   set libraries [dict create]
   set properties [dict create]
-
-  puts $list_path
-  set list_files [glob -directory $list_path "*"]
+  set list_files [glob -nocomplain -directory $list_path "*{$list_files}"]
 
   foreach f $list_files {
-    lassign [SmartListFile $f $repo_path] l p
+    lassign [ReadListFile $f $repo_path "" $sha_mode] l p
     set libraries [dict merge $l $libraries]
     set properties [dict merge $p $properties]
   }
@@ -1049,12 +1266,12 @@ proc GetHogFiles {list_path repo_path} {
 proc AddHogFiles { libraries properties } {
   Msg Info "Adding source files to project..."
   foreach lib [dict keys $libraries] {
-    # Msg Info "lib: $lib \n"
+    #Msg Info "lib: $lib \n"
     set lib_files [dict get $libraries $lib]
-    # Msg Info "Files in $lib: $lib_files \n"
+    #Msg Info "Files in $lib: $lib_files \n"
     set rootlib [file rootname [file tail $lib]]
     set ext [file extension $lib]
-    # Msg Info "lib: $lib ext: $ext \n"
+    #Msg Info "lib: $lib ext: $ext \n"
     switch $ext {
       .sim {
         set file_set "$rootlib\_sim"
@@ -1199,10 +1416,9 @@ proc ForceUpToDate {} {
 ## @brief Copy IP generated files from/to an EOS repository
 #
 # @param[in] what_to_do: can be "push", if you want to copy the local IP synth result to EOS or "pull" if you want to copy the files from EOS to your local repository
-# @param[in] xci_file: the local IP xci file
+# @param[in] runs_dir: the runs directory of the project. Typically called VivadoProject/<project name>/<project name>.runs
 # @param[in] ip_path: the path of directory you want the IP to be saved on eos
-# @param[in] force: if 1 pushes IP even if already on EOS
-
+#
 proc HandleIP {what_to_do xci_file ip_path runs_dir {force 0}} {
   if {!($what_to_do eq "push") && !($what_to_do eq "pull")} {
     Msg Error "You must specify push or pull as first argument."
@@ -1441,10 +1657,10 @@ proc ParseJSON {JSON_FILE JSON_KEY} {
 
 ## @brief Handle eos commands
 #
-# It can be used with lassign like this: lassign [eos <eos command> ] ret result
+# It can be used with lassign like this: lassign [eos \<eos command\> ] ret result
 #
 #  @param[in] command: the EOS command to be run, e.g. ls, cp, mv, rm
-#  @param[in] attempts: (default 0) how many times the command should be attempted in case of failure
+#  @param[in] attempt: (default 0) how many times the command should be attempted in case of failure
 #
 #  @returns a list of 2 elements: the return value (0 if no error occurred) and the output of the EOS command
 proc eos {command {attempt 1}}  {
@@ -1496,8 +1712,6 @@ proc ParseProcFile {proj_name} {
 }
 
 
-########################################################
-
 ## @brief Gets MAX number of Threads property from .prop file in Top/$proj_name/list directory.
 #
 # If property is not set returns default = 1
@@ -1512,7 +1726,7 @@ proc GetMaxThreads {proj_name} {
   if {[dict exists $propDict maxThreads]} {
     set maxThreads [dict get $propDict maxThreads]
   }
-
+  
   return $maxThreads
 }
 

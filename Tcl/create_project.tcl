@@ -156,7 +156,6 @@ proc CreateProject {} {
   }
 
     ## Set synthesis TOP
-  Msg Info "Setting module called $globalSettings::synth_top_module as top module for this project, make sure this module exists in one of the libraries."
   SetTopProperty $globalSettings::synth_top_module $sources
 
     ###############
@@ -178,8 +177,7 @@ proc CreateProject {} {
     ##############
   set list_files [glob -directory $globalSettings::list_path "*"]
 
-  lassign [GetHogFiles $globalSettings::list_path $globalSettings::repo_path] libraries properties
-  AddHogFiles $libraries $properties
+  AddHogFiles {*}[GetHogFiles $globalSettings::list_path]
 }
 
 

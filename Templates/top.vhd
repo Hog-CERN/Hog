@@ -33,8 +33,10 @@ entity top_myproj is
     GLOBAL_SHA  : std_logic_vector(31 downto 0);
     TOP_VER     : std_logic_vector(31 downto 0);
     TOP_SHA     : std_logic_vector(31 downto 0);
+    CON_VER     : std_logic_vector(31 downto 0);
+    CON_SHA     : std_logic_vector(31 downto 0);
     HOG_VER     : std_logic_vector(31 downto 0);
-    HOG_SHA     : std_logic_vector(31 downto 0);
+    HOG_SHA     : std_logic_vector(31 downto 0);    
 
     --IPBus XML
     XML_SHA : std_logic_vector(31 downto 0);

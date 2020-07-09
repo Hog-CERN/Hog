@@ -1,7 +1,13 @@
 #!/bin/bash
 
-COPY_PATH="/eos/user/h/hog/www/test-doxy"
-DOXY_OUTPUT_DIR="./DOXY_DOCS/html/."
+if [ "a$1" == "a" ]
+then
+  echo "usage $0 COPY_PATH"
+  return 1
+fi
+
+COPY_PATH=$1
+DOXY_OUTPUT_DIR="../DOXY_DOCS/html/."
 
 # Exit if anything fails
 set -e
@@ -22,13 +28,15 @@ then
 fi
 
 # Validate input
+: "${COPY_PATH:?COPY_PATH not provided}"
 : "${EOS_ACCOUNT_USERNAME:?EOS_ACCOUNT_USERNAME not provided}"
 : "${EOS_ACCOUNT_PASSWORD:?EOS_ACCOUNT_PASSWORD not provided}"
 
 #build documentation
 LAST_TAG=$( git describe --tags )
-sed -i "s/<HOG_GIT_DESCRIBE>/\"$LAST_TAG\"/g" Hog-doxygen.cfg
-doxygen Hog-doxygen.cfg  2>&1 >/dev/null
+sed -i "s/<HOG_GIT_DESCRIBE>/\"$LAST_TAG\"/g" ./doxygen/Hog-doxygen.cfg
+doxygen ./doxygen/Hog-doxygen.cfg  2>&1 >/dev/null
+cp -r doxygen/mdFiles/figures $DOXY_OUTPUT_DIR
 
 # Check the source directory exists
 if [ ! -d "$DOXY_OUTPUT_DIR" ]

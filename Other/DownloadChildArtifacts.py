@@ -53,16 +53,16 @@ def download_file(dl_url, headers, job_id):
                          '\n')
         exit(1)
 
-    path_to_zip = os.path.join('jobs', f'{job_id}.zip')
-    with open(path_to_zip, 'wb') as f:
-        f.write(downloaded.content)
-    try:
-        with ZipFile(path_to_zip, 'r') as zip_ref:
-            zip_ref.extractall('jobs')
-        os.remove(path_to_zip)
-    except BadZipFile:
-        sys.stderr.write('Cannot find file at:' + str(path_to_zip) + '\n')
-        sys.stderr.flush()
+    # path_to_zip = os.path.join('jobs', f'{job_id}.zip')
+    # with open(path_to_zip, 'wb') as f:
+    #     f.write(downloaded.content)
+    # try:
+    #     with ZipFile(path_to_zip, 'r') as zip_ref:
+    #         zip_ref.extractall('jobs')
+    #     os.remove(path_to_zip)
+    # except BadZipFile:
+    #     sys.stderr.write('Cannot find file at:' + str(path_to_zip) + '\n')
+    #     sys.stderr.flush()
 
 
 def main():
@@ -99,6 +99,8 @@ def main():
                 return
 
             dl_url = f'{v4_origin}/projects/{project_id}/jobs/{job["id"]}/artifacts/'
+            print(job)
+            print(job["id"])
             download_file(dl_url, headers, job_id=job["id"])
 
         page += 1

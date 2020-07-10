@@ -81,6 +81,7 @@ collect_artifacts:
   stage: collect
   script:
     - python3 Hog/Other/DownloadChildArtifacts.py
+    - ls -lrt
   coverage: '/Statements\s+:\s(\d+.?\d+)%/'
   rules:
     - if: $CI_MERGE_REQUEST_ID

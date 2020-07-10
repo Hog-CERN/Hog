@@ -80,19 +80,14 @@ collect_artifacts:
   image: gitlab-registry.cern.ch/hog/hog-docker:ubuntu
   stage: collect
   script:
-    # - mkdir bin
     - python3 Hog/Other/DownloadChildArtifacts.py
-    - ls -lrt
   coverage: '/Statements\s+:\s(\d+.?\d+)%/'
   rules:
     - if: $CI_MERGE_REQUEST_ID
   artifacts:
     paths:
     - bin/
-    expire_in: 1 day
-    reports:
-      junit:
-       - ./**/*test-result.xml
+    expire_in: 30 days
 
 
 tag_official_version:

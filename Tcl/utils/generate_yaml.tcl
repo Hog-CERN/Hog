@@ -31,7 +31,7 @@ puts $fp "\n"
 foreach dir [glob -type d $repo_path/Top/* ] {
     set proj [ file tail $dir ]
     set ver [ GetProjectVersion $dir/$proj.tcl ]
-    if {$ver != 0} {
+    if {$ver == 0} {
         if { [ file exists "$dir/ci.conf" ] == 1} {
             set cifile [open $dir/ci.conf ]
             set input [read $cifile]

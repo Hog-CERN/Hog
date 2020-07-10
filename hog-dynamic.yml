@@ -80,7 +80,7 @@ collect_artifacts:
   image: gitlab-registry.cern.ch/hog/hog-docker:ubuntu
   stage: collect
   script:
-    - mkdir bin
+    # - mkdir bin
     - python3 Hog/Other/DownloadChildArtifacts.py
     - ls -lrt
   coverage: '/Statements\s+:\s(\d+.?\d+)%/'

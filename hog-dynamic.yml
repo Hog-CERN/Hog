@@ -81,13 +81,12 @@ collect_artifacts:
   stage: collect
   script:
     - python3 Hog/Other/DownloadChildArtifacts.py
-    - cat jobs/empty.txt
   coverage: '/Statements\s+:\s(\d+.?\d+)%/'
   rules:
     - if: $CI_MERGE_REQUEST_ID
   artifacts:
     paths:
-    - jobs/
+    - bin/
     expire_in: 1 day
     reports:
       junit:

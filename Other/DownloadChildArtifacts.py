@@ -99,9 +99,8 @@ def main():
                 return
 
             dl_url = f'{v4_origin}/projects/{project_id}/jobs/{job["id"]}/artifacts/'
-            print(job)
-            print(job["id"])
-            download_file(dl_url, headers, job_id=job["id"])
+            if job["name"] == "collect_artifacts":
+                download_file(dl_url, headers, job_id=job["id"])
 
         page += 1
         page_url = f'{v4_origin}/projects/{project_id}/jobs/?page={page}'

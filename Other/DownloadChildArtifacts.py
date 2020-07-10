@@ -69,7 +69,7 @@ def main():
     """
     download artifacts and place them in the jobs directory
     """
-    v4_origin = 'https://gitlab.com/api/v4'
+    v4_origin = 'https://gitlab.cern.ch/api/v4'
     project_id = env("CI_PROJECT_ID")
     commit_sha = env("CI_COMMIT_SHA")
     headers = {'PRIVATE-TOKEN': env('HOG_PUSH_TOKEN')}

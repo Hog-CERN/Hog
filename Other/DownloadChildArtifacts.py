@@ -53,7 +53,8 @@ def download_file(dl_url, headers, job_id):
                          '\n')
         exit(1)
 
-    path_to_zip = os.path.join('bin', f'{job_id}.zip')
+    # path_to_zip = os.path.join('bin', f'{job_id}.zip')
+    path_to_zip = f'{job_id}.zip'
     with open(path_to_zip, 'wb') as f:
         f.write(downloaded.content)
     try:

@@ -60,9 +60,9 @@ def download_file(dl_url, headers, job_id):
         with ZipFile(path_to_zip, 'r') as zip_ref:
             zip_ref.extractall('bin')
         os.remove(path_to_zip)
-    # except BadZipFile:
-    #     sys.stderr.write('Cannot find file at:' + str(path_to_zip) + '\n')
-    #     sys.stderr.flush()
+    except BadZipFile:
+        sys.stderr.write('Cannot find file at:' + str(path_to_zip) + '\n')
+        sys.stderr.flush()
 
 
 def main():

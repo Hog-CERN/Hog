@@ -582,12 +582,10 @@ proc GetVer {FILE path} {
   if {$status == 0} {
     if {[regexp {^ *$} $result]} {
       #newest tag of the repo, parent of the SHA  
-      if [catch {exec git describe --tags --abbrev=0 --match="v*.*.*" --match="b*v*.*.*"} last_tag] {
+      if [catch {exec git describe --tags --abbrev=0 --match="v*.*.*" --match="b*v*.*.*"} tag] {
         Msg CriticalWarning "No Hog version tags found in this repository ($path)."
         set ver v0.0.0
       } else {
-        set tags [split $last_tag "\n"]
-        set tag [lindex $tags 0]
         lassign [ExtractVersionFromTag $tag] M m p mr
 	if {$M == -1} {
 	  Msg CriticalWarning "Tag $tag does not contain a Hog compatible version, in repository $path."
@@ -683,11 +681,9 @@ proc ExtractVersionFromTag {tag} {
 # @param[in] default_level:        If version level is 3 or more, will specify what level to increase when creating the official tag: 0 will increase patch (default), 1 will increase minor and 2 will increase major.
 #
 proc TagRepository {{merge_request_number 0} {version_level 0} {default_level 0}} {
-  if [catch {exec git tag --sort=-creatordate -l "v*.*.*" -l "b*v*.*.*"} last_tag] {
+  if [catch {exec git describe --tags --abbrev=0 --match="v*.*.*" --match="b*v*.*.*"} tag] {
     Msg Error "No Hog version tags found in this repository."
   } else {
-    set tags [split $last_tag "\n"]
-    set tag [lindex $tags 0]
     lassign [ExtractVersionFromTag $tag] M m p mr
 
     if { $M > -1 } { # M=-1 means that the tag could not be parsed following a Hog format
@@ -741,7 +737,7 @@ proc TagRepository {{merge_request_number 0} {version_level 0} {default_level 0}
         }
 
       } else { # Tag is not official
-    #Not official, do nothing unless version level is >=3, in which case convert the unofficial to official
+	#Not official, do nothing unless version level is >=3, in which case convert the unofficial to official
         Msg Info "Found candidate version for $M.$m.$p."
         if {$version_level >= 3} {
           Msg Info "New tag will be an official version v$M.$m.$p..."

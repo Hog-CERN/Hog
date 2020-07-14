@@ -357,10 +357,8 @@ proc ConfigureImplementation {} {
 
         ## set binfile production
     if {$globalSettings::BIN_FILE == 1} {
-      puts yes!!!!!!!!!!!!!!!!!!
       set_property "steps.write_bitstream.args.BIN_FILE" "1" $obj
     } else {
-      puts no!!!!!!!!!!!!!!!!!!
       set_property "steps.write_bitstream.args.BIN_FILE" "0" $obj
     }
   } elseif {[info commands project_new] != ""} {
@@ -530,7 +528,7 @@ if {[info exists ::SIMULATOR]} {
 }
 
 
-if {[info exist ::bin_file]} { 
+if {[info exist ::BIN_FILE]} { 
   set globalSettings::BIN_FILE $::BIN_FILE
 } else {
   set globalSettings::BIN_FILE 0

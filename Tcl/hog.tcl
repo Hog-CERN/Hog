@@ -582,7 +582,7 @@ proc GetVer {FILE path} {
   if {$status == 0} {
     if {[regexp {^ *$} $result]} {
       #newest tag of the repo, parent of the SHA  
-      if [catch {exec git describe --tags --abbrev=0 --match="v*.*.*" --match="b*v*.*.*"} tag] {
+      if [catch {exec git describe --tags --abbrev=0 --match=v*.*.* --match=b*v*.*.*} tag] {
         Msg CriticalWarning "No Hog version tags found in this repository ($path)."
         set ver v0.0.0
       } else {
@@ -681,7 +681,7 @@ proc ExtractVersionFromTag {tag} {
 # @param[in] default_level:        If version level is 3 or more, will specify what level to increase when creating the official tag: 0 will increase patch (default), 1 will increase minor and 2 will increase major.
 #
 proc TagRepository {{merge_request_number 0} {version_level 0} {default_level 0}} {
-  if [catch {exec git describe --tags --abbrev=0 --match="v*.*.*" --match="b*v*.*.*"} tag] {
+  if [catch {exec git describe --tags --abbrev=0 --match=v*.*.* --match=b*v*.*.*} tag] {
     Msg Error "No Hog version tags found in this repository."
   } else {
     lassign [ExtractVersionFromTag $tag] M m p mr

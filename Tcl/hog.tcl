@@ -581,15 +581,18 @@ proc GetVer {FILE path} {
   set status [catch {exec git tag --sort=creatordate --contain $SHA -l "v*.*.*" -l "b*v*.*.*"} result]
   if {$status == 0} {
     if {[regexp {^ *$} $result]} {
-      #newest tag of the repo (not containing SHA)  
-      if [catch {exec git tag --sort=-creatordate -l "v*.*.*" -l "b*v*.*.*"} last_tag] {
+      #newest tag of the repo, parent of the SHA  
+      if [catch {exec git describe --tags --abbrev=0 --match="v*.*.*" --match="b*v*.*.*"} last_tag] {
         Msg CriticalWarning "No Hog version tags found in this repository ($path)."
         set ver v0.0.0
       } else {
         set tags [split $last_tag "\n"]
         set tag [lindex $tags 0]
         lassign [ExtractVersionFromTag $tag] M m p mr
-        if {$mr == -1} {
+	if {$M == -1} {
+	  Msg CriticalWarning "Tag $tag does not contain a Hog compatible version, in repository $path."
+	  set ver v0.0.0
+	} elseif {$mr == -1} {
           incr p
           Msg Info "No tag contains $SHA for $FILE ($path), will use most recent tag $tag. As this is an official tag, patch will be incremented to $p."
         } else {

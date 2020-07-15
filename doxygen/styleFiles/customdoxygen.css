@@ -284,6 +284,13 @@ blockquote {
 
 #search-results-window {
   display: none;
+  border-color: #337ab7;
+}
+
+#search-results-window .panel-heading {
+  color: #337ab7;
+  background-color: #ebf2f9;
+  border-color: #337ab7;
 }
 
 iframe#MSearchResults {

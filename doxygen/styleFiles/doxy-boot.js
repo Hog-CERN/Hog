@@ -98,7 +98,7 @@ $( document ).ready(function() {
   /* responsive search box */
   $('#MSearchBox').parent().remove();
 
-  var nav_container = $('<div class="row"></div>');
+  var nav_container = $('<div id="nav_container" class="row"></div>');
   $('#navrow1').parent().prepend(nav_container);
   var left_space = $('<div id="left_space" class="col-md-3"></div>')
   var left_nav = $('<div id="left_nav" class="col-md-6"></div>');

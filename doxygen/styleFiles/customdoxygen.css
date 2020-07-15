@@ -422,3 +422,7 @@ span.SRScope {
   height: auto !important
 }
 
+#nav_container {
+  display: flex;
+  align-items: center;
+}

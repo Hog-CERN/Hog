@@ -433,3 +433,8 @@ span.SRScope {
   display: flex;
   align-items: center;
 }
+
+#nav-path{
+  margin:2%;
+  text-align:right;
+}

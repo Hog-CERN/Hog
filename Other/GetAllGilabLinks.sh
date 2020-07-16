@@ -55,10 +55,10 @@ else
     ref=refs/merge-requests%2F$mr%2Fhead
     echo $api/projects/${proj}/jobs/artifacts/$ref/raw/$file?job=$job
     curl --location --header "PRIVATE-TOKEN: ${push_token}" $api/projects/${proj}/jobs/artifacts/$ref/download?job=$job -o output.zip
-    #unzip output.zip
+    unzip output.zip
 
     # Project names:
-    echo "" > $DIR/project_versions.txt
+    #cho "" > $DIR/project_versions.txt
     echo "" > $DIR/project_links.txt
     PROJECTS=(`ls $DIR/Top`)
     for PROJECT in ${PROJECTS[@]}; do
@@ -80,8 +80,8 @@ else
             #zipping files
             PRJ_PATH=`dirname $PRJ_BIT`
             PRJ_DIR=`basename $PRJ_PATH`
-            cd $DIR/bin
-            zip -r $DIR/${strarray[0]}.zip $PRJ_DIR 
+            cd $DIR
+            zip -r $DIR/${strarray[0]}.zip bin/$PRJ_DIR 
             cd $OLDDIR
             #creating file link
             content=`curl --request POST --header "PRIVATE-TOKEN: ${push_token}" --form "file=@$DIR/${strarray[0]}.zip" ${api}/projects/${proj}/uploads`

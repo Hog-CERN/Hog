@@ -244,8 +244,8 @@ create_official_release:
   script:
     - git fetch origin refs/notes/*:refs/notes/*
     - MR=( `git notes show` )
-    - ./Hog/Other/GetGitlabArtifact.sh $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $MR bin/note.md collect_artifacts > note.md
-    - ./Hog/Other/MakeGitlabRelease.sh $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $CI_COMMIT_TAG note.md
+    - ./Hog/Other/GetAllGitlabLinks.sh $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $MR collect_artifacts $CI_PROJECT_URL
+    - ./Hog/Other/MakeGitlabRelease.sh $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $CI_COMMIT_TAG bin/note.md -load_artifacts
   allow_failure: true
 
 copy_to_eos:

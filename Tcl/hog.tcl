@@ -683,11 +683,11 @@ proc GetGitDescribe {sha} {
   }
 }
 
-## Get repository version
+## Get the versions for all libraries, submodules, etc. for a given project
 #
-#  @param[in] repo_path The repository path of which all the version must be calculated
+#  @param[in] proj_tcl_file: The tcl file of the project of which all the version must be calculated
 #
-#  @return            a list conatining all the versions: global, top (project tcl file), constraints, libraries, submodules, exteral, ipbus xml
+#  @return  a list conatining all the versions: global, top (project tcl file), constraints, libraries, submodules, exteral, ipbus xml
 #
 proc GetRepoVersions {proj_tcl_file} {
   set old_path [pwd]
@@ -1410,8 +1410,10 @@ proc ForceUpToDate {} {
 ## @brief Copy IP generated files from/to an EOS repository
 #
 # @param[in] what_to_do: can be "push", if you want to copy the local IP synth result to EOS or "pull" if you want to copy the files from EOS to your local repository
+# @param[in] xci_file: the .xci file of the IP you want to handle
 # @param[in] runs_dir: the runs directory of the project. Typically called VivadoProject/\<project name\>/\<project name\>.runs
 # @param[in] ip_path: the path of directory you want the IP to be saved on eos
+# @param[in] force: if not set to 0, will copy the IP to EOS even if it is already present
 #
 proc HandleIP {what_to_do xci_file ip_path runs_dir {force 0}} {
   if {!($what_to_do eq "push") && !($what_to_do eq "pull")} {

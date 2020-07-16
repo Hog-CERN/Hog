@@ -85,7 +85,7 @@ tagging_develop:
               - $CI_PIPELINE_SOURCE != "push"
               - $CI_COMMIT_REF_SLUG != "develop"
       script:
-          - tclsh ./Tcl/CI/merge_and_tag.tcl -Hog -merged -push $CI_COMMIT_REF_NAME -main_branch develop -default_level 1 0
+          - tclsh ./Tcl/CI/merge_and_tag.tcl -Hog -merged -push $CI_COMMIT_REF_NAME -main_branch develop -default_level 1
 
 tagging_master_hotfix:
       stage: tag
@@ -101,7 +101,7 @@ tagging_master_hotfix:
           - git fetch origin refs/notes/*:refs/notes/*
           - MR_INFO=( `git notes show` )
           - BRANCH=${MR_INFO[1]}
-          - if [[ ${BRANCH} != "develop" ]]; then tclsh ./Tcl/CI/merge_and_tag.tcl -Hog -merged -push $CI_COMMIT_REF_NAME -default_level 0 0; else echo "Skipping because it is not a hotfix"; fi;
+          - if [[ ${BRANCH} != "develop" ]]; then tclsh ./Tcl/CI/merge_and_tag.tcl -Hog -merged -push $CI_COMMIT_REF_NAME -default_level 0; else echo "Skipping because it is not a hotfix"; fi;
 
 create_release_note:
         stage: tag

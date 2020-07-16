@@ -50,6 +50,7 @@ else
     mr=$4
     job=$5
     prj_url=$6
+    tag=$7
 
     # GET all alrifacts
     ref=refs/merge-requests%2F$mr%2Fhead
@@ -70,7 +71,7 @@ else
     while IFS= read -r line
     do
         strarray=($line)
-		if [ "${strarray[1]}" = "0" ]; then
+		if [ "${strarray[1]}" == "0" -o "${strarray[1]}" == "$tag" ]; then
             #need to create link for release
             PRJ_BIT=`find $DIR/bin -name ${strarray[0]}\*.bit`
             if [ -z "$PRJ_BIT" ]; then

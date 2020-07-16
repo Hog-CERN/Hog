@@ -96,7 +96,7 @@ else
         else
             #retrieve link from its release
             RELEASE=`curl --header "PRIVATE-TOKEN: ${push_token}" "${api}/projects/${proj}/releases/${strarray[1]}"`
-            LINK= get_link $RELEASE ${strarray[0]}.zip
+            LINK=`get_link $RELEASE ${strarray[0]}.zip`
             echo "${strarray[0]} $LINK" >> $DIR/project_links.txt
         fi
     done < "$input"

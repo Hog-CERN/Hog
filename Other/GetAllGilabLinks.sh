@@ -41,13 +41,14 @@ get_link () {
 
 if [ -z "$1" ]                                          
 then                                                    
-        echo "Usage: GetAllGitlabLinks.sh <push token> <Gitlab api url> <project id> <merge request number> <job>"
+        echo "Usage: GetAllGitlabLinks.sh <push token> <Gitlab api url> <project id> <merge request number> <job> <project url>"
 else                                                                                                                          
     push_token=$1
     api=$2
     proj=$3
     mr=$4
     job=$5
+    prj_url=$6
 
     # GET all alrifacts
     ref=refs/merge-requests%2F$mr%2Fhead

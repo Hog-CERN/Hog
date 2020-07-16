@@ -13,7 +13,8 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )/../.."
+DIR="$( dirname "${BASH_SOURCE[0]}" )/../.."
+OLDDIR="$( pwd )"
 
 get_link () {
     OLDIFS=$IFS
@@ -77,9 +78,11 @@ else
                 continue
             fi
             #zipping files
-            PRJ_DIR=`dirname $PRJ_BIT`
+            PRJ_PATH=`dirname $PRJ_BIT`
+            PRJ_DIR=`basename $PRJ_PATH`
+            cd $DIR/bin
             zip -r $DIR/${strarray[0]}.zip $PRJ_DIR 
-            
+            cd $OLDDIR
             #creating file link
             content=`curl --request POST --header "PRIVATE-TOKEN: ${push_token}" --form "file=@$DIR/${strarray[0]}.zip" ${api}/projects/${proj}/uploads`
             # get the url from the json return

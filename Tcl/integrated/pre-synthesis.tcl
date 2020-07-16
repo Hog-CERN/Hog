@@ -50,7 +50,7 @@ if {$flavour != ""} {
   if [string is integer $flavour] {
     Msg Info "Project $proj_name has flavour = $flavour, the generic variable FLAVUOR will be set to $flavour"
   } else {
-    Msg Warning "Project name has a non numeric extension, flavour will be set to -1"
+    Msg Warning "Project name has a unexpected non numeric extension, flavour will be set to -1"
     set flavour -1
   }
 
@@ -58,120 +58,35 @@ if {$flavour != ""} {
   set flavour -1
 }
 
+# Getting all the versions and SHAs of the repository
+lassign [GetRepoVersions ./Top/$proj_name/$proj_name.tcl] commit version  hog_hash hog_ver  top_hash top_ver  libs hashes vers  subs subs_hashes  cons_ver cons_hash  ext_names ext_hashes  xml_hash xml_ver 
 
-if { [exec git status --untracked-files=no  --porcelain] eq "" } {
-  Msg Info "Git working directory [pwd] clean."
-  lassign [GetVer ALL ./] version commit
+set this_commit  [exec git log --format=%h -1]
+
+set describe [GetGitDescribe $commit]
+Msg Info "Git describe for $commit is: $describe"
+
+if {$commit == 0 } {
+  Msg CriticalWarning "Repository is not clean, will use current SHA ($this_commit) and create a dirty bitfile..."
+  set commit $this_commit
 } else {
-  Msg CriticalWarning "Git working directory [pwd] not clean, commit hash, and version will be set to 0."
-  set commit   "0000000"
-  set version  "00000000"
-}
-
-# Top project directory
-lassign [GetVer ./Top/$proj_name/ .] top_ver top_hash
-
-# Read list files
-set libs ""
-set vers ""
-set hashes ""
-set list_files [glob  -nocomplain "./Top/$proj_name/list/*.src"]
-foreach f $list_files {
-  set name [file rootname [file tail $f]]
-  lassign [GetVer  $f .] ver hash
-  Msg Info "Found source file $f, version: $ver commit SHA: $hash"
-  lappend libs $name
-  lappend vers $ver
-  lappend hashes $hash
-}
-
-# Read external library files
-set ext_hashes ""
-set ext_files [glob -nocomplain "./Top/$proj_name/list/*.ext"]
-set ext_names ""
-foreach f $ext_files {
-
-  set name [file rootname [file tail $f]]
-  set hash [exec git log --format=%h -1 $f ]
-  Msg Info "Found source file $f, commit SHA: $hash"
-  lappend ext_names $name
-  lappend ext_hashes $hash
-
-  set fp [open $f r]
-  set file_data [read $fp]
-  close $fp
-  set data [split $file_data "\n"]
-  Msg Info "Checking checksums of external library files in $f"
-  foreach line $data {
-    if {![regexp {^ *$} $line] & ![regexp {^ *\#} $line] } { #Exclude empty lines and comments
-      set file_and_prop [regexp -all -inline {\S+} $line]
-      set hdlfile [lindex $file_and_prop 0]
-      set hdlfile "$env(HOG_EXTERNAL_PATH)/$hdlfile"
-      if { [file exists $hdlfile] } {
-        set hash [lindex $file_and_prop 1]
-        set current_hash [Md5Sum $hdlfile]
-        if {[string first $hash $current_hash] == -1} {
-          Msg CriticalWarning "File $hdlfile has a wrong hash. Current checksum: $current_hash, expected: $hash"
-        }
-      }
-    }
+  Msg Info "Found last SHA for $proj_name: $commit"
+  if {$commit != $this_commit} {
+    set count [exec git rev-list --count $commit..$this_commit]
+    Msg Info "The commit in which project $proj_name was last modified is $commit, that is $count commits older than current commit $this_commit."
   }
-
 }
 
-# Ipbus XML
-if [file exists ./Top/$proj_name/xml] {
-  Msg Info "IPbus XML directory found, looking inside..."
+if {$xml_hash != 0} {
+  set xml_dst [file normalize $old_path/../xml]
+  Msg Info "Creating XML directory $xml_dst..."
+  file mkdir $xml_dst
+  Msg Info "Copying xml files to $xml_dst and replacing placeholders with xml version $xml_ver..."
+  CopyXMLsFromListFile ./Top/$proj_name/list/xml.lst ./ $xml_dst $xml_ver $xml_hash
   set use_ipbus 1
-  set xml_dst $old_path/../xml
-  if [file exists ./Top/$proj_name/xml/xml.lst] {
-    Msg Info "Found IPbus XML list file, using version of listed files..."
-    # in this case, IPbus xml files are stored anywhere in the repository and listed in the xml.lst file
-    lassign [GetVer ./Top/$proj_name/xml/xml.lst .] xml_ver_hex xml_hash
-    set xml_ver [HexVersionToString $xml_ver_hex]
-    Msg Info "Creating XML directory $xml_dst..."
-    file mkdir $xml_dst
-    Msg Info "Copying xml files to $xml_dst and replacing placeholders with xml version $xml_ver..."
-    CopyXMLsFromListFile ./Top/$proj_name/xml/xml.lst ./ $xml_dst $xml_ver $xml_hash
-  } else {
-    Msg Info "IPbus XML list file not found, using version of xml directory..."
-        # in this case, IPbus xml files are just stored in the xml directory in the project folder
-    lassign [GetVer ./Top/$proj_name/xml ./] xml_ver_hex xml_hash
-    set xml_ver [HexVersionToString $xml_ver_hex]
-    file delete -force $xml_dst
-    file copy -force $xml_target $old_path/..
-  }
-
 } else {
-  Msg Info "This project does not use IPbus XMLs"
-  set xml_ver_hex 0000000
-  set xml_ver [HexVersionToString $xml_ver_hex]
-  set xml_hash 0000000
   set use_ipbus 0
 }
-
-# Submodules
-set subs ""
-set subs_hashes ""
-set sub_files [glob -nocomplain "./Top/$proj_name/list/*.sub"]
-foreach f $sub_files {
-  set sub_dir [file rootname [file tail $f]]
-  if [file exists ./$sub_dir] {
-    cd "./$sub_dir"
-    lappend subs $sub_dir
-    if { [exec git status --untracked-files=no  --porcelain] eq "" } {
-      Msg Info "$sub_dir submodule clean."
-      lappend subs_hashes [GetHash ALL ./]
-    } else {
-      Msg CriticalWarning "$sub_dir submodule not clean, commit hash will be set to 0."
-      lappend subs_hashes "0000000"
-    }
-    cd ..
-  } else {
-    Msg CriticalWarning "$sub_dir submodule not found"
-  }
-}
-
 
 #number of threads
 set maxThreads [GetMaxThreads $proj_name]
@@ -180,7 +95,6 @@ if {$maxThreads != 1} {
 } else {
   Msg Info "Disabling multithreading to assure deterministic bitfile"
 }
-
 
 if {[info commands set_param] != ""} {
     ### Vivado
@@ -193,24 +107,12 @@ if {[info commands set_param] != ""} {
   puts "Hog:DEBUG MAxThread is set to: $maxThreads"
 }
 
-# Hog submodule
-cd "./Hog"
-if { [exec git status --untracked-files=no  --porcelain] eq "" } {
-  Msg Info "Hog submodule [pwd] clean."
-  lassign [GetVer ALL ./] hog_ver hog_hash
-} else {
-  Msg CriticalWarning "Hog submodule [pwd] not clean, commit hash will be set to 0."
-  set hog_hash "0000000"
-  set hog_ver "0000000"
-}
-cd ..
-
 set clock_seconds [clock seconds]
 set tt [clock format $clock_seconds -format {%d/%m/%Y at %H:%M:%S}]
 
 if [GitVersion 2.9.3] {
-  set date [exec git log -1 --format=%cd --date=format:'%d%m%Y']
-  set timee [exec git log -1 --format=%cd --date=format:'00%H%M%S']
+  set date [exec git log -1 --format=%cd --date=format:'%d%m%Y' $commit --]
+  set timee [exec git log -1 --format=%cd --date=format:'00%H%M%S' $commit --]
 } else {
   Msg Warning "Found Git version older than 2.9.3. Using current date and time instead of commit time."
   set date [clock format $clock_seconds  -format {%d%m%Y}]
@@ -221,11 +123,11 @@ if [GitVersion 2.9.3] {
 if {[info commands set_property] != ""} {
   ### VIVADO
   # set global generic varibles
-  set generic_string "GLOBAL_DATE=32'h$date GLOBAL_TIME=32'h$timee GLOBAL_VER=32'h$version GLOBAL_SHA=32'h$commit TOP_SHA=32'h$top_hash TOP_VER=32'h$top_ver HOG_SHA=32'h$hog_hash HOG_VER=32'h$hog_ver"
+  set generic_string "GLOBAL_DATE=32'h$date GLOBAL_TIME=32'h$timee GLOBAL_VER=32'h$version GLOBAL_SHA=32'h$commit TOP_SHA=32'h$top_hash TOP_VER=32'h$top_ver HOG_SHA=32'h$hog_hash HOG_VER=32'h$hog_ver CON_VER=32'h$cons_ver CON_SHA=32'h$cons_hash"
   if {$use_ipbus == 1} {
-    set generic_string "$generic_string XML_VER=32'h$xml_ver_hex XML_SHA=32'h$xml_hash"
+    set generic_string "$generic_string XML_VER=32'h$xml_ver XML_SHA=32'h$xml_hash"
   }
-  
+
   #set project specific lists
   foreach l $libs v $vers h $hashes {
     set ver "[string toupper $l]_VER=32'h$v "
@@ -249,7 +151,7 @@ if {[info commands set_property] != ""} {
   }
 
   set_property generic $generic_string [current_fileset]
-  set status_file "$old_path/../versions.txt"
+  set status_file [file normalize "$old_path/../versions.txt"]
 
 } elseif {[info commands quartus_command] != ""} {
     ### QUARTUS
@@ -257,10 +159,11 @@ if {[info commands set_property] != ""} {
 
 } else {
   ### Tcl Shell
-  puts "Hog:DEBUG GLOBAL_FWDATE=$date GLOBAL_FWTIME=$timee"
-  puts "Hog:DEBUG GLOBAL_FWHASH=$commit TOP_FWHASH=$top_hash"
-  puts "Hog:DEBUG XML_HASH=$xml_hash GLOBAL_FWVERSION=$version TOP_FWVERSION=$top_ver"
-  puts "Hog:DEBUG XML_VERSION=$xml_ver_hex HOG_FWHASH=$hog_hash HOG_FWVERSION=$hog_ver"
+  puts "Hog:DEBUG GLOBAL_DATE=$date GLOBAL_TIME=$timee"
+  puts "Hog:DEBUG GLOBAL_SHA=$commit TOP_SHA=$top_hash"
+  puts "Hog:DEBUG CON_VER=$cons_ver CON_SHA=$cons_hash"
+  puts "Hog:DEBUG XML_SHA=$xml_hash GLOBAL_VER=$version TOP_VER=$top_ver"
+  puts "Hog:DEBUG XML_VER=$xml_ver HOG_SHA=$hog_hash HOG_VER=$hog_ver"
   puts "Hog:DEBUG LIBS: $libs $vers $hashes"
   puts "Hog:DEBUG SUBS: $subs $subs_hashes"
   puts "Hog:DEBUG EXT: $ext_names $ext_hashes"
@@ -270,25 +173,21 @@ if {[info commands set_property] != ""} {
 }
 Msg Info "Opening version file $status_file..."
 set status_file [open $status_file "w"]
-# writing info into status file
 
-Msg Info "Evaluating git describe..."
-set describe [exec git describe --always --dirty --tags --long]
-Msg Info "Git describe: $describe"
 set dst_dir [file normalize "bin/$proj_name\-$describe"]
 Msg Info "Creating $dst_dir..."
 file mkdir $dst_dir/reports
 
-Msg Info "Evaluating differences with last commit..."
+Msg Info "Evaluating non committed changes..."
 set diff [exec git diff]
 if {$diff != ""} {
-  Msg Warning "Found differences with last commit..."
-  Msg Info "$diff"
+  Msg Warning "Found non committed changes:..."
+  Msg Status "$diff"
   set fp [open "$dst_dir/diff_presynthesis.txt" w+]
   puts $fp "$diff"
   close $fp
 } else {
-  Msg Info "No differences with last commit."
+  Msg Info "No uncommitted changes found."
 }
 
 Msg Status " ------------------------- PRE SYNTHESIS -------------------------"
@@ -308,13 +207,18 @@ m add row  "| --- | --- | --- |"
 Msg Status " Global SHA: $commit, VER: $version"
 m add row  "| Global | [string tolower $commit] | $version |"
 
+set cons_ver [HexVersionToString $cons_ver]
+Msg Status " Constraints SHA: $cons_hash, VER: $cons_ver"
+m add row  "| Constraints | [string tolower $cons_hash] | $cons_ver |"
+
 if {$use_ipbus == 1} {
+  set xml_ver [HexVersionToString $xml_ver]
   Msg Status " IPbus XML SHA: $xml_hash, VER: $xml_ver"
   m add row "| \"IPbus XML\" | [string tolower $xml_hash] | $xml_ver |"
 }
 set top_ver [HexVersionToString $top_ver]
 Msg Status " Top SHA: $top_hash, VER: $top_ver"
-m add row "| \"Top dir\" | [string tolower $top_hash] | $top_ver |"
+m add row "| \"Project Tcl\" | [string tolower $top_hash] | $top_ver |"
 
 set hog_ver [HexVersionToString $hog_ver]
 Msg Status " Hog SHA: $hog_hash, VER: $hog_ver"
@@ -343,7 +247,7 @@ puts $status_file "\n\n"
 close $status_file
 
 
-CheckYmlRef $tcl_path/../.. true
+CheckYmlRef [file normalize $tcl_path/../..] true
 cd $old_path
 
 Msg Info "All done."

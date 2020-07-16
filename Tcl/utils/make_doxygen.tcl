@@ -38,7 +38,7 @@ if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] 
   exit 1
 }
 
-lassign [GetVer ALL ./] version commit
+lassign [GetVer .] version commit
 set version [HexVersionToString $version]
 Msg Info "Creating doxygen documentation for tag $version"
 

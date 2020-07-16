@@ -38,6 +38,9 @@ module top_<myproj> # (
         parameter TOP_SHA     = 0,
         parameter TOP_VER     = 0,
 
+        parameter CON_SHA     = 0,
+        parameter CON_VER     = 0,		       
+
         parameter HOG_SHA     = 0,
         parameter HOG_VER     = 0,
 

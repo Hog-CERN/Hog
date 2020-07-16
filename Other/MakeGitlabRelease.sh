@@ -91,6 +91,8 @@ else
         do
             if [ -z "$line" ]; then
                 continue
+            elif [ "$line" == " " ]; then
+                continue
             fi
             IFS=' '
             LINKS=($line)

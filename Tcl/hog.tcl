@@ -351,7 +351,7 @@ proc FindFileType {file_name} {
     .vhd {
       set file_extension "VHDL_FILE"
     }
-    .vhdl{
+    .vhdl {
       set file_extension "VHDL_FILE"
     }
     .v {

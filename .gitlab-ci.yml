@@ -30,9 +30,8 @@ stages:
 build-doxygen-test:
       stage: build_doc
       image: gitlab-registry.cern.ch/hog/hog-docker
-      before_script:
-        - echo ""
       script:
+        - git clone https://hog:${HOG_PUSH_TOKEN}@gitlab.cern.ch/hog/hog-doxygen.git doxygen
         - chmod +x ./doxygen/scripts/build-and-deploy.sh
         - ./doxygen/scripts/build-and-deploy.sh /eos/user/h/hog/www/test-doc/doxy
 
@@ -41,9 +40,8 @@ build-doxygen-official:
       image: gitlab-registry.cern.ch/hog/hog-docker
       only:
         - master
-      before_script:
-        - echo ""
       script:
+        - git clone https://hog:${HOG_PUSH_TOKEN}@gitlab.cern.ch/hog/hog-doxygen.git doxygen
         - chmod +x ./doxygen/scripts/build-and-deploy.sh
         - ./doxygen/scripts/build-and-deploy.sh /eos/project/a/atlas-hog/www/hog-user-docs/doxy
 

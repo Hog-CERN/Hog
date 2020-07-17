@@ -129,6 +129,7 @@ merge_and_tag:
         <<: *vars
     script:
         - if [ -z ${HOG_NJOBS+x} ]; then export HOG_NJOBS=4; fi
+        - echo "-- Appending text for diff release " >> ./example/adder.vhd
         - vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_synthesis.tcl -tclargs -NJOBS $HOG_NJOBS $PROJECT_NAME
     artifacts:
         name: vivado_synth

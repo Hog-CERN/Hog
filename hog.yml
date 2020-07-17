@@ -146,6 +146,7 @@ merge_and_tag:
     variables:
         <<: *vars
     script:
+        - echo "-- Appending text for diff release " >> ./example/src/adder.vhd        
         - git status
         - git diff
         - if [ -z ${HOG_NJOBS+x} ]; then export HOG_NJOBS=4; fi
@@ -248,7 +249,7 @@ create_official_release:
     - git fetch origin refs/notes/*:refs/notes/*
     - MR=( `git notes show` )
     - ./Hog/Other/GetGitlabArtifact.sh $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $MR bin/note.md collect_artifacts > note.md
-    - ./Hog/Other/MakeGitlabRelease.sh $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $CI_COMMIT_TAG note_test.md
+    - ./Hog/Other/MakeGitlabRelease.sh $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $CI_COMMIT_TAG note.md
   allow_failure: true
   artifacts:
     paths:

@@ -156,10 +156,11 @@ merge_and_tag:
            else vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_implementation.tcl -tclargs -NJOBS $HOG_NJOBS $PROJECT_NAME;
            fi"
         - "cat $CI_PROJECT_DIR/bin/$PROJECT_NAME*/versions* $CI_PROJECT_DIR/bin/$PROJECT_NAME*/timing_* > note.md"
-        - file_presynth=$(shopt -s nullglob dotglob; echo $CI_PROJECT_DIR/bin/$PROJECT_NAME*/diff_presynthesis.txt)
-        - file_postimpl=$(shopt -s nullglob dotglob; echo $CI_PROJECT_DIR/bin/$PROJECT_NAME*/diff_postbitstream.txt)
-        - if (( ${#file_presynth} )); then echo "Found differences for $PROJECT_NAME at the pre-synthesis stage." > $CI_PROJECT_DIR/bin/$PROJECT_NAME*/release_presynthesis.txt; fi;
-        - if (( ${#file_postimpl} )); then echo "Found differences for $PROJECT_NAME at the post-bitstream stage synthesis." > $CI_PROJECT_DIR/bin/$PROJECT_NAME*/release_postbitstream.txt; fi;
+        - proj_bindir=$(echo $CI_PROJECT_DIR/bin/$PROJECT_NAME*)
+        - file_presynth=$(shopt -s nullglob dotglob; echo $proj_bindir/diff_presynthesis.txt)
+        - file_postimpl=$(shopt -s nullglob dotglob; echo $proj_bindir/diff_postbitstream.txt)
+        - if (( ${#file_presynth} )); then echo "Found differences for $PROJECT_NAME at the pre-synthesis stage." > $proj_bindir/release_presynthesis.txt; fi;
+        - if (( ${#file_postimpl} )); then echo "Found differences for $PROJECT_NAME at the post-bitstream stage synthesis." > $proj_bindir/release_postbitstream.txt; fi;
         - ./Hog/Other/WriteGitlabNote.sh $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $CI_MERGE_REQUEST_IID note.md
     artifacts:
         name: implementation_and_bitfiles

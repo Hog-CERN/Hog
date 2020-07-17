@@ -156,8 +156,10 @@ merge_and_tag:
            else vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_implementation.tcl -tclargs -NJOBS $HOG_NJOBS $PROJECT_NAME;
            fi"
         - "cat $CI_PROJECT_DIR/bin/$PROJECT_NAME*/versions* $CI_PROJECT_DIR/bin/$PROJECT_NAME*/timing_* > note.md"
-        - if [ -f $CI_PROJECT_DIR/bin/$PROJECT_NAME*/diff_presynthesis.txt ]; then echo "Found differences for $PROJECT_NAME at the pre-synthesis stage." >> note.md; fi;
-        - if [ -f $CI_PROJECT_DIR/bin/$PROJECT_NAME*/diff_postbitstream.txt ]; then echo "Found differences for $PROJECT_NAME at the post-bitstream stage synthesis." >> note.md; fi;
+        - file_presynth=$(shopt -s nullglob dotglob; echo $CI_PROJECT_DIR/bin/$PROJECT_NAME*/diff_presynthesis.txt)
+        - file_postimpl=$(shopt -s nullglob dotglob; echo $CI_PROJECT_DIR/bin/$PROJECT_NAME*/diff_postbitstream.txt)
+        - if (( ${#file_presynth} )); then echo "Found differences for $PROJECT_NAME at the pre-synthesis stage." >> note.md; fi;
+        - if (( ${#file_postimpl} )); then echo "Found differences for $PROJECT_NAME at the post-bitstream stage synthesis." >> note.md; fi;
         - ./Hog/Other/WriteGitlabNote.sh $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $CI_MERGE_REQUEST_IID note.md
     artifacts:
         name: implementation_and_bitfiles
@@ -174,10 +176,10 @@ collect_artifacts:
     script:
         - "printf \"## Repository info\n- Merge request number: $CI_MERGE_REQUEST_IID\n- Branch name: $CI_COMMIT_REF_SLUG\n\n\" > $CI_PROJECT_DIR/bin/note.md"
         - ./Hog/Other/Changelog.sh $CI_MERGE_REQUEST_TARGET_BRANCH_NAME >> $CI_PROJECT_DIR/bin/note.md
-        - files=$(shopt -s nullglob dotglob; echo $CI_PROJECT_DIR/bin/*/*.txt)
-        - "if (( ${#files} )); then
-          cat $CI_PROJECT_DIR/bin/*/*.txt >> $CI_PROJECT_DIR/bin/note.md;
-          fi"
+        # - files=$(shopt -s nullglob dotglob; echo $CI_PROJECT_DIR/bin/*/*.txt)
+        # # - "if (( ${#files} )); then
+        # #   cat $CI_PROJECT_DIR/bin/*/*.txt >> $CI_PROJECT_DIR/bin/note.md;
+        # #   fi"
         - git fetch origin refs/notes/*:refs/notes/*
         - git notes add -fm "$CI_MERGE_REQUEST_IID $CI_COMMIT_REF_SLUG"
         - git push origin refs/notes/*

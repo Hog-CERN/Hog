@@ -26,7 +26,7 @@ get_link () {
         if [ "${DATA[0]}" == "\"description\"" ]; then
             IFS="
     "
-            DESC=$(printf $LINE)
+            DESC=$(echo -e "$LINE")
             for L in $DESC; do
                 #printf $L
                 if [[ "$L" == *"[$2]"* ]]; then
@@ -59,7 +59,7 @@ else
     unzip output.zip
 
     # Project names:
-    #cho "" > $DIR/project_versions.txt
+    echo "" > $DIR/project_versions.txt
     echo "" > $DIR/project_links.txt
     PROJECTS=(`ls $DIR/Top`)
     for PROJECT in ${PROJECTS[@]}; do
@@ -96,8 +96,12 @@ else
         else
             #retrieve link from its release
             RELEASE=`curl --header "PRIVATE-TOKEN: ${push_token}" "${api}/projects/${proj}/releases/${strarray[1]}"`
-            LINK=`get_link $RELEASE ${strarray[0]}.zip`
-            echo "${strarray[0]} $LINK" >> $DIR/project_links.txt
+            LINK=$(get_link "$RELEASE" ${strarray[0]}.zip)
+            if [ -z "$LINK" ]; then
+                echo "Error, could not find link to binaries for firmware ${strarray[0]} and tag $tag"
+            else
+                echo "${strarray[0]} $LINK" >> $DIR/project_links.txt
+            fi
         fi
     done < "$input"
 

@@ -12,7 +12,7 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 include:
-  - local: hog-main.yml
+  - local: YAML/hog-main.yml
 
 stages:
   - merge

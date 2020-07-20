@@ -41,6 +41,27 @@ merge_and_tag:
     - if [[ ((-n $HOG_TARGET_BRANCH) && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "$HOG_TARGET_BRANCH") || ((-z $HOG_TARGET_BRANCH) && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == master*) ]]; then INCREASE=""; else INCREASE="-no_increase"; fi;
     - vivado -mode batch -notrace -source ./Hog/Tcl/CI/merge_and_tag.tcl -tclargs -mr_par "{$MR_PARAMETERS}" -mr_id $CI_MERGE_REQUEST_IID -push $CI_COMMIT_REF_NAME -main_branch $CI_MERGE_REQUEST_TARGET_BRANCH_NAME $INCREASE
 
+make_doxygen:
+    <<: *only-default
+    stage: doxygen
+    variables:
+        <<: *vars
+    script:
+        - until echo $HOG_PASSWORD | kinit $HOG_USER ; do echo Retrying; sleep 2; done
+        - vivado -mode batch -notrace -source ./Hog/Tcl/utils/make_doxygen.tcl
+        - DESCRIBE=$(git describe --always --tags --long)
+        - "if [ -e $CI_PROJECT_DIR/Doc/html -a -n '$HOG_UNOFFICIAL_BIN_EOS_PATH' ]; then
+          eos mkdir -p $HOG_UNOFFICIAL_BIN_EOS_PATH/$CI_COMMIT_SHORT_SHA/Doc-$DESCRIBE;
+          eos cp -r ./Doc/html/* $HOG_UNOFFICIAL_BIN_EOS_PATH/$CI_COMMIT_SHORT_SHA/Doc-$DESCRIBE;
+          elif [ -e $CI_PROJECT_DIR/Doc/html ]; then echo \"Environmental variable HOG_UNOFFICIAL_BIN_EOS_PATH not set. Doxygen documentation cannot be copied to eos.\";
+          else echo \"Documentation not found in $CI_PROJECT_DIR/Doc/html\"; fi"
+    artifacts:
+        name: docs
+        paths:
+            - $CI_PROJECT_DIR/Doc
+        expire_in: 10 years
+    dependencies: []
+    allow_failure: true
 
 tag_official_version:
   tags:
@@ -85,7 +106,6 @@ copy_to_eos:
     - hog
   stage: copy
   script:
-    - git status
     - until echo $HOG_PASSWORD | kinit $HOG_USER ; do echo Retrying; sleep 2; done
     - vivado -mode batch -notrace -source ./Hog/Tcl/CI/copy_to_eos.tcl -tclargs $HOG_OFFICIAL_BIN_EOS_PATH $HOG_UNOFFICIAL_BIN_EOS_PATH $CI_COMMIT_TAG $CI_COMMIT_SHORT_SHA
 
@@ -102,25 +122,3 @@ cleaning:
      - until echo $HOG_PASSWORD | kinit $HOG_USER ; do echo "Retrying"; sleep 2; done
      - if [ -z ${HOG_UNOFFICIAL_BIN_EOS_PATH+x} ]; then echo "HOG_UNOFFICIAL_BIN_EOS_PATH not specified, nothing to clean..."; else vivado -mode batch -notrace -source Hog/Tcl/CI/clean_unofficial.tcl -tclargs $HOG_UNOFFICIAL_BIN_EOS_PATH $CI_COMMIT_TAG; fi
   allow_failure: true
-
-make_doxygen:
-    <<: *only-default
-    stage: doxygen
-    variables:
-        <<: *vars
-    script:
-        - until echo $HOG_PASSWORD | kinit $HOG_USER ; do echo Retrying; sleep 2; done
-        - vivado -mode batch -notrace -source ./Hog/Tcl/utils/make_doxygen.tcl
-        - DESCRIBE=$(git describe --always --tags --long)
-        - "if [ -e $CI_PROJECT_DIR/Doc/html -a -n '$HOG_UNOFFICIAL_BIN_EOS_PATH' ]; then
-          eos mkdir -p $HOG_UNOFFICIAL_BIN_EOS_PATH/$CI_COMMIT_SHORT_SHA/Doc-$DESCRIBE;
-          eos cp -r ./Doc/html/* $HOG_UNOFFICIAL_BIN_EOS_PATH/$CI_COMMIT_SHORT_SHA/Doc-$DESCRIBE;
-          elif [ -e $CI_PROJECT_DIR/Doc/html ]; then echo \"Environmental variable HOG_UNOFFICIAL_BIN_EOS_PATH not set. Doxygen documentation cannot be copied to eos.\";
-          else echo \"Documentation not found in $CI_PROJECT_DIR/Doc/html\"; fi"
-    artifacts:
-        name: docs
-        paths:
-            - $CI_PROJECT_DIR/Doc
-        expire_in: 10 years
-    dependencies: []
-    allow_failure: true

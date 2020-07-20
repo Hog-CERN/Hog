@@ -42,21 +42,13 @@ get_link () {
 
 if [ -z "$1" ]                                          
 then                                                    
-        echo "Usage: GetAllGitlabLinks.sh <push token> <Gitlab api url> <project id> <merge request number> <job> <project url>"
+        echo "Usage: GetAllGitlabLinks.sh <push token> <Gitlab api url> <project id> <project url> <tag>"
 else                                                                                                                          
     push_token=$1
     api=$2
     proj=$3
-    mr=$4
-    job=$5
-    prj_url=$6
-    tag=$7
-
-    # GET all alrifacts
-    ref=refs/merge-requests%2F$mr%2Fhead
-    echo $api/projects/${proj}/jobs/artifacts/$ref/raw/$file?job=$job
-    curl --location --header "PRIVATE-TOKEN: ${push_token}" $api/projects/${proj}/jobs/artifacts/$ref/download?job=$job -o output.zip
-    unzip output.zip
+    prj_url=$4
+    tag=$5
 
     # Project names:
     echo "" > $DIR/project_versions.txt

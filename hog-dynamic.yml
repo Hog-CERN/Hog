@@ -29,12 +29,26 @@ before_script:
     - export LD_LIBRARY_PATH=${HOG_LD_LIBRARY_PATH}:$LD_LIBRARY_PATH
 
 stages:
+  - merge
   - generate
   - triggers
   - collect
-  - merge
   - copy
   - clean
+
+include:
+  - local: hog-main.yml
+
+.only-default: &only-default
+  only:
+    refs:
+      - merge_requests
+  except:
+    variables:
+      - $CI_COMMIT_REF_NAME =~ /^test\/.*$/i
+      - $CI_MERGE_REQUEST_TITLE =~ /^WIP:.*$/ && $CI_COMMIT_MESSAGE !~ /^RESOLVE_WIP:/
+  tags:
+     - hog
 
 generate-config:
   # only:

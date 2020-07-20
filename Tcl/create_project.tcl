@@ -526,8 +526,8 @@ if {[info exists ::SIMULATOR]} {
 }
 
 
-if {[info exist ::bin_file]} { 
-  set globalSettings::BIN_FILE $::bin_file
+if {[info exist ::BIN_FILE]} { 
+  set globalSettings::BIN_FILE $::BIN_FILE
 } else {
   set globalSettings::BIN_FILE 0
 }

@@ -11,44 +11,17 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
-
-before_script:
-    - export REPO=`echo $CI_PROJECT_URL | sed -e s#https://##`
-    - git remote set-url origin https://${HOG_USER}:${HOG_PUSH_TOKEN}@$REPO
-    - git config user.email ${HOG_EMAIL}
-    - git config user.name ${HOG_USER}
-    - git fetch
-    - git fetch origin $CI_COMMIT_REF_NAME
-    - git fetch origin $CI_MERGE_REQUEST_TARGET_BRANCH_NAME
-    - git status
-    - git checkout $CI_COMMIT_REF_NAME --
-    - git submodule init 
-    - git submodule update Hog
-    - export XILINXD_LICENSE_FILE=${HOG_XIL_LICENSE}
-    - export PATH=${HOG_PATH}:$PATH
-    - export LD_LIBRARY_PATH=${HOG_LD_LIBRARY_PATH}:$LD_LIBRARY_PATH
+include:
+  - local: hog-main.yml
 
 stages:
   - merge
   - generate
   - triggers
   - collect
+  - doxygen
   - copy
   - clean
-
-include:
-  - local: hog-main.yml
-
-.only-default: &only-default
-  only:
-    refs:
-      - merge_requests
-  except:
-    variables:
-      - $CI_COMMIT_REF_NAME =~ /^test\/.*$/i
-      - $CI_MERGE_REQUEST_TITLE =~ /^WIP:.*$/ && $CI_COMMIT_MESSAGE !~ /^RESOLVE_WIP:/
-  tags:
-     - hog
 
 generate-config:
   # only:
@@ -104,63 +77,3 @@ collect_artifacts:
     expire_in: 30 days
 
 
-tag_official_version:
-  tags:
-     - hog
-  stage: merge
-  script:
-     - vivado -mode batch -notrace -source ./Hog/Tcl/CI/merge_and_tag.tcl -tclargs -merged  -push $CI_COMMIT_REF_NAME -main_branch $CI_COMMIT_REF_NAME
-  rules:
-    - if: '$HOG_TARGET_BRANCH != null && $CI_COMMIT_REF_NAME == $HOG_TARGET_BRANCH && $CI_PIPELINE_SOURCE == "push"'
-      when: always
-    - if: '$HOG_TARGET_BRANCH == null && $CI_COMMIT_REF_NAME =~ /^master\d*$/  && $CI_PIPELINE_SOURCE == "push"'
-      when: always
-    - when: never
-
-create_official_release:
-  only:
-    refs:
-      - tags
-    variables:
-      - $CI_COMMIT_TAG =~ /^v.*$/ && $HOG_CREATE_OFFICIAL_RELEASE == "1"
-  tags:
-    - hog
-  stage: copy
-  script:
-    - git fetch origin refs/notes/*:refs/notes/*
-    - MR=( `git notes show` )
-    - ./Hog/Other/GetGitlabArtifact.sh $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $MR bin/note.md collect_artifacts > note.md
-    - ./Hog/Other/MakeGitlabRelease.sh $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $CI_COMMIT_TAG note.md
-  allow_failure: true
-  artifacts:
-    paths:
-      - note.md 
-
-
-copy_to_eos:
-  only:
-    refs:
-      - tags
-    variables:
-      - $CI_COMMIT_TAG =~ /^v.*$/ && $HOG_OFFICIAL_BIN_EOS_PATH != null && $HOG_UNOFFICIAL_BIN_EOS_PATH != null
-  tags:
-    - hog
-  stage: copy
-  script:
-    - git status
-    - until echo $HOG_PASSWORD | kinit $HOG_USER ; do echo Retrying; sleep 2; done
-    - vivado -mode batch -notrace -source ./Hog/Tcl/CI/copy_to_eos.tcl -tclargs $HOG_OFFICIAL_BIN_EOS_PATH $HOG_UNOFFICIAL_BIN_EOS_PATH $CI_COMMIT_TAG $CI_COMMIT_SHORT_SHA
-
-cleaning:
-  only:
-    refs:
-      - tags
-    variables:
-      - $CI_COMMIT_TAG =~ /^v.*$/ && $HOG_OFFICIAL_BIN_EOS_PATH != null && $HOG_UNOFFICIAL_BIN_EOS_PATH != null
-  tags:
-     - hog
-  stage: clean
-  script:
-     - until echo $HOG_PASSWORD | kinit $HOG_USER ; do echo "Retrying"; sleep 2; done
-     - if [ -z ${HOG_UNOFFICIAL_BIN_EOS_PATH+x} ]; then echo "HOG_UNOFFICIAL_BIN_EOS_PATH not specified, nothing to clean..."; else vivado -mode batch -notrace -source Hog/Tcl/CI/clean_unofficial.tcl -tclargs $HOG_UNOFFICIAL_BIN_EOS_PATH $CI_COMMIT_TAG; fi
-  allow_failure: true

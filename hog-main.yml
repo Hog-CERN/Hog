@@ -25,6 +25,10 @@ before_script:
   tags:
      - hog
 
+.vars: &vars
+  GIT_STRATEGY: clone
+#   CI_DEBUG_TRACE: "true"
+
 merge_and_tag:
   <<: *only-default
   stage: merge

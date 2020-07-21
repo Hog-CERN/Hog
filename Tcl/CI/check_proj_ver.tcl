@@ -33,6 +33,5 @@ if {$ver == 0} {
   Msg Info "$proj was not modified since version: $ver, disabling the CI..."
   file mkdir $repo_path/SkippedProjects
   set fp [open "$repo_path/SkippedProjects/$project" w+]
+  close $fp
 }
-
-close $fp

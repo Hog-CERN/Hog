@@ -29,8 +29,13 @@ generate-config:
   #     - merge_requests
   stage: generate
   image: tcl2020/tcl2020
-  script: 
-    - tclsh ./Hog/Tcl/utils/generate_yaml.tcl
+  script:
+    - if [[ ${HOG_CHECK_PROJVER} != 1 }]]; then
+        echo "Project version checker is disabled.";
+        tclsh ./Hog/Tcl/utils/generate_yaml.tcl --runall;
+      else
+        tclsh ./Hog/Tcl/utils/generate_yaml.tcl;
+      fi;
     - echo "CREATE_JOB_ID=${CI_JOB_ID}" > .env
   artifacts:
     paths:

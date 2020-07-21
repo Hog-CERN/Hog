@@ -64,7 +64,7 @@ stages:
         else 
           vivado -mode batch -notrace -source ./Hog/Tcl/CI/check_proj_ver.tcl -tclargs $PROJECT_NAME; 
         fi
-      - if [ -f "./SkippedProjects/$PROJECT_NAME" ]; then
+      - if [ -f "./VivadoProjects/$PROJECT_NAME/skip.me" ]; then
           echo "CI disabled for $PROJECT_NAME";
         else 
           ./Hog/CreateProject.sh $PROJECT_NAME;
@@ -83,7 +83,6 @@ stages:
        name: vivado_projects
        paths:
          - $CI_PROJECT_DIR/VivadoProject/$PROJECT_NAME
-         - $CI_PROJECT_DIR/SkippedProjects/$PROJECT_NAME
        expire_in: 30 day
 
 .simulate_project: &simulate_project
@@ -92,7 +91,7 @@ stages:
      variables:
         <<: *vars
      script:
-      - if [ -f "./SkippedProjects/$PROJECT_NAME" ]; then
+      - if [ -f "./VivadoProjects/$PROJECT_NAME/skip.me" ]; then
           echo "CI disabled for $PROJECT_NAME"; 
         else
           if [ -z ${HOG_SIMULATION_LIB_PATH+x} ]; then 
@@ -115,7 +114,7 @@ stages:
     variables:
         <<: *vars
     script:
-      - if [ -f "./SkippedProjects/$PROJECT_NAME" ]; then
+      - if [ -f "./VivadoProjects/$PROJECT_NAME/skip.me" ]; then
           echo "CI disabled for $PROJECT_NAME"; 
         else
           until echo $HOG_PASSWORD | kinit $HOG_USER ; do echo "Retrying"; sleep 2; done;
@@ -132,7 +131,6 @@ stages:
     artifacts:
         name: vivado_runs
         paths:
-            - $CI_PROJECT_DIR/SkippedProjects/$PROJECT_NAME
             - $CI_PROJECT_DIR/VivadoProject/$PROJECT_NAME
             - $CI_PROJECT_DIR/IP
             - $CI_PROJECT_DIR/BD
@@ -144,7 +142,7 @@ stages:
     variables:
         <<: *vars
     script:
-      - if [ -f "./SkippedProjects/$PROJECT_NAME" ]; then
+      - if [ -f "./VivadoProjects/$PROJECT_NAME/skip.me" ]; then
           echo "CI disabled for $PROJECT_NAME"; 
         else
           if [ -z ${HOG_NJOBS+x} ]; then export HOG_NJOBS=4; fi;
@@ -153,7 +151,6 @@ stages:
     artifacts:
         name: vivado_synth
         paths:
-            - $CI_PROJECT_DIR/SkippedProjects/$PROJECT_NAME
             - $CI_PROJECT_DIR/VivadoProject/$PROJECT_NAME
             - $CI_PROJECT_DIR/bin
             - $CI_PROJECT_DIR/IP
@@ -166,7 +163,7 @@ stages:
     variables:
         <<: *vars
     script:
-      - if [ -f "./SkippedProjects/$PROJECT_NAME" ]; then
+      - if [ -f "./VivadoProjects/$PROJECT_NAME/skip.me" ]; then
           echo "CI disabled for $PROJECT_NAME"; 
         else
           git status;

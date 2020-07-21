@@ -640,15 +640,19 @@ proc GetProjectVersion {tcl_file} {
     Msg CriticalWarning "$tcl_file not found"
     return -1
   }
+  set old_dir [pwd]
+  set proj_dir [file dir $tcl_file]
+  cd $proj_dir
 
   #The latest version the repository
   set v_last [ExtractVersionFromTag [exec git describe --abbrev=0 --match "v*"]]
   lassign [GetRepoVersions $tcl_file] sha ver
   if {$sha == 0} {
     Msg Warning "Repository is not clean"
+    cd $old_dir
     return -1
   }
-  
+
   #The project version
   set v_proj [ExtractVersionFromTag v[HexVersionToString $ver]]
   set comp [CompareVersion $v_proj $v_last]
@@ -664,7 +668,8 @@ proc GetProjectVersion {tcl_file} {
   } elseif {$comp == -1} {
     Msg Info "The specified project was modified in a past official version $ret"
   }
-  
+
+  cd $old_dir
   return $ret
 }
 
@@ -1724,6 +1729,20 @@ proc GetMaxThreads {proj_name} {
   }
   
   return $maxThreads
+}
+
+## @brief Returns the gitlab-ci.yml snippet for a CI stage and a defined project
+#
+#
+# @prama[in] stage:       name of the CI stage
+# @param[in] proj_name:   name of the project
+#
+#
+proc WriteYAMLStage {stage proj_name} {
+  set inner [huddle create "PROJECT_NAME" $proj_name "extends" ".vars"]
+  set middle [huddle create "extends" ".$stage" "variables" $inner ]
+  set outer [huddle create "$stage:$proj_name" $middle ]
+  return [ string trimleft [ yaml::huddle2yaml $outer ] "-" ]
 }
 
 

@@ -290,8 +290,8 @@ proc GetRepoPath {} {
 
 ## @brief Compare tu semantic versions
 #
-# @parameter[in] ver1 a list of 3 numbers M m p
-# @parameter[in] ver2 a list of 3 numbers M m p
+# @param[in] ver1 a list of 3 numbers M m p
+# @param[in] ver2 a list of 3 numbers M m p
 #
 # @return Return 1 ver1 is greather than ver2, 0 if they are equal, and -1 if ver2 is greater than ver1
 #
@@ -351,7 +351,7 @@ proc FindFileType {file_name} {
     .vhd {
       set file_extension "VHDL_FILE"
     }
-    .vhdl{
+    .vhdl {
       set file_extension "VHDL_FILE"
     }
     .v {
@@ -579,17 +579,16 @@ proc GetVerFromSHA {SHA} {
   set status [catch {exec git tag --sort=creatordate --contain $SHA -l "v*.*.*" -l "b*v*.*.*"} result]
   if {$status == 0} {
     if {[regexp {^ *$} $result]} {
-      #The tag in $result does not contains the current SHA
-      #In this case we want the newest tag of the repo  
-      if [catch {exec git tag --sort=-creatordate -l "v*.*.*" -l "b*v*.*.*"} last_tag] {
+      #newest tag of the repo, parent of the SHA  
+      if [catch {exec git describe --tags --abbrev=0 --match=v*.*.* --match=b*v*.*.*} tag] {
         Msg CriticalWarning "No Hog version tags found in this repository ($path)."
         set ver v0.0.0
       } else {
-	#The tag is found we want to incremement it only if it's official
-        set tags [split $last_tag "\n"]
-        set tag [lindex $tags 0]
         lassign [ExtractVersionFromTag $tag] M m p mr
-        if {$mr == -1} {
+	if {$M == -1} {
+	  Msg CriticalWarning "Tag $tag does not contain a Hog compatible version, in repository $path."
+	  set ver v0.0.0
+	} elseif {$mr == -1} {
           incr p
           Msg Info "No tag contains $SHA, will use most recent tag $tag. As this is an official tag, patch will be incremented to $p."
         } else {
@@ -684,11 +683,11 @@ proc GetGitDescribe {sha} {
   }
 }
 
-## Get repository version
+## Get the versions for all libraries, submodules, etc. for a given project
 #
-#  @param[in] repo_path The repository path of which all the version must be calculated
+#  @param[in] proj_tcl_file: The tcl file of the project of which all the version must be calculated
 #
-#  @return            a list conatining all the versions: global, top (project tcl file), constraints, libraries, submodules, exteral, ipbus xml
+#  @return  a list conatining all the versions: global, top (project tcl file), constraints, libraries, submodules, exteral, ipbus xml
 #
 proc GetRepoVersions {proj_tcl_file} {
   set old_path [pwd]
@@ -891,11 +890,9 @@ proc ExtractVersionFromTag {tag} {
 # @param[in] default_level:        If version level is 3 or more, will specify what level to increase when creating the official tag: 0 will increase patch (default), 1 will increase minor and 2 will increase major.
 #
 proc TagRepository {{merge_request_number 0} {version_level 0} {default_level 0}} {
-  if [catch {exec git tag --sort=-creatordate -l "v*.*.*" -l "b*v*.*.*"} last_tag] {
+  if [catch {exec git describe --tags --abbrev=0 --match=v*.*.* --match=b*v*.*.*} tag] {
     Msg Error "No Hog version tags found in this repository."
   } else {
-    set tags [split $last_tag "\n"]
-    set tag [lindex $tags 0]
     lassign [ExtractVersionFromTag $tag] M m p mr
 
     if { $M > -1 } { # M=-1 means that the tag could not be parsed following a Hog format
@@ -949,7 +946,7 @@ proc TagRepository {{merge_request_number 0} {version_level 0} {default_level 0}
         }
 
       } else { # Tag is not official
-    #Not official, do nothing unless version level is >=3, in which case convert the unofficial to official
+	#Not official, do nothing unless version level is >=3, in which case convert the unofficial to official
         Msg Info "Found candidate version for $M.$m.$p."
         if {$version_level >= 3} {
           Msg Info "New tag will be an official version v$M.$m.$p..."
@@ -1413,8 +1410,10 @@ proc ForceUpToDate {} {
 ## @brief Copy IP generated files from/to an EOS repository
 #
 # @param[in] what_to_do: can be "push", if you want to copy the local IP synth result to EOS or "pull" if you want to copy the files from EOS to your local repository
-# @param[in] runs_dir: the runs directory of the project. Typically called VivadoProject/<project name>/<project name>.runs
+# @param[in] xci_file: the .xci file of the IP you want to handle
+# @param[in] runs_dir: the runs directory of the project. Typically called VivadoProject/\<project name\>/\<project name\>.runs
 # @param[in] ip_path: the path of directory you want the IP to be saved on eos
+# @param[in] force: if not set to 0, will copy the IP to EOS even if it is already present
 #
 proc HandleIP {what_to_do xci_file ip_path runs_dir {force 0}} {
   if {!($what_to_do eq "push") && !($what_to_do eq "pull")} {

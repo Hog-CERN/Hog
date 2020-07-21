@@ -59,7 +59,7 @@ stages:
      variables:
         <<: *vars
      script:
-      - if [[ ${HOG_CHECK_PROJVER != 1 } ]]; then 
+      - if [[ ${HOG_CHECK_PROJVER} != 1 } ]]; then 
           echo "Project version checker is disabled.";
         else 
           vivado -mode batch -notrace -source ./Hog/Tcl/CI/check_proj_ver.tcl -tclargs $PROJECT_NAME; 

@@ -30,7 +30,7 @@ generate-config:
   stage: generate
   image: tcl2020/tcl2020
   script:
-    - if [[ ${HOG_CHECK_PROJVER} != 1 }]]; then
+    - if [[ ${HOG_CHECK_PROJVER} != 1 ]]; then
         echo "Project version checker is disabled.";
         tclsh ./Hog/Tcl/utils/generate_yaml.tcl --runall;
       else

@@ -73,11 +73,6 @@ stages:
           else 
             vivado -mode batch -notrace -source ./Hog/Tcl/utils/check_syntax.tcl -tclargs $PROJECT_NAME; 
           fi;
-          if [[ ${HOG_CHECK_YAMLREF} != 1 ]]; then 
-            echo 'Yaml consistency checker is disabled'; 
-          else 
-            vivado -mode batch -notrace -source ./Hog/Tcl/utils/check_yaml_ref.tcl; 
-          fi;
         fi
      artifacts:
        name: vivado_projects

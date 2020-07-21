@@ -74,7 +74,8 @@ namespace eval globalSettings {
 ################# FUNCTIONS ################################
 proc CreateProject {} {
   if {[info commands create_project] != ""} {
-	#VIVADO_ONLY
+
+    #VIVADO_ONLY
     if {$globalSettings::top_name != $globalSettings::DESIGN} {
       Msg Info "This project has got a flavour, the top module name ($globalSettings::top_name) differs from the project name ($globalSettings::DESIGN)."
     }
@@ -576,7 +577,6 @@ set globalSettings::post_bit   [file normalize "$globalSettings::tcl_path/integr
 
 
 CreateProject
-
 ConfigureSynthesis
 ConfigureImplementation
 ConfigureSimulation

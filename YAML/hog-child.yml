@@ -59,13 +59,31 @@ stages:
      variables:
         <<: *vars
      script:
-      - ./Hog/CreateProject.sh $PROJECT_NAME
-      - "if [[ ${HOG_CHECK_SYNTAX} != 1 ]]; then echo 'Syntax checker is disabled'; else vivado -mode batch -notrace -source ./Hog/Tcl/utils/check_syntax.tcl -tclargs $PROJECT_NAME; fi"
-      - "if [[ ${HOG_CHECK_YAMLREF} != 1 ]]; then echo 'Yaml consistency checker is disabled'; else vivado -mode batch -notrace -source ./Hog/Tcl/utils/check_yaml_ref.tcl ; fi"
+      - if [[ ${HOG_CHECK_PROJVER != 1 } ]]; then 
+          echo "Project version checker is disabled.";
+        else 
+          vivado -mode batch -notrace -source ./Hog/Tcl/CI/check_proj_ver.tcl -tclargs $PROJECT_NAME; 
+        fi
+      - if [ -f "./SkippedProjects/$PROJECT_NAME" ]; then
+          echo "CI disabled for $PROJECT_NAME";
+        else 
+          ./Hog/CreateProject.sh $PROJECT_NAME;
+          if [[ ${HOG_CHECK_SYNTAX} != 1 ]]; then 
+            echo 'Syntax checker is disabled'; 
+          else 
+            vivado -mode batch -notrace -source ./Hog/Tcl/utils/check_syntax.tcl -tclargs $PROJECT_NAME; 
+          fi;
+          if [[ ${HOG_CHECK_YAMLREF} != 1 ]]; then 
+            echo 'Yaml consistency checker is disabled'; 
+          else 
+            vivado -mode batch -notrace -source ./Hog/Tcl/utils/check_yaml_ref.tcl; 
+          fi;
+        fi
      artifacts:
        name: vivado_projects
        paths:
          - $CI_PROJECT_DIR/VivadoProject/$PROJECT_NAME
+         - $CI_PROJECT_DIR/SkippedProjects/$PROJECT_NAME
        expire_in: 30 day
 
 .simulate_project: &simulate_project
@@ -74,11 +92,20 @@ stages:
      variables:
         <<: *vars
      script:
-      - "if [ -z ${HOG_SIMULATION_LIB_PATH+x} ]; then echo 'Simulation library path is not defined'; else vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_simulation.tcl -tclargs -lib_path $HOG_SIMULATION_LIB_PATH $PROJECT_NAME ; fi"
+      - if [ -f "./SkippedProjects/$PROJECT_NAME" ]; then
+          echo "CI disabled for $PROJECT_NAME"; 
+        else
+          if [ -z ${HOG_SIMULATION_LIB_PATH+x} ]; then 
+            echo 'Simulation library path is not defined'; 
+          else 
+            vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_simulation.tcl -tclargs -lib_path $HOG_SIMULATION_LIB_PATH $PROJECT_NAME ;
+          fi;
+        fi
      artifacts:
        name: simulation_files
        paths:
          - $CI_PROJECT_DIR/VivadoProject/$PROJECT_NAME/$PROJECT_NAME.sim
+         - $CI_PROJECT_DIR/SkippedProjects/$PROJECT_NAME
        expire_in: 30 day
      allow_failure: true
 
@@ -88,19 +115,25 @@ stages:
     variables:
         <<: *vars
     script:
-        - until echo $HOG_PASSWORD | kinit $HOG_USER ; do echo "Retrying"; sleep 2; done
-        - if [ -z ${HOG_IP_NJOBS+x} ]; then export HOG_IP_NJOBS=4; fi
-        - "if [ -z ${HOG_IP_EOS_PATH+x} ]; then
-           echo 'No EOS path for IPs defined';
-           vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_ip_synth.tcl -tclargs -NJOBS $HOG_IP_NJOBS $PROJECT_NAME ;
-           else vivado -mode batch -notrace -source ./Hog/Tcl/utils/get_ips.tcl -tclargs -eos_ip_path \"$HOG_IP_EOS_PATH\" $PROJECT_NAME;
-            vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_ip_synth.tcl -tclargs -NJOBS $HOG_IP_NJOBS -eos_ip_path \"$HOG_IP_EOS_PATH\" $PROJECT_NAME ;
-          fi"
-        - "rm BD/*.bd ||:"
-
+      - if [ -f "./SkippedProjects/$PROJECT_NAME" ]; then
+          echo "CI disabled for $PROJECT_NAME"; 
+        else
+          until echo $HOG_PASSWORD | kinit $HOG_USER ; do echo "Retrying"; sleep 2; done
+          if [ -z ${HOG_IP_NJOBS+x} ]; then export HOG_IP_NJOBS=4; fi;
+            if [ -z ${HOG_IP_EOS_PATH+x} ]; then
+              echo 'No EOS path for IPs defined';
+              vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_ip_synth.tcl -tclargs -NJOBS $HOG_IP_NJOBS $PROJECT_NAME ;
+            else 
+              vivado -mode batch -notrace -source ./Hog/Tcl/utils/get_ips.tcl -tclargs -eos_ip_path \"$HOG_IP_EOS_PATH\" $PROJECT_NAME;
+              vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_ip_synth.tcl -tclargs -NJOBS $HOG_IP_NJOBS -eos_ip_path \"$HOG_IP_EOS_PATH\" $PROJECT_NAME ;
+            fi;
+            rm BD/*.bd ||:;
+          fi;
+        fi
     artifacts:
         name: vivado_runs
         paths:
+            - $CI_PROJECT_DIR/SkippedProjects/$PROJECT_NAME
             - $CI_PROJECT_DIR/VivadoProject/$PROJECT_NAME
             - $CI_PROJECT_DIR/IP
             - $CI_PROJECT_DIR/BD
@@ -112,11 +145,16 @@ stages:
     variables:
         <<: *vars
     script:
-        - if [ -z ${HOG_NJOBS+x} ]; then export HOG_NJOBS=4; fi
-        - vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_synthesis.tcl -tclargs -NJOBS $HOG_NJOBS $PROJECT_NAME
+      - if [ -f "./SkippedProjects/$PROJECT_NAME" ]; then
+          echo "CI disabled for $PROJECT_NAME"; 
+        else
+          if [ -z ${HOG_NJOBS+x} ]; then export HOG_NJOBS=4; fi;
+          vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_synthesis.tcl -tclargs -NJOBS $HOG_NJOBS $PROJECT_NAME;
+        fi
     artifacts:
         name: vivado_synth
         paths:
+            - $CI_PROJECT_DIR/SkippedProjects/$PROJECT_NAME
             - $CI_PROJECT_DIR/VivadoProject/$PROJECT_NAME
             - $CI_PROJECT_DIR/bin
             - $CI_PROJECT_DIR/IP
@@ -129,22 +167,25 @@ stages:
     variables:
         <<: *vars
     script:
-        - git status
-        - git diff
-        - if [ -z ${HOG_NJOBS+x} ]; then export HOG_NJOBS=4; fi
-        - if [ -z ${HOG_NO_BITSTREAM+x} ]; then export HOG_NO_BITSTREAM=0; fi
-        - "if [ $HOG_NO_BITSTREAM == '1' ]; then
+      - if [ -f "./SkippedProjects/$PROJECT_NAME" ]; then
+          echo "CI disabled for $PROJECT_NAME"; 
+        else
+          git status;
+          git diff;
+          if [ -z ${HOG_NJOBS+x} ]; then export HOG_NJOBS=4; fi;
+          if [ -z ${HOG_NO_BITSTREAM+x} ]; then export HOG_NO_BITSTREAM=0; fi;
+          if [ $HOG_NO_BITSTREAM == '1' ]; then
            vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_implementation.tcl -tclargs -no_bitstream -NJOBS $HOG_NJOBS  $PROJECT_NAME;
            else vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_implementation.tcl -tclargs -NJOBS $HOG_NJOBS $PROJECT_NAME;
-           fi"
-        - "cat $CI_PROJECT_DIR/bin/$PROJECT_NAME*/versions* $CI_PROJECT_DIR/bin/$PROJECT_NAME*/timing_* > note.md"
-        - proj_bindir=$(echo $CI_PROJECT_DIR/bin/$PROJECT_NAME*)
-        - echo $proj_bindir
-        - file_presynth=$(shopt -s nullglob dotglob; echo $proj_bindir/diff_presynthesis.txt)
-        - file_postimpl=$(shopt -s nullglob dotglob; echo $proj_bindir/diff_postbitstream.txt)
-        - if (( ${#file_presynth} )); then printf "Found differences for $PROJECT_NAME at the pre-synthesis stage.\n\n" > $proj_bindir/release_presynthesis.txt; fi;
-        - if (( ${#file_postimpl} )); then printf "Found differences for $PROJECT_NAME at the post-bitstream stage synthesis.\n\n" > $proj_bindir/release_postbitstream.txt; fi;
-        - ./Hog/Other/WriteGitlabNote.sh $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $CI_MERGE_REQUEST_IID note.md
+          fi;
+          cat $CI_PROJECT_DIR/bin/$PROJECT_NAME*/versions* $CI_PROJECT_DIR/bin/$PROJECT_NAME*/timing_* > note.md;
+          proj_bindir=$(echo $CI_PROJECT_DIR/bin/$PROJECT_NAME*);
+          file_presynth=$(shopt -s nullglob dotglob; echo $proj_bindir/diff_presynthesis.txt);
+          file_postimpl=$(shopt -s nullglob dotglob; echo $proj_bindir/diff_postbitstream.txt);
+          if (( ${#file_presynth} )); then printf "Found differences for $PROJECT_NAME at the pre-synthesis stage.\n\n" > $proj_bindir/release_presynthesis.txt; fi;
+          if (( ${#file_postimpl} )); then printf "Found differences for $PROJECT_NAME at the post-bitstream stage synthesis.\n\n" > $proj_bindir/release_postbitstream.txt; fi;
+          ./Hog/Other/WriteGitlabNote.sh $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $CI_MERGE_REQUEST_IID note.md;
+        fi
     artifacts:
         name: implementation_and_bitfiles
         paths:

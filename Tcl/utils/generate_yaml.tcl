@@ -38,12 +38,11 @@ foreach dir [glob -type d $repo_path/Top/* ] {
       set lines [split $input "\n"]
       # Loop through each line
       foreach line $lines {
-	# Do something with line here
-	set stage_and_prop [regexp -all -inline {\S+} $line]
-	set stage [lindex $stage_and_prop 0]
-	if {$stage != "" && ($stage == "create_project" || $stage == "simulate_project" || $stage == "synthesise_ips" || $stage == "synthesise_project" || $stage == "implement_project" )  } {
-	  puts $fp [ WriteYAMLStage $stage $proj ]
-	}
+        set stage_and_prop [regexp -all -inline {\S+} $line]
+        set stage [lindex $stage_and_prop 0]
+        if {$stage != "" && ($stage == "create_project" || $stage == "simulate_project" || $stage == "synthesise_ips" || $stage == "synthesise_project" || $stage == "implement_project" )  } {
+          puts $fp [ WriteYAMLStage $stage $proj ]
+        }
       }
     } else {
       puts $fp [ WriteYAMLStage "create_project" $proj ]

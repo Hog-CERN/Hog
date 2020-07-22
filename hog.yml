@@ -177,15 +177,15 @@ collect_artifacts:
         - ./Hog/Other/Changelog.sh $CI_MERGE_REQUEST_TARGET_BRANCH_NAME >> $CI_PROJECT_DIR/bin/note.md
         - diff_files=$(shopt -s nullglob dotglob; echo $CI_PROJECT_DIR/bin/*/diff*.txt);
         - if [[ $diff_files != "" ]]; then 
-            echo "## Uncommitted differences" >> $CI_PROJECT_DIR/bin/note.md
+            echo "## Uncommitted differences" >> $CI_PROJECT_DIR/bin/note.md;
             for f in $diff_files; do
-              echo "Found uncommitted differences, check log file $f" >> $CI_PROJECT_DIR/bin/note.md
-            done
+              echo "Found uncommitted differences, check log file $f" >> $CI_PROJECT_DIR/bin/note.md;
+            done;
           fi
         - note_files="versions timing"
         - for f in $note_files; do
-          files=$(shopt -s nullglob dotglob; echo $CI_PROJECT_DIR/bin/*/$f*.txt);
-          if (( ${#files} )); then cat $CI_PROJECT_DIR/bin/*/$f*.txt >> $CI_PROJECT_DIR/bin/note.md; fi;
+            files=$(shopt -s nullglob dotglob; echo $CI_PROJECT_DIR/bin/*/$f*.txt);
+            if (( ${#files} )); then cat $CI_PROJECT_DIR/bin/*/$f*.txt >> $CI_PROJECT_DIR/bin/note.md; fi;
           done
         - git fetch origin refs/notes/*:refs/notes/*
         - git notes add -fm "$CI_MERGE_REQUEST_IID $CI_COMMIT_REF_SLUG"

@@ -1747,19 +1747,13 @@ proc WriteYAMLStage {stage proj_name stage_list} {
   set dep_list [huddle list ]
   foreach s $stage_list {
     if {$s != $stage} {
-      # set str "- $s:$proj_name"
-      # set dep [huddle string $str]
-      # set dep [huddle string ]
       huddle append dep_list [huddle string "$s:$proj_name"]
     } else {
       break
     }
   }
 
-  # puts $dep_list
-
   set inner [huddle create "PROJECT_NAME" $proj_name "extends" ".vars"]
-  # set dependencies [huddle list $dep_list]
   set middle [huddle create "extends" ".$stage" "variables" $inner "dependencies" $dep_list]
   set outer [huddle create "$stage:$proj_name" $middle ]
   return [ string trimleft [ yaml::huddle2yaml $outer ] "-" ]

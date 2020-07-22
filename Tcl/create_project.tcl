@@ -527,7 +527,11 @@ if {[info exists ::SIMULATOR]} {
   set globalSettings::SIMULATOR "ModelSim"
 }
 
-set globalSettings::HOG_EXTERNAL_PATH $env(HOG_EXTERNAL_PATH)
+if {[info exists env(HOG_EXTERNAL_PATH)]} {
+  set globalSettings::HOG_EXTERNAL_PATH $env(HOG_EXTERNAL_PATH)
+} else {
+  set globalSettings::HOG_EXTERNAL_PATH ""
+}
 
 if {[info exist ::BIN_FILE]} { 
   set globalSettings::BIN_FILE $::BIN_FILE

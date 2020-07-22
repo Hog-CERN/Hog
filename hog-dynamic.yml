@@ -43,6 +43,8 @@ generate-config:
       - .env
   rules:
     - if: $CI_MERGE_REQUEST_ID
+  tags:
+    - docker 
 
 child-pipeline:
   # only:
@@ -80,5 +82,7 @@ collect_artifacts:
     paths:
     - bin/
     expire_in: 30 days
+  tags:
+    - docker
 
 

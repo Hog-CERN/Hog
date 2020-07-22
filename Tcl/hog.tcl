@@ -1244,9 +1244,11 @@ proc GetProjectFiles {} {
 # - libraries has library name as keys and a list of filenames as values
 # - properties has as file names as keys and a list of properties as values
 #
-proc GetHogFiles {list_path {ext_path ""} {list_files {.src,.con,.sub,.sim,.ext}} {sha_mode 0}} {
+proc GetHogFiles {list_path {list_files ""} {sha_mode 0} {ext_path ""}} {
   set repo_path [file normalize list_path/../../..]
-
+  if { $list_files == "" } {
+    set list_files {.src,.con,.sub,.sim,.ext}  
+  }
   set libraries [dict create]
   set properties [dict create]
   set list_files [glob -nocomplain -directory $list_path "*{$list_files}"]

@@ -48,6 +48,11 @@ merge_and_tag:
 
 make_doxygen:
     <<: *only-default
+    only:
+      refs:
+        - merge_requests
+      variables:
+        - $HOG_USE_DOXYGEN == "1"
     stage: doxygen
     variables:
         <<: *vars

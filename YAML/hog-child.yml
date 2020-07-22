@@ -67,7 +67,7 @@ stages:
       - if [ -f "./VivadoProjects/$PROJECT_NAME/skip.me" ]; then
           echo "CI disabled for $PROJECT_NAME";
         else 
-          ./Hog/CreateProject.sh $PROJECT_NAME;
+          time ./Hog/CreateProject.sh $PROJECT_NAME;
           if [[ ${HOG_CHECK_SYNTAX} != 1 ]]; then 
             echo 'Syntax checker is disabled'; 
           else 

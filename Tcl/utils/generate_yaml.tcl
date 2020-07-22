@@ -81,7 +81,12 @@ foreach dir [glob -type d $repo_path/Top/* ] {
       }
     } else {
       foreach stage $stage_list {
-        puts $fp [ WriteYAMLStage $stage $proj $stage_list ]
+        if {$stage == "simulate_project"} {
+          set sim_stages { "create_project" }
+          puts $fp [ WriteYAMLStage $stage $proj $stage_list ]
+        } else {
+          puts $fp [ WriteYAMLStage $stage $proj $stage_list ] 
+        }
       }
     }
   } else {

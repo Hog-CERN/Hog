@@ -1743,6 +1743,7 @@ proc GetMaxThreads {proj_name} {
 #
 # @prama[in] stage:       name of the CI stage
 # @param[in] proj_name:   name of the project
+# @param[in] stage_list:  the list of CI stages
 #
 #
 proc WriteYAMLStage {stage proj_name stage_list} {

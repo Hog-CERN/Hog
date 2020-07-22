@@ -47,9 +47,8 @@ workflow:
 
 stages:
   - creation
-  - simulation
   - ip
-  - synthesis
+  - synthesis_and_simulation
   - implementation
   - collect
 
@@ -82,7 +81,7 @@ stages:
 
 .simulate_project: &simulate_project
      <<: *only-default
-     stage: simulation
+     stage: synthesis_and_simulation
      variables:
         <<: *vars
      script:
@@ -133,7 +132,7 @@ stages:
 
 .synthesise_project: &synthesise_project
     <<: *only-default
-    stage: synthesis
+    stage: synthesis_and_simulation
     variables:
         <<: *vars
     script:

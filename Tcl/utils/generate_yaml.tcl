@@ -74,7 +74,7 @@ foreach dir [glob -type d $repo_path/Top/* ] {
       }
     } else {
       foreach stage $stage_list {
-        puts $fp [ WriteYAMLStage $stage $proj ]
+        puts $fp [ WriteYAMLStage $stage $proj $stage_list ]
       }
     }
   } else {

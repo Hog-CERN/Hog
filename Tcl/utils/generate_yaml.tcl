@@ -47,9 +47,10 @@ set stage_list { "create_project" "simulate_project" "synthesise_project" "imple
 file copy -force $repo_path/Hog/YAML/hog-child.yml $repo_path/generated-config.yml
 set fp [open "$repo_path/generated-config.yml" a]
 puts $fp "\n"
+
 foreach dir [glob -type d $repo_path/Top/* ] {
   set proj [ file tail $dir ]
-  set ver [ GetProjectVersion $dir/$proj.tcl ]
+  set ver [ GetProjectVersion $dir/$proj.tcl $env(HOG_EXTERNAL_PATH) ]
   if {$ver == 0 || $ver == -1 || $runall == 1} {
     if {$runall == 0} {
       Msg Info "$proj was modified, adding it to CI..."

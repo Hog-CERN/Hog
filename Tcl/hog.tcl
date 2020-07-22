@@ -446,7 +446,7 @@ proc ReadListFile {list_file path {lib ""} {sha_mode 0} } {
  	set vhdlfile [file normalize $vhdlfile]
  	set extension [file ext $vhdlfile]
 	
-	if {[lsearch {.src .sim .con .sub} $extension] >= 0 } {
+	if {[lsearch {.src .sim .con .sub .ext} $extension] >= 0 } {
 	  Msg Info "List file $vhdlfile found in list file, recoursively opening it..."
     ### Set list file properties
     set prop [lrange $file_and_prop 1 end]
@@ -635,7 +635,7 @@ proc GetVerFromSHA {SHA} {
   return $M$m$c
 }
 
-proc GetProjectVersion {tcl_file} {
+proc GetProjectVersion {tcl_file {ext_path ""}} {
   if { ![file exists $tcl_file] } {
     Msg CriticalWarning "$tcl_file not found"
     return -1
@@ -646,7 +646,7 @@ proc GetProjectVersion {tcl_file} {
 
   #The latest version the repository
   set v_last [ExtractVersionFromTag [exec git describe --abbrev=0 --match "v*"]]
-  lassign [GetRepoVersions $tcl_file] sha ver
+  lassign [GetRepoVersions $tcl_file $ext_path] sha ver
   if {$sha == 0} {
     Msg Warning "Repository is not clean"
     cd $old_dir
@@ -694,7 +694,7 @@ proc GetGitDescribe {sha} {
 #
 #  @return  a list conatining all the versions: global, top (project tcl file), constraints, libraries, submodules, exteral, ipbus xml
 #
-proc GetRepoVersions {proj_tcl_file} {
+proc GetRepoVersions {proj_tcl_file {ext_path ""}} {
   set old_path [pwd]
   set proj_tcl_file [file normalize $proj_tcl_file]
   set proj_dir [file dir $proj_tcl_file]
@@ -761,12 +761,12 @@ proc GetRepoVersions {proj_tcl_file} {
     lappend SHAs $hash
   }
 
-#Of all the constraints we get the most recent
+  #Of all the constraints we get the most recent
   set cons_hash [string toupper [exec git log --format=%h -1 {*}$cons_hashes]]
   set cons_ver [GetVerFromSHA $cons_hash]
     Msg Info "Among all the constraint list files, if more than one, the most recent version was chosen: $cons_ver commit SHA: $cons_hash"
 
-# Read external library files
+  # Read external library files
   set ext_hashes ""
   set ext_files [glob -nocomplain "./list/*.ext"]
   set ext_names ""
@@ -788,7 +788,7 @@ proc GetRepoVersions {proj_tcl_file} {
       if {![regexp {^ *$} $line] & ![regexp {^ *\#} $line] } { #Exclude empty lines and comments
         set file_and_prop [regexp -all -inline {\S+} $line]
         set hdlfile [lindex $file_and_prop 0]
-        set hdlfile "$env(HOG_EXTERNAL_PATH)/$hdlfile"
+        set hdlfile $ext_path/$hdlfile
         if { [file exists $hdlfile] } {
           set hash [lindex $file_and_prop 1]
           set current_hash [Md5Sum $hdlfile]
@@ -1244,7 +1244,7 @@ proc GetProjectFiles {} {
 # - libraries has library name as keys and a list of filenames as values
 # - properties has as file names as keys and a list of properties as values
 #
-proc GetHogFiles {list_path {list_files {.src,.con,.sub,.sim}} {sha_mode 0}} {
+proc GetHogFiles {list_path {ext_path ""} {list_files {.src,.con,.sub,.sim,.ext}} {sha_mode 0}} {
   set repo_path [file normalize list_path/../../..]
 
   set libraries [dict create]
@@ -1252,7 +1252,12 @@ proc GetHogFiles {list_path {list_files {.src,.con,.sub,.sim}} {sha_mode 0}} {
   set list_files [glob -nocomplain -directory $list_path "*{$list_files}"]
 
   foreach f $list_files {
-    lassign [ReadListFile $f $repo_path "" $sha_mode] l p
+    set ext [file extension $f]
+    if {$ext == ".ext"} {
+      lassign [ReadListFile $f $ext_path "" $sha_mode] l p
+    } else {
+      lassign [ReadListFile $f $repo_path "" $sha_mode] l p
+    }
     set libraries [dict merge $l $libraries]
     set properties [dict merge $p $properties]
   }

@@ -49,7 +49,7 @@ if { $options(external_path) != "" } {
   set ext_path ""
 }
 
-set stage_list { "create_project" "simulate_project" "synthesise_project" "implement_project" }
+set stage_list { "create_project" "simulate_project" "synthesise_ips" "synthesise_project" "implement_project" }
 
 file copy -force $repo_path/Hog/YAML/hog-child.yml $repo_path/generated-config.yml
 set fp [open "$repo_path/generated-config.yml" a]
@@ -82,10 +82,11 @@ foreach dir [glob -type d $repo_path/Top/* ] {
     } else {
       foreach stage $stage_list {
         if {$stage == "simulate_project"} {
-          set sim_stages { "create_project" }
-          puts $fp [ WriteYAMLStage $stage $proj $stage_list ]
+          set stages { "create_project" }
+          puts $fp [ WriteYAMLStage $stage $proj $stages ]
         } else {
-          puts $fp [ WriteYAMLStage $stage $proj $stage_list ] 
+          set stages { "create_project" "synthesise_ips" "synthesise_project" "implement_project" }
+          puts $fp [ WriteYAMLStage $stage $proj $stages ] 
         }
       }
     }

@@ -33,7 +33,7 @@ if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] 
   Msg Info [cmdline::usage $parameters $usage]
   exit 1
 } else {
-  set project_tcl [lindex $argv 0]
+  set project_tcl [file normalize [lindex $argv 0]]
   set project [file rootname [file tail $project_tcl]]
 }
 

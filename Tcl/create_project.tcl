@@ -46,6 +46,7 @@ namespace eval globalSettings {
   variable PROPERTIES
   variable PATH_REPO
   variable BIN_FILE
+  variable HOG_EXTERNAL_PATH
 
   variable pre_synth_file
   variable post_synth_file
@@ -170,7 +171,7 @@ proc CreateProject {} {
     ##############
   set list_files [glob -directory $globalSettings::list_path "*"]
 
-  AddHogFiles {*}[GetHogFiles $globalSettings::list_path]
+  AddHogFiles {*}[GetHogFiles $globalSettings::list_path "" 0 $globalSettings::HOG_EXTERNAL_PATH]
 }
 
 
@@ -526,6 +527,11 @@ if {[info exists ::SIMULATOR]} {
   set globalSettings::SIMULATOR "ModelSim"
 }
 
+if {[info exists env(HOG_EXTERNAL_PATH)]} {
+  set globalSettings::HOG_EXTERNAL_PATH $env(HOG_EXTERNAL_PATH)
+} else {
+  set globalSettings::HOG_EXTERNAL_PATH ""
+}
 
 if {[info exist ::BIN_FILE]} { 
   set globalSettings::BIN_FILE $::BIN_FILE

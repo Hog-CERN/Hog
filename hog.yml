@@ -18,9 +18,8 @@ include:
 stages:
     - merge
     - creation
-    - simulation
     - ip
-    - synthesis
+    - synthesis_and_simulation
     - implementation
     - collect
     - doxygen

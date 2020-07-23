@@ -26,6 +26,7 @@ if {[catch {package require cmdline} ERROR]} {
 
 set parameters {
   {runall  "If set, it will generate a gitlab-ci yml file for all projects in the Top folder, even if it has not been modified with respect to the target branch."}
+  {external_path.arg "" "Path for the external libraries not stored in the git repository."}
 }
 
 set usage "Generate a gitlab-ci.yml config file for the child pipeline - USAGE: \[-runall\]"
@@ -41,15 +42,22 @@ if { $options(runall) == 1 } {
 } else {
   set runall 0
 }
+if { $options(external_path) != "" } {
+  set ext_path $options(external_path)
+  Msg Info "External path set to $ext_path"
+} else {
+  set ext_path ""
+}
 
-set stage_list { "create_project" "simulate_project" "synthesise_project" "implement_project" }
+set stage_list { "create_project" "simulate_project" "synthesise_ips" "synthesise_project" "implement_project" }
 
 file copy -force $repo_path/Hog/YAML/hog-child.yml $repo_path/generated-config.yml
 set fp [open "$repo_path/generated-config.yml" a]
 puts $fp "\n"
+
 foreach dir [glob -type d $repo_path/Top/* ] {
   set proj [ file tail $dir ]
-  set ver [ GetProjectVersion $dir/$proj.tcl ]
+  set ver [ GetProjectVersion $dir/$proj.tcl $ext_path ]
   if {$ver == 0 || $ver == -1 || $runall == 1} {
     if {$runall == 0} {
       Msg Info "$proj was modified, adding it to CI..."
@@ -73,7 +81,13 @@ foreach dir [glob -type d $repo_path/Top/* ] {
       }
     } else {
       foreach stage $stage_list {
-        puts $fp [ WriteYAMLStage $stage $proj ]
+        if {$stage == "simulate_project"} {
+          set stages { "create_project" }
+          puts $fp [ WriteYAMLStage $stage $proj $stages ]
+        } else {
+          set stages { "create_project" "synthesise_ips" "synthesise_project" "implement_project" }
+          puts $fp [ WriteYAMLStage $stage $proj $stages ] 
+        }
       }
     }
   } else {

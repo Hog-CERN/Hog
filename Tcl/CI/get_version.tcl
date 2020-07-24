@@ -25,7 +25,7 @@ set parameters {
 }
 
 
-set usage   "Script to get project link\n- USAGE: $::argv0 \[OPTIONS\] <projec.tclt> \n. Options: "
+set usage   "This script retrieves project versions and store them in a txt file: \$PROJECT_ROOT/project_versions.txt \n- USAGE: $::argv0 \[OPTIONS\] <projec.tcl> \n. Options: "
 set path [file normalize "[file dirname [info script]]/.."]
 
 source $path/hog.tcl

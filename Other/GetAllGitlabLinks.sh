@@ -55,7 +55,7 @@ else
     echo "" > $DIR/project_links.txt
     PROJECTS=(`ls $DIR/Top`)
     for PROJECT in ${PROJECTS[@]}; do
-        vivado -mode batch -notrace -source $DIR/Hog/Tcl/CI/get_links.tcl -tclargs $DIR/Top/$PROJECT/$PROJECT.tcl
+        vivado -mode batch -notrace -source $DIR/Hog/Tcl/CI/get_version.tcl -tclargs $DIR/Top/$PROJECT/$PROJECT.tcl
     done
     
     #read version file

@@ -27,6 +27,8 @@ else
     job=$5
     tag=$6
 
+    echo "Tag is $tag"
+
     # GET all alrifacts
     ref=refs/merge-requests%2F$mr%2Fhead
     curl --location --header "PRIVATE-TOKEN: ${push_token}" $api/projects/${proj}/jobs/artifacts/$ref/download?job=$job -o output.zip

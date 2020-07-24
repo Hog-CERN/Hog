@@ -98,6 +98,7 @@ create_official_release:
   script:
     - git fetch origin refs/notes/*:refs/notes/*
     - MR=( `git notes show` )
+    - echo "CI_COMMIT_TAG=$CI_COMMIT_TAG CI_COMMIT_REF_NAME=$CI_COMMIT_REF_NAME"
     - ./Hog/Other/GetArtifactsAndRename.sh $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $MR collect_artifacts $CI_COMMIT_TAG
     - ./Hog/Other/GetAllGitlabLinks.sh $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $CI_PROJECT_URL $CI_COMMIT_TAG
     - ./Hog/Other/MakeGitlabRelease.sh $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $CI_COMMIT_TAG bin/note.md -load_artifacts

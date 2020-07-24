@@ -18,13 +18,14 @@ OLDDIR="$( pwd )"
 
 if [ -z "$1" ]                                          
 then                                                    
-        echo "Usage: GetArtifactsAndRename.sh <push token> <Gitlab api url> <project id> <merge request number> <job>"
+        echo "Usage: GetArtifactsAndRename.sh <push token> <Gitlab api url> <project id> <merge request number> <job> <tag>"
 else                                                                                                                          
     push_token=$1
     api=$2
     proj=$3
     mr=$4
     job=$5
+    tag=$6
 
     # GET all alrifacts
     ref=refs/merge-requests%2F$mr%2Fhead
@@ -32,7 +33,6 @@ else
     unzip output.zip
 
 
-    GIT_DESC=`git describe --always --tags --long`
     # Project names:
     PROJECTS=(`ls $DIR/Top`)
     for PROJECT in ${PROJECTS[@]}; do
@@ -42,13 +42,14 @@ else
             continue
         fi 
         #extract binary from git describe 
-        PRJ_BINS=(`ls bin/$PRJ_DIR/$PRJ_DIR.*`)
-        for PRJ_BIN in $PRJ_BINS; do
+        PRJ_BINS=(`ls bin/$PRJ_DIR/${PRJ_DIR}*`)
+
+        for PRJ_BIN in ${PRJ_BINS[@]}; do
             echo "#### $PRJ_BIN"
             EXT="${PRJ_BIN##*.}"
-            mv $PRJ_BIN bin/$PRJ_DIR/${PROJECT}_$GIT_DESC.$EXT
+            mv $PRJ_BIN bin/$PRJ_DIR/${PROJECT}-$tag.$EXT
         done
-        mv bin/$PRJ_DIR bin/${PROJECT}_$GIT_DESC   
+        mv bin/$PRJ_DIR bin/${PROJECT}-$tag  
 
     done
   

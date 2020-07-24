@@ -201,7 +201,8 @@ collect_artifacts:
           eos mkdir -p $HOG_UNOFFICIAL_BIN_EOS_PATH/$CI_COMMIT_SHORT_SHA;
           eos cp -r $CI_PROJECT_DIR/bin/* $HOG_UNOFFICIAL_BIN_EOS_PATH/$CI_COMMIT_SHORT_SHA; fi"
 
-    artifacts:
+    artifacts: 
+        when: always
         name: all_projects
         paths:
             - $CI_PROJECT_DIR/bin

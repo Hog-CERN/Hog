@@ -565,13 +565,13 @@ proc GetSHA {path} {
 proc GetVer {path} {
   set SHA [GetSHA $path]
   #oldest tag containing SHA
-  set comm [format %07X 0x$SHA]
-  return [list [GetVerFromSHA $SHA] $comm]
+  #set comm [format %07X 0x$SHA]
+  return [list [GetVerFromSHA $SHA] $SHA]
 }
 
 ## @brief Get git version and commit hash of a specific commit give the SHA
 #
-# @param[in] SHA the git SHA of the commit 
+# @param[in] SHA the git SHA of the commit
 #
 # @return  a list: the git SHA, the version in hex format
 #
@@ -579,7 +579,7 @@ proc GetVerFromSHA {SHA} {
   set status [catch {exec git tag --sort=creatordate --contain $SHA -l "v*.*.*" -l "b*v*.*.*"} result]
   if {$status == 0} {
     if {[regexp {^ *$} $result]} {
-      #newest tag of the repo, parent of the SHA  
+      #newest tag of the repo, parent of the SHA
       if [catch {exec git describe --tags --abbrev=0 --match=v*.*.* --match=b*v*.*.*} tag] {
         Msg CriticalWarning "No Hog version tags found in this repository ($path)."
         set ver v0.0.0
@@ -840,7 +840,7 @@ proc GetRepoVersions {proj_tcl_file {ext_path ""}} {
 
 #The global SHA and ver is the most recent among everything
   if {$clean == 1} {
-    set commit [exec git log --format=%h -1 {*}$SHAs]
+    set commit [exec git log --format=%h -1 {*}$SHAs --]
     set version [GetVerFromSHA $commit]
   } else {
     set commit  "0000000"

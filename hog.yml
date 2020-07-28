@@ -12,8 +12,8 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 include:
-  - local: YAML/hog-main.yml
   - local: YAML/hog-child.yml
+  - local: YAML/hog-main.yml
 
 stages:
     - merge

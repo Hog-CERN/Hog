@@ -25,6 +25,12 @@ before_script:
   tags:
      - hog
 
+stages:
+    - merge
+    - doxygen
+    - copy
+    - clean
+
 .vars: &vars
   GIT_STRATEGY: clone
 #   CI_DEBUG_TRACE: "true"

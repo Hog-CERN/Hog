@@ -48,6 +48,7 @@ before_script:
 #   CI_DEBUG_TRACE: "true"
 
 stages:
+    - tag
     - merge
     - creation
     - simulation
@@ -231,7 +232,7 @@ make_doxygen:
 tag_official_version:
   tags:
      - hog
-  stage: merge
+  stage: tag
   script:
      - vivado -mode batch -notrace -source ./Hog/Tcl/CI/merge_and_tag.tcl -tclargs -merged  -push $CI_COMMIT_REF_NAME -main_branch $CI_COMMIT_REF_NAME
   rules:

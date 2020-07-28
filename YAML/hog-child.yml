@@ -29,15 +29,10 @@ before_script:
     - export PATH=${HOG_PATH}:$PATH
     - export LD_LIBRARY_PATH=${HOG_LD_LIBRARY_PATH}:$LD_LIBRARY_PATH
 
-workflow:
-  rules:
-    - if: $CI_MERGE_REQUEST_ID
-
 .only-default: &only-default
-  except:
-    variables:
-      - $CI_COMMIT_REF_NAME =~ /^test\/.*$/i
-      - $CI_MERGE_REQUEST_TITLE =~ /^WIP:.*$/ && $CI_COMMIT_MESSAGE !~ /^RESOLVE_WIP:/
+  rules:
+     - if: '$CI_COMMIT_REF_NAME =~ /^test\/.*$/i && $CI_MERGE_REQUEST_TITLE =~ /^WIP:.*$/ && $CI_COMMIT_MESSAGE !~ /^RESOLVE_WIP:/'
+     - if: $CI_MERGE_REQUEST_ID
   tags:
      - hog
 
@@ -46,6 +41,7 @@ workflow:
 #   CI_DEBUG_TRACE: "true"
 
 stages:
+  - merge
   - creation
   - ip
   - synthesis_and_simulation
@@ -78,6 +74,7 @@ stages:
        paths:
          - $CI_PROJECT_DIR/VivadoProject/$PROJECT_NAME
        expire_in: 30 day
+
 
 .simulate_project: &simulate_project
      <<: *only-default
@@ -200,7 +197,6 @@ collect_artifacts:
         - "if [ -e $CI_PROJECT_DIR/bin/ -a -n '$HOG_UNOFFICIAL_BIN_EOS_PATH' ]; then until echo $HOG_PASSWORD | kinit $HOG_USER ; do echo Retrying; sleep 2; done;
           eos mkdir -p $HOG_UNOFFICIAL_BIN_EOS_PATH/$CI_COMMIT_SHORT_SHA;
           eos cp -r $CI_PROJECT_DIR/bin/* $HOG_UNOFFICIAL_BIN_EOS_PATH/$CI_COMMIT_SHORT_SHA; fi"
-
     artifacts: 
         when: always
         name: all_projects

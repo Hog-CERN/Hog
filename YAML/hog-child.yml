@@ -34,10 +34,7 @@ before_script:
     variables:
       - $CI_COMMIT_REF_NAME =~ /^test\/.*$/i
       - $CI_MERGE_REQUEST_TITLE =~ /^WIP:.*$/ && $CI_COMMIT_MESSAGE !~ /^RESOLVE_WIP:/
-  only:
-    variables:
-      - $CI_MERGE_REQUEST_ID
-    
+      - $CI_MERGE_REQUEST_ID == null  
   tags:
      - hog
 

@@ -1609,7 +1609,6 @@ You can fix this by installing package \"tcllib\""
       cd ..
       return
     } else {
-      puts "loking into $yamlDict"
       dict for {dictKey dictValue} $yamlDict {
         #looking for included files
         if {"$dictKey" == "include"} {
@@ -1620,8 +1619,7 @@ You can fix this by installing package \"tcllib\""
       }
     }
 
-    ##########
-    Msg Info "Found the followin yml files: $YML_FILES"
+    Msg Info "Found the following yml files: $YML_FILES"
 
     set HOGYML_SHA [GetSHA $YML_FILES]
     if { [catch {exec git log --format=%h -1 $YML_REF_F -- {*}$YML_FILES} EXPECTEDYML_SHA]} {

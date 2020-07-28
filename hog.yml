@@ -26,3 +26,15 @@ stages:
     - copy
     - clean
 
+tag_official_version:
+  tags:
+     - hog
+  stage: merge
+  script:
+     - vivado -mode batch -notrace -source ./Hog/Tcl/CI/merge_and_tag.tcl -tclargs -merged  -push $CI_COMMIT_REF_NAME -main_branch $CI_COMMIT_REF_NAME
+  rules:
+    - if: '$HOG_TARGET_BRANCH != null && $CI_COMMIT_REF_NAME == $HOG_TARGET_BRANCH && $CI_PIPELINE_SOURCE == "push"'
+      when: always
+    - if: '$HOG_TARGET_BRANCH == null && $CI_COMMIT_REF_NAME =~ /^master\d*$/  && $CI_PIPELINE_SOURCE == "push"'
+      when: always
+    - when: never

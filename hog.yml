@@ -12,8 +12,8 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-include:
-  - local: YAML/hog-child.yml
+# include:
+#   - local: YAML/hog-child.yml
 
 before_script:
     - export REPO=`echo $CI_PROJECT_URL | sed -e s#https://##`

@@ -1315,10 +1315,10 @@ proc AddHogFiles { libraries properties } {
           if {[file ext $f] == ".vhd" || [file ext $f] == ".vhdl" } {
             set_property -name "library" -value $rootlib -objects $file_obj
           }
-          if {[file ext $f] == ".xdc"} {
-            Msg Info "Setting filetype XDC for $f"
-            set_property -name "file_type" -value "XDC" -objects $file_obj
-          }
+          # if {[file ext $f] == ".xdc"} {
+          #   Msg Info "Setting filetype XDC for $f"
+          #   set_property -name "file_type" -value "XDC" -objects $file_obj
+          # }
 
           #ADDING FILE PROPERTIES
           set props [dict get $properties $f]

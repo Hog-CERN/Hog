@@ -1,6 +1,3 @@
-include:
-  - local: 'YAML/hog-child.yml'
-
 before_script:
     - export REPO=`echo $CI_PROJECT_URL | sed -e s#https://##`
     - git remote set-url origin https://${HOG_USER}:${HOG_PUSH_TOKEN}@$REPO

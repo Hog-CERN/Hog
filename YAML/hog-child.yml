@@ -46,6 +46,7 @@ workflow:
 #   CI_DEBUG_TRACE: "true"
 
 stages:
+  - merge
   - creation
   - ip
   - synthesis_and_simulation

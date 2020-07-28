@@ -1631,7 +1631,7 @@ You can fix this by installing package \"tcllib\""
     set EXPECTEDYML_SHA [string toupper $EXPECTEDYML_SHA]
     if  {!($EXPECTEDYML_SHA eq "")} {
       if {$HOGYML_SHA == $EXPECTEDYML_SHA} {
-        Msg Info "Hog included file $YML_FILES SHA matches with the \"ref\" in the .gitlab-ci.yml."
+        Msg Info "Hog included file $YML_FILES matches with $YML_REF in .gitlab-ci.yml."
 
       } else {
         Msg $MSG_TYPE "HOG $YML_FILES SHA mismatch.
@@ -1640,7 +1640,7 @@ You can fix this by installing package \"tcllib\""
         You can fix this in 2 ways: by changing the ref in your repository or by changing the Hog submodule commit"
       }
     } else {
-      Msg $MSG_TYPE "Could not find any file named $YML_FILES in Hog at $YML_REF"
+      Msg $MSG_TYPE "One or more of the following files could not be found $YML_FILES in Hog at $YML_REF"
     }
   } else {
     Msg Info ".gitlab-ci.yml not found in $repo_path. Skipping this step"

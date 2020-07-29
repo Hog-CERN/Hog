@@ -184,7 +184,7 @@ collect_artifacts:
             echo "## Uncommitted differences" >> $CI_PROJECT_DIR/bin/note.md;
             for f in $diff_files; do
               echo "Found uncommitted differences, check log file $f" >> $CI_PROJECT_DIR/bin/note.md;
-              echo ""
+              echo "" >> $CI_PROJECT_DIR/bin/note.md;
             done;
           fi
         - note_files="versions timing"

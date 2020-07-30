@@ -25,4 +25,3 @@ stages:
     - doxygen
     - copy
     - clean
-

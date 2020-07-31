@@ -29,7 +29,7 @@ if {[catch {package require cmdline} ERROR]} {
 set parameters {
 }
 
-set usage "- CI script that downloads artifacts from child pipelines.\n USAGE: $::argv0 <push token> <Gitlab api url> <project id> <parent pipeline id> <commit SHA> <create_job id>\[OPTIONS\] \n. Options:"
+set usage "- CI script that downloads artifacts from child pipelines.\n USAGE: $::argv0 <push token> <Gitlab api url> <project id> <CI pipeline id> <commit SHA> <create_job id>\[OPTIONS\] \n. Options:"
 
 if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] ||  [llength $argv] < 6 } {
   Msg Info [cmdline::usage $parameters $usage]
@@ -40,13 +40,13 @@ if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] 
 set push_token [lindex $argv 0]
 set api [lindex $argv 1]
 set proj_id [lindex $argv 2]
-set parent_pipeline_id [lindex $argv 3]
+set ci_pipeline_id [lindex $argv 3]
 set commit_sha [lindex $argv 4]
 set create_job_id [lindex $argv 5]
 set page 1
 
 
-if [catch {exec curl -s --request GET --header "PRIVATE-TOKEN: ${push_token}" "${api}/projects/${proj_id}/pipelines/${parent_pipeline_id}/jobs/?page=${page}"} msg ] {
+if [catch {exec curl -s --request GET --header "PRIVATE-TOKEN: ${push_token}" "${api}/projects/${proj_id}/pipelines/${ci_pipeline_id}/jobs/?page=${page}"} msg ] {
   Msg Error "Some problem when getting parent pipeline: $msg"
   return -1
 } else {

@@ -71,10 +71,10 @@ collect_artifacts:
     - git status
     - git submodule init 
     - git submodule update Hog
-  image: gitlab-registry.cern.ch/hog/hog-docker:ubuntu
+  image: tcl2020/tcl2020
   stage: collect
   script:
-    - python3 Hog/Other/DownloadChildArtifacts.py
+    - tclsh Hog/Tcl/CI/download_child_artifacts.tcl $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $PARENT_PIPELINE_ID $CI_COMMIT_SHA $CREATE_JOB_ID
   coverage: '/Statements\s+:\s(\d+.?\d+)%/'
   rules:
     - if: $CI_MERGE_REQUEST_ID

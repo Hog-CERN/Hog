@@ -1662,7 +1662,7 @@ proc ParseJSON {JSON_FILE JSON_KEY} {
 
   set result [catch {package require json} JsonFound]
   if {"$result" != "0"} {
-    Msg CriticalWarning "Cannot find JSON package equal or higher than 8.4.\n $JsonFound\n Exiting"
+    Msg CriticalWarning "Cannot find JSON package equal or higher than 1.0.\n $JsonFound\n Exiting"
     return -1
   }
   set JsonDict [json::json2dict  $JSON_FILE]

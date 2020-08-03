@@ -44,6 +44,46 @@ else
   then
     LIBPATH="-lib_path $2"
   fi	
-  ##! invoke vivado to launch launch_simulation.tcl script using args: '-lib_path $2 $1'
-  vivado -nojournal -nolog -mode batch -notrace -source $DIR/Tcl/launchers/launch_simulation.tcl -tclargs $LIBPATH $1 
+
+  local PROJ=$1
+  local PROJ_DIR="../Top/"$PROJ
+  if [ -d "$PROJ_DIR" ]
+  then
+
+    #Choose if the project is quastus, vivado, vivado_hls [...]
+    select_command $PROJ_DIR"/"$PROJ".tcl"
+    if [ $? != 0 ]
+    then
+      echo "Failed to select project type: exiting!"
+      exit -1
+    fi
+
+    #select full path to executable and place it in HDL_COMPILER global variable
+    select_compiler_executable $COMMAND
+    if [ $? != 0 ]
+    then
+      echo "Hog-ERROR: failed to get HDL compiler executable for $COMMAND"
+      exit -1
+    fi
+
+    if [ ! -f "${HDL_COMPILER}" ]
+    then
+      echo "Hog-ERROR: HLD compiler executable $HDL_COMPILER not found"
+      cd "${OLD_DIR}"
+      exit -1
+    else
+      echo "Hog-INFO: using executable: $HDL_COMPILER"
+    fi
+    if [$COMMAND = "vivado" ]
+    then
+      "${HDL_COMPILER}" $COMMAND_OPT $DIR/Tcl/launchers/launch_simulation.tcl -tclargs $LIBPATH $1
+    elif [$COMMAND = "quartus_sh" ]
+      "${HDL_COMPILER}" $COMMAND_OPT $DIR/Tcl/launchers/launch_simulation.tcl $LIBPATH $1
+    fi
+  else
+    echo "Hog-ERROR: project $PROJ not found: possible projects are: `ls $DIR`"
+    echo
+    cd "${OLD_DIR}"
+    exit -1
+  fi
 fi

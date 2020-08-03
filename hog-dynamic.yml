@@ -78,10 +78,10 @@ collect_artifacts:
         echo "You must save a .env file as an upstream artifact containing the Child Pipeline Creator's Job ID as CREATE_JOB_ID";
         exit 1;
       else
-        source .env
+        source .env;
       fi;
     - if tclsh Hog/Tcl/CI/download_child_artifacts.tcl $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $CI_COMMIT_SHA $CREATE_JOB_ID; then
-        exit 1
+        exit 1;
       fi;
    
   coverage: '/Statements\s+:\s(\d+.?\d+)%/'

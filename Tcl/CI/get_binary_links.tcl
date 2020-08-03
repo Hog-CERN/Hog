@@ -66,7 +66,7 @@ foreach dir [glob -type d $repo_path/Top/* ] {
      puts $fp "$proj $absolute_url"     
     
   } elseif {"$ver"=="-1"} {
-    Msg CriticalWarning "Something went wrong when tried to retieve version for project $proj"
+    Msg CriticalWarning "Something went wrong when tried to retrieve version for project $proj"
     cd $OldPath
     return
   } else {

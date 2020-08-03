@@ -545,8 +545,6 @@ proc GetFileList {FILE path} {
 
 ## @brief Get git SHA of a subset of list file
 #
-# If the special string "ALL" is used, returns the global hash
-#
 # @param[in] path the file/path or list of files/path the git SHA should be evaluated from 
 #
 # @return         the value of the desired SHA
@@ -1599,31 +1597,50 @@ You can fix this by installing package \"tcllib\""
     } else {
       set YML_NAME_F [regsub -all "^/" $YML_NAME ""]
     }
-  #getting Hog repository tag and commit
+
+    lappend YML_FILES $YML_NAME_F
+
+    #getting Hog repository tag and commit
     cd "Hog"
-    set HOGYML_SHA [exec git log --format=%H -1 --  $YML_NAME_F ]
-    if { [catch {exec git log --format=%H -1 $YML_REF_F -- $YML_NAME_F} EXPECTEDYML_SHA]} {
-      if { [catch {exec git log --format=%H -1 origin/$YML_REF_F -- $YML_NAME_F} EXPECTEDYML_SHA]} {
+
+    #check if the yml file includes other files
+    if { [catch {::yaml::yaml2dict -file $YML_NAME_F}  yamlDict]} {
+      Msg $MSG_TYPE "Parsing $YML_NAME_F failed."
+      cd ..
+      return
+    } else {
+      dict for {dictKey dictValue} $yamlDict {
+        #looking for included files
+        if {"$dictKey" == "include"} {
+	  foreach v $dictValue { 
+	    lappend YML_FILES [lindex [split $v " "]  [expr [lsearch -dictionary [split $v " "] "local"]+1 ] ]
+	  }
+	}
+      }
+    }
+
+    Msg Info "Found the following yml files: $YML_FILES"
+
+    set HOGYML_SHA [GetSHA $YML_FILES]
+    if { [catch {exec git log --format=%h -1 $YML_REF_F -- {*}$YML_FILES} EXPECTEDYML_SHA]} {
+      if { [catch {exec git log --format=%h -1 origin/$YML_REF_F -- {*}$YML_FILES} EXPECTEDYML_SHA]} {
         Msg $MSG_TYPE "Error in project .gitlab-ci.yml. ref: $YML_REF not found"
         set EXPECTEDYML_SHA ""
       }
-
     }
-
+    set EXPECTEDYML_SHA [string toupper $EXPECTEDYML_SHA]
     if  {!($EXPECTEDYML_SHA eq "")} {
       if {$HOGYML_SHA == $EXPECTEDYML_SHA} {
-        Msg Info "Hog included file $YML_NAME_F SHA matches with the \"ref\" in the .gitlab-ci.yml."
+        Msg Info "Hog included file $YML_FILES matches with $YML_REF in .gitlab-ci.yml."
 
       } else {
-        Msg $MSG_TYPE "HOG $YML_NAME_F SHA mismatch.
+        Msg $MSG_TYPE "HOG $YML_FILES SHA mismatch.
         From Hog submodule: $HOGYML_SHA
-        From .gitlab-ci.yml: $EXPECTEDYML_SHA
-        You can fix this in 2 ways: (A) by changing the ref in your repository or (B) by changing the Hog submodule commit.
-        \tA) edit project .gitlab-ci.yml ---> ref: '$HOGYML_SHA'
-        \tB) modify Hog submodule: git checkout $EXPECTEDYML_SHA"
+        From ref in .gitlab-ci.yml: $EXPECTEDYML_SHA
+        You can fix this in 2 ways: by changing the ref in your repository or by changing the Hog submodule commit"
       }
     } else {
-      Msg $MSG_TYPE "Could not find any file named $YML_NAME_F in Hog at $YML_REF"
+      Msg $MSG_TYPE "One or more of the following files could not be found $YML_FILES in Hog at $YML_REF"
     }
   } else {
     Msg Info ".gitlab-ci.yml not found in $repo_path. Skipping this step"

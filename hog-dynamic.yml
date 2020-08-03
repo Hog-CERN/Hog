@@ -28,7 +28,7 @@ generate-config:
   #   refs:
   #     - merge_requests
   stage: generate
-  image: tcl2020/tcl2020
+  image: gitlab-registry.cern.ch/hog/hog-docker:tclsh
   script:
     - if [[ ${HOG_CHECK_PROJVER} != 1 ]]; then
         echo "Project version checker is disabled.";
@@ -72,7 +72,7 @@ collect_artifacts:
     - git status
     - git submodule init 
     - git submodule update Hog
-  image: tcl2020/tcl2020
+  image: gitlab-registry.cern.ch/hog/hog-docker:tclsh
   stage: collect
   script:
     - if [ ! -f .env ]; then

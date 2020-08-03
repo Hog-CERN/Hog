@@ -27,11 +27,12 @@ if {[catch {package require cmdline} ERROR]} {
 }
 
 set parameters {
+  parent_pipeline_id.arg "" "Parent pipeline identifier"
 }
 
-set usage "- CI script that downloads artifacts from child pipelines.\n USAGE: $::argv0 <push token> <Gitlab api url> <project id> <CI pipeline id> <commit SHA> <create_job id>\[OPTIONS\] \n. Options:"
+set usage "- CI script that downloads artifacts from child pipelines.\n USAGE: $::argv0 \[OPTIONS\] <push token> <Gitlab api url> <project id> <commit SHA> <create_job id> \n. Options:"
 
-if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] ||  [llength $argv] < 6 } {
+if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] ||  [llength $argv] < 5 } {
   Msg Info [cmdline::usage $parameters $usage]
   cd $OldPath
   return
@@ -40,13 +41,18 @@ if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] 
 set push_token [lindex $argv 0]
 set api [lindex $argv 1]
 set proj_id [lindex $argv 2]
-set ci_pipeline_id [lindex $argv 3]
-set commit_sha [lindex $argv 4]
-set create_job_id [lindex $argv 5]
+set commit_sha [lindex $argv 3]
+set create_job_id [lindex $argv 4]
 set page 1
 
 
-if [catch {exec curl -s --request GET --header "PRIVATE-TOKEN: ${push_token}" "${api}/projects/${proj_id}/pipelines/${ci_pipeline_id}/jobs/?page=${page}"} msg ] {
+if {"$options(parent_pipeline_id)" == ""} {
+  set curl_url "${api}/projects/${proj_id}/jobs/?page=${page}"
+} else {
+  set curl_url "${api}/projects/${proj_id}/pipelines/${parent_pipeline_id}/jobs/?page=${page}"
+}
+
+if [catch {exec curl -s --request GET --header "PRIVATE-TOKEN: ${push_token}" $curl_url } msg ] {
   Msg Error "Some problem when getting parent pipeline: $msg"
   return -1
 } else {
@@ -56,12 +62,12 @@ if [catch {exec curl -s --request GET --header "PRIVATE-TOKEN: ${push_token}" "$
     return -1
   }
 
+
   set ChildList [json::json2dict  $msg]
   foreach Child $ChildList {
     set result [catch {dict get  $Child "id"} child_job_id]
     if {"$result" != "0" || $child_job_id < $create_job_id} {
-      Msg Error "Problem when getting child JOB id:\n $child_job_id\n Exiting"
-      return -1
+      continue
     }
     set result [catch {dict get [dict get $Child "commit"] "id"} child_sha]
     if {"$result" != "0"} {
@@ -69,7 +75,7 @@ if [catch {exec curl -s --request GET --header "PRIVATE-TOKEN: ${push_token}" "$
       return -1
     }
     if { "$child_sha" != "$commit_sha" } {
-      Msg CriticalWarning "Child process $child_job_id SHA $child_sha does not correspond to current SHA $commit_sha. Ignoring child process"
+      #Msg CriticalWarning "Child process $child_job_id SHA $child_sha does not correspond to current SHA $commit_sha. Ignoring child process"
       continue
     }
 

@@ -81,9 +81,8 @@ collect_artifacts:
       else
         source .env;
       fi;
-    - if tclsh Hog/Tcl/CI/download_child_artifacts.tcl $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $CI_COMMIT_SHA $CREATE_JOB_ID; then
-        exit 1;
-      fi;
+    - tclsh Hog/Tcl/CI/download_child_artifacts.tcl $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $CI_COMMIT_SHA $CREATE_JOB_ID
+    - echo "Tcl command returned $?"
    
   coverage: '/Statements\s+:\s(\d+.?\d+)%/'
   rules:

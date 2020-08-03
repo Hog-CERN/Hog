@@ -51,7 +51,7 @@ build-doxygen-official:
 
 changelog:
       stage: tag
-      image: tcl2020/tcl2020:latest
+      image: gitlab-registry.cern.ch/hog/hog-docker:tclsh
       only:
            refs:
               - merge_requests
@@ -76,7 +76,7 @@ changelog:
 
 tagging_develop:
       stage: tag
-      image: tcl2020/tcl2020:latest
+      image: gitlab-registry.cern.ch/hog/hog-docker:tclsh
       only:
           - push
           - web
@@ -89,7 +89,7 @@ tagging_develop:
 
 tagging_master_hotfix:
       stage: tag
-      image: tcl2020/tcl2020:latest
+      image: gitlab-registry.cern.ch/hog/hog-docker:tclsh
       only:
           - push
           - web
@@ -105,7 +105,7 @@ tagging_master_hotfix:
 
 create_release_note:
         stage: tag
-        image: tcl2020/tcl2020:latest
+        image: gitlab-registry.cern.ch/hog/hog-docker:tclsh
         only:
           refs:
             - tags

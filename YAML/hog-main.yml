@@ -35,7 +35,7 @@ before_script:
 
 merge_and_tag:
   <<: *only-default
-  <<: *tag-sr
+  <<: *tag-hog
   stage: merge
   variables:
     GIT_STRATEGY: clone
@@ -47,9 +47,9 @@ merge_and_tag:
     - if [[ ${HOG_CHECK_YAMLREF} != 1 ]]; then 
         echo 'Yaml consistency checker is disabled'; 
       else 
-        tclsh ./Hog/Tcl/utils/check_yaml_ref.tcl; 
+        vivado -mode batch -notrace -source ./Hog/Tcl/utils/check_yaml_ref.tcl; 
       fi;
-    - tclsh ./Hog/Tcl/CI/merge_and_tag.tcl -mr_par "{$MR_PARAMETERS}" -mr_id $CI_MERGE_REQUEST_IID -push $CI_COMMIT_REF_NAME -main_branch $CI_MERGE_REQUEST_TARGET_BRANCH_NAME $INCREASE
+    - vivado -mode batch -notrace -source  ./Hog/Tcl/CI/merge_and_tag.tcl -tclargs -mr_par "{$MR_PARAMETERS}" -mr_id $CI_MERGE_REQUEST_IID -push $CI_COMMIT_REF_NAME -main_branch $CI_MERGE_REQUEST_TARGET_BRANCH_NAME $INCREASE
 
 make_doxygen:
     <<: *only-default

@@ -10,9 +10,6 @@ before_script:
     - git checkout $CI_COMMIT_REF_NAME --
     - git submodule init 
     - git submodule update Hog
-    - export XILINXD_LICENSE_FILE=${HOG_XIL_LICENSE}
-    - export PATH=${HOG_PATH}:$PATH
-    - export LD_LIBRARY_PATH=${HOG_LD_LIBRARY_PATH}:$LD_LIBRARY_PATH
 
 .only-default: &only-default
   only:
@@ -22,8 +19,15 @@ before_script:
     variables:
       - $CI_COMMIT_REF_NAME =~ /^test\/.*$/i
       - $CI_MERGE_REQUEST_TITLE =~ /^WIP:.*$/ && $CI_COMMIT_MESSAGE !~ /^RESOLVE_WIP:/
+
+.tag-hog: &tag-hog
   tags:
      - hog
+
+.tag-sr: &tag-sr
+  tags:
+     - docker
+  image: gitlab-registry.cern.ch/hog/hog-docker:tclsh
 
 .vars: &vars
   GIT_STRATEGY: clone
@@ -31,6 +35,7 @@ before_script:
 
 merge_and_tag:
   <<: *only-default
+  <<: *tag-sr
   stage: merge
   variables:
     GIT_STRATEGY: clone
@@ -42,12 +47,13 @@ merge_and_tag:
     - if [[ ${HOG_CHECK_YAMLREF} != 1 ]]; then 
         echo 'Yaml consistency checker is disabled'; 
       else 
-        vivado -mode batch -notrace -source ./Hog/Tcl/utils/check_yaml_ref.tcl; 
+        tclsh ./Hog/Tcl/utils/check_yaml_ref.tcl; 
       fi;
-    - vivado -mode batch -notrace -source ./Hog/Tcl/CI/merge_and_tag.tcl -tclargs -mr_par "{$MR_PARAMETERS}" -mr_id $CI_MERGE_REQUEST_IID -push $CI_COMMIT_REF_NAME -main_branch $CI_MERGE_REQUEST_TARGET_BRANCH_NAME $INCREASE
+    - tclsh ./Hog/Tcl/CI/merge_and_tag.tcl -mr_par "{$MR_PARAMETERS}" -mr_id $CI_MERGE_REQUEST_IID -push $CI_COMMIT_REF_NAME -main_branch $CI_MERGE_REQUEST_TARGET_BRANCH_NAME $INCREASE
 
 make_doxygen:
     <<: *only-default
+    <<: *tag-hog
     only:
       refs:
         - merge_requests
@@ -74,11 +80,10 @@ make_doxygen:
     allow_failure: true
 
 tag_official_version:
-  tags:
-     - hog
+  <<: *tag-sr
   stage: merge
   script:
-     - vivado -mode batch -notrace -source ./Hog/Tcl/CI/merge_and_tag.tcl -tclargs -merged  -push $CI_COMMIT_REF_NAME -main_branch $CI_COMMIT_REF_NAME
+     - tclsh ./Hog/Tcl/CI/merge_and_tag.tcl -merged  -push $CI_COMMIT_REF_NAME -main_branch $CI_COMMIT_REF_NAME
   rules:
     - if: '$HOG_TARGET_BRANCH != null && $CI_COMMIT_REF_NAME == $HOG_TARGET_BRANCH && $CI_PIPELINE_SOURCE == "push"'
       when: always
@@ -92,14 +97,13 @@ create_official_release:
       - tags
     variables:
       - $CI_COMMIT_TAG =~ /^v.*$/ && $HOG_CREATE_OFFICIAL_RELEASE == "1"
-  tags:
-    - hog
+  <<: *tag-sr
   stage: copy
   script:
     - git fetch origin refs/notes/*:refs/notes/*
     - MR=( `git notes show` )
     - ./Hog/Other/GetArtifactsAndRename.sh $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $MR collect_artifacts $CI_COMMIT_TAG
-    -  vivado -mode batch -notrace -source ./Hog/Tcl/CI/get_binary_links.tcl -tclargs $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $CI_PROJECT_URL $CI_COMMIT_TAG
+    -  tclsh ./Hog/Tcl/CI/get_binary_links.tcl $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $CI_PROJECT_URL $CI_COMMIT_TAG
     - ./Hog/Other/MakeGitlabRelease.sh $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $CI_COMMIT_TAG bin/note.md -load_artifacts
   allow_failure: true
   artifacts:
@@ -113,12 +117,11 @@ copy_to_eos:
       - tags
     variables:
       - $CI_COMMIT_TAG =~ /^v.*$/ && $HOG_OFFICIAL_BIN_EOS_PATH != null && $HOG_UNOFFICIAL_BIN_EOS_PATH != null
-  tags:
-    - hog
+  <<: *tag-sr
   stage: copy
   script:
     - until echo $HOG_PASSWORD | kinit $HOG_USER ; do echo Retrying; sleep 2; done
-    - vivado -mode batch -notrace -source ./Hog/Tcl/CI/copy_to_eos.tcl -tclargs $HOG_OFFICIAL_BIN_EOS_PATH $HOG_UNOFFICIAL_BIN_EOS_PATH $CI_COMMIT_TAG $CI_COMMIT_SHORT_SHA
+    - tclsh ./Hog/Tcl/CI/copy_to_eos.tcl $HOG_OFFICIAL_BIN_EOS_PATH $HOG_UNOFFICIAL_BIN_EOS_PATH $CI_COMMIT_TAG $CI_COMMIT_SHORT_SHA
 
 cleaning:
   only:
@@ -126,10 +129,9 @@ cleaning:
       - tags
     variables:
       - $CI_COMMIT_TAG =~ /^v.*$/ && $HOG_OFFICIAL_BIN_EOS_PATH != null && $HOG_UNOFFICIAL_BIN_EOS_PATH != null
-  tags:
-     - hog
+  <<: *tag-sr
   stage: clean
   script:
      - until echo $HOG_PASSWORD | kinit $HOG_USER ; do echo "Retrying"; sleep 2; done
-     - if [ -z ${HOG_UNOFFICIAL_BIN_EOS_PATH+x} ]; then echo "HOG_UNOFFICIAL_BIN_EOS_PATH not specified, nothing to clean..."; else vivado -mode batch -notrace -source Hog/Tcl/CI/clean_unofficial.tcl -tclargs $HOG_UNOFFICIAL_BIN_EOS_PATH $CI_COMMIT_TAG; fi
+     - if [ -z ${HOG_UNOFFICIAL_BIN_EOS_PATH+x} ]; then echo "HOG_UNOFFICIAL_BIN_EOS_PATH not specified, nothing to clean..."; else tclsh Hog/Tcl/CI/clean_unofficial.tcl $HOG_UNOFFICIAL_BIN_EOS_PATH $CI_COMMIT_TAG; fi
   allow_failure: true

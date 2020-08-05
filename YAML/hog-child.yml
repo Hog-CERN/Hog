@@ -33,8 +33,15 @@ before_script:
   rules:
      - if: '$CI_COMMIT_REF_NAME =~ /^test\/.*$/i && $CI_MERGE_REQUEST_TITLE =~ /^WIP:.*$/ && $CI_COMMIT_MESSAGE !~ /^RESOLVE_WIP:/'
      - if: $CI_MERGE_REQUEST_ID
+
+.tag-hog: &tag-hog
   tags:
      - hog
+
+.tag-sr: &tag-sr
+  tags:
+     - docker
+  image: gitlab-registry.cern.ch/hog/hog-docker:tclsh
 
 .vars: &vars
     GIT_STRATEGY: clone
@@ -50,6 +57,7 @@ stages:
 
 .create_project: &create_project
      <<: *only-default
+     <<: *tag-hog
      stage: creation
      variables:
         <<: *vars
@@ -78,6 +86,7 @@ stages:
 
 .simulate_project: &simulate_project
      <<: *only-default
+     <<: *tag-hog
      stage: synthesis_and_simulation
      variables:
         <<: *vars
@@ -101,6 +110,7 @@ stages:
 
 .synthesise_ips: &synthesise_ips
     <<: *only-default
+    <<: *tag-hog
     stage: ip
     variables:
         <<: *vars
@@ -129,6 +139,7 @@ stages:
 
 .synthesise_project: &synthesise_project
     <<: *only-default
+    <<: *tag-hog
     stage: synthesis_and_simulation
     variables:
         <<: *vars
@@ -150,6 +161,7 @@ stages:
 
 .implement_project: &implement_project
     <<: *only-default
+    <<: *tag-hog
     stage: implementation
     variables:
         <<: *vars
@@ -173,6 +185,7 @@ stages:
 
 collect_artifacts:
     <<: *only-default
+    <<: *tag-sr
     stage: collect
     variables:
         <<: *vars

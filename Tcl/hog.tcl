@@ -1570,7 +1570,17 @@ You can fix this by installing package \"tcllib\""
     #get .gitlab-ci ref
     set YML_REF ""
     set YML_NAME ""
-    if { [catch {::yaml::yaml2dict -file .gitlab-ci.yml}  yamlDict]} {
+    if { [file exist .gitlab-ci.yml] } {
+      set fp [open ".gitlab-ci.yml" r]
+      set file_data [read $fp]
+      close $fp
+    } else {
+      Msg $MSG_TYPE "Cannot open file .gitlab-ci.yml"
+      return
+    }
+    set file_data "$file_data\n\n"
+
+    if { [catch {::yaml::yaml2dict -stream $file_data}  yamlDict]} {
       Msg $MSG_TYPE "Parsing .gitlab-ci.yml failed. To fix this, check that yaml syntax is respected, remember not to use tabs."
       return
     } else {

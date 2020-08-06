@@ -689,6 +689,7 @@ proc GetGitDescribe {sha} {
 ## Get the versions for all libraries, submodules, etc. for a given project
 #
 #  @param[in] proj_tcl_file: The tcl file of the project of which all the version must be calculated
+#  @param[in] ext_path path for external libraries
 #
 #  @return  a list conatining all the versions: global, top (project tcl file), constraints, libraries, submodules, exteral, ipbus xml
 #
@@ -1237,6 +1238,7 @@ proc GetProjectFiles {} {
 # @param[in] list_path path to the list file directory
 # @param[in] list_files the file wildcard, if not spcified all Hog list files will be looked for
 # @param[in] sha_mode forwarded to ReadListFile, see there for info
+# @param[in] ext_path path for external libraries forwarded to ReadListFile
 #
 # @return a list of 2 dictionaries: libraries and properties
 # - libraries has library name as keys and a list of filenames as values
@@ -1764,7 +1766,7 @@ proc GetMaxThreads {proj_name} {
 ## @brief Returns the gitlab-ci.yml snippet for a CI stage and a defined project
 #
 #
-# @prama[in] stage:       name of the CI stage
+# @param[in] stage:       name of the CI stage
 # @param[in] proj_name:   name of the project
 # @param[in] stage_list:  the list of CI stages
 #

@@ -32,7 +32,9 @@ before_script:
 .only-default: &only-default
   rules:
      - if: '$CI_COMMIT_REF_NAME =~ /^test\/.*$/i'
+       when: never
      - if: '$CI_MERGE_REQUEST_TITLE =~ /^WIP:.*$/ && $CI_COMMIT_MESSAGE !~ /^RESOLVE_WIP:/'
+       when: never
      - if: $CI_MERGE_REQUEST_ID
   tags:
      - hog

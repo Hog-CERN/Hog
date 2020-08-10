@@ -18,7 +18,7 @@
 
 #parsing command options
 if {[catch {package require cmdline} ERROR]} {
-  puts "$ERROR\n If you are running this script on tclsh, you can fix this by installing 'tcllib'" 
+  puts "$ERROR\n If you are running this script on tclsh, you can fix this by installing 'tcllib'"
   return
 }
 set parameters {
@@ -49,7 +49,7 @@ lassign [eos "ls $unofficial"] ret bitfiles
 set list_bitfiles [split $bitfiles "\n"]
 
 foreach bitfile $list_bitfiles {
-  set status [catch {exec git tag --contains $bitfile} contained]
+  set status [catch {exec git tag --contains $bitfile -l "v*.*.*"} contained]
   if { $status==0 && [string first "$git_tag" $contained] != -1 } {
     Msg Info "Removing files corresponding to SHA $bitfile"
     lassign [eos "rm -r $unofficial/$bitfile"] status2 deletion

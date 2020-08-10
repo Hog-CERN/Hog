@@ -25,7 +25,7 @@ set parameters {
   {generate  "If set, the VHDL address files will be generated and replaced if already exisiting."}
 }
 
-set usage   "Copy IPBus XML files listed in a Hog list file and replace the version and SHA placeholders if they are present in any of the XML files.\nUsage: $argv0 <XML list file> <destination directory> \[-generate\]"
+set usage   "Copy IPBus XML files listed in a XML list file of a project and replace the version and SHA placeholders if they are present in any of the XML files.\nUsage: $argv0  \[-generate\] <project> <destination directory>"
 set tcl_path [file dirname [info script]]
 set repo_path [file normalize $tcl_path/../../..]
 source $tcl_path/../hog.tcl
@@ -35,7 +35,7 @@ if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] 
   Msg Info [cmdline::usage $parameters $usage]
   exit 1
 } else {
-  set list_file [lindex $argv 0]
+  set project [lindex $argv 0]
   set dst       [lindex $argv 1]
   if { $options(generate) == 1 } {
     set generate 1
@@ -44,6 +44,7 @@ if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] 
   }
 }
 
+set list_file $repo_path/Top/$project/list/xml.lst
 if {[file exists $list_file]} {
   if ![file exists $dst] {
     Msg Info "$dst directory not found, creating it..."
@@ -53,7 +54,10 @@ if {[file exists $list_file]} {
   Msg Error "$list_file not found"
   exit
 }
-lassign [GetVer $list_file $repo_path] hex_ver sha
+set ret [GetRepoVersions $repo_path/Top/$project/$project.tcl]
+
+set sha [lindex $ret 15]
+set hex_ver [lindex $ret 16]
 
 set ver [HexVersionToString $hex_ver]
-CopyXMLsFromListFile $list_file $repo_path $dst $generate $ver $sha
+CopyXMLsFromListFile $list_file $repo_path $dst $ver $sha $generate

@@ -10,8 +10,8 @@
 --   distributed under the License is distributed on an "AS IS" BASIS,
 --   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 --   See the License for the specific language governing permissions and
---   limitations under the License.
-
+--   limitations under the License
+.
 -- Doxygen-compatible comments
 --! @file
 --! @brief top_<myproj>
@@ -33,8 +33,10 @@ entity top_myproj is
     GLOBAL_SHA  : std_logic_vector(31 downto 0);
     TOP_VER     : std_logic_vector(31 downto 0);
     TOP_SHA     : std_logic_vector(31 downto 0);
+    CON_VER     : std_logic_vector(31 downto 0);
+    CON_SHA     : std_logic_vector(31 downto 0);
     HOG_VER     : std_logic_vector(31 downto 0);
-    HOG_SHA     : std_logic_vector(31 downto 0);
+    HOG_SHA     : std_logic_vector(31 downto 0);    
 
     --IPBus XML
     XML_SHA : std_logic_vector(31 downto 0);

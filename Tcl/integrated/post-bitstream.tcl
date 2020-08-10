@@ -60,9 +60,13 @@ if [file exists $fw_file] {
     # Go to repository path
   cd $tcl_path/../../
 
-  Msg Info "Evaluating git describe..."
-  set describe [exec git describe --always --dirty --tags --long]
-  Msg Info "Git describe: $describe"
+
+
+  Msg Info "Evaluating Git sha for $name..."
+  lassign [GetRepoVersion ./Top/$name/$name.tcl] sha
+
+  set describe [GetGitDescribe $sha]
+  Msg Info "Git describe set to: $describe"
 
   set ts [clock format [clock seconds] -format {%Y-%m-%d-%H-%M}]
 
@@ -73,23 +77,23 @@ if [file exists $fw_file] {
   set dst_xml [file normalize "$dst_dir/xml"]
 
   Msg Info "Creating $dst_dir..."
-  file mkdir -p $dst_dir
+  file mkdir $dst_dir
   Msg Info "Evaluating differences with last commit..."
   set diff [exec git diff]
   if {$diff != ""} {
-    Msg Warning "Found differences with last commit..."
-    Msg Info "$diff"
+    Msg Warning "Found non committed changes:"
+    Msg Status "$diff"
     set fp [open "$dst_dir/diff_postbistream.txt" w+]
     puts $fp "$diff"
     close $fp
   } else {
-    Msg Info "No differences with last commit."
+    Msg Info "No uncommitted changes found."
   }
 
   Msg Info "Copying bit file $bit_file into $dst_bit..."
   file copy -force $bit_file $dst_bit
     # Reports
-  file mkdir -p $dst_dir/reports
+  file mkdir $dst_dir/reports
   set reps [glob -nocomplain "$run_dir/*/*.rpt"]
   if [file exists [lindex $reps 0]] {
     file copy -force {*}$reps $dst_dir/reports

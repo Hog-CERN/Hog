@@ -1,5 +1,4 @@
-HDL On Git (Hog)    {#mainpage}
-================
+# HDL On Git (Hog)
 
 Coordinating firmware development among many international collaborators is becoming a very widespread problem.
 
@@ -10,10 +9,22 @@ Hog is a set of Tcl/Shell scripts plus a suitable methodology to allow a fruitfu
 
 More information on the how to use Hog can be found in the [user documentation website](http://hog-user-docs.web.cern.ch/)
 
-## Report issues or bugs
+## Hog Releases
+Stable Hog releases are stored in the `master branch` and  are tagged as `Hog<YEAR>.<n>`, for example `Hog2020.1`.
+Pulling the `master` branch always gives you the most updated Hog stable realease.
 
-You can report an issue using the git issues.
-Please check in existing and solved issues before submitting a new issue.
+Hog developers use the `develop` branch, tagging functional but not
+thoroughly tested releases with the format `vM.m.p`, for example `v1.2.3`.
+So pulling the develop branch will give you the most updated Hog version but not necessarily a stable on.
+
+## Report issues or bugs
+You can report probems with Hog in using the issues in this repository. Please use the:
+
+- Report Problem label, if you are experiencing an unwanted behaviour
+- Feature Proposal label, if you want to propose a new Hog feature
+- Question label, if you want to ask a question about Hog
+
 
 ## License
-Hog is licensed under the Apache License, Version 2.0.
+
+Hog is distributed under the Apache License, Version 2.0.

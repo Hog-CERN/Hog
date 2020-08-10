@@ -104,7 +104,7 @@ else
       ${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_implementation.tcl $NO_BITSTREAM $NJOBS $1
     fi
   else
-    echo "Hog-ERROR: project $PROJ not found: possible projects are: `ls $DIR`"
+    echo "Hog-ERROR: project $PROJ not found: possible projects are: `ls ./Top`"
     echo
     cd "${OLD_DIR}"
     exit -1

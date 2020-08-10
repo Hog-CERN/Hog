@@ -86,7 +86,7 @@ else
       "${HDL_COMPILER}" $COMMAND_OPT $DIR/Tcl/launchers/launch_simulation.tcl $LIBPATH $1
     fi
   else
-    echo "Hog-ERROR: project $PROJ not found: possible projects are: `ls $DIR`"
+    echo "Hog-ERROR: project $PROJ not found: possible projects are: `ls ./Top`"
     echo
     cd "${OLD_DIR}"
     exit -1

@@ -75,14 +75,14 @@ else
     else
       echo "Hog-INFO: using executable: $HDL_COMPILER"
     fi
-    if [ "$COMMAND" = "vivado" ]
-    then
-      ${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/utils/get_ips.tcl -tclargs $1
-      ${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_ip_synth.tcl -tclargs $1
-    elif [ "$COMMAND" = "quartus_sh" ]
+    
+    if [ "$COMMAND" = "quartus_sh" ]
     then
       ${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/utils/get_ips.tcl $1
       ${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_ip_synth.tcl $1
+    else
+      ${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/utils/get_ips.tcl -tclargs $1
+      ${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_ip_synth.tcl -tclargs $1
     fi
   else
     echo "Hog-ERROR: project $PROJ not found: possible projects are: `ls ./Top`"

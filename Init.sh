@@ -110,20 +110,20 @@ function init()
       if [[ "${REPLY}" =~ ^[Yy]$ ]]
       then
         echo [hog init] Compiling Questasim libraries into SimulationLib...
-        mkdir -p "${OLD_DIR}/SimulationLib/verilog/"
-        mkdir -p "${OLD_DIR}/SimulationLib/vhdl/"
-        "${QUARTUS}" --simlib_comp -suppress_messages -tool questasim -language verilog -family all -directory "${OLD_DIR}/SimulationLib/verilog/"
-        "${QUARTUS}" --simlib_comp -suppress_messages -tool questasim -language vhdl -family all -directory "${OLD_DIR}/SimulationLib/vhdl/"
+        mkdir -p "${OLD_DIR}/SimulationLib_quartus/verilog/"
+        mkdir -p "${OLD_DIR}/SimulationLib_quartus/vhdl/"
+        "${QUARTUS}" --simlib_comp -suppress_messages -tool questasim -language verilog -family all -directory "${OLD_DIR}/SimulationLib_quartus/verilog/"
+        "${QUARTUS}" --simlib_comp -suppress_messages -tool questasim -language vhdl -family all -directory "${OLD_DIR}/SimulationLib_quartus/vhdl/"
       else
         read -p "Do you want to compile Modelsim libraries for Quartus (this might take some time)? " -n 1 -r
         echo  
         if [[  "${REPLY}" =~ ^[Yy]$ ]]
         then
           echo [hog init] Compiling Modelsim libraries into SimulationLib...
-          mkdir -p "${OLD_DIR}/SimulationLib/verilog/"
-          mkdir -p "${OLD_DIR}/SimulationLib/vhdl/" 
-          "${QUARTUS}" --simlib_comp -suppress_messages -tool modelsim -language verilog -family all -directory "${OLD_DIR}/SimulationLib/verilog/"
-          "${QUARTUS}" --simlib_comp -suppress_messages -tool modelsim -language vhdl -family all -directory "${OLD_DIR}/SimulationLib/vhdl/"
+          mkdir -p "${OLD_DIR}/SimulationLib_quartus/verilog/"
+          mkdir -p "${OLD_DIR}/SimulationLib_quartus/vhdl/" 
+          "${QUARTUS}" --simlib_comp -suppress_messages -tool modelsim -language verilog -family all -directory "${OLD_DIR}/SimulationLib_quartus/verilog/"
+          "${QUARTUS}" --simlib_comp -suppress_messages -tool modelsim -language vhdl -family all -directory "${OLD_DIR}/SimulationLib_quartus/vhdl/"
         fi
       fi
     else

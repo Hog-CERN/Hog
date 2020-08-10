@@ -78,12 +78,12 @@ else
     else
       echo "Hog-INFO: using executable: $HDL_COMPILER"
     fi
-    if [ $COMMAND = "vivado" ]
-    then
-      "${HDL_COMPILER}" $COMMAND_OPT $DIR/Tcl/launchers/launch_simulation.tcl -tclargs $LIBPATH $1
-    elif [ $COMMAND = "quartus_sh" ]
+
+    if [ $COMMAND = "quartus_sh" ]
     then
       "${HDL_COMPILER}" $COMMAND_OPT $DIR/Tcl/launchers/launch_simulation.tcl $LIBPATH $1
+    else
+      "${HDL_COMPILER}" $COMMAND_OPT $DIR/Tcl/launchers/launch_simulation.tcl -tclargs $LIBPATH $1
     fi
   else
     echo "Hog-ERROR: project $PROJ not found: possible projects are: `ls ./Top`"

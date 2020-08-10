@@ -67,8 +67,8 @@ if [ -z "$1" ]
 then
   printf "Project name has not been specified. Usage: \n ./Hog/LaunchImplementation.sh <proj_name> [-no_bitstream] [-NJOBS <number of jobs>]\n"
 else
-  local PROJ=$1
-  local PROJ_DIR="../Top/"$PROJ
+  PROJ=$1
+  PROJ_DIR="./Top/"$PROJ
   if [ -d "$PROJ_DIR" ]
   then
 
@@ -96,11 +96,12 @@ else
     else
       echo "Hog-INFO: using executable: $HDL_COMPILER"
     fi
-    if [$COMMAND = "vivado" ]
+    if [ $COMMAND = "vivado" ]
     then
-      "${HDL_COMPILER}" $COMMAND_OPT $DIR/Tcl/launchers/launch_implementation.tcl -tclargs $NO_BITSTREAM $NJOBS $1
-    elif [$COMMAND = "quartus_sh" ]
-      "${HDL_COMPILER}" $COMMAND_OPT $DIR/Tcl/launchers/launch_implementation.tcl $NO_BITSTREAM $NJOBS $1
+      ${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_implementation.tcl -tclargs $NO_BITSTREAM $NJOBS $1
+    elif [ $COMMAND = "quartus_sh" ]
+    then
+      ${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_implementation.tcl $NO_BITSTREAM $NJOBS $1
     fi
   else
     echo "Hog-ERROR: project $PROJ not found: possible projects are: `ls $DIR`"

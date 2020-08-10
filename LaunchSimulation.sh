@@ -19,6 +19,10 @@
 # @todo LaunchSimulation.sh: check is vivado is installed an set-up in the shell (if [ which vivado ])
 # @todo LaunchSimulation.sh: check arg $1 and $2 before passing it to the Tcl script
 
+## Import common functions from CommonFunctions.sh in a POSIX compliant way
+#
+. $(dirname "$0")/CommonFunctions.sh;
+
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
@@ -45,8 +49,8 @@ else
     LIBPATH="-lib_path $2"
   fi	
 
-  local PROJ=$1
-  local PROJ_DIR="../Top/"$PROJ
+  PROJ=$1
+  PROJ_DIR="./Top/"$PROJ
   if [ -d "$PROJ_DIR" ]
   then
 
@@ -74,10 +78,11 @@ else
     else
       echo "Hog-INFO: using executable: $HDL_COMPILER"
     fi
-    if [$COMMAND = "vivado" ]
+    if [ $COMMAND = "vivado" ]
     then
       "${HDL_COMPILER}" $COMMAND_OPT $DIR/Tcl/launchers/launch_simulation.tcl -tclargs $LIBPATH $1
-    elif [$COMMAND = "quartus_sh" ]
+    elif [ $COMMAND = "quartus_sh" ]
+    then
       "${HDL_COMPILER}" $COMMAND_OPT $DIR/Tcl/launchers/launch_simulation.tcl $LIBPATH $1
     fi
   else

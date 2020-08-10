@@ -1,3 +1,5 @@
+#!/bin/bash
+
 #   Copyright 2018-2020 The University of Birmingham
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,12 +14,16 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-#!/bin/bash
+
 ## @file LaunchIPSynth.sh
 # @brief launch get_ips.tcl and launch_ip_synth.tcl using Vivado
 # @todo LaunchIPSynth.sh: update for Quartus support
 # @todo LaunchIPSynth.sh: check is vivado is installed an set-up in the shell (if [ which vivado ]) 
 # @todo LaunchIPSynth.sh: check arg $1 before passing it to the script
+## Import common functions from CommonFunctions.sh in a POSIX compliant way
+#
+. $(dirname "$0")/CommonFunctions.sh;
+
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
@@ -40,8 +46,8 @@ then
 	printf "Project name has not been specified. Usage: \n ./Hog/LaunchIPSynth.sh <proj_name>\n"
 else
   ##! use vivado to run get_ips.tcl and launch_ip_synth.tcl
-   local PROJ=$1
-  local PROJ_DIR="../Top/"$PROJ
+  PROJ=$1
+  PROJ_DIR="./Top/"$PROJ
   if [ -d "$PROJ_DIR" ]
   then
 
@@ -60,7 +66,7 @@ else
       echo "Hog-ERROR: failed to get HDL compiler executable for $COMMAND"
       exit -1
     fi
-
+    
     if [ ! -f "${HDL_COMPILER}" ]
     then
       echo "Hog-ERROR: HLD compiler executable $HDL_COMPILER not found"
@@ -69,13 +75,14 @@ else
     else
       echo "Hog-INFO: using executable: $HDL_COMPILER"
     fi
-    if [$COMMAND = "vivado" ]
+    if [ "$COMMAND" = "vivado" ]
     then
-      "${HDL_COMPILER}" $COMMAND_OPT $DIR/Tcl/utils/get_ips.tcl -tclargs $1
-      "${HDL_COMPILER}" $COMMAND_OPT $DIR/Tcl/launchers/launch_ip_synth.tcl -tclargs $1
-    elif [$COMMAND = "quartus_sh" ]
-      "${HDL_COMPILER}" $COMMAND_OPT $DIR/Tcl/utils/get_ips.tcl $1
-      "${HDL_COMPILER}" $COMMAND_OPT $DIR/Tcl/launchers/launch_ip_synth.tcl $1
+      ${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/utils/get_ips.tcl -tclargs $1
+      ${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_ip_synth.tcl -tclargs $1
+    elif [ "$COMMAND" = "quartus_sh" ]
+    then
+      ${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/utils/get_ips.tcl $1
+      ${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_ip_synth.tcl $1
     fi
   else
     echo "Hog-ERROR: project $PROJ not found: possible projects are: `ls $DIR`"

@@ -18,6 +18,11 @@
 # @todo LaunchSynthesis.sh: update for Quartus support
 # @todo LaunchSynthesis.sh: check is vivado is installed an set-up in the shell (if [ which vivado ])
 
+## Import common functions from CommonFunctions.sh in a POSIX compliant way
+#
+. $(dirname "$0")/CommonFunctions.sh;
+
+
 ## @function argument_parser()
 #  @brief pase aguments and sets evvironment variables
 #  @param[out] NJOBS        empty or "-NJOBS $2"
@@ -59,8 +64,8 @@ if [ -z "$1" ]
 then
 	printf "Project name has not been specified. Usage: \n ./Hog/LaunchSynthesis.sh <proj_name> [-NJOBS <number of jobs>]\n"
 else
-   local PROJ=$1
-  local PROJ_DIR="../Top/"$PROJ
+  PROJ=$1
+  PROJ_DIR="./Top/"$PROJ
   if [ -d "$PROJ_DIR" ]
   then
 
@@ -88,11 +93,12 @@ else
     else
       echo "Hog-INFO: using executable: $HDL_COMPILER"
     fi
-    if [$COMMAND = "vivado" ]
+    if [ $COMMAND = "vivado" ]
     then
-      "${HDL_COMPILER}" $COMMAND_OPT $DIR/Tcl/launchers/launch_synthesis.tcl -tclargs $NJOBS $1
-    elif [$COMMAND = "quartus_sh" ]
-      "${HDL_COMPILER}" $COMMAND_OPT $DIR/Tcl/launchers/launch_synthesis.tcl $NJOBS $1
+      ${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_synthesis.tcl -tclargs $NJOBS $1
+    elif [ $COMMAND = "quartus_sh" ]
+    then
+      ${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_synthesis.tcl $NJOBS $1
     fi
   else
     echo "Hog-ERROR: project $PROJ not found: possible projects are: `ls $DIR`"

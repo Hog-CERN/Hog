@@ -579,12 +579,12 @@ proc GetVerFromSHA {SHA} {
     if {[regexp {^ *$} $result]} {
       #newest tag of the repo, parent of the SHA
       if [catch {exec git describe --tags --abbrev=0 --match=v*.*.* --match=b*v*.*.*} tag] {
-        Msg CriticalWarning "No Hog version tags found in this repository ($path)."
+        Msg CriticalWarning "No Hog version tags found in this repository."
         set ver v0.0.0
       } else {
         lassign [ExtractVersionFromTag $tag] M m p mr
 	if {$M == -1} {
-	  Msg CriticalWarning "Tag $tag does not contain a Hog compatible version, in repository $path."
+	  Msg CriticalWarning "Tag $tag does not contain a Hog compatible version in this repository."
 	  set ver v0.0.0
 	} elseif {$mr == -1} {
           incr p

@@ -1,0 +1,99 @@
+#   Copyright 2018-2020 The University of Birmingham
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at
+#
+#       http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+include:
+  - local: YAML/hog-main.yml
+
+stages:
+  - merge
+  - generate
+  - triggers
+  - collect
+  - doxygen
+  - copy
+  - clean
+
+generate-config:
+  # only:
+  #   refs:
+  #     - merge_requests
+  stage: generate
+  image: gitlab-registry.cern.ch/hog/hog-docker:tclsh
+  script:
+    - if [[ ${HOG_CHECK_PROJVER} != 1 ]]; then
+        echo "Project version checker is disabled.";
+        tclsh ./Hog/Tcl/utils/generate_yaml.tcl --runall;
+      else
+        tclsh ./Hog/Tcl/utils/generate_yaml.tcl;
+      fi;
+    - echo "CREATE_JOB_ID=${CI_JOB_ID}" > .env
+  artifacts:
+    paths:
+      - generated-config.yml
+      - .env
+  rules:
+    - if: $CI_MERGE_REQUEST_ID
+  tags:
+    - docker 
+
+child-pipeline:
+  # only:
+  #   refs:
+  #     - merge_requests
+  stage: triggers
+  trigger:
+    include: 
+      - artifact: generated-config.yml
+        job: generate-config
+    strategy: depend
+  rules:
+    - if: $CI_MERGE_REQUEST_ID
+
+collect_artifacts:
+  before_script:
+    - yum install unzip
+    - export REPO=`echo $CI_PROJECT_URL | sed -e s#https://##`
+    - git remote set-url origin https://${HOG_USER}:${HOG_PUSH_TOKEN}@$REPO
+    - git config user.email ${HOG_EMAIL}
+    - git config user.name ${HOG_USER}
+    - git fetch
+    - git fetch origin $CI_COMMIT_REF_NAME
+    - git fetch origin $CI_MERGE_REQUEST_TARGET_BRANCH_NAME
+    - git status
+    - git submodule init 
+    - git submodule update Hog
+  image: gitlab-registry.cern.ch/hog/hog-docker:tclsh
+  stage: collect
+  script:
+    - if [ ! -f .env ]; then
+        echo "You must save a .env file as an upstream artifact containing the Child Pipeline Creator's Job ID as CREATE_JOB_ID";
+        exit 1;
+      else
+        source .env;
+      fi;
+    - tclsh Hog/Tcl/CI/download_child_artifacts.tcl $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $CI_COMMIT_SHA $CREATE_JOB_ID
+    - if [ $? -ne 0 ]; then
+        exit 1;
+      fi
+   
+  coverage: '/Statements\s+:\s(\d+.?\d+)%/'
+  rules:
+    - if: $CI_MERGE_REQUEST_ID
+  artifacts:
+    paths:
+    - bin/
+    expire_in: 30 days
+  tags:
+    - docker
+
+

@@ -86,8 +86,8 @@ if [file exists $fw_file] {
   set dst_xml [file normalize "$dst_dir/xml"]
 
   Msg Info "Creating $dst_dir..."
-  file mkdir -p $dst_dir
-  Msg Info "Evaluating non committed changes..."
+  file mkdir $dst_dir
+  Msg Info "Evaluating differences with last commit..."
   set diff [exec git diff]
   if {$diff != ""} {
     Msg Warning "Found non committed changes:"
@@ -102,9 +102,8 @@ if [file exists $fw_file] {
   Msg Info "Copying bit file $bit_file into $dst_bit..."
   file copy -force $bit_file $dst_bit
   # Reports
-  file mkdir -p $dst_dir/reports
+  file mkdir $dst_dir/reports
   if { [string first PlanAhead [version]] == 0 } {
-      Msg Info "run dir = $run_dir"
       set reps [glob -nocomplain "$run_dir/*/*{.syr,.srp,.mrp,.map,.twr,.drc,.bgn,_routed.par,_routed_pad.txt,_routed.unroutes}"]
   } else {
       set reps [glob -nocomplain "$run_dir/*/*.rpt"]

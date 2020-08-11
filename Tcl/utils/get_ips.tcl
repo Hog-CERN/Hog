@@ -40,7 +40,7 @@ if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] 
   Msg Info "Creating directory $repo_path/VivadoProject/$project/$project.runs"
   file mkdir $repo_path/VivadoProject/$project/$project.runs
   set main_folder [file normalize "$repo_path/VivadoProject/$project/$project.runs/"]
-  set ip_path 0
+  set ip_path ""
 } else {
   set project [lindex $argv 0]
   Msg Info "Creating directory $repo_path/VivadoProject/$project/$project.runs"

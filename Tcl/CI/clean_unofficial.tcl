@@ -49,7 +49,7 @@ lassign [eos "ls $unofficial"] ret bitfiles
 set list_bitfiles [split $bitfiles "\n"]
 
 foreach bitfile $list_bitfiles {
-  set status [catch {exec git tag --contains $bitfile -l="v*.*.*"} contained]
+  set status [catch {exec git tag --contains $bitfile -l "v*.*.*"} contained]
   if { $status==0 && [string first "$git_tag" $contained] != -1 } {
     Msg Info "Removing files corresponding to SHA $bitfile"
     lassign [eos "rm -r $unofficial/$bitfile"] status2 deletion

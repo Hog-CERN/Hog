@@ -46,6 +46,7 @@ namespace eval globalSettings {
   variable PROPERTIES
   variable PATH_REPO
   variable BIN_FILE
+  variable HOG_EXTERNAL_PATH
 
   variable pre_synth_file
   variable post_synth_file
@@ -74,7 +75,8 @@ namespace eval globalSettings {
 ################# FUNCTIONS ################################
 proc CreateProject {} {
   if {[info commands create_project] != ""} {
-	#VIVADO_ONLY
+
+    #VIVADO_ONLY
     if {$globalSettings::top_name != $globalSettings::DESIGN} {
       Msg Info "This project has got a flavour, the top module name ($globalSettings::top_name) differs from the project name ($globalSettings::DESIGN)."
     }
@@ -177,7 +179,7 @@ proc CreateProject {} {
     ##############
   set list_files [glob -directory $globalSettings::list_path "*"]
 
-  AddHogFiles {*}[GetHogFiles $globalSettings::list_path]
+  AddHogFiles {*}[GetHogFiles $globalSettings::list_path "" 0 $globalSettings::HOG_EXTERNAL_PATH]
 }
 
 
@@ -547,9 +549,14 @@ if {[info exists ::SIMULATOR]} {
   set globalSettings::SIMULATOR "ModelSim"
 }
 
+if {[info exists env(HOG_EXTERNAL_PATH)]} {
+  set globalSettings::HOG_EXTERNAL_PATH $env(HOG_EXTERNAL_PATH)
+} else {
+  set globalSettings::HOG_EXTERNAL_PATH ""
+}
 
-if {[info exist ::bin_file]} { 
-  set globalSettings::BIN_FILE $::bin_file
+if {[info exist ::BIN_FILE]} { 
+  set globalSettings::BIN_FILE $::BIN_FILE
 } else {
   set globalSettings::BIN_FILE 0
 }
@@ -598,7 +605,6 @@ set globalSettings::post_bit   [file normalize "$globalSettings::tcl_path/integr
 
 
 CreateProject
-
 ConfigureSynthesis
 ConfigureImplementation
 ConfigureSimulation

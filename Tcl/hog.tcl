@@ -290,8 +290,8 @@ proc GetRepoPath {} {
 
 ## @brief Compare tu semantic versions
 #
-# @parameter[in] ver1 a list of 3 numbers M m p
-# @parameter[in] ver2 a list of 3 numbers M m p
+# @param[in] ver1 a list of 3 numbers M m p
+# @param[in] ver2 a list of 3 numbers M m p
 #
 # @return Return 1 ver1 is greather than ver2, 0 if they are equal, and -1 if ver2 is greater than ver1
 #
@@ -351,7 +351,7 @@ proc FindFileType {file_name} {
     .vhd {
       set file_extension "VHDL_FILE"
     }
-    .vhdl{
+    .vhdl {
       set file_extension "VHDL_FILE"
     }
     .v {
@@ -446,7 +446,7 @@ proc ReadListFile {list_file path {lib ""} {sha_mode 0} } {
  	set vhdlfile [file normalize $vhdlfile]
  	set extension [file ext $vhdlfile]
 	
-	if {[lsearch {.src .sim .con .sub} $extension] >= 0 } {
+	if {[lsearch {.src .sim .con .sub .ext} $extension] >= 0 } {
 	  Msg Info "List file $vhdlfile found in list file, recoursively opening it..."
     ### Set list file properties
     set prop [lrange $file_and_prop 1 end]
@@ -545,8 +545,6 @@ proc GetFileList {FILE path} {
 
 ## @brief Get git SHA of a subset of list file
 #
-# If the special string "ALL" is used, returns the global hash
-#
 # @param[in] path the file/path or list of files/path the git SHA should be evaluated from 
 #
 # @return         the value of the desired SHA
@@ -565,13 +563,13 @@ proc GetSHA {path} {
 proc GetVer {path} {
   set SHA [GetSHA $path]
   #oldest tag containing SHA
-  set comm [format %07X 0x$SHA]
-  return [list [GetVerFromSHA $SHA] $comm]
+  #set comm [format %07X 0x$SHA]
+  return [list [GetVerFromSHA $SHA] $SHA]
 }
 
 ## @brief Get git version and commit hash of a specific commit give the SHA
 #
-# @param[in] SHA the git SHA of the commit 
+# @param[in] SHA the git SHA of the commit
 #
 # @return  a list: the git SHA, the version in hex format
 #
@@ -579,17 +577,16 @@ proc GetVerFromSHA {SHA} {
   set status [catch {exec git tag --sort=creatordate --contain $SHA -l "v*.*.*" -l "b*v*.*.*"} result]
   if {$status == 0} {
     if {[regexp {^ *$} $result]} {
-      #The tag in $result does not contains the current SHA
-      #In this case we want the newest tag of the repo  
-      if [catch {exec git tag --sort=-creatordate -l "v*.*.*" -l "b*v*.*.*"} last_tag] {
+      #newest tag of the repo, parent of the SHA
+      if [catch {exec git describe --tags --abbrev=0 --match=v*.*.* --match=b*v*.*.*} tag] {
         Msg CriticalWarning "No Hog version tags found in this repository ($path)."
         set ver v0.0.0
       } else {
-	#The tag is found we want to incremement it only if it's official
-        set tags [split $last_tag "\n"]
-        set tag [lindex $tags 0]
         lassign [ExtractVersionFromTag $tag] M m p mr
-        if {$mr == -1} {
+	if {$M == -1} {
+	  Msg CriticalWarning "Tag $tag does not contain a Hog compatible version, in repository $path."
+	  set ver v0.0.0
+	} elseif {$mr == -1} {
           incr p
           Msg Info "No tag contains $SHA, will use most recent tag $tag. As this is an official tag, patch will be incremented to $p."
         } else {
@@ -636,20 +633,24 @@ proc GetVerFromSHA {SHA} {
   return $M$m$c
 }
 
-proc GetProjectVersion {tcl_file} {
+proc GetProjectVersion {tcl_file {ext_path ""}} {
   if { ![file exists $tcl_file] } {
     Msg CriticalWarning "$tcl_file not found"
     return -1
   }
+  set old_dir [pwd]
+  set proj_dir [file dir $tcl_file]
+  cd $proj_dir
 
   #The latest version the repository
   set v_last [ExtractVersionFromTag [exec git describe --abbrev=0 --match "v*"]]
-  lassign [GetRepoVersions $tcl_file] sha ver
+  lassign [GetRepoVersions $tcl_file $ext_path] sha ver
   if {$sha == 0} {
     Msg Warning "Repository is not clean"
+    cd $old_dir
     return -1
   }
-  
+
   #The project version
   set v_proj [ExtractVersionFromTag v[HexVersionToString $ver]]
   set comp [CompareVersion $v_proj $v_last]
@@ -665,7 +666,8 @@ proc GetProjectVersion {tcl_file} {
   } elseif {$comp == -1} {
     Msg Info "The specified project was modified in a past official version $ret"
   }
-  
+
+  cd $old_dir
   return $ret
 }
 
@@ -684,13 +686,14 @@ proc GetGitDescribe {sha} {
   }
 }
 
-## Get repository version
+## Get the versions for all libraries, submodules, etc. for a given project
 #
-#  @param[in] repo_path The repository path of which all the version must be calculated
+#  @param[in] proj_tcl_file: The tcl file of the project of which all the version must be calculated
+#  @param[in] ext_path path for external libraries
 #
-#  @return            a list conatining all the versions: global, top (project tcl file), constraints, libraries, submodules, exteral, ipbus xml
+#  @return  a list conatining all the versions: global, top (project tcl file), constraints, libraries, submodules, exteral, ipbus xml
 #
-proc GetRepoVersions {proj_tcl_file} {
+proc GetRepoVersions {proj_tcl_file {ext_path ""}} {
   set old_path [pwd]
   set proj_tcl_file [file normalize $proj_tcl_file]
   set proj_dir [file dir $proj_tcl_file]
@@ -757,12 +760,12 @@ proc GetRepoVersions {proj_tcl_file} {
     lappend SHAs $hash
   }
 
-#Of all the constraints we get the most recent
+  #Of all the constraints we get the most recent
   set cons_hash [string toupper [exec git log --format=%h -1 {*}$cons_hashes]]
   set cons_ver [GetVerFromSHA $cons_hash]
     Msg Info "Among all the constraint list files, if more than one, the most recent version was chosen: $cons_ver commit SHA: $cons_hash"
 
-# Read external library files
+  # Read external library files
   set ext_hashes ""
   set ext_files [glob -nocomplain "./list/*.ext"]
   set ext_names ""
@@ -784,7 +787,7 @@ proc GetRepoVersions {proj_tcl_file} {
       if {![regexp {^ *$} $line] & ![regexp {^ *\#} $line] } { #Exclude empty lines and comments
         set file_and_prop [regexp -all -inline {\S+} $line]
         set hdlfile [lindex $file_and_prop 0]
-        set hdlfile "$env(HOG_EXTERNAL_PATH)/$hdlfile"
+        set hdlfile $ext_path/$hdlfile
         if { [file exists $hdlfile] } {
           set hash [lindex $file_and_prop 1]
           set current_hash [Md5Sum $hdlfile]
@@ -836,7 +839,7 @@ proc GetRepoVersions {proj_tcl_file} {
 
 #The global SHA and ver is the most recent among everything
   if {$clean == 1} {
-    set commit [exec git log --format=%h -1 {*}$SHAs]
+    set commit [exec git log --format=%h -1 {*}$SHAs --]
     set version [GetVerFromSHA $commit]
   } else {
     set commit  "0000000"
@@ -891,11 +894,9 @@ proc ExtractVersionFromTag {tag} {
 # @param[in] default_level:        If version level is 3 or more, will specify what level to increase when creating the official tag: 0 will increase patch (default), 1 will increase minor and 2 will increase major.
 #
 proc TagRepository {{merge_request_number 0} {version_level 0} {default_level 0}} {
-  if [catch {exec git tag --sort=-creatordate -l "v*.*.*" -l "b*v*.*.*"} last_tag] {
+  if [catch {exec git describe --tags --abbrev=0 --match=v*.*.* --match=b*v*.*.*} tag] {
     Msg Error "No Hog version tags found in this repository."
   } else {
-    set tags [split $last_tag "\n"]
-    set tag [lindex $tags 0]
     lassign [ExtractVersionFromTag $tag] M m p mr
 
     if { $M > -1 } { # M=-1 means that the tag could not be parsed following a Hog format
@@ -949,7 +950,7 @@ proc TagRepository {{merge_request_number 0} {version_level 0} {default_level 0}
         }
 
       } else { # Tag is not official
-    #Not official, do nothing unless version level is >=3, in which case convert the unofficial to official
+	#Not official, do nothing unless version level is >=3, in which case convert the unofficial to official
         Msg Info "Found candidate version for $M.$m.$p."
         if {$version_level >= 3} {
           Msg Info "New tag will be an official version v$M.$m.$p..."
@@ -1237,20 +1238,28 @@ proc GetProjectFiles {} {
 # @param[in] list_path path to the list file directory
 # @param[in] list_files the file wildcard, if not spcified all Hog list files will be looked for
 # @param[in] sha_mode forwarded to ReadListFile, see there for info
+# @param[in] ext_path path for external libraries forwarded to ReadListFile
 #
 # @return a list of 2 dictionaries: libraries and properties
 # - libraries has library name as keys and a list of filenames as values
 # - properties has as file names as keys and a list of properties as values
 #
-proc GetHogFiles {list_path {list_files {.src,.con,.sub,.sim}} {sha_mode 0}} {
+proc GetHogFiles {list_path {list_files ""} {sha_mode 0} {ext_path ""}} {
   set repo_path [file normalize list_path/../../..]
-
+  if { $list_files == "" } {
+    set list_files {.src,.con,.sub,.sim,.ext}  
+  }
   set libraries [dict create]
   set properties [dict create]
   set list_files [glob -nocomplain -directory $list_path "*{$list_files}"]
 
   foreach f $list_files {
-    lassign [ReadListFile $f $repo_path "" $sha_mode] l p
+    set ext [file extension $f]
+    if {$ext == ".ext"} {
+      lassign [ReadListFile $f $ext_path "" $sha_mode] l p
+    } else {
+      lassign [ReadListFile $f $repo_path "" $sha_mode] l p
+    }
     set libraries [dict merge $l $libraries]
     set properties [dict merge $p $properties]
   }
@@ -1305,10 +1314,6 @@ proc AddHogFiles { libraries properties } {
           #ADDING LIBRARY
           if {[file ext $f] == ".vhd" || [file ext $f] == ".vhdl" } {
             set_property -name "library" -value $rootlib -objects $file_obj
-          }
-          if {[file ext $f] == ".xdc"} {
-            Msg Info "Setting filetype XDC for $f"
-            set_property -name "file_type" -value "XDC" -objects $file_obj
           }
 
           #ADDING FILE PROPERTIES
@@ -1416,8 +1421,10 @@ proc ForceUpToDate {} {
 ## @brief Copy IP generated files from/to an EOS repository
 #
 # @param[in] what_to_do: can be "push", if you want to copy the local IP synth result to EOS or "pull" if you want to copy the files from EOS to your local repository
-# @param[in] runs_dir: the runs directory of the project. Typically called VivadoProject/<project name>/<project name>.runs
+# @param[in] xci_file: the .xci file of the IP you want to handle
+# @param[in] runs_dir: the runs directory of the project. Typically called VivadoProject/\<project name\>/\<project name\>.runs
 # @param[in] ip_path: the path of directory you want the IP to be saved on eos
+# @param[in] force: if not set to 0, will copy the IP to EOS even if it is already present
 #
 proc HandleIP {what_to_do xci_file ip_path runs_dir {force 0}} {
   if {!($what_to_do eq "push") && !($what_to_do eq "pull")} {
@@ -1568,7 +1575,17 @@ You can fix this by installing package \"tcllib\""
     #get .gitlab-ci ref
     set YML_REF ""
     set YML_NAME ""
-    if { [catch {::yaml::yaml2dict -file .gitlab-ci.yml}  yamlDict]} {
+    if { [file exist .gitlab-ci.yml] } {
+      set fp [open ".gitlab-ci.yml" r]
+      set file_data [read $fp]
+      close $fp
+    } else {
+      Msg $MSG_TYPE "Cannot open file .gitlab-ci.yml"
+      return
+    }
+    set file_data "$file_data\n\n"
+
+    if { [catch {::yaml::yaml2dict -stream $file_data}  yamlDict]} {
       Msg $MSG_TYPE "Parsing .gitlab-ci.yml failed. To fix this, check that yaml syntax is respected, remember not to use tabs."
       return
     } else {
@@ -1595,31 +1612,50 @@ You can fix this by installing package \"tcllib\""
     } else {
       set YML_NAME_F [regsub -all "^/" $YML_NAME ""]
     }
-  #getting Hog repository tag and commit
+
+    lappend YML_FILES $YML_NAME_F
+
+    #getting Hog repository tag and commit
     cd "Hog"
-    set HOGYML_SHA [exec git log --format=%H -1 --  $YML_NAME_F ]
-    if { [catch {exec git log --format=%H -1 $YML_REF_F -- $YML_NAME_F} EXPECTEDYML_SHA]} {
-      if { [catch {exec git log --format=%H -1 origin/$YML_REF_F -- $YML_NAME_F} EXPECTEDYML_SHA]} {
+
+    #check if the yml file includes other files
+    if { [catch {::yaml::yaml2dict -file $YML_NAME_F}  yamlDict]} {
+      Msg $MSG_TYPE "Parsing $YML_NAME_F failed."
+      cd ..
+      return
+    } else {
+      dict for {dictKey dictValue} $yamlDict {
+        #looking for included files
+        if {"$dictKey" == "include"} {
+	  foreach v $dictValue { 
+	    lappend YML_FILES [lindex [split $v " "]  [expr [lsearch -dictionary [split $v " "] "local"]+1 ] ]
+	  }
+	}
+      }
+    }
+
+    Msg Info "Found the following yml files: $YML_FILES"
+
+    set HOGYML_SHA [GetSHA $YML_FILES]
+    if { [catch {exec git log --format=%h -1 $YML_REF_F -- {*}$YML_FILES} EXPECTEDYML_SHA]} {
+      if { [catch {exec git log --format=%h -1 origin/$YML_REF_F -- {*}$YML_FILES} EXPECTEDYML_SHA]} {
         Msg $MSG_TYPE "Error in project .gitlab-ci.yml. ref: $YML_REF not found"
         set EXPECTEDYML_SHA ""
       }
-
     }
-
+    set EXPECTEDYML_SHA [string toupper $EXPECTEDYML_SHA]
     if  {!($EXPECTEDYML_SHA eq "")} {
       if {$HOGYML_SHA == $EXPECTEDYML_SHA} {
-        Msg Info "Hog included file $YML_NAME_F SHA matches with the \"ref\" in the .gitlab-ci.yml."
+        Msg Info "Hog included file $YML_FILES matches with $YML_REF in .gitlab-ci.yml."
 
       } else {
-        Msg $MSG_TYPE "HOG $YML_NAME_F SHA mismatch.
+        Msg $MSG_TYPE "HOG $YML_FILES SHA mismatch.
         From Hog submodule: $HOGYML_SHA
-        From .gitlab-ci.yml: $EXPECTEDYML_SHA
-        You can fix this in 2 ways: (A) by changing the ref in your repository or (B) by changing the Hog submodule commit.
-        \tA) edit project .gitlab-ci.yml ---> ref: '$HOGYML_SHA'
-        \tB) modify Hog submodule: git checkout $EXPECTEDYML_SHA"
+        From ref in .gitlab-ci.yml: $EXPECTEDYML_SHA
+        You can fix this in 2 ways: by changing the ref in your repository or by changing the Hog submodule commit"
       }
     } else {
-      Msg $MSG_TYPE "Could not find any file named $YML_NAME_F in Hog at $YML_REF"
+      Msg $MSG_TYPE "One or more of the following files could not be found $YML_FILES in Hog at $YML_REF"
     }
   } else {
     Msg Info ".gitlab-ci.yml not found in $repo_path. Skipping this step"
@@ -1641,7 +1677,7 @@ proc ParseJSON {JSON_FILE JSON_KEY} {
 
   set result [catch {package require json} JsonFound]
   if {"$result" != "0"} {
-    Msg CriticalWarning "Cannot find JSON package equal or higher than 8.4.\n $JsonFound\n Exiting"
+    Msg CriticalWarning "Cannot find JSON package equal or higher than 1.0.\n $JsonFound\n Exiting"
     return -1
   }
   set JsonDict [json::json2dict  $JSON_FILE]
@@ -1728,6 +1764,30 @@ proc GetMaxThreads {proj_name} {
   }
   
   return $maxThreads
+}
+
+## @brief Returns the gitlab-ci.yml snippet for a CI stage and a defined project
+#
+#
+# @param[in] stage:       name of the CI stage
+# @param[in] proj_name:   name of the project
+# @param[in] stage_list:  the list of CI stages
+#
+#
+proc WriteYAMLStage {stage proj_name stage_list} {
+  set dep_list [huddle list ]
+  foreach s $stage_list {
+    if {$s != $stage} {
+      huddle append dep_list [huddle string "$s:$proj_name"]
+    } else {
+      break
+    }
+  }
+
+  set inner [huddle create "PROJECT_NAME" $proj_name "extends" ".vars"]
+  set middle [huddle create "extends" ".$stage" "variables" $inner "dependencies" $dep_list]
+  set outer [huddle create "$stage:$proj_name" $middle ]
+  return [ string trimleft [ yaml::huddle2yaml $outer ] "-" ]
 }
 
 

@@ -182,6 +182,17 @@ echo ================================
 echo
 
 echo ==== OPTIONAL ENV VARIABLES ====
+echo -n "Variable: HOG_CHECK_PROJVER is "
+if [[ ${HOG_CHECK_PROJVER} != 1 ]]
+then
+    echo "NOT defined."
+    echo "Hog will NOT check the CI project version. Set this variable to '1' if you want Hog to check the CI project version before creating the HDL project in Create_Project stage. If the project has not been changed with respect to the target branch, the CI will skip this project"
+else
+    echo "defined"
+    echo "Hog will check the project version just before creating the HDL project in Create_Project stage. The CI job will SKIP the project pipeline, if it the project has not been modified with respect to the target branch."
+fi
+echo --------------------------------
+
 echo -n "Variable: HOG_CHECK_SYNTAX is "
 if [[ ${HOG_CHECK_SYNTAX} != 1 ]]
 then

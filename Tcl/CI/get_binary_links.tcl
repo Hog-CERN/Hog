@@ -56,7 +56,7 @@ foreach dir [glob -type d $repo_path/Top/* ] {
     Msg Info "Creating new link for $proj binaries and tag $tag"
     if [catch {glob -type d $repo_path/bin/$proj* } prj_dir] {
       Msg CriticalWarning "Cannot find $proj binaries in artifacts"
-      break
+      continue
     }
     exec zip -r $proj.zip bin/[ file tail $prj_dir]
     set content [exec curl -s --request POST --header "PRIVATE-TOKEN: ${push_token}" --form "file=@$repo_path/$proj.zip" ${api}/projects/${proj_id}/uploads]

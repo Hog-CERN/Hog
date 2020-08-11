@@ -82,7 +82,7 @@ if {$xml_hash != 0} {
   Msg Info "Creating XML directory $xml_dst..."
   file mkdir $xml_dst
   Msg Info "Copying xml files to $xml_dst and replacing placeholders with xml version $xml_ver..."
-  CopyXMLsFromListFile ./Top/$proj_name/list/xml.lst ./ $xml_dst $xml_ver $xml_hash
+  CopyXMLsFromListFile ./Top/$proj_name/list/xml.lst ./ $xml_dst [HexVersionToString $xml_ver] $xml_hash
   set use_ipbus 1
 } else {
   set use_ipbus 0

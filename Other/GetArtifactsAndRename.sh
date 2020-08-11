@@ -27,31 +27,31 @@ else
     job=$5
     tag=$6
 
+    
+    cd $DIR
     # GET all alrifacts
     ref=refs/merge-requests%2F$mr%2Fhead
     curl --location --header "PRIVATE-TOKEN: ${push_token}" $api/projects/${proj}/jobs/artifacts/$ref/download?job=$job -o output.zip
     unzip output.zip
 
-
     # Project names:
-    PROJECTS=(`ls $DIR/Top`)
-    for PROJECT in ${PROJECTS[@]}; do
-        PRJ_DIR=`ls bin | grep $PROJECT`
-        if [ "$PRJ_DIR" == "" ]; then
-            echo "Project $PROJECT binaries not found, skipping it"
-            continue
-        fi 
-        #extract binary from git describe 
-        PRJ_BINS=(`ls bin/$PRJ_DIR/${PRJ_DIR}*`)
-
-        for PRJ_BIN in ${PRJ_BINS[@]}; do
-            echo "#### $PRJ_BIN"
-            EXT="${PRJ_BIN##*.}"
-            mv $PRJ_BIN bin/$PRJ_DIR/${PROJECT}-$tag.$EXT
-        done
-        mv bin/$PRJ_DIR bin/${PROJECT}-$tag  
-
+    cd bin/
+    PRJ_DIRS=(`ls -d */`)
+    for PRJ_DIR in ${PRJ_DIRS[@]}; do
+      PRJ_DIR=`basename $PRJ_DIR`
+      PRJ_NAME="${PRJ_DIR%.*}"
+      PRJ_NAME="${PRJ_NAME%-*}"
+      echo "$PRJ_DIR ----> $PRJ_NAME"
+      PRJ_BINS=(`ls $PRJ_DIR/${PRJ_DIR}*`)
+      for PRJ_BIN in ${PRJ_BINS[@]}; do
+        echo "#### $PRJ_BIN"
+        EXT="${PRJ_BIN##*.}"
+        mv $PRJ_BIN $PRJ_DIR/${PRJ_NAME}-$tag.$EXT
+      done
+      mv $PRJ_DIR ${PRJ_NAME}-$tag  
     done
-  
+
+    cd $OLDDIR
+    rm output.zip
 
 fi

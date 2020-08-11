@@ -110,11 +110,6 @@ function select_command()
   then
     echo "Hog-ERROR: Intel HLS compiler is not supported!"
     return 1
-  elif [[ $TCL_FIRST_LINE =~ 'planahead' ]];
-  then
-    echo "Hog-INFO: Recognised PlanAhead project"
-    COMMAND="planAhead"
-    COMMAND_OPT="-nojournal -nolog -mode batch -notrace -source"
   else
     echo "Hog-WARNING: You should write #vivado or #quartus in your project Tcl file, assuming Vivado... "
     echo "Hog-INFO: Recognised Vivado project"

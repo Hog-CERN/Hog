@@ -45,5 +45,5 @@ else
     LIBPATH="-lib_path $2"
   fi	
   ##! invoke vivado to launch launch_simulation.tcl script using args: '-lib_path $2 $1'
-  vivado -nojournal -nolog -mode batch -notrace -source $DIR/Tcl/launchers/launch_simulation.tcl -tclargs $LIBPATH $1
+  vivado -nojournal -nolog -mode batch -notrace -source $DIR/Tcl/launchers/launch_simulation.tcl -tclargs $LIBPATH $1 
 fi

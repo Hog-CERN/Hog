@@ -83,7 +83,7 @@ foreach dir [glob -type d $repo_path/Top/* ] {
       }
       if {"$link" == ""} {
         Msg CriticalWarning "Could not find link to binaries for project $proj and tag $ver"
-        break
+        continue
       }
     }
   }

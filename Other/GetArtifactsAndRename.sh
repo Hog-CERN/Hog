@@ -1,4 +1,4 @@
-#!/bin/bash 
+#!/bin/bash
 #   Copyright 2018-2020 The University of Birmingham
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,10 +16,10 @@
 DIR="$( dirname "${BASH_SOURCE[0]}" )/../.."
 OLDDIR="$( pwd )"
 
-if [ -z "$1" ]                                          
-then                                                    
-        echo "Usage: GetArtifactsAndRename.sh <push token> <Gitlab api url> <project id> <merge request number> <job> <tag>"
-else                                                                                                                          
+if [ -z "$1" ]
+then
+    echo "Usage: GetArtifactsAndRename.sh <push token> <Gitlab api url> <project id> <merge request number> <job> <tag>"
+else
     push_token=$1
     api=$2
     proj=$3
@@ -27,7 +27,6 @@ else
     job=$5
     tag=$6
 
-    
     cd $DIR
     # GET all alrifacts
     ref=refs/merge-requests%2F$mr%2Fhead
@@ -48,10 +47,9 @@ else
         EXT="${PRJ_BIN##*.}"
         mv $PRJ_BIN $PRJ_DIR/${PRJ_NAME}-$tag.$EXT
       done
-      mv $PRJ_DIR ${PRJ_NAME}-$tag  
+      mv $PRJ_DIR ${PRJ_NAME}-$tag
     done
 
     cd $OLDDIR
     rm output.zip
-
 fi

@@ -162,15 +162,6 @@ else
 fi
 echo --------------------------------
 
-echo -n "Variable: HOG_UNOFFICIAL_BIN_EOS_PATH is "
-if [ -z ${HOG_UNOFFICIAL_BIN_EOS_PATH+x} ]
-then
-    echo "NOT defined. Hog-CI will not be able to copy bitfile to EOS."
-else
-    echo "defined"
-fi
-echo --------------------------------
-
 echo -n "Variable: HOG_OFFICIAL_BIN_EOS_PATH is "
 if [ -z ${HOG_OFFICIAL_BIN_EOS_PATH+x} ]
 then

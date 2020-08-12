@@ -93,8 +93,9 @@ function init()
     else
       echo [hog init] "WARNING: No modelsim executable found, will not compile libraries" 
     fi
-
-  elif [ `which quartus_sh` ]
+  fi
+  # REpeat compilation using Quartus
+  if [ `which quartus_sh` ]
   then
     local QUARTUS=`which quartus_sh`
     ##! If Quartus is installed it checks if vsim command is defined (Questasim or Modelsim is installed and set-up in the shell). 

@@ -30,8 +30,12 @@ source $tcl_path/hog.tcl
 cd "$tcl_path/../.."
 
 if {[info commands get_property] != ""} {
-    # Vivado
-  set proj_file [get_property parent.project_path [current_project]]
+  # Vivado + PlanAhead
+  if { [string first PlanAhead [version]] == 0 } {
+    set proj_file [get_property DIRECTORY [current_project]]
+  } else {
+    set proj_file [get_property parent.project_path [current_project]]
+  }
 } elseif {[info commands project_new] != ""} {
     # Quartus
   set proj_file "/q/a/r/Quartus_project.qpf"
@@ -123,7 +127,7 @@ if [GitVersion 2.9.3] {
 if {[info commands set_property] != ""} {
   ### VIVADO
   # set global generic varibles
-  set generic_string "GLOBAL_DATE=32'h$date GLOBAL_TIME=32'h$timee GLOBAL_VER=32'h$version GLOBAL_SHA=32'h$commit TOP_SHA=32'h$top_hash TOP_VER=32'h$top_ver HOG_SHA=32'h$hog_hash HOG_VER=32'h$hog_ver CON_VER=32'h$cons_ver CON_SHA=32'h$cons_hash"
+  set generic_string "GLOBAL_DATE=32'h$date GLOBAL_TIME=32'h$timee GLOBAL_VER=32'h$version GLOBAL_SHA=32'h0$commit TOP_SHA=32'h0$top_hash TOP_VER=32'h$top_ver HOG_SHA=32'h0$hog_hash HOG_VER=32'h$hog_ver CON_VER=32'h$cons_ver CON_SHA=32'h0$cons_hash"
   if {$use_ipbus == 1} {
     set generic_string "$generic_string XML_VER=32'h$xml_ver XML_SHA=32'h$xml_hash"
   }
@@ -131,18 +135,18 @@ if {[info commands set_property] != ""} {
   #set project specific lists
   foreach l $libs v $vers h $hashes {
     set ver "[string toupper $l]_VER=32'h$v "
-    set hash "[string toupper $l]_SHA=32'h$h"
+    set hash "[string toupper $l]_SHA=32'h0$h"
     set generic_string "$generic_string $ver $hash"
   }
 
   #set project specific sub modules
   foreach s $subs h $subs_hashes {
-    set hash "[string toupper $s]_SHA=32'h$h"
+    set hash "[string toupper $s]_SHA=32'h0$h"
     set generic_string "$generic_string $hash"
   }
 
   foreach e $ext_names h $ext_hashes {
-    set hash "[string toupper $e]_SHA=32'h$h"
+    set hash "[string toupper $e]_SHA=32'h0$h"
     set generic_string "$generic_string $hash"
   }
 

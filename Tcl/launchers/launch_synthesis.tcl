@@ -44,9 +44,17 @@ if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] 
 Msg Info "Number of jobs set to $options(NJOBS)."
 
 Msg Info "Opening $project..."
-open_project ../../VivadoProject/$project/$project.xpr
+if { [string first PlanAhead [version]] ==0 } {
+    open_project ../../VivadoProject/$project/$project.ppr
+} else {
+    open_project ../../VivadoProject/$project/$project.xpr
+}
 
 reset_run synth_1
+
+if { [string first PlanAhead [version]] ==0 } {
+  source  integrated/pre-synthesis.tcl
+}
 
 launch_runs synth_1  -jobs $options(NJOBS) -dir $main_folder
 wait_on_run synth_1

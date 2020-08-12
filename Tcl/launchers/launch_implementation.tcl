@@ -60,63 +60,71 @@ if {$do_bitstream == 1} {
 }
 
 Msg Info "Opening project: $project..."
-open_project ../../VivadoProject/$project/$project.xpr
+if { [string first PlanAhead [version]] == 0 } {
+  open_project ../../VivadoProject/$project/$project.ppr
+} else {
+  open_project ../../VivadoProject/$project/$project.xpr
+}
 
 Msg Info "Number of jobs set to $options(NJOBS)."
 
 Msg Info "Starting implementation flow..."
 reset_run impl_1
 
+if { [string first PlanAhead [version]] ==0} {source  integrated/pre-implementation.tcl}
 launch_runs impl_1 -jobs $options(NJOBS) -dir $main_folder
 wait_on_run impl_1
+if { [string first PlanAhead [version]] ==0} {source  integrated/post-implementation.tcl}
 
 set prog [get_property PROGRESS [get_runs impl_1]]
 set status [get_property STATUS [get_runs impl_1]]
 Msg Info "Run: impl_1 progress: $prog, status : $status"
 
 # Check timing
-set wns [get_property STATS.WNS [get_runs [current_run]]]
-set tns [get_property STATS.TNS [get_runs [current_run]]]
-set whs [get_property STATS.WHS [get_runs [current_run]]]
-set ths [get_property STATS.THS [get_runs [current_run]]]
+if { [string first PlanAhead [version]] !=0 } {
+  set wns [get_property STATS.WNS [get_runs [current_run]]]
+  set tns [get_property STATS.TNS [get_runs [current_run]]]
+  set whs [get_property STATS.WHS [get_runs [current_run]]]
+  set ths [get_property STATS.THS [get_runs [current_run]]]
 
-if {$wns >= 0 && $whs >= 0} {
-  Msg Info "Time requirements are met"
-  set status_file [open "$main_folder/timing_ok.txt" "w"]
-  set timing_ok 1
-} else {
-  Msg CriticalWarning "Time requirements are NOT met"
-  set status_file [open "$main_folder/timing_error.txt" "w"]
-  set timing_ok 0
+  if {$wns >= 0 && $whs >= 0} {
+    Msg Info "Time requirements are met"
+    set status_file [open "$main_folder/timing_ok.txt" "w"]
+    set timing_ok 1
+  } else {
+    Msg CriticalWarning "Time requirements are NOT met"
+    set status_file [open "$main_folder/timing_error.txt" "w"]
+    set timing_ok 0
+  }
+
+  Msg Status "*** Timing summary ***"
+  Msg Status "WNS: $wns"
+  Msg Status "TNS: $tns"
+  Msg Status "WHS: $whs"
+  Msg Status "THS: $ths"
+
+  struct::matrix m
+  m add columns 5
+  m add row
+
+  puts $status_file "## $project Timing summary"
+  m add row  "| **Parameter** | \"**value (ns)**\" |"
+  m add row  "| --- | --- |"
+  m add row  "|  WNS:  |  $wns  |"
+  m add row  "|  TNS:  |  $tns  |"
+  m add row  "|  WHS:  |  $whs  |"
+  m add row  "|  THS:  |  $ths  |"
+
+  puts $status_file [m format 2string]
+  puts $status_file "\n"
+  if {$timing_ok == 1} {
+    puts $status_file " Time requirements are met."
+  } else {
+    puts $status_file "Time requirements are **NOT** met."
+  }
+  puts $status_file "\n\n"
+  close $status_file
 }
-
-Msg Status "*** Timing summary ***"
-Msg Status "WNS: $wns"
-Msg Status "TNS: $tns"
-Msg Status "WHS: $whs"
-Msg Status "THS: $ths"
-
-struct::matrix m
-m add columns 5
-m add row
-
-puts $status_file "## $project Timing summary"
-m add row  "| **Parameter** | \"**value (ns)**\" |"
-m add row  "| --- | --- |"
-m add row  "|  WNS:  |  $wns  |"
-m add row  "|  TNS:  |  $tns  |"
-m add row  "|  WHS:  |  $whs  |"
-m add row  "|  THS:  |  $ths  |"
-
-puts $status_file [m format 2string]
-puts $status_file "\n"
-if {$timing_ok == 1} {
-  puts $status_file " Time requirements are met."
-} else {
-  puts $status_file "Time requirements are **NOT** met."
-}
-puts $status_file "\n\n"
-close $status_file
 
 if {$prog ne "100%"} {
   Msg Error "Implementation error"
@@ -124,8 +132,19 @@ if {$prog ne "100%"} {
 
 if {$do_bitstream == 1} {
   Msg Info "Starting write bitstream flow..."
-  launch_runs impl_1 -to_step write_bitstream -jobs 4 -dir $main_folder
-  wait_on_run impl_1
+  if { [string first PlanAhead [version]] == 0 } {
+      # PlanAhead command
+      Msg Info "running pre-bitstream"
+      source  integrated/pre-bitstream.tcl
+      launch_runs impl_1 -to_step Bitgen -jobs 4 -dir $main_folder
+      wait_on_run impl_1
+      Msg Info "running post-bitstream"
+      source  integrated/post-bitstream.tcl
+  } elseif { [string first Vivado [version]] ==0} {
+      # Vivado command
+      launch_runs impl_1 -to_step write_bitstream -jobs 4 -dir $main_folder
+      wait_on_run impl_1
+  }
 
   set prog [get_property PROGRESS [get_runs impl_1]]
   set status [get_property STATUS [get_runs impl_1]]
@@ -135,11 +154,13 @@ if {$do_bitstream == 1} {
     Msg Error "Write bitstream error, status is: $status"
   }
 
-  Msg Status "*** Timing summary (again) ***"
-  Msg Status "WNS: $wns"
-  Msg Status "TNS: $tns"
-  Msg Status "WHS: $whs"
-  Msg Status "THS: $ths"
+  if { [string first PlanAhead [version]] !=0 } {
+    Msg Status "*** Timing summary (again) ***"
+    Msg Status "WNS: $wns"
+    Msg Status "TNS: $tns"
+    Msg Status "WHS: $whs"
+    Msg Status "THS: $ths"
+  }
 }
 
 cd $path/../../

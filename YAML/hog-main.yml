@@ -104,22 +104,22 @@ create_official_release:
     - cd bin
     - for dir in *; do
         if [ -d "$dir" ]; then
-          zip -r ../$dir.zip $dir
-        fi
-      done
-      cd ..
+          zip -r ../$dir.zip $dir;
+        fi;
+      done;
+    - cd ..
     - if [ $HOG_CREATE_OFFICIAL_RELEASE == "1" ]; then
         tclsh ./Hog/Tcl/CI/get_binary_links.tcl $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $CI_PROJECT_URL $CI_COMMIT_TAG
         /Hog/Other/MakeGitlabRelease.sh $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $CI_COMMIT_TAG bin/note.md -load_artifacts;
-      fi
+      fi;
     - if [ $HOG_OFFICIAL_BIN_EOS_PATH != null ]; then
         until echo $HOG_PASSWORD | kinit $HOG_USER; do
          echo Retrying;
          sleep 2;
         done;
-        eos mkdir $HOG_OFFICIAL_BIN_EOS_PATH/$CI_COMMIT_TAG
-        xrdcp -r bin/ ${EOS_MGM_URL}//$HOG_OFFICIAL_BIN_EOS_PATH/$CI_COMMIT_TAG
-      fi
+        eos mkdir $HOG_OFFICIAL_BIN_EOS_PATH/$CI_COMMIT_TAG;
+        xrdcp -r bin/ ${EOS_MGM_URL}//$HOG_OFFICIAL_BIN_EOS_PATH/$CI_COMMIT_TAG;
+      fi;
   allow_failure: true
   artifacts:
     paths:

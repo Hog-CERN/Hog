@@ -23,7 +23,7 @@ set repo_path [file normalize "$TclPath/../.."]
 source $TclPath/hog.tcl
 
 if {[catch {package require cmdline} ERROR]} {
-  Msg Error "$ERROR\n If you are running this script on tclsh, you can fix this by installing 'tcllib'" 
+  Msg Error "$ERROR\n If you are running this script on tclsh, you can fix this by installing 'tcllib'"
   return
 }
 
@@ -37,7 +37,7 @@ if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] 
   cd $OldPath
   return
 }
-                                                                                                                        
+
 set push_token [lindex $argv 0]
 set api [lindex $argv 1]
 set proj_id [lindex $argv 2]
@@ -58,13 +58,12 @@ foreach dir [glob -type d $repo_path/Top/* ] {
       Msg CriticalWarning "Cannot find $proj binaries in artifacts"
       continue
     }
-    exec zip -r $proj.zip bin/[ file tail $prj_dir]
     set content [exec curl -s --request POST --header "PRIVATE-TOKEN: ${push_token}" --form "file=@$repo_path/$proj.zip" ${api}/projects/${proj_id}/uploads]
     # get the url from the json return
     set url [ParseJSON $content "url"]
     set absolute_url ${prj_url}${url}
-     puts $fp "$proj $absolute_url"     
-    
+    puts $fp "$proj $absolute_url"
+
   } elseif {"$ver"=="-1"} {
     Msg CriticalWarning "Something went wrong when tried to retrieve version for project $proj"
     cd $OldPath
@@ -77,7 +76,7 @@ foreach dir [glob -type d $repo_path/Top/* ] {
       set link ""
       foreach line [split  [ParseJSON $msg description] "\n"] {
         if {[string first "\[$proj.zip\]" $line] != -1} {
-          set link [lindex [split $line "()"] 1]  
+          set link [lindex [split $line "()"] 1]
           puts $fp "$proj $link"
         }
       }

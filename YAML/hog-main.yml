@@ -108,7 +108,6 @@ create_official_release:
         fi;
       done;
     - cd ..
-    - ls -ltr
     - if [ $HOG_CREATE_OFFICIAL_RELEASE == "1" ]; then
         tclsh ./Hog/Tcl/CI/get_binary_links.tcl $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $CI_PROJECT_URL $CI_COMMIT_TAG;
         /Hog/Other/MakeGitlabRelease.sh $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $CI_COMMIT_TAG bin/note.md -load_artifacts;

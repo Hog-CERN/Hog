@@ -1,7 +1,6 @@
 #planahead
 ############# modify these to match project ################
 set BIN_FILE 0
-set USE_QUESTA_SIMULATOR 0
 set SIMULATOR  xsim
 
 set FPGA xc6vlx130tff1156-1

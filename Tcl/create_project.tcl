@@ -85,7 +85,7 @@ proc CreateProject {} {
     ## Set project properties
     set obj [get_projects $globalSettings::DESIGN]
     set_property "target_language" "VHDL" $obj
-    if { [string first Vivado [version] ] ==0} {
+    if { [string first PlanAhead [version] ] != 0} {
         set_property "simulator_language" "Mixed" $obj
         set_property "compxlib.modelsim_compiled_library_dir" $globalSettings::modelsim_path $obj
         set_property "compxlib.questa_compiled_library_dir" $globalSettings::modelsim_path $obj
@@ -94,7 +94,7 @@ proc CreateProject {} {
     }
 
         ## Enable VHDL 2008
-    if { [string first Vivado [version] ] ==0} {
+    if { [string first PlanAhead [version] ] != 0} {
       set_param project.enableVHDL2008 1
       set_property "enable_vhdl_2008" 1 $obj
     }
@@ -287,7 +287,7 @@ proc ConfigureSynthesis {} {
   if {$globalSettings::pre_synth_file ne ""} { 
     if {[info commands send_msg_id] != ""} {
             #Vivado Only
-        if { [string first Vivado [version] ] ==0} {
+        if { [string first PlanAhead [version] ] != 0 } {
             set_property STEPS.SYNTH_DESIGN.TCL.PRE $globalSettings::pre_synth $obj
         }
     } elseif {[info commands project_new] != ""} {
@@ -303,7 +303,7 @@ proc ConfigureSynthesis {} {
   if {$globalSettings::post_synth_file ne ""} { 
     if {[info commands send_msg_id] != ""} {
         #Vivado Only
-        if { [string first Vivado [version] ] ==0} {
+        if { [string first PlanAhead [version] ] !=0 } {
             set_property STEPS.SYNTH_DESIGN.TCL.POST $globalSettings::post_synth $obj
         }
     } elseif {[info commands project_new] != ""} {
@@ -368,7 +368,7 @@ proc ConfigureImplementation {} {
     set_property "steps.write_bitstream.args.verbose" "0" $obj
 
     ## set binfile production
-    if { [string first Vivado [version] ] ==0} {
+    if { [string first PlanAhead [version] ] !=0 } {
         if {$globalSettings::BIN_FILE == 1} {
             set_property "steps.write_bitstream.args.BIN_FILE" "1" $obj
         } else {
@@ -385,7 +385,7 @@ proc ConfigureImplementation {} {
   if {$globalSettings::pre_impl_file ne ""} { 
     if {[info commands send_msg_id] != ""} {
         #Vivado Only
-        if { [string first Vivado [version] ] ==0} {
+        if { [string first PlanAhead [version] ] != 0 } {
             set_property STEPS.INIT_DESIGN.TCL.POST $globalSettings::pre_impl $obj
         }
     } elseif {[info commands project_new] != ""} {
@@ -402,7 +402,7 @@ proc ConfigureImplementation {} {
   if {$globalSettings::post_impl_file ne ""} { 
     if {[info commands send_msg_id] != ""} {
         #Vivado Only
-        if { [string first Vivado [version] ] ==0} {
+        if { [string first PlanAhead [version] ] != 0} {
           set_property STEPS.ROUTE_DESIGN.TCL.POST $globalSettings::post_impl $obj
         }
     } elseif {[info commands project_new] != ""} {
@@ -418,7 +418,7 @@ proc ConfigureImplementation {} {
   if {$globalSettings::pre_bit_file ne ""} { 
     if {[info commands send_msg_id] != ""} {
             #Vivado Only
-      if { [string first Vivado [version] ] ==0} {
+      if { [string first PlanAhead [version] ] != 0} {
         set_property STEPS.WRITE_BITSTREAM.TCL.PRE $globalSettings::pre_bit $obj
       }
     } elseif {[info commands project_new] != ""} {
@@ -434,7 +434,7 @@ proc ConfigureImplementation {} {
   if {$globalSettings::post_bit_file ne ""} { 
     if {[info commands send_msg_id] != ""} {
             #Vivado Only
-      if { [string first Vivado [version] ] ==0} {
+      if { [string first PlanAhead [version] ] != 0 } {
       set_property STEPS.WRITE_BITSTREAM.TCL.POST $globalSettings::post_bit $obj
       }
     } elseif {[info commands project_new] != ""} {

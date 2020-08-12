@@ -84,21 +84,29 @@ proc CreateProject {} {
 
     ## Set project properties
     set obj [get_projects $globalSettings::DESIGN]
-    set_property "simulator_language" "Mixed" $obj
     set_property "target_language" "VHDL" $obj
-    set_property "compxlib.modelsim_compiled_library_dir" $globalSettings::modelsim_path $obj
-    set_property "compxlib.questa_compiled_library_dir" $globalSettings::modelsim_path $obj
-    set_property "default_lib" "xil_defaultlib" $obj
-    set_property "target_simulator" $globalSettings::SIMULATOR $obj
+    if { [string first PlanAhead [version] ] != 0} {
+        set_property "simulator_language" "Mixed" $obj
+        set_property "compxlib.modelsim_compiled_library_dir" $globalSettings::modelsim_path $obj
+        set_property "compxlib.questa_compiled_library_dir" $globalSettings::modelsim_path $obj
+        set_property "default_lib" "xil_defaultlib" $obj
+        set_property "target_simulator" $globalSettings::SIMULATOR $obj
+    }
 
         ## Enable VHDL 2008
-    set_param project.enableVHDL2008 1
-    set_property "enable_vhdl_2008" 1 $obj
+    if { [string first PlanAhead [version] ] != 0} {
+      set_param project.enableVHDL2008 1
+      set_property "enable_vhdl_2008" 1 $obj
+    }
 
         ## Setting user IP repository to default Hog directory
     if [file exists $globalSettings::user_ip_repo] {
       Msg Info "Found directory $globalSettings::user_ip_repo, setting it as user IP repository..."
-      set_property  ip_repo_paths $globalSettings::user_ip_repo [current_project]
+      if { [string first PlanAhead [version]]==0 } {
+        set_property  ip_repo_paths $globalSettings::user_ip_repo [current_fileset]
+      } else  {
+        set_property  ip_repo_paths $globalSettings::user_ip_repo [current_project]
+      }
     } else {
       Msg Info "$globalSettings::user_ip_repo not found, no user IP repository will be set." 
     }
@@ -279,7 +287,9 @@ proc ConfigureSynthesis {} {
   if {$globalSettings::pre_synth_file ne ""} { 
     if {[info commands send_msg_id] != ""} {
             #Vivado Only
-      set_property STEPS.SYNTH_DESIGN.TCL.PRE $globalSettings::pre_synth $obj
+        if { [string first PlanAhead [version] ] != 0 } {
+            set_property STEPS.SYNTH_DESIGN.TCL.PRE $globalSettings::pre_synth $obj
+        }
     } elseif {[info commands project_new] != ""} {
             #QUARTUS only
       set_global_assignment -name PRE_FLOW_SCRIPT_FILE quartus_sh:$globalSettings::pre_synth
@@ -292,8 +302,10 @@ proc ConfigureSynthesis {} {
     ## set post synthesis script
   if {$globalSettings::post_synth_file ne ""} { 
     if {[info commands send_msg_id] != ""} {
-            #Vivado Only
-      set_property STEPS.SYNTH_DESIGN.TCL.POST $globalSettings::post_synth $obj
+        #Vivado Only
+        if { [string first PlanAhead [version] ] !=0 } {
+            set_property STEPS.SYNTH_DESIGN.TCL.POST $globalSettings::post_synth $obj
+        }
     } elseif {[info commands project_new] != ""} {
             #QUARTUS only
       set_global_assignment -name POST_MODULE_SCRIPT_FILE quartus_sh:$globalSettings::post_synth
@@ -355,11 +367,13 @@ proc ConfigureImplementation {} {
     set_property "steps.write_bitstream.args.readback_file" "0" $obj
     set_property "steps.write_bitstream.args.verbose" "0" $obj
 
-        ## set binfile production
-    if {$globalSettings::BIN_FILE == 1} {
-      set_property "steps.write_bitstream.args.BIN_FILE" "1" $obj
-    } else {
-      set_property "steps.write_bitstream.args.BIN_FILE" "0" $obj
+    ## set binfile production
+    if { [string first PlanAhead [version] ] !=0 } {
+        if {$globalSettings::BIN_FILE == 1} {
+            set_property "steps.write_bitstream.args.BIN_FILE" "1" $obj
+        } else {
+            set_property "steps.write_bitstream.args.BIN_FILE" "0" $obj
+        }
     }
   } elseif {[info commands project_new] != ""} {
             #QUARTUS only
@@ -370,8 +384,10 @@ proc ConfigureImplementation {} {
 	## set pre implementation script
   if {$globalSettings::pre_impl_file ne ""} { 
     if {[info commands send_msg_id] != ""} {
-            #Vivado Only
-      set_property STEPS.INIT_DESIGN.TCL.POST $globalSettings::pre_impl $obj
+        #Vivado Only
+        if { [string first PlanAhead [version] ] != 0 } {
+            set_property STEPS.INIT_DESIGN.TCL.POST $globalSettings::pre_impl $obj
+        }
     } elseif {[info commands project_new] != ""} {
             #QUARTUS only
       set_global_assignment -name PRE_FLOW_SCRIPT_FILE quartus_sh:$globalSettings::pre_impl
@@ -385,8 +401,10 @@ proc ConfigureImplementation {} {
     ## set post routing script
   if {$globalSettings::post_impl_file ne ""} { 
     if {[info commands send_msg_id] != ""} {
-            #Vivado Only
-      set_property STEPS.ROUTE_DESIGN.TCL.POST $globalSettings::post_impl $obj
+        #Vivado Only
+        if { [string first PlanAhead [version] ] != 0} {
+          set_property STEPS.ROUTE_DESIGN.TCL.POST $globalSettings::post_impl $obj
+        }
     } elseif {[info commands project_new] != ""} {
             #QUARTUS only
       set_global_assignment -name POST_MODULE_SCRIPT_FILE quartus_sh:$globalSettings::post_impl
@@ -400,7 +418,9 @@ proc ConfigureImplementation {} {
   if {$globalSettings::pre_bit_file ne ""} { 
     if {[info commands send_msg_id] != ""} {
             #Vivado Only
-      set_property STEPS.WRITE_BITSTREAM.TCL.PRE $globalSettings::pre_bit $obj
+      if { [string first PlanAhead [version] ] != 0} {
+        set_property STEPS.WRITE_BITSTREAM.TCL.PRE $globalSettings::pre_bit $obj
+      }
     } elseif {[info commands project_new] != ""} {
             #QUARTUS only
       set_global_assignment -name PRE_FLOW_SCRIPT_FILE quartus_sh:$globalSettings::pre_bit
@@ -414,7 +434,9 @@ proc ConfigureImplementation {} {
   if {$globalSettings::post_bit_file ne ""} { 
     if {[info commands send_msg_id] != ""} {
             #Vivado Only
+      if { [string first PlanAhead [version] ] != 0 } {
       set_property STEPS.WRITE_BITSTREAM.TCL.POST $globalSettings::post_bit $obj
+      }
     } elseif {[info commands project_new] != ""} {
             #QUARTUS only
       set_global_assignment -name POST_FLOW_SCRIPT_FILE quartus_sh:$globalSettings::post_bit

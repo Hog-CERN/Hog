@@ -579,12 +579,12 @@ proc GetVerFromSHA {SHA} {
     if {[regexp {^ *$} $result]} {
       #newest tag of the repo, parent of the SHA
       if [catch {exec git describe --tags --abbrev=0 --match=v*.*.* --match=b*v*.*.*} tag] {
-        Msg CriticalWarning "No Hog version tags found in this repository ($path)."
+        Msg CriticalWarning "No Hog version tags found in this repository."
         set ver v0.0.0
       } else {
         lassign [ExtractVersionFromTag $tag] M m p mr
 	if {$M == -1} {
-	  Msg CriticalWarning "Tag $tag does not contain a Hog compatible version, in repository $path."
+	  Msg CriticalWarning "Tag $tag does not contain a Hog compatible version in this repository."
 	  set ver v0.0.0
 	} elseif {$mr == -1} {
           incr p
@@ -1320,7 +1320,10 @@ proc AddHogFiles { libraries properties } {
           set props [dict get $properties $f]
           if {[file ext $f] == ".vhd" || [file ext $f] == ".vhdl"} {
             if {[lsearch -inline -regex $props "93"] < 0} {
-              set_property -name "file_type" -value "VHDL 2008" -objects $file_obj
+                # ISE does not support vhdl2008
+                if { [string first PlanAhead [version]] != 0 } {
+                    set_property -name "file_type" -value "VHDL 2008" -objects $file_obj
+                }
             } else {
               Msg Info "Filetype is VHDL 93 for $f"
             }

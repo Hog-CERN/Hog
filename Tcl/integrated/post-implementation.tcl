@@ -29,8 +29,12 @@ source $tcl_path/hog.tcl
 cd $tcl_path/../../
 
 if {[info commands get_property] != ""} {
-    # Vivado
-  set proj_file [get_property parent.project_path [current_project]]
+    # Vivado + planAhead
+    if { [string first PlanAhead [version]] == 0 } {
+        set proj_file [get_property DIRECTORY [current_project]]
+    } else {
+        set proj_file [get_property parent.project_path [current_project]]
+    }
 } elseif {[info commands project_new] != ""} {
     # Quartus
   set proj_file "/q/a/r/Quartus_project.qpf"
@@ -69,9 +73,17 @@ Msg Info "The git SHA value $commit will be set as bitstream USERID."
 
 # Set bitstream embedded variables
 if {[info commands send_msg_id] != ""} {
-  #Vivado 
-  set_property BITSTREAM.CONFIG.USERID $commit [current_design]
-  set_property BITSTREAM.CONFIG.USR_ACCESS $commit_usr [current_design]
+    if { [string first PlanAhead [version]] == 0 } {
+        # get the existing "more options" so that we can append to them when adding the userid
+        set props [get_property "STEPS.BITGEN.ARGS.MORE OPTIONS" [get_runs impl_1]]
+        # need to trim off the curly braces that were used in creating a dictionary
+        regsub -all {\{|\}} $props "" props
+        set props  "$props -g usr_access:0x0$commit -g userid:0x0$commit_usr"
+        set_property -name {steps.bitgen.args.More Options} -value $props -objects [get_runs impl_1]
+    } else {
+        set_property BITSTREAM.CONFIG.USERID $commit [current_design]
+        set_property BITSTREAM.CONFIG.USR_ACCESS $commit_usr [current_design]
+    }
 } elseif {[info commands post_message] != ""} {
   # Quartus
 } else {

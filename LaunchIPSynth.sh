@@ -78,8 +78,9 @@ else
     
     if [ "$COMMAND" = "quartus_sh" ]
     then
-      ${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/utils/get_ips.tcl $1
-      ${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_ip_synth.tcl $1
+      echo "Hog-ERROR: Quartus Prime is not yet supportd by this script!"
+      #${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/utils/get_ips.tcl $1
+      #${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_ip_synth.tcl $1
     else
       ${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/utils/get_ips.tcl -tclargs $1
       ${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_ip_synth.tcl -tclargs $1

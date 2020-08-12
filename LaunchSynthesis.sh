@@ -96,7 +96,8 @@ else
 
     if [ $COMMAND = "quartus_sh" ]
     then
-      ${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_synthesis.tcl $NJOBS $1
+      echo "Hog-ERROR: Quartus Prime is not yet supportd by this script!"
+      #${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_synthesis.tcl $NJOBS $1
     else
       ${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_synthesis.tcl -tclargs $NJOBS $1
     fi

@@ -102,7 +102,7 @@ create_official_release:
     - MR=( `git notes show` )
     - ./Hog/Other/GetArtifactsAndRename.sh $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $MR collect_artifacts $CI_COMMIT_TAG
     - cd bin
-      for dir in *; do
+    - for dir in *; do
         if [ -d "$dir" ]; then
           zip -r ../$dir.zip $dir
         fi

@@ -108,7 +108,7 @@ archive_binary_files:
         fi;
       done;
     - if [ $HOG_USE_DOXYGEN == "1" ]; then
-        ./Hog/Other/GetArtifactsAndRename.sh $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $MR make_doxygen $CI_COMMIT_TAG;
+        ../Hog/Other/GetArtifactsAndRename.sh $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $MR make_doxygen $CI_COMMIT_TAG;
       fi
     - cd ..
     - if [ $HOG_CREATE_OFFICIAL_RELEASE == "1" ]; then

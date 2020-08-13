@@ -1431,10 +1431,9 @@ proc HandleIP {what_to_do xci_file ip_path runs_dir {force 0}} {
     Msg Error "You must specify push or pull as first argument."
   }
 
-  set ip_path_path [file normalize $ip_path/..]
-  lassign [eos  "ls $ip_path_path"] ret result
+  lassign [eos  "ls $ip_path"] ret result
   if  {$ret != 0} {
-    Msg CriticalWarning "Could not find mother directory for $ip_path: $ip_path_path."
+    Msg CriticalWarning "Could not find mother directory for ip_path: $ip_path."
     return -1
   } else {
     lassign [eos  "ls $ip_path"] ret result

@@ -43,7 +43,7 @@ fi
 ##! If no arg is provided Then print usage message
 if [ -z "$1" ]
 then
-	printf "Project name has not been specified. Usage: \n ./Hog/LaunchIPSynth.sh <proj_name>\n"
+  printf "Project name has not been specified. Usage: \n ./Hog/LaunchIPSynth.sh <proj_name>\n"
 else
   ##! use vivado to run get_ips.tcl and launch_ip_synth.tcl
   PROJ=$1
@@ -66,7 +66,7 @@ else
       echo "Hog-ERROR: failed to get HDL compiler executable for $COMMAND"
       exit -1
     fi
-    
+
     if [ ! -f "${HDL_COMPILER}" ]
     then
       echo "Hog-ERROR: HLD compiler executable $HDL_COMPILER not found"
@@ -75,12 +75,15 @@ else
     else
       echo "Hog-INFO: using executable: $HDL_COMPILER"
     fi
-    
+
     if [ "$COMMAND" = "quartus_sh" ]
     then
       echo "Hog-ERROR: Quartus Prime is not yet supportd by this script!"
       #${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/utils/get_ips.tcl $1
       #${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_ip_synth.tcl $1
+    elif [ $COMMAND = "vivado_hls" ]
+    then
+      echo "Hog-ERROR: Vivado HLS is not yet supported by this script!"
     else
       ${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/utils/get_ips.tcl -tclargs $1
       ${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_ip_synth.tcl -tclargs $1

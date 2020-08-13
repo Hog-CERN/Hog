@@ -59,10 +59,14 @@ lastbuilt.txt
 credentials.sh
 VivadoProject
 SimulationLib
-SimulationLib_quartus
 profpga
 BD/*
 !BD/*.bd
+
+## Intel Quartus Prime
+QuartusProject
+SimulationLib_quartus
+*.bak
 
 ## Software building
 **.depend

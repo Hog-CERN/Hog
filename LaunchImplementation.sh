@@ -98,8 +98,11 @@ else
     fi
     if [ $COMMAND = "quartus_sh" ]
     then
-      echo "Hog-ERROR: Quartus Prime is not yet supportd by this script!"
+      echo "Hog-ERROR: Quartus Prime is not yet supported by this script!"
       #${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_implementation.tcl $NO_BITSTREAM $NJOBS $1
+    elif [ $COMMAND = "vivado_hls" ]
+    then
+      echo "Hog-ERROR: Vivado HLS is not yet supported by this script!"
     else
       ${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_implementation.tcl -tclargs $NO_BITSTREAM $NJOBS $1
     fi

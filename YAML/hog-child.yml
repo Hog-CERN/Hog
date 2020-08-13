@@ -121,7 +121,7 @@ stages:
       - if [ -f "./VivadoProjects/$PROJECT_NAME/skip.me" ]; then
           echo "CI disabled for $PROJECT_NAME";
         else
-          until echo $HOG_PASSWORD | kinit $HOG_USER ; do echo "Retrying"; sleep 2; done;
+          until echo $HOG_PASSWORD | kinit $HOG_USER@CERN.CH ; do echo "Retrying"; sleep 2; done;
           if [ -z ${HOG_IP_NJOBS+x} ]; then export HOG_IP_NJOBS=4; fi;
           if [ -z ${HOG_IP_EOS_PATH+x} ]; then
             echo 'No EOS path for IPs defined';

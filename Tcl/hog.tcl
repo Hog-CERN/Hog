@@ -1489,10 +1489,14 @@ proc HandleIP {what_to_do xci_file ip_path runs_dir {force 0}} {
         eos "mkdir -p $ip_path/$file_name/synthesized" 5
 
         Msg Info "Copying generated files for $xci_name..."
-        exec xrdcp -r $xci_path  $::env(EOS_MGM_URL)//$ip_path/$file_name/
+        if [catch {exec xrdcp -r $xci_path  $::env(EOS_MGM_URL)//$ip_path/$file_name/} msg] {
+          Msg Warning "Something went wrong when copying the IP files to EOS. Error message: $msg"
+        }
         eos "mv $ip_path/$file_name/$xci_dir_name $ip_path/$file_name/generated" 5
         Msg Info "Copying synthesised files for $xci_name..."
-        exec xrdcp -r $ip_synth_files $::env(EOS_MGM_URL)//$ip_path/$file_name/synthesized
+        if [catch {exec xrdcp -r $ip_synth_files $::env(EOS_MGM_URL)//$ip_path/$file_name/synthesized} msg] {
+          Msg Warning "Something went wrong when copying the IP files to EOS. Error message: $msg"
+        }
       } else {
         Msg Warning "Could not find synthesized files matching $ip_path/$file_name*"
       }
@@ -1514,13 +1518,17 @@ proc HandleIP {what_to_do xci_file ip_path runs_dir {force 0}} {
       Msg Status "Synthesised files found for $xci_ip_name ($ret_s):\n $ip_syn_files"
 
       if  {($ret_g == 0) && ([llength $ip_gen_files] > 0)} {
-        exec xrdcp -r $::env(EOS_MGM_URL)//$ip_path/$file_name/generated/* $xci_path
+        if [catch {exec xrdcp -r $::env(EOS_MGM_URL)//$ip_path/$file_name/generated/* $xci_path} msg] {
+          Msg Warning "Something went wrong when copying the IP files to EOS. Error message: $msg"
+        }
       } else {
         Msg Warning "Cound not find generated IP files on EOS path"
       }
 
       if  {($ret_s == 0) && ([llength $ip_syn_files] > 0)} {
-        exec xrdcp $::env(EOS_MGM_URL)//$ip_path/$file_name/synthesized/$xci_ip_name\_synth_1/*.rpt $xci_path
+        if [catch {exec xrdcp $::env(EOS_MGM_URL)//$ip_path/$file_name/synthesized/$xci_ip_name\_synth_1/*.rpt $xci_path} msg] {
+          Msg Warning "Something went wrong when copying the IP files to EOS. Error message: $msg"
+        }
       } else {
         Msg Warning "Cound not find synthesized IP files on EOS path"
       }

@@ -16,9 +16,9 @@
 ## @file CreateProject.sh
 #  @brief Create the specified Vivado or Quartus project
 
-## Import common functions from CommonFunctions.sh in a POSIX compliant way
+## Import common functions from Other/CommonFunctions.sh in a POSIX compliant way
 #
-. $(dirname "$0")/CommonFunctions.sh;
+. $(dirname "$0")/Other/CommonFunctions.sh;
 
 ## @fn help_message
 #

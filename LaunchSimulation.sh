@@ -19,9 +19,9 @@
 # @todo LaunchSimulation.sh: check is vivado is installed an set-up in the shell (if [ which vivado ])
 # @todo LaunchSimulation.sh: check arg $1 and $2 before passing it to the Tcl script
 
-## Import common functions from CommonFunctions.sh in a POSIX compliant way
+## Import common functions from Other/CommonFunctions.sh in a POSIX compliant way
 #
-. $(dirname "$0")/CommonFunctions.sh;
+. $(dirname "$0")/Other/CommonFunctions.sh;
 
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"

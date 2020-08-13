@@ -20,9 +20,9 @@
 # @todo LaunchIPSynth.sh: update for Quartus support
 # @todo LaunchIPSynth.sh: check is vivado is installed an set-up in the shell (if [ which vivado ]) 
 # @todo LaunchIPSynth.sh: check arg $1 before passing it to the script
-## Import common functions from CommonFunctions.sh in a POSIX compliant way
+## Import common functions from Other/CommonFunctions.sh in a POSIX compliant way
 #
-. $(dirname "$0")/CommonFunctions.sh;
+. $(dirname "$0")/Other/CommonFunctions.sh;
 
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"

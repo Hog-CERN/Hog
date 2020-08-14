@@ -85,7 +85,7 @@ foreach dir [glob -type d $repo_path/Top/* ] {
           set stages { "create_project" }
           puts $fp [ WriteYAMLStage $stage $proj $stages ]
         } else {
-          set stages { "create_project" "synthesise_ips" "synthesise_project" "implement_project" }
+          set stages { "create_project" "generate_project" }
           puts $fp [ WriteYAMLStage $stage $proj $stages ] 
         }
       }

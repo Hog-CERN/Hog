@@ -19,6 +19,10 @@
 # @todo LaunchSimulation.sh: check is vivado is installed an set-up in the shell (if [ which vivado ])
 # @todo LaunchSimulation.sh: check arg $1 and $2 before passing it to the Tcl script
 
+## Import common functions from Other/CommonFunctions.sh in a POSIX compliant way
+#
+. $(dirname "$0")/Other/CommonFunctions.sh;
+
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
@@ -44,6 +48,52 @@ else
   then
     LIBPATH="-lib_path $2"
   fi	
-  ##! invoke vivado to launch launch_simulation.tcl script using args: '-lib_path $2 $1'
-  vivado -nojournal -nolog -mode batch -notrace -source $DIR/Tcl/launchers/launch_simulation.tcl -tclargs $LIBPATH $1 
+
+  PROJ=$1
+  PROJ_DIR="./Top/"$PROJ
+  if [ -d "$PROJ_DIR" ]
+  then
+
+    #Choose if the project is quastus, vivado, vivado_hls [...]
+    select_command $PROJ_DIR"/"$PROJ".tcl"
+    if [ $? != 0 ]
+    then
+      echo "Failed to select project type: exiting!"
+      exit -1
+    fi
+
+    #select full path to executable and place it in HDL_COMPILER global variable
+    select_compiler_executable $COMMAND
+    if [ $? != 0 ]
+    then
+      echo "Hog-ERROR: failed to get HDL compiler executable for $COMMAND"
+      exit -1
+    fi
+
+    if [ ! -f "${HDL_COMPILER}" ]
+    then
+      echo "Hog-ERROR: HLD compiler executable $HDL_COMPILER not found"
+      cd "${OLD_DIR}"
+      exit -1
+    else
+      echo "Hog-INFO: using executable: $HDL_COMPILER"
+    fi
+
+    if [ $COMMAND = "quartus_sh" ]
+    then
+      echo "Hog-ERROR: Quartus Prime is not yet supportd by this script!"
+      #"${HDL_COMPILER}" $COMMAND_OPT $DIR/Tcl/launchers/launch_simulation.tcl $LIBPATH $1
+
+    elif [ $COMMAND = "vivado_hls" ]
+    then
+      echo "Hog-ERROR: Vivado HLS is not yet supported by this script!"
+    else
+      "${HDL_COMPILER}" $COMMAND_OPT $DIR/Tcl/launchers/launch_simulation.tcl -tclargs $LIBPATH $1
+    fi
+  else
+    echo "Hog-ERROR: project $PROJ not found: possible projects are: `ls ./Top`"
+    echo
+    cd "${OLD_DIR}"
+    exit -1
+  fi
 fi

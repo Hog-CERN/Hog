@@ -18,6 +18,11 @@
 # @todo LaunchSynthesis.sh: update for Quartus support
 # @todo LaunchSynthesis.sh: check is vivado is installed an set-up in the shell (if [ which vivado ])
 
+## Import common functions from Other/CommonFunctions.sh in a POSIX compliant way
+#
+. $(dirname "$0")/Other/CommonFunctions.sh;
+
+
 ## @function argument_parser()
 #  @brief pase aguments and sets evvironment variables
 #  @param[out] NJOBS        empty or "-NJOBS $2"
@@ -58,6 +63,52 @@ eval set -- "$PARAMS"
 if [ -z "$1" ]
 then
 	printf "Project name has not been specified. Usage: \n ./Hog/LaunchSynthesis.sh <proj_name> [-NJOBS <number of jobs>]\n"
-else 
-	vivado -nojournal -nolog -mode batch -notrace -source $DIR/Tcl/launchers/launch_synthesis.tcl -tclargs $NJOBS $1
+else
+  PROJ=$1
+  PROJ_DIR="./Top/"$PROJ
+  if [ -d "$PROJ_DIR" ]
+  then
+
+    #Choose if the project is quastus, vivado, vivado_hls [...]
+    select_command $PROJ_DIR"/"$PROJ".tcl"
+    if [ $? != 0 ]
+    then
+      echo "Failed to select project type: exiting!"
+      exit -1
+    fi
+
+    #select full path to executable and place it in HDL_COMPILER global variable
+    select_compiler_executable $COMMAND
+    if [ $? != 0 ]
+    then
+      echo "Hog-ERROR: failed to get HDL compiler executable for $COMMAND"
+      exit -1
+    fi
+
+    if [ ! -f "${HDL_COMPILER}" ]
+    then
+      echo "Hog-ERROR: HLD compiler executable $HDL_COMPILER not found"
+      cd "${OLD_DIR}"
+      exit -1
+    else
+      echo "Hog-INFO: using executable: $HDL_COMPILER"
+    fi
+
+    if [ $COMMAND = "quartus_sh" ]
+    then
+      echo "Hog-ERROR: Quartus Prime is not yet supportd by this script!"
+      #${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_synthesis.tcl $NJOBS $1
+          elif [ $COMMAND = "vivado_hls" ]
+                then
+                        echo "Hog-ERROR: Vivado HLS is not yet supported by this script!"
+    else
+      ${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_synthesis.tcl -tclargs $NJOBS $1
+    fi
+  else
+    echo "Hog-ERROR: project $PROJ not found: possible projects are: `ls ./Top`"
+    echo
+    cd "${OLD_DIR}"
+    exit -1
+  fi
+
 fi

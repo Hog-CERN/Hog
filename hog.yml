@@ -23,5 +23,4 @@ stages:
     - implementation
     - collect
     - doxygen
-    - copy
-    - clean
+    - archive

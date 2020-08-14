@@ -14,81 +14,149 @@
 #   limitations under the License.
 
 ## @file Init.sh
-OLD_DIR=`pwd`
-DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-if [ "$1" == "-h" ] || [ "$1" == "-help" ] || [ "$1" == "--help" ] || [ "$1" == "-H" ]; then
-    echo
-    echo " Hog - Initialise repository"
-    echo " ---------------------------"
-    echo " Initialise your Hog-handled firmware repository"
-    echo " - (optional) Compile questasim libraries (if questasim executable is found)"
-    echo " - (optional) Create vivado projects (if vivado exacutable is found)"
-    echo
+
+## @fn help_message
+#
+# @brief Prints an help message
+#
+# The help message contais both the options availble for the first line of the tcl, both the command usage
+# This function uses echo to print to screen
+#
+# @param[in]    $1 the invoked command
+#
+function help_message()
+{
+  echo
+  echo " Hog - Initialise repository"
+  echo " ---------------------------"
+  echo " Initialise your Hog-handled firmware repository"
+  echo " - (optional) Compile questasim libraries (if questasim executable is found)"
+  echo " - (optional) Create vivado projects (if vivado exacutable is found)"
+  echo
+  exit 0
+}
+
+
+## @fn init
+#
+# @brief main function, initialize the repository by compiling  simulation libraries and creating projects
+#
+#
+function init()
+{
+
+  local OLD_DIR=`pwd`
+  local DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+  if [ "$1" == "-h" ] || [ "$1" == "-help" ] || [ "$1" == "--help" ] || [ "$1" == "-H" ]; then
+    help_message $0
     exit 0
-fi
+  fi
 
-cd "${DIR}"
+  cd "${DIR}"
 
-##! The script checks if Vivado is installed and set uop on the shell. 
-##! NOTE that these checks are performed using 'which'
-if [ `which vivado` ]
-then
-    VIVADO=`which vivado`
+  ##! The script checks if Vivado is installed and set uop on the shell. 
+  ##! NOTE that these checks are performed using 'which'
+  if [ `which vivado` ]
+  then
+    local VIVADO=`which vivado`
     ##! If Vivado is installed it checks if vsim command is defined (Questasim or Modelsim is installed and set-up in the shell). 
     ##! NOTE that these checks are performed using 'which'
     if [ `which vsim` ]
     then
-		echo
-    ##! If Questasim or Modelsim is installed ask user if he wants to compile
-    ##! NOTE use read to grab user input
-    ##! NOTE if the user input contains Y or y then is accepted as yes
-		read -p "Do you want to compile Questasim libraries (this might take some time)? " -n 1 -r
-		echo  
-		if [[ "${REPLY}" =~ ^[Yy]$ ]]
-			then
-	    	echo [hog init] Compiling Questasim libraries into SimulationLib...
-	    	"${VIVADO}" -mode batch -notrace -source ./Tcl/utils/compile_questalib.tcl
-	    	rm -f ./Tcl/.cxl.questasim.version
-	    	rm -f ./Tcl/compile_simlib.log
-	    	rm -f ./Tcl/modelsim.ini
-		else
-			read -p "Do you want to compile Modelsim libraries (this might take some time)? " -n 1 -r
-    		echo  
-		    if [[  "${REPLY}" =~ ^[Yy]$ ]]
-		    then
-        		echo [hog init] Compiling Modelsim libraries into SimulationLib...
-		        "${VIVADO}" -mode batch -notrace -source ./Tcl/utils/compile_modelsimlib.tcl
-        		rm -f ./Tcl/.cxl.modelsim.version
-		        rm -f ./Tcl/compile_simlib.log
-		        rm -f ./Tcl/modelsim.ini
-    		fi
-		fi
+      echo
+      ##! If Questasim or Modelsim is installed ask user if he wants to compile
+      ##! NOTE use read to grab user input
+      ##! NOTE if the user input contains Y or y then is accepted as yes
+      read -p "Do you want to compile Questasim libraries for Vivado (this might take some time)? " -n 1 -r
+      echo  
+      if [[ "${REPLY}" =~ ^[Yy]$ ]]
+      then
+        echo [hog init] Compiling Questasim libraries into SimulationLib...
+        "${VIVADO}" -mode batch -notrace -source ./Tcl/utils/compile_questalib.tcl
+        rm -f ./Tcl/.cxl.questasim.version
+        rm -f ./Tcl/compile_simlib.log
+        rm -f ./Tcl/modelsim.ini
+      else
+        read -p "Do you want to compile Modelsim libraries for Vivado (this might take some time)? " -n 1 -r
+        echo  
+        if [[  "${REPLY}" =~ ^[Yy]$ ]]
+        then
+          echo [hog init] Compiling Modelsim libraries into SimulationLib...
+          "${VIVADO}" -mode batch -notrace -source ./Tcl/utils/compile_modelsimlib.tcl
+          rm -f ./Tcl/.cxl.modelsim.version
+          rm -f ./Tcl/compile_simlib.log
+          rm -f ./Tcl/modelsim.ini
+        fi
+      fi
     else
-		echo [hog init] "WARNING: No modelsim executable found, will not compile libraries" 
-	fi
-
-    ##! If Vivado is installed ask user if he wants to create all projects in the repository
-    ##! NOTE use read to grab user input
-    ##! NOTE if the user input contains Y or y then is accepted as yes
-    echo
-    read -p "Do you want to create projects now (can be done later with CreateProject.sh)? " -n 1 -r
-    echo    # (optional) move to a new line
-    if [[ "${REPLY}" =~ ^[Yy]$ ]]
-    then
-	cd ../Top
-	proj=`ls`
-	cd ..
-	echo [hog init] Creating projects for: $proj...
-	for f in $proj
-	do
-	    echo [hog init] Creating Vivado project: $f...
-	    ./Hog/CreateProject.sh "${f}"
-	done
+      echo [hog init] "WARNING: No modelsim executable found, will not compile libraries" 
     fi
-else
-    echo [hog init] "WARNING: No vivado executable found"
-fi
+  fi
+  # REpeat compilation using Quartus
+  if [ `which quartus_sh` ]
+  then
+    local QUARTUS=`which quartus_sh`
+    ##! If Quartus is installed it checks if vsim command is defined (Questasim or Modelsim is installed and set-up in the shell). 
+    ##! NOTE that these checks are performed using 'which'
+    if [ `which vsim` ]
+    then
+      echo
+      ##! If Questasim or Modelsim is installed ask user if he wants to compile
+      ##! NOTE use read to grab user input
+      ##! NOTE if the user input contains Y or y then is accepted as yes
+      read -p "Do you want to compile Questasim libraries for Quartus (this might take some time)? " -n 1 -r
+      echo  
+      if [[ "${REPLY}" =~ ^[Yy]$ ]]
+      then
+        echo [hog init] Compiling Questasim libraries into SimulationLib...
+        mkdir -p "${OLD_DIR}/SimulationLib_quartus/verilog/"
+        mkdir -p "${OLD_DIR}/SimulationLib_quartus/vhdl/"
+        "${QUARTUS}" --simlib_comp -suppress_messages -tool questasim -language verilog -family all -directory "${OLD_DIR}/SimulationLib_quartus/verilog/"
+        "${QUARTUS}" --simlib_comp -suppress_messages -tool questasim -language vhdl -family all -directory "${OLD_DIR}/SimulationLib_quartus/vhdl/"
+      else
+        read -p "Do you want to compile Modelsim libraries for Quartus (this might take some time)? " -n 1 -r
+        echo  
+        if [[  "${REPLY}" =~ ^[Yy]$ ]]
+        then
+          echo [hog init] Compiling Modelsim libraries into SimulationLib...
+          mkdir -p "${OLD_DIR}/SimulationLib_quartus/verilog/"
+          mkdir -p "${OLD_DIR}/SimulationLib_quartus/vhdl/" 
+          "${QUARTUS}" --simlib_comp -suppress_messages -tool modelsim -language verilog -family all -directory "${OLD_DIR}/SimulationLib_quartus/verilog/"
+          "${QUARTUS}" --simlib_comp -suppress_messages -tool modelsim -language vhdl -family all -directory "${OLD_DIR}/SimulationLib_quartus/vhdl/"
+        fi
+      fi
+    else
+      echo [hog init] "WARNING: No modelsim executable found, will not compile libraries" 
+    fi
 
-echo [hog init] All done.
-cd "${OLD_DIR}"
+  else
+    echo [hog init] "WARNING: No vivado executable found"
+  fi
+
+  ##! Ask user if he wants to create all projects in the repository
+  ##! NOTE use read to grab user input
+  ##! NOTE if the user input contains Y or y then is accepted as yes
+  echo
+  read -p "Do you want to create projects now (can be done later with CreateProject.sh)? " -n 1 -r
+  echo    # (optional) move to a new line
+  if [[ "${REPLY}" =~ ^[Yy]$ ]]
+  then
+    cd ../Top
+    proj=`ls`
+    cd ..
+    echo [hog init] Creating projects for: $proj...
+    for f in $proj
+    do
+      echo [hog init] Creating Vivado project: $f...
+      ./Hog/CreateProject.sh "${f}"
+    done
+  fi
+
+
+  echo [hog init] All done.
+  cd "${OLD_DIR}"
+}
+
+init $@

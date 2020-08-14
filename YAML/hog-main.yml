@@ -1,3 +1,6 @@
+variables:
+  GIT_SSL_NO_VERIFY: "true"
+
 before_script:
     - export REPO=`echo $CI_PROJECT_URL | sed -e s#https://##`
     - git remote set-url origin https://${HOG_USER}:${HOG_PUSH_TOKEN}@$REPO

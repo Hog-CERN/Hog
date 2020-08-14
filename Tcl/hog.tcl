@@ -1502,7 +1502,6 @@ proc HandleIP {what_to_do xci_file ip_path runs_dir {force 0}} {
         }
 
         Msg Info "Creating local archive with ip generated files..."
-        puts "###########################################################"
         ::tar::create $file_name.tar [glob -nocomplain [Relative $PrjPath $xci_path]  $ip_synth_files_rel]
         Msg Info "Copying generated files for $xci_name..."
         if [catch {exec xrdcp -f -s $file_name.tar  $::env(EOS_MGM_URL)//$ip_path/} msg] {

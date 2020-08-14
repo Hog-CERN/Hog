@@ -49,7 +49,7 @@ if { $options(external_path) != "" } {
   set ext_path ""
 }
 
-set stage_list { "create_project" "simulate_project" "synthesise_ips" "synthesise_project" "implement_project" }
+set stage_list { "create_project" "simulate_project" "generate_project" }
 
 file copy -force $repo_path/Hog/YAML/hog-child.yml $repo_path/generated-config.yml
 set fp [open "$repo_path/generated-config.yml" a]

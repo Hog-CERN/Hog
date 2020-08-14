@@ -53,9 +53,7 @@ before_script:
 stages:
   - merge
   - creation
-  - ip
-  - synthesis_and_simulation
-  - implementation
+  - generation_and_simulation
   - collect
 
 .create_project: &create_project
@@ -90,7 +88,7 @@ stages:
 .simulate_project: &simulate_project
      <<: *only-default
      <<: *tag-hog
-     stage: synthesis_and_simulation
+     stage: generation_and_simulation
      variables:
         <<: *vars
      script:
@@ -111,10 +109,10 @@ stages:
        expire_in: 30 day
      allow_failure: true
 
-.synthesise_ips: &synthesise_ips
+.generate_project: &generate_project
     <<: *only-default
     <<: *tag-hog
-    stage: ip
+    stage: generation_and_simulation
     variables:
         <<: *vars
     script:
@@ -131,47 +129,12 @@ stages:
             vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_ip_synth.tcl -tclargs -NJOBS $HOG_IP_NJOBS -eos_ip_path \"$HOG_IP_EOS_PATH\" $PROJECT_NAME ;
           fi;
             rm BD/*.bd ||:;
-        fi
-    artifacts:
-        name: vivado_runs
-        paths:
-            - $CI_PROJECT_DIR/VivadoProject/$PROJECT_NAME
-            - $CI_PROJECT_DIR/IP
-            - $CI_PROJECT_DIR/BD
-        expire_in: 30 day
-
-.synthesise_project: &synthesise_project
-    <<: *only-default
-    <<: *tag-hog
-    stage: synthesis_and_simulation
-    variables:
-        <<: *vars
-    script:
-      - if [ -f "./VivadoProjects/$PROJECT_NAME/skip.me" ]; then
+        fi 
+        - if [ -f "./VivadoProjects/$PROJECT_NAME/skip.me" ]; then
           echo "CI disabled for $PROJECT_NAME";
         else
-          if [ -z ${HOG_NJOBS+x} ]; then export HOG_NJOBS=4; fi;
           vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_synthesis.tcl -tclargs -NJOBS $HOG_NJOBS $PROJECT_NAME;
         fi
-    artifacts:
-        name: vivado_synth
-        paths:
-            - $CI_PROJECT_DIR/VivadoProject/$PROJECT_NAME
-            - $CI_PROJECT_DIR/bin
-            - $CI_PROJECT_DIR/IP
-            - $CI_PROJECT_DIR/BD
-        expire_in: 30 day
-
-.implement_project: &implement_project
-    <<: *only-default
-    <<: *tag-hog
-    stage: implementation
-    variables:
-        <<: *vars
-    script:
-        - git status
-        - git diff
-        - if [ -z ${HOG_NJOBS+x} ]; then export HOG_NJOBS=4; fi
         - if [ -z ${HOG_NO_BITSTREAM+x} ]; then export HOG_NO_BITSTREAM=0; fi
         - "if [ $HOG_NO_BITSTREAM == '1' ]; then
            vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_implementation.tcl -tclargs -no_bitstream -NJOBS $HOG_NJOBS  $PROJECT_NAME;
@@ -183,8 +146,10 @@ stages:
         name: implementation_and_bitfiles
         paths:
             - $CI_PROJECT_DIR/VivadoProject/$PROJECT_NAME
+#            - $CI_PROJECT_DIR/IP
+#            - $CI_PROJECT_DIR/BD
             - $CI_PROJECT_DIR/bin
-        expire_in: 1 month
+        expire_in: 30 day
 
 collect_artifacts:
     <<: *only-default

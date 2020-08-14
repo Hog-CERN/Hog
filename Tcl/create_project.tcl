@@ -19,10 +19,10 @@
 # Define the following variables before sourcing this script:
 #
 # set BIN_FILE 1
-# 
+#
 # ## FPGA and Vivado strategies and flows
 # set FPGA xc7vx550tffg1927-2
-# set SYNTH_STRATEGY "Vivado Synthesis Defaults" 
+# set SYNTH_STRATEGY "Vivado Synthesis Defaults"
 # set SYNTH_FLOW {Vivado Synthesis 2016}
 # set IMPL_STRATEGY "Vivado Implementation Defaults"
 # set IMPL_FLOW {Vivado Implementation 2016}

@@ -427,7 +427,7 @@ proc ReadListFile {list_file path {lib ""} {sha_mode 0} } {
   set fp [open $list_file r]
   set file_data [read $fp]
   close $fp
-  
+  set list_file_ext [file ext $list_file]
   set libraries [dict create]
   set properties [dict create]
   #  Process data file
@@ -435,7 +435,7 @@ proc ReadListFile {list_file path {lib ""} {sha_mode 0} } {
   set n [llength $data]
   Msg Info "$n lines read from $list_file."
   set cnt 0
-  
+
   foreach line $data {
     # Exclude empty lines and comments
     if {![regexp {^ *$} $line] & ![regexp {^ *\#} $line] } {
@@ -445,22 +445,24 @@ proc ReadListFile {list_file path {lib ""} {sha_mode 0} } {
       if {[file exists $vhdlfile]} {
  	set vhdlfile [file normalize $vhdlfile]
  	set extension [file ext $vhdlfile]
-	
-	if {[lsearch {.src .sim .con .sub .ext} $extension] >= 0 } {
-	  Msg Info "List file $vhdlfile found in list file, recoursively opening it..."
-    ### Set list file properties
-    set prop [lrange $file_and_prop 1 end]
-    set library [lindex [regexp -inline {lib\s*=\s*(.+?)\y.*} $prop] 1]
-    if { $library != "" } {
-      Msg Info "Setting $library as library for list file $vhdlfile..."
-    } else {
-      Msg Info "Setting $lib as library for list file $vhdlfile..."
-      set library $lib
-    }
+
+	if { $extension == $list_file_ext } {
+	  Msg Info "List file $vhdlfile found in list file, recursively opening it..."
+	  ### Set list file properties
+	  set prop [lrange $file_and_prop 1 end]
+	  set library [lindex [regexp -inline {lib\s*=\s*(.+?)\y.*} $prop] 1]
+	  if { $library != "" } {
+	    Msg Info "Setting $library as library for list file $vhdlfile..."
+	  } else {
+	    Msg Info "Setting $lib as library for list file $vhdlfile..."
+	    set library $lib
+	  }
 	  lassign [ReadListFile $vhdlfile $path $library $sha_mode] l p
 
 	  set libraries [dict merge $l $libraries]
 	  set properties [dict merge $p $properties]
+	} elseif {[lsearch {.src .sim .con .sub .ext} $extension] >= 0 } {
+	  Msg Error "$vhdlfile cannot be included into $list_file, $extension files must be included into $extension files."
 	} else {
 	  ### Set file properties
 	  set prop [lrange $file_and_prop 1 end]
@@ -473,15 +475,15 @@ proc ReadListFile {list_file path {lib ""} {sha_mode 0} } {
 	  } else {
 	    dict lappend libraries $lib$ext $vhdlfile
 	  }
- 	  
+
 	}
  	incr cnt
       } else {
-        Msg Error  "File $vhdlfile not found."
+        Msg Error "File $vhdlfile not found."
       }
     }
   }
-  
+
   if {$sha_mode != 0} {
     dict lappend libraries $lib$ext $list_file
   }
@@ -545,7 +547,7 @@ proc GetFileList {FILE path} {
 
 ## @brief Get git SHA of a subset of list file
 #
-# @param[in] path the file/path or list of files/path the git SHA should be evaluated from 
+# @param[in] path the file/path or list of files/path the git SHA should be evaluated from
 #
 # @return         the value of the desired SHA
 #

@@ -427,7 +427,7 @@ proc ReadListFile {list_file path {lib ""} {sha_mode 0} } {
   set fp [open $list_file r]
   set file_data [read $fp]
   close $fp
-  
+  set list_file_ext [file ext $list_file]
   set libraries [dict create]
   set properties [dict create]
   #  Process data file
@@ -435,7 +435,7 @@ proc ReadListFile {list_file path {lib ""} {sha_mode 0} } {
   set n [llength $data]
   Msg Info "$n lines read from $list_file."
   set cnt 0
-  
+
   foreach line $data {
     # Exclude empty lines and comments
     if {![regexp {^ *$} $line] & ![regexp {^ *\#} $line] } {
@@ -445,22 +445,24 @@ proc ReadListFile {list_file path {lib ""} {sha_mode 0} } {
       if {[file exists $vhdlfile]} {
  	set vhdlfile [file normalize $vhdlfile]
  	set extension [file ext $vhdlfile]
-	
-	if {[lsearch {.src .sim .con .sub .ext} $extension] >= 0 } {
-	  Msg Info "List file $vhdlfile found in list file, recoursively opening it..."
-    ### Set list file properties
-    set prop [lrange $file_and_prop 1 end]
-    set library [lindex [regexp -inline {lib\s*=\s*(.+?)\y.*} $prop] 1]
-    if { $library != "" } {
-      Msg Info "Setting $library as library for list file $vhdlfile..."
-    } else {
-      Msg Info "Setting $lib as library for list file $vhdlfile..."
-      set library $lib
-    }
+
+	if { $extension == $list_file_ext } {
+	  Msg Info "List file $vhdlfile found in list file, recursively opening it..."
+	  ### Set list file properties
+	  set prop [lrange $file_and_prop 1 end]
+	  set library [lindex [regexp -inline {lib\s*=\s*(.+?)\y.*} $prop] 1]
+	  if { $library != "" } {
+	    Msg Info "Setting $library as library for list file $vhdlfile..."
+	  } else {
+	    Msg Info "Setting $lib as library for list file $vhdlfile..."
+	    set library $lib
+	  }
 	  lassign [ReadListFile $vhdlfile $path $library $sha_mode] l p
 
 	  set libraries [dict merge $l $libraries]
 	  set properties [dict merge $p $properties]
+	} elseif {[lsearch {.src .sim .con .sub .ext} $extension] >= 0 } {
+	  Msg Error "$vhdlfile cannot be included into $list_file, $extension files must be included into $extension files."
 	} else {
 	  ### Set file properties
 	  set prop [lrange $file_and_prop 1 end]
@@ -473,15 +475,15 @@ proc ReadListFile {list_file path {lib ""} {sha_mode 0} } {
 	  } else {
 	    dict lappend libraries $lib$ext $vhdlfile
 	  }
- 	  
+
 	}
  	incr cnt
       } else {
-        Msg Error  "File $vhdlfile not found."
+        Msg Error "File $vhdlfile not found."
       }
     }
   }
-  
+
   if {$sha_mode != 0} {
     dict lappend libraries $lib$ext $list_file
   }
@@ -545,7 +547,7 @@ proc GetFileList {FILE path} {
 
 ## @brief Get git SHA of a subset of list file
 #
-# @param[in] path the file/path or list of files/path the git SHA should be evaluated from 
+# @param[in] path the file/path or list of files/path the git SHA should be evaluated from
 #
 # @return         the value of the desired SHA
 #
@@ -1431,10 +1433,20 @@ proc HandleIP {what_to_do xci_file ip_path runs_dir {force 0}} {
     Msg Error "You must specify push or pull as first argument."
   }
 
-  set ip_path_path [file normalize $ip_path/..]
-  lassign [eos  "ls $ip_path_path"] ret result
+  if { [catch {package require tar} TARPACKAGE]} {
+    Msg CriticalWarning "Cannot find package tar. You can fix this by installing package \"tcllib\""
+    return -1
+  }
+
+  set OldPath [pwd]
+  set PrjPath [file normalize [pwd]/../..]
+  puts [pwd]
+
+  cd $PrjPath
+
+  lassign [eos  "ls $ip_path"] ret result
   if  {$ret != 0} {
-    Msg CriticalWarning "Could not find mother directory for $ip_path: $ip_path_path."
+    Msg CriticalWarning "Could not find mother directory for ip_path: $ip_path."
     return -1
   } else {
     lassign [eos  "ls $ip_path"] ret result
@@ -1465,7 +1477,7 @@ proc HandleIP {what_to_do xci_file ip_path runs_dir {force 0}} {
   if {$what_to_do eq "push"} {
     set will_copy 0
     set will_remove 0
-    lassign [eos "ls $ip_path/$file_name"] ret result
+    lassign [eos "ls $ip_path/$file_name.tar"] ret result
     if  {$ret != 0} {
       set will_copy 1
     } else {
@@ -1479,55 +1491,52 @@ proc HandleIP {what_to_do xci_file ip_path runs_dir {force 0}} {
     }
     if {$will_copy == 1} {
       set ip_synth_files [glob -nocomplain $runs_dir/$xci_ip_name*]
+      set ip_synth_files_rel ""
+      foreach ip_synth_file $ip_synth_files {
+        lappend ip_synth_files_rel  [Relative $PrjPath $ip_synth_files]
+      }
+
       if {[llength $ip_synth_files] > 0} {
         Msg Info "Found some IP synthesised files matching $ip_path/$file_name*"
         if {$will_remove == 1} {
-          Msg Info "Removing old synthesized directory $ip_path/$file_name..."
-          eos "rm -rf $ip_path/$file_name" 5
+          Msg Info "Removing old synthesized directory $ip_path/$file_name.tar..."
+          eos "rm -rf $ip_path/$file_name.tar" 5
         }
 
-        Msg Info "Creating IP directories on EOS..."
-        eos "mkdir -p $ip_path/$file_name/synthesized" 5
-
+        Msg Info "Creating local archive with ip generated files..."
+        ::tar::create $file_name.tar [glob -nocomplain [Relative $PrjPath $xci_path]  $ip_synth_files_rel]
         Msg Info "Copying generated files for $xci_name..."
-        eos "cp -r $xci_path $ip_path/$file_name/" 5
-        eos "mv $ip_path/$file_name/$xci_dir_name $ip_path/$file_name/generated" 5
-        Msg Info "Copying synthesised files for $xci_name..."
-        eos "cp -r $ip_synth_files $ip_path/$file_name/synthesized" 5
+        if [catch {exec xrdcp -f -s $file_name.tar  $::env(EOS_MGM_URL)//$ip_path/} msg] {
+          Msg CriticalWarning "Something went wrong when copying the IP files to EOS. Error message: $msg"
+        }
+        Msg Info "Removing local archive"
+        file delete $file_name.tar
       } else {
         Msg Warning "Could not find synthesized files matching $ip_path/$file_name*"
       }
     }
   } elseif {$what_to_do eq "pull"} {
-    lassign [eos "ls $ip_path/$file_name"] ret result
+    lassign [eos "ls $ip_path/$file_name.tar"] ret result
     if  {$ret != 0} {
       Msg Info "Nothing for $xci_name was found in the repository, cannot pull."
+      cd $OldPath
       return -1
 
     } else {
 
       Msg Info "IP $xci_name found in the repository, copying it locally..."
-      lassign [eos "ls $ip_path/$file_name/generated/*"] ret_g ip_gen_files
-      lassign [eos "ls $ip_path/$file_name/synthesized/*"] ret_s ip_syn_files
-      #puts "ret g: $ret_g"
-      Msg Status "Generated files found for $xci_ip_name ($ret_g):\n $ip_gen_files"
-      #puts "ret s: $ret_s"
-      Msg Status "Synthesised files found for $xci_ip_name ($ret_s):\n $ip_syn_files"
 
-      if  {($ret_g == 0) && ([llength $ip_gen_files] > 0)} {
-        eos "cp -r $ip_path/$file_name/generated/* $xci_path" 5
-      } else {
-        Msg Warning "Cound not find generated IP files on EOS path"
+      if [catch {exec xrdcp -f -r -s $::env(EOS_MGM_URL)//$ip_path/$file_name.tar $PrjPath} msg] {
+        Msg CriticalWarning "Something went wrong when copying the IP files to EOS. Error message: $msg"
       }
-
-      if  {($ret_s == 0) && ([llength $ip_syn_files] > 0)} {
-        eos "cp $ip_path/$file_name/synthesized/$xci_ip_name\_synth_1/*.rpt $xci_path" 5
-      } else {
-        Msg Warning "Cound not find synthesized IP files on EOS path"
-      }
+      Msg Info "Extracting IP files from archive..."
+      ::tar::untar $file_name.tar -dir $PrjPath -noperms
+      Msg Info "Removing local archive"
+      file delete $file_name.tar
+     
     }
   }
-
+  cd $OldPath
   return 0
 }
 
@@ -1794,3 +1803,4 @@ proc WriteYAMLStage {stage proj_name stage_list} {
 if {[GitVersion 2.7.2] == 0 } {
   Msg CriticalWarning "Found Git version older than 2.7.2. Hog might not work as expected.\n"
 }
+

@@ -15,8 +15,6 @@
 
 ## @file LaunchImplementation.sh
 # @brief launch /Tcl/launchers/launch_implementation.tcl using Vivado
-# @todo LaunchImplementation.sh: update for Quartus support
-# @todo LaunchImplementation.sh: check is vivado is installed an set-up in the shell (if [ which vivado ]) 
 
 ## Import common functions from Other/CommonFunctions.sh in a POSIX compliant way
 #
@@ -24,6 +22,7 @@
 
 ## @function argument_parser()
 #  @brief pase aguments and sets evvironment variables
+#  @param[out] IP_PATH      empty or "-eos_ip_path $2"
 #  @param[out] NJOBS        empty or "-NJOBS $2"
 #  @param[out] NO_BITSTREAM empty or "-no_bitstream"
 #  @param[out] SYNTH_ONLY   empty or "-synth_only"
@@ -34,8 +33,12 @@ function argument_parser() {
 PARAMS=""
 while (( "$#" )); do
   case "$1" in
-    -NJOBS)
-      NJOBS="-NJOBS $2"
+    -njobs)
+      NJOBS="-njobs $2"
+      shift 2
+      ;;
+    -ip_eos_path)
+      IP_PATH="-ip_eos_path $2"
       shift 2
       ;;
     -no_bitstream)
@@ -75,7 +78,7 @@ fi
 eval set -- "$PARAMS"
 if [ -z "$1" ]
 then
-  printf "Project name has not been specified. Usage: \n ./Hog/LaunchWorkflow.sh <proj_name> [-no_bitstream | -synth_only] [-NJOBS <number of jobs>]\n"
+  printf "Project name has not been specified. Usage: \n ./Hog/LaunchWorkflow.sh <proj_name> [-reset] [-no_bitstream | -synth_only] [-njobs <number of jobs>] [-ip_eos_path <path to IP repository on EOS>]\n"
 else
   PROJ=$1
   PROJ_DIR="./Top/"$PROJ
@@ -114,7 +117,7 @@ else
     then
       echo "Hog-ERROR: Vivado HLS is not yet supported by this script!"
     else
-      ${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_workflow.tcl -tclargs $RESET $NO_BITSTREAM $SYNTH_ONLY $NJOBS $1
+      ${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_workflow.tcl -tclargs $RESET $NO_BITSTREAM $SYNTH_ONLY $IP_PATH $NJOBS $1
     fi
   else
     echo "Hog-ERROR: project $PROJ not found: possible projects are: `ls ./Top`"

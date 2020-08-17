@@ -22,7 +22,7 @@ if {[catch {package require cmdline} ERROR]} {
   return
 }
 set parameters {
-  {eos_ip_path.arg "" "Path of the EOS IP repository"}
+  {ip_eos_path.arg "" "Path of the EOS IP repository"}
 }
 
 set usage "- USAGE: $::argv0 \[OPTIONS\] <project> \n. Options:"
@@ -35,49 +35,46 @@ source ./hog.tcl
 if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] || [llength $argv] < 1 } {
   Msg Info [cmdline::usage $parameters $usage]
   exit 1
-} elseif { $::argc eq 1 } {
-  set project [lindex $argv 0]
-  Msg Info "Creating directory $repo_path/VivadoProject/$project/$project.runs"
-  file mkdir $repo_path/VivadoProject/$project/$project.runs
-  set main_folder [file normalize "$repo_path/VivadoProject/$project/$project.runs/"]
-  set ip_path ""
 } else {
   set project [lindex $argv 0]
   Msg Info "Creating directory $repo_path/VivadoProject/$project/$project.runs"
   file mkdir $repo_path/VivadoProject/$project/$project.runs
   set main_folder [file normalize "$repo_path/VivadoProject/$project/$project.runs/"]
-  set ip_path $options(eos_ip_path)
-  Msg Info "Will use the EOS ip repository on $ip_path to speed up ip synthesis..."
+  set ip_path $options(ip_eos_path)
+
+  if {$ip_path eq ""} { 
+    Msg Warning "No EOS ip repository defined"
+  } else {
+    Msg Info "Will use the EOS ip repository on $ip_path to speed up ip synthesis"
+  }
 }
 
-Msg Info "Opening project $project..."
-open_project $repo_path/VivadoProject/$project/$project.xpr
+Msg Info "Getting IPs for $project..."
+
+set ips {}
+lassign [GetHogFiles "$repo_path/Top/$project/list/" "*.src"] src_files dummy
+dict for {f files} $src_files {
+  #library names have a .src extension in values returned by GetHogFiles
+  if { [file ext $f] == ".ip" } {
+    lappend ips $files
+  }
+}
 
 
-Msg Info "Preparing IP runs..."
-reset_run synth_1
-launch_runs -scripts_only synth_1
-reset_run synth_1
-
-set ips [get_ips *]
-if {($ip_path != 0) && ($ips != "")  } {
-  Msg Info "Scanning through all the IPs and possibly copying synthesis result from the EOS path..."
+if {$ip_path == "" } {
+  Msg Warning "Cannot copy from EOS."
+} else {
+  Msg Info "Copying IPs from $ip_path..."
   set copied_ips 0
   foreach ip $ips {
-    set ret [HandleIP pull [get_property IP_FILE $ip] $ip_path $main_folder]
+    set ret [HandleIP pull $ip $ip_path $main_folder]
     if {$ret == 0} {
       incr copied_ips 
     }
   }
-
-  Msg Info "$copied_ips IPs were copied from the EOS repository"
-  if {$copied_ips > 0} {
-    Msg Info "Re-creating project $project..."
-    close_project
-    source $repo_path/Top/$project/$project.tcl
-  }
-
+  Msg Info "$copied_ips IPs were copied from the EOS repository."
 }
+
 
 Msg Info "All done."
 cd $repo_path

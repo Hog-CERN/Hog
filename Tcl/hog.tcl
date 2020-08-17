@@ -1247,7 +1247,7 @@ proc GetProjectFiles {} {
 # - properties has as file names as keys and a list of properties as values
 #
 proc GetHogFiles {list_path {list_files ""} {sha_mode 0} {ext_path ""}} {
-  set repo_path [file normalize list_path/../../..]
+  set repo_path [file normalize $list_path/../../..]
   if { $list_files == "" } {
     set list_files {.src,.con,.sub,.sim,.ext}  
   }
@@ -1439,7 +1439,7 @@ proc HandleIP {what_to_do xci_file ip_path runs_dir {force 0}} {
   }
 
   set OldPath [pwd]
-  set PrjPath [file normalize [pwd]/../..]
+  set PrjPath [file normalize $runs_dir/..]
   puts [pwd]
 
   cd $PrjPath
@@ -1472,7 +1472,7 @@ proc HandleIP {what_to_do xci_file ip_path runs_dir {force 0}} {
   set hash [Md5Sum $xci_file]
   set file_name $xci_name\_$hash
 
-  Msg Info "Preparing to handle IP: $xci_name..."
+  Msg Info "Preparing to $what_to_do IP: $xci_name..."
 
   if {$what_to_do eq "push"} {
     set will_copy 0
@@ -1497,7 +1497,7 @@ proc HandleIP {what_to_do xci_file ip_path runs_dir {force 0}} {
       }
 
       if {[llength $ip_synth_files] > 0} {
-        Msg Info "Found some IP synthesised files matching $ip_path/$file_name*"
+        Msg Info "Found some IP synthesised files matching $runs_dir/$file_name*"
         if {$will_remove == 1} {
           Msg Info "Removing old synthesized directory $ip_path/$file_name.tar..."
           eos "rm -rf $ip_path/$file_name.tar" 5
@@ -1512,7 +1512,7 @@ proc HandleIP {what_to_do xci_file ip_path runs_dir {force 0}} {
         Msg Info "Removing local archive"
         file delete $file_name.tar
       } else {
-        Msg Warning "Could not find synthesized files matching $ip_path/$file_name*"
+        Msg Warning "Could not find synthesized files matching $runs_dir/$file_name*"
       }
     }
   } elseif {$what_to_do eq "pull"} {

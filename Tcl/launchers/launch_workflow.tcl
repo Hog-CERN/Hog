@@ -23,10 +23,11 @@ if {[catch {package require cmdline} ERROR] || [catch {package require struct::m
 }
 
 set parameters {
+  {ip_eos_path.arg "" "If set, the synthesised IPs will be copied to the specified EOS path."}
   {no_bitstream    "If set, the bitstream file will not be produced."}
   {synth_only      "If set, only the synthesis will be performed."}
   {reset           "If set, resets the runs (synthesis and implementation) before launching them"}
-  {NJOBS.arg 4 "Number of jobs. Default: 4"}
+  {njobs.arg 4 "Number of jobs. Default: 4"}
 }
 
 set usage "- USAGE: $::argv0 \[OPTIONS\] <project> \n. Options:"
@@ -41,6 +42,7 @@ if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] 
   set do_implementation 1
   set do_bitstream 1
   set reset 0
+  set ip_path ""
   if { $options(no_bitstream) == 1 } {
     set do_bitstream 0
   }
@@ -51,6 +53,10 @@ if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] 
 
   if { $options(reset) == 1 } {
     set reset 1
+  }
+
+  if { $options(ip_eos_path) != "" } {
+    set ip_path $options(ip_eos_path)
   }
 
 }
@@ -70,7 +76,12 @@ if {$do_implementation == 1} {
 } else {
   Msg Info "Will launch synthesis only..."
 }
-Msg Info "Number of jobs set to $options(NJOBS)."
+
+if { $ip_path != "" } {
+  Msg Info "Will copy synthesised IPs to $ip_path"
+}
+
+Msg Info "Number of jobs set to $options(njobs)."
 
 Msg Info "Opening project: $project..."
 if { [string first PlanAhead [version]] == 0 } {
@@ -90,7 +101,7 @@ if { [string first PlanAhead [version]] ==0 } {
   source  integrated/pre-synthesis.tcl
 }
 
-launch_runs synth_1  -jobs $options(NJOBS) -dir $main_folder
+launch_runs synth_1  -jobs $options(njobs) -dir $main_folder
 wait_on_run synth_1
 
 set prog [get_property PROGRESS [get_runs synth_1]]
@@ -116,6 +127,19 @@ foreach ip $ips {
   foreach rptfile [glob -nocomplain -directory $xci_path *.rpt] {
     file copy $rptfile $old_path/bin/$project-$describe/reports
   }
+  
+  ######### Copy IP to EOS repository
+  if {($ip_path != "")} {
+    set force 0
+    if [info exist runs] {
+      if {[lsearch $runs $ip\_synth_1] != -1} {
+        Msg Info "$ip was synthesized, will force the copy to EOS..."
+        set force 1
+      }
+    }
+    Msg Info "Copying synthesised IP $xci_ip_name ($xci_file) to $ip_path..."
+    HandleIP push $xci_file $ip_path $main_folder $force
+  }
 }
 
 ############### IMPL ###################
@@ -129,7 +153,7 @@ if {$do_implementation == 1 } {
   }
 
   if { [string first PlanAhead [version]] ==0} {source  integrated/pre-implementation.tcl}
-  launch_runs impl_1 -jobs $options(NJOBS) -dir $main_folder
+  launch_runs impl_1 -jobs $options(njobs) -dir $main_folder
   wait_on_run impl_1
   if { [string first PlanAhead [version]] ==0} {source  integrated/post-implementation.tcl}
   

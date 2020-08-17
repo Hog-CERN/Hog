@@ -1442,6 +1442,10 @@ proc HandleIP {what_to_do xci_file ip_path runs_dir {force 0}} {
   set PrjPath [file normalize $runs_dir/..]
   puts [pwd]
 
+  if {![file isdirectory $PrjPath]} {
+    Msg Info "Creating project directory $PrjPath..."
+    file mkdir $PrjPath
+  }
   cd $PrjPath
 
   lassign [eos  "ls $ip_path"] ret result

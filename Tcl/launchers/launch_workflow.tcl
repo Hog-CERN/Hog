@@ -43,29 +43,53 @@ if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] 
   set do_bitstream 1
   set reset 0
   set ip_path ""
-  if { $options(no_bitstream) == 1 } {
-    set do_bitstream 0
-  }
-
-  if { $options(synth_only) == 1 } {
-    set do_implementation 0
-  }
-
-  if { $options(reset) == 1 } {
-    set reset 1
-  }
-
-  if { $options(ip_eos_path) != "" } {
-    set ip_path $options(ip_eos_path)
-  }
-
 }
 
 set old_path [pwd]
-set bin_dir [file normalize "$old_path/bin"]
-puts "old_path: $old_path \n bin_dir: $bin_dir \n path: $path "
+set bin_dir [file normalize "$path/../../bin"]
+
+#Go to Hog/Tcl
 cd $path
+
 source ./hog.tcl
+
+if { $options(no_bitstream) == 1 } {
+  set do_bitstream 0
+}
+
+if { $options(synth_only) == 1 } {
+  set do_implementation 0
+}
+
+if { $options(reset) == 1 } {
+  set reset 1
+}
+
+#Copy IP from EOS
+if { $options(ip_eos_path) != "" } {
+  set ip_path $options(ip_eos_path)
+
+  Msg Info "Getting IPs for $project..."
+  set ips {}
+  lassign [GetHogFiles "../../Top/$project/list/" "*.src"] src_files dummy
+  dict for {f files} $src_files {
+    #library names have a .src extension in values returned by GetHogFiles
+    if { [file ext $f] == ".ip" } {
+      lappend ips $files
+    }
+  }
+
+  Msg Info "Copying IPs from $ip_path..."
+  set copied_ips 0
+  foreach ip $ips {
+    set ret [HandleIP pull $ip $ip_path $main_folder]
+    if {$ret == 0} {
+      incr copied_ips 
+    }
+  }
+  Msg Info "$copied_ips IPs were copied from the EOS repository."
+}
+
 
 if {$do_implementation == 1} {
   if {$do_bitstream == 1} {
@@ -78,16 +102,23 @@ if {$do_implementation == 1} {
 }
 
 if { $ip_path != "" } {
-  Msg Info "Will copy synthesised IPs to $ip_path"
+  Msg Info "Will copy synthesised IPs from/to $ip_path"
 }
 
 Msg Info "Number of jobs set to $options(njobs)."
 
-Msg Info "Opening project: $project..."
 if { [string first PlanAhead [version]] == 0 } {
-  open_project ../../VivadoProject/$project/$project.ppr
+  set project_file [file normalize ../../VivadoProject/$project/$project.ppr]
 } else {
-  open_project ../../VivadoProject/$project/$project.xpr
+  set project_file [file normalize ../../VivadoProject/$project/$project.xpr]
+}
+
+if {[file exists $project_file]} {
+  Msg Info "Found project file $project_file for $project ..."
+  open_project $project_file
+} else {
+  Msg Info "Project file not found for $project, sourcing the project Tcl script ..."
+  source ../../Top/$project/$project.tcl
 }
 
 ############# SYNTH ###############
@@ -114,7 +145,7 @@ if {$prog ne "100%"} {
 
 # Copy IP reports in bin/
 set ips [get_ips *]
-cd $old_path
+#cd $old_path
 
 lassign [GetRepoVersion [file normalize $path/../../Top/$project/$project.tcl]] sha
 set describe [GetGitDescribe $sha]
@@ -125,7 +156,7 @@ foreach ip $ips {
   set xci_path [file dir $xci_file]
   set xci_ip_name [file root [file tail $xci_file]]
   foreach rptfile [glob -nocomplain -directory $xci_path *.rpt] {
-    file copy $rptfile $old_path/bin/$project-$describe/reports
+    file copy $rptfile $bin_dir/$project-$describe/reports
   }
   
   ######### Copy IP to EOS repository
@@ -244,6 +275,7 @@ if {$do_implementation == 1 } {
     }
   }
 
+  #Go to repository path
   cd $path/../../
   
   lassign [GetRepoVersion [file normalize ./Top/$project/$project.tcl]] sha

@@ -13,56 +13,69 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-## @file LaunchSynthesis.sh
-# @brief launch /Tcl/launchers/launch_synthesis.tcl using Vivado
-# @todo LaunchSynthesis.sh: update for Quartus support
-# @todo LaunchSynthesis.sh: check is vivado is installed an set-up in the shell (if [ which vivado ])
+## @file LaunchImplementation.sh
+# @brief launch /Tcl/launchers/launch_implementation.tcl using Vivado
+# @todo LaunchImplementation.sh: update for Quartus support
+# @todo LaunchImplementation.sh: check is vivado is installed an set-up in the shell (if [ which vivado ]) 
 
 ## Import common functions from Other/CommonFunctions.sh in a POSIX compliant way
 #
 . $(dirname "$0")/Other/CommonFunctions.sh;
 
-
 ## @function argument_parser()
 #  @brief pase aguments and sets evvironment variables
 #  @param[out] NJOBS        empty or "-NJOBS $2"
 #  @param[out] NO_BITSTREAM empty or "-no_bitstream"
-#  @param[out] PARAMS       positional parameters
+#  @param[out] SYNTH_ONLY   empty or "-synth_only"
+#  @param[out] RESET        empty or "-reset"
+#  @param[out] PARAMS       positional parameters 
 #  @return                  1 if error or help, else 0
 function argument_parser() {
-	PARAMS=""
-	while (( "$#" )); do
-	  case "$1" in
-		-NJOBS)
-		  NJOBS="-NJOBS $2"
-		  shift 2
-		  ;;
-		--) # end argument parsing
-		  shift
-		  break
-		  ;;
-		-*|--*=) # unsupported flags
-		  echo "Error: Unsupported flag $1" >&2
-		  return 1
-		  ;;
-		*) # preserve positional arguments
-		  PARAMS="$PARAMS $1"
-		  shift
-		  ;;
-	  esac
-	done
-	# set positional arguments in their proper place	
+PARAMS=""
+while (( "$#" )); do
+  case "$1" in
+    -NJOBS)
+      NJOBS="-NJOBS $2"
+      shift 2
+      ;;
+    -no_bitstream)
+      NO_BITSTREAM="-no_bitstream"
+      shift 1
+      ;;
+    -synth_only)
+      SYNTH_ONLY="-synth_only"
+      shift 1
+      ;;
+    -reset)
+      RESET="-reset"
+      shift 1
+      ;;
+    --) # end argument parsing
+      shift
+      break
+      ;;
+    -*|--*=) # unsupported flags
+      echo "Error: Unsupported flag $1" >&2
+      return 1
+      ;;
+    *) # preserve positional arguments
+      PARAMS="$PARAMS $1"
+      shift
+      ;;
+  esac
+done
+# set positional arguments in their proper place	
 }
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 argument_parser $@
 if [ $? = 1 ]; then
-	exit 1
+  exit 1
 fi
 eval set -- "$PARAMS"
 if [ -z "$1" ]
 then
-	printf "Project name has not been specified. Usage: \n ./Hog/LaunchSynthesis.sh <proj_name> [-NJOBS <number of jobs>]\n"
+  printf "Project name has not been specified. Usage: \n ./Hog/LaunchWorkflow.sh <proj_name> [-no_bitstream | -synth_only] [-NJOBS <number of jobs>]\n"
 else
   PROJ=$1
   PROJ_DIR="./Top/"$PROJ
@@ -93,16 +106,15 @@ else
     else
       echo "Hog-INFO: using executable: $HDL_COMPILER"
     fi
-
     if [ $COMMAND = "quartus_sh" ]
     then
-      echo "Hog-ERROR: Quartus Prime is not yet supportd by this script!"
-      #${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_synthesis.tcl $NJOBS $1
-          elif [ $COMMAND = "vivado_hls" ]
-                then
-                        echo "Hog-ERROR: Vivado HLS is not yet supported by this script!"
+      echo "Hog-ERROR: Quartus Prime is not yet supported by this script!"
+      #${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_implementation.tcl $NO_BITSTREAM $NJOBS $1
+    elif [ $COMMAND = "vivado_hls" ]
+    then
+      echo "Hog-ERROR: Vivado HLS is not yet supported by this script!"
     else
-      ${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_synthesis.tcl -tclargs $NJOBS $1
+      ${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_workflow.tcl -tclargs $RESET $NO_BITSTREAM $SYNTH_ONLY $NJOBS $1
     fi
   else
     echo "Hog-ERROR: project $PROJ not found: possible projects are: `ls ./Top`"
@@ -110,5 +122,4 @@ else
     cd "${OLD_DIR}"
     exit -1
   fi
-
 fi

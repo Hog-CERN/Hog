@@ -145,9 +145,11 @@ if {$prog ne "100%"} {
 
 # Copy IP reports in bin/
 set ips [get_ips *]
-#cd $old_path
 
-lassign [GetRepoVersion [file normalize $path/../../Top/$project/$project.tcl]] sha
+#go to repository path
+cd $path/../..
+
+lassign [GetRepoVersion [file normalize ./Top/$project/$project.tcl]] sha
 set describe [GetGitDescribe $sha]
 Msg Info "Git describe set to $describe"
 

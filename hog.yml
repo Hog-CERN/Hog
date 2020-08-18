@@ -17,7 +17,6 @@ include:
 
 stages:
     - merge
-    - creation
     - generation_and_simulation
     - collect
     - doxygen

@@ -1438,15 +1438,10 @@ proc HandleIP {what_to_do xci_file ip_path runs_dir {force 0}} {
     return -1
   }
 
-  set OldPath [pwd]
-  set PrjPath [file normalize $runs_dir/..]
-  puts [pwd]
+  set old_path [pwd]
+  set repo_path [file normalize $runs_dir/../../..]
 
-  if {![file isdirectory $PrjPath]} {
-    Msg Info "Creating project directory $PrjPath..."
-    file mkdir $PrjPath
-  }
-  cd $PrjPath
+  cd $repo_path
 
   lassign [eos  "ls $ip_path"] ret result
   if  {$ret != 0} {
@@ -1497,7 +1492,7 @@ proc HandleIP {what_to_do xci_file ip_path runs_dir {force 0}} {
       set ip_synth_files [glob -nocomplain $runs_dir/$xci_ip_name*]
       set ip_synth_files_rel ""
       foreach ip_synth_file $ip_synth_files {
-        lappend ip_synth_files_rel  [Relative $PrjPath $ip_synth_files]
+        lappend ip_synth_files_rel  [Relative $repo_path $ip_synth_files]
       }
 
       if {[llength $ip_synth_files] > 0} {
@@ -1508,7 +1503,7 @@ proc HandleIP {what_to_do xci_file ip_path runs_dir {force 0}} {
         }
 
         Msg Info "Creating local archive with ip generated files..."
-        ::tar::create $file_name.tar [glob -nocomplain [Relative $PrjPath $xci_path]  $ip_synth_files_rel]
+        ::tar::create $file_name.tar [glob -nocomplain [Relative $repo_path $xci_path]  $ip_synth_files_rel]
         Msg Info "Copying generated files for $xci_name..."
         if [catch {exec xrdcp -f -s $file_name.tar  $::env(EOS_MGM_URL)//$ip_path/} msg] {
           Msg CriticalWarning "Something went wrong when copying the IP files to EOS. Error message: $msg"
@@ -1523,24 +1518,24 @@ proc HandleIP {what_to_do xci_file ip_path runs_dir {force 0}} {
     lassign [eos "ls $ip_path/$file_name.tar"] ret result
     if  {$ret != 0} {
       Msg Info "Nothing for $xci_name was found in the repository, cannot pull."
-      cd $OldPath
+      cd $old_path
       return -1
 
     } else {
       set remote_tar "$::env(EOS_MGM_URL)//$ip_path/$file_name.tar"
-      Msg Info "IP $xci_name found in the repository $remote_tar, copying it locally to $PrjPath..."
+      Msg Info "IP $xci_name found in the repository $remote_tar, copying it locally to $repo_path..."
 
-      if [catch {exec xrdcp -f -r -s $remote_tar $PrjPath} msg] {
+      if [catch {exec xrdcp -f -r -s $remote_tar $repo_path} msg] {
         Msg CriticalWarning "Something went wrong when copying the IP files to EOS. Error message: $msg"
       }
-      Msg Info "Extracting IP files from archive to $PrjPath..."
-      ::tar::untar $file_name.tar -dir $PrjPath -noperms
+      Msg Info "Extracting IP files from archive to $repo_path..."
+      ::tar::untar $file_name.tar -dir $repo_path -noperms
       Msg Info "Removing local archive"
       file delete $file_name.tar
      
     }
   }
-  cd $OldPath
+  cd $old_path
   return 0
 }
 

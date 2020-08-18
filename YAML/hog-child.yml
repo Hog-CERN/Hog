@@ -55,35 +55,6 @@ stages:
   - generation_and_simulation
   - collect
 
-.create_project: &create_project
-     <<: *only-default
-     <<: *tag-hog
-     stage: creation
-     variables:
-        <<: *vars
-     script:
-      - if [[ ${HOG_CHECK_PROJVER} != 1 ]]; then
-          echo "Project version checker is disabled.";
-        else
-          vivado -mode batch -notrace -source ./Hog/Tcl/CI/check_proj_ver.tcl -tclargs $PROJECT_NAME;
-        fi
-      - if [ -f "./VivadoProjects/$PROJECT_NAME/skip.me" ]; then
-          echo "CI disabled for $PROJECT_NAME";
-        else
-          ./Hog/CreateProject.sh $PROJECT_NAME;
-          if [[ ${HOG_CHECK_SYNTAX} != 1 ]]; then
-            echo 'Syntax checker is disabled';
-          else
-            vivado -mode batch -notrace -source ./Hog/Tcl/utils/check_syntax.tcl -tclargs $PROJECT_NAME;
-          fi;
-        fi
-     artifacts:
-       name: vivado_projects
-       paths:
-         - $CI_PROJECT_DIR/VivadoProject/$PROJECT_NAME
-       expire_in: 30 day
-
-
 .simulate_project: &simulate_project
      <<: *only-default
      <<: *tag-hog

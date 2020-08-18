@@ -49,7 +49,7 @@ if { $options(external_path) != "" } {
   set ext_path ""
 }
 
-set stage_list { "create_project" "simulate_project" "generate_project" }
+set stage_list { "simulate_project" "generate_project" }
 
 file copy -force $repo_path/Hog/YAML/hog-child.yml $repo_path/generated-config.yml
 set fp [open "$repo_path/generated-config.yml" a]
@@ -72,7 +72,7 @@ foreach dir [glob -type d $repo_path/Top/* ] {
           set stage_and_prop [regexp -all -inline {\S+} $line]
           set stage [lindex $stage_and_prop 0]
           if { [lsearch $stage_list $stage] > -1 } {
-            puts $fp [ WriteYAMLStage $stage $proj ]
+            puts $fp [ WriteYAMLStage $stage $proj {}]
           } else {
             Msg Error "Stage $stage in $dir/ci.conf is not defined.\n Allowed stages are $stage_list"
             exit 1
@@ -81,13 +81,8 @@ foreach dir [glob -type d $repo_path/Top/* ] {
       }
     } else {
       foreach stage $stage_list {
-        if {$stage == "simulate_project"} {
-          set stages { "create_project" }
-          puts $fp [ WriteYAMLStage $stage $proj $stages ]
-        } else {
-          set stages { "create_project" "generate_project" }
-          puts $fp [ WriteYAMLStage $stage $proj $stages ] 
-        }
+	puts $fp [ WriteYAMLStage $stage $proj {} ]
+	
       }
     }
   } else {

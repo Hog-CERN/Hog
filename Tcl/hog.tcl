@@ -1530,7 +1530,7 @@ proc HandleIP {what_to_do xci_file ip_path runs_dir {force 0}} {
       set remote_tar "$::env(EOS_MGM_URL)//$ip_path/$file_name.tar"
       Msg Info "IP $xci_name found in the repository $remote_tar, copying it locally to $PrjPath..."
 
-      if [catch {exec xrdcp -f -r -s $remote_tar} msg] {
+      if [catch {exec xrdcp -f -r -s $remote_tar $PrjPath} msg] {
         Msg CriticalWarning "Something went wrong when copying the IP files to EOS. Error message: $msg"
       }
       Msg Info "Extracting IP files from archive to $PrjPath..."

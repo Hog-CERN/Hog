@@ -115,7 +115,7 @@ stages:
           fi;
           if [ -n ${HOG_CHECK_SYNTAX+x} ] && [ $HOG_CHECK_SYNTAX == '1' ]; then
             echo "Hog-CI(info) - HDL syntax will be checked before starting the syntehsis";
-            export CHECK_SYNTAX="-check_syntax.";
+            export CHECK_SYNTAX="-check_syntax";
           else
             echo "Hog-CI(info) - HDL syntax will not be checked.";
             export CHECK_SYNTAX="";

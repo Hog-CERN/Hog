@@ -54,7 +54,7 @@ while (( "$#" )); do
       RESET="-reset"
       shift 1
       ;;
-    -reset)
+    -check_syntax)
       CHECK_SYNTAX="-check_syntax"
       shift 1
       ;;

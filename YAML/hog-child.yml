@@ -52,7 +52,6 @@ before_script:
 
 stages:
   - merge
-  - creation
   - generation_and_simulation
   - collect
 
@@ -119,35 +118,35 @@ stages:
       - if [ -f "./VivadoProjects/$PROJECT_NAME/skip.me" ]; then
           echo "CI disabled for $PROJECT_NAME";
         else
-          until echo $HOG_PASSWORD | kinit $HOG_USER@CERN.CH ; do echo "Retrying"; sleep 2; done;
-          if [ -z ${HOG_IP_NJOBS+x} ]; then export HOG_IP_NJOBS=4; fi;
+          if [ -z ${HOG_NJOBS+x} ]; then
+            export HOG_NJOBS=4;
+          fi;
           if [ -z ${HOG_IP_EOS_PATH+x} ]; then
             echo 'No EOS path for IPs defined';
-            vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_ip_synth.tcl -tclargs -NJOBS $HOG_IP_NJOBS $PROJECT_NAME ;
+            export IP_EOS_PATH="";
           else
-            vivado -mode batch -notrace -source ./Hog/Tcl/utils/get_ips.tcl -tclargs -eos_ip_path $HOG_IP_EOS_PATH $PROJECT_NAME;
-            vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_ip_synth.tcl -tclargs -NJOBS $HOG_IP_NJOBS -eos_ip_path $HOG_IP_EOS_PATH $PROJECT_NAME ;
+            export IP_EOS_PATH="-ip_eos_path $HOG_IP_EOS_PATH";
+            until echo $HOG_PASSWORD | kinit $HOG_USER@CERN.CH ; do echo "Retrying"; sleep 2; done;
           fi;
-        fi 
-      - if [ -f "./VivadoProjects/$PROJECT_NAME/skip.me" ]; then
-          echo "CI disabled for $PROJECT_NAME";
-        else
-          vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_synthesis.tcl -tclargs -NJOBS $HOG_NJOBS $PROJECT_NAME;
-        fi
-      - if [ -z ${HOG_NO_BITSTREAM+x} ]; then export HOG_NO_BITSTREAM=0; fi
-      - "if [ $HOG_NO_BITSTREAM == '1' ]; then
-           vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_implementation.tcl -tclargs -no_bitstream -NJOBS $HOG_NJOBS  $PROJECT_NAME;
-           else vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_implementation.tcl -tclargs -NJOBS $HOG_NJOBS $PROJECT_NAME;
-         fi"
-      - "cat $CI_PROJECT_DIR/bin/$PROJECT_NAME*/versions* $CI_PROJECT_DIR/bin/$PROJECT_NAME*/timing_* > note.md"
-      - ./Hog/Other/WriteGitlabNote.sh $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $CI_MERGE_REQUEST_IID note.md
+          if [ -z ${HOG_NO_BITSTREAM+x} ] && [ $HOG_NO_BITSTREAM == '1' ]; then
+            export NO_BISTREAM="-no_bitstream";
+          else
+            export NO_BISTREAM="";
+          fi
+          if [ -z ${HOG_CHECK_SYNTAX+x} ] && [ $HOG_CHECK_SYNTAX == '1' ]; then
+            export CHECK_SYNTAX="-check_syntax";
+          else
+            export CHECK_SYNTAX="";
+          fi
+          ./Hog/LaunchWorkflow.sh -njobs $HOG_NJOBS $IP_EOS_PATH $NO_BITSTREAM $CHECK_SYNTAX $PROJECT_NAME;
+          cat $CI_PROJECT_DIR/bin/$PROJECT_NAME*/versions* $CI_PROJECT_DIR/bin/$PROJECT_NAME*/timing_* > note.md;
+          ./Hog/Other/WriteGitlabNote.sh $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $CI_MERGE_REQUEST_IID note.md;
+          fi;
     artifacts:
         when: always
         name: implementation_and_bitfiles
         paths:
             - $CI_PROJECT_DIR/VivadoProject/$PROJECT_NAME
-#            - $CI_PROJECT_DIR/IP
-#            - $CI_PROJECT_DIR/BD
             - $CI_PROJECT_DIR/bin
         expire_in: 30 day
 
@@ -181,5 +180,5 @@ collect_artifacts:
         name: all_projects
         paths:
             - $CI_PROJECT_DIR/bin
-        expire_in: 10 years
+        expire_in: 30 day
     allow_failure: true

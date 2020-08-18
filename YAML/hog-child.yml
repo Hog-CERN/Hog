@@ -92,42 +92,42 @@ stages:
         <<: *vars
     script:
       - if [ -f "./VivadoProjects/$PROJECT_NAME/skip.me" ]; then
-          echo "Hog_CI (info): CI disabled for $PROJECT_NAME";
+          echo "Hog-CI(info) - CI disabled for $PROJECT_NAME";
         else
           if [ -z ${HOG_NJOBS+x} ]; then
             export HOG_NJOBS=4;
-            echo "Hog_CI (info): Number of jobs set to $HOG_NJOBS";
+            echo "Hog-CI(info) - Number of jobs set to $HOG_NJOBS";
           fi;
           if [ -z ${HOG_IP_EOS_PATH+x} ]; then
-            echo "Hog_CI (info): No EOS path for IPs defined.";
+            echo "Hog-CI(info) - No EOS path for IPs defined.";
             export IP_EOS_PATH="";
           else
-            echo "Hog_CI (info): IPs will be copied to/from $HOG_IP_EOS_PATH.";
+            echo "Hog-CI(info) - IPs will be copied to/from $HOG_IP_EOS_PATH.";
             export IP_EOS_PATH="-ip_eos_path $HOG_IP_EOS_PATH";
             until echo $HOG_PASSWORD | kinit $HOG_USER@CERN.CH ; do echo "Retrying"; sleep 2; done;
           fi;
           if [ -z ${HOG_NO_BITSTREAM+x} ] && [ $HOG_NO_BITSTREAM == '1' ]; then
             export NO_BISTREAM="-no_bitstream";
-            echo "Hog_CI (info): No binary files will be generated.";
+            echo "Hog-CI(info) - No binary files will be generated.";
           else
-            echo "Hog_CI (info): Binary files will be generated.";
+            echo "Hog-CI(info) - Binary files will be generated.";
             export NO_BISTREAM="";
           fi;
           if [ -z ${HOG_CHECK_SYNTAX+x} ] && [ $HOG_CHECK_SYNTAX == '1' ]; then
-            echo "Hog_CI (info): HDL syntaxed will be checked before starting the syntehsis";
+            echo "Hog-CI(info) - HDL syntaxed will be checked before starting the syntehsis";
             export CHECK_SYNTAX="-check_syntax.";
           else
-            echo "Hog_CI (info): HDL syntaxed will not be checked.";
+            echo "Hog-CI(info) - HDL syntaxed will not be checked.";
             export CHECK_SYNTAX="";
           fi;
-          echo "Hog_CI (info): Launching workflow now...";
+          echo "Hog-CI(info) - Launching workflow now...";
           ./Hog/LaunchWorkflow.sh -njobs $HOG_NJOBS $IP_EOS_PATH $NO_BITSTREAM $CHECK_SYNTAX $PROJECT_NAME;
-          echo "Hog_CI (info): Adding versios and timing summary to note...";
+          echo "Hog-CI(info) - Adding versios and timing summary to note...";
           cat $CI_PROJECT_DIR/bin/$PROJECT_NAME*/versions* $CI_PROJECT_DIR/bin/$PROJECT_NAME*/timing_* > note.md;
-          echo "Hog_CI (info): Wrtiting note on gitlab website...";
+          echo "Hog-CI(info) - Wrtiting note on gitlab website...";
           ./Hog/Other/WriteGitlabNote.sh $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $CI_MERGE_REQUEST_IID note.md;
-          echo "Hog_CI (info): All done.";
-          fi;
+          echo "Hog-CI(info) - All done.";
+        fi;
     artifacts:
         when: always
         name: implementation_and_bitfiles

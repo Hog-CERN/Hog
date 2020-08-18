@@ -26,7 +26,8 @@ set parameters {
   {ip_eos_path.arg "" "If set, the synthesised IPs will be copied to the specified EOS path."}
   {no_bitstream    "If set, the bitstream file will not be produced."}
   {synth_only      "If set, only the synthesis will be performed."}
-  {reset           "If set, resets the runs (synthesis and implementation) before launching them"}
+  {reset           "If set, resets the runs (synthesis and implementation) before launching them."}
+  {check_syntax    "If set, the HDL syntax will be checked at the beginning of the worflow."}
   {njobs.arg 4 "Number of jobs. Default: 4"}
 }
 
@@ -42,6 +43,7 @@ if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] 
   set do_implementation 1
   set do_bitstream 1
   set reset 0
+  set check_syntax 0
   set ip_path ""
 }
 
@@ -63,6 +65,10 @@ if { $options(synth_only) == 1 } {
 
 if { $options(reset) == 1 } {
   set reset 1
+}
+
+if { $options(check_syntax) == 1 } {
+  set check_syntax 1
 }
 
 #Copy IP from EOS
@@ -107,6 +113,7 @@ if { $ip_path != "" } {
 
 Msg Info "Number of jobs set to $options(njobs)."
 
+############# CREATE or OPEN project ############
 if { [string first PlanAhead [version]] == 0 } {
   set project_file [file normalize ../../VivadoProject/$project/$project.ppr]
 } else {
@@ -121,8 +128,17 @@ if {[file exists $project_file]} {
   source ../../Top/$project/$project.tcl
 }
 
-############# SYNTH ###############
+########## CHECK SYNTAX ###########
+Msg Info "Checkin syntax for project $project..."
+set syntax [check_syntax -return_string]
 
+if {[string first "CRITICAL" $syntax ] != -1} {
+  check_syntax
+  exit 1
+}
+
+
+############# SYNTH ###############
 if {$reset == 1 } {
   Msg Info "Resetting run before launching synthesis..."
   reset_run synth_1

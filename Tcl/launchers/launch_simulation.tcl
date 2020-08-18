@@ -48,13 +48,27 @@ set old_path [pwd]
 cd $path
 source ./hog.tcl
 Msg Info "Simulation library path is set to $lib_path."
+set vism_ok 1
 if !([file exists $lib_path]) {
-  Msg Error "Could not find simulation library path: $lib_path."
-  exit -1
+  Msg Warning "Could not find simulation library path: $lib_path, Modelsim/Questasim simulation will not work."
+  set vism_ok 0
 }
 
-Msg Info "Opening project $project..."
-open_project ../../VivadoProject/$project/$project.xpr
+############# CREATE or OPEN project ############
+if { [string first PlanAhead [version]] == 0 } {
+  set project_file [file normalize ../../VivadoProject/$project/$project.ppr]
+} else {
+  set project_file [file normalize ../../VivadoProject/$project/$project.xpr]
+}
+
+if {[file exists $project_file]} {
+  Msg Info "Found project file $project_file for $project ..."
+  open_project $project_file
+} else {
+  Msg Info "Project file not found for $project, sourcing the project Tcl script ..."
+  source ../../Top/$project/$project.tcl
+}
+
 Msg Info "Retrieving list of simulation sets..."
 
 set errors 0
@@ -94,12 +108,17 @@ foreach s [get_filesets] {
           incr errors
         }
       } else {
-        set_property "compxlib.${simulator}_compiled_library_dir" $lib_path [current_project]
-        launch_simulation -scripts_only -simset [get_filesets $s]
-        set top_name [get_property TOP $s]
-        set sim_script  [file normalize $sim_dir/$simulator/]
-        Msg Info "Adding simulation script location $sim_script for $s..."
-        lappend sim_scripts $sim_script
+	if {vsim_ok == 1} {
+	  set_property "compxlib.${simulator}_compiled_library_dir" $lib_path [current_project]
+	  launch_simulation -scripts_only -simset [get_filesets $s]
+	  set top_name [get_property TOP $s]
+	  set sim_script  [file normalize $sim_dir/$simulator/]
+	  Msg Info "Adding simulation script location $sim_script for $s..."
+	  lappend sim_scripts $sim_script
+	} else {
+	  Msg Error "Cannot run Modesim/Questasim simulations witouth a valid library path"
+	  exit -1
+	}
       }
     }
   }

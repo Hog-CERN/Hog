@@ -27,6 +27,7 @@
 #  @param[out] NO_BITSTREAM empty or "-no_bitstream"
 #  @param[out] SYNTH_ONLY   empty or "-synth_only"
 #  @param[out] RESET        empty or "-reset"
+#  @param[out] CHECK_SYNTAX empty or "-check_syntax"
 #  @param[out] PARAMS       positional parameters 
 #  @return                  1 if error or help, else 0
 function argument_parser() {
@@ -51,6 +52,10 @@ while (( "$#" )); do
       ;;
     -reset)
       RESET="-reset"
+      shift 1
+      ;;
+    -reset)
+      CHECK_SYNTAX="-check_syntax"
       shift 1
       ;;
     --) # end argument parsing
@@ -117,7 +122,7 @@ else
     then
       echo "Hog-ERROR: Vivado HLS is not yet supported by this script!"
     else
-      ${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_workflow.tcl -tclargs $RESET $NO_BITSTREAM $SYNTH_ONLY $IP_PATH $NJOBS $1
+      ${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_workflow.tcl -tclargs $RESET $NO_BITSTREAM $SYNTH_ONLY $IP_PATH $NJOBS $CHEK_SYNTAX $1
     fi
   else
     echo "Hog-ERROR: project $PROJ not found: possible projects are: `ls ./Top`"

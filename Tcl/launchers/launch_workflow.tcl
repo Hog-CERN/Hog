@@ -81,7 +81,7 @@ if { $options(ip_eos_path) != "" } {
   dict for {f files} $src_files {
     #library names have a .src extension in values returned by GetHogFiles
     if { [file ext $f] == ".ip" } {
-      lappend ips $files
+      lappend ips {*}$files
     }
   }
 
@@ -90,7 +90,7 @@ if { $options(ip_eos_path) != "" } {
   foreach ip $ips {
     set ret [HandleIP pull $ip $ip_path $main_folder]
     if {$ret == 0} {
-      incr copied_ips 
+      incr copied_ips
     }
   }
   Msg Info "$copied_ips IPs were copied from the EOS repository."

@@ -62,7 +62,7 @@ stages:
      variables:
         <<: *vars
      script:
-      - if [ -z ${HOG_CHECK_PROJVER+x} ] && [ $HOG_CHECK_PROJVER == '1' ]; then
+      - if [[ -v HOG_CHECK_PROJVER ]] && [[ $HOG_CHECK_PROJVER == '1' ]]; then
           vivado -mode batch -notrace -source ./Hog/Tcl/CI/check_proj_ver.tcl -tclargs $PROJECT_NAME;
         else
           echo "Project version checker is disabled.";
@@ -106,14 +106,14 @@ stages:
             export IP_EOS_PATH="-ip_eos_path $HOG_IP_EOS_PATH";
             until echo $HOG_PASSWORD | kinit $HOG_USER@CERN.CH ; do echo "Retrying"; sleep 2; done;
           fi;
-          if [ -n ${HOG_NO_BITSTREAM+x} ] && [ $HOG_NO_BITSTREAM == '1' ]; then
+          if [[ -v HOG_NO_BITSTREAM ]] && [[ $HOG_NO_BITSTREAM == '1' ]]; then
             export NO_BISTREAM="-no_bitstream";
             echo "Hog-CI(info) - No binary files will be generated.";
           else
             echo "Hog-CI(info) - Binary files will be generated.";
             export NO_BISTREAM="";
           fi;
-          if [ -n ${HOG_CHECK_SYNTAX+x} ] && [ $HOG_CHECK_SYNTAX == '1' ]; then
+          if [[ -v HOG_CHECK_SYNTAX ]] && [[ $HOG_CHECK_SYNTAX == '1' ]]; then
             echo "Hog-CI(info) - HDL syntax will be checked before starting the syntehsis";
             export CHECK_SYNTAX="-check_syntax";
           else

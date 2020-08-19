@@ -76,7 +76,7 @@ if {$static == 1 } {
   # adding include hog.yml and ref
   #set outer [huddle create "inculde" [huddle list [huddle string "project: 'hog/Hog'" "file" "'/hog.yml'" "ref" "'$ref'" ]]]
   #puts $fp [ string trimleft [ yaml::huddle2yaml $outer ] "-" ]
-  puts $fp "include:\n  - project: 'hog/Hog'\n  file: 'hog.yml'\n  ref: '$ref'\n"
+  puts $fp "include:\n  - project: 'hog/Hog'\n    file: 'hog.yml'\n    ref: '$ref'\n"
 
 } else {
   set created_yml  "$repo_path/generated-config.yml"

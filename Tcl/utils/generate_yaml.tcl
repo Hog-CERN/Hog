@@ -26,8 +26,7 @@ if {[catch {package require cmdline} ERROR]} {
 
 set parameters {
   {runall  "If set, it will generate a gitlab-ci yml file for all projects in the Top folder, even if it has not been modified with respect to the target branch."}
-  {no_include_yml "Normally the content of the hog-child.yml file is added at the beginning of the generated yml file. If thi flag is set, this will not be done."}
-  {yml_file.arg "generated-config.yml" "Name of the CI yml file to be generated (it will be placed in the root directory of the repository)"}
+  {static "Normally the content of the hog-child.yml file is added at the beginning of the generated yml file. If thi flag is set, this will not be done."}
   {external_path.arg "" "Path for the external libraries not stored in the git repository."}
 }
 
@@ -44,11 +43,13 @@ if { $options(runall) == 1 } {
 } else {
   set runall 0
 }
-if { $options(no_include_yml) == 1 } {
-  set include_yml 0
+if { $options(static) == 1 } {
+  set static 1
+  set runall 1
 } else {
-  set include_yml 1
+  set static 0
 }
+
 if { $options(external_path) != "" } {
   set ext_path $options(external_path)
   Msg Info "External path set to $ext_path"
@@ -56,17 +57,34 @@ if { $options(external_path) != "" } {
   set ext_path ""
 }
 
-set yml_file $options(yml_file)
 
 set stage_list $CI_STAGES
 
-if {$include_yml == 1 } {
-  Msg Info "Copying $repo_path/Hog/YAML/hog-child.yml..."
-  file copy -force $repo_path/Hog/YAML/hog-child.yml $repo_path/$yml_file
-  set fp [open "$repo_path/$yml_file" a]
-  puts $fp "\n"
+if {$static == 1 } {
+  if { [file exist "$repo_path/.gitlab-ci.yml"] } {
+    set created_yml  "$repo_path/new_gitlab-ci.yml"
+    Msg Warning "$repo_path/.gitlab-ci.yml, will create (and possibly repleace) $created_yml, please rename it if you want Hog-CI to work."
+  } else {
+    set created_yml  "$repo_path/.gitlab-ci.yml"
+  }
+  Msg Info "Creating new file $created_yml..."
+  set fp [open $created_yml w]
+
+  Msg Info "Evaluating the current version of Hog to use in the ref in the yml file..."
+  set ref [exec git describe]
+
+  # adding include hog.yml and ref
+  #set outer [huddle create "inculde" [huddle list [huddle string "project: 'hog/Hog'" "file" "'/hog.yml'" "ref" "'$ref'" ]]]
+  #puts $fp [ string trimleft [ yaml::huddle2yaml $outer ] "-" ]
+  puts $fp "include:\n  - project: 'hog/Hog'\n  file: 'hog.yml'\n  ref: '$ref'\n"
+
 } else {
-  set fp [open "$repo_path/$yml_file" w]
+  set created_yml  "$repo_path/generated-config.yml"
+  Msg Info "Copying $repo_path/Hog/YAML/hog-child.yml to $created_yml..."
+  file copy -force $repo_path/Hog/YAML/hog-child.yml $created_yml
+  set fp [open $created_yml a]
+  puts $fp "\n"
+
 }
 
 
@@ -110,4 +128,4 @@ foreach dir [glob -type d $repo_path/Top/* ] {
   }
 }
 close $fp
-Msg Info "$repo_path/$yml_file generated correctly."
+Msg Info "$created_yml generated correctly."

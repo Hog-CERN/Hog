@@ -1803,7 +1803,11 @@ proc WriteYAMLStage {stage proj_name {stage_list {} }} {
   }
 
   set inner [huddle create "PROJECT_NAME" $proj_name "extends" ".vars"]
-  set middle [huddle create "extends" ".$stage" "variables" $inner "dependencies" $dep_list]
+  if {[llength $stage_list] > 0} {
+    set middle [huddle create "extends" ".$stage" "variables" $inner "dependencies" $dep_list]
+  } else {
+    set middle [huddle create "extends" ".$stage" "variables" $inner]
+    }
   set outer [huddle create "$stage:$proj_name" $middle ]
   return [ string trimleft [ yaml::huddle2yaml $outer ] "-" ]
 }

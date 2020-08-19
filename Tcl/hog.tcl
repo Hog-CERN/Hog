@@ -1594,12 +1594,14 @@ You can fix this by installing package \"tcllib\""
       close $fp
     } else {
       Msg $MSG_TYPE "Cannot open file .gitlab-ci.yml"
+      cd $thisPath
       return
     }
-    set file_data "$file_data\n\n"
+    set file_data "\n$file_data\n\n"
 
     if { [catch {::yaml::yaml2dict -stream $file_data}  yamlDict]} {
-      Msg $MSG_TYPE "Parsing .gitlab-ci.yml failed. To fix this, check that yaml syntax is respected, remember not to use tabs."
+      Msg $MSG_TYPE "Parsing $repo_path/.gitlab-ci.yml failed. To fix this, check that yaml syntax is respected, remember not to use tabs."
+      cd $thisPath
       return
     } else {
       dict for {dictKey dictValue} $yamlDict {
@@ -1634,7 +1636,7 @@ You can fix this by installing package \"tcllib\""
     #check if the yml file includes other files
     if { [catch {::yaml::yaml2dict -file $YML_NAME_F}  yamlDict]} {
       Msg $MSG_TYPE "Parsing $YML_NAME_F failed."
-      cd ..
+      cd $thisPath
       return
     } else {
       dict for {dictKey dictValue} $yamlDict {

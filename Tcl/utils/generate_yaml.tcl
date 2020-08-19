@@ -32,6 +32,7 @@ set parameters {
 
 set usage "Generate a gitlab-ci.yml config file for the child pipeline - USAGE: generate_yaml.tcl \[options\]"
 
+set old_path [pwd]
 set tcl_path [file normalize "[file dirname [info script]]/.."]
 
 set repo_path [file normalize $tcl_path/../..]
@@ -71,8 +72,9 @@ if {$static == 1 } {
   set fp [open $created_yml w]
 
   Msg Info "Evaluating the current version of Hog to use in the ref in the yml file..."
+  cd $tcl_path
   set ref [exec git describe]
-
+  cd $old_path
   # adding include hog.yml and ref
   #set outer [huddle create "inculde" [huddle list [huddle string "project: 'hog/Hog'" "file" "'/hog.yml'" "ref" "'$ref'" ]]]
   #puts $fp [ string trimleft [ yaml::huddle2yaml $outer ] "-" ]

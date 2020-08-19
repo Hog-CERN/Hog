@@ -26,14 +26,16 @@ if {[catch {package require cmdline} ERROR]} {
 
 set parameters {
   {runall  "If set, it will generate a gitlab-ci yml file for all projects in the Top folder, even if it has not been modified with respect to the target branch."}
+  {no_include_yml "Normally the content of the hog-child.yml file is added at the beginning of the generated yml file. If thi flag is set, this will not be done."}
+  {yml_file.arg "generated-config.yml" "Name of the CI yml file to be generated (it will be placed in the root directory of the repository)"}
   {external_path.arg "" "Path for the external libraries not stored in the git repository."}
 }
 
-set usage "Generate a gitlab-ci.yml config file for the child pipeline - USAGE: \[-runall\]"
+set usage "Generate a gitlab-ci.yml config file for the child pipeline - USAGE: generate_yaml.tcl \[options\]"
 
 set tcl_path [file normalize "[file dirname [info script]]/.."]
 
-set repo_path [pwd]
+set repo_path [file normalize $tcl_path/../..]
 source $tcl_path/hog.tcl
 
 array set options [cmdline::getoptions ::argv $parameters $usage]
@@ -42,6 +44,11 @@ if { $options(runall) == 1 } {
 } else {
   set runall 0
 }
+if { $options(no_include_yml) == 1 } {
+  set include_yml 0
+} else {
+  set include_yml 1
+}
 if { $options(external_path) != "" } {
   set ext_path $options(external_path)
   Msg Info "External path set to $ext_path"
@@ -49,11 +56,19 @@ if { $options(external_path) != "" } {
   set ext_path ""
 }
 
-set stage_list { "simulate_project" "generate_project" }
+set yml_file $options(yml_file)
 
-file copy -force $repo_path/Hog/YAML/hog-child.yml $repo_path/generated-config.yml
-set fp [open "$repo_path/generated-config.yml" a]
-puts $fp "\n"
+set stage_list $CI_STAGES
+
+if {$include_yml == 1 } {
+  Msg Info "Copying $repo_path/Hog/YAML/hog-child.yml..."
+  file copy -force $repo_path/Hog/YAML/hog-child.yml $repo_path/$yml_file
+  set fp [open "$repo_path/$yml_file" a]
+  puts $fp "\n"
+} else {
+  set fp [open "$repo_path/$yml_file" w]
+}
+
 
 foreach dir [glob -type d $repo_path/Top/* ] {
   set proj [ file tail $dir ]
@@ -63,16 +78,19 @@ foreach dir [glob -type d $repo_path/Top/* ] {
       Msg Info "$proj was modified, adding it to CI..."
     }
     if { [ file exists "$dir/ci.conf" ] == 1} {
+      Msg Info "Foung CI configuration file $dir/ci.conf, reading configuration for $proj..."
       set cifile [open $dir/ci.conf ]
       set input [read $cifile]
       set lines [split $input "\n"]
+      close $cifile
       # Loop through each line
       foreach line $lines {
-        if {![regexp {^ *$} $line] & ![regexp {^ *\#} $line] } { 
+        if {![regexp {^ *$} $line] & ![regexp {^ *\#} $line] } {
           set stage_and_prop [regexp -all -inline {\S+} $line]
           set stage [lindex $stage_and_prop 0]
           if { [lsearch $stage_list $stage] > -1 } {
-            puts $fp [ WriteYAMLStage $stage $proj {}]
+	    Msg Info "Adding job $stage for project: $proj..."
+            puts $fp [ WriteYAMLStage $stage $proj ]
           } else {
             Msg Error "Stage $stage in $dir/ci.conf is not defined.\n Allowed stages are $stage_list"
             exit 1
@@ -80,9 +98,10 @@ foreach dir [glob -type d $repo_path/Top/* ] {
         }
       }
     } else {
+      Msg Info "No CI configuration file found ($dir/ci.conf) for $proj, creating all jobs..."
       foreach stage $stage_list {
-	puts $fp [ WriteYAMLStage $stage $proj {} ]
-	
+	Msg Info "Adding job $stage for project: $proj..."
+	puts $fp [ WriteYAMLStage $stage $proj ]
       }
     }
   } else {
@@ -91,3 +110,4 @@ foreach dir [glob -type d $repo_path/Top/* ] {
   }
 }
 close $fp
+Msg Info "$repo_path/$yml_file generated correctly."

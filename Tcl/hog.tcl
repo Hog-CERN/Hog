@@ -25,6 +25,11 @@
 # @param[in] msg    the message text.
 # @param[in] title  the name of the script displaying the message, if not given, the calling script name will be used by default.
 #
+#### GLOBAL CONSTANTS
+set CI_STAGES {"simulate_project" "generate_project"}
+
+
+#### FUNCTIONS
 proc Msg {level msg {title ""}} {
   set level [string tolower $level]
   if {$level == 0 || $level == "status" || $level == "extra_info"} {
@@ -1770,19 +1775,22 @@ proc GetMaxThreads {proj_name} {
   if {[dict exists $propDict maxThreads]} {
     set maxThreads [dict get $propDict maxThreads]
   }
-  
   return $maxThreads
 }
 
 ## @brief Returns the gitlab-ci.yml snippet for a CI stage and a defined project
 #
 #
-# @param[in] stage:       name of the CI stage
-# @param[in] proj_name:   name of the project
-# @param[in] stage_list:  the list of CI stages
+# @param[in] stage:       name of the Hog-CI stage
+# @param[in] proj_name:   name of the project in Hog repository
+# @param[in] stage_list:  the list of CI stages, used to evaluate the dependencies. Leave empty for no dependencies.
 #
 #
-proc WriteYAMLStage {stage proj_name stage_list} {
+proc WriteYAMLStage {stage proj_name {stage_list {} }} {
+  if { [catch {package require yaml 0.3.3} YAMLPACKAGE]} {
+    Msg CriticalWarning "Cannot find package YAML.\n Error message: $YAMLPACKAGE. If you are tunning on tclsh, you can fix this by installing package \"tcllib\""
+    return -1
+  }
   set dep_list [huddle list ]
   foreach s $stage_list {
     if {$s != $stage} {

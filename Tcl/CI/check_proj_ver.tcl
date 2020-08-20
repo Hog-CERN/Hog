@@ -30,7 +30,7 @@ set ver [ GetProjectVersion $repo_path/Top/$project/$project.tcl ]
 if {$ver == 0} {
   Msg Info "$project was modified, continuing with the CI..."
 } else {
-  Msg Info "$proj was not modified since version: $ver, disabling the CI..."
+  Msg Info "$project was not modified since version: $ver, disabling the CI..."
   file mkdir $repo_path/VivadoProjects/$project
   set fp [open "$repo_path/VivadoProjects/$project/skip.me" w+]
   close $fp

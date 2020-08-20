@@ -58,6 +58,10 @@ while (( "$#" )); do
       CHECK_SYNTAX="-check_syntax"
       shift 1
       ;;
+    -?|-h|-help)
+      HELP="-h"
+      shift 1
+      ;;
     --) # end argument parsing
       shift
       break
@@ -83,7 +87,10 @@ fi
 eval set -- "$PARAMS"
 if [ -z "$1" ]
 then
-  printf "Project name has not been specified. Usage: \n ./Hog/LaunchWorkflow.sh <proj_name> [-reset] [-no_bitstream | -synth_only] [-njobs <number of jobs>] [-ip_eos_path <path to IP repository on EOS>]\n"
+  printf "Project name has not been specified. Usage: \n"
+  printf " LaunchWorkflow.sh <project name> [-reset] [-check_syntax] [-no_bitstream | -synth_only] [-njobs <number of jobs>] [-ip_eos_path <path to IP repository on EOS>]\n\n"
+  printf " For a detailed explanation of all the option, type LaunchWorkflow.sh <project name> -h.\n"
+  printf " The project name is needed by Hog to tell which HDL software to use: Vivado, Quartus, etc.\n\n"
 else
   PROJ=$1
   PROJ_DIR="./Top/"$PROJ
@@ -122,7 +129,7 @@ else
     then
       echo "Hog-ERROR: Vivado HLS is not yet supported by this script!"
     else
-      ${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_workflow.tcl -tclargs $RESET $NO_BITSTREAM $SYNTH_ONLY $IP_PATH $NJOBS $CHEK_SYNTAX $1
+      ${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_workflow.tcl -tclargs $HELP $RESET $NO_BITSTREAM $SYNTH_ONLY $IP_PATH $NJOBS $CHEK_SYNTAX $1
     fi
   else
     echo "Hog-ERROR: project $PROJ not found: possible projects are: `ls ./Top`"

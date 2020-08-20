@@ -33,6 +33,9 @@ set parameters {
 
 set usage "- USAGE: $::argv0 \[OPTIONS\] <project> \n. Options:"
 set path [file normalize "[file dirname [info script]]/.."]
+set old_path [pwd]
+set bin_dir [file normalize "$path/../../bin"]
+source $path/hog.tcl
 
 if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] ||  [llength $argv] < 1 } {
   Msg Info [cmdline::usage $parameters $usage]
@@ -47,13 +50,10 @@ if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] 
   set ip_path ""
 }
 
-set old_path [pwd]
-set bin_dir [file normalize "$path/../../bin"]
+
 
 #Go to Hog/Tcl
 cd $path
-
-source ./hog.tcl
 
 if { $options(no_bitstream) == 1 } {
   set do_bitstream 0

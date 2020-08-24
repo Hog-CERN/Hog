@@ -48,10 +48,10 @@ set old_path [pwd]
 cd $path
 source ./hog.tcl
 Msg Info "Simulation library path is set to $lib_path."
-set vism_ok 1
+set vsim_ok 1
 if !([file exists $lib_path]) {
   Msg Warning "Could not find simulation library path: $lib_path, Modelsim/Questasim simulation will not work."
-  set vism_ok 0
+  set vsim_ok 0
 }
 
 ############# CREATE or OPEN project ############
@@ -108,17 +108,17 @@ foreach s [get_filesets] {
           incr errors
         }
       } else {
-	if {vsim_ok == 1} {
-	  set_property "compxlib.${simulator}_compiled_library_dir" $lib_path [current_project]
-	  launch_simulation -scripts_only -simset [get_filesets $s]
-	  set top_name [get_property TOP $s]
-	  set sim_script  [file normalize $sim_dir/$simulator/]
-	  Msg Info "Adding simulation script location $sim_script for $s..."
-	  lappend sim_scripts $sim_script
-	} else {
-	  Msg Error "Cannot run Modesim/Questasim simulations witouth a valid library path"
-	  exit -1
-	}
+        if {$vsim_ok == 1} {
+          set_property "compxlib.${simulator}_compiled_library_dir" $lib_path [current_project]
+          launch_simulation -scripts_only -simset [get_filesets $s]
+          set top_name [get_property TOP $s]
+          set sim_script  [file normalize $sim_dir/$simulator/]
+          Msg Info "Adding simulation script location $sim_script for $s..."
+          lappend sim_scripts $sim_script
+        } else {
+          Msg Error "Cannot run Modesim/Questasim simulations witouth a valid library path"
+          exit -1
+        }
       }
     }
   }

@@ -116,7 +116,7 @@ if [file exists $fw_file] {
 
   # Log files
   set logs [glob -nocomplain "$run_dir/*/runme.log"]
-  foreach log in $logs {
+  foreach log $logs {
     set run_name [file tail [file dir $log]]
     file copy -force $log $dst_dir/reports/$run_name.log
   }

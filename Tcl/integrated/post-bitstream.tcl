@@ -114,6 +114,13 @@ if [file exists $fw_file] {
     Msg Warning "No reports found in $run_dir subfolders"
   }
 
+  # Log files
+  set logs [glob -nocomplain "$run_dir/*/runme.log"]
+  foreach log in $logs {
+    set run_name [file tail [file dir $log]]
+    file copy -force $log $dst_dir/reports/$run_name.log
+  }
+
     # IPbus XML
   if [file exists $xml_dir] {
     Msg Info "XML directory found, copying xml files from $xml_dir to $dst_xml..."

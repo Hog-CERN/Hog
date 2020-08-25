@@ -12,9 +12,18 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-include:
-  - local: '/YAML/hog-common.yml'
+.tag-hog: &tag-hog
+  tags:
+     - hog
 
+.tag-sr: &tag-sr
+  tags:
+     - docker
+  image: gitlab-registry.cern.ch/hog/hog-docker:tclsh
+
+.vars: &vars
+  GIT_STRATEGY: clone
+#   CI_DEBUG_TRACE: "true"
 
 .only-default: &only-default
   only:

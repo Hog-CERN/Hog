@@ -11,7 +11,6 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
-
 variables:
   GIT_SSL_NO_VERIFY: "true"
   GIT_SUBMODULE_STRATEGY: recursive
@@ -27,19 +26,6 @@ before_script:
     - export XILINXD_LICENSE_FILE=${HOG_XIL_LICENSE}
     - export PATH=${HOG_PATH}:$PATH
     - export LD_LIBRARY_PATH=${HOG_LD_LIBRARY_PATH}:$LD_LIBRARY_PATH
-
-.tag-hog: &tag-hog
-  tags:
-     - hog
-
-.tag-sr: &tag-sr
-  tags:
-     - docker
-  image: gitlab-registry.cern.ch/hog/hog-docker:tclsh
-
-.vars: &vars
-  GIT_STRATEGY: clone
-#   CI_DEBUG_TRACE: "true"
 
 stages:
   - merge

@@ -12,8 +12,7 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 include:
-  - local: /YAML/hog-common.yml
-
+  - local: YAML/hog-common.yml
 
 .only-default: &only-default
   only:

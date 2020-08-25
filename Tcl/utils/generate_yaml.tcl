@@ -82,11 +82,14 @@ if {$static == 1 } {
 
 } else {
   set created_yml  "$repo_path/generated-config.yml"
-  Msg Info "Copying $repo_path/Hog/YAML/hog-child.yml to $created_yml..."
-  file copy -force $repo_path/Hog/YAML/hog-child.yml $created_yml
+  Msg Info "Copying $repo_path/Hog/YAML/hog-common.yml to $created_yml..."
+  file copy -force $repo_path/Hog/YAML/hog-common.yml $created_yml
   set fp [open $created_yml a]
+  Msg Info "Copying $repo_path/Hog/YAML/hog-child.yml to $created_yml..."
+  set fp2 [open "$repo_path/Hog/YAML/hog-child.yml" r]
+  set file_data [read $fp2]
+  puts $fp $file_data
   puts $fp "\n"
-
 }
 
 

@@ -12,15 +12,8 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 include:
+  - local: YAML/hog-common.yml
   - local: YAML/hog-main.yml
-
-stages:
-  - merge
-  - generate
-  - triggers
-  - collect
-  - doxygen
-  - archive
 
 generate-config:
   # only:
@@ -59,21 +52,12 @@ child-pipeline:
     - if: $CI_MERGE_REQUEST_ID
 
 collect_artifacts:
-  before_script:
-    - yum install unzip
-    - export REPO=`echo $CI_PROJECT_URL | sed -e s#https://##`
-    - git remote set-url origin https://${HOG_USER}:${HOG_PUSH_TOKEN}@$REPO
-    - git config user.email ${HOG_EMAIL}
-    - git config user.name ${HOG_USER}
-    - git fetch
-    - git fetch origin $CI_COMMIT_REF_NAME
-    - git fetch origin $CI_MERGE_REQUEST_TARGET_BRANCH_NAME
-    - git status
-    - git submodule init 
-    - git submodule update Hog
   image: gitlab-registry.cern.ch/hog/hog-docker:tclsh
   stage: collect
   script:
+    - git status
+    - git submodule init 
+    - git submodule update Hog
     - if [ ! -f .env ]; then
         echo "You must save a .env file as an upstream artifact containing the Child Pipeline Creator's Job ID as CREATE_JOB_ID";
         exit 1;
@@ -84,7 +68,6 @@ collect_artifacts:
     - if [ $? -ne 0 ]; then
         exit 1;
       fi
-   
   coverage: '/Statements\s+:\s(\d+.?\d+)%/'
   rules:
     - if: $CI_MERGE_REQUEST_ID

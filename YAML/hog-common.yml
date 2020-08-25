@@ -27,19 +27,6 @@ before_script:
     - export PATH=${HOG_PATH}:$PATH
     - export LD_LIBRARY_PATH=${HOG_LD_LIBRARY_PATH}:$LD_LIBRARY_PATH
 
-.tag-hog: &tag-hog
-  tags:
-     - hog
-
-.tag-sr: &tag-sr
-  tags:
-     - docker
-  image: gitlab-registry.cern.ch/hog/hog-docker:tclsh
-
-.vars: &vars
-  GIT_STRATEGY: clone
-#   CI_DEBUG_TRACE: "true"
-
 stages:
   - merge
   - generate

@@ -20,6 +20,19 @@
        when: never
      - if: $CI_MERGE_REQUEST_ID
 
+.tag-hog: &tag-hog
+  tags:
+     - hog
+
+.tag-sr: &tag-sr
+  tags:
+     - docker
+  image: gitlab-registry.cern.ch/hog/hog-docker:tclsh
+
+.vars: &vars
+  GIT_STRATEGY: clone
+#   CI_DEBUG_TRACE: "true"
+
 .simulate_project: &simulate_project
      <<: *only-default
      <<: *tag-hog

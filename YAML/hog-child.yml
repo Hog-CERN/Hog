@@ -84,22 +84,29 @@
             export IP_EOS_PATH="-ip_eos_path $HOG_IP_EOS_PATH";
             until echo $HOG_PASSWORD | kinit $HOG_USER@CERN.CH ; do echo "Retrying"; sleep 2; done;
           fi;
-          if [[ -v $HOG_NO_BITSTREAM ]] && [[ $HOG_NO_BITSTREAM == '1' ]]; then
+          if [[ -n "$HOG_NO_BITSTREAM" ]] && [[ $HOG_NO_BITSTREAM == '1' ]]; then
             export NO_BISTREAM="-no_bitstream";
             echo "Hog-CI(info) - No binary files will be generated.";
           else
             echo "Hog-CI(info) - Binary files will be generated.";
             export NO_BISTREAM="";
           fi;
-          if [[ -v $HOG_CHECK_SYNTAX ]] && [[ $HOG_CHECK_SYNTAX == '1' ]]; then
+          if [[ -n "$HOG_CHECK_SYNTAX" ]] && [[ $HOG_CHECK_SYNTAX == '1' ]]; then
             echo "Hog-CI(info) - HDL syntax will be checked before starting the syntehsis";
             export CHECK_SYNTAX="-check_syntax";
           else
             echo "Hog-CI(info) - HDL syntax will not be checked.";
             export CHECK_SYNTAX="";
           fi;
+          if [[ -n "$HOG_ONLY_SYNTH" ]] && [[ $HOG_ONLY_SYNTH == '1' ]]; then
+            export ONLY_SYNTH="-synth_only";
+            echo "Hog-CI(info) - No binary files will be generated.";
+          else
+            echo "Hog-CI(info) - Binary files will be generated.";
+            export ONLY_SYNTH="";
+          fi;
           echo "Hog-CI(info) - Launching workflow now...";
-          ./Hog/LaunchWorkflow.sh -njobs $HOG_NJOBS $IP_EOS_PATH $NO_BITSTREAM $CHECK_SYNTAX $PROJECT_NAME;
+          ./Hog/LaunchWorkflow.sh -njobs $HOG_NJOBS $IP_EOS_PATH $NO_BITSTREAM $ONLY_SYNTH $CHECK_SYNTAX $PROJECT_NAME;
           echo "Hog-CI(info) - Adding versios and timing summary to note...";
           cat $CI_PROJECT_DIR/bin/$PROJECT_NAME*/versions* $CI_PROJECT_DIR/bin/$PROJECT_NAME*/timing_* > note.md;
           echo "Hog-CI(info) - Wrtiting note on gitlab website...";

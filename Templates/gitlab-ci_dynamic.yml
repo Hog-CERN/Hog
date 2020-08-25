@@ -14,21 +14,5 @@
 
 include:
     - project: 'hog/Hog'
-      file: '/hog.yml'
+      file: '/hog-dynamic.yml'
       ref: 'v0.2.1'
-
-#################### example ###########################
-### Change 'example' with your project name
-
-generate_project:example:
-    extends: .generate_project
-    variables:
-      extends: .vars
-      PROJECT_NAME: example
-      HOG_ONLY_SYNTH: 0 # if 1 runs only the synthesis
-
-simulate_project:example:
-    extends: .simulate_project
-    variables:
-      extends: .vars
-      PROJECT_NAME: example

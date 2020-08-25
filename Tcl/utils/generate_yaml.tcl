@@ -60,6 +60,7 @@ if { $options(external_path) != "" } {
 
 
 set stage_list $CI_STAGES
+set prop_list $CI_PROPS
 
 if {$static == 1 } {
   if { [file exist "$repo_path/.gitlab-ci.yml"] } {
@@ -111,9 +112,17 @@ foreach dir [glob -type d $repo_path/Top/* ] {
         if {![regexp {^ *$} $line] & ![regexp {^ *\#} $line] } {
           set stage_and_prop [regexp -all -inline {\S+} $line]
           set stage [lindex $stage_and_prop 0]
+          set props [lrange $stage_and_prop 1 end]
           if { [lsearch $stage_list $stage] > -1 } {
-	    Msg Info "Adding job $stage for project: $proj..."
-            puts $fp [ WriteYAMLStage $stage $proj ]
+	          Msg Info "Adding job $stage for project: $proj..."
+            foreach prop $props {
+              if { [lsearch $prop_list $prop] > -1 } {
+                Msg Info "Enabling property $prop for stage $stage of project $proj..."
+              } else {
+                Msg Warning "Proprty $prop is not defined. \n Allowed properties are $prop_list"
+              }
+            }
+            puts $fp [ WriteYAMLStage $stage $proj $props ]
           } else {
             Msg Error "Stage $stage in $dir/ci.conf is not defined.\n Allowed stages are $stage_list"
             exit 1
@@ -123,8 +132,8 @@ foreach dir [glob -type d $repo_path/Top/* ] {
     } else {
       Msg Info "No CI configuration file found ($dir/ci.conf) for $proj, creating all jobs..."
       foreach stage $stage_list {
-	Msg Info "Adding job $stage for project: $proj..."
-	puts $fp [ WriteYAMLStage $stage $proj ]
+	      Msg Info "Adding job $stage for project: $proj..."
+	      puts $fp [ WriteYAMLStage $stage $proj ]
       }
     }
   } else {

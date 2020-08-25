@@ -27,7 +27,7 @@
 #
 #### GLOBAL CONSTANTS
 set CI_STAGES {"simulate_project" "generate_project"}
-
+set CI_PROPS {"-synth_only"}
 
 #### FUNCTIONS
 proc Msg {level msg {title ""}} {
@@ -1785,10 +1785,11 @@ proc GetMaxThreads {proj_name} {
 #
 # @param[in] stage:       name of the Hog-CI stage
 # @param[in] proj_name:   name of the project in Hog repository
+# @param[in] props:        names of the Hog-CI properties
 # @param[in] stage_list:  the list of CI stages, used to evaluate the dependencies. Leave empty for no dependencies.
 #
 #
-proc WriteYAMLStage {stage proj_name {stage_list {} }} {
+proc WriteYAMLStage {stage proj_name {props {}} {stage_list {} }} {
   if { [catch {package require yaml 0.3.3} YAMLPACKAGE]} {
     Msg CriticalWarning "Cannot find package YAML.\n Error message: $YAMLPACKAGE. If you are tunning on tclsh, you can fix this by installing package \"tcllib\""
     return -1
@@ -1802,7 +1803,13 @@ proc WriteYAMLStage {stage proj_name {stage_list {} }} {
     }
   }
 
-  set inner [huddle create "PROJECT_NAME" $proj_name "extends" ".vars"]
+  set synth_only "0"
+  if { [lsearch $props "-synth_only"] > -1 } {
+    set synth_only 1
+  } 
+
+  set inner [huddle create "PROJECT_NAME" $proj_name "HOG_ONLY_SYNTH" $synth_only "extends" ".vars"]
+
   if {[llength $stage_list] > 0} {
     set middle [huddle create "extends" ".$stage" "variables" $inner "dependencies" $dep_list]
   } else {

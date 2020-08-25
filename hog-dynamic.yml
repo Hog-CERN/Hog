@@ -24,7 +24,7 @@ generate-config:
   script:
     - if [[ ${HOG_CHECK_PROJVER} != 1 ]]; then
         echo "Project version checker is disabled.";
-        tclsh ./Hog/Tcl/utils/generate_yaml.tcl --runall;
+        tclsh ./Hog/Tcl/utils/generate_yaml.tcl -runall;
       else
         tclsh ./Hog/Tcl/utils/generate_yaml.tcl;
       fi;

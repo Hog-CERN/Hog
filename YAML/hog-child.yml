@@ -107,11 +107,11 @@
           echo "Hog-CI(info) - Launching workflow now...";
           ./Hog/LaunchWorkflow.sh -njobs $HOG_NJOBS $IP_EOS_PATH $NO_BITSTREAM $ONLY_SYNTH $CHECK_SYNTAX $PROJECT_NAME;
           if [[ -n "$HOG_ONLY_SYNTH" ]] && [[ $HOG_ONLY_SYNTH == '1' ]]; then
-            echo "Hog-CI(info) - Adding versions and timing summary to note...";
-            cat $CI_PROJECT_DIR/bin/$PROJECT_NAME*/versions* $CI_PROJECT_DIR/bin/$PROJECT_NAME*/timing_* > note.md;
-          else
             echo "Hog-CI(info) - Adding version and timing summary to note...";
             cat $CI_PROJECT_DIR/VivadoProject/$PROJECT_NAME/$PROJECT_NAME.runs/versions* > note.md;
+          else
+            echo "Hog-CI(info) - Adding versions and timing summary to note...";
+            cat $CI_PROJECT_DIR/bin/$PROJECT_NAME*/versions* $CI_PROJECT_DIR/bin/$PROJECT_NAME*/timing_* > note.md;
           fi;
           echo "Hog-CI(info) - Writing note on gitlab website...";
           ./Hog/Other/WriteGitlabNote.sh $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $CI_MERGE_REQUEST_IID note.md;

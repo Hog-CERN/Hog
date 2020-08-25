@@ -100,7 +100,7 @@
           fi;
           if [[ -n "$HOG_ONLY_SYNTH" ]] && [[ $HOG_ONLY_SYNTH == '1' ]]; then
             export ONLY_SYNTH="-synth_only";
-            echo "Hog-CI(info) - No binary files will be generated.";
+            echo "Hog-CI(info) - Only the synthesis will be run.";
           else
             echo "Hog-CI(info) - Binary files will be generated.";
             export ONLY_SYNTH="";

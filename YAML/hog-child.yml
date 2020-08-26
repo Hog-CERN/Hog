@@ -85,11 +85,11 @@
             until echo $HOG_PASSWORD | kinit $HOG_USER@CERN.CH ; do echo "Retrying"; sleep 2; done;
           fi;
           if [[ -n "$HOG_NO_BITSTREAM" ]] && [[ $HOG_NO_BITSTREAM == '1' ]]; then
-            export NO_BISTREAM="-no_bitstream";
+            export NO_BITSTREAM="-no_bitstream";
             echo "Hog-CI(info) - No binary files will be generated.";
           else
             echo "Hog-CI(info) - Binary files will be generated.";
-            export NO_BISTREAM="";
+            export NO_BITSTREAM="";
           fi;
           if [[ -n "$HOG_CHECK_SYNTAX" ]] && [[ $HOG_CHECK_SYNTAX == '1' ]]; then
             echo "Hog-CI(info) - HDL syntax will be checked before starting the syntehsis";

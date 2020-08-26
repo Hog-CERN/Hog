@@ -13,20 +13,41 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-set usage "- USAGE: $::argv0 <project> \n."
+#parsing command options
+if {[catch {package require cmdline} ERROR] || [catch {package require struct::matrix} ERROR]} {
+  puts "$ERROR\n Tcllib not found. If you are running this script on tclsh, you can fix this by installing 'tcllib'"
+  return
+}
 
+set parameters {
+  {sim    "If set, checks also the version of the simulation files."}
+  {ext_path.arg "" "Sets the absolute path for the external libraries."}
+
+}
+
+set usage "- USAGE: $::argv0 \[OPTIONS\] <project> \n. Options:"
 set repo_path [pwd]
 set tcl_path [file normalize "[file dirname [info script]]/.."]
 source $tcl_path/hog.tcl
 
-if { [ llength $argv] < 1 } { 
-  puts [cmdline::usage $usage]
+if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] ||  [llength $argv] < 1 } {
+  Msg Info [cmdline::usage $parameters $usage]
   exit 1
 } else {
   set project [lindex $argv 0]
+  set sim 0
+  set ext_path ""
 }
 
-set ver [ GetProjectVersion $repo_path/Top/$project/$project.tcl ]
+if {$options(sim) == 1} {
+    set sim 1   
+}
+
+if { $options(ext_path) != "" } {
+    set ext_path $options(ext_path)
+}
+
+set ver [ GetProjectVersion $repo_path/Top/$project/$project.tcl $ext_path $sim ]
 if {$ver == 0} {
   Msg Info "$project was modified, continuing with the CI..."
 } else {

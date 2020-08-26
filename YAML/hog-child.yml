@@ -41,7 +41,7 @@
         <<: *vars
      script:
       - if [[ -v HOG_CHECK_PROJVER ]] && [[ $HOG_CHECK_PROJVER == '1' ]]; then
-          vivado -mode batch -notrace -source ./Hog/Tcl/CI/check_proj_ver.tcl -tclargs $PROJECT_NAME;
+          vivado -mode batch -notrace -source ./Hog/Tcl/CI/check_proj_ver.tcl -tclargs $PROJECT_NAME -ext_path "$HOG_EXTERNAL_PATH" -sim ;
         else
           echo "Project version checker is disabled.";
         fi
@@ -70,7 +70,7 @@
         <<: *vars
     script:
       - if [[ -v HOG_CHECK_PROJVER ]] && [[ $HOG_CHECK_PROJVER == '1' ]]; then
-          vivado -mode batch -notrace -source ./Hog/Tcl/CI/check_proj_ver.tcl -tclargs $PROJECT_NAME;
+        vivado -mode batch -notrace -source ./Hog/Tcl/CI/check_proj_ver.tcl -tclargs $PROJECT_NAME -ext_path "$HOG_EXTERNAL_PATH";        
         else
           echo "Project version checker is disabled.";
         fi

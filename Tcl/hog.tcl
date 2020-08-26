@@ -640,7 +640,7 @@ proc GetVerFromSHA {SHA} {
   return $M$m$c
 }
 
-proc GetProjectVersion {tcl_file {ext_path ""}} {
+proc GetProjectVersion {tcl_file {ext_path ""} {sim 0}} {
   if { ![file exists $tcl_file] } {
     Msg CriticalWarning "$tcl_file not found"
     return -1
@@ -651,7 +651,7 @@ proc GetProjectVersion {tcl_file {ext_path ""}} {
 
   #The latest version the repository
   set v_last [ExtractVersionFromTag [exec git describe --abbrev=0 --match "v*"]]
-  lassign [GetRepoVersions $tcl_file $ext_path] sha ver
+  lassign [GetRepoVersions $tcl_file $ext_path $sim] sha ver
   if {$sha == 0} {
     Msg Warning "Repository is not clean"
     cd $old_dir
@@ -700,7 +700,7 @@ proc GetGitDescribe {sha} {
 #
 #  @return  a list conatining all the versions: global, top (project tcl file), constraints, libraries, submodules, exteral, ipbus xml
 #
-proc GetRepoVersions {proj_tcl_file {ext_path ""}} {
+proc GetRepoVersions {proj_tcl_file {ext_path ""} {sim 0}} {
   set old_path [pwd]
   set proj_tcl_file [file normalize $proj_tcl_file]
   set proj_dir [file dir $proj_tcl_file]
@@ -766,6 +766,22 @@ proc GetRepoVersions {proj_tcl_file {ext_path ""}} {
     lappend cons_hashes $hash
     lappend SHAs $hash
   }
+
+  # Read simulation list files
+  if {sim == 1} {
+    set sim_hashes ""
+    # Specyfiy sha_mode 1 for GetHogFiles to get all the files, includeng the list-files themselves
+    lassign [GetHogFiles "./list/" "*.sim" 1] sim_files dummy
+    dict for {f files} $sim_files {
+      #library names have a .sim extension in values returned by GetHogFiles
+      set name [file rootname [file tail $f]]
+      lassign [GetVer  $files] ver hash
+      Msg Info "Found simulation list file $f, version: $ver commit SHA: $hash"
+      lappend sim_hashes $hash
+      lappend SHAs $hash
+    }
+  }
+  
 
   #Of all the constraints we get the most recent
   set cons_hash [string toupper [exec git log --format=%h -1 {*}$cons_hashes]]

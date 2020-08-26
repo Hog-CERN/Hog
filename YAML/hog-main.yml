@@ -60,7 +60,7 @@ make_doxygen:
         - merge_requests
       variables:
         - $HOG_USE_DOXYGEN == "1"
-    stage: doxygen
+    stage: collect
     variables:
         <<: *vars
     script:

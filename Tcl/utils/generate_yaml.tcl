@@ -96,7 +96,7 @@ if {$static == 1 } {
 
 foreach dir [glob -type d $repo_path/Top/* ] {
   set proj [ file tail $dir ]
-  set ver [ GetProjectVersion $dir/$proj.tcl $ext_path ]
+  set ver [ GetProjectVersion $dir/$proj.tcl $ext_path 1 ]
   if {$ver == 0 || $ver == -1 || $runall == 1} {
     if {$runall == 0} {
       Msg Info "$proj was modified, adding it to CI..."

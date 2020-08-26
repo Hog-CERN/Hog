@@ -768,7 +768,7 @@ proc GetRepoVersions {proj_tcl_file {ext_path ""} {sim 0}} {
   }
 
   # Read simulation list files
-  if {sim == 1} {
+  if {$sim == 1} {
     set sim_hashes ""
     # Specyfiy sha_mode 1 for GetHogFiles to get all the files, includeng the list-files themselves
     lassign [GetHogFiles "./list/" "*.sim" 1] sim_files dummy

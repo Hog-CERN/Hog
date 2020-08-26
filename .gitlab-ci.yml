@@ -19,9 +19,9 @@ default:
           - git remote set-url origin https://hog:${HOG_PUSH_TOKEN}@$REPO
           - git config --global user.email "hog@cern.ch"
           - git config --global user.name "Hog"
-          - git fetch
+          - git fetch 
           - git fetch origin $CI_COMMIT_REF_NAME
-          - git checkout $CI_COMMIT_REF_NAME --
+          - git checkout -b $CI_COMMIT_REF_NAME origin/$CI_COMMIT_REF_NAME --
           - git status
 stages:
       - tag

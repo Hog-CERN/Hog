@@ -32,7 +32,7 @@ set parameters {
 
 set usage "- CI script that retrieves binary files links or creates new ones to be uploaded as Releases\n USAGE: $::argv0 <push token> <Gitlab api url> <project id> <project url> <tag> \[OPTIONS\] \n. Options:"
 
-if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] ||  [llength $argv] < 5 } {
+if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] ||  [llength $argv] < 6 } {
   Msg Info [cmdline::usage $parameters $usage]
   cd $OldPath
   return
@@ -43,6 +43,7 @@ set api [lindex $argv 1]
 set proj_id [lindex $argv 2]
 set prj_url [lindex $argv 3]
 set tag [lindex $argv 4]
+set ext_path [lindex $argv 5]
 
 set fp [open "$repo_path/project_links.txt" w]
 
@@ -51,7 +52,7 @@ cd $repo_path
 foreach dir [glob -type d $repo_path/Top/* ] {
   set proj [ file tail $dir ]
   #find project version
-  set ver [ GetProjectVersion $dir/$proj.tcl ]
+  set ver [ GetProjectVersion $dir/$proj.tcl $ext_path ]
   if {"$ver"=="0" || "$ver"=="$tag" } {
     Msg Info "Creating new link for $proj binaries and tag $tag"
     if [catch {glob -type d $repo_path/bin/$proj* } prj_dir] {

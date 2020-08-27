@@ -29,6 +29,7 @@ set parameters {
   {reset           "If set, resets the runs (synthesis and implementation) before launching them."}
   {check_syntax    "If set, the HDL syntax will be checked at the beginning of the worflow."}
   {njobs.arg 4 "Number of jobs. Default: 4"}
+  {ext_path.arg "" "Sets the absolute path for the external libraries."}
 }
 
 set usage "- USAGE: $::argv0 \[OPTIONS\] <project> \n. Options:"
@@ -48,6 +49,7 @@ if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] 
   set reset 0
   set check_syntax 0
   set ip_path ""
+  set ext_path ""
 }
 
 
@@ -69,6 +71,10 @@ if { $options(reset) == 1 } {
 
 if { $options(check_syntax) == 1 } {
   set check_syntax 1
+}
+
+if { $options(ext_path) != ""} {
+  set ext_path $options(ext_path)
 }
 
 #Copy IP from EOS
@@ -165,7 +171,7 @@ set ips [get_ips *]
 #go to repository path
 cd $path/../..
 
-lassign [GetRepoVersion [file normalize ./Top/$project/$project.tcl]] sha
+lassign [GetRepoVersion [file normalize ./Top/$project/$project.tcl] $ext_path ] sha
 set describe [GetGitDescribe $sha]
 Msg Info "Git describe set to $describe"
 

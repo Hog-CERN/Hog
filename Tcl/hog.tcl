@@ -640,6 +640,14 @@ proc GetVerFromSHA {SHA} {
   return $M$m$c
 }
 
+## Get the project version
+#
+#  @param[in] tcl_file: The tcl file of the project of which all the version must be calculated
+#  @param[in] ext_path: path for external libraries
+#  @param[in] sim: if enabled, check the version also for the simulation files
+#
+#  @return  returns the project version
+#
 proc GetProjectVersion {tcl_file {ext_path ""} {sim 0}} {
   if { ![file exists $tcl_file] } {
     Msg CriticalWarning "$tcl_file not found"

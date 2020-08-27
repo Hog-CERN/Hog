@@ -860,7 +860,7 @@ proc GetRepoVersions {proj_tcl_file {ext_path ""} {sim 0}} {
     }
   }
 
-#The global SHA and ver is the most recent among everything
+  #The global SHA and ver is the most recent among everything
   if {$clean == 1} {
     set commit [exec git log --format=%h -1 {*}$SHAs --]
     set version [GetVerFromSHA $commit]

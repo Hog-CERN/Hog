@@ -40,11 +40,13 @@ if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] 
 }
 
 if {$options(sim) == 1} {
-    set sim 1   
+    set sim 1
+    Msg Info "Will check also the version of the simulation files..."
 }
 
 if { $options(ext_path) != "" } {
     set ext_path $options(ext_path)
+    Msg Info "External path set to $ext_path"
 }
 
 set ver [ GetProjectVersion $repo_path/Top/$project/$project.tcl $ext_path $sim ]

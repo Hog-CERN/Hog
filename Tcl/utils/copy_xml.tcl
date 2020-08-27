@@ -23,6 +23,7 @@ if {[catch {package require cmdline} ERROR]} {
 
 set parameters {
   {generate  "If set, the VHDL address files will be generated and replaced if already exisiting."}
+  {arg.ext_path "" "Path to external libraries"}
 }
 
 set usage   "Copy IPBus XML files listed in a XML list file of a project and replace the version and SHA placeholders if they are present in any of the XML files.\nUsage: $argv0  \[-generate\] <project> <destination directory>"
@@ -42,6 +43,11 @@ if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] 
   } else {
     set generate 0
   }
+  if { $options(ext_path) == "" } {
+    set ext_path ""
+  } else {
+    set ext_path $options(ext_path)
+  }
 }
 
 set list_file $repo_path/Top/$project/list/xml.lst
@@ -54,7 +60,7 @@ if {[file exists $list_file]} {
   Msg Error "$list_file not found"
   exit
 }
-set ret [GetRepoVersions $repo_path/Top/$project/$project.tcl]
+set ret [GetRepoVersions $repo_path/Top/$project/$project.tcl $ext_path]
 
 set sha [lindex $ret 15]
 set hex_ver [lindex $ret 16]

@@ -22,7 +22,6 @@ if {[catch {package require cmdline} ERROR] || [catch {package require struct::m
 set parameters {
   {sim    "If set, checks also the version of the simulation files."}
   {ext_path.arg "" "Sets the absolute path for the external libraries."}
-
 }
 
 set usage "- USAGE: $::argv0 \[OPTIONS\] <project> \n. Options:"

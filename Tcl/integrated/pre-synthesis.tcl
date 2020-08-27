@@ -26,6 +26,12 @@ set old_path [pwd]
 set tcl_path [file normalize "[file dirname [info script]]/.."]
 source $tcl_path/hog.tcl
 
+if {[info exists env(HOG_EXTERNAL_PATH)]} {
+  set ext_path $env(HOG_EXTERNAL_PATH)
+} else {
+  set ext_path ""
+}
+
 # Go to repository path
 cd "$tcl_path/../.."
 
@@ -63,7 +69,7 @@ if {$flavour != ""} {
 }
 
 # Getting all the versions and SHAs of the repository
-lassign [GetRepoVersions ./Top/$proj_name/$proj_name.tcl] commit version  hog_hash hog_ver  top_hash top_ver  libs hashes vers  subs subs_hashes  cons_ver cons_hash  ext_names ext_hashes  xml_hash xml_ver 
+lassign [GetRepoVersions ./Top/$proj_name/$proj_name.tcl $ext_path] commit version  hog_hash hog_ver  top_hash top_ver  libs hashes vers  subs subs_hashes  cons_ver cons_hash  ext_names ext_hashes  xml_hash xml_ver 
 
 set this_commit  [exec git log --format=%h -1]
 
@@ -108,7 +114,7 @@ if {[info commands set_param] != ""} {
   quartus_command $maxThreads
 } else {
     ### Tcl Shell
-  puts "Hog:DEBUG MAxThread is set to: $maxThreads"
+  puts "Hog:DEBUG MaxThread is set to: $maxThreads"
 }
 
 set clock_seconds [clock seconds]

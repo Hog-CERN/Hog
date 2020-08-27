@@ -73,7 +73,7 @@ proc Msg {level msg {title ""}} {
 # @param[out] File The log file onto which write the message
 # @param[in]  msg  The message text
 #
-proc WrtieToFile {File msg} {
+proc WriteToFile {File msg} {
   set f [open $File a+]
   puts $f $msg
   close $f
@@ -696,7 +696,8 @@ proc GetGitDescribe {sha} {
 ## Get the versions for all libraries, submodules, etc. for a given project
 #
 #  @param[in] proj_tcl_file: The tcl file of the project of which all the version must be calculated
-#  @param[in] ext_path path for external libraries
+#  @param[in] ext_path: path for external libraries
+#  @param[in] sim: if enabled, check the version also for the simulation files
 #
 #  @return  a list conatining all the versions: global, top (project tcl file), constraints, libraries, submodules, exteral, ipbus xml
 #

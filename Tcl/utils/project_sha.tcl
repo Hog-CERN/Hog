@@ -23,6 +23,7 @@ if {[catch {package require cmdline} ERROR]} {
 
 set parameters {
   {version  "If set, the version is returned rather than the git sha."}
+  {arg.ext_path "" "Path to external libraries"}
 }
 
 set usage   "Returns the git SHA of the last commit in which the specified project was modified.\nUsage: $argv0 \[-version\] <project name>"
@@ -41,11 +42,16 @@ if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] 
   } else {
     set do_ver 0
   }
+  if { $options(ext_path) == "" } {
+    set ext_path ""
+  } else {
+    set ext_path $options(ext_path)
+  }
 }
 set tcl_file $repo_path/Top/$project/$project.tcl
 
 if {[file exists $tcl_file]} {
-  lassign [GetRepoVersions $tcl_file] sha ver
+  lassign [GetRepoVersions $tcl_file $ext_path] sha ver
   if {$do_ver == 1} {
     set ret [HexVersionToString $ver]
   } else {

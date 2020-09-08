@@ -135,14 +135,17 @@ if {[file exists $project_file]} {
 }
 
 ########## CHECK SYNTAX ###########
-Msg Info "Checkin syntax for project $project..."
-set syntax [check_syntax -return_string]
-
-if {[string first "CRITICAL" $syntax ] != -1} {
-  check_syntax
-  exit 1
+if { $check_syntax == 1 } {
+  Msg Info "Checkin syntax for project $project..."
+  set syntax [check_syntax -return_string]
+  
+  if {[string first "CRITICAL" $syntax ] != -1} {
+    check_syntax
+    exit 1
+  }
+} else {
+  Msg Info "Skipping syntax check for project $project"
 }
-
 
 ############# SYNTH ###############
 if {$reset == 1 } {

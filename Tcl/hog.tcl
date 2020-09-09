@@ -501,7 +501,7 @@ proc ReadListFile {list_file path {lib ""} {sha_mode 0} } {
 #
 # @param[in] lib the name of the library whose latest commit hash will be returned
 #
-# @return        tghe git SHA of the specified library
+# @return        the git SHA of the specified library
 #
 proc GetHashLib {lib} {
   if {$lib eq "ALL"} {
@@ -511,6 +511,34 @@ proc GetHashLib {lib} {
   }
 
   return $ret
+}
+
+## @brief Get a list of all modified the files matching then pattern
+#
+# @param[in] repo_path the path of the git repository
+# @param[in] pattern the pattern with wildcards that files should match
+#
+# @return    a list of all modified files matchin the pattern
+#
+proc GetModifiedFiles {{repo_path "."} {pattern "."}} {
+  set old_path [pwd]
+  cd $repo_path
+  set ret [exec git ls-files --modified $pattern]
+  cd $old_path
+  return $ret
+}
+
+## @brief Restore with checkout -- the files specified in pattern
+#
+# @param[in] repo_path the path of the git repository
+# @param[in] pattern the pattern with wildcards that files should match
+#
+proc RestoreModifiedFiles {{repo_path "."} {pattern "."}} {
+  set old_path [pwd]
+  cd $repo_path
+  set ret [exec git checkout -- $pattern]
+  cd $old_path
+  return
 }
 
 ## @brief Recursively gets file names from list file

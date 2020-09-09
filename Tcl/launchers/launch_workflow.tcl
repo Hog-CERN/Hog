@@ -147,6 +147,13 @@ if { $check_syntax == 1 } {
   Msg Info "Skipping syntax check for project $project"
 }
 
+######## RESET BD FILES ###########
+set bd_files [GetModifiedFiles $path/../.. *.bd]
+if {[llength $bd_files] > 0} {
+  Msg Warning "Found bodified bd files: $bd_files, will restore them..."
+  RestoreModifiedFiles $path/../.. *.bd
+}
+
 ############# SYNTH ###############
 if {$reset == 1 } {
   Msg Info "Resetting run before launching synthesis..."

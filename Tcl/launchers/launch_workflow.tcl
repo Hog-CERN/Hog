@@ -136,7 +136,7 @@ if {[file exists $project_file]} {
 
 ########## CHECK SYNTAX ###########
 if { $check_syntax == 1 } {
-  Msg Info "Checkin syntax for project $project..."
+  Msg Info "Checking syntax for project $project..."
   set syntax [check_syntax -return_string]
   
   if {[string first "CRITICAL" $syntax ] != -1} {
@@ -148,10 +148,13 @@ if { $check_syntax == 1 } {
 }
 
 ######## RESET BD FILES ###########
+Msg Info "Looking for modified bd files..."
 set bd_files [GetModifiedFiles $path/../.. *.bd]
 if {[llength $bd_files] > 0} {
-  Msg Warning "Found bodified bd files: $bd_files, will restore them..."
+  Msg Warning "Found modified bd files: $bd_files, will restore them..."
   RestoreModifiedFiles $path/../.. *.bd
+} else {
+  Msg Info "No modified bd files found."
 }
 
 ############# SYNTH ###############

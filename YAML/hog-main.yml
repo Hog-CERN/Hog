@@ -106,11 +106,11 @@ archive_binary_files:
         fi;
       done;
     - cd ..
-    - if [ $HOG_CREATE_OFFICIAL_RELEASE == "1" ]; then
+    - if [[ -v HOG_CREATE_OFFICIAL_RELEASE ]] && [[ $HOG_CREATE_OFFICIAL_RELEASE == "1" ]]; then
         tclsh ./Hog/Tcl/CI/get_binary_links.tcl $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $CI_PROJECT_URL $CI_COMMIT_TAG "$HOG_EXTERNAL_PATH";
         ./Hog/Other/MakeGitlabRelease.sh $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $CI_COMMIT_TAG bin/note.md -load_artifacts;
       fi;
-    - if [ $HOG_OFFICIAL_BIN_EOS_PATH != null ]; then
+    - if [[ -v HOG_OFFICIAL_BIN_EOS_PATH ]]; then
         until echo $HOG_PASSWORD | kinit $HOG_USER@CERN.CH; do
          echo Retrying;
          sleep 2;
@@ -118,7 +118,7 @@ archive_binary_files:
         eos mkdir $HOG_OFFICIAL_BIN_EOS_PATH/$CI_COMMIT_TAG;
         xrdcp -rf bin/* ${EOS_MGM_URL}//${HOG_OFFICIAL_BIN_EOS_PATH}/${CI_COMMIT_TAG};
       fi;
-    - if [ $HOG_USE_DOXYGEN == "1" ]; then
+    - if [[ -v HOG_USE_DOXYGEN ]] && [[ $HOG_USE_DOXYGEN == '1' ]]; then
         cd bin;
         ../Hog/Other/GetArtifactsAndRename.sh $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $MR make_doxygen ${CI_COMMIT_TAG};
         if [ $HOG_OFFICIAL_BIN_EOS_PATH != null ]; then

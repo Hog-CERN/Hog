@@ -293,7 +293,7 @@ proc GetRepoPath {} {
   return "[file normalize [file dirname [info script]]]/../../"
 }
 
-## @brief Compare tu semantic versions
+## @brief Compare two semantic versions
 #
 # @param[in] ver1 a list of 3 numbers M m p
 # @param[in] ver2 a list of 3 numbers M m p
@@ -1136,14 +1136,15 @@ proc CopyXMLsFromListFile {list_file path dst {xml_version "0.0.0"} {xml_sha "00
 	    } else {
 	      if {[file exists $v]} {
 		#check file here
-		Msg Info "Checking $x vs $v, ignoring leading/trailing spaces and comments..."
 		set diff [CompareVHDL $generated_vhdl $v]
 		if {[llength $diff] > 0} {
-		  Msg CriticalWarning "$v does not correspond to its xml $x, [expr $n/3] line/s differ:"
+		  Msg CriticalWarning "$v does not correspond to its XML $x, [expr $n/3] line/s differ:"
 		  Msg Status [join $diff "\n"]
 		  set diff_file [open ../diff_[file root [file tail $x]].txt w]
 		  puts $diff_file $diff
 		  close $diff_file
+		} else {
+		  Msg Info "$x and $v match."
 		}
 	      } else {
 		Msg Warning "VHDL address decoder file $v not found"
@@ -1158,14 +1159,14 @@ proc CopyXMLsFromListFile {list_file path dst {xml_version "0.0.0"} {xml_sha "00
       } else {
 	Msg Info "Skipped verification of $x as no VHDL file was specified."
       }
-      cd ..
-      file delete -force address_decode
-      cd $old_dir
     }
+    cd ..
+    file delete -force address_decode
+    cd $old_dir
   }
 }
 
-## @brief Compare two VHDL files ignoring spces and comments
+## @brief Compare two VHDL files ignoring spaces and comments
 #
 # @param[in] file1  the first file
 # @param[in] file2  the second file

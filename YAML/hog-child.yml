@@ -109,6 +109,13 @@
           else
             export ONLY_SYNTH="";
           fi;
+          if [[ -n "$HOG_NO_RESET_BD" ]] && [[ $HOG_NO_RESET_BD == '1' ]]; then
+            echo "Hog-CI(info) - BD files will NOT be reset at pre syntehsis time";
+          else
+            echo "Hog-CI(info) - BD files will be reset at pre-syntehsis time";
+            mkdir -p VivadoProject;
+            echo "*.bd" > VivadoProject/hog_reset_files
+          fi;
           echo "Hog-CI(info) - Launching workflow now...";
           echo "./Hog/LaunchWorkflow.sh -njobs $HOG_NJOBS $IP_EOS_PATH $NO_BITSTREAM $ONLY_SYNTH $CHECK_SYNTAX $PROJECT_NAME";
           ./Hog/LaunchWorkflow.sh -njobs $HOG_NJOBS $IP_EOS_PATH $NO_BITSTREAM $ONLY_SYNTH $CHECK_SYNTAX $PROJECT_NAME;

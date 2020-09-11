@@ -1102,7 +1102,11 @@ proc CopyXMLsFromListFile {list_file path dst {xml_version "0.0.0"} {xml_sha "00
         close $in
         close $out
         lappend xmls [file tail $xmlfile]
-        lappend vhdls [file normalize $vhdlfile]
+        if {$vhdlfile == 0 } {
+	  lappend vhdls 0
+	} else {
+	  lappend vhdls [file normalize $vhdlfile]
+	}
 
       } else {
         Msg Warning "XML file $xmlfile not found"
@@ -1119,44 +1123,46 @@ proc CopyXMLsFromListFile {list_file path dst {xml_version "0.0.0"} {xml_sha "00
     file mkdir "address_decode"
     cd "address_decode"
     foreach x $xmls v $vhdls {
-      set x [file normalize ../$x]
-      if {[file exists $x]} {
-        set status [catch {exec gen_ipbus_addr_decode {*}"-v $x"} log]
-        if {$status == 0} {
-          set generated_vhdl ./ipbus_decode_[file root [file tail $x]].vhd
-          if {$generate == 1} {
-      #copy (replace) file here
-            Msg Info "Copying generated VHDL file $generated_vhdl into $v (replacing if necessary)"
-            file copy -force -- $generated_vhdl $v
-          } else {
-            if {[file exists $v]} {
-          #check file here
-              Msg Info "Checking $x vs $v, ignoring leading/trailing spaces and comments..."
-              set diff [CompareVHDL $generated_vhdl $v]
-              if {[llength $diff] > 0} {
-                Msg CriticalWarning "$v does not correspond to its xml $x, [expr $n/3] line/s differ:"
-                Msg Status [join $diff "\n"]
-                set diff_file [open ../diff_[file root [file tail $x]].txt w]
-                puts $diff_file $diff
-                close $diff_file
-              }
-            } else {
-              Msg Warning "VHDL address decoder file $v not found"
-            }
-          }
-        } else {
-          Msg Warning "Address map generation failed fo $x: $log"
-        }
+      if {$v != 0} {
+	set x [file normalize ../$x]
+	if {[file exists $x]} {
+	  set status [catch {exec gen_ipbus_addr_decode {*}"-v $x"} log]
+	  if {$status == 0} {
+	    set generated_vhdl ./ipbus_decode_[file root [file tail $x]].vhd
+	    if {$generate == 1} {
+	      #copy (replace) file here
+	      Msg Info "Copying generated VHDL file $generated_vhdl into $v (replacing if necessary)"
+	      file copy -force -- $generated_vhdl $v
+	    } else {
+	      if {[file exists $v]} {
+		#check file here
+		Msg Info "Checking $x vs $v, ignoring leading/trailing spaces and comments..."
+		set diff [CompareVHDL $generated_vhdl $v]
+		if {[llength $diff] > 0} {
+		  Msg CriticalWarning "$v does not correspond to its xml $x, [expr $n/3] line/s differ:"
+		  Msg Status [join $diff "\n"]
+		  set diff_file [open ../diff_[file root [file tail $x]].txt w]
+		  puts $diff_file $diff
+		  close $diff_file
+		}
+	      } else {
+		Msg Warning "VHDL address decoder file $v not found"
+	      }
+	    }
+	  } else {
+	    Msg Warning "Address map generation failed fo $x: $log"
+	  }
+	} else {
+	  Msg Warning "Copied XML file $x not found."
+	}
       } else {
-        Msg Warning "Copied XML file $x not found."
+	Msg Info "Skipped verification of $x as no VHDL file was specified."
       }
-
+      cd ..
+      file delete -force address_decode
+      cd $old_dir
     }
-    cd ..
-    file delete -force address_decode
-    cd $old_dir
   }
-
 }
 
 ## @brief Compare two VHDL files ignoring spces and comments

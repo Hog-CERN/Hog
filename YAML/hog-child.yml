@@ -114,7 +114,7 @@
           else
             echo "Hog-CI(info) - BD files will be reset at pre-syntehsis time";
             mkdir -p VivadoProject;
-            echo "*.bd" > VivadoProject/hog_reset_files
+            echo "*.bd" > VivadoProject/hog_reset_files;
           fi;
           echo "Hog-CI(info) - Launching workflow now...";
           echo "./Hog/LaunchWorkflow.sh -njobs $HOG_NJOBS $IP_EOS_PATH $NO_BITSTREAM $ONLY_SYNTH $CHECK_SYNTAX $PROJECT_NAME";

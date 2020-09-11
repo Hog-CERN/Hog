@@ -783,7 +783,7 @@ proc GetRepoVersions {proj_tcl_file {ext_path ""} {sim 0}} {
     #library names have a .src extension in values returned by GetHogFiles
     set name [file rootname [file tail $f]]
     lassign [GetVer  $files] ver hash
-    Msg Info "Found source list file $f, version: $ver commit SHA: $hash"
+    #Msg Info "Found source list file $f, version: $ver commit SHA: $hash"
     lappend libs $name
     lappend vers $ver
     lappend hashes $hash
@@ -799,7 +799,7 @@ proc GetRepoVersions {proj_tcl_file {ext_path ""} {sim 0}} {
     #library names have a .con extension in values returned by GetHogFiles
     set name [file rootname [file tail $f]]
     lassign [GetVer  $files] ver hash
-    Msg Info "Found constraint list file $f, version: $ver commit SHA: $hash"
+    #Msg Info "Found constraint list file $f, version: $ver commit SHA: $hash"
     lappend cons_hashes $hash
     lappend SHAs $hash
   }
@@ -813,7 +813,7 @@ proc GetRepoVersions {proj_tcl_file {ext_path ""} {sim 0}} {
       #library names have a .sim extension in values returned by GetHogFiles
       set name [file rootname [file tail $f]]
       lassign [GetVer  $files] ver hash
-      Msg Info "Found simulation list file $f, version: $ver commit SHA: $hash"
+      #Msg Info "Found simulation list file $f, version: $ver commit SHA: $hash"
       lappend sim_hashes $hash
       lappend SHAs $hash
     }
@@ -823,7 +823,7 @@ proc GetRepoVersions {proj_tcl_file {ext_path ""} {sim 0}} {
   #Of all the constraints we get the most recent
   set cons_hash [string toupper [exec git log --format=%h -1 {*}$cons_hashes]]
   set cons_ver [GetVerFromSHA $cons_hash]
-    Msg Info "Among all the constraint list files, if more than one, the most recent version was chosen: $cons_ver commit SHA: $cons_hash"
+  #Msg Info "Among all the constraint list files, if more than one, the most recent version was chosen: $cons_ver commit SHA: $cons_hash"
 
   # Read external library files
   set ext_hashes ""
@@ -833,7 +833,7 @@ proc GetRepoVersions {proj_tcl_file {ext_path ""} {sim 0}} {
   foreach f $ext_files {
     set name [file rootname [file tail $f]]
     set hash [exec git log --format=%h -1 $f ]
-    Msg Info "Found source file $f, commit SHA: $hash"
+    #Msg Info "Found source file $f, commit SHA: $hash"
     lappend ext_names $name
     lappend ext_hashes $hash
     lappend SHAs $hash
@@ -842,7 +842,7 @@ proc GetRepoVersions {proj_tcl_file {ext_path ""} {sim 0}} {
     set file_data [read $fp]
     close $fp
     set data [split $file_data "\n"]
-    Msg Info "Checking checksums of external library files in $f"
+    #Msg Info "Checking checksums of external library files in $f"
     foreach line $data {
       if {![regexp {^ *$} $line] & ![regexp {^ *\#} $line] } { #Exclude empty lines and comments
         set file_and_prop [regexp -all -inline {\S+} $line]
@@ -861,11 +861,11 @@ proc GetRepoVersions {proj_tcl_file {ext_path ""} {sim 0}} {
 
 # Ipbus XML
   if [file exists ./list/xml.lst] {
-    Msg Info "Found IPbus XML list file, evaluating version and SHA of listed files..."
+    #Msg Info "Found IPbus XML list file, evaluating version and SHA of listed files..."
     lassign [GetHogFiles "./list/" "xml.lst" 1] xml_files dummy
     lassign [GetVer  [dict get $xml_files "xml.lst"] ] xml_ver xml_hash
     lappend SHAs $xml_hash
-    Msg Info "Found IPbus XML SHA: $xml_hash and version: $xml_ver."
+    #Msg Info "Found IPbus XML SHA: $xml_hash and version: $xml_ver."
 
   } else {
     Msg Info "This project does not use IPbus XMLs"
@@ -885,7 +885,7 @@ proc GetRepoVersions {proj_tcl_file {ext_path ""} {sim 0}} {
       lappend SHAs [exec git log --format=%h -1 -- ../../$sub_dir]
       cd "../../$sub_dir"
       if { [exec git status --untracked-files=no --porcelain] eq "" } {
-        Msg Info "$sub_dir submodule clean."
+        #Msg Info "$sub_dir submodule clean."
         lappend subs_hashes [GetSHA ./]
       } else {
         Msg CriticalWarning "$sub_dir submodule not clean, commit hash will be set to 0."

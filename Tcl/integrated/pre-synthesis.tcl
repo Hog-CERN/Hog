@@ -28,6 +28,7 @@ source $tcl_path/hog.tcl
 
 if {[info exists env(HOG_EXTERNAL_PATH)]} {
   set ext_path $env(HOG_EXTERNAL_PATH)
+  Msg Info "Found environment vaible HOG_EXTERNAL_PATH, setting path for external files to $ext_path..."
 } else {
   set ext_path ""
 }
@@ -67,6 +68,29 @@ if {$flavour != ""} {
 } else {
   set flavour -1
 }
+
+######## Reset files before synthesis ###########
+set reset_file VivadoProject/hog_reset_files
+
+if {[file exists $reset_file]} {
+  Msg Info "Found $reset_file, opening it..."
+  set fp [open $reset_file r]
+  set file_data [read $fp]
+  close $fp
+  set wild_cards [split $file_data "\n"]
+  Msg Info "Found the following files/wild cards to restore if modified: $wild_cards..."
+  foreach w $wild_cards {
+    set mod_files [GetModifiedFiles . $w]
+    if {[llength $bd_files] > 0} {
+      Msg Info "Found modified $w files: $mod_files, will restore them..."
+      RestoreModifiedFiles . $w
+    } else {
+      Msg Info "No modified $w files found."
+    }
+  }
+}
+
+
 
 # Getting all the versions and SHAs of the repository
 lassign [GetRepoVersions ./Top/$proj_name/$proj_name.tcl $ext_path] commit version  hog_hash hog_ver  top_hash top_ver  libs hashes vers  subs subs_hashes  cons_ver cons_hash  ext_names ext_hashes  xml_hash xml_ver 

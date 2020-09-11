@@ -75,15 +75,14 @@ set reset_file VivadoProject/hog_reset_files
 if {[file exists $reset_file]} {
   Msg Info "Found $reset_file, opening it..."
   set fp [open $reset_file r]
-  set file_data [read $fp]
+  set wild_cards [lsearch -all -inline -not -regexp [split [read $fp] "\n"] "^ *$"]
   close $fp
-  set wild_cards [split $file_data "\n"]
   Msg Info "Found the following files/wild cards to restore if modified: $wild_cards..."
   foreach w $wild_cards {
-    set mod_files [GetModifiedFiles . $w]
-    if {[llength $bd_files] > 0} {
+    set mod_files [GetModifiedFiles "." $w]
+    if {[llength $mod_files] > 0} {
       Msg Info "Found modified $w files: $mod_files, will restore them..."
-      RestoreModifiedFiles . $w
+      RestoreModifiedFiles "." $w
     } else {
       Msg Info "No modified $w files found."
     }

@@ -39,6 +39,7 @@ set PROPERTIES [dict create \
 				] \
 		    impl_1 [dict create \
 			       ]\
+		   ]
 ### Project name and repository path
 set DESIGN    "[file rootname [file tail [info script]]]"
 set PATH_REPO "[file normalize [file dirname [info script]]]/../../"

@@ -28,7 +28,7 @@ source $tcl_path/hog.tcl
 
 if {[info exists env(HOG_EXTERNAL_PATH)]} {
   set ext_path $env(HOG_EXTERNAL_PATH)
-  Msg Info "Found environment vaible HOG_EXTERNAL_PATH, setting path for external files to $ext_path..."
+  Msg Info "Found environment variable HOG_EXTERNAL_PATH, setting path for external files to $ext_path..."
 } else {
   set ext_path ""
 }

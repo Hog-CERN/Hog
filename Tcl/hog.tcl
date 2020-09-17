@@ -1429,6 +1429,16 @@ proc AddHogFiles { libraries properties } {
             current_fileset -simset [get_filesets $file_set]
           }
 
+          # Simulation runtime
+          set sim_runtime [lindex [regexp -inline {runtime\s*=\s*(.+?)\y.*} $props] 1]
+          if { $sim_runtime != "" } {
+            Msg Info "Setting simulation runtime to $sim_runtime for simulation file set $file_set..."
+            set_property "top"  $top_sim [get_filesets $file_set]
+            set_property -name {xsim.simulate.runtime} -value $sim_runtime -objects [get_filesets $file_set]
+            set_property -name {modelsim.simulate.runtime} -value $sim_runtime -objects [get_filesets $file_set]
+            set_property -name {questa.simulate.runtime} -value $sim_runtime -objects [get_filesets $file_set]
+          }
+
           # Wave do file
 
           if {[lsearch -inline -regex $props "wavefile"] >= 0} {

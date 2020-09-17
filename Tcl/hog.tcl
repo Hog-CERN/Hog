@@ -1447,9 +1447,10 @@ proc AddHogFiles { libraries properties } {
               set_property "questa.simulate.custom_wave_do" $f [get_filesets $file_set]
             } else {
               Msg Warning "File $f was not found."
-              set_property "modelsim.simulate.custom_wave_do" "" [get_filesets $file_set]
-              set_property "questa.simulate.custom_wave_do" "" [get_filesets $file_set]
             }
+          } else {
+            set_property "modelsim.simulate.custom_wave_do" "" [get_filesets $file_set]
+            set_property "questa.simulate.custom_wave_do" "" [get_filesets $file_set]
           }
 
           #Do file
@@ -1460,9 +1461,10 @@ proc AddHogFiles { libraries properties } {
               set_property "questa.simulate.custom_udo" $f [get_filesets $file_set]
             } else {
               Msg Warning "File $f was not found."
-              set_property "modelsim.simulate.custom_udo" "" [get_filesets $file_set]
-              set_property "questa.simulate.custom_udo" "" [get_filesets $file_set]
             }
+          } else {
+            set_property "modelsim.simulate.custom_udo" "" [get_filesets $file_set]
+            set_property "questa.simulate.custom_udo" "" [get_filesets $file_set]
           }
         }
       }

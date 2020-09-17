@@ -1422,49 +1422,51 @@ proc AddHogFiles { libraries properties } {
 
           ## Simulation properties
           # Top simulation module
-          set top_sim [lindex [regexp -inline {topsim\s*=\s*(.+?)\y.*} $props] 1]
-          if { $top_sim != "" } {
-            Msg Info "Setting $top_sim as top module for simulation file set $file_set..."
-            set_property "top"  $top_sim [get_filesets $file_set]
-            current_fileset -simset [get_filesets $file_set]
-          }
-
-          # Simulation runtime
-          set sim_runtime [lindex [regexp -inline {runtime\s*=\s*(.+?)\y.*} $props] 1]
-          if { $sim_runtime != "" } {
-            Msg Info "Setting simulation runtime to $sim_runtime for simulation file set $file_set..."
-            set_property -name {xsim.simulate.runtime} -value $sim_runtime -objects [get_filesets $file_set]
-            set_property -name {modelsim.simulate.runtime} -value $sim_runtime -objects [get_filesets $file_set]
-            set_property -name {questa.simulate.runtime} -value $sim_runtime -objects [get_filesets $file_set]
-          }
-
-          # Wave do file
-          if {[lsearch -inline -regex $props "wavefile"] >= 0} {
-            Msg Info "Setting $f as wave do file for simulation file set $file_set..."
-            # check if file exists...
-            if [file exists $f] {
-              set_property "modelsim.simulate.custom_wave_do" $f [get_filesets $file_set]
-              set_property "questa.simulate.custom_wave_do" $f [get_filesets $file_set]
-            } else {
-              Msg Warning "File $f was not found."
+          if {$ext == ".sim"} {
+            set top_sim [lindex [regexp -inline {topsim\s*=\s*(.+?)\y.*} $props] 1]
+            if { $top_sim != "" } {
+              Msg Info "Setting $top_sim as top module for simulation file set $file_set..."
+              set_property "top"  $top_sim [get_filesets $file_set]
+              current_fileset -simset [get_filesets $file_set]
             }
-          } else {
-            set_property "modelsim.simulate.custom_wave_do" "" [get_filesets $file_set]
-            set_property "questa.simulate.custom_wave_do" "" [get_filesets $file_set]
-          }
-
-          #Do file
-          if {[lsearch -inline -regex $props "dofile"] >= 0} {
-            Msg Info "Setting $f as udo file for simulation file set $file_set..."
-            if [file exists $f] {
-              set_property "modelsim.simulate.custom_udo" $f [get_filesets $file_set]
-              set_property "questa.simulate.custom_udo" $f [get_filesets $file_set]
-            } else {
-              Msg Warning "File $f was not found."
+  
+            # Simulation runtime
+            set sim_runtime [lindex [regexp -inline {runtime\s*=\s*(.+?)\y.*} $props] 1]
+            if { $sim_runtime != "" } {
+              Msg Info "Setting simulation runtime to $sim_runtime for simulation file set $file_set..."
+              set_property -name {xsim.simulate.runtime} -value $sim_runtime -objects [get_filesets $file_set]
+              set_property -name {modelsim.simulate.runtime} -value $sim_runtime -objects [get_filesets $file_set]
+              set_property -name {questa.simulate.runtime} -value $sim_runtime -objects [get_filesets $file_set]
             }
-          } else {
-            set_property "modelsim.simulate.custom_udo" "" [get_filesets $file_set]
-            set_property "questa.simulate.custom_udo" "" [get_filesets $file_set]
+  
+            # Wave do file
+            if {[lsearch -inline -regex $props "wavefile"] >= 0} {
+              Msg Info "Setting $f as wave do file for simulation file set $file_set..."
+              # check if file exists...
+              if [file exists $f] {
+                set_property "modelsim.simulate.custom_wave_do" $f [get_filesets $file_set]
+                set_property "questa.simulate.custom_wave_do" $f [get_filesets $file_set]
+              } else {
+                Msg Warning "File $f was not found."
+              }
+            } else {
+              set_property "modelsim.simulate.custom_wave_do" "" [get_filesets $file_set]
+              set_property "questa.simulate.custom_wave_do" "" [get_filesets $file_set]
+            }
+  
+            #Do file
+            if {[lsearch -inline -regex $props "dofile"] >= 0} {
+              Msg Info "Setting $f as udo file for simulation file set $file_set..."
+              if [file exists $f] {
+                set_property "modelsim.simulate.custom_udo" $f [get_filesets $file_set]
+                set_property "questa.simulate.custom_udo" $f [get_filesets $file_set]
+              } else {
+                Msg Warning "File $f was not found."
+              }
+            } else {
+              set_property "modelsim.simulate.custom_udo" "" [get_filesets $file_set]
+              set_property "questa.simulate.custom_udo" "" [get_filesets $file_set]
+            }
           }
         }
       }

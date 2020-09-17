@@ -59,12 +59,13 @@ foreach dir [glob -type d $repo_path/Top/* ] {
       Msg CriticalWarning "Cannot find $proj binaries in artifacts"
       continue
     }
-    set content [exec curl -s --request POST --header "PRIVATE-TOKEN: ${push_token}" --form "file=@$repo_path/${proj}-${tag}.zip" ${api}/projects/${proj_id}/uploads]
-    # get the url from the json return
-    set url [ParseJSON $content "url"]
-    set absolute_url ${prj_url}${url}
-    puts $fp "$proj $absolute_url"
-
+    if [catch {exec curl -s --request POST --header "PRIVATE-TOKEN: ${push_token}" --form "file=@$repo_path/${proj}-${tag}.zip" ${api}/projects/${proj_id}/uploads} content ] {
+      Msg Warning "Project $proj does not have binary files"
+    } else {
+      set url [ParseJSON $content "url"]
+      set absolute_url ${prj_url}${url}
+      puts $fp "$proj $absolute_url"
+    }
   } elseif {"$ver"=="-1"} {
     Msg CriticalWarning "Something went wrong when tried to retrieve version for project $proj"
     cd $OldPath

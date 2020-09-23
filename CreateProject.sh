@@ -130,7 +130,8 @@ function create_project ()
     fi
 
   else
-    echo "Hog-ERROR: project $PROJ not found: possible projects are: `ls $DIR`"
+    echo "Hog-ERROR: project $PROJ not found: possible projects are:"
+    ls -1 $DIR
     echo
     cd "${OLD_DIR}"
     exit -1

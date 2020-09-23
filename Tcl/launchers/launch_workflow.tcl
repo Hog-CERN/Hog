@@ -26,6 +26,8 @@ set parameters {
   {ip_eos_path.arg "" "If set, the synthesised IPs will be copied to the specified EOS path."}
   {no_bitstream    "If set, the bitstream file will not be produced."}
   {synth_only      "If set, only the synthesis will be performed."}
+  {impl_only       "If set, only the implementation will be performed. This assumes synthesis should was already done."}
+  {no_recreate     "If set, the project will not be re created if it already exists."}
   {reset           "If set, resets the runs (synthesis and implementation) before launching them."}
   {check_syntax    "If set, the HDL syntax will be checked at the beginning of the worflow."}
   {njobs.arg 4 "Number of jobs. Default: 4"}
@@ -45,7 +47,9 @@ if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] 
   set project [lindex $argv 0]
   set main_folder [file normalize "$path/../../VivadoProject/$project/$project.runs/"]
   set do_implementation 1
+  set do_synthesis 1
   set do_bitstream 1
+  set recreate 1
   set reset 0
   set check_syntax 0
   set ip_path ""
@@ -61,8 +65,16 @@ if { $options(no_bitstream) == 1 } {
   set do_bitstream 0
 }
 
+if { $options(no_recreate) == 1 } {
+  set recreate 0
+}
+
 if { $options(synth_only) == 1 } {
   set do_implementation 0
+}
+
+if { $options(impl_only) == 1 } {
+  set do_synthesis 0
 }
 
 if { $options(reset) == 1 } {
@@ -103,18 +115,23 @@ if { $options(ip_eos_path) != "" } {
 }
 
 
-if {$do_implementation == 1} {
-  if {$do_bitstream == 1} {
-    Msg Info "Will launch implementation and write bitstream..."
-  } else {
-    Msg Info "Will launch implementation only..."
-  }
+if {$do_synthesis == 0} {
+  Msg Info "Will launch implementation only..."
+  
 } else {
-  Msg Info "Will launch synthesis only..."
+  if {$do_implementation == 1} {
+    if {$do_bitstream == 1} {
+      Msg Info "Will launch implementation and write bitstream..."
+    } else {
+      Msg Info "Will launch implementation only..."
+    }
+  } else {
+    Msg Info "Will launch synthesis only..."
+  }
 }
-
+  
 if { $ip_path != "" } {
-  Msg Info "Will copy synthesised IPs from/to $ip_path"
+    Msg Info "Will copy synthesised IPs from/to $ip_path"
 }
 
 Msg Info "Number of jobs set to $options(njobs)."
@@ -127,11 +144,20 @@ if { [string first PlanAhead [version]] == 0 } {
 }
 
 if {[file exists $project_file]} {
-  Msg Info "Found project file $project_file for $project ..."
-  open_project $project_file
+  Msg Info "Found project file $project_file for $project."
+  set proj_found 1
 } else {
-  Msg Info "Project file not found for $project, sourcing the project Tcl script ..."
+  Msg Info "Project file not found for $project."
+  set proj_found 0
+}
+
+if {($proj_found == 0 || $recreate == 1) && $do_synthesis == 1} {
+  Msg Info "Creating (possibly replacing) the project $project..." 
   source ../../Top/$project/$project.tcl
+  
+} else {
+  Msg Info "Opening exixsting project file $project_file..."
+  open_project $project_file
 }
 
 ########## CHECK SYNTAX ###########
@@ -153,51 +179,55 @@ if {$reset == 1 } {
   reset_run synth_1
   
 }
+
 if { [string first PlanAhead [version]] ==0 } {
   source  integrated/pre-synthesis.tcl
 }
 
-launch_runs synth_1  -jobs $options(njobs) -dir $main_folder
-wait_on_run synth_1
+if {$do_synthesis == 1} {
+  launch_runs synth_1  -jobs $options(njobs) -dir $main_folder
+  wait_on_run synth_1
+  set prog [get_property PROGRESS [get_runs synth_1]]
+  set status [get_property STATUS [get_runs synth_1]]
+  Msg Info "Run: synth_1 progress: $prog, status : $status"
 
-set prog [get_property PROGRESS [get_runs synth_1]]
-set status [get_property STATUS [get_runs synth_1]]
-Msg Info "Run: synth_1 progress: $prog, status : $status"
-
-if {$prog ne "100%"} {
-  Msg Error "Synthesis error, status is: $status"
-}
-
-# Copy IP reports in bin/
-set ips [get_ips *]
-
-#go to repository path
-cd $path/../..
-
-lassign [GetRepoVersion [file normalize ./Top/$project/$project.tcl] $ext_path ] sha
-set describe [GetGitDescribe $sha]
-Msg Info "Git describe set to $describe"
-
-foreach ip $ips {
-  set xci_file [get_property IP_FILE $ip]
-  set xci_path [file dir $xci_file]
-  set xci_ip_name [file root [file tail $xci_file]]
-  foreach rptfile [glob -nocomplain -directory $xci_path *.rpt] {
-    file copy $rptfile $bin_dir/$project-$describe/reports
+  # Copy IP reports in bin/
+  set ips [get_ips *]
+  
+  #go to repository path
+  cd $path/../..
+  
+  lassign [GetRepoVersion [file normalize ./Top/$project/$project.tcl] $ext_path ] sha
+  set describe [GetGitDescribe $sha]
+  Msg Info "Git describe set to $describe"
+  
+  foreach ip $ips {
+    set xci_file [get_property IP_FILE $ip]
+    set xci_path [file dir $xci_file]
+    set xci_ip_name [file root [file tail $xci_file]]
+    foreach rptfile [glob -nocomplain -directory $xci_path *.rpt] {
+      file copy $rptfile $bin_dir/$project-$describe/reports
+    }
+    
+    ######### Copy IP to EOS repository
+    if {($ip_path != "")} {
+      set force 0
+      if [info exist runs] {
+	if {[lsearch $runs $ip\_synth_1] != -1} {
+	  Msg Info "$ip was synthesized, will force the copy to EOS..."
+	  set force 1
+	}
+      }
+      Msg Info "Copying synthesised IP $xci_ip_name ($xci_file) to $ip_path..."
+      HandleIP push $xci_file $ip_path $main_folder $force
+    }
   }
   
-  ######### Copy IP to EOS repository
-  if {($ip_path != "")} {
-    set force 0
-    if [info exist runs] {
-      if {[lsearch $runs $ip\_synth_1] != -1} {
-        Msg Info "$ip was synthesized, will force the copy to EOS..."
-        set force 1
-      }
-    }
-    Msg Info "Copying synthesised IP $xci_ip_name ($xci_file) to $ip_path..."
-    HandleIP push $xci_file $ip_path $main_folder $force
+  if {$prog ne "100%"} {
+    Msg Error "Synthesis error, status is: $status"
   }
+} else {
+  Msg Info "Skipping synthesis (and IP handling)..."
 }
 
 ############### IMPL ###################

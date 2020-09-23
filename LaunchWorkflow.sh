@@ -26,55 +26,72 @@
 #  @param[out] NJOBS        empty or "-NJOBS $2"
 #  @param[out] NO_BITSTREAM empty or "-no_bitstream"
 #  @param[out] SYNTH_ONLY   empty or "-synth_only"
+#  @param[out] IMPL_ONLY    empty or "-impl_only"    
+#  @param[out] NO_RECREATE  empty or "-no_recreate"  
 #  @param[out] RESET        empty or "-reset"
 #  @param[out] CHECK_SYNTAX empty or "-check_syntax"
-#  @param[out] PARAMS       positional parameters 
+#  @param[out] EXT_PATH     empty or "-ext_path $2"
+#  @param[out] PARAMS       positional parameters
 #  @return                  1 if error or help, else 0
+
+
 function argument_parser() {
 PARAMS=""
 while (( "$#" )); do
-  case "$1" in
-    -njobs)
-      NJOBS="-njobs $2"
-      shift 2
-      ;;
-    -ip_eos_path)
-      IP_PATH="-ip_eos_path $2"
-      shift 2
-      ;;
-    -no_bitstream)
-      NO_BITSTREAM="-no_bitstream"
-      shift 1
-      ;;
-    -synth_only)
-      SYNTH_ONLY="-synth_only"
-      shift 1
-      ;;
-    -reset)
-      RESET="-reset"
-      shift 1
-      ;;
-    -check_syntax)
-      CHECK_SYNTAX="-check_syntax"
-      shift 1
-      ;;
-    -?|-h|-help)
-      HELP="-h"
-      shift 1
-      ;;
-    --) # end argument parsing
-      shift
-      break
-      ;;
-    -*|--*=) # unsupported flags
-      echo "Error: Unsupported flag $1" >&2
-      return 1
-      ;;
-    *) # preserve positional arguments
-      PARAMS="$PARAMS $1"
-      shift
-      ;;
-  esac
+    case "$1" in
+	-njobs)
+	    NJOBS="-njobs $2"
+	    shift 2
+	    ;;
+	-ip_eos_path)
+	    IP_PATH="-ip_eos_path $2"
+	    shift 2
+	    ;;
+	-impl_only)
+	    IMPL_ONLY="-impl_only"
+	    shift 1
+	    ;;
+	-no_recreate) 
+	    NO_RECREATE="-no_recreate"
+	    shift 1
+	    ;;
+	-ext_path)
+	    EXT_PATH="-ext_path $2"
+	    shift 2
+	    ;;
+	-no_bitstream)
+	    NO_BITSTREAM="-no_bitstream"
+	    shift 1
+	    ;;
+	-synth_only)
+	    SYNTH_ONLY="-synth_only"
+	    shift 1
+	    ;;
+	-reset)
+	    RESET="-reset"
+	    shift 1
+	    ;;
+	-check_syntax)
+	    CHECK_SYNTAX="-check_syntax"
+	    shift 1
+	    ;;
+	-?|-h|-help)
+	    HELP="-h"
+	    shift 1
+	    ;;
+	--) # end argument parsing
+	    shift
+	    break
+	    ;;
+	-*|--*=) # unsupported flags
+	    echo "Error: Unsupported flag $1" >&2
+	    return 1
+	    ;;
+	*) # preserve positional arguments
+	    PARAMS="$PARAMS $1"
+	    shift
+	    ;;
+    esac
 done
 # set positional arguments in their proper place	
 }
@@ -88,9 +105,13 @@ eval set -- "$PARAMS"
 if [ -z "$1" ]
 then
   printf "Project name has not been specified. Usage: \n"
-  printf " LaunchWorkflow.sh <project name> [-reset] [-check_syntax] [-no_bitstream | -synth_only] [-njobs <number of jobs>] [-ip_eos_path <path to IP repository on EOS>]\n\n"
+  printf " LaunchWorkflow.sh <project name> [-reset] [-check_syntax] [-no_bitstream | -synth_only] [-impl_only] [-no_recreate] [-njobs <number of jobs>] [-ext_path <external path>] [-ip_eos_path <path to IP repository on EOS>]\n\n"
   printf " For a detailed explanation of all the option, type LaunchWorkflow.sh <project name> -h.\n"
   printf " The project name is needed by Hog to tell which HDL software to use: Vivado, Quartus, etc.\n\n"
+  echo "Possible projects are:"
+  echo "`ls ./Top`"
+  cd "${OLD_DIR}"
+  exit -1
 else
   PROJ=$1
   PROJ_DIR="./Top/"$PROJ
@@ -129,10 +150,11 @@ else
     then
       echo "Hog-ERROR: Vivado HLS is not yet supported by this script!"
     else
-      ${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_workflow.tcl -tclargs $HELP $RESET $NO_BITSTREAM $SYNTH_ONLY $IP_PATH $NJOBS $CHEK_SYNTAX $1
+      ${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_workflow.tcl -tclargs $HELP $RESET $NO_BITSTREAM $SYNTH_ONLY $IP_PATH $NJOBS $CHEK_SYNTAX $NO_RECREATE $EXT_PATH $IMPL_ONLY $1
     fi
   else
-    echo "Hog-ERROR: project $PROJ not found: possible projects are: `ls ./Top`"
+    echo "Hog-ERROR: project $PROJ not found. Possible projects are:"
+    echo "`ls ./Top`"
     echo
     cd "${OLD_DIR}"
     exit -1

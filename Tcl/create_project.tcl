@@ -47,6 +47,7 @@ namespace eval globalSettings {
   variable PATH_REPO
   variable BIN_FILE
   variable HOG_EXTERNAL_PATH
+  variable SIMULATOR
 
   variable pre_synth_file
   variable post_synth_file

@@ -43,10 +43,10 @@ if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] 
   } else {
     set generate 0
   }
-  if { $options(ext_path) == "" } {
+  if { $options(arg.ext_path) == "" } {
     set ext_path ""
   } else {
-    set ext_path $options(ext_path)
+    set ext_path $options(arg.ext_path)
   }
 }
 

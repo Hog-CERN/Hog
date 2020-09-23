@@ -295,9 +295,9 @@ proc ConfigureSynthesis {} {
             #QUARTUS only
       set_global_assignment -name PRE_FLOW_SCRIPT_FILE quartus_sh:$globalSettings::pre_synth
 
-    } else {
-      Msg info "Configuring $globalSettings::pre_synth script before synthesis"
     }
+
+    Msg Info "Setting $globalSettings::pre_synth to be run before synthesis"
   }
 
     ## set post synthesis script
@@ -311,9 +311,8 @@ proc ConfigureSynthesis {} {
             #QUARTUS only
       set_global_assignment -name POST_MODULE_SCRIPT_FILE quartus_sh:$globalSettings::post_synth
 
-    } else {
-      Msg info "Configuring $globalSettings::post_synth script after synthesis"
     }
+    Msg Info "Setting $globalSettings::post_synth to be run after synthesis"
   } 
 
 
@@ -385,50 +384,46 @@ proc ConfigureImplementation {} {
 	## set pre implementation script
   if {$globalSettings::pre_impl_file ne ""} { 
     if {[info commands send_msg_id] != ""} {
-        #Vivado Only
-        if { [string first PlanAhead [version] ] != 0 } {
-            set_property STEPS.INIT_DESIGN.TCL.POST $globalSettings::pre_impl $obj
-        }
+      #Vivado Only
+      if { [string first PlanAhead [version] ] != 0 } {
+	set_property STEPS.INIT_DESIGN.TCL.POST $globalSettings::pre_impl $obj
+      }
     } elseif {[info commands project_new] != ""} {
-            #QUARTUS only
+      #QUARTUS only
       set_global_assignment -name PRE_FLOW_SCRIPT_FILE quartus_sh:$globalSettings::pre_impl
-
-    } else {
-      Msg info "Configuring $globalSettings::pre_impl script after implementation"
+      
     }
+    Msg info "Setting $globalSettings::pre_impl to be run after implementation"
   } 
-
-
-    ## set post routing script
+  
+  
+  ## set post routing script
   if {$globalSettings::post_impl_file ne ""} { 
     if {[info commands send_msg_id] != ""} {
-        #Vivado Only
-        if { [string first PlanAhead [version] ] != 0} {
-          set_property STEPS.ROUTE_DESIGN.TCL.POST $globalSettings::post_impl $obj
-        }
+      #Vivado Only
+      if { [string first PlanAhead [version] ] != 0} {
+	set_property STEPS.ROUTE_DESIGN.TCL.POST $globalSettings::post_impl $obj
+      }
     } elseif {[info commands project_new] != ""} {
-            #QUARTUS only
+      #QUARTUS only
       set_global_assignment -name POST_MODULE_SCRIPT_FILE quartus_sh:$globalSettings::post_impl
-
-    } else {
-      Msg info "Configuring $globalSettings::post_impl script after implementation"
     }
+    Msg info "Setting $globalSettings::post_impl to be run after implementation"
   } 
 
 	## set pre write bitstream script
   if {$globalSettings::pre_bit_file ne ""} { 
     if {[info commands send_msg_id] != ""} {
-            #Vivado Only
+      #Vivado Only
       if { [string first PlanAhead [version] ] != 0} {
         set_property STEPS.WRITE_BITSTREAM.TCL.PRE $globalSettings::pre_bit $obj
       }
     } elseif {[info commands project_new] != ""} {
-            #QUARTUS only
+      #QUARTUS only
       set_global_assignment -name PRE_FLOW_SCRIPT_FILE quartus_sh:$globalSettings::pre_bit
-
-    } else {
-      Msg info "Configuring $globalSettings::pre_bit script after bitfile generation"
+      
     }
+    Msg info "Setting $globalSettings::pre_bit to be run after bitfile generation"
   }
 
     ## set post write bitstream script
@@ -442,9 +437,8 @@ proc ConfigureImplementation {} {
             #QUARTUS only
       set_global_assignment -name POST_FLOW_SCRIPT_FILE quartus_sh:$globalSettings::post_bit
 
-    } else {
-      Msg info "Configuring $globalSettings::post_bit script after bitfile generation"
     }
+    Msg info "Setting $globalSettings::post_bit to be run after bitfile generation"
   }
 
   CreateReportStrategy $obj

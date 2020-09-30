@@ -445,11 +445,17 @@ proc ReadListFile {list_file path {lib ""} {sha_mode 0} } {
     # Exclude empty lines and comments
     if {![regexp {^ *$} $line] & ![regexp {^ *\#} $line] } {
       set file_and_prop [regexp -all -inline {\S+} $line]
-      set vhdlfiles [lindex $file_and_prop 0]
-      set vhdlfiles "$path/$vhdlfiles"
+
+      set srcfile [lindex $file_and_prop 0]
+      set srcfile "$path/$srcfile"
+      set srcfiles [glob $srcfile]
 
       # glob the file list for wildcards
-      foreach vhdlfile [glob $vhdlfiles] {
+      if {$srcfiles != $srcfile} {
+          Msg Info "Wildcard source expanded from $srcfile to $srcfiles"
+      }
+
+      foreach vhdlfile $srcfiles {
         if {[file exists $vhdlfile]} {
           set vhdlfile [file normalize $vhdlfile]
           set extension [file ext $vhdlfile]

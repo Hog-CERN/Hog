@@ -54,7 +54,7 @@ else
                 mv "$PRJ_BIN" "$DST"
             done
             DST=${PRJ_NAME}-$TAG
-            echo "Hog-INFO: renaming directory $PRJ_BIN --> $DST"
+            echo "Hog-INFO: renaming directory $PRJ_DIR --> $DST"
             mv "$PRJ_DIR" "$DST"
         done
         cd ..

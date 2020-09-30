@@ -39,7 +39,7 @@ else
         # Project names:
         cd bin/ || exit
         PRJ_DIRS=("$(ls -d ./*/)")
-        for PRJ_DIR in "${PRJ_DIRS[@]}"; do
+        for PRJ_DIR in ${PRJ_DIRS[@]}; do
             PRJ_DIR=$(basename "$PRJ_DIR")
             PRJ_NAME="${PRJ_DIR%.*}"
             PRJ_NAME="${PRJ_NAME%-*}"
@@ -47,7 +47,7 @@ else
             TAG=$(git describe "$PRJ_SHA")
             PRJ_BINS=("$(ls "$PRJ_DIR"/"${PRJ_DIR}"*)")
             echo "Hog-INFO: Found project $PRJ_NAME"
-            for PRJ_BIN in "${PRJ_BINS[@]}"; do
+            for PRJ_BIN in ${PRJ_BINS[@]}; do
                 EXT="${PRJ_BIN##*.}"
                 DST=$PRJ_DIR/${PRJ_NAME}-$TAG.$EXT
                 echo "Hog-INFO: renaming file $PRJ_BIN --> $DST"

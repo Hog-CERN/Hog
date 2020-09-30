@@ -44,9 +44,19 @@ if {[info commands get_property] != ""} {
   set fw_file [file normalize [lindex [glob -nocomplain "$old_path/*.bit"] 0]]
   set proj_name [string map {"top_" ""} [file rootname [file tail $fw_file]]]
   set name [file rootname [file tail [file normalize [pwd]/..]]]
-  set bit_file [file normalize "$old_path/top_$proj_name.bit"]
-  set bin_file [file normalize "$old_path/top_$proj_name.bin"]
-  set ltx_file [file normalize "$old_path/top_$proj_name.ltx"]
+  # programming object file
+  set bit_file [file normalize "$old_path/output_files/$proj_name.pof"]
+  # SRAM Object File
+  set sof_file [file normalize "$old_path/output_files/$proj_name.sof"]
+  # raw binary file
+  set rbf_file [file normalize "$old_path/output_files/$proj_name.rbf"]
+  #raw programming file
+  set rpd_file [file normalize "$old_path/output_files/$proj_name.rpd"]
+  # signal tap file
+  set stp_file [file normalize "$old_path/output_files/$proj_name.stp"]
+  #source and probes file
+  set spf_file [file normalize "$old_path/output_files/$proj_name.spf"]
+}
 
 
 } else {
@@ -134,6 +144,13 @@ if [file exists $fw_file] {
   if [file exists $bin_file] {
     Msg Info "Copying bin file $bin_file into $dst_bin..."
     file copy -force $bin_file $dst_bin
+  } elseif [file exists $rbf_file] ||  [file exists $rpd_file] {
+    if [file exists $rbf_file] {
+      file copy -force $rbf_file $dst_bin
+    }
+    if [file exists $rpd_file] {
+      file copy -force $rpd_file $dst_bin
+    }
   } else {
     Msg Info "No bin file found: $bin_file, that is not a problem"
   }
@@ -144,7 +161,14 @@ if [file exists $fw_file] {
   if [file exists $ltx_file] {
     Msg Info "Copying ltx file $ltx_file into $dst_ltx..."
     file copy -force $ltx_file $dst_ltx
-  } else {
+  } elseif [file exists $stp_file] || [file exists $spf_file] {
+    if [file exists $stp_file] {
+      file copy -force $stp_file $dst_ltx
+    }
+    if [file exists $spf_file] {
+      file copy -force $psf_file $dst_ltx
+    }
+  }else {
     Msg Info "No ltx file found: $ltx_file, that is not a problem"
   }
 

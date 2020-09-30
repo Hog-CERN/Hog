@@ -44,8 +44,10 @@ if {[info commands get_property] != ""} {
     set proj_file [get_property parent.project_path [current_project]]
   }
 } elseif {[info commands project_new] != ""} {
-    # Quartus
-  set proj_file "/q/a/r/Quartus_project.qpf"
+  # Quartus
+  set project_directory [get_project_directory]
+  set project_name $quartus(project)
+  set proj_file "$project_directory$project_name.qpf"
 } else {
     #Tclssh
   set proj_file $old_path/[file tail $old_path].xpr
@@ -132,9 +134,10 @@ if {$maxThreads != 1} {
 if {[info commands set_param] != ""} {
     ### Vivado
   set_param general.maxThreads $maxThreads
-} elseif {[info commands quartus_command] != ""} {
-    ### QUARTUS
-  quartus_command $maxThreads
+} elseif {[info commands project_new] != ""} {
+  ### QUARTUS
+  set_global_assignment -name NUM_PARALLEL_PROCESSORS $maxThreads
+
 } else {
     ### Tcl Shell
   puts "Hog:DEBUG MaxThread is set to: $maxThreads"
@@ -186,8 +189,42 @@ if {[info commands set_property] != ""} {
   set_property generic $generic_string [current_fileset]
   set status_file [file normalize "$old_path/../versions.txt"]
 
-} elseif {[info commands quartus_command] != ""} {
+} elseif {[info commands project_new] != ""} {
     ### QUARTUS
+  set_parameter -entity top_level GLOBAL_DATE 32'h$date
+  set_parameter -entity top_level GLOBAL_TIME 32'h$time
+  set_parameter -entity top_level GLOBAL_VER 32'h$version
+  set_parameter -entity top_level GLOBAL_SHA 32'h0$commit
+  set_parameter -entity top_level TOP_SHA 32'h0$top_hash
+  set_parameter -entity top_level TOP_VER 32'h$top_ver 
+  set_parameter -entity top_level HOG_SHA 32'h0$hog_hash 
+  set_parameter -entity top_level HOG_VER 32'h$hog_ver 
+  set_parameter -entity top_level CON_VER 32'h$cons_ver 
+  set_parameter -entity top_level CON_SHA 32'h0$cons_hash
+  if {$use_ipbus == 1} {
+     set_parameter -entity top_level XML_VER 32'h$xml_ver
+     set_parameter -entity top_level XML_SHA=32'h$xml_hash"
+  }
+
+  #set project specific lists
+  foreach l $libs v $vers h $hashes {
+    set_parameter -entity top_level "[string toupper $l]_VER" 32'h$v
+    set_parameter -entity top_level "[string toupper $l]_SHA" 32'h0$h"
+  }
+
+  #set project specific sub modules
+  foreach s $subs h $subs_hashes {
+    set_parameter -entity top_level "[string toupper $s]_SHA" 32'h0$h"
+  }
+
+  foreach e $ext_names h $ext_hashes {
+    set_parameter -entity top_level "[string toupper $e]_SHA" 32'h0$h"
+  }
+
+  if {$flavour != -1} {
+     set_parameter -entity top_level FLAVOUR $flavour"
+  }
+
   set  status_file "$old_path/../versions.txt"
 
 } else {

@@ -35,17 +35,18 @@ if {[info commands get_property] != ""} {
     } else {
         set proj_file [get_property parent.project_path [current_project]]
     }
+    set proj_dir [file normalize [file dirname $proj_file]]
+    set proj_name [file rootname [file tail $proj_file]]
 } elseif {[info commands project_new] != ""} {
     # Quartus
-  set proj_file "/q/a/r/Quartus_project.qpf"
+  set proj_dir [get_project_directory]
+  set proj_name $quartus(project)
+  set proj_file "$proj_dir$proj_name.qpf"
 } else {
     #Tclssh
   set proj_file $old_path/[file tail $old_path].xpr
   Msg CriticalWarning "You seem to be running locally on tclsh, so this is a debug, the project file will be set to $proj_file and was derived from the path you launched this script from: $old_path. If you want this script to work properly in debug mode, please launch it from the top folder of one project, for example Repo/VivadoProject/fpga1/ or Repo/Top/fpga1/"
 }
-
-set proj_dir [file normalize [file dirname $proj_file]]
-set proj_name [file rootname [file tail $proj_file]]
 
 
 Msg Info "Evaluating last git SHA in which $proj_name was modified..."
@@ -85,7 +86,7 @@ if {[info commands send_msg_id] != ""} {
         set_property BITSTREAM.CONFIG.USR_ACCESS $commit_usr [current_design]
     }
 } elseif {[info commands post_message] != ""} {
-  # Quartus
+  # Quartus TODO
 } else {
   # Tclsh
 }

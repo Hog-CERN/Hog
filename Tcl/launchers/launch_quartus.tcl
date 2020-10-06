@@ -144,15 +144,25 @@ set revision [get_current_revision]
 if { $do_compile == 1 } {
   if {[catch {execute_flow -compile} result]} {
     Msg Error "Result: $result\n"
-    Msg Error "Analysis & Synthesis failed. See the report file.\n"
+    Msg Error "Full compile flow failed. See the report file.\n"
   } else {
-    Msg Info "Analysis & Synthesis was successful for revision $revision.\n"
+    Msg Info "Full compile Flow was successful for revision $revision.\n"
   }
 } else {
   #############################
   # Analysis and Synthesis
   #############################
   if { $do_synthesis == 1 } {
+    #run PRE_FLOW_SCRIPT by hand
+    set tool_and_command [ split [get_global_assignment -name PRE_FLOW_SCRIPT_FILE] ":"]
+    set tool [lindex $tool_and_command 0]
+    set pre_flow_script [lindex $tool_and_command 1]
+    set cmd "$tool -t $pre_flow_script quartus_map $project $revision"
+    if { [catch { exec $cmd } log] } {
+      Msg Warning "Can not exectue command $cmd"
+      Msg Warning "LOG: $log"
+    }
+
     if {[catch {execute_module -tool map -args "--parallel"} result]} {
       Msg Error "Result: $result\n"
       Msg Error "Analysis & Synthesis failed. See the report file.\n"
@@ -188,33 +198,33 @@ if { $do_compile == 1 } {
     if {[catch {execute_module -tool sta -args "--do_report_timing"} result]} {
       Msg Error "Result: $result\n"
       Msg Error "Time Quest failed. See the report file.\n"
-      } else {
-        Msg Info "Time Quest was successfully run for revision $revision.\n"
-        load_package report
-        load_report
-        set panel "Timing Analyzer||Timing Analyzer Summary"
-        set device       [ get_report_panel_data -name $panel -col 1 -row_name "Device Name" ]
-        set timing_model [ get_report_panel_data -name $panel -col 1 -row_name "Timing Models" ]
-        set delay_model  [ get_report_panel_data -name $panel -col 1 -row_name "Delay Model" ]
-        #set slack        [ get_timing_analysis_summary_results -slack ]
-        Msg Warning "*******************************************************************"
-        Msg Warning "Device: $device"
-        Msg Warning "Timing Models: $timing_model"
-        Msg Warning "Delay Model: $delay_model"
-        Msg Warning "Slack:"
-        #Msg Warning $slack
-        Msg Warning "*******************************************************************"
-      } 
+    } else {
+      Msg Info "Time Quest was successfully run for revision $revision.\n"
+      load_package report
+      load_report
+      set panel "Timing Analyzer||Timing Analyzer Summary"
+      set device       [ get_report_panel_data -name $panel -col 1 -row_name "Device Name" ]
+      set timing_model [ get_report_panel_data -name $panel -col 1 -row_name "Timing Models" ]
+      set delay_model  [ get_report_panel_data -name $panel -col 1 -row_name "Delay Model" ]
+      #set slack        [ get_timing_analysis_summary_results -slack ]
+      Msg Info "*******************************************************************"
+      Msg Info "Device: $device"
+      Msg Info "Timing Models: $timing_model"
+      Msg Info "Delay Model: $delay_model"
+      Msg Info "Slack:"
+      #Msg Info  $slack
+      Msg Info "*******************************************************************"
+    } 
   
-      #if {[catch {execute_module -tool eda} result]} {
-      #   Msg Error "Result: $result\n"
-      #   Msg Error "EDA Netlist Writer failed. See the report file.\n"
-      # } else {
-      #   Msg Info "EDA Netlist Writer was successfully run for revision $revision.\n"
-      # } 
-    }
+    #if {[catch {execute_module -tool eda} result]} {
+    #   Msg Error "Result: $result\n"
+    #   Msg Error "EDA Netlist Writer failed. See the report file.\n"
+    # } else {
+    #   Msg Info "EDA Netlist Writer was successfully run for revision $revision.\n"
+    # } 
   }
-} 
+}
+
 # close project
 project_close
 

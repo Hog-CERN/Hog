@@ -29,8 +29,8 @@ if { [string compare $stage "quartus_map"] == 0 || [string compare $stage "quart
 } elseif { [string compare $stage "quartus_asm"] == 0 } {
   set script_path [file normalize "$tcl_path/integrated/post-bitstream.tcl"]
 } else {
-  Msg Warning "Unsupported step: $stage"
-  set script_path ""
+  Msg Info "Unsupported step: $stage"
+  return 0
 }
 
 if [file exists $script_path] {

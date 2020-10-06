@@ -15,11 +15,26 @@
 # This script is automatically integrated into the Vivado/Quartus workflow by the Create Project script.
 #
 
-set tcl_path [file normalize "[file dirname [info script]]/.."]
-set rev_name  [lindex $quartus(args) 2]
-set proj_name [lindex $quartus(args) 1]
-set stage     [lindex $quartus(args) 0]
+set tcl_path  [file normalize "[file dirname [info script]]/.."]
+if {[info procs Msg] == "" } {
+  source $tcl_path/hog.tcl
+}
 
-if stage == "compile" {
-  quartus_sh -t "$tcl_path/integrated/post-bitstream.tcl" stage proj_name rev_name
+set stage [lindex $quartus(args) 0]
+
+if { [string compare $stage "quartus_map"] == 0 || [string compare $stage "quartus_syn"] == 0 } {
+  set script_path [file normalize "$tcl_path/integrated/post-synthesis.tcl"]
+} elseif { [string compare $stage "quartus_fit"] == 0 } {
+  set script_path [file normalize "$tcl_path/integrated/post-implementation.tcl"]
+} elseif { [string compare $stage "quartus_asm"] == 0 } {
+  set script_path [file normalize "$tcl_path/integrated/post-bitstream.tcl"]
+} else {
+  Msg Warning "Unsupported step: $stage"
+}
+
+if [file exists $script_path] {
+  source $script_path
+} else {
+  Msg Warning "Can not find script: $script_path"
+  Msg Warning "Continue..."
 }

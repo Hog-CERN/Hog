@@ -13,6 +13,12 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+if {[info commands project_new] != ""} {
+  # Quartus
+  Msg Error "Pre-module scripts are not supported in Quartus mode!"
+  return TCL_ERROR
+}
+
 set old_path [pwd]
 set tcl_path [file normalize "[file dirname [info script]]/.."]
 source $tcl_path/hog.tcl
@@ -29,11 +35,6 @@ if {[info commands get_property] != ""} {
   }
   set proj_dir [file normalize [file dirname $proj_file]]
   set proj_name [file rootname [file tail $proj_file]]
-} elseif {[info commands project_new] != ""} {
-    # Quartus
-  set proj_name [lindex $quartus(args) 1]
-  set proj_dir [file normalize [ "$tcl_path/../../QuartusProject/$proj_name"]
-  set proj_file "$proj_dir$proj_name.qpf"
 } else {
     #Tclssh
   set proj_file $old_path/[file tail $old_path].xpr
@@ -52,9 +53,6 @@ if {$maxThreads != 1} {
 if {[info commands get_property] != ""} {
     # Vivado
   set_param general.maxThreads $maxThreads
-} elseif {[info commands project_new] != ""} {
-    # Quartus
-  set_global_assignment -name NUM_PARALLEL_PROCESSORS $maxThreads
 } else {
     #Tclssh
 }

@@ -309,7 +309,7 @@ proc ConfigureSynthesis {} {
         }
     } elseif {[info commands project_new] != ""} {
             #QUARTUS only
-      set_global_assignment -name POST_MODULE_SCRIPT_FILE quartus_sh:$globalSettings::post_synth
+      #set_global_assignment -name POST_MODULE_SCRIPT_FILE quartus_sh:$globalSettings::post_synth
 
     }
     Msg Info "Setting $globalSettings::post_synth to be run after synthesis"
@@ -390,7 +390,7 @@ proc ConfigureImplementation {} {
       }
     } elseif {[info commands project_new] != ""} {
       #QUARTUS only
-      set_global_assignment -name PRE_FLOW_SCRIPT_FILE quartus_sh:$globalSettings::pre_impl
+      #set_global_assignment -name PRE_FLOW_SCRIPT_FILE quartus_sh:$globalSettings::pre_impl
       
     }
     Msg info "Setting $globalSettings::pre_impl to be run after implementation"
@@ -406,7 +406,7 @@ proc ConfigureImplementation {} {
       }
     } elseif {[info commands project_new] != ""} {
       #QUARTUS only
-      set_global_assignment -name POST_MODULE_SCRIPT_FILE quartus_sh:$globalSettings::post_impl
+      #set_global_assignment -name POST_MODULE_SCRIPT_FILE quartus_sh:$globalSettings::post_impl
     }
     Msg info "Setting $globalSettings::post_impl to be run after implementation"
   } 
@@ -420,7 +420,7 @@ proc ConfigureImplementation {} {
       }
     } elseif {[info commands project_new] != ""} {
       #QUARTUS only
-      set_global_assignment -name PRE_FLOW_SCRIPT_FILE quartus_sh:$globalSettings::pre_bit
+      #set_global_assignment -name PRE_FLOW_SCRIPT_FILE quartus_sh:$globalSettings::pre_bit
       
     }
     Msg info "Setting $globalSettings::pre_bit to be run after bitfile generation"

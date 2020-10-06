@@ -43,19 +43,19 @@ if {[info commands get_property] != ""} {
   } else {
     set proj_file [get_property parent.project_path [current_project]]
   }
+  set proj_dir [file normalize [file dirname $proj_file]]
+  set proj_name [file rootname [file tail $proj_file]]
 } elseif {[info commands project_new] != ""} {
   # Quartus
-  set project_directory [get_project_directory]
-  set project_name $quartus(project)
-  set proj_file "$project_directory$project_name.qpf"
+  set proj_name [lindex $quartus(args) 1]
+  set proj_dir [file normalize "$tcl_path/../../QuartusProject/$proj_name"]
+  set proj_file [file normalize "$proj_dir/$proj_name.qpf"]
 } else {
     #Tclssh
   set proj_file $old_path/[file tail $old_path].xpr
   Msg CriticalWarning "You seem to be running locally on tclsh, so this is a debug, the project file will be set to $proj_file and was derived from the path you launched this script from: $old_path. If you want this script to work properly in debug mode, please launch it from the top folder of one project, for example Repo/VivadoProject/fpga1/ or Repo/Top/fpga1/"
 }
 
-set proj_dir [file normalize [file dirname $proj_file]]
-set proj_name [file rootname [file tail $proj_file]]
 
 # Calculating flavour if any
 set flavour [string map {. ""} [file ext $proj_name]]
@@ -135,9 +135,18 @@ if {[info commands set_param] != ""} {
     ### Vivado
   set_param general.maxThreads $maxThreads
 } elseif {[info commands project_new] != ""} {
-  ### QUARTUS
+  # QUARTUS
+  if { [catch {package require ::quartus::project} ERROR] } {
+    Msg Error "$ERROR\n Can not find package ::quartus::project"
+    cd $old_path
+    return 1
+  }
+  set this_dir [pwd]
+  cd $proj_dir
+  project_open $proj_name -current_revision
+  cd $this_dir
   set_global_assignment -name NUM_PARALLEL_PROCESSORS $maxThreads
-
+  project_close
 } else {
     ### Tcl Shell
   puts "Hog:DEBUG MaxThread is set to: $maxThreads"
@@ -190,42 +199,70 @@ if {[info commands set_property] != ""} {
   set status_file [file normalize "$old_path/../versions.txt"]
 
 } elseif {[info commands project_new] != ""} {
-    ### QUARTUS
-  set_parameter -entity top_level GLOBAL_DATE 32'h$date
-  set_parameter -entity top_level GLOBAL_TIME 32'h$time
-  set_parameter -entity top_level GLOBAL_VER 32'h$version
-  set_parameter -entity top_level GLOBAL_SHA 32'h0$commit
-  set_parameter -entity top_level TOP_SHA 32'h0$top_hash
-  set_parameter -entity top_level TOP_VER 32'h$top_ver 
-  set_parameter -entity top_level HOG_SHA 32'h0$hog_hash 
-  set_parameter -entity top_level HOG_VER 32'h$hog_ver 
-  set_parameter -entity top_level CON_VER 32'h$cons_ver 
-  set_parameter -entity top_level CON_SHA 32'h0$cons_hash
+  #Quartus
+  if { [catch {package require ::quartus::project} ERROR] } {
+    Msg Error "$ERROR\n Can not find package ::quartus::project"
+    cd $old_path
+    return 1
+  }
+  set this_dir [pwd]
+  cd $proj_dir
+  project_open $proj_name -current_revision
+  cd $this_dir
+  
+  binary scan [binary format H* [string map {{'} {}} $date]] B* bits
+  set_parameter -name GLOBAL_DATE $bits
+  binary scan [binary format H* [string map {{'} {}} $timee]] B* bits
+  set_parameter -name GLOBAL_TIME $bits
+  binary scan [binary format H* [string map {{'} {}} $version]] B* bits
+  set_parameter -name GLOBAL_VER $bits
+  binary scan [binary format H* [string map {{'} {}} $commit]] B* bits
+  set_parameter -name GLOBAL_SHA $bits
+  binary scan [binary format H* [string map {{'} {}} $top_hash]] B* bits
+  set_parameter -name TOP_SHA $bits
+  binary scan [binary format H* [string map {{'} {}} $top_ver]] B* bits
+  set_parameter -name TOP_VER $bits
+  binary scan [binary format H* [string map {{'} {}} $hog_hash]] B* bits
+  set_parameter -name HOG_SHA $bits
+  binary scan [binary format H* [string map {{'} {}} $hog_ver]] B* bits
+  set_parameter -name HOG_VER $bits 
+  binary scan [binary format H* [string map {{'} {}} $cons_ver]] B* bits
+  set_parameter -name CON_VER $bits
+  binary scan [binary format H* [string map {{'} {}} $cons_hash]] B* bits
+  set_parameter -name CON_SHA $bits
+  
   if {$use_ipbus == 1} {
-     set_parameter -entity top_level XML_VER 32'h$xml_ver
-     set_parameter -entity top_level XML_SHA=32'h$xml_hash"
+    binary scan [binary format H* [string map {{'} {}} $xml_ver]] B* bits
+    set_parameter -name XML_VER $bits
+    binary scan [binary format H* [string map {{'} {}} $xml_hash]] B* bits
+    set_parameter -name XML_SHA $bits
   }
 
   #set project specific lists
   foreach l $libs v $vers h $hashes {
-    set_parameter -entity top_level "[string toupper $l]_VER" 32'h$v
-    set_parameter -entity top_level "[string toupper $l]_SHA" 32'h0$h"
+    binary scan [binary format H* [string map {{'} {}} $v]] B* bits
+    set_parameter -name "[string toupper $l]_VER" $bits
+    binary scan [binary format H* [string map {{'} {}} $h]] B* bits
+    set_parameter -name "[string toupper $l]_SHA" $bits
   }
 
   #set project specific sub modules
   foreach s $subs h $subs_hashes {
-    set_parameter -entity top_level "[string toupper $s]_SHA" 32'h0$h"
+    binary scan [binary format H* [string map {{'} {}} $h]] B* bits
+    set_parameter -name "[string toupper $s]_SHA" $bits
   }
 
   foreach e $ext_names h $ext_hashes {
-    set_parameter -entity top_level "[string toupper $e]_SHA" 32'h0$h"
+    binary scan [binary format H* [string map {{'} {}} $h]] B* bits
+    set_parameter -name "[string toupper $e]_SHA" $bits
   }
 
   if {$flavour != -1} {
-     set_parameter -entity top_level FLAVOUR $flavour"
+     set_parameter -name FLAVOUR $flavour
   }
 
   set  status_file "$old_path/../versions.txt"
+  project_close
 
 } else {
   ### Tcl Shell
@@ -316,8 +353,8 @@ puts $status_file [m format 2string]
 puts $status_file "\n\n"
 close $status_file
 
-
 CheckYmlRef [file normalize $tcl_path/../..] true
+
 cd $old_path
 
 Msg Info "All done."

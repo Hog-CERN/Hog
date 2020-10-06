@@ -28,6 +28,7 @@ source $tcl_path/hog.tcl
 # Go to repository pathcd $old_pathcd $old_path
 cd $tcl_path/../../
 
+
 if {[info commands get_property] != ""} {
     # Vivado + planAhead
     if { [string first PlanAhead [version]] == 0 } {
@@ -39,9 +40,8 @@ if {[info commands get_property] != ""} {
     set proj_name [file rootname [file tail $proj_file]]
 } elseif {[info commands project_new] != ""} {
     # Quartus
-  set proj_dir [get_project_directory]
-  set proj_name $quartus(project)
-  set proj_file "$proj_dir$proj_name.qpf"
+  set proj_name [lindex $quartus(args) 1]
+  #set proj_dir [file normalize [ "$tcl_path/../../QuartusProject/$proj_name"]
 } else {
     #Tclssh
   set proj_file $old_path/[file tail $old_path].xpr

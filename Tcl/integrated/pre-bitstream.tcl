@@ -33,9 +33,9 @@ if {[info commands get_property] != ""} {
   set proj_name [file rootname [file tail $proj_file]]
 } elseif {[info commands project_new] != ""} {
     # Quartus
-  set proj_dir [get_project_directory]
-  set proj_name $quartus(project)
-  set proj_file "$proj_dir$proj_name.qpf"
+  set proj_name [lindex $quartus(args) 1]
+  set proj_dir [file normalize "$tcl_path/../../QuartusProject/$proj_name"]
+  set proj_file [file normalize "$proj_dir/$proj_name.qpf"]
 } else {
     #Tclssh
   set proj_file $old_path/[file tail $old_path].xpr
@@ -60,7 +60,6 @@ if {[info commands get_property] != ""} {
 } else {
     #Tclssh
 }
-
 
 cd $old_path
 Msg Info "All done"

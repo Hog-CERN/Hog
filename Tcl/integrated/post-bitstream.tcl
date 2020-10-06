@@ -21,6 +21,19 @@ set old_path [pwd]
 set tcl_path [file normalize "[file dirname [info script]]/.."]
 source $tcl_path/hog.tcl
 
+if {[info commands project_new] != ""} {
+  if { [catch {package require ::quartus::project} ERROR] } {
+    Msg Error "$ERROR\n Can not find package ::quartus::project"
+    cd $old_path
+    return 1
+  }
+  set proj_name [$quartus(args)](2)
+  if {![is_project_open]}{
+    set need_project_close 1
+    project_open( $proj_name )
+  }
+}
+
 if {[info commands get_property] != ""} {
 
   #Vivado + planAhead
@@ -41,8 +54,10 @@ if {[info commands get_property] != ""} {
 
 } elseif {[info commands quartus_command] != ""} {
     # Quartus
-  set fw_file [file normalize [lindex [glob -nocomplain "$old_path/*.bit"] 0]]
-  set proj_name [string map {"top_" ""} [file rootname [file tail $fw_file]]]
+  set proj_name [lindex $quartus(args) 1]
+  set proj_dir [file normalize [ "$tcl_path/../../QuartusProject/$proj_name"]
+  set fw_file [file normalize ["$proj_dir/output_files/$proj_name.pof"]]
+  
   set name [file rootname [file tail [file normalize [pwd]/..]]]
   # programming object file
   set bit_file [file normalize "$old_path/output_files/$proj_name.pof"]
@@ -174,6 +189,10 @@ if [file exists $fw_file] {
 
 } else {
   Msg CriticalWarning "Firmware binary file not found."
+}
+
+if {[info commands project_new] != "" && $need_project_close == 1} {
+  project_close
 }
 
 cd $old_path

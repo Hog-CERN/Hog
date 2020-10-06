@@ -31,16 +31,14 @@ if {[info commands get_property] != ""} {
   set proj_name [file rootname [file tail $proj_file]]
 } elseif {[info commands project_new] != ""} {
     # Quartus
-  set proj_dir [get_project_directory]
-  set proj_name $quartus(project)
+  set proj_name [lindex $quartus(args) 1]
+  set proj_dir [file normalize [ "$tcl_path/../../QuartusProject/$proj_name"]
   set proj_file "$proj_dir$proj_name.qpf"
 } else {
     #Tclssh
   set proj_file $old_path/[file tail $old_path].xpr
   Msg CriticalWarning "You seem to be running locally on tclsh, so this is a debug, the project file will be set to $proj_file and was derived from the path you launched this script from: $old_path. If you want this script to work properly in debug mode, please launch it from the top folder of one project, for example Repo/VivadoProject/fpga1/ or Repo/Top/fpga1/"
 }
-
-
 
 #number of threads
 set maxThreads [GetMaxThreads $proj_name]
@@ -60,6 +58,7 @@ if {[info commands get_property] != ""} {
 } else {
     #Tclssh
 }
+
 
 cd $old_path
 Msg Info "All done"

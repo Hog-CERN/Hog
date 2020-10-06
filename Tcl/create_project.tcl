@@ -55,6 +55,7 @@ namespace eval globalSettings {
   variable post_impl_file
   variable pre_bit_file
   variable post_bit_file
+  variable quartus_post_module_file
   variable tcl_path
   variable repo_path
   variable top_path
@@ -71,6 +72,7 @@ namespace eval globalSettings {
   variable post_impl
   variable pre_bit
   variable post_bit
+  variable quartus_post_module
 }
 
 ################# FUNCTIONS ################################
@@ -308,8 +310,8 @@ proc ConfigureSynthesis {} {
             set_property STEPS.SYNTH_DESIGN.TCL.POST $globalSettings::post_synth $obj
         }
     } elseif {[info commands project_new] != ""} {
-            #QUARTUS only
-      #set_global_assignment -name POST_MODULE_SCRIPT_FILE quartus_sh:$globalSettings::post_synth
+      #QUARTUS only
+      set_global_assignment -name POST_MODULE_SCRIPT_FILE quartus_sh:$globalSettings::quartus_post_module
 
     }
     Msg Info "Setting $globalSettings::post_synth to be run after synthesis"
@@ -406,7 +408,7 @@ proc ConfigureImplementation {} {
       }
     } elseif {[info commands project_new] != ""} {
       #QUARTUS only
-      #set_global_assignment -name POST_MODULE_SCRIPT_FILE quartus_sh:$globalSettings::post_impl
+      set_global_assignment -name POST_MODULE_SCRIPT_FILE quartus_sh:$globalSettings::quartus_post_module
     }
     Msg info "Setting $globalSettings::post_impl to be run after implementation"
   } 
@@ -434,9 +436,8 @@ proc ConfigureImplementation {} {
       set_property STEPS.WRITE_BITSTREAM.TCL.POST $globalSettings::post_bit $obj
       }
     } elseif {[info commands project_new] != ""} {
-            #QUARTUS only
-      set_global_assignment -name POST_FLOW_SCRIPT_FILE quartus_sh:$globalSettings::post_bit
-
+      #QUARTUS only
+      set_global_assignment -name POST_MODULE_SCRIPT_FILE quartus_sh:$globalSettings::quartus_post_module
     }
     Msg info "Setting $globalSettings::post_bit to be run after bitfile generation"
   }
@@ -575,29 +576,30 @@ if {[info commands send_msg_id] != ""} {
 
 
 #Derived varibles from now on...
-set globalSettings::pre_synth_file   "pre-synthesis.tcl"
-set globalSettings::post_synth_file  ""
-set globalSettings::pre_impl_file    "pre-implementation.tcl"
-set globalSettings::post_impl_file   "post-implementation.tcl"
-set globalSettings::pre_bit_file     "pre-bitstream.tcl"
-set globalSettings::post_bit_file    "post-bitstream.tcl"
-set globalSettings::tcl_path         [file normalize "[file dirname [info script]]"]
-set globalSettings::repo_path        [file normalize "$globalSettings::tcl_path/../../"]
-set globalSettings::top_path         "$globalSettings::repo_path/Top/$DESIGN"
-set globalSettings::list_path        "$globalSettings::top_path/list"
-set globalSettings::build_dir        "$globalSettings::repo_path/$build_dir_name/$DESIGN"
-set globalSettings::modelsim_path    "$globalSettings::repo_path/SimulationLib"
-set globalSettings::top_name          [file root $globalSettings::DESIGN]
-set globalSettings::synth_top_module "top_$globalSettings::top_name"
-set globalSettings::user_ip_repo     "$globalSettings::repo_path/IP_repository"
+set globalSettings::pre_synth_file              "pre-synthesis.tcl"
+set globalSettings::post_synth_file             ""
+set globalSettings::pre_impl_file               "pre-implementation.tcl"
+set globalSettings::post_impl_file              "post-implementation.tcl"
+set globalSettings::pre_bit_file                "pre-bitstream.tcl"
+set globalSettings::post_bit_file               "post-bitstream.tcl"
+set globalSettings::quartus_post_module_file    "quartus-post-module.tcl"
+set globalSettings::tcl_path                    [file normalize "[file dirname [info script]]"]
+set globalSettings::repo_path                   [file normalize "$globalSettings::tcl_path/../../"]
+set globalSettings::top_path                    "$globalSettings::repo_path/Top/$DESIGN"
+set globalSettings::list_path                   "$globalSettings::top_path/list"
+set globalSettings::build_dir                   "$globalSettings::repo_path/$build_dir_name/$DESIGN"
+set globalSettings::modelsim_path               "$globalSettings::repo_path/SimulationLib"
+set globalSettings::top_name                    [file root $globalSettings::DESIGN]
+set globalSettings::synth_top_module            "top_$globalSettings::top_name"
+set globalSettings::user_ip_repo                "$globalSettings::repo_path/IP_repository"
 
-set globalSettings::pre_synth  [file normalize "$globalSettings::tcl_path/integrated/$globalSettings::pre_synth_file"]
-set globalSettings::post_synth [file normalize "$globalSettings::tcl_path/integrated/$globalSettings::post_synth_file"]
-set globalSettings::pre_impl   [file normalize "$globalSettings::tcl_path/integrated/$globalSettings::pre_impl_file"]
-set globalSettings::post_impl  [file normalize "$globalSettings::tcl_path/integrated/$globalSettings::post_impl_file"]
-set globalSettings::pre_bit    [file normalize "$globalSettings::tcl_path/integrated/$globalSettings::pre_bit_file"]
-set globalSettings::post_bit   [file normalize "$globalSettings::tcl_path/integrated/$globalSettings::post_bit_file"]
-
+set globalSettings::pre_synth           [file normalize "$globalSettings::tcl_path/integrated/$globalSettings::pre_synth_file"]
+set globalSettings::post_synth          [file normalize "$globalSettings::tcl_path/integrated/$globalSettings::post_synth_file"]
+set globalSettings::pre_impl            [file normalize "$globalSettings::tcl_path/integrated/$globalSettings::pre_impl_file"]
+set globalSettings::post_impl           [file normalize "$globalSettings::tcl_path/integrated/$globalSettings::post_impl_file"]
+set globalSettings::pre_bit             [file normalize "$globalSettings::tcl_path/integrated/$globalSettings::pre_bit_file"]
+set globalSettings::post_bit            [file normalize "$globalSettings::tcl_path/integrated/$globalSettings::post_bit_file"]
+set globalSettings::quartus_post_module [file normalize "$globalSettings::tcl_path/integrated/$globalSettings::quartus_post_module_file"]
 
 CreateProject
 ConfigureSynthesis

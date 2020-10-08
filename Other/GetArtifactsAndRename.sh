@@ -44,7 +44,12 @@ else
             PRJ_NAME="${PRJ_DIR%.*}"
             PRJ_NAME="${PRJ_NAME%-*}"
             PRJ_SHA="${PRJ_DIR##*-g}"
-            TAG=$(git describe "$PRJ_SHA")
+	    DESCRIBE=$(git describe "$PRJ_SHA")
+            TAG=$(git describe "$PRJ_SHA" --abbrev=0)
+	    if [[ "$TAG" != "$DESCRIBE" ]]; then
+		#If the project was not modified in the last commit, we use the tag of the last commit
+		TAG=$(git describe)
+	    fi
             PRJ_BINS=("$(ls "$PRJ_DIR"/"${PRJ_DIR}"*)")
             echo "Hog-INFO: Found project $PRJ_NAME"
             for PRJ_BIN in ${PRJ_BINS[@]}; do

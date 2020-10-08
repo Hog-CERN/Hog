@@ -135,6 +135,7 @@ collect_artifacts:
     variables:
         <<: *vars
     script:
+        - env
         - mkdir -p $CI_PROJECT_DIR/bin
         - "printf \"## Repository info\n- Merge request number: $CI_MERGE_REQUEST_IID\n- Branch name: $CI_COMMIT_REF_SLUG\n\n\" > $CI_PROJECT_DIR/bin/note.md"
         - ./Hog/Other/Changelog.sh $CI_MERGE_REQUEST_TARGET_BRANCH_NAME >> $CI_PROJECT_DIR/bin/note.md

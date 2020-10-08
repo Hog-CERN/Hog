@@ -23,5 +23,6 @@ else
     mr=$4
     file=$5
     
-    curl --request POST --header "PRIVATE-TOKEN: ${push_token}" --header "Content-Type: application/json" --data '{"body":"'"`sed -e ':a' -e 'N' -e '$!ba' -e 's/\n/\\\\n/g' $file`"'"}' $api/projects/${proj}/merge_requests/${mr}/notes
+    # curl --request POST --header "PRIVATE-TOKEN: ${push_token}" --header "Content-Type: application/json" --data '{"body":"'"`sed -e ':a' -e 'N' -e '$!ba' -e 's/\n/\\\\n/g' $file`"'"}' $api/projects/${proj}/merge_requests/${mr}/notes
+    curl --request POST --header "PRIVATE-TOKEN: ${push_token}" --header "Content-Type: application/json" --data '{"body":"Version and Timing Summary", "attachment" : $file}' $api/projects/${proj}/merge_requests/${mr}/notes
 fi

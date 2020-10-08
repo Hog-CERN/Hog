@@ -119,13 +119,6 @@
           echo "Hog-CI(info) - Launching workflow now...";
           echo "./Hog/LaunchWorkflow.sh -njobs $HOG_NJOBS $IP_EOS_PATH $NO_BITSTREAM $ONLY_SYNTH $CHECK_SYNTAX $PROJECT_NAME";
           ./Hog/LaunchWorkflow.sh -njobs $HOG_NJOBS $IP_EOS_PATH $NO_BITSTREAM $ONLY_SYNTH $CHECK_SYNTAX $PROJECT_NAME;
-          # if [[ -n "$HOG_ONLY_SYNTH" ]] && [[ $HOG_ONLY_SYNTH == '1' ]]; then
-          #   echo "Hog-CI(info) - Adding version summary to note...";
-          #   cat $CI_PROJECT_DIR/VivadoProject/$PROJECT_NAME/$PROJECT_NAME.runs/versions* > $CI_PROJECT_DIR/bin/$PROJECT_NAME*/note.md;
-          # else
-          #   echo "Hog-CI(info) - Adding versions and timing summary to note...";
-          #   cat $CI_PROJECT_DIR/bin/$PROJECT_NAME*/versions* $CI_PROJECT_DIR/bin/$PROJECT_NAME*/timing_* > $CI_PROJECT_DIR/bin/$PROJECT_NAME*/note.md;
-          # fi;
         fi;
     artifacts:
         when: always
@@ -158,7 +151,7 @@ collect_artifacts:
             files=$(shopt -s nullglob dotglob; echo $CI_PROJECT_DIR/bin/*/$f*.txt);
             if (( ${#files} )); then cat $CI_PROJECT_DIR/bin/*/$f*.txt >> $CI_PROJECT_DIR/bin/note.md; fi;
           done
-          echo "Hog-CI(info) - Writing note on gitlab website...";
+        - echo "Hog-CI(info) - Writing note on gitlab website...";
           ./Hog/Other/WriteGitlabNote.sh $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $CI_MERGE_REQUEST_IID $CI_PROJECT_DIR/bin/note.md;
           echo "Hog-CI(info) - All done.";
         - git fetch origin refs/notes/*:refs/notes/*

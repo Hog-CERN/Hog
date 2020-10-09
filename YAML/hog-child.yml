@@ -169,11 +169,11 @@ collect_artifacts:
               cat $CI_PROJECT_DIR/bin/*/$f*.txt >> $CI_PROJECT_DIR/bin/note.md; 
               cat $CI_PROJECT_DIR/bin/*/$f*.txt > mr_note.md; 
             fi;
-          done
-        if [[ -z "$HOG_MR_MSG" ]] || [[ $HOG_MR_MSG == '1' ]]; then
-          echo "Hog-CI(info) - Writing note on gitlab website...";
-          ./Hog/Other/WriteGitlabNote.sh $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $CI_MERGE_REQUEST_IID note.md;
-        fi;
+          done;
+        - if [[ -z "$HOG_MR_MSG" ]] || [[ $HOG_MR_MSG == '1' ]]; then
+            echo "Hog-CI(info) - Writing note on gitlab website...";
+            ./Hog/Other/WriteGitlabNote.sh $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $CI_MERGE_REQUEST_IID note.md;
+          fi;
         - git fetch origin refs/notes/*:refs/notes/*
         - git notes add -fm "$CI_MERGE_REQUEST_IID $CI_COMMIT_REF_SLUG"
         - git push origin refs/notes/*

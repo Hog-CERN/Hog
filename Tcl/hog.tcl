@@ -484,7 +484,7 @@ proc ReadListFile {list_file path {lib ""} {sha_mode 0} } {
 	}
  	incr cnt
       } else {
-        Msg CriticalWarning "File $vhdlfile not found."
+        Msg Error "File $vhdlfile not found."
       }
     }
   }

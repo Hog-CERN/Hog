@@ -60,7 +60,7 @@ foreach dir [glob -type d $repo_path/Top/* ] {
       Msg CriticalWarning "Cannot find $proj binaries in artifacts"
       continue
     }
-    if [catch {exec curl -s --request POST --header "PRIVATE-TOKEN: ${push_token}" --form "file=@$repo_path/${proj}-${tag}.zip" ${api}/projects/${proj_id}/uploads} content ] {
+    if [catch {exec curl -s --request POST --header "PRIVATE-TOKEN: ${push_token}" --form "file=@$repo_path/${proj}-${ver}.zip" ${api}/projects/${proj_id}/uploads} content ] {
       Msg Warning "Project $proj does not have binary files"
     } else {
       set url [ParseJSON $content "url"]

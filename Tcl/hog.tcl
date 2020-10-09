@@ -1251,41 +1251,88 @@ proc Relative {base dst} {
 # @return a list of two elements. The first element is a dictionary containing all libraries. The second elements is a discretionary containing all properties
 proc GetProjectFiles {} {
 
-  set all_files [get_files]
+
+  set all_filesets [get_filesets]
   set libraries [dict create]
   set properties [dict create]
 
-  foreach f $all_files {
-    if { [get_property  IS_GENERATED [get_files $f]] == 0} {
-      set f [file normalize $f]
-      lappend files $f
-      set type  [get_property FILE_TYPE [get_files $f]]
-      set lib [get_property LIBRARY [get_files $f]]
+  set simulator [get_property target_simulator [current_project]]
 
-      # Type can be complex like VHDL 2008, in that case we want the second part to be a property
-      if {[llength $type] > 1} {
-        set prop [lrange $type 1 [llength $type]]
-        set type [lindex $type 0]
-      } else {
-        set prop ""
+  foreach fs $all_filesets {
+
+    set all_files [get_files -quiet -of_objects [get_filesets $fs]]
+    set fs_type [get_property FILESET_TYPE [get_filesets $fs]]
+
+    if {[string equal $fs_type "SimulationSrcs"] && [llength $all_files] > 0} {
+      set topsim [get_property "top"  [get_filesets $fs]]
+      set runtime [get_property "$simulator.simulate.runtime"  [get_filesets $fs]]
+      #getting file containing top module as explained here: https://forums.xilinx.com/t5/Vivado-TCL-Community/How-can-I-get-the-file-path-of-the-top-module-in-the-current/td-p/455740
+      set simtopfile [lindex [get_files -compile_order sources -used_in simulation -of_objects [get_filesets $fs]] end]
+      dict lappend properties $simtopfile "topsim=$topsim"
+      if {![string equal "$runtime" "1000ns"]} { #not writing default value
+        dict lappend properties $simtopfile "runtime=$runtime"
+      }
+      set wavefile [get_property "$simulator.simulate.custom_wave_do" [get_filesets $fs]]
+      if {![string equal "$wavefile" ""]} {
+        dict lappend properties $wavefile wavefile
       }
 
-      #check where the file is used and add it to prop
-      if {[string equal $type "VHDL"]} {
-        dict lappend libraries $lib $f
-        dict lappend properties $f $prop
-      } elseif {[string equal $type "IP"]} {
-        dict lappend libraries "IP" $f
-      } elseif {[string equal $type "XDC"]} {
-        dict lappend libraries "XDC" $f
-        dict lappend properties $f "XDC"
-      } else {
-        dict lappend libraries "OTHER" $f
+      set dofile [get_property "$simulator.simulate.custom_udo" [get_filesets $fs]]
+      if {![string equal "$dofile" ""]} {
+        dict lappend properties $dofile dofile
+      }
+    }
+
+
+    foreach f $all_files {
+      if { [lindex [get_property  IS_GENERATED [get_files $f]] 0] == 0} {
+        set f [file normalize $f]
+        lappend files $f
+        set type  [get_property FILE_TYPE [get_files $f]]
+        set lib [get_property LIBRARY [get_files $f]]
+
+        # Type can be complex like VHDL 2008, in that case we want the second part to be a property
+        if {[llength $type] > 1} {
+          set prop [lrange $type 1 [llength $type]]
+          set type [lindex $type 0]
+        } else {
+          set prop ""
+        }
+
+        if {[string equal $type "VHDL"] && [string equal $prop ""]} {
+          set prop "93"
+        } elseif {[string equal $type "VHDL"] && [string equal $prop "2008"]} {
+          set prop ""
+        }
+
+        #check where the file is used and add it to prop
+        if {[string equal $fs_type "SimulationSrcs"]} {
+          dict lappend libraries $fs $f
+          dict lappend properties $f $prop
+        } elseif {[string equal $type "VHDL"]} {
+          dict lappend libraries $lib $f
+          dict lappend properties $f $prop
+        } elseif {[string equal $type "IP"]} {
+          dict lappend libraries "IP" $f
+        } elseif {[string equal $type "XDC"]} {
+          dict lappend libraries "XDC" $f
+          dict lappend properties $f "XDC"
+        } else {
+          dict lappend libraries "OTHER" $f
+        }
+        
+        if {[lindex [get_property -quiet used_in_synthesis  [get_files $f]] 0] == 0} {
+          dict lappend properties $f "nosynth"
+        }
+        if {[lindex [get_property -quiet used_in_implementation  [get_files $f]] 0] == 0} {
+          dict lappend properties $f "noimpl"
+        }
+        if {[lindex [get_property -quiet used_in_simulation  [get_files $f]] 0] == 0} {
+          dict lappend properties $f "nosim"
+        }
       }
 
     }
-
-  }
 
     #    dict for {lib f} $libraries {
     #   Msg Status "   Library: $lib: \n *******"
@@ -1295,7 +1342,9 @@ proc GetProjectFiles {} {
     #
     #   Msg Status "*******"
     #    }
-
+  }
+  
+  dict lappend properties "Simulator" $simulator
   return [list $libraries $properties]
 }
 

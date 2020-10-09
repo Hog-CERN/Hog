@@ -153,12 +153,14 @@ collect_artifacts:
         - "printf \"## Repository info\n- Merge request number: $CI_MERGE_REQUEST_IID\n- Branch name: $CI_COMMIT_REF_SLUG\n\n\" > $CI_PROJECT_DIR/bin/note.md"
         - ./Hog/Other/Changelog.sh $CI_MERGE_REQUEST_TARGET_BRANCH_NAME >> $CI_PROJECT_DIR/bin/note.md
         - diff_files=$(shopt -s nullglob dotglob; echo $CI_PROJECT_DIR/bin/*/diff*.txt);
+        - touch mr_note.md
         - if [[ $diff_files != "" ]]; then
             echo "## Uncommitted differences" >> $CI_PROJECT_DIR/bin/note.md;
+            echo "## Uncommitted differences" >> mr_note.md;
             for f in $diff_files; do
               echo "Found uncommitted differences, check log file $f" >> $CI_PROJECT_DIR/bin/note.md;
               echo "" >> $CI_PROJECT_DIR/bin/note.md;
-              echo "Found uncommitted differences, check log file $f" > mr_note.md;
+              echo "Found uncommitted differences, check log file $f" >> mr_note.md;
               echo "" >> mr_note.md;
             done;
           fi

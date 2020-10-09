@@ -169,7 +169,7 @@ collect_artifacts:
             files=$(shopt -s nullglob dotglob; echo $CI_PROJECT_DIR/bin/*/$f*.txt);
             if (( ${#files} )); then 
               cat $CI_PROJECT_DIR/bin/*/$f*.txt >> $CI_PROJECT_DIR/bin/note.md; 
-              cat $CI_PROJECT_DIR/bin/*/$f*.txt > mr_note.md; 
+              cat $CI_PROJECT_DIR/bin/*/$f*.txt >> mr_note.md; 
             fi;
           done;
         - if [[ -z "$HOG_MR_MSG" ]] || [[ $HOG_MR_MSG == '1' ]]; then

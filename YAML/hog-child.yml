@@ -119,6 +119,22 @@
           echo "Hog-CI(info) - Launching workflow now...";
           echo "./Hog/LaunchWorkflow.sh -njobs $HOG_NJOBS $IP_EOS_PATH $NO_BITSTREAM $ONLY_SYNTH $CHECK_SYNTAX $PROJECT_NAME";
           ./Hog/LaunchWorkflow.sh -njobs $HOG_NJOBS $IP_EOS_PATH $NO_BITSTREAM $ONLY_SYNTH $CHECK_SYNTAX $PROJECT_NAME;
+
+          if [[ -n "$HOG_ONLY_SYNTH" ]] && [[ $HOG_ONLY_SYNTH == '1' ]]; then
+            echo "Hog-CI(info) - Adding version and timing summary to note...";
+            cat $CI_PROJECT_DIR/VivadoProject/$PROJECT_NAME/$PROJECT_NAME.runs/versions* > note.md;
+            cp $CI_PROJECT_DIR/VivadoProject/$PROJECT_NAME/$PROJECT_NAME.runs/versions* $CI_PROJECT_DIR/bin/$PROJECT_NAME*/
+          else
+            echo "Hog-CI(info) - Adding versions and timing summary to note...";
+            cat $CI_PROJECT_DIR/bin/$PROJECT_NAME*/versions* $CI_PROJECT_DIR/bin/$PROJECT_NAME*/timing_* > note.md;
+          fi;
+
+          if [[ -n "$HOG_MR_MSG" ]] && [[ $HOG_MR_MSG == '2' ]]; then
+            echo "Hog-CI(info) - Writing note on gitlab website...";
+            ./Hog/Other/WriteGitlabNote.sh $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $CI_MERGE_REQUEST_IID note.md;
+          fi;
+
+          echo "Hog-CI(info) - All done.";
         fi;
     artifacts:
         when: always
@@ -144,16 +160,22 @@ collect_artifacts:
             for f in $diff_files; do
               echo "Found uncommitted differences, check log file $f" >> $CI_PROJECT_DIR/bin/note.md;
               echo "" >> $CI_PROJECT_DIR/bin/note.md;
+              echo "Found uncommitted differences, check log file $f" > mr_note.md;
+              echo "" >> mr_note.md;
             done;
           fi
         - note_files="versions timing"
         - for f in $note_files; do
             files=$(shopt -s nullglob dotglob; echo $CI_PROJECT_DIR/bin/*/$f*.txt);
-            if (( ${#files} )); then cat $CI_PROJECT_DIR/bin/*/$f*.txt >> $CI_PROJECT_DIR/bin/note.md; fi;
+            if (( ${#files} )); then 
+              cat $CI_PROJECT_DIR/bin/*/$f*.txt >> $CI_PROJECT_DIR/bin/note.md; 
+              cat $CI_PROJECT_DIR/bin/*/$f*.txt > mr_note.md; 
+            fi;
           done
-        - echo "Hog-CI(info) - Writing note on gitlab website...";
-          ./Hog/Other/WriteGitlabNote.sh $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $CI_MERGE_REQUEST_IID $CI_PROJECT_DIR/bin/note.md;
-          echo "Hog-CI(info) - All done.";
+        if [[ -z "$HOG_MR_MSG" ]] || [[ $HOG_MR_MSG == '1' ]]; then
+          echo "Hog-CI(info) - Writing note on gitlab website...";
+          ./Hog/Other/WriteGitlabNote.sh $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $CI_MERGE_REQUEST_IID note.md;
+        fi;
         - git fetch origin refs/notes/*:refs/notes/*
         - git notes add -fm "$CI_MERGE_REQUEST_IID $CI_COMMIT_REF_SLUG"
         - git push origin refs/notes/*

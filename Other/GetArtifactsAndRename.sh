@@ -44,7 +44,6 @@ else
             PRJ_NAME="${PRJ_DIR%.*}"
             PRJ_NAME="${PRJ_NAME%-*}"
             PRJ_SHA="${PRJ_DIR##*-g}"
-	    DESCRIBE=$(git describe "$PRJ_SHA")
             TAG=$(git tag --sort=creatordate --contain "$PRJ_SHA" -l "v*.*.*" | head -1)
             PRJ_BINS=("$(ls "$PRJ_DIR"/"${PRJ_DIR}"*)")
             echo "Hog-INFO: Found project $PRJ_NAME"

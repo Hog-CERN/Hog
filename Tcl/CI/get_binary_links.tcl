@@ -28,6 +28,7 @@ if {[catch {package require cmdline} ERROR]} {
 }
 
 set parameters {
+   {force "Forces the creation of new project links"}
 }
 
 set usage "- CI script that retrieves binary files links or creates new ones to be uploaded as Releases\n USAGE: $::argv0 <push token> <Gitlab api url> <project id> <project url> <tag> \[OPTIONS\] \n. Options:"
@@ -53,7 +54,7 @@ foreach dir [glob -type d $repo_path/Top/* ] {
   set proj [ file tail $dir ]
   #find project version
   set ver [ GetProjectVersion $dir/$proj.tcl $ext_path ]
-  if {"$ver"=="0" || "$ver"=="$tag" } {
+  if {"$ver"=="0" || "$ver"=="$tag" || $options(force)==1} {
     Msg Info "Creating new link for $proj binaries and tag $tag"
     if [catch {glob -type d $repo_path/bin/$proj* } prj_dir] {
       Msg CriticalWarning "Cannot find $proj binaries in artifacts"

@@ -107,7 +107,10 @@ archive_binary_files:
       done;
     - cd ..
     - if [[ -v HOG_CREATE_OFFICIAL_RELEASE ]] && [[ $HOG_CREATE_OFFICIAL_RELEASE == "1" ]]; then
-        tclsh ./Hog/Tcl/CI/get_binary_links.tcl $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $CI_PROJECT_URL $CI_COMMIT_TAG "$HOG_EXTERNAL_PATH";
+        if [[ -v HOG_CHECK_PROJVER ]] && [[ $HOG_CHECK_PROJVER == '1' ]]; then
+            tclsh ./Hog/Tcl/CI/get_binary_links.tcl $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $CI_PROJECT_URL $CI_COMMIT_TAG "$HOG_EXTERNAL_PATH";
+        else
+            tclsh ./Hog/Tcl/CI/get_binary_links.tcl -force $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $CI_PROJECT_URL $CI_COMMIT_TAG "$HOG_EXTERNAL_PATH";
         ./Hog/Other/MakeGitlabRelease.sh $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $CI_COMMIT_TAG bin/note.md -load_artifacts;
       fi;
     - if [[ -v HOG_OFFICIAL_BIN_EOS_PATH ]]; then

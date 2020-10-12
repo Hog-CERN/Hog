@@ -92,7 +92,7 @@ if {[file exists $reset_file]} {
 
 
 # Getting all the versions and SHAs of the repository
-lassign [GetRepoVersions ./Top/$proj_name/$proj_name.tcl $ext_path] commit version  hog_hash hog_ver  top_hash top_ver  libs hashes vers  subs subs_hashes  cons_ver cons_hash  ext_names ext_hashes  xml_hash xml_ver 
+lassign [GetRepoVersions ./Top/$proj_name/$proj_name.tcl $ext_path] commit version  hog_hash hog_ver  top_hash top_ver  libs hashes vers  cons_ver cons_hash  ext_names ext_hashes  xml_hash xml_ver 
 
 set this_commit  [exec git log --format=%h -1]
 
@@ -168,12 +168,6 @@ if {[info commands set_property] != ""} {
     set generic_string "$generic_string $ver $hash"
   }
 
-  #set project specific sub modules
-  foreach s $subs h $subs_hashes {
-    set hash "[string toupper $s]_SHA=32'h0$h"
-    set generic_string "$generic_string $hash"
-  }
-
   foreach e $ext_names h $ext_hashes {
     set hash "[string toupper $e]_SHA=32'h0$h"
     set generic_string "$generic_string $hash"
@@ -198,7 +192,6 @@ if {[info commands set_property] != ""} {
   puts "Hog:DEBUG XML_SHA=$xml_hash GLOBAL_VER=$version TOP_VER=$top_ver"
   puts "Hog:DEBUG XML_VER=$xml_ver HOG_SHA=$hog_hash HOG_VER=$hog_ver"
   puts "Hog:DEBUG LIBS: $libs $vers $hashes"
-  puts "Hog:DEBUG SUBS: $subs $subs_hashes"
   puts "Hog:DEBUG EXT: $ext_names $ext_hashes"
   puts "Hog:DEBUG FLAVOUR: $flavour"
   set  status_file "$old_path/versions.txt"
@@ -263,11 +256,7 @@ foreach l $libs v $vers h $hashes {
   Msg Status " $l SHA: $h, VER: $v"
   m add row "| \"**Lib:** $l\" |  [string tolower $h] | $v |"
 }
-Msg Status " --- Submodules ---"
-foreach s $subs sh $subs_hashes {
-  Msg Status " $s SHA: $sh"
-  m add row "| \"**Sub:** $s\" |  [string tolower $sh] | \" \"  |"
-}
+
 Msg Status " --- External Libraries ---"
 foreach e $ext_names eh $ext_hashes {
   Msg Status " $e SHA: $eh"

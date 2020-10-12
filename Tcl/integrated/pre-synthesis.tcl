@@ -281,6 +281,18 @@ close $status_file
 
 
 CheckYmlRef [file normalize $tcl_path/../..] true
+
+#check list files
+if {[info commands get_property] != ""} {
+    # Vivado
+  source  $tcl_path/utils/check_list_files.tcl
+} elseif {[info commands project_new] != ""} {
+    # Quartus
+  #TO BE IMPLEMENTED
+} else {
+    #Tclssh
+}
+
 cd $old_path
 
 Msg Info "All done."

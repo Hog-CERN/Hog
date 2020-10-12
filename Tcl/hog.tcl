@@ -729,6 +729,40 @@ proc GetGitDescribe {sha} {
   }
 }
 
+
+
+## Get submodule of a specific file. Returns an empty string if the file is not in a submodule
+#
+#  @param[in] path_file      path of the file that whose paternity must be checked
+#
+#  @return             The name of the submodule. If the submodule is not in the root of the repository, the path will be added to the name and the slashes with underscores. Returns an empty string if not in a submodule.
+#
+proc GetSubmodule {path_file} {
+  set old_dir [pwd]
+  set directory [file normalize [file dir $path_file]]
+  cd $directory
+  if [catch {exec git rev-parse --show-superproject-working-tree} base] {
+    Msg CriticalWarning "Git repository error: $sub"
+    cd $old_dir
+    return ""
+  }
+  if {$base eq "" } {
+    set submodule ""
+  } else {
+    if [catch {exec git rev-parse --show-toplevel} sub] {
+      Msg CriticalWarning "Git submodule error: $sub"
+      cd $old_dir
+      return ""
+    }
+    set submodule [string map {. "" / _} [Relative $base $sub] ]
+  }
+  
+  cd $old_dir
+  return $submodule
+
+}
+
+
 ## Get the versions for all libraries, submodules, etc. for a given project
 #
 #  @param[in] proj_tcl_file: The tcl file of the project of which all the version must be calculated
@@ -1210,7 +1244,8 @@ proc CompareVHDL {file1 file2} {
 #
 proc Relative {base dst} {
   if {![string equal [file pathtype $base] [file pathtype $dst]]} {
-    return -code error "Unable to compute relation for paths of different pathtypes: [file pathtype $base] vs. [file pathtype $dst], ($base vs. $dst)"
+    Msg CriticalWarning "Unable to compute relation for paths of different pathtypes: [file pathtype $base] vs. [file pathtype $dst], ($base vs. $dst)"
+    return ""
   }
 
   set base [file normalize [file join [pwd] $base]]

@@ -735,7 +735,7 @@ proc GetGitDescribe {sha} {
 #
 #  @param[in] path_file      path of the file that whose paternity must be checked
 #
-#  @return             The name of the submodule. If the submodule is not in the root of the repository, the path will be added to the name and the slashes with underscores. Returns an empty string if not in a submodule.
+#  @return             The path of the submodule. Returns an empty string if not in a submodule.
 #
 proc GetSubmodule {path_file} {
   set old_dir [pwd]
@@ -754,12 +754,11 @@ proc GetSubmodule {path_file} {
       cd $old_dir
       return ""
     }
-    set submodule [string map {. "" / _} [Relative $base $sub] ]
+    set submodule [Relative $base $sub]
   }
   
   cd $old_dir
   return $submodule
-
 }
 
 

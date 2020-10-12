@@ -1257,6 +1257,8 @@ proc GetProjectFiles {} {
   set properties [dict create]
 
   set simulator [get_property target_simulator [current_project]]
+  set SIM [dict create]
+  set SRC [dict create] 
 
   foreach fs $all_filesets {
 
@@ -1290,6 +1292,7 @@ proc GetProjectFiles {} {
         lappend files $f
         set type  [get_property FILE_TYPE [get_files $f]]
         set lib [get_property LIBRARY [get_files $f]]
+      
 
         # Type can be complex like VHDL 2008, in that case we want the second part to be a property
         if {[llength $type] > 1} {
@@ -1307,12 +1310,12 @@ proc GetProjectFiles {} {
 
         #check where the file is used and add it to prop
         if {[string equal $fs_type "SimulationSrcs"]} {
-          dict lappend libraries $fs $f
+          dict lappend SIM $fs $f
           dict lappend properties $f $prop
         } elseif {[string equal $type "VHDL"]} {
-          dict lappend libraries $lib $f
+          dict lappend SRC $lib $f
           dict lappend properties $f $prop
-        } elseif {[string equal $type "IP"]} {
+        } elseif {[string equal $type "IP"] || [string equal "$type $prop" "Block Designs"]} {
           dict lappend libraries "IP" $f
         } elseif {[string equal $type "XDC"]} {
           dict lappend libraries "XDC" $f
@@ -1330,6 +1333,7 @@ proc GetProjectFiles {} {
         if {[lindex [get_property -quiet used_in_simulation  [get_files $f]] 0] == 0} {
           dict lappend properties $f "nosim"
         }
+
       }
 
     }
@@ -1344,6 +1348,8 @@ proc GetProjectFiles {} {
     #    }
   }
   
+  dict append libraries "SIM" $SIM 
+  dict append libraries "SRC" $SRC 
   dict lappend properties "Simulator" $simulator
   return [list $libraries $properties]
 }

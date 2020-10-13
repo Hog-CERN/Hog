@@ -135,6 +135,35 @@ function init()
     echo [hog init] "WARNING: No vivado executable found"
   fi
 
+  ##! Scan for existing Vivado projects and ask user to automatically create listFiles
+  ##! NOTE projects already in VivadoProject directory have already a Hog structure, ignore them
+  ##! NOTE use read to grab user input
+  ##! NOTE if the user input contains Y or y then is accepted as yes
+
+  Vivado_prjs=$(find $DIR/.. -path $DIR/../VivadoProject -prune -false -o -name *.xpr)
+
+  for Vivado_prj in $Vivado_prjs; do
+    echo
+    Vivado_prj_base=$(basename $Vivado_prj)
+    read -p "Found existing Vivado project $Vivado_prj_base. Do you want to convert it to a Hog compatible project? (creates listfiles and Project tcl file) " -n 1 -r
+    echo    # (optional) move to a new line
+    if [[ "${REPLY}" =~ ^[Yy]$ ]]
+    then
+      Force=""
+      if [ -d "$DIR/../Top/${Vivado_prj_base%.*}" ]; then
+        read -p "Directory \"Top/${Vivado_prj_base%.*}\" exists. do you want to overwrite it? "  -n 1 -r
+        echo    # (optional) move to a new line
+        if [[ "${REPLY}" =~ ^[Yy]$ ]]; then
+          Force=" -force "
+        else
+          continue
+        fi
+      fi
+      vivado -mode batch -notrace -source $DIR/Tcl/utils/check_list_files.tcl $Vivado_prj -tclargs -recreate $Force -recreate_prjTcl
+    fi
+  done
+
+
   ##! Ask user if he wants to create all projects in the repository
   ##! NOTE use read to grab user input
   ##! NOTE if the user input contains Y or y then is accepted as yes
@@ -152,6 +181,20 @@ function init()
       echo [hog init] Creating Vivado project: $f...
       ./Hog/CreateProject.sh "${f}"
     done
+  fi
+
+
+  ##! Ask user if he wants to add custom Vivado gui button to automatically update listfiles
+  ##! NOTE use read to grab user input
+  ##! NOTE if the user input contains Y or y then is accepted as yes
+   if [ `which vivado` ]; then
+    echo
+    read -p "Do you want to add a custom Vivado gui command to automatically update listFiles? " -n 1 -r
+    echo    # (optional) move to a new line
+    if [[ "${REPLY}" =~ ^[Yy]$ ]]
+    then
+       vivado -mode batch -notrace -source $DIR/Tcl/utils/add_hog_custom_button.tcl 
+    fi
   fi
 
 

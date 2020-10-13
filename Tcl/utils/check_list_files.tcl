@@ -255,6 +255,7 @@ if {$options(recreate) == 1} {
     foreach ln [DictGet $newListfiles $listFile] {
       puts $lFd "$ln"
     }
+    close $lFd
   }
 
   if {$options(recreate_prjTcl) == 1} {
@@ -305,6 +306,8 @@ set SIMULATOR \"[DictGet $prjProperties Simulator]\""
      puts $lFd "\]"
 
     puts $lFd "source \$PATH_REPO/Hog/Tcl/create_project.tcl"
+
+    close $lFd
   }
 }
 

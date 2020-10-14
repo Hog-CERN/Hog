@@ -54,10 +54,6 @@ module top_<myproj> # (
         parameter <MYLIB1>_VER = 0,
         parameter <MYLIB1>_SHA = 0,
 
-        // Submodule Specific variables (only if you have a submodule, one per submodule)
-        parameter <MYSUBMODULE0>_SHA = 0,
-        parameter <MYSUBMODULE1>_SHA = 0,
-
         // External library specific variables (only if you have an external library)
         parameter <MYEXTLIB>_SHA = 0,
         // Project flavour

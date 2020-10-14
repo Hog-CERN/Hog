@@ -445,7 +445,6 @@ proc ReadListFile {list_file path {lib ""} {sha_mode 0} } {
     # Exclude empty lines and comments
     if {![regexp {^ *$} $line] & ![regexp {^ *\#} $line] } {
       set file_and_prop [regexp -all -inline {\S+} $line]
-
       set srcfile [lindex $file_and_prop 0]
       set srcfile "$path/$srcfile"
       set srcfiles [glob $srcfile]
@@ -475,7 +474,7 @@ proc ReadListFile {list_file path {lib ""} {sha_mode 0} } {
 
             set libraries [dict merge $l $libraries]
             set properties [dict merge $p $properties]
-          } elseif {[lsearch {.src .sim .con .sub .ext} $extension] >= 0 } {
+          } elseif {[lsearch {.src .sim .con .ext} $extension] >= 0 } {
             Msg Error "$vhdlfile cannot be included into $list_file, $extension files must be included into $extension files."
           } else {
             ### Set file properties
@@ -556,7 +555,7 @@ proc RestoreModifiedFiles {{repo_path "."} {pattern "."}} {
 
 ## @brief Recursively gets file names from list file
 #
-#  If the list file contains files with extension .src .sim .con .sub, it will recursively open them
+#  If the list file contains files with extension .src .sim .con, it will recursively open them
 #
 #  @param[in] FILE  list file to open
 #  @param[in] path  the path the files are referred to in the list file
@@ -577,7 +576,7 @@ proc GetFileList {FILE path} {
       set vhdlfile "$path/$vhdlfile"
       if {[file exists $vhdlfile]} {
         set extension [file ext $vhdlfile]
-        if { [lsearch {.src .sim .con .sub} $extension] >= 0 } {
+        if { [lsearch {.src .sim .con} $extension] >= 0 } {
           lappend file_list {*}[GetFileList $vhdlfile $path]]
         } else {
           lappend file_list $vhdlfile
@@ -742,6 +741,39 @@ proc GetGitDescribe {sha} {
   }
 }
 
+
+
+## Get submodule of a specific file. Returns an empty string if the file is not in a submodule
+#
+#  @param[in] path_file      path of the file that whose paternity must be checked
+#
+#  @return             The path of the submodule. Returns an empty string if not in a submodule.
+#
+proc GetSubmodule {path_file} {
+  set old_dir [pwd]
+  set directory [file normalize [file dir $path_file]]
+  cd $directory
+  if [catch {exec git rev-parse --show-superproject-working-tree} base] {
+    Msg CriticalWarning "Git repository error: $sub"
+    cd $old_dir
+    return ""
+  }
+  if {$base eq "" } {
+    set submodule ""
+  } else {
+    if [catch {exec git rev-parse --show-toplevel} sub] {
+      Msg CriticalWarning "Git submodule error: $sub"
+      cd $old_dir
+      return ""
+    }
+    set submodule [Relative $base $sub]
+  }
+  
+  cd $old_dir
+  return $submodule
+}
+
+
 ## Get the versions for all libraries, submodules, etc. for a given project
 #
 #  @param[in] proj_tcl_file: The tcl file of the project of which all the version must be calculated
@@ -886,30 +918,6 @@ proc GetRepoVersions {proj_tcl_file {ext_path ""} {sim 0}} {
     set xml_hash 0000000
   }
 
-# Submodules
-  set subs ""
-  set subs_hashes ""
-  set subs_files [glob -nocomplain "./list/*.sub"]
-  foreach f $subs_files {
-    set sub_dir [file rootname [file tail $f]]
-    if [file exists ../../$sub_dir] {
-      lappend subs $sub_dir
-    #Append the SHA in which the submodule was changed, not the submodule SHA
-      lappend SHAs [exec git log --format=%h -1 -- ../../$sub_dir]
-      cd "../../$sub_dir"
-      if { [exec git status --untracked-files=no --porcelain] eq "" } {
-        #Msg Info "$sub_dir submodule clean."
-        lappend subs_hashes [GetSHA ./]
-      } else {
-        Msg CriticalWarning "$sub_dir submodule not clean, commit hash will be set to 0."
-        lappend subs_hashes "0000000"
-      }
-      cd $proj_dir
-    } else {
-      Msg CriticalWarning "$sub_dir submodule not found"
-    }
-  }
-
   #The global SHA and ver is the most recent among everything
   if {$clean == 1} {
     set commit [exec git log --format=%h -1 {*}$SHAs --]
@@ -918,10 +926,10 @@ proc GetRepoVersions {proj_tcl_file {ext_path ""} {sim 0}} {
     set commit  "0000000"
     set version "00000000"
   }
-
+  
   cd $old_path
-
-  return [list $commit $version  $hog_hash $hog_ver  $top_hash $top_ver  $libs $hashes $vers  $subs $subs_hashes  $cons_ver $cons_hash  $ext_names $ext_hashes  $xml_hash $xml_ver] 
+  
+  return [list $commit $version  $hog_hash $hog_ver  $top_hash $top_ver  $libs $hashes $vers  $cons_ver $cons_hash  $ext_names $ext_hashes  $xml_hash $xml_ver] 
 }
 
 
@@ -1221,13 +1229,10 @@ proc CompareVHDL {file1 file2} {
 # @param[in] base   the path with respect to witch the dst path is calculated
 # @param[in] dst    the path to be calculated with respect to base
 #
-proc Relative {base dst {permissive 0}} {
+proc Relative {base dst} {
   if {![string equal [file pathtype $base] [file pathtype $dst]]} {
-    if {$permissive == 0} {
-      return -code error "Unable to compute relation for paths of different pathtypes: [file pathtype $base] vs. [file pathtype $dst], ($base vs. $dst)"
-    } else {
-      return $dst
-    }
+    Msg CriticalWarning "Unable to compute relation for paths of different pathtypes: [file pathtype $base] vs. [file pathtype $dst], ($base vs. $dst)"
+    return ""
   }
 
   set base [file normalize [file join [pwd] $base]]

@@ -23,9 +23,9 @@ if {[catch {package require cmdline} ERROR]} {
 }
 set parameters {
   {project.arg "" "Project name. If not set gets current project"}
-  {recreate  "If set, it will create listfiles from the project configuration"}
+  {recreate  "If set, it will create List Files from the project configuration"}
   {recreate_prjTcl  "If set, it will create the project tcl from the project configuration. To be used together with \"-recreate\""}
-  {force  "Force the overwriting of listfiles. To be used together with \"-recreate\""}
+  {force  "Force the overwriting of List Files. To be used together with \"-recreate\""}
   {pedantic  "Script fails in case of mismatch"}
 }
 
@@ -152,7 +152,7 @@ foreach key [dict keys $listLibraries] {
 		} 
     dict set prjSrcDict [file rootname $key] $prjSRCs
 	} else {
-		Msg CriticalWarning "$key listfiles format unrecognized by Hog."
+		Msg CriticalWarning "$key list file format unrecognized by Hog."
     incr ErrorCnt
 	}
 	
@@ -160,13 +160,13 @@ foreach key [dict keys $listLibraries] {
 
 
 foreach IP $prjIPs {
-  Msg CriticalWarning "$IP is used in the project but is not in the listfiles."
+  Msg CriticalWarning "$IP is used in the project but is not in the list files."
   incr ErrorCnt
   dict lappend newListfiles Default.src "[Relative $repo_path $IP] [DictGet $prjProperties $IP]"
 }
 
 foreach XDC $prjXDCs {
-  Msg CriticalWarning "$XDC is used in the project but is not in the listfiles."
+  Msg CriticalWarning "$XDC is used in the project but is not in the list files."
   incr ErrorCnt
   dict lappend newListfiles Default.con "[Relative $repo_path $XDC] [DictGet $prjProperties $XDC]"
 }
@@ -180,7 +180,7 @@ foreach key [dict key $prjSimDict] {
       continue
     }
     incr ErrorCnt
-    Msg CriticalWarning "$SIM is used in the project simulation fileset $key but is not in the listfiles."
+    Msg CriticalWarning "$SIM is used in the project simulation fileset $key but is not in the list files."
     dict lappend newListfiles [string range $key 0 end-4].sim "[Relative $repo_path $SIM] [DictGet $prjProperties $SIM]"
   }
 }
@@ -193,14 +193,14 @@ foreach key [dict key $prjSrcDict] {
     if {[string equal $SRC ""] } {
       continue
     }
-    Msg CriticalWarning "$SRC is used in the project (library $key) but is not in the listfiles."
+    Msg CriticalWarning "$SRC is used in the project (library $key) but is not in the list files."
     incr ErrorCnt
     dict lappend newListfiles ${key}.src "[Relative $repo_path $SRC] [DictGet $prjProperties $SRC]"
   }
 }
 
 foreach SRC $prjOTHERs {
-  Msg CriticalWarning "$SRC is used in the project but is not in the listfiles."
+  Msg CriticalWarning "$SRC is used in the project but is not in the list files."
   incr ErrorCnt
   dict lappend newListfiles Default.src "[Relative $repo_path $SRC] [DictGet $prjProperties $SRC]"
 }
@@ -210,7 +210,7 @@ foreach SRC $prjOTHERs {
 foreach key [dict keys $listProperties] {
   foreach prop [lindex [DictGet $listProperties $key] 0] {
     if {[lsearch -nocase [lindex [DictGet $prjProperties $key] 0] $prop] < 0 && ![string equal $prop ""]} {
- 			Msg CriticalWarning "$key property $prop is set in listfiles but not in Project!"
+ 			Msg CriticalWarning "$key property $prop is set in list files but not in Project!"
       incr ErrorCnt
     } 
   }
@@ -221,7 +221,7 @@ foreach key [dict keys $prjProperties] {
   foreach prop [lindex [DictGet $prjProperties $key] 0] {
     #puts "FILE $key: PROPERTY $prop"
     if {[lsearch -nocase [lindex [DictGet $listProperties $key] 0] $prop] < 0 && ![string equal $prop ""] && ![string equal $key "Simulator"] } {
- 			Msg CriticalWarning "$key property $prop is set in Project but not in listfiles!"
+ 			Msg CriticalWarning "$key property $prop is set in Project but not in list files!"
       incr ErrorCnt
     } 
   }
@@ -233,7 +233,7 @@ if {$options(pedantic) == 1 && $ErrorCnt > 0} {
 } elseif {$ErrorCnt > 0} {
   Msg CriticalWarning "Number of errors: $ErrorCnt"
 } else {
-  Msg Info "listFiles matches project. All ok!"
+  Msg Info "List Files matches project. All ok!"
 }
 
 #recreating list files
@@ -279,17 +279,19 @@ set SIMULATOR \"[DictGet $prjProperties Simulator]\""
 
     #properties
     puts $lFd "set PROPERTIES \[dict create \\"
-    foreach proj_run [get_runs] {
+    set runs [list [get_runs synth*]]
+    lappend runs [list [get_runs impl*]]
+    foreach proj_run $runs {
       puts $lFd " $proj_run \[dict create \\"
   
       set run_props [list]
       foreach propReport [split "[report_property  -return_string -all [get_runs $proj_run]]" "\n"] {
         
-        if {[string equal "[lindex $propReport 2]" "false"]} {
+        if {[string equal "[lindex $propReport 2]" "false"] && ![string equal "[lindex $propReport 0]" "PART"] && ![string equal "[lindex $propReport 0]" "STRATEGY"] && ![string equal "[lindex $propReport 0]" "FLOW"] && ![string equal "[lindex $propReport 0]" "STEPS.SYNTH_DESIGN.TCL.PRE"] && ![string equal "[lindex $propReport 0]" "STEPS.ROUTE_DESIGN.TCL.POST"] && ![string equal "[lindex $propReport 0]" "STEPS.WRITE_BITSTREAM.TCL.PRE"] && ![string equal "[lindex $propReport 0]" "STEPS.WRITE_BITSTREAM.TCL.POST"]} {          
           lappend run_props [lindex $propReport 0] 
         } 
       }
-    
+      
 
       foreach prop $run_props {
         set Dval [list_property_value -default $prop [get_runs $proj_run]]

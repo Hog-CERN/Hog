@@ -480,6 +480,10 @@ proc ReadListFile {list_file path {lib ""} {sha_mode 0} } {
           } else {
             ### Set file properties
             set prop [lrange $file_and_prop 1 end]
+            while {[regsub -all "= " $prop "=" prop]} {
+            }
+            while {[regsub -all " =" $prop "=" prop]} {
+            }
             dict lappend properties $vhdlfile $prop
             ### Set File Set
             #Adding IP library

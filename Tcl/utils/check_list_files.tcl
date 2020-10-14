@@ -24,7 +24,7 @@ if {[catch {package require cmdline} ERROR]} {
 set parameters {
   {project.arg "" "Project name. If not set gets current project"}
   {recreate  "If set, it will create List Files from the project configuration"}
-  {recreate_prjTcl  "If set, it will create the project tcl from the project configuration. To be used together with \"-recreate\""}
+  {recreate_prj_tcl  "If set, it will create the project tcl from the project configuration. To be used together with \"-recreate\""}
   {force  "Force the overwriting of List Files. To be used together with \"-recreate\""}
   {pedantic  "Script fails in case of mismatch"}
 }
@@ -37,7 +37,6 @@ proc DictGet {dictName keyName} {
   } else {
     return ""
   }
-
 }
 
 
@@ -96,7 +95,7 @@ foreach key [dict keys $listLibraries] {
    		  Msg CriticalWarning "$IP not found in Project IPs! Was it removed from the project?"
         incr ErrorCnt
 			} else {
-        dict lappend newListfiles [file rootname $key].src "[Relative $repo_path $IP] [DictGet $prjProperties $IP]"
+        dict lappend newListfiles [file rootname $key].src [string trim "[Relative $repo_path $IP] [DictGet $prjProperties $IP]"]
       }
 		} 
 	} elseif {[file extension $key] == ".con" } {
@@ -108,7 +107,7 @@ foreach key [dict keys $listLibraries] {
    		  Msg CriticalWarning "$XDC not found in Project constraints! Was it removed from the project?"
         incr ErrorCnt
 			} else {
-        dict lappend newListfiles $key "[Relative $repo_path $XDC] [DictGet $prjProperties $XDC]"
+        dict lappend newListfiles $key [string trim "[Relative $repo_path $XDC] [DictGet $prjProperties $XDC]"]
       }
 		} 
 	} elseif {[file extension $key] == ".sim" } {
@@ -122,7 +121,7 @@ foreach key [dict keys $listLibraries] {
      		  Msg CriticalWarning "$SIM not found in Project simulation files! Was it removed from the project?"
           incr ErrorCnt
 			  } else {
-          dict lappend newListfiles $key "[Relative $repo_path $SIM] [DictGet $prjProperties $SIM]"
+          dict lappend newListfiles $key [string trim "[Relative $repo_path $SIM] [DictGet $prjProperties $SIM]"]
         }
 		  } 
       dict set prjSimDict "[file rootname $key]_sim" $prjSIMs
@@ -144,10 +143,10 @@ foreach key [dict keys $listLibraries] {
        			Msg CriticalWarning "$SRC not found in Project source files! Was it removed from the project?"
             incr ErrorCnt
 			    } else {
-            dict lappend newListfiles $key "[Relative $repo_path $SRC] [DictGet $prjProperties $SRC]"
+            dict lappend newListfiles $key [string trim "[Relative $repo_path $SRC] [DictGet $prjProperties $SRC]"]
           }
 			} else {
-         dict lappend newListfiles $key "[Relative $repo_path $SRC] [DictGet $prjProperties $SRC]"
+         dict lappend newListfiles $key [string trim "[Relative $repo_path $SRC] [DictGet $prjProperties $SRC]"]
       }
 		} 
     dict set prjSrcDict [file rootname $key] $prjSRCs
@@ -162,13 +161,13 @@ foreach key [dict keys $listLibraries] {
 foreach IP $prjIPs {
   Msg CriticalWarning "$IP is used in the project but is not in the list files."
   incr ErrorCnt
-  dict lappend newListfiles Default.src "[Relative $repo_path $IP] [DictGet $prjProperties $IP]"
+  dict lappend newListfiles Default.src [string trim "[Relative $repo_path $IP] [DictGet $prjProperties $IP]"]
 }
 
 foreach XDC $prjXDCs {
   Msg CriticalWarning "$XDC is used in the project but is not in the list files."
   incr ErrorCnt
-  dict lappend newListfiles Default.con "[Relative $repo_path $XDC] [DictGet $prjProperties $XDC]"
+  dict lappend newListfiles Default.con [string trim "[Relative $repo_path $XDC] [DictGet $prjProperties $XDC]"]
 }
 
 foreach key [dict key $prjSimDict] {
@@ -181,7 +180,7 @@ foreach key [dict key $prjSimDict] {
     }
     incr ErrorCnt
     Msg CriticalWarning "$SIM is used in the project simulation fileset $key but is not in the list files."
-    dict lappend newListfiles [string range $key 0 end-4].sim "[Relative $repo_path $SIM] [DictGet $prjProperties $SIM]"
+    dict lappend newListfiles [string range $key 0 end-4].sim [string trim "[Relative $repo_path $SIM] [DictGet $prjProperties $SIM]"]
   }
 }
 
@@ -195,14 +194,14 @@ foreach key [dict key $prjSrcDict] {
     }
     Msg CriticalWarning "$SRC is used in the project (library $key) but is not in the list files."
     incr ErrorCnt
-    dict lappend newListfiles ${key}.src "[Relative $repo_path $SRC] [DictGet $prjProperties $SRC]"
+    dict lappend newListfiles ${key}.src [string trim "[Relative $repo_path $SRC] [DictGet $prjProperties $SRC]"]
   }
 }
 
 foreach SRC $prjOTHERs {
   Msg CriticalWarning "$SRC is used in the project but is not in the list files."
   incr ErrorCnt
-  dict lappend newListfiles Default.src "[Relative $repo_path $SRC] [DictGet $prjProperties $SRC]"
+  dict lappend newListfiles Default.src [string trim "[Relative $repo_path $SRC] [DictGet $prjProperties $SRC]"]
 }
 
 

@@ -159,7 +159,7 @@ function init()
           continue
         fi
       fi
-      vivado -mode batch -notrace -source $DIR/Tcl/utils/check_list_files.tcl $Vivado_prj -tclargs -recreate $Force -recreate_prjTcl
+      vivado -mode batch -notrace -source $DIR/Tcl/utils/check_list_files.tcl $Vivado_prj -tclargs -recreate $Force -recreate_prj_tcl
     fi
   done
 

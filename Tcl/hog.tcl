@@ -1308,16 +1308,13 @@ proc GetProjectFiles {} {
       
 
         # Type can be complex like VHDL 2008, in that case we want the second part to be a property
-        if {[llength $type] > 1} {
-          set prop [lrange $type 1 [llength $type]]
-          set type [lindex $type 0]
-        } else {
-          set prop ""
-        }
-
-        if {[string equal $type "VHDL"] && [string equal $prop ""]} {
+        if {[string equal [lindex $type 0] "VHDL"] && [llength $type] == 1} {
           set prop "93"
-        } elseif {[string equal $type "VHDL"] && [string equal $prop "2008"]} {
+        } elseif  {[string equal [lindex $type 0] "Block"] && [string equal [lindex $type 1] "Designs"]} { 
+          set type "IP"
+          set prop ""
+        } else {
+          set type [lindex $type 0]
           set prop ""
         }
 
@@ -1332,7 +1329,7 @@ proc GetProjectFiles {} {
           if {![string equal $prop ""]} {
             dict lappend properties $f $prop
           }
-        } elseif {[string equal $type "IP"] || [string equal "$type $prop" "Block Designs"]} {
+        } elseif {[string equal $type "IP"]} {
           dict lappend libraries "IP" $f
         } elseif {[string equal $type "XDC"]} {
           dict lappend libraries "XDC" $f

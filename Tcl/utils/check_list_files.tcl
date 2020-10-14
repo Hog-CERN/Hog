@@ -257,7 +257,7 @@ if {$options(recreate) == 1} {
     close $lFd
   }
 
-  if {$options(recreate_prjTcl) == 1} {
+  if {$options(recreate_prj_tcl) == 1} {
     
     Msg Info "Updating project tcl file $repo_path/$DirName/$project.tcl"
     set lFd [open $repo_path/$DirName/$project.tcl w]

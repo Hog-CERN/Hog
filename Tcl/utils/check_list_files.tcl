@@ -287,7 +287,7 @@ set SIMULATOR \"[DictGet $prjProperties Simulator]\""
       set run_props [list]
       foreach propReport [split "[report_property  -return_string -all [get_runs $proj_run]]" "\n"] {
         
-        if {[string equal "[lindex $propReport 2]" "false"] && ![string equal "[lindex $propReport 0]" "PART"] && ![string equal "[lindex $propReport 0]" "STRATEGY"] && ![string equal "[lindex $propReport 0]" "FLOW"] && ![string equal "[lindex $propReport 0]" "STEPS.SYNTH_DESIGN.TCL.PRE"] && ![string equal "[lindex $propReport 0]" "STEPS.ROUTE_DESIGN.TCL.POST"] && ![string equal "[lindex $propReport 0]" "STEPS.WRITE_BITSTREAM.TCL.PRE"] && ![string equal "[lindex $propReport 0]" "STEPS.WRITE_BITSTREAM.TCL.POST"]} {          
+        if {[string equal "[lindex $propReport 2]" "false"] && ![string equal "[lindex $propReport 0]" "PART"] && ![string equal "[lindex $propReport 0]" "STRATEGY"] && ![string equal "[lindex $propReport 0]" "FLOW"] && ![string equal "[lindex $propReport 0]" "STEPS.SYNTH_DESIGN.TCL.PRE"] && ![string equal "[lindex $propReport 0]" "STEPS.OPT_DESIGN.TCL.PRE"] && ![string equal "[lindex $propReport 0]" "STEPS.ROUTE_DESIGN.TCL.POST"] && ![string equal "[lindex $propReport 0]" "STEPS.WRITE_BITSTREAM.TCL.PRE"] && ![string equal "[lindex $propReport 0]" "STEPS.WRITE_BITSTREAM.TCL.POST"]} {          
           lappend run_props [lindex $propReport 0] 
         } 
       }

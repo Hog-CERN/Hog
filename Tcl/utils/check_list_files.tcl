@@ -129,8 +129,8 @@ foreach key [dict keys $listLibraries] {
       Msg CriticalWarning "[file rootname $key]_sim fileset not found in Project! Was it removed from the project?"
       incr ErrorCnt
     }
-	} elseif {[file extension $key] == ".src" || [file extension $key] == ".sub" || [file extension $key] == ".ext" } {
-		#check if project contains XDCs specified in listfiles
+	} elseif {[file extension $key] == ".src" || [file extension $key] == ".sub"} {
+		#check if project contains sources specified in listfiles
     set prjSRCs [DictGet $prjSrcDict [file rootname $key]] 
     
 		foreach SRC [DictGet $listLibraries $key] {
@@ -150,7 +150,30 @@ foreach key [dict keys $listLibraries] {
       }
 		} 
     dict set prjSrcDict [file rootname $key] $prjSRCs
-	} else {
+	} elseif {[file extension $key] == ".ext" } {
+    #check if project contains external files specified in listfiles
+    set prjSRCs [DictGet $prjSrcDict [file rootname $key]] 
+    
+		foreach SRC [DictGet $listLibraries $key] {
+			set idx [lsearch -exact $prjSRCs $SRC]
+			set prjSRCs [lreplace $prjSRCs $idx $idx]
+			if {$idx < 0} {
+   				set idx [lsearch -exact $prjOTHERs $SRC]
+			    set prjOTHERs [lreplace $prjOTHERs $idx $idx]
+			    if {$idx < 0} {
+       			Msg CriticalWarning "$SRC not found in Project source files! Was it removed from the project?"
+            incr ErrorCnt
+			    } else {
+            dict lappend newListfiles $key [string trim "$SRC [Md5Sum $SRC] [DictGet $prjProperties $SRC]"]
+            dict lappend prjProperties $SRC [Md5Sum $SRC]
+          }
+			} else {
+         dict lappend newListfiles $key [string trim "$SRC [Md5Sum $SRC] [DictGet $prjProperties $SRC]"]
+         dict lappend prjProperties $SRC [Md5Sum $SRC]
+      }
+		} 
+    dict set prjSrcDict [file rootname $key] $prjSRCs
+  } else {
 		Msg CriticalWarning "$key list file format unrecognized by Hog."
     incr ErrorCnt
 	}

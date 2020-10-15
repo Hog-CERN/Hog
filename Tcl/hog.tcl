@@ -1295,7 +1295,7 @@ proc GetProjectFiles {} {
         Msg CriticalWarning "No top simulation file found for fileset $fs."
       } else {
         set simtopfile [lindex [get_files -compile_order sources -used_in simulation -of_objects [get_filesets $fs]] end]
-        if {[string equals [get_files -of_objects [get_filesets $fs] $simtopfile] ""] } {
+        if {[string equal [get_files -of_objects [get_filesets $fs] $simtopfile] ""] } {
           Msg CriticalWarning "Top simulation file $simtopfile not found in fileset $fs."
         } else {
           dict lappend properties $simtopfile "topsim=$topsim"

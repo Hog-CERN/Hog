@@ -1314,7 +1314,7 @@ proc GetProjectFiles {} {
 
 
     foreach f $all_files {
-      if { [lindex [get_property  IS_GENERATED [get_files $f]] 0] == 0} {
+      if { [lindex [get_property  IS_GENERATED [get_files $f]] 0] == 0 && ![string equal [file extension $f] ".coe"]} {
         set f [file normalize $f]
         lappend files $f
         set type  [get_property FILE_TYPE [get_files $f]]

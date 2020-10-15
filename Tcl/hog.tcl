@@ -1291,10 +1291,15 @@ proc GetProjectFiles {} {
       set topsim [get_property "top"  [get_filesets $fs]]
       set runtime [get_property "$simulator.simulate.runtime"  [get_filesets $fs]]
       #getting file containing top module as explained here: https://forums.xilinx.com/t5/Vivado-TCL-Community/How-can-I-get-the-file-path-of-the-top-module-in-the-current/td-p/455740
-      set simtopfile [lindex [get_files -compile_order sources -used_in simulation -of_objects [get_filesets $fs]] end]
-      dict lappend properties $simtopfile "topsim=$topsim"
-      if {![string equal "$runtime" "1000ns"]} { #not writing default value
-        dict lappend properties $simtopfile "runtime=$runtime"
+      if {[string equal "$topsim" ""]} {
+        Msg CriticalWarning "No top simulation file found for fileset $fs."
+      } else {
+        set simtopfile [lindex [get_files -compile_order sources -used_in simulation -of_objects [get_filesets $fs]] end]
+        dict lappend properties $simtopfile "topsim=$topsim"
+        
+        if {![string equal "$runtime" "1000ns"]} { #not writing default value
+          dict lappend properties $simtopfile "runtime=$runtime"
+        }
       }
       set wavefile [get_property "$simulator.simulate.custom_wave_do" [get_filesets $fs]]
       if {![string equal "$wavefile" ""]} {

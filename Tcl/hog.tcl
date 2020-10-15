@@ -1342,7 +1342,7 @@ proc GetProjectFiles {} {
           dict lappend libraries "IP" $f
         } elseif {[string equal $type "XDC"]} {
           dict lappend libraries "XDC" $f
-          dict lappend properties $f "XDC"
+          #dict lappend properties $f "XDC"
         } else {
           dict lappend libraries "OTHER" $f
         }

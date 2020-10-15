@@ -208,7 +208,7 @@ foreach SRC $prjOTHERs {
 #checking file properties
 foreach key [dict keys $listProperties] {
   foreach prop [lindex [DictGet $listProperties $key] 0] {
-    if {[lsearch -nocase [lindex [DictGet $prjProperties $key] 0] $prop] < 0 && ![string equal $prop ""]} {
+    if {[lsearch -nocase [lindex [DictGet $prjProperties $key] 0] $prop] < 0 && ![string equal $prop ""] && ![string equal $prop "XDC"]} {
  			Msg CriticalWarning "$key property $prop is set in list files but not in Project!"
       incr ErrorCnt
     } 

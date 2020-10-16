@@ -291,4 +291,5 @@ if {[info commands get_property] != ""} {
 }
 
 
+cd $old_path
 Msg Info "All done."

@@ -54,8 +54,8 @@ set usage   "Checks if the list files matches the project ones. It can also be u
 
 set hog_path [file normalize "[file dirname [info script]]/.."]
 set repo_path [file normalize "$hog_path/../.."]
-cd $hog_path 
-source ./hog.tcl
+#cd $hog_path 
+source $hog_path/hog.tcl
 
 if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}]} {
   Msg Info [cmdline::usage $parameters $usage]
@@ -69,7 +69,7 @@ set ext_path $options(ext_path)
 if {![string equal $options(project) ""]} {
   set project $options(project)
   Msg Info "Opening project $project..."
-  open_project ../../VivadoProject/$project/$project.xpr
+  open_project $repo_path/VivadoProject/$project/$project.xpr
 } else {
   set project [get_projects [current_project]]
 }

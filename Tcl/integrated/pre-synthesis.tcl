@@ -271,9 +271,17 @@ close $status_file
 
 CheckYmlRef [file normalize $tcl_path/../..] true
 
+
+cd $old_path
+
 #check list files
 if {[info commands get_property] != ""} {
     # Vivado
+  if {![string equal ext_path ""]} { 
+    set argv [list "-ext_path" "$ext_path" "-project" "[file tail [file normalize [get_property DIRECTORY [current_project]]/../..]]"]
+  } else {
+    set argv [list "-project" "[file tail [file normalize [get_property DIRECTORY [current_project]]/../..]]"]
+  }
   source  $tcl_path/utils/check_list_files.tcl
 } elseif {[info commands project_new] != ""} {
     # Quartus
@@ -282,6 +290,5 @@ if {[info commands get_property] != ""} {
     #Tclssh
 }
 
-cd $old_path
 
 Msg Info "All done."

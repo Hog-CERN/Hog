@@ -333,6 +333,10 @@ if {$options(recreate) == 1} {
     set lFd [open $repo_path/$DirName/$project.tcl w]
     puts $lFd "#vivado"
 
+    if {[get_property STEPS.WRITE_BITSTREAM.ARGS.BIN_FILE [get_runs impl_1]]==1} {
+      puts $lFd "set BIN_FILE 1"
+    }
+
     puts $lFd "#### FPGA and Vivado strategies and flows
 
 set FPGA [get_property PART [current_project]]
@@ -356,7 +360,7 @@ set SIMULATOR \"[DictGet $prjProperties Simulator]\""
       set run_props [list]
       foreach propReport [split "[report_property  -return_string -all [get_runs $proj_run]]" "\n"] {
         
-        if {[string equal "[lindex $propReport 2]" "false"] && ![string equal "[lindex $propReport 0]" "PART"] && ![string equal "[lindex $propReport 0]" "STRATEGY"] && ![string equal "[lindex $propReport 0]" "FLOW"] && ![string equal "[lindex $propReport 0]" "STEPS.SYNTH_DESIGN.TCL.PRE"] && ![string equal "[lindex $propReport 0]" "STEPS.OPT_DESIGN.TCL.PRE"] && ![string equal "[lindex $propReport 0]" "STEPS.ROUTE_DESIGN.TCL.POST"] && ![string equal "[lindex $propReport 0]" "STEPS.WRITE_BITSTREAM.TCL.PRE"] && ![string equal "[lindex $propReport 0]" "STEPS.WRITE_BITSTREAM.TCL.POST"]} {          
+        if {[string equal "[lindex $propReport 2]" "false"] && ![string equal "[lindex $propReport 0]" "PART"] && ![string equal "[lindex $propReport 0]" "STRATEGY"] && ![string equal "[lindex $propReport 0]" "FLOW"] && ![string equal "[lindex $propReport 0]" "STEPS.SYNTH_DESIGN.TCL.PRE"] && ![string equal "[lindex $propReport 0]" "STEPS.OPT_DESIGN.TCL.PRE"] && ![string equal "[lindex $propReport 0]" "STEPS.ROUTE_DESIGN.TCL.POST"] && ![string equal "[lindex $propReport 0]" "STEPS.WRITE_BITSTREAM.TCL.PRE"] && ![string equal "[lindex $propReport 0]" "STEPS.WRITE_BITSTREAM.TCL.POST"] $$![string equal "[lindex $propReport 0]" "STEPS.WRITE_BITSTREAM.ARGS.BIN_FILE"]} {          
           lappend run_props [lindex $propReport 0] 
         } 
       }

@@ -181,7 +181,7 @@ if {$reset == 1 } {
 }
 
 if { [string first PlanAhead [version]] ==0 } {
-  source  integrated/pre-synthesis.tcl
+  source  $path/../../Hog/Tcl/integrated/pre-synthesis.tcl
 }
 
 if {$do_synthesis == 1} {
@@ -240,10 +240,10 @@ if {$do_implementation == 1 } {
     reset_run impl_1
   }
 
-  if { [string first PlanAhead [version]] ==0} {source  integrated/pre-implementation.tcl}
+  if { [string first PlanAhead [version]] ==0} {source  $path/../../Hog/Tcl/integrated/pre-implementation.tcl}
   launch_runs impl_1 -jobs $options(njobs) -dir $main_folder
   wait_on_run impl_1
-  if { [string first PlanAhead [version]] ==0} {source  integrated/post-implementation.tcl}
+  if { [string first PlanAhead [version]] ==0} {source  $path/../../Hog/Tcl/integrated/post-implementation.tcl}
   
   set prog [get_property PROGRESS [get_runs impl_1]]
   set status [get_property STATUS [get_runs impl_1]]
@@ -304,11 +304,11 @@ if {$do_implementation == 1 } {
     if { [string first PlanAhead [version]] == 0 } {
       # PlanAhead command
       Msg Info "running pre-bitstream"
-      source  integrated/pre-bitstream.tcl
+      source  $path/../../Hog/Tcl/integrated/pre-bitstream.tcl
       launch_runs impl_1 -to_step Bitgen -jobs 4 -dir $main_folder
       wait_on_run impl_1
       Msg Info "running post-bitstream"
-      source  integrated/post-bitstream.tcl
+      source  $path/../../Hog/Tcl/integrated/post-bitstream.tcl
     } elseif { [string first Vivado [version]] ==0} {
       # Vivado command
       launch_runs impl_1 -to_step write_bitstream -jobs 4 -dir $main_folder

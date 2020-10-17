@@ -22,7 +22,12 @@ if {[catch {package require struct::matrix} ERROR]} {
   return
 }
 
-set old_path [pwd]
+if { [string first PlanAhead [version]] == 0 } {
+  set old_path [file normalize "../../VivadoProject/$project/$project.runs/synth_1"]
+  file mkdir $old_path
+} else {
+  set old_path [pwd]
+}
 set tcl_path [file normalize "[file dirname [info script]]/.."]
 source $tcl_path/hog.tcl
 

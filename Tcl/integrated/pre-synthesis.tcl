@@ -278,9 +278,9 @@ cd $old_path
 if {[info commands get_property] != ""} {
     # Vivado
   if {![string equal ext_path ""]} { 
-    set argv [list "-ext_path" "$ext_path" "-project" "[file tail [file normalize [get_property DIRECTORY [current_project]]/../..]]"]
+    set argv [list "-ext_path" "$ext_path" "-project" "$proj_name"]
   } else {
-    set argv [list "-project" "[file tail [file normalize [get_property DIRECTORY [current_project]]/../..]]"]
+    set argv [list "-project" "$proj_name"]
   }
   source  $tcl_path/utils/check_list_files.tcl
 } elseif {[info commands project_new] != ""} {

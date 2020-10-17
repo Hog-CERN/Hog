@@ -317,9 +317,16 @@ if {$options(recreate) == 1} {
 
   file mkdir  $repo_path/$DirName/list
   foreach listFile [dict keys $newListfiles] {
-    set lFd [open $repo_path/$DirName/list/$listFile w]
     if {[string equal [file extension $listFile] ".sim"]} {
-      puts $lFd "#Simulator [DictGet $prjProperties Simulator]"
+      set listSim [ParseFirstLineHogFiles "$repo_path/Top/$project/list/" $listFile]
+      set lFd [open $repo_path/$DirName/list/$listFile w]
+      if {[string equal -nocase [lindex [split $listSim " "] 0] "Simulator"] && [string equal -nocase [lindex [split $listSim " "] 1] "skip_simulation"]} {
+         puts $lFd "#$listSim"
+      } else {
+        puts $lFd "#Simulator [DictGet $prjProperties Simulator]"
+      }
+    } else {
+      set lFd [open $repo_path/$DirName/list/$listFile w]
     }
     foreach ln [DictGet $newListfiles $listFile] {
       puts $lFd "$ln"
@@ -385,4 +392,3 @@ set SIMULATOR \"[DictGet $prjProperties Simulator]\""
     close $lFd
   }
 }
-

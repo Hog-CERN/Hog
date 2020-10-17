@@ -1424,6 +1424,33 @@ proc GetHogFiles {list_path {list_files ""} {sha_mode 0} {ext_path ""}} {
 }
 
 
+## @brief Parse eventual commands in the first line of Hog files (e.g. #Vivado, #Simulator, etc)
+#
+# @param[in] list_path path to the list file directory
+# @param[in] list_files the file wildcard, if not spcified all Hog list files will be looked for
+#
+# @return a string with the first-line command
+# - libraries has library name as keys and a list of filenames as values
+# - properties has as file names as keys and a list of properties as values
+#
+proc ParseFirstLineHogFiles {list_path list_file} {
+  set repo_path [file normalize $list_path/../../..]
+  if {![file exists $list_path/$list_file]} {
+    Msg Error "list file $list_path/$list_file does not exist!"
+    return ""
+  } 
+  set fp [open $list_path/$list_file r]
+  set line [lindex [split [read $fp] "\n"] 0] 
+  close $fp
+
+  if {[string match "#*" $line]} {
+    return [string trim [string range $line 1 end]]
+  } else {
+    return ""
+  }
+}
+
+
 ## @brief  Add libraries and properties to Vivado/Quartus project
 #
 # @param[in] libraries has library name as keys and a list of filenames as values

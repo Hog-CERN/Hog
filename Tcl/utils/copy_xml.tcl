@@ -62,8 +62,8 @@ if {[file exists $list_file]} {
 }
 set ret [GetRepoVersions $repo_path/Top/$project/$project.tcl $ext_path]
 
-set sha [lindex $ret 15]
-set hex_ver [lindex $ret 16]
+set sha [lindex $ret 13]
+set hex_ver [lindex $ret 14]
 
 set ver [HexVersionToString $hex_ver]
 CopyXMLsFromListFile $list_file $repo_path $dst $ver $sha $generate

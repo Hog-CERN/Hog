@@ -250,6 +250,43 @@ if {$do_implementation == 1 } {
   Msg Info "Run: impl_1 progress: $prog, status : $status"
   
   # Check timing
+  if { [string first PlanAhead [version]] ==0 } {
+
+      set status_file [open "$main_folder/timing.txt" "w"]
+
+      set f [open [lindex [glob "$main_folder/impl_1/*.twr" 0]]]
+      set errs -1
+      while {[gets $f line] >= 0} {
+          if { [string match "Timing summary:" $line] } {
+              puts $status_file "$line"
+              while {[gets $f line] >= 0} {
+                  if { [string match "Timing errors:*" $line] } {
+                      set errs [regexp -inline -- {[0-9]+} $line]
+                  }
+                  if { [string match "*Footnotes*" $line ] } {
+                      break
+                  }
+                  puts $status_file "$line"
+
+              }
+          }
+      }
+
+      close $f
+      close $status_file
+
+      if {$errs == 0} {
+          Msg Info "Time requirements are met"
+          file rename "$main_folder/timing.txt" "$main_folder/timing_ok.txt"
+          set timing_ok 1
+      } else {
+          Msg CriticalWarning "Time requirements are NOT met"
+          file rename "$main_folder/timing.txt" "$main_folder/timing_error.txt"
+          set timing_ok 0
+      }
+
+  }
+
   if { [string first PlanAhead [version]] !=0 } {
     set wns [get_property STATS.WNS [get_runs [current_run]]]
     set tns [get_property STATS.TNS [get_runs [current_run]]]

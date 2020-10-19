@@ -92,7 +92,7 @@ if [file exists $fw_file] {
   if {$diff != ""} {
     Msg Warning "Found non committed changes:"
     Msg Status "$diff"
-    set fp [open "$dst_dir/diff_postbistream.txt" w+]
+    set fp [open "$dst_dir/diff_postbitstream.txt" w+]
     puts $fp "$diff"
     close $fp
   } else {

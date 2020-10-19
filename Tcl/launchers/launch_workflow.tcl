@@ -254,11 +254,12 @@ if {$do_implementation == 1 } {
 
       set status_file [open "$main_folder/timing.txt" "w"]
 
+      puts $status_file "## $project Timing summary"
+
       set f [open [lindex [glob "$main_folder/impl_1/*.twr" 0]]]
       set errs -1
       while {[gets $f line] >= 0} {
           if { [string match "Timing summary:" $line] } {
-              puts $status_file "$line"
               while {[gets $f line] >= 0} {
                   if { [string match "Timing errors:*" $line] } {
                       set errs [regexp -inline -- {[0-9]+} $line]
@@ -267,7 +268,6 @@ if {$do_implementation == 1 } {
                       break
                   }
                   puts $status_file "$line"
-
               }
           }
       }

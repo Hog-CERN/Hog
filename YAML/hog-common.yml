@@ -29,9 +29,12 @@ before_script:
 
 stages:
   - merge
-  - generate
-  - triggers
+  - dynamic_generate
+  - dynamic_triggers
+  - user_pre
   - generation_and_simulation
+  - user_proj
   - collect
+  - user_post
   - user
   - archive

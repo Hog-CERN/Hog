@@ -273,8 +273,13 @@ puts $status_file [m format 2string]
 puts $status_file "\n\n"
 close $status_file
 
-
 CheckYmlRef [file normalize $tcl_path/../..] true
-cd $old_path
 
+set user_pre_synthesis_file "./Top/$proj_name/pre-synthesis.tcl"
+if {[file exists $user_pre_synthesis_file]} {
+    Msg Status "Sourcing user pre-synthesis file $user_pre_synthesis_file"
+    source $user_pre_synthesis_file
+}
+
+cd $old_path
 Msg Info "All done."

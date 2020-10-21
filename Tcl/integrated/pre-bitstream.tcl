@@ -60,6 +60,11 @@ if {[info commands get_property] != ""} {
     #Tclssh
 }
 
+set user_pre_bitstream_file "./Top/$proj_name/pre-bitstream.tcl"
+if {[file exists $user_pre_bitstream_file]} {
+    Msg Status "Sourcing user pre-bitstream file $user_pre_bitstream_file"
+    source $user_pre_bitstream_file
+}
 
 cd $old_path
 Msg Info "All done"

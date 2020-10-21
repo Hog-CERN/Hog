@@ -152,5 +152,11 @@ if [file exists $fw_file] {
   Msg CriticalWarning "Firmware binary file not found."
 }
 
+set user_post_bitstream_file "./Top/$proj_name/post-bitstream.tcl"
+if {[file exists $user_post_bitstream_file]} {
+    Msg Status "Sourcing user post-bitstream file $user_post_bitstream_file"
+    source $user_post_bitstream_file
+}
+
 cd $old_path
 Msg Info "All done."

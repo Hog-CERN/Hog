@@ -74,7 +74,7 @@ if {$options(merged) == 0} {
   }
   set WIP [ParseJSON  $options(mr_par) "work_in_progress"]
   set MERGE_STATUS [ParseJSON  $options(mr_par) "merge_status"]
-  set DESCRIPTION [ParseJSON  $options(mr_par) "description"]
+  set DESCRIPTION [list [ParseJSON  $options(mr_par) "description"]]
   Msg Info "WIP: ${WIP},  Merge Request Status: ${MERGE_STATUS}   Description: ${DESCRIPTION}"
   if {$options(no_increase) != 0} {
     Msg Info "Will ignore the directives in the MR description to increase version, if any."

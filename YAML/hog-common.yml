@@ -36,5 +36,4 @@ stages:
   - user_proj
   - collect
   - user_post
-  - user
   - archive

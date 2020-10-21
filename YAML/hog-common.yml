@@ -33,4 +33,5 @@ stages:
   - triggers
   - generation_and_simulation
   - collect
+  - user
   - archive

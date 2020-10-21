@@ -11,14 +11,14 @@ More information on the how to use Hog can be found in the [user documentation w
 
 ## Hog Releases
 Stable Hog releases are stored in the `master branch` and  are tagged as `Hog<YEAR>.<n>`, for example `Hog2020.1`.
-Pulling the `master` branch always gives you the most updated Hog stable realease.
+Pulling the `master` branch always gives you the most updated Hog stable release.
 
 Hog developers use the `develop` branch, tagging functional but not
 thoroughly tested releases with the format `vM.m.p`, for example `v1.2.3`.
 So pulling the develop branch will give you the most updated Hog version but not necessarily a stable on.
 
 ## Report issues or bugs
-You can report probems with Hog in using the issues in this repository. Please use the:
+You can report problems with Hog in using the issues in this repository. Please use the:
 
 - Report Problem label, if you are experiencing an unwanted behaviour
 - Feature Proposal label, if you want to propose a new Hog feature

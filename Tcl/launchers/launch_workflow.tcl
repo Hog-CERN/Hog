@@ -181,7 +181,7 @@ if {$reset == 1 } {
 }
 
 if { [string first PlanAhead [version]] ==0 } {
-  source  integrated/pre-synthesis.tcl
+  source  $path/../../Hog/Tcl/integrated/pre-synthesis.tcl
 }
 
 if {$do_synthesis == 1} {
@@ -240,16 +240,53 @@ if {$do_implementation == 1 } {
     reset_run impl_1
   }
 
-  if { [string first PlanAhead [version]] ==0} {source  integrated/pre-implementation.tcl}
+  if { [string first PlanAhead [version]] ==0} {source  $path/../../Hog/Tcl/integrated/pre-implementation.tcl}
   launch_runs impl_1 -jobs $options(njobs) -dir $main_folder
   wait_on_run impl_1
-  if { [string first PlanAhead [version]] ==0} {source  integrated/post-implementation.tcl}
+  if { [string first PlanAhead [version]] ==0} {source  $path/../../Hog/Tcl/integrated/post-implementation.tcl}
   
   set prog [get_property PROGRESS [get_runs impl_1]]
   set status [get_property STATUS [get_runs impl_1]]
   Msg Info "Run: impl_1 progress: $prog, status : $status"
   
   # Check timing
+  if { [string first PlanAhead [version]] ==0 } {
+
+      set status_file [open "$main_folder/timing.txt" "w"]
+
+      puts $status_file "## $project Timing summary"
+
+      set f [open [lindex [glob "$main_folder/impl_1/*.twr" 0]]]
+      set errs -1
+      while {[gets $f line] >= 0} {
+          if { [string match "Timing summary:" $line] } {
+              while {[gets $f line] >= 0} {
+                  if { [string match "Timing errors:*" $line] } {
+                      set errs [regexp -inline -- {[0-9]+} $line]
+                  }
+                  if { [string match "*Footnotes*" $line ] } {
+                      break
+                  }
+                  puts $status_file "$line"
+              }
+          }
+      }
+
+      close $f
+      close $status_file
+
+      if {$errs == 0} {
+          Msg Info "Time requirements are met"
+          file rename "$main_folder/timing.txt" "$main_folder/timing_ok.txt"
+          set timing_ok 1
+      } else {
+          Msg CriticalWarning "Time requirements are NOT met"
+          file rename "$main_folder/timing.txt" "$main_folder/timing_error.txt"
+          set timing_ok 0
+      }
+
+  }
+
   if { [string first PlanAhead [version]] !=0 } {
     set wns [get_property STATS.WNS [get_runs [current_run]]]
     set tns [get_property STATS.TNS [get_runs [current_run]]]
@@ -304,11 +341,11 @@ if {$do_implementation == 1 } {
     if { [string first PlanAhead [version]] == 0 } {
       # PlanAhead command
       Msg Info "running pre-bitstream"
-      source  integrated/pre-bitstream.tcl
+      source  $path/../../Hog/Tcl/integrated/pre-bitstream.tcl
       launch_runs impl_1 -to_step Bitgen -jobs 4 -dir $main_folder
       wait_on_run impl_1
       Msg Info "running post-bitstream"
-      source  integrated/post-bitstream.tcl
+      source  $path/../../Hog/Tcl/integrated/post-bitstream.tcl
     } elseif { [string first Vivado [version]] ==0} {
       # Vivado command
       launch_runs impl_1 -to_step write_bitstream -jobs 4 -dir $main_folder

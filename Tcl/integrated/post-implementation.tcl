@@ -90,5 +90,10 @@ if {[info commands send_msg_id] != ""} {
   # Tclsh
 }
 
+set user_post_implementation_file "./Top/$proj_name/post-implementation.tcl"
+if {[file exists $user_post_implementation_file]} {
+    Msg Status "Sourcing user post_implementation file $user_post_implementation_file"
+    source $user_post_implementation_file
+}
 cd $old_path
 Msg Info "All done."

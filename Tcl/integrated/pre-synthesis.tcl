@@ -22,7 +22,12 @@ if {[catch {package require struct::matrix} ERROR]} {
   return
 }
 
-set old_path [pwd]
+if { [string first PlanAhead [version]] == 0 } {
+  set old_path [file normalize "../../VivadoProject/$project/$project.runs/synth_1"]
+  file mkdir $old_path
+} else {
+  set old_path [pwd]
+}
 set tcl_path [file normalize "[file dirname [info script]]/.."]
 source $tcl_path/hog.tcl
 
@@ -268,7 +273,6 @@ puts $status_file [m format 2string]
 puts $status_file "\n\n"
 close $status_file
 
-
 CheckYmlRef [file normalize $tcl_path/../..] true
 
 
@@ -290,6 +294,13 @@ if {[info commands get_property] != ""} {
     #Tclssh
 }
 
+
+
+set user_pre_synthesis_file "./Top/$proj_name/pre-synthesis.tcl"
+if {[file exists $user_pre_synthesis_file]} {
+    Msg Status "Sourcing user pre-synthesis file $user_pre_synthesis_file"
+    source $user_pre_synthesis_file
+}
 
 cd $old_path
 Msg Info "All done."

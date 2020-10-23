@@ -622,6 +622,9 @@ proc GetVer {path} {
   set SHA [GetSHA $path]
   #oldest tag containing SHA
   #set comm [format %07X 0x$SHA]
+  if {$SHA eq ""} {
+    Msg CriticalWarning "Empty SHA found for ${path}. Commit to Git to resolve this warning."
+  }
   return [list [GetVerFromSHA $SHA] $SHA]
 }
 
@@ -632,41 +635,46 @@ proc GetVer {path} {
 # @return  a list: the git SHA, the version in hex format
 #
 proc GetVerFromSHA {SHA} {
-  set status [catch {exec git tag --sort=creatordate --contain $SHA -l "v*.*.*" -l "b*v*.*.*"} result]
-  if {$status == 0} {
-    if {[regexp {^ *$} $result]} {
-      #newest tag of the repo, parent of the SHA
-      if [catch {exec git describe --tags --abbrev=0 --match=v*.*.* --match=b*v*.*.*} tag] {
-        Msg CriticalWarning "No Hog version tags found in this repository."
-        set ver v0.0.0
-      } else {
-        lassign [ExtractVersionFromTag $tag] M m p mr
-	if {$M == -1} {
-	  Msg CriticalWarning "Tag $tag does not contain a Hog compatible version in this repository."
-	  set ver v0.0.0
-	} elseif {$mr == -1} {
-          incr p
-          Msg Info "No tag contains $SHA, will use most recent tag $tag. As this is an official tag, patch will be incremented to $p."
+  if { $SHA eq ""} {
+    Msg CriticalWarning "Empty SHA Found"
+    set ver "error: EMPTY SHA"
+  } else {
+    set status [catch {exec git tag --sort=creatordate --contain $SHA -l "v*.*.*" -l "b*v*.*.*"} result]
+    if {$status == 0} {
+      if {[regexp {^ *$} $result]} {
+        #newest tag of the repo, parent of the SHA
+        if [catch {exec git describe --tags --abbrev=0 --match=v*.*.* --match=b*v*.*.*} tag] {
+          Msg CriticalWarning "No Hog version tags found in this repository."
+          set ver v0.0.0
         } else {
-          Msg Info "No tag contains $SHA, will use most recent tag $tag. As this is a candidate tag, the patch level will be kept at $p."
+          lassign [ExtractVersionFromTag $tag] M m p mr
+    if {$M == -1} {
+      Msg CriticalWarning "Tag $tag does not contain a Hog compatible version in this repository."
+      set ver v0.0.0
+    } elseif {$mr == -1} {
+            incr p
+            Msg Info "No tag contains $SHA, will use most recent tag $tag. As this is an official tag, patch will be incremented to $p."
+          } else {
+            Msg Info "No tag contains $SHA, will use most recent tag $tag. As this is a candidate tag, the patch level will be kept at $p."
+          }
+          set ver v$M.$m.$p
         }
-        set ver v$M.$m.$p
+      } else {
+        #The tag in $result contains the current SHA
+        set vers [split $result "\n"]
+        set ver [lindex $vers 0]
+        foreach v $vers {
+          if {[regexp {^v.*$} $v]} {
+            set un_ver $ver
+            set ver $v
+            break
+          }
+        }
       }
     } else {
-      #The tag in $result contains the current SHA
-      set vers [split $result "\n"]
-      set ver [lindex $vers 0]
-      foreach v $vers {
-        if {[regexp {^v.*$} $v]} {
-          set un_ver $ver
-          set ver $v
-          break
-        }
-      }
+      Msg CriticalWarning "Error while trying to find tag for $SHA"
+      set ver "error: $result"
     }
-  } else {
-    Msg CriticalWarning "Error while trying to find tag for $SHA"
-    set ver "error: $result"
   }
 
   lassign [ExtractVersionFromTag $ver] M m c mr
@@ -823,6 +831,9 @@ proc GetRepoVersions {proj_tcl_file {ext_path ""} {sim 0}} {
     set name [file rootname [file tail $f]]
     lassign [GetVer  $files] ver hash
     #Msg Info "Found constraint list file $f, version: $ver commit SHA: $hash"
+    if {$hash eq ""} {
+      Msg CriticalWarning "Constraints file $f not found in Git."
+    }
     lappend cons_hashes $hash
     lappend SHAs $hash
   }
@@ -844,7 +855,12 @@ proc GetRepoVersions {proj_tcl_file {ext_path ""} {sim 0}} {
   
 
   #Of all the constraints we get the most recent
+  set cons_hash ""
+  if {"{}" eq $cons_hashes} {
+    Msg CriticalWarning "No hashes found for constraints files (not in Git)"
+  } else {
   set cons_hash [string toupper [exec git log --format=%h -1 {*}$cons_hashes]]
+  }
   set cons_ver [GetVerFromSHA $cons_hash]
   #Msg Info "Among all the constraint list files, if more than one, the most recent version was chosen: $cons_ver commit SHA: $cons_hash"
 

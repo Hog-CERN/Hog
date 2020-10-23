@@ -448,41 +448,40 @@ proc ReadListFile {list_file path {lib ""} {sha_mode 0} } {
       set vhdlfile [lindex $file_and_prop 0]
       set vhdlfile "$path/$vhdlfile"
       if {[file exists $vhdlfile]} {
- 	set vhdlfile [file normalize $vhdlfile]
- 	set extension [file ext $vhdlfile]
+ 	      set vhdlfile [file normalize $vhdlfile]
+ 	      set extension [file ext $vhdlfile]
 
-	if { $extension == $list_file_ext } {
-	  Msg Info "List file $vhdlfile found in list file, recursively opening it..."
-	  ### Set list file properties
-	  set prop [lrange $file_and_prop 1 end]
-	  set library [lindex [regexp -inline {lib\s*=\s*(.+?)\y.*} $prop] 1]
-	  if { $library != "" } {
-	    Msg Info "Setting $library as library for list file $vhdlfile..."
-	  } else {
-	    Msg Info "Setting $lib as library for list file $vhdlfile..."
-	    set library $lib
-	  }
-	  lassign [ReadListFile $vhdlfile $path $library $sha_mode] l p
+        if { $extension == $list_file_ext } {
+          Msg Info "List file $vhdlfile found in list file, recursively opening it..."
+          ### Set list file properties
+          set prop [lrange $file_and_prop 1 end]
+          set library [lindex [regexp -inline {lib\s*=\s*(.+?)\y.*} $prop] 1]
+          if { $library != "" } {
+            Msg Info "Setting $library as library for list file $vhdlfile..."
+          } else {
+            Msg Info "Setting $lib as library for list file $vhdlfile..."
+            set library $lib
+          }
+          lassign [ReadListFile $vhdlfile $path $library $sha_mode] l p
 
-	  set libraries [dict merge $l $libraries]
-	  set properties [dict merge $p $properties]
-	} elseif {[lsearch {.src .sim .con .sub .ext} $extension] >= 0 } {
-	  Msg Error "$vhdlfile cannot be included into $list_file, $extension files must be included into $extension files."
-	} else {
-	  ### Set file properties
-	  set prop [lrange $file_and_prop 1 end]
-	  dict lappend properties $vhdlfile $prop
-	  ### Set File Set
-	  #Adding IP library
-	  if {$sha_mode == 0 && [lsearch {.xci .ip .bd} $extension] >= 0} {
-	    dict lappend libraries "$lib.ip" $vhdlfile
-	    Msg Info "Appending $vhdlfile to IP list..."
-	  } else {
-	    dict lappend libraries $lib$ext $vhdlfile
-	  }
-
-	}
- 	incr cnt
+      	  set libraries [dict merge $l $libraries]
+          set properties [dict merge $p $properties]
+      	} elseif {[lsearch {.src .sim .con .sub .ext} $extension] >= 0 } {
+	      Msg Error "$vhdlfile cannot be included into $list_file, $extension files must be included into $extension files."
+	    } else {
+	      ### Set file properties
+        set prop [lrange $file_and_prop 1 end]
+        dict lappend properties $vhdlfile $prop
+        ### Set File Set
+        #Adding IP library
+        if {$sha_mode == 0 && [lsearch {.xci .ip .bd} $extension] >= 0} {
+          dict lappend libraries "$lib.ip" $vhdlfile
+          Msg Info "Appending $vhdlfile to IP list..."
+        } else {
+          dict lappend libraries $lib$ext $vhdlfile
+        }
+      }
+      incr cnt
       } else {
         Msg Error "File $vhdlfile not found."
       }
@@ -494,6 +493,19 @@ proc ReadListFile {list_file path {lib ""} {sha_mode 0} } {
   }
   return [list $libraries $properties]
 }
+
+proc MergeDict {dict0 dict1} {
+  set outdict $dict0
+  set keys [dict keys $dict1 ]
+  foreach key keys {
+    if {[dict exists $outdict $key]} {
+      
+    } else {
+      
+    }
+  }
+}
+
 
 ## @brief Get git SHA of a vivado library
 #

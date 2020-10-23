@@ -69,4 +69,5 @@ else
         cd ..
     fi
     rm output.zip
+    rm output1.zip
 fi

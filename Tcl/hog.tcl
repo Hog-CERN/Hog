@@ -512,7 +512,7 @@ proc MergeDict {dict0 dict1} {
       lappend temp_list [dict get $dict1 $key]
       set temp_dict [dict create]
       dict lappend temp_dict $key $temp_list
-      set $outdict [dict merge $outdict $temp_list]
+      set outdict [dict merge $outdict $temp_dict]
     } 
   }
   return $outdict
@@ -1351,8 +1351,8 @@ proc GetHogFiles {list_path {list_files ""} {sha_mode 0} {ext_path ""}} {
     } else {
       lassign [ReadListFile $f $repo_path "" $sha_mode] l p
     }
-    set libraries [dict merge $l $libraries]
-    set properties [dict merge $p $properties]
+    set libraries [MergeDict $l $libraries]
+    set properties [MergeDict $p $properties]
   }
   return [list $libraries $properties]
 }

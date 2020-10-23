@@ -40,7 +40,7 @@ else
     then
         curl --location --header "PRIVATE-TOKEN: ${push_token}" "$api"/projects/"${proj}"/jobs/artifacts/"$ref"/download?job="$job" -o output1.zip
         echo "Hog-INFO: unzipping artifacts from $job job..."
-        unzip output1.zip
+        unzip -o output1.zip
     fi
 
     if [ -d bin ]

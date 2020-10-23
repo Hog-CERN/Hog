@@ -32,20 +32,19 @@ else
     curl --location --header "PRIVATE-TOKEN: ${push_token}" "$api"/projects/"${proj}"/jobs/artifacts/"$ref"/download?job="$job" -o output.zip
     echo "Hog-INFO: unzipping artifacts from $5 job..."
     unzip output.zip
-    pwd 
     # GET all artifacts from user_post stage
 	pipeline=$(curl --globoff --header "PRIVATE-TOKEN: ${push_token}" "$api/projects/${proj}/merge_requests/$mr/pipelines" | jq '.[0].id')
 	job=$(curl --globoff --header "PRIVATE-TOKEN: ${push_token}" "$api/projects/${proj}/pipelines/${pipeline}/jobs" | jq -r '.[-1].name')
     if [ "$job" != "$5" ]; 
     then
-        curl --location --header "PRIVATE-TOKEN: ${push_token}" "$api"/projects/"${proj}"/jobs/artifacts/"$ref"/download?job="$job" -o output1.zip
+        cd ../
         pwd
+        curl --location --header "PRIVATE-TOKEN: ${push_token}" "$api"/projects/"${proj}"/jobs/artifacts/"$ref"/download?job="$job" -o output1.zip
         echo "Hog-INFO: unzipping artifacts from $job job..."
         unzip -o output1.zip
         pwd
     fi
-    pwd 
-    
+
     if [ -d bin ]
     then
         # Project names:

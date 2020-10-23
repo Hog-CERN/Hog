@@ -37,12 +37,12 @@ else
 	job=$(curl --globoff --header "PRIVATE-TOKEN: ${push_token}" "$api/projects/${proj}/pipelines/${pipeline}/jobs" | jq -r '.[-1].name')
     if [ "$job" != "$5" ]; 
     then
-        pwd
         curl --location --header "PRIVATE-TOKEN: ${push_token}" "$api"/projects/"${proj}"/jobs/artifacts/"$ref"/download?job="$job" -o output1.zip
         echo "Hog-INFO: unzipping artifacts from $job job..."
-        unzip -o output1.zip
-        pwd
-    fi
+        unzip output1.zip -d bin1
+        mv bin1/bin/* bin/
+    fi    
+    
 
     if [ -d bin ]
     then

@@ -508,11 +508,10 @@ proc MergeDict {dict0 dict1} {
   set outdict [dict merge $dict1 $dict0]
   foreach key [dict keys $dict1 ] {
     if {[dict exists $outdict $key]} {
-      set temp_list [dict get $outdict $key]
-      lappend temp_list [dict get $dict1 $key]
-      set temp_dict [dict create]
-      dict lappend temp_dict $key $temp_list
-      set outdict [dict merge $outdict $temp_dict]
+      set temp_list [dict get $dict1 $key]
+	  foreach vhdfile $temp_list {
+      	dict lappend outdict $key $vhdfile
+	  }
     } 
   }
   return $outdict

@@ -464,8 +464,8 @@ proc ReadListFile {list_file path {lib ""} {sha_mode 0} } {
           }
           lassign [ReadListFile $vhdlfile $path $library $sha_mode] l p
 
-      	  set libraries [dict merge $l $libraries]
-          set properties [dict merge $p $properties]
+      	  set libraries [MergeDict $l $libraries]
+          set properties [MergeDict $p $properties]
       	} elseif {[lsearch {.src .sim .con .sub .ext} $extension] >= 0 } {
 	      Msg Error "$vhdlfile cannot be included into $list_file, $extension files must be included into $extension files."
 	    } else {
@@ -494,16 +494,28 @@ proc ReadListFile {list_file path {lib ""} {sha_mode 0} } {
   return [list $libraries $properties]
 }
 
+## @brief Merge two tcl dictionaries of lists
+#
+# If the dictionaries contain same keys, the list at the common key is a merging of the two 
+# 
+#
+# @param[in] dict0 the name of the first dictionary
+# @param[in] dict1 the name of the second dictionary
+#
+# @return        the merged dictionary
+#
 proc MergeDict {dict0 dict1} {
-  set outdict $dict0
-  set keys [dict keys $dict1 ]
-  foreach key keys {
+  set outdict [dict merge $dict1 $dict0]
+  foreach key [dict keys $dict1 ] {
     if {[dict exists $outdict $key]} {
-      
-    } else {
-      
-    }
+      set temp_list [dict get $outdict $key]
+      lappend temp_list [dict get $dict1 $key]
+      set temp_dict [dict create]
+      dict lappend temp_dict $key $temp_list
+      set $outdict [dict merge $outdict $temp_list]
+    } 
   }
+  return $outdict
 }
 
 

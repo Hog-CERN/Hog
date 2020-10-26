@@ -52,7 +52,7 @@ if {"$options(parent_pipeline_id)" == ""} {
   set curl_url "${api}/projects/${proj_id}/pipelines/${parent_pipeline_id}/jobs/?page=${page}"
 }
 
-lassign [ExecuteRet curl {-s --request GET --header "PRIVATE-TOKEN: ${push_token}" $curl_url}] ret msg
+lassign [ExecuteRet curl "-s --request GET --header \"PRIVATE-TOKEN: ${push_token}\" $curl_url"] ret msg
 if {$ret != 0} {
   Msg Error "Some problem when getting parent pipeline: $msg"
   return -1
@@ -107,7 +107,7 @@ if {$ret != 0} {
     }
 
     Msg Info "Downloading artifacts for child job at: ${api}/projects/${proj_id}/jobs/${child_job_id}/artifacts/"
-    lassign [ExecuteRet curl {-s --location --header "PRIVATE-TOKEN: ${push_token}" "${api}/projects/${proj_id}/jobs/${child_job_id}/artifacts/" -o output_${child_job_id}.zip}] ret msg
+    lassign [ExecuteRet curl "-s --location --header \"PRIVATE-TOKEN: ${push_token}\" \"${api}/projects/${proj_id}/jobs/${child_job_id}/artifacts/\" -o output_${child_job_id}.zip"] ret msg
     if {$ret != 0} {
       Msg Error "Some problem when downloading artifacts for child job id:$child_job_id. Error message: $msg"
       return -1

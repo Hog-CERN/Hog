@@ -44,6 +44,7 @@ else
     if [ "$job" != "$5" ]; 
     then
         unzip -vo output1.zip
+        rm output1.zip
     fi
 
     if [ -d bin ]
@@ -72,5 +73,4 @@ else
         cd ..
     fi
     rm output.zip
-    rm output1.zip
 fi

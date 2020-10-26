@@ -618,7 +618,7 @@ proc GetFileList {FILE path} {
 # @return         the value of the desired SHA
 #
 proc GetSHA {path} {
-  set ret [Git log {--format=%h -1} $path ]
+  set ret [Git {log --format=%h -1} $path ]
   return [string toupper $ret]
 }
 
@@ -642,7 +642,7 @@ proc GetVer {path} {
 # @return  a list: the git SHA, the version in hex format
 #
 proc GetVerFromSHA {SHA} {
-  lassign [GitRet {tag --sort=creatordate --contain $SHA -l "v*.*.*" -l "b*v*.*.*"} ] status result
+  lassign [GitRet "tag --sort=creatordate --contain $SHA -l \"v*.*.*\" -l \"b*v*.*.*\"" ] status result
   if {$status == 0} {
     if {[regexp {^ *$} $result]} {
       #newest tag of the repo, parent of the SHA
@@ -819,7 +819,7 @@ proc GetRepoVersions {proj_tcl_file {ext_path ""} {sim 0}} {
 #Append the SHA in which Hog submodule was changed, not the submodule SHA
   lappend SHAs [Git {log --format=%h -1} {../../Hog}]
   cd "../../Hog"
-  if {[Git {status --untracked-files=no  --porcelain}] eq "" } {
+  if {[Git {status --untracked-files=no  --porcelain}] eq ""} {
     Msg Info "Hog submodule [pwd] clean."
     lassign [GetVer ./] hog_ver hog_hash
   } else {
@@ -830,14 +830,13 @@ proc GetRepoVersions {proj_tcl_file {ext_path ""} {sim 0}} {
 
   cd $proj_dir
 
-  if { [Git {status --untracked-files=no  --porcelain}] eq "" } {
+  if {[Git {status --untracked-files=no  --porcelain}] eq ""} {
     Msg Info "Git working directory [pwd] clean."
     set clean 1
   } else {
     Msg CriticalWarning "Git working directory [pwd] not clean, commit hash, and version will be set to 0."
     set clean 0
   }
-
 # Top project directory
   lassign [GetVer $proj_tcl_file] top_ver top_hash
   lappend SHAs $top_hash
@@ -901,7 +900,7 @@ proc GetRepoVersions {proj_tcl_file {ext_path ""} {sim 0}} {
 
   foreach f $ext_files {
     set name [file rootname [file tail $f]]
-    set hash [Git {log --format=%h -1} $f ]
+    set hash [Git {log --format=%h -1} $f]
     #Msg Info "Found source file $f, commit SHA: $hash"
     lappend ext_names $name
     lappend ext_hashes $hash

@@ -110,7 +110,7 @@ if {$commit == 0 } {
 } else {
   Msg Info "Found last SHA for $proj_name: $commit"
   if {$commit != $this_commit} {
-    set count [Git {rev-list --count $commit..$this_commit}]
+    set count [Git "rev-list --count $commit..$this_commit"]
     Msg Info "The commit in which project $proj_name was last modified is $commit, that is $count commits older than current commit $this_commit."
   }
 }

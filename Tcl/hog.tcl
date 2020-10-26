@@ -637,7 +637,7 @@ proc GetVer {path} {
 proc GetVerFromSHA {SHA} {
   if { $SHA eq ""} {
     Msg CriticalWarning "Empty SHA Found"
-    set ver "error: EMPTY SHA"
+    set ver "v0.0.0"
   } else {
     set status [catch {exec git tag --sort=creatordate --contain $SHA -l "v*.*.*" -l "b*v*.*.*"} result]
     if {$status == 0} {

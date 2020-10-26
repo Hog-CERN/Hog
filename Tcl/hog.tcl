@@ -516,11 +516,11 @@ proc ReadListFile {list_file path {lib ""} {sha_mode 0} } {
 proc MergeDict {dict0 dict1} {
   set outdict [dict merge $dict1 $dict0]
   foreach key [dict keys $dict1 ] {
-    if {[dict exists $outdict $key]} {
+    if {[dict exists $dict0 $key]} {
       set temp_list [dict get $dict1 $key]
-	  foreach vhdfile $temp_list {
+      foreach vhdfile $temp_list {
       	dict lappend outdict $key $vhdfile
-	  }
+	    }
     } 
   }
   return $outdict

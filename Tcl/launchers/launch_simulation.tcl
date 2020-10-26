@@ -135,8 +135,8 @@ if [info exists sim_scripts] { #Only for modelsim/questasim
     cd $s
     set cmd ./compile.sh
     Msg Info "Compiling: $cmd..."
-
-    if { [catch { exec $cmd } log] } {
+    lassign [Execute $cmd] ret log 
+    if {$ret != 0} {
       Msg CriticalWarning "Compilation failed for $s, error info: $::errorInfo"
       incr errors
     }
@@ -147,7 +147,8 @@ if [info exists sim_scripts] { #Only for modelsim/questasim
     if { [file exists "./elaborate.sh"] } {
       set cmd ./elaborate.sh
       Msg Info "Found eleborate script, executing: $cmd..."
-      if { [catch { exec $cmd } log] } {
+      lassign [Execute $cmd] ret log 
+      if {$ret != 0} {
         Msg CriticalWarning "Elaboration failed for $s, error info: $::errorInfo"
         incr errors
       }
@@ -157,8 +158,8 @@ if [info exists sim_scripts] { #Only for modelsim/questasim
     }
     set cmd ./simulate.sh
     Msg Info "Simulating: $cmd..."
-
-    if { [catch { exec $cmd } log] } {
+    lassign [Execute $cmd] ret log 
+    if {$ret != 0} {
       Msg CriticalWarning "Simulation failed for $s, error info: $::errorInfo"
       incr errors
     }

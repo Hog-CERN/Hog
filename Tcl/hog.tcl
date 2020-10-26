@@ -321,7 +321,7 @@ proc CompareVersion {ver1 ver2} {
 #
 proc GitVersion {target_version} {
   set ver [split $target_version "."]
-  set v [exec git --version]
+  set v [Git --version]
   Msg Info "Found Git version: $v"
   set current_ver [split [lindex $v 2] "."]
   set target [expr [lindex $ver 0]*100000 + [lindex $ver 1]*100 + [lindex $ver 2]]
@@ -337,7 +337,7 @@ proc GitVersion {target_version} {
 #
 proc DoxygenVersion {target_version} {
   set ver [split $target_version "."]
-  set v [exec doxygen --version]
+  set v [Execute doxygen --version]
   Msg Info "Found doxygen version: $v"
   set current_ver [split $v ". "]
   set target [expr [lindex $ver 0]*100000 + [lindex $ver 1]*100 + [lindex $ver 2]]
@@ -513,9 +513,10 @@ proc ReadListFile {list_file path {lib ""} {sha_mode 0} } {
 #
 proc GetHashLib {lib} {
   if {$lib eq "ALL"} {
-    set ret [exec git log --format=%h -1]
+    set ret [Git {log --format=%h -1}]
   } else {
-    set ret [exec git log --format=%h -1 {*}[get_files -filter LIBRARY==$lib]]
+    set ff [get_files -filter LIBRARY==$lib]
+    set ret [Git {log --format=%h -1} $ff]
   }
 
   return $ret
@@ -531,7 +532,7 @@ proc GetHashLib {lib} {
 proc GetModifiedFiles {{repo_path "."} {pattern "."}} {
   set old_path [pwd]
   cd $repo_path
-  set ret [exec git ls-files --modified $pattern]
+  set ret [Git {ls-files --modified $pattern}]
   cd $old_path
   return $ret
 }
@@ -544,7 +545,7 @@ proc GetModifiedFiles {{repo_path "."} {pattern "."}} {
 proc RestoreModifiedFiles {{repo_path "."} {pattern "."}} {
   set old_path [pwd]
   cd $repo_path
-  set ret [exec git checkout -- $pattern]
+  set ret [Git checkout $pattern]
   cd $old_path
   return
 }
@@ -593,7 +594,7 @@ proc GetFileList {FILE path} {
 # @return         the value of the desired SHA
 #
 proc GetSHA {path} {
-  set ret [exec git log --format=%h -1 -- {*}$path ]
+  set ret [Git log {--format=%h -1} $path ]
   return [string toupper $ret]
 }
 
@@ -617,11 +618,12 @@ proc GetVer {path} {
 # @return  a list: the git SHA, the version in hex format
 #
 proc GetVerFromSHA {SHA} {
-  set status [catch {exec git tag --sort=creatordate --contain $SHA -l "v*.*.*" -l "b*v*.*.*"} result]
+  lassign [GitRet {tag --sort=creatordate --contain $SHA -l "v*.*.*" -l "b*v*.*.*"} ] status result
   if {$status == 0} {
     if {[regexp {^ *$} $result]} {
       #newest tag of the repo, parent of the SHA
-      if [catch {exec git describe --tags --abbrev=0 --match=v*.*.* --match=b*v*.*.*} tag] {
+      lassign [GitRet {describe --tags --abbrev=0 --match=v*.*.* --match=b*v*.*.*}] ret tag
+      if {$ret != 0} {
         Msg CriticalWarning "No Hog version tags found in this repository."
         set ver v0.0.0
       } else {
@@ -694,7 +696,7 @@ proc GetProjectVersion {tcl_file {ext_path ""} {sim 0}} {
   cd $proj_dir
 
   #The latest version the repository
-  set v_last [ExtractVersionFromTag [exec git describe --abbrev=0 --match "v*"]]
+  set v_last [ExtractVersionFromTag [Git {describe --abbrev=0 --match "v*"}]]
   lassign [GetRepoVersions $tcl_file $ext_path $sim] sha ver
   if {$sha == 0} {
     Msg Warning "Repository is not clean"
@@ -731,9 +733,9 @@ proc GetProjectVersion {tcl_file {ext_path ""} {sim 0}} {
 #
 proc GetGitDescribe {sha} {
   if {$sha == 0 } {
-    set describe [exec git describe --always --dirty --tags --long]
+    set describe [Git {describe --always --dirty --tags --long}]
   } else {
-    set describe [exec git describe --always --tags --long $sha --]
+    set describe [Git {describe --always --tags --long $sha}]
   }
 }
 
@@ -749,7 +751,8 @@ proc GetSubmodule {path_file} {
   set old_dir [pwd]
   set directory [file normalize [file dir $path_file]]
   cd $directory
-  if [catch {exec git rev-parse --show-superproject-working-tree} base] {
+  lassign [GitRet {rev-parse --show-superproject-working-tree}] ret base
+  if {$ret != 0} {
     Msg CriticalWarning "Git repository error: $sub"
     cd $old_dir
     return ""
@@ -757,7 +760,8 @@ proc GetSubmodule {path_file} {
   if {$base eq "" } {
     set submodule ""
   } else {
-    if [catch {exec git rev-parse --show-toplevel} sub] {
+    lassign [GitRet {rev-parse --show-toplevel}] ret sub
+    if {$ret != 0} {
       Msg CriticalWarning "Git submodule error: $sub"
       cd $old_dir
       return ""
@@ -789,9 +793,9 @@ proc GetRepoVersions {proj_tcl_file {ext_path ""} {sim 0}} {
 # Hog submodule
   cd $proj_dir
 #Append the SHA in which Hog submodule was changed, not the submodule SHA
-  lappend SHAs [exec git log --format=%h -1 -- ../../Hog]
+  lappend SHAs [Git {log --format=%h -1} {../../Hog}]
   cd "../../Hog"
-  if { [exec git status --untracked-files=no  --porcelain] eq "" } {
+  if {[Git {status --untracked-files=no  --porcelain}] eq "" } {
     Msg Info "Hog submodule [pwd] clean."
     lassign [GetVer ./] hog_ver hog_hash
   } else {
@@ -802,7 +806,7 @@ proc GetRepoVersions {proj_tcl_file {ext_path ""} {sim 0}} {
 
   cd $proj_dir
 
-  if { [exec git status --untracked-files=no  --porcelain] eq "" } {
+  if { [Git {status --untracked-files=no  --porcelain}] eq "" } {
     Msg Info "Git working directory [pwd] clean."
     set clean 1
   } else {
@@ -862,7 +866,7 @@ proc GetRepoVersions {proj_tcl_file {ext_path ""} {sim 0}} {
   
 
   #Of all the constraints we get the most recent
-  set cons_hash [string toupper [exec git log --format=%h -1 {*}$cons_hashes]]
+  set cons_hash [string toupper [Git "log --format=%h -1 $cons_hashes"]]
   set cons_ver [GetVerFromSHA $cons_hash]
   #Msg Info "Among all the constraint list files, if more than one, the most recent version was chosen: $cons_ver commit SHA: $cons_hash"
 
@@ -873,7 +877,7 @@ proc GetRepoVersions {proj_tcl_file {ext_path ""} {sim 0}} {
 
   foreach f $ext_files {
     set name [file rootname [file tail $f]]
-    set hash [exec git log --format=%h -1 $f ]
+    set hash [Git {log --format=%h -1} $f ]
     #Msg Info "Found source file $f, commit SHA: $hash"
     lappend ext_names $name
     lappend ext_hashes $hash
@@ -916,7 +920,7 @@ proc GetRepoVersions {proj_tcl_file {ext_path ""} {sim 0}} {
 
   #The global SHA and ver is the most recent among everything
   if {$clean == 1} {
-    set commit [exec git log --format=%h -1 {*}$SHAs --]
+    set commit [Git "log --format=%h -1 $SHAs"]
     set version [GetVerFromSHA $commit]
   } else {
     set commit  "0000000"
@@ -971,7 +975,8 @@ proc ExtractVersionFromTag {tag} {
 # @param[in] default_level:        If version level is 3 or more, will specify what level to increase when creating the official tag: 0 will increase patch (default), 1 will increase minor and 2 will increase major.
 #
 proc TagRepository {{merge_request_number 0} {version_level 0} {default_level 0}} {
-  if [catch {exec git describe --tags --abbrev=0 --match=v*.*.* --match=b*v*.*.*} tag] {
+  lassign [GitRet {describe --tags --abbrev=0 --match=v*.*.* --match=b*v*.*.*}] ret tag
+  if {$ret != 0} {
     Msg Error "No Hog version tags found in this repository."
   } else {
     lassign [ExtractVersionFromTag $tag] M m p mr
@@ -1039,7 +1044,8 @@ proc TagRepository {{merge_request_number 0} {version_level 0} {default_level 0}
       # Tagging repositroy
       if [info exists new_tag] {
         Msg Info "Tagging repository with $new_tag..."
-        if [catch {exec git tag {*}"$new_tag $tag_opt"} msg] {
+	lassign [GitRet "tag $new_tag $tag_opt"] ret msg
+	if {$ret != 0} {
           Msg Error "Could not create new tag $new_tag: $msg"
         } else {
           Msg Info "New tag $new_tag created successully."
@@ -1068,7 +1074,8 @@ proc TagRepository {{merge_request_number 0} {version_level 0} {default_level 0}
 # @param[in] generate    if set to 1, tells the function to generate the VHDL decode address files rather than check them 
 #
 proc CopyXMLsFromListFile {list_file path dst {xml_version "0.0.0"} {xml_sha "00000000"}  {generate 0} } {
-  if {[catch {exec gen_ipbus_addr_decode -h} msg]}  {
+  lassign [ExecuteRet gen_ipbus_addr_decode -h] ret msg
+  if {$ret != 0}  {
     set can_generate 0
   } else {
     set can_generate 1
@@ -1143,7 +1150,7 @@ proc CopyXMLsFromListFile {list_file path dst {xml_version "0.0.0"} {xml_sha "00
       if {$v != 0} {
 	set x [file normalize ../$x]
 	if {[file exists $x]} {
-	  set status [catch {exec gen_ipbus_addr_decode {*}"-v $x"} log]
+	  lassign [Execute gen_ipbus_addr_decode "-v $x"]  status log
 	  if {$status == 0} {
 	    set generated_vhdl ./ipbus_decode_[file root [file tail $x]].vhd
 	    if {$generate == 1} {
@@ -1168,7 +1175,7 @@ proc CopyXMLsFromListFile {list_file path dst {xml_version "0.0.0"} {xml_sha "00
 	      }
 	    }
 	  } else {
-	    Msg Warning "Address map generation failed fo $x: $log"
+	    Msg Warning "Address map generation failed for $x: $log"
 	  }
 	} else {
 	  Msg Warning "Copied XML file $x not found."
@@ -1606,7 +1613,8 @@ proc HandleIP {what_to_do xci_file ip_path runs_dir {force 0}} {
         Msg Info "Creating local archive with ip generated files..."
         ::tar::create $file_name.tar [glob -nocomplain [Relative $repo_path $xci_path]  $ip_synth_files_rel]
         Msg Info "Copying generated files for $xci_name..."
-        if [catch {exec xrdcp -f -s $file_name.tar  $::env(EOS_MGM_URL)//$ip_path/} msg] {
+	lassign [Execute xrdcp "-f -s $file_name.tar  $::env(EOS_MGM_URL)//$ip_path/"] ret msg
+        if {ret != 0} {
           Msg CriticalWarning "Something went wrong when copying the IP files to EOS. Error message: $msg"
         }
         Msg Info "Removing local archive"
@@ -1626,7 +1634,8 @@ proc HandleIP {what_to_do xci_file ip_path runs_dir {force 0}} {
       set remote_tar "$::env(EOS_MGM_URL)//$ip_path/$file_name.tar"
       Msg Info "IP $xci_name found in the repository $remote_tar, copying it locally to $repo_path..."
 
-      if [catch {exec xrdcp -f -r -s $remote_tar $repo_path} msg] {
+      lassign [Execute xrdcp "-f -r -s $remote_tar $repo_path"] ret msg
+      if {ret != 0} {
         Msg CriticalWarning "Something went wrong when copying the IP files to EOS. Error message: $msg"
       }
       Msg Info "Extracting IP files from archive to $repo_path..."
@@ -1650,7 +1659,7 @@ proc Md5Sum {file_name} {
   }
   if {[catch {package require md5 2.0.7} result]} {
     Msg Warning "Tcl package md5 version 2.0.7 not found ($result), will use command line..."
-    set hash [lindex [exec md5sum $file_name] 0]
+    set hash [lindex [Execute md5sum $file_name] 0]
   } else {
     set file_hash [string tolower [md5::md5 -hex -file $file_name]]
   }
@@ -1711,7 +1720,7 @@ You can fix this by installing package \"tcllib\""
     if {$YML_REF == ""} {
       Msg Warning "Hog version not specified in the .gitlab-ci.yml. Assuming that master branch is used"
       cd Hog
-      set YML_REF_F [exec git name-rev --tags --name-only origin/master]
+      set YML_REF_F [Git {name-rev --tags --name-only origin/master}]
       cd ..
     } else {
       set YML_REF_F [regsub -all "'" $YML_REF ""]
@@ -1748,8 +1757,10 @@ You can fix this by installing package \"tcllib\""
     Msg Info "Found the following yml files: $YML_FILES"
 
     set HOGYML_SHA [GetSHA $YML_FILES]
-    if { [catch {exec git log --format=%h -1 $YML_REF_F -- {*}$YML_FILES} EXPECTEDYML_SHA]} {
-      if { [catch {exec git log --format=%h -1 origin/$YML_REF_F -- {*}$YML_FILES} EXPECTEDYML_SHA]} {
+    lassign [GitRet {log --format=%h -1 $YML_REF_F} $YML_FILES] ret EXPECTEDYML_SHA 
+    if { ret != 0} {
+      lassign [GitRet { log --format=%h -1 origin/$YML_REF_F} $YML_FILES] ret EXPECTEDYML_SHA 
+      if { ret != 0} {
         Msg $MSG_TYPE "Error in project .gitlab-ci.yml. ref: $YML_REF not found"
         set EXPECTEDYML_SHA ""
       }
@@ -1837,15 +1848,46 @@ proc eos {command {attempt 1}}  {
 
 ## @brief Handle git commands
 #
-# It can be used with lassign like this: lassign [Git \<git command\> \<possibly files\> ] ret result
+#
+#  @param[in] command: the git command to be run including refs (branch, tags, sha, etc.), except files.
+#  @param[in] files: files given to git as argument. They will always be separated with -- to avoid weird accidents
+#
+#  @returns the output of the git command
+proc Git {command {files ""}}  {
+  lassign [GitRet $command $files] ret result
+  if {$ret != 0} {
+    Error "Code $ret returned by git running: $command -- $files"
+  }    
+
+  return $result
+}
+
+## @brief Handle git commands without causing an ewrror if ret is not 0
+#
+# It can be used with lassign like this: lassign [GitRet \<git command\> \<possibly files\> ] ret result
 #
 #  @param[in] command: the git command to be run including refs (branch, tags, sha, etc.), except files.
 #  @param[in] files: files given to git as argument. They will always be separated with -- to avoid weird accidents
 #
 #  @returns a list of 2 elements: the return value (0 if no error occurred) and the output of the git command
-proc Git {command {files ""}}  {
+proc GitRet {command {files ""}}  {
   global env
   set ret [catch {exec -ignorestderr git {*}$command -- {*}$files} result]
+
+  return [list $result $ret]
+}
+
+## @brief Handle shell commands
+#
+# It can be used with lassign like this: lassign [Execute \<command\> ] ret result
+#
+#  @param[in] command: the shell command
+#  @param[in] args: command arguments
+#
+#  @returns a list of 2 elements: the return value (0 if no error occurred) and the output of the command
+proc ExecuteRet {command {args ""}}  {
+  global env
+  set ret [catch {exec -ignorestderr $command {*}$args} result]
 
   return [list $ret $result]
 }
@@ -1857,12 +1899,16 @@ proc Git {command {files ""}}  {
 #  @param[in] command: the shell command
 #  @param[in] args: command arguments
 #
-#  @returns a list of 2 elements: the return value (0 if no error occurred) and the output of the git command
+#  @returns the output of the command
 proc Execute {command {args ""}}  {
   global env
-  set ret [catch {exec -ignorestderr $command {*}$args} result]
+  lassign [ExecuteRet $command $args] ret result
+  if {$ret != 0} {
+    Error "executing $commands $args returned error code: $ret"
+    exit -1
+  }
 
-  return [list $ret $result]
+  return $result
 }
 
 

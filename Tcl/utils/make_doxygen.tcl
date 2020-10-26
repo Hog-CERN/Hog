@@ -57,6 +57,7 @@ if {[DoxygenVersion 1.8.13]} {
   set outfile [open $doxygen_conf a]
   puts $outfile \nPROJECT_NUMBER=$version
   close $outfile
+  #We need exec exceptionally here as we want to see the output as it appears
   exec -ignorestderr doxygen $doxygen_conf
 }
 

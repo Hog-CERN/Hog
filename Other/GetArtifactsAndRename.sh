@@ -51,7 +51,8 @@ else
     pwd     
     if [ "$job" != "$5" ]; 
     then
-        unzip output1.zip
+        unzip -vo output1.zip
+        pwd
     fi
     if [ -d bin ]
     then

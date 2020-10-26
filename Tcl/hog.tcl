@@ -532,7 +532,7 @@ proc GetHashLib {lib} {
 proc GetModifiedFiles {{repo_path "."} {pattern "."}} {
   set old_path [pwd]
   cd $repo_path
-  set ret [Git {ls-files --modified $pattern}]
+  set ret [Git "ls-files --modified $pattern"]
   cd $old_path
   return $ret
 }
@@ -735,7 +735,7 @@ proc GetGitDescribe {sha} {
   if {$sha == 0 } {
     set describe [Git {describe --always --dirty --tags --long}]
   } else {
-    set describe [Git {describe --always --tags --long $sha}]
+    set describe [Git "describe --always --tags --long $sha"]
   }
 }
 
@@ -1856,7 +1856,7 @@ proc eos {command {attempt 1}}  {
 proc Git {command {files ""}}  {
   lassign [GitRet $command $files] ret result
   if {$ret != 0} {
-    Error "Code $ret returned by git running: $command -- $files"
+    Msg Error "Code $ret returned by git running: $command -- $files"
   }    
 
   return $result
@@ -1904,7 +1904,7 @@ proc Execute {command {args ""}}  {
   global env
   lassign [ExecuteRet $command $args] ret result
   if {$ret != 0} {
-    Error "executing $commands $args returned error code: $ret"
+    Msg Error "Command $commands $args returned error code: $ret"
     exit -1
   }
 

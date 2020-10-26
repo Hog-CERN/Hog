@@ -21,13 +21,17 @@ if {[catch {package require struct::matrix} ERROR]} {
   puts "$ERROR\n If you are running this script on tclsh, you can fix this by installing 'tcllib'"
   return
 }
-
-if { [string first PlanAhead [version]] == 0 } {
-  set old_path [file normalize "../../VivadoProject/$project/$project.runs/synth_1"]
-  file mkdir $old_path
+if {[info commands get_property] != ""} {
+  if { [string first PlanAhead [version]] == 0 } {
+    set old_path [file normalize "../../VivadoProject/$project/$project.runs/synth_1"]
+    file mkdir $old_path
+  } else {
+    set old_path [pwd]
+  }
 } else {
   set old_path [pwd]
 }
+
 set tcl_path [file normalize "[file dirname [info script]]/.."]
 source $tcl_path/hog.tcl
 
@@ -243,12 +247,6 @@ if {[info commands set_property] != ""} {
     set_parameter -name "[string toupper $l]_VER" $bits
     binary scan [binary format H* [string map {{'} {}} $h]] B* bits
     set_parameter -name "[string toupper $l]_SHA" $bits
-  }
-
-  #set project specific sub modules
-  foreach s $subs h $subs_hashes {
-    binary scan [binary format H* [string map {{'} {}} $h]] B* bits
-    set_parameter -name "[string toupper $s]_SHA" $bits
   }
 
   foreach e $ext_names h $ext_hashes {

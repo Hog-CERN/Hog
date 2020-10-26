@@ -47,7 +47,7 @@ if {[info commands get_property] != ""} {
   set proj_dir [file normalize "$tcl_path/../../QuartusProject/$proj_name"]
   set xml_dir [file normalize "$proj_dir/../../xml"]
   set run_dir [file normalize "$proj_dir"]
-  set out_dir [file normalize "$proj_dir/../../bin"]
+  set bin_dir [file normalize "$proj_dir/../../bin"]
   set name [file rootname [file tail [file normalize [pwd]]]]
   # programming object file
   set pof_file [file normalize "$proj_dir/output_files/$proj_name.pof"]
@@ -72,7 +72,8 @@ if {[info commands get_property] != ""} {
   set bin_file [file normalize "$old_path/top_$proj_name.bin"]
   set ltx_file [file normalize "$old_path/top_$proj_name.ltx"]
 }
-if [file exists $fw_file] {  
+
+if {[info commands get_property] != "" && [file exists $fw_file]} {  
 
   # Go to repository path
   cd $tcl_path/../../
@@ -115,47 +116,47 @@ if [file exists $fw_file] {
   } else {
     set reps [glob -nocomplain "$run_dir/*/*.rpt"]
   }
-if [file exists [lindex $reps 0]] {
-  file copy -force {*}$reps $dst_dir/reports
-} else {
-  Msg Warning "No reports found in $run_dir subfolders"
-}
+  if [file exists [lindex $reps 0]] {
+    file copy -force {*}$reps $dst_dir/reports
+  } else {
+    Msg Warning "No reports found in $run_dir subfolders"
+  }
 
-# Log files
-set logs [glob -nocomplain "$run_dir/*/runme.log"]
-foreach log $logs {
-  set run_name [file tail [file dir $log]]
-  file copy -force $log $dst_dir/reports/$run_name.log
-}
+  # Log files
+  set logs [glob -nocomplain "$run_dir/*/runme.log"]
+  foreach log $logs {
+    set run_name [file tail [file dir $log]]
+    file copy -force $log $dst_dir/reports/$run_name.log
+  }
 
-# IPbus XML
-if [file exists $xml_dir] {
-  Msg Info "XML directory found, copying xml files from $xml_dir to $dst_xml..."
-  if [file exists $dst_xml] {
-    Msg Info "Directory $dst_xml exists, deleting it..."
-    file delete -force $dst_xml
-}
-file copy -force $xml_dir $dst_xml
-}
-# bin File
-if [file exists $bin_file] {
-  Msg Info "Copying bin file $bin_file into $dst_bin..."
-  file copy -force $bin_file $dst_bin
-} else {
-  Msg Info "No bin file found: $bin_file, that is not a problem"
-}
+  # IPbus XML
+  if [file exists $xml_dir] {
+    Msg Info "XML directory found, copying xml files from $xml_dir to $dst_xml..."
+    if [file exists $dst_xml] {
+      Msg Info "Directory $dst_xml exists, deleting it..."
+      file delete -force $dst_xml
+    }
+    file copy -force $xml_dir $dst_xml
+  }
+  # bin File
+  if [file exists $bin_file] {
+    Msg Info "Copying bin file $bin_file into $dst_bin..."
+    file copy -force $bin_file $dst_bin
+  } else {
+    Msg Info "No bin file found: $bin_file, that is not a problem"
+  }
 
-write_debug_probes -quiet $ltx_file
+  write_debug_probes -quiet $ltx_file
 
-# ltx File
-if [file exists $ltx_file] {
-  Msg Info "Copying ltx file $ltx_file into $dst_ltx..."
-  file copy -force $ltx_file $dst_ltx
-}else {
-  Msg Info "No ltx file found: $ltx_file, that is not a problem"
-}
+  # ltx File
+  if [file exists $ltx_file] {
+    Msg Info "Copying ltx file $ltx_file into $dst_ltx..."
+    file copy -force $ltx_file $dst_ltx
+  } else {
+    Msg Info "No ltx file found: $ltx_file, that is not a problem"
+  } 
 
-} elseif [file exists $pof_file] {
+} elseif {[info commands project_new] != "" && [file exists $pof_file]} {
   #Quartus
   # Go to repository path
   cd $tcl_path/../../
@@ -201,13 +202,13 @@ if [file exists $ltx_file] {
   if [file exists [lindex $reps 0]] {
     file copy -force {*}$reps $dst_dir/reports
   } else {
-    Msg Warning "No reports found in $run_dir subfolders"
+    Msg Warning "No reports found in $proj_dir/output_files subfolders"
   }
 
   # sof File
   if [file exists $sof_file] {
-    Msg Info "Copying bin file $bin_file into $dst_bin..."
-    file copy -force $bin_file $dst_bin
+    Msg Info "Copying bin file $sof_file into $dst_sof..."
+    file copy -force $sof_file $dst_sof
   } else {
     Msg Info "No sof file found: $sof_file, that is not a problem"
   }
@@ -222,7 +223,7 @@ if [file exists $ltx_file] {
     file copy -force $xml_dir $dst_xml
   }  
   #rbf rpd 
-  if [file exists $rbf_file] ||  [file exists $rpd_file] {
+  if { [file exists $rbf_file] ||  [file exists $rpd_file] } {
     if [file exists $rbf_file] {
     file copy -force $rbf_file $dst_rbf
     }
@@ -234,18 +235,18 @@ if [file exists $ltx_file] {
   }
 
   # stp and spf File
-  if [file exists $stp_file] || [file exists $spf_file] {
+  if {[file exists $stp_file] || [file exists $spf_file]} {
     if [file exists $stp_file] {
       file copy -force $stp_file $dst_stp
     }
     if [file exists $spf_file] {
       file copy -force $spf_file $dst_spf
     }
-  }else {
+  } else {
     Msg Info "No stp or spf file found: that is not a problem"
   }
 
-}else {
+} else {
   Msg CriticalWarning "Firmware binary file not found."
 }
 

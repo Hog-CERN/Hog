@@ -64,7 +64,7 @@ BD/*
 !BD/*.bd
 
 ## Intel Quartus Prime
-QuartusProject
+Projects
 SimulationLib_quartus
 *.bak
 

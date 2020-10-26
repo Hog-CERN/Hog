@@ -47,7 +47,7 @@ if { [ catch {array set options [cmdline::getoptions quartus(args) $parameters $
     return
   }
   set project $options(project)
-  set project_path [file normalize "$path/../../QuartusProject/$project/"]
+  set project_path [file normalize "$path/../../Projects/$project/"]
   set do_compile 1
   set do_synthesis 1
   set do_implementation 1

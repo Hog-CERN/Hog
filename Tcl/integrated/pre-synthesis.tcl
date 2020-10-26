@@ -57,7 +57,7 @@ if {[info commands get_property] != ""} {
 } elseif {[info commands project_new] != ""} {
   # Quartus
   set proj_name [lindex $quartus(args) 1]
-  set proj_dir [file normalize "$tcl_path/../../QuartusProject/$proj_name"]
+  set proj_dir [file normalize "$tcl_path/../../Projects/$proj_name"]
   set proj_file [file normalize "$proj_dir/$proj_name.qpf"]
 } else {
     #Tclssh

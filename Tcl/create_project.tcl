@@ -561,15 +561,12 @@ if {[info exists ::PROPERTIES]} {
 }
 
 
-## build_dir=VivadoProject if vivado or QuartusProject if quartus or Project if tclshell
+## build_dir= Projects for all shells
 if {[info commands send_msg_id] != ""} {
     #Vivado only
   set build_dir_name "VivadoProject"
-}  elseif {[info commands project_new] != ""} {
-    #QUARTUS only
-  set build_dir_name "QuartusProject"
 } else {
-  set build_dir_name "Project"
+  set build_dir_name "Projects"
 }
 
 

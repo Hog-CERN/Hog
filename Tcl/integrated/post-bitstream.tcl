@@ -44,7 +44,7 @@ if {[info commands get_property] != ""} {
 } elseif {[info commands project_new] != ""} {
   # Quartus
   set proj_name [lindex $quartus(args) 1]
-  set proj_dir [file normalize "$tcl_path/../../QuartusProject/$proj_name"]
+  set proj_dir [file normalize "$tcl_path/../../Projects/$proj_name"]
   set xml_dir [file normalize "$proj_dir/../../xml"]
   set run_dir [file normalize "$proj_dir"]
   set bin_dir [file normalize "$proj_dir/../../bin"]

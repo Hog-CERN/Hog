@@ -1874,7 +1874,7 @@ proc GitRet {command {files ""}}  {
   global env
   set ret [catch {exec -ignorestderr git {*}$command -- {*}$files} result]
 
-  return [list $result $ret]
+  return [list $ret $result]
 }
 
 ## @brief Handle shell commands

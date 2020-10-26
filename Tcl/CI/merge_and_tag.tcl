@@ -131,7 +131,7 @@ if {$options(push)!= ""} {
     Msg Info $msg
   }
   lassign [Git {push --tags origin $options(push)}] ret msg
-  if {$ret != 0}
+  if {$ret != 0} {
     Msg Warning $msg
   } else {
     Msg Info $msg

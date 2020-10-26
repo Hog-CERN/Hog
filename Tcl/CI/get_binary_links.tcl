@@ -60,7 +60,7 @@ foreach dir [glob -type d $repo_path/Top/* ] {
       Msg CriticalWarning "Cannot find $proj binaries in artifacts"
       continue
     }
-    lassign [ExecuteRet curl {-s --request POST --header "PRIVATE-TOKEN: ${push_token}" --form "file=@$repo_path/${proj}-${ver}.zip" ${api}/projects/${proj_id}/uploads}] ret content 
+    lassign [ExecuteRet curl "-s --request POST --header \"PRIVATE-TOKEN: ${push_token}\" --form \"file=@$repo_path/${proj}-${ver}.zip\" ${api}/projects/${proj_id}/uploads"] ret content 
     if {$ret != 0} {
       Msg Warning "Project $proj does not have binary files"
     } else {
@@ -74,7 +74,7 @@ foreach dir [glob -type d $repo_path/Top/* ] {
     return
   } else {
     Msg Info "Retrieving existing link for $proj binaries and tag $ver"
-    lassign [ExecuteRet curl {-s --header "PRIVATE-TOKEN: ${push_token}" "${api}/projects/${proj_id}/releases/$ver"}] ret msg 
+    lassign [ExecuteRet curl "-s --header \"PRIVATE-TOKEN: ${push_token}\" \"${api}/projects/${proj_id}/releases/$ver\""] ret msg 
     if {$ret != 0} {
       Msg Warning "Some problem when fetching release $ver : $msg"
     } else {

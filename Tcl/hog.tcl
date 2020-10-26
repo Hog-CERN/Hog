@@ -317,7 +317,7 @@ proc CompareVersion {ver1 ver2} {
 #
 # @param[in] target_version the version required by the current project
 #
-# @return Return 1 if the system Git version is greater or equal to the target
+# @return Return 1 if the system git version is greater or equal to the target
 #
 proc GitVersion {target_version} {
   set ver [split $target_version "."]
@@ -1832,6 +1832,36 @@ proc eos {command {attempt 1}}  {
       }
     }
   }
+  return [list $ret $result]
+}
+
+## @brief Handle git commands
+#
+# It can be used with lassign like this: lassign [Git \<git command\> \<possibly files\> ] ret result
+#
+#  @param[in] command: the git command to be run including refs (branch, tags, sha, etc.), except files.
+#  @param[in] files: files given to git as argument. They will always be separated with -- to avoid weird accidents
+#
+#  @returns a list of 2 elements: the return value (0 if no error occurred) and the output of the git command
+proc Git {command {files ""}}  {
+  global env
+  set ret [catch {exec -ignorestderr git {*}$command -- {*}$files} result]
+
+  return [list $ret $result]
+}
+
+## @brief Handle shell commands
+#
+# It can be used with lassign like this: lassign [Execute \<command\> ] ret result
+#
+#  @param[in] command: the shell command
+#  @param[in] args: command arguments
+#
+#  @returns a list of 2 elements: the return value (0 if no error occurred) and the output of the git command
+proc Execute {command {args ""}}  {
+  global env
+  set ret [catch {exec -ignorestderr $command {*}$args} result]
+
   return [list $ret $result]
 }
 

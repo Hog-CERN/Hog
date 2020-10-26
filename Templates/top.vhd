@@ -48,10 +48,6 @@ entity top_myproj is
     MYLIB1_VER : std_logic_vector(31 downto 0);
     MYLIB1_SHA : std_logic_vector(31 downto 0);
 
-    -- Submodule Specific variables (only if you have a submodule, one per submodule)
-    MYSUBMODULE0_SHA : std_logic_vector(31 downto 0);
-    MYSUBMODULE1_SHA : std_logic_vector(31 downto 0);
-
     -- External library specific variables (only if you have an external library)
     MYEXTLIB_SHA : std_logic_vector(31 downto 0);
     -- Project flavour

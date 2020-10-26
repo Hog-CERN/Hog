@@ -98,7 +98,7 @@ if [file exists $fw_file] {
   if {$diff != ""} {
     Msg Warning "Found non committed changes:"
     Msg Status "$diff"
-    set fp [open "$dst_dir/diff_postbistream.txt" w+]
+    set fp [open "$dst_dir/diff_postbitstream.txt" w+]
     puts $fp "$diff"
     close $fp
   } else {
@@ -247,6 +247,12 @@ if [file exists $ltx_file] {
 
 }else {
   Msg CriticalWarning "Firmware binary file not found."
+}
+
+set user_post_bitstream_file "./Top/$proj_name/post-bitstream.tcl"
+if {[file exists $user_post_bitstream_file]} {
+    Msg Status "Sourcing user post-bitstream file $user_post_bitstream_file"
+    source $user_post_bitstream_file
 }
 
 cd $old_path

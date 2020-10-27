@@ -1637,7 +1637,7 @@ proc HandleIP {what_to_do xci_file ip_path runs_dir {force 0}} {
         ::tar::create $file_name.tar [glob -nocomplain [Relative $repo_path $xci_path]  $ip_synth_files_rel]
         Msg Info "Copying generated files for $xci_name..."
 	lassign [ExecuteRet xrdcp "-f -s $file_name.tar  $::env(EOS_MGM_URL)//$ip_path/"] ret msg
-        if {ret != 0} {
+        if {$ret != 0} {
           Msg CriticalWarning "Something went wrong when copying the IP files to EOS. Error message: $msg"
         }
         Msg Info "Removing local archive"
@@ -1658,7 +1658,7 @@ proc HandleIP {what_to_do xci_file ip_path runs_dir {force 0}} {
       Msg Info "IP $xci_name found in the repository $remote_tar, copying it locally to $repo_path..."
 
       lassign [ExecuteRet xrdcp "-f -r -s $remote_tar $repo_path"] ret msg
-      if {ret != 0} {
+      if {$ret != 0} {
         Msg CriticalWarning "Something went wrong when copying the IP files to EOS. Error message: $msg"
       }
       Msg Info "Extracting IP files from archive to $repo_path..."
@@ -1781,9 +1781,9 @@ You can fix this by installing package \"tcllib\""
 
     set HOGYML_SHA [GetSHA $YML_FILES]
     lassign [GitRet {log --format=%h -1 $YML_REF_F} $YML_FILES] ret EXPECTEDYML_SHA 
-    if { ret != 0} {
+    if {$ret != 0} {
       lassign [GitRet { log --format=%h -1 origin/$YML_REF_F} $YML_FILES] ret EXPECTEDYML_SHA 
-      if { ret != 0} {
+      if {$ret != 0} {
         Msg $MSG_TYPE "Error in project .gitlab-ci.yml. ref: $YML_REF not found"
         set EXPECTEDYML_SHA ""
       }

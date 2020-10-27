@@ -53,7 +53,7 @@ set commit "0000000"
 
 lassign [GitRet {git status --untracked-files=no  --porcelain}] ret msg
 if {$ret !=0} {
-  Error "Git status failed: $msg"
+  Msg Error "Git status failed: $msg"
 }
 
 if {$msg eq "" } {

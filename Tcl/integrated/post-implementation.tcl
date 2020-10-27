@@ -51,7 +51,7 @@ set proj_name [file rootname [file tail $proj_file]]
 Msg Info "Evaluating last git SHA in which $proj_name was modified..."
 set commit "0000000"
 
-lassign [GitRet {git status --untracked-files=no  --porcelain}] ret msg
+lassign [GitRet {status --untracked-files=no  --porcelain}] ret msg
 if {$ret !=0} {
   Msg Error "Git status failed: $msg"
 }

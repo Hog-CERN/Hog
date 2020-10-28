@@ -1173,7 +1173,7 @@ proc CopyXMLsFromListFile {list_file path dst {xml_version "0.0.0"} {xml_sha "00
       if {$v != 0} {
 	set x [file normalize ../$x]
 	if {[file exists $x]} {
-	  lassign [ExecuteRet gen_ipbus_addr_decode "-v $x"]  status log
+	  lassign [ExecuteRet gen_ipbus_addr_decode -v $x]  status log
 	  if {$status == 0} {
 	    set generated_vhdl ./ipbus_decode_[file root [file tail $x]].vhd
 	    if {$generate == 1} {
@@ -1636,7 +1636,7 @@ proc HandleIP {what_to_do xci_file ip_path runs_dir {force 0}} {
         Msg Info "Creating local archive with ip generated files..."
         ::tar::create $file_name.tar [glob -nocomplain [Relative $repo_path $xci_path]  $ip_synth_files_rel]
         Msg Info "Copying generated files for $xci_name..."
-	lassign [ExecuteRet xrdcp "-f -s $file_name.tar  $::env(EOS_MGM_URL)//$ip_path/"] ret msg
+	lassign [ExecuteRet xrdcp -f -s $file_name.tar  $::env(EOS_MGM_URL)//$ip_path/] ret msg
         if {$ret != 0} {
           Msg CriticalWarning "Something went wrong when copying the IP files to EOS. Error message: $msg"
         }
@@ -1657,7 +1657,7 @@ proc HandleIP {what_to_do xci_file ip_path runs_dir {force 0}} {
       set remote_tar "$::env(EOS_MGM_URL)//$ip_path/$file_name.tar"
       Msg Info "IP $xci_name found in the repository $remote_tar, copying it locally to $repo_path..."
 
-      lassign [ExecuteRet xrdcp "-f -r -s $remote_tar $repo_path"] ret msg
+      lassign [ExecuteRet xrdcp -f -r -s $remote_tar $repo_path] ret msg
       if {$ret != 0} {
         Msg CriticalWarning "Something went wrong when copying the IP files to EOS. Error message: $msg"
       }
@@ -1904,14 +1904,19 @@ proc GitRet {command {files ""}}  {
 #
 # It can be used with lassign like this: lassign [ExecuteRet \<command\> ] ret result
 #
-#  @param[in] command: the shell command
-#  @param[in] args: command arguments
+#  @param[in] args: the shell command
 #
 #  @returns a list of 2 elements: the return value (0 if no error occurred) and the output of the command
-proc ExecuteRet {command {args ""}}  {
+proc ExecuteRet {args}  {
   global env
-  set ret [catch {exec -ignorestderr $command {*}$args} result]
-
+  if {[llength $args] == 0} {
+    Msg CriticalWarning "No argument given" 
+    set ret -1
+    set result ""
+  } else {
+    set ret [catch {exec -ignorestderr {*}$args} result]
+  }
+  
   return [list $ret $result]
 }
 
@@ -1920,15 +1925,13 @@ proc ExecuteRet {command {args ""}}  {
 # It can be used with lassign like this: lassign [Execute \<command\> ] ret result
 #
 #  @param[in] command: the shell command
-#  @param[in] args: command arguments
 #
 #  @returns the output of the command
-proc Execute {command {args ""}}  {
+proc Execute {args}  {
   global env
-  lassign [ExecuteRet $command $args] ret result
+  lassign [ExecuteRet {*}$args] ret result
   if {$ret != 0} {
-    Msg Error "Command $commands $args returned error code: $ret"
-    exit -1
+    Msg Error "Command [join $args] returned error code: $ret"
   }
 
   return $result

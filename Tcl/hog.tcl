@@ -1097,11 +1097,19 @@ proc TagRepository {{merge_request_number 0} {version_level 0} {default_level 0}
 # @param[in] generate    if set to 1, tells the function to generate the VHDL decode address files rather than check them 
 #
 proc CopyXMLsFromListFile {list_file path dst {xml_version "0.0.0"} {xml_sha "00000000"}  {generate 0} } {
-  lassign [ExecuteRet gen_ipbus_addr_decode -h] ret msg
-  if {$ret != 0}  {
+  lassign  [ExecuteRet python -c "from sys import path;print ':'.join(path[1:])"] ret msg
+  if {$ret == 0} {
+    set ::env(PYTHONPATH) $msg
+    set ::env(PYTHONHOME) "/usr"
+    lassign [ExecuteRet gen_ipbus_addr_decode -h] ret msg
+    if {$ret != 0}  {
+      set can_generate 0
+    } else {
+      set can_generate 1
+    }
+  } else { 
+    Msg Warning "Error while trying to run python: $msg"
     set can_generate 0
-  } else {
-    set can_generate 1
   }
 
   if {$can_generate == 0} {

@@ -130,7 +130,7 @@ if {$options(push)!= ""} {
   } else {
     Msg Info $msg
   }
-  lassign [GitRet {push --tags origin $options(push)}] ret msg
+  lassign [GitRet "push --tags origin $options(push)"] ret msg
   if {$ret != 0} {
     Msg Warning $msg
   } else {

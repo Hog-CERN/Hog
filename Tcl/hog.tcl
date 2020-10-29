@@ -631,7 +631,6 @@ proc GetSHA {path} {
 proc GetVer {path} {
   set SHA [GetSHA $path]
   #oldest tag containing SHA
-  #set comm [format %07X 0x$SHA]
   if {$SHA eq ""} {
     Msg CriticalWarning "Empty SHA found for ${path}. Commit to Git to resolve this warning."
   }
@@ -649,8 +648,7 @@ proc GetVerFromSHA {SHA} {
     Msg CriticalWarning "Empty SHA found"
     set ver "v0.0.0"
   } else {
-    
-    lassign [GitRet "tag --sort=creatordate --contain $SHA -l \"v*.*.*\" -l \"b*v*.*.*\"" ] status result
+    lassign [GitRet "tag --sort=creatordate --contain $SHA -l v*.*.* -l b*v*.*.*" ] status result
     if {$status == 0} {
       if {[regexp {^ *$} $result]} {
 	#newest tag of the repo, parent of the SHA
@@ -662,7 +660,7 @@ proc GetVerFromSHA {SHA} {
 	  lassign [ExtractVersionFromTag $tag] M m p mr
 	  if {$M == -1} {
 	    Msg CriticalWarning "Tag $tag does not contain a Hog compatible version in this repository."
-	    set ver v0.0.0
+	    #set ver v0.0.0
 	  } elseif {$mr == -1} {
 	    incr p
 	    Msg Info "No tag contains $SHA, will use most recent tag $tag. As this is an official tag, patch will be incremented to $p."
@@ -670,31 +668,33 @@ proc GetVerFromSHA {SHA} {
 	    lassign [ExtractVersionFromTag $tag] M m p mr
 	    if {$M == -1} {
 	      Msg CriticalWarning "Tag $tag does not contain a Hog compatible version in this repository."
-	      set ver v0.0.0
+	      #set ver v0.0.0
 	    } elseif {$mr == -1} {
 	      incr p
 	      Msg Info "No tag contains $SHA, will use most recent tag $tag. As this is an official tag, patch will be incremented to $p."
 	    } else {
 	      Msg Info "No tag contains $SHA, will use most recent tag $tag. As this is a candidate tag, the patch level will be kept at $p."
 	    }
-	    set ver v$M.$m.$p
 	  }
-	} else {
-	  #The tag in $result contains the current SHA
-	  set vers [split $result "\n"]
-	  set ver [lindex $vers 0]
-	  foreach v $vers {
-	    if {[regexp {^v.*$} $v]} {
-	      set un_ver $ver
-	      set ver $v
-	      break
-	    }
-	  }
+	  
+	  set ver v$M.$m.$p
 	}
       } else {
-	Msg CriticalWarning "Error while trying to find tag for $SHA"
-	set ver "error: $result"
+	#The tag in $result contains the current SHA
+	set vers [split $result "\n"]
+	set ver [lindex $vers 0]
+	foreach v $vers {
+	  if {[regexp {^v.*$} $v]} {
+	    set un_ver $ver
+	    set ver $v
+	    break
+	  }
+	}
       }
+    } else {
+      Msg CriticalWarning "Error while trying to find tag for $SHA"
+      set ver "v0.0.0"
+      
     }
   }
   lassign [ExtractVersionFromTag $ver] M m c mr
@@ -827,13 +827,13 @@ proc GetRepoVersions {proj_tcl_file {ext_path ""} {sim 0}} {
   set old_path [pwd]
   set proj_tcl_file [file normalize $proj_tcl_file]
   set proj_dir [file dir $proj_tcl_file]
-
-# This will be the list of all the SHAs of this project, the most recent will be picked up as GLOBAL SHA
+  
+  # This will be the list of all the SHAs of this project, the most recent will be picked up as GLOBAL SHA
   set SHAs ""
-
-# Hog submodule
+  
+  # Hog submodule
   cd $proj_dir
-#Append the SHA in which Hog submodule was changed, not the submodule SHA
+  #Append the SHA in which Hog submodule was changed, not the submodule SHA
   lappend SHAs [Git {log --format=%h -1} {../../Hog}]
   cd "../../Hog"
   if {[Git {status --untracked-files=no  --porcelain}] eq ""} {
@@ -846,7 +846,7 @@ proc GetRepoVersions {proj_tcl_file {ext_path ""} {sim 0}} {
   }
 
   cd $proj_dir
-
+  
   if {[Git {status --untracked-files=no  --porcelain}] eq ""} {
     Msg Info "Git working directory [pwd] clean."
     set clean 1
@@ -1122,7 +1122,7 @@ proc TagRepository {{merge_request_number 0} {version_level 0} {default_level 0}
 # @param[in] generate    if set to 1, tells the function to generate the VHDL decode address files rather than check them 
 #
 proc CopyXMLsFromListFile {list_file path dst {xml_version "0.0.0"} {xml_sha "00000000"}  {generate 0} } {
-  lassign  [ExecuteRet python -c "from sys import path;print ':'.join(path[1:])"] ret msg
+  lassign  [ExecuteRet python -c "from sys import path;print ':'.join(path\[1:\])"] ret msg
   if {$ret == 0} {
     set ::env(PYTHONPATH) $msg
     set ::env(PYTHONHOME) "/usr"

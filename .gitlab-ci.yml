@@ -147,6 +147,7 @@ pages:
     - gem install bundler
     - bundle install
     - bundle exec jekyll build -d public
+  stage: tag
   only:
     refs:
       - merge_requests

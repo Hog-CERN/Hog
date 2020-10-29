@@ -448,30 +448,30 @@ proc ReadListFile {list_file path {lib ""} {sha_mode 0} } {
       set srcfile [lindex $file_and_prop 0]
       set srcfile "$path/$srcfile"
       set srcfiles [glob $srcfile]
-
+      
       # glob the file list for wildcards
       if {$srcfiles != $srcfile} {
-          Msg Info "Wildcard source expanded from $srcfile to $srcfiles"
+	Msg Info "Wildcard source expanded from $srcfile to $srcfiles"
       }
-
+      
       foreach vhdlfile $srcfiles {
         if {[file exists $vhdlfile]} {
           set vhdlfile [file normalize $vhdlfile]
           set extension [file ext $vhdlfile]
-
+	  
           if { $extension == $list_file_ext } {
             Msg Info "List file $vhdlfile found in list file, recursively opening it..."
             ### Set list file properties
             set prop [lrange $file_and_prop 1 end]
             set library [lindex [regexp -inline {lib\s*=\s*(.+?)\y.*} $prop] 1]
             if { $library != "" } {
-                Msg Info "Setting $library as library for list file $vhdlfile..."
+	      Msg Info "Setting $library as library for list file $vhdlfile..."
             } else {
-                Msg Info "Setting $lib as library for list file $vhdlfile..."
-                set library $lib
+	      Msg Info "Setting $lib as library for list file $vhdlfile..."
+	      set library $lib
             }
             lassign [ReadListFile $vhdlfile $path $library $sha_mode] l p
-
+	    
             set libraries [MergeDict $l $libraries]
             set properties [MergeDict $p $properties]
           } elseif {[lsearch {.src .sim .con .ext} $extension] >= 0 } {
@@ -483,20 +483,20 @@ proc ReadListFile {list_file path {lib ""} {sha_mode 0} } {
             ### Set File Set
             #Adding IP library
             if {$sha_mode == 0 && [lsearch {.xci .ip .bd} $extension] >= 0} {
-                dict lappend libraries "$lib.ip" $vhdlfile
-                Msg Info "Appending $vhdlfile to IP list..."
+	      dict lappend libraries "$lib.ip" $vhdlfile
+	      Msg Info "Appending $vhdlfile to IP list..."
             } else {
-                dict lappend libraries $lib$ext $vhdlfile
+	      dict lappend libraries $lib$ext $vhdlfile
             }
           }
           incr cnt
         } else {
-            Msg Error "File $vhdlfile not found."
+	  Msg Error "File $vhdlfile not found."
         }
       }
     }
   }
-
+  
   if {$sha_mode != 0} {
     dict lappend libraries $lib$ext $list_file
   }
@@ -520,7 +520,7 @@ proc MergeDict {dict0 dict1} {
       set temp_list [dict get $dict1 $key]
       foreach vhdfile $temp_list {
       	dict lappend outdict $key $vhdfile
-	    }
+      }
     } 
   }
   return $outdict
@@ -632,6 +632,9 @@ proc GetVer {path} {
   set SHA [GetSHA $path]
   #oldest tag containing SHA
   #set comm [format %07X 0x$SHA]
+  if {$SHA eq ""} {
+    Msg CriticalWarning "Empty SHA found for ${path}. Commit to Git to resolve this warning."
+  }
   return [list [GetVerFromSHA $SHA] $SHA]
 }
 
@@ -642,63 +645,77 @@ proc GetVer {path} {
 # @return  a list: the git SHA, the version in hex format
 #
 proc GetVerFromSHA {SHA} {
-  lassign [GitRet "tag --sort=creatordate --contain $SHA -l \"v*.*.*\" -l \"b*v*.*.*\"" ] status result
-  if {$status == 0} {
-    if {[regexp {^ *$} $result]} {
-      #newest tag of the repo, parent of the SHA
-      lassign [GitRet {describe --tags --abbrev=0 --match=v*.*.* --match=b*v*.*.*}] ret tag
-      if {$ret != 0} {
-        Msg CriticalWarning "No Hog version tags found in this repository."
-        set ver v0.0.0
-      } else {
-        lassign [ExtractVersionFromTag $tag] M m p mr
-	if {$M == -1} {
-	  Msg CriticalWarning "Tag $tag does not contain a Hog compatible version in this repository."
+  if { $SHA eq ""} {
+    Msg CriticalWarning "Empty SHA found"
+    set ver "v0.0.0"
+  } else {
+    
+    lassign [GitRet "tag --sort=creatordate --contain $SHA -l \"v*.*.*\" -l \"b*v*.*.*\"" ] status result
+    if {$status == 0} {
+      if {[regexp {^ *$} $result]} {
+	#newest tag of the repo, parent of the SHA
+	lassign [GitRet {describe --tags --abbrev=0 --match=v*.*.* --match=b*v*.*.*}] ret tag
+	if {$ret != 0} {
+	  Msg CriticalWarning "No Hog version tags found in this repository."
 	  set ver v0.0.0
-	} elseif {$mr == -1} {
-          incr p
-          Msg Info "No tag contains $SHA, will use most recent tag $tag. As this is an official tag, patch will be incremented to $p."
-        } else {
-          Msg Info "No tag contains $SHA, will use most recent tag $tag. As this is a candidate tag, the patch level will be kept at $p."
-        }
-        set ver v$M.$m.$p
-      }
-    } else {
-      #The tag in $result contains the current SHA
-      set vers [split $result "\n"]
-      set ver [lindex $vers 0]
-      foreach v $vers {
-        if {[regexp {^v.*$} $v]} {
-          set un_ver $ver
-          set ver $v
-          break
-        }
+	} else {
+	  lassign [ExtractVersionFromTag $tag] M m p mr
+	  if {$M == -1} {
+	    Msg CriticalWarning "Tag $tag does not contain a Hog compatible version in this repository."
+	    set ver v0.0.0
+	  } elseif {$mr == -1} {
+	    incr p
+	    Msg Info "No tag contains $SHA, will use most recent tag $tag. As this is an official tag, patch will be incremented to $p."
+	  } else {
+	    lassign [ExtractVersionFromTag $tag] M m p mr
+	    if {$M == -1} {
+	      Msg CriticalWarning "Tag $tag does not contain a Hog compatible version in this repository."
+	      set ver v0.0.0
+	    } elseif {$mr == -1} {
+	      incr p
+	      Msg Info "No tag contains $SHA, will use most recent tag $tag. As this is an official tag, patch will be incremented to $p."
+	    } else {
+	      Msg Info "No tag contains $SHA, will use most recent tag $tag. As this is a candidate tag, the patch level will be kept at $p."
+	    }
+	    set ver v$M.$m.$p
+	  }
+	} else {
+	  #The tag in $result contains the current SHA
+	  set vers [split $result "\n"]
+	  set ver [lindex $vers 0]
+	  foreach v $vers {
+	    if {[regexp {^v.*$} $v]} {
+	      set un_ver $ver
+	      set ver $v
+	      break
+	    }
+	  }
+	}
+      } else {
+	Msg CriticalWarning "Error while trying to find tag for $SHA"
+	set ver "error: $result"
       }
     }
-  } else {
-    Msg CriticalWarning "Error while trying to find tag for $SHA"
-    set ver "error: $result"
   }
-
   lassign [ExtractVersionFromTag $ver] M m c mr
-
+  
   if {$mr > -1} { # Candidate tab
     set M [format %02X $M]
     set m [format %02X $m]
     set c [format %04X $c]
-
+    
   } elseif { $M > -1 } { # official tag
     set M [format %02X $M]
     set m [format %02X $m]
     set c [format %04X $c]
-
+    
   } else {
     Msg Warning "Tag does not contain a properly formatted version: $ver"
     set M [format %02X 0]
     set m [format %02X 0]
     set c [format %04X 0]
   }
-
+  
   return $M$m$c
 }
 
@@ -868,6 +885,9 @@ proc GetRepoVersions {proj_tcl_file {ext_path ""} {sim 0}} {
     set name [file rootname [file tail $f]]
     lassign [GetVer  $files] ver hash
     #Msg Info "Found constraint list file $f, version: $ver commit SHA: $hash"
+    if {$hash eq ""} {
+      Msg CriticalWarning "Constraints file $f not found in Git."
+    }
     lappend cons_hashes $hash
     lappend SHAs $hash
   }
@@ -889,7 +909,12 @@ proc GetRepoVersions {proj_tcl_file {ext_path ""} {sim 0}} {
   
 
   #Of all the constraints we get the most recent
-  set cons_hash [string toupper [Git "log --format=%h -1 $cons_hashes"]]
+  if {"{}" eq $cons_hashes} {
+    Msg CriticalWarning "No hashes found for constraints files (not in git)"
+    set cons_hash ""
+  } else {
+    set cons_hash [string toupper [exec git log --format=%h -1 {*}$cons_hashes]]
+  }
   set cons_ver [GetVerFromSHA $cons_hash]
   #Msg Info "Among all the constraint list files, if more than one, the most recent version was chosen: $cons_ver commit SHA: $cons_hash"
 

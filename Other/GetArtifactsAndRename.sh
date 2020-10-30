@@ -26,13 +26,26 @@ else
     mr=$4
     job=$5
 
-    # GET all alrifacts
+    # GET all artifacts from collect_artifacts
     echo "Hog-INFO: downloading artifacts..."
     ref=refs/merge-requests%2F$mr%2Fhead
     curl --location --header "PRIVATE-TOKEN: ${push_token}" "$api"/projects/"${proj}"/jobs/artifacts/"$ref"/download?job="$job" -o output.zip
 
-    echo "Hog-INFO: unzipping..."
+    # GET all artifacts from user_post stage
+	pipeline=$(curl --globoff --header "PRIVATE-TOKEN: ${push_token}" "$api/projects/${proj}/merge_requests/$mr/pipelines" | jq '.[0].id')
+	job=$(curl --globoff --header "PRIVATE-TOKEN: ${push_token}" "$api/projects/${proj}/pipelines/${pipeline}/jobs" | jq -r '.[-1].name')
+    if [ "$job" != "$5" ]; 
+    then
+        curl --location --header "PRIVATE-TOKEN: ${push_token}" "$api"/projects/"${proj}"/jobs/artifacts/"$ref"/download?job="$job" -o output1.zip
+    fi    
+
+    echo "Hog-INFO: unzipping artifacts from $5 job..."
     unzip output.zip
+    if [ "$job" != "$5" ]; 
+    then
+        unzip -vo output1.zip
+        rm output1.zip
+    fi
 
     if [ -d bin ]
     then

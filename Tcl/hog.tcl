@@ -476,8 +476,8 @@ proc ReadListFile {list_file path {lib ""} {sha_mode 0} } {
             }
             lassign [ReadListFile $vhdlfile $path $library $sha_mode] l p
 
-            set libraries [dict merge $l $libraries]
-            set properties [dict merge $p $properties]
+            set libraries [MergeDict $l $libraries]
+            set properties [MergeDict $p $properties]
           } elseif {[lsearch {.src .sim .con .ext} $extension] >= 0 } {
             Msg Error "$vhdlfile cannot be included into $list_file, $extension files must be included into $extension files."
           } else {
@@ -510,6 +510,30 @@ proc ReadListFile {list_file path {lib ""} {sha_mode 0} } {
   }
   return [list $libraries $properties]
 }
+
+## @brief Merge two tcl dictionaries of lists
+#
+# If the dictionaries contain same keys, the list at the common key is a merging of the two 
+# 
+#
+# @param[in] dict0 the name of the first dictionary
+# @param[in] dict1 the name of the second dictionary
+#
+# @return        the merged dictionary
+#
+proc MergeDict {dict0 dict1} {
+  set outdict [dict merge $dict1 $dict0]
+  foreach key [dict keys $dict1 ] {
+    if {[dict exists $dict0 $key]} {
+      set temp_list [dict get $dict1 $key]
+      foreach vhdfile $temp_list {
+      	dict lappend outdict $key $vhdfile
+	    }
+    } 
+  }
+  return $outdict
+}
+
 
 ## @brief Get git SHA of a vivado library
 #
@@ -1417,8 +1441,8 @@ proc GetHogFiles {list_path {list_files ""} {sha_mode 0} {ext_path ""}} {
     } else {
       lassign [ReadListFile $f $repo_path "" $sha_mode] l p
     }
-    set libraries [dict merge $l $libraries]
-    set properties [dict merge $p $properties]
+    set libraries [MergeDict $l $libraries]
+    set properties [MergeDict $p $properties]
   }
   return [list $libraries $properties]
 }

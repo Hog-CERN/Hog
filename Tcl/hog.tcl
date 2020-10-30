@@ -1448,7 +1448,7 @@ proc GetHogFiles {list_path {list_files ""} {sha_mode 0} {ext_path ""}} {
 }
 
 
-## @brief Parse eventual commands in the first line of Hog files (e.g. #Vivado, #Simulator, etc)
+## @brief Parse possible commands in the first line of Hog files (e.g. #Vivado, #Simulator, etc)
 #
 # @param[in] list_path path to the list file directory
 # @param[in] list_files the file wildcard, if not spcified all Hog list files will be looked for

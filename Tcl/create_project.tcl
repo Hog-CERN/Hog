@@ -386,7 +386,7 @@ proc ConfigureImplementation {} {
     if {[info commands send_msg_id] != ""} {
       #Vivado Only
       if { [string first PlanAhead [version] ] != 0 } {
-	set_property STEPS.OPT_DESIGN.TCL.PRE $globalSettings::pre_impl $obj
+	set_property STEPS.INIT_DESIGN.TCL.PRE $globalSettings::pre_impl $obj
       }
     } elseif {[info commands project_new] != ""} {
       #QUARTUS only

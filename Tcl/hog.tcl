@@ -1456,7 +1456,7 @@ proc GetProjectFiles {} {
 ## @brief Extract files, libraries and properties from the project's list files
 #
 # @param[in] list_path path to the list file directory
-# @param[in] list_files the file wildcard, if not spcified all Hog list files will be looked for
+# @param[in] list_files the file wildcard, if not specified all Hog list files will be looked for
 # @param[in] sha_mode forwarded to ReadListFile, see there for info
 # @param[in] ext_path path for external libraries forwarded to ReadListFile
 #
@@ -1490,7 +1490,7 @@ proc GetHogFiles {list_path {list_files ""} {sha_mode 0} {ext_path ""}} {
 ## @brief Parse possible commands in the first line of Hog files (e.g. #Vivado, #Simulator, etc)
 #
 # @param[in] list_path path to the list file directory
-# @param[in] list_files the file wildcard, if not spcified all Hog list files will be looked for
+# @param[in] list_files the list file name 
 #
 # @return a string with the first-line command
 # - libraries has library name as keys and a list of filenames as values

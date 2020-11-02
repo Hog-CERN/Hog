@@ -78,7 +78,7 @@ if {![string equal $options(project) ""]} {
 
 
 
-Msg Info "Checkin $project list files..."
+Msg Info "Checking $project list files..."
 lassign [GetProjectFiles] prjLibraries prjProperties
 
 

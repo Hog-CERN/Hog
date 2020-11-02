@@ -151,7 +151,7 @@ function init()
     then
       Force=""
       if [ -d "$DIR/../Top/${Vivado_prj_base%.*}" ]; then
-        read -p "Directory \"Top/${Vivado_prj_base%.*}\" exists. do you want to overwrite it? "  -n 1 -r
+        read -p "Directory \"Top/${Vivado_prj_base%.*}\" exists. Do you want to overwrite it? "  -n 1 -r
         echo    # (optional) move to a new line
         if [[ "${REPLY}" =~ ^[Yy]$ ]]; then
           Force=" -force "
@@ -189,7 +189,7 @@ function init()
   ##! NOTE if the user input contains Y or y then is accepted as yes
    if [ `which vivado` ]; then
     echo
-    read -p "Do you want to add a custom Vivado gui command to automatically update listFiles? " -n 1 -r
+    read -p "Do you want to add a button to the Vivado GUI to update the list files automatically? " -n 1 -r
     echo    # (optional) move to a new line
     if [[ "${REPLY}" =~ ^[Yy]$ ]]
     then

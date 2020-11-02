@@ -29,8 +29,14 @@ set parameters {
 set usage "- USAGE: $::argv0 \[OPTIONS\] <project> \n. Options:"
 
 set path [file normalize "[file dirname [info script]]/.."]
-if { [catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] ||  [llength $argv] < 1 } {
-  puts [cmdline::usage $parameters $usage]
+if { $::argc eq 0 } {
+  Msg Info [cmdline::usage $parameters $usage]
+  exit 1
+} elseif { [info commands get_property] != "" &&  [catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] } {
+  Msg Info [cmdline::usage $parameters $usage]
+  exit 1
+} elseif {[info commands project_new] != "" && [ catch {array set options [cmdline::getoptions quartus(args) $parameters $usage] } ] || $::argc eq 0 } {
+  Msg Info [cmdline::usage $parameters $usage]
   exit 1
 } else {
   set project [lindex $argv 0]

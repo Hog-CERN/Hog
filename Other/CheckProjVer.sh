@@ -61,8 +61,8 @@ function argument_parser()
   while (( "$#" )); do
     case "$1" in
       -sim)
-        SIM="-sim $2"
-        shift 2
+        SIM="-sim"
+        shift 1
         ;;
       -ext_path)
         EXT_PATH="-ext_path $2"
@@ -138,7 +138,8 @@ function main ()
   then
 
     #Choose if the project is quastus, vivado, vivado_hls [...]
-    select_command $PROJ_DIR"/"$PROJ".tcl"
+    local PROJ_TCL="$PWD/$PROJ_DIR/$PROJ.tcl"
+    select_command $PROJ_TCL
     if [ $? != 0 ]
     then
       echo "Failed to select project type: exiting!"
@@ -164,14 +165,14 @@ function main ()
 
     if [ $COMMAND = "quartus_sh" ]
     then
-      echo "Executing:  ${HDL_COMPILER} $COMMAND_OPT $DIR/../../Hog/Tcl/CI/check_proj_ver.tcl $EXT_PATH $SIM"
-      "${HDL_COMPILER}" $COMMAND_OPT $DIR/../../Hog/Tcl/CI/check_proj_ver.tcl $EXT_PATH $SIM ;
+      echo "Executing:  ${HDL_COMPILER} $COMMAND_OPT $DIR/../../Hog/Tcl/CI/check_proj_ver.tcl $EXT_PATH $SIM -project_tcl $PROJ_TCL $PROJ"
+      "${HDL_COMPILER}" $COMMAND_OPT $DIR/../Hog/Tcl/CI/check_proj_ver.tcl $EXT_PATH $SIM -project_tcl $PROJ_TCL $PROJ
     elif [ $COMMAND = "vivado_hls" ]
     then
       echo "Hog-ERROR: Vivado HLS is not yet supported by this script!"
     else
-      echo "Executing:  ${HDL_COMPILER} $COMMAND_OPT $DIR/../../Hog/Tcl/CI/check_proj_ver.tcl -tclargs $EXT_PATH $SIM";
-      "${HDL_COMPILER}" $COMMAND_OPT $DIR/../../Hog/Tcl/CI/check_proj_ver.tcl -tclargs $EXT_PATH $SIM ;
+      echo "Executing:  ${HDL_COMPILER} $COMMAND_OPT $DIR/../../Hog/Tcl/CI/check_proj_ver.tcl -tclargs $EXT_PATH $SIM -project_tcl $PROJ_TCL $PROJ"
+      "${HDL_COMPILER}" $COMMAND_OPT $DIR/../Hog/Tcl/CI/check_proj_ver.tcl -tclargs $EXT_PATH $SIM -project_tcl $PROJ_TCL $PROJ
     fi
   fi
 }

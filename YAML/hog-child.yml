@@ -41,23 +41,23 @@
         <<: *vars
      script:
       - if [[ -v HOG_CHECK_PROJVER ]] && [[ $HOG_CHECK_PROJVER == '1' ]]; then
-          vivado -mode batch -notrace -source ./Hog/Tcl/CI/check_proj_ver.tcl -tclargs -ext_path "$HOG_EXTERNAL_PATH" -sim $PROJECT_NAME ;
+        ./Hog/Other/CheckProjVer.sh -ext_path "$HOG_EXTERNAL_PATH" -sim $PROJECT_NAME $PROJECT_NAME;
         else
           echo "Project version checker is disabled.";
         fi
-      - if [ -f "./VivadoProjects/$PROJECT_NAME/skip.me" ]; then
+      - if [ -f "./Projects/$PROJECT_NAME/skip.me" ]; then
           echo "CI disabled for $PROJECT_NAME";
         else
           if [ -z ${HOG_SIMULATION_LIB_PATH+x} ]; then
             echo 'Simulation library path is not defined';
           else
-            vivado -mode batch -notrace -source ./Hog/Tcl/launchers/launch_simulation.tcl -tclargs -lib_path $HOG_SIMULATION_LIB_PATH $PROJECT_NAME ;
+             ./Hog/LaunchSimulation.sh -lib_path $HOG_SIMULATION_LIB_PATH $PROJECT_NAME ;
           fi;
         fi
      artifacts:
        name: simulation_files
        paths:
-         - $CI_PROJECT_DIR/VivadoProject/$PROJECT_NAME/$PROJECT_NAME.sim
+         - $CI_PROJECT_DIR/Projects/$PROJECT_NAME/$PROJECT_NAME.sim
          - $CI_PROJECT_DIR/SkippedProjects/$PROJECT_NAME
        expire_in: 30 day
      allow_failure: true
@@ -70,11 +70,11 @@
         <<: *vars
     script:
       - if [[ -v HOG_CHECK_PROJVER ]] && [[ $HOG_CHECK_PROJVER == '1' ]]; then
-          vivado -mode batch -notrace -source ./Hog/Tcl/CI/check_proj_ver.tcl -tclargs -ext_path "$HOG_EXTERNAL_PATH" $PROJECT_NAME;        
+          ./Hog/Other/CheckProjVer.sh -ext_path "$HOG_EXTERNAL_PATH" -sim $PROJECT_NAME $PROJECT_NAME;
         else
           echo "Project version checker is disabled.";
         fi
-      - if [ -f "./VivadoProjects/$PROJECT_NAME/skip.me" ]; then
+      - if [ -f "./Projects/$PROJECT_NAME/skip.me" ]; then
           echo "Hog-CI(info) - CI disabled for $PROJECT_NAME";
         else
           if [ -z ${HOG_NJOBS+x} ]; then
@@ -113,8 +113,8 @@
             echo "Hog-CI(info) - BD files will NOT be reset at pre syntehsis time";
           else
             echo "Hog-CI(info) - BD files will be reset at pre-syntehsis time";
-            mkdir -p VivadoProject;
-            echo "*.bd" > VivadoProject/hog_reset_files;
+            mkdir -p Projects;
+            echo "*.bd" > Projects/hog_reset_files;
           fi;
           echo "Hog-CI(info) - Launching workflow now...";
           echo "./Hog/LaunchWorkflow.sh -njobs $HOG_NJOBS $IP_EOS_PATH $NO_BITSTREAM $ONLY_SYNTH $CHECK_SYNTAX $PROJECT_NAME";
@@ -122,8 +122,8 @@
 
           if [[ -n "$HOG_ONLY_SYNTH" ]] && [[ $HOG_ONLY_SYNTH == '1' ]]; then
             echo "Hog-CI(info) - Adding version and timing summary to note...";
-            cat $CI_PROJECT_DIR/VivadoProject/$PROJECT_NAME/$PROJECT_NAME.runs/versions* > note.md;
-            cp $CI_PROJECT_DIR/VivadoProject/$PROJECT_NAME/$PROJECT_NAME.runs/versions* $CI_PROJECT_DIR/bin/$PROJECT_NAME*/;
+            cat $CI_PROJECT_DIR/Projects/$PROJECT_NAME/$PROJECT_NAME.runs/versions* > note.md;
+            cp $CI_PROJECT_DIR/Projects/$PROJECT_NAME/$PROJECT_NAME.runs/versions* $CI_PROJECT_DIR/bin/$PROJECT_NAME*/;
           else
             echo "Hog-CI(info) - Adding versions and timing summary to note...";
             cat $CI_PROJECT_DIR/bin/$PROJECT_NAME*/versions* $CI_PROJECT_DIR/bin/$PROJECT_NAME*/timing_* > note.md;
@@ -138,7 +138,7 @@
         when: always
         name: implementation_and_bitfiles
         paths:
-            - $CI_PROJECT_DIR/VivadoProject/$PROJECT_NAME/$PROJECT_NAME.runs
+            - $CI_PROJECT_DIR/Projects/$PROJECT_NAME/$PROJECT_NAME.runs
             - $CI_PROJECT_DIR/bin
         expire_in: 30 day
 

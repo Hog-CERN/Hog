@@ -60,6 +60,10 @@ function argument_parser()
   PARAMS=""
   while (( "$#" )); do
     case "$1" in
+      -sim)
+        SIM="-sim $2"
+        shift 2
+        ;;
       -ext_path)
         EXT_PATH="-ext_path $2"
         shift 2
@@ -103,17 +107,17 @@ function main ()
   then
     help_message $0
     exit -1
-  else
-    local PROJ=$1
-    local PROJ_DIR="$DIR/$PROJ"
   fi
 
   argument_parser $@
   if [ $? = 1 ]; then
     exit 1
   fi
+  set -- "${PARAMS[@]}" 
+  
+    local PROJ=$1
+    local PROJ_DIR="$DIR/$PROJ"
 
-  eval set -- "$PARAMS"
   if [ "$HELP" == "-h" ]; then
     help_message $0
     exit 0
@@ -161,12 +165,12 @@ function main ()
 
     if [ $COMMAND = "quartus_sh" ]
     then
-      "${HDL_COMPILER}" $COMMAND_OPT $DIR/../../Hog/Tcl/CI/check_proj_ver.tcl $EXT_PATH -sim $PROJ ;
+      "${HDL_COMPILER}" $COMMAND_OPT $DIR/../../Hog/Tcl/CI/check_proj_ver.tcl $EXT_PATH $SIM ;
     elif [ $COMMAND = "vivado_hls" ]
     then
       echo "Hog-ERROR: Vivado HLS is not yet supported by this script!"
     else
-      "${HDL_COMPILER}" $COMMAND_OPT $DIR/../../Hog/Tcl/CI/check_proj_ver.tcl -tclargs $EXT_PATH -sim $PROJ ;
+      "${HDL_COMPILER}" $COMMAND_OPT $DIR/../../Hog/Tcl/CI/check_proj_ver.tcl -tclargs $EXT_PATH $SIM ;
     fi
   fi
 }

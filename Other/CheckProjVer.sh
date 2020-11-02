@@ -99,7 +99,6 @@ function argument_parser()
 function main ()
 {
   # Define directory variables as local: only main will change directory
-
   local OLD_DIR=`pwd`
   local THIS_DIR="$(dirname "$0")"
 
@@ -114,9 +113,6 @@ function main ()
     exit 1
   fi
   set -- "${PARAMS[@]}" 
-  
-    local PROJ=$1
-    local PROJ_DIR="$DIR/$PROJ"
 
   if [ "$HELP" == "-h" ]; then
     help_message $0
@@ -134,6 +130,9 @@ function main ()
     cd "${OLD_DIR}"
     exit -1
   fi  
+
+  local PROJ=`echo $1`
+  local PROJ_DIR="$DIR/$PROJ"
 
   if [ -d "$PROJ_DIR" ]
   then
@@ -165,11 +164,13 @@ function main ()
 
     if [ $COMMAND = "quartus_sh" ]
     then
+      echo "Executing:  ${HDL_COMPILER} $COMMAND_OPT $DIR/../../Hog/Tcl/CI/check_proj_ver.tcl $EXT_PATH $SIM"
       "${HDL_COMPILER}" $COMMAND_OPT $DIR/../../Hog/Tcl/CI/check_proj_ver.tcl $EXT_PATH $SIM ;
     elif [ $COMMAND = "vivado_hls" ]
     then
       echo "Hog-ERROR: Vivado HLS is not yet supported by this script!"
     else
+      echo "Executing:  ${HDL_COMPILER} $COMMAND_OPT $DIR/../../Hog/Tcl/CI/check_proj_ver.tcl -tclargs $EXT_PATH $SIM";
       "${HDL_COMPILER}" $COMMAND_OPT $DIR/../../Hog/Tcl/CI/check_proj_ver.tcl -tclargs $EXT_PATH $SIM ;
     fi
   fi

@@ -74,7 +74,7 @@ if {$static == 1 } {
 
   Msg Info "Evaluating the current version of Hog to use in the ref in the yml file..."
   cd $tcl_path
-  set ref [exec git describe]
+  set ref [Git describe]
   cd $old_path
   # adding include hog.yml and ref
   #set outer [huddle create "inculde" [huddle list [huddle string "project: 'hog/Hog'" "file" "'/hog.yml'" "ref" "'$ref'" ]]]

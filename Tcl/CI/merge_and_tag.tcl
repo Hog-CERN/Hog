@@ -95,7 +95,8 @@ if {$options(merged) == 0} {
 }
 
 Msg Info "Version Level $version_level"
-if {[catch {exec git merge --no-commit origin/$options(main_branch)} MRG]} {
+lassign [GitRet "merge --no-commit origin/$options(main_branch)"] ret msg
+if {$ret !=0} {
   Msg Error "Branch is outdated, please merge the latest changes from $options(main_branch) with:\n git fetch && git merge origin/$options(main_branch)\n"
   exit 1	
 }
@@ -122,15 +123,18 @@ Msg Info "Old tag was: $old_tag and new tag is: $new_tag"
 
 
 if {$options(push)!= ""} {
-  if {[catch {exec git push origin $options(push)} TMP]} {
-    Msg Warning $TMP
+  lassign [GitRet "push origin $options(push)"] ret msg
+
+  if {$ret != 0} {
+    Msg Warning $msg
   } else {
-    Msg Info $TMP
+    Msg Info $msg
   }
-  if {[catch {exec git push --tags origin $options(push)} TMP]} {
-    Msg Warning $TMP
+  lassign [GitRet "push --tags origin $options(push)"] ret msg
+  if {$ret != 0} {
+    Msg Warning $msg
   } else {
-    Msg Info $TMP
+    Msg Info $msg
   }
 }
 

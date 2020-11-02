@@ -19,7 +19,7 @@ generate-config:
   # only:
   #   refs:
   #     - merge_requests
-  stage: generate
+  stage: dynamic_generate
   image: gitlab-registry.cern.ch/hog/hog-docker:tclsh
   script:
     - if [[ ${HOG_CHECK_PROJVER} != 1 ]]; then
@@ -42,7 +42,7 @@ child-pipeline:
   # only:
   #   refs:
   #     - merge_requests
-  stage: triggers
+  stage: dynamic_triggers
   trigger:
     include: 
       - artifact: generated-config.yml

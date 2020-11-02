@@ -21,13 +21,11 @@ if {[catch {package require struct::matrix} ERROR]} {
   puts "$ERROR\n If you are running this script on tclsh, you can fix this by installing 'tcllib'"
   return
 }
-if {[info commands get_property] != ""} {
-  if { [string first PlanAhead [version]] == 0 } {
-    set old_path [file normalize "../../Projects/$project/$project.runs/synth_1"]
-    file mkdir $old_path
-  } else {
-    set old_path [pwd]
-  }
+
+if {[info commands get_property] != "" && [string first PlanAhead [version]] == 0 } {
+  # Vivado + PlanAhead
+  set old_path [file normalize "../../VivadoProject/$project/$project.runs/synth_1"]
+  file mkdir $old_path
 } else {
   set old_path [pwd]
 }
@@ -105,7 +103,7 @@ if {[file exists $reset_file]} {
 # Getting all the versions and SHAs of the repository
 lassign [GetRepoVersions ./Top/$proj_name/$proj_name.tcl $ext_path] commit version  hog_hash hog_ver  top_hash top_ver  libs hashes vers  cons_ver cons_hash  ext_names ext_hashes  xml_hash xml_ver 
 
-set this_commit  [exec git log --format=%h -1]
+set this_commit  [Git {log --format=%h -1}]
 
 set describe [GetGitDescribe $commit]
 Msg Info "Git describe for $commit is: $describe"
@@ -116,7 +114,7 @@ if {$commit == 0 } {
 } else {
   Msg Info "Found last SHA for $proj_name: $commit"
   if {$commit != $this_commit} {
-    set count [exec git rev-list --count $commit..$this_commit]
+    set count [Git "rev-list --count $commit..$this_commit"]
     Msg Info "The commit in which project $proj_name was last modified is $commit, that is $count commits older than current commit $this_commit."
   }
 }
@@ -165,8 +163,8 @@ set clock_seconds [clock seconds]
 set tt [clock format $clock_seconds -format {%d/%m/%Y at %H:%M:%S}]
 
 if [GitVersion 2.9.3] {
-  set date [exec git log -1 --format=%cd --date=format:'%d%m%Y' $commit --]
-  set timee [exec git log -1 --format=%cd --date=format:'00%H%M%S' $commit --]
+  set date [Git "log -1 --format=%cd --date=format:'%d%m%Y' $commit"]
+  set timee [Git "log -1 --format=%cd --date=format:'00%H%M%S' $commit"]
 } else {
   Msg Warning "Found Git version older than 2.9.3. Using current date and time instead of commit time."
   set date [clock format $clock_seconds  -format {%d%m%Y}]
@@ -282,7 +280,7 @@ Msg Info "Creating $dst_dir..."
 file mkdir $dst_dir/reports
 
 Msg Info "Evaluating non committed changes..."
-set diff [exec git diff]
+set diff [Git diff]
 if {$diff != ""} {
   Msg Warning "Found non committed changes:..."
   Msg Status "$diff"

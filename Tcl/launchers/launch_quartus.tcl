@@ -44,7 +44,7 @@ if { [ catch {array set options [cmdline::getoptions quartus(args) $parameters $
 } else {
   if {$options(project) == ""} {
     msg Error "project option not set"
-    return
+    return 1
   }
   set project $options(project)
   set project_path [file normalize "$path/../../Projects/$project/"]
@@ -58,7 +58,7 @@ if { [ catch {array set options [cmdline::getoptions quartus(args) $parameters $
   set ip_path ""
   set ext_path ""
 }
-cd $project_path
+
 if { $options(no_bitstream) == 1 } {
   set do_compile 0
   set do_bitstream 0 
@@ -93,7 +93,7 @@ if { [catch {package require ::quartus::project} ERROR] } {
   Msg Info "Loaded package ::quartus::project"
 }
 
-if {[file exists "$project.qpf" ]} {
+if {[file exists "$project_path/$project.qpf" ]} {
   Msg Info "Found project file $project.qpf for $project."
   set proj_found 1
 } else {
@@ -104,7 +104,16 @@ if {[file exists "$project.qpf" ]} {
 if { $proj_found == 0 || $recreate == 1 } {
   Msg Info "Creating (possibly replacing) the project $project..." 
   source ../../Top/$project/$project.tcl
+} 
+
+if {[file exists "$project_path" ]} {
+  cd $project_path
 } else {
+  Msg Error "Project directory not found for $project."
+  return 1
+}
+
+if { ![is_project_open ] } {
   Msg Info "Opening exixsting project file $project..."
   project_open $project -current_revision
 }

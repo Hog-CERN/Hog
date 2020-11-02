@@ -1523,7 +1523,7 @@ proc ForceUpToDate {} {
 #
 # @param[in] what_to_do: can be "push", if you want to copy the local IP synth result to EOS or "pull" if you want to copy the files from EOS to your local repository
 # @param[in] xci_file: the .xci file of the IP you want to handle
-# @param[in] runs_dir: the runs directory of the project. Typically called VivadoProject/\<project name\>/\<project name\>.runs
+# @param[in] runs_dir: the runs directory of the project. Typically called Projects/\<project name\>/\<project name\>.runs
 # @param[in] ip_path: the path of directory you want the IP to be saved on eos
 # @param[in] force: if not set to 0, will copy the IP to EOS even if it is already present
 #

@@ -23,7 +23,7 @@ if {[catch {package require struct::matrix} ERROR]} {
 }
 if {[info commands get_property] != ""} {
   if { [string first PlanAhead [version]] == 0 } {
-    set old_path [file normalize "../../VivadoProject/$project/$project.runs/synth_1"]
+    set old_path [file normalize "../../Projects/$project/$project.runs/synth_1"]
     file mkdir $old_path
   } else {
     set old_path [pwd]
@@ -62,7 +62,7 @@ if {[info commands get_property] != ""} {
 } else {
     #Tclssh
   set proj_file $old_path/[file tail $old_path].xpr
-  Msg CriticalWarning "You seem to be running locally on tclsh, so this is a debug, the project file will be set to $proj_file and was derived from the path you launched this script from: $old_path. If you want this script to work properly in debug mode, please launch it from the top folder of one project, for example Repo/VivadoProject/fpga1/ or Repo/Top/fpga1/"
+  Msg CriticalWarning "You seem to be running locally on tclsh, so this is a debug, the project file will be set to $proj_file and was derived from the path you launched this script from: $old_path. If you want this script to work properly in debug mode, please launch it from the top folder of one project, for example Repo/Projects/fpga1/ or Repo/Top/fpga1/"
 }
 
 
@@ -81,7 +81,7 @@ if {$flavour != ""} {
 }
 
 ######## Reset files before synthesis ###########
-set reset_file VivadoProject/hog_reset_files
+set reset_file Projects/hog_reset_files
 
 if {[file exists $reset_file]} {
   Msg Info "Found $reset_file, opening it..."

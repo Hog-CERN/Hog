@@ -560,17 +560,7 @@ if {[info exists ::PROPERTIES]} {
   set globalSettings::PROPERTIES $::PROPERTIES
 }
 
-
-## build_dir= Projects for all shells
-if {[info commands send_msg_id] != ""} {
-    #Vivado only
-  set build_dir_name "VivadoProject"
-} else {
-  set build_dir_name "Projects"
-}
-
-
-
+set build_dir_name "Projects"
 
 #Derived varibles from now on...
 set globalSettings::pre_synth_file              "pre-synthesis.tcl"

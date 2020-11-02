@@ -53,7 +53,7 @@ if {$ver == 0} {
   Msg Info "$project was modified, continuing with the CI..."
 } else {
   Msg Info "$project was not modified since version: $ver, disabling the CI..."
-  file mkdir $repo_path/VivadoProjects/$project
-  set fp [open "$repo_path/VivadoProjects/$project/skip.me" w+]
+  file mkdir $repo_path/Projects/$project
+  set fp [open "$repo_path/Projects/$project/skip.me" w+]
   close $fp
 }

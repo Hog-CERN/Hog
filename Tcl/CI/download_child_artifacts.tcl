@@ -52,7 +52,8 @@ if {"$options(parent_pipeline_id)" == ""} {
   set curl_url "${api}/projects/${proj_id}/pipelines/${parent_pipeline_id}/jobs/?page=${page}"
 }
 
-if [catch {exec curl -s --request GET --header "PRIVATE-TOKEN: ${push_token}" $curl_url } msg ] {
+lassign [ExecuteRet curl -s --request GET --header \"PRIVATE-TOKEN: ${push_token}\" $curl_url] ret msg
+if {$ret != 0} {
   Msg Error "Some problem when getting parent pipeline: $msg"
   return -1
 } else {
@@ -61,9 +62,9 @@ if [catch {exec curl -s --request GET --header "PRIVATE-TOKEN: ${push_token}" $c
     Msg Error "Cannot find JSON package equal or higher than 1.0.\n $JsonFound\n Exiting"
     return -1
   }
-
-
-  set ChildList [json::json2dict  $msg]
+  
+  
+  set ChildList [json::json2dict $msg]
   foreach Child $ChildList {
     set result [catch {dict get  $Child "id"} child_job_id]
     if {"$result" != "0" || $child_job_id < $create_job_id} {
@@ -106,13 +107,12 @@ if [catch {exec curl -s --request GET --header "PRIVATE-TOKEN: ${push_token}" $c
     }
 
     Msg Info "Downloading artifacts for child job at: ${api}/projects/${proj_id}/jobs/${child_job_id}/artifacts/"
-    if [catch {exec curl -s --location --header "PRIVATE-TOKEN: ${push_token}" "${api}/projects/${proj_id}/jobs/${child_job_id}/artifacts/" -o output_${child_job_id}.zip} msg ] {
+    lassign [ExecuteRet curl -s --location --header \"PRIVATE-TOKEN: ${push_token}\" \"${api}/projects/${proj_id}/jobs/${child_job_id}/artifacts/\" -o output_${child_job_id}.zip] ret msg
+    if {$ret != 0} {
       Msg Error "Some problem when downloading artifacts for child job id:$child_job_id. Error message: $msg"
       return -1
     } 
-    exec unzip -o output_${child_job_id}.zip
+    Execute unzip -o output_${child_job_id}.zip
     file delete output_${child_job_id}.zip
   }
-
-
 }

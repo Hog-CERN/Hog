@@ -88,7 +88,7 @@ if [file exists $fw_file] {
   Msg Info "Creating $dst_dir..."
   file mkdir $dst_dir
   Msg Info "Evaluating differences with last commit..."
-  set diff [exec git diff]
+  set diff [Git diff]
   if {$diff != ""} {
     Msg Warning "Found non committed changes:"
     Msg Status "$diff"

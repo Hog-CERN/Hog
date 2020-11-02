@@ -57,7 +57,7 @@ if {[DoxygenVersion 1.8.13]} {
   set outfile [open $doxygen_conf a]
   puts $outfile \nPROJECT_NUMBER=$version
   close $outfile
-  exec -ignorestderr doxygen $doxygen_conf
+  Execute doxygen $doxygen_conf
 }
 
 cd $repo_path

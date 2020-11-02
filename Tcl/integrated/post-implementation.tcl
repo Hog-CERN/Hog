@@ -50,7 +50,13 @@ set proj_name [file rootname [file tail $proj_file]]
 
 Msg Info "Evaluating last git SHA in which $proj_name was modified..."
 set commit "0000000"
-if { [exec git status --untracked-files=no  --porcelain] eq "" } {
+
+lassign [GitRet {status --untracked-files=no  --porcelain}] ret msg
+if {$ret !=0} {
+  Msg Error "Git status failed: $msg"
+}
+
+if {$msg eq "" } {
   Msg Info "Git working directory [pwd] clean."
   lassign [GetRepoVersion ./Top/$proj_name/$proj_name.tcl] commit version
   Msg Info "Found last SHA for $proj_name: $commit"

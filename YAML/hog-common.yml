@@ -16,6 +16,14 @@ variables:
   GIT_SUBMODULE_STRATEGY: recursive
 
 before_script:
+    
+    - BUILD_DIR=/home/gitlab-runner/builds/$CI_RUNNER_SHORT_TOKEN/$CI_JOB_ID
+    - CLONE_DIR="$BUILD_DIR/$CI_PROJECT_PATH"
+    - mkdir -p $BUILD_DIR
+    - cd $BUILD_DIR
+    - rm -rf $CLONE_DIR
+    - mkdir -p $CLONE_DIR
+    - export REPO=`echo $CI_PROJECT_URL | sed -e s#https://##`
     - echo '#!/bin/bash' > hog_git;
       echo 'REALGIT=$(which git)' >> hog_git;
       echo 'RETRIES=3' >> hog_git;
@@ -31,21 +39,14 @@ before_script:
       echo '  sleep $DELAY' >> hog_git;
       echo 'done' >> hog_git;
       chmod +x hog_git;
-    - BUILD_DIR=/home/gitlab-runner/builds/$CI_RUNNER_SHORT_TOKEN/$CI_JOB_ID
-    - CLONE_DIR="$BUILD_DIR/$CI_PROJECT_PATH"
-    - mkdir -p $BUILD_DIR
-    - cd $BUILD_DIR
-    - rm -rf $CLONE_DIR
-    - mkdir -p $CLONE_DIR
-    - export REPO=`echo $CI_PROJECT_URL | sed -e s#https://##`
     - ./hog_git clone --recursive https://${HOG_USER}:${HOG_PUSH_TOKEN}@$REPO $CLONE_DIR
     - cd $CLONE_DIR
-    - ./hog_git remote set-url origin https://${HOG_USER}:${HOG_PUSH_TOKEN}@$REPO
-    - ./hog_git config user.email ${HOG_EMAIL}
-    - ./hog_git config user.name ${HOG_USER}
-    - ./hog_git fetch origin $CI_COMMIT_REF_NAME
-    - ./hog_git fetch origin $CI_MERGE_REQUEST_TARGET_BRANCH_NAME
-    - ./hog_git checkout $CI_COMMIT_REF_NAME --
+    - ./../hog_git remote set-url origin https://${HOG_USER}:${HOG_PUSH_TOKEN}@$REPO
+    - ./../hog_git config user.email ${HOG_EMAIL}
+    - ./../hog_git config user.name ${HOG_USER}
+    - ./../hog_git fetch origin $CI_COMMIT_REF_NAME
+    - ./../hog_git fetch origin $CI_MERGE_REQUEST_TARGET_BRANCH_NAME
+    - ./../hog_git checkout $CI_COMMIT_REF_NAME --
     - export XILINXD_LICENSE_FILE=${HOG_XIL_LICENSE}
     - export PATH=${HOG_PATH}:$PATH
     - export LD_LIBRARY_PATH=${HOG_LD_LIBRARY_PATH}:$LD_LIBRARY_PATH

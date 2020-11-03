@@ -19,6 +19,7 @@ before_script:
     
     - export BUILD_DIR=/home/gitlab-runner/builds/$CI_RUNNER_SHORT_TOKEN/$CI_JOB_ID
     - export CLONE_DIR="$BUILD_DIR/$CI_PROJECT_PATH"
+    - rm -rf $CI_PROJECT_DIR
     - mkdir -p $CI_PROJECT_DIR
     - cd $CI_PROJECT_DIR
     # - rm -rf $CLONE_DIR

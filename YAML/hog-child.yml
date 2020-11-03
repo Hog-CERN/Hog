@@ -57,8 +57,8 @@
      artifacts:
        name: simulation_files
        paths:
-         - $CLONE_DIR/VivadoProject/$PROJECT_NAME/$PROJECT_NAME.sim
-         - $CLONE_DIR/SkippedProjects/$PROJECT_NAME
+         - VivadoProject/$PROJECT_NAME/$PROJECT_NAME.sim
+         - SkippedProjects/$PROJECT_NAME
        expire_in: 30 day
      allow_failure: true
 
@@ -138,8 +138,8 @@
         when: always
         name: implementation_and_bitfiles
         paths:
-            - $CLONE_DIR/VivadoProject/$PROJECT_NAME/$PROJECT_NAME.runs
-            - $CLONE_DIR/bin
+            - VivadoProject/$PROJECT_NAME/$PROJECT_NAME.runs
+            - bin
         expire_in: 30 day
 
 collect_artifacts:
@@ -183,6 +183,6 @@ collect_artifacts:
         when: always
         name: all_projects
         paths:
-            - $CLONE_DIR/bin
+            - bin
         expire_in: 30 day
     allow_failure: true

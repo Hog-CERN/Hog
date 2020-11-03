@@ -16,9 +16,10 @@ variables:
   GIT_SUBMODULE_STRATEGY: recursive
 
 before_script:
-    
+    - pwd
     - export BUILD_DIR=/home/gitlab-runner/builds/$CI_RUNNER_SHORT_TOKEN/$CI_JOB_ID
     - export CLONE_DIR="$BUILD_DIR/$CI_PROJECT_PATH"
+    - echo $CI_PROJECT_DIR
     - rm -rf $CI_PROJECT_DIR
     - mkdir -p $CI_PROJECT_DIR
     - cd $CI_PROJECT_DIR
@@ -39,6 +40,7 @@ before_script:
       echo '  sleep $DELAY' >> hog_git;
       echo 'done' >> hog_git;
       chmod +x hog_git;
+    - ./hog_git init
     # - ./hog_git clone --recursive https://${HOG_USER}:${HOG_PUSH_TOKEN}@$REPO .
     # - cd $CLONE_DIR
     - ./hog_git remote set-url origin https://${HOG_USER}:${HOG_PUSH_TOKEN}@$REPO

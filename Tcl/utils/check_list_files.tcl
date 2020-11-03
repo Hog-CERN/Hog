@@ -85,7 +85,6 @@ lassign [GetProjectFiles] prjLibraries prjProperties
 lassign [GetHogFiles "$repo_path/Top/$project/list/" "" 0 $ext_path] listLibraries listProperties
 
 
-
 set prjIPs  [DictGet $prjLibraries IP]
 set prjXDCs  [DictGet $prjLibraries XDC]
 set prjOTHERs [DictGet $prjLibraries OTHER] 
@@ -93,6 +92,29 @@ set prjSimDict  [DictGet $prjLibraries SIM]
 set prjSrcDict  [DictGet $prjLibraries SRC]
 
 
+#clening doubles from listlibraries and listProperties
+foreach library [dict keys $listLibraries] {
+  set fileNames [DictGet $listLibraries $library]
+  foreach fileName $fileNames {
+    set idxs [lreplace [lsearch -exact -all $fileNames $fileName] 0 0]
+    foreach idx $idxs {  
+		  set fileNames [lreplace $fileNames $idx $idx]
+    }
+  } 
+  dict set listLibraries $library $fileNames
+}
+foreach property [dict keys $listProperties] {
+  set props [lindex [dict get $listProperties $property] 0]
+  foreach prop $props {
+    set idxs [lreplace [lsearch -exact -all $props $prop] 0 0]
+    foreach idx $idxs {  
+		  set props [lreplace $props $idx $idx]
+    }
+  } 
+  dict set listProperties $property [list $props]
+}
+
+#checking list files
 set ErrorCnt 0
 set newListfiles [dict create]
 
@@ -278,7 +300,7 @@ foreach SRC $prjOTHERs {
 #checking file properties
 foreach key [dict keys $listProperties] {
   foreach prop [lindex [DictGet $listProperties $key] 0] {
-    if {[lsearch -nocase [lindex [DictGet $prjProperties $key] 0] $prop] < 0 && ![string equal $prop ""] && ![string equal $prop "XDC"]} {
+    if {[lsearch -nocase [DictGet $prjProperties $key] $prop] < 0 && ![string equal $prop ""] && ![string equal $prop "XDC"]} {
  			Msg CriticalWarning "$key property $prop is set in list files but not in Project!"
       incr ErrorCnt
     } 
@@ -287,7 +309,7 @@ foreach key [dict keys $listProperties] {
 
 
 foreach key [dict keys $prjProperties] {
-  foreach prop [lindex [DictGet $prjProperties $key] 0] {
+  foreach prop [DictGet $prjProperties $key] {
     #puts "FILE $key: PROPERTY $prop"
     if {[lsearch -nocase [lindex [DictGet $listProperties $key] 0] $prop] < 0 && ![string equal $prop ""] && ![string equal $key "Simulator"] } {
  			Msg CriticalWarning "$key property $prop is set in Project but not in list files!"

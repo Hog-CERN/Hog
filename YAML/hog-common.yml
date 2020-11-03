@@ -14,16 +14,12 @@
 variables:
   GIT_SSL_NO_VERIFY: "true"
   GIT_SUBMODULE_STRATEGY: recursive
+  GIT_STRATEGY: none
 
 before_script:
-    - pwd
-    - export BUILD_DIR=/home/gitlab-runner/builds/$CI_RUNNER_SHORT_TOKEN/$CI_JOB_ID
-    - export CLONE_DIR="$BUILD_DIR/$CI_PROJECT_PATH"
-    - echo $CI_PROJECT_DIR
     - rm -rf $CI_PROJECT_DIR
     - mkdir -p $CI_PROJECT_DIR
     - cd $CI_PROJECT_DIR
-    # - rm -rf $CLONE_DIR
     - export REPO=`echo $CI_PROJECT_URL | sed -e s#https://##`
     - echo '#!/bin/bash' > hog_git;
       echo 'REALGIT=$(which git)' >> hog_git;
@@ -41,8 +37,6 @@ before_script:
       echo 'done' >> hog_git;
       chmod +x hog_git;
     - ./hog_git init
-    # - ./hog_git clone --recursive https://${HOG_USER}:${HOG_PUSH_TOKEN}@$REPO .
-    # - cd $CLONE_DIR
     - ./hog_git remote add origin https://${HOG_USER}:${HOG_PUSH_TOKEN}@$REPO
     - ./hog_git config user.email ${HOG_EMAIL}
     - ./hog_git config user.name ${HOG_USER}

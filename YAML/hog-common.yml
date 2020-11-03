@@ -31,7 +31,7 @@ before_script:
       echo '  sleep $DELAY' >> hog_git;
       echo 'done' >> hog_git;
       chmod +x hog_git;
-    - BUILD_DIR=/home/gitlab-runner/builds/$RUNNER_TOKEN/0
+    - BUILD_DIR=/home/gitlab-runner/builds/$CI_RUNNER_SHORT_TOKEN/$CI_JOB_ID
     - CLONE_DIR="$BUILD_DIR/$CI_PROJECT_PATH"
     - cd $BUILD_DIR
     - rm -rf $CLONE_DIR

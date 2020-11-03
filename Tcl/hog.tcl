@@ -438,7 +438,7 @@ proc ReadListFile {list_file path {lib ""} {sha_mode 0} } {
   #  Process data file
   set data [split $file_data "\n"]
   set n [llength $data]
-  Msg Info "$n lines read from $list_file."
+  #Msg Info "$n lines read from $list_file."
   set cnt 0
 
   foreach line $data {
@@ -868,7 +868,7 @@ proc GetRepoVersions {proj_tcl_file {ext_path ""} {sim 0}} {
   set vers ""
   set hashes ""
   # Specyfiy sha_mode 1 for GetHogFiles to get all the files, includeng the list-files themselves
-  lassign [GetHogFiles "./list/" "*.src" 1] src_files dummy
+  lassign [GetHogFiles -list_files "*.src" -sha_mode 1 "./list/"] src_files dummy
   dict for {f files} $src_files {
     #library names have a .src extension in values returned by GetHogFiles
     set name [file rootname [file tail $f]]
@@ -884,7 +884,7 @@ proc GetRepoVersions {proj_tcl_file {ext_path ""} {sim 0}} {
 
   set cons_hashes ""
   # Specyfiy sha_mode 1 for GetHogFiles to get all the files, includeng the list-files themselves
-  lassign [GetHogFiles "./list/" "*.con" 1] cons_files dummy
+  lassign [GetHogFiles  -list_files "*.con" -sha_mode 1 "./list/" ] cons_files dummy
   dict for {f files} $cons_files {
     #library names have a .con extension in values returned by GetHogFiles
     set name [file rootname [file tail $f]]
@@ -901,7 +901,7 @@ proc GetRepoVersions {proj_tcl_file {ext_path ""} {sim 0}} {
   if {$sim == 1} {
     set sim_hashes ""
     # Specyfiy sha_mode 1 for GetHogFiles to get all the files, includeng the list-files themselves
-    lassign [GetHogFiles "./list/" "*.sim" 1] sim_files dummy
+    lassign [GetHogFiles  -list_files "*.sim" -sha_mode 1 "./list/"] sim_files dummy
     dict for {f files} $sim_files {
       #library names have a .sim extension in values returned by GetHogFiles
       set name [file rootname [file tail $f]]
@@ -960,7 +960,7 @@ proc GetRepoVersions {proj_tcl_file {ext_path ""} {sim 0}} {
 # Ipbus XML
   if [file exists ./list/xml.lst] {
     #Msg Info "Found IPbus XML list file, evaluating version and SHA of listed files..."
-    lassign [GetHogFiles "./list/" "xml.lst" 1] xml_files dummy
+    lassign [GetHogFiles  -list_files "xml.lst" -sha_mode 1 "./list/"] xml_files dummy
     lassign [GetVer  [dict get $xml_files "xml.lst"] ] xml_ver xml_hash
     lappend SHAs $xml_hash
     #Msg Info "Found IPbus XML SHA: $xml_hash and version: $xml_ver."
@@ -1453,15 +1453,34 @@ proc GetProjectFiles {} {
 ## @brief Extract files, libraries and properties from the project's list files
 #
 # @param[in] list_path path to the list file directory
-# @param[in] list_files the file wildcard, if not specified all Hog list files will be looked for
-# @param[in] sha_mode forwarded to ReadListFile, see there for info
-# @param[in] ext_path path for external libraries forwarded to ReadListFile
+# @param[in] Optional -list_files <List files> the file wildcard, if not specified all Hog list files will be looked for
+# @param[in] Optional -sha_mode <SHA mode> forwarded to ReadListFile, see there for info
+# @param[in] Optional -ext_path <external path> path for external libraries forwarded to ReadListFile
 #
 # @return a list of 2 dictionaries: libraries and properties
 # - libraries has library name as keys and a list of filenames as values
 # - properties has as file names as keys and a list of properties as values
 #
-proc GetHogFiles {list_path {list_files ""} {sha_mode 0} {ext_path ""}} {
+proc GetHogFiles args {
+
+  set parameters {
+    {list_files.arg ""  "If set, it will generate a gitlab-ci yml file for all projects in the Top folder, even if it has not been modified with respect to the target branch."}
+    {sha_mode.arg 0 "Normally the content of the hog-child.yml file is added at the beginning of the generated yml file. If thi flag is set, this will not be done."}
+    {ext_path.arg "" "Path for the external libraries not stored in the git repository."}
+  }
+  set usage "USAGE: GetHogFiles \[options\] <list path>"
+  if {[catch {array set options [cmdline::getoptions args $parameters $usage]}] ||  [llength $args] != 1 } {
+    Msg Error [cmdline::usage $parameters $usage]
+    return 
+  }
+  set list_path [lindex $args 0]  
+  set list_files $options(list_files)
+  set sha_mode $options(sha_mode)
+  set ext_path $options(ext_path)
+  
+ 
+
+
   set repo_path [file normalize $list_path/../../..]
   if { $list_files == "" } {
     set list_files {.src,.con,.sub,.sim,.ext}  

@@ -82,7 +82,7 @@ Msg Info "Checking $project list files..."
 lassign [GetProjectFiles] prjLibraries prjProperties
 
 
-lassign [GetHogFiles "$repo_path/Top/$project/list/" "" 0 $ext_path] listLibraries listProperties
+lassign [GetHogFiles -ext_path "$ext_path" "$repo_path/Top/$project/list/"] listLibraries listProperties
 
 
 

@@ -22,7 +22,6 @@ before_script:
     - mkdir -p $BUILD_DIR
     - cd $BUILD_DIR
     - rm -rf $CLONE_DIR
-    - mkdir -p $CLONE_DIR
     - export REPO=`echo $CI_PROJECT_URL | sed -e s#https://##`
     - echo '#!/bin/bash' > hog_git;
       echo 'REALGIT=$(which git)' >> hog_git;
@@ -40,7 +39,9 @@ before_script:
       echo 'done' >> hog_git;
       chmod +x hog_git;
     - ./hog_git clone --recursive https://${HOG_USER}:${HOG_PUSH_TOKEN}@$REPO $CLONE_DIR
+    - pwd
     - cd $CLONE_DIR
+    - pwd
     - ./../hog_git remote set-url origin https://${HOG_USER}:${HOG_PUSH_TOKEN}@$REPO
     - ./../hog_git config user.email ${HOG_EMAIL}
     - ./../hog_git config user.name ${HOG_USER}

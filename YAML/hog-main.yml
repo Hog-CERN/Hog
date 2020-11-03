@@ -53,8 +53,9 @@ merge_and_tag:
     - vivado -mode batch -notrace -source  ./Hog/Tcl/CI/merge_and_tag.tcl -tclargs -mr_par "{$MR_PARAMETERS}" -mr_id $CI_MERGE_REQUEST_IID -push $CI_COMMIT_REF_NAME -main_branch $CI_MERGE_REQUEST_TARGET_BRANCH_NAME $INCREASE
 
 make_doxygen:
-    <<: *only-default
-    <<: *tag-hog
+    tags:
+     - docker
+    image: gitlab-registry.cern.ch/hog/hog-docker:doxygen
     only:
       refs:
         - merge_requests
@@ -65,7 +66,7 @@ make_doxygen:
         <<: *vars
     script:
         - until echo $HOG_PASSWORD | kinit $HOG_USER@CERN.CH ; do echo Retrying; sleep 2; done
-        - vivado -mode batch -notrace -source ./Hog/Tcl/utils/make_doxygen.tcl
+        - tclsh ./Hog/Tcl/utils/make_doxygen.tcl
     artifacts:
         name: docs
         paths:

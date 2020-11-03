@@ -46,6 +46,7 @@ before_script:
     - . $BUILD_DIR/hog_git fetch origin $CI_COMMIT_REF_NAME
     - . $BUILD_DIR/hog_git fetch origin $CI_MERGE_REQUEST_TARGET_BRANCH_NAME
     - . $BUILD_DIR/hog_git checkout $CI_COMMIT_REF_NAME --
+    - . $BUILD_DIR/hog_git submodule update
     - export XILINXD_LICENSE_FILE=${HOG_XIL_LICENSE}
     - export PATH=${HOG_PATH}:$PATH
     - export LD_LIBRARY_PATH=${HOG_LD_LIBRARY_PATH}:$LD_LIBRARY_PATH

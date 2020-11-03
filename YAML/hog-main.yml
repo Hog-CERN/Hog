@@ -65,7 +65,7 @@ make_doxygen:
     variables:
         <<: *vars
     script:
-        - until echo $HOG_PASSWORD | kinit $HOG_USER@CERN.CH ; do echo Retrying; sleep 2; done
+        #- until echo $HOG_PASSWORD | kinit $HOG_USER@CERN.CH ; do echo Retrying; sleep 2; done
         - tclsh ./Hog/Tcl/utils/make_doxygen.tcl
     artifacts:
         name: docs

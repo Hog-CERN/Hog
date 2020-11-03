@@ -43,7 +43,7 @@ before_script:
     - ./hog_git init
     # - ./hog_git clone --recursive https://${HOG_USER}:${HOG_PUSH_TOKEN}@$REPO .
     # - cd $CLONE_DIR
-    - ./hog_git remote set-url origin https://${HOG_USER}:${HOG_PUSH_TOKEN}@$REPO
+    - ./hog_git remote add origin https://${HOG_USER}:${HOG_PUSH_TOKEN}@$REPO
     - ./hog_git config user.email ${HOG_EMAIL}
     - ./hog_git config user.name ${HOG_USER}
     - ./hog_git fetch origin $CI_COMMIT_REF_NAME

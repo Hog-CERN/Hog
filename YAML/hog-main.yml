@@ -69,7 +69,7 @@ make_doxygen:
     artifacts:
         name: docs
         paths:
-            - $CI_PROJECT_DIR/Doc
+            - $CLONE_DIR/Doc
         expire_in: 10 years
     dependencies: []
     allow_failure: true

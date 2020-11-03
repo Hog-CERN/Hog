@@ -14,7 +14,6 @@
 variables:
   GIT_SSL_NO_VERIFY: "true"
   GIT_SUBMODULE_STRATEGY: recursive
-  GIT_STRATEGY: none
 
 before_script:
     - rm -rf $CI_PROJECT_DIR

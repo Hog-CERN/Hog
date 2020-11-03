@@ -33,6 +33,7 @@ before_script:
       chmod +x hog_git;
     - BUILD_DIR=/home/gitlab-runner/builds/$CI_RUNNER_SHORT_TOKEN/$CI_JOB_ID
     - CLONE_DIR="$BUILD_DIR/$CI_PROJECT_PATH"
+    - mkdir -p $BUILD_DIR
     - cd $BUILD_DIR
     - rm -rf $CLONE_DIR
     - mkdir -p $CLONE_DIR

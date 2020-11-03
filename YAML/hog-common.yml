@@ -49,6 +49,7 @@ before_script:
     - ./hog_git fetch origin $CI_COMMIT_REF_NAME
     - ./hog_git fetch origin $CI_MERGE_REQUEST_TARGET_BRANCH_NAME
     - ./hog_git checkout $CI_COMMIT_REF_NAME --
+    - ./hog_git pull
     - ./hog_git submodule init
     - ./hog_git submodule update
     - export XILINXD_LICENSE_FILE=${HOG_XIL_LICENSE}

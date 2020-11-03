@@ -18,8 +18,8 @@ variables:
 before_script:
     - export REPO=`echo $CI_PROJECT_URL | sed -e s#https://##`
     - if [ $CI_JOB_STAGE == "merge" ]; then
-        git clean -xdf 
-      fi;
+        git clean -xdf;
+      fi
     - echo '#!/bin/bash' > hog_git;
       echo 'REALGIT=$(which git)' >> hog_git;
       echo 'RETRIES=3' >> hog_git;

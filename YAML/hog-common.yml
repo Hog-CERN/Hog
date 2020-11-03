@@ -16,13 +16,28 @@ variables:
   GIT_SUBMODULE_STRATEGY: recursive
 
 before_script:
+    - echo '#!/bin/bash' > hog_git;
+      echo 'REALGIT=$(which git)' >> hog_git;
+      echo 'RETRIES=3' >> hog_git;
+      echo 'DELAY=2' >> hog_git;
+      echo 'COUNT=0' >> hog_git;
+      echo 'while [ $COUNT -lt $RETRIES ]; do' >> hog_git;
+      echo '  $REALGIT "$@"' >> hog_git;
+      echo '  if [ $? -eq 0 ]; then' >> hog_git;
+      echo '    RETRIES=0' >> hog_git;
+      echo '    break' >> hog_git;
+      echo '  fi' >> hog_git;
+      echo '  let COUNT=$COUNT+1' >> hog_git;
+      echo '  sleep $DELAY' >> hog_git;
+      echo 'done' >> hog_git;
+      chmod +x hog_git;
     - export REPO=`echo $CI_PROJECT_URL | sed -e s#https://##`
-    - git remote set-url origin https://${HOG_USER}:${HOG_PUSH_TOKEN}@$REPO
-    - git config user.email ${HOG_EMAIL}
-    - git config user.name ${HOG_USER}
-    - git fetch origin $CI_COMMIT_REF_NAME
-    - git fetch origin $CI_MERGE_REQUEST_TARGET_BRANCH_NAME
-    - git checkout $CI_COMMIT_REF_NAME --
+    - hog_git remote set-url origin https://${HOG_USER}:${HOG_PUSH_TOKEN}@$REPO
+    - hog_git config user.email ${HOG_EMAIL}
+    - hog_git config user.name ${HOG_USER}
+    - hog_git fetch origin $CI_COMMIT_REF_NAME
+    - hog_git fetch origin $CI_MERGE_REQUEST_TARGET_BRANCH_NAME
+    - hog_git checkout $CI_COMMIT_REF_NAME --
     - export XILINXD_LICENSE_FILE=${HOG_XIL_LICENSE}
     - export PATH=${HOG_PATH}:$PATH
     - export LD_LIBRARY_PATH=${HOG_LD_LIBRARY_PATH}:$LD_LIBRARY_PATH

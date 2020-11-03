@@ -17,6 +17,7 @@ variables:
 
 before_script:
     - export REPO=`echo $CI_PROJECT_URL | sed -e s#https://##`
+    - ls -lrt
     - echo '#!/bin/bash' > hog_git;
       echo 'REALGIT=$(which git)' >> hog_git;
       echo 'RETRIES=3' >> hog_git;

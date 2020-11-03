@@ -40,12 +40,12 @@ before_script:
       chmod +x hog_git;
     - ./hog_git clone --recursive https://${HOG_USER}:${HOG_PUSH_TOKEN}@$REPO $CLONE_DIR
     - cd $CLONE_DIR
-    - ./$BUILD_DIR/hog_git remote set-url origin https://${HOG_USER}:${HOG_PUSH_TOKEN}@$REPO
-    - ./$BUILD_DIR/hog_git config user.email ${HOG_EMAIL}
-    - ./$BUILD_DIR/hog_git config user.name ${HOG_USER}
-    - ./$BUILD_DIR/hog_git fetch origin $CI_COMMIT_REF_NAME
-    - ./$BUILD_DIR/hog_git fetch origin $CI_MERGE_REQUEST_TARGET_BRANCH_NAME
-    - ./$BUILD_DIR/hog_git checkout $CI_COMMIT_REF_NAME --
+    - . $BUILD_DIR/hog_git remote set-url origin https://${HOG_USER}:${HOG_PUSH_TOKEN}@$REPO
+    - . $BUILD_DIR/hog_git config user.email ${HOG_EMAIL}
+    - . $BUILD_DIR/hog_git config user.name ${HOG_USER}
+    - . $BUILD_DIR/hog_git fetch origin $CI_COMMIT_REF_NAME
+    - . $BUILD_DIR/hog_git fetch origin $CI_MERGE_REQUEST_TARGET_BRANCH_NAME
+    - . $BUILD_DIR/hog_git checkout $CI_COMMIT_REF_NAME --
     - export XILINXD_LICENSE_FILE=${HOG_XIL_LICENSE}
     - export PATH=${HOG_PATH}:$PATH
     - export LD_LIBRARY_PATH=${HOG_LD_LIBRARY_PATH}:$LD_LIBRARY_PATH

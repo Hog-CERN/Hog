@@ -31,7 +31,14 @@ before_script:
       echo '  sleep $DELAY' >> hog_git;
       echo 'done' >> hog_git;
       chmod +x hog_git;
+    - BUILD_DIR=/home/gitlab-runner/builds/$RUNNER_TOKEN/0
+    - CLONE_DIR="$BUILD_DIR/$CI_PROJECT_PATH"
+    - cd $BUILD_DIR
+    - rm -rf $CLONE_DIR
+    - mkdir -p $CLONE_DIR
     - export REPO=`echo $CI_PROJECT_URL | sed -e s#https://##`
+    - hog_git clone --recursive https://${HOG_USER}:${HOG_PUSH_TOKEN}@$REPO $CLONE_DIR
+    - cd $CLONE_DIR
     - hog_git remote set-url origin https://${HOG_USER}:${HOG_PUSH_TOKEN}@$REPO
     - hog_git config user.email ${HOG_EMAIL}
     - hog_git config user.name ${HOG_USER}

@@ -447,6 +447,10 @@ proc ReadListFile {list_file path {lib ""} {sha_mode 0} } {
       set file_and_prop [regexp -all -inline {\S+} $line]
       set srcfile [lindex $file_and_prop 0]
       set srcfile "$path/$srcfile"
+      if {![file exists $srcfile]} {
+        Msg CriticalWarning "$srcfile not found in $path"
+        continue
+      }
       set srcfiles [glob $srcfile]
       
       # glob the file list for wildcards
@@ -479,6 +483,7 @@ proc ReadListFile {list_file path {lib ""} {sha_mode 0} } {
           } else {
             ### Set file properties
             set prop [lrange $file_and_prop 1 end]
+            regsub -all " *= *" $prop "=" prop
             dict lappend properties $vhdlfile $prop
             ### Set File Set
             #Adding IP library
@@ -491,7 +496,7 @@ proc ReadListFile {list_file path {lib ""} {sha_mode 0} } {
           }
           incr cnt
         } else {
-	  Msg Error "File $vhdlfile not found."
+          Msg CriticalWarning "File $vhdlfile not found."
         }
       }
     }
@@ -1332,41 +1337,101 @@ proc Relative {base dst} {
 # @return a list of two elements. The first element is a dictionary containing all libraries. The second elements is a discretionary containing all properties
 proc GetProjectFiles {} {
 
-  set all_files [get_files]
+
+  set all_filesets [get_filesets]
   set libraries [dict create]
   set properties [dict create]
 
-  foreach f $all_files {
-    if { [get_property  IS_GENERATED [get_files $f]] == 0} {
-      set f [file normalize $f]
-      lappend files $f
-      set type  [get_property FILE_TYPE [get_files $f]]
-      set lib [get_property LIBRARY [get_files $f]]
+  set simulator [get_property target_simulator [current_project]]
+  set SIM [dict create]
+  set SRC [dict create] 
 
-      # Type can be complex like VHDL 2008, in that case we want the second part to be a property
-      if {[llength $type] > 1} {
-        set prop [lrange $type 1 [llength $type]]
-        set type [lindex $type 0]
+  foreach fs $all_filesets {
+
+    set all_files [get_files -quiet -of_objects [get_filesets $fs]]
+    set fs_type [get_property FILESET_TYPE [get_filesets $fs]]
+
+    if {[string equal $fs_type "SimulationSrcs"] && [llength $all_files] > 0} {
+      set topsim [get_property "top"  [get_filesets $fs]]
+      set runtime [get_property "$simulator.simulate.runtime"  [get_filesets $fs]]
+      #getting file containing top module as explained here: https://forums.xilinx.com/t5/Vivado-TCL-Community/How-can-I-get-the-file-path-of-the-top-module-in-the-current/td-p/455740
+      if {[string equal "$topsim" ""]} {
+        Msg CriticalWarning "No top simulation file found for fileset $fs."
       } else {
-        set prop ""
+        set simtopfile [lindex [get_files -compile_order sources -used_in simulation -of_objects [get_filesets $fs]] end]
+        if {[string equal [get_files -of_objects [get_filesets $fs] $simtopfile] ""] } {
+          Msg CriticalWarning "Top simulation file $simtopfile not found in fileset $fs."
+        } else {
+          dict lappend properties $simtopfile "topsim=$topsim"
+          if {![string equal "$runtime" "1000ns"]} { #not writing default value
+            dict lappend properties $simtopfile "runtime=$runtime"
+          }
+        }
+      }
+      set wavefile [get_property "$simulator.simulate.custom_wave_do" [get_filesets $fs]]
+      if {![string equal "$wavefile" ""]} {
+        dict lappend properties $wavefile wavefile
       }
 
-      #check where the file is used and add it to prop
-      if {[string equal $type "VHDL"]} {
-        dict lappend libraries $lib $f
-        dict lappend properties $f $prop
-      } elseif {[string equal $type "IP"]} {
-        dict lappend libraries "IP" $f
-      } elseif {[string equal $type "XDC"]} {
-        dict lappend libraries "XDC" $f
-        dict lappend properties $f "XDC"
-      } else {
-        dict lappend libraries "OTHER" $f
+      set dofile [get_property "$simulator.simulate.custom_udo" [get_filesets $fs]]
+      if {![string equal "$dofile" ""]} {
+        dict lappend properties $dofile dofile
+      }
+    }
+
+
+    foreach f $all_files {
+      if { [lindex [get_property  IS_GENERATED [get_files $f]] 0] == 0 && ![string equal [file extension $f] ".coe"]} {
+        set f [file normalize $f]
+        lappend files $f
+        set type  [get_property FILE_TYPE [get_files $f]]
+        set lib [get_property LIBRARY [get_files $f]]
+      
+
+        # Type can be complex like VHDL 2008, in that case we want the second part to be a property
+        if {[string equal [lindex $type 0] "VHDL"] && [llength $type] == 1} {
+          set prop "93"
+        } elseif  {[string equal [lindex $type 0] "Block"] && [string equal [lindex $type 1] "Designs"]} { 
+          set type "IP"
+          set prop ""
+        } else {
+          set type [lindex $type 0]
+          set prop ""
+        }
+
+        #check where the file is used and add it to prop
+        if {[string equal $fs_type "SimulationSrcs"]} {
+          dict lappend SIM $fs $f
+          if {![string equal $prop ""]} {
+            dict lappend properties $f $prop
+          }
+        } elseif {[string equal $type "VHDL"]} {
+          dict lappend SRC $lib $f
+          if {![string equal $prop ""]} {
+            dict lappend properties $f $prop
+          }
+        } elseif {[string equal $type "IP"]} {
+          dict lappend libraries "IP" $f
+        } elseif {[string equal $type "XDC"]} {
+          dict lappend libraries "XDC" $f
+          #dict lappend properties $f "XDC"
+        } else {
+          dict lappend libraries "OTHER" $f
+        }
+        
+        if {[lindex [get_property -quiet used_in_synthesis  [get_files $f]] 0] == 0} {
+          dict lappend properties $f "nosynth"
+        }
+        if {[lindex [get_property -quiet used_in_implementation  [get_files $f]] 0] == 0} {
+          dict lappend properties $f "noimpl"
+        }
+        if {[lindex [get_property -quiet used_in_simulation  [get_files $f]] 0] == 0} {
+          dict lappend properties $f "nosim"
+        }
+
       }
 
     }
-
-  }
 
     #    dict for {lib f} $libraries {
     #   Msg Status "   Library: $lib: \n *******"
@@ -1376,7 +1441,11 @@ proc GetProjectFiles {} {
     #
     #   Msg Status "*******"
     #    }
-
+  }
+  
+  dict append libraries "SIM" $SIM 
+  dict append libraries "SRC" $SRC 
+  dict lappend properties "Simulator" $simulator
   return [list $libraries $properties]
 }
 
@@ -1384,7 +1453,7 @@ proc GetProjectFiles {} {
 ## @brief Extract files, libraries and properties from the project's list files
 #
 # @param[in] list_path path to the list file directory
-# @param[in] list_files the file wildcard, if not spcified all Hog list files will be looked for
+# @param[in] list_files the file wildcard, if not specified all Hog list files will be looked for
 # @param[in] sha_mode forwarded to ReadListFile, see there for info
 # @param[in] ext_path path for external libraries forwarded to ReadListFile
 #
@@ -1412,6 +1481,33 @@ proc GetHogFiles {list_path {list_files ""} {sha_mode 0} {ext_path ""}} {
     set properties [MergeDict $p $properties]
   }
   return [list $libraries $properties]
+}
+
+
+## @brief Parse possible commands in the first line of Hog files (e.g. #Vivado, #Simulator, etc)
+#
+# @param[in] list_path path to the list file directory
+# @param[in] list_files the list file name 
+#
+# @return a string with the first-line command
+# - libraries has library name as keys and a list of filenames as values
+# - properties has as file names as keys and a list of properties as values
+#
+proc ParseFirstLineHogFiles {list_path list_file} {
+  set repo_path [file normalize $list_path/../../..]
+  if {![file exists $list_path/$list_file]} {
+    Msg Error "list file $list_path/$list_file does not exist!"
+    return ""
+  } 
+  set fp [open $list_path/$list_file r]
+  set line [lindex [split [read $fp] "\n"] 0] 
+  close $fp
+
+  if {[string match "#*" $line]} {
+    return [string trim [string range $line 1 end]]
+  } else {
+    return ""
+  }
 }
 
 

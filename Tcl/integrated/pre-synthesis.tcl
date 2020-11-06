@@ -256,7 +256,7 @@ if {[info commands set_property] != ""} {
      set_parameter -name FLAVOUR $flavour
   }
 
-  set  status_file "$old_path/../versions.txt"
+  set  status_file "$old_path/versions.txt"
   project_close
 
 } else {

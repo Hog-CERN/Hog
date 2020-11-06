@@ -127,10 +127,10 @@
               cat $CI_PROJECT_DIR/Projects/$PROJECT_NAME/$PROJECT_NAME.runs/versions* > note.md;
               cp $CI_PROJECT_DIR/Projects/$PROJECT_NAME/$PROJECT_NAME.runs/versions* $CI_PROJECT_DIR/bin/$PROJECT_NAME*/;
             fi
-            if [[ -d $CI_PROJECT_DIR/Projects/$PROJECT_NAME/output/ ]]
+            if [[ -d $CI_PROJECT_DIR/Projects/$PROJECT_NAME/output_files/ ]]
             then 
-              cat $CI_PROJECT_DIR/Projects/$PROJECT_NAME/output/versions* > note.md;
-              cp $CI_PROJECT_DIR/Projects/$PROJECT_NAME/output/versions* $CI_PROJECT_DIR/bin/$PROJECT_NAME*/;
+              cat $CI_PROJECT_DIR/Projects/$PROJECT_NAME/output_files/versions* > note.md;
+              cp $CI_PROJECT_DIR/Projects/$PROJECT_NAME/output_files/versions* $CI_PROJECT_DIR/bin/$PROJECT_NAME*/;
             fi
           else
             echo "Hog-CI(info) - Adding versions and timing summary to note...";

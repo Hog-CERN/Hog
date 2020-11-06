@@ -1957,7 +1957,7 @@ proc FindNewestVersion { versions } {
   set new_ver 0
   foreach ver $versions { 
     if { $ver > $new_ver } {
-      set new_ver $i
+      set new_ver $ver
     }
   }
   return $new_ver

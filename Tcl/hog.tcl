@@ -418,6 +418,7 @@ proc FindVhdlVersion {file_name} {
 # @param[in] path      path the vhdl file are referred to in the list file
 # @param[in] Optional -lib <library> name of the library files will be added to, if not given will be extracted from the file name
 # @param[in] Optional -sha_mode <sha_mode>  if not set to 0, the list files will be added as well and the IPs will be added to the file rather than to the special ip library. The sha mode should be used when you use the lists to calculate the git SHA, rather than to add the files to the project.
+# @param[in] Optional -verbose <0/1> enable verbose messages
 #
 # @return              a list of 2 dictionaries: "libraries" has library name as keys and a list of filenames as values, "properties" has as file names as keys and a list of properties as values
 #
@@ -426,6 +427,7 @@ proc ReadListFile args {
   set parameters {
     {lib.arg ""  "The name of the library files will be added to, if not given will be extracted from the file name."}
     {sha_mode.arg 0 "If not set to 0, the list files will be added as well and the IPs will be added to the file rather than to the special ip library. The sha mode should be used when you use the lists to calculate the git SHA, rather than to add the files to the project."}
+    {verbose.arg 0 "Verbose messages"}
   }
   set usage "USAGE: ReadListFile \[options\] <list file> <path>"
   if {[catch {array set options [cmdline::getoptions args $parameters $usage]}] ||  [llength $args] != 2 } {
@@ -436,6 +438,7 @@ proc ReadListFile args {
   set path [lindex $args 1]  
   set sha_mode $options(sha_mode)
   set lib $options(lib)
+  set verbose $options(verbose)
   
   # if no library is given, work it out from the file name
   if {$lib eq ""} {
@@ -467,7 +470,9 @@ proc ReadListFile args {
       
       # glob the file list for wildcards
       if {$srcfiles != $srcfile && ! [string equal $srcfiles "" ]} {
-	     Msg Info "Wildcard source expanded from $srcfile to $srcfiles"
+        if {$verbose == 1} {
+	        Msg Info "Wildcard source expanded from $srcfile to $srcfiles"
+        }
       } else {
         if {![file exists $srcfile]} {
           Msg CriticalWarning "$srcfile not found in $path"
@@ -481,15 +486,21 @@ proc ReadListFile args {
           set extension [file ext $vhdlfile]
 	  
           if { $extension == $list_file_ext } {
-            Msg Info "List file $vhdlfile found in list file, recursively opening it..."
+            if {$verbose == 1} {
+              Msg Info "List file $vhdlfile found in list file, recursively opening it..."
+            }
             ### Set list file properties
             set prop [lrange $file_and_prop 1 end]
             set library [lindex [regexp -inline {lib\s*=\s*(.+?)\y.*} $prop] 1]
             if { $library != "" } {
-	      Msg Info "Setting $library as library for list file $vhdlfile..."
+              if {$verbose == 1} {
+  	            Msg Info "Setting $library as library for list file $vhdlfile..."
+              }
             } else {
-	      Msg Info "Setting $lib as library for list file $vhdlfile..."
-	      set library $lib
+              if {$verbose == 1} {
+	              Msg Info "Setting $lib as library for list file $vhdlfile..."
+              }
+	            set library $lib
             }
             lassign [ReadListFile -lib $library -sha_mode $sha_mode $vhdlfile $path] l p
 	    
@@ -505,10 +516,12 @@ proc ReadListFile args {
             ### Set File Set
             #Adding IP library
             if {$sha_mode == 0 && [lsearch {.xci .ip .bd} $extension] >= 0} {
-	      dict lappend libraries "$lib.ip" $vhdlfile
-	      Msg Info "Appending $vhdlfile to IP list..."
+	            dict lappend libraries "$lib.ip" $vhdlfile
+              if {$verbose == 1} {
+	              Msg Info "Appending $vhdlfile to IP list..."
+              }
             } else {
-	      dict lappend libraries $lib$ext $vhdlfile
+	            dict lappend libraries $lib$ext $vhdlfile
             }
           }
           incr cnt
@@ -1484,6 +1497,7 @@ proc GetProjectFiles {} {
 # @param[in] Optional -list_files <List files> the file wildcard, if not specified all Hog list files will be looked for
 # @param[in] Optional -sha_mode <SHA mode> forwarded to ReadListFile, see there for info
 # @param[in] Optional -ext_path <external path> path for external libraries forwarded to ReadListFile
+# @param[in] Optional -verbose <0/1> enable verbose messages
 #
 # @return a list of 2 dictionaries: libraries and properties
 # - libraries has library name as keys and a list of filenames as values
@@ -1495,6 +1509,7 @@ proc GetHogFiles args {
     {list_files.arg ""  "The file wildcard, if not specified all Hog list files will be looked for."}
     {sha_mode.arg 0 "Forwarded to ReadListFile, see there for info."}
     {ext_path.arg "" "Path for the external libraries forwarded to ReadListFile."}
+    {verbose.arg 0 "Verbose messages"}
   }
   set usage "USAGE: GetHogFiles \[options\] <list path>"
   if {[catch {array set options [cmdline::getoptions args $parameters $usage]}] ||  [llength $args] != 1 } {
@@ -1505,7 +1520,7 @@ proc GetHogFiles args {
   set list_files $options(list_files)
   set sha_mode $options(sha_mode)
   set ext_path $options(ext_path)
-  
+  set verbose $options(verbose)
  
 
 
@@ -1520,9 +1535,9 @@ proc GetHogFiles args {
   foreach f $list_files {
     set ext [file extension $f]
     if {$ext == ".ext"} {
-      lassign [ReadListFile -sha_mode $sha_mode $f $ext_path] l p
+      lassign [ReadListFile -sha_mode $sha_mode -verbose $verbose $f $ext_path] l p
     } else {
-      lassign [ReadListFile -sha_mode $sha_mode $f $repo_path] l p
+      lassign [ReadListFile -sha_mode $sha_mode -verbose $verbose $f $repo_path] l p
     }
     set libraries [MergeDict $l $libraries]
     set properties [MergeDict $p $properties]

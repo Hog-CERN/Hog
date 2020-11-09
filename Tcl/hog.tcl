@@ -448,10 +448,10 @@ proc ReadListFile {list_file path {lib ""} {sha_mode 0} } {
       set srcfile [lindex $file_and_prop 0]
       set srcfile "$path/$srcfile"
       
-      set srcfiles [glob $srcfile]
+      set srcfiles [glob -nocomplain $srcfile]
       
       # glob the file list for wildcards
-      if {$srcfiles != $srcfile} {
+      if {$srcfiles != $srcfile && ! [string equal $srcfiles "" ]} {
 	     Msg Info "Wildcard source expanded from $srcfile to $srcfiles"
       } else {
         if {![file exists $srcfile]} {

@@ -414,3 +414,9 @@ set SIMULATOR \"[DictGet $prjProperties Simulator]\""
     close $lFd
   }
 }
+
+#closing project if a new one was opened
+if {![string equal $options(project) ""]} {
+  close_project
+}
+

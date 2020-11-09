@@ -416,12 +416,27 @@ proc FindVhdlVersion {file_name} {
 #
 # @param[in] list_file file containing vhdl list with optional properties
 # @param[in] path      path the vhdl file are referred to in the list file
-# @param[in] lib       name of the library files will be added to, if not given will be extracted from the file name
-# @param[in] sha_mode  if not set to 0, the list files will be added as well and the IPs will be added to the file rather than to the special ip library. The sha mode should be used when you use the lists to calculate the git SHA, rather than to add the files to the project.
+# @param[in] Optional -lib <library> name of the library files will be added to, if not given will be extracted from the file name
+# @param[in] Optional -sha_mode <sha_mode>  if not set to 0, the list files will be added as well and the IPs will be added to the file rather than to the special ip library. The sha mode should be used when you use the lists to calculate the git SHA, rather than to add the files to the project.
 #
 # @return              a list of 2 dictionaries: "libraries" has library name as keys and a list of filenames as values, "properties" has as file names as keys and a list of properties as values
 #
-proc ReadListFile {list_file path {lib ""} {sha_mode 0} } {
+proc ReadListFile args {
+
+  set parameters {
+    {lib.arg ""  "The name of the library files will be added to, if not given will be extracted from the file name."}
+    {sha_mode.arg 0 "If not set to 0, the list files will be added as well and the IPs will be added to the file rather than to the special ip library. The sha mode should be used when you use the lists to calculate the git SHA, rather than to add the files to the project."}
+  }
+  set usage "USAGE: ReadListFile \[options\] <list file> <path>"
+  if {[catch {array set options [cmdline::getoptions args $parameters $usage]}] ||  [llength $args] != 2 } {
+    Msg Error [cmdline::usage $parameters $usage]
+    return 
+  }
+  set list_file [lindex $args 0]  
+  set path [lindex $args 1]  
+  set sha_mode $options(sha_mode)
+  set lib $options(lib)
+  
   # if no library is given, work it out from the file name
   if {$lib eq ""} {
     set lib [file rootname [file tail $list_file]]
@@ -476,7 +491,7 @@ proc ReadListFile {list_file path {lib ""} {sha_mode 0} } {
 	      Msg Info "Setting $lib as library for list file $vhdlfile..."
 	      set library $lib
             }
-            lassign [ReadListFile $vhdlfile $path $library $sha_mode] l p
+            lassign [ReadListFile -lib $library -sha_mode $sha_mode $vhdlfile $path] l p
 	    
             set libraries [MergeDict $l $libraries]
             set properties [MergeDict $p $properties]
@@ -1476,9 +1491,9 @@ proc GetProjectFiles {} {
 proc GetHogFiles args {
 
   set parameters {
-    {list_files.arg ""  "If set, it will generate a gitlab-ci yml file for all projects in the Top folder, even if it has not been modified with respect to the target branch."}
-    {sha_mode.arg 0 "Normally the content of the hog-child.yml file is added at the beginning of the generated yml file. If thi flag is set, this will not be done."}
-    {ext_path.arg "" "Path for the external libraries not stored in the git repository."}
+    {list_files.arg ""  "The file wildcard, if not specified all Hog list files will be looked for."}
+    {sha_mode.arg 0 "Forwarded to ReadListFile, see there for info."}
+    {ext_path.arg "" "Path for the external libraries forwarded to ReadListFile."}
   }
   set usage "USAGE: GetHogFiles \[options\] <list path>"
   if {[catch {array set options [cmdline::getoptions args $parameters $usage]}] ||  [llength $args] != 1 } {
@@ -1504,9 +1519,9 @@ proc GetHogFiles args {
   foreach f $list_files {
     set ext [file extension $f]
     if {$ext == ".ext"} {
-      lassign [ReadListFile $f $ext_path "" $sha_mode] l p
+      lassign [ReadListFile -sha_mode $sha_mode $f $ext_path] l p
     } else {
-      lassign [ReadListFile $f $repo_path "" $sha_mode] l p
+      lassign [ReadListFile -sha_mode $sha_mode $f $repo_path] l p
     }
     set libraries [MergeDict $l $libraries]
     set properties [MergeDict $p $properties]

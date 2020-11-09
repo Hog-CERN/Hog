@@ -417,8 +417,8 @@ proc FindVhdlVersion {file_name} {
 # @param[in] list_file file containing vhdl list with optional properties
 # @param[in] path      path the vhdl file are referred to in the list file
 # @param[in] Optional -lib <library> name of the library files will be added to, if not given will be extracted from the file name
-# @param[in] Optional -sha_mode <sha_mode>  if not set to 0, the list files will be added as well and the IPs will be added to the file rather than to the special ip library. The sha mode should be used when you use the lists to calculate the git SHA, rather than to add the files to the project.
-# @param[in] Optional -verbose <0/1> enable verbose messages
+# @param[in] Optional -sha_mode  if not set to 0, the list files will be added as well and the IPs will be added to the file rather than to the special ip library. The sha mode should be used when you use the lists to calculate the git SHA, rather than to add the files to the project.
+# @param[in] Optional -verbose enable verbose messages
 #
 # @return              a list of 2 dictionaries: "libraries" has library name as keys and a list of filenames as values, "properties" has as file names as keys and a list of properties as values
 #
@@ -426,12 +426,12 @@ proc ReadListFile args {
 
   set parameters {
     {lib.arg ""  "The name of the library files will be added to, if not given will be extracted from the file name."}
-    {sha_mode.arg 0 "If not set to 0, the list files will be added as well and the IPs will be added to the file rather than to the special ip library. The sha mode should be used when you use the lists to calculate the git SHA, rather than to add the files to the project."}
-    {verbose.arg 0 "Verbose messages"}
+    {sha_mode "If set, the list files will be added as well and the IPs will be added to the file rather than to the special ip library. The sha mode should be used when you use the lists to calculate the git SHA, rather than to add the files to the project."}
+    {verbose "Verbose messages"}
   }
   set usage "USAGE: ReadListFile \[options\] <list file> <path>"
   if {[catch {array set options [cmdline::getoptions args $parameters $usage]}] ||  [llength $args] != 2 } {
-    Msg Error [cmdline::usage $parameters $usage]
+    Msg Error "[cmdline::usage $parameters $usage]"
     return 
   }
   set list_file [lindex $args 0]  
@@ -440,6 +440,18 @@ proc ReadListFile args {
   set lib $options(lib)
   set verbose $options(verbose)
   
+  if { $sha_mode == 1} {
+    set sha_mode_opt "-sha_mode"
+  } else {
+    set sha_mode_opt  ""
+  }
+
+  if { $verbose == 1} {
+    set verbose_opt "-verbose"
+  } else {
+    set verbose_opt  "" 
+  }
+
   # if no library is given, work it out from the file name
   if {$lib eq ""} {
     set lib [file rootname [file tail $list_file]]
@@ -502,7 +514,7 @@ proc ReadListFile args {
               }
 	            set library $lib
             }
-            lassign [ReadListFile -lib $library -sha_mode $sha_mode $vhdlfile $path] l p
+            lassign [ReadListFile {*}"-lib $library $sha_mode_opt $verbose_opt $vhdlfile $path"] l p
 	    
             set libraries [MergeDict $l $libraries]
             set properties [MergeDict $p $properties]
@@ -903,7 +915,7 @@ proc GetRepoVersions {proj_tcl_file {ext_path ""} {sim 0}} {
   set vers ""
   set hashes ""
   # Specyfiy sha_mode 1 for GetHogFiles to get all the files, includeng the list-files themselves
-  lassign [GetHogFiles -list_files "*.src" -sha_mode 1 "./list/"] src_files dummy
+  lassign [GetHogFiles -list_files "*.src" -sha_mode "./list/"] src_files dummy
   dict for {f files} $src_files {
     #library names have a .src extension in values returned by GetHogFiles
     set name [file rootname [file tail $f]]
@@ -920,7 +932,7 @@ proc GetRepoVersions {proj_tcl_file {ext_path ""} {sim 0}} {
 
   set cons_hashes ""
   # Specyfiy sha_mode 1 for GetHogFiles to get all the files, includeng the list-files themselves
-  lassign [GetHogFiles  -list_files "*.con" -sha_mode 1 "./list/" ] cons_files dummy
+  lassign [GetHogFiles  -list_files "*.con" -sha_mode "./list/" ] cons_files dummy
   dict for {f files} $cons_files {
     #library names have a .con extension in values returned by GetHogFiles
     set name [file rootname [file tail $f]]
@@ -938,7 +950,7 @@ proc GetRepoVersions {proj_tcl_file {ext_path ""} {sim 0}} {
   if {$sim == 1} {
     set sim_hashes ""
     # Specyfiy sha_mode 1 for GetHogFiles to get all the files, includeng the list-files themselves
-    lassign [GetHogFiles  -list_files "*.sim" -sha_mode 1 "./list/"] sim_files dummy
+    lassign [GetHogFiles  -list_files "*.sim" -sha_mode "./list/"] sim_files dummy
     dict for {f files} $sim_files {
       #library names have a .sim extension in values returned by GetHogFiles
       set name [file rootname [file tail $f]]
@@ -1000,7 +1012,7 @@ proc GetRepoVersions {proj_tcl_file {ext_path ""} {sim 0}} {
   # Ipbus XML
   if [file exists ./list/xml.lst] {
     #Msg Info "Found IPbus XML list file, evaluating version and SHA of listed files..."
-    lassign [GetHogFiles  -list_files "xml.lst" -sha_mode 1 "./list/"] xml_files dummy
+    lassign [GetHogFiles  -list_files "xml.lst" -sha_mode "./list/"] xml_files dummy
     lassign [GetVer  [dict get $xml_files "xml.lst"] ] xml_ver xml_hash
     lappend SHAs $xml_hash
     lappend versions $xml_ver
@@ -1495,9 +1507,9 @@ proc GetProjectFiles {} {
 #
 # @param[in] list_path path to the list file directory
 # @param[in] Optional -list_files <List files> the file wildcard, if not specified all Hog list files will be looked for
-# @param[in] Optional -sha_mode <SHA mode> forwarded to ReadListFile, see there for info
+# @param[in] Optional -sha_mode forwarded to ReadListFile, see there for info
 # @param[in] Optional -ext_path <external path> path for external libraries forwarded to ReadListFile
-# @param[in] Optional -verbose <0/1> enable verbose messages
+# @param[in] Optional -verbose enable verbose messages
 #
 # @return a list of 2 dictionaries: libraries and properties
 # - libraries has library name as keys and a list of filenames as values
@@ -1507,9 +1519,9 @@ proc GetHogFiles args {
 
   set parameters {
     {list_files.arg ""  "The file wildcard, if not specified all Hog list files will be looked for."}
-    {sha_mode.arg 0 "Forwarded to ReadListFile, see there for info."}
+    {sha_mode "Forwarded to ReadListFile, see there for info."}
     {ext_path.arg "" "Path for the external libraries forwarded to ReadListFile."}
-    {verbose.arg 0 "Verbose messages"}
+    {verbose  "Verbose messages"}
   }
   set usage "USAGE: GetHogFiles \[options\] <list path>"
   if {[catch {array set options [cmdline::getoptions args $parameters $usage]}] ||  [llength $args] != 1 } {
@@ -1521,8 +1533,17 @@ proc GetHogFiles args {
   set sha_mode $options(sha_mode)
   set ext_path $options(ext_path)
   set verbose $options(verbose)
- 
 
+  if { $sha_mode == 1 } {
+    set sha_mode_opt "-sha_mode"
+  } else {
+    set sha_mode_opt ""
+  }
+  if { $verbose==1 } {
+    set verbose_opt "-verbose"
+  } else {
+    set verbose_opt ""
+  }
 
   set repo_path [file normalize $list_path/../../..]
   if { $list_files == "" } {
@@ -1535,9 +1556,9 @@ proc GetHogFiles args {
   foreach f $list_files {
     set ext [file extension $f]
     if {$ext == ".ext"} {
-      lassign [ReadListFile -sha_mode $sha_mode -verbose $verbose $f $ext_path] l p
+      lassign [ReadListFile {*}"$sha_mode_opt $verbose_opt $f $ext_path"] l p
     } else {
-      lassign [ReadListFile -sha_mode $sha_mode -verbose $verbose $f $repo_path] l p
+      lassign [ReadListFile {*}"$sha_mode_opt $verbose_opt $f $repo_path"] l p
     }
     set libraries [MergeDict $l $libraries]
     set properties [MergeDict $p $properties]

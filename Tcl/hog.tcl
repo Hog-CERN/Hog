@@ -821,6 +821,7 @@ proc GetRepoVersions {proj_tcl_file {ext_path ""} {sim 0}} {
     #Msg Info "Found source list file $f, version: $ver commit SHA: $hash"
     lappend libs $name
     lappend versions $ver
+    lappend vers $ver
     lappend hashes $hash
     lappend SHAs $hash
   }

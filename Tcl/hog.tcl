@@ -701,7 +701,6 @@ proc GetVerFromSHA {SHA} {
     } else {
       Msg CriticalWarning "Error while trying to find tag for $SHA"
       set ver "v0.0.0"
-      
     }
   }
   lassign [ExtractVersionFromTag $ver] M m c mr
@@ -834,12 +833,14 @@ proc GetRepoVersions {proj_tcl_file {ext_path ""} {sim 0}} {
   set old_path [pwd]
   set proj_tcl_file [file normalize $proj_tcl_file]
   set proj_dir [file dir $proj_tcl_file]
-  
+
   # This will be the list of all the SHAs of this project, the most recent will be picked up as GLOBAL SHA
   set SHAs ""
-  
+  set versions ""
+
   # Hog submodule
   cd $proj_dir
+  
   #Append the SHA in which Hog submodule was changed, not the submodule SHA
   lappend SHAs [Git {log --format=%h -1} {../../Hog}]
   cd "../../Hog"
@@ -851,6 +852,7 @@ proc GetRepoVersions {proj_tcl_file {ext_path ""} {sim 0}} {
     set hog_hash "0000000"
     set hog_ver "00000000"
   }
+  lappend versions $hog_ver
 
   cd $proj_dir
   
@@ -861,11 +863,14 @@ proc GetRepoVersions {proj_tcl_file {ext_path ""} {sim 0}} {
     Msg CriticalWarning "Git working directory [pwd] not clean, commit hash, and version will be set to 0."
     set clean 0
   }
-# Top project directory
+
+
+  # Top project directory
   lassign [GetVer $proj_tcl_file] top_ver top_hash
   lappend SHAs $top_hash
+  lappend versions $top_ver
 
-# Read list files
+  # Read list files
   set libs ""
   set vers ""
   set hashes ""
@@ -877,7 +882,7 @@ proc GetRepoVersions {proj_tcl_file {ext_path ""} {sim 0}} {
     lassign [GetVer  $files] ver hash
     #Msg Info "Found source list file $f, version: $ver commit SHA: $hash"
     lappend libs $name
-    lappend vers $ver
+    lappend versions $ver
     lappend hashes $hash
     lappend SHAs $hash
   }
@@ -897,6 +902,7 @@ proc GetRepoVersions {proj_tcl_file {ext_path ""} {sim 0}} {
     }
     lappend cons_hashes $hash
     lappend SHAs $hash
+    lappend versions $ver
   }
 
   # Read simulation list files
@@ -911,6 +917,7 @@ proc GetRepoVersions {proj_tcl_file {ext_path ""} {sim 0}} {
       #Msg Info "Found simulation list file $f, version: $ver commit SHA: $hash"
       lappend sim_hashes $hash
       lappend SHAs $hash
+      lappend versions $ver
     }
   }
   
@@ -937,6 +944,8 @@ proc GetRepoVersions {proj_tcl_file {ext_path ""} {sim 0}} {
     lappend ext_names $name
     lappend ext_hashes $hash
     lappend SHAs $hash
+    set ext_ver [GetVerFromSHA $hash]
+    lappend versions $ext_ver
 
     set fp [open $f r]
     set file_data [read $fp]
@@ -959,12 +968,13 @@ proc GetRepoVersions {proj_tcl_file {ext_path ""} {sim 0}} {
     }
   }
 
-# Ipbus XML
+  # Ipbus XML
   if [file exists ./list/xml.lst] {
     #Msg Info "Found IPbus XML list file, evaluating version and SHA of listed files..."
     lassign [GetHogFiles "./list/" "xml.lst" 1] xml_files dummy
     lassign [GetVer  [dict get $xml_files "xml.lst"] ] xml_ver xml_hash
     lappend SHAs $xml_hash
+    lappend versions $xml_ver
     #Msg Info "Found IPbus XML SHA: $xml_hash and version: $xml_ver."
 
   } else {
@@ -976,7 +986,7 @@ proc GetRepoVersions {proj_tcl_file {ext_path ""} {sim 0}} {
   #The global SHA and ver is the most recent among everything
   if {$clean == 1} {
     set commit [Git "log --format=%h -1 $SHAs"]
-    set version [GetVerFromSHA $commit]
+    set version [FindNewestVersion $versions]
   } else {
     set commit  "0000000"
     set version "00000000"
@@ -2151,5 +2161,15 @@ proc WriteYAMLStage {stage proj_name {props {}} {stage_list {} }} {
 
 if {[GitVersion 2.7.2] == 0 } {
   Msg CriticalWarning "Found Git version older than 2.7.2. Hog might not work as expected.\n"
+}
+
+proc FindNewestVersion { versions } {
+  set new_ver 0
+  foreach ver $versions { 
+    if { $ver > $new_ver } {
+      set new_ver $ver
+    }
+  }
+  return $new_ver
 }
 

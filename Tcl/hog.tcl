@@ -1500,7 +1500,7 @@ proc GetProjectFiles {} {
   
   dict append libraries "SIM" $SIM 
   dict append libraries "SRC" $SRC 
-  dict lappend properties "Simulator" $simulator
+  dict lappend properties "Simulator" [string tolower $simulator]
   return [list $libraries $properties]
 }
 

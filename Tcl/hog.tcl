@@ -468,7 +468,9 @@ proc ReadListFile args {
   #  Process data file
   set data [split $file_data "\n"]
   set n [llength $data]
-  #Msg Info "$n lines read from $list_file."
+  if {$verbose == 1} {
+    Msg Info "$n lines read from $list_file."
+  }
   set cnt 0
 
   foreach line $data {

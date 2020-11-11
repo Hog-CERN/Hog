@@ -791,7 +791,6 @@ proc GetRepoVersions {proj_tcl_file {ext_path ""} {sim 0}} {
     set hog_hash "0000000"
     set hog_ver "00000000"
   }
-  lappend versions $hog_ver
 
   cd $proj_dir
 

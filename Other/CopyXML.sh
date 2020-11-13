@@ -33,11 +33,18 @@ fi
 
 cd "${DIR}"/..
 
-if [ -z "$1" ] && [ -z "$2" ]
+if [ -z "$1" ] || [ -z "$2" ] || ! [ -z "$4" ]
 then
   ##! If no args passed then print help message
   echo $usage
 else
-    vivado -nojournal -nolog -mode batch -notrace -source ../Tcl/utils/copy_xml.tcl -tclargs $@
+    if [ -z "$3" ]
+    then
+	ARGS="$1 $OLD_DIR/$2"
+    else
+	ARGS="$1 $2 $OLD_DIR/$3" 
+    fi
+    vivado -nojournal -nolog -mode batch -notrace -source Tcl/utils/copy_xml.tcl -tclargs $ARGS    
 fi
+
 

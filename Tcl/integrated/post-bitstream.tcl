@@ -22,67 +22,51 @@ set tcl_path [file normalize "[file dirname [info script]]/.."]
 source $tcl_path/hog.tcl
 
 if {[info commands get_property] != ""} {
-
-  #Vivado + planAhead
-  if { [string first PlanAhead [version]] == 0 } {
-    set old_path [get_property DIRECTORY [get_runs impl_1]]
-  }
-
-  set fw_file [file normalize [lindex [glob -nocomplain "$old_path/*.bit"] 0]]
-  set proj_name [string map {"top_" ""} [file rootname [file tail $fw_file]]]
-  if { [string first PlanAhead [version]] == 0 } {
-    set name [file rootname [file tail [file normalize $old_path/../..]]]
-  } else {
-    set name [file rootname [file tail [file normalize [pwd]/..]]]
-  }
-  set bit_file [file normalize "$old_path/top_$proj_name.bit"]
-  set bin_file [file normalize "$old_path/top_$proj_name.bin"]
-  set ltx_file [file normalize "$old_path/top_$proj_name.ltx"]
-
+    # Vivado + PlanAhead
+    if { [string first PlanAhead [version]] == 0 } {
+        # planAhead
+        set work_path [get_property DIRECTORY [get_runs impl_1]]
+    } else {
+        # Vivado
+        set work_path $old_path
+    }
 } elseif {[info commands quartus_command] != ""} {
     # Quartus
-  set fw_file [file normalize [lindex [glob -nocomplain "$old_path/*.bit"] 0]]
-  set proj_name [string map {"top_" ""} [file rootname [file tail $fw_file]]]
-  set name [file rootname [file tail [file normalize [pwd]/..]]]
-  set bit_file [file normalize "$old_path/top_$proj_name.bit"]
-  set bin_file [file normalize "$old_path/top_$proj_name.bin"]
-  set ltx_file [file normalize "$old_path/top_$proj_name.ltx"]
-
-
+    set work_path $old_path
 } else {
     #tcl shell
-  set fw_file [file normalize [lindex [glob -nocomplain "$old_path/*.bit"] 0]]
-
-  set proj_name [string map {"top_" ""} [file rootname [file tail $fw_file]]]
-  set name [file rootname [file tail [file normalize [pwd]/..]]]
-  set bit_file [file normalize "$old_path/top_$proj_name.bit"]
-  set bin_file [file normalize "$old_path/top_$proj_name.bin"]
-  set ltx_file [file normalize "$old_path/top_$proj_name.ltx"]
+    set work_path $old_path
 }
-if [file exists $fw_file] {
 
+set fw_file [file normalize [lindex [glob -nocomplain "$work_path/*.bit"] 0]]
+set proj_name [file rootname [file tail [file normalize $work_path/../../]]]
+set top_name [file rootname [file tail $fw_file]]
 
-  set xml_dir [file normalize "$old_path/../xml"]
-  set run_dir [file normalize "$old_path/.."]
-  set bin_dir [file normalize "$old_path/../../../../bin"]
+set bit_file [file normalize "$work_path/$top_name.bit"]
+set bin_file [file normalize "$work_path/$top_name.bin"]
+set ltx_file [file normalize "$work_path/$top_name.ltx"]
+
+if [file exists $bit_file] {
+
+  set xml_dir [file normalize "$work_path/../xml"]
+  set run_dir [file normalize "$work_path/.."]
+  set bin_dir [file normalize "$work_path/../../../../bin"]
 
     # Go to repository path
   cd $tcl_path/../../
 
-
-
-  Msg Info "Evaluating Git sha for $name..."
-  lassign [GetRepoVersion ./Top/$name/$name.tcl] sha
+  Msg Info "Evaluating Git sha for $proj_name..."
+  lassign [GetRepoVersion ./Top/$proj_name/$proj_name.tcl] sha
 
   set describe [GetGitDescribe $sha]
   Msg Info "Git describe set to: $describe"
 
   set ts [clock format [clock seconds] -format {%Y-%m-%d-%H-%M}]
 
-  set dst_dir [file normalize "$bin_dir/$name\-$describe"]
-  set dst_bit [file normalize "$dst_dir/$name\-$describe.bit"]
-  set dst_bin [file normalize "$dst_dir/$name\-$describe.bin"]
-  set dst_ltx [file normalize "$dst_dir/$name\-$describe.ltx"]
+  set dst_dir [file normalize "$bin_dir/$proj_name\-$describe"]
+  set dst_bit [file normalize "$dst_dir/$proj_name\-$describe.bit"]
+  set dst_bin [file normalize "$dst_dir/$proj_name\-$describe.bin"]
+  set dst_ltx [file normalize "$dst_dir/$proj_name\-$describe.ltx"]
   set dst_xml [file normalize "$dst_dir/xml"]
 
   Msg Info "Creating $dst_dir..."
@@ -154,7 +138,7 @@ if [file exists $fw_file] {
 
 set user_post_bitstream_file "./Top/$proj_name/post-bitstream.tcl"
 if {[file exists $user_post_bitstream_file]} {
-    Msg Status "Sourcing user post-bitstream file $user_post_bitstream_file"
+    Msg Info "Sourcing user post-bitstream file $user_post_bitstream_file"
     source $user_post_bitstream_file
 }
 

@@ -885,6 +885,8 @@ proc GetRepoVersions {proj_tcl_file {ext_path ""} {sim 0}} {
   
   #Append the SHA in which Hog submodule was changed, not the submodule SHA
   lappend SHAs [Git {log --format=%h -1} {../../Hog}]
+  lappend versions [GetVerFromSHA $SHAs]
+
   cd "../../Hog"
   if {[Git {status --untracked-files=no  --porcelain}] eq ""} {
     Msg Info "Hog submodule [pwd] clean."

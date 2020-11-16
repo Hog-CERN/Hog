@@ -50,7 +50,7 @@ else
   fi	
 
   PROJ=$1
-  PROJ_DIR="./Top/"$PROJ
+  PROJ_DIR="$DIR/../Top/"$PROJ
   if [ -d "$PROJ_DIR" ]
   then
 
@@ -92,7 +92,7 @@ else
       "${HDL_COMPILER}" $COMMAND_OPT $DIR/Tcl/launchers/launch_simulation.tcl -tclargs $LIBPATH $1
     fi
   else
-    echo "Hog-ERROR: project $PROJ not found: possible projects are: `ls ./Top`"
+    echo "Hog-ERROR: project $PROJ not found: possible projects are: `ls $DIR/../Top`"
     echo
     cd "${OLD_DIR}"
     exit -1

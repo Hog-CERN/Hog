@@ -26,8 +26,8 @@ set parameters {
 
 set usage   "USAGE: $::argv0"
 
-set repo_path [pwd]
 set tcl_path [file dirname [info script]]
+set repo_path [file normalize $tcl_path/../../..]
 cd $tcl_path
 source ../hog.tcl
 cd $repo_path

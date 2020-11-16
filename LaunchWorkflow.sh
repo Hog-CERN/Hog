@@ -109,12 +109,12 @@ then
   printf " For a detailed explanation of all the option, type LaunchWorkflow.sh <project name> -h.\n"
   printf " The project name is needed by Hog to tell which HDL software to use: Vivado, Quartus, etc.\n\n"
   echo "Possible projects are:"
-  echo "`ls ./Top`"
+  echo "`ls $DIR/../Top`"
   cd "${OLD_DIR}"
   exit -1
 else
   PROJ=$1
-  PROJ_DIR="./Top/"$PROJ
+  PROJ_DIR="$DIR/../Top/"$PROJ
   if [ -d "$PROJ_DIR" ]
   then
 

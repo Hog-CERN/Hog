@@ -416,12 +416,42 @@ proc FindVhdlVersion {file_name} {
 #
 # @param[in] list_file file containing vhdl list with optional properties
 # @param[in] path      path the vhdl file are referred to in the list file
-# @param[in] lib       name of the library files will be added to, if not given will be extracted from the file name
-# @param[in] sha_mode  if not set to 0, the list files will be added as well and the IPs will be added to the file rather than to the special ip library. The sha mode should be used when you use the lists to calculate the git SHA, rather than to add the files to the project.
+# @param[in] Optional -lib <library> name of the library files will be added to, if not given will be extracted from the file name
+# @param[in] Optional -sha_mode  if not set to 0, the list files will be added as well and the IPs will be added to the file rather than to the special ip library. The sha mode should be used when you use the lists to calculate the git SHA, rather than to add the files to the project.
+# @param[in] Optional -verbose enable verbose messages
 #
 # @return              a list of 2 dictionaries: "libraries" has library name as keys and a list of filenames as values, "properties" has as file names as keys and a list of properties as values
 #
-proc ReadListFile {list_file path {lib ""} {sha_mode 0} } {
+proc ReadListFile args {
+
+  set parameters {
+    {lib.arg ""  "The name of the library files will be added to, if not given will be extracted from the file name."}
+    {sha_mode "If set, the list files will be added as well and the IPs will be added to the file rather than to the special ip library. The sha mode should be used when you use the lists to calculate the git SHA, rather than to add the files to the project."}
+    {verbose "Verbose messages"}
+  }
+  set usage "USAGE: ReadListFile \[options\] <list file> <path>"
+  if {[catch {array set options [cmdline::getoptions args $parameters $usage]}] ||  [llength $args] != 2 } {
+    Msg Error "[cmdline::usage $parameters $usage]"
+    return 
+  }
+  set list_file [lindex $args 0]  
+  set path [lindex $args 1]  
+  set sha_mode $options(sha_mode)
+  set lib $options(lib)
+  set verbose $options(verbose)
+  
+  if { $sha_mode == 1} {
+    set sha_mode_opt "-sha_mode"
+  } else {
+    set sha_mode_opt  ""
+  }
+
+  if { $verbose == 1} {
+    set verbose_opt "-verbose"
+  } else {
+    set verbose_opt  "" 
+  }
+
   # if no library is given, work it out from the file name
   if {$lib eq ""} {
     set lib [file rootname [file tail $list_file]]
@@ -438,7 +468,9 @@ proc ReadListFile {list_file path {lib ""} {sha_mode 0} } {
   #  Process data file
   set data [split $file_data "\n"]
   set n [llength $data]
-  Msg Info "$n lines read from $list_file."
+  if {$verbose == 1} {
+    Msg Info "$n lines read from $list_file."
+  }
   set cnt 0
 
   foreach line $data {
@@ -447,15 +479,19 @@ proc ReadListFile {list_file path {lib ""} {sha_mode 0} } {
       set file_and_prop [regexp -all -inline {\S+} $line]
       set srcfile [lindex $file_and_prop 0]
       set srcfile "$path/$srcfile"
-      if {![file exists $srcfile]} {
-        Msg CriticalWarning "$srcfile not found in $path"
-        continue
-      }
-      set srcfiles [glob $srcfile]
+      
+      set srcfiles [glob -nocomplain $srcfile]
       
       # glob the file list for wildcards
-      if {$srcfiles != $srcfile} {
-	Msg Info "Wildcard source expanded from $srcfile to $srcfiles"
+      if {$srcfiles != $srcfile && ! [string equal $srcfiles "" ]} {
+        if {$verbose == 1} {
+	        Msg Info "Wildcard source expanded from $srcfile to $srcfiles"
+        }
+      } else {
+        if {![file exists $srcfile]} {
+          Msg CriticalWarning "$srcfile not found in $path"
+          continue
+        }
       }
       
       foreach vhdlfile $srcfiles {
@@ -464,17 +500,23 @@ proc ReadListFile {list_file path {lib ""} {sha_mode 0} } {
           set extension [file ext $vhdlfile]
 	  
           if { $extension == $list_file_ext } {
-            Msg Info "List file $vhdlfile found in list file, recursively opening it..."
+            if {$verbose == 1} {
+              Msg Info "List file $vhdlfile found in list file, recursively opening it..."
+            }
             ### Set list file properties
             set prop [lrange $file_and_prop 1 end]
             set library [lindex [regexp -inline {lib\s*=\s*(.+?)\y.*} $prop] 1]
             if { $library != "" } {
-	      Msg Info "Setting $library as library for list file $vhdlfile..."
+              if {$verbose == 1} {
+  	            Msg Info "Setting $library as library for list file $vhdlfile..."
+              }
             } else {
-	      Msg Info "Setting $lib as library for list file $vhdlfile..."
-	      set library $lib
+              if {$verbose == 1} {
+	              Msg Info "Setting $lib as library for list file $vhdlfile..."
+              }
+	            set library $lib
             }
-            lassign [ReadListFile $vhdlfile $path $library $sha_mode] l p
+            lassign [ReadListFile {*}"-lib $library $sha_mode_opt $verbose_opt $vhdlfile $path"] l p
 	    
             set libraries [MergeDict $l $libraries]
             set properties [MergeDict $p $properties]
@@ -488,10 +530,12 @@ proc ReadListFile {list_file path {lib ""} {sha_mode 0} } {
             ### Set File Set
             #Adding IP library
             if {$sha_mode == 0 && [lsearch {.xci .ip .bd} $extension] >= 0} {
-	      dict lappend libraries "$lib.ip" $vhdlfile
-	      Msg Info "Appending $vhdlfile to IP list..."
+	            dict lappend libraries "$lib.ip" $vhdlfile
+              if {$verbose == 1} {
+	              Msg Info "Appending $vhdlfile to IP list..."
+              }
             } else {
-	      dict lappend libraries $lib$ext $vhdlfile
+	            dict lappend libraries $lib$ext $vhdlfile
             }
           }
           incr cnt
@@ -699,7 +743,6 @@ proc GetVerFromSHA {SHA} {
     } else {
       Msg CriticalWarning "Error while trying to find tag for $SHA"
       set ver "v0.0.0"
-      
     }
   }
   lassign [ExtractVersionFromTag $ver] M m c mr
@@ -832,14 +875,18 @@ proc GetRepoVersions {proj_tcl_file {ext_path ""} {sim 0}} {
   set old_path [pwd]
   set proj_tcl_file [file normalize $proj_tcl_file]
   set proj_dir [file dir $proj_tcl_file]
-  
+
   # This will be the list of all the SHAs of this project, the most recent will be picked up as GLOBAL SHA
   set SHAs ""
-  
+  set versions ""
+
   # Hog submodule
   cd $proj_dir
+  
   #Append the SHA in which Hog submodule was changed, not the submodule SHA
   lappend SHAs [Git {log --format=%h -1} {../../Hog}]
+  lappend versions [GetVerFromSHA $SHAs]
+
   cd "../../Hog"
   if {[Git {status --untracked-files=no  --porcelain}] eq ""} {
     Msg Info "Hog submodule [pwd] clean."
@@ -859,22 +906,26 @@ proc GetRepoVersions {proj_tcl_file {ext_path ""} {sim 0}} {
     Msg CriticalWarning "Git working directory [pwd] not clean, commit hash, and version will be set to 0."
     set clean 0
   }
-# Top project directory
+
+
+  # Top project directory
   lassign [GetVer $proj_tcl_file] top_ver top_hash
   lappend SHAs $top_hash
+  lappend versions $top_ver
 
-# Read list files
+  # Read list files
   set libs ""
   set vers ""
   set hashes ""
   # Specyfiy sha_mode 1 for GetHogFiles to get all the files, includeng the list-files themselves
-  lassign [GetHogFiles "./list/" "*.src" 1] src_files dummy
+  lassign [GetHogFiles -list_files "*.src" -sha_mode "./list/"] src_files dummy
   dict for {f files} $src_files {
     #library names have a .src extension in values returned by GetHogFiles
     set name [file rootname [file tail $f]]
     lassign [GetVer  $files] ver hash
     #Msg Info "Found source list file $f, version: $ver commit SHA: $hash"
     lappend libs $name
+    lappend versions $ver
     lappend vers $ver
     lappend hashes $hash
     lappend SHAs $hash
@@ -884,7 +935,7 @@ proc GetRepoVersions {proj_tcl_file {ext_path ""} {sim 0}} {
 
   set cons_hashes ""
   # Specyfiy sha_mode 1 for GetHogFiles to get all the files, includeng the list-files themselves
-  lassign [GetHogFiles "./list/" "*.con" 1] cons_files dummy
+  lassign [GetHogFiles  -list_files "*.con" -sha_mode "./list/" ] cons_files dummy
   dict for {f files} $cons_files {
     #library names have a .con extension in values returned by GetHogFiles
     set name [file rootname [file tail $f]]
@@ -895,13 +946,14 @@ proc GetRepoVersions {proj_tcl_file {ext_path ""} {sim 0}} {
     }
     lappend cons_hashes $hash
     lappend SHAs $hash
+    lappend versions $ver
   }
 
   # Read simulation list files
   if {$sim == 1} {
     set sim_hashes ""
     # Specyfiy sha_mode 1 for GetHogFiles to get all the files, includeng the list-files themselves
-    lassign [GetHogFiles "./list/" "*.sim" 1] sim_files dummy
+    lassign [GetHogFiles  -list_files "*.sim" -sha_mode "./list/"] sim_files dummy
     dict for {f files} $sim_files {
       #library names have a .sim extension in values returned by GetHogFiles
       set name [file rootname [file tail $f]]
@@ -909,6 +961,7 @@ proc GetRepoVersions {proj_tcl_file {ext_path ""} {sim 0}} {
       #Msg Info "Found simulation list file $f, version: $ver commit SHA: $hash"
       lappend sim_hashes $hash
       lappend SHAs $hash
+      lappend versions $ver
     }
   }
   
@@ -935,6 +988,8 @@ proc GetRepoVersions {proj_tcl_file {ext_path ""} {sim 0}} {
     lappend ext_names $name
     lappend ext_hashes $hash
     lappend SHAs $hash
+    set ext_ver [GetVerFromSHA $hash]
+    lappend versions $ext_ver
 
     set fp [open $f r]
     set file_data [read $fp]
@@ -957,12 +1012,13 @@ proc GetRepoVersions {proj_tcl_file {ext_path ""} {sim 0}} {
     }
   }
 
-# Ipbus XML
+  # Ipbus XML
   if [file exists ./list/xml.lst] {
     #Msg Info "Found IPbus XML list file, evaluating version and SHA of listed files..."
-    lassign [GetHogFiles "./list/" "xml.lst" 1] xml_files dummy
+    lassign [GetHogFiles  -list_files "xml.lst" -sha_mode "./list/"] xml_files dummy
     lassign [GetVer  [dict get $xml_files "xml.lst"] ] xml_ver xml_hash
     lappend SHAs $xml_hash
+    lappend versions $xml_ver
     #Msg Info "Found IPbus XML SHA: $xml_hash and version: $xml_ver."
 
   } else {
@@ -974,7 +1030,7 @@ proc GetRepoVersions {proj_tcl_file {ext_path ""} {sim 0}} {
   #The global SHA and ver is the most recent among everything
   if {$clean == 1} {
     set commit [Git "log --format=%h -1 $SHAs"]
-    set version [GetVerFromSHA $commit]
+    set version [FindNewestVersion $versions]
   } else {
     set commit  "0000000"
     set version "00000000"
@@ -1028,11 +1084,35 @@ proc ExtractVersionFromTag {tag} {
 # @param[in] default_level:        If version level is 3 or more, will specify what level to increase when creating the official tag: 0 will increase patch (default), 1 will increase minor and 2 will increase major.
 #
 proc TagRepository {{merge_request_number 0} {version_level 0} {default_level 0}} {
-  lassign [GitRet {describe --tags --abbrev=0 --match=v*.*.* --match=b*v*.*.*}] ret tag
-  if {$ret != 0} {
+  lassign [ExecuteRet git tag -l "v*" --sort=-v:refname --merged ] vret vtags
+  lassign [ExecuteRet git tag -l "b*" --sort=-v:refname --merged ] bret btags
+
+  if {$vret != 0 && $bret != 0} {
     Msg Error "No Hog version tags found in this repository."
   } else {
+    set vers ""
+    if { $vret == 0 } {
+      set vtag [lindex $vtags 0]
+      lassign [ExtractVersionFromTag $vtag] M m p mr
+      set M [format %02X $M]
+      set m [format %02X $m]
+      set p [format %04X $p]
+      lappend vers $M$m$p
+    }
+
+    if { $bret == 0 } {
+      set btag [lindex $btags 0]
+      lassign [ExtractVersionFromTag $btag] M m p mr
+      set M [format %02X $M]
+      set m [format %02X $m]
+      set p [format %04X $p]
+      lappend vers $M$m$p
+    }
+    set ver [FindNewestVersion $vers]
+    set tag v[HexVersionToString $ver]
+
     lassign [ExtractVersionFromTag $tag] M m p mr
+
 
     if { $M > -1 } { # M=-1 means that the tag could not be parsed following a Hog format
       if {$mr == -1 } { # Tag is official, no b at the beginning (and no merge request number at the end)
@@ -1445,7 +1525,7 @@ proc GetProjectFiles {} {
   
   dict append libraries "SIM" $SIM 
   dict append libraries "SRC" $SRC 
-  dict lappend properties "Simulator" $simulator
+  dict lappend properties "Simulator" [string tolower $simulator]
   return [list $libraries $properties]
 }
 
@@ -1453,15 +1533,45 @@ proc GetProjectFiles {} {
 ## @brief Extract files, libraries and properties from the project's list files
 #
 # @param[in] list_path path to the list file directory
-# @param[in] list_files the file wildcard, if not specified all Hog list files will be looked for
-# @param[in] sha_mode forwarded to ReadListFile, see there for info
-# @param[in] ext_path path for external libraries forwarded to ReadListFile
+# @param[in] Optional -list_files <List files> the file wildcard, if not specified all Hog list files will be looked for
+# @param[in] Optional -sha_mode forwarded to ReadListFile, see there for info
+# @param[in] Optional -ext_path <external path> path for external libraries forwarded to ReadListFile
+# @param[in] Optional -verbose enable verbose messages
 #
 # @return a list of 2 dictionaries: libraries and properties
 # - libraries has library name as keys and a list of filenames as values
 # - properties has as file names as keys and a list of properties as values
 #
-proc GetHogFiles {list_path {list_files ""} {sha_mode 0} {ext_path ""}} {
+proc GetHogFiles args {
+
+  set parameters {
+    {list_files.arg ""  "The file wildcard, if not specified all Hog list files will be looked for."}
+    {sha_mode "Forwarded to ReadListFile, see there for info."}
+    {ext_path.arg "" "Path for the external libraries forwarded to ReadListFile."}
+    {verbose  "Verbose messages"}
+  }
+  set usage "USAGE: GetHogFiles \[options\] <list path>"
+  if {[catch {array set options [cmdline::getoptions args $parameters $usage]}] ||  [llength $args] != 1 } {
+    Msg Error [cmdline::usage $parameters $usage]
+    return 
+  }
+  set list_path [lindex $args 0]  
+  set list_files $options(list_files)
+  set sha_mode $options(sha_mode)
+  set ext_path $options(ext_path)
+  set verbose $options(verbose)
+
+  if { $sha_mode == 1 } {
+    set sha_mode_opt "-sha_mode"
+  } else {
+    set sha_mode_opt ""
+  }
+  if { $verbose==1 } {
+    set verbose_opt "-verbose"
+  } else {
+    set verbose_opt ""
+  }
+
   set repo_path [file normalize $list_path/../../..]
   if { $list_files == "" } {
     set list_files {.src,.con,.sub,.sim,.ext}  
@@ -1473,9 +1583,9 @@ proc GetHogFiles {list_path {list_files ""} {sha_mode 0} {ext_path ""}} {
   foreach f $list_files {
     set ext [file extension $f]
     if {$ext == ".ext"} {
-      lassign [ReadListFile $f $ext_path "" $sha_mode] l p
+      lassign [ReadListFile {*}"$sha_mode_opt $verbose_opt $f $ext_path"] l p
     } else {
-      lassign [ReadListFile $f $repo_path "" $sha_mode] l p
+      lassign [ReadListFile {*}"$sha_mode_opt $verbose_opt $f $repo_path"] l p
     }
     set libraries [MergeDict $l $libraries]
     set properties [MergeDict $p $properties]
@@ -2149,5 +2259,15 @@ proc WriteYAMLStage {stage proj_name {props {}} {stage_list {} }} {
 
 if {[GitVersion 2.7.2] == 0 } {
   Msg CriticalWarning "Found Git version older than 2.7.2. Hog might not work as expected.\n"
+}
+
+proc FindNewestVersion { versions } {
+  set new_ver 0
+  foreach ver $versions { 
+    if { $ver > $new_ver } {
+      set new_ver $ver
+    }
+  }
+  return $new_ver
 }
 

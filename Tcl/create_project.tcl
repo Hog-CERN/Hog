@@ -182,7 +182,7 @@ proc CreateProject {} {
     ##############
   set list_files [glob -directory $globalSettings::list_path "*"]
 
-  AddHogFiles {*}[GetHogFiles $globalSettings::list_path "" 0 $globalSettings::HOG_EXTERNAL_PATH]
+  AddHogFiles {*}[GetHogFiles -ext_path $globalSettings::HOG_EXTERNAL_PATH -verbose $globalSettings::list_path]
 }
 
 

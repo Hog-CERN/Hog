@@ -24,7 +24,7 @@ if {[catch {package require struct::matrix} ERROR]} {
 
 if {[info commands get_property] != "" && [string first PlanAhead [version]] == 0 } {
   # Vivado + PlanAhead
-  set old_path [file normalize "../../VivadoProject/$project/$project.runs/synth_1"]
+  set old_path [file normalize "../../Projects/$project/$project.runs/synth_1"]
   file mkdir $old_path
 } else {
   set old_path [pwd]

@@ -587,8 +587,15 @@ set globalSettings::top_path         "$globalSettings::repo_path/Top/$DESIGN"
 set globalSettings::list_path        "$globalSettings::top_path/list"
 set globalSettings::build_dir        "$globalSettings::repo_path/$build_dir_name/$DESIGN"
 set globalSettings::modelsim_path    "$globalSettings::repo_path/SimulationLib"
-set globalSettings::top_name          [file root $globalSettings::DESIGN]
-set globalSettings::synth_top_module "top_$globalSettings::top_name"
+
+if {[expr 1 == [info exists TOP_NAME]]} {
+    set globalSettings::top_name          [file root $globalSettings::DESIGN]
+    set globalSettings::synth_top_module  $TOP_NAME
+} else {
+    set globalSettings::top_name          [file root $globalSettings::DESIGN]
+    set globalSettings::synth_top_module "top_$globalSettings::top_name"
+}
+
 set globalSettings::user_ip_repo     "$globalSettings::repo_path/IP_repository"
 
 set globalSettings::pre_synth  [file normalize "$globalSettings::tcl_path/integrated/$globalSettings::pre_synth_file"]

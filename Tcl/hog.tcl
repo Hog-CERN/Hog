@@ -1031,6 +1031,8 @@ proc GetRepoVersions {proj_tcl_file {ext_path ""} {sim 0}} {
   if {$clean == 1} {
     set commit [Git "log --format=%h -1 $SHAs"]
     set version [FindNewestVersion $versions]
+    puts $versions
+    puts $version
   } else {
     set commit  "0000000"
     set version "00000000"

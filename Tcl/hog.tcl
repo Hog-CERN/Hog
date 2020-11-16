@@ -1082,11 +1082,35 @@ proc ExtractVersionFromTag {tag} {
 # @param[in] default_level:        If version level is 3 or more, will specify what level to increase when creating the official tag: 0 will increase patch (default), 1 will increase minor and 2 will increase major.
 #
 proc TagRepository {{merge_request_number 0} {version_level 0} {default_level 0}} {
-  lassign [GitRet {describe --tags --abbrev=0 --match=v*.*.* --match=b*v*.*.*}] ret tag
-  if {$ret != 0} {
+  lassign [ExecuteRet git tag -l "v*" --sort=-v:refname --merged ] vret vtags
+  lassign [ExecuteRet git tag -l "b*" --sort=-v:refname --merged ] bret btags
+
+  if {$vret != 0 && $bret != 0} {
     Msg Error "No Hog version tags found in this repository."
   } else {
+    set vers ""
+    if { $vret == 0 } {
+      set vtag [lindex $vtags 0]
+      lassign [ExtractVersionFromTag $vtag] M m p mr
+      set M [format %02X $M]
+      set m [format %02X $m]
+      set p [format %04X $p]
+      lappend vers $M$m$p
+    }
+
+    if { $bret == 0 } {
+      set btag [lindex $btags 0]
+      lassign [ExtractVersionFromTag $btag] M m p mr
+      set M [format %02X $M]
+      set m [format %02X $m]
+      set p [format %04X $p]
+      lappend vers $M$m$p
+    }
+    set ver [FindNewestVersion $vers]
+    set tag v[HexVersionToString $ver]
+
     lassign [ExtractVersionFromTag $tag] M m p mr
+
 
     if { $M > -1 } { # M=-1 means that the tag could not be parsed following a Hog format
       if {$mr == -1 } { # Tag is official, no b at the beginning (and no merge request number at the end)

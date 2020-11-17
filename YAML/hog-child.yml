@@ -131,7 +131,11 @@
             fi;
           else
             echo "Hog-CI(info) - Adding versions and timing summary to note...";
-            cat $CI_PROJECT_DIR/bin/$PROJECT_NAME*/versions* $CI_PROJECT_DIR/bin/$PROJECT_NAME*/timing_* > note.md;
+            if [[ -d "$CI_PROJECT_DIR/Projects/$PROJECT_NAME/output_files/" ]]; then
+              cat $CI_PROJECT_DIR/Projects/$PROJECT_NAME/output_files/versions* > note.md;
+            else
+              cat $CI_PROJECT_DIR/bin/$PROJECT_NAME*/versions* $CI_PROJECT_DIR/bin/$PROJECT_NAME*/timing_* > note.md;
+            fi;
           fi;
           if [[ -n "$HOG_MR_MSG" ]] && [[ $HOG_MR_MSG == '2' ]]; then
             echo "Hog-CI(info) - Writing note on gitlab website...";

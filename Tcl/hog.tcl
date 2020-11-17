@@ -424,6 +424,14 @@ proc FindVhdlVersion {file_name} {
 #
 proc ReadListFile args {
 
+  if {[info commands project_new] != ""} {
+    load_package report
+    if { [catch {package require cmdline} ERROR] } {
+      puts "$ERROR\n If you are running this script on tclsh, you can fix this by installing 'tcllib'"
+      return 1
+    }
+  }
+
   set parameters {
     {lib.arg ""  "The name of the library files will be added to, if not given will be extracted from the file name."}
     {sha_mode "If set, the list files will be added as well and the IPs will be added to the file rather than to the special ip library. The sha mode should be used when you use the lists to calculate the git SHA, rather than to add the files to the project."}
@@ -1543,6 +1551,15 @@ proc GetProjectFiles {} {
 # - properties has as file names as keys and a list of properties as values
 #
 proc GetHogFiles args {
+
+  if {[info commands project_new] != ""} {
+    load_package report
+    if { [catch {package require cmdline} ERROR] } {
+      puts "$ERROR\n If you are running this script on tclsh, you can fix this by installing 'tcllib'"
+      return 1
+    }
+  }
+
 
   set parameters {
     {list_files.arg ""  "The file wildcard, if not specified all Hog list files will be looked for."}

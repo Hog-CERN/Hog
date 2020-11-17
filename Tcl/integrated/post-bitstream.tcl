@@ -38,9 +38,9 @@ if {[info commands get_property] != ""} {
     set work_path $old_path
 }
 
-set fw_file [file normalize [lindex [glob -nocomplain "$work_path/*.bit"] 0]]
-set proj_name [file rootname [file tail [file normalize $work_path/../../]]]
-set top_name [file rootname [file tail $fw_file]]
+set fw_file   [file normalize [lindex [glob -nocomplain "$work_path/*.bit"] 0]]
+set proj_name [file tail [file normalize $work_path/../../]]
+set top_name  [file rootname [file tail $fw_file]]
 
 set bit_file [file normalize "$work_path/$top_name.bit"]
 set bin_file [file normalize "$work_path/$top_name.bin"]

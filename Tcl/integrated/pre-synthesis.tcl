@@ -255,6 +255,10 @@ if {[info commands set_property] != ""} {
   if {$flavour != -1} {
      set_parameter -name FLAVOUR $flavour
   }
+  
+  if {![file exists "$old_path/output_files"]} {
+    file mkdir "$old_path/output_files"
+  }
 
   set  status_file "$old_path/output_files/versions.txt"
   project_close

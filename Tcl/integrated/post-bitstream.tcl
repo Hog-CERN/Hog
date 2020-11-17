@@ -129,15 +129,6 @@ if {[info commands get_property] != "" && [file exists $fw_file]} {
     file copy -force $log $dst_dir/reports/$run_name.log
   }
 
-  # IPbus XML
-  if [file exists $xml_dir] {
-    Msg Info "XML directory found, copying xml files from $xml_dir to $dst_xml..."
-    if [file exists $dst_xml] {
-      Msg Info "Directory $dst_xml exists, deleting it..."
-      file delete -force $dst_xml
-    }
-    file copy -force $xml_dir $dst_xml
-  }
   # bin File
   if [file exists $bin_file] {
     Msg Info "Copying bin file $bin_file into $dst_bin..."
@@ -181,7 +172,7 @@ if {[info commands get_property] != "" && [file exists $fw_file]} {
   Msg Info "Creating $dst_dir..."
   file mkdir $dst_dir
   Msg Info "Evaluating differences with last commit..."
-  set diff [exec git diff]
+  set diff [Git diff]
   if {$diff != ""} {
     Msg Warning "Found non committed changes:"
     Msg Status "$diff"
@@ -207,21 +198,13 @@ if {[info commands get_property] != "" && [file exists $fw_file]} {
 
   # sof File
   if [file exists $sof_file] {
-    Msg Info "Copying bin file $sof_file into $dst_sof..."
+    Msg Info "Copying sof file $sof_file into $dst_sof..."
     file copy -force $sof_file $dst_sof
   } else {
     Msg Info "No sof file found: $sof_file, that is not a problem"
   }
 
-  # IPbus XML
-  if [file exists $xml_dir] {
-    Msg Info "XML directory found, copying xml files from $xml_dir to $dst_xml..."
-    if [file exists $dst_xml] {
-      Msg Info "Directory $dst_xml exists, deleting it..."
-      file delete -force $dst_xml
-    }
-    file copy -force $xml_dir $dst_xml
-  }  
+
   #rbf rpd 
   if { [file exists $rbf_file] ||  [file exists $rpd_file] } {
     if [file exists $rbf_file] {
@@ -249,6 +232,19 @@ if {[info commands get_property] != "" && [file exists $fw_file]} {
 } else {
   Msg CriticalWarning "Firmware binary file not found."
 }
+
+
+# IPbus XML
+if [file exists $xml_dir] {
+  Msg Info "XML directory found, copying xml files from $xml_dir to $dst_xml..."
+  if [file exists $dst_xml] {
+    Msg Info "Directory $dst_xml exists, deleting it..."
+    file delete -force $dst_xml
+  }
+  file copy -force $xml_dir $dst_xml
+}
+  
+
 
 set user_post_bitstream_file "./Top/$proj_name/post-bitstream.tcl"
 if {[file exists $user_post_bitstream_file]} {

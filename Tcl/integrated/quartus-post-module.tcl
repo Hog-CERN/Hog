@@ -36,6 +36,5 @@ if { [string compare $stage "quartus_map"] == 0 || [string compare $stage "quart
 if [file exists $script_path] {
   source $script_path
 } else {
-  Msg Warning "Can not find script: $script_path"
-  Msg Warning "Continue..."
+  Msg Warning "Can not find script: $script_path    Continuing..."
 }

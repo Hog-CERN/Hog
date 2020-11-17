@@ -142,7 +142,7 @@ function main ()
     select_command $PROJ_TCL
     if [ $? != 0 ]
     then
-      echo "Failed to select project type: exiting!"
+      echo "Hog-ERROR: Failed to select project type: exiting!"
       exit -1
     fi
 
@@ -156,7 +156,7 @@ function main ()
 
     if [ ! -f "${HDL_COMPILER}" ]
     then
-      echo "Hog-ERROR: HLD compiler executable $HDL_COMPILER not found"
+      echo "Hog-ERROR: HDL compiler executable $HDL_COMPILER not found"
       cd "${OLD_DIR}"
       exit -1
     else
@@ -165,13 +165,13 @@ function main ()
 
     if [ $COMMAND = "quartus_sh" ]
     then
-      echo "Executing:  ${HDL_COMPILER} $COMMAND_OPT $DIR/../../Hog/Tcl/CI/check_proj_ver.tcl $EXT_PATH $SIM -project_tcl $PROJ_TCL $PROJ"
+      echo "Hog-INFO: Executing:  ${HDL_COMPILER} $COMMAND_OPT $DIR/../../Hog/Tcl/CI/check_proj_ver.tcl $EXT_PATH $SIM -project_tcl $PROJ_TCL $PROJ"
       "${HDL_COMPILER}" $COMMAND_OPT $DIR/../Hog/Tcl/CI/check_proj_ver.tcl $EXT_PATH $SIM -project_tcl $PROJ_TCL $PROJ
     elif [ $COMMAND = "vivado_hls" ]
     then
       echo "Hog-ERROR: Vivado HLS is not yet supported by this script!"
     else
-      echo "Executing:  ${HDL_COMPILER} $COMMAND_OPT $DIR/../../Hog/Tcl/CI/check_proj_ver.tcl -tclargs $EXT_PATH $SIM -project_tcl $PROJ_TCL $PROJ"
+      echo "Hog-INFO: Executing:  ${HDL_COMPILER} $COMMAND_OPT $DIR/../../Hog/Tcl/CI/check_proj_ver.tcl -tclargs $EXT_PATH $SIM -project_tcl $PROJ_TCL $PROJ"
       "${HDL_COMPILER}" $COMMAND_OPT $DIR/../Hog/Tcl/CI/check_proj_ver.tcl -tclargs $EXT_PATH $SIM -project_tcl $PROJ_TCL $PROJ
     fi
   fi

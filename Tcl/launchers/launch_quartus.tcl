@@ -148,6 +148,8 @@ if { $check_syntax == 1 } {
 }
 
 # keep track of the current revision and of the top level entity name
+lassign [GetRepoVersions [file normalize ../../Top/$project/$project.tcl]  ] sha
+set describe [GetGitDescribe $sha]
 set top_level_name [ get_global_assignment -name TOP_LEVEL_ENTITY ]
 set revision [get_current_revision]
 if { $do_compile == 1 } {
@@ -156,6 +158,10 @@ if { $do_compile == 1 } {
     Msg Error "Full compile flow failed. See the report file.\n"
   } else {
     Msg Info "Full compile Flow was successful for revision $revision.\n"
+  }
+  if {[file exists "output_files/versions.txt" ]} {
+    set dst_dir [file normalize "../../bin/$project\-$describe"]
+    file copy "output_files/versions.txt" $dst_dir
   }
 } else {
   #############################
@@ -167,7 +173,7 @@ if { $do_compile == 1 } {
     set tool [lindex $tool_and_command 0]
     set pre_flow_script [lindex $tool_and_command 1]
     set cmd "$tool -t $pre_flow_script quartus_map $project $revision"
-    if { [catch { exec $cmd } log] } {
+    if { [catch { ExecRet $cmd } log] } {
       Msg Warning "Can not exectue command $cmd"
       Msg Warning "LOG: $log"
     }

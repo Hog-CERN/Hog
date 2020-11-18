@@ -63,13 +63,16 @@ else
       select_compiler_executable $COMMAND
       if [ $? != 0 ]
       then
-	  echo "Hog-ERROR: failed to get HDL compiler executable for $COMMAND"
-	  exit -1
+	  echo "Hog-WARNING: failed to get HDL compiler executable for $COMMAND"
+	  echo "Hog-INFO: will optimistically try Tcl shell..."
+	  tclsh $DIR/../Tcl/utils/copy_xml.tcl $ARGS
+	  exit 0
       fi
+
       if [ ! -f "${HDL_COMPILER}" ]
       then
-	  echo "Hog-WARNING: HLD compiler executable $HDL_COMPILER not found, will optimistically try Tcl shell..."
-	  tclsh $DIR/../Tcl/utils/copy_xml.tcl $ARGS
+	  echo "Hog-ERROR: HLD compiler executable $HDL_COMPILER not found."
+	  exit -1
       else
 	  echo "Hog-INFO: using executable: $HDL_COMPILER"
       fi

@@ -150,7 +150,7 @@ if { $check_syntax == 1 } {
 # keep track of the current revision and of the top level entity name
 lassign [GetRepoVersions [file normalize ../../Top/$project/$project.tcl]  ] sha
 set describe [GetGitDescribe $sha]
-set top_level_name [ get_global_assignment -name TOP_LEVEL_ENTITY ]
+#set top_level_name [ get_global_assignment -name TOP_LEVEL_ENTITY ]
 set revision [get_current_revision]
 if { $do_compile == 1 } {
   if {[catch {execute_flow -compile} result]} {
@@ -168,16 +168,31 @@ if { $do_compile == 1 } {
   # Analysis and Synthesis
   #############################
   if { $do_synthesis == 1 } {
+
+    
     #run PRE_FLOW_SCRIPT by hand
     set tool_and_command [ split [get_global_assignment -name PRE_FLOW_SCRIPT_FILE] ":"]
     set tool [lindex $tool_and_command 0]
     set pre_flow_script [lindex $tool_and_command 1]
     set cmd "$tool -t $pre_flow_script quartus_map $project $revision"
-    if { [catch { ExecRet $cmd } log] } {
+    #Close project to avoid conflict with pre synthesis script
+    project_close
+    
+    lassign [ExecuteRet {*}$cmd ] ret log
+    if {$ret != 0} {
       Msg Warning "Can not exectue command $cmd"
       Msg Warning "LOG: $log"
+    } else {
+      Msg Info "Pre flow script executed!"
     }
-
+    
+    # Re-open project
+    if { ![is_project_open ] } {
+      Msg Info "Re-opening project file $project..."
+      project_open $project -current_revision
+    }
+ 
+    # Execute synthesis
     if {[catch {execute_module -tool map -args "--parallel"} result]} {
       Msg Error "Result: $result\n"
       Msg Error "Analysis & Synthesis failed. See the report file.\n"

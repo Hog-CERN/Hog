@@ -424,6 +424,14 @@ proc FindVhdlVersion {file_name} {
 #
 proc ReadListFile args {
 
+  if {[info commands project_new] != ""} {
+    load_package report
+    if { [catch {package require cmdline} ERROR] } {
+      puts "$ERROR\n If you are running this script on tclsh, you can fix this by installing 'tcllib'"
+      return 1
+    }
+  }
+
   set parameters {
     {lib.arg ""  "The name of the library files will be added to, if not given will be extracted from the file name."}
     {sha_mode "If set, the list files will be added as well and the IPs will be added to the file rather than to the special ip library. The sha mode should be used when you use the lists to calculate the git SHA, rather than to add the files to the project."}
@@ -884,6 +892,8 @@ proc GetRepoVersions {proj_tcl_file {ext_path ""} {sim 0}} {
 
   #Append the SHA in which Hog submodule was changed, not the submodule SHA
   lappend SHAs [Git {log --format=%h -1} {../../Hog}]
+  lappend versions [GetVerFromSHA $SHAs]
+
   cd "../../Hog"
   if {[Git {status --untracked-files=no  --porcelain}] eq ""} {
     Msg Info "Hog submodule [pwd] clean."
@@ -1080,11 +1090,35 @@ proc ExtractVersionFromTag {tag} {
 # @param[in] default_level:        If version level is 3 or more, will specify what level to increase when creating the official tag: 0 will increase patch (default), 1 will increase minor and 2 will increase major.
 #
 proc TagRepository {{merge_request_number 0} {version_level 0} {default_level 0}} {
-  lassign [GitRet {describe --tags --abbrev=0 --match=v*.*.* --match=b*v*.*.*}] ret tag
-  if {$ret != 0} {
+  lassign [ExecuteRet git tag -l "v*" --sort=-v:refname --merged ] vret vtags
+  lassign [ExecuteRet git tag -l "b*" --sort=-v:refname --merged ] bret btags
+
+  if {$vret != 0 && $bret != 0} {
     Msg Error "No Hog version tags found in this repository."
   } else {
+    set vers ""
+    if { $vret == 0 } {
+      set vtag [lindex $vtags 0]
+      lassign [ExtractVersionFromTag $vtag] M m p mr
+      set M [format %02X $M]
+      set m [format %02X $m]
+      set p [format %04X $p]
+      lappend vers $M$m$p
+    }
+
+    if { $bret == 0 } {
+      set btag [lindex $btags 0]
+      lassign [ExtractVersionFromTag $btag] M m p mr
+      set M [format %02X $M]
+      set m [format %02X $m]
+      set p [format %04X $p]
+      lappend vers $M$m$p
+    }
+    set ver [FindNewestVersion $vers]
+    set tag v[HexVersionToString $ver]
+
     lassign [ExtractVersionFromTag $tag] M m p mr
+
 
     if { $M > -1 } { # M=-1 means that the tag could not be parsed following a Hog format
       if {$mr == -1 } { # Tag is official, no b at the beginning (and no merge request number at the end)
@@ -1516,6 +1550,15 @@ proc GetProjectFiles {} {
 #
 proc GetHogFiles args {
 
+  if {[info commands project_new] != ""} {
+    load_package report
+    if { [catch {package require cmdline} ERROR] } {
+      puts "$ERROR\n If you are running this script on tclsh, you can fix this by installing 'tcllib'"
+      return 1
+    }
+  }
+
+
   set parameters {
     {list_files.arg ""  "The file wildcard, if not specified all Hog list files will be looked for."}
     {sha_mode "Forwarded to ReadListFile, see there for info."}
@@ -1764,7 +1807,7 @@ proc ForceUpToDate {} {
 #
 # @param[in] what_to_do: can be "push", if you want to copy the local IP synth result to EOS or "pull" if you want to copy the files from EOS to your local repository
 # @param[in] xci_file: the .xci file of the IP you want to handle
-# @param[in] runs_dir: the runs directory of the project. Typically called VivadoProject/\<project name\>/\<project name\>.runs
+# @param[in] runs_dir: the runs directory of the project. Typically called Projects/\<project name\>/\<project name\>.runs
 # @param[in] ip_path: the path of directory you want the IP to be saved on eos
 # @param[in] force: if not set to 0, will copy the IP to EOS even if it is already present
 #

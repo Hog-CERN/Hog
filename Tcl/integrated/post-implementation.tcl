@@ -28,6 +28,7 @@ source $tcl_path/hog.tcl
 # Go to repository pathcd $old_pathcd $old_path
 cd $tcl_path/../../
 
+
 if {[info commands get_property] != ""} {
     # Vivado + planAhead
     if { [string first PlanAhead [version]] == 0 } {
@@ -35,17 +36,16 @@ if {[info commands get_property] != ""} {
     } else {
         set proj_file [get_property parent.project_path [current_project]]
     }
+    set proj_dir [file normalize [file dirname $proj_file]]
+    set proj_name [file rootname [file tail $proj_file]]
 } elseif {[info commands project_new] != ""} {
     # Quartus
-  set proj_file "/q/a/r/Quartus_project.qpf"
+  set proj_name [lindex $quartus(args) 1]
 } else {
     #Tclssh
   set proj_file $old_path/[file tail $old_path].xpr
-  Msg CriticalWarning "You seem to be running locally on tclsh, so this is a debug, the project file will be set to $proj_file and was derived from the path you launched this script from: $old_path. If you want this script to work properly in debug mode, please launch it from the top folder of one project, for example Repo/VivadoProject/fpga1/ or Repo/Top/fpga1/"
+  Msg CriticalWarning "You seem to be running locally on tclsh, so this is a debug, the project file will be set to $proj_file and was derived from the path you launched this script from: $old_path. If you want this script to work properly in debug mode, please launch it from the top folder of one project, for example Repo/Projects/fpga1/ or Repo/Top/fpga1/"
 }
-
-set proj_dir [file normalize [file dirname $proj_file]]
-set proj_name [file rootname [file tail $proj_file]]
 
 
 Msg Info "Evaluating last git SHA in which $proj_name was modified..."
@@ -58,7 +58,7 @@ if {$ret !=0} {
 
 if {$msg eq "" } {
   Msg Info "Git working directory [pwd] clean."
-  lassign [GetRepoVersion ./Top/$proj_name/$proj_name.tcl] commit version
+  lassign [GetRepoVersions ./Top/$proj_name/$proj_name.tcl] commit version
   Msg Info "Found last SHA for $proj_name: $commit"
 
 } else {
@@ -91,7 +91,7 @@ if {[info commands send_msg_id] != ""} {
         set_property BITSTREAM.CONFIG.USR_ACCESS $commit_usr [current_design]
     }
 } elseif {[info commands post_message] != ""} {
-  # Quartus
+  # Quartus TODO
 } else {
   # Tclsh
 }

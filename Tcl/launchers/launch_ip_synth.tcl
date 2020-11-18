@@ -40,17 +40,17 @@ if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] 
   exit 1
 } elseif { $::argc eq 1 } {
   set project [lindex $argv 0]
-  set main_folder [file normalize "$path/../../VivadoProject/$project/$project.runs/"]
+  set main_folder [file normalize "$path/../../Projects/$project/$project.runs/"]
   set ip_path ""
 } else {
   set project [lindex $argv 0]
-  set main_folder [file normalize "$path/../../VivadoProject/$project/$project.runs/"]
+  set main_folder [file normalize "$path/../../Projects/$project/$project.runs/"]
   set ip_path $options(eos_ip_path)
   Msg Info "Will use the EOS ip repository on $ip_path to speed up ip synthesis..."
 }
 
 Msg Info "Opening project $project..."
-open_project ../../VivadoProject/$project/$project.xpr
+open_project ../../Projects/$project/$project.xpr
 
 
 Msg Info "Preparing IP runs..."

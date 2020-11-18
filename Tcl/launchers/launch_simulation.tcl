@@ -29,12 +29,18 @@ set parameters {
 set usage "- USAGE: $::argv0 \[OPTIONS\] <project> \n. Options:"
 
 set path [file normalize "[file dirname [info script]]/.."]
-if { [catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] ||  [llength $argv] < 1 } {
-  puts [cmdline::usage $parameters $usage]
+if { $::argc eq 0 } {
+  Msg Info [cmdline::usage $parameters $usage]
+  exit 1
+} elseif { [info commands get_property] != "" &&  [catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] } {
+  Msg Info [cmdline::usage $parameters $usage]
+  exit 1
+} elseif {[info commands project_new] != "" && [ catch {array set options [cmdline::getoptions quartus(args) $parameters $usage] } ] || $::argc eq 0 } {
+  Msg Info [cmdline::usage $parameters $usage]
   exit 1
 } else {
   set project [lindex $argv 0]
-  set main_folder [file normalize "$path/../../VivadoProject/$project/$project.sim/"]
+  set main_folder [file normalize "$path/../../Projects/$project/$project.sim/"]
 
   if {$options(lib_path)!= ""} {
     set lib_path $options(lib_path)
@@ -56,9 +62,9 @@ if !([file exists $lib_path]) {
 
 ############# CREATE or OPEN project ############
 if { [string first PlanAhead [version]] == 0 } {
-  set project_file [file normalize ../../VivadoProject/$project/$project.ppr]
+  set project_file [file normalize ../../Projects/$project/$project.ppr]
 } else {
-  set project_file [file normalize ../../VivadoProject/$project/$project.xpr]
+  set project_file [file normalize ../../Projects/$project/$project.xpr]
 }
 
 if {[file exists $project_file]} {

@@ -24,11 +24,12 @@ if {[catch {package require struct::matrix} ERROR]} {
 
 if {[info commands get_property] != "" && [string first PlanAhead [version]] == 0 } {
   # Vivado + PlanAhead
-  set old_path [file normalize "../../VivadoProject/$project/$project.runs/synth_1"]
+  set old_path [file normalize "../../Projects/$project/$project.runs/synth_1"]
   file mkdir $old_path
 } else {
   set old_path [pwd]
 }
+
 set tcl_path [file normalize "[file dirname [info script]]/.."]
 source $tcl_path/hog.tcl
 
@@ -49,17 +50,19 @@ if {[info commands get_property] != ""} {
   } else {
     set proj_file [get_property parent.project_path [current_project]]
   }
+  set proj_dir [file normalize [file dirname $proj_file]]
+  set proj_name [file rootname [file tail $proj_file]]
 } elseif {[info commands project_new] != ""} {
-    # Quartus
-  set proj_file "/q/a/r/Quartus_project.qpf"
+  # Quartus
+  set proj_name [lindex $quartus(args) 1]
+  set proj_dir [file normalize "$tcl_path/../../Projects/$proj_name"]
+  set proj_file [file normalize "$proj_dir/$proj_name.qpf"]
 } else {
     #Tclssh
   set proj_file $old_path/[file tail $old_path].xpr
-  Msg CriticalWarning "You seem to be running locally on tclsh, so this is a debug, the project file will be set to $proj_file and was derived from the path you launched this script from: $old_path. If you want this script to work properly in debug mode, please launch it from the top folder of one project, for example Repo/VivadoProject/fpga1/ or Repo/Top/fpga1/"
+  Msg CriticalWarning "You seem to be running locally on tclsh, so this is a debug, the project file will be set to $proj_file and was derived from the path you launched this script from: $old_path. If you want this script to work properly in debug mode, please launch it from the top folder of one project, for example Repo/Projects/fpga1/ or Repo/Top/fpga1/"
 }
 
-set proj_dir [file normalize [file dirname $proj_file]]
-set proj_name [file rootname [file tail $proj_file]]
 
 # Calculating flavour if any
 set flavour [string map {. ""} [file ext $proj_name]]
@@ -76,7 +79,7 @@ if {$flavour != ""} {
 }
 
 ######## Reset files before synthesis ###########
-set reset_file VivadoProject/hog_reset_files
+set reset_file Projects/hog_reset_files
 
 if {[file exists $reset_file]} {
   Msg Info "Found $reset_file, opening it..."
@@ -138,9 +141,19 @@ if {$maxThreads != 1} {
 if {[info commands set_param] != ""} {
     ### Vivado
   set_param general.maxThreads $maxThreads
-} elseif {[info commands quartus_command] != ""} {
-    ### QUARTUS
-  quartus_command $maxThreads
+} elseif {[info commands project_new] != ""} {
+  # QUARTUS
+  if { [catch {package require ::quartus::project} ERROR] } {
+    Msg Error "$ERROR\n Can not find package ::quartus::project"
+    cd $old_path
+    return 1
+  }
+  set this_dir [pwd]
+  cd $proj_dir
+  project_open $proj_name -current_revision
+  cd $this_dir
+  set_global_assignment -name NUM_PARALLEL_PROCESSORS $maxThreads
+  project_close
 } else {
     ### Tcl Shell
   puts "Hog:DEBUG MaxThread is set to: $maxThreads"
@@ -186,9 +199,69 @@ if {[info commands set_property] != ""} {
   set_property generic $generic_string [current_fileset]
   set status_file [file normalize "$old_path/../versions.txt"]
 
-} elseif {[info commands quartus_command] != ""} {
-    ### QUARTUS
-  set  status_file "$old_path/../versions.txt"
+} elseif {[info commands project_new] != ""} {
+  #Quartus
+  if { [catch {package require ::quartus::project} ERROR] } {
+    Msg Error "$ERROR\n Can not find package ::quartus::project"
+    cd $old_path
+    return 1
+  }
+  set this_dir [pwd]
+  cd $proj_dir
+  project_open $proj_name -current_revision
+  cd $this_dir
+  
+  binary scan [binary format H* [string map {{'} {}} $date]] B* bits
+  set_parameter -name GLOBAL_DATE $bits
+  binary scan [binary format H* [string map {{'} {}} $timee]] B* bits
+  set_parameter -name GLOBAL_TIME $bits
+  binary scan [binary format H* [string map {{'} {}} $version]] B* bits
+  set_parameter -name GLOBAL_VER $bits
+  binary scan [binary format H* [string map {{'} {}} $commit]] B* bits
+  set_parameter -name GLOBAL_SHA $bits
+  binary scan [binary format H* [string map {{'} {}} $top_hash]] B* bits
+  set_parameter -name TOP_SHA $bits
+  binary scan [binary format H* [string map {{'} {}} $top_ver]] B* bits
+  set_parameter -name TOP_VER $bits
+  binary scan [binary format H* [string map {{'} {}} $hog_hash]] B* bits
+  set_parameter -name HOG_SHA $bits
+  binary scan [binary format H* [string map {{'} {}} $hog_ver]] B* bits
+  set_parameter -name HOG_VER $bits 
+  binary scan [binary format H* [string map {{'} {}} $cons_ver]] B* bits
+  set_parameter -name CON_VER $bits
+  binary scan [binary format H* [string map {{'} {}} $cons_hash]] B* bits
+  set_parameter -name CON_SHA $bits
+  
+  if {$use_ipbus == 1} {
+    binary scan [binary format H* [string map {{'} {}} $xml_ver]] B* bits
+    set_parameter -name XML_VER $bits
+    binary scan [binary format H* [string map {{'} {}} $xml_hash]] B* bits
+    set_parameter -name XML_SHA $bits
+  }
+
+  #set project specific lists
+  foreach l $libs v $vers h $hashes {
+    binary scan [binary format H* [string map {{'} {}} $v]] B* bits
+    set_parameter -name "[string toupper $l]_VER" $bits
+    binary scan [binary format H* [string map {{'} {}} $h]] B* bits
+    set_parameter -name "[string toupper $l]_SHA" $bits
+  }
+
+  foreach e $ext_names h $ext_hashes {
+    binary scan [binary format H* [string map {{'} {}} $h]] B* bits
+    set_parameter -name "[string toupper $e]_SHA" $bits
+  }
+
+  if {$flavour != -1} {
+     set_parameter -name FLAVOUR $flavour
+  }
+  
+  if {![file exists "$old_path/output_files"]} {
+    file mkdir "$old_path/output_files"
+  }
+
+  set  status_file "$old_path/output_files/versions.txt"
+  project_close
 
 } else {
   ### Tcl Shell

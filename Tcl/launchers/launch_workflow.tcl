@@ -45,7 +45,7 @@ if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] 
   exit 1
 } else {
   set project [lindex $argv 0]
-  set main_folder [file normalize "$path/../../VivadoProject/$project/$project.runs/"]
+  set main_folder [file normalize "$path/../../Projects/$project/$project.runs/"]
   set do_implementation 1
   set do_synthesis 1
   set do_bitstream 1
@@ -138,9 +138,9 @@ Msg Info "Number of jobs set to $options(njobs)."
 
 ############# CREATE or OPEN project ############
 if { [string first PlanAhead [version]] == 0 } {
-  set project_file [file normalize ../../VivadoProject/$project/$project.ppr]
+  set project_file [file normalize ../../Projects/$project/$project.ppr]
 } else {
-  set project_file [file normalize ../../VivadoProject/$project/$project.xpr]
+  set project_file [file normalize ../../Projects/$project/$project.xpr]
 }
 
 if {[file exists $project_file]} {

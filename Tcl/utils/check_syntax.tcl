@@ -40,12 +40,12 @@ if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] 
   exit 1
 } else {
   set project [lindex $argv 0]
-  set main_folder [file normalize "$repo_path/VivadoProject/$project/$project.runs/"]
+  set main_folder [file normalize "$repo_path/Projects/$project/$project.runs/"]
 }
 
 Msg Info "Opening project $project..."
 
-open_project ../../VivadoProject/$project/$project.xpr
+open_project ../../Projects/$project/$project.xpr
 
 
 Msg Info "Checkin syntax for project $project..."

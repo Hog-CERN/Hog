@@ -15,6 +15,7 @@
 
 ## @file CopyXML.sh
 # brief Copy IPbus xml and process them
+. $(dirname "$0")/CommonFunctions.sh;
 
 OLD_DIR=`pwd`
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
@@ -38,13 +39,42 @@ then
   ##! If no args passed then print help message
   echo $usage
 else
+
     if [ -z "$3" ]
     then
 	ARGS="$1 $OLD_DIR/$2"
+	PROJ=$1
     else
-	ARGS="$1 $2 $OLD_DIR/$3" 
+	ARGS="$1 $2 $OLD_DIR/$3"
+	PROJ=$2
     fi
-    vivado -nojournal -nolog -mode batch -notrace -source Tcl/utils/copy_xml.tcl -tclargs $ARGS    
-fi
 
+  PROJ_DIR="$DIR/../Top/"$PROJ
+  if [ -d "$PROJ_DIR" ]
+  then
+      #Choose if the project is quastus, vivado, vivado_hls [...]
+      select_command $PROJ_DIR"/"$PROJ".tcl"
+      if [ $? != 0 ]
+      then
+	  echo "Failed to select project type: exiting!"
+	  exit -1
+      fi
+      #select full path to executable and place it in HDL_COMPILER global variable
+      select_compiler_executable $COMMAND
+      if [ $? != 0 ]
+      then
+	  echo "Hog-ERROR: failed to get HDL compiler executable for $COMMAND"
+	  exit -1
+      fi
+      if [ ! -f "${HDL_COMPILER}" ]
+      then
+	  echo "Hog-ERROR: HLD compiler executable $HDL_COMPILER not found"
+	  cd "${OLD_DIR}"
+	  exit -1
+      else
+	  echo "Hog-INFO: using executable: $HDL_COMPILER"
+      fi
+      "${HDL_COMPILER}" $COMMAND_OPT $DIR/Tcl/launchers/launch_simulation.tcl -tclargs $ARGS
+  fi
+fi
 

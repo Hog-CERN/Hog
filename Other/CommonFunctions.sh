@@ -19,17 +19,17 @@
 ## @var COMMAND
 #  @brief Global variable used to contain the command to be used
 #
-declare -g COMMAND=""
+export COMMAND=""
 
 ## @var COMMAND_OPT
 #  @brief Global variable used to contain the options associated to the command to be used
 #
-declare -g COMMAND_OPT=""
+export COMMAND_OPT=""
 
 ## @var HDL_COMPILER
 #  @brief Global variable contianing the full path to the HDL compiler to be used
 #
-declare -g HDL_COMPILER=""
+export HDL_COMPILER=""
 
 ## @fn select_command
 #

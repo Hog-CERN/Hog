@@ -49,7 +49,7 @@ else
 	PROJ=$2
     fi
 
-  PROJ_DIR="$DIR/../Top/"$PROJ
+  PROJ_DIR="$DIR/../../Top/"$PROJ
   if [ -d "$PROJ_DIR" ]
   then
       #Choose if the project is quastus, vivado, vivado_hls [...]
@@ -68,13 +68,14 @@ else
       fi
       if [ ! -f "${HDL_COMPILER}" ]
       then
-	  echo "Hog-ERROR: HLD compiler executable $HDL_COMPILER not found"
-	  cd "${OLD_DIR}"
-	  exit -1
+	  echo "Hog-WARNING: HLD compiler executable $HDL_COMPILER not found, will optimistically try Tcl shell..."
+	  tclsh $DIR/../Tcl/utils/copy_xml.tcl $ARGS
       else
 	  echo "Hog-INFO: using executable: $HDL_COMPILER"
       fi
-      "${HDL_COMPILER}" $COMMAND_OPT $DIR/Tcl/launchers/launch_simulation.tcl -tclargs $ARGS
+      "${HDL_COMPILER}" $COMMAND_OPT $DIR/../Tcl/utils/copy_xml.tcl -tclargs $ARGS
+  else
+      echo "Hog-ERROR could not find $PROJ_DIR"
   fi
 fi
 

@@ -1227,7 +1227,7 @@ proc CopyXMLsFromListFile {list_file path dst {xml_version "0.0.0"} {xml_sha "00
     Msg Warning "Error while trying to run python: $msg"
     set can_generate 0
   }
-
+  set dst [file normalize $dst]
   if {$can_generate == 0} {
     if {$generate == 1} {
       Msg Error "Cannot generate IPbus address files, IPbus executable gen_ipbus_addr_decode not found or not working: $msg"

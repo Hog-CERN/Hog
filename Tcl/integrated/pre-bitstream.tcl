@@ -13,7 +13,11 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-
+if {[info commands project_new] != ""} {
+  # Quartus
+  Msg Error "Pre-module scripts are not supported in Quartus mode!"
+  return TCL_ERROR
+}
 
 set old_path [pwd]
 set tcl_path [file normalize "[file dirname [info script]]/.."]
@@ -23,21 +27,18 @@ source $tcl_path/hog.tcl
 cd "$tcl_path/../.."
 
 if {[info commands get_property] != ""} {
-    # Vivado + PlanAhead
-    if { [string first PlanAhead [version]] == 0 } {
-        # planAhead
-        set proj_name  [file tail [get_property DIRECTORY [current_project]]]
-    } else {
-        # Vivado
-        set proj_name [file tail [file normalize $old_path/../..]]
-    }
-} elseif {[info commands project_new] != ""} {
-    # Quartus
+  # Vivado + PlanAhead
+  if { [string first PlanAhead [version]] == 0 } {
+    # planAhead
+    set proj_name  [file tail [get_property DIRECTORY [current_project]]]
+  } else {
+    # vivado
     set proj_name [file tail [file normalize $old_path/../..]]
+  }
 } else {
     #Tclssh
-    set proj_name [file tail [file normalize $old_path/../..]]
-    Msg CriticalWarning "You seem to be running locally on tclsh, so this is a debug, the project file will be set to $proj_file and was derived from the path you launched this script from: $old_path. If you want this script to work properly in debug mode, please launch it from the top folder of one project, for example Repo/VivadoProject/fpga1/ or Repo/Top/fpga1/"
+  set proj_name [file tail [file normalize $old_path/../..]]
+  Msg CriticalWarning "You seem to be running locally on tclsh, so this is a debug, the project file will be set to $proj_file and was derived from the path you launched this script from: $old_path. If you want this script to work properly in debug mode, please launch it from the top folder of one project, for example Repo/Projects/fpga1/ or Repo/Top/fpga1/"
 }
 
 
@@ -52,9 +53,6 @@ if {$maxThreads != 1} {
 if {[info commands get_property] != ""} {
     # Vivado
   set_param general.maxThreads $maxThreads
-} elseif {[info commands project_new] != ""} {
-    # Quartus
-  #TO BE IMPLEMENTED
 } else {
     #Tclssh
 }

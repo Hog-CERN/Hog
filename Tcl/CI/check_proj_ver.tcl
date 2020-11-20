@@ -22,6 +22,7 @@ if {[catch {package require cmdline} ERROR] || [catch {package require struct::m
 set parameters {
   {sim    "If set, checks also the version of the simulation files."}
   {ext_path.arg "" "Sets the absolute path for the external libraries."}
+  {project_tcl.arg "" "Sets the absolute path for the project_tcl."}
 }
 
 set usage "- USAGE: $::argv0 \[OPTIONS\] <project> \n. Options:"
@@ -29,7 +30,15 @@ set repo_path [pwd]
 set tcl_path [file normalize "[file dirname [info script]]/.."]
 source $tcl_path/hog.tcl
 
-if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] ||  [llength $argv] < 1 } {
+if { $::argc eq 0 } {
+  Msg Info [cmdline::usage $parameters $usage]
+  exit 1
+} elseif {[info commands get_property] != "" && [catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] } {
+  #Vivado
+  Msg Info [cmdline::usage $parameters $usage]
+  exit 1
+} elseif {[info commands project_new] != "" && [ catch {array set options [cmdline::getoptions quartus(args) $parameters $usage] } ] || $::argc eq 0 } {
+  #Quartus
   Msg Info [cmdline::usage $parameters $usage]
   exit 1
 } else {
@@ -48,12 +57,18 @@ if { $options(ext_path) != "" } {
     Msg Info "External path set to $ext_path"
 }
 
-set ver [ GetProjectVersion $repo_path/Top/$project/$project.tcl $ext_path $sim ]
+if { $options(project_tcl) != "" } {
+  set project_tcl $options(project_tcl)
+} else {
+  set project_tcl $repo_path/Top/$project/$project.tcl
+}
+
+set ver [ GetProjectVersion $project_tcl $ext_path $sim ]
 if {$ver == 0} {
   Msg Info "$project was modified, continuing with the CI..."
 } else {
   Msg Info "$project was not modified since version: $ver, disabling the CI..."
-  file mkdir $repo_path/VivadoProjects/$project
-  set fp [open "$repo_path/VivadoProjects/$project/skip.me" w+]
+  file mkdir $repo_path/Projects/$project
+  set fp [open "$repo_path/Projects/$project/skip.me" w+]
   close $fp
 }

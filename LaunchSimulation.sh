@@ -81,7 +81,8 @@ else
 
     if [ $COMMAND = "quartus_sh" ]
     then
-      echo "Hog-ERROR: Quartus Prime is not yet supportd by this script!"
+      echo "Hog-ERROR: Quartus is not yet supported by this script!"
+      #echo "Running:  ${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_simulation.tcl $LIBPATH $1"
       #"${HDL_COMPILER}" $COMMAND_OPT $DIR/Tcl/launchers/launch_simulation.tcl $LIBPATH $1
 
     elif [ $COMMAND = "vivado_hls" ]

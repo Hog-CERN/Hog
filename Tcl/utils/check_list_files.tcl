@@ -69,7 +69,7 @@ set ext_path $options(ext_path)
 if {![string equal $options(project) ""]} {
   set project $options(project)
   Msg Info "Opening project $project..."
-  open_project $repo_path/VivadoProject/$project/$project.xpr
+  open_project $repo_path/Projects/$project/$project.xpr
 } else {
   set project [get_projects [current_project]]
 }

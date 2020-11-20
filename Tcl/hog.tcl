@@ -424,6 +424,14 @@ proc FindVhdlVersion {file_name} {
 #
 proc ReadListFile args {
 
+  if {[info commands project_new] != ""} {
+    load_package report
+    if { [catch {package require cmdline} ERROR] } {
+      puts "$ERROR\n If you are running this script on tclsh, you can fix this by installing 'tcllib'"
+      return 1
+    }
+  }
+
   set parameters {
     {lib.arg ""  "The name of the library files will be added to, if not given will be extracted from the file name."}
     {sha_mode "If set, the list files will be added as well and the IPs will be added to the file rather than to the special ip library. The sha mode should be used when you use the lists to calculate the git SHA, rather than to add the files to the project."}
@@ -1544,6 +1552,15 @@ proc GetProjectFiles {} {
 #
 proc GetHogFiles args {
 
+  if {[info commands project_new] != ""} {
+    load_package report
+    if { [catch {package require cmdline} ERROR] } {
+      puts "$ERROR\n If you are running this script on tclsh, you can fix this by installing 'tcllib'"
+      return 1
+    }
+  }
+
+
   set parameters {
     {list_files.arg ""  "The file wildcard, if not specified all Hog list files will be looked for."}
     {sha_mode "Forwarded to ReadListFile, see there for info."}
@@ -1792,7 +1809,7 @@ proc ForceUpToDate {} {
 #
 # @param[in] what_to_do: can be "push", if you want to copy the local IP synth result to EOS or "pull" if you want to copy the files from EOS to your local repository
 # @param[in] xci_file: the .xci file of the IP you want to handle
-# @param[in] runs_dir: the runs directory of the project. Typically called VivadoProject/\<project name\>/\<project name\>.runs
+# @param[in] runs_dir: the runs directory of the project. Typically called Projects/\<project name\>/\<project name\>.runs
 # @param[in] ip_path: the path of directory you want the IP to be saved on eos
 # @param[in] force: if not set to 0, will copy the IP to EOS even if it is already present
 #

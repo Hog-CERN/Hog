@@ -136,11 +136,11 @@ function init()
   fi
 
   ##! Scan for existing Vivado projects and ask user to automatically create listFiles
-  ##! NOTE projects already in VivadoProject directory have already a Hog structure, ignore them
+  ##! NOTE projects already in Projects directory have already a Hog structure, ignore them
   ##! NOTE use read to grab user input
   ##! NOTE if the user input contains Y or y then is accepted as yes
 
-  Vivado_prjs=$(find $DIR/.. -path $DIR/../VivadoProject -prune -false -o -name *.xpr)
+  Vivado_prjs=$(find $DIR/.. -path $DIR/../Projects -prune -false -o -name *.xpr)
 
   for Vivado_prj in $Vivado_prjs; do
     echo

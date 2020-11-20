@@ -22,41 +22,73 @@ set tcl_path [file normalize "[file dirname [info script]]/.."]
 source $tcl_path/hog.tcl
 
 if {[info commands get_property] != ""} {
-    # Vivado + PlanAhead
-    if { [string first PlanAhead [version]] == 0 } {
-        # planAhead
-        set work_path [get_property DIRECTORY [get_runs impl_1]]
-    } else {
-        # Vivado
-        set work_path $old_path
-    }
-} elseif {[info commands quartus_command] != ""} {
-    # Quartus
+
+  # Vivado + PlanAhead
+  if { [string first PlanAhead [version]] == 0 } {
+    # planAhead
+    set work_path [get_property DIRECTORY [get_runs impl_1]]
+  } else {
+    # Vivado
     set work_path $old_path
-} else {
-    #tcl shell
-    set work_path $old_path
-}
+  }
 
-set fw_file   [file normalize [lindex [glob -nocomplain "$work_path/*.bit"] 0]]
-set proj_name [file tail [file normalize $work_path/../../]]
-set top_name  [file rootname [file tail $fw_file]]
+  set fw_file   [file normalize [lindex [glob -nocomplain "$work_path/*.bit"] 0]]
+  set proj_name [file tail [file normalize $work_path/../../]]
+  set top_name  [file rootname [file tail $fw_file]]
 
-set bit_file [file normalize "$work_path/$top_name.bit"]
-set bin_file [file normalize "$work_path/$top_name.bin"]
-set ltx_file [file normalize "$work_path/$top_name.ltx"]
-
-if [file exists $bit_file] {
+  set bit_file [file normalize "$work_path/$top_name.bit"]
+  set bin_file [file normalize "$work_path/$top_name.bin"]
+  set ltx_file [file normalize "$work_path/$top_name.ltx"]
 
   set xml_dir [file normalize "$work_path/../xml"]
   set run_dir [file normalize "$work_path/.."]
   set bin_dir [file normalize "$work_path/../../../../bin"]
 
-    # Go to repository path
+} elseif {[info commands project_new] != ""} {
+  # Quartus
+  set proj_name [lindex $quartus(args) 1]
+  set proj_dir [file normalize "$tcl_path/../../Projects/$proj_name"]
+  set xml_dir [file normalize "$proj_dir/../../xml"]
+  set run_dir [file normalize "$proj_dir"]
+  set bin_dir [file normalize "$proj_dir/../../bin"]
+  set name [file rootname [file tail [file normalize [pwd]]]]
+  # programming object file
+  set pof_file [file normalize "$proj_dir/output_files/$proj_name.pof"]
+  # SRAM Object File
+  set sof_file [file normalize "$proj_dir/output_files/$proj_name.sof"]
+  # raw binary file
+  set rbf_file [file normalize "$proj_dir/output_files/$proj_name.rbf"]
+  #raw programming file
+  set rpd_file [file normalize "$proj_dir/output_files/$proj_name.rpd"]
+  # signal tap file
+  set stp_file [file normalize "$proj_dir/output_files/$proj_name.stp"]
+  #source and probes file
+  set spf_file [file normalize "$proj_dir/output_files/$proj_name.spf"]
+
+} else {
+  #tcl shell
+  set work_path $old_path
+  set fw_file   [file normalize [lindex [glob -nocomplain "$work_path/*.bit"] 0]]
+  set proj_name [file tail [file normalize $work_path/../../]]
+  set top_name  [file rootname [file tail $fw_file]]
+
+  set bit_file [file normalize "$work_path/$top_name.bit"]
+  set bin_file [file normalize "$work_path/$top_name.bin"]
+  set ltx_file [file normalize "$work_path/$top_name.ltx"]
+
+  set xml_dir [file normalize "$work_path/../xml"]
+  set run_dir [file normalize "$work_path/.."]
+  set bin_dir [file normalize "$work_path/../../../../bin"]
+}
+
+# Vivado
+if {[info commands get_property] != "" && [file exists $bit_file]} {
+
+  # Go to repository path
   cd $tcl_path/../../
 
   Msg Info "Evaluating Git sha for $proj_name..."
-  lassign [GetRepoVersion ./Top/$proj_name/$proj_name.tcl] sha
+  lassign [GetRepoVersions ./Top/$proj_name/$proj_name.tcl] sha
 
   set describe [GetGitDescribe $sha]
   Msg Info "Git describe set to: $describe"
@@ -85,12 +117,13 @@ if [file exists $bit_file] {
 
   Msg Info "Copying bit file $bit_file into $dst_bit..."
   file copy -force $bit_file $dst_bit
+
   # Reports
   file mkdir $dst_dir/reports
   if { [string first PlanAhead [version]] == 0 } {
-      set reps [glob -nocomplain "$run_dir/*/*{.syr,.srp,.mrp,.map,.twr,.drc,.bgn,_routed.par,_routed_pad.txt,_routed.unroutes}"]
+    set reps [glob -nocomplain "$run_dir/*/*{.syr,.srp,.mrp,.map,.twr,.drc,.bgn,_routed.par,_routed_pad.txt,_routed.unroutes}"]
   } else {
-      set reps [glob -nocomplain "$run_dir/*/*.rpt"]
+    set reps [glob -nocomplain "$run_dir/*/*.rpt"]
   }
   if [file exists [lindex $reps 0]] {
     file copy -force {*}$reps $dst_dir/reports
@@ -105,16 +138,7 @@ if [file exists $bit_file] {
     file copy -force $log $dst_dir/reports/$run_name.log
   }
 
-    # IPbus XML
-  if [file exists $xml_dir] {
-    Msg Info "XML directory found, copying xml files from $xml_dir to $dst_xml..."
-    if [file exists $dst_xml] {
-      Msg Info "Directory $dst_xml exists, deleting it..."
-      file delete -force $dst_xml
-    }
-    file copy -force $xml_dir $dst_xml
-  }
-    # bin File
+  # bin File
   if [file exists $bin_file] {
     Msg Info "Copying bin file $bin_file into $dst_bin..."
     file copy -force $bin_file $dst_bin
@@ -124,17 +148,112 @@ if [file exists $bit_file] {
 
   write_debug_probes -quiet $ltx_file
 
-    # ltx File
+  # ltx File
   if [file exists $ltx_file] {
     Msg Info "Copying ltx file $ltx_file into $dst_ltx..."
     file copy -force $ltx_file $dst_ltx
   } else {
     Msg Info "No ltx file found: $ltx_file, that is not a problem"
+  } 
+
+} elseif {[info commands project_new] != "" && [file exists $pof_file]} {
+  #Quartus
+  # Go to repository path
+  cd $tcl_path/../../
+
+  Msg Info "Evaluating Git sha for $name..."
+  lassign [GetRepoVersions ./Top/$name/$name.tcl] sha
+
+  set describe [GetGitDescribe $sha]
+  Msg Info "Git describe set to: $describe"
+
+  set ts [clock format [clock seconds] -format {%Y-%m-%d-%H-%M}]
+
+  set dst_dir [file normalize "$bin_dir/$name\-$describe"]
+  set dst_pof [file normalize "$dst_dir/$name\-$describe.pof"]
+  set dst_sof [file normalize "$dst_dir/$name\-$describe.sof"]
+  set dst_rbf [file normalize "$dst_dir/$name\-$describe.rbf"]
+  set dst_rpd [file normalize "$dst_dir/$name\-$describe.rpd"]
+  set dst_stp [file normalize "$dst_dir/$name\-$describe.stp"]
+  set dst_spf [file normalize "$dst_dir/$name\-$describe.spf"]
+  set dst_xml [file normalize "$dst_dir/xml"]
+
+  Msg Info "Creating $dst_dir..."
+  file mkdir $dst_dir
+  Msg Info "Evaluating differences with last commit..."
+  set diff [Git diff]
+  if {$diff != ""} {
+    Msg Warning "Found non committed changes:"
+    Msg Status "$diff"
+    set fp [open "$dst_dir/diff_postbistream.txt" w+]
+    puts $fp "$diff"
+    close $fp
+  } else {
+    Msg Info "No uncommitted changes found."
+  }
+
+  Msg Info "Copying pof file $pof_file into $dst_pof..."
+  file copy -force $pof_file $dst_pof
+  
+  #Reports
+  file mkdir $dst_dir/reports
+  set reps [glob -nocomplain "$proj_dir/output_files/*.rpt"]
+
+  if [file exists [lindex $reps 0]] {
+    file copy -force {*}$reps $dst_dir/reports
+  } else {
+    Msg Warning "No reports found in $proj_dir/output_files subfolders"
+  }
+
+  # sof File
+  if [file exists $sof_file] {
+    Msg Info "Copying sof file $sof_file into $dst_sof..."
+    file copy -force $sof_file $dst_sof
+  } else {
+    Msg Info "No sof file found: $sof_file, that is not a problem"
+  }
+
+
+  #rbf rpd 
+  if { [file exists $rbf_file] ||  [file exists $rpd_file] } {
+    if [file exists $rbf_file] {
+    file copy -force $rbf_file $dst_rbf
+    }
+    if [file exists $rpd_file] {
+      file copy -force $rpd_file $dst_rpd
+    }
+  } else {
+    Msg Info "No rbf or rpd file found: this is not a problem"
+  }
+
+  # stp and spf File
+  if {[file exists $stp_file] || [file exists $spf_file]} {
+    if [file exists $stp_file] {
+      file copy -force $stp_file $dst_stp
+    }
+    if [file exists $spf_file] {
+      file copy -force $spf_file $dst_spf
+    }
+  } else {
+    Msg Info "No stp or spf file found: that is not a problem"
   }
 
 } else {
   Msg CriticalWarning "Firmware binary file not found."
 }
+
+
+# IPbus XML
+if [file exists $xml_dir] {
+  Msg Info "XML directory found, copying xml files from $xml_dir to $dst_xml..."
+  if [file exists $dst_xml] {
+    Msg Info "Directory $dst_xml exists, deleting it..."
+    file delete -force $dst_xml
+  }
+  file copy -force $xml_dir $dst_xml
+}
+  
+
 
 set user_post_bitstream_file "./Top/$proj_name/post-bitstream.tcl"
 if {[file exists $user_post_bitstream_file]} {

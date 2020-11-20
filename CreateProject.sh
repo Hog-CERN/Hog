@@ -88,7 +88,7 @@ function create_project ()
     exit -1
   else
     local PROJ=$1
-    local PROJ_DIR="../Top/"$PROJ
+    local PROJ_DIR="$DIR/$PROJ"
   fi
 
   if [ -d "$PROJ_DIR" ]

@@ -353,8 +353,6 @@ set user_pre_synthesis_file "./Top/$proj_name/pre-synthesis.tcl"
 if {[file exists $user_pre_synthesis_file]} {
     Msg Info "Sourcing user pre-synthesis file $user_pre_synthesis_file"
     source $user_pre_synthesis_file
-} else {
-    Msg Info "No user pre-synthesis file found at [pwd]/$user_pre_synthesis_file"
 }
 
 cd $old_path

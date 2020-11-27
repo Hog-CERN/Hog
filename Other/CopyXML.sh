@@ -57,7 +57,7 @@ else
       if [ $? != 0 ]
       then
 	  echo "Failed to select project type: exiting!"
-	  exit -1
+	  exit 1
       fi
       #select full path to executable and place it in HDL_COMPILER global variable
       select_compiler_executable $COMMAND
@@ -72,7 +72,7 @@ else
       if [ ! -f "${HDL_COMPILER}" ]
       then
 	  echo "Hog-ERROR: HLD compiler executable $HDL_COMPILER not found."
-	  exit -1
+	  exit 1
       else
 	  echo "Hog-INFO: using executable: $HDL_COMPILER"
       fi

@@ -277,5 +277,5 @@ then
     echo "Hog-INFO: Check successfull, you can run Hog-CI on this machine"
 else
     echo "Hog-ERROR: At least one essitial variable or executable was not defined, Hog-CI cannot start. Check above for details."
-    exit -1
+    exit 1
 fi

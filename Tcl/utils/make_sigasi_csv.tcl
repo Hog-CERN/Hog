@@ -27,7 +27,7 @@ set project_name [lindex $argv 0]
 set project_file [file normalize $path/../../Projects/$project_name/$project_name.xpr]
 
 if {[file exists $project_file]} {
-  Msg Info "Opening exixsting project file $project_file..."
+  Msg Info "Opening existing project file $project_file..."
   open_project -quiet $project_file  
 } else {
   Msg Info "Creating project: $project_name..." 
@@ -44,7 +44,7 @@ foreach ip [get_ips] {
 
 Msg Info "Creating sigasi csv file for simulation $csv_name..."
 set source_files [get_files -filter {(FILE_TYPE == VHDL || FILE_TYPE == "VHDL 2008" || FILE_TYPE == VERILOG || FILE_TYPE == SYSTEMVERILOG) && USED_IN_SIMULATION == 1 } ]
-set csv_file [open $csv_name w]
+set csv_file [open $old_path/$csv_name w]
 foreach source_file $source_files {
   puts  $csv_file [ concat  [ get_property LIBRARY $source_file ] "," $source_file ]
 }
@@ -59,7 +59,7 @@ foreach ip [get_ips] {
 
 Msg Info "Creating sigasi csv file for synthesis $csv_name..."
 set source_files [get_files -filter {(FILE_TYPE == VHDL || FILE_TYPE == "VHDL 2008" || FILE_TYPE == VERILOG || FILE_TYPE == SYSTEMVERILOG) && USED_IN_SYNTHESIS == 1 } ]
-set csv_file [open $csv_name w]
+set csv_file [open $old_path/$csv_name w]
 foreach source_file $source_files {
   puts  $csv_file [ concat  [ get_property LIBRARY $source_file ] "," $source_file ]
 }

@@ -33,8 +33,6 @@ if [ "$1" == "-h" ] || [ "$1" == "-help" ] || [ "$1" == "--help" ] || [ "$1" == 
     exit 0
 fi
 
-cd "${DIR}"/..
-
 if [ -z "$1" ]
 then
   ##! If no args passed then print help message

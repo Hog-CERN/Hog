@@ -160,8 +160,6 @@ proc CreateProject {} {
     set sources 0
   }
 
-    ## Set synthesis TOP
-  SetTopProperty $globalSettings::synth_top_module $sources
 
     ###############
     # CONSTRAINTS #
@@ -183,6 +181,9 @@ proc CreateProject {} {
   set list_files [glob -directory $globalSettings::list_path "*"]
 
   AddHogFiles {*}[GetHogFiles -ext_path $globalSettings::HOG_EXTERNAL_PATH -verbose $globalSettings::list_path]
+
+  ## Set synthesis TOP
+  SetTopProperty $globalSettings::synth_top_module $sources
 }
 
 
@@ -576,13 +577,8 @@ set globalSettings::top_path                    "$globalSettings::repo_path/Top/
 set globalSettings::list_path                   "$globalSettings::top_path/list"
 set globalSettings::build_dir                   "$globalSettings::repo_path/$build_dir_name/$DESIGN"
 set globalSettings::modelsim_path               "$globalSettings::repo_path/SimulationLib"
-if {[expr 1 == [info exists TOP_NAME]]} {
-    set globalSettings::top_name          [file root $globalSettings::DESIGN]
-    set globalSettings::synth_top_module  $TOP_NAME
-} else {
-    set globalSettings::top_name          [file root $globalSettings::DESIGN]
-    set globalSettings::synth_top_module "top_$globalSettings::top_name"
-}
+set globalSettings::top_name                    [file root $globalSettings::DESIGN]
+set globalSettings::synth_top_module            "top_$globalSettings::top_name"
 set globalSettings::user_ip_repo                "$globalSettings::repo_path/IP_repository"
 
 set globalSettings::pre_synth           [file normalize "$globalSettings::tcl_path/integrated/$globalSettings::pre_synth_file"]

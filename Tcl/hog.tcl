@@ -1707,6 +1707,13 @@ proc AddHogFiles { libraries properties } {
             }
           }
 
+          # Top synthesis module
+          set top [lindex [regexp -inline {top\s*=\s*(.+?)\y.*} $props] 1]
+          if { $top != "" } {
+            Msg Info "Setting $top as top module for file set $file_set..."
+            set globalSettings::synth_top_module $top
+          }
+
           # XDC
           if {[lsearch -inline -regex $props "XDC"] >= 0 || [file ext $f] == ".xdc"} {
             Msg Info "Setting filetype XDC for $f"

@@ -328,7 +328,7 @@ if {$options(pedantic) == 1 && $ErrorCnt > 0} {
 
 #recreating list files
 if {$options(recreate) == 1} {
-  if {[file exists $repo_path/Top] && [file isdirectory $repo_path/Top] && $options(force) == 0} {
+  if {[file exists $repo_path/Top/$project] && [file isdirectory $repo_path/Top/$project] && $options(force) == 0} {
     set DirName Top_new/$project
   } else {
     set DirName Top/$project

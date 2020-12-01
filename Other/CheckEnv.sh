@@ -235,11 +235,10 @@ echo --------------------------------
 echo -n "Variable: HOG_RESET_FILES is "
 if [ -z ${HOG_RESET_FILES+x} ]
 then
-    echo -n "NOT defined. Hog-CI will NOT"
+    echo -n "NOT defined. Hog-CI will NOT reset any files"
 else
-    echo -n "defined. Hog-CI will"
+    echo -n "defined. Hog-CI will reset the following files before synthesis: $HOG_RESET_FILES"
 fi
-echo " will reset the following files or pattern before starting the synthesis: $HOG_RESET_FILES"
 echo --------------------------------
 
 echo -n "Variable: HOG_TARGET_BRANCH is "

@@ -213,6 +213,15 @@ else
 fi
 echo --------------------------------
 
+echo -n "Variable: HOG_NO_RESET_BD is "
+if [[ ${HOG_NO_RESET_BD} != 1 ]]
+then
+    echo "NOT defined or not equal to 1. Hog will reset .bd files (if any) before starting synthesis."
+else
+    echo "defined.  Hog-CI will not reset the .bd files"
+fi
+echo --------------------------------
+
 echo -n "Variable: HOG_IP_EOS_PATH is "
 if [ -z ${HOG_IP_EOS_PATH+x} ]
 then
@@ -221,6 +230,16 @@ else
     echo -n "defined. Hog-CI will"
 fi
 echo " use EOS as a synthesised IP respository to speed up IP synthesis."
+echo --------------------------------
+
+echo -n "Variable: HOG_RESET_FILES is "
+if [ -z ${HOG_RESET_FILES+x} ]
+then
+    echo -n "NOT defined. Hog-CI will NOT"
+else
+    echo -n "defined. Hog-CI will"
+fi
+echo " will reset the following files or pattern before starting the synthesis: $HOG_RESET_FILES"
 echo --------------------------------
 
 echo -n "Variable: HOG_TARGET_BRANCH is "

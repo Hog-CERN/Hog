@@ -114,7 +114,14 @@
           else
             echo "Hog-CI(info) - BD files will be reset at pre-syntehsis time";
             mkdir -p Projects;
-            echo "*.bd" > Projects/hog_reset_files;
+            echo "*.bd" >> Projects/hog_reset_files;
+          fi;
+          if [[ -n "$HOG_RESET_FILES" ]]; then
+            echo "Hog-CI(info) - no custom files will be reset at pre syntehsis time";
+          else
+            echo "Hog-CI(info) - found files to be reset at pre-syntehsis time: $HOG_RESET_FILES";
+            mkdir -p Projects;
+            echo "$HOG_RESET_FILES" >> Projects/hog_reset_files;
           fi;
           echo "Hog-CI(info) - Launching workflow now...";
           echo "./Hog/LaunchWorkflow.sh -njobs $HOG_NJOBS $IP_EOS_PATH $NO_BITSTREAM $ONLY_SYNTH $CHECK_SYNTAX $PROJECT_NAME";

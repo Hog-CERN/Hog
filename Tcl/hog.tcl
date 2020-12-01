@@ -1434,6 +1434,12 @@ proc GetProjectFiles {} {
   set SIM [dict create]
   set SRC [dict create] 
 
+  set top [get_property "top"  [current_fileset]]
+  set topfile [lindex [get_files -compile_order sources -used_in synthesis] end]
+  if {![string equal $top "top_[current_project]"]} {
+    dict lappend properties $topfile "top=$top"
+  }
+
   foreach fs $all_filesets {
 
     set all_files [get_files -quiet -of_objects [get_filesets $fs]]

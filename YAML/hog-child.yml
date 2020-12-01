@@ -119,7 +119,8 @@
           if [[ -n "$HOG_RESET_FILES" ]]; then
             echo "Hog-CI(info) - no custom files will be reset at pre syntehsis time";
           else
-            echo "Hog-CI(info) - found files to be reset at pre-syntehsis time: $HOG_RESET_FILES";
+            echo "Hog-CI(info) - found files to be reset at pre-syntehsis time";
+            echo "$HOG_RESET_FILES"
             mkdir -p Projects;
             echo "$HOG_RESET_FILES" >> Projects/hog_reset_files;
           fi;

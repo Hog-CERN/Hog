@@ -1045,8 +1045,10 @@ proc GetRepoVersions {proj_tcl_file {ext_path ""} {sim 0}} {
   }
   
   cd $old_path
-  
-  return [list $commit $version  $hog_hash $hog_ver  $top_hash $top_ver  $libs $hashes $vers  $cons_ver $cons_hash  $ext_names $ext_hashes  $xml_hash $xml_ver] 
+
+  set top_hash [format %+07s $top_hash]
+  set cons_hash [format %+07s $cons_hash]
+  return [list $commit $version  $hog_hash $hog_ver  $top_hash $top_ver  $libs $hashes $vers  $cons_ver $cons_hash  $ext_names $ext_hashes  $xml_hash $xml_ver]
 }
 
 

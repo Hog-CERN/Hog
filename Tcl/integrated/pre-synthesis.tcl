@@ -359,13 +359,12 @@ cd $old_path
 
 #check list files
 if {[info commands get_property] != ""} {
-    # Vivado
-  if {![string equal ext_path ""]} { 
-    set argv [list "-ext_path" "$ext_path" "-project" "$proj_name"]
-  } else {
-    set argv [list "-project" "$proj_name"]
-  }
-  source  $tcl_path/utils/check_list_files.tcl
+    if {![string equal ext_path ""]} {
+        set argv [list "-ext_path" "$ext_path" "-project" "$proj_name"]
+    } else {
+        set argv [list "-project" "$proj_name"]
+    }
+    source  $tcl_path/utils/check_list_files.tcl
 } elseif {[info commands project_new] != ""} {
     # Quartus
   #TO BE IMPLEMENTED

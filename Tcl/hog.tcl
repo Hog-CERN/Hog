@@ -1471,7 +1471,27 @@ proc GetProjectFiles {} {
 
 
     foreach f $all_files {
-      if { [lindex [get_property  IS_GENERATED [get_files $f]] 0] == 0 && ![string equal [file extension $f] ".coe"]} {
+
+      # Ignore files that are part of the vivado/planahead project but would not be reflected
+      # in list files (e.g. generated products from ip cores)
+
+      set ignore 0
+      # Generated files point to a parent composite file;
+      # planahead does not have an IS_GENERATED property
+      if {-1 != [lsearch -exact [list_property  [get_files  $f]] IS_GENERATED]} {
+          if { [lindex [get_property  IS_GENERATED [get_files $f]] 0] != 0} {
+          set ignore 1
+          }
+      }
+      if {-1 != [lsearch -exact [list_property  [get_files  $f]] PARENT_COMPOSITE_FILE]} {
+          set ignore 1
+      }
+      # ignore .coe files
+      if {[string equal [file extension $f] ".coe"]} {
+          set ignore 1
+      }
+
+      if {!$ignore} {
         set f [file normalize $f]
         lappend files $f
         set type  [get_property FILE_TYPE [get_files $f]]

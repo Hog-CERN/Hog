@@ -1,4 +1,4 @@
-# @Author: Davide Cieri
+#!/bin/bash
 #   Copyright 2018-2020 The University of Birmingham
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,30 +13,24 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-# @Email : davide.cieri@cern.ch
-# @Date:   2020-04-24
-# @Last Modified by:   Davide Cieri
-# @Last Modified time: 2020-04-27
-#!/bin/bash
-
 tcl_dir=$1
-OLD_DIR=`pwd`
-THIS_DIR="$(dirname "$0")" 
+OLD_DIR=$(pwd)
+THIS_DIR="$(dirname "$0")"
 
-if [ ! -z "${tcl_dir}" ];then
-    for f in ${tcl_dir}*; do
-        if [ -d "$f" ]; then
-            for file in $f/*.tcl; do
-                echo "[FormatTcl] Formatting $file..."
-                tclsh "${THIS_DIR}"/../Tcl/utils/reformat.tcl -tab_width 2 $file
+if [ -n "$tcl_dir" ];then
+    for f in "$tcl_dir"*; do
+	if [ -d "$f" ]; then
+            for file in "$f"/*.tcl; do
+		echo "[FormatTcl] Formatting $file..."
+		tclsh "$THIS_DIR"/../Tcl/utils/reformat.tcl -tab_width 2 "$file"
             done
-        fi
+	fi
         if [[ $f == *.tcl ]]; then
             echo "[FormatTcl] Formatting $f..."
-            tclsh "${THIS_DIR}"/../Tcl/utils/reformat.tcl -tab_width 2 $f
-        fi
+            tclsh "${THIS_DIR}"/../Tcl/utils/reformat.tcl -tab_width 2 "$f"
+	fi
     done
 else
-    printf "Folder name has not been specified. Usage: \n $0 <folder> \n"
+    printf "Folder name has not been specified. Usage: \n %s <folder> \n" "$0"
 fi
-cd "${OLD_DIR}"
+cd "$OLD_DIR" || exit

@@ -156,7 +156,7 @@ if {($proj_found == 0 || $recreate == 1) && $do_synthesis == 1} {
   source ../../Top/$project/$project.tcl
   
 } else {
-  Msg Info "Opening exixsting project file $project_file..."
+  Msg Info "Opening existing project file $project_file..."
   open_project $project_file
 }
 

@@ -105,7 +105,7 @@ function main ()
   if [ "a$1" == "a" ]
   then
     help_message $0
-    exit -1
+    exit 1
   fi
 
   argument_parser $@
@@ -128,7 +128,7 @@ function main ()
     echo "Hog-ERROR: Top folder not found, Hog is not in a Hog-compatible HDL repository."
     echo
     cd "${OLD_DIR}"
-    exit -1
+    exit 1
   fi  
 
   local PROJ=`echo $1`
@@ -143,7 +143,7 @@ function main ()
     if [ $? != 0 ]
     then
       echo "Hog-ERROR: Failed to select project type: exiting!"
-      exit -1
+      exit 1
     fi
 
     #select full path to executable and place it in HDL_COMPILER global variable
@@ -151,14 +151,14 @@ function main ()
     if [ $? != 0 ]
     then
       echo "Hog-ERROR: failed to get HDL compiler executable for $COMMAND"
-      exit -1
+      exit 1
     fi
 
     if [ ! -f "${HDL_COMPILER}" ]
     then
       echo "Hog-ERROR: HDL compiler executable $HDL_COMPILER not found"
       cd "${OLD_DIR}"
-      exit -1
+      exit 1
     else
       echo "Hog-INFO: using executable: $HDL_COMPILER"
     fi

@@ -21,6 +21,10 @@ if {[catch {package require cmdline} ERROR]} {
   puts "$ERROR\n If you are running this script on tclsh, you can fix this by installing 'tcllib'" 
   return
 }
+if { [string first PlanAhead [version]] == 0 } {
+    set tcl_path         [file normalize "[file dirname [info script]]"]
+    source $tcl_path/cmdline.tcl
+}
 set parameters {
   {project.arg "" "Project name. If not set gets current project"}
   {recreate  "If set, it will create List Files from the project configuration"}

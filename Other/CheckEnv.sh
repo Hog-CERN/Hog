@@ -18,16 +18,31 @@ echo
 
 #################### exectuables
 echo ========= EXECUTABLES ==========
-if [ `which vivado 2>/dev/null` ]
-then
-    CMD=`which vivado`
-    echo "Vivado executable found in $CMD"
+
+THIS_DIR="$(dirname "$0")"
+TOP_DIR=`realpath $THIS_DIR/../../Top`
+
+. $THIS_DIR/CommonFunctions.sh;
+
+for PROJ in $(ls $TOP_DIR); do
+  select_command "$TOP_DIR/$PROJ/$PROJ.tcl"
+  if [ $? != 0 ]
+  then
+    echo "Failed to select project type: exiting!"
+    exit -1
+  fi
+  
+  if [ `which $COMMAND 2>/dev/null` ]
+  then
+    CMD=`which $COMMAND`
+    echo "HDL env executable found in $CMD"
     echo
     $CMD -version
-else
-    echo "Vivado executable not found. Hog-CI cannot run."
+  else
+    echo "$COMMAND executable not found. Hog-CI cannot run."
     FAIL=1
-fi
+  fi
+done
 
 echo --------------------------------
 

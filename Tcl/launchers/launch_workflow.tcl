@@ -106,11 +106,16 @@ if { $options(ip_eos_path) != "" } {
   Msg Info "Copying IPs from $ip_path..."
   set copied_ips 0
   foreach ip $ips {
-    puts "IP:  $ip"
-    set ret [HandleIP pull $ip $ip_path $main_folder]
-    if {$ret == 0} {
-      incr copied_ips
-    }
+    set ip_folder [file dirname $ip]
+    set files_in_folder [glob -directory $ip_folder -- *]
+    if { [llength $files_in_folder] == 1 } {
+      set ret [HandleIP pull $ip $ip_path $main_folder]
+      if {$ret == 0} {
+        incr copied_ips
+      }   
+    } else {
+      Msg Info "Synthesised files for IP $ip are already in the repository. Do not copy from EOS..."
+    }   
   }
   Msg Info "$copied_ips IPs were copied from the EOS repository."
 }

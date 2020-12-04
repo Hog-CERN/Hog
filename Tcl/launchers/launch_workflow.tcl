@@ -105,6 +105,7 @@ if { $options(ip_eos_path) != "" } {
 
   Msg Info "Copying IPs from $ip_path..."
   set copied_ips 0
+  set repo_ips {}
   foreach ip $ips {
     set ip_folder [file dirname $ip]
     set files_in_folder [glob -directory $ip_folder -- *]
@@ -115,6 +116,7 @@ if { $options(ip_eos_path) != "" } {
       }   
     } else {
       Msg Info "Synthesised files for IP $ip are already in the repository. Do not copy from EOS..."
+      lappend repo_ips $ip
     }   
   }
   Msg Info "$copied_ips IPs were copied from the EOS repository."
@@ -217,15 +219,18 @@ if {$do_synthesis == 1} {
     
     ######### Copy IP to EOS repository
     if {($ip_path != "")} {
-      set force 0
-      if [info exist runs] {
-	if {[lsearch $runs $ip\_synth_1] != -1} {
-	  Msg Info "$ip was synthesized, will force the copy to EOS..."
-	  set force 1
-	}
+      # IP is not in the gitlab repo
+      if {[lsearch $repo_ips $ip] != -1 } { 
+        set force 0
+        if [info exist runs] {
+          if {[lsearch $runs $ip\_synth_1] != -1} {
+            Msg Info "$ip was synthesized, will force the copy to EOS..."
+            set force 1
+          }
+        }
+        Msg Info "Copying synthesised IP $xci_ip_name ($xci_file) to $ip_path..."
+        HandleIP push $xci_file $ip_path $main_folder $force
       }
-      Msg Info "Copying synthesised IP $xci_ip_name ($xci_file) to $ip_path..."
-      HandleIP push $xci_file $ip_path $main_folder $force
     }
   }
   

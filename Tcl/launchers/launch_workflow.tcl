@@ -106,6 +106,7 @@ if { $options(ip_eos_path) != "" } {
   Msg Info "Copying IPs from $ip_path..."
   set copied_ips 0
   foreach ip $ips {
+    puts "IP:  $ip"
     set ret [HandleIP pull $ip $ip_path $main_folder]
     if {$ret == 0} {
       incr copied_ips

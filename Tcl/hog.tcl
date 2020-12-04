@@ -1784,6 +1784,17 @@ proc AddHogFiles { libraries properties } {
             }
           }
         }
+      } else {
+        # IPs
+        foreach f $lib_files {
+          #ADDING FILE PROPERTIES
+          set props [dict get $properties $f]
+          # Lock the IP
+          if {[lsearch -inline -regex $props "locked"] >= 0} {
+            Msg Info "Locking IP $f..."
+            set_property IS_MANAGED 0 [get_files $f]
+          }
+        }
       }
       Msg Info "[llength $lib_files] file/s added to $rootlib..."
     }

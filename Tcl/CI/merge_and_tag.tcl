@@ -47,7 +47,7 @@ if {[info commands project_new] != "" } {
     exit 1
   } 
   puts ----------------------------------------------------------------------------------------------------
-  puts $options(mr_par)
+  parray options
   puts ----------------------------------------------------------------------------------------------------
 } else {
   if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] } {

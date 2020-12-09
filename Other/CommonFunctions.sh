@@ -19,17 +19,17 @@
 ## @var COMMAND
 #  @brief Global variable used to contain the command to be used
 #
-declare -g COMMAND=""
+export COMMAND=""
 
 ## @var COMMAND_OPT
 #  @brief Global variable used to contain the options associated to the command to be used
 #
-declare -g COMMAND_OPT=""
+export COMMAND_OPT=""
 
 ## @var HDL_COMPILER
 #  @brief Global variable contianing the full path to the HDL compiler to be used
 #
-declare -g HDL_COMPILER=""
+export HDL_COMPILER=""
 
 ## @fn select_command
 #
@@ -131,7 +131,7 @@ function select_compiler_executable ()
   then
     HDL_COMPILER=`which $1`
   else
-    if [$1 = "vivado" ]
+    if [$1 == "vivado" ]
     then
       if [ -z ${VIVADO_PATH+x} ]
       then
@@ -144,7 +144,7 @@ function select_compiler_executable ()
         HDL_COMPILER="$VIVADO_PATH/$viv"
       fi
     else
-      echo  "Hog-ERROR: I can not find the executable for $1. "
+      echo  "Hog-ERROR: cannot find the executable for $1."
       echo  "Probable causes are:"
       echo  "- $1 was not setup"
       echo  "- which not available on the machine"

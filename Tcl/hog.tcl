@@ -406,7 +406,7 @@ proc FindVhdlVersion {file_name} {
       set vhdl_version ""
     }
   }
-  
+
   return $vhdl_version
 }
 
@@ -440,14 +440,14 @@ proc ReadListFile args {
   set usage "USAGE: ReadListFile \[options\] <list file> <path>"
   if {[catch {array set options [cmdline::getoptions args $parameters $usage]}] ||  [llength $args] != 2 } {
     Msg Error "[cmdline::usage $parameters $usage]"
-    return 
+    return
   }
-  set list_file [lindex $args 0]  
-  set path [lindex $args 1]  
+  set list_file [lindex $args 0]
+  set path [lindex $args 1]
   set sha_mode $options(sha_mode)
   set lib $options(lib)
   set verbose $options(verbose)
-  
+
   if { $sha_mode == 1} {
     set sha_mode_opt "-sha_mode"
   } else {
@@ -457,7 +457,7 @@ proc ReadListFile args {
   if { $verbose == 1} {
     set verbose_opt "-verbose"
   } else {
-    set verbose_opt  "" 
+    set verbose_opt  ""
   }
 
   # if no library is given, work it out from the file name
@@ -487,9 +487,9 @@ proc ReadListFile args {
       set file_and_prop [regexp -all -inline {\S+} $line]
       set srcfile [lindex $file_and_prop 0]
       set srcfile "$path/$srcfile"
-      
+
       set srcfiles [glob -nocomplain $srcfile]
-      
+
       # glob the file list for wildcards
       if {$srcfiles != $srcfile && ! [string equal $srcfiles "" ]} {
         if {$verbose == 1} {
@@ -501,12 +501,12 @@ proc ReadListFile args {
           continue
         }
       }
-      
+
       foreach vhdlfile $srcfiles {
         if {[file exists $vhdlfile]} {
           set vhdlfile [file normalize $vhdlfile]
           set extension [file ext $vhdlfile]
-	  
+
           if { $extension == $list_file_ext } {
             if {$verbose == 1} {
               Msg Info "List file $vhdlfile found in list file, recursively opening it..."
@@ -525,7 +525,7 @@ proc ReadListFile args {
 	            set library $lib
             }
             lassign [ReadListFile {*}"-lib $library $sha_mode_opt $verbose_opt $vhdlfile $path"] l p
-	    
+
             set libraries [MergeDict $l $libraries]
             set properties [MergeDict $p $properties]
           } elseif {[lsearch {.src .sim .con .ext} $extension] >= 0 } {
@@ -553,7 +553,7 @@ proc ReadListFile args {
       }
     }
   }
-  
+
   if {$sha_mode != 0} {
     dict lappend libraries $lib$ext $list_file
   }
@@ -562,8 +562,8 @@ proc ReadListFile args {
 
 ## @brief Merge two tcl dictionaries of lists
 #
-# If the dictionaries contain same keys, the list at the common key is a merging of the two 
-# 
+# If the dictionaries contain same keys, the list at the common key is a merging of the two
+#
 #
 # @param[in] dict0 the name of the first dictionary
 # @param[in] dict1 the name of the second dictionary
@@ -578,7 +578,7 @@ proc MergeDict {dict0 dict1} {
       foreach vhdfile $temp_list {
       	dict lappend outdict $key $vhdfile
       }
-    } 
+    }
   }
   return $outdict
 }
@@ -733,7 +733,6 @@ proc GetVerFromSHA {SHA} {
 	      Msg Info "No tag contains $SHA, will use most recent tag $tag. As this is a candidate tag, the patch level will be kept at $p."
 	    }
 	  }
-	  
 	  set ver v$M.$m.$p
 	}
       } else {
@@ -754,24 +753,24 @@ proc GetVerFromSHA {SHA} {
     }
   }
   lassign [ExtractVersionFromTag $ver] M m c mr
-  
+
   if {$mr > -1} { # Candidate tab
     set M [format %02X $M]
     set m [format %02X $m]
     set c [format %04X $c]
-    
+
   } elseif { $M > -1 } { # official tag
     set M [format %02X $M]
     set m [format %02X $m]
     set c [format %04X $c]
-    
+
   } else {
     Msg Warning "Tag does not contain a properly formatted version: $ver"
     set M [format %02X 0]
     set m [format %02X 0]
     set c [format %04X 0]
   }
-  
+
   return $M$m$c
 }
 
@@ -865,7 +864,7 @@ proc GetSubmodule {path_file} {
     }
     set submodule [Relative $base $sub]
   }
-  
+
   cd $old_dir
   return $submodule
 }
@@ -890,7 +889,7 @@ proc GetRepoVersions {proj_tcl_file {ext_path ""} {sim 0}} {
 
   # Hog submodule
   cd $proj_dir
-  
+
   #Append the SHA in which Hog submodule was changed, not the submodule SHA
   lappend SHAs [Git {log --format=%h -1} {../../Hog}]
   lappend versions [GetVerFromSHA $SHAs]
@@ -906,7 +905,7 @@ proc GetRepoVersions {proj_tcl_file {ext_path ""} {sim 0}} {
   }
 
   cd $proj_dir
-  
+
   if {[Git {status --untracked-files=no  --porcelain}] eq ""} {
     Msg Info "Git working directory [pwd] clean."
     set clean 1
@@ -914,7 +913,6 @@ proc GetRepoVersions {proj_tcl_file {ext_path ""} {sim 0}} {
     Msg CriticalWarning "Git working directory [pwd] not clean, commit hash, and version will be set to 0."
     set clean 0
   }
-
 
   # Top project directory
   lassign [GetVer $proj_tcl_file] top_ver top_hash
@@ -972,7 +970,7 @@ proc GetRepoVersions {proj_tcl_file {ext_path ""} {sim 0}} {
       lappend versions $ver
     }
   }
-  
+
 
   #Of all the constraints we get the most recent
   if {"{}" eq $cons_hashes} {
@@ -1043,10 +1041,10 @@ proc GetRepoVersions {proj_tcl_file {ext_path ""} {sim 0}} {
     set commit  "0000000"
     set version "00000000"
   }
-  
+
   cd $old_path
-  
-  return [list $commit $version  $hog_hash $hog_ver  $top_hash $top_ver  $libs $hashes $vers  $cons_ver $cons_hash  $ext_names $ext_hashes  $xml_hash $xml_ver] 
+
+  return [list $commit $version  $hog_hash $hog_ver  $top_hash $top_ver  $libs $hashes $vers  $cons_ver $cons_hash  $ext_names $ext_hashes  $xml_hash $xml_ver]
 }
 
 
@@ -1212,7 +1210,7 @@ proc TagRepository {{merge_request_number 0} {version_level 0} {default_level 0}
 # @param[in] dst         the path the XML files must be copied to
 # @param[in] xml_version the M.m.p version to be used to replace the __VERSION__ placeholder in any of the xml files
 # @param[in] xml_sha     the Git-SHA to be used to replace the __GIT_SHA__ placeholder in any of the xml files
-# @param[in] generate    if set to 1, tells the function to generate the VHDL decode address files rather than check them 
+# @param[in] generate    if set to 1, tells the function to generate the VHDL decode address files rather than check them
 #
 proc CopyXMLsFromListFile {list_file path dst {xml_version "0.0.0"} {xml_sha "00000000"}  {generate 0} } {
   lassign  [ExecuteRet python -c "from sys import path;print ':'.join(path\[1:\])"] ret msg
@@ -1225,11 +1223,11 @@ proc CopyXMLsFromListFile {list_file path dst {xml_version "0.0.0"} {xml_sha "00
     } else {
       set can_generate 1
     }
-  } else { 
+  } else {
     Msg Warning "Error while trying to run python: $msg"
     set can_generate 0
   }
-
+  set dst [file normalize $dst]
   if {$can_generate == 0} {
     if {$generate == 1} {
       Msg Error "Cannot generate IPbus address files, IPbus executable gen_ipbus_addr_decode not found or not working: $msg"
@@ -1432,7 +1430,13 @@ proc GetProjectFiles {} {
 
   set simulator [get_property target_simulator [current_project]]
   set SIM [dict create]
-  set SRC [dict create] 
+  set SRC [dict create]
+
+  set top [get_property "top"  [current_fileset]]
+  set topfile [lindex [get_files -compile_order sources -used_in synthesis] end]
+  if {![string equal $top "top_[current_project]"]} {
+    dict lappend properties $topfile "top=$top"
+  }
 
   foreach fs $all_filesets {
 
@@ -1474,12 +1478,12 @@ proc GetProjectFiles {} {
         lappend files $f
         set type  [get_property FILE_TYPE [get_files $f]]
         set lib [get_property LIBRARY [get_files $f]]
-      
+
 
         # Type can be complex like VHDL 2008, in that case we want the second part to be a property
         if {[string equal [lindex $type 0] "VHDL"] && [llength $type] == 1} {
           set prop "93"
-        } elseif  {[string equal [lindex $type 0] "Block"] && [string equal [lindex $type 1] "Designs"]} { 
+        } elseif  {[string equal [lindex $type 0] "Block"] && [string equal [lindex $type 1] "Designs"]} {
           set type "IP"
           set prop ""
         } else {
@@ -1506,7 +1510,7 @@ proc GetProjectFiles {} {
         } else {
           dict lappend libraries "OTHER" $f
         }
-        
+
         if {[lindex [get_property -quiet used_in_synthesis  [get_files $f]] 0] == 0} {
           dict lappend properties $f "nosynth"
         }
@@ -1530,9 +1534,9 @@ proc GetProjectFiles {} {
     #   Msg Status "*******"
     #    }
   }
-  
-  dict append libraries "SIM" $SIM 
-  dict append libraries "SRC" $SRC 
+
+  dict append libraries "SIM" $SIM
+  dict append libraries "SRC" $SRC
   dict lappend properties "Simulator" [string tolower $simulator]
   return [list $libraries $properties]
 }
@@ -1570,9 +1574,9 @@ proc GetHogFiles args {
   set usage "USAGE: GetHogFiles \[options\] <list path>"
   if {[catch {array set options [cmdline::getoptions args $parameters $usage]}] ||  [llength $args] != 1 } {
     Msg Error [cmdline::usage $parameters $usage]
-    return 
+    return
   }
-  set list_path [lindex $args 0]  
+  set list_path [lindex $args 0]
   set list_files $options(list_files)
   set sha_mode $options(sha_mode)
   set ext_path $options(ext_path)
@@ -1591,7 +1595,7 @@ proc GetHogFiles args {
 
   set repo_path [file normalize $list_path/../../..]
   if { $list_files == "" } {
-    set list_files {.src,.con,.sub,.sim,.ext}  
+    set list_files {.src,.con,.sub,.sim,.ext}
   }
   set libraries [dict create]
   set properties [dict create]
@@ -1614,7 +1618,7 @@ proc GetHogFiles args {
 ## @brief Parse possible commands in the first line of Hog files (e.g. #Vivado, #Simulator, etc)
 #
 # @param[in] list_path path to the list file directory
-# @param[in] list_files the list file name 
+# @param[in] list_files the list file name
 #
 # @return a string with the first-line command
 # - libraries has library name as keys and a list of filenames as values
@@ -1625,9 +1629,9 @@ proc ParseFirstLineHogFiles {list_path list_file} {
   if {![file exists $list_path/$list_file]} {
     Msg Error "list file $list_path/$list_file does not exist!"
     return ""
-  } 
+  }
   set fp [open $list_path/$list_file r]
-  set line [lindex [split [read $fp] "\n"] 0] 
+  set line [lindex [split [read $fp] "\n"] 0]
   close $fp
 
   if {[string match "#*" $line]} {
@@ -1707,6 +1711,13 @@ proc AddHogFiles { libraries properties } {
             }
           }
 
+          # Top synthesis module
+          set top [lindex [regexp -inline {top\s*=\s*(.+?)\y.*} $props] 1]
+          if { $top != "" } {
+            Msg Info "Setting $top as top module for file set $file_set..."
+            set globalSettings::synth_top_module $top
+          }
+
           # XDC
           if {[lsearch -inline -regex $props "XDC"] >= 0 || [file ext $f] == ".xdc"} {
             Msg Info "Setting filetype XDC for $f"
@@ -1771,6 +1782,17 @@ proc AddHogFiles { libraries properties } {
             } else {
               Msg Warning "File $f was not found."
             }
+          }
+        }
+      } else {
+        # IPs
+        foreach f $lib_files {
+          #ADDING FILE PROPERTIES
+          set props [dict get $properties $f]
+          # Lock the IP
+          if {[lsearch -inline -regex $props "locked"] >= 0} {
+            Msg Info "Locking IP $f..."
+            set_property IS_MANAGED 0 [get_files $f]
           }
         }
       }
@@ -1921,7 +1943,7 @@ proc HandleIP {what_to_do xci_file ip_path runs_dir {force 0}} {
       ::tar::untar $file_name.tar -dir $repo_path -noperms
       Msg Info "Removing local archive"
       file delete $file_name.tar
-     
+
     }
   }
   cd $old_path
@@ -2026,7 +2048,7 @@ You can fix this by installing package \"tcllib\""
       dict for {dictKey dictValue} $yamlDict {
         #looking for included files
         if {"$dictKey" == "include"} {
-	  foreach v $dictValue { 
+	  foreach v $dictValue {
 	    lappend YML_FILES [lindex [split $v " "]  [expr [lsearch -dictionary [split $v " "] "local"]+1 ] ]
 	  }
 	}
@@ -2036,9 +2058,9 @@ You can fix this by installing package \"tcllib\""
     Msg Info "Found the following yml files: $YML_FILES"
 
     set HOGYML_SHA [GetSHA $YML_FILES]
-    lassign [GitRet "log --format=%h -1 $YML_REF_F" $YML_FILES] ret EXPECTEDYML_SHA 
+    lassign [GitRet "log --format=%h -1 $YML_REF_F" $YML_FILES] ret EXPECTEDYML_SHA
     if {$ret != 0} {
-      lassign [GitRet "log --format=%h -1 origin/$YML_REF_F" $YML_FILES] ret EXPECTEDYML_SHA 
+      lassign [GitRet "log --format=%h -1 origin/$YML_REF_F" $YML_FILES] ret EXPECTEDYML_SHA
       if {$ret != 0} {
         Msg $MSG_TYPE "Error in project .gitlab-ci.yml. ref: $YML_REF not found"
         set EXPECTEDYML_SHA ""
@@ -2136,7 +2158,7 @@ proc Git {command {files ""}}  {
   lassign [GitRet $command $files] ret result
   if {$ret != 0} {
     Msg Error "Code $ret returned by git running: $command -- $files"
-  }    
+  }
 
   return $result
 }
@@ -2166,13 +2188,13 @@ proc GitRet {command {files ""}}  {
 proc ExecuteRet {args}  {
   global env
   if {[llength $args] == 0} {
-    Msg CriticalWarning "No argument given" 
+    Msg CriticalWarning "No argument given"
     set ret -1
     set result ""
   } else {
     set ret [catch {exec -ignorestderr {*}$args} result]
   }
-  
+
   return [list $ret $result]
 }
 
@@ -2260,7 +2282,7 @@ proc WriteYAMLStage {stage proj_name {props {}} {stage_list {} }} {
   set synth_only "0"
   if { [lsearch $props "-synth_only"] > -1 } {
     set synth_only 1
-  } 
+  }
 
   set inner [huddle create "PROJECT_NAME" $proj_name "HOG_ONLY_SYNTH" $synth_only "extends" ".vars"]
 
@@ -2280,11 +2302,10 @@ if {[GitVersion 2.7.2] == 0 } {
 
 proc FindNewestVersion { versions } {
   set new_ver 0
-  foreach ver $versions { 
+  foreach ver $versions {
     if { $ver > $new_ver } {
       set new_ver $ver
     }
   }
   return $new_ver
 }
-

@@ -29,15 +29,15 @@ cd "$tcl_path/../.."
 if {[info commands get_property] != ""} {
   # Vivado + PlanAhead
   if { [string first PlanAhead [version]] == 0 } {
-    set proj_file [get_property DIRECTORY [current_project]]
+    # planAhead
+    set proj_name  [file tail [get_property DIRECTORY [current_project]]]
   } else {
-    set proj_file [get_property parent.project_path [current_project]]
+    # vivado
+    set proj_name [file tail [file normalize $old_path/../..]]
   }
-  set proj_dir [file normalize [file dirname $proj_file]]
-  set proj_name [file rootname [file tail $proj_file]]
 } else {
     #Tclssh
-  set proj_file $old_path/[file tail $old_path].xpr
+  set proj_name [file tail [file normalize $old_path/../..]]
   Msg CriticalWarning "You seem to be running locally on tclsh, so this is a debug, the project file will be set to $proj_file and was derived from the path you launched this script from: $old_path. If you want this script to work properly in debug mode, please launch it from the top folder of one project, for example Repo/Projects/fpga1/ or Repo/Top/fpga1/"
 }
 
@@ -59,7 +59,7 @@ if {[info commands get_property] != ""} {
 
 set user_pre_bitstream_file "./Top/$proj_name/pre-bitstream.tcl"
 if {[file exists $user_pre_bitstream_file]} {
-    Msg Status "Sourcing user pre-bitstream file $user_pre_bitstream_file"
+    Msg Info "Sourcing user pre-bitstream file $user_pre_bitstream_file"
     source $user_pre_bitstream_file
 }
 

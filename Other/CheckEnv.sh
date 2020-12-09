@@ -228,6 +228,15 @@ else
 fi
 echo --------------------------------
 
+echo -n "Variable: HOG_NO_RESET_BD is "
+if [[ ${HOG_NO_RESET_BD} != 1 ]]
+then
+    echo "NOT defined or not equal to 1. Hog will reset .bd files (if any) before starting synthesis."
+else
+    echo "defined.  Hog-CI will not reset the .bd files"
+fi
+echo --------------------------------
+
 echo -n "Variable: HOG_IP_EOS_PATH is "
 if [ -z ${HOG_IP_EOS_PATH+x} ]
 then
@@ -236,6 +245,15 @@ else
     echo -n "defined. Hog-CI will"
 fi
 echo " use EOS as a synthesised IP respository to speed up IP synthesis."
+echo --------------------------------
+
+echo -n "Variable: HOG_RESET_FILES is "
+if [ -z ${HOG_RESET_FILES+x} ]
+then
+    echo "NOT defined. Hog-CI will NOT reset any files"
+else
+    echo "defined. Hog-CI will reset the following files before synthesis: \n $HOG_RESET_FILES"
+fi
 echo --------------------------------
 
 echo -n "Variable: HOG_TARGET_BRANCH is "
@@ -292,5 +310,5 @@ then
     echo "Hog-INFO: Check successfull, you can run Hog-CI on this machine"
 else
     echo "Hog-ERROR: At least one essitial variable or executable was not defined, Hog-CI cannot start. Check above for details."
-    exit -1
+    exit 1
 fi

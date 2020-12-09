@@ -160,8 +160,6 @@ proc CreateProject {} {
     set sources 0
   }
 
-    ## Set synthesis TOP
-  SetTopProperty $globalSettings::synth_top_module $sources
 
     ###############
     # CONSTRAINTS #
@@ -183,6 +181,9 @@ proc CreateProject {} {
   set list_files [glob -directory $globalSettings::list_path "*"]
 
   AddHogFiles {*}[GetHogFiles -ext_path $globalSettings::HOG_EXTERNAL_PATH -verbose $globalSettings::list_path]
+
+  ## Set synthesis TOP
+  SetTopProperty $globalSettings::synth_top_module $sources
 }
 
 

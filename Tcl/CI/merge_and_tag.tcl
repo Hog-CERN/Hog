@@ -27,6 +27,10 @@ if {[catch {package require cmdline} ERROR]} {
   return
 }
 
+if {[info commands project_new] != "" } {
+  variable ::argv0 $::quartus(args)
+}
+
 set parameters {
   {Hog "Runs merge and tag of Hog repository. Default = off. To be only used by HOG developers!!!"}
   {merged "If set, instructs this script to tag the new official version (of the form vM.m.p). To be used once the merge request is merged is merged Default = off"}
@@ -40,10 +44,18 @@ set parameters {
 
 set usage "- CI script that merges your branch with \$HOG_TARGET_BRANCH and creates a new tag\n USAGE: $::argv0 \[OPTIONS\] \n. Options:"
 
-if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] } {
-  Msg Info [cmdline::usage $parameters $usage]
-  cd $OldPath
-  return
+if {[info commands project_new] != "" } {
+  if {[catch {array set options [cmdline::getoptions ::argv0 $parameters $usage]}] } {
+    Msg Info [cmdline::usage $parameters $usage]
+    cd $OldPath
+    return
+  }
+} else {
+  if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] } {
+    Msg Info [cmdline::usage $parameters $usage]
+    cd $OldPath
+    return
+  }
 }
 
 

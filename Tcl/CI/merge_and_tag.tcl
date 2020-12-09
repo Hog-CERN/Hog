@@ -46,7 +46,7 @@ if {[info commands project_new] != "" } {
     cd $OldPath
     exit 1
   } 
-  puts $options
+  puts $options(mr_par)
 } else {
   if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] } {
     Msg Info [cmdline::usage $parameters $usage]
@@ -54,9 +54,6 @@ if {[info commands project_new] != "" } {
     exit 1
   }
 }
-
-
-
 
 if { $options(Hog) == 0 } {
   set onHOG ""

@@ -46,7 +46,9 @@ if {[info commands project_new] != "" } {
     cd $OldPath
     exit 1
   } 
+  puts ----------------------------------------------------------------------------------------------------
   puts $options(mr_par)
+  puts ----------------------------------------------------------------------------------------------------
 } else {
   if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] } {
     Msg Info [cmdline::usage $parameters $usage]

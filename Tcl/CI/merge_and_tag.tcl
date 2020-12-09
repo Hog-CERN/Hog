@@ -49,6 +49,8 @@ if {[info commands project_new] != "" } {
     Msg Info [cmdline::usage $parameters $usage]
     cd $OldPath
     return
+  } else 
+    Msg Error $options
   }
 } else {
   if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] } {

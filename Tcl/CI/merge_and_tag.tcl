@@ -50,6 +50,7 @@ if {[info commands project_new] != "" } {
   parray options
   puts ----------------------------------------------------------------------------------------------------
 } else {
+  puts ::argv
   if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] } {
     Msg Info [cmdline::usage $parameters $usage]
     cd $OldPath

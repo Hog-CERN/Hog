@@ -24,7 +24,7 @@ source $TclPath/hog.tcl
 
 if {[catch {package require cmdline} ERROR]} {
   Msg Error "$ERROR\n If you are running this script on tclsh, you can fix this by installing 'tcllib'" 
-  return
+  exit 1
 }
 
 set parameters {
@@ -44,13 +44,14 @@ if {[info commands project_new] != "" } {
   if {[catch {array set options [cmdline::getoptions quartus(args) $parameters $usage]}] } {
     Msg Info [cmdline::usage $parameters $usage]
     cd $OldPath
-    return
+    exit 1
   } 
+  puts $options
 } else {
   if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] } {
     Msg Info [cmdline::usage $parameters $usage]
     cd $OldPath
-    return
+    exit 1
   }
 }
 

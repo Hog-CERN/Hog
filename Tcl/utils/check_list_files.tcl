@@ -90,7 +90,6 @@ lassign [GetProjectFiles] prjLibraries prjProperties
 
 lassign [GetHogFiles -ext_path "$ext_path" "$repo_path/Top/$project/list/"] listLibraries listProperties
 
-
 set prjIPs  [DictGet $prjLibraries IP]
 set prjXDCs  [DictGet $prjLibraries XDC]
 set prjOTHERs [DictGet $prjLibraries OTHER] 
@@ -306,8 +305,8 @@ foreach SRC $prjOTHERs {
 #checking file properties
 foreach key [dict keys $listProperties] {
   foreach prop [lindex [DictGet $listProperties $key] 0] {
-    if {[lsearch -nocase [DictGet $prjProperties $key] $prop] < 0 && ![string equal $prop ""] && ![string equal $prop "XDC"]} {
- 			Msg CriticalWarning "$key property $prop is set in list files but not in Project!"
+    if {[lsearch -nocase [DictGet $prjProperties $key] $prop] < 0 && ![string equal $prop ""] && ![string equal $prop "XDC"] && ![string equal $prop "top=top_$project"]} {
+      Msg CriticalWarning "$key property $prop is set in list files but not in Project!"
       incr ErrorCnt
     } 
   }
@@ -318,7 +317,7 @@ foreach key [dict keys $prjProperties] {
   foreach prop [DictGet $prjProperties $key] {
     #puts "FILE $key: PROPERTY $prop"
     if {[lsearch -nocase [lindex [DictGet $listProperties $key] 0] $prop] < 0 && ![string equal $prop ""] && ![string equal $key "Simulator"] } {
- 			Msg CriticalWarning "$key property $prop is set in Project but not in list files!"
+      Msg CriticalWarning "$key property $prop is set in Project but not in list files!"
       incr ErrorCnt
     } 
   }
@@ -335,7 +334,7 @@ if {$options(pedantic) == 1 && $ErrorCnt > 0} {
 
 #recreating list files
 if {$options(recreate) == 1} {
-  if {[file exists $repo_path/Top] && [file isdirectory $repo_path/Top] && $options(force) == 0} {
+  if {[file exists $repo_path/Top/$project] && [file isdirectory $repo_path/Top/$project] && $options(force) == 0} {
     set DirName Top_new/$project
   } else {
     set DirName Top/$project

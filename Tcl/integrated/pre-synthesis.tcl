@@ -210,45 +210,47 @@ if {[info commands set_property] != ""} {
   cd $proj_dir
   project_open $proj_name -current_revision
   cd $this_dir
+
+  set zero_ttb 00000000
   
-  binary scan [binary format H* [string map {{'} {}} $date]] B* bits
+  binary scan [binary format H* [string map {{'} {}} $date]] B32 bits
   set_parameter -name GLOBAL_DATE $bits
-  binary scan [binary format H* [string map {{'} {}} $timee]] B* bits
+  binary scan [binary format H* [string map {{'} {}} $timee]] B32 bits
   set_parameter -name GLOBAL_TIME $bits
-  binary scan [binary format H* [string map {{'} {}} $version]] B* bits
+  binary scan [binary format H* [string map {{'} {}} $version]] B32 bits
   set_parameter -name GLOBAL_VER $bits
-  binary scan [binary format H* [string map {{'} {}} $commit]] B* bits
+  binary scan [binary format H* [string map {{'} {}} $commit]] B32 bits
   set_parameter -name GLOBAL_SHA $bits
-  binary scan [binary format H* [string map {{'} {}} $top_hash]] B* bits
+  binary scan [binary format H* [string map {{'} {}} $top_hash]] B32 bits
   set_parameter -name TOP_SHA $bits
-  binary scan [binary format H* [string map {{'} {}} $top_ver]] B* bits
+  binary scan [binary format H* [string map {{'} {}} $top_ver]] B32 bits
   set_parameter -name TOP_VER $bits
-  binary scan [binary format H* [string map {{'} {}} $hog_hash]] B* bits
+  binary scan [binary format H* [string map {{'} {}} $hog_hash]] B32 bits
   set_parameter -name HOG_SHA $bits
-  binary scan [binary format H* [string map {{'} {}} $hog_ver]] B* bits
+  binary scan [binary format H* [string map {{'} {}} $hog_ver]] B32 bits
   set_parameter -name HOG_VER $bits 
-  binary scan [binary format H* [string map {{'} {}} $cons_ver]] B* bits
+  binary scan [binary format H* [string map {{'} {}} $cons_ver]] B32 bits
   set_parameter -name CON_VER $bits
-  binary scan [binary format H* [string map {{'} {}} $cons_hash]] B* bits
+  binary scan [binary format H* [string map {{'} {}} $cons_hash]] B32 bits
   set_parameter -name CON_SHA $bits
   
   if {$use_ipbus == 1} {
-    binary scan [binary format H* [string map {{'} {}} $xml_ver]] B* bits
+    binary scan [binary format H* [string map {{'} {}} $xml_ver]] B32 bits
     set_parameter -name XML_VER $bits
-    binary scan [binary format H* [string map {{'} {}} $xml_hash]] B* bits
+    binary scan [binary format H* [string map {{'} {}} $xml_hash]] B32 bits
     set_parameter -name XML_SHA $bits
   }
 
   #set project specific lists
   foreach l $libs v $vers h $hashes {
-    binary scan [binary format H* [string map {{'} {}} $v]] B* bits
+    binary scan [binary format H* [string map {{'} {}} $v]] B32 bits
     set_parameter -name "[string toupper $l]_VER" $bits
-    binary scan [binary format H* [string map {{'} {}} $h]] B* bits
+    binary scan [binary format H* [string map {{'} {}} $h]] B32 bits
     set_parameter -name "[string toupper $l]_SHA" $bits
   }
 
   foreach e $ext_names h $ext_hashes {
-    binary scan [binary format H* [string map {{'} {}} $h]] B* bits
+    binary scan [binary format H* [string map {{'} {}} $h]] B32 bits
     set_parameter -name "[string toupper $e]_SHA" $bits
   }
 

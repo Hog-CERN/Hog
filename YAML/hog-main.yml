@@ -44,6 +44,7 @@ check_environment:
     - ./Hog/Other/CheckEnv.sh
 
 merge_and_tag:
+  <<: *only-default
   <<: *tag-sr
   stage: merge
   variables:

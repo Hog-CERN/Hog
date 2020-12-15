@@ -34,7 +34,7 @@
       - $CI_COMMIT_REF_NAME =~ /^test\/.*$/i
       - $CI_MERGE_REQUEST_TITLE =~ /^Draft:.*$/ && $CI_COMMIT_MESSAGE !~ /^RESOLVE_WIP:/
 
-merge_and_tag:
+check_environment:
   <<: *only-default
   <<: *tag-hog
   stage: merge
@@ -42,23 +42,23 @@ merge_and_tag:
     GIT_STRATEGY: clone
   script:
     - ./Hog/Other/CheckEnv.sh
+
+merge_and_tag:
+  <<: *tag-sr
+  stage: merge
+  variables:
+    GIT_STRATEGY: clone
+  script:
     - "if [[ $CI_COMMIT_MESSAGE == *RESOLVE_WIP* && $CI_MERGE_REQUEST_TITLE == Draft* ]]; then echo 'removing Draft status'; curl ${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/merge_requests/${CI_MERGE_REQUEST_IID}/notes?body=/wip --header \"PRIVATE-TOKEN: ${HOG_PUSH_TOKEN}\" --request POST; fi;"
     - "MR_PARAMETERS=`curl --header \"PRIVATE-TOKEN: ${HOG_PUSH_TOKEN}\" ${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/merge_requests/${CI_MERGE_REQUEST_IID}`"
     - if [[ ((-n $HOG_TARGET_BRANCH) && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "$HOG_TARGET_BRANCH") || ((-z $HOG_TARGET_BRANCH) && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == master*) ]]; then INCREASE=""; else INCREASE="-no_increase"; fi;
     - if [[ ${HOG_CHECK_YAMLREF} != 1 ]]; then
         echo 'Yaml consistency checker is disabled';
       else
-        if [ `which vivado 2>/dev/null` ]; then
-          vivado -mode batch -notrace -source ./Hog/Tcl/utils/check_yaml_ref.tcl;
-        elif [ `which quartus_sh 2>/dev/null` ]; then
-          quartus_sh -t ./Hog/Tcl/utils/check_yaml_ref.tcl;
-        fi;
+          tclsh ./Hog/Tcl/utils/check_yaml_ref.tcl;
       fi;
-    - if [ `which vivado 2>/dev/null` ]; then
-        vivado -mode batch -notrace -source  ./Hog/Tcl/CI/merge_and_tag.tcl -tclargs -mr_par "{$MR_PARAMETERS}" -mr_id $CI_MERGE_REQUEST_IID -push $CI_COMMIT_REF_NAME -main_branch $CI_MERGE_REQUEST_TARGET_BRANCH_NAME $INCREASE;
-      elif [ `which quartus_sh 2>/dev/null` ]; then
-        quartus_sh -t ./Hog/Tcl/CI/merge_and_tag.tcl -mr_par "{$MR_PARAMETERS}" -mr_id $CI_MERGE_REQUEST_IID -push $CI_COMMIT_REF_NAME -main_branch $CI_MERGE_REQUEST_TARGET_BRANCH_NAME $INCREASE;
-      fi;
+    - tclsh ./Hog/Tcl/CI/merge_and_tag.tcl -mr_par "{$MR_PARAMETERS}" -mr_id $CI_MERGE_REQUEST_IID -push $CI_COMMIT_REF_NAME -main_branch $CI_MERGE_REQUEST_TARGET_BRANCH_NAME $INCREASE;
+
 make_doxygen:
     tags:
      - docker

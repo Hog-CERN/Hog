@@ -41,7 +41,12 @@ set parameters {
 set usage "- CI script that merges your branch with \$HOG_TARGET_BRANCH and creates a new tag\n USAGE: $::argv0 \[OPTIONS\] \n. Options:"
 
 if {[info commands project_new] != "" } {
-  if {[catch {array set options [cmdline::getoptions quartus(args) $parameters $usage]}] } {
+  puts ----------------------------------------------------------------------------------------------------
+  puts $::argv
+  puts ----------------------------------------------------------------------------------------------------
+  puts $::quartus(args)
+  puts ----------------------------------------------------------------------------------------------------
+  if {[catch {array set options [cmdline::getoptions ::quartus(args) $parameters $usage]}] } {
     Msg Info [cmdline::usage $parameters $usage]
     cd $OldPath
     exit 1

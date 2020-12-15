@@ -1044,6 +1044,8 @@ proc GetRepoVersions {proj_tcl_file {ext_path ""} {sim 0}} {
 
   cd $old_path
 
+  set top_hash [format %+07s $top_hash]
+  set cons_hash [format %+07s $cons_hash]
   return [list $commit $version  $hog_hash $hog_ver  $top_hash $top_ver  $libs $hashes $vers  $cons_ver $cons_hash  $ext_names $ext_hashes  $xml_hash $xml_ver]
 }
 
@@ -1213,7 +1215,7 @@ proc TagRepository {{merge_request_number 0} {version_level 0} {default_level 0}
 # @param[in] generate    if set to 1, tells the function to generate the VHDL decode address files rather than check them
 #
 proc CopyXMLsFromListFile {list_file path dst {xml_version "0.0.0"} {xml_sha "00000000"}  {generate 0} } {
-  lassign  [ExecuteRet python -c "from sys import path;print ':'.join(path\[1:\])"] ret msg
+    lassign  [ExecuteRet python -c "from __future__ import print_function; from sys import path;print(':'.join(path\[1:\]))"] ret msg
   if {$ret == 0} {
     set ::env(PYTHONPATH) $msg
     set ::env(PYTHONHOME) "/usr"
@@ -1473,7 +1475,27 @@ proc GetProjectFiles {} {
 
 
     foreach f $all_files {
-      if { [lindex [get_property  IS_GENERATED [get_files $f]] 0] == 0 && ![string equal [file extension $f] ".coe"]} {
+
+      # Ignore files that are part of the vivado/planahead project but would not be reflected
+      # in list files (e.g. generated products from ip cores)
+
+      set ignore 0
+      # Generated files point to a parent composite file;
+      # planahead does not have an IS_GENERATED property
+      if {-1 != [lsearch -exact [list_property  [get_files  $f]] IS_GENERATED]} {
+          if { [lindex [get_property  IS_GENERATED [get_files $f]] 0] != 0} {
+          set ignore 1
+          }
+      }
+      if {-1 != [lsearch -exact [list_property  [get_files  $f]] PARENT_COMPOSITE_FILE]} {
+          set ignore 1
+      }
+      # ignore .coe files
+      if {[string equal [file extension $f] ".coe"]} {
+          set ignore 1
+      }
+
+      if {!$ignore} {
         set f [file normalize $f]
         lappend files $f
         set type  [get_property FILE_TYPE [get_files $f]]

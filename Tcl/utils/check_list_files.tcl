@@ -21,6 +21,10 @@ if {[catch {package require cmdline} ERROR]} {
   puts "$ERROR\n If you are running this script on tclsh, you can fix this by installing 'tcllib'" 
   return
 }
+if { [string first PlanAhead [version]] == 0 } {
+    set tcl_path         [file normalize "[file dirname [info script]]"]
+    source $tcl_path/cmdline.tcl
+}
 set parameters {
   {project.arg "" "Project name. If not set gets current project"}
   {recreate  "If set, it will create List Files from the project configuration"}
@@ -69,7 +73,9 @@ set ext_path $options(ext_path)
 if {![string equal $options(project) ""]} {
   set project $options(project)
   Msg Info "Opening project $project..."
-  open_project $repo_path/Projects/$project/$project.xpr
+  if { [string first PlanAhead [version]] != 0 } {
+    open_project "$repo_path/Projects/$project/$project.xpr"
+  }
 } else {
   set project [get_projects [current_project]]
 }
@@ -416,6 +422,7 @@ set SIMULATOR \"[DictGet $prjProperties Simulator]\""
 
 #closing project if a new one was opened
 if {![string equal $options(project) ""]} {
-  close_project
+    if { [string first PlanAhead [version]] != 0 } {
+        close_project
+    }
 }
-

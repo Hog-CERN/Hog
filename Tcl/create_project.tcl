@@ -180,6 +180,10 @@ proc CreateProject {} {
     ##############
   set list_files [glob -directory $globalSettings::list_path "*"]
 
+  if { [string first PlanAhead [version]] == 0 } {
+    set tcl_path         [file normalize "[file dirname [info script]]"]
+    source $tcl_path/utils/cmdline.tcl
+  }
   AddHogFiles {*}[GetHogFiles -ext_path $globalSettings::HOG_EXTERNAL_PATH -verbose $globalSettings::list_path]
 
   ## Set synthesis TOP

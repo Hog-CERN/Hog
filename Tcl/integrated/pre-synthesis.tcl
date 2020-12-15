@@ -177,7 +177,7 @@ if {[info commands set_property] != ""} {
   # set global generic varibles
   set generic_string "GLOBAL_DATE=32'h$date GLOBAL_TIME=32'h$timee GLOBAL_VER=32'h$version GLOBAL_SHA=32'h0$commit TOP_SHA=32'h0$top_hash TOP_VER=32'h$top_ver HOG_SHA=32'h0$hog_hash HOG_VER=32'h$hog_ver CON_VER=32'h$cons_ver CON_SHA=32'h0$cons_hash"
   if {$use_ipbus == 1} {
-    set generic_string "$generic_string XML_VER=32'h$xml_ver XML_SHA=32'h$xml_hash"
+    set generic_string "$generic_string XML_VER=32'h$xml_ver XML_SHA=32'h0$xml_hash"
   }
 
   #set project specific lists
@@ -359,13 +359,12 @@ cd $old_path
 
 #check list files
 if {[info commands get_property] != ""} {
-    # Vivado
-  if {![string equal ext_path ""]} { 
-    set argv [list "-ext_path" "$ext_path" "-project" "$proj_name"]
-  } else {
-    set argv [list "-project" "$proj_name"]
-  }
-  source  $tcl_path/utils/check_list_files.tcl
+    if {![string equal ext_path ""]} {
+        set argv [list "-ext_path" "$ext_path" "-project" "$proj_name"]
+    } else {
+        set argv [list "-project" "$proj_name"]
+    }
+    source  $tcl_path/utils/check_list_files.tcl
 } elseif {[info commands project_new] != ""} {
     # Quartus
   #TO BE IMPLEMENTED

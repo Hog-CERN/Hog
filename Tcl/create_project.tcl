@@ -102,7 +102,7 @@ proc CreateProject {} {
       set_property "enable_vhdl_2008" 1 $obj
     }
 
-        ## Setting user IP repository to default Hog directory
+    ## Setting user IP repository to default Hog directory
     if [file exists $globalSettings::user_ip_repo] {
       Msg Info "Found directory $globalSettings::user_ip_repo, setting it as user IP repository..."
       if { [string first PlanAhead [version]]==0 } {
@@ -180,10 +180,12 @@ proc CreateProject {} {
     ##############
   set list_files [glob -directory $globalSettings::list_path "*"]
 
+  if {[info commands create_fileset] != ""} {
   if { [string first PlanAhead [version]] == 0 } {
     set tcl_path         [file normalize "[file dirname [info script]]"]
     source $tcl_path/utils/cmdline.tcl
   }
+}
   AddHogFiles {*}[GetHogFiles -ext_path $globalSettings::HOG_EXTERNAL_PATH -verbose $globalSettings::list_path]
 
   ## Set synthesis TOP

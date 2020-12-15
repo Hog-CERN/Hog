@@ -1473,21 +1473,19 @@ proc GetProjectFiles {} {
       }
     }
 
-
     foreach f $all_files {
-
       # Ignore files that are part of the vivado/planahead project but would not be reflected
       # in list files (e.g. generated products from ip cores)
 
       set ignore 0
       # Generated files point to a parent composite file;
       # planahead does not have an IS_GENERATED property
-      if {-1 != [lsearch -exact [list_property  [get_files  $f]] IS_GENERATED]} {
-          if { [lindex [get_property  IS_GENERATED [get_files $f]] 0] != 0} {
+      if {-1 != [lsearch -exact [list_property  $f] IS_GENERATED]} {
+          if { [lindex [get_property  IS_GENERATED $f] 0] != 0} {
           set ignore 1
           }
       }
-      if {-1 != [lsearch -exact [list_property  [get_files  $f]] PARENT_COMPOSITE_FILE]} {
+      if {-1 != [lsearch -exact [list_property  $f] PARENT_COMPOSITE_FILE]} {
           set ignore 1
       }
       # ignore .coe files
@@ -1498,8 +1496,8 @@ proc GetProjectFiles {} {
       if {!$ignore} {
         set f [file normalize $f]
         lappend files $f
-        set type  [get_property FILE_TYPE [get_files $f]]
-        set lib [get_property LIBRARY [get_files $f]]
+        set type  [get_property FILE_TYPE $f]
+        set lib [get_property LIBRARY $f]
 
 
         # Type can be complex like VHDL 2008, in that case we want the second part to be a property

@@ -58,7 +58,7 @@ merge_and_tag:
       else
           tclsh ./Hog/Tcl/utils/check_yaml_ref.tcl;
       fi;
-    - tclsh ./Hog/Tcl/CI/merge_and_tag.tcl -mr_par "{$MR_PARAMETERS}" -mr_id $CI_MERGE_REQUEST_IID -push $CI_COMMIT_REF_NAME -main_branch $CI_MERGE_REQUEST_TARGET_BRANCH_NAME $INCREASE;
+    - tclsh ./Hog/Tcl/CI/merge_and_tag.tcl -mr_par "$MR_PARAMETERS" -mr_id $CI_MERGE_REQUEST_IID -push $CI_COMMIT_REF_NAME -main_branch $CI_MERGE_REQUEST_TARGET_BRANCH_NAME $INCREASE;
 
 make_doxygen:
     tags:

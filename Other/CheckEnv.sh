@@ -24,8 +24,14 @@ TOP_DIR=`realpath $THIS_DIR/../../Top`
 
 . $THIS_DIR/CommonFunctions.sh;
 
-for PROJ in $(ls $TOP_DIR); do
-  select_command "$TOP_DIR/$PROJ/$PROJ.tcl"
+if [ -z ${HOG_COMPILER+x} ]; then
+  COMPILERS_TO_CHECK=( "vivado" )
+else
+  COMPILERS_TO_CHECK=$(echo $HOG_COMPILER | tr -d '[:space:]' | tr ";" "\n")
+fi
+
+for HDL_COMPILER in ${COMPILERS_TO_CHECK[@]}; do
+  select_command_from_line $HDL_COMPILER;
   if [ $? != 0 ]
   then
     echo "Failed to select project type: exiting!"

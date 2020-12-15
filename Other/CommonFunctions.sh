@@ -31,6 +31,77 @@ export COMMAND_OPT=""
 #
 export HDL_COMPILER=""
 
+## @fn select_command_from_line
+#
+# @brief Selects which command has to be used based on the first line of the tcl
+#
+# This function:
+# - checks if the line CONTAINS:
+#   * vivado
+#     + vivadoHLS
+#   * quartus
+#     + quartusHLS
+#   * intelHLS
+#   * planahead
+#
+# @param[in]    $1 the first line of the tcl file or a suitable string 
+# @param[out]   COMMAND  global variable: the selected command
+# @param[out]   COMMAND_OPT global variable: the selected command options
+#
+# @returns  0 if success, 1 if failure
+#
+function select_command_from_line()
+{
+  if [ -z ${1+x} ]
+  then
+    echo "Hog-ERROR: select_command_from_line(): missing input! Got: $1!"
+    return 1
+  fi
+
+  local TCL_FIRST_LINE=$1
+
+  if [[ $TCL_FIRST_LINE =~ 'vivado' ]];
+  then
+    if [[ $TCL_FIRST_LINE =~ 'vivadoHLS' ]];
+    then
+      echo "Hog-INFO: select_command_from_line(): Recognised VivadoHLS project"
+      COMMAND="vivado_hls"
+      COMMAND_OPT="-f"
+    else
+      echo "Hog-INFO: select_command_from_line(): Recognised Vivado project"
+      COMMAND="vivado"
+      COMMAND_OPT="-nojournal -nolog -mode batch -notrace -source"
+    fi
+  elif [[ $TCL_FIRST_LINE =~ 'quartus' ]];
+  then
+    if [[ $TCL_FIRST_LINE =~ 'quartusHLS' ]];
+    then
+      echo "Hog-ERROR: select_command_from_line(): Intel HLS compiler is not supported!"
+      return 1
+    else
+      echo "Hog-INFO: select_command_from_line(): Recognised QuartusPrime project"
+      COMMAND="quartus_sh"
+      COMMAND_OPT="-t"
+    fi
+  elif [[ $TCL_FIRST_LINE =~ 'intelHLS' ]];
+  then
+    echo "Hog-ERROR: Intel HLS compiler is not supported!"
+    return 1
+  elif [[ $TCL_FIRST_LINE =~ 'planahead' ]];
+  then
+    echo "Hog-INFO: select_command_from_line(): Recognised planAhead project"
+    COMMAND="planAhead"
+    COMMAND_OPT="-nojournal -nolog -mode batch -notrace -source"
+  else
+    echo "Hog-WARNING: select_command_from_line(): You should write #vivado or #quartus in your project Tcl file, assuming Vivado... "
+    echo "Hog-INFO: select_command_from_line(): Recognised Vivado project"
+    COMMAND="vivado"
+    COMMAND_OPT="-mode batch -notrace -source"
+  fi
+
+  return 0
+}
+
 ## @fn select_command
 #
 # @brief Selects which command has to be used based on the first line of the tcl
@@ -38,12 +109,7 @@ export HDL_COMPILER=""
 # This function:
 # - checks that the tcl file exists
 # - gets the first line using head -1
-# - checks if the line CONTAINS:
-#   * vivado
-#     + vivadoHLS
-#   * quartus
-#     + quartusHLS
-#   * intelHLS
+# - calls select_command_from_line()
 #
 # @param[in]    $1 full path to the tcl file
 # @param[out]   COMMAND  global variable: the selected command
@@ -55,49 +121,15 @@ function select_command()
 {
   if [ ! -f $1 ]
   then
-    echo "File: $1 not found!"
+    echo "HOG-ERROR: select_command(): File: $1 not found!"
     return 1
   fi
 
-  local TCL_FIRST_LINE=$(head -1 $1)
-
-  if [[ $TCL_FIRST_LINE =~ 'vivado' ]];
+  select_command_from_line $(head -1 $1)
+  if [ $? != 0 ]
   then
-    if [[ $TCL_FIRST_LINE =~ 'vivadoHLS' ]];
-    then
-      echo "Hog-INFO: Recognised VivadoHLS project"
-      COMMAND="vivado_hls"
-      COMMAND_OPT="-f"
-    else
-      echo "Hog-INFO: Recognised Vivado project"
-      COMMAND="vivado"
-      COMMAND_OPT="-nojournal -nolog -mode batch -notrace -source"
-    fi
-  elif [[ $TCL_FIRST_LINE =~ 'quartus' ]];
-  then
-    if [[ $TCL_FIRST_LINE =~ 'quartusHLS' ]];
-    then
-      echo "Hog-ERROR: Intel HLS compiler is not supported!"
-      return 1
-    else
-      echo "Hog-INFO: Recognised QuartusPrime project"
-      COMMAND="quartus_sh"
-      COMMAND_OPT="-t"
-    fi
-  elif [[ $TCL_FIRST_LINE =~ 'intelHLS' ]];
-  then
-    echo "Hog-ERROR: Intel HLS compiler is not supported!"
+    echo "HOG-ERROR: select_command(): failed to select COMMAND and COMMAND_OPT"
     return 1
-  elif [[ $TCL_FIRST_LINE =~ 'planahead' ]];
-  then
-    echo "Hog-INFO: Recognised planAhead project"
-    COMMAND="planAhead"
-    COMMAND_OPT="-nojournal -nolog -mode batch -notrace -source"
-  else
-    echo "Hog-WARNING: You should write #vivado or #quartus in your project Tcl file, assuming Vivado... "
-    echo "Hog-INFO: Recognised Vivado project"
-    COMMAND="vivado"
-    COMMAND_OPT="-mode batch -notrace -source"
   fi
 
   return 0
@@ -123,7 +155,7 @@ function select_compiler_executable ()
 {
   if [ "a$1" == "a" ]
   then
-    echo "Hog-ERROR: Variable COMMAND is not set!"
+    echo "Hog-ERROR: select_compiler_executable(): Variable COMMAND is not set!"
     return 1
   fi
 
@@ -135,7 +167,7 @@ function select_compiler_executable ()
     then
       if [ -z ${VIVADO_PATH+x} ]
       then
-        echo "Hog-ERROR: No vivado executable found and no variable VIVADO_PATH set\n"
+        echo "Hog-ERROR: select_compiler_executable(): No vivado executable found and no variable VIVADO_PATH set\n"
         echo " "
         cd "${OLD_DIR}"
         return 1
@@ -144,7 +176,7 @@ function select_compiler_executable ()
         HDL_COMPILER="$VIVADO_PATH/$viv"
       fi
     else
-      echo  "Hog-ERROR: cannot find the executable for $1."
+      echo  "Hog-ERROR: select_compiler_executable(): cannot find the executable for $1."
       echo  "Probable causes are:"
       echo  "- $1 was not setup"
       echo  "- which not available on the machine"
@@ -154,3 +186,41 @@ function select_compiler_executable ()
 
   return 0
 }
+
+## @fn select_executable_form_file
+#
+# @brief Selects which ompiler executable has to be used based on the first line of the project.tcl file
+#
+# @param[in]    $1 full path to the tcl file
+# @param[out]   COMMAND  global variable: the selected command
+# @param[out]   COMMAND_OPT global variable: the selected command options
+# @param[out]   HDL_COMPILER gloabal variable: the full path to the HDL compiler executable
+#
+# @returns  0 if success, 1 if failure
+#
+function select_executable_form_file ()
+{
+  if [ -z ${1+x} ]
+  then
+    echo "Hog-ERROR: select_executable_form_file(): missing input! Got: $1!"
+    return 1
+  fi
+  select_command $1
+  if [ $? != 0 ]
+  then
+    echo "Hog-ERROR: select_executable_form_file(): Failed to select project type: exiting!"
+    return 1
+  fi
+
+  #select full path to executable and place it in HDL_COMPILER global variable
+  select_compiler_executable $COMMAND
+  if [ $? != 0 ]
+  then
+    echo "Hog-ERROR: select_executable_form_file(): failed to get HDL compiler executable for $COMMAND"
+    return 1
+  fi
+  
+  return 0
+}
+
+

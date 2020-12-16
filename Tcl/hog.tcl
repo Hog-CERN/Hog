@@ -353,6 +353,9 @@ proc DoxygenVersion {target_version} {
 proc FindFileType {file_name} {
   set extension [file ext $file_name]
   switch $extension {
+    .stp {
+      set file_extension "USE_SIGNALTAP_FILE"
+    }
     .vhd {
       set file_extension "VHDL_FILE"
     }
@@ -1836,7 +1839,7 @@ proc AddHogFiles { libraries properties } {
         set file_type [FindFileType $vhdlfile]
         set hdl_version [FindVhdlVersion $vhdlfile]
         if {$rootlib ne "IP"} {
-          Msg Warning "set_global_assignment -name $file_type $vhdlfile -library $rootlib "
+          Msg Info "set_global_assignment -name $file_type $vhdlfile -library $rootlib "
           set_global_assignment -name $file_type $vhdlfile  -library $rootlib
         } else {
           set_global_assignment  -name $file_type $vhdlfile  $hdl_version

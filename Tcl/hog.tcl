@@ -374,8 +374,20 @@ proc FindFileType {file_name} {
     .ip {
       set file_extension "IP_FILE"
     }
+    .qsys {
+      set file_extension "QSYS_FILE"
+    }
     .qip {
       set file_extension "QIP_FILE"
+    }
+    .sip {
+      set file_extension "SIP_FILE"
+    }
+    .bsf {
+      set file_extension "BSF_FILE"
+    }
+    .bdf {
+      set file_extension "BDF_FILE"
     }
     .tcl {
       set file_extension "COMMAND_MACRO_FILE"

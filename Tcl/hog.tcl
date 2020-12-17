@@ -1099,6 +1099,7 @@ proc TagRepository {{merge_request_number 0} {version_level 0} {default_level 0}
     Msg Error "No Hog version tags found in this repository."
   } else {
     set vers ""
+    set mrs ""
     if { $vret == 0 } {
       set vtag [lindex $vtags 0]
       lassign [ExtractVersionFromTag $vtag] M m p mr
@@ -1106,6 +1107,7 @@ proc TagRepository {{merge_request_number 0} {version_level 0} {default_level 0}
       set m [format %02X $m]
       set p [format %04X $p]
       lappend vers $M$m$p
+      lappend mrs $mr
     }
 
     if { $bret == 0 } {
@@ -1118,9 +1120,12 @@ proc TagRepository {{merge_request_number 0} {version_level 0} {default_level 0}
     }
     set ver [FindNewestVersion $vers]
     set tag v[HexVersionToString $ver]
-
-    lassign [ExtractVersionFromTag $tag] M m p mr
-
+    # If btag is the newest get mr number
+    if {[string first $tag $btag]} {
+      lassign [ExtractVersionFromTag $btag] M m p mr
+    } else {
+      lassign [ExtractVersionFromTag $tag] M m p mr
+    }
 
     if { $M > -1 } { # M=-1 means that the tag could not be parsed following a Hog format
       if {$mr == -1 } { # Tag is official, no b at the beginning (and no merge request number at the end)
@@ -1147,7 +1152,7 @@ proc TagRepository {{merge_request_number 0} {version_level 0} {default_level 0}
           }
 
         } elseif {$version_level >= 3} {
-        # Version level >= 3 is used to create official tags from beta tags
+          # Version level >= 3 is used to create official tags from beta tags
           if {$default_level == 0} {
             Msg Info "Default_level is set to 0, will increase patch..."
             incr p
@@ -1165,7 +1170,7 @@ proc TagRepository {{merge_request_number 0} {version_level 0} {default_level 0}
             incr p
           }
 
-        #create official tag
+          #create official tag
           Msg Info "No major/minor version increase, new tag will be v$M.$m.$p..."
           set new_tag v$M.$m.$p
           set tag_opt "-m 'Official_version_$M.$m.$p'"
@@ -1173,7 +1178,7 @@ proc TagRepository {{merge_request_number 0} {version_level 0} {default_level 0}
         }
 
       } else { # Tag is not official
-	#Not official, do nothing unless version level is >=3, in which case convert the unofficial to official
+	      #Not official, do nothing unless version level is >=3, in which case convert the unofficial to official
         Msg Info "Found candidate version for $M.$m.$p."
         if {$version_level >= 3} {
           Msg Info "New tag will be an official version v$M.$m.$p..."

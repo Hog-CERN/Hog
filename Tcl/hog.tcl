@@ -1099,7 +1099,6 @@ proc TagRepository {{merge_request_number 0} {version_level 0} {default_level 0}
     Msg Error "No Hog version tags found in this repository."
   } else {
     set vers ""
-    set mrs ""
     if { $vret == 0 } {
       set vtag [lindex $vtags 0]
       lassign [ExtractVersionFromTag $vtag] M m p mr
@@ -1107,7 +1106,6 @@ proc TagRepository {{merge_request_number 0} {version_level 0} {default_level 0}
       set m [format %02X $m]
       set p [format %04X $p]
       lappend vers $M$m$p
-      lappend mrs $mr
     }
 
     if { $bret == 0 } {
@@ -1121,7 +1119,7 @@ proc TagRepository {{merge_request_number 0} {version_level 0} {default_level 0}
     set ver [FindNewestVersion $vers]
     set tag v[HexVersionToString $ver]
     # If btag is the newest get mr number
-    if {[string first $tag $btag]} {
+    if {$ver != $vtag} {
       lassign [ExtractVersionFromTag $btag] M m p mr
     } else {
       lassign [ExtractVersionFromTag $tag] M m p mr
@@ -1190,8 +1188,8 @@ proc TagRepository {{merge_request_number 0} {version_level 0} {default_level 0}
       # Tagging repositroy
       if [info exists new_tag] {
         Msg Info "Tagging repository with $new_tag..."
-	lassign [GitRet "tag $new_tag $tag_opt"] ret msg
-	if {$ret != 0} {
+	      lassign [GitRet "tag $new_tag $tag_opt"] ret msg
+	      if {$ret != 0} {
           Msg Error "Could not create new tag $new_tag: $msg"
         } else {
           Msg Info "New tag $new_tag created successully."

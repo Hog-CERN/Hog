@@ -2338,7 +2338,7 @@ if {[GitVersion 2.7.2] == 0 } {
 proc FindNewestVersion { versions } {
   set new_ver 0
   foreach ver $versions {
-    if { $ver > $new_ver } {
+    if {[ expr 0x$ver > 0x$new_ver ] } {
       set new_ver $ver
     }
   }

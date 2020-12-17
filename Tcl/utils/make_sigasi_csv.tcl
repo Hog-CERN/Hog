@@ -39,8 +39,17 @@ set csv_name "${project_name}_sigasi_sim.csv"
 #Create IPs here
 Msg Info "Generating IP targets for simulations..."
 foreach ip [get_ips] {
-  generate_target simulation $ip
+  set targets [list_targets [get_files [file tail [get_property IP_FILE $ip]]]]
+  if { [ lsearch -exact $targets simulation] >= 0 }  {
+    generate_target simulation $ip
+  } else {
+    Msg Warning "IP $ip is not a simulation target, skipping..."
+  }
 }
+
+
+
+
 
 Msg Info "Creating sigasi csv file for simulation $csv_name..."
 set source_files [get_files -filter {(FILE_TYPE == VHDL || FILE_TYPE == "VHDL 2008" || FILE_TYPE == VERILOG || FILE_TYPE == SYSTEMVERILOG) && USED_IN_SIMULATION == 1 } ]

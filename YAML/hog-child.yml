@@ -40,6 +40,7 @@
      variables:
         <<: *vars
      script:
+      - ./Hog/Other/CheckEnv.sh      
       - if [[ -v HOG_CHECK_PROJVER ]] && [[ $HOG_CHECK_PROJVER == '1' ]]; then
         ./Hog/Other/CheckProjVer.sh -ext_path "$HOG_EXTERNAL_PATH" -sim $PROJECT_NAME $PROJECT_NAME;
         else
@@ -69,6 +70,7 @@
     variables:
         <<: *vars
     script:
+      - ./Hog/Other/CheckEnv.sh      
       - if [[ -v HOG_CHECK_PROJVER ]] && [[ $HOG_CHECK_PROJVER == '1' ]]; then
           ./Hog/Other/CheckProjVer.sh -ext_path "$HOG_EXTERNAL_PATH" -sim $PROJECT_NAME $PROJECT_NAME;
         else

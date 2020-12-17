@@ -1119,7 +1119,7 @@ proc TagRepository {{merge_request_number 0} {version_level 0} {default_level 0}
     set ver [FindNewestVersion $vers]
     set tag v[HexVersionToString $ver]
     # If btag is the newest get mr number
-    if {$ver != $vtag} {
+    if {$tag != $vtag} {
       lassign [ExtractVersionFromTag $btag] M m p mr
     } else {
       lassign [ExtractVersionFromTag $tag] M m p mr

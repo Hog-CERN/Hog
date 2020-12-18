@@ -1839,10 +1839,10 @@ proc AddHogFiles { libraries properties } {
         set file_type [FindFileType $vhdlfile]
         set hdl_version [FindVhdlVersion $vhdlfile]
         if {$rootlib ne "IP"} {
-          Msg Info "set_global_assignment -name $file_type $vhdlfile -library $rootlib "
-          set_global_assignment -name $file_type $vhdlfile  -library $rootlib
+          Msg Info "Adding file $vhdlfile  to library $rootlib "
+          set_global_assignment -name $file_type $vhdlfile  -library $rootlib $hdl_version
         } else {
-          set_global_assignment  -name $file_type $vhdlfile  $hdl_version
+          set_global_assignment  -name $file_type $vhdlfile $hdl_version
         }
         #missing : ADDING QUARTUS FILE PROPERTIES
       }

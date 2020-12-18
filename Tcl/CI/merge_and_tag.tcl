@@ -53,7 +53,7 @@ if { $options(Hog) == 0 } {
   set onHOG "-Hog"
 }
 
-set version_level 0  
+set version_level 0
 
 set merge_request_number 0
 if {$options(merged) == 0} {
@@ -85,7 +85,7 @@ if {$options(merged) == 0} {
     }
     if {[lsearch $DESCRIPTION "*MAJOR_VERSION*" ] >= 0} {
       set version_level 2
-    } 
+    }
   }
 } else {
   set version_level 3
@@ -95,22 +95,22 @@ Msg Info "Version Level $version_level"
 lassign [GitRet "merge --no-commit origin/$options(main_branch)"] ret msg
 if {$ret !=0} {
   Msg Error "Branch is outdated, please merge the latest changes from $options(main_branch) with:\n git fetch && git merge origin/$options(main_branch)\n"
-  exit 1	
+  exit 1
 }
 
 Msg Info "MR = $merge_request_number, version level: $version_level, default version level: $options(default_level)"
 
 if { $options(Hog) == 1 } {
   #Go to Hog directory
-  Msg Info "Tagging path is set to Hog repository."    
+  Msg Info "Tagging path is set to Hog repository."
   set TaggingPath [file normalize $TclPath/..]
 } else {
   #Go to HDL repository directory
-  Msg Info "Tagging path is set to HDL repository."      
+  Msg Info "Tagging path is set to HDL repository."
   set TaggingPath [file normalize $TclPath/../..]
 }
 
-Msg Info "Chaging directory to tagging path: $TaggingPath..."
+Msg Info "Changing directory to tagging path: $TaggingPath..."
 cd $TaggingPath
 
 set tags [TagRepository $merge_request_number $version_level  $options(default_level)]

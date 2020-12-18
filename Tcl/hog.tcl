@@ -1133,9 +1133,12 @@ proc TagRepository {{merge_request_number 0} {version_level 0} {default_level 0}
     }
     set ver [FindNewestVersion $vers]
     set tag v[HexVersionToString $ver]
-
-    lassign [ExtractVersionFromTag $tag] M m p mr
-
+    # If btag is the newest get mr number
+    if {$tag != $vtag} {
+      lassign [ExtractVersionFromTag $btag] M m p mr
+    } else {
+      lassign [ExtractVersionFromTag $tag] M m p mr
+    }
 
     if { $M > -1 } { # M=-1 means that the tag could not be parsed following a Hog format
       if {$mr == -1 } { # Tag is official, no b at the beginning (and no merge request number at the end)
@@ -1162,7 +1165,7 @@ proc TagRepository {{merge_request_number 0} {version_level 0} {default_level 0}
           }
 
         } elseif {$version_level >= 3} {
-        # Version level >= 3 is used to create official tags from beta tags
+          # Version level >= 3 is used to create official tags from beta tags
           if {$default_level == 0} {
             Msg Info "Default_level is set to 0, will increase patch..."
             incr p
@@ -1180,7 +1183,7 @@ proc TagRepository {{merge_request_number 0} {version_level 0} {default_level 0}
             incr p
           }
 
-        #create official tag
+          #create official tag
           Msg Info "No major/minor version increase, new tag will be v$M.$m.$p..."
           set new_tag v$M.$m.$p
           set tag_opt "-m 'Official_version_$M.$m.$p'"
@@ -1188,7 +1191,7 @@ proc TagRepository {{merge_request_number 0} {version_level 0} {default_level 0}
         }
 
       } else { # Tag is not official
-	#Not official, do nothing unless version level is >=3, in which case convert the unofficial to official
+	      #Not official, do nothing unless version level is >=3, in which case convert the unofficial to official
         Msg Info "Found candidate version for $M.$m.$p."
         if {$version_level >= 3} {
           Msg Info "New tag will be an official version v$M.$m.$p..."
@@ -1200,8 +1203,8 @@ proc TagRepository {{merge_request_number 0} {version_level 0} {default_level 0}
       # Tagging repositroy
       if [info exists new_tag] {
         Msg Info "Tagging repository with $new_tag..."
-	lassign [GitRet "tag $new_tag $tag_opt"] ret msg
-	if {$ret != 0} {
+	      lassign [GitRet "tag $new_tag $tag_opt"] ret msg
+	      if {$ret != 0} {
           Msg Error "Could not create new tag $new_tag: $msg"
         } else {
           Msg Info "New tag $new_tag created successully."

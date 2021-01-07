@@ -58,7 +58,7 @@ else
     select_command $PROJ_DIR"/"$PROJ".tcl"
     if [ $? != 0 ]
     then
-      echo "Failed to select project type: exiting!"
+      Msg Error "Failed to select project type: exiting!"
       exit -1
     fi
 
@@ -66,34 +66,33 @@ else
     select_compiler_executable $COMMAND
     if [ $? != 0 ]
     then
-      echo "Hog-ERROR: failed to get HDL compiler executable for $COMMAND"
+      Msg Error "Failed to get HDL compiler executable for $COMMAND"
       exit -1
     fi
 
     if [ ! -f "${HDL_COMPILER}" ]
     then
-      echo "Hog-ERROR: HLD compiler executable $HDL_COMPILER not found"
+      Msg Error "HLD compiler executable $HDL_COMPILER not found"
       cd "${OLD_DIR}"
       exit -1
     else
-      echo "Hog-INFO: using executable: $HDL_COMPILER"
+      Msg Info "Using executable: $HDL_COMPILER"
     fi
 
     if [ $COMMAND = "quartus_sh" ]
     then
-      echo "Hog-ERROR: Quartus is not yet supported by this script!"
+      Msg Error "Quartus is not yet supported by this script!"
       #echo "Running:  ${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_simulation.tcl $LIBPATH $1"
       #"${HDL_COMPILER}" $COMMAND_OPT $DIR/Tcl/launchers/launch_simulation.tcl $LIBPATH $1
 
     elif [ $COMMAND = "vivado_hls" ]
     then
-      echo "Hog-ERROR: Vivado HLS is not yet supported by this script!"
+      Msg Error "Vivado HLS is not yet supported by this script!"
     else
       "${HDL_COMPILER}" $COMMAND_OPT $DIR/Tcl/launchers/launch_simulation.tcl -tclargs $LIBPATH $1
     fi
   else
-    echo "Hog-ERROR: project $PROJ not found: possible projects are: `ls $DIR/../Top`"
-    echo
+    Msg Error "Project $PROJ not found: possible projects are: `ls $DIR/../Top`"
     cd "${OLD_DIR}"
     exit -1
   fi

@@ -71,8 +71,7 @@ function create_project ()
   then
     local DIR="../Top"
   else
-    echo "Hog-ERROR: Top folder not found, Hog is not in a Hog-compatible HDL repository."
-    echo
+    Msg Error "Top folder not found, Hog is not in a Hog-compatible HDL repository."
     cd "${OLD_DIR}"
     exit -1
   fi
@@ -98,7 +97,7 @@ function create_project ()
     select_command $PROJ_DIR"/"$PROJ".tcl"
     if [ $? != 0 ]
     then
-      echo "Failed to select project type: exiting!"
+      Msg Error "Failed to select project type: exiting!"
       exit -1
     fi
 
@@ -106,31 +105,31 @@ function create_project ()
     select_compiler_executable $COMMAND
     if [ $? != 0 ]
     then
-      echo "Hog-ERROR: failed to get HDL compiler executable for $COMMAND"
+      Msg Error "Failed to get HDL compiler executable for $COMMAND"
       exit -1
     fi
 
     if [ ! -f "${HDL_COMPILER}" ]
     then
-      echo "Hog-ERROR: HLD compiler executable $HDL_COMPILER not found"
+      Msg Error "HLD compiler executable $HDL_COMPILER not found"
       cd "${OLD_DIR}"
       exit -1
     else
-      echo "Hog-INFO: using executable: $HDL_COMPILER"
+      Msg Info "Using executable: $HDL_COMPILER"
     fi
 
-    echo "Hog-INFO: Creating project $PROJ..."
+    Msg Info "Creating project $PROJ..."
     cd "${PROJ_DIR}"
     "${HDL_COMPILER}" $COMMAND_OPT $PROJ.tcl
     if [ $? != 0 ]
     then
-      echo "Hog-ERROR: HDL compiler returned an error state."
+      Msg Error "HDL compiler returned an error state."
       cd "${OLD_DIR}"
       exit -1
     fi
 
   else
-    echo "Hog-ERROR: project $PROJ not found: possible projects are:"
+    Msg Error "Project $PROJ not found: possible projects are:"
     ls -1 $DIR
     echo
     cd "${OLD_DIR}"

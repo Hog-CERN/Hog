@@ -84,7 +84,7 @@ while (( "$#" )); do
 	    break
 	    ;;
 	-*|--*=) # unsupported flags
-	    echo "Error: Unsupported flag $1" >&2
+	    Msg Error "Unsupported flag $1" >&2
 	    return 1
 	    ;;
 	*) # preserve positional arguments
@@ -108,8 +108,8 @@ then
   printf " LaunchWorkflow.sh <project name> [-reset] [-check_syntax] [-no_bitstream | -synth_only] [-impl_only] [-no_recreate] [-njobs <number of jobs>] [-ext_path <external path>] [-ip_eos_path <path to IP repository on EOS>]\n\n"
   printf " For a detailed explanation of all the option, type LaunchWorkflow.sh <project name> -h.\n"
   printf " The project name is needed by Hog to tell which HDL software to use: Vivado, Quartus, etc.\n\n"
-  echo "Possible projects are:"
-  echo "`ls $DIR/../Top`"
+  printf "Possible projects are:"
+  printf "`ls $DIR/../Top`"
   cd "${OLD_DIR}"
   exit -1
 else
@@ -122,35 +122,34 @@ else
     select_executable_form_file "$PROJ_DIR/$PROJ.tcl"
     if [ $? != 0 ]
     then
-      echo "Hog-ERROR: LaunchWorkflow(): failed to get HDL compiler executable for $PROJ_DIR/$PROJ.tcl"
+      Msg Error "Failed to get HDL compiler executable for $PROJ_DIR/$PROJ.tcl"
       exit -1
     fi
 
     if [ ! -f "${HDL_COMPILER}" ]
     then
-      echo "Hog-ERROR: LaunchWorkflow(): HLD compiler executable $HDL_COMPILER not found"
+      Msg Error "HLD compiler executable $HDL_COMPILER not found"
       cd "${OLD_DIR}"
       exit -1
     else
-      echo "Hog-INFO: LaunchWorkflow(): using executable: $HDL_COMPILER"
+      Msg Info "Using executable: $HDL_COMPILER"
     fi
     if [ $COMMAND = "quartus_sh" ]
     then
       if [ "a$IP_PATH" != "a" ]
       then
-        echo "Hog-WARNING: LaunchWorkflow(): IP eos path not supported in Quartus mode"
+        Msg Warning "IP eos path not supported in Quartus mode"
       fi
       ${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_quartus.tcl $HELP $RESET $NO_BITSTREAM $SYNTH_ONLY $NJOBS $CHEK_SYNTAX $NO_RECREATE $EXT_PATH $IMPL_ONLY -project $1
     elif [ $COMMAND = "vivado_hls" ]
     then
-      echo "Hog-ERROR: LaunchWorkflow(): Vivado HLS is not yet supported by this script!"
+      Msg Error "Vivado HLS is not yet supported by this script!"
     else
       ${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_workflow.tcl -tclargs $HELP $RESET $NO_BITSTREAM $SYNTH_ONLY $IP_PATH $NJOBS $CHEK_SYNTAX $NO_RECREATE $EXT_PATH $IMPL_ONLY $1
     fi
   else
-    echo "Hog-ERROR: LaunchWorkflow(): project $PROJ not found. Possible projects are:"
+    Msg Error "Project $PROJ not found. Possible projects are:"
     echo "`ls ./Top`"
-    echo
     cd "${OLD_DIR}"
     exit -1
   fi

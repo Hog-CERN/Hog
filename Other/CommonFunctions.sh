@@ -54,10 +54,10 @@ function Msg ()
   fi
 
   #Define colours
-  Red=$'\e[1;31m'
-  Green=$'\e[1;32m'
-  Orange=$'\e[1;33m'
-  LightBlue=$'\e[1;36m'
+  Red=$'\e[0;31m'
+  Green=$'\e[0;32m'
+  Orange=$'\e[0;33m'
+  LightBlue=$'\e[0;36m'
   Default=$'\e[0m'
 
   case $1 in

@@ -56,7 +56,8 @@ function Msg ()
   #Define colours
   Red=$'\e[1;31m'
   Green=$'\e[1;32m'
-  Blue=$'\e[1;34m'
+  Orange=$'\e[1;33m'
+  LightBlue=$'\e[1;36m'
   Default=$'\e[0m'
 
   case $1 in
@@ -64,10 +65,10 @@ function Msg ()
       Colour=$Green
       ;;
     "Warning")
-      Colour=$Blue
+      Colour=$LightBlue
       ;;
     "CriticalWarning")
-      Colour=$Blue
+      Colour=$Orange
       ;;
     "Error")
       Colour=$Red
@@ -275,4 +276,3 @@ function select_executable_form_file ()
   
   return 0
 }
-select_command_from_line():

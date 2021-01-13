@@ -1095,6 +1095,8 @@ proc TagRepository {{merge_request_number 0} {version_level 0} {default_level 0}
   lassign [ExecuteRet git tag -l "v*" --sort=-v:refname --merged ] vret vtags
   lassign [ExecuteRet git tag -l "b*" --sort=-v:refname --merged ] bret btags
 
+  set bret 1
+
   if {$vret != 0 && $bret != 0} {
     Msg Error "No Hog version tags found in this repository."
   } else {

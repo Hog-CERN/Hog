@@ -33,7 +33,7 @@
        when: never
      - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /master$/ && $HOG_TARGET_BRANCH == null'
        when: always
-     - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "$HOG_TARGET_BRANCH" && $HOG_TARGET_BRANCH != null'
+     - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $HOG_TARGET_BRANCH && $HOG_TARGET_BRANCH != null'
        when: always
 
 .only-default-doxygen: &only-default-doxygen
@@ -46,7 +46,7 @@
         when: never
       - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /master$/ && $HOG_TARGET_BRANCH == null'
         when: always
-      - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "$HOG_TARGET_BRANCH" && $HOG_TARGET_BRANCH != null'
+      - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $HOG_TARGET_BRANCH && $HOG_TARGET_BRANCH != null'
         when: always
 
 merge_and_tag:

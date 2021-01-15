@@ -23,7 +23,7 @@ if {[catch {package require cmdline} ERROR]} {
 
 set parameters {
   {version  "If set, the version is returned rather than the git sha."}
-  {arg.ext_path "" "Path to external libraries"}
+  {ext_path.arg "" "Path to external libraries"}
 }
 
 set usage   "Returns the git SHA of the last commit in which the specified project was modified.\nUsage: $argv0 \[-version\] <project name>"

@@ -18,7 +18,7 @@
         when: never
       - if: '$CI_MERGE_REQUEST_TITLE =~ /^Draft:.*$/ && $CI_COMMIT_MESSAGE !~ /^RESOLVE_WIP:/'
         when: never
-      - if: '"$HOG_TARGET_BRANCH" == "" && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /^master.*$/
+      - if: '"$HOG_TARGET_BRANCH" == "" && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /^master.*$/'
         when: always
       - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "$HOG_TARGET_BRANCH" && "$HOG_TARGET_BRANCH" != ""'
         when: always
@@ -43,7 +43,7 @@
      variables:
         <<: *vars
      script:
-      - ./Hog/Other/CheckEnv.sh      
+      - ./Hog/Other/CheckEnv.sh
       - if [[ -v HOG_CHECK_PROJVER ]] && [[ $HOG_CHECK_PROJVER == '1' ]]; then
         ./Hog/Other/CheckProjVer.sh -ext_path "$HOG_EXTERNAL_PATH" -sim $PROJECT_NAME $PROJECT_NAME;
         else
@@ -73,7 +73,7 @@
     variables:
         <<: *vars
     script:
-      - ./Hog/Other/CheckEnv.sh      
+      - ./Hog/Other/CheckEnv.sh
       - if [[ -v HOG_CHECK_PROJVER ]] && [[ $HOG_CHECK_PROJVER == '1' ]]; then
           ./Hog/Other/CheckProjVer.sh -ext_path "$HOG_EXTERNAL_PATH" -sim $PROJECT_NAME $PROJECT_NAME;
         else
@@ -134,11 +134,11 @@
           ./Hog/LaunchWorkflow.sh -njobs $HOG_NJOBS $IP_EOS_PATH $NO_BITSTREAM $ONLY_SYNTH $CHECK_SYNTAX $PROJECT_NAME;
           if [[ -n "$HOG_ONLY_SYNTH" ]] && [[ $HOG_ONLY_SYNTH == '1' ]]; then
             echo "Hog-CI(info) - Adding version and timing summary to note...";
-            if [[ -d "$CI_PROJECT_DIR/Projects/$PROJECT_NAME/$PROJECT_NAME.runs/" ]]; then 
+            if [[ -d "$CI_PROJECT_DIR/Projects/$PROJECT_NAME/$PROJECT_NAME.runs/" ]]; then
               cat $CI_PROJECT_DIR/Projects/$PROJECT_NAME/$PROJECT_NAME.runs/versions* > note.md;
               cp $CI_PROJECT_DIR/Projects/$PROJECT_NAME/$PROJECT_NAME.runs/versions* $CI_PROJECT_DIR/bin/$PROJECT_NAME*/;
             fi;
-            if [[ -d "$CI_PROJECT_DIR/Projects/$PROJECT_NAME/output_files/" ]]; then 
+            if [[ -d "$CI_PROJECT_DIR/Projects/$PROJECT_NAME/output_files/" ]]; then
               cat $CI_PROJECT_DIR/Projects/$PROJECT_NAME/output_files/versions* > note.md;
               cp $CI_PROJECT_DIR/Projects/$PROJECT_NAME/output_files/versions* $CI_PROJECT_DIR/bin/$PROJECT_NAME*/;
             fi;
@@ -188,9 +188,9 @@ collect_artifacts:
         - note_files="versions timing"
         - for f in $note_files; do
             files=$(shopt -s nullglob dotglob; echo $CI_PROJECT_DIR/bin/*/$f*.txt);
-            if (( ${#files} )); then 
-              cat $CI_PROJECT_DIR/bin/*/$f*.txt >> $CI_PROJECT_DIR/bin/note.md; 
-              cat $CI_PROJECT_DIR/bin/*/$f*.txt >> mr_note.md; 
+            if (( ${#files} )); then
+              cat $CI_PROJECT_DIR/bin/*/$f*.txt >> $CI_PROJECT_DIR/bin/note.md;
+              cat $CI_PROJECT_DIR/bin/*/$f*.txt >> mr_note.md;
             fi;
           done;
         - if [[ -z "$HOG_MR_MSG" ]] || [[ $HOG_MR_MSG == '1' ]]; then

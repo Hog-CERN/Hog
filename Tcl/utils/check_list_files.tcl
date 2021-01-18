@@ -305,7 +305,7 @@ foreach SRC $prjOTHERs {
 #checking file properties
 foreach key [dict keys $listProperties] {
   foreach prop [lindex [DictGet $listProperties $key] 0] {
-    if {[lsearch -nocase [DictGet $prjProperties $key] $prop] < 0 && ![string equal $prop ""] && ![string equal $prop "XDC"] && ![string equal $prop "top=top_$project"]} {
+    if {[lsearch -nocase [DictGet $prjProperties $key] $prop] < 0 && ![string equal $prop ""] && ![string equal $prop "XDC"]} {
       Msg CriticalWarning "$key property $prop is set in list files but not in Project!"
       incr ErrorCnt
     } 
@@ -316,7 +316,7 @@ foreach key [dict keys $listProperties] {
 foreach key [dict keys $prjProperties] {
   foreach prop [DictGet $prjProperties $key] {
     #puts "FILE $key: PROPERTY $prop"
-    if {[lsearch -nocase [lindex [DictGet $listProperties $key] 0] $prop] < 0 && ![string equal $prop ""] && ![string equal $key "Simulator"] } {
+    if {[lsearch -nocase [lindex [DictGet $listProperties $key] 0] $prop] < 0 && ![string equal $prop ""] && ![string equal $key "Simulator"] && ![string equal $prop "top=top_[file root $project]"]} {
       Msg CriticalWarning "$key property $prop is set in Project but not in list files!"
       incr ErrorCnt
     } 

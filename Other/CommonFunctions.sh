@@ -62,7 +62,7 @@ function Msg ()
 
   case $1 in
     "Info")
-      Colour=$Green
+      Colour=$Default
       ;;
     "Warning")
       Colour=$LightBlue
@@ -78,7 +78,6 @@ function Msg ()
       ;;
   esac
   
-  echo ""
   echo "$Colour HOG:$1 ${FUNCNAME[1]}()  $2 $Default";
   echo "";
 

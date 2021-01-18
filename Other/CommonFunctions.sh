@@ -79,7 +79,6 @@ function Msg ()
   esac
   
   echo "$Colour HOG:$1 ${FUNCNAME[1]}()  $2 $Default";
-  echo "";
 
   return 0;
 }

@@ -1476,7 +1476,7 @@ proc GetProjectFiles {} {
       set runtime [get_property "$simulator.simulate.runtime"  [get_filesets $fs]]
       #getting file containing top module as explained here: https://forums.xilinx.com/t5/Vivado-TCL-Community/How-can-I-get-the-file-path-of-the-top-module-in-the-current/td-p/455740
       if {[string equal "$topsim" ""]} {
-        Msg CriticalWarning "No top simulation file found for fileset $fs."
+        Msg CriticalWarning "No top simulation module found for fileset $fs."
       } else {
         set simtopfile [lindex [get_files -compile_order sources -used_in simulation -of_objects [get_filesets $fs]] end]
         if {[string equal [get_files -of_objects [get_filesets $fs] $simtopfile] ""] } {

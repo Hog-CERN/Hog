@@ -1,5 +1,5 @@
 # @file
-#   Copyright 2018-2020 The University of Birmingham
+#   Copyright 2018-2021 The University of Birmingham
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@ set repo_path [file normalize "$TclPath/../.."]
 source $TclPath/hog.tcl
 
 if {[catch {package require cmdline} ERROR]} {
-  Msg Error "$ERROR\n If you are running this script on tclsh, you can fix this by installing 'tcllib'" 
+  Msg Error "$ERROR\n If you are running this script on tclsh, you can fix this by installing 'tcllib'"
   return
 }
 
@@ -37,7 +37,7 @@ if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] 
   cd $OldPath
   return
 }
-                                                                                       
+
 set push_token [lindex $argv 0]
 set api [lindex $argv 1]
 set proj_id [lindex $argv 2]
@@ -62,8 +62,8 @@ if {$ret != 0} {
     Msg Error "Cannot find JSON package equal or higher than 1.0.\n $JsonFound\n Exiting"
     return -1
   }
-  
-  
+
+
   set ChildList [json::json2dict $msg]
   foreach Child $ChildList {
     set result [catch {dict get  $Child "id"} child_job_id]
@@ -111,7 +111,7 @@ if {$ret != 0} {
     if {$ret != 0} {
       Msg Error "Some problem when downloading artifacts for child job id:$child_job_id. Error message: $msg"
       return -1
-    } 
+    }
     Execute unzip -o output_${child_job_id}.zip
     file delete output_${child_job_id}.zip
   }

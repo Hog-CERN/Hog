@@ -1,5 +1,5 @@
 #!/bin/bash
-#   Copyright 2018-2020 The University of Birmingham
+#   Copyright 2018-2021 The University of Birmingham
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -19,15 +19,15 @@
 ## Import common functions from Other/CommonFunctions.sh in a POSIX compliant way
 #
 . $(dirname "$0")/Other/CommonFunctions.sh;
-
+print_hog
 ## @function argument_parser()
 #  @brief pase aguments and sets evvironment variables
 #  @param[out] IP_PATH      empty or "-eos_ip_path $2"
 #  @param[out] NJOBS        empty or "-NJOBS $2"
 #  @param[out] NO_BITSTREAM empty or "-no_bitstream"
 #  @param[out] SYNTH_ONLY   empty or "-synth_only"
-#  @param[out] IMPL_ONLY    empty or "-impl_only"    
-#  @param[out] NO_RECREATE  empty or "-no_recreate"  
+#  @param[out] IMPL_ONLY    empty or "-impl_only"
+#  @param[out] NO_RECREATE  empty or "-no_recreate"
 #  @param[out] RESET        empty or "-reset"
 #  @param[out] CHECK_SYNTAX empty or "-check_syntax"
 #  @param[out] EXT_PATH     empty or "-ext_path $2"
@@ -51,7 +51,7 @@ while (( "$#" )); do
 	    IMPL_ONLY="-impl_only"
 	    shift 1
 	    ;;
-	-no_recreate) 
+	-no_recreate)
 	    NO_RECREATE="-no_recreate"
 	    shift 1
 	    ;;
@@ -93,7 +93,7 @@ while (( "$#" )); do
 	    ;;
     esac
 done
-# set positional arguments in their proper place	
+# set positional arguments in their proper place
 }
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"

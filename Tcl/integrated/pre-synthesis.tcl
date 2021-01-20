@@ -1,5 +1,5 @@
 #!/usr/bin/env tclsh
-#   Copyright 2018-2020 The University of Birmingham
+#   Copyright 2018-2021 The University of Birmingham
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -101,7 +101,7 @@ if {[file exists $reset_file]} {
 
 
 # Getting all the versions and SHAs of the repository
-lassign [GetRepoVersions ./Top/$proj_name/$proj_name.tcl $ext_path] commit version  hog_hash hog_ver  top_hash top_ver  libs hashes vers  cons_ver cons_hash  ext_names ext_hashes  xml_hash xml_ver 
+lassign [GetRepoVersions ./Top/$proj_name/$proj_name.tcl $ext_path] commit version  hog_hash hog_ver  top_hash top_ver  libs hashes vers  cons_ver cons_hash  ext_names ext_hashes  xml_hash xml_ver
 
 set this_commit  [Git {log --format=%h -1}]
 
@@ -212,7 +212,7 @@ if {[info commands set_property] != ""} {
   cd $this_dir
 
   set zero_ttb 00000000
-  
+
   binary scan [binary format H* [string map {{'} {}} $date]] B32 bits
   set_parameter -name GLOBAL_DATE $bits
   binary scan [binary format H* [string map {{'} {}} $timee]] B32 bits
@@ -228,12 +228,12 @@ if {[info commands set_property] != ""} {
   binary scan [binary format H* [string map {{'} {}} $hog_hash]] B32 bits
   set_parameter -name HOG_SHA $bits
   binary scan [binary format H* [string map {{'} {}} $hog_ver]] B32 bits
-  set_parameter -name HOG_VER $bits 
+  set_parameter -name HOG_VER $bits
   binary scan [binary format H* [string map {{'} {}} $cons_ver]] B32 bits
   set_parameter -name CON_VER $bits
   binary scan [binary format H* [string map {{'} {}} $cons_hash]] B32 bits
   set_parameter -name CON_SHA $bits
-  
+
   if {$use_ipbus == 1} {
     binary scan [binary format H* [string map {{'} {}} $xml_ver]] B32 bits
     set_parameter -name XML_VER $bits
@@ -257,7 +257,7 @@ if {[info commands set_property] != ""} {
   if {$flavour != -1} {
      set_parameter -name FLAVOUR $flavour
   }
-  
+
   if {![file exists "$old_path/output_files"]} {
     file mkdir "$old_path/output_files"
   }

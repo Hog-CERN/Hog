@@ -142,4 +142,5 @@ function create_project ()
 
 }
 
+print_hog $@
 create_project $@

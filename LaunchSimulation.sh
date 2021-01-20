@@ -1,5 +1,5 @@
 #!/bin/bash
-#   Copyright 2018-2020 The University of Birmingham
+#   Copyright 2018-2021 The University of Birmingham
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -23,10 +23,11 @@
 #
 . $(dirname "$0")/Other/CommonFunctions.sh;
 
+print_hog
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-##! if called with -h or, -help or, --help or, -H optiins print help message and exit 
+##! if called with -h or, -help or, --help or, -H optiins print help message and exit
 if [ "$1" == "-h" ] || [ "$1" == "-help" ] || [ "$1" == "--help" ] || [ "$1" == "-H" ]; then
   echo
   echo " Hog - Launch Simulation"
@@ -41,13 +42,13 @@ fi
 
 if [ -z "$1" ]
 then
-  ##! If no args passed then print help message 
+  ##! If no args passed then print help message
   printf "Project name has not been specified. Usage: \n Hog/LaunchSimulation.sh <proj_name> [library path]\n"
 else
   if [ ! -z "$2" ]
   then
     LIBPATH="-lib_path $2"
-  fi	
+  fi
 
   PROJ=$1
   PROJ_DIR="$DIR/../Top/"$PROJ

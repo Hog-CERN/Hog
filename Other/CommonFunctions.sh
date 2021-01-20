@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#   Copyright 2018-2020 The University of Birmingham
+#   Copyright 2018-2021 The University of Birmingham
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -46,7 +46,7 @@ function Msg ()
     Msg Error "messageLevel not set!"
     return 1
   fi
-  
+
   if [ "a$2" == "a" ]
   then
     Msg Warning "message not set!"
@@ -77,7 +77,7 @@ function Msg ()
       Msg Error "messageLevel: $1 not supported! Use Info, Warning, CriticalWarning, Error"
       ;;
   esac
-  
+
   echo "$Colour HOG:$1 ${FUNCNAME[1]}()  $2 $Default";
 
   return 0;
@@ -97,7 +97,7 @@ function Msg ()
 #   * intelHLS
 #   * planahead
 #
-# @param[in]    $1 the first line of the tcl file or a suitable string 
+# @param[in]    $1 the first line of the tcl file or a suitable string
 # @param[out]   COMMAND  global variable: the selected command
 # @param[out]   COMMAND_OPT global variable: the selected command options
 #
@@ -271,6 +271,15 @@ function select_executable_form_file ()
     Msg Error "Failed to get HDL compiler executable for $COMMAND"
     return 1
   fi
-  
+
+  return 0
+}
+
+# @fn print_hog
+#
+# @brief prints the hog logo 
+function print_hog ()
+{
+  cat $(dirname "$0")/images/hog_logo.txt
   return 0
 }

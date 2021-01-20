@@ -1,5 +1,5 @@
 #!/usr/bin/env tclsh
-#   Copyright 2018-2020 The University of Birmingham
+#   Copyright 2018-2021 The University of Birmingham
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -23,7 +23,7 @@ set TclPath [file dirname [info script]]/..
 source $TclPath/hog.tcl
 
 if {[catch {package require cmdline} ERROR]} {
-  Msg Error "$ERROR\n If you are running this script on tclsh, you can fix this by installing 'tcllib'" 
+  Msg Error "$ERROR\n If you are running this script on tclsh, you can fix this by installing 'tcllib'"
   exit 1
 }
 

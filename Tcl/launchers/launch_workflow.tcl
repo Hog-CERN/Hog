@@ -1,5 +1,5 @@
 # @file
-#   Copyright 2018-2020 The University of Birmingham
+#   Copyright 2018-2021 The University of Birmingham
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -113,11 +113,11 @@ if { $options(ip_eos_path) != "" } {
       set ret [HandleIP pull $ip $ip_path $main_folder]
       if {$ret == 0} {
         incr copied_ips
-      }   
+      }
     } else {
       Msg Info "Synthesised files for IP $ip are already in the repository. Do not copy from EOS..."
       lappend repo_ips $ip
-    }   
+    }
   }
   Msg Info "$copied_ips IPs were copied from the EOS repository."
 }
@@ -125,7 +125,7 @@ if { $options(ip_eos_path) != "" } {
 
 if {$do_synthesis == 0} {
   Msg Info "Will launch implementation only..."
-  
+
 } else {
   if {$do_implementation == 1} {
     if {$do_bitstream == 1} {
@@ -137,7 +137,7 @@ if {$do_synthesis == 0} {
     Msg Info "Will launch synthesis only..."
   }
 }
-  
+
 if { $ip_path != "" } {
     Msg Info "Will copy synthesised IPs from/to $ip_path"
 }
@@ -160,9 +160,9 @@ if {[file exists $project_file]} {
 }
 
 if {($proj_found == 0 || $recreate == 1) && $do_synthesis == 1} {
-  Msg Info "Creating (possibly replacing) the project $project..." 
+  Msg Info "Creating (possibly replacing) the project $project..."
   source ../../Top/$project/$project.tcl
-  
+
 } else {
   Msg Info "Opening existing project file $project_file..."
   open_project $project_file
@@ -172,7 +172,7 @@ if {($proj_found == 0 || $recreate == 1) && $do_synthesis == 1} {
 if { $check_syntax == 1 } {
   Msg Info "Checking syntax for project $project..."
   set syntax [check_syntax -return_string]
-  
+
   if {[string first "CRITICAL" $syntax ] != -1} {
     check_syntax
     exit 1
@@ -185,7 +185,7 @@ if { $check_syntax == 1 } {
 if {$reset == 1 } {
   Msg Info "Resetting run before launching synthesis..."
   reset_run synth_1
-  
+
 }
 
 if { [string first PlanAhead [version]] ==0 } {
@@ -201,14 +201,14 @@ if {$do_synthesis == 1} {
 
   # Copy IP reports in bin/
   set ips [get_ips *]
-  
+
   #go to repository path
   cd $path/../..
-  
+
   lassign [GetRepoVersion [file normalize ./Top/$project/$project.tcl] $ext_path ] sha
   set describe [GetGitDescribe $sha]
   Msg Info "Git describe set to $describe"
-  
+
   foreach ip $ips {
     set xci_file [get_property IP_FILE $ip]
     set xci_path [file dir $xci_file]
@@ -216,11 +216,11 @@ if {$do_synthesis == 1} {
     foreach rptfile [glob -nocomplain -directory $xci_path *.rpt] {
       file copy $rptfile $bin_dir/$project-$describe/reports
     }
-    
+
     ######### Copy IP to EOS repository
     if {($ip_path != "")} {
       # IP is not in the gitlab repo
-      if {[lsearch $repo_ips $ip] != -1 } { 
+      if {[lsearch $repo_ips $ip] != -1 } {
         set force 0
         if [info exist runs] {
           if {[lsearch $runs $ip\_synth_1] != -1} {
@@ -233,7 +233,7 @@ if {$do_synthesis == 1} {
       }
     }
   }
-  
+
   if {$prog ne "100%"} {
     Msg Error "Synthesis error, status is: $status"
   }
@@ -255,11 +255,11 @@ if {$do_implementation == 1 } {
   launch_runs impl_1 -jobs $options(njobs) -dir $main_folder
   wait_on_run impl_1
   if { [string first PlanAhead [version]] ==0} {source  $path/../../Hog/Tcl/integrated/post-implementation.tcl}
-  
+
   set prog [get_property PROGRESS [get_runs impl_1]]
   set status [get_property STATUS [get_runs impl_1]]
   Msg Info "Run: impl_1 progress: $prog, status : $status"
-  
+
   # Check timing
   if { [string first PlanAhead [version]] ==0 } {
 
@@ -303,7 +303,7 @@ if {$do_implementation == 1 } {
     set tns [get_property STATS.TNS [get_runs [current_run]]]
     set whs [get_property STATS.WHS [get_runs [current_run]]]
     set ths [get_property STATS.THS [get_runs [current_run]]]
-    
+
     if {$wns >= 0 && $whs >= 0} {
       Msg Info "Time requirements are met"
       set status_file [open "$main_folder/timing_ok.txt" "w"]
@@ -313,17 +313,17 @@ if {$do_implementation == 1 } {
       set status_file [open "$main_folder/timing_error.txt" "w"]
       set timing_ok 0
     }
-    
+
     Msg Status "*** Timing summary ***"
     Msg Status "WNS: $wns"
     Msg Status "TNS: $tns"
     Msg Status "WHS: $whs"
     Msg Status "THS: $ths"
-    
+
     struct::matrix m
     m add columns 5
     m add row
-    
+
     puts $status_file "## $project Timing summary"
     m add row  "| **Parameter** | \"**value (ns)**\" |"
     m add row  "| --- | --- |"
@@ -331,7 +331,7 @@ if {$do_implementation == 1 } {
     m add row  "|  TNS:  |  $tns  |"
     m add row  "|  WHS:  |  $whs  |"
     m add row  "|  THS:  |  $ths  |"
-    
+
     puts $status_file [m format 2string]
     puts $status_file "\n"
     if {$timing_ok == 1} {
@@ -342,11 +342,11 @@ if {$do_implementation == 1 } {
     puts $status_file "\n\n"
     close $status_file
   }
-  
+
   if {$prog ne "100%"} {
     Msg Error "Implementation error"
   }
-  
+
   if {$do_bitstream == 1} {
     Msg Info "Starting write bitstream flow..."
     if { [string first PlanAhead [version]] == 0 } {
@@ -362,15 +362,15 @@ if {$do_implementation == 1 } {
       launch_runs impl_1 -to_step write_bitstream -jobs 4 -dir $main_folder
       wait_on_run impl_1
     }
-    
+
     set prog [get_property PROGRESS [get_runs impl_1]]
     set status [get_property STATUS [get_runs impl_1]]
     Msg Info "Run: impl_1 progress: $prog, status : $status"
-    
+
     if {$prog ne "100%"} {
       Msg Error "Write bitstream error, status is: $status"
     }
-    
+
     if { [string first PlanAhead [version]] !=0 } {
       Msg Status "*** Timing summary (again) ***"
       Msg Status "WNS: $wns"
@@ -382,15 +382,15 @@ if {$do_implementation == 1 } {
 
   #Go to repository path
   cd $path/../../
-  
+
   lassign [GetRepoVersion [file normalize ./Top/$project/$project.tcl]] sha
   set describe [GetGitDescribe $sha]
   Msg Info "Git describe set to $describe"
-  
+
   set dst_dir [file normalize "$bin_dir/$project\-$describe"]
-  
+
   file mkdir $dst_dir
-  
+
   #Version table
   if [file exists $main_folder/versions.txt] {
     file copy -force $main_folder/versions.txt $dst_dir
@@ -400,7 +400,7 @@ if {$do_implementation == 1 } {
   #Timing file
   set timing_files [ glob -nocomplain "$main_folder/timing_*.txt" ]
   set timing_file [file normalize [lindex $timing_files 0]]
-  
+
   if [file exists $timing_file ] {
     file copy -force $timing_file $dst_dir/
   } else {

@@ -1,4 +1,4 @@
-#   Copyright 2018-2020 The University of Birmingham
+#   Copyright 2018-2021 The University of Birmingham
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -36,7 +36,7 @@ generate-config:
   rules:
     - if: $CI_MERGE_REQUEST_ID
   tags:
-    - docker 
+    - docker
 
 child-pipeline:
   # only:
@@ -44,7 +44,7 @@ child-pipeline:
   #     - merge_requests
   stage: dynamic_triggers
   trigger:
-    include: 
+    include:
       - artifact: generated-config.yml
         job: generate-config
     strategy: depend
@@ -56,7 +56,7 @@ collect_artifacts:
   stage: collect
   script:
     - git status
-    - git submodule init 
+    - git submodule init
     - git submodule update Hog
     - if [ ! -f .env ]; then
         echo "You must save a .env file as an upstream artifact containing the Child Pipeline Creator's Job ID as CREATE_JOB_ID";
@@ -77,5 +77,3 @@ collect_artifacts:
     expire_in: 30 days
   tags:
     - docker
-
-

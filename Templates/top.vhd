@@ -1,4 +1,4 @@
---   Copyright 2018-2020 The University of Birmingham
+--   Copyright 2018-2021 The University of Birmingham
 --
 --   Licensed under the Apache License, Version 2.0 (the "License");
 --   you may not use this file except in compliance with the License.
@@ -36,7 +36,7 @@ entity top_myproj is
     CON_VER     : std_logic_vector(31 downto 0);
     CON_SHA     : std_logic_vector(31 downto 0);
     HOG_VER     : std_logic_vector(31 downto 0);
-    HOG_SHA     : std_logic_vector(31 downto 0);    
+    HOG_SHA     : std_logic_vector(31 downto 0);
 
     --IPBus XML
     XML_SHA : std_logic_vector(31 downto 0);

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#   Copyright 2018-2020 The University of Birmingham
+#   Copyright 2018-2021 The University of Birmingham
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -46,8 +46,8 @@ function help_message()
 #  @param[out] NJOBS        empty or "-NJOBS $2"
 #  @param[out] NO_BITSTREAM empty or "-no_bitstream"
 #  @param[out] SYNTH_ONLY   empty or "-synth_only"
-#  @param[out] IMPL_ONLY    empty or "-impl_only"    
-#  @param[out] NO_RECREATE  empty or "-no_recreate"  
+#  @param[out] IMPL_ONLY    empty or "-impl_only"
+#  @param[out] NO_RECREATE  empty or "-no_recreate"
 #  @param[out] RESET        empty or "-reset"
 #  @param[out] CHECK_SYNTAX empty or "-check_syntax"
 #  @param[out] EXT_PATH     empty or "-ext_path $2"
@@ -55,7 +55,7 @@ function help_message()
 #  @return                  1 if error or help, else 0
 
 
-function argument_parser() 
+function argument_parser()
 {
   PARAMS=""
   while (( "$#" )); do
@@ -86,7 +86,7 @@ function argument_parser()
         ;;
     esac
   done
-  # set positional arguments in their proper place	
+  # set positional arguments in their proper place
 }
 
 ## @fn main
@@ -112,7 +112,7 @@ function main ()
   if [ $? = 1 ]; then
     exit 1
   fi
-  set -- "${PARAMS[@]}" 
+  set -- "${PARAMS[@]}"
 
   if [ "$HELP" == "-h" ]; then
     help_message $0
@@ -129,7 +129,7 @@ function main ()
     echo
     cd "${OLD_DIR}"
     exit 1
-  fi  
+  fi
 
   local PROJ=`echo $1`
   local PROJ_DIR="$DIR/$PROJ"

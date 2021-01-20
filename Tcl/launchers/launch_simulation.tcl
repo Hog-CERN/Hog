@@ -1,4 +1,4 @@
-#   Copyright 2018-2020 The University of Birmingham
+#   Copyright 2018-2021 The University of Birmingham
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -141,7 +141,7 @@ if [info exists sim_scripts] { #Only for modelsim/questasim
     cd $s
     set cmd ./compile.sh
     Msg Info "Compiling: $cmd..."
-    lassign [ExecuteRet $cmd] ret log 
+    lassign [ExecuteRet $cmd] ret log
     if {$ret != 0} {
       Msg CriticalWarning "Compilation failed for $s, error info: $::errorInfo"
       incr errors
@@ -153,7 +153,7 @@ if [info exists sim_scripts] { #Only for modelsim/questasim
     if { [file exists "./elaborate.sh"] } {
       set cmd ./elaborate.sh
       Msg Info "Found eleborate script, executing: $cmd..."
-      lassign [ExecuteRet $cmd] ret log 
+      lassign [ExecuteRet $cmd] ret log
       if {$ret != 0} {
         Msg CriticalWarning "Elaboration failed for $s, error info: $::errorInfo"
         incr errors
@@ -164,7 +164,7 @@ if [info exists sim_scripts] { #Only for modelsim/questasim
     }
     set cmd ./simulate.sh
     Msg Info "Simulating: $cmd..."
-    lassign [ExecuteRet $cmd] ret log 
+    lassign [ExecuteRet $cmd] ret log
     if {$ret != 0} {
       Msg CriticalWarning "Simulation failed for $s, error info: $::errorInfo"
       incr errors

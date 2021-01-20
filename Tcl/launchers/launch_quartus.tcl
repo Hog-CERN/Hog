@@ -1,4 +1,4 @@
-#   Copyright 2018-2020 The University of Birmingham
+#   Copyright 2018-2021 The University of Birmingham
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -61,7 +61,7 @@ if { [ catch {array set options [cmdline::getoptions quartus(args) $parameters $
 
 if { $options(no_bitstream) == 1 } {
   set do_compile 0
-  set do_bitstream 0 
+  set do_bitstream 0
 }
 
 if { $options(no_recreate) == 1 } {
@@ -83,7 +83,7 @@ if { $options(check_syntax) == 1 } {
 }
 
 #############################
-# Recreate the project file # 
+# Recreate the project file #
 #############################
 if { [catch {package require ::quartus::project} ERROR] } {
   Msg Error "$ERROR\n Can not find package ::quartus::project"
@@ -102,9 +102,9 @@ if {[file exists "$project_path/$project.qpf" ]} {
 }
 
 if { $proj_found == 0 || $recreate == 1 } {
-  Msg Info "Creating (possibly replacing) the project $project..." 
+  Msg Info "Creating (possibly replacing) the project $project..."
   source ../../Top/$project/$project.tcl
-} 
+}
 
 if {[file exists "$project_path" ]} {
   cd $project_path
@@ -121,7 +121,7 @@ if { ![is_project_open ] } {
 Msg Info "Number of jobs set to $options(njobs)."
 set_global_assignment -name NUM_PARALLEL_PROCESSORS $options(njobs)
 
-load_package flow 
+load_package flow
 
 ################
 # CHECK SYNTAX #
@@ -169,7 +169,7 @@ if { $do_compile == 1 } {
   #############################
   if { $do_synthesis == 1 } {
 
-    
+
     #run PRE_FLOW_SCRIPT by hand
     set tool_and_command [ split [get_global_assignment -name PRE_FLOW_SCRIPT_FILE] ":"]
     set tool [lindex $tool_and_command 0]
@@ -177,7 +177,7 @@ if { $do_compile == 1 } {
     set cmd "$tool -t $pre_flow_script quartus_map $project $revision"
     #Close project to avoid conflict with pre synthesis script
     project_close
-    
+
     lassign [ExecuteRet {*}$cmd ] ret log
     if {$ret != 0} {
       Msg Warning "Can not exectue command $cmd"
@@ -185,13 +185,13 @@ if { $do_compile == 1 } {
     } else {
       Msg Info "Pre flow script executed!"
     }
-    
+
     # Re-open project
     if { ![is_project_open ] } {
       Msg Info "Re-opening project file $project..."
       project_open $project -current_revision
     }
- 
+
     # Execute synthesis
     if {[catch {execute_module -tool map -args "--parallel"} result]} {
       Msg Error "Result: $result\n"
@@ -209,7 +209,7 @@ if { $do_compile == 1 } {
       Msg Error "Place & Route failed. See the report file.\n"
     } else {
       Msg Info "\nINFO: Place & Route was successful for revision $revision.\n"
-    } 
+    }
     #############################
     # Generate bitstream
     #############################
@@ -219,7 +219,7 @@ if { $do_compile == 1 } {
         Msg Error "Generate bitstream failed. See the report file.\n"
       } else {
         Msg Info "Generate bitstream was successful for revision $revision.\n"
-      } 
+      }
     }
     #############################
     # Additional tools to be run on the project
@@ -244,14 +244,14 @@ if { $do_compile == 1 } {
       Msg Info "Slack:"
       #Msg Info  $slack
       Msg Info "*******************************************************************"
-    } 
-  
+    }
+
     #if {[catch {execute_module -tool eda} result]} {
     #   Msg Error "Result: $result\n"
     #   Msg Error "EDA Netlist Writer failed. See the report file.\n"
     # } else {
     #   Msg Info "EDA Netlist Writer was successfully run for revision $revision.\n"
-    # } 
+    # }
   }
 }
 

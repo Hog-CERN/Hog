@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#   Copyright 2018-2020 The University of Birmingham
+#   Copyright 2018-2021 The University of Birmingham
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -14,6 +14,7 @@
 #   limitations under the License.
 
 ## @file Init.sh
+. $(dirname "$0")/Other/CommonFunctions.sh;
 
 
 ## @fn help_message
@@ -56,12 +57,12 @@ function init()
 
   cd "${DIR}"
 
-  ##! The script checks if Vivado is installed and set uop on the shell. 
+  ##! The script checks if Vivado is installed and set uop on the shell.
   ##! NOTE that these checks are performed using 'which'
   if [ `which vivado` ]
   then
     local VIVADO=`which vivado`
-    ##! If Vivado is installed it checks if vsim command is defined (Questasim or Modelsim is installed and set-up in the shell). 
+    ##! If Vivado is installed it checks if vsim command is defined (Questasim or Modelsim is installed and set-up in the shell).
     ##! NOTE that these checks are performed using 'which'
     if [ `which vsim` ]
     then
@@ -70,7 +71,7 @@ function init()
       ##! NOTE use read to grab user input
       ##! NOTE if the user input contains Y or y then is accepted as yes
       read -p "Do you want to compile Questasim libraries for Vivado (this might take some time)? " -n 1 -r
-      echo  
+      echo
       if [[ "${REPLY}" =~ ^[Yy]$ ]]
       then
         echo [hog init] Compiling Questasim libraries into SimulationLib...
@@ -80,7 +81,7 @@ function init()
         rm -f ./Tcl/modelsim.ini
       else
         read -p "Do you want to compile Modelsim libraries for Vivado (this might take some time)? " -n 1 -r
-        echo  
+        echo
         if [[  "${REPLY}" =~ ^[Yy]$ ]]
         then
           echo [hog init] Compiling Modelsim libraries into SimulationLib...
@@ -91,14 +92,14 @@ function init()
         fi
       fi
     else
-      echo [hog init] "WARNING: No modelsim executable found, will not compile libraries" 
+      echo [hog init] "WARNING: No modelsim executable found, will not compile libraries"
     fi
   fi
   # REpeat compilation using Quartus
   if [ `which quartus_sh` ]
   then
     local QUARTUS=`which quartus_sh`
-    ##! If Quartus is installed it checks if vsim command is defined (Questasim or Modelsim is installed and set-up in the shell). 
+    ##! If Quartus is installed it checks if vsim command is defined (Questasim or Modelsim is installed and set-up in the shell).
     ##! NOTE that these checks are performed using 'which'
     if [ `which vsim` ]
     then
@@ -107,7 +108,7 @@ function init()
       ##! NOTE use read to grab user input
       ##! NOTE if the user input contains Y or y then is accepted as yes
       read -p "Do you want to compile Questasim libraries for Quartus (this might take some time)? " -n 1 -r
-      echo  
+      echo
       if [[ "${REPLY}" =~ ^[Yy]$ ]]
       then
         echo [hog init] Compiling Questasim libraries into SimulationLib...
@@ -117,18 +118,18 @@ function init()
         "${QUARTUS}" --simlib_comp -suppress_messages -tool questasim -language vhdl -family all -directory "${OLD_DIR}/SimulationLib_quartus/vhdl/"
       else
         read -p "Do you want to compile Modelsim libraries for Quartus (this might take some time)? " -n 1 -r
-        echo  
+        echo
         if [[  "${REPLY}" =~ ^[Yy]$ ]]
         then
           echo [hog init] Compiling Modelsim libraries into SimulationLib...
           mkdir -p "${OLD_DIR}/SimulationLib_quartus/verilog/"
-          mkdir -p "${OLD_DIR}/SimulationLib_quartus/vhdl/" 
+          mkdir -p "${OLD_DIR}/SimulationLib_quartus/vhdl/"
           "${QUARTUS}" --simlib_comp -suppress_messages -tool modelsim -language verilog -family all -directory "${OLD_DIR}/SimulationLib_quartus/verilog/"
           "${QUARTUS}" --simlib_comp -suppress_messages -tool modelsim -language vhdl -family all -directory "${OLD_DIR}/SimulationLib_quartus/vhdl/"
         fi
       fi
     else
-      echo [hog init] "WARNING: No modelsim executable found, will not compile libraries" 
+      echo [hog init] "WARNING: No modelsim executable found, will not compile libraries"
     fi
 
   else
@@ -193,7 +194,7 @@ function init()
     echo    # (optional) move to a new line
     if [[ "${REPLY}" =~ ^[Yy]$ ]]
     then
-       vivado -mode batch -notrace -source $DIR/Tcl/utils/add_hog_custom_button.tcl 
+       vivado -mode batch -notrace -source $DIR/Tcl/utils/add_hog_custom_button.tcl
     fi
   fi
 
@@ -202,4 +203,5 @@ function init()
   cd "${OLD_DIR}"
 }
 
+print_hog $@
 init $@

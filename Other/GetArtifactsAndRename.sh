@@ -1,5 +1,5 @@
 #!/bin/bash
-#   Copyright 2018-2020 The University of Birmingham
+#   Copyright 2018-2021 The University of Birmingham
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -34,14 +34,14 @@ else
     # GET all artifacts from user_post stage
 	pipeline=$(curl --globoff --header "PRIVATE-TOKEN: ${push_token}" "$api/projects/${proj}/merge_requests/$mr/pipelines" | jq '.[0].id')
 	job=$(curl --globoff --header "PRIVATE-TOKEN: ${push_token}" "$api/projects/${proj}/pipelines/${pipeline}/jobs" | jq -r '.[-1].name')
-    if [ "$job" != "$5" ]; 
+    if [ "$job" != "$5" ];
     then
         curl --location --header "PRIVATE-TOKEN: ${push_token}" "$api"/projects/"${proj}"/jobs/artifacts/"$ref"/download?job="$job" -o output1.zip
-    fi    
+    fi
 
     echo "Hog-INFO: unzipping artifacts from $5 job..."
     unzip output.zip
-    if [ "$job" != "$5" ]; 
+    if [ "$job" != "$5" ];
     then
         unzip -vo output1.zip
         rm output1.zip

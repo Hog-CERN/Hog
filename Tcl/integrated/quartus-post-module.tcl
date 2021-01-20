@@ -1,3 +1,5 @@
+#   Copyright 2018-2021 The University of Birmingham
+#
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
 #   You may obtain a copy of the License at
@@ -9,6 +11,7 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
+
 
 # @file quartus-pre-flow.tcl
 # The pre synthesis flow checks the status of your git repository and stores into a set of variables that are fed as genereics to the HDL project.

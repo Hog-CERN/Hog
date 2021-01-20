@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#   Copyright 2018-2020 The University of Birmingham
+#   Copyright 2018-2021 The University of Birmingham
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -37,7 +37,7 @@ for HDL_COMPILER in ${COMPILERS_TO_CHECK[@]}; do
     echo "Failed to select project type: exiting!"
     exit -1
   fi
-  
+
   if [ `which $COMMAND 2>/dev/null` ]
   then
     CMD=`which $COMMAND`

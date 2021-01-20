@@ -1,5 +1,5 @@
 #!/usr/bin/env tclsh
-#   Copyright 2018-2020 The University of Birmingham
+#   Copyright 2018-2021 The University of Birmingham
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -27,4 +27,3 @@ set hog_path [file normalize "[file dirname [info script]]/../.."]
 
 remove_gui_custom_commands -quiet Hog_listFiles
 create_gui_custom_command -name Hog_listFiles -description "Recreate Hog listFiles (overwrites the old ones)" -show_on_toolbar -toolbar_icon $hog_path/images/hog.png -command "if {\[info exists env(HOG_EXTERNAL_PATH)\]} {set argv \[list \"-recreate\" \"-force\"\  \"-ext_path\" \"\$env(HOG_EXTERNAL_PATH)\"]} else { set argv \[list \"-recreate\" \"-force\"\] }; source -notrace \[get_property DIRECTORY \[current_project\]\]/../../Hog/Tcl/utils/check_list_files.tcl; set argv \[list\]"
-

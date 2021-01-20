@@ -1,5 +1,5 @@
 #!/usr/bin/env tclsh
-#   Copyright 2018-2020 The University of Birmingham
+#   Copyright 2018-2021 The University of Birmingham
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@
 
 #parsing command options
 if {[catch {package require cmdline} ERROR]} {
-  puts "$ERROR\n If you are running this script on tclsh, you can fix this by installing 'tcllib'" 
+  puts "$ERROR\n If you are running this script on tclsh, you can fix this by installing 'tcllib'"
   return
 }
 if { [string first PlanAhead [version]] == 0 } {
@@ -58,14 +58,14 @@ set usage   "Checks if the list files matches the project ones. It can also be u
 
 set hog_path [file normalize "[file dirname [info script]]/.."]
 set repo_path [file normalize "$hog_path/../.."]
-#cd $hog_path 
+#cd $hog_path
 source $hog_path/hog.tcl
 
 if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}]} {
   Msg Info [cmdline::usage $parameters $usage]
   #cd $repo_path
   exit 1
-} 
+}
 
 
 set ext_path $options(ext_path)
@@ -92,7 +92,7 @@ lassign [GetHogFiles -ext_path "$ext_path" "$repo_path/Top/$project/list/"] list
 
 set prjIPs  [DictGet $prjLibraries IP]
 set prjXDCs  [DictGet $prjLibraries XDC]
-set prjOTHERs [DictGet $prjLibraries OTHER] 
+set prjOTHERs [DictGet $prjLibraries OTHER]
 set prjSimDict  [DictGet $prjLibraries SIM]
 set prjSrcDict  [DictGet $prjLibraries SRC]
 
@@ -102,20 +102,20 @@ foreach library [dict keys $listLibraries] {
   set fileNames [DictGet $listLibraries $library]
   foreach fileName $fileNames {
     set idxs [lreplace [lsearch -exact -all $fileNames $fileName] 0 0]
-    foreach idx $idxs {  
+    foreach idx $idxs {
 		  set fileNames [lreplace $fileNames $idx $idx]
     }
-  } 
+  }
   dict set listLibraries $library $fileNames
 }
 foreach property [dict keys $listProperties] {
   set props [lindex [dict get $listProperties $property] 0]
   foreach prop $props {
     set idxs [lreplace [lsearch -exact -all $props $prop] 0 0]
-    foreach idx $idxs {  
+    foreach idx $idxs {
 		  set props [lreplace $props $idx $idx]
     }
-  } 
+  }
   dict set listProperties $property [list $props]
 }
 
@@ -135,7 +135,7 @@ foreach key [dict keys $listLibraries] {
 			} else {
         dict lappend newListfiles [file rootname $key].src [string trim "[RelativeLocal $repo_path $IP] [DictGet $prjProperties $IP]"]
       }
-		} 
+		}
 	} elseif {[file extension $key] == ".con" } {
 		#check if project contains XDCs specified in listfiles
 		foreach XDC [DictGet $listLibraries $key] {
@@ -147,11 +147,11 @@ foreach key [dict keys $listLibraries] {
 			} else {
         dict lappend newListfiles $key [string trim "[RelativeLocal $repo_path $XDC] [DictGet $prjProperties $XDC]"]
       }
-		} 
+		}
 	} elseif {[file extension $key] == ".sim" } {
     if {[dict exists $prjSimDict "[file rootname $key]_sim"]} {
       set prjSIMs [DictGet $prjSimDict "[file rootname $key]_sim"]
-		  #check if project contains sin files specified in listfiles    
+		  #check if project contains sin files specified in listfiles
 		  foreach SIM [DictGet $listLibraries $key] {
 			  set idx [lsearch -exact $prjSIMs $SIM]
 			  set prjSIMs [lreplace $prjSIMs $idx $idx]
@@ -161,7 +161,7 @@ foreach key [dict keys $listLibraries] {
 			  } else {
           dict lappend newListfiles $key [string trim "[RelativeLocal $repo_path $SIM] [DictGet $prjProperties $SIM]"]
         }
-		  } 
+		  }
       dict set prjSimDict "[file rootname $key]_sim" $prjSIMs
     } else {
       Msg CriticalWarning "[file rootname $key]_sim fileset not found in Project! Was it removed from the project?"
@@ -169,8 +169,8 @@ foreach key [dict keys $listLibraries] {
     }
 	} elseif {[file extension $key] == ".src" || [file extension $key] == ".sub"} {
 		#check if project contains sources specified in listfiles
-    set prjSRCs [DictGet $prjSrcDict [file rootname $key]] 
-    
+    set prjSRCs [DictGet $prjSrcDict [file rootname $key]]
+
 		foreach SRC [DictGet $listLibraries $key] {
 			set idx [lsearch -exact $prjSRCs $SRC]
 			set prjSRCs [lreplace $prjSRCs $idx $idx]
@@ -186,12 +186,12 @@ foreach key [dict keys $listLibraries] {
 			} else {
          dict lappend newListfiles $key [string trim "[RelativeLocal $repo_path $SRC] [DictGet $prjProperties $SRC]"]
       }
-		} 
+		}
     dict set prjSrcDict [file rootname $key] $prjSRCs
 	} elseif {[file extension $key] == ".ext" } {
     #check if project contains external files specified in listfiles
-    set prjSRCs [DictGet $prjSrcDict [file rootname $key]] 
-    
+    set prjSRCs [DictGet $prjSrcDict [file rootname $key]]
+
 		foreach SRC [DictGet $listLibraries $key] {
 			set idx [lsearch -exact $prjSRCs $SRC]
 			set prjSRCs [lreplace $prjSRCs $idx $idx]
@@ -209,13 +209,13 @@ foreach key [dict keys $listLibraries] {
          dict lappend newListfiles $key [string trim "[RelativeLocal $ext_path $SRC] [Md5Sum $SRC] [DictGet $prjProperties $SRC]"]
          dict lappend prjProperties $SRC [Md5Sum $SRC]
       }
-		} 
+		}
     dict set prjSrcDict [file rootname $key] $prjSRCs
   } else {
 		Msg CriticalWarning "$key list file format unrecognized by Hog."
     incr ErrorCnt
 	}
-	
+
 }
 
 
@@ -308,7 +308,7 @@ foreach key [dict keys $listProperties] {
     if {[lsearch -nocase [DictGet $prjProperties $key] $prop] < 0 && ![string equal $prop ""] && ![string equal $prop "XDC"]} {
       Msg CriticalWarning "$key property $prop is set in list files but not in Project!"
       incr ErrorCnt
-    } 
+    }
   }
 }
 
@@ -319,7 +319,7 @@ foreach key [dict keys $prjProperties] {
     if {[lsearch -nocase [lindex [DictGet $listProperties $key] 0] $prop] < 0 && ![string equal $prop ""] && ![string equal $key "Simulator"] && ![string equal $prop "top=top_[file root $project]"]} {
       Msg CriticalWarning "$key property $prop is set in Project but not in list files!"
       incr ErrorCnt
-    } 
+    }
   }
 }
 
@@ -362,7 +362,7 @@ if {$options(recreate) == 1} {
   }
 
   if {$options(recreate_prj_tcl) == 1} {
-    
+
     Msg Info "Updating project tcl file $repo_path/$DirName/$project.tcl"
     set lFd [open $repo_path/$DirName/$project.tcl w]
     puts $lFd "#vivado"
@@ -390,23 +390,23 @@ set SIMULATOR \"[DictGet $prjProperties Simulator]\""
     lappend runs [list [get_runs impl*]]
     foreach proj_run $runs {
       puts $lFd " $proj_run \[dict create \\"
-  
+
       set run_props [list]
       foreach propReport [split "[report_property  -return_string -all [get_runs $proj_run]]" "\n"] {
-        
-        if {[string equal "[lindex $propReport 2]" "false"] && ![string equal "[lindex $propReport 0]" "PART"] && ![string equal "[lindex $propReport 0]" "STRATEGY"] && ![string equal "[lindex $propReport 0]" "FLOW"] && ![string equal "[lindex $propReport 0]" "STEPS.SYNTH_DESIGN.TCL.PRE"] && ![string equal "[lindex $propReport 0]" "STEPS.ROUTE_DESIGN.TCL.POST"] && ![string equal "[lindex $propReport 0]" "STEPS.WRITE_BITSTREAM.TCL.PRE"] && ![string equal "[lindex $propReport 0]" "STEPS.WRITE_BITSTREAM.TCL.POST"] && ![string equal "[lindex $propReport 0]" "STEPS.WRITE_BITSTREAM.ARGS.BIN_FILE"]} {          
-          lappend run_props [lindex $propReport 0] 
-        } 
+
+        if {[string equal "[lindex $propReport 2]" "false"] && ![string equal "[lindex $propReport 0]" "PART"] && ![string equal "[lindex $propReport 0]" "STRATEGY"] && ![string equal "[lindex $propReport 0]" "FLOW"] && ![string equal "[lindex $propReport 0]" "STEPS.SYNTH_DESIGN.TCL.PRE"] && ![string equal "[lindex $propReport 0]" "STEPS.ROUTE_DESIGN.TCL.POST"] && ![string equal "[lindex $propReport 0]" "STEPS.WRITE_BITSTREAM.TCL.PRE"] && ![string equal "[lindex $propReport 0]" "STEPS.WRITE_BITSTREAM.TCL.POST"] && ![string equal "[lindex $propReport 0]" "STEPS.WRITE_BITSTREAM.ARGS.BIN_FILE"]} {
+          lappend run_props [lindex $propReport 0]
+        }
       }
-      
+
 
       foreach prop $run_props {
         set Dval [list_property_value -default $prop [get_runs $proj_run]]
         set val [get_property $prop [get_runs $proj_run]]
         if {$Dval!=$val} {
           puts $lFd "   $prop  \"$val\" \\"
-        } 
-      
+        }
+
       }
       puts $lFd " \] \\"
     }

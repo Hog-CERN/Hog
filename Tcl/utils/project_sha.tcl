@@ -1,5 +1,5 @@
 #!/usr/bin/env tclsh
-#   Copyright 2018-2020 The University of Birmingham
+#   Copyright 2018-2021 The University of Birmingham
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -57,7 +57,7 @@ if {[file exists $tcl_file]} {
   } else {
     set ret $sha
   }
-  
+
 } else {
   Msg Error "Project $project does not exist: $tcl_file not found."
   exit

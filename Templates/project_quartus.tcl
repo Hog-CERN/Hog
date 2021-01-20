@@ -1,6 +1,6 @@
 #quartus
 
-#   Copyright 2018-2020 The University of Birmingham
+#   Copyright 2018-2021 The University of Birmingham
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -40,4 +40,3 @@ set PATH_REPO "[file normalize [file dirname [info script]]]/../../"
 
 #launch project creation
 source $PATH_REPO/Hog/Tcl/create_project.tcl
-

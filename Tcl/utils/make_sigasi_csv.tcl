@@ -1,4 +1,4 @@
-#   Copyright 2018-2020 The University of Birmingham
+#   Copyright 2018-2021 The University of Birmingham
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -22,15 +22,15 @@ source $path/hog.tcl
 if { $::argc != 1} {
   Msg Info "Usage: make_sigasi_csv <project name>"
   exit 1
-} 
-set project_name [lindex $argv 0]  
+}
+set project_name [lindex $argv 0]
 set project_file [file normalize $path/../../Projects/$project_name/$project_name.xpr]
 
 if {[file exists $project_file]} {
   Msg Info "Opening existing project file $project_file..."
-  open_project -quiet $project_file  
+  open_project -quiet $project_file
 } else {
-  Msg Info "Creating project: $project_name..." 
+  Msg Info "Creating project: $project_name..."
   source $path/../../Top/$project_name/$project_name.tcl
 }
 

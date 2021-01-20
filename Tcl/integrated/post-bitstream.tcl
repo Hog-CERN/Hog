@@ -1,5 +1,5 @@
 #!/usr/bin/env tclsh
-#   Copyright 2018-2020 The University of Birmingham
+#   Copyright 2018-2021 The University of Birmingham
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -154,7 +154,7 @@ if {[info commands get_property] != "" && [file exists $bit_file]} {
     file copy -force $ltx_file $dst_ltx
   } else {
     Msg Info "No ltx file found: $ltx_file, that is not a problem"
-  } 
+  }
 
 } elseif {[info commands project_new] != "" && [file exists $pof_file]} {
   #Quartus
@@ -194,7 +194,7 @@ if {[info commands get_property] != "" && [file exists $bit_file]} {
 
   Msg Info "Copying pof file $pof_file into $dst_pof..."
   file copy -force $pof_file $dst_pof
-  
+
   #Reports
   file mkdir $dst_dir/reports
   set reps [glob -nocomplain "$proj_dir/output_files/*.rpt"]
@@ -214,7 +214,7 @@ if {[info commands get_property] != "" && [file exists $bit_file]} {
   }
 
 
-  #rbf rpd 
+  #rbf rpd
   if { [file exists $rbf_file] ||  [file exists $rpd_file] } {
     if [file exists $rbf_file] {
     file copy -force $rbf_file $dst_rbf
@@ -252,7 +252,7 @@ if [file exists $xml_dir] {
   }
   file copy -force $xml_dir $dst_xml
 }
-  
+
 
 
 set user_post_bitstream_file "./Top/$proj_name/post-bitstream.tcl"

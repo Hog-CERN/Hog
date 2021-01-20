@@ -1,4 +1,4 @@
-#   Copyright 2018-2020 The University of Birmingham
+#   Copyright 2018-2021 The University of Birmingham
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -111,7 +111,7 @@ proc CreateProject {} {
         set_property  ip_repo_paths $globalSettings::user_ip_repo [current_project]
       }
     } else {
-      Msg Info "$globalSettings::user_ip_repo not found, no user IP repository will be set." 
+      Msg Info "$globalSettings::user_ip_repo not found, no user IP repository will be set."
     }
   } elseif {[info commands project_new] != ""} {
     package require ::quartus::project
@@ -134,7 +134,7 @@ proc CreateProject {} {
       set_global_assignment -name EDA_INPUT_DATA_FORMAT VQM -section_id eda_design_synthesis
       set_global_assignment -name EDA_SIMULATION_TOOL "QuestaSim (Verilog)"
       set_global_assignment -name EDA_TIME_SCALE "1 ps" -section_id eda_simulation
-      set_global_assignment -name EDA_OUTPUT_DATA_FORMAT "VERILOG HDL" -section_id eda_simulation 
+      set_global_assignment -name EDA_OUTPUT_DATA_FORMAT "VERILOG HDL" -section_id eda_simulation
       set_global_assignment -name VHDL_INPUT_VERSION VHDL_2008
       set_global_assignment -name PROJECT_OUTPUT_DIRECTORY output_files
     }
@@ -294,7 +294,7 @@ proc ConfigureSynthesis {} {
   }
 
     ## set pre synthesis script
-  if {$globalSettings::pre_synth_file ne ""} { 
+  if {$globalSettings::pre_synth_file ne ""} {
     if {[info commands send_msg_id] != ""} {
             #Vivado Only
         if { [string first PlanAhead [version] ] != 0 } {
@@ -310,7 +310,7 @@ proc ConfigureSynthesis {} {
   }
 
     ## set post synthesis script
-  if {$globalSettings::post_synth_file ne ""} { 
+  if {$globalSettings::post_synth_file ne ""} {
     if {[info commands send_msg_id] != ""} {
         #Vivado Only
         if { [string first PlanAhead [version] ] !=0 } {
@@ -322,7 +322,7 @@ proc ConfigureSynthesis {} {
 
     }
     Msg Info "Setting $globalSettings::post_synth to be run after synthesis"
-  } 
+  }
 
 
   if {[info commands send_msg_id] != ""} {
@@ -353,7 +353,7 @@ proc ConfigureSynthesis {} {
   } else {
     Msg info "Reporting strategy for syntesis"
   }
-} 
+}
 
 ## @brief configure implementation.
 #
@@ -391,7 +391,7 @@ proc ConfigureImplementation {} {
 
 
 	## set pre implementation script
-  if {$globalSettings::pre_impl_file ne ""} { 
+  if {$globalSettings::pre_impl_file ne ""} {
     if {[info commands send_msg_id] != ""} {
       #Vivado Only
       if { [string first PlanAhead [version] ] != 0 } {
@@ -400,14 +400,14 @@ proc ConfigureImplementation {} {
     } elseif {[info commands project_new] != ""} {
       #QUARTUS only
       #set_global_assignment -name PRE_FLOW_SCRIPT_FILE quartus_sh:$globalSettings::pre_impl
-      
+
     }
     Msg info "Setting $globalSettings::pre_impl to be run after implementation"
-  } 
-  
-  
+  }
+
+
   ## set post routing script
-  if {$globalSettings::post_impl_file ne ""} { 
+  if {$globalSettings::post_impl_file ne ""} {
     if {[info commands send_msg_id] != ""} {
       #Vivado Only
       if { [string first PlanAhead [version] ] != 0} {
@@ -418,10 +418,10 @@ proc ConfigureImplementation {} {
       set_global_assignment -name POST_MODULE_SCRIPT_FILE quartus_sh:$globalSettings::quartus_post_module
     }
     Msg info "Setting $globalSettings::post_impl to be run after implementation"
-  } 
+  }
 
 	## set pre write bitstream script
-  if {$globalSettings::pre_bit_file ne ""} { 
+  if {$globalSettings::pre_bit_file ne ""} {
     if {[info commands send_msg_id] != ""} {
       #Vivado Only
       if { [string first PlanAhead [version] ] != 0} {
@@ -430,13 +430,13 @@ proc ConfigureImplementation {} {
     } elseif {[info commands project_new] != ""} {
       #QUARTUS only
       #set_global_assignment -name PRE_FLOW_SCRIPT_FILE quartus_sh:$globalSettings::pre_bit
-      
+
     }
     Msg info "Setting $globalSettings::pre_bit to be run after bitfile generation"
   }
 
     ## set post write bitstream script
-  if {$globalSettings::post_bit_file ne ""} { 
+  if {$globalSettings::post_bit_file ne ""} {
     if {[info commands send_msg_id] != ""} {
             #Vivado Only
       if { [string first PlanAhead [version] ] != 0 } {
@@ -558,7 +558,7 @@ if {[info exists env(HOG_EXTERNAL_PATH)]} {
   set globalSettings::HOG_EXTERNAL_PATH ""
 }
 
-if {[info exist ::BIN_FILE]} { 
+if {[info exist ::BIN_FILE]} {
   set globalSettings::BIN_FILE $::BIN_FILE
 } else {
   set globalSettings::BIN_FILE 0

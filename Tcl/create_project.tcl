@@ -298,7 +298,10 @@ proc ConfigureSynthesis {} {
     if {[info commands send_msg_id] != ""} {
             #Vivado Only
         if { [string first PlanAhead [version] ] != 0 } {
-            set_property STEPS.SYNTH_DESIGN.TCL.PRE $globalSettings::pre_synth $obj
+	  set_property STEPS.SYNTH_DESIGN.TCL.PRE $globalSettings::pre_synth $obj
+	  if {[get_filesets -quiet utils_1] != ""} {
+	    AddFile $globalSettings::pre_synth [get_filesets -quiet utils_1]
+	  }
         }
     } elseif {[info commands project_new] != ""} {
             #QUARTUS only
@@ -314,7 +317,10 @@ proc ConfigureSynthesis {} {
     if {[info commands send_msg_id] != ""} {
         #Vivado Only
         if { [string first PlanAhead [version] ] !=0 } {
-            set_property STEPS.SYNTH_DESIGN.TCL.POST $globalSettings::post_synth $obj
+	  set_property STEPS.SYNTH_DESIGN.TCL.POST $globalSettings::post_synth $obj
+	  if {[get_filesets -quiet utils_1] != ""} {
+	    AddFile $globalSettings::post_synth [get_filesets -quiet utils_1]
+	  }
         }
     } elseif {[info commands project_new] != ""} {
       #QUARTUS only
@@ -396,6 +402,9 @@ proc ConfigureImplementation {} {
       #Vivado Only
       if { [string first PlanAhead [version] ] != 0 } {
 	set_property STEPS.INIT_DESIGN.TCL.POST $globalSettings::pre_impl $obj
+	if {[get_filesets -quiet utils_1] != ""} {
+	  AddFile $globalSettings::pre_impl [get_filesets -quiet utils_1]
+	}
       }
     } elseif {[info commands project_new] != ""} {
       #QUARTUS only
@@ -412,6 +421,9 @@ proc ConfigureImplementation {} {
       #Vivado Only
       if { [string first PlanAhead [version] ] != 0} {
 	set_property STEPS.ROUTE_DESIGN.TCL.POST $globalSettings::post_impl $obj
+	if {[get_filesets -quiet utils_1] != ""} {
+	  AddFile $globalSettings::post_impl [get_filesets -quiet utils_1]
+	}
       }
     } elseif {[info commands project_new] != ""} {
       #QUARTUS only
@@ -426,6 +438,9 @@ proc ConfigureImplementation {} {
       #Vivado Only
       if { [string first PlanAhead [version] ] != 0} {
         set_property STEPS.WRITE_BITSTREAM.TCL.PRE $globalSettings::pre_bit $obj
+	if {[get_filesets -quiet utils_1] != ""} {
+	  AddFile $globalSettings::pre_bit [get_filesets -quiet utils_1]
+	}
       }
     } elseif {[info commands project_new] != ""} {
       #QUARTUS only
@@ -440,7 +455,10 @@ proc ConfigureImplementation {} {
     if {[info commands send_msg_id] != ""} {
             #Vivado Only
       if { [string first PlanAhead [version] ] != 0 } {
-      set_property STEPS.WRITE_BITSTREAM.TCL.POST $globalSettings::post_bit $obj
+	set_property STEPS.WRITE_BITSTREAM.TCL.POST $globalSettings::post_bit $obj
+	if {[get_filesets -quiet utils_1] != ""} {
+	  AddFile $globalSettings::post_bit [get_filesets -quiet utils_1]
+	}
       }
     } elseif {[info commands project_new] != ""} {
       #QUARTUS only

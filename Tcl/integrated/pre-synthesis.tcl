@@ -360,7 +360,7 @@ if {[file exists $user_pre_synthesis_file]} {
 cd $old_path
 
 #check list files
-if {[info commands get_property] != ""} {
+if {[info commands get_property] != "" && [string first PlanAhead [version]] != 0} {
     if {![string equal ext_path ""]} {
         set argv [list "-ext_path" "$ext_path" "-project" "$proj_name"]
     } else {

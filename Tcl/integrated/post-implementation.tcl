@@ -84,7 +84,12 @@ if {[info commands send_msg_id] != ""} {
         set props [get_property "STEPS.BITGEN.ARGS.MORE OPTIONS" [get_runs impl_1]]
         # need to trim off the curly braces that were used in creating a dictionary
         regsub -all {\{|\}} $props "" props
-        set props  "$props -g usr_access:0x0$commit -g userid:0x0$commit_usr"
+		set PART [get_property part [current_project]]
+		if {[string first "xc5v" $PART] != -1 || [string first "xc6v" $PART] != -1 || [string first "xc7" $PART] != -1} {
+        	set props  "$props -g usr_access:0x0$commit -g userid:0x0$commit_usr"
+		} else {
+			set props  "$props -g userid:0x0$commit_usr"
+		}
         set_property -name {steps.bitgen.args.More Options} -value $props -objects [get_runs impl_1]
     } else {
         set_property BITSTREAM.CONFIG.USERID $commit [current_design]

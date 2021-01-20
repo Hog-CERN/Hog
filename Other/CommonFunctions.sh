@@ -292,5 +292,6 @@ function print_hog ()
   cat ./images/hog_logo.txt
   echo " Version: ${ver}"
   echo
+  cd -
   return 0
 }

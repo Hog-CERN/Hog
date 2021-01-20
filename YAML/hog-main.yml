@@ -38,7 +38,7 @@
       - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $HOG_INTERMEDIATE_BRANCH && $HOG_INTERMEDIATE_BRANCH != null'
         when: always
 
-.only-default: &only-default
+.only-default-doxygen: &only-default-doxygen
    rules:
       - if: '$CI_COMMIT_REF_NAME =~ /^test\/.*$/i'
         when: never

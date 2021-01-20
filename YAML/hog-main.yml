@@ -48,8 +48,6 @@
         when: always
       - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $HOG_TARGET_BRANCH && $HOG_TARGET_BRANCH != null'
         when: always
-      - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $HOG_INTERMEDIATE_BRANCH && $HOG_INTERMEDIATE_BRANCH != null'
-        when: always
       - if: '$HOG_USE_DOXYGEN == "0"'
         when: never
 

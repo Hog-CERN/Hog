@@ -142,5 +142,5 @@ function create_project ()
 
 }
 
-print_hog $@
+print_hog $(dirname "$0")
 create_project $@

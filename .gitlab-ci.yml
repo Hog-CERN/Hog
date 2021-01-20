@@ -23,6 +23,8 @@ default:
           - git fetch origin $CI_COMMIT_REF_NAME
           - git checkout $CI_COMMIT_REF_NAME --
           - git status
+          - source ./Other/CommonFunctions.sh
+          - print_hog .
 stages:
       - tag
       - build_doc

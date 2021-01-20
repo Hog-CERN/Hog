@@ -19,7 +19,7 @@
 ## Import common functions from Other/CommonFunctions.sh in a POSIX compliant way
 #
 . $(dirname "$0")/Other/CommonFunctions.sh;
-print_hog
+print_hog $(dirname "$0")
 ## @function argument_parser()
 #  @brief pase aguments and sets evvironment variables
 #  @param[out] IP_PATH      empty or "-eos_ip_path $2"

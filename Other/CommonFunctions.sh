@@ -277,9 +277,15 @@ function select_executable_form_file ()
 
 # @fn print_hog
 #
-# @brief prints the hog logo 
+# @param[in] $1 path to Hog dir
+# @brief prints the hog logo
 function print_hog ()
 {
-  cat $(dirname "$0")/images/hog_logo.txt
+  if [ -z ${1+x} ]
+  then
+    Msg Error "missing input! Got: $1!"
+    return 1
+  fi
+  cat $1/images/hog_logo.txt
   return 0
 }

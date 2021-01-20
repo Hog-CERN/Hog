@@ -203,5 +203,5 @@ function init()
   cd "${OLD_DIR}"
 }
 
-print_hog $@
+print_hog $(dirname "$0")
 init $@

@@ -1,32 +1,9 @@
 +---------------------------------------------------------------------------+
-|               ...                                      ...                |
-|              'd0kdc'.                               .;lxOk,.              |
-|            .oNMMMMMWKx,                          'o0WMMMMMWx.             |
-|          .'0MMMMMMMMMMo                         ,WMMMMMMMMMMN;.           |
-|          'KMMMMXc:lxKMXO;  ...                .cXMMMWX00MMMMMN;.          |
-|         .dMMMMMMMNKx,;,.oKWMMMNk:             .XMWOc;cokMMMMMM0.          |
-|         .OMMMMMMMMMWc dWMMMMMMMMMX;       'cll;.:c.OWMMMMMMMMMM,.         |
-|         .dMMMMMMMMMc 0MMMMMMMMMMMMWl    lXMMMMMWx.;WMMMMMMMMMMK.          |
-|          .OMMMMMMM0 dMMMMMMMMMMMMMMM,  OMMMMMMMMM0.:MMMMMMMMMK,.          |
-|           .cKMMMMMo XMMMMMMMMMMX0WMMo cMMK0WMMMMMMd 0MMMMMMNd.            |
-|             .;dKX0; XMMMMMMMMM0  'WMo kMk  ;MMMMMMN.,x0XXkc.              |
-|              ...    dMMMMMMMMMW0kXMM, kMWOkNMMMMMMN.    ...               |
-|          ..          0MMMMMMMMMMMMMl  lMMMMMMMMMMMx         ..            |
-|       ..             .xWMMMMMMMMMN:.:,.OMMMMMMMMMK.             ..        |
-|    ..                  .dXMMMMNOc.:XMMl dWMMMMMMO.                 ..     |
-|  ..                       ..,,. .oWMMNo. .cxkxl'                     ..   |
-|  ...                      .oWW;   ;MN.   .kxo.                       ..   |
-| ..                        .0MN.   .N0     XMMc.                       ..  |
-|..                         .lMM:   cMW:   lMMX'                         .. |
-|                            .oWWOdOWMMM0x0MMK,.                          ..|
-|                              .lOXWMMMMMWKx:.                              |
-|                                 ..,;;;'.                                  |
-|                                                                           |
 |              _   _                 ___     ___  ____   _     _            |
-|             | | | |  ___    __ _  |___ \  / _ \|___ \ / |   / |           |
-|             | |_| | / _ \  / _` |   __) || | | | __) || |   | |           |
-|             |  _  || (_) || (_| |  / __/ | |_| |/ __/ | | _ | |           |
-|             |_| |_| \___/  \__, | |_____| \___/|_____||_|(_)|_|           |
+|  (\____/)   | | | |  ___    __ _  |___ \  / _ \|___ \ / |   / |           |
+|  / @__@ \   | |_| | / _ \  / _` |   __) || | | | __) || |   | |           |
+| (  (oo)  )  |  _  || (_) || (_| |  / __/ | |_| |/ __/ | | _ | |           |
+|  `-.~~.-'   |_| |_| \___/  \__, | |_____| \___/|_____||_|(_)|_|           |
 |                            |___/                                          |
 |                                                                           |
 |              Copyright 2018-2021 The University of Birmingham             |

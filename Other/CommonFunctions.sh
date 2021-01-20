@@ -286,6 +286,11 @@ function print_hog ()
     Msg Error "missing input! Got: $1!"
     return 1
   fi
-  cat $1/images/hog_logo.txt
+  cd "$1"
+  ver=`git describe`
+  echo    
+  cat ./images/hog_logo.txt
+  echo " Version: ${ver}"
+  echo
   return 0
 }

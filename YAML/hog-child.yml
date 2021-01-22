@@ -22,9 +22,13 @@
         when: always
       - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $HOG_TARGET_BRANCH && $HOG_TARGET_BRANCH != null && $INTERMEDIATE_BUILD == null'
         when: always
-      - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $HOG_INTERMEDIATE_BRANCH && $INTERMEDIATE_BUILD == "1"'
+      # - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $HOG_INTERMEDIATE_BRANCHES && $HOG_PROJECT_BRANCH == "1"'
+      #   when: always
+      # - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $HOG_INTERMEDIATE_BRANCHES && $CI_BUILD_STAGE == "collect"'
+      #   when: always
+      - if: '$HOG_INTERMEDIATE_BRANCHES =~ /${CI_MERGE_REQUEST_TARGET_BRANCH_NAME}/ && $INTERMEDIATE_BUILD == "1"'
         when: always
-      - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $HOG_INTERMEDIATE_BRANCH && $CI_BUILD_STAGE == "collect"'
+      - if: '$HOG_INTERMEDIATE_BRANCHES =~ /${CI_MERGE_REQUEST_TARGET_BRANCH_NAME}/ && $CI_BUILD_STAGE == "collect"'
         when: always
 
 .tag-hog: &tag-hog

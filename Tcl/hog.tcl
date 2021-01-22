@@ -1467,7 +1467,11 @@ proc GetProjectFiles {} {
   }
 
   foreach fs $all_filesets {
-
+    if {$fs == "utils_1"} {
+      Msg Info "Skipping utility fileset..."
+      continue
+    }
+    
     set all_files [get_files -quiet -of_objects [get_filesets $fs]]
     set fs_type [get_property FILESET_TYPE [get_filesets $fs]]
 

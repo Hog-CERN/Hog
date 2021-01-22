@@ -130,7 +130,7 @@ foreach key [dict keys $listLibraries] {
 			set idx [lsearch -exact $prjIPs $IP]
 			set prjIPs [lreplace $prjIPs $idx $idx]
 			if {$idx < 0} {
-   		  Msg CriticalWarning "$IP not found in Project IPs! Was it removed from the project?"
+   		  Msg CriticalWarning "$IP not found in project IPs! Was it removed from the project?"
         incr ErrorCnt
 			} else {
         dict lappend newListfiles [file rootname $key].src [string trim "[RelativeLocal $repo_path $IP] [DictGet $prjProperties $IP]"]
@@ -142,7 +142,7 @@ foreach key [dict keys $listLibraries] {
 			set idx [lsearch -exact $prjXDCs $XDC]
 			set prjXDCs [lreplace $prjXDCs $idx $idx]
 			if {$idx < 0} {
-   		  Msg CriticalWarning "$XDC not found in Project constraints! Was it removed from the project?"
+   		  Msg CriticalWarning "$XDC not found in project constraints! Was it removed from the project?"
         incr ErrorCnt
 			} else {
         dict lappend newListfiles $key [string trim "[RelativeLocal $repo_path $XDC] [DictGet $prjProperties $XDC]"]
@@ -156,7 +156,7 @@ foreach key [dict keys $listLibraries] {
 			  set idx [lsearch -exact $prjSIMs $SIM]
 			  set prjSIMs [lreplace $prjSIMs $idx $idx]
 			  if {$idx < 0} {
-     		  Msg CriticalWarning "$SIM not found in Project simulation files! Was it removed from the project?"
+     		  Msg CriticalWarning "$SIM not found in project simulation files! Was it removed from the project?"
           incr ErrorCnt
 			  } else {
           dict lappend newListfiles $key [string trim "[RelativeLocal $repo_path $SIM] [DictGet $prjProperties $SIM]"]
@@ -164,58 +164,58 @@ foreach key [dict keys $listLibraries] {
 		  }
       dict set prjSimDict "[file rootname $key]_sim" $prjSIMs
     } else {
-      Msg CriticalWarning "[file rootname $key]_sim fileset not found in Project! Was it removed from the project?"
+      Msg CriticalWarning "[file rootname $key]_sim fileset not found in project! Was it removed from the project?"
       incr ErrorCnt
     }
 	} elseif {[file extension $key] == ".src" || [file extension $key] == ".sub"} {
-		#check if project contains sources specified in listfiles
-    set prjSRCs [DictGet $prjSrcDict [file rootname $key]]
-
-		foreach SRC [DictGet $listLibraries $key] {
-			set idx [lsearch -exact $prjSRCs $SRC]
-			set prjSRCs [lreplace $prjSRCs $idx $idx]
-			if {$idx < 0} {
-   				set idx [lsearch -exact $prjOTHERs $SRC]
-			    set prjOTHERs [lreplace $prjOTHERs $idx $idx]
-			    if {$idx < 0} {
-       			Msg CriticalWarning "$SRC not found in Project source files! Was it removed from the project?"
-            incr ErrorCnt
-			    } else {
-            dict lappend newListfiles $key [string trim "[RelativeLocal $repo_path $SRC] [DictGet $prjProperties $SRC]"]
-          }
-			} else {
-         dict lappend newListfiles $key [string trim "[RelativeLocal $repo_path $SRC] [DictGet $prjProperties $SRC]"]
-      }
-		}
-    dict set prjSrcDict [file rootname $key] $prjSRCs
+	  #check if project contains sources specified in listfiles
+	  set prjSRCs [DictGet $prjSrcDict [file rootname $key]]
+	  
+	  foreach SRC [DictGet $listLibraries $key] {
+	    set idx [lsearch -exact $prjSRCs $SRC]
+	    set prjSRCs [lreplace $prjSRCs $idx $idx]
+	    if {$idx < 0} {
+	      set idx [lsearch -exact $prjOTHERs $SRC]
+	      set prjOTHERs [lreplace $prjOTHERs $idx $idx]
+	      if {$idx < 0} {
+		Msg CriticalWarning "$SRC not found in project source files! Was it removed from the project?"
+		incr ErrorCnt
+	      } else {
+		dict lappend newListfiles $key [string trim "[RelativeLocal $repo_path $SRC] [DictGet $prjProperties $SRC]"]
+	      }
+	    } else {
+	      dict lappend newListfiles $key [string trim "[RelativeLocal $repo_path $SRC] [DictGet $prjProperties $SRC]"]
+	    }
+	  }
+	  dict set prjSrcDict [file rootname $key] $prjSRCs
 	} elseif {[file extension $key] == ".ext" } {
-    #check if project contains external files specified in listfiles
-    set prjSRCs [DictGet $prjSrcDict [file rootname $key]]
-
-		foreach SRC [DictGet $listLibraries $key] {
-			set idx [lsearch -exact $prjSRCs $SRC]
-			set prjSRCs [lreplace $prjSRCs $idx $idx]
-			if {$idx < 0} {
-   				set idx [lsearch -exact $prjOTHERs $SRC]
-			    set prjOTHERs [lreplace $prjOTHERs $idx $idx]
-			    if {$idx < 0} {
-       			Msg CriticalWarning "$SRC not found in Project source files! Was it removed from the project?"
-            incr ErrorCnt
-			    } else {
-            dict lappend newListfiles $key [string trim "[RelativeLocal $ext_path $SRC] [Md5Sum $SRC] [DictGet $prjProperties $SRC]"]
-            dict lappend prjProperties $SRC [Md5Sum $SRC]
-          }
-			} else {
-         dict lappend newListfiles $key [string trim "[RelativeLocal $ext_path $SRC] [Md5Sum $SRC] [DictGet $prjProperties $SRC]"]
-         dict lappend prjProperties $SRC [Md5Sum $SRC]
-      }
-		}
-    dict set prjSrcDict [file rootname $key] $prjSRCs
-  } else {
-		Msg CriticalWarning "$key list file format unrecognized by Hog."
-    incr ErrorCnt
+	  #check if project contains external files specified in listfiles
+	  set prjSRCs [DictGet $prjSrcDict [file rootname $key]]
+	  
+	  foreach SRC [DictGet $listLibraries $key] {
+	    set idx [lsearch -exact $prjSRCs $SRC]
+	    set prjSRCs [lreplace $prjSRCs $idx $idx]
+	    if {$idx < 0} {
+	      set idx [lsearch -exact $prjOTHERs $SRC]
+	      set prjOTHERs [lreplace $prjOTHERs $idx $idx]
+	      if {$idx < 0} {
+		Msg CriticalWarning "$SRC not found in project source files! Was it removed from the project?"
+		incr ErrorCnt
+	      } else {
+		dict lappend newListfiles $key [string trim "[RelativeLocal $ext_path $SRC] [Md5Sum $SRC] [DictGet $prjProperties $SRC]"]
+		dict lappend prjProperties $SRC [Md5Sum $SRC]
+	      }
+	    } else {
+	      dict lappend newListfiles $key [string trim "[RelativeLocal $ext_path $SRC] [Md5Sum $SRC] [DictGet $prjProperties $SRC]"]
+	      dict lappend prjProperties $SRC [Md5Sum $SRC]
+	    }
+	  }
+	  dict set prjSrcDict [file rootname $key] $prjSRCs
+	} else {
+	  Msg CriticalWarning "$key list file format unrecognized by Hog."
+	  incr ErrorCnt
 	}
-
+  
 }
 
 
@@ -306,7 +306,7 @@ foreach SRC $prjOTHERs {
 foreach key [dict keys $listProperties] {
   foreach prop [lindex [DictGet $listProperties $key] 0] {
     if {[lsearch -nocase [DictGet $prjProperties $key] $prop] < 0 && ![string equal $prop ""] && ![string equal $prop "XDC"]} {
-      Msg CriticalWarning "$key property $prop is set in list files but not in Project!"
+      Msg CriticalWarning "$key property $prop is set in list files but not in project!"
       incr ErrorCnt
     }
   }
@@ -317,7 +317,7 @@ foreach key [dict keys $prjProperties] {
   foreach prop [DictGet $prjProperties $key] {
     #puts "FILE $key: PROPERTY $prop"
     if {[lsearch -nocase [lindex [DictGet $listProperties $key] 0] $prop] < 0 && ![string equal $prop ""] && ![string equal $key "Simulator"] && ![string equal $prop "top=top_[file root $project]"]} {
-      Msg CriticalWarning "$key property $prop is set in Project but not in list files!"
+      Msg CriticalWarning "$key property $prop is set in project but not in list files!"
       incr ErrorCnt
     }
   }

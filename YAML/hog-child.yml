@@ -44,6 +44,12 @@
   GIT_STRATEGY: clone
 #   CI_DEBUG_TRACE: "true"
 
+testvariable:
+  stage: merge
+  script: /bin/true
+  rules:
+    - if: '$HOG_INTERMEDIATE_BRANCHES =~ $CI_MERGE_REQUEST_TARGET_BRANCH_NAME'
+
 .simulate_project: &simulate_project
      <<: *only-default
      <<: *tag-hog

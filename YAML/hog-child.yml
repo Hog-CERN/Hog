@@ -24,7 +24,7 @@
         when: always
       - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $HOG_INTERMEDIATE_BRANCH && $INTERMEDIATE_BUILD == "1"'
         when: always
-      - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $HOG_INTERMEDIATE_BRANCH && $CI_BUILD_STAGE == "collect"'
+      - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $HOG_INTERMEDIATE_BRANCH && $CI_BUILD_STAGE == "collect" && $HOG_INTERMEDIATE_BRANCH != null'
         when: always
 
 .tag-hog: &tag-hog

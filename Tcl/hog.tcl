@@ -1468,7 +1468,7 @@ proc GetProjectFiles {} {
 
   foreach fs $all_filesets {
     if {$fs == "utils_1"} {
-      Msg Info "Skipping utility fileset..."
+      # Skipping utility fileset
       continue
     }
     

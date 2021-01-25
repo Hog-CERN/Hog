@@ -49,7 +49,11 @@
      script:
       - ./Hog/Other/CheckEnv.sh
       - if [[ -v HOG_CHECK_PROJVER ]] && [[ $HOG_CHECK_PROJVER == '1' ]]; then
-        ./Hog/Other/CheckProjVer.sh -ext_path "$HOG_EXTERNAL_PATH" -sim $PROJECT_NAME ;
+          if [[ -v HOG_EXTERNAL_PATH ]]; then
+            ./Hog/Other/CheckProjVer.sh -ext_path "$HOG_EXTERNAL_PATH" -sim $PROJECT_NAME;
+          else
+            ./Hog/Other/CheckProjVer.sh -sim $PROJECT_NAME;
+          fi;
         else
           echo "Project version checker is disabled.";
         fi

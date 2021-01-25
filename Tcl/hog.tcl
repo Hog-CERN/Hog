@@ -429,11 +429,11 @@ proc FindVhdlVersion {file_name} {
 #
 # Additional information is provided with text separated from the file name with one or more spaces
 #
-# @param[in] args The arguments are <list_file> <path> [options]
+# @param[in] args The arguments are \<list_file\> \<path\> [options]
 # * list_file file containing vhdl list with optional properties
 # * path      path the vhdl file are referred to in the list file
 # Options:
-# * -lib <library> name of the library files will be added to, if not given will be extracted from the file name
+# * -lib \<library\> name of the library files will be added to, if not given will be extracted from the file name
 # * -sha_mode  if not set to 0, the list files will be added as well and the IPs will be added to the file rather than to the special ip library. The sha mode should be used when you use the lists to calculate the git SHA, rather than to add the files to the project.
 # * -verbose enable verbose messages
 #
@@ -1596,12 +1596,12 @@ proc GetProjectFiles {} {
 
 ## @brief Extract files, libraries and properties from the project's list files
 #
-# @param[in] args The arguments are <list_path> [options]
+# @param[in] args The arguments are \<list_path\> [options]
 # * list_path path to the list file directory
 # Options:
-# * -list_files <List files> the file wildcard, if not specified all Hog list files will be looked for
+# * -list_files \<List files\> the file wildcard, if not specified all Hog list files will be looked for
 # * -sha_mode forwarded to ReadListFile, see there for info
-# * -ext_path <external path> path for external libraries forwarded to ReadListFile
+# * -ext_path \<external path\> path for external libraries forwarded to ReadListFile
 # * -verbose enable verbose messages
 #
 # @return a list of 2 dictionaries: libraries and properties

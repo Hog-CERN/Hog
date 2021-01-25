@@ -26,8 +26,9 @@ set parameters {
 }
 
 set usage "- USAGE: $::argv0 \[OPTIONS\] <project> \n. Options:"
-set repo_path [pwd]
 set tcl_path [file normalize "[file dirname [info script]]/.."]
+set repo_path [file normalize "$tcl_path/../.."]
+
 source $tcl_path/hog.tcl
 
 if { $::argc eq 0 } {

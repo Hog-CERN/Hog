@@ -429,11 +429,13 @@ proc FindVhdlVersion {file_name} {
 #
 # Additional information is provided with text separated from the file name with one or more spaces
 #
-# @param[in] list_file file containing vhdl list with optional properties
-# @param[in] path      path the vhdl file are referred to in the list file
-# @param[in] Optional -lib <library> name of the library files will be added to, if not given will be extracted from the file name
-# @param[in] Optional -sha_mode  if not set to 0, the list files will be added as well and the IPs will be added to the file rather than to the special ip library. The sha mode should be used when you use the lists to calculate the git SHA, rather than to add the files to the project.
-# @param[in] Optional -verbose enable verbose messages
+# @param[in] args The arguments are <list_file> <path> [options]
+# * list_file file containing vhdl list with optional properties
+# * path      path the vhdl file are referred to in the list file
+# Options:
+# * -lib <library> name of the library files will be added to, if not given will be extracted from the file name
+# * -sha_mode  if not set to 0, the list files will be added as well and the IPs will be added to the file rather than to the special ip library. The sha mode should be used when you use the lists to calculate the git SHA, rather than to add the files to the project.
+# * -verbose enable verbose messages
 #
 # @return              a list of 2 dictionaries: "libraries" has library name as keys and a list of filenames as values, "properties" has as file names as keys and a list of properties as values
 #
@@ -1594,11 +1596,13 @@ proc GetProjectFiles {} {
 
 ## @brief Extract files, libraries and properties from the project's list files
 #
-# @param[in] list_path path to the list file directory
-# @param[in] Optional -list_files <List files> the file wildcard, if not specified all Hog list files will be looked for
-# @param[in] Optional -sha_mode forwarded to ReadListFile, see there for info
-# @param[in] Optional -ext_path <external path> path for external libraries forwarded to ReadListFile
-# @param[in] Optional -verbose enable verbose messages
+# @param[in] args The arguments are <list_path> [options]
+# * list_path path to the list file directory
+# Options:
+# * -list_files <List files> the file wildcard, if not specified all Hog list files will be looked for
+# * -sha_mode forwarded to ReadListFile, see there for info
+# * -ext_path <external path> path for external libraries forwarded to ReadListFile
+# * -verbose enable verbose messages
 #
 # @return a list of 2 dictionaries: libraries and properties
 # - libraries has library name as keys and a list of filenames as values
@@ -1665,7 +1669,7 @@ proc GetHogFiles args {
 }
 
 
-## @brief Parse possible commands in the first line of Hog files (e.g. #Vivado, #Simulator, etc)
+## @brief Parse possible commands in the first line of Hog files (e.g. \#Vivado, \#Simulator, etc)
 #
 # @param[in] list_path path to the list file directory
 # @param[in] list_files the list file name
@@ -2252,7 +2256,7 @@ proc ExecuteRet {args}  {
 #
 # It can be used with lassign like this: lassign [Execute \<command\> ] ret result
 #
-#  @param[in] command: the shell command
+#  @param[in] args: the shell command
 #
 #  @returns the output of the command
 proc Execute {args}  {
@@ -2362,7 +2366,7 @@ proc FindNewestVersion { versions } {
 
 ## Reset files in the repository
 #
-#  @param[in]    a file containing a list of files separated by new lines or spaces
+#  @param[in]    reset_file a file containing a list of files separated by new lines or spaces (Hog-CI creates such a file in Projects/hog_reset_files)
 #
 #  @return       Nothing
 #

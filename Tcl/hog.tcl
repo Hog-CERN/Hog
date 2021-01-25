@@ -1672,7 +1672,7 @@ proc GetHogFiles args {
 ## @brief Parse possible commands in the first line of Hog files (e.g. \#Vivado, \#Simulator, etc)
 #
 # @param[in] list_path path to the list file directory
-# @param[in] list_files the list file name
+# @param[in] list_file the list file name
 #
 # @return a string with the first-line command
 # - libraries has library name as keys and a list of filenames as values

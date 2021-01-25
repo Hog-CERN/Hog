@@ -57,6 +57,10 @@ if {[info commands get_property] != ""} {
     #Tclssh
 }
 
+
+######## Reset files before implementation ###########
+ResetRepoFiles "./Projects/hog_reset_files"
+
 set user_pre_implementation_file "./Top/$proj_name/pre-implementation.tcl"
 if {[file exists $user_pre_implementation_file]} {
     Msg Status "Sourcing user pre-implementation file $user_pre_implementation_file"

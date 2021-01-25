@@ -79,26 +79,7 @@ if {$flavour != ""} {
 }
 
 ######## Reset files before synthesis ###########
-set reset_file Projects/hog_reset_files
-
-if {[file exists $reset_file]} {
-  Msg Info "Found $reset_file, opening it..."
-  set fp [open $reset_file r]
-  set wild_cards [lsearch -all -inline -not -regexp [split [read $fp] "\n"] "^ *$"]
-  close $fp
-  Msg Info "Found the following files/wild cards to restore if modified: $wild_cards..."
-  foreach w $wild_cards {
-    set mod_files [GetModifiedFiles "." $w]
-    if {[llength $mod_files] > 0} {
-      Msg Info "Found modified $w files: $mod_files, will restore them..."
-      RestoreModifiedFiles "." $w
-    } else {
-      Msg Info "No modified $w files found."
-    }
-  }
-}
-
-
+ResetRepoFiles "./Projects/hog_reset_files"
 
 # Getting all the versions and SHAs of the repository
 lassign [GetRepoVersions ./Top/$proj_name/$proj_name.tcl $ext_path] commit version  hog_hash hog_ver  top_hash top_ver  libs hashes vers  cons_ver cons_hash  ext_names ext_hashes  xml_hash xml_ver

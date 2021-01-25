@@ -258,7 +258,7 @@ if [ -z ${HOG_RESET_FILES+x} ]
 then
     echo "NOT defined. Hog-CI will NOT reset any files"
 else
-    echo "defined. Hog-CI will reset the following files before synthesis: \n $HOG_RESET_FILES"
+    echo "defined. Hog-CI will reset the following files before synthesis, before implementation, and before bitstream: \n $HOG_RESET_FILES"
 fi
 echo --------------------------------
 

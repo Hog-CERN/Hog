@@ -2359,3 +2359,28 @@ proc FindNewestVersion { versions } {
   }
   return $new_ver
 }
+
+## Reset files in the repository
+#
+#  @param[in]    a file containing a list of files separated by new lines or spaces
+#
+#  @return       Nothing
+#
+proc ResetRepoFiles {reset_file} {
+  if {[file exists $reset_file]} {
+    Msg Info "Found $reset_file, opening it..."
+    set fp [open $reset_file r]
+    set wild_cards [lsearch -all -inline -not -regexp [split [read $fp] "\n"] "^ *$"]
+    close $fp
+    Msg Info "Found the following files/wild cards to restore if modified: $wild_cards..."
+    foreach w $wild_cards {
+      set mod_files [GetModifiedFiles "." $w]
+      if {[llength $mod_files] > 0} {
+	Msg Info "Found modified $w files: $mod_files, will restore them..."
+	RestoreModifiedFiles "." $w
+      } else {
+	Msg Info "No modified $w files found."
+      }
+    }
+  }
+}

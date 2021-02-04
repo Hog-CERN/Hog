@@ -1854,8 +1854,7 @@ proc AddHogFiles { libraries properties } {
         }
       }
       Msg Info "[llength $lib_files] file/s added to $rootlib..."
-    }
-    elseif {[info commands project_new] != "" } {
+    } elseif {[info commands project_new] != "" } {
       #QUARTUS ONLY
       if {$ext==".sim"} {
         Msg Warning "Simulation files not supported in Quartus Prime mode... Skipping $lib"

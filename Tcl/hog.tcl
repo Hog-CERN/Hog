@@ -395,6 +395,9 @@ proc FindFileType {file_name} {
     .tcl {
       set file_extension "COMMAND_MACRO_FILE"
     }
+    .vdm {
+      set file_extension "VQM_FILE"
+    }
     default {
       set file_extension "ERROR"
       Msg Error "Unknown file extension $extension"
@@ -1852,18 +1855,55 @@ proc AddHogFiles { libraries properties } {
       }
       Msg Info "[llength $lib_files] file/s added to $rootlib..."
     }
-    if {[info commands project_new] != "" } {
+    elseif {[info commands project_new] != "" } {
       #QUARTUS ONLY
-      foreach vhdlfile $lib_files {
-        set file_type [FindFileType $vhdlfile]
-        set hdl_version [FindVhdlVersion $vhdlfile]
-        if {$rootlib ne "IP"} {
-          Msg Info "Adding file $vhdlfile  to library $rootlib "
-          set_global_assignment -name $file_type $vhdlfile  -library $rootlib
-        } else {
-          set_global_assignment  -name $file_type $vhdlfile $hdl_version
+      if {$ext==".sim"} {
+        Msg Warning "Simulation files not supported in Quartus Prime mode... Skipping $lib"
+      } else {
+        foreach cur_file $lib_files {
+          set file_type [FindFileType $cur_file]
+
+          #ADDING FILE PROPERTIES
+          set props [dict get $properties $cur_file]
+          if {[string first $file_type "VHDL"] != -1 } {
+            if {[string first $props "87"] != 0 } {
+              set hdl_version "-hdl_version VHDL_1987"
+            } elseif {[string first $props "93"] != 0 } {
+              set hdl_version "-hdl_version VHDL_1993"
+            } elseif {[string first $props "08"] != 0 } {
+              set hdl_version "-hdl_version VHDL_2008"
+            } else {
+              set hdl_version ""
+            }
+            set_global_assignment -name $file_type $cur_file $hdl_version -library $rootlib
+          } elseif {[string first $file_type "SYSTEMVERILOG"] != -1 } {
+            if {[string first $props "05"] != 0 } {
+              set hdl_version "-hdl_version systemverilog_2005"
+          } elseif {[string first $props "09"] != 0 } {
+              set hdl_version "-hdl_version systemverilog_2009"
+            } else {
+              set hdl_version ""
+            }
+            set_global_assignment -name $file_type $cur_file $hdl_version
+          } elseif {[string first $file_type "VERILOG"] != -1 } {
+            if {[string first $props "95"] != 0 } {
+              set hdl_version "-hdl_version verilog_1995"
+            } elseif {[string first $props "01"] != 0 } {
+              set hdl_version "-hdl_version verilog_2001"
+            } else {
+              set hdl_version ""
+            }
+            set_global_assignment -name $file_type $cur_file $hdl_version
+          } elseif {[string first $file_type "SOURCE"] != -1 || [string first $file_type "COMMAND_MACRO"] != -1 } {
+            if ($ext==".con") {
+              source $cur_file
+            }
+            set_global_assignment  -name $file_type $cur_file
+          
+          } else {
+            set_global_assignment  -name $file_type $cur_file
+          }
         }
-        #missing : ADDING QUARTUS FILE PROPERTIES
       }
     }
   }

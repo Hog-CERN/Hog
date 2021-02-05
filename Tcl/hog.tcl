@@ -1878,7 +1878,11 @@ proc AddHogFiles { libraries properties } {
             } else {
               set hdl_version "default"
             }
-            set_global_assignment -name $file_type $cur_file -hdl_version $hdl_version -library $rootlib
+            if { $hdl_version == "default" } {
+              set_global_assignment -name $file_type $cur_file -library $rootlib
+            } else {
+              set_global_assignment -name $file_type $cur_file -hdl_version $hdl_version -library $rootlib
+            }
           } elseif {[string first "SYSTEMVERILOG" $file_type] != -1 } {
             if {[string first "05" $props] != -1 } {
               set hdl_version "systemverilog_2005"
@@ -1887,7 +1891,11 @@ proc AddHogFiles { libraries properties } {
             } else {
               set hdl_version "default"
             }
-            set_global_assignment -name $file_type $cur_file -hdl_version $hdl_version
+            if { $hdl_version == "default" } {
+              set_global_assignment -name $file_type $cur_file
+            } else {
+              set_global_assignment -name $file_type $cur_file -hdl_version $hdl_version
+            }
           } elseif {[string first "VERILOG" $file_type] != -1 } {
             if {[string first "95" $props] != -1 } {
               set hdl_version "verilog_1995"
@@ -1896,13 +1904,16 @@ proc AddHogFiles { libraries properties } {
             } else {
               set hdl_version "default"
             }
-            set_global_assignment -name $file_type $cur_file -hdl_version $hdl_version
+            if { $hdl_version == "default" } {
+              set_global_assignment -name $file_type $cur_file
+            } else {
+              set_global_assignment -name $file_type $cur_file -hdl_version $hdl_version
+            }
           } elseif {[string first "SOURCE" $file_type] != -1 || [string first "COMMAND_MACRO" $file_type] != -1 } {
             if { $ext == ".con"} {
               source $cur_file
             }
             set_global_assignment  -name $file_type $cur_file
-          
           } else {
             set_global_assignment  -name $file_type $cur_file
           }

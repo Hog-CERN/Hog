@@ -129,11 +129,11 @@ function init()
         fi
       fi
     else
-      echo [hog init] "WARNING: No modelsim executable found, will not compile libraries"
+      Msg Warning "No modelsim executable found, will not compile libraries"
     fi
 
   else
-    echo [hog init] "WARNING: No vivado executable found"
+    Msg Warning "No quartus_sh executable found"
   fi
 
   ##! Scan for existing Vivado projects and ask user to automatically create listFiles

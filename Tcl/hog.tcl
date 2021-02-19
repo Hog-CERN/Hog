@@ -1914,6 +1914,39 @@ proc AddHogFiles { libraries properties } {
               source $cur_file
             }
             set_global_assignment  -name $file_type $cur_file
+          } elseif {[string first "QSYS" $file_type] != -1 } {
+              set qsysPath [file dirname $curfile]
+              set qsysName [file rootname $curfile]
+            #If file does not exists generate it using qsys_script
+            if { [file exists $cur_file] == 0} {
+              set $script_file "$qsysPath/../$qsysName.tcl"
+              if { [file exists $script_file == 1} {
+                set cmd "qsys-script --script=$script_file"
+                if {[catch exec $cmd]} {
+                  Msg ERROR "Unable to build qsys file: $cur_file! Failure while executing $cmd";
+                }
+              } else {
+                Msg ERROR "Unable to build qsys file: $cur_file! Tcl scripts $script_file not found";
+              }
+            }
+            #Generate IPs
+            if {[string first "no-generate" $props] == -1} {
+              set cmd "qsys-generate $curfile $props"
+              if {[catch exec $cmd]} {
+                Msg ERROR "Unable to generate IPs from file: $cur_file!";
+              }
+            }
+            #Add QSYS file to project
+            set_global_assignment  -name $file_type $cur_file
+            #Add generated IPs to project
+            set qsysIPDir "$qsysPath/$qsysName"
+            set qsysIPFileList [concat [glob -directory $qsysIPDir -types f *.ip *.qip ] [glob -directory "$qsysIPDir/synthesis" -types f *.ip *.qip *.vhd *.vhdl ]
+            foreach qsysIPFile in $qsysIPFileList {
+              if { [file exists $qsysIPFile] != 0} {
+                set qsysIPFileType [FindFileType $top_file]
+                set_global_assignment -name $qsysIPFileType $qsysIPFile
+              }
+            }
           } else {
             set_global_assignment  -name $file_type $cur_file
           }

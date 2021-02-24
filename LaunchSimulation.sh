@@ -90,7 +90,7 @@ else
     then
       Msg Error "Vivado HLS is not yet supported by this script!"
     else
-      "${HDL_COMPILER}" $COMMAND_OPT $DIR/Tcl/launchers/launch_simulation.tcl -tclargs -lib_path $LIBPATH $1
+      "${HDL_COMPILER}" $COMMAND_OPT $DIR/Tcl/launchers/launch_simulation.tcl -tclargs $LIBPATH $1
     fi
   else
     Msg Error "Project $PROJ not found: possible projects are: `ls $DIR/../Top`"

@@ -2388,3 +2388,35 @@ proc ResetRepoFiles {reset_file} {
     }
   }
 }
+
+## Read a property configuration file and returns a dictionary
+#
+#  @param[in]    file_name the configuration file
+#
+#  @return       The dictionary
+#
+proc ReadPropertyFile {file_name} {                                                                                                                          
+package require inifile 0.2.3                                                                                                                               
+                                                                                                                                                            
+  set f [::ini::open $file_name]                                                                                                                        
+  set properties [dict create]                                                                                                                                        
+  foreach sec [::ini::sections $f] {
+    
+
+    if {[string match "impl*" [string tolower $sec]]} {
+      set new_sec impl_1
+    } elseif {[string match "synth*" [string tolower $sec]]} {
+      set new_sec synth_1
+    } else {
+      set new_sec $sec
+    }
+    
+    dict set properties $new_sec [dict create {*}[::ini::get $f $sec]] 
+  }
+  
+  ::ini::close $f                                                                                                                                            
+  
+  return $properties
+}
+
+

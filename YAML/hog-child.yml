@@ -42,6 +42,26 @@
 
 .simulate_project: &simulate_project
      <<: *only-default
+     stage: generation_and_simulation
+     variables:
+        <<: *vars
+     script:
+      - echo "CI job \"simulate_project\" has been renamed \"SIM \" from Hog2021.2. Please update your .gitlab-ci.yml accordingly. More info at https://cern.ch/hog"
+      - exit 1
+
+.generate_project: &generate_project
+    <<: *only-default
+    <<: *tag-hog
+    stage: generation_and_simulation
+    variables:
+        <<: *vars
+   script:
+      - echo "CI job \"generate_project\" has been renamed \"GEN \" from Hog2021.2. Please update your .gitlab-ci.yml accordingly. More info at https://cern.ch/hog"
+      - exit 1
+
+
+.SIM: &SIM
+     <<: *only-default
      <<: *tag-hog
      stage: generation_and_simulation
      variables:
@@ -74,7 +94,7 @@
        expire_in: 30 day
      allow_failure: true
 
-.generate_project: &generate_project
+.GEN: &GEN
     <<: *only-default
     <<: *tag-hog
     stage: generation_and_simulation

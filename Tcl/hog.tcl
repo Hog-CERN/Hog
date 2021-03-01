@@ -1869,11 +1869,11 @@ proc AddHogFiles { libraries properties } {
           set props [dict get $properties $cur_file]
           if {[string first "VHDL" $file_type] != -1 } {
             
-            if {[string first "87" $props] != -1 } {
+            if {[string first "1987" $props] != -1 } {
               set hdl_version "VHDL_1987"
-            } elseif {[string first "93" $props] != -1 } {
+            } elseif {[string first "1993" $props] != -1 } {
               set hdl_version "VHDL_1993"
-            } elseif {[string first "08" $props] != -1 } {
+            } elseif {[string first "2008" $props] != -1 } {
               set hdl_version "VHDL_2008"
             } else {
               set hdl_version "default"
@@ -1884,9 +1884,9 @@ proc AddHogFiles { libraries properties } {
               set_global_assignment -name $file_type $cur_file -hdl_version $hdl_version -library $rootlib
             }
           } elseif {[string first "SYSTEMVERILOG" $file_type] != -1 } {
-            if {[string first "05" $props] != -1 } {
+            if {[string first "2005" $props] != -1 } {
               set hdl_version "systemverilog_2005"
-            } elseif {[string first "09" $props] != -1 } {
+            } elseif {[string first "2009" $props] != -1 } {
               set hdl_version "systemverilog_2009"
             } else {
               set hdl_version "default"
@@ -1897,9 +1897,9 @@ proc AddHogFiles { libraries properties } {
               set_global_assignment -name $file_type $cur_file -hdl_version $hdl_version
             }
           } elseif {[string first "VERILOG" $file_type] != -1 } {
-            if {[string first "95" $props] != -1 } {
+            if {[string first "1995" $props] != -1 } {
               set hdl_version "verilog_1995"
-            } elseif {[string first "01" $props] != -1 } {
+            } elseif {[string first "2001" $props] != -1 } {
               set hdl_version "verilog_2001"
             } else {
               set hdl_version "default"

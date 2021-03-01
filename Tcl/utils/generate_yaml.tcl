@@ -113,8 +113,14 @@ foreach dir [glob -type d $repo_path/Top/* ] {
           set stage_and_prop [regexp -all -inline {\S+} $line]
           set stage [lindex $stage_and_prop 0]
           set props [lrange $stage_and_prop 1 end]
+          if {$stage == "generate_project"} {
+            set stage "GEN"
+          }
+          if {$stage == "simulate_project"} {
+            set stage "GEN"
+          }
           if { [lsearch $stage_list $stage] > -1 } {
-	          Msg Info "Adding job $stage for project: $proj..."
+            Msg Info "Adding job $stage for project: $proj..."
             foreach prop $props {
               if { [lsearch $prop_list $prop] > -1 } {
                 Msg Info "Enabling property $prop for stage $stage of project $proj..."
@@ -132,8 +138,8 @@ foreach dir [glob -type d $repo_path/Top/* ] {
     } else {
       Msg Info "No CI configuration file found ($dir/ci.conf) for $proj, creating all jobs..."
       foreach stage $stage_list {
-	      Msg Info "Adding job $stage for project: $proj..."
-	      puts $fp [ WriteYAMLStage $stage $proj ]
+        Msg Info "Adding job $stage for project: $proj..."
+        puts $fp [ WriteYAMLStage $stage $proj ]
       }
     }
   } else {

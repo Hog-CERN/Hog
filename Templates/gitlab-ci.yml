@@ -20,15 +20,15 @@ include:
 #################### example ###########################
 ### Change 'example' with your project name
 
-generate_project:example:
-    extends: .generate_project
+GEN:example:
+    extends: .GEN
     variables:
       extends: .vars
       PROJECT_NAME: example
       HOG_ONLY_SYNTH: 0 # if 1 runs only the synthesis
 
-simulate_project:example:
-    extends: .simulate_project
+SIM:example:
+    extends: .SIM
     variables:
       extends: .vars
       PROJECT_NAME: example

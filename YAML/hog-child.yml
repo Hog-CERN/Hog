@@ -46,7 +46,7 @@
      variables:
         <<: *vars
      script:
-      - echo "CI job \"simulate_project\" has been renamed \"SIM \" from Hog2021.2. Please update your .gitlab-ci.yml accordingly. More info at https://cern.ch/hog"
+      - echo "CI job \"simulate_project\" has been renamed \"SIM\" from Hog2021.2. Please update your .gitlab-ci.yml accordingly. More info at https://cern.ch/hog"
       - exit 1
 
 .generate_project: &generate_project
@@ -56,7 +56,7 @@
     variables:
         <<: *vars
     script:
-      - echo "CI job \"generate_project\" has been renamed \"GEN \" from Hog2021.2. Please update your .gitlab-ci.yml accordingly. More info at https://cern.ch/hog"
+      - echo "CI job \"generate_project\" has been renamed \"GEN\" from Hog2021.2. Please update your .gitlab-ci.yml accordingly. More info at https://cern.ch/hog"
       - exit 1
 
 

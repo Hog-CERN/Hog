@@ -5,3 +5,4 @@ vivado*
 .cxl.ip/
 cxl_error.log
 *.DS_Store
+*.Xil

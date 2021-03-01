@@ -1924,7 +1924,7 @@ proc AddHogFiles { libraries properties } {
               set qsysName [file rootname $curfile]
             #If file does not exists generate it using qsys_script
             if { [file exists $cur_file] == 0} {
-              set $script_file "$qsysPath/../$qsysName.tcl"
+              set $script_file "$qsysPath/$qsysName.tcl"
               if { [file exists $script_file == 1} {
                 set cmd "qsys-script --script=$script_file"
                 if {[catch exec $cmd]} {

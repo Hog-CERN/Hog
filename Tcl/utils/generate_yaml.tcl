@@ -117,7 +117,7 @@ foreach dir [glob -type d $repo_path/Top/* ] {
             set stage "GEN"
           }
           if {$stage == "simulate_project"} {
-            set stage "GEN"
+            set stage "SIM"
           }
           if { [lsearch $stage_list $stage] > -1 } {
             Msg Info "Adding job $stage for project: $proj..."

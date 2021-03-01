@@ -542,7 +542,7 @@ proc ReadListFile args {
               set library $lib
             }
             lassign [ReadListFile {*}"-lib $library $sha_mode_opt $verbose_opt $vhdlfile $path"] l p
-            ### "
+            ### " Fake comment for Visual Code Studio
             set libraries [MergeDict $l $libraries]
             set properties [MergeDict $p $properties]
           } elseif {[lsearch {.src .sim .con .ext} $extension] >= 0 } {
@@ -991,7 +991,7 @@ proc GetRepoVersions {proj_tcl_file {ext_path ""} {sim 0}} {
 
   #Of all the constraints we get the most recent
   if {"{}" eq $cons_hashes} {
-    #"
+    #" Fake comment for Visual Code Studio 
     Msg CriticalWarning "No hashes found for constraints files (not in git)"
     set cons_hash ""
   } else {
@@ -1662,10 +1662,10 @@ proc GetHogFiles args {
     set ext [file extension $f]
     if {$ext == ".ext"} {
       lassign [ReadListFile {*}"$sha_mode_opt $verbose_opt $f $ext_path"] l p
-      #"
+      #" Fake Comment for Visual Code Studio
     } else {
       lassign [ReadListFile {*}"$sha_mode_opt $verbose_opt $f $repo_path"] l p
-      #"
+      #" Fake Comment for Visual Code Studio
     }
     set libraries [MergeDict $l $libraries]
     set properties [MergeDict $p $properties]

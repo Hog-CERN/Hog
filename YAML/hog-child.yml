@@ -55,7 +55,7 @@
     stage: generation_and_simulation
     variables:
         <<: *vars
-   script:
+    script:
       - echo "CI job \"generate_project\" has been renamed \"GEN \" from Hog2021.2. Please update your .gitlab-ci.yml accordingly. More info at https://cern.ch/hog"
       - exit 1
 

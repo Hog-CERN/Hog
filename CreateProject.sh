@@ -95,21 +95,21 @@ function create_project ()
   then
 
     #Choose if the project is quastus, vivado, vivado_hls [...]
-    select_command $PROJ_DIR"/"$PROJ".tcl"
+    select_command $PROJ_DIR
     if [ $? != 0 ]
     then
-      Msg Error "Failed to select project type: exiting!"
-      exit -1
+	Msg Error "Failed to select project type: exiting!"
+	exit -1
     fi
 
     #select full path to executable and place it in HDL_COMPILER global variable
     select_compiler_executable $COMMAND
     if [ $? != 0 ]
     then
-      Msg Error "Failed to get HDL compiler executable for $COMMAND"
-      exit -1
+	Msg Error "Failed to get HDL compiler executable for $COMMAND"
+	exit -1
     fi
-
+    
     if [ ! -f "${HDL_COMPILER}" ]
     then
       Msg Error "HLD compiler executable $HDL_COMPILER not found"
@@ -119,9 +119,21 @@ function create_project ()
       Msg Info "Using executable: $HDL_COMPILER"
     fi
 
-    Msg Info "Creating project $PROJ..."
-    cd "${PROJ_DIR}"
-    "${HDL_COMPILER}" $COMMAND_OPT $PROJ.tcl
+    if [ $FILE_TYPE == "CONF" ]
+    then
+	Msg Info "Creating project $PROJ using properties.conf..."
+ 	"${HDL_COMPILER}" $COMMAND_OPT $(dirname "$0")/Tcl/create_project.tcl -tclargs $PROJ
+    elif [ $FILE_TYPE == "TCL" ]
+    then
+	cd "${PROJ_DIR}"    
+	Msg Info "Creating project $PROJ using $PROJ.tcl..."
+ 	"${HDL_COMPILER}" $COMMAND_OPT $PROJ.tcl
+    else
+	Msg Error "Unknown file type: $FILE_TPYE"
+	exit 1
+    fi
+
+
     if [ $? != 0 ]
     then
       Msg Error "HDL compiler returned an error state."

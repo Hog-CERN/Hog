@@ -564,6 +564,28 @@ proc SetGlobalVar {var {default_value HOG_NONE}} {
 
 ###########################################################################################################################################################################################
 
+if {[catch {package require cmdline} ERROR]} {
+  puts "$ERROR\n If you are running this script on tclsh, you can fix this by installing 'tcllib'"
+  return
+}
+
+set parameters {
+  {arg.project  "" "Hog project name"}
+}
+
+set usage   "Create Vivado/Quartus project. If project is not given, will expect the name of the project defined in a variable called DESIGN.\nUsage: $argv0 \[project\]"
+set tcl_path [file normalize "[file dirname [info script]]"]
+source $tcl_path/hog.tcl
+
+
+if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] || [llength $argv] > 1} {
+  Msg Info [cmdline::usage $parameters $usage]
+  exit 1
+} elseif {[llength $argv] == 1} {
+  set DESIGN [lindex $argv 0]
+}
+
+###########################################################################################################################################################################################
 
 #find properties.conf
   # usr pre-create
@@ -575,10 +597,6 @@ proc SetGlobalVar {var {default_value HOG_NONE}} {
   # sopurce .tcl
 
 #if not error
-
-
-set tcl_path         [file normalize "[file dirname [info script]]"]
-source $tcl_path/hog.tcl
 
 SetGlobalVar DESIGN
 SetGlobalVar FPGA

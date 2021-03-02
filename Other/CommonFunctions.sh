@@ -16,6 +16,11 @@
 ## @file CreateProject.sh
 #  @brief Create the specified Vivado or Quartus project
 
+## @var FILE_TYPE
+#  @brief Global variable used to distinguis tcl project from properties.conf
+#
+export COMMAND=""
+
 ## @var COMMAND
 #  @brief Global variable used to contain the command to be used
 #
@@ -146,7 +151,7 @@ function select_command_from_line()
     COMMAND="planAhead"
     COMMAND_OPT="-nojournal -nolog -mode batch -notrace -source"
   else
-    Msg Warning " You should write #vivado or #quartus in your project Tcl file, assuming Vivado... "
+    Msg Warning " You should write #vivado or #quartus as first line in your property.conf file or project Tcl file, assuming Vivado... "
     Msg Info " Recognised Vivado project"
     COMMAND="vivado"
     COMMAND_OPT="-mode batch -notrace -source"
@@ -157,35 +162,46 @@ function select_command_from_line()
 
 ## @fn select_command
 #
-# @brief Selects which command has to be used based on the first line of the tcl
+# @brief Selects which command has to be used based on the first line of the tcl/conf file
 #
 # This function:
 # - checks that the tcl file exists
 # - gets the first line using head -1
 # - calls select_command_from_line()
 #
-# @param[in]    $1 full path to the tcl file
+# @param[in]    $1 full path to the tcl/conf file
 # @param[out]   COMMAND  global variable: the selected command
 # @param[out]   COMMAND_OPT global variable: the selected command options
 #
-# @returns  0 if success, 1 if failure
+# @returns  0 for ok, 1 for error
 #
 function select_command()
 {
-  if [ ! -f $1 ]
-  then
-    Msg Error "File: $1 not found!"
-    return 1
-  fi
-
-  select_command_from_line $(head -1 $1)
-  if [ $? != 0 ]
-  then
-    Msg Error "Failed to select COMMAND and COMMAND_OPT"
-    return 1
-  fi
-
-  return 0
+    proj=$(basename $1)
+    conf="$1"/"properties.conf"
+    tcl="$1"/"$proj.tcl"
+    
+    if [ -f "$conf" ]
+    then 
+	file="$conf"
+	FILE_TYPE=CONF
+    elif [ -f "$tcl" ]
+    then
+	file="$tcl"
+	FILE_TYPE=TCL
+    else
+	Msg Error "No suitable file found in $1!"
+	return 1
+    fi
+    
+    select_command_from_line $(head -1 $file)
+    if [ $? != 0 ]
+    then
+	Msg Error "Failed to select COMMAND and COMMAND_OPT"
+	return 1
+    fi
+    
+    return 0
 }
 
 ## @fn select_compiler_executable

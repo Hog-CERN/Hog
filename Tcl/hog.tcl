@@ -889,14 +889,14 @@ proc GetSubmodule {path_file} {
 ## Document HERE!!!
 
 proc GetConfFiles {proj_dir} {
-  if ![isdirectory $proj_dir] {
+  if ![file isdirectory $proj_dir] {
     Msg Error "$proj_dir is supposed to be the top project directory"
     return -1
   }
   set conf_file [file normalize $proj_dir/properties.conf]
   set pre_tcl [file normalize $proj_dir/pre-creation.tcl]
   set post_tcl [file normalize $proj_dir/post-creation.tcl]
-  set proj_tcl_file [file normalize $proj_dir/[tail $proj_dir].tcl]
+  set proj_tcl_file [file normalize $proj_dir/[file tail $proj_dir].tcl]
 
   return [list $conf_file $pre_tcl $post_tcl $proj_tcl_file]  
 }

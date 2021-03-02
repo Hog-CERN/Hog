@@ -1918,35 +1918,37 @@ proc AddHogFiles { libraries properties } {
             set_global_assignment  -name $file_type $cur_file
             if { $ext == ".con"} {
               source $cur_file
-            }
-          } elseif {[string first "COMMAND_MACRO" $file_type] != -1} {
+            } elseif { $ext == ".src"} {
             set_global_assignment  -name $file_type $cur_file
 
             # If this is a Platform Designer file then generate the system
             if {[string first "qsys" $props] != -1 } {
               set cmd "qsys-script --script=$cur_file"
-              if {[catch exec $cmd]} {
-                Msg ERROR "Unable to build qsys file: $cur_file! Failure while executing $cmd";
+              if [ catch "eval exec -ignorestderr $cmd" ret opt] {
+                set makeRet [lindex [dict get $opt -errorcode] end]
+                Msg Info "$cmd returned with $makeRet"
               }
               # Check the system is generated correctly
-              set qsysPath [file dirname $curfile]
-              set qsysName "[file rootname $curfile].qsys"
+              set qsysPath [file dirname $cur_file]
+              set qsysName "[file rootname [file tail $cur_file]].qsys"
               set qsysFile "$qsysPath/$qsysName"
               # Move file to correct directory
-              if { [file exists $qsysName != 0} {
-                file rename -force $qsysName qsysFile 
+              if { [file exists $qsysName] != 0} {
+                file rename -force $qsysName $qsysFile 
               } else {
                 Msg ERROR "Error while moving the generated qsys file to final location: $qsysName.qsys not found!";
               }
-              if { [file exists $qsysFile != 0} {
+              if { [file exists $qsysFile] != 0} {
                 set qsysFileType [FindFileType $qsysFile]
                 set_global_assignment  -name $qsysFileType $qsysFile
-                set props [string replace $props 0 4]
+                set emptyString ""
+                regsub -all {\{*qsys||\}} $props $emptyString props
                 GenerateQsysSystem $qsysFile $props
               } else {
                 Msg ERROR "Error while generating ip variations from qsys: $qsysFile not found!";
               }
             }
+          }
           } elseif {[string first "QSYS" $file_type] != -1 } {
             set_global_assignment  -name $file_type $cur_file
             #Generate IPs
@@ -1966,21 +1968,24 @@ proc AddHogFiles { libraries properties } {
 #  @param[in] qsysFile the Intel Platform Designed file (.qsys), containing the system to be generated
 #  @param[in] commandOpts the command options to be used during system generation as they are in qsys-generate options
 #
-proc GenerateQsysSystem {} {
-  if { [file exists $qsysFile != 0} {
+proc GenerateQsysSystem {qsysFile commandOpts} {
+  if { [file exists $qsysFile] != 0} {
     set qsysPath [file dirname $qsysFile]
-    set qsysName [file rootname $qsysFile]
+    set qsysName [file rootname [file tail $qsysFile] ]
     set qsysIPDir "$qsysPath/$qsysName"
 
     set cmd "qsys-generate $qsysFile --output-directory=$qsysIPDir $commandOpts"
-    if {[catch exec $cmd]} {
-      Msg ERROR "Unable to generate IPs from file $qsysFile!"
+    #eval exec -ignorestderr $cmd
+    if [ catch "eval exec -ignorestderr $cmd" ret opt] {
+      set makeRet [lindex [dict get $opt -errorcode] end]
+      Msg Info "$cmd returned with $makeRet"
     }
     #Add generated IPs to project
-    set qsysIPFileList [concat [glob -directory $qsysIPDir -types f *.ip *.qip ] [glob -directory "$qsysIPDir/synthesis" -types f *.ip *.qip *.vhd *.vhdl ]
-    foreach qsysIPFile in $qsysIPFileList {
+    set qsysIPFileList  [glob -directory "$qsysIPDir/synthesis" -types f *.ip *.qip *.vhd *.vhdl ] 
+#[concat [glob -directory $qsysIPDir -types f *.ip *.qip ] [glob -directory "$qsysIPDir/synthesis" -types f *.ip *.qip *.vhd *.vhdl ] ]
+    foreach qsysIPFile $qsysIPFileList {
       if { [file exists $qsysIPFile] != 0} {
-        set qsysIPFileType [FindFileType $top_file]
+        set qsysIPFileType [FindFileType $qsysIPFile]
         set_global_assignment -name $qsysIPFileType $qsysIPFile
       }
     }

@@ -2431,7 +2431,13 @@ package require inifile 0.2.3
       set new_sec $sec
     }
     
-    dict set properties $new_sec [dict create {*}[::ini::get $f $sec]] 
+    set key_pairs [::ini::get $f $sec]
+
+    #manipulate string here:
+    regsub -all {\{\"} $key_pairs "{" key_pairs
+    regsub -all {\"\}} $key_pairs "}" key_pairs
+
+    dict set properties $new_sec [dict create {*}$key_pairs]
   }
   
   ::ini::close $f                                                                                                                                            

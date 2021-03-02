@@ -99,7 +99,7 @@ proc CreateProject {} {
         set_property "compxlib.modelsim_compiled_library_dir" $globalSettings::modelsim_path $obj
         set_property "compxlib.questa_compiled_library_dir" $globalSettings::modelsim_path $obj
         set_property "default_lib" "xil_defaultlib" $obj
-        set_property "target_simulator" $globalSettings::SIMULATOR $obj
+        #set_property "target_simulator" $globalSettings::SIMULATOR $obj
     }
 
         ## Enable VHDL 2008
@@ -600,12 +600,11 @@ if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] 
 #if not error
 
 SetGlobalVar DESIGN
-SetGlobalVar FPGA
 
 set proj_dir $repo_path/Top/$DESIGN
 lassign [GetConfFiles $proj_dir] conf_file pre_file post_file tcl_file 
 
-if {[info exists $prop_file]} {
+if {[file exists $conf_file]} {
   Msg Info "Parsing configuration file $conf_file..."
   set PROPERTIES [ReadConf $conf_file]
   
@@ -613,7 +612,7 @@ if {[info exists $prop_file]} {
     set main [dict get $PROPERTIES main]
     dict for {p v} $main {
       # notice the dollar in front of p: creates new variables and fill them with the value
-      Info Msg "Main property $p set to $v"
+      Msg Info "Main property $p set to $v"
       set $p $v
     }
   } else {
@@ -622,7 +621,7 @@ if {[info exists $prop_file]} {
 }
 
 
-
+SetGlobalVar FPGA
 #Family is needed in qurtus only
 if {[info commands send_msg_id] != ""} {
   #Vivado/PlanAhead

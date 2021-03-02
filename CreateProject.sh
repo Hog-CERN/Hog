@@ -121,12 +121,13 @@ function create_project ()
 
     if [ $FILE_TYPE == "CONF" ]
     then
+	cd "${DIR}"
 	Msg Info "Creating project $PROJ using properties.conf..."
- 	"${HDL_COMPILER}" $COMMAND_OPT $(dirname "$0")/Tcl/create_project.tcl -tclargs $PROJ
+ 	"${HDL_COMPILER}" $COMMAND_OPT ../Hog/Tcl/create_project.tcl -tclargs $PROJ
     elif [ $FILE_TYPE == "TCL" ]
     then
-	cd "${PROJ_DIR}"    
-	Msg Info "Creating project $PROJ using $PROJ.tcl..."
+	cd "${PROJ_DIR}"
+    	Msg Info "Creating project $PROJ using $PROJ.tcl..."
  	"${HDL_COMPILER}" $COMMAND_OPT $PROJ.tcl
     else
 	Msg Error "Unknown file type: $FILE_TPYE"

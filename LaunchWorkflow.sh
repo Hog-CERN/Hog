@@ -119,10 +119,10 @@ else
   then
 
     #Choose if the project is quastus, vivado, vivado_hls [...]
-    select_executable_form_file "$PROJ_DIR/$PROJ.tcl"
+    select_executable_from_project_dir "$PROJ_DIR"
     if [ $? != 0 ]
     then
-      Msg Error "Failed to get HDL compiler executable for $PROJ_DIR/$PROJ.tcl"
+      Msg Error "Failed to get HDL compiler executable for $PROJ_DIR"
       exit -1
     fi
 

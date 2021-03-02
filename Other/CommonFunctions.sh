@@ -255,18 +255,18 @@ function select_compiler_executable ()
   return 0
 }
 
-## @fn select_executable_form_file
+## @fn select_executable_from_project
 #
-# @brief Selects which ompiler executable has to be used based on the first line of the project.tcl file
+# @brief Selects which ompiler executable has to be used based on the first line of the conf or tcl file
 #
-# @param[in]    $1 full path to the tcl file
+# @param[in]    $1 full path to the project dir
 # @param[out]   COMMAND  global variable: the selected command
 # @param[out]   COMMAND_OPT global variable: the selected command options
 # @param[out]   HDL_COMPILER gloabal variable: the full path to the HDL compiler executable
 #
 # @returns  0 if success, 1 if failure
 #
-function select_executable_form_file ()
+function select_executable_from_project_dir ()
 {
   if [ -z ${1+x} ]
   then

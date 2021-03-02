@@ -31,23 +31,29 @@
 ## @namespace globalSettings
 # @brief Namespace of all the project settings
 #
-# Variables with capital letters are expected to be passed by the caller.
-# Variables with samll letters are evaluated in the script defined in create_project.tcl
+# Variables in upper case are expected to be passed by the caller.
+# Variables lower case are evaluated in the script defined in create_project.tcl
 #
 namespace eval globalSettings {
-  variable FPGA
 
+  #The project name (including flavour if any)
+  variable DESIGN
+
+  variable FPGA
   variable SYNTH_STRATEGY
-  variable FAMILY
   variable SYNTH_FLOW
   variable IMPL_STRATEGY
   variable IMPL_FLOW
-  variable DESIGN
+
   variable PROPERTIES
-  variable PATH_REPO
   variable BIN_FILE
+
   variable HOG_EXTERNAL_PATH
   variable SIMULATOR
+
+  # Quartus only
+  variable FAMILY
+
 
   variable pre_synth_file
   variable post_synth_file
@@ -544,31 +550,57 @@ proc UpgradeIP {} {
   }
 }
 
+proc SetGlobalVar {var {default_value HOG_NONE}} {
+  if {[info exists ::$var]} {
+    Msg Info "Setting $var to [subst $[subst ::$var]]"
+    set globalSettings::$var [subst $[subst ::$var]]
+  } elseif {$default_value == "HOG_NONE"} {
+    Msg Error "Mandatory varible $var was not defined. Please define it in properties.conf or in your project tcl script"
+  } else {
+    Msg Info "Setting $var to default value ($default_value)"
+    set globalSettings::$var $default_value
+  }
+} 
+
 ###########################################################################################################################################################################################
+
+
+#find properties.conf
+  # usr pre-create
+  # create
+  # usr post-create
+
+
+#if not find .tcl
+  # sopurce .tcl
+
+#if not error
 
 
 #IMPLEMENT SETTINGS NAMESPACE
 set tcl_path         [file normalize "[file dirname [info script]]"]
 source $tcl_path/hog.tcl
 
-#this PATH_REPO should be done better
-set globalSettings::PATH_REPO $::PATH_REPO
 
-set globalSettings::FPGA $::FPGA
 
-set globalSettings::SYNTH_STRATEGY $::SYNTH_STRATEGY
-if {[info exists ::FAMILY]} {
-  set globalSettings::FAMILY $::FAMILY
+
+#set globalSettings::FPGA $::FPGA
+SetGlobalVar FPGA
+
+SetGlobalVar SYNTH_STRATEGY
+
+#Family is needed in qurtus only
+if {[info commands project_new] != ""} {
+  SetGlobalVar FAMILY
 }
-set globalSettings::SYNTH_FLOW $::SYNTH_FLOW
-set globalSettings::IMPL_STRATEGY $::IMPL_STRATEGY
-set globalSettings::IMPL_FLOW $::IMPL_FLOW
-set globalSettings::DESIGN $::DESIGN
-if {[info exists ::SIMULATOR]} {
-  set globalSettings::SIMULATOR $::SIMULATOR
-} else {
-  set globalSettings::SIMULATOR "ModelSim"
-}
+
+
+SetGlobalVar SYNTH_FLOW
+SetGlobalVar IMPL_STRATEGY
+SetGlobalVar IMPL_FLOW
+SetGlobalVar DESIGN
+
+SetGlobalVar SIMULATOR "ModelSim"
 
 if {[info exists env(HOG_EXTERNAL_PATH)]} {
   set globalSettings::HOG_EXTERNAL_PATH $env(HOG_EXTERNAL_PATH)
@@ -576,14 +608,10 @@ if {[info exists env(HOG_EXTERNAL_PATH)]} {
   set globalSettings::HOG_EXTERNAL_PATH ""
 }
 
-if {[info exist ::BIN_FILE]} {
-  set globalSettings::BIN_FILE $::BIN_FILE
-} else {
-  set globalSettings::BIN_FILE 0
-}
-if {[info exists ::PROPERTIES]} {
-  set globalSettings::PROPERTIES $::PROPERTIES
-}
+SetGlobalVar BIN_FILE 0
+
+SetGlobalVar PROPERTIES ""
+
 
 set build_dir_name "Projects"
 
@@ -619,9 +647,5 @@ ConfigureImplementation
 ConfigureSimulation
 ConfigureProperties
 UpgradeIP
-
-##############
-#    RUNS    #
-##############
 
 Msg Info "Project $DESIGN created succesfully"

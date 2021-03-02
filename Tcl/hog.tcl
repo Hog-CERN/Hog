@@ -1915,49 +1915,77 @@ proc AddHogFiles { libraries properties } {
               set_global_assignment -name $file_type $cur_file -hdl_version $hdl_version
             }
           } elseif {[string first "SOURCE" $file_type] != -1 || [string first "COMMAND_MACRO" $file_type] != -1 } {
+            set_global_assignment  -name $file_type $cur_file
             if { $ext == ".con"} {
               source $cur_file
             }
+          } elseif {[string first "COMMAND_MACRO" $file_type] != -1} {
             set_global_assignment  -name $file_type $cur_file
-          } elseif {[string first "QSYS" $file_type] != -1 } {
-              set qsysPath [file dirname $curfile]
-              set qsysName [file rootname $curfile]
-            #If file does not exists generate it using qsys_script
-            if { [file exists $cur_file] == 0} {
-              set $script_file "$qsysPath/$qsysName.tcl"
-              if { [file exists $script_file == 1} {
-                set cmd "qsys-script --script=$script_file"
-                if {[catch exec $cmd]} {
-                  Msg ERROR "Unable to build qsys file: $cur_file! Failure while executing $cmd";
-                }
-              } else {
-                Msg ERROR "Unable to build qsys file: $cur_file! Tcl scripts $script_file not found";
-              }
-            }
-            #Generate IPs
-            if {[string first "no-generate" $props] == -1} {
-              set cmd "qsys-generate $curfile $props"
+
+            # If this is a Platform Designer file then generate the system
+            if {[string first "qsys" $props] != -1 } {
+              set cmd "qsys-script --script=$cur_file"
               if {[catch exec $cmd]} {
-                Msg ERROR "Unable to generate IPs from file: $cur_file!";
+                Msg ERROR "Unable to build qsys file: $cur_file! Failure while executing $cmd";
+              }
+              # Check the system is generated correctly
+              set qsysPath [file dirname $curfile]
+              set qsysName "[file rootname $curfile].qsys"
+              set qsysFile "$qsysPath/$qsysName"
+              # Move file to correct directory
+              if { [file exists $qsysName != 0} {
+                file rename -force $qsysName qsysFile 
+              } else {
+                Msg ERROR "Error while moving the generated qsys file to final location: $qsysName.qsys not found!";
+              }
+              if { [file exists $qsysFile != 0} {
+                set qsysFileType [FindFileType $qsysFile]
+                set_global_assignment  -name $qsysFileType $qsysFile
+                set props [string replace $props 0 4]
+                GenerateQsysSystem $qsysFile $props
+              } else {
+                Msg ERROR "Error while generating ip variations from qsys: $qsysFile not found!";
               }
             }
-            #Add QSYS file to project
+          } elseif {[string first "QSYS" $file_type] != -1 } {
             set_global_assignment  -name $file_type $cur_file
-            #Add generated IPs to project
-            set qsysIPDir "$qsysPath/$qsysName"
-            set qsysIPFileList [concat [glob -directory $qsysIPDir -types f *.ip *.qip ] [glob -directory "$qsysIPDir/synthesis" -types f *.ip *.qip *.vhd *.vhdl ]
-            foreach qsysIPFile in $qsysIPFileList {
-              if { [file exists $qsysIPFile] != 0} {
-                set qsysIPFileType [FindFileType $top_file]
-                set_global_assignment -name $qsysIPFileType $qsysIPFile
-              }
+            #Generate IPs
+            if {[string first "nogenerate" $props] == -1} {
+              GenerateQsysSystem $cur_file $props
             }
-          } else {
-            set_global_assignment  -name $file_type $cur_file
           }
         }
       }
     }
+  }
+}
+
+## @brief Function used to generate a qsys system from a .qsys file.
+#  The procedure adds the generated IPs to the project.
+#
+#  @param[in] qsysFile the Intel Platform Designed file (.qsys), containing the system to be generated
+#  @param[in] commandOpts the command options to be used during system generation as they are in qsys-generate options
+#
+proc GenerateQsysSystem {} {
+  if { [file exists $qsysFile != 0} {
+    set qsysPath [file dirname $qsysFile]
+    set qsysName [file rootname $qsysFile]
+    set qsysIPDir "$qsysPath/$qsysName"
+
+    set cmd "qsys-generate $qsysFile --output-directory=$qsysIPDir $commandOpts"
+    if {[catch exec $cmd]} {
+      Msg ERROR "Unable to generate IPs from file $qsysFile!"
+    }
+    #Add generated IPs to project
+    set qsysIPFileList [concat [glob -directory $qsysIPDir -types f *.ip *.qip ] [glob -directory "$qsysIPDir/synthesis" -types f *.ip *.qip *.vhd *.vhdl ]
+    foreach qsysIPFile in $qsysIPFileList {
+      if { [file exists $qsysIPFile] != 0} {
+        set qsysIPFileType [FindFileType $top_file]
+        set_global_assignment -name $qsysIPFileType $qsysIPFile
+      }
+    }
+  } else {
+    Msg ERROR "Error while generating ip variations from qsys: $qsysFile not found!"
   }
 }
 

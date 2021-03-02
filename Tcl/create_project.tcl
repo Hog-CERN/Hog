@@ -577,28 +577,23 @@ proc SetGlobalVar {var {default_value HOG_NONE}} {
 #if not error
 
 
-#IMPLEMENT SETTINGS NAMESPACE
 set tcl_path         [file normalize "[file dirname [info script]]"]
 source $tcl_path/hog.tcl
 
-
-
-
-#set globalSettings::FPGA $::FPGA
+SetGlobalVar DESIGN
 SetGlobalVar FPGA
 
-SetGlobalVar SYNTH_STRATEGY
-
 #Family is needed in qurtus only
-if {[info commands project_new] != ""} {
+if {[info commands send_msg_id] != ""} {
+  #Vivado/PlanAhead
+  SetGlobalVar SYNTH_STRATEGY
+  SetGlobalVar SYNTH_FLOW
+  SetGlobalVar IMPL_STRATEGY
+  SetGlobalVar IMPL_FLOW
+} elseif {[info commands project_new] != ""} {
+  #Quartus only
   SetGlobalVar FAMILY
 }
-
-
-SetGlobalVar SYNTH_FLOW
-SetGlobalVar IMPL_STRATEGY
-SetGlobalVar IMPL_FLOW
-SetGlobalVar DESIGN
 
 SetGlobalVar SIMULATOR "ModelSim"
 
@@ -613,9 +608,9 @@ SetGlobalVar BIN_FILE 0
 SetGlobalVar PROPERTIES ""
 
 
-set build_dir_name "Projects"
-
 #Derived varibles from now on...
+
+set build_dir_name "Projects"
 set globalSettings::pre_synth_file              "pre-synthesis.tcl"
 set globalSettings::post_synth_file             ""
 set globalSettings::pre_impl_file               "pre-implementation.tcl"

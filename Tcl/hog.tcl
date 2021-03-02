@@ -2415,7 +2415,7 @@ proc ResetRepoFiles {reset_file} {
 #
 #  @return       The dictionary
 #
-proc ReadPropertyFile {file_name} {                                                                                                                          
+proc ReadConf {file_name} {                                                                                                                          
 package require inifile 0.2.3                                                                                                                               
                                                                                                                                                             
   set f [::ini::open $file_name]                                                                                                                        

@@ -555,9 +555,9 @@ proc SetGlobalVar {var {default_value HOG_NONE}} {
     Msg Info "Setting $var to [subst $[subst ::$var]]"
     set globalSettings::$var [subst $[subst ::$var]]
   } elseif {$default_value == "HOG_NONE"} {
-    Msg Error "Mandatory varible $var was not defined. Please define it in properties.conf or in your project tcl script"
+    Msg Error "Mandatory variable $var was not defined. Please define it in properties.conf or in project tcl script."
   } else {
-    Msg Info "Setting $var to default value ($default_value)"
+    Msg Info "Setting $var to default value: \"$default_value\""
     set globalSettings::$var $default_value
   }
 } 
@@ -573,8 +573,9 @@ set parameters {
   {arg.project  "" "Hog project name"}
 }
 
-set usage   "Create Vivado/Quartus project. If project is not given, will expect the name of the project defined in a variable called DESIGN.\nUsage: $argv0 \[project\]"
+set usage   "Create Vivado/Quartus project. If no project is given, will expect the name of the project defined in a variable called DESIGN.\nUsage: $argv0 \[project\]"
 set tcl_path [file normalize "[file dirname [info script]]"]
+set repo_path [file normalize $tcl_path/../..]
 source $tcl_path/hog.tcl
 
 
@@ -600,6 +601,27 @@ if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] 
 
 SetGlobalVar DESIGN
 SetGlobalVar FPGA
+
+set proj_dir $repo_path/Top/$DESIGN
+lassign [GetConfFiles $proj_dir] conf_file pre_file post_file tcl_file 
+
+if {[info exists $prop_file]} {
+  Msg Info "Parsing configuration file $conf_file..."
+  set PROPERTIES [ReadConf $conf_file]
+  
+  if {[dict exists $PROPERTIES main]} {
+    set main [dict get $PROPERTIES main]
+    dict for {p v} $main {
+      # notice the dollar in front of p: creates new variables and fill them with the value
+      Info Msg "Main property $p set to $v"
+      set $p $v
+    }
+  } else {
+    Msg Error "No main section found in $conf_file, make sure it has a section called \[main\] containing the mandatory properties." 
+  }
+}
+
+
 
 #Family is needed in qurtus only
 if {[info commands send_msg_id] != ""} {
@@ -629,6 +651,9 @@ SetGlobalVar PROPERTIES ""
 #Derived varibles from now on...
 
 set build_dir_name "Projects"
+set globalSettings::tcl_path                    $tcl_path
+set globalSettings::repo_path                   $repo_path
+
 set globalSettings::pre_synth_file              "pre-synthesis.tcl"
 set globalSettings::post_synth_file             ""
 set globalSettings::pre_impl_file               "pre-implementation.tcl"
@@ -636,8 +661,6 @@ set globalSettings::post_impl_file              "post-implementation.tcl"
 set globalSettings::pre_bit_file                "pre-bitstream.tcl"
 set globalSettings::post_bit_file               "post-bitstream.tcl"
 set globalSettings::quartus_post_module_file    "quartus-post-module.tcl"
-set globalSettings::tcl_path                    [file normalize "[file dirname [info script]]"]
-set globalSettings::repo_path                   [file normalize "$globalSettings::tcl_path/../../"]
 set globalSettings::top_path                    "$globalSettings::repo_path/Top/$DESIGN"
 set globalSettings::list_path                   "$globalSettings::top_path/list"
 set globalSettings::build_dir                   "$globalSettings::repo_path/$build_dir_name/$DESIGN"

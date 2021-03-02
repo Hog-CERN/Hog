@@ -676,7 +676,7 @@ set globalSettings::pre_bit             [file normalize "$globalSettings::tcl_pa
 set globalSettings::post_bit            [file normalize "$globalSettings::tcl_path/integrated/$globalSettings::post_bit_file"]
 set globalSettings::quartus_post_module [file normalize "$globalSettings::tcl_path/integrated/$globalSettings::quartus_post_module_file"]
 
-if {[info file exists $pre_file]} {
+if {[file exists $pre_file]} {
   Msg Info "Found pre-creation Tcl script $pre_file, executing it..."
   source $pre_file
 }
@@ -687,7 +687,7 @@ ConfigureSimulation
 ConfigureProperties
 UpgradeIP
 
-if {[info file exists $post_file]} {
+if {[file exists $post_file]} {
   Msg Info "Found post-creation Tcl script $post_file, executing it..."
   source $post_file
 }

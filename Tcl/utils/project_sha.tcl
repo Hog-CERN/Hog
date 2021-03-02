@@ -48,10 +48,10 @@ if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] 
     set ext_path $options(ext_path)
   }
 }
-set tcl_file $repo_path/Top/$project/$project.tcl
+set proj_dir $repo_path/Top/$project
 
-if {[file exists $tcl_file]} {
-  lassign [GetRepoVersions $tcl_file $ext_path] sha ver
+if {[file exists $proj_dir]} {
+  lassign [GetRepoVersions $proj_dir $ext_path] sha ver
   if {$do_ver == 1} {
     set ret [HexVersionToString $ver]
   } else {
@@ -59,7 +59,7 @@ if {[file exists $tcl_file]} {
   }
 
 } else {
-  Msg Error "Project $project does not exist: $tcl_file not found."
+  Msg Error "Project $project does not exist: $proj_dir not found."
   exit
 }
 

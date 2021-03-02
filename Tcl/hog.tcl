@@ -793,24 +793,23 @@ return $M$m$c
 
 ## Get the project version
 #
-#  @param[in] tcl_file: The tcl file of the project of which all the version must be calculated
+#  @param[in] proj_dir: The top folder of the project of which all the version must be calculated
 #  @param[in] ext_path: path for external libraries
 #  @param[in] sim: if enabled, check the version also for the simulation files
 #
 #  @return  returns the project version
 #
-proc GetProjectVersion {tcl_file {ext_path ""} {sim 0}} {
-  if { ![file exists $tcl_file] } {
-    Msg CriticalWarning "$tcl_file not found"
+proc GetProjectVersion {proj_dir {ext_path ""} {sim 0}} {
+  if { ![file exists $proj_dir] } {
+    Msg CriticalWarning "$proj_dir not found"
     return -1
   }
   set old_dir [pwd]
-  set proj_dir [file dir $tcl_file]
   cd $proj_dir
 
   #The latest version the repository
   set v_last [ExtractVersionFromTag [Git {describe --abbrev=0 --match "v*"}]]
-  lassign [GetRepoVersions $tcl_file $ext_path $sim] sha ver
+  lassign [GetRepoVersions $proj_dir $ext_path $sim] sha ver
   if {$sha == 0} {
     Msg Warning "Repository is not clean"
     cd $old_dir
@@ -887,18 +886,34 @@ proc GetSubmodule {path_file} {
 }
 
 
+## Document HERE!!!
+
+proc GetConfFiles {proj_dir} {
+  if ![isdirectory $proj_dir] {
+    Msg Error "$proj_dir is supposed to be the top project directory"
+    return -1
+  }
+  set conf_file [file normalize $proj_dir/properties.conf]
+  set pre_tcl [file normalize $proj_dir/pre-creation.tcl]
+  set post_tcl [file normalize $proj_dir/post-creation.tcl]
+  set proj_tcl_file [file normalize $proj_dir/[tail $proj_dir].tcl]
+
+  return [list $conf_file $pre_tcl $post_tcl $proj_tcl_file]  
+}
+
 ## Get the versions for all libraries, submodules, etc. for a given project
 #
-#  @param[in] proj_tcl_file: The tcl file of the project of which all the version must be calculated
+#  @param[in] proj_dir: The project directory containing the conf file or the the tcl file
 #  @param[in] ext_path: path for external libraries
 #  @param[in] sim: if enabled, check the version also for the simulation files
 #
 #  @return  a list conatining all the versions: global, top (project tcl file), constraints, libraries, submodules, exteral, ipbus xml
 #
-proc GetRepoVersions {proj_tcl_file {ext_path ""} {sim 0}} {
+proc GetRepoVersions {proj_dir {ext_path ""} {sim 0}} {
   set old_path [pwd]
-  set proj_tcl_file [file normalize $proj_tcl_file]
-  set proj_dir [file dir $proj_tcl_file]
+
+
+  set conf_files [GetConfFiles $proj_dir]
 
   # This will be the list of all the SHAs of this project, the most recent will be picked up as GLOBAL SHA
   set SHAs ""
@@ -932,7 +947,7 @@ proc GetRepoVersions {proj_tcl_file {ext_path ""} {sim 0}} {
   }
 
   # Top project directory
-  lassign [GetVer $proj_tcl_file] top_ver top_hash
+  lassign [GetVer [join $conf_files]] top_ver top_hash
   lappend SHAs $top_hash
   lappend versions $top_ver
 

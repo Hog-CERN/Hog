@@ -205,7 +205,7 @@ if {$do_synthesis == 1} {
   #go to repository path
   cd $path/../..
 
-  lassign [GetRepoVersion [file normalize ./Top/$project/$project.tcl] $ext_path ] sha
+  lassign [GetRepoVersion [file normalize ./Top/$project] $ext_path ] sha
   set describe [GetGitDescribe $sha]
   Msg Info "Git describe set to $describe"
 
@@ -383,7 +383,7 @@ if {$do_implementation == 1 } {
   #Go to repository path
   cd $path/../../
 
-  lassign [GetRepoVersion [file normalize ./Top/$project/$project.tcl]] sha
+  lassign [GetRepoVersion [file normalize ./Top/$project]] sha
   set describe [GetGitDescribe $sha]
   Msg Info "Git describe set to $describe"
 

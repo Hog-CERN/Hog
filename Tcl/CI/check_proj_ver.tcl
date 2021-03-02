@@ -22,7 +22,6 @@ if {[catch {package require cmdline} ERROR] || [catch {package require struct::m
 set parameters {
   {sim    "If set, checks also the version of the simulation files."}
   {ext_path.arg "" "Sets the absolute path for the external libraries."}
-  {project_tcl.arg "" "Sets the absolute path for the project_tcl."}
 }
 
 set usage "- USAGE: $::argv0 \[OPTIONS\] <project> \n. Options:"
@@ -47,6 +46,7 @@ if { $::argc eq 0 } {
   set sim 0
   set ext_path ""
 }
+set project_dir $repo_path/Top/$project
 
 if {$options(sim) == 1} {
     set sim 1
@@ -58,13 +58,7 @@ if { $options(ext_path) != "" } {
     Msg Info "External path set to $ext_path"
 }
 
-if { $options(project_tcl) != "" } {
-  set project_tcl $options(project_tcl)
-} else {
-  set project_tcl $repo_path/Top/$project/$project.tcl
-}
-
-set ver [ GetProjectVersion $project_tcl $ext_path $sim ]
+set ver [ GetProjectVersion $project_dir $ext_path $sim ]
 if {$ver == 0} {
   Msg Info "$project was modified, continuing with the CI..."
 } else {

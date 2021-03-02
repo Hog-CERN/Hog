@@ -53,7 +53,7 @@ else
   if [ -d "$PROJ_DIR" ]
   then
       #Choose if the project is quastus, vivado, vivado_hls [...]
-      select_command $PROJ_DIR"/"$PROJ".tcl"
+      select_command $PROJ_DIR
       if [ $? != 0 ]
       then
 	  echo "Failed to select project type: exiting!"

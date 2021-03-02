@@ -148,7 +148,7 @@ if { $check_syntax == 1 } {
 }
 
 # keep track of the current revision and of the top level entity name
-lassign [GetRepoVersions [file normalize ../../Top/$project/$project.tcl]  ] sha
+lassign [GetRepoVersions [file normalize ../../Top/$project]  ] sha
 set describe [GetGitDescribe $sha]
 #set top_level_name [ get_global_assignment -name TOP_LEVEL_ENTITY ]
 set revision [get_current_revision]

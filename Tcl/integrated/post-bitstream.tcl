@@ -88,7 +88,7 @@ if {[info commands get_property] != "" && [file exists $bit_file]} {
   cd $tcl_path/../../
 
   Msg Info "Evaluating Git sha for $proj_name..."
-  lassign [GetRepoVersions ./Top/$proj_name] sha
+  lassign [GetRepoVersions [file normalize ./Top/$proj_name]] sha
 
   set describe [GetGitDescribe $sha]
   Msg Info "Git describe set to: $describe"

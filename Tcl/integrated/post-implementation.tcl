@@ -58,7 +58,7 @@ if {$ret !=0} {
 
 if {$msg eq "" } {
   Msg Info "Git working directory [pwd] clean."
-  lassign [GetRepoVersions ./Top/$proj_name] commit version
+  lassign [GetRepoVersions [file normalize ./Top/$proj_name]] commit version
   Msg Info "Found last SHA for $proj_name: $commit"
 
 } else {

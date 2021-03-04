@@ -67,7 +67,7 @@ if {$msg eq "" } {
 }
 
 #number of threads
-set maxThreads [GetMaxThreads $proj_name]
+set maxThreads [GetMaxThreads [file normalize ./Top/$proj_name]]
 if {$maxThreads != 1} {
   Msg CriticalWarning "Multithreading enabled. Number of threads: $maxThreads"
   set commit_usr   "0000000"

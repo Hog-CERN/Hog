@@ -2291,13 +2291,13 @@ proc Execute {args}  {
 #
 # If property is not set returns default = 1
 #
-# @param[in] proj_name:   name of the project
+# @param[in] proj_dir:   the top folder of the project
 #
 # @return 1 if property is not set else the value of MaxThreads
 #
-proc GetMaxThreads {proj_name} {
+proc GetMaxThreads {proj_dir} {
   set maxThreads 1
-  set properties [ReadConf [GetFConfFiles [GetRepoPath]/Top/$proj_name]]
+  set properties [ReadConf [GetConfFiles $proj_dir]]
   if {[dict exists $properties volatile]} {
     set propDict [dict get $properties volatile]
     if {[dict exists $propDict MAX_THREADS]} {

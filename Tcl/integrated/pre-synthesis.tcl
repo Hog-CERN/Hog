@@ -112,7 +112,7 @@ if {$xml_hash != 0} {
 }
 
 #number of threads
-set maxThreads [GetMaxThreads $proj_name]
+set maxThreads [GetMaxThreads [file normalize ./Top/$proj_name/]]
 if {$maxThreads != 1} {
   Msg CriticalWarning "Multithreading enabled. Bitfile will not be deterministic. Number of threads: $maxThreads"
 } else {

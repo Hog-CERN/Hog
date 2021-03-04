@@ -42,7 +42,7 @@ if {[info commands get_property] != ""} {
 }
 
 #number of threads
-set maxThreads [GetMaxThreads $proj_name]
+set maxThreads [GetMaxThreads [file normalize $tcl_path/../../Top/$proj_name]]
 
 if {$maxThreads != 1} {
   Msg CriticalWarning "Multithreading enabled. Bitfile will not be deterministic. Number of threads: $maxThreads"

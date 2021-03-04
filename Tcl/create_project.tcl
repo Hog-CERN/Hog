@@ -16,17 +16,7 @@
 #  @brief contains all functions needed to create a new project
 #  @todo This file will need to be fully documented
 #
-# Define the following variables before sourcing this script:
-#
-# set BIN_FILE 1
-#
-# ## FPGA and Vivado strategies and flows
-# set FPGA xc7vx550tffg1927-2
-# set SYNTH_STRATEGY "Vivado Synthesis Defaults"
-# set SYNTH_FLOW {Vivado Synthesis 2016}
-# set IMPL_STRATEGY "Vivado Implementation Defaults"
-# set IMPL_FLOW {Vivado Implementation 2016}
-# set PROPERTIES [dict create synth_1 [dict create opt_speed true opt_area false] impl_1 [dict create keep_registers true retiming true]]
+
 
 ## @namespace globalSettings
 # @brief Namespace of all the project settings
@@ -40,20 +30,13 @@ namespace eval globalSettings {
   variable DESIGN
 
   variable FPGA
-  variable SYNTH_STRATEGY
-  variable SYNTH_FLOW
-  variable IMPL_STRATEGY
-  variable IMPL_FLOW
+  # Quartus only
+  variable FAMILY 
 
   variable PROPERTIES
   variable BIN_FILE
-
   variable HOG_EXTERNAL_PATH
   variable SIMULATOR
-
-  # Quartus only
-  variable FAMILY
-
 
   variable pre_synth_file
   variable post_synth_file
@@ -289,10 +272,9 @@ proc ConfigureSynthesis {} {
         #VIVADO ONLY
         ## Create 'synthesis ' run (if not found)
     if {[string equal [get_runs -quiet synth_1] ""]} {
-      create_run -name synth_1 -part $globalSettings::FPGA -flow $globalSettings::SYNTH_FLOW -strategy $globalSettings::SYNTH_STRATEGY -constrset constrs_1
+      create_run -name synth_1 -part $globalSettings::FPGA -constrset constrs_1
     } else {
-      set_property strategy $globalSettings::SYNTH_STRATEGY [get_runs synth_1]
-      set_property flow $globalSettings::SYNTH_FLOW [get_runs synth_1]
+
     }
 
     set obj [get_runs synth_1]
@@ -376,10 +358,9 @@ proc ConfigureImplementation {} {
   if {[info commands send_msg_id] != ""} {
         # Create 'impl_1' run (if not found)
     if {[string equal [get_runs -quiet impl_1] ""]} {
-      create_run -name impl_1 -part $globalSettings::FPGA -flow $globalSettings::IMPL_FLOW -strategy $globalSettings::IMPL_STRATEGY -constrset constrs_1 -parent_run synth_1
+      create_run -name impl_1 -part $globalSettings::FPGA  -constrset constrs_1 -parent_run synth_1
     } else {
-      set_property strategy $globalSettings::IMPL_STRATEGY [get_runs impl_1]
-      set_property flow $globalSettings::IMPL_FLOW [get_runs impl_1]
+
     }
 
     set obj [get_runs impl_1]
@@ -625,10 +606,8 @@ SetGlobalVar FPGA
 #Family is needed in qurtus only
 if {[info commands send_msg_id] != ""} {
   #Vivado/PlanAhead
-  SetGlobalVar SYNTH_STRATEGY
-  SetGlobalVar SYNTH_FLOW
-  SetGlobalVar IMPL_STRATEGY
-  SetGlobalVar IMPL_FLOW
+
+
 } elseif {[info commands project_new] != ""} {
   #Quartus only
   SetGlobalVar FAMILY

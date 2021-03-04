@@ -1745,9 +1745,6 @@ proc AddHogFiles { libraries properties } {
       .con {
         set file_set "constrs_1"
       }
-      .prop {
-        return
-      }
       default {
         set file_set "sources_1"
       }
@@ -2290,30 +2287,7 @@ proc Execute {args}  {
 }
 
 
-## @brief Parses .prop files in Top/$proj_name/list directory and creates a dict with the values
-#
-# @param[in] proj_name:   name of the project that requires the properties in the .prop file
-#
-proc ParseProcFile {proj_name} {
-  set property_files [glob -nocomplain "./Top/$proj_name/list/*.prop"]
-  set propDict [dict create ]
-  foreach f $property_files {
-    set fp [open $f r]
-    set file_data [read $fp]
-    close $fp
-    set data [split $file_data "\n"]
-    foreach line $data {
-      if {![regexp {^ *$} $line] & ![regexp {^ *\#} $line] } { #Exclude empty lines and comments
-      set file_and_prop [regexp -all -inline {\S+} $line]
-      dict set propDict [lindex $file_and_prop 0] "[lindex $file_and_prop 1]"
-    }
-  }
-}
-return $propDict
-}
-
-
-## @brief Gets MAX number of Threads property from .prop file in Top/$proj_name/list directory.
+## @brief Gets MAX number of Threads property from property.conf file in Top/$proj_name directory.
 #
 # If property is not set returns default = 1
 #
@@ -2323,9 +2297,12 @@ return $propDict
 #
 proc GetMaxThreads {proj_name} {
   set maxThreads 1
-  set propDict [ParseProcFile $proj_name]
-  if {[dict exists $propDict maxThreads]} {
-    set maxThreads [dict get $propDict maxThreads]
+  set properties [ReadConf [GetConfFiles $proj_name]]
+  if {[dict exists $properties volatile]} {
+    set propDict [dict get $properties volatile]
+    if {[dict exists $propDict MAX_THREADS]} {
+      set maxThreads [dict get $propDict MAX_THREADS]
+    }
   }
   return $maxThreads
 }

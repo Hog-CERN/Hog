@@ -68,11 +68,21 @@ if { [string first PlanAhead [version]] == 0 } {
 }
 
 if {[file exists $project_file]} {
-  Msg Info "Found project file $project_file for $project ..."
+  Msg Info "Found project file $project_file for $project..."
   open_project $project_file
 } else {
-  Msg Info "Project file not found for $project, sourcing the project Tcl script ..."
-  source ../../Top/$project/$project.tcl
+  Msg Info "Project file not found for $project, creating the project..."
+
+  lassign [GetConfFiles ../../Top/$project] conf pre post tcl_file
+
+  if {[file exists $conf]} {
+    set DESIGN $project
+    source ./create_project.tcl
+  } elseif {[file exists $tcl_file]} {
+    source ../../Top/$project/$project.tcl
+  } else {
+    Msg Error "Project $project is incomplete: not Tcl file or Properties.conf file found."
+  }
 }
 
 Msg Info "Retrieving list of simulation sets..."

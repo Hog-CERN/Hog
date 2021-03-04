@@ -2297,7 +2297,7 @@ proc Execute {args}  {
 #
 proc GetMaxThreads {proj_dir} {
   set maxThreads 1
-  set properties [ReadConf [GetConfFiles $proj_dir]]
+  set properties [ReadConf [lindex [GetConfFiles $proj_dir] 0]]
   if {[dict exists $properties volatile]} {
     set propDict [dict get $properties volatile]
     if {[dict exists $propDict MAX_THREADS]} {

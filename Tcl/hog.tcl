@@ -893,7 +893,7 @@ proc GetConfFiles {proj_dir} {
     Msg Error "$proj_dir is supposed to be the top project directory"
     return -1
   }
-  set conf_file [file normalize $proj_dir/properties.conf]
+  set conf_file [file normalize $proj_dir/hog.conf]
   set pre_tcl [file normalize $proj_dir/pre-creation.tcl]
   set post_tcl [file normalize $proj_dir/post-creation.tcl]
   set proj_tcl_file [file normalize $proj_dir/[file tail $proj_dir].tcl]

@@ -122,7 +122,7 @@ function create_project ()
     if [ $FILE_TYPE == "CONF" ]
     then
 	cd "${DIR}"
-	Msg Info "Creating project $PROJ using properties.conf..."
+	Msg Info "Creating project $PROJ using hog.conf..."
  	"${HDL_COMPILER}" $COMMAND_OPT ../Hog/Tcl/create_project.tcl -tclargs $PROJ
     elif [ $FILE_TYPE == "TCL" ]
     then

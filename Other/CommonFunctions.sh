@@ -17,7 +17,7 @@
 #  @brief Create the specified Vivado or Quartus project
 
 ## @var FILE_TYPE
-#  @brief Global variable used to distinguis tcl project from properties.conf
+#  @brief Global variable used to distinguis tcl project from hog.conf
 #
 export COMMAND=""
 
@@ -178,7 +178,7 @@ function select_command_from_line()
 function select_command()
 {
     proj=$(basename $1)
-    conf="$1"/"properties.conf"
+    conf="$1"/"hog.conf"
     tcl="$1"/"$proj.tcl"
     
     if [ -f "$conf" ]

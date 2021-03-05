@@ -169,7 +169,7 @@ if {($proj_found == 0 || $recreate == 1) && $do_synthesis == 1} {
   } elseif {[file exists $tcl_file]} {
     source ../../Top/$project/$project.tcl
   } else {
-    Msg Error "Project $project is incomplete: not Tcl file or properties.conf file found."
+    Msg Error "Project $project is incomplete: not Tcl file or hog.conf file found."
   }
 } else {
   Msg Info "Opening existing project file $project_file..."

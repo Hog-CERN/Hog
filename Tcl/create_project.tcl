@@ -533,7 +533,7 @@ proc SetGlobalVar {var {default_value HOG_NONE}} {
     Msg Info "Setting $var to [subst $[subst ::$var]]"
     set globalSettings::$var [subst $[subst ::$var]]
   } elseif {$default_value == "HOG_NONE"} {
-    Msg Error "Mandatory variable $var was not defined. Please define it in properties.conf or in project tcl script."
+    Msg Error "Mandatory variable $var was not defined. Please define it in hog.conf or in project tcl script."
   } else {
     Msg Info "Setting $var to default value: \"$default_value\""
     set globalSettings::$var $default_value
@@ -566,7 +566,7 @@ if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] 
 
 ###########################################################################################################################################################################################
 
-#find properties.conf
+#find hog.conf
   # usr pre-create
   # create
   # usr post-create

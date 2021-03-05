@@ -2396,7 +2396,8 @@ proc ResetRepoFiles {reset_file} {
 #
 proc ReadConf {file_name} {                                                                                                                          
 package require inifile 0.2.3                                                                                                                               
-                                                                                                                                                            
+                
+  ::ini::commentchar "#"
   set f [::ini::open $file_name]                                                                                                                        
   set properties [dict create]                                                                                                                                        
   foreach sec [::ini::sections $f] {

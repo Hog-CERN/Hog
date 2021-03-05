@@ -2424,4 +2424,30 @@ package require inifile 0.2.3
   return $properties
 }
 
+## Write a property configuration file from a dictionary
+#
+#  @param[in]    file_name the configuration file
+#  @param[in]    config the configuration dictionary
+#
+#  @return       boolean success
+#
+proc WriteConf {file_name config} {                                                                                                                          
+package require inifile 0.2.3                                                                                                                               
+                
+  ::ini::commentchar "#"
+  set f [::ini::open $file_name]    
+
+  foreach sec [dict keys $config] {
+    set section [dict get $config $sec]
+    dict for {p v} $section {
+      ::ini::set $f $sec $p $v
+    }
+  } 
+  ::ini::commit $f
+
+  ::ini::close $f                                                                                                                                            
+  
+  return 1
+}
+
 

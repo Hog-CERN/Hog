@@ -25,16 +25,14 @@
 # Variables lower case are evaluated in the script defined in create_project.tcl
 #
 namespace eval globalSettings {
-
   #The project name (including flavour if any)
   variable DESIGN
 
-  variable FPGA
+  variable PART
   # Quartus only
   variable FAMILY 
 
   variable PROPERTIES
-  variable BIN_FILE
   variable HOG_EXTERNAL_PATH
   variable SIMULATOR
 
@@ -72,7 +70,7 @@ proc CreateProject {} {
     if {$globalSettings::top_name != $globalSettings::DESIGN} {
       Msg Info "This project has got a flavour, the top module name ($globalSettings::top_name) differs from the project name ($globalSettings::DESIGN)."
     }
-    create_project -force $globalSettings::DESIGN $globalSettings::build_dir -part $globalSettings::FPGA
+    create_project -force $globalSettings::DESIGN $globalSettings::build_dir -part $globalSettings::PART
 
     ## Set project properties
     set obj [get_projects $globalSettings::DESIGN]
@@ -116,7 +114,7 @@ proc CreateProject {} {
 
       file delete {*}[glob -nocomplain $globalSettings::DESIGN.q*]
 
-      project_new -family $globalSettings::FAMILY -overwrite -part $globalSettings::FPGA  $globalSettings::DESIGN
+      project_new -family $globalSettings::FAMILY -overwrite -part $globalSettings::PART  $globalSettings::DESIGN
       set_global_assignment -name ERROR_CHECK_FREQUENCY_DIVISOR 256
       set_global_assignment -name EDA_DESIGN_ENTRY_SYNTHESIS_TOOL "Precision Synthesis"
       set_global_assignment -name EDA_LMF_FILE mentor.lmf -section_id eda_design_synthesis
@@ -128,7 +126,7 @@ proc CreateProject {} {
       set_global_assignment -name PROJECT_OUTPUT_DIRECTORY output_files
     }
   } else {
-    puts "Creating project for $globalSettings::DESIGN part $globalSettings::FPGA"
+    puts "Creating project for $globalSettings::DESIGN part $globalSettings::PART"
     puts "Configuring project settings:"
     puts "  - simulator_language: Mixed"
     puts "  - target_language: VHDL"
@@ -272,13 +270,13 @@ proc ConfigureSynthesis {} {
         #VIVADO ONLY
         ## Create 'synthesis ' run (if not found)
     if {[string equal [get_runs -quiet synth_1] ""]} {
-      create_run -name synth_1 -part $globalSettings::FPGA -constrset constrs_1
+      create_run -name synth_1 -part $globalSettings::PART -constrset constrs_1
     } else {
 
     }
 
     set obj [get_runs synth_1]
-    set_property "part" $globalSettings::FPGA $obj
+    set_property "part" $globalSettings::PART $obj
   }
 
     ## set pre synthesis script
@@ -358,25 +356,17 @@ proc ConfigureImplementation {} {
   if {[info commands send_msg_id] != ""} {
         # Create 'impl_1' run (if not found)
     if {[string equal [get_runs -quiet impl_1] ""]} {
-      create_run -name impl_1 -part $globalSettings::FPGA  -constrset constrs_1 -parent_run synth_1
+      create_run -name impl_1 -part $globalSettings::PART  -constrset constrs_1 -parent_run synth_1
     } else {
 
     }
 
     set obj [get_runs impl_1]
-    set_property "part" $globalSettings::FPGA $obj
+    set_property "part" $globalSettings::PART $obj
 
     set_property "steps.write_bitstream.args.readback_file" "0" $obj
     set_property "steps.write_bitstream.args.verbose" "0" $obj
 
-    ## set binfile production
-    if { [string first PlanAhead [version] ] !=0 } {
-        if {$globalSettings::BIN_FILE == 1} {
-            set_property "steps.write_bitstream.args.BIN_FILE" "1" $obj
-        } else {
-            set_property "steps.write_bitstream.args.BIN_FILE" "0" $obj
-        }
-    }
   } elseif {[info commands project_new] != ""} {
             #QUARTUS only
     set obj ""
@@ -483,24 +473,32 @@ proc ConfigureSimulation {} {
 #
 proc ConfigureProperties {} {
   if {[info commands send_msg_id] != ""} {
-        ##################
-        # RUN PROPERTIES #
-        ##################
     if [info exists globalSettings::PROPERTIES] {
+      if [dict exists $globalSettings::PROPERTIES main] {
+          Msg Info "Setting project-wide properties..."
+          set proj_props [dict get $globalSettings::PROPERTIES main]
+	  #set_property -dict $proj_props [current_project]
+          dict for {prop_name prop_val} $proj_props {
+            Msg Info "Setting $prop_name = $prop_val"
+	    set_property $prop_name $prop_val [current_project]
+          }
+      }
+
       foreach run [get_runs -quiet] {
         if [dict exists $globalSettings::PROPERTIES $run] {
           Msg Info "Setting properties for run: $run..."
           set run_props [dict get $globalSettings::PROPERTIES $run]
+	  #set_property -dict $run_props $run
           dict for {prop_name prop_val} $run_props {
             Msg Info "Setting $prop_name = $prop_val"
             set_property $prop_name $prop_val $run
-          }
+	  }
         }
       }
     }
   }  elseif {[info commands project_new] != ""} {
-        #QUARTUS only
-        #TO BE DONE
+    #QUARTUS only
+    #TO BE DONE
   } else {
     Msg info "Configuring Properties"
   }
@@ -602,13 +600,9 @@ if {[file exists $conf_file]} {
 }
 
 
-SetGlobalVar FPGA
+SetGlobalVar PART
 #Family is needed in qurtus only
-if {[info commands send_msg_id] != ""} {
-  #Vivado/PlanAhead
-
-
-} elseif {[info commands project_new] != ""} {
+if {[info commands project_new] != ""} {
   #Quartus only
   SetGlobalVar FAMILY
 }
@@ -620,8 +614,6 @@ if {[info exists env(HOG_EXTERNAL_PATH)]} {
 } else {
   set globalSettings::HOG_EXTERNAL_PATH ""
 }
-
-SetGlobalVar BIN_FILE 0
 
 SetGlobalVar PROPERTIES ""
 
@@ -660,10 +652,10 @@ if {[file exists $pre_file]} {
   source $pre_file
 }
 CreateProject
+ConfigureProperties
 ConfigureSynthesis
 ConfigureImplementation
 ConfigureSimulation
-ConfigureProperties
 UpgradeIP
 
 if {[file exists $post_file]} {

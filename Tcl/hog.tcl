@@ -2298,14 +2298,16 @@ proc Execute {args}  {
 proc GetMaxThreads {proj_dir} {
   set maxThreads 1
   set properties [ReadConf [lindex [GetConfFiles $proj_dir] 0]]
-  if {[dict exists $properties volatile]} {
-    set propDict [dict get $properties volatile]
+  if {[dict exists $properties parameters]} {
+    set propDict [dict get $properties parameters]
     if {[dict exists $propDict MAX_THREADS]} {
       set maxThreads [dict get $propDict MAX_THREADS]
     }
   }
   return $maxThreads
 }
+
+
 
 ## @brief Returns the gitlab-ci.yml snippet for a CI stage and a defined project
 #
@@ -2399,18 +2401,17 @@ package require inifile 0.2.3
   set properties [dict create]                                                                                                                                        
   foreach sec [::ini::sections $f] {
     
-
-    if {[string match "impl*" [string tolower $sec]]} {
-      set new_sec impl_1
-    } elseif {[string match "synth*" [string tolower $sec]]} {
-      set new_sec synth_1
-    } else {
-      set new_sec $sec
-    }
+    #if {[string match "impl*" [string tolower $sec]]} {
+    #  set new_sec impl_1
+    #} elseif {[string match "synth*" [string tolower $sec]]} {
+    #  set new_sec synth_1
+    #} else {
+    #  set new_sec $sec
+    #}
     
     set key_pairs [::ini::get $f $sec]
 
-    #manipulate string here:
+    #manipulate strings here:
     regsub -all {\{\"} $key_pairs "{" key_pairs
     regsub -all {\"\}} $key_pairs "}" key_pairs
 

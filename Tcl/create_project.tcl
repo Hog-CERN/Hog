@@ -70,10 +70,11 @@ proc CreateProject {} {
     if {$globalSettings::top_name != $globalSettings::DESIGN} {
       Msg Info "This project has got a flavour, the top module name ($globalSettings::top_name) differs from the project name ($globalSettings::DESIGN)."
     }
-    create_project -force $globalSettings::DESIGN $globalSettings::build_dir -part $globalSettings::PART
+
+    create_project -force [file tail $globalSettings::DESIGN] $globalSettings::build_dir -part $globalSettings::PART
 
     ## Set project properties
-    set obj [get_projects $globalSettings::DESIGN]
+    set obj [get_projects [file tail $globalSettings::DESIGN] ]
     set_property "target_language" "VHDL" $obj
     if { [string first PlanAhead [version] ] != 0} {
         set_property "simulator_language" "Mixed" $obj
@@ -147,9 +148,9 @@ proc CreateProject {} {
   }
 
 
-    ###############
-    # CONSTRAINTS #
-    ###############
+  ###############
+  # CONSTRAINTS #
+  ###############
   if {[info commands launch_chipscope_analyzer] != ""} {
         #VIVADO_ONLY
         # Create 'constrs_1' fileset (if not found)
@@ -157,13 +158,13 @@ proc CreateProject {} {
       create_fileset -constrset constrs_1
     }
 
-        # Set 'constrs_1' fileset object
+    # Set 'constrs_1' fileset object
     set constraints [get_filesets constrs_1]
   }
 
-    ##############
-    # READ FILES #
-    ##############
+  ##############
+  # READ FILES #
+  ##############
   set list_files [glob -directory $globalSettings::list_path "*"]
 
   if {[info commands create_fileset] != ""} {
@@ -172,7 +173,7 @@ proc CreateProject {} {
     source $tcl_path/utils/cmdline.tcl
   }
 }
-  AddHogFiles {*}[GetHogFiles -ext_path $globalSettings::HOG_EXTERNAL_PATH -verbose $globalSettings::list_path]
+  AddHogFiles {*}[GetHogFiles -ext_path $globalSettings::HOG_EXTERNAL_PATH -verbose -repo_path $globalSettings::repo_path  $globalSettings::list_path]
 
   ## Set synthesis TOP
   SetTopProperty $globalSettings::synth_top_module $sources
@@ -622,7 +623,8 @@ SetGlobalVar PROPERTIES ""
 set build_dir_name "Projects"
 set globalSettings::tcl_path                    $tcl_path
 set globalSettings::repo_path                   $repo_path
-
+set globalSettings::group_name                  [file dirname $globalSettings::DESIGN]
+puts "group_name $globalSettings::group_name"
 set globalSettings::pre_synth_file              "pre-synthesis.tcl"
 set globalSettings::post_synth_file             ""
 set globalSettings::pre_impl_file               "pre-implementation.tcl"
@@ -634,7 +636,9 @@ set globalSettings::top_path                    "$globalSettings::repo_path/Top/
 set globalSettings::list_path                   "$globalSettings::top_path/list"
 set globalSettings::build_dir                   "$globalSettings::repo_path/$build_dir_name/$DESIGN"
 set globalSettings::modelsim_path               "$globalSettings::repo_path/SimulationLib"
-set globalSettings::top_name                    [file root $globalSettings::DESIGN]
+set globalSettings::DESIGN                      [file tail $globalSettings::DESIGN]
+puts "DESIGN : $globalSettings::DESIGN"
+set globalSettings::top_name                    [file tail $globalSettings::DESIGN]
 set globalSettings::synth_top_module            "top_$globalSettings::top_name"
 set globalSettings::user_ip_repo                "$globalSettings::repo_path/IP_repository"
 

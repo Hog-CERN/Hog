@@ -36,6 +36,7 @@ set parameters {
 
 set usage "- USAGE: $::argv0 \[OPTIONS\] <project> \n. Options:"
 set path [file normalize "[file dirname [info script]]/.."]
+set repo_path [file normalize "$path/../.."]
 set old_path [pwd]
 set bin_dir [file normalize "$path/../../bin"]
 source $path/hog.tcl
@@ -45,7 +46,9 @@ if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] 
   exit 1
 } else {
   set project [lindex $argv 0]
-  set main_folder [file normalize "$path/../../Projects/$project/$project.runs/"]
+  set group_name [file dirname $project]
+  set project [file tail $project]
+  set main_folder [file normalize "$repo_path/Projects/$group_name/$project/$project.runs/"]
   set do_implementation 1
   set do_synthesis 1
   set do_bitstream 1
@@ -93,9 +96,9 @@ if { $options(ext_path) != ""} {
 if { $options(ip_eos_path) != "" } {
   set ip_path $options(ip_eos_path)
 
-  Msg Info "Getting IPs for $project..."
+  Msg Info "Getting IPs for $group_name/$project..."
   set ips {}
-  lassign [GetHogFiles -list_files "*.src" "../../Top/$project/list/" ] src_files dummy
+  lassign [GetHogFiles -list_files "*.src" "$repo_path/Top/$group_name/$project/list/" ] src_files dummy
   dict for {f files} $src_files {
     #library names have a .src extension in values returned by GetHogFiles
     if { [file ext $f] == ".ip" } {
@@ -146,30 +149,30 @@ Msg Info "Number of jobs set to $options(njobs)."
 
 ############# CREATE or OPEN project ############
 if { [string first PlanAhead [version]] == 0 } {
-  set project_file [file normalize ../../Projects/$project/$project.ppr]
+  set project_file [file normalize $repo_path/Projects/$group_name/$project/$project.ppr]
 } else {
-  set project_file [file normalize ../../Projects/$project/$project.xpr]
+  set project_file [file normalize $repo_path/Projects/$group_name/$project/$project.xpr]
 }
 
 if {[file exists $project_file]} {
-  Msg Info "Found project file $project_file for $project."
+  Msg Info "Found project file $project_file for $group_name/$project."
   set proj_found 1
 } else {
-  Msg Info "Project file not found for $project."
+  Msg Info "Project file not found for $group_name/$project."
   set proj_found 0
 }
 
 if {($proj_found == 0 || $recreate == 1) && $do_synthesis == 1} {
-  Msg Info "Creating (possibly replacing) the project $project..."
-  lassign [GetConfFiles ../../Top/$project] conf pre post tcl_file
+  Msg Info "Creating (possibly replacing) the project $group_name/$project..."
+  lassign [GetConfFiles $repo_path/Top/$group_name/$project] conf pre post tcl_file
 
   if {[file exists $conf]} {
-    set DESIGN $project
+    set DESIGN $group_name/$project
     source ./create_project.tcl
   } elseif {[file exists $tcl_file]} {
-    source ../../Top/$project/$project.tcl
+    source $repo_path/Top/$group_name/$project/$project.tcl
   } else {
-    Msg Error "Project $project is incomplete: not Tcl file or hog.conf file found."
+    Msg Error "Project $group_name/$project is incomplete: not Tcl file or hog.conf file found."
   }
 } else {
   Msg Info "Opening existing project file $project_file..."
@@ -178,7 +181,7 @@ if {($proj_found == 0 || $recreate == 1) && $do_synthesis == 1} {
 
 ########## CHECK SYNTAX ###########
 if { $check_syntax == 1 } {
-  Msg Info "Checking syntax for project $project..."
+  Msg Info "Checking syntax for project $group_name/$project..."
   set syntax [check_syntax -return_string]
 
   if {[string first "CRITICAL" $syntax ] != -1} {
@@ -186,7 +189,7 @@ if { $check_syntax == 1 } {
     exit 1
   }
 } else {
-  Msg Info "Skipping syntax check for project $project"
+  Msg Info "Skipping syntax check for project $group_name/$project"
 }
 
 ############# SYNTH ###############
@@ -213,7 +216,7 @@ if {$do_synthesis == 1} {
   #go to repository path
   cd $path/../..
 
-  lassign [GetRepoVersion [file normalize ./Top/$project] $ext_path ] sha
+  lassign [GetRepoVersion [file normalize ./Top/$group_name/$project] $repo_path $ext_path ] sha
   set describe [GetGitDescribe $sha]
   Msg Info "Git describe set to $describe"
 
@@ -222,7 +225,7 @@ if {$do_synthesis == 1} {
     set xci_path [file dir $xci_file]
     set xci_ip_name [file root [file tail $xci_file]]
     foreach rptfile [glob -nocomplain -directory $xci_path *.rpt] {
-      file copy $rptfile $bin_dir/$project-$describe/reports
+      file copy $rptfile $bin_dir/$group_name/$project-$describe/reports
     }
 
     ######### Copy IP to EOS repository
@@ -273,7 +276,7 @@ if {$do_implementation == 1 } {
 
       set status_file [open "$main_folder/timing.txt" "w"]
 
-      puts $status_file "## $project Timing summary"
+      puts $status_file "## $group_name/$project Timing summary"
 
       set f [open [lindex [glob "$main_folder/impl_1/*.twr" 0]]]
       set errs -1
@@ -332,7 +335,7 @@ if {$do_implementation == 1 } {
     m add columns 5
     m add row
 
-    puts $status_file "## $project Timing summary"
+    puts $status_file "## $group_name/$project Timing summary"
     m add row  "| **Parameter** | \"**value (ns)**\" |"
     m add row  "| --- | --- |"
     m add row  "|  WNS:  |  $wns  |"
@@ -391,11 +394,11 @@ if {$do_implementation == 1 } {
   #Go to repository path
   cd $path/../../
 
-  lassign [GetRepoVersion [file normalize ./Top/$project]] sha
+  lassign [GetRepoVersion [file normalize ./Top/$group_name/$project]] sha
   set describe [GetGitDescribe $sha]
   Msg Info "Git describe set to $describe"
 
-  set dst_dir [file normalize "$bin_dir/$project\-$describe"]
+  set dst_dir [file normalize "$bin_dir/$group_name/$project\-$describe"]
 
   file mkdir $dst_dir
 

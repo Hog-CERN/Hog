@@ -34,7 +34,7 @@ namespace eval globalSettings {
 
   variable PROPERTIES
   variable HOG_EXTERNAL_PATH
-  variable SIMULATOR
+  variable TARGET_SIMULATOR
 
   variable pre_synth_file
   variable post_synth_file
@@ -80,7 +80,6 @@ proc CreateProject {} {
         set_property "compxlib.modelsim_compiled_library_dir" $globalSettings::modelsim_path $obj
         set_property "compxlib.questa_compiled_library_dir" $globalSettings::modelsim_path $obj
         set_property "default_lib" "xil_defaultlib" $obj
-        #set_property "target_simulator" $globalSettings::SIMULATOR $obj
     }
 
         ## Enable VHDL 2008
@@ -607,7 +606,7 @@ if {[info commands project_new] != ""} {
   SetGlobalVar FAMILY
 }
 
-SetGlobalVar SIMULATOR "ModelSim"
+SetGlobalVar TARGET_SIMULATOR "ModelSim"
 
 if {[info exists env(HOG_EXTERNAL_PATH)]} {
   set globalSettings::HOG_EXTERNAL_PATH $env(HOG_EXTERNAL_PATH)

@@ -2406,7 +2406,7 @@ package require inifile 0.2.3
     #} elseif {[string match "synth*" [string tolower $sec]]} {
     #  set new_sec synth_1
     #} else {
-    #  set new_sec $sec
+    set new_sec $sec
     #}
     
     set key_pairs [::ini::get $f $sec]

@@ -59,17 +59,14 @@ if {[info commands get_property] != ""} {
   set proj_dir [file normalize "$repo_path/Projects/$proj_name"]
   set proj_file [file normalize "$proj_dir/$proj_name.qpf"]
 } else {
-    #Tclssh
+  #Tclssh
   set proj_file $old_path/[file tail $old_path].xpr
   Msg CriticalWarning "You seem to be running locally on tclsh, so this is a debug, the project file will be set to $proj_file and was derived from the path you launched this script from: $old_path. If you want this script to work properly in debug mode, please launch it from the top folder of one project, for example Repo/Projects/fpga1/ or Repo/Top/fpga1/"
 }
-puts "proj_file $proj_file projdir $proj_dir projname $proj_name"
 set index_a [string last "Projects/" $proj_dir]
 set index_a [expr $index_a + 8]
 set index_b [string last "/$proj_name" $proj_dir]
-puts "$index_a $index_b"
 set group_name [string range $proj_dir $index_a $index_b]
-puts "group_name $group_name"
 # Calculating flavour if any
 set flavour [string map {. ""} [file ext $proj_name]]
 if {$flavour != ""} {

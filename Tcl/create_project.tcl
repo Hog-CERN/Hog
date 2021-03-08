@@ -624,7 +624,6 @@ set build_dir_name "Projects"
 set globalSettings::tcl_path                    $tcl_path
 set globalSettings::repo_path                   $repo_path
 set globalSettings::group_name                  [file dirname $globalSettings::DESIGN]
-puts "group_name $globalSettings::group_name"
 set globalSettings::pre_synth_file              "pre-synthesis.tcl"
 set globalSettings::post_synth_file             ""
 set globalSettings::pre_impl_file               "pre-implementation.tcl"
@@ -637,7 +636,6 @@ set globalSettings::list_path                   "$globalSettings::top_path/list"
 set globalSettings::build_dir                   "$globalSettings::repo_path/$build_dir_name/$DESIGN"
 set globalSettings::modelsim_path               "$globalSettings::repo_path/SimulationLib"
 set globalSettings::DESIGN                      [file tail $globalSettings::DESIGN]
-puts "DESIGN : $globalSettings::DESIGN"
 set globalSettings::top_name                    [file tail $globalSettings::DESIGN]
 set globalSettings::synth_top_module            "top_$globalSettings::top_name"
 set globalSettings::user_ip_repo                "$globalSettings::repo_path/IP_repository"

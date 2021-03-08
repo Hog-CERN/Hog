@@ -98,7 +98,7 @@ if { $options(ip_eos_path) != "" } {
 
   Msg Info "Getting IPs for $group_name/$project..."
   set ips {}
-  lassign [GetHogFiles -list_files "*.src" "$repo_path/Top/$group_name/$project/list/" ] src_files dummy
+  lassign [GetHogFiles -list_files "*.src" -repo_path $repo_path "$repo_path/Top/$group_name/$project/list/" ] src_files dummy
   dict for {f files} $src_files {
     #library names have a .src extension in values returned by GetHogFiles
     if { [file ext $f] == ".ip" } {

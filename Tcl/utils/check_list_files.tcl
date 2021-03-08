@@ -72,6 +72,7 @@ set ext_path $options(ext_path)
 
 if {![string equal $options(project) ""]} {
   set project $options(project)
+  puts "here"
   Msg Info "Opening project $project..."
   if { [string first PlanAhead [version]] != 0 } {
     open_project "$repo_path/Projects/$project/$project.xpr"

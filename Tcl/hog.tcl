@@ -395,6 +395,9 @@ proc FindFileType {file_name} {
     .tcl {
       set file_extension "COMMAND_MACRO_FILE"
     }
+    .vdm {
+      set file_extension "VQM_FILE"
+    }
     default {
       set file_extension "ERROR"
       Msg Error "Unknown file extension $extension"
@@ -1872,21 +1875,137 @@ proc AddHogFiles { libraries properties } {
         }
       }
       Msg Info "[llength $lib_files] file/s added to $rootlib..."
-    }
-    if {[info commands project_new] != "" } {
+    } elseif {[info commands project_new] != "" } {
       #QUARTUS ONLY
-      foreach vhdlfile $lib_files {
-        set file_type [FindFileType $vhdlfile]
-        set hdl_version [FindVhdlVersion $vhdlfile]
-        if {$rootlib ne "IP"} {
-          Msg Info "Adding file $vhdlfile  to library $rootlib "
-          set_global_assignment -name $file_type $vhdlfile  -library $rootlib
-        } else {
-          set_global_assignment  -name $file_type $vhdlfile $hdl_version
+      if { $ext == ".sim"} {
+        Msg Warning "Simulation files not supported in Quartus Prime mode... Skipping $lib"
+      } else {
+        if {! [is_project_open] } {
+          Msg Error "Project is closed"
         }
-        #missing : ADDING QUARTUS FILE PROPERTIES
+        foreach cur_file $lib_files {
+          set file_type [FindFileType $cur_file]
+
+          #ADDING FILE PROPERTIES
+          set props [dict get $properties $cur_file]
+          if {[string first "VHDL" $file_type] != -1 } {
+            
+            if {[string first "1987" $props] != -1 } {
+              set hdl_version "VHDL_1987"
+            } elseif {[string first "1993" $props] != -1 } {
+              set hdl_version "VHDL_1993"
+            } elseif {[string first "2008" $props] != -1 } {
+              set hdl_version "VHDL_2008"
+            } else {
+              set hdl_version "default"
+            }
+            if { $hdl_version == "default" } {
+              set_global_assignment -name $file_type $cur_file -library $rootlib
+            } else {
+              set_global_assignment -name $file_type $cur_file -hdl_version $hdl_version -library $rootlib
+            }
+          } elseif {[string first "SYSTEMVERILOG" $file_type] != -1 } {
+            if {[string first "2005" $props] != -1 } {
+              set hdl_version "systemverilog_2005"
+            } elseif {[string first "2009" $props] != -1 } {
+              set hdl_version "systemverilog_2009"
+            } else {
+              set hdl_version "default"
+            }
+            if { $hdl_version == "default" } {
+              set_global_assignment -name $file_type $cur_file
+            } else {
+              set_global_assignment -name $file_type $cur_file -hdl_version $hdl_version
+            }
+          } elseif {[string first "VERILOG" $file_type] != -1 } {
+            if {[string first "1995" $props] != -1 } {
+              set hdl_version "verilog_1995"
+            } elseif {[string first "2001" $props] != -1 } {
+              set hdl_version "verilog_2001"
+            } else {
+              set hdl_version "default"
+            }
+            if { $hdl_version == "default" } {
+              set_global_assignment -name $file_type $cur_file
+            } else {
+              set_global_assignment -name $file_type $cur_file -hdl_version $hdl_version
+            }
+          } elseif {[string first "SOURCE" $file_type] != -1 || [string first "COMMAND_MACRO" $file_type] != -1 } {
+            set_global_assignment  -name $file_type $cur_file
+            if { $ext == ".con"} {
+              source $cur_file
+            } elseif { $ext == ".src"} {
+            set_global_assignment  -name $file_type $cur_file
+
+            # If this is a Platform Designer file then generate the system
+            if {[string first "qsys" $props] != -1 } {
+              set cmd "qsys-script --script=$cur_file"
+              if [ catch "eval exec -ignorestderr $cmd" ret opt] {
+                set makeRet [lindex [dict get $opt -errorcode] end]
+                Msg Info "$cmd returned with $makeRet"
+              }
+              # Check the system is generated correctly
+              set qsysPath [file dirname $cur_file]
+              set qsysName "[file rootname [file tail $cur_file]].qsys"
+              set qsysFile "$qsysPath/$qsysName"
+              # Move file to correct directory
+              if { [file exists $qsysName] != 0} {
+                file rename -force $qsysName $qsysFile 
+              } else {
+                Msg ERROR "Error while moving the generated qsys file to final location: $qsysName.qsys not found!";
+              }
+              if { [file exists $qsysFile] != 0} {
+                set qsysFileType [FindFileType $qsysFile]
+                set_global_assignment  -name $qsysFileType $qsysFile
+                set emptyString ""
+                regsub -all {\{*qsys||\}} $props $emptyString props
+                GenerateQsysSystem $qsysFile $props
+              } else {
+                Msg ERROR "Error while generating ip variations from qsys: $qsysFile not found!";
+              }
+            }
+          }
+          } elseif {[string first "QSYS" $file_type] != -1 } {
+            set_global_assignment  -name $file_type $cur_file
+            #Generate IPs
+            if {[string first "nogenerate" $props] == -1} {
+              GenerateQsysSystem $cur_file $props
+            }
+          }
+        }
       }
     }
+  }
+}
+
+## @brief Function used to generate a qsys system from a .qsys file.
+#  The procedure adds the generated IPs to the project.
+#
+#  @param[in] qsysFile the Intel Platform Designed file (.qsys), containing the system to be generated
+#  @param[in] commandOpts the command options to be used during system generation as they are in qsys-generate options
+#
+proc GenerateQsysSystem {qsysFile commandOpts} {
+  if { [file exists $qsysFile] != 0} {
+    set qsysPath [file dirname $qsysFile]
+    set qsysName [file rootname [file tail $qsysFile] ]
+    set qsysIPDir "$qsysPath/$qsysName"
+
+    set cmd "qsys-generate $qsysFile --output-directory=$qsysIPDir $commandOpts"
+    #eval exec -ignorestderr $cmd
+    if [ catch "eval exec -ignorestderr $cmd" ret opt] {
+      set makeRet [lindex [dict get $opt -errorcode] end]
+      Msg Info "$cmd returned with $makeRet"
+    }
+    #Add generated IPs to project
+    set qsysIPFileList  [concat [glob -nocomplain -directory $qsysIPDir -types f *.ip *.qip ] [glob -nocomplain -directory "$qsysIPDir/synthesis" -types f *.ip *.qip *.vhd *.vhdl ] ]
+    foreach qsysIPFile $qsysIPFileList {
+      if { [file exists $qsysIPFile] != 0} {
+        set qsysIPFileType [FindFileType $qsysIPFile]
+        set_global_assignment -name $qsysIPFileType $qsysIPFile
+      }
+    }
+  } else {
+    Msg ERROR "Error while generating ip variations from qsys: $qsysFile not found!"
   }
 }
 

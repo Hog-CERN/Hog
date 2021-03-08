@@ -57,10 +57,13 @@ function init()
 
   cd "${DIR}"
 
+  COMPILER_FOUND=false
+
   ##! The script checks if Vivado is installed and set uop on the shell.
   ##! NOTE that these checks are performed using 'which'
   if [ `which vivado` ]
   then
+    COMPILER_FOUND=true
     local VIVADO=`which vivado`
     ##! If Vivado is installed it checks if vsim command is defined (Questasim or Modelsim is installed and set-up in the shell).
     ##! NOTE that these checks are performed using 'which'
@@ -95,9 +98,12 @@ function init()
       echo [hog init] "WARNING: No modelsim executable found, will not compile libraries"
     fi
   fi
+
+
   # REpeat compilation using Quartus
   if [ `which quartus_sh` ]
   then
+    COMPILER_FOUND=true
     local QUARTUS=`which quartus_sh`
     ##! If Quartus is installed it checks if vsim command is defined (Questasim or Modelsim is installed and set-up in the shell).
     ##! NOTE that these checks are performed using 'which'
@@ -129,11 +135,13 @@ function init()
         fi
       fi
     else
-      echo [hog init] "WARNING: No modelsim executable found, will not compile libraries"
+      Msg Warning "No modelsim executable found, will not compile libraries"
     fi
+  fi
 
-  else
-    echo [hog init] "WARNING: No vivado executable found"
+  if ! $COMPILER_FOUND
+  then
+    Msg Warning "No Vivado or Quartus executable found!"
   fi
 
   ##! Scan for existing Vivado projects and ask user to automatically create listFiles

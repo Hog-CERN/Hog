@@ -72,13 +72,15 @@ set ext_path $options(ext_path)
 
 if {![string equal $options(project) ""]} {
   set project $options(project)
-  puts "here"
+  set group_name [file dirname $project]
+  set project_name [file tail $project]
   Msg Info "Opening project $project..."
+
   if { [string first PlanAhead [version]] != 0 } {
     open_project "$repo_path/Projects/$project/$project.xpr"
   }
 } else {
-  set project [get_projects [current_project]]
+  set project_name [get_projects [current_project]]
   set proj_file [get_property DIRECTORY [current_project]]
   set proj_dir [file normalize [file dirname $proj_file]]
   set index_a [string last "Projects/" $proj_dir]
@@ -91,11 +93,11 @@ if {![string equal $options(project) ""]} {
 
 
 
-Msg Info "Checking $project list files..."
+Msg Info "Checking $project_name list files..."
 lassign [GetProjectFiles] prjLibraries prjProperties
 
 
-lassign [GetHogFiles -ext_path "$ext_path" -repo_path $repo_path "$repo_path/Top/$group_name/$project/list/"] listLibraries listProperties
+lassign [GetHogFiles -ext_path "$ext_path" -repo_path $repo_path "$repo_path/Top/$group_name/$project_name/list/"] listLibraries listProperties
 
 set prjIPs  [DictGet $prjLibraries IP]
 set prjXDCs  [DictGet $prjLibraries XDC]
@@ -341,10 +343,10 @@ if {$options(pedantic) == 1 && $ErrorCnt > 0} {
 
 #recreating list files
 if {$options(recreate) == 1} {
-  if {[file exists $repo_path/Top/$project] && [file isdirectory $repo_path/Top/$project] && $options(force) == 0} {
-    set DirName Top_new/$project
+  if {[file exists $repo_path/Top/$group_name/$project_name] && [file isdirectory $repo_path/Top/$group_name/$project_name] && $options(force) == 0} {
+    set DirName Top_new/$group_name/$project_name
   } else {
-    set DirName Top/$project
+    set DirName Top/$group_name/$project_name
   }
   Msg Info "Updating list files in $repo_path/$DirName/list"
 

@@ -346,9 +346,9 @@ cd $old_path
 #check list files
 if {[info commands get_property] != "" && [string first PlanAhead [version]] != 0} {
     if {![string equal ext_path ""]} {
-        set argv [list "-ext_path" "$ext_path" "-project" "$proj_name"]
+        set argv [list "-ext_path" "$ext_path" "-project" "$group_name/$proj_name"]
     } else {
-        set argv [list "-project" "$proj_name"]
+        set argv [list "-project" "$group_name/$proj_name"]
     }
     source  $tcl_path/utils/check_list_files.tcl
 } elseif {[info commands project_new] != ""} {

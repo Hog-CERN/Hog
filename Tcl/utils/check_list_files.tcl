@@ -74,10 +74,10 @@ if {![string equal $options(project) ""]} {
   set project $options(project)
   set group_name [file dirname $project]
   set project_name [file tail $project]
-  Msg Info "Opening project $project..."
+  Msg Info "Opening project $project_name..."
 
   if { [string first PlanAhead [version]] != 0 } {
-    open_project "$repo_path/Projects/$project/$project.xpr"
+    open_project "$repo_path/Projects/$project/$project_name.xpr"
   }
 } else {
   set project_name [get_projects [current_project]]
@@ -354,7 +354,7 @@ if {$options(recreate) == 1} {
   file mkdir  $repo_path/$DirName/list
   foreach listFile [dict keys $newListfiles] {
     if {[string equal [file extension $listFile] ".sim"]} {
-      set listSim [ParseFirstLineHogFiles "$repo_path/Top/$project/list/" $listFile]
+      set listSim [ParseFirstLineHogFiles "$repo_path/Top/$group_name/$project/list/" $listFile]
       set lFd [open $repo_path/$DirName/list/$listFile w]
       if {[string equal -nocase [lindex [split $listSim " "] 0] "Simulator"] && [string equal -nocase [lindex [split $listSim " "] 1] "skip_simulation"]} {
          puts $lFd "#$listSim"

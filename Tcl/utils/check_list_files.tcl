@@ -381,6 +381,12 @@ if {$options(recreate_conf) == 1} {
   #list of properties that don't have to be written
   set PROP_BAN_LIST  [list DEFAULT_LIB \
                            PART \
+                           IP_CACHE_PERMISSIONS \
+                           SIM.IP.AUTO_EXPORT_SCRIPTS \
+                           XPM_LIBRARIES \
+                           REPORT_STRATEGY \
+                           STEPS.WRITE_BITSTREAM.ARGS.READBACK_FILE \
+                           STEPS.WRITE_BITSTREAM.ARGS.VERBOSE \
                            STEPS.SYNTH_DESIGN.TCL.PRE \
                            STEPS.SYNTH_DESIGN.TCL.POST \
                            STEPS.WRITE_BITSTREAM.TCL.PRE \
@@ -413,10 +419,11 @@ if {$options(recreate_conf) == 1} {
 
     foreach prop $run_props {
       #current values
-      set val [get_property $prop $proj_run]  
+      set val [get_property $prop $proj_run] 
       #ignoring properties in $PROP_BAN_LIST and properties containing repo_path
       if {$prop in $PROP_BAN_LIST || [string first $repo_path $val] != -1} { 
-        Msg Info "Skipping property $prop"
+        set tmp  0
+        #Msg Info "Skipping property $prop"
       } else { 
         # default values
         set Dval [list_property_value -default $prop $proj_run] 

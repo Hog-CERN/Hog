@@ -78,6 +78,12 @@ if {![string equal $options(project) ""]} {
   }
 } else {
   set project [get_projects [current_project]]
+  set proj_file [get_property DIRECTORY [current_project]]
+  set proj_dir [file normalize [file dirname $proj_file]]
+  set index_a [string last "Projects/" $proj_dir]
+  set index_a [expr $index_a + 8]
+  set index_b [string last "/$proj_name" $proj_dir]
+  set group_name [string range $proj_dir $index_a $index_b]
 }
 
 
@@ -88,7 +94,7 @@ Msg Info "Checking $project list files..."
 lassign [GetProjectFiles] prjLibraries prjProperties
 
 
-lassign [GetHogFiles -ext_path "$ext_path" -repo_path $repo_path "$repo_path/Top/$project/list/"] listLibraries listProperties
+lassign [GetHogFiles -ext_path "$ext_path" -repo_path $repo_path "$repo_path/Top/$group_name/$project/list/"] listLibraries listProperties
 
 set prjIPs  [DictGet $prjLibraries IP]
 set prjXDCs  [DictGet $prjLibraries XDC]
@@ -373,14 +379,14 @@ if {$options(recreate) == 1} {
 
     puts $lFd "#### FPGA and Vivado strategies and flows
 
-set FPGA [get_property PART [current_project]]
-set SYNTH_STRATEGY \"[get_property STRATEGY [get_runs synth_1]]\"
-set SYNTH_FLOW \"[get_property FLOW [get_runs synth_1]]\"
-set IMPL_STRATEGY \"[get_property STRATEGY [get_runs impl_1]]\"
-set IMPL_FLOW \"[get_property FLOW [get_runs impl_1]]\"
-set DESIGN \"\[file rootname \[file tail \[info script\]\]\]\"
-set PATH_REPO \"\[file normalize \[file dirname \[info script\]\]\]/../../\"
-set SIMULATOR \"[DictGet $prjProperties Simulator]\""
+    set FPGA [get_property PART [current_project]]
+    set SYNTH_STRATEGY \"[get_property STRATEGY [get_runs synth_1]]\"
+    set SYNTH_FLOW \"[get_property FLOW [get_runs synth_1]]\"
+    set IMPL_STRATEGY \"[get_property STRATEGY [get_runs impl_1]]\"
+    set IMPL_FLOW \"[get_property FLOW [get_runs impl_1]]\"
+    set DESIGN \"\[file rootname \[file tail \[info script\]\]\]\"
+    set PATH_REPO \"\[file normalize \[file dirname \[info script\]\]\]/../../\"
+    set SIMULATOR \"[DictGet $prjProperties Simulator]\""
 
 
 

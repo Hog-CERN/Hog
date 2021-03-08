@@ -368,8 +368,20 @@ if {$options(recreate) == 1} {
 #recreating hog.conf
 if {$options(recreate_conf) == 1} {
 
+  #reading old hog.conf if exist and copy the parameters
+  set confFile $repo_path/$DirName/hog.conf
+  set paramDict [dict create]
+  if {[file exists $confFile]} {
+    set oldConfDict [ReadConf $confFile]
+    if {[dict exists $oldConfDict parameters]} {
+      set paramDict [dict get $oldConfDict parameters]
+    }
+  }
+
   #list of properties that don't have to be written
-  set PROP_BAN_LIST  [list STEPS.SYNTH_DESIGN.TCL.PRE \
+  set PROP_BAN_LIST  [list DEFAULT_LIB \
+                           PART \
+                           STEPS.SYNTH_DESIGN.TCL.PRE \
                            STEPS.SYNTH_DESIGN.TCL.POST \
                            STEPS.WRITE_BITSTREAM.TCL.PRE \
                            STEPS.WRITE_BITSTREAM.TCL.POST \
@@ -381,7 +393,6 @@ if {$options(recreate_conf) == 1} {
   Msg Info "Updating configuration file $repo_path/$DirName/hog.conf"
   file mkdir  $repo_path/$DirName/list
 
-  
   set confDict  [dict create]
 
   #writing not default properties for current_project, synth_1 and impl_1
@@ -401,31 +412,33 @@ if {$options(recreate_conf) == 1} {
     }
 
     foreach prop $run_props {
-      #ignoring properties in $PROP_BAN_LIST
-      if {$prop in $PROP_BAN_LIST} { 
-        Msg Info "Ignoring $prop"
+      #current values
+      set val [get_property $prop $proj_run]  
+      #ignoring properties in $PROP_BAN_LIST and properties containing repo_path
+      if {$prop in $PROP_BAN_LIST || [string first $repo_path $val] != -1} { 
+        Msg Info "Skipping property $prop"
       } else { 
-        set Dval [list_property_value -default $prop $proj_run]
-        set val [get_property $prop $proj_run]
+        # default values
+        set Dval [list_property_value -default $prop $proj_run] 
         if {$Dval!=$val} {
           dict set projRunDict $prop  $val
         }
       }
     }
     if {"$proj_run" == "[current_project]"} {
+      dict set projRunDict "PART" [get_property PART $proj_run]  
       dict set confDict main  $projRunDict
     } else {
       dict set confDict $proj_run  $projRunDict
     }
   }
 
+  #adding volatile properties
+  dict set confDict parameters $paramDict 
+
 
   #writing configuration file  
-  set lFd [open $repo_path/$DirName/hog.conf w]
-  puts $lFd "#vivado"
-  close $lFd
-  WriteConf $repo_path/$DirName/hog.conf $confDict
-
+  WriteConf $confFile $confDict "vivado"
 }
 
 #closing project if a new one was opened

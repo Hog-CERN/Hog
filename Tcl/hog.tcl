@@ -2429,13 +2429,12 @@ package require inifile 0.2.3
 #  @param[in]    file_name the configuration file
 #  @param[in]    config the configuration dictionary
 #
-#  @return       boolean success
 #
-proc WriteConf {file_name config} {                                                                                                                          
+proc WriteConf {file_name config {comment ""}} {                                                                                                                          
 package require inifile 0.2.3                                                                                                                               
                 
   ::ini::commentchar "#"
-  set f [::ini::open $file_name]    
+  set f [::ini::open $file_name w]    
 
   foreach sec [dict keys $config] {
     set section [dict get $config $sec]
@@ -2443,11 +2442,15 @@ package require inifile 0.2.3
       ::ini::set $f $sec $p $v
     }
   } 
+
+  #write comment before the first section (first line of file)
+  if {![string equal "$comment"  ""]} {
+    ::ini::comment $f [lindex [::ini::sections $f] 0] "" $comment
+  }
   ::ini::commit $f
 
   ::ini::close $f                                                                                                                                            
   
-  return 1
 }
 
 

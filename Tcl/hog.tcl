@@ -2428,6 +2428,7 @@ package require inifile 0.2.3
 #
 #  @param[in]    file_name the configuration file
 #  @param[in]    config the configuration dictionary
+#  @param[in]    comment comment to add at the beginning of configuration file
 #
 #
 proc WriteConf {file_name config {comment ""}} {                                                                                                                          

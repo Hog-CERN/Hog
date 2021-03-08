@@ -1981,8 +1981,7 @@ proc GenerateQsysSystem {qsysFile commandOpts} {
       Msg Info "$cmd returned with $makeRet"
     }
     #Add generated IPs to project
-    set qsysIPFileList  [glob -directory "$qsysIPDir/synthesis" -types f *.ip *.qip *.vhd *.vhdl ] 
-#[concat [glob -directory $qsysIPDir -types f *.ip *.qip ] [glob -directory "$qsysIPDir/synthesis" -types f *.ip *.qip *.vhd *.vhdl ] ]
+    set qsysIPFileList  [concat [glob -nocomplain -directory $qsysIPDir -types f *.ip *.qip ] [glob -nocomplain -directory "$qsysIPDir/synthesis" -types f *.ip *.qip *.vhd *.vhdl ] ]
     foreach qsysIPFile $qsysIPFileList {
       if { [file exists $qsysIPFile] != 0} {
         set qsysIPFileType [FindFileType $qsysIPFile]

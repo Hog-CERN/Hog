@@ -1923,6 +1923,9 @@ proc AddHogFiles { libraries properties } {
 
             # If this is a Platform Designer file then generate the system
             if {[string first "qsys" $props] != -1 } {
+	      # remove qsys from options since we used it
+              set emptyString ""
+              regsub -all {\{||qsys||\}} $props $emptyString props
               set cmd "qsys-script --script=$cur_file"
               if [ catch "eval exec -ignorestderr $cmd" ret opt] {
                 set makeRet [lindex [dict get $opt -errorcode] end]
@@ -1939,10 +1942,12 @@ proc AddHogFiles { libraries properties } {
                 Msg ERROR "Error while moving the generated qsys file to final location: $qsysName.qsys not found!";
               }
               if { [file exists $qsysFile] != 0} {
-                set qsysFileType [FindFileType $qsysFile]
-                set_global_assignment  -name $qsysFileType $qsysFile
-                set emptyString ""
-                regsub -all {\{*qsys||\}} $props $emptyString props
+                if {[string first "noadd" $props] == -1} {
+                  set qsysFileType [FindFileType $qsysFile]
+                  set_global_assignment  -name $qsysFileType $qsysFile
+                } else {
+                  regsub -all {noadd} $props $emptyString props
+                } 
                 GenerateQsysSystem $qsysFile $props
               } else {
                 Msg ERROR "Error while generating ip variations from qsys: $qsysFile not found!";
@@ -1950,11 +1955,19 @@ proc AddHogFiles { libraries properties } {
             }
           }
           } elseif {[string first "QSYS" $file_type] != -1 } {
-            set_global_assignment  -name $file_type $cur_file
+            set emptyString ""
+            regsub -all {\{||\}} $props $emptyString props
+            if {[string first "noadd" $props] == -1} {
+            	set_global_assignment  -name $file_type $cur_file
+	    } else {
+            	regsub -all {noadd} $props $emptyString props
+	    }
             #Generate IPs
             if {[string first "nogenerate" $props] == -1} {
               GenerateQsysSystem $cur_file $props
             }
+          } else {
+            set_global_assignment  -name $file_type $cur_file
           }
         }
       }
@@ -1981,7 +1994,7 @@ proc GenerateQsysSystem {qsysFile commandOpts} {
       Msg Info "$cmd returned with $makeRet"
     }
     #Add generated IPs to project
-    set qsysIPFileList  [concat [glob -nocomplain -directory $qsysIPDir -types f *.ip *.qip ] [glob -nocomplain -directory "$qsysIPDir/synthesis" -types f *.ip *.qip *.vhd *.vhdl ] ]
+    set qsysIPFileList  [concat [glob -nocomplain -directory $qsysIPDir -types f *.ip *.qip ] [glob -nocomplain -directory "$qsysIPDir/synthesis" -types f *.ip *.qip ] ]
     foreach qsysIPFile $qsysIPFileList {
       if { [file exists $qsysIPFile] != 0} {
         set qsysIPFileType [FindFileType $qsysIPFile]

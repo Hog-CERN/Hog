@@ -922,10 +922,10 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
   set versions ""
 
   # Hog submodule
-  cd $proj_dir
+  cd $repo_path
 
   #Append the SHA in which Hog submodule was changed, not the submodule SHA
-  lappend SHAs [Git {log --format=%h -1} {$repo_path/Hog}]
+  lappend SHAs [Git {log --format=%h -1} {Hog}]
   lappend versions [GetVerFromSHA $SHAs]
 
   cd "$repo_path/Hog"
@@ -2082,7 +2082,7 @@ proc CheckYmlRef {repo_path allow_failure} {
 
     if { [catch {::yaml::yaml2dict -stream $file_data}  yamlDict]} {
       Msg $MSG_TYPE "Parsing $repo_path/.gitlab-ci.yml failed. To fix this, check that yaml syntax is respected, remember not to use tabs."
-      cd $thisPath
+      cd $thisPath  
       return
     } else {
       dict for {dictKey dictValue} $yamlDict {

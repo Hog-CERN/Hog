@@ -394,7 +394,7 @@ if {$do_implementation == 1 } {
   #Go to repository path
   cd $path/../../
 
-  lassign [GetRepoVersion [file normalize ./Top/$group_name/$project]] sha
+  lassign [GetRepoVersion [file normalize ./Top/$group_name/$project] $repo_path] sha
   set describe [GetGitDescribe $sha]
   Msg Info "Git describe set to $describe"
 

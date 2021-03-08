@@ -35,6 +35,12 @@ if {[info commands get_property] != ""} {
   }
   set proj_dir [file normalize [file dirname $proj_file]]
   set proj_name [file rootname [file tail $proj_file]]
+
+  set index_a [string last "Projects/" $proj_dir]
+  set index_a [expr $index_a + 8]
+  set index_b [string last "/$proj_name" $proj_dir]
+  set group_name [string range $proj_dir $index_a $index_b]
+
 } else {
     #Tclssh
   set proj_file $old_path/[file tail $old_path].xpr
@@ -42,7 +48,7 @@ if {[info commands get_property] != ""} {
 }
 
 #number of threads
-set maxThreads [GetMaxThreads [file normalize $tcl_path/../../Top/$proj_name]]
+set maxThreads [GetMaxThreads [file normalize $tcl_path/../../Top/$group_name/$proj_name]]
 
 if {$maxThreads != 1} {
   Msg CriticalWarning "Multithreading enabled. Bitfile will not be deterministic. Number of threads: $maxThreads"
@@ -61,7 +67,7 @@ if {[info commands get_property] != ""} {
 ######## Reset files before implementation ###########
 ResetRepoFiles "./Projects/hog_reset_files"
 
-set user_pre_implementation_file "./Top/$proj_name/pre-implementation.tcl"
+set user_pre_implementation_file "./Top/$group_name/$proj_name/pre-implementation.tcl"
 if {[file exists $user_pre_implementation_file]} {
     Msg Status "Sourcing user pre-implementation file $user_pre_implementation_file"
     source $user_pre_implementation_file

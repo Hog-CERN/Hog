@@ -58,7 +58,7 @@ if { $options(ext_path) != "" } {
     Msg Info "External path set to $ext_path"
 }
 
-set ver [ GetProjectVersion $project_dir $ext_path $sim ]
+set ver [ GetProjectVersion $project_dir $repo_path $ext_path $sim ]
 if {$ver == 0} {
   Msg Info "$project was modified, continuing with the CI..."
 } else {

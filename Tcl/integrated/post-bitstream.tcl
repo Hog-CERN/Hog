@@ -20,6 +20,7 @@
 set old_path [pwd]
 set tcl_path [file normalize "[file dirname [info script]]/.."]
 source $tcl_path/hog.tcl
+set repo_path [file normalize "$tcl_path/../../"]
 
 if {[info commands get_property] != ""} {
 
@@ -34,6 +35,9 @@ if {[info commands get_property] != ""} {
 
   set fw_file   [file normalize [lindex [glob -nocomplain "$work_path/*.bit"] 0]]
   set proj_name [file tail [file normalize $work_path/../../]]
+  set proj_dir [file normalize "$work_path/../.."]
+  puts "Post-Bitstream proj_dir $proj_dir"
+
   set top_name  [file rootname [file tail $fw_file]]
 
   set bit_file [file normalize "$work_path/$top_name.bit"]
@@ -42,7 +46,7 @@ if {[info commands get_property] != ""} {
 
   set xml_dir [file normalize "$work_path/../xml"]
   set run_dir [file normalize "$work_path/.."]
-  set bin_dir [file normalize "$work_path/../../../../bin"]
+  set bin_dir [file normalize "$repo_path/bin"]
 
 } elseif {[info commands project_new] != ""} {
   # Quartus
@@ -70,6 +74,8 @@ if {[info commands get_property] != ""} {
   set work_path $old_path
   set fw_file   [file normalize [lindex [glob -nocomplain "$work_path/*.bit"] 0]]
   set proj_name [file tail [file normalize $work_path/../../]]
+  set proj_dir [file normalize "$work_path/../.."]
+
   set top_name  [file rootname [file tail $fw_file]]
 
   set bit_file [file normalize "$work_path/$top_name.bit"]
@@ -78,8 +84,14 @@ if {[info commands get_property] != ""} {
 
   set xml_dir [file normalize "$work_path/../xml"]
   set run_dir [file normalize "$work_path/.."]
-  set bin_dir [file normalize "$work_path/../../../../bin"]
+  set bin_dir [file normalize "$repo_path/bin"]
 }
+
+set index_a [string last "Projects/" $proj_dir]
+set index_a [expr $index_a + 8]
+set index_b [string last "/$proj_name" $proj_dir]
+set group_name [string range $proj_dir $index_a $index_b]
+
 
 # Vivado
 if {[info commands get_property] != "" && [file exists $bit_file]} {
@@ -88,14 +100,14 @@ if {[info commands get_property] != "" && [file exists $bit_file]} {
   cd $tcl_path/../../
 
   Msg Info "Evaluating Git sha for $proj_name..."
-  lassign [GetRepoVersions [file normalize ./Top/$proj_name]] sha
+  lassign [GetRepoVersions [file normalize ./Top/$group_name/$proj_name] $repo_path] sha
 
   set describe [GetGitDescribe $sha]
   Msg Info "Git describe set to: $describe"
 
   set ts [clock format [clock seconds] -format {%Y-%m-%d-%H-%M}]
 
-  set dst_dir [file normalize "$bin_dir/$proj_name\-$describe"]
+  set dst_dir [file normalize "$bin_dir/$group_name/$proj_name\-$describe"]
   set dst_bit [file normalize "$dst_dir/$proj_name\-$describe.bit"]
   set dst_bin [file normalize "$dst_dir/$proj_name\-$describe.bin"]
   set dst_ltx [file normalize "$dst_dir/$proj_name\-$describe.ltx"]
@@ -255,7 +267,7 @@ if [file exists $xml_dir] {
 
 
 
-set user_post_bitstream_file "./Top/$proj_name/post-bitstream.tcl"
+set user_post_bitstream_file "./Top/$group_name/$proj_name/post-bitstream.tcl"
 if {[file exists $user_post_bitstream_file]} {
     Msg Info "Sourcing user post-bitstream file $user_post_bitstream_file"
     source $user_post_bitstream_file

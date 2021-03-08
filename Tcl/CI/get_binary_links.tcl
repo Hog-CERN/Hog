@@ -53,7 +53,7 @@ cd $repo_path
 foreach dir [glob -type d $repo_path/Top/* ] {
   set proj [ file tail $dir ]
   #find project version
-  set ver [ GetProjectVersion $dir/$proj.tcl $ext_path ]
+  set ver [ GetProjectVersion $dir/$proj.tcl $repo_path $ext_path ]
   if {"$ver"=="0" || "$ver"=="$tag" || $options(force)==1} {
     Msg Info "Creating new link for $proj binaries and tag $tag"
     if [catch {glob -type d $repo_path/bin/$proj* } prj_dir] {

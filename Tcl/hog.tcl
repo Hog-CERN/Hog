@@ -794,12 +794,13 @@ return $M$m$c
 ## Get the project version
 #
 #  @param[in] proj_dir: The top folder of the project of which all the version must be calculated
+#  @param[in] repo_path: The top folder of the repository
 #  @param[in] ext_path: path for external libraries
 #  @param[in] sim: if enabled, check the version also for the simulation files
 #
 #  @return  returns the project version
 #
-proc GetProjectVersion {proj_dir {ext_path ""} {sim 0}} {
+proc GetProjectVersion {proj_dir repo_path {ext_path ""} {sim 0}} {
   if { ![file exists $proj_dir] } {
     Msg CriticalWarning "$proj_dir not found"
     return -1
@@ -809,7 +810,7 @@ proc GetProjectVersion {proj_dir {ext_path ""} {sim 0}} {
 
   #The latest version the repository
   set v_last [ExtractVersionFromTag [Git {describe --abbrev=0 --match "v*"}]]
-  lassign [GetRepoVersions $proj_dir $ext_path $sim] sha ver
+  lassign [GetRepoVersions $proj_dir $repo_path $ext_path $sim] sha ver
   if {$sha == 0} {
     Msg Warning "Repository is not clean"
     cd $old_dir

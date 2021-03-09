@@ -283,3 +283,33 @@ function print_hog() {
   cd -
   return 0
 }
+
+## @fn search available projects inside Top folder
+#
+# @brief Selects which ompiler executable has to be used based on the first line of the conf or tcl file
+#
+# @param[in]    $1 full path to the Top dir
+# @returns  0 if success, 1 if failure
+#
+function search_projects() {
+  if [ -z ${1+x} ]; then
+    Msg Error "missing input! Got: $1!"
+    return 1
+  fi
+
+  if [[ -d "$1" ]]; then
+    for dir in $1/*; do
+      project_name=$(basename $dir)
+      if [ -f "$dir/$project_name.tcl" ] || [ -f "$dir/hog.conf" ]; then
+        subname=${dir#*Top/}
+        echo $subname
+      else
+        search_projects $dir
+      fi
+    done
+  else
+    Msg Error "$1 directory not found!"
+    return 1
+  fi
+  return 0
+}

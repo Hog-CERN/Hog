@@ -82,10 +82,12 @@ if {![string equal $options(project) ""]} {
 } else {
   set project_name [get_projects [current_project]]
   set proj_file [get_property DIRECTORY [current_project]]
-  set proj_dir [file normalize [file dirname $proj_file]]
+  puts $proj_file 
+  puts $project_name
+  set proj_dir [file normalize $proj_file]
   set index_a [string last "Projects/" $proj_dir]
   set index_a [expr $index_a + 8]
-  set index_b [string last "/$proj_name" $proj_dir]
+  set index_b [string last "/$project_name" $proj_dir]
   set group_name [string range $proj_dir $index_a $index_b]
 }
 
@@ -325,7 +327,7 @@ foreach key [dict keys $listProperties] {
 foreach key [dict keys $prjProperties] {
   foreach prop [DictGet $prjProperties $key] {
     #puts "FILE $key: PROPERTY $prop"
-    if {[lsearch -nocase [lindex [DictGet $listProperties $key] 0] $prop] < 0 && ![string equal $prop ""] && ![string equal $key "Simulator"] && ![string equal $prop "top=top_[file root $project]"]} {
+    if {[lsearch -nocase [lindex [DictGet $listProperties $key] 0] $prop] < 0 && ![string equal $prop ""] && ![string equal $key "Simulator"] && ![string equal $prop "top=top_[file root $project_name]"]} {
       Msg CriticalWarning "$key property $prop is set in project but not in list files!"
       incr ErrorCnt
     }
@@ -354,7 +356,7 @@ if {$options(recreate) == 1} {
   file mkdir  $repo_path/$DirName/list
   foreach listFile [dict keys $newListfiles] {
     if {[string equal [file extension $listFile] ".sim"]} {
-      set listSim [ParseFirstLineHogFiles "$repo_path/Top/$group_name/$project/list/" $listFile]
+      set listSim [ParseFirstLineHogFiles "$repo_path/Top/$group_name/$project_name/list/" $listFile]
       set lFd [open $repo_path/$DirName/list/$listFile w]
       if {[string equal -nocase [lindex [split $listSim " "] 0] "Simulator"] && [string equal -nocase [lindex [split $listSim " "] 1] "skip_simulation"]} {
          puts $lFd "#$listSim"

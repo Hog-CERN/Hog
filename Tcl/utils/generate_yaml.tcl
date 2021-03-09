@@ -97,7 +97,7 @@ set projects_list [SearchHogProjects $repo_path/Top]
 foreach proj $projects_list {
   # set proj [ file tail $dir ]
   set proj_name [file tail $proj]
-  set dir $repo_path/Top/proj
+  set dir $repo_path/Top/$proj
   set ver [ GetProjectVersion $dir $repo_path $ext_path 1 ]
   
   if {$ver == 0 || $ver == -1 || $runall == 1} {

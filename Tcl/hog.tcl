@@ -2511,6 +2511,36 @@ proc ResetRepoFiles {reset_file} {
   }
 }
 
+## Search the Hog projects inside a directory
+#
+#  @param[in]    dir The directory to search
+#
+#  @return       The list of projects
+#
+
+proc SearchHogProjects {dir} {
+  set projects_list {}
+  if {[file exists $dir]} {
+    if {[file isdirectory $dir]} {
+      foreach proj_dir [glob -type d $dir/* ] {
+        set index_a [string last "Top/" $proj_dir]
+        set index_a [expr $index_a + 4]
+        set proj_name [string range $proj_dir $index_a [string length $proj_dir]]
+        if {[file exists $proj_dir/$proj_name.tcl ] || [file exists "$proj_dir/hog.conf" ] } {
+          lappend projects_list $proj_name
+        } else {
+          lappend projects_list [SearchHogProjects $proj_dir]
+        }
+      }
+    } else {
+      Msg Error "Input $dir is not a directory!"
+    }
+  } else {
+    Msg Error "Directory $dir doesn't exist!"
+  }
+  return $projects_list
+}
+
 ## Read a property configuration file and returns a dictionary
 #
 #  @param[in]    file_name the configuration file
@@ -2537,6 +2567,7 @@ package require inifile 0.2.3
 
     #manipulate strings here:
     regsub -all {\{\"} $key_pairs "{" key_pairs
+    #" Comment for VSCode 
     regsub -all {\"\}} $key_pairs "}" key_pairs
 
     dict set properties $new_sec [dict create {*}$key_pairs]
@@ -2546,5 +2577,4 @@ package require inifile 0.2.3
   
   return $properties
 }
-
 

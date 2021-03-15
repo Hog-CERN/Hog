@@ -194,7 +194,7 @@ function select_command()
 	return 1
     fi
     
-    select_command_from_line $(head -1 $file)
+    select_command_from_line "$(head -1 $file)"
     if [ $? != 0 ]
     then
 	Msg Error "Failed to select COMMAND and COMMAND_OPT"

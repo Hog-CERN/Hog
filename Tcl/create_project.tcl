@@ -254,7 +254,7 @@ proc CreateReportStrategy {obj} {
 
     }
   } else {
-    puts "Won't create any report strategy, not in Vivado"
+    Msg Info "Won't create any report strategy, not in Vivado"
   }
 }
 

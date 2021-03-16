@@ -594,9 +594,9 @@ if {[file exists $conf_file]} {
     Msg Warning "Found deprecated variable FPGA = $FPGA in project Tcl file, this will no longer be supported in future Hog releases"
     set PART $FPGA 
   }
-  
-  set PROPERTIES [dict create]
-
+  if ![info exists PROPERTIES ] {
+    set PROPERTIES [dict create]
+  }
   if {[info exists ::BIN_FILE]} {
     Msg Warning "Found deprecated variable BIN_FILE = $BIN_FILE in project Tcl file, this will no longer be supported in future Hog releases"
     if ![dict exists $PROPERTIES impl_1] {
@@ -611,7 +611,6 @@ if {[file exists $conf_file]} {
       dict set PROPERTIES impl_1 [dict create]
     }
     dict set PROPERTIES impl_1 FLOW $IMPL_FLOW 
-    puts $PROPERTIES
   }
   
   if {[info exists ::IMPL_STRATEGY]} {

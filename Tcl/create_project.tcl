@@ -566,17 +566,6 @@ if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] 
 
 ###########################################################################################################################################################################################
 
-#find hog.conf
-  # usr pre-create
-  # create
-  # usr post-create
-
-
-#if not find .tcl
-  # sopurce .tcl
-
-#if not error
-
 SetGlobalVar DESIGN
 
 set proj_dir $repo_path/Top/$DESIGN
@@ -596,11 +585,66 @@ if {[file exists $conf_file]} {
   } else {
     Msg Error "No main section found in $conf_file, make sure it has a section called \[main\] containing the mandatory properties." 
   }
+} else {
+
+  ##### REMOVE ALL THIS ELSE TO STOP PROJECT.TCL SUPPORT ############
+  Msg Warning "$conf_file was not found in you project directory, please create one. The project Tcl file will no longer be supported on future Hog realeases."
+  
+  if {[info exists ::FPGA]} {
+    Msg Warning "Found deprecated variable FPGA = $FPGA in project Tcl file, this will no longer be supported in future Hog releases"
+    set PART $FPGA 
+  }
+  
+  set PROPERTIES [dict create]
+
+  if {[info exists ::BIN_FILE]} {
+    Msg Warning "Found deprecated variable BIN_FILE = $BIN_FILE in project Tcl file, this will no longer be supported in future Hog releases"
+    if ![dict exists $PROPERTIES impl_1] {
+      dict set PROPERTIES impl_1 [dict create]
+    }
+    dict set PROPERTIES impl_1 steps.write_bitstream.args.bin_file $BIN_FILE 
+  }
+  
+  if {[info exists ::IMPL_FLOW]} {
+    Msg Warning "Found deprecated variable IMPL_FLOW = $IMPL_FLOW in project Tcl file, this will no longer be supported in future Hog releases"
+    if ![dict exists $PROPERTIES impl_1] {
+      dict set PROPERTIES impl_1 [dict create]
+    }
+    dict set PROPERTIES impl_1 FLOW $IMPL_FLOW 
+    puts $PROPERTIES
+  }
+  
+  if {[info exists ::IMPL_STRATEGY]} {
+    Msg Warning "Found deprecated variable IMPL_STRATEGY = $IMPL_STRATEGY in project Tcl file, this will no longer be supported in future Hog releases"
+    if ![dict exists $PROPERTIES impl_1] {
+      dict set PROPERTIES impl_1 [dict create]
+    }
+    dict set PROPERTIES impl_1 STRATEGY $IMPL_STRATEGY 
+  }
+  
+  
+  if {[info exists ::SYNTH_FLOW]} {
+    Msg Warning "Found deprecated variable SYNTH_FLOW = $SYNTH_FLOW in project Tcl file, this will no longer be supported in future Hog releases"
+    if ![dict exists $PROPERTIES synth_1] {
+      dict set PROPERTIES synth_1 [dict create]
+    }
+    dict set PROPERTIES synth_1 FLOW $SYNTH_FLOW 
+  }
+  
+  if {[info exists ::SYNTH_STRATEGY]} {
+    Msg Warning "Found deprecated variable SYNTH_STRATEGY = $SYNTH_STRATEGY in project Tcl file, this will no longer be supported in future Hog releases"
+    if ![dict exists $PROPERTIES synth_1] {
+      dict set PROPERTIES synth_1 [dict create]
+    }
+    dict set PROPERTIES synth_1 STRATEGY $SYNTH_STRATEGY 
+  }
+
+  ########## END ###########
 }
 
 
 SetGlobalVar PART
-#Family is needed in qurtus only
+#Family is needed in quartus only
 if {[info commands project_new] != ""} {
   #Quartus only
   SetGlobalVar FAMILY

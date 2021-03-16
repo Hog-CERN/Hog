@@ -31,6 +31,11 @@ export COMMAND=""
 #
 export COMMAND_OPT=""
 
+## @var POST_COMMAND_OPT
+#  @brief Global variable used to contain the post command options to be used (e.g. -tclargs)
+#
+export POST_COMMAND_OPT=""
+
 ## @var HDL_COMPILER
 #  @brief Global variable contianing the full path to the HDL compiler to be used
 #
@@ -105,6 +110,7 @@ function Msg ()
 # @param[in]    $1 the first line of the tcl file or a suitable string
 # @param[out]   COMMAND  global variable: the selected command
 # @param[out]   COMMAND_OPT global variable: the selected command options
+# @param[out]   POST_COMMAND_OPT global variable: the post command options
 #
 # @returns  0 if success, 1 if failure
 #
@@ -129,6 +135,7 @@ function select_command_from_line()
       Msg Info " Recognised Vivado project"
       COMMAND="vivado"
       COMMAND_OPT="-nojournal -nolog -mode batch -notrace -source"
+      POST_COMMAND_OPT="-tclargs"
     fi
   elif [[ $TCL_FIRST_LINE =~ 'quartus' ]];
   then
@@ -150,11 +157,13 @@ function select_command_from_line()
     Msg Info  " Recognised planAhead project"
     COMMAND="planAhead"
     COMMAND_OPT="-nojournal -nolog -mode batch -notrace -source"
+    POST_COMMAND_OPT="-tclargs"
   else
     Msg Warning " You should write #vivado or #quartus as first line in your property.conf file or project Tcl file, assuming Vivado... "
     Msg Info " Recognised Vivado project"
     COMMAND="vivado"
     COMMAND_OPT="-mode batch -notrace -source"
+    POST_COMMAND_OPT="-tclargs"
   fi
 
   return 0
@@ -197,7 +206,7 @@ function select_command()
     select_command_from_line "$(head -1 $file)"
     if [ $? != 0 ]
     then
-	Msg Error "Failed to select COMMAND and COMMAND_OPT"
+	Msg Error "Failed to select COMMAND, COMMAND_OPT and POST_COMMAND_OPT"
 	return 1
     fi
     
@@ -262,6 +271,7 @@ function select_compiler_executable ()
 # @param[in]    $1 full path to the project dir
 # @param[out]   COMMAND  global variable: the selected command
 # @param[out]   COMMAND_OPT global variable: the selected command options
+# @param[out]   POST_COMMAND_OPT global variable: the post command options
 # @param[out]   HDL_COMPILER gloabal variable: the full path to the HDL compiler executable
 #
 # @returns  0 if success, 1 if failure

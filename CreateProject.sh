@@ -123,7 +123,7 @@ function create_project ()
     then
 	cd "${DIR}"
 	Msg Info "Creating project $PROJ using hog.conf..."
- 	"${HDL_COMPILER}" $COMMAND_OPT ../Hog/Tcl/create_project.tcl -tclargs $PROJ
+ 	"${HDL_COMPILER}" $COMMAND_OPT ../Hog/Tcl/create_project.tcl $POST_COMMAND_OPT $PROJ
     elif [ $FILE_TYPE == "TCL" ]
     then
 	cd "${PROJ_DIR}"

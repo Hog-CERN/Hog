@@ -2416,12 +2416,16 @@ proc Execute {args}  {
 #
 proc GetMaxThreads {proj_dir} {
   set maxThreads 1
-  set properties [ReadConf [lindex [GetConfFiles $proj_dir] 0]]
-  if {[dict exists $properties parameters]} {
-    set propDict [dict get $properties parameters]
-    if {[dict exists $propDict MAX_THREADS]} {
-      set maxThreads [dict get $propDict MAX_THREADS]
+  if {[file exist $proj_dir/hog.conf]} {
+    set properties [ReadConf [lindex [GetConfFiles $proj_dir] 0]]
+    if {[dict exists $properties parameters]} {
+      set propDict [dict get $properties parameters]
+      if {[dict exists $propDict MAX_THREADS]} {
+        set maxThreads [dict get $propDict MAX_THREADS]
+      }
     }
+  } else {
+    Msg Warning "File $proj_dir/hog.conf not found. Max threads will be set to default value 1"
   }
   return $maxThreads
 }

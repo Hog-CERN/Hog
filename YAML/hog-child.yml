@@ -227,6 +227,7 @@ collect_artifacts:
               for fp in $files; do 
                 cat $fp >> $CI_PROJECT_DIR/bin/note.md;
                 cat $fp >> mr_note.md;
+              done;
             fi;
           done;
         - if [[ -z "$HOG_MR_MSG" ]] || [[ $HOG_MR_MSG == '1' ]]; then

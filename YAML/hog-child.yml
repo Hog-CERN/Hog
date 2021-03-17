@@ -224,8 +224,9 @@ collect_artifacts:
         - for f in $note_files; do
             files=$(shopt -s nullglob dotglob; find $CI_PROJECT_DIR/bin/ -name "$f*.txt");
             if (( ${#files} )); then
-              cat $CI_PROJECT_DIR/bin/*/$f*.txt >> $CI_PROJECT_DIR/bin/note.md;
-              cat $CI_PROJECT_DIR/bin/*/$f*.txt >> mr_note.md;
+              for fp in $files; do 
+                cat $fp >> $CI_PROJECT_DIR/bin/note.md;
+                cat $fp >> mr_note.md;
             fi;
           done;
         - if [[ -z "$HOG_MR_MSG" ]] || [[ $HOG_MR_MSG == '1' ]]; then

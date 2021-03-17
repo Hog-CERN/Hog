@@ -64,8 +64,9 @@ if {[info commands get_property] != ""} {
   Msg CriticalWarning "You seem to be running locally on tclsh, so this is a debug, the project file will be set to $proj_file and was derived from the path you launched this script from: $old_path. If you want this script to work properly in debug mode, please launch it from the top folder of one project, for example Repo/Projects/fpga1/ or Repo/Top/fpga1/"
 }
 set index_a [string last "Projects/" $proj_dir]
-set index_a [expr $index_a + 8]
+set index_a [expr $index_a + 9]
 set index_b [string last "/$proj_name" $proj_dir]
+set index_b [expr $index_b - 1]
 set group_name [string range $proj_dir $index_a $index_b]
 # Calculating flavour if any
 set flavour [string map {. ""} [file ext $proj_name]]

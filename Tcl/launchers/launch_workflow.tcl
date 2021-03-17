@@ -47,6 +47,7 @@ if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] 
 } else {
   set project [lindex $argv 0]
   set group_name [file dirname $project]
+  puts "group_name workflow $group_name"
   set project [file tail $project]
   set main_folder [file normalize "$repo_path/Projects/$group_name/$project/$project.runs/"]
   set do_implementation 1
@@ -276,8 +277,11 @@ if {$do_implementation == 1 } {
 
       set status_file [open "$main_folder/timing.txt" "w"]
 
-      puts $status_file "## $group_name/$project Timing summary"
-
+      if { $group_name != "." } {
+        puts $status_file "## $group_name/$project Timing summary"
+      } else {
+        puts $status_file "## $project Timing summary"
+      }
       set f [open [lindex [glob "$main_folder/impl_1/*.twr" 0]]]
       set errs -1
       while {[gets $f line] >= 0} {
@@ -335,7 +339,12 @@ if {$do_implementation == 1 } {
     m add columns 5
     m add row
 
-    puts $status_file "## $group_name/$project Timing summary"
+    if { $group_name == "." } {
+      puts $status_file "## $project Timing summary"  
+    } else {
+      puts $status_file "## $group_name/$project Timing summary"
+    }
+    
     m add row  "| **Parameter** | \"**value (ns)**\" |"
     m add row  "| --- | --- |"
     m add row  "|  WNS:  |  $wns  |"

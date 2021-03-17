@@ -34,7 +34,7 @@ function help_message() {
   echo " Hog - Create HDL project"
   echo " ---------------------------"
   echo " Create the specified Vivado or Quartus project"
-  echo " The project type is selected using the first line of the tcl script generating the project"
+  echo " The project type is selected using the first line of the hog.conf generating the project"
   echo " Following options are available: "
   echo " #vivado "
   echo " #vivadoHLS "
@@ -115,10 +115,10 @@ function create_project() {
     if [ $FILE_TYPE == "CONF" ]; then
       cd "${DIR}"
       Msg Info "Creating project $PROJ using hog.conf..."
-      "${HDL_COMPILER}" $COMMAND_OPT ../Hog/Tcl/create_project.tcl -tclargs $PROJ
+      "${HDL_COMPILER}" $COMMAND_OPT ../Hog/Tcl/create_project.tcl $POST_COMMAND_OPT $PROJ
     elif [ $FILE_TYPE == "TCL" ]; then
-      cd " ${PROJ_DIR}"
-      Msg Info "Creating project $PROJ using $PROJ.tcl..."
+      cd "${PROJ_DIR}"
+      Msg Warning "Creating project $PROJ using $PROJ.tcl, this is deprecated and will not be supported in future Hog releases..."
       "${HDL_COMPILER}" $COMMAND_OPT $PROJ.tcl
     else
       Msg Error "Unknown file type: $FILE_TPYE"

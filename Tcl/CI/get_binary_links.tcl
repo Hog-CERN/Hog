@@ -50,10 +50,13 @@ set fp [open "$repo_path/project_links.txt" w]
 
 cd $repo_path
 # Find link for every project:
-foreach dir [glob -type d $repo_path/Top/* ] {
-  set proj [ file tail $dir ]
+set projects_list [SearchHogProjects $repo_path/Top]
+
+foreach proj $projects_list {
   #find project version
-  set ver [ GetProjectVersion $dir/$proj.tcl $repo_path $ext_path ]
+  set proj_name [file tail $proj]
+  set dir $repo_path/Top/$proj
+  set ver [ GetProjectVersion $dir $repo_path $ext_path 1 ]
   if {"$ver"=="0" || "$ver"=="$tag" || $options(force)==1} {
     Msg Info "Creating new link for $proj binaries and tag $tag"
     if [catch {glob -type d $repo_path/bin/$proj* } prj_dir] {

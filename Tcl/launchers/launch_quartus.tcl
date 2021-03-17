@@ -59,6 +59,8 @@ if { [ catch {array set options [cmdline::getoptions quartus(args) $parameters $
   set ext_path ""
 }
 
+set argv ""
+
 if { $options(no_bitstream) == 1 } {
   set do_compile 0
   set do_bitstream 0
@@ -103,7 +105,16 @@ if {[file exists "$project_path/$project.qpf" ]} {
 
 if { $proj_found == 0 || $recreate == 1 } {
   Msg Info "Creating (possibly replacing) the project $project..."
-  source ../../Top/$project/$project.tcl
+  lassign [GetConfFiles ../../Top/$project] conf pre post tcl_file
+
+  if {[file exists $conf]} {
+    set ::DESIGN $project
+    source ./create_project.tcl 
+  } elseif {[file exists $tcl_file]} {
+    source ../../Top/$project/$project.tcl
+  } else {
+    Msg Error "Project $project is incomplete: not Tcl file or hog.conf file found."
+  }
 }
 
 if {[file exists "$project_path" ]} {

@@ -2420,12 +2420,16 @@ proc Execute {args}  {
 #
 proc GetMaxThreads {proj_dir} {
   set maxThreads 1
-  set properties [ReadConf [lindex [GetConfFiles $proj_dir] 0]]
-  if {[dict exists $properties parameters]} {
-    set propDict [dict get $properties parameters]
-    if {[dict exists $propDict MAX_THREADS]} {
-      set maxThreads [dict get $propDict MAX_THREADS]
+  if {[file exist $proj_dir/hog.conf]} {
+    set properties [ReadConf [lindex [GetConfFiles $proj_dir] 0]]
+    if {[dict exists $properties parameters]} {
+      set propDict [dict get $properties parameters]
+      if {[dict exists $propDict MAX_THREADS]} {
+        set maxThreads [dict get $propDict MAX_THREADS]
+      }
     }
+  } else {
+    Msg Warning "File $proj_dir/hog.conf not found. Max threads will be set to default value 1"
   }
   return $maxThreads
 }
@@ -2577,4 +2581,35 @@ package require inifile 0.2.3
   
   return $properties
 }
+
+## Write a property configuration file from a dictionary
+#
+#  @param[in]    file_name the configuration file
+#  @param[in]    config the configuration dictionary
+#  @param[in]    comment comment to add at the beginning of configuration file
+#
+#
+proc WriteConf {file_name config {comment ""}} {                                                                                                                          
+package require inifile 0.2.3                                                                                                                               
+                
+  ::ini::commentchar "#"
+  set f [::ini::open $file_name w]    
+
+  foreach sec [dict keys $config] {
+    set section [dict get $config $sec]
+    dict for {p v} $section {
+      ::ini::set $f $sec $p $v
+    }
+  } 
+
+  #write comment before the first section (first line of file)
+  if {![string equal "$comment"  ""]} {
+    ::ini::comment $f [lindex [::ini::sections $f] 0] "" $comment
+  }
+  ::ini::commit $f
+
+  ::ini::close $f                                                                                                                                            
+  
+}
+
 

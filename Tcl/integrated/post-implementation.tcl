@@ -27,7 +27,7 @@ set tcl_path [file normalize "[file dirname [info script]]/.."]
 source $tcl_path/hog.tcl
 # Go to repository pathcd $old_pathcd $old_path
 cd $tcl_path/../../
-
+set repo_path "$tcl_path/../.."
 
 if {[info commands get_property] != ""} {
     # Vivado + planAhead
@@ -62,7 +62,7 @@ if {$ret !=0} {
 
 if {$msg eq "" } {
   Msg Info "Git working directory [pwd] clean."
-  lassign [GetRepoVersions [file normalize ./Top/$group_name/$proj_name]] commit version
+  lassign [GetRepoVersions [file normalize ./Top/$group_name/$proj_name] $repo_path ] commit version
   Msg Info "Found last SHA for $proj_name: $commit"
 
 } else {

@@ -289,7 +289,12 @@ if {$flavour != -1} {
 }
 
 set version [HexVersionToString $version]
-puts $status_file "## $proj_name version table"
+if {$group_name != ""} {
+  puts $status_file "## $group_name/$proj_name version table" 
+} else {
+  puts $status_file "## $proj_name version table" 
+}
+
 struct::matrix m
 m add columns 7
 

@@ -220,8 +220,8 @@ collect_artifacts:
             done;
           fi
         - note_files="versions timing"
+        # files=$(shopt -s nullglob dotglob; echo $CI_PROJECT_DIR/bin/*/$f*.txt);
         - for f in $note_files; do
-            # files=$(shopt -s nullglob dotglob; echo $CI_PROJECT_DIR/bin/*/$f*.txt);
             files=$(shopt -s nullglob dotglob; find $CI_PROJECT_DIR/bin/ -name "$f*.txt");
             if (( ${#files} )); then
               cat $CI_PROJECT_DIR/bin/*/$f*.txt >> $CI_PROJECT_DIR/bin/note.md;

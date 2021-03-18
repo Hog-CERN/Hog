@@ -111,12 +111,20 @@ archive_binary_files:
     - git fetch origin refs/notes/*:refs/notes/*
     - MR=( `git notes show` )
     - ./Hog/Other/GetArtifactsAndRename.sh $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $MR collect_artifacts
+    - mkdir zipped
     - cd bin
-    - for dir in *; do
-        if [ -d "$dir" ]; then
-          zip -r ../$dir.zip $dir;
-        fi;
-      done;
+    - projects=$(find . -name "*.bit")
+    - for proj in $projects; do
+        PRJ_DIR=$(dirname "$proj");
+        PRJ_DIR=$(echo "$PRJ_DIR" | sed -r 's#\./##g');
+        DEST_ZIP=$(echo "$PRJ_DIR" | sed -r 's#/#_#g');
+        zip -r ../zipped/$DEST_ZIP.zip $PRJ_DIR;
+      done;  
+    # - for dir in *; do
+    #     if [ -d "$dir" ]; then
+    #       zip -r ../$dir.zip $dir;
+    #     fi;
+    #   done;
     - cd ..
     - if [[ -v HOG_CREATE_OFFICIAL_RELEASE ]] && [[ $HOG_CREATE_OFFICIAL_RELEASE == "1" ]]; then
         if [[ -v HOG_CHECK_PROJVER ]] && [[ $HOG_CHECK_PROJVER == '1' ]]; then

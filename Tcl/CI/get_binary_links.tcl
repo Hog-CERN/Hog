@@ -55,6 +55,7 @@ set projects_list [SearchHogProjects $repo_path/Top]
 foreach proj $projects_list {
   #find project version
   set proj_name [file tail $proj]
+  set proj_dir [file dirname $proj]
   set dir $repo_path/Top/$proj
   set ver [ GetProjectVersion $dir $repo_path $ext_path 1 ]
   if {"$ver"=="0" || "$ver"=="$tag" || $options(force)==1} {
@@ -63,8 +64,12 @@ foreach proj $projects_list {
       Msg CriticalWarning "Cannot find $proj binaries in artifacts"
       continue
     }
-    puts "curl -s --request POST --header PRIVATE-TOKEN: ${push_token} --form file=@$repo_path/${proj}-${ver}.zip ${api}/projects/${proj_id}/uploads"
-    lassign [ExecuteRet curl -s --request POST --header "PRIVATE-TOKEN: ${push_token}" --form "file=@$repo_path/${proj}-${ver}.zip" ${api}/projects/${proj_id}/uploads] ret content
+    # puts "curl -s --request POST --header PRIVATE-TOKEN: ${push_token} --form file=@$repo_path/${proj}-${ver}.zip ${api}/projects/${proj_id}/uploads"
+    if { $proj_dir != "." } {
+      lassign [ExecuteRet curl -s --request POST --header "PRIVATE-TOKEN: ${push_token}" --form "file=@$repo_path/zipped/${proj_dir}_${proj_name}-${ver}.zip" ${api}/projects/${proj_id}/uploads] ret content
+    } else {
+      lassign [ExecuteRet curl -s --request POST --header "PRIVATE-TOKEN: ${push_token}" --form "file=@$repo_path/zipped/${proj_name}-${ver}.zip" ${api}/projects/${proj_id}/uploads] ret content
+    }
     if {$ret != 0} {
       Msg Warning "Project $proj does not have binary files"
     } else {
@@ -84,9 +89,16 @@ foreach proj $projects_list {
     } else {
       set link ""
       foreach line [split  [ParseJSON $msg description] "\n"] {
-        if {[string first "\[$proj.zip\]" $line] != -1} {
-          set link [lindex [split $line "()"] 1]
-          puts $fp "$proj $link"
+        if { $proj_dir != "." } {
+          if {[string first "\[${proj_dir}_${proj_name}.zip\]" $line] != -1} {
+            set link [lindex [split $line "()"] 1]
+            puts $fp "$proj $link"
+          }
+        } else {
+          if {[string first "\[${proj_name}.zip\]" $line] != -1} {
+            set link [lindex [split $line "()"] 1]
+            puts $fp "$proj $link"
+          }
         }
       }
       if {"$link" == ""} {

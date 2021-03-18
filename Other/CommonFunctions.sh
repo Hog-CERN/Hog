@@ -294,11 +294,11 @@ function print_hog() {
   return 0
 }
 
-## @fn search available projects inside Top folder
+## @fn search available projects inside input folder
 #
-# @brief Selects which ompiler executable has to be used based on the first line of the conf or tcl file
+# @brief Search all hog projects inside a folder
 #
-# @param[in]    $1 full path to the Top dir
+# @param[in]    $1 full path to the dir containing the projects
 # @returns  0 if success, 1 if failure
 #
 function search_projects() {

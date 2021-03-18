@@ -54,7 +54,7 @@ else
             PRJ_BASE=$(basename $PRJ_DIR)
             PRJ_NAME="${PRJ_DIR%.*}"
             PRJ_NAME="${PRJ_NAME%-*}"
-            PRJ_NAME_BASE=$(basename $PRJ_BASE)
+            PRJ_NAME_BASE=$(basename $PRJ_NAME)
             PRJ_SHA="${PRJ_DIR##*-g}"
             PRJ_SHA=$(echo $PRJ_SHA | sed -e 's/-dirty$//')
             TAG=$(git tag --sort=creatordate --contain "$PRJ_SHA" -l "v*.*.*" | head -1)

@@ -120,11 +120,6 @@ archive_binary_files:
         DEST_ZIP=$(echo "$PRJ_DIR" | sed -r 's#/#_#g');
         zip -r ../zipped/$DEST_ZIP.zip $PRJ_DIR;
       done;  
-    # - for dir in *; do
-    #     if [ -d "$dir" ]; then
-    #       zip -r ../$dir.zip $dir;
-    #     fi;
-    #   done;
     - cd ..
     - if [[ -v HOG_CREATE_OFFICIAL_RELEASE ]] && [[ $HOG_CREATE_OFFICIAL_RELEASE == "1" ]]; then
         if [[ -v HOG_CHECK_PROJVER ]] && [[ $HOG_CHECK_PROJVER == '1' ]]; then

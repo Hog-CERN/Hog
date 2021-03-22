@@ -64,7 +64,6 @@ foreach proj $projects_list {
       Msg CriticalWarning "Cannot find $proj binaries in artifacts"
       continue
     }
-    # puts "curl -s --request POST --header PRIVATE-TOKEN: ${push_token} --form file=@$repo_path/${proj}-${ver}.zip ${api}/projects/${proj_id}/uploads"
     if { $proj_dir != "." } {
       lassign [ExecuteRet curl -s --request POST --header "PRIVATE-TOKEN: ${push_token}" --form "file=@$repo_path/zipped/${proj_dir}_${proj_name}-${ver}.zip" ${api}/projects/${proj_id}/uploads] ret content
     } else {

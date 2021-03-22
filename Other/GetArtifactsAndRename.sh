@@ -70,26 +70,6 @@ else
             echo "Hog-INFO: renaming directory $PRJ_DIR --> $DST"
             mv "$PRJ_DIR" "$DST"
         done
-
-        # for PRJ_DIR in ${PRJ_DIRS[@]}; do
-        #     PRJ_DIR=$(basename "$PRJ_DIR")
-        #     PRJ_NAME="${PRJ_DIR%.*}"
-        #     PRJ_NAME="${PRJ_NAME%-*}"
-        #     PRJ_SHA="${PRJ_DIR##*-g}"
-        #     PRJ_SHA=$(echo $PRJ_SHA | sed -e 's/-dirty$//')
-        #     TAG=$(git tag --sort=creatordate --contain "$PRJ_SHA" -l "v*.*.*" | head -1)
-        #     PRJ_BINS=("$(ls "$PRJ_DIR"/"${PRJ_DIR}"*)")
-        #     echo "Hog-INFO: Found project $PRJ_NAME"
-        #     for PRJ_BIN in ${PRJ_BINS[@]}; do
-        #         EXT="${PRJ_BIN##*.}"
-        #         DST=$PRJ_DIR/${PRJ_NAME}-$TAG.$EXT
-        #         echo "Hog-INFO: renaming file $PRJ_BIN --> $DST"
-        #         mv "$PRJ_BIN" "$DST"
-        #     done
-        #     DST=${PRJ_NAME}-$TAG
-        #     echo "Hog-INFO: renaming directory $PRJ_DIR --> $DST"
-        #     mv "$PRJ_DIR" "$DST"
-        # done
         cd ..
     fi
     rm output.zip

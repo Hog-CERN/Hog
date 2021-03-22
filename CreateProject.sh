@@ -78,7 +78,7 @@ function create_project() {
     echo " Usage: $0 <project name>"
     echo
     echo "  Possible projects are:"
-    # ls -1 $DIR
+
     search_projects $DIR
     echo
     cd "${OLD_DIR}"

@@ -164,8 +164,6 @@ function init() {
   read -p "Do you want to create projects now (can be done later with CreateProject.sh)? " -n 1 -r
   echo # (optional) move to a new line
   if [[ "${REPLY}" =~ ^[Yy]$ ]]; then
-    # cd ../Top
-    # proj=`ls`
     cd ..
     proj=$(search_projects Top)
     echo [hog init] Creating projects for: $proj...

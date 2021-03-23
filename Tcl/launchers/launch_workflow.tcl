@@ -49,7 +49,7 @@ if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] 
   set group_name [file dirname $project]
   set project [file tail $project]
   if { $group_name != "." } {
-    set project_name "$project_name"
+    set project_name "$group_name/$project"
   } else {
     set project_name "$project"
   }

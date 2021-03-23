@@ -207,7 +207,7 @@ if { $do_compile == 1 } {
 
     # Re-open project
     if { ![is_project_open ] } {
-      Msg Info "Re-opening project file $project..."
+      Msg Info "Re-opening project file $project_name..."
       project_open $project -current_revision
     }
 

@@ -48,6 +48,11 @@ if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] 
   set project [lindex $argv 0]
   set group_name [file dirname $project]
   set project [file tail $project]
+  if { $group_name != "." } {
+    set project_name "$project_name"
+  } else {
+    set project_name "$project"
+  }
   set main_folder [file normalize "$repo_path/Projects/$project_name/$project.runs/"]
   set do_implementation 1
   set do_synthesis 1
@@ -57,11 +62,7 @@ if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] 
   set check_syntax 0
   set ip_path ""
   set ext_path ""
-  if { $group_name != "." } {
-    set project_name "$project_name"
-  } else {
-    set project_name "$project"
-  }
+ 
 }
 
 

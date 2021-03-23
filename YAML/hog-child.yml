@@ -89,7 +89,7 @@
      artifacts:
        name: simulation_files
        paths:
-         - $CI_PROJECT_DIR/Projects/$PROJECT_NAME/$PROJECT_NAME.sim
+         - $CI_PROJECT_DIR/Projects/$PROJECT_NAME/*.sim
          - $CI_PROJECT_DIR/SkippedProjects/$PROJECT_NAME
        expire_in: 30 day
      allow_failure: true
@@ -193,7 +193,6 @@
         name: implementation_and_bitfiles
         paths:
             - $CI_PROJECT_DIR/bin
-            - Projects
         expire_in: 30 day
 
 collect_artifacts:

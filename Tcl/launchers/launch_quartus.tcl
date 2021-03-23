@@ -180,7 +180,7 @@ if { $do_compile == 1 } {
   }
   if {[file exists "output_files/versions.txt" ]} {
     set dst_dir [file normalize "$repo_path/bin/$project_name\-$describe"]
-    file copy "output_files/versions.txt" $dst_dir
+    file copy -force "output_files/versions.txt" $dst_dir
   }
 } else {
   #############################

@@ -172,9 +172,10 @@ if {[info commands get_property] != "" && [file exists $bit_file]} {
   #Quartus
   # Go to repository path
   cd $tcl_path/../../
-
-  Msg Info "Evaluating Git sha for $name..."
-  lassign [GetRepoVersions ./Top/$name $repo_path ] sha
+ 
+  Msg Info "Evaluating Git sha for $name... repo_path: $repo_path"
+  puts "$repo_path repo_path"
+  lassign [GetRepoVersions "$repo_path/Top/$name" "$repo_path"] sha
 
   set describe [GetGitDescribe $sha]
   Msg Info "Git describe set to: $describe"

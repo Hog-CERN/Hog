@@ -1645,7 +1645,7 @@ proc GetHogFiles args {
 
   set parameters {
     {list_files.arg ""  "The file wildcard, if not specified all Hog list files will be looked for."}
-    {repo_path.arg ""  "The absolute of the top directory of the repository."}
+    {repo_path.arg ""  "The absolute path of the top directory of the repository."}
     {sha_mode "Forwarded to ReadListFile, see there for info."}
     {ext_path.arg "" "Path for the external libraries forwarded to ReadListFile."}
     {verbose  "Verbose messages"}

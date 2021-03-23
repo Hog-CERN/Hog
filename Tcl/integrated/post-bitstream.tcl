@@ -174,7 +174,7 @@ if {[info commands get_property] != "" && [file exists $bit_file]} {
   cd $tcl_path/../../
 
   Msg Info "Evaluating Git sha for $name..."
-  lassign [GetRepoVersions ./Top/$name] $repo_path sha
+  lassign [GetRepoVersions ./Top/$name $repo_path ] sha
 
   set describe [GetGitDescribe $sha]
   Msg Info "Git describe set to: $describe"

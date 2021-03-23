@@ -41,7 +41,7 @@ if { $::argc eq 0 } {
   Msg Info [cmdline::usage $parameters $usage]
   exit 1
 } else {
-set project [lindex $argv 0]
+  set project [lindex $argv 0]
   set group_name [file dirname $project]
   set project [file tail $project]
   if { $group_name != "." } {

@@ -29,7 +29,7 @@ set parameters {
 set usage "- USAGE: $::argv0 \[OPTIONS\] <project> \n. Options:"
 
 set path [file normalize "[file dirname [info script]]/.."]
-
+set repo_path [file normalize "$path/../.."]
 
 set old_path [pwd]
 cd $path
@@ -40,17 +40,25 @@ if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] 
   exit 1
 } elseif { $::argc eq 1 } {
   set project [lindex $argv 0]
-  set main_folder [file normalize "$path/../../Projects/$project/$project.runs/"]
+  set project [lindex $argv 0]
+  set group_name [file dirname $project]
+  set project [file tail $project]
+  if { $group_name != "." } {
+    set project_name "$group_name/$project"
+  } else {
+    set project_name "$project"
+  }
+  set main_folder [file normalize "$repo_path/Projects/$project_name/$project.runs/"]
   set ip_path ""
 } else {
   set project [lindex $argv 0]
-  set main_folder [file normalize "$path/../../Projects/$project/$project.runs/"]
+  set main_folder [file normalize "$repo_path/Projects/$project_name/$project.runs/"]
   set ip_path $options(eos_ip_path)
   Msg Info "Will use the EOS ip repository on $ip_path to speed up ip synthesis..."
 }
 
-Msg Info "Opening project $project..."
-open_project ../../Projects/$project/$project.xpr
+Msg Info "Opening project $project_name..."
+open_project $repo_path/Projects/$project_name/$project.xpr
 
 
 Msg Info "Preparing IP runs..."

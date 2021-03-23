@@ -30,21 +30,21 @@ cd $tcl_path/../../
 set repo_path "$tcl_path/../.."
 
 if {[info commands get_property] != ""} {
-    # Vivado + planAhead
-    if { [string first PlanAhead [version]] == 0 } {
-        set proj_file [get_property DIRECTORY [current_project]]
-    } else {
-        set proj_file [get_property parent.project_path [current_project]]
-    }
-    set proj_dir [file normalize [file dirname $proj_file]]
-    set proj_name [file rootname [file tail $proj_file]]
-    set index_a [string last "Projects/" $proj_dir]
-    set index_a [expr $index_a + 8]
-    set index_b [string last "/$proj_name" $proj_dir]
-    set group_name [string range $proj_dir $index_a $index_b]
-  } elseif {[info commands project_new] != ""} {
+  # Vivado + planAhead
+  if { [string first PlanAhead [version]] == 0 } {
+    set proj_file [get_property DIRECTORY [current_project]]
+  } else {
+    set proj_file [get_property parent.project_path [current_project]]
+  }
+  set proj_dir [file normalize [file dirname $proj_file]]
+  set proj_name [file rootname [file tail $proj_file]]
+  set index_a [string last "Projects/" $proj_dir]
+  set index_a [expr $index_a + 8]
+  set index_b [string last "/$proj_name" $proj_dir]
+  set group_name [string range $proj_dir $index_a $index_b]
+} elseif {[info commands project_new] != ""} {
   # Quartus
-  seg group_name ""
+  set group_name ""
   set proj_name [lindex $quartus(args) 1]
 } else {
   #Tclssh

@@ -47,8 +47,8 @@ else
     if [ -d bin ]; then
         # Project names:
         cd bin/ || exit
-        # PRJ_DIRS=("$(ls -d ./*/)")
-        PRJ_BITS=$(find . -iname "*.bit*")
+        PRJ_BITS=$(find . -iname "*.bit*" -o -iname "*.pof*")
+
         for PRJ_BIT in ${PRJ_BITS}; do
             PRJ_DIR=$(dirname "$PRJ_BIT")
             PRJ_BASE=$(basename $PRJ_DIR)

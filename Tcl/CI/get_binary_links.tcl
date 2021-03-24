@@ -65,7 +65,8 @@ foreach proj $projects_list {
       continue
     }
     if { $proj_dir != "." } {
-      lassign [ExecuteRet curl -s --request POST --header "PRIVATE-TOKEN: ${push_token}" --form "file=@$repo_path/zipped/${proj_dir}_${proj_name}-${ver}.zip" ${api}/projects/${proj_id}/uploads] ret content
+      set proj_zip [string map {/ _} $proj_dir]
+      lassign [ExecuteRet curl -s --request POST --header "PRIVATE-TOKEN: ${push_token}" --form "file=@$repo_path/zipped/${proj_zip}_${proj_name}-${ver}.zip" ${api}/projects/${proj_id}/uploads] ret content
     } else {
       lassign [ExecuteRet curl -s --request POST --header "PRIVATE-TOKEN: ${push_token}" --form "file=@$repo_path/zipped/${proj_name}-${ver}.zip" ${api}/projects/${proj_id}/uploads] ret content
     }

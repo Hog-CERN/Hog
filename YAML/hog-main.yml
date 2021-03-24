@@ -113,7 +113,7 @@ archive_binary_files:
     - ./Hog/Other/GetArtifactsAndRename.sh $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $MR collect_artifacts
     - mkdir zipped
     - cd bin
-    - projects=$(find . -name "*.bit")
+    - projects=$(find . -name "*.bit" -o -name "*.pof")
     - for proj in $projects; do
         PRJ_DIR=$(dirname "$proj");
         PRJ_DIR=$(echo "$PRJ_DIR" | sed -r 's#\./##g');

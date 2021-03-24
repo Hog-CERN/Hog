@@ -89,7 +89,7 @@ foreach proj $projects_list {
       set link ""
       foreach line [split  [ParseJSON $msg description] "\n"] {
         if { $proj_dir != "." } {
-          if {[string first "\[${proj_dir}_${proj_name}.zip\]" $line] != -1} {
+          if {[string first "\[${proj_dir}/${proj_name}.zip\]" $line] != -1} {
             set link [lindex [split $line "()"] 1]
             puts $fp "$proj $link"
           }

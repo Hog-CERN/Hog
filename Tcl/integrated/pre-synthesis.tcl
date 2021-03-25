@@ -282,9 +282,7 @@ if {$diff != ""} {
   close $fp
 } 
 
-
-lassign [GetHogFiles  -ext_path "$ext_path" "$tcl_path/../../Top/$proj_name/list/"] listLibraries listProperties
-#puts $prjLibraries
+lassign [GetHogFiles  -ext_path "$ext_path" -repo_path "$tcl_path/../../" "$tcl_path/../../Top/$group_name/$proj_name/list/"] listLibraries listProperties
 foreach library [dict keys $listLibraries] {
   set fileNames [dict get $listLibraries $library]
   foreach fileName $fileNames {

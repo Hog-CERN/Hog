@@ -27,25 +27,32 @@ set tcl_path [file normalize "[file dirname [info script]]/.."]
 source $tcl_path/hog.tcl
 # Go to repository pathcd $old_pathcd $old_path
 cd $tcl_path/../../
-
+set repo_path "$tcl_path/../.."
 
 if {[info commands get_property] != ""} {
-    # Vivado + planAhead
-    if { [string first PlanAhead [version]] == 0 } {
-        set proj_file [get_property DIRECTORY [current_project]]
-    } else {
-        set proj_file [get_property parent.project_path [current_project]]
-    }
-    set proj_dir [file normalize [file dirname $proj_file]]
-    set proj_name [file rootname [file tail $proj_file]]
+  # Vivado + planAhead
+  if { [string first PlanAhead [version]] == 0 } {
+    set proj_file [get_property DIRECTORY [current_project]]
+  } else {
+    set proj_file [get_property parent.project_path [current_project]]
+  }
+  set proj_dir [file normalize [file dirname $proj_file]]
+  set proj_name [file rootname [file tail $proj_file]]
 } elseif {[info commands project_new] != ""} {
-    # Quartus
+  # Quartus
   set proj_name [lindex $quartus(args) 1]
+  set proj_dir [file normalize "$repo_path/Projects/$proj_name"]
 } else {
-    #Tclssh
+  #Tclssh
   set proj_file $old_path/[file tail $old_path].xpr
   Msg CriticalWarning "You seem to be running locally on tclsh, so this is a debug, the project file will be set to $proj_file and was derived from the path you launched this script from: $old_path. If you want this script to work properly in debug mode, please launch it from the top folder of one project, for example Repo/Projects/fpga1/ or Repo/Top/fpga1/"
 }
+
+set index_a [string last "Projects/" $proj_dir] 
+set index_a [expr $index_a + 8]
+set index_a [expr $index_a + 8]
+set index_b [string last "/$proj_name" $proj_dir]
+set group_name [string range $proj_dir $index_a $index_b]
 
 
 Msg Info "Evaluating last git SHA in which $proj_name was modified..."
@@ -58,7 +65,7 @@ if {$ret !=0} {
 
 if {$msg eq "" } {
   Msg Info "Git working directory [pwd] clean."
-  lassign [GetRepoVersions [file normalize ./Top/$proj_name]] commit version
+  lassign [GetRepoVersions [file normalize ./Top/$group_name/$proj_name] $repo_path ] commit version
   Msg Info "Found last SHA for $proj_name: $commit"
 
 } else {
@@ -67,7 +74,7 @@ if {$msg eq "" } {
 }
 
 #number of threads
-set maxThreads [GetMaxThreads [file normalize ./Top/$proj_name]]
+set maxThreads [GetMaxThreads [file normalize ./Top/$group_name/$proj_name]]
 if {$maxThreads != 1} {
   Msg CriticalWarning "Multithreading enabled. Number of threads: $maxThreads"
   set commit_usr   "0000000"
@@ -101,7 +108,7 @@ if {[info commands send_msg_id] != ""} {
   # Tclsh
 }
 
-set user_post_implementation_file "./Top/$proj_name/post-implementation.tcl"
+set user_post_implementation_file "./Top/$group_name/$proj_name/post-implementation.tcl"
 if {[file exists $user_post_implementation_file]} {
     Msg Info "Sourcing user post_implementation file $user_post_implementation_file"
     source $user_post_implementation_file

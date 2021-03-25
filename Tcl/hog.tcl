@@ -797,12 +797,13 @@ return $M$m$c
 ## Get the project version
 #
 #  @param[in] proj_dir: The top folder of the project of which all the version must be calculated
+#  @param[in] repo_path: The top folder of the repository
 #  @param[in] ext_path: path for external libraries
 #  @param[in] sim: if enabled, check the version also for the simulation files
 #
 #  @return  returns the project version
 #
-proc GetProjectVersion {proj_dir {ext_path ""} {sim 0}} {
+proc GetProjectVersion {proj_dir repo_path {ext_path ""} {sim 0}} {
   if { ![file exists $proj_dir] } {
     Msg CriticalWarning "$proj_dir not found"
     return -1
@@ -812,7 +813,7 @@ proc GetProjectVersion {proj_dir {ext_path ""} {sim 0}} {
 
   #The latest version the repository
   set v_last [ExtractVersionFromTag [Git {describe --abbrev=0 --match "v*"}]]
-  lassign [GetRepoVersions $proj_dir $ext_path $sim] sha ver
+  lassign [GetRepoVersions $proj_dir $repo_path $ext_path $sim] sha ver
   if {$sha == 0} {
     Msg Warning "Repository is not clean"
     cd $old_dir
@@ -907,12 +908,13 @@ proc GetConfFiles {proj_dir} {
 ## Get the versions for all libraries, submodules, etc. for a given project
 #
 #  @param[in] proj_dir: The project directory containing the conf file or the the tcl file
+#  @param[in] repo_path: top path of the repository
 #  @param[in] ext_path: path for external libraries
 #  @param[in] sim: if enabled, check the version also for the simulation files
 #
 #  @return  a list conatining all the versions: global, top (project tcl file), constraints, libraries, submodules, exteral, ipbus xml
 #
-proc GetRepoVersions {proj_dir {ext_path ""} {sim 0}} {
+proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
   set old_path [pwd]
 
 
@@ -923,13 +925,13 @@ proc GetRepoVersions {proj_dir {ext_path ""} {sim 0}} {
   set versions ""
 
   # Hog submodule
-  cd $proj_dir
+  cd $repo_path
 
   #Append the SHA in which Hog submodule was changed, not the submodule SHA
-  lappend SHAs [Git {log --format=%h -1} {../../Hog}]
+  lappend SHAs [Git {log --format=%h -1} {Hog}]
   lappend versions [GetVerFromSHA $SHAs]
 
-  cd "../../Hog"
+  cd "$repo_path/Hog"
   if {[Git {status --untracked-files=no  --porcelain}] eq ""} {
     Msg Info "Hog submodule [pwd] clean."
     lassign [GetVer ./] hog_ver hog_hash
@@ -959,7 +961,7 @@ proc GetRepoVersions {proj_dir {ext_path ""} {sim 0}} {
   set vers ""
   set hashes ""
   # Specyfiy sha_mode 1 for GetHogFiles to get all the files, includeng the list-files themselves
-  lassign [GetHogFiles -list_files "*.src" -sha_mode "./list/"] src_files dummy
+  lassign [GetHogFiles -list_files "*.src" -sha_mode -repo_path $repo_path "./list/"] src_files dummy
   dict for {f files} $src_files {
     #library names have a .src extension in values returned by GetHogFiles
     set name [file rootname [file tail $f]]
@@ -976,7 +978,7 @@ proc GetRepoVersions {proj_dir {ext_path ""} {sim 0}} {
 
   set cons_hashes ""
   # Specyfiy sha_mode 1 for GetHogFiles to get all the files, includeng the list-files themselves
-  lassign [GetHogFiles  -list_files "*.con" -sha_mode "./list/" ] cons_files dummy
+  lassign [GetHogFiles  -list_files "*.con" -sha_mode -repo_path $repo_path  "./list/" ] cons_files dummy
   dict for {f files} $cons_files {
     #library names have a .con extension in values returned by GetHogFiles
     set name [file rootname [file tail $f]]
@@ -994,7 +996,7 @@ proc GetRepoVersions {proj_dir {ext_path ""} {sim 0}} {
   if {$sim == 1} {
     set sim_hashes ""
     # Specyfiy sha_mode 1 for GetHogFiles to get all the files, includeng the list-files themselves
-    lassign [GetHogFiles  -list_files "*.sim" -sha_mode "./list/"] sim_files dummy
+    lassign [GetHogFiles  -list_files "*.sim" -sha_mode -repo_path $repo_path  "./list/"] sim_files dummy
     dict for {f files} $sim_files {
       #library names have a .sim extension in values returned by GetHogFiles
       set name [file rootname [file tail $f]]
@@ -1057,7 +1059,7 @@ proc GetRepoVersions {proj_dir {ext_path ""} {sim 0}} {
 # Ipbus XML
 if [file exists ./list/xml.lst] {
   #Msg Info "Found IPbus XML list file, evaluating version and SHA of listed files..."
-  lassign [GetHogFiles  -list_files "xml.lst" -sha_mode "./list/"] xml_files dummy
+  lassign [GetHogFiles  -list_files "xml.lst" -repo_path $repo_path  -sha_mode "./list/"] xml_files dummy
   lassign [GetVer  [dict get $xml_files "xml.lst"] ] xml_ver xml_hash
   lappend SHAs $xml_hash
   lappend versions $xml_ver
@@ -1621,6 +1623,7 @@ return [list $libraries $properties]
 # * list_path path to the list file directory
 # Options:
 # * -list_files \<List files\> the file wildcard, if not specified all Hog list files will be looked for
+# * -repo_path \<repo path\> the absolute of the top directory of the repository
 # * -sha_mode forwarded to ReadListFile, see there for info
 # * -ext_path \<external path\> path for external libraries forwarded to ReadListFile
 # * -verbose enable verbose messages
@@ -1642,6 +1645,7 @@ proc GetHogFiles args {
 
   set parameters {
     {list_files.arg ""  "The file wildcard, if not specified all Hog list files will be looked for."}
+    {repo_path.arg ""  "The absolute path of the top directory of the repository."}
     {sha_mode "Forwarded to ReadListFile, see there for info."}
     {ext_path.arg "" "Path for the external libraries forwarded to ReadListFile."}
     {verbose  "Verbose messages"}
@@ -1656,6 +1660,7 @@ proc GetHogFiles args {
   set sha_mode $options(sha_mode)
   set ext_path $options(ext_path)
   set verbose $options(verbose)
+  set repo_path $options(repo_path)
 
   if { $sha_mode == 1 } {
     set sha_mode_opt "-sha_mode"
@@ -1668,7 +1673,6 @@ proc GetHogFiles args {
     set verbose_opt ""
   }
 
-  set repo_path [file normalize $list_path/../../..]
   if { $list_files == "" } {
     set list_files {.src,.con,.sub,.sim,.ext}
   }
@@ -2197,7 +2201,7 @@ proc CheckYmlRef {repo_path allow_failure} {
 
     if { [catch {::yaml::yaml2dict -stream $file_data}  yamlDict]} {
       Msg $MSG_TYPE "Parsing $repo_path/.gitlab-ci.yml failed. To fix this, check that yaml syntax is respected, remember not to use tabs."
-      cd $thisPath
+      cd $thisPath  
       return
     } else {
       dict for {dictKey dictValue} $yamlDict {
@@ -2531,6 +2535,36 @@ proc ResetRepoFiles {reset_file} {
   }
 }
 
+## Search the Hog projects inside a directory
+#
+#  @param[in]    dir The directory to search
+#
+#  @return       The list of projects
+#
+
+proc SearchHogProjects {dir} {
+  set projects_list {}
+  if {[file exists $dir]} {
+    if {[file isdirectory $dir]} {
+      foreach proj_dir [glob -type d $dir/* ] {
+        set index_a [string last "Top/" $proj_dir]
+        set index_a [expr $index_a + 4]
+        set proj_name [string range $proj_dir $index_a [string length $proj_dir]]
+        if {[file exists $proj_dir/$proj_name.tcl ] || [file exists "$proj_dir/hog.conf" ] } {
+          lappend projects_list $proj_name
+        } else {
+          lappend projects_list [SearchHogProjects $proj_dir]
+        }
+      }
+    } else {
+      Msg Error "Input $dir is not a directory!"
+    }
+  } else {
+    Msg Error "Directory $dir doesn't exist!"
+  }
+  return $projects_list
+}
+
 ## Read a property configuration file and returns a dictionary
 #
 #  @param[in]    file_name the configuration file
@@ -2557,6 +2591,7 @@ package require inifile 0.2.3
 
     #manipulate strings here:
     regsub -all {\{\"} $key_pairs "{" key_pairs
+    #" Comment for VSCode 
     regsub -all {\"\}} $key_pairs "}" key_pairs
 
     dict set properties $new_sec [dict create {*}$key_pairs]

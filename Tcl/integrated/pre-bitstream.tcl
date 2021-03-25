@@ -30,20 +30,28 @@ if {[info commands get_property] != ""} {
   # Vivado + PlanAhead
   if { [string first PlanAhead [version]] == 0 } {
     # planAhead
+    set proj_file [get_property DIRECTORY [current_project]]
     set proj_name  [file tail [get_property DIRECTORY [current_project]]]
   } else {
     # vivado
     set proj_name [file tail [file normalize $old_path/../..]]
+    set proj_file [get_property parent.project_path [current_project]]
   }
+  set proj_dir [file normalize [file dirname $proj_file]]
+  set index_a [string last "Projects/" $proj_dir]
+  set index_a [expr $index_a + 8]
+  set index_b [string last "/$proj_name" $proj_dir]
+  set group_name [string range $proj_dir $index_a $index_b]
+
 } else {
-    #Tclssh
+  #Tclssh
   set proj_name [file tail [file normalize $old_path/../..]]
   Msg CriticalWarning "You seem to be running locally on tclsh, so this is a debug, the project file will be set to $proj_file and was derived from the path you launched this script from: $old_path. If you want this script to work properly in debug mode, please launch it from the top folder of one project, for example Repo/Projects/fpga1/ or Repo/Top/fpga1/"
 }
 
 
 #number of threads
-set maxThreads [GetMaxThreads [file normalize $tcl_path/../../Top/$proj_name]]
+set maxThreads [GetMaxThreads [file normalize $tcl_path/../../Top/$group_name/$proj_name]]
 if {$maxThreads != 1} {
   Msg CriticalWarning "Multithreading enabled. Bitfile will not be deterministic. Number of threads: $maxThreads"
 } else {
@@ -60,7 +68,7 @@ if {[info commands get_property] != ""} {
 ######## Reset files before bitstream creation ###########
 ResetRepoFiles "./Projects/hog_reset_files"
 
-set user_pre_bitstream_file "./Top/$proj_name/pre-bitstream.tcl"
+set user_pre_bitstream_file "./Top/$group_name/$proj_name/pre-bitstream.tcl"
 if {[file exists $user_pre_bitstream_file]} {
     Msg Info "Sourcing user pre-bitstream file $user_pre_bitstream_file"
     source $user_pre_bitstream_file

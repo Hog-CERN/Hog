@@ -93,10 +93,13 @@ if {$static == 1 } {
   puts $fp "\n"
 }
 
+set projects_list [SearchHogProjects $repo_path/Top]
+foreach proj $projects_list {
 
-foreach dir [glob -type d $repo_path/Top/* ] {
-  set proj [ file tail $dir ]
-  set ver [ GetProjectVersion $dir/$proj.tcl $ext_path 1 ]
+  set proj_name [file tail $proj]
+  set dir $repo_path/Top/$proj
+  set ver [ GetProjectVersion $dir $repo_path $ext_path 1 ]
+  
   if {$ver == 0 || $ver == -1 || $runall == 1} {
     if {$runall == 0} {
       Msg Info "$proj was modified, adding it to CI..."

@@ -41,24 +41,20 @@ export POST_COMMAND_OPT=""
 #
 export HDL_COMPILER=""
 
-
 # @function Msg
 #
 # @param[in] messageLevel: it can be Info, Warning, CriticalWarning, Error
 # @param[in] message: the error message to be printed
 #
 # @return  '1' if missing argumets else '0'
-function Msg ()
-{
+function Msg() {
   #check input variables
-  if [ "a$1" == "a" ]
-  then
+  if [ "a$1" == "a" ]; then
     Msg Error "messageLevel not set!"
     return 1
   fi
 
-  if [ "a$2" == "a" ]
-  then
+  if [ "a$2" == "a" ]; then
     Msg Warning "message not set!"
     return 1
   fi
@@ -71,28 +67,27 @@ function Msg ()
   Default=$'\e[0m'
 
   case $1 in
-    "Info")
-      Colour=$Default
-      ;;
-    "Warning")
-      Colour=$LightBlue
-      ;;
-    "CriticalWarning")
-      Colour=$Orange
-      ;;
-    "Error")
-      Colour=$Red
-      ;;
-    *)
-      Msg Error "messageLevel: $1 not supported! Use Info, Warning, CriticalWarning, Error"
-      ;;
+  "Info")
+    Colour=$Default
+    ;;
+  "Warning")
+    Colour=$LightBlue
+    ;;
+  "CriticalWarning")
+    Colour=$Orange
+    ;;
+  "Error")
+    Colour=$Red
+    ;;
+  *)
+    Msg Error "messageLevel: $1 not supported! Use Info, Warning, CriticalWarning, Error"
+    ;;
   esac
 
-  echo "$Colour HOG:$1 ${FUNCNAME[1]}()  $2 $Default";
+  echo "$Colour HOG:$1 ${FUNCNAME[1]}()  $2 $Default"
 
-  return 0;
+  return 0
 }
-
 
 ## @fn select_command_from_line
 #
@@ -114,20 +109,16 @@ function Msg ()
 #
 # @returns  0 if success, 1 if failure
 #
-function select_command_from_line()
-{
-  if [ -z ${1+x} ]
-  then
+function select_command_from_line() {
+  if [ -z ${1+x} ]; then
     Msg Error " missing input! Got: $1!"
     return 1
   fi
 
   local TCL_FIRST_LINE=$1
 
-  if [[ $TCL_FIRST_LINE =~ 'vivado' ]];
-  then
-    if [[ $TCL_FIRST_LINE =~ 'vivadoHLS' ]];
-    then
+  if [[ $TCL_FIRST_LINE =~ 'vivado' ]]; then
+    if [[ $TCL_FIRST_LINE =~ 'vivadoHLS' ]]; then
       Msg Info " Recognised VivadoHLS project"
       COMMAND="vivado_hls"
       COMMAND_OPT="-f"
@@ -137,10 +128,8 @@ function select_command_from_line()
       COMMAND_OPT="-nojournal -nolog -mode batch -notrace -source"
       POST_COMMAND_OPT="-tclargs"
     fi
-  elif [[ $TCL_FIRST_LINE =~ 'quartus' ]];
-  then
-    if [[ $TCL_FIRST_LINE =~ 'quartusHLS' ]];
-    then
+  elif [[ $TCL_FIRST_LINE =~ 'quartus' ]]; then
+    if [[ $TCL_FIRST_LINE =~ 'quartusHLS' ]]; then
       Msg Error " Intel HLS compiler is not supported!"
       return 1
     else
@@ -148,18 +137,16 @@ function select_command_from_line()
       COMMAND="quartus_sh"
       COMMAND_OPT="-t"
     fi
-  elif [[ $TCL_FIRST_LINE =~ 'intelHLS' ]];
-  then
+  elif [[ $TCL_FIRST_LINE =~ 'intelHLS' ]]; then
     Msg Error "Intel HLS compiler is not supported!"
     return 1
-  elif [[ $TCL_FIRST_LINE =~ 'planahead' ]];
-  then
-    Msg Info  " Recognised planAhead project"
+  elif [[ $TCL_FIRST_LINE =~ 'planahead' ]]; then
+    Msg Info " Recognised planAhead project"
     COMMAND="planAhead"
     COMMAND_OPT="-nojournal -nolog -mode batch -notrace -source"
     POST_COMMAND_OPT="-tclargs"
   else
-    Msg Warning " You should write #vivado or #quartus as first line in your property.conf file or project Tcl file, assuming Vivado... "
+    Msg Warning " You should write #vivado or #quartus as first line in your hog.conf file or project Tcl file, assuming Vivado... "
     Msg Info " Recognised Vivado project"
     COMMAND="vivado"
     COMMAND_OPT="-mode batch -notrace -source"
@@ -184,33 +171,29 @@ function select_command_from_line()
 #
 # @returns  0 for ok, 1 for error
 #
-function select_command()
-{
-    proj=$(basename $1)
-    conf="$1"/"hog.conf"
-    tcl="$1"/"$proj.tcl"
-    
-    if [ -f "$conf" ]
-    then 
-	file="$conf"
-	FILE_TYPE=CONF
-    elif [ -f "$tcl" ]
-    then
-	file="$tcl"
-	FILE_TYPE=TCL
-    else
-	Msg Error "No suitable file found in $1!"
-	return 1
-    fi
-    
-    select_command_from_line "$(head -1 $file)"
-    if [ $? != 0 ]
-    then
-	Msg Error "Failed to select COMMAND, COMMAND_OPT and POST_COMMAND_OPT"
-	return 1
-    fi
-    
-    return 0
+function select_command() {
+  proj=$(basename $1)
+  conf="$1"/"hog.conf"
+  tcl="$1"/"$proj.tcl"
+
+  if [ -f "$conf" ]; then
+    file="$conf"
+    FILE_TYPE=CONF
+  elif [ -f "$tcl" ]; then
+    file="$tcl"
+    FILE_TYPE=TCL
+  else
+    Msg Error "No suitable file found in $1!"
+    return 1
+  fi
+
+  select_command_from_line "$(head -1 $file)"
+  if [ $? != 0 ]; then
+    Msg Error "Failed to select COMMAND, COMMAND_OPT and POST_COMMAND_OPT"
+    return 1
+  fi
+
+  return 0
 }
 
 ## @fn select_compiler_executable
@@ -229,22 +212,17 @@ function select_command()
 #
 # @returns  0 if success, 1 if failure
 #
-function select_compiler_executable ()
-{
-  if [ "a$1" == "a" ]
-  then
+function select_compiler_executable() {
+  if [ "a$1" == "a" ]; then
     Msg Error "select_compiler_executable(): Variable COMMAND is not set!"
     return 1
   fi
 
-  if [ `which $1` ]
-  then
-    HDL_COMPILER=`which $1`
+  if [ $(which $1) ]; then
+    HDL_COMPILER=$(which $1)
   else
-    if [$1 == "vivado" ]
-    then
-      if [ -z ${VIVADO_PATH+x} ]
-      then
+    if [$1 == "vivado" ]; then
+      if [ -z ${VIVADO_PATH+x} ]; then
         Msg Error "No vivado executable found and no variable VIVADO_PATH set\n"
         cd "${OLD_DIR}"
         return 1
@@ -253,10 +231,10 @@ function select_compiler_executable ()
         HDL_COMPILER="$VIVADO_PATH/$viv"
       fi
     else
-      Msg Error  "cannot find the executable for $1."
-      echo  "Probable causes are:"
-      echo  "- $1 was not setup"
-      echo  "- which not available on the machine"
+      Msg Error "cannot find the executable for $1."
+      echo "Probable causes are:"
+      echo "- $1 was not setup"
+      echo "- which not available on the machine"
       return 1
     fi
   fi
@@ -276,24 +254,20 @@ function select_compiler_executable ()
 #
 # @returns  0 if success, 1 if failure
 #
-function select_executable_from_project_dir ()
-{
-  if [ -z ${1+x} ]
-  then
+function select_executable_from_project_dir() {
+  if [ -z ${1+x} ]; then
     Msg Error "missing input! Got: $1!"
     return 1
   fi
   select_command $1
-  if [ $? != 0 ]
-  then
+  if [ $? != 0 ]; then
     Msg Error "Failed to select project type: exiting!"
     return 1
   fi
 
   #select full path to executable and place it in HDL_COMPILER global variable
   select_compiler_executable $COMMAND
-  if [ $? != 0 ]
-  then
+  if [ $? != 0 ]; then
     Msg Error "Failed to get HDL compiler executable for $COMMAND"
     return 1
   fi
@@ -305,19 +279,47 @@ function select_executable_from_project_dir ()
 #
 # @param[in] $1 path to Hog dir
 # @brief prints the hog logo
-function print_hog ()
-{
-  if [ -z ${1+x} ]
-  then
+function print_hog() {
+  if [ -z ${1+x} ]; then
     Msg Error "missing input! Got: $1!"
     return 1
   fi
   cd "$1"
-  ver=`git describe`
-  echo    
+  ver=$(git describe)
+  echo
   cat ./images/hog_logo.txt
   echo " Version: ${ver}"
   echo
   cd -
+  return 0
+}
+
+## @fn search available projects inside input folder
+#
+# @brief Search all hog projects inside a folder
+#
+# @param[in]    $1 full path to the dir containing the projects
+# @returns  0 if success, 1 if failure
+#
+function search_projects() {
+  if [ -z ${1+x} ]; then
+    Msg Error "missing input! Got: $1!"
+    return 1
+  fi
+
+  if [[ -d "$1" ]]; then
+    for dir in $1/*; do
+      project_name=$(basename $dir)
+      if [ -f "$dir/$project_name.tcl" ] || [ -f "$dir/hog.conf" ]; then
+        subname=${dir#*Top/}
+        echo $subname
+      else
+        search_projects $dir
+      fi
+    done
+  else
+    Msg Error "$1 directory not found!"
+    return 1
+  fi
   return 0
 }

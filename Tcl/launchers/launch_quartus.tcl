@@ -33,6 +33,7 @@ set parameters {\
 
 set usage   "- USAGE: $::argv0 \[OPTIONS\] -project <project> \n  Options:"
 set path [file normalize "[file dirname [info script]]/.."]
+set repo_path [file normalize "$path/../.."]
 set old_path [pwd]
 cd $path
 source ./hog.tcl
@@ -47,7 +48,14 @@ if { [ catch {array set options [cmdline::getoptions quartus(args) $parameters $
     return 1
   }
   set project $options(project)
-  set project_path [file normalize "$path/../../Projects/$project/"]
+  set group_name [file dirname $project]
+  set project [file tail $project]
+  if { $group_name != "." } {
+    set project_name "$group_name/$project"
+  } else {
+    set project_name "$project"
+  }
+  set project_path [file normalize "$repo_path/Projects/$project_name/"]
   set do_compile 1
   set do_synthesis 1
   set do_implementation 1
@@ -96,36 +104,36 @@ if { [catch {package require ::quartus::project} ERROR] } {
 }
 
 if {[file exists "$project_path/$project.qpf" ]} {
-  Msg Info "Found project file $project.qpf for $project."
+  Msg Info "Found project file $project.qpf for $project_name."
   set proj_found 1
 } else {
-  Msg Warning "Project file not found for $project."
+  Msg Warning "Project file not found for $project_name."
   set proj_found 0
 }
 
 if { $proj_found == 0 || $recreate == 1 } {
-  Msg Info "Creating (possibly replacing) the project $project..."
-  lassign [GetConfFiles ../../Top/$project] conf pre post tcl_file
+  Msg Info "Creating (possibly replacing) the project $project_name..."
+  lassign [GetConfFiles $repo_path/Top/$project_name] conf pre post tcl_file
 
   if {[file exists $conf]} {
-    set ::DESIGN $project
+    set ::DESIGN $project_name
     source ./create_project.tcl 
   } elseif {[file exists $tcl_file]} {
-    source ../../Top/$project/$project.tcl
+    source $repo_path/Top/$project_name/$project.tcl
   } else {
-    Msg Error "Project $project is incomplete: not Tcl file or hog.conf file found."
+    Msg Error "Project $project_name is incomplete: not Tcl file or hog.conf file found."
   }
 }
 
 if {[file exists "$project_path" ]} {
   cd $project_path
 } else {
-  Msg Error "Project directory not found for $project."
+  Msg Error "Project directory not found for $project_name."
   return 1
 }
 
 if { ![is_project_open ] } {
-  Msg Info "Opening exixsting project file $project..."
+  Msg Info "Opening exixsting project file $project_name..."
   project_open $project -current_revision
 }
 
@@ -138,8 +146,8 @@ load_package flow
 # CHECK SYNTAX #
 ################
 if { $check_syntax == 1 } {
-  Msg Info "Checking syntax for project $project..."
-  lassign [GetHogFiles "../../Top/$project/list/" "*.src"] src_files dummy
+  Msg Info "Checking syntax for project $project_name..."
+  lassign [GetHogFiles "$repo_path/Top/$project_name/list/" "*.src"] src_files dummy
   dict for {f files} $src_files {
     set file_extension [file ext $f]
     if { $file_extension == ".ip" || $file_extension == ".qip" || $file_extension == ".sip" ||  $file_extension == ".qsys" } {
@@ -159,7 +167,7 @@ if { $check_syntax == 1 } {
 }
 
 # keep track of the current revision and of the top level entity name
-lassign [GetRepoVersions [file normalize ../../Top/$project]  ] sha
+lassign [GetRepoVersions [file normalize $repo_path/Top/$project_name] $repo_path ] sha
 set describe [GetGitDescribe $sha]
 #set top_level_name [ get_global_assignment -name TOP_LEVEL_ENTITY ]
 set revision [get_current_revision]
@@ -171,8 +179,8 @@ if { $do_compile == 1 } {
     Msg Info "Full compile Flow was successful for revision $revision.\n"
   }
   if {[file exists "output_files/versions.txt" ]} {
-    set dst_dir [file normalize "../../bin/$project\-$describe"]
-    file copy "output_files/versions.txt" $dst_dir
+    set dst_dir [file normalize "$repo_path/bin/$project_name\-$describe"]
+    file copy -force "output_files/versions.txt" $dst_dir
   }
 } else {
   #############################
@@ -199,7 +207,7 @@ if { $do_compile == 1 } {
 
     # Re-open project
     if { ![is_project_open ] } {
-      Msg Info "Re-opening project file $project..."
+      Msg Info "Re-opening project file $project_name..."
       project_open $project -current_revision
     }
 

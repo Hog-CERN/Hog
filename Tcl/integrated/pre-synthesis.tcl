@@ -267,14 +267,29 @@ Msg Info "Creating $dst_dir..."
 file mkdir $dst_dir/reports
 
 Msg Info "Evaluating non committed changes..."
+set found_uncommitted 0
 set diff [Git diff]
 if {$diff != ""} {
+  set found_uncommitted 1
   Msg Warning "Found non committed changes:..."
   Msg Status "$diff"
   set fp [open "$dst_dir/diff_presynthesis.txt" w+]
   puts $fp "$diff"
   close $fp
-} else {
+} 
+
+
+lassign [GetHogFiles  -ext_path "$ext_path" "$tcl_path/../../Top/$proj_name/list/"] listLibraries listProperties
+#puts $prjLibraries
+foreach library [dict keys $listLibraries] {
+  set fileNames [dict get $listLibraries $library]
+  foreach fileName $fileNames {
+    if {[FileCommitted $fileName] == 0} {
+      set $found_uncommitted 1
+    }
+  }
+}
+if {$found_uncommitted == 0} {
   Msg Info "No uncommitted changes found."
 }
 

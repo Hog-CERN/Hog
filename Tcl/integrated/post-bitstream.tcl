@@ -21,6 +21,13 @@ set old_path [pwd]
 set tcl_path [file normalize "[file dirname [info script]]/.."]
 source $tcl_path/hog.tcl
 
+if {[info exists env(HOG_EXTERNAL_PATH)]} {
+  set ext_path $env(HOG_EXTERNAL_PATH)
+  Msg Info "Found environment variable HOG_EXTERNAL_PATH, setting path for external files to $ext_path..."
+} else {
+  set ext_path ""
+}
+
 if {[info commands get_property] != ""} {
 
   # Vivado + PlanAhead
@@ -104,14 +111,28 @@ if {[info commands get_property] != "" && [file exists $bit_file]} {
   Msg Info "Creating $dst_dir..."
   file mkdir $dst_dir
   Msg Info "Evaluating differences with last commit..."
+  set found_uncommitted 0
   set diff [Git diff]
   if {$diff != ""} {
+    set found_uncommitted 1
     Msg Warning "Found non committed changes:"
     Msg Status "$diff"
     set fp [open "$dst_dir/diff_postbitstream.txt" w+]
     puts $fp "$diff"
     close $fp
-  } else {
+  } 
+
+  lassign [GetHogFiles  -ext_path "$ext_path" "$tcl_path/../../Top/$proj_name/list/"] listLibraries listProperties
+  #puts $prjLibraries
+  foreach library [dict keys $listLibraries] {
+    set fileNames [dict get $listLibraries $library]
+    foreach fileName $fileNames {
+      if {[FileCommitted $fileName] == 0} {
+        set $found_uncommitted 1
+      }
+    }
+  }
+  if {$found_uncommitted == 0} {
     Msg Info "No uncommitted changes found."
   }
 
@@ -181,14 +202,28 @@ if {[info commands get_property] != "" && [file exists $bit_file]} {
   Msg Info "Creating $dst_dir..."
   file mkdir $dst_dir
   Msg Info "Evaluating differences with last commit..."
+  set found_uncommitted 0
   set diff [Git diff]
   if {$diff != ""} {
+    set found_uncommitted 1
     Msg Warning "Found non committed changes:"
     Msg Status "$diff"
     set fp [open "$dst_dir/diff_postbistream.txt" w+]
     puts $fp "$diff"
     close $fp
-  } else {
+  } 
+
+  lassign [GetHogFiles  -ext_path "$ext_path" "$tcl_path/../../Top/$proj_name/list/"] listLibraries listProperties
+  #puts $prjLibraries
+  foreach library [dict keys $listLibraries] {
+    set fileNames [dict get $listLibraries $library]
+    foreach fileName $fileNames {
+      if {[FileCommitted $fileName] == 0} {
+        set $found_uncommitted 1
+      }
+    }
+  }
+  if {$found_uncommitted == 0} {
     Msg Info "No uncommitted changes found."
   }
 

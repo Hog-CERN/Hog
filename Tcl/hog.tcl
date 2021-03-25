@@ -2368,6 +2368,26 @@ proc GitRet {command {files ""}}  {
   return [list $ret $result]
 }
 
+## @brief Cheks if file was committed into the repository
+#
+#
+#  @param[in] File: file name
+#
+#  @returns 1 if file was committed and 0 if file was not committed
+proc FileCommitted {File }  {
+  set Ret 1
+  set currentDir [pwd]
+  cd [file dirname [file normalize $File]]
+  set GitLog [Git ls-files [file tail $File]] 
+  if {$GitLog == ""} {
+    Msg CriticalWarning "File [file normalize $File] is not in the git repository. Please add it with:\n git add [file normalize $File]\n"
+    set Ret 0
+  }
+  cd $currentDir
+  return $Ret
+}
+
+
 ## @brief Handle shell commands
 #
 # It can be used with lassign like this: lassign [ExecuteRet \<command\> ] ret result

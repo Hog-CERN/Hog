@@ -479,8 +479,10 @@ proc ConfigureProperties {} {
           set proj_props [dict get $globalSettings::PROPERTIES main]
 	  #set_property -dict $proj_props [current_project]
           dict for {prop_name prop_val} $proj_props {
-            Msg Info "Setting $prop_name = $prop_val"
-	    set_property $prop_name $prop_val [current_project]
+            if { $prop_name != "ip_repo_path" } {
+              Msg Info "Setting $prop_name = $prop_val"
+              set_property $prop_name $prop_val [current_project]
+            }
           }
       }
 
@@ -572,6 +574,7 @@ SetGlobalVar DESIGN
 set proj_dir $repo_path/Top/$DESIGN
 lassign [GetConfFiles $proj_dir] conf_file pre_file post_file tcl_file 
 
+set user_repo 0
 if {[file exists $conf_file]} {
   Msg Info "Parsing configuration file $conf_file..."
   set PROPERTIES [ReadConf $conf_file]
@@ -580,8 +583,15 @@ if {[file exists $conf_file]} {
     set main [dict get $PROPERTIES main]
     dict for {p v} $main {
       # notice the dollar in front of p: creates new variables and fill them with the value
-      Msg Info "Main property $p set to $v"
-      set $p $v
+      if { $p == "ip_repo_paths" } {
+        set v [regsub -all {\s+} $v " $repo_path/"]
+        set globalSettings::user_ip_repo $repo_path/$v
+        Msg Info "Setting user_ip_repo to $v"
+        set user_repo 1 
+      } else {
+        Msg Info "Main property $p set to $v"
+        set $p $v
+      }
     }
   } else {
     Msg Error "No main section found in $conf_file, make sure it has a section called \[main\] containing the mandatory properties." 
@@ -681,7 +691,9 @@ set globalSettings::modelsim_path               "$globalSettings::repo_path/Simu
 set globalSettings::DESIGN                      [file tail $globalSettings::DESIGN]
 set globalSettings::top_name                    [file tail $globalSettings::DESIGN]
 set globalSettings::synth_top_module            "top_$globalSettings::top_name"
-set globalSettings::user_ip_repo                "$globalSettings::repo_path/IP_repository"
+if { $user_repo == 0 } {
+  set globalSettings::user_ip_repo                "$globalSettings::repo_path/IP_repository"  
+}
 
 set globalSettings::pre_synth           [file normalize "$globalSettings::tcl_path/integrated/$globalSettings::pre_synth_file"]
 set globalSettings::post_synth          [file normalize "$globalSettings::tcl_path/integrated/$globalSettings::post_synth_file"]

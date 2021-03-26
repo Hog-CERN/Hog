@@ -30,7 +30,7 @@ namespace eval globalSettings {
 
   variable PART
   # Quartus only
-  variable FAMILY 
+  variable FAMILY
 
   variable PROPERTIES
   variable HOG_EXTERNAL_PATH
@@ -77,32 +77,22 @@ proc CreateProject {} {
     set obj [get_projects [file tail $globalSettings::DESIGN] ]
     set_property "target_language" "VHDL" $obj
     if { [string first PlanAhead [version] ] != 0} {
-        set_property "simulator_language" "Mixed" $obj
-        set_property "compxlib.modelsim_compiled_library_dir" $globalSettings::modelsim_path $obj
-        set_property "compxlib.questa_compiled_library_dir" $globalSettings::modelsim_path $obj
-        set_property "default_lib" "xil_defaultlib" $obj
+      set_property "simulator_language" "Mixed" $obj
+      set_property "compxlib.modelsim_compiled_library_dir" $globalSettings::modelsim_path $obj
+      set_property "compxlib.questa_compiled_library_dir" $globalSettings::modelsim_path $obj
+      set_property "default_lib" "xil_defaultlib" $obj
     }
 
-        ## Enable VHDL 2008
+    ## Enable VHDL 2008
     if { [string first PlanAhead [version] ] != 0} {
       set_param project.enableVHDL2008 1
       set_property "enable_vhdl_2008" 1 $obj
     }
 
-    ## Setting user IP repository to default Hog directory
-    if [file exists $globalSettings::user_ip_repo] {
-      Msg Info "Found directory $globalSettings::user_ip_repo, setting it as user IP repository..."
-      if { [string first PlanAhead [version]]==0 } {
-        set_property  ip_repo_paths $globalSettings::user_ip_repo [current_fileset]
-      } else  {
-        set_property  ip_repo_paths $globalSettings::user_ip_repo [current_project]
-      }
-    } else {
-      Msg Info "$globalSettings::user_ip_repo not found, no user IP repository will be set."
-    }
+    
   } elseif {[info commands project_new] != ""} {
     package require ::quartus::project
-        #QUARTUS_ONLY
+    #QUARTUS_ONLY
     if {[string equal $globalSettings::FAMILY "quartus_only"]} {
       Msg Error "You must specify a device Familty for Quartus"
     } else {
@@ -135,10 +125,10 @@ proc CreateProject {} {
   }
 
 
-    #ADD PROJECT FILES
+  #ADD PROJECT FILES
   if {[info commands create_fileset] != ""} {
-        #VIVADO_ONLY
-        ## Create fileset src
+    #VIVADO_ONLY
+    ## Create fileset src
     if {[string equal [get_filesets -quiet sources_1] ""]} {
       create_fileset -srcset sources_1
     }
@@ -152,8 +142,8 @@ proc CreateProject {} {
   # CONSTRAINTS #
   ###############
   if {[info commands launch_chipscope_analyzer] != ""} {
-        #VIVADO_ONLY
-        # Create 'constrs_1' fileset (if not found)
+    #VIVADO_ONLY
+    # Create 'constrs_1' fileset (if not found)
     if {[string equal [get_filesets -quiet constrs_1] ""]} {
       create_fileset -constrset constrs_1
     }
@@ -168,11 +158,11 @@ proc CreateProject {} {
   set list_files [glob -directory $globalSettings::list_path "*"]
 
   if {[info commands create_fileset] != ""} {
-  if { [string first PlanAhead [version]] == 0 } {
-    set tcl_path         [file normalize "[file dirname [info script]]"]
-    source $tcl_path/utils/cmdline.tcl
+    if { [string first PlanAhead [version]] == 0 } {
+      set tcl_path         [file normalize "[file dirname [info script]]"]
+      source $tcl_path/utils/cmdline.tcl
+    }
   }
-}
   AddHogFiles {*}[GetHogFiles -ext_path $globalSettings::HOG_EXTERNAL_PATH -verbose -repo_path $globalSettings::repo_path  $globalSettings::list_path]
 
   ## Set synthesis TOP
@@ -186,7 +176,7 @@ proc CreateProject {} {
 #
 proc CreateReportStrategy {obj} {
   if {[info commands create_report_config] != ""} {
-  ## Viavado Report Strategy
+    ## Viavado Report Strategy
     if {[string equal [get_property -quiet report_strategy $obj] ""]} {
       # No report strategy needed
       Msg Info "No report strategy needed for implementation"
@@ -267,8 +257,8 @@ proc CreateReportStrategy {obj} {
 #
 proc ConfigureSynthesis {} {
   if {[info commands send_msg_id] != ""} {
-        #VIVADO ONLY
-        ## Create 'synthesis ' run (if not found)
+    #VIVADO ONLY
+    ## Create 'synthesis ' run (if not found)
     if {[string equal [get_runs -quiet synth_1] ""]} {
       create_run -name synth_1 -part $globalSettings::PART -constrset constrs_1
     } else {
@@ -279,18 +269,18 @@ proc ConfigureSynthesis {} {
     set_property "part" $globalSettings::PART $obj
   }
 
-    ## set pre synthesis script
+  ## set pre synthesis script
   if {$globalSettings::pre_synth_file ne ""} {
     if {[info commands send_msg_id] != ""} {
-            #Vivado Only
-        if { [string first PlanAhead [version] ] != 0 } {
-	  if {[get_filesets -quiet utils_1] != ""} {
-	    AddFile $globalSettings::pre_synth [get_filesets -quiet utils_1]
-	  }
-	  set_property STEPS.SYNTH_DESIGN.TCL.PRE $globalSettings::pre_synth $obj
+      #Vivado Only
+      if { [string first PlanAhead [version] ] != 0 } {
+        if {[get_filesets -quiet utils_1] != ""} {
+          AddFile $globalSettings::pre_synth [get_filesets -quiet utils_1]
         }
+        set_property STEPS.SYNTH_DESIGN.TCL.PRE $globalSettings::pre_synth $obj
+      }
     } elseif {[info commands project_new] != ""} {
-            #QUARTUS only
+      #QUARTUS only
       set_global_assignment -name PRE_FLOW_SCRIPT_FILE quartus_sh:$globalSettings::pre_synth
 
     }
@@ -298,16 +288,16 @@ proc ConfigureSynthesis {} {
     Msg Info "Setting $globalSettings::pre_synth to be run before synthesis"
   }
 
-    ## set post synthesis script
+  ## set post synthesis script
   if {$globalSettings::post_synth_file ne ""} {
     if {[info commands send_msg_id] != ""} {
-        #Vivado Only
-        if { [string first PlanAhead [version] ] !=0 } {
-	  if {[get_filesets -quiet utils_1] != ""} {
-	    AddFile $globalSettings::post_synth [get_filesets -quiet utils_1]
-	  }
-	  set_property STEPS.SYNTH_DESIGN.TCL.POST $globalSettings::post_synth $obj
+      #Vivado Only
+      if { [string first PlanAhead [version] ] !=0 } {
+        if {[get_filesets -quiet utils_1] != ""} {
+          AddFile $globalSettings::post_synth [get_filesets -quiet utils_1]
         }
+        set_property STEPS.SYNTH_DESIGN.TCL.POST $globalSettings::post_synth $obj
+      }
     } elseif {[info commands project_new] != ""} {
       #QUARTUS only
       set_global_assignment -name POST_MODULE_SCRIPT_FILE quartus_sh:$globalSettings::quartus_post_module
@@ -318,29 +308,29 @@ proc ConfigureSynthesis {} {
 
 
   if {[info commands send_msg_id] != ""} {
-        #VIVADO ONLY
-        ## set the current synth run
+    #VIVADO ONLY
+    ## set the current synth run
     current_run -synthesis $obj
 
-        ## Report Strategy
+    ## Report Strategy
     if {[string equal [get_property -quiet report_strategy $obj] ""]} {
-            # No report strategy needed
+      # No report strategy needed
       Msg Info "No report strategy needed for syntesis"
 
     } else {
-            # Report strategy needed since version 2017.3
+      # Report strategy needed since version 2017.3
       set_property set_report_strategy_name 1 $obj
       set_property report_strategy {Vivado Synthesis Default Reports} $obj
       set_property set_report_strategy_name 0 $obj
-            # Create 'synth_1_synth_report_utilization_0' report (if not found)
+      # Create 'synth_1_synth_report_utilization_0' report (if not found)
       if { [ string equal [get_report_configs -of_objects [get_runs synth_1] synth_1_synth_report_utilization_0] "" ] } {
         create_report_config -report_name synth_1_synth_report_utilization_0 -report_type report_utilization:1.0 -steps synth_design -runs synth_1
       }
       set reports [get_report_configs -of_objects [get_runs synth_1] synth_1_synth_report_utilization_0]
     }
   } elseif {[info commands project_new] != ""} {
-        #QUARTUS only
-        #TO BE DONE
+    #QUARTUS only
+    #TO BE DONE
 
   } else {
     Msg info "Reporting strategy for syntesis"
@@ -354,7 +344,7 @@ proc ConfigureSynthesis {} {
 #
 proc ConfigureImplementation {} {
   if {[info commands send_msg_id] != ""} {
-        # Create 'impl_1' run (if not found)
+    # Create 'impl_1' run (if not found)
     if {[string equal [get_runs -quiet impl_1] ""]} {
       create_run -name impl_1 -part $globalSettings::PART  -constrset constrs_1 -parent_run synth_1
     } else {
@@ -368,20 +358,20 @@ proc ConfigureImplementation {} {
     set_property "steps.write_bitstream.args.verbose" "0" $obj
 
   } elseif {[info commands project_new] != ""} {
-            #QUARTUS only
+    #QUARTUS only
     set obj ""
   }
 
 
-	## set pre implementation script
+  ## set pre implementation script
   if {$globalSettings::pre_impl_file ne ""} {
     if {[info commands send_msg_id] != ""} {
       #Vivado Only
       if { [string first PlanAhead [version] ] != 0 } {
-	if {[get_filesets -quiet utils_1] != ""} {
-	  AddFile $globalSettings::pre_impl [get_filesets -quiet utils_1]
-	}
-	set_property STEPS.INIT_DESIGN.TCL.POST $globalSettings::pre_impl $obj
+        if {[get_filesets -quiet utils_1] != ""} {
+          AddFile $globalSettings::pre_impl [get_filesets -quiet utils_1]
+        }
+        set_property STEPS.INIT_DESIGN.TCL.POST $globalSettings::pre_impl $obj
       }
     } elseif {[info commands project_new] != ""} {
       #QUARTUS only
@@ -397,26 +387,26 @@ proc ConfigureImplementation {} {
     if {[info commands send_msg_id] != ""} {
       #Vivado Only
       if { [string first PlanAhead [version] ] != 0} {
-	if {[get_filesets -quiet utils_1] != ""} {
-	  AddFile $globalSettings::post_impl [get_filesets -quiet utils_1]
-	}
-	set_property STEPS.ROUTE_DESIGN.TCL.POST $globalSettings::post_impl $obj
+        if {[get_filesets -quiet utils_1] != ""} {
+          AddFile $globalSettings::post_impl [get_filesets -quiet utils_1]
+        }
+        set_property STEPS.ROUTE_DESIGN.TCL.POST $globalSettings::post_impl $obj
       }
     } elseif {[info commands project_new] != ""} {
       #QUARTUS only
       set_global_assignment -name POST_MODULE_SCRIPT_FILE quartus_sh:$globalSettings::quartus_post_module
     }
-    Msg info "Setting $globalSettings::post_impl to be run after implementation"
+    Msg info "Setting $globalSettings::post_impl to be run after implementation" 
   }
 
-	## set pre write bitstream script
+  ## set pre write bitstream script
   if {$globalSettings::pre_bit_file ne ""} {
     if {[info commands send_msg_id] != ""} {
       #Vivado Only
       if { [string first PlanAhead [version] ] != 0} {
-	if {[get_filesets -quiet utils_1] != ""} {
-	  AddFile $globalSettings::pre_bit [get_filesets -quiet utils_1]
-	}
+        if {[get_filesets -quiet utils_1] != ""} {
+          AddFile $globalSettings::pre_bit [get_filesets -quiet utils_1]
+        }
         set_property STEPS.WRITE_BITSTREAM.TCL.PRE $globalSettings::pre_bit $obj
       }
     } elseif {[info commands project_new] != ""} {
@@ -427,15 +417,15 @@ proc ConfigureImplementation {} {
     Msg info "Setting $globalSettings::pre_bit to be run after bitfile generation"
   }
 
-    ## set post write bitstream script
+  ## set post write bitstream script
   if {$globalSettings::post_bit_file ne ""} {
     if {[info commands send_msg_id] != ""} {
-            #Vivado Only
+      #Vivado Only
       if { [string first PlanAhead [version] ] != 0 } {
-	if {[get_filesets -quiet utils_1] != ""} {
-	  AddFile $globalSettings::post_bit [get_filesets -quiet utils_1]
-	}
-	set_property STEPS.WRITE_BITSTREAM.TCL.POST $globalSettings::post_bit $obj
+        if {[get_filesets -quiet utils_1] != ""} {
+          AddFile $globalSettings::post_bit [get_filesets -quiet utils_1]
+        }
+        set_property STEPS.WRITE_BITSTREAM.TCL.POST $globalSettings::post_bit $obj
       }
     } elseif {[info commands project_new] != ""} {
       #QUARTUS only
@@ -453,16 +443,16 @@ proc ConfigureImplementation {} {
 proc ConfigureSimulation {} {
   if {[info commands send_msg_id] != ""} {
 
-        ##############
-        # SIMULATION #
-        ##############
+    ##############
+    # SIMULATION #
+    ##############
     Msg Info "Setting load_glbl parameter to true for every fileset..."
     foreach f [get_filesets -quiet *_sim] {
       set_property -name {xsim.elaborate.load_glbl} -value {true} -objects $f
     }
   }  elseif {[info commands project_new] != ""} {
-            #QUARTUS only
-            #TO BE DONE
+    #QUARTUS only
+    #TO BE DONE
 
   } else {
     Msg info "Configuring simulation"
@@ -473,31 +463,73 @@ proc ConfigureSimulation {} {
 #
 proc ConfigureProperties {} {
   if {[info commands send_msg_id] != ""} {
+    set user_repo "0"
+
     if [info exists globalSettings::PROPERTIES] {
       if [dict exists $globalSettings::PROPERTIES main] {
-          Msg Info "Setting project-wide properties..."
-          set proj_props [dict get $globalSettings::PROPERTIES main]
-	  #set_property -dict $proj_props [current_project]
-          dict for {prop_name prop_val} $proj_props {
-            if { $prop_name != "ip_repo_path" } {
-              Msg Info "Setting $prop_name = $prop_val"
-              set_property $prop_name $prop_val [current_project]
+        Msg Info "Setting project-wide properties..."
+        set proj_props [dict get $globalSettings::PROPERTIES main]
+        #set_property -dict $proj_props [current_project]
+        dict for {prop_name prop_val} $proj_props {
+          
+          if { $prop_name != "ip_repo_paths" } {
+            Msg Info "Setting $prop_name = $prop_val"
+            set_property $prop_name $prop_val [current_project]
+          } else {
+            # set ip_repo_list [regexp -all -inline {\S+} $prop_val]
+            set ip_repo_list [regsub -all {\s+} $prop_val " $globalSettings::repo_path/"]
+            set ip_repo_list $globalSettings::repo_path/$ip_repo_list
+            set user_repo "1"
+            Msg Info "Setting $ip_repo_list as user IP repository..."
+            if { [string first PlanAhead [version]]==0 } {
+              set_property  ip_repo_paths "$ip_repo_list" [current_fileset]
+            } else  {
+              set_property  ip_repo_paths "$ip_repo_list" [current_project]
             }
+            # foreach repo_list $ip_repo_list {
+            #   if [file exists $globalSettings::repo_path/$repo_list] {
+            #     Msg Info "Found directory $globalSettings::repo_path/$repo_list, setting it as user IP repository..."
+            #     if { [string first PlanAhead [version]]==0 } {
+            #       set_property  ip_repo_paths $globalSettings::repo_path/$repo_list [current_fileset]
+            #     } else  {
+            #       set_property  ip_repo_paths $globalSettings::repo_path/$repo_list [current_project]
+            #     }
+            #   } else {
+            #     Msg Warning "$globalSettings::repo_path/$repo_list not found, no user IP repository will be set."
+            #   }
+            # }
           }
+
+        }
       }
 
       foreach run [get_runs -quiet] {
         if [dict exists $globalSettings::PROPERTIES $run] {
           Msg Info "Setting properties for run: $run..."
           set run_props [dict get $globalSettings::PROPERTIES $run]
-	  #set_property -dict $run_props $run
+          #set_property -dict $run_props $run
           dict for {prop_name prop_val} $run_props {
             Msg Info "Setting $prop_name = $prop_val"
             set_property $prop_name $prop_val $run
-	  }
+          }
         }
       }
     }
+
+    ## Setting user IP repository to default Hog directory
+    if { $user_repo == "0" } {
+      if [file exists $globalSettings::user_ip_repo] {
+        Msg Info "Found directory $globalSettings::user_ip_repo, setting it as user IP repository..."
+        if { [string first PlanAhead [version]]==0 } {
+          set_property  ip_repo_paths $globalSettings::user_ip_repo [current_fileset]
+        } else  {
+          set_property  ip_repo_paths $globalSettings::user_ip_repo [current_project]
+        }
+      } else {
+        Msg Info "$globalSettings::user_ip_repo not found, no user IP repository will be set."
+      }
+    }
+
   }  elseif {[info commands project_new] != ""} {
     #QUARTUS only
     #TO BE DONE
@@ -514,17 +546,17 @@ proc UpgradeIP {} {
     current_run -implementation [get_runs impl_1]
 
 
-        ##############
-        # UPGRADE IP #
-        ##############
+    ##############
+    # UPGRADE IP #
+    ##############
     Msg Info "Upgrading IPs if any..."
     set ips [get_ips *]
     if {$ips != ""} {
       upgrade_ip -quiet $ips
     }
   } elseif {[info commands project_new] != ""} {
-            #QUARTUS only
-            #TO BE DONE
+    #QUARTUS only
+    #TO BE DONE
 
   } else {
     Msg info "Upgrading IPs"
@@ -541,7 +573,7 @@ proc SetGlobalVar {var {default_value HOG_NONE}} {
     Msg Info "Setting $var to default value: \"$default_value\""
     set globalSettings::$var $default_value
   }
-} 
+}
 
 ###########################################################################################################################################################################################
 
@@ -572,38 +604,31 @@ if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] 
 SetGlobalVar DESIGN
 
 set proj_dir $repo_path/Top/$DESIGN
-lassign [GetConfFiles $proj_dir] conf_file pre_file post_file tcl_file 
+lassign [GetConfFiles $proj_dir] conf_file pre_file post_file tcl_file
 
 set user_repo 0
 if {[file exists $conf_file]} {
   Msg Info "Parsing configuration file $conf_file..."
   set PROPERTIES [ReadConf $conf_file]
-  
+
   if {[dict exists $PROPERTIES main]} {
     set main [dict get $PROPERTIES main]
     dict for {p v} $main {
       # notice the dollar in front of p: creates new variables and fill them with the value
-      if { $p == "ip_repo_paths" } {
-        set v [regsub -all {\s+} $v " $repo_path/"]
-        set globalSettings::user_ip_repo $repo_path/$v
-        Msg Info "Setting user_ip_repo to $v"
-        set user_repo 1 
-      } else {
-        Msg Info "Main property $p set to $v"
-        set $p $v
-      }
+      Msg Info "Main property $p set to $v"
+      set $p $v
     }
   } else {
-    Msg Error "No main section found in $conf_file, make sure it has a section called \[main\] containing the mandatory properties." 
+    Msg Error "No main section found in $conf_file, make sure it has a section called \[main\] containing the mandatory properties."
   }
 } else {
 
   ##### REMOVE ALL THIS ELSE TO STOP PROJECT.TCL SUPPORT ############
   Msg Warning "$conf_file was not found in you project directory, please create one. The project Tcl file will no longer be supported on future Hog realeases."
-  
+
   if {[info exists ::FPGA]} {
     Msg Warning "Found deprecated variable FPGA = $FPGA in project Tcl file, this will no longer be supported in future Hog releases"
-    set PART $FPGA 
+    set PART $FPGA
   }
   if ![info exists PROPERTIES ] {
     set PROPERTIES [dict create]
@@ -613,40 +638,40 @@ if {[file exists $conf_file]} {
     if ![dict exists $PROPERTIES impl_1] {
       dict set PROPERTIES impl_1 [dict create]
     }
-    dict set PROPERTIES impl_1 steps.write_bitstream.args.bin_file $BIN_FILE 
+    dict set PROPERTIES impl_1 steps.write_bitstream.args.bin_file $BIN_FILE
   }
-  
+
   if {[info exists ::IMPL_FLOW]} {
     Msg Warning "Found deprecated variable IMPL_FLOW = $IMPL_FLOW in project Tcl file, this will no longer be supported in future Hog releases"
     if ![dict exists $PROPERTIES impl_1] {
       dict set PROPERTIES impl_1 [dict create]
     }
-    dict set PROPERTIES impl_1 FLOW $IMPL_FLOW 
+    dict set PROPERTIES impl_1 FLOW $IMPL_FLOW
   }
-  
+
   if {[info exists ::IMPL_STRATEGY]} {
     Msg Warning "Found deprecated variable IMPL_STRATEGY = $IMPL_STRATEGY in project Tcl file, this will no longer be supported in future Hog releases"
     if ![dict exists $PROPERTIES impl_1] {
       dict set PROPERTIES impl_1 [dict create]
     }
-    dict set PROPERTIES impl_1 STRATEGY $IMPL_STRATEGY 
+    dict set PROPERTIES impl_1 STRATEGY $IMPL_STRATEGY
   }
-  
-  
+
+
   if {[info exists ::SYNTH_FLOW]} {
     Msg Warning "Found deprecated variable SYNTH_FLOW = $SYNTH_FLOW in project Tcl file, this will no longer be supported in future Hog releases"
     if ![dict exists $PROPERTIES synth_1] {
       dict set PROPERTIES synth_1 [dict create]
     }
-    dict set PROPERTIES synth_1 FLOW $SYNTH_FLOW 
+    dict set PROPERTIES synth_1 FLOW $SYNTH_FLOW
   }
-  
+
   if {[info exists ::SYNTH_STRATEGY]} {
     Msg Warning "Found deprecated variable SYNTH_STRATEGY = $SYNTH_STRATEGY in project Tcl file, this will no longer be supported in future Hog releases"
     if ![dict exists $PROPERTIES synth_1] {
       dict set PROPERTIES synth_1 [dict create]
     }
-    dict set PROPERTIES synth_1 STRATEGY $SYNTH_STRATEGY 
+    dict set PROPERTIES synth_1 STRATEGY $SYNTH_STRATEGY
   }
 
   ########## END ###########
@@ -691,9 +716,8 @@ set globalSettings::modelsim_path               "$globalSettings::repo_path/Simu
 set globalSettings::DESIGN                      [file tail $globalSettings::DESIGN]
 set globalSettings::top_name                    [file tail $globalSettings::DESIGN]
 set globalSettings::synth_top_module            "top_$globalSettings::top_name"
-if { $user_repo == 0 } {
-  set globalSettings::user_ip_repo                "$globalSettings::repo_path/IP_repository"  
-}
+set globalSettings::user_ip_repo                "$globalSettings::repo_path/IP_repository"
+
 
 set globalSettings::pre_synth           [file normalize "$globalSettings::tcl_path/integrated/$globalSettings::pre_synth_file"]
 set globalSettings::post_synth          [file normalize "$globalSettings::tcl_path/integrated/$globalSettings::post_synth_file"]

@@ -476,7 +476,6 @@ proc ConfigureProperties {} {
             Msg Info "Setting $prop_name = $prop_val"
             set_property $prop_name $prop_val [current_project]
           } else {
-            # set ip_repo_list [regexp -all -inline {\S+} $prop_val]
             set ip_repo_list [regsub -all {\s+} $prop_val " $globalSettings::repo_path/"]
             set ip_repo_list $globalSettings::repo_path/$ip_repo_list
             set user_repo "1"
@@ -486,19 +485,7 @@ proc ConfigureProperties {} {
             } else  {
               set_property  ip_repo_paths "$ip_repo_list" [current_project]
             }
-			update_ip_catalog
-            # foreach repo_list $ip_repo_list {
-            #   if [file exists $globalSettings::repo_path/$repo_list] {
-            #     Msg Info "Found directory $globalSettings::repo_path/$repo_list, setting it as user IP repository..."
-            #     if { [string first PlanAhead [version]]==0 } {
-            #       set_property  ip_repo_paths $globalSettings::repo_path/$repo_list [current_fileset]
-            #     } else  {
-            #       set_property  ip_repo_paths $globalSettings::repo_path/$repo_list [current_project]
-            #     }
-            #   } else {
-            #     Msg Warning "$globalSettings::repo_path/$repo_list not found, no user IP repository will be set."
-            #   }
-            # }
+			      update_ip_catalog
           }
 
         }

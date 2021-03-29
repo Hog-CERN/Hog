@@ -486,6 +486,7 @@ proc ConfigureProperties {} {
             } else  {
               set_property  ip_repo_paths "$ip_repo_list" [current_project]
             }
+			update_ip_catalog
             # foreach repo_list $ip_repo_list {
             #   if [file exists $globalSettings::repo_path/$repo_list] {
             #     Msg Info "Found directory $globalSettings::repo_path/$repo_list, setting it as user IP repository..."

@@ -2131,12 +2131,12 @@ proc HandleIP {what_to_do xci_file ip_path runs_dir {force 0}} {
       lassign [ExecuteRet xrdcp -f -r -s $remote_tar $repo_path] ret msg
       if {$ret != 0} {
         Msg CriticalWarning "Something went wrong when copying the IP files to EOS. Error message: $msg"
+      } else {
+      	Msg Info "Extracting IP files from archive to $repo_path..."
+      	::tar::untar $file_name.tar -dir $repo_path -noperms
+	Msg Info "Removing local archive"
+      	file delete $file_name.tar
       }
-      Msg Info "Extracting IP files from archive to $repo_path..."
-      ::tar::untar $file_name.tar -dir $repo_path -noperms
-      Msg Info "Removing local archive"
-      file delete $file_name.tar
-
     }
   }
   cd $old_path

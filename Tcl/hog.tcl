@@ -902,7 +902,7 @@ proc GetConfFiles {proj_dir} {
   set post_tcl [file normalize $proj_dir/post-creation.tcl]
   set proj_tcl_file [file normalize $proj_dir/[file tail $proj_dir].tcl]
 
-  return [list $conf_file $pre_tcl $post_tcl $proj_tcl_file]  
+  return [list $conf_file $pre_tcl $post_tcl $proj_tcl_file]
 }
 
 ## Get the versions for all libraries, submodules, etc. for a given project
@@ -1011,7 +1011,7 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
 
   #Of all the constraints we get the most recent
   if {"{}" eq $cons_hashes} {
-    #" Fake comment for Visual Code Studio 
+    #" Fake comment for Visual Code Studio
     Msg CriticalWarning "No hashes found for constraints files (not in git)"
     set cons_hash ""
   } else {
@@ -1247,11 +1247,18 @@ proc TagRepository {{merge_request_number 0} {version_level 0} {default_level 0}
         Msg Info "Tagging is not needed"
       }
     } else {
-      Msg Error "Could not parse tag: $tag"
+      Msg Info "New tag $new_tag created successully."
     }
+  } else {
+    set new_tag $tag
+    Msg Info "Tagging is not needed"
   }
+} else {
+  Msg Error "Could not parse tag: $tag"
+}
+}
 
-  return [list $tag $new_tag]
+return [list $tag $new_tag]
 }
 
 ## @brief Read a XML list file and copy files to destination
@@ -1889,7 +1896,7 @@ proc AddHogFiles { libraries properties } {
           #ADDING FILE PROPERTIES
           set props [dict get $properties $cur_file]
           if {[string first "VHDL" $file_type] != -1 } {
-            
+
             if {[string first "1987" $props] != -1 } {
               set hdl_version "VHDL_1987"
             } elseif {[string first "1993" $props] != -1 } {
@@ -1935,36 +1942,36 @@ proc AddHogFiles { libraries properties } {
             if { $ext == ".con"} {
               source $cur_file
             } elseif { $ext == ".src"} {
-            set_global_assignment  -name $file_type $cur_file
+              set_global_assignment  -name $file_type $cur_file
 
-            # If this is a Platform Designer file then generate the system
-            if {[string first "qsys" $props] != -1 } {
-              set cmd "qsys-script --script=$cur_file"
-              if [ catch "eval exec -ignorestderr $cmd" ret opt] {
-                set makeRet [lindex [dict get $opt -errorcode] end]
-                Msg Info "$cmd returned with $makeRet"
-              }
-              # Check the system is generated correctly
-              set qsysPath [file dirname $cur_file]
-              set qsysName "[file rootname [file tail $cur_file]].qsys"
-              set qsysFile "$qsysPath/$qsysName"
-              # Move file to correct directory
-              if { [file exists $qsysName] != 0} {
-                file rename -force $qsysName $qsysFile 
-              } else {
-                Msg ERROR "Error while moving the generated qsys file to final location: $qsysName.qsys not found!";
-              }
-              if { [file exists $qsysFile] != 0} {
-                set qsysFileType [FindFileType $qsysFile]
-                set_global_assignment  -name $qsysFileType $qsysFile
-                set emptyString ""
-                regsub -all {\{*qsys||\}} $props $emptyString props
-                GenerateQsysSystem $qsysFile $props
-              } else {
-                Msg ERROR "Error while generating ip variations from qsys: $qsysFile not found!";
+              # If this is a Platform Designer file then generate the system
+              if {[string first "qsys" $props] != -1 } {
+                set cmd "qsys-script --script=$cur_file"
+                if [ catch "eval exec -ignorestderr $cmd" ret opt] {
+                  set makeRet [lindex [dict get $opt -errorcode] end]
+                  Msg Info "$cmd returned with $makeRet"
+                }
+                # Check the system is generated correctly
+                set qsysPath [file dirname $cur_file]
+                set qsysName "[file rootname [file tail $cur_file]].qsys"
+                set qsysFile "$qsysPath/$qsysName"
+                # Move file to correct directory
+                if { [file exists $qsysName] != 0} {
+                  file rename -force $qsysName $qsysFile
+                } else {
+                  Msg ERROR "Error while moving the generated qsys file to final location: $qsysName.qsys not found!";
+                }
+                if { [file exists $qsysFile] != 0} {
+                  set qsysFileType [FindFileType $qsysFile]
+                  set_global_assignment  -name $qsysFileType $qsysFile
+                  set emptyString ""
+                  regsub -all {\{*qsys||\}} $props $emptyString props
+                  GenerateQsysSystem $qsysFile $props
+                } else {
+                  Msg ERROR "Error while generating ip variations from qsys: $qsysFile not found!";
+                }
               }
             }
-          }
           } elseif {[string first "QSYS" $file_type] != -1 } {
             set_global_assignment  -name $file_type $cur_file
             #Generate IPs
@@ -2092,7 +2099,7 @@ proc HandleIP {what_to_do xci_file ip_path runs_dir {force 0}} {
       }
     }
     if {$will_copy == 1} {
-      set ip_synth_files [glob -nocomplain $runs_dir/$xci_ip_name*]
+      set ip_synth_files [glob -nocomplain $xci_path/$xci_ip_name*]
       set ip_synth_files_rel ""
       foreach ip_synth_file $ip_synth_files {
         lappend ip_synth_files_rel  [Relative $repo_path $ip_synth_files]
@@ -2201,7 +2208,7 @@ proc CheckYmlRef {repo_path allow_failure} {
 
     if { [catch {::yaml::yaml2dict -stream $file_data}  yamlDict]} {
       Msg $MSG_TYPE "Parsing $repo_path/.gitlab-ci.yml failed. To fix this, check that yaml syntax is respected, remember not to use tabs."
-      cd $thisPath  
+      cd $thisPath
       return
     } else {
       dict for {dictKey dictValue} $yamlDict {
@@ -2551,14 +2558,14 @@ proc SearchHogProjects {dir} {
 #
 #  @return       The dictionary
 #
-proc ReadConf {file_name} {                                                                                                                          
-package require inifile 0.2.3                                                                                                                               
-                
+proc ReadConf {file_name} {
+  package require inifile 0.2.3
+
   ::ini::commentchar "#"
-  set f [::ini::open $file_name]                                                                                                                        
-  set properties [dict create]                                                                                                                                        
+  set f [::ini::open $file_name]
+  set properties [dict create]
   foreach sec [::ini::sections $f] {
-    
+
     #if {[string match "impl*" [string tolower $sec]]} {
     #  set new_sec impl_1
     #} elseif {[string match "synth*" [string tolower $sec]]} {
@@ -2566,19 +2573,19 @@ package require inifile 0.2.3
     #} else {
     set new_sec $sec
     #}
-    
+
     set key_pairs [::ini::get $f $sec]
 
     #manipulate strings here:
     regsub -all {\{\"} $key_pairs "{" key_pairs
-    #" Comment for VSCode 
+    #" Comment for VSCode
     regsub -all {\"\}} $key_pairs "}" key_pairs
 
     dict set properties $new_sec [dict create {*}$key_pairs]
   }
-  
-  ::ini::close $f                                                                                                                                            
-  
+
+  ::ini::close $f
+
   return $properties
 }
 
@@ -2589,18 +2596,18 @@ package require inifile 0.2.3
 #  @param[in]    comment comment to add at the beginning of configuration file
 #
 #
-proc WriteConf {file_name config {comment ""}} {                                                                                                                          
-package require inifile 0.2.3                                                                                                                               
-                
+proc WriteConf {file_name config {comment ""}} {
+  package require inifile 0.2.3
+
   ::ini::commentchar "#"
-  set f [::ini::open $file_name w]    
+  set f [::ini::open $file_name w]
 
   foreach sec [dict keys $config] {
     set section [dict get $config $sec]
     dict for {p v} $section {
       ::ini::set $f $sec $p $v
     }
-  } 
+  }
 
   #write comment before the first section (first line of file)
   if {![string equal "$comment"  ""]} {
@@ -2608,8 +2615,8 @@ package require inifile 0.2.3
   }
   ::ini::commit $f
 
-  ::ini::close $f                                                                                                                                            
-  
+  ::ini::close $f
+
 }
 
 

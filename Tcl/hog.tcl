@@ -1247,20 +1247,12 @@ proc TagRepository {{merge_request_number 0} {version_level 0} {default_level 0}
         Msg Info "Tagging is not needed"
       }
     } else {
-      Msg Info "New tag $new_tag created successully."
+      Msg Error "Could not parse tag: $tag"
     }
-  } else {
-    set new_tag $tag
-    Msg Info "Tagging is not needed"
   }
-} else {
-  Msg Error "Could not parse tag: $tag"
-}
-}
 
-return [list $tag $new_tag]
+  return [list $tag $new_tag]
 }
-
 ## @brief Read a XML list file and copy files to destination
 #
 # Additional information is provided with text separated from the file name with one or more spaces

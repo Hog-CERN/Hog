@@ -1952,7 +1952,7 @@ proc HandleIP {what_to_do xci_file ip_path runs_dir {force 0}} {
       }
     }
     if {$will_copy == 1} {
-      set ip_synth_files [glob -nocomplain $runs_dir/$xci_ip_name*]
+      set ip_synth_files [glob -nocomplain $xci_path/$xci_ip_name*]
       set ip_synth_files_rel ""
       foreach ip_synth_file $ip_synth_files {
         lappend ip_synth_files_rel  [Relative $repo_path $ip_synth_files]

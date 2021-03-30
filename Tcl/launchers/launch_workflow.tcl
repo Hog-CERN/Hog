@@ -220,9 +220,6 @@ if {$do_synthesis == 1} {
     ######### Copy IP to EOS repository
     if {($ip_path != "")} {
       # IP is not in the gitlab repo
-      
-      #puts "ip $ip repo_ips $repo_ips"
-      #if {[lsearch $repo_ips $ip] != -1 } {
         set force 0
         if [info exist runs] {
           if {[lsearch $runs $ip\_synth_1] != -1} {
@@ -232,7 +229,6 @@ if {$do_synthesis == 1} {
         }
         Msg Info "Copying synthesised IP $xci_ip_name ($xci_file) to $ip_path..."
         HandleIP push $xci_file $ip_path $main_folder $force
-      #}
     }
   }
 

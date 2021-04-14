@@ -1950,6 +1950,9 @@ proc AddHogFiles { libraries properties } {
                 # Move file to correct directory
                 if { [file exists $qsysName] != 0} {
                   file rename -force $qsysName $qsysFile
+                  # Write checksum to file
+                  set qsysMd5Sum [Md5Sum $qsysFile]
+                  #TODO
                 } else {
                   Msg ERROR "Error while moving the generated qsys file to final location: $qsysName.qsys not found!";
                 }
@@ -2001,6 +2004,9 @@ proc GenerateQsysSystem {qsysFile commandOpts} {
       if { [file exists $qsysIPFile] != 0} {
         set qsysIPFileType [FindFileType $qsysIPFile]
         set_global_assignment -name $qsysIPFileType $qsysIPFile
+        # Write checksum to file
+        set IpMd5Sum [Md5Sum $qsysIPFile]
+        #TODO
       }
     }
   } else {

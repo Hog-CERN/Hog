@@ -58,6 +58,22 @@ if {[info commands get_property] != ""} {
   set proj_name [lindex $quartus(args) 1]
   set proj_dir [file normalize "$repo_path/Projects/$proj_name"]
   set proj_file [file normalize "$proj_dir/$proj_name.qpf"]
+  # Test generated files
+  set hogQsysFileName [file normalize "$proj_dir/.hog.md5sum"]
+  if { [file exists $hogQsysFileName] != 0} {
+    set hogQsysFile [open $hogQsysFileName r]
+    set hogQsysFileLines [split [read $hogQsysFile] "\n"]
+    foreach line $hogQsysFileLines {
+      set fileEntry [split $line "\t"]
+      set fileEntryName [lindex $fileEntry 0]
+      set newMd5Sum [Md5sum $fileEntryName]
+      set oldMd5Sum [lindex $fileEntry 1]
+      if { $newMd5Sum != $oldMd5Sum } {
+        Msg Warning "The checksum for file $fileEntryName not equal to the one saved in $hogQsysFileName: new checksum $newMd5Sum, old checksum $oldMd5Sum. Please check the any changes in the file are correctly propagated to git!"
+      }
+    }
+    
+  }
 } else {
   #Tclssh
   set proj_file $old_path/[file tail $old_path].xpr

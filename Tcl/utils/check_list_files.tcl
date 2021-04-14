@@ -28,7 +28,7 @@ if { [string first PlanAhead [version]] == 0 } {
 set parameters {
   {project.arg "" "Project name. If not set gets current project"}
   {recreate  "If set, it will create List Files from the project configuration"}
-  {recreate_prj_tcl  "If set, it will create the project tcl from the project configuration. To be used together with \"-recreate\""}
+  {recreate_conf  "If set, it will create the project hog.conf file."}
   {force  "Force the overwriting of List Files. To be used together with \"-recreate\""}
   {pedantic  "Script fails in case of mismatch"}
   {ext_path.arg "" "Sets the absolute path for the external libraries."}
@@ -72,23 +72,34 @@ set ext_path $options(ext_path)
 
 if {![string equal $options(project) ""]} {
   set project $options(project)
-  Msg Info "Opening project $project..."
+  set group_name [file dirname $project]
+  set project_name [file tail $project]
+  Msg Info "Opening project $project_name..."
+
   if { [string first PlanAhead [version]] != 0 } {
-    open_project "$repo_path/Projects/$project/$project.xpr"
+    open_project "$repo_path/Projects/$project/$project_name.xpr"
   }
 } else {
-  set project [get_projects [current_project]]
+  set project_name [get_projects [current_project]]
+  set proj_file [get_property DIRECTORY [current_project]]
+  puts $proj_file 
+  puts $project_name
+  set proj_dir [file normalize $proj_file]
+  set index_a [string last "Projects/" $proj_dir]
+  set index_a [expr $index_a + 8]
+  set index_b [string last "/$project_name" $proj_dir]
+  set group_name [string range $proj_dir $index_a $index_b]
 }
 
 
 
 
 
-Msg Info "Checking $project list files..."
+Msg Info "Checking $project_name list files..."
 lassign [GetProjectFiles] prjLibraries prjProperties
 
 
-lassign [GetHogFiles -ext_path "$ext_path" "$repo_path/Top/$project/list/"] listLibraries listProperties
+lassign [GetHogFiles -ext_path "$ext_path" -repo_path $repo_path "$repo_path/Top/$group_name/$project_name/list/"] listLibraries listProperties
 
 set prjIPs  [DictGet $prjLibraries IP]
 set prjXDCs  [DictGet $prjLibraries XDC]
@@ -316,7 +327,7 @@ foreach key [dict keys $listProperties] {
 foreach key [dict keys $prjProperties] {
   foreach prop [DictGet $prjProperties $key] {
     #puts "FILE $key: PROPERTY $prop"
-    if {[lsearch -nocase [lindex [DictGet $listProperties $key] 0] $prop] < 0 && ![string equal $prop ""] && ![string equal $key "Simulator"] && ![string equal $prop "top=top_[file root $project]"]} {
+    if {[lsearch -nocase [lindex [DictGet $listProperties $key] 0] $prop] < 0 && ![string equal $prop ""] && ![string equal $key "Simulator"] && ![string equal $prop "top=top_[file root $project_name]"]} {
       Msg CriticalWarning "$key property $prop is set in project but not in list files!"
       incr ErrorCnt
     }
@@ -332,20 +343,21 @@ if {$options(pedantic) == 1 && $ErrorCnt > 0} {
   Msg Info "List Files matches project. All ok!"
 }
 
+if {[file exists $repo_path/Top/$group_name/$project_name] && [file isdirectory $repo_path/Top/$group_name/$project_name] && $options(force) == 0} {
+  set DirName Top_new/$group_name/$project_name
+} else {
+  set DirName Top/$group_name/$project_name
+}
+
 #recreating list files
 if {$options(recreate) == 1} {
-  if {[file exists $repo_path/Top/$project] && [file isdirectory $repo_path/Top/$project] && $options(force) == 0} {
-    set DirName Top_new/$project
-  } else {
-    set DirName Top/$project
-  }
   Msg Info "Updating list files in $repo_path/$DirName/list"
 
 
   file mkdir  $repo_path/$DirName/list
   foreach listFile [dict keys $newListfiles] {
     if {[string equal [file extension $listFile] ".sim"]} {
-      set listSim [ParseFirstLineHogFiles "$repo_path/Top/$project/list/" $listFile]
+      set listSim [ParseFirstLineHogFiles "$repo_path/Top/$group_name/$project_name/list/" $listFile]
       set lFd [open $repo_path/$DirName/list/$listFile w]
       if {[string equal -nocase [lindex [split $listSim " "] 0] "Simulator"] && [string equal -nocase [lindex [split $listSim " "] 1] "skip_simulation"]} {
          puts $lFd "#$listSim"
@@ -360,64 +372,91 @@ if {$options(recreate) == 1} {
     }
     close $lFd
   }
+}
 
-  if {$options(recreate_prj_tcl) == 1} {
 
-    Msg Info "Updating project tcl file $repo_path/$DirName/$project.tcl"
-    set lFd [open $repo_path/$DirName/$project.tcl w]
-    puts $lFd "#vivado"
 
-    if {[get_property STEPS.WRITE_BITSTREAM.ARGS.BIN_FILE [get_runs impl_1]]==1} {
-      puts $lFd "set BIN_FILE 1"
+#recreating hog.conf
+if {$options(recreate_conf) == 1} {
+
+  #reading old hog.conf if exist and copy the parameters
+  set confFile $repo_path/$DirName/hog.conf
+  set paramDict [dict create]
+  if {[file exists $confFile]} {
+    set oldConfDict [ReadConf $confFile]
+    if {[dict exists $oldConfDict parameters]} {
+      set paramDict [dict get $oldConfDict parameters]
     }
-
-    puts $lFd "#### FPGA and Vivado strategies and flows
-
-set FPGA [get_property PART [current_project]]
-set SYNTH_STRATEGY \"[get_property STRATEGY [get_runs synth_1]]\"
-set SYNTH_FLOW \"[get_property FLOW [get_runs synth_1]]\"
-set IMPL_STRATEGY \"[get_property STRATEGY [get_runs impl_1]]\"
-set IMPL_FLOW \"[get_property FLOW [get_runs impl_1]]\"
-set DESIGN \"\[file rootname \[file tail \[info script\]\]\]\"
-set PATH_REPO \"\[file normalize \[file dirname \[info script\]\]\]/../../\"
-set SIMULATOR \"[DictGet $prjProperties Simulator]\""
-
-
-
-    #properties
-    puts $lFd "set PROPERTIES \[dict create \\"
-    set runs [list [get_runs synth*]]
-    lappend runs [list [get_runs impl*]]
-    foreach proj_run $runs {
-      puts $lFd " $proj_run \[dict create \\"
-
-      set run_props [list]
-      foreach propReport [split "[report_property  -return_string -all [get_runs $proj_run]]" "\n"] {
-
-        if {[string equal "[lindex $propReport 2]" "false"] && ![string equal "[lindex $propReport 0]" "PART"] && ![string equal "[lindex $propReport 0]" "STRATEGY"] && ![string equal "[lindex $propReport 0]" "FLOW"] && ![string equal "[lindex $propReport 0]" "STEPS.SYNTH_DESIGN.TCL.PRE"] && ![string equal "[lindex $propReport 0]" "STEPS.ROUTE_DESIGN.TCL.POST"] && ![string equal "[lindex $propReport 0]" "STEPS.WRITE_BITSTREAM.TCL.PRE"] && ![string equal "[lindex $propReport 0]" "STEPS.WRITE_BITSTREAM.TCL.POST"] && ![string equal "[lindex $propReport 0]" "STEPS.WRITE_BITSTREAM.ARGS.BIN_FILE"]} {
-          lappend run_props [lindex $propReport 0]
-        }
-      }
-
-
-      foreach prop $run_props {
-        set Dval [list_property_value -default $prop [get_runs $proj_run]]
-        set val [get_property $prop [get_runs $proj_run]]
-        if {$Dval!=$val} {
-          puts $lFd "   $prop  \"$val\" \\"
-        }
-
-      }
-      puts $lFd " \] \\"
-    }
-
-    #shall we also add custom project properties?
-     puts $lFd "\]"
-
-    puts $lFd "source \$PATH_REPO/Hog/Tcl/create_project.tcl"
-
-    close $lFd
   }
+
+  #list of properties that don't have to be written
+  set PROP_BAN_LIST  [list DEFAULT_LIB \
+                           PART \
+                           IP_CACHE_PERMISSIONS \
+                           SIM.IP.AUTO_EXPORT_SCRIPTS \
+                           XPM_LIBRARIES \
+                           REPORT_STRATEGY \
+                           STEPS.WRITE_BITSTREAM.ARGS.READBACK_FILE \
+                           STEPS.WRITE_BITSTREAM.ARGS.VERBOSE \
+                           STEPS.SYNTH_DESIGN.TCL.PRE \
+                           STEPS.SYNTH_DESIGN.TCL.POST \
+                           STEPS.WRITE_BITSTREAM.TCL.PRE \
+                           STEPS.WRITE_BITSTREAM.TCL.POST \
+                           STEPS.ROUTE_DESIGN.TCL.POST \
+                     ]
+
+
+
+  Msg Info "Updating configuration file $repo_path/$DirName/hog.conf"
+  file mkdir  $repo_path/$DirName/list
+
+  set confDict  [dict create]
+
+  #writing not default properties for current_project, synth_1 and impl_1
+  set runs [list [current_project]]
+  lappend runs [list [get_runs synth*]]
+  lappend runs [list [get_runs impl*]]
+  foreach proj_run $runs {
+    #creting dictionary for each $run
+    set projRunDict [dict create]
+    #selecting only READ/WRITE properties 
+    set run_props [list]
+    foreach propReport [split "[report_property  -return_string -all $proj_run]" "\n"] {
+
+      if {[string equal "[lindex $propReport 2]" "false"]} { 
+        lappend run_props [lindex $propReport 0]
+      }
+    }
+
+    foreach prop $run_props {
+      #current values
+      set val [get_property $prop $proj_run] 
+      #ignoring properties in $PROP_BAN_LIST and properties containing repo_path
+      if {$prop in $PROP_BAN_LIST || [string first $repo_path $val] != -1} { 
+        set tmp  0
+        #Msg Info "Skipping property $prop"
+      } else { 
+        # default values
+        set Dval [list_property_value -default $prop $proj_run] 
+        if {$Dval!=$val} {
+          dict set projRunDict $prop  $val
+        }
+      }
+    }
+    if {"$proj_run" == "[current_project]"} {
+      dict set projRunDict "PART" [get_property PART $proj_run]  
+      dict set confDict main  $projRunDict
+    } else {
+      dict set confDict $proj_run  $projRunDict
+    }
+  }
+
+  #adding volatile properties
+  dict set confDict parameters $paramDict 
+
+
+  #writing configuration file  
+  WriteConf $confFile $confDict "vivado"
 }
 
 #closing project if a new one was opened

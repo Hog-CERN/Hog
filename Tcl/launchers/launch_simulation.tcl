@@ -29,6 +29,8 @@ set parameters {
 set usage "- USAGE: $::argv0 \[OPTIONS\] <project> \n. Options:"
 
 set path [file normalize "[file dirname [info script]]/.."]
+set repo_path [file normalize "$path/../.."]
+
 if { $::argc eq 0 } {
   Msg Info [cmdline::usage $parameters $usage]
   exit 1
@@ -40,12 +42,19 @@ if { $::argc eq 0 } {
   exit 1
 } else {
   set project [lindex $argv 0]
-  set main_folder [file normalize "$path/../../Projects/$project/$project.sim/"]
+  set group_name [file dirname $project]
+  set project [file tail $project]
+  if { $group_name != "." } {
+    set project_name "$group_name/$project"
+  } else {
+    set project_name "$project"
+  }
+  set main_folder [file normalize "$repo_path/Projects/$project_name/$project.sim/"]
 
   if {$options(lib_path)!= ""} {
     set lib_path $options(lib_path)
   } else {
-    set lib_path [file normalize "$main_folder/../../../SimulationLib"]
+    set lib_path [file normalize "$repo_path/SimulationLib"]
   }
 }
 
@@ -62,17 +71,27 @@ if !([file exists $lib_path]) {
 
 ############# CREATE or OPEN project ############
 if { [string first PlanAhead [version]] == 0 } {
-  set project_file [file normalize ../../Projects/$project/$project.ppr]
+  set project_file [file normalize $repo_path/Projects/$project_name/$project.ppr]
 } else {
-  set project_file [file normalize ../../Projects/$project/$project.xpr]
+  set project_file [file normalize $repo_path/Projects/$project_name/$project.xpr]
 }
 
 if {[file exists $project_file]} {
-  Msg Info "Found project file $project_file for $project ..."
+  Msg Info "Found project file $project_file for $project_name..."
   open_project $project_file
 } else {
-  Msg Info "Project file not found for $project, sourcing the project Tcl script ..."
-  source ../../Top/$project/$project.tcl
+  Msg Info "Project file not found for $project_name, creating the project..."
+
+  lassign [GetConfFiles $repo_path/Top/$project_name] conf pre post tcl_file
+
+  if {[file exists $conf]} {
+    set DESIGN $project_name
+    source ./create_project.tcl
+  } elseif {[file exists $tcl_file]} {
+    source $repo_path/Top/$project_name/$project.tcl
+  } else {
+    Msg Error "Project $project_name is incomplete: not Tcl file or Properties.conf file found."
+  }
 }
 
 Msg Info "Retrieving list of simulation sets..."
@@ -85,7 +104,7 @@ foreach s [get_filesets] {
   if {$type eq "SimulationSrcs"} {
     if {!($s eq "sim_1")} {
       set filename [string range $s 0 [expr {[string last "_sim" $s] -1 }]]
-      set fp [open "../../Top/$project/list/$filename.sim" r]
+      set fp [open "../../Top/$project_name/list/$filename.sim" r]
       set file_data [read $fp]
       close $fp
       set data [split $file_data "\n"]

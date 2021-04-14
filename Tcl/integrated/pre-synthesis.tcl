@@ -41,7 +41,8 @@ if {[info exists env(HOG_EXTERNAL_PATH)]} {
 }
 
 # Go to repository path
-cd "$tcl_path/../.."
+set repo_path [file normalize "$tcl_path/../.."]
+cd $repo_path
 
 if {[info commands get_property] != ""} {
   # Vivado + PlanAhead
@@ -55,15 +56,18 @@ if {[info commands get_property] != ""} {
 } elseif {[info commands project_new] != ""} {
   # Quartus
   set proj_name [lindex $quartus(args) 1]
-  set proj_dir [file normalize "$tcl_path/../../Projects/$proj_name"]
+  set proj_dir [file normalize "$repo_path/Projects/$proj_name"]
   set proj_file [file normalize "$proj_dir/$proj_name.qpf"]
 } else {
-    #Tclssh
+  #Tclssh
   set proj_file $old_path/[file tail $old_path].xpr
   Msg CriticalWarning "You seem to be running locally on tclsh, so this is a debug, the project file will be set to $proj_file and was derived from the path you launched this script from: $old_path. If you want this script to work properly in debug mode, please launch it from the top folder of one project, for example Repo/Projects/fpga1/ or Repo/Top/fpga1/"
 }
-
-
+set index_a [string last "Projects/" $proj_dir]
+set index_a [expr $index_a + 9]
+set index_b [string last "/$proj_name" $proj_dir]
+set index_b [expr $index_b - 1]
+set group_name [string range $proj_dir $index_a $index_b]
 # Calculating flavour if any
 set flavour [string map {. ""} [file ext $proj_name]]
 if {$flavour != ""} {
@@ -82,7 +86,7 @@ if {$flavour != ""} {
 ResetRepoFiles "./Projects/hog_reset_files"
 
 # Getting all the versions and SHAs of the repository
-lassign [GetRepoVersions ./Top/$proj_name/$proj_name.tcl $ext_path] commit version  hog_hash hog_ver  top_hash top_ver  libs hashes vers  cons_ver cons_hash  ext_names ext_hashes  xml_hash xml_ver
+lassign [GetRepoVersions [file normalize $repo_path/Top/$group_name/$proj_name] $repo_path $ext_path] commit version  hog_hash hog_ver  top_hash top_ver  libs hashes vers  cons_ver cons_hash  ext_names ext_hashes  xml_hash xml_ver
 
 set this_commit  [Git {log --format=%h -1}]
 
@@ -105,14 +109,14 @@ if {$xml_hash != 0} {
   Msg Info "Creating XML directory $xml_dst..."
   file mkdir $xml_dst
   Msg Info "Copying xml files to $xml_dst and replacing placeholders with xml version $xml_ver..."
-  CopyXMLsFromListFile ./Top/$proj_name/list/xml.lst ./ $xml_dst [HexVersionToString $xml_ver] $xml_hash
+  CopyXMLsFromListFile ./Top/$group_name/$proj_name/list/xml.lst ./ $xml_dst [HexVersionToString $xml_ver] $xml_hash
   set use_ipbus 1
 } else {
   set use_ipbus 0
 }
 
 #number of threads
-set maxThreads [GetMaxThreads $proj_name]
+set maxThreads [GetMaxThreads [file normalize ./Top/$group_name/$proj_name/]]
 if {$maxThreads != 1} {
   Msg CriticalWarning "Multithreading enabled. Bitfile will not be deterministic. Number of threads: $maxThreads"
 } else {
@@ -262,7 +266,7 @@ if {[info commands set_property] != ""} {
 Msg Info "Opening version file $status_file..."
 set status_file [open $status_file "w"]
 
-set dst_dir [file normalize "bin/$proj_name\-$describe"]
+set dst_dir [file normalize "bin/$group_name/$proj_name\-$describe"]
 Msg Info "Creating $dst_dir..."
 file mkdir $dst_dir/reports
 
@@ -286,7 +290,12 @@ if {$flavour != -1} {
 }
 
 set version [HexVersionToString $version]
-puts $status_file "## $proj_name version table"
+if {$group_name != ""} {
+  puts $status_file "## $group_name/$proj_name version table" 
+} else {
+  puts $status_file "## $proj_name version table" 
+}
+
 struct::matrix m
 m add columns 7
 
@@ -332,7 +341,7 @@ close $status_file
 
 CheckYmlRef [file normalize $tcl_path/../..] true
 
-set user_pre_synthesis_file "./Top/$proj_name/pre-synthesis.tcl"
+set user_pre_synthesis_file "./Top/$group_name/$proj_name/pre-synthesis.tcl"
 if {[file exists $user_pre_synthesis_file]} {
     Msg Info "Sourcing user pre-synthesis file $user_pre_synthesis_file"
     source $user_pre_synthesis_file
@@ -343,9 +352,9 @@ cd $old_path
 #check list files
 if {[info commands get_property] != "" && [string first PlanAhead [version]] != 0} {
     if {![string equal ext_path ""]} {
-        set argv [list "-ext_path" "$ext_path" "-project" "$proj_name"]
+        set argv [list "-ext_path" "$ext_path" "-project" "$group_name/$proj_name"]
     } else {
-        set argv [list "-project" "$proj_name"]
+        set argv [list "-project" "$group_name/$proj_name"]
     }
     source  $tcl_path/utils/check_list_files.tcl
 } elseif {[info commands project_new] != ""} {

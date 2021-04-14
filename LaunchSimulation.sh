@@ -21,11 +21,11 @@
 
 ## Import common functions from Other/CommonFunctions.sh in a POSIX compliant way
 #
-. $(dirname "$0")/Other/CommonFunctions.sh;
+. $(dirname "$0")/Other/CommonFunctions.sh
 
 print_hog $(dirname "$0")
 
-DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 ##! if called with -h or, -help or, --help or, -H optiins print help message and exit
 if [ "$1" == "-h" ] || [ "$1" == "-help" ] || [ "$1" == "--help" ] || [ "$1" == "-H" ]; then
@@ -40,60 +40,51 @@ if [ "$1" == "-h" ] || [ "$1" == "-help" ] || [ "$1" == "--help" ] || [ "$1" == 
   exit 0
 fi
 
-if [ -z "$1" ]
-then
+if [ -z "$1" ]; then
   ##! If no args passed then print help message
   printf "Project name has not been specified. Usage: \n Hog/LaunchSimulation.sh <proj_name> [library path]\n"
 else
-  if [ ! -z "$2" ]
-  then
-    LIBPATH="-lib_path $2"
+  if [ ! -z "$2" ]; then
+    SIMLIBPATH="-lib_path $2"
   fi
-
   PROJ=$1
   PROJ_DIR="$DIR/../Top/"$PROJ
-  if [ -d "$PROJ_DIR" ]
-  then
+  if [ -d "$PROJ_DIR" ]; then
 
-    #Choose if the project is quastus, vivado, vivado_hls [...]
-    select_command $PROJ_DIR"/"$PROJ".tcl"
-    if [ $? != 0 ]
-    then
+    #Choose if the project is quartus, vivado, vivado_hls [...]
+    select_command $PROJ_DIR
+    if [ $? != 0 ]; then
       Msg Error "Failed to select project type: exiting!"
       exit -1
     fi
 
     #select full path to executable and place it in HDL_COMPILER global variable
     select_compiler_executable $COMMAND
-    if [ $? != 0 ]
-    then
+    if [ $? != 0 ]; then
       Msg Error "Failed to get HDL compiler executable for $COMMAND"
       exit -1
     fi
 
-    if [ ! -f "${HDL_COMPILER}" ]
-    then
-      Msg Error "HLD compiler executable $HDL_COMPILER not found"
+    if [ ! -f "${HDL_COMPILER}" ]; then
+      Msg Error "HDL compiler executable $HDL_COMPILER not found"
       cd "${OLD_DIR}"
       exit -1
     else
       Msg Info "Using executable: $HDL_COMPILER"
     fi
 
-    if [ $COMMAND = "quartus_sh" ]
-    then
+    if [ $COMMAND = "quartus_sh" ]; then
       Msg Error "Quartus is not yet supported by this script!"
-      #echo "Running:  ${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_simulation.tcl $LIBPATH $1"
-      #"${HDL_COMPILER}" $COMMAND_OPT $DIR/Tcl/launchers/launch_simulation.tcl $LIBPATH $1
+      #echo "Running:  ${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_simulation.tcl $SIMLIBPATH $1"
+      #"${HDL_COMPILER}" $COMMAND_OPT $DIR/Tcl/launchers/launch_simulation.tcl $SIMLIBPATH $1
 
-    elif [ $COMMAND = "vivado_hls" ]
-    then
+    elif [ $COMMAND = "vivado_hls" ]; then
       Msg Error "Vivado HLS is not yet supported by this script!"
     else
-      "${HDL_COMPILER}" $COMMAND_OPT $DIR/Tcl/launchers/launch_simulation.tcl -tclargs $LIBPATH $1
+      "${HDL_COMPILER}" $COMMAND_OPT $DIR/Tcl/launchers/launch_simulation.tcl -tclargs $SIMLIBPATH $1
     fi
   else
-    Msg Error "Project $PROJ not found: possible projects are: `ls $DIR/../Top`"
+    Msg Error "Project $PROJ not found: possible projects are: $(search_projects $DIR/../Top)"
     cd "${OLD_DIR}"
     exit -1
   fi

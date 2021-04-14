@@ -796,24 +796,24 @@ return $M$m$c
 
 ## Get the project version
 #
-#  @param[in] tcl_file: The tcl file of the project of which all the version must be calculated
+#  @param[in] proj_dir: The top folder of the project of which all the version must be calculated
+#  @param[in] repo_path: The top folder of the repository
 #  @param[in] ext_path: path for external libraries
 #  @param[in] sim: if enabled, check the version also for the simulation files
 #
 #  @return  returns the project version
 #
-proc GetProjectVersion {tcl_file {ext_path ""} {sim 0}} {
-  if { ![file exists $tcl_file] } {
-    Msg CriticalWarning "$tcl_file not found"
+proc GetProjectVersion {proj_dir repo_path {ext_path ""} {sim 0}} {
+  if { ![file exists $proj_dir] } {
+    Msg CriticalWarning "$proj_dir not found"
     return -1
   }
   set old_dir [pwd]
-  set proj_dir [file dir $tcl_file]
   cd $proj_dir
 
   #The latest version the repository
   set v_last [ExtractVersionFromTag [Git {describe --abbrev=0 --match "v*"}]]
-  lassign [GetRepoVersions $tcl_file $ext_path $sim] sha ver
+  lassign [GetRepoVersions $proj_dir $repo_path $ext_path $sim] sha ver
   if {$sha == 0} {
     Msg Warning "Repository is not clean"
     cd $old_dir
@@ -890,31 +890,48 @@ proc GetSubmodule {path_file} {
 }
 
 
+## Document HERE!!!
+
+proc GetConfFiles {proj_dir} {
+  if ![file isdirectory $proj_dir] {
+    Msg Error "$proj_dir is supposed to be the top project directory"
+    return -1
+  }
+  set conf_file [file normalize $proj_dir/hog.conf]
+  set pre_tcl [file normalize $proj_dir/pre-creation.tcl]
+  set post_tcl [file normalize $proj_dir/post-creation.tcl]
+  set proj_tcl_file [file normalize $proj_dir/[file tail $proj_dir].tcl]
+
+  return [list $conf_file $pre_tcl $post_tcl $proj_tcl_file]
+}
+
 ## Get the versions for all libraries, submodules, etc. for a given project
 #
-#  @param[in] proj_tcl_file: The tcl file of the project of which all the version must be calculated
+#  @param[in] proj_dir: The project directory containing the conf file or the the tcl file
+#  @param[in] repo_path: top path of the repository
 #  @param[in] ext_path: path for external libraries
 #  @param[in] sim: if enabled, check the version also for the simulation files
 #
 #  @return  a list conatining all the versions: global, top (project tcl file), constraints, libraries, submodules, exteral, ipbus xml
 #
-proc GetRepoVersions {proj_tcl_file {ext_path ""} {sim 0}} {
+proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
   set old_path [pwd]
-  set proj_tcl_file [file normalize $proj_tcl_file]
-  set proj_dir [file dir $proj_tcl_file]
+
+
+  set conf_files [GetConfFiles $proj_dir]
 
   # This will be the list of all the SHAs of this project, the most recent will be picked up as GLOBAL SHA
   set SHAs ""
   set versions ""
 
   # Hog submodule
-  cd $proj_dir
+  cd $repo_path
 
   #Append the SHA in which Hog submodule was changed, not the submodule SHA
-  lappend SHAs [Git {log --format=%h -1} {../../Hog}]
+  lappend SHAs [Git {log --format=%h -1} {Hog}]
   lappend versions [GetVerFromSHA $SHAs]
 
-  cd "../../Hog"
+  cd "$repo_path/Hog"
   if {[Git {status --untracked-files=no  --porcelain}] eq ""} {
     Msg Info "Hog submodule [pwd] clean."
     lassign [GetVer ./] hog_ver hog_hash
@@ -935,7 +952,7 @@ proc GetRepoVersions {proj_tcl_file {ext_path ""} {sim 0}} {
   }
 
   # Top project directory
-  lassign [GetVer $proj_tcl_file] top_ver top_hash
+  lassign [GetVer [join $conf_files]] top_ver top_hash
   lappend SHAs $top_hash
   lappend versions $top_ver
 
@@ -944,7 +961,7 @@ proc GetRepoVersions {proj_tcl_file {ext_path ""} {sim 0}} {
   set vers ""
   set hashes ""
   # Specyfiy sha_mode 1 for GetHogFiles to get all the files, includeng the list-files themselves
-  lassign [GetHogFiles -list_files "*.src" -sha_mode "./list/"] src_files dummy
+  lassign [GetHogFiles -list_files "*.src" -sha_mode -repo_path $repo_path "./list/"] src_files dummy
   dict for {f files} $src_files {
     #library names have a .src extension in values returned by GetHogFiles
     set name [file rootname [file tail $f]]
@@ -961,7 +978,7 @@ proc GetRepoVersions {proj_tcl_file {ext_path ""} {sim 0}} {
 
   set cons_hashes ""
   # Specyfiy sha_mode 1 for GetHogFiles to get all the files, includeng the list-files themselves
-  lassign [GetHogFiles  -list_files "*.con" -sha_mode "./list/" ] cons_files dummy
+  lassign [GetHogFiles  -list_files "*.con" -sha_mode -repo_path $repo_path  "./list/" ] cons_files dummy
   dict for {f files} $cons_files {
     #library names have a .con extension in values returned by GetHogFiles
     set name [file rootname [file tail $f]]
@@ -979,7 +996,7 @@ proc GetRepoVersions {proj_tcl_file {ext_path ""} {sim 0}} {
   if {$sim == 1} {
     set sim_hashes ""
     # Specyfiy sha_mode 1 for GetHogFiles to get all the files, includeng the list-files themselves
-    lassign [GetHogFiles  -list_files "*.sim" -sha_mode "./list/"] sim_files dummy
+    lassign [GetHogFiles  -list_files "*.sim" -sha_mode -repo_path $repo_path  "./list/"] sim_files dummy
     dict for {f files} $sim_files {
       #library names have a .sim extension in values returned by GetHogFiles
       set name [file rootname [file tail $f]]
@@ -994,7 +1011,7 @@ proc GetRepoVersions {proj_tcl_file {ext_path ""} {sim 0}} {
 
   #Of all the constraints we get the most recent
   if {"{}" eq $cons_hashes} {
-    #" Fake comment for Visual Code Studio 
+    #" Fake comment for Visual Code Studio
     Msg CriticalWarning "No hashes found for constraints files (not in git)"
     set cons_hash ""
   } else {
@@ -1042,7 +1059,7 @@ proc GetRepoVersions {proj_tcl_file {ext_path ""} {sim 0}} {
 # Ipbus XML
 if [file exists ./list/xml.lst] {
   #Msg Info "Found IPbus XML list file, evaluating version and SHA of listed files..."
-  lassign [GetHogFiles  -list_files "xml.lst" -sha_mode "./list/"] xml_files dummy
+  lassign [GetHogFiles  -list_files "xml.lst" -repo_path $repo_path  -sha_mode "./list/"] xml_files dummy
   lassign [GetVer  [dict get $xml_files "xml.lst"] ] xml_ver xml_hash
   lappend SHAs $xml_hash
   lappend versions $xml_ver
@@ -1236,7 +1253,6 @@ proc TagRepository {{merge_request_number 0} {version_level 0} {default_level 0}
 
   return [list $tag $new_tag]
 }
-
 ## @brief Read a XML list file and copy files to destination
 #
 # Additional information is provided with text separated from the file name with one or more spaces
@@ -1606,6 +1622,7 @@ return [list $libraries $properties]
 # * list_path path to the list file directory
 # Options:
 # * -list_files \<List files\> the file wildcard, if not specified all Hog list files will be looked for
+# * -repo_path \<repo path\> the absolute of the top directory of the repository
 # * -sha_mode forwarded to ReadListFile, see there for info
 # * -ext_path \<external path\> path for external libraries forwarded to ReadListFile
 # * -verbose enable verbose messages
@@ -1627,6 +1644,7 @@ proc GetHogFiles args {
 
   set parameters {
     {list_files.arg ""  "The file wildcard, if not specified all Hog list files will be looked for."}
+    {repo_path.arg ""  "The absolute path of the top directory of the repository."}
     {sha_mode "Forwarded to ReadListFile, see there for info."}
     {ext_path.arg "" "Path for the external libraries forwarded to ReadListFile."}
     {verbose  "Verbose messages"}
@@ -1641,6 +1659,7 @@ proc GetHogFiles args {
   set sha_mode $options(sha_mode)
   set ext_path $options(ext_path)
   set verbose $options(verbose)
+  set repo_path $options(repo_path)
 
   if { $sha_mode == 1 } {
     set sha_mode_opt "-sha_mode"
@@ -1653,7 +1672,6 @@ proc GetHogFiles args {
     set verbose_opt ""
   }
 
-  set repo_path [file normalize $list_path/../../..]
   if { $list_files == "" } {
     set list_files {.src,.con,.sub,.sim,.ext}
   }
@@ -1732,9 +1750,6 @@ proc AddHogFiles { libraries properties } {
       }
       .con {
         set file_set "constrs_1"
-      }
-      .prop {
-        return
       }
       default {
         set file_set "sources_1"
@@ -1873,12 +1888,12 @@ proc AddHogFiles { libraries properties } {
           #ADDING FILE PROPERTIES
           set props [dict get $properties $cur_file]
           if {[string first "VHDL" $file_type] != -1 } {
-            
-            if {[string first "87" $props] != -1 } {
+
+            if {[string first "1987" $props] != -1 } {
               set hdl_version "VHDL_1987"
-            } elseif {[string first "93" $props] != -1 } {
+            } elseif {[string first "1993" $props] != -1 } {
               set hdl_version "VHDL_1993"
-            } elseif {[string first "08" $props] != -1 } {
+            } elseif {[string first "2008" $props] != -1 } {
               set hdl_version "VHDL_2008"
             } else {
               set hdl_version "default"
@@ -1889,9 +1904,9 @@ proc AddHogFiles { libraries properties } {
               set_global_assignment -name $file_type $cur_file -hdl_version $hdl_version -library $rootlib
             }
           } elseif {[string first "SYSTEMVERILOG" $file_type] != -1 } {
-            if {[string first "05" $props] != -1 } {
+            if {[string first "2005" $props] != -1 } {
               set hdl_version "systemverilog_2005"
-            } elseif {[string first "09" $props] != -1 } {
+            } elseif {[string first "2009" $props] != -1 } {
               set hdl_version "systemverilog_2009"
             } else {
               set hdl_version "default"
@@ -1902,9 +1917,9 @@ proc AddHogFiles { libraries properties } {
               set_global_assignment -name $file_type $cur_file -hdl_version $hdl_version
             }
           } elseif {[string first "VERILOG" $file_type] != -1 } {
-            if {[string first "95" $props] != -1 } {
+            if {[string first "1995" $props] != -1 } {
               set hdl_version "verilog_1995"
-            } elseif {[string first "01" $props] != -1 } {
+            } elseif {[string first "2001" $props] != -1 } {
               set hdl_version "verilog_2001"
             } else {
               set hdl_version "default"
@@ -1919,11 +1934,10 @@ proc AddHogFiles { libraries properties } {
             if { $ext == ".con"} {
               source $cur_file
             } elseif { $ext == ".src"} {
+              set_global_assignment  -name $file_type $cur_file
+
               # If this is a Platform Designer file then generate the system
               if {[string first "qsys" $props] != -1 } {
-	              # remove qsys from options since we used it
-                set emptyString ""
-                regsub -all {\{||qsys||\}} $props $emptyString props
                 set cmd "qsys-script --script=$cur_file"
                 if [ catch "eval exec -ignorestderr $cmd" ret opt] {
                   set makeRet [lindex [dict get $opt -errorcode] end]
@@ -1935,42 +1949,32 @@ proc AddHogFiles { libraries properties } {
                 set qsysFile "$qsysPath/$qsysName"
                 # Move file to correct directory
                 if { [file exists $qsysName] != 0} {
-                  file rename -force $qsysName $qsysFile 
+                  file rename -force $qsysName $qsysFile
                 } else {
                   Msg ERROR "Error while moving the generated qsys file to final location: $qsysName.qsys not found!";
                 }
                 if { [file exists $qsysFile] != 0} {
-                  if {[string first "noadd" $props] == -1} {
-                    set qsysFileType [FindFileType $qsysFile]
-                    set_global_assignment  -name $qsysFileType $qsysFile
-                  } else {
-                    regsub -all {noadd} $props $emptyString props
-                  } 
+                  set qsysFileType [FindFileType $qsysFile]
+                  set_global_assignment  -name $qsysFileType $qsysFile
+                  set emptyString ""
+                  regsub -all {\{*qsys||\}} $props $emptyString props
                   GenerateQsysSystem $qsysFile $props
-              } else {
-                Msg ERROR "Error while generating ip variations from qsys: $qsysFile not found!";
+                } else {
+                  Msg ERROR "Error while generating ip variations from qsys: $qsysFile not found!";
+                }
               }
             }
-          }
-        } elseif {[string first "QSYS" $file_type] != -1 } {
-          set emptyString ""
-          regsub -all {\{||\}} $props $emptyString props
-          if {[string first "noadd" $props] == -1} {
+          } elseif {[string first "QSYS" $file_type] != -1 } {
             set_global_assignment  -name $file_type $cur_file
-	        } else {
-            regsub -all {noadd} $props $emptyString props
-	        }
-          #Generate IPs
-          if {[string first "nogenerate" $props] == -1} {
-            GenerateQsysSystem $cur_file $props
+            #Generate IPs
+            if {[string first "nogenerate" $props] == -1} {
+              GenerateQsysSystem $cur_file $props
+            }
           }
-        } else {
-            set_global_assignment  -name $file_type $cur_file
         }
       }
     }
   }
-}
 }
 
 ## @brief Function used to generate a qsys system from a .qsys file.
@@ -1992,7 +1996,7 @@ proc GenerateQsysSystem {qsysFile commandOpts} {
       Msg Info "$cmd returned with $makeRet"
     }
     #Add generated IPs to project
-    set qsysIPFileList  [concat [glob -nocomplain -directory $qsysIPDir -types f *.ip *.qip ] [glob -nocomplain -directory "$qsysIPDir/synthesis" -types f *.ip *.qip ] ]
+    set qsysIPFileList  [concat [glob -nocomplain -directory $qsysIPDir -types f *.ip *.qip ] [glob -nocomplain -directory "$qsysIPDir/synthesis" -types f *.ip *.qip *.vhd *.vhdl ] ]
     foreach qsysIPFile $qsysIPFileList {
       if { [file exists $qsysIPFile] != 0} {
         set qsysIPFileType [FindFileType $qsysIPFile]
@@ -2087,7 +2091,7 @@ proc HandleIP {what_to_do xci_file ip_path runs_dir {force 0}} {
       }
     }
     if {$will_copy == 1} {
-      set ip_synth_files [glob -nocomplain $runs_dir/$xci_ip_name*]
+      set ip_synth_files [glob -nocomplain $xci_path/$xci_ip_name*]
       set ip_synth_files_rel ""
       foreach ip_synth_file $ip_synth_files {
         lappend ip_synth_files_rel  [Relative $repo_path $ip_synth_files]
@@ -2127,12 +2131,12 @@ proc HandleIP {what_to_do xci_file ip_path runs_dir {force 0}} {
       lassign [ExecuteRet xrdcp -f -r -s $remote_tar $repo_path] ret msg
       if {$ret != 0} {
         Msg CriticalWarning "Something went wrong when copying the IP files to EOS. Error message: $msg"
+      } else {
+      	Msg Info "Extracting IP files from archive to $repo_path..."
+      	::tar::untar $file_name.tar -dir $repo_path -noperms
+	Msg Info "Removing local archive"
+      	file delete $file_name.tar
       }
-      Msg Info "Extracting IP files from archive to $repo_path..."
-      ::tar::untar $file_name.tar -dir $repo_path -noperms
-      Msg Info "Removing local archive"
-      file delete $file_name.tar
-
     }
   }
   cd $old_path
@@ -2405,45 +2409,31 @@ proc Execute {args}  {
 }
 
 
-## @brief Parses .prop files in Top/$proj_name/list directory and creates a dict with the values
-#
-# @param[in] proj_name:   name of the project that requires the properties in the .prop file
-#
-proc ParseProcFile {proj_name} {
-  set property_files [glob -nocomplain "./Top/$proj_name/list/*.prop"]
-  set propDict [dict create ]
-  foreach f $property_files {
-    set fp [open $f r]
-    set file_data [read $fp]
-    close $fp
-    set data [split $file_data "\n"]
-    foreach line $data {
-      if {![regexp {^ *$} $line] & ![regexp {^ *\#} $line] } { #Exclude empty lines and comments
-      set file_and_prop [regexp -all -inline {\S+} $line]
-      dict set propDict [lindex $file_and_prop 0] "[lindex $file_and_prop 1]"
-    }
-  }
-}
-return $propDict
-}
-
-
-## @brief Gets MAX number of Threads property from .prop file in Top/$proj_name/list directory.
+## @brief Gets MAX number of Threads property from property.conf file in Top/$proj_name directory.
 #
 # If property is not set returns default = 1
 #
-# @param[in] proj_name:   name of the project
+# @param[in] proj_dir:   the top folder of the project
 #
 # @return 1 if property is not set else the value of MaxThreads
 #
-proc GetMaxThreads {proj_name} {
+proc GetMaxThreads {proj_dir} {
   set maxThreads 1
-  set propDict [ParseProcFile $proj_name]
-  if {[dict exists $propDict maxThreads]} {
-    set maxThreads [dict get $propDict maxThreads]
+  if {[file exist $proj_dir/hog.conf]} {
+    set properties [ReadConf [lindex [GetConfFiles $proj_dir] 0]]
+    if {[dict exists $properties parameters]} {
+      set propDict [dict get $properties parameters]
+      if {[dict exists $propDict MAX_THREADS]} {
+        set maxThreads [dict get $propDict MAX_THREADS]
+      }
+    }
+  } else {
+    Msg Warning "File $proj_dir/hog.conf not found. Max threads will be set to default value 1"
   }
   return $maxThreads
 }
+
+
 
 ## @brief Returns the gitlab-ci.yml snippet for a CI stage and a defined project
 #
@@ -2523,3 +2513,102 @@ proc ResetRepoFiles {reset_file} {
     }
   }
 }
+
+## Search the Hog projects inside a directory
+#
+#  @param[in]    dir The directory to search
+#
+#  @return       The list of projects
+#
+
+proc SearchHogProjects {dir} {
+  set projects_list {}
+  if {[file exists $dir]} {
+    if {[file isdirectory $dir]} {
+      foreach proj_dir [glob -type d $dir/* ] {
+        set index_a [string last "Top/" $proj_dir]
+        set index_a [expr $index_a + 4]
+        set proj_name [string range $proj_dir $index_a [string length $proj_dir]]
+        if {[file exists $proj_dir/$proj_name.tcl ] || [file exists "$proj_dir/hog.conf" ] } {
+          lappend projects_list $proj_name
+        } else {
+          lappend projects_list [SearchHogProjects $proj_dir]
+        }
+      }
+    } else {
+      Msg Error "Input $dir is not a directory!"
+    }
+  } else {
+    Msg Error "Directory $dir doesn't exist!"
+  }
+  return $projects_list
+}
+
+## Read a property configuration file and returns a dictionary
+#
+#  @param[in]    file_name the configuration file
+#
+#  @return       The dictionary
+#
+proc ReadConf {file_name} {
+  package require inifile 0.2.3
+
+  ::ini::commentchar "#"
+  set f [::ini::open $file_name]
+  set properties [dict create]
+  foreach sec [::ini::sections $f] {
+
+    #if {[string match "impl*" [string tolower $sec]]} {
+    #  set new_sec impl_1
+    #} elseif {[string match "synth*" [string tolower $sec]]} {
+    #  set new_sec synth_1
+    #} else {
+    set new_sec $sec
+    #}
+
+    set key_pairs [::ini::get $f $sec]
+
+    #manipulate strings here:
+    regsub -all {\{\"} $key_pairs "{" key_pairs
+    #" Comment for VSCode
+    regsub -all {\"\}} $key_pairs "}" key_pairs
+
+    dict set properties $new_sec [dict create {*}$key_pairs]
+  }
+
+  ::ini::close $f
+
+  return $properties
+}
+
+## Write a property configuration file from a dictionary
+#
+#  @param[in]    file_name the configuration file
+#  @param[in]    config the configuration dictionary
+#  @param[in]    comment comment to add at the beginning of configuration file
+#
+#
+proc WriteConf {file_name config {comment ""}} {
+  package require inifile 0.2.3
+
+  ::ini::commentchar "#"
+  set f [::ini::open $file_name w]
+
+  foreach sec [dict keys $config] {
+    set section [dict get $config $sec]
+    dict for {p v} $section {
+      ::ini::set $f $sec $p $v
+    }
+  }
+
+  #write comment before the first section (first line of file)
+  if {![string equal "$comment"  ""]} {
+    ::ini::comment $f [lindex [::ini::sections $f] 0] "" $comment
+  }
+  ::ini::commit $f
+
+  ::ini::close $f
+
+}
+
+

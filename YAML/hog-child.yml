@@ -89,7 +89,7 @@
      artifacts:
        name: simulation_files
        paths:
-         - $CI_PROJECT_DIR/Projects/$PROJECT_NAME/$PROJECT_NAME.sim
+         - $CI_PROJECT_DIR/Projects/$PROJECT_NAME/*.sim
          - $CI_PROJECT_DIR/SkippedProjects/$PROJECT_NAME
        expire_in: 30 day
      allow_failure: true
@@ -205,7 +205,7 @@ collect_artifacts:
         - mkdir -p $CI_PROJECT_DIR/bin
         - "printf \"## Repository info\n- Merge request number: $CI_MERGE_REQUEST_IID\n- Branch name: $CI_COMMIT_REF_SLUG\n\n\" > $CI_PROJECT_DIR/bin/note.md"
         - ./Hog/Other/Changelog.sh $CI_MERGE_REQUEST_TARGET_BRANCH_NAME >> $CI_PROJECT_DIR/bin/note.md
-        - diff_files=$(shopt -s nullglob dotglob; echo $CI_PROJECT_DIR/bin/*/diff*.txt);
+        - diff_files=$(shopt -s nullglob dotglob; find $CI_PROJECT_DIR/bin/ -name "*/diff*.txt");
         - touch mr_note.md
         - if [[ $diff_files != "" ]]; then
             echo "## Uncommitted differences" >> $CI_PROJECT_DIR/bin/note.md;
@@ -219,10 +219,12 @@ collect_artifacts:
           fi
         - note_files="versions timing"
         - for f in $note_files; do
-            files=$(shopt -s nullglob dotglob; echo $CI_PROJECT_DIR/bin/*/$f*.txt);
+            files=$(shopt -s nullglob dotglob; find $CI_PROJECT_DIR/bin/ -name "$f*.txt");
             if (( ${#files} )); then
-              cat $CI_PROJECT_DIR/bin/*/$f*.txt >> $CI_PROJECT_DIR/bin/note.md;
-              cat $CI_PROJECT_DIR/bin/*/$f*.txt >> mr_note.md;
+              for fp in $files; do 
+                cat $fp >> $CI_PROJECT_DIR/bin/note.md;
+                cat $fp >> mr_note.md;
+              done;
             fi;
           done;
         - if [[ -z "$HOG_MR_MSG" ]] || [[ $HOG_MR_MSG == '1' ]]; then

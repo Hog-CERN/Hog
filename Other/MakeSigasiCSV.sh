@@ -44,7 +44,7 @@ else
     then
         #Choose if the project is quastus, vivado, vivado_hls [...]
 
-        if ! select_command "$PROJ_DIR/$PROJ.tcl";
+        if ! select_command "$PROJ_DIR";
         then
             echo "Failed to select project type: exiting!"
             exit 1

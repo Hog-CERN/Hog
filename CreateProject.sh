@@ -18,7 +18,7 @@
 
 ## Import common functions from Other/CommonFunctions.sh in a POSIX compliant way
 #
-. $(dirname "$0")/Other/CommonFunctions.sh;
+. $(dirname "$0")/Other/CommonFunctions.sh
 
 ## @fn help_message
 #
@@ -29,13 +29,12 @@
 #
 # @param[in]    $1 the invoked command
 #
-function help_message()
-{
+function help_message() {
   echo
   echo " Hog - Create HDL project"
   echo " ---------------------------"
   echo " Create the specified Vivado or Quartus project"
-  echo " The project type is selected using the first line of the tcl script generating the project"
+  echo " The project type is selected using the first line of the hog.conf generating the project"
   echo " Following options are available: "
   echo " #vivado "
   echo " #vivadoHLS "
@@ -54,11 +53,10 @@ function help_message()
 # help_messageThis function invokes the previous functions in the correct order, passing the expected inputs and then calls the execution of the create_project.tcl script
 #
 # @param[in]    $@ all the inputs to this script
-function create_project ()
-{
+function create_project() {
   # Define directory variables as local: only main will change directory
 
-  local OLD_DIR=`pwd`
+  local OLD_DIR=$(pwd)
   local THIS_DIR="$(dirname "$0")"
 
   if [ "$1" == "-h" ] || [ "$1" == "-help" ] || [ "$1" == "--help" ] || [ "$1" == "-H" ]; then
@@ -68,8 +66,7 @@ function create_project ()
 
   cd "${THIS_DIR}"
 
-  if [ -e ../Top ]
-  then
+  if [ -e ../Top ]; then
     local DIR="../Top"
   else
     Msg Error "Top folder not found, Hog is not in a Hog-compatible HDL repository."
@@ -77,12 +74,12 @@ function create_project ()
     exit -1
   fi
 
-  if [ "a$1" == "a" ]
-  then
+  if [ "a$1" == "a" ]; then
     echo " Usage: $0 <project name>"
     echo
     echo "  Possible projects are:"
-    ls -1 $DIR
+
+    search_projects $DIR
     echo
     cd "${OLD_DIR}"
     exit -1
@@ -91,27 +88,23 @@ function create_project ()
     local PROJ_DIR="$DIR/$PROJ"
   fi
 
-  if [ -d "$PROJ_DIR" ]
-  then
+  if [ -d "$PROJ_DIR" ]; then
 
     #Choose if the project is quastus, vivado, vivado_hls [...]
-    select_command $PROJ_DIR"/"$PROJ".tcl"
-    if [ $? != 0 ]
-    then
+    select_command $PROJ_DIR
+    if [ $? != 0 ]; then
       Msg Error "Failed to select project type: exiting!"
       exit -1
     fi
 
     #select full path to executable and place it in HDL_COMPILER global variable
     select_compiler_executable $COMMAND
-    if [ $? != 0 ]
-    then
+    if [ $? != 0 ]; then
       Msg Error "Failed to get HDL compiler executable for $COMMAND"
       exit -1
     fi
 
-    if [ ! -f "${HDL_COMPILER}" ]
-    then
+    if [ ! -f "${HDL_COMPILER}" ]; then
       Msg Error "HLD compiler executable $HDL_COMPILER not found"
       cd "${OLD_DIR}"
       exit -1
@@ -119,11 +112,21 @@ function create_project ()
       Msg Info "Using executable: $HDL_COMPILER"
     fi
 
-    Msg Info "Creating project $PROJ..."
-    cd "${PROJ_DIR}"
-    "${HDL_COMPILER}" $COMMAND_OPT $PROJ.tcl
-    if [ $? != 0 ]
-    then
+    if [ $FILE_TYPE == "CONF" ]; then
+      cd "${DIR}"
+      Msg Info "Creating project $PROJ using hog.conf..."
+      "${HDL_COMPILER}" $COMMAND_OPT ../Hog/Tcl/create_project.tcl $POST_COMMAND_OPT $PROJ
+    elif [ $FILE_TYPE == "TCL" ]; then
+      cd "${PROJ_DIR}"
+      PROJ_NAME=$(basename $PROJ_DIR)
+      Msg Warning "Creating project $PROJ using $PROJ.tcl, this is deprecated and will not be supported in future Hog releases..."
+      "${HDL_COMPILER}" $COMMAND_OPT $PROJ_NAME.tcl
+    else
+      Msg Error "Unknown file type: $FILE_TPYE"
+      exit 1
+    fi
+
+    if [ $? != 0 ]; then
       Msg Error "HDL compiler returned an error state."
       cd "${OLD_DIR}"
       exit -1

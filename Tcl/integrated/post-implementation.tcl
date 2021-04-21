@@ -48,10 +48,10 @@ if {[info commands get_property] != ""} {
   Msg CriticalWarning "You seem to be running locally on tclsh, so this is a debug, the project file will be set to $proj_file and was derived from the path you launched this script from: $old_path. If you want this script to work properly in debug mode, please launch it from the top folder of one project, for example Repo/Projects/fpga1/ or Repo/Top/fpga1/"
 }
 
-set index_a [string last "Projects/" $proj_dir] 
-set index_a [expr $index_a + 8]
-set index_a [expr $index_a + 8]
+set index_a [string last "Projects/" $proj_dir]
+set index_a [expr $index_a + 9]
 set index_b [string last "/$proj_name" $proj_dir]
+set index_b [expr $index_b - 1]
 set group_name [string range $proj_dir $index_a $index_b]
 
 
@@ -65,6 +65,7 @@ if {$ret !=0} {
 
 if {$msg eq "" } {
   Msg Info "Git working directory [pwd] clean."
+  puts $group_name
   lassign [GetRepoVersions [file normalize ./Top/$group_name/$proj_name] $repo_path ] commit version
   Msg Info "Found last SHA for $proj_name: $commit"
 
@@ -74,34 +75,35 @@ if {$msg eq "" } {
 }
 
 #number of threads
+puts $group_name
 set maxThreads [GetMaxThreads [file normalize ./Top/$group_name/$proj_name]]
 if {$maxThreads != 1} {
   Msg CriticalWarning "Multithreading enabled. Number of threads: $maxThreads"
   set commit_usr   "0000000"
 } else {
- set commit_usr $commit
+  set commit_usr $commit
 }
 
 Msg Info "The git SHA value $commit will be set as bitstream USERID."
 
 # Set bitstream embedded variables
 if {[info commands send_msg_id] != ""} {
-    if { [string first PlanAhead [version]] == 0 } {
-        # get the existing "more options" so that we can append to them when adding the userid
-        set props [get_property "STEPS.BITGEN.ARGS.MORE OPTIONS" [get_runs impl_1]]
-        # need to trim off the curly braces that were used in creating a dictionary
-        regsub -all {\{|\}} $props "" props
-		set PART [get_property part [current_project]]
-		if {[string first "xc5v" $PART] != -1 || [string first "xc6v" $PART] != -1 || [string first "xc7" $PART] != -1} {
-        	set props  "$props -g usr_access:0x0$commit -g userid:0x0$commit_usr"
-		} else {
-			set props  "$props -g userid:0x0$commit_usr"
-		}
-        set_property -name {steps.bitgen.args.More Options} -value $props -objects [get_runs impl_1]
+  if { [string first PlanAhead [version]] == 0 } {
+    # get the existing "more options" so that we can append to them when adding the userid
+    set props [get_property "STEPS.BITGEN.ARGS.MORE OPTIONS" [get_runs impl_1]]
+    # need to trim off the curly braces that were used in creating a dictionary
+    regsub -all {\{|\}} $props "" props
+    set PART [get_property part [current_project]]
+    if {[string first "xc5v" $PART] != -1 || [string first "xc6v" $PART] != -1 || [string first "xc7" $PART] != -1} {
+      set props  "$props -g usr_access:0x0$commit -g userid:0x0$commit_usr"
     } else {
-        set_property BITSTREAM.CONFIG.USERID $commit [current_design]
-        set_property BITSTREAM.CONFIG.USR_ACCESS $commit_usr [current_design]
+      set props  "$props -g userid:0x0$commit_usr"
     }
+    set_property -name {steps.bitgen.args.More Options} -value $props -objects [get_runs impl_1]
+  } else {
+    set_property BITSTREAM.CONFIG.USERID $commit [current_design]
+    set_property BITSTREAM.CONFIG.USR_ACCESS $commit_usr [current_design]
+  }
 } elseif {[info commands post_message] != ""} {
   # Quartus TODO
 } else {
@@ -110,8 +112,8 @@ if {[info commands send_msg_id] != ""} {
 
 set user_post_implementation_file "./Top/$group_name/$proj_name/post-implementation.tcl"
 if {[file exists $user_post_implementation_file]} {
-    Msg Info "Sourcing user post_implementation file $user_post_implementation_file"
-    source $user_post_implementation_file
+  Msg Info "Sourcing user post_implementation file $user_post_implementation_file"
+  source $user_post_implementation_file
 }
 cd $old_path
 Msg Info "All done."

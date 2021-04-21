@@ -89,7 +89,7 @@ proc CreateProject {} {
       set_property "enable_vhdl_2008" 1 $obj
     }
 
-    
+
   } elseif {[info commands project_new] != ""} {
     package require ::quartus::project
     #QUARTUS_ONLY
@@ -396,7 +396,7 @@ proc ConfigureImplementation {} {
       #QUARTUS only
       set_global_assignment -name POST_MODULE_SCRIPT_FILE quartus_sh:$globalSettings::quartus_post_module
     }
-    Msg info "Setting $globalSettings::post_impl to be run after implementation" 
+    Msg info "Setting $globalSettings::post_impl to be run after implementation"
   }
 
   ## set pre write bitstream script
@@ -471,7 +471,7 @@ proc ConfigureProperties {} {
         set proj_props [dict get $globalSettings::PROPERTIES main]
         #set_property -dict $proj_props [current_project]
         dict for {prop_name prop_val} $proj_props {
-          
+
           if { $prop_name != "ip_repo_paths" } {
             Msg Info "Setting $prop_name = $prop_val"
             set_property $prop_name $prop_val [current_project]
@@ -485,7 +485,7 @@ proc ConfigureProperties {} {
             } else  {
               set_property  ip_repo_paths "$ip_repo_list" [current_project]
             }
-			      update_ip_catalog
+            update_ip_catalog
           }
 
         }
@@ -703,6 +703,7 @@ set globalSettings::build_dir                   "$globalSettings::repo_path/$bui
 set globalSettings::modelsim_path               "$globalSettings::repo_path/SimulationLib"
 set globalSettings::DESIGN                      [file tail $globalSettings::DESIGN]
 set globalSettings::top_name                    [file tail $globalSettings::DESIGN]
+set globalSettings::top_name                    [file root $globalSettings::top_name]
 set globalSettings::synth_top_module            "top_$globalSettings::top_name"
 set globalSettings::user_ip_repo                "$globalSettings::repo_path/IP_repository"
 

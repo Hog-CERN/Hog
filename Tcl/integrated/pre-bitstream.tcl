@@ -34,8 +34,9 @@ if {[info commands get_property] != ""} {
     set proj_name  [file tail [get_property DIRECTORY [current_project]]]
   } else {
     # vivado
-    set proj_name [file tail [file normalize $old_path/../..]]
     set proj_file [get_property parent.project_path [current_project]]
+    set proj_dir [file normalize [file dirname $proj_file]]
+    set proj_name [file rootname [file tail $proj_file]]
   }
   set index_a [string last "Projects/" $proj_dir]
   set index_a [expr $index_a + 9]

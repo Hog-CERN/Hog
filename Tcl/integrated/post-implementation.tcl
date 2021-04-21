@@ -65,7 +65,6 @@ if {$ret !=0} {
 
 if {$msg eq "" } {
   Msg Info "Git working directory [pwd] clean."
-  puts $group_name
   lassign [GetRepoVersions [file normalize ./Top/$group_name/$proj_name] $repo_path ] commit version
   Msg Info "Found last SHA for $proj_name: $commit"
 
@@ -75,7 +74,6 @@ if {$msg eq "" } {
 }
 
 #number of threads
-puts $group_name
 set maxThreads [GetMaxThreads [file normalize ./Top/$group_name/$proj_name]]
 if {$maxThreads != 1} {
   Msg CriticalWarning "Multithreading enabled. Number of threads: $maxThreads"

@@ -35,11 +35,7 @@ if {[info commands get_property] != ""} {
   }
   set proj_dir [file normalize [file dirname $proj_file]]
   set proj_name [file rootname [file tail $proj_file]]
-  set index_a [string last "Projects/" $proj_dir]
-  set index_a [expr $index_a + 9]
-  set index_b [string last "/$proj_name" $proj_dir]
-  set index_b [expr $index_b - 1]
-  set group_name [string range $proj_dir $index_a $index_b]
+  set group_name [GetGroupName $proj_dir]
 } else {
   #Tclssh
   set proj_file $old_path/[file tail $old_path].xpr

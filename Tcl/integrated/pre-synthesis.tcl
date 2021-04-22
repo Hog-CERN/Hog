@@ -59,7 +59,7 @@ if {[info commands get_property] != ""} {
   set proj_dir [file normalize "$repo_path/Projects/$proj_name"]
   set proj_file [file normalize "$proj_dir/$proj_name.qpf"]
   # Test generated files
-  set hogQsysFileName [file normalize "$proj_dir/.hog.md5sum"]
+  set hogQsysFileName [file normalize "$proj_dir/.hog/.hogQsys.md5"]
   if { [file exists $hogQsysFileName] != 0} {
     set hogQsysFile [open $hogQsysFileName r]
     set hogQsysFileLines [split [read $hogQsysFile] "\n"]

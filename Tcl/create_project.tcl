@@ -728,7 +728,9 @@ UpgradeIP
 
 if {[info commands project_new] != ""} {
   set fileName_old [file normalize "./hogTmp/.hogQsys.md5"]
-  set fileName_new [file normalize "$globalSettings::build_dir/.hogQsys.md5"]
+  set fileDir  [file normalize "$globalSettings::build_dir/.hog/"]
+  file mkdir $fileDir
+  set fileName_new [file normalize "$fileDir/.hogQsys.md5"]
   if{[file exists $fileName_new]} {
     file delete -force $fileName_new
   }

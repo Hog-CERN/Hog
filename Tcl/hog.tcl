@@ -1952,7 +1952,16 @@ proc AddHogFiles { libraries properties } {
                   file rename -force $qsysName $qsysFile
                   # Write checksum to file
                   set qsysMd5Sum [Md5Sum $qsysFile]
-                  #TODO
+                  # open file for writing
+                  set fileDir [file normalize "./hogTmp"]
+                  set fileName "$fileDir/.hogQsys.md5"
+                  if {![file exists $fileDir]} {
+                    file mkdir $fileDir
+                  }
+                  set hogQsysFile [open $filename "a"]
+                  set fileEntry "$qsysFile\t$qsysMd5Sum"
+                  puts $hogQsysFile $fileEntry
+                  close $hogQsysFile
                 } else {
                   Msg ERROR "Error while moving the generated qsys file to final location: $qsysName.qsys not found!";
                 }
@@ -2006,7 +2015,16 @@ proc GenerateQsysSystem {qsysFile commandOpts} {
         set_global_assignment -name $qsysIPFileType $qsysIPFile
         # Write checksum to file
         set IpMd5Sum [Md5Sum $qsysIPFile]
-        #TODO
+        # open file for writing
+        set fileDir [file normalize "./hogTmp"]
+        set fileName "$fileDir/.hogQsys.md5"
+        if {![file exists $fileDir]} {
+          file mkdir $fileDir
+        }
+        set hogQsysFile [open $filename "a"]
+        set fileEntry "$qsysFile\t$qsysMd5Sum"
+        puts $hogQsysFile $fileEntry
+        close $hogQsysFile
       }
     }
   } else {

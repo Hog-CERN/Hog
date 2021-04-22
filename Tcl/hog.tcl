@@ -1958,7 +1958,7 @@ proc AddHogFiles { libraries properties } {
                   if {![file exists $fileDir]} {
                     file mkdir $fileDir
                   }
-                  set hogQsysFile [open $filename "a"]
+                  set hogQsysFile [open $fileName "a"]
                   set fileEntry "$qsysFile\t$qsysMd5Sum"
                   puts $hogQsysFile $fileEntry
                   close $hogQsysFile
@@ -2021,8 +2021,8 @@ proc GenerateQsysSystem {qsysFile commandOpts} {
         if {![file exists $fileDir]} {
           file mkdir $fileDir
         }
-        set hogQsysFile [open $filename "a"]
-        set fileEntry "$qsysFile\t$qsysMd5Sum"
+        set hogQsysFile [open $fileName "a"]
+        set fileEntry "$qsysIPFile\t$IpMd5Sum"
         puts $hogQsysFile $fileEntry
         close $hogQsysFile
       }

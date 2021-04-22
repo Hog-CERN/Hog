@@ -66,10 +66,16 @@ if {[info commands get_property] != ""} {
     foreach line $hogQsysFileLines {
       set fileEntry [split $line "\t"]
       set fileEntryName [lindex $fileEntry 0]
-      set newMd5Sum [Md5sum $fileEntryName]
-      set oldMd5Sum [lindex $fileEntry 1]
-      if { $newMd5Sum != $oldMd5Sum } {
-        Msg Warning "The checksum for file $fileEntryName not equal to the one saved in $hogQsysFileName: new checksum $newMd5Sum, old checksum $oldMd5Sum. Please check the any changes in the file are correctly propagated to git!"
+      if {$fileEntryName != ""} {
+        if {[file exists $fileEntryName]} {
+          set newMd5Sum [Md5Sum $fileEntryName]
+          set oldMd5Sum [lindex $fileEntry 1]
+          if { $newMd5Sum != $oldMd5Sum } {
+            Msg Warning "The checksum for file $fileEntryName not equal to the one saved in $hogQsysFileName: new checksum $newMd5Sum, old checksum $oldMd5Sum. Please check the any changes in the file are correctly propagated to git!"
+          }
+        } else {
+          Msg Warning "File $fileEntryName not found... Will not check Md5Sum!"
+        }
       }
     }
     

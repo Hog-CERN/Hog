@@ -731,8 +731,8 @@ if {[info commands project_new] != ""} {
   set fileDir  [file normalize "$globalSettings::build_dir/.hog/"]
   file mkdir $fileDir
   set fileName_new [file normalize "$fileDir/.hogQsys.md5"]
-  if{[file exists $fileName_new]} {
-    file delete -force $fileName_new
+  if {[file exists $fileName_new]} {
+    file delete $fileName_new
   }
   file rename -force $fileName_old $fileName_new
   file delete -force -- "./hogTmp"

@@ -34,14 +34,12 @@ if {[info commands get_property] != ""} {
     set proj_name  [file tail [get_property DIRECTORY [current_project]]]
   } else {
     # vivado
-    set proj_name [file tail [file normalize $old_path/../..]]
     set proj_file [get_property parent.project_path [current_project]]
+    set proj_dir [file normalize [file dirname $proj_file]]
+    set proj_name [file rootname [file tail $proj_file]]
   }
-  set proj_dir [file normalize [file dirname $proj_file]]
-  set index_a [string last "Projects/" $proj_dir]
-  set index_a [expr $index_a + 8]
-  set index_b [string last "/$proj_name" $proj_dir]
-  set group_name [string range $proj_dir $index_a $index_b]
+
+  set group_name [GetGroupName $proj_dir]
 
 } else {
   #Tclssh
@@ -59,10 +57,10 @@ if {$maxThreads != 1} {
 }
 
 if {[info commands get_property] != ""} {
-    # Vivado
+  # Vivado
   set_param general.maxThreads $maxThreads
 } else {
-    #Tclssh
+  #Tclssh
 }
 
 ######## Reset files before bitstream creation ###########
@@ -70,8 +68,8 @@ ResetRepoFiles "./Projects/hog_reset_files"
 
 set user_pre_bitstream_file "./Top/$group_name/$proj_name/pre-bitstream.tcl"
 if {[file exists $user_pre_bitstream_file]} {
-    Msg Info "Sourcing user pre-bitstream file $user_pre_bitstream_file"
-    source $user_pre_bitstream_file
+  Msg Info "Sourcing user pre-bitstream file $user_pre_bitstream_file"
+  source $user_pre_bitstream_file
 }
 
 cd $old_path

@@ -2568,6 +2568,25 @@ proc SearchHogProjects {dir} {
   return $projects_list
 }
 
+## Returns the group name from the project directory
+#
+#  @param[in]    proj_dir project directory
+#
+#  @return       the group name without initial and final slashes
+#
+proc GetGroupName {proj_dir} {
+  if {[regexp {^.*Projects/+(.*?)/*$} $proj_dir dummy dir]} {
+    set group [file dir $dir]
+    if { $group == "." } {
+      set group ""
+    }
+  } else {
+    Msg Warning "Could not parse project directory $proj_dir"
+    set group ""
+  }
+  return $group
+}
+
 ## Read a property configuration file and returns a dictionary
 #
 #  @param[in]    file_name the configuration file

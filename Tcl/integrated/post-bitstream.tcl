@@ -87,11 +87,7 @@ if {[info commands get_property] != ""} {
   set bin_dir [file normalize "$repo_path/bin"]
 }
 
-set index_a [string last "Projects/" $proj_dir]
-set index_a [expr $index_a + 8]
-set index_b [string last "/$proj_name" $proj_dir]
-set group_name [string range $proj_dir $index_a $index_b]
-
+set group_name [GetGroupName $proj_dir]
 
 # Vivado
 if {[info commands get_property] != "" && [file exists $bit_file]} {
@@ -172,7 +168,7 @@ if {[info commands get_property] != "" && [file exists $bit_file]} {
   #Quartus
   # Go to repository path
   cd $tcl_path/../../
- 
+
   Msg Info "Evaluating Git sha for $name... repo_path: $repo_path"
   puts "$repo_path repo_path"
   lassign [GetRepoVersions "$repo_path/Top/$name" "$repo_path"] sha
@@ -230,7 +226,7 @@ if {[info commands get_property] != "" && [file exists $bit_file]} {
   #rbf rpd
   if { [file exists $rbf_file] ||  [file exists $rpd_file] } {
     if [file exists $rbf_file] {
-    file copy -force $rbf_file $dst_rbf
+      file copy -force $rbf_file $dst_rbf
     }
     if [file exists $rpd_file] {
       file copy -force $rpd_file $dst_rpd
@@ -270,8 +266,8 @@ if [file exists $xml_dir] {
 
 set user_post_bitstream_file "./Top/$group_name/$proj_name/post-bitstream.tcl"
 if {[file exists $user_post_bitstream_file]} {
-    Msg Info "Sourcing user post-bitstream file $user_post_bitstream_file"
-    source $user_post_bitstream_file
+  Msg Info "Sourcing user post-bitstream file $user_post_bitstream_file"
+  source $user_post_bitstream_file
 }
 
 cd $old_path

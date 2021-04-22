@@ -29,6 +29,8 @@
    rules:
       - if: '$CI_COMMIT_REF_NAME =~ /^test\/.*$/i'
         when: never
+      - if: '$CI_COMMIT_MESSAGE =~ /DOXYGEN_ONLY/'
+        when: never
       - if: '$CI_MERGE_REQUEST_TITLE =~ /^Draft:.*$/ && $CI_COMMIT_MESSAGE !~ /^RESOLVE_WIP:/'
         when: never
       - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /^master.*$/ && $HOG_TARGET_BRANCH == null'
@@ -67,13 +69,14 @@ merge_and_tag:
           tclsh ./Hog/Tcl/utils/check_yaml_ref.tcl;
       fi;
     - tclsh ./Hog/Tcl/CI/merge_and_tag.tcl -mr_par "$MR_PARAMETERS" -mr_id $CI_MERGE_REQUEST_IID -push $CI_COMMIT_REF_NAME -main_branch $CI_MERGE_REQUEST_TARGET_BRANCH_NAME $INCREASE;
+  interruptible: true
 
 make_doxygen:
     <<: *only-default-doxygen
     tags:
      - docker
     image: gitlab-registry.cern.ch/hog/hog-docker:doxygen
-    stage: collect
+    stage: generation_and_simulation
     variables:
         <<: *vars
     script:
@@ -85,6 +88,7 @@ make_doxygen:
         expire_in: 10 years
     dependencies: []
     allow_failure: true
+    interruptible: true
 
 tag_official_version:
   <<: *tag-sr

@@ -76,7 +76,7 @@
          - $CI_PROJECT_DIR/SkippedProjects/$PROJECT_NAME
        expire_in: 30 day
      allow_failure: true
-    interruptible: true
+     interruptible: true
 
 .generate_project: &generate_project
     <<: *only-default

@@ -89,6 +89,25 @@ function init() {
     else
       echo [hog init] "WARNING: No modelsim executable found, will not compile libraries"
     fi
+    ## Riviera
+    if [ $(which riviera) ]; then
+      echo
+      ##! If Riviera is installed ask user if he wants to compile
+      ##! NOTE use read to grab user input
+      ##! NOTE if the user input contains Y or y then is accepted as yes
+      read -p "Do you want to compile Riviera libraries for Vivado (this might take some time)? " -n 1 -r
+      echo
+      if [[ "${REPLY}" =~ ^[Yy]$ ]]; then
+        echo [hog init] Compiling Riviera libraries into SimulationLib...
+        "${VIVADO}" -mode batch -notrace -source ./Tcl/utils/compile_riviera.tcl
+        rm -f ./Tcl/.cxl.questasim.version
+        rm -f ./Tcl/compile_simlib.log
+        rm -f ./Tcl/modelsim.ini
+      fi
+    else
+      echo [hog init] "WARNING: No modelsim executable found, will not compile libraries"
+    fi
+
   fi
 
   # REpeat compilation using Quartus

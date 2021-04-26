@@ -63,10 +63,10 @@ set old_path [pwd]
 cd $path
 source ./hog.tcl
 Msg Info "Simulation library path is set to $lib_path."
-set vsim_ok 1
+set simlib_ok 1
 if !([file exists $lib_path]) {
   Msg Warning "Could not find simulation library path: $lib_path, Modelsim/Questasim simulation will not work."
-  set vsim_ok 0
+  set simlib_ok 0
 }
 
 ############# CREATE or OPEN project ############
@@ -112,7 +112,7 @@ foreach s [get_filesets] {
       Msg Info "$n lines read from $filename"
 
       set firstline [lindex $data 0]
-            #find simulator
+      #find simulator
       if { [regexp {^ *\#Simulator} $firstline] } {
         set simulator_prop [regexp -all -inline {\S+} $firstline]
         set simulator [lindex $simulator_prop 1]
@@ -133,7 +133,7 @@ foreach s [get_filesets] {
           incr errors
         }
       } else {
-        if {$vsim_ok == 1} {
+        if {$simlib_ok == 1} {
           set_property "compxlib.${simulator}_compiled_library_dir" $lib_path [current_project]
           launch_simulation -scripts_only -simset [get_filesets $s]
           set top_name [get_property TOP $s]
@@ -141,7 +141,7 @@ foreach s [get_filesets] {
           Msg Info "Adding simulation script location $sim_script for $s..."
           lappend sim_scripts $sim_script
         } else {
-          Msg Error "Cannot run Modesim/Questasim simulations witouth a valid library path"
+          Msg Error "Cannot run $simulator simulations witouth a valid library path"
           exit -1
         }
       }
@@ -150,52 +150,52 @@ foreach s [get_filesets] {
 }
 
 if [info exists sim_scripts] { #Only for modelsim/questasim
-  Msg Info "Generating IP simulation targets, if any..."
+Msg Info "Generating IP simulation targets, if any..."
 
-  foreach ip [get_ips] {
-    generate_target simulation $ip
+foreach ip [get_ips] {
+  generate_target simulation $ip
+}
+
+foreach s $sim_scripts {
+  cd $s
+  set cmd ./compile.sh
+  Msg Info "Compiling: $cmd..."
+  lassign [ExecuteRet $cmd] ret log
+  if {$ret != 0} {
+    Msg CriticalWarning "Compilation failed for $s, error info: $::errorInfo"
+    incr errors
   }
+  Msg Info "Compilation log starts:"
+  Msg Status "\n\n$log\n\n"
+  Msg Info "Compilation log ends"
 
-  foreach s $sim_scripts {
-    cd $s
-    set cmd ./compile.sh
-    Msg Info "Compiling: $cmd..."
+  if { [file exists "./elaborate.sh"] } {
+    set cmd ./elaborate.sh
+    Msg Info "Found eleborate script, executing: $cmd..."
     lassign [ExecuteRet $cmd] ret log
     if {$ret != 0} {
-      Msg CriticalWarning "Compilation failed for $s, error info: $::errorInfo"
+      Msg CriticalWarning "Elaboration failed for $s, error info: $::errorInfo"
       incr errors
     }
-    Msg Info "Compilation log starts:"
+    Msg Info "Elaboration log starts:"
     Msg Status "\n\n$log\n\n"
-    Msg Info "Compilation log ends"
-
-    if { [file exists "./elaborate.sh"] } {
-      set cmd ./elaborate.sh
-      Msg Info "Found eleborate script, executing: $cmd..."
-      lassign [ExecuteRet $cmd] ret log
-      if {$ret != 0} {
-        Msg CriticalWarning "Elaboration failed for $s, error info: $::errorInfo"
-        incr errors
-      }
-      Msg Info "Elaboration log starts:"
-      Msg Status "\n\n$log\n\n"
-      Msg Info "Elaboration log ends"
-    }
-    set cmd ./simulate.sh
-    Msg Info "Simulating: $cmd..."
-    lassign [ExecuteRet $cmd] ret log
-    if {$ret != 0} {
-      Msg CriticalWarning "Simulation failed for $s, error info: $::errorInfo"
-      incr errors
-    }
-    Msg Info "Simulation log starts:"
-    Msg Status "\n\n$log\n\n"
-    Msg Info "Simulation log ends"
+    Msg Info "Elaboration log ends"
   }
+  set cmd ./simulate.sh
+  Msg Info "Simulating: $cmd..."
+  lassign [ExecuteRet $cmd] ret log
+  if {$ret != 0} {
+    Msg CriticalWarning "Simulation failed for $s, error info: $::errorInfo"
+    incr errors
+  }
+  Msg Info "Simulation log starts:"
+  Msg Status "\n\n$log\n\n"
+  Msg Info "Simulation log ends"
+}
 }
 
 if {$errors > 0} {
-  Msg Error "Simualtion failed, there were $errors failures. Look above for details."
+  Msg Error "Simulation failed, there were $errors failures. Look above for details."
   exit -1
 } else {
   Msg Info "All simulations (if any) were successful."

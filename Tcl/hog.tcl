@@ -2539,7 +2539,9 @@ proc SearchHogProjects {dir} {
         if {[file exists $proj_dir/$proj_name.tcl ] || [file exists "$proj_dir/hog.conf" ] } {
           lappend projects_list $proj_name
         } else {
-          lappend projects_list [SearchHogProjects $proj_dir]
+          foreach p [SearchHogProjects $proj_dir] {
+            lappend projects_list $p
+          }
         }
       }
     } else {

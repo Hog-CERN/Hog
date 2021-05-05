@@ -341,7 +341,9 @@ puts $status_file [m format 2string]
 puts $status_file "\n\n"
 close $status_file
 
-CheckYmlRef [file normalize $tcl_path/../..] true
+if {[info commands project_new] == ""} {
+  CheckYmlRef [file normalize $tcl_path/../..] true
+}
 
 set user_pre_synthesis_file "./Top/$group_name/$proj_name/pre-synthesis.tcl"
 if {[file exists $user_pre_synthesis_file]} {

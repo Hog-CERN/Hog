@@ -86,7 +86,7 @@ lassign [GetRepoVersions [file normalize $repo_path/Top/$group_name/$proj_name] 
 
 # Check if repository has v0.0.1 tag
 lassign [GitRet "tag -l v0.0.1" ] status result
-if {$status == 1}{
+if {$status == 1} {
   Msg CriticalWarning "Repository does not have an initial v0.0.1 tag yet. Please create it with \"git tag v0.0.1\" "
 }
 

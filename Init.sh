@@ -197,7 +197,7 @@ function init() {
   ##! NOTE if the user input contains Y or y then is accepted as yes
   if [ $(which vivado) ]; then
     echo
-    read -p "Do you want to add a button to the Vivado GUI to update the list files automatically? " -n 1 -r
+    read -p "Do you want to add two buttons to the Vivado GUI to update the list files and the project hog.conf file automatically? " -n 1 -r
     echo # (optional) move to a new line
     if [[ "${REPLY}" =~ ^[Yy]$ ]]; then
       vivado -mode batch -notrace -source $DIR/Tcl/utils/add_hog_custom_button.tcl

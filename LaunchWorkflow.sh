@@ -18,7 +18,7 @@
 
 ## Import common functions from Other/CommonFunctions.sh in a POSIX compliant way
 #
-. $(dirname "$0")/Other/CommonFunctions.sh;
+. $(dirname "$0")/Other/CommonFunctions.sh
 print_hog $(dirname "$0")
 ## @function argument_parser()
 #  @brief pase aguments and sets evvironment variables
@@ -34,123 +34,115 @@ print_hog $(dirname "$0")
 #  @param[out] PARAMS       positional parameters
 #  @return                  1 if error or help, else 0
 
-
 function argument_parser() {
-PARAMS=""
-while (( "$#" )); do
-    case "$1" in
-	-njobs)
-	    NJOBS="-njobs $2"
-	    shift 2
-	    ;;
-	-ip_eos_path)
-	    IP_PATH="-ip_eos_path $2"
-	    shift 2
-	    ;;
-	-impl_only)
-	    IMPL_ONLY="-impl_only"
-	    shift 1
-	    ;;
-	-no_recreate)
-	    NO_RECREATE="-no_recreate"
-	    shift 1
-	    ;;
-	-ext_path)
-	    EXT_PATH="-ext_path $2"
-	    shift 2
-	    ;;
-	-no_bitstream)
-	    NO_BITSTREAM="-no_bitstream"
-	    shift 1
-	    ;;
-	-synth_only)
-	    SYNTH_ONLY="-synth_only"
-	    shift 1
-	    ;;
-	-reset)
-	    RESET="-reset"
-	    shift 1
-	    ;;
-	-check_syntax)
-	    CHECK_SYNTAX="-check_syntax"
-	    shift 1
-	    ;;
-	-?|-h|-help)
-	    HELP="-h"
-	    shift 1
-	    ;;
-	--) # end argument parsing
-	    shift
-	    break
-	    ;;
-	-*|--*=) # unsupported flags
-	    Msg Error "Unsupported flag $1" >&2
-	    return 1
-	    ;;
-	*) # preserve positional arguments
-	    PARAMS="$PARAMS $1"
-	    shift
-	    ;;
-    esac
-done
-# set positional arguments in their proper place
+	PARAMS=""
+	while (("$#")); do
+		case "$1" in
+		-njobs)
+			NJOBS="-njobs $2"
+			shift 2
+			;;
+		-ip_eos_path)
+			IP_PATH="-ip_eos_path $2"
+			shift 2
+			;;
+		-impl_only)
+			IMPL_ONLY="-impl_only"
+			shift 1
+			;;
+		-no_recreate)
+			NO_RECREATE="-no_recreate"
+			shift 1
+			;;
+		-ext_path)
+			EXT_PATH="-ext_path $2"
+			shift 2
+			;;
+		-no_bitstream)
+			NO_BITSTREAM="-no_bitstream"
+			shift 1
+			;;
+		-synth_only)
+			SYNTH_ONLY="-synth_only"
+			shift 1
+			;;
+		-reset)
+			RESET="-reset"
+			shift 1
+			;;
+		-check_syntax)
+			CHECK_SYNTAX="-check_syntax"
+			shift 1
+			;;
+		-? | -h | -help)
+			HELP="-h"
+			shift 1
+			;;
+		--) # end argument parsing
+			shift
+			break
+			;;
+		-* | --*=) # unsupported flags
+			Msg Error "Unsupported flag $1" >&2
+			return 1
+			;;
+		*) # preserve positional arguments
+			PARAMS="$PARAMS $1"
+			shift
+			;;
+		esac
+	done
+	# set positional arguments in their proper place
 }
 
-DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 argument_parser $@
 if [ $? = 1 ]; then
-  exit 1
+	exit 1
 fi
 eval set -- "$PARAMS"
-if [ -z "$1" ]
-then
-  printf "Project name has not been specified. Usage: \n"
-  printf " LaunchWorkflow.sh <project name> [-reset] [-check_syntax] [-no_bitstream | -synth_only] [-impl_only] [-no_recreate] [-njobs <number of jobs>] [-ext_path <external path>] [-ip_eos_path <path to IP repository on EOS>]\n\n"
-  printf " For a detailed explanation of all the option, type LaunchWorkflow.sh <project name> -h.\n"
-  printf " The project name is needed by Hog to tell which HDL software to use: Vivado, Quartus, etc.\n\n"
-  printf "Possible projects are:"
-  printf "`ls $DIR/../Top`"
-  cd "${OLD_DIR}"
-  exit -1
+if [ -z "$1" ]; then
+	printf "Project name has not been specified. Usage: \n"
+	printf " LaunchWorkflow.sh <project name> [-reset] [-check_syntax] [-no_bitstream | -synth_only] [-impl_only] [-no_recreate] [-njobs <number of jobs>] [-ext_path <external path>] [-ip_eos_path <path to IP repository on EOS>]\n\n"
+	printf " For a detailed explanation of all the option, type LaunchWorkflow.sh <project name> -h.\n"
+	printf " The project name is needed by Hog to tell which HDL software to use: Vivado, Quartus, etc.\n\n"
+	printf "Possible projects are:\n"
+	printf "$(search_projects $DIR/../Top)\n"
+	cd "${OLD_DIR}"
+	exit -1
 else
-  PROJ=$1
-  PROJ_DIR="$DIR/../Top/"$PROJ
-  if [ -d "$PROJ_DIR" ]
-  then
+	PROJ=$1
+	PROJ_DIR="$DIR/../Top/"$PROJ
+	if [ -d "$PROJ_DIR" ]; then
 
-    #Choose if the project is quastus, vivado, vivado_hls [...]
-    select_executable_from_project_dir "$PROJ_DIR"
-    if [ $? != 0 ]
-    then
-      Msg Error "Failed to get HDL compiler executable for $PROJ_DIR"
-      exit -1
-    fi
+		#Choose if the project is quastus, vivado, vivado_hls [...]
+		select_executable_from_project_dir "$PROJ_DIR"
+		if [ $? != 0 ]; then
+			Msg Error "Failed to get HDL compiler executable for $PROJ_DIR"
+			exit -1
+		fi
 
-    if [ ! -f "${HDL_COMPILER}" ]
-    then
-      Msg Error "HLD compiler executable $HDL_COMPILER not found"
-      cd "${OLD_DIR}"
-      exit -1
-    else
-      Msg Info "Using executable: $HDL_COMPILER"
-    fi
-    if [ $COMMAND = "quartus_sh" ]
-    then
-      if [ "a$IP_PATH" != "a" ]
-      then
-        Msg Warning "IP eos path not supported in Quartus mode"
-      fi
-      ${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_quartus.tcl $HELP $RESET $NO_BITSTREAM $SYNTH_ONLY $NJOBS $CHEK_SYNTAX $NO_RECREATE $EXT_PATH $IMPL_ONLY -project $1
-    elif [ $COMMAND = "vivado_hls" ]
-    then
-      Msg Error "Vivado HLS is not yet supported by this script!"
-    else
-      ${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_workflow.tcl -tclargs $HELP $RESET $NO_BITSTREAM $SYNTH_ONLY $IP_PATH $NJOBS $CHEK_SYNTAX $NO_RECREATE $EXT_PATH $IMPL_ONLY $1
-    fi
-  else
-    Msg Error "Project $PROJ not found. Possible projects are:"
-    echo "`ls ./Top`"
-    cd "${OLD_DIR}"
-    exit -1
-  fi
+		if [ ! -f "${HDL_COMPILER}" ]; then
+			Msg Error "HLD compiler executable $HDL_COMPILER not found"
+			cd "${OLD_DIR}"
+			exit -1
+		else
+			Msg Info "Using executable: $HDL_COMPILER"
+		fi
+		if [ $COMMAND = "quartus_sh" ]; then
+			if [ "a$IP_PATH" != "a" ]; then
+				Msg Warning "IP eos path not supported in Quartus mode"
+			fi
+			${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_quartus.tcl $HELP $RESET $NO_BITSTREAM $SYNTH_ONLY $NJOBS $CHEK_SYNTAX $NO_RECREATE $EXT_PATH $IMPL_ONLY -project $1
+		elif [ $COMMAND = "vivado_hls" ]; then
+			Msg Error "Vivado HLS is not yet supported by this script!"
+		else
+			${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_workflow.tcl -tclargs $HELP $RESET $NO_BITSTREAM $SYNTH_ONLY $IP_PATH $NJOBS $CHEK_SYNTAX $NO_RECREATE $EXT_PATH $IMPL_ONLY $1
+		fi
+	else
+		Msg Error "Project $PROJ not found. Possible projects are:"
+		search_projects Top
+		cd "${OLD_DIR}"
+		exit -1
+	fi
 fi

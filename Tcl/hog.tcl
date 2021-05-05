@@ -1745,6 +1745,8 @@ proc AddHogFiles { libraries properties } {
           set simulation  [get_filesets $file_set]
           set_property -name {modelsim.compile.vhdl_syntax} -value {2008} -objects $simulation
           set_property -name {questa.compile.vhdl_syntax} -value {2008} -objects $simulation
+          set_property -name {riviera.compile.vhdl_syntax} -value {2008} -objects $simulation
+
           set_property SOURCE_SET sources_1 $simulation
         }
       }
@@ -1764,8 +1766,10 @@ proc AddHogFiles { libraries properties } {
         if {$ext == ".sim"} {
           set_property "modelsim.simulate.custom_wave_do" "" [get_filesets $file_set]
           set_property "questa.simulate.custom_wave_do" "" [get_filesets $file_set]
+          set_property "riviera.simulate.custom_wave_do" "" [get_filesets $file_set]
           set_property "modelsim.simulate.custom_udo" "" [get_filesets $file_set]
           set_property "questa.simulate.custom_udo" "" [get_filesets $file_set]
+          set_property "riviera.simulate.custom_udo" "" [get_filesets $file_set]
         }
         # Add Properties
         foreach f $lib_files {
@@ -1835,6 +1839,7 @@ proc AddHogFiles { libraries properties } {
             set_property -name {xsim.simulate.runtime} -value $sim_runtime -objects [get_filesets $file_set]
             set_property -name {modelsim.simulate.runtime} -value $sim_runtime -objects [get_filesets $file_set]
             set_property -name {questa.simulate.runtime} -value $sim_runtime -objects [get_filesets $file_set]
+            set_property -name {riviera.simulate.runtime} -value $sim_runtime -objects [get_filesets $file_set]
           }
 
           # Wave do file
@@ -1844,6 +1849,7 @@ proc AddHogFiles { libraries properties } {
             if [file exists $f] {
               set_property "modelsim.simulate.custom_wave_do" $f [get_filesets $file_set]
               set_property "questa.simulate.custom_wave_do" $f [get_filesets $file_set]
+              set_property "riviera.simulate.custom_wave_do" $f [get_filesets $file_set]
             } else {
               Msg Warning "File $f was not found."
 
@@ -1856,6 +1862,7 @@ proc AddHogFiles { libraries properties } {
             if [file exists $f] {
               set_property "modelsim.simulate.custom_udo" $f [get_filesets $file_set]
               set_property "questa.simulate.custom_udo" $f [get_filesets $file_set]
+              set_property "riviera.simulate.custom_udo" $f [get_filesets $file_set]
             } else {
               Msg Warning "File $f was not found."
             }
@@ -2156,10 +2163,10 @@ proc HandleIP {what_to_do xci_file ip_path runs_dir {force 0}} {
       if {$ret != 0} {
         Msg CriticalWarning "Something went wrong when copying the IP files to EOS. Error message: $msg"
       } else {
-      	Msg Info "Extracting IP files from archive to $repo_path..."
-      	::tar::untar $file_name.tar -dir $repo_path -noperms
-	Msg Info "Removing local archive"
-      	file delete $file_name.tar
+        Msg Info "Extracting IP files from archive to $repo_path..."
+        ::tar::untar $file_name.tar -dir $repo_path -noperms
+        Msg Info "Removing local archive"
+        file delete $file_name.tar
       }
     }
   }
@@ -2556,7 +2563,9 @@ proc SearchHogProjects {dir} {
         if {[file exists $proj_dir/$proj_name.tcl ] || [file exists "$proj_dir/hog.conf" ] } {
           lappend projects_list $proj_name
         } else {
-          lappend projects_list [SearchHogProjects $proj_dir]
+          foreach p [SearchHogProjects $proj_dir] {
+            lappend projects_list $p
+          }
         }
       }
     } else {

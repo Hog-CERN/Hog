@@ -28,16 +28,17 @@ cd "$tcl_path/../.."
 
 if {[info commands get_property] != ""} {
   # Vivado + PlanAhead
+  # Vivado + PlanAhead
   if { [string first PlanAhead [version]] == 0 } {
     # planAhead
-    set proj_file [get_property DIRECTORY [current_project]]
-    set proj_name  [file tail [get_property DIRECTORY [current_project]]]
+    set work_path [get_property DIRECTORY [get_runs impl_1]]
   } else {
-    # vivado
-    set proj_file [get_property parent.project_path [current_project]]
-    set proj_dir [file normalize [file dirname $proj_file]]
-    set proj_name [file rootname [file tail $proj_file]]
+    # Vivado
+    set work_path $old_path
   }
+
+  set proj_name [file tail [file normalize $work_path/../../]]
+  set proj_dir [file normalize "$work_path/../.."]
 
   set group_name [GetGroupName $proj_dir]
 

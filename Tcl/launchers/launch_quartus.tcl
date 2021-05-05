@@ -145,28 +145,28 @@ load_package flow
 ################
 # CHECK SYNTAX #
 ################
-if { $check_syntax == 1 } {
-  Msg Info "Checking syntax for project $project_name..."
-  lassign [GetHogFiles -list_files "*.src" -repo_path $repo_path "$repo_path/Top/$project_name/list/" ] src_files dummy
-  dict for {lib files} $src_files {
-    foreach f $files {
-      set file_extension [file ext $f]
-      if { $file_extension == ".ip" || $file_extension == ".qip" || $file_extension == ".sip" ||  $file_extension == ".qsys" } {
-        continue
-      }
-      if {[catch {execute_module -tool map -args "--analyze_file=$f"} result]} {
-        Msg Error "\nResult: $result\n"
-        Msg Error "ERROR: Check syntax failed.\n"
-      } else {
-        if result == 0 {
-          Msg Info "Check syntax was successful for $f.\n"
-        } else {
-          Msg Warning " Found syntax error in file $f.\n"
-        }
-      } 
-    }
-  }
-}
+# if { $check_syntax == 1 } {
+#   Msg Info "Checking syntax for project $project_name..."
+#   lassign [GetHogFiles -list_files "*.src" -repo_path $repo_path "$repo_path/Top/$project_name/list/" ] src_files dummy
+#   dict for {lib files} $src_files {
+#     foreach f $files {
+#       set file_extension [file ext $f]
+#       if { $file_extension == ".ip" || $file_extension == ".qip" || $file_extension == ".sip" ||  $file_extension == ".qsys" } {
+#         continue
+#       }
+#       if { [catch {execute_module -tool map -args "--analyze_file=$f"} result]} {
+#         Msg Error "\nResult: $result\n"
+#         Msg Error "ERROR: Check syntax failed.\n"
+#       } else {
+#         if result == 0 {
+#           Msg Info "Check syntax was successful for $f.\n"
+#         } else {
+#           Msg Warning " Found syntax error in file $f.\n"
+#         }
+#       } 
+#     }
+#   }
+# }
 
 # keep track of the current revision and of the top level entity name
 lassign [GetRepoVersions [file normalize $repo_path/Top/$project_name] $repo_path ] sha

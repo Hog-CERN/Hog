@@ -30,7 +30,7 @@ function help_message() {
   echo " Hog - Initialise repository"
   echo " ---------------------------"
   echo " Initialise your Hog-handled firmware repository"
-  echo " - (optional) Compile questasim libraries (if questasim executable is found)"
+  echo " - (optional) Compile questasim/modelsim/riviera libraries (if questasim executable is found)"
   echo " - (optional) Create vivado projects (if vivado exacutable is found)"
   echo
   exit 0

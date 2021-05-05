@@ -48,7 +48,7 @@ namespace eval globalSettings {
   variable top_path
   variable list_path
   variable build_dir
-  variable modelsim_path
+  variable simlib_path
   variable top_name
   variable synth_top_module
   variable user_ip_repo
@@ -78,8 +78,9 @@ proc CreateProject {} {
     set_property "target_language" "VHDL" $obj
     if { [string first PlanAhead [version] ] != 0} {
       set_property "simulator_language" "Mixed" $obj
-      set_property "compxlib.modelsim_compiled_library_dir" $globalSettings::modelsim_path $obj
-      set_property "compxlib.questa_compiled_library_dir" $globalSettings::modelsim_path $obj
+      set_property "compxlib.modelsim_compiled_library_dir" $globalSettings::simlib_path $obj
+      set_property "compxlib.questa_compiled_library_dir" $globalSettings::simlib_path $obj
+      set_property "compxlib.riviera_compiled_library_dir" $globalSettings::simlib_path $obj
       set_property "default_lib" "xil_defaultlib" $obj
     }
 
@@ -571,25 +572,52 @@ if {[catch {package require cmdline} ERROR]} {
 }
 
 set parameters {
-  {arg.project  "" "Hog project name"}
+  {simlib_path.arg  "" "Path of simulation libs"}
 }
 
-set usage   "Create Vivado/Quartus project. If no project is given, will expect the name of the project defined in a variable called DESIGN.\nUsage: $argv0 \[project\]"
+set usage   "Create Vivado/Quartus project. If no project is given, will expect the name of the project defined in a variable called DESIGN.\nUsage: $::argv0 \[OPTIONS\] <project> \n. Options:"
+
 set tcl_path [file normalize "[file dirname [info script]]"]
 set repo_path [file normalize $tcl_path/../..]
 source $tcl_path/hog.tcl
 
-
-if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] || [llength $argv] > 1} {
+if { $::argc eq 0 } {
   Msg Info [cmdline::usage $parameters $usage]
   exit 1
-} elseif {[llength $argv] == 1} {
+} elseif { [info commands get_property] != "" &&  [catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] } {
+  Msg Info [cmdline::usage $parameters $usage]
+  exit 1
+} elseif {[info commands project_new] != "" && [ catch {array set options [cmdline::getoptions quartus(args) $parameters $usage] } ] || $::argc eq 0 } {
+  Msg Info [cmdline::usage $parameters $usage]
+  exit 1
+} else {
   set DESIGN [lindex $argv 0]
+  SetGlobalVar DESIGN
+  if {[info exist workflow_simlib_path]} {
+    set globalSettings::simlib_path "$workflow_simlib_path"
+    Msg Info "Simulation library path set to $workflow_simlib_path"
+  } else {
+    if {$options(simlib_path)!= ""} {
+      set globalSettings::simlib_path "$options(simlib_path)"
+      Msg Info "Simulation library path set to $options(simlib_path)"
+    } else {
+      set globalSettings::simlib_path "$repo_path/SimulationLib"
+      Msg Info "Simulation library path set to default $repo_path/SimulationLib"
+    }
+  }
 }
+
+
+
+# if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] || [llength $argv] > 3} {
+#   Msg Info [cmdline::usage $parameters $usage]
+#   exit 1
+# } elseif {[llength $argv] == 1} {
+#   set DESIGN [lindex $argv 0]
+# }
 
 ###########################################################################################################################################################################################
 
-SetGlobalVar DESIGN
 
 set proj_dir $repo_path/Top/$DESIGN
 lassign [GetConfFiles $proj_dir] conf_file pre_file post_file tcl_file
@@ -684,6 +712,7 @@ if {[info exists env(HOG_EXTERNAL_PATH)]} {
 SetGlobalVar PROPERTIES ""
 
 
+
 #Derived varibles from now on...
 
 set build_dir_name "Projects"
@@ -700,13 +729,11 @@ set globalSettings::quartus_post_module_file    "quartus-post-module.tcl"
 set globalSettings::top_path                    "$globalSettings::repo_path/Top/$DESIGN"
 set globalSettings::list_path                   "$globalSettings::top_path/list"
 set globalSettings::build_dir                   "$globalSettings::repo_path/$build_dir_name/$DESIGN"
-set globalSettings::modelsim_path               "$globalSettings::repo_path/SimulationLib"
 set globalSettings::DESIGN                      [file tail $globalSettings::DESIGN]
 set globalSettings::top_name                    [file tail $globalSettings::DESIGN]
 set globalSettings::top_name                    [file root $globalSettings::top_name]
 set globalSettings::synth_top_module            "top_$globalSettings::top_name"
 set globalSettings::user_ip_repo                "$globalSettings::repo_path/IP_repository"
-
 
 set globalSettings::pre_synth           [file normalize "$globalSettings::tcl_path/integrated/$globalSettings::pre_synth_file"]
 set globalSettings::post_synth          [file normalize "$globalSettings::tcl_path/integrated/$globalSettings::post_synth_file"]

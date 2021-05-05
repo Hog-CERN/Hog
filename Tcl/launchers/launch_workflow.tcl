@@ -32,6 +32,7 @@ set parameters {
   {check_syntax    "If set, the HDL syntax will be checked at the beginning of the worflow."}
   {njobs.arg 4 "Number of jobs. Default: 4"}
   {ext_path.arg "" "Sets the absolute path for the external libraries."}
+  {simlib_path.arg  "" "Path of simulation libs"}
 }
 
 set usage "- USAGE: $::argv0 \[OPTIONS\] <project> \n. Options:"
@@ -62,7 +63,7 @@ if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] 
   set check_syntax 0
   set ip_path ""
   set ext_path ""
- 
+  set simlib_path ""
 }
 
 
@@ -96,6 +97,10 @@ if { $options(check_syntax) == 1 } {
 
 if { $options(ext_path) != ""} {
   set ext_path $options(ext_path)
+}
+
+if { $options(simlib_path) != ""} {
+  set workflow_simlib_path $options(simlib_path)
 }
 
 #Copy IP from EOS
@@ -148,7 +153,7 @@ if {$do_synthesis == 0} {
 }
 
 if { $ip_path != "" } {
-    Msg Info "Will copy synthesised IPs from/to $ip_path"
+  Msg Info "Will copy synthesised IPs from/to $ip_path"
 }
 
 Msg Info "Number of jobs set to $options(njobs)."
@@ -173,7 +178,6 @@ if {($proj_found == 0 || $recreate == 1) && $do_synthesis == 1} {
   lassign [GetConfFiles $repo_path/Top/$project_name] conf pre post tcl_file
 
   if {[file exists $conf]} {
-    set DESIGN $project_name
     source ./create_project.tcl
   } elseif {[file exists $tcl_file]} {
     source $repo_path/Top/$project_name/$project.tcl
@@ -237,15 +241,15 @@ if {$do_synthesis == 1} {
     ######### Copy IP to EOS repository
     if {($ip_path != "")} {
       # IP is not in the gitlab repo
-        set force 0
-        if [info exist runs] {
-          if {[lsearch $runs $ip\_synth_1] != -1} {
-            Msg Info "$ip was synthesized, will force the copy to EOS..."
-            set force 1
-          }
+      set force 0
+      if [info exist runs] {
+        if {[lsearch $runs $ip\_synth_1] != -1} {
+          Msg Info "$ip was synthesized, will force the copy to EOS..."
+          set force 1
         }
-        Msg Info "Copying synthesised IP $xci_ip_name ($xci_file) to $ip_path..."
-        HandleIP push $xci_file $ip_path $main_folder $force
+      }
+      Msg Info "Copying synthesised IP $xci_ip_name ($xci_file) to $ip_path..."
+      HandleIP push $xci_file $ip_path $main_folder $force
     }
   }
 
@@ -278,37 +282,37 @@ if {$do_implementation == 1 } {
   # Check timing
   if { [string first PlanAhead [version]] ==0 } {
 
-      set status_file [open "$main_folder/timing.txt" "w"]
-      puts $status_file "## $project_name Timing summary"
-     
-      set f [open [lindex [glob "$main_folder/impl_1/*.twr" 0]]]
-      set errs -1
-      while {[gets $f line] >= 0} {
-          if { [string match "Timing summary:" $line] } {
-              while {[gets $f line] >= 0} {
-                  if { [string match "Timing errors:*" $line] } {
-                      set errs [regexp -inline -- {[0-9]+} $line]
-                  }
-                  if { [string match "*Footnotes*" $line ] } {
-                      break
-                  }
-                  puts $status_file "$line"
-              }
+    set status_file [open "$main_folder/timing.txt" "w"]
+    puts $status_file "## $project_name Timing summary"
+
+    set f [open [lindex [glob "$main_folder/impl_1/*.twr" 0]]]
+    set errs -1
+    while {[gets $f line] >= 0} {
+      if { [string match "Timing summary:" $line] } {
+        while {[gets $f line] >= 0} {
+          if { [string match "Timing errors:*" $line] } {
+            set errs [regexp -inline -- {[0-9]+} $line]
           }
+          if { [string match "*Footnotes*" $line ] } {
+            break
+          }
+          puts $status_file "$line"
+        }
       }
+    }
 
-      close $f
-      close $status_file
+    close $f
+    close $status_file
 
-      if {$errs == 0} {
-          Msg Info "Time requirements are met"
-          file rename "$main_folder/timing.txt" "$main_folder/timing_ok.txt"
-          set timing_ok 1
-      } else {
-          Msg CriticalWarning "Time requirements are NOT met"
-          file rename "$main_folder/timing.txt" "$main_folder/timing_error.txt"
-          set timing_ok 0
-      }
+    if {$errs == 0} {
+      Msg Info "Time requirements are met"
+      file rename "$main_folder/timing.txt" "$main_folder/timing_ok.txt"
+      set timing_ok 1
+    } else {
+      Msg CriticalWarning "Time requirements are NOT met"
+      file rename "$main_folder/timing.txt" "$main_folder/timing_error.txt"
+      set timing_ok 0
+    }
 
   }
 
@@ -339,7 +343,7 @@ if {$do_implementation == 1 } {
     m add row
 
     puts $status_file "## $project_name Timing summary"
-       
+
     m add row  "| **Parameter** | \"**value (ns)**\" |"
     m add row  "| --- | --- |"
     m add row  "|  WNS:  |  $wns  |"

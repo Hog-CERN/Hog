@@ -155,7 +155,7 @@ if { $check_syntax == 1 } {
     }
     if {[catch {execute_module -tool map -args "--analyze_file=$f"} result]} {
       Msg Error "\nResult: $result\n"
-      MSg Error "ERROR: Check syntax failed.\n"
+      Msg Error "ERROR: Check syntax failed.\n"
     } else {
       if result == 0 {
         Msg Info "Check syntax was successful for $files.\n"

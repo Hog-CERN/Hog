@@ -203,6 +203,7 @@ function init() {
   fi
 
   ##! Check if v0.0.1 tag exists, and if not ask user if he/she wants to create it.
+  cd $DIR/..
   if git rev-parse "v0.0.1" >/dev/null 2>&1; then
     echo "Initial Tag v0.0.1 already exists"
   else

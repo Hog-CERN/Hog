@@ -594,11 +594,19 @@ if { $::argc eq 0 } {
   set DESIGN [lindex $argv 0]
   SetGlobalVar DESIGN
   if {[info exist workflow_simlib_path]} {
-    set globalSettings::simlib_path "$workflow_simlib_path"
+    if {[IsRelativePath $workflow_simlib_path] == 0} {
+      set globalSettings::simlib_path "$workflow_simlib_path"
+    } else {
+      set globalSettings::simlib_path "$repo_path/$workflow_simlib_path"
+    }
     Msg Info "Simulation library path set to $workflow_simlib_path"
   } else {
     if {$options(simlib_path)!= ""} {
-      set globalSettings::simlib_path "$options(simlib_path)"
+      if {[IsRelativePath $options(simlib_path)] == 0} {
+        set globalSettings::simlib_path "$options(simlib_path)"
+      } else {
+        set globalSettings::simlib_path "$repo_path/$options(simlib_path)"
+      }
       Msg Info "Simulation library path set to $options(simlib_path)"
     } else {
       set globalSettings::simlib_path "$repo_path/SimulationLib"
@@ -606,16 +614,6 @@ if { $::argc eq 0 } {
     }
   }
 }
-
-
-
-# if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] || [llength $argv] > 3} {
-#   Msg Info [cmdline::usage $parameters $usage]
-#   exit 1
-# } elseif {[llength $argv] == 1} {
-#   set DESIGN [lindex $argv 0]
-# }
-
 ###########################################################################################################################################################################################
 
 

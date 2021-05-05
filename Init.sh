@@ -84,30 +84,28 @@ function init() {
           rm -f ./Tcl/.cxl.modelsim.version
           rm -f ./Tcl/compile_simlib.log
           rm -f ./Tcl/modelsim.ini
+        else
+          ## Riviera
+          if [ $(which riviera) ]; then
+            echo
+            ##! If Riviera is installed ask user if he wants to compile
+            ##! NOTE use read to grab user input
+            ##! NOTE if the user input contains Y or y then is accepted as yes
+            read -p "Do you want to compile Riviera libraries for Vivado (this might take some time)? " -n 1 -r
+            echo
+            if [[ "${REPLY}" =~ ^[Yy]$ ]]; then
+              echo [hog init] Compiling Riviera libraries into SimulationLib...
+              "${VIVADO}" -mode batch -notrace -source ./Tcl/utils/compile_riviera.tcl
+              rm -f ./Tcl/.cxl.questasim.version
+              rm -f ./Tcl/compile_simlib.log
+              rm -f ./Tcl/modelsim.ini
+            fi
+          fi
         fi
       fi
     else
-      echo [hog init] "WARNING: No modelsim executable found, will not compile libraries"
+      echo [hog init] "WARNING: No modelsim/questa/riviera executable found, will not compile libraries"
     fi
-    ## Riviera
-    if [ $(which riviera) ]; then
-      echo
-      ##! If Riviera is installed ask user if he wants to compile
-      ##! NOTE use read to grab user input
-      ##! NOTE if the user input contains Y or y then is accepted as yes
-      read -p "Do you want to compile Riviera libraries for Vivado (this might take some time)? " -n 1 -r
-      echo
-      if [[ "${REPLY}" =~ ^[Yy]$ ]]; then
-        echo [hog init] Compiling Riviera libraries into SimulationLib...
-        "${VIVADO}" -mode batch -notrace -source ./Tcl/utils/compile_riviera.tcl
-        rm -f ./Tcl/.cxl.questasim.version
-        rm -f ./Tcl/compile_simlib.log
-        rm -f ./Tcl/modelsim.ini
-      fi
-    else
-      echo [hog init] "WARNING: No modelsim executable found, will not compile libraries"
-    fi
-
   fi
 
   # REpeat compilation using Quartus
@@ -201,6 +199,17 @@ function init() {
     echo # (optional) move to a new line
     if [[ "${REPLY}" =~ ^[Yy]$ ]]; then
       vivado -mode batch -notrace -source $DIR/Tcl/utils/add_hog_custom_button.tcl
+    fi
+  fi
+
+  ##! Check if v0.0.1 tag exists, and if not ask user if he/she wants to create it.
+  if git rev-parse "v0.0.1" >/dev/null 2>&1; then
+    echo "Initial Tag v0.0.1 already exists"
+  else
+    read -p "Your repository does not have an initial tag v0.0.1 yet. Do you want to create it?" -n 1 -r
+    echo # (optional) move to a new line
+    if [[ "${REPLY}" =~ ^[Yy]$ ]]; then
+      git tag v0.0.1
     fi
   fi
 

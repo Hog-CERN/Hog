@@ -84,6 +84,12 @@ ResetRepoFiles "./Projects/hog_reset_files"
 # Getting all the versions and SHAs of the repository
 lassign [GetRepoVersions [file normalize $repo_path/Top/$group_name/$proj_name] $repo_path $ext_path] commit version  hog_hash hog_ver  top_hash top_ver  libs hashes vers  cons_ver cons_hash  ext_names ext_hashes  xml_hash xml_ver
 
+# Check if repositoru has v0.0.1 tag
+lassign [GitRet "tag -l v0.0.1" ] status result
+if {$status == 1}{
+  Msg CriticalWarning "Repository does not have an initial v0.0.1 tag yet. Please create it with \"git tag v0.0.1\" "
+}
+
 set this_commit  [Git {log --format=%h -1}]
 
 set describe [GetGitDescribe $commit]
@@ -120,7 +126,7 @@ if {$maxThreads != 1} {
 }
 
 if {[info commands set_param] != ""} {
-    ### Vivado
+  ### Vivado
   set_param general.maxThreads $maxThreads
 } elseif {[info commands project_new] != ""} {
   # QUARTUS
@@ -136,7 +142,7 @@ if {[info commands set_param] != ""} {
   set_global_assignment -name NUM_PARALLEL_PROCESSORS $maxThreads
   project_close
 } else {
-    ### Tcl Shell
+  ### Tcl Shell
   puts "Hog:DEBUG MaxThread is set to: $maxThreads"
 }
 
@@ -236,7 +242,7 @@ if {[info commands set_property] != ""} {
   }
 
   if {$flavour != -1} {
-     set_parameter -name FLAVOUR $flavour
+    set_parameter -name FLAVOUR $flavour
   }
 
   if {![file exists "$old_path/output_files"]} {
@@ -287,9 +293,9 @@ if {$flavour != -1} {
 
 set version [HexVersionToString $version]
 if {$group_name != ""} {
-  puts $status_file "## $group_name/$proj_name version table" 
+  puts $status_file "## $group_name/$proj_name version table"
 } else {
-  puts $status_file "## $proj_name version table" 
+  puts $status_file "## $proj_name version table"
 }
 
 struct::matrix m
@@ -339,25 +345,25 @@ CheckYmlRef [file normalize $tcl_path/../..] true
 
 set user_pre_synthesis_file "./Top/$group_name/$proj_name/pre-synthesis.tcl"
 if {[file exists $user_pre_synthesis_file]} {
-    Msg Info "Sourcing user pre-synthesis file $user_pre_synthesis_file"
-    source $user_pre_synthesis_file
+  Msg Info "Sourcing user pre-synthesis file $user_pre_synthesis_file"
+  source $user_pre_synthesis_file
 }
 
 cd $old_path
 
 #check list files
 if {[info commands get_property] != "" && [string first PlanAhead [version]] != 0} {
-    if {![string equal ext_path ""]} {
-        set argv [list "-ext_path" "$ext_path" "-project" "$group_name/$proj_name"]
-    } else {
-        set argv [list "-project" "$group_name/$proj_name"]
-    }
-    source  $tcl_path/utils/check_list_files.tcl
+  if {![string equal ext_path ""]} {
+    set argv [list "-ext_path" "$ext_path" "-project" "$group_name/$proj_name"]
+  } else {
+    set argv [list "-project" "$group_name/$proj_name"]
+  }
+  source  $tcl_path/utils/check_list_files.tcl
 } elseif {[info commands project_new] != ""} {
-    # Quartus
+  # Quartus
   #TO BE IMPLEMENTED
 } else {
-    #Tclssh
+  #Tclssh
 }
 
 Msg Info "All done."

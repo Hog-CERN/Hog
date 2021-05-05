@@ -2640,3 +2640,14 @@ proc WriteConf {file_name config {comment ""}} {
 }
 
 
+## Check if a path is absolute or relative
+#
+#  @param[in]    the path to check
+#
+proc IsRelativePath {path} {
+  if {[string index $path 0] == "/"} {
+    return 0
+  } else {
+    return 1
+  }
+}

@@ -590,30 +590,34 @@ if { $::argc eq 0 } {
 } elseif {[info commands project_new] != "" && [ catch {array set options [cmdline::getoptions quartus(args) $parameters $usage] } ] || $::argc eq 0 } {
   Msg Info [cmdline::usage $parameters $usage]
   exit 1
+} elseif {[info exist DESIGN]} {
+  # Design is parsed from project.tcl
 } else {
   set DESIGN [lindex $argv 0]
-  SetGlobalVar DESIGN
-  if {[info exist workflow_simlib_path]} {
-    if {[IsRelativePath $workflow_simlib_path] == 0} {
-      set globalSettings::simlib_path "$workflow_simlib_path"
-    } else {
-      set globalSettings::simlib_path "$repo_path/$workflow_simlib_path"
-    }
-    Msg Info "Simulation library path set to $workflow_simlib_path"
+}
+
+SetGlobalVar DESIGN
+if {[info exist workflow_simlib_path]} {
+  if {[IsRelativePath $workflow_simlib_path] == 0} {
+    set globalSettings::simlib_path "$workflow_simlib_path"
   } else {
-    if {$options(simlib_path)!= ""} {
-      if {[IsRelativePath $options(simlib_path)] == 0} {
-        set globalSettings::simlib_path "$options(simlib_path)"
-      } else {
-        set globalSettings::simlib_path "$repo_path/$options(simlib_path)"
-      }
-      Msg Info "Simulation library path set to $options(simlib_path)"
+    set globalSettings::simlib_path "$repo_path/$workflow_simlib_path"
+  }
+  Msg Info "Simulation library path set to $workflow_simlib_path"
+} else {
+  if {$options(simlib_path)!= ""} {
+    if {[IsRelativePath $options(simlib_path)] == 0} {
+      set globalSettings::simlib_path "$options(simlib_path)"
     } else {
-      set globalSettings::simlib_path "$repo_path/SimulationLib"
-      Msg Info "Simulation library path set to default $repo_path/SimulationLib"
+      set globalSettings::simlib_path "$repo_path/$options(simlib_path)"
     }
+    Msg Info "Simulation library path set to $options(simlib_path)"
+  } else {
+    set globalSettings::simlib_path "$repo_path/SimulationLib"
+    Msg Info "Simulation library path set to default $repo_path/SimulationLib"
   }
 }
+
 ###########################################################################################################################################################################################
 
 

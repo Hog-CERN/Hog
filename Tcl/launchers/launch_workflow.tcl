@@ -196,10 +196,11 @@ if { $check_syntax == 1 } {
   } else {
     Msg Info "Checking syntax for project $project_name..."
     set syntax [check_syntax -return_string]
-  }
-  if {[string first "CRITICAL" $syntax ] != -1} {
-    check_syntax
-    exit 1
+
+    if {[string first "CRITICAL" $syntax ] != -1} {
+      check_syntax
+      exit 1
+    }
   }
 } else {
   Msg Info "Skipping syntax check for project $project_name"

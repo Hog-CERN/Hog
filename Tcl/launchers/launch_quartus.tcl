@@ -147,7 +147,7 @@ load_package flow
 ################
 if { $check_syntax == 1 } {
   Msg Info "Checking syntax for project $project_name..."
-  lassign [GetHogFiles "$repo_path/Top/$project_name/list/" "*.src"] src_files dummy
+  lassign [GetHogFiles -list_files "*.src" -repo_path $repo_path "$repo_path/Top/$project_name/list/" ] src_files dummy
   dict for {f files} $src_files {
     set file_extension [file ext $f]
     if { $file_extension == ".ip" || $file_extension == ".qip" || $file_extension == ".sip" ||  $file_extension == ".qsys" } {

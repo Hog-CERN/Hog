@@ -1941,10 +1941,13 @@ proc AddHogFiles { libraries properties } {
             if { $ext == ".con"} {
               source $cur_file
             } elseif { $ext == ".src"} {
-              set_global_assignment  -name $file_type $cur_file
 
               # If this is a Platform Designer file then generate the system
               if {[string first "qsys" $props] != -1 } {
+                # remove qsys from options since we used it
+                set emptyString ""
+                regsub -all {\{||qsys||\}} $props $emptyString props
+                 
                 set cmd "qsys-script --script=$cur_file"
                 if [ catch "eval exec -ignorestderr $cmd" ret opt] {
                   set makeRet [lindex [dict get $opt -errorcode] end]
@@ -1973,18 +1976,30 @@ proc AddHogFiles { libraries properties } {
                   Msg ERROR "Error while moving the generated qsys file to final location: $qsysName.qsys not found!";
                 }
                 if { [file exists $qsysFile] != 0} {
-                  set qsysFileType [FindFileType $qsysFile]
-                  set_global_assignment  -name $qsysFileType $qsysFile
-                  set emptyString ""
-                  regsub -all {\{*qsys||\}} $props $emptyString props
-                  GenerateQsysSystem $qsysFile $props
+                  if {[string first "noadd" $props] == -1} {
+                    set qsysFileType [FindFileType $qsysFile]
+                    set_global_assignment  -name $qsysFileType $qsysFile
+                  } else {
+                    regsub -all {noadd} $props $emptyString props
+                  }
+                  if {[string first "nogenerate" $props] == -1} {
+                    GenerateQsysSystem $cur_file $props
+                  }
+
                 } else {
                   Msg ERROR "Error while generating ip variations from qsys: $qsysFile not found!";
                 }
               }
             }
           } elseif {[string first "QSYS" $file_type] != -1 } {
-            set_global_assignment  -name $file_type $cur_file
+            set emptyString ""
+            regsub -all {\{||\}} $props $emptyString props
+            if {[string first "noadd" $props] == -1} {
+              set_global_assignment  -name $file_type $cur_file
+            } else {
+              regsub -all {noadd} $props $emptyString props
+            }
+
             #Generate IPs
             if {[string first "nogenerate" $props] == -1} {
               GenerateQsysSystem $cur_file $props

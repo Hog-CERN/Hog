@@ -14,13 +14,13 @@
 #   limitations under the License.
 
 # @file
-# Creates a custom command in Vivado gui with Hog logo
+# Creates two custom buttons in Vivado gui with Hog logo, to update automatically list files and hog.conf
 
 #parsing command options
 set parameters {
 }
 
-set usage   "Creates a custom command in Vivado gui with Hog logo.\nUSAGE: $::argv0"
+set usage   "Creates two custom buttons in Vivado gui with Hog logo, to update automatically list files and hog.conf.\nUSAGE: $::argv0"
 
 
 set hog_path [file normalize "[file dirname [info script]]/../.."]

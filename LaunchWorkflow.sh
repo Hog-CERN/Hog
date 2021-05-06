@@ -23,6 +23,7 @@ print_hog $(dirname "$0")
 ## @function argument_parser()
 #  @brief pase aguments and sets evvironment variables
 #  @param[out] IP_PATH      empty or "-eos_ip_path $2"
+#  @param[out] SIMLIBPATH   empty or "-simlib_path $2"
 #  @param[out] NJOBS        empty or "-NJOBS $2"
 #  @param[out] NO_BITSTREAM empty or "-no_bitstream"
 #  @param[out] SYNTH_ONLY   empty or "-synth_only"
@@ -40,6 +41,10 @@ function argument_parser() {
 		case "$1" in
 		-njobs)
 			NJOBS="-njobs $2"
+			shift 2
+			;;
+		-l | --lib)
+			SIMLIBPATH="-simlib_path $2"
 			shift 2
 			;;
 		-ip_eos_path)
@@ -129,15 +134,24 @@ else
 		else
 			Msg Info "Using executable: $HDL_COMPILER"
 		fi
+
+		if [ -z ${SIMLIBPATH+x} ]; then
+			if [ -z ${HOG_SIMULATION_LIB_PATH+x} ]; then
+				SIMLIBPATH=""
+			else
+				SIMLIBPATH="-simlib_path ${HOG_SIMULATION_LIB_PATH}"
+			fi
+		fi
+
 		if [ $COMMAND = "quartus_sh" ]; then
 			if [ "a$IP_PATH" != "a" ]; then
 				Msg Warning "IP eos path not supported in Quartus mode"
 			fi
-			${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_quartus.tcl $HELP $RESET $NO_BITSTREAM $SYNTH_ONLY $NJOBS $CHEK_SYNTAX $NO_RECREATE $EXT_PATH $IMPL_ONLY -project $1
+			${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_quartus.tcl $HELP $RESET $NO_BITSTREAM $SYNTH_ONLY $NJOBS $CHECK_SYNTAX $NO_RECREATE $EXT_PATH $IMPL_ONLY -project $1
 		elif [ $COMMAND = "vivado_hls" ]; then
 			Msg Error "Vivado HLS is not yet supported by this script!"
 		else
-			${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_workflow.tcl -tclargs $HELP $RESET $NO_BITSTREAM $SYNTH_ONLY $IP_PATH $NJOBS $CHEK_SYNTAX $NO_RECREATE $EXT_PATH $IMPL_ONLY $1
+			${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_workflow.tcl -tclargs $HELP $RESET $NO_BITSTREAM $SYNTH_ONLY $IP_PATH $NJOBS $CHECK_SYNTAX $NO_RECREATE $EXT_PATH $IMPL_ONLY $SIMLIBPATH $1
 		fi
 	else
 		Msg Error "Project $PROJ not found. Possible projects are:"

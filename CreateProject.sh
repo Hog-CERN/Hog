@@ -42,7 +42,9 @@ function help_message() {
   echo " #quartusHLS "
   echo " #planahead "
   echo
-  echo " Usage: $1 <project name>"
+  echo " Usage: $1 <project name> [OPTIONS]"
+  echo " Options:"
+  echo "          -l/--lib  <sim_lib_path>  Path to simulation library. If not defined it will be set to the HOG_SIMULATION_LIB_PATH environmnetal library, or if this does not exist to the default $(pwd)/SimulationLib"
   echo
 }
 
@@ -88,6 +90,24 @@ function create_project() {
     local PROJ_DIR="$DIR/$PROJ"
   fi
 
+  POSITIONAL=()
+  while [[ $# -gt 0 ]]; do
+    key="$2"
+
+    case $key in
+    -l | --lib)
+      LIBPATH="$3"
+      shift # past argument
+      shift # past value
+      ;;
+    *)                   # unknown option
+      POSITIONAL+=("$1") # save it in an array for later
+      shift              # past argument
+      ;;
+    esac
+  done
+  set -- "${POSITIONAL[@]}" # restore positional parameters
+
   if [ -d "$PROJ_DIR" ]; then
 
     #Choose if the project is quastus, vivado, vivado_hls [...]
@@ -115,7 +135,15 @@ function create_project() {
     if [ $FILE_TYPE == "CONF" ]; then
       cd "${DIR}"
       Msg Info "Creating project $PROJ using hog.conf..."
-      "${HDL_COMPILER}" $COMMAND_OPT ../Hog/Tcl/create_project.tcl $POST_COMMAND_OPT $PROJ
+      if [ -z ${LIBPATH+x} ]; then
+        if [ -z ${HOG_SIMULATION_LIB_PATH+x} ]; then
+          "${HDL_COMPILER}" $COMMAND_OPT ../Hog/Tcl/create_project.tcl $POST_COMMAND_OPT $PROJ
+        else
+          "${HDL_COMPILER}" $COMMAND_OPT ../Hog/Tcl/create_project.tcl $POST_COMMAND_OPT -simlib_path ${HOG_SIMULATION_LIB_PATH} $PROJ
+        fi
+      else
+        "${HDL_COMPILER}" $COMMAND_OPT ../Hog/Tcl/create_project.tcl $POST_COMMAND_OPT -simlib_path ${LIBPATH} $PROJ
+      fi
     elif [ $FILE_TYPE == "TCL" ]; then
       cd "${PROJ_DIR}"
       PROJ_NAME=$(basename $PROJ_DIR)

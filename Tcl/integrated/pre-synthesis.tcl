@@ -40,10 +40,6 @@ if {[info exists env(HOG_EXTERNAL_PATH)]} {
   set ext_path ""
 }
 
-# Go to repository path
-#set repo_path [file normalize "$tcl_path/../.."]
-#cd $repo_path
-
 if {[info commands get_property] != ""} {
   # Vivado + PlanAhead
   if { [string first PlanAhead [version]] == 0 } {

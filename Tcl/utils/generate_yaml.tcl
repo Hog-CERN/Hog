@@ -27,7 +27,7 @@ if {[catch {package require cmdline} ERROR]} {
 set parameters {
   {runall  "If set, it will generate a gitlab-ci yml file for all projects in the Top folder, even if it has not been modified with respect to the target branch."}
   {static "Normally the content of the hog-child.yml file is added at the beginning of the generated yml file. If thi flag is set, this will not be done."}
-  {external_path.arg "" "Path for the external libraries not stored in the git repository."}
+  {external_path.arg "" "Path for external files not stored in the git repository."}
 }
 
 set usage "Generate a gitlab-ci.yml config file for the child pipeline - USAGE: generate_yaml.tcl \[options\]"
@@ -38,7 +38,11 @@ set tcl_path [file normalize "[file dirname [info script]]/.."]
 set repo_path [file normalize $tcl_path/../..]
 source $tcl_path/hog.tcl
 
-array set options [cmdline::getoptions ::argv $parameters $usage]
+if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}]} {
+  Msg Info [cmdline::usage $parameters $usage]
+  exit 1
+}
+
 if { $options(runall) == 1 } {
   set runall 1
 } else {
@@ -110,18 +114,14 @@ foreach proj $projects_list {
       set input [read $cifile]
       set lines [split $input "\n"]
       close $cifile
+
       # Loop through each line
       foreach line $lines {
         if {![regexp {^ *$} $line] & ![regexp {^ *\#} $line] } {
           set stage_and_prop [regexp -all -inline {\S+} $line]
           set stage [lindex $stage_and_prop 0]
           set props [lrange $stage_and_prop 1 end]
-          if {$stage == "generate_project"} {
-            set stage "GEN"
-          }
-          if {$stage == "simulate_project"} {
-            set stage "SIM"
-          }
+
           if { [lsearch $stage_list $stage] > -1 } {
             Msg Info "Adding job $stage for project: $proj..."
             foreach prop $props {

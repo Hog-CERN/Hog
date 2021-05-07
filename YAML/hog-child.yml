@@ -16,6 +16,8 @@
    rules:
       - if: '$CI_COMMIT_REF_NAME =~ /^test\/.*$/i'
         when: never
+      - if: '$CI_COMMIT_MESSAGE =~ /DOXYGEN_ONLY/'
+        when: never
       - if: '$CI_MERGE_REQUEST_TITLE =~ /^Draft:.*$/ && $CI_COMMIT_MESSAGE !~ /^RESOLVE_WIP:/'
         when: never
       - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /^master.*$/ && $HOG_TARGET_BRANCH == null && $INTERMEDIATE_BUILD == null'
@@ -40,27 +42,8 @@
   GIT_STRATEGY: clone
 #   CI_DEBUG_TRACE: "true"
 
+
 .simulate_project: &simulate_project
-     <<: *only-default
-     stage: generation_and_simulation
-     variables:
-        <<: *vars
-     script:
-      - echo "CI job \"simulate_project\" has been renamed \"SIM\" from Hog2021.2. Please update your .gitlab-ci.yml accordingly. More info at https://cern.ch/hog"
-      - exit 1
-
-.generate_project: &generate_project
-    <<: *only-default
-    <<: *tag-hog
-    stage: generation_and_simulation
-    variables:
-        <<: *vars
-    script:
-      - echo "CI job \"generate_project\" has been renamed \"GEN\" from Hog2021.2. Please update your .gitlab-ci.yml accordingly. More info at https://cern.ch/hog"
-      - exit 1
-
-
-.SIM: &SIM
      <<: *only-default
      <<: *tag-hog
      stage: generation_and_simulation
@@ -93,8 +76,9 @@
          - $CI_PROJECT_DIR/SkippedProjects/$PROJECT_NAME
        expire_in: 30 day
      allow_failure: true
+     interruptible: true
 
-.GEN: &GEN
+.generate_project: &generate_project
     <<: *only-default
     <<: *tag-hog
     stage: generation_and_simulation
@@ -194,6 +178,7 @@
         paths:
             - $CI_PROJECT_DIR/bin
         expire_in: 30 day
+    interruptible: true
 
 collect_artifacts:
     <<: *only-default
@@ -202,31 +187,34 @@ collect_artifacts:
     variables:
         <<: *vars
     script:
+        - old_dir=`pwd`
         - mkdir -p $CI_PROJECT_DIR/bin
         - "printf \"## Repository info\n- Merge request number: $CI_MERGE_REQUEST_IID\n- Branch name: $CI_COMMIT_REF_SLUG\n\n\" > $CI_PROJECT_DIR/bin/note.md"
         - ./Hog/Other/Changelog.sh $CI_MERGE_REQUEST_TARGET_BRANCH_NAME >> $CI_PROJECT_DIR/bin/note.md
-        - diff_files=$(shopt -s nullglob dotglob; find $CI_PROJECT_DIR/bin/ -name "*/diff*.txt");
+        - cd $CI_PROJECT_DIR/bin/
+        - diff_files=$(find . -name "diff*.txt");
         - touch mr_note.md
         - if [[ $diff_files != "" ]]; then
-            echo "## Uncommitted differences" >> $CI_PROJECT_DIR/bin/note.md;
-            echo "## Uncommitted differences" >> mr_note.md;
+            echo "## Uncommitted differences" >> note.md;
+            echo "## Uncommitted differences" >> $old_dir/mr_note.md;
             for f in $diff_files; do
-              echo "Found uncommitted differences, check log file $f" >> $CI_PROJECT_DIR/bin/note.md;
+              echo "Found uncommitted differences, check log file $f in the artifacts." >> $CI_PROJECT_DIR/bin/note.md;
               echo "" >> $CI_PROJECT_DIR/bin/note.md;
-              echo "Found uncommitted differences, check log file $f" >> mr_note.md;
-              echo "" >> mr_note.md;
+              echo "Found uncommitted differences, check log file $f in the artifacts." >> mr_note.md;
+              echo "" >> $old_dir/mr_note.md;
             done;
           fi
         - note_files="versions timing"
         - for f in $note_files; do
-            files=$(shopt -s nullglob dotglob; find $CI_PROJECT_DIR/bin/ -name "$f*.txt");
+            files=$(find . -name "$f*.txt");
             if (( ${#files} )); then
               for fp in $files; do 
-                cat $fp >> $CI_PROJECT_DIR/bin/note.md;
-                cat $fp >> mr_note.md;
+                cat $fp >> note.md;
+                cat $fp >> $old_dir/mr_note.md;
               done;
             fi;
           done;
+        - cd $old_dir
         - if [[ -z "$HOG_MR_MSG" ]] || [[ $HOG_MR_MSG == '1' ]]; then
             echo "Hog-CI(info) - Writing note on gitlab website...";
             ./Hog/Other/WriteGitlabNote.sh $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $CI_MERGE_REQUEST_IID mr_note.md;

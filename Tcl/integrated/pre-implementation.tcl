@@ -29,20 +29,15 @@ cd "$tcl_path/../.."
 if {[info commands get_property] != ""} {
   # Vivado
   if { [string first PlanAhead [version]] == 0 } {
-      set proj_file [get_property DIRECTORY [current_project]]
+    set proj_file [get_property DIRECTORY [current_project]]
   } else {
-      set proj_file [get_property parent.project_path [current_project]]
+    set proj_file [get_property parent.project_path [current_project]]
   }
   set proj_dir [file normalize [file dirname $proj_file]]
   set proj_name [file rootname [file tail $proj_file]]
-
-  set index_a [string last "Projects/" $proj_dir]
-  set index_a [expr $index_a + 8]
-  set index_b [string last "/$proj_name" $proj_dir]
-  set group_name [string range $proj_dir $index_a $index_b]
-
+  set group_name [GetGroupName $proj_dir]
 } else {
-    #Tclssh
+  #Tclssh
   set proj_file $old_path/[file tail $old_path].xpr
   Msg CriticalWarning "You seem to be running locally on tclsh, so this is a debug, the project file will be set to $proj_file and was derived from the path you launched this script from: $old_path. If you want this script to work properly in debug mode, please launch it from the top folder of one project, for example Repo/Projects/fpga1/ or Repo/Top/fpga1/"
 }
@@ -57,10 +52,10 @@ if {$maxThreads != 1} {
 }
 
 if {[info commands get_property] != ""} {
-    # Vivado
+  # Vivado
   set_param general.maxThreads $maxThreads
 } else {
-    #Tclssh
+  #Tclssh
 }
 
 
@@ -69,8 +64,8 @@ ResetRepoFiles "./Projects/hog_reset_files"
 
 set user_pre_implementation_file "./Top/$group_name/$proj_name/pre-implementation.tcl"
 if {[file exists $user_pre_implementation_file]} {
-    Msg Status "Sourcing user pre-implementation file $user_pre_implementation_file"
-    source $user_pre_implementation_file
+  Msg Status "Sourcing user pre-implementation file $user_pre_implementation_file"
+  source $user_pre_implementation_file
 }
 
 cd $old_path

@@ -317,9 +317,6 @@ function search_projects() {
         search_projects $dir
       fi
     done
-  else
-    Msg Error "$1 directory not found!"
-    return 1
   fi
   return 0
 }

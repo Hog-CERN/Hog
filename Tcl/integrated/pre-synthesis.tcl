@@ -41,8 +41,8 @@ if {[info exists env(HOG_EXTERNAL_PATH)]} {
 }
 
 # Go to repository path
-set repo_path [file normalize "$tcl_path/../.."]
-cd $repo_path
+#set repo_path [file normalize "$tcl_path/../.."]
+#cd $repo_path
 
 if {[info commands get_property] != ""} {
   # Vivado + PlanAhead
@@ -56,7 +56,8 @@ if {[info commands get_property] != ""} {
 } elseif {[info commands project_new] != ""} {
   # Quartus
   set proj_name [lindex $quartus(args) 1]
-  set proj_dir [file normalize "$repo_path/Projects/$proj_name"]
+  #set proj_dir [file normalize "$repo_path/Projects/$proj_name"]
+  set proj_dir [pwd]
   set proj_file [file normalize "$proj_dir/$proj_name.qpf"]
   # Test generated files
   set hogQsysFileName [file normalize "$proj_dir/.hog/.hogQsys.md5"]
@@ -85,6 +86,11 @@ if {[info commands get_property] != ""} {
   set proj_file $old_path/[file tail $old_path].xpr
   Msg CriticalWarning "You seem to be running locally on tclsh, so this is a debug, the project file will be set to $proj_file and was derived from the path you launched this script from: $old_path. If you want this script to work properly in debug mode, please launch it from the top folder of one project, for example Repo/Projects/fpga1/ or Repo/Top/fpga1/"
 }
+
+# Go to repository path
+set repo_path [file normalize "$tcl_path/../.."]
+cd $repo_path
+
 set group_name [GetGroupName $proj_dir]
 # Calculating flavour if any
 set flavour [string map {. ""} [file ext $proj_name]]

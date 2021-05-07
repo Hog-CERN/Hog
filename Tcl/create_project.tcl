@@ -106,14 +106,6 @@ proc CreateProject {} {
       file delete {*}[glob -nocomplain $globalSettings::DESIGN.q*]
 
       project_new -family $globalSettings::FAMILY -overwrite -part $globalSettings::PART  $globalSettings::DESIGN
-      #set_global_assignment -name ERROR_CHECK_FREQUENCY_DIVISOR 256
-      #set_global_assignment -name EDA_DESIGN_ENTRY_SYNTHESIS_TOOL "Precision Synthesis"
-      #set_global_assignment -name EDA_LMF_FILE mentor.lmf -section_id eda_design_synthesis
-      #set_global_assignment -name EDA_INPUT_DATA_FORMAT VQM -section_id eda_design_synthesis
-      #set_global_assignment -name EDA_SIMULATION_TOOL "QuestaSim (Verilog)"
-      #set_global_assignment -name EDA_TIME_SCALE "1 ps" -section_id eda_simulation
-      #set_global_assignment -name EDA_OUTPUT_DATA_FORMAT "VERILOG HDL" -section_id eda_simulation
-      #set_global_assignment -name VHDL_INPUT_VERSION VHDL_2008
       set_global_assignment -name PROJECT_OUTPUT_DIRECTORY output_files
     }
   } else {

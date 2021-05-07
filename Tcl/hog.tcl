@@ -1516,14 +1516,33 @@ proc GetProjectFiles {} {
         }
       }
     }
-    set wavefile [get_property "$simulator.simulate.custom_wave_do" [get_filesets $fs]]
-    if {![string equal "$wavefile" ""]} {
-      dict lappend properties $wavefile wavefile
-    }
 
-    set dofile [get_property "$simulator.simulate.custom_udo" [get_filesets $fs]]
-    if {![string equal "$dofile" ""]} {
-      dict lappend properties $dofile dofile
+
+ #set_property "modelsim.simulate.custom_wave_do" "" [get_filesets $file_set]
+  #        set_property "questa.simulate.custom_wave_do" "" [get_filesets $file_set]
+   #       set_property "riviera.simulate.custom_wave_do" "" [get_filesets $file_set]
+    #      set_property "modelsim.simulate.custom_udo" "" [get_filesets $file_set]
+     #     set_property "questa.simulate.custom_udo" "" [get_filesets $file_set]
+      #    set_property "riviera.simulate.custom_udo" "" [get_filesets $file_set]
+
+
+    set simulators [list "modelsim" "questa" "riviera"]
+
+    foreach SIMULATOR $simulators {
+      set wavefile [get_property "$SIMULATOR.simulate.custom_wave_do" [get_filesets $fs]]
+      if {![string equal "$wavefile" ""]} {
+        puts $wavefile
+        dict lappend properties $wavefile wavefile
+        break
+      }
+    }
+    
+
+    foreach SIMULATOR $simulators {
+      set dofile [get_property "$SIMULATOR.simulate.custom_udo" [get_filesets $fs]]
+      if {![string equal "$dofile" ""]} {
+        dict lappend properties $dofile dofile
+      }
     }
   }
 

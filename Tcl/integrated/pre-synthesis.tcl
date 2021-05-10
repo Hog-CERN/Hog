@@ -84,6 +84,62 @@ ResetRepoFiles "./Projects/hog_reset_files"
 # Getting all the versions and SHAs of the repository
 lassign [GetRepoVersions [file normalize $repo_path/Top/$group_name/$proj_name] $repo_path $ext_path] commit version  hog_hash hog_ver  top_hash top_ver  libs hashes vers  cons_ver cons_hash  ext_names ext_hashes  xml_hash xml_ver
 
+
+set describe [GetGitDescribe $commit]
+set dst_dir [file normalize "bin/$group_name/$proj_name\-$describe"]
+Msg Info "Creating $dst_dir..."
+file mkdir $dst_dir/reports
+
+#check list files
+if {[info commands get_property] != "" && [string first PlanAhead [version]] != 0} {
+  if {![string equal ext_path ""]} {
+    set argv [list "-ext_path" "$ext_path" "-project" "$group_name/$proj_name" "-outFile" "$dst_dir/diff_ListFilesAndConf.txt"]
+  } else {
+    set argv [list "-project" "$group_name/$proj_name" "-outFile" "$dst_dir/diff_ListFilesAndConf.txt"]
+  }
+  set listFilesReturn [source  $tcl_path/utils/check_list_files.tcl]
+  if {$listFilesReturn != 0} {
+    Msg CriticalWarning "Project list files not clean, commit hash, and version will be set to 0."
+    set commit 00000000
+    set version 00000000
+  } 
+} elseif {[info commands project_new] != ""} {
+  # Quartus
+  #TO BE IMPLEMENTED
+} else {
+  #Tclssh
+}
+
+Msg Info "Evaluating non committed changes..."
+set found_uncommitted 0
+set diff [Git diff]
+if {$diff != ""} {
+  set found_uncommitted 1
+  Msg Warning "Found non committed changes:..."
+  Msg Status "$diff"
+  set fp [open "$dst_dir/diff_presynthesis.txt" w+]
+  puts $fp "$diff"
+  close $fp
+} 
+
+lassign [GetHogFiles  -ext_path "$ext_path" -repo_path "$tcl_path/../../" "$tcl_path/../../Top/$group_name/$proj_name/list/"] listLibraries listProperties
+foreach library [dict keys $listLibraries] {
+  set fileNames [dict get $listLibraries $library]
+  foreach fileName $fileNames {
+    if {[FileCommitted $fileName] == 0} {
+      set $found_uncommitted 1
+    }
+  }
+}
+if {$found_uncommitted == 0} {
+  Msg Info "No uncommitted changes found."
+} else {
+  Msg CriticalWarning "Found uncommitted changes, commit hash, and version will be set to 0."
+  set commit 00000000
+  set version 00000000
+}
+
+
 # Check if repository has v0.0.1 tag
 lassign [GitRet "tag -l v0.0.1" ] status result
 if {$status == 1} {
@@ -92,7 +148,6 @@ if {$status == 1} {
 
 set this_commit  [Git {log --format=%h -1}]
 
-set describe [GetGitDescribe $commit]
 Msg Info "Git describe for $commit is: $describe"
 
 if {$commit == 0 } {
@@ -268,34 +323,7 @@ if {[info commands set_property] != ""} {
 Msg Info "Opening version file $status_file..."
 set status_file [open $status_file "w"]
 
-set dst_dir [file normalize "bin/$group_name/$proj_name\-$describe"]
-Msg Info "Creating $dst_dir..."
-file mkdir $dst_dir/reports
 
-Msg Info "Evaluating non committed changes..."
-set found_uncommitted 0
-set diff [Git diff]
-if {$diff != ""} {
-  set found_uncommitted 1
-  Msg Warning "Found non committed changes:..."
-  Msg Status "$diff"
-  set fp [open "$dst_dir/diff_presynthesis.txt" w+]
-  puts $fp "$diff"
-  close $fp
-} 
-
-lassign [GetHogFiles  -ext_path "$ext_path" -repo_path "$tcl_path/../../" "$tcl_path/../../Top/$group_name/$proj_name/list/"] listLibraries listProperties
-foreach library [dict keys $listLibraries] {
-  set fileNames [dict get $listLibraries $library]
-  foreach fileName $fileNames {
-    if {[FileCommitted $fileName] == 0} {
-      set $found_uncommitted 1
-    }
-  }
-}
-if {$found_uncommitted == 0} {
-  Msg Info "No uncommitted changes found."
-}
 
 Msg Status " ------------------------- PRE SYNTHESIS -------------------------"
 Msg Status " $tt"
@@ -365,20 +393,5 @@ if {[file exists $user_pre_synthesis_file]} {
 }
 
 cd $old_path
-
-#check list files
-if {[info commands get_property] != "" && [string first PlanAhead [version]] != 0} {
-  if {![string equal ext_path ""]} {
-    set argv [list "-ext_path" "$ext_path" "-project" "$group_name/$proj_name"]
-  } else {
-    set argv [list "-project" "$group_name/$proj_name"]
-  }
-  source  $tcl_path/utils/check_list_files.tcl
-} elseif {[info commands project_new] != ""} {
-  # Quartus
-  #TO BE IMPLEMENTED
-} else {
-  #Tclssh
-}
 
 Msg Info "All done."

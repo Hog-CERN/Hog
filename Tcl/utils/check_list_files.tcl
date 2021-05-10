@@ -27,6 +27,7 @@ if { [string first PlanAhead [version]] == 0 } {
 }
 set parameters {
   {project.arg "" "Project name. If not set gets current project"}
+  {outFile.arg "" "Name of output log file."}
   {recreate  "If set, it will create List Files from the project configuration"}
   {recreate_conf  "If set, it will create the project hog.conf file."}
   {force  "Force the overwriting of List Files. To be used together with \"-recreate\""}
@@ -49,6 +50,13 @@ proc RelativeLocal {pathName fileName} {
     return [Relative $pathName $fileName]
   } else {
     return ""
+  }
+}
+
+proc CriticalAndLog {msg {outFile ""}} {
+  Msg CriticalWarning $msg
+  if {$outFile != ""} {
+    puts $outFile $msg
   }
 }
 
@@ -93,6 +101,13 @@ if {![string equal $options(project) ""]} {
   set index_a [expr $index_a + 8]
   set index_b [string last "/$project_name" $proj_dir]
   set group_name [string range $proj_dir $index_a $index_b]
+}
+
+
+if {$options(outFile)!= ""} {
+  set outFile [open "$options(outFile)" w]
+} else {
+  set outFile ""
 }
 
 
@@ -145,7 +160,7 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
           if {$options(recreate) == 1} {
             Msg Info "$IP was removed from the project."
           } else {
-       		  Msg CriticalWarning "$IP not found in project IPs! Was it removed from the project?"
+       		  CriticalAndLog "$IP not found in project IPs! Was it removed from the project?" $outFile
           }
           incr ListErrorCnt
 			  } else {
@@ -161,7 +176,7 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
           if {$options(recreate) == 1} {
             Msg Info "$XDC was removed from the project."
           } else {
-     		    Msg CriticalWarning "$XDC not found in project constraints! Was it removed from the project?"
+     		    CriticalAndLog "$XDC not found in project constraints! Was it removed from the project?" $outFile
           }
           incr ListErrorCnt
 			  } else {
@@ -179,7 +194,7 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
             if {$options(recreate) == 1} {
               Msg Info "$SIM was removed from the project."
             } else {
-       		    Msg CriticalWarning "$SIM not found in project simulation files! Was it removed from the project?"
+       		    CriticalAndLog "$SIM not found in project simulation files! Was it removed from the project?" $outFile
             }
             incr ListErrorCnt
 			    } else {
@@ -191,7 +206,7 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
         if {$options(recreate) == 1} {
           Msg Info "[file rootname $key]_sim fileset was removed from the project."
         } else {
-          Msg CriticalWarning "[file rootname $key]_sim fileset not found in project! Was it removed from the project?"
+          CriticalAndLog "[file rootname $key]_sim fileset not found in project! Was it removed from the project?" $outFile
         }
         incr ListErrorCnt
       }
@@ -209,7 +224,7 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
             if {$options(recreate) == 1} {
               Msg Info "$SRC was removed from the project."
             } else {
-		          Msg CriticalWarning "$SRC not found in project source files! Was it removed from the project?"
+		          CriticalAndLog "$SRC not found in project source files! Was it removed from the project?" $outFile
             }
 		        incr ListErrorCnt
 	        } else {
@@ -234,7 +249,7 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
             if {$options(recreate) == 1} {
               Msg Info "$SRC was removed from the project."
             } else {
-		          Msg CriticalWarning "$SRC not found in project source files! Was it removed from the project?"
+		          CriticalAndLog "$SRC not found in project source files! Was it removed from the project?" $outFile
             }
 		        incr ListErrorCnt
 	        } else {
@@ -264,7 +279,7 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
         if {$options(recreate) == 1} {
           Msg Info "External IP $IP was added to the project."
         } else {
-         Msg CriticalWarning "External IP $IP is used in the project but is not in the list files."
+         CriticalAndLog "External IP $IP is used in the project but is not in the list files." $outFile
         }
         dict lappend newListfiles Default.ext [string trim "[RelativeLocal $ext_path $IP] [Md5Sum $IP] [DictGet $prjProperties $IP]"]
       }
@@ -272,7 +287,7 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
       if {$options(recreate) == 1} {
         Msg Info "$IP was added to the project."
       } else {
-        Msg CriticalWarning "$IP is used in the project but is not in the list files."
+        CriticalAndLog "$IP is used in the project but is not in the list files." $outFile
       }
       dict lappend newListfiles Default.src [string trim "[RelativeLocal $repo_path $IP] [DictGet $prjProperties $IP]"]
     }
@@ -282,12 +297,12 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
     incr ListErrorCnt
     if {[string equal [RelativeLocal $repo_path $XDC] ""]} {
       if {[string equal [RelativeLocal $ext_path $XDC] ""]} {
-        Msg CriticalWarning "Source $XDC is used in the project but is not in the repository or in a known external path."
+        CriticalAndLog "Source $XDC is used in the project but is not in the repository or in a known external path." $outFile
       } else {
         if {$options(recreate) == 1} {
           Msg Info "External source $XDC was added to the project."
         } else {
-          Msg CriticalWarning "External source $XDC is used in the project but is not in the list files."
+          CriticalAndLog "External source $XDC is used in the project but is not in the list files." $outFile
         }
         dict lappend newListfiles Default.ext [string trim "[RelativeLocal $ext_path $XDC] [Md5Sum $XDC] [DictGet $prjProperties $XDC]"]
       }
@@ -295,7 +310,7 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
       if {$options(recreate) == 1} {
         Msg Info "$XDC was added to the project."
       } else {
-        Msg CriticalWarning "$XDC is used in the project but is not in the list files."
+        CriticalAndLog "$XDC is used in the project but is not in the list files." $outFile
       }
       dict lappend newListfiles Default.con [string trim "[RelativeLocal $repo_path $XDC] [DictGet $prjProperties $XDC]"]
     }
@@ -313,7 +328,7 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
       if {$options(recreate) == 1} {
         Msg Info "$SIM was added to the project."
       } else {
-        Msg CriticalWarning "$SIM is used in the project simulation fileset $key but is not in the list files."
+        CriticalAndLog "$SIM is used in the project simulation fileset $key but is not in the list files." $outFile
       }
       dict lappend newListfiles [string range $key 0 end-4].sim [string trim "[RelativeLocal $repo_path $SIM] [DictGet $prjProperties $SIM]"]
     }
@@ -330,12 +345,12 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
       incr ListErrorCnt
       if {[string equal [RelativeLocal $repo_path $SRC] ""]} {
         if {[string equal [RelativeLocal $ext_path $SRC] ""]} {
-          Msg CriticalWarning "Source $SRC is used in the project but is not in the repository or in a known external path."
-        } else {
+          CriticalAndLog "Source $SRC is used in the project but is not in the repository or in a known external path." $outFile
+        } else { 
           if {$options(recreate) == 1} {
             Msg Info "External source $SRC was added to the project (library $key)."
           } else {
-            Msg CriticalWarning "External source $SRC is used in the project (library $key) but is not in the list files."
+            CriticalAndLog "External source $SRC is used in the project (library $key) but is not in the list files." $outFile
           }
           dict lappend newListfiles ${key}.ext [string trim "[RelativeLocal $ext_path $SRC] [Md5Sum $SRC] [DictGet $prjProperties $SRC]"]
         }
@@ -343,7 +358,7 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
         if {$options(recreate) == 1} {
           Msg Info "$SRC was added to the project (library $key)."
         } else {
-          Msg CriticalWarning "$SRC is used in the project (library $key) but is not in the list files."
+          CriticalAndLog "$SRC is used in the project (library $key) but is not in the list files." $outFile
         }
         dict lappend newListfiles ${key}.src [string trim "[RelativeLocal $repo_path $SRC] [DictGet $prjProperties $SRC]"]
      }
@@ -354,12 +369,12 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
     incr ListErrorCnt
     if {[string equal [RelativeLocal $repo_path $SRC] ""]} {
       if {[string equal [RelativeLocal $ext_path $SRC] ""]} {
-        Msg CriticalWarning "Source $SRC is used in the project but is not in the repository or in a known external path."
+        CriticalAndLog "Source $SRC is used in the project but is not in the repository or in a known external path." $outFile
       } else {
         if {$options(recreate) == 1} {
           Msg Info "External source $SRC was added to the project."
         } else {
-          Msg CriticalWarning "External source $SRC is used in the project but is not in the list files."
+          CriticalAndLog "External source $SRC is used in the project but is not in the list files." $outFile
         }
         dict lappend newListfiles Default.ext [string trim "[RelativeLocal $ext_path $SRC] [Md5Sum $SRC] [DictGet $prjProperties $SRC]"]
       }
@@ -367,7 +382,7 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
       if {$options(recreate) == 1} {
         Msg Info "$SRC was added to the project."
       } else {
-        Msg CriticalWarning "$SRC is used in the project but is not in the list files."
+        CriticalAndLog "$SRC is used in the project but is not in the list files." $outFile
       }
       dict lappend newListfiles Default.src [string trim "[RelativeLocal $repo_path $SRC] [DictGet $prjProperties $SRC]"]
     }
@@ -381,7 +396,7 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
         if {$options(recreate) == 1} {
           Msg Info "$key property $prop was removed from the project."
         } else {
-          Msg CriticalWarning "$key property $prop is set in list files but not in project!"
+          CriticalAndLog "$key property $prop is set in list files but not in project!" $outFile
         }
         incr ListErrorCnt
       }
@@ -396,7 +411,7 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
         if {$options(recreate) == 1} {
           Msg Info "$key property $prop was added to the project."
         } else {
-          Msg CriticalWarning "$key property $prop is set in project but not in list files!"
+          CriticalAndLog "$key property $prop is set in project but not in list files!" $outFile
         }
         incr ListErrorCnt
       }
@@ -426,6 +441,24 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
   if {$options(recreate) == 1 && $ListErrorCnt > 0} {
     Msg Info "Updating list files in $repo_path/$DirName/list"
 
+    #delete existing listFiles
+    if {$options(force) == 1} {
+      foreach F [glob -nocomplain "$repo_path/Top/$group_name/$project_name/list/*.src"] {
+        file delete $F
+      }
+      foreach F [glob -nocomplain "$repo_path/Top/$group_name/$project_name/list/*.sim"] {
+        file delete $F
+      }
+      foreach F [glob -nocomplain "$repo_path/Top/$group_name/$project_name/list/*.ext"] {
+        file delete $F
+      }
+      foreach F [glob -nocomplain "$repo_path/Top/$group_name/$project_name/list/*.con"] {
+        file delete $F
+      }
+      foreach F [glob -nocomplain "$repo_path/Top/$group_name/$project_name/list/*.sub"] {
+        file delete $F
+      }
+    }
 
     file mkdir  $repo_path/$DirName/list
     foreach listFile [dict keys $newListfiles] {
@@ -548,7 +581,7 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
           if {$options(recreate_conf) == 1} {
             Msg Info "$prj_run setting $settings has been changed. \nPrevious value: $oldset \nCurrent value: $currset "
           } else {
-            Msg CriticalWarning "$prj_run setting $settings does not match hog.conf. \nPrevious value: $oldset \nCurrent value: $currset "
+            CriticalAndLog "$prj_run setting $settings does not match hog.conf. \nPrevious value: $oldset \nCurrent value: $currset " $outFile
           }
           incr ConfErrorCnt
         }
@@ -564,7 +597,7 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
           if {$options(recreate_conf) == 1} {
             Msg Info "$prj_run setting $settings has been changed. \nPrevious value: $oldset \nCurrent value: $currset "
           } else {
-            Msg CriticalWarning "$prj_run setting $settings does not match hog.conf. \nPrevious value: $oldset \nCurrent value: $currset "
+            CriticalAndLog "$prj_run setting $settings does not match hog.conf. \nPrevious value: $oldset \nCurrent value: $currset " $outFile
           }
           incr ConfErrorCnt
         }
@@ -590,7 +623,9 @@ if {![string equal $options(project) ""]} {
         close_project
     }
 }
-
+if {$options(outFile)!= ""} {
+  close $outFile
+} 
 
 
 set TotErrorCnt [expr $ConfErrorCnt + $ListErrorCnt]

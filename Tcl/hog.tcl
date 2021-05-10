@@ -1042,49 +1042,49 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
     #Msg Info "Checking checksums of external library files in $f"
     foreach line $data {
       if {![regexp {^ *$} $line] & ![regexp {^ *\#} $line] } { #Exclude empty lines and comments
-      set file_and_prop [regexp -all -inline {\S+} $line]
-      set hdlfile [lindex $file_and_prop 0]
-      set hdlfile $ext_path/$hdlfile
-      if { [file exists $hdlfile] } {
-        set hash [lindex $file_and_prop 1]
-        set current_hash [Md5Sum $hdlfile]
-        if {[string first $hash $current_hash] == -1} {
-          Msg CriticalWarning "File $hdlfile has a wrong hash. Current checksum: $current_hash, expected: $hash"
+        set file_and_prop [regexp -all -inline {\S+} $line]
+        set hdlfile [lindex $file_and_prop 0]
+        set hdlfile $ext_path/$hdlfile
+        if { [file exists $hdlfile] } {
+          set hash [lindex $file_and_prop 1]
+          set current_hash [Md5Sum $hdlfile]
+          if {[string first $hash $current_hash] == -1} {
+            Msg CriticalWarning "File $hdlfile has a wrong hash. Current checksum: $current_hash, expected: $hash"
+          }
         }
       }
     }
   }
-}
 
-# Ipbus XML
-if [file exists ./list/xml.lst] {
-  #Msg Info "Found IPbus XML list file, evaluating version and SHA of listed files..."
-  lassign [GetHogFiles  -list_files "xml.lst" -repo_path $repo_path  -sha_mode "./list/"] xml_files dummy
-  lassign [GetVer  [dict get $xml_files "xml.lst"] ] xml_ver xml_hash
-  lappend SHAs $xml_hash
-  lappend versions $xml_ver
-  #Msg Info "Found IPbus XML SHA: $xml_hash and version: $xml_ver."
+  # Ipbus XML
+  if [file exists ./list/xml.lst] {
+    #Msg Info "Found IPbus XML list file, evaluating version and SHA of listed files..."
+    lassign [GetHogFiles  -list_files "xml.lst" -repo_path $repo_path  -sha_mode "./list/"] xml_files dummy
+    lassign [GetVer  [dict get $xml_files "xml.lst"] ] xml_ver xml_hash
+    lappend SHAs $xml_hash
+    lappend versions $xml_ver
+    #Msg Info "Found IPbus XML SHA: $xml_hash and version: $xml_ver."
 
-} else {
-  Msg Info "This project does not use IPbus XMLs"
-  set xml_ver  00000000
-  set xml_hash 0000000
-}
+  } else {
+    Msg Info "This project does not use IPbus XMLs"
+    set xml_ver  00000000
+    set xml_hash 0000000
+  }
 
-#The global SHA and ver is the most recent among everything
-if {$clean == 1} {
-  set commit [Git "log --format=%h -1 $SHAs"]
-  set version [FindNewestVersion $versions]
-} else {
-  set commit  "0000000"
-  set version "00000000"
-}
+  #The global SHA and ver is the most recent among everything
+  if {$clean == 1} {
+    set commit [Git "log --format=%h -1 $SHAs"]
+    set version [FindNewestVersion $versions]
+  } else {
+    set commit  "00000000"
+    set version "00000000"
+  }
 
-cd $old_path
+  cd $old_path
 
-set top_hash [format %+07s $top_hash]
-set cons_hash [format %+07s $cons_hash]
-return [list $commit $version  $hog_hash $hog_ver  $top_hash $top_ver  $libs $hashes $vers  $cons_ver $cons_hash  $ext_names $ext_hashes  $xml_hash $xml_ver]
+  set top_hash [format %+07s $top_hash]
+  set cons_hash [format %+07s $cons_hash]
+  return [list $commit $version  $hog_hash $hog_ver  $top_hash $top_ver  $libs $hashes $vers  $cons_ver $cons_hash  $ext_names $ext_hashes  $xml_hash $xml_ver]
 }
 
 
@@ -1517,21 +1517,11 @@ proc GetProjectFiles {} {
       }
     }
 
-
- #set_property "modelsim.simulate.custom_wave_do" "" [get_filesets $file_set]
-  #        set_property "questa.simulate.custom_wave_do" "" [get_filesets $file_set]
-   #       set_property "riviera.simulate.custom_wave_do" "" [get_filesets $file_set]
-    #      set_property "modelsim.simulate.custom_udo" "" [get_filesets $file_set]
-     #     set_property "questa.simulate.custom_udo" "" [get_filesets $file_set]
-      #    set_property "riviera.simulate.custom_udo" "" [get_filesets $file_set]
-
-
     set simulators [list "modelsim" "questa" "riviera"]
 
     foreach SIMULATOR $simulators {
       set wavefile [get_property "$SIMULATOR.simulate.custom_wave_do" [get_filesets $fs]]
       if {![string equal "$wavefile" ""]} {
-        puts $wavefile
         dict lappend properties $wavefile wavefile
         break
       }
@@ -1542,6 +1532,7 @@ proc GetProjectFiles {} {
       set dofile [get_property "$SIMULATOR.simulate.custom_udo" [get_filesets $fs]]
       if {![string equal "$dofile" ""]} {
         dict lappend properties $dofile dofile
+        break
       }
     }
   }

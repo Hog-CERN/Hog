@@ -573,13 +573,13 @@ set tcl_path [file normalize "[file dirname [info script]]"]
 set repo_path [file normalize $tcl_path/../..]
 source $tcl_path/hog.tcl
 
-if { $::argc eq 0 } {
+if { $::argc eq 0 && ![info exist DESIGN]} {
   Msg Info [cmdline::usage $parameters $usage]
   exit 1
 } elseif { [info commands get_property] != "" &&  [catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] } {
   Msg Info [cmdline::usage $parameters $usage]
   exit 1
-} elseif {[info commands project_new] != "" && [ catch {array set options [cmdline::getoptions quartus(args) $parameters $usage] } ] || $::argc eq 0 } {
+} elseif {[info commands project_new] != "" && [ catch {array set options [cmdline::getoptions quartus(args) $parameters $usage] } ] } {
   Msg Info [cmdline::usage $parameters $usage]
   exit 1
 } elseif {[info exist DESIGN]} {

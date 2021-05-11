@@ -49,6 +49,18 @@ if {[info commands get_property] != ""} {
 }
 
 set group_name [GetGroupName $proj_dir]
+Msg Info "Evaluating Git sha for $proj_name..."
+lassign [GetRepoVersions [file normalize ./Top/$group_name/$proj_name] $repo_path] sha
+
+set describe [GetGitDescribe $sha]
+Msg Info "Git describe set to: $describe"
+
+set ts [clock format [clock seconds] -format {%Y-%m-%d-%H-%M}]
+
+set bin_dir [file normalize "$repo_path/bin"]
+set dst_dir [file normalize "$bin_dir/$group_name/$proj_name\-$describe"]
+
+
 
 Msg Info "Evaluating last git SHA in which $proj_name was modified..."
 set commit "0000000"
@@ -76,6 +88,19 @@ if {$maxThreads != 1} {
 } else {
   set commit_usr $commit
 }
+
+#check if diff_ListFilesAndConf.txt is not empty (problem with list files or conf files)
+if {[file exists $dst_dir/diff_ListFilesAndConf.txt]} {
+  set fp [open "$dst_dir/diff_ListFilesAndConf.txt" r]
+  set file_data [read $fp]
+  close $fp
+  if {$file_data != ""} {
+    Msg CriticalWarning "List files and project properties not clean, git commit hash be set to 0."
+    set commit_usr  "0000000"
+    set commit   "0000000"
+  } 
+}
+
 
 Msg Info "The git SHA value $commit will be set as bitstream USERID."
 

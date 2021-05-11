@@ -123,14 +123,18 @@ if {$diff != ""} {
 } 
 
 lassign [GetHogFiles  -ext_path "$ext_path" -repo_path "$tcl_path/../../" "$tcl_path/../../Top/$group_name/$proj_name/list/"] listLibraries listProperties
+
+set fp [open "$dst_dir/diff_presynthesis.txt" w+]
 foreach library [dict keys $listLibraries] {
   set fileNames [dict get $listLibraries $library]
   foreach fileName $fileNames {
     if {[FileCommitted $fileName] == 0} {
       set $found_uncommitted 1
+      puts $fp "$fileName is not in the git repository"
     }
   }
 }
+close $fp
 if {$found_uncommitted == 0} {
   Msg Info "No uncommitted changes found."
 } else {

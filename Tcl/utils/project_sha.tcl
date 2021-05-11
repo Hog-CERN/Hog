@@ -51,7 +51,7 @@ if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] 
 set proj_dir $repo_path/Top/$project
 
 if {[file exists $proj_dir]} {
-  lassign [GetRepoVersions $proj_dir $ext_path] sha ver
+  lassign [GetRepoVersions $proj_dir $repo_path $ext_path] sha ver
   if {$do_ver == 1} {
     set ret [HexVersionToString $ver]
   } else {

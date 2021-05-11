@@ -77,8 +77,7 @@ function create_project() {
   fi
 
   if [ "a$1" == "a" ]; then
-    echo " Usage: $0 <project name>"
-    echo
+    help_message $0
     echo "  Possible projects are:"
 
     search_projects $DIR

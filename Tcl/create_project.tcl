@@ -576,17 +576,22 @@ source $tcl_path/hog.tcl
 if { $::argc eq 0 && ![info exist DESIGN]} {
   Msg Info [cmdline::usage $parameters $usage]
   exit 1
-} elseif { [info commands get_property] != "" &&  [catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] } {
-  Msg Info [cmdline::usage $parameters $usage]
-  exit 1
-} elseif {[info commands project_new] != "" && [ catch {array set options [cmdline::getoptions quartus(args) $parameters $usage] } ] } {
-  Msg Info [cmdline::usage $parameters $usage]
-  exit 1
-} elseif {[info exist DESIGN]} {
-  # Design is parsed from project.tcl
-} else {
+} elseif { [info commands get_property] != "" } {
+  if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] } {
+    Msg Info [cmdline::usage $parameters $usage]
+    exit 1
+  }
   set DESIGN [lindex $argv 0]
+} elseif { [info commands project_new] != "" } {
+  if { [ catch {array set options [cmdline::getoptions quartus(args) $parameters $usage] } ] } {
+    Msg Info [cmdline::usage $parameters $usage]
+    exit 1
+  }
+  set DESIGN [lindex $quartus(args) 0]
+} elseif { [info exist DESIGN]} {
+  Msg Info "Design is parsed from project.tcl: $DESIGN"
 }
+
 
 SetGlobalVar DESIGN
 if {[info exist workflow_simlib_path]} {

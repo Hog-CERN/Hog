@@ -110,6 +110,12 @@ if {$options(outFile)!= ""} {
   set outFile ""
 }
 
+if {[file exists $repo_path/Top/$group_name/$project_name] && [file isdirectory $repo_path/Top/$group_name/$project_name] && $options(force) == 0} {
+  set DirName Top_new/$group_name/$project_name
+} else {
+  set DirName Top/$group_name/$project_name
+}
+
 
 if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
   Msg Info "Checking $project_name list files..."
@@ -431,12 +437,6 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
      Msg Info "List Files matches project. Nothing to do."
   }
 
-  if {[file exists $repo_path/Top/$group_name/$project_name] && [file isdirectory $repo_path/Top/$group_name/$project_name] && $options(force) == 0} {
-    set DirName Top_new/$group_name/$project_name
-  } else {
-    set DirName Top/$group_name/$project_name
-  }
-
   #recreating list files
   if {$options(recreate) == 1 && $ListErrorCnt > 0} {
     Msg Info "Updating list files in $repo_path/$DirName/list"
@@ -534,22 +534,22 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
 
     foreach prop $run_props {
       #current values
-      set val [get_property $prop $proj_run] 
+      set val [string toupper [get_property $prop $proj_run]]
       #ignoring properties in $PROP_BAN_LIST and properties containing repo_path
-      if {$prop in $PROP_BAN_LIST || [string first $repo_path $val] != -1} { 
+      if {$prop in $PROP_BAN_LIST || [string first [string toupper $repo_path] $val] != -1} { 
         set tmp  0
         #Msg Info "Skipping property $prop"
       } else { 
         # default values
-        set Dval [list_property_value -default $prop $proj_run] 
-        dict set defaultRunDict $prop  $val
+        set Dval [string toupper [list_property_value -default $prop $proj_run]]
+        dict set defaultRunDict [string toupper $prop] $Dval
         if {$Dval!=$val} {
-          dict set projRunDict $prop  $val
+          dict set projRunDict [string toupper $prop] $val
         }
       }
     }
     if {"$proj_run" == "[current_project]"} {
-      dict set projRunDict "PART" [get_property PART $proj_run]  
+      dict set projRunDict "PART" [string toupper [get_property PART $proj_run]]  
       dict set confDict main  $projRunDict
       dict set defaultDict main $defaultRunDict
     } else {
@@ -576,8 +576,8 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
         set defset [DictGet  $defaultRunDict $settings]
         dict unset oldConfRunDict $settings
         dict set oldConfDict $prj_run $oldConfRunDict
-        
-        if {$currset != $oldset && $currset != $defset} {
+	#puts "$settings CUR=$currset OLD=$oldset DEF=$defset"
+        if {$currset != $oldset && $currset != $defset && [string first "DEFAULT" $currset] == -1} {
           if {$options(recreate_conf) == 1} {
             Msg Info "$prj_run setting $settings has been changed. \nPrevious value: $oldset \nCurrent value: $currset "
           } else {
@@ -593,7 +593,7 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
         set currset [DictGet  [DictGet $confDict $prj_run] $settings]
         set oldset [DictGet  [DictGet $oldConfDict $prj_run] $settings]
         set defset [DictGet  [DictGet $defaultDict $prj_run] $settings]
-        if {$currset != $oldset && $currset != $defset} {
+        if {$currset != $oldset && $oldset != $defset} {
           if {$options(recreate_conf) == 1} {
             Msg Info "$prj_run setting $settings has been changed. \nPrevious value: $oldset \nCurrent value: $currset "
           } else {
@@ -607,12 +607,16 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
   }
 
   #recreating hog.conf
-  if {$options(recreate_conf) == 1} {
+  if {$options(recreate_conf) == 1 && $ConfErrorCnt > 0} {
     Msg Info "Updating configuration file $repo_path/$DirName/hog.conf"
     file mkdir  $repo_path/$DirName/list
     #writing configuration file  
     set confFile $repo_path/$DirName/hog.conf
     WriteConf $confFile $confDict "vivado"
+  }
+
+  if {$ConfErrorCnt == 0} {
+    Msg Info "$repo_path/$DirName/hog.conf matches project. Nothing to do,"
   }
 }
 

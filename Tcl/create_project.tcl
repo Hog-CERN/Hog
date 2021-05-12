@@ -583,7 +583,13 @@ if { $::argc eq 0 && ![info exist DESIGN]} {
     exit 1
   }
   if { ![info exist DESIGN] || $DESIGN eq "" } { 
-    set DESIGN [lindex $argv 0]
+     if { [lindex $argv 0] eq "" } {
+      Msg Error " Variable DESIGN not set!"
+      Msg Info [cmdline::usage $parameters $usage]
+      exit 1
+    } else {
+      set DESIGN [lindex $argv 0]
+    }
   } else {
     Msg Info "Design is parsed from project.tcl: $DESIGN"
   }
@@ -594,7 +600,13 @@ if { $::argc eq 0 && ![info exist DESIGN]} {
     exit 1
   }
   if { ![info exist DESIGN] || $DESIGN eq "" } { 
-    set DESIGN [lindex $argv 0]
+    if { [lindex $quartus(args) 0] eq "" } {
+      Msg Error " Variable DESIGN not set!"
+      Msg Info [cmdline::usage $parameters $usage]
+      exit 1
+    } else {
+      set DESIGN [lindex $quartus(args) 0]
+    }
   } else {
     Msg Info "Design is parsed from project.tcl: $DESIGN"
   }

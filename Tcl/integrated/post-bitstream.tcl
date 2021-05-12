@@ -167,7 +167,7 @@ if {[info commands get_property] != "" && [file exists $bit_file]} {
 } elseif {[info commands project_new] != "" && [file exists $pof_file]} {
   #Quartus
   # Go to repository path
-  cd $tcl_path/../../
+  cd $repo_path
 
   Msg Info "Evaluating Git sha for $name... repo_path: $repo_path"
   puts "$repo_path repo_path"
@@ -178,7 +178,7 @@ if {[info commands get_property] != "" && [file exists $bit_file]} {
 
   set ts [clock format [clock seconds] -format {%Y-%m-%d-%H-%M}]
 
-  set dst_dir [file normalize "$bin_dir/$name\-$describe"]
+  set dst_dir [file normalize "$bin_dir/$group_name/$proj_name\-$describe"]
   set dst_pof [file normalize "$dst_dir/$name\-$describe.pof"]
   set dst_sof [file normalize "$dst_dir/$name\-$describe.sof"]
   set dst_rbf [file normalize "$dst_dir/$name\-$describe.rbf"]

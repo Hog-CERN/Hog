@@ -577,21 +577,31 @@ if { $::argc eq 0 && ![info exist DESIGN]} {
   Msg Info [cmdline::usage $parameters $usage]
   exit 1
 } elseif { [info commands get_property] != "" } {
+  # Vivado and ISE
   if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] } {
     Msg Info [cmdline::usage $parameters $usage]
     exit 1
   }
-  set DESIGN [lindex $argv 0]
+  if { ![info exist DESIGN] || $DESIGN eq "" } { 
+    set DESIGN [lindex $argv 0]
+  } else {
+    Msg Info "Design is parsed from project.tcl: $DESIGN"
+  }
 } elseif { [info commands project_new] != "" } {
+  # Quartus
   if { [ catch {array set options [cmdline::getoptions quartus(args) $parameters $usage] } ] } {
     Msg Info [cmdline::usage $parameters $usage]
     exit 1
   }
-  set DESIGN [lindex $quartus(args) 0]
-} elseif { [info exist DESIGN]} {
-  Msg Info "Design is parsed from project.tcl: $DESIGN"
+  if { ![info exist DESIGN] || $DESIGN eq "" } { 
+    set DESIGN [lindex $argv 0]
+  } else {
+    Msg Info "Design is parsed from project.tcl: $DESIGN"
+  }
+} else {
+  Msg Error "Not under Vivado, Ise or Quartus... Aborting!"
+  exit 1
 }
-
 
 SetGlobalVar DESIGN
 if {[info exist workflow_simlib_path]} {

@@ -52,9 +52,9 @@ if {[info commands get_property] != ""} {
   # Quartus
   set proj_name [lindex $quartus(args) 1]
   set proj_dir [pwd]
-  set xml_dir [file normalize "$proj_dir/../../xml"]
+  set xml_dir [file normalize "$repo_path/xml"]
+  set bin_dir [file normalize "$repo_path/bin"]
   set run_dir [file normalize "$proj_dir"]
-  set bin_dir [file normalize "$proj_dir/../../bin"]
   set name [file rootname [file tail [file normalize [pwd]]]]
   # programming object file
   set pof_file [file normalize "$proj_dir/output_files/$proj_name.pof"]

@@ -106,14 +106,6 @@ proc CreateProject {} {
       file delete {*}[glob -nocomplain $globalSettings::DESIGN.q*]
 
       project_new -family $globalSettings::FAMILY -overwrite -part $globalSettings::PART  $globalSettings::DESIGN
-      set_global_assignment -name ERROR_CHECK_FREQUENCY_DIVISOR 256
-      set_global_assignment -name EDA_DESIGN_ENTRY_SYNTHESIS_TOOL "Precision Synthesis"
-      set_global_assignment -name EDA_LMF_FILE mentor.lmf -section_id eda_design_synthesis
-      set_global_assignment -name EDA_INPUT_DATA_FORMAT VQM -section_id eda_design_synthesis
-      set_global_assignment -name EDA_SIMULATION_TOOL "QuestaSim (Verilog)"
-      set_global_assignment -name EDA_TIME_SCALE "1 ps" -section_id eda_simulation
-      set_global_assignment -name EDA_OUTPUT_DATA_FORMAT "VERILOG HDL" -section_id eda_simulation
-      set_global_assignment -name VHDL_INPUT_VERSION VHDL_2008
       set_global_assignment -name PROJECT_OUTPUT_DIRECTORY output_files
     }
   } else {
@@ -581,19 +573,46 @@ set tcl_path [file normalize "[file dirname [info script]]"]
 set repo_path [file normalize $tcl_path/../..]
 source $tcl_path/hog.tcl
 
-if { $::argc eq 0 } {
+if { $::argc eq 0 && ![info exist DESIGN]} {
   Msg Info [cmdline::usage $parameters $usage]
   exit 1
-} elseif { [info commands get_property] != "" &&  [catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] } {
-  Msg Info [cmdline::usage $parameters $usage]
-  exit 1
-} elseif {[info commands project_new] != "" && [ catch {array set options [cmdline::getoptions quartus(args) $parameters $usage] } ] || $::argc eq 0 } {
-  Msg Info [cmdline::usage $parameters $usage]
-  exit 1
-} elseif {[info exist DESIGN]} {
-  # Design is parsed from project.tcl
+} elseif { [info commands get_property] != "" } {
+  # Vivado and ISE
+  if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] } {
+    Msg Info [cmdline::usage $parameters $usage]
+    exit 1
+  }
+  if { ![info exist DESIGN] || $DESIGN eq "" } { 
+     if { [lindex $argv 0] eq "" } {
+      Msg Error " Variable DESIGN not set!"
+      Msg Info [cmdline::usage $parameters $usage]
+      exit 1
+    } else {
+      set DESIGN [lindex $argv 0]
+    }
+  } else {
+    Msg Info "Design is parsed from project.tcl: $DESIGN"
+  }
+} elseif { [info commands project_new] != "" } {
+  # Quartus
+  if { [ catch {array set options [cmdline::getoptions quartus(args) $parameters $usage] } ] } {
+    Msg Info [cmdline::usage $parameters $usage]
+    exit 1
+  }
+  if { ![info exist DESIGN] || $DESIGN eq "" } { 
+    if { [lindex $quartus(args) 0] eq "" } {
+      Msg Error " Variable DESIGN not set!"
+      Msg Info [cmdline::usage $parameters $usage]
+      exit 1
+    } else {
+      set DESIGN [lindex $quartus(args) 0]
+    }
+  } else {
+    Msg Info "Design is parsed from project.tcl: $DESIGN"
+  }
 } else {
-  set DESIGN [lindex $argv 0]
+  Msg Error "Not under Vivado, Ise or Quartus... Aborting!"
+  exit 1
 }
 
 SetGlobalVar DESIGN
@@ -755,6 +774,18 @@ ConfigureSynthesis
 ConfigureImplementation
 ConfigureSimulation
 UpgradeIP
+
+if {[info commands project_new] != ""} {
+  set fileName_old [file normalize "./hogTmp/.hogQsys.md5"]
+  set fileDir  [file normalize "$globalSettings::build_dir/.hog/"]
+  file mkdir $fileDir
+  set fileName_new [file normalize "$fileDir/.hogQsys.md5"]
+  if {[file exists $fileName_new]} {
+    file delete $fileName_new
+  }
+  file rename -force $fileName_old $fileName_new
+  file delete -force -- "./hogTmp"
+}
 
 if {[file exists $post_file]} {
   Msg Info "Found post-creation Tcl script $post_file, executing it..."

@@ -202,7 +202,7 @@ function select_command() {
 #
 # This function:
 # - checks at least 1 argoument is passed
-# - uses which to select the executable
+# - uses command -v to select the executable
 #   * if no executable is found and the command is vivado it uses VIVADO_PATH
 #   *
 # - stores the result in a global variable called HDL_COMPILER
@@ -218,8 +218,8 @@ function select_compiler_executable() {
     return 1
   fi
 
-  if [ $(which $1) ]; then
-    HDL_COMPILER=$(which $1)
+  if [ $(command -v $1) ]; then
+    HDL_COMPILER=$(command -v $1)
   else
     if [$1 == "vivado" ]; then
       if [ -z ${VIVADO_PATH+x} ]; then
@@ -234,7 +234,7 @@ function select_compiler_executable() {
       Msg Error "cannot find the executable for $1."
       echo "Probable causes are:"
       echo "- $1 was not setup"
-      echo "- which not available on the machine"
+      echo "- command not available on the machine"
       return 1
     fi
   fi

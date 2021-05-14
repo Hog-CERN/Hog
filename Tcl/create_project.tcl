@@ -783,8 +783,10 @@ if {[info commands project_new] != ""} {
   if {[file exists $fileName_new]} {
     file delete $fileName_new
   }
-  file rename -force $fileName_old $fileName_new
-  file delete -force -- "./hogTmp"
+  if {[file exists $fileName_old]} {
+    file rename -force $fileName_old $fileName_new
+    file delete -force -- "./hogTmp"
+  }
 }
 
 if {[file exists $post_file]} {

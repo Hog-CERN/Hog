@@ -27,8 +27,8 @@ set parameters {
   {no_bitstream    "If set, the bitstream file will not be produced."}
   {synth_only      "If set, only the synthesis will be performed."}
   {impl_only       "If set, only the implementation will be performed. This assumes synthesis should was already done."}
-  {no_recreate     "If set, the project will not be re created if it already exists."}
-  {reset           "If set, resets the runs (synthesis and implementation) before launching them."}
+  {recreate        "If set, the project will be re-created if it already exists."}
+  {no_reset        "If set, runs (synthesis and implementation) won't be reset before launching them."}
   {check_syntax    "If set, the HDL syntax will be checked at the beginning of the worflow."}
   {njobs.arg 4 "Number of jobs. Default: 4"}
   {ext_path.arg "" "Sets the absolute path for the external libraries."}
@@ -58,8 +58,8 @@ if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] 
   set do_implementation 1
   set do_synthesis 1
   set do_bitstream 1
-  set recreate 1
-  set reset 0
+  set recreate 0
+  set reset 1
   set check_syntax 0
   set ip_path ""
   set ext_path ""
@@ -75,8 +75,8 @@ if { $options(no_bitstream) == 1 } {
   set do_bitstream 0
 }
 
-if { $options(no_recreate) == 1 } {
-  set recreate 0
+if { $options(recreate) == 1 } {
+  set recreate 1
 }
 
 if { $options(synth_only) == 1 } {
@@ -87,8 +87,8 @@ if { $options(impl_only) == 1 } {
   set do_synthesis 0
 }
 
-if { $options(reset) == 1 } {
-  set reset 1
+if { $options(no_reset) == 1 } {
+  set reset 0
 }
 
 if { $options(check_syntax) == 1 } {

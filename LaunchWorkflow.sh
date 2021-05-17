@@ -28,8 +28,8 @@ print_hog $(dirname "$0")
 #  @param[out] NO_BITSTREAM empty or "-no_bitstream"
 #  @param[out] SYNTH_ONLY   empty or "-synth_only"
 #  @param[out] IMPL_ONLY    empty or "-impl_only"
-#  @param[out] NO_RECREATE  empty or "-no_recreate"
-#  @param[out] RESET        empty or "-reset"
+#  @param[out] RECREATE     empty or "-recreate"
+#  @param[out] NO_RESET     empty or "-no_reset"
 #  @param[out] CHECK_SYNTAX empty or "-check_syntax"
 #  @param[out] EXT_PATH     empty or "-ext_path $2"
 #  @param[out] PARAMS       positional parameters
@@ -55,8 +55,8 @@ function argument_parser() {
 			IMPL_ONLY="-impl_only"
 			shift 1
 			;;
-		-no_recreate)
-			NO_RECREATE="-no_recreate"
+		-recreate)
+			RECREATE="-recreate"
 			shift 1
 			;;
 		-ext_path)
@@ -71,8 +71,8 @@ function argument_parser() {
 			SYNTH_ONLY="-synth_only"
 			shift 1
 			;;
-		-reset)
-			RESET="-reset"
+		-no_reset)
+			NO_RESET="-no_reset"
 			shift 1
 			;;
 		-check_syntax)
@@ -108,7 +108,7 @@ fi
 eval set -- "$PARAMS"
 if [ -z "$1" ]; then
 	printf "Project name has not been specified. Usage: \n"
-	printf " LaunchWorkflow.sh <project name> [-reset] [-check_syntax] [-no_bitstream | -synth_only] [-impl_only] [-no_recreate] [-njobs <number of jobs>] [-ext_path <external path>] [-ip_eos_path <path to IP repository on EOS>]\n\n"
+	printf " LaunchWorkflow.sh <project name> [-no_reset] [-check_syntax] [-no_bitstream | -synth_only] [-impl_only] [-recreate] [-njobs <number of jobs>] [-ext_path <external path>] [-ip_eos_path <path to IP repository on EOS>]\n\n"
 	printf " For a detailed explanation of all the option, type LaunchWorkflow.sh <project name> -h.\n"
 	printf " The project name is needed by Hog to tell which HDL software to use: Vivado, Quartus, etc.\n\n"
 	printf "Possible projects are:\n"
@@ -147,11 +147,11 @@ else
 			if [ "a$IP_PATH" != "a" ]; then
 				Msg Warning "IP eos path not supported in Quartus mode"
 			fi
-			${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_quartus.tcl $HELP $RESET $NO_BITSTREAM $SYNTH_ONLY $NJOBS $CHECK_SYNTAX $NO_RECREATE $EXT_PATH $IMPL_ONLY -project $1
+			${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_quartus.tcl $HELP $NO_RESET $NO_BITSTREAM $SYNTH_ONLY $NJOBS $CHECK_SYNTAX $RECREATE $EXT_PATH $IMPL_ONLY -project $1
 		elif [ $COMMAND = "vivado_hls" ]; then
 			Msg Error "Vivado HLS is not yet supported by this script!"
 		else
-			${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_workflow.tcl -tclargs $HELP $RESET $NO_BITSTREAM $SYNTH_ONLY $IP_PATH $NJOBS $CHECK_SYNTAX $NO_RECREATE $EXT_PATH $IMPL_ONLY $SIMLIBPATH $1
+			${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_workflow.tcl -tclargs $HELP $NO_RESET $NO_BITSTREAM $SYNTH_ONLY $IP_PATH $NJOBS $CHECK_SYNTAX $RECREATE $EXT_PATH $IMPL_ONLY $SIMLIBPATH $1
 		fi
 	else
 		Msg Error "Project $PROJ not found. Possible projects are:"

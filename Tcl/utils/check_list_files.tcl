@@ -426,14 +426,7 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
 
   #summary of errors found
   if {$options(recreate) == 0} {
-    if {$options(pedantic) == 1 && $ListErrorCnt > 0} {
-      Msg Error "Number of errors: $ListErrorCnt"
-    } elseif {$ListErrorCnt > 0} {
-      Msg CriticalWarning "Number of errors: $ListErrorCnt"
-    } else {
-      Msg Info "List Files matches project. All ok!"
-    }
-  } elseif  {$ListErrorCnt == 0} {
+    if  {$ListErrorCnt == 0} {
      Msg Info "List Files matches project. Nothing to do."
   }
 
@@ -578,6 +571,12 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
         dict set oldConfDict $prj_run $oldConfRunDict
 	#puts "$settings CUR=$currset OLD=$oldset DEF=$defset"
         if {$currset != $oldset && $currset != $defset && [string first "DEFAULT" $currset] == -1} {
+          if {[string tolower $oldset] == "true" && $currset == 1} {
+            continue
+          }
+          if {[string tolower $oldset] == "false" && $currset == 0} {
+            continue
+          }
           if {$options(recreate_conf) == 1} {
             Msg Info "$prj_run setting $settings has been changed. \nPrevious value: $oldset \nCurrent value: $currset "
           } else {
@@ -621,6 +620,8 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
 }
 
 
+
+
 #closing project if a new one was opened
 if {![string equal $options(project) ""]} {
     if { [string first PlanAhead [version]] != 0 } {
@@ -633,5 +634,16 @@ if {$options(outFile)!= ""} {
 
 
 set TotErrorCnt [expr $ConfErrorCnt + $ListErrorCnt]
+
+if {$options(recreate_conf) == 0 && $options(recreate) == 0} {
+  if {$options(pedantic) == 1 && $TotErrorCnt > 0} {
+      Msg Error "Number of errors: $TotErrorCnt"
+    } elseif {$ListErrorCnt > 0} {
+      Msg CriticalWarning "Number of errors: $TotErrorCnt"
+    } else {
+      Msg Info "List Files matches project. All ok!"
+    }
+  } 
+}
 
 return $TotErrorCnt

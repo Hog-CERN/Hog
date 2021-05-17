@@ -428,6 +428,7 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
   if {$options(recreate) == 0} {
     if  {$ListErrorCnt == 0} {
      Msg Info "List Files matches project. Nothing to do."
+    }
   }
 
   #recreating list files
@@ -436,27 +437,22 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
 
     #delete existing listFiles
     if {$options(force) == 1} {
-      foreach F [glob -nocomplain "$repo_path/Top/$group_name/$project_name/list/*.src"] {
-        file delete $F
-      }
-      foreach F [glob -nocomplain "$repo_path/Top/$group_name/$project_name/list/*.sim"] {
-        file delete $F
-      }
-      foreach F [glob -nocomplain "$repo_path/Top/$group_name/$project_name/list/*.ext"] {
-        file delete $F
-      }
-      foreach F [glob -nocomplain "$repo_path/Top/$group_name/$project_name/list/*.con"] {
-        file delete $F
-      }
-      foreach F [glob -nocomplain "$repo_path/Top/$group_name/$project_name/list/*.sub"] {
-        file delete $F
+      set listpath "$repo_path/Top/$group_name/$project_name/list/"
+      foreach F [glob -nocomplain "$listpath/*.src" "$listpath/*.sim" "$listpath/*.sub" "$listpath/*.ext"  "$listpath/*.con"] {
+        if {[dict exists $newListfiles [file tail $F]] == 0} {
+          file delete $F
+        }
       }
     }
 
     file mkdir  $repo_path/$DirName/list
     foreach listFile [dict keys $newListfiles] {
       if {[string equal [file extension $listFile] ".sim"]} {
-        set listSim [ParseFirstLineHogFiles "$repo_path/Top/$group_name/$project_name/list/" $listFile]
+        if {[file exists "$repo_path/Top/$group_name/$project_name/list/$listFile"]} {
+          set listSim [ParseFirstLineHogFiles "$repo_path/Top/$group_name/$project_name/list/" $listFile]
+        } else {
+          set listSim ""
+        }
         set lFd [open $repo_path/$DirName/list/$listFile w]
         if {[string equal -nocase [lindex [split $listSim " "] 0] "Simulator"] && [string equal -nocase [lindex [split $listSim " "] 1] "skip_simulation"]} {
            puts $lFd "#$listSim"
@@ -637,13 +633,12 @@ set TotErrorCnt [expr $ConfErrorCnt + $ListErrorCnt]
 
 if {$options(recreate_conf) == 0 && $options(recreate) == 0} {
   if {$options(pedantic) == 1 && $TotErrorCnt > 0} {
-      Msg Error "Number of errors: $TotErrorCnt"
-    } elseif {$ListErrorCnt > 0} {
-      Msg CriticalWarning "Number of errors: $TotErrorCnt"
-    } else {
-      Msg Info "List Files matches project. All ok!"
-    }
-  } 
+    Msg Error "Number of errors: $TotErrorCnt. (List files = $ListErrorCnt, hog.conf = $ConfErrorCnt)"
+  } elseif {$TotErrorCnt > 0} {
+    Msg CriticalWarning "Number of errors: $TotErrorCnt (List files = $ListErrorCnt, hog.conf = $ConfErrorCnt)"
+  } else {
+    Msg Info "List files and hog.conf match project. All ok!"
+  }
 }
 
 return $TotErrorCnt

@@ -425,10 +425,8 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
   }
 
   #summary of errors found
-  if {$options(recreate) == 0} {
-    if  {$ListErrorCnt == 0} {
-     Msg Info "List Files matches project. Nothing to do."
-    }
+  if  {$ListErrorCnt == 0} {
+   Msg Info "List Files matches project. Nothing to do."
   }
 
   #recreating list files

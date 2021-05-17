@@ -476,6 +476,10 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
 if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
   set oldConfDict [ReadConf [lindex [GetConfFiles "$repo_path/Top/$group_name/$project_name/"] 0]]
 
+  #adding main properties set by defaut by Hog
+  set defMainDict [dict create TARGET_LANGUAGE VHDL SIMULATOR_LANGUAGE MIXED]
+  dict set oldConfDict main [dict merge $defMainDict [DictGet $oldConfDict main]]
+
   #reading old hog.conf if exist and copy the parameters
   set paramDict [dict create]
   if {[dict exists $oldConfDict parameters]} {

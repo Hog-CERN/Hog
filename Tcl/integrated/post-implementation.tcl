@@ -41,7 +41,7 @@ if {[info commands get_property] != ""} {
 } elseif {[info commands project_new] != ""} {
   # Quartus
   set proj_name [lindex $quartus(args) 1]
-  set proj_dir [file normalize "$repo_path/Projects/$proj_name"]
+  set proj_dir [pwd]
 } else {
   #Tclssh
   set proj_file $old_path/[file tail $old_path].xpr

@@ -58,10 +58,10 @@ if {[info commands get_property] != ""} {
 } elseif {[info commands project_new] != ""} {
   # Quartus
   set proj_name [lindex $quartus(args) 1]
-  set proj_dir [file normalize "$tcl_path/../../Projects/$proj_name"]
-  set xml_dir [file normalize "$proj_dir/../../xml"]
+  set proj_dir [pwd]
+  set xml_dir [file normalize "$repo_path/xml"]
+  set bin_dir [file normalize "$repo_path/bin"]
   set run_dir [file normalize "$proj_dir"]
-  set bin_dir [file normalize "$proj_dir/../../bin"]
   set name [file rootname [file tail [file normalize [pwd]]]]
   # programming object file
   set pof_file [file normalize "$proj_dir/output_files/$proj_name.pof"]
@@ -187,7 +187,7 @@ if {[info commands get_property] != "" && [file exists $bit_file]} {
 } elseif {[info commands project_new] != "" && [file exists $pof_file]} {
   #Quartus
   # Go to repository path
-  cd $tcl_path/../../
+  cd $repo_path
 
   Msg Info "Evaluating Git sha for $name... repo_path: $repo_path"
   puts "$repo_path repo_path"
@@ -198,7 +198,7 @@ if {[info commands get_property] != "" && [file exists $bit_file]} {
 
   set ts [clock format [clock seconds] -format {%Y-%m-%d-%H-%M}]
 
-  set dst_dir [file normalize "$bin_dir/$name\-$describe"]
+  set dst_dir [file normalize "$bin_dir/$group_name/$proj_name\-$describe"]
   set dst_pof [file normalize "$dst_dir/$name\-$describe.pof"]
   set dst_sof [file normalize "$dst_dir/$name\-$describe.sof"]
   set dst_rbf [file normalize "$dst_dir/$name\-$describe.rbf"]

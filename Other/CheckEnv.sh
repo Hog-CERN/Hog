@@ -38,9 +38,9 @@ for HDL_COMPILER in ${COMPILERS_TO_CHECK[@]}; do
     exit -1
   fi
 
-  if [ `which $COMMAND 2>/dev/null` ]
+  if [ `command -v $COMMAND` ]
   then
-    CMD=`which $COMMAND`
+    CMD=`command -v $COMMAND`
     echo "HDL env executable found in $CMD"
     echo
     $CMD -version
@@ -52,9 +52,9 @@ done
 
 echo --------------------------------
 
-if [ `which vsim 2>/dev/null` ]
+if [ `command -v vsim` ]
 then
-    CMD=`which vsim`
+    CMD=`command -v vsim`
     echo "Modelsim/Questasim executable found in $CMD"
     echo
     $CMD -version
@@ -64,9 +64,9 @@ fi
 
 echo --------------------------------
 
-if [ `which eos 2>/dev/null` ]
+if [ `command -v eos` ]
 then
-    CMD=`which eos`
+    CMD=`command -v eos`
     echo "eos executable found in $CMD"
     echo
     $CMD --version
@@ -76,9 +76,9 @@ fi
 
 echo --------------------------------
 
-if [ `which git 2>/dev/null` ]
+if [ `command -v git` ]
 then
-    CMD=`which git`
+    CMD=`command -v git`
     echo "git executable found in $CMD"
     echo
     VER=`$CMD --version`
@@ -315,6 +315,6 @@ if [ -z ${FAIL+x} ]
 then
     echo "Hog-INFO: Check successfull, you can run Hog-CI on this machine"
 else
-    echo "Hog-ERROR: At least one essitial variable or executable was not defined, Hog-CI cannot start. Check above for details."
+    echo "Hog-ERROR: At least one essential variable or executable was not defined, Hog-CI cannot start. Check above for details."
     exit 1
 fi

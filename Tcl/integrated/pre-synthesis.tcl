@@ -40,10 +40,6 @@ if {[info exists env(HOG_EXTERNAL_PATH)]} {
   set ext_path ""
 }
 
-# Go to repository path
-set repo_path [file normalize "$tcl_path/../.."]
-cd $repo_path
-
 if {[info commands get_property] != ""} {
   # Vivado + PlanAhead
   if { [string first PlanAhead [version]] == 0 } {
@@ -56,13 +52,41 @@ if {[info commands get_property] != ""} {
 } elseif {[info commands project_new] != ""} {
   # Quartus
   set proj_name [lindex $quartus(args) 1]
-  set proj_dir [file normalize "$repo_path/Projects/$proj_name"]
+  #set proj_dir [file normalize "$repo_path/Projects/$proj_name"]
+  set proj_dir [pwd]
   set proj_file [file normalize "$proj_dir/$proj_name.qpf"]
+  # Test generated files
+  set hogQsysFileName [file normalize "$proj_dir/.hog/.hogQsys.md5"]
+  if { [file exists $hogQsysFileName] != 0} {
+    set hogQsysFile [open $hogQsysFileName r]
+    set hogQsysFileLines [split [read $hogQsysFile] "\n"]
+    foreach line $hogQsysFileLines {
+      set fileEntry [split $line "\t"]
+      set fileEntryName [lindex $fileEntry 0]
+      if {$fileEntryName != ""} {
+        if {[file exists $fileEntryName]} {
+          set newMd5Sum [Md5Sum $fileEntryName]
+          set oldMd5Sum [lindex $fileEntry 1]
+          if { $newMd5Sum != $oldMd5Sum } {
+            Msg Warning "The checksum for file $fileEntryName not equal to the one saved in $hogQsysFileName: new checksum $newMd5Sum, old checksum $oldMd5Sum. Please check the any changes in the file are correctly propagated to git!"
+          }
+        } else {
+          Msg Warning "File $fileEntryName not found... Will not check Md5Sum!"
+        }
+      }
+    }
+    
+  }
 } else {
   #Tclssh
   set proj_file $old_path/[file tail $old_path].xpr
   Msg CriticalWarning "You seem to be running locally on tclsh, so this is a debug, the project file will be set to $proj_file and was derived from the path you launched this script from: $old_path. If you want this script to work properly in debug mode, please launch it from the top folder of one project, for example Repo/Projects/fpga1/ or Repo/Top/fpga1/"
 }
+
+# Go to repository path
+set repo_path [file normalize "$tcl_path/../.."]
+cd $repo_path
+
 set group_name [GetGroupName $proj_dir]
 # Calculating flavour if any
 set flavour [string map {. ""} [file ext $proj_name]]

@@ -24,12 +24,19 @@ if {[catch {package require cmdline} ERROR]} {
 
 set parameters {
   {lib_path.arg ""   "Compiled simulation library path"}
+  {simset.arg  ""   "Simulation sets, separated by comas, to be run."}
+  {quiet             "Simulation sets, separated by comas, to be run."}  
 }
 
 set usage "- USAGE: $::argv0 \[OPTIONS\] <project> \n. Options:"
 
 set path [file normalize "[file dirname [info script]]/.."]
 set repo_path [file normalize "$path/../.."]
+
+set old_path [pwd]
+cd $path
+source ./hog.tcl
+
 
 if { $::argc eq 0 } {
   Msg Info [cmdline::usage $parameters $usage]
@@ -56,17 +63,25 @@ if { $::argc eq 0 } {
   } else {
     set lib_path [file normalize "$repo_path/SimulationLib"]
   }
+
 }
 
-
-set old_path [pwd]
-cd $path
-source ./hog.tcl
 Msg Info "Simulation library path is set to $lib_path."
 set simlib_ok 1
 if !([file exists $lib_path]) {
   Msg Warning "Could not find simulation library path: $lib_path, Modelsim/Questasim simulation will not work."
   set simlib_ok 0
+}
+set simsets_todo ""
+if {$options(simset)!= ""} {
+  set simsets_todo [split $options(simset) ","]
+  Msg Info "Will run only the following simsets (if they exist): $simsets_todo"
+}
+
+set verbose 1
+if {$options(quiet) == 1} {
+  set verbose 0 
+  Msg Info "Will run in quiet mode"
 }
 
 ############# CREATE or OPEN project ############
@@ -94,14 +109,18 @@ if {[file exists $project_file]} {
   }
 }
 
+set failed [] 
+set success []
+set sim_dic [dict create]
+
 Msg Info "Retrieving list of simulation sets..."
-
-set errors 0
-
 foreach s [get_filesets] {
-
   set type [get_property FILESET_TYPE $s]
   if {$type eq "SimulationSrcs"} {
+    if {$simsets_todo != "" && $s ni $simsets_todo} {
+    Msg Info "Skipping $s as it was not specified with the -simset option..."
+    continue
+  }
     if {!($s eq "sim_1")} {
       set filename [string range $s 0 [expr {[string last "_sim" $s] -1 }]]
       set fp [open "../../Top/$project_name/list/$filename.sim" r]
@@ -128,10 +147,13 @@ foreach s [get_filesets] {
       current_fileset -simset $s
       set sim_dir $main_folder/$s/behav
       if { ($simulator eq "xsim") } {
+	set sim_name "xsim:$s"		
         if { [catch { launch_simulation -simset [get_filesets $s] } log] } {
           Msg CriticalWarning "Simulation failed for $s, error info: $::errorInfo"
-          incr errors
-        }
+          lappend failed $sim_name
+        } else {
+          lappend success $sim_name
+	}
       } else {
         if {$simlib_ok == 1} {
           set_property "compxlib.${simulator}_compiled_library_dir" $lib_path [current_project]
@@ -140,6 +162,7 @@ foreach s [get_filesets] {
           set sim_script  [file normalize $sim_dir/$simulator/]
           Msg Info "Adding simulation script location $sim_script for $s..."
           lappend sim_scripts $sim_script
+	  dict append sim_dic $sim_script $s
         } else {
           Msg Error "Cannot run $simulator simulations witouth a valid library path"
           exit -1
@@ -153,52 +176,79 @@ if [info exists sim_scripts] { #Only for modelsim/questasim
 Msg Info "Generating IP simulation targets, if any..."
 
 foreach ip [get_ips] {
-  generate_target simulation $ip
+  generate_target simulation -quiet $ip
 }
+
+
+Msg Status "\n\n"
+Msg Info "====== Starting simulations runs ======"
+Msg Status "\n\n"
 
 foreach s $sim_scripts {
   cd $s
   set cmd ./compile.sh
-  Msg Info "Compiling: $cmd..."
+  Msg Info " ************* Compiling: $s  ************* "
   lassign [ExecuteRet $cmd] ret log
+  set sim_name "comp:[dict get $sim_dic $s]"
   if {$ret != 0} {
     Msg CriticalWarning "Compilation failed for $s, error info: $::errorInfo"
-    incr errors
+    lappend failed $sim_name
+  } else {
+    lappend success $sim_name
   }
-  Msg Info "Compilation log starts:"
-  Msg Status "\n\n$log\n\n"
-  Msg Info "Compilation log ends"
+  if {$verbose == 1} {
+    Msg Info "###################### Compilation log starts ######################"
+    Msg Status "\n\n$log\n\n"
+    Msg Info "######################  Compilation log ends  ######################"
+  }
 
   if { [file exists "./elaborate.sh"] } {
     set cmd ./elaborate.sh
-    Msg Info "Found eleborate script, executing: $cmd..."
+    Msg Info " ************* Elaborating: $s  ************* "  
     lassign [ExecuteRet $cmd] ret log
+    set sim_name "elab:[dict get $sim_dic $s]"    
     if {$ret != 0} {
       Msg CriticalWarning "Elaboration failed for $s, error info: $::errorInfo"
-      incr errors
+      lappend failed $sim_name
+    } else {
+      lappend success $sim_name
     }
-    Msg Info "Elaboration log starts:"
-    Msg Status "\n\n$log\n\n"
-    Msg Info "Elaboration log ends"
+    if {$verbose == 1} {
+      Msg Info "###################### Elaboration log starts ######################"
+      Msg Status "\n\n$log\n\n"
+      Msg Info "######################  Elaboration log ends  ######################"
+    }
   }
   set cmd ./simulate.sh
-  Msg Info "Simulating: $cmd..."
+  Msg Info " ************* Simulating: $s  ************* "  
   lassign [ExecuteRet $cmd] ret log
+  set sim_name "sim:[dict get $sim_dic $s]"  
   if {$ret != 0} {
     Msg CriticalWarning "Simulation failed for $s, error info: $::errorInfo"
-    incr errors
+    lappend failed $sim_name
+  } else {
+    lappend success $sim_name
   }
-  Msg Info "Simulation log starts:"
-  Msg Status "\n\n$log\n\n"
-  Msg Info "Simulation log ends"
+  if {$verbose == 1} {
+    Msg Info "###################### Simulation log starts ######################"
+    Msg Status "\n\n$log\n\n"
+    Msg Info "######################  Simulation log ends  ######################"
+  }
 }
 }
 
-if {$errors > 0} {
-  Msg Error "Simulation failed, there were $errors failures. Look above for details."
+
+if {[llength $success] > 0} {
+  set successes [join $success "\n"]
+  Msg Info "The following simulation sets were successful:\n\n$successes\n\n"
+}
+
+if {[llength $failed] > 0} {
+  set failures [join $failed "\n"]
+  Msg Error "The following simulation sets have failed:\n\n$failures\n\n"
   exit -1
 } else {
-  Msg Info "All simulations (if any) were successful."
+  Msg Info "All the [llength $success] compilations, elaborations and simulations were successful."
 }
 
 Msg Info "All done."

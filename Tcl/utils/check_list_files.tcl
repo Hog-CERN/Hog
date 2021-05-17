@@ -498,6 +498,9 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
                            STEPS.WRITE_BITSTREAM.TCL.PRE \
                            STEPS.WRITE_BITSTREAM.TCL.POST \
                            STEPS.ROUTE_DESIGN.TCL.POST \
+                           COMPXLIB.MODELSIM_COMPILED_LIBRARY_DIR \
+                           COMPXLIB.QUESTA_COMPILED_LIBRARY_DIR \
+                           COMPXLIB.RIVIERA_COMPILED_LIBRARY_DIR \
                      ]
 
 

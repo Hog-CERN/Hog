@@ -146,8 +146,8 @@
             echo "Hog-CI(info) - no custom files will be reset.";
           fi;
           echo "Hog-CI(info) - Launching workflow now...";
-          echo "./Hog/LaunchWorkflow.sh -recreate -njobs $HOG_NJOBS $IP_EOS_PATH $NO_BITSTREAM $ONLY_SYNTH $CHECK_SYNTAX $PROJECT_NAME";
-          ./Hog/LaunchWorkflow.sh -recreate -njobs $HOG_NJOBS $IP_EOS_PATH $NO_BITSTREAM $ONLY_SYNTH $CHECK_SYNTAX $PROJECT_NAME;
+          echo "./Hog/LaunchWorkflow.sh -njobs $HOG_NJOBS $IP_EOS_PATH $NO_BITSTREAM $ONLY_SYNTH $CHECK_SYNTAX $PROJECT_NAME";
+          ./Hog/LaunchWorkflow.sh -njobs $HOG_NJOBS $IP_EOS_PATH $NO_BITSTREAM $ONLY_SYNTH $CHECK_SYNTAX $PROJECT_NAME;
           if [[ -n "$HOG_ONLY_SYNTH" ]] && [[ $HOG_ONLY_SYNTH == '1' ]]; then
             echo "Hog-CI(info) - Adding version and timing summary to note...";
             if [[ -d "$CI_PROJECT_DIR/Projects/$PROJECT_NAME/$PROJECT_NAME.runs/" ]]; then

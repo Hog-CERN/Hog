@@ -91,9 +91,9 @@ if {$maxThreads != 1} {
   set commit_usr $commit
 }
 
-#check if diff_ListFilesAndConf.txt is not empty (problem with list files or conf files)
-if {[file exists $dst_dir/diff_ListFilesAndConf.txt]} {
-  set fp [open "$dst_dir/diff_ListFilesAndConf.txt" r]
+#check if diff_list_and_conf.txt is not empty (problem with list files or conf files)
+if {[file exists $dst_dir/diff_list_and_conf.txt]} {
+  set fp [open "$dst_dir/diff_list_and_conf.txt" r]
   set file_data [read $fp]
   close $fp
   if {$file_data != ""} {

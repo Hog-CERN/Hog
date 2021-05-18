@@ -117,9 +117,9 @@ file mkdir $dst_dir/reports
 #check list files
 if {[info commands get_property] != "" && [string first PlanAhead [version]] != 0} {
   if {![string equal ext_path ""]} {
-    set argv [list "-ext_path" "$ext_path" "-project" "$group_name/$proj_name" "-outFile" "$dst_dir/diff_ListFilesAndConf.txt"]
+    set argv [list "-ext_path" "$ext_path" "-project" "$group_name/$proj_name" "-outFile" "$dst_dir/diff_list_and_conf.txt"]
   } else {
-    set argv [list "-project" "$group_name/$proj_name" "-outFile" "$dst_dir/diff_ListFilesAndConf.txt"]
+    set argv [list "-project" "$group_name/$proj_name" "-outFile" "$dst_dir/diff_list_and_conf.txt"]
   }
   set listFilesReturn [source  $tcl_path/utils/check_list_files.tcl]
   if {$listFilesReturn != 0} {

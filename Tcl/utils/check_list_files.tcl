@@ -511,8 +511,8 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
 
   #writing not default properties for current_project, synth_1 and impl_1
   set runs [list [current_project]]
-  lappend runs [list [get_runs synth*]]
-  lappend runs [list [get_runs impl*]]
+  lappend runs [list [get_runs synth_1]]
+  lappend runs [list [get_runs impl_1]]
   foreach proj_run $runs {
     #creting dictionary for each $run
     set projRunDict [dict create]

@@ -34,7 +34,7 @@ proc Msg {level msg {title ""}} {
   set level [string tolower $level]
   if {$level == 0 || $level == "status" || $level == "extra_info"} {
     set vlevel {STATUS}
-    set qlevel extra_info
+    set qlevel info
   } elseif {$level == 1 || $level == "info"} {
     set vlevel {INFO}
     set qlevel info

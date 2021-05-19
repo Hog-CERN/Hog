@@ -56,7 +56,9 @@ proc RelativeLocal {pathName fileName} {
 proc CriticalAndLog {msg {outFile ""}} {
   Msg CriticalWarning $msg
   if {$outFile != ""} {
-    puts $outFile $msg
+    set oF [open "$outFile" a+]
+    puts $oF $msg
+    close $oF
   }
 }
 
@@ -105,10 +107,14 @@ if {![string equal $options(project) ""]} {
 
 
 if {$options(outFile)!= ""} {
-  set outFile [open "$options(outFile)" w]
+  set outFile $options(outFile)
+  if {[file exists $outFile]} {
+    file delete $outFile
+  }
 } else {
   set outFile ""
 }
+
 
 if {[file exists $repo_path/Top/$group_name/$project_name] && [file isdirectory $repo_path/Top/$group_name/$project_name] && $options(force) == 0} {
   set DirName Top_new/$group_name/$project_name
@@ -527,7 +533,7 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
     }
 
     foreach prop $run_props {
-      #current values
+      #Project values
       set val [string toupper [get_property $prop $proj_run]]
       #ignoring properties in $PROP_BAN_LIST and properties containing repo_path
       if {$prop in $PROP_BAN_LIST || [string first [string toupper $repo_path] $val] != -1} { 
@@ -579,9 +585,9 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
             continue
           }
           if {$options(recreate_conf) == 1} {
-            Msg Info "$prj_run setting $settings has been changed. \nPrevious value: $oldset \nCurrent value: $currset "
+            Msg Info "$prj_run setting $settings has been changed. \nhog.conf value: $oldset \nProject value: $currset "
           } else {
-            CriticalAndLog "$prj_run setting $settings does not match hog.conf. \nPrevious value: $oldset \nCurrent value: $currset " $outFile
+            CriticalAndLog "$prj_run setting $settings does not match hog.conf. \nhog.conf value: $oldset \nProject value: $currset " $outFile
           }
           incr ConfErrorCnt
         }
@@ -595,9 +601,9 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
         set defset [DictGet  [DictGet $defaultDict $prj_run] $settings]
         if {$currset != $oldset && $oldset != $defset} {
           if {$options(recreate_conf) == 1} {
-            Msg Info "$prj_run setting $settings has been changed. \nPrevious value: $oldset \nCurrent value: $currset "
+            Msg Info "$prj_run setting $settings has been changed. \nhog.conf value: $oldset \nProject value: $currset "
           } else {
-            CriticalAndLog "$prj_run setting $settings does not match hog.conf. \nPrevious value: $oldset \nCurrent value: $currset " $outFile
+            CriticalAndLog "$prj_run setting $settings does not match hog.conf. \nhog.conf value: $oldset \nProject value: $currset " $outFile
           }
           incr ConfErrorCnt
         }
@@ -621,17 +627,12 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
 }
 
 
-
-
 #closing project if a new one was opened
 if {![string equal $options(project) ""]} {
     if { [string first PlanAhead [version]] != 0 } {
         close_project
     }
 }
-if {$options(outFile)!= ""} {
-  close $outFile
-} 
 
 
 set TotErrorCnt [expr $ConfErrorCnt + $ListErrorCnt]

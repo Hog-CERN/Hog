@@ -56,13 +56,13 @@ function init() {
   COMPILER_FOUND=false
 
   ##! The script checks if Vivado is installed and set uop on the shell.
-  ##! NOTE that these checks are performed using 'which'
-  if [ $(which vivado) ]; then
+  ##! NOTE that these checks are performed using 'command -v '
+  if [ $(command -v  vivado) ]; then
     COMPILER_FOUND=true
-    local VIVADO=$(which vivado)
+    local VIVADO=$(command -v  vivado)
     ##! If Vivado is installed it checks if vsim command is defined (Questasim or Modelsim is installed and set-up in the shell).
-    ##! NOTE that these checks are performed using 'which'
-    if [ $(which vsim) ]; then
+    ##! NOTE that these checks are performed using 'command -v '
+    if [ $(command -v  vsim) ]; then
       echo
       ##! If Questasim or Modelsim is installed ask user if he wants to compile
       ##! NOTE use read to grab user input
@@ -86,7 +86,7 @@ function init() {
           rm -f ./Tcl/modelsim.ini
         else
           ## Riviera
-          if [ $(which riviera) ]; then
+          if [ $(command -v  riviera) ]; then
             echo
             ##! If Riviera is installed ask user if he wants to compile
             ##! NOTE use read to grab user input
@@ -109,12 +109,12 @@ function init() {
   fi
 
   # REpeat compilation using Quartus
-  if [ $(which quartus_sh) ]; then
+  if [ $(command -v  quartus_sh) ]; then
     COMPILER_FOUND=true
-    local QUARTUS=$(which quartus_sh)
+    local QUARTUS=$(command -v  quartus_sh)
     ##! If Quartus is installed it checks if vsim command is defined (Questasim or Modelsim is installed and set-up in the shell).
-    ##! NOTE that these checks are performed using 'which'
-    if [ $(which vsim) ]; then
+    ##! NOTE that these checks are performed using 'command -v '
+    if [ $(command -v  vsim) ]; then
       echo
       ##! If Questasim or Modelsim is installed ask user if he wants to compile
       ##! NOTE use read to grab user input
@@ -193,7 +193,7 @@ function init() {
   ##! Ask user if he wants to add custom Vivado gui button to automatically update listfiles
   ##! NOTE use read to grab user input
   ##! NOTE if the user input contains Y or y then is accepted as yes
-  if [ $(which vivado) ]; then
+  if [ $(command -v  vivado) ]; then
     echo
     read -p "Do you want to add two buttons to the Vivado GUI to update the list files and the project hog.conf file automatically? " -n 1 -r
     echo # (optional) move to a new line

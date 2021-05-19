@@ -49,23 +49,37 @@ if {[info commands get_property] != ""} {
 }
 
 set group_name [GetGroupName $proj_dir]
+Msg Info "Evaluating Git sha for $proj_name..."
+lassign [GetRepoVersions [file normalize ./Top/$group_name/$proj_name] $repo_path] sha
+
+set describe [GetGitDescribe $sha]
+Msg Info "Git describe set to: $describe"
+
+set ts [clock format [clock seconds] -format {%Y-%m-%d-%H-%M}]
+
+set bin_dir [file normalize "$repo_path/bin"]
+set dst_dir [file normalize "$bin_dir/$group_name/$proj_name\-$describe"]
+
+
 
 Msg Info "Evaluating last git SHA in which $proj_name was modified..."
 set commit "0000000"
 
-lassign [GitRet {status --untracked-files=no  --porcelain}] ret msg
-if {$ret !=0} {
-  Msg Error "Git status failed: $msg"
-}
 
-if {$msg eq "" } {
-  Msg Info "Git working directory [pwd] clean."
+#check if diff_presynthesis.txt is not empty (problem with list files or conf files)
+if {[file exists $dst_dir/diff_presynthesis.txt]} {
+  set fp [open "$dst_dir/diff_presynthesis.txt" r]
+  set file_data [read $fp]
+  close $fp
+  if {$file_data != ""} {
+    Msg CriticalWarning "Git working directory [pwd] not clean, git commit hash be set to 0."
+    set commit_usr  "0000000"
+    set commit   "0000000"
+  } else { 
+    lassign [GetRepoVersions [file normalize ./Top/$group_name/$proj_name] $repo_path ] commit version
+  }
+} else { 
   lassign [GetRepoVersions [file normalize ./Top/$group_name/$proj_name] $repo_path ] commit version
-  Msg Info "Found last SHA for $proj_name: $commit"
-
-} else {
-  Msg CriticalWarning "Git working directory [pwd] not clean, git commit hash be set to 0."
-  set commit   "0000000"
 }
 
 #number of threads
@@ -75,6 +89,18 @@ if {$maxThreads != 1} {
   set commit_usr   "0000000"
 } else {
   set commit_usr $commit
+}
+
+#check if diff_list_and_conf.txt is not empty (problem with list files or conf files)
+if {[file exists $dst_dir/diff_list_and_conf.txt]} {
+  set fp [open "$dst_dir/diff_list_and_conf.txt" r]
+  set file_data [read $fp]
+  close $fp
+  if {$file_data != ""} {
+    Msg CriticalWarning "List files and project properties not clean, git commit hash be set to 0."
+    set commit_usr  "0000000"
+    set commit   "0000000"
+  } 
 }
 
 Msg Info "The git SHA value $commit will be set as bitstream USERID."

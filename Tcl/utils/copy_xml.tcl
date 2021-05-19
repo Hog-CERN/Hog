@@ -60,7 +60,7 @@ if {[file exists $list_file]} {
   Msg Error "$list_file not found"
   exit
 }
-set ret [GetRepoVersions $repo_path/Top/$project $ext_path]
+set ret [GetRepoVersions $repo_path/Top/$project $repo_path $ext_path]
 
 set sha [lindex $ret 13]
 set hex_ver [lindex $ret 14]

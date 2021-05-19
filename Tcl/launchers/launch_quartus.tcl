@@ -25,7 +25,7 @@ set parameters {\
   {no_bitstream    "If set, the bitstream file will not be produced."}
   {synth_only      "If set, only the synthesis will be performed."}
   {impl_only       "If set, only the implementation will be performed. This assumes synthesis should was already done."}
-  {no_recreate     "If set, the project will not be re created if it already exists."}
+  {recreate     "If set, the project will not be re created if it already exists."}
   {check_syntax    "If set, the HDL syntax will be checked at the beginning of the worflow."}
   {project.arg "" "The project name"}
   {njobs.arg 4 "Number of jobs. Default: 4"}
@@ -60,7 +60,7 @@ if { [ catch {array set options [cmdline::getoptions quartus(args) $parameters $
   set do_synthesis 1
   set do_implementation 1
   set do_bitstream 1
-  set recreate 1
+  set recreate 0
   set reset 0
   set check_syntax 0
   set ip_path ""
@@ -74,8 +74,8 @@ if { $options(no_bitstream) == 1 } {
   set do_bitstream 0
 }
 
-if { $options(no_recreate) == 1 } {
-  set recreate 0
+if { $options(recreate) == 1 } {
+  set recreate 1
 }
 
 if { $options(synth_only) == 1 } {

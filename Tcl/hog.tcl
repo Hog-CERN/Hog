@@ -2670,7 +2670,7 @@ proc ReadConf {file_name} {
     #" Comment for VSCode
     regsub -all {\"\}} $key_pairs "}" key_pairs
 
-    dict set properties $new_sec [string toupper [dict create {*}$key_pairs]]
+    dict set properties $new_sec [dict create {*}$key_pairs]
   }
 
   ::ini::close $f

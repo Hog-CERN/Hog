@@ -507,6 +507,7 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
                            COMPXLIB.MODELSIM_COMPILED_LIBRARY_DIR \
                            COMPXLIB.QUESTA_COMPILED_LIBRARY_DIR \
                            COMPXLIB.RIVIERA_COMPILED_LIBRARY_DIR \
+                           NEEDS_REFRESH \
                      ]
 
 

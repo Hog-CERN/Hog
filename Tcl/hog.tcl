@@ -2004,6 +2004,8 @@ proc AddHogFiles { libraries properties } {
             if {[string first "nogenerate" $props] == -1} {
               GenerateQsysSystem $cur_file $props
             }
+          } else {
+              set_global_assignment -name $file_type $cur_file -library $rootlib
           }
         }
       }

@@ -60,6 +60,7 @@ if { $::argc eq 0 } {
 
   if {$options(lib_path)!= ""} {
     set lib_path $options(lib_path)
+    set workflow_simlib_path $options(lib_path)
   } else {
     set lib_path [file normalize "$repo_path/SimulationLib"]
   }
@@ -95,7 +96,7 @@ if {[file exists $project_file]} {
   Msg Info "Found project file $project_file for $project_name..."
   open_project $project_file
 } else {
-  Msg Info "Project file not found for $project_name, creating the project..."
+  Msg Info "Project file not found for $project_name, creating the project@..."
 
   lassign [GetConfFiles $repo_path/Top/$project_name] conf pre post tcl_file
 

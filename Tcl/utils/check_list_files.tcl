@@ -483,6 +483,20 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
   #adding main properties set by defaut by Hog
   set defMainDict [dict create TARGET_LANGUAGE VHDL SIMULATOR_LANGUAGE MIXED]
   dict set oldConfDict main [dict merge $defMainDict [DictGet $oldConfDict main]]
+  
+  #convert hog.conf dict to uppercase
+  foreach key [list main synth_1 impl_1] {
+    set runDict [DictGet $oldConfDict $key]
+    foreach runDictKey [dict keys $runDict ] {
+      #do not convert paths
+      if {[string first $repo_path [DictGet $runDict $runDictKey]]!= -1} {
+        continue
+      }
+      dict set runDict [string toupper $runDictKey] [string toupper [DictGet $runDict $runDictKey]]
+      dict unset runDict [string tolower $runDictKey]
+    }
+    dict set oldConfDict $key $runDict
+  }
 
   #reading old hog.conf if exist and copy the parameters
   set paramDict [dict create]

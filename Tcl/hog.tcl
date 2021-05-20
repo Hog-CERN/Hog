@@ -1957,7 +1957,12 @@ proc AddHogFiles { libraries properties } {
                 # remove qsys from options since we used it
                 set emptyString ""
                 regsub -all {\{||qsys||\}} $props $emptyString props
-                 
+                
+                set qsysPath [file dirname $cur_file]
+                set qsysName "[file rootname [file tail $cur_file]].qsys"
+                set qsysFile "$qsysPath/$qsysName"
+                set qsysLogFile "$qsysPath/$qsysName.qsys-script.log"
+
                 set cmd "qsys-script"
                 set cmd_options " --script=$cur_file"
                 if { [info exists ::env(QSYS_ROOTDIR)] } {
@@ -1967,7 +1972,8 @@ proc AddHogFiles { libraries properties } {
                 }
                 if {![catch {"exec $cmd -version"}] || [lindex $::errorCode 0] eq "NONE"} {
                   Msg Info "Executing: $cmd $cmd_options"
-                  if { [ catch {eval exec -ignorestderr "$cmd $cmd_options"} ret opt ]} {
+                  Msg Info "Saving logfile in: $qsysLogFile"
+                  if { [ catch {eval exec -ignorestderr "$cmd $cmd_options >>& $qsysLogFile"} ret opt ]} {
                     set makeRet [lindex [dict get $opt -errorcode] end]
                     Msg CriticalWarning "$cmd returned with $makeRet"
                   }
@@ -1975,11 +1981,7 @@ proc AddHogFiles { libraries properties } {
                   Msg Error " Could not execute command $cmd"
                   exit 1
                 }
-                # Check the system is generated correctly
-                set qsysPath [file dirname $cur_file]
-                set qsysName "[file rootname [file tail $cur_file]].qsys"
-                set qsysFile "$qsysPath/$qsysName"
-                # Move file to correct directory
+                # Check the system is generated correctly and move file to correct directory
                 if { [file exists $qsysName] != 0} {
                   file rename -force $qsysName $qsysFile
                   # Write checksum to file
@@ -2046,6 +2048,7 @@ proc GenerateQsysSystem {qsysFile commandOpts} {
     set qsysPath [file dirname $qsysFile]
     set qsysName [file rootname [file tail $qsysFile] ]
     set qsysIPDir "$qsysPath/$qsysName"
+    set qsysLogFile "$qsysPath/$qsysName.qsys-generate.log"
 
     set cmd "qsys-generate" 
     set cmd_options "$qsysFile --output-directory=$qsysIPDir $commandOpts"
@@ -2056,7 +2059,8 @@ proc GenerateQsysSystem {qsysFile commandOpts} {
     }
     if {![catch {"exec $cmd -version"}] || [lindex $::errorCode 0] eq "NONE"} {
       Msg Info "Executing: $cmd $cmd_options"
-      if {[ catch {eval exec -ignorestderr "$cmd $cmd_options"} ret opt]} {
+      Msg Info "Saving logfile in: $qsysLogFile"
+      if {[ catch {eval exec -ignorestderr "$cmd $cmd_options >>& $qsysLogFile"} ret opt]} {
         set makeRet [lindex [dict get $opt -errorcode] end]
         Msg CriticalWarning "$cmd returned with $makeRet"
       }

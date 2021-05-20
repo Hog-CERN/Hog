@@ -478,24 +478,28 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
 
 #checking project settings
 if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
-  set oldConfDict [ReadConf [lindex [GetConfFiles "$repo_path/Top/$group_name/$project_name/"] 0]]
-
-  #adding main properties set by defaut by Hog
-  set defMainDict [dict create TARGET_LANGUAGE VHDL SIMULATOR_LANGUAGE MIXED]
-  dict set oldConfDict main [dict merge $defMainDict [DictGet $oldConfDict main]]
-  
-  #convert hog.conf dict to uppercase
-  foreach key [list main synth_1 impl_1] {
-    set runDict [DictGet $oldConfDict $key]
-    foreach runDictKey [dict keys $runDict ] {
-      #do not convert paths
-      if {[string first $repo_path [DictGet $runDict $runDictKey]]!= -1} {
-        continue
+  set oldConfDict [dict create]
+  if {[file exists "$repo_path/Top/$group_name/$project_name/hog.conf"]} {
+    set oldConfDict [ReadConf "$repo_path/Top/$group_name/$project_name/hog.conf"]
+    #adding main properties set by defaut by Hog
+    set defMainDict [dict create TARGET_LANGUAGE VHDL SIMULATOR_LANGUAGE MIXED]
+    dict set oldConfDict main [dict merge $defMainDict [DictGet $oldConfDict main]]
+    
+    #convert hog.conf dict to uppercase
+    foreach key [list main synth_1 impl_1] {
+      set runDict [DictGet $oldConfDict $key]
+      foreach runDictKey [dict keys $runDict ] {
+        #do not convert paths
+        if {[string first $repo_path [DictGet $runDict $runDictKey]]!= -1} {
+          continue
+        }
+        dict set runDict [string toupper $runDictKey] [string toupper [DictGet $runDict $runDictKey]]
+        dict unset runDict [string tolower $runDictKey]
       }
-      dict set runDict [string toupper $runDictKey] [string toupper [DictGet $runDict $runDictKey]]
-      dict unset runDict [string tolower $runDictKey]
+      dict set oldConfDict $key $runDict
     }
-    dict set oldConfDict $key $runDict
+  } elseif {$options(recreate_conf)==0} {
+    Msg Warning "$repo_path/Top/$group_name/$project_name/hog.conf not found. Skipping properties check"
   }
 
   #reading old hog.conf if exist and copy the parameters
@@ -630,8 +634,13 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
 
   }
 
+
+  if {$ConfErrorCnt == 0 && [file exists $repo_path/Top/$group_name/$project_name/hog.conf] == 1} {
+    Msg Info "$repo_path/$DirName/hog.conf matches project. Nothing to do,"
+  }
+
   #recreating hog.conf
-  if {$options(recreate_conf) == 1 && $ConfErrorCnt > 0} {
+  if {$options(recreate_conf) == 1 && ($ConfErrorCnt > 0 || [file exists $repo_path/Top/$group_name/$project_name/hog.conf] == 0)} {
     Msg Info "Updating configuration file $repo_path/$DirName/hog.conf"
     file mkdir  $repo_path/$DirName/list
     #writing configuration file  
@@ -639,9 +648,7 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
     WriteConf $confFile $confDict "vivado"
   }
 
-  if {$ConfErrorCnt == 0} {
-    Msg Info "$repo_path/$DirName/hog.conf matches project. Nothing to do,"
-  }
+  
 }
 
 
@@ -664,5 +671,6 @@ if {$options(recreate_conf) == 0 && $options(recreate) == 0} {
     Msg Info "List files and hog.conf match project. All ok!"
   }
 }
+Msg Info "All done"
 
 return $TotErrorCnt

@@ -2602,9 +2602,10 @@ proc SearchHogProjects {dir} {
   if {[file exists $dir]} {
     if {[file isdirectory $dir]} {
       foreach proj_dir [glob -type d $dir/* ] {
-        set index_a [string last "Top/" $proj_dir]
-        set index_a [expr $index_a + 4]
-        set proj_name [string range $proj_dir $index_a [string length $proj_dir]]
+        if {![regexp {^.*Top/+(.*)$} $proj_dir dummy proj_name]} { 
+          set proj_name
+          Msg Warning "Could not parse Top directory $dir" 
+        } 
         if {[file exists $proj_dir/$proj_name.tcl ] || [file exists "$proj_dir/hog.conf" ] } {
           lappend projects_list $proj_name
         } else {

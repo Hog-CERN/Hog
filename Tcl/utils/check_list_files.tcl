@@ -99,10 +99,7 @@ if {![string equal $options(project) ""]} {
   set project_name [get_projects [current_project]]
   set proj_file [get_property DIRECTORY [current_project]]
   set proj_dir [file normalize $proj_file]
-  set index_a [string last "Projects/" $proj_dir]
-  set index_a [expr $index_a + 8]
-  set index_b [string last "/$project_name" $proj_dir]
-  set group_name [string range $proj_dir $index_a $index_b]
+  set group_name [GetGroupName $proj_dir]
 }
 
 

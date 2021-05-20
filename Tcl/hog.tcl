@@ -34,7 +34,7 @@ proc Msg {level msg {title ""}} {
   set level [string tolower $level]
   if {$level == 0 || $level == "status" || $level == "extra_info"} {
     set vlevel {STATUS}
-    set qlevel extra_info
+    set qlevel info
   } elseif {$level == 1 || $level == "info"} {
     set vlevel {INFO}
     set qlevel info
@@ -62,6 +62,9 @@ proc Msg {level msg {title ""}} {
   } elseif {[info commands post_message] != ""} {
     # Quartus
     post_message -type $qlevel "Hog:$title $msg"
+    if { $qlevel == "error"} {
+      exit 1
+    }
   } else {
     # Tcl Shell
     puts "*** Hog:$title $vlevel $msg"
@@ -1957,17 +1960,31 @@ proc AddHogFiles { libraries properties } {
                 # remove qsys from options since we used it
                 set emptyString ""
                 regsub -all {\{||qsys||\}} $props $emptyString props
-                 
-                set cmd "qsys-script --script=$cur_file"
-                if [ catch "eval exec -ignorestderr $cmd" ret opt] {
-                  set makeRet [lindex [dict get $opt -errorcode] end]
-                  Msg Info "$cmd returned with $makeRet"
-                }
-                # Check the system is generated correctly
+                
                 set qsysPath [file dirname $cur_file]
                 set qsysName "[file rootname [file tail $cur_file]].qsys"
                 set qsysFile "$qsysPath/$qsysName"
-                # Move file to correct directory
+                set qsysLogFile "$qsysPath/$qsysName.qsys-script.log"
+
+                set cmd "qsys-script"
+                set cmd_options " --script=$cur_file"
+                if { [info exists ::env(QSYS_ROOTDIR)] } {
+                  set cmd "$::env(QSYS_ROOTDIR)$cmd"
+                } else {
+                  Msg CriticalWarning "The QSYS_ROOTDIR environment variable is not set! this may lead to failures later!"  
+                }
+                if {![catch {"exec $cmd -version"}] || [lindex $::errorCode 0] eq "NONE"} {
+                  Msg Info "Executing: $cmd $cmd_options"
+                  Msg Info "Saving logfile in: $qsysLogFile"
+                  if { [ catch {eval exec -ignorestderr "$cmd $cmd_options >>& $qsysLogFile"} ret opt ]} {
+                    set makeRet [lindex [dict get $opt -errorcode] end]
+                    Msg CriticalWarning "$cmd returned with $makeRet"
+                  }
+                } else {
+                  Msg Error " Could not execute command $cmd"
+                  exit 1
+                }
+                # Check the system is generated correctly and move file to correct directory
                 if { [file exists $qsysName] != 0} {
                   file rename -force $qsysName $qsysFile
                   # Write checksum to file
@@ -1993,7 +2010,7 @@ proc AddHogFiles { libraries properties } {
                     regsub -all {noadd} $props $emptyString props
                   }
                   if {[string first "nogenerate" $props] == -1} {
-                    GenerateQsysSystem $cur_file $props
+                    GenerateQsysSystem $qsysFile $props
                   }
 
                 } else {
@@ -2014,6 +2031,8 @@ proc AddHogFiles { libraries properties } {
             if {[string first "nogenerate" $props] == -1} {
               GenerateQsysSystem $cur_file $props
             }
+          } else {
+              set_global_assignment -name $file_type $cur_file -library $rootlib
           }
         }
       }
@@ -2032,12 +2051,25 @@ proc GenerateQsysSystem {qsysFile commandOpts} {
     set qsysPath [file dirname $qsysFile]
     set qsysName [file rootname [file tail $qsysFile] ]
     set qsysIPDir "$qsysPath/$qsysName"
+    set qsysLogFile "$qsysPath/$qsysName.qsys-generate.log"
 
-    set cmd "qsys-generate $qsysFile --output-directory=$qsysIPDir $commandOpts"
-    #eval exec -ignorestderr $cmd
-    if [ catch "eval exec -ignorestderr $cmd" ret opt] {
-      set makeRet [lindex [dict get $opt -errorcode] end]
-      Msg Info "$cmd returned with $makeRet"
+    set cmd "qsys-generate" 
+    set cmd_options "$qsysFile --output-directory=$qsysIPDir $commandOpts"
+    if { [info exists ::env(QSYS_ROOTDIR)] } {
+      set cmd "$::env(QSYS_ROOTDIR)/$cmd"
+    } else {
+      Msg CriticalWarning "The QSYS_ROOTDIR environment variable is not set! this may lead to failures later!"
+    }
+    if {![catch {"exec $cmd -version"}] || [lindex $::errorCode 0] eq "NONE"} {
+      Msg Info "Executing: $cmd $cmd_options"
+      Msg Info "Saving logfile in: $qsysLogFile"
+      if {[ catch {eval exec -ignorestderr "$cmd $cmd_options >>& $qsysLogFile"} ret opt]} {
+        set makeRet [lindex [dict get $opt -errorcode] end]
+        Msg CriticalWarning "$cmd returned with $makeRet"
+      }
+    } else {
+      Msg Error " Could not execute command $cmd"
+      exit 1
     }
     #Add generated IPs to project
     set qsysIPFileList  [concat [glob -nocomplain -directory $qsysIPDir -types f *.ip *.qip ] [glob -nocomplain -directory "$qsysIPDir/synthesis" -types f *.ip *.qip *.vhd *.vhdl ] ]

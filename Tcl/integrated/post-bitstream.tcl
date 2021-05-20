@@ -184,7 +184,7 @@ if {[info commands get_property] != "" && [file exists $bit_file]} {
     Msg Info "No ltx file found: $ltx_file, that is not a problem"
   }
 
-} elseif {[info commands project_new] != "" && [file exists $pof_file]} {
+} elseif {[info commands project_new] != ""} {
   #Quartus
   # Go to repository path
   cd $repo_path
@@ -234,8 +234,13 @@ if {[info commands get_property] != "" && [file exists $bit_file]} {
     Msg Info "No uncommitted changes found."
   }
 
-  Msg Info "Copying pof file $pof_file into $dst_pof..."
-  file copy -force $pof_file $dst_pof
+  #pof file
+  if [file exists $pof_file] {
+    Msg Info "Copying pof file $pof_file into $dst_pof..."
+    file copy -force $pof_file $dst_pof
+  } else {
+    Msg Info "No pof file found: $pof_file, that is not a problem"
+  }
 
   #Reports
   file mkdir $dst_dir/reports

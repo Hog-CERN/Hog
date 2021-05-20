@@ -62,6 +62,9 @@ proc Msg {level msg {title ""}} {
   } elseif {[info commands post_message] != ""} {
     # Quartus
     post_message -type $qlevel "Hog:$title $msg"
+    if { $qlevel == "error"} {
+      exit 1
+    }
   } else {
     # Tcl Shell
     puts "*** Hog:$title $vlevel $msg"

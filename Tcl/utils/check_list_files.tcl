@@ -592,7 +592,10 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
         dict unset oldConfRunDict $settings
         dict set oldConfDict $prj_run $oldConfRunDict
 	#puts "$settings CUR=$currset OLD=$oldset DEF=$defset"
-        if {$currset != $oldset && $currset != $defset && [string first "DEFAULT" $currset] == -1} {
+        if {$currset != $oldset && $currset != $defset} {
+          if {[string first "DEFAULT" $currset] != -1 && $oldset == ""} {
+            continue
+          }
           if {[string tolower $oldset] == "true" && $currset == 1} {
             continue
           }

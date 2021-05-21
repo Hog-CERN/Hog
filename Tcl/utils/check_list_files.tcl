@@ -496,10 +496,14 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
     Msg Warning "$repo_path/Top/$group_name/$project_name/hog.conf not found. Skipping properties check"
   }
 
-  #reading old hog.conf if exist and copy the parameters
-  set paramDict [dict create]
-  if {[dict exists $oldConfDict parameters]} {
-    set paramDict [dict get $oldConfDict parameters]
+  #reading old hog.conf if exist and copy all the values apart from main synth_1 and impl_1
+  set confDict  [dict create]
+  
+
+  foreach key [dict keys $oldConfDict] {
+    if {$key != "main" && $key != "synth_1" && $key != "impl_1"} {
+      dict set confDict $key [DictGet $oldConfDict $key] 
+    }
   }
 
   #list of properties that don't must be written
@@ -529,7 +533,6 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
 
 
 
-  set confDict  [dict create]
   set defaultDict [dict create]
 
   #writing not default properties for current_project, synth_1 and impl_1
@@ -597,12 +600,6 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
       }
       dict set confDict $prj_run $confRunDict
   }
-
-
-
-  #adding volatile properties
-  dict set confDict parameters $paramDict 
-
 
 
   #comparing confDict and oldConfDict

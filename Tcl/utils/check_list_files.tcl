@@ -502,7 +502,7 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
     set paramDict [dict get $oldConfDict parameters]
   }
 
-  #list of properties that don't have to be written
+  #list of properties that don't must be written
   set PROP_BAN_LIST  [list DEFAULT_LIB \
                            PART \
                            IP_CACHE_PERMISSIONS \
@@ -520,6 +520,9 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
                            COMPXLIB.MODELSIM_COMPILED_LIBRARY_DIR \
                            COMPXLIB.QUESTA_COMPILED_LIBRARY_DIR \
                            COMPXLIB.RIVIERA_COMPILED_LIBRARY_DIR \
+                           COMPXLIB.ACTIVEHDL_COMPILED_LIBRARY_DIR \
+                           COMPXLIB.IES_COMPILED_LIBRARY_DIR \
+                           COMPXLIB.VCS_COMPILED_LIBRARY_DIR \
                            NEEDS_REFRESH \
                      ]
 
@@ -580,11 +583,21 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
 
   #adding default properties set by defaut by Hog or after project creation
   set defMainDict [dict create TARGET_LANGUAGE VHDL SIMULATOR_LANGUAGE MIXED IP_REPO_PATHS IP_repository]
-  dict set defMainDict IP_OUTPUT_REPO Projects/$project_name/$project_name.cache/ip
-  dict set defMainDict COMPXLIB.ACTIVEHDL_COMPILED_LIBRARY_DIR Projects/$project_name/$project_name.cache/compile_simlib/activehdl
-  dict set defMainDict COMPXLIB.IES_COMPILED_LIBRARY_DIR Projects/$project_name/$project_name.cache/compile_simlib/ies
-  dict set defMainDict COMPXLIB.VCS_COMPILED_LIBRARY_DIR Projects/$project_name/$project_name.cache/compile_simlib/vcs
+  dict set defMainDict IP_OUTPUT_REPO Projects/IP
   dict set defaultDict main [dict merge [DictGet $defaultDict main] $defMainDict]
+
+  #default settings shall not be rewritten
+  foreach prj_run [dict keys $confDict] {
+      set confRunDict [DictGet $confDict $prj_run]
+      set defaultRunDict [DictGet $defaultDict $prj_run]
+      foreach settings [dict keys $confRunDict] {
+        if {[DictGet $confRunDict $settings] == [DictGet $defaultRunDict $settings]} {
+          dict unset confRunDict $settings
+        }
+      }
+      dict set confDict $prj_run $confRunDict
+  }
+
 
 
   #adding volatile properties

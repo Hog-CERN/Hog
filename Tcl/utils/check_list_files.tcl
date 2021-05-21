@@ -487,7 +487,7 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
         if {[string first $repo_path [DictGet $runDict $runDictKey]]!= -1} {
           continue
         }
-        dict set runDict [string toupper $runDictKey] [string toupper [DictGet $runDict $runDictKey]]
+        dict set runDict [string toupper $runDictKey] [DictGet $runDict $runDictKey]
         dict unset runDict [string tolower $runDictKey]
       }
       dict set oldConfDict $key $runDict
@@ -556,7 +556,7 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
       } elseif {[string first  $ext_path [get_property $prop $proj_run]] != -1} {
         set val [Relative $ext_path [get_property $prop $proj_run]]
       } else {
-        set val [string toupper [get_property $prop $proj_run]]
+        set val [get_property $prop $proj_run]
       }
       #ignoring properties in $PROP_BAN_LIST 
       if {$prop in $PROP_BAN_LIST} { 
@@ -566,13 +566,13 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
         # default values
         set Dval [string toupper [list_property_value -default $prop $proj_run]]
         dict set defaultRunDict [string toupper $prop] $Dval
-        if {$Dval!=$val} {
+        if {[string toupper $Dval]!=[string toupper $val]} {
           dict set projRunDict [string toupper $prop] $val
         }
       }
     }
     if {"$proj_run" == "[current_project]"} {
-      dict set projRunDict "PART" [string toupper [get_property PART $proj_run]]  
+      dict set projRunDict "PART" [get_property PART $proj_run] 
       dict set confDict main  $projRunDict
       dict set defaultDict main $defaultRunDict
     } else {
@@ -583,7 +583,7 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
 
   #adding default properties set by defaut by Hog or after project creation
   set defMainDict [dict create TARGET_LANGUAGE VHDL SIMULATOR_LANGUAGE MIXED IP_REPO_PATHS IP_repository]
-  dict set defMainDict IP_OUTPUT_REPO Projects/IP
+  dict set defMainDict IP_OUTPUT_REPO IP
   dict set defaultDict main [dict merge [DictGet $defaultDict main] $defMainDict]
 
   #default settings shall not be rewritten
@@ -591,7 +591,7 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
       set confRunDict [DictGet $confDict $prj_run]
       set defaultRunDict [DictGet $defaultDict $prj_run]
       foreach settings [dict keys $confRunDict] {
-        if {[DictGet $confRunDict $settings] == [DictGet $defaultRunDict $settings]} {
+        if {[string toupper [DictGet $confRunDict $settings]] == [string toupper [DictGet $defaultRunDict $settings]]} {
           dict unset confRunDict $settings
         }
       }
@@ -619,8 +619,8 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
         dict unset oldConfRunDict $settings
         dict set oldConfDict $prj_run $oldConfRunDict
 	#puts "$settings CUR=$currset OLD=$oldset DEF=$defset"
-        if {$currset != $oldset && $currset != $defset} {
-          if {[string first "DEFAULT" $currset] != -1 && $oldset == ""} {
+        if {[string toupper $currset] != [string toupper $oldset] && [string toupper $currset] != [string toupper $defset]} {
+          if {[string first "DEFAULT" [string toupper $currset]] != -1 && $oldset == ""} {
             continue
           }
           if {[string tolower $oldset] == "true" && $currset == 1} {
@@ -644,7 +644,7 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
         set currset [DictGet  [DictGet $confDict $prj_run] $settings]
         set oldset [DictGet  [DictGet $oldConfDict $prj_run] $settings]
         set defset [DictGet  [DictGet $defaultDict $prj_run] $settings]
-        if {$currset != $oldset && $oldset != $defset} {
+        if {[string toupper $currset] != [string toupper $oldset] && [string toupper $currset] != [string toupper $defset]} {
           if {$options(recreate_conf) == 1} {
             Msg Info "$prj_run setting $settings has been changed. \nhog.conf value: $oldset \nProject value: $currset "
           } else {

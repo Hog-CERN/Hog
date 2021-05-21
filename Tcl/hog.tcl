@@ -29,7 +29,14 @@
 set CI_STAGES {"generate_project" "simulate_project"}
 set CI_PROPS {"-synth_only"}
 
+
 #### FUNCTIONS
+
+proc GetSimulators {} {
+  set SIMULATORS [list "modelsim" "questa" "riviera" "activehdl" "ies" "vcs"]
+  return $SIMULATORS
+}
+
 proc Msg {level msg {title ""}} {
   set level [string tolower $level]
   if {$level == 0 || $level == "status" || $level == "extra_info"} {
@@ -1520,10 +1527,8 @@ proc GetProjectFiles {} {
       }
     }
 
-    set simulators [list "modelsim" "questa" "riviera"]
-
-    foreach SIMULATOR $simulators {
-      set wavefile [get_property "$SIMULATOR.simulate.custom_wave_do" [get_filesets $fs]]
+    foreach simulator [GetSimulators] {
+      set wavefile [get_property "$simulator.simulate.custom_wave_do" [get_filesets $fs]]
       if {![string equal "$wavefile" ""]} {
         dict lappend properties $wavefile wavefile
         break
@@ -1531,8 +1536,8 @@ proc GetProjectFiles {} {
     }
     
 
-    foreach SIMULATOR $simulators {
-      set dofile [get_property "$SIMULATOR.simulate.custom_udo" [get_filesets $fs]]
+    foreach simulator [GetSimulators] {
+      set dofile [get_property "$simulator.simulate.custom_udo" [get_filesets $fs]]
       if {![string equal "$dofile" ""]} {
         dict lappend properties $dofile dofile
         break
@@ -1756,10 +1761,9 @@ proc AddHogFiles { libraries properties } {
         if {[string equal [get_filesets -quiet $file_set] ""]} {
           create_fileset -simset $file_set
           set simulation  [get_filesets $file_set]
-          set_property -name {modelsim.compile.vhdl_syntax} -value {2008} -objects $simulation
-          set_property -name {questa.compile.vhdl_syntax} -value {2008} -objects $simulation
-          set_property -name {riviera.compile.vhdl_syntax} -value {2008} -objects $simulation
-
+          foreach simulator [GetSimulators] {
+            set_property -name {$simulator.compile.vhdl_syntax} -value {2008} -objects $simulation
+          }
           set_property SOURCE_SET sources_1 $simulation
         }
       }
@@ -1777,12 +1781,10 @@ proc AddHogFiles { libraries properties } {
       if {$ext != ".ip"} {
         # Default sim properties
         if {$ext == ".sim"} {
-          set_property "modelsim.simulate.custom_wave_do" "" [get_filesets $file_set]
-          set_property "questa.simulate.custom_wave_do" "" [get_filesets $file_set]
-          set_property "riviera.simulate.custom_wave_do" "" [get_filesets $file_set]
-          set_property "modelsim.simulate.custom_udo" "" [get_filesets $file_set]
-          set_property "questa.simulate.custom_udo" "" [get_filesets $file_set]
-          set_property "riviera.simulate.custom_udo" "" [get_filesets $file_set]
+          foreach simulator [GetSimulators] {
+            set_property "$simulator.simulate.custom_wave_do" "" [get_filesets $file_set]
+            set_property "$simulator.simulate.custom_udo" "" [get_filesets $file_set]
+          }
         }
         # Add Properties
         foreach f $lib_files {
@@ -1850,9 +1852,9 @@ proc AddHogFiles { libraries properties } {
           if { $sim_runtime != "" } {
             Msg Info "Setting simulation runtime to $sim_runtime for simulation file set $file_set..."
             set_property -name {xsim.simulate.runtime} -value $sim_runtime -objects [get_filesets $file_set]
-            set_property -name {modelsim.simulate.runtime} -value $sim_runtime -objects [get_filesets $file_set]
-            set_property -name {questa.simulate.runtime} -value $sim_runtime -objects [get_filesets $file_set]
-            set_property -name {riviera.simulate.runtime} -value $sim_runtime -objects [get_filesets $file_set]
+            foreach simulator [GetSimulators] {
+              set_property -name {$simulator.simulate.runtime} -value $sim_runtime -objects [get_filesets $file_set]
+            }
           }
 
           # Wave do file
@@ -1860,9 +1862,9 @@ proc AddHogFiles { libraries properties } {
             Msg Info "Setting $f as wave do file for simulation file set $file_set..."
             # check if file exists...
             if [file exists $f] {
-              set_property "modelsim.simulate.custom_wave_do" $f [get_filesets $file_set]
-              set_property "questa.simulate.custom_wave_do" $f [get_filesets $file_set]
-              set_property "riviera.simulate.custom_wave_do" $f [get_filesets $file_set]
+              foreach simulator [GetSimulators] {
+                set_property "$simulator.simulate.custom_wave_do" $f [get_filesets $file_set]
+              }
             } else {
               Msg Warning "File $f was not found."
 
@@ -1873,9 +1875,9 @@ proc AddHogFiles { libraries properties } {
           if {[lsearch -inline -regex $props "dofile"] >= 0} {
             Msg Info "Setting $f as udo file for simulation file set $file_set..."
             if [file exists $f] {
-              set_property "modelsim.simulate.custom_udo" $f [get_filesets $file_set]
-              set_property "questa.simulate.custom_udo" $f [get_filesets $file_set]
-              set_property "riviera.simulate.custom_udo" $f [get_filesets $file_set]
+              foreach simulator [GetSimulators] {
+                set_property "$simulator.simulate.custom_udo" $f [get_filesets $file_set]
+              }
             } else {
               Msg Warning "File $f was not found."
             }

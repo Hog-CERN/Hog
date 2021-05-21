@@ -64,6 +64,7 @@ namespace eval globalSettings {
 
 ################# FUNCTIONS ################################
 proc CreateProject {} {
+
   if {[info commands create_project] != ""} {
 
     #VIVADO_ONLY
@@ -78,9 +79,9 @@ proc CreateProject {} {
     set_property "target_language" "VHDL" $obj
     if { [string first PlanAhead [version] ] != 0} {
       set_property "simulator_language" "Mixed" $obj
-      set_property "compxlib.modelsim_compiled_library_dir" $globalSettings::simlib_path $obj
-      set_property "compxlib.questa_compiled_library_dir" $globalSettings::simlib_path $obj
-      set_property "compxlib.riviera_compiled_library_dir" $globalSettings::simlib_path $obj
+      foreach simulator [GetSimulators] {
+        set_property "compxlib.${simulator}_compiled_library_dir" $globalSettings::simlib_path $obj
+      }
       set_property "default_lib" "xil_defaultlib" $obj
     }
 
@@ -89,13 +90,13 @@ proc CreateProject {} {
       set_param project.enableVHDL2008 1
       set_property "enable_vhdl_2008" 1 $obj
     }
-
+    set_property "ip_output_repo" $globalSettings::repo_path/IP $obj
 
   } elseif {[info commands project_new] != ""} {
     package require ::quartus::project
     #QUARTUS_ONLY
     if {[string equal $globalSettings::FAMILY "quartus_only"]} {
-      Msg Error "You must specify a device Familty for Quartus"
+      Msg Error "You must specify a device Family for Quartus"
     } else {
       file mkdir $globalSettings::build_dir
       cd $globalSettings::build_dir

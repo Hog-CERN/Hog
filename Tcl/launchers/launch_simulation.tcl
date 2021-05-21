@@ -96,7 +96,7 @@ if {[file exists $project_file]} {
   Msg Info "Found project file $project_file for $project_name..."
   open_project $project_file
 } else {
-  Msg Info "Project file not found for $project_name, creating the project@..."
+  Msg Info "Project file not found for $project_name, creating the project..."
 
   lassign [GetConfFiles $repo_path/Top/$project_name] conf pre post tcl_file
 

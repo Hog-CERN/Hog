@@ -222,7 +222,7 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
 	  } elseif {[file extension $key] == ".src" || [file extension $key] == ".sub"} {
 	    #check if project contains sources specified in listfiles
 	    set prjSRCs [DictGet $prjSrcDict [file rootname $key]]
-	    
+
 	    foreach SRC [DictGet $listLibraries $key] {
 	      set idx [lsearch -exact $prjSRCs $SRC]
 	      set prjSRCs [lreplace $prjSRCs $idx $idx]
@@ -247,7 +247,7 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
 	  } elseif {[file extension $key] == ".ext" } {
 	    #check if project contains external files specified in listfiles
 	    set prjSRCs [DictGet $prjSrcDict [file rootname $key]]
-	    
+
 	    foreach SRC [DictGet $listLibraries $key] {
 	      set idx [lsearch -exact $prjSRCs $SRC]
 	      set prjSRCs [lreplace $prjSRCs $idx $idx]
@@ -275,7 +275,7 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
 	    Msg CriticalWarning "$key list file format unrecognized by Hog."
 	    incr ListErrorCnt
 	  }
-    
+
   }
 
 
@@ -355,7 +355,7 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
       if {[string equal [RelativeLocal $repo_path $SRC] ""]} {
         if {[string equal [RelativeLocal $ext_path $SRC] ""]} {
           CriticalAndLog "Source $SRC is used in the project but is not in the repository or in a known external path." $outFile
-        } else { 
+        } else {
           if {$options(recreate) == 1} {
             Msg Info "External source $SRC was added to the project (library $key)."
           } else {
@@ -478,7 +478,7 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
   set oldConfDict [dict create]
   if {[file exists "$repo_path/Top/$group_name/$project_name/hog.conf"]} {
     set oldConfDict [ReadConf "$repo_path/Top/$group_name/$project_name/hog.conf"]
-    
+
     #convert hog.conf dict to uppercase
     foreach key [list main synth_1 impl_1] {
       set runDict [DictGet $oldConfDict $key]
@@ -498,15 +498,15 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
 
   #reading old hog.conf if exist and copy all the values apart from main synth_1 and impl_1
   set confDict  [dict create]
-  
+
 
   foreach key [dict keys $oldConfDict] {
     if {$key != "main" && $key != "synth_1" && $key != "impl_1"} {
-      dict set confDict $key [DictGet $oldConfDict $key] 
+      dict set confDict $key [DictGet $oldConfDict $key]
     }
   }
 
-  #list of properties that don't must be written
+  #list of properties that must not be written
   set PROP_BAN_LIST  [list DEFAULT_LIB \
                            PART \
                            IP_CACHE_PERMISSIONS \
@@ -543,11 +543,11 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
     #creting dictionary for each $run
     set projRunDict [dict create]
     set defaultRunDict [dict create]
-    #selecting only READ/WRITE properties 
+    #selecting only READ/WRITE properties
     set run_props [list]
     foreach propReport [split "[report_property  -return_string -all $proj_run]" "\n"] {
 
-      if {[string equal "[lindex $propReport 2]" "false"]} { 
+      if {[string equal "[lindex $propReport 2]" "false"]} {
         lappend run_props [lindex $propReport 0]
       }
     }
@@ -561,11 +561,11 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
       } else {
         set val [get_property $prop $proj_run]
       }
-      #ignoring properties in $PROP_BAN_LIST 
-      if {$prop in $PROP_BAN_LIST} { 
+      #ignoring properties in $PROP_BAN_LIST
+      if {$prop in $PROP_BAN_LIST} {
         set tmp  0
         #Msg Info "Skipping property $prop"
-      } else { 
+      } else {
         # default values
         set Dval [string toupper [list_property_value -default $prop $proj_run]]
         dict set defaultRunDict [string toupper $prop] $Dval
@@ -575,7 +575,7 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
       }
     }
     if {"$proj_run" == "[current_project]"} {
-      dict set projRunDict "PART" [get_property PART $proj_run] 
+      dict set projRunDict "PART" [get_property PART $proj_run]
       dict set confDict main  $projRunDict
       dict set defaultDict main $defaultRunDict
     } else {
@@ -609,7 +609,7 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
       set oldConfRunDict [DictGet $oldConfDict $prj_run]
       set defaultRunDict [DictGet $defaultDict $prj_run]
       foreach settings [dict keys $confRunDict] {
-        
+
         set currset [DictGet  $confRunDict $settings]
         set oldset [DictGet  $oldConfRunDict $settings]
         set defset [DictGet  $defaultRunDict $settings]
@@ -663,12 +663,12 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
   if {$options(recreate_conf) == 1 && ($ConfErrorCnt > 0 || [file exists $repo_path/Top/$group_name/$project_name/hog.conf] == 0)} {
     Msg Info "Updating configuration file $repo_path/$DirName/hog.conf"
     file mkdir  $repo_path/$DirName/list
-    #writing configuration file  
+    #writing configuration file
     set confFile $repo_path/$DirName/hog.conf
     WriteConf $confFile $confDict "vivado"
   }
 
-  
+
 }
 
 

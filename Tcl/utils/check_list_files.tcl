@@ -478,9 +478,6 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
   set oldConfDict [dict create]
   if {[file exists "$repo_path/Top/$group_name/$project_name/hog.conf"]} {
     set oldConfDict [ReadConf "$repo_path/Top/$group_name/$project_name/hog.conf"]
-    #adding main properties set by defaut by Hog
-    set defMainDict [dict create TARGET_LANGUAGE VHDL SIMULATOR_LANGUAGE MIXED]
-    dict set oldConfDict main [dict merge $defMainDict [DictGet $oldConfDict main]]
     
     #convert hog.conf dict to uppercase
     foreach key [list main synth_1 impl_1] {
@@ -518,6 +515,7 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
                            STEPS.SYNTH_DESIGN.TCL.POST \
                            STEPS.WRITE_BITSTREAM.TCL.PRE \
                            STEPS.WRITE_BITSTREAM.TCL.POST \
+                           STEPS.INIT_DESIGN.TCL.POST \
                            STEPS.ROUTE_DESIGN.TCL.POST \
                            COMPXLIB.MODELSIM_COMPILED_LIBRARY_DIR \
                            COMPXLIB.QUESTA_COMPILED_LIBRARY_DIR \
@@ -550,9 +548,15 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
 
     foreach prop $run_props {
       #Project values
-      set val [string toupper [get_property $prop $proj_run]]
-      #ignoring properties in $PROP_BAN_LIST and properties containing repo_path
-      if {$prop in $PROP_BAN_LIST || [string first [string toupper $repo_path] $val] != -1} { 
+      if {[string first  $repo_path [get_property $prop $proj_run]] != -1} {
+        set val [Relative $repo_path [get_property $prop $proj_run]]
+      } elseif {[string first  $ext_path [get_property $prop $proj_run]] != -1} {
+        set val [Relative $ext_path [get_property $prop $proj_run]]
+      } else {
+        set val [string toupper [get_property $prop $proj_run]]
+      }
+      #ignoring properties in $PROP_BAN_LIST 
+      if {$prop in $PROP_BAN_LIST} { 
         set tmp  0
         #Msg Info "Skipping property $prop"
       } else { 
@@ -573,6 +577,15 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
       dict set defaultDict $proj_run $defaultRunDict
     }
   }
+
+  #adding default properties set by defaut by Hog or after project creation
+  set defMainDict [dict create TARGET_LANGUAGE VHDL SIMULATOR_LANGUAGE MIXED IP_REPO_PATHS IP_repository]
+  dict set defMainDict IP_OUTPUT_REPO Projects/$project_name/$project_name.cache/ip
+  dict set defMainDict COMPXLIB.ACTIVEHDL_COMPILED_LIBRARY_DIR Projects/$project_name/$project_name.cache/compile_simlib/activehdl
+  dict set defMainDict COMPXLIB.IES_COMPILED_LIBRARY_DIR Projects/$project_name/$project_name.cache/compile_simlib/ies
+  dict set defMainDict COMPXLIB.VCS_COMPILED_LIBRARY_DIR Projects/$project_name/$project_name.cache/compile_simlib/vcs
+  dict set defaultDict main [dict merge [DictGet $defaultDict main] $defMainDict]
+
 
   #adding volatile properties
   dict set confDict parameters $paramDict 

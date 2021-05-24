@@ -925,9 +925,12 @@ proc GetConfFiles {proj_dir} {
 #  @return  a list conatining all the versions: global, top (project tcl file), constraints, libraries, submodules, exteral, ipbus xml
 #
 proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
+  if { [catch {package require cmdline} ERROR] } {
+    puts "$ERROR\n If you are running this script on tclsh, you can fix this by installing 'tcllib'"
+    return 1
+  }
+
   set old_path [pwd]
-
-
   set conf_files [GetConfFiles $proj_dir]
 
   # This will be the list of all the SHAs of this project, the most recent will be picked up as GLOBAL SHA

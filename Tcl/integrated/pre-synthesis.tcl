@@ -89,7 +89,8 @@ if {[info commands get_property] != ""} {
 set repo_path [file normalize "$tcl_path/../.."]
 cd $repo_path
 
-set group_name [GetGroupName $proj_dir]
+set group [GetGroupName $proj_dir]
+
 # Calculating flavour if any
 set flavour [string map {. ""} [file ext $proj_name]]
 if {$flavour != ""} {
@@ -108,20 +109,20 @@ if {$flavour != ""} {
 ResetRepoFiles "./Projects/hog_reset_files"
 
 # Getting all the versions and SHAs of the repository
-lassign [GetRepoVersions [file normalize $repo_path/Top/$group_name/$proj_name] $repo_path $ext_path] commit version  hog_hash hog_ver  top_hash top_ver  libs hashes vers  cons_ver cons_hash  ext_names ext_hashes  xml_hash xml_ver
+lassign [GetRepoVersions [file normalize $repo_path/Top/$group/$proj_name] $repo_path $ext_path] commit version  hog_hash hog_ver  top_hash top_ver  libs hashes vers  cons_ver cons_hash  ext_names ext_hashes  xml_hash xml_ver
 
 
 set describe [GetGitDescribe $commit]
-set dst_dir [file normalize "bin/$group_name/$proj_name\-$describe"]
+set dst_dir [file normalize "bin/$group/$proj_name\-$describe"]
 Msg Info "Creating $dst_dir..."
 file mkdir $dst_dir/reports
 
 #check list files
 if {[info commands get_property] != "" && [string first PlanAhead [version]] != 0} {
   if {![string equal ext_path ""]} {
-    set argv [list "-ext_path" "$ext_path" "-project" "$group_name/$proj_name" "-outFile" "$dst_dir/diff_list_and_conf.txt"]
+    set argv [list "-ext_path" "$ext_path" "-project" "$group/$proj_name" "-outFile" "$dst_dir/diff_list_and_conf.txt"]
   } else {
-    set argv [list "-project" "$group_name/$proj_name" "-outFile" "$dst_dir/diff_list_and_conf.txt"]
+    set argv [list "-project" "$group/$proj_name" "-outFile" "$dst_dir/diff_list_and_conf.txt"]
   }
   set listFilesReturn [source  $tcl_path/utils/check_list_files.tcl]
   if {$listFilesReturn != 0} {
@@ -148,7 +149,7 @@ if {$diff != ""} {
   close $fp
 } 
 
-lassign [GetHogFiles  -ext_path "$ext_path" -repo_path "$tcl_path/../../" "$tcl_path/../../Top/$group_name/$proj_name/list/"] listLibraries listProperties
+lassign [GetHogFiles  -ext_path "$ext_path" -repo_path "$tcl_path/../../" "$tcl_path/../../Top/$group/$proj_name/list/"] listLibraries listProperties
 
 foreach library [dict keys $listLibraries] {
   set fileNames [dict get $listLibraries $library]
@@ -197,14 +198,14 @@ if {$xml_hash != 0} {
   Msg Info "Creating XML directory $xml_dst..."
   file mkdir $xml_dst
   Msg Info "Copying xml files to $xml_dst and replacing placeholders with xml version $xml_ver..."
-  CopyXMLsFromListFile ./Top/$group_name/$proj_name/list/xml.lst ./ $xml_dst [HexVersionToString $xml_ver] $xml_hash
+  CopyXMLsFromListFile ./Top/$group/$proj_name/list/xml.lst ./ $xml_dst [HexVersionToString $xml_ver] $xml_hash
   set use_ipbus 1
 } else {
   set use_ipbus 0
 }
 
 #number of threads
-set maxThreads [GetMaxThreads [file normalize ./Top/$group_name/$proj_name/]]
+set maxThreads [GetMaxThreads [file normalize ./Top/$group/$proj_name/]]
 if {$maxThreads != 1} {
   Msg CriticalWarning "Multithreading enabled. Bitfile will not be deterministic. Number of threads: $maxThreads"
 } else {
@@ -364,10 +365,10 @@ if {$flavour != -1} {
 }
 
 set version [HexVersionToString $version]
-if {$group_name != ""} {
-  puts $status_file "## $group_name/$proj_name version table"
+if {$group != ""} {
+  puts $status_file "## $group/$proj_name Version Table"
 } else {
-  puts $status_file "## $proj_name version table"
+  puts $status_file "## $proj_name Version Table"
 }
 
 struct::matrix m
@@ -417,7 +418,7 @@ if {[info commands project_new] == ""} {
   CheckYmlRef [file normalize $tcl_path/../..] true
 }
 
-set user_pre_synthesis_file "./Top/$group_name/$proj_name/pre-synthesis.tcl"
+set user_pre_synthesis_file "./Top/$group/$proj_name/pre-synthesis.tcl"
 if {[file exists $user_pre_synthesis_file]} {
   Msg Info "Sourcing user pre-synthesis file $user_pre_synthesis_file"
   source $user_pre_synthesis_file

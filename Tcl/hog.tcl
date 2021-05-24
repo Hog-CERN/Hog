@@ -332,7 +332,7 @@ proc CompareVersion {ver1 ver2} {
 proc GitVersion {target_version} {
   set ver [split $target_version "."]
   set v [Git --version]
-  Msg Info "Found Git version: $v"
+  #Msg Info "Found Git version: $v"
   set current_ver [split [lindex $v 2] "."]
   set target [expr [lindex $ver 0]*100000 + [lindex $ver 1]*100 + [lindex $ver 2]]
   set current [expr [lindex $current_ver 0]*100000 + [lindex $current_ver 1]*100 + [lindex $current_ver 2]]
@@ -2588,10 +2588,6 @@ proc WriteYAMLStage {stage proj_name {props {}} {stage_list {} }} {
 }
 
 
-if {[GitVersion 2.7.2] == 0 } {
-  Msg CriticalWarning "Found Git version older than 2.7.2. Hog might not work as expected.\n"
-}
-
 proc FindNewestVersion { versions } {
   set new_ver 0
   foreach ver $versions {
@@ -2758,3 +2754,10 @@ proc IsRelativePath {path} {
     return 1
   }
 }
+
+
+# Check Git Version when sourcing hog.tcl
+if {[GitVersion 2.7.2] == 0 } {
+  Msg CriticalWarning "Found Git version older than 2.7.2. Hog might not work as expected.\n"
+}
+

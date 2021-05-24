@@ -157,7 +157,7 @@ proc CreateProject {} {
       source $tcl_path/utils/cmdline.tcl
     }
   }
-  AddHogFiles {*}[GetHogFiles -ext_path $globalSettings::HOG_EXTERNAL_PATH -verbose -repo_path $globalSettings::repo_path  $globalSettings::list_path]
+  AddHogFiles {*}[GetHogFiles -ext_path $globalSettings::HOG_EXTERNAL_PATH -repo_path $globalSettings::repo_path  $globalSettings::list_path]
 
   ## Set synthesis TOP
   SetTopProperty $globalSettings::synth_top_module $sources

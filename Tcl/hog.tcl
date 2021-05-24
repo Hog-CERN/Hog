@@ -1748,7 +1748,7 @@ proc ParseFirstLineHogFiles {list_path list_file} {
 # @param[in] libraries has library name as keys and a list of filenames as values
 # @param[in] properties has as file names as keys and a list of properties as values
 #
-proc AddHogFiles { libraries properties } {
+proc AddHogFiles { libraries properties {verbose 0}} {
   Msg Info "Adding source files to project..."
   foreach lib [dict keys $libraries] {
     #Msg Info "lib: $lib \n"
@@ -1819,7 +1819,9 @@ proc AddHogFiles { libraries properties } {
 
           # XDC
           if {[lsearch -inline -regex $props "XDC"] >= 0 || [file ext $f] == ".xdc"} {
-            Msg Info "Setting filetype XDC for $f"
+	    if {$verbose == 1} {
+	      Msg Info "Setting filetype XDC for $f"
+	    }
             set_property -name "file_type" -value "XDC" -objects $file_obj
           }
 
@@ -1862,8 +1864,10 @@ proc AddHogFiles { libraries properties } {
 
           # Wave do file
           if {[lsearch -inline -regex $props "wavefile"] >= 0} {
-            Msg Info "Setting $f as wave do file for simulation file set $file_set..."
-            # check if file exists...
+	    if {$verbose == 1} {
+	      Msg Info "Setting $f as wave do file for simulation file set $file_set..."
+	    }
+	      # check if file exists...
             if [file exists $f] {
               foreach simulator [GetSimulators] {
                 set_property "$simulator.simulate.custom_wave_do" $f [get_filesets $file_set]
@@ -1876,7 +1880,9 @@ proc AddHogFiles { libraries properties } {
 
           #Do file
           if {[lsearch -inline -regex $props "dofile"] >= 0} {
-            Msg Info "Setting $f as udo file for simulation file set $file_set..."
+	    if {$verbose == 1} {
+	      Msg Info "Setting $f as udo file for simulation file set $file_set..."
+	    }
             if [file exists $f] {
               foreach simulator [GetSimulators] {
                 set_property "$simulator.simulate.custom_udo" $f [get_filesets $file_set]

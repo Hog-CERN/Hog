@@ -614,6 +614,23 @@ proc MergeDict {dict0 dict1} {
 }
 
 
+
+## @brief Gets key from dict and returns default if key not found
+#
+# @param[in] dictName the name of the dictionary
+# @param[in] keyName the name of the key
+# @param[in] default the default value to be retruned if the key is not found
+#
+# @return        the dictionary key value
+
+proc DictGet {dictName keyName {default ""}} {
+  if {[dict exists $dictName $keyName]} {
+    return [dict get $dictName $keyName]
+  } else {
+    return $default
+  }
+}
+
 ## @brief Get git SHA of a vivado library
 #
 # If the special string "ALL" is used, returns the global hash

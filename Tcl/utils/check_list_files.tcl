@@ -28,21 +28,13 @@ if { [string first PlanAhead [version]] == 0 } {
 set parameters {
   {project.arg "" "Project name. If not set gets current project"}
   {outFile.arg "" "Name of output log file."}
+  {log_list.arg "1" "Logs list files errors to outFile."}
+  {log_conf.arg "1" "Logs hog.conf errors to outFile."}
   {recreate  "If set, it will create List Files from the project configuration"}
   {recreate_conf  "If set, it will create the project hog.conf file."}
   {force  "Force the overwriting of List Files. To be used together with \"-recreate\""}
   {pedantic  "Script fails in case of mismatch"}
   {ext_path.arg "" "Sets the absolute path for the external libraries."}
-}
-
-
-
-proc DictGet {dictName keyName} {
-  if {[dict exists $dictName $keyName]} {
-    return [dict get $dictName $keyName]
-  } else {
-    return ""
-  }
 }
 
 proc RelativeLocal {pathName fileName} {
@@ -108,6 +100,11 @@ if {$options(outFile)!= ""} {
   if {[file exists $outFile]} {
     file delete $outFile
   }
+
+  if {!$options(log_list)} {
+    set outFile ""
+  }
+
 } else {
   set outFile ""
 }
@@ -118,6 +115,8 @@ if {[file exists $repo_path/Top/$group_name/$project_name] && [file isdirectory 
 } else {
   set DirName Top/$group_name/$project_name
 }
+
+
 
 
 if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
@@ -475,6 +474,13 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
 
 #checking project settings
 if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
+
+  if {!$options(log_conf)} {
+    set outFile ""
+  } else {
+    set outFile $options(outFile)
+  }
+
 
   #creating 4 dicts:
   #   - hogConfDict:     hog.conf properties (if exists)

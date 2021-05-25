@@ -117,15 +117,27 @@ set dst_dir [file normalize "bin/$group/$proj_name\-$describe"]
 Msg Info "Creating $dst_dir..."
 file mkdir $dst_dir/reports
 
-#check list files
+
+#check list files and project properties
+set confDict [dict create]
+set allow_fail_on_conf 0
+set allow_fail_on_list 0
+set allow_fail_on_git 0
+if {[file exists "$tcl_path/../../Top/$group/$proj_name/hog.conf"]} {
+  set confDict [ReadConf "$tcl_path/../../Top/$group/$proj_name/hog.conf"]
+  set allow_fail_on_conf [DictGet [DictGet $confDict "hog"] "allow_fail_on_conf" 0]
+  set allow_fail_on_list [DictGet [DictGet $confDict "hog"] "allow_fail_on_list" 0]
+  set allow_fail_on_git  [DictGet [DictGet $confDict "hog"] "allow_fail_on_git"  0]
+}
+
 if {[info commands get_property] != "" && [string first PlanAhead [version]] != 0} {
   if {![string equal ext_path ""]} {
-    set argv [list "-ext_path" "$ext_path" "-project" "$group/$proj_name" "-outFile" "$dst_dir/diff_list_and_conf.txt"]
+    set argv [list "-ext_path" "$ext_path" "-project" "$group/$proj_name" "-outFile" "$dst_dir/diff_list_and_conf.txt" "-log_list" "[expr {!$allow_fail_on_list}]" "-log_conf" "[expr {!$allow_fail_on_conf}]"]
   } else {
-    set argv [list "-project" "$group/$proj_name" "-outFile" "$dst_dir/diff_list_and_conf.txt"]
+    set argv [list "-project" "$group/$proj_name" "-outFile" "$dst_dir/diff_list_and_conf.txt" "-log_list" "[expr {!$allow_fail_on_list}]" "-log_conf" "[expr {!$allow_fail_on_conf}]"]
   }
-  set listFilesReturn [source  $tcl_path/utils/check_list_files.tcl]
-  if {$listFilesReturn != 0} {
+  source  $tcl_path/utils/check_list_files.tcl
+  if {[file exists "$dst_dir/diff_list_and_conf.txt"]} {
     Msg CriticalWarning "Project list files not clean, commit hash, and version will be set to 0."
     set commit 00000000
     set version 00000000
@@ -151,15 +163,17 @@ if {$diff != ""} {
 
 lassign [GetHogFiles  -ext_path "$ext_path" -repo_path "$tcl_path/../../" "$tcl_path/../../Top/$group/$proj_name/list/"] listLibraries listProperties
 
-foreach library [dict keys $listLibraries] {
-  set fileNames [dict get $listLibraries $library]
-  foreach fileName $fileNames {
-    if {[FileCommitted $fileName] == 0} {
-      set fp [open "$dst_dir/diff_presynthesis.txt" a+]
-      set $found_uncommitted 1
-      puts $fp "\n[Relative $tcl_path/../../ $fileName] is not in the git repository"
-      Msg Status "[Relative $tcl_path/../../ $fileName] is not in the git repository"
-      close $fp
+if {!$allow_fail_on_git} {
+  foreach library [dict keys $listLibraries] {
+    set fileNames [dict get $listLibraries $library]
+    foreach fileName $fileNames {
+      if {[FileCommitted $fileName] == 0} {
+        set fp [open "$dst_dir/diff_presynthesis.txt" a+]
+        set $found_uncommitted 1
+        puts $fp "\n[Relative $tcl_path/../../ $fileName] is not in the git repository"
+        Msg CriticalWarning "[Relative $tcl_path/../../ $fileName] is not in the git repository"
+        close $fp
+      }
     }
   }
 }

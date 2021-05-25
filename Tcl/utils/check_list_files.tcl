@@ -522,7 +522,7 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
     }
   }
 
-  #list of properties that don't must be checked/written
+  #list of properties that must not be checked/written
   set PROP_BAN_LIST  [list DEFAULT_LIB \
                            PART \
                            IP_CACHE_PERMISSIONS \

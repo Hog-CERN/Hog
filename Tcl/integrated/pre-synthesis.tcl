@@ -138,7 +138,7 @@ if {[info commands get_property] != "" && [string first PlanAhead [version]] != 
   }
   source  $tcl_path/utils/check_list_files.tcl
   if {[file exists "$dst_dir/diff_list_and_conf.txt"]} {
-    Msg CriticalWarning "Project list files not clean, commit hash, and version will be set to 0."
+    Msg CriticalWarning "Project list or hog.conf mismatch, commit hash, and version will be set to 0."
     set commit 00000000
     set version 00000000
   } 
@@ -159,6 +159,7 @@ if {$diff != ""} {
   set fp [open "$dst_dir/diff_presynthesis.txt" w+]
   puts $fp "$diff"
   close $fp
+  Msg CriticalWarning "Repository is not clean, will use current SHA ($this_commit) and create a dirty bitfile..."
 } 
 
 lassign [GetHogFiles  -ext_path "$ext_path" -repo_path "$tcl_path/../../" "$tcl_path/../../Top/$group/$proj_name/list/"] listLibraries listProperties
@@ -197,7 +198,6 @@ set this_commit  [Git {log --format=%h -1}]
 Msg Info "Git describe for $commit is: $describe"
 
 if {$commit == 0 } {
-  Msg CriticalWarning "Repository is not clean, will use current SHA ($this_commit) and create a dirty bitfile..."
   set commit $this_commit
 } else {
   Msg Info "Found last SHA for $proj_name: $commit"

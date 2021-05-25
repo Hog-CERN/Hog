@@ -130,6 +130,9 @@ if {[file exists "$tcl_path/../../Top/$group/$proj_name/hog.conf"]} {
   set allow_fail_on_git  [DictGet [DictGet $confDict "hog"] "allow_fail_on_git"  0]
 }
 
+
+set this_commit  [Git {log --format=%h -1}]
+
 if {[info commands get_property] != "" && [string first PlanAhead [version]] != 0} {
   if {![string equal ext_path ""]} {
     set argv [list "-ext_path" "$ext_path" "-project" "$group/$proj_name" "-outFile" "$dst_dir/diff_list_and_conf.txt" "-log_list" "[expr {!$allow_fail_on_list}]" "-log_conf" "[expr {!$allow_fail_on_conf}]"]
@@ -138,7 +141,7 @@ if {[info commands get_property] != "" && [string first PlanAhead [version]] != 
   }
   source  $tcl_path/utils/check_list_files.tcl
   if {[file exists "$dst_dir/diff_list_and_conf.txt"]} {
-    Msg CriticalWarning "Project list or hog.conf mismatch, commit hash, and version will be set to 0."
+    Msg CriticalWarning "Project list or hog.conf mismatch, will use current SHA ($this_commit) and version will be set to 0."
     set commit 00000000
     set version 00000000
   } 
@@ -172,7 +175,7 @@ if {!$allow_fail_on_git} {
         set fp [open "$dst_dir/diff_presynthesis.txt" a+]
         set $found_uncommitted 1
         puts $fp "\n[Relative $tcl_path/../../ $fileName] is not in the git repository"
-        Msg CriticalWarning "[Relative $tcl_path/../../ $fileName] is not in the git repository"
+        Msg CriticalWarning "[Relative $tcl_path/../../ $fileName] is not in the git repository. Will use current SHA ($this_commit) and version will be set to 0."
         close $fp
       }
     }
@@ -193,7 +196,6 @@ if {$status == 1} {
   Msg CriticalWarning "Repository does not have an initial v0.0.1 tag yet. Please create it with \"git tag v0.0.1\" "
 }
 
-set this_commit  [Git {log --format=%h -1}]
 
 Msg Info "Git describe for $commit is: $describe"
 

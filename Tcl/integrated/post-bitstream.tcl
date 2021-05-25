@@ -130,15 +130,6 @@ if {[info commands get_property] != "" && [file exists $bit_file]} {
     close $fp
   } 
 
-  lassign [GetHogFiles  -ext_path "$ext_path" -repo_path "$tcl_path/../../" "$tcl_path/../../Top/$group_name/$proj_name/list/"] listLibraries listProperties
-  foreach library [dict keys $listLibraries] {
-    set fileNames [dict get $listLibraries $library]
-    foreach fileName $fileNames {
-      if {[FileCommitted $fileName] == 0} {
-        set $found_uncommitted 1
-      }
-    }
-  }
   if {$found_uncommitted == 0} {
     Msg Info "No uncommitted changes found."
   }
@@ -221,15 +212,6 @@ if {[info commands get_property] != "" && [file exists $bit_file]} {
     close $fp
   } 
 
-  lassign [GetHogFiles  -ext_path "$ext_path" -repo_path "$tcl_path/../../" "$tcl_path/../../Top/$group_name/$proj_name/list/"] listLibraries listProperties
-  foreach library [dict keys $listLibraries] {
-    set fileNames [dict get $listLibraries $library]
-    foreach fileName $fileNames {
-      if {[FileCommitted $fileName] == 0} {
-        set $found_uncommitted 1
-      }
-    }
-  }
   if {$found_uncommitted == 0} {
     Msg Info "No uncommitted changes found."
   }

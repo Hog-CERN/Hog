@@ -221,7 +221,7 @@ function select_compiler_executable() {
   if [ $(command -v $1) ]; then
     HDL_COMPILER=$(command -v $1)
   else
-    if [$1 == "vivado" ]; then
+    if [ $1 == "vivado" ]; then
       if [ -z ${VIVADO_PATH+x} ]; then
         Msg Error "No vivado executable found and no variable VIVADO_PATH set\n"
         cd "${OLD_DIR}"
@@ -233,7 +233,7 @@ function select_compiler_executable() {
         Msg Error "Failed locate '$1' executable from VIVADO_PATH: $VIVADO_PATH"
         return 1
       fi
-    elif [$1 == "quartus_sh" ]; then
+    elif [ $1 == "quartus_sh" ]; then
       if [ -z ${QUARTUS_ROOTDIR+x} ]; then
         Msg Error "No quartus_sh executable found and no variable QUARTUS_ROOTDIR set\n"
         cd "${OLD_DIR}"
@@ -242,7 +242,7 @@ function select_compiler_executable() {
         Msg Info "QUARTUS_ROOTDIR is set to '$QUARTUS_ROOTDIR'"
         #Decide if you are to use bin or bin 64
         #Note things like $PROCESSOR_ARCHITECTURE==x86 won't work in Windows because tyhis will return the version of the git bash
-        if [ -d "$QUARTUS_ROOTDIR/bin64"]; then
+        if [ -d "$QUARTUS_ROOTDIR/bin64" ]; then
           HDL_COMPILER="$QUARTUS_ROOTDIR/bin64/$1"
         elif [ -d "$QUARTUS_ROOTDIR/bin" ]; then
           HDL_COMPILER="$QUARTUS_ROOTDIR/bin/$1"

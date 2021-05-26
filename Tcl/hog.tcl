@@ -332,7 +332,7 @@ proc CompareVersion {ver1 ver2} {
 proc GitVersion {target_version} {
   set ver [split $target_version "."]
   set v [Git --version]
-  Msg Info "Found Git version: $v"
+  #Msg Info "Found Git version: $v"
   set current_ver [split [lindex $v 2] "."]
   set target [expr [lindex $ver 0]*100000 + [lindex $ver 1]*100 + [lindex $ver 2]]
   set current [expr [lindex $current_ver 0]*100000 + [lindex $current_ver 1]*100 + [lindex $current_ver 2]]
@@ -613,6 +613,23 @@ proc MergeDict {dict0 dict1} {
   return $outdict
 }
 
+
+
+## @brief Gets key from dict and returns default if key not found
+#
+# @param[in] dictName the name of the dictionary
+# @param[in] keyName the name of the key
+# @param[in] default the default value to be retruned if the key is not found
+#
+# @return        the dictionary key value
+
+proc DictGet {dictName keyName {default ""}} {
+  if {[dict exists $dictName $keyName]} {
+    return [dict get $dictName $keyName]
+  } else {
+    return $default
+  }
+}
 
 ## @brief Get git SHA of a vivado library
 #
@@ -925,9 +942,12 @@ proc GetConfFiles {proj_dir} {
 #  @return  a list conatining all the versions: global, top (project tcl file), constraints, libraries, submodules, exteral, ipbus xml
 #
 proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
+  if { [catch {package require cmdline} ERROR] } {
+    puts "$ERROR\n If you are running this script on tclsh, you can fix this by installing 'tcllib'"
+    return 1
+  }
+
   set old_path [pwd]
-
-
   set conf_files [GetConfFiles $proj_dir]
 
   # This will be the list of all the SHAs of this project, the most recent will be picked up as GLOBAL SHA
@@ -1745,7 +1765,7 @@ proc ParseFirstLineHogFiles {list_path list_file} {
 # @param[in] libraries has library name as keys and a list of filenames as values
 # @param[in] properties has as file names as keys and a list of properties as values
 #
-proc AddHogFiles { libraries properties } {
+proc AddHogFiles { libraries properties {verbose 0}} {
   Msg Info "Adding source files to project..."
   foreach lib [dict keys $libraries] {
     #Msg Info "lib: $lib \n"
@@ -1816,7 +1836,9 @@ proc AddHogFiles { libraries properties } {
 
           # XDC
           if {[lsearch -inline -regex $props "XDC"] >= 0 || [file ext $f] == ".xdc"} {
-            Msg Info "Setting filetype XDC for $f"
+	    if {$verbose == 1} {
+	      Msg Info "Setting filetype XDC for $f"
+	    }
             set_property -name "file_type" -value "XDC" -objects $file_obj
           }
 
@@ -1859,8 +1881,10 @@ proc AddHogFiles { libraries properties } {
 
           # Wave do file
           if {[lsearch -inline -regex $props "wavefile"] >= 0} {
-            Msg Info "Setting $f as wave do file for simulation file set $file_set..."
-            # check if file exists...
+	    if {$verbose == 1} {
+	      Msg Info "Setting $f as wave do file for simulation file set $file_set..."
+	    }
+	      # check if file exists...
             if [file exists $f] {
               foreach simulator [GetSimulators] {
                 set_property "$simulator.simulate.custom_wave_do" $f [get_filesets $file_set]
@@ -1873,7 +1897,9 @@ proc AddHogFiles { libraries properties } {
 
           #Do file
           if {[lsearch -inline -regex $props "dofile"] >= 0} {
-            Msg Info "Setting $f as udo file for simulation file set $file_set..."
+	    if {$verbose == 1} {
+	      Msg Info "Setting $f as udo file for simulation file set $file_set..."
+	    }
             if [file exists $f] {
               foreach simulator [GetSimulators] {
                 set_property "$simulator.simulate.custom_udo" $f [get_filesets $file_set]
@@ -2599,10 +2625,6 @@ proc WriteYAMLStage {stage proj_name {props {}} {stage_list {} }} {
 }
 
 
-if {[GitVersion 2.7.2] == 0 } {
-  Msg CriticalWarning "Found Git version older than 2.7.2. Hog might not work as expected.\n"
-}
-
 proc FindNewestVersion { versions } {
   set new_ver 0
   foreach ver $versions {
@@ -2769,3 +2791,10 @@ proc IsRelativePath {path} {
     return 1
   }
 }
+
+
+# Check Git Version when sourcing hog.tcl
+if {[GitVersion 2.7.2] == 0 } {
+  Msg CriticalWarning "Found Git version older than 2.7.2. Hog might not work as expected.\n"
+}
+

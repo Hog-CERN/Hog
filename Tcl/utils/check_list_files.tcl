@@ -28,21 +28,13 @@ if { [string first PlanAhead [version]] == 0 } {
 set parameters {
   {project.arg "" "Project name. If not set gets current project"}
   {outFile.arg "" "Name of output log file."}
+  {log_list.arg "1" "Logs list files errors to outFile."}
+  {log_conf.arg "1" "Logs hog.conf errors to outFile."}
   {recreate  "If set, it will create List Files from the project configuration"}
   {recreate_conf  "If set, it will create the project hog.conf file."}
   {force  "Force the overwriting of List Files. To be used together with \"-recreate\""}
   {pedantic  "Script fails in case of mismatch"}
   {ext_path.arg "" "Sets the absolute path for the external libraries."}
-}
-
-
-
-proc DictGet {dictName keyName} {
-  if {[dict exists $dictName $keyName]} {
-    return [dict get $dictName $keyName]
-  } else {
-    return ""
-  }
 }
 
 proc RelativeLocal {pathName fileName} {
@@ -108,6 +100,11 @@ if {$options(outFile)!= ""} {
   if {[file exists $outFile]} {
     file delete $outFile
   }
+
+  if {!$options(log_list)} {
+    set outFile ""
+  }
+
 } else {
   set outFile ""
 }
@@ -118,6 +115,8 @@ if {[file exists $repo_path/Top/$group_name/$project_name] && [file isdirectory 
 } else {
   set DirName Top/$group_name/$project_name
 }
+
+
 
 
 if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
@@ -222,7 +221,7 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
 	  } elseif {[file extension $key] == ".src" || [file extension $key] == ".sub"} {
 	    #check if project contains sources specified in listfiles
 	    set prjSRCs [DictGet $prjSrcDict [file rootname $key]]
-
+	    
 	    foreach SRC [DictGet $listLibraries $key] {
 	      set idx [lsearch -exact $prjSRCs $SRC]
 	      set prjSRCs [lreplace $prjSRCs $idx $idx]
@@ -247,7 +246,7 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
 	  } elseif {[file extension $key] == ".ext" } {
 	    #check if project contains external files specified in listfiles
 	    set prjSRCs [DictGet $prjSrcDict [file rootname $key]]
-
+	    
 	    foreach SRC [DictGet $listLibraries $key] {
 	      set idx [lsearch -exact $prjSRCs $SRC]
 	      set prjSRCs [lreplace $prjSRCs $idx $idx]
@@ -275,7 +274,7 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
 	    Msg CriticalWarning "$key list file format unrecognized by Hog."
 	    incr ListErrorCnt
 	  }
-
+    
   }
 
 
@@ -355,7 +354,7 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
       if {[string equal [RelativeLocal $repo_path $SRC] ""]} {
         if {[string equal [RelativeLocal $ext_path $SRC] ""]} {
           CriticalAndLog "Source $SRC is used in the project but is not in the repository or in a known external path." $outFile
-        } else {
+        } else { 
           if {$options(recreate) == 1} {
             Msg Info "External source $SRC was added to the project (library $key)."
           } else {
@@ -475,13 +474,32 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
 
 #checking project settings
 if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
-  set oldConfDict [dict create]
-  if {[file exists "$repo_path/Top/$group_name/$project_name/hog.conf"]} {
-    set oldConfDict [ReadConf "$repo_path/Top/$group_name/$project_name/hog.conf"]
 
-    #convert hog.conf dict to uppercase
+  if {!$options(log_conf)} {
+    set outFile ""
+  } else {
+    set outFile $options(outFile)
+  }
+
+
+  #creating 4 dicts:
+  #   - hogConfDict:     hog.conf properties (if exists)
+  #   - defaultConfDict: default properties
+  #   - projConfDict:    current project properties
+  #   - newConfDict:     "new" hog.conf 
+
+  set hogConfDict [dict create]  
+  set defaultConfDict [dict create]
+  set projConfDict [dict create]
+  set newConfDict  [dict create]
+
+  #filling hogConfDict
+  if {[file exists "$repo_path/Top/$group_name/$project_name/hog.conf"]} {
+    set hogConfDict [ReadConf "$repo_path/Top/$group_name/$project_name/hog.conf"]
+    
+    #convert hog.conf dict keys to uppercase
     foreach key [list main synth_1 impl_1] {
-      set runDict [DictGet $oldConfDict $key]
+      set runDict [DictGet $hogConfDict $key]
       foreach runDictKey [dict keys $runDict ] {
         #do not convert paths
         if {[string first $repo_path [DictGet $runDict $runDictKey]]!= -1} {
@@ -490,23 +508,21 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
         dict set runDict [string toupper $runDictKey] [DictGet $runDict $runDictKey]
         dict unset runDict [string tolower $runDictKey]
       }
-      dict set oldConfDict $key $runDict
+      dict set hogConfDict $key $runDict
     }
   } elseif {$options(recreate_conf)==0} {
     Msg Warning "$repo_path/Top/$group_name/$project_name/hog.conf not found. Skipping properties check"
   }
 
-  #reading old hog.conf if exist and copy all the values apart from main synth_1 and impl_1
-  set confDict  [dict create]
 
-
-  foreach key [dict keys $oldConfDict] {
+  #filling newConfDict with exististing hog.conf properties apart from main synth_1 and impl_1
+  foreach key [dict keys $hogConfDict] {
     if {$key != "main" && $key != "synth_1" && $key != "impl_1"} {
-      dict set confDict $key [DictGet $oldConfDict $key]
+      dict set newConfDict $key [DictGet $hogConfDict $key] 
     }
   }
 
-  #list of properties that must not be written
+  #list of properties that must not be checked/written
   set PROP_BAN_LIST  [list DEFAULT_LIB \
                            PART \
                            IP_CACHE_PERMISSIONS \
@@ -528,130 +544,107 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
                            COMPXLIB.IES_COMPILED_LIBRARY_DIR \
                            COMPXLIB.VCS_COMPILED_LIBRARY_DIR \
                            NEEDS_REFRESH \
+                           AUTO_INCREMENTAL_CHECKPOINT.DIRECTORY \
                      ]
 
-
-
-
-  set defaultDict [dict create]
-
-  #writing not default properties for current_project, synth_1 and impl_1
-  set runs [list [current_project]]
-  lappend runs [list [get_runs synth_1]]
-  lappend runs [list [get_runs impl_1]]
-  foreach proj_run $runs {
+  #filling defaultConfDict and projConfDict
+  foreach proj_run [list [current_project] [get_runs synth_1] [get_runs impl_1]] {
     #creting dictionary for each $run
     set projRunDict [dict create]
     set defaultRunDict [dict create]
-    #selecting only READ/WRITE properties
+    #selecting only READ/WRITE properties 
     set run_props [list]
     foreach propReport [split "[report_property  -return_string -all $proj_run]" "\n"] {
 
-      if {[string equal "[lindex $propReport 2]" "false"]} {
+      if {[string equal "[lindex $propReport 2]" "false"]} { 
         lappend run_props [lindex $propReport 0]
       }
     }
 
     foreach prop $run_props {
-      #Project values
-      if {[string first  $repo_path [get_property $prop $proj_run]] != -1} {
-        set val [Relative $repo_path [get_property $prop $proj_run]]
-      } elseif {[string first  $ext_path [get_property $prop $proj_run]] != -1} {
-        set val [Relative $ext_path [get_property $prop $proj_run]]
-      } else {
-        set val [get_property $prop $proj_run]
-      }
-      #ignoring properties in $PROP_BAN_LIST
-      if {$prop in $PROP_BAN_LIST} {
+      #ignoring properties in $PROP_BAN_LIST 
+      if {$prop in $PROP_BAN_LIST} { 
         set tmp  0
         #Msg Info "Skipping property $prop"
-      } else {
-        # default values
-        set Dval [string toupper [list_property_value -default $prop $proj_run]]
-        dict set defaultRunDict [string toupper $prop] $Dval
-        if {[string toupper $Dval]!=[string toupper $val]} {
-          dict set projRunDict [string toupper $prop] $val
+      } else { 
+        #Project values
+        #   setting only relative paths
+        if {[string first  $repo_path [get_property $prop $proj_run]] != -1} {
+          dict set projRunDict [string toupper $prop] [Relative $repo_path [get_property $prop $proj_run]]
+        } elseif {[string first  $ext_path [get_property $prop $proj_run]] != -1} {
+          dict set projRunDict [string toupper $prop]  [Relative $ext_path [get_property $prop $proj_run]]
+        } else {
+          dict set projRunDict [string toupper $prop] [get_property $prop $proj_run]
         }
+
+        # default values
+        dict set defaultRunDict [string toupper $prop]  [list_property_value -default $prop $proj_run]
       }
     }
     if {"$proj_run" == "[current_project]"} {
-      dict set projRunDict "PART" [get_property PART $proj_run]
-      dict set confDict main  $projRunDict
-      dict set defaultDict main $defaultRunDict
+      dict set projRunDict "PART" [get_property PART $proj_run] 
+      dict set projConfDict main  $projRunDict
+      dict set defaultConfDict main $defaultRunDict
     } else {
-      dict set confDict $proj_run  $projRunDict
-      dict set defaultDict $proj_run $defaultRunDict
+      dict set projConfDict $proj_run  $projRunDict
+      dict set defaultConfDict $proj_run $defaultRunDict
     }
   }
 
   #adding default properties set by defaut by Hog or after project creation
   set defMainDict [dict create TARGET_LANGUAGE VHDL SIMULATOR_LANGUAGE MIXED IP_REPO_PATHS IP_repository]
   dict set defMainDict IP_OUTPUT_REPO IP
-  dict set defaultDict main [dict merge [DictGet $defaultDict main] $defMainDict]
+  dict set defaultConfDict main [dict merge [DictGet $defaultConfDict main] $defMainDict]
 
-  #default settings shall not be rewritten
-  foreach prj_run [dict keys $confDict] {
-      set confRunDict [DictGet $confDict $prj_run]
-      set defaultRunDict [DictGet $defaultDict $prj_run]
-      foreach settings [dict keys $confRunDict] {
-        if {[string toupper [DictGet $confRunDict $settings]] == [string toupper [DictGet $defaultRunDict $settings]]} {
-          dict unset confRunDict $settings
+  #comparing projConfDict, defaultConfDict and hogConfDict
+  foreach proj_run [list main synth_1 impl_1] {
+    set projRunDict [DictGet $projConfDict $proj_run]
+    set hogConfRunDict [DictGet $hogConfDict $proj_run]
+    set defaultRunDict [DictGet $defaultConfDict $proj_run]
+    set newRunDict [dict create]
+    foreach settings [dict keys $projRunDict] {
+      set currset [DictGet  $projRunDict $settings]
+      set hogset [DictGet  $hogConfRunDict $settings]
+      set defset [DictGet  $defaultRunDict $settings]
+      if {[string toupper $currset] != [string toupper $hogset] && [string toupper $currset] != [string toupper $defset]} {
+        if {[string first "DEFAULT" [string toupper $currset]] != -1 && $hogset == ""} {
+          continue
         }
-      }
-      dict set confDict $prj_run $confRunDict
-  }
-
-
-  #comparing confDict and oldConfDict
-  if { [file exists $repo_path/Top/$group_name/$project_name/hog.conf] } {
-    foreach prj_run [dict keys $confDict] {
-      set confRunDict [DictGet $confDict $prj_run]
-      set oldConfRunDict [DictGet $oldConfDict $prj_run]
-      set defaultRunDict [DictGet $defaultDict $prj_run]
-      foreach settings [dict keys $confRunDict] {
-
-        set currset [DictGet  $confRunDict $settings]
-        set oldset [DictGet  $oldConfRunDict $settings]
-        set defset [DictGet  $defaultRunDict $settings]
-        dict unset oldConfRunDict $settings
-        dict set oldConfDict $prj_run $oldConfRunDict
-	#puts "$settings CUR=$currset OLD=$oldset DEF=$defset"
-        if {[string toupper $currset] != [string toupper $oldset] && [string toupper $currset] != [string toupper $defset]} {
-          if {[string first "DEFAULT" [string toupper $currset]] != -1 && $oldset == ""} {
-            continue
-          }
-          if {[string tolower $oldset] == "true" && $currset == 1} {
-            continue
-          }
-          if {[string tolower $oldset] == "false" && $currset == 0} {
-            continue
-          }
-          if {$options(recreate_conf) == 1} {
-            Msg Info "$prj_run setting $settings has been changed. \nhog.conf value: $oldset \nProject value: $currset "
-          } else {
-            CriticalAndLog "$prj_run setting $settings does not match hog.conf. \nhog.conf value: $oldset \nProject value: $currset " $outFile
-          }
+        if {[string tolower $hogset] == "true" && $currset == 1} {
+          continue
+        }
+        if {[string tolower $hogset] == "false" && $currset == 0} {
+          continue
+        }
+        dict set newRunDict $settings $currset
+        if {$options(recreate_conf) == 1} {
+          incr ConfErrorCnt
+          Msg Info "$proj_run setting $settings has been changed. \nhog.conf value: $hogset \nProject value: $currset "
+        } elseif {[file exists $repo_path/Top/$group_name/$project_name/hog.conf]} {
+          CriticalAndLog "$proj_run setting $settings does not match hog.conf. \nhog.conf value: $hogset \nProject value: $currset " $outFile
           incr ConfErrorCnt
         }
+      } elseif {[string toupper $currset] == [string toupper $hogset] && [string toupper $hogset] != ""} {
+        dict set newRunDict $settings $currset
       }
     }
-
-    foreach prj_run [dict keys $oldConfDict] {
-      foreach settings [dict keys [DictGet $oldConfDict $prj_run]] {
-        set currset [DictGet  [DictGet $confDict $prj_run] $settings]
-        set oldset [DictGet  [DictGet $oldConfDict $prj_run] $settings]
-        set defset [DictGet  [DictGet $defaultDict $prj_run] $settings]
-        if {[string toupper $currset] != [string toupper $oldset] && [string toupper $currset] != [string toupper $defset]} {
-          if {$options(recreate_conf) == 1} {
-            Msg Info "$prj_run setting $settings has been changed. \nhog.conf value: $oldset \nProject value: $currset "
-          } else {
-            CriticalAndLog "$prj_run setting $settings does not match hog.conf. \nhog.conf value: $oldset \nProject value: $currset " $outFile
-          }
-          incr ConfErrorCnt
+    dict set newConfDict $proj_run $newRunDict
+    
+    #if anything remains into hogConfDict it means that something is wrong
+    foreach settings [dict keys $hogConfRunDict] {
+      if {[dict exists $projRunDict $settings]==0} {
+        if {$settings in $PROP_BAN_LIST} { 
+          Msg CriticalWarning "Your hog.conf is setting $proj_run property $settings. This property is usually ignored and will not be automatically rewritten when automatically recreating hog.conf"
+          continue
         }
+        incr ConfErrorCnt
+        if {$options(recreate_conf) == 0} {
+          CriticalAndLog "hog.conf property $settings is not a valid Vivado property" $outFile
+        } else {
+          Msg Info "found property $settings in old hog.conf. This is not a valid Vivado property and will be deleted"
+        }        
       }
     }
-
   }
 
 
@@ -663,12 +656,11 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
   if {$options(recreate_conf) == 1 && ($ConfErrorCnt > 0 || [file exists $repo_path/Top/$group_name/$project_name/hog.conf] == 0)} {
     Msg Info "Updating configuration file $repo_path/$DirName/hog.conf"
     file mkdir  $repo_path/$DirName/list
-    #writing configuration file
+    #writing configuration file  
     set confFile $repo_path/$DirName/hog.conf
-    WriteConf $confFile $confDict "vivado"
+    WriteConf $confFile $newConfDict "vivado"
   }
-
-
+ 
 }
 
 

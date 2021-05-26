@@ -75,11 +75,13 @@ if {[info commands get_property] != ""} {
         }
       }
     }
-    
+
   }
 } else {
   #Tclssh
   set proj_file $old_path/[file tail $old_path].xpr
+  set proj_dir [file normalize [file dirname $proj_file]]
+  set proj_name [file rootname [file tail $proj_file]]
   Msg CriticalWarning "You seem to be running locally on tclsh, so this is a debug, the project file will be set to $proj_file and was derived from the path you launched this script from: $old_path. If you want this script to work properly in debug mode, please launch it from the top folder of one project, for example Repo/Projects/fpga1/ or Repo/Top/fpga1/"
 }
 
@@ -87,7 +89,8 @@ if {[info commands get_property] != ""} {
 set repo_path [file normalize "$tcl_path/../.."]
 cd $repo_path
 
-set group_name [GetGroupName $proj_dir]
+set group [GetGroupName $proj_dir]
+
 # Calculating flavour if any
 set flavour [string map {. ""} [file ext $proj_name]]
 if {$flavour != ""} {
@@ -106,24 +109,39 @@ if {$flavour != ""} {
 ResetRepoFiles "./Projects/hog_reset_files"
 
 # Getting all the versions and SHAs of the repository
-lassign [GetRepoVersions [file normalize $repo_path/Top/$group_name/$proj_name] $repo_path $ext_path] commit version  hog_hash hog_ver  top_hash top_ver  libs hashes vers  cons_ver cons_hash  ext_names ext_hashes  xml_hash xml_ver
+lassign [GetRepoVersions [file normalize $repo_path/Top/$group/$proj_name] $repo_path $ext_path] commit version  hog_hash hog_ver  top_hash top_ver  libs hashes vers  cons_ver cons_hash  ext_names ext_hashes  xml_hash xml_ver
 
 
 set describe [GetGitDescribe $commit]
-set dst_dir [file normalize "bin/$group_name/$proj_name\-$describe"]
+set dst_dir [file normalize "bin/$group/$proj_name\-$describe"]
 Msg Info "Creating $dst_dir..."
 file mkdir $dst_dir/reports
 
-#check list files
+
+#check list files and project properties
+set confDict [dict create]
+set allow_fail_on_conf 0
+set allow_fail_on_list 0
+set allow_fail_on_git 0
+if {[file exists "$tcl_path/../../Top/$group/$proj_name/hog.conf"]} {
+  set confDict [ReadConf "$tcl_path/../../Top/$group/$proj_name/hog.conf"]
+  set allow_fail_on_conf [DictGet [DictGet $confDict "hog"] "allow_fail_on_conf" 0]
+  set allow_fail_on_list [DictGet [DictGet $confDict "hog"] "allow_fail_on_list" 0]
+  set allow_fail_on_git  [DictGet [DictGet $confDict "hog"] "allow_fail_on_git"  0]
+}
+
+
+set this_commit  [Git {log --format=%h -1}]
+
 if {[info commands get_property] != "" && [string first PlanAhead [version]] != 0} {
   if {![string equal ext_path ""]} {
-    set argv [list "-ext_path" "$ext_path" "-project" "$group_name/$proj_name" "-outFile" "$dst_dir/diff_list_and_conf.txt"]
+    set argv [list "-ext_path" "$ext_path" "-project" "$group/$proj_name" "-outFile" "$dst_dir/diff_list_and_conf.txt" "-log_list" "[expr {!$allow_fail_on_list}]" "-log_conf" "[expr {!$allow_fail_on_conf}]"]
   } else {
-    set argv [list "-project" "$group_name/$proj_name" "-outFile" "$dst_dir/diff_list_and_conf.txt"]
+    set argv [list "-project" "$group/$proj_name" "-outFile" "$dst_dir/diff_list_and_conf.txt" "-log_list" "[expr {!$allow_fail_on_list}]" "-log_conf" "[expr {!$allow_fail_on_conf}]"]
   }
-  set listFilesReturn [source  $tcl_path/utils/check_list_files.tcl]
-  if {$listFilesReturn != 0} {
-    Msg CriticalWarning "Project list files not clean, commit hash, and version will be set to 0."
+  source  $tcl_path/utils/check_list_files.tcl
+  if {[file exists "$dst_dir/diff_list_and_conf.txt"]} {
+    Msg CriticalWarning "Project list or hog.conf mismatch, will use current SHA ($this_commit) and version will be set to 0."
     set commit 00000000
     set version 00000000
   } 
@@ -144,19 +162,22 @@ if {$diff != ""} {
   set fp [open "$dst_dir/diff_presynthesis.txt" w+]
   puts $fp "$diff"
   close $fp
+  Msg CriticalWarning "Repository is not clean, will use current SHA ($this_commit) and create a dirty bitfile..."
 } 
 
-lassign [GetHogFiles  -ext_path "$ext_path" -repo_path "$tcl_path/../../" "$tcl_path/../../Top/$group_name/$proj_name/list/"] listLibraries listProperties
+lassign [GetHogFiles  -ext_path "$ext_path" -repo_path "$tcl_path/../../" "$tcl_path/../../Top/$group/$proj_name/list/"] listLibraries listProperties
 
-foreach library [dict keys $listLibraries] {
-  set fileNames [dict get $listLibraries $library]
-  foreach fileName $fileNames {
-    if {[FileCommitted $fileName] == 0} {
-      set fp [open "$dst_dir/diff_presynthesis.txt" a+]
-      set $found_uncommitted 1
-      puts $fp "\n[Relative $tcl_path/../../ $fileName] is not in the git repository"
-      Msg Status "[Relative $tcl_path/../../ $fileName] is not in the git repository"
-      close $fp
+if {!$allow_fail_on_git} {
+  foreach library [dict keys $listLibraries] {
+    set fileNames [dict get $listLibraries $library]
+    foreach fileName $fileNames {
+      if {[FileCommitted $fileName] == 0} {
+        set fp [open "$dst_dir/diff_presynthesis.txt" a+]
+        set $found_uncommitted 1
+        puts $fp "\n[Relative $tcl_path/../../ $fileName] is not in the git repository"
+        Msg CriticalWarning "[Relative $tcl_path/../../ $fileName] is not in the git repository. Will use current SHA ($this_commit) and version will be set to 0."
+        close $fp
+      }
     }
   }
 }
@@ -175,12 +196,10 @@ if {$status == 1} {
   Msg CriticalWarning "Repository does not have an initial v0.0.1 tag yet. Please create it with \"git tag v0.0.1\" "
 }
 
-set this_commit  [Git {log --format=%h -1}]
 
 Msg Info "Git describe for $commit is: $describe"
 
 if {$commit == 0 } {
-  Msg CriticalWarning "Repository is not clean, will use current SHA ($this_commit) and create a dirty bitfile..."
   set commit $this_commit
 } else {
   Msg Info "Found last SHA for $proj_name: $commit"
@@ -195,14 +214,14 @@ if {$xml_hash != 0} {
   Msg Info "Creating XML directory $xml_dst..."
   file mkdir $xml_dst
   Msg Info "Copying xml files to $xml_dst and replacing placeholders with xml version $xml_ver..."
-  CopyXMLsFromListFile ./Top/$group_name/$proj_name/list/xml.lst ./ $xml_dst [HexVersionToString $xml_ver] $xml_hash
+  CopyXMLsFromListFile ./Top/$group/$proj_name/list/xml.lst ./ $xml_dst [HexVersionToString $xml_ver] $xml_hash
   set use_ipbus 1
 } else {
   set use_ipbus 0
 }
 
 #number of threads
-set maxThreads [GetMaxThreads [file normalize ./Top/$group_name/$proj_name/]]
+set maxThreads [GetMaxThreads [file normalize ./Top/$group/$proj_name/]]
 if {$maxThreads != 1} {
   Msg CriticalWarning "Multithreading enabled. Bitfile will not be deterministic. Number of threads: $maxThreads"
 } else {
@@ -362,10 +381,10 @@ if {$flavour != -1} {
 }
 
 set version [HexVersionToString $version]
-if {$group_name != ""} {
-  puts $status_file "## $group_name/$proj_name version table"
+if {$group != ""} {
+  puts $status_file "## $group/$proj_name Version Table"
 } else {
-  puts $status_file "## $proj_name version table"
+  puts $status_file "## $proj_name Version Table"
 }
 
 struct::matrix m
@@ -415,7 +434,7 @@ if {[info commands project_new] == ""} {
   CheckYmlRef [file normalize $tcl_path/../..] true
 }
 
-set user_pre_synthesis_file "./Top/$group_name/$proj_name/pre-synthesis.tcl"
+set user_pre_synthesis_file "./Top/$group/$proj_name/pre-synthesis.tcl"
 if {[file exists $user_pre_synthesis_file]} {
   Msg Info "Sourcing user pre-synthesis file $user_pre_synthesis_file"
   source $user_pre_synthesis_file

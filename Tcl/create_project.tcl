@@ -90,8 +90,12 @@ proc CreateProject {} {
       set_param project.enableVHDL2008 1
       set_property "enable_vhdl_2008" 1 $obj
     }
-    set_property "ip_output_repo" $globalSettings::repo_path/IP $obj
 
+    if { [string first PlanAhead [version]] != 0 } {
+      #This property doesn't exist in PlanAhead
+      set_property "ip_output_repo" $globalSettings::repo_path/IP $obj
+    }
+    
   } elseif {[info commands project_new] != ""} {
     package require ::quartus::project
     #QUARTUS_ONLY
@@ -157,7 +161,7 @@ proc CreateProject {} {
       source $tcl_path/utils/cmdline.tcl
     }
   }
-  AddHogFiles {*}[GetHogFiles -ext_path $globalSettings::HOG_EXTERNAL_PATH -verbose -repo_path $globalSettings::repo_path  $globalSettings::list_path]
+  AddHogFiles {*}[GetHogFiles -ext_path $globalSettings::HOG_EXTERNAL_PATH -repo_path $globalSettings::repo_path  $globalSettings::list_path]
 
   ## Set synthesis TOP
   SetTopProperty $globalSettings::synth_top_module $sources
@@ -456,6 +460,8 @@ proc ConfigureSimulation {} {
 ## @brief uses the content of globalSettings::PROPERTIES to set additional project properties
 #
 proc ConfigureProperties {} {
+  set cur_dir [pwd]
+  cd $globalSettings::repo_path
   if {[info commands send_msg_id] != ""} {
     set user_repo "0"
 
@@ -518,6 +524,7 @@ proc ConfigureProperties {} {
   } else {
     Msg info "Configuring Properties"
   }
+  cd $cur_dir
 }
 
 ## @brief upgrade IPs in the project

@@ -203,7 +203,7 @@ function select_command() {
 # This function:
 # - checks at least 1 argoument is passed
 # - uses command -v to select the executable
-#   * if no executable is found and the command is vivado it uses VIVADO_PATH
+#   * if no executable is found and the command is vivado it uses XILINX_VIVADO
 #   *
 # - stores the result in a global variable called HDL_COMPILER
 #
@@ -222,15 +222,15 @@ function select_compiler_executable() {
     HDL_COMPILER=$(command -v $1)
   else
     if [ $1 == "vivado" ]; then
-      if [ -z ${VIVADO_PATH+x} ]; then
-        Msg Error "No vivado executable found and no variable VIVADO_PATH set\n"
+      if [ -z ${XILINX_VIVADO+x} ]; then
+        Msg Error "No vivado executable found and no variable XILINX_VIVADO set\n"
         cd "${OLD_DIR}"
         return 1
-      elif [ -d "$VIVADO_PATH" ]; then
-        Msg Info "VIVADO_PATH is set to '$VIVADO_PATH'"
-        HDL_COMPILER="$VIVADO_PATH/$1"
+      elif [ -d "$XILINX_VIVADO" ]; then
+        Msg Info "XILINX_VIVADO is set to '$ XILINX_VIVADO'"
+        HDL_COMPILER="$XILINX_VIVADO/bin/$1"
       else
-        Msg Error "Failed locate '$1' executable from VIVADO_PATH: $VIVADO_PATH"
+        Msg Error "Failed locate '$1' executable from XILINX_VIVADO: $XILINX_VIVADO"
         return 1
       fi
     elif [ $1 == "quartus_sh" ]; then

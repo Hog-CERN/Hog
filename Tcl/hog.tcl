@@ -1966,15 +1966,22 @@ proc AddHogFiles { libraries properties } {
                 set qsysPath [file dirname $cur_file]
                 set qsysName "[file rootname [file tail $cur_file]].qsys"
                 set qsysFile "$qsysPath/$qsysName"
-                set qsysLogFile "$qsysPath/$qsysName.qsys-script.log"
-
-                set cmd "qsys-script"
-                set cmd_options " --script=$cur_file"
-                if { [info exists ::env(QSYS_ROOTDIR)] } {
-                  set cmd "$::env(QSYS_ROOTDIR)$cmd"
+                set qsysLogFile "$qsysPath/[file rootname [file tail $cur_file]].qsys-script.log"
+               
+                set qsys_rootdir ""
+                if {! [info exists ::env(QSYS_ROOTDIR)] } {
+                  if {[info exists ::env(QUARTUS_ROOTDIR)] } {
+                    set qsys_rootdir "$::env(QUARTUS_ROOTDIR)/sopc_builder/bin"
+                    Msg Warning "The QSYS_ROOTDIR environment variable is not set! I will use $qsys_rootdir"
+                  } else {
+                    Msg CriticalWarning "The QUARTUS_ROOTDIR environment variable is not set! Assuming all quartus executables are contained in your PATH!"
+                  }
                 } else {
-                  Msg CriticalWarning "The QSYS_ROOTDIR environment variable is not set! this may lead to failures later!"  
+                  set qsys_rootdir $::env(QSYS_ROOTDIR)
                 }
+
+                set cmd "$qsys_rootdir/qsys-script"
+                set cmd_options " --script=$cur_file"
                 if {![catch {"exec $cmd -version"}] || [lindex $::errorCode 0] eq "NONE"} {
                   Msg Info "Executing: $cmd $cmd_options"
                   Msg Info "Saving logfile in: $qsysLogFile"
@@ -2002,7 +2009,7 @@ proc AddHogFiles { libraries properties } {
                   puts $hogQsysFile $fileEntry
                   close $hogQsysFile
                 } else {
-                  Msg ERROR "Error while moving the generated qsys file to final location: $qsysName.qsys not found!";
+                  Msg ERROR "Error while moving the generated qsys file to final location: $qsysName not found!";
                 }
                 if { [file exists $qsysFile] != 0} {
                   if {[string first "noadd" $props] == -1} {
@@ -2055,13 +2062,20 @@ proc GenerateQsysSystem {qsysFile commandOpts} {
     set qsysIPDir "$qsysPath/$qsysName"
     set qsysLogFile "$qsysPath/$qsysName.qsys-generate.log"
 
-    set cmd "qsys-generate" 
-    set cmd_options "$qsysFile --output-directory=$qsysIPDir $commandOpts"
-    if { [info exists ::env(QSYS_ROOTDIR)] } {
-      set cmd "$::env(QSYS_ROOTDIR)/$cmd"
+    set qsys_rootdir ""
+    if {! [info exists ::env(QSYS_ROOTDIR)] } {
+      if {[info exists ::env(QUARTUS_ROOTDIR)] } {
+        set qsys_rootdir "$::env(QUARTUS_ROOTDIR)/sopc_builder/bin"
+        Msg Warning "The QSYS_ROOTDIR environment variable is not set! I will use $qsys_rootdir"
+      } else {
+        Msg CriticalWarning "The QUARTUS_ROOTDIR environment variable is not set! Assuming all quartus executables are contained in your PATH!"
+      }
     } else {
-      Msg CriticalWarning "The QSYS_ROOTDIR environment variable is not set! this may lead to failures later!"
+      set qsys_rootdir $::env(QSYS_ROOTDIR)
     }
+
+    set cmd "$qsys_rootdir/qsys-generate" 
+    set cmd_options "$qsysFile --output-directory=$qsysIPDir $commandOpts"
     if {![catch {"exec $cmd -version"}] || [lindex $::errorCode 0] eq "NONE"} {
       Msg Info "Executing: $cmd $cmd_options"
       Msg Info "Saving logfile in: $qsysLogFile"

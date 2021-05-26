@@ -460,6 +460,8 @@ proc ConfigureSimulation {} {
 ## @brief uses the content of globalSettings::PROPERTIES to set additional project properties
 #
 proc ConfigureProperties {} {
+  set cur_dir [pwd]
+  cd $globalSettings::repo_path
   if {[info commands send_msg_id] != ""} {
     set user_repo "0"
 
@@ -522,6 +524,7 @@ proc ConfigureProperties {} {
   } else {
     Msg info "Configuring Properties"
   }
+  cd $cur_dir
 }
 
 ## @brief upgrade IPs in the project

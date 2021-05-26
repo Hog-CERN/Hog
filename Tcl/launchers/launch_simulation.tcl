@@ -60,6 +60,7 @@ if { $::argc eq 0 } {
 
   if {$options(lib_path)!= ""} {
     set lib_path $options(lib_path)
+    set workflow_simlib_path $options(lib_path)
   } else {
     set lib_path [file normalize "$repo_path/SimulationLib"]
   }

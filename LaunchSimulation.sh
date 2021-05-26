@@ -16,7 +16,7 @@
 ## @file LaunchSimulation.sh
 # @brief launch /Tcl/launchers/launch_simulation.tcl using Vivado
 # @todo LaunchSimulation.sh: update for Quartus support
-# @todo LaunchSimulation.sh: check is vivado is installed an set-up in the shell (if [ which vivado ])
+# @todo LaunchSimulation.sh: check is vivado is installed an set-up in the shell (if [ command -v vivado ])
 # @todo LaunchSimulation.sh: check arg $1 and $2 before passing it to the Tcl script
 
 ## Import common functions from Other/CommonFunctions.sh in a POSIX compliant way

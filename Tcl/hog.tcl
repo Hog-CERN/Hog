@@ -29,12 +29,19 @@
 set CI_STAGES {"generate_project" "simulate_project"}
 set CI_PROPS {"-synth_only"}
 
+
 #### FUNCTIONS
+
+proc GetSimulators {} {
+  set SIMULATORS [list "modelsim" "questa" "riviera" "activehdl" "ies" "vcs"]
+  return $SIMULATORS
+}
+
 proc Msg {level msg {title ""}} {
   set level [string tolower $level]
   if {$level == 0 || $level == "status" || $level == "extra_info"} {
     set vlevel {STATUS}
-    set qlevel extra_info
+    set qlevel info
   } elseif {$level == 1 || $level == "info"} {
     set vlevel {INFO}
     set qlevel info
@@ -62,6 +69,9 @@ proc Msg {level msg {title ""}} {
   } elseif {[info commands post_message] != ""} {
     # Quartus
     post_message -type $qlevel "Hog:$title $msg"
+    if { $qlevel == "error"} {
+      exit 1
+    }
   } else {
     # Tcl Shell
     puts "*** Hog:$title $vlevel $msg"
@@ -1042,49 +1052,49 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
     #Msg Info "Checking checksums of external library files in $f"
     foreach line $data {
       if {![regexp {^ *$} $line] & ![regexp {^ *\#} $line] } { #Exclude empty lines and comments
-      set file_and_prop [regexp -all -inline {\S+} $line]
-      set hdlfile [lindex $file_and_prop 0]
-      set hdlfile $ext_path/$hdlfile
-      if { [file exists $hdlfile] } {
-        set hash [lindex $file_and_prop 1]
-        set current_hash [Md5Sum $hdlfile]
-        if {[string first $hash $current_hash] == -1} {
-          Msg CriticalWarning "File $hdlfile has a wrong hash. Current checksum: $current_hash, expected: $hash"
+        set file_and_prop [regexp -all -inline {\S+} $line]
+        set hdlfile [lindex $file_and_prop 0]
+        set hdlfile $ext_path/$hdlfile
+        if { [file exists $hdlfile] } {
+          set hash [lindex $file_and_prop 1]
+          set current_hash [Md5Sum $hdlfile]
+          if {[string first $hash $current_hash] == -1} {
+            Msg CriticalWarning "File $hdlfile has a wrong hash. Current checksum: $current_hash, expected: $hash"
+          }
         }
       }
     }
   }
-}
 
-# Ipbus XML
-if [file exists ./list/xml.lst] {
-  #Msg Info "Found IPbus XML list file, evaluating version and SHA of listed files..."
-  lassign [GetHogFiles  -list_files "xml.lst" -repo_path $repo_path  -sha_mode "./list/"] xml_files dummy
-  lassign [GetVer  [dict get $xml_files "xml.lst"] ] xml_ver xml_hash
-  lappend SHAs $xml_hash
-  lappend versions $xml_ver
-  #Msg Info "Found IPbus XML SHA: $xml_hash and version: $xml_ver."
+  # Ipbus XML
+  if [file exists ./list/xml.lst] {
+    #Msg Info "Found IPbus XML list file, evaluating version and SHA of listed files..."
+    lassign [GetHogFiles  -list_files "xml.lst" -repo_path $repo_path  -sha_mode "./list/"] xml_files dummy
+    lassign [GetVer  [dict get $xml_files "xml.lst"] ] xml_ver xml_hash
+    lappend SHAs $xml_hash
+    lappend versions $xml_ver
+    #Msg Info "Found IPbus XML SHA: $xml_hash and version: $xml_ver."
 
-} else {
-  Msg Info "This project does not use IPbus XMLs"
-  set xml_ver  00000000
-  set xml_hash 0000000
-}
+  } else {
+    Msg Info "This project does not use IPbus XMLs"
+    set xml_ver  00000000
+    set xml_hash 0000000
+  }
 
-#The global SHA and ver is the most recent among everything
-if {$clean == 1} {
-  set commit [Git "log --format=%h -1 $SHAs"]
-  set version [FindNewestVersion $versions]
-} else {
-  set commit  "0000000"
-  set version "00000000"
-}
+  #The global SHA and ver is the most recent among everything
+  if {$clean == 1} {
+    set commit [Git "log --format=%h -1 $SHAs"]
+    set version [FindNewestVersion $versions]
+  } else {
+    set commit  "00000000"
+    set version "00000000"
+  }
 
-cd $old_path
+  cd $old_path
 
-set top_hash [format %+07s $top_hash]
-set cons_hash [format %+07s $cons_hash]
-return [list $commit $version  $hog_hash $hog_ver  $top_hash $top_ver  $libs $hashes $vers  $cons_ver $cons_hash  $ext_names $ext_hashes  $xml_hash $xml_ver]
+  set top_hash [format %+07s $top_hash]
+  set cons_hash [format %+07s $cons_hash]
+  return [list $commit $version  $hog_hash $hog_ver  $top_hash $top_ver  $libs $hashes $vers  $cons_ver $cons_hash  $ext_names $ext_hashes  $xml_hash $xml_ver]
 }
 
 
@@ -1516,14 +1526,22 @@ proc GetProjectFiles {} {
         }
       }
     }
-    set wavefile [get_property "$simulator.simulate.custom_wave_do" [get_filesets $fs]]
-    if {![string equal "$wavefile" ""]} {
-      dict lappend properties $wavefile wavefile
-    }
 
-    set dofile [get_property "$simulator.simulate.custom_udo" [get_filesets $fs]]
-    if {![string equal "$dofile" ""]} {
-      dict lappend properties $dofile dofile
+    foreach simulator [GetSimulators] {
+      set wavefile [get_property "$simulator.simulate.custom_wave_do" [get_filesets $fs]]
+      if {![string equal "$wavefile" ""]} {
+        dict lappend properties $wavefile wavefile
+        break
+      }
+    }
+    
+
+    foreach simulator [GetSimulators] {
+      set dofile [get_property "$simulator.simulate.custom_udo" [get_filesets $fs]]
+      if {![string equal "$dofile" ""]} {
+        dict lappend properties $dofile dofile
+        break
+      }
     }
   }
 
@@ -1743,10 +1761,9 @@ proc AddHogFiles { libraries properties } {
         if {[string equal [get_filesets -quiet $file_set] ""]} {
           create_fileset -simset $file_set
           set simulation  [get_filesets $file_set]
-          set_property -name {modelsim.compile.vhdl_syntax} -value {2008} -objects $simulation
-          set_property -name {questa.compile.vhdl_syntax} -value {2008} -objects $simulation
-          set_property -name {riviera.compile.vhdl_syntax} -value {2008} -objects $simulation
-
+          foreach simulator [GetSimulators] {
+            set_property -name {$simulator.compile.vhdl_syntax} -value {2008} -objects $simulation
+          }
           set_property SOURCE_SET sources_1 $simulation
         }
       }
@@ -1764,12 +1781,10 @@ proc AddHogFiles { libraries properties } {
       if {$ext != ".ip"} {
         # Default sim properties
         if {$ext == ".sim"} {
-          set_property "modelsim.simulate.custom_wave_do" "" [get_filesets $file_set]
-          set_property "questa.simulate.custom_wave_do" "" [get_filesets $file_set]
-          set_property "riviera.simulate.custom_wave_do" "" [get_filesets $file_set]
-          set_property "modelsim.simulate.custom_udo" "" [get_filesets $file_set]
-          set_property "questa.simulate.custom_udo" "" [get_filesets $file_set]
-          set_property "riviera.simulate.custom_udo" "" [get_filesets $file_set]
+          foreach simulator [GetSimulators] {
+            set_property "$simulator.simulate.custom_wave_do" "" [get_filesets $file_set]
+            set_property "$simulator.simulate.custom_udo" "" [get_filesets $file_set]
+          }
         }
         # Add Properties
         foreach f $lib_files {
@@ -1837,9 +1852,9 @@ proc AddHogFiles { libraries properties } {
           if { $sim_runtime != "" } {
             Msg Info "Setting simulation runtime to $sim_runtime for simulation file set $file_set..."
             set_property -name {xsim.simulate.runtime} -value $sim_runtime -objects [get_filesets $file_set]
-            set_property -name {modelsim.simulate.runtime} -value $sim_runtime -objects [get_filesets $file_set]
-            set_property -name {questa.simulate.runtime} -value $sim_runtime -objects [get_filesets $file_set]
-            set_property -name {riviera.simulate.runtime} -value $sim_runtime -objects [get_filesets $file_set]
+            foreach simulator [GetSimulators] {
+              set_property -name {$simulator.simulate.runtime} -value $sim_runtime -objects [get_filesets $file_set]
+            }
           }
 
           # Wave do file
@@ -1847,9 +1862,9 @@ proc AddHogFiles { libraries properties } {
             Msg Info "Setting $f as wave do file for simulation file set $file_set..."
             # check if file exists...
             if [file exists $f] {
-              set_property "modelsim.simulate.custom_wave_do" $f [get_filesets $file_set]
-              set_property "questa.simulate.custom_wave_do" $f [get_filesets $file_set]
-              set_property "riviera.simulate.custom_wave_do" $f [get_filesets $file_set]
+              foreach simulator [GetSimulators] {
+                set_property "$simulator.simulate.custom_wave_do" $f [get_filesets $file_set]
+              }
             } else {
               Msg Warning "File $f was not found."
 
@@ -1860,9 +1875,9 @@ proc AddHogFiles { libraries properties } {
           if {[lsearch -inline -regex $props "dofile"] >= 0} {
             Msg Info "Setting $f as udo file for simulation file set $file_set..."
             if [file exists $f] {
-              set_property "modelsim.simulate.custom_udo" $f [get_filesets $file_set]
-              set_property "questa.simulate.custom_udo" $f [get_filesets $file_set]
-              set_property "riviera.simulate.custom_udo" $f [get_filesets $file_set]
+              foreach simulator [GetSimulators] {
+                set_property "$simulator.simulate.custom_udo" $f [get_filesets $file_set]
+              }
             } else {
               Msg Warning "File $f was not found."
             }
@@ -1947,17 +1962,31 @@ proc AddHogFiles { libraries properties } {
                 # remove qsys from options since we used it
                 set emptyString ""
                 regsub -all {\{||qsys||\}} $props $emptyString props
-                 
-                set cmd "qsys-script --script=$cur_file"
-                if [ catch "eval exec -ignorestderr $cmd" ret opt] {
-                  set makeRet [lindex [dict get $opt -errorcode] end]
-                  Msg Info "$cmd returned with $makeRet"
-                }
-                # Check the system is generated correctly
+                
                 set qsysPath [file dirname $cur_file]
                 set qsysName "[file rootname [file tail $cur_file]].qsys"
                 set qsysFile "$qsysPath/$qsysName"
-                # Move file to correct directory
+                set qsysLogFile "$qsysPath/$qsysName.qsys-script.log"
+
+                set cmd "qsys-script"
+                set cmd_options " --script=$cur_file"
+                if { [info exists ::env(QSYS_ROOTDIR)] } {
+                  set cmd "$::env(QSYS_ROOTDIR)$cmd"
+                } else {
+                  Msg CriticalWarning "The QSYS_ROOTDIR environment variable is not set! this may lead to failures later!"  
+                }
+                if {![catch {"exec $cmd -version"}] || [lindex $::errorCode 0] eq "NONE"} {
+                  Msg Info "Executing: $cmd $cmd_options"
+                  Msg Info "Saving logfile in: $qsysLogFile"
+                  if { [ catch {eval exec -ignorestderr "$cmd $cmd_options >>& $qsysLogFile"} ret opt ]} {
+                    set makeRet [lindex [dict get $opt -errorcode] end]
+                    Msg CriticalWarning "$cmd returned with $makeRet"
+                  }
+                } else {
+                  Msg Error " Could not execute command $cmd"
+                  exit 1
+                }
+                # Check the system is generated correctly and move file to correct directory
                 if { [file exists $qsysName] != 0} {
                   file rename -force $qsysName $qsysFile
                   # Write checksum to file
@@ -1983,7 +2012,7 @@ proc AddHogFiles { libraries properties } {
                     regsub -all {noadd} $props $emptyString props
                   }
                   if {[string first "nogenerate" $props] == -1} {
-                    GenerateQsysSystem $cur_file $props
+                    GenerateQsysSystem $qsysFile $props
                   }
 
                 } else {
@@ -2004,6 +2033,8 @@ proc AddHogFiles { libraries properties } {
             if {[string first "nogenerate" $props] == -1} {
               GenerateQsysSystem $cur_file $props
             }
+          } else {
+              set_global_assignment -name $file_type $cur_file -library $rootlib
           }
         }
       }
@@ -2022,12 +2053,25 @@ proc GenerateQsysSystem {qsysFile commandOpts} {
     set qsysPath [file dirname $qsysFile]
     set qsysName [file rootname [file tail $qsysFile] ]
     set qsysIPDir "$qsysPath/$qsysName"
+    set qsysLogFile "$qsysPath/$qsysName.qsys-generate.log"
 
-    set cmd "qsys-generate $qsysFile --output-directory=$qsysIPDir $commandOpts"
-    #eval exec -ignorestderr $cmd
-    if [ catch "eval exec -ignorestderr $cmd" ret opt] {
-      set makeRet [lindex [dict get $opt -errorcode] end]
-      Msg Info "$cmd returned with $makeRet"
+    set cmd "qsys-generate" 
+    set cmd_options "$qsysFile --output-directory=$qsysIPDir $commandOpts"
+    if { [info exists ::env(QSYS_ROOTDIR)] } {
+      set cmd "$::env(QSYS_ROOTDIR)/$cmd"
+    } else {
+      Msg CriticalWarning "The QSYS_ROOTDIR environment variable is not set! this may lead to failures later!"
+    }
+    if {![catch {"exec $cmd -version"}] || [lindex $::errorCode 0] eq "NONE"} {
+      Msg Info "Executing: $cmd $cmd_options"
+      Msg Info "Saving logfile in: $qsysLogFile"
+      if {[ catch {eval exec -ignorestderr "$cmd $cmd_options >>& $qsysLogFile"} ret opt]} {
+        set makeRet [lindex [dict get $opt -errorcode] end]
+        Msg CriticalWarning "$cmd returned with $makeRet"
+      }
+    } else {
+      Msg Error " Could not execute command $cmd"
+      exit 1
     }
     #Add generated IPs to project
     set qsysIPFileList  [concat [glob -nocomplain -directory $qsysIPDir -types f *.ip *.qip ] [glob -nocomplain -directory "$qsysIPDir/synthesis" -types f *.ip *.qip *.vhd *.vhdl ] ]
@@ -2417,6 +2461,26 @@ proc GitRet {command {files ""}}  {
   return [list $ret $result]
 }
 
+## @brief Cheks if file was committed into the repository
+#
+#
+#  @param[in] File: file name
+#
+#  @returns 1 if file was committed and 0 if file was not committed
+proc FileCommitted {File }  {
+  set Ret 1
+  set currentDir [pwd]
+  cd [file dirname [file normalize $File]]
+  set GitLog [Git ls-files [file tail $File]] 
+  if {$GitLog == ""} {
+    Msg CriticalWarning "File [file normalize $File] is not in the git repository. Please add it with:\n git add [file normalize $File]\n"
+    set Ret 0
+  }
+  cd $currentDir
+  return $Ret
+}
+
+
 ## @brief Handle shell commands
 #
 # It can be used with lassign like this: lassign [ExecuteRet \<command\> ] ret result
@@ -2572,9 +2636,10 @@ proc SearchHogProjects {dir} {
   if {[file exists $dir]} {
     if {[file isdirectory $dir]} {
       foreach proj_dir [glob -type d $dir/* ] {
-        set index_a [string last "Top/" $proj_dir]
-        set index_a [expr $index_a + 4]
-        set proj_name [string range $proj_dir $index_a [string length $proj_dir]]
+        if {![regexp {^.*Top/+(.*)$} $proj_dir dummy proj_name]} { 
+          set proj_name
+          Msg Warning "Could not parse Top directory $dir" 
+        } 
         if {[file exists $proj_dir/$proj_name.tcl ] || [file exists "$proj_dir/hog.conf" ] } {
           lappend projects_list $proj_name
         } else {

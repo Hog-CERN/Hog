@@ -123,7 +123,7 @@ function create_project() {
       exit -1
     fi
 
-    if [ ! -f "${HDL_COMPILER}" ]; then
+    if [ -z "${HDL_COMPILER}" ]; then
       Msg Error "HLD compiler executable $HDL_COMPILER not found"
       cd "${OLD_DIR}"
       exit -1

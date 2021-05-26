@@ -67,21 +67,21 @@ function Msg() {
   Default=$'\e[0m'
 
   case $1 in
-  "Info")
-    Colour=$Default
-    ;;
-  "Warning")
-    Colour=$LightBlue
-    ;;
-  "CriticalWarning")
-    Colour=$Orange
-    ;;
-  "Error")
-    Colour=$Red
-    ;;
-  *)
-    Msg Error "messageLevel: $1 not supported! Use Info, Warning, CriticalWarning, Error"
-    ;;
+    "Info")
+      Colour=$Default
+      ;;
+    "Warning")
+      Colour=$LightBlue
+      ;;
+    "CriticalWarning")
+      Colour=$Orange
+      ;;
+    "Error")
+      Colour=$Red
+      ;;
+    *)
+      Msg Error "messageLevel: $1 not supported! Use Info, Warning, CriticalWarning, Error"
+      ;;
   esac
 
   echo "$Colour HOG:$1 ${FUNCNAME[1]}()  $2 $Default"
@@ -219,16 +219,37 @@ function select_compiler_executable() {
   fi
 
   if [ $(which $1) ]; then
-    HDL_COMPILER=$(which $1)
+    HDL_COMPILER=$1
   else
     if [$1 == "vivado" ]; then
       if [ -z ${VIVADO_PATH+x} ]; then
         Msg Error "No vivado executable found and no variable VIVADO_PATH set\n"
         cd "${OLD_DIR}"
         return 1
-      else
+      elif [ -d "$VIVADO_PATH" ]; then
         Msg Info "VIVADO_PATH is set to '$VIVADO_PATH'"
-        HDL_COMPILER="$VIVADO_PATH/$viv"
+        HDL_COMPILER="$VIVADO_PATH/$1"
+      else
+        Msg Error "Failed locate '$1' executable from VIVADO_PATH: $VIVADO_PATH"
+        return 1
+      fi
+    elif [$1 == "quartus_sh" ]; then
+      if [ -z ${QUARTUS_ROOTDIR+x} ]; then
+        Msg Error "No quartus_sh executable found and no variable QUARTUS_ROOTDIR set\n"
+        cd "${OLD_DIR}"
+        return 1
+      else
+        Msg Info "QUARTUS_ROOTDIR is set to '$QUARTUS_ROOTDIR'"
+        #Decide if you are to use bin or bin 64
+        #Note things like $PROCESSOR_ARCHITECTURE==x86 won't work in Windows because tyhis will return the version of the git bash
+        if [ -d "$QUARTUS_ROOTDIR/bin64"]; then
+          HDL_COMPILER="$QUARTUS_ROOTDIR/bin64/$1"
+        elif [ -d "$QUARTUS_ROOTDIR/bin" ]; then
+          HDL_COMPILER="$QUARTUS_ROOTDIR/bin/$1"
+        else
+          Msg Error "Failed locate '$1' executable from QUARTUS_ROOTDIR: $QUARTUS_ROOTDIR"
+          return 1
+        fi
       fi
     else
       Msg Error "cannot find the executable for $1."

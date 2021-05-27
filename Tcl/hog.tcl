@@ -1935,6 +1935,13 @@ proc AddHogFiles { libraries properties {verbose 0}} {
 
           #ADDING FILE PROPERTIES
           set props [dict get $properties $cur_file]
+
+          # Top synthesis module
+          set top [lindex [regexp -inline {top\s*=\s*(.+?)\y.*} $props] 1]
+          if { $top != "" } {
+            Msg Info "Setting $top as top module for file set $file_set..."
+            set globalSettings::synth_top_module $top
+          }
           if {[string first "VHDL" $file_type] != -1 } {
 
             if {[string first "1987" $props] != -1 } {

@@ -184,7 +184,6 @@ if {!$allow_fail_on_git} {
 if {$found_uncommitted == 0} {
   Msg Info "No uncommitted changes found."
 } else {
-  Msg CriticalWarning "Found uncommitted changes, commit hash, and version will be set to 0."
   set commit 00000000
   set version 00000000
 }

@@ -81,7 +81,8 @@ eval set -- "$PARAMS"
 if [ -z "$1" ]; then
   ##! If no args passed then print help message
 	printf "Project name has not been specified. Usage: \n"
-	printf " LaunchSimulation.sh <project name> [-lib_path <sim lib path>] [-simset <coma separated (no space) list of sim sets>] [-quiet]\n\n"
+	printf " LaunchSimulation.sh <project name> [-lib_path <sim lib path>] [-simset <list of sim sets>] [-quiet]\n\n"
+  printf "<list of sim sets> should be a list of the simsets to be run separated with a comma and no spaces"
 	printf " For a detailed explanation of all the option, type LaunchSimulation.sh <project name> -h.\n"
 	printf " The project name is needed by Hog to tell which HDL software to use: Vivado, Quartus, etc.\n\n"
 	printf "Possible projects are:\n"

@@ -157,7 +157,7 @@ function init() {
   for Vivado_prj in $Vivado_prjs; do
     echo
     Vivado_prj_base=$(basename $Vivado_prj)
-    read -p "  Found existing Vivado project $Vivado_prj_base. Do you want to convert it to a Hog compatible project? (creates listfiles and Project tcl file) " -n 1 -r
+    read -p "  Found existing Vivado project $Vivado_prj_base. Do you want to convert it to a Hog compatible project? (creates listfiles and hog.conf) " -n 1 -r
     echo # (optional) move to a new line
     if [[ "${REPLY}" =~ ^[Yy]$ ]]; then
       Force=""

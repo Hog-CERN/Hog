@@ -602,10 +602,17 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
     set hogConfRunDict [DictGet $hogConfDict $proj_run]
     set defaultRunDict [DictGet $defaultConfDict $proj_run]
     set newRunDict [dict create]
+
     foreach settings [dict keys $projRunDict] {
       set currset [DictGet  $projRunDict $settings]
       set hogset [DictGet  $hogConfRunDict $settings]
       set defset [DictGet  $defaultRunDict $settings]
+
+      #handling IP_OUTPUT_REPO
+      if {$settings == "IP_OUTPUT_REPO" && $currset == "[Relative $repo_path $proj_dir]/${project_name}.cache/ip" && [Relative $repo_path $proj_dir] != "Projects/$project_name"} {
+        continue
+      }
+
       if {[string toupper $currset] != [string toupper $hogset] && [string toupper $currset] != [string toupper $defset]} {
         if {[string first "DEFAULT" [string toupper $currset]] != -1 && $hogset == ""} {
           continue

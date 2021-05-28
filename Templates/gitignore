@@ -21,6 +21,9 @@
 IP/*/*
 !IP/*/*.xci
 
+BD/*
+!BD/*.bd
+
 ## OS
 .DS_Store
 .DS_Store?
@@ -60,8 +63,6 @@ credentials.sh
 VivadoProject
 SimulationLib
 profpga
-BD/*
-!BD/*.bd
 
 ## Intel Quartus Prime
 Projects

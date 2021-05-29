@@ -91,11 +91,6 @@ proc CreateProject {} {
       set_property "enable_vhdl_2008" 1 $obj
     }
 
-    if { [string first PlanAhead [version]] != 0 } {
-      #This property doesn't exist in PlanAhead
-      set_property "ip_output_repo" $globalSettings::repo_path/IP $obj
-    }
-    
   } elseif {[info commands project_new] != ""} {
     package require ::quartus::project
     #QUARTUS_ONLY

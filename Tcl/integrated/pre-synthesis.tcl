@@ -125,9 +125,9 @@ set allow_fail_on_list 0
 set allow_fail_on_git 0
 if {[file exists "$tcl_path/../../Top/$group/$proj_name/hog.conf"]} {
   set confDict [ReadConf "$tcl_path/../../Top/$group/$proj_name/hog.conf"]
-  set allow_fail_on_conf [DictGet [DictGet $confDict "hog"] "allow_fail_on_conf" 0]
-  set allow_fail_on_list [DictGet [DictGet $confDict "hog"] "allow_fail_on_list" 0]
-  set allow_fail_on_git  [DictGet [DictGet $confDict "hog"] "allow_fail_on_git"  0]
+  set allow_fail_on_conf [DictGet [DictGet $confDict "hog"] "ALLOW_FAIL_ON_CONF" 0]
+  set allow_fail_on_list [DictGet [DictGet $confDict "hog"] "ALLOW_FAIL_ON_LIST" 0]
+  set allow_fail_on_git  [DictGet [DictGet $confDict "hog"] "ALLOW_FAIL_ON_GIT"  0]
 }
 
 

@@ -1,3 +1,5 @@
+#vivado
+
 #   Copyright 2018-2021 The University of Birmingham
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,23 +14,8 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-include:
-    - project: 'hog/Hog'
-      file: '/hog.yml'
-      ref: 'v0.2.1'
 
-#################### example ###########################
-### Change 'example' with your project name
+############# modify these to match project ################
+[main]
+PART = xc7z010clg400-1
 
-GEN:example:
-    extends: .generate_project
-    variables:
-      extends: .vars
-      PROJECT_NAME: example
-      HOG_ONLY_SYNTH: 0 # if 1 runs only the synthesis
-
-SIM:example:
-    extends: .simulate_project
-    variables:
-      extends: .vars
-      PROJECT_NAME: example

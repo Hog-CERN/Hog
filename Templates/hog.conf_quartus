@@ -1,3 +1,5 @@
+#planahead
+
 #   Copyright 2018-2021 The University of Birmingham
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,23 +14,16 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-include:
-    - project: 'hog/Hog'
-      file: '/hog.yml'
-      ref: 'v0.2.1'
 
-#################### example ###########################
-### Change 'example' with your project name
+############# modify these to match project ################
+[parameters]
+MAX_THREADS = 1
 
-GEN:example:
-    extends: .generate_project
-    variables:
-      extends: .vars
-      PROJECT_NAME: example
-      HOG_ONLY_SYNTH: 0 # if 1 runs only the synthesis
+[main]
+FPGA = 10M16SAU169C8G
+FAMILY = "MAX 10"
 
-SIM:example:
-    extends: .simulate_project
-    variables:
-      extends: .vars
-      PROJECT_NAME: example
+[hog]
+ALLOW_FAIL_ON_GIT = False
+ALLOW_FAIL_ON_LIST = False
+ALLOW_FAIL_ON_CONF = False

@@ -58,6 +58,9 @@ if {[DoxygenVersion 1.8.13]} {
   puts $outfile \nPROJECT_NUMBER=$version
   close $outfile
   Execute doxygen $doxygen_conf
+} else {
+  cd $repo_path
+  Msg Error "Cannot find Doxygen version 1.8.13 or higher"
 }
 
 cd $repo_path

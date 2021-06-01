@@ -79,13 +79,13 @@ if {[DoxygenVersion 1.8.13]} {
   #removing first endline
   set buf_tmp [string range $buf_tmp 1 end]
 
-  set doxygen_conf_out "Doc/.doxygen.conf"
-  file mkdir "Doc"
+  set doxygen_conf_out ".doxygen.conf"
   set outfile [open $doxygen_conf_out w+]
   puts -nonewline $outfile $buf_tmp
   close $outfile
   
   Execute doxygen $doxygen_conf_out
+  file delete $doxygen_conf_out
 } else {
   cd $repo_path
   Msg Error "Cannot find Doxygen version 1.8.13 or higher"

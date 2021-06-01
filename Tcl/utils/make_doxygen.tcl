@@ -54,9 +54,33 @@ if {[file exists $doxygen_conf] == 0 } {
 }
 
 if {[DoxygenVersion 1.8.13]} {
-  set outfile [open $doxygen_conf a]
-  puts $outfile \nPROJECT_NUMBER=$version
-  close $outfile
+  set conffile [open $doxygen_conf r+]
+  #replacing PROJECT_NUMBER with current version if existing, otherwise adding it
+  set buf_tmp ""
+  set VERSION_SET False
+  set conf_read [read $conffile]
+  foreach line [split $conf_read \n] {
+    if {[string match "#*" [string trim $line]]} {
+      append buf_tmp "\n$line"
+    } elseif  {[string first "PROJECT_NUMBER" $line] != -1} {
+      set VERSION_SET True
+      append  buf_tmp "\nPROJECT_NUMBER         = $version"
+    } else {
+      append buf_tmp "\n$line"
+    }
+  }
+  if {!$VERSION_SET} {
+    append buf_tmp "\nPROJECT_NUMBER         = $version"
+  }
+  close $conffile
+  #removing first endline
+  set buf_tmp [string range $buf_tmp 1 end]
+
+  if {$buf_tmp != $conf_read && [string first "Hog/Templates/doxygen.conf" $doxygen_conf] == -1} {
+    set outfile [open $doxygen_conf w+]
+    puts -nonewline $outfile $buf_tmp
+    close $outfile
+  }
   Execute doxygen $doxygen_conf
 } else {
   cd $repo_path

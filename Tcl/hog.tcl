@@ -1875,7 +1875,7 @@ proc AddHogFiles { libraries properties {verbose 0}} {
             Msg Info "Setting simulation runtime to $sim_runtime for simulation file set $file_set..."
             set_property -name {xsim.simulate.runtime} -value $sim_runtime -objects [get_filesets $file_set]
             foreach simulator [GetSimulators] {
-              set_property -name {$simulator.simulate.runtime} -value $sim_runtime -objects [get_filesets $file_set]
+              set_property $simulator.simulate.runtime  $sim_runtime  [get_filesets $file_set]
             }
           }
 

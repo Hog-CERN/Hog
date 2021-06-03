@@ -2633,7 +2633,7 @@ proc WriteYAMLStage {stage proj_name {props {}} {stage_list {} }} {
 
 
 proc FindNewestVersion { versions } {
-  set new_ver 0
+  set new_ver 00000000
   foreach ver $versions {
     if {[ expr 0x$ver > 0x$new_ver ] } {
       set new_ver $ver

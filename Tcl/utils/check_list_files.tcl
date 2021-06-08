@@ -181,12 +181,12 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
 	set idx [lsearch -exact $prjXDCs $XDC]
 	set prjXDCs [lreplace $prjXDCs $idx $idx]
 	if {$idx < 0} {
-          if {$options(recreate) == 1} {
-            Msg Info "$XDC was removed from the project."
-          } else {
+      if {$options(recreate) == 1} {
+        Msg Info "$XDC was removed from the project."
+      } else {
 	    CriticalAndLog "$XDC not found in project constraints." $outFile
-          }
-          incr ListErrorCnt
+      }
+      incr ListErrorCnt
 	} else {
           dict lappend newListfiles $key [string trim "[RelativeLocal $repo_path $XDC] [DictGet $prjProperties $XDC]"]
         }
@@ -623,7 +623,7 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
           incr ConfErrorCnt
           Msg Info "$proj_run setting $settings has been changed from \"$hogset\" in hog.conf to \"$currset\" in project."
         } elseif {[file exists $repo_path/Top/$group_name/$project_name/hog.conf]} {
-          CriticalAndLog "Project $proj_run setting $settings value \"$hogset\" does not match hog.conf $hogset\"". $outFile
+          CriticalAndLog "Project $proj_run setting $settings value \"$hogset\" does not match hog.conf \"$hogset\"." $outFile
           incr ConfErrorCnt
         }
       } elseif {[string toupper $currset] == [string toupper $hogset] && [string toupper $hogset] != ""} {

@@ -161,7 +161,7 @@ function create_project() {
 
   else
     Msg Error "Project $PROJ not found: possible projects are:"
-    ls -1 $DIR
+    search_projects "${OLD_DIR}/Top"
     echo
     cd "${OLD_DIR}"
     exit -1

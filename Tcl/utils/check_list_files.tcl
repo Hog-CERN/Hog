@@ -137,9 +137,9 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
   foreach library [dict keys $listLibraries] {
     set fileNames [DictGet $listLibraries $library]
     foreach fileName $fileNames {
-      set idxs [lreplace [lsearch -exact -all $fileNames $fileName] 0 0]
+      set idxs [lreverse [lreplace [lsearch -exact -all $fileNames $fileName] 0 0]]
       foreach idx $idxs {
-	set fileNames [lreplace $fileNames $idx $idx]
+        set fileNames [lreplace $fileNames $idx $idx]
       }
     }
     dict set listLibraries $library $fileNames
@@ -147,9 +147,9 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
   foreach property [dict keys $listProperties] {
     set props [lindex [dict get $listProperties $property] 0]
     foreach prop $props {
-      set idxs [lreplace [lsearch -exact -all $props $prop] 0 0]
+      set idxs [lreverse [lreplace [lsearch -exact -all $props $prop] 0 0]]
       foreach idx $idxs {
-	set props [lreplace $props $idx $idx]
+        set props [lreplace $props $idx $idx]
       }
     }
     dict set listProperties $property [list $props]

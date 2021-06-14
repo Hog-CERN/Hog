@@ -130,16 +130,34 @@ then
 else
     echo "defined."
 fi
-echo --------------------------------
 
-echo -n "Variable: HOG_XIL_LICENSE is "
-if [ -z ${HOG_XIL_LICENSE+x} ]
+if [[ " ${COMPILERS_TO_CHECK[@]} " =~ "vivado" || " ${COMPILERS_TO_CHECK[@]} " =~ "planAhead" ]]
 then
+  echo --------------------------------
+  
+  echo -n "Variable: HOG_XIL_LICENSE is "
+  if [ -z ${HOG_XIL_LICENSE+x} ]
+  then
     echo "NOT defined. You need to set this variable to the license servers separated by comas."
     FAIL=1
-else
+  else
     echo "defined."
+  fi
+
+elif [[ " ${COMPILERS_TO_CHECK[@]} " =~ "quartus" ]]
+then
+  echo --------------------------------
+
+  echo -n "Variable: LM_LICENSE_FILE is "
+  if [ -z ${LM_LICENSE_FILE+x} ]
+  then
+    echo "NOT defined. You need to set this variable to the license servers separated by semicolon."
+    FAIL=1
+  else
+    echo "defined."
+  fi
 fi
+
 echo ================================
 echo
 

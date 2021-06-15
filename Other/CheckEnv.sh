@@ -112,15 +112,18 @@ else
 fi
 echo --------------------------------
 
-echo -n "Variable: HOG_PASSWORD is "
-if [ -z ${HOG_PASSWORD+x} ]
+if ( ! ( [ -z ${EOS_MGM_URL+x} ]  &&  [ -z ${HOG_OFFICIAL_BIN_EOS_PATH+x} ] && [ -z ${HOG_IP_EOS_PATH+x} ] ) )
 then
+  echo -n "Variable: HOG_PASSWORD is "
+  if [ -z ${HOG_PASSWORD+x} ]
+  then
     echo "NOT defined. This variable is essential for git to work properly. It should be set to your service's account password and masked."
     FAIL=1
-else
+  else
     echo "defined"
+  fi
+  echo --------------------------------
 fi
-echo --------------------------------
 
 echo -n "Variable: HOG_PUSH_TOKEN is "
 if [ -z ${HOG_PUSH_TOKEN+x} ]

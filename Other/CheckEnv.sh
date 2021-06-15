@@ -146,8 +146,9 @@ then
   else
     echo "defined."
   fi
+fi
 
-elif [[ " ${COMPILERS_TO_CHECK[@]} " =~ "quartus" ]]
+if [[ " ${COMPILERS_TO_CHECK[@]} " =~ "quartus" ]]
 then
   echo --------------------------------
 

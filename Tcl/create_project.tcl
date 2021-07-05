@@ -467,7 +467,7 @@ proc ConfigureProperties {} {
         #set_property -dict $proj_props [current_project]
         dict for {prop_name prop_val} $proj_props {
 
-          if { $prop_name != "ip_repo_paths" } {
+          if { [ string tolower $prop_name ] != "ip_repo_paths" } {
             Msg Info "Setting $prop_name = $prop_val"
             set_property $prop_name $prop_val [current_project]
           } else {

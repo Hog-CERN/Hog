@@ -86,6 +86,9 @@ if {![string equal $options(project) ""]} {
 
   if { [string first PlanAhead [version]] != 0 } {
     open_project "$repo_path/Projects/$project/$project_name.xpr"
+    set proj_file [get_property DIRECTORY [current_project]]
+    set proj_dir [file normalize $proj_file]
+    set group_name [GetGroupName $proj_dir]
   }
 } else {
   set project_name [get_projects [current_project]]
@@ -333,12 +336,22 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
         continue
       }
       incr ListErrorCnt
-      if {$options(recreate) == 1} {
-        Msg Info "$SIM was added to the project."
+      
+      if {[string range $key end-3 end]=="_sim"} {
+        dict lappend newListfiles [string range $key 0 end-4].sim [string trim "[RelativeLocal $repo_path $SIM] [DictGet $prjProperties $SIM]"]
+        if {$options(recreate) == 1} {
+          Msg Info "$SIM was added to the project."
+        } else {
+          CriticalAndLog "$SIM is used in the project simulation fileset $key but is not in the list files." $outFile
+        }
       } else {
-        CriticalAndLog "$SIM is used in the project simulation fileset $key but is not in the list files." $outFile
+        dict lappend newListfiles $key.sim [string trim "[RelativeLocal $repo_path $SIM] [DictGet $prjProperties $SIM]"]
+        if {$options(recreate) == 0} {
+          CriticalAndLog "$key simulation fileset does not respect Hog format. Please name it ${key}_sim" $outFile
+        } else {
+          Msg Warning "$key simulation fileset does not respect Hog format. It will be renamed to ${key}_sim"
+        }
       }
-      dict lappend newListfiles [string range $key 0 end-4].sim [string trim "[RelativeLocal $repo_path $SIM] [DictGet $prjProperties $SIM]"]
     }
   }
 
@@ -623,7 +636,7 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
           incr ConfErrorCnt
           Msg Info "$proj_run setting $settings has been changed from \"$hogset\" in hog.conf to \"$currset\" in project."
         } elseif {[file exists $repo_path/Top/$group_name/$project_name/hog.conf]} {
-          CriticalAndLog "Project $proj_run setting $settings value \"$hogset\" does not match hog.conf \"$hogset\"." $outFile
+          CriticalAndLog "Project $proj_run setting $settings value \"$currset\" does not match hog.conf \"$hogset\"." $outFile
           incr ConfErrorCnt
         }
       } elseif {[string toupper $currset] == [string toupper $hogset] && [string toupper $hogset] != ""} {

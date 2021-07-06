@@ -147,7 +147,7 @@ foreach s [get_filesets] {
       Msg Info "Creating simulation scripts for $s..."
       current_fileset -simset $s
       set sim_dir $main_folder/$s/behav
-      if { ($simulator eq "xsim") } {
+      if { ([string tolower $simulator] eq "xsim") } {
 	set sim_name "xsim:$s"		
         if { [catch { launch_simulation -simset [get_filesets $s] } log] } {
           Msg CriticalWarning "Simulation failed for $s, error info: $::errorInfo"

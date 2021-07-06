@@ -1649,7 +1649,7 @@ proc GetProjectFiles {} {
 
 dict append libraries "SIM" $SIM
 dict append libraries "SRC" $SRC
-dict lappend properties "Simulator" [string tolower $simulator]
+dict lappend properties "Simulator" [get_property target_simulator [current_project]]
 return [list $libraries $properties]
 }
 

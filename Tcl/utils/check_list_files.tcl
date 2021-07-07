@@ -85,6 +85,7 @@ if {![string equal $options(project) ""]} {
   Msg Info "Opening project $project_name..."
 
   if { [string first PlanAhead [version]] != 0 } {
+    file mkdir "$repo_path/Projects/$project/$project_name.gen/sources_1"
     open_project "$repo_path/Projects/$project/$project_name.xpr"
     set proj_file [get_property DIRECTORY [current_project]]
     set proj_dir [file normalize $proj_file]

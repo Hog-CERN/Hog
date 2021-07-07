@@ -1516,9 +1516,7 @@ proc GetProjectFiles {} {
 
   set top [get_property "top"  [current_fileset]]
   set topfile [lindex [get_files -compile_order sources -used_in synthesis] end]
-  if {![string equal $top "top_[current_project]"]} {
-    dict lappend properties $topfile "top=$top"
-  }
+  dict lappend properties $topfile "top=$top"
 
   foreach fs $all_filesets {
     if {$fs == "utils_1"} {

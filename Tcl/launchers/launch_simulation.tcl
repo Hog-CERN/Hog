@@ -119,9 +119,9 @@ foreach s [get_filesets] {
   set type [get_property FILESET_TYPE $s]
   if {$type eq "SimulationSrcs"} {
     if {$simsets_todo != "" && $s ni $simsets_todo} {
-    Msg Info "Skipping $s as it was not specified with the -simset option..."
-    continue
-  }
+      Msg Info "Skipping $s as it was not specified with the -simset option..."
+      continue
+    }
     if {!($s eq "sim_1")} {
       set filename [string range $s 0 [expr {[string last "_sim" $s] -1 }]]
       set fp [open "../../Top/$project_name/list/$filename.sim" r]
@@ -148,13 +148,13 @@ foreach s [get_filesets] {
       current_fileset -simset $s
       set sim_dir $main_folder/$s/behav
       if { ([string tolower $simulator] eq "xsim") } {
-	set sim_name "xsim:$s"		
+        set sim_name "xsim:$s"		
         if { [catch { launch_simulation -simset [get_filesets $s] } log] } {
           Msg CriticalWarning "Simulation failed for $s, error info: $::errorInfo"
           lappend failed $sim_name
         } else {
           lappend success $sim_name
-	}
+        }
       } else {
         if {$simlib_ok == 1} {
           set_property "compxlib.${simulator}_compiled_library_dir" $lib_path [current_project]
@@ -163,7 +163,7 @@ foreach s [get_filesets] {
           set sim_script  [file normalize $sim_dir/$simulator/]
           Msg Info "Adding simulation script location $sim_script for $s..."
           lappend sim_scripts $sim_script
-	  dict append sim_dic $sim_script $s
+          dict append sim_dic $sim_script $s
         } else {
           Msg Error "Cannot run $simulator simulations witouth a valid library path"
           exit -1
@@ -174,68 +174,68 @@ foreach s [get_filesets] {
 }
 
 if [info exists sim_scripts] { #Only for modelsim/questasim
-Msg Info "Generating IP simulation targets, if any..."
+  Msg Info "Generating IP simulation targets, if any..."
 
-foreach ip [get_ips] {
-  generate_target simulation -quiet $ip
-}
-
-
-Msg Status "\n\n"
-Msg Info "====== Starting simulations runs ======"
-Msg Status "\n\n"
-
-foreach s $sim_scripts {
-  cd $s
-  set cmd ./compile.sh
-  Msg Info " ************* Compiling: $s  ************* "
-  lassign [ExecuteRet $cmd] ret log
-  set sim_name "comp:[dict get $sim_dic $s]"
-  if {$ret != 0} {
-    Msg CriticalWarning "Compilation failed for $s, error info: $::errorInfo"
-    lappend failed $sim_name
-  } else {
-    lappend success $sim_name
-  }
-  if {$verbose == 1} {
-    Msg Info "###################### Compilation log starts ######################"
-    Msg Status "\n\n$log\n\n"
-    Msg Info "######################  Compilation log ends  ######################"
+  foreach ip [get_ips] {
+    generate_target simulation -quiet $ip
   }
 
-  if { [file exists "./elaborate.sh"] } {
-    set cmd ./elaborate.sh
-    Msg Info " ************* Elaborating: $s  ************* "  
+
+  Msg Status "\n\n"
+  Msg Info "====== Starting simulations runs ======"
+  Msg Status "\n\n"
+
+  foreach s $sim_scripts {
+    cd $s
+    set cmd ./compile.sh
+    Msg Info " ************* Compiling: $s  ************* "
     lassign [ExecuteRet $cmd] ret log
-    set sim_name "elab:[dict get $sim_dic $s]"    
+    set sim_name "comp:[dict get $sim_dic $s]"
     if {$ret != 0} {
-      Msg CriticalWarning "Elaboration failed for $s, error info: $::errorInfo"
+      Msg CriticalWarning "Compilation failed for $s, error info: $::errorInfo"
       lappend failed $sim_name
     } else {
       lappend success $sim_name
     }
     if {$verbose == 1} {
-      Msg Info "###################### Elaboration log starts ######################"
+      Msg Info "###################### Compilation log starts ######################"
       Msg Status "\n\n$log\n\n"
-      Msg Info "######################  Elaboration log ends  ######################"
+      Msg Info "######################  Compilation log ends  ######################"
+    }
+
+    if { [file exists "./elaborate.sh"] } {
+      set cmd ./elaborate.sh
+      Msg Info " ************* Elaborating: $s  ************* "  
+      lassign [ExecuteRet $cmd] ret log
+      set sim_name "elab:[dict get $sim_dic $s]"    
+      if {$ret != 0} {
+        Msg CriticalWarning "Elaboration failed for $s, error info: $::errorInfo"
+        lappend failed $sim_name
+      } else {
+        lappend success $sim_name
+      }
+      if {$verbose == 1} {
+        Msg Info "###################### Elaboration log starts ######################"
+        Msg Status "\n\n$log\n\n"
+        Msg Info "######################  Elaboration log ends  ######################"
+      }
+    }
+    set cmd ./simulate.sh
+    Msg Info " ************* Simulating: $s  ************* "  
+    lassign [ExecuteRet $cmd] ret log
+    set sim_name "sim:[dict get $sim_dic $s]"  
+    if {$ret != 0} {
+      Msg CriticalWarning "Simulation failed for $s, error info: $::errorInfo"
+      lappend failed $sim_name
+    } else {
+      lappend success $sim_name
+    }
+    if {$verbose == 1} {
+      Msg Info "###################### Simulation log starts ######################"
+      Msg Status "\n\n$log\n\n"
+      Msg Info "######################  Simulation log ends  ######################"
     }
   }
-  set cmd ./simulate.sh
-  Msg Info " ************* Simulating: $s  ************* "  
-  lassign [ExecuteRet $cmd] ret log
-  set sim_name "sim:[dict get $sim_dic $s]"  
-  if {$ret != 0} {
-    Msg CriticalWarning "Simulation failed for $s, error info: $::errorInfo"
-    lappend failed $sim_name
-  } else {
-    lappend success $sim_name
-  }
-  if {$verbose == 1} {
-    Msg Info "###################### Simulation log starts ######################"
-    Msg Status "\n\n$log\n\n"
-    Msg Info "######################  Simulation log ends  ######################"
-  }
-}
 }
 
 

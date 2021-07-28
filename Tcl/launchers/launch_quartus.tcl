@@ -145,27 +145,27 @@ load_package flow
 ################
 # CHECK SYNTAX #
 ################
- if { $check_syntax == 1 } {
-   Msg Info "Checking syntax for project $project_name..."
-   lassign [GetHogFiles -list_files "*.src" -repo_path $repo_path "$repo_path/Top/$project_name/list/" ] src_files dummy
-   dict for {lib files} $src_files {
-     foreach f $files {
-       set file_extension [file ext $f]
-       if { $file_extension == ".vhd" || $file_extension == ".vhdl" || $file_extension == ".v" ||  $file_extension == ".sv" } {
-         if { [catch {execute_module -tool map -args "--analyze_file=$f"} result]} {
-           Msg Error "\nResult: $result\n"
-           Msg Error "Check syntax failed.\n"
-         } else {
-           if { $result == "" } {
-             Msg Info "Check syntax was successful for $f.\n"
-           } else {
-             Msg Warning "Found syntax error in file $f:\n $result\n"
-           }
-         } 
-       }
-     }
-   }
- }
+if { $check_syntax == 1 } {
+  Msg Info "Checking syntax for project $project_name..."
+  lassign [GetHogFiles -list_files "*.src" -repo_path $repo_path "$repo_path/Top/$project_name/list/" ] src_files dummy
+  dict for {lib files} $src_files {
+    foreach f $files {
+      set file_extension [file ext $f]
+      if { $file_extension == ".vhd" || $file_extension == ".vhdl" || $file_extension == ".v" ||  $file_extension == ".sv" } {
+        if { [catch {execute_module -tool map -args "--analyze_file=$f"} result]} {
+          Msg Error "\nResult: $result\n"
+          Msg Error "Check syntax failed.\n"
+        } else {
+          if { $result == "" } {
+            Msg Info "Check syntax was successful for $f.\n"
+          } else {
+            Msg Warning "Found syntax error in file $f:\n $result\n"
+          }
+        } 
+      }
+    }
+  }
+}
 
 # keep track of the current revision and of the top level entity name
 lassign [GetRepoVersions [file normalize $repo_path/Top/$project_name] $repo_path ] sha

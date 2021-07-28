@@ -441,7 +441,7 @@ proc ConfigureSimulation {} {
     ##############
     Msg Info "Setting load_glbl parameter to true for every fileset..."
     foreach f [get_filesets -quiet *_sim] {
-      set_property -name {xsim.elaborate.load_glbl} -value {true} -objects $f
+      set_property -name {xsim.elaborate.load_glbl} -value {true} -objects [get_filesets $f]
     }
   }  elseif {[info commands project_new] != ""} {
     #QUARTUS only
@@ -459,7 +459,7 @@ proc ConfigureProperties {} {
   cd $globalSettings::repo_path
   if {[info commands send_msg_id] != ""} {
     set user_repo "0"
-
+    # Setting Main Properties
     if [info exists globalSettings::PROPERTIES] {
       if [dict exists $globalSettings::PROPERTIES main] {
         Msg Info "Setting project-wide properties..."
@@ -485,7 +485,7 @@ proc ConfigureProperties {} {
 
         }
       }
-
+      # Setting Run Properties
       foreach run [get_runs -quiet] {
         if [dict exists $globalSettings::PROPERTIES $run] {
           Msg Info "Setting properties for run: $run..."
@@ -494,6 +494,27 @@ proc ConfigureProperties {} {
           dict for {prop_name prop_val} $run_props {
             Msg Info "Setting $prop_name = $prop_val"
             set_property $prop_name $prop_val $run
+          }
+        }
+      }
+      # Setting Simulation Properties
+      foreach simset [get_filesets -quiet *_sim] {
+        if [dict exists $globalSettings::PROPERTIES $simset] {
+          Msg Info "Setting properties for simulation set : $simset..."
+          set sim_props [dict get $globalSettings::PROPERTIES $simset]
+          dict for {prop_name prop_val} $sim_props {
+            Msg Info "Setting $prop_name = $prop_val"
+            set_property $prop_name $prop_val [get_filesets $simset]
+            puts "set_property -name {$prop_name} -value {$prop_val} -objects [get_filesets $simset]"
+          }
+        }
+        if [dict exists $globalSettings::PROPERTIES sim] {
+          Msg Info "Setting properties for all simulation sets..."
+          set sim_props [dict get $globalSettings::PROPERTIES sim]
+          dict for {prop_name prop_val} $sim_props {
+            Msg Info "Setting $prop_name = $prop_val"
+            set_property $prop_name $prop_val [get_filesets $simset]
+            puts "set_property -name {$prop_name} -value {$prop_val} -objects [get_filesets $simset]"
           }
         }
       }
@@ -586,7 +607,7 @@ if { $::argc eq 0 && ![info exist DESIGN]} {
     exit 1
   }
   if { ![info exist DESIGN] || $DESIGN eq "" } { 
-     if { [lindex $argv 0] eq "" } {
+    if { [lindex $argv 0] eq "" } {
       Msg Error " Variable DESIGN not set!"
       Msg Info [cmdline::usage $parameters $usage]
       exit 1

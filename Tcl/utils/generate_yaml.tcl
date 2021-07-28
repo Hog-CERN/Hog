@@ -103,7 +103,7 @@ foreach proj $projects_list {
   set proj_name [file tail $proj]
   set dir $repo_path/Top/$proj
   set ver [ GetProjectVersion $dir $repo_path $ext_path 1 ]
-  
+
   if {$ver == 0 || $ver == -1 || $runall == 1} {
     if {$runall == 0} {
       Msg Info "$proj was modified, adding it to CI..."

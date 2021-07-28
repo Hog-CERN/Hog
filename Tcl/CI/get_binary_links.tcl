@@ -28,7 +28,7 @@ if {[catch {package require cmdline} ERROR]} {
 }
 
 set parameters {
-   {force "Forces the creation of new project links"}
+  {force "Forces the creation of new project links"}
 }
 
 set usage "- CI script that retrieves binary files links or creates new ones to be uploaded as Releases\n USAGE: $::argv0 <push token> <Gitlab api url> <project id> <project url> <tag> \[OPTIONS\] \n. Options:"

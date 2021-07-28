@@ -98,7 +98,7 @@ if {[file exists $project_file]} {
 } else {
   Msg Info "Project file not found for $project_name, creating the project..."
 
-  lassign [GetConfFiles $repo_path/Top/$project_name] conf pre post tcl_file
+  lassign [GetConfFiles $repo_path/Top/$project_name] conf sim pre post tcl_file
 
   if {[file exists $conf]} {
     set DESIGN $project_name

@@ -113,7 +113,7 @@ if {[file exists "$project_path/$project.qpf" ]} {
 
 if { $proj_found == 0 || $recreate == 1 } {
   Msg Info "Creating (possibly replacing) the project $project_name..."
-  lassign [GetConfFiles $repo_path/Top/$project_name] conf pre post tcl_file
+  lassign [GetConfFiles $repo_path/Top/$project_name] conf sim pre post tcl_file
 
   if {[file exists $conf]} {
     set ::DESIGN $project_name

@@ -33,6 +33,7 @@ namespace eval globalSettings {
   variable FAMILY
 
   variable PROPERTIES
+  variable SIM_PROPERTIES
   variable HOG_EXTERNAL_PATH
   variable TARGET_SIMULATOR
 
@@ -499,22 +500,20 @@ proc ConfigureProperties {} {
       }
       # Setting Simulation Properties
       foreach simset [get_filesets -quiet *_sim] {
-        if [dict exists $globalSettings::PROPERTIES $simset] {
+        if [dict exists $globalSettings::SIM_PROPERTIES $simset] {
           Msg Info "Setting properties for simulation set : $simset..."
-          set sim_props [dict get $globalSettings::PROPERTIES $simset]
+          set sim_props [dict get $globalSettings::SIM_PROPERTIES $simset]
           dict for {prop_name prop_val} $sim_props {
             Msg Info "Setting $prop_name = $prop_val"
             set_property $prop_name $prop_val [get_filesets $simset]
-            puts "set_property -name {$prop_name} -value {$prop_val} -objects [get_filesets $simset]"
           }
         }
-        if [dict exists $globalSettings::PROPERTIES sim] {
+        if [dict exists $globalSettings::SIM_PROPERTIES sim] {
           Msg Info "Setting properties for all simulation sets..."
-          set sim_props [dict get $globalSettings::PROPERTIES sim]
+          set sim_props [dict get $globalSettings::SIM_PROPERTIES sim]
           dict for {prop_name prop_val} $sim_props {
             Msg Info "Setting $prop_name = $prop_val"
             set_property $prop_name $prop_val [get_filesets $simset]
-            puts "set_property -name {$prop_name} -value {$prop_val} -objects [get_filesets $simset]"
           }
         }
       }
@@ -665,7 +664,7 @@ if {[info exist workflow_simlib_path]} {
 
 
 set proj_dir $repo_path/Top/$DESIGN
-lassign [GetConfFiles $proj_dir] conf_file pre_file post_file tcl_file
+lassign [GetConfFiles $proj_dir] conf_file sim_file pre_file post_file tcl_file
 
 set user_repo 0
 if {[file exists $conf_file]} {
@@ -681,6 +680,11 @@ if {[file exists $conf_file]} {
     }
   } else {
     Msg Error "No main section found in $conf_file, make sure it has a section called \[main\] containing the mandatory properties."
+  }
+
+  if {[file exists $sim_file]} {
+    Msg Info "Parsing simulation configuration file $sim_file..."
+    set SIM_PROPERTIES [ReadConf $sim_file]
   }
 } else {
 
@@ -755,7 +759,7 @@ if {[info exists env(HOG_EXTERNAL_PATH)]} {
 }
 
 SetGlobalVar PROPERTIES ""
-
+SetGlobalVar SIM_PROPERTIES ""
 
 
 #Derived varibles from now on...
@@ -818,4 +822,4 @@ if {[file exists $post_file]} {
   source $post_file
 }
 
-Msg Info "Project $DESIGN created succesfully."
+Msg Info "Project $DESIGN created successfully."

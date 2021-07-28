@@ -925,11 +925,12 @@ proc GetConfFiles {proj_dir} {
     return -1
   }
   set conf_file [file normalize $proj_dir/hog.conf]
+  set sim_file [file normalize $proj_dir/sim.conf]
   set pre_tcl [file normalize $proj_dir/pre-creation.tcl]
   set post_tcl [file normalize $proj_dir/post-creation.tcl]
   set proj_tcl_file [file normalize $proj_dir/[file tail $proj_dir].tcl]
 
-  return [list $conf_file $pre_tcl $post_tcl $proj_tcl_file]
+  return [list $conf_file $sim_file $pre_tcl $post_tcl $proj_tcl_file]
 }
 
 ## Get the versions for all libraries, submodules, etc. for a given project

@@ -917,7 +917,11 @@ proc GetSubmodule {path_file} {
 }
 
 
-## Document HERE!!!
+## Get the configuration files to create a vivado/quartus project
+#
+#  @param[in] proj_dir: The project directory containing the conf file or the the tcl file
+#
+#  @return[in] a list containing the full path of the hog.conf, sim.conf, pre-creation.tcl, post-creation.tcl and proj.tcl files
 
 proc GetConfFiles {proj_dir} {
   if ![file isdirectory $proj_dir] {
@@ -940,7 +944,7 @@ proc GetConfFiles {proj_dir} {
 #  @param[in] ext_path: path for external libraries
 #  @param[in] sim: if enabled, check the version also for the simulation files
 #
-#  @return  a list conatining all the versions: global, top (project tcl file), constraints, libraries, submodules, exteral, ipbus xml
+#  @return  a list containing all the versions: global, top (project tcl file), constraints, libraries, submodules, external, ipbus xml
 #
 proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
   if { [catch {package require cmdline} ERROR] } {

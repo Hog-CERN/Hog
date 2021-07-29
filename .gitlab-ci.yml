@@ -73,7 +73,7 @@ build-doxygen-official:
         - chmod +x ./doxygen/scripts/build-and-deploy.sh
         - ./doxygen/scripts/build-and-deploy.sh /eos/user/h/hog/www/doxy-master
 
-changelog:
+shellcheck:
       stage: shell
       image: gitlab-registry.cern.ch/hog/hog-docker:master
       only:

@@ -26,6 +26,7 @@ default:
           - source ./Other/CommonFunctions.sh
           - print_hog .
 stages:
+      - shell
       - tag
       - build_doc
 
@@ -71,6 +72,22 @@ build-doxygen-official:
         - git clone https://hog:${HOG_PUSH_TOKEN}@gitlab.cern.ch/hog/hog-doxygen.git doxygen
         - chmod +x ./doxygen/scripts/build-and-deploy.sh
         - ./doxygen/scripts/build-and-deploy.sh /eos/user/h/hog/www/doxy-master
+
+changelog:
+      stage: shell
+      image: gitlab-registry.cern.ch/hog/hog-docker:master
+      only:
+           refs:
+              - merge_requests
+           variables:
+              - $CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /^(master|develop)$/
+      except:
+           variables:
+              - $CI_COMMIT_REF_NAME =~ /^test\/.*$/i
+      script:
+          - shellcheck *.sh 
+          - shellcheck Other/*.sh
+
 
 changelog:
       stage: tag

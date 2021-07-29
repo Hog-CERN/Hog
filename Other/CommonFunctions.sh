@@ -37,7 +37,7 @@ export COMMAND_OPT=""
 export POST_COMMAND_OPT=""
 
 ## @var HDL_COMPILER
-#  @brief Global variable contianing the full path to the HDL compiler to be used
+#  @brief Global variable containing the full path to the HDL compiler to be used
 #
 export HDL_COMPILER=""
 

@@ -13,6 +13,9 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+# shellcheck disable=SC2153
+
+
 echo "Hog-INFO: Checking all executables and environment variables needed for Hog-CI (not to run Hog locally)"
 echo
 
@@ -20,27 +23,27 @@ echo
 echo ========= EXECUTABLES ==========
 
 THIS_DIR="$(dirname "$0")"
-TOP_DIR=`realpath $THIS_DIR/../../Top`
 
-. $THIS_DIR/CommonFunctions.sh;
+# shellcheck source=./Other/CommonFunctions.sh
+. "$THIS_DIR"/CommonFunctions.sh;
 
 if [ -z ${HOG_COMPILER+x} ]; then
   COMPILERS_TO_CHECK=( "vivado" )
 else
-  COMPILERS_TO_CHECK=$(echo $HOG_COMPILER | tr -d '[:space:]' | tr ";" "\n")
+  COMPILERS_TO_CHECK=( "$(echo "$HOG_COMPILER" | tr -d '[:space:]' | tr ";" "\n")" )
 fi
 
-for HDL_COMPILER in ${COMPILERS_TO_CHECK[@]}; do
-  select_command_from_line $HDL_COMPILER;
-  if [ $? != 0 ]
+for HDL_COMPILER in "${COMPILERS_TO_CHECK[@]}"; do
+  
+  if ! select_command_from_line "$HDL_COMPILER";
   then
     echo "Failed to select project type: exiting!"
-    exit -1
+    exit 255
   fi
 
-  if [ `command -v $COMMAND` ]
+  if [ "$(command -v $COMMAND)" ]
   then
-    CMD=`command -v $COMMAND`
+    CMD=$(command -v $COMMAND) 
     echo "HDL env executable found in $CMD"
     echo
     $CMD -version
@@ -52,9 +55,9 @@ done
 
 echo --------------------------------
 
-if [ `command -v vsim` ]
+if [ "$(command -v vsim)" ]
 then
-    CMD=`command -v vsim`
+    CMD=$(command -v vsim)
     echo "Modelsim/Questasim executable found in $CMD"
     echo
     $CMD -version
@@ -64,9 +67,9 @@ fi
 
 echo --------------------------------
 
-if [ `command -v eos` ]
+if [ "$(command -v eos)" ]
 then
-    CMD=`command -v eos`
+    CMD=$(command -v eos)
     echo "eos executable found in $CMD"
     echo
     $CMD --version
@@ -76,13 +79,13 @@ fi
 
 echo --------------------------------
 
-if [ `command -v git` ]
+if [ "$(command -v git)" ]
 then
-    CMD=`command -v git`
+    CMD=$(command -v git)
     echo "git executable found in $CMD"
     echo
-    VER=`$CMD --version`
-    echo $VER
+    VER=$($CMD --version)
+    echo "$VER"
     # check the version here!
 else
     echo "git executable not found. Hog-CI cannot run."
@@ -112,7 +115,7 @@ else
 fi
 echo --------------------------------
 
-if ( ! ( [ -z ${EOS_MGM_URL+x} ]  &&  [ -z ${HOG_OFFICIAL_BIN_EOS_PATH+x} ] && [ -z ${HOG_IP_EOS_PATH+x} ] ) )
+if  ! { [ -z ${EOS_MGM_URL+x} ]  &&  [ -z ${HOG_OFFICIAL_BIN_EOS_PATH+x} ] && [ -z ${HOG_IP_EOS_PATH+x} ] ;} ;
 then
   echo -n "Variable: HOG_PASSWORD is "
   if [ -z ${HOG_PASSWORD+x} ]
@@ -134,33 +137,38 @@ else
     echo "defined."
 fi
 
-if [[ " ${COMPILERS_TO_CHECK[@]} " =~ "vivado" || " ${COMPILERS_TO_CHECK[@]} " =~ "planAhead" ]]
-then
-  echo --------------------------------
-  
-  echo -n "Variable: HOG_XIL_LICENSE is "
-  if [ -z ${HOG_XIL_LICENSE+x} ]
-  then
-    echo "NOT defined. You need to set this variable to the license servers separated by comas."
-    FAIL=1
-  else
-    echo "defined."
-  fi
-fi
+for compiler in "${COMPILERS_TO_CHECK[@]}"
+do
+    if [[ " ${compiler} " =~ "vivado" || " ${compiler} " =~ "planAhead" ]]
+    then
+      echo --------------------------------
+      
+      echo -n "Variable: HOG_XIL_LICENSE is "
+      if [ -z ${HOG_XIL_LICENSE+x} ]
+      then
+        echo "NOT defined. You need to set this variable to the license servers separated by comas."
+        FAIL=1
+      else
+        echo "defined."
+      fi
+    fi
 
-if [[ " ${COMPILERS_TO_CHECK[@]} " =~ "quartus" ]]
-then
-  echo --------------------------------
+    if [[ " ${compiler} " =~ "quartus" ]]
+    then
+      echo --------------------------------
 
-  echo -n "Variable: LM_LICENSE_FILE is "
-  if [ -z ${LM_LICENSE_FILE+x} ]
-  then
-    echo "NOT defined. You need to set this variable to the license servers separated by semicolon."
-    FAIL=1
-  else
-    echo "defined."
-  fi
-fi
+      echo -n "Variable: LM_LICENSE_FILE is "
+      if [ -z ${LM_LICENSE_FILE+x} ]
+      then
+        echo "NOT defined. You need to set this variable to the license servers separated by semicolon."
+        FAIL=1
+      else
+        echo "defined."
+      fi
+    fi
+done
+
+
 
 echo ================================
 echo
@@ -170,7 +178,7 @@ echo === SEMI-ESSENTIAL VARIABLES ===
 echo -n "Variable: EOS_MGM_URL is "
 if [ -z ${EOS_MGM_URL+x} ]
 then
-    echo "NOT defined. This variable is essential for EOS to work properly. Hog-Ci will use the deafule value of root://eosuser.cern.ch"
+    echo "NOT defined. This variable is essential for EOS to work properly. Hog-Ci will use the default value of root://eosuser.cern.ch"
 else
     echo "defined."
 fi
@@ -280,7 +288,7 @@ if [ -z ${HOG_RESET_FILES+x} ]
 then
     echo "NOT defined. Hog-CI will NOT reset any files"
 else
-    echo "defined. Hog-CI will reset the following files before synthesis, before implementation, and before bitstream: \n $HOG_RESET_FILES"
+    printf "defined. Hog-CI will reset the following files before synthesis, before implementation, and before bitstream: \n %s" "$HOG_RESET_FILES"
 fi
 echo --------------------------------
 

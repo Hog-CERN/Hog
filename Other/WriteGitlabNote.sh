@@ -13,9 +13,8 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-if [ -z "$1" ]
-then
-        echo "Usage: WriteGitlabNote.sh <push token> <Gitlab api url> <project id> <mr id> <file.md>"
+if [ -z "$1" ]; then
+    echo "Usage: WriteGitlabNote.sh <push token> <Gitlab api url> <project id> <mr id> <file.md>"
 else
     push_token=$1
     api=$2
@@ -23,5 +22,5 @@ else
     mr=$4
     file=$5
 
-    curl --request POST --header "PRIVATE-TOKEN: ${push_token}" --header "Content-Type: application/json" --data '{"body":"'"`sed -e ':a' -e 'N' -e '$!ba' -e 's/\n/\\\\n/g' $file`"'"}' $api/projects/${proj}/merge_requests/${mr}/notes
+    curl --request POST --header "PRIVATE-TOKEN: ${push_token}" --header "Content-Type: application/json" --data '{"body":"'"$(sed -e ':a' -e 'N' -e '$!ba' -e 's/\n/\\\\n/g' "$file")"'"}' "$api"/projects/"${proj}"/merge_requests/"${mr}"/notes
 fi

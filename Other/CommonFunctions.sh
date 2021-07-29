@@ -13,11 +13,13 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+# shellcheck disable=SC2034
+
 ## @file CreateProject.sh
 #  @brief Create the specified Vivado or Quartus project
 
 ## @var FILE_TYPE
-#  @brief Global variable used to distinguis tcl project from hog.conf
+#  @brief Global variable used to distinguish tcl project from hog.conf
 #
 export COMMAND=""
 
@@ -67,21 +69,21 @@ function Msg() {
   Default=$'\e[0m'
 
   case $1 in
-    "Info")
-      Colour=$Default
-      ;;
-    "Warning")
-      Colour=$LightBlue
-      ;;
-    "CriticalWarning")
-      Colour=$Orange
-      ;;
-    "Error")
-      Colour=$Red
-      ;;
-    *)
-      Msg Error "messageLevel: $1 not supported! Use Info, Warning, CriticalWarning, Error"
-      ;;
+  "Info")
+    Colour=$Default
+    ;;
+  "Warning")
+    Colour=$LightBlue
+    ;;
+  "CriticalWarning")
+    Colour=$Orange
+    ;;
+  "Error")
+    Colour=$Red
+    ;;
+  *)
+    Msg Error "messageLevel: $1 not supported! Use Info, Warning, CriticalWarning, Error"
+    ;;
   esac
 
   echo "$Colour HOG:$1 ${FUNCNAME[1]}()  $2 $Default"
@@ -172,9 +174,9 @@ function select_command_from_line() {
 # @returns  0 for ok, 1 for error
 #
 function select_command() {
-  proj=$(basename $1)
-  conf="$1"/"hog.conf"
-  tcl="$1"/"$proj.tcl"
+  proj=$(basename "$1")
+  conf="$1/hog.conf"
+  tcl="$1/$proj.tcl"
 
   if [ -f "$conf" ]; then
     file="$conf"
@@ -187,8 +189,7 @@ function select_command() {
     return 1
   fi
 
-  select_command_from_line "$(head -1 $file)"
-  if [ $? != 0 ]; then
+  if ! select_command_from_line "$(head -1 "$file")"; then
     Msg Error "Failed to select COMMAND, COMMAND_OPT and POST_COMMAND_OPT"
     return 1
   fi
@@ -218,13 +219,13 @@ function select_compiler_executable() {
     return 1
   fi
 
-  if [ $(command -v $1) ]; then
-    HDL_COMPILER=$(command -v $1)
+  if [ "$(command -v "$1")" ]; then
+    HDL_COMPILER=$(command -v "$1")
   else
-    if [ $1 == "vivado" ]; then
+    if [ "$1" == "vivado" ]; then
       if [ -z ${XILINX_VIVADO+x} ]; then
         Msg Error "No vivado executable found and no variable XILINX_VIVADO set\n"
-        cd "${OLD_DIR}"
+        cd "${OLD_DIR}" || exit
         return 1
       elif [ -d "$XILINX_VIVADO" ]; then
         Msg Info "XILINX_VIVADO is set to '$ XILINX_VIVADO'"
@@ -233,10 +234,10 @@ function select_compiler_executable() {
         Msg Error "Failed locate '$1' executable from XILINX_VIVADO: $XILINX_VIVADO"
         return 1
       fi
-    elif [ $1 == "quartus_sh" ]; then
+    elif [ "$1" == "quartus_sh" ]; then
       if [ -z ${QUARTUS_ROOTDIR+x} ]; then
         Msg Error "No quartus_sh executable found and no variable QUARTUS_ROOTDIR set\n"
-        cd "${OLD_DIR}"
+        cd "${OLD_DIR}" || exit
         return 1
       else
         Msg Info "QUARTUS_ROOTDIR is set to '$QUARTUS_ROOTDIR'"
@@ -280,15 +281,13 @@ function select_executable_from_project_dir() {
     Msg Error "missing input! Got: $1!"
     return 1
   fi
-  select_command $1
-  if [ $? != 0 ]; then
+  if ! select_command "$1"; then
     Msg Error "Failed to select project type: exiting!"
     return 1
   fi
 
   #select full path to executable and place it in HDL_COMPILER global variable
-  select_compiler_executable $COMMAND
-  if [ $? != 0 ]; then
+  if ! select_compiler_executable "$COMMAND"; then
     Msg Error "Failed to get HDL compiler executable for $COMMAND"
     return 1
   fi
@@ -305,13 +304,13 @@ function print_hog() {
     Msg Error "missing input! Got: $1!"
     return 1
   fi
-  cd "$1"
+  cd "$1" || exit
   ver=$(git describe)
   echo
   cat ./images/hog_logo.txt
   echo " Version: ${ver}"
   echo
-  cd -
+  cd - || exit
   return 0
 }
 
@@ -329,13 +328,13 @@ function search_projects() {
   fi
 
   if [[ -d "$1" ]]; then
-    for dir in $1/*; do
-      project_name=$(basename $dir)
+    for dir in "$1"/*; do
+      project_name=$(basename "$dir")
       if [ -f "$dir/$project_name.tcl" ] || [ -f "$dir/hog.conf" ]; then
         subname=${dir#*Top/}
-        echo $subname
+        echo "$subname"
       else
-        search_projects $dir
+        search_projects "$dir"
       fi
     done
   fi

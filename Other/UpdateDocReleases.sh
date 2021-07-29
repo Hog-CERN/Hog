@@ -13,28 +13,26 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-if [ -z "$1" ]
-then
+if [ -z "$1" ]; then
     echo "Usage: UpdateDocReleases.sh <note> <tag> [-b]"
     echo " Options:"
     echo "  -b Write beta instead of official in release note title"
 else
     file=$1
     tag=$2
-    git clone https://$HOG_USER:${EOS_ACCOUNT_PASSWORD}@gitlab.cern.ch/hog/hog-docs.git
-    cd hog-docs
+    git clone https://"$HOG_USER":"${EOS_ACCOUNT_PASSWORD}"@gitlab.cern.ch/hog/hog-docs.git
+    cd hog-docs || exit
     ls
-    if [ "$3" == "-b" ]
-    then
-        cp ../$file docs/05-Releases/02-Beta-Releases/$tag.md
-        echo -e "# Beta Release $tag\n$(cat docs/05-Releases/02-Beta-Releases/${tag}.md)" > docs/05-Releases/02-Beta-Releases/$tag.md
-        git add docs/05-Releases/02-Beta-Releases/$tag.md
+    if [ "$3" == "-b" ]; then
+        cp ../"$file" docs/05-Releases/02-Beta-Releases/"$tag".md
+        echo -e "# Beta Release $tag\n$(cat docs/05-Releases/02-Beta-Releases/"${tag}".md)" >docs/05-Releases/02-Beta-Releases/"$tag".md
+        git add docs/05-Releases/02-Beta-Releases/"$tag".md
         git commit -m "New Beta Release $tag"
         git push
     else
-        cp ../$file docs/05-Releases/01-Stable-Releases/$tag.md
-        echo -e "# Stable Release $tag \n$(cat docs/05-Releases/01-Stable-Releases/${tag}.md)" > docs/05-Releases/01-Stable-Releases/$tag.md
-        git add docs/05-Releases/01-Stable-Releases/$tag.md
+        cp ../"$file" docs/05-Releases/01-Stable-Releases/"$tag".md
+        echo -e "# Stable Release $tag \n$(cat docs/05-Releases/01-Stable-Releases/"${tag}".md)" >docs/05-Releases/01-Stable-Releases/"$tag".md
+        git add docs/05-Releases/01-Stable-Releases/"$tag".md
         git commit -m "New Stable Release $tag"
         git push
     fi

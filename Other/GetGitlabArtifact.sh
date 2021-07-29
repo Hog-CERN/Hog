@@ -13,9 +13,8 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-if [ -z "$1" ]
-then
-        echo "Usage: GetGitlabArtifact.sh <push token> <Gitlab api url> <project id> <merge request number> <file> <job>"
+if [ -z "$1" ]; then
+    echo "Usage: GetGitlabArtifact.sh <push token> <Gitlab api url> <project id> <merge request number> <file> <job>"
 else
     push_token=$1
     api=$2
@@ -25,6 +24,6 @@ else
     job=$6
 
     ref=refs/merge-requests%2F$mr%2Fhead
-    echo $api/projects/${proj}/jobs/artifacts/$ref/raw/$file?job=$job
-    curl --header "PRIVATE-TOKEN: ${push_token}" $api/projects/${proj}/jobs/artifacts/$ref/raw/$file?job=$job
+    echo "$api"/projects/"${proj}"/jobs/artifacts/"$ref"/raw/"$file"?job="$job"
+    curl --header "PRIVATE-TOKEN: ${push_token}" "$api"/projects/"${proj}"/jobs/artifacts/"$ref"/raw/"$file"?job="$job"
 fi

@@ -12,13 +12,14 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
-                                                                                                                                                                                                   #   limitations under the License.
+#   limitations under the License.
 ## @file MakeSigasiCSV.sh
 # brief Creates Sisgasi csv file
 
-. "$(dirname "$0")"/CommonFunctions.sh;
+# shellcheck source=./Other/CommonFunctions.sh
+. "$(dirname "$0")"/Other/CommonFunctions.sh
 
-DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 usage="Usage: MakeSigasiCSV.sh <project name>"
 
 if [ "$1" == "-h" ] || [ "$1" == "-help" ] || [ "$1" == "--help" ] || [ "$1" == "-H" ]; then
@@ -33,38 +34,33 @@ if [ "$1" == "-h" ] || [ "$1" == "-help" ] || [ "$1" == "--help" ] || [ "$1" == 
     exit 0
 fi
 
-if [ -z "$1" ]
-then
-  ##! If no args passed then print help message
-  echo "$usage"
+if [ -z "$1" ]; then
+    ##! If no args passed then print help message
+    echo "$usage"
 else
     PROJ=$1
     PROJ_DIR="$DIR/../../Top/"$PROJ
-    if [ -d "$PROJ_DIR" ]
-    then
+    if [ -d "$PROJ_DIR" ]; then
         #Choose if the project is quastus, vivado, vivado_hls [...]
 
-        if ! select_command "$PROJ_DIR";
-        then
+        if ! select_command "$PROJ_DIR"; then
             echo "Failed to select project type: exiting!"
             exit 1
         fi
         #select full path to executable and place it in HDL_COMPILER global variable
 
-        if ! select_compiler_executable "$COMMAND";
-        then
+        if ! select_compiler_executable "$COMMAND"; then
             echo "Hog-ERROR: cannot find Vivado or Quartus to execute this script"
             exit 1
         fi
 
-        if [ ! -f "${HDL_COMPILER}" ]
-        then
+        if [ ! -f "${HDL_COMPILER}" ]; then
             echo "Hog-ERROR: HLD compiler executable $HDL_COMPILER not found."
             exit 1
         else
             echo "Hog-INFO: using executable: $HDL_COMPILER"
         fi
-        "$HDL_COMPILER" $COMMAND_OPT "$DIR/../Tcl/utils/make_sigasi_csv.tcl" -tclargs $@
+        "$HDL_COMPILER" "$COMMAND_OPT" "$DIR/../Tcl/utils/make_sigasi_csv.tcl" -tclargs "$@"
     else
         echo "Hog-ERROR could not find $PROJ_DIR"
     fi

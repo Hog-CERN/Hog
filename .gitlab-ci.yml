@@ -75,7 +75,7 @@ build-doxygen-official:
 
 shellcheck:
       stage: shell
-      image: gitlab-registry.cern.ch/hog/hog-docker:master
+      image: gitlab-registry.cern.ch/hog/hog-docker:ubuntu
       only:
            refs:
               - merge_requests

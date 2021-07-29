@@ -18,7 +18,10 @@
 
 ## Import common functions from Other/CommonFunctions.sh in a POSIX compliant way
 #
-. $(dirname "$0")/Other/CommonFunctions.sh
+
+# shellcheck disable=SC2181
+# shellcheck source=./Other/CommonFunctions.sh
+. "$(dirname "$0")"/Other/CommonFunctions.sh
 
 ## @fn help_message
 #
@@ -58,32 +61,34 @@ function help_message() {
 function create_project() {
   # Define directory variables as local: only main will change directory
 
-  local OLD_DIR=$(pwd)
-  local THIS_DIR="$(dirname "$0")"
+  local OLD_DIR
+  OLD_DIR=$(pwd)
+  local THIS_DIR
+  THIS_DIR="$(dirname "$0")"
 
   if [ "$1" == "-h" ] || [ "$1" == "-help" ] || [ "$1" == "--help" ] || [ "$1" == "-H" ]; then
-    help_message $0
+    help_message "$0"
     exit 0
   fi
 
-  cd "${THIS_DIR}"
+  cd "${THIS_DIR}" || exit
 
   if [ -e ../Top ]; then
     local DIR="../Top"
   else
     Msg Error "Top folder not found, Hog is not in a Hog-compatible HDL repository."
-    cd "${OLD_DIR}"
-    exit -1
+    cd "${OLD_DIR}" || exit
+    exit 255
   fi
 
   if [ "a$1" == "a" ]; then
-    help_message $0
+    help_message "$0"
     echo "  Possible projects are:"
 
     search_projects $DIR
     echo
-    cd "${OLD_DIR}"
-    exit -1
+    cd "${OLD_DIR}" || exit
+    exit 255
   else
     local PROJ=$1
     local PROJ_DIR="$DIR/$PROJ"
@@ -110,68 +115,69 @@ function create_project() {
   if [ -d "$PROJ_DIR" ]; then
 
     #Choose if the project is quastus, vivado, vivado_hls [...]
-    select_command $PROJ_DIR
-    if [ $? != 0 ]; then
+    
+    if ! select_command "$PROJ_DIR";
+    then
       Msg Error "Failed to select project type: exiting!"
-      exit -1
+      exit 255
     fi
 
     #select full path to executable and place it in HDL_COMPILER global variable
-    select_compiler_executable $COMMAND
-    if [ $? != 0 ]; then
+    
+    if ! select_compiler_executable $COMMAND; then
       Msg Error "Failed to get HDL compiler executable for $COMMAND"
-      exit -1
+      exit 255
     fi
 
     if [ ! -f "${HDL_COMPILER}" ]; then
       Msg Error "HLD compiler executable $HDL_COMPILER not found"
-      cd "${OLD_DIR}"
-      exit -1
+      cd "${OLD_DIR}" || exit
+      exit 255
     else
       Msg Info "Using executable: $HDL_COMPILER"
     fi
 
     if [ $FILE_TYPE == "CONF" ]; then
-      cd "${DIR}"
+      cd "${DIR}" || exit 
       Msg Info "Creating project $PROJ using hog.conf..."
       if [ -z ${LIBPATH+x} ]; then
         if [ -z ${HOG_SIMULATION_LIB_PATH+x} ]; then
-          "${HDL_COMPILER}" $COMMAND_OPT ../Hog/Tcl/create_project.tcl $POST_COMMAND_OPT $PROJ
+          "${HDL_COMPILER}" "$COMMAND_OPT" ../Hog/Tcl/create_project.tcl $POST_COMMAND_OPT "$PROJ"
         else
-          "${HDL_COMPILER}" $COMMAND_OPT ../Hog/Tcl/create_project.tcl $POST_COMMAND_OPT -simlib_path ${HOG_SIMULATION_LIB_PATH} $PROJ
+          "${HDL_COMPILER}" "$COMMAND_OPT" ../Hog/Tcl/create_project.tcl $POST_COMMAND_OPT -simlib_path "${HOG_SIMULATION_LIB_PATH}" "$PROJ"
         fi
       else
-        "${HDL_COMPILER}" $COMMAND_OPT ../Hog/Tcl/create_project.tcl $POST_COMMAND_OPT -simlib_path ${LIBPATH} $PROJ
+        "${HDL_COMPILER}" "$COMMAND_OPT" ../Hog/Tcl/create_project.tcl $POST_COMMAND_OPT -simlib_path "${LIBPATH}" "$PROJ"
       fi
     elif [ $FILE_TYPE == "TCL" ]; then
-      cd "${PROJ_DIR}"
-      PROJ_NAME=$(basename $PROJ_DIR)
+      cd "${PROJ_DIR}" || exit 
+      PROJ_NAME=$(basename "$PROJ_DIR")
       Msg Warning "Creating project $PROJ using $PROJ.tcl, this is deprecated and will not be supported in future Hog releases..."
-      "${HDL_COMPILER}" $COMMAND_OPT $PROJ_NAME.tcl
+      "${HDL_COMPILER}" "$COMMAND_OPT" "$PROJ_NAME.tcl"
     else
-      Msg Error "Unknown file type: $FILE_TPYE"
+      Msg Error "Unknown file type: $FILE_TYPE"
       exit 1
     fi
 
     if [ $? != 0 ]; then
       Msg Error "HDL compiler returned an error state."
-      cd "${OLD_DIR}"
-      exit -1
+      cd "${OLD_DIR}" || exit
+      exit 255
     fi
 
   else
     Msg Error "Project $PROJ not found: possible projects are:"
     search_projects "${OLD_DIR}/Top"
     echo
-    cd "${OLD_DIR}"
-    exit -1
+    cd "${OLD_DIR}" || exit
+    exit 255
   fi
 
-  cd "${OLD_DIR}"
+  cd "${OLD_DIR}" || exit
 
   exit 0
 
 }
 
-print_hog $(dirname "$0")
-create_project $@
+print_hog "$(dirname "$0")"
+create_project "$@"

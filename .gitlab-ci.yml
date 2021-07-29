@@ -85,8 +85,8 @@ shellcheck:
            variables:
               - $CI_COMMIT_REF_NAME =~ /^test\/.*$/i
       script:
-          - shellcheck *.sh 
-          - shellcheck Other/*.sh
+          - shellcheck -x *.sh 
+          - shellcheck -x Other/*.sh
 
 
 changelog:

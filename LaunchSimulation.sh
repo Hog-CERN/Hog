@@ -21,9 +21,11 @@
 
 ## Import common functions from Other/CommonFunctions.sh in a POSIX compliant way
 #
-. $(dirname "$0")/Other/CommonFunctions.sh
 
-print_hog $(dirname "$0")
+# shellcheck source=./Other/CommonFunctions.sh
+. "$(dirname "$0")"/Other/CommonFunctions.sh
+
+print_hog "$(dirname "$0")"
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
@@ -51,7 +53,7 @@ function argument_parser() {
 			SIMSET="-simset $2"
 			shift 2
 			;;
-		-? | -h | -help)
+		-\? | -h | -help)
 			HELP="-h"
 			shift 1
 			;;
@@ -59,7 +61,7 @@ function argument_parser() {
 			shift
 			break
 			;;
-		-* | --*=) # unsupported flags
+		-*) # unsupported flags
 			Msg Error "Unsupported flag $1" >&2
 			return 1
 			;;
@@ -73,12 +75,12 @@ function argument_parser() {
 }
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-argument_parser $@
+argument_parser "$@"
 if [ $? = 1 ]; then
 	exit 1
 fi
 eval set -- "$PARAMS"
-if [ -z "$1" ]; then
+if [ -z "$1" ] || [ $HELP == "-h" ]; then
   ##! If no args passed then print help message
 	printf "Project name has not been specified. Usage: \n"
 	printf " LaunchSimulation.sh <project name> [-lib_path <sim lib path>] [-simset <list of sim sets>] [-quiet]\n\n"
@@ -86,32 +88,32 @@ if [ -z "$1" ]; then
 	printf " For a detailed explanation of all the option, type LaunchSimulation.sh <project name> -h.\n"
 	printf " The project name is needed by Hog to tell which HDL software to use: Vivado, Quartus, etc.\n\n"
 	printf "Possible projects are:\n"
-	printf "$(search_projects $DIR/../Top)\n"
-	cd "${OLD_DIR}"
-	exit -1
+	printf "%s\n" "$(search_projects "$DIR"/../Top)"
+	cd "${OLD_DIR}" || exit
+	exit 255
 else
   PROJ=$1
   PROJ_DIR="$DIR/../Top/"$PROJ
   if [ -d "$PROJ_DIR" ]; then
 
     #Choose if the project is quartus, vivado, vivado_hls [...]
-    select_command $PROJ_DIR
-    if [ $? != 0 ]; then
+    
+    if ! select_command "$PROJ_DIR"; then
       Msg Error "Failed to select project type: exiting!"
-      exit -1
+      exit 255
     fi
 
     #select full path to executable and place it in HDL_COMPILER global variable
-    select_compiler_executable $COMMAND
-    if [ $? != 0 ]; then
+    
+    if ! select_compiler_executable "$COMMAND"; then
       Msg Error "Failed to get HDL compiler executable for $COMMAND"
-      exit -1
+      exit 255
     fi
 
     if [ ! -f "${HDL_COMPILER}" ]; then
       Msg Error "HDL compiler executable $HDL_COMPILER not found"
-      cd "${OLD_DIR}"
-      exit -1
+      cd "${OLD_DIR}" || exit
+      exit 255
     else
       Msg Info "Using executable: $HDL_COMPILER"
     fi
@@ -124,11 +126,11 @@ else
     elif [ $COMMAND = "vivado_hls" ]; then
       Msg Error "Vivado HLS is not yet supported by this script!"
     else
-      "${HDL_COMPILER}" $COMMAND_OPT $DIR/Tcl/launchers/launch_simulation.tcl -tclargs $SIMLIBPATH $SIMSET $QUIET $1
+      "${HDL_COMPILER}" "$COMMAND_OPT" "$DIR"/Tcl/launchers/launch_simulation.tcl -tclargs "$SIMLIBPATH" "$SIMSET" $QUIET "$1"
     fi
   else
-    Msg Error "Project $PROJ not found: possible projects are: $(search_projects $DIR/../Top)"
-    cd "${OLD_DIR}"
-    exit -1
+    Msg Error "Project $PROJ not found: possible projects are: $(search_projects "$DIR"/../Top)"
+    cd "${OLD_DIR}" || exit
+    exit 255
   fi
 fi

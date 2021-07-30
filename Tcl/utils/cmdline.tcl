@@ -67,7 +67,7 @@ package require Tcl 8.2
 package provide cmdline 1.3.1
 
 namespace eval ::cmdline {
-    namespace export getArgv0 getopt getKnownOpt getfiles getoptions \
+  namespace export getArgv0 getopt getKnownOpt getfiles getoptions \
 	    getKnownOptions usage
 }
 
@@ -103,17 +103,17 @@ namespace eval ::cmdline {
 # 	options were found, and -1 if an error occurred.
 
 proc ::cmdline::getopt {argvVar optstring optVar valVar} {
-    upvar 1 $argvVar argsList
-    upvar 1 $optVar option
-    upvar 1 $valVar value
+  upvar 1 $argvVar argsList
+  upvar 1 $optVar option
+  upvar 1 $valVar value
 
-    set result [getKnownOpt argsList $optstring option value]
+  set result [getKnownOpt argsList $optstring option value]
 
-    if {$result < 0} {
+  if {$result < 0} {
         # Collapse unknown-option error into any-other-error result.
-        set result -1
-    }
-    return $result
+    set result -1
+  }
+  return $result
 }
 
 # ::cmdline::getKnownOpt --
@@ -151,69 +151,69 @@ proc ::cmdline::getopt {argvVar optstring optVar valVar} {
 #	encountered, and -2 if any other error occurred. 
 
 proc ::cmdline::getKnownOpt {argvVar optstring optVar valVar} {
-    upvar 1 $argvVar argsList
-    upvar 1 $optVar  option
-    upvar 1 $valVar  value
+  upvar 1 $argvVar argsList
+  upvar 1 $optVar  option
+  upvar 1 $valVar  value
 
     # default settings for a normal return
-    set value ""
-    set option ""
-    set result 0
+  set value ""
+  set option ""
+  set result 0
 
     # check if we're past the end of the args list
-    if {[llength $argsList] != 0} {
+  if {[llength $argsList] != 0} {
 
 	# if we got -- or an option that doesn't begin with -, return (skipping
 	# the --).  otherwise process the option arg.
-	switch -glob -- [set arg [lindex $argsList 0]] {
-	    "--" {
-		set argsList [lrange $argsList 1 end]
-	    }
-	    "--*" -
-	    "-*" {
-		set option [string range $arg 1 end]
-		if {[string equal [string range $option 0 0] "-"]} {
-		    set option [string range $arg 2 end]
-		}
+    switch -glob -- [set arg [lindex $argsList 0]] {
+      "--" {
+        set argsList [lrange $argsList 1 end]
+      }
+      "--*" -
+      "-*" {
+        set option [string range $arg 1 end]
+        if {[string equal [string range $option 0 0] "-"]} {
+          set option [string range $arg 2 end]
+        }
 
 		# support for format: [-]-option=value
-		set idx [string first "=" $option 1]
-		if {$idx != -1} {
-		    set _val   [string range $option [expr {$idx+1}] end]
-		    set option [string range $option 0   [expr {$idx-1}]]
-		}
+        set idx [string first "=" $option 1]
+        if {$idx != -1} {
+          set _val   [string range $option [expr {$idx+1}] end]
+          set option [string range $option 0   [expr {$idx-1}]]
+        }
 
-		if {[lsearch -exact $optstring $option] != -1} {
+        if {[lsearch -exact $optstring $option] != -1} {
 		    # Booleans are set to 1 when present
-		    set value 1
-		    set result 1
-		    set argsList [lrange $argsList 1 end]
-		} elseif {[lsearch -exact $optstring "$option.arg"] != -1} {
-		    set result 1
-		    set argsList [lrange $argsList 1 end]
+          set value 1
+          set result 1
+          set argsList [lrange $argsList 1 end]
+        } elseif {[lsearch -exact $optstring "$option.arg"] != -1} {
+          set result 1
+          set argsList [lrange $argsList 1 end]
 
-		    if {[info exists _val]} {
-			set value $_val
-		    } elseif {[llength $argsList]} {
-			set value [lindex $argsList 0]
-			set argsList [lrange $argsList 1 end]
-		    } else {
-			set value "Option \"$option\" requires an argument"
-			set result -2
-		    }
-		} else {
+          if {[info exists _val]} {
+            set value $_val
+          } elseif {[llength $argsList]} {
+            set value [lindex $argsList 0]
+            set argsList [lrange $argsList 1 end]
+          } else {
+            set value "Option \"$option\" requires an argument"
+            set result -2
+          }
+        } else {
 		    # Unknown option.
-		    set value "Illegal option \"-$option\""
-		    set result -1
-		}
-	    }
-	    default {
+          set value "Illegal option \"-$option\""
+          set result -1
+        }
+      }
+      default {
 		# Skip ahead
-	    }
-	}
+      }
     }
+  }
 
-    return $result
+  return $result
 }
 
 # ::cmdline::getoptions --
@@ -244,22 +244,22 @@ proc ::cmdline::getKnownOpt {argvVar optstring optVar valVar} {
 #	Name value pairs suitable for using with array set.
 
 proc ::cmdline::getoptions {arglistVar optlist {usage options:}} {
-    upvar 1 $arglistVar argv
+  upvar 1 $arglistVar argv
 
-    set opts [GetOptionDefaults $optlist result]
+  set opts [GetOptionDefaults $optlist result]
 
-    set argc [llength $argv]
-    while {[set err [getopt argv $opts opt arg]]} {
-	if {$err < 0} {
-            set result(?) ""
-            break
-	}
-	set result($opt) $arg
+  set argc [llength $argv]
+  while {[set err [getopt argv $opts opt arg]]} {
+    if {$err < 0} {
+      set result(?) ""
+      break
     }
-    if {[info exist result(?)] || [info exists result(help)]} {
-	Error [usage $optlist $usage] USAGE
-    }
-    return [array get result]
+    set result($opt) $arg
+  }
+  if {[info exist result(?)] || [info exists result(help)]} {
+    Error [usage $optlist $usage] USAGE
+  }
+  return [array get result]
 }
 
 # ::cmdline::getKnownOptions --
@@ -286,47 +286,47 @@ proc ::cmdline::getoptions {arglistVar optlist {usage options:}} {
 #	Name value pairs suitable for using with array set.
 
 proc ::cmdline::getKnownOptions {arglistVar optlist {usage options:}} {
-    upvar 1 $arglistVar argv
+  upvar 1 $arglistVar argv
 
-    set opts [GetOptionDefaults $optlist result]
+  set opts [GetOptionDefaults $optlist result]
 
     # As we encounter them, keep the unknown options and their
     # arguments in this list.  Before we return from this procedure,
     # we'll prepend these args to the argList so that the application
     # doesn't lose them.
 
-    set unknownOptions [list]
+  set unknownOptions [list]
 
-    set argc [llength $argv]
-    while {[set err [getKnownOpt argv $opts opt arg]]} {
-	if {$err == -1} {
+  set argc [llength $argv]
+  while {[set err [getKnownOpt argv $opts opt arg]]} {
+    if {$err == -1} {
             # Unknown option.
 
             # Skip over any non-option items that follow it.
             # For now, add them to the list of unknownOptions.
-            lappend unknownOptions [lindex $argv 0]
-            set argv [lrange $argv 1 end]
-            while {([llength $argv] != 0) \
+      lappend unknownOptions [lindex $argv 0]
+      set argv [lrange $argv 1 end]
+      while {([llength $argv] != 0) \
                     && ![string match "-*" [lindex $argv 0]]} {
-                lappend unknownOptions [lindex $argv 0]
-                set argv [lrange $argv 1 end]
-            }
-	} elseif {$err == -2} {
-            set result(?) ""
-            break
-        } else {
-            set result($opt) $arg
-        }
+        lappend unknownOptions [lindex $argv 0]
+        set argv [lrange $argv 1 end]
+      }
+    } elseif {$err == -2} {
+      set result(?) ""
+      break
+    } else {
+      set result($opt) $arg
     }
+  }
 
     # Before returning, prepend the any unknown args back onto the
     # argList so that the application doesn't lose them.
-    set argv [concat $unknownOptions $argv]
+  set argv [concat $unknownOptions $argv]
 
-    if {[info exist result(?)] || [info exists result(help)]} {
-	Error [usage $optlist $usage] USAGE
-    }
-    return [array get result]
+  if {[info exist result(?)] || [info exists result(help)]} {
+    Error [usage $optlist $usage] USAGE
+  }
+  return [array get result]
 }
 
 # ::cmdline::GetOptionDefaults --
@@ -350,27 +350,27 @@ proc ::cmdline::getKnownOptions {arglistVar optlist {usage options:}} {
 #	Name value pairs suitable for using with array set.
 
 proc ::cmdline::GetOptionDefaults {optlist defaultArrayVar} {
-    upvar 1 $defaultArrayVar result
+  upvar 1 $defaultArrayVar result
 
-    set opts {? help}
-    foreach opt $optlist {
-	set name [lindex $opt 0]
-	if {[regsub -- {\.secret$} $name {} name] == 1} {
+  set opts {? help}
+  foreach opt $optlist {
+    set name [lindex $opt 0]
+    if {[regsub -- {\.secret$} $name {} name] == 1} {
 	    # Need to hide this from the usage display and getopt
-	}   
-	lappend opts $name
-	if {[regsub -- {\.arg$} $name {} name] == 1} {
+    }   
+    lappend opts $name
+    if {[regsub -- {\.arg$} $name {} name] == 1} {
 
 	    # Set defaults for those that take values.
 
-	    set default [lindex $opt 1]
-	    set result($name) $default
-	} else {
+      set default [lindex $opt 1]
+      set result($name) $default
+    } else {
 	    # The default for booleans is false
-	    set result($name) 0
-	}
+      set result($name) 0
     }
-    return $opts
+  }
+  return $opts
 }
 
 # ::cmdline::usage --
@@ -386,25 +386,25 @@ proc ::cmdline::GetOptionDefaults {optlist defaultArrayVar} {
 #	A formatted usage message
 
 proc ::cmdline::usage {optlist {usage {options:}}} {
-    set str "[getArgv0] $usage\n"
-    foreach opt [concat $optlist \
+  set str "[getArgv0] $usage\n"
+  foreach opt [concat $optlist \
 	     {{- "Forcibly stop option processing"} {help "Print this message"} {? "Print this message"}}] {
-	set name [lindex $opt 0]
-	if {[regsub -- {\.secret$} $name {} name] == 1} {
+    set name [lindex $opt 0]
+    if {[regsub -- {\.secret$} $name {} name] == 1} {
 	    # Hidden option
-	    continue
-	}
-	if {[regsub -- {\.arg$} $name {} name] == 1} {
-	    set default [lindex $opt 1]
-	    set comment [lindex $opt 2]
-	    append str [format " %-20s %s <%s>\n" "-$name value" \
-		    $comment $default]
-	} else {
-	    set comment [lindex $opt 1]
-	    append str [format " %-20s %s\n" "-$name" $comment]
-	}
+      continue
     }
-    return $str
+    if {[regsub -- {\.arg$} $name {} name] == 1} {
+      set default [lindex $opt 1]
+      set comment [lindex $opt 2]
+      append str [format " %-20s %s <%s>\n" "-$name value" \
+		    $comment $default]
+    } else {
+      set comment [lindex $opt 1]
+      append str [format " %-20s %s\n" "-$name" $comment]
+    }
+  }
+  return $str
 }
 
 # ::cmdline::getfiles --
@@ -427,37 +427,37 @@ proc ::cmdline::usage {optlist {usage {options:}}} {
 #	Returns the list of files that match the input patterns.
 
 proc ::cmdline::getfiles {patterns quiet} {
-    set result {}
-    if {$::tcl_platform(platform) == "windows"} {
-	foreach pattern $patterns {
-	    set pat [file join $pattern]
-	    set files [glob -nocomplain -- $pat]
-	    if {$files == {}} {
-		if {! $quiet} {
-		    puts stdout "warning: no files match \"$pattern\""
-		}
-	    } else {
-		foreach file $files {
-		    lappend result $file
-		}
-	    }
-	}
-    } else {
-	set result $patterns
+  set result {}
+  if {$::tcl_platform(platform) == "windows"} {
+    foreach pattern $patterns {
+      set pat [file join $pattern]
+      set files [glob -nocomplain -- $pat]
+      if {$files == {}} {
+        if {! $quiet} {
+          puts stdout "warning: no files match \"$pattern\""
+        }
+      } else {
+        foreach file $files {
+          lappend result $file
+        }
+      }
     }
-    set files {}
-    foreach file $result {
+  } else {
+    set result $patterns
+  }
+  set files {}
+  foreach file $result {
 	# Make file an absolute path so that we will never conflict
 	# with files that might be contained in our zip file.
-	set fullPath [file join [pwd] $file]
-	
-	if {[file isfile $fullPath]} {
-	    lappend files $fullPath
-	} elseif {! $quiet} {
-	    puts stdout "warning: no files match \"$file\""
-	}
+    set fullPath [file join [pwd] $file]
+
+    if {[file isfile $fullPath]} {
+      lappend files $fullPath
+    } elseif {! $quiet} {
+      puts stdout "warning: no files match \"$file\""
     }
-    return $files
+  }
+  return $files
 }
 
 # ::cmdline::getArgv0 --
@@ -473,10 +473,10 @@ proc ::cmdline::getfiles {patterns quiet} {
 #	The application name that can be used in error messages.
 
 proc ::cmdline::getArgv0 {} {
-    global argv0
+  global argv0
 
-    set name [file tail $argv0]
-    return [file rootname $name]
+  set name [file tail $argv0]
+  return [file rootname $name]
 }
 
 ##
@@ -499,7 +499,7 @@ proc ::cmdline::getArgv0 {} {
 # RCS: @(#) $Id: cmdline.tcl,v 1.28 2011/02/23 17:41:52 andreas_kupries Exp $
 
 namespace eval ::cmdline {
-    namespace export typedGetopt typedGetoptions typedUsage
+  namespace export typedGetopt typedGetoptions typedUsage
 
     # variable cmdline::charclasses --
     #
@@ -509,13 +509,13 @@ namespace eval ::cmdline {
     # Results:
     #    String of character class names separated by "|" characters.
 
-    variable charclasses
+  variable charclasses
     #checker exclude badKey
-    catch {string is . .} charclasses
-    variable dummy
-    regexp      -- {must be (.+)$} $charclasses dummy charclasses
-    regsub -all -- {, (or )?}      $charclasses {|}   charclasses
-    unset dummy
+  catch {string is . .} charclasses
+  variable dummy
+  regexp      -- {must be (.+)$} $charclasses dummy charclasses
+  regsub -all -- {, (or )?}      $charclasses {|}   charclasses
+  unset dummy
 }
 
 # ::cmdline::typedGetopt --
@@ -605,150 +605,150 @@ namespace eval ::cmdline {
 #	an error in the "cmdline::prefixSearch" procedure.
 
 proc ::cmdline::typedGetopt {argvVar optstring optVar argVar} {
-    variable charclasses
+  variable charclasses
 
-    upvar $argvVar argsList
+  upvar $argvVar argsList
 
-    upvar $optVar retvar
-    upvar $argVar optarg
+  upvar $optVar retvar
+  upvar $argVar optarg
 
     # default settings for a normal return
-    set optarg ""
-    set retvar ""
-    set retval 0
+  set optarg ""
+  set retvar ""
+  set retval 0
 
     # check if we're past the end of the args list
-    if {[llength $argsList] != 0} {
+  if {[llength $argsList] != 0} {
 
         # if we got -- or an option that doesn't begin with -, return (skipping
         # the --).  otherwise process the option arg.
-        switch -glob -- [set arg [lindex $argsList 0]] {
-            "--" {
-                set argsList [lrange $argsList 1 end]
-            }
+    switch -glob -- [set arg [lindex $argsList 0]] {
+      "--" {
+        set argsList [lrange $argsList 1 end]
+      }
 
-            "-*" {
+      "-*" {
                 # Create list of options without their argument extensions
 
-                set optstr ""
-                foreach str $optstring {
-                    lappend optstr [file rootname $str]
+        set optstr ""
+        foreach str $optstring {
+          lappend optstr [file rootname $str]
+        }
+
+        set _opt [string range $arg 1 end]
+
+        set i [prefixSearch $optstr [file rootname $_opt]]
+        if {$i != -1} {
+          set opt [lindex $optstring $i]
+
+          set quantifier "none"
+          if {[regexp -- {\.[^.]+([?+*])$} $opt dummy quantifier]} {
+            set opt [string range $opt 0 end-1]
+          }
+
+          if {[string first . $opt] == -1} {
+            set retval 1
+            set retvar $opt
+            set argsList [lrange $argsList 1 end]
+
+          } elseif {[regexp -- "\\.(arg|$charclasses)\$" $opt dummy charclass]
+          || [regexp -- {\.\(([^)]+)\)} $opt dummy charclass]} {
+            if {[string equal arg $charclass]} {
+              set type arg
+            } elseif {[regexp -- "^($charclasses)\$" $charclass]} {
+              set type class
+            } else {
+              set type oneof
+            }
+
+            set argsList [lrange $argsList 1 end]
+            set opt [file rootname $opt]
+
+            while {1} {
+              if {[llength $argsList] == 0
+              || [string equal "--" [lindex $argsList 0]]} {
+                if {[string equal "--" [lindex $argsList 0]]} {
+                  set argsList [lrange $argsList 1 end]
                 }
 
-                set _opt [string range $arg 1 end]
+                set oneof ""
+                if {$type == "arg"} {
+                  set charclass an
+                } elseif {$type == "oneof"} {
+                  set oneof ", one of $charclass"
+                  set charclass an
+                }
 
-                set i [prefixSearch $optstr [file rootname $_opt]]
-                if {$i != -1} {
-                    set opt [lindex $optstring $i]
+                if {$quantifier == "?"} {
+                  set retval 1
+                  set retvar $opt
+                  set optarg ""
+                } elseif {$quantifier == "+"} {
+                  set retvar $opt
+                  if {[llength $optarg] < 1} {
+                    set retval -2
+                    set optarg "Option requires at least one $charclass argument$oneof -- $opt"
+                  } else {
+                    set retval 1
+                  }
+                } elseif {$quantifier == "*"} {
+                  set retval 1
+                  set retvar $opt
+                } else {
+                  set optarg "Option requires $charclass argument$oneof -- $opt"
+                  set retvar $opt
+                  set retval -2
+                }
+                set quantifier ""
+              } elseif {($type == "arg")
+                || (($type == "oneof")
+                && [string first "|[lindex $argsList 0]|" "|$charclass|"] != -1)
+                || (($type == "class")
+              && [string is $charclass [lindex $argsList 0]])} {
+                set retval 1
+                set retvar $opt
+                lappend optarg [lindex $argsList 0]
+                set argsList [lrange $argsList 1 end]
+              } else {
+                set oneof ""
+                if {$type == "arg"} {
+                  set charclass an
+                } elseif {$type == "oneof"} {
+                  set oneof ", one of $charclass"
+                  set charclass an
+                }
+                set optarg "Option requires $charclass argument$oneof -- $opt"
+                set retvar $opt
+                set retval -3
 
-                    set quantifier "none"
-                    if {[regexp -- {\.[^.]+([?+*])$} $opt dummy quantifier]} {
-                        set opt [string range $opt 0 end-1]
-                    }
-
-                    if {[string first . $opt] == -1} {
-                        set retval 1
-                        set retvar $opt
-                        set argsList [lrange $argsList 1 end]
-
-                    } elseif {[regexp -- "\\.(arg|$charclasses)\$" $opt dummy charclass]
-                            || [regexp -- {\.\(([^)]+)\)} $opt dummy charclass]} {
-				if {[string equal arg $charclass]} {
-                            set type arg
-			} elseif {[regexp -- "^($charclasses)\$" $charclass]} {
-                            set type class
-                        } else {
-                            set type oneof
-                        }
-
-                        set argsList [lrange $argsList 1 end]
-                        set opt [file rootname $opt]
-
-                        while {1} {
-                            if {[llength $argsList] == 0
-                                    || [string equal "--" [lindex $argsList 0]]} {
-                                if {[string equal "--" [lindex $argsList 0]]} {
-                                    set argsList [lrange $argsList 1 end]
-                                }
-
-                                set oneof ""
-                                if {$type == "arg"} {
-                                    set charclass an
-                                } elseif {$type == "oneof"} {
-                                    set oneof ", one of $charclass"
-                                    set charclass an
-                                }
-    
-                                if {$quantifier == "?"} {
-                                    set retval 1
-                                    set retvar $opt
-                                    set optarg ""
-                                } elseif {$quantifier == "+"} {
-                                    set retvar $opt
-                                    if {[llength $optarg] < 1} {
-                                        set retval -2
-                                        set optarg "Option requires at least one $charclass argument$oneof -- $opt"
-                                    } else {
-                                        set retval 1
-                                    }
-                                } elseif {$quantifier == "*"} {
-                                    set retval 1
-                                    set retvar $opt
-                                } else {
-                                    set optarg "Option requires $charclass argument$oneof -- $opt"
-                                    set retvar $opt
-                                    set retval -2
-                                }
-                                set quantifier ""
-                            } elseif {($type == "arg")
-                                    || (($type == "oneof")
-                                    && [string first "|[lindex $argsList 0]|" "|$charclass|"] != -1)
-                                    || (($type == "class")
-                                    && [string is $charclass [lindex $argsList 0]])} {
-                                set retval 1
-                                set retvar $opt
-                                lappend optarg [lindex $argsList 0]
-                                set argsList [lrange $argsList 1 end]
-                            } else {
-                                set oneof ""
-                                if {$type == "arg"} {
-                                    set charclass an
-                                } elseif {$type == "oneof"} {
-                                    set oneof ", one of $charclass"
-                                    set charclass an
-                                }
-                                set optarg "Option requires $charclass argument$oneof -- $opt"
-                                set retvar $opt
-                                set retval -3
-    
-                                if {$quantifier == "?"} {
-                                    set retval 1
-                                    set optarg ""
-                                }
-                                set quantifier ""
-                            }
-                             if {![regexp -- {[+*]} $quantifier]} {
-                                break;
-                            }
-                        }
-                    } else {
-                        Error \
+                if {$quantifier == "?"} {
+                  set retval 1
+                  set optarg ""
+                }
+                set quantifier ""
+              }
+              if {![regexp -- {[+*]} $quantifier]} {
+                break;
+              }
+            }
+          } else {
+            Error \
 			    "Illegal option type specification: must be one of $charclasses" \
 			    BAD OPTION TYPE
-                    }
-                } else {
-                    set optarg "Illegal option -- $_opt"
-                    set retvar $_opt
-                    set retval -1
-                }
-            }
-	    default {
-		# Skip ahead
-	    }
+          }
+        } else {
+          set optarg "Illegal option -- $_opt"
+          set retvar $_opt
+          set retval -1
         }
+      }
+      default {
+		# Skip ahead
+      }
     }
+  }
 
-    return $retval
+  return $retval
 }
 
 # ::cmdline::typedGetoptions --
@@ -806,63 +806,63 @@ proc ::cmdline::typedGetopt {argvVar optstring optVar argVar} {
 #	Name value pairs suitable for using with array set.
 
 proc ::cmdline::typedGetoptions {arglistVar optlist {usage options:}} {
-    variable charclasses
+  variable charclasses
 
-    upvar 1 $arglistVar argv
+  upvar 1 $arglistVar argv
 
-    set opts {? help}
-    foreach opt $optlist {
-        set name [lindex $opt 0]
-        if {[regsub -- {\.secret$} $name {} name] == 1} {
+  set opts {? help}
+  foreach opt $optlist {
+    set name [lindex $opt 0]
+    if {[regsub -- {\.secret$} $name {} name] == 1} {
             # Remove this extension before passing to typedGetopt.
-        }
-        if {[regsub -- {\.multi$} $name {} name] == 1} {
+    }
+    if {[regsub -- {\.multi$} $name {} name] == 1} {
             # Remove this extension before passing to typedGetopt.
 
-            regsub -- {\..*$} $name {} temp
-            set multi($temp) 1
-        }
-        lappend opts $name
-        if {[regsub -- "\\.(arg|$charclasses|\\(.+).?\$" $name {} name] == 1} {
+      regsub -- {\..*$} $name {} temp
+      set multi($temp) 1
+    }
+    lappend opts $name
+    if {[regsub -- "\\.(arg|$charclasses|\\(.+).?\$" $name {} name] == 1} {
             # Set defaults for those that take values.
             # Booleans are set just by being present, or not
 
-            set dflt [lindex $opt 1]
-            if {$dflt != {}} {
-                set defaults($name) $dflt
-            }
-        }
+      set dflt [lindex $opt 1]
+      if {$dflt != {}} {
+        set defaults($name) $dflt
+      }
     }
-    set argc [llength $argv]
-    while {[set err [typedGetopt argv $opts opt arg]]} {
-        if {$err == 1} {
-            if {[info exists result($opt)]
-                    && [info exists multi($opt)]} {
+  }
+  set argc [llength $argv]
+  while {[set err [typedGetopt argv $opts opt arg]]} {
+    if {$err == 1} {
+      if {[info exists result($opt)]
+      && [info exists multi($opt)]} {
                 # Toggle boolean options or append new arguments
 
-                if {$arg == ""} {
-                    unset result($opt)
-                } else {
-                    set result($opt) "$result($opt) $arg"
-                }
-            } else {
-                set result($opt) "$arg"
-            }
-        } elseif {($err == -1) || ($err == -3)} {
-            Error [typedUsage $optlist $usage] USAGE
-        } elseif {$err == -2 && ![info exists defaults($opt)]} {
-            Error [typedUsage $optlist $usage] USAGE
+        if {$arg == ""} {
+          unset result($opt)
+        } else {
+          set result($opt) "$result($opt) $arg"
         }
+      } else {
+        set result($opt) "$arg"
+      }
+    } elseif {($err == -1) || ($err == -3)} {
+      Error [typedUsage $optlist $usage] USAGE
+    } elseif {$err == -2 && ![info exists defaults($opt)]} {
+      Error [typedUsage $optlist $usage] USAGE
     }
-    if {[info exists result(?)] || [info exists result(help)]} {
-        Error [typedUsage $optlist $usage] USAGE
+  }
+  if {[info exists result(?)] || [info exists result(help)]} {
+    Error [typedUsage $optlist $usage] USAGE
+  }
+  foreach {opt dflt} [array get defaults] {
+    if {![info exists result($opt)]} {
+      set result($opt) $dflt
     }
-    foreach {opt dflt} [array get defaults] {
-        if {![info exists result($opt)]} {
-            set result($opt) $dflt
-        }
-    }
-    return [array get result]
+  }
+  return [array get result]
 }
 
 # ::cmdline::typedUsage --
@@ -878,37 +878,37 @@ proc ::cmdline::typedGetoptions {arglistVar optlist {usage options:}} {
 #	A formatted usage message
 
 proc ::cmdline::typedUsage {optlist {usage {options:}}} {
-    variable charclasses
+  variable charclasses
 
-    set str "[getArgv0] $usage\n"
-    foreach opt [concat $optlist \
+  set str "[getArgv0] $usage\n"
+  foreach opt [concat $optlist \
             {{help "Print this message"} {? "Print this message"}}] {
-        set name [lindex $opt 0]
-        if {[regsub -- {\.secret$} $name {} name] == 1} {
+    set name [lindex $opt 0]
+    if {[regsub -- {\.secret$} $name {} name] == 1} {
             # Hidden option
 
-        } else {
-            if {[regsub -- {\.multi$} $name {} name] == 1} {
+    } else {
+      if {[regsub -- {\.multi$} $name {} name] == 1} {
                 # Display something about multiple options
-            }
+      }
 
-            if {[regexp -- "\\.(arg|$charclasses)\$" $name dummy charclass]
-                    || [regexp -- {\.\(([^)]+)\)} $opt dummy charclass]} {
-                   regsub -- "\\..+\$" $name {} name
-                set comment [lindex $opt 2]
-                set default "<[lindex $opt 1]>"
-                if {$default == "<>"} {
-                    set default ""
-                }
-                append str [format " %-20s %s %s\n" "-$name $charclass" \
-                        $comment $default]
-            } else {
-                set comment [lindex $opt 1]
-		append str [format " %-20s %s\n" "-$name" $comment]
-            }
+      if {[regexp -- "\\.(arg|$charclasses)\$" $name dummy charclass]
+      || [regexp -- {\.\(([^)]+)\)} $opt dummy charclass]} {
+        regsub -- "\\..+\$" $name {} name
+        set comment [lindex $opt 2]
+        set default "<[lindex $opt 1]>"
+        if {$default == "<>"} {
+          set default ""
         }
+        append str [format " %-20s %s %s\n" "-$name $charclass" \
+                        $comment $default]
+      } else {
+        set comment [lindex $opt 1]
+        append str [format " %-20s %s\n" "-$name" $comment]
+      }
     }
-    return $str
+  }
+  return $str
 }
 
 # ::cmdline::prefixSearch --
@@ -928,22 +928,22 @@ proc ::cmdline::typedUsage {optlist {usage {options:}}} {
 proc ::cmdline::prefixSearch {list pattern} {
     # Check for an exact match
 
-    if {[set pos [::lsearch -exact $list $pattern]] > -1} {
-        return $pos
-    }
+  if {[set pos [::lsearch -exact $list $pattern]] > -1} {
+    return $pos
+  }
 
     # Check for a unique short version
 
-    set slist [lsort $list]
-    if {[set pos [::lsearch -glob $slist $pattern*]] > -1} {
+  set slist [lsort $list]
+  if {[set pos [::lsearch -glob $slist $pattern*]] > -1} {
         # What if there is nothing for the check variable?
 
-        set check [lindex $slist [expr {$pos + 1}]]
-        if {[string first $pattern $check] != 0} {
-            return [::lsearch -exact $list [lindex $slist $pos]]
-        }
+    set check [lindex $slist [expr {$pos + 1}]]
+    if {[string first $pattern $check] != 0} {
+      return [::lsearch -exact $list [lindex $slist $pos]]
     }
-    return -1
+  }
+  return -1
 }
 # ::cmdline::Error --
 #
@@ -958,5 +958,5 @@ proc ::cmdline::prefixSearch {list pattern} {
 #	An error is thrown, always.
 
 proc ::cmdline::Error {message args} {
-    return -code error -errorcode [linsert $args 0 CMDLINE] $message
+  return -code error -errorcode [linsert $args 0 CMDLINE] $message
 }

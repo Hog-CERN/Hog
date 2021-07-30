@@ -33,6 +33,7 @@ namespace eval globalSettings {
   variable FAMILY
 
   variable PROPERTIES
+  variable SIM_PROPERTIES
   variable HOG_EXTERNAL_PATH
   variable TARGET_SIMULATOR
 
@@ -441,7 +442,7 @@ proc ConfigureSimulation {} {
     ##############
     Msg Info "Setting load_glbl parameter to true for every fileset..."
     foreach f [get_filesets -quiet *_sim] {
-      set_property -name {xsim.elaborate.load_glbl} -value {true} -objects $f
+      set_property -name {xsim.elaborate.load_glbl} -value {true} -objects [get_filesets $f]
     }
   }  elseif {[info commands project_new] != ""} {
     #QUARTUS only
@@ -459,7 +460,7 @@ proc ConfigureProperties {} {
   cd $globalSettings::repo_path
   if {[info commands send_msg_id] != ""} {
     set user_repo "0"
-
+    # Setting Main Properties
     if [info exists globalSettings::PROPERTIES] {
       if [dict exists $globalSettings::PROPERTIES main] {
         Msg Info "Setting project-wide properties..."
@@ -485,7 +486,7 @@ proc ConfigureProperties {} {
 
         }
       }
-
+      # Setting Run Properties
       foreach run [get_runs -quiet] {
         if [dict exists $globalSettings::PROPERTIES $run] {
           Msg Info "Setting properties for run: $run..."
@@ -494,6 +495,25 @@ proc ConfigureProperties {} {
           dict for {prop_name prop_val} $run_props {
             Msg Info "Setting $prop_name = $prop_val"
             set_property $prop_name $prop_val $run
+          }
+        }
+      }
+      # Setting Simulation Properties
+      foreach simset [get_filesets -quiet *_sim] {
+        if [dict exists $globalSettings::SIM_PROPERTIES $simset] {
+          Msg Info "Setting properties for simulation set : $simset..."
+          set sim_props [dict get $globalSettings::SIM_PROPERTIES $simset]
+          dict for {prop_name prop_val} $sim_props {
+            Msg Info "Setting $prop_name = $prop_val"
+            set_property $prop_name $prop_val [get_filesets $simset]
+          }
+        }
+        if [dict exists $globalSettings::SIM_PROPERTIES sim] {
+          Msg Info "Setting properties for all simulation sets..."
+          set sim_props [dict get $globalSettings::SIM_PROPERTIES sim]
+          dict for {prop_name prop_val} $sim_props {
+            Msg Info "Setting $prop_name = $prop_val"
+            set_property $prop_name $prop_val [get_filesets $simset]
           }
         }
       }
@@ -586,7 +606,7 @@ if { $::argc eq 0 && ![info exist DESIGN]} {
     exit 1
   }
   if { ![info exist DESIGN] || $DESIGN eq "" } { 
-     if { [lindex $argv 0] eq "" } {
+    if { [lindex $argv 0] eq "" } {
       Msg Error " Variable DESIGN not set!"
       Msg Info [cmdline::usage $parameters $usage]
       exit 1
@@ -644,7 +664,7 @@ if {[info exist workflow_simlib_path]} {
 
 
 set proj_dir $repo_path/Top/$DESIGN
-lassign [GetConfFiles $proj_dir] conf_file pre_file post_file tcl_file
+lassign [GetConfFiles $proj_dir] conf_file sim_file pre_file post_file tcl_file
 
 set user_repo 0
 if {[file exists $conf_file]} {
@@ -660,6 +680,11 @@ if {[file exists $conf_file]} {
     }
   } else {
     Msg Error "No main section found in $conf_file, make sure it has a section called \[main\] containing the mandatory properties."
+  }
+
+  if {[file exists $sim_file]} {
+    Msg Info "Parsing simulation configuration file $sim_file..."
+    set SIM_PROPERTIES [ReadConf $sim_file]
   }
 } else {
 
@@ -734,7 +759,7 @@ if {[info exists env(HOG_EXTERNAL_PATH)]} {
 }
 
 SetGlobalVar PROPERTIES ""
-
+SetGlobalVar SIM_PROPERTIES ""
 
 
 #Derived varibles from now on...
@@ -797,4 +822,4 @@ if {[file exists $post_file]} {
   source $post_file
 }
 
-Msg Info "Project $DESIGN created succesfully."
+Msg Info "Project $DESIGN created successfully."

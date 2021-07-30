@@ -19,6 +19,7 @@
 ## Import common functions from Other/CommonFunctions.sh in a POSIX compliant way
 #
 
+# shellcheck disable=SC2086
 # shellcheck source=./Other/CommonFunctions.sh
 . "$(dirname "$0")"/Other/CommonFunctions.sh
 

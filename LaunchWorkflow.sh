@@ -18,6 +18,8 @@
 
 ## Import common functions from Other/CommonFunctions.sh in a POSIX compliant way
 #
+
+# shellcheck disable=SC2086
 # shellcheck source=./Other/CommonFunctions.sh
 . "$(dirname "$0")"/Other/CommonFunctions.sh
 
@@ -115,7 +117,7 @@ if [ -z "$1" ]; then
 	printf " For a detailed explanation of all the option, type LaunchWorkflow.sh <project name> -h.\n"
 	printf " The project name is needed by Hog to tell which HDL software to use: Vivado, Quartus, etc.\n\n"
 	printf "Possible projects are:\n"
-	printf  "%s\n" "$(search_projects "$DIR"/../Top)"
+	printf "%s\n" "$(search_projects "$DIR"/../Top)"
 	cd "${OLD_DIR}" || exit
 	exit 255
 else
@@ -123,8 +125,8 @@ else
 	PROJ_DIR="$DIR/../Top/"$PROJ
 	if [ -d "$PROJ_DIR" ]; then
 
-		#Choose if the project is quastus, vivado, vivado_hls [...]
-		
+		#Choose if the project is quartus, vivado, vivado_hls [...]
+
 		if ! select_executable_from_project_dir "$PROJ_DIR"; then
 			Msg Error "Failed to get HDL compiler executable for $PROJ_DIR"
 			exit 255
@@ -150,11 +152,11 @@ else
 			if [ "a$IP_PATH" != "a" ]; then
 				Msg Warning "IP eos path not supported in Quartus mode"
 			fi
-			${HDL_COMPILER} "$COMMAND_OPT" "$DIR"/Tcl/launchers/launch_quartus.tcl $HELP $NO_BITSTREAM $SYNTH_ONLY "$NJOBS" $CHECK_SYNTAX $RECREATE "$EXT_PATH" $IMPL_ONLY -project "$1"
+			${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_quartus.tcl $HELP $NO_BITSTREAM $SYNTH_ONLY $NJOBS $CHECK_SYNTAX $RECREATE $EXT_PATH $IMPL_ONLY -project $1
 		elif [ $COMMAND = "vivado_hls" ]; then
 			Msg Error "Vivado HLS is not yet supported by this script!"
 		else
-			${HDL_COMPILER} "$COMMAND_OPT" "$DIR"/Tcl/launchers/launch_workflow.tcl -tclargs $HELP $NO_RESET $NO_BITSTREAM $SYNTH_ONLY "$IP_PATH" "$NJOBS" $CHECK_SYNTAX $RECREATE "$EXT_PATH" $IMPL_ONLY "$SIMLIBPATH" "$1"
+			${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_workflow.tcl -tclargs $HELP $NO_RESET $NO_BITSTREAM $SYNTH_ONLY $IP_PATH $NJOBS $CHECK_SYNTAX $RECREATE $EXT_PATH $IMPL_ONLY $SIMLIBPATH $1
 		fi
 	else
 		Msg Error "Project $PROJ not found. Possible projects are:"

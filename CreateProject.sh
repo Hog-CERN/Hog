@@ -20,6 +20,7 @@
 #
 
 # shellcheck disable=SC2181
+# shellcheck disable=SC2086
 # shellcheck source=./Other/CommonFunctions.sh
 . "$(dirname "$0")"/Other/CommonFunctions.sh
 
@@ -104,7 +105,7 @@ function create_project() {
       shift # past argument
       shift # past value
       ;;
-    *)                   # unknown option
+    *)                  # unknown option
       POSITIONAL+=("$1") # save it in an array for later
       shift              # past argument
       ;;
@@ -115,15 +116,14 @@ function create_project() {
   if [ -d "$PROJ_DIR" ]; then
 
     #Choose if the project is quastus, vivado, vivado_hls [...]
-    
-    if ! select_command "$PROJ_DIR";
-    then
+
+    if ! select_command "$PROJ_DIR"; then
       Msg Error "Failed to select project type: exiting!"
       exit 255
     fi
 
     #select full path to executable and place it in HDL_COMPILER global variable
-    
+
     if ! select_compiler_executable $COMMAND; then
       Msg Error "Failed to get HDL compiler executable for $COMMAND"
       exit 255
@@ -138,22 +138,22 @@ function create_project() {
     fi
 
     if [ $FILE_TYPE == "CONF" ]; then
-      cd "${DIR}" || exit 
+      cd "${DIR}" || exit
       Msg Info "Creating project $PROJ using hog.conf..."
       if [ -z ${LIBPATH+x} ]; then
         if [ -z ${HOG_SIMULATION_LIB_PATH+x} ]; then
-          "${HDL_COMPILER}" "$COMMAND_OPT" ../Hog/Tcl/create_project.tcl $POST_COMMAND_OPT "$PROJ"
+          ${HDL_COMPILER} $COMMAND_OPT ../Hog/Tcl/create_project.tcl $POST_COMMAND_OPT $PROJ
         else
-          "${HDL_COMPILER}" "$COMMAND_OPT" ../Hog/Tcl/create_project.tcl $POST_COMMAND_OPT -simlib_path "${HOG_SIMULATION_LIB_PATH}" "$PROJ"
+          ${HDL_COMPILER} ${COMMAND_OPT} ../Hog/Tcl/create_project.tcl $POST_COMMAND_OPT -simlib_path ${HOG_SIMULATION_LIB_PATH} $PROJ
         fi
       else
-        "${HDL_COMPILER}" "$COMMAND_OPT" ../Hog/Tcl/create_project.tcl $POST_COMMAND_OPT -simlib_path "${LIBPATH}" "$PROJ"
+        ${HDL_COMPILER} $COMMAND_OPT ../Hog/Tcl/create_project.tcl $POST_COMMAND_OPT -simlib_path ${LIBPATH} $PROJ
       fi
     elif [ $FILE_TYPE == "TCL" ]; then
-      cd "${PROJ_DIR}" || exit 
+      cd "${PROJ_DIR}" || exit
       PROJ_NAME=$(basename "$PROJ_DIR")
       Msg Warning "Creating project $PROJ using $PROJ.tcl, this is deprecated and will not be supported in future Hog releases..."
-      "${HDL_COMPILER}" "$COMMAND_OPT" "$PROJ_NAME.tcl"
+      ${HDL_COMPILER} $COMMAND_OPT "$PROJ_NAME.tcl"
     else
       Msg Error "Unknown file type: $FILE_TYPE"
       exit 1

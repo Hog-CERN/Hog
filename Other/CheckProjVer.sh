@@ -159,12 +159,12 @@ function main() {
 
     if [ $COMMAND = "quartus_sh" ]; then
       echo "Hog-INFO: Executing:  ${HDL_COMPILER} $COMMAND_OPT $DIR/../../Hog/Tcl/CI/check_proj_ver.tcl $EXT_PATH $SIM $PROJ"
-      "${HDL_COMPILER}" "$COMMAND_OPT" $DIR/../Hog/Tcl/CI/check_proj_ver.tcl "$EXT_PATH" $SIM "$PROJ"
+      ${HDL_COMPILER} $COMMAND_OPT $DIR/../Hog/Tcl/CI/check_proj_ver.tcl $EXT_PATH $SIM $PROJ
     elif [ $COMMAND = "vivado_hls" ]; then
       echo "Hog-ERROR: Vivado HLS is not yet supported by this script!"
     else
       echo "Hog-INFO: Executing:  ${HDL_COMPILER} $COMMAND_OPT $DIR/../../Hog/Tcl/CI/check_proj_ver.tcl -tclargs $EXT_PATH $SIM $PROJ"
-      "${HDL_COMPILER}" "$COMMAND_OPT" $DIR/../Hog/Tcl/CI/check_proj_ver.tcl -tclargs "$EXT_PATH" $SIM "$PROJ"
+      ${HDL_COMPILER} $COMMAND_OPT $DIR/../Hog/Tcl/CI/check_proj_ver.tcl -tclargs $EXT_PATH $SIM $PROJ
     fi
   fi
 }

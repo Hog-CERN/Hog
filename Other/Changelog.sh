@@ -28,7 +28,7 @@ else
 
     if [ $? -eq 0 ]; then
         echo "## MR Description"
-        curl --request GET --header "PRIVATE-TOKEN: ${push_token}" "$api/projects/${proj}/merge_requests/${mr}" | jq -r '.description'
+        curl --request GET --header "PRIVATE-TOKEN: ${push_token}" "$api/projects/${proj}/merge_requests/${mr}" | jq -r ".description"
         echo
         echo 
         echo "## Changelog"

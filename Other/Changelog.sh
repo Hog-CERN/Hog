@@ -23,12 +23,6 @@ else
     mr=$4
     TARGET_BRANCH=$5
 
-    echo "$push_token"
-    echo "$api"
-    echo "$proj"
-    echo "$mr"
-    echo "$TARGET_BRANCH"
-
     git rev-parse --verify "$TARGET_BRANCH" >/dev/null 2>&1
     SRC_BRANCH=$(git rev-parse --abbrev-ref HEAD)
 

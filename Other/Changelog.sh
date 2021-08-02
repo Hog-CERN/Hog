@@ -13,18 +13,28 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-if [ $# -eq 0 ]; then
-    TARGET_BRANCH=master
+if [ -z "$1" ]
+then
+        echo "Usage: Changelog.sh <push token> <Gitlab api url> <project id> <mr id> <file.md> <target_branch>"
 else
-    TARGET_BRANCH=$1
-fi
+    push_token=$1
+    api=$2
+    proj=$3
+    mr=$4
+    TARGET_BRANCH=$5
 
-git rev-parse --verify "$TARGET_BRANCH" >/dev/null 2>&1
-SRC_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+    git rev-parse --verify "$TARGET_BRANCH" >/dev/null 2>&1
+    SRC_BRANCH=$(git rev-parse --abbrev-ref HEAD)
 
-if [ $? -eq 0 ]; then
-    echo "## Changelog"
-    echo
-    git log --no-merges "$SRC_BRANCH" ^origin/"$TARGET_BRANCH" --format=%B -- | grep FEATURE: | sed 's/.*FEATURE: */- /'
-    echo
+    if [ $? -eq 0 ]; then
+        echo "## MR Description"
+        curl --request GET --header "PRIVATE-TOKEN: ${push_token}" "$api/projects/${proj}/merge_requests/${mr}" | jq -r '.description'
+        echo
+        echo 
+        echo "## Changelog"
+        echo
+        git log --no-merges "$SRC_BRANCH" ^origin/"$TARGET_BRANCH" --format=%B -- | grep FEATURE: | sed 's/.*FEATURE: */- /'
+        echo
+    fi
+
 fi

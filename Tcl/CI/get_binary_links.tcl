@@ -73,9 +73,13 @@ foreach proj $projects_list {
     if {$ret != 0} {
       Msg Warning "Project $proj does not have binary files"
     } else {
-      set url [ParseJSON $content "url"]
-      set absolute_url ${prj_url}${url}
-      puts $fp "$proj $absolute_url"
+      if {[string index $content 0] eq "{"} {
+	set url [ParseJSON $content "url"]
+	set absolute_url ${prj_url}${url}
+	puts $fp "$proj $absolute_url"
+      } else {
+	Msg CriticalWarning "Error while trying to upload ${proj_name}-${ver}.zip: $content"
+      }
     }
   } elseif {"$ver"=="-1"} {
     Msg CriticalWarning "Something went wrong when tried to retrieve version for project $proj"

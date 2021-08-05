@@ -73,7 +73,7 @@ foreach proj $projects_list {
     if {$ret != 0} {
       Msg Warning "Project $proj does not have binary files"
     } else {
-      if {[string index $content 0] eq "{"} {
+      if {[string index $content 0] eq "\{" } {
 	set url [ParseJSON $content "url"]
 	set absolute_url ${prj_url}${url}
 	puts $fp "$proj $absolute_url"

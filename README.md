@@ -27,4 +27,4 @@ You can report problems with Hog in using the issues in this repository. Please 
 
 ## License
 
-Hog is distributed under the Apache License, Version 2.0.
+Hog is distributed under the Apache License, Version 2.0. 

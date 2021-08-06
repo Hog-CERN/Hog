@@ -68,7 +68,7 @@ foreach proj $projects_list {
       set proj_zip [string map {/ _} $proj_dir]
       set files [glob -directory "$repo_path/zipped/" ${proj_zip}_${proj_name}-${ver}.z*]
     } else {
-      set files [glob -directory "$repo_path/zipped/" ${proj_zip}_${proj_name}-${ver}.z*]
+      set files [glob -directory "$repo_path/zipped/" ${proj_name}-${ver}.z*]
     }
     foreach f $files {
       puts "Uploading file $f"

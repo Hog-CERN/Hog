@@ -66,9 +66,13 @@ foreach proj $projects_list {
     }
     if { $proj_dir != "." } {
       set proj_zip [string map {/ _} $proj_dir]
-      lassign [ExecuteRet curl -s --request POST --header "PRIVATE-TOKEN: ${push_token}" --form "file=@$repo_path/zipped/${proj_zip}_${proj_name}-${ver}.zip" ${api}/projects/${proj_id}/uploads] ret content
+      set files [glob -directory "$repo_path/zipped/" ${proj_zip}_${proj_name}-${ver}.z*]
     } else {
-      lassign [ExecuteRet curl -s --request POST --header "PRIVATE-TOKEN: ${push_token}" --form "file=@$repo_path/zipped/${proj_name}-${ver}.zip" ${api}/projects/${proj_id}/uploads] ret content
+      set files [glob -directory "$repo_path/zipped/" ${proj_zip}_${proj_name}-${ver}.z*]
+    }
+    foreach f $files {
+      puts "Uploading file $f"
+      lassign [ExecuteRet curl -s --request POST --header "PRIVATE-TOKEN: ${push_token}" --form "file=@$f" ${api}/projects/${proj_id}/uploads] ret content
     }
     if {$ret != 0} {
       Msg Warning "Project $proj does not have binary files"

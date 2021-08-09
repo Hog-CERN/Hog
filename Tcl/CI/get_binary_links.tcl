@@ -28,7 +28,7 @@ if {[catch {package require cmdline} ERROR]} {
 }
 
 set parameters {
-   {force "Forces the creation of new project links"}
+  {force "Forces the creation of new project links"}
 }
 
 set usage "- CI script that retrieves binary files links or creates new ones to be uploaded as Releases\n USAGE: $::argv0 <push token> <Gitlab api url> <project id> <project url> <tag> \[OPTIONS\] \n. Options:"
@@ -73,16 +73,16 @@ foreach proj $projects_list {
     foreach f $files {
       puts "Uploading file $f"
       lassign [ExecuteRet curl -s --request POST --header "PRIVATE-TOKEN: ${push_token}" --form "file=@$f" ${api}/projects/${proj_id}/uploads] ret content
-    }
-    if {$ret != 0} {
-      Msg Warning "Project $proj does not have binary files"
-    } else {
-      if {[string index $content 0] eq "\{" } {
-	set url [ParseJSON $content "url"]
-	set absolute_url ${prj_url}${url}
-	puts $fp "$proj $absolute_url"
+      if {$ret != 0} {
+        Msg Warning "Project $proj does not have binary files"
       } else {
-	Msg CriticalWarning "Error while trying to upload ${proj_name}-${ver}.zip: $content"
+        if {[string index $content 0] eq "\{" } {
+          set url [ParseJSON $content "url"]
+          set absolute_url ${prj_url}${url}
+          puts $fp "$proj $absolute_url"
+        }
+      } else {
+        Msg CriticalWarning "Error while trying to upload ${proj_name}-${ver}.zip: $content"
       }
     }
   } elseif {"$ver"=="-1"} {

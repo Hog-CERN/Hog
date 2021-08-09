@@ -95,6 +95,7 @@ foreach proj $projects_list {
     if {$ret != 0} {
       Msg Warning "Some problem when fetching release $ver : $msg"
     } else {
+      puts $msg
       set link ""
       foreach line [split  [ParseJSON $msg description] "\n"] {
         if { $proj_dir != "." } {

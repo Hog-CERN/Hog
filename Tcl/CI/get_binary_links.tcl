@@ -74,7 +74,7 @@ foreach proj $projects_list {
       puts "Uploading file $f"
       lassign [ExecuteRet curl -s --request POST --header "PRIVATE-TOKEN: ${push_token}" --form "file=@$f" ${api}/projects/${proj_id}/uploads] ret content
       if {$ret != 0} {
-        Msg CriticalWarning "Error while trying to upload ${proj_name}-${ver}.zip: $content"
+        Msg CriticalWarning "Error while trying to upload $f: $content"
       } else {
         if {[string index $content 0] eq "\{" } {
           set url [ParseJSON $content "url"]

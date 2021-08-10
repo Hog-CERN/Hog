@@ -66,21 +66,23 @@ foreach proj $projects_list {
     }
     if { $proj_dir != "." } {
       set proj_zip [string map {/ _} $proj_dir]
-      set files [glob -directory "$repo_path/zipped/" ${proj_zip}_${proj_name}-${ver}.z*]
+      set files [glob -nocomplain -directory "$repo_path/zipped/" ${proj_zip}_${proj_name}-${ver}.z*]
     } else {
-      set files [glob -directory "$repo_path/zipped/" ${proj_name}-${ver}.z*]
+      set files [glob -nocomplain -directory "$repo_path/zipped/" ${proj_name}-${ver}.z*]
     }
     foreach f $files {
-      puts "Uploading file $f"
+      Msg Info "Uploading file $f"
       lassign [ExecuteRet curl -s --request POST --header "PRIVATE-TOKEN: ${push_token}" --form "file=@$f" ${api}/projects/${proj_id}/uploads] ret content
       if {$ret != 0} {
-        Msg CriticalWarning "Error while trying to upload $f: $content"
+        Msg CriticalWarning "Error with curl while trying to upload $f: $content"
       } else {
         if {[string index $content 0] eq "\{" } {
           set url [ParseJSON $content "url"]
           set absolute_url ${prj_url}${url}
           puts $fp "$proj $absolute_url"
-        }
+        } else {
+	  Msg CriticalWarning "Error while trying to upload $f: $content"
+	}
       }
     }
   } elseif {"$ver"=="-1"} {

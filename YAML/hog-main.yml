@@ -119,7 +119,7 @@ archive_binary_files:
     - cd bin
     - projects=$(find . -name "*.bit" -o -name "*.pof")
     - if [ -z ${HOG_MAX_ZIP_SIZE+x} ]; then
-        export HOG_MAX_ZIP_SIZE=12m;
+        export HOG_MAX_ZIP_SIZE=10m;
         echo "Hog-CI(info) - Maximum size of artifact zip set to $HOG_MAX_ZIP_SIZE";
       fi;
     - for proj in $projects; do
@@ -127,7 +127,7 @@ archive_binary_files:
         PRJ_DIR=$(echo "$PRJ_DIR" | sed -r 's#\./##g');
         DEST_ZIP=$(echo "$PRJ_DIR" | sed -r 's#/#_#g');
         zip -r -s $HOG_MAX_ZIP_SIZE ../zipped/$DEST_ZIP.zip $PRJ_DIR;
-      done;  
+      done;
     - cd ..
     - if [[ -v HOG_CREATE_OFFICIAL_RELEASE ]] && [[ $HOG_CREATE_OFFICIAL_RELEASE == "1" ]]; then
         if [[ -v HOG_CHECK_PROJVER ]] && [[ $HOG_CHECK_PROJVER == '1' ]]; then

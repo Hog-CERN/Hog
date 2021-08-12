@@ -1072,49 +1072,49 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
     #Msg Info "Checking checksums of external library files in $f"
     foreach line $data {
       if {![regexp {^ *$} $line] & ![regexp {^ *\#} $line] } { #Exclude empty lines and comments
-        set file_and_prop [regexp -all -inline {\S+} $line]
-        set hdlfile [lindex $file_and_prop 0]
-        set hdlfile $ext_path/$hdlfile
-        if { [file exists $hdlfile] } {
-          set hash [lindex $file_and_prop 1]
-          set current_hash [Md5Sum $hdlfile]
-          if {[string first $hash $current_hash] == -1} {
-            Msg CriticalWarning "File $hdlfile has a wrong hash. Current checksum: $current_hash, expected: $hash"
-          }
+      set file_and_prop [regexp -all -inline {\S+} $line]
+      set hdlfile [lindex $file_and_prop 0]
+      set hdlfile $ext_path/$hdlfile
+      if { [file exists $hdlfile] } {
+        set hash [lindex $file_and_prop 1]
+        set current_hash [Md5Sum $hdlfile]
+        if {[string first $hash $current_hash] == -1} {
+          Msg CriticalWarning "File $hdlfile has a wrong hash. Current checksum: $current_hash, expected: $hash"
         }
       }
     }
   }
+}
 
-  # Ipbus XML
-  if [file exists ./list/xml.lst] {
-    #Msg Info "Found IPbus XML list file, evaluating version and SHA of listed files..."
-    lassign [GetHogFiles  -list_files "xml.lst" -repo_path $repo_path  -sha_mode "./list/"] xml_files dummy
-    lassign [GetVer  [dict get $xml_files "xml.lst"] ] xml_ver xml_hash
-    lappend SHAs $xml_hash
-    lappend versions $xml_ver
-    #Msg Info "Found IPbus XML SHA: $xml_hash and version: $xml_ver."
+# Ipbus XML
+if [file exists ./list/xml.lst] {
+  #Msg Info "Found IPbus XML list file, evaluating version and SHA of listed files..."
+  lassign [GetHogFiles  -list_files "xml.lst" -repo_path $repo_path  -sha_mode "./list/"] xml_files dummy
+  lassign [GetVer  [dict get $xml_files "xml.lst"] ] xml_ver xml_hash
+  lappend SHAs $xml_hash
+  lappend versions $xml_ver
+  #Msg Info "Found IPbus XML SHA: $xml_hash and version: $xml_ver."
 
-  } else {
-    Msg Info "This project does not use IPbus XMLs"
-    set xml_ver  00000000
-    set xml_hash 0000000
-  }
+} else {
+  Msg Info "This project does not use IPbus XMLs"
+  set xml_ver  00000000
+  set xml_hash 0000000
+}
 
-  #The global SHA and ver is the most recent among everything
-  if {$clean == 1} {
-    set commit [Git "log --format=%h -1 $SHAs"]
-    set version [FindNewestVersion $versions]
-  } else {
-    set commit  "00000000"
-    set version "00000000"
-  }
+#The global SHA and ver is the most recent among everything
+if {$clean == 1} {
+  set commit [Git "log --format=%h -1 $SHAs"]
+  set version [FindNewestVersion $versions]
+} else {
+  set commit  "00000000"
+  set version "00000000"
+}
 
-  cd $old_path
+cd $old_path
 
-  set top_hash [format %+07s $top_hash]
-  set cons_hash [format %+07s $cons_hash]
-  return [list $commit $version  $hog_hash $hog_ver  $top_hash $top_ver  $libs $hashes $vers  $cons_ver $cons_hash  $ext_names $ext_hashes  $xml_hash $xml_ver]
+set top_hash [format %+07s $top_hash]
+set cons_hash [format %+07s $cons_hash]
+return [list $commit $version  $hog_hash $hog_ver  $top_hash $top_ver  $libs $hashes $vers  $cons_ver $cons_hash  $ext_names $ext_hashes  $xml_hash $xml_ver]
 }
 
 
@@ -1552,7 +1552,7 @@ proc GetProjectFiles {} {
         break
       }
     }
-    
+
 
     foreach simulator [GetSimulators] {
       set dofile [get_property "$simulator.simulate.custom_udo" [get_filesets $fs]]
@@ -1825,6 +1825,18 @@ proc AddHogFiles { libraries properties {verbose 0}} {
             }
           }
 
+          if {[file ext $f] == ".v" || [file ext $f] == ".sv"} {
+            if {[lsearch -inline -regex $props "SystemVerilog"] > 0} {
+              # ISE does not support vhdl2008
+              if { [string first PlanAhead [version]] != 0 } {
+                set_property -name "file_type" -value "SystemVerilog" -objects $file_obj
+              }
+            } else {
+              Msg Info "Filetype is Verilog for $f"
+            }
+          }
+
+
           # Top synthesis module
           set top [lindex [regexp -inline {top\s*=\s*(.+?)\y.*} $props] 1]
           if { $top != "" } {
@@ -1834,9 +1846,9 @@ proc AddHogFiles { libraries properties {verbose 0}} {
 
           # XDC
           if {[lsearch -inline -regex $props "XDC"] >= 0 || [file ext $f] == ".xdc"} {
-	    if {$verbose == 1} {
-	      Msg Info "Setting filetype XDC for $f"
-	    }
+            if {$verbose == 1} {
+              Msg Info "Setting filetype XDC for $f"
+            }
             set_property -name "file_type" -value "XDC" -objects $file_obj
           }
 
@@ -1879,10 +1891,10 @@ proc AddHogFiles { libraries properties {verbose 0}} {
 
           # Wave do file
           if {[lsearch -inline -regex $props "wavefile"] >= 0} {
-	    if {$verbose == 1} {
-	      Msg Info "Setting $f as wave do file for simulation file set $file_set..."
-	    }
-	      # check if file exists...
+            if {$verbose == 1} {
+              Msg Info "Setting $f as wave do file for simulation file set $file_set..."
+            }
+            # check if file exists...
             if [file exists $f] {
               foreach simulator [GetSimulators] {
                 set_property "$simulator.simulate.custom_wave_do" $f [get_filesets $file_set]
@@ -1895,9 +1907,9 @@ proc AddHogFiles { libraries properties {verbose 0}} {
 
           #Do file
           if {[lsearch -inline -regex $props "dofile"] >= 0} {
-	    if {$verbose == 1} {
-	      Msg Info "Setting $f as udo file for simulation file set $file_set..."
-	    }
+            if {$verbose == 1} {
+              Msg Info "Setting $f as udo file for simulation file set $file_set..."
+            }
             if [file exists $f] {
               foreach simulator [GetSimulators] {
                 set_property "$simulator.simulate.custom_udo" $f [get_filesets $file_set]
@@ -1993,12 +2005,12 @@ proc AddHogFiles { libraries properties {verbose 0}} {
                 # remove qsys from options since we used it
                 set emptyString ""
                 regsub -all {\{||qsys||\}} $props $emptyString props
-                
+
                 set qsysPath [file dirname $cur_file]
                 set qsysName "[file rootname [file tail $cur_file]].qsys"
                 set qsysFile "$qsysPath/$qsysName"
                 set qsysLogFile "$qsysPath/[file rootname [file tail $cur_file]].qsys-script.log"
-               
+
                 set qsys_rootdir ""
                 if {! [info exists ::env(QSYS_ROOTDIR)] } {
                   if {[info exists ::env(QUARTUS_ROOTDIR)] } {
@@ -2072,7 +2084,7 @@ proc AddHogFiles { libraries properties {verbose 0}} {
               GenerateQsysSystem $cur_file $props
             }
           } else {
-              set_global_assignment -name $file_type $cur_file -library $rootlib
+            set_global_assignment -name $file_type $cur_file -library $rootlib
           }
         }
       }
@@ -2105,7 +2117,7 @@ proc GenerateQsysSystem {qsysFile commandOpts} {
       set qsys_rootdir $::env(QSYS_ROOTDIR)
     }
 
-    set cmd "$qsys_rootdir/qsys-generate" 
+    set cmd "$qsys_rootdir/qsys-generate"
     set cmd_options "$qsysFile --output-directory=$qsysIPDir $commandOpts"
     if {![catch {"exec $cmd -version"}] || [lindex $::errorCode 0] eq "NONE"} {
       Msg Info "Executing: $cmd $cmd_options"
@@ -2516,7 +2528,7 @@ proc FileCommitted {File }  {
   set Ret 1
   set currentDir [pwd]
   cd [file dirname [file normalize $File]]
-  set GitLog [Git ls-files [file tail $File]] 
+  set GitLog [Git ls-files [file tail $File]]
   if {$GitLog == ""} {
     Msg CriticalWarning "File [file normalize $File] is not in the git repository. Please add it with:\n git add [file normalize $File]\n"
     set Ret 0
@@ -2677,10 +2689,10 @@ proc SearchHogProjects {dir} {
   if {[file exists $dir]} {
     if {[file isdirectory $dir]} {
       foreach proj_dir [glob -type d $dir/* ] {
-        if {![regexp {^.*Top/+(.*)$} $proj_dir dummy proj_name]} { 
+        if {![regexp {^.*Top/+(.*)$} $proj_dir dummy proj_name]} {
           set proj_name
-          Msg Warning "Could not parse Top directory $dir" 
-        } 
+          Msg Warning "Could not parse Top directory $dir"
+        }
         if {[file exists $proj_dir/$proj_name.tcl ] || [file exists "$proj_dir/hog.conf" ] } {
           lappend projects_list $proj_name
         } else {

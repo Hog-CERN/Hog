@@ -1819,6 +1819,8 @@ proc AddHogFiles { libraries properties {verbose 0}} {
               # ISE does not support vhdl2008
               if { [string first PlanAhead [version]] != 0 } {
                 set_property -name "file_type" -value "VHDL 2008" -objects $file_obj
+              } else {
+                Msg Warning "Xilinx PlanAhead/ISE does not support VHDL2008. Property not set for $f"
               }
             } else {
               Msg Info "Filetype is VHDL 93 for $f"
@@ -1830,6 +1832,8 @@ proc AddHogFiles { libraries properties {verbose 0}} {
               # ISE does not support SystemVerilog
               if { [string first PlanAhead [version]] != 0 } {
                 set_property -name "file_type" -value "SystemVerilog" -objects $file_obj
+              } else {
+                Msg Warning "Xilinx PlanAhead/ISE does not support SystemVerilog. Property not set for $f"
               }
             } else {
               Msg Info "Filetype is Verilog for $f"

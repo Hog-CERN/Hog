@@ -1827,6 +1827,7 @@ proc AddHogFiles { libraries properties {verbose 0}} {
 
           if {[file ext $f] == ".v" || [file ext $f] == ".sv"} {
             if {[lsearch -inline -regex $props "SystemVerilog"] > 0} {
+              # ISE does not support SystemVerilog
               if { [string first PlanAhead [version]] != 0 } {
                 set_property -name "file_type" -value "SystemVerilog" -objects $file_obj
               }

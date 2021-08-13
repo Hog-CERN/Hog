@@ -1593,6 +1593,8 @@ proc GetProjectFiles {} {
       # Type can be complex like VHDL 2008, in that case we want the second part to be a property
       if {[string equal [lindex $type 0] "VHDL"] && [llength $type] == 1} {
         set prop "93"
+      } elseif {[string equal [lindex $type 0] "SystemVerilog"] && [file ext $f] == ".v"} {
+        set prop "SystemVerilog"
       } elseif  {[string equal [lindex $type 0] "Block"] && [string equal [lindex $type 1] "Designs"]} {
         set type "IP"
         set prop ""
@@ -1609,6 +1611,11 @@ proc GetProjectFiles {} {
         }
       } elseif {[string equal $type "VHDL"]} {
         dict lappend SRC $lib $f
+        if {![string equal $prop ""]} {
+          dict lappend properties $f $prop
+        }
+      }  elseif {[string equal [lindex $type 0] "SystemVerilog"] && [file ext $f] == ".v"} {
+        dict lappend libraries "OTHER" $f
         if {![string equal $prop ""]} {
           dict lappend properties $f $prop
         }
@@ -1825,17 +1832,17 @@ proc AddHogFiles { libraries properties {verbose 0}} {
             }
           }
 
-          if {[file ext $f] == ".v" || [file ext $f] == ".sv"} {
+          if {[file ext $f] == ".v"} {
             if {[lsearch -inline -regex $props "SystemVerilog"] > 0} {
               # ISE does not support SystemVerilog
               if { [string first PlanAhead [version]] != 0 } {
                 set_property -name "file_type" -value "SystemVerilog" -objects $file_obj
+                Msg Info "Filetype is SystemVerilog for $f"
+
               } else {
                 Msg Warning "Xilinx PlanAhead/ISE does not support SystemVerilog. Property not set for $f"
               }
-            } else {
-              Msg Info "Filetype is Verilog for $f"
-            }
+            } 
           }
 
 

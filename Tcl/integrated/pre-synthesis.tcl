@@ -109,7 +109,7 @@ if {$flavour != ""} {
 ResetRepoFiles "./Projects/hog_reset_files"
 
 # Getting all the versions and SHAs of the repository
-lassign [GetRepoVersions [file normalize $repo_path/Top/$group/$proj_name] $repo_path $ext_path] commit version  hog_hash hog_ver  top_hash top_ver  libs hashes vers  cons_ver cons_hash  ext_names ext_hashes  xml_hash xml_ver
+lassign [GetRepoVersions [file normalize $repo_path/Top/$group/$proj_name] $repo_path $ext_path] commit version  hog_hash hog_ver  top_hash top_ver  libs hashes vers  cons_ver cons_hash  ext_names ext_hashes  xml_hash xml_ver user_ip_repos user_ip_hashes user_ip_vers
 
 
 set describe [GetGitDescribe $commit]
@@ -281,6 +281,13 @@ if {[info commands set_property] != ""} {
     set generic_string "$generic_string $hash"
   }
 
+  foreach repo $user_ip_repos v $user_ip_vers h $user_ip_hashes {
+    set repo_name [file tail $repo]
+    set ver "[string toupper $repo_name]_VER=32'h$v "
+    set hash "[string toupper $repo_name]_SHA=32'h0$h"
+    set generic_string "$generic_string $ver $hash"
+  }
+
   if {$flavour != -1} {
     set generic_string "$generic_string FLAVOUR=$flavour"
   }
@@ -417,6 +424,15 @@ foreach l $libs v $vers h $hashes {
   Msg Status " $l SHA: $h, VER: $v"
   m add row "| \"**Lib:** $l\" |  [string tolower $h] | $v |"
 }
+
+Msg Status " --- User IP Repositories ---"
+foreach r $user_ip_repos v $user_ip_vers h $user_ip_hashes {
+  set v [HexVersionToString $v]
+  set repo_name [file tail $r]
+  Msg Status " $repo_name SHA: $h, VER: $v"
+  m add row "| \"**Repo:** $repo_name\" |  [string tolower $h] | $v |"
+}
+
 
 Msg Status " --- External Libraries ---"
 foreach e $ext_names eh $ext_hashes {

@@ -944,7 +944,7 @@ proc GetConfFiles {proj_dir} {
 #  @param[in] ext_path: path for external libraries
 #  @param[in] sim: if enabled, check the version also for the simulation files
 #
-#  @return  a list containing all the versions: global, top (project tcl file), constraints, libraries, submodules, external, ipbus xml
+#  @return  a list containing all the versions: global, top (project tcl file), constraints, libraries, submodules, external, ipbus xml, user ip repos
 #
 proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
   if { [catch {package require cmdline} ERROR] } {
@@ -995,7 +995,7 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
   set libs ""
   set vers ""
   set hashes ""
-  # Specyfiy sha_mode 1 for GetHogFiles to get all the files, includeng the list-files themselves
+  # Specify sha_mode 1 for GetHogFiles to get all the files, including the list-files themselves
   lassign [GetHogFiles -list_files "*.src" -sha_mode -repo_path $repo_path "./list/"] src_files dummy
   dict for {f files} $src_files {
     #library names have a .src extension in values returned by GetHogFiles
@@ -1010,9 +1010,8 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
   }
 
   # Read constraint list files
-
   set cons_hashes ""
-  # Specyfiy sha_mode 1 for GetHogFiles to get all the files, includeng the list-files themselves
+  # Specify sha_mode 1 for GetHogFiles to get all the files, including the list-files themselves
   lassign [GetHogFiles  -list_files "*.con" -sha_mode -repo_path $repo_path  "./list/" ] cons_files dummy
   dict for {f files} $cons_files {
     #library names have a .con extension in values returned by GetHogFiles
@@ -1030,7 +1029,7 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
   # Read simulation list files
   if {$sim == 1} {
     set sim_hashes ""
-    # Specyfiy sha_mode 1 for GetHogFiles to get all the files, includeng the list-files themselves
+    # Specify sha_mode 1 for GetHogFiles to get all the files, including the list-files themselves
     lassign [GetHogFiles  -list_files "*.sim" -sha_mode -repo_path $repo_path  "./list/"] sim_files dummy
     dict for {f files} $sim_files {
       #library names have a .sim extension in values returned by GetHogFiles
@@ -1091,9 +1090,9 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
     }
   }
 
-# Ipbus XML
+  # Ipbus XML
   if [file exists ./list/xml.lst] {
-  #Msg Info "Found IPbus XML list file, evaluating version and SHA of listed files..."
+    #Msg Info "Found IPbus XML list file, evaluating version and SHA of listed files..."
     lassign [GetHogFiles  -list_files "xml.lst" -repo_path $repo_path  -sha_mode "./list/"] xml_files dummy
     lassign [GetVer  [dict get $xml_files "xml.lst"] ] xml_ver xml_hash
     lappend SHAs $xml_hash
@@ -1106,7 +1105,29 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
     set xml_hash 0000000
   }
 
-#The global SHA and ver is the most recent among everything
+  # User IP Repository (Vivado only)
+  set user_ip_repos ""  
+  set user_ip_repo_hashes ""
+  set user_ip_repo_vers ""
+  if {[info commands send_msg_id] != ""} {
+    if { [string first PlanAhead [version]]==0 } {
+      foreach repo [get_property ip_repo_paths [current_fileset]] {
+        lappend user_ip_repos $repo
+      }
+    } else  {
+      foreach repo [get_property ip_repo_paths [current_project]] {
+        lappend user_ip_repos $repo
+      }
+    }
+    foreach repo $user_ip_repos {
+      lassign [GetVer $repo] ver sha
+      lappend user_ip_repo_hashes $sha
+      lappend user_ip_repo_vers $ver
+      lappend versions $ver
+    }
+  }
+
+  #The global SHA and ver is the most recent among everything
   if {$clean == 1} {
     set commit [Git "log --format=%h -1 $SHAs"]
     set version [FindNewestVersion $versions]
@@ -1119,7 +1140,7 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
 
   set top_hash [format %+07s $top_hash]
   set cons_hash [format %+07s $cons_hash]
-  return [list $commit $version  $hog_hash $hog_ver  $top_hash $top_ver  $libs $hashes $vers  $cons_ver $cons_hash  $ext_names $ext_hashes  $xml_hash $xml_ver]
+  return [list $commit $version  $hog_hash $hog_ver  $top_hash $top_ver  $libs $hashes $vers  $cons_ver $cons_hash  $ext_names $ext_hashes  $xml_hash $xml_ver $user_ip_repos $user_ip_repo_hashes $user_ip_repo_vers ]
 }
 
 

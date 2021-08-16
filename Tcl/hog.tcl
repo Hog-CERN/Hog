@@ -1109,23 +1109,36 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
   set user_ip_repos ""  
   set user_ip_repo_hashes ""
   set user_ip_repo_vers ""
-  if {[info commands send_msg_id] != ""} {
-    if { [string first PlanAhead [version]]==0 } {
-      foreach repo [get_property ip_repo_paths [current_fileset]] {
-        lappend user_ip_repos $repo
+  set PROPERTIES [ReadConf [lindex $conf_files 0]]
+  set has_user_ip 0
+
+  if {[dict exists $PROPERTIES main]} {
+    set main [dict get $PROPERTIES main]
+    dict for {p v} $main {
+      if { [ string tolower $p ] == "ip_repo_paths" } {
+        set has_user_ip 1
+        foreach repo $v {
+          lappend user_ip_repos $repo
+        }
       }
-    } else  {
-      foreach repo [get_property ip_repo_paths [current_project]] {
-        lappend user_ip_repos $repo
-      }
-    }
-    foreach repo $user_ip_repos {
-      lassign [GetVer $repo] ver sha
-      lappend user_ip_repo_hashes $sha
-      lappend user_ip_repo_vers $ver
-      lappend versions $ver
     }
   }
+  # No custom IP repository in hog.conf, search for default IP_repository
+  if {$has_user_ip == 0} {
+    set ip_repo ""
+    set user_ips [glob -nocomplain "$repo_path/IP_repository/*"]
+    if {[llength $user_ips] != 0} {
+      lappend user_ip_repos "$repo_path/IP_repository"
+    }
+  }
+
+  foreach repo $user_ip_repos {
+    lassign [GetVer $repo] ver sha
+    lappend user_ip_repo_hashes $sha
+    lappend user_ip_repo_vers $ver
+    lappend versions $ver
+  }
+
 
   #The global SHA and ver is the most recent among everything
   if {$clean == 1} {

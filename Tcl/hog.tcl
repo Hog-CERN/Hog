@@ -1909,11 +1909,7 @@ proc AddHogFiles { libraries properties {verbose 0}} {
             if {$verbose == 1} {
               Msg Info "Setting $f as wave do file for simulation file set $file_set..."
             }
-            <<<<<<< HEAD
             # check if file exists...
-            =======
-	      # check if file exists...
-            >>>>>>> origin/develop
             if [file exists $f] {
               foreach simulator [GetSimulators] {
                 set_property "$simulator.simulate.custom_wave_do" $f [get_filesets $file_set]

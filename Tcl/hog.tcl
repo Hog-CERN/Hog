@@ -1118,7 +1118,7 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
       if { [ string tolower $p ] == "ip_repo_paths" } {
         set has_user_ip 1
         foreach repo $v {
-          lappend user_ip_repos $repo
+          lappend user_ip_repos "$repo_path/$repo"
         }
       }
     }

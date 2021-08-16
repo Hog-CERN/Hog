@@ -166,32 +166,32 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
     if {[file extension $key] == ".ip" } {
       #check if project contains IPs specified in listfiles
       foreach IP [DictGet $listLibraries $key] {
-	set idx [lsearch -exact $prjIPs $IP]
-	set prjIPs [lreplace $prjIPs $idx $idx]
-	if {$idx < 0} {
+        set idx [lsearch -exact $prjIPs $IP]
+        set prjIPs [lreplace $prjIPs $idx $idx]
+        if {$idx < 0} {
           if {$options(recreate) == 1} {
             Msg Info "$IP was found in list files but not in project."
           } else {
-	    CriticalAndLog "$IP found in list files but not in project IPs." $outFile
+            CriticalAndLog "$IP found in list files but not in project IPs." $outFile
           }
           incr ListErrorCnt
-	} else {
+        } else {
           dict lappend newListfiles [file rootname $key].src [string trim "[RelativeLocal $repo_path $IP] [DictGet $prjProperties $IP]"]
         }
       }
     } elseif {[file extension $key] == ".con" } {
       #check if project contains XDCs specified in listfiles
       foreach XDC [DictGet $listLibraries $key] {
-	set idx [lsearch -exact $prjXDCs $XDC]
-	set prjXDCs [lreplace $prjXDCs $idx $idx]
-	if {$idx < 0} {
-      if {$options(recreate) == 1} {
-        Msg Info "$XDC was removed from the project."
-      } else {
-	    CriticalAndLog "$XDC not found in project constraints." $outFile
-      }
-      incr ListErrorCnt
-	} else {
+        set idx [lsearch -exact $prjXDCs $XDC]
+        set prjXDCs [lreplace $prjXDCs $idx $idx]
+        if {$idx < 0} {
+          if {$options(recreate) == 1} {
+            Msg Info "$XDC was removed from the project."
+          } else {
+            CriticalAndLog "$XDC not found in project constraints." $outFile
+          }
+          incr ListErrorCnt
+        } else {
           dict lappend newListfiles $key [string trim "[RelativeLocal $repo_path $XDC] [DictGet $prjProperties $XDC]"]
         }
       }
@@ -199,20 +199,20 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
       if {[dict exists $prjSimDict "[file rootname $key]_sim"]} {
         set prjSIMs [DictGet $prjSimDict "[file rootname $key]_sim"]
 	#check if project contains sin files specified in listfiles
-	foreach SIM [DictGet $listLibraries $key] {
-	  set idx [lsearch -exact $prjSIMs $SIM]
-	  set prjSIMs [lreplace $prjSIMs $idx $idx]
-	  if {$idx < 0} {
+        foreach SIM [DictGet $listLibraries $key] {
+          set idx [lsearch -exact $prjSIMs $SIM]
+          set prjSIMs [lreplace $prjSIMs $idx $idx]
+          if {$idx < 0} {
             if {$options(recreate) == 1} {
               Msg Info "$SIM was removed from the project."
             } else {
-	      CriticalAndLog "$SIM not found in project simulation files." $outFile
+              CriticalAndLog "$SIM not found in project simulation files." $outFile
             }
             incr ListErrorCnt
-	  } else {
+          } else {
             dict lappend newListfiles $key [string trim "[RelativeLocal $repo_path $SIM] [DictGet $prjProperties $SIM]"]
           }
-	}
+        }
         dict set prjSimDict "[file rootname $key]_sim" $prjSIMs
       } else {
         if {$options(recreate) == 1} {
@@ -225,60 +225,60 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
     } elseif {[file extension $key] == ".src" || [file extension $key] == ".sub"} {
       #check if project contains sources specified in listfiles
       set prjSRCs [DictGet $prjSrcDict [file rootname $key]]
-      
+
       foreach SRC [DictGet $listLibraries $key] {
-	set idx [lsearch -exact $prjSRCs $SRC]
-	set prjSRCs [lreplace $prjSRCs $idx $idx]
-	if {$idx < 0} {
-	  set idx [lsearch -exact $prjOTHERs $SRC]
-	  set prjOTHERs [lreplace $prjOTHERs $idx $idx]
-	  if {$idx < 0} {
+        set idx [lsearch -exact $prjSRCs $SRC]
+        set prjSRCs [lreplace $prjSRCs $idx $idx]
+        if {$idx < 0} {
+          set idx [lsearch -exact $prjOTHERs $SRC]
+          set prjOTHERs [lreplace $prjOTHERs $idx $idx]
+          if {$idx < 0} {
             if {$options(recreate) == 1} {
               Msg Info "$SRC was removed from the project."
             } else {
-	      CriticalAndLog "$SRC was found in Hog list files but not in project." $outFile
+              CriticalAndLog "$SRC was found in Hog list files but not in project." $outFile
             }
-	    incr ListErrorCnt
-	  } else {
-	    dict lappend newListfiles $key [string trim "[RelativeLocal $repo_path $SRC] [DictGet $prjProperties $SRC]"]
-	  }
-	} else {
-	  dict lappend newListfiles $key [string trim "[RelativeLocal $repo_path $SRC] [DictGet $prjProperties $SRC]"]
-	}
+            incr ListErrorCnt
+          } else {
+            dict lappend newListfiles $key [string trim "[RelativeLocal $repo_path $SRC] [DictGet $prjProperties $SRC]"]
+          }
+        } else {
+          dict lappend newListfiles $key [string trim "[RelativeLocal $repo_path $SRC] [DictGet $prjProperties $SRC]"]
+        }
       }
       dict set prjSrcDict [file rootname $key] $prjSRCs
     } elseif {[file extension $key] == ".ext" } {
       #check if project contains external files specified in listfiles
       set prjSRCs [DictGet $prjSrcDict [file rootname $key]]
-      
+
       foreach SRC [DictGet $listLibraries $key] {
-	set idx [lsearch -exact $prjSRCs $SRC]
-	set prjSRCs [lreplace $prjSRCs $idx $idx]
-	if {$idx < 0} {
-	  set idx [lsearch -exact $prjOTHERs $SRC]
-	  set prjOTHERs [lreplace $prjOTHERs $idx $idx]
-	  if {$idx < 0} {
+        set idx [lsearch -exact $prjSRCs $SRC]
+        set prjSRCs [lreplace $prjSRCs $idx $idx]
+        if {$idx < 0} {
+          set idx [lsearch -exact $prjOTHERs $SRC]
+          set prjOTHERs [lreplace $prjOTHERs $idx $idx]
+          if {$idx < 0} {
             if {$options(recreate) == 1} {
               Msg Info "$SRC was removed from the project."
             } else {
-	      CriticalAndLog "$SRC not found in project source files." $outFile
+              CriticalAndLog "$SRC not found in project source files." $outFile
             }
-	    incr ListErrorCnt
-	  } else {
-	    dict lappend newListfiles $key [string trim "[RelativeLocal $ext_path $SRC] [Md5Sum $SRC] [DictGet $prjProperties $SRC]"]
-	    dict lappend prjProperties $SRC [Md5Sum $SRC]
-	  }
-	} else {
-	  dict lappend newListfiles $key [string trim "[RelativeLocal $ext_path $SRC] [Md5Sum $SRC] [DictGet $prjProperties $SRC]"]
-	  dict lappend prjProperties $SRC [Md5Sum $SRC]
-	}
+            incr ListErrorCnt
+          } else {
+            dict lappend newListfiles $key [string trim "[RelativeLocal $ext_path $SRC] [Md5Sum $SRC] [DictGet $prjProperties $SRC]"]
+            dict lappend prjProperties $SRC [Md5Sum $SRC]
+          }
+        } else {
+          dict lappend newListfiles $key [string trim "[RelativeLocal $ext_path $SRC] [Md5Sum $SRC] [DictGet $prjProperties $SRC]"]
+          dict lappend prjProperties $SRC [Md5Sum $SRC]
+        }
       }
       dict set prjSrcDict [file rootname $key] $prjSRCs
     } else {
       Msg CriticalWarning "$key list file format unrecognized by Hog."
       incr ListErrorCnt
     }
-    
+
   }
 
 
@@ -291,7 +291,7 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
         if {$options(recreate) == 1} {
           Msg Info "External IP $IP was added to the project."
         } else {
-	  CriticalAndLog "External IP $IP is used in the project but is not in the list files." $outFile
+          CriticalAndLog "External IP $IP is used in the project but is not in the list files." $outFile
         }
         dict lappend newListfiles Default.ext [string trim "[RelativeLocal $ext_path $IP] [Md5Sum $IP] [DictGet $prjProperties $IP]"]
       }
@@ -337,7 +337,7 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
         continue
       }
       incr ListErrorCnt
-      
+
       if {[string range $key end-3 end]=="_sim"} {
         dict lappend newListfiles [string range $key 0 end-4].sim [string trim "[RelativeLocal $repo_path $SIM] [DictGet $prjProperties $SIM]"]
         if {$options(recreate) == 1} {
@@ -469,7 +469,7 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
         }
         set lFd [open $repo_path/$DirName/list/$listFile w]
         if {[string equal -nocase [lindex [split $listSim " "] 0] "Simulator"] && [string equal -nocase [lindex [split $listSim " "] 1] "skip_simulation"]} {
-	  puts $lFd "#$listSim"
+          puts $lFd "#$listSim"
         } else {
           puts $lFd "#Simulator [DictGet $prjProperties Simulator]"
         }
@@ -510,7 +510,7 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
   #filling hogConfDict
   if {[file exists "$repo_path/Top/$group_name/$project_name/hog.conf"]} {
     set hogConfDict [ReadConf "$repo_path/Top/$group_name/$project_name/hog.conf"]
-    
+
     #convert hog.conf dict keys to uppercase
     foreach key [list main synth_1 impl_1] {
       set runDict [DictGet $hogConfDict $key]
@@ -645,7 +645,7 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
       }
     }
     dict set newConfDict $proj_run $newRunDict
-    
+
     #if anything remains into hogConfDict it means that something is wrong
     foreach settings [dict keys $hogConfRunDict] {
       if {[dict exists $projRunDict $settings]==0} {
@@ -676,7 +676,7 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
     set confFile $repo_path/$DirName/hog.conf
     WriteConf $confFile $newConfDict "vivado"
   }
-  
+
 }
 
 

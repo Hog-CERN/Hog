@@ -2309,6 +2309,8 @@ proc HandleIP {what_to_do xci_file ip_path runs_dir {force 0}} {
           set will_copy 1
           set will_remove 1
         }
+      } else {
+        set will_copy 1
       }
     }
     

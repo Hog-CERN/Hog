@@ -2287,7 +2287,7 @@ proc HandleIP {what_to_do xci_file ip_path runs_dir {force 0}} {
   if {$what_to_do eq "push"} {
     set will_copy 0
     set will_remove 0
-    if {on_eos == 1} {
+    if {$on_eos == 1} {
       lassign [eos "ls $ip_path/$file_name.tar"] ret result
       if {$ret != 0} {
         set will_copy 1
@@ -2323,7 +2323,7 @@ proc HandleIP {what_to_do xci_file ip_path runs_dir {force 0}} {
         Msg Info "Found some IP synthesised files matching $runs_dir/$file_name*"
         if {$will_remove == 1} {
           Msg Info "Removing old synthesised directory $ip_path/$file_name.tar..."
-          if {on_eos == 1} {
+          if {$on_eos == 1} {
             eos "rm -rf $ip_path/$file_name.tar" 5        
           } else {
             file delete -force "$ip_path/$file_name.tar"
@@ -2333,7 +2333,7 @@ proc HandleIP {what_to_do xci_file ip_path runs_dir {force 0}} {
         Msg Info "Creating local archive with ip generated files..."
         ::tar::create $file_name.tar [glob -nocomplain [Relative $repo_path $xci_path]  $ip_synth_files_rel]
         Msg Info "Copying generated files for $xci_name..."
-        if {on_eos == 1} {
+        if {$on_eos == 1} {
           lassign [ExecuteRet xrdcp -f -s $file_name.tar  $::env(EOS_MGM_URL)//$ip_path/] ret msg
           if {$ret != 0} {
             Msg CriticalWarning "Something went wrong when copying the IP files to EOS. Error message: $msg"
@@ -2349,7 +2349,7 @@ proc HandleIP {what_to_do xci_file ip_path runs_dir {force 0}} {
       }
     }
   } elseif {$what_to_do eq "pull"} {
-    if {on_eos == 1} {
+    if {$on_eos == 1} {
       lassign [eos "ls $ip_path/$file_name.tar"] ret result
       if  {$ret != 0} {
         Msg Info "Nothing for $xci_name was found in the EOS repository, cannot pull."

@@ -23,7 +23,7 @@ if {[catch {package require cmdline} ERROR] || [catch {package require struct::m
 }
 
 set parameters {
-  {ip_path.arg "" "If set, the synthesised IPs will be copied to the specified EOS path."}
+  {ip_path.arg "" "If set, the synthesised IPs will be copied to the specified IP repository path."}
   {no_bitstream    "If set, the bitstream file will not be produced."}
   {synth_only      "If set, only the synthesis will be performed."}
   {impl_only       "If set, only the implementation will be performed. This assumes synthesis should was already done."}
@@ -129,11 +129,11 @@ if { $options(ip_path) != "" } {
         incr copied_ips
       }
     } else {
-      Msg Info "Synthesised files for IP $ip are already in the repository. Do not copy from EOS..."
+      Msg Info "Synthesised files for IP $ip are already in the repository. Do not copy from IP repository..."
       lappend repo_ips $ip
     }
   }
-  Msg Info "$copied_ips IPs were copied from the EOS repository."
+  Msg Info "$copied_ips IPs were copied from the IP repository."
 }
 
 
@@ -243,13 +243,13 @@ if {$do_synthesis == 1} {
       file copy $rptfile $bin_dir/$project_name-$describe/reports
     }
 
-    ######### Copy IP to EOS repository
+    ######### Copy IP to IP repository
     if {($ip_path != "")} {
       # IP is not in the gitlab repo
       set force 0
       if [info exist runs] {
         if {[lsearch $runs $ip\_synth_1] != -1} {
-          Msg Info "$ip was synthesized, will force the copy to EOS..."
+          Msg Info "$ip was synthesized, will force the copy to the IP repository..."
           set force 1
         }
       }

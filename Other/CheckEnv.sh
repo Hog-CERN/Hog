@@ -272,7 +272,7 @@ then
 else
     echo -n "defined. Hog-CI will"
 fi
-echo " use EOS as a synthesised IP repository to speed up IP synthesis."
+echo " use an EOS/LOCAL IP repository to speed up the IP synthesis."
 echo --------------------------------
 
 echo -n "Variable: HOG_RESET_FILES is "

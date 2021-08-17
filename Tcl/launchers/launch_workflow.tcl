@@ -103,7 +103,7 @@ if { $options(simlib_path) != ""} {
   set workflow_simlib_path $options(simlib_path)
 }
 
-#Copy IP from EOS
+#Copy IP from IP repository
 if { $options(ip_path) != "" } {
   set ip_path $options(ip_path)
 

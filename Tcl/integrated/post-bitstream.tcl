@@ -182,7 +182,7 @@ if {[info commands get_property] != "" && [file exists $bit_file]} {
 
   Msg Info "Evaluating Git sha for $name... repo_path: $repo_path"
   puts "$repo_path repo_path"
-  lassign [GetRepoVersions "$repo_path/Top/$name" "$repo_path"] sha
+  lassign [GetRepoVersions "$repo_path/Top/$group_name/$name" "$repo_path"] sha
 
   set describe [GetGitDescribe $sha]
   Msg Info "Git describe set to: $describe"

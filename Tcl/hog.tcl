@@ -2247,7 +2247,7 @@ proc HandleIP {what_to_do xci_file ip_path runs_dir {force 0}} {
     set on_eos 0
   }
 
-  if {on_eos == 1} {
+  if {$on_eos == 1} {
     lassign [eos  "ls $ip_path"] ret result
     if  {$ret != 0} {
       Msg CriticalWarning "Could not find mother directory for ip_path: $ip_path."

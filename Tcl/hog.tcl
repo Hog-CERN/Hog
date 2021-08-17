@@ -2238,21 +2238,34 @@ proc HandleIP {what_to_do xci_file ip_path runs_dir {force 0}} {
   set repo_path [file normalize $runs_dir/../../..]
 
   cd $repo_path
+  
 
-  lassign [eos  "ls $ip_path"] ret result
-  if  {$ret != 0} {
-    Msg CriticalWarning "Could not find mother directory for ip_path: $ip_path."
-    cd $old_path
-    return -1
+  if {[string first "/eos/" $ip_path]} {
+    # IP Path is on EOS
+    set on_eos 1
   } else {
+    set on_eos 0
+  }
+
+  if {on_eos == 1} {
     lassign [eos  "ls $ip_path"] ret result
     if  {$ret != 0} {
-      Msg Info "IP repostory path on eos does not exist, creating it now..."
-      eos "mkdir $ip_path" 5
+      Msg CriticalWarning "Could not find mother directory for ip_path: $ip_path."
+      cd $old_path
+      return -1
     } else {
-      Msg Info "IP repostory path on eos is set to: $ip_path"
-    }
+      lassign [eos  "ls $ip_path"] ret result
+      if  {$ret != 0} {
+        Msg Info "IP repository path on eos does not exist, creating it now..."
+        eos "mkdir $ip_path" 5
+      } else {
+        Msg Info "IP repository path on eos is set to: $ip_path"
+      }
+    }  
+  } else {
+    file mkdir $ip_path
   }
+  
 
   if !([file exists $xci_file]) {
     Msg CriticalWarning "Could not find $xci_file."
@@ -2274,18 +2287,31 @@ proc HandleIP {what_to_do xci_file ip_path runs_dir {force 0}} {
   if {$what_to_do eq "push"} {
     set will_copy 0
     set will_remove 0
-    lassign [eos "ls $ip_path/$file_name.tar"] ret result
-    if  {$ret != 0} {
-      set will_copy 1
-    } else {
-      if {$force == 0 } {
-        Msg Info "IP already in the repository, will not copy..."
-      } else {
-        Msg Info "IP already in the repository, will forcefully replace..."
+    if {on_eos == 1} {
+      lassign [eos "ls $ip_path/$file_name.tar"] ret result
+      if {$ret != 0} {
         set will_copy 1
-        set will_remove 1
+      } else {
+        if {$force == 0 } {
+          Msg Info "IP already in the EOS repository, will not copy..."
+        } else {
+          Msg Info "IP already in the EOS repository, will forcefully replace..."
+          set will_copy 1
+          set will_remove 1
+        }
+      }
+    } else {
+      if {[file exists "$ip_path/$file_name.tar"]} {
+        if {$force == 0 } {
+          Msg Info "IP already in the local repository, will not copy..."
+        } else {
+          Msg Info "IP already in the local repository, will forcefully replace..."
+          set will_copy 1
+          set will_remove 1
+        }
       }
     }
+    
     if {$will_copy == 1} {
       set ip_synth_files [glob -nocomplain $xci_path/$xci_ip_name*]
       set ip_synth_files_rel ""
@@ -2296,17 +2322,26 @@ proc HandleIP {what_to_do xci_file ip_path runs_dir {force 0}} {
       if {[llength $ip_synth_files] > 0} {
         Msg Info "Found some IP synthesised files matching $runs_dir/$file_name*"
         if {$will_remove == 1} {
-          Msg Info "Removing old synthesized directory $ip_path/$file_name.tar..."
-          eos "rm -rf $ip_path/$file_name.tar" 5
+          Msg Info "Removing old synthesised directory $ip_path/$file_name.tar..."
+          if {on_eos == 1} {
+            eos "rm -rf $ip_path/$file_name.tar" 5        
+          } else {
+            file delete -force "$ip_path/$file_name.tar"
+          }
         }
 
         Msg Info "Creating local archive with ip generated files..."
         ::tar::create $file_name.tar [glob -nocomplain [Relative $repo_path $xci_path]  $ip_synth_files_rel]
         Msg Info "Copying generated files for $xci_name..."
-        lassign [ExecuteRet xrdcp -f -s $file_name.tar  $::env(EOS_MGM_URL)//$ip_path/] ret msg
-        if {$ret != 0} {
-          Msg CriticalWarning "Something went wrong when copying the IP files to EOS. Error message: $msg"
+        if {on_eos == 1} {
+          lassign [ExecuteRet xrdcp -f -s $file_name.tar  $::env(EOS_MGM_URL)//$ip_path/] ret msg
+          if {$ret != 0} {
+            Msg CriticalWarning "Something went wrong when copying the IP files to EOS. Error message: $msg"
+          }
+        } else {
+          file copy -force "$file_name.tar" "$ip_path/"
         }
+        
         Msg Info "Removing local archive"
         file delete $file_name.tar
       } else {
@@ -2314,24 +2349,39 @@ proc HandleIP {what_to_do xci_file ip_path runs_dir {force 0}} {
       }
     }
   } elseif {$what_to_do eq "pull"} {
-    lassign [eos "ls $ip_path/$file_name.tar"] ret result
-    if  {$ret != 0} {
-      Msg Info "Nothing for $xci_name was found in the repository, cannot pull."
-      cd $old_path
-      return -1
+    if {on_eos == 1} {
+      lassign [eos "ls $ip_path/$file_name.tar"] ret result
+      if  {$ret != 0} {
+        Msg Info "Nothing for $xci_name was found in the EOS repository, cannot pull."
+        cd $old_path
+        return -1
 
-    } else {
-      set remote_tar "$::env(EOS_MGM_URL)//$ip_path/$file_name.tar"
-      Msg Info "IP $xci_name found in the repository $remote_tar, copying it locally to $repo_path..."
-
-      lassign [ExecuteRet xrdcp -f -r -s $remote_tar $repo_path] ret msg
-      if {$ret != 0} {
-        Msg CriticalWarning "Something went wrong when copying the IP files to EOS. Error message: $msg"
       } else {
+        set remote_tar "$::env(EOS_MGM_URL)//$ip_path/$file_name.tar"
+        Msg Info "IP $xci_name found in the repository $remote_tar, copying it locally to $repo_path..."
+
+        lassign [ExecuteRet xrdcp -f -r -s $remote_tar $repo_path] ret msg
+        if {$ret != 0} {
+          Msg CriticalWarning "Something went wrong when copying the IP files to EOS. Error message: $msg"
+        } else {
+          Msg Info "Extracting IP files from archive to $repo_path..."
+          ::tar::untar $file_name.tar -dir $repo_path -noperms
+          Msg Info "Removing local archive"
+          file delete $file_name.tar
+        }
+      }      
+    } else {
+      if {[file exists "$ip_path/$file_name.tar"]} {
+        Msg Info "IP $xci_name found in local repository $ip_path/$file_name.tar, copying it locally to $repo_path..."
+        file copy -force $ip_path/$file_name.tar $repo_path 
         Msg Info "Extracting IP files from archive to $repo_path..."
-        ::tar::untar $file_name.tar -dir $repo_path -noperms
+          ::tar::untar $file_name.tar -dir $repo_path -noperms
         Msg Info "Removing local archive"
         file delete $file_name.tar
+      } else {
+        Msg Info "Nothing for $xci_name was found in the local IP repository, cannot pull."
+        cd $old_path
+        return -1
       }
     }
   }

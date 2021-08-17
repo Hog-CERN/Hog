@@ -23,7 +23,7 @@ if {[catch {package require cmdline} ERROR] || [catch {package require struct::m
 }
 
 set parameters {
-  {ip_eos_path.arg "" "If set, the synthesised IPs will be copied to the specified EOS path."}
+  {ip_path.arg "" "If set, the synthesised IPs will be copied to the specified EOS path."}
   {no_bitstream    "If set, the bitstream file will not be produced."}
   {synth_only      "If set, only the synthesis will be performed."}
   {impl_only       "If set, only the implementation will be performed. This assumes synthesis should was already done."}
@@ -104,8 +104,8 @@ if { $options(simlib_path) != ""} {
 }
 
 #Copy IP from EOS
-if { $options(ip_eos_path) != "" } {
-  set ip_path $options(ip_eos_path)
+if { $options(ip_path) != "" } {
+  set ip_path $options(ip_path)
 
   Msg Info "Getting IPs for $project_name..."
   set ips {}

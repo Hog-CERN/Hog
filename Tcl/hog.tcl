@@ -2240,7 +2240,7 @@ proc HandleIP {what_to_do xci_file ip_path runs_dir {force 0}} {
   cd $repo_path
   
 
-  if {[string first "/eos/" $ip_path]} {
+  if {[string first "/eos/" $ip_path] == 0} {
     # IP Path is on EOS
     set on_eos 1
   } else {

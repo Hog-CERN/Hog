@@ -134,6 +134,7 @@ else
 		else
 			Msg Info "Using executable: $HDL_COMPILER"
 		fi
+		
 
 		if [ -z ${SIMLIBPATH+x} ]; then
 			if [ -z ${HOG_SIMULATION_LIB_PATH+x} ]; then

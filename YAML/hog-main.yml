@@ -104,7 +104,8 @@ tag_official_version:
 
 archive_binary_files:
   variables:
-    GIT_SSL_NO_VERIFY: "true"
+    GIT_SSL_NO_VERIFY: "true"  
+    GIT_SUBMODULE_STRATEGY: none
   only:
     refs:
       - tags

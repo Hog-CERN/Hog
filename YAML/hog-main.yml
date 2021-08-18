@@ -115,6 +115,8 @@ archive_binary_files:
   <<: *tag-sr
   stage: archive
   script:
+    - git submodule init Hog
+    - git submodule update Hog
     - git fetch origin refs/notes/*:refs/notes/*
     - MR=( `git notes show` )
     - ./Hog/Other/GetArtifactsAndRename.sh $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $MR collect_artifacts

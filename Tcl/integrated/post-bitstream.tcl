@@ -121,10 +121,10 @@ if {[info commands get_property] != "" && [file exists $bit_file]} {
 
   #check list files and project properties
   set confDict [dict create]
-  set diff_summary_only 0
+  set full_diff_log 0
   if {[file exists "$tcl_path/../../Top/$group_name/$proj_name/hog.conf"]} {
     set confDict [ReadConf "$tcl_path/../../Top/$group_name/$proj_name/hog.conf"]
-    set diff_summary_only  [DictGet [DictGet $confDict "hog"] "DIFF_SUMMARY_ONLY"  0]
+    set full_diff_log [DictGet [DictGet $confDict "hog"] "FULL_DIFF_LOG"  0]
   }
 
   Msg Info "Evaluating differences with last commit..."
@@ -134,10 +134,10 @@ if {[info commands get_property] != "" && [file exists $bit_file]} {
   if {$diff != ""} {
     set found_uncommitted 1
     Msg Warning "Found non committed changes:"
-    if {$diff_summary_only} {
-        Msg Status "$diff_stat"
-    } else {
+    if {$full_diff_log} {
         Msg Status "$diff"
+    } else {
+        Msg Status "$diff_stat"
     }
     set fp [open "$dst_dir/diff_postbitstream.txt" w+]
     puts $fp "$diff"

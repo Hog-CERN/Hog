@@ -1595,6 +1595,8 @@ proc GetProjectFiles {} {
         set prop "93"
       } elseif {[string equal [lindex $type 0] "SystemVerilog"] && [file ext $f] == ".v"} {
         set prop "SystemVerilog"
+      } elseif {[string equal $type "Verilog Header"]} {
+        set prop "verilog_header"
       } elseif  {[string equal [lindex $type 0] "Block"] && [string equal [lindex $type 1] "Designs"]} {
         set type "IP"
         set prop ""
@@ -1611,6 +1613,11 @@ proc GetProjectFiles {} {
         }
       } elseif {[string equal $type "VHDL"]} {
         dict lappend SRC $lib $f
+        if {![string equal $prop ""]} {
+          dict lappend properties $f $prop
+        }
+      } elseif {[string equal $type "Verilog Header"]} {
+        dict lappend libraries "OTHER" $f
         if {![string equal $prop ""]} {
           dict lappend properties $f $prop
         }

@@ -1845,6 +1845,12 @@ proc AddHogFiles { libraries properties {verbose 0}} {
             set_property -name "file_type" -value "XDC" -objects $file_obj
           }
 
+          # Verilog headers
+          if {[lsearch -inline -regex $props "verilog_header"] >= 0} {
+            Msg Info "Setting verilog header type for $f..."
+            set_property file_type {Verilog Header} [get_files $f]
+          }
+
           # Not used in synthesis
           if {[lsearch -inline -regex $props "nosynth"] >= 0} {
             Msg Info "Setting not used in synthesis for $f..."

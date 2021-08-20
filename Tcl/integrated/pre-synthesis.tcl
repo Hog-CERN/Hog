@@ -123,11 +123,13 @@ set confDict [dict create]
 set allow_fail_on_conf 0
 set allow_fail_on_list 0
 set allow_fail_on_git 0
+set full_diff_log     0
 if {[file exists "$tcl_path/../../Top/$group/$proj_name/hog.conf"]} {
   set confDict [ReadConf "$tcl_path/../../Top/$group/$proj_name/hog.conf"]
   set allow_fail_on_conf [DictGet [DictGet $confDict "hog"] "ALLOW_FAIL_ON_CONF" 0]
   set allow_fail_on_list [DictGet [DictGet $confDict "hog"] "ALLOW_FAIL_ON_LIST" 0]
   set allow_fail_on_git  [DictGet [DictGet $confDict "hog"] "ALLOW_FAIL_ON_GIT"  0]
+  set full_diff_log      [DictGet [DictGet $confDict "hog"] "FULL_DIFF_LOG"      0]
 }
 
 
@@ -155,10 +157,15 @@ if {[info commands get_property] != "" && [string first PlanAhead [version]] != 
 Msg Info "Evaluating non committed changes..."
 set found_uncommitted 0
 set diff [Git diff]
+set diff_stat [Git "diff --stat"]
 if {$diff != ""} {
   set found_uncommitted 1
   Msg Warning "Found non committed changes:..."
-  Msg Status "$diff"
+  if {$full_diff_log} {
+      Msg Status "$diff"
+  } else {
+      Msg Status "$diff_stat"
+  }
   set fp [open "$dst_dir/diff_presynthesis.txt" w+]
   puts $fp "$diff"
   close $fp

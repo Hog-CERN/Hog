@@ -118,13 +118,27 @@ if {[info commands get_property] != "" && [file exists $bit_file]} {
 
   Msg Info "Creating $dst_dir..."
   file mkdir $dst_dir
+
+  #check list files and project properties
+  set confDict [dict create]
+  set full_diff_log 0
+  if {[file exists "$tcl_path/../../Top/$group_name/$proj_name/hog.conf"]} {
+    set confDict [ReadConf "$tcl_path/../../Top/$group_name/$proj_name/hog.conf"]
+    set full_diff_log [DictGet [DictGet $confDict "hog"] "FULL_DIFF_LOG"  0]
+  }
+
   Msg Info "Evaluating differences with last commit..."
   set found_uncommitted 0
   set diff [Git diff]
+  set diff_stat [Git "diff --stat"]
   if {$diff != ""} {
     set found_uncommitted 1
     Msg Warning "Found non committed changes:"
-    Msg Status "$diff"
+    if {$full_diff_log} {
+        Msg Status "$diff"
+    } else {
+        Msg Status "$diff_stat"
+    }
     set fp [open "$dst_dir/diff_postbitstream.txt" w+]
     puts $fp "$diff"
     close $fp

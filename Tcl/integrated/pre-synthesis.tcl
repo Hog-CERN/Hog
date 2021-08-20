@@ -273,7 +273,10 @@ if {[info commands set_property] != ""} {
   # set global generic varibles
   set generic_string "GLOBAL_DATE=32'h$date GLOBAL_TIME=32'h$timee GLOBAL_VER=32'h$version GLOBAL_SHA=32'h0$commit TOP_SHA=32'h0$top_hash TOP_VER=32'h$top_ver HOG_SHA=32'h0$hog_hash HOG_VER=32'h$hog_ver CON_VER=32'h$cons_ver CON_SHA=32'h0$cons_hash"
   if {$use_ipbus == 1} {
-    set generic_string "$generic_string XML_VER=32'h$xml_ver XML_SHA=32'h0$xml_hash"
+    if {0==[string compare $xml_hash ""]} {
+      set xml_hash_string 0000000
+    }
+    set generic_string "$generic_string XML_VER=32'h$xml_ver XML_SHA=32'h0$xml_hash_string"
   }
 
   #set project specific lists

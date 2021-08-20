@@ -190,7 +190,7 @@ collect_artifacts:
         - old_dir=`pwd`
         - mkdir -p $CI_PROJECT_DIR/bin
         - "printf \"## Repository info\n- Merge request number: $CI_MERGE_REQUEST_IID\n- Branch name: $CI_COMMIT_REF_SLUG\n\n\" > $CI_PROJECT_DIR/bin/note.md"
-        - ./Hog/Other/Changelog.sh $CI_MERGE_REQUEST_TARGET_BRANCH_NAME >> $CI_PROJECT_DIR/bin/note.md
+        - ./Hog/Other/Changelog.sh $CI_MERGE_REQUEST_TARGET_BRANCH_NAME $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $CI_MERGE_REQUEST_IID  >> $CI_PROJECT_DIR/bin/note.md
         - cd $CI_PROJECT_DIR/bin/
         - diff_files=$(find . -name "diff*.txt");
         - touch $old_dir/mr_note.md

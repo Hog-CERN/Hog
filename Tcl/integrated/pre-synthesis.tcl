@@ -259,8 +259,8 @@ set clock_seconds [clock seconds]
 set tt [clock format $clock_seconds -format {%d/%m/%Y at %H:%M:%S}]
 
 if [GitVersion 2.9.3] {
-  set date [Git "log -1 --format=%cd --date=format:'%d%m%Y' $commit"]
-  set timee [Git "log -1 --format=%cd --date=format:'00%H%M%S' $commit"]
+  set date [Git "log -1 --format=%cd --date=format:%d%m%Y $commit"]
+  set timee [Git "log -1 --format=%cd --date=format:00%H%M%S $commit"]
 } else {
   Msg Warning "Found Git version older than 2.9.3. Using current date and time instead of commit time."
   set date [clock format $clock_seconds  -format {%d%m%Y}]

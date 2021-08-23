@@ -275,6 +275,8 @@ if {[info commands set_property] != ""} {
   if {$use_ipbus == 1} {
     if {0==[string compare $xml_hash ""]} {
       set xml_hash_string 0000000
+    } else {
+      set xml_hash_string $xml_hash
     }
     set generic_string "$generic_string XML_VER=32'h$xml_ver XML_SHA=32'h0$xml_hash_string"
   }

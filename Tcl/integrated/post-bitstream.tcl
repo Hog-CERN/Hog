@@ -135,9 +135,9 @@ if {[info commands get_property] != "" && [file exists $bit_file]} {
     set found_uncommitted 1
     Msg Warning "Found non committed changes:"
     if {$full_diff_log} {
-        Msg Status "$diff"
+      Msg Status "$diff"
     } else {
-        Msg Status "$diff_stat"
+      Msg Status "$diff_stat"
     }
     set fp [open "$dst_dir/diff_postbitstream.txt" w+]
     puts $fp "$diff"

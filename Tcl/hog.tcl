@@ -1796,10 +1796,11 @@ proc AddHogFiles { libraries properties main_libs {verbose 0}} {
     set rootlib [file rootname [file tail $lib]]
     set ext [file extension $lib]
     set main_lib [dict get $main_libs $lib]
+    set simlib [file rootname [file tail $main_lib]]
     #Msg Info "lib: $lib ext: $ext \n"
     switch $ext {
       .sim {
-        set file_set "$main_lib\_sim"
+        set file_set "$simlib\_sim"
         # if this simulation fileset was not created we do it now
         if {[string equal [get_filesets -quiet $file_set] ""]} {
           create_fileset -simset $file_set

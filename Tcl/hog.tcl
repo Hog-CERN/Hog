@@ -450,7 +450,7 @@ proc FindVhdlVersion {file_name} {
 # * -sha_mode  if not set to 0, the list files will be added as well and the IPs will be added to the file rather than to the special ip library. The sha mode should be used when you use the lists to calculate the git SHA, rather than to add the files to the project.
 # * -verbose enable verbose messages
 #
-# @return              a list of 2 dictionaries: "libraries" has library name as keys and a list of filenames as values, "properties" has as file names as keys and a list of properties as values
+# @return              a list of 3 dictionaries: "libraries" has library name as keys and a list of filenames as values, "properties" has as file names as keys and a list of properties as values, main_libs has library name as keys and the correspondent top list file name as value
 #
 proc ReadListFile args {
 
@@ -464,6 +464,7 @@ proc ReadListFile args {
 
   set parameters {
     {lib.arg ""  "The name of the library files will be added to, if not given will be extracted from the file name."}
+    {main_lib.arg "" The name of the library, from the main list file}
     {sha_mode "If set, the list files will be added as well and the IPs will be added to the file rather than to the special ip library. The sha mode should be used when you use the lists to calculate the git SHA, rather than to add the files to the project."}
     {verbose "Verbose messages"}
   }
@@ -476,6 +477,7 @@ proc ReadListFile args {
   set path [lindex $args 1]
   set sha_mode $options(sha_mode)
   set lib $options(lib)
+  set main_lib $options(main_lib)
   set verbose $options(verbose)
 
   if { $sha_mode == 1} {
@@ -494,6 +496,11 @@ proc ReadListFile args {
   if {$lib eq ""} {
     set lib [file rootname [file tail $list_file]]
   }
+
+  if {$main_lib eq ""} {
+    set main_lib $lib
+  }
+
   set ext [file extension $list_file]
 
   set list_file
@@ -502,6 +509,7 @@ proc ReadListFile args {
   close $fp
   set list_file_ext [file ext $list_file]
   set libraries [dict create]
+  set main_libs [dict create]
   set properties [dict create]
   #  Process data file
   set data [split $file_data "\n"]
@@ -554,10 +562,13 @@ proc ReadListFile args {
               }
               set library $lib
             }
-            lassign [ReadListFile {*}"-lib $library $sha_mode_opt $verbose_opt $vhdlfile $path"] l p
-            ### " Fake comment for Visual Code Studio
+            lassign [ReadListFile {*}"-lib $library -main_lib $lib $sha_mode_opt $verbose_opt $vhdlfile $path"] l p m
+
             set libraries [MergeDict $l $libraries]
             set properties [MergeDict $p $properties]
+            if { $library != $lib } {
+              set main_libs [MergeDict $m $main_libs]
+            }
           } elseif {[lsearch {.src .sim .con .ext} $extension] >= 0 } {
             Msg Error "$vhdlfile cannot be included into $list_file, $extension files must be included into $extension files."
           } else {
@@ -569,11 +580,14 @@ proc ReadListFile args {
             #Adding IP library
             if {$sha_mode == 0 && [lsearch {.xci .ip .bd} $extension] >= 0} {
               dict lappend libraries "$lib.ip" $vhdlfile
+              dict set main_libs "$lib.ip" "$main_lib.ip"
+
               if {$verbose == 1} {
                 Msg Info "Appending $vhdlfile to IP list..."
               }
             } else {
               dict lappend libraries $lib$ext $vhdlfile
+              dict set main_libs $lib$ext $main_lib$ext
             }
           }
           incr cnt
@@ -587,7 +601,7 @@ proc ReadListFile args {
   if {$sha_mode != 0} {
     dict lappend libraries $lib$ext $list_file
   }
-  return [list $libraries $properties]
+  return [list $libraries $properties $main_libs]
 }
 
 ## @brief Merge two tcl dictionaries of lists
@@ -1673,7 +1687,8 @@ return [list $libraries $properties]
 # @return a list of 2 dictionaries: libraries and properties
 # - libraries has library name as keys and a list of filenames as values
 # - properties has as file names as keys and a list of properties as values
-#
+# - main_libs has library name as keys and a the correspondent top list filename as values
+
 proc GetHogFiles args {
 
   if {[info commands project_new] != ""} {
@@ -1721,20 +1736,22 @@ proc GetHogFiles args {
   set libraries [dict create]
   set properties [dict create]
   set list_files [glob -nocomplain -directory $list_path "*{$list_files}"]
+  set main_libs [dict create]
 
   foreach f $list_files {
     set ext [file extension $f]
     if {$ext == ".ext"} {
-      lassign [ReadListFile {*}"$sha_mode_opt $verbose_opt $f $ext_path"] l p
+      lassign [ReadListFile {*}"$sha_mode_opt $verbose_opt $f $ext_path"] l p m
       #" Fake Comment for Visual Code Studio
     } else {
-      lassign [ReadListFile {*}"$sha_mode_opt $verbose_opt $f $repo_path"] l p
+      lassign [ReadListFile {*}"$sha_mode_opt $verbose_opt $f $repo_path"] l p m
       #" Fake Comment for Visual Code Studio
     }
     set libraries [MergeDict $l $libraries]
     set properties [MergeDict $p $properties]
+    set main_libs [MergeDict $m $main_libs]
   }
-  return [list $libraries $properties]
+  return [list $libraries $properties $main_libs]
 }
 
 
@@ -1770,7 +1787,7 @@ proc ParseFirstLineHogFiles {list_path list_file} {
 # @param[in] libraries has library name as keys and a list of filenames as values
 # @param[in] properties has as file names as keys and a list of properties as values
 #
-proc AddHogFiles { libraries properties {verbose 0}} {
+proc AddHogFiles { libraries properties main_libs {verbose 0}} {
   Msg Info "Adding source files to project..."
   foreach lib [dict keys $libraries] {
     #Msg Info "lib: $lib \n"
@@ -1778,10 +1795,11 @@ proc AddHogFiles { libraries properties {verbose 0}} {
     #Msg Info "Files in $lib: $lib_files \n"
     set rootlib [file rootname [file tail $lib]]
     set ext [file extension $lib]
+    set main_lib [dict get $main_libs $lib]
     #Msg Info "lib: $lib ext: $ext \n"
     switch $ext {
       .sim {
-        set file_set "$rootlib\_sim"
+        set file_set "$main_lib\_sim"
         # if this simulation fileset was not created we do it now
         if {[string equal [get_filesets -quiet $file_set] ""]} {
           create_fileset -simset $file_set
@@ -1799,7 +1817,7 @@ proc AddHogFiles { libraries properties {verbose 0}} {
         set file_set "sources_1"
       }
     }
-    # # ADD NOW LISTS TO VIVADO PROJECT
+    # ADD NOW LISTS TO VIVADO PROJECT
     if {[info commands add_files] != ""} {
       add_files -norecurse -fileset $file_set $lib_files
 

@@ -563,7 +563,6 @@ proc ReadListFile args {
               set library $lib
             }
             lassign [ReadListFile {*}"-lib $library -main_lib $lib $sha_mode_opt $verbose_opt $vhdlfile $path"] l p m
-
             set libraries [MergeDict $l $libraries]
             set properties [MergeDict $p $properties]
             if { $library != $lib } {
@@ -586,8 +585,9 @@ proc ReadListFile args {
                 Msg Info "Appending $vhdlfile to IP list..."
               }
             } else {
-              dict lappend libraries $lib$ext $vhdlfile
-              dict set main_libs $lib$ext $main_lib$ext
+              set m [dict create]
+              dict set m $lib$ext $main_lib$ext
+              set main_libs [MergeDict $m $main_libs]
             }
           }
           incr cnt
@@ -1742,10 +1742,8 @@ proc GetHogFiles args {
     set ext [file extension $f]
     if {$ext == ".ext"} {
       lassign [ReadListFile {*}"$sha_mode_opt $verbose_opt $f $ext_path"] l p m
-      #" Fake Comment for Visual Code Studio
     } else {
       lassign [ReadListFile {*}"$sha_mode_opt $verbose_opt $f $repo_path"] l p m
-      #" Fake Comment for Visual Code Studio
     }
     set libraries [MergeDict $l $libraries]
     set properties [MergeDict $p $properties]

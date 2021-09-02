@@ -565,9 +565,7 @@ proc ReadListFile args {
             lassign [ReadListFile {*}"-lib $library -main_lib $lib $sha_mode_opt $verbose_opt $vhdlfile $path"] l p m
             set libraries [MergeDict $l $libraries]
             set properties [MergeDict $p $properties]
-            if { $library != $lib } {
-              set main_libs [MergeDict $m $main_libs]
-            }
+            set main_libs [dict merge $m $main_libs]
           } elseif {[lsearch {.src .sim .con .ext} $extension] >= 0 } {
             Msg Error "$vhdlfile cannot be included into $list_file, $extension files must be included into $extension files."
           } else {
@@ -587,7 +585,10 @@ proc ReadListFile args {
             } else {
               set m [dict create]
               dict set m $lib$ext $main_lib$ext
-              set main_libs [MergeDict $m $main_libs]
+              dict lappend libraries $lib$ext $vhdlfile
+              if {[dict exists $main_libs $lib$ext] == 0} {
+                set main_libs [dict merge $m $main_libs]
+              }
             }
           }
           incr cnt
@@ -1747,7 +1748,7 @@ proc GetHogFiles args {
     }
     set libraries [MergeDict $l $libraries]
     set properties [MergeDict $p $properties]
-    set main_libs [MergeDict $m $main_libs]
+    set main_libs [dict merge $m $main_libs]
   }
   return [list $libraries $properties $main_libs]
 }
@@ -1787,6 +1788,7 @@ proc ParseFirstLineHogFiles {list_path list_file} {
 #
 proc AddHogFiles { libraries properties main_libs {verbose 0}} {
   Msg Info "Adding source files to project..."
+
   foreach lib [dict keys $libraries] {
     #Msg Info "lib: $lib \n"
     set lib_files [dict get $libraries $lib]

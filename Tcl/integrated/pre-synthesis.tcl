@@ -417,7 +417,7 @@ if {$use_ipbus == 1} {
 }
 set top_ver [HexVersionToString $top_ver]
 Msg Status " Top SHA: $top_hash, VER: $top_ver"
-m add row "| \"Project Top Directory\" | [string tolower $top_hash] | $top_ver |"
+m add row "| \"Top Directory\" | [string tolower $top_hash] | $top_ver |"
 
 set hog_ver [HexVersionToString $hog_ver]
 Msg Status " Hog SHA: $hog_hash, VER: $hog_ver"

@@ -68,11 +68,6 @@ proc CreateProject {} {
 
   if {[info commands create_project] != ""} {
 
-    #VIVADO_ONLY
-    if {$globalSettings::top_name != $globalSettings::DESIGN} {
-      Msg Info "This project has got a flavour, the top module name ($globalSettings::top_name) differs from the project name ($globalSettings::DESIGN)."
-    }
-
     create_project -force [file tail $globalSettings::DESIGN] $globalSettings::build_dir -part $globalSettings::PART
 
     ## Set project properties

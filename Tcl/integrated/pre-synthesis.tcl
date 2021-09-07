@@ -123,11 +123,13 @@ set confDict [dict create]
 set allow_fail_on_conf 0
 set allow_fail_on_list 0
 set allow_fail_on_git 0
+set full_diff_log     0
 if {[file exists "$tcl_path/../../Top/$group/$proj_name/hog.conf"]} {
   set confDict [ReadConf "$tcl_path/../../Top/$group/$proj_name/hog.conf"]
   set allow_fail_on_conf [DictGet [DictGet $confDict "hog"] "ALLOW_FAIL_ON_CONF" 0]
   set allow_fail_on_list [DictGet [DictGet $confDict "hog"] "ALLOW_FAIL_ON_LIST" 0]
   set allow_fail_on_git  [DictGet [DictGet $confDict "hog"] "ALLOW_FAIL_ON_GIT"  0]
+  set full_diff_log      [DictGet [DictGet $confDict "hog"] "FULL_DIFF_LOG"      0]
 }
 
 
@@ -155,10 +157,15 @@ if {[info commands get_property] != "" && [string first PlanAhead [version]] != 
 Msg Info "Evaluating non committed changes..."
 set found_uncommitted 0
 set diff [Git diff]
+set diff_stat [Git "diff --stat"]
 if {$diff != ""} {
   set found_uncommitted 1
   Msg Warning "Found non committed changes:..."
-  Msg Status "$diff"
+  if {$full_diff_log} {
+    Msg Status "$diff"
+  } else {
+    Msg Status "$diff_stat"
+  }
   set fp [open "$dst_dir/diff_presynthesis.txt" w+]
   puts $fp "$diff"
   close $fp
@@ -252,8 +259,8 @@ set clock_seconds [clock seconds]
 set tt [clock format $clock_seconds -format {%d/%m/%Y at %H:%M:%S}]
 
 if [GitVersion 2.9.3] {
-  set date [Git "log -1 --format=%cd --date=format:'%d%m%Y' $commit"]
-  set timee [Git "log -1 --format=%cd --date=format:'00%H%M%S' $commit"]
+  set date [Git "log -1 --format=%cd --date=format:%d%m%Y $commit"]
+  set timee [Git "log -1 --format=%cd --date=format:00%H%M%S $commit"]
 } else {
   Msg Warning "Found Git version older than 2.9.3. Using current date and time instead of commit time."
   set date [clock format $clock_seconds  -format {%d%m%Y}]
@@ -266,7 +273,12 @@ if {[info commands set_property] != ""} {
   # set global generic varibles
   set generic_string "GLOBAL_DATE=32'h$date GLOBAL_TIME=32'h$timee GLOBAL_VER=32'h$version GLOBAL_SHA=32'h0$commit TOP_SHA=32'h0$top_hash TOP_VER=32'h$top_ver HOG_SHA=32'h0$hog_hash HOG_VER=32'h$hog_ver CON_VER=32'h$cons_ver CON_SHA=32'h0$cons_hash"
   if {$use_ipbus == 1} {
-    set generic_string "$generic_string XML_VER=32'h$xml_ver XML_SHA=32'h0$xml_hash"
+    if {0==[string compare $xml_hash ""]} {
+      set xml_hash_string 0000000
+    } else {
+      set xml_hash_string $xml_hash
+    }
+    set generic_string "$generic_string XML_VER=32'h$xml_ver XML_SHA=32'h0$xml_hash_string"
   }
 
   #set project specific lists
@@ -412,7 +424,7 @@ if {$use_ipbus == 1} {
 }
 set top_ver [HexVersionToString $top_ver]
 Msg Status " Top SHA: $top_hash, VER: $top_ver"
-m add row "| \"Project Top Directory\" | [string tolower $top_hash] | $top_ver |"
+m add row "| \"Top Directory\" | [string tolower $top_hash] | $top_ver |"
 
 set hog_ver [HexVersionToString $hog_ver]
 Msg Status " Hog SHA: $hog_hash, VER: $hog_ver"

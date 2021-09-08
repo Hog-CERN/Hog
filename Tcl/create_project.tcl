@@ -777,7 +777,7 @@ set globalSettings::DESIGN                      [file tail $globalSettings::DESI
 set globalSettings::top_name                    [file tail $globalSettings::DESIGN]
 set globalSettings::top_name                    [file root $globalSettings::top_name]
 set globalSettings::synth_top_module            "top_$globalSettings::top_name"
-set globalSettings::user_ip_repo                "$globalSettings::repo_path/IP_repository"
+set globalSettings::user_ip_repo                ""
 
 set globalSettings::pre_synth           [file normalize "$globalSettings::tcl_path/integrated/$globalSettings::pre_synth_file"]
 set globalSettings::post_synth          [file normalize "$globalSettings::tcl_path/integrated/$globalSettings::post_synth_file"]
@@ -787,12 +787,14 @@ set globalSettings::pre_bit             [file normalize "$globalSettings::tcl_pa
 set globalSettings::post_bit            [file normalize "$globalSettings::tcl_path/integrated/$globalSettings::post_bit_file"]
 set globalSettings::quartus_post_module [file normalize "$globalSettings::tcl_path/integrated/$globalSettings::quartus_post_module_file"]
 
+ConfigureProperties
+
 if {[file exists $pre_file]} {
   Msg Info "Found pre-creation Tcl script $pre_file, executing it..."
   source $pre_file
 }
 CreateProject
-ConfigureProperties
+
 ConfigureSynthesis
 ConfigureImplementation
 ConfigureSimulation

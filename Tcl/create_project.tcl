@@ -70,6 +70,8 @@ proc CreateProject {} {
 
     create_project -force [file tail $globalSettings::DESIGN] $globalSettings::build_dir -part $globalSettings::PART
 
+    ConfigureProperties
+
     ## Set project properties
     set obj [get_projects [file tail $globalSettings::DESIGN] ]
     set_property "target_language" "VHDL" $obj
@@ -103,6 +105,8 @@ proc CreateProject {} {
 
       project_new -family $globalSettings::FAMILY -overwrite -part $globalSettings::PART  $globalSettings::DESIGN
       set_global_assignment -name PROJECT_OUTPUT_DIRECTORY output_files
+
+      ConfigureProperties
     }
   } else {
     puts "Creating project for $globalSettings::DESIGN part $globalSettings::PART"
@@ -787,7 +791,7 @@ set globalSettings::pre_bit             [file normalize "$globalSettings::tcl_pa
 set globalSettings::post_bit            [file normalize "$globalSettings::tcl_path/integrated/$globalSettings::post_bit_file"]
 set globalSettings::quartus_post_module [file normalize "$globalSettings::tcl_path/integrated/$globalSettings::quartus_post_module_file"]
 
-ConfigureProperties
+
 
 if {[file exists $pre_file]} {
   Msg Info "Found pre-creation Tcl script $pre_file, executing it..."

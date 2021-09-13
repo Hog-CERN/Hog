@@ -1607,7 +1607,6 @@ proc GetProjectFiles {} {
         break
       }
     }
-    
     foreach simulator [GetSimulators] {
       set dofile [get_property "$simulator.simulate.custom_udo" [get_filesets $fs]]
       if {![string equal "$dofile" ""]} {

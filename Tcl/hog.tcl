@@ -1139,14 +1139,6 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
       }
     }
   }
-  # No custom IP repository in hog.conf, search for default IP_repository
-  if {$has_user_ip == 0} {
-    set ip_repo ""
-    set user_ips [glob -nocomplain "$repo_path/IP_repository/*"]
-    if {[llength $user_ips] != 0} {
-      lappend user_ip_repos "$repo_path/IP_repository"
-    }
-  }
 
   foreach repo $user_ip_repos {
     lassign [GetVer $repo] ver sha

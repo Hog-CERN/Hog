@@ -437,20 +437,25 @@ foreach l $libs v $vers h $hashes {
   m add row "| \"**Lib:** $l\" |  [string tolower $h] | $v |"
 }
 
-Msg Status " --- User IP Repositories ---"
-foreach r $user_ip_repos v $user_ip_vers h $user_ip_hashes {
-  set v [HexVersionToString $v]
-  set repo_name [file tail $r]
-  Msg Status " $repo_name SHA: $h, VER: $v"
-  m add row "| \"**Repo:** $repo_name\" |  [string tolower $h] | $v |"
+if {[llength $user_ip_repos] > 0} {
+
+  Msg Status " --- User IP Repositories ---"
+  foreach r $user_ip_repos v $user_ip_vers h $user_ip_hashes {
+    set v [HexVersionToString $v]
+    set repo_name [file tail $r]
+    Msg Status " $repo_name SHA: $h, VER: $v"
+    m add row "| \"**Repo:** $repo_name\" |  [string tolower $h] | $v |"
+  }
 }
 
-
-Msg Status " --- External Libraries ---"
-foreach e $ext_names eh $ext_hashes {
-  Msg Status " $e SHA: $eh"
-  m add row "| \"**Ext:** $e\" | [string tolower $eh] | \" \" |"
+if {[llength $ext_names] > 0} {
+  Msg Status " --- External Libraries ---"
+  foreach e $ext_names eh $ext_hashes {
+    Msg Status " $e SHA: $eh"
+    m add row "| \"**Ext:** $e\" | [string tolower $eh] | \" \" |"
+  }
 }
+
 Msg Status " -----------------------------------------------------------------"
 
 puts $status_file [m format 2string]

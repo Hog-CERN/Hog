@@ -199,7 +199,7 @@ collect_artifacts:
         - if [[ $diff_files != "" ]]; then
             echo "## Uncommitted differences" >> $old_dir/mr_note.md;
             for f in $diff_files; do
-              echo "Found uncommitted differences, check log file $f in the artifacts." >> $old_dir/mr_note.md;
+              echo "Found uncommitted differences, check log file bin/$f in the artifacts." >> $old_dir/mr_note.md;
               echo "" >> $old_dir/mr_note.md;
             done;
           fi

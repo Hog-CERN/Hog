@@ -24,8 +24,8 @@ if {[catch {package require cmdline} ERROR]} {
 
 set parameters {
   {lib_path.arg ""   "Compiled simulation library path"}
-  {simset.arg  ""   "Simulation sets, separated by comas, to be run."}
-  {quiet             "Simulation sets, separated by comas, to be run."}  
+  {simset.arg  ""   "Simulation sets, separated by commas, to be run."}
+  {quiet             "Simulation sets, separated by commas, to be run."}  
 }
 
 set usage "- USAGE: $::argv0 \[OPTIONS\] <project> \n. Options:"

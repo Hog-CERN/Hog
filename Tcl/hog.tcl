@@ -450,7 +450,7 @@ proc FindVhdlVersion {file_name} {
 # * -sha_mode  if not set to 0, the list files will be added as well and the IPs will be added to the file rather than to the special ip library. The sha mode should be used when you use the lists to calculate the git SHA, rather than to add the files to the project.
 # * -verbose enable verbose messages
 #
-# @return              a list of 2 dictionaries: "libraries" has library name as keys and a list of filenames as values, "properties" has as file names as keys and a list of properties as values
+# @return              a list of 3 dictionaries: "libraries" has library name as keys and a list of filenames as values, "properties" has as file names as keys and a list of properties as values, main_libs has library name as keys and the correspondent top list file name as value
 #
 proc ReadListFile args {
 
@@ -464,6 +464,7 @@ proc ReadListFile args {
 
   set parameters {
     {lib.arg ""  "The name of the library files will be added to, if not given will be extracted from the file name."}
+    {main_lib.arg "" The name of the library, from the main list file}
     {sha_mode "If set, the list files will be added as well and the IPs will be added to the file rather than to the special ip library. The sha mode should be used when you use the lists to calculate the git SHA, rather than to add the files to the project."}
     {verbose "Verbose messages"}
   }
@@ -476,6 +477,7 @@ proc ReadListFile args {
   set path [lindex $args 1]
   set sha_mode $options(sha_mode)
   set lib $options(lib)
+  set main_lib $options(main_lib)
   set verbose $options(verbose)
 
   if { $sha_mode == 1} {
@@ -494,6 +496,11 @@ proc ReadListFile args {
   if {$lib eq ""} {
     set lib [file rootname [file tail $list_file]]
   }
+
+  if {$main_lib eq ""} {
+    set main_lib $lib
+  }
+
   set ext [file extension $list_file]
 
   set list_file
@@ -502,6 +509,7 @@ proc ReadListFile args {
   close $fp
   set list_file_ext [file ext $list_file]
   set libraries [dict create]
+  set main_libs [dict create]
   set properties [dict create]
   #  Process data file
   set data [split $file_data "\n"]
@@ -554,10 +562,10 @@ proc ReadListFile args {
               }
               set library $lib
             }
-            lassign [ReadListFile {*}"-lib $library $sha_mode_opt $verbose_opt $vhdlfile $path"] l p
-            ### " Fake comment for Visual Code Studio
+            lassign [ReadListFile {*}"-lib $library -main_lib $lib $sha_mode_opt $verbose_opt $vhdlfile $path"] l p m
             set libraries [MergeDict $l $libraries]
             set properties [MergeDict $p $properties]
+            set main_libs [dict merge $m $main_libs]
           } elseif {[lsearch {.src .sim .con .ext} $extension] >= 0 } {
             Msg Error "$vhdlfile cannot be included into $list_file, $extension files must be included into $extension files."
           } else {
@@ -569,11 +577,18 @@ proc ReadListFile args {
             #Adding IP library
             if {$sha_mode == 0 && [lsearch {.xci .ip .bd} $extension] >= 0} {
               dict lappend libraries "$lib.ip" $vhdlfile
+              dict set main_libs "$lib.ip" "$main_lib.ip"
+
               if {$verbose == 1} {
                 Msg Info "Appending $vhdlfile to IP list..."
               }
             } else {
+              set m [dict create]
+              dict set m $lib$ext $main_lib$ext
               dict lappend libraries $lib$ext $vhdlfile
+              if {[dict exists $main_libs $lib$ext] == 0} {
+                set main_libs [dict merge $m $main_libs]
+              }
             }
           }
           incr cnt
@@ -587,7 +602,7 @@ proc ReadListFile args {
   if {$sha_mode != 0} {
     dict lappend libraries $lib$ext $list_file
   }
-  return [list $libraries $properties]
+  return [list $libraries $properties $main_libs]
 }
 
 ## @brief Merge two tcl dictionaries of lists
@@ -696,23 +711,23 @@ proc GetFileList {FILE path} {
   set data [split $file_data "\n"]
   foreach line $data {
     if {![regexp {^ *$} $line] & ![regexp {^ *\#} $line] } { #Exclude empty lines and comments
-      set file_and_prop [regexp -all -inline {\S+} $line]
-      set vhdlfile [lindex $file_and_prop 0]
-      set vhdlfile "$path/$vhdlfile"
-      if {[file exists $vhdlfile]} {
-        set extension [file ext $vhdlfile]
-        if { [lsearch {.src .sim .con} $extension] >= 0 } {
-          lappend file_list {*}[GetFileList $vhdlfile $path]]
-        } else {
-          lappend file_list $vhdlfile
-        }
+    set file_and_prop [regexp -all -inline {\S+} $line]
+    set vhdlfile [lindex $file_and_prop 0]
+    set vhdlfile "$path/$vhdlfile"
+    if {[file exists $vhdlfile]} {
+      set extension [file ext $vhdlfile]
+      if { [lsearch {.src .sim .con} $extension] >= 0 } {
+        lappend file_list {*}[GetFileList $vhdlfile $path]]
       } else {
-        Msg Warning "File $vhdlfile not found"
+        lappend file_list $vhdlfile
       }
+    } else {
+      Msg Warning "File $vhdlfile not found"
     }
   }
+}
 
-  return $file_list
+return $file_list
 }
 
 ## @brief Get git SHA of a subset of list file
@@ -802,23 +817,23 @@ proc GetVerFromSHA {SHA} {
   lassign [ExtractVersionFromTag $ver] M m c mr
 
   if {$mr > -1} { # Candidate tab
-    set M [format %02X $M]
-    set m [format %02X $m]
-    set c [format %04X $c]
+  set M [format %02X $M]
+  set m [format %02X $m]
+  set c [format %04X $c]
 
   } elseif { $M > -1 } { # official tag
-    set M [format %02X $M]
-    set m [format %02X $m]
-    set c [format %04X $c]
+  set M [format %02X $M]
+  set m [format %02X $m]
+  set c [format %04X $c]
 
-  } else {
-    Msg Warning "Tag does not contain a properly formatted version: $ver"
-    set M [format %02X 0]
-    set m [format %02X 0]
-    set c [format %04X 0]
-  }
+} else {
+  Msg Warning "Tag does not contain a properly formatted version: $ver"
+  set M [format %02X 0]
+  set m [format %02X 0]
+  set c [format %04X 0]
+}
 
-  return $M$m$c
+return $M$m$c
 }
 
 ## Get the project version
@@ -1097,6 +1112,7 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
     lassign [GetVer  [dict get $xml_files "xml.lst"] ] xml_ver xml_hash
     lappend SHAs $xml_hash
     lappend versions $xml_ver
+
   #Msg Info "Found IPbus XML SHA: $xml_hash and version: $xml_ver."
 
   } else {
@@ -1121,14 +1137,6 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
           lappend user_ip_repos "$repo_path/$repo"
         }
       }
-    }
-  }
-  # No custom IP repository in hog.conf, search for default IP_repository
-  if {$has_user_ip == 0} {
-    set ip_repo ""
-    set user_ips [glob -nocomplain "$repo_path/IP_repository/*"]
-    if {[llength $user_ips] != 0} {
-      lappend user_ip_repos "$repo_path/IP_repository"
     }
   }
 
@@ -1292,10 +1300,10 @@ proc TagRepository {{merge_request_number 0} {version_level 0} {default_level 0}
 
         }
 
-      } else { # Tag is not official
+        } else { # Tag is not official
           #Not official, do nothing unless version level is >=3, in which case convert the unofficial to official
-        Msg Info "Found candidate version for $M.$m.$p."
-        if {$version_level >= 3} {
+          Msg Info "Found candidate version for $M.$m.$p."
+          if {$version_level >= 3} {
           Msg Info "New tag will be an official version v$M.$m.$p..."
           set new_tag v$M.$m.$p
           set tag_opt "-m 'Official_version_$M.$m.$p'"
@@ -1372,90 +1380,90 @@ proc CopyXMLsFromListFile {list_file path dst {xml_version "0.0.0"} {xml_sha "00
   set vhdls {}
   foreach line $data {
     if {![regexp {^ *$} $line] & ![regexp {^ *\#} $line] } { #Exclude empty lines and comments
-      set file_and_prop [regexp -all -inline {\S+} $line]
-      set xmlfile "$path/[lindex $file_and_prop 0]"
-      if {[llength $file_and_prop] > 1} {
-        set vhdlfile [lindex $file_and_prop 1]
-        set vhdlfile "$path/$vhdlfile"
-      } else {
-        set vhdlfile 0
-      }
-      if {[file exists $xmlfile]} {
-        set xmlfile [file normalize $xmlfile]
-        Msg Info "Copying $xmlfile to $dst..."
-        set in  [open $xmlfile r]
-        set out [open $dst/[file tail $xmlfile] w]
-
-        while {[gets $in line] != -1} {
-          set new_line [regsub {(.*)__VERSION__(.*)} $line "\\1$xml_version\\2"]
-          set new_line2 [regsub {(.*)__GIT_SHA__(.*)} $new_line "\\1$xml_sha\\2"]
-          puts $out $new_line2
-        }
-        close $in
-        close $out
-        lappend xmls [file tail $xmlfile]
-        if {$vhdlfile == 0 } {
-          lappend vhdls 0
-        } else {
-          lappend vhdls [file normalize $vhdlfile]
-        }
-
-      } else {
-        Msg Warning "XML file $xmlfile not found"
-      }
-
+    set file_and_prop [regexp -all -inline {\S+} $line]
+    set xmlfile "$path/[lindex $file_and_prop 0]"
+    if {[llength $file_and_prop] > 1} {
+      set vhdlfile [lindex $file_and_prop 1]
+      set vhdlfile "$path/$vhdlfile"
+    } else {
+      set vhdlfile 0
     }
-  }
-  set cnt [llength $xmls]
-  Msg Info "$cnt file/s copied"
+    if {[file exists $xmlfile]} {
+      set xmlfile [file normalize $xmlfile]
+      Msg Info "Copying $xmlfile to $dst..."
+      set in  [open $xmlfile r]
+      set out [open $dst/[file tail $xmlfile] w]
 
-  if {$can_generate == 1} {
-    set old_dir [pwd]
-    cd $dst
-    file mkdir "address_decode"
-    cd "address_decode"
-    foreach x $xmls v $vhdls {
-      if {$v != 0} {
-        set x [file normalize ../$x]
-        if {[file exists $x]} {
-          lassign [ExecuteRet gen_ipbus_addr_decode -v $x]  status log
-          if {$status == 0} {
-            set generated_vhdl ./ipbus_decode_[file root [file tail $x]].vhd
-            if {$generate == 1} {
+      while {[gets $in line] != -1} {
+        set new_line [regsub {(.*)__VERSION__(.*)} $line "\\1$xml_version\\2"]
+        set new_line2 [regsub {(.*)__GIT_SHA__(.*)} $new_line "\\1$xml_sha\\2"]
+        puts $out $new_line2
+      }
+      close $in
+      close $out
+      lappend xmls [file tail $xmlfile]
+      if {$vhdlfile == 0 } {
+        lappend vhdls 0
+      } else {
+        lappend vhdls [file normalize $vhdlfile]
+      }
+
+    } else {
+      Msg Warning "XML file $xmlfile not found"
+    }
+
+  }
+}
+set cnt [llength $xmls]
+Msg Info "$cnt file/s copied"
+
+if {$can_generate == 1} {
+  set old_dir [pwd]
+  cd $dst
+  file mkdir "address_decode"
+  cd "address_decode"
+  foreach x $xmls v $vhdls {
+    if {$v != 0} {
+      set x [file normalize ../$x]
+      if {[file exists $x]} {
+        lassign [ExecuteRet gen_ipbus_addr_decode -v $x]  status log
+        if {$status == 0} {
+          set generated_vhdl ./ipbus_decode_[file root [file tail $x]].vhd
+          if {$generate == 1} {
             #copy (replace) file here
-              Msg Info "Copying generated VHDL file $generated_vhdl into $v (replacing if necessary)"
-              file copy -force -- $generated_vhdl $v
-            } else {
-              if {[file exists $v]} {
-              #check file here
-                set diff [CompareVHDL $generated_vhdl $v]
-                if {[llength $diff] > 0} {
-                  Msg CriticalWarning "$v does not correspond to its XML $x, [expr $n/3] line/s differ:"
-                  Msg Status [join $diff "\n"]
-                  set diff_file [open ../diff_[file root [file tail $x]].txt w]
-                  puts $diff_file $diff
-                  close $diff_file
-                } else {
-                  Msg Info "$x and $v match."
-                }
-              } else {
-                Msg Warning "VHDL address decoder file $v not found"
-              }
-            }
+            Msg Info "Copying generated VHDL file $generated_vhdl into $v (replacing if necessary)"
+            file copy -force -- $generated_vhdl $v
           } else {
-            Msg Warning "Address map generation failed for $x: $log"
+            if {[file exists $v]} {
+              #check file here
+              set diff [CompareVHDL $generated_vhdl $v]
+              if {[llength $diff] > 0} {
+                Msg CriticalWarning "$v does not correspond to its XML $x, [expr $n/3] line/s differ:"
+                Msg Status [join $diff "\n"]
+                set diff_file [open ../diff_[file root [file tail $x]].txt w]
+                puts $diff_file $diff
+                close $diff_file
+              } else {
+                Msg Info "$x and $v match."
+              }
+            } else {
+              Msg Warning "VHDL address decoder file $v not found"
+            }
           }
         } else {
-          Msg Warning "Copied XML file $x not found."
+          Msg Warning "Address map generation failed for $x: $log"
         }
       } else {
-        Msg Info "Skipped verification of $x as no VHDL file was specified."
+        Msg Warning "Copied XML file $x not found."
       }
+    } else {
+      Msg Info "Skipped verification of $x as no VHDL file was specified."
     }
-    cd ..
-    file delete -force address_decode
-    cd $old_dir
   }
+  cd ..
+  file delete -force address_decode
+  cd $old_dir
+}
 }
 
 ## @brief Compare two VHDL files ignoring spaces and comments
@@ -1472,27 +1480,27 @@ proc CompareVHDL {file1 file2} {
   while {[gets $a line] != -1} {
     set line [regsub {^[\t\s]*(.*)?\s*} $line "\\1"]
     if {![regexp {^$} $line] & ![regexp {^--} $line] } { #Exclude empty lines and comments
-      lappend f1 $line
-    }
+    lappend f1 $line
   }
+}
 
-  while {[gets $b line] != -1} {
-    set line [regsub {^[\t\s]*(.*)?\s*} $line "\\1"]
-    if {![regexp {^$} $line] & ![regexp {^--} $line] } { #Exclude empty lines and comments
-      lappend f2 $line
-    }
+while {[gets $b line] != -1} {
+  set line [regsub {^[\t\s]*(.*)?\s*} $line "\\1"]
+  if {![regexp {^$} $line] & ![regexp {^--} $line] } { #Exclude empty lines and comments
+  lappend f2 $line
+}
+}
+
+close $a
+close $b
+set diff {}
+foreach x $f1 y $f2 {
+  if {$x != $y} {
+    lappend diff "> $x\n< $y\n\n"
   }
+}
 
-  close $a
-  close $b
-  set diff {}
-  foreach x $f1 y $f2 {
-    if {$x != $y} {
-      lappend diff "> $x\n< $y\n\n"
-    }
-  }
-
-  return $diff
+return $diff
 }
 
 ## @brief Returns the dst path relative to base
@@ -1579,107 +1587,111 @@ proc GetProjectFiles {} {
         } else {
           dict lappend properties $simtopfile "topsim=$topsim"
           if {![string equal "$runtime" "1000ns"]} { #not writing default value
-            dict lappend properties $simtopfile "runtime=$runtime"
-          }
-        }
-      }
-
-      foreach simulator [GetSimulators] {
-        set wavefile [get_property "$simulator.simulate.custom_wave_do" [get_filesets $fs]]
-        if {![string equal "$wavefile" ""]} {
-          dict lappend properties $wavefile wavefile
-          break
-        }
-      }
-
-
-      foreach simulator [GetSimulators] {
-        set dofile [get_property "$simulator.simulate.custom_udo" [get_filesets $fs]]
-        if {![string equal "$dofile" ""]} {
-          dict lappend properties $dofile dofile
-          break
+          dict lappend properties $simtopfile "runtime=$runtime"
         }
       }
     }
 
-    foreach f $all_files {
+    foreach simulator [GetSimulators] {
+      set wavefile [get_property "$simulator.simulate.custom_wave_do" [get_filesets $fs]]
+      if {![string equal "$wavefile" ""]} {
+        dict lappend properties $wavefile wavefile
+        break
+      }
+    }
+    foreach simulator [GetSimulators] {
+      set dofile [get_property "$simulator.simulate.custom_udo" [get_filesets $fs]]
+      if {![string equal "$dofile" ""]} {
+        dict lappend properties $dofile dofile
+        break
+      }
+    }
+  }
+
+  foreach f $all_files {
     # Ignore files that are part of the vivado/planahead project but would not be reflected
     # in list files (e.g. generated products from ip cores)
 
-      set ignore 0
+    set ignore 0
     # Generated files point to a parent composite file;
     # planahead does not have an IS_GENERATED property
-      if {-1 != [lsearch -exact [list_property  $f] IS_GENERATED]} {
-        if { [lindex [get_property  IS_GENERATED $f] 0] != 0} {
-          set ignore 1
-        }
-      }
-      if {-1 != [lsearch -exact [list_property  $f] PARENT_COMPOSITE_FILE]} {
+    if {-1 != [lsearch -exact [list_property  $f] IS_GENERATED]} {
+      if { [lindex [get_property  IS_GENERATED $f] 0] != 0} {
         set ignore 1
       }
+    }
+    if {-1 != [lsearch -exact [list_property  $f] PARENT_COMPOSITE_FILE]} {
+      set ignore 1
+    }
     # ignore .coe files
-      if {[string equal [file extension $f] ".coe"]} {
-        set ignore 1
-      }
+    if {[string equal [file extension $f] ".coe"]} {
+      set ignore 1
+    }
 
-      if {!$ignore} {
-        set f [file normalize $f]
-        lappend files $f
-        set type  [get_property FILE_TYPE $f]
-        set lib [get_property LIBRARY $f]
+    if {!$ignore} {
+      set f [file normalize $f]
+      lappend files $f
+      set type  [get_property FILE_TYPE $f]
+      set lib [get_property LIBRARY $f]
 
 
       # Type can be complex like VHDL 2008, in that case we want the second part to be a property
-        if {[string equal [lindex $type 0] "VHDL"] && [llength $type] == 1} {
-          set prop "93"
-        } elseif {[string equal [lindex $type 0] "SystemVerilog"] && [file ext $f] == ".v"} {
-          set prop "SystemVerilog"
-        } elseif  {[string equal [lindex $type 0] "Block"] && [string equal [lindex $type 1] "Designs"]} {
-          set type "IP"
-          set prop ""
-        } else {
-          set type [lindex $type 0]
-          set prop ""
-        }
+      if {[string equal [lindex $type 0] "VHDL"] && [llength $type] == 1} {
+        set prop "93"
+      } elseif {[string equal [lindex $type 0] "SystemVerilog"] && [file ext $f] == ".v"} {
+        set prop "SystemVerilog"
+      } elseif {[string equal $type "Verilog Header"]} {
+        set prop "verilog_header"
+      } elseif  {[string equal [lindex $type 0] "Block"] && [string equal [lindex $type 1] "Designs"]} {
+        set type "IP"
+        set prop ""
+      } else {
+        set type [lindex $type 0]
+        set prop ""
+      }
 
       #check where the file is used and add it to prop
-        if {[string equal $fs_type "SimulationSrcs"]} {
-          dict lappend SIM $fs $f
-          if {![string equal $prop ""]} {
-            dict lappend properties $f $prop
-          }
-        } elseif {[string equal $type "VHDL"]} {
-          dict lappend SRC $lib $f
-          if {![string equal $prop ""]} {
-            dict lappend properties $f $prop
-          }
-        }  elseif {[string equal [lindex $type 0] "SystemVerilog"] && [file ext $f] == ".v"} {
-          dict lappend libraries "OTHER" $f
-          if {![string equal $prop ""]} {
-            dict lappend properties $f $prop
-          }
-        } elseif {[string equal $type "IP"]} {
-          dict lappend libraries "IP" $f
-        } elseif {[string equal $type "XDC"]} {
-          dict lappend libraries "XDC" $f
-        #dict lappend properties $f "XDC"
-        } else {
-          dict lappend libraries "OTHER" $f
+      if {[string equal $fs_type "SimulationSrcs"]} {
+        dict lappend SIM $fs $f
+        if {![string equal $prop ""]} {
+          dict lappend properties $f $prop
         }
+      } elseif {[string equal $type "VHDL"]} {
+        dict lappend SRC $lib $f
+        if {![string equal $prop ""]} {
+          dict lappend properties $f $prop
+        }
+      } elseif {[string equal $type "Verilog Header"]} {
+        dict lappend libraries "OTHER" $f
+        if {![string equal $prop ""]} {
+          dict lappend properties $f $prop
+        }
+      } elseif {[string equal [lindex $type 0] "SystemVerilog"] && [file ext $f] == ".v"} {
+        dict lappend libraries "OTHER" $f
+        if {![string equal $prop ""]} {
+          dict lappend properties $f $prop
+        }
+      } elseif {[string equal $type "IP"]} {
+        dict lappend libraries "IP" $f
+      } elseif {[string equal $type "XDC"]} {
+        dict lappend libraries "XDC" $f
+      } else {
+        dict lappend libraries "OTHER" $f
+      }
 
-        if {[lindex [get_property -quiet used_in_synthesis  [get_files $f]] 0] == 0} {
-          dict lappend properties $f "nosynth"
-        }
-        if {[lindex [get_property -quiet used_in_implementation  [get_files $f]] 0] == 0} {
-          dict lappend properties $f "noimpl"
-        }
-        if {[lindex [get_property -quiet used_in_simulation  [get_files $f]] 0] == 0} {
-          dict lappend properties $f "nosim"
-        }
-
+      if {[lindex [get_property -quiet used_in_synthesis  [get_files $f]] 0] == 0} {
+        dict lappend properties $f "nosynth"
+      }
+      if {[lindex [get_property -quiet used_in_implementation  [get_files $f]] 0] == 0} {
+        dict lappend properties $f "noimpl"
+      }
+      if {[lindex [get_property -quiet used_in_simulation  [get_files $f]] 0] == 0} {
+        dict lappend properties $f "nosim"
       }
 
     }
+
+  }
 
   #    dict for {lib f} $libraries {
   #   Msg Status "   Library: $lib: \n *******"
@@ -1689,12 +1701,12 @@ proc GetProjectFiles {} {
   #
   #   Msg Status "*******"
   #    }
-  }
+}
 
-  dict append libraries "SIM" $SIM
-  dict append libraries "SRC" $SRC
-  dict lappend properties "Simulator" [get_property target_simulator [current_project]]
-  return [list $libraries $properties]
+dict append libraries "SIM" $SIM
+dict append libraries "SRC" $SRC
+dict lappend properties "Simulator" [get_property target_simulator [current_project]]
+return [list $libraries $properties]
 }
 
 
@@ -1713,7 +1725,8 @@ proc GetProjectFiles {} {
 # @return a list of 2 dictionaries: libraries and properties
 # - libraries has library name as keys and a list of filenames as values
 # - properties has as file names as keys and a list of properties as values
-#
+# - main_libs has library name as keys and a the correspondent top list filename as values
+
 proc GetHogFiles args {
 
   if {[info commands project_new] != ""} {
@@ -1761,20 +1774,20 @@ proc GetHogFiles args {
   set libraries [dict create]
   set properties [dict create]
   set list_files [glob -nocomplain -directory $list_path "*{$list_files}"]
+  set main_libs [dict create]
 
   foreach f $list_files {
     set ext [file extension $f]
     if {$ext == ".ext"} {
-      lassign [ReadListFile {*}"$sha_mode_opt $verbose_opt $f $ext_path"] l p
-      #" Fake Comment for Visual Code Studio
+      lassign [ReadListFile {*}"$sha_mode_opt $verbose_opt $f $ext_path"] l p m
     } else {
-      lassign [ReadListFile {*}"$sha_mode_opt $verbose_opt $f $repo_path"] l p
-      #" Fake Comment for Visual Code Studio
+      lassign [ReadListFile {*}"$sha_mode_opt $verbose_opt $f $repo_path"] l p m
     }
     set libraries [MergeDict $l $libraries]
     set properties [MergeDict $p $properties]
+    set main_libs [dict merge $m $main_libs]
   }
-  return [list $libraries $properties]
+  return [list $libraries $properties $main_libs]
 }
 
 
@@ -1810,18 +1823,21 @@ proc ParseFirstLineHogFiles {list_path list_file} {
 # @param[in] libraries has library name as keys and a list of filenames as values
 # @param[in] properties has as file names as keys and a list of properties as values
 #
-proc AddHogFiles { libraries properties {verbose 0}} {
+proc AddHogFiles { libraries properties main_libs {verbose 0}} {
   Msg Info "Adding source files to project..."
+
   foreach lib [dict keys $libraries] {
     #Msg Info "lib: $lib \n"
     set lib_files [dict get $libraries $lib]
     #Msg Info "Files in $lib: $lib_files \n"
     set rootlib [file rootname [file tail $lib]]
     set ext [file extension $lib]
+    set main_lib [dict get $main_libs $lib]
+    set simlib [file rootname [file tail $main_lib]]
     #Msg Info "lib: $lib ext: $ext \n"
     switch $ext {
       .sim {
-        set file_set "$rootlib\_sim"
+        set file_set "$simlib\_sim"
         # if this simulation fileset was not created we do it now
         if {[string equal [get_filesets -quiet $file_set] ""]} {
           create_fileset -simset $file_set
@@ -1839,7 +1855,7 @@ proc AddHogFiles { libraries properties {verbose 0}} {
         set file_set "sources_1"
       }
     }
-    # # ADD NOW LISTS TO VIVADO PROJECT
+    # ADD NOW LISTS TO VIVADO PROJECT
     if {[info commands add_files] != ""} {
       add_files -norecurse -fileset $file_set $lib_files
 
@@ -1882,7 +1898,7 @@ proc AddHogFiles { libraries properties {verbose 0}} {
               } else {
                 Msg Warning "Xilinx PlanAhead/ISE does not support SystemVerilog. Property not set for $f"
               }
-            } 
+            }
           }
 
 
@@ -1899,6 +1915,12 @@ proc AddHogFiles { libraries properties {verbose 0}} {
               Msg Info "Setting filetype XDC for $f"
             }
             set_property -name "file_type" -value "XDC" -objects $file_obj
+          }
+
+          # Verilog headers
+          if {[lsearch -inline -regex $props "verilog_header"] >= 0} {
+            Msg Info "Setting verilog header type for $f..."
+            set_property file_type {Verilog Header} [get_files $f]
           }
 
           # Not used in synthesis

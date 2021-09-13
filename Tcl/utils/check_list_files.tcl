@@ -605,8 +605,8 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
     }
   }
 
-  #adding default properties set by defaut by Hog or after project creation
-  set defMainDict [dict create TARGET_LANGUAGE VHDL SIMULATOR_LANGUAGE MIXED IP_REPO_PATHS IP_repository]
+  #adding default properties set by default by Hog or after project creation
+  set defMainDict [dict create TARGET_LANGUAGE VHDL SIMULATOR_LANGUAGE MIXED]
   dict set defMainDict IP_OUTPUT_REPO "[Relative $repo_path $proj_dir]/${project_name}.cache/ip"
   dict set defaultConfDict main [dict merge [DictGet $defaultConfDict main] $defMainDict]
 

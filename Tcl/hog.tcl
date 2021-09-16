@@ -1593,10 +1593,6 @@ proc GetProjectFiles {} {
     if {-1 != [lsearch -exact [list_property  $f] PARENT_COMPOSITE_FILE]} {
       set ignore 1
     }
-    # ignore .coe files
-    if {[string equal [file extension $f] ".coe"]} {
-      set ignore 1
-    }
 
     if {!$ignore} {
       set f [file normalize $f]

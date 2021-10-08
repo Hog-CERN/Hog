@@ -1121,11 +1121,12 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
     set xml_hash 0000000
   }
 
+  set user_ip_repos ""  
+  set user_ip_repo_hashes ""
+  set user_ip_repo_vers ""
   # User IP Repository (Vivado only, hog.conf only)
   if [file exists [lindex $conf_files 0]] {
-    set user_ip_repos ""  
-    set user_ip_repo_hashes ""
-    set user_ip_repo_vers ""
+    
     set PROPERTIES [ReadConf [lindex $conf_files 0]]
     set has_user_ip 0
   

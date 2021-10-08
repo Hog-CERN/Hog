@@ -168,7 +168,7 @@
               cat $CI_PROJECT_DIR/bin/$PROJECT_NAME*/versions* $CI_PROJECT_DIR/bin/$PROJECT_NAME*/timing_* > note.md;
             fi;
           fi;
-          if [[ -n "$HOG_MR_MSG" ]] && [[ $HOG_MR_MSG == '2' ]]; then
+          if [[ -n "$HOG_MR_MSG" ]] && [[ $HOG_MR_MSG == '3' ]]; then
             echo "Hog-CI(info) - Writing note on gitlab website...";
             ./Hog/Other/WriteGitlabNote.sh $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $CI_MERGE_REQUEST_IID note.md;
           fi;
@@ -196,6 +196,7 @@ collect_artifacts:
         - cd $CI_PROJECT_DIR/bin/
         - diff_files=$(find . -name "diff*.txt");
         - touch $old_dir/mr_note.md
+        - echo "Pipeline [$CI_PIPELINE_ID]($CI_PIPELINE_URL) passed for merge-request !$CI_MERGE_REQUEST_ID" >> $old_dir/mr_note.md
         - if [[ $diff_files != "" ]]; then
             echo "## Uncommitted differences" >> $old_dir/mr_note.md;
             for f in $diff_files; do
@@ -203,18 +204,20 @@ collect_artifacts:
               echo "" >> $old_dir/mr_note.md;
             done;
           fi
-        - note_files="versions timing"
-        - for f in $note_files; do
-            files=$(find . -name "$f*.txt");
-            if (( ${#files} )); then
-              for fp in $files; do 
-                cat $fp >> $old_dir/mr_note.md;
-              done;
-            fi;
-          done;
+        - if [[ -z "$HOG_MR_MSG" ]] || [[ $HOG_MR_MSG == '1' ]]; then
+            note_files="versions timing";
+            for f in $note_files; do
+              files=$(find . -name "$f*.txt");
+              if (( ${#files} )); then
+                for fp in $files; do 
+                  cat $fp >> $old_dir/mr_note.md;
+                done;
+              fi;
+            done;
+          fi;
         - cd $old_dir
         - cat mr_note.md >> $CI_PROJECT_DIR/bin/note.md
-        - if [[ -z "$HOG_MR_MSG" ]] || [[ $HOG_MR_MSG == '1' ]]; then
+        - if [[ -z "$HOG_MR_MSG" ]] || [[ $HOG_MR_MSG == '1' ]] || [[ $HOG_MR_MSG == '2']]; then
             echo "Hog-CI(info) - Writing note on gitlab website...";
             ./Hog/Other/WriteGitlabNote.sh $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $CI_MERGE_REQUEST_IID mr_note.md;
           fi;

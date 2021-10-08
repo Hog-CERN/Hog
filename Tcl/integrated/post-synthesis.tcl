@@ -17,17 +17,21 @@
 # The post synthesis script copies the synthesis reports and other files to the bin.
 # This script is automatically integrated into the Vivado/Quartus workflow by the Create Project script.
 
-set old_path [pwd]
+if {[catch {package require struct::matrix} ERROR]} {
+  puts "$ERROR\n If you are running this script on tclsh, you can fix this by installing 'tcllib'"
+  return
+}
+
+if {[info commands get_property] != "" && [string first PlanAhead [version]] == 0 } {
+  # Vivado + PlanAhead
+  set old_path [file normalize "../../Projects/$project/$project.runs/synth_1"]
+  file mkdir $old_path
+} else {
+  set old_path [pwd]
+}
+
 set tcl_path [file normalize "[file dirname [info script]]/.."]
 source $tcl_path/hog.tcl
-set repo_path [file normalize "$tcl_path/../../"]
-
-if {[info exists env(HOG_EXTERNAL_PATH)]} {
-  set ext_path $env(HOG_EXTERNAL_PATH)
-  Msg Info "Found environment variable HOG_EXTERNAL_PATH, setting path for external files to $ext_path..."
-} else {
-  set ext_path ""
-}
 
 if {[info commands get_property] != ""} {
   # Vivado + PlanAhead
@@ -95,9 +99,7 @@ file mkdir $dst_dir
 file mkdir $dst_dir/reports
 
 # Vivado
-if {[info commands get_property]} {
-
-  
+if {[info commands get_property] != ""} {
 
   # Vivado + PlanAhead
   if { [string first PlanAhead [version]] == 0 } {

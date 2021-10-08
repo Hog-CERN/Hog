@@ -199,24 +199,27 @@ collect_artifacts:
         - echo "Pipeline [$CI_PIPELINE_ID]($CI_PIPELINE_URL) passed for merge-request !$CI_MERGE_REQUEST_IID" >> $old_dir/mr_note.md
         - if [[ $diff_files != "" ]]; then
             echo "## Uncommitted differences" >> $old_dir/mr_note.md;
+            echo "## Uncommitted differences" >> $CI_PROJECT_DIR/bin/note.md;
             for f in $diff_files; do
               echo "Found uncommitted differences, check log file bin/$f in the artifacts." >> $old_dir/mr_note.md;
               echo "" >> $old_dir/mr_note.md;
+              echo "Found uncommitted differences, check log file bin/$f in the artifacts." >> $CI_PROJECT_DIR/bin/note.md;
+              echo "" >> $CI_PROJECT_DIR/bin/note.md;
             done;
           fi
-        - if [[ -z "$HOG_MR_MSG" ]] || [[ $HOG_MR_MSG == '1' ]]; then
-            note_files="versions timing";
-            for f in $note_files; do
-              files=$(find . -name "$f*.txt");
-              if (( ${#files} )); then
-                for fp in $files; do 
+        - note_files="versions timing";
+        - for f in $note_files; do
+            files=$(find . -name "$f*.txt");
+            if (( ${#files} )); then
+              for fp in $files; do
+                if [[ -z "$HOG_MR_MSG" ]] || [[ $HOG_MR_MSG == '1' ]]; then
                   cat $fp >> $old_dir/mr_note.md;
-                done;
-              fi;
-            done;
-          fi;
+                fi;
+                  cat $fp >> $CI_PROJECT_DIR/bin/note.md;
+              done;
+            fi;
+          done;
         - cd $old_dir
-        - cat mr_note.md >> $CI_PROJECT_DIR/bin/note.md
         - if [[ -z "$HOG_MR_MSG" ]] || [[ $HOG_MR_MSG == '1' ]] || [[ $HOG_MR_MSG == '2' ]]; then
             echo "Hog-CI(info) - Writing note on gitlab website...";
             ./Hog/Other/WriteGitlabNote.sh $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $CI_MERGE_REQUEST_IID mr_note.md;

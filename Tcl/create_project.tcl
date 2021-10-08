@@ -754,7 +754,7 @@ set globalSettings::tcl_path                    $tcl_path
 set globalSettings::repo_path                   $repo_path
 set globalSettings::group_name                  [file dirname $globalSettings::DESIGN]
 set globalSettings::pre_synth_file              "pre-synthesis.tcl"
-set globalSettings::post_synth_file             ""
+set globalSettings::post_synth_file             "post-synthesis.tcl"
 set globalSettings::pre_impl_file               "pre-implementation.tcl"
 set globalSettings::post_impl_file              "post-implementation.tcl"
 set globalSettings::pre_bit_file                "pre-bitstream.tcl"

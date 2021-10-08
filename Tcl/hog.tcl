@@ -2813,7 +2813,8 @@ proc SearchHogProjects {dir} {
   set projects_list {}
   if {[file exists $dir]} {
     if {[file isdirectory $dir]} {
-      foreach proj_dir [glob -type d $dir/* ] {
+
+      foreach proj_dir [glob -nocomplain -type d $dir/* ] {
         if {![regexp {^.*Top/+(.*)$} $proj_dir dummy proj_name]} {
           set proj_name
           Msg Warning "Could not parse Top directory $dir"
@@ -2826,6 +2827,7 @@ proc SearchHogProjects {dir} {
           }
         }
       }
+       
     } else {
       Msg Error "Input $dir is not a directory!"
     }

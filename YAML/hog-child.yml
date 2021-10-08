@@ -196,7 +196,7 @@ collect_artifacts:
         - cd $CI_PROJECT_DIR/bin/
         - diff_files=$(find . -name "diff*.txt");
         - touch $old_dir/mr_note.md
-        - echo "Pipeline [$CI_PIPELINE_ID]($CI_PIPELINE_URL) passed for merge-request !$CI_MERGE_REQUEST_ID" >> $old_dir/mr_note.md
+        - echo "Pipeline [$CI_PIPELINE_ID]($CI_PIPELINE_URL) passed for merge-request !$CI_MERGE_REQUEST_IID" >> $old_dir/mr_note.md
         - if [[ $diff_files != "" ]]; then
             echo "## Uncommitted differences" >> $old_dir/mr_note.md;
             for f in $diff_files; do

@@ -1121,30 +1121,32 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
     set xml_hash 0000000
   }
 
-  # User IP Repository (Vivado only)
-  set user_ip_repos ""  
-  set user_ip_repo_hashes ""
-  set user_ip_repo_vers ""
-  set PROPERTIES [ReadConf [lindex $conf_files 0]]
-  set has_user_ip 0
-
-  if {[dict exists $PROPERTIES main]} {
-    set main [dict get $PROPERTIES main]
-    dict for {p v} $main {
-      if { [ string tolower $p ] == "ip_repo_paths" } {
-        set has_user_ip 1
-        foreach repo $v {
-          lappend user_ip_repos "$repo_path/$repo"
+  # User IP Repository (Vivado only, hog.conf only)
+  if [file exists [lindex $conf_files 0]] {
+    set user_ip_repos ""  
+    set user_ip_repo_hashes ""
+    set user_ip_repo_vers ""
+    set PROPERTIES [ReadConf [lindex $conf_files 0]]
+    set has_user_ip 0
+  
+    if {[dict exists $PROPERTIES main]} {
+      set main [dict get $PROPERTIES main]
+      dict for {p v} $main {
+        if { [ string tolower $p ] == "ip_repo_paths" } {
+          set has_user_ip 1
+          foreach repo $v {
+            lappend user_ip_repos "$repo_path/$repo"
+          }
         }
       }
     }
-  }
 
-  foreach repo $user_ip_repos {
-    lassign [GetVer $repo] ver sha
-    lappend user_ip_repo_hashes $sha
-    lappend user_ip_repo_vers $ver
-    lappend versions $ver
+    foreach repo $user_ip_repos {
+      lassign [GetVer $repo] ver sha
+      lappend user_ip_repo_hashes $sha
+      lappend user_ip_repo_vers $ver
+      lappend versions $ver
+    }
   }
 
 

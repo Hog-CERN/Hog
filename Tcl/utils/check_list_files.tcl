@@ -429,13 +429,16 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
   foreach key [dict keys $prjProperties] {
     foreach prop [DictGet $prjProperties $key] {
       #puts "FILE $key: PROPERTY $prop"
-      if {[lsearch -nocase [lindex [DictGet $listProperties $key] 0] $prop] < 0 && ![string equal $prop ""] && ![string equal $key "Simulator"] && ![string equal $prop "top=top_[file root $project_name]"]} {
-        if {$options(recreate) == 1} {
-          Msg Info "$key property $prop was added to the project."
-        } else {
-          CriticalAndLog "$key property $prop is set in project but not in list files!" $outFile
+      if {[lsearch -nocase [lindex [DictGet $listProperties $key] 0] $prop] < 0 && ![string equal $prop ""] && ![string equal $key "Simulator"] && ![string equal $prop "top=top_[file root $project_name]"] } {
+        if { ![string equal [file extension $key] "svh" ] && ![string equal [file extension $key] "vh" ] && ![string equal $prop "verilog_header"] } {
+              
+          if {$options(recreate) == 1} {
+            Msg Info "$key property $prop was added to the project."
+          } else {
+            CriticalAndLog "$key property $prop is set in project but not in list files!" $outFile
+          }
+          incr ListErrorCnt
         }
-        incr ListErrorCnt
       }
     }
   }

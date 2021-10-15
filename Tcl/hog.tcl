@@ -2180,7 +2180,7 @@ proc AddHogFiles { libraries properties main_libs {verbose 0}} {
     lassign [GetProjectFiles] prjLibraries prjProperties
     set prjIPs  [DictGet $prjLibraries IP]
     set prj_dir [get_property DIRECTORY [current_project]]
-    file mkdir "$prj_dir/hog"
+    file mkdir "$prj_dir/.hog"
     set new_ip_file [open "$prj_dir/.hog/extra.ip" "w" ]
     foreach lib [dict keys $libraries] {
       set ext [file extension $lib]

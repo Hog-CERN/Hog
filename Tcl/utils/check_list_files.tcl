@@ -128,7 +128,7 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
   lassign [GetProjectFiles] prjLibraries prjProperties
 
 
-  lassign [GetHogFiles -ext_path "$ext_path" -repo_path $repo_path "$repo_path/Top/$group_name/$project_name/list/"] listLibraries listProperties
+  lassign [GetHogFiles -ext_path "$ext_path" -repo_path $repo_path "$repo_path/Top/$group_name/$project_name/list/"] listLibraries listProperties listMain
 
   set prjIPs  [DictGet $prjLibraries IP]
   set prjXDCs  [DictGet $prjLibraries XDC]
@@ -137,7 +137,7 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
   set prjSrcDict  [DictGet $prjLibraries SRC]
 
 
-  #clening doubles from listlibraries and listProperties
+  #cleaning doubles from listlibraries and listProperties
   foreach library [dict keys $listLibraries] {
     set fileNames [DictGet $listLibraries $library]
     foreach fileName $fileNames {
@@ -198,7 +198,7 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
     } elseif {[file extension $key] == ".sim" } {
       if {[dict exists $prjSimDict "[file rootname $key]_sim"]} {
         set prjSIMs [DictGet $prjSimDict "[file rootname $key]_sim"]
-	#check if project contains sin files specified in listfiles
+	      #check if project contains sim files specified in listfiles
         foreach SIM [DictGet $listLibraries $key] {
           set idx [lsearch -exact $prjSIMs $SIM]
           set prjSIMs [lreplace $prjSIMs $idx $idx]
@@ -215,12 +215,15 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
         }
         dict set prjSimDict "[file rootname $key]_sim" $prjSIMs
       } else {
-        if {$options(recreate) == 1} {
-          Msg Info "[file rootname $key]_sim fileset was removed from the project."
-        } else {
-          CriticalAndLog "[file rootname $key]_sim fileset not found in project." $outFile
+        set main_lib [dict get $listMain $key]
+        if { $main_lib == $key } {
+          if {$options(recreate) == 1} {
+            Msg Info "[file rootname $key]_sim fileset was removed from the project."
+          } else {
+            CriticalAndLog "[file rootname $key]_sim fileset not found in project." $outFile
+          }
+          incr ListErrorCnt
         }
-        incr ListErrorCnt
       }
     } elseif {[file extension $key] == ".src" || [file extension $key] == ".sub"} {
       #check if project contains sources specified in listfiles

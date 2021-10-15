@@ -130,7 +130,7 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
 
   lassign [GetHogFiles -ext_path "$ext_path" -repo_path $repo_path "$repo_path/Top/$group_name/$project_name/list/"] listLibraries listProperties listMain
 
-  set extraIPs [ReadExtraIpList "$repo_path/Projects/$group_name/$project_name/hog/extra.ip"]
+  set extraIPs [ReadExtraIpList "$repo_path/Projects/$group_name/$project_name/.hog/extra.ip"]
 
   set prjIPs  [DictGet $prjLibraries IP]
   set prjXDCs  [DictGet $prjLibraries XDC]

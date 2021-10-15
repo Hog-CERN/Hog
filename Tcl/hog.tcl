@@ -1993,25 +1993,17 @@ proc AddHogFiles { libraries properties main_libs {verbose 0}} {
             }
           }
 
-          # IPs
-          if {[file ext $f] == ".xci"} { 
-            # Lock the IP
-            if {[lsearch -inline -regex $props "locked"] >= 0} {
-              Msg Info "Locking IP $f..."
-              set_property IS_MANAGED 0 [get_files $f]
+          # Tcl
+          if {[file ext $f] == ".tcl"} {
+            if { [lsearch -inline -regex $props "nosource"] >= 0} {
+              Msg Info "Tcl script $f will not be sourced..."
+            } else {
+              Msg Info "Sourcing script $f..."
+              source $f
             }
           }
         }
-        # Tcl
-        if {[file ext $f] == ".tcl"} {
-          if { [lsearch -inline -regex $props "nosource"] >= 0} {
-            Msg Info "Tcl script $f will not be sourced..."
-          } else {
-            Msg Info "Sourcing script $f..."
-            source $f
-          }
-        }
-        
+       
       } else {
         # IPs
         foreach f $lib_files {

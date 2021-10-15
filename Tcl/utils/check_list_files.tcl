@@ -198,22 +198,27 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
     } elseif {[file extension $key] == ".sim" } {
       if {[dict exists $prjSimDict "[file rootname $key]_sim"]} {
         set prjSIMs [DictGet $prjSimDict "[file rootname $key]_sim"]
-	      #check if project contains sim files specified in listfiles
-        foreach SIM [DictGet $listLibraries $key] {
-          set idx [lsearch -exact $prjSIMs $SIM]
-          set prjSIMs [lreplace $prjSIMs $idx $idx]
-          if {$idx < 0} {
-            if {$options(recreate) == 1} {
-              Msg Info "$SIM was removed from the project."
-            } else {
-              CriticalAndLog "$SIM not found in project simulation files." $outFile
+	      # loop over list files associated with this simset
+        foreach simlist [dict keys $listMain] {
+           #check if project contains sim files specified in list files
+          if {[DictGet $listMain $simlist] == $key } {
+            foreach SIM [DictGet $listLibraries $simlist] {
+              set idx [lsearch -exact $prjSIMs $SIM]
+              set prjSIMs [lreplace $prjSIMs $idx $idx]
+              if {$idx < 0} {
+                if {$options(recreate) == 1} {
+                  Msg Info "$SIM was removed from the project."
+                } else {
+                  CriticalAndLog "$SIM not found in project simulation files." $outFile
+                }
+                incr ListErrorCnt
+              } else {
+                dict lappend newListfiles $simlist [string trim "[RelativeLocal $repo_path $SIM] [DictGet $prjProperties $SIM]"]
+              }
             }
-            incr ListErrorCnt
-          } else {
-            dict lappend newListfiles $key [string trim "[RelativeLocal $repo_path $SIM] [DictGet $prjProperties $SIM]"]
+            dict set prjSimDict "[file rootname $key]_sim" $prjSIMs
           }
         }
-        dict set prjSimDict "[file rootname $key]_sim" $prjSIMs
       } else {
         set main_lib [dict get $listMain $key]
         if { $main_lib == $key } {

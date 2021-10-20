@@ -2176,7 +2176,7 @@ proc AddHogFiles { libraries properties main_libs {verbose 0}} {
     }
   }
   ### CHECK NOW FOR IP OUTSIDE OF LIST FILE (Vivado only!)
-  if {[info commands add_files] != ""} {
+  if {[info commands add_files] != "" && [string first PlanAhead [version] ] != 0} {
     lassign [GetProjectFiles] prjLibraries prjProperties
     set prjIPs  [DictGet $prjLibraries IP]
     set prj_dir [get_property DIRECTORY [current_project]]

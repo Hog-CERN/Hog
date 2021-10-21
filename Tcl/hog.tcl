@@ -744,7 +744,7 @@ proc GetSHA {path} {
     set submodules [split [exec git config --file $repo_path/.gitmodules --get-regexp path] "\n"]
     foreach mod $submodules {
       set module [lindex $mod 1]
-      if {[string first "$repo_path/$module" $path]} {
+      if {[string first "$repo_path/$module" $path] == 0} {
         # File is in a submodule return module SHA
         set ret [Git {log --format=%h -1} $repo_path/$module ]
         return [string toupper $ret]

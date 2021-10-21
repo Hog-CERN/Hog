@@ -1636,7 +1636,7 @@ proc GetProjectFiles {} {
         }
       } elseif {[string equal $type "IP"]} {
         dict lappend libraries "IP" $f
-      } elseif {[string equal $type "XDC"]} {
+      } elseif {[string equal $fs_type "Constrs"]} {
         dict lappend libraries "XDC" $f
         #dict lappend properties $f "XDC"
       } else {

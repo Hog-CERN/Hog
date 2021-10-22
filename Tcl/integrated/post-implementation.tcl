@@ -198,7 +198,11 @@ if {[info commands get_property] != ""} {
     if [file exists [glob -nocomplain "$dst_dir/reports/${top_name}_utilization_placed.rpt"] ] {
       set utilization_file [file normalize $dst_dir/utilization.txt]
       set report_file [glob -nocomplain "$dst_dir/reports/${top_name}_utilization_placed.rpt"]
-      WriteUtilizationSummary $report_file $utilization_file $proj_name "Implementation"
+      if {$group_name != ""} {
+        WriteUtilizationSummary $report_file $utilization_file $group_name/$proj_name "Synthesis"
+      } else {
+        WriteUtilizationSummary $report_file $utilization_file $proj_name "Synthesis"
+      }    
     }
   } else {
     Msg Warning "No reports found in $run_dir subfolders"

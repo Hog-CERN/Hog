@@ -42,6 +42,7 @@ if {[info commands get_property] != ""} {
   }
   set proj_dir [file normalize [file dirname $proj_file]]
   set proj_name [file rootname [file tail $proj_file]]
+  set top_name [get_property top [current_fileset]]
 } elseif {[info commands project_new] != ""} {
   # Quartus
   set proj_name [lindex $quartus(args) 1]
@@ -118,9 +119,9 @@ if {[info commands get_property] != ""} {
   }
   if [file exists [lindex $reps 0]] {
     file copy -force {*}$reps $dst_dir/reports
-    if [file exists [glob -nocomplain "$dst_dir/reports/*_utilization_synth.rpt"] ] {
+    if [file exists [glob -nocomplain "$dst_dir/reports/${top_name}_utilization_synth.rpt"] ] {
       set utilization_file [file normalize $dst_dir/utilization.txt]
-      set report_file [glob -nocomplain "$dst_dir/reports/*_utilization_synth.rpt"]
+      set report_file [glob -nocomplain "$dst_dir/reports/${top_name}_utilization_synth.rpt"]
       WriteUtilizationSummary $report_file $utilization_file $proj_name "Synthesis"
     }
   } else {

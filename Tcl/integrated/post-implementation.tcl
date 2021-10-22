@@ -41,6 +41,7 @@ if {[info commands get_property] != ""} {
   set proj_dir [file normalize [file dirname $proj_file]]
   set proj_name [file rootname [file tail $proj_file]]
   set run_dir [file normalize "$work_path/.."]
+  set top_name [get_property top [current_fileset]]
 
 } elseif {[info commands project_new] != ""} {
   # Quartus
@@ -190,9 +191,9 @@ if {[info commands get_property] != ""} {
   }
   if [file exists [lindex $reps 0]] {
     file copy -force {*}$reps $dst_dir/reports
-    if [file exists [glob -nocomplain "$dst_dir/reports/*_utilization_placed.rpt"] ] {
+    if [file exists [glob -nocomplain "$dst_dir/reports/${top_name}_utilization_placed.rpt"] ] {
       set utilization_file [file normalize $dst_dir/utilization.txt]
-      set report_file [glob -nocomplain "$dst_dir/reports/*_utilization_placed.rpt"]
+      set report_file [glob -nocomplain "$dst_dir/reports/${top_name}_utilization_placed.rpt"]
       WriteUtilizationSummary $report_file $utilization_file $proj_name "Implementation"
     }
   } else {

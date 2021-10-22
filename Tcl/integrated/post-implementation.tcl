@@ -33,11 +33,15 @@ if {[info commands get_property] != ""} {
   # Vivado + planAhead
   if { [string first PlanAhead [version]] == 0 } {
     set proj_file [get_property DIRECTORY [current_project]]
+    set work_path [get_property DIRECTORY [get_runs impl_1]]
   } else {
     set proj_file [get_property parent.project_path [current_project]]
+    set work_path $old_path
   }
   set proj_dir [file normalize [file dirname $proj_file]]
   set proj_name [file rootname [file tail $proj_file]]
+  set run_dir [file normalize "$work_path/.."]
+
 } elseif {[info commands project_new] != ""} {
   # Quartus
   set proj_name [lindex $quartus(args) 1]

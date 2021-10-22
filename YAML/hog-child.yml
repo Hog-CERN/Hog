@@ -168,7 +168,7 @@
               cat $CI_PROJECT_DIR/bin/$PROJECT_NAME*/versions* $CI_PROJECT_DIR/bin/$PROJECT_NAME*/timing_* > note.md;
             fi;
           fi;
-          if [[ -f "$CI_PROJECT_DIR/bin/$PROJECT_NAME*/utilization.txt ]]; then
+          if [[ -f "$CI_PROJECT_DIR/bin/$PROJECT_NAME*/utilization.txt" ]]; then
             cat $CI_PROJECT_DIR/bin/$PROJECT_NAME*/utilization.txt >> note.md;
           fi;
           if [[ -n "$HOG_MR_MSG" ]] && [[ $HOG_MR_MSG == '3' ]]; then

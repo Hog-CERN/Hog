@@ -199,9 +199,9 @@ if {[info commands get_property] != ""} {
       set utilization_file [file normalize $dst_dir/utilization.txt]
       set report_file [glob -nocomplain "$dst_dir/reports/${top_name}_utilization_placed.rpt"]
       if {$group_name != ""} {
-        WriteUtilizationSummary $report_file $utilization_file $group_name/$proj_name "Synthesis"
+        WriteUtilizationSummary $report_file $utilization_file $group_name/$proj_name "Implementation"
       } else {
-        WriteUtilizationSummary $report_file $utilization_file $proj_name "Synthesis"
+        WriteUtilizationSummary $report_file $utilization_file $proj_name "Implementation"
       }    
     }
   } else {

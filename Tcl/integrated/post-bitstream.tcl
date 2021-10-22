@@ -119,30 +119,7 @@ if {[info commands get_property] != "" && [file exists $bit_file]} {
   Msg Info "Creating $dst_dir..."
   file mkdir $dst_dir
 
-  #check list files and project properties
-  set confDict [dict create]
-  set full_diff_log 0
-  if {[file exists "$tcl_path/../../Top/$group_name/$proj_name/hog.conf"]} {
-    set confDict [ReadConf "$tcl_path/../../Top/$group_name/$proj_name/hog.conf"]
-    set full_diff_log [DictGet [DictGet $confDict "hog"] "FULL_DIFF_LOG"  0]
-  }
 
-  Msg Info "Evaluating differences with last commit..."
-  set found_uncommitted 0
-  set diff [Git diff]
-  set diff_stat [Git "diff --stat"]
-  if {$diff != ""} {
-    set found_uncommitted 1
-    Msg Warning "Found non committed changes:"
-    if {$full_diff_log} {
-      Msg Status "$diff"
-    } else {
-      Msg Status "$diff_stat"
-    }
-    set fp [open "$dst_dir/diff_postbitstream.txt" w+]
-    puts $fp "$diff"
-    close $fp
-  } 
 
   if {$found_uncommitted == 0} {
     Msg Info "No uncommitted changes found."
@@ -150,26 +127,6 @@ if {[info commands get_property] != "" && [file exists $bit_file]} {
 
   Msg Info "Copying bit file $bit_file into $dst_bit..."
   file copy -force $bit_file $dst_bit
-
-  # Reports
-  file mkdir $dst_dir/reports
-  if { [string first PlanAhead [version]] == 0 } {
-    set reps [glob -nocomplain "$run_dir/*/*{.syr,.srp,.mrp,.map,.twr,.drc,.bgn,_routed.par,_routed_pad.txt,_routed.unroutes}"]
-  } else {
-    set reps [glob -nocomplain "$run_dir/*/*.rpt"]
-  }
-  if [file exists [lindex $reps 0]] {
-    file copy -force {*}$reps $dst_dir/reports
-  } else {
-    Msg Warning "No reports found in $run_dir subfolders"
-  }
-
-  # Log files
-  set logs [glob -nocomplain "$run_dir/*/runme.log"]
-  foreach log $logs {
-    set run_name [file tail [file dir $log]]
-    file copy -force $log $dst_dir/reports/$run_name.log
-  }
 
   # bin File
   if [file exists $bin_file] {

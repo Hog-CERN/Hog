@@ -168,7 +168,7 @@
               cat $CI_PROJECT_DIR/bin/$PROJECT_NAME*/versions* $CI_PROJECT_DIR/bin/$PROJECT_NAME*/timing_* > note.md;
             fi;
           fi;
-          cat $CI_PROJECT_DIR/bin/$PROJECT_NAME*/utilization.txt >> note.md
+          cat $CI_PROJECT_DIR/bin/$PROJECT_NAME*/utilization.txt >> note.md;
           if [[ -n "$HOG_MR_MSG" ]] && [[ $HOG_MR_MSG == '3' ]]; then
             echo "Hog-CI(info) - Writing note on gitlab website...";
             ./Hog/Other/WriteGitlabNote.sh $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $CI_MERGE_REQUEST_IID note.md;

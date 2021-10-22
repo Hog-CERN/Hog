@@ -739,20 +739,27 @@ return $file_list
 proc GetSHA {path} {
   # Get repository top level
   set repo_path [lindex [Git {rev-parse --show-toplevel} $path] 0]
+  set paths {}
+  set file_in_module 0
   # Retrieve the list of submodules in the repository
-  if {[file exists $repo_path/.gitmodules]} {
-    set submodules [split [exec git config --file $repo_path/.gitmodules --get-regexp path] "\n"]
-    foreach mod $submodules {
-      set module [lindex $mod 1]
-      if {[string first "$repo_path/$module" $path] == 0} {
-        # File is in a submodule return module SHA
-        set ret [Git {log --format=%h -1} $repo_path/$module ]
-        return [string toupper $ret]
+  foreach f $path {
+    if {[file exists $repo_path/.gitmodules]} {
+      set submodules [split [exec git config --file $repo_path/.gitmodules --get-regexp path] "\n"]
+      foreach mod $submodules {
+        set module [lindex $mod 1]
+        if {[string first "$repo_path/$module" $path] == 0} {
+          # File is in a submodule. Append 
+          set file_in_module 1
+          lappend paths "$repo_path/$module"
+        }
       }
     }
-  } 
-  # Check if file is in submodule 
-  set ret [Git {log --format=%h -1} $path ]
+    if {$file_in_module == 0} {
+      lappend paths $f
+    }
+  }
+
+  set ret [Git {log --format=%h -1} $paths ]
   return [string toupper $ret]
 }
 

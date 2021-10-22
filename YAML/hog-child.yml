@@ -151,7 +151,7 @@
           echo "./Hog/LaunchWorkflow.sh -njobs $HOG_NJOBS $IP_PATH $NO_BITSTREAM $ONLY_SYNTH $CHECK_SYNTAX $PROJECT_NAME";
           ./Hog/LaunchWorkflow.sh -njobs $HOG_NJOBS $IP_PATH $NO_BITSTREAM $ONLY_SYNTH $CHECK_SYNTAX $PROJECT_NAME;
           if [[ -n "$HOG_ONLY_SYNTH" ]] && [[ $HOG_ONLY_SYNTH == '1' ]]; then
-            echo "Hog-CI(info) - Adding version and timing summary to note...";
+            echo "Hog-CI(info) - Adding version and utilization summaries to note...";
             if [[ -d "$CI_PROJECT_DIR/Projects/$PROJECT_NAME/$PROJECT_NAME.runs/" ]]; then
               cat $CI_PROJECT_DIR/Projects/$PROJECT_NAME/$PROJECT_NAME.runs/versions* > note.md;
               cp $CI_PROJECT_DIR/Projects/$PROJECT_NAME/$PROJECT_NAME.runs/versions* $CI_PROJECT_DIR/bin/$PROJECT_NAME*/;
@@ -161,13 +161,14 @@
               cp $CI_PROJECT_DIR/Projects/$PROJECT_NAME/output_files/versions* $CI_PROJECT_DIR/bin/$PROJECT_NAME*/;
             fi;
           else
-            echo "Hog-CI(info) - Adding versions and timing summary to note...";
+            echo "Hog-CI(info) - Adding versions, timing and utilization summary to note...";
             if [[ -d "$CI_PROJECT_DIR/Projects/$PROJECT_NAME/output_files/" ]]; then
               cat $CI_PROJECT_DIR/Projects/$PROJECT_NAME/output_files/versions* > note.md;
             else
               cat $CI_PROJECT_DIR/bin/$PROJECT_NAME*/versions* $CI_PROJECT_DIR/bin/$PROJECT_NAME*/timing_* > note.md;
             fi;
           fi;
+          cat $CI_PROJECT_DIR/bin/$PROJECT_NAME*/utilization.txt >> note.md
           if [[ -n "$HOG_MR_MSG" ]] && [[ $HOG_MR_MSG == '3' ]]; then
             echo "Hog-CI(info) - Writing note on gitlab website...";
             ./Hog/Other/WriteGitlabNote.sh $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $CI_MERGE_REQUEST_IID note.md;
@@ -207,7 +208,7 @@ collect_artifacts:
               echo "" >> $CI_PROJECT_DIR/bin/note.md;
             done;
           fi
-        - note_files="versions timing";
+        - note_files="versions timing utilization";
         - for f in $note_files; do
             files=$(find . -name "$f*.txt");
             if (( ${#files} )); then

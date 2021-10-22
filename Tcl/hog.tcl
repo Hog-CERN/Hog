@@ -3031,37 +3031,37 @@ if {[GitVersion 2.7.2] == 0 } {
 
 proc WriteUtilizationSummary {input output project_name run} {
   set f [open $input "r"]
-  set o [open $output "w"]
+  set o [open $output "a"]
   puts $o "## $project_name $run Utilization report"
-  struct::matrix m
-  m add columns 5
-  m add row
-  m add row "|          **Site Type**         | **Used** | **Fixed** | **Available** | **Util%** |"
-  m add row "|  --- | --- | --- | --- | --- |"
+  struct::matrix util_m
+  util_m add columns 12
+  util_m add row
+  util_m add row "|          **Site Type**         | **Used** | **Fixed** | **Available** | **Util%** |"
+  util_m add row "|  --- | --- | --- | --- | --- |"
 
   while {[gets $f line] >= 0} {
     if { [string first "CLB LUTs*" $line] >= 0 } {
-      m add row $line
+      util_m add row $line
     }
     if { [string first "CLB Registers*" $line] >= 0 } {
-      m add row $line
+      util_m add row $line
     }
     if { [string first "| Block RAM Tile" $line] >= 0 } {
-      m add row $line
+      util_m add row $line
     }
     if { [string first "URAM" $line] >= 0 } {
-      m add row $line
+      util_m add row $line
     }
     if { [string first "DSPs" $line] >= 0 } {
-      m add row $line
+      util_m add row $line
     }
     if { [string first "Bonded IOB" $line] >= 0 } {
-      m add row $line
+      util_m add row $line
     }
   }
-
+  util_m add row
+  
   close $f
-  m add row "|  --- | --- | --- | --- | --- |"
-  puts $o [m format 2string]
+  puts $o [util_m format 2string]
   close $o
 }

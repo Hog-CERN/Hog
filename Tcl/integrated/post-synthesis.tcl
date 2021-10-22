@@ -119,7 +119,7 @@ if {[info commands get_property] != ""} {
   if [file exists [lindex $reps 0]] {
     file copy -force {*}$reps $dst_dir/reports
     if [file exists [glob -nocomplain "$dst_dir/reports/*_utilization_synth.rpt"] ] {
-      set utilization_file [file normalize $dst_dir/utilization_synth.txt]
+      set utilization_file [file normalize $dst_dir/utilization.txt]
       set report_file [glob -nocomplain "$dst_dir/reports/*_utilization_synth.rpt"]
       WriteUtilizationSummary $report_file $utilization_file $proj_name "Synthesis"
     }

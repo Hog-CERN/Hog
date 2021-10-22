@@ -2021,11 +2021,6 @@ proc AddHogFiles { libraries properties main_libs {verbose 0}} {
               Msg Info "Tcl script $f will not be sourced..."
             } else {
               Msg Info "Sourcing script $f..."
-              if { [lsearch -inline -regex $props "impl"] >= 0} {
-                set_property -name "used_in_implementation" -value "true" -objects $file_obj
-              } else {
-                set_property -name "used_in_implementation" -value "false" -objects $file_obj
-              }
               source $f
             }
           }

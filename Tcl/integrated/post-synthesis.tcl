@@ -118,6 +118,11 @@ if {[info commands get_property] != ""} {
   }
   if [file exists [lindex $reps 0]] {
     file copy -force {*}$reps $dst_dir/reports
+    if [file exists [glob -nocomplain "$dst_dir/reports/*_utilization_synth.rpt"] ] {
+      set utilization_file [file normalize $dst_dir/utilization_synth.txt]
+      set report_file [glob -nocomplain "$dst_dir/reports/*_utilization_synth.rpt"]
+      WriteUtilizationSummary $report_file $utilization_file $proj_name "Synthesis"
+    }
   } else {
     Msg Warning "No reports found in $run_dir subfolders"
   }
@@ -137,6 +142,9 @@ if {[info commands get_property] != ""} {
   } else {
     Msg Warning "No reports found in $proj_dir/output_files subfolders"
   }
+
+
+
 }
 
 cd $old_path

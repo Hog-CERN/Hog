@@ -119,12 +119,6 @@ if {[info commands get_property] != "" && [file exists $bit_file]} {
   Msg Info "Creating $dst_dir..."
   file mkdir $dst_dir
 
-
-
-  if {$found_uncommitted == 0} {
-    Msg Info "No uncommitted changes found."
-  }
-
   Msg Info "Copying bit file $bit_file into $dst_bit..."
   file copy -force $bit_file $dst_bit
 

@@ -181,6 +181,10 @@ if {[info commands get_property] != ""} {
     puts $fp "$diff"
     close $fp
   } 
+
+  if {$found_uncommitted == 0} {
+    Msg Info "No uncommitted changes found."
+  }
   
   # Reports
   file mkdir $dst_dir/reports

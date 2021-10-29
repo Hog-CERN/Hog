@@ -102,7 +102,7 @@
             export HOG_NJOBS=4;
             echo "Hog-CI(info) - Number of jobs set to $HOG_NJOBS";
           fi;
-          if [[ -z ${HOG_IP_PATH+x}]] && [[ -n "HOG_IP_EOS_PATH" ]]; then
+          if [[ -z ${HOG_IP_PATH+x} ]] && [[ -n "HOG_IP_EOS_PATH" ]]; then
             echo "Hog-CI(warning) HOG_IP_EOS_PATH is deprecated, you should use HOG_IP_PATH
             export HOG_IP_PATH=$HOG_IP_EOS_PATH
           fi

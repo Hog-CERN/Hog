@@ -2208,10 +2208,10 @@ proc AddHogFiles { libraries properties main_libs {verbose 0}} {
       if {$ext == ".ip"} {
         set lib_files [dict get $libraries $lib]
 
-        foreach prj_ip $prjIPs {
+
+	foreach list_ip $lib_files {
           set in_list 0
-          foreach list_ip $lib_files {
-            Msg Info "Comparing $list_ip with $prj_ip"
+	  foreach prj_ip $prjIPs {
             if {"$prj_ip" == "$list_ip"} {
               set in_list 1
             }

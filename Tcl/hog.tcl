@@ -2236,15 +2236,18 @@ proc AddHogFiles { libraries properties main_libs {verbose 0}} {
 #  @returns a dictionary with the full name of the xci as key and a SHA as value
 #
 proc ReadExtraIpList { extra_ip_file } {
-  set file [open $extra_ip_file "r"]
-  set file_data [read $file]
-  close $file
   set extra_ip_dict [dict create]
-  set data [split $file_data "\n"]
-  foreach line $data {
-    if {![regexp {^ *$} $line] & ![regexp {^ *\#} $line] } {
-      set ip_and_md5 [regexp -all -inline {\S+} $line]
-      dict lappend extra_ip_dict "[lindex $ip_and_md5 0]" "[lindex $ip_and_md5 1]"
+  if [file exists $extra_ip_file] {
+    set file [open $extra_ip_file "r"]
+    set file_data [read $file]
+    close $file
+    
+    set data [split $file_data "\n"]
+    foreach line $data {
+      if {![regexp {^ *$} $line] & ![regexp {^ *\#} $line] } {
+	set ip_and_md5 [regexp -all -inline {\S+} $line]
+	dict lappend extra_ip_dict "[lindex $ip_and_md5 0]" "[lindex $ip_and_md5 1]"
+      }
     }
   }
   return $extra_ip_dict

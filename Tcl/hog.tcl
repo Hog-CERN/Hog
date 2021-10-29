@@ -2017,10 +2017,8 @@ proc AddHogFiles { libraries properties main_libs {verbose 0}} {
 
           # Tcl
           if {[file ext $f] == ".tcl" && $ext != ".con"} {
-            if { [lsearch -inline -regex $props "nosource"] >= 0} {
-              Msg Info "Tcl script $f will not be sourced..."
-            } else {
-              Msg Info "Sourcing script $f..."
+            if { [lsearch -inline -regex $props "source"] >= 0} {
+              Msg Info "Sourcing Tcl script $f..."
               source $f
             }
           }

@@ -33,11 +33,16 @@ if {[info commands get_property] != ""} {
   # Vivado + planAhead
   if { [string first PlanAhead [version]] == 0 } {
     set proj_file [get_property DIRECTORY [current_project]]
+    set work_path [get_property DIRECTORY [get_runs impl_1]]
   } else {
     set proj_file [get_property parent.project_path [current_project]]
+    set work_path $old_path
   }
   set proj_dir [file normalize [file dirname $proj_file]]
   set proj_name [file rootname [file tail $proj_file]]
+  set run_dir [file normalize "$work_path/.."]
+  set top_name [get_property top [current_fileset]]
+
 } elseif {[info commands project_new] != ""} {
   # Quartus
   set proj_name [lindex $quartus(args) 1]
@@ -134,5 +139,83 @@ if {[file exists $user_post_implementation_file]} {
   Msg Info "Sourcing user post_implementation file $user_post_implementation_file"
   source $user_post_implementation_file
 }
+
+# Vivado
+if {[info commands get_property] != ""} {
+  # Go to repository path
+  cd $tcl_path/../../
+
+  Msg Info "Evaluating Git sha for $proj_name..."
+  lassign [GetRepoVersions [file normalize ./Top/$group_name/$proj_name] $repo_path] sha
+
+  set describe [GetGitDescribe $sha]
+  Msg Info "Git describe set to: $describe"
+
+  set ts [clock format [clock seconds] -format {%Y-%m-%d-%H-%M}]
+
+  set dst_dir [file normalize "$bin_dir/$group_name/$proj_name\-$describe"]
+  Msg Info "Creating $dst_dir..."
+  file mkdir $dst_dir
+
+  #check list files and project properties
+  set confDict [dict create]
+  set full_diff_log 0
+  if {[file exists "$tcl_path/../../Top/$group_name/$proj_name/hog.conf"]} {
+    set confDict [ReadConf "$tcl_path/../../Top/$group_name/$proj_name/hog.conf"]
+    set full_diff_log [DictGet [DictGet $confDict "hog"] "FULL_DIFF_LOG"  0]
+  }
+
+  Msg Info "Evaluating differences with last commit..."
+  set found_uncommitted 0
+  set diff [Git diff]
+  set diff_stat [Git "diff --stat"]
+  if {$diff != ""} {
+    set found_uncommitted 1
+    Msg Warning "Found non committed changes:"
+    if {$full_diff_log} {
+      Msg Status "$diff"
+    } else {
+      Msg Status "$diff_stat"
+    }
+    set fp [open "$dst_dir/diff_postimplementation.txt" w+]
+    puts $fp "$diff"
+    close $fp
+  } 
+
+  if {$found_uncommitted == 0} {
+    Msg Info "No uncommitted changes found."
+  }
+  
+  # Reports
+  file mkdir $dst_dir/reports
+  if { [string first PlanAhead [version]] == 0 } {
+    set reps [glob -nocomplain "$run_dir/*/*{.syr,.srp,.mrp,.map,.twr,.drc,.bgn,_routed.par,_routed_pad.txt,_routed.unroutes}"]
+  } else {
+    set reps [glob -nocomplain "$run_dir/*/*.rpt"]
+  }
+  if [file exists [lindex $reps 0]] {
+    file copy -force {*}$reps $dst_dir/reports
+    if [file exists [glob -nocomplain "$dst_dir/reports/${top_name}_utilization_placed.rpt"] ] {
+      set utilization_file [file normalize $dst_dir/utilization.txt]
+      set report_file [glob -nocomplain "$dst_dir/reports/${top_name}_utilization_placed.rpt"]
+      if {$group_name != ""} {
+        WriteUtilizationSummary $report_file $utilization_file $group_name/$proj_name "Implementation"
+      } else {
+        WriteUtilizationSummary $report_file $utilization_file $proj_name "Implementation"
+      }    
+    }
+  } else {
+    Msg Warning "No reports found in $run_dir subfolders"
+  }
+
+  # Log files
+  set logs [glob -nocomplain "$run_dir/*/runme.log"]
+  foreach log $logs {
+    set run_name [file tail [file dir $log]]
+    file copy -force $log $dst_dir/reports/$run_name.log
+  }
+
+}
+
 cd $old_path
 Msg Info "All done."

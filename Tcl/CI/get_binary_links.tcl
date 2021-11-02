@@ -81,8 +81,8 @@ foreach proj $projects_list {
           set absolute_url ${prj_url}${url}
           puts $fp "$proj $absolute_url"
         } else {
-	  Msg CriticalWarning "Error while trying to upload $f: $content"
-	}
+          Msg CriticalWarning "Error while trying to upload $f: $content"
+        }
       }
     }
   } elseif {"$ver"=="-1"} {

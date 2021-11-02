@@ -95,7 +95,7 @@ function create_project() {
 
     case $key in
     -l | --lib)
-      LIBPATH="$3"
+      HOG_LIBPATH="$3"
       shift # past argument
       shift # past value
       ;;
@@ -134,14 +134,14 @@ function create_project() {
     if [ $FILE_TYPE == "CONF" ]; then
       cd "${DIR}"
       Msg Info "Creating project $PROJ using hog.conf..."
-      if [ -z ${LIBPATH+x} ]; then
+      if [ -z ${HOG_LIBPATH+x} ]; then
         if [ -z ${HOG_SIMULATION_LIB_PATH+x} ]; then
           "${HDL_COMPILER}" $COMMAND_OPT ../Hog/Tcl/create_project.tcl $POST_COMMAND_OPT $PROJ
         else
           "${HDL_COMPILER}" $COMMAND_OPT ../Hog/Tcl/create_project.tcl $POST_COMMAND_OPT -simlib_path ${HOG_SIMULATION_LIB_PATH} $PROJ
         fi
       else
-        "${HDL_COMPILER}" $COMMAND_OPT ../Hog/Tcl/create_project.tcl $POST_COMMAND_OPT -simlib_path ${LIBPATH} $PROJ
+        "${HDL_COMPILER}" $COMMAND_OPT ../Hog/Tcl/create_project.tcl $POST_COMMAND_OPT -simlib_path ${HOG_LIBPATH} $PROJ
       fi
     elif [ $FILE_TYPE == "TCL" ]; then
       cd "${PROJ_DIR}"

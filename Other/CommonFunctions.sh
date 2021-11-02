@@ -146,7 +146,7 @@ function select_command_from_line() {
     COMMAND_OPT="-nojournal -nolog -mode batch -notrace -source"
     POST_COMMAND_OPT="-tclargs"
   else
-    Msg Warning " You should write #vivado or #quartus as first line in your hog.conf file or project Tcl file, assuming Vivado... "
+    Msg Warning " You should write #vivado, #quartus or #planahead as first line in your hog.conf file or project Tcl file, assuming Vivado... "
     Msg Info " Recognised Vivado project"
     COMMAND="vivado"
     COMMAND_OPT="-mode batch -notrace -source"

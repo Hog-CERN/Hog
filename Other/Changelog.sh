@@ -13,10 +13,22 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+
 if [ $# -eq 0 ]; then
     TARGET_BRANCH=master
+elif [ $# -eq 1 ]; then
+    TARGET_BRANCH=$1
 else
     TARGET_BRANCH=$1
+    push_token=$2
+    api=$3
+    proj=$4
+    mr=$5
+
+    echo "## MR Description"
+    curl --request GET --header "PRIVATE-TOKEN: ${push_token}" "$api/projects/${proj}/merge_requests/${mr}" | jq -r ".description"
+    echo
+    echo
 fi
 
 git rev-parse --verify "$TARGET_BRANCH" >/dev/null 2>&1
@@ -28,3 +40,5 @@ if [ $? -eq 0 ]; then
     git log --no-merges "$SRC_BRANCH" ^origin/"$TARGET_BRANCH" --format=%B -- | grep FEATURE: | sed 's/.*FEATURE: */- /'
     echo
 fi
+
+

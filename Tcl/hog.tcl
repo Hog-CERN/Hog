@@ -711,23 +711,23 @@ proc GetFileList {FILE path} {
   set data [split $file_data "\n"]
   foreach line $data {
     if {![regexp {^ *$} $line] & ![regexp {^ *\#} $line] } { #Exclude empty lines and comments
-    set file_and_prop [regexp -all -inline {\S+} $line]
-    set vhdlfile [lindex $file_and_prop 0]
-    set vhdlfile "$path/$vhdlfile"
-    if {[file exists $vhdlfile]} {
-      set extension [file ext $vhdlfile]
-      if { [lsearch {.src .sim .con} $extension] >= 0 } {
-        lappend file_list {*}[GetFileList $vhdlfile $path]]
+      set file_and_prop [regexp -all -inline {\S+} $line]
+      set vhdlfile [lindex $file_and_prop 0]
+      set vhdlfile "$path/$vhdlfile"
+      if {[file exists $vhdlfile]} {
+        set extension [file ext $vhdlfile]
+        if { [lsearch {.src .sim .con} $extension] >= 0 } {
+          lappend file_list {*}[GetFileList $vhdlfile $path]]
+        } else {
+          lappend file_list $vhdlfile
+        }
       } else {
-        lappend file_list $vhdlfile
+        Msg Warning "File $vhdlfile not found"
       }
-    } else {
-      Msg Warning "File $vhdlfile not found"
     }
   }
-}
 
-return $file_list
+  return $file_list
 }
 
 ## @brief Get git SHA of a subset of list file
@@ -737,7 +737,29 @@ return $file_list
 # @return         the value of the desired SHA
 #
 proc GetSHA {path} {
-  set ret [Git {log --format=%h -1} $path ]
+  # Get repository top level
+  set repo_path [lindex [Git {rev-parse --show-toplevel} $path] 0]
+  set paths {}
+  set file_in_module 0
+  # Retrieve the list of submodules in the repository
+  foreach f $path {
+    if {[file exists $repo_path/.gitmodules]} {
+      set submodules [split [exec git config --file $repo_path/.gitmodules --get-regexp path] "\n"]
+      foreach mod $submodules {
+        set module [lindex $mod 1]
+        if {[string first "$repo_path/$module" $path] == 0} {
+          # File is in a submodule. Append 
+          set file_in_module 1
+          lappend paths "$repo_path/$module"
+        }
+      }
+    }
+    if {$file_in_module == 0} {
+      lappend paths $f
+    }
+  }
+
+  set ret [Git {log --format=%h -1} $paths ]
   return [string toupper $ret]
 }
 
@@ -817,23 +839,23 @@ proc GetVerFromSHA {SHA} {
   lassign [ExtractVersionFromTag $ver] M m c mr
 
   if {$mr > -1} { # Candidate tab
-  set M [format %02X $M]
-  set m [format %02X $m]
-  set c [format %04X $c]
+    set M [format %02X $M]
+    set m [format %02X $m]
+    set c [format %04X $c]
 
   } elseif { $M > -1 } { # official tag
-  set M [format %02X $M]
-  set m [format %02X $m]
-  set c [format %04X $c]
+    set M [format %02X $M]
+    set m [format %02X $m]
+    set c [format %04X $c]
 
-} else {
-  Msg Warning "Tag does not contain a properly formatted version: $ver"
-  set M [format %02X 0]
-  set m [format %02X 0]
-  set c [format %04X 0]
-}
+  } else {
+    Msg Warning "Tag does not contain a properly formatted version: $ver"
+    set M [format %02X 0]
+    set m [format %02X 0]
+    set c [format %04X 0]
+  }
 
-return $M$m$c
+  return $M$m$c
 }
 
 ## Get the project version
@@ -932,7 +954,11 @@ proc GetSubmodule {path_file} {
 }
 
 
-## Document HERE!!!
+## Get the configuration files to create a vivado/quartus project
+#
+#  @param[in] proj_dir: The project directory containing the conf file or the the tcl file
+#
+#  @return[in] a list containing the full path of the hog.conf, sim.conf, pre-creation.tcl, post-creation.tcl and proj.tcl files
 
 proc GetConfFiles {proj_dir} {
   if ![file isdirectory $proj_dir] {
@@ -940,11 +966,12 @@ proc GetConfFiles {proj_dir} {
     return -1
   }
   set conf_file [file normalize $proj_dir/hog.conf]
+  set sim_file [file normalize $proj_dir/sim.conf]
   set pre_tcl [file normalize $proj_dir/pre-creation.tcl]
   set post_tcl [file normalize $proj_dir/post-creation.tcl]
   set proj_tcl_file [file normalize $proj_dir/[file tail $proj_dir].tcl]
 
-  return [list $conf_file $pre_tcl $post_tcl $proj_tcl_file]
+  return [list $conf_file $sim_file $pre_tcl $post_tcl $proj_tcl_file]
 }
 
 ## Get the versions for all libraries, submodules, etc. for a given project
@@ -954,7 +981,7 @@ proc GetConfFiles {proj_dir} {
 #  @param[in] ext_path: path for external libraries
 #  @param[in] sim: if enabled, check the version also for the simulation files
 #
-#  @return  a list conatining all the versions: global, top (project tcl file), constraints, libraries, submodules, exteral, ipbus xml
+#  @return  a list containing all the versions: global, top (project tcl file), constraints, libraries, submodules, external, ipbus xml, user ip repos
 #
 proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
   if { [catch {package require cmdline} ERROR] } {
@@ -1005,7 +1032,7 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
   set libs ""
   set vers ""
   set hashes ""
-  # Specyfiy sha_mode 1 for GetHogFiles to get all the files, includeng the list-files themselves
+  # Specify sha_mode 1 for GetHogFiles to get all the files, including the list-files themselves
   lassign [GetHogFiles -list_files "*.src" -sha_mode -repo_path $repo_path "./list/"] src_files dummy
   dict for {f files} $src_files {
     #library names have a .src extension in values returned by GetHogFiles
@@ -1020,9 +1047,8 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
   }
 
   # Read constraint list files
-
   set cons_hashes ""
-  # Specyfiy sha_mode 1 for GetHogFiles to get all the files, includeng the list-files themselves
+  # Specify sha_mode 1 for GetHogFiles to get all the files, including the list-files themselves
   lassign [GetHogFiles  -list_files "*.con" -sha_mode -repo_path $repo_path  "./list/" ] cons_files dummy
   dict for {f files} $cons_files {
     #library names have a .con extension in values returned by GetHogFiles
@@ -1040,7 +1066,7 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
   # Read simulation list files
   if {$sim == 1} {
     set sim_hashes ""
-    # Specyfiy sha_mode 1 for GetHogFiles to get all the files, includeng the list-files themselves
+    # Specify sha_mode 1 for GetHogFiles to get all the files, including the list-files themselves
     lassign [GetHogFiles  -list_files "*.sim" -sha_mode -repo_path $repo_path  "./list/"] sim_files dummy
     dict for {f files} $sim_files {
       #library names have a .sim extension in values returned by GetHogFiles
@@ -1087,49 +1113,80 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
     #Msg Info "Checking checksums of external library files in $f"
     foreach line $data {
       if {![regexp {^ *$} $line] & ![regexp {^ *\#} $line] } { #Exclude empty lines and comments
-      set file_and_prop [regexp -all -inline {\S+} $line]
-      set hdlfile [lindex $file_and_prop 0]
-      set hdlfile $ext_path/$hdlfile
-      if { [file exists $hdlfile] } {
-        set hash [lindex $file_and_prop 1]
-        set current_hash [Md5Sum $hdlfile]
-        if {[string first $hash $current_hash] == -1} {
-          Msg CriticalWarning "File $hdlfile has a wrong hash. Current checksum: $current_hash, expected: $hash"
+        set file_and_prop [regexp -all -inline {\S+} $line]
+        set hdlfile [lindex $file_and_prop 0]
+        set hdlfile $ext_path/$hdlfile
+        if { [file exists $hdlfile] } {
+          set hash [lindex $file_and_prop 1]
+          set current_hash [Md5Sum $hdlfile]
+          if {[string first $hash $current_hash] == -1} {
+            Msg CriticalWarning "File $hdlfile has a wrong hash. Current checksum: $current_hash, expected: $hash"
+          }
         }
       }
     }
   }
-}
 
-# Ipbus XML
-if [file exists ./list/xml.lst] {
-  #Msg Info "Found IPbus XML list file, evaluating version and SHA of listed files..."
-  lassign [GetHogFiles  -list_files "xml.lst" -repo_path $repo_path  -sha_mode "./list/"] xml_files dummy
-  lassign [GetVer  [dict get $xml_files "xml.lst"] ] xml_ver xml_hash
-  lappend SHAs $xml_hash
-  lappend versions $xml_ver
+  # Ipbus XML
+  if [file exists ./list/xml.lst] {
+    #Msg Info "Found IPbus XML list file, evaluating version and SHA of listed files..."
+    lassign [GetHogFiles  -list_files "xml.lst" -repo_path $repo_path  -sha_mode "./list/"] xml_files dummy
+    lassign [GetVer  [dict get $xml_files "xml.lst"] ] xml_ver xml_hash
+    lappend SHAs $xml_hash
+    lappend versions $xml_ver
+
   #Msg Info "Found IPbus XML SHA: $xml_hash and version: $xml_ver."
 
-} else {
-  Msg Info "This project does not use IPbus XMLs"
-  set xml_ver  00000000
-  set xml_hash 0000000
-}
+  } else {
+    Msg Info "This project does not use IPbus XMLs"
+    set xml_ver  00000000
+    set xml_hash 0000000
+  }
 
-#The global SHA and ver is the most recent among everything
-if {$clean == 1} {
-  set commit [Git "log --format=%h -1 $SHAs"]
-  set version [FindNewestVersion $versions]
-} else {
-  set commit  "00000000"
-  set version "00000000"
-}
+  set user_ip_repos ""  
+  set user_ip_repo_hashes ""
+  set user_ip_repo_vers ""
+  # User IP Repository (Vivado only, hog.conf only)
+  if [file exists [lindex $conf_files 0]] {
 
-cd $old_path
+    set PROPERTIES [ReadConf [lindex $conf_files 0]]
+    set has_user_ip 0
 
-set top_hash [format %+07s $top_hash]
-set cons_hash [format %+07s $cons_hash]
-return [list $commit $version  $hog_hash $hog_ver  $top_hash $top_ver  $libs $hashes $vers  $cons_ver $cons_hash  $ext_names $ext_hashes  $xml_hash $xml_ver]
+    if {[dict exists $PROPERTIES main]} {
+      set main [dict get $PROPERTIES main]
+      dict for {p v} $main {
+        if { [ string tolower $p ] == "ip_repo_paths" } {
+          set has_user_ip 1
+          foreach repo $v {
+            lappend user_ip_repos "$repo_path/$repo"
+          }
+        }
+      }
+    }
+
+    foreach repo $user_ip_repos {
+      lassign [GetVer $repo] ver sha
+      lappend user_ip_repo_hashes $sha
+      lappend user_ip_repo_vers $ver
+      lappend versions $ver
+    }
+  }
+
+
+  #The global SHA and ver is the most recent among everything
+  if {$clean == 1} {
+    set commit [Git "log --format=%h -1 $SHAs"]
+    set version [FindNewestVersion $versions]
+  } else {
+    set commit  "00000000"
+    set version "00000000"
+  }
+
+  cd $old_path
+
+  set top_hash [format %+07s $top_hash]
+  set cons_hash [format %+07s $cons_hash]
+  return [list $commit $version  $hog_hash $hog_ver  $top_hash $top_ver  $libs $hashes $vers  $cons_ver $cons_hash  $ext_names $ext_hashes  $xml_hash $xml_ver $user_ip_repos $user_ip_repo_hashes $user_ip_repo_vers ]
 }
 
 
@@ -1268,10 +1325,10 @@ proc TagRepository {{merge_request_number 0} {version_level 0} {default_level 0}
 
         }
 
-        } else { # Tag is not official
+      } else { # Tag is not official
           #Not official, do nothing unless version level is >=3, in which case convert the unofficial to official
-          Msg Info "Found candidate version for $M.$m.$p."
-          if {$version_level >= 3} {
+        Msg Info "Found candidate version for $M.$m.$p."
+        if {$version_level >= 3} {
           Msg Info "New tag will be an official version v$M.$m.$p..."
           set new_tag v$M.$m.$p
           set tag_opt "-m 'Official_version_$M.$m.$p'"
@@ -1348,90 +1405,90 @@ proc CopyXMLsFromListFile {list_file path dst {xml_version "0.0.0"} {xml_sha "00
   set vhdls {}
   foreach line $data {
     if {![regexp {^ *$} $line] & ![regexp {^ *\#} $line] } { #Exclude empty lines and comments
-    set file_and_prop [regexp -all -inline {\S+} $line]
-    set xmlfile "$path/[lindex $file_and_prop 0]"
-    if {[llength $file_and_prop] > 1} {
-      set vhdlfile [lindex $file_and_prop 1]
-      set vhdlfile "$path/$vhdlfile"
-    } else {
-      set vhdlfile 0
-    }
-    if {[file exists $xmlfile]} {
-      set xmlfile [file normalize $xmlfile]
-      Msg Info "Copying $xmlfile to $dst..."
-      set in  [open $xmlfile r]
-      set out [open $dst/[file tail $xmlfile] w]
-
-      while {[gets $in line] != -1} {
-        set new_line [regsub {(.*)__VERSION__(.*)} $line "\\1$xml_version\\2"]
-        set new_line2 [regsub {(.*)__GIT_SHA__(.*)} $new_line "\\1$xml_sha\\2"]
-        puts $out $new_line2
-      }
-      close $in
-      close $out
-      lappend xmls [file tail $xmlfile]
-      if {$vhdlfile == 0 } {
-        lappend vhdls 0
+      set file_and_prop [regexp -all -inline {\S+} $line]
+      set xmlfile "$path/[lindex $file_and_prop 0]"
+      if {[llength $file_and_prop] > 1} {
+        set vhdlfile [lindex $file_and_prop 1]
+        set vhdlfile "$path/$vhdlfile"
       } else {
-        lappend vhdls [file normalize $vhdlfile]
+        set vhdlfile 0
+      }
+      if {[file exists $xmlfile]} {
+        set xmlfile [file normalize $xmlfile]
+        Msg Info "Copying $xmlfile to $dst..."
+        set in  [open $xmlfile r]
+        set out [open $dst/[file tail $xmlfile] w]
+
+        while {[gets $in line] != -1} {
+          set new_line [regsub {(.*)__VERSION__(.*)} $line "\\1$xml_version\\2"]
+          set new_line2 [regsub {(.*)__GIT_SHA__(.*)} $new_line "\\1$xml_sha\\2"]
+          puts $out $new_line2
+        }
+        close $in
+        close $out
+        lappend xmls [file tail $xmlfile]
+        if {$vhdlfile == 0 } {
+          lappend vhdls 0
+        } else {
+          lappend vhdls [file normalize $vhdlfile]
+        }
+
+      } else {
+        Msg Warning "XML file $xmlfile not found"
       }
 
-    } else {
-      Msg Warning "XML file $xmlfile not found"
     }
-
   }
-}
-set cnt [llength $xmls]
-Msg Info "$cnt file/s copied"
+  set cnt [llength $xmls]
+  Msg Info "$cnt file/s copied"
 
-if {$can_generate == 1} {
-  set old_dir [pwd]
-  cd $dst
-  file mkdir "address_decode"
-  cd "address_decode"
-  foreach x $xmls v $vhdls {
-    if {$v != 0} {
-      set x [file normalize ../$x]
-      if {[file exists $x]} {
-        lassign [ExecuteRet gen_ipbus_addr_decode -v $x]  status log
-        if {$status == 0} {
-          set generated_vhdl ./ipbus_decode_[file root [file tail $x]].vhd
-          if {$generate == 1} {
+  if {$can_generate == 1} {
+    set old_dir [pwd]
+    cd $dst
+    file mkdir "address_decode"
+    cd "address_decode"
+    foreach x $xmls v $vhdls {
+      if {$v != 0} {
+        set x [file normalize ../$x]
+        if {[file exists $x]} {
+          lassign [ExecuteRet gen_ipbus_addr_decode -v $x]  status log
+          if {$status == 0} {
+            set generated_vhdl ./ipbus_decode_[file root [file tail $x]].vhd
+            if {$generate == 1} {
             #copy (replace) file here
-            Msg Info "Copying generated VHDL file $generated_vhdl into $v (replacing if necessary)"
-            file copy -force -- $generated_vhdl $v
-          } else {
-            if {[file exists $v]} {
-              #check file here
-              set diff [CompareVHDL $generated_vhdl $v]
-              if {[llength $diff] > 0} {
-                Msg CriticalWarning "$v does not correspond to its XML $x, [expr $n/3] line/s differ:"
-                Msg Status [join $diff "\n"]
-                set diff_file [open ../diff_[file root [file tail $x]].txt w]
-                puts $diff_file $diff
-                close $diff_file
-              } else {
-                Msg Info "$x and $v match."
-              }
+              Msg Info "Copying generated VHDL file $generated_vhdl into $v (replacing if necessary)"
+              file copy -force -- $generated_vhdl $v
             } else {
-              Msg Warning "VHDL address decoder file $v not found"
+              if {[file exists $v]} {
+              #check file here
+                set diff [CompareVHDL $generated_vhdl $v]
+                if {[llength $diff] > 0} {
+                  Msg CriticalWarning "$v does not correspond to its XML $x, [expr $n/3] line/s differ:"
+                  Msg Status [join $diff "\n"]
+                  set diff_file [open ../diff_[file root [file tail $x]].txt w]
+                  puts $diff_file $diff
+                  close $diff_file
+                } else {
+                  Msg Info "$x and $v match."
+                }
+              } else {
+                Msg Warning "VHDL address decoder file $v not found"
+              }
             }
+          } else {
+            Msg Warning "Address map generation failed for $x: $log"
           }
         } else {
-          Msg Warning "Address map generation failed for $x: $log"
+          Msg Warning "Copied XML file $x not found."
         }
       } else {
-        Msg Warning "Copied XML file $x not found."
+        Msg Info "Skipped verification of $x as no VHDL file was specified."
       }
-    } else {
-      Msg Info "Skipped verification of $x as no VHDL file was specified."
     }
+    cd ..
+    file delete -force address_decode
+    cd $old_dir
   }
-  cd ..
-  file delete -force address_decode
-  cd $old_dir
-}
 }
 
 ## @brief Compare two VHDL files ignoring spaces and comments
@@ -1448,27 +1505,27 @@ proc CompareVHDL {file1 file2} {
   while {[gets $a line] != -1} {
     set line [regsub {^[\t\s]*(.*)?\s*} $line "\\1"]
     if {![regexp {^$} $line] & ![regexp {^--} $line] } { #Exclude empty lines and comments
-    lappend f1 $line
+      lappend f1 $line
+    }
   }
-}
 
-while {[gets $b line] != -1} {
-  set line [regsub {^[\t\s]*(.*)?\s*} $line "\\1"]
-  if {![regexp {^$} $line] & ![regexp {^--} $line] } { #Exclude empty lines and comments
-  lappend f2 $line
-}
-}
-
-close $a
-close $b
-set diff {}
-foreach x $f1 y $f2 {
-  if {$x != $y} {
-    lappend diff "> $x\n< $y\n\n"
+  while {[gets $b line] != -1} {
+    set line [regsub {^[\t\s]*(.*)?\s*} $line "\\1"]
+    if {![regexp {^$} $line] & ![regexp {^--} $line] } { #Exclude empty lines and comments
+      lappend f2 $line
+    }
   }
-}
 
-return $diff
+  close $a
+  close $b
+  set diff {}
+  foreach x $f1 y $f2 {
+    if {$x != $y} {
+      lappend diff "> $x\n< $y\n\n"
+    }
+  }
+
+  return $diff
 }
 
 ## @brief Returns the dst path relative to base
@@ -1555,103 +1612,107 @@ proc GetProjectFiles {} {
         } else {
           dict lappend properties $simtopfile "topsim=$topsim"
           if {![string equal "$runtime" "1000ns"]} { #not writing default value
-          dict lappend properties $simtopfile "runtime=$runtime"
+            dict lappend properties $simtopfile "runtime=$runtime"
+          }
+        }
+      }
+
+      foreach simulator [GetSimulators] {
+        set wavefile [get_property "$simulator.simulate.custom_wave_do" [get_filesets $fs]]
+        if {![string equal "$wavefile" ""]} {
+          dict lappend properties $wavefile wavefile
+          break
+        }
+      }
+      foreach simulator [GetSimulators] {
+        set dofile [get_property "$simulator.simulate.custom_udo" [get_filesets $fs]]
+        if {![string equal "$dofile" ""]} {
+          dict lappend properties $dofile dofile
+          break
         }
       }
     }
 
-    foreach simulator [GetSimulators] {
-      set wavefile [get_property "$simulator.simulate.custom_wave_do" [get_filesets $fs]]
-      if {![string equal "$wavefile" ""]} {
-        dict lappend properties $wavefile wavefile
-        break
-      }
-    }
-
-
-    foreach simulator [GetSimulators] {
-      set dofile [get_property "$simulator.simulate.custom_udo" [get_filesets $fs]]
-      if {![string equal "$dofile" ""]} {
-        dict lappend properties $dofile dofile
-        break
-      }
-    }
-  }
-
-  foreach f $all_files {
+    foreach f $all_files {
     # Ignore files that are part of the vivado/planahead project but would not be reflected
     # in list files (e.g. generated products from ip cores)
 
-    set ignore 0
+      set ignore 0
     # Generated files point to a parent composite file;
     # planahead does not have an IS_GENERATED property
-    if {-1 != [lsearch -exact [list_property  $f] IS_GENERATED]} {
-      if { [lindex [get_property  IS_GENERATED $f] 0] != 0} {
+      if {-1 != [lsearch -exact [list_property  $f] IS_GENERATED]} {
+        if { [lindex [get_property  IS_GENERATED $f] 0] != 0} {
+          set ignore 1
+        }
+      }
+      if {-1 != [lsearch -exact [list_property  $f] PARENT_COMPOSITE_FILE]} {
         set ignore 1
       }
-    }
-    if {-1 != [lsearch -exact [list_property  $f] PARENT_COMPOSITE_FILE]} {
-      set ignore 1
-    }
 
-    if {!$ignore} {
-      set f [file normalize $f]
-      lappend files $f
-      set type  [get_property FILE_TYPE $f]
-      set lib [get_property LIBRARY $f]
+      if {!$ignore} {
+        set f [file normalize $f]
+        lappend files $f
+        set type  [get_property FILE_TYPE $f]
+        set lib [get_property LIBRARY $f]
 
 
       # Type can be complex like VHDL 2008, in that case we want the second part to be a property
-      if {[string equal [lindex $type 0] "VHDL"] && [llength $type] == 1} {
-        set prop "93"
-      } elseif {[string equal [lindex $type 0] "SystemVerilog"] && [file ext $f] == ".v"} {
-        set prop "SystemVerilog"
-      } elseif  {[string equal [lindex $type 0] "Block"] && [string equal [lindex $type 1] "Designs"]} {
-        set type "IP"
-        set prop ""
-      } else {
-        set type [lindex $type 0]
-        set prop ""
-      }
+        if {[string equal [lindex $type 0] "VHDL"] && [llength $type] == 1} {
+          set prop "93"
+        } elseif {[string equal [lindex $type 0] "SystemVerilog"] && [file ext $f] == ".v"} {
+          set prop "SystemVerilog"
+        } elseif {[string equal $type "Verilog Header"]} {
+          set prop "verilog_header"
+        } elseif  {[string equal [lindex $type 0] "Block"] && [string equal [lindex $type 1] "Designs"]} {
+          set type "IP"
+          set prop ""
+        } else {
+          set type [lindex $type 0]
+          set prop ""
+        }
 
       #check where the file is used and add it to prop
-      if {[string equal $fs_type "SimulationSrcs"]} {
-        dict lappend SIM $fs $f
-        if {![string equal $prop ""]} {
-          dict lappend properties $f $prop
+        if {[string equal $fs_type "SimulationSrcs"]} {
+          dict lappend SIM $fs $f
+          if {![string equal $prop ""]} {
+            dict lappend properties $f $prop
+          }
+        } elseif {[string equal $type "VHDL"]} {
+          dict lappend SRC $lib $f
+          if {![string equal $prop ""]} {
+            dict lappend properties $f $prop
+          }
+        } elseif {[string equal $type "Verilog Header"]} {
+          dict lappend libraries "OTHER" $f
+          if {![string equal $prop ""]} {
+            dict lappend properties $f $prop
+          }
+        } elseif {[string equal [lindex $type 0] "SystemVerilog"] && [file ext $f] == ".v"} {
+          dict lappend libraries "OTHER" $f
+          if {![string equal $prop ""]} {
+            dict lappend properties $f $prop
+          }
+        } elseif {[string equal $type "IP"]} {
+          dict lappend libraries "IP" $f
+        } elseif {[string equal $fs_type "Constrs"]} {
+          dict lappend libraries "XDC" $f
+        } else {
+          dict lappend libraries "OTHER" $f
         }
-      } elseif {[string equal $type "VHDL"]} {
-        dict lappend SRC $lib $f
-        if {![string equal $prop ""]} {
-          dict lappend properties $f $prop
-        }
-      }  elseif {[string equal [lindex $type 0] "SystemVerilog"] && [file ext $f] == ".v"} {
-        dict lappend libraries "OTHER" $f
-        if {![string equal $prop ""]} {
-          dict lappend properties $f $prop
-        }
-      } elseif {[string equal $type "IP"]} {
-        dict lappend libraries "IP" $f
-      } elseif {[string equal $type "XDC"]} {
-        dict lappend libraries "XDC" $f
-        #dict lappend properties $f "XDC"
-      } else {
-        dict lappend libraries "OTHER" $f
-      }
 
-      if {[lindex [get_property -quiet used_in_synthesis  [get_files $f]] 0] == 0} {
-        dict lappend properties $f "nosynth"
-      }
-      if {[lindex [get_property -quiet used_in_implementation  [get_files $f]] 0] == 0} {
-        dict lappend properties $f "noimpl"
-      }
-      if {[lindex [get_property -quiet used_in_simulation  [get_files $f]] 0] == 0} {
-        dict lappend properties $f "nosim"
+        if {[lindex [get_property -quiet used_in_synthesis  [get_files $f]] 0] == 0} {
+          dict lappend properties $f "nosynth"
+        }
+        if {[lindex [get_property -quiet used_in_implementation  [get_files $f]] 0] == 0} {
+          dict lappend properties $f "noimpl"
+        }
+        if {[lindex [get_property -quiet used_in_simulation  [get_files $f]] 0] == 0} {
+          dict lappend properties $f "nosim"
+        }
+
       }
 
     }
-
-  }
 
   #    dict for {lib f} $libraries {
   #   Msg Status "   Library: $lib: \n *******"
@@ -1661,13 +1722,14 @@ proc GetProjectFiles {} {
   #
   #   Msg Status "*******"
   #    }
+  }
+
+  dict append libraries "SIM" $SIM
+  dict append libraries "SRC" $SRC
+  dict lappend properties "Simulator" [get_property target_simulator [current_project]]
+  return [list $libraries $properties]
 }
 
-dict append libraries "SIM" $SIM
-dict append libraries "SRC" $SRC
-dict lappend properties "Simulator" [get_property target_simulator [current_project]]
-return [list $libraries $properties]
-}
 
 
 ## @brief Extract files, libraries and properties from the project's list files
@@ -1857,7 +1919,7 @@ proc AddHogFiles { libraries properties main_libs {verbose 0}} {
               } else {
                 Msg Warning "Xilinx PlanAhead/ISE does not support SystemVerilog. Property not set for $f"
               }
-            } 
+            }
           }
 
 
@@ -1874,6 +1936,12 @@ proc AddHogFiles { libraries properties main_libs {verbose 0}} {
               Msg Info "Setting filetype XDC for $f"
             }
             set_property -name "file_type" -value "XDC" -objects $file_obj
+          }
+
+          # Verilog headers
+          if {[lsearch -inline -regex $props "verilog_header"] >= 0} {
+            Msg Info "Setting verilog header type for $f..."
+            set_property file_type {Verilog Header} [get_files $f]
           }
 
           # Not used in synthesis
@@ -1942,7 +2010,16 @@ proc AddHogFiles { libraries properties main_libs {verbose 0}} {
               Msg Warning "File $f was not found."
             }
           }
+
+          # Tcl
+          if {[file ext $f] == ".tcl" && $ext != ".con"} {
+            if { [lsearch -inline -regex $props "source"] >= 0} {
+              Msg Info "Sourcing Tcl script $f..."
+              source $f
+            }
+          }
         }
+
       } else {
         # IPs
         foreach f $lib_files {
@@ -2114,6 +2191,53 @@ proc AddHogFiles { libraries properties main_libs {verbose 0}} {
       }
     }
   }
+  ### CHECK NOW FOR IP OUTSIDE OF LIST FILE (Vivado only!)
+  if {[info commands add_files] != "" && [string first PlanAhead [version] ] != 0} {
+    lassign [GetProjectFiles] prjLibraries prjProperties
+    set prjIPs  [DictGet $prjLibraries IP]
+    set prj_dir [get_property DIRECTORY [current_project]]
+    file mkdir "$prj_dir/.hog"
+    set ip_file_name "$prj_dir/.hog/extra.ip"
+    set new_ip_file [open $ip_file_name "w"]
+    foreach lib [dict keys $libraries] {
+      set ext [file extension $lib]
+      
+      if {$ext == ".ip"} {
+        set lib_files [dict get $libraries $lib]
+	foreach list_ip $lib_files {
+	  if {[lsearch $prjIPs $list_ip] == -1} {
+            Msg Info "$prj_ip has been generated by an external script. Adding to $ip_file_name..."
+            puts $new_ip_file "$prj_ip [Md5Sum $prj_ip]"
+          }
+        }
+      }
+    }
+    close $new_ip_file
+  }
+
+}
+
+## @brief Function used to read the list of ip files generated at creation time by tcl scripts in proj/hog/extra.ip
+#
+#  @param[in] extra_ip_file the path to the extra.ip file
+#  @returns a dictionary with the full name of the xci as key and a SHA as value
+#
+proc ReadExtraIpList { extra_ip_file } {
+  set extra_ip_dict [dict create]
+  if [file exists $extra_ip_file] {
+    set file [open $extra_ip_file "r"]
+    set file_data [read $file]
+    close $file
+    
+    set data [split $file_data "\n"]
+    foreach line $data {
+      if {![regexp {^ *$} $line] & ![regexp {^ *\#} $line] } {
+	set ip_and_md5 [regexp -all -inline {\S+} $line]
+	dict lappend extra_ip_dict "[lindex $ip_and_md5 0]" "[lindex $ip_and_md5 1]"
+      }
+    }
+  }
+  return $extra_ip_dict
 }
 
 ## @brief Function used to generate a qsys system from a .qsys file.
@@ -2214,20 +2338,33 @@ proc HandleIP {what_to_do xci_file ip_path runs_dir {force 0}} {
 
   cd $repo_path
 
-  lassign [eos  "ls $ip_path"] ret result
-  if  {$ret != 0} {
-    Msg CriticalWarning "Could not find mother directory for ip_path: $ip_path."
-    cd $old_path
-    return -1
+
+  if {[string first "/eos/" $ip_path] == 0} {
+    # IP Path is on EOS
+    set on_eos 1
   } else {
+    set on_eos 0
+  }
+
+  if {$on_eos == 1} {
     lassign [eos  "ls $ip_path"] ret result
     if  {$ret != 0} {
-      Msg Info "IP repostory path on eos does not exist, creating it now..."
-      eos "mkdir $ip_path" 5
+      Msg CriticalWarning "Could not find mother directory for ip_path: $ip_path."
+      cd $old_path
+      return -1
     } else {
-      Msg Info "IP repostory path on eos is set to: $ip_path"
-    }
+      lassign [eos  "ls $ip_path"] ret result
+      if  {$ret != 0} {
+        Msg Info "IP repository path on eos does not exist, creating it now..."
+        eos "mkdir $ip_path" 5
+      } else {
+        Msg Info "IP repository path on eos is set to: $ip_path"
+      }
+    }  
+  } else {
+    file mkdir $ip_path
   }
+
 
   if !([file exists $xci_file]) {
     Msg CriticalWarning "Could not find $xci_file."
@@ -2249,18 +2386,33 @@ proc HandleIP {what_to_do xci_file ip_path runs_dir {force 0}} {
   if {$what_to_do eq "push"} {
     set will_copy 0
     set will_remove 0
-    lassign [eos "ls $ip_path/$file_name.tar"] ret result
-    if  {$ret != 0} {
-      set will_copy 1
-    } else {
-      if {$force == 0 } {
-        Msg Info "IP already in the repository, will not copy..."
-      } else {
-        Msg Info "IP already in the repository, will forcefully replace..."
+    if {$on_eos == 1} {
+      lassign [eos "ls $ip_path/$file_name.tar"] ret result
+      if {$ret != 0} {
         set will_copy 1
-        set will_remove 1
+      } else {
+        if {$force == 0 } {
+          Msg Info "IP already in the EOS repository, will not copy..."
+        } else {
+          Msg Info "IP already in the EOS repository, will forcefully replace..."
+          set will_copy 1
+          set will_remove 1
+        }
+      }
+    } else {
+      if {[file exists "$ip_path/$file_name.tar"]} {
+        if {$force == 0 } {
+          Msg Info "IP already in the local repository, will not copy..."
+        } else {
+          Msg Info "IP already in the local repository, will forcefully replace..."
+          set will_copy 1
+          set will_remove 1
+        }
+      } else {
+        set will_copy 1
       }
     }
+
     if {$will_copy == 1} {
       set ip_synth_files [glob -nocomplain $xci_path/$xci_ip_name*]
       set ip_synth_files_rel ""
@@ -2271,17 +2423,26 @@ proc HandleIP {what_to_do xci_file ip_path runs_dir {force 0}} {
       if {[llength $ip_synth_files] > 0} {
         Msg Info "Found some IP synthesised files matching $runs_dir/$file_name*"
         if {$will_remove == 1} {
-          Msg Info "Removing old synthesized directory $ip_path/$file_name.tar..."
-          eos "rm -rf $ip_path/$file_name.tar" 5
+          Msg Info "Removing old synthesised directory $ip_path/$file_name.tar..."
+          if {$on_eos == 1} {
+            eos "rm -rf $ip_path/$file_name.tar" 5        
+          } else {
+            file delete -force "$ip_path/$file_name.tar"
+          }
         }
 
         Msg Info "Creating local archive with ip generated files..."
         ::tar::create $file_name.tar [glob -nocomplain [Relative $repo_path $xci_path]  $ip_synth_files_rel]
         Msg Info "Copying generated files for $xci_name..."
-        lassign [ExecuteRet xrdcp -f -s $file_name.tar  $::env(EOS_MGM_URL)//$ip_path/] ret msg
-        if {$ret != 0} {
-          Msg CriticalWarning "Something went wrong when copying the IP files to EOS. Error message: $msg"
+        if {$on_eos == 1} {
+          lassign [ExecuteRet xrdcp -f -s $file_name.tar  $::env(EOS_MGM_URL)//$ip_path/] ret msg
+          if {$ret != 0} {
+            Msg CriticalWarning "Something went wrong when copying the IP files to EOS. Error message: $msg"
+          }
+        } else {
+          file copy -force "$file_name.tar" "$ip_path/"
         }
+
         Msg Info "Removing local archive"
         file delete $file_name.tar
       } else {
@@ -2289,24 +2450,39 @@ proc HandleIP {what_to_do xci_file ip_path runs_dir {force 0}} {
       }
     }
   } elseif {$what_to_do eq "pull"} {
-    lassign [eos "ls $ip_path/$file_name.tar"] ret result
-    if  {$ret != 0} {
-      Msg Info "Nothing for $xci_name was found in the repository, cannot pull."
-      cd $old_path
-      return -1
+    if {$on_eos == 1} {
+      lassign [eos "ls $ip_path/$file_name.tar"] ret result
+      if  {$ret != 0} {
+        Msg Info "Nothing for $xci_name was found in the EOS repository, cannot pull."
+        cd $old_path
+        return -1
 
-    } else {
-      set remote_tar "$::env(EOS_MGM_URL)//$ip_path/$file_name.tar"
-      Msg Info "IP $xci_name found in the repository $remote_tar, copying it locally to $repo_path..."
-
-      lassign [ExecuteRet xrdcp -f -r -s $remote_tar $repo_path] ret msg
-      if {$ret != 0} {
-        Msg CriticalWarning "Something went wrong when copying the IP files to EOS. Error message: $msg"
       } else {
+        set remote_tar "$::env(EOS_MGM_URL)//$ip_path/$file_name.tar"
+        Msg Info "IP $xci_name found in the repository $remote_tar, copying it locally to $repo_path..."
+
+        lassign [ExecuteRet xrdcp -f -r -s $remote_tar $repo_path] ret msg
+        if {$ret != 0} {
+          Msg CriticalWarning "Something went wrong when copying the IP files to EOS. Error message: $msg"
+        } else {
+          Msg Info "Extracting IP files from archive to $repo_path..."
+          ::tar::untar $file_name.tar -dir $repo_path -noperms
+          Msg Info "Removing local archive"
+          file delete $file_name.tar
+        }
+      }      
+    } else {
+      if {[file exists "$ip_path/$file_name.tar"]} {
+        Msg Info "IP $xci_name found in local repository $ip_path/$file_name.tar, copying it locally to $repo_path..."
+        file copy -force $ip_path/$file_name.tar $repo_path 
         Msg Info "Extracting IP files from archive to $repo_path..."
         ::tar::untar $file_name.tar -dir $repo_path -noperms
         Msg Info "Removing local archive"
         file delete $file_name.tar
+      } else {
+        Msg Info "Nothing for $xci_name was found in the local IP repository, cannot pull."
+        cd $old_path
+        return -1
       }
     }
   }
@@ -2712,7 +2888,8 @@ proc SearchHogProjects {dir} {
   set projects_list {}
   if {[file exists $dir]} {
     if {[file isdirectory $dir]} {
-      foreach proj_dir [glob -type d $dir/* ] {
+
+      foreach proj_dir [glob -nocomplain -type d $dir/* ] {
         if {![regexp {^.*Top/+(.*)$} $proj_dir dummy proj_name]} {
           set proj_name
           Msg Warning "Could not parse Top directory $dir"
@@ -2725,6 +2902,7 @@ proc SearchHogProjects {dir} {
           }
         }
       }
+
     } else {
       Msg Error "Input $dir is not a directory!"
     }
@@ -2839,3 +3017,41 @@ if {[GitVersion 2.7.2] == 0 } {
   Msg CriticalWarning "Found Git version older than 2.7.2. Hog might not work as expected.\n"
 }
 
+
+
+proc WriteUtilizationSummary {input output project_name run} {
+  set f [open $input "r"]
+  set o [open $output "a"]
+  puts $o "## $project_name $run Utilization report"
+  struct::matrix util_m
+  util_m add columns 12
+  util_m add row
+  util_m add row "|          **Site Type**         | **Used** | **Fixed** | **Available** | **Util%** |"
+  util_m add row "|  --- | --- | --- | --- | --- |"
+
+  while {[gets $f line] >= 0} {
+    if { [string first "CLB LUTs*" $line] >= 0 } {
+      util_m add row $line
+    }
+    if { [string first "CLB Registers*" $line] >= 0 } {
+      util_m add row $line
+    }
+    if { [string first "| Block RAM Tile" $line] >= 0 } {
+      util_m add row $line
+    }
+    if { [string first "URAM" $line] >= 0 } {
+      util_m add row $line
+    }
+    if { [string first "DSPs" $line] >= 0 } {
+      util_m add row $line
+    }
+    if { [string first "Bonded IOB" $line] >= 0 } {
+      util_m add row $line
+    }
+  }
+  util_m add row
+  
+  close $f
+  puts $o [util_m format 2string]
+  close $o
+}

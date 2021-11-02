@@ -22,7 +22,7 @@
 print_hog $(dirname "$0")
 ## @function argument_parser()
 #  @brief pase aguments and sets evvironment variables
-#  @param[out] IP_PATH      empty or "-eos_ip_path $2"
+#  @param[out] IP_PATH      empty or "-ip_path $2"
 #  @param[out] SIMLIBPATH   empty or "-simlib_path $2"
 #  @param[out] NJOBS        empty or "-NJOBS $2"
 #  @param[out] NO_BITSTREAM empty or "-no_bitstream"
@@ -47,8 +47,8 @@ function argument_parser() {
 			SIMLIBPATH="-simlib_path $2"
 			shift 2
 			;;
-		-ip_eos_path)
-			IP_PATH="-ip_eos_path $2"
+		-ip_path)
+			IP_PATH="-ip_path $2"
 			shift 2
 			;;
 		-impl_only)
@@ -134,6 +134,7 @@ else
 		else
 			Msg Info "Using executable: $HDL_COMPILER"
 		fi
+		
 
 		if [ -z ${SIMLIBPATH+x} ]; then
 			if [ -z ${HOG_SIMULATION_LIB_PATH+x} ]; then

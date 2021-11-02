@@ -118,44 +118,9 @@ if {[info commands get_property] != "" && [file exists $bit_file]} {
 
   Msg Info "Creating $dst_dir..."
   file mkdir $dst_dir
-  Msg Info "Evaluating differences with last commit..."
-  set found_uncommitted 0
-  set diff [Git diff]
-  if {$diff != ""} {
-    set found_uncommitted 1
-    Msg Warning "Found non committed changes:"
-    Msg Status "$diff"
-    set fp [open "$dst_dir/diff_postbitstream.txt" w+]
-    puts $fp "$diff"
-    close $fp
-  } 
-
-  if {$found_uncommitted == 0} {
-    Msg Info "No uncommitted changes found."
-  }
 
   Msg Info "Copying bit file $bit_file into $dst_bit..."
   file copy -force $bit_file $dst_bit
-
-  # Reports
-  file mkdir $dst_dir/reports
-  if { [string first PlanAhead [version]] == 0 } {
-    set reps [glob -nocomplain "$run_dir/*/*{.syr,.srp,.mrp,.map,.twr,.drc,.bgn,_routed.par,_routed_pad.txt,_routed.unroutes}"]
-  } else {
-    set reps [glob -nocomplain "$run_dir/*/*.rpt"]
-  }
-  if [file exists [lindex $reps 0]] {
-    file copy -force {*}$reps $dst_dir/reports
-  } else {
-    Msg Warning "No reports found in $run_dir subfolders"
-  }
-
-  # Log files
-  set logs [glob -nocomplain "$run_dir/*/runme.log"]
-  foreach log $logs {
-    set run_name [file tail [file dir $log]]
-    file copy -force $log $dst_dir/reports/$run_name.log
-  }
 
   # bin File
   if [file exists $bin_file] {
@@ -182,7 +147,7 @@ if {[info commands get_property] != "" && [file exists $bit_file]} {
 
   Msg Info "Evaluating Git sha for $name... repo_path: $repo_path"
   puts "$repo_path repo_path"
-  lassign [GetRepoVersions "$repo_path/Top/$name" "$repo_path"] sha
+  lassign [GetRepoVersions "$repo_path/Top/$group_name/$name" "$repo_path"] sha
 
   set describe [GetGitDescribe $sha]
   Msg Info "Git describe set to: $describe"

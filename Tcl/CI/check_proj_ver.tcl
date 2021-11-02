@@ -49,13 +49,13 @@ if { $::argc eq 0 } {
 set project_dir $repo_path/Top/$project
 
 if {$options(sim) == 1} {
-    set sim 1
-    Msg Info "Will check also the version of the simulation files..."
+  set sim 1
+  Msg Info "Will check also the version of the simulation files..."
 }
 
 if { $options(ext_path) != "" } {
-    set ext_path $options(ext_path)
-    Msg Info "External path set to $ext_path"
+  set ext_path $options(ext_path)
+  Msg Info "External path set to $ext_path"
 }
 
 set ver [ GetProjectVersion $project_dir $repo_path $ext_path $sim ]

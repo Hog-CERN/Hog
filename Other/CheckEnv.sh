@@ -112,7 +112,7 @@ else
 fi
 echo --------------------------------
 
-if ( ! ( [ -z ${EOS_MGM_URL+x} ]  &&  [ -z ${HOG_OFFICIAL_BIN_EOS_PATH+x} ] && [ -z ${HOG_IP_EOS_PATH+x} ] ) )
+if ( ! ( [ -z ${EOS_MGM_URL+x} ]  &&  [ -z ${HOG_OFFICIAL_BIN_EOS_PATH+x} ] ) )
 then
   echo -n "Variable: HOG_PASSWORD is "
   if [ -z ${HOG_PASSWORD+x} ]
@@ -265,14 +265,14 @@ else
 fi
 echo --------------------------------
 
-echo -n "Variable: HOG_IP_EOS_PATH is "
-if [ -z ${HOG_IP_EOS_PATH+x} ]
+echo -n "Variable: HOG_IP_PATH is "
+if [ -z ${HOG_IP_PATH+x} ]
 then
     echo -n "NOT defined. Hog-CI will NOT"
 else
     echo -n "defined. Hog-CI will"
 fi
-echo " use EOS as a synthesised IP respository to speed up IP synthesis."
+echo " use an EOS/LOCAL IP repository to speed up the IP synthesis."
 echo --------------------------------
 
 echo -n "Variable: HOG_RESET_FILES is "

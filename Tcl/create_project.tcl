@@ -33,6 +33,7 @@ namespace eval globalSettings {
   variable FAMILY
 
   variable PROPERTIES
+  variable SIM_PROPERTIES
   variable HOG_EXTERNAL_PATH
   variable TARGET_SIMULATOR
 
@@ -67,12 +68,9 @@ proc CreateProject {} {
 
   if {[info commands create_project] != ""} {
 
-    #VIVADO_ONLY
-    if {$globalSettings::top_name != $globalSettings::DESIGN} {
-      Msg Info "This project has got a flavour, the top module name ($globalSettings::top_name) differs from the project name ($globalSettings::DESIGN)."
-    }
-
     create_project -force [file tail $globalSettings::DESIGN] $globalSettings::build_dir -part $globalSettings::PART
+
+    ConfigureProperties
 
     ## Set project properties
     set obj [get_projects [file tail $globalSettings::DESIGN] ]
@@ -107,6 +105,8 @@ proc CreateProject {} {
 
       project_new -family $globalSettings::FAMILY -overwrite -part $globalSettings::PART  $globalSettings::DESIGN
       set_global_assignment -name PROJECT_OUTPUT_DIRECTORY output_files
+
+      ConfigureProperties
     }
   } else {
     puts "Creating project for $globalSettings::DESIGN part $globalSettings::PART"
@@ -441,7 +441,7 @@ proc ConfigureSimulation {} {
     ##############
     Msg Info "Setting load_glbl parameter to true for every fileset..."
     foreach f [get_filesets -quiet *_sim] {
-      set_property -name {xsim.elaborate.load_glbl} -value {true} -objects $f
+      set_property -name {xsim.elaborate.load_glbl} -value {true} -objects [get_filesets $f]
     }
   }  elseif {[info commands project_new] != ""} {
     #QUARTUS only
@@ -459,7 +459,7 @@ proc ConfigureProperties {} {
   cd $globalSettings::repo_path
   if {[info commands send_msg_id] != ""} {
     set user_repo "0"
-
+    # Setting Main Properties
     if [info exists globalSettings::PROPERTIES] {
       if [dict exists $globalSettings::PROPERTIES main] {
         Msg Info "Setting project-wide properties..."
@@ -485,7 +485,7 @@ proc ConfigureProperties {} {
 
         }
       }
-
+      # Setting Run Properties
       foreach run [get_runs -quiet] {
         if [dict exists $globalSettings::PROPERTIES $run] {
           Msg Info "Setting properties for run: $run..."
@@ -497,19 +497,24 @@ proc ConfigureProperties {} {
           }
         }
       }
-    }
-
-    ## Setting user IP repository to default Hog directory
-    if { $user_repo == "0" } {
-      if [file exists $globalSettings::user_ip_repo] {
-        Msg Info "Found directory $globalSettings::user_ip_repo, setting it as user IP repository..."
-        if { [string first PlanAhead [version]]==0 } {
-          set_property  ip_repo_paths $globalSettings::user_ip_repo [current_fileset]
-        } else  {
-          set_property  ip_repo_paths $globalSettings::user_ip_repo [current_project]
+      # Setting Simulation Properties
+      foreach simset [get_filesets -quiet *_sim] {
+        if [dict exists $globalSettings::SIM_PROPERTIES $simset] {
+          Msg Info "Setting properties for simulation set : $simset..."
+          set sim_props [dict get $globalSettings::SIM_PROPERTIES $simset]
+          dict for {prop_name prop_val} $sim_props {
+            Msg Info "Setting $prop_name = $prop_val"
+            set_property $prop_name $prop_val [get_filesets $simset]
+          }
         }
-      } else {
-        Msg Info "$globalSettings::user_ip_repo not found, no user IP repository will be set."
+        if [dict exists $globalSettings::SIM_PROPERTIES sim] {
+          Msg Info "Setting properties for all simulation sets..."
+          set sim_props [dict get $globalSettings::SIM_PROPERTIES sim]
+          dict for {prop_name prop_val} $sim_props {
+            Msg Info "Setting $prop_name = $prop_val"
+            set_property $prop_name $prop_val [get_filesets $simset]
+          }
+        }
       }
     }
 
@@ -586,7 +591,7 @@ if { $::argc eq 0 && ![info exist DESIGN]} {
     exit 1
   }
   if { ![info exist DESIGN] || $DESIGN eq "" } { 
-     if { [lindex $argv 0] eq "" } {
+    if { [lindex $argv 0] eq "" } {
       Msg Error " Variable DESIGN not set!"
       Msg Info [cmdline::usage $parameters $usage]
       exit 1
@@ -644,7 +649,7 @@ if {[info exist workflow_simlib_path]} {
 
 
 set proj_dir $repo_path/Top/$DESIGN
-lassign [GetConfFiles $proj_dir] conf_file pre_file post_file tcl_file
+lassign [GetConfFiles $proj_dir] conf_file sim_file pre_file post_file tcl_file
 
 set user_repo 0
 if {[file exists $conf_file]} {
@@ -660,6 +665,11 @@ if {[file exists $conf_file]} {
     }
   } else {
     Msg Error "No main section found in $conf_file, make sure it has a section called \[main\] containing the mandatory properties."
+  }
+
+  if {[file exists $sim_file]} {
+    Msg Info "Parsing simulation configuration file $sim_file..."
+    set SIM_PROPERTIES [ReadConf $sim_file]
   }
 } else {
 
@@ -734,7 +744,7 @@ if {[info exists env(HOG_EXTERNAL_PATH)]} {
 }
 
 SetGlobalVar PROPERTIES ""
-
+SetGlobalVar SIM_PROPERTIES ""
 
 
 #Derived varibles from now on...
@@ -744,7 +754,7 @@ set globalSettings::tcl_path                    $tcl_path
 set globalSettings::repo_path                   $repo_path
 set globalSettings::group_name                  [file dirname $globalSettings::DESIGN]
 set globalSettings::pre_synth_file              "pre-synthesis.tcl"
-set globalSettings::post_synth_file             ""
+set globalSettings::post_synth_file             "post-synthesis.tcl"
 set globalSettings::pre_impl_file               "pre-implementation.tcl"
 set globalSettings::post_impl_file              "post-implementation.tcl"
 set globalSettings::pre_bit_file                "pre-bitstream.tcl"
@@ -757,7 +767,7 @@ set globalSettings::DESIGN                      [file tail $globalSettings::DESI
 set globalSettings::top_name                    [file tail $globalSettings::DESIGN]
 set globalSettings::top_name                    [file root $globalSettings::top_name]
 set globalSettings::synth_top_module            "top_$globalSettings::top_name"
-set globalSettings::user_ip_repo                "$globalSettings::repo_path/IP_repository"
+set globalSettings::user_ip_repo                ""
 
 set globalSettings::pre_synth           [file normalize "$globalSettings::tcl_path/integrated/$globalSettings::pre_synth_file"]
 set globalSettings::post_synth          [file normalize "$globalSettings::tcl_path/integrated/$globalSettings::post_synth_file"]
@@ -767,12 +777,14 @@ set globalSettings::pre_bit             [file normalize "$globalSettings::tcl_pa
 set globalSettings::post_bit            [file normalize "$globalSettings::tcl_path/integrated/$globalSettings::post_bit_file"]
 set globalSettings::quartus_post_module [file normalize "$globalSettings::tcl_path/integrated/$globalSettings::quartus_post_module_file"]
 
+
+
 if {[file exists $pre_file]} {
   Msg Info "Found pre-creation Tcl script $pre_file, executing it..."
   source $pre_file
 }
 CreateProject
-ConfigureProperties
+
 ConfigureSynthesis
 ConfigureImplementation
 ConfigureSimulation
@@ -797,4 +809,4 @@ if {[file exists $post_file]} {
   source $post_file
 }
 
-Msg Info "Project $DESIGN created succesfully."
+Msg Info "Project $DESIGN created successfully."

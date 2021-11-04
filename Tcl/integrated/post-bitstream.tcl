@@ -269,7 +269,7 @@ if {[info commands get_property] != ""} { # Vivado
         }
     }
 
-    if {[string compare $export_xsa "true"]==0} {
+    if {[string compare [string tolower $export_xsa] "true"]==0} {
         # there is a bug in Vivado 2021.1, check for that version and warn
         # that we can't export XSAs
         regexp -- {Vivado v([0-9]{4}\.[0-9,A-z,_,\.]*) } [version] -> VIVADO_VERSION

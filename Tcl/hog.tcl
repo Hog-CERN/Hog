@@ -744,17 +744,27 @@ proc GetSHA {path} {
   # Retrieve the list of submodules in the repository
   foreach f $path {
     if {[file exists $repo_path/.gitmodules]} {
-      set submodules [split [exec git config --file $repo_path/.gitmodules --get-regexp path] "\n"]
-      foreach mod $submodules {
-        set module [lindex $mod 1]
-        if {[string first "$repo_path/$module" $path] == 0} {
-          # File is in a submodule. Append 
-          set file_in_module 1
-          lappend paths "$repo_path/$module"
-        }
+      lassign [GitRet "config --file $repo_path/.gitmodules --get-regexp path" ] status result
+      if {$status == 0} {
+	set submodules [split $result "\n"]
+      } else {
+	set submodules ""
+	Msg Warning "Something went wrong while trying to find submodules: result"
       }
+      
+      foreach mod $submodules {
+	set module [lindex $mod 1]
+	if {[string first "$repo_path/$module" $path] == 0} {
+	  # File is in a submodule. Append 
+	  set file_in_module 1
+	  lappend paths "$repo_path/$module"
+	  break
+	}
+      }
+      
     }
     if {$file_in_module == 0} {
+      #File is not in a submodule
       lappend paths $f
     }
   }

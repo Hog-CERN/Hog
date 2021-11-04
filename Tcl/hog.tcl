@@ -3033,24 +3033,37 @@ proc WriteUtilizationSummary {input output project_name run} {
   util_m add row "|          **Site Type**         | **Used** | **Fixed** | **Available** | **Util%** |"
   util_m add row "|  --- | --- | --- | --- | --- |"
 
+  set luts 0
+  set regs 0
+  set uram 0
+  set bram 0
+  set dsps 0
+  set ios 0
+
   while {[gets $f line] >= 0} {
-    if { [string first "CLB LUTs*" $line] >= 0 } {
+    if { [string first "| CLB LUTs" $line] >= 0 && $luts == 0 } {
       util_m add row $line
+      set luts 1
     }
-    if { [string first "CLB Registers*" $line] >= 0 } {
+    if { [string first "| CLB Registers" $line] >= 0 && $regs == 0} {
       util_m add row $line
+      set regs 1
     }
-    if { [string first "| Block RAM Tile" $line] >= 0 } {
+    if { [string first "| Block RAM Tile" $line] >= 0 && $bram == 0 } {
       util_m add row $line
+      set bram 1
     }
-    if { [string first "URAM" $line] >= 0 } {
+    if { [string first "URAM " $line] >= 0 && $uram == 0} {
       util_m add row $line
+      set uram 1
     }
-    if { [string first "DSPs" $line] >= 0 } {
+    if { [string first "DSPs" $line] >= 0 && $dsps == 0 } {
       util_m add row $line
+      set dsps 1
     }
-    if { [string first "Bonded IOB" $line] >= 0 } {
+    if { [string first "Bonded IOB" $line] >= 0 && $ios == 0 } {
       util_m add row $line
+      set ios 1
     }
   }
   util_m add row

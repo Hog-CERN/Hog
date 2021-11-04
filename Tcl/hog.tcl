@@ -2717,7 +2717,13 @@ proc Git {command {files ""}}  {
 #  @returns a list of 2 elements: the return value (0 if no error occurred) and the output of the git command
 proc GitRet {command {files ""}}  {
   global env
-  set ret [catch {exec -ignorestderr git {*}$command -- {*}$files} result]
+  if {$files eq ""} {
+    set dashes ""
+  } else {
+    set dashes "--"
+  }
+  puts $dashes
+  set ret [catch {exec -ignorestderr git {*}$command $dashes {*}$files} result]
 
   return [list $ret $result]
 }

@@ -744,7 +744,7 @@ proc GetSHA {path} {
   # Retrieve the list of submodules in the repository
   foreach f $path {
     if {[file exists $repo_path/.gitmodules]} {
-      lassign [GitRet "config --file $repo_path/.gitmodules --get-regexp path" ] status result
+      lassign [GitRet "config --file $repo_path/.gitmodules --get-regexp path" " "] status result
       if {$status == 0} {
 	set submodules [split $result "\n"]
       } else {
@@ -2723,11 +2723,12 @@ proc Git {command {files ""}}  {
 #
 #  @param[in] command: the git command to be run including refs (branch, tags, sha, etc.), except files.
 #  @param[in] files: files given to git as argument. They will always be separated with -- to avoid weird accidents
+# Sometimes you need to remove the --. To do that just set files to " "
 #
 #  @returns a list of 2 elements: the return value (0 if no error occurred) and the output of the git command
 proc GitRet {command {files ""}}  {
   global env
-  if {$files eq ""} {
+  if {$files eq " "} {
     set dashes ""
   } else {
     set dashes "--"

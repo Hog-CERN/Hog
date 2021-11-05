@@ -104,7 +104,11 @@
           fi;
           if [[ -z ${HOG_IP_PATH+x} ]] && [[ -n "HOG_IP_EOS_PATH" ]]; then
             echo "Hog-CI(warning) HOG_IP_EOS_PATH is deprecated, you should use HOG_IP_PATH";
-            export HOG_IP_PATH=${HOG_IP_EOS_PATH};
+            echo "Hog-CI(info) - IPs will be copied to/from $HOG_IP_EOS_PATH.";
+            export IP_PATH="-ip_path $HOG_IP_EOS_PATH";
+            if [[ $HOG_IP_EOS_PATH == "/eos/*" ]]; then
+              until echo $HOG_PASSWORD | kinit $HOG_USER@CERN.CH ; do echo "Retrying"; sleep 2; done;
+            fi;
           fi;
           if [ -z ${HOG_IP_PATH+x} ]; then
             echo "Hog-CI(info) - No EOS/LOCAL path for IPs defined.";

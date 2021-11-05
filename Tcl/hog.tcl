@@ -2733,7 +2733,6 @@ proc GitRet {command {files ""}}  {
   } else {
     set dashes "--"
   }
-  puts $dashes
   set ret [catch {exec -ignorestderr git {*}$command $dashes {*}$files} result]
 
   return [list $ret $result]

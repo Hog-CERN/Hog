@@ -160,6 +160,28 @@ proc CreateProject {} {
 
   ## Set synthesis TOP
   SetTopProperty $globalSettings::synth_top_module $sources
+
+  ## FLAVOUR
+  # Calculating flavour if any
+  set flavour [string map {. ""} [file ext $globalSettings::DESIGN]]
+  if {$flavour != ""} {
+    if [string is integer $flavour] {
+      Msg Info "Project $globalSettings::DESIGN has flavour = $flavour, the generic variable FLAVUOR will be set to $flavour"
+    } else {
+      Msg Warning "Project name has a unexpected non numeric extension, flavour will be set to -1"
+      set flavour -1
+    }
+
+  } else {
+    set flavour -1
+  }
+
+  if {[info commands set_property] != ""} {
+    if {$flavour != -1} {
+      set generic_string "FLAVOUR=$flavour"
+    }
+    set_property generic $generic_string [current_fileset]
+  }
 }
 
 

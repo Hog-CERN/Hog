@@ -812,7 +812,7 @@ if {[file exists $post_file]} {
 }
 
 if {[info commands get_property] != ""} {
-  pwd
+  set old_path [pwd]
   cd $repo_path
   set flavour [GetProjectFlavour $DESIGN]
   # Getting all the versions and SHAs of the repository
@@ -833,6 +833,7 @@ if {[info commands get_property] != ""} {
 
   lassign [GetDateAndTime $commit] date timee
   [WriteGenerics $date $timee $commit $version $top_hash $top_ver $hog_hash $hog_ver $cons_ver $cons_hash $xml_ver $xml_hash $use_ipbus $libs $vers $hashes $ext_names $ext_hashes $user_ip_repos $user_ip_vers $user_ip_hashes $flavour ] 
+  cd $old_path
 }
 
 Msg Info "Project $DESIGN created successfully."

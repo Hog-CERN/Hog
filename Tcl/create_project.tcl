@@ -811,7 +811,7 @@ if {[file exists $post_file]} {
   source $post_file
 }
 
-if {[info commands set_property] != ""} {
+if {[info commands get_property] != ""} {
   cd $repo_path
   set flavour [GetProjectFlavour $DESIGN]
   # Getting all the versions and SHAs of the repository

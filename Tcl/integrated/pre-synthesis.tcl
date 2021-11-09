@@ -272,7 +272,7 @@ if [GitVersion 2.9.3] {
 if {[info commands set_property] != ""} {
   ### VIVADO
   # set global generic varibles
-  WriteGenerics $date $timee $commit $version $top_hash $top_ver $hog_hash $hog_ver $cons_ver $cons_hash $xml_ver $xml_hash $use_ipbus $libs $vers $hashes $ext_names $ext_hashes $user_ip_repos $user_ip_vers $user_ip_hashes $flavour 
+  WriteGenerics $date $timee $commit $version $top_hash $top_ver $hog_hash $hog_ver $cons_ver $cons_hash  $libs $vers $hashes $ext_names $ext_hashes $user_ip_repos $user_ip_vers $user_ip_hashes $flavour $xml_ver $xml_hash 
   set status_file [file normalize "$old_path/../versions.txt"]
 
 } elseif {[info commands project_new] != ""} {

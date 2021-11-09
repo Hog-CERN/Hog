@@ -3134,7 +3134,7 @@ proc GetProjectFlavour {proj_name} {
 ## Setting the generic property
 #
 #  @param[in]    list of variables to be written in the generics
-proc WriteGenerics {date timee commit version top_hash top_ver hog_hash hog_ver cons_ver cons_hash xml_ver xml_hash use_ipbus libs vers hashes ext_names ext_hashes user_ip_repos user_ip_vers user_ip_hashes flavour proj_dir proj_name} {
+proc WriteGenerics {date timee commit version top_hash top_ver hog_hash hog_ver cons_ver cons_hash xml_ver xml_hash use_ipbus libs vers hashes ext_names ext_hashes user_ip_repos user_ip_vers user_ip_hashes flavour} {
   #####  Passing Hog generic to top file
   if {[info commands set_property] != ""} {
     ### VIVADO

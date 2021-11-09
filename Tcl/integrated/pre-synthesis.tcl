@@ -246,11 +246,13 @@ if {[info commands set_param] != ""} {
 set tt [clock format [clock seconds] -format {%d/%m/%Y at %H:%M:%S}]
 
 lassign [GetDateAndTime $commit] date timee
-WriteGenerics $date $timee $commit $version $top_hash $top_ver $hog_hash $hog_ver $cons_ver $cons_hash $xml_ver $xml_hash $use_ipbus $libs $vers $hashes $ext_names $ext_hashes $user_ip_repos $user_ip_vers $user_ip_hashes $flavour $proj_dir
+WriteGenerics $date $timee $commit $version $top_hash $top_ver $hog_hash $hog_ver $cons_ver $cons_hash $xml_ver $xml_hash $use_ipbus $libs $vers $hashes $ext_names $ext_hashes $user_ip_repos $user_ip_vers $user_ip_hashes $flavour $proj_dir $proj_name
 
 if {[info commands set_property] != ""} {
   ### VIVADO
   set status_file [file normalize "$old_path/../versions.txt"]
+} elseif {[info commands project_new] != ""} {
+  set  status_file "$old_path/output_files/versions.txt"
 }
 
 Msg Info "Opening version file $status_file..."

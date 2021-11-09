@@ -103,6 +103,7 @@ if {[file exists $project_file]} {
   if {[file exists $conf]} {
     set DESIGN $project_name
     source ./create_project.tcl
+    cd $path
   } elseif {[file exists $tcl_file]} {
     source $repo_path/Top/$project_name/$project.tcl
   } else {

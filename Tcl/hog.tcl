@@ -3134,7 +3134,7 @@ proc GetProjectFlavour {proj_name} {
 ## Setting the generic property
 #
 #  @param[in]    list of variables to be written in the generics
-proc WriteGenerics {date timee commit version top_hash top_ver hog_hash hog_ver cons_ver cons_hash xml_ver xml_hash use_ipbus libs vers hashes ext_names ext_hashes user_ip_repos user_ip_vers user_ip_hashes flavour proj_dir} {
+proc WriteGenerics {date timee commit version top_hash top_ver hog_hash hog_ver cons_ver cons_hash xml_ver xml_hash use_ipbus libs vers hashes ext_names ext_hashes user_ip_repos user_ip_vers user_ip_hashes flavour proj_dir proj_name} {
   #####  Passing Hog generic to top file
   if {[info commands set_property] != ""} {
     ### VIVADO
@@ -3148,7 +3148,7 @@ proc WriteGenerics {date timee commit version top_hash top_ver hog_hash hog_ver 
       }
       set generic_string "$generic_string XML_VER=32'h$xml_ver XML_SHA=32'h0$xml_hash_string"
     }
-ve
+
     #set project specific lists
     foreach l $libs v $vers h $hashes {
       set ver "[string toupper $l]_VER=32'h$v "
@@ -3237,7 +3237,6 @@ ve
       file mkdir "$old_path/output_files"
     }
 
-    set  status_file "$old_path/output_files/versions.txt"
     project_close
 
   } else {

@@ -357,8 +357,6 @@ if {[info commands set_property] != ""} {
 Msg Info "Opening version file $status_file..."
 set status_file [open $status_file "w+"]
 
-
-
 Msg Status " ------------------------- PRE SYNTHESIS -------------------------"
 Msg Status " $tt"
 Msg Status " Firmware date and time: $date, $timee"

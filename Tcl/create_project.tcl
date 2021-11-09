@@ -161,27 +161,7 @@ proc CreateProject {} {
   ## Set synthesis TOP
   SetTopProperty $globalSettings::synth_top_module $sources
 
-  ## FLAVOUR
-  # Calculating flavour if any
-  set flavour [string map {. ""} [file ext $globalSettings::DESIGN]]
-  if {$flavour != ""} {
-    if [string is integer $flavour] {
-      Msg Info "Project $globalSettings::DESIGN has flavour = $flavour, the generic variable FLAVUOR will be set to $flavour"
-    } else {
-      Msg Warning "Project name has a unexpected non numeric extension, flavour will be set to -1"
-      set flavour -1
-    }
 
-  } else {
-    set flavour -1
-  }
-
-  if {[info commands set_property] != ""} {
-    if {$flavour != -1} {
-      set generic_string "FLAVOUR=$flavour"
-    }
-    set_property generic $generic_string [current_fileset]
-  }
 }
 
 
@@ -830,5 +810,27 @@ if {[file exists $post_file]} {
   Msg Info "Found post-creation Tcl script $post_file, executing it..."
   source $post_file
 }
+
+cd $repo_path
+set flavour [GetProjectFlavour $DESIGN]
+# Getting all the versions and SHAs of the repository
+lassign [GetRepoVersions [file normalize $repo_path/Top/$DESIGN] $repo_path $globalSettings::HOG_EXTERNAL_PATH] commit version  hog_hash hog_ver  top_hash top_ver  libs hashes vers  cons_ver cons_hash  ext_names ext_hashes  xml_hash xml_ver user_ip_repos user_ip_hashes user_ip_vers
+
+set this_commit  [Git {log --format=%h -1}]
+
+if {$commit == 0 } {
+  set commit $this_commit
+}
+
+if {$xml_hash != 0} {
+  set use_ipbus 1
+} else {
+  set use_ipbus 0
+}
+
+
+lassign [GetDateAndTime $commit] date timee
+[WriteGenerics $date $timee $commit $version $top_hash $top_ver $hog_hash $hog_ver $cons_ver $cons_hash $xml_ver $xml_hash $use_ipbus $libs $vers $hashes $ext_names $ext_hashes $user_ip_repos $user_ip_vers $user_ip_hashes $flavour $globalSettings::build_dir] 
+
 
 Msg Info "Project $DESIGN created successfully."

@@ -91,19 +91,7 @@ cd $repo_path
 
 set group [GetGroupName $proj_dir]
 
-# Calculating flavour if any
-set flavour [string map {. ""} [file ext $proj_name]]
-if {$flavour != ""} {
-  if [string is integer $flavour] {
-    Msg Info "Project $proj_name has flavour = $flavour, the generic variable FLAVUOR will be set to $flavour"
-  } else {
-    Msg Warning "Project name has a unexpected non numeric extension, flavour will be set to -1"
-    set flavour -1
-  }
-
-} else {
-  set flavour -1
-}
+set flavour [GetProjectFlavour $proj_name]
 
 ######## Reset files before synthesis ###########
 ResetRepoFiles "./Projects/hog_reset_files"
@@ -255,141 +243,20 @@ if {[info commands set_param] != ""} {
   puts "Hog:DEBUG MaxThread is set to: $maxThreads"
 }
 
-set clock_seconds [clock seconds]
-set tt [clock format $clock_seconds -format {%d/%m/%Y at %H:%M:%S}]
+set tt [clock format [clock seconds] -format {%d/%m/%Y at %H:%M:%S}]
 
-if [GitVersion 2.9.3] {
-  set date [Git "log -1 --format=%cd --date=format:%d%m%Y $commit"]
-  set timee [Git "log -1 --format=%cd --date=format:00%H%M%S $commit"]
-} else {
-  Msg Warning "Found Git version older than 2.9.3. Using current date and time instead of commit time."
-  set date [clock format $clock_seconds  -format {%d%m%Y}]
-  set timee [clock format $clock_seconds -format {00%H%M%S}]
-}
+lassign [GetDateAndTime $commit] date timee
+WriteGenerics $date $timee $commit $version $top_hash $top_ver $hog_hash $hog_ver $cons_ver $cons_hash $xml_ver $xml_hash $use_ipbus $libs $vers $hashes $ext_names $ext_hashes $user_ip_repos $user_ip_vers $user_ip_hashes $flavour $proj_dir
 
-#####  Passing Hog generic to top file
 if {[info commands set_property] != ""} {
   ### VIVADO
-  # set global generic varibles
-  set generic_string "GLOBAL_DATE=32'h$date GLOBAL_TIME=32'h$timee GLOBAL_VER=32'h$version GLOBAL_SHA=32'h0$commit TOP_SHA=32'h0$top_hash TOP_VER=32'h$top_ver HOG_SHA=32'h0$hog_hash HOG_VER=32'h$hog_ver CON_VER=32'h$cons_ver CON_SHA=32'h0$cons_hash"
-  if {$use_ipbus == 1} {
-    if {0==[string compare $xml_hash ""]} {
-      set xml_hash_string 0000000
-    } else {
-      set xml_hash_string $xml_hash
-    }
-    set generic_string "$generic_string XML_VER=32'h$xml_ver XML_SHA=32'h0$xml_hash_string"
-  }
-
-  #set project specific lists
-  foreach l $libs v $vers h $hashes {
-    set ver "[string toupper $l]_VER=32'h$v "
-    set hash "[string toupper $l]_SHA=32'h0$h"
-    set generic_string "$generic_string $ver $hash"
-  }
-
-  foreach e $ext_names h $ext_hashes {
-    set hash "[string toupper $e]_SHA=32'h0$h"
-    set generic_string "$generic_string $hash"
-  }
-
-  foreach repo $user_ip_repos v $user_ip_vers h $user_ip_hashes {
-    set repo_name [file tail $repo]
-    set ver "[string toupper $repo_name]_VER=32'h$v "
-    set hash "[string toupper $repo_name]_SHA=32'h0$h"
-    set generic_string "$generic_string $ver $hash"
-  }
-
-  if {$flavour != -1} {
-    set generic_string "$generic_string FLAVOUR=$flavour"
-  }
-
-  set_property generic $generic_string [current_fileset]
   set status_file [file normalize "$old_path/../versions.txt"]
-
-} elseif {[info commands project_new] != ""} {
-  #Quartus
-  if { [catch {package require ::quartus::project} ERROR] } {
-    Msg Error "$ERROR\n Can not find package ::quartus::project"
-    cd $old_path
-    return 1
-  }
-  set this_dir [pwd]
-  cd $proj_dir
-  project_open $proj_name -current_revision
-  cd $this_dir
-
-  set zero_ttb 00000000
-
-  binary scan [binary format H* [string map {{'} {}} $date]] B32 bits
-  set_parameter -name GLOBAL_DATE $bits
-  binary scan [binary format H* [string map {{'} {}} $timee]] B32 bits
-  set_parameter -name GLOBAL_TIME $bits
-  binary scan [binary format H* [string map {{'} {}} $version]] B32 bits
-  set_parameter -name GLOBAL_VER $bits
-  binary scan [binary format H* [string map {{'} {}} $commit]] B32 bits
-  set_parameter -name GLOBAL_SHA $bits
-  binary scan [binary format H* [string map {{'} {}} $top_hash]] B32 bits
-  set_parameter -name TOP_SHA $bits
-  binary scan [binary format H* [string map {{'} {}} $top_ver]] B32 bits
-  set_parameter -name TOP_VER $bits
-  binary scan [binary format H* [string map {{'} {}} $hog_hash]] B32 bits
-  set_parameter -name HOG_SHA $bits
-  binary scan [binary format H* [string map {{'} {}} $hog_ver]] B32 bits
-  set_parameter -name HOG_VER $bits
-  binary scan [binary format H* [string map {{'} {}} $cons_ver]] B32 bits
-  set_parameter -name CON_VER $bits
-  binary scan [binary format H* [string map {{'} {}} $cons_hash]] B32 bits
-  set_parameter -name CON_SHA $bits
-
-  if {$use_ipbus == 1} {
-    binary scan [binary format H* [string map {{'} {}} $xml_ver]] B32 bits
-    set_parameter -name XML_VER $bits
-    binary scan [binary format H* [string map {{'} {}} $xml_hash]] B32 bits
-    set_parameter -name XML_SHA $bits
-  }
-
-  #set project specific lists
-  foreach l $libs v $vers h $hashes {
-    binary scan [binary format H* [string map {{'} {}} $v]] B32 bits
-    set_parameter -name "[string toupper $l]_VER" $bits
-    binary scan [binary format H* [string map {{'} {}} $h]] B32 bits
-    set_parameter -name "[string toupper $l]_SHA" $bits
-  }
-
-  foreach e $ext_names h $ext_hashes {
-    binary scan [binary format H* [string map {{'} {}} $h]] B32 bits
-    set_parameter -name "[string toupper $e]_SHA" $bits
-  }
-
-  if {$flavour != -1} {
-    set_parameter -name FLAVOUR $flavour
-  }
-
-  if {![file exists "$old_path/output_files"]} {
-    file mkdir "$old_path/output_files"
-  }
-
-  set  status_file "$old_path/output_files/versions.txt"
-  project_close
-
-} else {
-  ### Tcl Shell
-  puts "Hog:DEBUG GLOBAL_DATE=$date GLOBAL_TIME=$timee"
-  puts "Hog:DEBUG GLOBAL_SHA=$commit TOP_SHA=$top_hash"
-  puts "Hog:DEBUG CON_VER=$cons_ver CON_SHA=$cons_hash"
-  puts "Hog:DEBUG XML_SHA=$xml_hash GLOBAL_VER=$version TOP_VER=$top_ver"
-  puts "Hog:DEBUG XML_VER=$xml_ver HOG_SHA=$hog_hash HOG_VER=$hog_ver"
-  puts "Hog:DEBUG LIBS: $libs $vers $hashes"
-  puts "Hog:DEBUG EXT: $ext_names $ext_hashes"
-  puts "Hog:DEBUG FLAVOUR: $flavour"
-  set  status_file "$old_path/versions.txt"
-
 }
+
 Msg Info "Opening version file $status_file..."
 set status_file [open $status_file "w+"]
-
-
+puts $date 
+puts $timee
 
 Msg Status " ------------------------- PRE SYNTHESIS -------------------------"
 Msg Status " $tt"

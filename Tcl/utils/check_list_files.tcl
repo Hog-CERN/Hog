@@ -135,7 +135,7 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
   set prjIPs  [DictGet $prjLibraries IP]
   set prjXDCs  [DictGet $prjLibraries XDC]
   set prjOTHERs [DictGet $prjLibraries OTHER]
-  set prjSimDict  [DictGet $prjLibraries SIM]
+  # set prjSimDict  [DictGet $prjLibraries SIM]
   set prjSrcDict  [DictGet $prjLibraries SRC]
 
 
@@ -197,41 +197,41 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
           dict lappend newListfiles $key [string trim "[RelativeLocal $repo_path $XDC] [DictGet $prjProperties $XDC]"]
         }
       }
-    } elseif {[file extension $key] == ".sim" } {
-      if {[dict exists $prjSimDict "[file rootname $key]_sim"]} {
-        set prjSIMs [DictGet $prjSimDict "[file rootname $key]_sim"]
-	      # loop over list files associated with this simset
-        foreach simlist [dict keys $listMain] {
-           #check if project contains sim files specified in list files
-          if {[DictGet $listMain $simlist] == $key } {
-            foreach SIM [DictGet $listLibraries $simlist] {
-              set idx [lsearch -exact $prjSIMs $SIM]
-              set prjSIMs [lreplace $prjSIMs $idx $idx]
-              if {$idx < 0} {
-                if {$options(recreate) == 1} {
-                  Msg Info "$SIM was removed from the project."
-                } else {
-                  CriticalAndLog "$SIM not found in project simulation files." $outFile
-                }
-                incr ListErrorCnt
-              } else {
-                dict lappend newListfiles $simlist [string trim "[RelativeLocal $repo_path $SIM] [DictGet $prjProperties $SIM]"]
-              }
-            }
-            dict set prjSimDict "[file rootname $key]_sim" $prjSIMs
-          }
-        }
-      } else {
-        set main_lib [dict get $listMain $key]
-        if { $main_lib == $key } {
-          if {$options(recreate) == 1} {
-            Msg Info "[file rootname $key]_sim fileset was removed from the project."
-          } else {
-            CriticalAndLog "[file rootname $key]_sim fileset not found in project." $outFile
-          }
-          incr ListErrorCnt
-        }
-      }
+    # } elseif {[file extension $key] == ".sim" } {
+    #   if {[dict exists $prjSimDict "[file rootname $key]_sim"]} {
+    #     set prjSIMs [DictGet $prjSimDict "[file rootname $key]_sim"]
+	   #    # loop over list files associated with this simset
+    #     foreach simlist [dict keys $listMain] {
+    #        #check if project contains sim files specified in list files
+    #       if {[DictGet $listMain $simlist] == $key } {
+    #         foreach SIM [DictGet $listLibraries $simlist] {
+    #           set idx [lsearch -exact $prjSIMs $SIM]
+    #           set prjSIMs [lreplace $prjSIMs $idx $idx]
+    #           if {$idx < 0} {
+    #             if {$options(recreate) == 1} {
+    #               Msg Info "$SIM was removed from the project."
+    #             } else {
+    #               CriticalAndLog "$SIM not found in project simulation files." $outFile
+    #             }
+    #             incr ListErrorCnt
+    #           } else {
+    #             dict lappend newListfiles $simlist [string trim "[RelativeLocal $repo_path $SIM] [DictGet $prjProperties $SIM]"]
+    #           }
+    #         }
+    #         dict set prjSimDict "[file rootname $key]_sim" $prjSIMs
+    #       }
+    #     }
+    #   } else {
+    #     set main_lib [dict get $listMain $key]
+    #     if { $main_lib == $key } {
+    #       if {$options(recreate) == 1} {
+    #         Msg Info "[file rootname $key]_sim fileset was removed from the project."
+    #       } else {
+    #         CriticalAndLog "[file rootname $key]_sim fileset not found in project." $outFile
+    #       }
+    #       incr ListErrorCnt
+    #     }
+    #   }
     } elseif {[file extension $key] == ".src" || [file extension $key] == ".sub"} {
       #check if project contains sources specified in listfiles
       set prjSRCs [DictGet $prjSrcDict [file rootname $key]]
@@ -284,11 +284,12 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
         }
       }
       dict set prjSrcDict [file rootname $key] $prjSRCs
+    } elseif {[file extension $key == ".sim"]} {
+      # do nothing
     } else {
       Msg CriticalWarning "$key list file format unrecognized by Hog."
       incr ListErrorCnt
     }
-
   }
 
   # Check Extra IPs
@@ -359,33 +360,33 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
     }
   }
 
-  foreach key [dict key $prjSimDict] {
-    if {[string equal $key ""] } {
-      continue
-    }
-    foreach SIM [dict get $prjSimDict $key] {
-      if {[string equal $SIM ""] } {
-        continue
-      }
-      incr ListErrorCnt
+  # foreach key [dict key $prjSimDict] {
+  #   if {[string equal $key ""] } {
+  #     continue
+  #   }
+  #   foreach SIM [dict get $prjSimDict $key] {
+  #     if {[string equal $SIM ""] } {
+  #       continue
+  #     }
+  #     incr ListErrorCnt
 
-      if {[string range $key end-3 end]=="_sim"} {
-        dict lappend newListfiles [string range $key 0 end-4].sim [string trim "[RelativeLocal $repo_path $SIM] [DictGet $prjProperties $SIM]"]
-        if {$options(recreate) == 1} {
-          Msg Info "$SIM was added to the project."
-        } else {
-          CriticalAndLog "$SIM is used in the project simulation fileset $key but is not in the list files." $outFile
-        }
-      } else {
-        dict lappend newListfiles $key.sim [string trim "[RelativeLocal $repo_path $SIM] [DictGet $prjProperties $SIM]"]
-        if {$options(recreate) == 0} {
-          CriticalAndLog "$key simulation fileset does not respect Hog format. Please name it ${key}_sim" $outFile
-        } else {
-          Msg Warning "$key simulation fileset does not respect Hog format. It will be renamed to ${key}_sim"
-        }
-      }
-    }
-  }
+  #     if {[string range $key end-3 end]=="_sim"} {
+  #       dict lappend newListfiles [string range $key 0 end-4].sim [string trim "[RelativeLocal $repo_path $SIM] [DictGet $prjProperties $SIM]"]
+  #       if {$options(recreate) == 1} {
+  #         Msg Info "$SIM was added to the project."
+  #       } else {
+  #         CriticalAndLog "$SIM is used in the project simulation fileset $key but is not in the list files." $outFile
+  #       }
+  #     } else {
+  #       dict lappend newListfiles $key.sim [string trim "[RelativeLocal $repo_path $SIM] [DictGet $prjProperties $SIM]"]
+  #       if {$options(recreate) == 0} {
+  #         CriticalAndLog "$key simulation fileset does not respect Hog format. Please name it ${key}_sim" $outFile
+  #       } else {
+  #         Msg Warning "$key simulation fileset does not respect Hog format. It will be renamed to ${key}_sim"
+  #       }
+  #     }
+  #   }
+  # }
 
   foreach key [dict key $prjSrcDict] {
     if {[string equal $key ""] } {
@@ -486,7 +487,7 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
     #delete existing listFiles
     if {$options(force) == 1} {
       set listpath "$repo_path/Top/$group_name/$project_name/list/"
-      foreach F [glob -nocomplain "$listpath/*.src" "$listpath/*.sim" "$listpath/*.sub" "$listpath/*.ext"  "$listpath/*.con"] {
+      foreach F [glob -nocomplain "$listpath/*.src" "$listpath/*.sub" "$listpath/*.ext"  "$listpath/*.con"] {
         if {[dict exists $newListfiles [file tail $F]] == 0} {
           file delete $F
         }
@@ -495,21 +496,21 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
 
     file mkdir  $repo_path/$DirName/list
     foreach listFile [dict keys $newListfiles] {
-      if {[string equal [file extension $listFile] ".sim"]} {
-        if {[file exists "$repo_path/Top/$group_name/$project_name/list/$listFile"]} {
-          set listSim [ParseFirstLineHogFiles "$repo_path/Top/$group_name/$project_name/list/" $listFile]
-        } else {
-          set listSim ""
-        }
-        set lFd [open $repo_path/$DirName/list/$listFile w]
-        if {[string equal -nocase [lindex [split $listSim " "] 0] "Simulator"] && [string equal -nocase [lindex [split $listSim " "] 1] "skip_simulation"]} {
-          puts $lFd "#$listSim"
-        } else {
-          puts $lFd "#Simulator [DictGet $prjProperties Simulator]"
-        }
-      } else {
-        set lFd [open $repo_path/$DirName/list/$listFile w]
-      }
+      # if {[string equal [file extension $listFile] ".sim"]} {
+      #   if {[file exists "$repo_path/Top/$group_name/$project_name/list/$listFile"]} {
+      #     set listSim [ParseFirstLineHogFiles "$repo_path/Top/$group_name/$project_name/list/" $listFile]
+      #   } else {
+      #     set listSim ""
+      #   }
+      #   set lFd [open $repo_path/$DirName/list/$listFile w]
+      #   if {[string equal -nocase [lindex [split $listSim " "] 0] "Simulator"] && [string equal -nocase [lindex [split $listSim " "] 1] "skip_simulation"]} {
+      #     puts $lFd "#$listSim"
+      #   } else {
+      #     puts $lFd "#Simulator [DictGet $prjProperties Simulator]"
+      #   }
+      # } else {
+      set lFd [open $repo_path/$DirName/list/$listFile w]
+      # }
       foreach ln [DictGet $newListfiles $listFile] {
         puts $lFd "$ln"
       }

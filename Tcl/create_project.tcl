@@ -310,7 +310,7 @@ proc ConfigureSynthesis {} {
     ## Report Strategy
     if {[string equal [get_property -quiet report_strategy $obj] ""]} {
       # No report strategy needed
-      Msg Info "No report strategy needed for syntesis"
+      Msg Info "No report strategy needed for synthesis"
 
     } else {
       # Report strategy needed since version 2017.3
@@ -328,7 +328,7 @@ proc ConfigureSynthesis {} {
     #TO BE DONE
 
   } else {
-    Msg info "Reporting strategy for syntesis"
+    Msg info "Reporting strategy for synthesis"
   }
 }
 
@@ -493,6 +493,17 @@ proc ConfigureProperties {} {
           Msg Info "Setting properties for run: $run..."
           set run_props [dict get $globalSettings::PROPERTIES $run]
           #set_property -dict $run_props $run
+          set stragety_flow "STRATEGY strategy Strategy FLOW flow Flow"
+          Msg Info "Setting Strategy and Flow for run $run (if specified in hog.conf)"
+          foreach s $stragety_flow {
+            if {[dict exists $run_props $s]} {
+              set prop [dict get $run_props $s]
+              set_property $s $prop $run
+              set run_props [dict remove $run_props $s]
+              Msg Info "Setting $s = $prop"
+            }  
+          }
+        
           dict for {prop_name prop_val} $run_props {
             Msg Info "Setting $prop_name = $prop_val"
             set_property $prop_name $prop_val $run
@@ -676,7 +687,7 @@ if {[file exists $conf_file]} {
 } else {
 
   ##### REMOVE ALL THIS ELSE TO STOP PROJECT.TCL SUPPORT ############
-  Msg Warning "$conf_file was not found in you project directory, please create one. The project Tcl file will no longer be supported on future Hog realeases."
+  Msg Warning "$conf_file was not found in you project directory, please create one. The project Tcl file will no longer be supported on future Hog releases."
 
   if {[info exists ::FPGA]} {
     Msg Warning "Found deprecated variable FPGA = $FPGA in project Tcl file, this will no longer be supported in future Hog releases"

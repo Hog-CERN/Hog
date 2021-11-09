@@ -3233,9 +3233,7 @@ proc WriteGenerics {date timee commit version top_hash top_ver hog_hash hog_ver 
       set_parameter -name FLAVOUR $flavour
     }
 
-    if {![file exists "$old_path/output_files"]} {
-      file mkdir "$old_path/output_files"
-    }
+
 
     project_close
 

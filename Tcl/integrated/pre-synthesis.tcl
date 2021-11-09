@@ -246,13 +246,89 @@ if {[info commands set_param] != ""} {
 set tt [clock format [clock seconds] -format {%d/%m/%Y at %H:%M:%S}]
 
 lassign [GetDateAndTime $commit] date timee
-WriteGenerics $date $timee $commit $version $top_hash $top_ver $hog_hash $hog_ver $cons_ver $cons_hash $xml_ver $xml_hash $use_ipbus $libs $vers $hashes $ext_names $ext_hashes $user_ip_repos $user_ip_vers $user_ip_hashes $flavour $proj_dir $proj_name
-
 if {[info commands set_property] != ""} {
-  ### VIVADO
+
+  WriteGenerics $date $timee $commit $version $top_hash $top_ver $hog_hash $hog_ver $cons_ver $cons_hash $xml_ver $xml_hash $use_ipbus $libs $vers $hashes $ext_names $ext_hashes $user_ip_repos $user_ip_vers $user_ip_hashes $flavour $proj_dir $proj_name 
   set status_file [file normalize "$old_path/../versions.txt"]
+
 } elseif {[info commands project_new] != ""} {
+  #Quartus
+  if { [catch {package require ::quartus::project} ERROR] } {
+    Msg Error "$ERROR\n Can not find package ::quartus::project"
+    return 1
+  }
+
+  set this_dir [pwd]
+  cd $proj_dir
+  project_open $proj_name -current_revision
+  cd $this_dir
+
+  set zero_ttb 00000000
+
+  binary scan [binary format H* [string map {{'} {}} $date]] B32 bits
+  set_parameter -name GLOBAL_DATE $bits
+  binary scan [binary format H* [string map {{'} {}} $timee]] B32 bits
+  set_parameter -name GLOBAL_TIME $bits
+  binary scan [binary format H* [string map {{'} {}} $version]] B32 bits
+  set_parameter -name GLOBAL_VER $bits
+  binary scan [binary format H* [string map {{'} {}} $commit]] B32 bits
+  set_parameter -name GLOBAL_SHA $bits
+  binary scan [binary format H* [string map {{'} {}} $top_hash]] B32 bits
+  set_parameter -name TOP_SHA $bits
+  binary scan [binary format H* [string map {{'} {}} $top_ver]] B32 bits
+  set_parameter -name TOP_VER $bits
+  binary scan [binary format H* [string map {{'} {}} $hog_hash]] B32 bits
+  set_parameter -name HOG_SHA $bits
+  binary scan [binary format H* [string map {{'} {}} $hog_ver]] B32 bits
+  set_parameter -name HOG_VER $bits
+  binary scan [binary format H* [string map {{'} {}} $cons_ver]] B32 bits
+  set_parameter -name CON_VER $bits
+  binary scan [binary format H* [string map {{'} {}} $cons_hash]] B32 bits
+  set_parameter -name CON_SHA $bits
+
+  if {$use_ipbus == 1} {
+    binary scan [binary format H* [string map {{'} {}} $xml_ver]] B32 bits
+    set_parameter -name XML_VER $bits
+    binary scan [binary format H* [string map {{'} {}} $xml_hash]] B32 bits
+    set_parameter -name XML_SHA $bits
+  }
+
+  #set project specific lists
+  foreach l $libs v $vers h $hashes {
+    binary scan [binary format H* [string map {{'} {}} $v]] B32 bits
+    set_parameter -name "[string toupper $l]_VER" $bits
+    binary scan [binary format H* [string map {{'} {}} $h]] B32 bits
+    set_parameter -name "[string toupper $l]_SHA" $bits
+  }
+
+  foreach e $ext_names h $ext_hashes {
+    binary scan [binary format H* [string map {{'} {}} $h]] B32 bits
+    set_parameter -name "[string toupper $e]_SHA" $bits
+  }
+
+  if {$flavour != -1} {
+    set_parameter -name FLAVOUR $flavour
+  }
+
+  if {![file exists "$old_path/output_files"]} {
+    file mkdir "$old_path/output_files"
+  }
   set  status_file "$old_path/output_files/versions.txt"
+
+  project_close
+
+} else {
+  ### Tcl Shell
+  puts "Hog:DEBUG GLOBAL_DATE=$date GLOBAL_TIME=$timee"
+  puts "Hog:DEBUG GLOBAL_SHA=$commit TOP_SHA=$top_hash"
+  puts "Hog:DEBUG CON_VER=$cons_ver CON_SHA=$cons_hash"
+  puts "Hog:DEBUG XML_SHA=$xml_hash GLOBAL_VER=$version TOP_VER=$top_ver"
+  puts "Hog:DEBUG XML_VER=$xml_ver HOG_SHA=$hog_hash HOG_VER=$hog_ver"
+  puts "Hog:DEBUG LIBS: $libs $vers $hashes"
+  puts "Hog:DEBUG EXT: $ext_names $ext_hashes"
+  puts "Hog:DEBUG FLAVOUR: $flavour"
+  set  status_file "$old_path/versions.txt"
+
 }
 
 Msg Info "Opening version file $status_file..."

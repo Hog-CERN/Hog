@@ -831,7 +831,7 @@ if {[info commands get_property] != ""} {
 
 
   lassign [GetDateAndTime $commit] date timee
-  [WriteGenerics $date $timee $commit $version $top_hash $top_ver $hog_hash $hog_ver $cons_ver $cons_hash $xml_ver $xml_hash $use_ipbus $libs $vers $hashes $ext_names $ext_hashes $user_ip_repos $user_ip_vers $user_ip_hashes $flavour $globalSettings::build_dir $globalSettings::DESIGN ] 
+  [WriteGenerics $date $timee $commit $version $top_hash $top_ver $hog_hash $hog_ver $cons_ver $cons_hash $xml_ver $xml_hash $use_ipbus $libs $vers $hashes $ext_names $ext_hashes $user_ip_repos $user_ip_vers $user_ip_hashes $flavour ] 
 }
 
 Msg Info "Project $DESIGN created successfully."

@@ -91,7 +91,19 @@ cd $repo_path
 
 set group [GetGroupName $proj_dir]
 
-set flavour [GetProjectFlavour $proj_name]
+# Calculating flavour if any
+set flavour [string map {. ""} [file ext $proj_name]]
+if {$flavour != ""} {
+  if [string is integer $flavour] {
+    Msg Info "Project $proj_name has flavour = $flavour, the generic variable FLAVUOR will be set to $flavour"
+  } else {
+    Msg Warning "Project name has a unexpected non numeric extension, flavour will be set to -1"
+    set flavour -1
+  }
+
+} else {
+  set flavour -1
+}
 
 ######## Reset files before synthesis ###########
 ResetRepoFiles "./Projects/hog_reset_files"
@@ -243,21 +255,65 @@ if {[info commands set_param] != ""} {
   puts "Hog:DEBUG MaxThread is set to: $maxThreads"
 }
 
-set tt [clock format [clock seconds] -format {%d/%m/%Y at %H:%M:%S}]
+set clock_seconds [clock seconds]
+set tt [clock format $clock_seconds -format {%d/%m/%Y at %H:%M:%S}]
 
-lassign [GetDateAndTime $commit] date timee
+if [GitVersion 2.9.3] {
+  set date [Git "log -1 --format=%cd --date=format:%d%m%Y $commit"]
+  set timee [Git "log -1 --format=%cd --date=format:00%H%M%S $commit"]
+} else {
+  Msg Warning "Found Git version older than 2.9.3. Using current date and time instead of commit time."
+  set date [clock format $clock_seconds  -format {%d%m%Y}]
+  set timee [clock format $clock_seconds -format {00%H%M%S}]
+}
 
-if {[info commands get_property] != ""} {
-  WriteGenerics $date $timee $commit $version $top_hash $top_ver $hog_hash $hog_ver $cons_ver $cons_hash $xml_ver $xml_hash $use_ipbus $libs $vers $hashes $ext_names $ext_hashes $user_ip_repos $user_ip_vers $user_ip_hashes $flavour $proj_dir $proj_name 
+#####  Passing Hog generic to top file
+if {[info commands set_property] != ""} {
+  ### VIVADO
+  # set global generic varibles
+  set generic_string "GLOBAL_DATE=32'h$date GLOBAL_TIME=32'h$timee GLOBAL_VER=32'h$version GLOBAL_SHA=32'h0$commit TOP_SHA=32'h0$top_hash TOP_VER=32'h$top_ver HOG_SHA=32'h0$hog_hash HOG_VER=32'h$hog_ver CON_VER=32'h$cons_ver CON_SHA=32'h0$cons_hash"
+  if {$use_ipbus == 1} {
+    if {0==[string compare $xml_hash ""]} {
+      set xml_hash_string 0000000
+    } else {
+      set xml_hash_string $xml_hash
+    }
+    set generic_string "$generic_string XML_VER=32'h$xml_ver XML_SHA=32'h0$xml_hash_string"
+  }
+
+  #set project specific lists
+  foreach l $libs v $vers h $hashes {
+    set ver "[string toupper $l]_VER=32'h$v "
+    set hash "[string toupper $l]_SHA=32'h0$h"
+    set generic_string "$generic_string $ver $hash"
+  }
+
+  foreach e $ext_names h $ext_hashes {
+    set hash "[string toupper $e]_SHA=32'h0$h"
+    set generic_string "$generic_string $hash"
+  }
+
+  foreach repo $user_ip_repos v $user_ip_vers h $user_ip_hashes {
+    set repo_name [file tail $repo]
+    set ver "[string toupper $repo_name]_VER=32'h$v "
+    set hash "[string toupper $repo_name]_SHA=32'h0$h"
+    set generic_string "$generic_string $ver $hash"
+  }
+
+  if {$flavour != -1} {
+    set generic_string "$generic_string FLAVOUR=$flavour"
+  }
+
+  set_property generic $generic_string [current_fileset]
   set status_file [file normalize "$old_path/../versions.txt"]
 
 } elseif {[info commands project_new] != ""} {
   #Quartus
   if { [catch {package require ::quartus::project} ERROR] } {
     Msg Error "$ERROR\n Can not find package ::quartus::project"
+    cd $old_path
     return 1
   }
-
   set this_dir [pwd]
   cd $proj_dir
   project_open $proj_name -current_revision
@@ -313,8 +369,8 @@ if {[info commands get_property] != ""} {
   if {![file exists "$old_path/output_files"]} {
     file mkdir "$old_path/output_files"
   }
-  set  status_file "$old_path/output_files/versions.txt"
 
+  set  status_file "$old_path/output_files/versions.txt"
   project_close
 
 } else {
@@ -330,11 +386,10 @@ if {[info commands get_property] != ""} {
   set  status_file "$old_path/versions.txt"
 
 }
-
 Msg Info "Opening version file $status_file..."
 set status_file [open $status_file "w+"]
-puts $date 
-puts $timee
+
+
 
 Msg Status " ------------------------- PRE SYNTHESIS -------------------------"
 Msg Status " $tt"

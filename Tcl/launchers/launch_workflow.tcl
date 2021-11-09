@@ -405,7 +405,7 @@ if {$do_implementation == 1 } {
   }
 
   #Go to repository path
-  cd $path/../../
+  cd $repo_path
 
   lassign [GetRepoVersions [file normalize ./Top/$project_name] $repo_path] sha
   set describe [GetGitDescribe $sha]
@@ -419,7 +419,7 @@ if {$do_implementation == 1 } {
   if [file exists $main_folder/versions.txt] {
     file copy -force $main_folder/versions.txt $dst_dir
   } else {
-    Msg Warning "No versions file found"
+    Msg Warning "No versions file found in $main_folder/versions.txt"
   }
   #Timing file
   set timing_files [ glob -nocomplain "$main_folder/timing_*.txt" ]

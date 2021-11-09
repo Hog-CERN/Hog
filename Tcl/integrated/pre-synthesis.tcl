@@ -271,42 +271,7 @@ if [GitVersion 2.9.3] {
 #####  Passing Hog generic to top file
 if {[info commands set_property] != ""} {
   ### VIVADO
-  # # # set global generic varibles
-  # set generic_string "GLOBAL_DATE=32'h$date GLOBAL_TIME=32'h$timee GLOBAL_VER=32'h$version GLOBAL_SHA=32'h0$commit TOP_SHA=32'h0$top_hash TOP_VER=32'h$top_ver HOG_SHA=32'h0$hog_hash HOG_VER=32'h$hog_ver CON_VER=32'h$cons_ver CON_SHA=32'h0$cons_hash"
-  # if {$use_ipbus == 1} {
-  #   if {0==[string compare $xml_hash ""]} {
-  #     set xml_hash_string 0000000
-  #   } else {
-  #     set xml_hash_string $xml_hash
-  #   }
-  #   set generic_string "$generic_string XML_VER=32'h$xml_ver XML_SHA=32'h0$xml_hash_string"
-  # }
-
-  # #set project specific lists
-  # foreach l $libs v $vers h $hashes {
-  #   set ver "[string toupper $l]_VER=32'h$v "
-  #   set hash "[string toupper $l]_SHA=32'h0$h"
-  #   set generic_string "$generic_string $ver $hash"
-  # }
-
-  # foreach e $ext_names h $ext_hashes {
-  #   set hash "[string toupper $e]_SHA=32'h0$h"
-  #   set generic_string "$generic_string $hash"
-  # }
-
-  # foreach repo $user_ip_repos v $user_ip_vers h $user_ip_hashes {
-  #   set repo_name [file tail $repo]
-  #   set ver "[string toupper $repo_name]_VER=32'h$v "
-  #   set hash "[string toupper $repo_name]_SHA=32'h0$h"
-  #   set generic_string "$generic_string $ver $hash"
-  # }
-
-  # if {$flavour != -1} {
-  #   set generic_string "$generic_string FLAVOUR=$flavour"
-  # }
-
-  # set_property generic $generic_string [current_fileset]
-
+  # set global generic varibles
   WriteGenerics $date $timee $commit $version $top_hash $top_ver $hog_hash $hog_ver $cons_ver $cons_hash $xml_ver $xml_hash $use_ipbus $libs $vers $hashes $ext_names $ext_hashes $user_ip_repos $user_ip_vers $user_ip_hashes $flavour 
   set status_file [file normalize "$old_path/../versions.txt"]
 

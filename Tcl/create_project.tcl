@@ -493,13 +493,14 @@ proc ConfigureProperties {} {
           Msg Info "Setting properties for run: $run..."
           set run_props [dict get $globalSettings::PROPERTIES $run]
           #set_property -dict $run_props $run
-          set stragety_flow "STRATEGY strategy Strategy FLOW flow Flow"
+          set stragety_str "STRATEGY strategy Strategy"
           Msg Info "Setting Strategy and Flow for run $run (if specified in hog.conf)"
-          foreach s $stragety_flow {
+          foreach s $stragety_str {
             if {[dict exists $run_props $s]} {
               set prop [dict get $run_props $s]
               set_property $s $prop $run
               set run_props [dict remove $run_props $s]
+              Msg Warning "A strategy for run $run has been defined inside hog.conf. This prevents Hog to compare the project properties. Please regenerate your hog.conf file using the dedicated Hog button." 
               Msg Info "Setting $s = $prop"
             }  
           }

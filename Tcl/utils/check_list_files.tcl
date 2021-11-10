@@ -646,11 +646,24 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
   dict set defaultConfDict main [dict merge [DictGet $defaultConfDict main] $defMainDict]
 
   #comparing projConfDict, defaultConfDict and hogConfDict
+  set hasStrategy 0
+
   foreach proj_run [list main synth_1 impl_1] {
     set projRunDict [DictGet $projConfDict $proj_run]
     set hogConfRunDict [DictGet $hogConfDict $proj_run]
     set defaultRunDict [DictGet $defaultConfDict $proj_run]
     set newRunDict [dict create]
+
+    set strategy_str "STRATEGY strategy Strategy"
+    foreach s $strategy_str {
+      if {[dict exists $hogConfRunDict $s]} {
+        set hasStrategy 1
+      }  
+    }
+
+    if {$hasStrategy == 1 && $options(recreate_conf) == 0} {
+      Msg Warning "A strategy for run $proj_run has been defined inside hog.conf. This prevents Hog to compare the project properties. Please regenerate your hog.conf file using the dedicated Hog button." 
+    }
 
     foreach settings [dict keys $projRunDict] {
       set currset [DictGet  $projRunDict $settings]
@@ -667,15 +680,17 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
         if {[string tolower $hogset] == "false" && $currset == 0} {
           continue
         }
-        dict set newRunDict $settings $currset
-        if {$options(recreate_conf) == 1} {
-          incr ConfErrorCnt
-          Msg Info "$proj_run setting $settings has been changed from \"$hogset\" in hog.conf to \"$currset\" in project."
-        } elseif {[file exists $repo_path/Top/$group_name/$project_name/hog.conf]} {
-          CriticalAndLog "Project $proj_run setting $settings value \"$currset\" does not match hog.conf \"$hogset\"." $outFile
-          incr ConfErrorCnt
+        if {[string toupper $settings] != "STRATEGY"} {
+          dict set newRunDict $settings $currset        
+          if {$options(recreate_conf) == 1} {
+            incr ConfErrorCnt
+            Msg Info "$proj_run setting $settings has been changed from \"$hogset\" in hog.conf to \"$currset\" in project."
+          } elseif {[file exists $repo_path/Top/$group_name/$project_name/hog.conf] && $hasStrategy == 0} {
+            CriticalAndLog "Project $proj_run setting $settings value \"$currset\" does not match hog.conf \"$hogset\"." $outFile
+            incr ConfErrorCnt
+          }
         }
-      } elseif {[string toupper $currset] == [string toupper $hogset] && [string toupper $hogset] != ""} {
+      } elseif {[string toupper $currset] == [string toupper $hogset] && [string toupper $hogset] != "" && [string toupper $settings] != "STRATEGY"} {
         dict set newRunDict $settings $currset
       }
     }
@@ -704,7 +719,7 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
   }
 
   #recreating hog.conf
-  if {$options(recreate_conf) == 1 && ($ConfErrorCnt > 0 || [file exists $repo_path/Top/$group_name/$project_name/hog.conf] == 0)} {
+  if {$options(recreate_conf) == 1 && ($ConfErrorCnt > 0 || [file exists $repo_path/Top/$group_name/$project_name/hog.conf] == 0 || $hasStrategy == 1)} {
     Msg Info "Updating configuration file $repo_path/$DirName/hog.conf."
     file mkdir  $repo_path/$DirName/list
     #writing configuration file  

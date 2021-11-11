@@ -2224,14 +2224,12 @@ proc CheckExtraIP {libraries} {
 
     
     foreach prjIP $prjIPs {
-      puts "Checking $prjIP"
       set ip_in_list 0
       foreach lib [dict keys $libraries] {
       	set ext [file extension $lib]    
       	if {$ext == ".ip"} {
           set lib_files [dict get $libraries $lib]	  
           foreach list_ip $lib_files {
-	    puts $list_ip		  
             if {[lsearch $prjIP $list_ip] != -1} {
       	      set ip_in_list 1
             }

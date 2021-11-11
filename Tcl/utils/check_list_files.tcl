@@ -305,7 +305,7 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
       incr ListErrorCnt
     } else {
       # Check that the file hasn't changed
-      if {[file extension $IP == ".xci"]} {
+      if {[file extension $IP] == ".xci"} {
         set new_md5sum [Md5Sum $IP]
         set old_md5sum [DictGet $extraIPs $IP]
         if {$new_md5sum != $old_md5sum} {

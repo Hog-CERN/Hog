@@ -300,15 +300,17 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
       if {$options(recreate) == 1} {
         Msg Info "$IP was found in list files but not in project."
       } else {
-        CriticalAndLog "$IP found in list files but not in project IPs." $outFile
+        CriticalAndLog "$IP found in list files but not in project." $outFile
       }
       incr ListErrorCnt
     } else {
       # Check that the file hasn't changed
-      set new_md5sum [Md5Sum $IP]
-      set old_md5sum [DictGet $extraIPs $IP]
-      if {$new_md5sum != $old_md5sum} {
-        CriticalAndLog "$IP in project has been modified from creation time. Please update the script you used to create the IP/BD and regenerate the project, or save the .xci/.bd file out-of-context and add it to a project list file" $outFile
+      if {[file extension $IP == ".xci"]} {
+        set new_md5sum [Md5Sum $IP]
+        set old_md5sum [DictGet $extraIPs $IP]
+        if {$new_md5sum != $old_md5sum} {
+          CriticalAndLog "$IP in project has been modified from creation time. Please update the script you used to create the IP/BD and regenerate the project, or save the .xci/.bd file out-of-context and add it to a project list file" $outFile
+        }
       }
     }
   }

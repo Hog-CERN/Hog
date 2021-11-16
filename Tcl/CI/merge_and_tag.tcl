@@ -35,7 +35,7 @@ set parameters {
   {push.arg "" "Optional: git branch for push"}
   {main_branch.arg "master" "Main branch (default = master)"}
   {default_level.arg "0" "Default version level to increase if nothing is specified in the merge request description. Can be 0 (patch), 1 (minor), (2) major. Default ="}
-  {no_increase "If set, prevents this script to increase the version if MAJOR_VARION, MINOR_VERSION or PATCH_VERSION directives are found in the merge request descritpion. Default = off"}
+  {no_increase "If set, prevents this script to increase the version if MAJOR_VERSION, MINOR_VERSION or PATCH_VERSION directives are found in the merge request descritpion. Default = off"}
 }
 
 set usage "- CI script that merges your branch with \$HOG_TARGET_BRANCH and creates a new tag\n USAGE: $::argv0 \[OPTIONS\] \n. Options:"

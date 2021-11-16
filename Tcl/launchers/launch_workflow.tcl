@@ -175,14 +175,12 @@ if {[file exists $project_file]} {
 
 if {($proj_found == 0 || $recreate == 1) && $do_synthesis == 1} {
   Msg Info "Creating (possibly replacing) the project $project_name..."
-  lassign [GetConfFiles $repo_path/Top/$project_name] conf sim pre post tcl_file
+  lassign [GetConfFiles $repo_path/Top/$project_name] conf sim pre post
 
   if {[file exists $conf]} {
     source ./create_project.tcl
-  } elseif {[file exists $tcl_file]} {
-    source $repo_path/Top/$project_name/$project.tcl
   } else {
-    Msg Error "Project $project_name is incomplete: not Tcl file or hog.conf file found."
+    Msg Error "Project $project_name is incomplete: no hog.conf file found, please create one..."
   }
 } else {
   Msg Info "Opening existing project file $project_file..."

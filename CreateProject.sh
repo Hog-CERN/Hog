@@ -144,10 +144,7 @@ function create_project() {
         "${HDL_COMPILER}" $COMMAND_OPT ../Hog/Tcl/create_project.tcl $POST_COMMAND_OPT -simlib_path ${HOG_LIBPATH} $PROJ
       fi
     elif [ $FILE_TYPE == "TCL" ]; then
-      cd "${PROJ_DIR}"
-      PROJ_NAME=$(basename $PROJ_DIR)
-      Msg Warning "Creating project $PROJ using $PROJ.tcl, this is deprecated and will not be supported in future Hog releases..."
-      "${HDL_COMPILER}" $COMMAND_OPT $PROJ_NAME.tcl
+      Msg Error "Creating project $PROJ using $PROJ.tcl is no longer supported. Please create a hog.conf file..."
     else
       Msg Error "Unknown file type: $FILE_TPYE"
       exit 1

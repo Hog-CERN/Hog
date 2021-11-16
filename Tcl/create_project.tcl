@@ -663,7 +663,7 @@ if {[info exist workflow_simlib_path]} {
 
 
 set proj_dir $repo_path/Top/$DESIGN
-lassign [GetConfFiles $proj_dir] conf_file sim_file pre_file post_file tcl_file
+lassign [GetConfFiles $proj_dir] conf_file sim_file pre_file post_file
 
 set user_repo 0
 if {[file exists $conf_file]} {
@@ -686,59 +686,7 @@ if {[file exists $conf_file]} {
     set SIM_PROPERTIES [ReadConf $sim_file]
   }
 } else {
-
-  ##### REMOVE ALL THIS ELSE TO STOP PROJECT.TCL SUPPORT ############
-  Msg Warning "$conf_file was not found in you project directory, please create one. The project Tcl file will no longer be supported on future Hog releases."
-
-  if {[info exists ::FPGA]} {
-    Msg Warning "Found deprecated variable FPGA = $FPGA in project Tcl file, this will no longer be supported in future Hog releases"
-    set PART $FPGA
-  }
-  if ![info exists PROPERTIES ] {
-    set PROPERTIES [dict create]
-  }
-  if {[info exists ::BIN_FILE]} {
-    Msg Warning "Found deprecated variable BIN_FILE = $BIN_FILE in project Tcl file, this will no longer be supported in future Hog releases"
-    if ![dict exists $PROPERTIES impl_1] {
-      dict set PROPERTIES impl_1 [dict create]
-    }
-    dict set PROPERTIES impl_1 steps.write_bitstream.args.bin_file $BIN_FILE
-  }
-
-  if {[info exists ::IMPL_FLOW]} {
-    Msg Warning "Found deprecated variable IMPL_FLOW = $IMPL_FLOW in project Tcl file, this will no longer be supported in future Hog releases"
-    if ![dict exists $PROPERTIES impl_1] {
-      dict set PROPERTIES impl_1 [dict create]
-    }
-    dict set PROPERTIES impl_1 FLOW $IMPL_FLOW
-  }
-
-  if {[info exists ::IMPL_STRATEGY]} {
-    Msg Warning "Found deprecated variable IMPL_STRATEGY = $IMPL_STRATEGY in project Tcl file, this will no longer be supported in future Hog releases"
-    if ![dict exists $PROPERTIES impl_1] {
-      dict set PROPERTIES impl_1 [dict create]
-    }
-    dict set PROPERTIES impl_1 STRATEGY $IMPL_STRATEGY
-  }
-
-
-  if {[info exists ::SYNTH_FLOW]} {
-    Msg Warning "Found deprecated variable SYNTH_FLOW = $SYNTH_FLOW in project Tcl file, this will no longer be supported in future Hog releases"
-    if ![dict exists $PROPERTIES synth_1] {
-      dict set PROPERTIES synth_1 [dict create]
-    }
-    dict set PROPERTIES synth_1 FLOW $SYNTH_FLOW
-  }
-
-  if {[info exists ::SYNTH_STRATEGY]} {
-    Msg Warning "Found deprecated variable SYNTH_STRATEGY = $SYNTH_STRATEGY in project Tcl file, this will no longer be supported in future Hog releases"
-    if ![dict exists $PROPERTIES synth_1] {
-      dict set PROPERTIES synth_1 [dict create]
-    }
-    dict set PROPERTIES synth_1 STRATEGY $SYNTH_STRATEGY
-  }
-
-  ########## END ###########
+  Msg Error "$conf_file was not found in your project directory, pleae create one."
 }
 
 

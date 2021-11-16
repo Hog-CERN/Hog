@@ -185,7 +185,7 @@ if {[info commands get_property] != ""} {
   if {$found_uncommitted == 0} {
     Msg Info "No uncommitted changes found."
   }
-  
+
   # Reports
   file mkdir $dst_dir/reports
   if { [string first PlanAhead [version]] == 0 } {

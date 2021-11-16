@@ -504,7 +504,7 @@ proc ConfigureProperties {} {
               Msg Info "Setting $s = $prop"
             }  
           }
-        
+
           dict for {prop_name prop_val} $run_props {
             Msg Info "Setting $prop_name = $prop_val"
             set_property $prop_name $prop_val $run

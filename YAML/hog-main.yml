@@ -50,7 +50,7 @@
         when: on_success
       - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $HOG_TARGET_BRANCH && $HOG_TARGET_BRANCH != null'
         when: on_success
-      - if: '$HOG_USE_DOXYGEN == "0"'
+      - if: '$HOG_USE_DOXYGEN != "1"'
         when: never
 
 merge_and_tag:

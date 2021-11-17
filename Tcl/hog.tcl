@@ -1254,8 +1254,6 @@ proc TagRepository {{merge_request_number 0} {version_level 0} {default_level 0}
   if {[llength $btags] == 0 } {
     set bret 9
   }
-  puts "bret = $bret"
-  puts "vret = $vret"
 
   if {$vret != 0 && $bret != 0} {
     Msg Error "No Hog version tags found in this repository."

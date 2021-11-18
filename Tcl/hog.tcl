@@ -1463,16 +1463,14 @@ proc CopyXMLsFromListFile {list_file path dst {xml_version "0.0.0"} {xml_sha "00
       if {$v != 0} {
         set x [file normalize ../$x]
         if {[file exists $x]} {
-          lassign [ExecuteRet gen_ipbus_addr_decode -v $x]  status log
+          lassign [ExecuteRet gen_ipbus_addr_decode $x 2>&1]  status log
           if {$status == 0} {
             set generated_vhdl ./ipbus_decode_[file root [file tail $x]].vhd
             if {$generate == 1} {
-            #copy (replace) file here
               Msg Info "Copying generated VHDL file $generated_vhdl into $v (replacing if necessary)"
               file copy -force -- $generated_vhdl $v
             } else {
               if {[file exists $v]} {
-              #check file here
                 set diff [CompareVHDL $generated_vhdl $v]
                 if {[llength $diff] > 0} {
                   Msg CriticalWarning "$v does not correspond to its XML $x, [expr $n/3] line/s differ:"
@@ -1481,20 +1479,20 @@ proc CopyXMLsFromListFile {list_file path dst {xml_version "0.0.0"} {xml_sha "00
                   puts $diff_file $diff
                   close $diff_file
                 } else {
-                  Msg Info "$x and $v match."
+                  Msg Info "[file tail $x] and $v match."
                 }
               } else {
-                Msg Warning "VHDL address decoder file $v not found"
+                Msg Warning "VHDL address map file $v not found."
               }
             }
           } else {
-            Msg Warning "Address map generation failed for $x: $log"
+            Msg Warning "Address map generation failed for [file tail $x]: $log"
           }
         } else {
           Msg Warning "Copied XML file $x not found."
         }
       } else {
-        Msg Info "Skipped verification of $x as no VHDL file was specified."
+        Msg Info "Skipped verification of [file tail $x] as no VHDL file was specified."
       }
     }
     cd ..

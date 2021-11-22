@@ -225,7 +225,7 @@ collect_artifacts:
             files=$(find . -name "$f*.txt");
             if (( ${#files} )); then
               for fp in $files; do
-                if [[ -z "$HOG_MR_MSG" ]] || [[ $HOG_MR_MSG == '1' ]]; then
+                if [[ $HOG_MR_MSG == '1' ]]; then
                   cat $fp >> $old_dir/mr_note.md;
                 fi;
                   cat $fp >> $CI_PROJECT_DIR/bin/note.md;

@@ -1888,6 +1888,17 @@ proc AddHogFiles { libraries properties main_libs {verbose 0}} {
     }
     # ADD NOW LISTS TO VIVADO PROJECT
     if {[info commands add_files] != ""} {
+
+      # Generating Target for BD File
+      if {$ext == ".ip"} {
+        foreach f $lib_files {
+          if {[file ext $f] == ".bd"} {
+            Msg Info "Generating Target for [file tail $f], please remember to commit the (possible) changed file."
+            generate_target all [get_files $f]
+          }
+        }
+      }
+
       add_files -norecurse -fileset $file_set $lib_files
 
       if {$ext != ".ip"} {
@@ -2040,13 +2051,6 @@ proc AddHogFiles { libraries properties main_libs {verbose 0}} {
             Msg Info "Locking IP $f..."
             set_property IS_MANAGED 0 [get_files $f]
           }
-          
-          # Generating Target for BD File
-          if {[file ext $f] == ".bd"} {
-            Msg Info "Generating Target for [file tail $f], please remember to commit the (possible) changed file."
-            generate_target all [get_files $f]
-          }
-
         }
 
       }

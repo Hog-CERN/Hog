@@ -2040,7 +2040,15 @@ proc AddHogFiles { libraries properties main_libs {verbose 0}} {
             Msg Info "Locking IP $f..."
             set_property IS_MANAGED 0 [get_files $f]
           }
+          
+          # Generating Target for BD File
+          if {[file ext $f] == ".bd"} {
+            Msg Info "Generating Target for [file tail $f], please remember to commit the (possible) changed file."
+            generate_target all [get_files $f]
+          }
+
         }
+
       }
       Msg Info "[llength $lib_files] file/s added to $rootlib..."
     } elseif {[info commands project_new] != "" } {
@@ -2234,7 +2242,7 @@ proc CheckExtraIP {libraries} {
       }
       if {$ip_in_list == 0} { 
         if {[file extension $prjIP] == ".bd"} {
-	  # Generating BD products to save md5sum of already modified BD
+	        # Generating BD products to save md5sum of already modified BD
           Msg Info "Generating targets of $prjIP..."
           generate_target all [get_files $prjIP]
         }

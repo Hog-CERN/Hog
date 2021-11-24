@@ -117,8 +117,10 @@ proc CreateProject {} {
     puts "Adding IP directory \"$globalSettings::user_ip_repo\" to the project "
   }
 
+}
 
-  #ADD PROJECT FILES
+proc AddProjectFiles {} {
+
   if {[info commands create_fileset] != ""} {
     #VIVADO_ONLY
     ## Create fileset src
@@ -773,6 +775,7 @@ if {[file exists $pre_file]} {
 }
 CreateProject
 ConfigureProperties
+AddProjectFiles
 ConfigureSynthesis
 ConfigureImplementation
 ConfigureSimulation

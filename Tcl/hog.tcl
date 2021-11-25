@@ -2937,7 +2937,7 @@ proc SearchHogProjects {dir} {
           set proj_name
           Msg Warning "Could not parse Top directory $dir"
         }
-        if {[file exists $proj_dir/$proj_name.tcl ] || [file exists "$proj_dir/hog.conf" ] } {
+        if { [file exists "$proj_dir/hog.conf" ] } {
           lappend projects_list $proj_name
         } else {
           foreach p [SearchHogProjects $proj_dir] {

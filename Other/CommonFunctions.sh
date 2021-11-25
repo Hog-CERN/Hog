@@ -331,7 +331,7 @@ function search_projects() {
   if [[ -d "$1" ]]; then
     for dir in $1/*; do
       project_name=$(basename $dir)
-      if [ -f "$dir/$project_name.tcl" ] || [ -f "$dir/hog.conf" ]; then
+      if [ -f "$dir/hog.conf" ]; then
         subname=${dir#*Top/}
         echo $subname
       else

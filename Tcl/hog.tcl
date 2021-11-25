@@ -3083,11 +3083,11 @@ proc WriteUtilizationSummary {input output project_name run} {
   set ios 0
 
   while {[gets $f line] >= 0} {
-    if { [ [string first "| CLB LUTs" $line] >= 0 || [string first "| Slice LUTs" $line] >= 0] && $luts == 0 } {
+    if { ( [string first "| CLB LUTs" $line] >= 0 || [string first "| Slice LUTs" $line] >= 0 ) && $luts == 0 } {
       util_m add row $line
       set luts 1
     }
-    if { [ [string first "| CLB Registers" $line] >= 0  || [string first "| Slice Registers" $line] >= 0  ] && $regs == 0} {
+    if { ( [string first "| CLB Registers" $line] >= 0  || [string first "| Slice Registers" $line] >= 0  ) && $regs == 0} {
       util_m add row $line
       set regs 1
     }

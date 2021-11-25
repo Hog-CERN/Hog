@@ -124,6 +124,7 @@
           fi;
           if [[ -n "$HOG_ONLY_SYNTH" ]] && [[ $HOG_ONLY_SYNTH == '1' ]]; then
             export ONLY_SYNTH="-synth_only";
+            export NO_BITSTREAM="";
             echo "Hog-CI(info) - Only the synthesis will be run.";
           else
             export ONLY_SYNTH="";

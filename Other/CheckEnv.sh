@@ -247,14 +247,24 @@ else
 fi
 echo --------------------------------
 
-echo -n "Variable: HOG_NO_BITSTREAM is "
-if [[ ${HOG_NO_BITSTREAM} != 1 ]]
+echo -n "Variable: HOG_ONLY_SYNTH is"
+if [[ ${HOG_ONLY_SYNTH} != 1 ]]
 then
-    echo "NOT defined. Hog-CI will run the implementation up to the write_bitstream stage and create bit files."
+    echo "NOT defined."
+    echo --------------------------------
+    echo -n "Variable: HOG_NO_BITSTREAM is "
+    if [[ ${HOG_NO_BITSTREAM} != 1 ]]
+    then
+        echo "NOT defined. Hog-CI will run the implementation up to the write_bitstream stage and create bit files."
+    else
+        echo "defined.  Hog-CI will run the implementation but will NOT run the write_bitstream stage and will NOT create bit files."
+    fi
 else
-    echo "defined.  Hog-CI will run the implementation but will NOT run the write_bitstream stage and will NOT create bit files."
+    echo "defined.  Hog-CI will run the workflow up the synthesis stage."
 fi
 echo --------------------------------
+
+
 
 echo -n "Variable: HOG_NO_RESET_BD is "
 if [[ ${HOG_NO_RESET_BD} != 1 ]]

@@ -130,7 +130,7 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
 
   lassign [GetHogFiles -ext_path "$ext_path" -repo_path $repo_path "$repo_path/Top/$group_name/$project_name/list/"] listLibraries listProperties listMain
 
-  set extraIPs [ReadExtraIpList "$repo_path/Projects/$group_name/$project_name/.hog/extra.ip"]
+  set extraFiles [ReadExtraFileList "$repo_path/Projects/$group_name/$project_name/.hog/extra.files"]
 
   set prjIPs  [DictGet $prjLibraries IP]
   set prjXDCs  [DictGet $prjLibraries XDC]
@@ -292,23 +292,41 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
     }
   }
 
-  # Check Extra IPs
-  foreach IP [dict keys $extraIPs] {
-    set idx [lsearch -exact $prjIPs $IP]
-    set prjIPs [lreplace $prjIPs $idx $idx]
-    if {$idx < 0} {
+  # Check Extra Files
+  foreach f [dict keys $extraFiles] {
+    set idxIP [lsearch -exact $prjIPs $f]
+    set prjIPs [lreplace $prjIPs $idxIP $idxIP]
+    
+    set idxSRC -1
+    foreach lib [dict keys $prjSrcDict] {
+      set prjSRCs [dict get $prjSrcDict $lib]
+      set idxSRC [lsearch -exact $prjSRCs $f]
+      set prjSRCs [lreplace $prjSRCs $idxSRC $idxSRC]
+      dict set prjSrcDict $lib $prjSRCs
+      if {$idxSRC > -1} {
+        break
+      }
+    }
+    
+    set idxOTH [lsearch -exact $prjOTHERs $f]
+    set prjOTHERs [lreplace $prjOTHERs $idxOTH $idxOTH]
+
+    set idxXDC [lsearch -exact $prjXDCs $f]
+    set prjXDCs [lreplace $prjXDCs $idxXDC $idxXDC]
+
+    if {$idxIP < 0 && $idxSRC < 0 && $idxOTH < 0 && $idxXDC < 0 } {
       if {$options(recreate) == 1} {
-        Msg Info "$IP was found in list files but not in project."
+        Msg Info "$f was found in list files but not in project."
       } else {
-        CriticalAndLog "$IP found in list files but not in project." $outFile
+        CriticalAndLog "$f found in list files but not in project." $outFile
       }
       incr ListErrorCnt
     } else {
       # Check that the file hasn't changed
-      set new_md5sum [Md5Sum $IP]
-      set old_md5sum [DictGet $extraIPs $IP]
+      set new_md5sum [Md5Sum $f]
+      set old_md5sum [DictGet $extraFiles $f]
       if {$new_md5sum != $old_md5sum} {
-        CriticalAndLog "$IP in project has been modified from creation time. Please update the script you used to create the IP/BD and regenerate the project, or save the .xci/.bd file out-of-context and add it to a project list file" $outFile
+        CriticalAndLog "$f in project has been modified from creation time. Please update the script you used to create the file and regenerate the project, or save the file out-of-context and add it to a project list file" $outFile
       }
     }
   }
@@ -388,7 +406,7 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
   #   }
   # }
 
-  foreach key [dict key $prjSrcDict] {
+  foreach key [dict keys $prjSrcDict] {
     if {[string equal $key ""] } {
       continue
     }
@@ -458,18 +476,25 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
   }
 
 
+  
+
   foreach key [dict keys $prjProperties] {
+    if {[dict exists $extraFiles $key]} {
+      # Skip property check for file generated at creation time.
+      continue    
+    }
     foreach prop [DictGet $prjProperties $key] {
       #puts "FILE $key: PROPERTY $prop"
       if {[lsearch -nocase [lindex [DictGet $listProperties $key] 0] $prop] < 0 && ![string equal $prop ""] && ![string equal $key "Simulator"] && ![string equal $prop "top=top_[file root $project_name]"] } {
         if { ![string equal [file extension $key] "svh" ] && ![string equal [file extension $key] "vh" ] && ![string equal $prop "verilog_header"] } {
-
-          if {$options(recreate) == 1} {
-            Msg Info "$key property $prop was added to the project."
-          } else {
-            CriticalAndLog "$key property $prop is set in project but not in list files!" $outFile
+          if { ![string equal [file extension $key] "sv" ] && ![string equal $prop "SystemVerilog"] } {
+            if {$options(recreate) == 1} {
+              Msg Info "$key property $prop was added to the project."
+            } else {
+              CriticalAndLog "$key property $prop is set in project but not in list files!" $outFile
+            }
+            incr ListErrorCnt
           }
-          incr ListErrorCnt
         }
       }
     }

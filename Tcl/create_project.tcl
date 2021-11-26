@@ -775,7 +775,7 @@ if {[file exists $post_file]} {
 
 # Check extra IPs
 lassign [GetHogFiles -ext_path "$globalSettings::HOG_EXTERNAL_PATH" -repo_path $repo_path "$repo_path/Top/$DESIGN/list/"] listLibraries listProperties listMain
-CheckExtraIP $listLibraries
+CheckExtraFiles $listLibraries
 
 if {[info commands get_property] != ""} {
   set old_path [pwd]

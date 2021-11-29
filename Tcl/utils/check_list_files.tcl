@@ -326,7 +326,7 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
       set new_md5sum [Md5Sum $f]
       set old_md5sum [DictGet $extraFiles $f]
       if {$new_md5sum != $old_md5sum} {
-        CriticalAndLog "$f in project has been modified from creation time. Please update the script you used to create the file and regenerate the project, or save the file out-of-context and add it to a project list file" $outFile
+        CriticalAndLog "$f in project has been modified from creation time. Please update the script you used to create the file and regenerate the project, or save the file outside the Projects/ directory and add it to a project list file" $outFile
       }
     }
   }

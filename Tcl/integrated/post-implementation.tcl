@@ -37,6 +37,10 @@ if {[info commands get_property] != ""} {
   } else {
     set proj_file [get_property parent.project_path [current_project]]
     set work_path $old_path
+	Msg Info "proj_file $proj_file"
+	if {$proj_file == ""} {
+		Msg Error "proj_file is empty!"
+	}
   }
   set proj_dir [file normalize [file dirname $proj_file]]
   set proj_name [file rootname [file tail $proj_file]]

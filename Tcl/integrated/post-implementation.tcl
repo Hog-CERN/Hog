@@ -28,7 +28,8 @@ source $tcl_path/hog.tcl
 # Go to repository pathcd $old_pathcd $old_path
 cd $tcl_path/../../
 set repo_path "$tcl_path/../.."
-
+report_property [current_project]
+puts "[get_property DIRECTORY [current_project]]"
 if {[info commands get_property] != ""} {
   # Vivado + planAhead
   if { [string first PlanAhead [version]] == 0 } {

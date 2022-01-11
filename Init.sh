@@ -62,49 +62,52 @@ function init() {
     local VIVADO=$(command -v  vivado)
     ##! If Vivado is installed it checks if vsim command is defined (Questasim or Modelsim is installed and set-up in the shell).
     ##! NOTE that these checks are performed using 'command -v '
-    if [ $(command -v  vsim) ]; then
+    echo
+    ##! Ask the user if he wants to compile the simulation libraries
+    ##! NOTE use read to grab user input
+    ##! NOTE if the user input contains Y or y then is accepted as yes
+    read -p "  Do you want to compile the simulation libraries for Vivado (this might take some time)? " -n 1 -r
+    echo
+    if [[ "${REPLY}" =~ ^[Yy]$ ]]; then
+      echo "Please select the target simulator"
+      printf "1. Questa Advanced Simulator \n2. ModelSim Simulator \n3. Riviera-PRO Simulator \n4. Incisive Enterprise Simulator (IES) \n5. Xcelium Parallel Simulator \n6. Verilog Compiler Simulator (VCS)"
+      read -p " " -n 1 -r
       echo
-      ##! If Questasim or Modelsim is installed ask user if he wants to compile
-      ##! NOTE use read to grab user input
-      ##! NOTE if the user input contains Y or y then is accepted as yes
-      read -p "  Do you want to compile Questasim libraries for Vivado (this might take some time)? " -n 1 -r
-      echo
-      if [[ "${REPLY}" =~ ^[Yy]$ ]]; then
-        Msg Info "Compiling Questasim libraries into SimulationLib..."
-        "${VIVADO}" -mode batch -notrace -source ./Tcl/utils/compile_questalib.tcl
-        rm -f ./Tcl/.cxl.questasim.version
-        rm -f ./Tcl/compile_simlib.log
-        rm -f ./Tcl/modelsim.ini
+      if [ ${REPLY} -le 6 ] && [ ${REPLY} -gt 0 ]; then
+        case $REPLY in
+          1 )
+            SIMULATOR=questa
+            ;;
+          2 )
+            SIMULATOR=modelsim
+            ;;
+          3 )
+            SIMULATOR=riviera
+            ;;
+          4 )
+            SIMULATOR=ies
+            ;;
+          5 )
+            SIMULATOR=xcelium
+            ;;
+          6 )
+            SIMULATOR=vcs
+        esac
       else
-        read -p "  Do you want to compile Modelsim libraries for Vivado (this might take some time)? " -n 1 -r
-        echo
-        if [[ "${REPLY}" =~ ^[Yy]$ ]]; then
-          Msg Info "Compiling Modelsim libraries into SimulationLib..."
-          "${VIVADO}" -mode batch -notrace -source ./Tcl/utils/compile_modelsimlib.tcl
-          rm -f ./Tcl/.cxl.modelsim.version
-          rm -f ./Tcl/compile_simlib.log
-          rm -f ./Tcl/modelsim.ini
-        else
-          ## Riviera
-          if [ $(command -v  riviera) ]; then
-            echo
-            ##! If Riviera is installed ask user if he wants to compile
-            ##! NOTE use read to grab user input
-            ##! NOTE if the user input contains Y or y then is accepted as yes
-            read -p "  Do you want to compile Riviera libraries for Vivado (this might take some time)? " -n 1 -r
-            echo
-            if [[ "${REPLY}" =~ ^[Yy]$ ]]; then
-              Msg Info "Compiling Riviera libraries into SimulationLib..."
-              "${VIVADO}" -mode batch -notrace -source ./Tcl/utils/compile_riviera.tcl
-              rm -f ./Tcl/.cxl.questasim.version
-              rm -f ./Tcl/compile_simlib.log
-              rm -f ./Tcl/modelsim.ini
-            fi
-          fi
-        fi
+        echo "Chosen simulator is not valid. No simulation libraries will be compiled..."
+      fi;
+      echo "Where do you want the simulation libraries to be saved? (skip for default: SimulationLib)"
+      read SIMDIR
+      echo
+      if [[ $SIMDIR == "" ]]; then
+        SIMDIR="SimulationLib"
       fi
-    else
-      Msg Warning "No modelsim/questa/riviera executable found, will not compile libraries"
+
+      Msg Info "Compiling $SIMULATOR libraries into $SIMDIR..."
+      "${VIVADO}" -mode batch -notrace -source ./Tcl/utils/compile_simlib.tcl -tclargs -simulator $SIMULATOR -output_dir $SIMDIR
+      rm -f ./Tcl/.cxl.*
+      rm -f ./Tcl/compile_simlib.log
+      rm -f ./Tcl/*.ini
     fi
   fi
 

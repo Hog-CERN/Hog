@@ -93,21 +93,23 @@ function init() {
           6 )
             SIMULATOR=vcs
         esac
+
+        echo "Where do you want the simulation libraries to be saved? (skip for default: SimulationLib)"
+        read SIMDIR
+        echo
+        if [[ $SIMDIR == "" ]]; then
+          SIMDIR="SimulationLib"
+        fi
+
+        Msg Info "Compiling $SIMULATOR libraries into $SIMDIR..."
+        "${VIVADO}" -mode batch -notrace -source ./Tcl/utils/compile_simlib.tcl -tclargs -simulator $SIMULATOR -output_dir $SIMDIR
+        rm -f ./Tcl/.cxl.*
+        rm -f ./Tcl/compile_simlib.log
+        rm -f ./Tcl/*.ini
       else
         echo "Chosen simulator is not valid. No simulation libraries will be compiled..."
       fi;
-      echo "Where do you want the simulation libraries to be saved? (skip for default: SimulationLib)"
-      read SIMDIR
-      echo
-      if [[ $SIMDIR == "" ]]; then
-        SIMDIR="SimulationLib"
-      fi
-
-      Msg Info "Compiling $SIMULATOR libraries into $SIMDIR..."
-      "${VIVADO}" -mode batch -notrace -source ./Tcl/utils/compile_simlib.tcl -tclargs -simulator $SIMULATOR -output_dir $SIMDIR
-      rm -f ./Tcl/.cxl.*
-      rm -f ./Tcl/compile_simlib.log
-      rm -f ./Tcl/*.ini
+      
     fi
   fi
 

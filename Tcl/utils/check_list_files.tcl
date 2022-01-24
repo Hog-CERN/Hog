@@ -76,9 +76,9 @@ set ext_path $options(ext_path)
 set ListErrorCnt 0
 set ConfErrorCnt 0
 set TotErrorCnt 0
-set SIM_PROPS  [list dofile \
-      wavefile \
-      topsim \
+set SIM_PROPS  [list "dofile" \
+      "wavefile" \
+      "topsim" \
      ]
 
 if {![string equal $options(project) ""]} {
@@ -494,6 +494,9 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
     }
     foreach prop [DictGet $prjProperties $key] {
       #puts "FILE $key: PROPERTY $prop"
+      if { $prop in $SIM_PROPS } {
+        continue
+      }
       if {[lsearch -nocase [lindex [DictGet $listProperties $key] 0] $prop] < 0 && ![string equal $prop ""] && ![string equal $key "Simulator"] && ![string equal $prop "top=top_[file root $project_name]"] } {
         if { ![string equal [file extension $key] "svh" ] && ![string equal [file extension $key] "vh" ] && ![string equal $prop "verilog_header"] } {
           if { ![string equal [file extension $key] "sv" ] && ![string equal $prop "SystemVerilog"] } {

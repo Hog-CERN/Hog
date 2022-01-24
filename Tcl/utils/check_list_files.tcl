@@ -76,7 +76,10 @@ set ext_path $options(ext_path)
 set ListErrorCnt 0
 set ConfErrorCnt 0
 set TotErrorCnt 0
-
+set SIM_PROPS  [list dofile \
+      wavefile \
+      topsim \
+     ]
 
 if {![string equal $options(project) ""]} {
   set project $options(project)
@@ -464,13 +467,19 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
   #checking file properties
   foreach key [dict keys $listProperties] {
     foreach prop [lindex [DictGet $listProperties $key] 0] {
-      if {[lsearch -nocase [DictGet $prjProperties $key] $prop] < 0 && ![string equal $prop ""] && ![string equal $prop "XDC"]} {
-        if {$options(recreate) == 1} {
-          Msg Info "$key property $prop was removed from the project."
+      if {[lsearch -nocase [DictGet $prjProperties $key] $prop] < 0 && ![string equal $prop ""] && ![string equal $prop "XDC"] && ] 
+      } {
+        if { $prop in $SIM_PROPS } {
+          # Skipping simulation properties in list-file
+          continue
         } else {
-          CriticalAndLog "$key property $prop is set in list files but not in project." $outFile
+          if {$options(recreate) == 1} {
+            Msg Info "$key property $prop was removed from the project."
+          } else {
+            CriticalAndLog "$key property $prop is set in list files but not in project." $outFile
+          }
+          incr ListErrorCnt
         }
-        incr ListErrorCnt
       }
     }
   }

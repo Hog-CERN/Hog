@@ -467,7 +467,7 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
   #checking file properties
   foreach key [dict keys $listProperties] {
     foreach prop [lindex [DictGet $listProperties $key] 0] {
-      if {[lsearch -nocase [DictGet $prjProperties $key] $prop] < 0 && ![string equal $prop ""] && ![string equal $prop "XDC"] && ] 
+      if {[lsearch -nocase [DictGet $prjProperties $key] $prop] < 0 && ![string equal $prop ""] && ![string equal $prop "XDC"] 
       } {
         if { $prop in $SIM_PROPS } {
           # Skipping simulation properties in list-file

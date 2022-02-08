@@ -635,7 +635,7 @@ if { $::argc eq 0 && ![info exist DESIGN]} {
     Msg Info "Design is parsed from project.tcl: $DESIGN"
   }
 } else {
-  Msg Error "Not under Vivado, Ise or Quartus... Aborting!"
+  Msg Error "Not under Vivado, ISE or Quartus... Aborting!"
   exit 1
 }
 
@@ -672,6 +672,28 @@ if {[file exists $conf_file]} {
   Msg Info "Parsing configuration file $conf_file..."
   set PROPERTIES [ReadConf $conf_file]
 
+  if {[dict exists $PROPERTIES hog]} {
+    set hog_properties [dict get $PROPERTIES hog]
+    # find VERSION property
+    if {[dict exists $hog_properties "VERSION"]} {
+      set conf_version [dict get $hog_properties "VERSION"]
+      set actual_version [GetIDEVersion]
+      set comp [CompareVersion $actual $conf_version]
+      if {$comp = 0} {
+	Msg Info "Project version and IDE version match: $conf_version."
+	elseif {$comp = 1} {
+	  Msg CriticalWarning "Your IDE version ($actual_version) is newer than the version specified in hog.conf ($conf_version), if you are updateing this project to a newer IDE version, don't forget to update the hog.conf file."
+	} else {
+	  Msg Error "Your IDE version ($actual_version) is older than the project version specified in hog.conf ($conf_version). The project cannot be created. If you really want to create this project with an older IDE version, change the VERSION property from the hog.conf file. This is HIGLY discouraged as the IPs may not work correctly."
+	}
+      
+    } else {
+      Msg CriticalWarning "The VERSION variable was not found in hog.conf, it is higly recommended to define such variable and set it to the version of your HDL tool. e.g. for Vivado 2020.2 set VERSION = 2020.2 in the [hog] section of the hog.conf file."
+    }
+  }
+    
+  
+  
   if {[dict exists $PROPERTIES main]} {
     set main [dict get $PROPERTIES main]
     dict for {p v} $main {

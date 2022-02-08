@@ -3265,3 +3265,16 @@ proc WriteGenerics {date timee commit version top_hash top_ver hog_hash hog_ver 
 
   } 
 }
+
+
+proc GetIDEVersion {} {
+  if { [info commands get_property] != "" } {
+    #Vivado
+    set ver [verion -short]
+    
+  } elseif { [info commands project_new] != "" } {
+    # Quartus
+    set ver 0
+  }
+  return $ver
+}

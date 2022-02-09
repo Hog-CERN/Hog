@@ -534,7 +534,7 @@ proc ConfigureProperties {} {
       }
     }
 
-  }  elseif {[info commands project_new] != ""} {
+  } elseif {[info commands project_new] != ""} {
     #QUARTUS only
     #TO BE DONE
   } else {
@@ -608,7 +608,7 @@ if { $::argc eq 0 && ![info exist DESIGN]} {
   }
   if { ![info exist DESIGN] || $DESIGN eq "" } { 
     if { [lindex $argv 0] eq "" } {
-      Msg Error " Variable DESIGN not set!"
+      Msg Error "Variable DESIGN not set!"
       Msg Info [cmdline::usage $parameters $usage]
       exit 1
     } else {
@@ -625,7 +625,7 @@ if { $::argc eq 0 && ![info exist DESIGN]} {
   }
   if { ![info exist DESIGN] || $DESIGN eq "" } { 
     if { [lindex $quartus(args) 0] eq "" } {
-      Msg Error " Variable DESIGN not set!"
+      Msg Error "Variable DESIGN not set!"
       Msg Info [cmdline::usage $parameters $usage]
       exit 1
     } else {
@@ -668,47 +668,62 @@ set proj_dir $repo_path/Top/$DESIGN
 lassign [GetConfFiles $proj_dir] conf_file sim_file pre_file post_file
 
 set user_repo 0
+set no_version 1
 if {[file exists $conf_file]} {
   Msg Info "Parsing configuration file $conf_file..."
   set PROPERTIES [ReadConf $conf_file]
-
+  
   if {[dict exists $PROPERTIES hog]} {
     set hog_properties [dict get $PROPERTIES hog]
     # find VERSION property
     if {[dict exists $hog_properties "VERSION"]} {
       set conf_version [dict get $hog_properties "VERSION"]
       set actual_version [GetIDEVersion]
-      set comp [CompareVersion $actual $conf_version]
-      if {$comp = 0} {
+      set a_v [split $actual_version "."]
+      set c_v [split $conf_version "."]
+      if {[llength $a_v] > 3 || [llength $a_v] < 2} {
+	Msg Error "Couldn't parse IDE version: $actual_version."
+      } elseif {[llength $a_v] == 2} {
+	lappend a_v 0
+      }
+      if {[llength $c_v] > 3 || [llength $c_v] < 2} {
+	Msg Error "Wrong version format in hog.conf: $conf_version."
+      } elseif {[llength $c_v] == 2} {
+	lappend c_v 0
+      }
+	
+      set comp [CompareVersion $a_v $c_v]
+      set no_version 0
+      if {$comp == 0} {
 	Msg Info "Project version and IDE version match: $conf_version."
-	elseif {$comp = 1} {
-	  Msg CriticalWarning "Your IDE version ($actual_version) is newer than the version specified in hog.conf ($conf_version), if you are updateing this project to a newer IDE version, don't forget to update the hog.conf file."
-	} else {
-	  Msg Error "Your IDE version ($actual_version) is older than the project version specified in hog.conf ($conf_version). The project cannot be created. If you really want to create this project with an older IDE version, change the VERSION property from the hog.conf file. This is HIGLY discouraged as the IPs may not work correctly."
-	}
-      
-    } else {
-      Msg CriticalWarning "The VERSION variable was not found in hog.conf, it is higly recommended to define such variable and set it to the version of your HDL tool. e.g. for Vivado 2020.2 set VERSION = 2020.2 in the [hog] section of the hog.conf file."
+      }	elseif {$comp == 1} {
+	Msg CriticalWarning "Your IDE version ($actual_version) is newer than the version specified for this project in hog.conf ($conf_version), if you want update this project to version $actual_version, don't forget to update the hog.conf file."
+      } else {
+	Msg Error "Your IDE version ($actual_version) is older than the project version specified in hog.conf ($conf_version). The project cannot be created. If you really want to create this project with an older IDE version, change the VERSION property from the hog.conf file. This is HIGLY discouraged as the IPs may not work correctly."
+      }
     }
   }
-    
-  
-  
-  if {[dict exists $PROPERTIES main]} {
-    set main [dict get $PROPERTIES main]
-    dict for {p v} $main {
-      # notice the dollar in front of p: creates new variables and fill them with the value
-      Msg Info "Main property $p set to $v"
-      set $p $v
-    }
-  } else {
-    Msg Error "No main section found in $conf_file, make sure it has a section called \[main\] containing the mandatory properties."
-  }
+}
 
-  if {[file exists $sim_file]} {
-    Msg Info "Parsing simulation configuration file $sim_file..."
-    set SIM_PROPERTIES [ReadConf $sim_file]
+
+if {$no_version == 1} {
+  Msg CriticalWarning "The VERSION variable was not found in hog.conf, it is higly recommended to define such variable and set it to the version of your HDL tool. e.g. for Vivado 2020.2 set VERSION = 2020.2 in the \[hog\] section of the hog.conf file."
+}
+  
+if {[dict exists $PROPERTIES main]} {
+  set main [dict get $PROPERTIES main]
+  dict for {p v} $main {
+    # notice the dollar in front of p: creates new variables and fill them with the value
+    Msg Info "Main property $p set to $v"
+    set $p $v
   }
+} else {
+  Msg Error "No main section found in $conf_file, make sure it has a section called \[main\] containing the mandatory properties."
+}
+
+if {[file exists $sim_file]} {
+  Msg Info "Parsing simulation configuration file $sim_file..."
+  set SIM_PROPERTIES [ReadConf $sim_file]
 } else {
   Msg Error "$conf_file was not found in your project directory, pleae create one."
 }

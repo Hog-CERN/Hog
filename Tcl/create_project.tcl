@@ -668,11 +668,10 @@ set proj_dir $repo_path/Top/$DESIGN
 lassign [GetConfFiles $proj_dir] conf_file sim_file pre_file post_file
 
 set user_repo 0
-set no_version 1
 if {[file exists $conf_file]} {
   Msg Info "Parsing configuration file $conf_file..."
   set PROPERTIES [ReadConf $conf_file]
-  
+  set no_version 1
   if {[dict exists $PROPERTIES hog]} {
     set hog_properties [dict get $PROPERTIES hog]
     # find VERSION property
@@ -703,27 +702,28 @@ if {[file exists $conf_file]} {
       }
     }
   }
-}
-
-
-if {$no_version == 1} {
-  Msg CriticalWarning "The VERSION variable was not found in hog.conf, it is higly recommended to define such variable and set it to the version of your HDL tool. e.g. for Vivado 2020.2 set VERSION = 2020.2 in the \[hog\] section of the hog.conf file."
-}
   
-if {[dict exists $PROPERTIES main]} {
-  set main [dict get $PROPERTIES main]
-  dict for {p v} $main {
-    # notice the dollar in front of p: creates new variables and fill them with the value
-    Msg Info "Main property $p set to $v"
-    set $p $v
+  
+  
+  if {$no_version == 1} {
+    Msg CriticalWarning "The VERSION variable was not found in hog.conf, it is higly recommended to define such variable and set it to the version of your HDL tool. e.g. for Vivado 2020.2 set VERSION = 2020.2 in the \[hog\] section of the hog.conf file."
   }
-} else {
-  Msg Error "No main section found in $conf_file, make sure it has a section called \[main\] containing the mandatory properties."
-}
-
-if {[file exists $sim_file]} {
-  Msg Info "Parsing simulation configuration file $sim_file..."
-  set SIM_PROPERTIES [ReadConf $sim_file]
+  
+  if {[dict exists $PROPERTIES main]} {
+    set main [dict get $PROPERTIES main]
+    dict for {p v} $main {
+      # notice the dollar in front of p: creates new variables and fill them with the value
+      Msg Info "Main property $p set to $v"
+      set $p $v
+    }
+  } else {
+    Msg Error "No main section found in $conf_file, make sure it has a section called \[main\] containing the mandatory properties."
+  }
+  
+  if {[file exists $sim_file]} {
+    Msg Info "Parsing simulation configuration file $sim_file..."
+    set SIM_PROPERTIES [ReadConf $sim_file]
+  }
 } else {
   Msg Error "$conf_file was not found in your project directory, pleae create one."
 }

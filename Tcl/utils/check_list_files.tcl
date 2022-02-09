@@ -60,12 +60,10 @@ set usage   "Checks if the list files matches the project ones. It can also be u
 
 set hog_path [file normalize "[file dirname [info script]]/.."]
 set repo_path [file normalize "$hog_path/../.."]
-#cd $hog_path
 source $hog_path/hog.tcl
 
 if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}]} {
   Msg Info [cmdline::usage $parameters $usage]
-  #cd $repo_path
   exit 1
 }
 
@@ -557,7 +555,7 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
 }
 
 
-
+set conf_file "$repo_path/Top/$group_name/$project_name/hog.conf"
 #checking project settings
 if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
 
@@ -580,8 +578,8 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
   set newConfDict  [dict create]
 
   #filling hogConfDict
-  if {[file exists "$repo_path/Top/$group_name/$project_name/hog.conf"]} {
-    set hogConfDict [ReadConf "$repo_path/Top/$group_name/$project_name/hog.conf"]
+  if {[file exists $conf_file]} {
+    set hogConfDict [ReadConf $conf_file]
 
     #convert hog.conf dict keys to uppercase
     foreach key [list main synth_1 impl_1] {
@@ -750,18 +748,27 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
     }
   }
 
+  #check if the version in the she-bang is the same as the IDE version, otherwise incr ConfErrorCnt
+  set actual_version [GetIDEVersion]
+  lassign [GetIDEFromConf $conf_file] ide conf_version
+  if {$actual_version != $conf_version} {
+    CriticalAndLog "The version specified in the first line of hog.conf is wrong or no version was specified. If you want to run this project with $ide $actual_version, the first line of hog.conf should be: \#$ide $actual_version"
+    incr ConfErrorCnt
+  }
 
-  if {$ConfErrorCnt == 0 && [file exists $repo_path/Top/$group_name/$project_name/hog.conf] == 1} {
-    Msg Info "$repo_path/$DirName/hog.conf matches project. Nothing to do"
+  
+  if {$ConfErrorCnt == 0 && [file exists $conf_file ] == 1} {
+    Msg Info "$conf_file matches project. Nothing to do"
   }
 
   #recreating hog.conf
-  if {$options(recreate_conf) == 1 && ($ConfErrorCnt > 0 || [file exists $repo_path/Top/$group_name/$project_name/hog.conf] == 0 || $hasStrategy == 1)} {
+  if {$options(recreate_conf) == 1 && ($ConfErrorCnt > 0 || [file exists $conf_file] == 0 || $hasStrategy == 1)} {
     Msg Info "Updating configuration file $repo_path/$DirName/hog.conf."
     file mkdir  $repo_path/$DirName/list
     #writing configuration file  
     set confFile $repo_path/$DirName/hog.conf
-    WriteConf $confFile $newConfDict "vivado"
+    set version [GetIDEVersion]
+    WriteConf $confFile $newConfDict "vivado $version"
   }
 
 }

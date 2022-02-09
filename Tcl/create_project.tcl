@@ -91,6 +91,7 @@ proc CreateProject {} {
 
   } elseif {[info commands project_new] != ""} {
     package require ::quartus::project
+    package require ::quartus::misc
     #QUARTUS_ONLY
     if {[string equal $globalSettings::FAMILY "quartus_only"]} {
       Msg Error "You must specify a device Family for Quartus"

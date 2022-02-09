@@ -3279,3 +3279,22 @@ proc GetIDEVersion {} {
   }
   return $ver
 }
+
+proc GetIDEFromConf {conf_file} {
+  set f [open $conf_file "r"]
+  set line [gets $f]
+  close $f
+  if {[regexp -all {^\# *(\w*) *(\d+\.\d+(?:.\d+)?)? *$} $line dummy ide version dummy]} {
+    if {[info exists version] && $version != ""} {
+      set ver $version
+    } else {
+      set ver 0.0.0
+    }
+    set ret [list $ide $ver]
+  } else {
+    Msg CriticalWarning "The first line of hog.conf should be \#<IDE name> <version>, where <IDE name>. is quartus, vivado, planahead and <version> the tool version, e.g. \#vivado 2020.2. Will assume vivado."
+    set ret [list "vivado" "0.0.0"]
+  }
+
+  return $ret
+}

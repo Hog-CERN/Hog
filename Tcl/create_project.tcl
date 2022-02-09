@@ -671,44 +671,37 @@ set user_repo 0
 if {[file exists $conf_file]} {
   Msg Info "Parsing configuration file $conf_file..."
   set PROPERTIES [ReadConf $conf_file]
-  set no_version 1
-  if {[dict exists $PROPERTIES hog]} {
-    set hog_properties [dict get $PROPERTIES hog]
-    # find VERSION property
-    if {[dict exists $hog_properties "VERSION"]} {
-      set conf_version [dict get $hog_properties "VERSION"]
-      set actual_version [GetIDEVersion]
-      set a_v [split $actual_version "."]
-      set c_v [split $conf_version "."]
-      if {[llength $a_v] > 3 || [llength $a_v] < 2} {
-	Msg Error "Couldn't parse IDE version: $actual_version."
-      } elseif {[llength $a_v] == 2} {
-	lappend a_v 0
-      }
-      if {[llength $c_v] > 3 || [llength $c_v] < 2} {
-	Msg Error "Wrong version format in hog.conf: $conf_version."
-      } elseif {[llength $c_v] == 2} {
-	lappend c_v 0
-      }
-	
-      set comp [CompareVersion $a_v $c_v]
-      set no_version 0
-      if {$comp == 0} {
-	Msg Info "Project version and IDE version match: $conf_version."
-      }	elseif {$comp == 1} {
-	Msg CriticalWarning "Your IDE version ($actual_version) is newer than the version specified for this project in hog.conf ($conf_version), if you want update this project to version $actual_version, don't forget to update the hog.conf file."
-      } else {
-	Msg Error "Your IDE version ($actual_version) is older than the project version specified in hog.conf ($conf_version). The project cannot be created. If you really want to create this project with an older IDE version, change the VERSION property from the hog.conf file. This is HIGLY discouraged as the IPs may not work correctly."
-      }
+
+  #Checking Vivado/Quartus/ISE version
+  set actual_version [GetIDEVersion]
+  lassign [GetIDEFromConf $conf_file] ide conf_version 
+  if {$conf_version != "0.0.0"} { 
+    
+  
+    set a_v [split $actual_version "."]
+    set c_v [split $conf_version "."]
+    if {[llength $a_v] > 3 || [llength $a_v] < 2} {
+      Msg Error "Couldn't parse IDE version: $actual_version."
+    } elseif {[llength $a_v] == 2} {
+      lappend a_v 0
     }
-  }
-  
-  
-  
-  if {$no_version == 1} {
-    Msg CriticalWarning "The VERSION variable was not found in hog.conf, it is higly recommended to define such variable and set it to the version of your HDL tool. e.g. for Vivado 2020.2 set VERSION = 2020.2 in the \[hog\] section of the hog.conf file."
-  }
-  
+    if {[llength $c_v] > 3 || [llength $c_v] < 2} {
+      Msg Error "Wrong version format in hog.conf: $conf_version."
+    } elseif {[llength $c_v] == 2} {
+      lappend c_v 0
+    }
+    
+    set comp [CompareVersion $a_v $c_v]
+    if {$comp == 0} {
+      Msg Info "Project version and $ide version match: $conf_version."
+    }	elseif {$comp == 1} {
+      Msg CriticalWarning "The $ide version in use is $actual_version, that is newer than $conf_version, as specified in the first line of $conf_file, if you want update this project to version $actual_version, please update the configuration file."
+    } else {
+      Msg Error "The $ide version in use is $actual_version, that is older than $conf_version as specified in $conf_file. The project will not be created.\nIf you absolutely want to create this project that was meant for version $conf_version with $ide version $actual_version, you can change the version from the first line of $conf_file.\nThis is HIGLY discouraged as there could be unrecognised properties in the configuration file and IPs created with a newer $ide version cannot be downgraded."
+    }
+} else {
+    Msg CriticalWarning "No version found in the first line of $conf_file. It is HIGLY recommended to replace the first line of $conf_file with: \#$ide $actual_version"
+}
   if {[dict exists $PROPERTIES main]} {
     set main [dict get $PROPERTIES main]
     dict for {p v} $main {

@@ -3058,15 +3058,7 @@ proc ReadConf {file_name} {
   set f [::ini::open $file_name]
   set properties [dict create]
   foreach sec [::ini::sections $f] {
-
-    #if {[string match "impl*" [string tolower $sec]]} {
-    #  set new_sec impl_1
-    #} elseif {[string match "synth*" [string tolower $sec]]} {
-    #  set new_sec synth_1
-    #} else {
     set new_sec $sec
-    #}
-
     set key_pairs [::ini::get $f $sec]
 
     #manipulate strings here:
@@ -3266,7 +3258,10 @@ proc WriteGenerics {date timee commit version top_hash top_ver hog_hash hog_ver 
   } 
 }
 
-
+## Returns the version of the IDE (Vivado,Quartus,PlanAhead) in use
+#
+#  @return       the version in astring format, e.g. 2020.2
+#
 proc GetIDEVersion {} {
   if { [info commands get_property] != "" } {
     #Vivado or planAhead
@@ -3281,6 +3276,9 @@ proc GetIDEVersion {} {
   return $ver
 }
 
+## Get the IDE (Vivado,Quartus,PlanAhead) version from the conf file she-bang
+#
+#  @param[in]    conf_file The hog.conf file
 proc GetIDEFromConf {conf_file} {
   set f [open $conf_file "r"]
   set line [gets $f]

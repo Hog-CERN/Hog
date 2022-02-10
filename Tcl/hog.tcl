@@ -3274,6 +3274,7 @@ proc GetIDEVersion {} {
     
   } elseif { [info commands project_new] != "" } {
     # Quartus
+    global quartus
     regexp {[\.0-9]+} $quartus(version) ver
     
   }

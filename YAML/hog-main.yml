@@ -172,7 +172,7 @@ create_badge:
       - tags
     variables:
       - $CI_COMMIT_TAG =~ /^v.*$/ && $HOG_BADGE_PROJECT != null
-  <<: *tag-badgeawk 
+  <<: *tag-badge 
   stage: badge
   script:
     - cd bin/${HOG_BADGE_PROJECT}-v*
@@ -205,12 +205,12 @@ create_badge:
 
         for file in *.svg; do
           image_url=$(curl -s --request POST --header "PRIVATE-TOKEN: ${HOG_PUSH_TOKEN}" --form "file=@$file" ${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/uploads | jq -r '.full_path')
-          echo "Uploaded file $file to $image_url"
-          badge_name=$(basename -s .svg $file)
-          badge_exists=0
+          echo "Uploaded file $file to $image_url";
+          badge_name=$(basename -s .svg $file);
+          badge_exists=0;
           for badge in $(echo "${current_badges}" | jq -r '.[] | @base64'); do
             _jq() {
-              echo ${badge} | base64 --decode | jq -r ${1}
+              echo ${badge} | base64 --decode | jq -r ${1};
             };
             name=$(_jq '.name');
             id=$(_jq '.id');

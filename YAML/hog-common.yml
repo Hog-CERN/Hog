@@ -39,3 +39,4 @@ stages:
   - collect
   - user_post
   - archive
+  - badge

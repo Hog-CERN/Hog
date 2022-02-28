@@ -184,7 +184,7 @@ if {($proj_found == 0 || $recreate == 1) && $do_synthesis == 1} {
   }
 } else {
   Msg Info "Opening existing project file $project_file..."
-  file mkdir "$repo_path/Projects/$project/$project_name.gen/sources_1"
+  file mkdir "$repo_path/Projects/$project_name/$project.gen/sources_1"
   open_project $project_file
 }
 

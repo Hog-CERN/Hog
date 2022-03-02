@@ -25,8 +25,6 @@ for badge in $(echo "${current_badges}" | jq -r '.[] | @base64'); do
   }
   name=$(_jq '.name')
   id=$(_jq '.id')
-  echo $name
-  echo $id
   if [[ "$badge_name" == *"$name"* ]]; then
     badge_exists=1
     echo "Badge $badge_name exists, updating it..."

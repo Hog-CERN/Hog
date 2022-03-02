@@ -1,5 +1,5 @@
 #!/bin/bash
-#   Copyright 2018-2021 The University of Birmingham
+#   Copyright 2018-2022 The University of Birmingham
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -13,9 +13,8 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-if [ -z "$1" ]
-then
-        echo "Usage: GetGitlabArtifact.sh <push token> <Gitlab api url> <project id> <merge request number> <file> <job>"
+if [ -z "$1" ]; then
+    echo "Usage: GetGitlabArtifact.sh <push token> <Gitlab api url> <project id> <merge request number> <file> <job>"
 else
     push_token=$1
     api=$2

@@ -1,5 +1,5 @@
 #!/bin/bash
-#   Copyright 2018-2021 The University of Birmingham
+#   Copyright 2018-2022 The University of Birmingham
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -17,18 +17,18 @@ tcl_dir=$1
 OLD_DIR=$(pwd)
 THIS_DIR="$(dirname "$0")"
 
-if [ -n "$tcl_dir" ];then
+if [ -n "$tcl_dir" ]; then
     for f in "$tcl_dir"*; do
-	if [ -d "$f" ]; then
+        if [ -d "$f" ]; then
             for file in "$f"/*.tcl; do
-		echo "[FormatTcl] Formatting $file..."
-		tclsh "$THIS_DIR"/../Tcl/utils/reformat.tcl -tab_width 2 "$file"
+                echo "[FormatTcl] Formatting $file..."
+                tclsh "$THIS_DIR"/../Tcl/utils/reformat.tcl -tab_width 2 "$file"
             done
-	fi
+        fi
         if [[ $f == *.tcl ]]; then
             echo "[FormatTcl] Formatting $f..."
             tclsh "${THIS_DIR}"/../Tcl/utils/reformat.tcl -tab_width 2 "$f"
-	fi
+        fi
     done
 else
     printf "Folder name has not been specified. Usage: \n %s <folder> \n" "$0"

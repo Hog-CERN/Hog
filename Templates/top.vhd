@@ -1,4 +1,4 @@
---   Copyright 2018-2021 The University of Birmingham
+--   Copyright 2018-2022 The University of Birmingham
 --
 --   Licensed under the Apache License, Version 2.0 (the "License");
 --   you may not use this file except in compliance with the License.
@@ -29,14 +29,14 @@ entity top_myproj is
     -- Global Generic Variables
     GLOBAL_DATE : std_logic_vector(31 downto 0);
     GLOBAL_TIME : std_logic_vector(31 downto 0);
-    GLOBAL_VER  : std_logic_vector(31 downto 0);
-    GLOBAL_SHA  : std_logic_vector(31 downto 0);
-    TOP_VER     : std_logic_vector(31 downto 0);
-    TOP_SHA     : std_logic_vector(31 downto 0);
-    CON_VER     : std_logic_vector(31 downto 0);
-    CON_SHA     : std_logic_vector(31 downto 0);
-    HOG_VER     : std_logic_vector(31 downto 0);
-    HOG_SHA     : std_logic_vector(31 downto 0);
+    GLOBAL_VER : std_logic_vector(31 downto 0);
+    GLOBAL_SHA : std_logic_vector(31 downto 0);
+    TOP_VER : std_logic_vector(31 downto 0);
+    TOP_SHA : std_logic_vector(31 downto 0);
+    CON_VER : std_logic_vector(31 downto 0);
+    CON_SHA : std_logic_vector(31 downto 0);
+    HOG_VER : std_logic_vector(31 downto 0);
+    HOG_SHA : std_logic_vector(31 downto 0);
 
     --IPBus XML
     XML_SHA : std_logic_vector(31 downto 0);
@@ -51,12 +51,12 @@ entity top_myproj is
     -- External library specific variables (only if you have an external library)
     MYEXTLIB_SHA : std_logic_vector(31 downto 0);
     -- Project flavour
-    FLAVOUR      : integer
-    );
+    FLAVOUR : integer
+  );
   port (
 
   );
-end entity;  -- top_myproj
+end entity; -- top_myproj
 
 architecture behaviour of top_myproj is
 

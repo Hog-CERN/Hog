@@ -1,5 +1,5 @@
 #!/bin/bash
-#   Copyright 2018-2021 The University of Birmingham
+#   Copyright 2018-2022 The University of Birmingham
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -79,10 +79,10 @@ if [ $? = 1 ]; then
 fi
 eval set -- "$PARAMS"
 if [ -z "$1" ]; then
-  ##! If no args passed then print help message
+	##! If no args passed then print help message
 	printf "Project name has not been specified. Usage: \n"
 	printf " LaunchSimulation.sh <project name> [-lib_path <sim lib path>] [-simset <list of sim sets>] [-quiet]\n\n"
-  printf "<list of sim sets> should be a list of the simsets to be run separated with a comma and no spaces"
+	printf "<list of sim sets> should be a list of the simsets to be run separated with a comma and no spaces"
 	printf " For a detailed explanation of all the option, type LaunchSimulation.sh <project name> -h.\n"
 	printf " The project name is needed by Hog to tell which HDL software to use: Vivado, Quartus, etc.\n\n"
 	printf "Possible projects are:\n"
@@ -90,45 +90,45 @@ if [ -z "$1" ]; then
 	cd "${OLD_DIR}"
 	exit -1
 else
-  PROJ=$1
-  PROJ_DIR="$DIR/../Top/"$PROJ
-  if [ -d "$PROJ_DIR" ]; then
+	PROJ=$1
+	PROJ_DIR="$DIR/../Top/"$PROJ
+	if [ -d "$PROJ_DIR" ]; then
 
-    #Choose if the project is quartus, vivado, vivado_hls [...]
-    select_command $PROJ_DIR
-    if [ $? != 0 ]; then
-      Msg Error "Failed to select project type: exiting!"
-      exit -1
-    fi
+		#Choose if the project is quartus, vivado, vivado_hls [...]
+		select_command $PROJ_DIR
+		if [ $? != 0 ]; then
+			Msg Error "Failed to select project type: exiting!"
+			exit -1
+		fi
 
-    #select full path to executable and place it in HDL_COMPILER global variable
-    select_compiler_executable $COMMAND
-    if [ $? != 0 ]; then
-      Msg Error "Failed to get HDL compiler executable for $COMMAND"
-      exit -1
-    fi
+		#select full path to executable and place it in HDL_COMPILER global variable
+		select_compiler_executable $COMMAND
+		if [ $? != 0 ]; then
+			Msg Error "Failed to get HDL compiler executable for $COMMAND"
+			exit -1
+		fi
 
-    if [ ! -f "${HDL_COMPILER}" ]; then
-      Msg Error "HDL compiler executable $HDL_COMPILER not found"
-      cd "${OLD_DIR}"
-      exit -1
-    else
-      Msg Info "Using executable: $HDL_COMPILER"
-    fi
+		if [ ! -f "${HDL_COMPILER}" ]; then
+			Msg Error "HDL compiler executable $HDL_COMPILER not found"
+			cd "${OLD_DIR}"
+			exit -1
+		else
+			Msg Info "Using executable: $HDL_COMPILER"
+		fi
 
-    if [ $COMMAND = "quartus_sh" ]; then
-      Msg Error "Quartus is not yet supported by this script!"
-      #echo "Running:  ${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_simulation.tcl $SIMLIBPATH $1"
-      #"${HDL_COMPILER}" $COMMAND_OPT $DIR/Tcl/launchers/launch_simulation.tcl $SIMLIBPATH $1
+		if [ $COMMAND = "quartus_sh" ]; then
+			Msg Error "Quartus is not yet supported by this script!"
+			#echo "Running:  ${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_simulation.tcl $SIMLIBPATH $1"
+			#"${HDL_COMPILER}" $COMMAND_OPT $DIR/Tcl/launchers/launch_simulation.tcl $SIMLIBPATH $1
 
-    elif [ $COMMAND = "vivado_hls" ]; then
-      Msg Error "Vivado HLS is not yet supported by this script!"
-    else
-      "${HDL_COMPILER}" $COMMAND_OPT $DIR/Tcl/launchers/launch_simulation.tcl -tclargs $SIMLIBPATH $SIMSET $QUIET $1
-    fi
-  else
-    Msg Error "Project $PROJ not found: possible projects are: $(search_projects $DIR/../Top)"
-    cd "${OLD_DIR}"
-    exit -1
-  fi
+		elif [ $COMMAND = "vivado_hls" ]; then
+			Msg Error "Vivado HLS is not yet supported by this script!"
+		else
+			"${HDL_COMPILER}" $COMMAND_OPT $DIR/Tcl/launchers/launch_simulation.tcl -tclargs $SIMLIBPATH $SIMSET $QUIET $1
+		fi
+	else
+		Msg Error "Project $PROJ not found: possible projects are: $(search_projects $DIR/../Top)"
+		cd "${OLD_DIR}"
+		exit -1
+	fi
 fi

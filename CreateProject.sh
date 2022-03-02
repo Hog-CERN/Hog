@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#   Copyright 2018-2021 The University of Birmingham
+#   Copyright 2018-2022 The University of Birmingham
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.

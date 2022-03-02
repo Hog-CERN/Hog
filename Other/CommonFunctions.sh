@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#   Copyright 2018-2021 The University of Birmingham
+#   Copyright 2018-2022 The University of Birmingham
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -67,21 +67,21 @@ function Msg() {
   Default=$'\e[0m'
 
   case $1 in
-    "Info")
-      Colour=$Default
-      ;;
-    "Warning")
-      Colour=$LightBlue
-      ;;
-    "CriticalWarning")
-      Colour=$Orange
-      ;;
-    "Error")
-      Colour=$Red
-      ;;
-    *)
-      Msg Error "messageLevel: $1 not supported! Use Info, Warning, CriticalWarning, Error"
-      ;;
+  "Info")
+    Colour=$Default
+    ;;
+  "Warning")
+    Colour=$LightBlue
+    ;;
+  "CriticalWarning")
+    Colour=$Orange
+    ;;
+  "Error")
+    Colour=$Red
+    ;;
+  *)
+    Msg Error "messageLevel: $1 not supported! Use Info, Warning, CriticalWarning, Error"
+    ;;
   esac
 
   echo "$Colour HOG:$1 ${FUNCNAME[1]}()  $2 $Default"

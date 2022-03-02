@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#   Copyright 2018-2021 The University of Birmingham
+#   Copyright 2018-2022 The University of Birmingham
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -16,8 +16,8 @@
 ## @file Reset_xci.sh
 # brief Reset all modified xci files in the repository to their committed version.
 
-OLD_DIR=`pwd`
-DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+OLD_DIR=$(pwd)
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 if [ "$1" == "-h" ] || [ "$1" == "-help" ] || [ "$1" == "--help" ] || [ "$1" == "-H" ]; then
     echo
@@ -33,7 +33,7 @@ fi
 cd "${DIR}"/..
 
 echo [hog reset xci] Checking out commited version of all modified xci files
-git checkout -- `git ls-files -m *.xci`
+git checkout -- $(git ls-files -m *.xci)
 
 echo [hog reset xci] All done.
 cd "${OLD_DIR}"

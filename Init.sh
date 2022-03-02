@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#   Copyright 2018-2021 The University of Birmingham
+#   Copyright 2018-2022 The University of Birmingham
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -57,9 +57,9 @@ function init() {
 
   ##! The script checks if Vivado is installed and set uop on the shell.
   ##! NOTE that these checks are performed using 'command -v '
-  if [ $(command -v  vivado) ]; then
+  if [ $(command -v vivado) ]; then
     COMPILER_FOUND=true
-    local VIVADO=$(command -v  vivado)
+    local VIVADO=$(command -v vivado)
     ##! If Vivado is installed it checks if vsim command is defined (Questasim or Modelsim is installed and set-up in the shell).
     ##! NOTE that these checks are performed using 'command -v '
     echo
@@ -75,23 +75,24 @@ function init() {
       echo
       if [ ${REPLY} -le 6 ] && [ ${REPLY} -gt 0 ]; then
         case $REPLY in
-          1 )
-            SIMULATOR=questa
-            ;;
-          2 )
-            SIMULATOR=modelsim
-            ;;
-          3 )
-            SIMULATOR=riviera
-            ;;
-          4 )
-            SIMULATOR=ies
-            ;;
-          5 )
-            SIMULATOR=xcelium
-            ;;
-          6 )
-            SIMULATOR=vcs
+        1)
+          SIMULATOR=questa
+          ;;
+        2)
+          SIMULATOR=modelsim
+          ;;
+        3)
+          SIMULATOR=riviera
+          ;;
+        4)
+          SIMULATOR=ies
+          ;;
+        5)
+          SIMULATOR=xcelium
+          ;;
+        6)
+          SIMULATOR=vcs
+          ;;
         esac
 
         echo "Where do you want the simulation libraries to be saved? (skip for default: SimulationLib)"
@@ -108,18 +109,18 @@ function init() {
         rm -f ./Tcl/*.ini
       else
         echo "Chosen simulator is not valid. No simulation libraries will be compiled..."
-      fi;
-      
+      fi
+
     fi
   fi
 
   # REpeat compilation using Quartus
-  if [ $(command -v  quartus_sh) ]; then
+  if [ $(command -v quartus_sh) ]; then
     COMPILER_FOUND=true
-    local QUARTUS=$(command -v  quartus_sh)
+    local QUARTUS=$(command -v quartus_sh)
     ##! If Quartus is installed it checks if vsim command is defined (Questasim or Modelsim is installed and set-up in the shell).
     ##! NOTE that these checks are performed using 'command -v '
-    if [ $(command -v  vsim) ]; then
+    if [ $(command -v vsim) ]; then
       echo
       ##! If Questasim or Modelsim is installed ask user if he wants to compile
       ##! NOTE use read to grab user input
@@ -198,7 +199,7 @@ function init() {
   ##! Ask user if he wants to add custom Vivado gui button to automatically update listfiles
   ##! NOTE use read to grab user input
   ##! NOTE if the user input contains Y or y then is accepted as yes
-  if [ $(command -v  vivado) ]; then
+  if [ $(command -v vivado) ]; then
     echo
     read -p "  Do you want to add three buttons to the Vivado GUI to check and update the list files and the project hog.conf file automatically? " -n 1 -r
     echo

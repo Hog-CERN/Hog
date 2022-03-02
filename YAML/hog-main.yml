@@ -176,7 +176,7 @@ create_badge:
   stage: badge
   script:
     - cd bin/${HOG_BADGE_PROJECT}-v*
-    - current_badges=curl --header "PRIVATE-TOKEN: $HOG_PUSH_TOKEN" "$CI_API_V4_URL/projects/${CI_PROJECT_ID}/badges" --request GET
+    - "current_badges=`curl --header \"PRIVATE-TOKEN: ${HOG_PUSH_TOKEN}\" \"${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/badges\" --request GET`"
     - if [ -f utilization.txt ]; then
         while read -r line; do
           new_str=${line//[|]/};
@@ -202,35 +202,12 @@ create_badge:
             anybadge -l timing -v "OK" -f timing.svg --color=green -o;
           fi;
         done <utilization.txt;
-
-        for file in *.svg; do
-          image_url=$(curl -s --request POST --header "PRIVATE-TOKEN: ${HOG_PUSH_TOKEN}" --form "file=@$file" ${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/uploads | jq -r '.full_path')
-          echo "Uploaded file $file to $image_url";
-          badge_name=$(basename -s .svg $file);
-          badge_exists=0;
-          for badge in $(echo "${current_badges}" | jq -r '.[] | @base64'); do
-            _jq() {
-              echo ${badge} | base64 --decode | jq -r ${1};
-            };
-            name=$(_jq '.name');
-            id=$(_jq '.id');
-
-            if [[ "$badge_name" == *"$name"* ]]; then
-              badge_exists=1;
-              echo "Badge $badge_name exists, updating it...";
-              curl --header "PRIVATE-TOKEN: $HOG_PUSH_TOKEN" "$CI_API_V4_URL/projects/${CI_PROJECT_ID}/badges/${id}" --request PUT --data "image_url=https://gitlab.cern.ch/${image_url}";
-            fi;
-          done
-
-          if [[ $badge_exists == 0 ]]; then
-            echo "Badge $badge_name does not exist yet. Creating it...";
-            curl --header "PRIVATE-TOKEN: $HOG_PUSH_TOKEN" --request POST --data "link_url=https://gitlab.cern.ch/hog/test/TestFirmware/-/releases&image_url=https://gitlab.cern.ch/${image_url}&name=${badge_name}" "$CI_API_V4_URL/projects/${CI_PROJECT_ID}/badges";
-          fi
-        done;
       fi;
-    allow_failure: true
-    artifacts:
-      paths:
-        - bin
-      expire_in: 10 years
-          
+    - for file in *.svg; do
+        ./$CI_PROJECT_DIR/Hog/Other/UploadBadges.sh $file;
+      done;
+  allow_failure: true
+  artifacts:
+    paths:
+      - $CI_PROJECT_DIR/bin
+    expire_in: 10 years

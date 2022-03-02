@@ -171,42 +171,12 @@ create_badge:
     refs:
       - tags
     variables:
-      - $CI_COMMIT_TAG =~ /^v.*$/ && $HOG_BADGE_PROJECT != null
+      - $CI_COMMIT_TAG =~ /^v.*$/ && $HOG_BADGE_PROJECTS != null
   <<: *tag-badge 
   stage: badge
   script:
-    - cd bin/${HOG_BADGE_PROJECT}-v*
-    - "current_badges=`curl --header \"PRIVATE-TOKEN: ${HOG_PUSH_TOKEN}\" \"${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/badges\" --request GET`"
-    - if [ -f utilization.txt ]; then
-        while read -r line; do
-          new_str=${line//[|]/};
-          new_str=${new_str//[<]/};
-          usage=$(echo $new_str | awk '{print $NF}');
-          if [[ "$new_str" == *"LUTs"* ]]; then
-            anybadge -l LUTs -v "$usage" -f LUTs.svg --color=blue -o;
-          fi;
-          if [[ "$new_str" == *"Registers"* ]]; then
-            anybadge -l FFs -v "$usage" -f FFs.svg --color=blue -o;
-          fi;
-          if [[ "$new_str" == *"Block RAM"* ]]; then
-            anybadge -l BRAM -v "$usage" -f BRAM.svg --color=blue -o;
-          fi;
-          if [[ "$new_str" == *"DSPs"* ]]; then
-            anybadge -l DSPs -v "$usage" -f DSPs.svg --color=blue -o;
-          fi;
-          if [[ "$new_str" == *"URAM"* ]]; then
-            anybadge -l URAM -v "$usage" -f URAM.svg --color=blue -o;
-          fi;
-          if [ -f timing_error.txt ]; then
-            anybadge -l timing -v "FAILED" -f timing.svg --color=red -o;
-          else
-            anybadge -l timing -v "OK" -f timing.svg --color=green -o;
-          fi;
-          anybadge -l project -v "$HOG_BADGE_PROJECT" --color=orange -o
-        done <utilization.txt;
-      fi;
-    - for file in *.svg; do
-        $CI_PROJECT_DIR/Hog/Other/UploadBadges.sh $file;
+    - for project in $HOG_BADGE_PROJECTS; do
+        tclsh Hog/Tcl/CI/create_badges.tcl $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $CI_PROJECT_URL $project "$HOG_EXTERNAL_PATH";
       done;
   allow_failure: true
   artifacts:

@@ -47,11 +47,7 @@ else
     if [ -d bin ]; then
         # Project names:
         cd bin/ || exit
-<<<<<<< HEAD
-        PRJ_BITS=$(find . -iname "utilization.txt" -o -iname "*.pof*")
-=======
         PRJ_BITS=$(find . -iname "versions.txt")
->>>>>>> hotfix_artifact_rename
 
         for PRJ_BIT in ${PRJ_BITS}; do
             PRJ_DIR=$(dirname "$PRJ_BIT")

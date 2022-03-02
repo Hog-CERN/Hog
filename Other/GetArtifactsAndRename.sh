@@ -47,7 +47,7 @@ else
     if [ -d bin ]; then
         # Project names:
         cd bin/ || exit
-        PRJ_BITS=$(find . -iname "*.bit*" -o -iname "*.pof*")
+        PRJ_BITS=$(find . -iname "versions.txt")
 
         for PRJ_BIT in ${PRJ_BITS}; do
             PRJ_DIR=$(dirname "$PRJ_BIT")

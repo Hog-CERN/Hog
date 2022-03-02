@@ -58,6 +58,10 @@ if {[file exists utilization.txt]} {
     set lines [split [read $fp] "\n"]
     close $fp
     set new_badges [dict create]
+    set prj_name [ set str [string map {/ _} $project]]
+    # Project Badge
+    Execute anybadge -l project -v "$project-$ver" -f project.svg --color=orange -o
+    dict set new_badges "$prj_name" "$prj_name"
 
     # Resource Badges
     foreach line $lines {
@@ -70,7 +74,7 @@ if {[file exists utilization.txt]} {
             if {[string first $res $str] > -1} {
                 set badge_name [dict get $resources $res]
                 Execute anybadge -l $badge_name -v "$usage" -f $badge_name.svg --color=blue -o;
-                dict set new_badges $badge_name $badge_name
+                dict set new_badges $badge_name-$prj_name $badge_name-$prj_name
             }
         }
     }
@@ -80,11 +84,9 @@ if {[file exists utilization.txt]} {
     } else {
         Execute anybadge -l timing -v "OK" -f timing.svg --color=green -o;
     }
-    dict set new_badges "timing" "timing"
+    dict set new_badges "timing-$prj_name" "timing-$prj_name"
 
-    # Project Badge
-    Execute anybadge -l project -v "$project-$ver" -f project.svg --color=orange -o
-    dict set new_badges "project" "project"
+
 
     foreach badge_name [dict keys $new_badges] {
         set badge_found 0
@@ -106,3 +108,5 @@ if {[file exists utilization.txt]} {
         }
     }
 }
+
+cd $OldPath

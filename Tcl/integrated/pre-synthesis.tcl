@@ -95,7 +95,7 @@ set group [GetGroupName $proj_dir]
 set flavour [string map {. ""} [file ext $proj_name]]
 if {$flavour != ""} {
   if [string is integer $flavour] {
-    Msg Info "Project $proj_name has flavour = $flavour, the generic variable FLAVUOR will be set to $flavour"
+    Msg Info "Project $proj_name has flavour = $flavour, the generic variable FLAVOUR will be set to $flavour"
   } else {
     Msg Warning "Project name has a unexpected non numeric extension, flavour will be set to -1"
     set flavour -1
@@ -146,7 +146,7 @@ if {[info commands get_property] != "" && [string first PlanAhead [version]] != 
     Msg CriticalWarning "Project list or hog.conf mismatch, will use current SHA ($this_commit) and version will be set to 0."
     set commit 00000000
     set version 00000000
-  } 
+  }
 } elseif {[info commands project_new] != ""} {
   # Quartus
   #TO BE IMPLEMENTED
@@ -170,7 +170,7 @@ if {$diff != ""} {
   puts $fp "$diff"
   close $fp
   Msg CriticalWarning "Repository is not clean, will use current SHA ($this_commit) and create a dirty bitfile..."
-} 
+}
 
 lassign [GetHogFiles  -ext_path "$ext_path" -repo_path "$tcl_path/../../" "$tcl_path/../../Top/$group/$proj_name/list/"] listLibraries listProperties
 
@@ -272,7 +272,7 @@ if [GitVersion 2.9.3] {
 if {[info commands set_property] != ""} {
   ### VIVADO
   # set global generic varibles
-  WriteGenerics $date $timee $commit $version $top_hash $top_ver $hog_hash $hog_ver $cons_ver $cons_hash  $libs $vers $hashes $ext_names $ext_hashes $user_ip_repos $user_ip_vers $user_ip_hashes $flavour $xml_ver $xml_hash 
+  WriteGenerics $date $timee $commit $version $top_hash $top_ver $hog_hash $hog_ver $cons_ver $cons_hash  $libs $vers $hashes $ext_names $ext_hashes $user_ip_repos $user_ip_vers $user_ip_hashes $flavour $xml_ver $xml_hash
   set status_file [file normalize "$old_path/../versions.txt"]
 
 } elseif {[info commands project_new] != ""} {

@@ -47,8 +47,8 @@ set ver [ GetProjectVersion $repo_path/Top/$project $repo_path $ext_path 0 ]
 lassign [ExecuteRet curl --header "PRIVATE-TOKEN: $push_token" "$api_url/projects/${project_id}/badges" --request GET] ret content
 set current_badges [json::json2dict $content]
 
-if [catch {glob -type d $repo_path/bin/$proj-${ver} } prj_dir] {
-    Msg CriticalWarning "Cannot find $proj binaries in artifacts"
+if [catch {glob -type d $repo_path/bin/$project-${ver} } prj_dir] {
+    Msg CriticalWarning "Cannot find $project binaries in artifacts"
     return
 }
 

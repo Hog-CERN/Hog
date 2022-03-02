@@ -28,7 +28,7 @@ for badge in $(echo "${current_badges}" | jq -r '.[] | @base64'); do
   if [[ "$badge_name" == *"$name"* ]]; then
     badge_exists=1
     echo "Badge $badge_name exists, updating it..."
-    curl --header "PRIVATE-TOKEN: $HOG_PUSH_TOKEN" "$CI_API_V4_URL/projects/${CI_PROJECT_ID}/badges/1486" --request PUT --data "image_url=https://gitlab.cern.ch/${image_url}"
+    curl --header "PRIVATE-TOKEN: $HOG_PUSH_TOKEN" "$CI_API_V4_URL/projects/${CI_PROJECT_ID}/badges/${id}" --request PUT --data "image_url=https://gitlab.cern.ch/${image_url}"
   fi
 done
 

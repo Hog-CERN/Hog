@@ -182,19 +182,19 @@ create_badge:
           new_str=${line//[|]/};
           usage=$(echo $new_str | awk '{print $NF}');
           if [[ "$new_str" == *"LUTs"* ]]; then
-            anybadge -l LUTs -v $usage -f LUTs.svg --color=blue -o;
+            anybadge -l LUTs -v "$usage" -f LUTs.svg --color=blue -o;
           fi;
           if [[ "$new_str" == *"Registers"* ]]; then
-            anybadge -l FFs -v $usage -f FFs.svg --color=blue -o;
+            anybadge -l FFs -v "$usage" -f FFs.svg --color=blue -o;
           fi;
           if [[ "$new_str" == *"Block RAM"* ]]; then
-            anybadge -l BRAM -v $usage -f BRAM.svg --color=blue -o;
+            anybadge -l BRAM -v "$usage" -f BRAM.svg --color=blue -o;
           fi;
           if [[ "$new_str" == *"DSPs"* ]]; then
-            anybadge -l DSPs -v $usage -f DSPs.svg --color=blue -o;
+            anybadge -l DSPs -v "$usage" -f DSPs.svg --color=blue -o;
           fi;
           if [[ "$new_str" == *"URAM"* ]]; then
-            anybadge -l URAM -v $usage -f URAM.svg --color=blue -o;
+            anybadge -l URAM -v "$usage" -f URAM.svg --color=blue -o;
           fi;
           if [ -f timing_error.txt ]; then
             anybadge -l timing -v "FAILED" -f timing.svg --color=red -o;

@@ -45,7 +45,12 @@ set ext_path [lindex $argv 5]
 set resources [dict create "LUTs" "LUTs" "Registers" "FFs" "Block" "BRAM" "URAM" "URAM" "DSPs" "DSPs"]
 set ver [ GetProjectVersion $repo_path/Top/$project $repo_path $ext_path 0 ]
 lassign [ExecuteRet curl --header "PRIVATE-TOKEN: $push_token" "$api_url/projects/${project_id}/badges" --request GET] ret content
-set current_badges [json::json2dict $content]
+
+if {[llength $content] > 0} {
+    set current_badges [json::json2dict $content]
+} else {
+    set current_badges []
+}
 
 if [catch {glob -type d $repo_path/bin/$project-${ver} } prj_dir] {
     Msg CriticalWarning "Cannot find $project binaries in artifacts"
@@ -58,9 +63,9 @@ if {[file exists utilization.txt]} {
     set lines [split [read $fp] "\n"]
     close $fp
     set new_badges [dict create]
-    set prj_name [ set str [string map {/ _} $project]]
+    set prj_name [string map {/ _} $project]
     # Project Badge
-    Execute anybadge -l project -v "$project-$ver" -f project.svg --color=orange -o
+    Execute anybadge -l project -v "$project-$ver" -f $prj_name.svg --color=orange -o
     dict set new_badges "$prj_name" "$prj_name"
 
     # Resource Badges
@@ -73,16 +78,16 @@ if {[file exists utilization.txt]} {
         foreach res [dict keys $resources] {
             if {[string first $res $str] > -1} {
                 set badge_name [dict get $resources $res]
-                Execute anybadge -l $badge_name -v "$usage" -f $badge_name.svg --color=blue -o;
+                Execute anybadge -l $badge_name -v "$usage" -f $badge_name-$prj_name.svg --color=blue -o;
                 dict set new_badges $badge_name-$prj_name $badge_name-$prj_name
             }
         }
     }
     # Timing Badge
     if {[file exists timing_error.txt]} {
-        Execute anybadge -l timing -v "FAILED" -f timing.svg --color=red -o;
+        Execute anybadge -l timing -v "FAILED" -f timing-$prj_name.svg --color=red -o;
     } else {
-        Execute anybadge -l timing -v "OK" -f timing.svg --color=green -o;
+        Execute anybadge -l timing -v "OK" -f timing-$prj_name.svg --color=green -o;
     }
     dict set new_badges "timing-$prj_name" "timing-$prj_name"
 

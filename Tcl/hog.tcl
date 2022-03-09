@@ -716,24 +716,25 @@ proc GetFileList {FILE path} {
   #  Process data file
   set data [split $file_data "\n"]
   foreach line $data {
-    if {![regexp {^ *$} $line] & ![regexp {^ *\#} $line] } { #Exclude empty lines and comments
-    set file_and_prop [regexp -all -inline {\S+} $line]
-    set vhdlfile [lindex $file_and_prop 0]
-    set vhdlfile "$path/$vhdlfile"
-    if {[file exists $vhdlfile]} {
-      set extension [file ext $vhdlfile]
-      if { [lsearch {.src .sim .con} $extension] >= 0 } {
-        lappend file_list {*}[GetFileList $vhdlfile $path]]
+    if {![regexp {^ *$} $line] & ![regexp {^ *\#} $line] } {
+      #Exclude empty lines and comments
+      set file_and_prop [regexp -all -inline {\S+} $line]
+      set vhdlfile [lindex $file_and_prop 0]
+      set vhdlfile "$path/$vhdlfile"
+      if {[file exists $vhdlfile]} {
+        set extension [file ext $vhdlfile]
+        if { [lsearch {.src .sim .con} $extension] >= 0 } {
+          lappend file_list {*}[GetFileList $vhdlfile $path]]
+        } else {
+          lappend file_list $vhdlfile
+        }
       } else {
-        lappend file_list $vhdlfile
+        Msg Warning "File $vhdlfile not found"
       }
-    } else {
-      Msg Warning "File $vhdlfile not found"
     }
   }
-}
 
-return $file_list
+  return $file_list
 }
 
 ## @brief Get git SHA of a subset of list file
@@ -854,24 +855,26 @@ proc GetVerFromSHA {SHA} {
   }
   lassign [ExtractVersionFromTag $ver] M m c mr
 
-  if {$mr > -1} { # Candidate tab
-  set M [format %02X $M]
-  set m [format %02X $m]
-  set c [format %04X $c]
+  if {$mr > -1} {
+    # Candidate tab
+    set M [format %02X $M]
+    set m [format %02X $m]
+    set c [format %04X $c]
 
-  } elseif { $M > -1 } { # official tag
-  set M [format %02X $M]
-  set m [format %02X $m]
-  set c [format %04X $c]
+  } elseif { $M > -1 } {
+    # official tag
+    set M [format %02X $M]
+    set m [format %02X $m]
+    set c [format %04X $c]
 
-} else {
-  Msg Warning "Tag does not contain a properly formatted version: $ver"
-  set M [format %02X 0]
-  set m [format %02X 0]
-  set c [format %04X 0]
-}
+  } else {
+    Msg Warning "Tag does not contain a properly formatted version: $ver"
+    set M [format %02X 0]
+    set m [format %02X 0]
+    set c [format %04X 0]
+  }
 
-return $M$m$c
+  return $M$m$c
 }
 
 ## Get the project version
@@ -1127,81 +1130,82 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
     set data [split $file_data "\n"]
     #Msg Info "Checking checksums of external library files in $f"
     foreach line $data {
-      if {![regexp {^ *$} $line] & ![regexp {^ *\#} $line] } { #Exclude empty lines and comments
-      set file_and_prop [regexp -all -inline {\S+} $line]
-      set hdlfile [lindex $file_and_prop 0]
-      set hdlfile $ext_path/$hdlfile
-      if { [file exists $hdlfile] } {
-        set hash [lindex $file_and_prop 1]
-        set current_hash [Md5Sum $hdlfile]
-        if {[string first $hash $current_hash] == -1} {
-          Msg CriticalWarning "File $hdlfile has a wrong hash. Current checksum: $current_hash, expected: $hash"
-        }
-      }
-    }
-  }
-}
-
-# Ipbus XML
-if [file exists ./list/xml.lst] {
-  #Msg Info "Found IPbus XML list file, evaluating version and SHA of listed files..."
-  lassign [GetHogFiles  -list_files "xml.lst" -repo_path $repo_path  -sha_mode "./list/"] xml_files dummy
-  lassign [GetVer  [dict get $xml_files "xml.lst"] ] xml_ver xml_hash
-  lappend SHAs $xml_hash
-  lappend versions $xml_ver
-
-  #Msg Info "Found IPbus XML SHA: $xml_hash and version: $xml_ver."
-
-} else {
-  Msg Info "This project does not use IPbus XMLs"
-  set xml_ver  00000000
-  set xml_hash 0000000
-}
-
-set user_ip_repos ""
-set user_ip_repo_hashes ""
-set user_ip_repo_vers ""
-# User IP Repository (Vivado only, hog.conf only)
-if [file exists [lindex $conf_files 0]] {
-
-  set PROPERTIES [ReadConf [lindex $conf_files 0]]
-  set has_user_ip 0
-
-  if {[dict exists $PROPERTIES main]} {
-    set main [dict get $PROPERTIES main]
-    dict for {p v} $main {
-      if { [ string tolower $p ] == "ip_repo_paths" } {
-        set has_user_ip 1
-        foreach repo $v {
-          lappend user_ip_repos "$repo_path/$repo"
+      if {![regexp {^ *$} $line] & ![regexp {^ *\#} $line] } {
+        #Exclude empty lines and comments
+        set file_and_prop [regexp -all -inline {\S+} $line]
+        set hdlfile [lindex $file_and_prop 0]
+        set hdlfile $ext_path/$hdlfile
+        if { [file exists $hdlfile] } {
+          set hash [lindex $file_and_prop 1]
+          set current_hash [Md5Sum $hdlfile]
+          if {[string first $hash $current_hash] == -1} {
+            Msg CriticalWarning "File $hdlfile has a wrong hash. Current checksum: $current_hash, expected: $hash"
+          }
         }
       }
     }
   }
 
-  foreach repo $user_ip_repos {
-    lassign [GetVer $repo] ver sha
-    lappend user_ip_repo_hashes $sha
-    lappend user_ip_repo_vers $ver
-    lappend versions $ver
+  # Ipbus XML
+  if [file exists ./list/xml.lst] {
+    #Msg Info "Found IPbus XML list file, evaluating version and SHA of listed files..."
+    lassign [GetHogFiles  -list_files "xml.lst" -repo_path $repo_path  -sha_mode "./list/"] xml_files dummy
+    lassign [GetVer  [dict get $xml_files "xml.lst"] ] xml_ver xml_hash
+    lappend SHAs $xml_hash
+    lappend versions $xml_ver
+
+    #Msg Info "Found IPbus XML SHA: $xml_hash and version: $xml_ver."
+
+  } else {
+    Msg Info "This project does not use IPbus XMLs"
+    set xml_ver  00000000
+    set xml_hash 0000000
   }
-}
+
+  set user_ip_repos ""
+  set user_ip_repo_hashes ""
+  set user_ip_repo_vers ""
+  # User IP Repository (Vivado only, hog.conf only)
+  if [file exists [lindex $conf_files 0]] {
+
+    set PROPERTIES [ReadConf [lindex $conf_files 0]]
+    set has_user_ip 0
+
+    if {[dict exists $PROPERTIES main]} {
+      set main [dict get $PROPERTIES main]
+      dict for {p v} $main {
+        if { [ string tolower $p ] == "ip_repo_paths" } {
+          set has_user_ip 1
+          foreach repo $v {
+            lappend user_ip_repos "$repo_path/$repo"
+          }
+        }
+      }
+    }
+
+    foreach repo $user_ip_repos {
+      lassign [GetVer $repo] ver sha
+      lappend user_ip_repo_hashes $sha
+      lappend user_ip_repo_vers $ver
+      lappend versions $ver
+    }
+  }
 
 
-#The global SHA and ver is the most recent among everything
-if {$clean == 1} {
-  set commit [Git "log --format=%h -1 $SHAs"]
-  set version [FindNewestVersion $versions]
-} else {
-  set commit  "00000000"
-  set version "00000000"
-}
+  #The global SHA and ver is the most recent among everything
+  if {$clean == 1} {
+    set commit [Git "log --format=%h -1 $SHAs"]
+    set version [FindNewestVersion $versions]
+  } else {
+    set commit  "00000000"
+    set version "00000000"
+  }
 
-cd $old_path
+  cd $old_path
 
-set top_hash [format %+07s $top_hash]
-set cons_hash [format %+07s $cons_hash]
-return [list $commit $version  $hog_hash $hog_ver  $top_hash $top_ver  $libs $hashes $vers  $cons_ver $cons_hash  $ext_names $ext_hashes  $xml_hash $xml_ver $user_ip_repos $user_ip_repo_hashes $user_ip_repo_vers ]
+  set top_hash [format %+07s $top_hash]
+  set cons_hash [format %+07s $cons_hash]
+  return [list $commit $version  $hog_hash $hog_ver  $top_hash $top_ver  $libs $hashes $vers  $cons_ver $cons_hash  $ext_names $ext_hashes  $xml_hash $xml_ver $user_ip_repos $user_ip_repo_hashes $user_ip_repo_vers ]
 }
 
 
@@ -1411,7 +1415,7 @@ proc CopyXMLsFromListFile {list_file path dst {xml_version "0.0.0"} {xml_sha "00
   set fp [open $list_file r]
   set file_data [read $fp]
   close $fp
-  #  Process data file
+  # Process data file
   set data [split $file_data "\n"]
   set n [llength $data]
   Msg Info "$n lines read from $list_file"
@@ -1419,89 +1423,90 @@ proc CopyXMLsFromListFile {list_file path dst {xml_version "0.0.0"} {xml_sha "00
   set xmls {}
   set vhdls {}
   foreach line $data {
-    if {![regexp {^ *$} $line] & ![regexp {^ *\#} $line] } { #Exclude empty lines and comments
-    set file_and_prop [regexp -all -inline {\S+} $line]
-    set xmlfile "$path/[lindex $file_and_prop 0]"
-    if {[llength $file_and_prop] > 1} {
-      set vhdlfile [lindex $file_and_prop 1]
-      set vhdlfile "$path/$vhdlfile"
-    } else {
-      set vhdlfile 0
-    }
-    if {[file exists $xmlfile]} {
-      set xmlfile [file normalize $xmlfile]
-      Msg Info "Copying $xmlfile to $dst..."
-      set in  [open $xmlfile r]
-      set out [open $dst/[file tail $xmlfile] w]
-
-      while {[gets $in line] != -1} {
-        set new_line [regsub {(.*)__VERSION__(.*)} $line "\\1$xml_version\\2"]
-        set new_line2 [regsub {(.*)__GIT_SHA__(.*)} $new_line "\\1$xml_sha\\2"]
-        puts $out $new_line2
-      }
-      close $in
-      close $out
-      lappend xmls [file tail $xmlfile]
-      if {$vhdlfile == 0 } {
-        lappend vhdls 0
+    if {![regexp {^ *$} $line] & ![regexp {^ *\#} $line] } {
+      # Exclude empty lines and comments
+      set file_and_prop [regexp -all -inline {\S+} $line]
+      set xmlfile "$path/[lindex $file_and_prop 0]"
+      if {[llength $file_and_prop] > 1} {
+        set vhdlfile [lindex $file_and_prop 1]
+        set vhdlfile "$path/$vhdlfile"
       } else {
-        lappend vhdls [file normalize $vhdlfile]
+        set vhdlfile 0
+      }
+      if {[file exists $xmlfile]} {
+        set xmlfile [file normalize $xmlfile]
+        Msg Info "Copying $xmlfile to $dst..."
+        set in  [open $xmlfile r]
+        set out [open $dst/[file tail $xmlfile] w]
+
+        while {[gets $in line] != -1} {
+          set new_line [regsub {(.*)__VERSION__(.*)} $line "\\1$xml_version\\2"]
+          set new_line2 [regsub {(.*)__GIT_SHA__(.*)} $new_line "\\1$xml_sha\\2"]
+          puts $out $new_line2
+        }
+        close $in
+        close $out
+        lappend xmls [file tail $xmlfile]
+        if {$vhdlfile == 0 } {
+          lappend vhdls 0
+        } else {
+          lappend vhdls [file normalize $vhdlfile]
+        }
+
+      } else {
+        Msg Warning "XML file $xmlfile not found"
       }
 
-    } else {
-      Msg Warning "XML file $xmlfile not found"
     }
-
   }
-}
-set cnt [llength $xmls]
-Msg Info "$cnt file/s copied"
+  set cnt [llength $xmls]
+  Msg Info "$cnt file/s copied"
 
-if {$can_generate == 1} {
-  set old_dir [pwd]
-  cd $dst
-  file mkdir "address_decode"
-  cd "address_decode"
-  foreach x $xmls v $vhdls {
-    if {$v != 0} {
-      set x [file normalize ../$x]
-      if {[file exists $x]} {
-        lassign [ExecuteRet gen_ipbus_addr_decode $x 2>&1]  status log
-        if {$status == 0} {
-          set generated_vhdl ./ipbus_decode_[file root [file tail $x]].vhd
-          if {$generate == 1} {
-            Msg Info "Copying generated VHDL file $generated_vhdl into $v (replacing if necessary)"
-            file copy -force -- $generated_vhdl $v
-          } else {
-            if {[file exists $v]} {
-              set diff [CompareVHDL $generated_vhdl $v]
-              if {[llength $diff] > 0} {
-                Msg CriticalWarning "$v does not correspond to its XML $x, [expr $n/3] line/s differ:"
-                Msg Status [join $diff "\n"]
-                set diff_file [open ../diff_[file root [file tail $x]].txt w]
-                puts $diff_file $diff
-                close $diff_file
-              } else {
-                Msg Info "[file tail $x] and $v match."
-              }
+  if {$can_generate == 1} {
+    set old_dir [pwd]
+    cd $dst
+    file mkdir "address_decode"
+    cd "address_decode"
+    foreach x $xmls v $vhdls {
+      if {$v != 0} {
+        set x [file normalize ../$x]
+        if {[file exists $x]} {
+          lassign [ExecuteRet gen_ipbus_addr_decode $x 2>&1]  status log
+          if {$status == 0} {
+            set generated_vhdl ./ipbus_decode_[file root [file tail $x]].vhd
+            if {$generate == 1} {
+              Msg Info "Copying generated VHDL file $generated_vhdl into $v (replacing if necessary)"
+              file copy -force -- $generated_vhdl $v
             } else {
-              Msg Warning "VHDL address map file $v not found."
+              if {[file exists $v]} {
+                set diff [CompareVHDL $generated_vhdl $v]
+                if {[llength $diff] > 0} {
+                  Msg CriticalWarning "$v does not correspond to its XML $x, [expr $n/3] line/s differ:"
+                  Msg Status [join $diff "\n"]
+                  set diff_file [open ../diff_[file root [file tail $x]].txt w]
+                  puts $diff_file $diff
+                  close $diff_file
+                } else {
+                  Msg Info "[file tail $x] and $v match."
+                }
+              } else {
+                Msg Warning "VHDL address map file $v not found."
+              }
             }
+          } else {
+            Msg Warning "Address map generation failed for [file tail $x]: $log"
           }
         } else {
-          Msg Warning "Address map generation failed for [file tail $x]: $log"
+          Msg Warning "Copied XML file $x not found."
         }
       } else {
-        Msg Warning "Copied XML file $x not found."
+        Msg Info "Skipped verification of [file tail $x] as no VHDL file was specified."
       }
-    } else {
-      Msg Info "Skipped verification of [file tail $x] as no VHDL file was specified."
     }
+    cd ..
+    file delete -force address_decode
+    cd $old_dir
   }
-  cd ..
-  file delete -force address_decode
-  cd $old_dir
-}
 }
 
 ## @brief Compare two VHDL files ignoring spaces and comments
@@ -1517,28 +1522,30 @@ proc CompareVHDL {file1 file2} {
 
   while {[gets $a line] != -1} {
     set line [regsub {^[\t\s]*(.*)?\s*} $line "\\1"]
-    if {![regexp {^$} $line] & ![regexp {^--} $line] } { #Exclude empty lines and comments
-    lappend f1 $line
+    if {![regexp {^$} $line] & ![regexp {^--} $line] } {
+      #Exclude empty lines and comments
+      lappend f1 $line
+    }
   }
-}
 
-while {[gets $b line] != -1} {
-  set line [regsub {^[\t\s]*(.*)?\s*} $line "\\1"]
-  if {![regexp {^$} $line] & ![regexp {^--} $line] } { #Exclude empty lines and comments
-  lappend f2 $line
-}
-}
-
-close $a
-close $b
-set diff {}
-foreach x $f1 y $f2 {
-  if {$x != $y} {
-    lappend diff "> $x\n< $y\n\n"
+  while {[gets $b line] != -1} {
+    set line [regsub {^[\t\s]*(.*)?\s*} $line "\\1"]
+    if {![regexp {^$} $line] & ![regexp {^--} $line] } {
+      #Exclude empty lines and comments
+      lappend f2 $line
+    }
   }
-}
 
-return $diff
+  close $a
+  close $b
+  set diff {}
+  foreach x $f1 y $f2 {
+    if {$x != $y} {
+      lappend diff "> $x\n< $y\n\n"
+    }
+  }
+
+  return $diff
 }
 
 ## @brief Returns the dst path relative to base

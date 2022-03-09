@@ -1624,123 +1624,124 @@ proc GetProjectFiles {} {
           Msg CriticalWarning "Top simulation file $simtopfile not found in fileset $fs."
         } else {
           dict lappend properties $simtopfile "topsim=$topsim"
-          if {![string equal "$runtime" "1000ns"]} { #not writing default value
-          dict lappend properties $simtopfile "runtime=$runtime"
+          if {![string equal "$runtime" "1000ns"]} {
+            #not writing default value
+            dict lappend properties $simtopfile "runtime=$runtime"
+          }
+        }
+      }
+
+      foreach simulator [GetSimulators] {
+        set wavefile [get_property "$simulator.simulate.custom_wave_do" [get_filesets $fs]]
+        if {![string equal "$wavefile" ""]} {
+          dict lappend properties $wavefile wavefile
+          break
+        }
+      }
+      foreach simulator [GetSimulators] {
+        set dofile [get_property "$simulator.simulate.custom_udo" [get_filesets $fs]]
+        if {![string equal "$dofile" ""]} {
+          dict lappend properties $dofile dofile
+          break
         }
       }
     }
 
-    foreach simulator [GetSimulators] {
-      set wavefile [get_property "$simulator.simulate.custom_wave_do" [get_filesets $fs]]
-      if {![string equal "$wavefile" ""]} {
-        dict lappend properties $wavefile wavefile
-        break
-      }
-    }
-    foreach simulator [GetSimulators] {
-      set dofile [get_property "$simulator.simulate.custom_udo" [get_filesets $fs]]
-      if {![string equal "$dofile" ""]} {
-        dict lappend properties $dofile dofile
-        break
-      }
-    }
-  }
+    foreach f $all_files {
+      # Ignore files that are part of the vivado/planahead project but would not be reflected
+      # in list files (e.g. generated products from ip cores)
 
-  foreach f $all_files {
-    # Ignore files that are part of the vivado/planahead project but would not be reflected
-    # in list files (e.g. generated products from ip cores)
-
-    set ignore 0
-    # Generated files point to a parent composite file;
-    # planahead does not have an IS_GENERATED property
-    if {-1 != [lsearch -exact [list_property  $f] IS_GENERATED]} {
-      if { [lindex [get_property  IS_GENERATED $f] 0] != 0} {
+      set ignore 0
+      # Generated files point to a parent composite file;
+      # planahead does not have an IS_GENERATED property
+      if {-1 != [lsearch -exact [list_property  $f] IS_GENERATED]} {
+        if { [lindex [get_property  IS_GENERATED $f] 0] != 0} {
+          set ignore 1
+        }
+      }
+      if {-1 != [lsearch -exact [list_property  $f] PARENT_COMPOSITE_FILE]} {
         set ignore 1
       }
-    }
-    if {-1 != [lsearch -exact [list_property  $f] PARENT_COMPOSITE_FILE]} {
-      set ignore 1
-    }
 
-    if {!$ignore} {
-      set f [file normalize $f]
-      lappend files $f
-      set type  [get_property FILE_TYPE $f]
-      set lib [get_property LIBRARY $f]
+      if {!$ignore} {
+        set f [file normalize $f]
+        lappend files $f
+        set type  [get_property FILE_TYPE $f]
+        set lib [get_property LIBRARY $f]
 
 
-      # Type can be complex like VHDL 2008, in that case we want the second part to be a property
-      if {[string equal [lindex $type 0] "VHDL"] && [llength $type] == 1} {
-        set prop "93"
-      } elseif {[string equal [lindex $type 0] "SystemVerilog"] } {
-        set prop "SystemVerilog"
-      } elseif {[string equal $type "Verilog Header"]} {
-        set prop "verilog_header"
-      } elseif  {[string equal [lindex $type 0] "Block"] && [string equal [lindex $type 1] "Designs"]} {
-        set type "IP"
-        set prop ""
-      } else {
-        set type [lindex $type 0]
-        set prop ""
-      }
-
-      #check where the file is used and add it to prop
-      if {[string equal $fs_type "SimulationSrcs"]} {
-        dict lappend SIM $fs $f
-        if {![string equal $prop ""]} {
-          dict lappend properties $f $prop
+        # Type can be complex like VHDL 2008, in that case we want the second part to be a property
+        if {[string equal [lindex $type 0] "VHDL"] && [llength $type] == 1} {
+          set prop "93"
+        } elseif {[string equal [lindex $type 0] "SystemVerilog"] } {
+          set prop "SystemVerilog"
+        } elseif {[string equal $type "Verilog Header"]} {
+          set prop "verilog_header"
+        } elseif  {[string equal [lindex $type 0] "Block"] && [string equal [lindex $type 1] "Designs"]} {
+          set type "IP"
+          set prop ""
+        } else {
+          set type [lindex $type 0]
+          set prop ""
         }
-      } elseif {[string equal $type "VHDL"]} {
-        dict lappend SRC $lib $f
-        if {![string equal $prop ""]} {
-          dict lappend properties $f $prop
-        }
-      } elseif {[string equal $type "Verilog Header"]} {
-        dict lappend libraries "OTHER" $f
-        if {![string equal $prop ""]} {
-          dict lappend properties $f $prop
-        }
-      } elseif {[string equal [lindex $type 0] "SystemVerilog"] } {
-        dict lappend libraries "OTHER" $f
-        if {![string equal $prop ""]} {
-          dict lappend properties $f $prop
-        }
-      } elseif {[string equal $type "IP"]} {
-        dict lappend libraries "IP" $f
-      } elseif {[string equal $fs_type "Constrs"]} {
-        dict lappend libraries "XDC" $f
-      } else {
-        dict lappend libraries "OTHER" $f
-      }
 
-      if {[lindex [get_property -quiet used_in_synthesis  [get_files $f]] 0] == 0} {
-        dict lappend properties $f "nosynth"
-      }
-      if {[lindex [get_property -quiet used_in_implementation  [get_files $f]] 0] == 0} {
-        dict lappend properties $f "noimpl"
-      }
-      if {[lindex [get_property -quiet used_in_simulation  [get_files $f]] 0] == 0} {
-        dict lappend properties $f "nosim"
+        #check where the file is used and add it to prop
+        if {[string equal $fs_type "SimulationSrcs"]} {
+          dict lappend SIM $fs $f
+          if {![string equal $prop ""]} {
+            dict lappend properties $f $prop
+          }
+        } elseif {[string equal $type "VHDL"]} {
+          dict lappend SRC $lib $f
+          if {![string equal $prop ""]} {
+            dict lappend properties $f $prop
+          }
+        } elseif {[string equal $type "Verilog Header"]} {
+          dict lappend libraries "OTHER" $f
+          if {![string equal $prop ""]} {
+            dict lappend properties $f $prop
+          }
+        } elseif {[string equal [lindex $type 0] "SystemVerilog"] } {
+          dict lappend libraries "OTHER" $f
+          if {![string equal $prop ""]} {
+            dict lappend properties $f $prop
+          }
+        } elseif {[string equal $type "IP"]} {
+          dict lappend libraries "IP" $f
+        } elseif {[string equal $fs_type "Constrs"]} {
+          dict lappend libraries "XDC" $f
+        } else {
+          dict lappend libraries "OTHER" $f
+        }
+
+        if {[lindex [get_property -quiet used_in_synthesis  [get_files $f]] 0] == 0} {
+          dict lappend properties $f "nosynth"
+        }
+        if {[lindex [get_property -quiet used_in_implementation  [get_files $f]] 0] == 0} {
+          dict lappend properties $f "noimpl"
+        }
+        if {[lindex [get_property -quiet used_in_simulation  [get_files $f]] 0] == 0} {
+          dict lappend properties $f "nosim"
+        }
+
       }
 
     }
 
+    #    dict for {lib f} $libraries {
+    #   Msg Status "   Library: $lib: \n *******"
+    #   foreach n $f {
+    #       Msg Status "$n"
+    #   }
+    #
+    #   Msg Status "*******"
+    #    }
   }
 
-  #    dict for {lib f} $libraries {
-  #   Msg Status "   Library: $lib: \n *******"
-  #   foreach n $f {
-  #       Msg Status "$n"
-  #   }
-  #
-  #   Msg Status "*******"
-  #    }
-}
-
-dict append libraries "SIM" $SIM
-dict append libraries "SRC" $SRC
-dict lappend properties "Simulator" [get_property target_simulator [current_project]]
-return [list $libraries $properties]
+  dict append libraries "SIM" $SIM
+  dict append libraries "SRC" $SRC
+  dict lappend properties "Simulator" [get_property target_simulator [current_project]]
+  return [list $libraries $properties]
 }
 
 

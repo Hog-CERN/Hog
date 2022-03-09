@@ -93,8 +93,17 @@ if {$static == 1 } {
   Msg Info "Copying $repo_path/Hog/YAML/hog-child.yml to $created_yml..."
   set fp2 [open "$repo_path/Hog/YAML/hog-child.yml" r]
   set file_data [read $fp2]
+  close $fp2
   puts $fp $file_data
   puts $fp "\n"
+  if { [ file exists "$repo_path/hog-ci-user.conf" ] == 1} {
+    Msg Info "Copying $repo_path/hog-ci-user.conf to $created_yml..."
+    set fp3 [open "$repo_path/hog-ci-user.conf" r]
+    set file_data [read $fp3]
+    close $fp3
+    puts $fp $file_data
+    puts $fp "\n"
+  }
 }
 
 set projects_list [SearchHogProjects $repo_path/Top]
@@ -110,34 +119,37 @@ foreach proj $projects_list {
     }
     if { [ file exists "$dir/ci.conf" ] == 1} {
       Msg Info "Foung CI configuration file $dir/ci.conf, reading configuration for $proj..."
-      set cifile [open $dir/ci.conf ]
-      set input [read $cifile]
-      set lines [split $input "\n"]
-      close $cifile
+      set ci_confs [ReadConf $dir/ci.conf]
+      puts $fp [ WriteYAMLStage $proj $ci_confs ]
 
-      # Loop through each line
-      foreach line $lines {
-        if {![regexp {^ *$} $line] & ![regexp {^ *\#} $line] } {
-          set stage_and_prop [regexp -all -inline {\S+} $line]
-          set stage [lindex $stage_and_prop 0]
-          set props [lrange $stage_and_prop 1 end]
+      # set cifile [open $dir/ci.conf ]
+      # set input [read $cifile]
+      # set lines [split $input "\n"]
+      # close $cifile
 
-          if { [lsearch $stage_list $stage] > -1 } {
-            Msg Info "Adding job $stage for project: $proj..."
-            foreach prop $props {
-              if { [lsearch $prop_list $prop] > -1 } {
-                Msg Info "Enabling property $prop for stage $stage of project $proj..."
-              } else {
-                Msg Warning "Proprty $prop is not defined. \n Allowed properties are $prop_list"
-              }
-            }
-            puts $fp [ WriteYAMLStage $stage $proj $props ]
-          } else {
-            Msg Error "Stage $stage in $dir/ci.conf is not defined.\n Allowed stages are $stage_list"
-            exit 1
-          }
-        }
-      }
+      # # Loop through each line
+      # foreach line $lines {
+      #   if {![regexp {^ *$} $line] & ![regexp {^ *\#} $line] } {
+      #     set stage_and_prop [regexp -all -inline {\S+} $line]
+      #     set stage [lindex $stage_and_prop 0]
+      #     set props [lrange $stage_and_prop 1 end]
+
+      #     if { [lsearch $stage_list $stage] > -1 } {
+      #       Msg Info "Adding job $stage for project: $proj..."
+      #       foreach prop $props {
+      #         if { [lsearch $prop_list $prop] > -1 } {
+      #           Msg Info "Enabling property $prop for stage $stage of project $proj..."
+      #         } else {
+      #           Msg Warning "Proprty $prop is not defined. \n Allowed properties are $prop_list"
+      #         }
+      #       }
+      #       puts $fp [ WriteYAMLStage $stage $proj $props ]
+      #     } else {
+      #       Msg Error "Stage $stage in $dir/ci.conf is not defined.\n Allowed stages are $stage_list"
+      #       exit 1
+      #     }
+      #   }
+      # }
     } else {
       Msg Info "No CI configuration file found ($dir/ci.conf) for $proj, creating all jobs..."
       foreach stage $stage_list {

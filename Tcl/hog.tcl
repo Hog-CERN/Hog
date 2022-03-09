@@ -2997,41 +2997,16 @@ proc WriteGitLabCIYAML {proj_name {ci_conf ""}} {
   return [ string trimleft [ yaml::huddle2yaml $out_yaml ] "-" ]
 }
 
-#   set dep_list [huddle list ]
-#   foreach s $stage_list {
-#     if {$s != $stage} {
-#       huddle append dep_list [huddle string "$s:$proj_name"]
-#     } else {
-#       break
-#     }
-#   }
 
-#   set synth_only "0"
-#   if { [lsearch $props "-synth_only"] > -1 } {
-#     set synth_only 1
-#   }
-
-#   set inner [huddle create "PROJECT_NAME" $proj_name "HOG_ONLY_SYNTH" $synth_only "extends" ".vars"]
-
-#   if {[llength $stage_list] > 0} {
-#     set middle [huddle create "extends" ".$stage" "variables" $inner "dependencies" $dep_list]
-#   } else {
-#     set middle [huddle create "extends" ".$stage" "variables" $inner]
-#   }
-#   set outer [huddle create "$stage:$proj_name" $middle ]
-#   return [ string trimleft [ yaml::huddle2yaml $outer ] "-" ]
-# }
-
-
-# proc FindNewestVersion { versions } {
-#   set new_ver 00000000
-#   foreach ver $versions {
-#     if {[ expr 0x$ver > 0x$new_ver ] } {
-#       set new_ver $ver
-#     }
-#   }
-# return $new_ver
-# }
+proc FindNewestVersion { versions } {
+  set new_ver 00000000
+  foreach ver $versions {
+    if {[ expr 0x$ver > 0x$new_ver ] } {
+      set new_ver $ver
+    }
+  }
+  return $new_ver
+}
 
 ## Reset files in the repository
 #

@@ -120,9 +120,9 @@ if {[info commands send_msg_id] != ""} {
     set PART [get_property part [current_project]]
     # only some part families have both usr_access and userid
     if {[string first "xc5v" $PART] != -1 || [string first "xc6v" $PART] != -1 || [string first "xc7" $PART] != -1} {
-      set props  "$props -g usr_access:0x[format %08X $commit] -g userid:0x[format %08X $commit_usr]"
+      set props  "$props -g usr_access:0x[format %08X 0x$commit] -g userid:0x[format %08X 0x$commit_usr]"
     } else {
-      set props  "$props -g userid:0x[format %08X $commit_usr]"
+      set props  "$props -g userid:0x[format %08X 0x$commit_usr]"
     }
     set_property -name {steps.bitgen.args.More Options} -value $props -objects [get_runs impl_1]
   } else {

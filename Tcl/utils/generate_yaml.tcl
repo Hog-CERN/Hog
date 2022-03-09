@@ -26,7 +26,7 @@ if {[catch {package require cmdline} ERROR]} {
 
 set parameters {
   {runall  "If set, it will generate a gitlab-ci yml file for all projects in the Top folder, even if it has not been modified with respect to the target branch."}
-  {static "Normally the content of the hog-child.yml file is added at the beginning of the generated yml file. If thi flag is set, this will not be done."}
+  {static "Normally the content of the hog-child.yml file is added at the beginning of the generated yml file. If this flag is set, this will not be done."}
   {external_path.arg "" "Path for external files not stored in the git repository."}
 }
 
@@ -96,9 +96,9 @@ if {$static == 1 } {
   close $fp2
   puts $fp $file_data
   puts $fp "\n"
-  if { [ file exists "$repo_path/hog-ci-user.conf" ] == 1} {
-    Msg Info "Copying $repo_path/hog-ci-user.conf to $created_yml..."
-    set fp3 [open "$repo_path/hog-ci-user.conf" r]
+  if { [ file exists "$repo_path/hog-ci-users.yml" ] == 1} {
+    Msg Info "Copying $repo_path/hog-ci-users.yml to $created_yml..."
+    set fp3 [open "$repo_path/hog-ci-users.yml" r]
     set file_data [read $fp3]
     close $fp3
     puts $fp $file_data
@@ -112,49 +112,33 @@ foreach proj $projects_list {
   set proj_name [file tail $proj]
   set dir $repo_path/Top/$proj
   set ver [ GetProjectVersion $dir $repo_path $ext_path 1 ]
+  set no_ver_check 0
 
-  if {$ver == 0 || $ver == -1 || $runall == 1} {
-    if {$runall == 0} {
+  if { [ file exists "$dir/ci.conf" ] == 1} {
+    Msg Info "Foung CI configuration file $dir/ci.conf, reading configuration for $proj..."
+    set ci_confs [ReadConf $dir/ci.conf]
+    set f [open $dir/ci.conf "r"]
+    set line [gets $f]
+    close $f
+    if {[string first "NO_VER_CHECK" $line]} {
+      set no_ver_check 1
+    }
+  }
+
+  if {$ver == 0 || $ver == -1 || $runall == 1 || $no_ver_check == 1} {
+    if {$runall == 0 && $no_ver_check == 0} {
       Msg Info "$proj was modified, adding it to CI..."
+    } else {
+      Msg Info "$proj is set to always run, adding it to CI..."
     }
     if { [ file exists "$dir/ci.conf" ] == 1} {
       Msg Info "Foung CI configuration file $dir/ci.conf, reading configuration for $proj..."
-      set ci_confs [ReadConf $dir/ci.conf]
-      puts $fp [ WriteYAMLStage $proj $ci_confs ]
-
-      # set cifile [open $dir/ci.conf ]
-      # set input [read $cifile]
-      # set lines [split $input "\n"]
-      # close $cifile
-
-      # # Loop through each line
-      # foreach line $lines {
-      #   if {![regexp {^ *$} $line] & ![regexp {^ *\#} $line] } {
-      #     set stage_and_prop [regexp -all -inline {\S+} $line]
-      #     set stage [lindex $stage_and_prop 0]
-      #     set props [lrange $stage_and_prop 1 end]
-
-      #     if { [lsearch $stage_list $stage] > -1 } {
-      #       Msg Info "Adding job $stage for project: $proj..."
-      #       foreach prop $props {
-      #         if { [lsearch $prop_list $prop] > -1 } {
-      #           Msg Info "Enabling property $prop for stage $stage of project $proj..."
-      #         } else {
-      #           Msg Warning "Proprty $prop is not defined. \n Allowed properties are $prop_list"
-      #         }
-      #       }
-      #       puts $fp [ WriteYAMLStage $stage $proj $props ]
-      #     } else {
-      #       Msg Error "Stage $stage in $dir/ci.conf is not defined.\n Allowed stages are $stage_list"
-      #       exit 1
-      #     }
-      #   }
-      # }
+      puts $fp [ WriteGitLabCIYAML $proj $dir/ci.conf ]
     } else {
       Msg Info "No CI configuration file found ($dir/ci.conf) for $proj, creating all jobs..."
       foreach stage $stage_list {
         Msg Info "Adding job $stage for project: $proj..."
-        puts $fp [ WriteYAMLStage $stage $proj ]
+        puts $fp [ WriteGitLabCIYAML $proj ]
       }
     }
   } else {

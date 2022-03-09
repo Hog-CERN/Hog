@@ -2923,25 +2923,50 @@ proc GetMaxThreads {proj_dir} {
 # @param[in] proj_name:   The project name
 # @param[in] ci_confs:    Dictionary with CI configurations
 #
-proc WriteYAMLStage {proj_name ci_confs} {
+proc WriteGitLabCIYAML {proj_name {ci_conf ""}} {
   if { [catch {package require yaml 0.3.3} YAMLPACKAGE]} {
     Msg CriticalWarning "Cannot find package YAML.\n Error message: $YAMLPACKAGE. If you are tunning on tclsh, you can fix this by installing package \"tcllib\""
     return -1
   }
 
   set job_list []
-  foreach sec [dict keys $ci_confs] {
-    if {[string first : $sec] == -1} {
-      lappend job_list $sec
+  if {$ci_conf != ""} {
+    set ci_confs [ReadConf $ci_conf]
+    foreach sec [dict keys $ci_confs] {
+      if {[string first : $sec] == -1} {
+        lappend job_list $sec
+      }
     }
+  } else {
+    set job_list {"generate_project" "simulate_project"}
+    set ci_confs ""
   }
-  puts $job_list
 
+  set out_yaml [huddle create]
   foreach job $job_list {
-    set dep_list [huddle list ]
-    huddle append dep_list [huddle string "$job:$proj_name"]
+    # Check main project configurations
+    set huddle_tags [huddle list]
+    set tag_section ""
+    set sec_dict [dict create]
+
+    if {$ci_confs != ""} {
+      foreach var [dict keys [dict get $ci_confs $job]] {
+        if {$var == "tags"} {
+          set tag_section "tags"
+          set tags [dict get [dict get $ci_confs $job] $var]
+          set tags [split $tags ","]
+          foreach tag $tags {
+            set tag_list [huddle list $tag]
+            set huddle_tags [huddle combine $huddle_tags $tag_list]
+          }
+        } else {
+          dict set sec_dict $var [dict get [dict get $ci_confs $job] $var]
+        }
+      }
+    }
+
     # Check if there are extra variables in the conf file
-    set inner [huddle create "PROJECT_NAME" $proj_name "extends" ".vars"]
+    set huddle_variables [huddle create "PROJECT_NAME" $proj_name "extends" ".vars"]
     if {[dict exists $ci_confs "$job:variables"]} {
       # puts "here"
       set var_dict [dict get $ci_confs $job:variables]
@@ -2949,15 +2974,27 @@ proc WriteYAMLStage {proj_name ci_confs} {
         # puts [dict get $var_dict $var]
         set value [dict get $var_dict "$var"]
         set var_inner [huddle create "$var" "$value"]
-        set inner [huddle combine $inner $var_inner]
+        set huddle_variables [huddle combine $huddle_variables $var_inner]
       }
     }
-    set middle [huddle create "extends" ".$job" "variables" $inner]
+
+
+    set middle [huddle create "extends" ".$job" "variables" $huddle_variables]
+    foreach sec [dict keys $sec_dict] {
+      set value [dict get $sec_dict $sec]
+      set var_inner [huddle create "$sec" "$value"]
+      set middle [huddle combine $middle $var_inner]
+    }
+    if {$tag_section != ""} {
+      set middle2 [huddle create "$tag_section" $huddle_tags]
+      set middle [huddle combine $middle $middle2]
+    }
+
     set outer [huddle create "$job:$proj_name" $middle ]
-    puts [ string trimleft [ yaml::huddle2yaml $outer ] "-" ]
+    set out_yaml [huddle combine $out_yaml $outer]
   }
 
-
+  return [ string trimleft [ yaml::huddle2yaml $out_yaml ] "-" ]
 }
 
 #   set dep_list [huddle list ]

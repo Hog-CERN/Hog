@@ -309,11 +309,11 @@ if {$do_implementation == 1 } {
 
     if {$errs == 0} {
       Msg Info "Time requirements are met"
-      file rename "$main_folder/timing.txt" "$main_folder/timing_ok.txt"
+      file rename -force "$main_folder/timing.txt" "$main_folder/timing_ok.txt"
       set timing_ok 1
     } else {
       Msg CriticalWarning "Time requirements are NOT met"
-      file rename "$main_folder/timing.txt" "$main_folder/timing_error.txt"
+      file rename -force "$main_folder/timing.txt" "$main_folder/timing_error.txt"
       set timing_ok 0
     }
 

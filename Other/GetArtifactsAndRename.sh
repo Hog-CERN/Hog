@@ -61,8 +61,19 @@ else
             PRJ_BINS=("$(ls "$PRJ_DIR"/"${PRJ_BASE}"*)")
             echo "Hog-INFO: Found project $PRJ_NAME"
             for PRJ_BIN in ${PRJ_BINS[@]}; do
-                EXT="${PRJ_BIN##*.}"
-                DST=$PRJ_DIR/${PRJ_NAME_BASE}-$TAG.$EXT
+                regex="($PRJ_NAME_BASE)-(.*v[0-9]+\.[0-9]+\.[0-9]+-[0-9]+)-(g[0-9,a-f,A-F]{7})(-dirty)?(.+)"
+                if [[ $PRJ_BIN =~ $regex ]]
+                then
+                    re_proj="${BASH_REMATCH[1]}"
+                    re_ver="${BASH_REMATCH[2]}"
+                    re_hash="${BASH_REMATCH[3]}"
+                    re_dirty="${BASH_REMATCH[4]}"
+                    re_suffix="${BASH_REMATCH[5]}"
+                    EXT=$re_suffix
+                else
+                    EXT=".${PRJ_BIN##*.}"
+                fi
+                DST=$PRJ_DIR/${PRJ_NAME_BASE}-$TAG$EXT
                 echo "Hog-INFO: renaming file $PRJ_BIN --> $DST"
                 mv "$PRJ_BIN" "$DST"
             done

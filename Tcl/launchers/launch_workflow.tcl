@@ -230,7 +230,7 @@ if {$do_synthesis == 1} {
   cd $path/../..
 
   lassign [GetRepoVersions [file normalize ./Top/$project_name] $repo_path $ext_path ] sha
-  set describe [GetGitDescribe $sha]
+  set describe [GetHogDescribe $sha]
   Msg Info "Git describe set to $describe"
 
   foreach ip $ips {
@@ -406,7 +406,7 @@ if {$do_implementation == 1 } {
   cd $repo_path
 
   lassign [GetRepoVersions [file normalize ./Top/$project_name] $repo_path] sha
-  set describe [GetGitDescribe $sha]
+  set describe [GetHogDescribe $sha]
   Msg Info "Git describe set to $describe"
 
   set dst_dir [file normalize "$bin_dir/$project_name\-$describe"]

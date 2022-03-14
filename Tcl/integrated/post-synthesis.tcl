@@ -91,7 +91,7 @@ puts "group $group_name"
 Msg Info "Evaluating Git sha for $proj_name..."
 lassign [GetRepoVersions [file normalize ./Top/$group_name/$proj_name] $repo_path] sha
 
-set describe [GetGitDescribe $sha]
+set describe [GetHogDescribe $sha]
 Msg Info "Git describe set to: $describe"
 set dst_dir [file normalize "$bin_dir/$group_name/$proj_name\-$describe"]
 

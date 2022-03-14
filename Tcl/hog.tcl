@@ -934,7 +934,7 @@ proc GetHogDescribe {sha} {
   if {$sha == 0 } {
     set describe [Git {describe --always --dirty --tags --long}]
   } else {
-    set describe "[HexVersionToString [GetVerFromSHA $sha]]-g$sha"
+    set describe "v[HexVersionToString [GetVerFromSHA $sha]]-hog$sha"
   }
   return $describe
 }

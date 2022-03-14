@@ -61,7 +61,7 @@ else
             PRJ_BINS=("$(ls "$PRJ_DIR"/"${PRJ_BASE}"*)")
             echo "Hog-INFO: Found project $PRJ_NAME"
             for PRJ_BIN in ${PRJ_BINS[@]}; do
-                regex="($PRJ_NAME_BASE)-(.*v[0-9]+\.[0-9]+\.[0-9]+-[0-9]+)-(g[0-9,a-f,A-F]{7})(-dirty)?(.+)"
+                regex="($PRJ_NAME_BASE)-(.*v[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9]+)?)-((?:ho)?g[0-9,a-f,A-F]{7})(-dirty)?(.+)"
                 if [[ $PRJ_BIN =~ $regex ]]
                 then
                     re_proj="${BASH_REMATCH[1]}"

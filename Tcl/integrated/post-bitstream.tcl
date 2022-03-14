@@ -105,7 +105,7 @@ if {[info commands get_property] != "" && [file exists $bit_file]} {
   Msg Info "Evaluating Git sha for $proj_name..."
   lassign [GetRepoVersions [file normalize ./Top/$group_name/$proj_name] $repo_path] sha
 
-  set describe [GetGitDescribe $sha]
+  set describe [GetHogDescribe $sha]
   Msg Info "Git describe set to: $describe"
 
   set ts [clock format [clock seconds] -format {%Y-%m-%d-%H-%M}]
@@ -149,7 +149,7 @@ if {[info commands get_property] != "" && [file exists $bit_file]} {
   puts "$repo_path repo_path"
   lassign [GetRepoVersions "$repo_path/Top/$group_name/$name" "$repo_path"] sha
 
-  set describe [GetGitDescribe $sha]
+  set describe [GetHogDescribe $sha]
   Msg Info "Git describe set to: $describe"
 
   set ts [clock format [clock seconds] -format {%Y-%m-%d-%H-%M}]
@@ -175,7 +175,7 @@ if {[info commands get_property] != "" && [file exists $bit_file]} {
     set fp [open "$dst_dir/diff_postbistream.txt" w+]
     puts $fp "$diff"
     close $fp
-  } 
+  }
 
   if {$found_uncommitted == 0} {
     Msg Info "No uncommitted changes found."
@@ -250,37 +250,37 @@ if [file exists $xml_dir] {
 # Zynq XSA Export
 if {[info commands get_property] != ""} { # Vivado
 
-    # automatically export for zynqs (checking via regex)
-  set export_xsa false
-  set part [get_property part [current_project]]
-  set is_zynq [expr \
-                     [regexp {xc7z.*} $part] || \
-                     [regexp {xczu.*} $part]]
-  if {${is_zynq} == 1} {
-    set export_xsa true
-  }
+# automatically export for zynqs (checking via regex)
+set export_xsa false
+set part [get_property part [current_project]]
+set is_zynq [expr \
+  [regexp {xc7z.*} $part] || \
+  [regexp {xczu.*} $part]]
+if {${is_zynq} == 1} {
+  set export_xsa true
+}
 
-    # check for explicit EXPORT_XSA flag in hog.conf
-  set properties [ReadConf [lindex [GetConfFiles $repo_path/Top/$group_name/$proj_name] 0]]
-  if {[dict exists $properties "hog"]} {
-    set propDict [dict get $properties "hog"]
-    if {[dict exists $propDict "EXPORT_XSA"]} {
-      set export_xsa [dict get $propDict "EXPORT_XSA"]
-    }
+# check for explicit EXPORT_XSA flag in hog.conf
+set properties [ReadConf [lindex [GetConfFiles $repo_path/Top/$group_name/$proj_name] 0]]
+if {[dict exists $properties "hog"]} {
+  set propDict [dict get $properties "hog"]
+  if {[dict exists $propDict "EXPORT_XSA"]} {
+    set export_xsa [dict get $propDict "EXPORT_XSA"]
   }
+}
 
-  if {[string compare [string tolower $export_xsa] "true"]==0} {
-        # there is a bug in Vivado 2020.1, check for that version and warn
-        # that we can't export XSAs
-    regexp -- {Vivado v([0-9]{4}\.[0-9,A-z,_,\.]*) } [version] -> VIVADO_VERSION
-    if {[string compare "2020.1" $VIVADO_VERSION]==0} {
-      Msg Warning "Vivado 2020.1, a patch must be applied to Vivado to export XSA Files, c.f. https://www.xilinx.com/support/answers/75210.html"
-    } else {
-      set dst_xsa [file normalize "$dst_dir/${proj_name}\-$describe.xsa"]
-      Msg Info "Generating XSA File at $dst_xsa"
-      write_hw_platform -fixed -force -include_bit -file "$dst_xsa"
-    }
+if {[string compare [string tolower $export_xsa] "true"]==0} {
+  # there is a bug in Vivado 2020.1, check for that version and warn
+  # that we can't export XSAs
+  regexp -- {Vivado v([0-9]{4}\.[0-9,A-z,_,\.]*) } [version] -> VIVADO_VERSION
+  if {[string compare "2020.1" $VIVADO_VERSION]==0} {
+    Msg Warning "Vivado 2020.1, a patch must be applied to Vivado to export XSA Files, c.f. https://www.xilinx.com/support/answers/75210.html"
+  } else {
+    set dst_xsa [file normalize "$dst_dir/${proj_name}\-$describe.xsa"]
+    Msg Info "Generating XSA File at $dst_xsa"
+    write_hw_platform -fixed -force -include_bit -file "$dst_xsa"
   }
+}
 }
 
 # Run user post-bitstream file

@@ -57,7 +57,7 @@ set group_name [GetGroupName $proj_dir]
 Msg Info "Evaluating Git sha for $proj_name..."
 lassign [GetRepoVersions [file normalize ./Top/$group_name/$proj_name] $repo_path] sha
 
-set describe [GetGitDescribe $sha]
+set describe [GetHogDescribe $sha]
 Msg Info "Git describe set to: $describe"
 
 set ts [clock format [clock seconds] -format {%Y-%m-%d-%H-%M}]
@@ -80,10 +80,10 @@ if {[file exists $dst_dir/diff_presynthesis.txt]} {
     Msg CriticalWarning "Git working directory [pwd] not clean, git commit hash be set to 0."
     set commit_usr  "0000000"
     set commit   "0000000"
-  } else { 
+  } else {
     lassign [GetRepoVersions [file normalize ./Top/$group_name/$proj_name] $repo_path ] commit version
   }
-} else { 
+} else {
   lassign [GetRepoVersions [file normalize ./Top/$group_name/$proj_name] $repo_path ] commit version
 }
 
@@ -105,7 +105,7 @@ if {[file exists $dst_dir/diff_list_and_conf.txt]} {
     Msg CriticalWarning "List files and project properties not clean, git commit hash be set to 0."
     set commit_usr  "0000000"
     set commit   "0000000"
-  } 
+  }
 }
 
 Msg Info "The git SHA value $commit will be set as bitstream USERID."
@@ -149,7 +149,7 @@ if {[info commands get_property] != ""} {
   Msg Info "Evaluating Git sha for $proj_name..."
   lassign [GetRepoVersions [file normalize ./Top/$group_name/$proj_name] $repo_path] sha
 
-  set describe [GetGitDescribe $sha]
+  set describe [GetHogDescribe $sha]
   Msg Info "Git describe set to: $describe"
 
   set ts [clock format [clock seconds] -format {%Y-%m-%d-%H-%M}]
@@ -181,7 +181,7 @@ if {[info commands get_property] != ""} {
     set fp [open "$dst_dir/diff_postimplementation.txt" w+]
     puts $fp "$diff"
     close $fp
-  } 
+  }
 
   if {$found_uncommitted == 0} {
     Msg Info "No uncommitted changes found."
@@ -203,7 +203,7 @@ if {[info commands get_property] != ""} {
         WriteUtilizationSummary $report_file $utilization_file $group_name/$proj_name "Implementation"
       } else {
         WriteUtilizationSummary $report_file $utilization_file $proj_name "Implementation"
-      }    
+      }
     }
   } else {
     Msg Warning "No reports found in $run_dir subfolders"

@@ -70,7 +70,6 @@ proc CreateProject {} {
 
     create_project -force [file tail $globalSettings::DESIGN] $globalSettings::build_dir -part $globalSettings::PART
 
-    ConfigureProperties
 
     ## Set project properties
     set obj [get_projects [file tail $globalSettings::DESIGN] ]
@@ -88,6 +87,9 @@ proc CreateProject {} {
       set_param project.enableVHDL2008 1
       set_property "enable_vhdl_2008" 1 $obj
     }
+
+    ConfigureProperties
+
 
   } elseif {[info commands project_new] != ""} {
     package require ::quartus::project
@@ -502,9 +504,9 @@ proc ConfigureProperties {} {
               set prop [dict get $run_props $s]
               set_property $s $prop $run
               set run_props [dict remove $run_props $s]
-              Msg Warning "A strategy for run $run has been defined inside hog.conf. This prevents Hog to compare the project properties. Please regenerate your hog.conf file using the dedicated Hog button." 
+              Msg Warning "A strategy for run $run has been defined inside hog.conf. This prevents Hog to compare the project properties. Please regenerate your hog.conf file using the dedicated Hog button."
               Msg Info "Setting $s = $prop"
-            }  
+            }
           }
 
           dict for {prop_name prop_val} $run_props {
@@ -606,7 +608,7 @@ if { $::argc eq 0 && ![info exist DESIGN]} {
     Msg Info [cmdline::usage $parameters $usage]
     exit 1
   }
-  if { ![info exist DESIGN] || $DESIGN eq "" } { 
+  if { ![info exist DESIGN] || $DESIGN eq "" } {
     if { [lindex $argv 0] eq "" } {
       Msg Error "Variable DESIGN not set!"
       Msg Info [cmdline::usage $parameters $usage]
@@ -623,7 +625,7 @@ if { $::argc eq 0 && ![info exist DESIGN]} {
     Msg Info [cmdline::usage $parameters $usage]
     exit 1
   }
-  if { ![info exist DESIGN] || $DESIGN eq "" } { 
+  if { ![info exist DESIGN] || $DESIGN eq "" } {
     if { [lindex $quartus(args) 0] eq "" } {
       Msg Error "Variable DESIGN not set!"
       Msg Info [cmdline::usage $parameters $usage]
@@ -674,10 +676,10 @@ if {[file exists $conf_file]} {
 
   #Checking Vivado/Quartus/ISE version
   set actual_version [GetIDEVersion]
-  lassign [GetIDEFromConf $conf_file] ide conf_version 
-  if {$conf_version != "0.0.0"} { 
-    
-  
+  lassign [GetIDEFromConf $conf_file] ide conf_version
+  if {$conf_version != "0.0.0"} {
+
+
     set a_v [split $actual_version "."]
     set c_v [split $conf_version "."]
     if {[llength $a_v] > 3 || [llength $a_v] < 2} {
@@ -690,7 +692,7 @@ if {[file exists $conf_file]} {
     } elseif {[llength $c_v] == 2} {
       lappend c_v 0
     }
-    
+
     set comp [CompareVersion $a_v $c_v]
     if {$comp == 0} {
       Msg Info "Project version and $ide version match: $conf_version."
@@ -699,9 +701,9 @@ if {[file exists $conf_file]} {
     } else {
       Msg Error "The $ide version in use is $actual_version, that is older than $conf_version as specified in $conf_file. The project will not be created.\nIf you absolutely want to create this project that was meant for version $conf_version with $ide version $actual_version, you can change the version from the first line of $conf_file.\nThis is HIGLY discouraged as there could be unrecognised properties in the configuration file and IPs created with a newer $ide version cannot be downgraded."
     }
-} else {
+  } else {
     Msg CriticalWarning "No version found in the first line of $conf_file. It is HIGLY recommended to replace the first line of $conf_file with: \#$ide $actual_version"
-}
+  }
   if {[dict exists $PROPERTIES main]} {
     set main [dict get $PROPERTIES main]
     dict for {p v} $main {
@@ -712,7 +714,7 @@ if {[file exists $conf_file]} {
   } else {
     Msg Error "No main section found in $conf_file, make sure it has a section called \[main\] containing the mandatory properties."
   }
-  
+
   if {[file exists $sim_file]} {
     Msg Info "Parsing simulation configuration file $sim_file..."
     set SIM_PROPERTIES [ReadConf $sim_file]
@@ -828,7 +830,7 @@ if {[info commands get_property] != ""} {
 
 
   lassign [GetDateAndTime $commit] date timee
-  [WriteGenerics $date $timee $commit $version $top_hash $top_ver $hog_hash $hog_ver $cons_ver $cons_hash $libs $vers $hashes $ext_names $ext_hashes $user_ip_repos $user_ip_vers $user_ip_hashes $flavour $xml_ver $xml_hash ] 
+  [WriteGenerics $date $timee $commit $version $top_hash $top_ver $hog_hash $hog_ver $cons_ver $cons_hash $libs $vers $hashes $ext_names $ext_hashes $user_ip_repos $user_ip_vers $user_ip_hashes $flavour $xml_ver $xml_hash ]
   cd $old_path
 }
 

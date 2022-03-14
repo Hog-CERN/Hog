@@ -930,14 +930,14 @@ proc GetProjectVersion {proj_dir repo_path {ext_path ""} {sim 0}} {
 #
 #  @return            the git describe of the sha or the current one if the sha is 0
 #
-proc GetGitDescribe {sha} {
+proc GetHogDescribe {sha} {
   if {$sha == 0 } {
     set describe [Git {describe --always --dirty --tags --long}]
   } else {
-    set describe [Git "describe --always --tags --long $sha"]
+    set describe "[HexVersionToString [GetVerFromSHA $sha]]-g$sha"
   }
+  return $describe
 }
-
 
 
 ## Get submodule of a specific file. Returns an empty string if the file is not in a submodule

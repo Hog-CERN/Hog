@@ -924,11 +924,11 @@ proc GetProjectVersion {proj_dir repo_path {ext_path ""} {sim 0}} {
 }
 
 
-## Get git describe of a specific SHA
+## Get custom Hog describe of a specific SHA
 #
 #  @param[in] sha     the git sha of the commit you want to calculate the describe of
 #
-#  @return            the git describe of the sha or the current one if the sha is 0
+#  @return            the Hog describe of the sha or the current one if the sha is 0
 #
 proc GetHogDescribe {sha} {
   if {$sha == 0 } {

@@ -53,7 +53,6 @@ else
         PRJ_BITS=$(find . -iname "versions.txt")
 
         for PRJ_BIT in ${PRJ_BITS}; do
-            echo $PRJ_BIT
             PRJ_DIR=$(dirname "$PRJ_BIT")
             PRJ_BASE=$(basename $PRJ_DIR)
             PRJ_NAME="${PRJ_DIR%.*}"

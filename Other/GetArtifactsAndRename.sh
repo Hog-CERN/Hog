@@ -40,7 +40,7 @@ else
     echo "Hog-INFO: unzipping artifacts from $5 job..."
     unzip output.zip
     if [ "$job" != "$5" ]; then
-        unzip -vo output1.zip
+        unzip -o output1.zip
         rm output1.zip
     fi
 

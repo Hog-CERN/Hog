@@ -47,12 +47,11 @@ set page 1
 
 
 if {"$options(parent_pipeline_id)" == ""} {
-  set curl_url "${api}/projects/${proj_id}/jobs/?page=${page}"
+  set curl_url ${api}/projects/$proj_id/jobs/?page=1
 } else {
   set curl_url "${api}/projects/${proj_id}/pipelines/${parent_pipeline_id}/jobs/?page=${page}"
 }
-
-lassign [ExecuteRet curl -s --request GET --header \"PRIVATE-TOKEN: ${push_token}\" $curl_url] ret msg
+lassign [ExecuteRet curl --request GET --header "PRIVATE-TOKEN: ${push_token}" $curl_url] ret msg
 if {$ret != 0} {
   Msg Error "Some problem when getting parent pipeline: $msg"
   return -1
@@ -63,9 +62,10 @@ if {$ret != 0} {
     return -1
   }
 
-
+  puts $msg
   set ChildList [json::json2dict $msg]
   foreach Child $ChildList {
+    puts "Child is $Child"
     set result [catch {dict get  $Child "id"} child_job_id]
     if {"$result" != "0" || $child_job_id < $create_job_id} {
       continue

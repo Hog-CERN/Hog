@@ -55,9 +55,6 @@ collect_artifacts:
   image: gitlab-registry.cern.ch/hog/hog-docker:tclsh
   stage: collect
   script:
-    - git status
-    - git submodule init
-    - git submodule update Hog
     - if [ ! -f .env ]; then
         echo "You must save a .env file as an upstream artifact containing the Child Pipeline Creator's Job ID as CREATE_JOB_ID";
         exit 1;

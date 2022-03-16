@@ -32,15 +32,18 @@ else
 
     # GET all artifacts from user_post stage
     pipeline=$(curl --globoff --header "PRIVATE-TOKEN: ${push_token}" "$api/projects/${proj}/merge_requests/$mr/pipelines" | jq '.[0].id')
-    job=$(curl --globoff --header "PRIVATE-TOKEN: ${push_token}" "$api/projects/${proj}/pipelines/${pipeline}/jobs" | jq -r '.[-1].name')
+    
+    job=$(curl --globoff --header "PRIVATE-TOKEN: ${push_token}" "$api/projects/${proj}/pipelines/${pipeline}/jobs" | jq -r '.[0].name')
+    
     if [ "$job" != "$5" ]; then
         curl --location --header "PRIVATE-TOKEN: ${push_token}" "$api"/projects/"${proj}"/jobs/artifacts/"$ref"/download?job="$job" -o output1.zip
     fi
 
     echo "Hog-INFO: unzipping artifacts from $5 job..."
-    unzip output.zip
+    unzip -oq output.zip
     if [ "$job" != "$5" ]; then
-        unzip -o output1.zip
+        echo "Hog-INFO: unzipping artifacts from $job job..."
+        unzip -oq output1.zip
         rm output1.zip
     fi
 
@@ -50,32 +53,21 @@ else
         PRJ_BITS=$(find . -iname "versions.txt")
 
         for PRJ_BIT in ${PRJ_BITS}; do
+            echo $PRJ_BIT
             PRJ_DIR=$(dirname "$PRJ_BIT")
             PRJ_BASE=$(basename $PRJ_DIR)
             PRJ_NAME="${PRJ_DIR%.*}"
             PRJ_NAME="${PRJ_NAME%-*}"
             PRJ_NAME_BASE=$(basename $PRJ_NAME)
-	    
-	    # This regex is used for the project BITs and for the project BINs
-	    regex="($PRJ_NAME_BASE)-(.*v[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9]+)?)-((?:ho)?g[0-9,a-f,A-F]{7})(-dirty)?(.+)"
-            if [[ $PRJ_BIT =~ $regex ]]
-            then
-		re_proj="${BASH_REMATCH[1]}"
-		re_ver="${BASH_REMATCH[2]}"
-		re_hash="${BASH_REMATCH[3]}"
-		re_dirty="${BASH_REMATCH[4]}"
-		re_suffix="${BASH_REMATCH[5]}"
-	    else
-		echo "Hog-WARNING: could not parse $PRJ_BIT using 0000000 as SHA"
-		re_hash="0000000"
-	    fi
-	    PRJ_SHA=$re_hash
-
-	    TAG=$(git tag --sort=creatordate --contain "$PRJ_SHA" -l "v*.*.*" | head -1)
+            PRJ_SHA="${PRJ_DIR##*-hog}"
+            PRJ_SHA=$(echo $PRJ_SHA | sed -e 's/-dirty$//')
+            echo $PRJ_SHA
+	        TAG=$(git tag --sort=creatordate --contain "$PRJ_SHA" -l "v*.*.*" | head -1)
             PRJ_BINS=("$(ls "$PRJ_DIR"/"${PRJ_BASE}"*)")
             echo "Hog-INFO: Found project $PRJ_NAME"
             for PRJ_BIN in ${PRJ_BINS[@]}; do
-            
+                regex="($PRJ_NAME_BASE)-(.*v[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9]+)?)-((?:ho)?g[0-9,a-f,A-F]{7})(-dirty)?(.+)"
+
                 if [[ $PRJ_BIN =~ $regex ]]
                 then
                     re_proj="${BASH_REMATCH[1]}"

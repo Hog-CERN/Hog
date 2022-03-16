@@ -92,7 +92,7 @@ if {$ret != 0} {
     foreach artifact $artifact_list {
       set result [catch {dict get $artifact "file_type"} file_type]
       if {"$result" != "0"} {
-        Msg CriticalWarning "Problem when reading artifact for child process $child_job_id"
+        Msg CriticalWarning "Problem when reading artifact for child process $job_name"
         continue
       }
       if {"$file_type" == "archive"} {
@@ -100,7 +100,7 @@ if {$ret != 0} {
       }
     }
     if {$withArchive == "0"} {
-      Msg Info "No archive artifacts found for child job $child_job_id, ignoring it\n"
+      Msg Info "No archive artifacts found for child job $job_name, ignoring it\n"
       continue
     }
 

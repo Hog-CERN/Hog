@@ -61,7 +61,6 @@ else
             PRJ_NAME_BASE=$(basename $PRJ_NAME)
             PRJ_SHA="${PRJ_DIR##*-hog}"
             PRJ_SHA=$(echo $PRJ_SHA | sed -e 's/-dirty$//')
-            echo $PRJ_SHA
 	        TAG=$(git tag --sort=creatordate --contain "$PRJ_SHA" -l "v*.*.*" | head -1)
             PRJ_BINS=("$(ls "$PRJ_DIR"/"${PRJ_BASE}"*)")
             echo "Hog-INFO: Found project $PRJ_NAME"

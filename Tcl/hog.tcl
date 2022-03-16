@@ -932,10 +932,14 @@ proc GetProjectVersion {proj_dir repo_path {ext_path ""} {sim 0}} {
 #
 proc GetHogDescribe {sha} {
   if {$sha == 0 } {
-    set describe [Git {describe --always --dirty --tags --long}]
+    # in case the repo is dirty, we use the last commited sha and add a -dirty suffix
+    set new_sha "[Git {log -1 --format=%h}]"
+    set suffix "-dirty"
   } else {
-    set describe "v[HexVersionToString [GetVerFromSHA $sha]]-hog$sha"
+    set new_sha $sha
+    set suffix ""
   }
+  set describe "v[HexVersionToString [GetVerFromSHA $new_sha]]-hog$new_sha$suffix"
   return $describe
 }
 

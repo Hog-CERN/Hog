@@ -128,6 +128,7 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
   Msg Info "Checking $project_name list files..."
   # Get project libraries and propertiers from Vivado
   lassign [GetProjectFiles] prjLibraries prjProperties
+  Msg Info "Retrieved Vivado project files..."
   # Get project libraries and properties from list files
   lassign [GetHogFiles -ext_path "$ext_path" -repo_path $repo_path "$repo_path/Top/$group_name/$project_name/list/"] listLibraries listProperties listMain
   # Get files generated at creation time
@@ -197,7 +198,7 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
           dict lappend newListfiles $key [string trim "[RelativeLocal $repo_path $XDC] [DictGet $prjProperties $XDC]"]
         }
       }
-    } elseif {[file extension $key] == ".sim" && $options(recreate)} {
+    } elseif {[file extension $key] == ".sim" && $options(recreate) == 1 } {
       if {[dict exists $prjSimDict "[file rootname $key]_sim"]} {
         set prjSIMs [DictGet $prjSimDict "[file rootname $key]_sim"]
         # loop over list files associated with this simset
@@ -226,7 +227,7 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
           }
         }
       }
-    } elseif {[file extension $key] == ".src" || [file extension $key] == ".sub"} {
+    } elseif {[file extension $key] == ".src" } {
       #check if project contains sources specified in listfiles
       set prjSRCs [DictGet $prjSrcDict [file rootname $key]]
 
@@ -278,7 +279,7 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
         }
       }
       dict set prjSrcDict [file rootname $key] $prjSRCs
-    } elseif {[file extension $key == ".sim"]} {
+    } elseif {[file extension $key] == ".sim"} {
       # do nothing
     } else {
       Msg CriticalWarning "$key list file format unrecognized by Hog."
@@ -478,6 +479,15 @@ foreach key [dict keys $prjProperties] {
     # Skip property check for file generated at creation time.
     continue
   }
+  set is_sim_prop 0
+  foreach simset [dict keys $prjSimDict] {
+    set sim_dict [DictGet $prjSimDict $simset]
+    if {$key in $sim_dict} {
+      set is_sim_prop 1
+      break
+    }
+  }
+
   foreach prop [DictGet $prjProperties $key] {
     if {[lsearch -nocase [lindex [DictGet $listProperties $key] 0] $prop] < 0 && ![string equal $prop ""] && ![string equal $key "Simulator"] && ![string equal $prop "top=top_[file root $project_name]"] } {
       if { ![string equal [file extension $key] "svh" ] && ![string equal [file extension $key] "vh" ] && ![string equal $prop "verilog_header"] } {
@@ -485,13 +495,13 @@ foreach key [dict keys $prjProperties] {
           if {$options(recreate) == 1} {
             Msg Info "$key property $prop was added to the project."
           } else {
-            if { $prop in $SIM_PROPS } {
+            if { $is_sim_prop == 1 } {
               Msg Info "$key simulation property $prop is set in project but not in list files."
             } else {
               CriticalAndLog "$key property $prop is set in project but not in list files!" $outFile
             }
           }
-          if { ![ $prop in $SIM_PROPS ] } {
+          if { $is_sim_prop == 0 } {
             incr ListErrorCnt
           }
         }

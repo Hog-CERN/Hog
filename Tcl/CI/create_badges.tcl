@@ -44,13 +44,22 @@ set ext_path [lindex $argv 5]
 
 set resources [dict create "LUTs" "LUTs" "Registers" "FFs" "Block" "BRAM" "URAM" "URAM" "DSPs" "DSPs"]
 set ver [ GetProjectVersion $repo_path/Top/$project $repo_path $ext_path 0 ]
-lassign [ExecuteRet curl --header "PRIVATE-TOKEN: $push_token" "$api_url/projects/${project_id}/badges" --request GET] ret content
 
-if {[llength $content] > 0} {
-    set current_badges [json::json2dict $content]
-} else {
-    set current_badges []
+set accumulated ""
+set current_badges []
+set page 1
+
+while {1} {
+  lassign [ExecuteRet curl --header "PRIVATE-TOKEN: $push_token" "$api_url/projects/${project_id}/badges?page=$page" --request GET] ret content
+  if {[llength $content] > 0 && $page < 100} {
+    set accumulated "$accumulated$content"
+    incr page
+  } else {
+    set current_badges [json::json2dict $accumulated]
+    break
+  }
 }
+
 
 if [catch {glob -type d $repo_path/bin/$project-${ver} } prj_dir] {
     Msg CriticalWarning "Cannot find $project binaries in artifacts"

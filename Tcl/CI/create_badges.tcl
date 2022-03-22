@@ -88,7 +88,7 @@ if {[file exists utilization.txt]} {
         foreach res [dict keys $resources] {
             if {[string first $res $str] > -1} {
                 set res_name [dict get $resources $res]
-                append res_value $res_name ": $usage"
+                append res_value $res_name ": $usage "
             }
         }
     }

@@ -95,7 +95,7 @@ if {[file exists utilization.txt]} {
         append res_value $res ": $usage\% "
     }
 
-    Execute anybadge -l "$project-$ver" -v "$res_value" -f resources-$prj_name.svg --color=blue -o;
+    Execute anybadge -l "$project-$ver" -v "$res_value" -f $prj_name.svg --color=blue -o;
     dict set new_badges "$prj_name" "$prj_name"
 
     # Timing Badge

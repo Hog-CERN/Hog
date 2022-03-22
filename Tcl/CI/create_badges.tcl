@@ -73,9 +73,6 @@ if {[file exists utilization.txt]} {
     close $fp
     set new_badges [dict create]
     set prj_name [string map {/ _} $project]
-    # Project Badge
-    Execute anybadge -l project -v "$project-$ver" -f $prj_name.svg --color=orange -o
-    dict set new_badges "$prj_name" "$prj_name"
 
     set res_value ""
     set usage_dict [dict create]
@@ -98,8 +95,8 @@ if {[file exists utilization.txt]} {
         append res_value $res ": $usage\% "
     }
 
-    Execute anybadge -l resources -v "$res_value" -f resources-$prj_name.svg --color=blue -o;
-    dict set new_badges "resources-$prj_name" "resources-$prj_name"
+    Execute anybadge -l "$project-$ver" -v "$res_value" -f resources-$prj_name.svg --color=blue -o;
+    dict set new_badges "$prj_name" "$prj_name"
 
     # Timing Badge
     if {[file exists timing_error.txt]} {

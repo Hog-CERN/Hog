@@ -50,14 +50,14 @@ set current_badges []
 set page 1
 
 while {1} {
-  lassign [ExecuteRet curl --header "PRIVATE-TOKEN: $push_token" "$api_url/projects/${project_id}/badges?page=$page" --request GET] ret content
-  if {[llength $content] > 0 && $page < 100} {
-    set accumulated "$accumulated$content"
-    incr page
-  } else {
-    set current_badges [json::json2dict $accumulated]
-    break
-  }
+    lassign [ExecuteRet curl --header "PRIVATE-TOKEN: $push_token" "$api_url/projects/${project_id}/badges?page=$page" --request GET] ret content
+    if {[llength $content] > 0 && $page < 100} {
+        set accumulated "$accumulated$content"
+        incr page
+    } else {
+        set current_badges [json::json2dict $accumulated]
+        break
+    }
 }
 
 
@@ -77,6 +77,7 @@ if {[file exists utilization.txt]} {
     Execute anybadge -l project -v "$project-$ver" -f $prj_name.svg --color=orange -o
     dict set new_badges "$prj_name" "$prj_name"
 
+    set res_value ""
     # Resource Badges
     foreach line $lines {
         set str [string map {| ""} $line]
@@ -86,12 +87,14 @@ if {[file exists utilization.txt]} {
         set usage [lindex [split $str] end]
         foreach res [dict keys $resources] {
             if {[string first $res $str] > -1} {
-                set badge_name [dict get $resources $res]
-                Execute anybadge -l $badge_name -v "$usage" -f $badge_name-$prj_name.svg --color=blue -o;
-                dict set new_badges $badge_name-$prj_name $badge_name-$prj_name
+                set res_name [dict get $resources $res]
+                append res_value $res_name ": $usage"
             }
         }
     }
+    Execute anybadge -l resources -v "$res_value" -f resources-$prj_name.svg --color=blue -o;
+    dict set new_badges "resources-$prj_name" "resources-$prj_name"
+
     # Timing Badge
     if {[file exists timing_error.txt]} {
         Execute anybadge -l timing -v "FAILED" -f timing-$prj_name.svg --color=red -o;

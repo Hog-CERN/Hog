@@ -78,6 +78,7 @@ if {[file exists utilization.txt]} {
     dict set new_badges "$prj_name" "$prj_name"
 
     set res_value ""
+    set usage_dict [dict create]
     # Resource Badges
     foreach line $lines {
         set str [string map {| ""} $line]
@@ -88,10 +89,15 @@ if {[file exists utilization.txt]} {
         foreach res [dict keys $resources] {
             if {[string first $res $str] > -1} {
                 set res_name [dict get $resources $res]
-                append res_value $res_name ": $usage\% "
+                dict set usage_dict $res_name $usage
             }
         }
     }
+    foreach res [dict keys $usage_dict] {
+        set usage [DictGet $usage_dict $res]
+        append res_value $res ": $usage\% "
+    }
+
     Execute anybadge -l resources -v "$res_value" -f resources-$prj_name.svg --color=blue -o;
     dict set new_badges "resources-$prj_name" "resources-$prj_name"
 

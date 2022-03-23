@@ -63,6 +63,12 @@ function create_project() {
 
   if [ "$1" == "-h" ] || [ "$1" == "-help" ] || [ "$1" == "--help" ] || [ "$1" == "-H" ]; then
     help_message $0
+    echo
+    echo "Possible projects are:"
+    echo ""
+    search_projects $THIS_DIR/../Top
+    echo
+    cd "${OLD_DIR}"
     exit 0
   fi
 
@@ -78,9 +84,9 @@ function create_project() {
 
   if [ "a$1" == "a" ]; then
     help_message $0
+    echo
     echo "Possible projects are:"
     echo ""
-
     search_projects $DIR
     echo
     cd "${OLD_DIR}"

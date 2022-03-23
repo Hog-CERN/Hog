@@ -103,11 +103,20 @@ eval set -- "$PARAMS"
 if [ -z "$1" ]; then
 	help_message $0
 	cd "${OLD_DIR}"
-	exit -1
+	echo
+	echo "Possible projects are:"
+    echo ""
+	search_projects $DIR/../Top
+    echo
+    cd "${OLD_DIR}"
+    exit -1
 else
 	if [ "$1" == "-h" ] || [ "$1" == "-help" ] || [ "$1" == "--help" ] || [ "$1" == "-H" ]; then
         help_message $0
-        exit 0
+		search_projects $DIR/../Top
+		echo
+		cd "${OLD_DIR}"
+		exit -1
     fi
 
 	PROJ=$1

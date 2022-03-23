@@ -136,6 +136,10 @@ fi
 eval set -- "$PARAMS"
 if [ -z "$1" ]; then
     help_message $0
+    echo "Possible projects are:"
+    echo ""
+    search_projects $DIR/../Top
+    echo
     cd "${OLD_DIR}"
     exit -1
 else

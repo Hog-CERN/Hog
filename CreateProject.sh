@@ -52,7 +52,7 @@ function help_message() {
 #
 # @ brief The main function
 #
-# help_messageThis function invokes the previous functions in the correct order, passing the expected inputs and then calls the execution of the create_project.tcl script
+# help_message This function invokes the previous functions in the correct order, passing the expected inputs and then calls the execution of the create_project.tcl script
 #
 # @param[in]    $@ all the inputs to this script
 function create_project() {
@@ -78,7 +78,8 @@ function create_project() {
 
   if [ "a$1" == "a" ]; then
     help_message $0
-    echo "  Possible projects are:"
+    echo "Possible projects are:"
+    echo ""
 
     search_projects $DIR
     echo
@@ -86,6 +87,9 @@ function create_project() {
     exit -1
   else
     local PROJ=$1
+    if [[ $PROJ == "Top/"* ]]; then
+      PROJ=${PROJ#"Top/"}
+    fi
     local PROJ_DIR="$DIR/$PROJ"
   fi
 
@@ -109,7 +113,7 @@ function create_project() {
 
   if [ -d "$PROJ_DIR" ]; then
 
-    #Choose if the project is quastus, vivado, vivado_hls [...]
+    #Choose if the project is quartus, vivado, vivado_hls [...]
     select_command $PROJ_DIR
     if [ $? != 0 ]; then
       Msg Error "Failed to select project type: exiting!"
@@ -155,7 +159,6 @@ function create_project() {
       cd "${OLD_DIR}"
       exit -1
     fi
-
   else
     Msg Error "Project $PROJ not found: possible projects are:"
     search_projects "${OLD_DIR}/Top"

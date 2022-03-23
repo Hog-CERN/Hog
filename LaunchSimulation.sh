@@ -72,25 +72,48 @@ function argument_parser() {
 	# set positional arguments in their proper place
 }
 
+function help_message() {
+  echo
+  echo " Hog - LaunchSimulation"
+  echo " ---------------------------"
+  echo " Launch the simulation for the specified project"
+  echo
+  echo " The project type is selected using the first line of the hog.conf generating the project"
+  echo " Following options are available: "
+  echo " #vivado "
+  echo " #quartus "
+  echo " #planahead "
+  echo
+  echo " Usage: $1 <project name> [OPTIONS]"
+  echo " Options:"
+  echo "          -l/--lib  <sim_lib_path>  Path to simulation library. If not defined it will be set to the HOG_SIMULATION_LIB_PATH environmnetal library, or if this does not exist to the default $(pwd)/SimulationLib"
+  echo "          -simset <simset>          Launch the simulation only for the specified simulation set"
+  echo "          -quiet                    If set, it runs the simulation in quiet mode"
+  echo 
+  echo " Hint: Hog accepts as <project name> both the actual project name and the relative path containing the project configuration. E.g. ./Hog/LaunchSimulation.sh Top/myproj or ./Hog/LaunchSimulation.sh myproj"
+}
+
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 argument_parser $@
+
 if [ $? = 1 ]; then
 	exit 1
 fi
 eval set -- "$PARAMS"
 if [ -z "$1" ]; then
-	##! If no args passed then print help message
-	printf "Project name has not been specified. Usage: \n"
-	printf " LaunchSimulation.sh <project name> [-lib_path <sim lib path>] [-simset <list of sim sets>] [-quiet]\n\n"
-	printf "<list of sim sets> should be a list of the simsets to be run separated with a comma and no spaces"
-	printf " For a detailed explanation of all the option, type LaunchSimulation.sh <project name> -h.\n"
-	printf " The project name is needed by Hog to tell which HDL software to use: Vivado, Quartus, etc.\n\n"
-	printf "Possible projects are:\n"
-	printf "$(search_projects $DIR/../Top)\n"
+	help_message $0
 	cd "${OLD_DIR}"
 	exit -1
 else
+	if [ "$1" == "-h" ] || [ "$1" == "-help" ] || [ "$1" == "--help" ] || [ "$1" == "-H" ]; then
+        help_message $0
+        exit 0
+    fi
+
 	PROJ=$1
+    if [[ $PROJ == "Top/"* ]]; then
+      PROJ=${PROJ#"Top/"}
+    fi
 	PROJ_DIR="$DIR/../Top/"$PROJ
 	if [ -d "$PROJ_DIR" ]; then
 
@@ -124,7 +147,7 @@ else
 		elif [ $COMMAND = "vivado_hls" ]; then
 			Msg Error "Vivado HLS is not yet supported by this script!"
 		else
-			"${HDL_COMPILER}" $COMMAND_OPT $DIR/Tcl/launchers/launch_simulation.tcl -tclargs $SIMLIBPATH $SIMSET $QUIET $1
+			"${HDL_COMPILER}" $COMMAND_OPT $DIR/Tcl/launchers/launch_simulation.tcl -tclargs $SIMLIBPATH $SIMSET $QUIET $PROJ
 		fi
 	else
 		Msg Error "Project $PROJ not found: possible projects are: $(search_projects $DIR/../Top)"

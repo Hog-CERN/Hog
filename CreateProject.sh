@@ -33,19 +33,19 @@ function help_message() {
   echo
   echo " Hog - Create HDL project"
   echo " ---------------------------"
-  echo " Create the specified Vivado or Quartus project"
+  echo " Create the specified Vivado, Quartus or PlanAhead project"
+  echo 
   echo " The project type is selected using the first line of the hog.conf generating the project"
   echo " Following options are available: "
   echo " #vivado "
-  echo " #vivadoHLS "
   echo " #quartus "
-  echo " #quartusHLS "
   echo " #planahead "
   echo
   echo " Usage: $1 <project name> [OPTIONS]"
   echo " Options:"
   echo "          -l/--lib  <sim_lib_path>  Path to simulation library. If not defined it will be set to the HOG_SIMULATION_LIB_PATH environmnetal library, or if this does not exist to the default $(pwd)/SimulationLib"
   echo
+  echo " Hint: Hog accepts as <project name> both the actual project name and the relative path containing the project configuration. E.g. ./Hog/CreateProject.sh Top/myproj or ./Hog/CreateProject.sh myproj"
 }
 
 ## @fn main

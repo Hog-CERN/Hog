@@ -662,14 +662,15 @@ proc DictGet {dictName keyName {default ""}} {
 #
 proc GetHashLib {lib} {
   if {$lib eq "ALL"} {
-    set ret [Git {log --format=%h -1}]
+    set ret [GetSHA]
   } else {
     set ff [get_files -filter LIBRARY==$lib]
-    set ret [Git {log --format=%h -1} $ff]
+    set ret [GetSHA $ff]
   }
 
   return $ret
 }
+
 
 ## @brief Get a list of all modified the files matching then pattern
 #
@@ -739,11 +740,16 @@ proc GetFileList {FILE path} {
 
 ## @brief Get git SHA of a subset of list file
 #
-# @param[in] path the file/path or list of files/path the git SHA should be evaluated from
+# @param[in] path the file/path or list of files/path the git SHA should be evaluated from. If is not set, use the current path
 #
 # @return         the value of the desired SHA
 #
-proc GetSHA {path} {
+proc GetSHA {{path ""}} {
+  if {$path == ""} {
+    set ret [Git {log --format=%h --abbrev=8 -1} ]
+    return [string toupper $ret]
+  }
+
   # Get repository top level
   set repo_path [lindex [Git {rev-parse --show-toplevel} $path] 0]
   set paths {}
@@ -776,7 +782,7 @@ proc GetSHA {path} {
     }
   }
 
-  set ret [Git {log --format=%h -1} $paths ]
+  set ret [Git {log --format=%h --abbrev=8 -1} $paths ]
   return [string toupper $ret]
 }
 
@@ -933,7 +939,7 @@ proc GetProjectVersion {proj_dir repo_path {ext_path ""} {sim 0}} {
 proc GetHogDescribe {sha} {
   if {$sha == 0 } {
     # in case the repo is dirty, we use the last commited sha and add a -dirty suffix
-    set new_sha "[Git {log -1 --format=%h}]"
+    set new_sha "[GetSHA]"
     set suffix "-dirty"
   } else {
     set new_sha $sha
@@ -1022,7 +1028,7 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
   cd $repo_path
 
   #Append the SHA in which Hog submodule was changed, not the submodule SHA
-  lappend SHAs [Git {log --format=%h -1} {Hog}]
+  lappend SHAs [GetSHA {Hog}]
   lappend versions [GetVerFromSHA $SHAs]
 
   cd "$repo_path/Hog"
@@ -1120,7 +1126,7 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
 
   foreach f $ext_files {
     set name [file rootname [file tail $f]]
-    set hash [Git {log --format=%h -1} $f]
+    set hash [GetSHA $f]
     #Msg Info "Found source file $f, commit SHA: $hash"
     lappend ext_names $name
     lappend ext_hashes $hash

@@ -133,7 +133,7 @@ if {[file exists "$tcl_path/../../Top/$group/$proj_name/hog.conf"]} {
 }
 
 
-set this_commit  [Git {log --format=%h -1}]
+set this_commit [GetSHA]
 
 if {[info commands get_property] != "" && [string first PlanAhead [version]] != 0} {
   if {![string equal ext_path ""]} {

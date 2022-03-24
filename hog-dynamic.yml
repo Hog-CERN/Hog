@@ -37,6 +37,7 @@ generate-config:
     - if: $CI_MERGE_REQUEST_ID
   tags:
     - docker
+  interruptible: true 
 
 child-pipeline:
   # only:
@@ -50,6 +51,7 @@ child-pipeline:
     strategy: depend
   rules:
     - if: $CI_MERGE_REQUEST_ID
+  interruptible: true 
 
 collect_artifacts:
   image: gitlab-registry.cern.ch/hog/hog-docker:tclsh

@@ -2726,9 +2726,9 @@ proc CheckYmlRef {repo_path allow_failure} {
     Msg Info "Found the following yml files: $YML_FILES"
 
     set HOGYML_SHA [GetSHA $YML_FILES]
-    lassign [GitRet "log --format=%h -1 $YML_REF_F" $YML_FILES] ret EXPECTEDYML_SHA
+    lassign [GitRet "log --format=%h -1 --abbrev=8 $YML_REF_F" $YML_FILES] ret EXPECTEDYML_SHA
     if {$ret != 0} {
-      lassign [GitRet "log --format=%h -1 origin/$YML_REF_F" $YML_FILES] ret EXPECTEDYML_SHA
+      lassign [GitRet "log --format=%h -1 --abbrev=8 origin/$YML_REF_F" $YML_FILES] ret EXPECTEDYML_SHA
       if {$ret != 0} {
         Msg $MSG_TYPE "Error in project .gitlab-ci.yml. ref: $YML_REF not found"
         set EXPECTEDYML_SHA ""

@@ -147,7 +147,8 @@ archive_binary_files:
         PRJ_DIR=$(dirname "$proj");
         PRJ_DIR=$(echo "$PRJ_DIR" | sed -r 's#\./##g');
         DEST_ZIP=$(echo "$PRJ_DIR" | sed -r 's#/#_#g');
-        zip -r -s $HOG_MAX_ZIP_SIZE ../zipped/$DEST_ZIP.zip $PRJ_DIR;
+        echo "Archiving $PRJ_DIR into $HOG_MAX_ZIP_SIZE";
+        zip -r -q -s $HOG_MAX_ZIP_SIZE ../zipped/$DEST_ZIP.zip $PRJ_DIR;
       done;
     - cd ..
     - if [[ -v HOG_CREATE_OFFICIAL_RELEASE ]] && [[ $HOG_CREATE_OFFICIAL_RELEASE == "1" ]]; then

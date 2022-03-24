@@ -1037,7 +1037,7 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
     lassign [GetVer ./] hog_ver hog_hash
   } else {
     Msg CriticalWarning "Hog submodule [pwd] not clean, commit hash will be set to 0."
-    set hog_hash "0000000"
+    set hog_hash "00000000"
     set hog_ver "00000000"
   }
 
@@ -1169,7 +1169,7 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
   } else {
     Msg Info "This project does not use IPbus XMLs"
     set xml_ver  00000000
-    set xml_hash 0000000
+    set xml_hash 00000000
   }
 
   set user_ip_repos ""
@@ -1204,7 +1204,7 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
 
   #The global SHA and ver is the most recent among everything
   if {$clean == 1} {
-    set commit [Git "log --format=%h -1 $SHAs"]
+    set commit [Git "log --format=%h -1 --abbrev=8 $SHAs"]
     set version [FindNewestVersion $versions]
   } else {
     set commit  "00000000"
@@ -1213,8 +1213,8 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
 
   cd $old_path
 
-  set top_hash [format %+07s $top_hash]
-  set cons_hash [format %+07s $cons_hash]
+  set top_hash [format %+08s $top_hash]
+  set cons_hash [format %+08s $cons_hash]
   return [list $commit $version  $hog_hash $hog_ver  $top_hash $top_ver  $libs $hashes $vers  $cons_ver $cons_hash  $ext_names $ext_hashes  $xml_hash $xml_ver $user_ip_repos $user_ip_repo_hashes $user_ip_repo_vers ]
 }
 

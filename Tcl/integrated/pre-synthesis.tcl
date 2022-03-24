@@ -144,7 +144,7 @@ if {[info commands get_property] != "" && [string first PlanAhead [version]] != 
   source  $tcl_path/utils/check_list_files.tcl
   if {[file exists "$dst_dir/diff_list_and_conf.txt"]} {
     Msg CriticalWarning "Project list or hog.conf mismatch, will use current SHA ($this_commit) and version will be set to 0."
-    set commit 00000000
+    set commit 0000000
     set version 00000000
   }
 } elseif {[info commands project_new] != ""} {
@@ -191,7 +191,7 @@ if {!$allow_fail_on_git} {
 if {$found_uncommitted == 0} {
   Msg Info "No uncommitted changes found."
 } else {
-  set commit 00000000
+  set commit 0000000
   set version 00000000
 }
 

@@ -118,6 +118,12 @@ archive_binary_files:
   <<: *tag-sr
   stage: archive
   script:
+    - if [[ -v HOG_OFFICIAL_BIN_EOS_PATH ]]; then
+        until echo $HOG_PASSWORD | kinit $HOG_USER@CERN.CH; do
+          echo Retrying;
+          sleep 2;
+        done;
+      fi;
     - git fetch origin refs/notes/*:refs/notes/*
     - MR=( `git notes show` )
     - if [[ -v HOG_USE_DOXYGEN ]] && [[ $HOG_USE_DOXYGEN == '1' ]]; then
@@ -128,7 +134,7 @@ archive_binary_files:
         fi;
         cd ..;
       else
-        ./Hog/Other/GetArtifactsAndRename.sh -token $HOG_PUSH_TOKEN -url $CI_API_V4_URL -proj_id $CI_PROJECT_ID -mr $MR
+        ./Hog/Other/GetArtifactsAndRename.sh -token $HOG_PUSH_TOKEN -url $CI_API_V4_URL -proj_id $CI_PROJECT_ID -mr $MR;
       fi
     - mkdir zipped
     - cd bin
@@ -153,10 +159,6 @@ archive_binary_files:
         ./Hog/Other/MakeGitlabRelease.sh $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $CI_COMMIT_TAG bin/note.md -load_artifacts;
       fi;
     - if [[ -v HOG_OFFICIAL_BIN_EOS_PATH ]]; then
-        until echo $HOG_PASSWORD | kinit $HOG_USER@CERN.CH; do
-         echo Retrying;
-         sleep 2;
-        done;
         eos mkdir $HOG_OFFICIAL_BIN_EOS_PATH/$CI_COMMIT_TAG;
         xrdcp -rf bin/* ${EOS_MGM_URL}//${HOG_OFFICIAL_BIN_EOS_PATH}/${CI_COMMIT_TAG};
       fi;

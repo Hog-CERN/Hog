@@ -16,35 +16,109 @@
 #DIR="$( dirname "${BASH_SOURCE[0]}" )/../.."
 #OLDDIR="$( pwd )"
 
+function argument_parser() {
+    PARAMS=""
+    while (("$#")); do
+        case "$1" in
+        -doxygen)
+            get_doxygen="1"
+            shift 1
+            ;;
+        -token)
+            push_token="$2"
+            shift 2
+            ;;
+        -url)
+            api="$2"
+            shift 2
+            ;;
+        -proj_id)
+            proj="$2"
+            shift 2
+            ;;
+        -mr)
+            mr="$2"
+            shift 2
+            ;;
+        --) # end argument parsing
+            shift
+            break
+            ;;
+        -* | --*=) # unsupported flags
+            Msg Error "Unsupported flag $1" >&2
+            return 1
+            ;;
+        *) # preserve positional arguments
+            PARAMS="$PARAMS $1"
+            shift
+            ;;
+        esac
+    done
+    # set positional arguments in their proper place
+}
+
+## @fn help_message
+#
+# @brief Prints an help message
+#
+# @param[in]    $1 the invoked command
+#
+function help_message() {
+  echo
+  echo " Hog - GetArtifactsAndRename "
+  echo " ---------------------------"
+  echo " Get the artifacts from collect_artifacts job of the chosen MR"
+  echo 
+  echo " Usage: $1 [OPTIONS]"
+  echo " Options:"
+  echo "          -token <push_token>        THe GitLab Push Token"
+  echo "          -url <gitlab url>          The GitLab CI URL "
+  echo "          -proj_id <id>              The ID of the GitLab project "
+  echo "          -mr <Merge Request Number> The MR number  "
+  echo "          -doxygen                   If sets, get also the artifacts from make_doxygen job."
+  echo
+
+  exit -1 
+}
+
+argument_parser $@
+
 if [ -z "$1" ]; then
-    echo "Usage: GetArtifactsAndRename.sh <push token> <Gitlab api url> <project id> <merge request number> <job>"
+    help_message $0
+    exit 0
 else
-    push_token=$1
-    api=$2
-    proj=$3
-    mr=$4
-    job=$5
+    if [ "$1" == "-h" ] || [ "$1" == "-help" ] || [ "$1" == "--help" ] || [ "$1" == "-H" ]; then
+        help_message $0
+        exit 0
+    fi
 
     # GET all artifacts from collect_artifacts
     echo "Hog-INFO: downloading artifacts..."
     ref=refs/merge-requests%2F$mr%2Fhead
-    curl --location --header "PRIVATE-TOKEN: ${push_token}" "$api"/projects/"${proj}"/jobs/artifacts/"$ref"/download?job="$job" -o output.zip
+    curl --location --header "PRIVATE-TOKEN: ${push_token}" "$api"/projects/"${proj}"/jobs/artifacts/"$ref"/download?job=collect_artifacts -o collect_artifacts.zip
+    echo "Hog-INFO: unzipping artifacts from collect_artifacts job..."
+    unzip -oq collect_artifacts.zip
+    rm collect_artifacts.zip
+
+    
+    # Get artifacts from make_doxygen stage
+    if [ "$get_doxygen" == "1" ]; then
+        curl --location --header "PRIVATE-TOKEN: ${push_token}" "$api"/projects/"${proj}"/jobs/artifacts/"$ref"/download?job=make_doxygen -o doxygen.zip
+        echo "Hog-INFO: unzipping artifacts from make_doxygen job..."
+        unzip -oq doxygen.zip
+        rm doxygen.zip
+    fi
 
     # GET all artifacts from user_post stage
     pipeline=$(curl --globoff --header "PRIVATE-TOKEN: ${push_token}" "$api/projects/${proj}/merge_requests/$mr/pipelines" | jq '.[0].id')
     
     job=$(curl --globoff --header "PRIVATE-TOKEN: ${push_token}" "$api/projects/${proj}/pipelines/${pipeline}/jobs" | jq -r '.[0].name')
     
-    if [ "$job" != "$5" ]; then
-        curl --location --header "PRIVATE-TOKEN: ${push_token}" "$api"/projects/"${proj}"/jobs/artifacts/"$ref"/download?job="$job" -o output1.zip
-    fi
-
-    echo "Hog-INFO: unzipping artifacts from $5 job..."
-    unzip -oq output.zip
-    if [ "$job" != "$5" ] && ["$5" != "make_doxygen" ]; then
+    if [ "$job" != "collect_artifacts" ]; then
+        curl --location --header "PRIVATE-TOKEN: ${push_token}" "$api"/projects/"${proj}"/jobs/artifacts/"$ref"/download?job="$job" -o user_post.zip
         echo "Hog-INFO: unzipping artifacts from $job job..."
-        unzip -oq output1.zip
-        rm output1.zip
+        unzip -oq user_post.zip
+        rm user_post.zip
     fi
 
     if [ -d bin ]; then
@@ -86,5 +160,4 @@ else
         done
         cd ..
     fi
-    rm output.zip
 fi

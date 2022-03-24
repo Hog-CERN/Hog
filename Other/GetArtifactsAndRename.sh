@@ -95,7 +95,6 @@ else
     # GET all artifacts from collect_artifacts
     echo "Hog-INFO: downloading artifacts..."
     ref=refs/merge-requests%2F$mr%2Fhead
-    echo " curl --location --header "PRIVATE-TOKEN: ${push_token}" "$api"/projects/"${proj}"/jobs/artifacts/"$ref"/download?job=collect_artifacts -o collect_artifacts.zip"
     curl --location --header "PRIVATE-TOKEN: ${push_token}" "$api"/projects/"${proj}"/jobs/artifacts/"$ref"/download?job=collect_artifacts -o collect_artifacts.zip
     echo "Hog-INFO: unzipping artifacts from collect_artifacts job..."
     unzip -oq collect_artifacts.zip

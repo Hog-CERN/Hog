@@ -127,7 +127,7 @@ archive_binary_files:
     - git fetch origin refs/notes/*:refs/notes/*
     - MR=( `git notes show` )
     - if [[ -v HOG_USE_DOXYGEN ]] && [[ $HOG_USE_DOXYGEN == '1' ]]; then
-        ./Hog/Other/GetArtifactsAndRename.sh -token $HOG_PUSH_TOKEN -url $CI_API_V4_URL -url $CI_PROJECT_ID -mr $MR -doxygen ;
+        ./Hog/Other/GetArtifactsAndRename.sh -token $HOG_PUSH_TOKEN -url $CI_API_V4_URL -proj_id $CI_PROJECT_ID -mr $MR -doxygen ;
         if [ $HOG_OFFICIAL_BIN_EOS_PATH != null ]; then
           eos mkdir -p ${HOG_OFFICIAL_BIN_EOS_PATH}/Doc;
           xrdcp -rf Doc/html/* ${EOS_MGM_URL}//${HOG_OFFICIAL_BIN_EOS_PATH}/Doc;

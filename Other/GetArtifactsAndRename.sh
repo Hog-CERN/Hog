@@ -41,7 +41,7 @@ else
 
     echo "Hog-INFO: unzipping artifacts from $5 job..."
     unzip -oq output.zip
-    if [ "$job" != "$5" ]; then
+    if [ "$job" != "$5" ] && ["$5" != "make_doxygen" ]; then
         echo "Hog-INFO: unzipping artifacts from $job job..."
         unzip -oq output1.zip
         rm output1.zip
@@ -60,7 +60,7 @@ else
             PRJ_NAME_BASE=$(basename $PRJ_NAME)
             PRJ_SHA="${PRJ_DIR##*-hog}"
             PRJ_SHA=$(echo $PRJ_SHA | sed -e 's/-dirty$//')
-	    TAG=$(git tag --sort=creatordate --contain "$PRJ_SHA" -l "v*.*.*" | head -1)
+	        TAG=$(git tag --sort=creatordate --contain "$PRJ_SHA" -l "v*.*.*" | head -1)
             PRJ_BINS=("$(ls "$PRJ_DIR"/"${PRJ_BASE}"*)")
             echo "Hog-INFO: Found project $PRJ_NAME"
             for PRJ_BIN in ${PRJ_BINS[@]}; do

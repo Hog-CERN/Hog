@@ -1923,7 +1923,7 @@ proc AddHogFiles { libraries properties main_libs {verbose 0}} {
         foreach f $lib_files {
           set file_obj [get_files -of_objects [get_filesets $file_set] [list "*$f"]]
           #ADDING LIBRARY
-          if {[file ext $f] == ".vhd" || [file ext $f] == ".vhdl" } {
+          if {[file ext $f] == ".vhd" || [file ext $f] == ".vhdl"  ||  [file ext $f] == ".v"} {
             set_property -name "library" -value $rootlib -objects $file_obj
           }
 

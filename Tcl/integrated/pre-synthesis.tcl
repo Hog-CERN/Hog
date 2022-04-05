@@ -234,7 +234,7 @@ if {$maxThreads != 1} {
   Msg Info "Disabling multithreading to assure deterministic bitfile"
 }
 
-if {[IsXilinx] != ""} {
+if {[IsXilinx]} {
   ### Vivado
   set_param general.maxThreads $maxThreads
 } elseif {[IsQuartus]} {

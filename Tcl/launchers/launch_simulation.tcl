@@ -41,7 +41,7 @@ source ./hog.tcl
 if { $::argc eq 0 } {
   Msg Info [cmdline::usage $parameters $usage]
   exit 1
-} elseif {[IsXilinx]&& [catch {array set options[cmdline::getoptions ::argv $parameters $usage]}] } {
+} elseif {[IsXilinx] && [catch {array set options[cmdline::getoptions ::argv $parameters $usage]}] } {
   Msg Info [cmdline::usage $parameters $usage]
   exit 1
 } elseif {[IsQuartus] && [ catch {array set options [cmdline::getoptions quartus(args) $parameters $usage] } ] || $::argc eq 0 } {

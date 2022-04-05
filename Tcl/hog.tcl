@@ -44,12 +44,20 @@ proc IsXilinx {} {
 
 ## Get whether the IDE is vivado
 proc IsVivado {} {
-    return [expr [IsXilinx] && ![string first Vivado [version]]]
+    if {[IsXilinx]} {
+        return [expr {[string first Vivado [version]] == 0}]
+    } else {
+        return 0
+    }
 }
 
 ## Get whether the IDE is ISE (planAhead)
 proc IsISE {} {
-    return [expr [IsXilinx] && ![string first PlanAhead [version]]]
+    if {[IsXilinx]} {
+        return [expr {[string first PlanAhead [version]] == 0}]
+    } else {
+        return 0
+    }
 }
 
 ## Get whether the IDE is Quartus

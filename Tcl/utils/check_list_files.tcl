@@ -21,7 +21,7 @@ if {[catch {package require cmdline} ERROR]} {
   puts "$ERROR\n If you are running this script on tclsh, you can fix this by installing 'tcllib'"
   return
 }
-if { [string first PlanAhead [version]] == 0 } {
+if {[IsISE]} {
   set tcl_path         [file normalize "[file dirname [info script]]"]
   source $tcl_path/cmdline.tcl
 }
@@ -87,7 +87,7 @@ if {![string equal $options(project) ""]} {
   set project_name [file tail $project]
   Msg Info "Opening project $project_name..."
 
-  if { [string first PlanAhead [version]] != 0 } {
+  if {[IsVivado]} {
     file mkdir "$repo_path/Projects/$project/$project_name.gen/sources_1"
     open_project "$repo_path/Projects/$project/$project_name.xpr"
     set proj_file [get_property DIRECTORY [current_project]]
@@ -818,7 +818,7 @@ if {$options(recreate_conf) == 1 && ($ConfErrorCnt > 0 || [file exists $conf_fil
 
 #closing project if a new one was opened
 if {![string equal $options(project) ""]} {
-  if { [string first PlanAhead [version]] != 0 } {
+  if {[IsVivado]} {
     close_project
   }
 }

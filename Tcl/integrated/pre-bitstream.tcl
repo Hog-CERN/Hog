@@ -13,23 +13,23 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-if {[info commands project_new] != ""} {
+set old_path [pwd]
+set tcl_path [file normalize "[file dirname [info script]]/.."]
+source $tcl_path/hog.tcl
+
+if {[IsQuartus]} {
   # Quartus
   Msg Error "Pre-module scripts are not supported in Quartus mode!"
   return TCL_ERROR
 }
 
-set old_path [pwd]
-set tcl_path [file normalize "[file dirname [info script]]/.."]
-source $tcl_path/hog.tcl
-
 # Go to repository path
 cd "$tcl_path/../.."
 
-if {[info commands get_property] != ""} {
+if {[IsXilinx]} {
   # Vivado + PlanAhead
   # Vivado + PlanAhead
-  if { [string first PlanAhead [version]] == 0 } {
+  if {[IsISE]} {
     # planAhead
     set work_path [get_property DIRECTORY [get_runs impl_1]]
   } else {
@@ -57,7 +57,7 @@ if {$maxThreads != 1} {
   Msg Info "Disabling multithreading to assure deterministic bitfile"
 }
 
-if {[info commands get_property] != ""} {
+if {[IsXilinx]} {
   # Vivado
   set_param general.maxThreads $maxThreads
 } else {

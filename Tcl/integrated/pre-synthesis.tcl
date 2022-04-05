@@ -22,16 +22,16 @@ if {[catch {package require struct::matrix} ERROR]} {
   return
 }
 
-if {[info commands get_property] != "" && [string first PlanAhead [version]] == 0 } {
+set tcl_path [file normalize "[file dirname [info script]]/.."]
+source $tcl_path/hog.tcl
+
+if {[IsISE]} {
   # Vivado + PlanAhead
   set old_path [file normalize "../../Projects/$project/$project.runs/synth_1"]
   file mkdir $old_path
 } else {
   set old_path [pwd]
 }
-
-set tcl_path [file normalize "[file dirname [info script]]/.."]
-source $tcl_path/hog.tcl
 
 if {[info exists env(HOG_EXTERNAL_PATH)]} {
   set ext_path $env(HOG_EXTERNAL_PATH)
@@ -40,16 +40,16 @@ if {[info exists env(HOG_EXTERNAL_PATH)]} {
   set ext_path ""
 }
 
-if {[info commands get_property] != ""} {
+if {[IsXilinx]} {
   # Vivado + PlanAhead
-  if { [string first PlanAhead [version]] == 0 } {
+  if {[IsISE]} {
     set proj_file [get_property DIRECTORY [current_project]]
   } else {
     set proj_file [get_property parent.project_path [current_project]]
   }
   set proj_dir [file normalize [file dirname $proj_file]]
   set proj_name [file rootname [file tail $proj_file]]
-} elseif {[info commands project_new] != ""} {
+} elseif {[IsQuartus]} {
   # Quartus
   set proj_name [lindex $quartus(args) 1]
   #set proj_dir [file normalize "$repo_path/Projects/$proj_name"]
@@ -135,7 +135,7 @@ if {[file exists "$tcl_path/../../Top/$group/$proj_name/hog.conf"]} {
 
 set this_commit [GetSHA]
 
-if {[info commands get_property] != "" && [string first PlanAhead [version]] != 0} {
+if {[IsVivado]} {
   if {![string equal ext_path ""]} {
     set argv [list "-ext_path" "$ext_path" "-project" "$group/$proj_name" "-outFile" "$dst_dir/diff_list_and_conf.txt" "-log_list" "[expr {!$allow_fail_on_list}]" "-log_conf" "[expr {!$allow_fail_on_conf}]"]
   } else {
@@ -147,7 +147,7 @@ if {[info commands get_property] != "" && [string first PlanAhead [version]] != 
     set commit 0000000
     set version 00000000
   }
-} elseif {[info commands project_new] != ""} {
+} elseif {[IsQuartus]} {
   # Quartus
   #TO BE IMPLEMENTED
 } else {
@@ -234,10 +234,10 @@ if {$maxThreads != 1} {
   Msg Info "Disabling multithreading to assure deterministic bitfile"
 }
 
-if {[info commands set_param] != ""} {
+if {[IsXilinx] != ""} {
   ### Vivado
   set_param general.maxThreads $maxThreads
-} elseif {[info commands project_new] != ""} {
+} elseif {[IsQuartus]} {
   # QUARTUS
   if { [catch {package require ::quartus::project} ERROR] } {
     Msg Error "$ERROR\n Can not find package ::quartus::project"
@@ -269,13 +269,13 @@ if [GitVersion 2.9.3] {
 }
 
 #####  Passing Hog generic to top file
-if {[info commands set_property] != ""} {
+if {[IsXilinx]} {
   ### VIVADO
   # set global generic varibles
   WriteGenerics $date $timee $commit $version $top_hash $top_ver $hog_hash $hog_ver $cons_ver $cons_hash  $libs $vers $hashes $ext_names $ext_hashes $user_ip_repos $user_ip_vers $user_ip_hashes $flavour $xml_ver $xml_hash
   set status_file [file normalize "$old_path/../versions.txt"]
 
-} elseif {[info commands project_new] != ""} {
+} elseif {[IsQuartus]} {
   #Quartus
   if { [catch {package require ::quartus::project} ERROR] } {
     Msg Error "$ERROR\n Can not find package ::quartus::project"
@@ -428,7 +428,7 @@ puts $status_file [m format 2string]
 puts $status_file "\n\n"
 close $status_file
 
-if {[info commands project_new] == ""} {
+if {[IsXilinx]} {
   CheckYmlRef [file normalize $tcl_path/../..] true
 }
 

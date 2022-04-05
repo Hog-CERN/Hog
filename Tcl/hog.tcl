@@ -37,6 +37,31 @@ proc GetSimulators {} {
   return $SIMULATORS
 }
 
+## Get whether the IDE is Xilinx (Vivado or ISE)
+proc IsXilinx {} {
+    return [expr {[info commands get_property] != ""}]
+}
+
+## Get whether the IDE is vivado
+proc IsVivado {} {
+    return [expr [IsXilinx] && ![string first Vivado [version]]]
+}
+
+## Get whether the IDE is ISE (planAhead)
+proc IsISE {} {
+    return [expr [IsXilinx] && ![string first PlanAhead [version]]]
+}
+
+## Get whether the IDE is Quartus
+proc IsQuartus {} {
+    return [expr {[info commands project_new] != ""}]
+}
+
+## Get whether we are in tclsh
+proc IsTclsh {} {
+    return [expr ![IsQuartus] && ![IsXilinx]]
+}
+
 proc Msg {level msg {title ""}} {
   set level [string tolower $level]
   if {$level == 0 || $level == "status" || $level == "extra_info"} {
@@ -60,13 +85,13 @@ proc Msg {level msg {title ""}} {
   }
 
   if {$title == ""} {set title [lindex [info level [expr [info level]-1]] 0]}
-  if {[info commands send_msg_id] != ""} {
+  if {[IsXilinx]} {
     # Vivado
     set status [catch {send_msg_id Hog:$title-0 $vlevel $msg}]
     if {$status != 0} {
       exit $status
     }
-  } elseif {[info commands post_message] != ""} {
+  } elseif {[IsQuartus]} {
     # Quartus
     post_message -type $qlevel "Hog:$title $msg"
     if { $qlevel == "error"} {
@@ -101,11 +126,11 @@ proc WriteToFile {File msg} {
 # @param[out] object
 #
 proc  SetProperty {property value object} {
-  if {[info commands set_property] != ""} {
+  if {[IsXilinx]} {
     # Vivado
     set_property $property $value $object
 
-  } elseif {[info commands quartus_command] != ""} {
+  } elseif {[IsQuartus]} {
     # Quartus
 
   } else {
@@ -126,11 +151,11 @@ proc  SetProperty {property value object} {
 # @returns            the value of object.property
 #
 proc  GetProperty {property object} {
-  if {[info commands get_property] != ""} {
+  if {[IsXilinx]} {
     # Vivado
     return [get_property -quiet $property $object]
 
-  } elseif {[info commands quartus_command] != ""} {
+  } elseif {[IsQuartus]} {
     # Quartus
     return ""
   } else {
@@ -159,10 +184,10 @@ proc  SetParameter {parameter value } {
 # @param[in] top_file   name of the file containing the top module
 # @param[in] sources     list of source files
 proc AddTopFile {top_module top_file sources} {
-  if {[info commands launch_chipscope_analyzer] != ""} {
+  if {[IsXilinx]} {
     #VIVADO_ONLY
     add_files -norecurse -fileset $sources $top_file
-  } elseif {[info commands project_new] != ""} {
+  } elseif {[IsQuartus]} {
     #QUARTUS ONLY
     set file_type [FindFileType $top_file]
     set hdl_version [FindVhdlVersion $top_file]
@@ -181,10 +206,10 @@ proc AddTopFile {top_module top_file sources} {
 #
 proc SetTopProperty {top_module sources} {
   Msg Info "Setting TOP property to $top_module module"
-  if {[info commands launch_chipscope_analyzer] != ""} {
+  if {[IsXilinx]} {
     #VIVADO_ONLY
     set_property "top" $top_module $sources
-  } elseif {[info commands project_new] != ""} {
+  } elseif {[IsQuartus]} {
     #QUARTUS ONLY
     set_global_assignment -name TOP_LEVEL_ENTITY $top_module
   }
@@ -200,11 +225,11 @@ proc SetTopProperty {top_module sources} {
 #  @return          the project $proj
 #
 proc GetProject {proj} {
-  if {[info commands get_projects] != ""} {
+  if {[IsXilinx]} {
     # Vivado
     return [get_projects $proj]
 
-  } elseif {[info commands quartus_command] != ""} {
+  } elseif {[IsQuartus]} {
     # Quartus
     return ""
   } else {
@@ -224,11 +249,11 @@ proc GetProject {proj} {
 #  @return         a list of synthesis and implementation runs matching the parameter
 #
 proc GetRun {run} {
-  if {[info commands get_projects] != ""} {
+  if {[IsXilinx]} {
     # Vivado
     return [get_runs -quiet $run]
 
-  } elseif {[info commands quartus_command] != ""} {
+  } elseif {[IsQuartus]} {
     # Quartus
     return ""
   } else {
@@ -248,11 +273,11 @@ proc GetRun {run} {
 #  @return         a list of files matching the parameter
 #
 proc GetFile {file} {
-  if {[info commands get_files] != ""} {
+  if {[IsXilinx]} {
     # Vivado
     return [get_files $file]
 
-  } elseif {[info commands quartus_command] != ""} {
+  } elseif {[IsQuartus]} {
     # Quartus
     return ""
   } else {
@@ -457,7 +482,7 @@ proc FindVhdlVersion {file_name} {
 #
 proc ReadListFile args {
 
-  if {[info commands project_new] != ""} {
+  if {[IsQuartus]} {
     load_package report
     if { [catch {package require cmdline} ERROR] } {
       puts "$ERROR\n If you are running this script on tclsh, you can fix this by installing 'tcllib'"
@@ -1781,7 +1806,7 @@ proc GetProjectFiles {} {
 
 proc GetHogFiles args {
 
-  if {[info commands project_new] != ""} {
+  if {[IsQuartus]} {
     load_package report
     if { [catch {package require cmdline} ERROR] } {
       puts "$ERROR\n If you are running this script on tclsh, you can fix this by installing 'tcllib'"
@@ -1908,7 +1933,7 @@ proc AddHogFiles { libraries properties main_libs {verbose 0}} {
       }
     }
     # ADD NOW LISTS TO VIVADO PROJECT
-    if {[info commands add_files] != ""} {
+    if {[IsXilinx]} {
       add_files -norecurse -fileset $file_set $lib_files
 
       if {$ext != ".ip"} {
@@ -1932,7 +1957,7 @@ proc AddHogFiles { libraries properties main_libs {verbose 0}} {
           if {[file ext $f] == ".vhd" || [file ext $f] == ".vhdl"} {
             if {[lsearch -inline -regex $props "93"] < 0} {
               # ISE does not support vhdl2008
-              if { [string first PlanAhead [version]] != 0 } {
+              if {[IsVivado]} {
                 set_property -name "file_type" -value "VHDL 2008" -objects $file_obj
               }
             } else {
@@ -1942,7 +1967,7 @@ proc AddHogFiles { libraries properties main_libs {verbose 0}} {
 
           if {[lsearch -inline -regex $props "SystemVerilog"] > 0} {
             # ISE does not support SystemVerilog
-            if { [string first PlanAhead [version]] != 0 } {
+            if {[IsVivado]} {
               set_property -name "file_type" -value "SystemVerilog" -objects $file_obj
               Msg Info "Filetype is SystemVerilog for $f"
 
@@ -2070,7 +2095,7 @@ proc AddHogFiles { libraries properties main_libs {verbose 0}} {
 
       }
       Msg Info "[llength $lib_files] file/s added to $rootlib..."
-    } elseif {[info commands project_new] != "" } {
+    } elseif {[IsQuartus] } {
       #QUARTUS ONLY
       if { $ext == ".sim"} {
         Msg Warning "Simulation files not supported in Quartus Prime mode... Skipping $lib"
@@ -2237,7 +2262,7 @@ proc AddHogFiles { libraries properties main_libs {verbose 0}} {
 # @param[in] libraries The Hog libraries
 proc CheckExtraFiles {libraries} {
   ### CHECK NOW FOR IP OUTSIDE OF LIST FILE (Vivado only!)
-  if {[info commands add_files] != "" && [string first PlanAhead [version] ] != 0} {
+  if {[IsVivado]} {
     lassign [GetProjectFiles] prjLibraries prjProperties
     set prjIPs  [DictGet $prjLibraries IP]
     set prjXDCs  [DictGet $prjLibraries XDC]
@@ -3280,7 +3305,7 @@ proc GetProjectFlavour {proj_name} {
 #  @param[in]    list of variables to be written in the generics
 proc WriteGenerics {date timee commit version top_hash top_ver hog_hash hog_ver cons_ver cons_hash libs vers hashes ext_names ext_hashes user_ip_repos user_ip_vers user_ip_hashes flavour {xml_ver ""} {xml_hash ""}} {
   #####  Passing Hog generic to top file
-  if {[info commands set_property] != ""} {
+  if {[IsXilinx]} {
     ### VIVADO
     # set global generic varibles
     set generic_string "GLOBAL_DATE=32'h$date GLOBAL_TIME=32'h$timee GLOBAL_VER=32'h$version GLOBAL_SHA=32'h0$commit TOP_SHA=32'h0$top_hash TOP_VER=32'h$top_ver HOG_SHA=32'h0$hog_hash HOG_VER=32'h$hog_ver CON_VER=32'h$cons_ver CON_SHA=32'h0$cons_hash"
@@ -3321,11 +3346,10 @@ proc WriteGenerics {date timee commit version top_hash top_ver hog_hash hog_ver 
 #  @return       the version in astring format, e.g. 2020.2
 #
 proc GetIDEVersion {} {
-  if { [info commands get_property] != "" } {
+  if {[IsXilinx]} {
     #Vivado or planAhead
     set ver [version -short]
-
-  } elseif { [info commands project_new] != "" } {
+  } elseif {[IsQuartus]} {
     # Quartus
     global quartus
     regexp {[\.0-9]+} $quartus(version) ver

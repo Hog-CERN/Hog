@@ -1912,13 +1912,6 @@ proc AddHogFiles { libraries properties main_libs {verbose 0}} {
       add_files -norecurse -fileset $file_set $lib_files
 
       if {$ext != ".ip"} {
-        # Default sim properties
-        if {$ext == ".sim"} {
-          foreach simulator [GetSimulators] {
-            set_property "$simulator.simulate.custom_wave_do" "" [get_filesets $file_set]
-            set_property "$simulator.simulate.custom_udo" "" [get_filesets $file_set]
-          }
-        }
         # Add Properties
         foreach f $lib_files {
           set file_obj [get_files -of_objects [get_filesets $file_set] [list "*$f"]]

@@ -525,24 +525,20 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
       }
 
       if {[lsearch -nocase [lindex [DictGet $listProperties $prop_file] 0] $prop] < 0 && ![string equal $prop ""] && ![string equal $prop_file "Simulator"] && ![string equal $prop "top=top_[file root $project_name]"] } {
-        if { ![string equal [file extension $prop_file] "svh" ] && ![string equal [file extension $prop_file] "vh" ] && ![string equal $prop "verilog_header"] } {
-          if { ![string equal [file extension $prop_file] "sv" ] && ![string equal $prop "SystemVerilog"] } {
-            if {$options(recreate) == 1} {
-              Msg Info "$prop_file property $prop was added to the project."
-            } else {
-              if { $is_sim_prop == 1 } {
-                Msg Info "$prop_file simulation property $prop is set in project but not in list files."
-              } else {
-                CriticalAndLog "$prop_file property $prop is set in project but not in list files!" $outFile
-              }
-            }
-            if { $is_sim_prop == 0 } {
-              incr ListErrorCnt
-            } else {
-              incr ListSimErrorCnt
-            }
+        if {$options(recreate) == 1} {
+          Msg Info "$prop_file property $prop was added to the project."
+        } else {
+          if { $is_sim_prop == 1 } {
+            Msg Info "$prop_file simulation property $prop is set in project but not in list files."
+          } else {
+            CriticalAndLog "$prop_file property $prop is set in project but not in list files!" $outFile
           }
         }
+        if { $is_sim_prop == 0 } {
+          incr ListErrorCnt
+        } else {
+          incr ListSimErrorCnt
+        } 
       }
     }
   }

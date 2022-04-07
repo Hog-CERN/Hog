@@ -190,6 +190,11 @@ if {[IsXilinx]} {
 
   # Reports
   file mkdir $dst_dir/reports
+  if {[IsVivado]} {
+    report_utilization -hierarchical -hierarchical_percentages -file $dst_dir/reports/hierarchical_utilization.txt
+  }
+
+
   if {[IsISE]} {
     set reps [glob -nocomplain "$run_dir/*/*{.syr,.srp,.mrp,.map,.twr,.drc,.bgn,_routed.par,_routed_pad.txt,_routed.unroutes}"]
   } else {

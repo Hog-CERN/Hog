@@ -21,6 +21,11 @@ if {[catch {package require cmdline} ERROR]} {
   puts "$ERROR\n If you are running this script on tclsh, you can fix this by installing 'tcllib'"
   return
 }
+
+set hog_path [file normalize "[file dirname [info script]]/.."]
+set repo_path [file normalize "$hog_path/../.."]
+source $hog_path/hog.tcl
+
 if {[IsISE]} {
   set tcl_path         [file normalize "[file dirname [info script]]"]
   source $tcl_path/cmdline.tcl
@@ -58,9 +63,7 @@ proc CriticalAndLog {msg {outFile ""}} {
 set usage   "Checks if the list files matches the project ones. It can also be used to update the list files. \nUSAGE: $::argv0 \[Options\]"
 
 
-set hog_path [file normalize "[file dirname [info script]]/.."]
-set repo_path [file normalize "$hog_path/../.."]
-source $hog_path/hog.tcl
+
 
 if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}]} {
   Msg Info [cmdline::usage $parameters $usage]

@@ -159,7 +159,7 @@ if { $ip_path != "" } {
 Msg Info "Number of jobs set to $options(njobs)."
 
 ############# CREATE or OPEN project ############
-if { [string first PlanAhead [version]] == 0 } {
+if {[IsISE]} {
   set project_file [file normalize $repo_path/Projects/$project_name/$project.ppr]
 } else {
   set project_file [file normalize $repo_path/Projects/$project_name/$project.xpr]
@@ -190,7 +190,7 @@ if {($proj_found == 0 || $recreate == 1) && $do_synthesis == 1} {
 
 ########## CHECK SYNTAX ###########
 if { $check_syntax == 1 } {
-  if { [string first PlanAhead [version]] ==0 } {
+  if {[IsISE]} {
     Msg Info "Checking syntax option is not supported by Xilinx PlanAhead. Skipping.."
   } else {
     Msg Info "Checking syntax for project $project_name..."
@@ -212,7 +212,7 @@ if {$reset == 1 } {
 
 }
 
-if { [string first PlanAhead [version]] ==0 } {
+if {[IsISE]} {
   source  $path/../../Hog/Tcl/integrated/pre-synthesis.tcl
 }
 
@@ -273,17 +273,17 @@ if {$do_implementation == 1 } {
     reset_run impl_1
   }
 
-  if { [string first PlanAhead [version]] ==0} {source  $path/../../Hog/Tcl/integrated/pre-implementation.tcl}
+  if {[IsISE]} {source $path/../../Hog/Tcl/integrated/pre-implementation.tcl}
   launch_runs impl_1 -jobs $options(njobs) -dir $main_folder
   wait_on_run impl_1
-  if { [string first PlanAhead [version]] ==0} {source  $path/../../Hog/Tcl/integrated/post-implementation.tcl}
+  if {[IsISE]} {source $path/../../Hog/Tcl/integrated/post-implementation.tcl}
 
   set prog [get_property PROGRESS [get_runs impl_1]]
   set status [get_property STATUS [get_runs impl_1]]
   Msg Info "Run: impl_1 progress: $prog, status : $status"
 
   # Check timing
-  if { [string first PlanAhead [version]] ==0 } {
+  if {[IsISE]} {
 
     set status_file [open "$main_folder/timing.txt" "w"]
     puts $status_file "## $project_name Timing summary"
@@ -316,10 +316,9 @@ if {$do_implementation == 1 } {
       file rename -force "$main_folder/timing.txt" "$main_folder/timing_error.txt"
       set timing_ok 0
     }
-
   }
 
-  if { [string first PlanAhead [version]] !=0 } {
+  if {[IsVivado]} {
     set wns [get_property STATS.WNS [get_runs [current_run]]]
     set tns [get_property STATS.TNS [get_runs [current_run]]]
     set whs [get_property STATS.WHS [get_runs [current_run]]]
@@ -371,7 +370,7 @@ if {$do_implementation == 1 } {
 
   if {$do_bitstream == 1} {
     Msg Info "Starting write bitstream flow..."
-    if { [string first PlanAhead [version]] == 0 } {
+    if {[IsISE]} {
       # PlanAhead command
       Msg Info "running pre-bitstream"
       source  $path/../../Hog/Tcl/integrated/pre-bitstream.tcl
@@ -393,7 +392,7 @@ if {$do_implementation == 1 } {
       Msg Error "Write bitstream error, status is: $status"
     }
 
-    if { [string first PlanAhead [version]] !=0 } {
+    if {[IsVivado]} {
       Msg Status "*** Timing summary (again) ***"
       Msg Status "WNS: $wns"
       Msg Status "TNS: $tns"

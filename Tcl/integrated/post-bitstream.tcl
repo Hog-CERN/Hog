@@ -29,10 +29,10 @@ if {[info exists env(HOG_EXTERNAL_PATH)]} {
   set ext_path ""
 }
 
-if {[info commands get_property] != ""} {
+if {[IsXilinx]} {
 
   # Vivado + PlanAhead
-  if { [string first PlanAhead [version]] == 0 } {
+  if {[IsISE]} {
     # planAhead
     set work_path [get_property DIRECTORY [get_runs impl_1]]
   } else {
@@ -55,7 +55,7 @@ if {[info commands get_property] != ""} {
   set run_dir [file normalize "$work_path/.."]
   set bin_dir [file normalize "$repo_path/bin"]
 
-} elseif {[info commands project_new] != ""} {
+} elseif {[IsQuartus]} {
   # Quartus
   set proj_name [lindex $quartus(args) 1]
   set proj_dir [pwd]
@@ -97,7 +97,7 @@ if {[info commands get_property] != ""} {
 set group_name [GetGroupName $proj_dir]
 
 # Vivado
-if {[info commands get_property] != "" && [file exists $bit_file]} {
+if {[IsXilinx] && [file exists $bit_file]} {
 
   # Go to repository path
   cd $tcl_path/../../
@@ -140,7 +140,7 @@ if {[info commands get_property] != "" && [file exists $bit_file]} {
     Msg Info "No ltx file found: $ltx_file, that is not a problem"
   }
 
-} elseif {[info commands project_new] != ""} {
+} elseif {[IsQuartus]} {
   #Quartus
   # Go to repository path
   cd $repo_path
@@ -248,7 +248,7 @@ if [file exists $xml_dir] {
 }
 
 # Zynq XSA Export
-if {[info commands get_property] != ""} { # Vivado
+if {[IsXilinx]} { # Vivado
 
 # automatically export for zynqs (checking via regex)
 set export_xsa false

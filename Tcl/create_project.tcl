@@ -66,7 +66,7 @@ namespace eval globalSettings {
 ################# FUNCTIONS ################################
 proc CreateProject {} {
 
-  if {[info commands create_project] != ""} {
+    if {[IsXilinx]} {
 
     create_project -force [file tail $globalSettings::DESIGN] $globalSettings::build_dir -part $globalSettings::PART
 
@@ -74,7 +74,7 @@ proc CreateProject {} {
     ## Set project properties
     set obj [get_projects [file tail $globalSettings::DESIGN] ]
     set_property "target_language" "VHDL" $obj
-    if { [string first PlanAhead [version] ] != 0} {
+    if {[IsVivado]} {
       set_property "simulator_language" "Mixed" $obj
       foreach simulator [GetSimulators] {
         set_property "compxlib.${simulator}_compiled_library_dir" $globalSettings::simlib_path $obj
@@ -83,15 +83,14 @@ proc CreateProject {} {
     }
 
     ## Enable VHDL 2008
-    if { [string first PlanAhead [version] ] != 0} {
+    if {[IsVivado]} {
       set_param project.enableVHDL2008 1
       set_property "enable_vhdl_2008" 1 $obj
     }
 
     ConfigureProperties
 
-
-  } elseif {[info commands project_new] != ""} {
+  } elseif {[IsQuartus]} {
     package require ::quartus::project
     #QUARTUS_ONLY
     if {[string equal $globalSettings::FAMILY "quartus_only"]} {
@@ -123,7 +122,7 @@ proc CreateProject {} {
 
 proc AddProjectFiles {} {
 
-  if {[info commands create_fileset] != ""} {
+  if {[IsXilinx]} {
     #VIVADO_ONLY
     ## Create fileset src
     if {[string equal [get_filesets -quiet sources_1] ""]} {
@@ -138,7 +137,7 @@ proc AddProjectFiles {} {
   ###############
   # CONSTRAINTS #
   ###############
-  if {[info commands launch_chipscope_analyzer] != ""} {
+  if {[IsXilinx]} {
     #VIVADO_ONLY
     # Create 'constrs_1' fileset (if not found)
     if {[string equal [get_filesets -quiet constrs_1] ""]} {
@@ -154,8 +153,8 @@ proc AddProjectFiles {} {
   ##############
   set list_files [glob -directory $globalSettings::list_path "*"]
 
-  if {[info commands create_fileset] != ""} {
-    if { [string first PlanAhead [version]] == 0 } {
+  if {[IsXilinx]} {
+    if {[IsISE]} {
       set tcl_path         [file normalize "[file dirname [info script]]"]
       source $tcl_path/utils/cmdline.tcl
     }
@@ -174,7 +173,7 @@ proc AddProjectFiles {} {
 #  @param[in] obj tghe projet object
 #
 proc CreateReportStrategy {obj} {
-  if {[info commands create_report_config] != ""} {
+  if {[IsVivado]} {
     ## Viavado Report Strategy
     if {[string equal [get_property -quiet report_strategy $obj] ""]} {
       # No report strategy needed
@@ -255,7 +254,7 @@ proc CreateReportStrategy {obj} {
 # The function also sets Hog specific pre and post synthesis scripts
 #
 proc ConfigureSynthesis {} {
-  if {[info commands send_msg_id] != ""} {
+  if {[IsXilinx]} {
     #VIVADO ONLY
     ## Create 'synthesis ' run (if not found)
     if {[string equal [get_runs -quiet synth_1] ""]} {
@@ -270,15 +269,15 @@ proc ConfigureSynthesis {} {
 
   ## set pre synthesis script
   if {$globalSettings::pre_synth_file ne ""} {
-    if {[info commands send_msg_id] != ""} {
+    if {[IsXilinx]} {
       #Vivado Only
-      if { [string first PlanAhead [version] ] != 0 } {
+      if {[IsVivado]} {
         if {[get_filesets -quiet utils_1] != ""} {
           AddFile $globalSettings::pre_synth [get_filesets -quiet utils_1]
         }
         set_property STEPS.SYNTH_DESIGN.TCL.PRE $globalSettings::pre_synth $obj
       }
-    } elseif {[info commands project_new] != ""} {
+    } elseif {[IsQuartus]} {
       #QUARTUS only
       set_global_assignment -name PRE_FLOW_SCRIPT_FILE quartus_sh:$globalSettings::pre_synth
 
@@ -289,15 +288,15 @@ proc ConfigureSynthesis {} {
 
   ## set post synthesis script
   if {$globalSettings::post_synth_file ne ""} {
-    if {[info commands send_msg_id] != ""} {
+    if {[IsXilinx]} {
       #Vivado Only
-      if { [string first PlanAhead [version] ] !=0 } {
+      if {[IsVivado]} {
         if {[get_filesets -quiet utils_1] != ""} {
           AddFile $globalSettings::post_synth [get_filesets -quiet utils_1]
         }
         set_property STEPS.SYNTH_DESIGN.TCL.POST $globalSettings::post_synth $obj
       }
-    } elseif {[info commands project_new] != ""} {
+    } elseif {[IsQuartus]} {
       #QUARTUS only
       set_global_assignment -name POST_MODULE_SCRIPT_FILE quartus_sh:$globalSettings::quartus_post_module
 
@@ -306,7 +305,7 @@ proc ConfigureSynthesis {} {
   }
 
 
-  if {[info commands send_msg_id] != ""} {
+  if {[IsXilinx]} {
     #VIVADO ONLY
     ## set the current synth run
     current_run -synthesis $obj
@@ -327,7 +326,7 @@ proc ConfigureSynthesis {} {
       }
       set reports [get_report_configs -of_objects [get_runs synth_1] synth_1_synth_report_utilization_0]
     }
-  } elseif {[info commands project_new] != ""} {
+  } elseif {[IsQuartus]} {
     #QUARTUS only
     #TO BE DONE
 
@@ -342,7 +341,7 @@ proc ConfigureSynthesis {} {
 # The function also stes Hog spoecific pre and post implementation and, pre and post implementation  scripts
 #
 proc ConfigureImplementation {} {
-  if {[info commands send_msg_id] != ""} {
+  if {[IsXilinx]} {
     # Create 'impl_1' run (if not found)
     if {[string equal [get_runs -quiet impl_1] ""]} {
       create_run -name impl_1 -part $globalSettings::PART  -constrset constrs_1 -parent_run synth_1
@@ -356,7 +355,7 @@ proc ConfigureImplementation {} {
     set_property "steps.write_bitstream.args.readback_file" "0" $obj
     set_property "steps.write_bitstream.args.verbose" "0" $obj
 
-  } elseif {[info commands project_new] != ""} {
+  } elseif {[IsQuartus]} {
     #QUARTUS only
     set obj ""
   }
@@ -364,15 +363,15 @@ proc ConfigureImplementation {} {
 
   ## set pre implementation script
   if {$globalSettings::pre_impl_file ne ""} {
-    if {[info commands send_msg_id] != ""} {
+    if {[IsXilinx]} {
       #Vivado Only
-      if { [string first PlanAhead [version] ] != 0 } {
+      if {[IsVivado]} {
         if {[get_filesets -quiet utils_1] != ""} {
           AddFile $globalSettings::pre_impl [get_filesets -quiet utils_1]
         }
         set_property STEPS.INIT_DESIGN.TCL.POST $globalSettings::pre_impl $obj
       }
-    } elseif {[info commands project_new] != ""} {
+    } elseif {[IsQuartus]} {
       #QUARTUS only
       #set_global_assignment -name PRE_FLOW_SCRIPT_FILE quartus_sh:$globalSettings::pre_impl
 
@@ -383,15 +382,15 @@ proc ConfigureImplementation {} {
 
   ## set post routing script
   if {$globalSettings::post_impl_file ne ""} {
-    if {[info commands send_msg_id] != ""} {
+    if {[IsXilinx]} {
       #Vivado Only
-      if { [string first PlanAhead [version] ] != 0} {
+      if {[IsVivado]} {
         if {[get_filesets -quiet utils_1] != ""} {
           AddFile $globalSettings::post_impl [get_filesets -quiet utils_1]
         }
         set_property STEPS.ROUTE_DESIGN.TCL.POST $globalSettings::post_impl $obj
       }
-    } elseif {[info commands project_new] != ""} {
+    } elseif {[IsQuartus]} {
       #QUARTUS only
       set_global_assignment -name POST_MODULE_SCRIPT_FILE quartus_sh:$globalSettings::quartus_post_module
     }
@@ -400,15 +399,15 @@ proc ConfigureImplementation {} {
 
   ## set pre write bitstream script
   if {$globalSettings::pre_bit_file ne ""} {
-    if {[info commands send_msg_id] != ""} {
+    if {[IsXilinx]} {
       #Vivado Only
-      if { [string first PlanAhead [version] ] != 0} {
+      if {[IsVivado]} {
         if {[get_filesets -quiet utils_1] != ""} {
           AddFile $globalSettings::pre_bit [get_filesets -quiet utils_1]
         }
         set_property STEPS.WRITE_BITSTREAM.TCL.PRE $globalSettings::pre_bit $obj
       }
-    } elseif {[info commands project_new] != ""} {
+    } elseif {[IsQuartus]} {
       #QUARTUS only
       #set_global_assignment -name PRE_FLOW_SCRIPT_FILE quartus_sh:$globalSettings::pre_bit
 
@@ -418,15 +417,15 @@ proc ConfigureImplementation {} {
 
   ## set post write bitstream script
   if {$globalSettings::post_bit_file ne ""} {
-    if {[info commands send_msg_id] != ""} {
+    if {[IsXilinx]} {
       #Vivado Only
-      if { [string first PlanAhead [version] ] != 0 } {
+      if {[IsVivado]} {
         if {[get_filesets -quiet utils_1] != ""} {
           AddFile $globalSettings::post_bit [get_filesets -quiet utils_1]
         }
         set_property STEPS.WRITE_BITSTREAM.TCL.POST $globalSettings::post_bit $obj
       }
-    } elseif {[info commands project_new] != ""} {
+    } elseif {[IsQuartus]} {
       #QUARTUS only
       set_global_assignment -name POST_MODULE_SCRIPT_FILE quartus_sh:$globalSettings::quartus_post_module
     }
@@ -440,7 +439,7 @@ proc ConfigureImplementation {} {
 ## @brief configure simulation
 #
 proc ConfigureSimulation {} {
-  if {[info commands send_msg_id] != ""} {
+  if {[IsXilinx]} {
 
     ##############
     # SIMULATION #
@@ -449,7 +448,7 @@ proc ConfigureSimulation {} {
     foreach f [get_filesets -quiet *_sim] {
       set_property -name {xsim.elaborate.load_glbl} -value {true} -objects [get_filesets $f]
     }
-  }  elseif {[info commands project_new] != ""} {
+  }  elseif {[IsQuartus]} {
     #QUARTUS only
     #TO BE DONE
 
@@ -463,7 +462,7 @@ proc ConfigureSimulation {} {
 proc ConfigureProperties {} {
   set cur_dir [pwd]
   cd $globalSettings::repo_path
-  if {[info commands send_msg_id] != ""} {
+  if {[IsXilinx]} {
     set user_repo "0"
     # Setting Main Properties
     if [info exists globalSettings::PROPERTIES] {
@@ -481,7 +480,7 @@ proc ConfigureProperties {} {
             set ip_repo_list $globalSettings::repo_path/$ip_repo_list
             set user_repo "1"
             Msg Info "Setting $ip_repo_list as user IP repository..."
-            if { [string first PlanAhead [version]]==0 } {
+            if {[IsISE]} {
               set_property  ip_repo_paths "$ip_repo_list" [current_fileset]
             } else  {
               set_property  ip_repo_paths "$ip_repo_list" [current_project]
@@ -536,7 +535,7 @@ proc ConfigureProperties {} {
       }
     }
 
-  } elseif {[info commands project_new] != ""} {
+  } elseif {[IsQuartus]} {
     #QUARTUS only
     #TO BE DONE
   } else {
@@ -548,7 +547,7 @@ proc ConfigureProperties {} {
 ## @brief upgrade IPs in the project
 #
 proc UpgradeIP {} {
-  if {[info commands send_msg_id] != ""} {
+  if {[IsXilinx]} {
     # set the current impl run
     current_run -implementation [get_runs impl_1]
 
@@ -561,7 +560,7 @@ proc UpgradeIP {} {
     if {$ips != ""} {
       upgrade_ip -quiet $ips
     }
-  } elseif {[info commands project_new] != ""} {
+  } elseif {[IsQuartus]} {
     #QUARTUS only
     #TO BE DONE
 
@@ -602,7 +601,7 @@ source $tcl_path/hog.tcl
 if { $::argc eq 0 && ![info exist DESIGN]} {
   Msg Info [cmdline::usage $parameters $usage]
   exit 1
-} elseif { [info commands get_property] != "" } {
+} elseif {[IsXilinx]} {
   # Vivado and ISE
   if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] } {
     Msg Info [cmdline::usage $parameters $usage]
@@ -619,7 +618,7 @@ if { $::argc eq 0 && ![info exist DESIGN]} {
   } else {
     Msg Info "Design is parsed from project.tcl: $DESIGN"
   }
-} elseif { [info commands project_new] != "" } {
+} elseif { [IsQuartus] } {
   # Quartus
   if { [ catch {array set options [cmdline::getoptions quartus(args) $parameters $usage] } ] } {
     Msg Info [cmdline::usage $parameters $usage]
@@ -726,7 +725,7 @@ if {[file exists $conf_file]} {
 
 SetGlobalVar PART
 #Family is needed in quartus only
-if {[info commands project_new] != ""} {
+if {[IsQuartus]} {
   #Quartus only
   SetGlobalVar FAMILY
 }
@@ -786,7 +785,7 @@ ConfigureImplementation
 ConfigureSimulation
 UpgradeIP
 
-if {[info commands project_new] != ""} {
+if {[IsQuartus]} {
   set fileName_old [file normalize "./hogTmp/.hogQsys.md5"]
   set fileDir  [file normalize "$globalSettings::build_dir/.hog/"]
   file mkdir $fileDir
@@ -809,7 +808,7 @@ if {[file exists $post_file]} {
 lassign [GetHogFiles -ext_path "$globalSettings::HOG_EXTERNAL_PATH" -repo_path $repo_path "$repo_path/Top/$DESIGN/list/"] listLibraries listProperties listMain
 CheckExtraFiles $listLibraries
 
-if {[info commands get_property] != ""} {
+if {[IsXilinx]} {
   set old_path [pwd]
   cd $repo_path
   set flavour [GetProjectFlavour $DESIGN]

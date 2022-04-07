@@ -22,7 +22,10 @@ if {[catch {package require struct::matrix} ERROR]} {
   return
 }
 
-if {[info commands get_property] != "" && [string first PlanAhead [version]] == 0 } {
+set tcl_path [file normalize "[file dirname [info script]]/.."]
+source $tcl_path/hog.tcl
+
+if {[IsISE]} {
   # Vivado + PlanAhead
   set old_path [file normalize "../../Projects/$project/$project.runs/synth_1"]
   file mkdir $old_path
@@ -30,12 +33,9 @@ if {[info commands get_property] != "" && [string first PlanAhead [version]] == 
   set old_path [pwd]
 }
 
-set tcl_path [file normalize "[file dirname [info script]]/.."]
-source $tcl_path/hog.tcl
-
-if {[info commands get_property] != ""} {
+if {[IsXilinx]} {
   # Vivado + PlanAhead
-  if { [string first PlanAhead [version]] == 0 } {
+  if {[IsISE]} {
     set proj_file [get_property DIRECTORY [current_project]]
   } else {
     set proj_file [get_property parent.project_path [current_project]]
@@ -43,7 +43,7 @@ if {[info commands get_property] != ""} {
   set proj_dir [file normalize [file dirname $proj_file]]
   set proj_name [file rootname [file tail $proj_file]]
   set top_name [get_property top [current_fileset]]
-} elseif {[info commands project_new] != ""} {
+} elseif {[IsQuartus]} {
   # Quartus
   set proj_name [lindex $quartus(args) 1]
   #set proj_dir [file normalize "$repo_path/Projects/$proj_name"]
@@ -101,10 +101,10 @@ file mkdir $dst_dir
 file mkdir $dst_dir/reports
 
 # Vivado
-if {[info commands get_property] != ""} {
+if {[IsXilinx]} {
 
   # Vivado + PlanAhead
-  if { [string first PlanAhead [version]] == 0 } {
+  if {[IsISE]} {
     # planAhead
     set work_path [get_property DIRECTORY [get_runs synth_1]]
   } else {
@@ -113,7 +113,7 @@ if {[info commands get_property] != ""} {
   }
   set run_dir [file normalize "$work_path/.."]
 
-  if { [string first PlanAhead [version]] == 0 } {
+  if {[IsISE]} {
     set reps [glob -nocomplain "$run_dir/*/*{.syr,.srp,.mrp,.map,.twr,.drc,.bgn,_routed.par,_routed_pad.txt,_routed.unroutes}"]
   } else {
     set reps [glob -nocomplain "$run_dir/*/*.rpt"]
@@ -139,7 +139,7 @@ if {[info commands get_property] != ""} {
     set run_name [file tail [file dir $log]]
     file copy -force $log $dst_dir/reports/$run_name.log
   }
-} elseif {[info commands project_new] != ""} {
+} elseif {[IsQuartus]} {
   #Reports
   set reps [glob -nocomplain "$proj_dir/output_files/*.rpt"]
 

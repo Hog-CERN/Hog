@@ -25,13 +25,14 @@
 set old_path [pwd]
 set tcl_path [file normalize "[file dirname [info script]]/.."]
 source $tcl_path/hog.tcl
+
 # Go to repository pathcd $old_pathcd $old_path
 cd $tcl_path/../../
 set repo_path "$tcl_path/../.."
 
-if {[info commands get_property] != ""} {
+if {[IsXilinx]} {
   # Vivado + planAhead
-  if { [string first PlanAhead [version]] == 0 } {
+  if {[IsISE]} {
     set proj_file [get_property DIRECTORY [current_project]]
     set work_path [get_property DIRECTORY [get_runs impl_1]]
   } else {
@@ -43,7 +44,7 @@ if {[info commands get_property] != ""} {
   set run_dir [file normalize "$work_path/.."]
   set top_name [get_property top [current_fileset]]
 
-} elseif {[info commands project_new] != ""} {
+} elseif {[IsQuartus]} {
   # Quartus
   set proj_name [lindex $quartus(args) 1]
   set proj_dir $old_path
@@ -111,8 +112,8 @@ if {[file exists $dst_dir/diff_list_and_conf.txt]} {
 Msg Info "The git SHA value $commit will be set as bitstream USERID."
 
 # Set bitstream embedded variables
-if {[info commands send_msg_id] != ""} {
-  if { [string first PlanAhead [version]] == 0 } {
+if {[IsXilinx]} {
+  if {[IsISE]} {
     # get the existing "more options" so that we can append to them when adding the userid
     set props [get_property "STEPS.BITGEN.ARGS.MORE OPTIONS" [get_runs impl_1]]
     # need to trim off the curly braces that were used in creating a dictionary
@@ -129,7 +130,7 @@ if {[info commands send_msg_id] != ""} {
     set_property BITSTREAM.CONFIG.USERID $commit [current_design]
     set_property BITSTREAM.CONFIG.USR_ACCESS $commit_usr [current_design]
   }
-} elseif {[info commands post_message] != ""} {
+} elseif {[IsQuartus]} {
   # Quartus TODO
 } else {
   # Tclsh
@@ -142,7 +143,7 @@ if {[file exists $user_post_implementation_file]} {
 }
 
 # Vivado
-if {[info commands get_property] != ""} {
+if {[IsXilinx]} {
   # Go to repository path
   cd $tcl_path/../../
 
@@ -189,7 +190,7 @@ if {[info commands get_property] != ""} {
 
   # Reports
   file mkdir $dst_dir/reports
-  if { [string first PlanAhead [version]] == 0 } {
+  if {[IsISE]} {
     set reps [glob -nocomplain "$run_dir/*/*{.syr,.srp,.mrp,.map,.twr,.drc,.bgn,_routed.par,_routed_pad.txt,_routed.unroutes}"]
   } else {
     set reps [glob -nocomplain "$run_dir/*/*.rpt"]

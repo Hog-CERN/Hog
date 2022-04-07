@@ -59,8 +59,10 @@ if { $::argc eq 0 } {
   set main_folder [file normalize "$repo_path/Projects/$project_name/$project.sim/"]
 
   if {$options(lib_path)!= ""} {
-    set lib_path $options(lib_path)
-    set workflow_simlib_path $options(lib_path)
+    cd $old_path 
+    set lib_path [file normalize $options(lib_path)]
+    set workflow_simlib_path [file normalize $options(lib_path)]
+    cd $path
   } else {
     set lib_path [file normalize "$repo_path/SimulationLib"]
   }
@@ -158,7 +160,7 @@ foreach s [get_filesets] {
         }
       } else {
         if {$simlib_ok == 1} {
-          set_property "compxlib.${simulator}_compiled_library_dir" $lib_path [current_project]
+          set_property "compxlib.${simulator}_compiled_library_dir" [file normalize $lib_path] [current_project]
           launch_simulation -scripts_only -simset [get_filesets $s]
           set top_name [get_property TOP $s]
           set sim_script  [file normalize $sim_dir/$simulator/]

@@ -2044,7 +2044,7 @@ proc AddHogFiles { libraries properties main_libs {verbose 0}} {
             # check if file exists...
             if [file exists $f] {
               foreach simulator [GetSimulators] {
-                set_property "$simulator.simulate.custom_wave_do" $f [get_filesets $file_set]
+                set_property "$simulator.simulate.custom_wave_do" [file tail $f] [get_filesets $file_set]
               }
             } else {
               Msg Warning "File $f was not found."
@@ -2059,7 +2059,7 @@ proc AddHogFiles { libraries properties main_libs {verbose 0}} {
             }
             if [file exists $f] {
               foreach simulator [GetSimulators] {
-                set_property "$simulator.simulate.custom_udo" $f [get_filesets $file_set]
+                set_property "$simulator.simulate.custom_udo" [file tail $f] [get_filesets $file_set]
               }
             } else {
               Msg Warning "File $f was not found."

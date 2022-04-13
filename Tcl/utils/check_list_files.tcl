@@ -527,6 +527,11 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
         set prop_file $key
       }
 
+      if {([string first "vh" [file extension $prop_file]] != -1 && $prop == "verilog_header") || ([string first "sv" [file extension $prop_file]] != -1 && $prop == "SystemVerilog") } {
+        # Do nothing this is the default for vh and svh files
+        break
+      } 
+      
       if {[lsearch -nocase [lindex [DictGet $listProperties $prop_file] 0] $prop] < 0 && ![string equal $prop ""] && ![string equal $prop_file "Simulator"] && ![string equal $prop "top=top_[file root $project_name]"] } {
         if {$options(recreate) == 1} {
           Msg Info "$prop_file property $prop was added to the project."

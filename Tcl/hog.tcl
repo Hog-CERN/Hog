@@ -598,7 +598,7 @@ proc ReadListFile args {
               }
               set library $lib
             }
-            lassign [ReadListFile {*}"-lib $library -main_lib $lib $sha_mode_opt $verbose_opt $vhdlfile $path"] l p m
+            lassign [ReadListFile {*}"-lib $library -main_lib $main_lib $sha_mode_opt $verbose_opt $vhdlfile $path"] l p m
             set libraries [MergeDict $l $libraries]
             set properties [MergeDict $p $properties]
             set main_libs [dict merge $m $main_libs]
@@ -1912,14 +1912,14 @@ proc AddHogFiles { libraries properties main_libs {verbose 0}} {
   Msg Info "Adding source files to project..."
 
   foreach lib [dict keys $libraries] {
-    #Msg Info "lib: $lib \n"
+    # Msg Info "lib: $lib \n"
     set lib_files [dict get $libraries $lib]
-    #Msg Info "Files in $lib: $lib_files \n"
+    # Msg Info "Files in $lib: $lib_files \n"
     set rootlib [file rootname [file tail $lib]]
     set ext [file extension $lib]
     set main_lib [dict get $main_libs $lib]
     set simlib [file rootname [file tail $main_lib]]
-    #Msg Info "lib: $lib ext: $ext \n"
+    Msg Info "lib: $lib ext: $ext simlib $simlib \n"
     switch $ext {
       .sim {
         set file_set "$simlib\_sim"

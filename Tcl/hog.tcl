@@ -1919,7 +1919,7 @@ proc AddHogFiles { libraries properties main_libs {verbose 0}} {
     set ext [file extension $lib]
     set main_lib [dict get $main_libs $lib]
     set simlib [file rootname [file tail $main_lib]]
-    Msg Info "lib: $lib ext: $ext simlib $simlib \n"
+    # Msg Info "lib: $lib ext: $ext simlib $simlib \n"
     switch $ext {
       .sim {
         set file_set "$simlib\_sim"

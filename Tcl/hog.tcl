@@ -565,7 +565,7 @@ proc ReadListFile args {
               }
               set library $lib
             }
-            lassign [ReadListFile {*}"-lib $library -main_lib $lib $sha_mode_opt $verbose_opt $vhdlfile $path"] l p m
+            lassign [ReadListFile {*}"-lib $library -main_lib $main_lib $sha_mode_opt $verbose_opt $vhdlfile $path"] l p m
             set libraries [MergeDict $l $libraries]
             set properties [MergeDict $p $properties]
             set main_libs [dict merge $m $main_libs]

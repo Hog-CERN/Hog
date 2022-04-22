@@ -265,6 +265,7 @@ check-timing:
             PRJ_NAME="${PRJ_DIR%.*}";
             PRJ_NAME="${PRJ_NAME%-*}";
             PRJ_NAME_BASE=$(basename $PRJ_NAME);
+            echo $PRJ_NAME_BASE;
             if [ -f "$PRJ_DIR/timing_error.txt" ]; then
               FAILED_PRJS[-1]=$PRJ_NAME_BASE;
             fi;

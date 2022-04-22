@@ -260,7 +260,7 @@ check-timing:
         - cd $CI_PROJECT_DIR/bin/
         - PRJ_BITS=$(find . -iname "versions.txt")
         - declare -a FAILED_PRJS
-        - for project in ${PRJ_BITS}; do
+        - for PRJ_BIT in ${PRJ_BITS}; do
             PRJ_DIR=$(dirname "$PRJ_BIT");
             PRJ_NAME="${PRJ_DIR%.*}";
             PRJ_NAME="${PRJ_NAME%-*}";

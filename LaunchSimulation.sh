@@ -51,6 +51,10 @@ function argument_parser() {
 			SIMSET="-simset $2"
 			shift 2
 			;;
+		-recreate)
+            RECREATE="-recreate"
+            shift 1
+            ;;
 		-? | -h | -help)
 			HELP="-h"
 			shift 1
@@ -89,6 +93,7 @@ function help_message() {
   echo "          -l/--lib  <sim_lib_path>  Path to simulation library. If not defined it will be set to the HOG_SIMULATION_LIB_PATH environmnetal library, or if this does not exist to the default $(pwd)/SimulationLib"
   echo "          -simset <simset>          Launch the simulation only for the specified simulation set"
   echo "          -quiet                    If set, it runs the simulation in quiet mode"
+  echo "          -recreate                 If set, Hog will recreate the HDL project before running the workflow"
   echo 
   echo " Hint: Hog accepts as <project name> both the actual project name and the relative path containing the project configuration. E.g. ./Hog/LaunchSimulation.sh Top/myproj or ./Hog/LaunchSimulation.sh myproj"
 }
@@ -156,7 +161,7 @@ else
 		elif [ $COMMAND = "vivado_hls" ]; then
 			Msg Error "Vivado HLS is not yet supported by this script!"
 		else
-			"${HDL_COMPILER}" $COMMAND_OPT $DIR/Tcl/launchers/launch_simulation.tcl -tclargs $SIMLIBPATH $SIMSET $QUIET $PROJ
+			"${HDL_COMPILER}" $COMMAND_OPT $DIR/Tcl/launchers/launch_simulation.tcl -tclargs $SIMLIBPATH $SIMSET $QUIET $RECREATE $PROJ
 		fi
 	else
 		Msg Error "Project $PROJ not found: possible projects are: $(search_projects $DIR/../Top)"

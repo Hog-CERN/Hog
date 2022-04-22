@@ -273,7 +273,7 @@ check-timing:
         - if [ ${#FAILED_PRJS[!]} -gt 0 ]; then
             echo "The following projects have failed timing:";
             echo ${FAILED_PRJS[*]};
-            exit -1;
+            exit 1;
           else
             echo "All projects met timing. All good!"
           fi;

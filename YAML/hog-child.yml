@@ -262,12 +262,11 @@ check-timing:
         - declare -a FAILED_PRJS
         - for project in ${PRJ_BITS}; do
             PRJ_DIR=$(dirname "$PRJ_BIT");
-            PRJ_BASE=$(basename $PRJ_DIR);
             PRJ_NAME="${PRJ_DIR%.*}";
             PRJ_NAME="${PRJ_NAME%-*}";
             PRJ_NAME_BASE=$(basename $PRJ_NAME);
             if [ -f "$PRJ_DIR/timing_error.txt" ]; then
-              FAILED_PRJS[-1] = $PRJ_NAME_BASE;
+              FAILED_PRJS[-1]=$PRJ_NAME_BASE;
             fi;
           done;
         - if [ ${#FAILED_PRJS[!]} -gt 0 ]; then

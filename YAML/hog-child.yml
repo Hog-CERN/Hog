@@ -259,7 +259,7 @@ check-timing:
     script:
         - cd $CI_PROJECT_DIR/bin/
         - PRJ_BITS=$(find . -iname "versions.txt")
-        - declare -a FAILED_PRJS
+        - FAILED_PRJS=""
         - for PRJ_BIT in ${PRJ_BITS}; do
             PRJ_DIR=$(dirname "$PRJ_BIT");
             PRJ_NAME="${PRJ_DIR%.*}";
@@ -267,12 +267,11 @@ check-timing:
             PRJ_NAME_BASE=$(basename $PRJ_NAME);
             echo $PRJ_NAME_BASE;
             if [ -f "$PRJ_DIR/timing_error.txt" ]; then
-              FAILED_PRJS[-1]=$PRJ_NAME_BASE;
+              FAILED_PRJS+=" $PRJ_NAME_BASE";
             fi;
           done;
-        - if [ ${#FAILED_PRJS[!]} -gt 0 ]; then
-            echo "The following projects have failed timing:";
-            echo ${FAILED_PRJS[*]};
+        - if [ $FAILED_PRJS != "" ]; then
+            echo "The following projects have failed timing: $FAILED_PRJS";
             exit 1;
           else
             echo "All projects met timing. All good!"

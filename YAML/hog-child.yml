@@ -270,7 +270,7 @@ check-timing:
             fi;
           done;
         - if [ $FAILED_PRJS != "" ]; then
-            echo "The following projects have failed timing, $FAILED_PRJS";
+            echo "The following projects have failed timing :$FAILED_PRJS";
             exit 1;
           else
             echo "All projects met timing. All good!";

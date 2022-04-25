@@ -16,12 +16,15 @@
 ## @file LaunchSimulation.sh
 # @brief launch /Tcl/launchers/launch_simulation.tcl using Vivado
 # @todo LaunchSimulation.sh: update for Quartus support
-# @todo LaunchSimulation.sh: check is vivado is installed an set-up in the shell (if [ command -v vivado ])
+# @todo LaunchSimulation.sh: check if vivado is installed an set-up in the shell (if [ command -v vivado ])
 # @todo LaunchSimulation.sh: check arg $1 and $2 before passing it to the Tcl script
+
 
 ## Import common functions from Other/CommonFunctions.sh in a POSIX compliant way
 #
 . $(dirname "$0")/Other/CommonFunctions.sh
+
+
 
 print_hog $(dirname "$0")
 
@@ -156,7 +159,9 @@ else
 		elif [ $COMMAND = "vivado_hls" ]; then
 			Msg Error "Vivado HLS is not yet supported by this script!"
 		else
-			"${HDL_COMPILER}" $COMMAND_OPT $DIR/Tcl/launchers/launch_simulation.tcl -tclargs $SIMLIBPATH $SIMSET $QUIET $PROJ
+			# "${HDL_COMPILER}" $COMMAND_OPT $DIR/Tcl/launchers/launch_simulation.tcl -tclargs $SIMLIBPATH $SIMSET $QUIET $PROJ
+			LogColorVivado "${HDL_COMPILER} ${COMMAND_OPT} ${DIR}/Tcl/launchers/launch_simulation.tcl -tclargs $SIMLIBPATH $SIMSET $QUIET $PROJ"
+      # echo "exec"
 		fi
 	else
 		Msg Error "Project $PROJ not found: possible projects are: $(search_projects $DIR/../Top)"

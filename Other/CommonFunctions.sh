@@ -49,52 +49,56 @@ else
   echo "there is a colorer : ${CONSOLE_COLORER}"
 fi
 
-
+# exit 0
 
 ## @function LogColorVivado()
 # brief save output logs of vivado to files and colors the output
 # @param[in] execution line to process
 
 function LogColorVivado(){
-  colorizer="xcol"
+  # colorizer="xcol"
   echo "LogColorVivado : $1"
   echo_info=1
   echo_warnings=1
   echo_errors=1
   ${1} |& while IFS= read -r line
       do
+        # echo "${line}"
         # echo $line >> $logfile
         # string=$line
         # echo "$line" | xcol warning: critical error: info: hog: 
         case "$line" in
           *'WARNING:'* | *'Warning:'* | *'warning:'*)
             if [ $echo_warnings == 1 ]; then
-              echo "w : $line" | $(${colorizer} warning: critical error: info: hog: )
+              echo "w : $line" 
+              #| $(${colorizer} warning: critical error: info: hog: )
             fi
             # echo $line >> $warningfile
           ;;
           *'ERROR:'* | *'Error:'* | *'error:'*)
             if [ $echo_errors == 1 ]; then
-              echo "e : $line" | xcol warning: critical error info: hog: 
+              echo "e : $line" 
+              #| xcol warning: critical error info: hog: 
             fi
             # echo "e : $line"
             # echo $line >> $errorfile
           ;;
           *'INFO:'*)
             if [ $echo_info == 1 ]; then
-              echo "i : $line" | xcol warning: critical error: info: hog: 
+              echo "i : $line" 
+              #| xcol warning: critical error: info: hog: 
             fi
             # echo "i : $line"
           ;;
           *'vcom'*)
-              echo "i : $line" | xcol warning critical error vcom hog 
+              echo "i : $line" #| xcol warning critical error vcom hog 
           ;;
           *'Errors'* | *'Warnings'* | *'errors'* | *'warnings'*)
-              echo "i : $line" | xcol warnings critical errors vcom hog 
+              echo "i : $line" #| xcol warnings critical errors vcom hog 
           ;;
           *)
             if [ $echo_info == 1 ]; then
-              echo "i : $line" | xcol warning: critical error: info: hog: 
+              echo "i : $line" #| xcol warning: critical error: info: hog: 
             fi
             # echo "default (none of above)"
             # echo "line : $string"

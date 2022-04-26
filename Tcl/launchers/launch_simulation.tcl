@@ -25,6 +25,7 @@ if {[catch {package require cmdline} ERROR]} {
 set parameters {
   {lib_path.arg ""   "Compiled simulation library path"}
   {simset.arg  ""   "Simulation sets, separated by commas, to be run."}
+  {recreate        "If set, the project will be re-created if it already exists."}
   {quiet             "Simulation sets, separated by commas, to be run."}  
 }
 
@@ -66,7 +67,7 @@ if { $::argc eq 0 } {
   } else {
     set lib_path [file normalize "$repo_path/SimulationLib"]
   }
-
+  set recreate 0
 }
 
 Msg Info "Simulation library path is set to $lib_path."
@@ -87,6 +88,11 @@ if {$options(quiet) == 1} {
   Msg Info "Will run in quiet mode"
 }
 
+if { $options(recreate) == 1 } {
+  set recreate 1
+}
+
+
 ############# CREATE or OPEN project ############
 if {[IsISE]} {
   set project_file [file normalize $repo_path/Projects/$project_name/$project.ppr]
@@ -94,11 +100,11 @@ if {[IsISE]} {
   set project_file [file normalize $repo_path/Projects/$project_name/$project.xpr]
 }
 
-if {[file exists $project_file]} {
+if {[file exists $project_file] && $recreate == 0} {
   Msg Info "Found project file $project_file for $project_name..."
   open_project $project_file
 } else {
-  Msg Info "Project file not found for $project_name, creating the project..."
+  Msg Info "Creating (possibly replacing) the project $project_name..."
 
   lassign [GetConfFiles $repo_path/Top/$project_name] conf sim pre post tcl_file
 

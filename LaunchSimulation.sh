@@ -164,11 +164,6 @@ else
 		elif [ $COMMAND = "vivado_hls" ]; then
 			Msg Error "Vivado HLS is not yet supported by this script!"
 		else
-<<<<<<< HEAD
-			# "${HDL_COMPILER}" $COMMAND_OPT $DIR/Tcl/launchers/launch_simulation.tcl -tclargs $SIMLIBPATH $SIMSET $QUIET $PROJ
-			LogColorVivado "${HDL_COMPILER} ${COMMAND_OPT} ${DIR}/Tcl/launchers/launch_simulation.tcl -tclargs $SIMLIBPATH $SIMSET $QUIET $PROJ"
-      # echo "exec"
-=======
 			if [ -z ${SIMLIBPATH+x} ]; then
 				if [ -z ${HOG_SIMULATION_LIB_PATH+x} ]; then
 					"${HDL_COMPILER}" $COMMAND_OPT $DIR/Tcl/launchers/launch_simulation.tcl -tclargs $SIMSET $QUIET $RECREATE $PROJ
@@ -178,7 +173,6 @@ else
 			else
 				"${HDL_COMPILER}" $COMMAND_OPT $DIR/Tcl/launchers/launch_simulation.tcl -tclargs $SIMLIBPATH $SIMSET $QUIET $RECREATE $PROJ
 			fi
->>>>>>> v6.9.0
 		fi
 	else
 		Msg Error "Project $PROJ not found: possible projects are: $(search_projects $DIR/../Top)"

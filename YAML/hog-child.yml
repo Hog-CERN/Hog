@@ -249,3 +249,30 @@ collect_artifacts:
             - $CI_PROJECT_DIR/bin
         expire_in: 30 day
     allow_failure: true
+
+check-timing:
+    <<: *only-default
+    <<: *tag-sr
+    stage: collect
+    variables:
+        <<: *vars
+    script:
+        - cd $CI_PROJECT_DIR/bin/
+        - PRJ_BITS=$(find . -iname "versions.txt")
+        - FAILED_PRJS=""
+        - for PRJ_BIT in ${PRJ_BITS}; do
+            PRJ_DIR=$(dirname "$PRJ_BIT");
+            PRJ_NAME="${PRJ_DIR%.*}";
+            PRJ_NAME="${PRJ_NAME%-*}";
+            PRJ_NAME_BASE=$(basename $PRJ_NAME);
+            if [ -f "$PRJ_DIR/timing_error.txt" ]; then
+              FAILED_PRJS+=" $PRJ_NAME_BASE";
+            fi;
+          done;
+        - if [ $FAILED_PRJS != "" ]; then
+            echo "The following projects have failed timing:$FAILED_PRJS";
+            exit 1;
+          else
+            echo "All projects met timing. All good!";
+          fi;
+    allow_failure: true

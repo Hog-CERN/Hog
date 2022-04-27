@@ -55,6 +55,56 @@ export HOG_LOGGER=""
 
 # exit 0
 
+# SYNTAX:
+#   catch STDOUT_VARIABLE STDERR_VARIABLE COMMAND
+# catch() {
+#     {
+#         IFS=$'\n' read -r -d '' "${1}";
+#         IFS=$'\n' read -r -d '' "${2}";
+#         (IFS=$'\n' read -r -d '' _ERRNO_; return ${_ERRNO_});
+#     } < <((printf '\0%s\0' "$(some_command)" 1>&2) 2>&1)
+#     # } < <((({ { some_command ; echo "${?}" 1>&3; } | tr -d '\0'; printf '\0'; } 2>&1- 1>&4- | tr -d '\0' 1>&4-) 3>&1- | xargs printf '\0%s\0' 1>&4-) 4>&1-)
+#     # } < <((printf '\0%s\0%d\0' "$(((({ ${3}; echo "${?}" 1>&3-; } | tr -d '\0' 1>&4-) 4>&2- 2>&1- | tr -d '\0' 1>&4-) 3>&1- | exit "$(cat)") 4>&1-)" "${?}" 1>&2) 2>&1)
+#     }
+
+function buffer_plus_null()
+{
+  local buf
+  IFS= read -r -d '' buf || :
+  echo -n "${buf}"
+  printf '\0'
+}
+
+log_stdout(){
+  # echo "std_out : ${1:-$(</dev/stdin)}"
+  if [ -n "${1}" ]; then
+      IN_out="${1}"
+      echo "stdout : ${IN_out}" 
+  else
+      while read IN_out # This reads a string from stdin and stores it in a variable called IN_out
+      do
+        echo "stdout = ${IN_out}"
+      done
+  fi
+  
+
+}
+
+log_stderr(){
+  # echo "std_out : ${1:-$(</dev/stdin)}"
+  if [ -n "${1}" ]; then
+      IN_err="${1}"
+      echo "stderr : ${IN_err}" 
+  else
+      while read IN_err # This reads a string from stdin and stores it in a variable called IN_err
+      do
+        echo "stderr = ${IN_err}"
+      done
+  fi
+  
+
+}
+
 ## @function LogColorVivado()
 # brief save output logs of vivado to files and colors the output
 # @param[in] execution line to process
@@ -62,54 +112,68 @@ export HOG_LOGGER=""
 function Logger(){
   # colorizer="xcol"
   echo "LogColorVivado : $1"
+  log_stdout "LogColorVivado : $1"
+  log_stderr "LogColorVivado : $1"
   echo_info=1
   echo_warnings=1
   echo_errors=1
-  ${1} |& while IFS= read -r line
-      do
-        # echo "${line}"
-        # echo $line >> $logfile
-        # string=$line
-        # echo "$line" | xcol warning: critical error: info: hog: 
-        case "$line" in
-          *'WARNING:'* | *'Warning:'* | *'warning:'*)
-            if [ $echo_warnings == 1 ]; then
-              echo "w : $line" 
-              #| $(${colorizer} warning: critical error: info: hog: )
-            fi
-            # echo $line >> $warningfile
-          ;;
-          *'ERROR:'* | *'Error:'* | *'error:'*)
-            if [ $echo_errors == 1 ]; then
-              echo "e : $line" 
-              #| xcol warning: critical error info: hog: 
-            fi
-            # echo "e : $line"
-            # echo $line >> $errorfile
-          ;;
-          *'INFO:'*)
-            if [ $echo_info == 1 ]; then
-              echo "i : $line" 
-              #| xcol warning: critical error: info: hog: 
-            fi
-            # echo "i : $line"
-          ;;
-          *'vcom'*)
-              echo "i : $line" #| xcol warning critical error vcom hog 
-          ;;
-          *'Errors'* | *'Warnings'* | *'errors'* | *'warnings'*)
-              echo "i : $line" #| xcol warnings critical errors vcom hog 
-          ;;
-          *)
-            if [ $echo_info == 1 ]; then
-              echo "i : $line" #| xcol warning: critical error: info: hog: 
-            fi
-            # echo "default (none of above)"
-            # echo "line : $string"
-          ;;
-        esac
+  # CAPTURED_STDOUT=""
+  # CAPTURED_STDERR=""
+  # {
+  #   IFS= time read -r -d '' CAPTURED_STDOUT;
+  #   IFS= time read -r -d '' CAPTURED_STDERR;
+  #   (IFS= read -r -d '' CAPTURED_EXIT; exit "${CAPTURED_EXIT}");
+  # } < <((({ { ${1} ; echo "${?}" 1>&3; } | tr '\0' '\n' | buffer_plus_null; } 2>&1 1>&4 | tr '\0' '\n' | buffer_plus_null 1>&4 ) 3>&1 | xargs printf '%s\0' 1>&4) 4>&1 )
+
+  # ${1} | log_stdout 2> log_stderr
+  # ${1} > log_stdout.txt 2> log_stderr.txt
+  ${1} > >(log_stdout) 2> >(log_stderr)
+
+  # ${1} |& while IFS= read -r line
+  #     do
+  #       # echo "${line}"
+  #       # echo $line >> $logfile
+  #       # string=$line
+  #       # echo "$line" | xcol warning: critical error: info: hog: 
+  #       case "$line" in
+  #         *'WARNING:'* | *'Warning:'* | *'warning:'*)
+  #           if [ $echo_warnings == 1 ]; then
+  #             echo "w : $line" 
+  #             #| $(${colorizer} warning: critical error: info: hog: )
+  #           fi
+  #           # echo $line >> $warningfile
+  #         ;;
+  #         *'ERROR:'* | *'Error:'* | *'error:'*)
+  #           if [ $echo_errors == 1 ]; then
+  #             echo "e : $line" 
+  #             #| xcol warning: critical error info: hog: 
+  #           fi
+  #           # echo "e : $line"
+  #           # echo $line >> $errorfile
+  #         ;;
+  #         *'INFO:'*)
+  #           if [ $echo_info == 1 ]; then
+  #             echo "i : $line" 
+  #             #| xcol warning: critical error: info: hog: 
+  #           fi
+  #           # echo "i : $line"
+  #         ;;
+  #         *'vcom'*)
+  #             echo "i : $line" #| xcol warning critical error vcom hog 
+  #         ;;
+  #         *'Errors'* | *'Warnings'* | *'errors'* | *'warnings'*)
+  #             echo "i : $line" #| xcol warnings critical errors vcom hog 
+  #         ;;
+  #         *)
+  #           if [ $echo_info == 1 ]; then
+  #             echo "i : $line" #| xcol warning: critical error: info: hog: 
+  #           fi
+  #           # echo "default (none of above)"
+  #           # echo "line : $string"
+  #         ;;
+  #       esac
       
-      done
+  #     done
 }
 
 # @function Msg

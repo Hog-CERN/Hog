@@ -41,13 +41,17 @@ export POST_COMMAND_OPT=""
 #
 export HDL_COMPILER=""
 
+## @var LOGGER
+#  @brief Global variable used to contain the logger
+export HOG_LOGGER="" 
+
 ## @var COLORED
 #  @brief Global variable used to contain the colorer
-if [[ -z ${CONSOLE_COLORER} ]]; then
-  export CONSOLE_COLORER=""
-else
-  echo "there is a colorer : ${CONSOLE_COLORER}"
-fi
+# if [[ -z ${CONSOLE_COLORER} ]]; then
+#   export CONSOLE_COLORER=""
+# else
+#   echo "there is a colorer : ${CONSOLE_COLORER}"
+# fi
 
 # exit 0
 
@@ -55,7 +59,7 @@ fi
 # brief save output logs of vivado to files and colors the output
 # @param[in] execution line to process
 
-function LogColorVivado(){
+function Logger(){
   # colorizer="xcol"
   echo "LogColorVivado : $1"
   echo_info=1

@@ -53,6 +53,10 @@ function argument_parser() {
 		-simset)
 			SIMSET="-simset $2"
 			shift 2
+			;;		
+    -L | Logs)
+			HOG_LOGGER="all"
+			shift 1
 			;;
 		-recreate)
             RECREATE="-recreate"
@@ -166,12 +170,24 @@ else
 		else
 			if [ -z ${SIMLIBPATH+x} ]; then
 				if [ -z ${HOG_SIMULATION_LIB_PATH+x} ]; then
-					"${HDL_COMPILER}" $COMMAND_OPT $DIR/Tcl/launchers/launch_simulation.tcl -tclargs $SIMSET $QUIET $RECREATE $PROJ
+          if [ -z ${HOG_LOGGER} ]; then
+					  ${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_simulation.tcl -tclargs $SIMSET $QUIET $RECREATE $PROJ
+          else
+					  Logger "${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_simulation.tcl -tclargs $SIMSET $QUIET $RECREATE $PROJ"
+          fi
 				else
-					"${HDL_COMPILER}" $COMMAND_OPT $DIR/Tcl/launchers/launch_simulation.tcl -tclargs -lib_path $HOG_SIMULATION_LIB_PATH $SIMSET $QUIET $RECREATE $PROJ
+          if [ -z ${HOG_LOGGER} ]; then
+					  ${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_simulation.tcl -tclargs -lib_path $HOG_SIMULATION_LIB_PATH $SIMSET $QUIET $RECREATE $PROJ
+          else
+					  Logger "${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_simulation.tcl -tclargs -lib_path $HOG_SIMULATION_LIB_PATH $SIMSET $QUIET $RECREATE $PROJ"
+          fi
 				fi
 			else
-				"${HDL_COMPILER}" $COMMAND_OPT $DIR/Tcl/launchers/launch_simulation.tcl -tclargs $SIMLIBPATH $SIMSET $QUIET $RECREATE $PROJ
+        if [ -z ${HOG_LOGGER} ]; then
+				  ${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_simulation.tcl -tclargs $SIMLIBPATH $SIMSET $QUIET $RECREATE $PROJ
+				else
+          Logger "${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_simulation.tcl -tclargs $SIMLIBPATH $SIMSET $QUIET $RECREATE $PROJ"
+        fi
 			fi
 		fi
 	else

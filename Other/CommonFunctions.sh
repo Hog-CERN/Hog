@@ -53,45 +53,23 @@ export HOG_LOGGER=""
 #   echo "there is a colorer : ${CONSOLE_COLORER}"
 # fi
 
-# exit 0
-
-# SYNTAX:
-#   catch STDOUT_VARIABLE STDERR_VARIABLE COMMAND
-# catch() {
-#     {
-#         IFS=$'\n' read -r -d '' "${1}";
-#         IFS=$'\n' read -r -d '' "${2}";
-#         (IFS=$'\n' read -r -d '' _ERRNO_; return ${_ERRNO_});
-#     } < <((printf '\0%s\0' "$(some_command)" 1>&2) 2>&1)
-#     # } < <((({ { some_command ; echo "${?}" 1>&3; } | tr -d '\0'; printf '\0'; } 2>&1- 1>&4- | tr -d '\0' 1>&4-) 3>&1- | xargs printf '\0%s\0' 1>&4-) 4>&1-)
-#     # } < <((printf '\0%s\0%d\0' "$(((({ ${3}; echo "${?}" 1>&3-; } | tr -d '\0' 1>&4-) 4>&2- 2>&1- | tr -d '\0' 1>&4-) 3>&1- | exit "$(cat)") 4>&1-)" "${?}" 1>&2) 2>&1)
-#     }
-
-function buffer_plus_null()
-{
-  local buf
-  IFS= read -r -d '' buf || :
-  echo -n "${buf}"
-  printf '\0'
-}
 
 log_stdout(){
-  # echo "std_out : ${1:-$(</dev/stdin)}"
-  if [ -n "${1}" ]; then
-      IN_out="${1}"
+  echo "std_out init : $*"
+  if [ -n "${2}" ]; then
+      IN_out="${2}"
+      in_type="${1}"
       echo "stdout : ${IN_out}" 
   else
       while read IN_out # This reads a string from stdin and stores it in a variable called IN_out
       do
-        echo "stdout = ${IN_out}"
+        echo "${1} = ${IN_out}"
+        # echo $*
       done
   fi
-  
-
 }
 
 log_stderr(){
-  # echo "std_out : ${1:-$(</dev/stdin)}"
   if [ -n "${1}" ]; then
       IN_err="${1}"
       echo "stderr : ${IN_err}" 
@@ -112,22 +90,14 @@ log_stderr(){
 function Logger(){
   # colorizer="xcol"
   echo "LogColorVivado : $1"
-  log_stdout "LogColorVivado : $1"
+  log_stdout "kk" "LogColorVivado : $1"
   log_stderr "LogColorVivado : $1"
   echo_info=1
   echo_warnings=1
   echo_errors=1
-  # CAPTURED_STDOUT=""
-  # CAPTURED_STDERR=""
-  # {
-  #   IFS= time read -r -d '' CAPTURED_STDOUT;
-  #   IFS= time read -r -d '' CAPTURED_STDERR;
-  #   (IFS= read -r -d '' CAPTURED_EXIT; exit "${CAPTURED_EXIT}");
-  # } < <((({ { ${1} ; echo "${?}" 1>&3; } | tr '\0' '\n' | buffer_plus_null; } 2>&1 1>&4 | tr '\0' '\n' | buffer_plus_null 1>&4 ) 3>&1 | xargs printf '%s\0' 1>&4) 4>&1 )
 
-  # ${1} | log_stdout 2> log_stderr
-  # ${1} > log_stdout.txt 2> log_stderr.txt
-  ${1} > >(log_stdout) 2> >(log_stderr)
+  ${1} > >(log_stdout "stdout") 2> >(log_stdout "stderr" >&2)
+  # ${1} > >(log_stdout "stdout") 2> >(log_stderr "stderr" >&2)
 
   # ${1} |& while IFS= read -r line
   #     do

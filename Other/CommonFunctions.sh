@@ -57,18 +57,26 @@ echo_info=1
 echo_warnings=1
 echo_errors=1
 
+loginfofile="hog_info.log"
+logwarningfile="hog_warning_errors.log"
+# logerrorfile="hog_warning_errors.log"
+
+
 log_stdout(){
   echo "std_out init : $*"
   if [ -n "${2}" ]; then
-      IN_out="${2}"
-      in_type="${1}"
-      echo "stdout : ${IN_out}" 
+    IN_out="${2}"
+    in_type="${1}"
+    echo "stdout : ${IN_out}" 
   else
-    if [ "${in_type}" == "stdout" ]; then
-      while read IN_out # This reads a string from stdin and stores it in a variable called IN_out
-      do
-        # echo "${1} = ${IN_out}"
-        line=${IN_out}
+    while read IN_out # This reads a string from stdin and stores it in a variable called IN_out
+    do
+      line=${IN_out}
+      # echo "${line}"
+      # echo "${1} = ${line}"
+      if [ "${1}" == "stdout" ]; then
+      
+        # line=${IN_out}
         # echo "${line}"
         # echo $line >> $logfile
         # string=$line
@@ -79,7 +87,7 @@ log_stdout(){
               echo "w : $line" 
               #| $(${colorizer} warning: critical error: info: hog: )
             fi
-            # echo $line >> $warningfile
+            echo "$line" >> $logwarningfile
           ;;
           *'ERROR:'* | *'Error:'* | *'error:'*)
             if [ $echo_errors == 1 ]; then
@@ -87,35 +95,44 @@ log_stdout(){
               #| xcol warning: critical error info: hog: 
             fi
             # echo "e : $line"
-            # echo $line >> $errorfile
+            echo "$line" >> $logwarningfile
           ;;
           *'INFO:'*)
             if [ $echo_info == 1 ]; then
               echo "i : $line" 
               #| xcol warning: critical error: info: hog: 
             fi
+            echo $line >> $loginfofile
             # echo "i : $line"
           ;;
           *'vcom'*)
-              echo "i : $line" #| xcol warning critical error vcom hog 
+            echo "i : $line" #| xcol warning critical error vcom hog 
+            echo $line >> $loginfofile
+
           ;;
           *'Errors'* | *'Warnings'* | *'errors'* | *'warnings'*)
-              echo "i : $line" #| xcol warnings critical errors vcom hog 
+            echo "i : $line" #| xcol warnings critical errors vcom hog 
+            echo $line >> $loginfofile
+
           ;;
           *)
             if [ $echo_info == 1 ]; then
               echo "i : $line" #| xcol warning: critical error: info: hog: 
+              echo $line >> $loginfofile
+
             fi
             # echo "default (none of above)"
             # echo "line : $string"
           ;;
         esac
-      done
-    elif [ "${in_type}" == "stderr" ]; then
+      elif [ "${1}" == "stderr" ]; then
         echo "e : $line" 
-    else
+        echo $line >> $logwarningfile
+
+      else
        echo "----------------------- error -----------------------------------" 
-    fi      
+      fi  
+    done    
   fi
 }
 
@@ -125,6 +142,20 @@ log_stdout(){
 
 function Logger(){
   # colorizer="xcol"
+
+  {
+    echo "-----------------------------------------------"
+    echo " HOG INFO LOG "
+    echo " CMD : ${1} "
+    echo "-----------------------------------------------"
+  } > $loginfofile
+  {
+    echo "-----------------------------------------------"
+    echo " HOG WARNINGS AND ERRORS"
+    echo " CMD : ${1} "
+    echo "-----------------------------------------------"
+  } > $logwarningfile
+
   echo "LogColorVivado : $1"
   log_stdout "stdout" "LogColorVivado : $1"
   log_stderr "stderr" "LogColorVivado : $1"
@@ -145,7 +176,7 @@ function Logger(){
   #             echo "w : $line" 
   #             #| $(${colorizer} warning: critical error: info: hog: )
   #           fi
-  #           # echo $line >> $warningfile
+  #           # echo $line >> $logwarningfile
   #         ;;
   #         *'ERROR:'* | *'Error:'* | *'error:'*)
   #           if [ $echo_errors == 1 ]; then
@@ -153,7 +184,7 @@ function Logger(){
   #             #| xcol warning: critical error info: hog: 
   #           fi
   #           # echo "e : $line"
-  #           # echo $line >> $errorfile
+  #           # echo $line >> $logerrorfile
   #         ;;
   #         *'INFO:'*)
   #           if [ $echo_info == 1 ]; then

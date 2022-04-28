@@ -53,6 +53,9 @@ export HOG_LOGGER=""
 #   echo "there is a colorer : ${CONSOLE_COLORER}"
 # fi
 
+echo_info=1
+echo_warnings=1
+echo_errors=1
 
 log_stdout(){
   echo "std_out init : $*"
@@ -61,40 +64,71 @@ log_stdout(){
       in_type="${1}"
       echo "stdout : ${IN_out}" 
   else
+    if [ "${in_type}" == "stdout" ]; then
       while read IN_out # This reads a string from stdin and stores it in a variable called IN_out
       do
-        echo "${1} = ${IN_out}"
-        # echo $*
+        # echo "${1} = ${IN_out}"
+        line=${IN_out}
+        # echo "${line}"
+        # echo $line >> $logfile
+        # string=$line
+        # echo "$line" | xcol warning: critical error: info: hog: 
+        case "$line" in
+          *'WARNING:'* | *'Warning:'* | *'warning:'*)
+            if [ $echo_warnings == 1 ]; then
+              echo "w : $line" 
+              #| $(${colorizer} warning: critical error: info: hog: )
+            fi
+            # echo $line >> $warningfile
+          ;;
+          *'ERROR:'* | *'Error:'* | *'error:'*)
+            if [ $echo_errors == 1 ]; then
+              echo "e : $line" 
+              #| xcol warning: critical error info: hog: 
+            fi
+            # echo "e : $line"
+            # echo $line >> $errorfile
+          ;;
+          *'INFO:'*)
+            if [ $echo_info == 1 ]; then
+              echo "i : $line" 
+              #| xcol warning: critical error: info: hog: 
+            fi
+            # echo "i : $line"
+          ;;
+          *'vcom'*)
+              echo "i : $line" #| xcol warning critical error vcom hog 
+          ;;
+          *'Errors'* | *'Warnings'* | *'errors'* | *'warnings'*)
+              echo "i : $line" #| xcol warnings critical errors vcom hog 
+          ;;
+          *)
+            if [ $echo_info == 1 ]; then
+              echo "i : $line" #| xcol warning: critical error: info: hog: 
+            fi
+            # echo "default (none of above)"
+            # echo "line : $string"
+          ;;
+        esac
       done
+    elif [ "${in_type}" == "stderr" ]; then
+        echo "e : $line" 
+    else
+       echo "----------------------- error -----------------------------------" 
+    fi      
   fi
 }
 
-log_stderr(){
-  if [ -n "${1}" ]; then
-      IN_err="${1}"
-      echo "stderr : ${IN_err}" 
-  else
-      while read IN_err # This reads a string from stdin and stores it in a variable called IN_err
-      do
-        echo "stderr = ${IN_err}"
-      done
-  fi
-  
-
-}
-
-## @function LogColorVivado()
+## @function Logger()
 # brief save output logs of vivado to files and colors the output
 # @param[in] execution line to process
 
 function Logger(){
   # colorizer="xcol"
   echo "LogColorVivado : $1"
-  log_stdout "kk" "LogColorVivado : $1"
-  log_stderr "LogColorVivado : $1"
-  echo_info=1
-  echo_warnings=1
-  echo_errors=1
+  log_stdout "stdout" "LogColorVivado : $1"
+  log_stderr "stderr" "LogColorVivado : $1"
+
 
   ${1} > >(log_stdout "stdout") 2> >(log_stdout "stderr" >&2)
   # ${1} > >(log_stdout "stdout") 2> >(log_stderr "stderr" >&2)

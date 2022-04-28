@@ -75,7 +75,6 @@ log_stdout(){
       # echo "${line}"
       # echo "${1} = ${line}"
       if [ "${1}" == "stdout" ]; then
-      
         # line=${IN_out}
         # echo "${line}"
         # echo $line >> $logfile
@@ -94,7 +93,6 @@ log_stdout(){
               echo "e : $line" 
               #| xcol warning: critical error info: hog: 
             fi
-            # echo "e : $line"
             echo "$line" >> $logwarningfile
           ;;
           *'INFO:'*)
@@ -102,32 +100,26 @@ log_stdout(){
               echo "i : $line" 
               #| xcol warning: critical error: info: hog: 
             fi
-            echo $line >> $loginfofile
-            # echo "i : $line"
+            echo "$line" >> $loginfofile
           ;;
           *'vcom'*)
             echo "i : $line" #| xcol warning critical error vcom hog 
-            echo $line >> $loginfofile
-
+            echo "$line" >> $loginfofile
           ;;
           *'Errors'* | *'Warnings'* | *'errors'* | *'warnings'*)
             echo "i : $line" #| xcol warnings critical errors vcom hog 
-            echo $line >> $loginfofile
-
+            echo "$line" >> $loginfofile
           ;;
           *)
             if [ $echo_info == 1 ]; then
               echo "i : $line" #| xcol warning: critical error: info: hog: 
-              echo $line >> $loginfofile
-
+              echo "$line" >> $loginfofile
             fi
-            # echo "default (none of above)"
-            # echo "line : $string"
           ;;
         esac
       elif [ "${1}" == "stderr" ]; then
         echo "e : $line" 
-        echo $line >> $logwarningfile
+        echo "$line" >> $logwarningfile
 
       else
        echo "----------------------- error -----------------------------------" 
@@ -137,12 +129,11 @@ log_stdout(){
 }
 
 ## @function Logger()
-# brief save output logs of vivado to files and colors the output
+# 
+# @brief creates output files and pipelines stdout and stderr to 
+# 
 # @param[in] execution line to process
-
 function Logger(){
-  # colorizer="xcol"
-
   {
     echo "-----------------------------------------------"
     echo " HOG INFO LOG "
@@ -159,56 +150,7 @@ function Logger(){
   echo "LogColorVivado : $1"
   log_stdout "stdout" "LogColorVivado : $1"
   log_stderr "stderr" "LogColorVivado : $1"
-
-
   ${1} > >(log_stdout "stdout") 2> >(log_stdout "stderr" >&2)
-  # ${1} > >(log_stdout "stdout") 2> >(log_stderr "stderr" >&2)
-
-  # ${1} |& while IFS= read -r line
-  #     do
-  #       # echo "${line}"
-  #       # echo $line >> $logfile
-  #       # string=$line
-  #       # echo "$line" | xcol warning: critical error: info: hog: 
-  #       case "$line" in
-  #         *'WARNING:'* | *'Warning:'* | *'warning:'*)
-  #           if [ $echo_warnings == 1 ]; then
-  #             echo "w : $line" 
-  #             #| $(${colorizer} warning: critical error: info: hog: )
-  #           fi
-  #           # echo $line >> $logwarningfile
-  #         ;;
-  #         *'ERROR:'* | *'Error:'* | *'error:'*)
-  #           if [ $echo_errors == 1 ]; then
-  #             echo "e : $line" 
-  #             #| xcol warning: critical error info: hog: 
-  #           fi
-  #           # echo "e : $line"
-  #           # echo $line >> $logerrorfile
-  #         ;;
-  #         *'INFO:'*)
-  #           if [ $echo_info == 1 ]; then
-  #             echo "i : $line" 
-  #             #| xcol warning: critical error: info: hog: 
-  #           fi
-  #           # echo "i : $line"
-  #         ;;
-  #         *'vcom'*)
-  #             echo "i : $line" #| xcol warning critical error vcom hog 
-  #         ;;
-  #         *'Errors'* | *'Warnings'* | *'errors'* | *'warnings'*)
-  #             echo "i : $line" #| xcol warnings critical errors vcom hog 
-  #         ;;
-  #         *)
-  #           if [ $echo_info == 1 ]; then
-  #             echo "i : $line" #| xcol warning: critical error: info: hog: 
-  #           fi
-  #           # echo "default (none of above)"
-  #           # echo "line : $string"
-  #         ;;
-  #       esac
-      
-  #     done
 }
 
 # @function Msg

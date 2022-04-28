@@ -1469,35 +1469,46 @@ proc CopyXMLsFromListFile {list_file path dst {xml_version "0.0.0"} {xml_sha "00
     if {![regexp {^ *$} $line] & ![regexp {^ *\#} $line] } {
       # Exclude empty lines and comments
       set file_and_prop [regexp -all -inline {\S+} $line]
-      set xmlfile "$path/[lindex $file_and_prop 0]"
-      if {[llength $file_and_prop] > 1} {
+      set xmlfiles [glob "$path/[lindex $file_and_prop 0]"]
+
+      # for single non-globbed xmlfiles, we can have an associated vhdl file
+      # multiple globbed xml does not make sense with a vhdl property
+      if {[llength $xmlfiles]==1 && [llength $file_and_prop] > 1} {
         set vhdlfile [lindex $file_and_prop 1]
         set vhdlfile "$path/$vhdlfile"
       } else {
         set vhdlfile 0
       }
-      if {[file exists $xmlfile]} {
-        set xmlfile [file normalize $xmlfile]
-        Msg Info "Copying $xmlfile to $dst..."
-        set in  [open $xmlfile r]
-        set out [open $dst/[file tail $xmlfile] w]
 
-        while {[gets $in line] != -1} {
-          set new_line [regsub {(.*)__VERSION__(.*)} $line "\\1$xml_version\\2"]
-          set new_line2 [regsub {(.*)__GIT_SHA__(.*)} $new_line "\\1$xml_sha\\2"]
-          puts $out $new_line2
-        }
-        close $in
-        close $out
-        lappend xmls [file tail $xmlfile]
-        if {$vhdlfile == 0 } {
-          lappend vhdls 0
-        } else {
-          lappend vhdls [file normalize $vhdlfile]
-        }
+      foreach xmlfile $xmlfiles {
 
-      } else {
-        Msg Warning "XML file $xmlfile not found"
+          if {[file isdirectory $xmlfile]} {
+              Msg Error "Directory $xmlfile listed in xml.lst. Directories are not supported!"
+          }
+
+          if {[file exists $xmlfile]} {
+              set xmlfile [file normalize $xmlfile]
+              Msg Info "Copying $xmlfile to $dst..."
+              set in  [open $xmlfile r]
+              set out [open $dst/[file tail $xmlfile] w]
+
+              while {[gets $in line] != -1} {
+                  set new_line [regsub {(.*)__VERSION__(.*)} $line "\\1$xml_version\\2"]
+                  set new_line2 [regsub {(.*)__GIT_SHA__(.*)} $new_line "\\1$xml_sha\\2"]
+                  puts $out $new_line2
+              }
+              close $in
+              close $out
+              lappend xmls [file tail $xmlfile]
+              if {$vhdlfile == 0 } {
+                  lappend vhdls 0
+              } else {
+                  lappend vhdls [file normalize $vhdlfile]
+              }
+
+          } else {
+              Msg Warning "XML file $xmlfile not found"
+          }
       }
 
     }

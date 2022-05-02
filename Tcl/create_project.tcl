@@ -66,7 +66,7 @@ namespace eval globalSettings {
 ################# FUNCTIONS ################################
 proc CreateProject {} {
 
-    if {[IsXilinx]} {
+  if {[IsXilinx]} {
 
     create_project -force [file tail $globalSettings::DESIGN] $globalSettings::build_dir -part $globalSettings::PART
 
@@ -163,7 +163,7 @@ proc AddProjectFiles {} {
 
   ## Set synthesis TOP
   SetTopProperty $globalSettings::synth_top_module $sources
-  
+
   ## Set simulation Properties
 
 }
@@ -448,24 +448,24 @@ proc ConfigureSimulation {} {
     Msg Info "Setting load_glbl parameter to true for every fileset..."
     foreach simset [get_filesets -quiet *_sim] {
       set_property -name {xsim.elaborate.load_glbl} -value {true} -objects [get_filesets $simset]
-       # Setting Simulation Properties
-       if [dict exists $globalSettings::SIM_PROPERTIES $simset] {
-         Msg Info "Setting properties for simulation set : $simset..."
-         set sim_props [dict get $globalSettings::SIM_PROPERTIES $simset]
-         dict for {prop_name prop_val} $sim_props {
-           Msg Info "Setting $prop_name = $prop_val"
-           set_property $prop_name $prop_val [get_filesets $simset]
-         }
-       }
-       if [dict exists $globalSettings::SIM_PROPERTIES sim] {
-         Msg Info "Setting properties for all simulation sets..."
-         set sim_props [dict get $globalSettings::SIM_PROPERTIES sim]
-         dict for {prop_name prop_val} $sim_props {
-           Msg Info "Setting $prop_name = $prop_val"
-           set_property $prop_name $prop_val [get_filesets $simset]
-         }
-       }
-     }
+      # Setting Simulation Properties
+      if [dict exists $globalSettings::SIM_PROPERTIES $simset] {
+        Msg Info "Setting properties for simulation set: $simset..."
+        set sim_props [dict get $globalSettings::SIM_PROPERTIES $simset]
+        dict for {prop_name prop_val} $sim_props {
+          Msg Info "Setting $prop_name = $prop_val"
+          set_property $prop_name $prop_val [get_filesets $simset]
+        }
+      }
+      if [dict exists $globalSettings::SIM_PROPERTIES sim] {
+        Msg Info "Setting properties for simulation set: $simset..."
+        set sim_props [dict get $globalSettings::SIM_PROPERTIES sim]
+        dict for {prop_name prop_val} $sim_props {
+          Msg Info "Setting $prop_name = $prop_val"
+          set_property $prop_name $prop_val [get_filesets $simset]
+        }
+      }
+    }
 
 
   }  elseif {[IsQuartus]} {

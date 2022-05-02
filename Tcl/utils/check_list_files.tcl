@@ -479,7 +479,7 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
         }
       }
       if {([file extension $key] == ".udo" || [file extension $key] == ".do" || [file extension $key] == ".tcl") && $is_sim_prop == 1} {
-        set prop_file [RelativeLocal $repo_path $key]
+        set prop_file [file tail $key]
       } else {
         set prop_file $key
       }
@@ -530,14 +530,14 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
       if {([string first "vh" [file extension $prop_file]] != -1 && $prop == "verilog_header") || ([string first "sv" [file extension $prop_file]] != -1 && $prop == "SystemVerilog") } {
         # Do nothing this is the default for vh and svh files
         break
-      } 
-      
+      }
+
       if {[lsearch -nocase [lindex [DictGet $listProperties $prop_file] 0] $prop] < 0 && ![string equal $prop ""] && ![string equal $prop_file "Simulator"] && ![string equal $prop "top=top_[file root $project_name]"] } {
         if {$options(recreate) == 1} {
           Msg Info "$prop_file property $prop was added to the project."
         } else {
           if { $is_sim_prop == 1 } {
-            Msg Info "$prop_file simulation property $prop is set in project but not in list files."
+            # Msg Info "$prop_file simulation property $prop is set in project but not in list files."
           } else {
             CriticalAndLog "$prop_file property $prop is set in project but not in list files!" $outFile
           }
@@ -545,8 +545,8 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
         if { $is_sim_prop == 0 } {
           incr ListErrorCnt
         } else {
-          incr ListSimErrorCnt
-        } 
+          # incr ListSimErrorCnt
+        }
       }
     }
   }
@@ -653,7 +653,7 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
   }
 
   #list of properties that must not be checked/written
-  set PROP_BAN_LIST  [list DEFAULT_LIB \
+  set PROP_BAN_LIST  [ list DEFAULT_LIB \
     PART \
     IP_CACHE_PERMISSIONS \
     SIM.IP.AUTO_EXPORT_SCRIPTS \
@@ -674,148 +674,148 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
     COMPXLIB.IES_COMPILED_LIBRARY_DIR \
     COMPXLIB.VCS_COMPILED_LIBRARY_DIR \
     NEEDS_REFRESH \
-    AUTO_INCREMENTAL_CHECKPOINT.DIRECTORY \
+    AUTO_INCREMENTAL_CHECKPOINT.DIRECTORY
   ]
 
-#filling defaultConfDict and projConfDict
-foreach proj_run [list [current_project] [get_runs synth_1] [get_runs impl_1]] {
-  #creting dictionary for each $run
-  set projRunDict [dict create]
-  set defaultRunDict [dict create]
-  #selecting only READ/WRITE properties
-  set run_props [list]
-  foreach propReport [split "[report_property  -return_string -all $proj_run]" "\n"] {
+  #filling defaultConfDict and projConfDict
+  foreach proj_run [list [current_project] [get_runs synth_1] [get_runs impl_1]] {
+    #creting dictionary for each $run
+    set projRunDict [dict create]
+    set defaultRunDict [dict create]
+    #selecting only READ/WRITE properties
+    set run_props [list]
+    foreach propReport [split "[report_property  -return_string -all $proj_run]" "\n"] {
 
-    if {[string equal "[lindex $propReport 2]" "false"]} {
-      lappend run_props [lindex $propReport 0]
+      if {[string equal "[lindex $propReport 2]" "false"]} {
+        lappend run_props [lindex $propReport 0]
+      }
     }
-  }
 
-  foreach prop $run_props {
-    #ignoring properties in $PROP_BAN_LIST
-    if {$prop in $PROP_BAN_LIST} {
-      set tmp  0
-      #Msg Info "Skipping property $prop"
-    } else {
-      #Project values
-      #   setting only relative paths
-      if {[string first  $repo_path [get_property $prop $proj_run]] != -1} {
-        dict set projRunDict [string toupper $prop] [Relative $repo_path [get_property $prop $proj_run]]
-      } elseif {[string first  $ext_path [get_property $prop $proj_run]] != -1} {
-        dict set projRunDict [string toupper $prop]  [Relative $ext_path [get_property $prop $proj_run]]
+    foreach prop $run_props {
+      #ignoring properties in $PROP_BAN_LIST
+      if {$prop in $PROP_BAN_LIST} {
+        set tmp  0
+        #Msg Info "Skipping property $prop"
       } else {
-        dict set projRunDict [string toupper $prop] [get_property $prop $proj_run]
+        #Project values
+        #   setting only relative paths
+        if {[string first  $repo_path [get_property $prop $proj_run]] != -1} {
+          dict set projRunDict [string toupper $prop] [Relative $repo_path [get_property $prop $proj_run]]
+        } elseif {[string first  $ext_path [get_property $prop $proj_run]] != -1} {
+          dict set projRunDict [string toupper $prop]  [Relative $ext_path [get_property $prop $proj_run]]
+        } else {
+          dict set projRunDict [string toupper $prop] [get_property $prop $proj_run]
+        }
+
+        # default values
+        dict set defaultRunDict [string toupper $prop]  [list_property_value -default $prop $proj_run]
       }
-
-      # default values
-      dict set defaultRunDict [string toupper $prop]  [list_property_value -default $prop $proj_run]
     }
-  }
-  if {"$proj_run" == "[current_project]"} {
-    dict set projRunDict "PART" [get_property PART $proj_run]
-    dict set projConfDict main  $projRunDict
-    dict set defaultConfDict main $defaultRunDict
-  } else {
-    dict set projConfDict $proj_run  $projRunDict
-    dict set defaultConfDict $proj_run $defaultRunDict
-  }
-}
-
-#adding default properties set by default by Hog or after project creation
-set defMainDict [dict create TARGET_LANGUAGE VHDL SIMULATOR_LANGUAGE MIXED]
-dict set defMainDict IP_OUTPUT_REPO "[Relative $repo_path $proj_dir]/${project_name}.cache/ip"
-dict set defaultConfDict main [dict merge [DictGet $defaultConfDict main] $defMainDict]
-
-#comparing projConfDict, defaultConfDict and hogConfDict
-set hasStrategy 0
-
-foreach proj_run [list main synth_1 impl_1] {
-  set projRunDict [DictGet $projConfDict $proj_run]
-  set hogConfRunDict [DictGet $hogConfDict $proj_run]
-  set defaultRunDict [DictGet $defaultConfDict $proj_run]
-  set newRunDict [dict create]
-
-  set strategy_str "STRATEGY strategy Strategy"
-  foreach s $strategy_str {
-    if {[dict exists $hogConfRunDict $s]} {
-      set hasStrategy 1
+    if {"$proj_run" == "[current_project]"} {
+      dict set projRunDict "PART" [get_property PART $proj_run]
+      dict set projConfDict main  $projRunDict
+      dict set defaultConfDict main $defaultRunDict
+    } else {
+      dict set projConfDict $proj_run  $projRunDict
+      dict set defaultConfDict $proj_run $defaultRunDict
     }
   }
 
-  if {$hasStrategy == 1 && $options(recreate_conf) == 0} {
-    Msg Warning "A strategy for run $proj_run has been defined inside hog.conf. This prevents Hog to compare the project properties. Please regenerate your hog.conf file using the dedicated Hog button."
-  }
+  #adding default properties set by default by Hog or after project creation
+  set defMainDict [dict create TARGET_LANGUAGE VHDL SIMULATOR_LANGUAGE MIXED]
+  dict set defMainDict IP_OUTPUT_REPO "[Relative $repo_path $proj_dir]/${project_name}.cache/ip"
+  dict set defaultConfDict main [dict merge [DictGet $defaultConfDict main] $defMainDict]
 
-  foreach settings [dict keys $projRunDict] {
-    set currset [DictGet  $projRunDict $settings]
-    set hogset [DictGet  $hogConfRunDict $settings]
-    set defset [DictGet  $defaultRunDict $settings]
+  #comparing projConfDict, defaultConfDict and hogConfDict
+  set hasStrategy 0
 
-    if {[string toupper $currset] != [string toupper $hogset] && [string toupper $currset] != [string toupper $defset]} {
-      if {[string first "DEFAULT" [string toupper $currset]] != -1 && $hogset == ""} {
-        continue
+  foreach proj_run [list main synth_1 impl_1] {
+    set projRunDict [DictGet $projConfDict $proj_run]
+    set hogConfRunDict [DictGet $hogConfDict $proj_run]
+    set defaultRunDict [DictGet $defaultConfDict $proj_run]
+    set newRunDict [dict create]
+
+    set strategy_str "STRATEGY strategy Strategy"
+    foreach s $strategy_str {
+      if {[dict exists $hogConfRunDict $s]} {
+        set hasStrategy 1
       }
-      if {[string tolower $hogset] == "true" && $currset == 1} {
-        continue
-      }
-      if {[string tolower $hogset] == "false" && $currset == 0} {
-        continue
-      }
-      if {[string toupper $settings] != "STRATEGY"} {
+    }
+
+    if {$hasStrategy == 1 && $options(recreate_conf) == 0} {
+      Msg Warning "A strategy for run $proj_run has been defined inside hog.conf. This prevents Hog to compare the project properties. Please regenerate your hog.conf file using the dedicated Hog button."
+    }
+
+    foreach settings [dict keys $projRunDict] {
+      set currset [DictGet  $projRunDict $settings]
+      set hogset [DictGet  $hogConfRunDict $settings]
+      set defset [DictGet  $defaultRunDict $settings]
+
+      if {[string toupper $currset] != [string toupper $hogset] && [string toupper $currset] != [string toupper $defset]} {
+        if {[string first "DEFAULT" [string toupper $currset]] != -1 && $hogset == ""} {
+          continue
+        }
+        if {[string tolower $hogset] == "true" && $currset == 1} {
+          continue
+        }
+        if {[string tolower $hogset] == "false" && $currset == 0} {
+          continue
+        }
+        if {[string toupper $settings] != "STRATEGY"} {
+          dict set newRunDict $settings $currset
+          if {$options(recreate_conf) == 1} {
+            incr ConfErrorCnt
+            Msg Info "$proj_run setting $settings has been changed from \"$hogset\" in hog.conf to \"$currset\" in project."
+          } elseif {[file exists $repo_path/Top/$group_name/$project_name/hog.conf] && $hasStrategy == 0} {
+            CriticalAndLog "Project $proj_run setting $settings value \"$currset\" does not match hog.conf \"$hogset\"." $outFile
+            incr ConfErrorCnt
+          }
+        }
+      } elseif {[string toupper $currset] == [string toupper $hogset] && [string toupper $hogset] != "" && [string toupper $settings] != "STRATEGY"} {
         dict set newRunDict $settings $currset
-        if {$options(recreate_conf) == 1} {
-          incr ConfErrorCnt
-          Msg Info "$proj_run setting $settings has been changed from \"$hogset\" in hog.conf to \"$currset\" in project."
-        } elseif {[file exists $repo_path/Top/$group_name/$project_name/hog.conf] && $hasStrategy == 0} {
-          CriticalAndLog "Project $proj_run setting $settings value \"$currset\" does not match hog.conf \"$hogset\"." $outFile
-          incr ConfErrorCnt
+      }
+    }
+    dict set newConfDict $proj_run $newRunDict
+
+    #if anything remains into hogConfDict it means that something is wrong
+    foreach settings [dict keys $hogConfRunDict] {
+      if {[dict exists $projRunDict $settings]==0} {
+        if {$settings in $PROP_BAN_LIST} {
+          Msg CriticalWarning "In hog.conf file the property $proj_run is set to \"$settings\". This property is usually ignored and will not be automatically rewritten when automatically recreating hog.conf."
+          continue
+        }
+        incr ConfErrorCnt
+        if {$options(recreate_conf) == 0} {
+          CriticalAndLog "hog.conf property $settings is not a valid Vivado property." $outFile
+        } else {
+          Msg Info "found property $settings in old hog.conf. This is not a valid Vivado property and will be deleted."
         }
       }
-    } elseif {[string toupper $currset] == [string toupper $hogset] && [string toupper $hogset] != "" && [string toupper $settings] != "STRATEGY"} {
-      dict set newRunDict $settings $currset
     }
   }
-  dict set newConfDict $proj_run $newRunDict
 
-  #if anything remains into hogConfDict it means that something is wrong
-  foreach settings [dict keys $hogConfRunDict] {
-    if {[dict exists $projRunDict $settings]==0} {
-      if {$settings in $PROP_BAN_LIST} {
-        Msg CriticalWarning "In hog.conf file the property $proj_run is set to \"$settings\". This property is usually ignored and will not be automatically rewritten when automatically recreating hog.conf."
-        continue
-      }
-      incr ConfErrorCnt
-      if {$options(recreate_conf) == 0} {
-        CriticalAndLog "hog.conf property $settings is not a valid Vivado property." $outFile
-      } else {
-        Msg Info "found property $settings in old hog.conf. This is not a valid Vivado property and will be deleted."
-      }
-    }
+  #check if the version in the she-bang is the same as the IDE version, otherwise incr ConfErrorCnt
+  set actual_version [GetIDEVersion]
+  lassign [GetIDEFromConf $conf_file] ide conf_version
+  if {$actual_version != $conf_version} {
+    CriticalAndLog "The version specified in the first line of hog.conf is wrong or no version was specified. If you want to run this project with $ide $actual_version, the first line of hog.conf should be: \#$ide $actual_version"
+    incr ConfErrorCnt
   }
-}
-
-#check if the version in the she-bang is the same as the IDE version, otherwise incr ConfErrorCnt
-set actual_version [GetIDEVersion]
-lassign [GetIDEFromConf $conf_file] ide conf_version
-if {$actual_version != $conf_version} {
-  CriticalAndLog "The version specified in the first line of hog.conf is wrong or no version was specified. If you want to run this project with $ide $actual_version, the first line of hog.conf should be: \#$ide $actual_version"
-  incr ConfErrorCnt
-}
 
 
-if {$ConfErrorCnt == 0 && [file exists $conf_file ] == 1} {
-  Msg Info "$conf_file matches project. Nothing to do"
-}
+  if {$ConfErrorCnt == 0 && [file exists $conf_file ] == 1} {
+    Msg Info "$conf_file matches project. Nothing to do"
+  }
 
-#recreating hog.conf
-if {$options(recreate_conf) == 1 && ($ConfErrorCnt > 0 || [file exists $conf_file] == 0 || $hasStrategy == 1)} {
-  Msg Info "Updating configuration file $repo_path/$DirName/hog.conf."
-  file mkdir  $repo_path/$DirName/list
-  #writing configuration file
-  set confFile $repo_path/$DirName/hog.conf
-  set version [GetIDEVersion]
-  WriteConf $confFile $newConfDict "vivado $version"
-}
+  #recreating hog.conf
+  if {$options(recreate_conf) == 1 && ($ConfErrorCnt > 0 || [file exists $conf_file] == 0 || $hasStrategy == 1)} {
+    Msg Info "Updating configuration file $repo_path/$DirName/hog.conf."
+    file mkdir  $repo_path/$DirName/list
+    #writing configuration file
+    set confFile $repo_path/$DirName/hog.conf
+    set version [GetIDEVersion]
+    WriteConf $confFile $newConfDict "vivado $version"
+  }
 
 }
 

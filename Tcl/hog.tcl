@@ -1480,10 +1480,12 @@ proc CopyXMLsFromListFile {list_file path dst {xml_version "0.0.0"} {xml_sha "00
         set vhdlfile 0
       }
 
+      set xml_list_error 0
       foreach xmlfile $xmlfiles {
 
           if {[file isdirectory $xmlfile]} {
-              Msg Error "Directory $xmlfile listed in xml.lst. Directories are not supported!"
+              Msg CriticalWarning "Directory $xmlfile listed in xml.lst. Directories are not supported!"
+              set xml_list_error 1
           }
 
           if {[file exists $xmlfile]} {
@@ -1510,7 +1512,9 @@ proc CopyXMLsFromListFile {list_file path dst {xml_version "0.0.0"} {xml_sha "00
               Msg Warning "XML file $xmlfile not found"
           }
       }
-
+      if {${xml_list_error}} {
+              Msg Error "Invalid files added to xml.lst!"
+      }
     }
   }
   set cnt [llength $xmls]

@@ -444,9 +444,27 @@ proc ConfigureSimulation {} {
     # SIMULATION #
     ##############
     Msg Info "Setting load_glbl parameter to true for every fileset..."
-    foreach f [get_filesets -quiet *_sim] {
-      set_property -name {xsim.elaborate.load_glbl} -value {true} -objects [get_filesets $f]
+    foreach simset [get_filesets -quiet *_sim] {
+      set_property -name {xsim.elaborate.load_glbl} -value {true} -objects [get_filesets $simset]
+      # Setting Simulation Properties
+      if [dict exists $globalSettings::SIM_PROPERTIES $simset] {
+        Msg Info "Setting properties for simulation set : $simset..."
+        set sim_props [dict get $globalSettings::SIM_PROPERTIES $simset]
+        dict for {prop_name prop_val} $sim_props {
+          Msg Info "Setting $prop_name = $prop_val"
+          set_property $prop_name $prop_val [get_filesets $simset]
+        }
+      }
+      if [dict exists $globalSettings::SIM_PROPERTIES sim] {
+        Msg Info "Setting properties for all simulation sets..."
+        set sim_props [dict get $globalSettings::SIM_PROPERTIES sim]
+        dict for {prop_name prop_val} $sim_props {
+          Msg Info "Setting $prop_name = $prop_val"
+          set_property $prop_name $prop_val [get_filesets $simset]
+        }
+      }
     }
+
   }  elseif {[info commands project_new] != ""} {
     #QUARTUS only
     #TO BE DONE
@@ -502,33 +520,14 @@ proc ConfigureProperties {} {
               set prop [dict get $run_props $s]
               set_property $s $prop $run
               set run_props [dict remove $run_props $s]
-              Msg Warning "A strategy for run $run has been defined inside hog.conf. This prevents Hog to compare the project properties. Please regenerate your hog.conf file using the dedicated Hog button." 
+              Msg Warning "A strategy for run $run has been defined inside hog.conf. This prevents Hog to compare the project properties. Please regenerate your hog.conf file using the dedicated Hog button."
               Msg Info "Setting $s = $prop"
-            }  
+            }
           }
 
           dict for {prop_name prop_val} $run_props {
             Msg Info "Setting $prop_name = $prop_val"
             set_property $prop_name $prop_val $run
-          }
-        }
-      }
-      # Setting Simulation Properties
-      foreach simset [get_filesets -quiet *_sim] {
-        if [dict exists $globalSettings::SIM_PROPERTIES $simset] {
-          Msg Info "Setting properties for simulation set : $simset..."
-          set sim_props [dict get $globalSettings::SIM_PROPERTIES $simset]
-          dict for {prop_name prop_val} $sim_props {
-            Msg Info "Setting $prop_name = $prop_val"
-            set_property $prop_name $prop_val [get_filesets $simset]
-          }
-        }
-        if [dict exists $globalSettings::SIM_PROPERTIES sim] {
-          Msg Info "Setting properties for all simulation sets..."
-          set sim_props [dict get $globalSettings::SIM_PROPERTIES sim]
-          dict for {prop_name prop_val} $sim_props {
-            Msg Info "Setting $prop_name = $prop_val"
-            set_property $prop_name $prop_val [get_filesets $simset]
           }
         }
       }
@@ -606,7 +605,7 @@ if { $::argc eq 0 && ![info exist DESIGN]} {
     Msg Info [cmdline::usage $parameters $usage]
     exit 1
   }
-  if { ![info exist DESIGN] || $DESIGN eq "" } { 
+  if { ![info exist DESIGN] || $DESIGN eq "" } {
     if { [lindex $argv 0] eq "" } {
       Msg Error " Variable DESIGN not set!"
       Msg Info [cmdline::usage $parameters $usage]
@@ -623,7 +622,7 @@ if { $::argc eq 0 && ![info exist DESIGN]} {
     Msg Info [cmdline::usage $parameters $usage]
     exit 1
   }
-  if { ![info exist DESIGN] || $DESIGN eq "" } { 
+  if { ![info exist DESIGN] || $DESIGN eq "" } {
     if { [lindex $quartus(args) 0] eq "" } {
       Msg Error " Variable DESIGN not set!"
       Msg Info [cmdline::usage $parameters $usage]
@@ -798,7 +797,7 @@ if {[info commands get_property] != ""} {
 
 
   lassign [GetDateAndTime $commit] date timee
-  [WriteGenerics $date $timee $commit $version $top_hash $top_ver $hog_hash $hog_ver $cons_ver $cons_hash $libs $vers $hashes $ext_names $ext_hashes $user_ip_repos $user_ip_vers $user_ip_hashes $flavour $xml_ver $xml_hash ] 
+  [WriteGenerics $date $timee $commit $version $top_hash $top_ver $hog_hash $hog_ver $cons_ver $cons_hash $libs $vers $hashes $ext_names $ext_hashes $user_ip_repos $user_ip_vers $user_ip_hashes $flavour $xml_ver $xml_hash ]
   cd $old_path
 }
 

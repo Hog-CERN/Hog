@@ -489,7 +489,6 @@ proc ConfigureProperties {} {
       if [dict exists $globalSettings::PROPERTIES main] {
         Msg Info "Setting project-wide properties..."
         set proj_props [dict get $globalSettings::PROPERTIES main]
-        #set_property -dict $proj_props [current_project]
         dict for {prop_name prop_val} $proj_props {
 
           if { [ string tolower $prop_name ] != "ip_repo_paths" } {
@@ -507,7 +506,6 @@ proc ConfigureProperties {} {
             }
             update_ip_catalog
           }
-
         }
       }
       # Setting Run Properties

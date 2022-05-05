@@ -145,7 +145,8 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
   lassign [GetProjectFiles] prjLibraries prjProperties
   Msg Info "Retrieved Vivado project files..."
   # Get project libraries and properties from list files
-  lassign [GetHogFiles -ext_path "$ext_path" -repo_path $repo_path "$repo_path/Top/$group_name/$project_name/list/"] listLibraries listProperties listMain
+  lassign [GetHogFiles -ext_path "$ext_path" -repo_path $repo_path -list_files ".src,.con,.ext" "$repo_path/Top/$group_name/$project_name/list/"] listLibraries listProperties listMain
+  lassign [GetHogFiles -ext_path "$ext_path" -repo_path $repo_path -list_files ".sim" "$repo_path/Top/$group_name/$project_name/list/"] listSimLibraries listSimProperties listSimMain
   # Get files generated at creation time
   set extraFiles [ReadExtraFileList "$repo_path/Projects/$group_name/$project_name/.hog/extra.files"]
 
@@ -177,9 +178,51 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
     }
     dict set listProperties $property [list $props]
   }
-
   # Compare List files against project files
   set newListfiles [dict create]
+
+  foreach key [dict keys $listSimLibraries] {
+    if {[file extension $key] == ".sim"} {
+      if {[dict exists $prjSimDict "[file rootname $key]_sim"]} {
+        set prjSIMs [DictGet $prjSimDict "[file rootname $key]_sim"]
+        # loop over list files associated with this simset
+        foreach simlist [dict keys $listSimMain] {
+          #check if project contains sim files specified in list files
+          if {[DictGet $listSimMain $simlist] == $key } {
+            foreach SIM [DictGet $listSimLibraries $simlist] {
+              if {[file extension $SIM] == ".udo" || [file extension $SIM] == ".do" || [file extension $SIM] == ".tcl"} {
+                set prop_sim_file [RelativeLocal $repo_path $SIM]
+              } else {
+                set prop_sim_file $SIM
+              }
+              set idx [lsearch -exact $prjSIMs $SIM]
+              set prjSIMs [lreplace $prjSIMs $idx $idx]
+              if {$idx < 0} {
+                if {$options(recreate) == 1} {
+                  Msg Info "$SIM was removed from the project."
+                } else {
+                  Msg Info "$SIM not found in project simulation libraries"
+                }
+                incr ListSimErrorCnt
+              } else {
+                dict lappend newListfiles $simlist [string trim "[RelativeLocal $repo_path $SIM] [DictGet $prjProperties $prop_sim_file]"]
+              }
+            }
+            dict set prjSimDict "[file rootname $key]_sim" $prjSIMs
+          }
+        }
+      } else {
+        set main_lib [dict get $listSimMain $key]
+        if { $main_lib == $key } {
+          if {$options(recreate) == 1} {
+            Msg Info "[file rootname $key]_sim fileset was removed from the project."
+          }
+        }
+      }
+    }
+  }
+
+
   foreach key [dict keys $listLibraries] {
     if {[file extension $key] == ".ip" } {
       #check if project contains IPs specified in listfiles
@@ -211,43 +254,6 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
           incr ListErrorCnt
         } else {
           dict lappend newListfiles $key [string trim "[RelativeLocal $repo_path $XDC] [DictGet $prjProperties $XDC]"]
-        }
-      }
-    } elseif {[file extension $key] == ".sim"} {
-      if {[dict exists $prjSimDict "[file rootname $key]_sim"]} {
-        set prjSIMs [DictGet $prjSimDict "[file rootname $key]_sim"]
-        # loop over list files associated with this simset
-        foreach simlist [dict keys $listMain] {
-          #check if project contains sim files specified in list files
-          if {[DictGet $listMain $simlist] == $key } {
-            foreach SIM [DictGet $listLibraries $simlist] {
-              if {[file extension $SIM] == ".udo" || [file extension $SIM] == ".do" || [file extension $SIM] == ".tcl"} {
-                set prop_sim_file [RelativeLocal $repo_path $SIM]
-              } else {
-                set prop_sim_file $SIM
-              }
-              set idx [lsearch -exact $prjSIMs $SIM]
-              set prjSIMs [lreplace $prjSIMs $idx $idx]
-              if {$idx < 0} {
-                if {$options(recreate) == 1} {
-                  Msg Info "$SIM was removed from the project."
-                } else {
-                  Msg Info "$SIM not found in project simulation libraries"
-                }
-                incr ListSimErrorCnt
-              } else {
-                dict lappend newListfiles $simlist [string trim "[RelativeLocal $repo_path $SIM] [DictGet $prjProperties $prop_sim_file]"]
-              }
-            }
-            dict set prjSimDict "[file rootname $key]_sim" $prjSIMs
-          }
-        }
-      } else {
-        set main_lib [dict get $listMain $key]
-        if { $main_lib == $key } {
-          if {$options(recreate) == 1} {
-            Msg Info "[file rootname $key]_sim fileset was removed from the project."
-          }
         }
       }
     } elseif {[file extension $key] == ".src" } {
@@ -366,7 +372,7 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
       if {$options(recreate) == 1} {
         Msg Info "$IP was added to the project."
       } else {
-        CriticalAndLog "$IP is used in the project but is not in the list files." $outFile
+        CriticalAndLog "$IP is used in project but is not in the list files." $outFile
       }
       dict lappend newListfiles Default.src [string trim "[RelativeLocal $repo_path $IP] [DictGet $prjProperties $IP]"]
     }
@@ -533,15 +539,33 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
         break
       }
 
-      if {[lsearch -nocase [lindex [DictGet $listProperties $prop_file] 0] $prop] < 0 && ![string equal $prop ""] && ![string equal $prop_file "Simulator"] && ![string equal $prop "top=top_[file root $project_name]"] } {
-        if {$options(recreate) == 1} {
-          Msg Info "$prop_file property $prop was added to the project."
-        } else {
-          CriticalAndLog "$prop_file property $prop is set in project but not in list files!" $outFile
+      if {[lsearch -nocase [lindex [DictGet $listProperties $prop_file] 0] $prop] < 0 && ![string equal $prop ""] && ![string equal $prop_file "Simulator"] && ![string equal $prop "top=top_[file root $project_name]"] && [lsearch -nocase [lindex [DictGet $listSimProperties $prop_file] 0] $prop] < 0 && $prop != "wavefile" && $prop != "dofile" && [string first "runtime=" $prop] == -1} {
+        set is_sim_file 0
+        set AllSimDict  [DictGet $prjLibraries SIM]
+        foreach simset [dict keys $AllSimDict] {
+          set SimSetDict [DictGet $AllSimDict $simset]
+          if {$prop_file in $SimSetDict} {
+            set is_sim_file 1
+            break
+          }
         }
 
-        incr ListErrorCnt
-
+        if {$is_sim_file == 1} {
+          # File is only in simulation source, send only a warning.
+          if {$options(recreate) == 1} {
+            Msg Info "Property $prop for simulation file $prop_file was added to the project."
+          } else {
+            WarningAndLog "Property $prop of simulation file $prop_file is set in project but not in list files!" $outFile
+          }
+          incr ListSimErrorCnt
+        } else {
+          if {$options(recreate) == 1} {
+            Msg Info "$prop_file property $prop was added to the project."
+          } else {
+            CriticalAndLog "$prop_file property $prop is set in project but not in list files!" $outFile
+          }
+          incr ListErrorCnt
+        }
       }
     }
   }

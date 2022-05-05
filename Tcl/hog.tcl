@@ -2034,52 +2034,58 @@ proc AddHogFiles { libraries properties main_libs {verbose 0}} {
 
           ## Simulation properties
           # # Top simulation module
-          # set top_sim [lindex [regexp -inline {topsim\s*=\s*(.+?)\y.*} $props] 1]
-          # if { $top_sim != "" } {
-          #   Msg Info "Setting $top_sim as top module for simulation file set $file_set..."
-          #   set_property "top"  $top_sim [get_filesets $file_set]
-          #   current_fileset -simset [get_filesets $file_set]
-          # }
+          set top_sim [lindex [regexp -inline {topsim\s*=\s*(.+?)\y.*} $props] 1]
+          if { $top_sim != "" } {
+            Msg Info "Setting $top_sim as top module for simulation file set $file_set..."
+            Msg Warning "Setting the simulation top module from simulation list files will be deprecated in future Hog releases. Please consider setting this property in the sim.conf file, by adding the following line under the \[$file_set\] section.\ntop=$top_sim"
 
-          # # Simulation runtime
-          # set sim_runtime [lindex [regexp -inline {runtime\s*=\s*(.+?)\y.*} $props] 1]
-          # if { $sim_runtime != "" } {
-          #   Msg Info "Setting simulation runtime to $sim_runtime for simulation file set $file_set..."
-          #   set_property -name {xsim.simulate.runtime} -value $sim_runtime -objects [get_filesets $file_set]
-          #   foreach simulator [GetSimulators] {
-          #     set_property $simulator.simulate.runtime  $sim_runtime  [get_filesets $file_set]
-          #   }
-          # }
+            set_property "top"  $top_sim [get_filesets $file_set]
+            current_fileset -simset [get_filesets $file_set]
+          }
 
-          # # Wave do file
-          # if {[lsearch -inline -regex $props "wavefile"] >= 0} {
-          #   if {$verbose == 1} {
-          #     Msg Info "Setting $f as wave do file for simulation file set $file_set..."
-          #   }
-          #   # check if file exists...
-          #   if [file exists $f] {
-          #     foreach simulator [GetSimulators] {
-          #       set_property "$simulator.simulate.custom_wave_do" [file tail $f] [get_filesets $file_set]
-          #     }
-          #   } else {
-          #     Msg Warning "File $f was not found."
+          # Simulation runtime
+          set sim_runtime [lindex [regexp -inline {runtime\s*=\s*(.+?)\y.*} $props] 1]
+          if { $sim_runtime != "" } {
+            Msg Info "Setting simulation runtime to $sim_runtime for simulation file set $file_set..."
+            Msg Warning "Setting the simulatio runtime from simulation list files will be deprecated in future Hog releases. Please consider setting this property in the sim.conf file, by adding the following line under the \[$file_set\] section.\n<simulator_name>.simulate.runtime=$sim_runtime"
+            set_property -name {xsim.simulate.runtime} -value $sim_runtime -objects [get_filesets $file_set]
+            foreach simulator [GetSimulators] {
+              set_property $simulator.simulate.runtime  $sim_runtime  [get_filesets $file_set]
+            }
+          }
 
-          #   }
-          # }
+          # Wave do file
+          if {[lsearch -inline -regex $props "wavefile"] >= 0} {
+            Msg Warning "Setting a wave do file from simulation list files will be deprecated in future Hog releases. Please consider setting this property in the sim.conf file, by adding the following line under the \[$file_set\] section.\n<simulator_name>.simulate.custom_wave_do=[file tail $f]"
 
-          # #Do file
-          # if {[lsearch -inline -regex $props "dofile"] >= 0} {
-          #   if {$verbose == 1} {
-          #     Msg Info "Setting $f as udo file for simulation file set $file_set..."
-          #   }
-          #   if [file exists $f] {
-          #     foreach simulator [GetSimulators] {
-          #       set_property "$simulator.simulate.custom_udo" [file tail $f] [get_filesets $file_set]
-          #     }
-          #   } else {
-          #     Msg Warning "File $f was not found."
-          #   }
-          # }
+            if {$verbose == 1} {
+              Msg Info "Setting $f as wave do file for simulation file set $file_set..."
+            }
+            # check if file exists...
+            if [file exists $f] {
+              foreach simulator [GetSimulators] {
+                set_property "$simulator.simulate.custom_wave_do" [file tail $f] [get_filesets $file_set]
+              }
+            } else {
+              Msg Warning "File $f was not found."
+
+            }
+          }
+
+          #Do file
+          if {[lsearch -inline -regex $props "dofile"] >= 0} {
+            Msg Warning "Setting a custom do file from simulation list files will be deprecated in future Hog releases. Please consider setting this property in the sim.conf file, by adding the following line under the \[$file_set\] section.\n<simulator_name>.simulate.custom_do=[file tail $f]"
+            if {$verbose == 1} {
+              Msg Info "Setting $f as udo file for simulation file set $file_set..."
+            }
+            if [file exists $f] {
+              foreach simulator [GetSimulators] {
+                set_property "$simulator.simulate.custom_udo" [file tail $f] [get_filesets $file_set]
+              }
+            } else {
+              Msg Warning "File $f was not found."
+            }
+          }
 
           # Tcl
           if {[file ext $f] == ".tcl" && $ext != ".con"} {

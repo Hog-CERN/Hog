@@ -2047,7 +2047,7 @@ proc AddHogFiles { libraries properties main_libs {verbose 0}} {
           set sim_runtime [lindex [regexp -inline {runtime\s*=\s*(.+?)\y.*} $props] 1]
           if { $sim_runtime != "" } {
             Msg Info "Setting simulation runtime to $sim_runtime for simulation file set $file_set..."
-            Msg Warning "Setting the simulatio runtime from simulation list files will be deprecated in future Hog releases. Please consider setting this property in the sim.conf file, by adding the following line under the \[$file_set\] section.\n<simulator_name>.simulate.runtime=$sim_runtime"
+            Msg Warning "Setting the simulation runtime from simulation list files will be deprecated in future Hog releases. Please consider setting this property in the sim.conf file, by adding the following line under the \[$file_set\] section.\n<simulator_name>.simulate.runtime=$sim_runtime"
             set_property -name {xsim.simulate.runtime} -value $sim_runtime -objects [get_filesets $file_set]
             foreach simulator [GetSimulators] {
               set_property $simulator.simulate.runtime  $sim_runtime  [get_filesets $file_set]

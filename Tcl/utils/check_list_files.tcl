@@ -870,7 +870,7 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
   set simConfDict [dict create]
   set defaultConfDict [dict create]
   set projConfDict [dict create]
-  set newConfDict  [dict create]
+  set newSimConfDict  [dict create]
 
   #filling hogConfDict
   if {[file exists $sim_conf]} {
@@ -958,7 +958,7 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
         if {[string tolower $allhogset] == "false" && $currset == 0} {
           continue
         }
-        dict set newRunDict $setting $currset
+        dict set newSimDict $setting $currset
         if {$options(recreate_conf) == 1} {
           incr SimConfErrorCnt
           Msg Info "$simset setting $setting has been changed from \"$hogset\" (\"$allhogset\") in sim.conf to \"$currset\" in project."
@@ -967,14 +967,14 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
           incr SimConfErrorCnt
         }
       } elseif {[string toupper $currset] == [string toupper $hogset] && [string toupper $hogset] != ""} {
-        dict set newRunDict $setting $currset
+        dict set newSimDict $setting $currset
       } elseif {[string toupper $currset] == [string toupper $allhogset] && [string toupper $allhogset] != ""} {
-        dict set newRunDict $setting $currset
+        dict set newSimDict $setting $currset
       }
 
 
     }
-    dict set newConfDict $simset $newRunDict
+    dict set newSimConfDict $simset $newSimDict
 
     #if anything remains into hogConfDict it means that something is wrong
     foreach setting [dict keys $hogConfRunDict] {
@@ -1000,7 +1000,7 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
     #writing configuration file
     set confFile $repo_path/$DirName/sim.conf
     set version [GetIDEVersion]
-    WriteConf $confFile $newConfDict
+    WriteConf $confFile $newSimConfDict
   }
 }
 

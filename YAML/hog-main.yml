@@ -113,7 +113,7 @@ tag_official_version:
           new_tag="$new_tag-0";
         fi;
       fi;
-    - git tag -m "Official_version_${new_tag}" $new_tag
+    - git tag $new_tag -m "Official_version_${new_tag}" 
     - git push --tags
   rules:
     - if: '$HOG_TARGET_BRANCH != null && $CI_COMMIT_REF_NAME == $HOG_TARGET_BRANCH && $CI_PIPELINE_SOURCE == "push"'

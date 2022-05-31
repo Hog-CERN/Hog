@@ -131,7 +131,7 @@ Msg Info "Old tag was: $old_tag and new tag is: $new_tag"
 
 set new_tag [ regsub {.*(v.*)} $new_tag "\\1" ]
 Git "fetch origin refs/notes/*:refs/notes/*"
-Git "notes add -fm "$merge_request_number $branch_name $new_tag"
+Git "notes add -fm \"$merge_request_number $branch_name $new_tag\""
 
 if {$options(push)!= ""} {
   lassign [GitRet "push origin $options(push)"] ret msg

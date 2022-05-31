@@ -341,3 +341,40 @@ function search_projects() {
   fi
   return 0
 }
+
+
+function check_hog_version() {
+
+  if ! check_command timeout
+  then
+    return 1
+  fi
+
+  if [ -z ${1+x} ]; then
+    Msg Error "Missing input! You should parse the path to your Hog submodule. Got: $1!"
+    return 1
+  fi
+
+  if [[ -d "$1" ]]; then
+    cd $1;
+    current_version=$(git describe)
+    timeout 5s git fetch
+    master_version=$(git describe origin/master)
+    if [[ $current_version =~ "Hog.*" ]] && [ "$current_version" != "$master_version" ]; then
+      Msg Info "!!!!! A Newer version of Hog has been released !!!!!"
+      Msg Info "The latest stable version of Hog is $master_version. You should consider updating Hog submodule with the following instructions.\n cd Hog \n git checkout master \n git pull"
+      Msg Info "Remember also to update the ref: in your .gitlab-ci.yml to $master_version"
+      Msg Info "Check the changelog at https://gitlab.cern.ch/hog/Hog/-/releases/$master_version"
+    fi
+  fi
+
+}
+
+function check_command() {
+  if ! command -v $1 &> /dev/null
+  then
+    Msg Warning "Command $1 could not be found"
+    return 1
+  fi
+  return 0
+}

@@ -643,7 +643,7 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
   if {!$options(log_conf)} {
     set outFile ""
   } else {
-    set outFile $options(outFile)
+    set outFile $options(outDir)
   }
 
 
@@ -857,12 +857,6 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
 set sim_conf "$repo_path/Top/$group_name/$project_name/sim.conf"
 # Checking simulation settings
 if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
-  if {!$options(log_conf)} {
-    set outFile ""
-  } else {
-    set outFile $options(outFile)
-  }
-
   #creating 4 dicts:
   #   - simConfDict:     sim.conf properties (if exists)
   #   - defaultConfDict: default properties

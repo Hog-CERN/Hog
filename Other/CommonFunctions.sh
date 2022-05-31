@@ -84,7 +84,7 @@ function Msg() {
     ;;
   esac
 
-  echo "$Colour HOG:$1 ${FUNCNAME[1]}()  $2 $Default"
+  echo "$Colour HOG:$1[${FUNCNAME[1]}] $2 $Default"
 
   return 0
 }
@@ -311,7 +311,9 @@ function print_hog() {
   cat ./images/hog_logo.txt
   echo " Version: ${ver}"
   echo
-  cd -
+  cd - >> /dev/null
+  HogVer $1
+
   return 0
 }
 
@@ -342,9 +344,14 @@ function search_projects() {
   return 0
 }
 
-
-function check_hog_version() {
-
+#
+# @brief Check if the running Hog version is older than the latest stable
+#
+# @param[in]    $1 full path to the dir containing the HDL repo
+# @returns  0 if success, 1 if failure
+#
+function HogVer() {
+  Msg Info "Checking the latest available Hog version..."
   if ! check_command timeout
   then
     return 1
@@ -356,20 +363,34 @@ function check_hog_version() {
   fi
 
   if [[ -d "$1" ]]; then
-    cd $1;
+    cd $1
     current_version=$(git describe)
     timeout 5s git fetch
     master_version=$(git describe origin/master)
-    if [[ $current_version =~ "Hog.*" ]] && [ "$current_version" != "$master_version" ]; then
-      Msg Info "!!!!! A Newer version of Hog has been released !!!!!"
-      Msg Info "The latest stable version of Hog is $master_version. You should consider updating Hog submodule with the following instructions.\n cd Hog \n git checkout master \n git pull"
+    if [[ $current_version =~ Hog.* ]] && [ "$current_version" != "$master_version" ]; then
+      Msg Info
+      Msg Info "!!!!! Version $master_version has been released (https://gitlab.cern.ch/hog/Hog/-/releases/$master_version)"
+      Msg Info "You should consider updating Hog submodule with the following instructions:"
+      Msg Info
+      Msg Info "cd Hog && git checkout master && git pull"
+      Msg Info
       Msg Info "Remember also to update the ref: in your .gitlab-ci.yml to $master_version"
-      Msg Info "Check the changelog at https://gitlab.cern.ch/hog/Hog/-/releases/$master_version"
+      Msg Info
+    else
+      Msg Info "Latest official version is $master_version, nothing to do."
     fi
-  fi
 
+  fi
+  cd - >> /dev/null
 }
 
+
+#
+# @brief Check if a command is available on the running machine
+#
+# @param[in]    $1 Command name
+# @returns  0 if success, 1 if failure
+#
 function check_command() {
   if ! command -v $1 &> /dev/null
   then

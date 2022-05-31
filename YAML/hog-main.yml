@@ -100,7 +100,6 @@ tag_official_version:
   <<: *tag-sr
   stage: merge
   script:
-    #  - tclsh ./Hog/Tcl/CI/merge_and_tag.tcl -merged  -push $CI_COMMIT_REF_NAME -main_branch $CI_COMMIT_REF_NAME
     - git fetch origin refs/notes/*:refs/notes/*
     - note=(`git notes show`)
     - new_tag=${note[2]}

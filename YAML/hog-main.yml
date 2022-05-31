@@ -100,7 +100,21 @@ tag_official_version:
   <<: *tag-sr
   stage: merge
   script:
-     - tclsh ./Hog/Tcl/CI/merge_and_tag.tcl -merged  -push $CI_COMMIT_REF_NAME -main_branch $CI_COMMIT_REF_NAME
+    #  - tclsh ./Hog/Tcl/CI/merge_and_tag.tcl -merged  -push $CI_COMMIT_REF_NAME -main_branch $CI_COMMIT_REF_NAME
+    - git fetch origin refs/notes/*:refs/notes/*
+    - note=(`git notes show`)
+    - new_tag=${notes[2]}
+    - if ["$(git tag --list ${new_tag}*)" != ""]; then
+        latest_tag=(`git tag -l ${new_tag}* --sort=-v:refname --merged`);
+        if [[$latest_tag =~ ".*-(.*)"]]; then
+          nr="${BASH_REMATCH[1]}";
+          new_tag="$new_tag-$(($nr+1))";
+        else
+          new_tag="$new_tag-0";
+        fi;
+      fi;
+    - git tag -m "Official_version_$new_tag" $new_tag
+    - git push --tags
   rules:
     - if: '$HOG_TARGET_BRANCH != null && $CI_COMMIT_REF_NAME == $HOG_TARGET_BRANCH && $CI_PIPELINE_SOURCE == "push"'
       when: always

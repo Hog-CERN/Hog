@@ -32,6 +32,7 @@ set parameters {
   {merged "If set, instructs this script to tag the new official version (of the form vM.m.p). To be used once the merge request is merged is merged Default = off"}
   {mr_par.arg "" "Merge request parameters in JSON format. Ignored if -merged is set"}
   {mr_id.arg 0 "Merge request ID. Ignored if -merged is set"}
+  {branch_name.arg "" "Name of the branch to be written in the notes"}
   {push.arg "" "Optional: git branch for push"}
   {main_branch.arg "master" "Main branch (default = master)"}
   {default_level.arg "0" "Default version level to increase if nothing is specified in the merge request description. Can be 0 (patch), 1 (minor), (2) major. Default ="}
@@ -69,6 +70,15 @@ if {$options(merged) == 0} {
   } else {
     set merge_request_number $options(mr_id)
   }
+
+  if {$options(branch_name)==""} {
+    Msg Error "Branch name not provided! You must provide it using \"-branch_name \$BRANCH_NAME\" flag."
+    cd $OldPath
+    exit 1
+  } else {
+    set branch_name $options(branch_name)
+  }
+
   set WIP [ParseJSON  $options(mr_par) "work_in_progress"]
   set MERGE_STATUS [ParseJSON  $options(mr_par) "merge_status"]
   set DESCRIPTION [list [ParseJSON  $options(mr_par) "description"]]
@@ -116,8 +126,12 @@ cd $TaggingPath
 set tags [TagRepository $merge_request_number $version_level  $options(default_level)]
 set old_tag [lindex $tags 0]
 set new_tag [lindex $tags 1]
+
 Msg Info "Old tag was: $old_tag and new tag is: $new_tag"
 
+set new_tag [ regsub {.*(v.*)} $new_tag "\\1" ]
+Git "fetch origin refs/notes/*:refs/notes/*"
+Git "notes add -fm "$merge_request_number $branch_name $new_tag"
 
 if {$options(push)!= ""} {
   lassign [GitRet "push origin $options(push)"] ret msg

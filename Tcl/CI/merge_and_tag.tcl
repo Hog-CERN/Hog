@@ -72,9 +72,7 @@ if {$options(merged) == 0} {
   }
 
   if {$options(branch_name)==""} {
-    Msg Error "Branch name not provided! You must provide it using \"-branch_name \$BRANCH_NAME\" flag."
-    cd $OldPath
-    exit 1
+    set branch_name ""
   } else {
     set branch_name $options(branch_name)
   }
@@ -129,15 +127,17 @@ set new_tag [lindex $tags 1]
 
 Msg Info "Old tag was: $old_tag and new tag is: $new_tag"
 
-# if it is a beta tag, we write in the note the possible official version
-lassign [ExtractVersionFromTag $new_tag] M m p mr
-if {$mr == -1} {
-  incr p
+if {$branch_name != ""} {
+  # if it is a beta tag, we write in the note the possible official version
+  lassign [ExtractVersionFromTag $new_tag] M m p mr
+  if {$mr == -1} {
+    incr p
+  }
+  set new_tag v$M.$m.$p
+  Git "fetch origin refs/notes/*:refs/notes/*"
+  Git "notes add -fm \"$merge_request_number $branch_name $new_tag\""
+  Git "push origin refs/notes/*"
 }
-set new_tag v$M.$m.$p
-Git "fetch origin refs/notes/*:refs/notes/*"
-Git "notes add -fm \"$merge_request_number $branch_name $new_tag\""
-Git "push origin refs/notes/*"
 
 if {$options(push)!= ""} {
   lassign [GitRet "push origin $options(push)"] ret msg

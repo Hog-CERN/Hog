@@ -54,6 +54,12 @@ if { $options(Hog) == 0 } {
   set onHOG "-Hog"
 }
 
+if {$options(branch_name)==""} {
+  set branch_name ""
+} else {
+  set branch_name $options(branch_name)
+}
+
 set version_level 0
 
 set merge_request_number 0
@@ -71,11 +77,7 @@ if {$options(merged) == 0} {
     set merge_request_number $options(mr_id)
   }
 
-  if {$options(branch_name)==""} {
-    set branch_name ""
-  } else {
-    set branch_name $options(branch_name)
-  }
+
 
   set WIP [ParseJSON  $options(mr_par) "work_in_progress"]
   set MERGE_STATUS [ParseJSON  $options(mr_par) "merge_status"]

@@ -67,7 +67,7 @@ function help_Create() {
 
 ## executed when run
 print_hog $(dirname "$0")
-# echo " Input parameters ($#) :: $*"
+echo " Input parameters ($#) :: $*"
 
 if [ $# == 0 ]; then
   help_message $0
@@ -78,12 +78,12 @@ else
   case "$activity" in
     -I|Init)
       # echo "Init"
-      LogColorVivado HogInitFunc $@
+      Logger HogInitFunc $@
       exit 0
     ;;
     -C|Create)
-      echo "Create"
-      HogCreateFunc $*
+      echo "Create $*"
+      Logger HogCreateFunc $*
     ;;
     -W|Workflow)
       echo "Workflow"

@@ -170,24 +170,24 @@ else
 		else
 			if [ -z ${SIMLIBPATH+x} ]; then
 				if [ -z ${HOG_SIMULATION_LIB_PATH+x} ]; then
-          if [ -z ${HOG_LOGGER} ]; then
+          # if [ -z ${HOG_LOGGER} ]; then
 					  "${HDL_COMPILER}" $COMMAND_OPT $DIR/Tcl/launchers/launch_simulation.tcl -tclargs $SIMSET $QUIET $RECREATE $PROJ
-          else
-					  Logger "${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_simulation.tcl -tclargs $SIMSET $QUIET $RECREATE $PROJ"
-          fi
+          # else
+					#   Logger "${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_simulation.tcl -tclargs $SIMSET $QUIET $RECREATE $PROJ"
+          # fi
 				else
-          if [ -z ${HOG_LOGGER} ]; then
+          # if [ -z ${HOG_LOGGER} ]; then
 					  "${HDL_COMPILER}" $COMMAND_OPT $DIR/Tcl/launchers/launch_simulation.tcl -tclargs -lib_path $HOG_SIMULATION_LIB_PATH $SIMSET $QUIET $RECREATE $PROJ
-          else
-					  Logger "${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_simulation.tcl -tclargs -lib_path $HOG_SIMULATION_LIB_PATH $SIMSET $QUIET $RECREATE $PROJ"
-          fi
+          # else
+					  # Logger "${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_simulation.tcl -tclargs -lib_path $HOG_SIMULATION_LIB_PATH $SIMSET $QUIET $RECREATE $PROJ"
+          # fi
 				fi
 			else
-        if [ -z ${HOG_LOGGER} ]; then
+        # if [ -z ${HOG_LOGGER} ]; then
 				  "${HDL_COMPILER}" $COMMAND_OPT $DIR/Tcl/launchers/launch_simulation.tcl -tclargs $SIMLIBPATH $SIMSET $QUIET $RECREATE $PROJ
-				else
-          Logger "${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_simulation.tcl -tclargs $SIMLIBPATH $SIMSET $QUIET $RECREATE $PROJ"
-        fi
+				# else
+          # Logger "${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_simulation.tcl -tclargs $SIMLIBPATH $SIMSET $QUIET $RECREATE $PROJ"
+        # fi
 			fi
 		fi
 	else

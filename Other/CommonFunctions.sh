@@ -135,22 +135,24 @@ log_stdout(){
 # @param[in] execution line to process
 function Logger(){
   {
+    print_hog $(dirname "$0")
     echo "-----------------------------------------------"
     echo " HOG INFO LOG "
     echo " CMD : ${1} "
     echo "-----------------------------------------------"
   } > $loginfofile
   {
+    print_hog $(dirname "$0")
     echo "-----------------------------------------------"
     echo " HOG WARNINGS AND ERRORS"
     echo " CMD : ${1} "
     echo "-----------------------------------------------"
   } > $logwarningfile
 
-  echo "LogColorVivado : $1"
-  log_stdout "stdout" "LogColorVivado : $1"
-  log_stderr "stderr" "LogColorVivado : $1"
-  ${1} > >(log_stdout "stdout") 2> >(log_stdout "stderr" >&2)
+  echo "LogColorVivado : $*"
+  log_stdout "stdout" "LogColorVivado : $*"
+  log_stderr "stderr" "LogColorVivado : $*"
+  $* > >(log_stdout "stdout") 2> >(log_stdout "stderr" >&2)
 }
 
 # @function Msg

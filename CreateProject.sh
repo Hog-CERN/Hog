@@ -183,13 +183,13 @@ function create_project() {
 
 function HogCreateFunc(){
   # init $@
-  # echo "HogInitFunc ($*)"
+  echo "HogInitFunc ($*)"
   create_project $@
   # exit 0
 }
 if [[ ${BASH_SOURCE[0]} == $0 ]]; then
 #   printf "script '%s' is sourced in\n" "${BASH_SOURCE[0]}"
 # else
-print_hog $(dirname "$0")
-create_project $@
+  print_hog $(dirname "$0")
+  create_project $@
 fi

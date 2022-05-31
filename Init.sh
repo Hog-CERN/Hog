@@ -225,5 +225,21 @@ function init() {
   cd "${OLD_DIR}"
 }
 
-print_hog $(dirname "$0")
-init $@
+
+
+function HogInitFunc(){
+  # init $@
+  # echo "HogInitFunc ($*)"
+  init $@
+  exit 0
+}
+if [[ ${BASH_SOURCE[0]} == $0 ]]; then
+#   printf "script '%s' is sourced in\n" "${BASH_SOURCE[0]}"
+# else
+  print_hog $(dirname "$0")
+  init $@
+fi
+# echo "from ${BASH_SOURCE[0]} : BASH_SOURCE = ${BASH_SOURCE[*]}"
+# # if
+# print_hog $(dirname "$0")
+# init $@

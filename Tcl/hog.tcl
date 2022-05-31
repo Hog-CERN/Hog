@@ -39,35 +39,35 @@ proc GetSimulators {} {
 
 ## Get whether the IDE is Xilinx (Vivado or ISE)
 proc IsXilinx {} {
-    return [expr {[info commands get_property] != ""}]
+  return [expr {[info commands get_property] != ""}]
 }
 
 ## Get whether the IDE is vivado
 proc IsVivado {} {
-    if {[IsXilinx]} {
-        return [expr {[string first Vivado [version]] == 0}]
-    } else {
-        return 0
-    }
+  if {[IsXilinx]} {
+    return [expr {[string first Vivado [version]] == 0}]
+  } else {
+    return 0
+  }
 }
 
 ## Get whether the IDE is ISE (planAhead)
 proc IsISE {} {
-    if {[IsXilinx]} {
-        return [expr {[string first PlanAhead [version]] == 0}]
-    } else {
-        return 0
-    }
+  if {[IsXilinx]} {
+    return [expr {[string first PlanAhead [version]] == 0}]
+  } else {
+    return 0
+  }
 }
 
 ## Get whether the IDE is Quartus
 proc IsQuartus {} {
-    return [expr {[info commands project_new] != ""}]
+  return [expr {[info commands project_new] != ""}]
 }
 
 ## Get whether we are in tclsh
 proc IsTclsh {} {
-    return [expr ![IsQuartus] && ![IsXilinx]]
+  return [expr ![IsQuartus] && ![IsXilinx]]
 }
 
 proc Msg {level msg {title ""}} {
@@ -1469,37 +1469,52 @@ proc CopyXMLsFromListFile {list_file path dst {xml_version "0.0.0"} {xml_sha "00
     if {![regexp {^ *$} $line] & ![regexp {^ *\#} $line] } {
       # Exclude empty lines and comments
       set file_and_prop [regexp -all -inline {\S+} $line]
-      set xmlfile "$path/[lindex $file_and_prop 0]"
-      if {[llength $file_and_prop] > 1} {
+      set xmlfiles [glob "$path/[lindex $file_and_prop 0]"]
+
+      # for single non-globbed xmlfiles, we can have an associated vhdl file
+      # multiple globbed xml does not make sense with a vhdl property
+      if {[llength $xmlfiles]==1 && [llength $file_and_prop] > 1} {
         set vhdlfile [lindex $file_and_prop 1]
         set vhdlfile "$path/$vhdlfile"
       } else {
         set vhdlfile 0
       }
-      if {[file exists $xmlfile]} {
-        set xmlfile [file normalize $xmlfile]
-        Msg Info "Copying $xmlfile to $dst..."
-        set in  [open $xmlfile r]
-        set out [open $dst/[file tail $xmlfile] w]
 
-        while {[gets $in line] != -1} {
-          set new_line [regsub {(.*)__VERSION__(.*)} $line "\\1$xml_version\\2"]
-          set new_line2 [regsub {(.*)__GIT_SHA__(.*)} $new_line "\\1$xml_sha\\2"]
-          puts $out $new_line2
+      set xml_list_error 0
+      foreach xmlfile $xmlfiles {
+
+        if {[file isdirectory $xmlfile]} {
+          Msg CriticalWarning "Directory $xmlfile listed in xml.lst. Directories are not supported!"
+          set xml_list_error 1
         }
-        close $in
-        close $out
-        lappend xmls [file tail $xmlfile]
-        if {$vhdlfile == 0 } {
-          lappend vhdls 0
+
+        if {[file exists $xmlfile]} {
+          set xmlfile [file normalize $xmlfile]
+          Msg Info "Copying $xmlfile to $dst..."
+          set in  [open $xmlfile r]
+          set out [open $dst/[file tail $xmlfile] w]
+
+          while {[gets $in line] != -1} {
+            set new_line [regsub {(.*)__VERSION__(.*)} $line "\\1$xml_version\\2"]
+            set new_line2 [regsub {(.*)__GIT_SHA__(.*)} $new_line "\\1$xml_sha\\2"]
+            puts $out $new_line2
+          }
+          close $in
+          close $out
+          lappend xmls [file tail $xmlfile]
+          if {$vhdlfile == 0 } {
+            lappend vhdls 0
+          } else {
+            lappend vhdls [file normalize $vhdlfile]
+          }
+
         } else {
-          lappend vhdls [file normalize $vhdlfile]
+          Msg Warning "XML file $xmlfile not found"
         }
-
-      } else {
-        Msg Warning "XML file $xmlfile not found"
       }
-
+      if {${xml_list_error}} {
+        Msg Error "Invalid files added to xml.lst!"
+      }
     }
   }
   set cnt [llength $xmls]
@@ -2018,10 +2033,12 @@ proc AddHogFiles { libraries properties main_libs {verbose 0}} {
           }
 
           ## Simulation properties
-          # Top simulation module
+          # # Top simulation module
           set top_sim [lindex [regexp -inline {topsim\s*=\s*(.+?)\y.*} $props] 1]
           if { $top_sim != "" } {
             Msg Info "Setting $top_sim as top module for simulation file set $file_set..."
+            Msg Warning "Setting the simulation top module from simulation list files will be deprecated in future Hog releases. Please consider setting this property in the sim.conf file, by adding the following line under the \[$file_set\] section.\ntop=$top_sim"
+
             set_property "top"  $top_sim [get_filesets $file_set]
             current_fileset -simset [get_filesets $file_set]
           }
@@ -2030,6 +2047,7 @@ proc AddHogFiles { libraries properties main_libs {verbose 0}} {
           set sim_runtime [lindex [regexp -inline {runtime\s*=\s*(.+?)\y.*} $props] 1]
           if { $sim_runtime != "" } {
             Msg Info "Setting simulation runtime to $sim_runtime for simulation file set $file_set..."
+            Msg Warning "Setting the simulation runtime from simulation list files will be deprecated in future Hog releases. Please consider setting this property in the sim.conf file, by adding the following line under the \[$file_set\] section.\n<simulator_name>.simulate.runtime=$sim_runtime"
             set_property -name {xsim.simulate.runtime} -value $sim_runtime -objects [get_filesets $file_set]
             foreach simulator [GetSimulators] {
               set_property $simulator.simulate.runtime  $sim_runtime  [get_filesets $file_set]
@@ -2038,6 +2056,8 @@ proc AddHogFiles { libraries properties main_libs {verbose 0}} {
 
           # Wave do file
           if {[lsearch -inline -regex $props "wavefile"] >= 0} {
+            Msg Warning "Setting a wave do file from simulation list files will be deprecated in future Hog releases. Please consider setting this property in the sim.conf file, by adding the following line under the \[$file_set\] section.\n<simulator_name>.simulate.custom_wave_do=[file tail $f]"
+
             if {$verbose == 1} {
               Msg Info "Setting $f as wave do file for simulation file set $file_set..."
             }
@@ -2054,6 +2074,7 @@ proc AddHogFiles { libraries properties main_libs {verbose 0}} {
 
           #Do file
           if {[lsearch -inline -regex $props "dofile"] >= 0} {
+            Msg Warning "Setting a custom do file from simulation list files will be deprecated in future Hog releases. Please consider setting this property in the sim.conf file, by adding the following line under the \[$file_set\] section.\n<simulator_name>.simulate.custom_do=[file tail $f]"
             if {$verbose == 1} {
               Msg Info "Setting $f as udo file for simulation file set $file_set..."
             }

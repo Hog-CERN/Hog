@@ -66,7 +66,7 @@ namespace eval globalSettings {
 ################# FUNCTIONS ################################
 proc CreateProject {} {
 
-    if {[IsXilinx]} {
+  if {[IsXilinx]} {
 
     create_project -force [file tail $globalSettings::DESIGN] $globalSettings::build_dir -part $globalSettings::PART
 
@@ -164,6 +164,7 @@ proc AddProjectFiles {} {
   ## Set synthesis TOP
   SetTopProperty $globalSettings::synth_top_module $sources
 
+  ## Set simulation Properties
 
 }
 
@@ -445,9 +446,28 @@ proc ConfigureSimulation {} {
     # SIMULATION #
     ##############
     Msg Info "Setting load_glbl parameter to true for every fileset..."
-    foreach f [get_filesets -quiet *_sim] {
-      set_property -name {xsim.elaborate.load_glbl} -value {true} -objects [get_filesets $f]
+    foreach simset [get_filesets -quiet *_sim] {
+      set_property -name {xsim.elaborate.load_glbl} -value {true} -objects [get_filesets $simset]
+      # Setting Simulation Properties
+      if [dict exists $globalSettings::SIM_PROPERTIES $simset] {
+        Msg Info "Setting properties for simulation set: $simset..."
+        set sim_props [dict get $globalSettings::SIM_PROPERTIES $simset]
+        dict for {prop_name prop_val} $sim_props {
+          Msg Info "Setting $prop_name = $prop_val"
+          set_property $prop_name $prop_val [get_filesets $simset]
+        }
+      }
+      if [dict exists $globalSettings::SIM_PROPERTIES sim] {
+        Msg Info "Setting properties for simulation set: $simset..."
+        set sim_props [dict get $globalSettings::SIM_PROPERTIES sim]
+        dict for {prop_name prop_val} $sim_props {
+          Msg Info "Setting $prop_name = $prop_val"
+          set_property $prop_name $prop_val [get_filesets $simset]
+        }
+      }
     }
+
+
   }  elseif {[IsQuartus]} {
     #QUARTUS only
     #TO BE DONE
@@ -469,7 +489,6 @@ proc ConfigureProperties {} {
       if [dict exists $globalSettings::PROPERTIES main] {
         Msg Info "Setting project-wide properties..."
         set proj_props [dict get $globalSettings::PROPERTIES main]
-        #set_property -dict $proj_props [current_project]
         dict for {prop_name prop_val} $proj_props {
 
           if { [ string tolower $prop_name ] != "ip_repo_paths" } {
@@ -487,7 +506,6 @@ proc ConfigureProperties {} {
             }
             update_ip_catalog
           }
-
         }
       }
       # Setting Run Properties
@@ -511,25 +529,6 @@ proc ConfigureProperties {} {
           dict for {prop_name prop_val} $run_props {
             Msg Info "Setting $prop_name = $prop_val"
             set_property $prop_name $prop_val $run
-          }
-        }
-      }
-      # Setting Simulation Properties
-      foreach simset [get_filesets -quiet *_sim] {
-        if [dict exists $globalSettings::SIM_PROPERTIES $simset] {
-          Msg Info "Setting properties for simulation set : $simset..."
-          set sim_props [dict get $globalSettings::SIM_PROPERTIES $simset]
-          dict for {prop_name prop_val} $sim_props {
-            Msg Info "Setting $prop_name = $prop_val"
-            set_property $prop_name $prop_val [get_filesets $simset]
-          }
-        }
-        if [dict exists $globalSettings::SIM_PROPERTIES sim] {
-          Msg Info "Setting properties for all simulation sets..."
-          set sim_props [dict get $globalSettings::SIM_PROPERTIES sim]
-          dict for {prop_name prop_val} $sim_props {
-            Msg Info "Setting $prop_name = $prop_val"
-            set_property $prop_name $prop_val [get_filesets $simset]
           }
         }
       }

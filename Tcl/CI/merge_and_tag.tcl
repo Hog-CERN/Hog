@@ -129,7 +129,13 @@ set new_tag [lindex $tags 1]
 
 Msg Info "Old tag was: $old_tag and new tag is: $new_tag"
 
-set new_tag [ regsub {.*(v.*)} $new_tag "\\1" ]
+# if it is a beta tag, we write in the note the possible official version
+lassign [ExtractVersionFromTag $new_tag] M m p mr
+if {$mr != -1} {
+  incr p
+}
+set new_tag v$M.$m.$p
+
 Git "fetch origin refs/notes/*:refs/notes/*"
 Git "notes add -fm \"$merge_request_number $branch_name $new_tag\""
 Git "push origin refs/notes/*"

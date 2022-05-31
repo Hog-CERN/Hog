@@ -131,7 +131,7 @@ Msg Info "Old tag was: $old_tag and new tag is: $new_tag"
 
 # if it is a beta tag, we write in the note the possible official version
 lassign [ExtractVersionFromTag $new_tag] M m p mr
-if {$mr != -1} {
+if {$mr == -1} {
   incr p
 }
 set new_tag v$M.$m.$p

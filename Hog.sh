@@ -16,6 +16,7 @@
 
 . $(dirname "$0")/Other/CommonFunctions.sh
 . $(dirname "$0")/Init.sh
+. $(dirname "$0")/CreateProject.sh
 
 function help_Unic() {
   # echo
@@ -77,12 +78,12 @@ else
   case "$activity" in
     -I|Init)
       # echo "Init"
-      HogInitFunc $@
+      LogColorVivado HogInitFunc $@
       exit 0
     ;;
     -C|Create)
       echo "Create"
-      ./Hog/CreateProject.sh $*
+      HogCreateFunc $*
     ;;
     -W|Workflow)
       echo "Workflow"

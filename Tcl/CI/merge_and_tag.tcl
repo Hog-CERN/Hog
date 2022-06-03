@@ -79,7 +79,7 @@ if {$options(merged) == 0} {
   }
 
   puts "Github $options(github)"
-  if { $options(github) != 0} {
+  if { $options(github) } {
     set WIP [ParseJSON $options(mr_par) "draft"]
     set MERGE_STATUS [ParseJSON  $options(mr_par) "state"]
     set DESCRIPTION [list [ParseJSON  $options(mr_par) "body"]]

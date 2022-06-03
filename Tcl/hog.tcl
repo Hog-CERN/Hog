@@ -1311,6 +1311,7 @@ proc TagRepository {{merge_request_number 0} {version_level 0} {default_level 0}
     set vers ""
     if { $vret == 0 } {
       set vtag [lindex $vtags 0]
+      set vtag [ regsub {(v.*)-.*} $vtag "\\1" ]
       lassign [ExtractVersionFromTag $vtag] M m p mr
       set M [format %02X $M]
       set m [format %02X $m]
@@ -1387,10 +1388,11 @@ proc TagRepository {{merge_request_number 0} {version_level 0} {default_level 0}
 
         }
 
-        } else { # Tag is not official
-          #Not official, do nothing unless version level is >=3, in which case convert the unofficial to official
-          Msg Info "Found candidate version for $M.$m.$p."
-          if {$version_level >= 3} {
+      } else {
+        # Tag is not official
+        #Not official, do nothing unless version level is >=3, in which case convert the unofficial to official
+        Msg Info "Found candidate version for $M.$m.$p."
+        if {$version_level >= 3} {
           Msg Info "New tag will be an official version v$M.$m.$p..."
           set new_tag v$M.$m.$p
           set tag_opt "-m 'Official_version_$M.$m.$p'"

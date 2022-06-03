@@ -32,7 +32,7 @@ if {[IsISE]} {
 }
 set parameters {
   {project.arg "" "Project name. If not set gets current project"}
-  {outFile.arg "" "Name of output log file."}
+  {outDir.arg "" "Name of output dir containing log files."}
   {log_list.arg "1" "Logs list files errors to outFile."}
   {log_conf.arg "1" "Logs hog.conf errors to outFile."}
   {recreate  "If set, it will create List Files from the project configuration"}
@@ -115,8 +115,9 @@ if {![string equal $options(project) ""]} {
 }
 
 
-if {$options(outFile)!= ""} {
-  set outFile $options(outFile)
+if {$options(outDir)!= ""} {
+  set outFile $options(outDir)/diff_list_and_conf.txt
+  set outSimFile $options(outDir)/diff_sim_list_and_conf.txt
   if {[file exists $outFile]} {
     file delete $outFile
   }
@@ -642,7 +643,7 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
   if {!$options(log_conf)} {
     set outFile ""
   } else {
-    set outFile $options(outFile)
+    set outFile $options(outDir)
   }
 
 
@@ -856,12 +857,6 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
 set sim_conf "$repo_path/Top/$group_name/$project_name/sim.conf"
 # Checking simulation settings
 if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
-  if {!$options(log_conf)} {
-    set outFile ""
-  } else {
-    set outFile $options(outFile)
-  }
-
   #creating 4 dicts:
   #   - simConfDict:     sim.conf properties (if exists)
   #   - defaultConfDict: default properties
@@ -963,7 +958,7 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
           incr SimConfErrorCnt
           Msg Info "$simset setting $setting has been changed from \"$hogset\" (\"$allhogset\") in sim.conf to \"$currset\" in project."
         } elseif {[file exists $sim_conf]} {
-          WarningAndLog "Project $simset setting $setting value \"$currset\" does not match hog.conf \"$hogset\" (\"$allhogset\")." $outFile
+          WarningAndLog "Project $simset setting $setting value \"$currset\" does not match sim.conf \"$hogset\" (\"$allhogset\")." $outSimFile
           incr SimConfErrorCnt
         }
       } elseif {[string toupper $currset] == [string toupper $hogset] && [string toupper $hogset] != ""} {
@@ -1039,6 +1034,7 @@ if {$options(recreate_conf) == 0 && $options(recreate) == 0} {
 
 
 }
+
 Msg Info "All done."
 
 return $TotErrorCnt

@@ -78,7 +78,9 @@ if {$options(merged) == 0} {
     set merge_request_number $options(mr_id)
   }
 
-  puts "Github $options(github)"
+  Msg Info "Github $options(github)"
+  Msg Info "$options(mr_par)"
+
   if { $options(github) != 0} {
     set WIP [ParseJSON $options(mr_par) "draft"]
     set MERGE_STATUS [ParseJSON  $options(mr_par) "state"]

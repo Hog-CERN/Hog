@@ -37,6 +37,7 @@ set parameters {
   {main_branch.arg "master" "Main branch (default = master)"}
   {default_level.arg "0" "Default version level to increase if nothing is specified in the merge request description. Can be 0 (patch), 1 (minor), (2) major. Default ="}
   {no_increase "If set, prevents this script to increase the version if MAJOR_VERSION, MINOR_VERSION or PATCH_VERSION directives are found in the merge request descritpion. Default = off"}
+  {github "If set, Hog will use the GitHub api instead of the GitLab, Default = off" }
 }
 
 set usage "- CI script that merges your branch with \$HOG_TARGET_BRANCH and creates a new tag\n USAGE: $::argv0 \[OPTIONS\] \n. Options:"
@@ -78,10 +79,15 @@ if {$options(merged) == 0} {
   }
 
 
-
-  set WIP [ParseJSON  $options(mr_par) "work_in_progress"]
-  set MERGE_STATUS [ParseJSON  $options(mr_par) "merge_status"]
-  set DESCRIPTION [list [ParseJSON  $options(mr_par) "description"]]
+  if {$options(github) != 0} {
+    set WIP [ParseJSON $options(mr_par) "draft"]
+    set MERGE_STATUS [ParseJSON  $options(mr_par) "state"]
+    set DESCRIPTION [list [ParseJSON  $options(mr_par) "body"]]
+  } else {
+    set WIP [ParseJSON  $options(mr_par) "work_in_progress"]
+    set MERGE_STATUS [ParseJSON  $options(mr_par) "merge_status"]
+    set DESCRIPTION [list [ParseJSON  $options(mr_par) "description"]]
+  }
   Msg Info "WIP: ${WIP},  Merge Request Status: ${MERGE_STATUS}   Description: ${DESCRIPTION}"
   if {$options(no_increase) != 0} {
     Msg Info "Will ignore the directives in the MR description to increase version, if any."

@@ -151,6 +151,8 @@ if {$branch_name != ""} {
 }
 
 if {$options(push)!= ""} {
+  puts "here"
+
   lassign [GitRet "push origin $options(push)"] ret msg
 
   if {$ret != 0} {

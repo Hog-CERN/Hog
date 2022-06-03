@@ -32,8 +32,7 @@ set parameters {
   {merged "If set, instructs this script to tag the new official version (of the form vM.m.p). To be used once the merge request is merged is merged Default = off"}
   {mr_par.arg "" "Merge request parameters in JSON format. Ignored if -merged is set"}
   {mr_id.arg 0 "Merge request ID. Ignored if -merged is set"}
-  {branch_name.arg "" "Name of the branch to be written in the notes"}
-  {push.arg "" "Optional: git branch for push"}
+  {source_branch.arg "" "Name of the branch to be written in the notes"}
   {main_branch.arg "master" "Main branch (default = master)"}
   {default_level.arg "0" "Default version level to increase if nothing is specified in the merge request description. Can be 0 (patch), 1 (minor), (2) major. Default ="}
   {no_increase "If set, prevents this script to increase the version if MAJOR_VERSION, MINOR_VERSION or PATCH_VERSION directives are found in the merge request descritpion. Default = off"}
@@ -55,10 +54,10 @@ if { $options(Hog) == 0 } {
   set onHOG "-Hog"
 }
 
-if {$options(branch_name)==""} {
-  set branch_name ""
+if {$options(source_branch)==""} {
+  set source_branch ""
 } else {
-  set branch_name $options(branch_name)
+  set source_branch $options(source_branch)
 }
 
 set version_level 0
@@ -135,32 +134,28 @@ set new_tag [lindex $tags 1]
 
 Msg Info "Old tag was: $old_tag and new tag is: $new_tag"
 
-if {$branch_name != ""} {
+if {$source_branch != ""} {
   # if it is a beta tag, we write in the note the possible official version
   lassign [ExtractVersionFromTag $new_tag] M m p mr
   if {$mr == -1} {
     incr p
   }
   set new_tag v$M.$m.$p
-  puts "Git notes add -fm \"$merge_request_number $branch_name $new_tag\""
+  puts "Git notes add -fm \"$merge_request_number $source_branch $new_tag\""
 
 
   Git "fetch origin refs/notes/*:refs/notes/*"
-  Git "notes add -fm \"$merge_request_number $branch_name $new_tag\""
+  Git "notes add -fm \"$merge_request_number $source_branch $new_tag\""
   Git "push origin refs/notes/*"
-}
 
-if {$options(push)!= ""} {
-  puts "here"
-
-  lassign [GitRet "push origin $options(push)"] ret msg
+  lassign [GitRet "push origin $source_branch"] ret msg
 
   if {$ret != 0} {
     Msg Warning $msg
   } else {
     Msg Info $msg
   }
-  lassign [GitRet "push --tags origin $options(push)"] ret msg
+  lassign [GitRet "push --tags origin $source_branch"] ret msg
   if {$ret != 0} {
     Msg Warning $msg
   } else {

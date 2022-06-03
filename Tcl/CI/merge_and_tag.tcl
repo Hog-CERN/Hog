@@ -142,6 +142,9 @@ if {$branch_name != ""} {
     incr p
   }
   set new_tag v$M.$m.$p
+  puts "Git notes add -fm \"$merge_request_number $branch_name $new_tag\""
+
+
   Git "fetch origin refs/notes/*:refs/notes/*"
   Git "notes add -fm \"$merge_request_number $branch_name $new_tag\""
   Git "push origin refs/notes/*"

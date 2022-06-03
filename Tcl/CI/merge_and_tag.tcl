@@ -78,8 +78,8 @@ if {$options(merged) == 0} {
     set merge_request_number $options(mr_id)
   }
 
-
-  if {$options(github) != 0} {
+  puts $optional(github)
+  if { $options(github) != 0} {
     set WIP [ParseJSON $options(mr_par) "draft"]
     set MERGE_STATUS [ParseJSON  $options(mr_par) "state"]
     set DESCRIPTION [list [ParseJSON  $options(mr_par) "body"]]

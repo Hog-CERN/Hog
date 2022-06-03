@@ -79,14 +79,14 @@ if {$options(merged) == 0} {
   }
 
   puts "Github $options(github)"
-  if { $options(github) } {
-    set WIP [ParseJSON $options(mr_par) "draft"]
-    set MERGE_STATUS [ParseJSON  $options(mr_par) "state"]
-    set DESCRIPTION [list [ParseJSON  $options(mr_par) "body"]]
-  } else {
+  if { $options(github) == 0 } {
     set WIP [ParseJSON  $options(mr_par) "work_in_progress"]
     set MERGE_STATUS [ParseJSON  $options(mr_par) "merge_status"]
     set DESCRIPTION [list [ParseJSON  $options(mr_par) "description"]]
+  } else {
+    set WIP [ParseJSON $options(mr_par) "draft"]
+    set MERGE_STATUS [ParseJSON  $options(mr_par) "state"]
+    set DESCRIPTION [list [ParseJSON  $options(mr_par) "body"]]
   }
   Msg Info "WIP: ${WIP},  Merge Request Status: ${MERGE_STATUS}   Description: ${DESCRIPTION}"
   if {$options(no_increase) != 0} {

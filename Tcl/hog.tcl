@@ -12,19 +12,11 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-# @file
-# @brief Collection of Tcl functions used in Vivado/Quartus scripts
-
 
 ## @file hog.tcl
-# @brief Collection of Tcl functions used in Vivado/Quartus scripts
+#  @brief Collection of Tcl functions used in Vivado/Quartus scripts
 
-### @brief Display a Vivado/Quartus/Tcl-shell info message
-#
-# @param[in] level  the severity level of the message given as string or integer: status/extra_info 0, info 1, warning 2, critical warning 3, error 4.
-# @param[in] msg    the message text.
-# @param[in] title  the name of the script displaying the message, if not given, the calling script name will be used by default.
-#
+
 #### GLOBAL CONSTANTS
 set CI_STAGES {"generate_project" "simulate_project"}
 set CI_PROPS {"-synth_only"}
@@ -32,6 +24,7 @@ set CI_PROPS {"-synth_only"}
 
 #### FUNCTIONS
 
+## Returns a list of known simulator tools
 proc GetSimulators {} {
   set SIMULATORS [list "modelsim" "questa" "riviera" "activehdl" "ies" "vcs"]
   return $SIMULATORS
@@ -52,6 +45,7 @@ proc IsVivado {} {
 }
 
 ## Get whether the IDE is ISE (planAhead)
+#
 proc IsISE {} {
   if {[IsXilinx]} {
     return [expr {[string first PlanAhead [version]] == 0}]
@@ -61,15 +55,23 @@ proc IsISE {} {
 }
 
 ## Get whether the IDE is Quartus
+#
 proc IsQuartus {} {
   return [expr {[info commands project_new] != ""}]
 }
 
 ## Get whether we are in tclsh
+#
 proc IsTclsh {} {
   return [expr ![IsQuartus] && ![IsXilinx]]
 }
 
+## @brief Display a Vivado/Quartus/Tcl-shell info message
+#
+# @param[in] level  the severity level of the message given as string or integer: status/extra_info 0, info 1, warning 2, critical warning 3, error 4.
+# @param[in] msg    the message text.
+# @param[in] title  the name of the script displaying the message, if not given, the calling script name will be used by default.
+#
 proc Msg {level msg {title ""}} {
   set level [string tolower $level]
   if {$level == 0 || $level == "status" || $level == "extra_info"} {
@@ -111,6 +113,31 @@ proc Msg {level msg {title ""}} {
     if {$qlevel == "error"} {
       exit 1
     }
+  }
+}
+
+## @brief returns relative path of file with respect to specified path
+#  @Todo check thid function since it looks to me this should not work
+proc RelativeLocal {pathName fileName} {
+  if {[string first [file normalize $pathName] [file normalize $fileName]] != -1} {
+    return [Relative $pathName $fileName]
+  } else {
+    return ""
+  }
+}
+
+## @brief Posts a message to the IDE and writes it to file
+#
+# @param[in] level  the severity level of the message given as string or integer: status/extra_info 0, info 1, warning 2, critical warning 3, error 4.
+# @param[in] msg    the message text
+# @param[in] outFileName name and path where to write
+#
+proc MsgAndLog {level msg {outFileName ""}} {
+  Msg $level $msg
+  if {$outFile != ""} {
+    set outFile [open "$outFileName" a+]
+    puts $outFile $msg
+    close $outFile
   }
 }
 
@@ -1620,7 +1647,6 @@ proc Relative {base dst} {
   set base [file normalize [file join [pwd] $base]]
   set dst  [file normalize [file join [pwd] $dst]]
 
-  set save $dst
   set base [file split $base]
   set dst  [file split $dst]
 
@@ -1836,7 +1862,6 @@ proc GetHogFiles args {
       return 1
     }
   }
-
 
   set parameters {
     {list_files.arg ""  "The file wildcard, if not specified all Hog list files will be looked for."}

@@ -239,9 +239,6 @@ collect_artifacts:
             echo "Hog-CI(info) - Writing note on gitlab website...";
             ./Hog/Other/WriteGitlabNote.sh $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $CI_MERGE_REQUEST_IID mr_note.md;
           fi;
-        - git fetch origin refs/notes/*:refs/notes/*
-        - git notes add -fm "$CI_MERGE_REQUEST_IID $CI_COMMIT_REF_SLUG"
-        - git push origin refs/notes/*
     artifacts:
         when: always
         name: all_projects

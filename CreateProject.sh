@@ -179,5 +179,6 @@ function create_project() {
 
 }
 
-print_hog $(dirname "$0")
+repoPath=$(dirname "$0")
+print_hog $repoPath
 create_project $@

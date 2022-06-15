@@ -263,10 +263,10 @@ check-timing:
             PRJ_NAME="${PRJ_NAME%-*}";
             PRJ_NAME_BASE=$(basename $PRJ_NAME);
             if [ -f "$PRJ_DIR/timing_error.txt" ]; then
-              FAILED_PRJS+=" $PRJ_NAME_BASE";
+              FAILED_PRJS="$FAILED_PRJS $PRJ_NAME_BASE";
             fi;
           done;
-        - if [ $FAILED_PRJS != "" ]; then
+        - if [ "$FAILED_PRJS" != "" ]; then
             echo "The following projects have failed timing:$FAILED_PRJS";
             exit 1;
           else

@@ -1731,7 +1731,9 @@ proc GetProjectFiles {} {
       }
 
       if {!$ignore} {
-        set f [file normalize $f]
+        if {[file extension $f] != ".coe"} {
+          set f [file normalize $f]
+        }
         lappend files $f
         set type  [get_property FILE_TYPE $f]
         set lib [get_property LIBRARY $f]
@@ -2349,6 +2351,10 @@ proc CheckExtraFiles {libraries} {
       foreach lib [dict keys $libraries] {
         set ext [file extension $lib]
         if {$ext != ".ip"} {
+          set prjOTHER_ext [file extension $prjOTHER]
+          if {$prjOTHER_ext == ".coe"} {
+            set prjOTHER [file normalize $prjOTHER]
+          }
           set lib_files [dict get $libraries $lib]
           foreach list_file $lib_files {
             if {[lsearch $prjOTHER $list_file] != -1} {

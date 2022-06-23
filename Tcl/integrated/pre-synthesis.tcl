@@ -137,9 +137,9 @@ set this_commit [GetSHA]
 
 if {[IsVivado]} {
   if {![string equal ext_path ""]} {
-    set argv [list "-ext_path" "$ext_path" "-project" "$group/$proj_name" "-outFile" "$dst_dir/diff_list_and_conf.txt" "-log_list" "[expr {!$allow_fail_on_list}]" "-log_conf" "[expr {!$allow_fail_on_conf}]"]
+    set argv [list "-ext_path" "$ext_path" "-project" "$group/$proj_name" "-outDir" "$dst_dir" "-log_list" "[expr {!$allow_fail_on_list}]" "-log_conf" "[expr {!$allow_fail_on_conf}]"]
   } else {
-    set argv [list "-project" "$group/$proj_name" "-outFile" "$dst_dir/diff_list_and_conf.txt" "-log_list" "[expr {!$allow_fail_on_list}]" "-log_conf" "[expr {!$allow_fail_on_conf}]"]
+    set argv [list "-project" "$group/$proj_name" "-outDir" "$dst_dir" "-log_list" "[expr {!$allow_fail_on_list}]" "-log_conf" "[expr {!$allow_fail_on_conf}]"]
   }
   source  $tcl_path/utils/check_list_files.tcl
   if {[file exists "$dst_dir/diff_list_and_conf.txt"]} {

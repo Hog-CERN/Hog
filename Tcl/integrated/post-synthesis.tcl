@@ -148,9 +148,13 @@ if {[IsXilinx]} {
   } else {
     Msg Warning "No reports found in $proj_dir/output_files subfolders"
   }
+}
 
-
-
+# Run user post-synthesis file
+set user_post_synthesis_file "./Top/$group_name/$proj_name/post-synthesis.tcl"
+if {[file exists $user_post_synthesis_file]} {
+  Msg Info "Sourcing user post-synthesis file $user_post_synthesis_file"
+  source $user_post_synthesis_file
 }
 
 cd $old_path

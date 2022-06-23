@@ -19,7 +19,7 @@
 ## Import common functions from Other/CommonFunctions.sh in a POSIX compliant way
 #
 . $(dirname "$0")/Other/CommonFunctions.sh
-print_hog $(dirname "$0")
+# print_hog $(dirname "$0")
 ## @function argument_parser()
 #  @brief pase aguments and sets evvironment variables
 #  @param[out] IP_PATH      empty or "-ip_path $2"
@@ -128,70 +128,90 @@ function help_message() {
   echo " Hint: Hog accepts as <project name> both the actual project name and the relative path containing the project configuration. E.g. ./Hog/LaunchWorkflow.sh Top/myproj or ./Hog/LaunchWorkflow.sh myproj"
 }
 
-DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-argument_parser $@
-if [ $? = 1 ]; then
-    exit 1
+function Launch_project(){
+
+  DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  argument_parser $@
+  if [ $? = 1 ]; then
+      exit 1
+  fi
+  eval set -- "$PARAMS"
+  if [ -z "$1" ]; then
+      help_message $0
+      echo "Possible projects are:"
+      echo ""
+      search_projects $DIR/../Top
+      echo
+      cd "${OLD_DIR}"
+      exit -1
+  else
+      if [ "$1" == "-h" ] || [ "$1" == "-help" ] || [ "$1" == "--help" ] || [ "$1" == "-H" ]; then
+          help_message $0
+          exit 0
+      fi
+
+      PROJ=$1
+      if [[ $PROJ == "Top/"* ]]; then
+        PROJ=${PROJ#"Top/"}
+      fi
+      PROJ_DIR="$DIR/../Top/"$PROJ
+      if [ -d "$PROJ_DIR" ]; then
+
+          #Choose if the project is quastus, vivado, vivado_hls [...]
+          select_executable_from_project_dir "$PROJ_DIR"
+          if [ $? != 0 ]; then
+              Msg Error "Failed to get HDL compiler executable for $PROJ_DIR"
+              exit -1
+          fi
+
+          if [ ! -f "${HDL_COMPILER}" ]; then
+              Msg Error "HLD compiler executable $HDL_COMPILER not found"
+              cd "${OLD_DIR}"
+              exit -1
+          else
+              Msg Info "Using executable: $HDL_COMPILER"
+          fi
+
+          if [ -z ${SIMLIBPATH+x} ]; then
+              if [ -z ${HOG_SIMULATION_LIB_PATH+x} ]; then
+                  SIMLIBPATH=""
+              else
+                  SIMLIBPATH="-simlib_path ${HOG_SIMULATION_LIB_PATH}"
+              fi
+          fi
+
+          if [ $COMMAND = "quartus_sh" ]; then
+              if [ "a$IP_PATH" != "a" ]; then
+                  Msg Warning "IP eos path not supported in Quartus mode"
+              fi
+              ${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_quartus.tcl $HELP $NO_BITSTREAM $SYNTH_ONLY $NJOBS $CHECK_SYNTAX $RECREATE $EXT_PATH $IMPL_ONLY -project $PROJ
+          elif [ $COMMAND = "vivado_hls" ]; then
+              Msg Error "Vivado HLS is not yet supported by this script!"
+          else
+              ${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_workflow.tcl -tclargs $HELP $NO_RESET $NO_BITSTREAM $SYNTH_ONLY $IP_PATH $NJOBS $CHECK_SYNTAX $RECREATE $EXT_PATH $IMPL_ONLY $SIMLIBPATH $PROJ
+          fi
+      else
+          Msg Error "Project $PROJ not found. Possible projects are:"
+          search_projects Top
+          cd "${OLD_DIR}"
+          exit -1
+      fi
+  fi
+}
+
+function HogLaunchFunc(){
+  # init $@
+  echo "HogInitFunc ($*)"
+  Launch_project $@
+  # exit 0
+}
+if [[ ${BASH_SOURCE[0]} == $0 ]]; then
+#   printf "script '%s' is sourced in\n" "${BASH_SOURCE[0]}"
+# else
+  repoPath=$(dirname "$0")
+  print_hog $repoPath
+  Launch_project $@
 fi
-eval set -- "$PARAMS"
-if [ -z "$1" ]; then
-    help_message $0
-    echo "Possible projects are:"
-    echo ""
-    search_projects $DIR/../Top
-    echo
-    cd "${OLD_DIR}"
-    exit -1
-else
-    if [ "$1" == "-h" ] || [ "$1" == "-help" ] || [ "$1" == "--help" ] || [ "$1" == "-H" ]; then
-        help_message $0
-        exit 0
-    fi
-
-    PROJ=$1
-    if [[ $PROJ == "Top/"* ]]; then
-      PROJ=${PROJ#"Top/"}
-    fi
-    PROJ_DIR="$DIR/../Top/"$PROJ
-    if [ -d "$PROJ_DIR" ]; then
-
-        #Choose if the project is quastus, vivado, vivado_hls [...]
-        select_executable_from_project_dir "$PROJ_DIR"
-        if [ $? != 0 ]; then
-            Msg Error "Failed to get HDL compiler executable for $PROJ_DIR"
-            exit -1
-        fi
-
-        if [ ! -f "${HDL_COMPILER}" ]; then
-            Msg Error "HLD compiler executable $HDL_COMPILER not found"
-            cd "${OLD_DIR}"
-            exit -1
-        else
-            Msg Info "Using executable: $HDL_COMPILER"
-        fi
-
-        if [ -z ${SIMLIBPATH+x} ]; then
-            if [ -z ${HOG_SIMULATION_LIB_PATH+x} ]; then
-                SIMLIBPATH=""
-            else
-                SIMLIBPATH="-simlib_path ${HOG_SIMULATION_LIB_PATH}"
-            fi
-        fi
-
-        if [ $COMMAND = "quartus_sh" ]; then
-            if [ "a$IP_PATH" != "a" ]; then
-                Msg Warning "IP eos path not supported in Quartus mode"
-            fi
-            ${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_quartus.tcl $HELP $NO_BITSTREAM $SYNTH_ONLY $NJOBS $CHECK_SYNTAX $RECREATE $EXT_PATH $IMPL_ONLY -project $PROJ
-        elif [ $COMMAND = "vivado_hls" ]; then
-            Msg Error "Vivado HLS is not yet supported by this script!"
-        else
-            ${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_workflow.tcl -tclargs $HELP $NO_RESET $NO_BITSTREAM $SYNTH_ONLY $IP_PATH $NJOBS $CHECK_SYNTAX $RECREATE $EXT_PATH $IMPL_ONLY $SIMLIBPATH $PROJ
-        fi
-    else
-        Msg Error "Project $PROJ not found. Possible projects are:"
-        search_projects Top
-        cd "${OLD_DIR}"
-        exit -1
-    fi
-fi
+# repoPath=$(dirname "$0")
+# print_hog $repoPath
+# create_project $@

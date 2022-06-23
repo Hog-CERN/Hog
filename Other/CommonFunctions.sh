@@ -151,7 +151,7 @@ function Logger(){
 
   echo "LogColorVivado : $*"
   log_stdout "stdout" "LogColorVivado : $*"
-  log_stderr "stderr" "LogColorVivado : $*"
+  log_stdout "stderr" "LogColorVivado : $*"
   $* > >(log_stdout "stdout") 2> >(log_stdout "stderr" >&2)
 }
 

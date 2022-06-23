@@ -17,6 +17,7 @@
 . $(dirname "$0")/Other/CommonFunctions.sh
 . $(dirname "$0")/Init.sh
 . $(dirname "$0")/CreateProject.sh
+. $(dirname "$0")/LaunchWorkflow.sh
 
 function help_Unic() {
   # echo
@@ -82,15 +83,16 @@ else
       exit 0
     ;;
     -C|Create)
-      echo "Create $*"
+      echo " Create $*"
       Logger HogCreateFunc $*
     ;;
     -W|Workflow)
-      echo "Workflow"
-      ./Hog/LaunchWorkflow.sh $*
+      echo " Workflow"
+      Logger HogLaunchFunc $*
+      # ./Hog/LaunchWorkflow.sh $*
     ;;
     -S|Simulation)
-      echo "Simulation"
+      echo " Simulation"
       ./Hog/LaunchSimulation.sh $*
     ;;
     *)

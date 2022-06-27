@@ -62,7 +62,12 @@ logwarningfile="hog_warning_errors.log"
 # logerrorfile="hog_warning_errors.log"
 
 
-log_stdout(){
+function log_stdout(){
+  local color_reset="\e[0;37m"
+  local color_red="\e[0;31m"
+  local color_blue="\e[0;34m"
+  local color_orange="\e[0;33m"
+
   echo "std_out init : $*"
   if [ -n "${2}" ]; then
     IN_out="${2}"
@@ -83,43 +88,49 @@ log_stdout(){
         case "$line" in
           *'WARNING:'* | *'Warning:'* | *'warning:'*)
             if [ $echo_warnings == 1 ]; then
-              echo "w : $line" 
+              echo -e "${color_orange}WARNING $color_reset: $line" 
               #| $(${colorizer} warning: critical error: info: hog: )
             fi
             echo "$line" >> $logwarningfile
+            echo "$line" >> $loginfofile
+
           ;;
           *'ERROR:'* | *'Error:'* | *'error:'*)
             if [ $echo_errors == 1 ]; then
-              echo "e : $line" 
+              echo -e "$color_red  ERROR $color_reset: $line"  
               #| xcol warning: critical error info: hog: 
             fi
             echo "$line" >> $logwarningfile
+            echo "$line" >> $loginfofile
+
           ;;
           *'INFO:'*)
             if [ $echo_info == 1 ]; then
-              echo "i : $line" 
+              echo -e "$color_blue   INFO $color_reset: $line" 
               #| xcol warning: critical error: info: hog: 
             fi
             echo "$line" >> $loginfofile
           ;;
           *'vcom'*)
-            echo "i : $line" #| xcol warning critical error vcom hog 
+            echo -e "$color_blue   INFO $color_reset: $line" #| xcol warning critical error vcom hog 
             echo "$line" >> $loginfofile
           ;;
           *'Errors'* | *'Warnings'* | *'errors'* | *'warnings'*)
-            echo "i : $line" #| xcol warnings critical errors vcom hog 
+            echo -e "$color_blue   INFO $color_reset: $line" #| xcol warnings critical errors vcom hog 
             echo "$line" >> $loginfofile
           ;;
           *)
             if [ $echo_info == 1 ]; then
-              echo "i : $line" #| xcol warning: critical error: info: hog: 
+              echo -e "$color_blue   INFO $color_reset: $line" #| xcol warning: critical error: info: hog: 
               echo "$line" >> $loginfofile
             fi
           ;;
         esac
       elif [ "${1}" == "stderr" ]; then
-        echo "e : $line" 
+        echo -e "$color_red  ERROR $color_reset: $line" 
         echo "$line" >> $logwarningfile
+        echo "$line" >> $loginfofile
+
 
       else
        echo "----------------------- error -----------------------------------" 

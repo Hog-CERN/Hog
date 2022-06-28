@@ -954,7 +954,7 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
         if {[string tolower $allhogset] == "false" && $currset == 0} {
           continue
         }
-        if {![regexp {^[^\.]*\.[^\.]*$} $setting]} {
+        if {[regexp {^[^\.]*\.[^\.]*$} $setting]} {
           continue
         }
 

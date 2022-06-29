@@ -368,14 +368,14 @@ function HogVer() {
     timeout 5s git fetch
     master_version=$(git describe origin/master)
     if [[ $current_version =~ Hog.* ]] && [ "$current_version" != "$master_version" ]; then
-      Msg Info
+      echo
       Msg Info "!!!!! Version $master_version has been released (https://gitlab.cern.ch/hog/Hog/-/releases/$master_version)"
       Msg Info "You should consider updating Hog submodule with the following instructions:"
-      Msg Info
+      echo
       Msg Info "cd Hog && git checkout master && git pull"
-      Msg Info
+      echo 
       Msg Info "Remember also to update the ref: in your .gitlab-ci.yml to $master_version"
-      Msg Info
+      echo 
     else
       Msg Info "Latest official version is $master_version, nothing to do."
     fi

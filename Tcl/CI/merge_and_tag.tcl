@@ -147,15 +147,19 @@ if {$source_branch != ""} {
   Git "fetch origin refs/notes/*:refs/notes/*"
   Git "notes add -fm \"$merge_request_number $source_branch $new_tag\""
   Git "push origin refs/notes/*"
+}
 
-  lassign [GitRet "push origin $source_branch"] ret msg
+if {$options(push)!= ""} {
+  puts "here"
+
+  lassign [GitRet "push origin $options(push)"] ret msg
 
   if {$ret != 0} {
     Msg Warning $msg
   } else {
     Msg Info $msg
   }
-  lassign [GitRet "push --tags origin $source_branch"] ret msg
+  lassign [GitRet "push --tags origin $options(push)"] ret msg
   if {$ret != 0} {
     Msg Warning $msg
   } else {

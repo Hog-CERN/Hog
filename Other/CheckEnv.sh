@@ -115,12 +115,7 @@ else
     echo "defined."
 fi
 
-echo ================================
-echo
-
-# Almost necessary
-echo === SEMI-ESSENTIAL VARIABLES ===
-if ( ! ([ -z ${EOS_MGM_URL+x} ] && [ -z ${HOG_OFFICIAL_BIN_EOS_PATH+x} ])); then
+if ( ! ([ -z "$EOS_MGM_URL" ] && [ -z "$HOG_OFFICIAL_BIN_EOS_PATH" ])); then
     echo -n "Variable: HOG_PASSWORD is "
     if [ -z "$HOG_PASSWORD" ]; then
         echo "NOT defined. This variable is essential for git to work properly. It should be set to your service's account password and masked."
@@ -130,6 +125,13 @@ if ( ! ([ -z ${EOS_MGM_URL+x} ] && [ -z ${HOG_OFFICIAL_BIN_EOS_PATH+x} ])); then
     fi
     echo --------------------------------
 fi
+
+echo ================================
+echo
+
+# Almost necessary
+echo === SEMI-ESSENTIAL VARIABLES ===
+
 
 if [[ " ${COMPILERS_TO_CHECK[@]} " =~ "vivado" || " ${COMPILERS_TO_CHECK[@]} " =~ "planAhead" ]]; then
 

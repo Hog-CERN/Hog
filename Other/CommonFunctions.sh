@@ -372,9 +372,10 @@ function HogVer() {
     master_sha=$(git log $master_version -1 --format=format:%H)    
     merge_base=$(git merge-base $current_sha $master_sha)
 
+    # The next line checks if master_sha is an ancestor of current_sha 
     if [ "$merge_base" != "$master_sha" ]; then
       Msg Info
-      Msg Info "!!!!! Version $master_version has been released (https://gitlab.cern.ch/hog/Hog/-/releases/$master_version)"
+      Msg Info "Version $master_version has been released (https://gitlab.cern.ch/hog/Hog/-/releases/$master_version)"
       Msg Info "You should consider updating Hog submodule with the following instructions:"
       Msg Info
       Msg Info "cd Hog && git checkout master && git pull"

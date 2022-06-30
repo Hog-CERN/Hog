@@ -55,8 +55,9 @@ function Msg() {
   fi
 
   if [ "a$2" == "a" ]; then
-    Msg Warning "message not set!"
-    return 1
+      text=""
+  else
+      text="$2"
   fi
 
   #Define colours
@@ -84,7 +85,7 @@ function Msg() {
     ;;
   esac
 
-  echo "$Colour HOG:$1[${FUNCNAME[1]}] $2 $Default"
+  echo "$Colour HOG:$1[${FUNCNAME[1]}] $text $Default"
 
   return 0
 }

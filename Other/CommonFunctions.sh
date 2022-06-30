@@ -359,16 +359,19 @@ function HogVer() {
   fi
 
   if [ -z ${1+x} ]; then
-    Msg Error "Missing input! You should parse the path to your Hog submodule. Got: $1!"
+    Msg Error "Missing input! You should give the path to your Hog submodule. Got: $1!"
     return 1
   fi
 
   if [[ -d "$1" ]]; then
     cd $1
     current_version=$(git describe)
+    current_sha=$(git log $current_version -1 --format=format:%H)
     timeout 5s git fetch
     master_version=$(git describe origin/master)
-    if [[ $current_version =~ Hog.* ]] && [ "$current_version" != "$master_version" ]; then
+    master_sha=$(git log $master_version -1 --format=format:%H)    
+    merge_base=$(git merge-base $current_sha $master_sha)
+    if [ "$merge_base" != "$current_version" ]; then
       Msg Info
       Msg Info "!!!!! Version $master_version has been released (https://gitlab.cern.ch/hog/Hog/-/releases/$master_version)"
       Msg Info "You should consider updating Hog submodule with the following instructions:"

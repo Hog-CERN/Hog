@@ -90,7 +90,7 @@ make_doxygen:
     artifacts:
         name: docs
         paths:
-            - $CI_PROJECT_DIR/Doc
+            - Doc
         expire_in: 10 years
     dependencies: []
     allow_failure: true
@@ -199,5 +199,5 @@ create_badge:
   allow_failure: true
   artifacts:
     paths:
-      - $CI_PROJECT_DIR/bin
+      - bin
     expire_in: 10 years

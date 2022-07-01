@@ -52,7 +52,6 @@ proc RelativeLocal {pathName fileName} {
 
 proc CriticalAndLog {msg {outFile ""}} {
   Msg CriticalWarning $msg
-  Msg Info $outFile
   if {$outFile != ""} {
     set oF [open "$outFile" a+]
     puts $oF $msg

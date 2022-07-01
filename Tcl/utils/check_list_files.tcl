@@ -52,6 +52,7 @@ proc RelativeLocal {pathName fileName} {
 
 proc CriticalAndLog {msg {outFile ""}} {
   Msg CriticalWarning $msg
+  Msg Info $outFile
   if {$outFile != ""} {
     set oF [open "$outFile" a+]
     puts $oF $msg
@@ -120,6 +121,10 @@ if {$options(outDir)!= ""} {
   set outSimFile $options(outDir)/diff_sim_list_and_conf.txt
   if {[file exists $outFile]} {
     file delete $outFile
+  }
+
+  if {[file exists $outSimFile]} {
+    file delete $outSimFile
   }
 
   if {!$options(log_list)} {

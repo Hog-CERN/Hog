@@ -645,14 +645,6 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
 set conf_file "$repo_path/Top/$group_name/$project_name/hog.conf"
 #checking project settings
 if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
-
-  if {!$options(log_conf)} {
-    set outFile ""
-  } else {
-    set outFile $options(outDir)
-  }
-
-
   #creating 4 dicts:
   #   - hogConfDict:     hog.conf properties (if exists)
   #   - defaultConfDict: default properties

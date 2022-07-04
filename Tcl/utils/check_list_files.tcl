@@ -539,7 +539,7 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
         if {$options(recreate) == 1} {
           Msg Info "$prop_file property $prop was removed from the project."
         } else {
-          WarningAndLog "Property $prop of simulaton file $prop_file is set in list files but not in project." $outSimFile
+          WarningAndLog "Property $prop of simulation file $prop_file is set in list files but not in project." $outSimFile
 
         }
         incr ListErrorCnt

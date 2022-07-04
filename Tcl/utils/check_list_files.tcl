@@ -534,7 +534,7 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
   foreach key [dict keys $listSimProperties] {
     foreach prop [lindex [DictGet $listSimProperties $key] 0] {
       set prop_file $key
-      if {[lsearch -nocase [DictGet $prjProperties $prop_file] $prop] < 0 && ![string equal $prop ""] && ![string equal $prop "XDC"] && [string first "topsim" $prop] == -1 && $prop != "wavefile" && $prop != "dofile" && [string first "runtime=" $prop] == -1} {
+      if {[lsearch -nocase [DictGet $prjProperties $prop_file] $prop] < 0 && ![string equal $prop ""] && ![string equal $prop "XDC"] && [string first "topsim=" $prop] == -1 && $prop != "wavefile" && $prop != "dofile" && [string first "runtime=" $prop] == -1} {
 
         if {$options(recreate) == 1} {
           Msg Info "$prop_file property $prop was removed from the project."

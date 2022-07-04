@@ -171,7 +171,7 @@ else
         fi
 
         if [ -z ${SIMLIBPATH+x} ]; then
-            if [ -z ${HOG_SIMULATION_LIB_PATH+x} ]; then
+            if [ -z "$HOG_SIMULATION_LIB_PATH" ]; then
                 SIMLIBPATH=""
             else
                 SIMLIBPATH="-simlib_path ${HOG_SIMULATION_LIB_PATH}"

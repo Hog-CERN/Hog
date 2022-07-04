@@ -55,8 +55,9 @@ function Msg() {
   fi
 
   if [ "a$2" == "a" ]; then
-    Msg Warning "message not set!"
-    return 1
+      text=""
+  else
+      text="$2"
   fi
 
   #Define colours
@@ -84,7 +85,7 @@ function Msg() {
     ;;
   esac
 
-  echo "$Colour HOG:$1[${FUNCNAME[1]}] $2 $Default"
+  echo "$Colour HOG:$1[${FUNCNAME[1]}] $text $Default"
 
   return 0
 }
@@ -358,18 +359,23 @@ function HogVer() {
   fi
 
   if [ -z ${1+x} ]; then
-    Msg Error "Missing input! You should parse the path to your Hog submodule. Got: $1!"
+    Msg Error "Missing input! You should give the path to your Hog submodule. Got: $1!"
     return 1
   fi
 
   if [[ -d "$1" ]]; then
     cd $1
     current_version=$(git describe)
+    current_sha=$(git log $current_version -1 --format=format:%H)
     timeout 5s git fetch
     master_version=$(git describe origin/master)
-    if [[ $current_version =~ Hog.* ]] && [ "$current_version" != "$master_version" ]; then
-      echo
-      Msg Info "!!!!! Version $master_version has been released (https://gitlab.cern.ch/hog/Hog/-/releases/$master_version)"
+    master_sha=$(git log $master_version -1 --format=format:%H)    
+    merge_base=$(git merge-base $current_sha $master_sha)
+
+    # The next line checks if master_sha is an ancestor of current_sha 
+    if [ "$merge_base" != "$master_sha" ]; then
+      Msg Info
+      Msg Info "Version $master_version has been released (https://gitlab.cern.ch/hog/Hog/-/releases/$master_version)"
       Msg Info "You should consider updating Hog submodule with the following instructions:"
       echo
       Msg Info "cd Hog && git checkout master && git pull"

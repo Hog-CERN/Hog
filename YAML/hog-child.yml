@@ -72,8 +72,8 @@
      artifacts:
        name: simulation_files
        paths:
-         - $CI_PROJECT_DIR/Projects/$PROJECT_NAME/*.sim
-         - $CI_PROJECT_DIR/SkippedProjects/$PROJECT_NAME
+         - Projects/$PROJECT_NAME/*.sim
+         - SkippedProjects/$PROJECT_NAME
        expire_in: 30 day
      allow_failure: true
      interruptible: true
@@ -193,7 +193,7 @@
         when: always
         name: implementation_and_bitfiles
         paths:
-            - $CI_PROJECT_DIR/bin
+            - bin
         expire_in: 30 day
     interruptible: true
 
@@ -243,7 +243,7 @@ collect_artifacts:
         when: always
         name: all_projects
         paths:
-            - $CI_PROJECT_DIR/bin
+            - bin
         expire_in: 30 day
     allow_failure: true
 

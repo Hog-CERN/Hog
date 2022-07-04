@@ -3250,7 +3250,11 @@ proc WriteUtilizationSummary {input output project_name run} {
   struct::matrix util_m
   util_m add columns 12
   util_m add row
-  util_m add row "|          **Site Type**         | **Used** | **Fixed** | **Available** | **Util%** |"
+  if { [GetIDEVersion] >= 2021.0 } {
+    util_m add row "|          **Site Type**         |  **Used**  | **Fixed** | **Prohibited** | **Available** | **Util%** |"  
+  } else {
+    util_m add row "|          **Site Type**         | **Used** | **Fixed** | **Available** | **Util%** |" 
+  }
   util_m add row "|  --- | --- | --- | --- | --- |"
 
   set luts 0

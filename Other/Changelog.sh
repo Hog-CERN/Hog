@@ -13,22 +13,111 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-if [ $# -eq 0 ]; then
-    TARGET_BRANCH=master
-elif [ $# -eq 1 ]; then
-    TARGET_BRANCH=$1
-else
-    TARGET_BRANCH=$1
-    push_token=$2
-    api=$3
-    proj=$4
-    mr=$5
+## Import common functions from Other/CommonFunctions.sh in a POSIX compliant way
+#
+. $(dirname "$0")/CommonFunctions.sh
 
-    echo "## MR Description"
-    curl --request GET --header "PRIVATE-TOKEN: ${push_token}" "$api/projects/${proj}/merge_requests/${mr}" | jq -r ".description"
-    echo
-    echo
+
+## @function argument_parser()
+#  @brief pase aguments and sets evvironment variables
+#  @param[out] SIMLIBPATH   empty or "-lib_path $2"
+#  @param[out] QUIET        empty or "-quiet"
+#  @param[out] SIMSET       empty or "-simset $2"
+#  @param[out] PARAMS       positional parameters
+#  @return                  1 if error or help, else 0
+
+function argument_parser() {
+    PARAMS=""
+    while (("$#")); do
+        case "$1" in
+        -t | -target)
+            TARGET_BRANCH=$2
+            shift 2
+            ;;
+        -pt | -push_token)
+            PUSH_TOKEN=$2
+            shift 2
+            ;;
+        -a | -api)
+            API=$2
+            shift 2
+            ;;
+        -p | -proj)
+            PROJ=$2
+            shift 2
+            ;;
+        -n | -number)
+            NUMBER=$2
+            shift 2
+            ;;
+        -github)
+            GITHUB="1"
+            shift 1
+            ;;
+        -r | -repo)
+            REPO_NAME=$2
+            shift 2
+            ;;
+        -? | -h | -help)
+            HELP="-h"
+            shift 1
+            ;;
+        --) # end argument parsing
+            shift
+            break
+            ;;
+        -* | --*=) # unsupported flags
+            Msg Error "Unsupported flag $1" >&2
+            return 1
+            ;;
+        *) # preserve positional arguments
+            PARAMS="$PARAMS $1"
+            shift
+            ;;
+        esac
+    done
+    # set positional arguments in their proper place
+}
+
+function help_message() {
+  echo
+  echo " Hog - Changelog.sh"
+  echo " ---------------------------"
+  echo " Writes a changelog for the current merge/pull request"
+  echo
+  echo
+  echo " Usage: $1 [OPTIONS]"
+  echo " Options:"
+  echo "          -t/-target  <target_branch>  Target branch of the merge/pull request"
+  echo "          -pt/-push_token <token>      The GitLab/GitHub push token"
+  echo "          -a/-api                      The GitLab/GitHub API URL"
+  echo "          -p/-proj                     The GitLab/GitHub project name"
+  echo "          -n/-number                   The Merge/Pull request number"
+  echo "          -github                      If true, runs the GitHub API, otherwise the GitLab. Default false."
+  echo "          -r/-repo                     The GitHub repository name."
+  echo 
+}
+
+argument_parser $@
+if [ $? = 1 ]; then
+    exit 1
 fi
+eval set -- "$PARAMS"
+if [ "$1" == "-h" ] || [ "$1" == "-help" ] || [ "$1" == "--help" ] || [ "$1" == "-H" ]; then
+    help_message $0
+    exit -1
+fi
+
+if [ $GITHUB == "1" ]; then
+    echo "## Pull Request Description"
+    gh api -H "Accept: application/vnd.github+json" /repos/$REPO_NAME/pulls/$NUMBER | jq -r ".body"
+else
+    echo "## MR Description"
+    curl --request GET --header "PRIVATE-TOKEN: ${PUSH_TOKEN}" "$API/projects/${PROJ}/merge_requests/${NUMBER}" | jq -r ".description"
+fi
+
+echo
+echo
 
 git rev-parse --verify "$TARGET_BRANCH" >/dev/null 2>&1
 SRC_BRANCH=$(git rev-parse --abbrev-ref HEAD)

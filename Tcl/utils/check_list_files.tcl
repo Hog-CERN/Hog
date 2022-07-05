@@ -122,12 +122,17 @@ if {$options(outDir)!= ""} {
     file delete $outFile
   }
 
+  if {[file exists $outSimFile]} {
+    file delete $outSimFile
+  }
+
   if {!$options(log_list)} {
     set outFile ""
   }
 
 } else {
   set outFile ""
+  set outSimFile ""
 }
 
 
@@ -470,13 +475,13 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
       }
       incr ListSimErrorCnt
       if {[string equal [RelativeLocal $repo_path $SRC] ""]} {
-        WarningAndLog "Simulation source $SRC is used in the project but is not in the repository or in a known external path." $outFile
+        WarningAndLog "Simulation source $SRC is used in the project but is not in the repository or in a known external path." $outSimFile
 
       } else {
         if {$options(recreate) == 1} {
           Msg Info "Simulation $SRC was added to the project (library $key)."
         } else {
-          WarningAndLog "Simulation file $SRC is used in the project (library $key) but is not in the list files." $outFile
+          WarningAndLog "Simulation file $SRC is used in the project (library $key) but is not in the list files." $outSimFile
         }
         dict lappend newListfiles ${key}.sim [string trim "[RelativeLocal $repo_path $SRC] [DictGet $prjProperties $SRC]"]
       }
@@ -534,7 +539,7 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
         if {$options(recreate) == 1} {
           Msg Info "$prop_file property $prop was removed from the project."
         } else {
-          WarningAndLog "Property $prop of simulaton file $prop_file is set in list files but not in project." $outFile
+          WarningAndLog "Property $prop of simulaton file $prop_file is set in list files but not in project." $outSimFile
 
         }
         incr ListErrorCnt
@@ -571,7 +576,7 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
           if {$options(recreate) == 1} {
             Msg Info "Property $prop for simulation file $prop_file was added to the project."
           } else {
-            WarningAndLog "Property $prop of simulation file $prop_file is set in project but not in list files!" $outFile
+            WarningAndLog "Property $prop of simulation file $prop_file is set in project but not in list files!" $outSimFile
           }
           incr ListSimErrorCnt
         } else {
@@ -639,14 +644,6 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
 set conf_file "$repo_path/Top/$group_name/$project_name/hog.conf"
 #checking project settings
 if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
-
-  if {!$options(log_conf)} {
-    set outFile ""
-  } else {
-    set outFile $options(outDir)
-  }
-
-
   #creating 4 dicts:
   #   - hogConfDict:     hog.conf properties (if exists)
   #   - defaultConfDict: default properties
@@ -953,6 +950,10 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
         if {[string tolower $allhogset] == "false" && $currset == 0} {
           continue
         }
+        if {[regexp {^[^\.]*\.[^\.]*$} $setting]} {
+          continue
+        }
+
         dict set newSimDict $setting $currset
         if {$options(recreate_conf) == 1} {
           incr SimConfErrorCnt
@@ -976,7 +977,7 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
       if {[dict exists $projRunDict $setting]==0} {
         incr SimConfErrorCnt
         if {$options(recreate_conf) == 0} {
-          WarningAndLog "sim.conf property $setting is not a valid Vivado property." $outFile
+          WarningAndLog "sim.conf property $setting is not a valid Vivado property." $outSimFile
         } else {
           Msg Info "Found property $setting in old sim.conf. This is not a valid Vivado property and will be deleted."
         }

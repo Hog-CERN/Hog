@@ -67,11 +67,14 @@ function help_Create() {
 
 
 ## executed when run
-print_hog $(dirname "$0")
 echo " Input parameters ($#) :: $*"
+arguments=$*
+print_hog $(dirname "$0")
+
 
 if [ $# == 0 ]; then
-  help_message $0
+  # help_message $0
+  help_Unic
   return 1
 else 
   activity=$1

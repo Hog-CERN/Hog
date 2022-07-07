@@ -68,11 +68,11 @@ function log_stdout(){
   local color_blue="\e[0;34m"
   local color_orange="\e[0;33m"
 
-  echo "std_out init : $*"
+  # echo "std_out init : $*"
   if [ -n "${2}" ]; then
     IN_out="${2}"
     in_type="${1}"
-    echo "stdout : ${IN_out}" 
+    # echo "stdout : ${IN_out}" 
   else
     while read IN_out # This reads a string from stdin and stores it in a variable called IN_out
     do
@@ -95,7 +95,7 @@ function log_stdout(){
             echo "$line" >> $loginfofile
 
           ;;
-          *'ERROR:'* | *'Error:'* | *'error:'*)
+          *'ERROR:'* | *'Error:'* | *':Error'* | *'error:'*)
             if [ $echo_errors == 1 ]; then
               echo -e "$color_red  ERROR $color_reset: $line"  
               #| xcol warning: critical error info: hog: 

@@ -1945,6 +1945,8 @@ proc AddHogFiles { libraries properties main_libs {verbose 0}} {
         # if this simulation fileset was not created we do it now
         if {[string equal [get_filesets -quiet $file_set] ""]} {
           create_fileset -simset $file_set
+          # Set active when creating, by default it will be the latest simset to be created, unless is specified in the sim.conf
+          current_fileset -simset [ get_filesets $file_set ]
           set simulation  [get_filesets $file_set]
           foreach simulator [GetSimulators] {
             set_property -name {$simulator.compile.vhdl_syntax} -value {2008} -objects $simulation

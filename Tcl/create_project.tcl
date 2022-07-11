@@ -441,7 +441,6 @@ proc ConfigureImplementation {} {
 #
 proc ConfigureSimulation {} {
   if {[IsXilinx]} {
-
     ##############
     # SIMULATION #
     ##############
@@ -453,8 +452,14 @@ proc ConfigureSimulation {} {
         Msg Info "Setting properties for simulation set: $simset..."
         set sim_props [dict get $globalSettings::SIM_PROPERTIES $simset]
         dict for {prop_name prop_val} $sim_props {
-          Msg Info "Setting $prop_name = $prop_val"
-          set_property $prop_name $prop_val [get_filesets $simset]
+          set prop_name [string toupper $prop_name]
+          if { $prop_name == "ACTIVE" && $prop_val == 1 } {
+            Msg Info "Setting $simset as active simulation set..."
+            current_fileset -simset [ get_filesets $simset ]
+          } else {
+            Msg Info "Setting $prop_name = $prop_val"
+            set_property $prop_name $prop_val [get_filesets $simset]
+          }
         }
       }
       if [dict exists $globalSettings::SIM_PROPERTIES sim] {
@@ -804,7 +809,9 @@ if {[file exists $post_file]} {
 }
 
 # Check extra IPs
+
 lassign [GetHogFiles -ext_path "$globalSettings::HOG_EXTERNAL_PATH" -repo_path $repo_path "$repo_path/Top/$DESIGN/list/"] listLibraries listProperties listMain
+
 CheckExtraFiles $listLibraries
 
 if {[IsXilinx]} {
@@ -813,7 +820,7 @@ if {[IsXilinx]} {
   set flavour [GetProjectFlavour $DESIGN]
   # Getting all the versions and SHAs of the repository
   lassign [GetRepoVersions [file normalize $repo_path/Top/$DESIGN] $repo_path $globalSettings::HOG_EXTERNAL_PATH] commit version  hog_hash hog_ver  top_hash top_ver  libs hashes vers  cons_ver cons_hash  ext_names ext_hashes  xml_hash xml_ver user_ip_repos user_ip_hashes user_ip_vers
-
+  
   set this_commit  [GetSHA]
 
   if {$commit == 0 } {

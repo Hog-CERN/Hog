@@ -24,7 +24,7 @@ else
 
     curl \
     -X POST \
-    -H "Accept: application/vnd.github+json" \ 
+    -H "Accept: application/vnd.github+json" \
     -H "Authorization: token $push_token" \
     $api/repos/$proj/issues/$pr/comments \
     -d '{"body":"'"`sed -e ':a' -e 'N' -e '$!ba' -e 's/\n/\\\\n/g' $file`"'"}'

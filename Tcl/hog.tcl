@@ -786,9 +786,9 @@ proc GetSHA {{path ""}} {
   # Get repository top level
   set repo_path [lindex [Git {rev-parse --show-toplevel} $path] 0]
   set paths {}
-  set file_in_module 0
   # Retrieve the list of submodules in the repository
   foreach f $path {
+    set file_in_module 0
     if {[file exists $repo_path/.gitmodules]} {
       lassign [GitRet "config --file $repo_path/.gitmodules --get-regexp path" " "] status result
       if {$status == 0} {
@@ -800,7 +800,7 @@ proc GetSHA {{path ""}} {
 
       foreach mod $submodules {
         set module [lindex $mod 1]
-        if {[string first "$repo_path/$module" $path] == 0} {
+        if {[string first "$repo_path/$module" $f] == 0} {
           # File is in a submodule. Append
           set file_in_module 1
           lappend paths "$repo_path/$module"

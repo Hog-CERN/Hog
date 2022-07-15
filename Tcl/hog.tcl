@@ -1738,8 +1738,8 @@ proc GetProjectFiles {} {
           set f [file normalize $f]
         }
         lappend files $f
-        set type  [get_property FILE_TYPE $f]
-        set lib [get_property LIBRARY $f]
+        set type  [get_property FILE_TYPE [GetFile $f]]
+        set lib [get_property LIBRARY [GetFile $f]]
 
 
         # Type can be complex like VHDL 2008, in that case we want the second part to be a property

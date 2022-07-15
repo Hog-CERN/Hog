@@ -283,8 +283,11 @@ proc GetRun {run} {
 proc GetFile {file} {
   if {[IsXilinx]} {
     # Vivado
-    return [get_files $file]
-
+    set Files [get_files $file]
+    set f [lindex $Files 0]
+   
+    return $f
+    
   } elseif {[IsQuartus]} {
     # Quartus
     return ""
@@ -1721,8 +1724,8 @@ proc GetProjectFiles {} {
       set ignore 0
       # Generated files point to a parent composite file;
       # planahead does not have an IS_GENERATED property
-      if {-1 != [lsearch -exact [list_property [get_files $f]] IS_GENERATED]} {
-        if { [lindex [get_property  IS_GENERATED [get_files $f]] 0] != 0} {
+      if {-1 != [lsearch -exact [list_property [GetFile $f]] IS_GENERATED]} {
+        if { [lindex [get_property  IS_GENERATED [GetFile $f]] 0] != 0} {
           set ignore 1
         }
       }
@@ -1783,13 +1786,13 @@ proc GetProjectFiles {} {
           dict lappend libraries "OTHER" $f
         }
 
-        if {[lindex [get_property -quiet used_in_synthesis  [get_files $f]] 0] == 0} {
+        if {[lindex [get_property -quiet used_in_synthesis  [GetFile $f]] 0] == 0} {
           dict lappend properties $f "nosynth"
         }
-        if {[lindex [get_property -quiet used_in_implementation  [get_files $f]] 0] == 0} {
+        if {[lindex [get_property -quiet used_in_implementation  [GetFile $f]] 0] == 0} {
           dict lappend properties $f "noimpl"
         }
-        if {[lindex [get_property -quiet used_in_simulation  [get_files $f]] 0] == 0} {
+        if {[lindex [get_property -quiet used_in_simulation  [GetFile $f]] 0] == 0} {
           dict lappend properties $f "nosim"
         }
 

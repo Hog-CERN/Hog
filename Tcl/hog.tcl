@@ -1722,7 +1722,7 @@ proc GetProjectFiles {} {
       # Generated files point to a parent composite file;
       # planahead does not have an IS_GENERATED property
       if {-1 != [lsearch -exact [list_property [get_files $f]] IS_GENERATED]} {
-        if { [lindex [get_property  IS_GENERATED [get files $f]] 0] != 0} {
+        if { [lindex [get_property  IS_GENERATED [get_files $f]] 0] != 0} {
           set ignore 1
         }
       }

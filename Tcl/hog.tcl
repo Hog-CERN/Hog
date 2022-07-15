@@ -2737,14 +2737,14 @@ proc CheckYmlRef {repo_path allow_failure} {
     } else {
       dict for {dictKey dictValue} $yamlDict {
         #looking for Hog include in .gitlab-ci.yml
-        if {"$dictKey" == "include" && [lsearch [split $dictValue " {}"] "hog/Hog" ] != "-1"} {
+        if {"$dictKey" == "include" && ([lsearch [split $dictValue " {}"] "/hog.yml" ] != "-1" || [lsearch [split $dictValue " {}"] "/hog-dynamic.yml" ] != "-1")} {
           set YML_REF [lindex [split $dictValue " {}"]  [expr [lsearch -dictionary [split $dictValue " {}"] "ref"]+1 ] ]
           set YML_NAME [lindex [split $dictValue " {}"]  [expr [lsearch -dictionary [split $dictValue " {}"] "file"]+1 ] ]
         }
       }
     }
     if {$YML_REF == ""} {
-      Msg Warning "Hog version not specified in the .gitlab-ci.yml. Assuming that master branch is used"
+      Msg Warning "Hog version not specified in the .gitlab-ci.yml. Assuming that master branch is used."
       cd Hog
       set YML_REF_F [Git {name-rev --tags --name-only origin/master}]
       cd ..

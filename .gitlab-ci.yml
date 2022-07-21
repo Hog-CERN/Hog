@@ -16,9 +16,9 @@
 default:
       before_script:
           - export REPO=`echo $CI_PROJECT_URL | sed -e s#https://##`
-          - git remote set-url origin https://hog:${HOG_PUSH_TOKEN}@$REPO
+          - git remote set-url origin https://hog_user:${HOG_PUSH_TOKEN}@$REPO
           - git config --global user.email "hog@cern.ch"
-          - git config --global user.name "Hog"
+          - git config --global user.name "hog_user"
           - git fetch
           - git fetch origin $CI_COMMIT_REF_NAME
           - git checkout $CI_COMMIT_REF_NAME --
@@ -39,7 +39,7 @@ build-doxygen-test:
       before_script:
         - echo ""
       script:
-        - git clone https://hog:${HOG_PUSH_TOKEN}@gitlab.cern.ch/hog/hog-doxygen.git doxygen
+        - git clone https://hog:${CERN_PUSH_TOKEN}@gitlab.cern.ch/hog/hog-doxygen.git doxygen
         - doxygen ./doxygen/Hog-doxygen.cfg
 
 build-doxygen-develop:
@@ -53,7 +53,7 @@ build-doxygen-develop:
       before_script:
         - echo ""
       script:
-        - git clone https://hog:${HOG_PUSH_TOKEN}@gitlab.cern.ch/hog/hog-doxygen.git doxygen
+        - git clone https://hog:${CERN_PUSH_TOKEN}@gitlab.cern.ch/hog/hog-doxygen.git doxygen
         - chmod +x ./doxygen/scripts/build-and-deploy.sh
         - ./doxygen/scripts/build-and-deploy.sh /eos/user/h/hog/www/doxy-develop
 
@@ -68,7 +68,7 @@ build-doxygen-official:
       before_script:
         - echo ""
       script:
-        - git clone https://hog:${HOG_PUSH_TOKEN}@gitlab.cern.ch/hog/hog-doxygen.git doxygen
+        - git clone https://hog:${CERN_PUSH_TOKEN}@gitlab.cern.ch/hog/hog-doxygen.git doxygen
         - chmod +x ./doxygen/scripts/build-and-deploy.sh
         - ./doxygen/scripts/build-and-deploy.sh /eos/user/h/hog/www/doxy-master
 

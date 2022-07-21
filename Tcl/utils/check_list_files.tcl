@@ -783,7 +783,7 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
       set hogset [DictGet  $hogConfRunDict $settings]
       set defset [DictGet  $defaultRunDict $settings]
 
-      if {[string toupper $currset] != [string toupper $hogset] && [string toupper $currset] != [string toupper $defset]} {
+      if {[string toupper $currset] != [string toupper $hogset] && ([string toupper $currset] != [string toupper $defset] || $hogset != "")} {
         if {[string first "DEFAULT" [string toupper $currset]] != -1 && $hogset == ""} {
           continue
         }

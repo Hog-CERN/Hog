@@ -1329,6 +1329,7 @@ proc TagRepository {{merge_request_number 0} {version_level 0} {default_level 0}
     }
     set ver [FindNewestVersion $vers]
     set tag v[HexVersionToString $ver]
+
     # If btag is the newest get mr number
     if {$tag != $vtag} {
       lassign [ExtractVersionFromTag $btag] M m p mr
@@ -1341,6 +1342,7 @@ proc TagRepository {{merge_request_number 0} {version_level 0} {default_level 0}
       if {$mr == -1 } {
         # Tag is official, no b at the beginning (and no merge request number at the end)
         Msg Info "Found official version $M.$m.$p."
+	set old_tag $vtag
         if {$version_level == 2} {
           incr M
           set m 0
@@ -1392,6 +1394,7 @@ proc TagRepository {{merge_request_number 0} {version_level 0} {default_level 0}
         # Tag is not official
         #Not official, do nothing unless version level is >=3, in which case convert the unofficial to official
         Msg Info "Found candidate version for $M.$m.$p."
+	set old_tag $btag
         if {$version_level >= 3} {
           Msg Info "New tag will be an official version v$M.$m.$p..."
           set new_tag v$M.$m.$p
@@ -1409,7 +1412,7 @@ proc TagRepository {{merge_request_number 0} {version_level 0} {default_level 0}
           Msg Info "New tag $new_tag created successully."
         }
       } else {
-        set new_tag $tag
+        set new_tag $old_tag
         Msg Info "Tagging is not needed"
       }
     } else {
@@ -1417,7 +1420,7 @@ proc TagRepository {{merge_request_number 0} {version_level 0} {default_level 0}
     }
   }
 
-  return [list $tag $new_tag]
+  return [list $old_tag $new_tag]
 }
 ## @brief Read a XML list file and copy files to destination
 #

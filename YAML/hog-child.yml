@@ -111,15 +111,15 @@
               echo "Hog-CI(info) - IPs will be copied to/from $HOG_IP_EOS_PATH.";
               export IP_PATH="-ip_path $HOG_IP_EOS_PATH";
               if [[ $HOG_IP_EOS_PATH = /eos/* ]]; then
-                echo "kinit $HOG_USER@CERN.CH";
-                until echo $HOG_PASSWORD | kinit $HOG_USER@CERN.CH ; do echo "Retrying"; sleep 2; done;
+                echo "kinit $EOS_USER@CERN.CH";
+                until echo $HOG_PASSWORD | kinit $EOS_USER@CERN.CH ; do echo "Retrying"; sleep 2; done;
               fi;
             fi;
           else
             echo "Hog-CI(info) - IPs will be copied to/from $HOG_IP_PATH.";
             export IP_PATH="-ip_path $HOG_IP_PATH";
             if [[ $HOG_IP_PATH = /eos/* ]]; then
-              until echo $HOG_PASSWORD | kinit $HOG_USER@CERN.CH ; do echo "Retrying"; sleep 2; done;
+              until echo $HOG_PASSWORD | kinit $EOS_USER@CERN.CH ; do echo "Retrying"; sleep 2; done;
             fi;
           fi;
           if [[ -n "$HOG_ONLY_SYNTH" ]] && [[ $HOG_ONLY_SYNTH == '1' ]]; then

@@ -283,8 +283,11 @@ proc GetRun {run} {
 proc GetFile {file} {
   if {[IsXilinx]} {
     # Vivado
-    return [get_files $file]
-
+    set Files [get_files $file]
+    set f [lindex $Files 0]
+   
+    return $f
+    
   } elseif {[IsQuartus]} {
     # Quartus
     return ""
@@ -786,9 +789,9 @@ proc GetSHA {{path ""}} {
   # Get repository top level
   set repo_path [lindex [Git {rev-parse --show-toplevel} $path] 0]
   set paths {}
-  set file_in_module 0
   # Retrieve the list of submodules in the repository
   foreach f $path {
+    set file_in_module 0
     if {[file exists $repo_path/.gitmodules]} {
       lassign [GitRet "config --file $repo_path/.gitmodules --get-regexp path" " "] status result
       if {$status == 0} {
@@ -800,7 +803,7 @@ proc GetSHA {{path ""}} {
 
       foreach mod $submodules {
         set module [lindex $mod 1]
-        if {[string first "$repo_path/$module" $path] == 0} {
+        if {[string first "$repo_path/$module" $f] == 0} {
           # File is in a submodule. Append
           set file_in_module 1
           lappend paths "$repo_path/$module"
@@ -1329,6 +1332,7 @@ proc TagRepository {{merge_request_number 0} {version_level 0} {default_level 0}
     }
     set ver [FindNewestVersion $vers]
     set tag v[HexVersionToString $ver]
+
     # If btag is the newest get mr number
     if {$tag != $vtag} {
       lassign [ExtractVersionFromTag $btag] M m p mr
@@ -1341,6 +1345,7 @@ proc TagRepository {{merge_request_number 0} {version_level 0} {default_level 0}
       if {$mr == -1 } {
         # Tag is official, no b at the beginning (and no merge request number at the end)
         Msg Info "Found official version $M.$m.$p."
+	set old_tag $vtag
         if {$version_level == 2} {
           incr M
           set m 0
@@ -1392,6 +1397,7 @@ proc TagRepository {{merge_request_number 0} {version_level 0} {default_level 0}
         # Tag is not official
         #Not official, do nothing unless version level is >=3, in which case convert the unofficial to official
         Msg Info "Found candidate version for $M.$m.$p."
+	set old_tag $btag
         if {$version_level >= 3} {
           Msg Info "New tag will be an official version v$M.$m.$p..."
           set new_tag v$M.$m.$p
@@ -1409,7 +1415,7 @@ proc TagRepository {{merge_request_number 0} {version_level 0} {default_level 0}
           Msg Info "New tag $new_tag created successully."
         }
       } else {
-        set new_tag $tag
+        set new_tag $old_tag
         Msg Info "Tagging is not needed"
       }
     } else {
@@ -1417,7 +1423,7 @@ proc TagRepository {{merge_request_number 0} {version_level 0} {default_level 0}
     }
   }
 
-  return [list $tag $new_tag]
+  return [list $old_tag $new_tag]
 }
 ## @brief Read a XML list file and copy files to destination
 #
@@ -1721,8 +1727,8 @@ proc GetProjectFiles {} {
       set ignore 0
       # Generated files point to a parent composite file;
       # planahead does not have an IS_GENERATED property
-      if {-1 != [lsearch -exact [list_property  $f] IS_GENERATED]} {
-        if { [lindex [get_property  IS_GENERATED $f] 0] != 0} {
+      if {-1 != [lsearch -exact [list_property [GetFile $f]] IS_GENERATED]} {
+        if { [lindex [get_property  IS_GENERATED [GetFile $f]] 0] != 0} {
           set ignore 1
         }
       }
@@ -1735,8 +1741,8 @@ proc GetProjectFiles {} {
           set f [file normalize $f]
         }
         lappend files $f
-        set type  [get_property FILE_TYPE $f]
-        set lib [get_property LIBRARY $f]
+        set type  [get_property FILE_TYPE [GetFile $f]]
+        set lib [get_property LIBRARY [GetFile $f]]
 
 
         # Type can be complex like VHDL 2008, in that case we want the second part to be a property
@@ -1783,13 +1789,13 @@ proc GetProjectFiles {} {
           dict lappend libraries "OTHER" $f
         }
 
-        if {[lindex [get_property -quiet used_in_synthesis  [get_files $f]] 0] == 0} {
+        if {[lindex [get_property -quiet used_in_synthesis  [GetFile $f]] 0] == 0} {
           dict lappend properties $f "nosynth"
         }
-        if {[lindex [get_property -quiet used_in_implementation  [get_files $f]] 0] == 0} {
+        if {[lindex [get_property -quiet used_in_implementation  [GetFile $f]] 0] == 0} {
           dict lappend properties $f "noimpl"
         }
-        if {[lindex [get_property -quiet used_in_simulation  [get_files $f]] 0] == 0} {
+        if {[lindex [get_property -quiet used_in_simulation  [GetFile $f]] 0] == 0} {
           dict lappend properties $f "nosim"
         }
 
@@ -1945,6 +1951,8 @@ proc AddHogFiles { libraries properties main_libs {verbose 0}} {
         # if this simulation fileset was not created we do it now
         if {[string equal [get_filesets -quiet $file_set] ""]} {
           create_fileset -simset $file_set
+          # Set active when creating, by default it will be the latest simset to be created, unless is specified in the sim.conf
+          current_fileset -simset [ get_filesets $file_set ]
           set simulation  [get_filesets $file_set]
           foreach simulator [GetSimulators] {
             set_property -name {$simulator.compile.vhdl_syntax} -value {2008} -objects $simulation
@@ -2735,14 +2743,14 @@ proc CheckYmlRef {repo_path allow_failure} {
     } else {
       dict for {dictKey dictValue} $yamlDict {
         #looking for Hog include in .gitlab-ci.yml
-        if {"$dictKey" == "include" && [lsearch [split $dictValue " {}"] "hog/Hog" ] != "-1"} {
+        if {"$dictKey" == "include" && ([lsearch [split $dictValue " {}"] "/hog.yml" ] != "-1" || [lsearch [split $dictValue " {}"] "/hog-dynamic.yml" ] != "-1")} {
           set YML_REF [lindex [split $dictValue " {}"]  [expr [lsearch -dictionary [split $dictValue " {}"] "ref"]+1 ] ]
           set YML_NAME [lindex [split $dictValue " {}"]  [expr [lsearch -dictionary [split $dictValue " {}"] "file"]+1 ] ]
         }
       }
     }
     if {$YML_REF == ""} {
-      Msg Warning "Hog version not specified in the .gitlab-ci.yml. Assuming that master branch is used"
+      Msg Warning "Hog version not specified in the .gitlab-ci.yml. Assuming that master branch is used."
       cd Hog
       set YML_REF_F [Git {name-rev --tags --name-only origin/master}]
       cd ..

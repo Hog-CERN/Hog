@@ -783,7 +783,7 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
       set hogset [DictGet  $hogConfRunDict $settings]
       set defset [DictGet  $defaultRunDict $settings]
 
-      if {[string toupper $currset] != [string toupper $hogset] && [string toupper $currset] != [string toupper $defset]} {
+      if {[string toupper $currset] != [string toupper $hogset] && ([string toupper $currset] != [string toupper $defset] || $hogset != "")} {
         if {[string first "DEFAULT" [string toupper $currset]] != -1 && $hogset == ""} {
           continue
         }
@@ -828,10 +828,12 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
 
   #check if the version in the she-bang is the same as the IDE version, otherwise incr ConfErrorCnt
   set actual_version [GetIDEVersion]
-  lassign [GetIDEFromConf $conf_file] ide conf_version
-  if {$actual_version != $conf_version} {
-    CriticalAndLog "The version specified in the first line of hog.conf is wrong or no version was specified. If you want to run this project with $ide $actual_version, the first line of hog.conf should be: \#$ide $actual_version"
-    incr ConfErrorCnt
+  if {[file exists $conf_file]} {
+    lassign [GetIDEFromConf $conf_file] ide conf_version
+    if {$actual_version != $conf_version} {
+      CriticalAndLog "The version specified in the first line of hog.conf is wrong or no version was specified. If you want to run this project with $ide $actual_version, the first line of hog.conf should be: \#$ide $actual_version"
+      incr ConfErrorCnt
+    }
   }
 
 

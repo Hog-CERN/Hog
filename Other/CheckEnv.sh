@@ -89,7 +89,7 @@ echo
 echo ===== ESSENTIAL VARIABLES =====
 echo -n "Variable: HOG_USER is "
 if [ -z "$HOG_USER" ]; then
-    echo "NOT defined. This variable is essential for git to work properly. It should be set to the username for your service account (a valid CERN account)."
+    echo "NOT defined. This variable is essential for git to work properly. It should be set to the username for your service account (a valid git account)."
     FAIL=1
 else
     echo "defined."
@@ -105,8 +105,6 @@ else
 fi
 echo --------------------------------
 
-
-
 echo -n "Variable: HOG_PUSH_TOKEN is "
 if [ -z "$HOG_PUSH_TOKEN" ]; then
     echo "NOT defined. This variable is essential for git to work properly. It should be set to a gitlab push token for your service account."
@@ -117,13 +115,22 @@ fi
 
 if ( ! ([ -z "$EOS_MGM_URL" ] && [ -z "$HOG_OFFICIAL_BIN_EOS_PATH" ])); then
     echo -n "Variable: HOG_PASSWORD is "
-    if [ -z "$HOG_PASSWORD" ]; then
-        echo "NOT defined. This variable is essential for git to work properly. It should be set to your service's account password and masked."
+    if [ -z "$EOS_PASSWORD" ]; then
+        echo "NOT defined. This variable is essential to communicate with the CERN EOS cloud, to store IPs and official bitfiles."
         FAIL=1
     else
         echo "defined"
     fi
     echo --------------------------------
+    echo -n "Variable: EOS_USER is "
+    if [ -z "$EOS_USER" ]; then
+        echo "NOT defined. This variable is essential to communicate with the CERN EOS cloud, to store IPs and official bitfiles."
+        FAIL=1
+    else
+        echo "defined."
+    fi
+    echo --------------------------------
+
 fi
 
 echo ================================

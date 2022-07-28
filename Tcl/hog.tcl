@@ -3342,40 +3342,67 @@ proc GetProjectFlavour {proj_name} {
   return $flavour
 }
 
+## Format a generic to a 32 bit verilog style hex number, e.g.
+#  take in ea8394c and return 32'h0ea8394c
+#
+#  @param[in]    unformatted generic
+proc FormatGeneric {generic} {
+    if {[string is integer "0x$generic"]} {
+        return [format "32'h%08X" "0x$generic"]
+    } else {
+        # for non integers (e.g. blanks) just return 0
+        return [format "32'h%08X" 0]
+    }
+}
+
 ## Setting the generic property
 #
 #  @param[in]    list of variables to be written in the generics
 proc WriteGenerics {date timee commit version top_hash top_ver hog_hash hog_ver cons_ver cons_hash libs vers hashes ext_names ext_hashes user_ip_repos user_ip_vers user_ip_hashes flavour {xml_ver ""} {xml_hash ""}} {
   #####  Passing Hog generic to top file
-  if {[IsXilinx]} {
-    ### VIVADO
+    if {[IsXilinx]} {
+
     # set global generic varibles
-    set generic_string "GLOBAL_DATE=32'h$date GLOBAL_TIME=32'h$timee GLOBAL_VER=32'h$version GLOBAL_SHA=32'h0$commit TOP_SHA=32'h0$top_hash TOP_VER=32'h$top_ver HOG_SHA=32'h0$hog_hash HOG_VER=32'h$hog_ver CON_VER=32'h$cons_ver CON_SHA=32'h0$cons_hash"
+    set generic_string [concat \
+                            "GLOBAL_DATE=[FormatGeneric $date]" \
+                            "GLOBAL_TIME=[FormatGeneric $timee]" \
+                            "GLOBAL_VER=[FormatGeneric $version]" \
+                            "GLOBAL_SHA=[FormatGeneric $commit]" \
+                            "TOP_SHA=[FormatGeneric $top_hash]" \
+                            "TOP_VER=[FormatGeneric $top_ver]" \
+                            "HOG_SHA=[FormatGeneric $hog_hash]" \
+                            "HOG_VER=[FormatGeneric $hog_ver]" \
+                            "CON_VER=[FormatGeneric $cons_ver]" \
+                            "CON_SHA=[FormatGeneric $cons_hash]"]
+
+    # xml hash
     if {$xml_hash != "" && $xml_ver != ""} {
-      set generic_string "$generic_string XML_VER=32'h$xml_ver XML_SHA=32'h0$xml_hash"
+        lappend generic_string \
+            "XML_VER=[FormatGeneric $xml_ver]" \
+            "XML_SHA=[FormatGeneric $xml_hash]"
     }
 
     #set project specific lists
     foreach l $libs v $vers h $hashes {
-      set ver "[string toupper $l]_VER=32'h$v "
-      set hash "[string toupper $l]_SHA=32'h0$h"
-      set generic_string "$generic_string $ver $hash"
+        set ver "[string toupper $l]_VER=[FormatGeneric $v]"
+        set hash "[string toupper $l]_SHA=[FormatGeneric $h]"
+        lappend generic_string "$ver" "$hash"
     }
 
     foreach e $ext_names h $ext_hashes {
-      set hash "[string toupper $e]_SHA=32'h0$h"
-      set generic_string "$generic_string $hash"
+        set hash "[string toupper $e]_SHA=[FormatGeneric $h]"
+        lappend generic_string "$hash"
     }
 
     foreach repo $user_ip_repos v $user_ip_vers h $user_ip_hashes {
-      set repo_name [file tail $repo]
-      set ver "[string toupper $repo_name]_VER=32'h$v "
-      set hash "[string toupper $repo_name]_SHA=32'h0$h"
-      set generic_string "$generic_string $ver $hash"
+        set repo_name [file tail $repo]
+        set ver "[string toupper $repo_name]_VER=[FormatGeneric $v]"
+        set hash "[string toupper $repo_name]_SHA=[FormatGeneric $h]"
+        lappend generic_string "$ver" "$hash"
     }
 
     if {$flavour != -1} {
-      set generic_string "$generic_string FLAVOUR=$flavour"
+        lappend generic_string "FLAVOUR=$flavour"
     }
 
     set_property generic $generic_string [current_fileset]

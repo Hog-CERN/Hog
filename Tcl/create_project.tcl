@@ -395,7 +395,7 @@ proc ConfigureImplementation {} {
       #QUARTUS only
       set_global_assignment -name POST_MODULE_SCRIPT_FILE quartus_sh:$globalSettings::quartus_post_module
     }
-    Msg info "Setting $globalSettings::post_impl to be run after implementation"
+    Msg info "Setting $globalSettings::post_impl to be run after implementation" 
   }
 
   ## set pre write bitstream script
@@ -835,7 +835,7 @@ if {[IsXilinx]} {
 
 
   lassign [GetDateAndTime $commit] date timee
-  [WriteGenerics $date $timee $commit $version $top_hash $top_ver $hog_hash $hog_ver $cons_ver $cons_hash $libs $vers $hashes $ext_names $ext_hashes $user_ip_repos $user_ip_vers $user_ip_hashes $flavour $xml_ver $xml_hash ]
+  [WriteGenerics $proj_dir $date $timee $commit $version $top_hash $top_ver $hog_hash $hog_ver $cons_ver $cons_hash $libs $vers $hashes $ext_names $ext_hashes $user_ip_repos $user_ip_vers $user_ip_hashes $flavour $xml_ver $xml_hash ]
   cd $old_path
 }
 

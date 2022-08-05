@@ -3194,6 +3194,7 @@ proc ReadConf {file_name} {
 
   return $properties
 }
+#'"
 
 ## Write a property configuration file from a dictionary
 #
@@ -3342,14 +3343,39 @@ proc GetProjectFlavour {proj_name} {
   return $flavour
 }
 
+## @brief Gets custom generics from hog.conf
+#
+# @param[in] proj_dir:   the top folder of the project
+# @return string with generics ( Vivado format)
+#
+proc GetGenericFromConf {proj_dir} {
+  set prj_generics ""
+  if {[file exist $proj_dir/hog.conf]} {
+    set properties [ReadConf [lindex [GetConfFiles $proj_dir] 0]]
+    if {[dict exists $properties generics]} {
+      set propDict [dict get $properties generics]
+      puts "------------------- exist ---------------"
+      puts "$propDict"
+      dict for {theKey theValue} $propDict {
+        puts "$theKey -> $theValue"
+        set prj_generics "$prj_generics $theKey=$theValue"
+      }
+    }
+  } else {
+    Msg Warning "File $proj_dir/hog.conf not found. Max threads will be set to default value 1"
+  }
+  return $prj_generics
+}
+
 ## Setting the generic property
 #
 #  @param[in]    list of variables to be written in the generics
-proc WriteGenerics {date timee commit version top_hash top_ver hog_hash hog_ver cons_ver cons_hash libs vers hashes ext_names ext_hashes user_ip_repos user_ip_vers user_ip_hashes flavour {xml_ver ""} {xml_hash ""}} {
+proc WriteGenerics {proj_dir date timee commit version top_hash top_ver hog_hash hog_ver cons_ver cons_hash libs vers hashes ext_names ext_hashes user_ip_repos user_ip_vers user_ip_hashes flavour {xml_ver ""} {xml_hash ""}} {
   #####  Passing Hog generic to top file
   if {[IsXilinx]} {
     ### VIVADO
     # set global generic varibles
+    puts "---------------------- ADIOS --------------------------"
     set generic_string "GLOBAL_DATE=32'h$date GLOBAL_TIME=32'h$timee GLOBAL_VER=32'h$version GLOBAL_SHA=32'h0$commit TOP_SHA=32'h0$top_hash TOP_VER=32'h$top_ver HOG_SHA=32'h0$hog_hash HOG_VER=32'h$hog_ver CON_VER=32'h$cons_ver CON_SHA=32'h0$cons_hash"
     if {$xml_hash != "" && $xml_ver != ""} {
       set generic_string "$generic_string XML_VER=32'h$xml_ver XML_SHA=32'h0$xml_hash"
@@ -3378,6 +3404,9 @@ proc WriteGenerics {date timee commit version top_hash top_ver hog_hash hog_ver 
       set generic_string "$generic_string FLAVOUR=$flavour"
     }
 
+    set prj_generics [GetGenericFromConf $proj_dir]
+    puts "------- Project Generics : $prj_generics $generic_string"
+    set generic_string "$generic_string $prj_generics"
     set_property generic $generic_string [current_fileset]
 
   }

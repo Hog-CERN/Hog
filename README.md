@@ -28,3 +28,6 @@ You can report problems with Hog in using the issues in this repository. Please 
 ## License
 
 Hog is distributed under the Apache License, Version 2.0. 
+
+## Newsletter
+Register to our newsletter [here](https://ff3324b4.sibforms.com/serve/MUIEAI2J0WYGVI1zGYE3cfHsMmdFD0Ku_z_q3M5HQYBpxSMqd5LjmMgJiFmZQQ834RLr_Pt-7ORgZDbvERCqHTQbUCg6-zLZW_4MTeu2YWMcuwsZGBpCA8O-OOgOE3tQ-4pEzOzmvTcMfs2qMJlm7OTZuX1_aTEj1B0X6dLP9ol91Q7RTz-PsS4-RyW9wHe1wpl2cJIafRGY9cGr)

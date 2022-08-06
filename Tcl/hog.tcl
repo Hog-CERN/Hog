@@ -3354,10 +3354,7 @@ proc GetGenericFromConf {proj_dir} {
     set properties [ReadConf [lindex [GetConfFiles $proj_dir] 0]]
     if {[dict exists $properties generics]} {
       set propDict [dict get $properties generics]
-      puts "------------------- exist ---------------"
-      puts "$propDict"
       dict for {theKey theValue} $propDict {
-        puts "$theKey -> $theValue"
         set prj_generics "$prj_generics $theKey=$theValue"
       }
     }
@@ -3375,7 +3372,6 @@ proc WriteGenerics {proj_dir date timee commit version top_hash top_ver hog_hash
   if {[IsXilinx]} {
     ### VIVADO
     # set global generic varibles
-    puts "---------------------- ADIOS --------------------------"
     set generic_string "GLOBAL_DATE=32'h$date GLOBAL_TIME=32'h$timee GLOBAL_VER=32'h$version GLOBAL_SHA=32'h0$commit TOP_SHA=32'h0$top_hash TOP_VER=32'h$top_ver HOG_SHA=32'h0$hog_hash HOG_VER=32'h$hog_ver CON_VER=32'h$cons_ver CON_SHA=32'h0$cons_hash"
     if {$xml_hash != "" && $xml_ver != ""} {
       set generic_string "$generic_string XML_VER=32'h$xml_ver XML_SHA=32'h0$xml_hash"
@@ -3404,11 +3400,13 @@ proc WriteGenerics {proj_dir date timee commit version top_hash top_ver hog_hash
       set generic_string "$generic_string FLAVOUR=$flavour"
     }
 
+    # Dealing with project generics
     set prj_generics [GetGenericFromConf $proj_dir]
-    puts "------- Project Generics : $prj_generics $generic_string"
     set generic_string "$generic_string $prj_generics"
     set_property generic $generic_string [current_fileset]
-
+    Msg Info " Set project generics : $prj_generics"
+    #
+    set_property generic "{$prj_generics}" [get_filesets project_lib_sim]
   }
 }
 

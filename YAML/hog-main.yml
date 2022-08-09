@@ -132,7 +132,7 @@ archive_binary_files:
   stage: archive
   script:
     - if [[ -v HOG_OFFICIAL_BIN_EOS_PATH ]]; then
-        until echo $HOG_PASSWORD | kinit $HOG_USER@CERN.CH; do
+        until echo $EOS_PASSWORD | kinit $EOS_USER@CERN.CH; do
           echo Retrying;
           sleep 2;
         done;

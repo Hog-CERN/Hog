@@ -517,7 +517,7 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
     foreach prop [lindex [DictGet $listProperties $key] 0] {
       set prop_file $key
 
-      if {[lsearch -nocase [DictGet $prjProperties $prop_file] $prop] < 0 && ![string equal $prop ""] && ![string equal $prop "XDC"]} {
+      if {[lsearch -nocase [DictGet $prjProperties $prop_file] $prop] < 0 && ![string equal $prop ""] && ![string equal $prop "XDC"] && ![string equal $prop "source"]} {
 
         if {$options(recreate) == 1} {
           Msg Info "$prop_file property $prop was removed from the project."

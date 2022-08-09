@@ -3406,7 +3406,7 @@ proc WriteGenerics {proj_dir date timee commit version top_hash top_ver hog_hash
     set_property generic $generic_string [current_fileset]
     Msg Info " Set project generics : $prj_generics"
     #
-    set_property generic "{$prj_generics}" [get_filesets project_lib_sim]
+    set_property generic $prj_generics [get_filesets project_lib_sim]
   }
 }
 

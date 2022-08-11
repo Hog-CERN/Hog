@@ -131,7 +131,12 @@ if {[IsXilinx]} {
     set_property BITSTREAM.CONFIG.USR_ACCESS $commit_usr [current_design]
   }
 } elseif {[IsQuartus]} {
-  # Quartus TODO
+  cd $proj_dir
+  project_open $proj_name -current_revision
+  cd $this_dir
+  set_global_assignment -name USE_CHECKSUM_AS_USERCODE OFF  
+  set_global_assignment -name STRATIX_JTAG_USER_CODE $commit
+  project_close
 } else {
   # Tclsh
 }

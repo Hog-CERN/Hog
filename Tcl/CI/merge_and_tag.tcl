@@ -38,6 +38,7 @@ set parameters {
   {default_level.arg "0" "Default version level to increase if nothing is specified in the merge request description. Can be 0 (patch), 1 (minor), (2) major. Default ="}
   {no_increase "If set, prevents this script to increase the version if MAJOR_VERSION, MINOR_VERSION or PATCH_VERSION directives are found in the merge request descritpion. Default = off"}
   {github.arg "0" "If set, Hog will use the GitHub api instead of the GitLab, Default = 0" }
+  {run_id.arg "" "Required if running on Github Actions. The pipeline run ID."}
 }
 
 set usage "- CI script that merges your branch with \$HOG_TARGET_BRANCH and creates a new tag\n USAGE: $::argv0 \[OPTIONS\] \n. Options:"
@@ -83,6 +84,13 @@ if {$options(merged) == 0} {
     set WIP [ParseJSON  $options(mr_par) "work_in_progress"]
     set MERGE_STATUS [ParseJSON  $options(mr_par) "merge_status"]
     set DESCRIPTION [list [ParseJSON  $options(mr_par) "description"]]
+    if {$options(run_id) == ""} {
+      Msg Error "The GitHub Actions run-id is required when running with the -github option."
+      cd $OldPath
+      exit 1
+    } else {
+      set RUN_ID $options(run_id)
+    }
   } else {
     set WIP [ParseJSON $options(mr_par) "draft"]
     set MERGE_STATUS [ParseJSON  $options(mr_par) "state"]
@@ -142,8 +150,10 @@ if {$source_branch != ""} {
     incr p
   }
   set new_tag v$M.$m.$p
+  if {$options(github) == 1} {
+    set merge_request_number $RUN_ID
+  }
   puts "Git notes add -fm \"$merge_request_number $source_branch $new_tag\""
-
 
   Git "fetch origin refs/notes/*:refs/notes/*"
   Git "notes add -fm \"$merge_request_number $source_branch $new_tag\""

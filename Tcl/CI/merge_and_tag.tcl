@@ -84,6 +84,10 @@ if {$options(merged) == 0} {
     set WIP [ParseJSON  $options(mr_par) "work_in_progress"]
     set MERGE_STATUS [ParseJSON  $options(mr_par) "merge_status"]
     set DESCRIPTION [list [ParseJSON  $options(mr_par) "description"]]
+  } else {
+    set WIP [ParseJSON $options(mr_par) "draft"]
+    set MERGE_STATUS [ParseJSON  $options(mr_par) "state"]
+    set DESCRIPTION [list [ParseJSON  $options(mr_par) "body"]]
     if {$options(run_id) == ""} {
       Msg Error "The GitHub Actions run-id is required when running with the -github option."
       cd $OldPath
@@ -91,10 +95,6 @@ if {$options(merged) == 0} {
     } else {
       set RUN_ID $options(run_id)
     }
-  } else {
-    set WIP [ParseJSON $options(mr_par) "draft"]
-    set MERGE_STATUS [ParseJSON  $options(mr_par) "state"]
-    set DESCRIPTION [list [ParseJSON  $options(mr_par) "body"]]
   }
   Msg Info "WIP: ${WIP},  Merge Request Status: ${MERGE_STATUS}   Description: ${DESCRIPTION}"
   if {$options(no_increase) != 0} {

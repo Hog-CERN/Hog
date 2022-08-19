@@ -94,6 +94,7 @@ if {$options(merged) == 0} {
       exit 1
     } else {
       set RUN_ID $options(run_id)
+      echo $RUN_ID
     }
   }
   Msg Info "WIP: ${WIP},  Merge Request Status: ${MERGE_STATUS}   Description: ${DESCRIPTION}"

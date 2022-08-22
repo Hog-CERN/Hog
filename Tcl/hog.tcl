@@ -242,7 +242,7 @@ proc GetProject {proj} {
     return ""
   } else {
     # Tcl Shell
-    puts "***DEBUG Hog:GetProject $project"
+    puts "***DEBUG Hog:GetProject $proj"
     return "DEBUG_project"
   }
 

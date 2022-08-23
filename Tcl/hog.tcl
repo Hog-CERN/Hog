@@ -3319,7 +3319,7 @@ proc GetDateAndTime {commit} {
     set date [clock format $clock_seconds  -format {%d%m%Y}]
     set timee [clock format $clock_seconds -format {00%H%M%S}]
   }
-  return $date $timee
+  return [list $date $timee]
 }
 
 ## Get the Project flavour

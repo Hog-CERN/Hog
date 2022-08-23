@@ -113,8 +113,8 @@ else
     echo "defined."
 fi
 
-if ( ! ([ -z "$EOS_MGM_URL" ] && [ -z "$HOG_OFFICIAL_BIN_EOS_PATH" ])); then
-    echo -n "Variable: HOG_PASSWORD is "
+if ( ! [ -z "$HOG_OFFICIAL_BIN_EOS_PATH" ]); then
+    echo -n "Variable: EOS_PASSWORD is "
     if [ -z "$EOS_PASSWORD" ]; then
         echo "NOT defined. This variable is essential to communicate with the CERN EOS cloud, to store IPs and official bitfiles."
         FAIL=1
@@ -165,7 +165,7 @@ fi
 
 echo -n "Variable: EOS_MGM_URL is "
 if [ -z "$EOS_MGM_URL" ]; then
-    echo "NOT defined. This variable is essential for EOS to work properly. Hog-Ci will use the deafule value of root://eosuser.cern.ch"
+    echo "NOT defined. This variable is essential for EOS to work properly. Hog-Ci will use the default value of root://eosuser.cern.ch"
 else
     echo "defined."
 fi

@@ -102,14 +102,15 @@ else
     if [[ $github == "1" ]]; then
         artifact_id=$(curl -H "Accept: application/vnd.github+json" -H "Authorization: token ${push_token}" $api/repos/$proj/actions/runs/$mr/artifacts | jq '.artifacts[] | select (.name=="Collect-Artifacts") .id')
         curl -L -H "Accept: application/vnd.github+json" -H "Authorization: token ${push_token}" $api/repos/$proj/actions/artifacts/$artifact_id/zip -o collect_artifacts.zip
+        echo "Hog-INFO: unzipping artifacts from collect_artifacts job..."
+        unzip -oq collect_artifacts.zip -d bin
     else
         ref=refs/merge-requests%2F$mr%2Fhead
         curl --location --header "PRIVATE-TOKEN: ${push_token}" "$api"/projects/"${proj}"/jobs/artifacts/"$ref"/download?job=collect_artifacts -o collect_artifacts.zip
+        echo "Hog-INFO: unzipping artifacts from collect_artifacts job..."
+        unzip -oq collect_artifacts.zip
     fi
 
-
-    echo "Hog-INFO: unzipping artifacts from collect_artifacts job..."
-    unzip -oq collect_artifacts.zip
     rm collect_artifacts.zip
 
     
@@ -118,11 +119,14 @@ else
         if [[ $github == "1" ]]; then
             artifact_id=$(curl -H "Accept: application/vnd.github+json" -H "Authorization: token ${push_token}" $api/repos/$proj/actions/runs/$mr/artifacts | jq '.artifacts[] | select (.name=="Doxygen-Artifacts") .id')
             curl -L -H "Accept: application/vnd.github+json" -H "Authorization: token ${push_token}" $api/repos/$proj/actions/artifacts/$artifact_id/zip -o doxygen.zip
+            echo "Hog-INFO: unzipping artifacts from make_doxygen job..."
+            unzip -oq doxygen.zip -d Doc
         else
             curl --location --header "PRIVATE-TOKEN: ${push_token}" "$api"/projects/"${proj}"/jobs/artifacts/"$ref"/download?job=make_doxygen -o doxygen.zip
+            echo "Hog-INFO: unzipping artifacts from make_doxygen job..."
+            unzip -oq doxygen.zip 
         fi
-        echo "Hog-INFO: unzipping artifacts from make_doxygen job..."
-        unzip -oq doxygen.zip
+
         rm doxygen.zip
     fi
 

@@ -1,0 +1,22 @@
+name: "Hog before script"
+description: "Fetch and loads the submodules and configure git"
+
+inputs:
+  HOG_USER:
+    required: true
+    type: string
+  HOG_EMAIL:
+    required: true
+    type: string 
+
+runs:
+  using: "composite"
+  steps: 
+  - run: |
+      git config --global user.email "${{ inputs.HOG_EMAIL }}"
+      git config --global user.name "${{ inputs. HOG_USER }}"
+      git fetch
+      git checkout ${{ github.head_ref }}
+      git submodule init
+      git submodule update
+    shell: bash

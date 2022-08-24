@@ -79,7 +79,7 @@ if {$options(merged) == 0} {
     set merge_request_number $options(mr_id)
   }
 
-  puts "Github $options(github)"
+
   if { $options(github) == 0 } {
     set WIP [ParseJSON  $options(mr_par) "work_in_progress"]
     set MERGE_STATUS [ParseJSON  $options(mr_par) "merge_status"]
@@ -154,7 +154,6 @@ if {$source_branch != ""} {
   if {$options(github) == 1} {
     set merge_request_number $RUN_ID
   }
-  puts "Git notes add -fm \"$merge_request_number $source_branch $new_tag\""
 
   Git "fetch origin refs/notes/*:refs/notes/*"
   Git "notes add -fm \"$merge_request_number $source_branch $new_tag\""
@@ -162,7 +161,6 @@ if {$source_branch != ""} {
 }
 
 if {$options(push)!= ""} {
-  puts "here"
 
   lassign [GitRet "push origin $options(push)"] ret msg
 

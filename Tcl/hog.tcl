@@ -3363,7 +3363,7 @@ proc FormatGeneric {generic} {
 #
 proc GetGenericFromConf {proj_dir} {
   set prj_generics ""
-  Msg Info "GetGenericFromConf aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" 
+  Msg Info "GetGenericFromConf : $proj_dir" 
   set top_dir "Top/$proj_dir"
   # Msg Info "File $proj_dir/hog.conf not found." 
   if {[file exist $top_dir/hog.conf]} {
@@ -3386,7 +3386,7 @@ proc GetGenericFromConf {proj_dir} {
 ## Setting the generic property
 #
 #  @param[in]    list of variables to be written in the generics
-proc WriteGenerics {design date timee commit version top_hash top_ver hog_hash hog_ver cons_ver cons_hash libs vers hashes ext_names ext_hashes user_ip_repos user_ip_vers user_ip_hashes flavour {xml_ver ""} {xml_hash ""}} {
+proc WriteGenerics {mode design date timee commit version top_hash top_ver hog_hash hog_ver cons_ver cons_hash libs vers hashes ext_names ext_hashes user_ip_repos user_ip_vers user_ip_hashes flavour {xml_ver ""} {xml_hash ""}} {
   Msg Info "Project $design writing generics."
   #####  Passing Hog generic to top file
     if {[IsXilinx]} {
@@ -3443,7 +3443,9 @@ proc WriteGenerics {design date timee commit version top_hash top_ver hog_hash h
     # puts "generic_string : $generic_string"
     
     #
-    set_property generic $prj_generics [get_filesets project_lib_sim]
+    if {$mode == "create"} {
+      set_property generic $prj_generics [get_filesets project_lib_sim]
+    }
   }
 }
 

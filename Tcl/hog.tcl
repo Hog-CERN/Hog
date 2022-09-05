@@ -3363,8 +3363,11 @@ proc FormatGeneric {generic} {
 #
 proc GetGenericFromConf {proj_dir} {
   set prj_generics ""
-  if {[file exist $proj_dir/hog.conf]} {
-    set properties [ReadConf [lindex [GetConfFiles $proj_dir] 0]]
+  Msg Info "GetGenericFromConf aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" 
+  set top_dir "Top/$proj_dir"
+  # Msg Info "File $proj_dir/hog.conf not found." 
+  if {[file exist $top_dir/hog.conf]} {
+    set properties [ReadConf [lindex [GetConfFiles $top_dir] 0]]
     if {[dict exists $properties generics]} {
       set propDict [dict get $properties generics]
       dict for {theKey theValue} $propDict {
@@ -3374,7 +3377,7 @@ proc GetGenericFromConf {proj_dir} {
       # puts "prj_generics : $prj_generics"
     }
   } else {
-    Msg Warning "File $proj_dir/hog.conf not found." 
+    Msg Warning "File $top_dir/hog.conf not found." 
   }
   return $prj_generics
 }
@@ -3383,7 +3386,8 @@ proc GetGenericFromConf {proj_dir} {
 ## Setting the generic property
 #
 #  @param[in]    list of variables to be written in the generics
-proc WriteGenerics {proj_dir date timee commit version top_hash top_ver hog_hash hog_ver cons_ver cons_hash libs vers hashes ext_names ext_hashes user_ip_repos user_ip_vers user_ip_hashes flavour {xml_ver ""} {xml_hash ""}} {
+proc WriteGenerics {design date timee commit version top_hash top_ver hog_hash hog_ver cons_ver cons_hash libs vers hashes ext_names ext_hashes user_ip_repos user_ip_vers user_ip_hashes flavour {xml_ver ""} {xml_hash ""}} {
+  Msg Info "Project $design writing generics."
   #####  Passing Hog generic to top file
     if {[IsXilinx]} {
 
@@ -3431,8 +3435,8 @@ proc WriteGenerics {proj_dir date timee commit version top_hash top_ver hog_hash
     }
 
     # Dealing with project generics
-    set prj_generics [GetGenericFromConf $proj_dir]
-    set generic_string "$generic_string $prj_generics"
+    set prj_generics [GetGenericFromConf $design]
+    set generic_string "$prj_generics $generic_string"
     set_property generic $generic_string [current_fileset]
     Msg Info " Set project generics : $prj_generics"
     # puts "prj_generics : $prj_generics"

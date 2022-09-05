@@ -3374,7 +3374,7 @@ proc GetGenericFromConf {proj_dir} {
       # puts "prj_generics : $prj_generics"
     }
   } else {
-    Msg Warning "File $proj_dir/hog.conf not found. Max threads will be set to default value 1"
+    Msg Warning "File $proj_dir/hog.conf not found." 
   }
   return $prj_generics
 }

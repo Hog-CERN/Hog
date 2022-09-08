@@ -3368,18 +3368,10 @@ proc FormatGeneric {generic} {
 #
 proc GetGenericFromConf {proj_dir target} {
   set prj_generics ""
-  # set valueHexFull ""
-  # set valueNumBits ""
-  # set valueHexFlag ""
-  # set valueHex ""
-  # set valueIntFull ""
-  # set ValueInt ""
-  # set valueStrFull ""
-  # set ValueStr ""
-  Msg debug "GetGenericFromConf : $proj_dir" 
+  # Msg debug "GetGenericFromConf : $proj_dir" 
   set top_dir "Top/$proj_dir"
   # Msg Info "File $proj_dir/hog.conf not found." 
-  Msg debug "Generating string of generics for $target"
+  # Msg debug "Generating string of generics for $target"
   if {[file exist $top_dir/hog.conf]} {
     set properties [ReadConf [lindex [GetConfFiles $top_dir] 0]]
     if {[dict exists $properties generics]} {
@@ -3389,7 +3381,7 @@ proc GetGenericFromConf {proj_dir target} {
         if { $target == "Vivado" } {
           set prj_generics "$prj_generics $theKey=$theValue"
         } elseif { $target == "Questa" } {
-          Msg debug "Analyzing $theKey=$theValue"
+          # Msg debug "Analyzing $theKey=$theValue"
           set valueHexFull ""
           set valueNumBits ""
           set valueHexFlag ""
@@ -3399,13 +3391,13 @@ proc GetGenericFromConf {proj_dir target} {
           set valueStrFull ""
           set ValueStr ""
           regexp {([0-9]*)('h)([0-9a-fA-F]*)} $theValue valueHexFull valueNumBits valueHexFlag valueHex
-          Msg debug "HEX? $theKey : $valueHexFull $valueNumBits $valueHexFlag $valueHex"
+          # Msg debug "HEX? $theKey : $valueHexFull $valueNumBits $valueHexFlag $valueHex"
           regexp {^([0-9]*)$} $theValue valueIntFull ValueInt
-          Msg debug "INT? $theKey : $valueIntFull $ValueInt"
+          # Msg debug "INT? $theKey : $valueIntFull $ValueInt"
           regexp {^\"?([a-zA-Z0-9\_\.]*)\"?$} $theValue valueStrFull ValueStr 
-          Msg debug "STR? $theKey : $valueStrFull $ValueStr"
+          # Msg debug "STR? $theKey : $valueStrFull $ValueStr"
           if {$valueNumBits != "" && $valueHexFlag != "" && $valueHex != ""} {
-            Msg warning "Value is a hex number"
+            # Msg warning "Value is a hex number"
             set numBits 0
             scan $valueNumBits %d numBits
             set numHex 0
@@ -3417,14 +3409,14 @@ proc GetGenericFromConf {proj_dir target} {
             set numBits [expr $numBits-1]
             set numBin [string range $binval end-$numBits end]
 
-            Msg debug "Num Bits : $numBits ;; Value : $numHex ;; Bin : $numBin"
+            # Msg debug "Num Bits : $numBits ;; Value : $numHex ;; Bin : $numBin"
             set prj_generics "$prj_generics $theKey=\"$numBin\""
 
           } elseif { $valueIntFull != "" && $ValueInt != "" } {
-            Msg warning "Value is a int number"
+            # Msg warning "Value is a int number"
             set prj_generics "$prj_generics $theKey=$ValueInt"
           } elseif { $valueStrFull != "" && $ValueStr != "" } {
-            Msg warning "Value is a string "
+            # Msg warning "Value is a string "
             set prj_generics "$prj_generics $theKey=\"$ValueStr\""
             
           } else {
@@ -3441,7 +3433,7 @@ proc GetGenericFromConf {proj_dir target} {
   } else {
     Msg Warning "File $top_dir/hog.conf not found." 
   }
-  Msg Info "PRJ Generics : $prj_generics"
+  Msg Info "Setting $target generics : $prj_generics"
   return $prj_generics
 }
 
@@ -3501,14 +3493,14 @@ proc WriteGenerics {mode design date timee commit version top_hash top_ver hog_h
     set prj_generics [GetGenericFromConf $design "Vivado"]
     set generic_string "$prj_generics $generic_string"
     set_property generic $generic_string [current_fileset]
-    Msg Info " Set project generics : $prj_generics"
+    # Msg Info " Set project generics : $prj_generics"
     # puts "prj_generics : $prj_generics"
     # puts "generic_string : $generic_string"
     
     #
-    Msg debug " ------------------------- Generics -------------------------"
+    # Msg debug " ------------------------- Generics -------------------------"
     set simulator [get_property target_simulator [current_project]]
-    Msg Info "SIMULATOR : $simulator"
+    # Msg Info "SIMULATOR : $simulator"
     if {$mode == "create"} {
       set sim_generics [GetGenericFromConf $design $simulator]
       set_property generic $sim_generics [get_filesets project_lib_sim]

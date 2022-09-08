@@ -3389,6 +3389,7 @@ proc GetGenericFromConf {proj_dir target} {
         if { $target == "Vivado" } {
           set prj_generics "$prj_generics $theKey=$theValue"
         } elseif { $target == "Questa" } {
+          Msg debug "Analyzing $theKey=$theValue"
           set valueHexFull ""
           set valueNumBits ""
           set valueHexFlag ""
@@ -3401,7 +3402,7 @@ proc GetGenericFromConf {proj_dir target} {
           Msg debug "HEX? $theKey : $valueHexFull $valueNumBits $valueHexFlag $valueHex"
           regexp {^([0-9]*)$} $theValue valueIntFull ValueInt
           Msg debug "INT? $theKey : $valueIntFull $ValueInt"
-          regexp {^\"?([a-zA-Z]*)\"?$} $theValue valueStrFull ValueStr 
+          regexp {^\"?([a-zA-Z0-9\_\.]*)\"?$} $theValue valueStrFull ValueStr 
           Msg debug "STR? $theKey : $valueStrFull $ValueStr"
           if {$valueNumBits != "" && $valueHexFlag != "" && $valueHex != ""} {
             Msg warning "Value is a hex number"
@@ -3427,8 +3428,10 @@ proc GetGenericFromConf {proj_dir target} {
             set prj_generics "$prj_generics $theKey=\"$ValueStr\""
             
           } else {
-            Msg error "Target : $target not valid"
+            Msg error "Value : $theValue not valid"
           }
+        } else {
+          Msg error "Target : $target not valid"
         }
         
         # set prj_generics [concat $prj_generics "$theKey=[FormatGeneric $theValue]"]

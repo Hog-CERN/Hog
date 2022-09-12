@@ -18,6 +18,7 @@
 . $(dirname "$0")/Init.sh
 . $(dirname "$0")/CreateProject.sh
 . $(dirname "$0")/LaunchWorkflow.sh
+. $(dirname "$0")/LaunchSimulation.sh
 
 function help_Unic() {
   # echo
@@ -96,7 +97,8 @@ else
     ;;
     -S|Simulation)
       echo " Simulation"
-      ./Hog/LaunchSimulation.sh $*
+      # ./Hog/LaunchSimulation.sh $*
+      Logger HogSimulateFunc $*
     ;;
     *)
       Msg Error "Activity not recognized"

@@ -26,9 +26,9 @@
 
 
 
-print_hog $(dirname "$0")
+# print_hog $(dirname "$0")
 
-DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 ## @function argument_parser()
 #  @brief pase aguments and sets evvironment variables
@@ -105,94 +105,117 @@ function help_message() {
   echo " Hint: Hog accepts as <project name> both the actual project name and the relative path containing the project configuration. E.g. ./Hog/LaunchSimulation.sh Top/myproj or ./Hog/LaunchSimulation.sh myproj"
 }
 
-DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-argument_parser $@
+function SimulateProject(){
 
-if [ $? = 1 ]; then
-	exit 1
-fi
-eval set -- "$PARAMS"
-if [ -z "$1" ]; then
-	help_message $0
-	cd "${OLD_DIR}"
-	echo
-	echo "Possible projects are:"
-    echo ""
-	search_projects $DIR/../Top
-    echo
+  DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  argument_parser $@
+
+  if [ $? = 1 ]; then
+    exit 1
+  fi
+  eval set -- "$PARAMS"
+  if [ -z "$1" ]; then
+    help_message $0
     cd "${OLD_DIR}"
-    exit -1
-else
-	if [ "$1" == "-h" ] || [ "$1" == "-help" ] || [ "$1" == "--help" ] || [ "$1" == "-H" ]; then
-        help_message $0
-		search_projects $DIR/../Top
-		echo
-		cd "${OLD_DIR}"
-		exit -1
-    fi
+    echo
+    echo "Possible projects are:"
+      echo ""
+    search_projects $DIR/../Top
+      echo
+      cd "${OLD_DIR}"
+      exit -1
+  else
+    if [ "$1" == "-h" ] || [ "$1" == "-help" ] || [ "$1" == "--help" ] || [ "$1" == "-H" ]; then
+          help_message $0
+      search_projects $DIR/../Top
+      echo
+      cd "${OLD_DIR}"
+      exit -1
+      fi
 
-	PROJ=$1
-    if [[ $PROJ == "Top/"* ]]; then
-      PROJ=${PROJ#"Top/"}
-    fi
-	PROJ_DIR="$DIR/../Top/"$PROJ
-	if [ -d "$PROJ_DIR" ]; then
+    PROJ=$1
+      if [[ $PROJ == "Top/"* ]]; then
+        PROJ=${PROJ#"Top/"}
+      fi
+    PROJ_DIR="$DIR/../Top/"$PROJ
+    if [ -d "$PROJ_DIR" ]; then
 
-		#Choose if the project is quartus, vivado, vivado_hls [...]
-		select_command $PROJ_DIR
-		if [ $? != 0 ]; then
-			Msg Error "Failed to select project type: exiting!"
-			exit -1
-		fi
+      #Choose if the project is quartus, vivado, vivado_hls [...]
+      select_command $PROJ_DIR
+      if [ $? != 0 ]; then
+        Msg Error "Failed to select project type: exiting!"
+        exit -1
+      fi
 
-		#select full path to executable and place it in HDL_COMPILER global variable
-		select_compiler_executable $COMMAND
-		if [ $? != 0 ]; then
-			Msg Error "Failed to get HDL compiler executable for $COMMAND"
-			exit -1
-		fi
+      #select full path to executable and place it in HDL_COMPILER global variable
+      select_compiler_executable $COMMAND
+      if [ $? != 0 ]; then
+        Msg Error "Failed to get HDL compiler executable for $COMMAND"
+        exit -1
+      fi
 
-		if [ ! -f "${HDL_COMPILER}" ]; then
-			Msg Error "HDL compiler executable $HDL_COMPILER not found"
-			cd "${OLD_DIR}"
-			exit -1
-		else
-			Msg Info "Using executable: $HDL_COMPILER"
-		fi
+      if [ ! -f "${HDL_COMPILER}" ]; then
+        Msg Error "HDL compiler executable $HDL_COMPILER not found"
+        cd "${OLD_DIR}"
+        exit -1
+      else
+        Msg Info "Using executable: $HDL_COMPILER"
+      fi
 
-		if [ $COMMAND = "quartus_sh" ]; then
-			Msg Error "Quartus is not yet supported by this script!"
-			#echo "Running:  ${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_simulation.tcl $SIMLIBPATH $1"
-			#"${HDL_COMPILER}" $COMMAND_OPT $DIR/Tcl/launchers/launch_simulation.tcl $SIMLIBPATH $1
+      if [ $COMMAND = "quartus_sh" ]; then
+        Msg Error "Quartus is not yet supported by this script!"
+        #echo "Running:  ${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_simulation.tcl $SIMLIBPATH $1"
+        #"${HDL_COMPILER}" $COMMAND_OPT $DIR/Tcl/launchers/launch_simulation.tcl $SIMLIBPATH $1
 
-		elif [ $COMMAND = "vivado_hls" ]; then
-			Msg Error "Vivado HLS is not yet supported by this script!"
-		else
-			if [ -z ${SIMLIBPATH+x} ]; then
-				if [ -z ${HOG_SIMULATION_LIB_PATH+x} ]; then
+      elif [ $COMMAND = "vivado_hls" ]; then
+        Msg Error "Vivado HLS is not yet supported by this script!"
+      else
+        if [ -z ${SIMLIBPATH+x} ]; then
+          if [ -z ${HOG_SIMULATION_LIB_PATH+x} ]; then
+            # if [ -z ${HOG_LOGGER} ]; then
+              "${HDL_COMPILER}" $COMMAND_OPT $DIR/Tcl/launchers/launch_simulation.tcl -tclargs $SIMSET $QUIET $RECREATE $PROJ
+            # else
+            #   Logger "${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_simulation.tcl -tclargs $SIMSET $QUIET $RECREATE $PROJ"
+            # fi
+          else
+            # if [ -z ${HOG_LOGGER} ]; then
+              "${HDL_COMPILER}" $COMMAND_OPT $DIR/Tcl/launchers/launch_simulation.tcl -tclargs -lib_path $HOG_SIMULATION_LIB_PATH $SIMSET $QUIET $RECREATE $PROJ
+            # else
+              # Logger "${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_simulation.tcl -tclargs -lib_path $HOG_SIMULATION_LIB_PATH $SIMSET $QUIET $RECREATE $PROJ"
+            # fi
+          fi
+        else
           # if [ -z ${HOG_LOGGER} ]; then
-					  "${HDL_COMPILER}" $COMMAND_OPT $DIR/Tcl/launchers/launch_simulation.tcl -tclargs $SIMSET $QUIET $RECREATE $PROJ
+            "${HDL_COMPILER}" $COMMAND_OPT $DIR/Tcl/launchers/launch_simulation.tcl -tclargs $SIMLIBPATH $SIMSET $QUIET $RECREATE $PROJ
           # else
-					#   Logger "${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_simulation.tcl -tclargs $SIMSET $QUIET $RECREATE $PROJ"
+            # Logger "${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_simulation.tcl -tclargs $SIMLIBPATH $SIMSET $QUIET $RECREATE $PROJ"
           # fi
-				else
-          # if [ -z ${HOG_LOGGER} ]; then
-					  "${HDL_COMPILER}" $COMMAND_OPT $DIR/Tcl/launchers/launch_simulation.tcl -tclargs -lib_path $HOG_SIMULATION_LIB_PATH $SIMSET $QUIET $RECREATE $PROJ
-          # else
-					  # Logger "${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_simulation.tcl -tclargs -lib_path $HOG_SIMULATION_LIB_PATH $SIMSET $QUIET $RECREATE $PROJ"
-          # fi
-				fi
-			else
-        # if [ -z ${HOG_LOGGER} ]; then
-				  "${HDL_COMPILER}" $COMMAND_OPT $DIR/Tcl/launchers/launch_simulation.tcl -tclargs $SIMLIBPATH $SIMSET $QUIET $RECREATE $PROJ
-				# else
-          # Logger "${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_simulation.tcl -tclargs $SIMLIBPATH $SIMSET $QUIET $RECREATE $PROJ"
-        # fi
-			fi
-		fi
-	else
-		Msg Error "Project $PROJ not found: possible projects are: $(search_projects $DIR/../Top)"
-		cd "${OLD_DIR}"
-		exit -1
-	fi
+        fi
+      fi
+    else
+      Msg Error "Project $PROJ not found: possible projects are: $(search_projects $DIR/../Top)"
+      cd "${OLD_DIR}"
+      exit -1
+    fi
+  fi
+}
+
+#
+#
+
+function HogSimulateFunc(){
+  # init $@
+  echo "HogInitFunc ($*)"
+  SimulateProject $@
+  # exit 0
+}
+if [[ ${BASH_SOURCE[0]} == $0 ]]; then
+#   printf "script '%s' is sourced in\n" "${BASH_SOURCE[0]}"
+# else
+  repoPath=$(dirname "$0")
+  print_hog $repoPath
+  SimulateProject $@
 fi
+# repoPath=$(dirname "$0")
+# print_hog $repoPath
+# create_project $@

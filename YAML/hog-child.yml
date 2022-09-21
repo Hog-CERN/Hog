@@ -102,6 +102,21 @@
             export HOG_NJOBS=4;
             echo "Hog-CI(info) - Number of jobs set to $HOG_NJOBS";
           fi;
+          ENABLE_EOS=1;
+          if [ -z ${EOS_PASSWORD+x} ]; then
+            if [ -z ${HOG_PASSWORD+x} ]; then
+              ENABLE_EOS=0;
+            else
+              EOS_PASSWORD=${HOG_PASSWORD};
+            fi;
+          fi;
+          if [ -z ${EOS_USER+x} ]; then
+            if [ -z ${HOG_USER+x} ]; then
+              ENABLE_EOS=0;
+            else
+              EOS_USER=${HOG_USER};
+            fi;
+          fi;
           if [ -z ${HOG_IP_PATH+x} ]; then
             if [[ -z ${HOG_IP_EOS_PATH+x} ]]; then
               echo "Hog-CI(info) - No EOS/LOCAL path for IPs defined.";
@@ -111,15 +126,19 @@
               echo "Hog-CI(info) - IPs will be copied to/from $HOG_IP_EOS_PATH.";
               export IP_PATH="-ip_path $HOG_IP_EOS_PATH";
               if [[ $HOG_IP_EOS_PATH = /eos/* ]]; then
-                echo "kinit $EOS_USER@CERN.CH";
-                until echo $EOS_PASSWORD | kinit $EOS_USER@CERN.CH ; do echo "Retrying"; sleep 2; done;
+                if [ $ENABLE_EOS -eq 1 ]; then
+                  echo "kinit $EOS_USER@CERN.CH";
+                  until echo $EOS_PASSWORD | kinit $EOS_USER@CERN.CH ; do echo "Retrying"; sleep 2; done;
+                fi;
               fi;
             fi;
           else
             echo "Hog-CI(info) - IPs will be copied to/from $HOG_IP_PATH.";
             export IP_PATH="-ip_path $HOG_IP_PATH";
             if [[ $HOG_IP_PATH = /eos/* ]]; then
-              until echo $EOS_PASSWORD | kinit $EOS_USER@CERN.CH ; do echo "Retrying"; sleep 2; done;
+              if [ $ENABLE_EOS -eq 1 ]; then
+                until echo $EOS_PASSWORD | kinit $EOS_USER@CERN.CH ; do echo "Retrying"; sleep 2; done;
+              fi;
             fi;
           fi;
           if [[ -n "$HOG_ONLY_SYNTH" ]] && [[ $HOG_ONLY_SYNTH == '1' ]]; then

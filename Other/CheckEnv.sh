@@ -113,7 +113,6 @@ if ( ! ([ -z ${EOS_MGM_URL+x} ] && [ -z ${HOG_OFFICIAL_BIN_EOS_PATH+x} ])); then
             FAIL=1
         else
             echo "NOT defined. Hog will use the variable HOG_PASSWORD instead."
-            export EOS_PASSWORD=$HOG_PASSWORD
         fi
     else
         echo "defined"
@@ -126,7 +125,6 @@ if ( ! ([ -z ${EOS_MGM_URL+x} ] && [ -z ${HOG_OFFICIAL_BIN_EOS_PATH+x} ])); then
             FAIL=1
         else
             echo "NOT defined. Hog will use the variable HOG_PASSWORD instead."
-            export EOS_PASSWORD=$HOG_USER 
         fi
     else
         echo "defined."

@@ -136,7 +136,7 @@ archive_binary_files:
         if [ -z ${EOS_PASSWORD+x} ]; then
           if [ -z ${HOG_PASSWORD+x} ]; then
             ENABLE_EOS=0;
-            echo "No EOS_PASSWORD has been defined. artifacts cannot be uploaded to EOS...";
+            echo "No EOS_PASSWORD has been defined. Artifacts cannot be uploaded to EOS...";
           else
             EOS_PASSWORD=${HOG_PASSWORD};
           fi;
@@ -144,7 +144,7 @@ archive_binary_files:
         if [ -z ${EOS_USER+x} ]; then
           if [ -z ${HOG_USER+x} ]; then
             ENABLE_EOS=0;
-            echo "No EOS_USER has been defined. artifacts cannot be uploaded to EOS...";
+            echo "No EOS_USER has been defined. Artifacts cannot be uploaded to EOS...";
           else
             EOS_USER=${HOG_USER};
           fi;

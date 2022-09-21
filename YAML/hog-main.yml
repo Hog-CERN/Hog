@@ -150,7 +150,7 @@ archive_binary_files:
           fi;
         fi;
 
-        if [ $ENABLE_EOS -eq 1]; then
+        if [ $ENABLE_EOS -eq 1 ]; then
           until echo $EOS_PASSWORD | kinit $EOS_USER@CERN.CH; do
             echo Retrying;
             sleep 2;

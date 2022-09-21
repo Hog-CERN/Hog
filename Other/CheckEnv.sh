@@ -116,16 +116,24 @@ fi
 if ( ! [ -z "$HOG_OFFICIAL_BIN_EOS_PATH" ]); then
     echo -n "Variable: EOS_PASSWORD is "
     if [ -z "$EOS_PASSWORD" ]; then
-        echo "NOT defined. This variable is essential to communicate with the CERN EOS cloud, to store IPs and official bitfiles."
-        FAIL=1
+        if [ -z "$HOG_PASSWORD" ]; then
+            echo "NOT defined. This variable is essential to communicate with the CERN EOS cloud, to store IPs and official bitfiles."
+            FAIL=1
+        else
+            echo "NOT defined. Hog will use the variable HOG_PASSWORD instead."
+        fi
     else
         echo "defined"
     fi
     echo --------------------------------
     echo -n "Variable: EOS_USER is "
     if [ -z "$EOS_USER" ]; then
-        echo "NOT defined. This variable is essential to communicate with the CERN EOS cloud, to store IPs and official bitfiles."
-        FAIL=1
+        if [ -z "$HOG_USER" ]; then
+            echo "NOT defined. This variable is essential to communicate with the CERN EOS cloud, to store IPs and official bitfiles."
+            FAIL=1
+        else
+            echo "NOT defined. Hog will use the variable HOG_PASSWORD instead."
+        fi
     else
         echo "defined."
     fi

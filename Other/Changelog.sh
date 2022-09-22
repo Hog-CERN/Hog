@@ -95,6 +95,7 @@ function help_message() {
   echo "          -n/-number                   The Merge/Pull request number"
   echo "          -github                      If true, runs the GitHub API, otherwise the GitLab. Default false."
   echo "          -r/-repo                     The GitHub repository name."
+  echo "          -h                           Print this message."
   echo 
 }
 
@@ -103,17 +104,23 @@ if [ $? = 1 ]; then
     exit 1
 fi
 eval set -- "$PARAMS"
-if [ "$1" == "-h" ] || [ "$1" == "-help" ] || [ "$1" == "--help" ] || [ "$1" == "-H" ]; then
+if [ "$HELP" == "-h" ]; then
     help_message $0
     exit -1
 fi
 
-if [ $GITHUB == "1" ]; then
+if [ "$GITHUB" == "1" ]; then
     echo "## Pull Request Description"
     gh api -H "Accept: application/vnd.github+json" /repos/$REPO_NAME/pulls/$NUMBER | jq -r ".body"
 else
-    echo "## MR Description"
-    curl --request GET --header "PRIVATE-TOKEN: ${PUSH_TOKEN}" "$API/projects/${PROJ}/merge_requests/${NUMBER}" | jq -r ".description"
+    if [ "$PUSH_TOKEN" != "" ] && [ "$API" != "" ] && [ "$PROJ" != "" ] && [ "$NUMBER" != "" ]; then
+        echo "## MR Description"
+        curl --request GET --header "PRIVATE-TOKEN: ${PUSH_TOKEN}" "$API/projects/${PROJ}/merge_requests/${NUMBER}" | jq -r ".description"
+    fi
+fi
+
+if [ -z "$TARGET_BRANCH" ]; then
+    TARGET_BRANCH="master"
 fi
 
 echo

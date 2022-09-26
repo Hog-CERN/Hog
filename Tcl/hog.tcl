@@ -3387,20 +3387,20 @@ proc GetGenericFromConf {proj_dir target} {
         set valueStrFull ""
         set ValueStr ""
         regexp {([0-9]*)('h)([0-9a-fA-F]*)} $theValue valueHexFull valueNumBits valueHexFlag valueHex
-        # Msg debug "HEX? $theKey : $valueHexFull $valueNumBits $valueHexFlag $valueHex"
+        Msg debug "HEX? $theKey : $valueHexFull $valueNumBits $valueHexFlag $valueHex"
         regexp {^([0-9]*)$} $theValue valueIntFull ValueInt
-        # Msg debug "INT? $theKey : $valueIntFull $ValueInt"
+        Msg debug "INT? $theKey : $valueIntFull $ValueInt"
         # regexp {^\"?([a-zA-Z0-9\_\. ]*)\"?$} $theValue valueStrFull ValueStr 
         regexp {(?!^\d+$)^.+$} $theValue valueStrFull ValueStr 
-        # Msg debug "STR? $theKey : $valueStrFull $ValueStr"
+        Msg debug "STR? $theKey : $valueStrFull $ValueStr"
         if { $target == "Vivado" } {
           # set prj_generics "$prj_generics $theKey=$theValue"
           if {$valueNumBits != "" && $valueHexFlag != "" && $valueHex != ""} {
             set prj_generics "$prj_generics $theKey=$valueHexFull"
           } elseif { $valueIntFull != "" && $ValueInt != "" } {
-            set prj_generics "$prj_generics $theKey=$valueHexFull"
+            set prj_generics "$prj_generics $theKey=$ValueInt"
           } elseif { $valueStrFull != "" && $ValueStr != "" } {
-            # Msg warning "Value is a string "
+            Msg warning "Value is a string "
             set prj_generics "$prj_generics $theKey=\"$ValueStr\""
           } else {
             # Msg error "Value : $theValue not valid"
@@ -3467,17 +3467,6 @@ proc SetGenericsSimulation {proj_dir target} {
   } else {
     Msg warning "No sim.conf found in project Top"
   }
-  # if {[lsearch -regexp -index 0 $read_aux ".*sim.conf"] >= 0} {
-  #   set sim_cfg_list [ReadConf [lindex [GetConfFiles $top_dir] [lsearch -regexp -index 0 $read_aux ".*sim.conf"]]]
-  #   # Msg debug "sim_cfg_list = $sim_cfg_list"
-  #   set sim_cfg_dict [dict get $sim_cfg_list ]
-  #   dict for {theKey theValue} $sim_cfg_dict {
-  #     # Msg debug "$theKey"
-  #     set sim_generics [GetGenericFromConf $proj_dir $target]
-  #     set_property generic $sim_generics [get_filesets $theKey]
-  #     Msg Info "Setting simulator $target for file set $theKey generics : $sim_generics"
-  #   }
-  # }
 }
 
 ## Setting the generic property

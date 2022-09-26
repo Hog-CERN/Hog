@@ -520,11 +520,11 @@ function HogVer() {
       Msg Info
       Msg Info "Version $master_version has been released (https://gitlab.cern.ch/hog/Hog/-/releases/$master_version)"
       Msg Info "You should consider updating Hog submodule with the following instructions:"
-      Msg Info
+      echo
       Msg Info "cd Hog && git checkout master && git pull"
-      Msg Info
+      echo 
       Msg Info "Remember also to update the ref: in your .gitlab-ci.yml to $master_version"
-      Msg Info
+      echo 
     else
       Msg Info "Latest official version is $master_version, nothing to do."
     fi

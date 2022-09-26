@@ -246,7 +246,7 @@ proc GetProject {proj} {
     return ""
   } else {
     # Tcl Shell
-    puts "***DEBUG Hog:GetProject $project"
+    puts "***DEBUG Hog:GetProject $proj"
     return "DEBUG_project"
   }
 
@@ -3323,7 +3323,7 @@ proc GetDateAndTime {commit} {
     set date [clock format $clock_seconds  -format {%d%m%Y}]
     set timee [clock format $clock_seconds -format {00%H%M%S}]
   }
-  return $date $timee
+  return [list $date $timee]
 }
 
 ## Get the Project flavour

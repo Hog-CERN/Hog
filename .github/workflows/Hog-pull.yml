@@ -1,0 +1,462 @@
+name: Hog-pull
+
+on:
+  workflow_call:
+    inputs:
+      BUILD_PROJECTS:
+        required: false
+        type: string
+      SIM_PROJECTS:
+        required: false
+        type: string
+      HOG_USE_DOXYGEN:
+        required: false
+        type: boolean
+      HOG_NO_RESET_BD:
+        required: false
+        type: boolean
+      HOG_CHECK_PROJVER:
+        required: false
+        type: boolean
+      HOG_CHECK_YAMLREF:
+        required: false
+        type: boolean
+      HOG_NO_BITSTREAM:
+        required: false
+        type: boolean
+      HOG_CHECK_SYNTAX:
+        required: false
+        type: boolean
+      HOG_ONLY_SYNTH:
+        required: false
+        type: boolean
+    secrets:
+      SUBMODULE_CONTENT_PULL_KEY:
+        required: true
+      HOG_PUSH_TOKEN:
+        required: true
+      HOG_EMAIL:
+        required: true
+      HOG_USER:
+        required: true
+      HOG_PATH:
+        required: true
+      HOG_EXTERNAL_PATH:
+        required: false
+      HOG_XIL_LICENSE:
+        required: false
+      EOS_MGM_URL:
+        required: false
+      HOG_LD_LIBRARY_PATH:
+        required: false
+      HOG_SIMULATION_LIB_PATH:
+        required: false
+      HOG_IP_PATH:
+        required: false
+      HOG_RESET_FILES:
+        required: false
+      HOG_NJOBS:
+        required: false
+      HOG_IP_NJOBS:
+        required: false
+      EOS_USER:
+        required: false
+      EOS_PASSWORD:
+        required: false
+
+env:
+  PR_NUMBER: ${{ github.event.number }}
+  HOG_PUSH_TOKEN: ${{ secrets.HOG_PUSH_TOKEN }}
+  COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+  HOG_USER: ${{ secrets.HOG_USER }}
+  HOG_EMAIL: ${{ secrets.HOG_EMAIL }}
+  HOG_PATH: ${{ secrets.HOG_PATH }}
+  HOG_EXTERNAL_PATH: ${{ secrets.HOG_EXTERNAL_PATH }}
+  HOG_XIL_LICENSE: ${{ secrets.HOG_XIL_LICENSE }}
+  EOS_USER: ${{ secrets.EOS_USER }}
+  EOS_PASSWORD: ${{ secrets.EOS_PASSWORD }}
+  HOG_LD_LIBRARY_PATH: ${{ secrets.HOG_LD_LIBRARY_PATH }}
+  HOG_SIMULATION_LIB_PATH: ${{ secrets.HOG_SIMULATION_LIB_PATH }}
+  HOG_IP_PATH: ${{ secrets.HOG_IP_PATH }}
+  HOG_RESET_FILES: ${{ secrets.HOG_RESET_FILES }}
+  HOG_NJOBS: ${{ secrets.HOG_NJOBS }}
+  HOG_IP_NJOBS: ${{ secrets.HOG_IP_NJOBS }}
+  GH_TOKEN: ${{ secrets.HOG_PUSH_TOKEN }}
+  HOG_PR_MSG: ${{ secrets.HOG_PR_MSG }}
+
+
+
+jobs:
+  merge:
+    runs-on: ubuntu-latest
+    container: gitlab-registry.cern.ch/hog/hog-docker:tclsh
+    steps:
+      - uses: actions/checkout@v3
+        name: Checkout Repository
+        with: 
+          fetch-depth: 0
+      - uses: webfactory/ssh-agent@v0.5.4
+        name: SSH-Agent
+        with:
+            ssh-private-key: ${{ secrets.SUBMODULE_CONTENT_PULL_KEY }}
+      - name: Merge And Tag
+        run: |
+          git config --global user.email "$HOG_EMAIL"
+          git config --global user.name "$HOG_USER"
+          git fetch 
+          git checkout $GITHUB_HEAD_REF
+          git pull
+          git submodule init
+          git submodule update
+          PULL_PARAMETERS=`curl -H "Accept: application/vnd.github.v3+json" $GITHUB_API_URL/repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER --header  "Authorization: token ${HOG_PUSH_TOKEN}"`
+          tclsh ./Hog/Tcl/CI/merge_and_tag.tcl -github 1 -mr_par "$PULL_PARAMETERS" -mr_id $PR_NUMBER -main_branch $GITHUB_BASE_REF -source_branch $GITHUB_HEAD_REF -push $GITHUB_HEAD_REF -run_id $GITHUB_RUN_ID
+  make_doxygen:
+    runs-on: ubuntu-latest
+    container: gitlab-registry.cern.ch/hog/hog-docker:doxygen
+    needs: merge
+    if: ${{ inputs.HOG_USE_DOXYGEN }}
+    steps:
+      - uses: actions/checkout@v3
+        name: Checkout Repository
+        with: 
+          fetch-depth: 0
+      - uses: webfactory/ssh-agent@v0.5.4
+        name: SSH-Agent
+        with:
+            ssh-private-key: ${{ secrets.SUBMODULE_CONTENT_PULL_KEY }}
+      - name: Doxygen
+        run : |
+          git config --global user.email "$HOG_EMAIL"
+          git config --global user.name "$HOG_USER"
+          git fetch 
+          git checkout $GITHUB_HEAD_REF
+          git pull
+          git submodule init
+          git submodule update
+          tclsh ./Hog/Tcl/utils/make_doxygen.tcl
+      - name: Archive Doxygen artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: Doxygen-Artifacts
+          path: |
+            Doc
+  generate_project:
+    runs-on: self-hosted
+    if: ${{ inputs.BUILD_PROJECTS }}   
+    strategy:
+      matrix:
+        PROJECT_NAME: ${{fromJson(inputs.BUILD_PROJECTS)}}
+    needs: merge
+    steps:
+      - uses: ATOS-Actions/clean-self-hosted-runner@v1
+        name: Cleaning
+      - uses: actions/checkout@v3
+        name: Checkout Repository
+        with: 
+          fetch-depth: 0
+      - uses: webfactory/ssh-agent@v0.5.4
+        name: SSH-Agent
+        with:
+            ssh-private-key: ${{ secrets.SUBMODULE_CONTENT_PULL_KEY }}
+      - name: Build
+        run: |
+              PROJECT_NAME=${{ matrix.PROJECT_NAME}}
+              if [ -z "$PROJECT_NAME" ]; then
+                echo "Hog-CI(info): No projects will be built. Exiting..."
+                exit 0;
+              fi;
+              git config --global user.email "$HOG_EMAIL"
+              git config --global user.name "$HOG_USER"
+              echo "Initialising the Hog submodule..."
+              git submodule init
+              echo "Updating the Hog submodule..."
+              git submodule update
+              export XILINXD_LICENSE_FILE=${HOG_XIL_LICENSE}
+              export PATH=${HOG_PATH}:$PATH
+              export LD_LIBRARY_PATH=${HOG_LD_LIBRARY_PATH}:$LD_LIBRARY_PATH
+              export PATH=${HOG_PATH}:$PATH
+              if [ ${{inputs.HOG_CHECK_PROJVER}} ]; then
+                export HOG_CHECK_PROJVER=1
+              fi;
+              if [ ${{inputs.HOG_CHECK_SYNTAX}} ]; then
+                export HOG_CHECK_SYNTAX=1
+              fi;
+              if [ ${{inputs.HOG_USE_DOXYGEN}} ]; then
+                export HOG_USE_DOXYGEN=1
+              fi;
+              if [ ${{ inputs.HOG_NO_BITSTREAM}}]; then
+                export HOG_NO_BITSTREAM=1
+              fi
+              ./Hog/Other/CheckEnv.sh
+              if [ -v "${{ secrets.EOS_MGM_URL}} "]; then
+                export EOS_MGM_URL=${{ secrets.EOS_MGM_URL }}
+              fi;
+              if [ ${{inputs.HOG_CHECK_PROJVER }} ]; then
+                if [[ -z "$HOG_EXTERNAL_PATH" ]]; then
+                  ./Hog/Other/CheckProjVer.sh $PROJECT_NAME;
+                else
+                  ./Hog/Other/CheckProjVer.sh -ext_path "$HOG_EXTERNAL_PATH" $PROJECT_NAME;
+                fi;
+              else
+                echo "Project version checker is disabled.";
+              fi;
+              if [ -f "./Projects/$PROJECT_NAME/skip.me" ]; then
+                echo "Hog-CI(info) - CI disabled for $PROJECT_NAME";
+              else
+                if [ -z "${HOG_NJOBS}" ]; then
+                  export HOG_NJOBS=4;
+                  echo "Hog-CI(info) - Number of jobs set to $HOG_NJOBS";
+                fi;
+                if [ -z "${HOG_IP_PATH}" ]; then
+                  if [[ -z "${HOG_IP_EOS_PATH}" ]]; then
+                    echo "Hog-CI(info) - No EOS/LOCAL path for IPs defined.";
+                    export IP_PATH="";
+                  else
+                    echo "Hog-CI(warning) HOG_IP_EOS_PATH is deprecated, you should use HOG_IP_PATH";
+                    echo "Hog-CI(info) - IPs will be copied to/from $HOG_IP_EOS_PATH.";
+                    export IP_PATH="-ip_path $HOG_IP_EOS_PATH";
+                    if [[ $HOG_IP_EOS_PATH = /eos/* ]]; then
+                      echo "kinit $EOS_USER@CERN.CH";
+                      until echo $EOS_PASSWORD | kinit $EOS_USER@CERN.CH ; do echo "Retrying"; sleep 2; done;
+                    fi;
+                  fi;
+                else
+                  echo "Hog-CI(info) - IPs will be copied to/from $HOG_IP_PATH.";
+                  export IP_PATH="-ip_path $HOG_IP_PATH";
+                  if [[ $HOG_IP_PATH = /eos/* ]]; then
+                    until echo $EOS_PASSWORD | kinit $EOS_USER@CERN.CH ; do echo "Retrying"; sleep 2; done;
+                  fi;
+                fi;
+                if [ ${{ inputs.HOG_ONLY_SYNTH }}]; then
+                  export ONLY_SYNTH="-synth_only";
+                  echo "Hog-CI(info) - Only the synthesis will be run.";
+                else
+                  export ONLY_SYNTH="";
+                  if [ ${{ inputs.HOG_NO_BITSTREAM }}]; then
+                    export NO_BITSTREAM="-no_bitstream";
+                    echo "Hog-CI(info) - No binary files will be generated.";
+                  else
+                    echo "Hog-CI(info) - Binary files will be generated.";
+                    export NO_BITSTREAM="";
+                  fi;
+                fi;
+                if [ ${{ inputs.HOG_CHECK_SYNTAX }} ]; then
+                  echo "Hog-CI(info) - HDL syntax will be checked before starting the syntehsis";
+                  export CHECK_SYNTAX="-check_syntax";
+                else
+                  echo "Hog-CI(info) - HDL syntax will not be checked.";
+                  export CHECK_SYNTAX="";
+                fi;
+                
+                if [ ${{ inputs.HOG_NO_RESET_BD }} ]; then
+                  echo "Hog-CI(info) - BD files will NOT be reset at pre syntehsis time";
+                else
+                  echo "Hog-CI(info) - BD files will be reset at pre-synthesis time";
+                  mkdir -p Projects;
+                  echo "*.bd" >> Projects/hog_reset_files;
+                fi;
+                if [[ -n "$HOG_RESET_FILES" ]]; then
+                  echo "Hog-CI(info) - found files to be reset before synthesis, before implementation, and before bitstream";
+                  echo "$HOG_RESET_FILES";
+                  mkdir -p Projects;
+                  echo "$HOG_RESET_FILES" >> Projects/hog_reset_files;
+                else
+                  echo "Hog-CI(info) - no custom files will be reset.";
+                fi;
+                echo "Hog-CI(info) - Launching workflow now...";
+                echo "./Hog/LaunchWorkflow.sh -njobs $HOG_NJOBS $IP_PATH $NO_BITSTREAM $ONLY_SYNTH $CHECK_SYNTAX $PROJECT_NAME";
+                ./Hog/LaunchWorkflow.sh -njobs $HOG_NJOBS $IP_PATH $NO_BITSTREAM $ONLY_SYNTH $CHECK_SYNTAX $PROJECT_NAME;
+              fi;
+              if [[ -n "$HOG_ONLY_SYNTH" ]] && [[ $HOG_ONLY_SYNTH == '1' ]]; then
+                echo "Hog-CI(info) - Adding version and utilization summaries to note...";
+                if [[ -d "Projects/$PROJECT_NAME/$PROJECT_NAME.runs/" ]]; then
+                  cat Projects/$PROJECT_NAME/$PROJECT_NAME.runs/versions* > note.md;
+                  cp Projects/$PROJECT_NAME/$PROJECT_NAME.runs/versions* bin/$PROJECT_NAME*/;
+                fi;
+                if [[ -d "Projects/$PROJECT_NAME/output_files/" ]]; then
+                  cat Projects/$PROJECT_NAME/output_files/versions* > note.md;
+                  cp Projects/$PROJECT_NAME/output_files/versions* $CI_PROJECT_DIR/bin/$PROJECT_NAME*/;
+                fi;
+              else
+                echo "Hog-CI(info) - Adding versions, timing and utilization summary to note...";
+                if [[ -d "Projects/$PROJECT_NAME/output_files/" ]]; then
+                  cat Projects/$PROJECT_NAME/output_files/versions* > note.md;
+                else
+                  cat bin/$PROJECT_NAME*/versions* bin/$PROJECT_NAME*/timing_* > note.md;
+                fi;
+              fi;
+              if [[ -f "bin/$PROJECT_NAME*/utilization.txt" ]]; then
+                cat bin/$PROJECT_NAME*/utilization.txt >> note.md;
+              fi;
+              if [[ -n "$HOG_MR_MSG" ]] && [[ $HOG_MR_MSG == '3' ]]; then
+                echo "Hog-CI(info) - Writing note on gitlab website...";
+                ./Hog/Other/WriteGithubNote.sh $HOG_PUSH_TOKEN $GITHUB_API_URL $GITHUB_REPOSITORY $PR_NUMBER note.md;
+              fi
+              echo "Hog-CI(info) - All done.";
+      - name: Archive Generate Artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: Build-Artifacts
+          path: |
+            bin
+  simulate_project:
+    runs-on: self-hosted
+    if: ${{ inputs.SIM_PROJECTS }}   
+    strategy:
+      matrix:
+        PROJECT_NAME: ${{fromJson(inputs.SIM_PROJECTS)}}
+    needs: merge
+    steps:
+      - uses: ATOS-Actions/clean-self-hosted-runner@v1
+        name: Cleaning
+      - uses: actions/checkout@v3
+        name: Checkout Repository
+        with: 
+          fetch-depth: 0
+      - uses: webfactory/ssh-agent@v0.5.4
+        name: SSH-Agent
+        with:
+            ssh-private-key: ${{ secrets.SUBMODULE_CONTENT_PULL_KEY }}
+      - name: Simulate
+        run: |
+              git config --global user.email "$HOG_EMAIL"
+              git config --global user.name "$HOG_USER"
+              echo "Initialising the Hog submodule..."
+              git submodule init
+              echo "Updating the Hog submodule..."
+              git submodule update
+              export XILINXD_LICENSE_FILE=${HOG_XIL_LICENSE}
+              export PATH=${HOG_PATH}:$PATH
+              export LD_LIBRARY_PATH=${HOG_LD_LIBRARY_PATH}:$LD_LIBRARY_PATH
+              export PATH=${HOG_PATH}:$PATH
+              PROJECT_NAME=${{ matrix.PROJECT_NAME }}
+              if [[ -v HOG_CHECK_PROJVER ]] && [[ $HOG_CHECK_PROJVER == '1' ]]; then
+                if [[ -z "$HOG_EXTERNAL_PATH" ]]; then
+                  ./Hog/Other/CheckProjVer.sh $PROJECT_NAME;
+                else
+                  ./Hog/Other/CheckProjVer.sh -ext_path "$HOG_EXTERNAL_PATH" $PROJECT_NAME;
+                fi;
+              else
+                echo "Project version checker is disabled.";
+              fi;
+              if [ -f "./Projects/$PROJECT_NAME/skip.me" ]; then
+                echo "CI disabled for $PROJECT_NAME";
+              else
+                if [ -z "$HOG_SIMULATION_LIB_PATH" ]; then
+                  echo 'Simulation library path is not defined';
+                  ./Hog/LaunchSimulation.sh $PROJECT_NAME
+                else
+                   ./Hog/LaunchSimulation.sh $PROJECT_NAME -l $HOG_SIMULATION_LIB_PATH ;
+                fi;
+              fi
+      - name: Archive Simulation Artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: Simulation-Artifacts
+          path: |
+            Projects
+  collect_artifacts:
+    runs-on: ubuntu-latest
+    if: ${{ inputs.BUILD_PROJECTS || inputs.SIM_PROJECTS }} && ${{ always() }}
+    needs: [generate_project, simulate_project]
+    container: gitlab-registry.cern.ch/hog/hog-docker:tclsh
+    steps:
+      - uses: actions/checkout@v3
+        name: Checkout Repository
+        with: 
+          fetch-depth: 0
+      - uses: webfactory/ssh-agent@v0.5.4
+        name: SSH-Agent
+        with:
+            ssh-private-key: ${{ secrets.SUBMODULE_CONTENT_PULL_KEY }}
+      - uses: actions/download-artifact@v3
+        name: Download Artifacts
+      - name: Collect
+        continue-on-error: true
+        run: |
+              git config --global user.email "$HOG_EMAIL"
+              git config --global user.name "$HOG_USER"
+              git fetch
+              git checkout $GITHUB_HEAD_REF
+              git pull
+              git submodule init
+              git submodule update
+              old_dir=$(pwd)
+              mkdir -p Build-Artifacts
+              mv Build-Artifacts bin
+              printf "## Repository info\n- Pull request number: $PR_NUMBER\n- Branch name: $GITHUB_HEAD_REF\n\n" > bin/note.md
+              ./Hog/Other/Changelog.sh -t $GITHUB_BASE_REF -pt $HOG_PUSH_TOKEN -r $GITHUB_REPOSITORY -github -n $PR_NUMBER >> bin/note.md
+              cd bin
+              diff_files=$(find . -name "diff_list*.txt");
+              touch $old_dir/pr_note.md
+              echo "Pipeline $GITHUB_RUN_ID passed for pull request #$PR_NUMBER" >> $old_dir/pr_note.md
+              if [[ $diff_files != "" ]]; then
+                echo "## Uncommitted differences" >> $old_dir/pr_note.md;
+                echo "## Uncommitted differences" >> bin/note.md;
+                for f in $diff_files; do
+                  echo "Found uncommitted differences, check log file bin/$f in the artifacts." >> $old_dir/pr_note.md;
+                  echo "" >> $old_dir/pr_note.md;
+                  echo "Found uncommitted differences, check log file bin/$f in the artifacts." >> bin/note.md;
+                  echo "" >> bin/note.md;
+                done;
+              fi
+              note_files="versions timing utilization";
+              for f in $note_files; do
+                files=$(find . -name "$f*.txt");
+                if (( ${#files} )); then
+                  for fp in $files; do
+                    if [[ $HOG_PR_MSG == '1' ]]; then
+                      cat $fp >> $old_dir/pr_note.md;
+                    fi;
+                    cat $fp >> note.md;
+                  done;
+                fi;
+              done;
+              cd $old_dir
+              if [[ -z "$HOG_MR_MSG" ]] || [[ $HOG_MR_MSG == '1' ]] || [[ $HOG_MR_MSG == '2' ]]; then
+                echo "Hog-CI(info) - Writing note on GitHub website...";
+                ./Hog/Other/WriteGithubNote.sh $HOG_PUSH_TOKEN $GITHUB_API_URL $GITHUB_REPOSITORY $PR_NUMBER pr_note.md;
+              fi;
+      - name: Artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: Collect-Artifacts
+          path: |
+            bin
+  check_timing:
+    runs-on: ubuntu-latest
+    container: gitlab-registry.cern.ch/hog/hog-docker:tclsh
+    if: ${{ inputs.BUILD_PROJECTS }}   
+    needs: [generate_project]
+    steps:
+      - uses: actions/checkout@v2
+        name: Checkout
+        with: 
+          fetch-depth: 0
+      - uses: webfactory/ssh-agent@v0.5.4
+        name: SSH-Agent
+        with:
+            ssh-private-key: ${{ secrets.SUBMODULE_CONTENT_PULL_KEY }}
+      - uses: actions/download-artifact@v3
+        name: Download Artifacts
+      - name: Check Timing
+        continue-on-error: true
+        run: |
+            cd Build-Artifacts
+            PRJ_BITS=$(find . -iname "versions.txt")
+            FAILED_PRJS=""
+            for PRJ_BIT in ${PRJ_BITS}; do
+              PRJ_DIR=$(dirname "$PRJ_BIT");
+              PRJ_NAME="${PRJ_DIR%.*}";
+              PRJ_NAME="${PRJ_NAME%-*}";
+              PRJ_NAME_BASE=$(basename $PRJ_NAME);
+              if [ -f "$PRJ_DIR/timing_error.txt" ]; then
+                FAILED_PRJS="$FAILED_PRJS $PRJ_NAME_BASE";
+              fi;
+            done;
+            if [ "$FAILED_PRJS" != "" ]; then
+              echo "The following projects have failed timing:$FAILED_PRJS";
+              exit 1;
+            else
+              echo "All projects met timing. All good!";
+            fi;

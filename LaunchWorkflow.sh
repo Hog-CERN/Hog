@@ -173,29 +173,30 @@ function Launch_project(){
           fi
 
           if [ -z ${SIMLIBPATH+x} ]; then
-              if [ -z ${HOG_SIMULATION_LIB_PATH+x} ]; then
-                  SIMLIBPATH=""
-              else
-                  SIMLIBPATH="-simlib_path ${HOG_SIMULATION_LIB_PATH}"
-              fi
-          fi
+            if [ -z "$HOG_SIMULATION_LIB_PATH" ]; then
+                SIMLIBPATH=""
+            else
+                SIMLIBPATH="-simlib_path ${HOG_SIMULATION_LIB_PATH}"
+            fi
+        fi
 
-          if [ $COMMAND = "quartus_sh" ]; then
-              if [ "a$IP_PATH" != "a" ]; then
-                  Msg Warning "IP eos path not supported in Quartus mode"
-              fi
-              ${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_quartus.tcl $HELP $NO_BITSTREAM $SYNTH_ONLY $NJOBS $CHECK_SYNTAX $RECREATE $EXT_PATH $IMPL_ONLY -project $PROJ
-          elif [ $COMMAND = "vivado_hls" ]; then
-              Msg Error "Vivado HLS is not yet supported by this script!"
-          else
-              ${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_workflow.tcl -tclargs $HELP $NO_RESET $NO_BITSTREAM $SYNTH_ONLY $IP_PATH $NJOBS $CHECK_SYNTAX $RECREATE $EXT_PATH $IMPL_ONLY $SIMLIBPATH $PROJ
-          fi
-      else
-          Msg Error "Project $PROJ not found. Possible projects are:"
-          search_projects Top
-          cd "${OLD_DIR}"
-          exit -1
-      fi
+        if [ $COMMAND = "quartus_sh" ]; then
+            if [ "a$IP_PATH" != "a" ]; then
+                Msg Warning "IP eos path not supported in Quartus mode"
+            fi
+            ${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_quartus.tcl $HELP $NO_BITSTREAM $SYNTH_ONLY $NJOBS $CHECK_SYNTAX $RECREATE $EXT_PATH $IMPL_ONLY -project $PROJ
+        elif [ $COMMAND = "vivado_hls" ]; then
+            Msg Error "Vivado HLS is not yet supported by this script!"
+        else
+            Msg Info "${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_workflow.tcl -tclargs $HELP $NO_RESET $NO_BITSTREAM $SYNTH_ONLY $IP_PATH $NJOBS $CHECK_SYNTAX $RECREATE $EXT_PATH $IMPL_ONLY $SIMLIBPATH $PROJ"
+            ${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_workflow.tcl -tclargs $HELP $NO_RESET $NO_BITSTREAM $SYNTH_ONLY $IP_PATH $NJOBS $CHECK_SYNTAX $RECREATE $EXT_PATH $IMPL_ONLY $SIMLIBPATH $PROJ
+        fi
+    else
+        Msg Error "Project $PROJ not found. Possible projects are:"
+        search_projects Top
+        cd "${OLD_DIR}"
+        exit -1
+    fi
   fi
 }
 
@@ -211,6 +212,7 @@ if [[ ${BASH_SOURCE[0]} == $0 ]]; then
   repoPath=$(dirname "$0")
   print_hog $repoPath
   Launch_project $@
+        
 fi
 # repoPath=$(dirname "$0")
 # print_hog $repoPath

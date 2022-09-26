@@ -3387,12 +3387,12 @@ proc GetGenericFromConf {proj_dir target} {
         set valueStrFull ""
         set ValueStr ""
         regexp {([0-9]*)('h)([0-9a-fA-F]*)} $theValue valueHexFull valueNumBits valueHexFlag valueHex
-        Msg debug "HEX? $theKey : $valueHexFull $valueNumBits $valueHexFlag $valueHex"
+        # Msg debug "HEX? $theKey : $valueHexFull $valueNumBits $valueHexFlag $valueHex"
         regexp {^([0-9]*)$} $theValue valueIntFull ValueInt
-        Msg debug "INT? $theKey : $valueIntFull $ValueInt"
+        # Msg debug "INT? $theKey : $valueIntFull $ValueInt"
         # regexp {^\"?([a-zA-Z0-9\_\. ]*)\"?$} $theValue valueStrFull ValueStr 
         regexp {(?!^\d+$)^.+$} $theValue valueStrFull ValueStr 
-        Msg debug "STR? $theKey : $valueStrFull $ValueStr"
+        # Msg debug "STR? $theKey : $valueStrFull $ValueStr"
         if { $target == "Vivado" } {
           # set prj_generics "$prj_generics $theKey=$theValue"
           if {$valueNumBits != "" && $valueHexFlag != "" && $valueHex != ""} {
@@ -3448,11 +3448,11 @@ proc GetGenericFromConf {proj_dir target} {
 proc SetGenericsSimulation {proj_dir target} {
   set sim_generics ""
   set top_dir "Top/$proj_dir"
-  Msg debug "top dir = $top_dir"
+  # Msg debug "top dir = $top_dir"
   set read_aux [GetConfFiles $top_dir]
-  Msg debug "read_aux = $read_aux"
+  # Msg debug "read_aux = $read_aux"
   set sim_cfg_index [lsearch -regexp -index 0 $read_aux ".*sim.conf"]
-  Msg debug "sim_cfg_index = $sim_cfg_index"
+  # Msg debug "sim_cfg_index = $sim_cfg_index"
   set sim_cfg_index [lsearch -regexp -index 0 [GetConfFiles $top_dir] ".*sim.conf"]
   if {[file exist $top_dir/sim.conf]} {
     set sim_cfg_list [ReadConf [lindex [GetConfFiles $top_dir] [lsearch -regexp -index 0 $read_aux ".*sim.conf"]]]
@@ -3531,7 +3531,7 @@ proc WriteGenerics {mode design date timee commit version top_hash top_ver hog_h
     # puts "generic_string : $generic_string"
     
     #
-    Msg debug " ------------------------- Generics 4 Simulations -------------------------"
+    # Msg debug " ------------------------- Generics 4 Simulations -------------------------"
     set simulator [get_property target_simulator [current_project]]
     # Msg Info "SIMULATOR : $simulator"
     if {$mode == "create"} {

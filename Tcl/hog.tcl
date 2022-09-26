@@ -3401,10 +3401,10 @@ proc GetGenericFromConf {proj_dir target} {
             set prj_generics "$prj_generics $theKey=$ValueInt"
           } elseif { $valueStrFull != "" && $ValueStr != "" } {
             Msg warning "Value is a string "
-            set prj_generics "$prj_generics $theKey=\"$ValueStr\""
+            set prj_generics "$prj_generics {$theKey=\"$ValueStr\"}"
           } else {
             # Msg error "Value : $theValue not valid"
-            set prj_generics "$prj_generics $theKey=\"$theValue\""
+            set prj_generics "$prj_generics {$theKey=\"$theValue\"}"
           }
         } elseif { ( $target == "Questa" ) || ( $target == "ModelSim" ) } {
           if {$valueNumBits != "" && $valueHexFlag != "" && $valueHex != ""} {
@@ -3424,11 +3424,11 @@ proc GetGenericFromConf {proj_dir target} {
             set prj_generics "$prj_generics $theKey=$ValueInt"
           } elseif { $valueStrFull != "" && $ValueStr != "" } {
             # Msg warning "Value is a string "
-            set prj_generics "$prj_generics $theKey=\"$ValueStr\""
+            set prj_generics "$prj_generics {$theKey=\"$ValueStr\"}"
             
           } else {
             # Msg error "Value : $theValue not valid"
-            set prj_generics "$prj_generics $theKey=\"$theValue\""
+            set prj_generics "$prj_generics {$theKey=\"$theValue\"}"
           }
         } else {
           Msg warning "Target : $target not implemented"
@@ -3533,13 +3533,8 @@ proc WriteGenerics {mode design date timee commit version top_hash top_ver hog_h
     #
     # Msg debug " ------------------------- Generics 4 Simulations -------------------------"
     set simulator [get_property target_simulator [current_project]]
-    # Msg Info "SIMULATOR : $simulator"
     if {$mode == "create"} {
       SetGenericsSimulation $design $simulator
-      # set sim_generics [GetGenericFromConf $design $simulator]
-      # set sim_filesets [get_filesets]
-      # Msg debug "filesets = $sim_filesets"
-      # set_property generic $sim_generics [get_filesets project_lib_sim]
     }
   }
 }

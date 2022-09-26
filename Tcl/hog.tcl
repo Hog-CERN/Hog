@@ -3448,13 +3448,13 @@ proc GetGenericFromConf {proj_dir target} {
 proc SetGenericsSimulation {proj_dir target} {
   set sim_generics ""
   set top_dir "Top/$proj_dir"
-  # Msg debug "top dir = $top_dir"
+  Msg debug "top dir = $top_dir"
   set read_aux [GetConfFiles $top_dir]
-  # Msg debug "read_aux = $read_aux"
+  Msg debug "read_aux = $read_aux"
   set sim_cfg_index [lsearch -regexp -index 0 $read_aux ".*sim.conf"]
-  # Msg debug "sim_cfg_index = $sim_cfg_index"
+  Msg debug "sim_cfg_index = $sim_cfg_index"
   set sim_cfg_index [lsearch -regexp -index 0 [GetConfFiles $top_dir] ".*sim.conf"]
-  if {[lsearch -regexp -index 0 $read_aux ".*sim.conf"] >= 0} {
+  if {[file exist $top_dir/sim.conf]} {
     set sim_cfg_list [ReadConf [lindex [GetConfFiles $top_dir] [lsearch -regexp -index 0 $read_aux ".*sim.conf"]]]
     # Msg debug "sim_cfg_list = $sim_cfg_list"
     set sim_cfg_dict [dict get $sim_cfg_list ]
@@ -3467,6 +3467,17 @@ proc SetGenericsSimulation {proj_dir target} {
   } else {
     Msg warning "No sim.conf found in project Top"
   }
+  # if {[lsearch -regexp -index 0 $read_aux ".*sim.conf"] >= 0} {
+  #   set sim_cfg_list [ReadConf [lindex [GetConfFiles $top_dir] [lsearch -regexp -index 0 $read_aux ".*sim.conf"]]]
+  #   # Msg debug "sim_cfg_list = $sim_cfg_list"
+  #   set sim_cfg_dict [dict get $sim_cfg_list ]
+  #   dict for {theKey theValue} $sim_cfg_dict {
+  #     # Msg debug "$theKey"
+  #     set sim_generics [GetGenericFromConf $proj_dir $target]
+  #     set_property generic $sim_generics [get_filesets $theKey]
+  #     Msg Info "Setting simulator $target for file set $theKey generics : $sim_generics"
+  #   }
+  # }
 }
 
 ## Setting the generic property

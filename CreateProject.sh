@@ -179,6 +179,21 @@ function create_project() {
 
 }
 
-repoPath=$(dirname "$0")
-print_hog $repoPath
-create_project $@
+
+
+function HogCreateFunc(){
+  # init $@
+  echo "HogInitFunc ($*)"
+  create_project $@
+  # exit 0
+}
+if [[ ${BASH_SOURCE[0]} == $0 ]]; then
+#   printf "script '%s' is sourced in\n" "${BASH_SOURCE[0]}"
+# else
+  repoPath=$(dirname "$0")
+  print_hog $repoPath
+  create_project $@
+fi
+# repoPath=$(dirname "$0")
+# print_hog $repoPath
+# create_project $@

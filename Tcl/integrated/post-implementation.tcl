@@ -15,8 +15,9 @@
 
 # @file
 # The post implementation script embeds the git SHA of the current commit into the binary file of the project.
-# In Vivado this is done using the USERID and USR_ACCESS variables.
-# The USERID is always set to the commit, while the USR_ACCESS only if Hog can guarantee the reploducibility of the firmware workflow:
+# In Vivado this is done using the USERID and USR_ACCESS variables. In Quartus this is done with the STRATIX_JTAG_USER_CODE variable.
+# 
+# The USERID is always set to the commit, while the USR_ACCESS and STRATIX_JTAG_USER_CODE are set only if Hog can guarantee the reploducibility of the firmware workflow:
 #
 # - The firmware repostory must be clean (no uncommitted modification)
 # - The Multithread option must be disabled
@@ -131,7 +132,12 @@ if {[IsXilinx]} {
     set_property BITSTREAM.CONFIG.USR_ACCESS $commit_usr [current_design]
   }
 } elseif {[IsQuartus]} {
-  # Quartus TODO
+  cd $proj_dir
+  project_open $proj_name -current_revision
+  cd $old_path
+  set_global_assignment -name USE_CHECKSUM_AS_USERCODE OFF  
+  set_global_assignment -name STRATIX_JTAG_USER_CODE $commit
+  project_close
 } else {
   # Tclsh
 }

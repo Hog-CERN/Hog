@@ -19,7 +19,7 @@
 ## @var FILE_TYPE
 #  @brief Global variable used to distinguis tcl project from hog.conf
 #
-export COMMAND=""
+export FILE_TYPE=""
 
 ## @var COMMAND
 #  @brief Global variable used to contain the command to be used
@@ -40,6 +40,149 @@ export POST_COMMAND_OPT=""
 #  @brief Global variable contianing the full path to the HDL compiler to be used
 #
 export HDL_COMPILER=""
+
+## @var LOGGER
+#  @brief Global variable used to contain the logger
+export HOG_LOGGER="" 
+
+## @var COLORED
+#  @brief Global variable used to contain the colorer
+# if [[ -z ${CONSOLE_COLORER} ]]; then
+#   export CONSOLE_COLORER=""
+# else
+#   echo "there is a colorer : ${CONSOLE_COLORER}"
+# fi
+
+echo_info=1
+echo_warnings=1
+echo_errors=1
+
+loginfofile="hog_info.log"
+logwarningfile="hog_warning_errors.log"
+# logerrorfile="hog_warning_errors.log"
+
+
+function log_stdout(){
+  local color_reset="\e[0;37m"
+  local color_red="\e[0;31m"
+  local color_blue="\e[0;34m"
+  local color_orange="\e[0;33m"
+  local color_yellow="\e[0;93m"
+  local color_green="\e[0;32m"
+
+  # echo "std_out init : $*"
+  if [ -n "${2}" ]; then
+    IN_out="${2}"
+    in_type="${1}"
+    # echo "stdout : ${IN_out}" 
+  else
+    while read IN_out # This reads a string from stdin and stores it in a variable called IN_out
+    do
+      line=${IN_out}
+      # echo "${line}"
+      # echo "${1} = ${line}"
+      if [ "${1}" == "stdout" ]; then
+        # line=${IN_out}
+        # echo "${line}"
+        # echo $line >> $logfile
+        # string=$line
+        # echo "$line" | xcol warning: critical error: info: hog: 
+        case "$line" in
+          *'CRITICAL WARNING:'* )
+            if [ $echo_warnings == 1 ]; then
+              echo -e "${color_yellow}CRITICAL $color_reset: $line" 
+              #| $(${colorizer} warning: critical error: info: hog: )
+            fi
+            echo "$line" >> $logwarningfile
+            echo "$line" >> $loginfofile
+
+          ;;
+          *'WARNING:'* | *'Warning:'* | *'warning:'*)
+            if [ $echo_warnings == 1 ]; then
+              echo -e "${color_orange} WARNING $color_reset: $line" 
+              #| $(${colorizer} warning: critical error: info: hog: )
+            fi
+            echo "$line" >> $logwarningfile
+            echo "$line" >> $loginfofile
+
+          ;;
+          *'ERROR:'* | *'Error:'* | *':Error'* | *'error:'*)
+            if [ $echo_errors == 1 ]; then
+              echo -e "$color_red   ERROR $color_reset: $line"  
+              #| xcol warning: critical error info: hog: 
+            fi
+            echo "$line" >> $logwarningfile
+            echo "$line" >> $loginfofile
+
+          ;;
+          *'INFO:'*)
+            if [ $echo_info == 1 ]; then
+              echo -e "$color_blue    INFO $color_reset: $line" 
+              #| xcol warning: critical error: info: hog: 
+            fi
+            echo "$line" >> $loginfofile
+          ;;
+          *'DEBUG:'*)
+            if [ $echo_info == 1 ]; then
+              echo -e "$color_green   DEBUG $color_reset: $line" 
+              #| xcol warning: critical error: info: hog: 
+            fi
+            echo "$line" >> $loginfofile
+          ;;
+          *'vcom'*)
+            echo -e "$color_blue    INFO $color_reset: $line" #| xcol warning critical error vcom hog 
+            echo "$line" >> $loginfofile
+          ;;
+          *'Errors'* | *'Warnings'* | *'errors'* | *'warnings'*)
+            echo -e "$color_blue    INFO $color_reset: $line" #| xcol warnings critical errors vcom hog 
+            echo "$line" >> $loginfofile
+          ;;
+          *)
+            if [ $echo_info == 1 ]; then
+              echo -e "$color_blue    INFO $color_reset: $line" #| xcol warning: critical error: info: hog: 
+              echo "$line" >> $loginfofile
+            fi
+          ;;
+        esac
+      elif [ "${1}" == "stderr" ]; then
+        echo -e "$color_red   ERROR $color_reset: $line" 
+        echo "$line" >> $logwarningfile
+        echo "$line" >> $loginfofile
+
+
+      else
+       echo "----------------------- error -----------------------------------" 
+      fi  
+    done    
+  fi
+}
+
+## @function Logger()
+# 
+# @brief creates output files and pipelines stdout and stderr to 
+# 
+# @param[in] execution line to process
+function Logger(){
+  {
+    print_hog $(dirname "$0")
+    echo "-----------------------------------------------"
+    echo " HOG INFO LOG "
+    echo " CMD : ${1} "
+    echo "-----------------------------------------------"
+  } > $loginfofile
+  {
+    print_hog $(dirname "$0")
+    echo "-----------------------------------------------"
+    echo " HOG WARNINGS AND ERRORS"
+    echo " CMD : ${1} "
+    echo "-----------------------------------------------"
+  } > $logwarningfile
+
+  echo "LogColorVivado : $*"
+  log_stdout "stdout" "LogColorVivado : $*"
+  log_stdout "stderr" "LogColorVivado : $*"
+  $* > >(log_stdout "stdout") 2> >(log_stdout "stderr" >&2)
+}
 
 # @function Msg
 #
@@ -377,11 +520,11 @@ function HogVer() {
       Msg Info
       Msg Info "Version $master_version has been released (https://gitlab.cern.ch/hog/Hog/-/releases/$master_version)"
       Msg Info "You should consider updating Hog submodule with the following instructions:"
-      Msg Info
+      echo
       Msg Info "cd Hog && git checkout master && git pull"
-      Msg Info
+      echo 
       Msg Info "Remember also to update the ref: in your .gitlab-ci.yml to $master_version"
-      Msg Info
+      echo 
     else
       Msg Info "Latest official version is $master_version, nothing to do."
     fi

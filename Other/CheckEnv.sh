@@ -24,7 +24,7 @@ TOP_DIR=$(realpath $THIS_DIR/../../Top)
 
 . $THIS_DIR/CommonFunctions.sh
 
-if [ -z ${HOG_COMPILER+x} ]; then
+if [ -z "$HOG_COMPILER" ]; then
     COMPILERS_TO_CHECK=("vivado")
 else
     COMPILERS_TO_CHECK=$(echo $HOG_COMPILER | tr -d '[:space:]' | tr ";" "\n")
@@ -88,7 +88,7 @@ echo
 
 echo ===== ESSENTIAL VARIABLES =====
 echo -n "Variable: HOG_USER is "
-if [ -z ${HOG_USER+x} ]; then
+if [ -z "$HOG_USER" ]; then
     echo "NOT defined. This variable is essential for git to work properly. It should be set to the username for your service account (a valid git account)."
     FAIL=1
 else
@@ -97,7 +97,7 @@ fi
 echo --------------------------------
 
 echo -n "Variable: HOG_EMAIL is "
-if [ -z ${HOG_EMAIL+x} ]; then
+if [ -z "$HOG_EMAIL" ]; then
     echo "NOT defined. This variable is essential for git to work properly. It should be set to your service's account email."
     FAIL=1
 else
@@ -105,19 +105,35 @@ else
 fi
 echo --------------------------------
 
-if ( ! ([ -z ${EOS_MGM_URL+x} ] && [ -z ${HOG_OFFICIAL_BIN_EOS_PATH+x} ])); then
+echo -n "Variable: HOG_PUSH_TOKEN is "
+if [ -z "$HOG_PUSH_TOKEN" ]; then
+    echo "NOT defined. This variable is essential for git to work properly. It should be set to a gitlab push token for your service account."
+    FAIL=1
+else
+    echo "defined."
+fi
+
+if ( ! [ -z "$HOG_OFFICIAL_BIN_EOS_PATH" ]); then
     echo -n "Variable: EOS_PASSWORD is "
-    if [ -z ${EOS_PASSWORD+x} ]; then
-        echo "NOT defined. This variable is essential to communicate with the CERN EOS cloud, to store IPs and official bitfiles."
-        FAIL=1
+    if [ -z "$EOS_PASSWORD" ]; then
+        if [ -z "$HOG_PASSWORD" ]; then
+            echo "NOT defined. This variable is essential to communicate with the CERN EOS cloud, to store IPs and official bitfiles."
+            FAIL=1
+        else
+            echo "NOT defined. Hog will use the variable HOG_PASSWORD instead."
+        fi
     else
         echo "defined"
     fi
     echo --------------------------------
     echo -n "Variable: EOS_USER is "
-    if [ -z ${EOS_USER+x} ]; then
-        echo "NOT defined. This variable is essential to communicate with the CERN EOS cloud, to store IPs and official bitfiles."
-        FAIL=1
+    if [ -z "$EOS_USER" ]; then
+        if [ -z "$HOG_USER" ]; then
+            echo "NOT defined. This variable is essential to communicate with the CERN EOS cloud, to store IPs and official bitfiles."
+            FAIL=1
+        else
+            echo "NOT defined. Hog will use the variable HOG_PASSWORD instead."
+        fi
     else
         echo "defined."
     fi
@@ -125,23 +141,17 @@ if ( ! ([ -z ${EOS_MGM_URL+x} ] && [ -z ${HOG_OFFICIAL_BIN_EOS_PATH+x} ])); then
 
 fi
 
-echo -n "Variable: HOG_PUSH_TOKEN is "
-if [ -z ${HOG_PUSH_TOKEN+x} ]; then
-    echo "NOT defined. This variable is essential for git to work properly. It should be set to a gitlab push token for your service account."
-    FAIL=1
-else
-    echo "defined."
-fi
-
 echo ================================
 echo
 
 # Almost necessary
 echo === SEMI-ESSENTIAL VARIABLES ===
+
+
 if [[ " ${COMPILERS_TO_CHECK[@]} " =~ "vivado" || " ${COMPILERS_TO_CHECK[@]} " =~ "planAhead" ]]; then
 
     echo -n "Variable: HOG_XIL_LICENSE is "
-    if [ -z ${HOG_XIL_LICENSE+x} ]; then
+    if [ -z "$HOG_XIL_LICENSE" ]; then
         echo "NOT defined. If this variable is not set to the license servers separated by comas, you need some alternative way of getting your Xilinx licence (for example a licence file on the machine)."
     else
         echo "defined."
@@ -153,7 +163,7 @@ if [[ " ${COMPILERS_TO_CHECK[@]} " =~ "quartus" ]]; then
     echo --------------------------------
 
     echo -n "Variable: LM_LICENSE_FILE is "
-    if [ -z ${LM_LICENSE_FILE+x} ]; then
+    if [ -z "$LM_LICENSE_FILE" ]; then
         echo "NOT defined. This variable should be set the Quartus license servers separated by semicolon. If not, you need an alternative way of getting your Quartus licence."
     else
         echo "defined."
@@ -162,15 +172,15 @@ if [[ " ${COMPILERS_TO_CHECK[@]} " =~ "quartus" ]]; then
 fi
 
 echo -n "Variable: EOS_MGM_URL is "
-if [ -z ${EOS_MGM_URL+x} ]; then
-    echo "NOT defined. This variable is essential for EOS to work properly. Hog-Ci will use the deafule value of root://eosuser.cern.ch"
+if [ -z "$EOS_MGM_URL" ]; then
+    echo "NOT defined. This variable is essential for EOS to work properly. Hog-Ci will use the default value of root://eosuser.cern.ch"
 else
     echo "defined."
 fi
 echo --------------------------------
 
 echo -n "Variable: HOG_PATH is "
-if [ -z ${HOG_PATH+x} ]; then
+if [ -z "$HOG_PATH" ]; then
     echo "NOT defined. Hog might work as long as all the necessary executable are in the PATH variable."
 else
     echo "defined."
@@ -179,7 +189,7 @@ echo "This Variable will be added in front of the regular PATH so it will overri
 echo --------------------------------
 
 echo -n "Variable: HOG_LD_LIBRARY_PATH is "
-if [ -z ${HOG_LD_LIBRARY_PATH+x} ]; then
+if [ -z "$HOG_LD_LIBRARY_PATH" ]; then
     echo "NOT defined. Hog might work as long as all the necessary library are found."
 else
     echo "defined."
@@ -188,7 +198,7 @@ echo "This variable will be added in front of the regular LD_LIBRARY_PATH so it 
 echo --------------------------------
 
 echo -n "Variable: HOG_SIMULATION_LIB_PATH is "
-if [ -z ${HOG_SIMULATION_LIB_PATH+x} ]; then
+if [ -z "$HOG_SIMULATION_LIB_PATH" ]; then
     echo "NOT defined. Hog-CI will not be able to run Questasim/Modelsim."
 else
     echo "defined."
@@ -196,7 +206,7 @@ fi
 echo --------------------------------
 
 echo -n "Variable: HOG_OFFICIAL_BIN_EOS_PATH is "
-if [ -z ${HOG_OFFICIAL_BIN_EOS_PATH+x} ]; then
+if [ -z "$HOG_OFFICIAL_BIN_EOS_PATH" ]; then
     echo "NOT defined. Hog-CI will not be able to copy official bitfile to EOS."
 else
     echo "defined."
@@ -250,7 +260,7 @@ fi
 echo --------------------------------
 
 echo -n "Variable: HOG_IP_PATH is "
-if [ -z ${HOG_IP_PATH+x} ]; then
+if [ -z "$HOG_IP_PATH" ]; then
     echo -n "NOT defined. Hog-CI will NOT"
 else
     echo -n "defined. Hog-CI will"
@@ -259,7 +269,7 @@ echo " use an EOS/LOCAL IP repository to speed up the IP synthesis."
 echo --------------------------------
 
 echo -n "Variable: HOG_RESET_FILES is "
-if [ -z ${HOG_RESET_FILES+x} ]; then
+if [ -z "$HOG_RESET_FILES" ]; then
     echo "NOT defined. Hog-CI will NOT reset any files"
 else
     echo "defined. Hog-CI will reset the following files before synthesis, before implementation, and before bitstream: \n $HOG_RESET_FILES"
@@ -267,7 +277,7 @@ fi
 echo --------------------------------
 
 echo -n "Variable: HOG_TARGET_BRANCH is "
-if [ -z ${HOG_TARGET_BRANCH+x} ]; then
+if [ -z "$HOG_TARGET_BRANCH" ]; then
     echo "NOT defined. Default branch for merge is \"master\""
 else
     echo "defined. Will merge to ${HOG_TARGET_BRANCH}"
@@ -284,7 +294,7 @@ echo " create an official release note using the version and timing summaries ta
 echo --------------------------------
 
 echo -n "Variable: HOG_NJOBS is "
-if [ -z ${HOG_NJOBS+x} ]; then
+if [ -z "$HOG_NJOBS" ]; then
     echo "NOT defined. Hog-CI will run synthesis and implementation with default number of jobs (4)"
 else
     echo "defined. Hog-CI will run synthesis and implementation with $HOG_NJOBS jobs"
@@ -292,7 +302,7 @@ fi
 echo --------------------------------
 
 echo -n "Variable: HOG_IP_NJOBS is "
-if [ -z ${HOG_IP_NJOBS+x} ]; then
+if [ -z "$HOG_IP_NJOBS" ]; then
     echo "NOT defined. Hog-CI will build IPs with default number of jobs (4)"
 else
     echo "defined. Hog-CI will build IPs with $HOG_IP_NJOBS jobs"
@@ -309,7 +319,7 @@ echo ================================
 echo
 
 if [ -z ${FAIL+x} ]; then
-    echo "Hog-INFO: Check successfull, you can run Hog-CI on this machine"
+    echo "Hog-INFO: Check successful, you can run Hog-CI on this machine"
 else
     echo "Hog-ERROR: At least one essential variable or executable was not defined, Hog-CI cannot start. Check above for details."
     exit 1

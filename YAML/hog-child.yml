@@ -65,6 +65,7 @@
         else
           if [ -z ${HOG_SIMULATION_LIB_PATH+x} ]; then
             echo 'Simulation library path is not defined';
+            ./Hog/LaunchSimulation.sh $PROJECT_NAME
           else
              ./Hog/LaunchSimulation.sh $PROJECT_NAME -l $HOG_SIMULATION_LIB_PATH ;
           fi;
@@ -102,6 +103,21 @@
             export HOG_NJOBS=4;
             echo "Hog-CI(info) - Number of jobs set to $HOG_NJOBS";
           fi;
+          ENABLE_EOS=1;
+          if [ -z ${EOS_PASSWORD+x} ]; then
+            if [ -z ${HOG_PASSWORD+x} ]; then
+              ENABLE_EOS=0;
+            else
+              EOS_PASSWORD=${HOG_PASSWORD};
+            fi;
+          fi;
+          if [ -z ${EOS_USER+x} ]; then
+            if [ -z ${HOG_USER+x} ]; then
+              ENABLE_EOS=0;
+            else
+              EOS_USER=${HOG_USER};
+            fi;
+          fi;
           if [ -z ${HOG_IP_PATH+x} ]; then
             if [[ -z ${HOG_IP_EOS_PATH+x} ]]; then
               echo "Hog-CI(info) - No EOS/LOCAL path for IPs defined.";
@@ -111,15 +127,19 @@
               echo "Hog-CI(info) - IPs will be copied to/from $HOG_IP_EOS_PATH.";
               export IP_PATH="-ip_path $HOG_IP_EOS_PATH";
               if [[ $HOG_IP_EOS_PATH = /eos/* ]]; then
-                echo "kinit $EOS_USER@CERN.CH";
-                until echo $EOS_PASSWORD | kinit $EOS_USER@CERN.CH ; do echo "Retrying"; sleep 2; done;
+                if [ $ENABLE_EOS -eq 1 ]; then
+                  echo "kinit $EOS_USER@CERN.CH";
+                  until echo $EOS_PASSWORD | kinit $EOS_USER@CERN.CH ; do echo "Retrying"; sleep 2; done;
+                fi;
               fi;
             fi;
           else
             echo "Hog-CI(info) - IPs will be copied to/from $HOG_IP_PATH.";
             export IP_PATH="-ip_path $HOG_IP_PATH";
             if [[ $HOG_IP_PATH = /eos/* ]]; then
-              until echo $EOS_PASSWORD | kinit $EOS_USER@CERN.CH ; do echo "Retrying"; sleep 2; done;
+              if [ $ENABLE_EOS -eq 1 ]; then
+                until echo $EOS_PASSWORD | kinit $EOS_USER@CERN.CH ; do echo "Retrying"; sleep 2; done;
+              fi;
             fi;
           fi;
           if [[ -n "$HOG_ONLY_SYNTH" ]] && [[ $HOG_ONLY_SYNTH == '1' ]]; then
@@ -207,9 +227,9 @@ collect_artifacts:
         - old_dir=`pwd`
         - mkdir -p $CI_PROJECT_DIR/bin
         - "printf \"## Repository info\n- Merge request number: $CI_MERGE_REQUEST_IID\n- Branch name: $CI_COMMIT_REF_SLUG\n\n\" > $CI_PROJECT_DIR/bin/note.md"
-        - ./Hog/Other/Changelog.sh $CI_MERGE_REQUEST_TARGET_BRANCH_NAME $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $CI_MERGE_REQUEST_IID  >> $CI_PROJECT_DIR/bin/note.md
+        - ./Hog/Other/Changelog.sh -t $CI_MERGE_REQUEST_TARGET_BRANCH_NAME -pt $HOG_PUSH_TOKEN -a $CI_API_V4_URL -p $CI_PROJECT_ID -n $CI_MERGE_REQUEST_IID  >> $CI_PROJECT_DIR/bin/note.md
         - cd $CI_PROJECT_DIR/bin/
-        - diff_files=$(find . -name "diff*.txt");
+        - diff_files=$(find . -name "diff_list*.txt");
         - touch $old_dir/mr_note.md
         - echo "Pipeline [$CI_PIPELINE_ID]($CI_PIPELINE_URL) passed for merge-request !$CI_MERGE_REQUEST_IID" >> $old_dir/mr_note.md
         - if [[ $diff_files != "" ]]; then
@@ -230,7 +250,7 @@ collect_artifacts:
                 if [[ $HOG_MR_MSG == '1' ]]; then
                   cat $fp >> $old_dir/mr_note.md;
                 fi;
-                  cat $fp >> $CI_PROJECT_DIR/bin/note.md;
+                cat $fp >> $CI_PROJECT_DIR/bin/note.md;
               done;
             fi;
           done;

@@ -40,6 +40,10 @@ function argument_parser() {
             mr="$2"
             shift 2
             ;;
+        -github)
+            github="1"
+            shift 1
+            ;;
         --) # end argument parsing
             shift
             break
@@ -76,6 +80,7 @@ function help_message() {
   echo "          -proj_id <id>              The ID of the GitLab project "
   echo "          -mr <Merge Request Number> The MR number  "
   echo "          -doxygen                   If sets, get also the artifacts from make_doxygen job."
+  echo "          -github                    If sets, use the github API"
   echo
 
   exit -1 
@@ -94,31 +99,49 @@ else
 
     # GET all artifacts from collect_artifacts
     echo "Hog-INFO: downloading artifacts..."
-    ref=refs/merge-requests%2F$mr%2Fhead
-    curl --location --header "PRIVATE-TOKEN: ${push_token}" "$api"/projects/"${proj}"/jobs/artifacts/"$ref"/download?job=collect_artifacts -o collect_artifacts.zip
-    echo "Hog-INFO: unzipping artifacts from collect_artifacts job..."
-    unzip -oq collect_artifacts.zip
+    if [[ $github == "1" ]]; then
+        artifact_id=$(curl -H "Accept: application/vnd.github+json" -H "Authorization: token ${push_token}" $api/repos/$proj/actions/runs/$mr/artifacts | jq '.artifacts[] | select (.name=="Collect-Artifacts") .id')
+        curl -L -H "Accept: application/vnd.github+json" -H "Authorization: token ${push_token}" $api/repos/$proj/actions/artifacts/$artifact_id/zip -o collect_artifacts.zip
+        echo "Hog-INFO: unzipping artifacts from collect_artifacts job..."
+        unzip -oq collect_artifacts.zip -d bin
+    else
+        ref=refs/merge-requests%2F$mr%2Fhead
+        curl --location --header "PRIVATE-TOKEN: ${push_token}" "$api"/projects/"${proj}"/jobs/artifacts/"$ref"/download?job=collect_artifacts -o collect_artifacts.zip
+        echo "Hog-INFO: unzipping artifacts from collect_artifacts job..."
+        unzip -oq collect_artifacts.zip
+    fi
+
     rm collect_artifacts.zip
 
     
     # Get artifacts from make_doxygen stage
     if [ "$get_doxygen" == "1" ]; then
-        curl --location --header "PRIVATE-TOKEN: ${push_token}" "$api"/projects/"${proj}"/jobs/artifacts/"$ref"/download?job=make_doxygen -o doxygen.zip
-        echo "Hog-INFO: unzipping artifacts from make_doxygen job..."
-        unzip -oq doxygen.zip
+        if [[ $github == "1" ]]; then
+            artifact_id=$(curl -H "Accept: application/vnd.github+json" -H "Authorization: token ${push_token}" $api/repos/$proj/actions/runs/$mr/artifacts | jq '.artifacts[] | select (.name=="Doxygen-Artifacts") .id')
+            curl -L -H "Accept: application/vnd.github+json" -H "Authorization: token ${push_token}" $api/repos/$proj/actions/artifacts/$artifact_id/zip -o doxygen.zip
+            echo "Hog-INFO: unzipping artifacts from make_doxygen job..."
+            unzip -oq doxygen.zip -d Doc
+        else
+            curl --location --header "PRIVATE-TOKEN: ${push_token}" "$api"/projects/"${proj}"/jobs/artifacts/"$ref"/download?job=make_doxygen -o doxygen.zip
+            echo "Hog-INFO: unzipping artifacts from make_doxygen job..."
+            unzip -oq doxygen.zip 
+        fi
+
         rm doxygen.zip
     fi
 
-    # GET all artifacts from user_post stage
-    pipeline=$(curl --globoff --header "PRIVATE-TOKEN: ${push_token}" "$api/projects/${proj}/merge_requests/$mr/pipelines" | jq '.[0].id')
-    
-    job=$(curl --globoff --header "PRIVATE-TOKEN: ${push_token}" "$api/projects/${proj}/pipelines/${pipeline}/jobs" | jq -r '.[0].name')
-    
-    if [ "$job" != "collect_artifacts" ]; then
-        curl --location --header "PRIVATE-TOKEN: ${push_token}" "$api"/projects/"${proj}"/jobs/artifacts/"$ref"/download?job="$job" -o user_post.zip
-        echo "Hog-INFO: unzipping artifacts from $job job..."
-        unzip -oq user_post.zip
-        rm user_post.zip
+    if [[ $github != "1" ]]; then
+        # GET all artifacts from user_post stage
+        pipeline=$(curl --globoff --header "PRIVATE-TOKEN: ${push_token}" "$api/projects/${proj}/merge_requests/$mr/pipelines" | jq '.[0].id')
+        
+        job=$(curl --globoff --header "PRIVATE-TOKEN: ${push_token}" "$api/projects/${proj}/pipelines/${pipeline}/jobs" | jq -r '.[0].name')
+        
+        if [ "$job" != "collect_artifacts" ]; then
+            curl --location --header "PRIVATE-TOKEN: ${push_token}" "$api"/projects/"${proj}"/jobs/artifacts/"$ref"/download?job="$job" -o user_post.zip
+            echo "Hog-INFO: unzipping artifacts from $job job..."
+            unzip -oq user_post.zip
+            rm user_post.zip
+        fi
     fi
 
     if [ -d bin ]; then

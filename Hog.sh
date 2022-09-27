@@ -86,19 +86,24 @@ else
       Logger HogInitFunc $@
       exit 0
     ;;
-    -C|Create)
+    -C|create)
       echo " Create $*"
       Logger HogCreateFunc $*
     ;;
-    -W|Workflow)
+    -W|workflow)
       echo " Workflow"
       Logger HogLaunchFunc $*
       # ./Hog/LaunchWorkflow.sh $*
     ;;
-    -S|Simulation)
+    -S|simulation)
       echo " Simulation"
       # ./Hog/LaunchSimulation.sh $*
       Logger HogSimulateFunc $*
+    ;;
+    -V|--verbose)
+      echo " Verbose level"
+      # ./Hog/LaunchSimulation.sh $*
+      # Logger HogSimulateFunc $*
     ;;
     *)
       Msg Error "Activity not recognized"

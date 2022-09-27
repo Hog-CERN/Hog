@@ -29,7 +29,6 @@
 set CI_STAGES {"generate_project" "simulate_project"}
 set CI_PROPS {"-synth_only"}
 
-
 #### FUNCTIONS
 
 proc GetSimulators {} {
@@ -87,6 +86,10 @@ proc Msg {level msg {title ""}} {
   } elseif {$level == 4 || $level == "error"} {
     set vlevel {ERROR}
     set qlevel "error"
+  } elseif {$level == 5 || $level == "debug"} {
+    set vlevel {STATUS}
+    set qlevel info
+    set msg "DEBUG: $msg"
   } else {
     puts "Hog Error: level $level not defined"
     exit -1
@@ -242,7 +245,7 @@ proc GetProject {proj} {
     return ""
   } else {
     # Tcl Shell
-    puts "***DEBUG Hog:GetProject $project"
+    puts "***DEBUG Hog:GetProject $proj"
     return "DEBUG_project"
   }
 
@@ -2633,7 +2636,6 @@ proc HandleIP {what_to_do xci_file ip_path runs_dir {force 0}} {
         } else {
           file copy -force "$file_name.tar" "$ip_path/"
         }
-
         Msg Info "Removing local archive"
         file delete $file_name.tar
       } else {
@@ -3320,7 +3322,7 @@ proc GetDateAndTime {commit} {
     set date [clock format $clock_seconds  -format {%d%m%Y}]
     set timee [clock format $clock_seconds -format {00%H%M%S}]
   }
-  return $date $timee
+  return [list $date $timee]
 }
 
 ## Get the Project flavour
@@ -3358,35 +3360,104 @@ proc FormatGeneric {generic} {
 
 ## @brief Gets custom generics from hog.conf
 #
-# @param[in] proj_dir:   the top folder of the project
-# @return string with generics ( Vivado format)
+# @param[in] proj_dir:    the top folder of the project
+# @param[in] target:      software target(vivado, questa)
+#                         defines the output format of the string
+# @return string with generics 
 #
-proc GetGenericFromConf {proj_dir} {
+proc GetGenericFromConf {proj_dir target} {
   set prj_generics ""
-  if {[file exist $proj_dir/hog.conf]} {
-    set properties [ReadConf [lindex [GetConfFiles $proj_dir] 0]]
+  set top_dir "Top/$proj_dir"
+  if {[file exist $top_dir/hog.conf]} {
+    set properties [ReadConf [lindex [GetConfFiles $top_dir] 0]]
     if {[dict exists $properties generics]} {
       set propDict [dict get $properties generics]
       dict for {theKey theValue} $propDict {
-        set prj_generics "$prj_generics $theKey=$theValue"
-        # set prj_generics [concat $prj_generics "$theKey=[FormatGeneric $theValue]"]
+        set valueHexFull ""
+        set valueNumBits ""
+        set valueHexFlag ""
+        set valueHex ""
+        set valueIntFull ""
+        set ValueInt ""
+        set valueStrFull ""
+        set ValueStr ""
+        regexp {([0-9]*)('h)([0-9a-fA-F]*)} $theValue valueHexFull valueNumBits valueHexFlag valueHex
+        regexp {^([0-9]*)$} $theValue valueIntFull ValueInt
+        regexp {(?!^\d+$)^.+$} $theValue valueStrFull ValueStr 
+        if { $target == "Vivado" } {
+          if {$valueNumBits != "" && $valueHexFlag != "" && $valueHex != ""} {
+            set prj_generics "$prj_generics $theKey=$valueHexFull"
+          } elseif { $valueIntFull != "" && $ValueInt != "" } {
+            set prj_generics "$prj_generics $theKey=$ValueInt"
+          } elseif { $valueStrFull != "" && $ValueStr != "" } {
+            Msg warning "Value is a string "
+            set prj_generics "$prj_generics {$theKey=\"$ValueStr\"}"
+          } else {
+            set prj_generics "$prj_generics {$theKey=\"$theValue\"}"
+          }
+        } elseif { ( $target == "Questa" ) || ( $target == "ModelSim" ) } {
+          if {$valueNumBits != "" && $valueHexFlag != "" && $valueHex != ""} {
+            set numBits 0
+            scan $valueNumBits %d numBits
+            set numHex 0
+            scan $valueHex %x numHex
+            binary scan [binary format "I" $numHex] "B*" binval
+            set numBits [expr $numBits-1]
+            set numBin [string range $binval end-$numBits end]
+            set prj_generics "$prj_generics $theKey=\"$numBin\""
+
+          } elseif { $valueIntFull != "" && $ValueInt != "" } {
+            set prj_generics "$prj_generics $theKey=$ValueInt"
+          } elseif { $valueStrFull != "" && $ValueStr != "" } {
+            set prj_generics "$prj_generics {$theKey=\"$ValueStr\"}"
+            
+          } else {
+            set prj_generics "$prj_generics {$theKey=\"$theValue\"}"
+          }
+        } else {
+          Msg warning "Target : $target not implemented"
+        }
       }
-      # puts "prj_generics : $prj_generics"
     }
   } else {
-    Msg Warning "File $proj_dir/hog.conf not found." 
+    Msg Warning "File $top_dir/hog.conf not found." 
   }
   return $prj_generics
 }
 
+## @brief Sets the generics in all the sim.conf simulation file sets
+#
+# @param[in] proj_dir:    the top folder of the project
+# @param[in] target:      software target(vivado, questa)
+#                         defines the output format of the string
+#
+proc SetGenericsSimulation {proj_dir target} {
+  set sim_generics ""
+  set top_dir "Top/$proj_dir"
+  set read_aux [GetConfFiles $top_dir]
+  set sim_cfg_index [lsearch -regexp -index 0 $read_aux ".*sim.conf"]
+  set sim_cfg_index [lsearch -regexp -index 0 [GetConfFiles $top_dir] ".*sim.conf"]
+  if {[file exist $top_dir/sim.conf]} {
+    set sim_cfg_list [ReadConf [lindex [GetConfFiles $top_dir] [lsearch -regexp -index 0 $read_aux ".*sim.conf"]]]
+    set sim_cfg_dict [dict get $sim_cfg_list ]
+    dict for {theKey theValue} $sim_cfg_dict {
+      set sim_generics [GetGenericFromConf $proj_dir $target]
+      set_property generic $sim_generics [get_filesets $theKey]
+      Msg Info "Setting simulator $target for file set $theKey generics : $sim_generics"
+    }
+  } else {
+    Msg warning "No sim.conf found in project Top"
+  }
+}
 
 ## Setting the generic property
 #
 #  @param[in]    list of variables to be written in the generics
-proc WriteGenerics {proj_dir date timee commit version top_hash top_ver hog_hash hog_ver cons_ver cons_hash libs vers hashes ext_names ext_hashes user_ip_repos user_ip_vers user_ip_hashes flavour {xml_ver ""} {xml_hash ""}} {
+proc WriteGenerics {mode design date timee commit version top_hash top_ver hog_hash hog_ver cons_ver cons_hash libs vers hashes ext_names ext_hashes user_ip_repos user_ip_vers user_ip_hashes flavour {xml_ver ""} {xml_hash ""}} {
+  Msg Info "Project $design writing generics."
   #####  Passing Hog generic to top file
-    if {[IsXilinx]} {
-
+  if {[IsXilinx]} {
+      
     # set global generic varibles
     set generic_string [concat \
                             "GLOBAL_DATE=[FormatGeneric $date]" \
@@ -3399,14 +3470,14 @@ proc WriteGenerics {proj_dir date timee commit version top_hash top_ver hog_hash
                             "HOG_VER=[FormatGeneric $hog_ver]" \
                             "CON_VER=[FormatGeneric $cons_ver]" \
                             "CON_SHA=[FormatGeneric $cons_hash]"]
-#'"
+    #'"
     # xml hash
     if {$xml_hash != "" && $xml_ver != ""} {
         lappend generic_string \
             "XML_VER=[FormatGeneric $xml_ver]" \
             "XML_SHA=[FormatGeneric $xml_hash]"
     }
-#'"
+    #'"
     #set project specific lists
     foreach l $libs v $vers h $hashes {
         set ver "[string toupper $l]_VER=[FormatGeneric $v]"
@@ -3430,16 +3501,16 @@ proc WriteGenerics {proj_dir date timee commit version top_hash top_ver hog_hash
         lappend generic_string "FLAVOUR=$flavour"
     }
 
-    # Dealing with project generics
-    set prj_generics [GetGenericFromConf $proj_dir]
-    set generic_string "$generic_string $prj_generics"
+    # Dealing with project generics in Vivado
+    set prj_generics [GetGenericFromConf $design "Vivado"]
+    set generic_string "$prj_generics $generic_string"
     set_property generic $generic_string [current_fileset]
-    Msg Info " Set project generics : $prj_generics"
-    # puts "prj_generics : $prj_generics"
-    # puts "generic_string : $generic_string"
-    
-    #
-    set_property generic $prj_generics [get_filesets project_lib_sim]
+    Msg Info "Setting Vivado generics : $generic_string"
+    # Dealing with project generics in Simulators
+    set simulator [get_property target_simulator [current_project]]
+    if {$mode == "create"} {
+      SetGenericsSimulation $design $simulator
+    }
   }
 }
 

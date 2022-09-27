@@ -29,7 +29,6 @@
 set CI_STAGES {"generate_project" "simulate_project"}
 set CI_PROPS {"-synth_only"}
 
-
 #### FUNCTIONS
 
 proc GetSimulators {} {

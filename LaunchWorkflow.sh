@@ -202,6 +202,7 @@ function Launch_project(){
 
 function HogLaunchFunc(){
   # init $@
+  shift
   echo "HogInitFunc ($*)"
   Launch_project $@
   # exit 0

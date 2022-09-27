@@ -39,7 +39,7 @@
         when: never
       - if: '$CI_MERGE_REQUEST_TITLE =~ /^Draft:.*$/ && $CI_COMMIT_MESSAGE !~ /^RESOLVE_WIP:/'
         when: never
-      - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /^master.*$/ && $HOG_TARGET_BRANCH == null'
+      - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /^master|main|release.*$/ && $HOG_TARGET_BRANCH == null'
         when: on_success
       - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $HOG_TARGET_BRANCH && $HOG_TARGET_BRANCH != null'
         when: on_success
@@ -54,7 +54,7 @@
         when: never
       - if: '$CI_MERGE_REQUEST_TITLE =~ /^Draft:.*$/ && $CI_COMMIT_MESSAGE !~ /^RESOLVE_WIP:/'
         when: never
-      - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /^master.*$/ && $HOG_TARGET_BRANCH == null'
+      - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /^master|main|release.*$/ && $HOG_TARGET_BRANCH == null'
         when: on_success
       - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $HOG_TARGET_BRANCH && $HOG_TARGET_BRANCH != null'
         when: on_success
@@ -68,7 +68,7 @@ merge_and_tag:
   script:
     - "if [[ $CI_COMMIT_MESSAGE == *RESOLVE_WIP* && $CI_MERGE_REQUEST_TITLE == Draft* ]]; then echo 'removing Draft status'; curl ${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/merge_requests/${CI_MERGE_REQUEST_IID}/notes?body=/wip --header \"PRIVATE-TOKEN: ${HOG_PUSH_TOKEN}\" --request POST; fi;"
     - "MR_PARAMETERS=`curl --header \"PRIVATE-TOKEN: ${HOG_PUSH_TOKEN}\" ${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/merge_requests/${CI_MERGE_REQUEST_IID}`"
-    - if [[ ((-n $HOG_TARGET_BRANCH) && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "$HOG_TARGET_BRANCH") || ((-z $HOG_TARGET_BRANCH) && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == master*) ]]; then INCREASE=""; else INCREASE="-no_increase"; fi;
+    - if [[ ((-n $HOG_TARGET_BRANCH) && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "$HOG_TARGET_BRANCH") || ((-z $HOG_TARGET_BRANCH) && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ master|main|release.*) ]]; then INCREASE=""; else INCREASE="-no_increase"; fi;
     - if [[ ${HOG_CHECK_YAMLREF} != 1 ]]; then
         echo 'Yaml consistency checker is disabled';
       else
@@ -117,7 +117,7 @@ tag_official_version:
   rules:
     - if: '$HOG_TARGET_BRANCH != null && $CI_COMMIT_REF_NAME == $HOG_TARGET_BRANCH && $CI_PIPELINE_SOURCE == "push"'
       when: always
-    - if: '$HOG_TARGET_BRANCH == null && $CI_COMMIT_REF_NAME =~ /^master\d*$/  && $CI_PIPELINE_SOURCE == "push"'
+    - if: '$HOG_TARGET_BRANCH == null && $CI_COMMIT_REF_NAME =~ /^master|main|release.*$/  && $CI_PIPELINE_SOURCE == "push"'
       when: always
     - when: never
 

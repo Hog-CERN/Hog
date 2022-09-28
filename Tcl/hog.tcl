@@ -931,6 +931,9 @@ proc GetVerFromSHA {SHA repo_path} {
 	  } else {
 	    set version_level patch
 	  }
+
+	  Msg Info "******** HF: $hotfix_prefix, M: $major_prefix, m: $minor_prefix, is_hotfilx: $is_hotfix."
+
 	  
 	  if {$M == -1} {
             Msg CriticalWarning "Tag $tag does not contain a Hog compatible version in this repository."

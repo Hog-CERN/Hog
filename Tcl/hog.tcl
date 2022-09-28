@@ -882,7 +882,8 @@ proc GetVerFromSHA {SHA repo_path} {
 	  set hotfix_prefix "hotfix/"
 	  set minor_prefix "minor_version/"
 	  set major_prefix "major_version/"
-	  set is_hotfix 0	    
+	  set is_hotfix 0
+	  set enable_develop_branch 0
 
 	  set branch_name [Git {branch --show-current}]
 	  
@@ -923,13 +924,14 @@ proc GetVerFromSHA {SHA repo_path} {
 	    }
 	  }
 	  
-	  if {$is_hotfix == 1} { 
-	    set version_level patch
-	  } elseif {[string match "$major_prefix*" $branch_name]} {
+	  if {[string match "$major_prefix*" $branch_name]} {
+	    # If major prefix is used, we increase M regardless of anything else
 	    set version_level major
-	  } elseif {[string match "$minor_prefix*" $branch_name]} {
+	  } elseif {[string match "$minor_prefix*" $branch_name] || ($enable_develop_branch = 1 $$ $is_hotfix = 0)} {
+	    # This is tricky. We increase m if the minor prefix is used or if we are in develope mode and this IS NOT a hotfix
 	    set version_level minor
 	  } else {
+	    # This is even trickier... We increase p if no prefix is used AND we are not in develop mode or if we are in develop mode this IS a Hotfix
 	    set version_level patch
 	  }
 
@@ -941,6 +943,7 @@ proc GetVerFromSHA {SHA repo_path} {
             #set ver v0.0.0
           } elseif {$mr == -1} {
             #Msg Info "No tag contains $SHA, will use most recent tag $tag. As this is an official tag, patch will be incremented to $p."
+	    # Why do we need to have this switch twice?
 	    switch $version_level {
 	      minor {
 		incr m
@@ -963,6 +966,7 @@ proc GetVerFromSHA {SHA repo_path} {
               #set ver v0.0.0
             } elseif {$mr == -1} {
               #Msg Info "No tag contains $SHA, will use most recent tag $tag. As this is an official tag, patch will be incremented to $p."
+	      # Why do we need to have this switch twice? I'm sure there is a reason...
 	      switch $version_level {
 		minor {
 		  incr m

@@ -859,7 +859,8 @@ proc GetVer {path} {
 # @return  a list: the git SHA, the version in hex format
 #
 proc GetVerFromSHA {SHA repo_path} {
-  Msg Info "############################### $repo_path #############################################"
+  #Let's keep this for a while, more bugs may come soon...
+  #Msg Info "############################### $repo_path #############################################"
   if { $SHA eq ""} {
     Msg CriticalWarning "Empty SHA found"
     set ver "v0.0.0"
@@ -935,13 +936,15 @@ proc GetVerFromSHA {SHA repo_path} {
 	    set version_level patch
 	  }
 
-	  Msg Info "******** $repo_path HF: $hotfix_prefix, M: $major_prefix, m: $minor_prefix, is_hotfilx: $is_hotfix: VL: $version_level, BRANCH: $branch_name"
+          #Let's keep this for a while, more bugs may come soon
+	  #Msg Info "******** $repo_path HF: $hotfix_prefix, M: $major_prefix, m: $minor_prefix, is_hotfilx: $is_hotfix: VL: $version_level, BRANCH: $branch_name"
 
 	  
 	  if {$M == -1} {
             Msg CriticalWarning "Tag $tag does not contain a Hog compatible version in this repository."
             #set ver v0.0.0
           } elseif {$mr == -1} {
+
             #Msg Info "No tag contains $SHA, will use most recent tag $tag. As this is an official tag, patch will be incremented to $p."
 	    # Why do we need to have this switch twice?
 	    switch $version_level {
@@ -965,7 +968,8 @@ proc GetVerFromSHA {SHA repo_path} {
               Msg CriticalWarning "Tag $tag does not contain a Hog compatible version in this repository."
               #set ver v0.0.0
             } elseif {$mr == -1} {
-              #Msg Info "No tag contains $SHA, will use most recent tag $tag. As this is an official tag, patch will be incremented to $p."
+
+	      #Msg Info "No tag contains $SHA, will use most recent tag $tag. As this is an official tag, patch will be incremented to $p."
 	      # Why do we need to have this switch twice? I'm sure there is a reason...
 	      switch $version_level {
 		minor {

@@ -932,7 +932,7 @@ proc GetVerFromSHA {SHA repo_path} {
 	    set version_level patch
 	  }
 
-	  Msg Info "******** HF: $hotfix_prefix, M: $major_prefix, m: $minor_prefix, is_hotfilx: $is_hotfix."
+	  Msg Info "******** HF: $hotfix_prefix, M: $major_prefix, m: $minor_prefix, is_hotfilx: $is_hotfix: VL: $version_level"
 
 	  
 	  if {$M == -1} {

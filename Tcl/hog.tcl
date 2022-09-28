@@ -941,7 +941,20 @@ proc GetVerFromSHA {SHA repo_path} {
             #set ver v0.0.0
           } elseif {$mr == -1} {
             #Msg Info "No tag contains $SHA, will use most recent tag $tag. As this is an official tag, patch will be incremented to $p."
-            incr p
+	    switch $version_level {
+	      minor {
+		incr m
+		set p 0
+	      }
+	      major {
+		incr M
+		set m 0
+		set p 0
+	      }
+	      default {
+		incr p
+	      } 
+	    }
 	    
           } else {
             lassign [ExtractVersionFromTag $tag] M m p mr
@@ -966,7 +979,7 @@ proc GetVerFromSHA {SHA repo_path} {
 	      }
 	      
 	    } else {
-		#Msg Info "No tag contains $SHA, will use most recent tag $tag. As this is a candidate tag, the patch level will be kept at $p."
+		Msg Info "No tag contains $SHA, will use most recent tag $tag. As this is a candidate tag, the patch level will be kept at $p."
             }
           }
           set ver v$M.$m.$p

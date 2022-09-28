@@ -927,7 +927,7 @@ proc GetVerFromSHA {SHA repo_path} {
 	  if {[string match "$major_prefix*" $branch_name]} {
 	    # If major prefix is used, we increase M regardless of anything else
 	    set version_level major
-	  } elseif {[string match "$minor_prefix*" $branch_name] || ($enable_develop_branch = 1 $$ $is_hotfix = 0)} {
+	  } elseif {[string match "$minor_prefix*" $branch_name] || ($enable_develop_branch == 1 && $is_hotfix == 0)} {
 	    # This is tricky. We increase m if the minor prefix is used or if we are in develope mode and this IS NOT a hotfix
 	    set version_level minor
 	  } else {

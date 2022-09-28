@@ -3235,7 +3235,7 @@ proc WriteConf {file_name config {comment ""}} {
 #  @param[in]    the path to check
 #
 proc IsRelativePath {path} {
-  if {[string index $path 0] == "/"} {
+  if {[string index $path 0] == "/" || [string index $path 0] == "~"} {
     return 0
   } else {
     return 1

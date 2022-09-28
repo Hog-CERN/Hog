@@ -839,10 +839,11 @@ proc GetVer {path} {
     Msg CriticalWarning "Empty SHA found for ${path}. Commit to Git to resolve this warning."
   }
   set old_path [pwd]
-  if {[file isdirectory $path]} {
-    cd $path
+  set p [lindex $path 0]
+  if {[file isdirectory $p]} {
+    cd $p
   } else {
-    cd [file dir $path]
+    cd [file dir $p]
   }
   set repo_path [Git {rev-parse --show-toplevel}]
   cd $old_path
@@ -923,9 +924,9 @@ proc GetVerFromSHA {SHA repo_path} {
 	  
 	  if {$is_hotfix == 1} { 
 	    set version_level patch
-	  } elseif {[string match "major_prefix*" $branch_name} {
+	  } elseif {[string match "major_prefix*" $branch_name]} {
 	    set version_level major
-	  } elseif {[string match "minor_prefix*" $branch_name} {
+	  } elseif {[string match "minor_prefix*" $branch_name]} {
 	    set version_level minor
 	  } else {
 	    set version_level patch

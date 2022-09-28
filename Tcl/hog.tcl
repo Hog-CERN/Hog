@@ -859,7 +859,7 @@ proc GetVer {path} {
 # @return  a list: the git SHA, the version in hex format
 #
 proc GetVerFromSHA {SHA repo_path} {
-  Msg Info "############################################################################"
+  Msg Info "############################### $repo_path #############################################"
   if { $SHA eq ""} {
     Msg CriticalWarning "Empty SHA found"
     set ver "v0.0.0"

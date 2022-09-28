@@ -924,15 +924,15 @@ proc GetVerFromSHA {SHA repo_path} {
 	  
 	  if {$is_hotfix == 1} { 
 	    set version_level patch
-	  } elseif {[string match "major_prefix*" $branch_name]} {
+	  } elseif {[string match "$major_prefix*" $branch_name]} {
 	    set version_level major
-	  } elseif {[string match "minor_prefix*" $branch_name]} {
+	  } elseif {[string match "$minor_prefix*" $branch_name]} {
 	    set version_level minor
 	  } else {
 	    set version_level patch
 	  }
 
-	  Msg Info "******** HF: $hotfix_prefix, M: $major_prefix, m: $minor_prefix, is_hotfilx: $is_hotfix: VL: $version_level, BRANCH: $branch_name"
+	  Msg Info "******** $repo_path HF: $hotfix_prefix, M: $major_prefix, m: $minor_prefix, is_hotfilx: $is_hotfix: VL: $version_level, BRANCH: $branch_name"
 
 	  
 	  if {$M == -1} {

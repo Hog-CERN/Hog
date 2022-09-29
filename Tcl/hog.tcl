@@ -786,23 +786,23 @@ proc GetFileList {FILE path} {
 #
 proc GetSHA {{path ""}} {
   if {$path == ""} {
-    set ret [Git {log --format=%h --abbrev=7 -1} ]
+    set ret [Git {log --format=%h --abbrev=7 -1}]
     return [string toupper $ret]
   }
 
   # Get repository top level
-  set repo_path [lindex [Git {rev-parse --show-toplevel} $path] 0]
+  set repo_path [lindex [Git {rev-parse --show-toplevel}] 0]
   set paths {}
   # Retrieve the list of submodules in the repository
   foreach f $path {
     set file_in_module 0
     if {[file exists $repo_path/.gitmodules]} {
-      lassign [GitRet "config --file $repo_path/.gitmodules --get-regexp path" " "] status result
+      lassign [GitRet "config --file $repo_path/.gitmodules --get-regexp path"] status result
       if {$status == 0} {
         set submodules [split $result "\n"]
       } else {
         set submodules ""
-        Msg Warning "Something went wrong while trying to find submodules: result"
+        Msg Warning "Something went wrong while trying to find submodules: $result"
       }
 
       foreach mod $submodules {
@@ -3018,12 +3018,12 @@ proc Git {command {files ""}}  {
 #  @returns a list of 2 elements: the return value (0 if no error occurred) and the output of the git command
 proc GitRet {command {files ""}}  {
   global env
-  if {$files eq " "} {
-    set dashes ""
+  if {$files eq ""} {
+    set ret [catch {exec -ignorestderr git {*}$command} result]
   } else {
-    set dashes "--"
+    set ret [catch {exec -ignorestderr git {*}$command -- {*}$files} result]
   }
-  set ret [catch {exec -ignorestderr git {*}$command $dashes {*}$files} result]
+
 
   return [list $ret $result]
 }

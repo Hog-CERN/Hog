@@ -75,9 +75,9 @@ merge_and_tag:
           tclsh ./Hog/Tcl/utils/check_yaml_ref.tcl;
       fi;
     -  git fetch origin refs/notes/*:refs/notes/*
-    -  "NEW_TAG=`echo \"source Tcl/hog.tcl; puts v[HexVersionToString [GetVer .]]\" | tclsh`"
+    -  "NEW_TAG=`echo \"source Hog/Tcl/hog.tcl; puts v[HexVersionToString [GetVer .]]\" | tclsh`"
     -  echo "New tag is $NEW_TAG"
-    -  git notes add -fm $CI_MERGE_REQUEST_IID $CI_COMMIT_REF_SLUG $NEW_TAG
+    -  "git notes add -fm \"$CI_MERGE_REQUEST_IID $CI_COMMIT_REF_SLUG $NEW_TAG\""
     -  git push origin refs/notes/*
   interruptible: true
 

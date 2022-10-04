@@ -194,7 +194,7 @@ function SimulateProject(){
 
 function HogSimulateFunc(){
   # init $@
-  shift
+  # shift
   echo "HogInitFunc ($*)"
   SimulateProject $*
   # exit 0

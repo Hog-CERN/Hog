@@ -186,7 +186,7 @@ function create_project() {
 
 function HogCreateFunc(){
   # init $@
-  shift
+  # shift
   echo "HogInitFunc ($*)"
   create_project $*
   # exit 0

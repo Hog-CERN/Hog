@@ -42,7 +42,7 @@
       - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $HOG_DEVELOP_BRANCH && $HOG_DEVELOP_BRANCH != null'
         when: on_success
       - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /^master|main|release.*$/ && $HOG_TARGET_BRANCH == null && $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME != $HOG_DEVELOP_BRANCH'
-        when: on_success	
+        when: on_success        
       - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $HOG_TARGET_BRANCH && $HOG_TARGET_BRANCH != null && $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME != $HOG_DEVELOP_BRANCH'
         when: on_success
       - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $HOG_INTERMEDIATE_BRANCH && $HOG_INTERMEDIATE_BRANCH != null'

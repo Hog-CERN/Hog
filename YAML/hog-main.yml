@@ -115,8 +115,7 @@ tag_official_version:
     - if: '$HOG_DEVELOP_BRANCH != null && $CI_COMMIT_REF_NAME == $HOG_DEVELOP_BRANCH && $CI_PIPELINE_SOURCE == "push"'
       when: always
     - when: never
-
-script:
+  script:
     - git fetch origin refs/notes/*:refs/notes/*
     - note=(`git notes show`)
     - new_tag=${note[2]}

@@ -65,6 +65,11 @@ proc IsQuartus {} {
   return [expr {[info commands project_new] != ""}]
 }
 
+## Get whether the IDE is Questa
+proc IsQuesta {} {
+  return [expr {[string first Questa [vsimVersionString]] == 0}]
+}
+
 ## Get whether we are in tclsh
 proc IsTclsh {} {
   return [expr ![IsQuartus] && ![IsXilinx]]
@@ -3527,8 +3532,10 @@ proc GetIDEVersion {} {
     # Quartus
     global quartus
     regexp {[\.0-9]+} $quartus(version) ver
-
+  } elseif {[IsQuesta]} {
+    set ver [vsimVersion]
   }
+
   return $ver
 }
 

@@ -109,6 +109,9 @@ proc CreateProject {} {
 
       ConfigureProperties
     }
+  } elseif {[IsQuesta]} {
+    puts "here"
+    project new $globalSettings::build_dir/$globalSettings::DESIGN [file tail $globalSettings::DESIGN] ieee
   } else {
     puts "Creating project for $globalSettings::DESIGN part $globalSettings::PART"
     puts "Configuring project settings:"
@@ -586,7 +589,6 @@ proc SetGlobalVar {var {default_value HOG_NONE}} {
 }
 
 ###########################################################################################################################################################################################
-
 if {[catch {package require cmdline} ERROR]} {
   puts "$ERROR\n If you are running this script on tclsh, you can fix this by installing 'tcllib'"
   return
@@ -596,11 +598,23 @@ set parameters {
   {simlib_path.arg  "" "Path of simulation libs"}
 }
 
-set usage   "Create Vivado/Quartus project. If no project is given, will expect the name of the project defined in a variable called DESIGN.\nUsage: $::argv0 \[OPTIONS\] <project> \n. Options:"
+set usage   "Create Vivado/Quartus project. If no project is given, will expect the name of the project defined in a variable called DESIGN.\nUsage: $::argv0 \[OPTIONS\] <project> <hog_path>\n. Options:"
 
-set tcl_path [file normalize "[file dirname [info script]]"]
+
+
+
+if {[IsQuesta]} {
+  set tcl_path [file normalize "$2/Tcl"]
+} else {
+  set tcl_path [file normalize "[file dirname [info script]]"]
+}
+
 set repo_path [file normalize $tcl_path/../..]
+puts $tcl_path
+puts $repo_path
+
 source $tcl_path/hog.tcl
+
 
 if { $::argc eq 0 && ![info exist DESIGN]} {
   Msg Info [cmdline::usage $parameters $usage]
@@ -639,6 +653,10 @@ if { $::argc eq 0 && ![info exist DESIGN]} {
   } else {
     Msg Info "Design is parsed from project.tcl: $DESIGN"
   }
+} elseif { [IsQuesta]} {
+  puts "It's questa"
+  set DESIGN $1
+  puts $DESIGN
 } else {
   Msg Error "Not under Vivado, ISE or Quartus... Aborting!"
   exit 1

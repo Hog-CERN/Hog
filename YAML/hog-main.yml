@@ -133,7 +133,7 @@ tag_official_version:
          git tag $new_tag -m "Official_version_${new_tag}";
          git push --tags;
       else
-        echo "Tagging is not necessary because the present commit is already tagged as: $new_tag.";
+        echo "Tagging is not necessary because the present commit is already tagged as:\ $new_tag.";
       fi;
 
 archive_binary_files:

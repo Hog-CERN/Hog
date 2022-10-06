@@ -117,7 +117,7 @@ tag_official_version:
     - when: never
   script:
     - git fetch origin refs/notes/*:refs/notes/*
-    - note=(`git notes show`) || echo "No note found, probably you pushed to a branch thar should protected (e.g. master, develop)"; exit 1;
+    - note=(`git notes show`) || echo "No note found, probably you pushed to a branch that should protected (e.g. master, develop)"; exit 1;
     - new_tag=${note[2]}
     - present_tag=(`git describe`)
     - if [ $present_tag != $new_tag ]; then
@@ -133,7 +133,7 @@ tag_official_version:
          git tag $new_tag -m "Official_version_${new_tag}";
          git push --tags;
       else
-        echo "Tagging is not necessary because the present commit is already tagged as: $new_tag."
+        echo "Tagging is not necessary because the present commit is already tagged as: $new_tag.";
       fi;
 
 archive_binary_files:

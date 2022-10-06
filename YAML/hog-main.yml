@@ -117,7 +117,7 @@ tag_official_version:
     - when: never
   script:
     - git fetch origin refs/notes/*:refs/notes/*
-    - note=(`git notes show`); || {
+    - note=(`git notes show`) || {
         echo "No note found, probably you pushed to a branch that should protected (e.g. master, develop)"; 
         exit 1;
       }

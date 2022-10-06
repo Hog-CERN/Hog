@@ -107,7 +107,16 @@ make_doxygen:
 tag_official_version:
   <<: *tag-sr
   stage: merge
-  script:
+  rules:
+    - if: '$HOG_TARGET_BRANCH != null && $CI_COMMIT_REF_NAME == $HOG_TARGET_BRANCH && $CI_PIPELINE_SOURCE == "push"'
+      when: always
+    - if: '$HOG_TARGET_BRANCH == null && $CI_COMMIT_REF_NAME =~ /^master|main|release.*$/  && $CI_PIPELINE_SOURCE == "push"'
+      when: always
+    - if: '$HOG_DEVELOP_BRANCH != null && $CI_COMMIT_REF_NAME == $HOG_DEVELOP_BRANCH && $CI_PIPELINE_SOURCE == "push"'
+      when: always
+    - when: never
+
+script:
     - git fetch origin refs/notes/*:refs/notes/*
     - note=(`git notes show`)
     - new_tag=${note[2]}
@@ -122,12 +131,6 @@ tag_official_version:
       fi;
     - git tag $new_tag -m "Official_version_${new_tag}" 
     - git push --tags
-  rules:
-    - if: '$HOG_TARGET_BRANCH != null && $CI_COMMIT_REF_NAME == $HOG_TARGET_BRANCH && $CI_PIPELINE_SOURCE == "push"'
-      when: always
-    - if: '$HOG_TARGET_BRANCH == null && $CI_COMMIT_REF_NAME =~ /^master|main|release.*$/  && $CI_PIPELINE_SOURCE == "push"'
-      when: always
-    - when: never
 
 archive_binary_files:
   only:

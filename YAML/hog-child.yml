@@ -201,11 +201,11 @@
       - if [ ! -f "./Projects/$PROJECT_NAME/skip.me" ]; then
           echo "Keep going ...";   
           if [[ $HOG_USE_APPTAINER == '1' ]] && [[ -v HOG_APPTAINER_IMAGE_PATH ]]; then
-             singularity exec -H $PWD $HOG_APPTAINER_IMAGE_PATH /bin/bash -c "source /opt/Xilinx/Vivado/2020.2/settings64.sh; echo "\""./Hog/LaunchWorkflow.sh -njobs $HOG_NJOBS $IP_PATH $NO_BITSTREAM $ONLY_SYNTH $CHECK_SYNTAX $PROJECT_NAME"\";
-             singularity exec -H $PWD $HOG_APPTAINER_IMAGE_PATH /bin/bash -c "source /opt/Xilinx/Vivado/2020.2/settings64.sh; ./Hog/LaunchWorkflow.sh -njobs $HOG_NJOBS $IP_PATH $NO_BITSTREAM $ONLY_SYNTH $CHECK_SYNTAX $PROJECT_NAME";
+            echo "singularity exec -H $PWD $HOG_APPTAINER_IMAGE_PATH ./Hog/LaunchWorkflow.sh -njobs $HOG_NJOBS $IP_PATH $NO_BITSTREAM $ONLY_SYNTH $CHECK_SYNTAX $PROJECT_NAME";
+            singularity exec -H $PWD $HOG_APPTAINER_IMAGE_PATH /bin/bash -c "source /opt/Xilinx/Vivado/2020.2/settings64.sh; ./Hog/LaunchWorkflow.sh -njobs $HOG_NJOBS $IP_PATH $NO_BITSTREAM $ONLY_SYNTH $CHECK_SYNTAX $PROJECT_NAME";
           else
-                echo "./Hog/LaunchWorkflow.sh -njobs $HOG_NJOBS $IP_PATH $NO_BITSTREAM $ONLY_SYNTH $CHECK_SYNTAX $PROJECT_NAME";
-                ./Hog/LaunchWorkflow.sh -njobs $HOG_NJOBS $IP_PATH $NO_BITSTREAM $ONLY_SYNTH $CHECK_SYNTAX $PROJECT_NAME;
+            echo "./Hog/LaunchWorkflow.sh -njobs $HOG_NJOBS $IP_PATH $NO_BITSTREAM $ONLY_SYNTH $CHECK_SYNTAX $PROJECT_NAME";
+            ./Hog/LaunchWorkflow.sh -njobs $HOG_NJOBS $IP_PATH $NO_BITSTREAM $ONLY_SYNTH $CHECK_SYNTAX $PROJECT_NAME;
           fi;
         fi;
       - if [ ! -f "./Projects/$PROJECT_NAME/skip.me" ]; then

@@ -44,17 +44,17 @@
 
 
 .simulate_project: &simulate_project
-     <<: *only-default
-     <<: *tag-hog
-     stage: generation_and_simulation
-     variables:
-        <<: *vars
-     script:
-       - if [[ $HOG_USE_APPTAINER == '1' ]] && [[ -v HOG_APPTAINER_IMAGE_PATH ]]; then
-            singularity exec -H $PWD $HOG_APPTAINER_IMAGE_PATH /bin/bash -c "source /opt/Xilinx/Vivado/2020.2/settings64.sh; ./Hog/Other/CheckEnv.sh";
-         else
-                ./Hog/Other/CheckEnv.sh;
-         fi;
+    <<: *only-default
+    <<: *tag-hog
+    stage: generation_and_simulation
+    variables:
+      <<: *vars
+    script:
+      - if [[ $HOG_USE_APPTAINER == '1' ]] && [[ -v HOG_APPTAINER_IMAGE_PATH ]]; then
+          singularity exec -H $PWD $HOG_APPTAINER_IMAGE_PATH /bin/bash -c "source /opt/Xilinx/Vivado/2020.2/settings64.sh; ./Hog/Other/CheckEnv.sh";
+        else
+          ./Hog/Other/CheckEnv.sh;
+        fi
       - if [[ -v HOG_CHECK_PROJVER ]] && [[ $HOG_CHECK_PROJVER == '1' ]]; then
           if [[ -v HOG_EXTERNAL_PATH ]]; then
             ./Hog/Other/CheckProjVer.sh -ext_path "$HOG_EXTERNAL_PATH" -sim $PROJECT_NAME;
@@ -63,33 +63,32 @@
           fi;
         else
           echo "Project version checker is disabled.";
-        fi
-      - if [ -f "./Projects/$PROJECT_NAME/skip.me" ]; then
+        fi;
+      - if [-f "./Projects/${PROJECT_NAME}/skip.me" ]; then
           echo "CI disabled for $PROJECT_NAME";
         else
           if [ -z ${HOG_SIMULATION_LIB_PATH+x} ]; then
             echo 'Simulation library path is not defined';
             SIM_CMD="./Hog/LaunchSimulation.sh $PROJECT_NAME";
           else
-             SIM_CMD="./Hog/LaunchSimulation.sh $PROJECT_NAME -l $HOG_SIMULATION_LIB_PATH" ;
+            SIM_CMD="./Hog/LaunchSimulation.sh $PROJECT_NAME -l $HOG_SIMULATION_LIB_PATH" ;
           fi;
-	  if [[ HOG_USE_APPTAINER == '1' ]] && [[ -v HOG_APPTAINER_IMAGE_PATH ]]; then
-             echo "Using Apptainer to run: $SIM_CMD"
-             singularity exec -H $PWD $HOG_APPTAINER_IMAGE_PATH /bin/bash -c "source /opt/X\
-ilinx/Vivado/2020.2/settings64.sh; $SIM_CMD";
+          if [[ $HOG_USE_APPTAINER == '1' ]] && [[ -v HOG_APPTAINER_IMAGE_PATH ]]; then
+            echo "Using Apptainer to run-> $SIM_CMD";
+            singularity exec -H $PWD $HOG_APPTAINER_IMAGE_PATH /bin/bash -c "source /opt/Xilinx/Vivado/2020.2/settings64.sh; $SIM_CMD";
           else
-                echo $SIM_CMD
-                $(SIM_CMD);
-          fi
-        fi
-     artifacts:
+            echo $SIM_CMD
+            $(SIM_CMD);
+          fi;
+        fi;
+    artifacts:
        name: simulation_files
        paths:
          - Projects/$PROJECT_NAME/*.sim
          - SkippedProjects/$PROJECT_NAME
        expire_in: 30 day
-     allow_failure: true
-     interruptible: true
+    allow_failure: true
+    interruptible: true
 
 .generate_project: &generate_project
     <<: *only-default
@@ -98,11 +97,11 @@ ilinx/Vivado/2020.2/settings64.sh; $SIM_CMD";
     variables:
         <<: *vars
     script:
-       - if [[ $HOG_USE_APPTAINER == '1' ]] && [[ -v HOG_APPTAINER_IMAGE_PATH ]]; then
-            singularity exec -H $PWD $HOG_APPTAINER_IMAGE_PATH /bin/bash -c "source /opt/Xilinx/Vivado/2020.2/settings64.sh; ./Hog/Other/CheckEnv.sh";
-         else
-                ./Hog/Other/CheckEnv.sh;
-         fi;
+      - if [[ $HOG_USE_APPTAINER == '1' ]] && [[ -v HOG_APPTAINER_IMAGE_PATH ]]; then
+          singularity exec -H $PWD $HOG_APPTAINER_IMAGE_PATH /bin/bash -c "source /opt/Xilinx/Vivado/2020.2/settings64.sh; ./Hog/Other/CheckEnv.sh";
+        else
+          ./Hog/Other/CheckEnv.sh;
+        fi;
       - if [[ -v HOG_CHECK_PROJVER ]] && [[ $HOG_CHECK_PROJVER == '1' ]]; then
           if [[ -v HOG_EXTERNAL_PATH ]]; then
             ./Hog/Other/CheckProjVer.sh -ext_path "$HOG_EXTERNAL_PATH" $PROJECT_NAME;
@@ -196,7 +195,7 @@ ilinx/Vivado/2020.2/settings64.sh; $SIM_CMD";
             echo "Hog-CI(info) - no custom files will be reset.";
           fi;
           echo "Hog-CI(info) - Launching workflow now...";
-          if [[ HOG_USE_APPTAINER == '1' ]] && [[ -v HOG_APPTAINER_IMAGE_PATH ]]; then
+          if [[ $HOG_USE_APPTAINER == '1' ]] && [[ -v HOG_APPTAINER_IMAGE_PATH ]]; then
              singularity exec -H $PWD $HOG_APPTAINER_IMAGE_PATH /bin/bash -c "source /opt/Xilinx/Vivado/2020.2/settings64.sh; echo "\""./Hog/LaunchWorkflow.sh -njobs $HOG_NJOBS $IP_PATH $NO_BITSTREAM $ONLY_SYNTH $CHECK_SYNTAX $PROJECT_NAME"\";
              singularity exec -H $PWD $HOG_APPTAINER_IMAGE_PATH /bin/bash -c "source /opt/Xilinx/Vivado/2020.2/settings64.sh; ./Hog/LaunchWorkflow.sh -njobs $HOG_NJOBS $IP_PATH $NO_BITSTREAM $ONLY_SYNTH $CHECK_SYNTAX $PROJECT_NAME";
           else

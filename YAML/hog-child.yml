@@ -181,7 +181,6 @@
             echo "Hog-CI(info) - HDL syntax will not be checked.";
             export CHECK_SYNTAX="";
           fi;
-          
           if [[ -n "$HOG_NO_RESET_BD" ]] && [[ $HOG_NO_RESET_BD == '1' ]]; then
             echo "Hog-CI(info) - BD files will NOT be reset at pre syntehsis time";
           else
@@ -207,7 +206,9 @@
           else
                 echo "./Hog/LaunchWorkflow.sh -njobs $HOG_NJOBS $IP_PATH $NO_BITSTREAM $ONLY_SYNTH $CHECK_SYNTAX $PROJECT_NAME";
                 ./Hog/LaunchWorkflow.sh -njobs $HOG_NJOBS $IP_PATH $NO_BITSTREAM $ONLY_SYNTH $CHECK_SYNTAX $PROJECT_NAME;
-          fi
+          fi;
+        fi;
+      - if [ ! -f "./Projects/$PROJECT_NAME/skip.me" ]; then
           if [[ -n "$HOG_ONLY_SYNTH" ]] && [[ $HOG_ONLY_SYNTH == '1' ]]; then
             echo "Hog-CI(info) - Adding version and utilization summaries to note...";
             if [[ -d "$CI_PROJECT_DIR/Projects/$PROJECT_NAME/$PROJECT_NAME.runs/" ]]; then

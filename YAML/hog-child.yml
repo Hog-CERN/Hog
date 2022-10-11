@@ -198,6 +198,7 @@
           fi;
           echo "Hog-CI(info) - Launching workflow now...";
         fi;
+      - echo "aca estamos bien"
       - if [ ! -f "./Projects/$PROJECT_NAME/skip.me" ]; then
           echo "Keep going ...";   
           if [[ $HOG_USE_APPTAINER == '1' ]] && [[ -v HOG_APPTAINER_IMAGE_PATH ]]; then
@@ -208,6 +209,7 @@
             ./Hog/LaunchWorkflow.sh -njobs $HOG_NJOBS $IP_PATH $NO_BITSTREAM $ONLY_SYNTH $CHECK_SYNTAX $PROJECT_NAME;
           fi;
         fi;
+      - echo "estamos bien hasta aca"
       - if [ ! -f "./Projects/$PROJECT_NAME/skip.me" ]; then
           if [[ -n "$HOG_ONLY_SYNTH" ]] && [[ $HOG_ONLY_SYNTH == '1' ]]; then
             echo "Hog-CI(info) - Adding version and utilization summaries to note...";

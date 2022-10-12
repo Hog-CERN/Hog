@@ -74,7 +74,7 @@
             SIM_CMD="./Hog/LaunchSimulation.sh $PROJECT_NAME -l $HOG_SIMULATION_LIB_PATH" ;
           fi;
           if [[ $HOG_USE_APPTAINER == '1' ]] && [[ -v HOG_APPTAINER_IMAGE_PATH ]]; then
-            echo "Using Apptainer to run-> $SIM_CMD";
+            echo "singularity exec -H $PWD $HOG_APPTAINER_IMAGE_PATH  $SIM_CMD";
             singularity exec -H $PWD $HOG_APPTAINER_IMAGE_PATH /bin/bash -c "source /opt/Xilinx/Vivado/2020.2/settings64.sh; $SIM_CMD";
           else
             echo $SIM_CMD
@@ -199,9 +199,7 @@
           echo "Hog-CI(info) - Launching workflow now...";
         fi;
       - if [ ! -f "./Projects/$PROJECT_NAME/skip.me" ]; then
-          echo "Keep going ...";   
           if [[ $HOG_USE_APPTAINER == '1' ]] && [[ -v HOG_APPTAINER_IMAGE_PATH ]]; then
-            export SINGULARITYENV_LM_LICENSE_FILE=$HOG_XIL_LICENSE
             echo "singularity exec -H $PWD $HOG_APPTAINER_IMAGE_PATH ./Hog/LaunchWorkflow.sh -njobs $HOG_NJOBS $IP_PATH $NO_BITSTREAM $ONLY_SYNTH $CHECK_SYNTAX $PROJECT_NAME";
             singularity exec -H $PWD $HOG_APPTAINER_IMAGE_PATH /bin/bash -c "source /opt/Xilinx/Vivado/2020.2/settings64.sh; ./Hog/LaunchWorkflow.sh -njobs $HOG_NJOBS $IP_PATH $NO_BITSTREAM $ONLY_SYNTH $CHECK_SYNTAX $PROJECT_NAME";
           else
@@ -209,7 +207,6 @@
             ./Hog/LaunchWorkflow.sh -njobs $HOG_NJOBS $IP_PATH $NO_BITSTREAM $ONLY_SYNTH $CHECK_SYNTAX $PROJECT_NAME;
           fi;
         fi;
-      - echo "estamos bien hasta aca"
       - if [ ! -f "./Projects/$PROJECT_NAME/skip.me" ]; then
           if [[ -n "$HOG_ONLY_SYNTH" ]] && [[ $HOG_ONLY_SYNTH == '1' ]]; then
             echo "Hog-CI(info) - Adding version and utilization summaries to note...";

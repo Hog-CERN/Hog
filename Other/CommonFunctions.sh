@@ -450,7 +450,7 @@ function print_hog() {
     return 1
   fi
   cd "$1"
-  ver=$(git describe)
+  ver=$(git describe --always)
   echo
   cat ./images/hog_logo.txt
   echo " Version: ${ver}"
@@ -508,7 +508,7 @@ function HogVer() {
 
   if [[ -d "$1" ]]; then
     cd $1
-    current_version=$(git describe)
+    current_version=$(git describe --always)
     current_sha=$(git log $current_version -1 --format=format:%H)
     timeout 5s git fetch
     master_version=$(git describe origin/master)

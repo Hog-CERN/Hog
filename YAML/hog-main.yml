@@ -80,7 +80,7 @@ merge_and_tag:
       fi;
     # Check if this is a valid hotfix or feature branch
     - if [ -f "Top/repo.conf" ]; then
-        enable_develop_branch=$(awk -F "=" '/ENABLE_DEVELOP_BRANCH/ {print $2}' Top/repo.conf);
+        enable_develop_branch=$(awk -F "=" '/ENABLE_DEVELOP_BRANCH/{ gsub(" |\t",""); print $2}' Top/repo.conf);
         hotfix_branch=$(awk -F "=" '/HOTFIX/ {print $2}' Top/repo.conf);
         if [ "$hotfix_branch" == "" ]; then
           hotfix_branch="hotfix/";

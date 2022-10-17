@@ -1,0 +1,31 @@
+name: Deploy
+
+on:
+  pull_request:
+    branches: [ master, main ]
+
+jobs:
+  hog-workflow:
+    uses: hog-CERN/Hog/.github/workflows/Hog-pull.yml@Hog2023.1
+    secrets:
+      SUBMODULE_CONTENT_PULL_KEY: ${{ secrets.SUBMODULE_CONTENT_PULL_KEY  }}
+      HOG_PUSH_TOKEN: ${{ secrets.HOG_PUSH_TOKEN }}
+      HOG_EMAIL: ${{ secrets.HOG_EMAIL}}
+      HOG_USER: ${{ secrets.HOG_USER}}
+      EOS_USER: ${{ secrets.EOS_USER }}
+      EOS_PASSWORD: ${{ secrets.EOS_PASSWORD }}
+      HOG_PATH: ${{ secrets.HOG_PATH }}
+      HOG_XIL_LICENSE: ${{ secrets.HOG_XIL_LICENSE }}
+      HOG_IP_PATH: ${{ secrets.HOG_IP_PATH }}
+    with:
+      BUILD_PROJECTS: >-
+        ["example"]
+      SIM_PROJECTS: >-
+        ["example"]
+      HOG_USE_DOXYGEN: True
+      HOG_CHECK_SYNTAX: True
+      HOG_NO_RESET_BD: True
+      HOG_CHECK_PROJVER: True
+      HOG_NO_BITSTREAM: False
+
+    

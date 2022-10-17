@@ -875,11 +875,11 @@ proc GetVerFromSHA {SHA repo_path} {
           set ver v0.0.0
         } else {
           lassign [ExtractVersionFromTag $tag] M m p mr
-	  #Open repo.conf and check prefixes
+	        # Open repo.conf and check prefixes
           set repo_conf $repo_path/Top/repo.conf
 
-	  #Check if the develop/master scheme is used and where is the merge directed to
-	  #Default values
+	        # Check if the develop/master scheme is used and where is the merge directed to
+	        # Default values
           set hotfix_prefix "hotfix/"
           set minor_prefix "minor_version/"
           set major_prefix "major_version/"
@@ -890,19 +890,19 @@ proc GetVerFromSHA {SHA repo_path} {
 
           if [file exists $repo_conf] {
             set PROPERTIES [ReadConf $repo_conf]
-	    # [main] section
+	          # [main] section
             if {[dict exists $PROPERTIES main]} {
               set mainDict [dict get $PROPERTIES main]
 
-	      # ENABLE_DEVELOP_ BRANCH property
+	            # ENABLE_DEVELOP_ BRANCH property
               if {[dict exists $mainDict ENABLE_DEVELOP_BRANCH]} {
                 set enable_develop_branch [dict get $mainDict ENABLE_DEVELOP_BRANCH]
               }
-	      # More properties in [main] here ...
+	            # More properties in [main] here ...
 
             }
 
-	    # [prefixes] section
+	          # [prefixes] section
             if {[dict exists $PROPERTIES prefixes]} {
               set prefixDict [dict get $PROPERTIES prefixes]
 
@@ -915,7 +915,7 @@ proc GetVerFromSHA {SHA repo_path} {
               if {[dict exists $prefixDict MAJOR_VERSION]} {
                 set major_prefix [dict get $prefixDict MAJOR_VERSION]
               }
-	      # More properties in [prefixes] here ...
+	            # More properties in [prefixes] here ...
             }
 
             if {$enable_develop_branch == 1 } {
@@ -926,18 +926,18 @@ proc GetVerFromSHA {SHA repo_path} {
           }
 
           if {[string match "$major_prefix*" $branch_name]} {
-	    # If major prefix is used, we increase M regardless of anything else
+	          # If major prefix is used, we increase M regardless of anything else
             set version_level major
           } elseif {[string match "$minor_prefix*" $branch_name] || ($enable_develop_branch == 1 && $is_hotfix == 0)} {
-	    # This is tricky. We increase m if the minor prefix is used or if we are in develope mode and this IS NOT a hotfix
+	          # This is tricky. We increase m if the minor prefix is used or if we are in develop mode and this IS NOT a hotfix
             set version_level minor
           } else {
-	    # This is even trickier... We increase p if no prefix is used AND we are not in develop mode or if we are in develop mode this IS a Hotfix
+	          # This is even trickier... We increase p if no prefix is used AND we are not in develop mode or if we are in develop mode this IS a Hotfix
             set version_level patch
           }
 
           #Let's keep this for a while, more bugs may come soon
-	  #Msg Info "******** $repo_path HF: $hotfix_prefix, M: $major_prefix, m: $minor_prefix, is_hotfilx: $is_hotfix: VL: $version_level, BRANCH: $branch_name"
+	        #Msg Info "******** $repo_path HF: $hotfix_prefix, M: $major_prefix, m: $minor_prefix, is_hotfilx: $is_hotfix: VL: $version_level, BRANCH: $branch_name"
 
 
           if {$M == -1} {
@@ -946,7 +946,7 @@ proc GetVerFromSHA {SHA repo_path} {
           } elseif {$mr == -1} {
 
             #Msg Info "No tag contains $SHA, will use most recent tag $tag. As this is an official tag, patch will be incremented to $p."
-	    # Why do we need to have this switch twice?
+	          # Why do we need to have this switch twice?
             switch $version_level {
               minor {
                 incr m

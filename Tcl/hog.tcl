@@ -896,7 +896,7 @@ proc GetVerFromSHA {SHA repo_path} {
 	      
 	      # ENABLE_DEVELOP_ BRANCH property
 	      if {[dict exists $mainDict ENABLE_DEVELOP_BRANCH]} {
-		set enable_develop_branch [dict get $mainDict ENABLE_DEVELOP_BRANCH]
+		      set enable_develop_branch [dict get $mainDict ENABLE_DEVELOP_BRANCH]
 	      }
 	      # More properties in [main] here ...
 	      
@@ -907,20 +907,20 @@ proc GetVerFromSHA {SHA repo_path} {
 	      set prefixDict [dict get $PROPERTIES prefixes]
 	      
 	      if {[dict exists $prefixDict HOTFIX]} {
-		set hotfix_prefix [dict get $prefixDict HOTFIX]
+		      set hotfix_prefix [dict get $prefixDict HOTFIX]
 	      }
 	      if {[dict exists $prefixDict MINOR_VERSION]} {
-		set minor_prefix [dict get $prefixDict MINOR_VERSION]
+		      set minor_prefix [dict get $prefixDict MINOR_VERSION]
 	      }
 	      if {[dict exists $prefixDict MAJOR_VERSION]} {
-		set major_prefix [dict get $prefixDict MAJOR_VERSION]
+		      set major_prefix [dict get $prefixDict MAJOR_VERSION]
 	      }
 	      # More properties in [prefixes] here ...
 	    }
 
 	    if {$enable_develop_branch == 1 } {
 	      if {[string match "$hotfix_prefix*" $branch_name]} {
-		set is_hotfix 1
+		      set is_hotfix 1
 	      }
 	    }
 	  }

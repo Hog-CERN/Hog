@@ -22,7 +22,7 @@ jobs:
   hog-workflow:
     uses: hog-CERN/Hog/.github/workflows/Hog-pull.yml@Hog2023.1
     secrets:
-      SUBMODULE_CONTENT_PULL_KEY: ${{ secrets.SUBMODULE_CONTENT_PULL_KEY  }}
+      SUBMODULE_CONTENT_PULL_KEY: ${{ secrets.SUBMODULE_CONTENT_PULL_KEY }}
       HOG_PUSH_TOKEN: ${{ secrets.HOG_PUSH_TOKEN }}
       HOG_EMAIL: ${{ secrets.HOG_EMAIL}}
       HOG_USER: ${{ secrets.HOG_USER}}
@@ -31,6 +31,8 @@ jobs:
       HOG_PATH: ${{ secrets.HOG_PATH }}
       HOG_XIL_LICENSE: ${{ secrets.HOG_XIL_LICENSE }}
       HOG_IP_PATH: ${{ secrets.HOG_IP_PATH }}
+      HOG_TARGET_BRANCH: ${{ secrets.HOG_TARGET_BRANCH }}
+      HOG_DEVELOP_BRANCH: ${{ secrets.HOG_DEVELOP_BRANCH }}
     with:
       BUILD_PROJECTS: >-
         ["example"]

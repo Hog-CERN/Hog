@@ -109,7 +109,12 @@ jobs:
           git submodule init
           git submodule update
           PULL_PARAMETERS=`curl -H "Accept: application/vnd.github.v3+json" $GITHUB_API_URL/repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER --header  "Authorization: token ${HOG_PUSH_TOKEN}"`
-          tclsh ./Hog/Tcl/CI/merge_and_tag.tcl -github 1 -mr_par "$PULL_PARAMETERS" -mr_id $PR_NUMBER -main_branch $GITHUB_BASE_REF -source_branch $GITHUB_HEAD_REF -push $GITHUB_HEAD_REF -run_id $GITHUB_RUN_ID
+          # tclsh ./Hog/Tcl/CI/merge_and_tag.tcl -github 1 -mr_par "$PULL_PARAMETERS" -mr_id $PR_NUMBER -main_branch $GITHUB_BASE_REF -source_branch $GITHUB_HEAD_REF -push $GITHUB_HEAD_REF -run_id $GITHUB_RUN_ID
+          git fetch origin refs/notes/*:refs/notes/*
+          NEW_TAG=`echo \"source Hog/Tcl/hog.tcl; puts v[HexVersionToString [GetVer .]]\" | tclsh`
+          echo "New tag is $NEW_TAG"
+          git notes add -fm "$PR_NUMBER $GITHUB_HEAD_REF $NEW_TAG"
+          git push origin refs/notes/*
   make_doxygen:
     runs-on: ubuntu-latest
     container: gitlab-registry.cern.ch/hog/hog-docker:doxygen

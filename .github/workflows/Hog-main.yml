@@ -12,12 +12,6 @@ on:
       HOG_USE_DOXYGEN:
         required: false
         type: boolean
-      HOG_CHECK_PROJVER:
-        required: false
-        type: boolean
-      HOG_TARGET_BRANCH:
-        required: false
-        type: string
     secrets:
       SUBMODULE_CONTENT_PULL_KEY:
         required: true
@@ -71,19 +65,27 @@ jobs:
           git reset --hard $previous_commit
           git push --force
           git fetch origin refs/notes/*:refs/notes/*
-          note=(`git notes show`)
+          note=(`git notes show`) || {
+            echo "No note found, probably you pushed to a branch that should protected (e.g. master, develop)"; 
+            exit 1;
+          }
           new_tag=${note[2]}
-          if [ "$(git tag --list ${new_tag}*)" != "" ]; then
-            latest_tag=(`git tag -l ${new_tag}* --sort=-v:refname --merged`);
-            if [[ $latest_tag =~ ".*-(.*)" ]]; then
-              nr="${BASH_REMATCH[1]}";
-              new_tag="$new_tag-$(($nr+1))";
-            else
-              new_tag="$new_tag-0";
+          present_tag=(`git describe`)
+          if [ $present_tag != $new_tag ]; then
+            if [ "$(git tag --list ${new_tag}*)" != "" ]; then
+              latest_tag=(`git tag -l ${new_tag}* --sort=-v:refname --merged`);
+              if [[ $latest_tag =~ ".*-(.*)" ]]; then
+                nr="${BASH_REMATCH[1]}";
+                new_tag="$new_tag-$(($nr+1))";
+              else
+                new_tag="$new_tag-0";
+              fi;
             fi;
+            git tag $new_tag -m "Official_version_${new_tag}" 
+            git push --tags
+          else
+            echo "Tagging is not necessary because the present commit is already tagged as:\ $new_tag.";
           fi;
-          git tag $new_tag -m "Official_version_${new_tag}" 
-          git push --tags
           echo "::set-output name=tag::$new_tag"
           echo "::set-output name=runid::${note[0]}"
   archive_binary_files:

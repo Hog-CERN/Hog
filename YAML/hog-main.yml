@@ -79,14 +79,14 @@ merge_and_tag:
           tclsh ./Hog/Tcl/utils/check_yaml_ref.tcl;
       fi;
     # Check if this is a valid hotfix or feature branch
-    - if [-f "Top/repo.conf"]; then
+    - if [ -f "Top/repo.conf" ]; then
         enable_develop_branch=$(awk -F "=" '/ENABLE_DEVELOP_BRANCH/ {print $2}' Top/repo.conf);
         hotfix_branch=$(awk -F "=" '/HOTFIX/ {print $2}' Top/repo.conf);
         if [ $hotfix_branch == "" ]; then
           hotfix_branch="hotfix/";
         fi;
       fi;
-    - if [ $enable_develop_branch == "1"] && ([ $CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /^master|main|release.*$/ ] || [$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $HOG_TARGET_BRANCH]); then
+    - if [ $enable_develop_branch == "1"] && ([ $CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /^master|main|release.*$/ ] || [ $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $HOG_TARGET_BRANCH]); then
         if [[ $CI_COMMIT_REF_SLUG != $hotfix_branch* ]]; then
           echo "[Hog::ERROR] The target of this MR is $CI_MERGE_REQUEST_TARGET_BRANCH_NAME, but the source is not a hotfix branch. Please, change the name of source branch or direct the MR to $HOG_DEVELOP_BRANCH.";
             exit 1;

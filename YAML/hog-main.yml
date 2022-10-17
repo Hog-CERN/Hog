@@ -88,9 +88,9 @@ merge_and_tag:
       fi;
       echo "$hotfix_branch $enable_develop_branch";
     - if [ "$enable_develop_branch" == "1" ]; then
-        echo "here 1"
+        echo "here 1";
         if [[ $CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /^master|main|release.*$/ ]] || [ "$CI_MERGE_REQUEST_TARGET_BRANCH_NAME" == "$HOG_TARGET_BRANCH" ] ; then
-          echo "here 2"
+          echo "here 2";
           if [[ $CI_COMMIT_REF_SLUG != $hotfix_branch* ]]; then
             echo "[Hog::ERROR] The target of this MR is $CI_MERGE_REQUEST_TARGET_BRANCH_NAME, but the source is not a hotfix branch. Please, change the name of source branch or direct the MR to $HOG_DEVELOP_BRANCH.";
             exit 1;

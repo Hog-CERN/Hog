@@ -88,7 +88,7 @@ merge_and_tag:
       fi;
       echo "$hotfix_branch $enable_develop_branch";
     - if [ "$enable_develop_branch" == "1" ]; then
-        pat="^(master|main|release.*)"
+        pat="^(master|main|release.*)";
         if [[ $CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ $pat ]] || [ "$CI_MERGE_REQUEST_TARGET_BRANCH_NAME" == "$HOG_TARGET_BRANCH" ] ; then
           echo "here 2";
           if [[ $CI_COMMIT_REF_SLUG != $hotfix_branch* ]]; then

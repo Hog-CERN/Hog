@@ -39,9 +39,11 @@
         when: never
       - if: '$CI_MERGE_REQUEST_TITLE =~ /^Draft:.*$/ && $CI_COMMIT_MESSAGE !~ /^RESOLVE_WIP:/'
         when: never
-      - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /^master.*$/ && $HOG_TARGET_BRANCH == null'
+      - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $HOG_DEVELOP_BRANCH && $HOG_DEVELOP_BRANCH != null'
         when: on_success
-      - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $HOG_TARGET_BRANCH && $HOG_TARGET_BRANCH != null'
+      - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /^master|main|release.*$/ && $HOG_TARGET_BRANCH == null && $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME != $HOG_DEVELOP_BRANCH'
+        when: on_success        
+      - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $HOG_TARGET_BRANCH && $HOG_TARGET_BRANCH != null && $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME != $HOG_DEVELOP_BRANCH'
         when: on_success
       - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $HOG_INTERMEDIATE_BRANCH && $HOG_INTERMEDIATE_BRANCH != null'
         when: on_success
@@ -54,9 +56,11 @@
         when: never
       - if: '$CI_MERGE_REQUEST_TITLE =~ /^Draft:.*$/ && $CI_COMMIT_MESSAGE !~ /^RESOLVE_WIP:/'
         when: never
-      - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /^master.*$/ && $HOG_TARGET_BRANCH == null'
+      - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $HOG_DEVELOP_BRANCH'
         when: on_success
-      - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $HOG_TARGET_BRANCH && $HOG_TARGET_BRANCH != null'
+      - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /^master|main|release.*$/ && $HOG_TARGET_BRANCH == null && $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME != $HOG_DEVELOP_BRANCH'
+        when: on_success
+      - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $HOG_TARGET_BRANCH && $HOG_TARGET_BRANCH != null && $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME != $HOG_DEVELOP_BRANCH'
         when: on_success
 
 merge_and_tag:
@@ -68,13 +72,17 @@ merge_and_tag:
   script:
     - "if [[ $CI_COMMIT_MESSAGE == *RESOLVE_WIP* && $CI_MERGE_REQUEST_TITLE == Draft* ]]; then echo 'removing Draft status'; curl ${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/merge_requests/${CI_MERGE_REQUEST_IID}/notes?body=/wip --header \"PRIVATE-TOKEN: ${HOG_PUSH_TOKEN}\" --request POST; fi;"
     - "MR_PARAMETERS=`curl --header \"PRIVATE-TOKEN: ${HOG_PUSH_TOKEN}\" ${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/merge_requests/${CI_MERGE_REQUEST_IID}`"
-    - if [[ ((-n $HOG_TARGET_BRANCH) && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "$HOG_TARGET_BRANCH") || ((-z $HOG_TARGET_BRANCH) && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == master*) ]]; then INCREASE=""; else INCREASE="-no_increase"; fi;
+
     - if [[ ${HOG_CHECK_YAMLREF} != 1 ]]; then
         echo 'Yaml consistency checker is disabled';
       else
           tclsh ./Hog/Tcl/utils/check_yaml_ref.tcl;
       fi;
-    - tclsh ./Hog/Tcl/CI/merge_and_tag.tcl -mr_par "$MR_PARAMETERS" -mr_id $CI_MERGE_REQUEST_IID -push $CI_COMMIT_REF_NAME -main_branch $CI_MERGE_REQUEST_TARGET_BRANCH_NAME -source_branch $CI_COMMIT_REF_SLUG $INCREASE;
+    -  git fetch origin refs/notes/*:refs/notes/*
+    -  "NEW_TAG=`echo \"source Hog/Tcl/hog.tcl; puts v[HexVersionToString [GetVer .]]\" | tclsh`"
+    -  echo "New tag is $NEW_TAG"
+    -  "git notes add -fm \"$CI_MERGE_REQUEST_IID $CI_COMMIT_REF_SLUG $NEW_TAG\""
+    -  git push origin refs/notes/*
   interruptible: true
 
 make_doxygen:
@@ -99,27 +107,37 @@ make_doxygen:
 tag_official_version:
   <<: *tag-sr
   stage: merge
-  script:
-    - git fetch origin refs/notes/*:refs/notes/*
-    - note=(`git notes show`)
-    - new_tag=${note[2]}
-    - if [ "$(git tag --list ${new_tag}*)" != "" ]; then
-        latest_tag=(`git tag -l ${new_tag}* --sort=-v:refname --merged`);
-        if [[ $latest_tag =~ ".*-(.*)" ]]; then
-          nr="${BASH_REMATCH[1]}";
-          new_tag="$new_tag-$(($nr+1))";
-        else
-          new_tag="$new_tag-0";
-        fi;
-      fi;
-    - git tag $new_tag -m "Official_version_${new_tag}" 
-    - git push --tags
   rules:
     - if: '$HOG_TARGET_BRANCH != null && $CI_COMMIT_REF_NAME == $HOG_TARGET_BRANCH && $CI_PIPELINE_SOURCE == "push"'
       when: always
-    - if: '$HOG_TARGET_BRANCH == null && $CI_COMMIT_REF_NAME =~ /^master\d*$/  && $CI_PIPELINE_SOURCE == "push"'
+    - if: '$HOG_TARGET_BRANCH == null && $CI_COMMIT_REF_NAME =~ /^master|main|release.*$/  && $CI_PIPELINE_SOURCE == "push"'
+      when: always
+    - if: '$HOG_DEVELOP_BRANCH != null && $CI_COMMIT_REF_NAME == $HOG_DEVELOP_BRANCH && $CI_PIPELINE_SOURCE == "push"'
       when: always
     - when: never
+  script:
+    - git fetch origin refs/notes/*:refs/notes/*
+    - note=(`git notes show`) || {
+        echo "No note found, probably you pushed to a branch that should protected (e.g. master, develop)"; 
+        exit 1;
+      }
+    - new_tag=${note[2]}
+    - present_tag=(`git describe`)
+    - if [ $present_tag != $new_tag ]; then
+         if [ "$(git tag --list ${new_tag}*)" != "" ]; then
+           latest_tag=(`git tag -l ${new_tag}* --sort=-v:refname --merged`);
+             if [[ $latest_tag =~ ".*-(.*)" ]]; then
+               nr="${BASH_REMATCH[1]}";
+               new_tag="$new_tag-$(($nr+1))";
+             else
+               new_tag="$new_tag-0";
+             fi;
+           fi;
+         git tag $new_tag -m "Official_version_${new_tag}";
+         git push --tags;
+      else
+        echo "Tagging is not necessary because the present commit is already tagged as:\ $new_tag.";
+      fi;
 
 archive_binary_files:
   only:

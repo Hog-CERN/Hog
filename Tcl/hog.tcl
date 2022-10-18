@@ -785,23 +785,23 @@ proc GetFileList {FILE path} {
 #
 proc GetSHA {{path ""}} {
   if {$path == ""} {
-    set ret [Git {log --format=%h --abbrev=7 -1} ]
+    set ret [Git {log --format=%h --abbrev=7 -1}]
     return [string toupper $ret]
   }
 
   # Get repository top level
-  set repo_path [lindex [Git {rev-parse --show-toplevel} $path] 0]
+  set repo_path [lindex [Git {rev-parse --show-toplevel}] 0]
   set paths {}
   # Retrieve the list of submodules in the repository
   foreach f $path {
     set file_in_module 0
     if {[file exists $repo_path/.gitmodules]} {
-      lassign [GitRet "config --file $repo_path/.gitmodules --get-regexp path" " "] status result
+      lassign [GitRet "config --file $repo_path/.gitmodules --get-regexp path"] status result
       if {$status == 0} {
         set submodules [split $result "\n"]
       } else {
         set submodules ""
-        Msg Warning "Something went wrong while trying to find submodules: result"
+        Msg Warning "Something went wrong while trying to find submodules: $result"
       }
 
       foreach mod $submodules {
@@ -837,16 +837,29 @@ proc GetVer {path} {
   if {$SHA eq ""} {
     Msg CriticalWarning "Empty SHA found for ${path}. Commit to Git to resolve this warning."
   }
-  return [list [GetVerFromSHA $SHA] $SHA]
+  set old_path [pwd]
+  set p [lindex $path 0]
+  if {[file isdirectory $p]} {
+    cd $p
+  } else {
+    cd [file dir $p]
+  }
+  set repo_path [Git {rev-parse --show-toplevel}]
+  cd $old_path
+
+  return [list [GetVerFromSHA $SHA $repo_path] $SHA]
 }
 
 ## @brief Get git version and commit hash of a specific commit give the SHA
 #
 # @param[in] SHA the git SHA of the commit
+# @param[in] repo_path the path of the repository, this is used to open the Top/repo.conf file
 #
 # @return  a list: the git SHA, the version in hex format
 #
-proc GetVerFromSHA {SHA} {
+proc GetVerFromSHA {SHA repo_path} {
+  #Let's keep this for a while, more bugs may come soon...
+  #Msg Info "############################### $repo_path #############################################"
   if { $SHA eq ""} {
     Msg CriticalWarning "Empty SHA found"
     set ver "v0.0.0"
@@ -861,22 +874,119 @@ proc GetVerFromSHA {SHA} {
           set ver v0.0.0
         } else {
           lassign [ExtractVersionFromTag $tag] M m p mr
-          if {$M == -1} {
+	  #Open repo.conf and check prefixes
+	  set repo_conf $repo_path/Top/repo.conf
+	  
+	  #Check if the develop/master scheme is used and where is the merge directed to
+	  #Default values
+	  set hotfix_prefix "hotfix/"
+	  set minor_prefix "minor_version/"
+	  set major_prefix "major_version/"
+	  set is_hotfix 0
+	  set enable_develop_branch 0
+
+	  set branch_name [Git {branch --show-current}]
+	  
+	  if [file exists $repo_conf] {
+	    set PROPERTIES [ReadConf $repo_conf]
+	    # [main] section
+	    if {[dict exists $PROPERTIES main]} {
+	      set mainDict [dict get $PROPERTIES main]
+	      
+	      # ENABLE_DEVELOP_ BRANCH property
+	      if {[dict exists $mainDict ENABLE_DEVELOP_BRANCH]} {
+		set enable_develop_branch [dict get $mainDict ENABLE_DEVELOP_BRANCH]
+	      }
+	      # More properties in [main] here ...
+	      
+	    }
+	    
+	    # [prefixes] section
+	    if {[dict exists $PROPERTIES prefixes]} {
+	      set prefixDict [dict get $PROPERTIES prefixes]
+	      
+	      if {[dict exists $prefixDict HOTFIX]} {
+		set hotfix_prefix [dict get $prefixDict HOTFIX]
+	      }
+	      if {[dict exists $prefixDict MINOR_VERSION]} {
+		set minor_prefix [dict get $prefixDict MINOR_VERSION]
+	      }
+	      if {[dict exists $prefixDict MAJOR_VERSION]} {
+		set major_prefix [dict get $prefixDict MAJOR_VERSION]
+	      }
+	      # More properties in [prefixes] here ...
+	    }
+
+	    if {$enable_develop_branch == 1 } {
+	      if {[string match "$hotfix_prefix*" $branch_name]} {
+		set is_hotfix 1
+	      }
+	    }
+	  }
+	  
+	  if {[string match "$major_prefix*" $branch_name]} {
+	    # If major prefix is used, we increase M regardless of anything else
+	    set version_level major
+	  } elseif {[string match "$minor_prefix*" $branch_name] || ($enable_develop_branch == 1 && $is_hotfix == 0)} {
+	    # This is tricky. We increase m if the minor prefix is used or if we are in develope mode and this IS NOT a hotfix
+	    set version_level minor
+	  } else {
+	    # This is even trickier... We increase p if no prefix is used AND we are not in develop mode or if we are in develop mode this IS a Hotfix
+	    set version_level patch
+	  }
+
+          #Let's keep this for a while, more bugs may come soon
+	  #Msg Info "******** $repo_path HF: $hotfix_prefix, M: $major_prefix, m: $minor_prefix, is_hotfilx: $is_hotfix: VL: $version_level, BRANCH: $branch_name"
+
+	  
+	  if {$M == -1} {
             Msg CriticalWarning "Tag $tag does not contain a Hog compatible version in this repository."
             #set ver v0.0.0
           } elseif {$mr == -1} {
-            incr p
-            Msg Info "No tag contains $SHA, will use most recent tag $tag. As this is an official tag, patch will be incremented to $p."
+
+            #Msg Info "No tag contains $SHA, will use most recent tag $tag. As this is an official tag, patch will be incremented to $p."
+	    # Why do we need to have this switch twice?
+	    switch $version_level {
+	      minor {
+		incr m
+		set p 0
+	      }
+	      major {
+		incr M
+		set m 0
+		set p 0
+	      }
+	      default {
+		incr p
+	      } 
+	    }
+	    
           } else {
             lassign [ExtractVersionFromTag $tag] M m p mr
             if {$M == -1} {
               Msg CriticalWarning "Tag $tag does not contain a Hog compatible version in this repository."
               #set ver v0.0.0
             } elseif {$mr == -1} {
-              incr p
-              Msg Info "No tag contains $SHA, will use most recent tag $tag. As this is an official tag, patch will be incremented to $p."
-            } else {
-              Msg Info "No tag contains $SHA, will use most recent tag $tag. As this is a candidate tag, the patch level will be kept at $p."
+
+	      #Msg Info "No tag contains $SHA, will use most recent tag $tag. As this is an official tag, patch will be incremented to $p."
+	      # Why do we need to have this switch twice? I'm sure there is a reason...
+	      switch $version_level {
+		minor {
+		  incr m
+		  set p 0
+		}
+		major {
+		  incr M
+		  set m 0
+		  set p 0
+		}
+		default {
+		  incr p
+		} 
+	      }
+	      
+	    } else {
+		Msg Info "No tag contains $SHA, will use most recent tag $tag. As this is a candidate tag, the patch level will be kept at $p."
             }
           }
           set ver v$M.$m.$p
@@ -984,7 +1094,7 @@ proc GetHogDescribe {sha} {
     set new_sha $sha
     set suffix ""
   }
-  set describe "v[HexVersionToString [GetVerFromSHA $new_sha]]-hog$new_sha$suffix"
+  set describe "v[HexVersionToString [GetVerFromSHA $new_sha .]]-hog$new_sha$suffix"
   return $describe
 }
 
@@ -1068,7 +1178,7 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
 
   #Append the SHA in which Hog submodule was changed, not the submodule SHA
   lappend SHAs [GetSHA {Hog}]
-  lappend versions [GetVerFromSHA $SHAs]
+  lappend versions [GetVerFromSHA $SHAs $repo_path]
 
   cd "$repo_path/Hog"
   if {[Git {status --untracked-files=no  --porcelain}] eq ""} {
@@ -1155,7 +1265,7 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
   } else {
     set cons_hash [string toupper [Git "log --format=%h -1 $cons_hashes"]]
   }
-  set cons_ver [GetVerFromSHA $cons_hash]
+  set cons_ver [GetVerFromSHA $cons_hash $repo_path]
   #Msg Info "Among all the constraint list files, if more than one, the most recent version was chosen: $cons_ver commit SHA: $cons_hash"
 
   # Read external library files
@@ -1170,7 +1280,7 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
     lappend ext_names $name
     lappend ext_hashes $hash
     lappend SHAs $hash
-    set ext_ver [GetVerFromSHA $hash]
+    set ext_ver [GetVerFromSHA $hash $repo_path]
     lappend versions $ext_ver
 
     set fp [open $f r]
@@ -2907,12 +3017,12 @@ proc Git {command {files ""}}  {
 #  @returns a list of 2 elements: the return value (0 if no error occurred) and the output of the git command
 proc GitRet {command {files ""}}  {
   global env
-  if {$files eq " "} {
-    set dashes ""
+  if {$files eq ""} {
+    set ret [catch {exec -ignorestderr git {*}$command} result]
   } else {
-    set dashes "--"
+    set ret [catch {exec -ignorestderr git {*}$command -- {*}$files} result]
   }
-  set ret [catch {exec -ignorestderr git {*}$command $dashes {*}$files} result]
+
 
   return [list $ret $result]
 }

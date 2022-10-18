@@ -151,7 +151,12 @@ proc AddProjectFiles {} {
   ##############
   # READ FILES #
   ##############
-  set list_files [glob -directory $globalSettings::list_path "*"]
+
+  if {[file isdirectory $globalSettings::list_path]} {
+      set list_files [glob -directory $globalSettings::list_path "*"]
+  } else {
+      Msg Error "No list directory found at  $globalSettings::list_path"
+  }
 
   if {[IsXilinx]} {
     if {[IsISE]} {

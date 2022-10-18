@@ -288,9 +288,9 @@ proc GetFile {file} {
     # Vivado
     set Files [get_files $file]
     set f [lindex $Files 0]
-   
+
     return $f
-    
+
   } elseif {[IsQuartus]} {
     # Quartus
     return ""
@@ -874,93 +874,93 @@ proc GetVerFromSHA {SHA repo_path} {
           set ver v0.0.0
         } else {
           lassign [ExtractVersionFromTag $tag] M m p mr
-	  #Open repo.conf and check prefixes
-	  set repo_conf $repo_path/Top/repo.conf
-	  
-	  #Check if the develop/master scheme is used and where is the merge directed to
-	  #Default values
-	  set hotfix_prefix "hotfix/"
-	  set minor_prefix "minor_version/"
-	  set major_prefix "major_version/"
-	  set is_hotfix 0
-	  set enable_develop_branch 0
+	        # Open repo.conf and check prefixes
+          set repo_conf $repo_path/Top/repo.conf
 
-	  set branch_name [Git {branch --show-current}]
-	  
-	  if [file exists $repo_conf] {
-	    set PROPERTIES [ReadConf $repo_conf]
-	    # [main] section
-	    if {[dict exists $PROPERTIES main]} {
-	      set mainDict [dict get $PROPERTIES main]
-	      
-	      # ENABLE_DEVELOP_ BRANCH property
-	      if {[dict exists $mainDict ENABLE_DEVELOP_BRANCH]} {
-		set enable_develop_branch [dict get $mainDict ENABLE_DEVELOP_BRANCH]
-	      }
-	      # More properties in [main] here ...
-	      
-	    }
-	    
-	    # [prefixes] section
-	    if {[dict exists $PROPERTIES prefixes]} {
-	      set prefixDict [dict get $PROPERTIES prefixes]
-	      
-	      if {[dict exists $prefixDict HOTFIX]} {
-		set hotfix_prefix [dict get $prefixDict HOTFIX]
-	      }
-	      if {[dict exists $prefixDict MINOR_VERSION]} {
-		set minor_prefix [dict get $prefixDict MINOR_VERSION]
-	      }
-	      if {[dict exists $prefixDict MAJOR_VERSION]} {
-		set major_prefix [dict get $prefixDict MAJOR_VERSION]
-	      }
-	      # More properties in [prefixes] here ...
-	    }
+	        # Check if the develop/master scheme is used and where is the merge directed to
+	        # Default values
+          set hotfix_prefix "hotfix/"
+          set minor_prefix "minor_version/"
+          set major_prefix "major_version/"
+          set is_hotfix 0
+          set enable_develop_branch 0
 
-	    if {$enable_develop_branch == 1 } {
-	      if {[string match "$hotfix_prefix*" $branch_name]} {
-		set is_hotfix 1
-	      }
-	    }
-	  }
-	  
-	  if {[string match "$major_prefix*" $branch_name]} {
-	    # If major prefix is used, we increase M regardless of anything else
-	    set version_level major
-	  } elseif {[string match "$minor_prefix*" $branch_name] || ($enable_develop_branch == 1 && $is_hotfix == 0)} {
-	    # This is tricky. We increase m if the minor prefix is used or if we are in develope mode and this IS NOT a hotfix
-	    set version_level minor
-	  } else {
-	    # This is even trickier... We increase p if no prefix is used AND we are not in develop mode or if we are in develop mode this IS a Hotfix
-	    set version_level patch
-	  }
+          set branch_name [Git {rev-parse --abbrev-ref HEAD}]
+
+          if [file exists $repo_conf] {
+            set PROPERTIES [ReadConf $repo_conf]
+	          # [main] section
+            if {[dict exists $PROPERTIES main]} {
+              set mainDict [dict get $PROPERTIES main]
+
+	            # ENABLE_DEVELOP_ BRANCH property
+              if {[dict exists $mainDict ENABLE_DEVELOP_BRANCH]} {
+                set enable_develop_branch [dict get $mainDict ENABLE_DEVELOP_BRANCH]
+              }
+	            # More properties in [main] here ...
+
+            }
+
+	          # [prefixes] section
+            if {[dict exists $PROPERTIES prefixes]} {
+              set prefixDict [dict get $PROPERTIES prefixes]
+
+              if {[dict exists $prefixDict HOTFIX]} {
+                set hotfix_prefix [dict get $prefixDict HOTFIX]
+              }
+              if {[dict exists $prefixDict MINOR_VERSION]} {
+                set minor_prefix [dict get $prefixDict MINOR_VERSION]
+              }
+              if {[dict exists $prefixDict MAJOR_VERSION]} {
+                set major_prefix [dict get $prefixDict MAJOR_VERSION]
+              }
+	            # More properties in [prefixes] here ...
+            }
+
+            if {$enable_develop_branch == 1 } {
+              if {[string match "$hotfix_prefix*" $branch_name]} {
+                set is_hotfix 1
+              }
+            }
+          }
+
+          if {[string match "$major_prefix*" $branch_name]} {
+	          # If major prefix is used, we increase M regardless of anything else
+            set version_level major
+          } elseif {[string match "$minor_prefix*" $branch_name] || ($enable_develop_branch == 1 && $is_hotfix == 0)} {
+	          # This is tricky. We increase m if the minor prefix is used or if we are in develop mode and this IS NOT a hotfix
+            set version_level minor
+          } else {
+	          # This is even trickier... We increase p if no prefix is used AND we are not in develop mode or if we are in develop mode this IS a Hotfix
+            set version_level patch
+          }
 
           #Let's keep this for a while, more bugs may come soon
-	  #Msg Info "******** $repo_path HF: $hotfix_prefix, M: $major_prefix, m: $minor_prefix, is_hotfilx: $is_hotfix: VL: $version_level, BRANCH: $branch_name"
+	        #Msg Info "******** $repo_path HF: $hotfix_prefix, M: $major_prefix, m: $minor_prefix, is_hotfilx: $is_hotfix: VL: $version_level, BRANCH: $branch_name"
 
-	  
-	  if {$M == -1} {
+
+          if {$M == -1} {
             Msg CriticalWarning "Tag $tag does not contain a Hog compatible version in this repository."
             #set ver v0.0.0
           } elseif {$mr == -1} {
 
             #Msg Info "No tag contains $SHA, will use most recent tag $tag. As this is an official tag, patch will be incremented to $p."
-	    # Why do we need to have this switch twice?
-	    switch $version_level {
-	      minor {
-		incr m
-		set p 0
-	      }
-	      major {
-		incr M
-		set m 0
-		set p 0
-	      }
-	      default {
-		incr p
-	      } 
-	    }
-	    
+	          # Why do we need to have this switch twice?
+            switch $version_level {
+              minor {
+                incr m
+                set p 0
+              }
+              major {
+                incr M
+                set m 0
+                set p 0
+              }
+              default {
+                incr p
+              } 
+            }
+
           } else {
             lassign [ExtractVersionFromTag $tag] M m p mr
             if {$M == -1} {
@@ -970,23 +970,23 @@ proc GetVerFromSHA {SHA repo_path} {
 
 	      #Msg Info "No tag contains $SHA, will use most recent tag $tag. As this is an official tag, patch will be incremented to $p."
 	      # Why do we need to have this switch twice? I'm sure there is a reason...
-	      switch $version_level {
-		minor {
-		  incr m
-		  set p 0
-		}
-		major {
-		  incr M
-		  set m 0
-		  set p 0
-		}
-		default {
-		  incr p
-		} 
-	      }
-	      
-	    } else {
-		Msg Info "No tag contains $SHA, will use most recent tag $tag. As this is a candidate tag, the patch level will be kept at $p."
+              switch $version_level {
+                minor {
+                  incr m
+                  set p 0
+                }
+                major {
+                  incr M
+                  set m 0
+                  set p 0
+                }
+                default {
+                  incr p
+                } 
+              }
+
+            } else {
+              Msg Info "No tag contains $SHA, will use most recent tag $tag. As this is a candidate tag, the patch level will be kept at $p."
             }
           }
           set ver v$M.$m.$p
@@ -1458,7 +1458,7 @@ proc TagRepository {{merge_request_number 0} {version_level 0} {default_level 0}
       if {$mr == -1 } {
         # Tag is official, no b at the beginning (and no merge request number at the end)
         Msg Info "Found official version $M.$m.$p."
-	set old_tag $vtag
+        set old_tag $vtag
         if {$version_level == 2} {
           incr M
           set m 0
@@ -1510,7 +1510,7 @@ proc TagRepository {{merge_request_number 0} {version_level 0} {default_level 0}
         # Tag is not official
         #Not official, do nothing unless version level is >=3, in which case convert the unofficial to official
         Msg Info "Found candidate version for $M.$m.$p."
-	set old_tag $btag
+        set old_tag $btag
         if {$version_level >= 3} {
           Msg Info "New tag will be an official version v$M.$m.$p..."
           set new_tag v$M.$m.$p
@@ -3460,12 +3460,12 @@ proc GetProjectFlavour {proj_name} {
 #
 #  @param[in]    unformatted generic
 proc FormatGeneric {generic} {
-    if {[string is integer "0x$generic"]} {
-        return [format "32'h%08X" "0x$generic"]
-    } else {
+  if {[string is integer "0x$generic"]} {
+    return [format "32'h%08X" "0x$generic"]
+  } else {
         # for non integers (e.g. blanks) just return 0
-        return [format "32'h%08X" 0]
-    }
+    return [format "32'h%08X" 0]
+  }
 }
 
 ## @brief Gets custom generics from hog.conf
@@ -3520,7 +3520,7 @@ proc GetGenericFromConf {proj_dir target} {
             set prj_generics "$prj_generics $theKey=$ValueInt"
           } elseif { $valueStrFull != "" && $ValueStr != "" } {
             set prj_generics "$prj_generics {$theKey=\"$ValueStr\"}"
-            
+
           } else {
             set prj_generics "$prj_generics {$theKey=\"$theValue\"}"
           }
@@ -3567,7 +3567,7 @@ proc WriteGenerics {mode design date timee commit version top_hash top_ver hog_h
   Msg Info "Project $design writing generics."
   #####  Passing Hog generic to top file
   if {[IsXilinx]} {
-      
+
     # set global generic varibles
     set generic_string [concat \
                             "GLOBAL_DATE=[FormatGeneric $date]" \
@@ -3583,32 +3583,32 @@ proc WriteGenerics {mode design date timee commit version top_hash top_ver hog_h
     #'"
     # xml hash
     if {$xml_hash != "" && $xml_ver != ""} {
-        lappend generic_string \
+      lappend generic_string \
             "XML_VER=[FormatGeneric $xml_ver]" \
             "XML_SHA=[FormatGeneric $xml_hash]"
     }
     #'"
     #set project specific lists
     foreach l $libs v $vers h $hashes {
-        set ver "[string toupper $l]_VER=[FormatGeneric $v]"
-        set hash "[string toupper $l]_SHA=[FormatGeneric $h]"
-        lappend generic_string "$ver" "$hash"
+      set ver "[string toupper $l]_VER=[FormatGeneric $v]"
+      set hash "[string toupper $l]_SHA=[FormatGeneric $h]"
+      lappend generic_string "$ver" "$hash"
     }
 
     foreach e $ext_names h $ext_hashes {
-        set hash "[string toupper $e]_SHA=[FormatGeneric $h]"
-        lappend generic_string "$hash"
+      set hash "[string toupper $e]_SHA=[FormatGeneric $h]"
+      lappend generic_string "$hash"
     }
 
     foreach repo $user_ip_repos v $user_ip_vers h $user_ip_hashes {
-        set repo_name [file tail $repo]
-        set ver "[string toupper $repo_name]_VER=[FormatGeneric $v]"
-        set hash "[string toupper $repo_name]_SHA=[FormatGeneric $h]"
-        lappend generic_string "$ver" "$hash"
+      set repo_name [file tail $repo]
+      set ver "[string toupper $repo_name]_VER=[FormatGeneric $v]"
+      set hash "[string toupper $repo_name]_SHA=[FormatGeneric $h]"
+      lappend generic_string "$ver" "$hash"
     }
 
     if {$flavour != -1} {
-        lappend generic_string "FLAVOUR=$flavour"
+      lappend generic_string "FLAVOUR=$flavour"
     }
 
     # Dealing with project generics in Vivado

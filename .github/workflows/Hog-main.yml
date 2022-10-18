@@ -1,3 +1,17 @@
+#   Copyright 2018-2022 The University of Birmingham
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at
+#
+#       http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+
 name: Hog-main
 
 on:
@@ -12,12 +26,6 @@ on:
       HOG_USE_DOXYGEN:
         required: false
         type: boolean
-      HOG_CHECK_PROJVER:
-        required: false
-        type: boolean
-      HOG_TARGET_BRANCH:
-        required: false
-        type: string
     secrets:
       SUBMODULE_CONTENT_PULL_KEY:
         required: true
@@ -71,21 +79,31 @@ jobs:
           git reset --hard $previous_commit
           git push --force
           git fetch origin refs/notes/*:refs/notes/*
-          note=(`git notes show`)
+          note=(`git notes show`) || {
+            echo "No note found, probably you pushed to a branch that should protected (e.g. master, develop)"; 
+            exit 1;
+          }
           new_tag=${note[2]}
-          if [ "$(git tag --list ${new_tag}*)" != "" ]; then
-            latest_tag=(`git tag -l ${new_tag}* --sort=-v:refname --merged`);
-            if [[ $latest_tag =~ ".*-(.*)" ]]; then
-              nr="${BASH_REMATCH[1]}";
-              new_tag="$new_tag-$(($nr+1))";
-            else
-              new_tag="$new_tag-0";
+          present_tag=(`git describe`)
+          if [ $present_tag != $new_tag ]; then
+            if [ "$(git tag --list ${new_tag}*)" != "" ]; then
+              latest_tag=(`git tag -l ${new_tag}* --sort=-v:refname --merged`);
+              if [[ $latest_tag =~ ".*-(.*)" ]]; then
+                nr="${BASH_REMATCH[1]}";
+                new_tag="$new_tag-$(($nr+1))";
+              else
+                new_tag="$new_tag-0";
+              fi;
             fi;
+            git tag $new_tag -m "Official_version_${new_tag}" 
+            git push --tags
+          else
+            echo "Tagging is not necessary because the present commit is already tagged as:\ $new_tag.";
           fi;
-          git tag $new_tag -m "Official_version_${new_tag}" 
-          git push --tags
-          echo "::set-output name=tag::$new_tag"
-          echo "::set-output name=runid::${note[0]}"
+          echo "tag=$new_tag" >> $GITHUB_OUTPUT
+          echo "runid=${note[0]}" >> $GITHUB_OUTPUT
+          # echo "::set-output name=tag::$new_tag"
+          # echo "::set-output name=runid::${note[0]}"
   archive_binary_files:
     runs-on: ubuntu-latest
     if: ${{ inputs.HOG_OFFICIAL_BIN_EOS_PATH != '' }}

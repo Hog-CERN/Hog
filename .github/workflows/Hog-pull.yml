@@ -1,3 +1,17 @@
+#   Copyright 2018-2022 The University of Birmingham
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at
+#
+#       http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+
 name: Hog-pull
 
 on:
@@ -63,6 +77,10 @@ on:
         required: false
       EOS_PASSWORD:
         required: false
+      HOG_TARGET_BRANCH:
+        required: false
+      HOG_DEVELOP_BRANCH:
+        required: false
 
 env:
   PR_NUMBER: ${{ github.event.number }}
@@ -83,6 +101,8 @@ env:
   HOG_IP_NJOBS: ${{ secrets.HOG_IP_NJOBS }}
   GH_TOKEN: ${{ secrets.HOG_PUSH_TOKEN }}
   HOG_PR_MSG: ${{ secrets.HOG_PR_MSG }}
+  HOG_TARGET_BRANCH: ${{ secrets.HOG_TARGET_BRANCH }}
+  HOG_DEVELOP_BRANCH: ${{ secrets.HOG_DEVELOP_BRANCH }}
 
 
 
@@ -108,8 +128,30 @@ jobs:
           git pull
           git submodule init
           git submodule update
+          # Check if this is a valid hotfix or feature branch
+          if [ -f "Top/repo.conf" ]; then
+            enable_develop_branch=$(awk -F "=" '/ENABLE_DEVELOP_BRANCH/{ gsub(" |\t",""); print $2}' Top/repo.conf);
+            hotfix_branch=$(awk -F "=" '/HOTFIX/ {print $2}' Top/repo.conf);
+            if [ "$hotfix_branch" == "" ]; then
+              hotfix_branch="hotfix/";
+            fi;
+          fi;
+          if [ "$enable_develop_branch" == "1" ]; then
+            pat="^(master|main|release.*)";
+            if [[ $GITHUB_BASE_REF =~ $pat ]] || [ "$GITHUB_BASE_REF" == "$HOG_TARGET_BRANCH" ] ; then
+              if [[ $GITHUB_HEAD_REF != $hotfix_branch* ]]; then
+                echo "[Hog::ERROR] The target of this MR is $GITHUB_HEAD_REF, but the source is not a hotfix branch. Please, change the name of source branch or direct the MR to $HOG_DEVELOP_BRANCH.";
+              exit 1;
+              fi;
+            fi;
+          fi;
           PULL_PARAMETERS=`curl -H "Accept: application/vnd.github.v3+json" $GITHUB_API_URL/repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER --header  "Authorization: token ${HOG_PUSH_TOKEN}"`
-          tclsh ./Hog/Tcl/CI/merge_and_tag.tcl -github 1 -mr_par "$PULL_PARAMETERS" -mr_id $PR_NUMBER -main_branch $GITHUB_BASE_REF -source_branch $GITHUB_HEAD_REF -push $GITHUB_HEAD_REF -run_id $GITHUB_RUN_ID
+          # tclsh ./Hog/Tcl/CI/merge_and_tag.tcl -github 1 -mr_par "$PULL_PARAMETERS" -mr_id $PR_NUMBER -main_branch $GITHUB_BASE_REF -source_branch $GITHUB_HEAD_REF -push $GITHUB_HEAD_REF -run_id $GITHUB_RUN_ID
+          git fetch origin refs/notes/*:refs/notes/*
+          NEW_TAG=`echo "source Hog/Tcl/hog.tcl; puts v[HexVersionToString [GetVer .]]" | tclsh`
+          echo "New tag is $NEW_TAG"
+          git notes add -fm "$GITHUB_RUN_ID $GITHUB_HEAD_REF $NEW_TAG"
+          git push origin refs/notes/*
   make_doxygen:
     runs-on: ubuntu-latest
     container: gitlab-registry.cern.ch/hog/hog-docker:doxygen

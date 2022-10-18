@@ -886,7 +886,7 @@ proc GetVerFromSHA {SHA repo_path} {
           set is_hotfix 0
           set enable_develop_branch 0
 
-          set branch_name [Git {branch --show-current}]
+          set branch_name [Git {rev-parse --abbrev-ref HEAD}]
 
           if [file exists $repo_conf] {
             set PROPERTIES [ReadConf $repo_conf]

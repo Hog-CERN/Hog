@@ -78,11 +78,28 @@ merge_and_tag:
       else
           tclsh ./Hog/Tcl/utils/check_yaml_ref.tcl;
       fi;
-    -  git fetch origin refs/notes/*:refs/notes/*
-    -  "NEW_TAG=`echo \"source Hog/Tcl/hog.tcl; puts v[HexVersionToString [GetVer .]]\" | tclsh`"
-    -  echo "New tag is $NEW_TAG"
-    -  "git notes add -fm \"$CI_MERGE_REQUEST_IID $CI_COMMIT_REF_SLUG $NEW_TAG\""
-    -  git push origin refs/notes/*
+    # Check if this is a valid hotfix or feature branch
+    - if [ -f "Top/repo.conf" ]; then
+        enable_develop_branch=$(awk -F "=" '/ENABLE_DEVELOP_BRANCH/{ gsub(" |\t",""); print $2}' Top/repo.conf);
+        hotfix_branch=$(awk -F "=" '/HOTFIX/ {print $2}' Top/repo.conf);
+        if [ "$hotfix_branch" == "" ]; then
+          hotfix_branch="hotfix/";
+        fi;
+      fi;
+    - if [ "$enable_develop_branch" == "1" ]; then
+        pat="^(master|main|release.*)";
+        if [[ $CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ $pat ]] || [ "$CI_MERGE_REQUEST_TARGET_BRANCH_NAME" == "$HOG_TARGET_BRANCH" ] ; then
+          if [[ $CI_COMMIT_REF_SLUG != $hotfix_branch* ]]; then
+            echo "[Hog::ERROR] The target of this MR is $CI_MERGE_REQUEST_TARGET_BRANCH_NAME, but the source is not a hotfix branch. Please, change the name of source branch or direct the MR to $HOG_DEVELOP_BRANCH.";
+            exit 1;
+          fi;
+        fi;
+      fi;
+    - git fetch origin refs/notes/*:refs/notes/*
+    - "NEW_TAG=`echo \"source Hog/Tcl/hog.tcl; puts v[HexVersionToString [GetVer .]]\" | tclsh`"
+    - echo "New tag is $NEW_TAG"
+    - "git notes add -fm \"$CI_MERGE_REQUEST_IID $CI_COMMIT_REF_SLUG $NEW_TAG\""
+    - git push origin refs/notes/*
   interruptible: true
 
 make_doxygen:

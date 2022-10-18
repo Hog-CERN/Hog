@@ -158,12 +158,11 @@ proc AddProjectFiles {} {
       Msg Error "No list directory found at  $globalSettings::list_path"
   }
 
-  if {[IsXilinx]} {
-    if {[IsISE]} {
-      set tcl_path         [file normalize "[file dirname [info script]]"]
-      source $tcl_path/utils/cmdline.tcl
-    }
+  if {[IsISE]} {
+    set tcl_path [file normalize "[file dirname [info script]]"]
+    source $tcl_path/utils/cmdline.tcl
   }
+
   AddHogFiles {*}[GetHogFiles -ext_path $globalSettings::HOG_EXTERNAL_PATH -repo_path $globalSettings::repo_path  $globalSettings::list_path]
 
   ## Set synthesis TOP

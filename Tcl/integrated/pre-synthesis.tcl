@@ -14,7 +14,7 @@
 #   limitations under the License.
 
 # @file
-# The pre synthesis script checks the status of your git repository and stores into a set of variables that are fed as genereics to the HDL project.
+# The pre synthesis script checks the status of your git repository and stores into a set of variables that are fed as generics to the HDL project.
 # This script is automatically integrated into the Vivado/Quartus workflow by the Create Project script.
 
 if {[catch {package require struct::matrix} ERROR]} {
@@ -271,7 +271,7 @@ if [GitVersion 2.9.3] {
 #####  Passing Hog generic to top file
 if {[IsXilinx]} {
   ### VIVADO
-  # set global generic varibles
+  # set global generic variables
   WriteGenerics "synth" $project $date $timee $commit $version $top_hash $top_ver $hog_hash $hog_ver $cons_ver $cons_hash  $libs $vers $hashes $ext_names $ext_hashes $user_ip_repos $user_ip_vers $user_ip_hashes $flavour $xml_ver $xml_hash
   set status_file [file normalize "$old_path/../versions.txt"]
 

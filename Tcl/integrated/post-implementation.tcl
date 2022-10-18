@@ -17,7 +17,7 @@
 # The post implementation script embeds the git SHA of the current commit into the binary file of the project.
 # In Vivado this is done using the USERID and USR_ACCESS variables. In Quartus this is done with the STRATIX_JTAG_USER_CODE variable.
 # 
-# The USERID is always set to the commit, while the USR_ACCESS and STRATIX_JTAG_USER_CODE are set only if Hog can guarantee the reploducibility of the firmware workflow:
+# The USERID is always set to the commit, while the USR_ACCESS and STRATIX_JTAG_USER_CODE are set only if Hog can guarantee the reproducibility of the firmware workflow:
 #
 # - The firmware repostory must be clean (no uncommitted modification)
 # - The Multithread option must be disabled

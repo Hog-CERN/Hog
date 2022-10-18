@@ -14,7 +14,7 @@
 
 
 # @file quartus-pre-flow.tcl
-# The pre synthesis flow checks the status of your git repository and stores into a set of variables that are fed as genereics to the HDL project.
+# The pre synthesis flow checks the status of your git repository and stores into a set of variables that are fed as generics to the HDL project.
 # This script is automatically integrated into the Vivado/Quartus workflow by the Create Project script.
 #
 

@@ -174,7 +174,7 @@ foreach s [get_filesets] {
           lappend sim_scripts $sim_script
           dict append sim_dic $sim_script $s
         } else {
-          Msg Error "Cannot run $simulator simulations witouth a valid library path"
+          Msg Error "Cannot run $simulator simulations without a valid library path"
           exit -1
         }
       }

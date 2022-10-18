@@ -152,7 +152,7 @@ if [[ " ${COMPILERS_TO_CHECK[@]} " =~ "vivado" || " ${COMPILERS_TO_CHECK[@]} " =
 
     echo -n "Variable: HOG_XIL_LICENSE is "
     if [ -z "$HOG_XIL_LICENSE" ]; then
-        echo "NOT defined. If this variable is not set to the license servers separated by comas, you need some alternative way of getting your Xilinx licence (for example a licence file on the machine)."
+        echo "NOT defined. If this variable is not set to the license servers separated by comas, you need some alternative way of getting your Xilinx license (for example a license file on the machine)."
     else
         echo "defined."
     fi
@@ -164,7 +164,7 @@ if [[ " ${COMPILERS_TO_CHECK[@]} " =~ "quartus" ]]; then
 
     echo -n "Variable: LM_LICENSE_FILE is "
     if [ -z "$LM_LICENSE_FILE" ]; then
-        echo "NOT defined. This variable should be set the Quartus license servers separated by semicolon. If not, you need an alternative way of getting your Quartus licence."
+        echo "NOT defined. This variable should be set the Quartus license servers separated by semicolon. If not, you need an alternative way of getting your Quartus license."
     else
         echo "defined."
     fi

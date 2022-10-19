@@ -70,8 +70,8 @@
             SIM_CMD="./Hog/LaunchSimulation.sh $PROJECT_NAME -l $HOG_SIMULATION_LIB_PATH" ;
           fi;
           if [[ -v HOG_APPTAINER_IMAGE ]]; then
-            echo "apptainer exec -H $PWD $HOG_APPTAINER_IMAGE_PATH  $SIM_CMD";
-            apptainer exec -H $PWD $HOG_APPTAINER_IMAGE_PATH /bin/bash -c "source /opt/Xilinx/Vivado/2020.2/settings64.sh; $SIM_CMD";
+            echo "apptainer exec -H $PWD $HOG_APPTAINER_IMAGE  $SIM_CMD";
+            apptainer exec -H $PWD $HOG_APPTAINER_IMAGE /bin/bash -c "source /opt/Xilinx/Vivado/2020.2/settings64.sh; $SIM_CMD";
           else
             echo $SIM_CMD;
             $(SIM_CMD);
@@ -193,8 +193,8 @@
       - if [ ! -f "./Projects/$PROJECT_NAME/skip.me" ]; then
           EXEC_CMD="./Hog/LaunchWorkflow.sh -njobs $HOG_NJOBS $IP_PATH $NO_BITSTREAM $ONLY_SYNTH $CHECK_SYNTAX $PROJECT_NAME";
           if [[ -v HOG_APPTAINER_IMAGE ]]; then
-            echo "singularity exec -H $PWD $HOG_APPTAINER_IMAGE_PATH $EXEC_CMD";
-            apptainer exec -H $PWD $HOG_APPTAINER_IMAGE_PATH /bin/bash -c "source /opt/Xilinx/Vivado/2020.2/settings64.sh; $EXEC_CMD";
+            echo "singularity exec -H $PWD $HOG_APPTAINER_IMAGE $EXEC_CMD";
+            apptainer exec -H $PWD $HOG_APPTAINER_IMAGE /bin/bash -c "source /opt/Xilinx/Vivado/2020.2/settings64.sh; $EXEC_CMD";
           else
             echo $EXEC_CMD;
             $(EXEC_CMD);

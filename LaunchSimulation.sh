@@ -31,7 +31,7 @@
 # DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 ## @function argument_parser()
-#  @brief pase aguments and sets evvironment variables
+#  @brief parse arguments and sets environment variables
 #  @param[out] SIMLIBPATH   empty or "-lib_path $2"
 #  @param[out] QUIET        empty or "-quiet"
 #  @param[out] SIMSET       empty or "-simset $2"
@@ -97,7 +97,7 @@ function help_message() {
   echo
   echo " Usage: $1 <project name> [OPTIONS]"
   echo " Options:"
-  echo "          -l/--lib  <sim_lib_path>  Path to simulation library. If not defined it will be set to the HOG_SIMULATION_LIB_PATH environmnetal library, or if this does not exist to the default $(pwd)/SimulationLib"
+  echo "          -l/--lib  <sim_lib_path>  Path to simulation library. If not defined it will be set to the HOG_SIMULATION_LIB_PATH environmental library, or if this does not exist to the default $(pwd)/SimulationLib"
   echo "          -simset <simset>          Launch the simulation only for the specified simulation set"
   echo "          -quiet                    If set, it runs the simulation in quiet mode"
   echo "          -recreate                 If set, Hog will recreate the HDL project before running the workflow"

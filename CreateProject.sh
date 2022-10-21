@@ -24,7 +24,7 @@
 #
 # @brief Prints an help message
 #
-# The help message contais both the options availble for the first line of the tcl, both the command usage
+# The help message contains both the options available for the first line of the tcl, both the command usage
 # This function uses echo to print to screen
 #
 # @param[in]    $1 the invoked command
@@ -43,7 +43,7 @@ function help_message() {
   echo
   echo " Usage: $1 <project name> [OPTIONS]"
   echo " Options:"
-  echo "          -l/--lib  <sim_lib_path>  Path to simulation library. If not defined it will be set to the HOG_SIMULATION_LIB_PATH environmnetal library, or if this does not exist to the default $(pwd)/SimulationLib"
+  echo "          -l/--lib  <sim_lib_path>  Path to simulation library. If not defined it will be set to the HOG_SIMULATION_LIB_PATH environmental library, or if this does not exist to the default $(pwd)/SimulationLib"
   echo
   echo " Hint: Hog accepts as <project name> both the actual project name and the relative path containing the project configuration. E.g. ./Hog/CreateProject.sh Top/myproj or ./Hog/CreateProject.sh myproj"
 }
@@ -137,7 +137,7 @@ function create_project() {
     fi
 
     if [ ! -f "${HDL_COMPILER}" ]; then
-      Msg Error "HLD compiler executable $HDL_COMPILER not found"
+      Msg Error "HDL compiler executable $HDL_COMPILER not found"
       cd "${OLD_DIR}"
       exit -1
     else
@@ -159,7 +159,7 @@ function create_project() {
     elif [ $FILE_TYPE == "TCL" ]; then
       Msg Error "Creating project $PROJ using $PROJ.tcl is no longer supported. Please create a hog.conf file..."
     else
-      Msg Error "Unknown file type: $FILE_TPYE"
+      Msg Error "Unknown file type: $FILE_TYPE"
       exit 1
     fi
 

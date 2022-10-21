@@ -172,7 +172,7 @@ proc  GetProperty {property object} {
   } else {
     # Tcl Shell
     puts "***DEBUG Hog:GetProperty $property of $object"
-    return "DEBUG_propery_value"
+    return "DEBUG_property_value"
   }
 }
 
@@ -679,7 +679,7 @@ proc MergeDict {dict0 dict1} {
 #
 # @param[in] dictName the name of the dictionary
 # @param[in] keyName the name of the key
-# @param[in] default the default value to be retruned if the key is not found
+# @param[in] default the default value to be returned if the key is not found
 #
 # @return        the dictionary key value
 
@@ -936,7 +936,7 @@ proc GetVerFromSHA {SHA repo_path} {
           }
 
           #Let's keep this for a while, more bugs may come soon
-	        #Msg Info "******** $repo_path HF: $hotfix_prefix, M: $major_prefix, m: $minor_prefix, is_hotfilx: $is_hotfix: VL: $version_level, BRANCH: $branch_name"
+	        #Msg Info "******** $repo_path HF: $hotfix_prefix, M: $major_prefix, m: $minor_prefix, is_hotfix: $is_hotfix: VL: $version_level, BRANCH: $branch_name"
 
 
           if {$M == -1} {
@@ -1087,7 +1087,7 @@ proc GetProjectVersion {proj_dir repo_path {ext_path ""} {sim 0}} {
 #
 proc GetHogDescribe {sha} {
   if {$sha == 0 } {
-    # in case the repo is dirty, we use the last commited sha and add a -dirty suffix
+    # in case the repo is dirty, we use the last committed sha and add a -dirty suffix
     set new_sha "[GetSHA]"
     set suffix "-dirty"
   } else {
@@ -1371,7 +1371,7 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
 
 ## Convert hex version to M.m.p string
 #
-#  @param[in] version the version (in 32-bt hexadecimal format 0xMMmmpppp) to be converted
+#  @param[in] version the version (in 32-bit hexadecimal format 0xMMmmpppp) to be converted
 #
 #  @return            a string containing the version in M.m.p format
 #
@@ -1518,14 +1518,14 @@ proc TagRepository {{merge_request_number 0} {version_level 0} {default_level 0}
         }
       }
 
-      # Tagging repositroy
+      # Tagging repository
       if [info exists new_tag] {
         Msg Info "Tagging repository with $new_tag..."
         lassign [GitRet "tag $new_tag $tag_opt"] ret msg
         if {$ret != 0} {
           Msg Error "Could not create new tag $new_tag: $msg"
         } else {
-          Msg Info "New tag $new_tag created successully."
+          Msg Info "New tag $new_tag created successfully."
         }
       } else {
         set new_tag $old_tag
@@ -2201,7 +2201,7 @@ proc AddHogFiles { libraries properties main_libs {verbose 0}} {
           if {[lsearch -inline -regex $props "dofile"] >= 0} {
             Msg Warning "Setting a custom do file from simulation list files will be deprecated in future Hog releases. Please consider setting this property in the sim.conf file, by adding the following line under the \[$file_set\] section.\n<simulator_name>.simulate.custom_do=[file tail $f]"
             if {$verbose == 1} {
-              Msg Info "Setting $f as udo file for simulation file set $file_set..."
+              Msg Info "Setting $f as do file for simulation file set $file_set..."
             }
             if [file exists $f] {
               foreach simulator [GetSimulators] {
@@ -2795,7 +2795,7 @@ proc HandleIP {what_to_do xci_file ip_path runs_dir {force 0}} {
 
 ## @brief Evaluates the md5 sum of a file
 #
-#  @param[in] file_name: the name of the file of which you want to vevaluate the md5 checksum
+#  @param[in] file_name: the name of the file of which you want to evaluate the md5 checksum
 proc Md5Sum {file_name} {
   if !([file exists $file_name]) {
     Msg Warning "Could not find $file_name."
@@ -3006,7 +3006,7 @@ proc Git {command {files ""}}  {
   return $result
 }
 
-## @brief Handle git commands without causing an ewrror if ret is not 0
+## @brief Handle git commands without causing an error if ret is not 0
 #
 # It can be used with lassign like this: lassign [GitRet \<git command\> \<possibly files\> ] ret result
 #
@@ -3027,7 +3027,7 @@ proc GitRet {command {files ""}}  {
   return [list $ret $result]
 }
 
-## @brief Cheks if file was committed into the repository
+## @brief Checks if file was committed into the repository
 #
 #
 #  @param[in] File: file name
@@ -3568,7 +3568,7 @@ proc WriteGenerics {mode design date timee commit version top_hash top_ver hog_h
   #####  Passing Hog generic to top file
   if {[IsXilinx]} {
 
-    # set global generic varibles
+    # set global generic variables
     set generic_string [concat \
                             "GLOBAL_DATE=[FormatGeneric $date]" \
                             "GLOBAL_TIME=[FormatGeneric $timee]" \
@@ -3626,7 +3626,7 @@ proc WriteGenerics {mode design date timee commit version top_hash top_ver hog_h
 
 ## Returns the version of the IDE (Vivado,Quartus,PlanAhead) in use
 #
-#  @return       the version in astring format, e.g. 2020.2
+#  @return       the version in string format, e.g. 2020.2
 #
 proc GetIDEVersion {} {
   if {[IsXilinx]} {

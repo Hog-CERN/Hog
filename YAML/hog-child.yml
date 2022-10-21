@@ -159,7 +159,7 @@
           fi;
           
           if [[ -n "$HOG_CHECK_SYNTAX" ]] && [[ $HOG_CHECK_SYNTAX == '1' ]]; then
-            echo "Hog-CI(info) - HDL syntax will be checked before starting the syntehsis";
+            echo "Hog-CI(info) - HDL syntax will be checked before starting the synthesis";
             export CHECK_SYNTAX="-check_syntax";
           else
             echo "Hog-CI(info) - HDL syntax will not be checked.";
@@ -167,7 +167,7 @@
           fi;
           
           if [[ -n "$HOG_NO_RESET_BD" ]] && [[ $HOG_NO_RESET_BD == '1' ]]; then
-            echo "Hog-CI(info) - BD files will NOT be reset at pre syntehsis time";
+            echo "Hog-CI(info) - BD files will NOT be reset at pre synthesis time";
           else
             echo "Hog-CI(info) - BD files will be reset at pre-synthesis time";
             mkdir -p Projects;

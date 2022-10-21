@@ -26,7 +26,7 @@ set parameters {\
   {synth_only      "If set, only the synthesis will be performed."}
   {impl_only       "If set, only the implementation will be performed. This assumes synthesis should was already done."}
   {recreate     "If set, the project will not be re created if it already exists."}
-  {check_syntax    "If set, the HDL syntax will be checked at the beginning of the worflow."}
+  {check_syntax    "If set, the HDL syntax will be checked at the beginning of the workflow."}
   {project.arg "" "The project name"}
   {njobs.arg 4 "Number of jobs. Default: 4"}
 }
@@ -133,7 +133,7 @@ if {[file exists "$project_path" ]} {
 }
 
 if { ![is_project_open ] } {
-  Msg Info "Opening exixsting project file $project_name..."
+  Msg Info "Opening existing project file $project_name..."
   project_open $project -current_revision
 }
 
@@ -200,7 +200,7 @@ if { $do_compile == 1 } {
 
     lassign [ExecuteRet {*}$cmd ] ret log
     if {$ret != 0} {
-      Msg Warning "Can not exectue command $cmd"
+      Msg Warning "Can not execute command $cmd"
       Msg Warning "LOG: $log"
     } else {
       Msg Info "Pre flow script executed!"

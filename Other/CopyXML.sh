@@ -49,7 +49,7 @@ else
 
     PROJ_DIR="$DIR/../../Top/"$PROJ
     if [ -d "$PROJ_DIR" ]; then
-        #Choose if the project is quastus, vivado, vivado_hls [...]
+        #Choose if the project is quartus, vivado, vivado_hls [...]
         select_command $PROJ_DIR
         if [ $? != 0 ]; then
             echo "Failed to select project type: exiting!"
@@ -65,7 +65,7 @@ else
         fi
 
         if [ ! -f "${HDL_COMPILER}" ]; then
-            echo "Hog-ERROR: HLD compiler executable $HDL_COMPILER not found."
+            echo "Hog-ERROR: HDL compiler executable $HDL_COMPILER not found."
             exit 1
         else
             echo "Hog-INFO: using executable: $HDL_COMPILER"

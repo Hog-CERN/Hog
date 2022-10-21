@@ -24,7 +24,7 @@
 #
 # @brief Prints an help message
 #
-# The help message contais both the options availble for the first line of the tcl, both the command usage
+# The help message contains both the options available for the first line of the tcl, both the command usage
 # This function uses echo to print to screen
 #
 # @param[in]    $1 the invoked command
@@ -39,7 +39,7 @@ function help_message() {
 }
 
 ## @function argument_parser()
-#  @brief pase aguments and sets evvironment variables
+#  @brief parse arguments and sets environmental variables
 #  @param[out] IP_PATH      empty or "-eos_ip_path $2"
 #  @param[out] NJOBS        empty or "-NJOBS $2"
 #  @param[out] NO_BITSTREAM empty or "-no_bitstream"
@@ -129,7 +129,7 @@ function main() {
 
   if [ -d "$PROJ_DIR" ]; then
 
-    #Choose if the project is quastus, vivado, vivado_hls [...]
+    #Choose if the project is quartus, vivado, vivado_hls [...]
     local PROJ_DIR="$PWD/$PROJ_DIR"
     select_command $PROJ_DIR
     if [ $? != 0 ]; then

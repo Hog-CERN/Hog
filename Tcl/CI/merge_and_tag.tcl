@@ -36,7 +36,7 @@ set parameters {
   {push.arg "" "Optional: git branch for push"}
   {main_branch.arg "master" "Main branch (default = master)"}
   {default_level.arg "0" "Default version level to increase if nothing is specified in the merge request description. Can be 0 (patch), 1 (minor), (2) major. Default ="}
-  {no_increase "If set, prevents this script to increase the version if MAJOR_VERSION, MINOR_VERSION or PATCH_VERSION directives are found in the merge request descritpion. Default = off"}
+  {no_increase "If set, prevents this script to increase the version if MAJOR_VERSION, MINOR_VERSION or PATCH_VERSION directives are found in the merge request description. Default = off"}
   {github.arg "0" "If set, Hog will use the GitHub api instead of the GitLab, Default = 0" }
   {run_id.arg "" "Required if running on Github Actions. The pipeline run ID."}
 }

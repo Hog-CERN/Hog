@@ -88,7 +88,7 @@ function log_stdout(){
         # string=$line
         # echo "$line" | xcol warning: critical error: info: hog: 
         case "$line" in
-          *'CRITICAL WARNING:'* )
+          *'CRITICAL:'* | *'CRITICAL WARNING:'* )
             if [ $echo_warnings == 1 ]; then
               echo -e "${color_yellow}CRITICAL $color_reset: $line" 
               #| $(${colorizer} warning: critical error: info: hog: )

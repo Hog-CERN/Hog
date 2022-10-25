@@ -44,6 +44,8 @@ echo
 
 OLD_DIR=$(pwd)
 THIS_DIR="$(dirname "$0")"
+TOP_DIR=$(realpath $THIS_DIR/../../Top)
+
 
 . $THIS_DIR/CommonFunctions.sh
 
@@ -60,13 +62,6 @@ fi
 
 cd "${THIS_DIR}"
 
-if [ -e ../Top ]; then
-    local DIR="../Top"
-    else
-    Msg Error "Top folder not found, Hog is not in a Hog-compatible HDL repository."
-    cd "${OLD_DIR}"
-    exit -1
-fi
 
 if [ "a$1" == "a" ]; then
     help_message $0
@@ -89,7 +84,6 @@ fi
 #################### exectuables
 echo ========= EXECUTABLES ==========
 
-TOP_DIR=$(realpath $THIS_DIR/../../Top)
 
 
 if [ -d "$PROJ_DIR" ]; then

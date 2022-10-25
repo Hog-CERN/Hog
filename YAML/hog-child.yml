@@ -72,6 +72,7 @@
              ./Hog/LaunchSimulation.sh $PROJECT_NAME -l $HOG_SIMULATION_LIB_PATH ;
           fi;
         fi
+      - sleep 1h
      artifacts:
        name: simulation_files
        paths:

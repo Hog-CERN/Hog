@@ -1942,8 +1942,30 @@ proc ParseFirstLineHogFiles {list_path list_file} {
 # @param[in] libraries has library name as keys and a list of filenames as values
 # @param[in] properties has as file names as keys and a list of properties as values
 #
-proc AddHogFiles { libraries properties main_libs {verbose 0}} {
+proc AddHogFiles { libraries properties main_libs {library_order ""} {verbose 0}} {
   Msg Info "Adding source files to project..."
+  set library_to_process {}
+  if {$library_order != ""} {
+    # Check that all dict libraries are in library_order
+    set lib_list [dict keys $libraries]
+    foreach lib $library_order {
+      if {[dict exists $libraries $lib]} {
+        lappend library_to_process $lib
+      } else {
+        Msg CriticalWarning "Library $lib does not exist in project, removing from it from library order..."
+      }
+    }
+
+    foreach lib $lib_list {
+      if {[lsearch $library_to_process $lib] == -1} {
+        Msg CriticalWarning "Library $lib is not in the library_order list. I will try to append it to the list. Please, add it to the library_order variable in your sim.conf file."
+        lappend $library_to_process $lib 
+      }
+    }
+  } else {
+    set library_to_process [dict keys $libraries]
+  }
+
 
   foreach lib [dict keys $libraries] {
     # Msg Info "lib: $lib \n"
@@ -1954,28 +1976,37 @@ proc AddHogFiles { libraries properties main_libs {verbose 0}} {
     set main_lib [dict get $main_libs $lib]
     set simlib [file rootname [file tail $main_lib]]
     # Msg Info "lib: $lib ext: $ext simlib $simlib \n"
-    switch $ext {
-      .sim {
-        set file_set "$simlib\_sim"
-        # if this simulation fileset was not created we do it now
-        if {[string equal [get_filesets -quiet $file_set] ""]} {
-          create_fileset -simset $file_set
-          # Set active when creating, by default it will be the latest simset to be created, unless is specified in the sim.conf
-          current_fileset -simset [ get_filesets $file_set ]
-          set simulation  [get_filesets $file_set]
-          foreach simulator [GetSimulators] {
-            set_property -name {$simulator.compile.vhdl_syntax} -value {2008} -objects $simulation
+    if {![IsQuesta]} {
+      switch $ext {
+        .sim {
+          set file_set "$simlib\_sim"
+          # if this simulation fileset was not created we do it now
+          if {[string equal [get_filesets -quiet $file_set] ""]} {
+            create_fileset -simset $file_set
+            # Set active when creating, by default it will be the latest simset to be created, unless is specified in the sim.conf
+            current_fileset -simset [ get_filesets $file_set ]
+            set simulation  [get_filesets $file_set]
+            foreach simulator [GetSimulators] {
+              set_property -name {$simulator.compile.vhdl_syntax} -value {2008} -objects $simulation
+            }
+            set_property SOURCE_SET sources_1 $simulation
           }
-          set_property SOURCE_SET sources_1 $simulation
+        }
+        .con {
+          set file_set "constrs_1"
+        }
+        default {
+          set file_set "sources_1"
         }
       }
-      .con {
-        set file_set "constrs_1"
-      }
-      default {
-        set file_set "sources_1"
-      }
     }
+
+    # Create Questa libraries
+    if {[IsQuesta]} {
+      vlib $rootlib
+      vmap work $rootlib
+    }
+
     # ADD NOW LISTS TO VIVADO PROJECT
     if {[IsXilinx]} {
       add_files -norecurse -fileset $file_set $lib_files
@@ -2291,6 +2322,20 @@ proc AddHogFiles { libraries properties main_libs {verbose 0}} {
             }
           } else {
             set_global_assignment -name $file_type $cur_file -library $rootlib
+          }
+        }
+      }
+    } elseif {[IsQuesta]} {
+      foreach f $lib_files {
+        # Get file properties
+        set props [dict get $properties $f]
+
+        # Compile VHDL files with VCOM
+        if {[file ext $f] == ".vhd" || [file ext $f] == ".vhdl" } {
+          if {[lsearch -inline -regex $props "93"] < 0} {
+            vcom -64 -93 $f
+          } else {
+            vcom -64 -2008 $f
           }
         }
       }

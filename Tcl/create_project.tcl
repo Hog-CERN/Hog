@@ -110,8 +110,7 @@ proc CreateProject {} {
       ConfigureProperties
     }
   } elseif {[IsQuesta]} {
-    puts "here"
-    project new $globalSettings::build_dir/$globalSettings::DESIGN [file tail $globalSettings::DESIGN] ieee
+    project new $globalSettings::build_dir [file tail $globalSettings::DESIGN] ieee
   } else {
     puts "Creating project for $globalSettings::DESIGN part $globalSettings::PART"
     puts "Configuring project settings:"
@@ -162,7 +161,23 @@ proc AddProjectFiles {} {
       source $tcl_path/utils/cmdline.tcl
     }
   }
-  AddHogFiles {*}[GetHogFiles -ext_path $globalSettings::HOG_EXTERNAL_PATH -repo_path $globalSettings::repo_path  $globalSettings::list_path]
+
+  set library_order ""
+  if {[IsQuesta]} {
+    # Setting Main Properties
+    if [info exists globalSettings::SIM_PROPERTIES] {
+      if [dict exists $globalSettings::SIM_PROPERTIES main] {
+        set proj_props [dict get $globalSettings::SIM_PROPERTIES main]
+        dict for {prop_name prop_val} $proj_props {
+          if { [ string tolower $prop_name ] == "library_order" } {
+            set library_order $prop_val
+          }
+        }
+      }
+    }
+  }
+
+  AddHogFiles {*}[GetHogFiles -ext_path $globalSettings::HOG_EXTERNAL_PATH -repo_path $globalSettings::repo_path  $globalSettings::list_path] $library_order 
 
   ## Set synthesis TOP
   SetTopProperty $globalSettings::synth_top_module $sources
@@ -657,6 +672,10 @@ if { $::argc eq 0 && ![info exist DESIGN]} {
   puts "It's questa"
   set DESIGN $1
   puts $DESIGN
+  if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] } {
+    Msg Info [cmdline::usage $parameters $usage]
+    exit 1
+  }
 } else {
   Msg Error "Not under Vivado, ISE or Quartus... Aborting!"
   exit 1
@@ -741,11 +760,17 @@ if {[file exists $conf_file]} {
     set SIM_PROPERTIES [ReadConf $sim_file]
   }
 } else {
-  Msg Error "$conf_file was not found in your project directory, pleae create one."
+  if {![IsQuesta]} {
+    Msg Error "$conf_file was not found in your project directory, pleae create one."
+  } elseif {[file exists $sim_file]} {
+    Msg Info "Parsing simulation configuration file $sim_file..."
+    set SIM_PROPERTIES [ReadConf $sim_file]
+  }
 }
 
-
-SetGlobalVar PART
+if {![IsQuesta]} {
+  SetGlobalVar PART
+}
 #Family is needed in quartus only
 if {[IsQuartus]} {
   #Quartus only

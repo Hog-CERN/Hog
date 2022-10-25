@@ -45,6 +45,8 @@ echo
 OLD_DIR=$(pwd)
 THIS_DIR="$(dirname "$0")"
 
+. $THIS_DIR/CommonFunctions.sh
+
 if [ "$1" == "-h" ] || [ "$1" == "-help" ] || [ "$1" == "--help" ] || [ "$1" == "-H" ]; then
     help_message $0
     echo
@@ -89,7 +91,6 @@ echo ========= EXECUTABLES ==========
 
 TOP_DIR=$(realpath $THIS_DIR/../../Top)
 
-. $THIS_DIR/CommonFunctions.sh
 
 if [ -d "$PROJ_DIR" ]; then
 

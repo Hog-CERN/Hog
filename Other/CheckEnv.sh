@@ -72,18 +72,17 @@ if [ "a$1" == "a" ]; then
     echo
     cd "${OLD_DIR}"
     exit -1
-    else
+else
     PROJ=$1
     if [[ $PROJ == "Top/"* ]]; then
       PROJ=${PROJ#"Top/"}
     fi
-    PROJ_DIR="$DIR/$PROJ"
+    PROJ_DIR="$TOP_DIR/$PROJ"
 fi
 
 
 #################### exectuables
 echo ========= EXECUTABLES ==========
-
 
 
 if [ -d "$PROJ_DIR" ]; then

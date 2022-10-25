@@ -73,11 +73,11 @@ if [ "a$1" == "a" ]; then
     cd "${OLD_DIR}"
     exit -1
     else
-    local PROJ=$1
+    PROJ=$1
     if [[ $PROJ == "Top/"* ]]; then
       PROJ=${PROJ#"Top/"}
     fi
-    local PROJ_DIR="$DIR/$PROJ"
+    PROJ_DIR="$DIR/$PROJ"
 fi
 
 

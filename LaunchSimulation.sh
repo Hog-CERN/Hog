@@ -22,7 +22,7 @@
 
 ## Import common functions from Other/CommonFunctions.sh in a POSIX compliant way
 #
-echo "ciao"
+
 . $(dirname "$0")/Other/CommonFunctions.sh
 
 
@@ -199,14 +199,10 @@ function HogSimulateFunc(){
   SimulateProject $@
   # exit 0
 }
-# if [[ ${BASH_SOURCE[0]} == $0 ]]; then
-# #   printf "script '%s' is sourced in\n" "${BASH_SOURCE[0]}"
-# # else
-#   repoPath=$(dirname "$0")
-#   print_hog $repoPath
-#   SimulateProject $@
-# fi
-echo "Ciao"
-repoPath=$(dirname "$0")
-print_hog $repoPath
-SimulateProject $@
+if [[ ${BASH_SOURCE[0]} == $0 ]]; then
+#   printf "script '%s' is sourced in\n" "${BASH_SOURCE[0]}"
+# else
+  repoPath=$(dirname "$0")
+  print_hog $repoPath
+  SimulateProject $@
+fi

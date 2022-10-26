@@ -205,6 +205,7 @@ function HogSimulateFunc(){
 #   print_hog $repoPath
 #   SimulateProject $@
 # fi
+echo "Ciao"
 repoPath=$(dirname "$0")
 print_hog $repoPath
 SimulateProject $@

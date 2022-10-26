@@ -67,7 +67,7 @@
         else
           if [ -z ${HOG_SIMULATION_LIB_PATH+x} ]; then
             echo 'Simulation library path is not defined';
-            ./Hog/LaunchSimulation.sh $PROJECT_NAME
+            ./Hog/LaunchSimulation.sh $PROJECT_NAME;
           else
              ./Hog/LaunchSimulation.sh $PROJECT_NAME -l $HOG_SIMULATION_LIB_PATH ;
           fi;

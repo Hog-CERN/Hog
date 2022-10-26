@@ -22,6 +22,7 @@
 
 ## Import common functions from Other/CommonFunctions.sh in a POSIX compliant way
 #
+echo "ciao"
 . $(dirname "$0")/Other/CommonFunctions.sh
 
 

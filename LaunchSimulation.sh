@@ -207,4 +207,4 @@ function HogSimulateFunc(){
 # fi
 repoPath=$(dirname "$0")
 print_hog $repoPath
-create_project $@
+SimulateProject $@

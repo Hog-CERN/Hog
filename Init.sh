@@ -20,7 +20,7 @@
 #
 # @brief Prints an help message
 #
-# The help message contais both the options availble for the first line of the tcl, both the command usage
+# The help message contains both the options available for the first line of the tcl, both the command usage
 # This function uses echo to print to screen
 #
 # @param[in]    $1 the invoked command
@@ -31,7 +31,7 @@ function help_message() {
   echo " ---------------------------"
   echo " Initialise your Hog-handled firmware repository"
   echo " - (optional) Compile questasim/modelsim/riviera libraries (if questasim executable is found)"
-  echo " - (optional) Create vivado projects (if vivado exacutable is found)"
+  echo " - (optional) Create vivado projects (if vivado executable is found)"
   echo
   exit 0
 }
@@ -55,7 +55,7 @@ function init() {
 
   COMPILER_FOUND=false
 
-  ##! The script checks if Vivado is installed and set uop on the shell.
+  ##! The script checks if Vivado is installed and set up on the shell.
   ##! NOTE that these checks are performed using 'command -v '
   if [ $(command -v vivado) ]; then
     COMPILER_FOUND=true
@@ -114,7 +114,7 @@ function init() {
     fi
   fi
 
-  # REpeat compilation using Quartus
+  # Repeat compilation using Quartus
   if [ $(command -v quartus_sh) ]; then
     COMPILER_FOUND=true
     local QUARTUS=$(command -v quartus_sh)
@@ -196,7 +196,7 @@ function init() {
     done
   fi
 
-  ##! Ask user if he wants to add custom Vivado gui button to automatically update listfiles
+  ##! Ask user if he wants to add custom Vivado GUI button to automatically update listfiles
   ##! NOTE use read to grab user input
   ##! NOTE if the user input contains Y or y then is accepted as yes
   if [ $(command -v vivado) ]; then
@@ -212,7 +212,7 @@ function init() {
   ##! Check if hog tags tag exist, and if not ask user if they want to create v0.0.1
   cd $DIR/..
   if git describe --match "v*.*.*" >/dev/null 2>&1; then
-    Msg Info "Repository contains Hog-comaptible tags."
+    Msg Info "Repository contains Hog-compatible tags."
   else
     read -p "  Your repository does not have Hog-compatible tags, do you wish to create an initial tag v0.0.1 now?" -n 1 -r
     echo # (optional) move to a new line

@@ -14,7 +14,7 @@
 #   limitations under the License.
 
 # @file
-# The post bistream script copies binary files, reports and other files to the bin directory in your repository.
+# The post bitstream script copies binary files, reports and other files to the bin directory in your repository.
 # This script is automatically integrated into the Vivado/Quartus workflow by the Create Project script.
 
 set old_path [pwd]

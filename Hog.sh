@@ -41,7 +41,7 @@ function help_Init() {
   echo " ---------------------------"
   echo " Initialise your Hog-handled firmware repository"
   echo " - (optional) Compile questasim/modelsim/riviera libraries (if questasim executable is found)"
-  echo " - (optional) Create vivado projects (if vivado exacutable is found)"
+  echo " - (optional) Create vivado projects (if vivado executable is found)"
   echo
   exit 0
 }
@@ -60,7 +60,7 @@ function help_Create() {
   echo
   echo " Usage: $1 <project name> [OPTIONS]"
   echo " Options:"
-  echo "          -l/--lib  <sim_lib_path>  Path to simulation library. If not defined it will be set to the HOG_SIMULATION_LIB_PATH environmnetal library, or if this does not exist to the default $(pwd)/SimulationLib"
+  echo "          -l/--lib  <sim_lib_path>  Path to simulation library. If not defined it will be set to the HOG_SIMULATION_LIB_PATH environmental library, or if this does not exist to the default $(pwd)/SimulationLib"
   echo
   echo " Hint: Hog accepts as <project name> both the actual project name and the relative path containing the project configuration. E.g. ./Hog/CreateProject.sh Top/myproj or ./Hog/CreateProject.sh myproj"
   exit 0

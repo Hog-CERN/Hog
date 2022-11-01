@@ -29,7 +29,7 @@ set parameters {
   {impl_only       "If set, only the implementation will be performed. This assumes synthesis should was already done."}
   {recreate        "If set, the project will be re-created if it already exists."}
   {no_reset        "If set, runs (synthesis and implementation) won't be reset before launching them."}
-  {check_syntax    "If set, the HDL syntax will be checked at the beginning of the worflow."}
+  {check_syntax    "If set, the HDL syntax will be checked at the beginning of the workflow."}
   {njobs.arg 4 "Number of jobs. Default: 4"}
   {ext_path.arg "" "Sets the absolute path for the external libraries."}
   {simlib_path.arg  "" "Path of simulation libs"}

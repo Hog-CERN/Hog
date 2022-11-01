@@ -17,7 +17,7 @@
 #  @brief Create the specified Vivado or Quartus project
 
 ## @var FILE_TYPE
-#  @brief Global variable used to distinguis tcl project from hog.conf
+#  @brief Global variable used to distinguish tcl project from hog.conf
 #
 export FILE_TYPE=""
 
@@ -37,7 +37,7 @@ export COMMAND_OPT=""
 export POST_COMMAND_OPT=""
 
 ## @var HDL_COMPILER
-#  @brief Global variable contianing the full path to the HDL compiler to be used
+#  @brief Global variable containing the full path to the HDL compiler to be used
 #
 export HDL_COMPILER=""
 
@@ -189,7 +189,7 @@ function Logger(){
 # @param[in] messageLevel: it can be Info, Warning, CriticalWarning, Error
 # @param[in] message: the error message to be printed
 #
-# @return  '1' if missing argumets else '0'
+# @return  '1' if missing arguments else '0'
 function Msg() {
   #check input variables
   if [ "a$1" == "a" ]; then
@@ -228,7 +228,7 @@ function Msg() {
     ;;
   esac
 
-  echo "$Colour HOG:$1[${FUNCNAME[1]}] $text $Default"
+  echo "${Colour}HOG:$1[${FUNCNAME[1]}] $text $Default"
 
   return 0
 }
@@ -345,14 +345,14 @@ function select_command() {
 # @brief selects the path to the executable to be used for invoking the HDL compiler
 #
 # This function:
-# - checks at least 1 argoument is passed
+# - checks at least 1 argument is passed
 # - uses command -v to select the executable
 #   * if no executable is found and the command is vivado it uses XILINX_VIVADO
 #   *
 # - stores the result in a global variable called HDL_COMPILER
 #
 # @param[in]    $1 The command to be invoked
-# @param[out]   HDL_COMPILER gloabal variable: the full path to the HDL compiler executable
+# @param[out]   HDL_COMPILER global variable: the full path to the HDL compiler executable
 #
 # @returns  0 if success, 1 if failure
 #
@@ -385,7 +385,7 @@ function select_compiler_executable() {
       else
         Msg Info "QUARTUS_ROOTDIR is set to '$QUARTUS_ROOTDIR'"
         #Decide if you are to use bin or bin 64
-        #Note things like $PROCESSOR_ARCHITECTURE==x86 won't work in Windows because tyhis will return the version of the git bash
+        #Note things like $PROCESSOR_ARCHITECTURE==x86 won't work in Windows because this will return the version of the git bash
         if [ -d "$QUARTUS_ROOTDIR/bin64" ]; then
           HDL_COMPILER="$QUARTUS_ROOTDIR/bin64/$1"
         elif [ -d "$QUARTUS_ROOTDIR/bin" ]; then
@@ -409,13 +409,13 @@ function select_compiler_executable() {
 
 ## @fn select_executable_from_project
 #
-# @brief Selects which ompiler executable has to be used based on the first line of the conf or tcl file
+# @brief Selects which compiler executable has to be used based on the first line of the conf or tcl file
 #
 # @param[in]    $1 full path to the project dir
 # @param[out]   COMMAND  global variable: the selected command
 # @param[out]   COMMAND_OPT global variable: the selected command options
 # @param[out]   POST_COMMAND_OPT global variable: the post command options
-# @param[out]   HDL_COMPILER gloabal variable: the full path to the HDL compiler executable
+# @param[out]   HDL_COMPILER global variable: the full path to the HDL compiler executable
 #
 # @returns  0 if success, 1 if failure
 #

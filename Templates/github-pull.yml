@@ -1,0 +1,47 @@
+#   Copyright 2018-2022 The University of Birmingham
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at
+#
+#       http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+
+name: Deploy
+
+on:
+  pull_request:
+    branches: [ master, main ]
+
+jobs:
+  hog-workflow:
+    uses: hog-CERN/Hog/.github/workflows/Hog-pull.yml@Hog2023.1
+    secrets:
+      SUBMODULE_CONTENT_PULL_KEY: ${{ secrets.SUBMODULE_CONTENT_PULL_KEY }}
+      HOG_PUSH_TOKEN: ${{ secrets.HOG_PUSH_TOKEN }}
+      HOG_EMAIL: ${{ secrets.HOG_EMAIL}}
+      HOG_USER: ${{ secrets.HOG_USER}}
+      EOS_USER: ${{ secrets.EOS_USER }}
+      EOS_PASSWORD: ${{ secrets.EOS_PASSWORD }}
+      HOG_PATH: ${{ secrets.HOG_PATH }}
+      HOG_XIL_LICENSE: ${{ secrets.HOG_XIL_LICENSE }}
+      HOG_IP_PATH: ${{ secrets.HOG_IP_PATH }}
+      HOG_TARGET_BRANCH: ${{ secrets.HOG_TARGET_BRANCH }}
+      HOG_DEVELOP_BRANCH: ${{ secrets.HOG_DEVELOP_BRANCH }}
+    with:
+      BUILD_PROJECTS: >-
+        ["example"]
+      SIM_PROJECTS: >-
+        ["example"]
+      HOG_USE_DOXYGEN: True
+      HOG_CHECK_SYNTAX: True
+      HOG_NO_RESET_BD: True
+      HOG_CHECK_PROJVER: True
+      HOG_NO_BITSTREAM: False
+
+    

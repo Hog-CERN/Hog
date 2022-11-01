@@ -20,9 +20,11 @@
         when: never
       - if: '$CI_MERGE_REQUEST_TITLE =~ /^Draft:.*$/ && $CI_COMMIT_MESSAGE !~ /^RESOLVE_WIP:/'
         when: never
-      - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /^master.*$/ && $HOG_TARGET_BRANCH == null && $INTERMEDIATE_BUILD == null'
+      - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $HOG_DEVELOP_BRANCH && $HOG_DEVELOP_BRANCH != null'
         when: on_success
-      - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $HOG_TARGET_BRANCH && $HOG_TARGET_BRANCH != null && $INTERMEDIATE_BUILD == null'
+      - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /^master|main|release.*$/ && $HOG_TARGET_BRANCH == null && $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME != $HOG_DEVELOP_BRANCH'
+        when: on_success        
+      - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $HOG_TARGET_BRANCH && $HOG_TARGET_BRANCH != null && $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME != $HOG_DEVELOP_BRANCH'
         when: on_success
       - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $HOG_INTERMEDIATE_BRANCH && $INTERMEDIATE_BUILD == "1" && $HOG_INTERMEDIATE_BRANCH != null' 
         when: on_success
@@ -167,14 +169,14 @@
         fi;
       - if [ ! -f "./Projects/$PROJECT_NAME/skip.me" ]; then        
           if [[ -n "$HOG_CHECK_SYNTAX" ]] && [[ $HOG_CHECK_SYNTAX == '1' ]]; then
-            echo "Hog-CI(info) - HDL syntax will be checked before starting the syntehsis";
+            echo "Hog-CI(info) - HDL syntax will be checked before starting the synthesis";
             export CHECK_SYNTAX="-check_syntax";
           else
             echo "Hog-CI(info) - HDL syntax will not be checked.";
             export CHECK_SYNTAX="";
           fi;
           if [[ -n "$HOG_NO_RESET_BD" ]] && [[ $HOG_NO_RESET_BD == '1' ]]; then
-            echo "Hog-CI(info) - BD files will NOT be reset at pre syntehsis time";
+            echo "Hog-CI(info) - BD files will NOT be reset at pre synthesis time";
           else
             echo "Hog-CI(info) - BD files will be reset at pre-synthesis time";
             mkdir -p Projects;

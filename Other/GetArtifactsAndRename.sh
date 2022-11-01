@@ -75,7 +75,7 @@ function help_message() {
   echo 
   echo " Usage: $1 [OPTIONS]"
   echo " Options:"
-  echo "          -token <push_token>        THe GitLab Push Token"
+  echo "          -token <push_token>        The GitLab Push Token"
   echo "          -url <gitlab url>          The GitLab CI URL "
   echo "          -proj_id <id>              The ID of the GitLab project "
   echo "          -mr <Merge Request Number> The MR number  "

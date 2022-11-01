@@ -151,14 +151,18 @@ proc AddProjectFiles {} {
   ##############
   # READ FILES #
   ##############
-  set list_files [glob -directory $globalSettings::list_path "*"]
 
-  if {[IsXilinx]} {
-    if {[IsISE]} {
-      set tcl_path         [file normalize "[file dirname [info script]]"]
-      source $tcl_path/utils/cmdline.tcl
-    }
+  if {[file isdirectory $globalSettings::list_path]} {
+      set list_files [glob -directory $globalSettings::list_path "*"]
+  } else {
+      Msg Error "No list directory found at  $globalSettings::list_path"
   }
+
+  if {[IsISE]} {
+    set tcl_path [file normalize "[file dirname [info script]]"]
+    source $tcl_path/utils/cmdline.tcl
+  }
+
   AddHogFiles {*}[GetHogFiles -ext_path $globalSettings::HOG_EXTERNAL_PATH -repo_path $globalSettings::repo_path  $globalSettings::list_path]
 
   ## Set synthesis TOP
@@ -171,11 +175,11 @@ proc AddProjectFiles {} {
 
 ## @brief Set Vivado Report strategy for implementation
 #
-#  @param[in] obj tghe projet object
+#  @param[in] obj the project object
 #
 proc CreateReportStrategy {obj} {
   if {[IsVivado]} {
-    ## Viavado Report Strategy
+    ## Vivado Report Strategy
     if {[string equal [get_property -quiet report_strategy $obj] ""]} {
       # No report strategy needed
       Msg Info "No report strategy needed for implementation"
@@ -339,7 +343,7 @@ proc ConfigureSynthesis {} {
 ## @brief configure implementation.
 #
 # The configuration is based on the content of globalSettings::IMPL_FLOW and globalSettings::IMPL_STRATEGY
-# The function also stes Hog spoecific pre and post implementation and, pre and post implementation  scripts
+# The function also sets Hog specific pre- and- post implementation and, pre- and post- implementation  scripts
 #
 proc ConfigureImplementation {} {
   if {[IsXilinx]} {
@@ -702,10 +706,10 @@ if {[file exists $conf_file]} {
     }	elseif {$comp == 1} {
       Msg CriticalWarning "The $ide version in use is $actual_version, that is newer than $conf_version, as specified in the first line of $conf_file, if you want update this project to version $actual_version, please update the configuration file."
     } else {
-      Msg Error "The $ide version in use is $actual_version, that is older than $conf_version as specified in $conf_file. The project will not be created.\nIf you absolutely want to create this project that was meant for version $conf_version with $ide version $actual_version, you can change the version from the first line of $conf_file.\nThis is HIGLY discouraged as there could be unrecognised properties in the configuration file and IPs created with a newer $ide version cannot be downgraded."
+      Msg Error "The $ide version in use is $actual_version, that is older than $conf_version as specified in $conf_file. The project will not be created.\nIf you absolutely want to create this project that was meant for version $conf_version with $ide version $actual_version, you can change the version from the first line of $conf_file.\nThis is HIGHLY discouraged as there could be unrecognised properties in the configuration file and IPs created with a newer $ide version cannot be downgraded."
     }
   } else {
-    Msg CriticalWarning "No version found in the first line of $conf_file. It is HIGLY recommended to replace the first line of $conf_file with: \#$ide $actual_version"
+    Msg CriticalWarning "No version found in the first line of $conf_file. It is HIGHLY recommended to replace the first line of $conf_file with: \#$ide $actual_version"
   }
   if {[dict exists $PROPERTIES main]} {
     set main [dict get $PROPERTIES main]
@@ -723,7 +727,7 @@ if {[file exists $conf_file]} {
     set SIM_PROPERTIES [ReadConf $sim_file]
   }
 } else {
-  Msg Error "$conf_file was not found in your project directory, pleae create one."
+  Msg Error "$conf_file was not found in your project directory, please create one."
 }
 
 
@@ -746,7 +750,7 @@ SetGlobalVar PROPERTIES ""
 SetGlobalVar SIM_PROPERTIES ""
 
 
-#Derived varibles from now on...
+#Derived variables from now on...
 
 set build_dir_name "Projects"
 set globalSettings::tcl_path                    $tcl_path

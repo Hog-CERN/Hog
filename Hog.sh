@@ -87,16 +87,16 @@ else
       Logger HogInitFunc $@
       exit 0
     ;;
-    -C|create)
+    -C|Create)
       echo " Create $*"
       Logger HogCreateFunc $*
     ;;
-    -W|workflow)
+    -W|Workflow)
       echo " Workflow"
       Logger HogLaunchFunc $*
       # ./Hog/LaunchWorkflow.sh $*
     ;;
-    -S|simulation)
+    -S|Simulation)
       echo " Simulation"
       # ./Hog/LaunchSimulation.sh $*
       Logger HogSimulateFunc $*

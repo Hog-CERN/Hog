@@ -46,13 +46,13 @@
 
 
 .simulate_project: &simulate_project
-     <<: *only-default
-     <<: *tag-hog
-     stage: generation_and_simulation
-     variables:
-        <<: *vars
-     script:
-      - ./Hog/Other/CheckEnv.sh $PROJECT_NAME
+    <<: *only-default
+    <<: *tag-hog
+    stage: generation_and_simulation
+    variables:
+      <<: *vars
+    script:
+      - ./Hog/Other/CheckEnv.sh $HOG_APPTAINER_IMAGE;
       - if [[ -v HOG_CHECK_PROJVER ]] && [[ $HOG_CHECK_PROJVER == '1' ]]; then
           if [[ -v HOG_EXTERNAL_PATH ]]; then
             ./Hog/Other/CheckProjVer.sh -ext_path "$HOG_EXTERNAL_PATH" -sim $PROJECT_NAME;
@@ -61,25 +61,32 @@
           fi;
         else
           echo "Project version checker is disabled.";
-        fi
-      - if [ -f "./Projects/$PROJECT_NAME/skip.me" ]; then
+        fi;
+      - if [-f "./Projects/${PROJECT_NAME}/skip.me" ]; then
           echo "CI disabled for $PROJECT_NAME";
         else
           if [ -z ${HOG_SIMULATION_LIB_PATH+x} ]; then
             echo 'Simulation library path is not defined';
-            ./Hog/LaunchSimulation.sh $PROJECT_NAME;
+            SIM_CMD="./Hog/LaunchSimulation.sh $PROJECT_NAME";
           else
-             ./Hog/LaunchSimulation.sh $PROJECT_NAME -l $HOG_SIMULATION_LIB_PATH ;
+            SIM_CMD="./Hog/LaunchSimulation.sh $PROJECT_NAME -l $HOG_SIMULATION_LIB_PATH" ;
           fi;
-        fi
-     artifacts:
+          if [[ -v HOG_APPTAINER_IMAGE ]]; then
+            echo "apptainer exec -H $PWD $HOG_APPTAINER_IMAGE  $SIM_CMD";
+            apptainer exec -H $PWD $HOG_APPTAINER_IMAGE /bin/bash -c "source /opt/Xilinx/Vivado/2020.2/settings64.sh; $SIM_CMD";
+          else
+            echo $SIM_CMD;
+            $(SIM_CMD);
+          fi;
+        fi;
+    artifacts:
        name: simulation_files
        paths:
          - Projects/$PROJECT_NAME/*.sim
          - SkippedProjects/$PROJECT_NAME
        expire_in: 30 day
-     allow_failure: true
-     interruptible: true
+    allow_failure: true
+    interruptible: true
 
 .generate_project: &generate_project
     <<: *only-default
@@ -88,7 +95,7 @@
     variables:
         <<: *vars
     script:
-      - ./Hog/Other/CheckEnv.sh $PROJECT_NAME
+      - ./Hog/Other/CheckEnv.sh $HOG_APPTAINER_IMAGE;
       - if [[ -v HOG_CHECK_PROJVER ]] && [[ $HOG_CHECK_PROJVER == '1' ]]; then
           if [[ -v HOG_EXTERNAL_PATH ]]; then
             ./Hog/Other/CheckProjVer.sh -ext_path "$HOG_EXTERNAL_PATH" $PROJECT_NAME;
@@ -120,6 +127,8 @@
               EOS_USER=${HOG_USER};
             fi;
           fi;
+        fi;
+      - if [ ! -f "./Projects/$PROJECT_NAME/skip.me" ]; then    
           if [ -z ${HOG_IP_PATH+x} ]; then
             if [[ -z ${HOG_IP_EOS_PATH+x} ]]; then
               echo "Hog-CI(info) - No EOS/LOCAL path for IPs defined.";
@@ -157,7 +166,8 @@
               export NO_BITSTREAM="";
             fi;
           fi;
-          
+        fi;
+      - if [ ! -f "./Projects/$PROJECT_NAME/skip.me" ]; then        
           if [[ -n "$HOG_CHECK_SYNTAX" ]] && [[ $HOG_CHECK_SYNTAX == '1' ]]; then
             echo "Hog-CI(info) - HDL syntax will be checked before starting the synthesis";
             export CHECK_SYNTAX="-check_syntax";
@@ -165,7 +175,6 @@
             echo "Hog-CI(info) - HDL syntax will not be checked.";
             export CHECK_SYNTAX="";
           fi;
-          
           if [[ -n "$HOG_NO_RESET_BD" ]] && [[ $HOG_NO_RESET_BD == '1' ]]; then
             echo "Hog-CI(info) - BD files will NOT be reset at pre synthesis time";
           else
@@ -182,8 +191,18 @@
             echo "Hog-CI(info) - no custom files will be reset.";
           fi;
           echo "Hog-CI(info) - Launching workflow now...";
-          echo "./Hog/LaunchWorkflow.sh -njobs $HOG_NJOBS $IP_PATH $NO_BITSTREAM $ONLY_SYNTH $CHECK_SYNTAX $PROJECT_NAME";
-          ./Hog/LaunchWorkflow.sh -njobs $HOG_NJOBS $IP_PATH $NO_BITSTREAM $ONLY_SYNTH $CHECK_SYNTAX $PROJECT_NAME;
+        fi;
+      - if [ ! -f "./Projects/$PROJECT_NAME/skip.me" ]; then
+          EXEC_CMD="./Hog/LaunchWorkflow.sh -njobs $HOG_NJOBS $IP_PATH $NO_BITSTREAM $ONLY_SYNTH $CHECK_SYNTAX $PROJECT_NAME";
+          if [[ -v HOG_APPTAINER_IMAGE ]]; then
+            echo "singularity exec -H $PWD $HOG_APPTAINER_IMAGE $EXEC_CMD";
+            apptainer exec -H $PWD $HOG_APPTAINER_IMAGE /bin/bash -c "source /opt/Xilinx/Vivado/2020.2/settings64.sh; $EXEC_CMD";
+          else
+            echo $EXEC_CMD;
+            $(EXEC_CMD);
+          fi;
+        fi;
+      - if [ ! -f "./Projects/$PROJECT_NAME/skip.me" ]; then
           if [[ -n "$HOG_ONLY_SYNTH" ]] && [[ $HOG_ONLY_SYNTH == '1' ]]; then
             echo "Hog-CI(info) - Adding version and utilization summaries to note...";
             if [[ -d "$CI_PROJECT_DIR/Projects/$PROJECT_NAME/$PROJECT_NAME.runs/" ]]; then

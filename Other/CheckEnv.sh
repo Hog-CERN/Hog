@@ -13,6 +13,33 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+# check the apptainer image only if you give it as a reference
+if [ ! -z $1 ]; then
+    echo ================ APPTAINER ================
+    if [ -f $1 ]; then
+	if [ $(command -v apptainer) ]; then
+	    CMD=$(command -v apptainer)
+	    echo "apptainer executable found in $CMD"
+	    echo
+	    $CMD --version
+	    echo 
+	    apptainer exec -H $PWD $HOG_APPTAINER_IMAGE /bin/bash -c "source /opt/Xilinx/Vivado/2020.2/settings64.sh; ./Hog/Other/CheckEnv.sh";
+	    exit $?
+	else
+	    echo "Hog-Warning: apptainer executable not found."
+	fi
+    else
+	echo "Hog-Warning: Apptainer image could not be found in this machine"
+    fi    
+    echo "Hog-INFO: unsetting Apptainer image, trying to run without it"
+    echo 
+    ./Hog/Other/CheckEnv.sh
+    if [ $? == 0 ]; then
+	echo "Hog-INFO: you may be able to run in this machine without apptainer, unset it and try again"
+    fi
+    exit 1
+fi
+
 ## @fn help_message
 #
 # @brief Prints an help message

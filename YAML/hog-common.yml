@@ -24,6 +24,7 @@ before_script:
     - git fetch origin $CI_MERGE_REQUEST_TARGET_BRANCH_NAME
     - git checkout $CI_COMMIT_REF_NAME --
     - export XILINXD_LICENSE_FILE=${HOG_XIL_LICENSE}
+    - export APPTAINERENV_LM_LICENSE_FILE=${HOG_XIL_LICENSE}
     - export PATH=${HOG_PATH}:$PATH
     - export LD_LIBRARY_PATH=${HOG_LD_LIBRARY_PATH}:$LD_LIBRARY_PATH
     - source Hog/Other/CommonFunctions.sh

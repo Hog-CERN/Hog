@@ -52,7 +52,7 @@
      variables:
         <<: *vars
      script:
-      - ./Hog/Other/CheckEnv.sh
+      - ./Hog/Other/CheckEnv.sh $PROJECT_NAME
       - if [[ -v HOG_CHECK_PROJVER ]] && [[ $HOG_CHECK_PROJVER == '1' ]]; then
           if [[ -v HOG_EXTERNAL_PATH ]]; then
             ./Hog/Other/CheckProjVer.sh -ext_path "$HOG_EXTERNAL_PATH" -sim $PROJECT_NAME;
@@ -67,7 +67,7 @@
         else
           if [ -z ${HOG_SIMULATION_LIB_PATH+x} ]; then
             echo 'Simulation library path is not defined';
-            ./Hog/LaunchSimulation.sh $PROJECT_NAME
+            ./Hog/LaunchSimulation.sh $PROJECT_NAME;
           else
              ./Hog/LaunchSimulation.sh $PROJECT_NAME -l $HOG_SIMULATION_LIB_PATH ;
           fi;
@@ -88,7 +88,7 @@
     variables:
         <<: *vars
     script:
-      - ./Hog/Other/CheckEnv.sh
+      - ./Hog/Other/CheckEnv.sh $PROJECT_NAME
       - if [[ -v HOG_CHECK_PROJVER ]] && [[ $HOG_CHECK_PROJVER == '1' ]]; then
           if [[ -v HOG_EXTERNAL_PATH ]]; then
             ./Hog/Other/CheckProjVer.sh -ext_path "$HOG_EXTERNAL_PATH" $PROJECT_NAME;

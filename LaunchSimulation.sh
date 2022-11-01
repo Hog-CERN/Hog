@@ -22,6 +22,7 @@
 
 ## Import common functions from Other/CommonFunctions.sh in a POSIX compliant way
 #
+
 . $(dirname "$0")/Other/CommonFunctions.sh
 
 
@@ -206,6 +207,3 @@ if [[ ${BASH_SOURCE[0]} == $0 ]]; then
   print_hog $repoPath
   SimulateProject $@
 fi
-# repoPath=$(dirname "$0")
-# print_hog $repoPath
-# create_project $@

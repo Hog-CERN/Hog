@@ -228,7 +228,7 @@ function Msg() {
     ;;
   esac
 
-  echo "$Colour HOG:$1[${FUNCNAME[1]}] $text $Default"
+  echo "${Colour}HOG:$1[${FUNCNAME[1]}] $text $Default"
 
   return 0
 }

@@ -13,40 +13,102 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+## @fn help_message
+#
+# @brief Prints an help message
+#
+# The help message contains both the options available for the first line of the tcl, both the command usage
+# This function uses echo to print to screen
+#
+# @param[in]    $1 the invoked command
+#
+function help_message() {
+  echo
+  echo " Hog - CheckEnv for project"
+  echo " ---------------------------"
+  echo " Check the environment for the specified project"
+  echo 
+  echo " The project type is selected using the first line of the hog.conf generating the project"
+  echo " Following options are available: "
+  echo " #vivado "
+  echo " #quartus "
+  echo " #planahead "
+  echo
+  echo " Usage: $1 <project name>"
+  echo
+  echo " Hint: Hog accepts as <project name> both the actual project name and the relative path containing the project configuration. E.g. ./Hog/CreateProject.sh Top/myproj or ./Hog/CreateProject.sh myproj"
+}
+
 echo "Hog-INFO: Checking all executables and environment variables needed for Hog-CI (not to run Hog locally)"
 echo
+
+OLD_DIR=$(pwd)
+THIS_DIR="$(dirname "$0")"
+TOP_DIR=$(realpath $THIS_DIR/../../Top)
+
+
+. $THIS_DIR/CommonFunctions.sh
+
+if [ "$1" == "-h" ] || [ "$1" == "-help" ] || [ "$1" == "--help" ] || [ "$1" == "-H" ]; then
+    help_message $0
+    echo
+    echo "Possible projects are:"
+    echo ""
+    search_projects $THIS_DIR/../Top
+    echo
+    cd "${OLD_DIR}"
+    exit 0
+fi
+
+cd "${THIS_DIR}"
+
+
+if [ "a$1" == "a" ]; then
+    help_message $0
+    echo
+    echo "Possible projects are:"
+    echo ""
+    search_projects $DIR
+    echo
+    cd "${OLD_DIR}"
+    exit -1
+else
+    PROJ=$1
+    if [[ $PROJ == "Top/"* ]]; then
+      PROJ=${PROJ#"Top/"}
+    fi
+    PROJ_DIR="$TOP_DIR/$PROJ"
+fi
+
 
 #################### exectuables
 echo ========= EXECUTABLES ==========
 
-THIS_DIR="$(dirname "$0")"
-TOP_DIR=$(realpath $THIS_DIR/../../Top)
 
-. $THIS_DIR/CommonFunctions.sh
+if [ -d "$PROJ_DIR" ]; then
 
-if [ -z "$HOG_COMPILER" ]; then
-    COMPILERS_TO_CHECK=("vivado")
-else
-    COMPILERS_TO_CHECK=$(echo $HOG_COMPILER | tr -d '[:space:]' | tr ";" "\n")
-fi
-
-for HDL_COMPILER in ${COMPILERS_TO_CHECK[@]}; do
-    select_command_from_line $HDL_COMPILER
+    #Choose if the project is quartus, vivado, vivado_hls [...]
+    select_command $PROJ_DIR
     if [ $? != 0 ]; then
-        echo "Failed to select project type: exiting!"
+        Msg Error "Failed to select project type: exiting!"
+        exit -1
+    fi
+    
+    #select full path to executable and place it in HDL_COMPILER global variable
+    select_compiler_executable $COMMAND
+    if [ $? != 0 ]; then
+        Msg Error "Failed to get HDL compiler executable for $COMMAND"
         exit -1
     fi
 
-    if [ $(command -v $COMMAND) ]; then
-        CMD=$(command -v $COMMAND)
-        echo "HDL env executable found in $CMD"
-        echo
-        $CMD -version
+    if [ ! -f "${HDL_COMPILER}" ]; then
+        Msg Error "HDL compiler executable $HDL_COMPILER not found"
+        cd "${OLD_DIR}"
+        exit -1
     else
-        echo "$COMMAND executable not found. Hog-CI cannot run."
-        FAIL=1
+        Msg Info "Using executable: $HDL_COMPILER"
     fi
-done
+fi
 
 echo --------------------------------
 

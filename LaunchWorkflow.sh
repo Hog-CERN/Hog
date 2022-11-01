@@ -212,9 +212,5 @@ if [[ ${BASH_SOURCE[0]} == $0 ]]; then
 # else
   repoPath=$(dirname "$0")
   print_hog $repoPath
-  Launch_project $@
-        
+  Launch_project $@        
 fi
-# repoPath=$(dirname "$0")
-# print_hog $repoPath
-# create_project $@

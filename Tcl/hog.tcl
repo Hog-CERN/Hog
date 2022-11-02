@@ -37,6 +37,12 @@ proc GetSimulators {} {
   return $SIMULATORS
 }
 
+## Get whether the IDE is MicroSemi Libero
+proc IsLibero {} {
+  return [expr {[info commands get_libero_version] != ""}]
+}
+
+
 ## Get whether the IDE is Xilinx (Vivado or ISE)
 proc IsXilinx {} {
   return [expr {[info commands get_property] != ""}]
@@ -3637,7 +3643,9 @@ proc GetIDEVersion {} {
     # Quartus
     global quartus
     regexp {[\.0-9]+} $quartus(version) ver
-
+  } elseif {[IsLibero]} {
+    # Libero
+    set ver [get_libero_version]
   }
   return $ver
 }
@@ -3649,7 +3657,7 @@ proc GetIDEFromConf {conf_file} {
   set f [open $conf_file "r"]
   set line [gets $f]
   close $f
-  if {[regexp -all {^\# *(\w*) *(\d+\.\d+(?:.\d+)?)? *$} $line dummy ide version dummy]} {
+  if {[regexp -all {^\# *(\w*) *(\d+\.\d+(?:.\d+)+(?:.\d+)?)? *$} $line dummy ide version dummy]} {
     if {[info exists version] && $version != ""} {
       set ver $version
     } else {

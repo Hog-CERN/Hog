@@ -591,8 +591,21 @@ proc SetGlobalVar {var {default_value HOG_NONE}} {
 
 ###########################################################################################################################################################################################
 
+set tcl_path [file normalize "[file dirname [info script]]"]
+set repo_path [file normalize $tcl_path/../..]
+source $tcl_path/hog.tcl
+
+if {[IsLibero]} {
+  if {[info exists env(HOG_TCLLIB_PATH)]} {
+    lappend auto_path $env(HOG_TCLLIB_PATH) 
+  } else {
+    puts "ERROR: To run Hog with Microsemi Libero SoC, you need to define the HOG_TCLLIB_PATH variable."
+    return
+  }
+}
+
 if {[catch {package require cmdline} ERROR]} {
-  puts "$ERROR\n If you are running this script on tclsh, you can fix this by installing 'tcllib'"
+  puts "ERROR: If you are running this script on tclsh, you can fix this by installing 'tcllib'"
   return
 }
 
@@ -602,9 +615,7 @@ set parameters {
 
 set usage   "Create Vivado/Quartus project. If no project is given, will expect the name of the project defined in a variable called DESIGN.\nUsage: $::argv0 \[OPTIONS\] <project> \n. Options:"
 
-set tcl_path [file normalize "[file dirname [info script]]"]
-set repo_path [file normalize $tcl_path/../..]
-source $tcl_path/hog.tcl
+puts $argv
 
 if { $::argc eq 0 && ![info exist DESIGN]} {
   Msg Info [cmdline::usage $parameters $usage]
@@ -639,6 +650,23 @@ if { $::argc eq 0 && ![info exist DESIGN]} {
       exit 1
     } else {
       set DESIGN [lindex $quartus(args) 0]
+    }
+  } else {
+    Msg Info "Design is parsed from project.tcl: $DESIGN"
+  }
+} elseif { [IsLibero] } {
+  # Libero
+  if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] } {
+    Msg Info [cmdline::usage $parameters $usage]
+    exit 1
+  }
+  if { ![info exist DESIGN] || $DESIGN eq "" } {
+    if { [lindex $argv 0] eq "" } {
+      Msg Error "Variable DESIGN not set!"
+      Msg Info [cmdline::usage $parameters $usage]
+      exit 1
+    } else {
+      set DESIGN [lindex $argv 0]
     }
   } else {
     Msg Info "Design is parsed from project.tcl: $DESIGN"
@@ -681,7 +709,7 @@ if {[file exists $conf_file]} {
   Msg Info "Parsing configuration file $conf_file..."
   set PROPERTIES [ReadConf $conf_file]
 
-  #Checking Vivado/Quartus/ISE version
+  #Checking Vivado/Quartus/ISE/Libero version
   set actual_version [GetIDEVersion]
   lassign [GetIDEFromConf $conf_file] ide conf_version
   if {$conf_version != "0.0.0"} {
@@ -689,6 +717,11 @@ if {[file exists $conf_file]} {
 
     set a_v [split $actual_version "."]
     set c_v [split $conf_version "."]
+    puts $a_v
+    puts $actual_version
+    puts $c_v
+    puts $conf_version
+
     if {[llength $a_v] > 3 || [llength $a_v] < 2} {
       Msg Error "Couldn't parse IDE version: $actual_version."
     } elseif {[llength $a_v] == 2} {

@@ -230,6 +230,8 @@ proc SetTopProperty {top_module sources} {
   } elseif {[IsQuartus]} {
     #QUARTUS ONLY
     set_global_assignment -name TOP_LEVEL_ENTITY $top_module
+  } elseif {[IsLibero]} {
+    set_root -module $top_module 
   }
 
 }
@@ -2403,6 +2405,23 @@ proc AddHogFiles { libraries properties main_libs {verbose 0}} {
           } else {
             set_global_assignment -name $file_type $cur_file -library $rootlib
           }
+        }
+      }
+    } elseif {[IsLibero] } {
+      create_links -library $rootlib -hdl_source $lib_files
+      build_design_hierarchy 
+
+      foreach cur_file $lib_files {
+        set file_type [FindFileType $cur_file]
+
+        #ADDING FILE PROPERTIES
+        set props [dict get $properties $cur_file]
+
+        # Top synthesis module
+        set top [lindex [regexp -inline {top\s*=\s*(.+?)\y.*} $props] 1]
+        if { $top != "" } {
+          Msg Info "Setting $top as top module for file set $file_set..."
+          set globalSettings::synth_top_module "${top}::$rootlib"
         }
       }
     }

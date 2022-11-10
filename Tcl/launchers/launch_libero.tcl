@@ -1,5 +1,5 @@
 # @file
-#   Copyright 2018-2022 The University of Birmingham
+#   Copyright 2018-2023 The University of Birmingham
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
 #   limitations under the License.
 
 
-# Launch vivado implementation and possibly write bitstream in text mode
+# Launch Libero implementation and possibly write bitstream in text mode
 
 #parsing command options
 if {[catch {package require cmdline} ERROR] || [catch {package require struct::matrix} ERROR]} {
@@ -29,7 +29,6 @@ set parameters {
   {impl_only       "If set, only the implementation will be performed. This assumes synthesis should was already done."}
   {recreate        "If set, the project will be re-created if it already exists."}
   {no_reset        "If set, runs (synthesis and implementation) won't be reset before launching them."}
-  {check_syntax    "If set, the HDL syntax will be checked at the beginning of the workflow."}
   {njobs.arg 4 "Number of jobs. Default: 4"}
   {ext_path.arg "" "Sets the absolute path for the external libraries."}
   {simlib_path.arg  "" "Path of simulation libs"}
@@ -67,7 +66,6 @@ if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] 
 }
 
 
-
 #Go to Hog/Tcl
 cd $path
 
@@ -89,10 +87,6 @@ if { $options(impl_only) == 1 } {
 
 if { $options(no_reset) == 1 } {
   set reset 0
-}
-
-if { $options(check_syntax) == 1 } {
-  set check_syntax 1
 }
 
 if { $options(ext_path) != ""} {
@@ -159,11 +153,7 @@ if { $ip_path != "" } {
 Msg Info "Number of jobs set to $options(njobs)."
 
 ############# CREATE or OPEN project ############
-if {[IsISE]} {
-  set project_file [file normalize $repo_path/Projects/$project_name/$project.ppr]
-} else {
-  set project_file [file normalize $repo_path/Projects/$project_name/$project.xpr]
-}
+set project_file [file normalize $repo_path/Projects/project_name/$project.prjx]
 
 if {[file exists $project_file]} {
   Msg Info "Found project file $project_file for $project_name."
@@ -186,23 +176,6 @@ if {($proj_found == 0 || $recreate == 1) && $do_synthesis == 1} {
   Msg Info "Opening existing project file $project_file..."
   file mkdir "$repo_path/Projects/$project_name/$project.gen/sources_1"
   open_project $project_file
-}
-
-########## CHECK SYNTAX ###########
-if { $check_syntax == 1 } {
-  if {[IsISE]} {
-    Msg Info "Checking syntax option is not supported by Xilinx PlanAhead. Skipping.."
-  } else {
-    Msg Info "Checking syntax for project $project_name..."
-    set syntax [check_syntax -return_string]
-
-    if {[string first "CRITICAL" $syntax ] != -1} {
-      check_syntax
-      exit 1
-    }
-  }
-} else {
-  Msg Info "Skipping syntax check for project $project_name"
 }
 
 ############# SYNTH ###############

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#   Copyright 2018-2022 The University of Birmingham
+#   Copyright 2018-2023 The University of Birmingham
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -40,6 +40,7 @@ function help_message() {
   echo " #vivado "
   echo " #quartus "
   echo " #planahead "
+  echo " #libero "
   echo
   echo " Usage: $1 <project name> [OPTIONS]"
   echo " Options:"
@@ -153,7 +154,6 @@ function create_project() {
           fi
         else
           if [ $COMMAND == "libero" ]; then
-            echo "I am here"
             "${HDL_COMPILER}" ${COMMAND_OPT}../Hog/Tcl/create_project.tcl ${POST_COMMAND_OPT}"-simlib_path ${HOG_SIMULATION_LIB_PATH} $PROJ"
           else
             "${HDL_COMPILER}" ${COMMAND_OPT}../Hog/Tcl/create_project.tcl ${POST_COMMAND_OPT}-simlib_path ${HOG_SIMULATION_LIB_PATH} $PROJ

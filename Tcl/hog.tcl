@@ -2408,7 +2408,20 @@ proc AddHogFiles { libraries properties main_libs {verbose 0}} {
         }
       }
     } elseif {[IsLibero] } {
-      create_links -library $rootlib -hdl_source $lib_files
+      if {$ext == ".con"} {
+        foreach con_file $lib_files {
+          # Check for valid constrain files
+          set con_ext [file ext $con_file]
+          if {[lsearch {.sdc .pin .dcf .gcf .pdc .crt .vcd } [file ext $con_file]] >= 0} {
+            set option [string map {. -} $con_ext]
+            create_links -convert_EDN_to_HDL 0 -library {work} $option $con_file 
+          } else {
+            Msg CriticalWarning "Constraint file $con_file does not have a valid extension. Allowed extensions are: \n .sdc .pin .dcf .gcf .pdc .crt .vcd"
+          }
+        }
+      } elseif {$ext == ".src"} {
+        create_links -library $rootlib -hdl_source $lib_files
+      }
       build_design_hierarchy 
 
       foreach cur_file $lib_files {
@@ -2422,6 +2435,11 @@ proc AddHogFiles { libraries properties main_libs {verbose 0}} {
         if { $top != "" } {
           Msg Info "Setting $top as top module for file set $file_set..."
           set globalSettings::synth_top_module "${top}::$rootlib"
+        }
+
+        # exclude sdc from timing
+        if {[lsearch -inline -regex $props "notiming"] == -1 } {
+          organize_tool_files -tool {VERIFYTIMING} -file $cur_file -input_type {constraint}
         }
       }
     }

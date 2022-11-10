@@ -606,7 +606,8 @@ proc ConfigureProperties {} {
           configure_tool -name {PLACEROUTE} -params "[string toupper $prop_name]:$prop_val"
         }
       }
-
+      # Configure VERIFYTIMING tool to generate a txt file report
+      configure_tool -name {VERIFYTIMING} -params {FORMAT:TEXT}
     }
   } else {
     Msg info "Configuring Properties"

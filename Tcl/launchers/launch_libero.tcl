@@ -29,6 +29,7 @@ set parameters {
   {impl_only       "If set, only the implementation will be performed. This assumes synthesis should was already done."}
   {recreate        "If set, the project will be re-created if it already exists."}
   {no_reset        "If set, runs (synthesis and implementation) won't be reset before launching them."}
+  {check_syntax    "If set, the HDL syntax will be checked at the beginning of the workflow."}
   {njobs.arg 4 "Number of jobs. Default: 4"}
   {ext_path.arg "" "Sets the absolute path for the external libraries."}
   {simlib_path.arg  "" "Path of simulation libs"}
@@ -87,6 +88,10 @@ if { $options(impl_only) == 1 } {
 
 if { $options(no_reset) == 1 } {
   set reset 0
+}
+
+if { $options(check_syntax) == 1 } {
+  set check_syntax 1
 }
 
 if { $options(ext_path) != ""} {
@@ -178,60 +183,21 @@ if {($proj_found == 0 || $recreate == 1) && $do_synthesis == 1} {
   open_project $project_file
 }
 
+########## CHECK SYNTAX ###########
+if { $check_syntax == 1 } {
+  Msg Info "Checking syntax option is not supported for Microchip Libero Soc yet. Skipping.."  
+}
+
 ############# SYNTH ###############
-if {$reset == 1 } {
-  Msg Info "Resetting run before launching synthesis..."
-  reset_run synth_1
-
-}
-
-if {[IsISE]} {
-  source  $path/../../Hog/Tcl/integrated/pre-synthesis.tcl
-}
 
 if {$do_synthesis == 1} {
-  launch_runs synth_1  -jobs $options(njobs) -dir $main_folder
-  wait_on_run synth_1
-  set prog [get_property PROGRESS [get_runs synth_1]]
-  set status [get_property STATUS [get_runs synth_1]]
-  Msg Info "Run: synth_1 progress: $prog, status : $status"
-
-  # Copy IP reports in bin/
-  set ips [get_ips *]
-
-  #go to repository path
-  cd $path/../..
-
-  lassign [GetRepoVersions [file normalize ./Top/$project_name] $repo_path $ext_path ] sha
-  set describe [GetHogDescribe $sha]
-  Msg Info "Git describe set to $describe"
-
-  foreach ip $ips {
-    set xci_file [get_property IP_FILE $ip]
-    set xci_path [file dir $xci_file]
-    set xci_ip_name [file root [file tail $xci_file]]
-    foreach rptfile [glob -nocomplain -directory $xci_path *.rpt] {
-      file copy $rptfile $bin_dir/$project_name-$describe/reports
-    }
-
-    ######### Copy IP to IP repository
-    if {($ip_path != "")} {
-      # IP is not in the gitlab repo
-      set force 0
-      if [info exist runs] {
-        if {[lsearch $runs $ip\_synth_1] != -1} {
-          Msg Info "$ip was synthesized, will force the copy to the IP repository..."
-          set force 1
-        }
-      }
-      Msg Info "Copying synthesised IP $xci_ip_name ($xci_file) to $ip_path..."
-      HandleIP push $xci_file $ip_path $main_folder $force
-    }
-  }
-
-  if {$prog ne "100%"} {
-    Msg Error "Synthesis error, status is: $status"
-  }
+  Msg Info "Run SYNTHESIS..."
+  run_synthesis
+  if {[catch {run_tool -name {SYNTHESIZE}  }] } {
+    Msg Error "SYNTHESIZE FAILED!"
+  } else {
+    Msg Info "SYNTHESIZE PASSED!"
+  }  
 } else {
   Msg Info "Skipping synthesis (and IP handling)..."
 }
@@ -241,108 +207,33 @@ if {$do_synthesis == 1} {
 if {$do_implementation == 1 } {
 
   Msg Info "Starting implementation flow..."
-  if { $reset == 1 } {
-    Msg Info "Resetting run before launching implementation..."
-    reset_run impl_1
+  if {[catch {run_tool -name {PLACEROUTE}  }] } {
+    Msg Error "PLACEROUTE FAILED!"
+  } else {
+    Msg Info "PLACEROUTE PASSED."
   }
 
-  if {[IsISE]} {source $path/../../Hog/Tcl/integrated/pre-implementation.tcl}
-  launch_runs impl_1 -jobs $options(njobs) -dir $main_folder
-  wait_on_run impl_1
-  if {[IsISE]} {source $path/../../Hog/Tcl/integrated/post-implementation.tcl}
-
-  set prog [get_property PROGRESS [get_runs impl_1]]
-  set status [get_property STATUS [get_runs impl_1]]
-  Msg Info "Run: impl_1 progress: $prog, status : $status"
+  source $path/../../Hog/Tcl/integrated/post-implementation.tcl
 
   # Check timing
-  if {[IsISE]} {
-
-    set status_file [open "$main_folder/timing.txt" "w"]
-    puts $status_file "## $project_name Timing summary"
-
-    set f [open [lindex [glob "$main_folder/impl_1/*.twr" 0]]]
-    set errs -1
-    while {[gets $f line] >= 0} {
-      if { [string match "Timing summary:" $line] } {
-        while {[gets $f line] >= 0} {
-          if { [string match "Timing errors:*" $line] } {
-            set errs [regexp -inline -- {[0-9]+} $line]
-          }
-          if { [string match "*Footnotes*" $line ] } {
-            break
-          }
-          puts $status_file "$line"
-        }
-      }
-    }
-
-    close $f
-    close $status_file
-
-    if {$errs == 0} {
-      Msg Info "Time requirements are met"
-      file rename -force "$main_folder/timing.txt" "$main_folder/timing_ok.txt"
-      set timing_ok 1
-    } else {
-      Msg CriticalWarning "Time requirements are NOT met"
-      file rename -force "$main_folder/timing.txt" "$main_folder/timing_error.txt"
-      set timing_ok 0
-    }
+  Msg Info "Run VERIFYTIMING ..."
+  if {[catch {run_tool -name {VERIFYTIMING}  }] } {
+    Msg CriticalWarning "VERIFYTIMING FAILED!"
+  } else {
+    Msg Info "VERIFYTIMING PASSED \n"
   }
 
-  if {[IsVivado]} {
-    set wns [get_property STATS.WNS [get_runs [current_run]]]
-    set tns [get_property STATS.TNS [get_runs [current_run]]]
-    set whs [get_property STATS.WHS [get_runs [current_run]]]
-    set ths [get_property STATS.THS [get_runs [current_run]]]
-
-    if {$wns >= 0 && $whs >= 0} {
-      Msg Info "Time requirements are met"
-      set status_file [open "$main_folder/timing_ok.txt" "w"]
-      set timing_ok 1
-    } else {
-      Msg CriticalWarning "Time requirements are NOT met"
-      set status_file [open "$main_folder/timing_error.txt" "w"]
-      set timing_ok 0
-    }
-
-    Msg Status "*** Timing summary ***"
-    Msg Status "WNS: $wns"
-    Msg Status "TNS: $tns"
-    Msg Status "WHS: $whs"
-    Msg Status "THS: $ths"
-
-    struct::matrix m
-    m add columns 5
-    m add row
-
-    puts $status_file "## $project_name Timing summary"
-
-    m add row  "| **Parameter** | \"**value (ns)**\" |"
-    m add row  "| --- | --- |"
-    m add row  "|  WNS:  |  $wns  |"
-    m add row  "|  TNS:  |  $tns  |"
-    m add row  "|  WHS:  |  $whs  |"
-    m add row  "|  THS:  |  $ths  |"
-
-    puts $status_file [m format 2string]
-    puts $status_file "\n"
-    if {$timing_ok == 1} {
-      puts $status_file " Time requirements are met."
-    } else {
-      puts $status_file "Time requirements are **NOT** met."
-    }
-    puts $status_file "\n\n"
-    close $status_file
-  }
-
-  if {$prog ne "100%"} {
-    Msg Error "Implementation error"
-  }
 
   if {$do_bitstream == 1} {
     Msg Info "Starting write bitstream flow..."
+    Msg Info "Run GENERATEPROGRAMMINGDATA ..."
+    if {[catch {run_tool -name {GENERATEPROGRAMMINGDATA}  }] } {
+      Msg Error "GENERATEPROGRAMMINGDATA FAILED!"
+    } else {
+      Msg Info "GENERATEPROGRAMMINGDATA PASSED."
+    }       
+
+
     if {[IsISE]} {
       # PlanAhead command
       Msg Info "running pre-bitstream"

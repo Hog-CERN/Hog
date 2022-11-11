@@ -606,6 +606,16 @@ proc ConfigureProperties {} {
           configure_tool -name {PLACEROUTE} -params "[string toupper $prop_name]:$prop_val"
         }
       }
+
+      # Bitstream Properties
+      if [dict exists $globalSettings::PROPERTIES bitstream] {
+        Msg Info "Setting Bitstream properties..."
+        set impl_props [dict get $globalSettings::PROPERTIES impl]
+        dict for {prop_name prop_val} $impl_props {
+          Msg Info "Setting $prop_name = $prop_val"
+          configure_tool -name {GENERATEPROGRAMMINGFILE} -params "[string toupper $prop_name]:$prop_val"
+        }
+      }
       # Configure VERIFYTIMING tool to generate a txt file report
       configure_tool -name {VERIFYTIMING} -params {FORMAT:TEXT}
     }

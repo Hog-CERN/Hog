@@ -350,14 +350,21 @@ proc GetRepoPath {} {
 # @return Return 1 ver1 is greather than ver2, 0 if they are equal, and -1 if ver2 is greater than ver1
 #
 proc CompareVersion {ver1 ver2} {
-  set ver1 [expr [lindex $ver1 0]*100000 + [lindex $ver1 1]*1000 + [lindex $ver1 2]]
-  set ver2 [expr [lindex $ver2 0]*100000 + [lindex $ver2 1]*1000 + [lindex $ver2 2]]
-  if {$ver1 > $ver2 } {
-    set ret 1
-  } elseif {$ver1 == $ver2} {
-    set ret 0
+  if {[string is integer [join $ver1 ""]] && [string is integer [join $ver2 ""]]} {
+  
+    set ver1 [expr [lindex $ver1 0]*100000 + [lindex $ver1 1]*1000 + [lindex $ver1 2]]
+    set ver2 [expr [lindex $ver2 0]*100000 + [lindex $ver2 1]*1000 + [lindex $ver2 2]]
+    if {$ver1 > $ver2 } {
+      set ret 1
+    } elseif {$ver1 == $ver2} {
+      set ret 0
+    } else {
+      set ret -1
+    }
+
   } else {
-    set ret -1
+    Msg Warning "Version is not numeric: $ver1, $ver2"
+    set ret 0
   }
   return [expr $ret]
 }
@@ -3385,12 +3392,14 @@ proc WriteGenerics {date timee commit version top_hash top_ver hog_hash hog_ver 
 
 ## Returns the version of the IDE (Vivado,Quartus,PlanAhead) in use
 #
-#  @return       the version in astring format, e.g. 2020.2
+#  @return       the version in a string format, e.g. 2020.2
 #
 proc GetIDEVersion {} {
   if {[IsXilinx]} {
     #Vivado or planAhead
-    set ver [version -short]
+    regexp {\d+\.\d+(\.\d+)?} [version -short] ver
+    # This regex will cut away anything after the numbers, useful for patched version 2020.1_AR75210
+    
   } elseif {[IsQuartus]} {
     # Quartus
     global quartus

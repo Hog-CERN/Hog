@@ -144,10 +144,10 @@ create_release_note:
             fi"
 
 
-launch_testfirmware:
+launch_validation:
   image: gitlab-registry.cern.ch/hog/hog-docker:tclsh
   only:
     - develop
   script:
-    - "if [[ $CI_COMMIT_REF_SLUG == \"develop\" ]]; then curl --request POST --header \"PRIVATE-TOKEN: ${HOG_PUSH_TOKEN}\" \"$CI_API_V4_URL/projects/28784308/pipeline_schedules/270926/play\"; fi;"
+    - "if [[ $CI_COMMIT_REF_SLUG == \"develop\" ]]; then curl --request POST --header \"PRIVATE-TOKEN: ${HOG_PUSH_TOKEN}\" \"$CI_API_V4_URL/projects/40979880/pipeline_schedules/311873/play\"; fi;"
   stage: tag 

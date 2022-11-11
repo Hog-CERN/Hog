@@ -49,9 +49,9 @@ child-pipeline:
       - artifact: generated-config.yml
         job: generate-config
     strategy: depend
+    interruptible: true 
   rules:
     - if: $CI_MERGE_REQUEST_ID
-  interruptible: true 
 
 collect_artifacts:
   image: gitlab-registry.cern.ch/hog/hog-docker:tclsh

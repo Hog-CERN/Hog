@@ -40,16 +40,12 @@ generate-config:
   interruptible: true 
 
 child-pipeline:
-  # only:
-  #   refs:
-  #     - merge_requests
   stage: dynamic_triggers
   trigger:
     include:
       - artifact: generated-config.yml
         job: generate-config
     strategy: depend
-    interruptible: true 
   rules:
     - if: $CI_MERGE_REQUEST_ID
 

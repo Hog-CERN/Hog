@@ -66,7 +66,7 @@ echo
 OLD_DIR=$(pwd)
 THIS_DIR="$(dirname "$0")"
 TOP_DIR=$(realpath $THIS_DIR/../../Top)
-
+APPTAINER_IMAGE="none"
 
 . $THIS_DIR/CommonFunctions.sh
 
@@ -94,10 +94,9 @@ while getopts ah: op
 do
     case $op in
         a)  if [[ ${@:$OPTIND} == /* ]] ; then
-                HOG_APPTAINER_IMAGE=${@:$OPTIND}
+                APPTAINER_IMAGE=${@:$OPTIND}
                 OPTIND=$((OPTIND+1))
             else
-                HOG_APPTAINER_IMAGE="none"
                 echo "Hog-INFO: Apptainer argument expects and absolute path, assuming no image was given"
             fi;;
 	h|*) help_message $0
@@ -106,16 +105,16 @@ do
     esac
 done
 
-if [ ! $HOG_APPTAINER_IMAGE == "none" ]; then
+if [ ! $APPTAINER_IMAGE == "none" ]; then
     echo ================ APPTAINER ================
-    if [ -f $HOG_APPTAINER_IMAGE ]; then
+    if [ -f $APPTAINER_IMAGE ]; then
         if [ $(command -v apptainer) ]; then
             CMD=$(command -v apptainer)
             echo "apptainer executable found in $CMD"
             echo
             $CMD --version
             echo
-            apptainer exec -H $(realpath $THIS_DIR/../..) $HOG_APPTAINER_IMAGE /bin/bash -c "source /opt/Xilinx/Vivado/2020.2/settings64.sh; ${THIS_DIR}/CheckEnv.sh $PROJ";
+            apptainer exec -H $(realpath $THIS_DIR/../..) $APPTAINER_IMAGE /bin/bash -c "source /opt/Xilinx/Vivado/2020.2/settings64.sh; ${THIS_DIR}/CheckEnv.sh $PROJ";
             exit $?
         else
             echo "Hog-Warning: apptainer executable not found."

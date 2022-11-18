@@ -42,6 +42,11 @@ proc IsLibero {} {
   return [expr {[info commands get_libero_version] != ""}]
 }
 
+### Get whether the Synthesis tools is Synplify
+proc IsSynplify {} {
+  return [expr {[info commands program_version] != ""}]
+}
+
 
 ## Get whether the IDE is Xilinx (Vivado or ISE)
 proc IsXilinx {} {
@@ -73,7 +78,7 @@ proc IsQuartus {} {
 
 ## Get whether we are in tclsh
 proc IsTclsh {} {
-  return [expr ![IsQuartus] && ![IsXilinx]]
+  return [expr ![IsQuartus] && ![IsXilinx] && ![IsLibero] && ![IsSynplify]]
 }
 
 proc Msg {level msg {title ""}} {

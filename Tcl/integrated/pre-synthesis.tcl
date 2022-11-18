@@ -17,13 +17,26 @@
 # The pre synthesis script checks the status of your git repository and stores into a set of variables that are fed as generics to the HDL project.
 # This script is automatically integrated into the Vivado/Quartus workflow by the Create Project script.
 
+set tcl_path [file normalize "[file dirname [info script]]/.."]
+source $tcl_path/hog.tcl
+
+# Import tcllib
+if {[IsSynplify]} {
+  if {[info exists env(HOG_TCLLIB_PATH)]} {
+    lappend auto_path $env(HOG_TCLLIB_PATH) 
+  } else {
+    puts "ERROR: To run Hog with Microsemi Libero SoC, you need to define the HOG_TCLLIB_PATH variable."
+    return
+  }
+}
+
+
 if {[catch {package require struct::matrix} ERROR]} {
   puts "$ERROR\n If you are running this script on tclsh, you can fix this by installing 'tcllib'"
   return
 }
 
-set tcl_path [file normalize "[file dirname [info script]]/.."]
-source $tcl_path/hog.tcl
+
 
 if {[IsISE]} {
   # Vivado + PlanAhead
@@ -77,6 +90,9 @@ if {[IsXilinx]} {
     }
 
   }
+} elseif {[IsSynplify]} {
+  set proj_dir [file normalize [file dirname "[project_data -dir]/../.."]  ]
+  set proj_name [file tail $proj_dir]
 } else {
   #Tclssh
   set proj_file $old_path/[file tail $old_path].xpr
@@ -250,6 +266,8 @@ if {[IsXilinx]} {
   cd $this_dir
   set_global_assignment -name NUM_PARALLEL_PROCESSORS $maxThreads
   project_close
+} elseif {[IsSynplify]} {
+  set_option -max_parallel_jobs $maxThreads
 } else {
   ### Tcl Shell
   puts "Hog:DEBUG MaxThread is set to: $maxThreads"
@@ -341,6 +359,8 @@ if {[IsXilinx]} {
   set  status_file "$old_path/output_files/versions.txt"
   project_close
 
+} elseif {[IsSynplify]} {
+    
 } else {
   ### Tcl Shell
   puts "Hog:DEBUG GLOBAL_DATE=$date GLOBAL_TIME=$timee"

@@ -2432,7 +2432,9 @@ proc AddHogFiles { libraries properties main_libs {verbose 0}} {
           }
         }
       } elseif {$ext == ".src"} {
-        create_links -library $rootlib -hdl_source $lib_files
+        foreach f $lib_files {
+          create_links -library $rootlib -hdl_source $f
+        }
       }
       build_design_hierarchy 
 

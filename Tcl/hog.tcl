@@ -3622,8 +3622,6 @@ proc SetGenericsSimulation {proj_dir target} {
 proc WriteGenerics {mode design date timee commit version top_hash top_ver hog_hash hog_ver cons_ver cons_hash libs vers hashes ext_names ext_hashes user_ip_repos user_ip_vers user_ip_hashes flavour {xml_ver ""} {xml_hash ""}} {
   Msg Info "Project $design writing generics."
   #####  Passing Hog generic to top file
-  if {[IsXilinx]} {
-
     # set global generic variables
     set generic_string [concat \
                             "GLOBAL_DATE=[FormatGeneric $date]" \
@@ -3670,14 +3668,21 @@ proc WriteGenerics {mode design date timee commit version top_hash top_ver hog_h
     # Dealing with project generics in Vivado
     set prj_generics [GetGenericFromConf $design "Vivado"]
     set generic_string "$prj_generics $generic_string"
-    set_property generic $generic_string [current_fileset]
-    Msg Info "Setting Vivado generics : $generic_string"
-    # Dealing with project generics in Simulators
-    set simulator [get_property target_simulator [current_project]]
-    if {$mode == "create"} {
-      SetGenericsSimulation $design $simulator
-    }
-  }
+    if {[IsVivado]} {
+      set_property generic $generic_string [current_fileset]
+      Msg Info "Setting Vivado generics : $generic_string"
+      # Dealing with project generics in Simulators
+      set simulator [get_property target_simulator [current_project]]
+      if {$mode == "create"} {
+        SetGenericsSimulation $design $simulator
+      }
+    } elseif {[IsSynplify]} {
+      foreach generic $generic_string {
+        Msg Info "Setting Synplify generic: $generic"
+        set_option -hdl_param -set "$generic"
+      }
+    } 
+
 }
 
 ## Returns the version of the IDE (Vivado,Quartus,PlanAhead) in use

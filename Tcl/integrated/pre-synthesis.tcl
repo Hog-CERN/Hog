@@ -93,6 +93,7 @@ if {[IsXilinx]} {
 } elseif {[IsSynplify]} {
   set proj_dir [file normalize [file dirname "[project_data -dir]/../.."]  ]
   set proj_name [file tail $proj_dir]
+  set project $proj_name
 } else {
   #Tclssh
   set proj_file $old_path/[file tail $old_path].xpr
@@ -287,7 +288,7 @@ if [GitVersion 2.9.3] {
 }
 
 #####  Passing Hog generic to top file
-if {[IsXilinx]} {
+if {[IsXilinx] || [IsSynplify]} {
   ### VIVADO
   # set global generic variables
   WriteGenerics "synth" $project $date $timee $commit $version $top_hash $top_ver $hog_hash $hog_ver $cons_ver $cons_hash  $libs $vers $hashes $ext_names $ext_hashes $user_ip_repos $user_ip_vers $user_ip_hashes $flavour $xml_ver $xml_hash
@@ -359,8 +360,6 @@ if {[IsXilinx]} {
   set  status_file "$old_path/output_files/versions.txt"
   project_close
 
-} elseif {[IsSynplify]} {
-    
 } else {
   ### Tcl Shell
   puts "Hog:DEBUG GLOBAL_DATE=$date GLOBAL_TIME=$timee"

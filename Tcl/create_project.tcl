@@ -790,10 +790,6 @@ if {[file exists $conf_file]} {
 
     set a_v [split $actual_version "."]
     set c_v [split $conf_version "."]
-    puts $a_v
-    puts $actual_version
-    puts $c_v
-    puts $conf_version
 
     if { [llength $a_v] < 2} {
       Msg Error "Couldn't parse IDE version: $actual_version."
@@ -924,6 +920,10 @@ if {[IsQuartus]} {
 if {[file exists $post_file]} {
   Msg Info "Found post-creation Tcl script $post_file, executing it..."
   source $post_file
+  if {[IsLibero]} {
+    # Regenerate the hierarchy in case a new file has been added
+    build_design_hierarchy
+  }
 }
 
 # Check extra IPs

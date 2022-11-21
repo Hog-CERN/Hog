@@ -111,37 +111,37 @@ if { $options(simlib_path) != ""} {
 }
 
 #Copy IP from IP repository
-if { $options(ip_path) != "" } {
-  set ip_path $options(ip_path)
+# if { $options(ip_path) != "" } {
+#   set ip_path $options(ip_path)
 
-  Msg Info "Getting IPs for $project_name..."
-  set ips {}
-  lassign [GetHogFiles -list_files "*.src" -repo_path $repo_path "$repo_path/Top/$project_name/list/" ] src_files dummy
-  dict for {f files} $src_files {
-    #library names have a .src extension in values returned by GetHogFiles
-    if { [file ext $f] == ".ip" } {
-      lappend ips {*}$files
-    }
-  }
+#   Msg Info "Getting IPs for $project_name..."
+#   set ips {}
+#   lassign [GetHogFiles -list_files "*.src" -repo_path $repo_path "$repo_path/Top/$project_name/list/" ] src_files dummy
+#   dict for {f files} $src_files {
+#     #library names have a .src extension in values returned by GetHogFiles
+#     if { [file ext $f] == ".ip" } {
+#       lappend ips {*}$files
+#     }
+#   }
 
-  Msg Info "Copying IPs from $ip_path..."
-  set copied_ips 0
-  set repo_ips {}
-  foreach ip $ips {
-    set ip_folder [file dirname $ip]
-    set files_in_folder [glob -directory $ip_folder -- *]
-    if { [llength $files_in_folder] == 1 } {
-      set ret [HandleIP pull $ip $ip_path $main_folder]
-      if {$ret == 0} {
-        incr copied_ips
-      }
-    } else {
-      Msg Info "Synthesised files for IP $ip are already in the repository. Do not copy from IP repository..."
-      lappend repo_ips $ip
-    }
-  }
-  Msg Info "$copied_ips IPs were copied from the IP repository."
-}
+#   Msg Info "Copying IPs from $ip_path..."
+#   set copied_ips 0
+#   set repo_ips {}
+#   foreach ip $ips {
+#     set ip_folder [file dirname $ip]
+#     set files_in_folder [glob -directory $ip_folder -- *]
+#     if { [llength $files_in_folder] == 1 } {
+#       set ret [HandleIP pull $ip $ip_path $main_folder]
+#       if {$ret == 0} {
+#         incr copied_ips
+#       }
+#     } else {
+#       Msg Info "Synthesised files for IP $ip are already in the repository. Do not copy from IP repository..."
+#       lappend repo_ips $ip
+#     }
+#   }
+#   Msg Info "$copied_ips IPs were copied from the IP repository."
+# }
 
 
 if {$do_synthesis == 0} {
@@ -166,7 +166,7 @@ if { $ip_path != "" } {
 Msg Info "Number of jobs set to $options(njobs)."
 
 ############# CREATE or OPEN project ############
-set project_file [file normalize $repo_path/Projects/project_name/$project.prjx]
+set project_file [file normalize $repo_path/Projects/$project_name/$project.prjx]
 
 if {[file exists $project_file]} {
   Msg Info "Found project file $project_file for $project_name."
@@ -188,7 +188,7 @@ if {($proj_found == 0 || $recreate == 1) && $do_synthesis == 1} {
 } else {
   Msg Info "Opening existing project file $project_file..."
   file mkdir "$repo_path/Projects/$project_name/$project.gen/sources_1"
-  open_project $project_file
+  open_project -file $project_file -do_backup_on_convert 1 -backup_file {./Projects/$project_file.zip}
 }
 
 ########## CHECK SYNTAX ###########
@@ -196,11 +196,12 @@ if { $check_syntax == 1 } {
   Msg Info "Checking syntax option is not supported for Microchip Libero Soc yet. Skipping.."  
 }
 
+defvar_set -name RWNETLIST_32_64_MIXED_FLOW -value 0
+
 ############# SYNTH ###############
 
 if {$do_synthesis == 1} {
   Msg Info "Run SYNTHESIS..."
-  run_synthesis
   if {[catch {run_tool -name {SYNTHESIZE}  }] } {
     Msg Error "SYNTHESIZE FAILED!"
   } else {
@@ -221,7 +222,7 @@ if {$do_implementation == 1 } {
     Msg Info "PLACEROUTE PASSED."
   }
 
-  source $path/../../Hog/Tcl/integrated/post-implementation.tcl
+  # source $path/../../Hog/Tcl/integrated/post-implementation.tcl
 
   # Check timing
   Msg Info "Run VERIFYTIMING ..."
@@ -240,37 +241,7 @@ if {$do_implementation == 1 } {
     } else {
       Msg Info "GENERATEPROGRAMMINGDATA PASSED."
     }       
-
-
-    if {[IsISE]} {
-      # PlanAhead command
-      Msg Info "running pre-bitstream"
-      source  $path/../../Hog/Tcl/integrated/pre-bitstream.tcl
-      launch_runs impl_1 -to_step Bitgen -jobs 4 -dir $main_folder
-      wait_on_run impl_1
-      Msg Info "running post-bitstream"
-      source  $path/../../Hog/Tcl/integrated/post-bitstream.tcl
-    } elseif { [string first Vivado [version]] ==0} {
-      # Vivado command
-      launch_runs impl_1 -to_step write_bitstream -jobs 4 -dir $main_folder
-      wait_on_run impl_1
-    }
-
-    set prog [get_property PROGRESS [get_runs impl_1]]
-    set status [get_property STATUS [get_runs impl_1]]
-    Msg Info "Run: impl_1 progress: $prog, status : $status"
-
-    if {$prog ne "100%"} {
-      Msg Error "Write bitstream error, status is: $status"
-    }
-
-    if {[IsVivado]} {
-      Msg Status "*** Timing summary (again) ***"
-      Msg Status "WNS: $wns"
-      Msg Status "TNS: $tns"
-      Msg Status "WHS: $whs"
-      Msg Status "THS: $ths"
-    }
+    # source  $path/../../Hog/Tcl/integrated/post-bitstream.tcl
   }
 
   #Go to repository path
@@ -291,14 +262,14 @@ if {$do_implementation == 1 } {
     Msg Warning "No versions file found in $main_folder/versions.txt"
   }
   #Timing file
-  set timing_files [ glob -nocomplain "$main_folder/timing_*.txt" ]
-  set timing_file [file normalize [lindex $timing_files 0]]
+  # set timing_files [ glob -nocomplain "$main_folder/timing_*.txt" ]
+  # set timing_file [file normalize [lindex $timing_files 0]]
 
-  if [file exists $timing_file ] {
-    file copy -force $timing_file $dst_dir/
-  } else {
-    Msg Warning "No timing file found, not a problem if running locally"
-  }
+  # if [file exists $timing_file ] {
+  #   file copy -force $timing_file $dst_dir/
+  # } else {
+  #   Msg Warning "No timing file found, not a problem if running locally"
+  # }
 
 }
 

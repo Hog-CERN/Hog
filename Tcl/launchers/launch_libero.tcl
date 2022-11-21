@@ -62,7 +62,7 @@ if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] 
   } else {
     set project_name "$project"
   }
-  set main_folder [file normalize "$repo_path/Projects/$project_name/$project.runs/"]
+  set main_folder [file normalize "$repo_path/Projects/$project_name/"]
   set do_implementation 1
   set do_synthesis 1
   set do_bitstream 1
@@ -240,8 +240,9 @@ if {$do_implementation == 1 } {
       Msg Error "GENERATEPROGRAMMINGDATA FAILED!"
     } else {
       Msg Info "GENERATEPROGRAMMINGDATA PASSED."
-    }       
-    # source  $path/../../Hog/Tcl/integrated/post-bitstream.tcl
+    }
+    Msg Info "Sourcing Hog/Tcl/integrated/post-bitstream.tcl"       
+    source $path/../../Hog/Tcl/integrated/post-bitstream.tcl
   }
 
   #Go to repository path

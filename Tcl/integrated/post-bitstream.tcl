@@ -22,12 +22,24 @@ set tcl_path [file normalize "[file dirname [info script]]/.."]
 source $tcl_path/hog.tcl
 set repo_path [file normalize "$tcl_path/../../"]
 
+# Import tcllib
+if {[IsLibero]} {
+  if {[info exists env(HOG_TCLLIB_PATH)]} {
+    lappend auto_path $env(HOG_TCLLIB_PATH) 
+  } else {
+    puts "ERROR: To run Hog with Microsemi Libero SoC, you need to define the HOG_TCLLIB_PATH variable."
+    return
+  }
+}
+
 if {[info exists env(HOG_EXTERNAL_PATH)]} {
   set ext_path $env(HOG_EXTERNAL_PATH)
   Msg Info "Found environment variable HOG_EXTERNAL_PATH, setting path for external files to $ext_path..."
 } else {
   set ext_path ""
 }
+
+set bin_dir [file normalize "$repo_path/bin"]
 
 if {[IsXilinx]} {
 
@@ -53,14 +65,12 @@ if {[IsXilinx]} {
 
   set xml_dir [file normalize "$work_path/../xml"]
   set run_dir [file normalize "$work_path/.."]
-  set bin_dir [file normalize "$repo_path/bin"]
 
 } elseif {[IsQuartus]} {
   # Quartus
   set proj_name [lindex $quartus(args) 1]
   set proj_dir [pwd]
   set xml_dir [file normalize "$repo_path/xml"]
-  set bin_dir [file normalize "$repo_path/bin"]
   set run_dir [file normalize "$proj_dir"]
   set name [file rootname [file tail [file normalize [pwd]]]]
   # programming object file
@@ -75,6 +85,17 @@ if {[IsXilinx]} {
   set stp_file [file normalize "$proj_dir/output_files/$proj_name.stp"]
   #source and probes file
   set spf_file [file normalize "$proj_dir/output_files/$proj_name.spf"]
+
+} elseif {[IsLibero]} {
+  # Libero
+  set proj_name $project
+  set proj_dir $main_folder
+  set map_file [file normalize [lindex [glob -nocomplain "$proj_dir/synthesis/*.map"] 0]]
+  set sap_file [file normalize [lindex [glob -nocomplain "$proj_dir/synthesis/*.sap"] 0]]
+  set srd_file [file normalize [lindex [glob -nocomplain "$proj_dir/synthesis/*.srd"] 0]]
+  set srm_file [file normalize [lindex [glob -nocomplain "$proj_dir/synthesis/*.srm"] 0]]
+  set srs_file [file normalize [lindex [glob -nocomplain "$proj_dir/synthesis/*.srs"] 0]]
+  set xml_dir [file normalize "$repo_path/xml"]
 
 } else {
   #tcl shell
@@ -91,7 +112,6 @@ if {[IsXilinx]} {
 
   set xml_dir [file normalize "$work_path/../xml"]
   set run_dir [file normalize "$work_path/.."]
-  set bin_dir [file normalize "$repo_path/bin"]
 }
 
 set group_name [GetGroupName $proj_dir]
@@ -232,6 +252,53 @@ if {[IsXilinx] && [file exists $bit_file]} {
     Msg Info "No stp or spf file found: that is not a problem"
   }
 
+} elseif {[IsLibero] } {
+  # Go to repository path
+  cd $tcl_path/../../
+
+  Msg Info "Evaluating Git sha for $project..."
+  lassign [GetRepoVersions [file normalize ./Top/$group_name/$project] $repo_path] sha
+  set describe [GetHogDescribe $sha]
+  Msg Info "Git describe set to: $describe"
+
+  set ts [clock format [clock seconds] -format {%Y-%m-%d-%H-%M}]
+
+  set dst_dir [file normalize "$bin_dir/$group_name/$project\-$describe"]
+  set dst_map [file normalize "$dst_dir/$project\-$describe.map"]
+  set dst_sap [file normalize "$dst_dir/$project\-$describe.sap"]
+  set dst_srd [file normalize "$dst_dir/$project\-$describe.srd"]
+  set dst_srm [file normalize "$dst_dir/$project\-$describe.srm"]
+  set dst_srs [file normalize "$dst_dir/$project\-$describe.srs"]
+  set dst_xml [file normalize "$dst_dir/xml"]
+
+  Msg Info "Creating $dst_dir..."
+  file mkdir $dst_dir
+
+  if {[file exists $map_file]} {
+    Msg Info "Copying map file $map_file into $dst_map..."
+    file copy -force $map_file $dst_map
+  }
+
+  if {[file exists $sap_file]} {
+    Msg Info "Copying sap file $sap_file into $dst_sap..."
+    file copy -force $sap_file $dst_sap
+  }
+
+  if {[file exists $srd_file]} {
+    Msg Info "Copying srd file $srd_file into $dst_srd..."
+    file copy -force $srd_file $dst_srd
+  }
+
+  if {[file exists $srm_file]} {
+    Msg Info "Copying srm file $srm_file into $dst_srm..."
+    file copy -force $srm_file $dst_map
+  }
+  
+  if {[file exists $srs_file]} {
+    Msg Info "Copying srs file $srs_file into $dst_srs..."
+    file copy -force $srs_file $dst_map
+  }
+
 } else {
   Msg CriticalWarning "Firmware binary file not found."
 }
@@ -249,38 +316,37 @@ if [file exists $xml_dir] {
 
 # Zynq XSA Export
 if {[IsXilinx]} { # Vivado
-
-# automatically export for zynqs (checking via regex)
-set export_xsa false
-set part [get_property part [current_project]]
-set is_zynq [expr \
-  [regexp {xc7z.*} $part] || \
-  [regexp {xczu.*} $part]]
-if {${is_zynq} == 1} {
-  set export_xsa true
-}
-
-# check for explicit EXPORT_XSA flag in hog.conf
-set properties [ReadConf [lindex [GetConfFiles $repo_path/Top/$group_name/$proj_name] 0]]
-if {[dict exists $properties "hog"]} {
-  set propDict [dict get $properties "hog"]
-  if {[dict exists $propDict "EXPORT_XSA"]} {
-    set export_xsa [dict get $propDict "EXPORT_XSA"]
+  # automatically export for zynqs (checking via regex)
+  set export_xsa false
+  set part [get_property part [current_project]]
+  set is_zynq [expr \
+    [regexp {xc7z.*} $part] || \
+    [regexp {xczu.*} $part]]
+  if {${is_zynq} == 1} {
+    set export_xsa true
   }
-}
 
-if {[string compare [string tolower $export_xsa] "true"]==0} {
-  # there is a bug in Vivado 2020.1, check for that version and warn
-  # that we can't export XSAs
-  regexp -- {Vivado v([0-9]{4}\.[0-9,A-z,_,\.]*) } [version] -> VIVADO_VERSION
-  if {[string compare "2020.1" $VIVADO_VERSION]==0} {
-    Msg Warning "Vivado 2020.1, a patch must be applied to Vivado to export XSA Files, c.f. https://www.xilinx.com/support/answers/75210.html"
-  } else {
-    set dst_xsa [file normalize "$dst_dir/${proj_name}\-$describe.xsa"]
-    Msg Info "Generating XSA File at $dst_xsa"
-    write_hw_platform -fixed -force -include_bit -file "$dst_xsa"
+  # check for explicit EXPORT_XSA flag in hog.conf
+  set properties [ReadConf [lindex [GetConfFiles $repo_path/Top/$group_name/$proj_name] 0]]
+  if {[dict exists $properties "hog"]} {
+    set propDict [dict get $properties "hog"]
+    if {[dict exists $propDict "EXPORT_XSA"]} {
+      set export_xsa [dict get $propDict "EXPORT_XSA"]
+    }
   }
-}
+
+  if {[string compare [string tolower $export_xsa] "true"]==0} {
+    # there is a bug in Vivado 2020.1, check for that version and warn
+    # that we can't export XSAs
+    regexp -- {Vivado v([0-9]{4}\.[0-9,A-z,_,\.]*) } [version] -> VIVADO_VERSION
+    if {[string compare "2020.1" $VIVADO_VERSION]==0} {
+      Msg Warning "Vivado 2020.1, a patch must be applied to Vivado to export XSA Files, c.f. https://www.xilinx.com/support/answers/75210.html"
+    } else {
+      set dst_xsa [file normalize "$dst_dir/${proj_name}\-$describe.xsa"]
+      Msg Info "Generating XSA File at $dst_xsa"
+      write_hw_platform -fixed -force -include_bit -file "$dst_xsa"
+    }
+  }
 }
 
 # Run user post-bitstream file

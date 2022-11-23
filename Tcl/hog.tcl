@@ -366,7 +366,7 @@ proc GetRepoPath {} {
 #
 # @return Return 1 ver1 is greather than ver2, 0 if they are equal, and -1 if ver2 is greater than ver1
 #
-proc CompareVersion {ver1 ver2} {
+proc CompareVersions {ver1 ver2} {
   if {[string is integer [join $ver1 ""]] && [string is integer [join $ver2 ""]]} {
   
     set ver1 [expr [lindex $ver1 0]*100000 + [lindex $ver1 1]*1000 + [lindex $ver1 2]]
@@ -1081,7 +1081,7 @@ proc GetProjectVersion {proj_dir repo_path {ext_path ""} {sim 0}} {
 
   #The project version
   set v_proj [ExtractVersionFromTag v[HexVersionToString $ver]]
-  set comp [CompareVersion $v_proj $v_last]
+  set comp [CompareVersions $v_proj $v_last]
   if {$comp == 1} {
     Msg Info "The specified project was modified since official version."
     set ret 0
@@ -1412,7 +1412,7 @@ proc HexVersionToString {version} {
 proc ExtractVersionFromTag {tag} {
   if {[regexp {^(?:b(\d+))?v(\d+)\.(\d+).(\d+)(?:-\d+)?$} $tag -> mr M m p]} {
     if {$mr eq ""} {
-      set mr -1
+      set mr 0
     }
   } else {
     Msg Warning "Repository tag $tag is not in a Hog-compatible format."

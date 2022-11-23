@@ -868,7 +868,7 @@ proc GetVerFromSHA {SHA} {
           if {$M == -1} {
             Msg CriticalWarning "Tag $tag does not contain a Hog compatible version in this repository."
             #set ver v0.0.0
-          } elseif {$mr == -1} {
+          } elseif {$mr == 0} {
             incr p
             Msg Info "No tag contains $SHA, will use most recent tag $tag. As this is an official tag, patch will be incremented to $p."
           } else {
@@ -876,7 +876,7 @@ proc GetVerFromSHA {SHA} {
             if {$M == -1} {
               Msg CriticalWarning "Tag $tag does not contain a Hog compatible version in this repository."
               #set ver v0.0.0
-            } elseif {$mr == -1} {
+            } elseif {$mr == 0} {
               incr p
               Msg Info "No tag contains $SHA, will use most recent tag $tag. As this is an official tag, patch will be incremented to $p."
             } else {
@@ -1349,7 +1349,7 @@ proc TagRepository {{merge_request_number 0} {version_level 0} {default_level 0}
 
     if { $M > -1 } {
       # M=-1 means that the tag could not be parsed following a Hog format
-      if {$mr == -1 } {
+      if {$mr == 0 } {
         # Tag is official, no b at the beginning (and no merge request number at the end)
         Msg Info "Found official version $M.$m.$p."
 	set old_tag $vtag

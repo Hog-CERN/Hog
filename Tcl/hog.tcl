@@ -1285,7 +1285,7 @@ proc HexVersionToString {version} {
 proc ExtractVersionFromTag {tag} {
   if {[regexp {^(?:b(\d+))?v(\d+)\.(\d+).(\d+)(?:-\d+)?$} $tag -> mr M m p]} {
     if {$mr eq ""} {
-      set mr -1
+      set mr 0
     }
   } else {
     Msg Warning "Repository tag $tag is not in a Hog-compatible format."

@@ -802,7 +802,7 @@ if {[file exists $conf_file]} {
       lappend c_v 0
     }
 
-    set comp [CompareVersion $a_v $c_v]
+    set comp [CompareVersions $a_v $c_v]
     if {$comp == 0} {
       Msg Info "Project version and $ide version match: $conf_version."
     }	elseif {$comp == 1} {

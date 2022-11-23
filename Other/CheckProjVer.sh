@@ -157,9 +157,12 @@ function main() {
       "${HDL_COMPILER}" $COMMAND_OPT $DIR/../Hog/Tcl/CI/check_proj_ver.tcl $EXT_PATH $SIM $PROJ
     elif [ $COMMAND = "vivado_hls" ]; then
       echo "Hog-ERROR: Vivado HLS is not yet supported by this script!"
+    elif [ $COMMAND = "libero" ]; then
+      echo "Hog-INFO: Executing:  ${HDL_COMPILER} $COMMAND_OPT $DIR/../../Hog/Tcl/CI/check_proj_ver.tcl ${POST_COMMAND_OPT}$EXT_PATH $SIM $PROJ"
+      "${HDL_COMPILER}" ${COMMAND_OPT}$DIR/../Hog/Tcl/CI/check_proj_ver.tcl ${POST_COMMAND_OPT}"$PROJ"
     else
-      echo "Hog-INFO: Executing:  ${HDL_COMPILER} $COMMAND_OPT $DIR/../../Hog/Tcl/CI/check_proj_ver.tcl -tclargs $EXT_PATH $SIM $PROJ"
-      "${HDL_COMPILER}" $COMMAND_OPT $DIR/../Hog/Tcl/CI/check_proj_ver.tcl -tclargs $EXT_PATH $SIM $PROJ
+      echo "Hog-INFO: Executing:  ${HDL_COMPILER} $COMMAND_OPT $DIR/../../Hog/Tcl/CI/check_proj_ver.tcl ${POST_COMMAND_OPT}$EXT_PATH $SIM $PROJ"
+      "${HDL_COMPILER}" $COMMAND_OPT $DIR/../Hog/Tcl/CI/check_proj_ver.tcl ${POST_COMMAND_OPT}$EXT_PATH $SIM $PROJ
     fi
   fi
 }

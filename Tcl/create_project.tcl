@@ -117,6 +117,8 @@ proc CreateProject {} {
       ConfigureProperties
     }
   } elseif {[IsLibero]} {
+    ## Downloading the latest IP cores
+    download_latest_cores
     if {[file exists $globalSettings::build_dir]} {
       file delete -force $globalSettings::build_dir
     }

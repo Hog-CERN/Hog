@@ -22,6 +22,7 @@ source $tcl_path/hog.tcl
 
 # Import tcllib
 if {[IsSynplify]} {
+  puts "I am running Synplify"
   if {[info exists env(HOG_TCLLIB_PATH)]} {
     lappend auto_path $env(HOG_TCLLIB_PATH) 
   } else {
@@ -30,6 +31,9 @@ if {[IsSynplify]} {
   }
 }
 
+if {[IsLibero]} {
+  puts "I am running Libero"
+}
 
 if {[catch {package require struct::matrix} ERROR]} {
   puts "$ERROR\n If you are running this script on tclsh, you can fix this by installing 'tcllib'"

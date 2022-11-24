@@ -965,6 +965,7 @@ proc GetVerFromSHA {SHA repo_path} {
             #set ver v0.0.0
           } elseif {$mr == 0} {
 
+
             #Msg Info "No tag contains $SHA, will use most recent tag $tag. As this is an official tag, patch will be incremented to $p."
 	          # Why do we need to have this switch twice?
             switch $version_level {
@@ -988,6 +989,7 @@ proc GetVerFromSHA {SHA repo_path} {
               Msg CriticalWarning "Tag $tag does not contain a Hog compatible version in this repository."
               #set ver v0.0.0
             } elseif {$mr == 0} {
+
 
 	      #Msg Info "No tag contains $SHA, will use most recent tag $tag. As this is an official tag, patch will be incremented to $p."
 	      # Why do we need to have this switch twice? I'm sure there is a reason...

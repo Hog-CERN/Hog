@@ -73,7 +73,7 @@
           fi;
           if [[ -f $HOG_APPTAINER_IMAGE ]]; then
             echo "apptainer exec -H $PWD $HOG_APPTAINER_IMAGE  $SIM_CMD";
-            apptainer exec -H $PWD $HOG_APPTAINER_IMAGE /bin/bash -c "source /opt/Xilinx/Vivado/2020.2/settings64.sh; $SIM_CMD";
+            apptainer exec -H $PWD -B /afs $HOG_APPTAINER_IMAGE /bin/bash -c "source /opt/Xilinx/Vivado/2020.2/settings64.sh; $SIM_CMD";
           else
             echo $SIM_CMD;
             $(echo $SIM_CMD);
@@ -196,7 +196,7 @@
           EXEC_CMD="./Hog/LaunchWorkflow.sh -njobs $HOG_NJOBS $IP_PATH $NO_BITSTREAM $ONLY_SYNTH $CHECK_SYNTAX $PROJECT_NAME";
           if [[ -f $HOG_APPTAINER_IMAGE ]]; then
             echo "singularity exec -H $PWD $HOG_APPTAINER_IMAGE $EXEC_CMD";
-            apptainer exec -H $PWD $HOG_APPTAINER_IMAGE /bin/bash -c "source /opt/Xilinx/Vivado/2020.2/settings64.sh; $EXEC_CMD";
+            apptainer exec -H $PWD -B /afs $HOG_APPTAINER_IMAGE /bin/bash -c "source /opt/Xilinx/Vivado/2020.2/settings64.sh; $EXEC_CMD";
           else
             echo $EXEC_CMD;
             $(echo $EXEC_CMD);

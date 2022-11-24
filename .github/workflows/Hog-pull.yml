@@ -229,6 +229,12 @@ jobs:
               if [ ${{ inputs.HOG_NO_BITSTREAM}}]; then
                 export HOG_NO_BITSTREAM=1
               fi
+              source Hog/Other/CommonFunctions.sh
+              if [ $COMMAND == "libero"]; then
+                # Libero requires a virtual X session to work 
+                Xvfb :99 &;
+                export DISPLAY=:99;
+              fi;
               ./Hog/Other/CheckEnv.sh $PROJECT_NAME
               if [ -v "${{ secrets.EOS_MGM_URL}} "]; then
                 export EOS_MGM_URL=${{ secrets.EOS_MGM_URL }}

@@ -226,7 +226,7 @@ if {$do_implementation == 1 } {
 
   # Check timing
   Msg Info "Run VERIFYTIMING ..."
-  if {[catch {run_tool -name {VERIFYTIMING}  }] } {
+  if {[catch {run_tool -name {VERIFYTIMING} -script {integrated/libero_timing.tcl} }] } {
     Msg CriticalWarning "VERIFYTIMING FAILED!"
   } else {
     Msg Info "VERIFYTIMING PASSED \n"
@@ -263,14 +263,13 @@ if {$do_implementation == 1 } {
     Msg Warning "No versions file found in $main_folder/versions.txt"
   }
   #Timing file
-  # set timing_files [ glob -nocomplain "$main_folder/timing_*.txt" ]
-  # set timing_file [file normalize [lindex $timing_files 0]]
+  set timing_file [file normalize "$repo_path/Projects/timing.txt" ]
 
-  # if [file exists $timing_file ] {
-  #   file copy -force $timing_file $dst_dir/
-  # } else {
-  #   Msg Warning "No timing file found, not a problem if running locally"
-  # }
+  if [file exists $timing_file ] {
+    file copy -force $timing_file $dst_dir/
+  } else {
+    Msg Warning "No timing file found, not a problem if running locally"
+  }
 
 }
 

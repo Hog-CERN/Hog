@@ -230,6 +230,7 @@ jobs:
                 export HOG_NO_BITSTREAM=1
               fi
               source Hog/Other/CommonFunctions.sh
+              select_command Top/$PROJECT_NAME
               if [ $COMMAND == "libero"]; then
                 # Libero requires a virtual X session to work 
                 Xvfb :99 &;

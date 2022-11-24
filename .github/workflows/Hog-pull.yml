@@ -323,8 +323,13 @@ jobs:
                 echo "Hog-CI(info) - Adding versions, timing and utilization summary to note...";
                 if [[ -d "Projects/$PROJECT_NAME/output_files/" ]]; then
                   cat Projects/$PROJECT_NAME/output_files/versions* > note.md;
-                else
-                  cat bin/$PROJECT_NAME*/versions* bin/$PROJECT_NAME*/timing_* > note.md;
+                else\
+                  if [[ -f bin/$PROJECT_NAME*/versions* ]]; then
+                    cat bin/$PROJECT_NAME*/versions* > note.md;
+                  fi;
+                  if [[ -f bin/$PROJECT_NAME*/timing_* ]]; then
+                    cat bin/$PROJECT_NAME*/timing_* >> note.md;
+                  fi;
                 fi;
               fi;
               if [[ -f "bin/$PROJECT_NAME*/utilization.txt" ]]; then

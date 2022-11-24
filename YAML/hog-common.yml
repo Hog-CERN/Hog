@@ -29,6 +29,7 @@ before_script:
     - source Hog/Other/CommonFunctions.sh
     - print_hog Hog/
     - export DISPLAY=":0.0"
+    - xhost +
 
 stages:
   - merge

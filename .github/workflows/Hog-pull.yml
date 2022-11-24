@@ -233,8 +233,8 @@ jobs:
               select_command Top/$PROJECT_NAME
               if [ $COMMAND == "libero"]; then
                 # Libero requires a virtual X session to work 
-                Xvfb :99 &;
-                export DISPLAY=:99;
+                Xvfb :99 &
+                export DISPLAY=:99
               fi;
               ./Hog/Other/CheckEnv.sh $PROJECT_NAME
               if [ -v "${{ secrets.EOS_MGM_URL}} "]; then

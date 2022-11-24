@@ -91,7 +91,7 @@
       - ./Hog/Other/CheckEnv.sh $PROJECT_NAME
       - select_command Top/$PROJECT_NAME
       # Libero requires a virtual X session to work
-      - if [ $COMMAND == "libero"]; then
+      - if [ $COMMAND == "libero" ]; then
           Xvfb :99 &;
           export DISPLAY=:99;
         fi;

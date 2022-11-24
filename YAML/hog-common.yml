@@ -28,7 +28,8 @@ before_script:
     - export LD_LIBRARY_PATH=${HOG_LD_LIBRARY_PATH}:$LD_LIBRARY_PATH
     - source Hog/Other/CommonFunctions.sh
     - print_hog Hog/
-    - export DISPLAY=":0.0"
+    - "Xvfb :99 &"
+    - "export DISPLAY=:99"
 
 stages:
   - merge

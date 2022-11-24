@@ -90,8 +90,8 @@
     script:
       - ./Hog/Other/CheckEnv.sh $PROJECT_NAME
       - select_command $PROJECT_NAME
+      # Libero requires a virtual X session to work
       - if [ $COMMAND == "libero"]; then
-          # Libero requires a virtual X session to work 
           Xvfb :99 &;
           export DISPLAY=:99;
         fi;

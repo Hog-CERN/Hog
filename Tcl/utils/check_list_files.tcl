@@ -147,7 +147,7 @@ if {[file exists $repo_path/Top/$group_name/$project_name] && [file isdirectory 
 
 if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
   Msg Info "Checking $project_name list files..."
-  # Get project libraries and propertiers from Vivado
+  # Get project libraries and properties from Vivado
   lassign [GetProjectFiles] prjLibraries prjProperties
   Msg Info "Retrieved Vivado project files..."
   # Get project libraries and properties from list files
@@ -650,6 +650,11 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
   #   - projConfDict:    current project properties
   #   - newConfDict:     "new" hog.conf
 
+  # Get project libraries and properties from Vivado
+  lassign [GetProjectFiles] prjLibraries prjProperties
+  set prjSrcDict  [DictGet $prjLibraries SRC]
+
+
   set hogConfDict [dict create]
   set defaultConfDict [dict create]
   set projConfDict [dict create]
@@ -713,6 +718,33 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
     ENABLE_RESOURCE_ESTIMATION
   ]
 
+  set HOG_GENERICS [ list GLOBAL_DATE \
+    GLOBAL_TIME \
+    GLOBAL_VER \
+    GLOBAL_SHA \
+    TOP_SHA \
+    TOP_VER \
+    HOG_SHA \
+    HOG_VER \
+    CON_VER \
+    CON_SHA \
+    XML_VER \
+    XML_SHA \
+    FLAVOUR \
+  ]
+
+  foreach lib [dict keys $prjSrcDict] {
+    lappend HOG_GENERICS "[string toupper $lib]_VER"
+    lappend HOG_GENERICS "[string toupper $lib]_SHA"
+  }
+
+  foreach user_ip_repos [get_property "ip_repo_paths" [current_project]] {
+    set repo_name [file tail $user_ip_repos]
+    lappend HOG_GENERICS "[string toupper $repo_name]_VER"
+    lappend HOG_GENERICS "[string toupper $repo_name]_SHA"
+  }
+
+
   #filling defaultConfDict and projConfDict
   foreach proj_run [list [current_project] [get_runs synth_1] [get_runs impl_1] [current_fileset]] {
     #creating dictionary for each $run
@@ -737,6 +769,9 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
           foreach generic [get_property $prop [current_fileset]] {
             set generic_prop_value [split $generic {=}]
             if {[llength $generic_prop_value] == 2} {
+              if {[string toupper [lindex $generic_prop_value 0]] in $HOG_GENERICS } {
+                continue
+              }
               dict set projRunDict [string toupper [lindex $generic_prop_value 0]] [lindex $generic_prop_value 1]
               dict set defaultRunDict [string toupper $prop] ""
             }

@@ -683,7 +683,7 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
 
   puts $hogConfDict
 
-  #filling newConfDict with existing hog.conf properties apart from main synth_1 and impl_1
+  #filling newConfDict with existing hog.conf properties apart from main synth_1 impl_1 and generics
   foreach key [dict keys $hogConfDict] {
     if {$key != "main" && $key != "synth_1" && $key != "impl_1" && $key != "generics"} {
       dict set newConfDict $key [DictGet $hogConfDict $key]

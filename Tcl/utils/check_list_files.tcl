@@ -660,7 +660,7 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
     set hogConfDict [ReadConf $conf_file]
 
     #convert hog.conf dict keys to uppercase
-    foreach key [list main synth_1 impl_1] {
+    foreach key [list main synth_1 impl_1 generics] {
       set runDict [DictGet $hogConfDict $key]
       foreach runDictKey [dict keys $runDict ] {
         #do not convert paths
@@ -676,10 +676,11 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
     Msg Warning "$repo_path/Top/$group_name/$project_name/hog.conf not found. Skipping properties check"
   }
 
+  puts $hogConfDict
 
-  #filling newConfDict with exististing hog.conf properties apart from main synth_1 and impl_1
+  #filling newConfDict with existing hog.conf properties apart from main synth_1 and impl_1
   foreach key [dict keys $hogConfDict] {
-    if {$key != "main" && $key != "synth_1" && $key != "impl_1"} {
+    if {$key != "main" && $key != "synth_1" && $key != "impl_1" && $key != "generics"} {
       dict set newConfDict $key [DictGet $hogConfDict $key]
     }
   }
@@ -710,14 +711,13 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
   ]
 
   #filling defaultConfDict and projConfDict
-  foreach proj_run [list [current_project] [get_runs synth_1] [get_runs impl_1]] {
-    #creting dictionary for each $run
+  foreach proj_run [list [current_project] [get_runs synth_1] [get_runs impl_1] [current_fileset]] {
+    #creating dictionary for each $run
     set projRunDict [dict create]
     set defaultRunDict [dict create]
     #selecting only READ/WRITE properties
     set run_props [list]
     foreach propReport [split "[report_property  -return_string -all $proj_run]" "\n"] {
-
       if {[string equal "[lindex $propReport 2]" "false"]} {
         lappend run_props [lindex $propReport 0]
       }
@@ -728,9 +728,20 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
       if {$prop in $PROP_BAN_LIST} {
         set tmp  0
         #Msg Info "Skipping property $prop"
+      } elseif { "$proj_run" == "[current_fileset]" } {
+        # For current fileset extract only generics
+        if {$prop == "GENERIC"} {
+          foreach generic [get_property $prop [current_fileset]] {
+            set generic_prop_value [split $generic {=}]
+            if {[llength $generic_prop_value] == 2} {
+              dict set projRunDict [string toupper [lindex $generic_prop_value 0]] [lindex $generic_prop_value 1]
+              dict set defaultRunDict [string toupper $prop] ""
+            }
+          } 
+        }
       } else {
         #Project values
-        #   setting only relative paths
+        # setting only relative paths
         if {[string first  $repo_path [get_property $prop $proj_run]] != -1} {
           dict set projRunDict [string toupper $prop] [Relative $repo_path [get_property $prop $proj_run]]
         } elseif {[string first  $ext_path [get_property $prop $proj_run]] != -1} {
@@ -747,6 +758,9 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
       dict set projRunDict "PART" [get_property PART $proj_run]
       dict set projConfDict main  $projRunDict
       dict set defaultConfDict main $defaultRunDict
+    } elseif {"$proj_run" == "[current_fileset]"} {
+      dict set projConfDict generics  $projRunDict
+      dict set defaultConfDict generics $defaultRunDict
     } else {
       dict set projConfDict $proj_run  $projRunDict
       dict set defaultConfDict $proj_run $defaultRunDict
@@ -761,7 +775,7 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
   #comparing projConfDict, defaultConfDict and hogConfDict
   set hasStrategy 0
 
-  foreach proj_run [list main synth_1 impl_1] {
+  foreach proj_run [list main synth_1 impl_1 generics] {
     set projRunDict [DictGet $projConfDict $proj_run]
     set hogConfRunDict [DictGet $hogConfDict $proj_run]
     set defaultRunDict [DictGet $defaultConfDict $proj_run]

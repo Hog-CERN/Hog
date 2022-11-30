@@ -964,10 +964,7 @@ proc GetVerFromSHA {SHA repo_path} {
             Msg CriticalWarning "Tag $tag does not contain a Hog compatible version in this repository."
             #set ver v0.0.0
           } elseif {$mr == 0} {
-
-
             #Msg Info "No tag contains $SHA, will use most recent tag $tag. As this is an official tag, patch will be incremented to $p."
-	          # Why do we need to have this switch twice?
             switch $version_level {
               minor {
                 incr m
@@ -984,33 +981,7 @@ proc GetVerFromSHA {SHA repo_path} {
             }
 
           } else {
-            lassign [ExtractVersionFromTag $tag] M m p mr
-            if {$M == -1} {
-              Msg CriticalWarning "Tag $tag does not contain a Hog compatible version in this repository."
-              #set ver v0.0.0
-            } elseif {$mr == 0} {
-
-
-	      #Msg Info "No tag contains $SHA, will use most recent tag $tag. As this is an official tag, patch will be incremented to $p."
-	      # Why do we need to have this switch twice? I'm sure there is a reason...
-              switch $version_level {
-                minor {
-                  incr m
-                  set p 0
-                }
-                major {
-                  incr M
-                  set m 0
-                  set p 0
-                }
-                default {
-                  incr p
-                } 
-              }
-
-            } else {
-              Msg Info "No tag contains $SHA, will use most recent tag $tag. As this is a candidate tag, the patch level will be kept at $p."
-            }
+            Msg Info "No tag contains $SHA, will use most recent tag $tag. As this is a candidate tag, the patch level will be kept at $p."  
           }
           set ver v$M.$m.$p
         }
@@ -3626,72 +3597,71 @@ proc SetGenericsSimulation {proj_dir target} {
 proc WriteGenerics {mode design date timee commit version top_hash top_ver hog_hash hog_ver cons_ver cons_hash libs vers hashes ext_names ext_hashes user_ip_repos user_ip_vers user_ip_hashes flavour {xml_ver ""} {xml_hash ""}} {
   Msg Info "Project $design writing generics."
   #####  Passing Hog generic to top file
-    # set global generic variables
-    set generic_string [concat \
-                            "GLOBAL_DATE=[FormatGeneric $date]" \
-                            "GLOBAL_TIME=[FormatGeneric $timee]" \
-                            "GLOBAL_VER=[FormatGeneric $version]" \
-                            "GLOBAL_SHA=[FormatGeneric $commit]" \
-                            "TOP_SHA=[FormatGeneric $top_hash]" \
-                            "TOP_VER=[FormatGeneric $top_ver]" \
-                            "HOG_SHA=[FormatGeneric $hog_hash]" \
-                            "HOG_VER=[FormatGeneric $hog_ver]" \
-                            "CON_VER=[FormatGeneric $cons_ver]" \
-                            "CON_SHA=[FormatGeneric $cons_hash]"]
-    #'"
-    # xml hash
-    if {$xml_hash != "" && $xml_ver != ""} {
-      lappend generic_string \
-            "XML_VER=[FormatGeneric $xml_ver]" \
-            "XML_SHA=[FormatGeneric $xml_hash]"
-    }
-    #'"
-    #set project specific lists
-    foreach l $libs v $vers h $hashes {
-      set ver "[string toupper $l]_VER=[FormatGeneric $v]"
-      set hash "[string toupper $l]_SHA=[FormatGeneric $h]"
-      lappend generic_string "$ver" "$hash"
-    }
+  # set global generic variables
+  set generic_string [concat \
+                          "GLOBAL_DATE=[FormatGeneric $date]" \
+                          "GLOBAL_TIME=[FormatGeneric $timee]" \
+                          "GLOBAL_VER=[FormatGeneric $version]" \
+                          "GLOBAL_SHA=[FormatGeneric $commit]" \
+                          "TOP_SHA=[FormatGeneric $top_hash]" \
+                          "TOP_VER=[FormatGeneric $top_ver]" \
+                          "HOG_SHA=[FormatGeneric $hog_hash]" \
+                          "HOG_VER=[FormatGeneric $hog_ver]" \
+                          "CON_VER=[FormatGeneric $cons_ver]" \
+                          "CON_SHA=[FormatGeneric $cons_hash]"]
+  #'"
+  # xml hash
+  if {$xml_hash != "" && $xml_ver != ""} {
+    lappend generic_string \
+          "XML_VER=[FormatGeneric $xml_ver]" \
+          "XML_SHA=[FormatGeneric $xml_hash]"
+  }
+  #'"
+  #set project specific lists
+  foreach l $libs v $vers h $hashes {
+    set ver "[string toupper $l]_VER=[FormatGeneric $v]"
+    set hash "[string toupper $l]_SHA=[FormatGeneric $h]"
+    lappend generic_string "$ver" "$hash"
+  }
 
-    foreach e $ext_names h $ext_hashes {
-      set hash "[string toupper $e]_SHA=[FormatGeneric $h]"
-      lappend generic_string "$hash"
+  foreach e $ext_names h $ext_hashes {
+    set hash "[string toupper $e]_SHA=[FormatGeneric $h]"
+    lappend generic_string "$hash"
+  }
+
+  foreach repo $user_ip_repos v $user_ip_vers h $user_ip_hashes {
+    set repo_name [file tail $repo]
+    set ver "[string toupper $repo_name]_VER=[FormatGeneric $v]"
+    set hash "[string toupper $repo_name]_SHA=[FormatGeneric $h]"
+    lappend generic_string "$ver" "$hash"
+  }
+
+  if {$flavour != -1} {
+    lappend generic_string "FLAVOUR=$flavour"
+  }
+
+  # Dealing with project generics in Vivado
+  set prj_generics [GetGenericFromConf $design "Vivado"]
+  set generic_string "$prj_generics $generic_string"
+  if {[IsVivado]} {
+    set_property generic $generic_string [current_fileset]
+    Msg Info "Setting Vivado generics : $generic_string"
+    # Dealing with project generics in Simulators
+    # set simulator [get_property target_simulator [current_project]]
+    # if {$mode == "create"} {
+    #   SetGenericsSimulation $design $simulator
+    # }
+  } elseif {[IsSynplify]} {
+    foreach generic $generic_string {
+      Msg Info "Setting Synplify generic: $generic"
+      set_option -hdl_param -set "$generic"
     }
-
-    foreach repo $user_ip_repos v $user_ip_vers h $user_ip_hashes {
-      set repo_name [file tail $repo]
-      set ver "[string toupper $repo_name]_VER=[FormatGeneric $v]"
-      set hash "[string toupper $repo_name]_SHA=[FormatGeneric $h]"
-      lappend generic_string "$ver" "$hash"
-    }
-
-    if {$flavour != -1} {
-      lappend generic_string "FLAVOUR=$flavour"
-    }
-
-    # Dealing with project generics in Vivado
-    set prj_generics [GetGenericFromConf $design "Vivado"]
-    set generic_string "$prj_generics $generic_string"
-    if {[IsVivado]} {
-      set_property generic $generic_string [current_fileset]
-      Msg Info "Setting Vivado generics : $generic_string"
-      # Dealing with project generics in Simulators
-      set simulator [get_property target_simulator [current_project]]
-      if {$mode == "create"} {
-        SetGenericsSimulation $design $simulator
-      }
-    } elseif {[IsSynplify]} {
-      foreach generic $generic_string {
-        Msg Info "Setting Synplify generic: $generic"
-        set_option -hdl_param -set "$generic"
-      }
-    } 
-
+  } 
 }
 
-## Returns the version of the IDE (Vivado,Quartus,PlanAhead) in use
+## Returns the version of the IDE (Vivado,Quartus,PlanAhead,Libero) in use
 #
-#  @return       the version in a string format, e.g. 2020.2
+#  @return       the version in string format, e.g. 2020.2
 #
 proc GetIDEVersion {} {
   if {[IsXilinx]} {

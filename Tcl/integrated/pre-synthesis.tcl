@@ -22,7 +22,6 @@ source $tcl_path/hog.tcl
 
 # Import tcllib
 if {[IsSynplify]} {
-  puts "I am running Synplify"
   if {[info exists env(HOG_TCLLIB_PATH)]} {
     lappend auto_path $env(HOG_TCLLIB_PATH) 
   } else {

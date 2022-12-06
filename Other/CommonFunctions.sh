@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#   Copyright 2018-2022 The University of Birmingham
+#   Copyright 2018-2023 The University of Birmingham
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -245,6 +245,7 @@ function Msg() {
 #     + quartusHLS
 #   * intelHLS
 #   * planahead
+#   * libero
 #
 # @param[in]    $1 the first line of the tcl file or a suitable string
 # @param[out]   COMMAND  global variable: the selected command
@@ -269,8 +270,8 @@ function select_command_from_line() {
     else
       Msg Info " Recognised Vivado project"
       COMMAND="vivado"
-      COMMAND_OPT="-nojournal -nolog -mode batch -notrace -source"
-      POST_COMMAND_OPT="-tclargs"
+      COMMAND_OPT="-nojournal -nolog -mode batch -notrace -source "
+      POST_COMMAND_OPT="-tclargs "
     fi
   elif [[ $TCL_FIRST_LINE =~ 'quartus' ]]; then
     if [[ $TCL_FIRST_LINE =~ 'quartusHLS' ]]; then
@@ -279,7 +280,7 @@ function select_command_from_line() {
     else
       Msg Info " Recognised QuartusPrime project"
       COMMAND="quartus_sh"
-      COMMAND_OPT="-t"
+      COMMAND_OPT="-t "
     fi
   elif [[ $TCL_FIRST_LINE =~ 'intelHLS' ]]; then
     Msg Error "Intel HLS compiler is not supported!"
@@ -287,8 +288,13 @@ function select_command_from_line() {
   elif [[ $TCL_FIRST_LINE =~ 'planahead' ]]; then
     Msg Info " Recognised planAhead project"
     COMMAND="planAhead"
-    COMMAND_OPT="-nojournal -nolog -mode batch -notrace -source"
+    COMMAND_OPT="-nojournal -nolog -mode batch -notrace -source "
     POST_COMMAND_OPT="-tclargs"
+  elif [[ $TCL_FIRST_LINE =~ 'libero' ]]; then
+    Msg Info " Recognised Libero SoC project"
+    COMMAND="libero"
+    COMMAND_OPT="SCRIPT:"
+    POST_COMMAND_OPT="SCRIPT_ARGS:"
   else
     Msg Warning " You should write #vivado, #quartus or #planahead as first line in your hog.conf file or project Tcl file, assuming Vivado... "
     Msg Info " Recognised Vivado project"
@@ -395,6 +401,10 @@ function select_compiler_executable() {
           return 1
         fi
       fi
+    elif [$1 == "libero" ]; then
+      Msg Error "No libero executable found."
+      cd "${OLD_DIR}"
+      return 1
     else
       Msg Error "cannot find the executable for $1."
       echo "Probable causes are:"

@@ -1,4 +1,4 @@
-#   Copyright 2018-2022 The University of Birmingham
+#   Copyright 2018-2023 The University of Birmingham
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -96,6 +96,12 @@
         <<: *vars
     script:
       - ./Hog/Other/CheckEnv.sh $PROJECT_NAME -a $HOG_APPTAINER_IMAGE;
+      # - ./Hog/Other/CheckEnv.sh $PROJECT_NAME;
+      - select_command Top/$PROJECT_NAME;
+      - if [ "$COMMAND" == "libero" ]; then
+          Xvfb :99 &
+          export DISPLAY=:99;
+        fi;
       - if [[ -v HOG_CHECK_PROJVER ]] && [[ $HOG_CHECK_PROJVER == '1' ]]; then
           if [[ -v HOG_EXTERNAL_PATH ]]; then
             ./Hog/Other/CheckProjVer.sh -ext_path "$HOG_EXTERNAL_PATH" $PROJECT_NAME;
@@ -218,7 +224,12 @@
             if [[ -d "$CI_PROJECT_DIR/Projects/$PROJECT_NAME/output_files/" ]]; then
               cat $CI_PROJECT_DIR/Projects/$PROJECT_NAME/output_files/versions* > note.md;
             else
-              cat $CI_PROJECT_DIR/bin/$PROJECT_NAME*/versions* $CI_PROJECT_DIR/bin/$PROJECT_NAME*/timing_* > note.md;
+              if [[ -f $CI_PROJECT_DIR/bin/$PROJECT_NAME*/versions* ]]; then
+                cat $CI_PROJECT_DIR/bin/$PROJECT_NAME*/versions* > note.md;
+              fi;
+              if [[ -f $CI_PROJECT_DIR/bin/$PROJECT_NAME*/timing_* ]]; then
+                cat $CI_PROJECT_DIR/bin/$PROJECT_NAME*/timing_* >> note.md;
+              fi;
             fi;
           fi;
           if [[ -f "$CI_PROJECT_DIR/bin/$PROJECT_NAME*/utilization.txt" ]]; then

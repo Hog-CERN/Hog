@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#   Copyright 2018-2022 The University of Birmingham
+#   Copyright 2018-2023 The University of Birmingham
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -40,6 +40,7 @@ function help_message() {
   echo " #vivado "
   echo " #quartus "
   echo " #planahead "
+  echo " #libero "
   echo
   echo " Usage: $1 <project name> [OPTIONS]"
   echo " Options:"
@@ -146,12 +147,24 @@ function create_project() {
       Msg Info "Creating project $PROJ using hog.conf..."
       if [ -z ${HOG_LIBPATH+x} ]; then
         if [ -z ${HOG_SIMULATION_LIB_PATH+x} ]; then
-          "${HDL_COMPILER}" $COMMAND_OPT ../Hog/Tcl/create_project.tcl $POST_COMMAND_OPT $PROJ
+          if [ $COMMAND == "libero" ]; then
+            "${HDL_COMPILER}" ${COMMAND_OPT}../Hog/Tcl/create_project.tcl ${POST_COMMAND_OPT}"$PROJ"
+          else
+            "${HDL_COMPILER}" ${COMMAND_OPT}../Hog/Tcl/create_project.tcl ${POST_COMMAND_OPT}$PROJ
+          fi
         else
-          "${HDL_COMPILER}" $COMMAND_OPT ../Hog/Tcl/create_project.tcl $POST_COMMAND_OPT -simlib_path ${HOG_SIMULATION_LIB_PATH} $PROJ
+          if [ $COMMAND == "libero" ]; then
+            "${HDL_COMPILER}" ${COMMAND_OPT}../Hog/Tcl/create_project.tcl ${POST_COMMAND_OPT}"-simlib_path ${HOG_SIMULATION_LIB_PATH} $PROJ"
+          else
+            "${HDL_COMPILER}" ${COMMAND_OPT}../Hog/Tcl/create_project.tcl ${POST_COMMAND_OPT}-simlib_path ${HOG_SIMULATION_LIB_PATH} $PROJ
+          fi
         fi
       else
-        "${HDL_COMPILER}" $COMMAND_OPT ../Hog/Tcl/create_project.tcl $POST_COMMAND_OPT -simlib_path ${HOG_LIBPATH} $PROJ
+        if [ $COMMAND == "libero" ]; then
+          "${HDL_COMPILER}" ${COMMAND_OPT}../Hog/Tcl/create_project.tcl ${POST_COMMAND_OPT}"-simlib_path ${HOG_LIBPATH} $PROJ"
+        else
+          "${HDL_COMPILER}" ${COMMAND_OPT}../Hog/Tcl/create_project.tcl ${POST_COMMAND_OPT}-simlib_path ${HOG_LIBPATH} $PROJ
+        fi
       fi
     elif [ $FILE_TYPE == "TCL" ]; then
       Msg Error "Creating project $PROJ using $PROJ.tcl is no longer supported. Please create a hog.conf file..."

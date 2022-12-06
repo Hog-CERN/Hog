@@ -1,4 +1,4 @@
-#   Copyright 2018-2022 The University of Birmingham
+#   Copyright 2018-2023 The University of Birmingham
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -88,7 +88,7 @@ jobs:
           if [ $present_tag != $new_tag ]; then
             if [ "$(git tag --list ${new_tag}*)" != "" ]; then
               latest_tag=(`git tag -l ${new_tag}* --sort=-v:refname --merged`);
-              if [[ $latest_tag =~ ".*-(.*)" ]]; then
+              if [[ $latest_tag =~ .*-(.*) ]]; then
                 nr="${BASH_REMATCH[1]}";
                 new_tag="$new_tag-$(($nr+1))";
               else

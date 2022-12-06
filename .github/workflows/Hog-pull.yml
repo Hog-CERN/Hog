@@ -1,4 +1,4 @@
-#   Copyright 2018-2022 The University of Birmingham
+#   Copyright 2018-2023 The University of Birmingham
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -229,6 +229,13 @@ jobs:
               if [ ${{ inputs.HOG_NO_BITSTREAM}}]; then
                 export HOG_NO_BITSTREAM=1
               fi
+              source Hog/Other/CommonFunctions.sh
+              select_command Top/$PROJECT_NAME
+              if [ $COMMAND == "libero"]; then
+                # Libero requires a virtual X session to work 
+                Xvfb :99 &
+                export DISPLAY=:99
+              fi;
               ./Hog/Other/CheckEnv.sh $PROJECT_NAME
               if [ -v "${{ secrets.EOS_MGM_URL}} "]; then
                 export EOS_MGM_URL=${{ secrets.EOS_MGM_URL }}
@@ -323,8 +330,13 @@ jobs:
                 echo "Hog-CI(info) - Adding versions, timing and utilization summary to note...";
                 if [[ -d "Projects/$PROJECT_NAME/output_files/" ]]; then
                   cat Projects/$PROJECT_NAME/output_files/versions* > note.md;
-                else
-                  cat bin/$PROJECT_NAME*/versions* bin/$PROJECT_NAME*/timing_* > note.md;
+                else\
+                  if [[ -f bin/$PROJECT_NAME*/versions* ]]; then
+                    cat bin/$PROJECT_NAME*/versions* > note.md;
+                  fi;
+                  if [[ -f bin/$PROJECT_NAME*/timing_* ]]; then
+                    cat bin/$PROJECT_NAME*/timing_* >> note.md;
+                  fi;
                 fi;
               fi;
               if [[ -f "bin/$PROJECT_NAME*/utilization.txt" ]]; then

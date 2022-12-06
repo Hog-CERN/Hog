@@ -1,5 +1,5 @@
 #!/bin/bash
-#   Copyright 2018-2022 The University of Birmingham
+#   Copyright 2018-2023 The University of Birmingham
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -168,8 +168,8 @@ function SimulateProject(){
         #echo "Running:  ${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_simulation.tcl $SIMLIBPATH $1"
         #"${HDL_COMPILER}" $COMMAND_OPT $DIR/Tcl/launchers/launch_simulation.tcl $SIMLIBPATH $1
 
-      elif [ $COMMAND = "vivado_hls" ]; then
-        Msg Error "Vivado HLS is not yet supported by this script!"
+      elif [ $COMMAND = "libero" ]; then
+        Msg Error "Libero is not yet supported by this script!"
       else
         if [ -z "${SIMLIBPATH}" ]; then
           if [ -z "${HOG_SIMULATION_LIB_PATH}" ]; then

@@ -1,4 +1,4 @@
-#   Copyright 2018-2022 The University of Birmingham
+#   Copyright 2018-2023 The University of Birmingham
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -37,6 +37,17 @@ proc GetSimulators {} {
   return $SIMULATORS
 }
 
+## Get whether the IDE is MicroSemi Libero
+proc IsLibero {} {
+  return [expr {[info commands get_libero_version] != ""}]
+}
+
+### Get whether the Synthesis tools is Synplify
+proc IsSynplify {} {
+  return [expr {[info commands program_version] != ""}]
+}
+
+
 ## Get whether the IDE is Xilinx (Vivado or ISE)
 proc IsXilinx {} {
   return [expr {[info commands get_property] != ""}]
@@ -67,7 +78,7 @@ proc IsQuartus {} {
 
 ## Get whether we are in tclsh
 proc IsTclsh {} {
-  return [expr ![IsQuartus] && ![IsXilinx]]
+  return [expr ![IsQuartus] && ![IsXilinx] && ![IsLibero] && ![IsSynplify]]
 }
 
 proc Msg {level msg {title ""}} {
@@ -224,6 +235,8 @@ proc SetTopProperty {top_module sources} {
   } elseif {[IsQuartus]} {
     #QUARTUS ONLY
     set_global_assignment -name TOP_LEVEL_ENTITY $top_module
+  } elseif {[IsLibero]} {
+    set_root -module $top_module 
   }
 
 }
@@ -353,7 +366,7 @@ proc GetRepoPath {} {
 #
 # @return Return 1 ver1 is greather than ver2, 0 if they are equal, and -1 if ver2 is greater than ver1
 #
-proc CompareVersion {ver1 ver2} {
+proc CompareVersions {ver1 ver2} {
   if {[string is integer [join $ver1 ""]] && [string is integer [join $ver2 ""]]} {
   
     set ver1 [expr [lindex $ver1 0]*100000 + [lindex $ver1 1]*1000 + [lindex $ver1 2]]
@@ -1041,7 +1054,7 @@ proc GetProjectVersion {proj_dir repo_path {ext_path ""} {sim 0}} {
 
   #The project version
   set v_proj [ExtractVersionFromTag v[HexVersionToString $ver]]
-  set comp [CompareVersion $v_proj $v_last]
+  set comp [CompareVersions $v_proj $v_last]
   if {$comp == 1} {
     Msg Info "The specified project was modified since official version."
     set ret 0
@@ -2379,6 +2392,43 @@ proc AddHogFiles { libraries properties main_libs {verbose 0}} {
           }
         }
       }
+    } elseif {[IsLibero] } {
+      if {$ext == ".con"} {
+        foreach con_file $lib_files {
+          # Check for valid constrain files
+          set con_ext [file ext $con_file]
+          if {[lsearch {.sdc .pin .dcf .gcf .pdc .crt .vcd } [file ext $con_file]] >= 0} {
+            set option [string map {. -} $con_ext]
+            create_links -convert_EDN_to_HDL 0 -library {work} $option $con_file 
+          } else {
+            Msg CriticalWarning "Constraint file $con_file does not have a valid extension. Allowed extensions are: \n .sdc .pin .dcf .gcf .pdc .crt .vcd"
+          }
+        }
+      } elseif {$ext == ".src"} {
+        foreach f $lib_files {
+          create_links -library $rootlib -hdl_source $f
+        }
+      }
+      build_design_hierarchy 
+
+      foreach cur_file $lib_files {
+        set file_type [FindFileType $cur_file]
+
+        #ADDING FILE PROPERTIES
+        set props [dict get $properties $cur_file]
+
+        # Top synthesis module
+        set top [lindex [regexp -inline {top\s*=\s*(.+?)\y.*} $props] 1]
+        if { $top != "" } {
+          Msg Info "Setting $top as top module for file set $file_set..."
+          set globalSettings::synth_top_module "${top}::$rootlib"
+        }
+
+        # exclude sdc from timing
+        if {[lsearch -inline -regex $props "notiming"] == -1 } {
+          organize_tool_files -tool {VERIFYTIMING} -file $cur_file -input_type {constraint}
+        }
+      }
     }
   }
 
@@ -3547,54 +3597,53 @@ proc SetGenericsSimulation {proj_dir target} {
 proc WriteGenerics {mode design date timee commit version top_hash top_ver hog_hash hog_ver cons_ver cons_hash libs vers hashes ext_names ext_hashes user_ip_repos user_ip_vers user_ip_hashes flavour {xml_ver ""} {xml_hash ""}} {
   Msg Info "Project $design writing generics."
   #####  Passing Hog generic to top file
-  if {[IsXilinx]} {
+  # set global generic variables
+  set generic_string [concat \
+                          "GLOBAL_DATE=[FormatGeneric $date]" \
+                          "GLOBAL_TIME=[FormatGeneric $timee]" \
+                          "GLOBAL_VER=[FormatGeneric $version]" \
+                          "GLOBAL_SHA=[FormatGeneric $commit]" \
+                          "TOP_SHA=[FormatGeneric $top_hash]" \
+                          "TOP_VER=[FormatGeneric $top_ver]" \
+                          "HOG_SHA=[FormatGeneric $hog_hash]" \
+                          "HOG_VER=[FormatGeneric $hog_ver]" \
+                          "CON_VER=[FormatGeneric $cons_ver]" \
+                          "CON_SHA=[FormatGeneric $cons_hash]"]
+  #'"
+  # xml hash
+  if {$xml_hash != "" && $xml_ver != ""} {
+    lappend generic_string \
+          "XML_VER=[FormatGeneric $xml_ver]" \
+          "XML_SHA=[FormatGeneric $xml_hash]"
+  }
+  #'"
+  #set project specific lists
+  foreach l $libs v $vers h $hashes {
+    set ver "[string toupper $l]_VER=[FormatGeneric $v]"
+    set hash "[string toupper $l]_SHA=[FormatGeneric $h]"
+    lappend generic_string "$ver" "$hash"
+  }
 
-    # set global generic variables
-    set generic_string [concat \
-                            "GLOBAL_DATE=[FormatGeneric $date]" \
-                            "GLOBAL_TIME=[FormatGeneric $timee]" \
-                            "GLOBAL_VER=[FormatGeneric $version]" \
-                            "GLOBAL_SHA=[FormatGeneric $commit]" \
-                            "TOP_SHA=[FormatGeneric $top_hash]" \
-                            "TOP_VER=[FormatGeneric $top_ver]" \
-                            "HOG_SHA=[FormatGeneric $hog_hash]" \
-                            "HOG_VER=[FormatGeneric $hog_ver]" \
-                            "CON_VER=[FormatGeneric $cons_ver]" \
-                            "CON_SHA=[FormatGeneric $cons_hash]"]
-    #'"
-    # xml hash
-    if {$xml_hash != "" && $xml_ver != ""} {
-      lappend generic_string \
-            "XML_VER=[FormatGeneric $xml_ver]" \
-            "XML_SHA=[FormatGeneric $xml_hash]"
-    }
-    #'"
-    #set project specific lists
-    foreach l $libs v $vers h $hashes {
-      set ver "[string toupper $l]_VER=[FormatGeneric $v]"
-      set hash "[string toupper $l]_SHA=[FormatGeneric $h]"
-      lappend generic_string "$ver" "$hash"
-    }
+  foreach e $ext_names h $ext_hashes {
+    set hash "[string toupper $e]_SHA=[FormatGeneric $h]"
+    lappend generic_string "$hash"
+  }
 
-    foreach e $ext_names h $ext_hashes {
-      set hash "[string toupper $e]_SHA=[FormatGeneric $h]"
-      lappend generic_string "$hash"
-    }
+  foreach repo $user_ip_repos v $user_ip_vers h $user_ip_hashes {
+    set repo_name [file tail $repo]
+    set ver "[string toupper $repo_name]_VER=[FormatGeneric $v]"
+    set hash "[string toupper $repo_name]_SHA=[FormatGeneric $h]"
+    lappend generic_string "$ver" "$hash"
+  }
 
-    foreach repo $user_ip_repos v $user_ip_vers h $user_ip_hashes {
-      set repo_name [file tail $repo]
-      set ver "[string toupper $repo_name]_VER=[FormatGeneric $v]"
-      set hash "[string toupper $repo_name]_SHA=[FormatGeneric $h]"
-      lappend generic_string "$ver" "$hash"
-    }
+  if {$flavour != -1} {
+    lappend generic_string "FLAVOUR=$flavour"
+  }
 
-    if {$flavour != -1} {
-      lappend generic_string "FLAVOUR=$flavour"
-    }
-
-    # Dealing with project generics in Vivado
-    set prj_generics [GetGenericFromConf $design "Vivado"]
-    set generic_string "$prj_generics $generic_string"
+  # Dealing with project generics in Vivado
+  set prj_generics [GetGenericFromConf $design "Vivado"]
+  set generic_string "$prj_generics $generic_string"
+  if {[IsVivado]} {
     set_property generic $generic_string [current_fileset]
     Msg Info "Setting Vivado generics : $generic_string"
     # Dealing with project generics in Simulators
@@ -3602,7 +3651,12 @@ proc WriteGenerics {mode design date timee commit version top_hash top_ver hog_h
     # if {$mode == "create"} {
     #   SetGenericsSimulation $design $simulator
     # }
-  }
+  } elseif {[IsSynplify]} {
+    foreach generic $generic_string {
+      Msg Info "Setting Synplify generic: $generic"
+      set_option -hdl_param -set "$generic"
+    }
+  } 
 }
 
 ## Returns the version of the IDE (Vivado,Quartus,PlanAhead,Libero) in use
@@ -3619,7 +3673,9 @@ proc GetIDEVersion {} {
     # Quartus
     global quartus
     regexp {[\.0-9]+} $quartus(version) ver
-
+  } elseif {[IsLibero]} {
+    # Libero
+    set ver [get_libero_version]
   }
   return $ver
 }
@@ -3631,7 +3687,7 @@ proc GetIDEFromConf {conf_file} {
   set f [open $conf_file "r"]
   set line [gets $f]
   close $f
-  if {[regexp -all {^\# *(\w*) *(\d+\.\d+(?:.\d+)?)?(_.*)? *$} $line dummy ide version patch]} {
+  if {[regexp -all {^\# *(\w*) *(\d+\.\d+(?:\.\d+)?(?:\.\d+)?)?(_.*)? *$} $line dummy ide version patch]} {
     if {[info exists version] && $version != ""} {
       set ver $version
     } else {

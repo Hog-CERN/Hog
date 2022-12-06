@@ -1,5 +1,5 @@
 # @file
-#   Copyright 2018-2022 The University of Birmingham
+#   Copyright 2018-2023 The University of Birmingham
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
 #   limitations under the License.
 
 
-# Launch vivado implementation and possibly write bitstream in text mode
+# Launch Xilinx Vivado or ISE implementation and possibly write bitstream in text mode
 
 #parsing command options
 if {[catch {package require cmdline} ERROR] || [catch {package require struct::matrix} ERROR]} {

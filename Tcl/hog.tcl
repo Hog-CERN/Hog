@@ -354,14 +354,21 @@ proc GetRepoPath {} {
 # @return Return 1 ver1 is greather than ver2, 0 if they are equal, and -1 if ver2 is greater than ver1
 #
 proc CompareVersion {ver1 ver2} {
-  set ver1 [expr [lindex $ver1 0]*100000 + [lindex $ver1 1]*1000 + [lindex $ver1 2]]
-  set ver2 [expr [lindex $ver2 0]*100000 + [lindex $ver2 1]*1000 + [lindex $ver2 2]]
-  if {$ver1 > $ver2 } {
-    set ret 1
-  } elseif {$ver1 == $ver2} {
-    set ret 0
+  if {[string is integer [join $ver1 ""]] && [string is integer [join $ver2 ""]]} {
+  
+    set ver1 [expr [lindex $ver1 0]*100000 + [lindex $ver1 1]*1000 + [lindex $ver1 2]]
+    set ver2 [expr [lindex $ver2 0]*100000 + [lindex $ver2 1]*1000 + [lindex $ver2 2]]
+    if {$ver1 > $ver2 } {
+      set ret 1
+    } elseif {$ver1 == $ver2} {
+      set ret 0
+    } else {
+      set ret -1
+    }
+
   } else {
-    set ret -1
+    Msg Warning "Version is not numeric: $ver1, $ver2"
+    set ret 0
   }
   return [expr $ret]
 }
@@ -943,10 +950,8 @@ proc GetVerFromSHA {SHA repo_path} {
           if {$M == -1} {
             Msg CriticalWarning "Tag $tag does not contain a Hog compatible version in this repository."
             #set ver v0.0.0
-          } elseif {$mr == -1} {
-
+          } elseif {$mr == 0} {
             #Msg Info "No tag contains $SHA, will use most recent tag $tag. As this is an official tag, patch will be incremented to $p."
-	          # Why do we need to have this switch twice?
             switch $version_level {
               minor {
                 incr m
@@ -963,32 +968,7 @@ proc GetVerFromSHA {SHA repo_path} {
             }
 
           } else {
-            lassign [ExtractVersionFromTag $tag] M m p mr
-            if {$M == -1} {
-              Msg CriticalWarning "Tag $tag does not contain a Hog compatible version in this repository."
-              #set ver v0.0.0
-            } elseif {$mr == -1} {
-
-	      #Msg Info "No tag contains $SHA, will use most recent tag $tag. As this is an official tag, patch will be incremented to $p."
-	      # Why do we need to have this switch twice? I'm sure there is a reason...
-              switch $version_level {
-                minor {
-                  incr m
-                  set p 0
-                }
-                major {
-                  incr M
-                  set m 0
-                  set p 0
-                }
-                default {
-                  incr p
-                } 
-              }
-
-            } else {
-              Msg Info "No tag contains $SHA, will use most recent tag $tag. As this is a candidate tag, the patch level will be kept at $p."
-            }
+            Msg Info "No tag contains $SHA, will use most recent tag $tag. As this is a candidate tag, the patch level will be kept at $p."  
           }
           set ver v$M.$m.$p
         }
@@ -1392,7 +1372,7 @@ proc HexVersionToString {version} {
 proc ExtractVersionFromTag {tag} {
   if {[regexp {^(?:b(\d+))?v(\d+)\.(\d+).(\d+)(?:-\d+)?$} $tag -> mr M m p]} {
     if {$mr eq ""} {
-      set mr -1
+      set mr 0
     }
   } else {
     Msg Warning "Repository tag $tag is not in a Hog-compatible format."
@@ -1456,7 +1436,7 @@ proc TagRepository {{merge_request_number 0} {version_level 0} {default_level 0}
 
     if { $M > -1 } {
       # M=-1 means that the tag could not be parsed following a Hog format
-      if {$mr == -1 } {
+      if {$mr == 0 } {
         # Tag is official, no b at the beginning (and no merge request number at the end)
         Msg Info "Found official version $M.$m.$p."
         set old_tag $vtag
@@ -3618,21 +3598,23 @@ proc WriteGenerics {mode design date timee commit version top_hash top_ver hog_h
     set_property generic $generic_string [current_fileset]
     Msg Info "Setting Vivado generics : $generic_string"
     # Dealing with project generics in Simulators
-    set simulator [get_property target_simulator [current_project]]
-    if {$mode == "create"} {
-      SetGenericsSimulation $design $simulator
-    }
+    # set simulator [get_property target_simulator [current_project]]
+    # if {$mode == "create"} {
+    #   SetGenericsSimulation $design $simulator
+    # }
   }
 }
 
-## Returns the version of the IDE (Vivado,Quartus,PlanAhead) in use
+## Returns the version of the IDE (Vivado,Quartus,PlanAhead,Libero) in use
 #
 #  @return       the version in string format, e.g. 2020.2
 #
 proc GetIDEVersion {} {
   if {[IsXilinx]} {
     #Vivado or planAhead
-    set ver [version -short]
+    regexp {\d+\.\d+(\.\d+)?} [version -short] ver
+    # This regex will cut away anything after the numbers, useful for patched version 2020.1_AR75210
+    
   } elseif {[IsQuartus]} {
     # Quartus
     global quartus
@@ -3649,12 +3631,13 @@ proc GetIDEFromConf {conf_file} {
   set f [open $conf_file "r"]
   set line [gets $f]
   close $f
-  if {[regexp -all {^\# *(\w*) *(\d+\.\d+(?:.\d+)?)? *$} $line dummy ide version dummy]} {
+  if {[regexp -all {^\# *(\w*) *(\d+\.\d+(?:.\d+)?)?(_.*)? *$} $line dummy ide version patch]} {
     if {[info exists version] && $version != ""} {
       set ver $version
     } else {
       set ver 0.0.0
     }
+    # what shall we do with $patch? ignored for the time being
     set ret [list $ide $ver]
   } else {
     Msg CriticalWarning "The first line of hog.conf should be \#<IDE name> <version>, where <IDE name>. is quartus, vivado, planahead and <version> the tool version, e.g. \#vivado 2020.2. Will assume vivado."

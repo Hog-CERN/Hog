@@ -89,8 +89,9 @@ merge_and_tag:
     - if [ "$enable_develop_branch" == "1" ]; then
         pat="^(master|main|release.*)";
         if [[ $CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ $pat ]] || [ "$CI_MERGE_REQUEST_TARGET_BRANCH_NAME" == "$HOG_TARGET_BRANCH" ] ; then
-          if [[ $CI_COMMIT_REF_SLUG != $hotfix_branch* ]]; then
-            echo "[Hog::ERROR] The target of this MR is $CI_MERGE_REQUEST_TARGET_BRANCH_NAME, but the source is not a hotfix branch. Please, change the name of source branch or direct the MR to $HOG_DEVELOP_BRANCH.";
+          if [[ $CI_COMMIT_REF_NAME != ${hotfix_branch}* ]]; then
+            echo "[Hog::ERROR] The target of this MR is $CI_MERGE_REQUEST_TARGET_BRANCH_NAME, but the source is not a hotfix branch ($CI_COMMIT_REF_NAME). Please, change the name of source branch or direct the MR to $HOG_DEVELOP_BRANCH.";
+            echo "[Hog::INFO] A hotfix branch name should start with ${hotfix_branch}. You can change this setting in your Top/repo.conf file.";
             exit 1;
           fi;
         fi;
@@ -98,7 +99,7 @@ merge_and_tag:
     - git fetch origin refs/notes/*:refs/notes/*
     - "NEW_TAG=`echo \"source Hog/Tcl/hog.tcl; puts v[HexVersionToString [GetVer .]]\" | tclsh`"
     - echo "New tag is $NEW_TAG"
-    - "git notes add -fm \"$CI_MERGE_REQUEST_IID $CI_COMMIT_REF_SLUG $NEW_TAG\""
+    - "git notes add -fm \"$CI_MERGE_REQUEST_IID $CI_COMMIT_REF_NAME $NEW_TAG\""
     - git push origin refs/notes/*
   interruptible: true
 

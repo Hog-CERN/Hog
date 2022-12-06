@@ -3687,7 +3687,7 @@ proc GetIDEFromConf {conf_file} {
   set f [open $conf_file "r"]
   set line [gets $f]
   close $f
-  if {[regexp -all {^\# *(\w*) *(\d+\.\d+(?:.\d+)+(?:.\d+)?)?(_.*)? *$} $line dummy ide version patch]} {
+  if {[regexp -all {^\# *(\w*) *(\d+\.\d+(?:\.\d+)?(?:\.\d+)?)?(_.*)? *$} $line dummy ide version patch]} {
     if {[info exists version] && $version != ""} {
       set ver $version
     } else {

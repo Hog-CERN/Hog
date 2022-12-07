@@ -1,5 +1,5 @@
 #!/usr/bin/env tclsh
-#   Copyright 2018-2022 The University of Birmingham
+#   Copyright 2018-2023 The University of Birmingham
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -147,7 +147,7 @@ Msg Info "Old tag was: $old_tag and new tag is: $new_tag"
 if {$source_branch != ""} {
   # if it is a beta tag, we write in the note the possible official version
   lassign [ExtractVersionFromTag $new_tag] M m p mr
-  if {$mr == -1} {
+  if {$mr == 0} {
     incr p
   }
   set new_tag v$M.$m.$p

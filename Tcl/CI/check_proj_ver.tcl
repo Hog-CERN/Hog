@@ -1,5 +1,5 @@
 #!/usr/bin/env tclsh
-#   Copyright 2018-2022 The University of Birmingham
+#   Copyright 2018-2023 The University of Birmingham
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -12,6 +12,14 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
+
+# Import tcllib
+if {[info exists env(HOG_TCLLIB_PATH)]} {
+  lappend auto_path $env(HOG_TCLLIB_PATH) 
+} else {
+  puts "ERROR: To run Hog with Microsemi Libero SoC, you need to define the HOG_TCLLIB_PATH variable."
+  return
+}
 
 #parsing command options
 if {[catch {package require cmdline} ERROR] || [catch {package require struct::matrix} ERROR]} {
@@ -39,6 +47,9 @@ if { $::argc eq 0 } {
   exit 1
 } elseif {[IsQuartus] && [ catch {array set options [cmdline::getoptions quartus(args) $parameters $usage] } ] || $::argc eq 0 } {
   #Quartus
+  Msg Info [cmdline::usage $parameters $usage]
+  exit 1
+} elseif {[IsLibero] && [catch {array set options [cmdline::getoptions ::argv $parameters $usage]}]} {
   Msg Info [cmdline::usage $parameters $usage]
   exit 1
 } else {

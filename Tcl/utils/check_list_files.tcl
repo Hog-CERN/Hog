@@ -1,5 +1,5 @@
 #!/usr/bin/env tclsh
-#   Copyright 2018-2022 The University of Birmingham
+#   Copyright 2018-2023 The University of Birmingham
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -147,7 +147,7 @@ if {[file exists $repo_path/Top/$group_name/$project_name] && [file isdirectory 
 
 if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
   Msg Info "Checking $project_name list files..."
-  # Get project libraries and propertiers from Vivado
+  # Get project libraries and properties from Vivado
   lassign [GetProjectFiles] prjLibraries prjProperties
   Msg Info "Retrieved Vivado project files..."
   # Get project libraries and properties from list files
@@ -650,6 +650,11 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
   #   - projConfDict:    current project properties
   #   - newConfDict:     "new" hog.conf
 
+  # Get project libraries and properties from Vivado
+  lassign [GetProjectFiles] prjLibraries prjProperties
+  set prjSrcDict  [DictGet $prjLibraries SRC]
+
+
   set hogConfDict [dict create]
   set defaultConfDict [dict create]
   set projConfDict [dict create]
@@ -660,7 +665,7 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
     set hogConfDict [ReadConf $conf_file]
 
     #convert hog.conf dict keys to uppercase
-    foreach key [list main synth_1 impl_1] {
+    foreach key [list main synth_1 impl_1 generics] {
       set runDict [DictGet $hogConfDict $key]
       foreach runDictKey [dict keys $runDict ] {
         #do not convert paths
@@ -676,10 +681,11 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
     Msg Warning "$repo_path/Top/$group_name/$project_name/hog.conf not found. Skipping properties check"
   }
 
+  puts $hogConfDict
 
-  #filling newConfDict with exististing hog.conf properties apart from main synth_1 and impl_1
+  #filling newConfDict with existing hog.conf properties apart from main synth_1 impl_1 and generics
   foreach key [dict keys $hogConfDict] {
-    if {$key != "main" && $key != "synth_1" && $key != "impl_1"} {
+    if {$key != "main" && $key != "synth_1" && $key != "impl_1" && $key != "generics"} {
       dict set newConfDict $key [DictGet $hogConfDict $key]
     }
   }
@@ -706,18 +712,47 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
     COMPXLIB.IES_COMPILED_LIBRARY_DIR \
     COMPXLIB.VCS_COMPILED_LIBRARY_DIR \
     NEEDS_REFRESH \
-    AUTO_INCREMENTAL_CHECKPOINT.DIRECTORY
+    AUTO_INCREMENTAL_CHECKPOINT.DIRECTORY \
+    AUTO_INCREMENTAL_CHECKPOINT \
+    AUTO_RQS.DIRECTORY \
+    ENABLE_RESOURCE_ESTIMATION
   ]
 
+  set HOG_GENERICS [ list GLOBAL_DATE \
+    GLOBAL_TIME \
+    GLOBAL_VER \
+    GLOBAL_SHA \
+    TOP_SHA \
+    TOP_VER \
+    HOG_SHA \
+    HOG_VER \
+    CON_VER \
+    CON_SHA \
+    XML_VER \
+    XML_SHA \
+    FLAVOUR \
+  ]
+
+  foreach lib [dict keys $prjSrcDict] {
+    lappend HOG_GENERICS "[string toupper $lib]_VER"
+    lappend HOG_GENERICS "[string toupper $lib]_SHA"
+  }
+
+  foreach user_ip_repos [get_property "ip_repo_paths" [current_project]] {
+    set repo_name [file tail $user_ip_repos]
+    lappend HOG_GENERICS "[string toupper $repo_name]_VER"
+    lappend HOG_GENERICS "[string toupper $repo_name]_SHA"
+  }
+
+
   #filling defaultConfDict and projConfDict
-  foreach proj_run [list [current_project] [get_runs synth_1] [get_runs impl_1]] {
-    #creting dictionary for each $run
+  foreach proj_run [list [current_project] [get_runs synth_1] [get_runs impl_1] [current_fileset]] {
+    #creating dictionary for each $run
     set projRunDict [dict create]
     set defaultRunDict [dict create]
     #selecting only READ/WRITE properties
     set run_props [list]
     foreach propReport [split "[report_property  -return_string -all $proj_run]" "\n"] {
-
       if {[string equal "[lindex $propReport 2]" "false"]} {
         lappend run_props [lindex $propReport 0]
       }
@@ -728,9 +763,23 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
       if {$prop in $PROP_BAN_LIST} {
         set tmp  0
         #Msg Info "Skipping property $prop"
+      } elseif { "$proj_run" == "[current_fileset]" } {
+        # For current fileset extract only generics
+        if {$prop == "GENERIC"} {
+          foreach generic [get_property $prop [current_fileset]] {
+            set generic_prop_value [split $generic {=}]
+            if {[llength $generic_prop_value] == 2} {
+              if {[string toupper [lindex $generic_prop_value 0]] in $HOG_GENERICS } {
+                continue
+              }
+              dict set projRunDict [string toupper [lindex $generic_prop_value 0]] [lindex $generic_prop_value 1]
+              dict set defaultRunDict [string toupper $prop] ""
+            }
+          } 
+        }
       } else {
         #Project values
-        #   setting only relative paths
+        # setting only relative paths
         if {[string first  $repo_path [get_property $prop $proj_run]] != -1} {
           dict set projRunDict [string toupper $prop] [Relative $repo_path [get_property $prop $proj_run]]
         } elseif {[string first  $ext_path [get_property $prop $proj_run]] != -1} {
@@ -747,6 +796,9 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
       dict set projRunDict "PART" [get_property PART $proj_run]
       dict set projConfDict main  $projRunDict
       dict set defaultConfDict main $defaultRunDict
+    } elseif {"$proj_run" == "[current_fileset]"} {
+      dict set projConfDict generics  $projRunDict
+      dict set defaultConfDict generics $defaultRunDict
     } else {
       dict set projConfDict $proj_run  $projRunDict
       dict set defaultConfDict $proj_run $defaultRunDict
@@ -761,7 +813,7 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
   #comparing projConfDict, defaultConfDict and hogConfDict
   set hasStrategy 0
 
-  foreach proj_run [list main synth_1 impl_1] {
+  foreach proj_run [list main synth_1 impl_1 generics] {
     set projRunDict [DictGet $projConfDict $proj_run]
     set hogConfRunDict [DictGet $hogConfDict $proj_run]
     set defaultRunDict [DictGet $defaultConfDict $proj_run]

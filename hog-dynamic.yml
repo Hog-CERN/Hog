@@ -1,4 +1,4 @@
-#   Copyright 2018-2022 The University of Birmingham
+#   Copyright 2018-2023 The University of Birmingham
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -40,9 +40,6 @@ generate-config:
   interruptible: true 
 
 child-pipeline:
-  # only:
-  #   refs:
-  #     - merge_requests
   stage: dynamic_triggers
   trigger:
     include:
@@ -51,7 +48,6 @@ child-pipeline:
     strategy: depend
   rules:
     - if: $CI_MERGE_REQUEST_ID
-  interruptible: true 
 
 collect_artifacts:
   image: gitlab-registry.cern.ch/hog/hog-docker:tclsh

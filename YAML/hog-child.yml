@@ -1,4 +1,4 @@
-#   Copyright 2018-2022 The University of Birmingham
+#   Copyright 2018-2023 The University of Birmingham
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -52,7 +52,7 @@
     variables:
       <<: *vars
     script:
-      - ./Hog/Other/CheckEnv.sh $HOG_APPTAINER_IMAGE;
+      - ./Hog/Other/CheckEnv.sh $PROJECT_NAME -a $HOG_APPTAINER_IMAGE;
       - if [[ -v HOG_CHECK_PROJVER ]] && [[ $HOG_CHECK_PROJVER == '1' ]]; then
           if [[ -v HOG_EXTERNAL_PATH ]]; then
             ./Hog/Other/CheckProjVer.sh -ext_path "$HOG_EXTERNAL_PATH" -sim $PROJECT_NAME;
@@ -62,7 +62,7 @@
         else
           echo "Project version checker is disabled.";
         fi;
-      - if [-f "./Projects/${PROJECT_NAME}/skip.me" ]; then
+      - if [ -f "./Projects/${PROJECT_NAME}/skip.me" ]; then
           echo "CI disabled for $PROJECT_NAME";
         else
           if [ -z ${HOG_SIMULATION_LIB_PATH+x} ]; then
@@ -71,12 +71,12 @@
           else
             SIM_CMD="./Hog/LaunchSimulation.sh $PROJECT_NAME -l $HOG_SIMULATION_LIB_PATH" ;
           fi;
-          if [[ -v HOG_APPTAINER_IMAGE ]]; then
+          if [[ -f $HOG_APPTAINER_IMAGE ]]; then
             echo "apptainer exec -H $PWD $HOG_APPTAINER_IMAGE  $SIM_CMD";
-            apptainer exec -H $PWD $HOG_APPTAINER_IMAGE /bin/bash -c "source /opt/Xilinx/Vivado/2020.2/settings64.sh; $SIM_CMD";
+            apptainer exec -H $PWD -B /afs $HOG_APPTAINER_IMAGE /bin/bash -c "source /opt/Xilinx/Vivado/2020.2/settings64.sh; $SIM_CMD";
           else
             echo $SIM_CMD;
-            $(SIM_CMD);
+            $(echo $SIM_CMD);
           fi;
         fi;
     artifacts:
@@ -95,7 +95,13 @@
     variables:
         <<: *vars
     script:
-      - ./Hog/Other/CheckEnv.sh $HOG_APPTAINER_IMAGE;
+      - ./Hog/Other/CheckEnv.sh $PROJECT_NAME -a $HOG_APPTAINER_IMAGE;
+      # - ./Hog/Other/CheckEnv.sh $PROJECT_NAME;
+      - select_command Top/$PROJECT_NAME;
+      - if [ "$COMMAND" == "libero" ]; then
+          Xvfb :99 &
+          export DISPLAY=:99;
+        fi;
       - if [[ -v HOG_CHECK_PROJVER ]] && [[ $HOG_CHECK_PROJVER == '1' ]]; then
           if [[ -v HOG_EXTERNAL_PATH ]]; then
             ./Hog/Other/CheckProjVer.sh -ext_path "$HOG_EXTERNAL_PATH" $PROJECT_NAME;
@@ -194,12 +200,12 @@
         fi;
       - if [ ! -f "./Projects/$PROJECT_NAME/skip.me" ]; then
           EXEC_CMD="./Hog/LaunchWorkflow.sh -njobs $HOG_NJOBS $IP_PATH $NO_BITSTREAM $ONLY_SYNTH $CHECK_SYNTAX $PROJECT_NAME";
-          if [[ -v HOG_APPTAINER_IMAGE ]]; then
+          if [[ -f $HOG_APPTAINER_IMAGE ]]; then
             echo "singularity exec -H $PWD $HOG_APPTAINER_IMAGE $EXEC_CMD";
-            apptainer exec -H $PWD $HOG_APPTAINER_IMAGE /bin/bash -c "source /opt/Xilinx/Vivado/2020.2/settings64.sh; $EXEC_CMD";
+            apptainer exec -H $PWD -B /afs $HOG_APPTAINER_IMAGE /bin/bash -c "source /opt/Xilinx/Vivado/2020.2/settings64.sh; $EXEC_CMD";
           else
             echo $EXEC_CMD;
-            $(EXEC_CMD);
+            $(echo $EXEC_CMD);
           fi;
         fi;
       - if [ ! -f "./Projects/$PROJECT_NAME/skip.me" ]; then
@@ -218,7 +224,12 @@
             if [[ -d "$CI_PROJECT_DIR/Projects/$PROJECT_NAME/output_files/" ]]; then
               cat $CI_PROJECT_DIR/Projects/$PROJECT_NAME/output_files/versions* > note.md;
             else
-              cat $CI_PROJECT_DIR/bin/$PROJECT_NAME*/versions* $CI_PROJECT_DIR/bin/$PROJECT_NAME*/timing_* > note.md;
+              if [[ -f $CI_PROJECT_DIR/bin/$PROJECT_NAME*/versions* ]]; then
+                cat $CI_PROJECT_DIR/bin/$PROJECT_NAME*/versions* > note.md;
+              fi;
+              if [[ -f $CI_PROJECT_DIR/bin/$PROJECT_NAME*/timing_* ]]; then
+                cat $CI_PROJECT_DIR/bin/$PROJECT_NAME*/timing_* >> note.md;
+              fi;
             fi;
           fi;
           if [[ -f "$CI_PROJECT_DIR/bin/$PROJECT_NAME*/utilization.txt" ]]; then
@@ -247,7 +258,7 @@ collect_artifacts:
     script:
         - old_dir=`pwd`
         - mkdir -p $CI_PROJECT_DIR/bin
-        - "printf \"## Repository info\n- Merge request number: $CI_MERGE_REQUEST_IID\n- Branch name: $CI_COMMIT_REF_SLUG\n\n\" > $CI_PROJECT_DIR/bin/note.md"
+        - "printf \"## Repository info\n- Merge request number: $CI_MERGE_REQUEST_IID\n- Branch name: $CI_COMMIT_REF_NAME\n\n\" > $CI_PROJECT_DIR/bin/note.md"
         - ./Hog/Other/Changelog.sh -t $CI_MERGE_REQUEST_TARGET_BRANCH_NAME -pt $HOG_PUSH_TOKEN -a $CI_API_V4_URL -p $CI_PROJECT_ID -n $CI_MERGE_REQUEST_IID  >> $CI_PROJECT_DIR/bin/note.md
         - cd $CI_PROJECT_DIR/bin/
         - diff_files=$(find . -name "diff_list*.txt");

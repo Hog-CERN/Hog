@@ -1,4 +1,4 @@
-#   Copyright 2018-2022 The University of Birmingham
+#   Copyright 2018-2023 The University of Birmingham
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@
 #
 
 
+
 ## @namespace globalSettings
 # @brief Namespace of all the project settings
 #
@@ -31,6 +32,12 @@ namespace eval globalSettings {
   variable PART
   # Quartus only
   variable FAMILY
+  # Libero only
+  variable DIE
+  variable PACKAGE
+  variable ADV_OPTIONS
+  variable SPEED
+  variable LIBERO_MANDATORY_VARIABLES
 
   variable PROPERTIES
   variable SIM_PROPERTIES
@@ -109,6 +116,11 @@ proc CreateProject {} {
 
       ConfigureProperties
     }
+  } elseif {[IsLibero]} {
+    if {[file exists $globalSettings::build_dir]} {
+      file delete -force $globalSettings::build_dir
+    }
+    new_project -location $globalSettings::build_dir -name [file tail $globalSettings::DESIGN] -die $globalSettings::DIE -package $globalSettings::PACKAGE -family $globalSettings::FAMILY -hdl VHDL 
   } else {
     puts "Creating project for $globalSettings::DESIGN part $globalSettings::PART"
     puts "Configuring project settings:"
@@ -170,6 +182,10 @@ proc AddProjectFiles {} {
 
   ## Set simulation Properties
 
+  ## Libero Properties must be set after that root has been defined
+  if {[IsLibero]} {
+    ConfigureProperties
+  }
 }
 
 
@@ -286,6 +302,8 @@ proc ConfigureSynthesis {} {
       #QUARTUS only
       set_global_assignment -name PRE_FLOW_SCRIPT_FILE quartus_sh:$globalSettings::pre_synth
 
+    } elseif {[IsLibero]} {
+       configure_tool -name {SYNTHESIZE} -params SYNPLIFY_TCL_FILE:$globalSettings::pre_synth
     }
 
     Msg Info "Setting $globalSettings::pre_synth to be run before synthesis"
@@ -346,6 +364,7 @@ proc ConfigureSynthesis {} {
 # The function also sets Hog specific pre- and- post implementation and, pre- and post- implementation  scripts
 #
 proc ConfigureImplementation {} {
+  set obj ""
   if {[IsXilinx]} {
     # Create 'impl_1' run (if not found)
     if {[string equal [get_runs -quiet impl_1] ""]} {
@@ -546,6 +565,60 @@ proc ConfigureProperties {} {
   } elseif {[IsQuartus]} {
     #QUARTUS only
     #TO BE DONE
+  } elseif {[IsLibero]} {
+    # Setting Properties
+    if [info exists globalSettings::PROPERTIES] {
+      # Device Properties
+      if [dict exists $globalSettings::PROPERTIES main] {
+        Msg Info "Setting device properties..."
+        set dev_props [dict get $globalSettings::PROPERTIES main]
+        dict for {prop_name prop_val} $dev_props {
+          if { !([string toupper $prop_name] in $globalSettings::LIBERO_MANDATORY_VARIABLES) } {
+            Msg Info "Setting $prop_name = $prop_val"
+            set_device -[string tolower $prop_name] $prop_val
+          }
+        }
+      }
+      # Project Properties
+      if [dict exists $globalSettings::PROPERTIES project] {
+        Msg Info "Setting project-wide properties..."
+        set dev_props [dict get $globalSettings::PROPERTIES project]
+        dict for {prop_name prop_val} $dev_props {
+          Msg Info "Setting $prop_name = $prop_val"
+          project_settings -[string tolower $prop_name] $prop_val
+        }
+      }
+      # Synthesis Properties
+      if [dict exists $globalSettings::PROPERTIES synth] {
+        Msg Info "Setting Synthesis properties..."
+        set synth_props [dict get $globalSettings::PROPERTIES synth]
+        dict for {prop_name prop_val} $synth_props {
+          Msg Info "Setting $prop_name = $prop_val"
+          configure_tool -name {SYNTHESIZE} -params "[string toupper $prop_name]:$prop_val"
+        }
+      }
+      # Implementation Properties
+      if [dict exists $globalSettings::PROPERTIES impl] {
+        Msg Info "Setting Implementation properties..."
+        set impl_props [dict get $globalSettings::PROPERTIES impl]
+        dict for {prop_name prop_val} $impl_props {
+          Msg Info "Setting $prop_name = $prop_val"
+          configure_tool -name {PLACEROUTE} -params "[string toupper $prop_name]:$prop_val"
+        }
+      }
+
+      # Bitstream Properties
+      if [dict exists $globalSettings::PROPERTIES bitstream] {
+        Msg Info "Setting Bitstream properties..."
+        set impl_props [dict get $globalSettings::PROPERTIES impl]
+        dict for {prop_name prop_val} $impl_props {
+          Msg Info "Setting $prop_name = $prop_val"
+          configure_tool -name {GENERATEPROGRAMMINGFILE} -params "[string toupper $prop_name]:$prop_val"
+        }
+      }
+      # Configure VERIFYTIMING tool to generate a txt file report
+      configure_tool -name {VERIFYTIMING} -params {FORMAT:TEXT}
+    }
   } else {
     Msg info "Configuring Properties"
   }
@@ -591,8 +664,21 @@ proc SetGlobalVar {var {default_value HOG_NONE}} {
 
 ###########################################################################################################################################################################################
 
+set tcl_path [file normalize "[file dirname [info script]]"]
+set repo_path [file normalize $tcl_path/../..]
+source $tcl_path/hog.tcl
+
+if {[IsLibero]} {
+  if {[info exists env(HOG_TCLLIB_PATH)]} {
+    lappend auto_path $env(HOG_TCLLIB_PATH) 
+  } else {
+    puts "ERROR: To run Hog with Microsemi Libero SoC, you need to define the HOG_TCLLIB_PATH variable."
+    return
+  }
+}
+
 if {[catch {package require cmdline} ERROR]} {
-  puts "$ERROR\n If you are running this script on tclsh, you can fix this by installing 'tcllib'"
+  puts "ERROR: If you are running this script on tclsh, you can fix this by installing 'tcllib'"
   return
 }
 
@@ -602,9 +688,7 @@ set parameters {
 
 set usage   "Create Vivado/Quartus project. If no project is given, will expect the name of the project defined in a variable called DESIGN.\nUsage: $::argv0 \[OPTIONS\] <project> \n. Options:"
 
-set tcl_path [file normalize "[file dirname [info script]]"]
-set repo_path [file normalize $tcl_path/../..]
-source $tcl_path/hog.tcl
+puts $argv
 
 if { $::argc eq 0 && ![info exist DESIGN]} {
   Msg Info [cmdline::usage $parameters $usage]
@@ -639,6 +723,23 @@ if { $::argc eq 0 && ![info exist DESIGN]} {
       exit 1
     } else {
       set DESIGN [lindex $quartus(args) 0]
+    }
+  } else {
+    Msg Info "Design is parsed from project.tcl: $DESIGN"
+  }
+} elseif { [IsLibero] } {
+  # Libero
+  if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] } {
+    Msg Info [cmdline::usage $parameters $usage]
+    exit 1
+  }
+  if { ![info exist DESIGN] || $DESIGN eq "" } {
+    if { [lindex $argv 0] eq "" } {
+      Msg Error "Variable DESIGN not set!"
+      Msg Info [cmdline::usage $parameters $usage]
+      exit 1
+    } else {
+      set DESIGN [lindex $argv 0]
     }
   } else {
     Msg Info "Design is parsed from project.tcl: $DESIGN"
@@ -681,7 +782,7 @@ if {[file exists $conf_file]} {
   Msg Info "Parsing configuration file $conf_file..."
   set PROPERTIES [ReadConf $conf_file]
 
-  #Checking Vivado/Quartus/ISE version
+  #Checking Vivado/Quartus/ISE/Libero version
   set actual_version [GetIDEVersion]
   lassign [GetIDEFromConf $conf_file] ide conf_version
   if {$conf_version != "0.0.0"} {
@@ -689,18 +790,19 @@ if {[file exists $conf_file]} {
 
     set a_v [split $actual_version "."]
     set c_v [split $conf_version "."]
-    if {[llength $a_v] > 3 || [llength $a_v] < 2} {
+
+    if { [llength $a_v] < 2} {
       Msg Error "Couldn't parse IDE version: $actual_version."
     } elseif {[llength $a_v] == 2} {
       lappend a_v 0
     }
-    if {[llength $c_v] > 3 || [llength $c_v] < 2} {
+    if { [llength $c_v] < 2} {
       Msg Error "Wrong version format in hog.conf: $conf_version."
     } elseif {[llength $c_v] == 2} {
       lappend c_v 0
     }
 
-    set comp [CompareVersion $a_v $c_v]
+    set comp [CompareVersions $a_v $c_v]
     if {$comp == 0} {
       Msg Info "Project version and $ide version match: $conf_version."
     }	elseif {$comp == 1} {
@@ -730,13 +832,20 @@ if {[file exists $conf_file]} {
   Msg Error "$conf_file was not found in your project directory, please create one."
 }
 
-
-SetGlobalVar PART
-#Family is needed in quartus only
-if {[IsQuartus]} {
+if {![IsLibero]} {
+  SetGlobalVar PART
+}
+#Family is needed in quartus and libero only
+if {[IsQuartus] || [IsLibero]} {
   #Quartus only
   SetGlobalVar FAMILY
+  if {[IsLibero]} {
+    SetGlobalVar DIE
+    SetGlobalVar PACKAGE
+  }
 }
+
+
 
 SetGlobalVar TARGET_SIMULATOR "ModelSim"
 
@@ -779,6 +888,7 @@ set globalSettings::post_impl           [file normalize "$globalSettings::tcl_pa
 set globalSettings::pre_bit             [file normalize "$globalSettings::tcl_path/integrated/$globalSettings::pre_bit_file"]
 set globalSettings::post_bit            [file normalize "$globalSettings::tcl_path/integrated/$globalSettings::post_bit_file"]
 set globalSettings::quartus_post_module [file normalize "$globalSettings::tcl_path/integrated/$globalSettings::quartus_post_module_file"]
+set globalSettings::LIBERO_MANDATORY_VARIABLES {"FAMILY" "PACKAGE" "DIE" }
 
 
 
@@ -810,6 +920,10 @@ if {[IsQuartus]} {
 if {[file exists $post_file]} {
   Msg Info "Found post-creation Tcl script $post_file, executing it..."
   source $post_file
+  if {[IsLibero]} {
+    # Regenerate the hierarchy in case a new file has been added
+    build_design_hierarchy
+  }
 }
 
 # Check extra IPs

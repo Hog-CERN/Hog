@@ -1,5 +1,5 @@
 #!/usr/bin/env tclsh
-#   Copyright 2018-2022 The University of Birmingham
+#   Copyright 2018-2023 The University of Birmingham
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -17,13 +17,29 @@
 # The pre synthesis script checks the status of your git repository and stores into a set of variables that are fed as generics to the HDL project.
 # This script is automatically integrated into the Vivado/Quartus workflow by the Create Project script.
 
+set tcl_path [file normalize "[file dirname [info script]]/.."]
+source $tcl_path/hog.tcl
+
+# Import tcllib
+if {[IsSynplify]} {
+  if {[info exists env(HOG_TCLLIB_PATH)]} {
+    lappend auto_path $env(HOG_TCLLIB_PATH) 
+  } else {
+    puts "ERROR: To run Hog with Microsemi Libero SoC, you need to define the HOG_TCLLIB_PATH variable."
+    return
+  }
+}
+
+if {[IsLibero]} {
+  puts "I am running Libero"
+}
+
 if {[catch {package require struct::matrix} ERROR]} {
   puts "$ERROR\n If you are running this script on tclsh, you can fix this by installing 'tcllib'"
   return
 }
 
-set tcl_path [file normalize "[file dirname [info script]]/.."]
-source $tcl_path/hog.tcl
+
 
 if {[IsISE]} {
   # Vivado + PlanAhead
@@ -77,6 +93,10 @@ if {[IsXilinx]} {
     }
 
   }
+} elseif {[IsSynplify]} {
+  set proj_dir [file normalize [file dirname "[project_data -dir]/../.."]  ]
+  set proj_name [file tail $proj_dir]
+  set project $proj_name
 } else {
   #Tclssh
   set proj_file $old_path/[file tail $old_path].xpr
@@ -250,6 +270,8 @@ if {[IsXilinx]} {
   cd $this_dir
   set_global_assignment -name NUM_PARALLEL_PROCESSORS $maxThreads
   project_close
+} elseif {[IsSynplify]} {
+  set_option -max_parallel_jobs $maxThreads
 } else {
   ### Tcl Shell
   puts "Hog:DEBUG MaxThread is set to: $maxThreads"
@@ -269,7 +291,7 @@ if [GitVersion 2.9.3] {
 }
 
 #####  Passing Hog generic to top file
-if {[IsXilinx]} {
+if {[IsXilinx] || [IsSynplify]} {
   ### VIVADO
   # set global generic variables
   WriteGenerics "synth" $project $date $timee $commit $version $top_hash $top_ver $hog_hash $hog_ver $cons_ver $cons_hash  $libs $vers $hashes $ext_names $ext_hashes $user_ip_repos $user_ip_vers $user_ip_hashes $flavour $xml_ver $xml_hash

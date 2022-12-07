@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#   Copyright 2018-2022 The University of Birmingham
+#   Copyright 2018-2023 The University of Birmingham
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -13,32 +13,6 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-# check the apptainer image only if you give it as a reference
-if [ ! -z $1 ]; then
-    echo ================ APPTAINER ================
-    if [ -f $1 ]; then
-	if [ $(command -v apptainer) ]; then
-	    CMD=$(command -v apptainer)
-	    echo "apptainer executable found in $CMD"
-	    echo
-	    $CMD --version
-	    echo 
-	    apptainer exec -H $PWD $HOG_APPTAINER_IMAGE /bin/bash -c "source /opt/Xilinx/Vivado/2020.2/settings64.sh; ./Hog/Other/CheckEnv.sh";
-	    exit $?
-	else
-	    echo "Hog-Warning: apptainer executable not found."
-	fi
-    else
-	echo "Hog-Warning: Apptainer image could not be found in this machine"
-    fi    
-    echo "Hog-INFO: unsetting Apptainer image, trying to run without it"
-    echo 
-    ./Hog/Other/CheckEnv.sh
-    if [ $? == 0 ]; then
-	echo "Hog-INFO: you may be able to run in this machine without apptainer, unset it and try again"
-    fi
-    exit 1
-fi
 
 ## @fn help_message
 #
@@ -66,46 +40,95 @@ function help_message() {
   echo " Hint: Hog accepts as <project name> both the actual project name and the relative path containing the project configuration. E.g. ./Hog/CreateProject.sh Top/myproj or ./Hog/CreateProject.sh myproj"
 }
 
+## @fn print_projects
+#
+# @brief Prints a message with projects names
+#
+# The print_projects takes the directory to search and since search projects will change directory, it requires the directory to which return.
+# This function uses echo to print to screen
+#
+# @param[in]    $1 search directory
+# @param[in]    $2 return directory
+#
+function print_projects() {
+    echo
+    echo "Possible projects are:"
+    echo ""
+    search_projects $1
+    echo
+    cd $2
+
+}
+
 echo "Hog-INFO: Checking all executables and environment variables needed for Hog-CI (not to run Hog locally)"
 echo
 
 OLD_DIR=$(pwd)
 THIS_DIR="$(dirname "$0")"
 TOP_DIR=$(realpath $THIS_DIR/../../Top)
-
+APPTAINER_IMAGE="none"
 
 . $THIS_DIR/CommonFunctions.sh
 
-if [ "$1" == "-h" ] || [ "$1" == "-help" ] || [ "$1" == "--help" ] || [ "$1" == "-H" ]; then
+#Argument parsing
+if [[ $# == 0 ]] || [[ $1 == -* ]] ;  then
     help_message $0
-    echo
-    echo "Possible projects are:"
-    echo ""
-    search_projects $THIS_DIR/../Top
-    echo
-    cd "${OLD_DIR}"
-    exit 0
-fi
-
-cd "${THIS_DIR}"
-
-
-if [ "a$1" == "a" ]; then
-    help_message $0
-    echo
-    echo "Possible projects are:"
-    echo ""
-    search_projects $DIR
-    echo
-    cd "${OLD_DIR}"
-    exit -1
+    print_projects $TOP_DIR $OLD_DIR
+    if [ "$1" == "-h" ] || [ "$1" == "-help" ] || [ "$1" == "--help" ] || [ "$1" == "-H" ]; then
+	exit 0;
+    else
+	echo "Hog-ERROR: no project name was given."
+	exit -1;
+    fi;
 else
     PROJ=$1
     if [[ $PROJ == "Top/"* ]]; then
       PROJ=${PROJ#"Top/"}
     fi
     PROJ_DIR="$TOP_DIR/$PROJ"
+    shift
+fi;
+
+#Options parsing
+while getopts ah: op
+do
+    case $op in
+        a)  if [[ ${@:$OPTIND} == /* ]] ; then
+                APPTAINER_IMAGE=${@:$OPTIND}
+                OPTIND=$((OPTIND+1))
+            else
+                echo "Hog-INFO: Apptainer argument expects and absolute path, assuming no image was given"
+            fi;;
+	h|*) help_message $0
+	     print_projects $TOP_DIR $OLD_DIR
+	     exit 0;;
+    esac
+done
+
+if [ ! $APPTAINER_IMAGE == "none" ]; then
+    echo ================ APPTAINER ================
+    if [ -f $APPTAINER_IMAGE ]; then
+        if [ $(command -v apptainer) ]; then
+            CMD=$(command -v apptainer)
+            echo "apptainer executable found in $CMD"
+            echo
+            $CMD --version
+            echo
+            apptainer exec -H $(realpath $THIS_DIR/../..) $APPTAINER_IMAGE /bin/bash -c "source /opt/Xilinx/Vivado/2020.2/settings64.sh; ${THIS_DIR}/CheckEnv.sh $PROJ";
+            exit $?
+        else
+            echo "Hog-Warning: apptainer executable not found."
+        fi
+    else
+        echo "Hog-Warning: Apptainer image could not be found in this machine"
+    fi
+    echo "Hog-INFO: unsetting Apptainer image, trying to run without it"
+    echo
+    ${THIS_DIR}/CheckEnv.sh $PROJ
+    exit $?
 fi
+
+cd "${THIS_DIR}"
 
 
 #################### exectuables

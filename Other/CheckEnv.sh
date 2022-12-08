@@ -40,25 +40,6 @@ function help_message() {
   echo " Hint: Hog accepts as <project name> both the actual project name and the relative path containing the project configuration. E.g. ./Hog/CreateProject.sh Top/myproj or ./Hog/CreateProject.sh myproj"
 }
 
-## @fn print_projects
-#
-# @brief Prints a message with projects names
-#
-# The print_projects takes the directory to search and since search projects will change directory, it requires the directory to which return.
-# This function uses echo to print to screen
-#
-# @param[in]    $1 search directory
-# @param[in]    $2 return directory
-#
-function print_projects() {
-    echo
-    echo "Possible projects are:"
-    echo ""
-    search_projects $1
-    echo
-    cd $2
-
-}
 
 echo "Hog-INFO: Checking all executables and environment variables needed for Hog-CI (not to run Hog locally)"
 echo

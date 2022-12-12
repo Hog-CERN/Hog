@@ -328,7 +328,7 @@ jobs:
                   if [ "$HOG_APPTAINER_EXTRA_PATH" != "" ]; then
                     EXTRA_PATH="-B $HOG_APPTAINER_EXTRA_PATH";
                   fi;
-                  apptainer exec -H $PWD -B /afs $HOG_APPTAINER_IMAGE /bin/bash -c "PATH=${HOG_PATH}:$PATH; $EXEC_CMD";
+                  apptainer exec -H $PWD $EXTRA_PATH $HOG_APPTAINER_IMAGE /bin/bash -c "PATH=${HOG_PATH}:$PATH; $EXEC_CMD";
                 fi;
                 echo "./Hog/LaunchWorkflow.sh -njobs $HOG_NJOBS $IP_PATH $NO_BITSTREAM $ONLY_SYNTH $CHECK_SYNTAX $PROJECT_NAME";
                 ./Hog/LaunchWorkflow.sh -njobs $HOG_NJOBS $IP_PATH $NO_BITSTREAM $ONLY_SYNTH $CHECK_SYNTAX $PROJECT_NAME;

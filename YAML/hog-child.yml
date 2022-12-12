@@ -73,7 +73,7 @@
           fi;
           if [[ -f $HOG_APPTAINER_IMAGE ]]; then
             echo "apptainer exec -H $PWD $HOG_APPTAINER_IMAGE $SIM_CMD";
-            if [[ -f $HOG_APPTAINER_EXTRA_PATH ]]; then
+            if [[ -n $HOG_APPTAINER_EXTRA_PATH ]]; then
               EXTRA_PATH="-B $HOG_APPTAINER_EXTRA_PATH";
             fi;
             apptainer exec -H $PWD $EXTRA_PATH $HOG_APPTAINER_IMAGE /bin/bash -c "export PATH=${HOG_PATH}:$PATH; $SIM_CMD";
@@ -205,7 +205,7 @@
           EXEC_CMD="./Hog/LaunchWorkflow.sh -njobs $HOG_NJOBS $IP_PATH $NO_BITSTREAM $ONLY_SYNTH $CHECK_SYNTAX $PROJECT_NAME";
           if [[ -f $HOG_APPTAINER_IMAGE ]]; then
             echo "singularity exec -H $PWD $HOG_APPTAINER_IMAGE $EXEC_CMD";
-            if [[ -f $HOG_APPTAINER_EXTRA_PATH ]]; then
+            if [[ -n $HOG_APPTAINER_EXTRA_PATH ]]; then
               EXTRA_PATH="-B $HOG_APPTAINER_EXTRA_PATH";
             fi;
             apptainer exec -H $PWD $EXTRA_PATH $HOG_APPTAINER_IMAGE /bin/bash -c "PATH=${HOG_PATH}:$PATH; $EXEC_CMD";

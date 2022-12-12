@@ -957,4 +957,4 @@ if {[IsXilinx]} {
   cd $old_path
 }
 
-Msg Info "Project $DESIGN created successfully."
+Msg Info "Project $DESIGN created successfully in globalSettings::build_dir."

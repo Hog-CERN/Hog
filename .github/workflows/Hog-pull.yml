@@ -85,6 +85,8 @@ on:
         required: false
       HOG_APPTAINER_IMAGE:
         required: false
+      HOG_APPTAINER_EXTRA_PATH:
+        required: false
 env:
   PR_NUMBER: ${{ github.event.number }}
   HOG_PUSH_TOKEN: ${{ secrets.HOG_PUSH_TOKEN }}
@@ -108,7 +110,7 @@ env:
   HOG_DEVELOP_BRANCH: ${{ secrets.HOG_DEVELOP_BRANCH }}
   HOG_TCLLIB_PATH: ${{ secrets.HOG_TCLLIB_PATH }}
   HOG_APPTAINER_IMAGE: ${{ secrets.HOG_APPTAINER_IMAGE }}
-
+  HOG_APPTAINER_EXTRA_PATH: ${{ secrets.HOG_APPTAINER_EXTRA_PATH }}
 
 jobs:
   merge:
@@ -323,7 +325,10 @@ jobs:
                   $(echo $EXEC_CMD);
                 else
                   echo "singularity exec -H $PWD $HOG_APPTAINER_IMAGE $EXEC_CMD";
-                  apptainer exec -H $PWD -B /afs $HOG_APPTAINER_IMAGE /bin/bash -c "source /opt/Xilinx/Vivado/2020.2/settings64.sh; $EXEC_CMD";
+                  if [ "$HOG_APPTAINER_EXTRA_PATH" != "" ]; then
+                    EXTRA_PATH="-B $HOG_APPTAINER_EXTRA_PATH";
+                  fi;
+                  apptainer exec -H $PWD -B /afs $HOG_APPTAINER_IMAGE /bin/bash -c " $EXEC_CMD";
                 fi;
                 echo "./Hog/LaunchWorkflow.sh -njobs $HOG_NJOBS $IP_PATH $NO_BITSTREAM $ONLY_SYNTH $CHECK_SYNTAX $PROJECT_NAME";
                 ./Hog/LaunchWorkflow.sh -njobs $HOG_NJOBS $IP_PATH $NO_BITSTREAM $ONLY_SYNTH $CHECK_SYNTAX $PROJECT_NAME;
@@ -342,7 +347,7 @@ jobs:
                 echo "Hog-CI(info) - Adding versions, timing and utilization summary to note...";
                 if [[ -d "Projects/$PROJECT_NAME/output_files/" ]]; then
                   cat Projects/$PROJECT_NAME/output_files/versions* > note.md;
-                else\
+                else
                   if [[ -f bin/$PROJECT_NAME*/versions* ]]; then
                     cat bin/$PROJECT_NAME*/versions* > note.md;
                   fi;
@@ -420,7 +425,10 @@ jobs:
                   $(echo $SIM_CMD);
                 else 
                   echo "apptainer exec -H $PWD $HOG_APPTAINER_IMAGE  $SIM_CMD";
-                  apptainer exec -H $PWD -B /afs $HOG_APPTAINER_IMAGE /bin/bash -c "source /opt/Xilinx/Vivado/2020.2/settings64.sh; $SIM_CMD";
+                  if [ "$HOG_APPTAINER_EXTRA_PATH" != "" ]; then
+                    EXTRA_PATH="-B $HOG_APPTAINER_EXTRA_PATH";
+                  fi;
+                  apptainer exec -H $PWD $EXTRA_PATH $HOG_APPTAINER_IMAGE /bin/bash -c "$SIM_CMD";
                 fi
               fi
       - name: Archive Simulation Artifacts

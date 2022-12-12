@@ -231,7 +231,16 @@ if ( ! [ -z "$HOG_OFFICIAL_BIN_EOS_PATH" ]); then
         echo "defined."
     fi
     echo --------------------------------
+fi
 
+if [[ " ${COMPILERS_TO_CHECK[@]} " =~ "libero" ]]; then
+    echo -n "Variable: HOG_TCLLIB_PATH is "
+    if [ -z "$HOG_TCLLIB_PATH" ]; then
+        echo "NOT defined. This variable is essential to run Hog with Tcllib. Please, refer to https://hog.readthedocs.io/en/latest/02-User-Manual/01-Hog-local/13-Libero.html."
+        FAIL=1
+    else
+        echo "defined."
+    fi
 fi
 
 echo ================================
@@ -252,12 +261,12 @@ if [[ " ${COMPILERS_TO_CHECK[@]} " =~ "vivado" || " ${COMPILERS_TO_CHECK[@]} " =
     echo --------------------------------
 fi
 
-if [[ " ${COMPILERS_TO_CHECK[@]} " =~ "quartus" ]]; then
+if [[ " ${COMPILERS_TO_CHECK[@]} " =~ "quartus" || " ${COMPILERS_TO_CHECK[@]} " =~ "libero" ]]; then
     echo --------------------------------
 
     echo -n "Variable: LM_LICENSE_FILE is "
     if [ -z "$LM_LICENSE_FILE" ]; then
-        echo "NOT defined. This variable should be set the Quartus license servers separated by semicolon. If not, you need an alternative way of getting your Quartus license."
+        echo "NOT defined. This variable should be set the Quartus/Libero license servers separated by semicolon. If not, you need an alternative way of getting your Quartus/Libero license."
     else
         echo "defined."
     fi
@@ -409,6 +418,18 @@ else
     echo "defined. Hog-CI will run Doxygen and copy the official documentation over when you merge to the official branch."
 fi
 echo ================================
+
+echo -n "Variable: HOG_APPTAINER_IMAGE is "
+if [ -z "$HOG_APPTAINER_IMAGE" ]; then
+    echo "NOT defined. Hog-CI will not run in an Apptainer container."
+else
+    echo "defined. Hog-CI will run inside the Apptainer container: $HOG_APPTAINER_IMAGE"
+    if [ -n "$HOG_APPTAINER_EXTRA_PATH" ]; then
+        echo -n "Variable: HOG_APPTAINER_EXTRA_PATH is defined. Folder $HOG_APPTAINER_EXTRA_PATH will be passed to the Apptainer container."
+    fi
+fi
+echo --------------------------------
+
 echo
 
 if [ -z ${FAIL+x} ]; then

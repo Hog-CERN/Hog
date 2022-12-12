@@ -366,18 +366,19 @@ proc GetRepoPath {} {
 #
 # @return Return 1 ver1 is greather than ver2, 0 if they are equal, and -1 if ver2 is greater than ver1
 #
+
 proc CompareVersions {ver1 ver2} {
-  if {[string is integer [join $ver1 ""]] && [string is integer [join $ver2 ""]]} {
-  
+  # Add 1 in front to avoid crazy Tcl behaviour with leading 0 being octal...
   set v1 [join $ver1 ""]
   set v1 "1$v1"
   set v2 [join $ver2 ""]
   set v2 "1$v2"
 
   if {[string is integer $v1] && [string is integer $v2]} {
-
+  
     set ver1 [expr [scan [lindex $ver1 0] %d]*100000 + [scan [lindex $ver1 1] %d]*1000 + [scan [lindex $ver1 2] %d]]
     set ver2 [expr [scan [lindex $ver2 0] %d]*100000 + [scan [lindex $ver2 1] %d]*1000 + [scan [lindex $ver2 2] %d]]
+
     if {$ver1 > $ver2 } {
       set ret 1
     } elseif {$ver1 == $ver2} {

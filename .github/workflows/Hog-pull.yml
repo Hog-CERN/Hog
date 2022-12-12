@@ -81,7 +81,10 @@ on:
         required: false
       HOG_DEVELOP_BRANCH:
         required: false
-
+      HOG_TCLLIB_PATH:
+        required: false
+      HOG_APPTAINER_IMAGE:
+        required: false
 env:
   PR_NUMBER: ${{ github.event.number }}
   HOG_PUSH_TOKEN: ${{ secrets.HOG_PUSH_TOKEN }}
@@ -103,7 +106,8 @@ env:
   HOG_PR_MSG: ${{ secrets.HOG_PR_MSG }}
   HOG_TARGET_BRANCH: ${{ secrets.HOG_TARGET_BRANCH }}
   HOG_DEVELOP_BRANCH: ${{ secrets.HOG_DEVELOP_BRANCH }}
-
+  HOG_TCLLIB_PATH: ${{ secrets.HOG_TCLLIB_PATH }}
+  HOG_APPTAINER_IMAGE: ${{ secrets.HOG_APPTAINER_IMAGE }}
 
 
 jobs:
@@ -236,7 +240,7 @@ jobs:
                 Xvfb :99 &
                 export DISPLAY=:99
               fi;
-              ./Hog/Other/CheckEnv.sh $PROJECT_NAME
+              ./Hog/Other/CheckEnv.sh $PROJECT_NAME -a $HOG_APPTAINER_IMAGE
               if [ -v "${{ secrets.EOS_MGM_URL}} "]; then
                 export EOS_MGM_URL=${{ secrets.EOS_MGM_URL }}
               fi;
@@ -313,6 +317,14 @@ jobs:
                   echo "Hog-CI(info) - no custom files will be reset.";
                 fi;
                 echo "Hog-CI(info) - Launching workflow now...";
+                EXEC_CMD="./Hog/LaunchWorkflow.sh -njobs $HOG_NJOBS $IP_PATH $NO_BITSTREAM $ONLY_SYNTH $CHECK_SYNTAX $PROJECT_NAME";
+                if [ -z "$HOG_APPTAINER_IMAGE" ]; then
+                  echo $EXEC_CMD;
+                  $(echo $EXEC_CMD);
+                else
+                  echo "singularity exec -H $PWD $HOG_APPTAINER_IMAGE $EXEC_CMD";
+                  apptainer exec -H $PWD -B /afs $HOG_APPTAINER_IMAGE /bin/bash -c "source /opt/Xilinx/Vivado/2020.2/settings64.sh; $EXEC_CMD";
+                fi;
                 echo "./Hog/LaunchWorkflow.sh -njobs $HOG_NJOBS $IP_PATH $NO_BITSTREAM $ONLY_SYNTH $CHECK_SYNTAX $PROJECT_NAME";
                 ./Hog/LaunchWorkflow.sh -njobs $HOG_NJOBS $IP_PATH $NO_BITSTREAM $ONLY_SYNTH $CHECK_SYNTAX $PROJECT_NAME;
               fi;
@@ -384,7 +396,7 @@ jobs:
               export LD_LIBRARY_PATH=${HOG_LD_LIBRARY_PATH}:$LD_LIBRARY_PATH
               export PATH=${HOG_PATH}:$PATH
               PROJECT_NAME=${{ matrix.PROJECT_NAME }}
-              ./Hog/Other/CheckEnv.sh $PROJECT_NAME
+              ./Hog/Other/CheckEnv.sh $PROJECT_NAME -a $HOG_APPTAINER_IMAGE
               if [[ -v HOG_CHECK_PROJVER ]] && [[ $HOG_CHECK_PROJVER == '1' ]]; then
                 if [[ -z "$HOG_EXTERNAL_PATH" ]]; then
                   ./Hog/Other/CheckProjVer.sh $PROJECT_NAME;
@@ -399,10 +411,17 @@ jobs:
               else
                 if [ -z "$HOG_SIMULATION_LIB_PATH" ]; then
                   echo 'Simulation library path is not defined';
-                  ./Hog/LaunchSimulation.sh $PROJECT_NAME
+                  SIM_CMD="./Hog/LaunchSimulation.sh $PROJECT_NAME";
                 else
-                   ./Hog/LaunchSimulation.sh $PROJECT_NAME -l $HOG_SIMULATION_LIB_PATH ;
-                fi;
+                  SIM_CMD="./Hog/LaunchSimulation.sh $PROJECT_NAME -l $HOG_SIMULATION_LIB_PATH" ;
+                fi
+                if [ -z "$HOG_APPTAINER_IMAGE" ]; then
+                  echo $SIM_CMD;
+                  $(echo $SIM_CMD);
+                else 
+                  echo "apptainer exec -H $PWD $HOG_APPTAINER_IMAGE  $SIM_CMD";
+                  apptainer exec -H $PWD -B /afs $HOG_APPTAINER_IMAGE /bin/bash -c "source /opt/Xilinx/Vivado/2020.2/settings64.sh; $SIM_CMD";
+                fi
               fi
       - name: Archive Simulation Artifacts
         uses: actions/upload-artifact@v3

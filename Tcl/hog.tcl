@@ -606,7 +606,7 @@ proc ReadListFile args {
         }
       } else {
         if {![file exists $srcfile]} {
-          Msg CriticalWarning "$srcfile not found in $path"
+          Msg CriticalWarning "$srcfile not found in $list_file."
           continue
         }
       }

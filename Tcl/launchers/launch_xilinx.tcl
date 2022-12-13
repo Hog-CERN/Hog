@@ -124,7 +124,7 @@ if { $options(ip_path) != "" } {
     set ip_folder [file dirname $ip]
     set files_in_folder [glob -directory $ip_folder -- *]
     if { [llength $files_in_folder] == 1 } {
-      set ret [HandleIP pull $ip $ip_path $main_folder]
+      set ret [HandleIP pull $ip $ip_path $repo_path]
       if {$ret == 0} {
         incr copied_ips
       }

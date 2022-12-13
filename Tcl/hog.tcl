@@ -859,7 +859,7 @@ proc GetSHA {{path ""}} {
 #
 # @return  a list: the git SHA, the version in hex format
 #
-proc GetVer {path} {
+proc GetVer {path {force_develop 0}} {
   set SHA [GetSHA $path]
   #oldest tag containing SHA
   if {$SHA eq ""} {
@@ -875,7 +875,7 @@ proc GetVer {path} {
   set repo_path [Git {rev-parse --show-toplevel}]
   cd $old_path
 
-  return [list [GetVerFromSHA $SHA $repo_path] $SHA]
+  return [list [GetVerFromSHA $SHA $repo_path $force_develop] $SHA]
 }
 
 ## @brief Get git version and commit hash of a specific commit give the SHA
@@ -885,7 +885,7 @@ proc GetVer {path} {
 #
 # @return  a list: the git SHA, the version in hex format
 #
-proc GetVerFromSHA {SHA repo_path} {
+proc GetVerFromSHA {SHA repo_path {force_develop 0}} {
   #Let's keep this for a while, more bugs may come soon...
   #Msg Info "############################### $repo_path #############################################"
   if { $SHA eq ""} {
@@ -911,7 +911,7 @@ proc GetVerFromSHA {SHA repo_path} {
           set minor_prefix "minor_version/"
           set major_prefix "major_version/"
           set is_hotfix 0
-          set enable_develop_branch 0
+          set enable_develop_branch $force_develop
 
           set branch_name [Git {rev-parse --abbrev-ref HEAD}]
 

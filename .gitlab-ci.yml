@@ -84,8 +84,6 @@ changelog:
            variables:
               - $CI_COMMIT_REF_NAME =~ /^test\/.*$/i
       script:
-          - "MR_PARAMETERS=`curl --header \"PRIVATE-TOKEN: ${HOG_PUSH_TOKEN}\" ${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/merge_requests/${CI_MERGE_REQUEST_IID}`"
-          - tclsh ./Tcl/CI/merge_and_tag.tcl -Hog  -mr_par "$MR_PARAMETERS" -mr_id $CI_MERGE_REQUEST_IID -push $CI_COMMIT_REF_NAME -main_branch $CI_MERGE_REQUEST_TARGET_BRANCH_NAME
           - git fetch origin refs/notes/*:refs/notes/*
           - git notes add -fm "$CI_MERGE_REQUEST_IID $CI_COMMIT_REF_NAME"
           - git push origin refs/notes/*
@@ -108,7 +106,15 @@ tagging_develop:
               - $CI_PIPELINE_SOURCE != "push"
               - $CI_COMMIT_REF_NAME != "develop"
       script:
-          - tclsh ./Tcl/CI/merge_and_tag.tcl -Hog -merged -push $CI_COMMIT_REF_NAME -main_branch develop -default_level 1
+          - git fetch origin refs/notes/*:refs/notes/*
+          - note=(`git notes show`) || {
+            echo "No note found, probably you pushed to a branch that should protected (e.g. master, develop)"; 
+            exit 1;
+          }
+          - "new_tag=`echo \"source Hog/Tcl/hog.tcl; puts v[HexVersionToString [GetVer . 1]]\" | tclsh`"
+          - echo "New tag is $new_tag"
+          - git tag $new_tag -m "Official_version_${new_tag}";
+          - git push --tags;
 
 tagging_master_hotfix:
       stage: tag
@@ -124,7 +130,13 @@ tagging_master_hotfix:
           - git fetch origin refs/notes/*:refs/notes/*
           - MR_INFO=( `git notes show` )
           - BRANCH=${MR_INFO[1]}
-          - if [[ ${BRANCH} != "develop" ]]; then tclsh ./Tcl/CI/merge_and_tag.tcl -Hog -merged -push $CI_COMMIT_REF_NAME -default_level 0; else echo "Skipping because it is not a hotfix"; fi;
+          - if [[ ${BRANCH} != "develop" ]]; then 
+              "new_tag=`echo \"source Hog/Tcl/hog.tcl; puts v[HexVersionToString [GetVer . 0]]\" | tclsh`";
+              echo "New tag is $new_tag";
+              git tag $new_tag -m "Official_version_${new_tag}"; 
+            else 
+              echo "Skipping because it is not a hotfix"; 
+            fi;
 
 create_release_note:
         stage: tag

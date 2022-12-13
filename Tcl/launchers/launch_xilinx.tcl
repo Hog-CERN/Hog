@@ -252,7 +252,7 @@ if {$do_synthesis == 1} {
         }
       }
       Msg Info "Copying synthesised IP $xci_ip_name ($xci_file) to $ip_path..."
-      HandleIP push $xci_file $ip_path $main_folder $force
+      HandleIP push $xci_file $ip_path $repo_path $force
     }
   }
 

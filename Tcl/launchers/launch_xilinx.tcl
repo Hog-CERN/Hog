@@ -124,7 +124,7 @@ if { $options(ip_path) != "" } {
     set ip_folder [file dirname $ip]
     set files_in_folder [glob -directory $ip_folder -- *]
     if { [llength $files_in_folder] == 1 } {
-      set ret [HandleIP pull $ip $ip_path $repo_path]
+      set ret [HandleIP pull $ip $ip_path $repo_path $main_folder]
       if {$ret == 0} {
         incr copied_ips
       }
@@ -252,7 +252,7 @@ if {$do_synthesis == 1} {
         }
       }
       Msg Info "Copying synthesised IP $xci_ip_name ($xci_file) to $ip_path..."
-      HandleIP push $xci_file $ip_path $repo_path $force
+      HandleIP push $xci_file $ip_path $repo_path $main_folder $force
     }
   }
 

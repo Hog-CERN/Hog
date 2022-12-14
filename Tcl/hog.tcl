@@ -2662,11 +2662,12 @@ proc ForceUpToDate {} {
 #
 # @param[in] what_to_do: can be "push", if you want to copy the local IP synth result to EOS or "pull" if you want to copy the files from EOS to your local repository
 # @param[in] xci_file: the .xci file of the IP you want to handle
-# @param[in] repo_path: the main path of your repository
 # @param[in] ip_path: the path of directory you want the IP to be saved on eos
+# @param[in] repo_path: the main path of your repository
+# @param[in] runs_dir: the runs directory of the project. Typically called Projects/\<project name\>/\<project name\>.runs
 # @param[in] force: if not set to 0, will copy the IP to EOS even if it is already present
 #
-proc HandleIP {what_to_do xci_file ip_path repo_path {force 0}} {
+proc HandleIP {what_to_do xci_file ip_path repo_path runs_dir {force 0}} {
   if {!($what_to_do eq "push") && !($what_to_do eq "pull")} {
     Msg Error "You must specify push or pull as first argument."
   }

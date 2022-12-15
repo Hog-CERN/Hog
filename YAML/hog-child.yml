@@ -42,6 +42,7 @@
 
 .vars: &vars
   GIT_STRATEGY: clone
+  GIT_SUBMODULE_STRATEGY: recursive
 #   CI_DEBUG_TRACE: "true"
 
 
@@ -260,7 +261,7 @@ collect_artifacts:
     <<: *tag-sr
     stage: collect
     variables:
-        <<: *vars
+      GIT_STRATEGY: clone
     script:
         - old_dir=`pwd`
         - mkdir -p $CI_PROJECT_DIR/bin
@@ -310,7 +311,7 @@ check-timing:
     <<: *tag-sr
     stage: collect
     variables:
-        <<: *vars
+      GIT_STRATEGY: clone
     script:
         - cd $CI_PROJECT_DIR/bin/
         - PRJ_BITS=$(find . -iname "versions.txt")

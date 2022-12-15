@@ -13,7 +13,6 @@
 #   limitations under the License.
 variables:
   GIT_SSL_NO_VERIFY: "true"
-  GIT_SUBMODULE_STRATEGY: recursive
 
 before_script:
     - export REPO=`echo $CI_PROJECT_URL | sed -e s#https://##`

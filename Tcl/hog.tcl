@@ -2763,14 +2763,14 @@ proc HandleIP {what_to_do xci_file ip_path repo_path runs_dir {force 0}} {
         lappend ip_synth_files_rel  [Relative $repo_path $ip_synth_files]
       }
 
-      set ip_runs_files [glob -nocomplain $runs_dir/$file_name*/*]  
+      set ip_runs_files [glob -nocomplain $runs_dir/[file rootname $xci_name]_synth_1/*]
       if {[llength $ip_runs_files] > 0} {
-        Msg Info "Found some IP synthesised files matching $runs_dir/$file_name"
+        Msg Info "Found some IP synthesised files matching $runs_dir/$xci_name"
         HogMkdir $repo_path/Projects/HogIPs
-        file copy [glob -nocomplain $runs_dir/$file_name*] $repo_path/Projects/$file_name/
+        HogCopy [glob -nocomplain $runs_dir/[file rootname $xci_name]_synth_1] $repo_path/Projects/HogIPs/
       }      
 
-      if {[llength $ip_synth_files] > 0 || [llength $ip_runs_files] > 0} {
+      if {[llength $ip_synth_files] > 0} {
         Msg Info "Found some IP synthesised files matching $xci_ip_name"
         if {$will_remove == 1} {
           Msg Info "Removing old synthesised directory $ip_path/$file_name.tar..."
@@ -2783,7 +2783,9 @@ proc HandleIP {what_to_do xci_file ip_path repo_path runs_dir {force 0}} {
 
         Msg Info "Creating local archive with IP generated files..."
         ::tar::create $file_name.tar [glob -nocomplain [Relative $repo_path $xci_path]]
-        ::tar:add $file_name.tar [glob -nocomplain $repo_path/Projects/HogIPs]
+        if {[llength $ip_runs_files] > 0} {
+          ::tar::add $file_name.tar [glob -nocomplain Projects/HogIPs/[file rootname $xci_name]_synth_1]
+        }
 
         Msg Info "Copying generated files for $xci_name..."
         if {$on_eos == 1} {
@@ -2792,10 +2794,11 @@ proc HandleIP {what_to_do xci_file ip_path repo_path runs_dir {force 0}} {
             Msg CriticalWarning "Something went wrong when copying the IP files to EOS. Error message: $msg"
           }
         } else {
-          file copy -force "$file_name.tar" "$ip_path/"
+          HogCopy "$file_name.tar" "$ip_path/"
         }
         Msg Info "Removing local archive"
         file delete $file_name.tar
+        file delete -force Projects/HogIPs/[file rootname $xci_name]_synth_1]
       } else {
         Msg Warning "Could not find synthesized files matching $runs_dir/$file_name*"
       }
@@ -2818,21 +2821,25 @@ proc HandleIP {what_to_do xci_file ip_path repo_path runs_dir {force 0}} {
         } else {
           Msg Info "Extracting IP files from archive to $repo_path..."
           ::tar::untar $file_name.tar -dir $repo_path -noperms
-          if {[file exists [glob -nocomplain $repo_path/Projects/HogIPs]} {
+          if {[file exists [glob -nocomplain $repo_path/Projects/HogIPs]]} {
             HogMkdir [glob -nocomplain $runs_dir]
-            file copy [glob -nocomplain $repo_path/Projects/HogIPs/*] $runs_dir/*
+            HogCopy [glob -nocomplain $repo_path/Projects/HogIPs/*] $runs_dir/*
           }
           Msg Info "Removing local archive"
           file delete $file_name.tar
-          file delete -force Projects/HogIPs
+          # file delete -force Projects/HogIPs
         }
       }
     } else {
       if {[file exists "$ip_path/$file_name.tar"]} {
         Msg Info "IP $xci_name found in local repository $ip_path/$file_name.tar, copying it locally to $repo_path..."
-        file copy -force $ip_path/$file_name.tar $repo_path
+        HogCopy $ip_path/$file_name.tar $repo_path
         Msg Info "Extracting IP files from archive to $repo_path..."
         ::tar::untar $file_name.tar -dir $repo_path -noperms
+        if {[file exists [glob -nocomplain $repo_path/Projects/HogIPs]]} {
+          HogMkdir [glob -nocomplain $runs_dir]
+          HogCopy [glob -nocomplain $repo_path/Projects/HogIPs/[file rootname $xci_name]_synth_1] $runs_dir/
+        }
         Msg Info "Removing local archive"
         file delete $file_name.tar
       } else {
@@ -3214,7 +3221,6 @@ proc WriteGitLabCIYAML {proj_name {ci_conf ""}} {
     # Check if there are extra variables in the conf file
     set huddle_variables [huddle create "PROJECT_NAME" $proj_name "extends" ".vars"]
     if {[dict exists $ci_confs "$job:variables"]} {
-      # puts "here"
       set var_dict [dict get $ci_confs $job:variables]
       foreach var [dict keys $var_dict] {
         # puts [dict get $var_dict $var]
@@ -3725,6 +3731,11 @@ proc GetIDEFromConf {conf_file} {
   return $ret
 }
 
+##
+## Create a new directory, not throwing an error if it already exists
+##
+## @param      dir   The dir
+##
 proc HogMkdir {dir} {
   if {[file exists $dir] && [file isdirectory $dir]} {
     return 
@@ -3732,4 +3743,19 @@ proc HogMkdir {dir} {
     file mkdir $dir
     return
   }
+}
+
+##
+## Copy a file or folder into a new path, not throwing an error if the final path is not empty
+##
+## @param      i_dir  The directory or file to copy
+## @param      o_dir  The final destination
+##
+proc HogCopy {i_dir o_dir} {
+  if {[file isdirectory $i_dir] && [file isdirectory $o_dir]} {
+    if {([file tail $i_dir] == [file tail $o_dir]) || ([file exists $o_dir/[file tail $i_dir]] && [file isdirectory $o_dir/[file tail $i_dir]])} {
+      file delete -force $o_dir/[file tail $i_dir]
+    }
+  }
+  file copy -force $i_dir $o_dir 
 }

@@ -2763,8 +2763,15 @@ proc HandleIP {what_to_do xci_file ip_path repo_path runs_dir {force 0}} {
         lappend ip_synth_files_rel  [Relative $repo_path $ip_synth_files]
       }
 
-      if {[llength $ip_synth_files] > 0} {
-        Msg Info "Found some IP synthesised files matching $runs_dir/$file_name*"
+      set ip_runs_files [glob -nocomplain $runs_dir/$file_name*/*]  
+      if {[llength $ip_runs_files] > 0} {
+        Msg Info "Found some IP synthesised files matching $runs_dir/$file_name"
+        HogMkdir $repo_path/Projects/HogIPs
+        file copy [glob -nocomplain $runs_dir/$file_name*] $repo_path/Projects/$file_name/
+      }      
+
+      if {[llength $ip_synth_files] > 0 || [llength $ip_runs_files] > 0} {
+        Msg Info "Found some IP synthesised files matching $xci_ip_name"
         if {$will_remove == 1} {
           Msg Info "Removing old synthesised directory $ip_path/$file_name.tar..."
           if {$on_eos == 1} {
@@ -2774,8 +2781,10 @@ proc HandleIP {what_to_do xci_file ip_path repo_path runs_dir {force 0}} {
           }
         }
 
-        Msg Info "Creating local archive with ip generated files..."
-        ::tar::create $file_name.tar [glob -nocomplain [Relative $repo_path $xci_path]  $ip_synth_files_rel]
+        Msg Info "Creating local archive with IP generated files..."
+        ::tar::create $file_name.tar [glob -nocomplain [Relative $repo_path $xci_path]]
+        ::tar:add $file_name.tar [glob -nocomplain $repo_path/Projects/HogIPs]
+
         Msg Info "Copying generated files for $xci_name..."
         if {$on_eos == 1} {
           lassign [ExecuteRet xrdcp -f -s $file_name.tar  $::env(EOS_MGM_URL)//$ip_path/] ret msg
@@ -2809,8 +2818,13 @@ proc HandleIP {what_to_do xci_file ip_path repo_path runs_dir {force 0}} {
         } else {
           Msg Info "Extracting IP files from archive to $repo_path..."
           ::tar::untar $file_name.tar -dir $repo_path -noperms
+          if {[file exists [glob -nocomplain $repo_path/Projects/HogIPs]} {
+            HogMkdir [glob -nocomplain $runs_dir]
+            file copy [glob -nocomplain $repo_path/Projects/HogIPs/*] $runs_dir/*
+          }
           Msg Info "Removing local archive"
           file delete $file_name.tar
+          file delete -force Projects/HogIPs
         }
       }
     } else {
@@ -3709,4 +3723,13 @@ proc GetIDEFromConf {conf_file} {
   }
 
   return $ret
+}
+
+proc HogMkdir {dir} {
+  if {[file exists $dir] && [file isdirectory $dir]} {
+    return 
+  } else {
+    file mkdir $dir
+    return
+  }
 }

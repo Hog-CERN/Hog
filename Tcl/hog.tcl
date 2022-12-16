@@ -366,7 +366,6 @@ proc GetRepoPath {} {
 #
 # @return Return 1 ver1 is greather than ver2, 0 if they are equal, and -1 if ver2 is greater than ver1
 #
-
 proc CompareVersions {ver1 ver2} {
   # Add 1 in front to avoid crazy Tcl behaviour with leading 0 being octal...
   set v1 [join $ver1 ""]
@@ -606,7 +605,7 @@ proc ReadListFile args {
         }
       } else {
         if {![file exists $srcfile]} {
-          Msg CriticalWarning "$srcfile not found in $path"
+          Msg CriticalWarning "$srcfile not found in $list_file."
           continue
         }
       }
@@ -860,7 +859,7 @@ proc GetSHA {{path ""}} {
 #
 # @return  a list: the git SHA, the version in hex format
 #
-proc GetVer {path} {
+proc GetVer {path {force_develop 0}} {
   set SHA [GetSHA $path]
   #oldest tag containing SHA
   if {$SHA eq ""} {
@@ -876,7 +875,7 @@ proc GetVer {path} {
   set repo_path [Git {rev-parse --show-toplevel}]
   cd $old_path
 
-  return [list [GetVerFromSHA $SHA $repo_path] $SHA]
+  return [list [GetVerFromSHA $SHA $repo_path $force_develop] $SHA]
 }
 
 ## @brief Get git version and commit hash of a specific commit give the SHA
@@ -886,7 +885,7 @@ proc GetVer {path} {
 #
 # @return  a list: the git SHA, the version in hex format
 #
-proc GetVerFromSHA {SHA repo_path} {
+proc GetVerFromSHA {SHA repo_path {force_develop 0}} {
   #Let's keep this for a while, more bugs may come soon...
   #Msg Info "############################### $repo_path #############################################"
   if { $SHA eq ""} {
@@ -912,7 +911,7 @@ proc GetVerFromSHA {SHA repo_path} {
           set minor_prefix "minor_version/"
           set major_prefix "major_version/"
           set is_hotfix 0
-          set enable_develop_branch 0
+          set enable_develop_branch $force_develop
 
           set branch_name [Git {rev-parse --abbrev-ref HEAD}]
 
@@ -1405,141 +1404,6 @@ proc ExtractVersionFromTag {tag} {
   return [list $M $m $p $mr]
 }
 
-## @brief Tags the repository with a new version calculated on the basis of the previous tags
-#
-# @param[in] merge_request_number: Gitlab merge request number to be used in candidate version
-# @param[in] version_level:        0 if patch is to be increased (default), 1 if minor level is to be increase, 2 if major level is to be increased, 3 or bigger is used to transform a candidate for a version (starting with b) into an official version
-# @param[in] default_level:        If version level is 3 or more, will specify what level to increase when creating the official tag: 0 will increase patch (default), 1 will increase minor and 2 will increase major.
-#
-proc TagRepository {{merge_request_number 0} {version_level 0} {default_level 0}} {
-  lassign [ExecuteRet git tag -l "v*" --sort=-v:refname --merged ] vret vtags
-  lassign [ExecuteRet git tag -l "b*" --sort=-v:refname --merged ] bret btags
-
-  if {[llength $vtags] == 0 } {
-    set vret 9
-  }
-
-  if {[llength $btags] == 0 } {
-    set bret 9
-  }
-
-  if {$vret != 0 && $bret != 0} {
-    Msg Error "No Hog version tags found in this repository."
-  } else {
-    set vers ""
-    if { $vret == 0 } {
-      set vtag [lindex $vtags 0]
-      set vtag [ regsub {(v.*)-.*} $vtag "\\1" ]
-      lassign [ExtractVersionFromTag $vtag] M m p mr
-      set M [format %02X $M]
-      set m [format %02X $m]
-      set p [format %04X $p]
-      lappend vers $M$m$p
-    }
-
-    if { $bret == 0 } {
-      set btag [lindex $btags 0]
-      lassign [ExtractVersionFromTag $btag] M m p mr
-      set M [format %02X $M]
-      set m [format %02X $m]
-      set p [format %04X $p]
-      lappend vers $M$m$p
-    }
-    set ver [FindNewestVersion $vers]
-    set tag v[HexVersionToString $ver]
-
-    # If btag is the newest get mr number
-    if {$tag != $vtag} {
-      lassign [ExtractVersionFromTag $btag] M m p mr
-    } else {
-      lassign [ExtractVersionFromTag $tag] M m p mr
-    }
-
-    if { $M > -1 } {
-      # M=-1 means that the tag could not be parsed following a Hog format
-      if {$mr == 0 } {
-        # Tag is official, no b at the beginning (and no merge request number at the end)
-        Msg Info "Found official version $M.$m.$p."
-        set old_tag $vtag
-        if {$version_level == 2} {
-          incr M
-          set m 0
-          set p 0
-          set new_tag b${merge_request_number}v$M.$m.$p
-          set tag_opt ""
-          if {$merge_request_number <= 0} {
-            Msg Error "You should specify a valid merge request number not to risk to fail because of duplicated tags"
-            return -1
-          }
-
-        } elseif {$version_level == 1} {
-          incr m
-          set p 0
-          set new_tag b${merge_request_number}v$M.$m.$p
-          set tag_opt ""
-          if {$merge_request_number <= 0} {
-            Msg Error "You should specify a valid merge request number not to risk to fail because of duplicated tags"
-            return -1
-          }
-
-        } elseif {$version_level >= 3} {
-          # Version level >= 3 is used to create official tags from beta tags
-          if {$default_level == 0} {
-            Msg Info "Default_level is set to 0, will increase patch..."
-            incr p
-          } elseif {$default_level == 1} {
-            Msg Info "Default_level is set to 1, will increase minor..."
-            set p 0
-            incr m
-          } elseif {$default_level == 2} {
-            Msg Info "Default_level is set to 1, will increase major..."
-            set m 0
-            set p 0
-            incr M
-          } else {
-            Msg Warning "Wrong default_level $default_level, assuming 0 and increase patch."
-            incr p
-          }
-
-          #create official tag
-          Msg Info "No major/minor version increase, new tag will be v$M.$m.$p..."
-          set new_tag v$M.$m.$p
-          set tag_opt "-m 'Official_version_$M.$m.$p'"
-
-        }
-
-      } else {
-        # Tag is not official
-        #Not official, do nothing unless version level is >=3, in which case convert the unofficial to official
-        Msg Info "Found candidate version for $M.$m.$p."
-        set old_tag $btag
-        if {$version_level >= 3} {
-          Msg Info "New tag will be an official version v$M.$m.$p..."
-          set new_tag v$M.$m.$p
-          set tag_opt "-m 'Official_version_$M.$m.$p'"
-        }
-      }
-
-      # Tagging repository
-      if [info exists new_tag] {
-        Msg Info "Tagging repository with $new_tag..."
-        lassign [GitRet "tag $new_tag $tag_opt"] ret msg
-        if {$ret != 0} {
-          Msg Error "Could not create new tag $new_tag: $msg"
-        } else {
-          Msg Info "New tag $new_tag created successfully."
-        }
-      } else {
-        set new_tag $old_tag
-        Msg Info "Tagging is not needed"
-      }
-    } else {
-      Msg Error "Could not parse tag: $tag"
-    }
-  }
-
-  return [list $old_tag $new_tag]
-}
 ## @brief Read a XML list file and copy files to destination
 #
 # Additional information is provided with text separated from the file name with one or more spaces

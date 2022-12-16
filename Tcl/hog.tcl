@@ -2763,11 +2763,13 @@ proc HandleIP {what_to_do xci_file ip_path repo_path runs_dir {force 0}} {
         lappend ip_synth_files_rel  [Relative $repo_path $ip_synth_files]
       }
 
-      set ip_runs_files [glob -nocomplain $runs_dir/[file rootname $xci_name]_synth_1/*]
-      if {[llength $ip_runs_files] > 0} {
-        Msg Info "Found some IP synthesised files matching $runs_dir/$xci_name"
-        HogMkdir $repo_path/Projects/HogIPs
-        HogCopy [glob -nocomplain $runs_dir/[file rootname $xci_name]_synth_1] $repo_path/Projects/HogIPs/
+      set gen_dir_name [file tail [file rootname $runs_dir]].gen
+      set gen_dir [file normalize $runs_dir/../$gen_dir_name]
+      set ip_gen_files [glob -nocomplain $gen_dir/[file rootname $xci_name]_synth_1/*]
+      if {[llength $ip_gen_files] > 0} {
+        Msg Info "Found some IP synthesised files matching $gen_dir/$xci_name"
+        Mkdir $repo_path/Projects/HogIPs
+        Copy [glob -nocomplain $gen_dir/[file rootname $xci_name]_synth_1] $repo_path/Projects/HogIPs/
       }      
 
       if {[llength $ip_synth_files] > 0} {
@@ -2783,7 +2785,7 @@ proc HandleIP {what_to_do xci_file ip_path repo_path runs_dir {force 0}} {
 
         Msg Info "Creating local archive with IP generated files..."
         ::tar::create $file_name.tar [glob -nocomplain [Relative $repo_path $xci_path]]
-        if {[llength $ip_runs_files] > 0} {
+        if {[llength $ip_gen_files] > 0} {
           ::tar::add $file_name.tar [glob -nocomplain Projects/HogIPs/[file rootname $xci_name]_synth_1]
         }
 
@@ -2794,13 +2796,13 @@ proc HandleIP {what_to_do xci_file ip_path repo_path runs_dir {force 0}} {
             Msg CriticalWarning "Something went wrong when copying the IP files to EOS. Error message: $msg"
           }
         } else {
-          HogCopy "$file_name.tar" "$ip_path/"
+          Copy "$file_name.tar" "$ip_path/"
         }
         Msg Info "Removing local archive"
         file delete $file_name.tar
         file delete -force Projects/HogIPs/[file rootname $xci_name]_synth_1]
       } else {
-        Msg Warning "Could not find synthesized files matching $runs_dir/$file_name*"
+        Msg Warning "Could not find synthesized files matching $gen_dir/$file_name*"
       }
     }
   } elseif {$what_to_do eq "pull"} {
@@ -2822,8 +2824,8 @@ proc HandleIP {what_to_do xci_file ip_path repo_path runs_dir {force 0}} {
           Msg Info "Extracting IP files from archive to $repo_path..."
           ::tar::untar $file_name.tar -dir $repo_path -noperms
           if {[file exists [glob -nocomplain $repo_path/Projects/HogIPs]]} {
-            HogMkdir [glob -nocomplain $runs_dir]
-            HogCopy [glob -nocomplain $repo_path/Projects/HogIPs/*] $runs_dir/*
+            Mkdir [glob -nocomplain $gen_dir]
+            Copy [glob -nocomplain $repo_path/Projects/HogIPs/*] $gen_dir/*
           }
           Msg Info "Removing local archive"
           file delete $file_name.tar
@@ -2833,12 +2835,12 @@ proc HandleIP {what_to_do xci_file ip_path repo_path runs_dir {force 0}} {
     } else {
       if {[file exists "$ip_path/$file_name.tar"]} {
         Msg Info "IP $xci_name found in local repository $ip_path/$file_name.tar, copying it locally to $repo_path..."
-        HogCopy $ip_path/$file_name.tar $repo_path
+        Copy $ip_path/$file_name.tar $repo_path
         Msg Info "Extracting IP files from archive to $repo_path..."
         ::tar::untar $file_name.tar -dir $repo_path -noperms
         if {[file exists [glob -nocomplain $repo_path/Projects/HogIPs]]} {
-          HogMkdir [glob -nocomplain $runs_dir]
-          HogCopy [glob -nocomplain $repo_path/Projects/HogIPs/[file rootname $xci_name]_synth_1] $runs_dir/
+          Mkdir [glob -nocomplain $gen_dir]
+          Copy [glob -nocomplain $repo_path/Projects/HogIPs/[file rootname $xci_name]_synth_1] $gen_dir/
         }
         Msg Info "Removing local archive"
         file delete $file_name.tar
@@ -3736,7 +3738,7 @@ proc GetIDEFromConf {conf_file} {
 ##
 ## @param      dir   The dir
 ##
-proc HogMkdir {dir} {
+proc Mkdir {dir} {
   if {[file exists $dir] && [file isdirectory $dir]} {
     return 
   } else {
@@ -3751,7 +3753,7 @@ proc HogMkdir {dir} {
 ## @param      i_dir  The directory or file to copy
 ## @param      o_dir  The final destination
 ##
-proc HogCopy {i_dir o_dir} {
+proc Copy {i_dir o_dir} {
   if {[file isdirectory $i_dir] && [file isdirectory $o_dir]} {
     if {([file tail $i_dir] == [file tail $o_dir]) || ([file exists $o_dir/[file tail $i_dir]] && [file isdirectory $o_dir/[file tail $i_dir]])} {
       file delete -force $o_dir/[file tail $i_dir]

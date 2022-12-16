@@ -2627,7 +2627,7 @@ proc HandleIP {what_to_do xci_file ip_path repo_path runs_dir {force 0}} {
         lappend ip_synth_files_rel  [Relative $repo_path $ip_synth_files]
       }
 
-      set gen_dir_name [file tail [file rootname $runs_dir]].gen
+      set gen_dir_name [file tail [file rootname $runs_dir]].gen/sources_1/ip
       set gen_dir [file normalize $runs_dir/../$gen_dir_name]
       set ip_gen_files [glob -nocomplain $gen_dir/[file rootname $xci_name]_synth_1/*]
       if {[llength $ip_gen_files] > 0} {
@@ -2693,7 +2693,7 @@ proc HandleIP {what_to_do xci_file ip_path repo_path runs_dir {force 0}} {
           }
           Msg Info "Removing local archive"
           file delete $file_name.tar
-          # file delete -force Projects/HogIPs
+          file delete -force Projects/HogIPs
         }
       }
     } else {

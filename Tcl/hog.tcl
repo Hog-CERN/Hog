@@ -3655,10 +3655,10 @@ proc WriteGenerics {mode design date timee commit version top_hash top_ver hog_h
     set_property generic $generic_string [current_fileset]
     Msg Info "Setting Vivado generics : $generic_string"
     # Dealing with project generics in Simulators
-    # set simulator [get_property target_simulator [current_project]]
-    # if {$mode == "create"} {
-    #   SetGenericsSimulation $design $simulator
-    # }
+    set simulator [get_property target_simulator [current_project]]
+    if {$mode == "create"} {
+      SetGenericsSimulation $design $simulator
+    }
   } elseif {[IsSynplify]} {
     foreach generic $generic_string {
       Msg Info "Setting Synplify generic: $generic"

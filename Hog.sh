@@ -25,14 +25,19 @@ function help_Unic() {
   # echo
   # echo " Hog - Initialise repository"
   echo " ---------------------------"
-  echo " USAGE: ./Hog/Hog.sh ACTIVITY [OPTIONS] "
+  echo " USAGE: ./Hog/Hog.sh [GLOBAL OPTIONS] ACTIVITY [ACTIVITY OPTIONS] [PATH TO PROJECT] "
   echo ""
-  echo " Activities"
-  echo " -I, Init"
-  echo " -C, Create"
-  echo " -W, Workflow"
-  echo " -S, Simulation"
-  echo
+  echo "  HOG OPTIONS"
+  echo "    -v / --verbose    : Sets level of verbose"
+  echo "    -h / --help       : Show this message" 
+  echo "    -o / --colorfull  : enables colorfull logs" 
+  echo "" 
+  echo "  ACTIVITIES"
+  echo "    -I / Init"
+  echo "    -C / Create"
+  echo "    -W / Workflow"
+  echo "    -S / Simulation"
+  echo " ---------------------------"
   exit 0
 }
 
@@ -69,9 +74,15 @@ function help_Create() {
 
 
 ## executed when run
-echo " Input parameters ($#) :: $*"
+Msg Warning " Input parameters ($#) :: $*"
+
+
 arguments=$*
-print_hog $(dirname "$0")
+new_print_hog $(dirname "$0")
+# Logger HogVer $(dirname "$0")
+
+
+
 
 
 if [ $# == 0 ]; then
@@ -79,6 +90,15 @@ if [ $# == 0 ]; then
   help_Unic
   return 1
 else 
+  #Check if help vist 
+  if [[ "$*" == *"-v"* ]] || [[ "$*" == *"-verbose"* ]]; then
+    echo " Verbose level"
+  fi
+  if [[ "$*" == *"-h"* ]] || [[ "$*" == *"-help"* ]]; then
+    # echo "Y"
+    help_Unic
+    exit 0
+  fi
   activity=$1
   shift
   case "$activity" in
@@ -101,11 +121,11 @@ else
       # ./Hog/LaunchSimulation.sh $*
       Logger HogSimulateFunc $*
     ;;
-    -V|--verbose)
-      echo " Verbose level"
-      # ./Hog/LaunchSimulation.sh $*
-      # Logger HogSimulateFunc $*
-    ;;
+    # -V|--verbose)
+    #   echo " Verbose level"
+    #   # ./Hog/LaunchSimulation.sh $*
+    #   # Logger HogSimulateFunc $*
+    # ;;
     *)
       Msg Error "Activity not recognized"
       help_Unic $0

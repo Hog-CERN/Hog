@@ -471,6 +471,31 @@ function print_hog() {
   return 0
 }
 
+# @fn new_print_hog
+#
+# @param[in] $1 path to Hog dir
+# @brief prints the hog logo
+function new_print_hog() {
+  if [ -z ${1+x} ]; then
+    Msg Error "missing input! Got: $1!"
+    return 1
+  fi
+  cd "$1"
+  ver=$(git describe --always)
+  echo
+  # cat ./images/hog_logo.txt
+ while IFS= read -r line; do
+  echo -e "$line"
+ done < ./images/hog_logo_color.txt
+ 
+  echo " Version: ${ver}"
+  echo
+  cd - >> /dev/null
+  # HogVer $1
+
+  return 0
+}
+
 ## @fn search available projects inside input folder
 #
 # @brief Search all hog projects inside a folder

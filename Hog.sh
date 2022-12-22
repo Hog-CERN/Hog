@@ -74,7 +74,7 @@ function help_Create() {
 
 
 ## executed when run
-Msg Warning " Input parameters ($#) :: $*"
+echo_d " Input parameters ($#) :: $*"
 
 
 arguments=$*
@@ -90,8 +90,14 @@ if [ $# == 0 ]; then
   help_Unic
   return 1
 else 
+
   #Check if help vist 
   if [[ "$*" == *"-v"* ]] || [[ "$*" == *"-verbose"* ]]; then
+    echo_i " Verbose level"
+    DEBUG_VERBOSE=1
+  fi
+
+  if [[ "$*" == *"-I"* ]]; then
     echo " Verbose level"
   fi
   if [[ "$*" == *"-h"* ]] || [[ "$*" == *"-help"* ]]; then
@@ -99,12 +105,13 @@ else
     help_Unic
     exit 0
   fi
+
   activity=$1
   shift
   case "$activity" in
     -I|Init)
       # echo "Init"
-      Logger HogInitFunc $@
+      HogInitFunc $@
       exit 0
     ;;
     -C|Create)

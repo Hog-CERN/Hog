@@ -41,6 +41,23 @@ export POST_COMMAND_OPT=""
 #
 export HDL_COMPILER=""
 
+export DEBUG_VERBOSE=""
+#
+#
+txtblk='\e[0;30m' # Black - Regular
+txtred='\e[0;31m' # Red
+txtgrn='\e[0;32m' # Green
+txtylw='\e[0;33m' # Yellow
+txtblu='\e[0;34m' # Blue
+txtpur='\e[0;35m' # Purple
+txtcyn='\e[0;36m' # Cyan
+txtwht='\e[0;37m' # White
+
+echo_e() { echo -e "${txtred}  ERROR${txtwht} : $1"; }
+echo_w() { echo -e "${txtylw}WARNING${txtwht} : $1"; }
+echo_i() { echo -e "${txtblu}   INFO${txtwht} : $1"; }
+echo_d() { if [[ $DEBUG_VERBOSE -gt 0 ]]; then echo -e "${txtgrn}  DEBUG${txtwht} : $1"; fi;}
+
 ## @var LOGGER
 #  @brief Global variable used to contain the logger
 export HOG_LOGGER="" 
@@ -60,6 +77,7 @@ echo_errors=1
 loginfofile="hog_info.log"
 logwarningfile="hog_warning_errors.log"
 # logerrorfile="hog_warning_errors.log"
+
 
 
 function log_stdout(){

@@ -2629,14 +2629,19 @@ proc HandleIP {what_to_do xci_file ip_path repo_path runs_dir {force 0}} {
 
       set gen_dir_name [file tail [file rootname $runs_dir]].gen/sources_1/ip
       set gen_dir [file normalize $runs_dir/../$gen_dir_name]
+      Msg Info "Looking for generated files in $gen_dir..."
+
       set ip_gen_files [glob -nocomplain $gen_dir/[file rootname $xci_name]_synth_1/*]
       if {[llength $ip_gen_files] > 0} {
-        Msg Info "Found some IP synthesised files matching $gen_dir/$xci_name"
+        Msg Info "Found some IP generated files matching $gen_dir/$xci_name"
         Mkdir $repo_path/Projects/HogIPs
         Copy [glob -nocomplain $gen_dir/[file rootname $xci_name]_synth_1] $repo_path/Projects/HogIPs/
       }      
 
-      if {[llength $ip_synth_files] > 0} {
+      if {[llength $ip_synth_files] == 1} {
+        Msg Warning "Found only one file for IP $xci_ip_name: $ip_synth_file, will not copy."
+
+      } elseif {[llength $ip_synth_files] > 1} {
         Msg Info "Found some IP synthesised files matching $xci_ip_name"
         if {$will_remove == 1} {
           Msg Info "Removing old synthesised directory $ip_path/$file_name.tar..."

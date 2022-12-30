@@ -2585,6 +2585,10 @@ proc HandleIP {what_to_do xci_file ip_path repo_path runs_dir {force 0}} {
   set xci_ip_name [file root [file tail $xci_file]]
   set xci_dir_name [file tail $xci_path]
 
+  #We define gen_dir out here because is used both in push and pull
+  set gen_dir_name [file tail [file rootname $runs_dir]].gen/sources_1/ip/$xci_ip_name
+  set gen_dir [file normalize $runs_dir/../$gen_dir_name]
+
   set hash [Md5Sum $xci_file]
   set file_name $xci_name\_$hash
 
@@ -2621,27 +2625,21 @@ proc HandleIP {what_to_do xci_file ip_path repo_path runs_dir {force 0}} {
     }
 
     if {$will_copy == 1} {
-      set ip_synth_files [glob -nocomplain $xci_path/$xci_ip_name*]
-      set ip_synth_files_rel ""
-      foreach ip_synth_file $ip_synth_files {
-        lappend ip_synth_files_rel  [Relative $repo_path $ip_synth_files]
-      }
-
-      set gen_dir_name [file tail [file rootname $runs_dir]].gen/sources_1/ip
-      set gen_dir [file normalize $runs_dir/../$gen_dir_name]
-      Msg Info "Looking for generated files in $gen_dir..."
-
-      set ip_gen_files [glob -nocomplain $gen_dir/[file rootname $xci_name]_synth_1/*]
+      # Check if there are files in the .gen directory first and copy them into the right place
+      Msg Info "Also looking for generated files in $gen_dir..."
+      set ip_gen_files [glob -nocomplain $gen_dir/*]
       if {[llength $ip_gen_files] > 0} {
-        Msg Info "Found some IP generated files matching $gen_dir/$xci_name"
-        Mkdir $repo_path/Projects/HogIPs
-        Copy [glob -nocomplain $gen_dir/[file rootname $xci_name]_synth_1] $repo_path/Projects/HogIPs/
+        Msg Info "Found some IP generated files matching $gen_dir/$xci_name, copying to $xci_path..."
+	Mkdir $xci_path/generated_files
+        Copy [glob $gen_dir/*] $xci_path/generated_files/
       }      
 
-      if {[llength $ip_synth_files] == 1} {
-        Msg Warning "Found only one file for IP $xci_ip_name: $ip_synth_file, will not copy."
+      set ip_synth_files [glob -nocomplain $xci_path/$xci_ip_name*]
 
-      } elseif {[llength $ip_synth_files] > 1} {
+      if {[llength $ip_synth_files] <= 1 && [llength $ip_gen_files] == 0} {
+        Msg Warning "Found only one file for IP $xci_ip_name: $ip_synth_file and there are no generated files elsewhere, this is not OK. Will not copy."
+
+      } elseif {[llength $ip_synth_files] > 1 || [llength $ip_gen_files] > 0} {
         Msg Info "Found some IP synthesised files matching $xci_ip_name"
         if {$will_remove == 1} {
           Msg Info "Removing old synthesised directory $ip_path/$file_name.tar..."
@@ -2654,11 +2652,8 @@ proc HandleIP {what_to_do xci_file ip_path repo_path runs_dir {force 0}} {
 
         Msg Info "Creating local archive with IP generated files..."
         ::tar::create $file_name.tar [glob -nocomplain [Relative $repo_path $xci_path]]
-        if {[llength $ip_gen_files] > 0} {
-          ::tar::add $file_name.tar [glob -nocomplain Projects/HogIPs/[file rootname $xci_name]_synth_1]
-        }
 
-        Msg Info "Copying generated files for $xci_name..."
+        Msg Info "Copying IP generated files for $xci_name..."
         if {$on_eos == 1} {
           lassign [ExecuteRet xrdcp -f -s $file_name.tar  $::env(EOS_MGM_URL)//$ip_path/] ret msg
           if {$ret != 0} {
@@ -2669,7 +2664,7 @@ proc HandleIP {what_to_do xci_file ip_path repo_path runs_dir {force 0}} {
         }
         Msg Info "Removing local archive"
         file delete $file_name.tar
-        file delete -force Projects/HogIPs/[file rootname $xci_name]_synth_1]
+
       } else {
         Msg Warning "Could not find synthesized files matching $gen_dir/$file_name*"
       }
@@ -2689,35 +2684,31 @@ proc HandleIP {what_to_do xci_file ip_path repo_path runs_dir {force 0}} {
         lassign [ExecuteRet xrdcp -f -r -s $remote_tar $repo_path] ret msg
         if {$ret != 0} {
           Msg CriticalWarning "Something went wrong when copying the IP files to EOS. Error message: $msg"
-        } else {
-          Msg Info "Extracting IP files from archive to $repo_path..."
-          ::tar::untar $file_name.tar -dir $repo_path -noperms
-          if {[file exists [glob -nocomplain $repo_path/Projects/HogIPs]]} {
-            Mkdir [glob -nocomplain $gen_dir]
-            Copy [glob -nocomplain $repo_path/Projects/HogIPs/*] $gen_dir/*
-          }
-          Msg Info "Removing local archive"
-          file delete $file_name.tar
-          file delete -force Projects/HogIPs
         }
       }
     } else {
       if {[file exists "$ip_path/$file_name.tar"]} {
         Msg Info "IP $xci_name found in local repository $ip_path/$file_name.tar, copying it locally to $repo_path..."
         Copy $ip_path/$file_name.tar $repo_path
-        Msg Info "Extracting IP files from archive to $repo_path..."
-        ::tar::untar $file_name.tar -dir $repo_path -noperms
-        if {[file exists [glob -nocomplain $repo_path/Projects/HogIPs]]} {
-          Mkdir [glob -nocomplain $gen_dir]
-          Copy [glob -nocomplain $repo_path/Projects/HogIPs/[file rootname $xci_name]_synth_1] $gen_dir/
-        }
-        Msg Info "Removing local archive"
-        file delete $file_name.tar
+        
       } else {
         Msg Info "Nothing for $xci_name was found in the local IP repository, cannot pull."
         cd $old_path
         return -1
       }
+
+    }
+
+    if {[file exists $file_name.tar]} {
+      Msg Info "Extracting IP files from archive to $repo_path..."
+      ::tar::untar $file_name.tar -dir $repo_path -noperms
+      if {[file exists [glob -nocomplain  $xci_path/generated_files]]} {
+	Mkdir $gen_dir
+	Msg Info "Copying IP generated files to $gen_dir..."
+	Copy [glob -nocomplain $xci_path/generated_files/*] $gen_dir
+      }
+      Msg Info "Removing local archive"
+      file delete $file_name.tar
     }
   }
   cd $old_path
@@ -3619,14 +3610,17 @@ proc Mkdir {dir} {
 ##
 ## Copy a file or folder into a new path, not throwing an error if the final path is not empty
 ##
-## @param      i_dir  The directory or file to copy
+## @param      i_dirs  The directory or file to copy
 ## @param      o_dir  The final destination
 ##
-proc Copy {i_dir o_dir} {
-  if {[file isdirectory $i_dir] && [file isdirectory $o_dir]} {
-    if {([file tail $i_dir] == [file tail $o_dir]) || ([file exists $o_dir/[file tail $i_dir]] && [file isdirectory $o_dir/[file tail $i_dir]])} {
-      file delete -force $o_dir/[file tail $i_dir]
+proc Copy {i_dirs o_dir} {
+  foreach i_dir $i_dirs {
+    if {[file isdirectory $i_dir] && [file isdirectory $o_dir]} {
+      if {([file tail $i_dir] == [file tail $o_dir]) || ([file exists $o_dir/[file tail $i_dir]] && [file isdirectory $o_dir/[file tail $i_dir]])} {
+	file delete -force $o_dir/[file tail $i_dir]
+      }
     }
+    
+    file copy -force $i_dir $o_dir 
   }
-  file copy -force $i_dir $o_dir 
 }

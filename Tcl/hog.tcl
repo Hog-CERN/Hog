@@ -2585,9 +2585,9 @@ proc HandleIP {what_to_do xci_file ip_path repo_path runs_dir {force 0}} {
   set xci_ip_name [file root [file tail $xci_file]]
   set xci_dir_name [file tail $xci_path]
 
-  #We define gen_dir out here because is used both in push and pull
-  set gen_dir_name [file tail [file rootname $runs_dir]].gen/sources_1/ip/$xci_ip_name
-  set gen_dir [file normalize $runs_dir/../$gen_dir_name]
+  #We define gen_path out here because is used both in push and pull
+  set gen_path_name [file tail [file rootname $runs_dir]].gen/sources_1/ip/$xci_ip_name
+  set gen_path $runs_dir/../$gen_path_name
 
   set hash [Md5Sum $xci_file]
   set file_name $xci_name\_$hash
@@ -2626,15 +2626,9 @@ proc HandleIP {what_to_do xci_file ip_path repo_path runs_dir {force 0}} {
 
     if {$will_copy == 1} {
       # Check if there are files in the .gen directory first and copy them into the right place
-      Msg Info "Also looking for generated files in $gen_dir..."
-      set ip_gen_files [glob -nocomplain $gen_dir/*]
-      if {[llength $ip_gen_files] > 0} {
-        Msg Info "Found some IP generated files matching $gen_dir/$xci_name, copying to $xci_path..."
-	Mkdir $xci_path/generated_files
-        Copy [glob $gen_dir/*] $xci_path/generated_files/
-      }      
-
-      set ip_synth_files [glob -nocomplain $xci_path/$xci_ip_name*]
+      Msg Info "Also looking for generated files in $gen_path..."
+      set ip_gen_files [glob -nocomplain $gen_path/*]
+      set ip_synth_files [glob -nocomplain $xci_path/*]
 
       if {[llength $ip_synth_files] <= 1 && [llength $ip_gen_files] == 0} {
         Msg Warning "Found only one file for IP $xci_ip_name: $ip_synth_file and there are no generated files elsewhere, this is not OK. Will not copy."
@@ -2651,7 +2645,25 @@ proc HandleIP {what_to_do xci_file ip_path repo_path runs_dir {force 0}} {
         }
 
         Msg Info "Creating local archive with IP generated files..."
-        ::tar::create $file_name.tar [glob -nocomplain [Relative $repo_path $xci_path]]
+	if {[llength $ip_gen_files] > 0} {
+	  Msg Info "Found some IP generated files matching $gen_path/$xci_name, ading them..."
+	  lappend ip_synth_files {*}$ip_gen_files
+	}
+
+	set first_file 0
+	foreach f $ip_synth_files {
+	  if {$first_file == 0} {
+	    ::tar::create $file_name.tar "[Relative $repo_path $f]"
+	    set first_file 1
+	  } else {
+	    ::tar::add $file_name.tar "[Relative $repo_path $f]"
+	  }
+	}
+	
+	################# DEBUG #######################
+	puts "************ DEBUG *****************"
+	puts [join [::tar::contents $file_name.tar] "\n"]
+	puts "************ DEBUG *****************"
 
         Msg Info "Copying IP generated files for $xci_name..."
         if {$on_eos == 1} {
@@ -2666,7 +2678,7 @@ proc HandleIP {what_to_do xci_file ip_path repo_path runs_dir {force 0}} {
         file delete $file_name.tar
 
       } else {
-        Msg Warning "Could not find synthesized files matching $gen_dir/$file_name*"
+        Msg Warning "Could not find synthesized files matching $gen_path/$file_name*"
       }
     }
   } elseif {$what_to_do eq "pull"} {
@@ -2700,13 +2712,13 @@ proc HandleIP {what_to_do xci_file ip_path repo_path runs_dir {force 0}} {
     }
 
     if {[file exists $file_name.tar]} {
+      ################# DEBUG #######################
+      puts "************ DEBUG *****************"
+      puts [join [::tar::contents $file_name.tar] "\n"]
+      puts "************ DEBUG *****************"
+
       Msg Info "Extracting IP files from archive to $repo_path..."
       ::tar::untar $file_name.tar -dir $repo_path -noperms
-      if {[file exists [glob -nocomplain  $xci_path/generated_files]]} {
-	Mkdir $gen_dir
-	Msg Info "Copying IP generated files to $gen_dir..."
-	Copy [glob -nocomplain $xci_path/generated_files/*] $gen_dir
-      }
       Msg Info "Removing local archive"
       file delete $file_name.tar
     }

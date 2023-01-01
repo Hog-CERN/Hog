@@ -3598,6 +3598,153 @@ proc SetGenericsSimulation {proj_dir target} {
   }
 }
 
+## @brief Return the path to the active top file
+proc GetTopFile {} {
+    if {[IsVivado]} {
+        return [lindex [get_files -compile_order sources -used_in synthesis] end]
+    } elseif {[IsISE]} {
+        debug::design_graph_mgr -create [current_fileset]
+        debug::design_graph -add_fileset [current_fileset]
+        debug::design_graph -update_all
+        return [lindex [debug::design_graph -get_compile_order] end]
+    } else {
+        Msg Error "GetTopFile not yet implemented for this IDE"
+    }
+}
+
+## @brief Return the name of the active top module
+proc GetTopModule {} {
+    if {[IsXilinx]} {
+        return [get_property top [current_fileset]]
+    } else {
+        Msg Error "GetTopModule not yet implemented for this IDE"
+    }
+}
+
+## Get a dictionary of verilog generics with their types for a given file
+#
+#  @param[in] file File to read Generics from
+proc GetVerilogGenerics {file} {
+
+    set data [exec cat $file]
+    set lines []
+
+    # read in the verilog file and remove comments
+    foreach line [split $data "\n"] {
+        regsub "^\\s*\/\/.*" $line "" line
+        regsub "(.*)\/\/.*" $line {\1} line
+        if {![string equal $line ""]} {
+            append lines $line " "
+        }
+    }
+
+    # remove block comments also /* */
+    regsub -all {/\*.*\*/} $lines "" lines
+
+    # create a list of characters to split for tokenizing
+    set punctuation [list]
+    foreach char [list "(" ")" ";" "," " " "!" "<=" ":=" "=" "\[" "\]"] {
+        lappend punctuation $char "\000$char\000"
+    }
+
+    # split the file into tokens
+    set tokens [split [string map $punctuation $lines] \000]
+
+    set parameters [dict create]
+
+    set PARAM_NAME 1
+    set PARAM_VALUE 2
+    set LEXING 3
+    set PARAM_WIDTH 4
+    set state $LEXING
+
+    # # loop over the generic lines
+    foreach token $tokens {
+        set token [string trim $token]
+        if {![string equal "" $token]} {
+            if {[string equal [string tolower $token] "parameter"]} {
+                set state $PARAM_NAME
+            } elseif {[string equal $token ")"] || [string equal $token ";"]} {
+                set state $LEXING
+            } elseif {$state == $PARAM_WIDTH} {
+                if {[string equal $token "\]"]} {
+                    set state $PARAM_NAME
+                }
+            } elseif {$state == $PARAM_VALUE} {
+                if {[string equal $token ","]} {
+                    set state $PARAM_NAME
+                } elseif {[string equal $token ";"]} {
+                    set state $LEXING
+                } else {
+                }
+            } elseif {$state == $PARAM_NAME} {
+
+                if {[string equal $token "="]} {
+                    set state $PARAM_VALUE
+                } elseif {[string equal $token "\["]} {
+                    set state $PARAM_WIDTH
+                } elseif {[string equal $token ","]} {
+                    set state $PARAM_NAME
+                } elseif {[string equal $token ";"]} {
+                    set state $LEXING
+                } elseif {[string equal $token ")"]} {
+                    set state $LEXING
+                } else {
+                    dict set parameters $token "integer"
+                }}}}
+    puts $parameters
+    return $parameters
+}
+
+## Get a dictionary of VHDL generics with their types for a given file
+#
+#  @param[in] file File to read Generics from
+
+proc GetVhdlGenerics {file} {
+    set data [exec cat $file]
+    set lines []
+
+    # read in the vhdl file and remove comments
+    foreach line [split $data "\n"] {
+        regsub "^\\s*--.*" $line "" line
+        regsub "(.*)--.*" $line {\1} line
+        if {![string equal $line ""]} {
+            append lines $line " "
+        }
+    }
+
+    # extract the generic block
+    set match1 ""
+    regexp {(?i).*entity\s+[A-Za-z0-9_]+\s+is\s+generic\s*\((.*)\);\s*port.*} $lines matchall match1
+
+    set generics [dict create]
+
+    # loop over the generic lines
+    foreach line [split $match1 ";"]  {
+
+        # split the line into the generic + the type
+        regexp {(.*):\s*([A-Za-z0-9_]+).*} $line all generic type
+
+        # one line can have multiple generics of the same type, so loop over them
+        set splits [split $generic ","]
+        foreach split $splits {
+            dict set generics [string trim $split] [string trim $type]
+        }
+    }
+    return $generics
+}
+
+proc GetFileGenerics {filename} {
+  set file_type [FindFileType $filename]
+  if {[string equal $file_type "VERILOG_FILE"]} {
+      return [GetVerilogGenerics $filename]
+    } elseif {[string equal $file_type "VHDL_FILE"]} {
+        return [GetVhdlGenerics $filename]
+    } else {
+        Msg CriticalWarning "Could not determine extension of top level file."
+    }
+}
+
 ## Setting the generic property
 #
 #  @param[in]    list of variables to be written in the generics
@@ -3650,14 +3797,44 @@ proc WriteGenerics {mode design date timee commit version top_hash top_ver hog_h
   # Dealing with project generics in Vivado
   set prj_generics [GetGenericFromConf $design "Vivado"]
   set generic_string "$prj_generics $generic_string"
-  if {[IsVivado]} {
+  if {[IsXilinx]} {
+
+    set top_file [GetTopFile]
+    set top_name [GetTopModule]
+    if {[file exists $top_file]} {
+        set generics [GetFileGenerics $top_file]
+    } else {
+        set generics ""
+    }
+
+    Msg Info "Found top level generics $generics in $top_file"
+
+    set filtered_generic_string ""
+
+    foreach generic_to_set [split [string trim $generic_string]] {
+        set key [lindex [split $generic_to_set "="] 0]
+        if {[dict exists $generics $key]} {
+            Msg Info "Hog generic $key found in $top_name"
+            lappend filtered_generic_string "$generic_to_set"
+        } else {
+            Msg Info "Hog generic $key NOT found in $top_name"
+        }
+    }
+
+    # only filter in ISE...
+    if {[IsISE]} {
+        set generic_string $filtered_generic_string
+    }
+
     set_property generic $generic_string [current_fileset]
-    Msg Info "Setting Vivado generics : $generic_string"
+    Msg Info "Setting generics : $generic_string"
+
     # Dealing with project generics in Simulators
     # set simulator [get_property target_simulator [current_project]]
     # if {$mode == "create"} {
     #   SetGenericsSimulation $design $simulator
     # }
+
   } elseif {[IsSynplify]} {
     foreach generic $generic_string {
       Msg Info "Setting Synplify generic: $generic"

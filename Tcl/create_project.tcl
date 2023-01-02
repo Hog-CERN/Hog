@@ -645,10 +645,14 @@ proc UpgradeIP {} {
     if {$globalSettings::HOG_IP_PATH != ""} {
       set ip_repo_path $globalSettings::HOG_IP_PATH
       Msg Info "HOG_IP_PATH is set, will pull/push synthesised IPs from/to $ip_repo_path."
+      report_ip_status
+      puts "BEFORE:"
       foreach ip $ips {
 	puts [get_property IP_OUTPUT_DIR $ip]
 	HandleIP pull  [get_property IP_FILE $ip] $ip_repo_path $globalSettings::repo_path [get_property IP_OUTPUT_DIR $ip]
       }
+      puts "AFTER:"
+      report_ip_status
     } else {
       Msg Info "HOG_IP_PATH not set, will not push/pull synthesised IPs."
     }

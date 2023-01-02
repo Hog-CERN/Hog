@@ -2584,7 +2584,7 @@ proc HandleIP {what_to_do xci_file ip_path repo_path {gen_dir "."} {force 0}} {
   set xci_name [file tail $xci_file]
   set xci_ip_name [file root [file tail $xci_file]]
   set xci_dir_name [file tail $xci_path]
-  set gen_path [file normalize $xci_path/$gen_dir]
+  set gen_path $gen_dir
 
   set hash [Md5Sum $xci_file]
   set file_name $xci_name\_$hash
@@ -2642,12 +2642,12 @@ proc HandleIP {what_to_do xci_file ip_path repo_path {gen_dir "."} {force 0}} {
 
         Msg Info "Creating local archive with IP generated files..."
 	set first_file 0
-	foreach f $ip_synth_files {
+	foreach f $ip_gen_files {
 	  if {$first_file == 0} {
-	    ::tar::create $file_name.tar "[Relative $repo_path $f]"
+	    ::tar::create $file_name.tar "[Relative [file normalize $repo_path] $f]"
 	    set first_file 1
 	  } else {
-	    ::tar::add $file_name.tar "[Relative $repo_path $f]"
+	    ::tar::add $file_name.tar "[Relative [file normalize $repo_path] $f]"
 	  }
 	}
 	
@@ -2707,11 +2707,12 @@ proc HandleIP {what_to_do xci_file ip_path repo_path {gen_dir "."} {force 0}} {
       puts "************ DEBUG *****************"
       puts [join [::tar::contents $file_name.tar] "\n"]
       puts "************ DEBUG *****************"
-
+      remove_files $xci_file
       Msg Info "Extracting IP files from archive to $repo_path..."
       ::tar::untar $file_name.tar -dir $repo_path -noperms
       Msg Info "Removing local archive"
       file delete $file_name.tar
+      add_files -norecurse -fileset sources_1 $xci_file
     }
   }
   cd $old_path

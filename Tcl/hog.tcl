@@ -2528,10 +2528,10 @@ proc ForceUpToDate {} {
 # @param[in] xci_file: the .xci file of the IP you want to handle
 # @param[in] ip_path: the path of directory you want the IP to be saved on eos
 # @param[in] repo_path: the main path of your repository
-# @param[in] runs_dir: the runs directory of the project. Typically called Projects/\<project name\>/\<project name\>.runs
+# @param[in] gen_dir: the directory where generated files are placed, by default the files are placed in the same folder as the .xci
 # @param[in] force: if not set to 0, will copy the IP to EOS even if it is already present
 #
-proc HandleIP {what_to_do xci_file ip_path repo_path runs_dir {force 0}} {
+proc HandleIP {what_to_do xci_file ip_path repo_path {gen_dir "."} {force 0}} {
   if {!($what_to_do eq "push") && !($what_to_do eq "pull")} {
     Msg Error "You must specify push or pull as first argument."
   }
@@ -2584,10 +2584,7 @@ proc HandleIP {what_to_do xci_file ip_path repo_path runs_dir {force 0}} {
   set xci_name [file tail $xci_file]
   set xci_ip_name [file root [file tail $xci_file]]
   set xci_dir_name [file tail $xci_path]
-
-  #We define gen_path out here because is used both in push and pull
-  set gen_path_name [file tail [file rootname $runs_dir]].gen/sources_1/ip/$xci_ip_name
-  set gen_path $runs_dir/../$gen_path_name
+  set gen_path [file normalize $xci_path/$gen_dir]
 
   set hash [Md5Sum $xci_file]
   set file_name $xci_name\_$hash
@@ -2628,12 +2625,11 @@ proc HandleIP {what_to_do xci_file ip_path repo_path runs_dir {force 0}} {
       # Check if there are files in the .gen directory first and copy them into the right place
       Msg Info "Also looking for generated files in $gen_path..."
       set ip_gen_files [glob -nocomplain $gen_path/*]
-      set ip_synth_files [glob -nocomplain $xci_path/*]
+      #set ip_synth_files [glob -nocomplain $xci_path/*]
 
-      if {[llength $ip_synth_files] <= 1 && [llength $ip_gen_files] == 0} {
-        Msg Warning "Found only one file for IP $xci_ip_name: $ip_synth_file and there are no generated files elsewhere, this is not OK. Will not copy."
+      #here we should remove the .xci file from the list if it's there
 
-      } elseif {[llength $ip_synth_files] > 1 || [llength $ip_gen_files] > 0} {
+      if {[llength $ip_gen_files] > 0} {
         Msg Info "Found some IP synthesised files matching $xci_ip_name"
         if {$will_remove == 1} {
           Msg Info "Removing old synthesised directory $ip_path/$file_name.tar..."
@@ -2645,11 +2641,6 @@ proc HandleIP {what_to_do xci_file ip_path repo_path runs_dir {force 0}} {
         }
 
         Msg Info "Creating local archive with IP generated files..."
-	if {[llength $ip_gen_files] > 0} {
-	  Msg Info "Found some IP generated files matching $gen_path/$xci_name, ading them..."
-	  lappend ip_synth_files {*}$ip_gen_files
-	}
-
 	set first_file 0
 	foreach f $ip_synth_files {
 	  if {$first_file == 0} {

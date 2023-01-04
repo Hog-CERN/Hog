@@ -97,16 +97,32 @@ else
     DEBUG_VERBOSE=1
   fi
 
-  if [[ "$*" == *"-I"* ]]; then
-    echo " Verbose level"
-  fi
-  if [[ "$*" == *"-h"* ]] || [[ "$*" == *"-help"* ]]; then
-    # echo "Y"
-    help_Unic
-    exit 0
-  fi
+  # for ((i=0;i<${#$};i++)); do
+  #   echo "${i} :: ${$[i]}"
+  # done
+  # act_finder=0;
+  for arg in "$@" 
+  do
+    if [[ $arg == "-I" ]]; then
+      if [[ "$*" == *"-h"* ]] || [[ "$*" == *"-help"* ]]; then
+        # echo "Y"
+        help_Unic
+        exit 0
+      fi
+      act_ind=act_finder
+    fi
+    act_finder=$(($act_finder+1))
+    # echo $arg
+  done
+  
+  
+  # if [[ "$*" == *"-h"* ]] || [[ "$*" == *"-help"* ]]; then
+  #   # echo "Y"
+  #   help_Unic
+  #   exit 0
+  # fi
 
-  activity=$1
+  # activity=$1
   shift
   case "$activity" in
     -I|Init)
@@ -115,16 +131,16 @@ else
       exit 0
     ;;
     -C|Create)
-      echo " Create $*"
+      echo_i " Create $*"
       Logger HogCreateFunc $*
     ;;
     -W|Workflow)
-      echo " Workflow"
+      echo_i " Workflow"
       Logger HogLaunchFunc $*
       # ./Hog/LaunchWorkflow.sh $*
     ;;
     -S|Simulation)
-      echo " Simulation"
+      echo_i " Simulation"
       # ./Hog/LaunchSimulation.sh $*
       Logger HogSimulateFunc $*
     ;;

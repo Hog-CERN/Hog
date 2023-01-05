@@ -12,322 +12,342 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+---
 .only-default: &only-default
-   rules:
-      - if: '$CI_COMMIT_REF_NAME =~ /^test\/.*$/i'
-        when: never
-      - if: '$CI_COMMIT_MESSAGE =~ /DOXYGEN_ONLY/'
-        when: never
-      - if: '$CI_MERGE_REQUEST_TITLE =~ /^Draft:.*$/ && $CI_COMMIT_MESSAGE !~ /^RESOLVE_WIP:/'
-        when: never
-      - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $HOG_DEVELOP_BRANCH && $HOG_DEVELOP_BRANCH != null'
-        when: on_success
-      - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /^master|main|release.*$/ && $HOG_TARGET_BRANCH == null && $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME != $HOG_DEVELOP_BRANCH'
-        when: on_success        
-      - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $HOG_TARGET_BRANCH && $HOG_TARGET_BRANCH != null && $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME != $HOG_DEVELOP_BRANCH'
-        when: on_success
-      - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $HOG_INTERMEDIATE_BRANCH && $INTERMEDIATE_BUILD == "1" && $HOG_INTERMEDIATE_BRANCH != null' 
-        when: on_success
-      - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $HOG_INTERMEDIATE_BRANCH && $CI_BUILD_STAGE == "collect" && $HOG_INTERMEDIATE_BRANCH != null'
-        when: on_success
+  rules:
+    - if: '$CI_COMMIT_REF_NAME =~ /^test\/.*$/i'
+      when: never
+    - if: '$CI_COMMIT_MESSAGE =~ /DOXYGEN_ONLY/'
+      when: never
+    - if: '$CI_MERGE_REQUEST_TITLE =~ /^Draft:.*$/ &&
+           $CI_COMMIT_MESSAGE !~ /^RESOLVE_WIP:/'
+      when: never
+    - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $HOG_DEVELOP_BRANCH &&
+           $HOG_DEVELOP_BRANCH != null'
+      when: on_success
+    - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /^master|main|release.*$/ &&
+           $HOG_TARGET_BRANCH == null &&
+           $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME != $HOG_DEVELOP_BRANCH'
+      when: on_success
+    - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $HOG_TARGET_BRANCH &&
+           $HOG_TARGET_BRANCH != null &&
+           $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME != $HOG_DEVELOP_BRANCH'
+      when: on_success
+    - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $HOG_INTERMEDIATE_BRANCH &&
+           $INTERMEDIATE_BUILD == "1" &&
+           $HOG_INTERMEDIATE_BRANCH != null'
+      when: on_success
+    - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $HOG_INTERMEDIATE_BRANCH &&
+           $CI_BUILD_STAGE == "collect" &&
+           $HOG_INTERMEDIATE_BRANCH != null'
+      when: on_success
 
 .tag-hog: &tag-hog
   tags:
-     - hog
+    - hog
 
 .tag-sr: &tag-sr
   tags:
-     - docker
+    - docker
   image: gitlab-registry.cern.ch/hog/hog-docker:tclsh
 
 .vars: &vars
   GIT_STRATEGY: clone
-#   CI_DEBUG_TRACE: "true"
 
 
 .simulate_project: &simulate_project
-    <<: *only-default
-    <<: *tag-hog
-    stage: generation_and_simulation
-    variables:
-      <<: *vars
-    script:
-      - ./Hog/Other/CheckEnv.sh $PROJECT_NAME -a $HOG_APPTAINER_IMAGE;
-      - if [[ -v HOG_CHECK_PROJVER ]] && [[ $HOG_CHECK_PROJVER == '1' ]]; then
-          if [[ -v HOG_EXTERNAL_PATH ]]; then
-            ./Hog/Other/CheckProjVer.sh -ext_path "$HOG_EXTERNAL_PATH" -sim $PROJECT_NAME;
-          else
-            ./Hog/Other/CheckProjVer.sh -sim $PROJECT_NAME;
-          fi;
+  <<: *only-default
+  <<: *tag-hog
+  stage: generation_and_simulation
+  variables:
+    <<: *vars
+  script:
+    - ./Hog/Other/CheckEnv.sh $PROJECT_NAME -a $HOG_APPTAINER_IMAGE;
+    - if [[ -v HOG_CHECK_PROJVER ]] && [[ $HOG_CHECK_PROJVER == '1' ]]; then
+        if [[ -v HOG_EXTERNAL_PATH ]]; then
+          ./Hog/Other/CheckProjVer.sh -ext_path "$HOG_EXTERNAL_PATH" \\
+          -sim $PROJECT_NAME;
         else
-          echo "Project version checker is disabled.";
+          ./Hog/Other/CheckProjVer.sh -sim $PROJECT_NAME;
         fi;
-      - if [ -f "./Projects/${PROJECT_NAME}/skip.me" ]; then
-          echo "CI disabled for $PROJECT_NAME";
+      else
+        echo "Project version checker is disabled.";
+      fi;
+    - if [ -f "./Projects/${PROJECT_NAME}/skip.me" ]; then
+        echo "CI disabled for $PROJECT_NAME";
+      else
+        if [ -z ${HOG_SIMULATION_LIB_PATH+x} ]; then
+          echo 'Simulation library path is not defined';
+          SIM_CMD="./Hog/LaunchSimulation.sh $PROJECT_NAME";
         else
-          if [ -z ${HOG_SIMULATION_LIB_PATH+x} ]; then
-            echo 'Simulation library path is not defined';
-            SIM_CMD="./Hog/LaunchSimulation.sh $PROJECT_NAME";
-          else
-            SIM_CMD="./Hog/LaunchSimulation.sh $PROJECT_NAME -l $HOG_SIMULATION_LIB_PATH" ;
-          fi;
-          if [[ -f $HOG_APPTAINER_IMAGE ]]; then
-            echo "apptainer exec -H $PWD $HOG_APPTAINER_IMAGE $SIM_CMD";
-            if [[ -n $HOG_APPTAINER_EXTRA_PATH ]]; then
-              EXTRA_PATH="-B $HOG_APPTAINER_EXTRA_PATH";
-            fi;
-            apptainer exec -H $PWD $EXTRA_PATH $HOG_APPTAINER_IMAGE /bin/bash -c "export PATH=${HOG_PATH}:$PATH; $SIM_CMD";
-          else
-            echo $SIM_CMD;
-            $(echo $SIM_CMD);
-          fi;
+          SIM_CMD="./Hog/LaunchSimulation.sh $PROJECT_NAME \\
+          -l $HOG_SIMULATION_LIB_PATH" ;
         fi;
-    artifacts:
-       name: simulation_files
-       paths:
-         - Projects/$PROJECT_NAME/*.sim
-         - SkippedProjects/$PROJECT_NAME
-       expire_in: 30 day
-    allow_failure: true
-    interruptible: true
+        if [[ -f $HOG_APPTAINER_IMAGE ]]; then
+          echo "apptainer exec -H $PWD $HOG_APPTAINER_IMAGE $SIM_CMD";
+          if [[ -n $HOG_APPTAINER_EXTRA_PATH ]]; then
+            EXTRA_PATH="-B $HOG_APPTAINER_EXTRA_PATH";
+          fi;
+          apptainer exec -H $PWD $EXTRA_PATH $HOG_APPTAINER_IMAGE /bin/bash \\
+          -c "export PATH=${HOG_PATH}:$PATH; $SIM_CMD";
+        else
+          echo $SIM_CMD;
+          $(echo $SIM_CMD);
+        fi;
+      fi;
+  artifacts:
+    name: simulation_files
+    paths:
+      - Projects/$PROJECT_NAME/*.sim
+      - SkippedProjects/$PROJECT_NAME
+    expire_in: 30 day
+  allow_failure: true
+  interruptible: true
 
 .generate_project: &generate_project
-    <<: *only-default
-    <<: *tag-hog
-    stage: generation_and_simulation
-    variables:
-        <<: *vars
-    script:
-      - ./Hog/Other/CheckEnv.sh $PROJECT_NAME -a $HOG_APPTAINER_IMAGE;
-      # - ./Hog/Other/CheckEnv.sh $PROJECT_NAME;
-      - select_command Top/$PROJECT_NAME;
-      - if [ "$COMMAND" == "libero" ]; then
-          Xvfb :99 &
-          export DISPLAY=:99;
+  <<: *only-default
+  <<: *tag-hog
+  stage: generation_and_simulation
+  variables:
+    <<: *vars
+  script:
+    - ./Hog/Other/CheckEnv.sh $PROJECT_NAME -a $HOG_APPTAINER_IMAGE;
+    # - ./Hog/Other/CheckEnv.sh $PROJECT_NAME;
+    - select_command Top/$PROJECT_NAME;
+    - if [ "$COMMAND" == "libero" ]; then
+        Xvfb :99 &
+        export DISPLAY=:99;
+      fi;
+    - if [[ -v HOG_CHECK_PROJVER ]] && [[ $HOG_CHECK_PROJVER == '1' ]]; then
+        if [[ -v HOG_EXTERNAL_PATH ]]; then
+          ./Hog/Other/CheckProjVer.sh -ext_path "$HOG_EXTERNAL_PATH" \\
+          $PROJECT_NAME;
+        else
+          ./Hog/Other/CheckProjVer.sh $PROJECT_NAME;
         fi;
-      - if [[ -v HOG_CHECK_PROJVER ]] && [[ $HOG_CHECK_PROJVER == '1' ]]; then
-          if [[ -v HOG_EXTERNAL_PATH ]]; then
-            ./Hog/Other/CheckProjVer.sh -ext_path "$HOG_EXTERNAL_PATH" $PROJECT_NAME;
+      else
+        echo "Project version checker is disabled.";
+      fi
+    - if [ -f "./Projects/$PROJECT_NAME/skip.me" ]; then
+        echo "Hog-CI(info) - CI disabled for $PROJECT_NAME";
+      else
+        if [ -z ${HOG_NJOBS+x} ]; then
+          export HOG_NJOBS=4;
+          echo "Hog-CI(info) - Number of jobs set to $HOG_NJOBS";
+        fi;
+        ENABLE_EOS=1;
+        if [ -z ${EOS_PASSWORD+x} ]; then
+          if [ -z ${HOG_PASSWORD+x} ]; then
+            ENABLE_EOS=0;
           else
-            ./Hog/Other/CheckProjVer.sh $PROJECT_NAME;
-          fi;
-        else
-          echo "Project version checker is disabled.";
-        fi
-      - if [ -f "./Projects/$PROJECT_NAME/skip.me" ]; then
-          echo "Hog-CI(info) - CI disabled for $PROJECT_NAME";
-        else
-          if [ -z ${HOG_NJOBS+x} ]; then
-            export HOG_NJOBS=4;
-            echo "Hog-CI(info) - Number of jobs set to $HOG_NJOBS";
-          fi;
-          ENABLE_EOS=1;
-          if [ -z ${EOS_PASSWORD+x} ]; then
-            if [ -z ${HOG_PASSWORD+x} ]; then
-              ENABLE_EOS=0;
-            else
-              EOS_PASSWORD=${HOG_PASSWORD};
-            fi;
-          fi;
-          if [ -z ${EOS_USER+x} ]; then
-            if [ -z ${HOG_USER+x} ]; then
-              ENABLE_EOS=0;
-            else
-              EOS_USER=${HOG_USER};
-            fi;
+            EOS_PASSWORD=${HOG_PASSWORD};
           fi;
         fi;
-      - if [ ! -f "./Projects/$PROJECT_NAME/skip.me" ]; then    
-          if [ -z ${HOG_IP_PATH+x} ]; then
-            if [[ -z ${HOG_IP_EOS_PATH+x} ]]; then
-              echo "Hog-CI(info) - No EOS/LOCAL path for IPs defined.";
-              export IP_PATH="";
-            else
-              echo "Hog-CI(warning) HOG_IP_EOS_PATH is deprecated, you should use HOG_IP_PATH";
-              echo "Hog-CI(info) - IPs will be copied to/from $HOG_IP_EOS_PATH.";
-              export IP_PATH="-ip_path $HOG_IP_EOS_PATH";
-              if [[ $HOG_IP_EOS_PATH = /eos/* ]]; then
-                if [ $ENABLE_EOS -eq 1 ]; then
-                  echo "kinit $EOS_USER@CERN.CH";
-                  until echo $EOS_PASSWORD | kinit $EOS_USER@CERN.CH ; do echo "Retrying"; sleep 2; done;
-                fi;
-              fi;
-            fi;
+        if [ -z ${EOS_USER+x} ]; then
+          if [ -z ${HOG_USER+x} ]; then
+            ENABLE_EOS=0;
           else
-            echo "Hog-CI(info) - IPs will be copied to/from $HOG_IP_PATH.";
-            export IP_PATH="-ip_path $HOG_IP_PATH";
-            if [[ $HOG_IP_PATH = /eos/* ]]; then
+            EOS_USER=${HOG_USER};
+          fi;
+        fi;
+      fi;
+    - if [ ! -f "./Projects/$PROJECT_NAME/skip.me" ]; then
+        if [ -z ${HOG_IP_PATH+x} ]; then
+          if [[ -z ${HOG_IP_EOS_PATH+x} ]]; then
+            echo "Hog-CI(info) - No EOS/LOCAL path for IPs defined.";
+            export IP_PATH="";
+          else
+            echo "Hog-CI(warning) HOG_IP_EOS_PATH is deprecated, you should use HOG_IP_PATH";
+            echo "Hog-CI(info) - IPs will be copied to/from $HOG_IP_EOS_PATH.";
+            export IP_PATH="-ip_path $HOG_IP_EOS_PATH";
+            if [[ $HOG_IP_EOS_PATH = /eos/* ]]; then
               if [ $ENABLE_EOS -eq 1 ]; then
-                until echo $EOS_PASSWORD | kinit $EOS_USER@CERN.CH ; do echo "Retrying"; sleep 2; done;
+                echo "kinit $EOS_USER@CERN.CH";
+                until echo $EOS_PASSWORD | kinit $EOS_USER@CERN.CH ; do
+                  echo "Retrying";
+                  sleep 2;
+                done;
               fi;
             fi;
           fi;
-          if [[ -n "$HOG_ONLY_SYNTH" ]] && [[ $HOG_ONLY_SYNTH == '1' ]]; then
-            export ONLY_SYNTH="-synth_only";
-            echo "Hog-CI(info) - Only the synthesis will be run.";
-          else
-            export ONLY_SYNTH="";
-            if [[ -n "$HOG_NO_BITSTREAM" ]] && [[ $HOG_NO_BITSTREAM == '1' ]]; then
-              export NO_BITSTREAM="-no_bitstream";
-              echo "Hog-CI(info) - No binary files will be generated.";
-            else
-              echo "Hog-CI(info) - Binary files will be generated.";
-              export NO_BITSTREAM="";
-            fi;
-          fi;
-        fi;
-      - if [ ! -f "./Projects/$PROJECT_NAME/skip.me" ]; then        
-          if [[ -n "$HOG_CHECK_SYNTAX" ]] && [[ $HOG_CHECK_SYNTAX == '1' ]]; then
-            echo "Hog-CI(info) - HDL syntax will be checked before starting the synthesis";
-            export CHECK_SYNTAX="-check_syntax";
-          else
-            echo "Hog-CI(info) - HDL syntax will not be checked.";
-            export CHECK_SYNTAX="";
-          fi;
-          if [[ -n "$HOG_NO_RESET_BD" ]] && [[ $HOG_NO_RESET_BD == '1' ]]; then
-            echo "Hog-CI(info) - BD files will NOT be reset at pre synthesis time";
-          else
-            echo "Hog-CI(info) - BD files will be reset at pre-synthesis time";
-            mkdir -p Projects;
-            echo "*.bd" >> Projects/hog_reset_files;
-          fi;
-          if [[ -n "$HOG_RESET_FILES" ]]; then
-            echo "Hog-CI(info) - found files to be reset before synthesis, before implementation, and before bitstream";
-            echo "$HOG_RESET_FILES";
-            mkdir -p Projects;
-            echo "$HOG_RESET_FILES" >> Projects/hog_reset_files;
-          else
-            echo "Hog-CI(info) - no custom files will be reset.";
-          fi;
-          echo "Hog-CI(info) - Launching workflow now...";
-        fi;
-      - if [ ! -f "./Projects/$PROJECT_NAME/skip.me" ]; then
-          EXEC_CMD="./Hog/LaunchWorkflow.sh -njobs $HOG_NJOBS $IP_PATH $NO_BITSTREAM $ONLY_SYNTH $CHECK_SYNTAX $PROJECT_NAME";
-          if [[ -f $HOG_APPTAINER_IMAGE ]]; then
-            echo "singularity exec -H $PWD $HOG_APPTAINER_IMAGE $EXEC_CMD";
-            if [[ -n $HOG_APPTAINER_EXTRA_PATH ]]; then
-              EXTRA_PATH="-B $HOG_APPTAINER_EXTRA_PATH";
-            fi;
-            apptainer exec -H $PWD $EXTRA_PATH $HOG_APPTAINER_IMAGE /bin/bash -c "PATH=${HOG_PATH}:$PATH; $EXEC_CMD";
-          else
-            echo $EXEC_CMD;
-            $(echo $EXEC_CMD);
-          fi;
-        fi;
-      - if [ ! -f "./Projects/$PROJECT_NAME/skip.me" ]; then
-          if [[ -n "$HOG_ONLY_SYNTH" ]] && [[ $HOG_ONLY_SYNTH == '1' ]]; then
-            echo "Hog-CI(info) - Adding version and utilization summaries to note...";
-            if [[ -d "$CI_PROJECT_DIR/Projects/$PROJECT_NAME/$PROJECT_NAME.runs/" ]]; then
-              cat $CI_PROJECT_DIR/Projects/$PROJECT_NAME/$PROJECT_NAME.runs/versions* > note.md;
-              cp $CI_PROJECT_DIR/Projects/$PROJECT_NAME/$PROJECT_NAME.runs/versions* $CI_PROJECT_DIR/bin/$PROJECT_NAME*/;
-            fi;
-            if [[ -d "$CI_PROJECT_DIR/Projects/$PROJECT_NAME/output_files/" ]]; then
-              cat $CI_PROJECT_DIR/Projects/$PROJECT_NAME/output_files/versions* > note.md;
-              cp $CI_PROJECT_DIR/Projects/$PROJECT_NAME/output_files/versions* $CI_PROJECT_DIR/bin/$PROJECT_NAME*/;
-            fi;
-          else
-            echo "Hog-CI(info) - Adding versions, timing and utilization summary to note...";
-            if [[ -d "$CI_PROJECT_DIR/Projects/$PROJECT_NAME/output_files/" ]]; then
-              cat $CI_PROJECT_DIR/Projects/$PROJECT_NAME/output_files/versions* > note.md;
-            else
-              if [[ -f $CI_PROJECT_DIR/bin/$PROJECT_NAME*/versions* ]]; then
-                cat $CI_PROJECT_DIR/bin/$PROJECT_NAME*/versions* > note.md;
-              fi;
-              if [[ -f $CI_PROJECT_DIR/bin/$PROJECT_NAME*/timing_* ]]; then
-                cat $CI_PROJECT_DIR/bin/$PROJECT_NAME*/timing_* >> note.md;
-              fi;
-            fi;
-          fi;
-          if [[ -f "$CI_PROJECT_DIR/bin/$PROJECT_NAME*/utilization.txt" ]]; then
-            cat $CI_PROJECT_DIR/bin/$PROJECT_NAME*/utilization.txt >> note.md;
-          fi;
-          if [[ -n "$HOG_MR_MSG" ]] && [[ $HOG_MR_MSG == '3' ]]; then
-            echo "Hog-CI(info) - Writing note on gitlab website...";
-            ./Hog/Other/WriteGitlabNote.sh $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $CI_MERGE_REQUEST_IID note.md;
-          fi;
-          echo "Hog-CI(info) - All done.";
-        fi;
-    artifacts:
-        when: always
-        name: implementation_and_bitfiles
-        paths:
-            - bin
-        expire_in: 30 day
-    interruptible: true
-
-collect_artifacts:
-    <<: *only-default
-    <<: *tag-sr
-    stage: collect
-    variables:
-        <<: *vars
-    script:
-        - old_dir=`pwd`
-        - mkdir -p $CI_PROJECT_DIR/bin
-        - "printf \"## Repository info\n- Merge request number: $CI_MERGE_REQUEST_IID\n- Branch name: $CI_COMMIT_REF_NAME\n\n\" > $CI_PROJECT_DIR/bin/note.md"
-        - ./Hog/Other/Changelog.sh -t $CI_MERGE_REQUEST_TARGET_BRANCH_NAME -pt $HOG_PUSH_TOKEN -a $CI_API_V4_URL -p $CI_PROJECT_ID -n $CI_MERGE_REQUEST_IID  >> $CI_PROJECT_DIR/bin/note.md
-        - cd $CI_PROJECT_DIR/bin/
-        - diff_files=$(find . -name "diff_list*.txt");
-        - touch $old_dir/mr_note.md
-        - echo "Pipeline [$CI_PIPELINE_ID]($CI_PIPELINE_URL) passed for merge-request !$CI_MERGE_REQUEST_IID" >> $old_dir/mr_note.md
-        - if [[ $diff_files != "" ]]; then
-            echo "## Uncommitted differences" >> $old_dir/mr_note.md;
-            echo "## Uncommitted differences" >> $CI_PROJECT_DIR/bin/note.md;
-            for f in $diff_files; do
-              echo "Found uncommitted differences, check log file bin/$f in the artifacts." >> $old_dir/mr_note.md;
-              echo "" >> $old_dir/mr_note.md;
-              echo "Found uncommitted differences, check log file bin/$f in the artifacts." >> $CI_PROJECT_DIR/bin/note.md;
-              echo "" >> $CI_PROJECT_DIR/bin/note.md;
-            done;
-          fi
-        - note_files="versions timing utilization";
-        - for f in $note_files; do
-            files=$(find . -name "$f*.txt");
-            if (( ${#files} )); then
-              for fp in $files; do
-                if [[ $HOG_MR_MSG == '1' ]]; then
-                  cat $fp >> $old_dir/mr_note.md;
-                fi;
-                cat $fp >> $CI_PROJECT_DIR/bin/note.md;
+        else
+          echo "Hog-CI(info) - IPs will be copied to/from $HOG_IP_PATH.";
+          export IP_PATH="-ip_path $HOG_IP_PATH";
+          if [[ $HOG_IP_PATH = /eos/* ]]; then
+            if [ $ENABLE_EOS -eq 1 ]; then
+              until echo $EOS_PASSWORD | kinit $EOS_USER@CERN.CH; do
+                echo "Retrying"; sleep 2;
               done;
             fi;
-          done;
-        - cd $old_dir
-        - if [[ -z "$HOG_MR_MSG" ]] || [[ $HOG_MR_MSG == '1' ]] || [[ $HOG_MR_MSG == '2' ]]; then
-            echo "Hog-CI(info) - Writing note on gitlab website...";
-            ./Hog/Other/WriteGitlabNote.sh $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $CI_MERGE_REQUEST_IID mr_note.md;
           fi;
-    artifacts:
-        when: always
-        name: all_projects
-        paths:
-            - bin
-        expire_in: 30 day
-    allow_failure: true
+        fi;
+        if [[ -n "$HOG_ONLY_SYNTH" ]] && [[ $HOG_ONLY_SYNTH == '1' ]]; then
+          export ONLY_SYNTH="-synth_only";
+          echo "Hog-CI(info) - Only the synthesis will be run.";
+        else
+          export ONLY_SYNTH="";
+          if [[ -n "$HOG_NO_BITSTREAM" ]] && [[ $HOG_NO_BITSTREAM == '1' ]];
+          then
+            export NO_BITSTREAM="-no_bitstream";
+            echo "Hog-CI(info) - No binary files will be generated.";
+          else
+            echo "Hog-CI(info) - Binary files will be generated.";
+            export NO_BITSTREAM="";
+          fi;
+        fi;
+      fi;
+    - if [ ! -f "./Projects/$PROJECT_NAME/skip.me" ]; then
+        if [[ -n "$HOG_CHECK_SYNTAX" ]] && [[ $HOG_CHECK_SYNTAX == '1' ]]; then
+          echo "Hog-CI(info) - HDL syntax will be checked before starting the synthesis";
+          export CHECK_SYNTAX="-check_syntax";
+        else
+          echo "Hog-CI(info) - HDL syntax will not be checked.";
+          export CHECK_SYNTAX="";
+        fi;
+        if [[ -n "$HOG_NO_RESET_BD" ]] && [[ $HOG_NO_RESET_BD == '1' ]]; then
+          echo "Hog-CI(info) - BD files will NOT be reset at pre synthesis time";
+        else
+          echo "Hog-CI(info) - BD files will be reset at pre-synthesis time";
+          mkdir -p Projects;
+          echo "*.bd" >> Projects/hog_reset_files;
+        fi;
+        if [[ -n "$HOG_RESET_FILES" ]]; then
+          echo "Hog-CI(info) - found files to be reset before synthesis, before implementation, and before bitstream";
+          echo "$HOG_RESET_FILES";
+          mkdir -p Projects;
+          echo "$HOG_RESET_FILES" >> Projects/hog_reset_files;
+        else
+          echo "Hog-CI(info) - no custom files will be reset.";
+        fi;
+        echo "Hog-CI(info) - Launching workflow now...";
+      fi;
+    - if [ ! -f "./Projects/$PROJECT_NAME/skip.me" ]; then
+        EXEC_CMD="./Hog/LaunchWorkflow.sh -njobs $HOG_NJOBS $IP_PATH $NO_BITSTREAM $ONLY_SYNTH $CHECK_SYNTAX $PROJECT_NAME";
+        if [[ -f $HOG_APPTAINER_IMAGE ]]; then
+          echo "singularity exec -H $PWD $HOG_APPTAINER_IMAGE $EXEC_CMD";
+          if [[ -n $HOG_APPTAINER_EXTRA_PATH ]]; then
+            EXTRA_PATH="-B $HOG_APPTAINER_EXTRA_PATH";
+          fi;
+          apptainer exec -H $PWD $EXTRA_PATH $HOG_APPTAINER_IMAGE /bin/bash -c "PATH=${HOG_PATH}:$PATH; $EXEC_CMD";
+        else
+          echo $EXEC_CMD;
+          $(echo $EXEC_CMD);
+        fi;
+      fi;
+    - if [ ! -f "./Projects/$PROJECT_NAME/skip.me" ]; then
+        if [[ -n "$HOG_ONLY_SYNTH" ]] && [[ $HOG_ONLY_SYNTH == '1' ]]; then
+          echo "Hog-CI(info) - Adding version and utilization summaries to note...";
+          if [[ -d "$CI_PROJECT_DIR/Projects/$PROJECT_NAME/$PROJECT_NAME.runs/" ]]; then
+            cat $CI_PROJECT_DIR/Projects/$PROJECT_NAME/$PROJECT_NAME.runs/versions* > note.md;
+            cp $CI_PROJECT_DIR/Projects/$PROJECT_NAME/$PROJECT_NAME.runs/versions* $CI_PROJECT_DIR/bin/$PROJECT_NAME*/;
+          fi;
+          if [[ -d "$CI_PROJECT_DIR/Projects/$PROJECT_NAME/output_files/" ]]; then
+            cat $CI_PROJECT_DIR/Projects/$PROJECT_NAME/output_files/versions* > note.md;
+            cp $CI_PROJECT_DIR/Projects/$PROJECT_NAME/output_files/versions* $CI_PROJECT_DIR/bin/$PROJECT_NAME*/;
+          fi;
+        else
+          echo "Hog-CI(info) - Adding versions, timing and utilization summary to note...";
+          if [[ -d "$CI_PROJECT_DIR/Projects/$PROJECT_NAME/output_files/" ]]; then
+            cat $CI_PROJECT_DIR/Projects/$PROJECT_NAME/output_files/versions* > note.md;
+          else
+            if [[ -f $CI_PROJECT_DIR/bin/$PROJECT_NAME*/versions* ]]; then
+              cat $CI_PROJECT_DIR/bin/$PROJECT_NAME*/versions* > note.md;
+            fi;
+            if [[ -f $CI_PROJECT_DIR/bin/$PROJECT_NAME*/timing_* ]]; then
+              cat $CI_PROJECT_DIR/bin/$PROJECT_NAME*/timing_* >> note.md;
+            fi;
+          fi;
+        fi;
+        if [[ -f "$CI_PROJECT_DIR/bin/$PROJECT_NAME*/utilization.txt" ]]; then
+          cat $CI_PROJECT_DIR/bin/$PROJECT_NAME*/utilization.txt >> note.md;
+        fi;
+        if [[ -n "$HOG_MR_MSG" ]] && [[ $HOG_MR_MSG == '3' ]]; then
+          echo "Hog-CI(info) - Writing note on gitlab website...";
+          ./Hog/Other/WriteGitlabNote.sh $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $CI_MERGE_REQUEST_IID note.md;
+        fi;
+        echo "Hog-CI(info) - All done.";
+      fi;
+  artifacts:
+    when: always
+    name: implementation_and_bitfiles
+    paths:
+      - bin
+    expire_in: 30 day
+  interruptible: true
+
+collect_artifacts:
+  <<: *only-default
+  <<: *tag-sr
+  stage: collect
+  variables:
+    <<: *vars
+  script:
+    - old_dir=`pwd`
+    - mkdir -p $CI_PROJECT_DIR/bin
+    - "printf \"## Repository info\n- Merge request number: $CI_MERGE_REQUEST_IID\n- Branch name: $CI_COMMIT_REF_NAME\n\n\" > $CI_PROJECT_DIR/bin/note.md"
+    - ./Hog/Other/Changelog.sh -t $CI_MERGE_REQUEST_TARGET_BRANCH_NAME -pt $HOG_PUSH_TOKEN -a $CI_API_V4_URL -p $CI_PROJECT_ID -n $CI_MERGE_REQUEST_IID  >> $CI_PROJECT_DIR/bin/note.md
+    - cd $CI_PROJECT_DIR/bin/
+    - diff_files=$(find . -name "diff_list*.txt");
+    - touch $old_dir/mr_note.md
+    - echo "Pipeline [$CI_PIPELINE_ID]($CI_PIPELINE_URL) passed for merge-request !$CI_MERGE_REQUEST_IID" >> $old_dir/mr_note.md
+    - if [[ $diff_files != "" ]]; then
+        echo "## Uncommitted differences" >> $old_dir/mr_note.md;
+        echo "## Uncommitted differences" >> $CI_PROJECT_DIR/bin/note.md;
+        for f in $diff_files; do
+          echo "Found uncommitted differences, check log file bin/$f in the artifacts." >> $old_dir/mr_note.md;
+          echo "" >> $old_dir/mr_note.md;
+          echo "Found uncommitted differences, check log file bin/$f in the artifacts." >> $CI_PROJECT_DIR/bin/note.md;
+          echo "" >> $CI_PROJECT_DIR/bin/note.md;
+        done;
+      fi
+    - note_files="versions timing utilization";
+    - for f in $note_files; do
+        files=$(find . -name "$f*.txt");
+        if (( ${#files} )); then
+          for fp in $files; do
+            if [[ $HOG_MR_MSG == '1' ]]; then
+              cat $fp >> $old_dir/mr_note.md;
+            fi;
+            cat $fp >> $CI_PROJECT_DIR/bin/note.md;
+          done;
+        fi;
+      done;
+    - cd $old_dir
+    - if [[ -z "$HOG_MR_MSG" ]] || [[ $HOG_MR_MSG == '1' ]] || [[ $HOG_MR_MSG == '2' ]]; then
+        echo "Hog-CI(info) - Writing note on gitlab website...";
+        ./Hog/Other/WriteGitlabNote.sh $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $CI_MERGE_REQUEST_IID mr_note.md;
+      fi;
+  artifacts:
+    when: always
+    name: all_projects
+    paths:
+      - bin
+    expire_in: 30 day
+  allow_failure: true
 
 check-timing:
-    <<: *only-default
-    <<: *tag-sr
-    stage: collect
-    variables:
-        <<: *vars
-    script:
-        - cd $CI_PROJECT_DIR/bin/
-        - PRJ_BITS=$(find . -iname "versions.txt")
-        - FAILED_PRJS=""
-        - for PRJ_BIT in ${PRJ_BITS}; do
-            PRJ_DIR=$(dirname "$PRJ_BIT");
-            PRJ_NAME="${PRJ_DIR%.*}";
-            PRJ_NAME="${PRJ_NAME%-*}";
-            PRJ_NAME_BASE=$(basename $PRJ_NAME);
-            if [ -f "$PRJ_DIR/timing_error.txt" ]; then
-              FAILED_PRJS="$FAILED_PRJS $PRJ_NAME_BASE";
-            fi;
-          done;
-        - if [ "$FAILED_PRJS" != "" ]; then
-            echo "The following projects have failed timing:$FAILED_PRJS";
-            exit 1;
-          else
-            echo "All projects met timing. All good!";
-          fi;
-    allow_failure: true
+  <<: *only-default
+  <<: *tag-sr
+  stage: collect
+  variables:
+    <<: *vars
+  script:
+    - cd $CI_PROJECT_DIR/bin/
+    - PRJ_BITS=$(find . -iname "versions.txt")
+    - FAILED_PRJS=""
+    - for PRJ_BIT in ${PRJ_BITS}; do
+        PRJ_DIR=$(dirname "$PRJ_BIT");
+        PRJ_NAME="${PRJ_DIR%.*}";
+        PRJ_NAME="${PRJ_NAME%-*}";
+        PRJ_NAME_BASE=$(basename $PRJ_NAME);
+        if [ -f "$PRJ_DIR/timing_error.txt" ]; then
+          FAILED_PRJS="$FAILED_PRJS $PRJ_NAME_BASE";
+        fi;
+      done;
+    - if [ "$FAILED_PRJS" != "" ]; then
+        echo "The following projects have failed timing:$FAILED_PRJS";
+        exit 1;
+      else
+        echo "All projects met timing. All good!";
+      fi;
+  allow_failure: true

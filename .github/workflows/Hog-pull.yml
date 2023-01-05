@@ -12,6 +12,7 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+---
 name: Hog-pull
 
 on:
@@ -119,17 +120,17 @@ jobs:
     steps:
       - uses: actions/checkout@v3
         name: Checkout Repository
-        with: 
+        with:
           fetch-depth: 0
       - uses: webfactory/ssh-agent@v0.5.4
         name: SSH-Agent
         with:
-            ssh-private-key: ${{ secrets.SUBMODULE_CONTENT_PULL_KEY }}
+          ssh-private-key: ${{ secrets.SUBMODULE_CONTENT_PULL_KEY }}
       - name: Merge And Tag
         run: |
           git config --global user.email "$HOG_EMAIL"
           git config --global user.name "$HOG_USER"
-          git fetch 
+          git fetch
           git checkout $GITHUB_HEAD_REF
           git pull
           git submodule init
@@ -166,17 +167,17 @@ jobs:
     steps:
       - uses: actions/checkout@v3
         name: Checkout Repository
-        with: 
+        with:
           fetch-depth: 0
       - uses: webfactory/ssh-agent@v0.5.4
         name: SSH-Agent
         with:
-            ssh-private-key: ${{ secrets.SUBMODULE_CONTENT_PULL_KEY }}
+          ssh-private-key: ${{ secrets.SUBMODULE_CONTENT_PULL_KEY }}
       - name: Doxygen
-        run : |
+        run: |
           git config --global user.email "$HOG_EMAIL"
           git config --global user.name "$HOG_USER"
-          git fetch 
+          git fetch
           git checkout $GITHUB_HEAD_REF
           git pull
           git submodule init
@@ -190,7 +191,7 @@ jobs:
             Doc
   generate_project:
     runs-on: self-hosted
-    if: ${{ inputs.BUILD_PROJECTS }}   
+    if: ${{ inputs.BUILD_PROJECTS }}
     strategy:
       matrix:
         PROJECT_NAME: ${{fromJson(inputs.BUILD_PROJECTS)}}
@@ -200,12 +201,12 @@ jobs:
         name: Cleaning
       - uses: actions/checkout@v3
         name: Checkout Repository
-        with: 
+        with:
           fetch-depth: 0
       - uses: webfactory/ssh-agent@v0.5.4
         name: SSH-Agent
         with:
-            ssh-private-key: ${{ secrets.SUBMODULE_CONTENT_PULL_KEY }}
+          ssh-private-key: ${{ secrets.SUBMODULE_CONTENT_PULL_KEY }}
       - name: Build
         run: |
               PROJECT_NAME=${{ matrix.PROJECT_NAME}}
@@ -238,7 +239,7 @@ jobs:
               source Hog/Other/CommonFunctions.sh
               select_command Top/$PROJECT_NAME
               if [ $COMMAND == "libero"]; then
-                # Libero requires a virtual X session to work 
+                # Libero requires a virtual X session to work
                 Xvfb :99 &
                 export DISPLAY=:99
               fi;
@@ -302,7 +303,6 @@ jobs:
                   echo "Hog-CI(info) - HDL syntax will not be checked.";
                   export CHECK_SYNTAX="";
                 fi;
-                
                 if [ ${{ inputs.HOG_NO_RESET_BD }} ]; then
                   echo "Hog-CI(info) - BD files will NOT be reset at pre syntehsis time";
                 else
@@ -372,7 +372,7 @@ jobs:
             bin
   simulate_project:
     runs-on: self-hosted
-    if: ${{ inputs.SIM_PROJECTS }}   
+    if: ${{ inputs.SIM_PROJECTS }}
     strategy:
       matrix:
         PROJECT_NAME: ${{fromJson(inputs.SIM_PROJECTS)}}
@@ -382,12 +382,12 @@ jobs:
         name: Cleaning
       - uses: actions/checkout@v3
         name: Checkout Repository
-        with: 
+        with:
           fetch-depth: 0
       - uses: webfactory/ssh-agent@v0.5.4
         name: SSH-Agent
         with:
-            ssh-private-key: ${{ secrets.SUBMODULE_CONTENT_PULL_KEY }}
+          ssh-private-key: ${{ secrets.SUBMODULE_CONTENT_PULL_KEY }}
       - name: Simulate
         run: |
               git config --global user.email "$HOG_EMAIL"
@@ -423,7 +423,7 @@ jobs:
                 if [ -z "$HOG_APPTAINER_IMAGE" ]; then
                   echo $SIM_CMD;
                   $(echo $SIM_CMD);
-                else 
+                else
                   echo "apptainer exec -H $PWD $HOG_APPTAINER_IMAGE  $SIM_CMD";
                   if [ "$HOG_APPTAINER_EXTRA_PATH" != "" ]; then
                     EXTRA_PATH="-B $HOG_APPTAINER_EXTRA_PATH";
@@ -445,7 +445,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
         name: Checkout Repository
-        with: 
+        with:
           fetch-depth: 0
       - uses: webfactory/ssh-agent@v0.5.4
         name: SSH-Agent

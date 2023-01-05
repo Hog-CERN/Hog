@@ -73,29 +73,72 @@ build-doxygen-official:
         - ./doxygen/scripts/build-and-deploy.sh /eos/user/h/hog/www/doxy-master
 
 changelog:
-      stage: tag
-      image: gitlab-registry.cern.ch/hog/hog-docker:tclsh
-      only:
-           refs:
-              - merge_requests
-           variables:
-              - $CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /^(master|develop)$/
-      except:
-           variables:
-              - $CI_COMMIT_REF_NAME =~ /^test\/.*$/i
-      script:
-          - "MR_PARAMETERS=`curl --header \"PRIVATE-TOKEN: ${HOG_PUSH_TOKEN}\" ${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/merge_requests/${CI_MERGE_REQUEST_IID}`"
-          - tclsh ./Tcl/CI/merge_and_tag.tcl -Hog  -mr_par "$MR_PARAMETERS" -mr_id $CI_MERGE_REQUEST_IID -push $CI_COMMIT_REF_NAME -main_branch $CI_MERGE_REQUEST_TARGET_BRANCH_NAME
-          - git fetch origin refs/notes/*:refs/notes/*
-          - git notes add -fm "$CI_MERGE_REQUEST_IID $CI_COMMIT_REF_NAME"
-          - git push origin refs/notes/*
-          - "printf \"## Repository info\n- Merge request number: $CI_MERGE_REQUEST_IID\n- Branch name: $CI_COMMIT_REF_NAME\n\n\" > changelog.md"
-          - ./Other/Changelog.sh -t $CI_MERGE_REQUEST_TARGET_BRANCH_NAME -pt $HOG_PUSH_TOKEN -a $CI_API_V4_URL -p $CI_PROJECT_ID -n $CI_MERGE_REQUEST_IID  >> changelog.md
-      artifacts:
-        name: changelog
-        paths:
-          - changelog.md
-        expire_in: 1 month
+  stage: tag
+  image: gitlab-registry.cern.ch/hog/hog-docker:tclsh
+  only:
+    refs:
+      - merge_requests
+    variables:
+      - $CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /^(master|develop)$/
+  except:
+    variables:
+      - $CI_COMMIT_REF_NAME =~ /^test\/.*$/i
+  script:
+    - "MR_PARAMETERS=`curl --header \"PRIVATE-TOKEN: ${HOG_PUSH_TOKEN}\" ${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/merge_requests/${CI_MERGE_REQUEST_IID}`"
+    - tclsh ./Tcl/CI/merge_and_tag.tcl -Hog  -mr_par "$MR_PARAMETERS" -mr_id $CI_MERGE_REQUEST_IID -push $CI_COMMIT_REF_NAME -main_branch $CI_MERGE_REQUEST_TARGET_BRANCH_NAME
+    - git fetch origin refs/notes/*:refs/notes/*
+    - git notes add -fm "$CI_MERGE_REQUEST_IID $CI_COMMIT_REF_NAME"
+    - git push origin refs/notes/*
+    - "printf \"## Repository info\n- Merge request number: $CI_MERGE_REQUEST_IID\n- Branch name: $CI_COMMIT_REF_NAME\n\n\" > changelog.md"
+    - ./Other/Changelog.sh -t $CI_MERGE_REQUEST_TARGET_BRANCH_NAME -pt $HOG_PUSH_TOKEN -a $CI_API_V4_URL -p $CI_PROJECT_ID -n $CI_MERGE_REQUEST_IID  >> changelog.md
+  artifacts:
+    name: changelog
+    paths:
+      - changelog.md
+    expire_in: 1 month
+
+shellcheck:
+  stage: tag
+  image: gitlab-registry.cern.ch/hog/hog-docker:ubuntu
+  only:
+    refs:
+      - merge_requests
+    variables:
+      - $CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /^(master|develop)$/
+  except:
+    variables:
+      - $CI_COMMIT_REF_NAME =~ /^test\/.*$/i
+  script:
+    - shellcheck Other/*.sh *.sh
+
+yamllint:
+  stage: tag
+  image: gitlab-registry.cern.ch/hog/hog-docker:ubuntu
+  only:
+    refs:
+      - merge_requests
+    variables:
+      - $CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /^(master|develop)$/
+  except:
+    variables:
+      - $CI_COMMIT_REF_NAME =~ /^test\/.*$/i
+  script:
+    - yamllint -c /scripts/hog-yaml.yaml YAML/*.yml *.yml .gitlab-ci.yml .github/workflows/*.yml Templates/*.yml
+
+nagelfar:
+  stage: tag
+  image: gitlab-registry.cern.ch/hog/hog-docker:ubuntu
+  only:
+    refs:
+      - merge_requests
+    variables:
+      - $CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /^(master|develop)$/
+  except:
+    variables:
+      - $CI_COMMIT_REF_NAME =~ /^test\/.*$/i
+  script:
+    - /scripts/nagelfar133/nagelfar.tcl Tcl/*.tcl Tcl/*/*.tcl
+
 
 tagging_develop:
       stage: tag

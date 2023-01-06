@@ -142,12 +142,11 @@
           if [ -z ${HOG_IP_PATH+x} ]; then
             if [[ -z ${HOG_IP_EOS_PATH+x} ]]; then
               echo "Hog-CI(info) - No EOS/LOCAL path for IPs defined.";
-              export IP_PATH="";
             else
               echo "Hog-CI(warning) HOG_IP_EOS_PATH is deprecated, you should use HOG_IP_PATH";
               echo "Hog-CI(info) - IPs will be copied to/from $HOG_IP_EOS_PATH.";
-              export IP_PATH="-ip_path $HOG_IP_EOS_PATH";
-              if [[ $HOG_IP_EOS_PATH = /eos/* ]]; then
+              export HOG_IP_PATH="$HOG_IP_EOS_PATH";
+              if [[ $HOG_IP_PATH = /eos/* ]]; then
                 if [ $ENABLE_EOS -eq 1 ]; then
                   echo "kinit $EOS_USER@CERN.CH";
                   until echo $EOS_PASSWORD | kinit $EOS_USER@CERN.CH ; do echo "Retrying"; sleep 2; done;
@@ -156,7 +155,6 @@
             fi;
           else
             echo "Hog-CI(info) - IPs will be copied to/from $HOG_IP_PATH.";
-            export IP_PATH="-ip_path $HOG_IP_PATH";
             if [[ $HOG_IP_PATH = /eos/* ]]; then
               if [ $ENABLE_EOS -eq 1 ]; then
                 until echo $EOS_PASSWORD | kinit $EOS_USER@CERN.CH ; do echo "Retrying"; sleep 2; done;
@@ -203,7 +201,7 @@
           echo "Hog-CI(info) - Launching workflow now...";
         fi;
       - if [ ! -f "./Projects/$PROJECT_NAME/skip.me" ]; then
-          EXEC_CMD="./Hog/LaunchWorkflow.sh -njobs $HOG_NJOBS $IP_PATH $NO_BITSTREAM $ONLY_SYNTH $CHECK_SYNTAX $PROJECT_NAME";
+          EXEC_CMD="./Hog/LaunchWorkflow.sh -njobs $HOG_NJOBS $NO_BITSTREAM $ONLY_SYNTH $CHECK_SYNTAX $PROJECT_NAME";
           if [[ -f $HOG_APPTAINER_IMAGE ]]; then
             echo "singularity exec -H $PWD $HOG_APPTAINER_IMAGE $EXEC_CMD";
             if [[ -n $HOG_APPTAINER_EXTRA_PATH ]]; then

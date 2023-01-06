@@ -133,27 +133,34 @@ if {[IsXilinx]} {
   }
 
  # Handle IPs 
+if {[info exists env(HOG_IP_PATH)]} {
+  set ip_repo $env(HOG_IP_PATH)
+
   if {[IsISE]} {
     # Do nothing...
   } else {
-    set ip_repo "minc"
-    puts "DEBUG: ------------------------------------"
+
     set ips [get_ips *]
     set run_paths [glob -nocomplain "$run_dir/*"]
     puts "RUNS: $run_paths"    
     set runs {}
     foreach r $run_paths {
       if {[regexp -all {^(.+)_synth_1}  $r whole_match run]} {
-	lappend runs $run
+	lappend runs [file tail $run]
       }
     }
-    Msg Info "Found [llength $runs] IP runs, will push them to $ip_repo."
-    puts "IPS: $ips"
-    puts "RUNS: $runs"
-    puts "DEBUG: ------------------------------------"
+    
+    foreach ip $ips {
+      if {$ip in $runs} {
+	set force 1
+      } else {
+	set force 0
+      }
+      Msg Info "Copying synthesised IP $ip to $ip_repo..."
+      HandleIP push [get_property IP_FILE $ip] $ip_repo $repo_path [get_property IP_OUTPUT_DIR $ip] $force
+    }
   }
-
-
+}
 
 
 

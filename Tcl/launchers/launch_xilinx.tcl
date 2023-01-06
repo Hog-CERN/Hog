@@ -23,7 +23,6 @@ if {[catch {package require cmdline} ERROR] || [catch {package require struct::m
 }
 
 set parameters {
-  {ip_path.arg "" "If set, the synthesised IPs will be copied to the specified IP repository path."}
   {no_bitstream    "If set, the bitstream file will not be produced."}
   {synth_only      "If set, only the synthesis will be performed."}
   {impl_only       "If set, only the implementation will be performed. This assumes synthesis should was already done."}
@@ -61,7 +60,6 @@ if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] 
   set recreate 0
   set reset 1
   set check_syntax 0
-  set ip_path ""
   set ext_path ""
   set simlib_path ""
 }
@@ -152,10 +150,6 @@ if {$do_synthesis == 0} {
   }
 }
 
-if { $ip_path != "" } {
-  Msg Info "Will copy synthesised IPs from/to $ip_path"
-}
-
 Msg Info "Number of jobs set to $options(njobs)."
 
 ############# CREATE or OPEN project ############
@@ -242,19 +236,19 @@ if {$do_synthesis == 1} {
       file copy $rptfile $bin_dir/$project_name-$describe/reports
     }
 
-    ######### Copy IP to IP repository
-    if {($ip_path != "")} {
-      # IP is not in the gitlab repo
-      set force 0
-      if [info exist runs] {
-        if {[lsearch $runs $ip\_synth_1] != -1} {
-          Msg Info "$ip was synthesized, will force the copy to the IP repository..."
-          set force 1
-        }
-      }
-      Msg Info "Copying synthesised IP $xci_ip_name ($xci_file) to $ip_path..."
-      HandleIP push $xci_file $ip_path $repo_path $gen_path $force
-    }
+#    ######### Copy IP to IP repository
+#    if {($ip_path != "")} {
+#      # IP is not in the gitlab repo
+#      set force 0
+#      if [info exist runs] {
+#        if {[lsearch $runs $ip\_synth_1] != -1} {
+#          Msg Info "$ip was synthesized, will force the copy to the IP repository..."
+#          set force 1
+#        }
+#      }
+#      Msg Info "Copying synthesised IP $xci_ip_name ($xci_file) to $ip_path..."
+#      HandleIP push $xci_file $ip_path $repo_path $gen_path $force
+#    }
   }
 
   if {$prog ne "100%"} {

@@ -132,7 +132,32 @@ if {[IsXilinx]} {
     Msg Warning "No reports found in $run_dir subfolders"
   }
 
-  # Log files
+ # Handle IPs 
+  if {[IsISE]} {
+    # Do nothing...
+  } else {
+    set ip_repo "minc"
+    puts "DEBUG: ------------------------------------"
+    set ips [get_ips *]
+    set run_paths [glob -nocomplain "$run_dir/*"]
+    puts "RUNS: $run_paths"    
+    set runs {}
+    foreach r $run_paths {
+      if {[regexp -all {^(.+)_synth_1}  $r whole_match run]} {
+	lappend runs $run
+      }
+    }
+    Msg Info "Found [llength $runs] IP runs, will push them to $ip_repo."
+    puts "IPS: $ips"
+    puts "RUNS: $runs"
+    puts "DEBUG: ------------------------------------"
+  }
+
+
+
+
+
+ # Log files
   set logs [glob -nocomplain "$run_dir/*/runme.log"]
   foreach log $logs {
     set run_name [file tail [file dir $log]]

@@ -2522,14 +2522,14 @@ proc ForceUpToDate {} {
 }
 
 
-## @brief Copy IP generated files from/to an EOS repository
+## @brief Copy IP generated files from/to a remote o local direcotry (possibly EOS)
 #
-# @param[in] what_to_do: can be "push", if you want to copy the local IP synth result to EOS or "pull" if you want to copy the files from EOS to your local repository
+# @param[in] what_to_do: can be "push", if you want to copy the local IP synth result to the remote direcyory or "pull" if you want to copy the files from thre remote directory to your local repository
 # @param[in] xci_file: the .xci file of the IP you want to handle
-# @param[in] ip_path: the path of directory you want the IP to be saved on eos
+# @param[in] ip_path: the path of the directory you want the IP to be saved (possibly EOS)
 # @param[in] repo_path: the main path of your repository
 # @param[in] gen_dir: the directory where generated files are placed, by default the files are placed in the same folder as the .xci
-# @param[in] force: if not set to 0, will copy the IP to EOS even if it is already present
+# @param[in] force: if not set to 0, will copy the IP to the remote directory even if it is already present
 #
 proc HandleIP {what_to_do xci_file ip_path repo_path {gen_dir "."} {force 0}} {
   if {!($what_to_do eq "push") && !($what_to_do eq "pull")} {
@@ -2556,16 +2556,16 @@ proc HandleIP {what_to_do xci_file ip_path repo_path {gen_dir "."} {force 0}} {
   if {$on_eos == 1} {
     lassign [eos  "ls $ip_path"] ret result
     if  {$ret != 0} {
-      Msg CriticalWarning "Could not find mother directory for ip_path: $ip_path."
+      Msg CriticalWarning "Could not find mother directory for EOS path: $ip_path."
       cd $old_path
       return -1
     } else {
       lassign [eos  "ls $ip_path"] ret result
       if  {$ret != 0} {
-        Msg Info "IP repository path on eos does not exist, creating it now..."
+        Msg Info "IP remote directory path on EOS does not exist, creating it now..."
         eos "mkdir $ip_path" 5
       } else {
-        Msg Info "IP repository path on eos is set to: $ip_path"
+        Msg Info "IP remote directory path, on EOS, is set to: $ip_path"
       }
     }
   } else {
@@ -2651,11 +2651,6 @@ proc HandleIP {what_to_do xci_file ip_path repo_path {gen_dir "."} {force 0}} {
 	  }
 	}
 	
-	################# DEBUG #######################
-	puts "************ DEBUG *****************"
-	puts [join [::tar::contents $file_name.tar] "\n"]
-	puts "************ DEBUG *****************"
-
         Msg Info "Copying IP generated files for $xci_name..."
         if {$on_eos == 1} {
           lassign [ExecuteRet xrdcp -f -s $file_name.tar  $::env(EOS_MGM_URL)//$ip_path/] ret msg
@@ -2703,10 +2698,6 @@ proc HandleIP {what_to_do xci_file ip_path repo_path {gen_dir "."} {force 0}} {
     }
 
     if {[file exists $file_name.tar]} {
-      ################# DEBUG #######################
-      puts "************ DEBUG *****************"
-      puts [join [::tar::contents $file_name.tar] "\n"]
-      puts "************ DEBUG *****************"
       remove_files $xci_file
       Msg Info "Extracting IP files from archive to $repo_path..."
       ::tar::untar $file_name.tar -dir $repo_path -noperms

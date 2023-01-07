@@ -101,6 +101,9 @@ if { $options(simlib_path) != ""} {
   set workflow_simlib_path $options(simlib_path)
 }
 
+# Let's leave the following commented section in case something comes up
+# It was able to retrieve the ips before creating the project, but this cannot be used if generated file are in the Projects folder
+
 #Copy IP from IP repository
 # if { $options(ip_path) != "" } {
 #   set ip_path $options(ip_path)
@@ -236,6 +239,10 @@ if {$do_synthesis == 1} {
       file copy $rptfile $bin_dir/$project_name-$describe/reports
     }
 
+# Let's leave the following commented part
+# We moved the Handle ip to the post-synthesis, in that case we can't use get_runs so to find out which IP was run, we loop over the directories enedind with _synth_1 in the .runs directory
+
+#
 #    ######### Copy IP to IP repository
 #    if {($ip_path != "")} {
 #      # IP is not in the gitlab repo
@@ -249,6 +256,7 @@ if {$do_synthesis == 1} {
 #      Msg Info "Copying synthesised IP $xci_ip_name ($xci_file) to $ip_path..."
 #      HandleIP push $xci_file $ip_path $repo_path $gen_path $force
 #    }
+
   }
 
   if {$prog ne "100%"} {

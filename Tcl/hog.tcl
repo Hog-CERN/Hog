@@ -2556,7 +2556,7 @@ proc HandleIP {what_to_do xci_file ip_path repo_path {gen_dir "."} {force 0}} {
   if {$on_eos == 1} {
     lassign [eos  "ls $ip_path"] ret result
     if  {$ret != 0} {
-      Msg CriticalWarning "Could not find mother directory for EOS path: $ip_path."
+      Msg CriticalWarning "Could not run ls for for EOS path: $ip_path (error: $result)."
       cd $old_path
       return -1
     } else {

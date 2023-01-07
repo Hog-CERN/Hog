@@ -2556,22 +2556,16 @@ proc HandleIP {what_to_do xci_file ip_path repo_path {gen_dir "."} {force 0}} {
   if {$on_eos == 1} {
     lassign [eos  "ls $ip_path"] ret result
     if  {$ret != 0} {
-      Msg CriticalWarning "Could not run ls for for EOS path: $ip_path (error: $result)."
+      Msg CriticalWarning "Could not run ls for for EOS path: $ip_path (error: $result). Either the drectory does not exist or there are (temporary) problem with EOS."
       cd $old_path
       return -1
     } else {
-      lassign [eos  "ls $ip_path"] ret result
-      if  {$ret != 0} {
-        Msg Info "IP remote directory path on EOS does not exist, creating it now..."
-        eos "mkdir $ip_path" 5
-      } else {
-        Msg Info "IP remote directory path, on EOS, is set to: $ip_path"
-      }
+      Msg Info "IP remote directory path, on EOS, is set to: $ip_path"
     }
+
   } else {
     file mkdir $ip_path
   }
-
 
   if !([file exists $xci_file]) {
     Msg CriticalWarning "Could not find $xci_file."
@@ -2623,9 +2617,8 @@ proc HandleIP {what_to_do xci_file ip_path repo_path {gen_dir "."} {force 0}} {
 
     if {$will_copy == 1} {
       # Check if there are files in the .gen directory first and copy them into the right place
-      Msg Info "Also looking for generated files in $gen_path..."
+      Msg Info "Looking for generated files in $gen_path..."
       set ip_gen_files [glob -nocomplain $gen_path/*]
-      #set ip_synth_files [glob -nocomplain $xci_path/*]
 
       #here we should remove the .xci file from the list if it's there
 

@@ -122,7 +122,7 @@ else
   #   exit 0
   # fi
 
-  # activity=$1
+  activity=$1
   shift
   case "$activity" in
     -I|Init)

@@ -365,11 +365,19 @@ proc GetRepoPath {} {
 #
 # @return Return 1 ver1 is greather than ver2, 0 if they are equal, and -1 if ver2 is greater than ver1
 #
+
 proc CompareVersions {ver1 ver2} {
-  if {[string is integer [join $ver1 ""]] && [string is integer [join $ver2 ""]]} {
+  # Add 1 in front to avoid crazy Tcl behaviour with leading 0 being octal...
+  set v1 [join $ver1 ""]
+  set v1 "1$v1"
+  set v2 [join $ver2 ""]
+  set v2 "1$v2"
+
+  if {[string is integer $v1] && [string is integer $v2]} {
   
-    set ver1 [expr [lindex $ver1 0]*100000 + [lindex $ver1 1]*1000 + [lindex $ver1 2]]
-    set ver2 [expr [lindex $ver2 0]*100000 + [lindex $ver2 1]*1000 + [lindex $ver2 2]]
+    set ver1 [expr [scan [lindex $ver1 0] %d]*100000 + [scan [lindex $ver1 1] %d]*1000 + [scan [lindex $ver1 2] %d]]
+    set ver2 [expr [scan [lindex $ver2 0] %d]*100000 + [scan [lindex $ver2 1] %d]*1000 + [scan [lindex $ver2 2] %d]]
+
     if {$ver1 > $ver2 } {
       set ret 1
     } elseif {$ver1 == $ver2} {
@@ -2653,11 +2661,11 @@ proc ForceUpToDate {} {
 #
 # @param[in] what_to_do: can be "push", if you want to copy the local IP synth result to EOS or "pull" if you want to copy the files from EOS to your local repository
 # @param[in] xci_file: the .xci file of the IP you want to handle
-# @param[in] runs_dir: the runs directory of the project. Typically called Projects/\<project name\>/\<project name\>.runs
+# @param[in] repo_path: the main path of your repository
 # @param[in] ip_path: the path of directory you want the IP to be saved on eos
 # @param[in] force: if not set to 0, will copy the IP to EOS even if it is already present
 #
-proc HandleIP {what_to_do xci_file ip_path runs_dir {force 0}} {
+proc HandleIP {what_to_do xci_file ip_path repo_path {force 0}} {
   if {!($what_to_do eq "push") && !($what_to_do eq "pull")} {
     Msg Error "You must specify push or pull as first argument."
   }
@@ -2668,7 +2676,6 @@ proc HandleIP {what_to_do xci_file ip_path runs_dir {force 0}} {
   }
 
   set old_path [pwd]
-  set repo_path [file normalize $runs_dir/../../..]
 
   cd $repo_path
 

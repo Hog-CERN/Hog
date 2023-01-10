@@ -3688,7 +3688,7 @@ proc WriteGenerics {mode design date timee commit version top_hash top_ver hog_h
             Msg Info "Hog generic $key found in $top_name"
             lappend filtered_generic_string "$generic_to_set"
         } else {
-            Msg Info "Hog generic $key NOT found in $top_name"
+            Msg Warning "Hog generic $key NOT found in $top_name"
         }
     }
 

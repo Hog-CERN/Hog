@@ -49,7 +49,7 @@ THIS_DIR="$(dirname "$0")"
 TOP_DIR=$(realpath "$THIS_DIR"/../../Top)
 APPTAINER_IMAGE="none"
 
-# shellcheck source=Other/CommonFunctions.sh
+# shellcheck source=CommonFunctions.sh
 . "$THIS_DIR"/CommonFunctions.sh
 
 #Argument parsing
@@ -75,28 +75,28 @@ fi;
 while getopts ah: op
 do
     case $op in
-        a)  if [[ ${@:$OPTIND} == /* ]] ; then
-                APPTAINER_IMAGE=${@:$OPTIND}
+        a)  if [[ ${*:$OPTIND} == /* ]] ; then
+                APPTAINER_IMAGE=${*:$OPTIND}
                 OPTIND=$((OPTIND+1))
             else
                 echo "Hog-INFO: Apptainer argument expects and absolute path, assuming no image was given"
             fi;;
     	h|*) help_message "$0"
-	     print_projects $TOP_DIR $OLD_DIR
+	     print_projects "$TOP_DIR" "$OLD_DIR"
 	     exit 0;;
     esac
 done
 
-if [ ! $APPTAINER_IMAGE == "none" ]; then
+if [ ! "$APPTAINER_IMAGE" == "none" ]; then
     echo ================ APPTAINER ================
-    if [ -f $APPTAINER_IMAGE ]; then
-        if [ $(command -v apptainer) ]; then
+    if [ -f "$APPTAINER_IMAGE" ]; then
+        if [ "$(command -v apptainer)" ]; then
             CMD=$(command -v apptainer)
             echo "apptainer executable found in $CMD"
             echo
             $CMD --version
             echo
-            apptainer exec -H $(realpath $THIS_DIR/../..) $APPTAINER_IMAGE /bin/bash -c "source /opt/Xilinx/Vivado/2020.2/settings64.sh; ${THIS_DIR}/CheckEnv.sh $PROJ";
+            apptainer exec -H "$(realpath "$THIS_DIR"/../..)" "$APPTAINER_IMAGE" /bin/bash -c "source /opt/Xilinx/Vivado/2020.2/settings64.sh; ${THIS_DIR}/CheckEnv.sh $PROJ";
             exit $?
         else
             echo "Hog-Warning: apptainer executable not found."
@@ -106,11 +106,11 @@ if [ ! $APPTAINER_IMAGE == "none" ]; then
     fi
     echo "Hog-INFO: unsetting Apptainer image, trying to run without it"
     echo
-    ${THIS_DIR}/CheckEnv.sh $PROJ
+    "${THIS_DIR}"/CheckEnv.sh "$PROJ"
     exit $?
 fi
 
-cd "${THIS_DIR}"
+cd "${THIS_DIR}" || exit 
 
 
 #################### exectuables
@@ -120,31 +120,31 @@ echo ========= EXECUTABLES ==========
 if [ -d "$PROJ_DIR" ]; then
 
     #Choose if the project is quartus, vivado, vivado_hls [...]
-    select_command $PROJ_DIR
-    if [ $? != 0 ]; then
+    
+    if ! select_command "$PROJ_DIR" ; then
         Msg Error "Failed to select project type: exiting!"
-        exit -1
+        exit 0
     fi
     
     #select full path to executable and place it in HDL_COMPILER global variable
-    select_compiler_executable $COMMAND
-    if [ $? != 0 ]; then
+    
+    if ! select_compiler_executable "$COMMAND" ; then
         Msg Error "Failed to get HDL compiler executable for $COMMAND"
-        exit -1
+        exit 0
     fi
 
     if [ ! -f "${HDL_COMPILER}" ]; then
         Msg Error "HDL compiler executable $HDL_COMPILER not found"
-        cd "${OLD_DIR}"
-        exit -1
+        cd "${OLD_DIR}" || exit 
+        exit 0
     else
         Msg Info "Using executable: $HDL_COMPILER"
     fi
 fi
 
-echo --------------------------------
+echo "--------------------------------"
 
-if [ $(command -v vsim) ]; then
+if [ "$(command -v vsim)" ]; then
     CMD=$(command -v vsim)
     echo "Modelsim/Questasim executable found in $CMD"
     echo
@@ -153,9 +153,9 @@ else
     echo "Modelsim/Questasim executable not found."
 fi
 
-echo --------------------------------
+echo "--------------------------------"
 
-if [ $(command -v eos) ]; then
+if [ "$(command -v eos)" ]; then
     CMD=$(command -v eos)
     echo "eos executable found in $CMD"
     echo
@@ -166,12 +166,12 @@ fi
 
 echo --------------------------------
 
-if [ $(command -v git) ]; then
+if [ "$(command -v git)" ]; then
     CMD=$(command -v git)
     echo "git executable found in $CMD"
     echo
     VER=$($CMD --version)
-    echo $VER
+    echo "$VER"
     # check the version here!
 else
     echo "git executable not found. Hog-CI cannot run."
@@ -207,7 +207,7 @@ else
     echo "defined."
 fi
 
-if ( ! [ -z "$HOG_OFFICIAL_BIN_EOS_PATH" ]); then
+if [ -n "$HOG_OFFICIAL_BIN_EOS_PATH" ]; then
     echo -n "Variable: EOS_PASSWORD is "
     if [ -z "$EOS_PASSWORD" ]; then
         if [ -z "$HOG_PASSWORD" ]; then
@@ -234,7 +234,7 @@ if ( ! [ -z "$HOG_OFFICIAL_BIN_EOS_PATH" ]); then
     echo --------------------------------
 fi
 
-if [[ " ${COMPILERS_TO_CHECK[@]} " =~ "libero" ]]; then
+if [[ " ${COMPILERS_TO_CHECK[*]} " =~ "libero" ]]; then
     echo -n "Variable: HOG_TCLLIB_PATH is "
     if [ -z "$HOG_TCLLIB_PATH" ]; then
         echo "NOT defined. This variable is essential to run Hog with Tcllib. Please, refer to https://hog.readthedocs.io/en/latest/02-User-Manual/01-Hog-local/13-Libero.html."
@@ -248,10 +248,10 @@ echo ================================
 echo
 
 # Almost necessary
-echo === SEMI-ESSENTIAL VARIABLES ===
+echo "=== SEMI-ESSENTIAL VARIABLES ==="
 
 
-if [[ " ${COMPILERS_TO_CHECK[@]} " =~ "vivado" || " ${COMPILERS_TO_CHECK[@]} " =~ "planAhead" ]]; then
+if [[ " ${COMPILERS_TO_CHECK[*]} " =~ "vivado" || " ${COMPILERS_TO_CHECK[*]} " =~ "planAhead" ]]; then
 
     echo -n "Variable: HOG_XIL_LICENSE is "
     if [ -z "$HOG_XIL_LICENSE" ]; then
@@ -262,7 +262,7 @@ if [[ " ${COMPILERS_TO_CHECK[@]} " =~ "vivado" || " ${COMPILERS_TO_CHECK[@]} " =
     echo --------------------------------
 fi
 
-if [[ " ${COMPILERS_TO_CHECK[@]} " =~ "quartus" || " ${COMPILERS_TO_CHECK[@]} " =~ "libero" ]]; then
+if [[ " ${COMPILERS_TO_CHECK[*]} " =~ "quartus" || " ${COMPILERS_TO_CHECK[*]} " =~ "libero" ]]; then
     echo --------------------------------
 
     echo -n "Variable: LM_LICENSE_FILE is "
@@ -375,7 +375,7 @@ echo -n "Variable: HOG_RESET_FILES is "
 if [ -z "$HOG_RESET_FILES" ]; then
     echo "NOT defined. Hog-CI will NOT reset any files"
 else
-    echo "defined. Hog-CI will reset the following files before synthesis, before implementation, and before bitstream: \n $HOG_RESET_FILES"
+    printf "defined. Hog-CI will reset the following files before synthesis, before implementation, and before bitstream: \n %s" "$HOG_RESET_FILES"
 fi
 echo --------------------------------
 

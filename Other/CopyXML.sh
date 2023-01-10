@@ -15,6 +15,7 @@
 
 ## @file CopyXML.sh
 # brief Copy IPbus xml and process them
+# shellcheck source=CommonFunctions.sh
 . $(dirname "$0")/CommonFunctions.sh
 
 OLD_DIR=$(pwd)
@@ -28,15 +29,15 @@ if [ "$1" == "-h" ] || [ "$1" == "-help" ] || [ "$1" == "--help" ] || [ "$1" == 
 
     echo "Copy IPBus XML files listed in a XML list file of a project and replace the version"
     echo "and SHA placeholders if they are present in any of the XML files."
-    echo $usage
+    echo "$usage"
     exit 0
 fi
 
-cd "${DIR}"/..
+cd "${DIR}"/.. || exit
 
 if [ -z "$1" ] || [ -z "$2" ] || ! [ -z "$4" ]; then
     ##! If no args passed then print help message
-    echo $usage
+    echo "$usage"
 else
 
     if [ -z "$3" ]; then

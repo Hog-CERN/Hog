@@ -24,6 +24,6 @@ else
     job=$6
 
     ref=refs/merge-requests%2F$mr%2Fhead
-    echo $api/projects/${proj}/jobs/artifacts/$ref/raw/$file?job=$job
-    curl --header "PRIVATE-TOKEN: ${push_token}" $api/projects/${proj}/jobs/artifacts/$ref/raw/$file?job=$job
+    echo "$api/projects/${proj}/jobs/artifacts/$ref/raw/$file?job=$job"
+    curl --header "PRIVATE-TOKEN: ${push_token}" "$api/projects/${proj}/jobs/artifacts/$ref/raw/$file?job=$job"
 fi

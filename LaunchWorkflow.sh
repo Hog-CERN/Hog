@@ -22,7 +22,6 @@
 # print_hog $(dirname "$0")
 ## @function argument_parser()
 #  @brief parse arguments and sets environment variables
-#  @param[out] IP_PATH      empty or "-ip_path $2"
 #  @param[out] SIMLIBPATH   empty or "-simlib_path $2"
 #  @param[out] NJOBS        empty or "-NJOBS $2"
 #  @param[out] NO_BITSTREAM empty or "-no_bitstream"
@@ -45,10 +44,6 @@ function argument_parser() {
             ;;
         -l | --lib)
             SIMLIBPATH="-simlib_path $2"
-            shift 2
-            ;;
-        -ip_path)
-            IP_PATH="-ip_path $2"
             shift 2
             ;;
         -impl_only)
@@ -116,7 +111,6 @@ function help_message() {
   echo " Options:"
   echo "          -l/--lib  <sim_lib_path>  Path to simulation library. If not defined it will be set to the HOG_SIMULATION_LIB_PATH environmental library, or if this does not exist to the default $(pwd)/SimulationLib"
   echo "          -njobs <value>            The number of parallel jobs to run. Default: 4"
-  echo "          -ip_path <path>           If set, the synthesised IPs will be copied to the specified IP repository path"
   echo "          -impl_only                If set, only the implementation will be run, assuming that synthesis has already been completed"
   echo "          -recreate                 If set, Hog will recreate the HDL project before running the workflow"
   echo "          -ext_path <path>          It sets the absolute path for the external libraries"
@@ -181,18 +175,15 @@ function Launch_project(){
         fi
 
         if [ $COMMAND = "quartus_sh" ]; then
-            if [ "a$IP_PATH" != "a" ]; then
-                Msg Warning "IP eos path not supported in Quartus mode"
-            fi
             ${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_quartus.tcl $HELP $NO_BITSTREAM $SYNTH_ONLY $NJOBS $CHECK_SYNTAX $RECREATE $EXT_PATH $IMPL_ONLY -project $PROJ
         elif [ $COMMAND = "vivado_hls" ]; then
             Msg Error "Vivado HLS is not yet supported by this script!"
         elif [ $COMMAND = "libero" ]; then
-            echo "${HDL_COMPILER} ${COMMAND_OPT}$DIR/Tcl/launchers/launch_libero.tcl SCRIPT_ARGS:\"$IP_PATH $NJOBS $CHECK_SYNTAX $RECREATE $EXT_PATH $IMPL_ONLY $SIMLIBPATH $PROJ\""
-            ${HDL_COMPILER} ${COMMAND_OPT}$DIR/Tcl/launchers/launch_libero.tcl SCRIPT_ARGS:"$IP_PATH $NJOBS $CHECK_SYNTAX $RECREATE $EXT_PATH $IMPL_ONLY $SIMLIBPATH $PROJ "
+            echo "${HDL_COMPILER} ${COMMAND_OPT}$DIR/Tcl/launchers/launch_libero.tcl SCRIPT_ARGS:\"$NJOBS $CHECK_SYNTAX $RECREATE $EXT_PATH $IMPL_ONLY $SIMLIBPATH $PROJ\""
+            ${HDL_COMPILER} ${COMMAND_OPT}$DIR/Tcl/launchers/launch_libero.tcl SCRIPT_ARGS:"$NJOBS $CHECK_SYNTAX $RECREATE $EXT_PATH $IMPL_ONLY $SIMLIBPATH $PROJ "
         else
-            Msg Info "${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_xilinx.tcl -tclargs $HELP $NO_RESET $NO_BITSTREAM $SYNTH_ONLY $IP_PATH $NJOBS $RECREATE $EXT_PATH $IMPL_ONLY $SIMLIBPATH $PROJ"
-            ${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_xilinx.tcl -tclargs $HELP $NO_RESET $NO_BITSTREAM $SYNTH_ONLY $IP_PATH $NJOBS $RECREATE $EXT_PATH $IMPL_ONLY $SIMLIBPATH $PROJ
+            Msg Info "${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_xilinx.tcl -tclargs $HELP $NO_RESET $NO_BITSTREAM $SYNTH_ONLY $NJOBS $RECREATE $EXT_PATH $IMPL_ONLY $SIMLIBPATH $PROJ"
+            ${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_xilinx.tcl -tclargs $HELP $NO_RESET $NO_BITSTREAM $SYNTH_ONLY $NJOBS $RECREATE $EXT_PATH $IMPL_ONLY $SIMLIBPATH $PROJ
         fi
     else
         Msg Error "Project $PROJ not found. Possible projects are:"

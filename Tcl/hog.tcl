@@ -365,7 +365,6 @@ proc GetRepoPath {} {
 #
 # @return Return 1 ver1 is greather than ver2, 0 if they are equal, and -1 if ver2 is greater than ver1
 #
-
 proc CompareVersions {ver1 ver2} {
   # Add 1 in front to avoid crazy Tcl behaviour with leading 0 being octal...
   set v1 [join $ver1 ""]
@@ -605,7 +604,7 @@ proc ReadListFile args {
         }
       } else {
         if {![file exists $srcfile]} {
-          Msg CriticalWarning "$srcfile not found in $path"
+          Msg CriticalWarning "$srcfile not found in $list_file."
           continue
         }
       }
@@ -859,7 +858,7 @@ proc GetSHA {{path ""}} {
 #
 # @return  a list: the git SHA, the version in hex format
 #
-proc GetVer {path} {
+proc GetVer {path {force_develop 0}} {
   set SHA [GetSHA $path]
   #oldest tag containing SHA
   if {$SHA eq ""} {
@@ -875,7 +874,7 @@ proc GetVer {path} {
   set repo_path [Git {rev-parse --show-toplevel}]
   cd $old_path
 
-  return [list [GetVerFromSHA $SHA $repo_path] $SHA]
+  return [list [GetVerFromSHA $SHA $repo_path $force_develop] $SHA]
 }
 
 ## @brief Get git version and commit hash of a specific commit give the SHA
@@ -885,7 +884,7 @@ proc GetVer {path} {
 #
 # @return  a list: the git SHA, the version in hex format
 #
-proc GetVerFromSHA {SHA repo_path} {
+proc GetVerFromSHA {SHA repo_path {force_develop 0}} {
   #Let's keep this for a while, more bugs may come soon...
   #Msg Info "############################### $repo_path #############################################"
   if { $SHA eq ""} {
@@ -911,7 +910,7 @@ proc GetVerFromSHA {SHA repo_path} {
           set minor_prefix "minor_version/"
           set major_prefix "major_version/"
           set is_hotfix 0
-          set enable_develop_branch 0
+          set enable_develop_branch $force_develop
 
           set branch_name [Git {rev-parse --abbrev-ref HEAD}]
 
@@ -1404,141 +1403,6 @@ proc ExtractVersionFromTag {tag} {
   return [list $M $m $p $mr]
 }
 
-## @brief Tags the repository with a new version calculated on the basis of the previous tags
-#
-# @param[in] merge_request_number: Gitlab merge request number to be used in candidate version
-# @param[in] version_level:        0 if patch is to be increased (default), 1 if minor level is to be increase, 2 if major level is to be increased, 3 or bigger is used to transform a candidate for a version (starting with b) into an official version
-# @param[in] default_level:        If version level is 3 or more, will specify what level to increase when creating the official tag: 0 will increase patch (default), 1 will increase minor and 2 will increase major.
-#
-proc TagRepository {{merge_request_number 0} {version_level 0} {default_level 0}} {
-  lassign [ExecuteRet git tag -l "v*" --sort=-v:refname --merged ] vret vtags
-  lassign [ExecuteRet git tag -l "b*" --sort=-v:refname --merged ] bret btags
-
-  if {[llength $vtags] == 0 } {
-    set vret 9
-  }
-
-  if {[llength $btags] == 0 } {
-    set bret 9
-  }
-
-  if {$vret != 0 && $bret != 0} {
-    Msg Error "No Hog version tags found in this repository."
-  } else {
-    set vers ""
-    if { $vret == 0 } {
-      set vtag [lindex $vtags 0]
-      set vtag [ regsub {(v.*)-.*} $vtag "\\1" ]
-      lassign [ExtractVersionFromTag $vtag] M m p mr
-      set M [format %02X $M]
-      set m [format %02X $m]
-      set p [format %04X $p]
-      lappend vers $M$m$p
-    }
-
-    if { $bret == 0 } {
-      set btag [lindex $btags 0]
-      lassign [ExtractVersionFromTag $btag] M m p mr
-      set M [format %02X $M]
-      set m [format %02X $m]
-      set p [format %04X $p]
-      lappend vers $M$m$p
-    }
-    set ver [FindNewestVersion $vers]
-    set tag v[HexVersionToString $ver]
-
-    # If btag is the newest get mr number
-    if {$tag != $vtag} {
-      lassign [ExtractVersionFromTag $btag] M m p mr
-    } else {
-      lassign [ExtractVersionFromTag $tag] M m p mr
-    }
-
-    if { $M > -1 } {
-      # M=-1 means that the tag could not be parsed following a Hog format
-      if {$mr == 0 } {
-        # Tag is official, no b at the beginning (and no merge request number at the end)
-        Msg Info "Found official version $M.$m.$p."
-        set old_tag $vtag
-        if {$version_level == 2} {
-          incr M
-          set m 0
-          set p 0
-          set new_tag b${merge_request_number}v$M.$m.$p
-          set tag_opt ""
-          if {$merge_request_number <= 0} {
-            Msg Error "You should specify a valid merge request number not to risk to fail because of duplicated tags"
-            return -1
-          }
-
-        } elseif {$version_level == 1} {
-          incr m
-          set p 0
-          set new_tag b${merge_request_number}v$M.$m.$p
-          set tag_opt ""
-          if {$merge_request_number <= 0} {
-            Msg Error "You should specify a valid merge request number not to risk to fail because of duplicated tags"
-            return -1
-          }
-
-        } elseif {$version_level >= 3} {
-          # Version level >= 3 is used to create official tags from beta tags
-          if {$default_level == 0} {
-            Msg Info "Default_level is set to 0, will increase patch..."
-            incr p
-          } elseif {$default_level == 1} {
-            Msg Info "Default_level is set to 1, will increase minor..."
-            set p 0
-            incr m
-          } elseif {$default_level == 2} {
-            Msg Info "Default_level is set to 1, will increase major..."
-            set m 0
-            set p 0
-            incr M
-          } else {
-            Msg Warning "Wrong default_level $default_level, assuming 0 and increase patch."
-            incr p
-          }
-
-          #create official tag
-          Msg Info "No major/minor version increase, new tag will be v$M.$m.$p..."
-          set new_tag v$M.$m.$p
-          set tag_opt "-m 'Official_version_$M.$m.$p'"
-
-        }
-
-      } else {
-        # Tag is not official
-        #Not official, do nothing unless version level is >=3, in which case convert the unofficial to official
-        Msg Info "Found candidate version for $M.$m.$p."
-        set old_tag $btag
-        if {$version_level >= 3} {
-          Msg Info "New tag will be an official version v$M.$m.$p..."
-          set new_tag v$M.$m.$p
-          set tag_opt "-m 'Official_version_$M.$m.$p'"
-        }
-      }
-
-      # Tagging repository
-      if [info exists new_tag] {
-        Msg Info "Tagging repository with $new_tag..."
-        lassign [GitRet "tag $new_tag $tag_opt"] ret msg
-        if {$ret != 0} {
-          Msg Error "Could not create new tag $new_tag: $msg"
-        } else {
-          Msg Info "New tag $new_tag created successfully."
-        }
-      } else {
-        set new_tag $old_tag
-        Msg Info "Tagging is not needed"
-      }
-    } else {
-      Msg Error "Could not parse tag: $tag"
-    }
-  }
-
-  return [list $old_tag $new_tag]
-}
 ## @brief Read a XML list file and copy files to destination
 #
 # Additional information is provided with text separated from the file name with one or more spaces
@@ -2090,7 +1954,7 @@ proc AddHogFiles { libraries properties main_libs {verbose 0}} {
         foreach f $lib_files {
           set file_obj [get_files -of_objects [get_filesets $file_set] [list "*$f"]]
           #ADDING LIBRARY
-          if {[file ext $f] == ".vhd" || [file ext $f] == ".vhdl" } {
+          if {[file ext $f] == ".vhd" || [file ext $f] == ".vhdl" || [file ext $f] == ".v" || [file ext $f] == ".sv"} {
             set_property -name "library" -value $rootlib -objects $file_obj
           }
 
@@ -2657,15 +2521,16 @@ proc ForceUpToDate {} {
 }
 
 
-## @brief Copy IP generated files from/to an EOS repository
+## @brief Copy IP generated files from/to a remote o local direcotry (possibly EOS)
 #
-# @param[in] what_to_do: can be "push", if you want to copy the local IP synth result to EOS or "pull" if you want to copy the files from EOS to your local repository
+# @param[in] what_to_do: can be "push", if you want to copy the local IP synth result to the remote direcyory or "pull" if you want to copy the files from thre remote directory to your local repository
 # @param[in] xci_file: the .xci file of the IP you want to handle
+# @param[in] ip_path: the path of the directory you want the IP to be saved (possibly EOS)
 # @param[in] repo_path: the main path of your repository
-# @param[in] ip_path: the path of directory you want the IP to be saved on eos
-# @param[in] force: if not set to 0, will copy the IP to EOS even if it is already present
+# @param[in] gen_dir: the directory where generated files are placed, by default the files are placed in the same folder as the .xci
+# @param[in] force: if not set to 0, will copy the IP to the remote directory even if it is already present
 #
-proc HandleIP {what_to_do xci_file ip_path repo_path {force 0}} {
+proc HandleIP {what_to_do xci_file ip_path repo_path {gen_dir "."} {force 0}} {
   if {!($what_to_do eq "push") && !($what_to_do eq "pull")} {
     Msg Error "You must specify push or pull as first argument."
   }
@@ -2690,22 +2555,16 @@ proc HandleIP {what_to_do xci_file ip_path repo_path {force 0}} {
   if {$on_eos == 1} {
     lassign [eos  "ls $ip_path"] ret result
     if  {$ret != 0} {
-      Msg CriticalWarning "Could not find mother directory for ip_path: $ip_path."
+      Msg CriticalWarning "Could not run ls for for EOS path: $ip_path (error: $result). Either the drectory does not exist or there are (temporary) problem with EOS."
       cd $old_path
       return -1
     } else {
-      lassign [eos  "ls $ip_path"] ret result
-      if  {$ret != 0} {
-        Msg Info "IP repository path on eos does not exist, creating it now..."
-        eos "mkdir $ip_path" 5
-      } else {
-        Msg Info "IP repository path on eos is set to: $ip_path"
-      }
+      Msg Info "IP remote directory path, on EOS, is set to: $ip_path"
     }
+
   } else {
     file mkdir $ip_path
   }
-
 
   if !([file exists $xci_file]) {
     Msg CriticalWarning "Could not find $xci_file."
@@ -2718,6 +2577,7 @@ proc HandleIP {what_to_do xci_file ip_path repo_path {force 0}} {
   set xci_name [file tail $xci_file]
   set xci_ip_name [file root [file tail $xci_file]]
   set xci_dir_name [file tail $xci_path]
+  set gen_path $gen_dir
 
   set hash [Md5Sum $xci_file]
   set file_name $xci_name\_$hash
@@ -2755,14 +2615,14 @@ proc HandleIP {what_to_do xci_file ip_path repo_path {force 0}} {
     }
 
     if {$will_copy == 1} {
-      set ip_synth_files [glob -nocomplain $xci_path/$xci_ip_name*]
-      set ip_synth_files_rel ""
-      foreach ip_synth_file $ip_synth_files {
-        lappend ip_synth_files_rel  [Relative $repo_path $ip_synth_files]
-      }
+      # Check if there are files in the .gen directory first and copy them into the right place
+      Msg Info "Looking for generated files in $gen_path..."
+      set ip_gen_files [glob -nocomplain $gen_path/*]
 
-      if {[llength $ip_synth_files] > 0} {
-        Msg Info "Found some IP synthesised files matching $runs_dir/$file_name*"
+      #here we should remove the .xci file from the list if it's there
+
+      if {[llength $ip_gen_files] > 0} {
+        Msg Info "Found some IP synthesised files matching $xci_ip_name"
         if {$will_remove == 1} {
           Msg Info "Removing old synthesised directory $ip_path/$file_name.tar..."
           if {$on_eos == 1} {
@@ -2772,21 +2632,31 @@ proc HandleIP {what_to_do xci_file ip_path repo_path {force 0}} {
           }
         }
 
-        Msg Info "Creating local archive with ip generated files..."
-        ::tar::create $file_name.tar [glob -nocomplain [Relative $repo_path $xci_path]  $ip_synth_files_rel]
-        Msg Info "Copying generated files for $xci_name..."
+        Msg Info "Creating local archive with IP generated files..."
+	set first_file 0
+	foreach f $ip_gen_files {
+	  if {$first_file == 0} {
+	    ::tar::create $file_name.tar "[Relative [file normalize $repo_path] $f]"
+	    set first_file 1
+	  } else {
+	    ::tar::add $file_name.tar "[Relative [file normalize $repo_path] $f]"
+	  }
+	}
+	
+        Msg Info "Copying IP generated files for $xci_name..."
         if {$on_eos == 1} {
           lassign [ExecuteRet xrdcp -f -s $file_name.tar  $::env(EOS_MGM_URL)//$ip_path/] ret msg
           if {$ret != 0} {
             Msg CriticalWarning "Something went wrong when copying the IP files to EOS. Error message: $msg"
           }
         } else {
-          file copy -force "$file_name.tar" "$ip_path/"
+          Copy "$file_name.tar" "$ip_path/"
         }
         Msg Info "Removing local archive"
         file delete $file_name.tar
+
       } else {
-        Msg Warning "Could not find synthesized files matching $runs_dir/$file_name*"
+        Msg Warning "Could not find synthesized files matching $gen_path/$file_name*"
       }
     }
   } elseif {$what_to_do eq "pull"} {
@@ -2804,26 +2674,28 @@ proc HandleIP {what_to_do xci_file ip_path repo_path {force 0}} {
         lassign [ExecuteRet xrdcp -f -r -s $remote_tar $repo_path] ret msg
         if {$ret != 0} {
           Msg CriticalWarning "Something went wrong when copying the IP files to EOS. Error message: $msg"
-        } else {
-          Msg Info "Extracting IP files from archive to $repo_path..."
-          ::tar::untar $file_name.tar -dir $repo_path -noperms
-          Msg Info "Removing local archive"
-          file delete $file_name.tar
         }
       }
     } else {
       if {[file exists "$ip_path/$file_name.tar"]} {
         Msg Info "IP $xci_name found in local repository $ip_path/$file_name.tar, copying it locally to $repo_path..."
-        file copy -force $ip_path/$file_name.tar $repo_path
-        Msg Info "Extracting IP files from archive to $repo_path..."
-        ::tar::untar $file_name.tar -dir $repo_path -noperms
-        Msg Info "Removing local archive"
-        file delete $file_name.tar
+        Copy $ip_path/$file_name.tar $repo_path
+        
       } else {
         Msg Info "Nothing for $xci_name was found in the local IP repository, cannot pull."
         cd $old_path
         return -1
       }
+
+    }
+
+    if {[file exists $file_name.tar]} {
+      remove_files $xci_file
+      Msg Info "Extracting IP files from archive to $repo_path..."
+      ::tar::untar $file_name.tar -dir $repo_path -noperms
+      Msg Info "Removing local archive"
+      file delete $file_name.tar
+      add_files -norecurse -fileset sources_1 $xci_file
     }
   }
   cd $old_path
@@ -3198,7 +3070,6 @@ proc WriteGitLabCIYAML {proj_name {ci_conf ""}} {
     # Check if there are extra variables in the conf file
     set huddle_variables [huddle create "PROJECT_NAME" $proj_name "extends" ".vars"]
     if {[dict exists $ci_confs "$job:variables"]} {
-      # puts "here"
       set var_dict [dict get $ci_confs $job:variables]
       foreach var [dict keys $var_dict] {
         # puts [dict get $var_dict $var]
@@ -3707,4 +3578,36 @@ proc GetIDEFromConf {conf_file} {
   }
 
   return $ret
+}
+
+##
+## Create a new directory, not throwing an error if it already exists
+##
+## @param      dir   The dir
+##
+proc Mkdir {dir} {
+  if {[file exists $dir] && [file isdirectory $dir]} {
+    return 
+  } else {
+    file mkdir $dir
+    return
+  }
+}
+
+##
+## Copy a file or folder into a new path, not throwing an error if the final path is not empty
+##
+## @param      i_dirs  The directory or file to copy
+## @param      o_dir  The final destination
+##
+proc Copy {i_dirs o_dir} {
+  foreach i_dir $i_dirs {
+    if {[file isdirectory $i_dir] && [file isdirectory $o_dir]} {
+      if {([file tail $i_dir] == [file tail $o_dir]) || ([file exists $o_dir/[file tail $i_dir]] && [file isdirectory $o_dir/[file tail $i_dir]])} {
+	file delete -force $o_dir/[file tail $i_dir]
+      }
+    }
+    
+    file copy -force $i_dir $o_dir 
+  }
 }

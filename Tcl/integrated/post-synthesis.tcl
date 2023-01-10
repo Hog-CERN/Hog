@@ -86,7 +86,6 @@ set bin_dir [file normalize "$repo_path/bin"]
 cd $repo_path
 
 set group_name [GetGroupName $proj_dir]
-puts "group $group_name"
 
 Msg Info "Evaluating Git sha for $proj_name..."
 lassign [GetRepoVersions [file normalize ./Top/$group_name/$proj_name] $repo_path] sha
@@ -133,7 +132,38 @@ if {[IsXilinx]} {
     Msg Warning "No reports found in $run_dir subfolders"
   }
 
-  # Log files
+ # Handle IPs 
+if {[info exists env(HOG_IP_PATH)]} {
+  set ip_repo $env(HOG_IP_PATH)
+
+  if {[IsISE]} {
+    # Do nothing...
+  } else {
+
+    set ips [get_ips *]
+    set run_paths [glob -nocomplain "$run_dir/*"]
+    set runs {}
+    foreach r $run_paths {
+      if {[regexp -all {^(.+)_synth_1}  $r whole_match run]} {
+	lappend runs [file tail $run]
+      }
+    }
+    
+    foreach ip $ips {
+      if {$ip in $runs} {
+	set force 1
+      } else {
+	set force 0
+      }
+      Msg Info "Copying synthesised IP $ip to $ip_repo..."
+      HandleIP push [get_property IP_FILE $ip] $ip_repo $repo_path [get_property IP_OUTPUT_DIR $ip] $force
+    }
+  }
+}
+
+
+
+ # Log files
   set logs [glob -nocomplain "$run_dir/*/runme.log"]
   foreach log $logs {
     set run_name [file tail [file dir $log]]

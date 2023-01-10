@@ -3563,7 +3563,7 @@ proc GetVerilogGenerics {file} {
                 } else {
                     dict set parameters $token "integer"
                 }}}}
-    puts $parameters
+
     return $parameters
 }
 

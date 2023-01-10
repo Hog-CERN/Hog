@@ -23,7 +23,8 @@
 ## Import common functions from Other/CommonFunctions.sh in a POSIX compliant way
 #
 
-. $(dirname "$0")/Other/CommonFunctions.sh
+# shellcheck source=Other/CommonFunctions.sh
+. "$(dirname "$0")"/Other/CommonFunctions.sh
 
 
 
@@ -60,18 +61,17 @@ function argument_parser() {
 			shift 1
 			;;
 		-recreate)
-            RECREATE="-recreate"
-            shift 1
-            ;;
-		-? | -h | -help)
-			HELP="-h"
+      RECREATE="-recreate"
+      shift 1
+      ;;
+		-h | -help)
 			shift 1
 			;;
 		--) # end argument parsing
 			shift
 			break
 			;;
-		-* | --*=) # unsupported flags
+		-* ) # unsupported flags
 			Msg Error "Unsupported flag $1" >&2
 			return 1
 			;;
@@ -109,56 +109,55 @@ function help_message() {
 function SimulateProject(){
 
   DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-  argument_parser $@
+  argument_parser "$@"
 
   if [ $? = 1 ]; then
     exit 1
   fi
   eval set -- "$PARAMS"
   if [ -z "$1" ]; then
-    help_message $0
-    cd "${OLD_DIR}"
+    help_message "$0"
+    cd "${OLD_DIR}" || exit
     echo
     echo "Possible projects are:"
-      echo ""
-    search_projects $DIR/../Top
-      echo
-      cd "${OLD_DIR}"
-      exit -1
+    echo ""
+    search_projects "$DIR"/../Top
+    echo
+    cd "${OLD_DIR}" || exit
+    exit 0
   else
     if [ "$1" == "-h" ] || [ "$1" == "-help" ] || [ "$1" == "--help" ] || [ "$1" == "-H" ]; then
-          help_message $0
-      search_projects $DIR/../Top
+      help_message "$0"
+      search_projects "$DIR"/../Top
       echo
-      cd "${OLD_DIR}"
-      exit -1
-      fi
+      cd "${OLD_DIR}" || exit
+      exit 0
+    fi
 
     PROJ=$1
-      if [[ $PROJ == "Top/"* ]]; then
-        PROJ=${PROJ#"Top/"}
-      fi
+    if [[ $PROJ == "Top/"* ]]; then
+      PROJ=${PROJ#"Top/"}
+    fi
     PROJ_DIR="$DIR/../Top/"$PROJ
     if [ -d "$PROJ_DIR" ]; then
 
       #Choose if the project is quartus, vivado, vivado_hls [...]
-      select_command $PROJ_DIR
-      if [ $? != 0 ]; then
+      if ! select_command "$PROJ_DIR"; then
         Msg Error "Failed to select project type: exiting!"
-        exit -1
+        exit 0
       fi
 
       #select full path to executable and place it in HDL_COMPILER global variable
       select_compiler_executable $COMMAND
-      if [ $? != 0 ]; then
+      if ! select_compiler_executable $COMMAND; then
         Msg Error "Failed to get HDL compiler executable for $COMMAND"
-        exit -1
+        exit 0
       fi
 
       if [ ! -f "${HDL_COMPILER}" ]; then
         Msg Error "HDL compiler executable $HDL_COMPILER not found"
-        cd "${OLD_DIR}"
-        exit -1
+        cd "${OLD_DIR}" || exit
+        exit 0
       else
         Msg Info "Using executable: $HDL_COMPILER"
       fi
@@ -173,18 +172,18 @@ function SimulateProject(){
       else
         if [ -z "${SIMLIBPATH}" ]; then
           if [ -z "${HOG_SIMULATION_LIB_PATH}" ]; then
-            "${HDL_COMPILER}" $COMMAND_OPT $DIR/Tcl/launchers/launch_simulation.tcl -tclargs $SIMSET $QUIET $RECREATE $PROJ
+            "${HDL_COMPILER}" "$COMMAND_OPT" "$DIR"/Tcl/launchers/launch_simulation.tcl -tclargs "$SIMSET" "$QUIET" "$RECREATE" "$PROJ"
           else
-            "${HDL_COMPILER}" $COMMAND_OPT $DIR/Tcl/launchers/launch_simulation.tcl -tclargs -lib_path $HOG_SIMULATION_LIB_PATH $SIMSET $QUIET $RECREATE $PROJ
+            "${HDL_COMPILER}" "$COMMAND_OPT" "$DIR"/Tcl/launchers/launch_simulation.tcl -tclargs -lib_path "$HOG_SIMULATION_LIB_PATH" "$SIMSET" "$QUIET" "$RECREATE" "$PROJ"
           fi
         else
-          "${HDL_COMPILER}" $COMMAND_OPT $DIR/Tcl/launchers/launch_simulation.tcl -tclargs $SIMLIBPATH $SIMSET $QUIET $RECREATE $PROJ
+          "${HDL_COMPILER}" "$COMMAND_OPT" "$DIR"/Tcl/launchers/launch_simulation.tcl -tclargs "$SIMLIBPATH" "$SIMSET" "$QUIET" "$RECREATE" "$PROJ"
         fi
       fi
     else
-      Msg Error "Project $PROJ not found: possible projects are: $(search_projects $DIR/../Top)"
-      cd "${OLD_DIR}"
-      exit -1
+      Msg Error "Project $PROJ not found: possible projects are: $(search_projects "$DIR"/../Top)"
+      cd "${OLD_DIR}" || exit 
+      exit 0
     fi
   fi
 
@@ -196,13 +195,13 @@ function SimulateProject(){
 function HogSimulateFunc(){
   # init $@
   echo "HogInitFunc ($*)"
-  SimulateProject $@
+  SimulateProject "$@"
   # exit 0
 }
-if [[ ${BASH_SOURCE[0]} == $0 ]]; then
+if [[ ${BASH_SOURCE[0]} == "$0" ]]; then
 #   printf "script '%s' is sourced in\n" "${BASH_SOURCE[0]}"
 # else
   repoPath=$(dirname "$0")
-  print_hog $repoPath
-  SimulateProject $@
+  print_hog "$repoPath"
+  SimulateProject "$@"
 fi

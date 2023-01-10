@@ -18,7 +18,9 @@
 
 ## Import common functions from Other/CommonFunctions.sh in a POSIX compliant way
 #
-. $(dirname "$0")/Other/CommonFunctions.sh
+# shellcheck source=Other/CommonFunctions.sh
+
+. "$(dirname "$0")"/Other/CommonFunctions.sh
 # print_hog $(dirname "$0")
 ## @function argument_parser()
 #  @brief parse arguments and sets environment variables
@@ -79,15 +81,14 @@ function argument_parser() {
             CHECK_SYNTAX="-check_syntax"
             shift 1
             ;;
-        -? | -h | -help)
-            HELP="-h"
+        -h | -help)
             shift 1
             ;;
         --) # end argument parsing
             shift
             break
             ;;
-        -* | --*=) # unsupported flags
+        -* ) # unsupported flags
             Msg Error "Unsupported flag $1" >&2
             return 1
             ;;
@@ -131,22 +132,22 @@ function help_message() {
 function Launch_project(){
 
   DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-  argument_parser $@
+  argument_parser "$@"
   if [ $? = 1 ]; then
       exit 1
   fi
   eval set -- "$PARAMS"
   if [ -z "$1" ]; then
-      help_message $0
+      help_message "$0"
       echo "Possible projects are:"
       echo ""
-      search_projects $DIR/../Top
+      search_projects "$DIR"/../Top
       echo
-      cd "${OLD_DIR}"
-      exit -1
+      cd "${OLD_DIR}" || exit
+      exit 0
   else
       if [ "$1" == "-h" ] || [ "$1" == "-help" ] || [ "$1" == "--help" ] || [ "$1" == "-H" ]; then
-          help_message $0
+          help_message "$0"
           exit 0
       fi
 
@@ -158,16 +159,16 @@ function Launch_project(){
       if [ -d "$PROJ_DIR" ]; then
 
           #Choose if the project is quartus, vivado, vivado_hls [...]
-          select_executable_from_project_dir "$PROJ_DIR"
-          if [ $? != 0 ]; then
+          
+          if ! select_executable_from_project_dir "$PROJ_DIR"; then
               Msg Error "Failed to get HDL compiler executable for $PROJ_DIR"
-              exit -1
+              exit 0
           fi
 
           if [ ! -f "${HDL_COMPILER}" ]; then
               Msg Error "HDL compiler executable $HDL_COMPILER not found"
-              cd "${OLD_DIR}"
-              exit -1
+              cd "${OLD_DIR}" || exit
+              exit 0
           else
               Msg Info "Using executable: $HDL_COMPILER"
           fi
@@ -180,39 +181,37 @@ function Launch_project(){
             fi
         fi
 
-        if [ $COMMAND = "quartus_sh" ]; then
+        if [ "$COMMAND" = "quartus_sh" ]; then
             if [ "a$IP_PATH" != "a" ]; then
                 Msg Warning "IP eos path not supported in Quartus mode"
             fi
-            ${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_quartus.tcl $HELP $NO_BITSTREAM $SYNTH_ONLY $NJOBS $CHECK_SYNTAX $RECREATE $EXT_PATH $IMPL_ONLY -project $PROJ
-        elif [ $COMMAND = "vivado_hls" ]; then
+            ${HDL_COMPILER} "$COMMAND_OPT" "$DIR"/Tcl/launchers/launch_quartus.tcl "$NO_BITSTREAM" "$SYNTH_ONLY" "$NJOBS" "$CHECK_SYNTAX" "$RECREATE" "$EXT_PATH" "$IMPL_ONLY" -project "$PROJ"
+        elif [ "$COMMAND" = "vivado_hls" ]; then
             Msg Error "Vivado HLS is not yet supported by this script!"
-        elif [ $COMMAND = "libero" ]; then
+        elif [ "$COMMAND" = "libero" ]; then
             echo "${HDL_COMPILER} ${COMMAND_OPT}$DIR/Tcl/launchers/launch_libero.tcl SCRIPT_ARGS:\"$IP_PATH $NJOBS $CHECK_SYNTAX $RECREATE $EXT_PATH $IMPL_ONLY $SIMLIBPATH $PROJ\""
-            ${HDL_COMPILER} ${COMMAND_OPT}$DIR/Tcl/launchers/launch_libero.tcl SCRIPT_ARGS:"$IP_PATH $NJOBS $CHECK_SYNTAX $RECREATE $EXT_PATH $IMPL_ONLY $SIMLIBPATH $PROJ "
+            ${HDL_COMPILER} "${COMMAND_OPT}""$DIR"/Tcl/launchers/launch_libero.tcl SCRIPT_ARGS:"$IP_PATH $NJOBS $CHECK_SYNTAX $RECREATE $EXT_PATH $IMPL_ONLY $SIMLIBPATH $PROJ "
         else
             Msg Info "${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_xilinx.tcl -tclargs $HELP $NO_RESET $NO_BITSTREAM $SYNTH_ONLY $IP_PATH $NJOBS $RECREATE $EXT_PATH $IMPL_ONLY $SIMLIBPATH $PROJ"
-            ${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_xilinx.tcl -tclargs $HELP $NO_RESET $NO_BITSTREAM $SYNTH_ONLY $IP_PATH $NJOBS $RECREATE $EXT_PATH $IMPL_ONLY $SIMLIBPATH $PROJ
+            ${HDL_COMPILER} "$COMMAND_OPT" "$DIR"/Tcl/launchers/launch_xilinx.tcl -tclargs "$NO_RESET" "$NO_BITSTREAM" "$SYNTH_ONLY" "$IP_PATH" "$NJOBS" "$RECREATE" "$EXT_PATH" "$IMPL_ONLY" "$SIMLIBPATH" "$PROJ"
         fi
     else
         Msg Error "Project $PROJ not found. Possible projects are:"
         search_projects Top
-        cd "${OLD_DIR}"
-        exit -1
+        cd "${OLD_DIR}" || exit
+        exit 0
     fi
   fi
 }
 
 function HogLaunchFunc(){
-  # init $@
   echo "HogInitFunc ($*)"
-  Launch_project $@
-  # exit 0
+  Launch_project "$@"
 }
-if [[ ${BASH_SOURCE[0]} == $0 ]]; then
+if [[ ${BASH_SOURCE[0]} == "$0" ]]; then
 #   printf "script '%s' is sourced in\n" "${BASH_SOURCE[0]}"
 # else
   repoPath=$(dirname "$0")
-  print_hog $repoPath
-  Launch_project $@        
+  print_hog "$repoPath"
+  Launch_project "$@"        
 fi

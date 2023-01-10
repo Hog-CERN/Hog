@@ -13,12 +13,17 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+# shellcheck source=Other/CommonFunctions.sh
+# shellcheck source=Init.sh
+# shellcheck source=CreateProject.sh
+# shellcheck source=LaunchWorkflow.sh
+# shellcheck source=LaunchSimulation.sh
 
-. $(dirname "$0")/Other/CommonFunctions.sh
-. $(dirname "$0")/Init.sh
-. $(dirname "$0")/CreateProject.sh
-. $(dirname "$0")/LaunchWorkflow.sh
-. $(dirname "$0")/LaunchSimulation.sh
+. "$(dirname "$0")"/Other/CommonFunctions.sh
+. "$(dirname "$0")"/Init.sh
+. "$(dirname "$0")"/CreateProject.sh
+. "$(dirname "$0")"/LaunchWorkflow.sh
+. "$(dirname "$0")"/LaunchSimulation.sh
 
 function help_Unic() {
   # echo
@@ -69,40 +74,38 @@ function help_Create() {
 
 ## executed when run
 echo " Input parameters ($#) :: $*"
-arguments=$*
-print_hog $(dirname "$0")
+print_hog "$(dirname "$0")"
 
 
 if [ $# == 0 ]; then
   # help_message $0
   help_Unic
-  return 1
 else 
   activity=$1
   shift
   case "$activity" in
     -I|Init)
       # echo "Init"
-      Logger HogInitFunc $@
+      Logger HogInitFunc "$@"
       exit 0
     ;;
     -C|Create)
       echo " Create $*"
-      Logger HogCreateFunc $*
+      Logger HogCreateFunc "$@"
     ;;
     -W|Workflow)
       echo " Workflow"
-      Logger HogLaunchFunc $*
-      # ./Hog/LaunchWorkflow.sh $*
+      Logger HogLaunchFunc "$@"
+      # ./Hog/LaunchWorkflow.sh "$@"
     ;;
     -S|Simulation)
       echo " Simulation"
-      # ./Hog/LaunchSimulation.sh $*
-      Logger HogSimulateFunc $*
+      # ./Hog/LaunchSimulation.sh "$@"
+      Logger HogSimulateFunc "$@"
     ;;
     *)
       Msg Error "Activity not recognized"
-      help_Unic $0
+      help_Unic "$0"
     ;;
   esac
 fi

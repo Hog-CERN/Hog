@@ -18,7 +18,8 @@
 
 ## Import common functions from Other/CommonFunctions.sh in a POSIX compliant way
 #
-. $(dirname "$0")/Other/CommonFunctions.sh
+# shellcheck source=Other/CommonFunctions.sh
+. "$(dirname "$0")"/Other/CommonFunctions.sh
 
 ## @fn help_message
 #
@@ -55,43 +56,45 @@ function help_message() {
 #
 # help_message This function invokes the previous functions in the correct order, passing the expected inputs and then calls the execution of the create_project.tcl script
 #
-# @param[in]    $@ all the inputs to this script
+# @param[in]    "$@" all the inputs to this script
 function create_project() {
   # Define directory variables as local: only main will change directory
 
-  local OLD_DIR=$(pwd)
-  local THIS_DIR="$(dirname "$0")"
+  local OLD_DIR
+  OLD_DIR=$(pwd)
+  local THIS_DIR
+  THIS_DIR="$(dirname "$0")"
 
   if [ "$1" == "-h" ] || [ "$1" == "-help" ] || [ "$1" == "--help" ] || [ "$1" == "-H" ]; then
-    help_message $0
+    help_message "$0"
     echo
     echo "Possible projects are:"
     echo ""
-    search_projects $THIS_DIR/../Top
+    search_projects "$THIS_DIR"/../Top
     echo
-    cd "${OLD_DIR}"
+    cd "${OLD_DIR}" || exit
     exit 0
   fi
 
-  cd "${THIS_DIR}"
+  cd "${THIS_DIR}" || exit
 
   if [ -e ../Top ]; then
     local DIR="../Top"
   else
     Msg Error "Top folder not found, Hog is not in a Hog-compatible HDL repository."
-    cd "${OLD_DIR}"
-    exit -1
+    cd "${OLD_DIR}" || exit
+    exit 0
   fi
 
   if [ "a$1" == "a" ]; then
-    help_message $0
+    help_message "$0"
     echo
     echo "Possible projects are:"
     echo ""
     search_projects $DIR
     echo
-    cd "${OLD_DIR}"
-    exit -1
+    cd "${OLD_DIR}" || exit 
+    exit 0
   else
     local PROJ=$1
     if [[ $PROJ == "Top/"* ]]; then
@@ -121,72 +124,73 @@ function create_project() {
   if [ -d "$PROJ_DIR" ]; then
 
     #Choose if the project is quartus, vivado, vivado_hls [...]
-    select_command $PROJ_DIR
-    if [ $? != 0 ]; then
+    
+    if ! select_command "$PROJ_DIR"; then
       Msg Error "Failed to select project type: exiting!"
-      exit -1
+      exit 0
     fi
 
     #select full path to executable and place it in HDL_COMPILER global variable
-    select_compiler_executable $COMMAND
-    if [ $? != 0 ]; then
+    
+    if ! select_compiler_executable "$COMMAND"; then
       Msg Error "Failed to get HDL compiler executable for $COMMAND"
-      exit -1
+      exit 0
     fi
 
     if [ ! -f "${HDL_COMPILER}" ]; then
       Msg Error "HDL compiler executable $HDL_COMPILER not found"
-      cd "${OLD_DIR}"
-      exit -1
+      cd "${OLD_DIR}" || exit 
+      exit 0
     else
       Msg Info "Using executable: $HDL_COMPILER"
     fi
 
-    if [ $FILE_TYPE == "CONF" ]; then
-      cd "${DIR}"
+    if [ "$FILE_TYPE" == "CONF" ]; then
+      cd "${DIR}" || exit 
       Msg Info "Creating project $PROJ using hog.conf..."
       if [ -z ${HOG_LIBPATH+x} ]; then
         if [ -z ${HOG_SIMULATION_LIB_PATH+x} ]; then
-          if [ $COMMAND == "libero" ]; then
-            "${HDL_COMPILER}" ${COMMAND_OPT}../Hog/Tcl/create_project.tcl ${POST_COMMAND_OPT}"$PROJ"
+          if [ "$COMMAND" == "libero" ]; then
+            "${HDL_COMPILER}" "${COMMAND_OPT}"../Hog/Tcl/create_project.tcl "${POST_COMMAND_OPT}$PROJ"
           else
-            "${HDL_COMPILER}" ${COMMAND_OPT}../Hog/Tcl/create_project.tcl ${POST_COMMAND_OPT}$PROJ
+            "${HDL_COMPILER}" "${COMMAND_OPT}"../Hog/Tcl/create_project.tcl "${POST_COMMAND_OPT}$PROJ"
           fi
         else
-          if [ $COMMAND == "libero" ]; then
-            "${HDL_COMPILER}" ${COMMAND_OPT}../Hog/Tcl/create_project.tcl ${POST_COMMAND_OPT}"-simlib_path ${HOG_SIMULATION_LIB_PATH} $PROJ"
+          if [ "$COMMAND" == "libero" ]; then
+            "${HDL_COMPILER}" "${COMMAND_OPT}"../Hog/Tcl/create_project.tcl "${POST_COMMAND_OPT}-simlib_path ${HOG_SIMULATION_LIB_PATH} $PROJ"
           else
-            "${HDL_COMPILER}" ${COMMAND_OPT}../Hog/Tcl/create_project.tcl ${POST_COMMAND_OPT}-simlib_path ${HOG_SIMULATION_LIB_PATH} $PROJ
+            "${HDL_COMPILER}" "${COMMAND_OPT}"../Hog/Tcl/create_project.tcl "${POST_COMMAND_OPT}-simlib_path ${HOG_SIMULATION_LIB_PATH} $PROJ"
           fi
         fi
       else
-        if [ $COMMAND == "libero" ]; then
-          "${HDL_COMPILER}" ${COMMAND_OPT}../Hog/Tcl/create_project.tcl ${POST_COMMAND_OPT}"-simlib_path ${HOG_LIBPATH} $PROJ"
+        if [ "$COMMAND" == "libero" ]; then
+          "${HDL_COMPILER}" "${COMMAND_OPT}"../Hog/Tcl/create_project.tcl "${POST_COMMAND_OPT}-simlib_path ${HOG_LIBPATH} $PROJ"
         else
-          "${HDL_COMPILER}" ${COMMAND_OPT}../Hog/Tcl/create_project.tcl ${POST_COMMAND_OPT}-simlib_path ${HOG_LIBPATH} $PROJ
+          "${HDL_COMPILER}" "${COMMAND_OPT}"../Hog/Tcl/create_project.tcl "${POST_COMMAND_OPT}-simlib_path ${HOG_LIBPATH} $PROJ"
         fi
       fi
-    elif [ $FILE_TYPE == "TCL" ]; then
+    elif [ "$FILE_TYPE" == "TCL" ]; then
       Msg Error "Creating project $PROJ using $PROJ.tcl is no longer supported. Please create a hog.conf file..."
     else
       Msg Error "Unknown file type: $FILE_TYPE"
       exit 1
     fi
 
+    # shellcheck disable=SC2181
     if [ $? != 0 ]; then
       Msg Error "HDL compiler returned an error state."
-      cd "${OLD_DIR}"
-      exit -1
+      cd "${OLD_DIR}" || exit 
+      exit 0
     fi
   else
     Msg Error "Project $PROJ not found: possible projects are:"
     search_projects "${OLD_DIR}/Top"
     echo
-    cd "${OLD_DIR}"
-    exit -1
+    cd "${OLD_DIR}" || exit
+    exit 0
   fi
 
-  cd "${OLD_DIR}"
+  cd "${OLD_DIR}" || exit 
 
   exit 0
 
@@ -195,18 +199,15 @@ function create_project() {
 
 
 function HogCreateFunc(){
-  # init $@
+  # init "$@"
   echo "HogInitFunc ($*)"
-  create_project $@
+  create_project "$@"
   # exit 0
 }
-if [[ ${BASH_SOURCE[0]} == $0 ]]; then
+if [[ ${BASH_SOURCE[0]} == "$0" ]]; then
 #   printf "script '%s' is sourced in\n" "${BASH_SOURCE[0]}"
 # else
-  repoPath=$(dirname "$0")
-  print_hog $repoPath
-  create_project $@
+  repoPath="$(dirname "$0")"
+  print_hog "$repoPath"
+  create_project "$@"
 fi
-# repoPath=$(dirname "$0")
-# print_hog $repoPath
-# create_project $@

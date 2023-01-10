@@ -15,6 +15,7 @@
 
 ## Import common functions from Other/CommonFunctions.sh in a POSIX compliant way
 #
+# shellcheck source=Other/CommonFunctions.sh
 . $(dirname "$0")/CommonFunctions.sh
 
 
@@ -58,7 +59,7 @@ function argument_parser() {
             REPO_NAME=$2
             shift 2
             ;;
-        -? | -h | -help)
+        -h | -help)
             HELP="-h"
             shift 1
             ;;
@@ -66,7 +67,7 @@ function argument_parser() {
             shift
             break
             ;;
-        -* | --*=) # unsupported flags
+        -* ) # unsupported flags
             Msg Error "Unsupported flag $1" >&2
             return 1
             ;;
@@ -99,19 +100,19 @@ function help_message() {
   echo 
 }
 
-argument_parser $@
+argument_parser "$@"
 if [ $? = 1 ]; then
     exit 1
 fi
 eval set -- "$PARAMS"
 if [ "$HELP" == "-h" ]; then
-    help_message $0
-    exit -1
+    help_message "$0"
+    exit 1
 fi
 
 if [ "$GITHUB" == "1" ]; then
     echo "## Pull Request Description"
-    gh api -H "Accept: application/vnd.github+json" /repos/$REPO_NAME/pulls/$NUMBER | jq -r ".body"
+    gh api -H "Accept: application/vnd.github+json" /repos/"$REPO_NAME"/pulls/"$NUMBER" | jq -r ".body"
 else
     if [ "$PUSH_TOKEN" != "" ] && [ "$API" != "" ] && [ "$PROJ" != "" ] && [ "$NUMBER" != "" ]; then
         echo "## MR Description"
@@ -129,6 +130,7 @@ echo
 git rev-parse --verify "$TARGET_BRANCH" >/dev/null 2>&1
 SRC_BRANCH=$(git rev-parse --abbrev-ref HEAD)
 
+# shellcheck disable=SC2181
 if [ $? -eq 0 ]; then
     echo "## Changelog"
     echo

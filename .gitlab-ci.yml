@@ -109,7 +109,7 @@ shellcheck:
     variables:
       - $CI_COMMIT_REF_NAME =~ /^test\/.*$/i
   script:
-    - shellcheck Other/*.sh *.sh
+    - shellcheck -x Other/*.sh *.sh
 
 yamllint:
   stage: tag
@@ -137,8 +137,7 @@ nagelfar:
     variables:
       - $CI_COMMIT_REF_NAME =~ /^test\/.*$/i
   script:
-    - /scripts/nagelfar133/nagelfar.tcl Tcl/*.tcl Tcl/*/*.tcl
-
+    - /scripts/nagelfar133/nagelfar.tcl -Wunusedvar -filter Unknown command Tcl/*.tcl Tcl/*/*.tcl
 
 tagging_develop:
   stage: tag

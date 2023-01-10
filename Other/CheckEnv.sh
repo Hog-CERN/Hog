@@ -46,20 +46,21 @@ echo
 
 OLD_DIR=$(pwd)
 THIS_DIR="$(dirname "$0")"
-TOP_DIR=$(realpath $THIS_DIR/../../Top)
+TOP_DIR=$(realpath "$THIS_DIR"/../../Top)
 APPTAINER_IMAGE="none"
 
-. $THIS_DIR/CommonFunctions.sh
+# shellcheck source=Other/CommonFunctions.sh
+. "$THIS_DIR"/CommonFunctions.sh
 
 #Argument parsing
 if [[ $# == 0 ]] || [[ $1 == -* ]] ;  then
-    help_message $0
-    print_projects $TOP_DIR $OLD_DIR
+    help_message "$0"
+    print_projects "$TOP_DIR" "$OLD_DIR"
     if [ "$1" == "-h" ] || [ "$1" == "-help" ] || [ "$1" == "--help" ] || [ "$1" == "-H" ]; then
 	exit 0;
     else
 	echo "Hog-ERROR: no project name was given."
-	exit -1;
+	exit 1;
     fi;
 else
     PROJ=$1
@@ -80,7 +81,7 @@ do
             else
                 echo "Hog-INFO: Apptainer argument expects and absolute path, assuming no image was given"
             fi;;
-	h|*) help_message $0
+    	h|*) help_message "$0"
 	     print_projects $TOP_DIR $OLD_DIR
 	     exit 0;;
     esac

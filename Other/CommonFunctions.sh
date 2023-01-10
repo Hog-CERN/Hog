@@ -44,10 +44,17 @@ export HDL_COMPILER=""
 
 
 
-## @var DEBUG_VERBOSE
-#  @brief Global variable 
-#
-export NEW_COLOR_LOGS=1
+## @var LOGGER
+#  @brief Global variable used to contain the logger
+if [[ -z $HOG_LOGGER ]]; then 
+  export HOG_LOGGER=""; 
+fi
+
+## @var LOGGER
+#  @brief Global variable used to contain the logger
+if [[ -z $HOG_COLORED ]]; then 
+  export HOG_COLORED=""; 
+fi
 
 ## @var DEBUG_VERBOSE
 #  @brief Global variable 
@@ -64,7 +71,7 @@ loginfofile="hog_info.log"
 logwarningfile="hog_warning_errors.log"
 # logerrorfile="hog_warning_errors.log"
 
-#
+
 txtblk='\e[0;30m' # Black - Regular
 txtred='\e[0;31m' # Red
 txtgrn='\e[0;32m' # Green
@@ -75,38 +82,26 @@ txtpur='\e[0;35m' # Purple
 txtcyn='\e[0;36m' # Cyan
 txtwht='\e[0;37m' # White
 
-echo_e() { echo -e "${txtred}  ERROR${txtwht} : $1"; }
-echo_c() { echo -e "${txtorg}WARNING${txtwht} : $1"; }
-echo_w() { echo -e "${txtylw}WARNING${txtwht} : $1"; }
+echo_e() { echo -e " old echo e ${txtred}  ERROR${txtwht} : $1"; }
+echo_c() { echo -e " old echo c ${txtorg}WARNING${txtwht} : $1"; }
+echo_w() { echo -e " old echo w ${txtylw}WARNING${txtwht} : $1"; }
 echo_i() { 
   # echo -e "${txtblu}   INFO${txtwht} : $1";
-    if [ $echo_info == 1 ]; then echo -e "$txtblu   INFO $txtwht: $1"; fi
+    if [ $echo_info == 1 ]; then echo -e " old echo i $txtblu    INFO $txtwht: $1"; fi
     if [[ -z $loginfofile ]]; then echo "$line" >> $loginfofile; fi
   }
-echo_d() { if [[ $DEBUG_VERBOSE -gt 0 ]]; then echo -e "${txtgrn}  DEBUG${txtwht} : $1"; fi;}
+echo_d() { 
+  if [[ $DEBUG_VERBOSE -gt 0 ]]; then 
+  echo -e " old echo d ${txtgrn}   DEBUG${txtwht} : $1"; 
+  fi;
+  }
 
-## @var LOGGER
-#  @brief Global variable used to contain the logger
-export HOG_LOGGER="" 
-
-## @var COLORED
-#  @brief Global variable used to contain the colorer
-# if [[ -z ${CONSOLE_COLORER} ]]; then
-#   export CONSOLE_COLORER=""
-# else
-#   echo "there is a colorer : ${CONSOLE_COLORER}"
-# fi
-
-# echo_info=1
-# echo_warnings=1
-# echo_errors=1
-
-# loginfofile="hog_info.log"
-# logwarningfile="hog_warning_errors.log"
-# # logerrorfile="hog_warning_errors.log"
-
-
-
+## @function log_stdout()
+# 
+# @brief parsers the output of the executed program ( Vivado, Questa,...) 
+# 
+# @param[in] execution line to process
+shopt -s extglob
 function log_stdout(){
   local color_reset="\e[0;37m"
   local color_red="\e[0;31m"
@@ -119,9 +114,8 @@ function log_stdout(){
   if [ -n "${2}" ]; then
     IN_out="${2}"
     in_type="${1}"
-    # echo "stdout : ${IN_out}" 
   else
-    while read IN_out # This reads a string from stdin and stores it in a variable called IN_out
+    while read IN_out
     do
       line=${IN_out}
       # echo "${line}"
@@ -140,17 +134,53 @@ function log_stdout(){
             fi
             echo "$line" >> $logwarningfile
             echo "$line" >> $loginfofile
-
+            
           ;;
           *'WARNING:'* | *'Warning:'* | *'warning:'*)
-            if [ $echo_warnings == 1 ]; then
-              echo -e "${color_orange} WARNING $color_reset: $line" 
-              #| $(${colorizer} warning: critical error: info: hog: )
+            if [[ -n "$HOG_COLORED" ]]; then
+              if [ $echo_info == 1 ]; then 
+                echo -e "$txtylw WARNING $txtwht: ${line#*@(WARNING: |Warning: |warning: )} "; 
+              fi
+              if [[ -z $HOG_LOGGER ]]; then
+                if [[ -z $logwarningfile ]]; then 
+                  echo "$line" >> $logwarningfile
+                fi
+                if [[ -z $loginfofile ]]; then 
+                  echo "$text" >> $loginfofile; 
+                fi
+              fi
             fi
-            echo "$line" >> $logwarningfile
-            echo "$line" >> $loginfofile
-
           ;;
+          # *'Warning:'*)
+          #   if [[ -n "$HOG_COLORED" ]]; then
+          #     if [ $echo_info == 1 ]; then 
+          #       echo -e "$txtylw WARNING $txtwht: ${line#Warning: } "; 
+          #     fi
+          #     if [[ -z $HOG_LOGGER ]]; then
+          #       if [[ -z $logwarningfile ]]; then 
+          #         echo "$line" >> $logwarningfile
+          #       fi
+          #       if [[ -z $loginfofile ]]; then 
+          #         echo "$text" >> $loginfofile; 
+          #       fi
+          #     fi
+          #   fi
+          # ;;
+          # *'warning:'*)
+          #   if [[ -n "$HOG_COLORED" ]]; then
+          #     if [ $echo_info == 1 ]; then 
+          #       echo -e "$txtylw WARNING $txtwht: ${line#warning: } ";
+          #     fi
+          #     if [[ -z $HOG_LOGGER ]]; then
+          #       if [[ -z $logwarningfile ]]; then 
+          #         echo "$line" >> $logwarningfile
+          #       fi
+          #       if [[ -z $loginfofile ]]; then 
+          #         echo "$text" >> $loginfofile; 
+          #       fi
+          #     fi
+          #   fi
+          # ;;
           *'ERROR:'* | *'Error:'* | *':Error'* | *'error:'* | *'Error '* | *'FATAL ERROR'*)
             if [ $echo_errors == 1 ]; then
               echo -e "$color_red   ERROR $color_reset: $line"  
@@ -161,11 +191,21 @@ function log_stdout(){
 
           ;;
           *'INFO:'*)
-            if [ $echo_info == 1 ]; then
-              echo -e "$color_blue    INFO $color_reset: $line" 
-              #| xcol warning: critical error: info: hog: 
+            if [[ -n "$HOG_COLORED" ]]; then
+              if [ $echo_info == 1 ]; then 
+                echo -e "$txtblu    INFO $txtwht: ${line#INFO: }"; 
+              fi
+              if [[ -z $HOG_LOGGER ]]; then
+                if [[ -z $loginfofile ]]; then 
+                  echo "$text" >> $loginfofile; 
+                fi
+              fi
             fi
-            echo "$line" >> $loginfofile
+            # if [ $echo_info == 1 ]; then
+            #   echo -e "$color_blue    INFO $color_reset: $line" 
+            #   #| xcol warning: critical error: info: hog: 
+            # fi
+            # echo "$line" >> $loginfofile
           ;;
           *'DEBUG:'*)
             if [ $echo_info == 1 ]; then
@@ -190,7 +230,7 @@ function log_stdout(){
           ;;
         esac
       elif [ "${1}" == "stderr" ]; then
-        echo -e "$color_red   ERROR $color_reset: $line" 
+        echo -e "$color_red  *ERROR $color_reset: $line" 
         echo "$line" >> $logwarningfile
         echo "$line" >> $loginfofile
 
@@ -223,7 +263,7 @@ function Logger(){
     echo "-----------------------------------------------"
   } > $logwarningfile
 
-  echo "LogColorVivado : $*"
+  Msg Debug "LogColorVivado : $*"
   log_stdout "stdout" "LogColorVivado : $*"
   log_stdout "stderr" "LogColorVivado : $*"
   $* > >(log_stdout "stdout") 2> >(log_stdout "stderr" >&2)
@@ -237,6 +277,7 @@ function Logger(){
 # @return  '1' if missing arguments else '0'
 function Msg() {
   #check input variables
+  # echo "------- $*"
   if [ "a$1" == "a" ]; then
     Msg Error "messageLevel not set!"
     return 1
@@ -257,42 +298,87 @@ function Msg() {
 
   case $1 in
   "Info")
-    # Colour=$Default
-    if [ $echo_info == 1 ]; then echo -e "$txtblu   INFO $txtwht: $2"; fi
-    if [[ -z $loginfofile ]]; then echo "$line" >> $loginfofile; fi
+    if [[ -n "$HOG_COLORED" ]]; then
+      if [ $echo_info == 1 ]; then 
+        echo -e "$txtblu    INFO $txtwht: HOG [${FUNCNAME[1]}] : $text "; 
+      fi
+      if [[ -z $HOG_LOGGER ]]; then
+        if [[ -z $loginfofile ]]; then 
+          echo "$text" >> $loginfofile; 
+        fi
+      fi
+    else
+      Colour=$Default
+    fi
     ;;
   "Warning")
-    Colour=$LightBlue
-    echo "${Colour}HOG:$1[${FUNCNAME[1]}] $text $Default"
+    if [[ -n "$HOG_COLORED" ]]; then
+      if [ $echo_info == 1 ]; then 
+        echo -e "$txtylw WARNING $txtwht: HOG [${FUNCNAME[1]}] : $text "; 
+      fi
+      if [[ -z $HOG_LOGGER ]]; then
+        if [[ -z $loginfofile ]]; then 
+          echo "$text" >> $loginfofile; 
+        fi
+      fi
+    else
+      Colour=$LightBlue
+    fi
     ;;
   "CriticalWarning")
-    Colour=$Orange
-    echo "${Colour}HOG:$1[${FUNCNAME[1]}] $text $Default"
+    if [[ -n "$HOG_COLORED" ]]; then
+      if [ $echo_info == 1 ]; then 
+        echo -e "${txtblu}CRITICAL $txtwht: HOG [${FUNCNAME[1]}] : $text "; 
+      fi
+      if [[ -z $HOG_LOGGER ]]; then
+        if [[ -z $loginfofile ]]; then 
+          echo "$text" >> $loginfofile; 
+        fi
+      fi
+    else
+      Colour=$Orange
+    fi
     ;;
   "Error")
-    Colour=$Red
-    echo "${Colour}HOG:$1[${FUNCNAME[1]}] $text $Default"
+    if [[ -n "$HOG_COLORED" ]]; then
+      if [ $echo_info == 1 ]; then 
+        echo -e "$txtblu   ERROR $txtwht: HOG [${FUNCNAME[1]}] : $text "; 
+      fi
+      if [[ -z $HOG_LOGGER ]]; then
+        if [[ -z $loginfofile ]]; then 
+          echo "$text" >> $loginfofile; 
+        fi
+      fi
+    else
+      Colour=$Red
+    fi
+    ;;
+  "Debug")
+    if [[ -n "$HOG_COLORED" ]]; then
+      if [[ $DEBUG_VERBOSE -gt 0 ]]; then
+        echo -e "${txtgrn}   DEBUG${txtwht} : HOG [${FUNCNAME[1]}] : $text "; 
+      fi;
+      if [[ -z $HOG_LOGGER ]]; then
+        if [[ -z $loginfofile ]]; then 
+          echo "$text" >> $loginfofile; 
+        fi
+      fi
+    else
+      Colour=$Green
+    fi
     ;;
   *)
     Msg Error "messageLevel: $1 not supported! Use Info, Warning, CriticalWarning, Error"
     ;;
   esac
 
-  # echo "${Colour}HOG:$1[${FUNCNAME[1]}] $text $Default"
-
+  if [[ -n $NEW_COLOR_LOGS ]]; then
+    echo "${Colour}HOG:$1[${FUNCNAME[1]}] $text $Default"
+  fi
     
 
   return 0
 }
-
-
-
-
-
-
-
-
-
 
 
 

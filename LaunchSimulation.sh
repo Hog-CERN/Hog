@@ -171,14 +171,26 @@ function SimulateProject(){
       elif [ $COMMAND = "libero" ]; then
         Msg Error "Libero is not yet supported by this script!"
       else
-        if [ -z "${SIMLIBPATH}" ]; then
-          if [ -z "${HOG_SIMULATION_LIB_PATH}" ]; then
-            "${HDL_COMPILER}" $COMMAND_OPT $DIR/Tcl/launchers/launch_simulation.tcl -tclargs $SIMSET $QUIET $RECREATE $PROJ
+        if [[ -z $HOG_COLORED ]]; then
+          if [ -z "${SIMLIBPATH}" ]; then
+            if [ -z "${HOG_SIMULATION_LIB_PATH}" ]; then
+              "${HDL_COMPILER}" $COMMAND_OPT $DIR/Tcl/launchers/launch_simulation.tcl -tclargs $SIMSET $QUIET $RECREATE $PROJ
+            else
+              "${HDL_COMPILER}" $COMMAND_OPT $DIR/Tcl/launchers/launch_simulation.tcl -tclargs -lib_path $HOG_SIMULATION_LIB_PATH $SIMSET $QUIET $RECREATE $PROJ
+            fi
           else
-            "${HDL_COMPILER}" $COMMAND_OPT $DIR/Tcl/launchers/launch_simulation.tcl -tclargs -lib_path $HOG_SIMULATION_LIB_PATH $SIMSET $QUIET $RECREATE $PROJ
+            "${HDL_COMPILER}" $COMMAND_OPT $DIR/Tcl/launchers/launch_simulation.tcl -tclargs $SIMLIBPATH $SIMSET $QUIET $RECREATE $PROJ
           fi
         else
-          "${HDL_COMPILER}" $COMMAND_OPT $DIR/Tcl/launchers/launch_simulation.tcl -tclargs $SIMLIBPATH $SIMSET $QUIET $RECREATE $PROJ
+          if [ -z "${SIMLIBPATH}" ]; then
+            if [ -z "${HOG_SIMULATION_LIB_PATH}" ]; then
+              Logger "${HDL_COMPILER}" $COMMAND_OPT $DIR/Tcl/launchers/launch_simulation.tcl -tclargs $SIMSET $QUIET $RECREATE $PROJ
+            else
+              Logger "${HDL_COMPILER}" $COMMAND_OPT $DIR/Tcl/launchers/launch_simulation.tcl -tclargs -lib_path $HOG_SIMULATION_LIB_PATH $SIMSET $QUIET $RECREATE $PROJ
+            fi
+          else
+            Logger "${HDL_COMPILER}" $COMMAND_OPT $DIR/Tcl/launchers/launch_simulation.tcl -tclargs $SIMLIBPATH $SIMSET $QUIET $RECREATE $PROJ
+          fi
         fi
       fi
     else
@@ -196,7 +208,7 @@ function SimulateProject(){
 function HogSimulateFunc(){
   # init $@
   # shift
-  echo "HogInitFunc ($*)"
+  Msg Debug "HogSimFunc ($*)"
   SimulateProject $*
   # exit 0
 }

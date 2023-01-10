@@ -95,12 +95,12 @@ else
   fi
   #Check if help vist 
   if [[ "$*" == *"-v"* ]] || [[ "$*" == *"-verbose"* ]]; then
-    echo_i "Verbose level"
+    Msg Debug "Verbose level"
     DEBUG_VERBOSE=1
     shift
   fi
   ## 
-  echo_d "Input parameters ($#) :: $*"
+  Msg Debug "Input parameters ($#) :: $*"
 
 
   # for ((i=0;i<${#$};i++)); do
@@ -137,18 +137,18 @@ else
       exit 0
     ;;
     -C|Create)
-      echo_i "Create $*"
+      Msg Info "Create $*"
       HogCreateFunc $*
     ;;
     -W|Workflow)
-      echo_i " Workflow"
-      Logger HogLaunchFunc $*
+      Msg Info " Workflow"
+      HogLaunchFunc $*
       # ./Hog/LaunchWorkflow.sh $*
     ;;
     -S|Simulation)
-      echo_i " Simulation"
+      Msg Info " Simulation"
       # ./Hog/LaunchSimulation.sh $*
-      Logger HogSimulateFunc $*
+      HogSimulateFunc $*
     ;;
     # -V|--verbose)
     #   echo " Verbose level"
@@ -156,7 +156,7 @@ else
     #   # Logger HogSimulateFunc $*
     # ;;
     *)
-      echo_e "Activity not recognized"
+      Msg Error "Activity not recognized"
       help_Unic $0
     ;;
   esac

@@ -635,23 +635,26 @@ proc UpgradeIP {} {
     # set the current impl run
     current_run -implementation [get_runs impl_1]
 
-    Msg Info "Running report_ip_status, before upgrading and hadnling IPs..."
-    report_ip_status
-
     ##############
     # UPGRADE IP #
     ##############
     set ips [get_ips *]
 
-    #Pull ips from repo
-    if {$globalSettings::HOG_IP_PATH != ""} {
-      set ip_repo_path $globalSettings::HOG_IP_PATH
-      Msg Info "HOG_IP_PATH is set, will pull/push synthesised IPs from/to $ip_repo_path."
-      foreach ip $ips {
-	HandleIP pull  [get_property IP_FILE $ip] $ip_repo_path $globalSettings::repo_path [get_property IP_OUTPUT_DIR $ip]
+    # We copy the IPs from the ip path only for Vivado
+    if {[IsVivado]} {
+      Msg Info "Running report_ip_status, before upgrading and hadnling IPs..."
+      report_ip_status
+      
+      #Pull ips from repo
+      if {$globalSettings::HOG_IP_PATH != ""} {
+	set ip_repo_path $globalSettings::HOG_IP_PATH
+	Msg Info "HOG_IP_PATH is set, will pull/push synthesised IPs from/to $ip_repo_path."
+	foreach ip $ips {
+	  HandleIP pull  [get_property IP_FILE $ip] $ip_repo_path $globalSettings::repo_path [get_property IP_OUTPUT_DIR $ip]
+	}
+      } else {
+	Msg Info "HOG_IP_PATH not set, will not push/pull synthesised IPs."
       }
-    } else {
-      Msg Info "HOG_IP_PATH not set, will not push/pull synthesised IPs."
     }
 
     Msg Info "Upgrading IPs if any..."

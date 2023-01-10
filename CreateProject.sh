@@ -62,13 +62,13 @@ function create_project() {
   local OLD_DIR=$(pwd)
   local THIS_DIR="$(dirname "$0")"
 
-  echo "HogInitFunc 0 ($0)"
-  echo "HogInitFunc 1 ($1)"
+  echo_d "HogInitFunc 0 ($0)"
+  echo_d "HogInitFunc 1 ($1)"
 
   if [ "$1" == "-h" ] || [ "$1" == "-help" ] || [ "$1" == "--help" ] || [ "$1" == "-H" ]; then
     help_message $0
     echo
-    echo "Possible projects are:"
+    Msg Info "Possible projects are:"
     echo ""
     search_projects $THIS_DIR/../Top
     echo
@@ -89,7 +89,7 @@ function create_project() {
   if [ "a$1" == "a" ]; then
     help_message $0
     echo
-    echo "Possible projects are:"
+    Msg Info "Possible projects are:"
     echo ""
     search_projects $DIR
     echo

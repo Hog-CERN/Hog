@@ -44,9 +44,10 @@ export HDL_COMPILER=""
 
 
 
-
-
-
+## @var DEBUG_VERBOSE
+#  @brief Global variable 
+#
+export NEW_COLOR_LOGS=1
 
 ## @var DEBUG_VERBOSE
 #  @brief Global variable 
@@ -256,26 +257,44 @@ function Msg() {
 
   case $1 in
   "Info")
-    Colour=$Default
+    # Colour=$Default
+    if [ $echo_info == 1 ]; then echo -e "$txtblu   INFO $txtwht: $2"; fi
+    if [[ -z $loginfofile ]]; then echo "$line" >> $loginfofile; fi
     ;;
   "Warning")
     Colour=$LightBlue
+    echo "${Colour}HOG:$1[${FUNCNAME[1]}] $text $Default"
     ;;
   "CriticalWarning")
     Colour=$Orange
+    echo "${Colour}HOG:$1[${FUNCNAME[1]}] $text $Default"
     ;;
   "Error")
     Colour=$Red
+    echo "${Colour}HOG:$1[${FUNCNAME[1]}] $text $Default"
     ;;
   *)
     Msg Error "messageLevel: $1 not supported! Use Info, Warning, CriticalWarning, Error"
     ;;
   esac
 
-  echo "${Colour}HOG:$1[${FUNCNAME[1]}] $text $Default"
+  # echo "${Colour}HOG:$1[${FUNCNAME[1]}] $text $Default"
+
+    
 
   return 0
 }
+
+
+
+
+
+
+
+
+
+
+
 
 ## @fn select_command_from_line
 #
@@ -559,7 +578,7 @@ function search_projects() {
       project_name=$(basename $dir)
       if [ -f "$dir/hog.conf" ]; then
         subname=${dir#*Top/}
-        echo $subname
+        Msg Info $subname
       else
         search_projects $dir
       fi

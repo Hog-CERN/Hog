@@ -73,8 +73,6 @@ function help_Create() {
 }
 
 
-## executed when run
-echo_d " Input parameters ($#) :: $*"
 
 
 arguments=$*
@@ -90,12 +88,20 @@ if [ $# == 0 ]; then
   help_Unic
   return 1
 else 
-
+  #Check if help vist 
+  if [[ "$*" == *"-h"* ]] || [[ "$*" == *"-help"* ]]; then
+    help_Unic
+    exit 0
+  fi
   #Check if help vist 
   if [[ "$*" == *"-v"* ]] || [[ "$*" == *"-verbose"* ]]; then
-    echo_i " Verbose level"
+    echo_i "Verbose level"
     DEBUG_VERBOSE=1
+    shift
   fi
+  ## 
+  echo_d "Input parameters ($#) :: $*"
+
 
   # for ((i=0;i<${#$};i++)); do
   #   echo "${i} :: ${$[i]}"
@@ -131,8 +137,8 @@ else
       exit 0
     ;;
     -C|Create)
-      echo_i " Create $*"
-      Logger HogCreateFunc $*
+      echo_i "Create $*"
+      HogCreateFunc $*
     ;;
     -W|Workflow)
       echo_i " Workflow"
@@ -150,7 +156,7 @@ else
     #   # Logger HogSimulateFunc $*
     # ;;
     *)
-      Msg Error "Activity not recognized"
+      echo_e "Activity not recognized"
       help_Unic $0
     ;;
   esac

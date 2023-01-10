@@ -11,5 +11,3 @@
  Documentation: https://cern.ch/hog
 
  Register to our newsletter: http://cern.ch/go/Zh9s
-
-***************************************************

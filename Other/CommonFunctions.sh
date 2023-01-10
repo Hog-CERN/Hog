@@ -41,21 +41,47 @@ export POST_COMMAND_OPT=""
 #
 export HDL_COMPILER=""
 
-export DEBUG_VERBOSE=""
+
+
+
+
+
+
+
+## @var DEBUG_VERBOSE
+#  @brief Global variable 
 #
+export DEBUG_VERBOSE=""
+
+
+
+echo_info=1
+echo_warnings=1
+echo_errors=1
+
+loginfofile="hog_info.log"
+logwarningfile="hog_warning_errors.log"
+# logerrorfile="hog_warning_errors.log"
+
 #
 txtblk='\e[0;30m' # Black - Regular
 txtred='\e[0;31m' # Red
 txtgrn='\e[0;32m' # Green
-txtylw='\e[0;33m' # Yellow
+txtylw='\e[0;93m' # Yellow
+txtorg='\e[0;33m' # Yellow
 txtblu='\e[0;34m' # Blue
 txtpur='\e[0;35m' # Purple
 txtcyn='\e[0;36m' # Cyan
 txtwht='\e[0;37m' # White
 
 echo_e() { echo -e "${txtred}  ERROR${txtwht} : $1"; }
+echo_c() { echo -e "${txtorg}WARNING${txtwht} : $1"; }
 echo_w() { echo -e "${txtylw}WARNING${txtwht} : $1"; }
-echo_i() { echo -e "${txtblu}   INFO${txtwht} : $1"; }
+echo_i() { 
+  # echo -e "${txtblu}   INFO${txtwht} : $1";
+    if [ $echo_info == 1 ]; then echo -e "$txtblu   INFO $txtwht: $1"; fi
+    if [[ -z $loginfofile ]]; then echo "$line" >> $loginfofile; fi
+  }
 echo_d() { if [[ $DEBUG_VERBOSE -gt 0 ]]; then echo -e "${txtgrn}  DEBUG${txtwht} : $1"; fi;}
 
 ## @var LOGGER
@@ -70,13 +96,13 @@ export HOG_LOGGER=""
 #   echo "there is a colorer : ${CONSOLE_COLORER}"
 # fi
 
-echo_info=1
-echo_warnings=1
-echo_errors=1
+# echo_info=1
+# echo_warnings=1
+# echo_errors=1
 
-loginfofile="hog_info.log"
-logwarningfile="hog_warning_errors.log"
-# logerrorfile="hog_warning_errors.log"
+# loginfofile="hog_info.log"
+# logwarningfile="hog_warning_errors.log"
+# # logerrorfile="hog_warning_errors.log"
 
 
 
@@ -124,7 +150,7 @@ function log_stdout(){
             echo "$line" >> $loginfofile
 
           ;;
-          *'ERROR:'* | *'Error:'* | *':Error'* | *'error:'*)
+          *'ERROR:'* | *'Error:'* | *':Error'* | *'error:'* | *'Error '* | *'FATAL ERROR'*)
             if [ $echo_errors == 1 ]; then
               echo -e "$color_red   ERROR $color_reset: $line"  
               #| xcol warning: critical error info: hog: 
@@ -500,17 +526,18 @@ function new_print_hog() {
   fi
   cd "$1"
   ver=$(git describe --always)
-  echo
+  # echo
   # cat ./images/hog_logo.txt
- while IFS= read -r line; do
-  echo -e "$line"
- done < ./images/hog_logo_color.txt
- 
+  while IFS= read -r line; do
+    echo -e "$line"
+  done < ./images/hog_logo_color.txt
+  echo
   echo " Version: ${ver}"
   echo
+  echo "***************************************************"
   cd - >> /dev/null
   # HogVer $1
-
+  # exit 0
   return 0
 }
 

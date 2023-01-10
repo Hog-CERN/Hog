@@ -42,6 +42,7 @@ namespace eval globalSettings {
   variable PROPERTIES
   variable SIM_PROPERTIES
   variable HOG_EXTERNAL_PATH
+  variable HOG_IP_PATH
   variable TARGET_SIMULATOR
 
   variable pre_synth_file
@@ -74,9 +75,7 @@ namespace eval globalSettings {
 proc CreateProject {} {
 
   if {[IsXilinx]} {
-
     create_project -force [file tail $globalSettings::DESIGN] $globalSettings::build_dir -part $globalSettings::PART
-
 
     ## Set project properties
     set obj [get_projects [file tail $globalSettings::DESIGN] ]
@@ -625,19 +624,37 @@ proc ConfigureProperties {} {
   cd $cur_dir
 }
 
-## @brief upgrade IPs in the project
+## @brief upgrade IPs in the project and copy them from HOG_IP_PATH if defined
 #
 proc UpgradeIP {} {
+  set tcl_path [file normalize "[file dirname [info script]]"]
+  set repo_path [file normalize $tcl_path/../..]
+  source $tcl_path/hog.tcl  
+
   if {[IsXilinx]} {
     # set the current impl run
     current_run -implementation [get_runs impl_1]
 
+    Msg Info "Running report_ip_status, before upgrading and hadnling IPs..."
+    report_ip_status
 
     ##############
     # UPGRADE IP #
     ##############
-    Msg Info "Upgrading IPs if any..."
     set ips [get_ips *]
+
+    #Pull ips from repo
+    if {$globalSettings::HOG_IP_PATH != ""} {
+      set ip_repo_path $globalSettings::HOG_IP_PATH
+      Msg Info "HOG_IP_PATH is set, will pull/push synthesised IPs from/to $ip_repo_path."
+      foreach ip $ips {
+	HandleIP pull  [get_property IP_FILE $ip] $ip_repo_path $globalSettings::repo_path [get_property IP_OUTPUT_DIR $ip]
+      }
+    } else {
+      Msg Info "HOG_IP_PATH not set, will not push/pull synthesised IPs."
+    }
+
+    Msg Info "Upgrading IPs if any..."
     if {$ips != ""} {
       upgrade_ip -quiet $ips
     }
@@ -896,6 +913,13 @@ if {[file exists $pre_file]} {
   Msg Info "Found pre-creation Tcl script $pre_file, executing it..."
   source $pre_file
 }
+
+if {[info exists env(HOG_IP_PATH)]} {
+  set globalSettings::HOG_IP_PATH $env(HOG_IP_PATH)
+} else {
+  set globalSettings::HOG_IP_PATH ""
+}
+
 CreateProject
 AddProjectFiles
 ConfigureSynthesis
@@ -957,4 +981,4 @@ if {[IsXilinx]} {
   cd $old_path
 }
 
-Msg Info "Project $DESIGN created successfully."
+Msg Info "Project $DESIGN created successfully in $globalSettings::build_dir."

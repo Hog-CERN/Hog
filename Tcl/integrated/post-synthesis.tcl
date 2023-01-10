@@ -142,7 +142,6 @@ if {[info exists env(HOG_IP_PATH)]} {
 
     set ips [get_ips *]
     set run_paths [glob -nocomplain "$run_dir/*"]
-    puts "RUNS: $run_paths"    
     set runs {}
     foreach r $run_paths {
       if {[regexp -all {^(.+)_synth_1}  $r whole_match run]} {

@@ -11,6 +11,8 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
+
+---
 include:
   - local: YAML/hog-common.yml
   - local: YAML/hog-main.yml
@@ -37,7 +39,7 @@ generate-config:
     - if: $CI_MERGE_REQUEST_ID
   tags:
     - docker
-  interruptible: true 
+  interruptible: true
 
 child-pipeline:
   stage: dynamic_triggers
@@ -68,7 +70,7 @@ collect_artifacts:
     - if: $CI_MERGE_REQUEST_ID
   artifacts:
     paths:
-    - bin/
+      - bin/
     expire_in: 30 days
   tags:
     - docker

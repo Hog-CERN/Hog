@@ -450,7 +450,7 @@ jobs:
       - uses: webfactory/ssh-agent@v0.5.4
         name: SSH-Agent
         with:
-            ssh-private-key: ${{ secrets.SUBMODULE_CONTENT_PULL_KEY }}
+          ssh-private-key: ${{ secrets.SUBMODULE_CONTENT_PULL_KEY }}
       - uses: actions/download-artifact@v3
         name: Download Artifacts
       - name: Collect
@@ -508,17 +508,17 @@ jobs:
   check_timing:
     runs-on: ubuntu-latest
     container: gitlab-registry.cern.ch/hog/hog-docker:tclsh
-    if: ${{ inputs.BUILD_PROJECTS }}   
+    if: ${{ inputs.BUILD_PROJECTS }}
     needs: [generate_project]
     steps:
       - uses: actions/checkout@v2
         name: Checkout
-        with: 
+        with:
           fetch-depth: 0
       - uses: webfactory/ssh-agent@v0.5.4
         name: SSH-Agent
         with:
-            ssh-private-key: ${{ secrets.SUBMODULE_CONTENT_PULL_KEY }}
+          ssh-private-key: ${{ secrets.SUBMODULE_CONTENT_PULL_KEY }}
       - uses: actions/download-artifact@v3
         name: Download Artifacts
       - name: Check Timing

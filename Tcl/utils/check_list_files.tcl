@@ -560,7 +560,7 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
         break
       }
 
-      if {[lsearch -nocase [lindex [DictGet $listProperties $prop_file] 0] $prop] < 0 && ![string equal $prop ""] && ![string equal $prop_file "Simulator"] && ![string equal $prop "top=top_[file root $project_name]"] && [lsearch -nocase [lindex [DictGet $listSimProperties $prop_file] 0] $prop] < 0 && $prop != "wavefile" && $prop != "dofile" && [string first "runtime=" $prop] == -1} {
+      if {[lsearch -nocase [lindex [DictGet $listProperties $prop_file] 0] $prop] < 0 && ![string equal $prop ""] && ![string equal $prop_file "Simulator"] && ![string equal $prop "top=top_[file root $project_name]"] && [lsearch -nocase [lindex [DictGet $listSimProperties $prop_file] 0] $prop] < 0 && $prop != "wavefile" && $prop != "dofile" && [string first "runtime=" $prop] == -1 && [string first "topsim=" $prop] == -1} {
         set is_sim_file 0
         set AllSimDict  [DictGet $prjLibraries SIM]
         foreach simset [dict keys $AllSimDict] {
@@ -681,7 +681,6 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
     Msg Warning "$repo_path/Top/$group_name/$project_name/hog.conf not found. Skipping properties check"
   }
 
-  puts $hogConfDict
 
   #filling newConfDict with existing hog.conf properties apart from main synth_1 impl_1 and generics
   foreach key [dict keys $hogConfDict] {

@@ -1650,7 +1650,7 @@ proc GetProjectFiles {} {
   set simulator [get_property target_simulator [current_project]]
   set SIM [dict create]
   set SRC [dict create]
-
+  set OTHER [dict create]
   set top [get_property "top"  [current_fileset]]
   set topfile [lindex [get_files -compile_order sources -used_in synthesis] end]
   dict lappend properties $topfile "top=$top"
@@ -1745,8 +1745,13 @@ proc GetProjectFiles {} {
           if {![string equal $prop ""]} {
             dict lappend properties $f $prop
           }
-        } elseif {[string equal $type "VHDL"] || [string first "Verilog" $type] != -1 } {
+        } elseif {[string equal $type "VHDL"] || [string equal $type "Verilog"] || [string equal $type "SystemVerilog"] } {
           dict lappend SRC $lib $f
+          if {![string equal $prop ""]} {
+            dict lappend properties $f $prop
+          }
+        } elseif {[string equal $type "Verilog Header"]} {
+          dict lappend libraries "OTHER" $f
           if {![string equal $prop ""]} {
             dict lappend properties $f $prop
           }

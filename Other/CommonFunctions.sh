@@ -151,43 +151,26 @@ function log_stdout(){
               fi
             fi
           ;;
-          # *'Warning:'*)
-          #   if [[ -n "$HOG_COLORED" ]]; then
-          #     if [ $echo_info == 1 ]; then 
-          #       echo -e "$txtylw WARNING $txtwht: ${line#Warning: } "; 
-          #     fi
-          #     if [[ -z $HOG_LOGGER ]]; then
-          #       if [[ -z $logwarningfile ]]; then 
-          #         echo "$line" >> $logwarningfile
-          #       fi
-          #       if [[ -z $loginfofile ]]; then 
-          #         echo "$text" >> $loginfofile; 
-          #       fi
-          #     fi
-          #   fi
-          # ;;
-          # *'warning:'*)
-          #   if [[ -n "$HOG_COLORED" ]]; then
-          #     if [ $echo_info == 1 ]; then 
-          #       echo -e "$txtylw WARNING $txtwht: ${line#warning: } ";
-          #     fi
-          #     if [[ -z $HOG_LOGGER ]]; then
-          #       if [[ -z $logwarningfile ]]; then 
-          #         echo "$line" >> $logwarningfile
-          #       fi
-          #       if [[ -z $loginfofile ]]; then 
-          #         echo "$text" >> $loginfofile; 
-          #       fi
-          #     fi
-          #   fi
-          # ;;
           *'ERROR:'* | *'Error:'* | *':Error'* | *'error:'* | *'Error '* | *'FATAL ERROR'*)
-            if [ $echo_errors == 1 ]; then
-              echo -e "$color_red   ERROR $color_reset: $line"  
-              #| xcol warning: critical error info: hog: 
+            if [[ -n "$HOG_COLORED" ]]; then
+              if [ $echo_info == 1 ]; then 
+                echo -e "$txtylw WARNING $txtwht: ${line#*@(ERROR:|Error:)} "; 
+              fi
+              if [[ -z $HOG_LOGGER ]]; then
+                if [[ -z $logwarningfile ]]; then 
+                  echo "$line" >> $logwarningfile
+                fi
+                if [[ -z $loginfofile ]]; then 
+                  echo "$text" >> $loginfofile; 
+                fi
+              fi
             fi
-            echo "$line" >> $logwarningfile
-            echo "$line" >> $loginfofile
+            # if [ $echo_errors == 1 ]; then
+            #   echo -e "$color_red   ERROR $color_reset: $line"  
+            #   #| xcol warning: critical error info: hog: 
+            # fi
+            # echo "$line" >> $logwarningfile
+            # echo "$line" >> $loginfofile
 
           ;;
           *'INFO:'*)

@@ -976,10 +976,12 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
     }
   }
 
-  foreach simset [get_filesets *sim*] {
+  foreach simset [get_filesets -quiet *_sim] {
     set hogConfSimDict [DictGet $simConfDict $simset]
     set hogAllSimDict [DictGet $simConfDict sim]
+    set hogGenericsSimDict [DictGet $simConfDict generics]
     set newSimDict [dict create]
+    set newGenericsDict [dict create]
     set projSimDict [DictGet $projConfDict $simset]
     set defaultRunDict [DictGet $defaultConfDict $simset]
 
@@ -988,6 +990,28 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
       set hogset [DictGet $hogConfSimDict $setting]
       set allhogset [Dict $hogAllSimDict $setting]
       set defset [DictGet $defaultRunDict $setting]
+
+      if {[string toupper $setting] == "GENERIC"} {
+        # Check the generics section of the sim.conf
+        foreach gen_set $currset {
+          set generic_and_value [split $gen_set =]
+          set generic [string toupper [lindex $generic_and_value 0]]
+          set gen_value [lindex $generic_and_value 1]
+          set generichogset [Dict $hogGenericsSimDict $generic ]
+          dict set newGenericsDict $generic $gen_value
+          if { $gen_value != $generichogset} {
+            if {$options(recreate_conf) == 1} {
+              incr SimConfErrorCnt
+              Msg Info "$simset generics setting $generic has been changed from \"$generichogset\" in sim.conf to \"$gen_value\" in project."
+            } elseif {[file exists $sim_conf]} {
+              WarningAndLog "Simset $simset setting $generic value \"$gen_value\" does not match sim.conf \"$generichogset\"." $outSimFile
+              incr SimConfErrorCnt
+            }
+          }
+        }
+        continue
+      }
+
       if {[string toupper $currset] != [string toupper $hogset] && [string toupper $currset] != [string toupper $defset] && [string toupper $currset] != [string toupper $allhogset]} {
         if {[string first "DEFAULT" [string toupper $currset]] != -1 && $hogset == "" && $allhogset == ""} {
           continue
@@ -1013,7 +1037,7 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
           incr SimConfErrorCnt
           Msg Info "$simset setting $setting has been changed from \"$hogset\" (\"$allhogset\") in sim.conf to \"$currset\" in project."
         } elseif {[file exists $sim_conf]} {
-          WarningAndLog "Project $simset setting $setting value \"$currset\" does not match sim.conf \"$hogset\" (\"$allhogset\")." $outSimFile
+          WarningAndLog "Simset $simset setting $setting value \"$currset\" does not match sim.conf \"$hogset\" (\"$allhogset\")." $outSimFile
           incr SimConfErrorCnt
         }
       } elseif {[string toupper $currset] == [string toupper $hogset] && [string toupper $hogset] != ""} {
@@ -1025,6 +1049,7 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
 
     }
     dict set newSimConfDict $simset $newSimDict
+    dict set newSimConfDict generics $newGenericsDict
 
     #if anything remains into hogConfDict it means that something is wrong
     foreach setting [dict keys $hogConfRunDict] {

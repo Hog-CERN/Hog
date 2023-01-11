@@ -495,7 +495,7 @@ proc ConfigureSimulation {} {
     }
 
 
-  }  elseif {[IsQuartus]} {
+  } elseif {[IsQuartus]} {
     #QUARTUS only
     #TO BE DONE
 

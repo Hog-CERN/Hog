@@ -3384,11 +3384,19 @@ proc FormatGeneric {generic} {
 #                         defines the output format of the string
 # @return string with generics 
 #
-proc GetGenericFromConf {proj_dir target} {
+proc GetGenericFromConf {proj_dir target {sim 0}} {
   set prj_generics ""
   set top_dir "Top/$proj_dir"
-  if {[file exist $top_dir/hog.conf]} {
-    set properties [ReadConf [lindex [GetConfFiles $top_dir] 0]]
+  set conf_file "$top_dir/hog.conf"
+  set conf_index 0
+  if {$sim == 1} {
+    set conf_file "$top_dir/sim.conf"
+    set conf_index 1
+  }
+
+
+  if {[file exist $conf_file]} {
+    set properties [ReadConf [lindex [GetConfFiles $top_dir] $conf_index]]
     if {[dict exists $properties generics]} {
       set propDict [dict get $properties generics]
       dict for {theKey theValue} $propDict {
@@ -3457,12 +3465,13 @@ proc SetGenericsSimulation {proj_dir target} {
   set sim_cfg_index [lsearch -regexp -index 0 $read_aux ".*sim.conf"]
   set sim_cfg_index [lsearch -regexp -index 0 [GetConfFiles $top_dir] ".*sim.conf"]
   if {[file exist $top_dir/sim.conf]} {
-    set sim_cfg_list [ReadConf [lindex [GetConfFiles $top_dir] [lsearch -regexp -index 0 $read_aux ".*sim.conf"]]]
-    set sim_cfg_dict [dict get $sim_cfg_list ]
-    dict for {theKey theValue} $sim_cfg_dict {
-      set sim_generics [GetGenericFromConf $proj_dir $target]
-      set_property generic $sim_generics [get_filesets $theKey]
-      Msg Info "Setting simulator $target for file set $theKey generics : $sim_generics"
+    set simsets [get_filesets -quiet *_sim]
+    set sim_generics [GetGenericFromConf $proj_dir $target 1]
+    if {$sim_generics != ""} {
+      foreach simset $simsets {
+        set_property generic $sim_generics [get_filesets $simset]
+        Msg Info "Setting generics $sim_generics for simulator $target and simulation file-set $simset..."
+      }
     }
   } else {
     Msg warning "No sim.conf found in project Top"
@@ -3522,13 +3531,13 @@ proc WriteGenerics {mode design date timee commit version top_hash top_ver hog_h
   set prj_generics [GetGenericFromConf $design "Vivado"]
   set generic_string "$prj_generics $generic_string"
   if {[IsVivado]} {
-    set_property generic $generic_string [current_fileset]
     Msg Info "Setting Vivado generics : $generic_string"
+    set_property generic $generic_string [current_fileset]
     # Dealing with project generics in Simulators
-    # set simulator [get_property target_simulator [current_project]]
-    # if {$mode == "create"} {
-    #   SetGenericsSimulation $design $simulator
-    # }
+    set simulator [get_property target_simulator [current_project]]
+    if {$mode == "create"} {
+      SetGenericsSimulation $design $simulator
+    }
   } elseif {[IsSynplify]} {
     foreach generic $generic_string {
       Msg Info "Setting Synplify generic: $generic"

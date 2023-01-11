@@ -1745,16 +1745,19 @@ proc GetProjectFiles {} {
           if {![string equal $prop ""]} {
             dict lappend properties $f $prop
           }
+        } elseif {[string equal $type "VHDL"] || [string first "Verilog" $type] != -1 } {
+          dict lappend SRC $lib $f
+          if {![string equal $prop ""]} {
+            dict lappend properties $f $prop
+          }
         } elseif {[string equal $type "IP"]} {
           dict lappend libraries "IP" $f
         } elseif {[string equal $fs_type "Constrs"]} {
           dict lappend libraries "XDC" $f
         } else {
-          dict lappend SRC $lib $f
-          if {![string equal $prop ""]} {
-            dict lappend properties $f $prop
-          }
+          dict lappend libraries "OTHER" $f
         }
+
 
         if {[lindex [get_property -quiet used_in_synthesis  [GetFile $f]] 0] == 0} {
           dict lappend properties $f "nosynth"

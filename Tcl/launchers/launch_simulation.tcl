@@ -16,6 +16,7 @@
 # @file
 # Launch all the simulations in a vivado project in text mode
 
+##nagelfar variable quartus
 #parsing command options
 if {[catch {package require cmdline} ERROR]} {
   puts "$ERROR\n If you are running this script on tclsh, you can fix this by installing 'tcllib'"
@@ -72,7 +73,7 @@ if { $::argc eq 0 } {
 
 Msg Info "Simulation library path is set to $lib_path."
 set simlib_ok 1
-if !([file exists $lib_path]) {
+if {!([file exists $lib_path])} {
   Msg Warning "Could not find simulation library path: $lib_path, Modelsim/Questasim simulation will not work."
   set simlib_ok 0
 }
@@ -182,7 +183,8 @@ foreach s [get_filesets] {
   }
 }
 
-if [info exists sim_scripts] { #Only for modelsim/questasim
+if {[info exists sim_scripts]} { 
+  # Only for modelsim/questasim
   Msg Info "Generating IP simulation targets, if any..."
 
   foreach ip [get_ips] {

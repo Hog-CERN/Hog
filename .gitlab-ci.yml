@@ -150,7 +150,7 @@ nagelfar:
   except:
     variables: [$CI_COMMIT_REF_NAME =~ /^test\/.*$/i]
   script:
-    - /scripts/nagelfar133/nagelfar.tcl -Wunusedvar -filter Unknown command Tcl/*.tcl
+    - /scripts/nagelfar133/nagelfar.tcl -Wunusedvar -filter "*Unknown command*" -filter "*Found constant*which is also a variable*" Tcl/*.tcl
       Tcl/*/*.tcl
 
 create_release_note:

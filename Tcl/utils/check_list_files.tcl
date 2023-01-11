@@ -407,7 +407,7 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
     }
   }
 
-  foreach key [dict key $prjSimDict] {
+  foreach key [dict keys $prjSimDict] {
     if {[string equal $key ""] } {
       continue
     }
@@ -560,8 +560,9 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
         break
       }
 
-      if {[lsearch -nocase [lindex [DictGet $listProperties $prop_file] 0] $prop] < 0 && ![string equal $prop ""] && ![string equal $prop_file "Simulator"] && ![string equal $prop "top=top_[file root $project_name]"] && [lsearch -nocase [lindex [DictGet $listSimProperties $prop_file] 0] $prop] < 0 && $prop != "wavefile" && $prop != "dofile" && [string first "runtime=" $prop] == -1 && [string first "topsim=" $prop] == -1} {
+      if {[lsearch -nocase [lindex [DictGet $listProperties $prop_file] 0] $prop] < 0 && ![string equal $prop ""] && ![string equal $prop_file "Simulator"] && ![string equal $prop "top=top_[file rootname $project_name]"] && [lsearch -nocase [lindex [DictGet $listSimProperties $prop_file] 0] $prop] < 0 && $prop != "wavefile" && $prop != "dofile" && [string first "runtime=" $prop] == -1 && [string first "topsim=" $prop] == -1} {
         set is_sim_file 0
+        ##nagelfar ignore
         set AllSimDict  [DictGet $prjLibraries SIM]
         foreach simset [dict keys $AllSimDict] {
           set SimSetDict [DictGet $AllSimDict $simset]
@@ -652,6 +653,7 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
 
   # Get project libraries and properties from Vivado
   lassign [GetProjectFiles] prjLibraries prjProperties
+  ##nagelfar ignore
   set prjSrcDict  [DictGet $prjLibraries SRC]
 
 
@@ -1088,7 +1090,7 @@ if {![string equal $options(project) ""]} {
 }
 
 
-set TotErrorCnt [expr $ConfErrorCnt + $ListErrorCnt]
+set TotErrorCnt [expr {$ConfErrorCnt + $ListErrorCnt}]
 
 if {$options(recreate_conf) == 0 && $options(recreate) == 0} {
   if {$options(pedantic) == 1 && $TotErrorCnt > 0} {

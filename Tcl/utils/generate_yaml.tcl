@@ -14,6 +14,10 @@
 #   limitations under the License.
 
 #parsing command options
+
+##nagelfar variable CI_STAGES
+##nagelfar variable CI_PROPS
+
 if {[catch {package require yaml} ERROR]} {
   puts "$ERROR\n If you are running this script on tclsh, you can fix this by installing 'tcllib'"
   return
@@ -67,7 +71,7 @@ set stage_list $CI_STAGES
 set prop_list $CI_PROPS
 
 if {$static == 1 } {
-  if { [file exist "$repo_path/.gitlab-ci.yml"] } {
+  if { [file exists "$repo_path/.gitlab-ci.yml"] } {
     set created_yml  "$repo_path/new_gitlab-ci.yml"
     Msg Warning "$repo_path/.gitlab-ci.yml, will create (and possibly repleace) $created_yml, please rename it if you want Hog-CI to work."
   } else {

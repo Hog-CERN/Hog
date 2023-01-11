@@ -257,7 +257,7 @@ if {$do_implementation == 1 } {
   file mkdir $dst_dir
 
   #Version table
-  if [file exists $main_folder/versions.txt] {
+  if {[file exists $main_folder/versions.txt]} {
     file copy -force $main_folder/versions.txt $dst_dir
   } else {
     Msg Warning "No versions file found in $main_folder/versions.txt"
@@ -265,7 +265,7 @@ if {$do_implementation == 1 } {
   #Timing file
   set timing_file [file normalize "$repo_path/Projects/timing.txt" ]
 
-  if [file exists $timing_file ] {
+  if {[file exists $timing_file]} {
     file copy -force $timing_file $dst_dir/
   } else {
     Msg Warning "No timing file found, not a problem if running locally"

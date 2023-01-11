@@ -45,6 +45,7 @@ if { $::argc eq 0 } {
   #Vivado
   Msg Info [cmdline::usage $parameters $usage]
   exit 1
+  ##nagelfar ignore Unknown variable
 } elseif {[IsQuartus] && [ catch {array set options [cmdline::getoptions quartus(args) $parameters $usage] } ] || $::argc eq 0 } {
   #Quartus
   Msg Info [cmdline::usage $parameters $usage]

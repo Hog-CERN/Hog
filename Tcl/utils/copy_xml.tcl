@@ -52,7 +52,7 @@ if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] 
 
 set list_file $repo_path/Top/$project/list/xml.lst
 if {[file exists $list_file]} {
-  if ![file exists $dst] {
+  if {![file exists $dst]} {
     Msg Info "$dst directory not found, creating it..."
     file mkdir $dst
   }

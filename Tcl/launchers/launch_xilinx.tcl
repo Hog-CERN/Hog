@@ -233,8 +233,8 @@ if {$do_synthesis == 1} {
   foreach ip $ips {
     set xci_file [get_property IP_FILE $ip]
 
-    set xci_path [file dir $xci_file]
-    set xci_ip_name [file root [file tail $xci_file]]
+    set xci_path [file dirname $xci_file]
+    set xci_ip_name [file rootname [file tail $xci_file]]
     foreach rptfile [glob -nocomplain -directory $xci_path *.rpt] {
       file copy $rptfile $bin_dir/$project_name-$describe/reports
     }
@@ -418,7 +418,7 @@ if {$do_implementation == 1 } {
   file mkdir $dst_dir
 
   #Version table
-  if [file exists $main_folder/versions.txt] {
+  if {[file exists $main_folder/versions.txt]} {
     file copy -force $main_folder/versions.txt $dst_dir
   } else {
     Msg Warning "No versions file found in $main_folder/versions.txt"
@@ -427,7 +427,7 @@ if {$do_implementation == 1 } {
   set timing_files [ glob -nocomplain "$main_folder/timing_*.txt" ]
   set timing_file [file normalize [lindex $timing_files 0]]
 
-  if [file exists $timing_file ] {
+  if {[file exists $timing_file]} {
     file copy -force $timing_file $dst_dir/
   } else {
     Msg Warning "No timing file found, not a problem if running locally"

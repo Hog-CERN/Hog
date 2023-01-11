@@ -17,6 +17,9 @@
 # The post synthesis script copies the synthesis reports and other files to the bin.
 # This script is automatically integrated into the Vivado/Quartus workflow by the Create Project script.
 
+##nagelfar variable quartus
+##nagelfar variable project
+
 if {[catch {package require struct::matrix} ERROR]} {
   puts "$ERROR\n If you are running this script on tclsh, you can fix this by installing 'tcllib'"
   return
@@ -117,9 +120,9 @@ if {[IsXilinx]} {
   } else {
     set reps [glob -nocomplain "$run_dir/*/*.rpt"]
   }
-  if [file exists [lindex $reps 0]] {
+  if {[file exists [lindex $reps 0]]} {
     file copy -force {*}$reps $dst_dir/reports
-    if [file exists [glob -nocomplain "$dst_dir/reports/${top_name}_utilization_synth.rpt"] ] {
+    if {[file exists [glob -nocomplain "$dst_dir/reports/${top_name}_utilization_synth.rpt"] ]} {
       set utilization_file [file normalize $dst_dir/utilization.txt]
       set report_file [glob -nocomplain "$dst_dir/reports/${top_name}_utilization_synth.rpt"]
       if {$group_name != ""} {
@@ -168,14 +171,14 @@ if {[IsXilinx]} {
  # Log files
   set logs [glob -nocomplain "$run_dir/*/runme.log"]
   foreach log $logs {
-    set run_name [file tail [file dir $log]]
+    set run_name [file tail [file dirname $log]]
     file copy -force $log $dst_dir/reports/$run_name.log
   }
 } elseif {[IsQuartus]} {
   #Reports
   set reps [glob -nocomplain "$proj_dir/output_files/*.rpt"]
 
-  if [file exists [lindex $reps 0]] {
+  if {[file exists [lindex $reps 0]]} {
     file copy -force {*}$reps $dst_dir/reports
   } else {
     Msg Warning "No reports found in $proj_dir/output_files subfolders"

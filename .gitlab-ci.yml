@@ -25,35 +25,28 @@ default:
     - git status
     - source ./Other/CommonFunctions.sh
     - print_hog .
-stages:
-  - tag
-  - build_doc
+stages: [tag, build_doc]
 
 build-doxygen-test:
   stage: build_doc
   image: gitlab-registry.cern.ch/hog/hog-docker
-  except:
-    - develop
-    - master
-    - tags
-  before_script:
-    - echo ""
+  except: [develop, master, tags]
+  before_script: [echo ""]
   script:
-    - git clone https://hog:${CERN_PUSH_TOKEN}@gitlab.cern.ch/hog/hog-doxygen.git doxygen
+    - git clone https://hog:${CERN_PUSH_TOKEN}@gitlab.cern.ch/hog/hog-doxygen.git
+      doxygen
     - doxygen ./doxygen/Hog-doxygen.cfg
 
 build-doxygen-develop:
   stage: build_doc
   image: gitlab-registry.cern.ch/hog/hog-docker
   only:
-    refs:
-      - tags
-    variables:
-      - $CI_COMMIT_TAG =~ /^(v.*)$/
-  before_script:
-    - echo ""
+    refs: [tags]
+    variables: [$CI_COMMIT_TAG =~ /^(v.*)$/]
+  before_script: [echo ""]
   script:
-    - git clone https://hog:${CERN_PUSH_TOKEN}@gitlab.cern.ch/hog/hog-doxygen.git doxygen
+    - git clone https://hog:${CERN_PUSH_TOKEN}@gitlab.cern.ch/hog/hog-doxygen.git
+      doxygen
     - chmod +x ./doxygen/scripts/build-and-deploy.sh
     - ./doxygen/scripts/build-and-deploy.sh /eos/user/h/hog/www/doxy-develop
 
@@ -61,14 +54,12 @@ build-doxygen-official:
   stage: build_doc
   image: gitlab-registry.cern.ch/hog/hog-docker
   only:
-    refs:
-      - tags
-    variables:
-      - $CI_COMMIT_TAG =~ /^(Hog.*)$/
-  before_script:
-    - echo ""
+    refs: [tags]
+    variables: [$CI_COMMIT_TAG =~ /^(Hog.*)$/]
+  before_script: [echo ""]
   script:
-    - git clone https://hog:${CERN_PUSH_TOKEN}@gitlab.cern.ch/hog/hog-doxygen.git doxygen
+    - git clone https://hog:${CERN_PUSH_TOKEN}@gitlab.cern.ch/hog/hog-doxygen.git
+      doxygen
     - chmod +x ./doxygen/scripts/build-and-deploy.sh
     - ./doxygen/scripts/build-and-deploy.sh /eos/user/h/hog/www/doxy-master
 
@@ -76,88 +67,45 @@ changelog:
   stage: tag
   image: gitlab-registry.cern.ch/hog/hog-docker:tclsh
   only:
-    refs:
-      - merge_requests
-    variables:
-      - $CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /^(master|develop)$/
+    refs: [merge_requests]
+    variables: [$CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /^(master|develop)$/]
   except:
-    variables:
-      - $CI_COMMIT_REF_NAME =~ /^test\/.*$/i
+    variables: [$CI_COMMIT_REF_NAME =~ /^test\/.*$/i]
   script:
-    - "MR_PARAMETERS=`curl --header \"PRIVATE-TOKEN: ${HOG_PUSH_TOKEN}\" ${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/merge_requests/${CI_MERGE_REQUEST_IID}`"
-    - tclsh ./Tcl/CI/merge_and_tag.tcl -Hog  -mr_par "$MR_PARAMETERS" -mr_id $CI_MERGE_REQUEST_IID -push $CI_COMMIT_REF_NAME -main_branch $CI_MERGE_REQUEST_TARGET_BRANCH_NAME
     - git fetch origin refs/notes/*:refs/notes/*
     - git notes add -fm "$CI_MERGE_REQUEST_IID $CI_COMMIT_REF_NAME"
     - git push origin refs/notes/*
-    - "printf \"## Repository info\n- Merge request number: $CI_MERGE_REQUEST_IID\n- Branch name: $CI_COMMIT_REF_NAME\n\n\" > changelog.md"
-    - ./Other/Changelog.sh -t $CI_MERGE_REQUEST_TARGET_BRANCH_NAME -pt $HOG_PUSH_TOKEN -a $CI_API_V4_URL -p $CI_PROJECT_ID -n $CI_MERGE_REQUEST_IID  >> changelog.md
+    - "printf \"## Repository info\n- Merge request number: $CI_MERGE_REQUEST_IID\n\
+      - Branch name: $CI_COMMIT_REF_NAME\n\n\" > changelog.md"
+    - ./Other/Changelog.sh -t $CI_MERGE_REQUEST_TARGET_BRANCH_NAME -pt $HOG_PUSH_TOKEN
+      -a $CI_API_V4_URL -p $CI_PROJECT_ID -n $CI_MERGE_REQUEST_IID  >> changelog.md
   artifacts:
     name: changelog
-    paths:
-      - changelog.md
+    paths: [changelog.md]
     expire_in: 1 month
-
-shellcheck:
-  stage: tag
-  image: gitlab-registry.cern.ch/hog/hog-docker:ubuntu
-  only:
-    refs:
-      - merge_requests
-    variables:
-      - $CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /^(master|develop)$/
-  except:
-    variables:
-      - $CI_COMMIT_REF_NAME =~ /^test\/.*$/i
-  script:
-    - shellcheck -x Other/*.sh *.sh
-
-yamllint:
-  stage: tag
-  image: gitlab-registry.cern.ch/hog/hog-docker:ubuntu
-  only:
-    refs:
-      - merge_requests
-    variables:
-      - $CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /^(master|develop)$/
-  except:
-    variables:
-      - $CI_COMMIT_REF_NAME =~ /^test\/.*$/i
-  script:
-    - yamllint -c /scripts/hog-yaml.yaml YAML/*.yml *.yml .gitlab-ci.yml .github/workflows/*.yml Templates/*.yml
-
-nagelfar:
-  stage: tag
-  image: gitlab-registry.cern.ch/hog/hog-docker:ubuntu
-  only:
-    refs:
-      - merge_requests
-    variables:
-      - $CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /^(master|develop)$/
-  except:
-    variables:
-      - $CI_COMMIT_REF_NAME =~ /^test\/.*$/i
-  script:
-    - /scripts/nagelfar133/nagelfar.tcl -Wunusedvar -filter Unknown command Tcl/*.tcl Tcl/*/*.tcl
 
 tagging_develop:
   stage: tag
   image: gitlab-registry.cern.ch/hog/hog-docker:tclsh
-  only:
-    - push
-    - web
+  only: [push, web]
   except:
     variables:
       - $CI_PIPELINE_SOURCE != "push"
       - $CI_COMMIT_REF_NAME != "develop"
   script:
-    - tclsh ./Tcl/CI/merge_and_tag.tcl -Hog -merged -push $CI_COMMIT_REF_NAME -main_branch develop -default_level 1
+    - git fetch origin refs/notes/*:refs/notes/*
+    - note=(`git notes show`) || { echo "No note found, probably you pushed to a branch
+      that should protected (e.g. master, develop)"; exit 1; }
+    - new_tag=`echo "source Tcl/hog.tcl; puts v[HexVersionToString [GetVer . 1]]"
+      | tclsh`
+    - echo "New tag is $new_tag"
+    - git tag $new_tag -m "Official_version_${new_tag}";
+    - git push --tags;
 
 tagging_master_hotfix:
   stage: tag
   image: gitlab-registry.cern.ch/hog/hog-docker:tclsh
-  only:
-    - push
-    - web
+  only: [push, web]
   except:
     variables:
       - $CI_PIPELINE_SOURCE != "push"
@@ -166,30 +114,67 @@ tagging_master_hotfix:
     - git fetch origin refs/notes/*:refs/notes/*
     - MR_INFO=( `git notes show` )
     - BRANCH=${MR_INFO[1]}
-    - if [[ ${BRANCH} != "develop" ]]; then tclsh ./Tcl/CI/merge_and_tag.tcl -Hog -merged -push $CI_COMMIT_REF_NAME -default_level 0; else echo "Skipping because it is not a hotfix"; fi;
+    - if [[ ${BRANCH} != "develop" ]]; then "new_tag=`echo \"source Tcl/hog.tcl; puts
+      v[HexVersionToString [GetVer . 0]]\" | tclsh`"; echo "New tag is $new_tag";
+      git tag $new_tag -m "Official_version_${new_tag}"; else echo "Skipping because
+      it is not a hotfix"; fi;
+
+shellcheck:
+  stage: tag
+  image: gitlab-registry.cern.ch/hog/hog-docker:ubuntu
+  only:
+    refs: [merge_requests]
+    variables: [$CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /^(master|develop)$/]
+  except:
+    variables: [$CI_COMMIT_REF_NAME =~ /^test\/.*$/i]
+  script: [shellcheck -x Other/*.sh *.sh]
+
+yamllint:
+  stage: tag
+  image: gitlab-registry.cern.ch/hog/hog-docker:ubuntu
+  only:
+    refs: [merge_requests]
+    variables: [$CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /^(master|develop)$/]
+  except:
+    variables: [$CI_COMMIT_REF_NAME =~ /^test\/.*$/i]
+  script:
+    - yamllint -c /scripts/hog-yaml.yaml YAML/*.yml *.yml .gitlab-ci.yml .github/workflows/*.yml
+      Templates/*.yml
+
+nagelfar:
+  stage: tag
+  image: gitlab-registry.cern.ch/hog/hog-docker:ubuntu
+  only:
+    refs: [merge_requests]
+    variables: [$CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /^(master|develop)$/]
+  except:
+    variables: [$CI_COMMIT_REF_NAME =~ /^test\/.*$/i]
+  script:
+    - /scripts/nagelfar133/nagelfar.tcl -Wunusedvar -filter Unknown command Tcl/*.tcl
+      Tcl/*/*.tcl
 
 create_release_note:
   stage: tag
   image: gitlab-registry.cern.ch/hog/hog-docker:tclsh
   only:
-    refs:
-      - tags
-    variables:
-      - $CI_COMMIT_TAG =~ /^(v.*)|(Hog.*)$/
+    refs: [tags]
+    variables: [$CI_COMMIT_TAG =~ /^(v.*)|(Hog.*)$/]
   script:
     - git fetch origin refs/notes/*:refs/notes/*
     - MR=( `git notes show` )
-    - ./Other/GetGitlabArtifact.sh $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $MR changelog.md changelog > note.md
-    - "if [[ $CI_COMMIT_TAG =~ ^v.*$ ]]; then ./Other/MakeGitlabRelease.sh $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $CI_COMMIT_TAG note.md -b;
-      fi"
-    - "if [[ $CI_COMMIT_TAG =~ ^Hog.*$ ]]; then ./Other/MakeGitlabRelease.sh $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $CI_COMMIT_TAG note.md;
-      fi"
+    - ./Other/GetGitlabArtifact.sh $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $MR
+      changelog.md changelog > note.md
+    - if [[ $CI_COMMIT_TAG =~ ^v.*$ ]]; then ./Other/MakeGitlabRelease.sh $HOG_PUSH_TOKEN
+      $CI_API_V4_URL $CI_PROJECT_ID $CI_COMMIT_TAG note.md -b; fi
+    - if [[ $CI_COMMIT_TAG =~ ^Hog.*$ ]]; then ./Other/MakeGitlabRelease.sh $HOG_PUSH_TOKEN
+      $CI_API_V4_URL $CI_PROJECT_ID $CI_COMMIT_TAG note.md; fi
 
 
 launch_validation:
   image: gitlab-registry.cern.ch/hog/hog-docker:tclsh
-  only:
-    - develop
+  only: [develop]
   script:
-    - "if [[ $CI_COMMIT_REF_NAME == \"develop\" ]]; then curl --request POST --header \"PRIVATE-TOKEN: ${HOG_PUSH_TOKEN}\" \"$CI_API_V4_URL/projects/40979880/pipeline_schedules/311873/play\"; fi;"
+    - 'if [[ $CI_COMMIT_REF_NAME == "develop" ]]; then curl --request POST --header
+      "PRIVATE-TOKEN: ${HOG_PUSH_TOKEN}" "$CI_API_V4_URL/projects/40979880/pipeline_schedules/311873/play";
+      fi;'
   stage: tag

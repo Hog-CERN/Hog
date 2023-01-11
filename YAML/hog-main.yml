@@ -11,7 +11,6 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
-
 ---
 .tag-hog: &tag-hog
   tags:
@@ -42,11 +41,9 @@
       when: never
     - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $HOG_DEVELOP_BRANCH && $HOG_DEVELOP_BRANCH != null'
       when: on_success
-    - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /^master|main|release.*$/ &&
-           $HOG_TARGET_BRANCH == null && $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME != $HOG_DEVELOP_BRANCH'
+    - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /^master|main|release.*$/ && $HOG_TARGET_BRANCH == null && $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME != $HOG_DEVELOP_BRANCH'
       when: on_success
-    - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $HOG_TARGET_BRANCH &&
-           $HOG_TARGET_BRANCH != null && $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME != $HOG_DEVELOP_BRANCH'
+    - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $HOG_TARGET_BRANCH && $HOG_TARGET_BRANCH != null && $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME != $HOG_DEVELOP_BRANCH'
       when: on_success
     - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $HOG_INTERMEDIATE_BRANCH && $HOG_INTERMEDIATE_BRANCH != null'
       when: on_success
@@ -59,13 +56,11 @@
       when: never
     - if: '$CI_MERGE_REQUEST_TITLE =~ /^Draft:.*$/ && $CI_COMMIT_MESSAGE !~ /^RESOLVE_WIP:/'
       when: never
-    - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $HOG_DEVELOP_BRANCH'
+    - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $HOG_DEVELOP_BRANCH && $HOG_DEVELOP_BRANCH != null'
       when: on_success
-    - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /^master|main|release.*$/ &&
-           $HOG_TARGET_BRANCH == null && $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME != $HOG_DEVELOP_BRANCH'
+    - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /^master|main|release.*$/ && $HOG_TARGET_BRANCH == null && $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME != $HOG_DEVELOP_BRANCH'
       when: on_success
-    - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $HOG_TARGET_BRANCH &&
-           $HOG_TARGET_BRANCH != null && $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME != $HOG_DEVELOP_BRANCH'
+    - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $HOG_TARGET_BRANCH && $HOG_TARGET_BRANCH != null && $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME != $HOG_DEVELOP_BRANCH'
       when: on_success
 
 merge_and_tag:
@@ -75,17 +70,13 @@ merge_and_tag:
   variables:
     GIT_STRATEGY: clone
   script:
-    - if [[ $CI_COMMIT_MESSAGE == *RESOLVE_WIP* && $CI_MERGE_REQUEST_TITLE == Draft* ]]; then
-        echo 'removing Draft status';
-        curl ${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/merge_requests/${CI_MERGE_REQUEST_IID}/notes?body=/wip \\
-        --header "PRIVATE-TOKEN:\ ${HOG_PUSH_TOKEN}" --request POST;
-      fi;
-    - "MR_PARAMETERS=`curl --header \"PRIVATE-TOKEN: ${HOG_PUSH_TOKEN}\"
-      ${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/merge_requests/${CI_MERGE_REQUEST_IID}`"
+    - "if [[ $CI_COMMIT_MESSAGE == *RESOLVE_WIP* && $CI_MERGE_REQUEST_TITLE == Draft* ]]; then echo 'removing Draft status'; curl ${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/merge_requests/${CI_MERGE_REQUEST_IID}/notes?body=/wip --header \"PRIVATE-TOKEN: ${HOG_PUSH_TOKEN}\" --request POST; fi;"
+    - "MR_PARAMETERS=`curl --header \"PRIVATE-TOKEN: ${HOG_PUSH_TOKEN}\" ${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/merge_requests/${CI_MERGE_REQUEST_IID}`"
+
     - if [[ ${HOG_CHECK_YAMLREF} != 1 ]]; then
         echo 'Yaml consistency checker is disabled';
       else
-        tclsh ./Hog/Tcl/utils/check_yaml_ref.tcl;
+          tclsh ./Hog/Tcl/utils/check_yaml_ref.tcl;
       fi;
     # Check if this is a valid hotfix or feature branch
     - if [ -f "Top/repo.conf" ]; then
@@ -97,8 +88,7 @@ merge_and_tag:
       fi;
     - if [ "$enable_develop_branch" == "1" ]; then
         pat="^(master|main|release.*)";
-        if [[ $CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ $pat ]] || [ "$CI_MERGE_REQUEST_TARGET_BRANCH_NAME" == "$HOG_TARGET_BRANCH" ];
-        then
+        if [[ $CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ $pat ]] || [ "$CI_MERGE_REQUEST_TARGET_BRANCH_NAME" == "$HOG_TARGET_BRANCH" ] ; then
           if [[ $CI_COMMIT_REF_NAME != ${hotfix_branch}* ]]; then
             echo "[Hog::ERROR] The target of this MR is $CI_MERGE_REQUEST_TARGET_BRANCH_NAME, but the source is not a hotfix branch ($CI_COMMIT_REF_NAME). Please, change the name of source branch or direct the MR to $HOG_DEVELOP_BRANCH.";
             echo "[Hog::INFO] A hotfix branch name should start with ${hotfix_branch}. You can change this setting in your Top/repo.conf file.";
@@ -145,8 +135,10 @@ tag_official_version:
     - when: never
   script:
     - git fetch origin refs/notes/*:refs/notes/*
-    - note=(`git notes show`) ||
-      { echo "No note found, probably you pushed to a branch that should protected (e.g. master, develop)"; exit 1; }
+    - note=(`git notes show`) || {
+        echo "No note found, probably you pushed to a branch that should protected (e.g. master, develop)";
+        exit 1;
+      }
     - new_tag=${note[2]}
     - present_tag=(`git describe`)
     - if [ $present_tag != $new_tag ]; then
@@ -162,7 +154,7 @@ tag_official_version:
          git tag $new_tag -m "Official_version_${new_tag}";
          git push --tags;
       else
-        echo "Tagging is not necessary because the present commit is already tagged as:\ $new_tag.";
+        echo "Tagging is not necessary because the present commit is already tagged as $new_tag.";
       fi;
 
 archive_binary_files:
@@ -202,7 +194,7 @@ archive_binary_files:
         fi;
       fi;
     - if [[ -v HOG_OFFICIAL_BIN_EOS_PATH ]]; then
-        echo -n "Variable:\ EOS_MGM_URL is ";
+        echo -n "Variable EOS_MGM_URL is ";
         if [ -z "$EOS_MGM_URL" ]; then
           echo "NOT defined. This variable is essential for EOS to work properly. Hog-Ci will use the default value of root://eosuser.cern.ch";
           EOS_MGM_URL="root://eosuser.cern.ch";

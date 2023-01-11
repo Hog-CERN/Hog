@@ -23,7 +23,6 @@ if {[catch {package require cmdline} ERROR] || [catch {package require struct::m
 }
 
 set parameters {
-  {ip_path.arg "" "If set, the synthesised IPs will be copied to the specified IP repository path."}
   {no_bitstream    "If set, the bitstream file will not be produced."}
   {synth_only      "If set, only the synthesis will be performed."}
   {impl_only       "If set, only the implementation will be performed. This assumes synthesis should was already done."}
@@ -61,7 +60,6 @@ if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] 
   set recreate 0
   set reset 1
   set check_syntax 0
-  set ip_path ""
   set ext_path ""
   set simlib_path ""
 }
@@ -103,38 +101,41 @@ if { $options(simlib_path) != ""} {
   set workflow_simlib_path $options(simlib_path)
 }
 
+# Let's leave the following commented section in case something comes up
+# It was able to retrieve the ips before creating the project, but this cannot be used if generated file are in the Projects folder
+
 #Copy IP from IP repository
-if { $options(ip_path) != "" } {
-  set ip_path $options(ip_path)
-
-  Msg Info "Getting IPs for $project_name..."
-  set ips {}
-  lassign [GetHogFiles -list_files "*.src" -repo_path $repo_path "$repo_path/Top/$project_name/list/" ] src_files dummy
-  dict for {f files} $src_files {
-    #library names have a .src extension in values returned by GetHogFiles
-    if { [file ext $f] == ".ip" } {
-      lappend ips {*}$files
-    }
-  }
-
-  Msg Info "Copying IPs from $ip_path..."
-  set copied_ips 0
-  set repo_ips {}
-  foreach ip $ips {
-    set ip_folder [file dirname $ip]
-    set files_in_folder [glob -directory $ip_folder -- *]
-    if { [llength $files_in_folder] == 1 } {
-      set ret [HandleIP pull $ip $ip_path $repo_path]
-      if {$ret == 0} {
-        incr copied_ips
-      }
-    } else {
-      Msg Info "Synthesised files for IP $ip are already in the repository. Do not copy from IP repository..."
-      lappend repo_ips $ip
-    }
-  }
-  Msg Info "$copied_ips IPs were copied from the IP repository."
-}
+# if { $options(ip_path) != "" } {
+#   set ip_path $options(ip_path)
+# 
+#   Msg Info "Getting IPs for $project_name..."
+#   set ips {}
+#   lassign [GetHogFiles -list_files "*.src" -repo_path $repo_path "$repo_path/Top/$project_name/list/" ] src_files dummy
+#   dict for {f files} $src_files {
+#     #library names have a .src extension in values returned by GetHogFiles
+#     if { [file ext $f] == ".ip" } {
+#       lappend ips {*}$files
+#     }
+#   }
+# 
+#   Msg Info "Copying IPs from $ip_path..."
+#   set copied_ips 0
+#   set repo_ips {}
+#   foreach ip $ips {
+#     set ip_folder [file dirname $ip]
+#     set files_in_folder [glob -directory $ip_folder -- *]
+#     if { [llength $files_in_folder] == 1 } {
+#       set ret [HandleIP pull $ip $ip_path $repo_path $main_folder]
+#       if {$ret == 0} {
+#         incr copied_ips
+#       }
+#     } else {
+#       Msg Info "Synthesised files for IP $ip are already in the repository. Do not copy from IP repository..."
+#       lappend repo_ips $ip
+#     }
+#   }
+#   Msg Info "$copied_ips IPs were copied from the IP repository."
+# }
 
 
 if {$do_synthesis == 0} {
@@ -150,10 +151,6 @@ if {$do_synthesis == 0} {
   } else {
     Msg Info "Will launch synthesis only..."
   }
-}
-
-if { $ip_path != "" } {
-  Msg Info "Will copy synthesised IPs from/to $ip_path"
 }
 
 Msg Info "Number of jobs set to $options(njobs)."
@@ -235,25 +232,33 @@ if {$do_synthesis == 1} {
 
   foreach ip $ips {
     set xci_file [get_property IP_FILE $ip]
+
     set xci_path [file dir $xci_file]
     set xci_ip_name [file root [file tail $xci_file]]
     foreach rptfile [glob -nocomplain -directory $xci_path *.rpt] {
       file copy $rptfile $bin_dir/$project_name-$describe/reports
     }
 
-    ######### Copy IP to IP repository
-    if {($ip_path != "")} {
-      # IP is not in the gitlab repo
-      set force 0
-      if [info exist runs] {
-        if {[lsearch $runs $ip\_synth_1] != -1} {
-          Msg Info "$ip was synthesized, will force the copy to the IP repository..."
-          set force 1
-        }
-      }
-      Msg Info "Copying synthesised IP $xci_ip_name ($xci_file) to $ip_path..."
-      HandleIP push $xci_file $ip_path $repo_path $force
-    }
+# Let's leave the following commented part
+# We moved the Handle ip to the post-synthesis, in that case we can't use get_runs so to find out which IP was run, we loop over the directories enedind with _synth_1 in the .runs directory
+#
+#    ######### Copy IP to IP repository
+#    if {[IsVivado]} {    
+#    	set gen_path [get_property IP_OUTPUT_DIR $ip]    
+#    	if {($ip_path != "")} {
+#    	  # IP is not in the gitlab repo
+#    	  set force 0
+#    	  if [info exist runs] {
+#    	    if {[lsearch $runs $ip\_synth_1] != -1} {
+#    	      Msg Info "$ip was synthesized, will force the copy to the IP repository..."
+#    	      set force 1
+#    	    }
+#    	  }
+#    	  Msg Info "Copying synthesised IP $xci_ip_name ($xci_file) to $ip_path..."
+#    	  HandleIP push $xci_file $ip_path $repo_path $gen_path $force
+#    	}
+#    }
+    
   }
 
   if {$prog ne "100%"} {

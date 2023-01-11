@@ -20,7 +20,7 @@
 
 
 ## @function argument_parser()
-#  @brief pase aguments and sets evvironment variables
+#  @brief parse arguments and sets environment variables
 #  @param[out] SIMLIBPATH   empty or "-lib_path $2"
 #  @param[out] QUIET        empty or "-quiet"
 #  @param[out] SIMSET       empty or "-simset $2"

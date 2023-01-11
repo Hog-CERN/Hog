@@ -19,27 +19,17 @@
       when: never
     - if: '$CI_COMMIT_MESSAGE =~ /DOXYGEN_ONLY/'
       when: never
-    - if: '$CI_MERGE_REQUEST_TITLE =~ /^Draft:.*$/ &&
-           $CI_COMMIT_MESSAGE !~ /^RESOLVE_WIP:/'
+    - if: '$CI_MERGE_REQUEST_TITLE =~ /^Draft:.*$/ && $CI_COMMIT_MESSAGE !~ /^RESOLVE_WIP:/'
       when: never
-    - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $HOG_DEVELOP_BRANCH &&
-           $HOG_DEVELOP_BRANCH != null'
+    - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $HOG_DEVELOP_BRANCH && $HOG_DEVELOP_BRANCH != null'
       when: on_success
-    - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /^master|main|release.*$/ &&
-           $HOG_TARGET_BRANCH == null &&
-           $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME != $HOG_DEVELOP_BRANCH'
+    - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /^master|main|release.*$/ && $HOG_TARGET_BRANCH == null && $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME != $HOG_DEVELOP_BRANCH'
       when: on_success
-    - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $HOG_TARGET_BRANCH &&
-           $HOG_TARGET_BRANCH != null &&
-           $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME != $HOG_DEVELOP_BRANCH'
+    - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $HOG_TARGET_BRANCH && $HOG_TARGET_BRANCH != null && $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME != $HOG_DEVELOP_BRANCH'
       when: on_success
-    - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $HOG_INTERMEDIATE_BRANCH &&
-           $INTERMEDIATE_BUILD == "1" &&
-           $HOG_INTERMEDIATE_BRANCH != null'
+    - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $HOG_INTERMEDIATE_BRANCH && $INTERMEDIATE_BUILD == "1" && $HOG_INTERMEDIATE_BRANCH != null' 
       when: on_success
-    - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $HOG_INTERMEDIATE_BRANCH &&
-           $CI_BUILD_STAGE == "collect" &&
-           $HOG_INTERMEDIATE_BRANCH != null'
+    - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $HOG_INTERMEDIATE_BRANCH && $CI_BUILD_STAGE == "collect" && $HOG_INTERMEDIATE_BRANCH != null'
       when: on_success
 
 .tag-hog: &tag-hog
@@ -53,6 +43,8 @@
 
 .vars: &vars
   GIT_STRATEGY: clone
+  GIT_SUBMODULE_STRATEGY: recursive
+# CI_DEBUG_TRACE: "true"
 
 
 .simulate_project: &simulate_project
@@ -65,8 +57,7 @@
     - ./Hog/Other/CheckEnv.sh $PROJECT_NAME -a $HOG_APPTAINER_IMAGE;
     - if [[ -v HOG_CHECK_PROJVER ]] && [[ $HOG_CHECK_PROJVER == '1' ]]; then
         if [[ -v HOG_EXTERNAL_PATH ]]; then
-          ./Hog/Other/CheckProjVer.sh -ext_path "$HOG_EXTERNAL_PATH" \\
-          -sim $PROJECT_NAME;
+          ./Hog/Other/CheckProjVer.sh -ext_path "$HOG_EXTERNAL_PATH" -sim $PROJECT_NAME;
         else
           ./Hog/Other/CheckProjVer.sh -sim $PROJECT_NAME;
         fi;
@@ -80,16 +71,14 @@
           echo 'Simulation library path is not defined';
           SIM_CMD="./Hog/LaunchSimulation.sh $PROJECT_NAME";
         else
-          SIM_CMD="./Hog/LaunchSimulation.sh $PROJECT_NAME \\
-          -l $HOG_SIMULATION_LIB_PATH" ;
+          SIM_CMD="./Hog/LaunchSimulation.sh $PROJECT_NAME -l $HOG_SIMULATION_LIB_PATH" ;
         fi;
         if [[ -f $HOG_APPTAINER_IMAGE ]]; then
           echo "apptainer exec -H $PWD $HOG_APPTAINER_IMAGE $SIM_CMD";
           if [[ -n $HOG_APPTAINER_EXTRA_PATH ]]; then
             EXTRA_PATH="-B $HOG_APPTAINER_EXTRA_PATH";
           fi;
-          apptainer exec -H $PWD $EXTRA_PATH $HOG_APPTAINER_IMAGE /bin/bash \\
-          -c "export PATH=${HOG_PATH}:$PATH; $SIM_CMD";
+          apptainer exec -H $PWD $EXTRA_PATH $HOG_APPTAINER_IMAGE /bin/bash -c "export PATH=${HOG_PATH}:$PATH; $SIM_CMD";
         else
           echo $SIM_CMD;
           $(echo $SIM_CMD);
@@ -112,7 +101,6 @@
     <<: *vars
   script:
     - ./Hog/Other/CheckEnv.sh $PROJECT_NAME -a $HOG_APPTAINER_IMAGE;
-    # - ./Hog/Other/CheckEnv.sh $PROJECT_NAME;
     - select_command Top/$PROJECT_NAME;
     - if [ "$COMMAND" == "libero" ]; then
         Xvfb :99 &
@@ -120,8 +108,7 @@
       fi;
     - if [[ -v HOG_CHECK_PROJVER ]] && [[ $HOG_CHECK_PROJVER == '1' ]]; then
         if [[ -v HOG_EXTERNAL_PATH ]]; then
-          ./Hog/Other/CheckProjVer.sh -ext_path "$HOG_EXTERNAL_PATH" \\
-          $PROJECT_NAME;
+          ./Hog/Other/CheckProjVer.sh -ext_path "$HOG_EXTERNAL_PATH" $PROJECT_NAME;
         else
           ./Hog/Other/CheckProjVer.sh $PROJECT_NAME;
         fi;
@@ -155,29 +142,22 @@
         if [ -z ${HOG_IP_PATH+x} ]; then
           if [[ -z ${HOG_IP_EOS_PATH+x} ]]; then
             echo "Hog-CI(info) - No EOS/LOCAL path for IPs defined.";
-            export IP_PATH="";
           else
             echo "Hog-CI(warning) HOG_IP_EOS_PATH is deprecated, you should use HOG_IP_PATH";
             echo "Hog-CI(info) - IPs will be copied to/from $HOG_IP_EOS_PATH.";
-            export IP_PATH="-ip_path $HOG_IP_EOS_PATH";
-            if [[ $HOG_IP_EOS_PATH = /eos/* ]]; then
+            export HOG_IP_PATH="$HOG_IP_EOS_PATH";
+            if [[ $HOG_IP_PATH = /eos/* ]]; then
               if [ $ENABLE_EOS -eq 1 ]; then
                 echo "kinit $EOS_USER@CERN.CH";
-                until echo $EOS_PASSWORD | kinit $EOS_USER@CERN.CH ; do
-                  echo "Retrying";
-                  sleep 2;
-                done;
+                until echo $EOS_PASSWORD | kinit $EOS_USER@CERN.CH ; do echo "Retrying"; sleep 2; done;
               fi;
             fi;
           fi;
         else
           echo "Hog-CI(info) - IPs will be copied to/from $HOG_IP_PATH.";
-          export IP_PATH="-ip_path $HOG_IP_PATH";
           if [[ $HOG_IP_PATH = /eos/* ]]; then
             if [ $ENABLE_EOS -eq 1 ]; then
-              until echo $EOS_PASSWORD | kinit $EOS_USER@CERN.CH; do
-                echo "Retrying"; sleep 2;
-              done;
+              until echo $EOS_PASSWORD | kinit $EOS_USER@CERN.CH ; do echo "Retrying"; sleep 2; done;
             fi;
           fi;
         fi;
@@ -186,8 +166,7 @@
           echo "Hog-CI(info) - Only the synthesis will be run.";
         else
           export ONLY_SYNTH="";
-          if [[ -n "$HOG_NO_BITSTREAM" ]] && [[ $HOG_NO_BITSTREAM == '1' ]];
-          then
+          if [[ -n "$HOG_NO_BITSTREAM" ]] && [[ $HOG_NO_BITSTREAM == '1' ]]; then
             export NO_BITSTREAM="-no_bitstream";
             echo "Hog-CI(info) - No binary files will be generated.";
           else
@@ -222,7 +201,7 @@
         echo "Hog-CI(info) - Launching workflow now...";
       fi;
     - if [ ! -f "./Projects/$PROJECT_NAME/skip.me" ]; then
-        EXEC_CMD="./Hog/LaunchWorkflow.sh -njobs $HOG_NJOBS $IP_PATH $NO_BITSTREAM $ONLY_SYNTH $CHECK_SYNTAX $PROJECT_NAME";
+        EXEC_CMD="./Hog/LaunchWorkflow.sh -njobs $HOG_NJOBS $NO_BITSTREAM $ONLY_SYNTH $CHECK_SYNTAX $PROJECT_NAME";
         if [[ -f $HOG_APPTAINER_IMAGE ]]; then
           echo "singularity exec -H $PWD $HOG_APPTAINER_IMAGE $EXEC_CMD";
           if [[ -n $HOG_APPTAINER_EXTRA_PATH ]]; then
@@ -280,7 +259,7 @@ collect_artifacts:
   <<: *tag-sr
   stage: collect
   variables:
-    <<: *vars
+    GIT_STRATEGY: clone
   script:
     - old_dir=`pwd`
     - mkdir -p $CI_PROJECT_DIR/bin
@@ -330,7 +309,7 @@ check-timing:
   <<: *tag-sr
   stage: collect
   variables:
-    <<: *vars
+    GIT_STRATEGY: clone
   script:
     - cd $CI_PROJECT_DIR/bin/
     - PRJ_BITS=$(find . -iname "versions.txt")
@@ -344,8 +323,11 @@ check-timing:
           FAILED_PRJS="$FAILED_PRJS $PRJ_NAME_BASE";
         fi;
       done;
+    - cd ../
     - if [ "$FAILED_PRJS" != "" ]; then
         echo "The following projects have failed timing:$FAILED_PRJS";
+        echo "The following projects have failed timing:$FAILED_PRJS" > mr_msg.md;
+        ./Hog/Other/WriteGitlabNote.sh $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $CI_MERGE_REQUEST_IID mr_msg.md;
         exit 1;
       else
         echo "All projects met timing. All good!";

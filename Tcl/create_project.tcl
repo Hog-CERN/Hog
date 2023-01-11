@@ -635,7 +635,7 @@ proc UpgradeIP {} {
     # set the current impl run
     current_run -implementation [get_runs impl_1]
 
-    Msg Info "Running report_ip_status, before upgrading and hadnling IPs..."
+    Msg Info "Running report_ip_status, before upgrading and handling IPs..."
     report_ip_status
 
     ##############

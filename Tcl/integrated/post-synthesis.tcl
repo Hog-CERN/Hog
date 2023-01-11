@@ -132,35 +132,37 @@ if {[IsXilinx]} {
     Msg Warning "No reports found in $run_dir subfolders"
   }
 
- # Handle IPs 
-if {[info exists env(HOG_IP_PATH)]} {
-  set ip_repo $env(HOG_IP_PATH)
 
-  if {[IsISE]} {
-    # Do nothing...
-  } else {
-
-    set ips [get_ips *]
-    set run_paths [glob -nocomplain "$run_dir/*"]
-    set runs {}
-    foreach r $run_paths {
-      if {[regexp -all {^(.+)_synth_1}  $r whole_match run]} {
-	lappend runs [file tail $run]
-      }
-    }
-    
-    foreach ip $ips {
-      if {$ip in $runs} {
-	set force 1
+  # Handle IPs 
+  if {[IsVivado]} {
+    if {[info exists env(HOG_IP_PATH)]} {
+      set ip_repo $env(HOG_IP_PATH)
+      
+      if {[IsISE]} {
+	# Do nothing...
       } else {
-	set force 0
+	
+	set ips [get_ips *]
+	set run_paths [glob -nocomplain "$run_dir/*"]
+	set runs {}
+	foreach r $run_paths {
+	  if {[regexp -all {^(.+)_synth_1}  $r whole_match run]} {
+	    lappend runs [file tail $run]
+	  }
+	}
+	
+	foreach ip $ips {
+	  if {$ip in $runs} {
+	    set force 1
+	  } else {
+	    set force 0
+	  }
+	  Msg Info "Copying synthesised IP $ip to $ip_repo..."
+	  HandleIP push [get_property IP_FILE $ip] $ip_repo $repo_path [get_property IP_OUTPUT_DIR $ip] $force
+	}
       }
-      Msg Info "Copying synthesised IP $ip to $ip_repo..."
-      HandleIP push [get_property IP_FILE $ip] $ip_repo $repo_path [get_property IP_OUTPUT_DIR $ip] $force
     }
   }
-}
-
 
 
  # Log files

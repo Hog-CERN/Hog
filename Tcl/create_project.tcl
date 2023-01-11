@@ -630,40 +630,33 @@ proc UpgradeIP {} {
   set tcl_path [file normalize "[file dirname [info script]]"]
   set repo_path [file normalize $tcl_path/../..]
   source $tcl_path/hog.tcl  
-
-  if {[IsXilinx]} {
-    # set the current impl run
-    current_run -implementation [get_runs impl_1]
-
-    Msg Info "Running report_ip_status, before upgrading and hadnling IPs..."
-    report_ip_status
-
-    ##############
-    # UPGRADE IP #
-    ##############
-    set ips [get_ips *]
-
-    #Pull ips from repo
-    if {$globalSettings::HOG_IP_PATH != ""} {
-      set ip_repo_path $globalSettings::HOG_IP_PATH
-      Msg Info "HOG_IP_PATH is set, will pull/push synthesised IPs from/to $ip_repo_path."
-      foreach ip $ips {
-	HandleIP pull  [get_property IP_FILE $ip] $ip_repo_path $globalSettings::repo_path [get_property IP_OUTPUT_DIR $ip]
-      }
-    } else {
-      Msg Info "HOG_IP_PATH not set, will not push/pull synthesised IPs."
+  
+  # set the current impl run
+  current_run -implementation [get_runs impl_1]
+  
+  ##############
+  # UPGRADE IP #
+  ##############
+  set ips [get_ips *]
+  
+  Msg Info "Running report_ip_status, before upgrading and hadnling IPs..."
+  report_ip_status
+  
+  #Pull ips from repo
+  if {$globalSettings::HOG_IP_PATH != ""} {
+    set ip_repo_path $globalSettings::HOG_IP_PATH
+    Msg Info "HOG_IP_PATH is set, will pull/push synthesised IPs from/to $ip_repo_path."
+    foreach ip $ips {
+      HandleIP pull  [get_property IP_FILE $ip] $ip_repo_path $globalSettings::repo_path [get_property IP_OUTPUT_DIR $ip]
     }
-
-    Msg Info "Upgrading IPs if any..."
-    if {$ips != ""} {
-      upgrade_ip -quiet $ips
-    }
-  } elseif {[IsQuartus]} {
-    #QUARTUS only
-    #TO BE DONE
-
   } else {
-    Msg info "Upgrading IPs"
+    Msg Info "HOG_IP_PATH not set, will not push/pull synthesised IPs."
+  }
+  
+  
+  Msg Info "Upgrading IPs if any..."
+  if {$ips != ""} {
+    upgrade_ip -quiet $ips
   }
 }
 
@@ -925,7 +918,10 @@ AddProjectFiles
 ConfigureSynthesis
 ConfigureImplementation
 ConfigureSimulation
-UpgradeIP
+
+if {[IsVivado]} {
+  UpgradeIP
+}
 
 if {[IsQuartus]} {
   set fileName_old [file normalize "./hogTmp/.hogQsys.md5"]

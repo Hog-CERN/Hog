@@ -232,7 +232,7 @@ if {$do_synthesis == 1} {
 
   foreach ip $ips {
     set xci_file [get_property IP_FILE $ip]
-    set gen_path [get_property IP_OUTPUT_DIR $ip]
+
     set xci_path [file dir $xci_file]
     set xci_ip_name [file root [file tail $xci_file]]
     foreach rptfile [glob -nocomplain -directory $xci_path *.rpt] {
@@ -241,22 +241,24 @@ if {$do_synthesis == 1} {
 
 # Let's leave the following commented part
 # We moved the Handle ip to the post-synthesis, in that case we can't use get_runs so to find out which IP was run, we loop over the directories enedind with _synth_1 in the .runs directory
-
 #
 #    ######### Copy IP to IP repository
-#    if {($ip_path != "")} {
-#      # IP is not in the gitlab repo
-#      set force 0
-#      if [info exist runs] {
-#        if {[lsearch $runs $ip\_synth_1] != -1} {
-#          Msg Info "$ip was synthesized, will force the copy to the IP repository..."
-#          set force 1
-#        }
-#      }
-#      Msg Info "Copying synthesised IP $xci_ip_name ($xci_file) to $ip_path..."
-#      HandleIP push $xci_file $ip_path $repo_path $gen_path $force
+#    if {[IsVivado]} {    
+#    	set gen_path [get_property IP_OUTPUT_DIR $ip]    
+#    	if {($ip_path != "")} {
+#    	  # IP is not in the gitlab repo
+#    	  set force 0
+#    	  if [info exist runs] {
+#    	    if {[lsearch $runs $ip\_synth_1] != -1} {
+#    	      Msg Info "$ip was synthesized, will force the copy to the IP repository..."
+#    	      set force 1
+#    	    }
+#    	  }
+#    	  Msg Info "Copying synthesised IP $xci_ip_name ($xci_file) to $ip_path..."
+#    	  HandleIP push $xci_file $ip_path $repo_path $gen_path $force
+#    	}
 #    }
-
+    
   }
 
   if {$prog ne "100%"} {

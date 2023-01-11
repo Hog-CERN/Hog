@@ -15,6 +15,27 @@ variables:
   GIT_SSL_NO_VERIFY: "true"
 
 before_script:
+    - echo -n "Variable:\ HOG_USER is ";
+    - if [ -z "$HOG_USER" ]; then
+        echo "NOT defined. This variable is essential for git to work properly. It should be set to the username for your service account (a valid git account).";
+        FAIL=1;
+      else
+        echo "defined."
+      fi;
+    - echo -n "Variable:\ HOG_EMAIL is ";
+      if [ -z "$HOG_EMAIL" ]; then
+        echo "NOT defined. This variable is essential for git to work properly. It should be set to your service's account email.";
+        FAIL=1;
+      else
+        echo "defined.";
+      fi;
+    - echo -n "Variable:\ HOG_PUSH_TOKEN is ";
+    - if [ -z "$HOG_PUSH_TOKEN" ]; then
+        echo "NOT defined. This variable is essential for git to work properly. It should be set to a gitlab push token for your service account.";
+        FAIL=1;
+      else
+        echo "defined.";
+      fi;
     - export REPO=`echo $CI_PROJECT_URL | sed -e s#https://##`
     - git remote set-url origin https://${HOG_USER}:${HOG_PUSH_TOKEN}@$REPO
     - git config user.email ${HOG_EMAIL}

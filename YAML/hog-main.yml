@@ -154,7 +154,7 @@ tag_official_version:
          git tag $new_tag -m "Official_version_${new_tag}";
          git push --tags;
       else
-        'echo "Tagging is not necessary because the present commit is already tagged as: $new_tag."';
+        echo "Tagging is not necessary because the present commit is already tagged as $new_tag.";
       fi;
 
 archive_binary_files:
@@ -194,7 +194,7 @@ archive_binary_files:
         fi;
       fi;
     - if [[ -v HOG_OFFICIAL_BIN_EOS_PATH ]]; then
-        'echo -n "Variable: EOS_MGM_URL is "';
+        echo -n "Variable EOS_MGM_URL is ";
         if [ -z "$EOS_MGM_URL" ]; then
           echo "NOT defined. This variable is essential for EOS to work properly. Hog-Ci will use the default value of root://eosuser.cern.ch";
           EOS_MGM_URL="root://eosuser.cern.ch";

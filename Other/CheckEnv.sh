@@ -49,7 +49,7 @@ THIS_DIR="$(dirname "$0")"
 TOP_DIR=$(realpath "$THIS_DIR"/../../Top)
 APPTAINER_IMAGE="none"
 
-# shellcheck source=CommonFunctions.sh
+# shellcheck source=Other/CommonFunctions.sh
 . "$THIS_DIR"/CommonFunctions.sh
 
 #Argument parsing

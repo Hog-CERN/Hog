@@ -16,7 +16,7 @@
 ## Import common functions from Other/CommonFunctions.sh in a POSIX compliant way
 #
 # shellcheck source=Other/CommonFunctions.sh
-. $(dirname "$0")/CommonFunctions.sh
+. "$(dirname "$0")"/CommonFunctions.sh
 
 
 ## @function argument_parser()

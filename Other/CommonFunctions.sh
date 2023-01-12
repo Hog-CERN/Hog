@@ -76,7 +76,7 @@ function log_stdout(){
     # in_type="${1}"
     # echo "stdout : ${IN_out}" 
   else
-    while read IN_out # This reads a string from stdin and stores it in a variable called IN_out
+    while read -r IN_out # This reads a string from stdin and stores it in a variable called IN_out
     do
       line=${IN_out}
       # echo "${line}"
@@ -322,7 +322,7 @@ function select_command_from_line() {
 # @returns  0 for ok, 1 for error
 #
 function select_command() {
-  proj=$(basename $1)
+  proj=$(basename "$1")
   conf="$1"/"hog.conf"
   tcl="$1"/"$proj.tcl"
 
@@ -337,8 +337,8 @@ function select_command() {
     return 1
   fi
 
-  select_command_from_line "$(head -1 $file)"
-  if [ $? != 0 ]; then
+  
+  if ! select_command_from_line "$(head -1 "$file")"; then
     Msg Error "Failed to select COMMAND, COMMAND_OPT and POST_COMMAND_OPT"
     return 1
   fi
@@ -368,10 +368,10 @@ function select_compiler_executable() {
     return 1
   fi
 
-  if [ "$(command -v $1)" ]; then
-    HDL_COMPILER=$(command -v $1)
+  if [ "$(command -v "$1")" ]; then
+    HDL_COMPILER=$(command -v "$1")
   else
-    if [ $1 == "vivado" ]; then
+    if [ "$1" == "vivado" ]; then
       if [ -z ${XILINX_VIVADO+x} ]; then
         Msg Error "No vivado executable found and no variable XILINX_VIVADO set\n"
         cd "${OLD_DIR}" || exit
@@ -434,15 +434,15 @@ function select_executable_from_project_dir() {
     Msg Error "missing input! Got: $1!"
     return 1
   fi
-  select_command $1
-  if [ $? != 0 ]; then
+  
+  if ! select_command "$1"; then
     Msg Error "Failed to select project type: exiting!"
     return 1
   fi
 
   #select full path to executable and place it in HDL_COMPILER global variable
-  select_compiler_executable $COMMAND
-  if [ $? != 0 ]; then
+  
+  if ! select_compiler_executable $COMMAND; then
     Msg Error "Failed to get HDL compiler executable for $COMMAND"
     return 1
   fi
@@ -485,7 +485,7 @@ function search_projects() {
   fi
 
   if [[ -d "$1" ]]; then
-    for dir in $1/*; do
+    for dir in "$1"/*; do
       if [ -f "$dir/hog.conf" ]; then
         subname=${dir#*Top/}
         echo "$subname"
@@ -516,7 +516,7 @@ function HogVer() {
   fi
 
   if [[ -d "$1" ]]; then
-    cd $1 || exit
+    cd "$1" || exit
     current_version=$(git describe --always)
     current_sha=$(git log "$current_version" -1 --format=format:%H)
     timeout 5s git fetch
@@ -550,7 +550,7 @@ function HogVer() {
 # @returns  0 if success, 1 if failure
 #
 function check_command() {
-  if ! command -v $1 &> /dev/null
+  if ! command -v "$1" &> /dev/null
   then
     Msg Warning "Command $1 could not be found"
     return 1

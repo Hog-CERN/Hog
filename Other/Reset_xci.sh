@@ -30,10 +30,10 @@ if [ "$1" == "-h" ] || [ "$1" == "-help" ] || [ "$1" == "--help" ] || [ "$1" == 
     exit 0
 fi
 
-cd "${DIR}"/..
+cd "${DIR}"/.. || exit 
 
 echo [hog reset xci] Checking out commited version of all modified xci files
-git checkout -- $(git ls-files -m *.xci)
+git checkout -- "$(git ls-files -m *.xci)"
 
 echo [hog reset xci] All done.
-cd "${OLD_DIR}"
+cd "${OLD_DIR}" || exit 

@@ -60,7 +60,7 @@ foreach proj $projects_list {
   set ver [ GetProjectVersion $dir $repo_path $ext_path 1 ]
   if {"$ver"=="0" || "$ver"=="$tag" || $options(force)==1} {
     Msg Info "Creating new link for $proj binaries and tag $tag"
-    if [catch {glob -type d $repo_path/bin/$proj* } prj_dir] {
+    if {[catch {glob -types d $repo_path/bin/$proj* } prj_dir]} {
       Msg CriticalWarning "Cannot find $proj binaries in artifacts"
       continue
     }

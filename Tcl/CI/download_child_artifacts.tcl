@@ -49,6 +49,7 @@ set page 1
 if {"$options(parent_pipeline_id)" == ""} {
   set curl_url ${api}/projects/$proj_id/jobs/?page=1
 } else {
+  set parent_pipeline_id $options(parent_pipeline_id)
   set curl_url "${api}/projects/${proj_id}/pipelines/${parent_pipeline_id}/jobs/?page=${page}"
 }
 lassign [ExecuteRet curl -s --request GET --header "PRIVATE-TOKEN: ${push_token}" $curl_url] ret msg

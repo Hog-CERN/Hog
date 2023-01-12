@@ -18,6 +18,7 @@
 #
 
 
+##nagelfar variable quartus
 
 ## @namespace globalSettings
 # @brief Namespace of all the project settings
@@ -470,7 +471,7 @@ proc ConfigureSimulation {} {
     foreach simset [get_filesets -quiet *_sim] {
       set_property -name {xsim.elaborate.load_glbl} -value {true} -objects [get_filesets $simset]
       # Setting Simulation Properties
-      if [dict exists $globalSettings::SIM_PROPERTIES $simset] {
+      if {[dict exists $globalSettings::SIM_PROPERTIES $simset]} {
         Msg Info "Setting properties for simulation set: $simset..."
         set sim_props [dict get $globalSettings::SIM_PROPERTIES $simset]
         dict for {prop_name prop_val} $sim_props {
@@ -484,7 +485,7 @@ proc ConfigureSimulation {} {
           }
         }
       }
-      if [dict exists $globalSettings::SIM_PROPERTIES sim] {
+      if {[dict exists $globalSettings::SIM_PROPERTIES sim]} {
         Msg Info "Setting properties for simulation set: $simset..."
         set sim_props [dict get $globalSettings::SIM_PROPERTIES sim]
         dict for {prop_name prop_val} $sim_props {
@@ -495,7 +496,7 @@ proc ConfigureSimulation {} {
     }
 
 
-  }  elseif {[IsQuartus]} {
+  } elseif {[IsQuartus]} {
     #QUARTUS only
     #TO BE DONE
 
@@ -512,8 +513,8 @@ proc ConfigureProperties {} {
   if {[IsXilinx]} {
     set user_repo "0"
     # Setting Main Properties
-    if [info exists globalSettings::PROPERTIES] {
-      if [dict exists $globalSettings::PROPERTIES main] {
+    if {[info exists globalSettings::PROPERTIES]} {
+      if {[dict exists $globalSettings::PROPERTIES main]} {
         Msg Info "Setting project-wide properties..."
         set proj_props [dict get $globalSettings::PROPERTIES main]
         dict for {prop_name prop_val} $proj_props {
@@ -537,7 +538,7 @@ proc ConfigureProperties {} {
       }
       # Setting Run Properties
       foreach run [get_runs -quiet] {
-        if [dict exists $globalSettings::PROPERTIES $run] {
+        if {[dict exists $globalSettings::PROPERTIES $run]} {
           Msg Info "Setting properties for run: $run..."
           set run_props [dict get $globalSettings::PROPERTIES $run]
           #set_property -dict $run_props $run
@@ -566,9 +567,9 @@ proc ConfigureProperties {} {
     #TO BE DONE
   } elseif {[IsLibero]} {
     # Setting Properties
-    if [info exists globalSettings::PROPERTIES] {
+    if {[info exists globalSettings::PROPERTIES]} {
       # Device Properties
-      if [dict exists $globalSettings::PROPERTIES main] {
+      if {[dict exists $globalSettings::PROPERTIES main]} {
         Msg Info "Setting device properties..."
         set dev_props [dict get $globalSettings::PROPERTIES main]
         dict for {prop_name prop_val} $dev_props {
@@ -579,7 +580,7 @@ proc ConfigureProperties {} {
         }
       }
       # Project Properties
-      if [dict exists $globalSettings::PROPERTIES project] {
+      if {[dict exists $globalSettings::PROPERTIES project]} {
         Msg Info "Setting project-wide properties..."
         set dev_props [dict get $globalSettings::PROPERTIES project]
         dict for {prop_name prop_val} $dev_props {
@@ -588,7 +589,7 @@ proc ConfigureProperties {} {
         }
       }
       # Synthesis Properties
-      if [dict exists $globalSettings::PROPERTIES synth] {
+      if {[dict exists $globalSettings::PROPERTIES synth]} {
         Msg Info "Setting Synthesis properties..."
         set synth_props [dict get $globalSettings::PROPERTIES synth]
         dict for {prop_name prop_val} $synth_props {
@@ -597,7 +598,7 @@ proc ConfigureProperties {} {
         }
       }
       # Implementation Properties
-      if [dict exists $globalSettings::PROPERTIES impl] {
+      if {[dict exists $globalSettings::PROPERTIES impl]} {
         Msg Info "Setting Implementation properties..."
         set impl_props [dict get $globalSettings::PROPERTIES impl]
         dict for {prop_name prop_val} $impl_props {
@@ -607,7 +608,7 @@ proc ConfigureProperties {} {
       }
 
       # Bitstream Properties
-      if [dict exists $globalSettings::PROPERTIES bitstream] {
+      if {[dict exists $globalSettings::PROPERTIES bitstream]} {
         Msg Info "Setting Bitstream properties..."
         set impl_props [dict get $globalSettings::PROPERTIES impl]
         dict for {prop_name prop_val} $impl_props {
@@ -630,51 +631,47 @@ proc UpgradeIP {} {
   set tcl_path [file normalize "[file dirname [info script]]"]
   set repo_path [file normalize $tcl_path/../..]
   source $tcl_path/hog.tcl  
-
-  if {[IsXilinx]} {
-    # set the current impl run
-    current_run -implementation [get_runs impl_1]
-
-    Msg Info "Running report_ip_status, before upgrading and handling IPs..."
-    report_ip_status
-
-    ##############
-    # UPGRADE IP #
-    ##############
-    set ips [get_ips *]
-
-    #Pull ips from repo
-    if {$globalSettings::HOG_IP_PATH != ""} {
-      set ip_repo_path $globalSettings::HOG_IP_PATH
-      Msg Info "HOG_IP_PATH is set, will pull/push synthesised IPs from/to $ip_repo_path."
-      foreach ip $ips {
-	HandleIP pull  [get_property IP_FILE $ip] $ip_repo_path $globalSettings::repo_path [get_property IP_OUTPUT_DIR $ip]
-      }
-    } else {
-      Msg Info "HOG_IP_PATH not set, will not push/pull synthesised IPs."
+  
+  # set the current impl run
+  current_run -implementation [get_runs impl_1]
+  
+  ##############
+  # UPGRADE IP #
+  ##############
+  set ips [get_ips *]
+  
+  Msg Info "Running report_ip_status, before upgrading and hadnling IPs..."
+  report_ip_status
+  
+  #Pull ips from repo
+  if {$globalSettings::HOG_IP_PATH != ""} {
+    set ip_repo_path $globalSettings::HOG_IP_PATH
+    Msg Info "HOG_IP_PATH is set, will pull/push synthesised IPs from/to $ip_repo_path."
+    foreach ip $ips {
+      HandleIP pull  [get_property IP_FILE $ip] $ip_repo_path $globalSettings::repo_path [get_property IP_OUTPUT_DIR $ip]
     }
-
-    Msg Info "Upgrading IPs if any..."
-    if {$ips != ""} {
-      upgrade_ip -quiet $ips
-    }
-  } elseif {[IsQuartus]} {
-    #QUARTUS only
-    #TO BE DONE
-
   } else {
-    Msg info "Upgrading IPs"
+    Msg Info "HOG_IP_PATH not set, will not push/pull synthesised IPs."
+  }
+  
+  
+  Msg Info "Upgrading IPs if any..."
+  if {$ips != ""} {
+    upgrade_ip -quiet $ips
   }
 }
 
 proc SetGlobalVar {var {default_value HOG_NONE}} {
+  ##nagelfar ignore
   if {[info exists ::$var]} {
     Msg Info "Setting $var to [subst $[subst ::$var]]"
+    ##nagelfar ignore
     set globalSettings::$var [subst $[subst ::$var]]
   } elseif {$default_value == "HOG_NONE"} {
     Msg Error "Mandatory variable $var was not defined. Please define it in hog.conf or in project tcl script."
   } else {
     Msg Info "Setting $var to default value: \"$default_value\""
+    ##nagelfar ignore
     set globalSettings::$var $default_value
   }
 }
@@ -707,7 +704,7 @@ set usage   "Create Vivado/Quartus project. If no project is given, will expect 
 
 puts $argv
 
-if { $::argc eq 0 && ![info exist DESIGN]} {
+if { $::argc eq 0 && ![info exists DESIGN]} {
   Msg Info [cmdline::usage $parameters $usage]
   exit 1
 } elseif {[IsXilinx]} {
@@ -716,7 +713,7 @@ if { $::argc eq 0 && ![info exist DESIGN]} {
     Msg Info [cmdline::usage $parameters $usage]
     exit 1
   }
-  if { ![info exist DESIGN] || $DESIGN eq "" } {
+  if { ![info exists DESIGN] || $DESIGN eq "" } {
     if { [lindex $argv 0] eq "" } {
       Msg Error "Variable DESIGN not set!"
       Msg Info [cmdline::usage $parameters $usage]
@@ -733,7 +730,7 @@ if { $::argc eq 0 && ![info exist DESIGN]} {
     Msg Info [cmdline::usage $parameters $usage]
     exit 1
   }
-  if { ![info exist DESIGN] || $DESIGN eq "" } {
+  if { ![info exists DESIGN] || $DESIGN eq "" } {
     if { [lindex $quartus(args) 0] eq "" } {
       Msg Error "Variable DESIGN not set!"
       Msg Info [cmdline::usage $parameters $usage]
@@ -750,7 +747,7 @@ if { $::argc eq 0 && ![info exist DESIGN]} {
     Msg Info [cmdline::usage $parameters $usage]
     exit 1
   }
-  if { ![info exist DESIGN] || $DESIGN eq "" } {
+  if { ![info exists DESIGN] || $DESIGN eq "" } {
     if { [lindex $argv 0] eq "" } {
       Msg Error "Variable DESIGN not set!"
       Msg Info [cmdline::usage $parameters $usage]
@@ -767,7 +764,7 @@ if { $::argc eq 0 && ![info exist DESIGN]} {
 }
 
 SetGlobalVar DESIGN
-if {[info exist workflow_simlib_path]} {
+if {[info exists workflow_simlib_path]} {
   if {[IsRelativePath $workflow_simlib_path] == 0} {
     set globalSettings::simlib_path "$workflow_simlib_path"
   } else {
@@ -835,6 +832,7 @@ if {[file exists $conf_file]} {
     dict for {p v} $main {
       # notice the dollar in front of p: creates new variables and fill them with the value
       Msg Info "Main property $p set to $v"
+      ##nagelfar ignore
       set $p $v
     }
   } else {
@@ -894,7 +892,7 @@ set globalSettings::list_path                   "$globalSettings::top_path/list"
 set globalSettings::build_dir                   "$globalSettings::repo_path/$build_dir_name/$DESIGN"
 set globalSettings::DESIGN                      [file tail $globalSettings::DESIGN]
 set globalSettings::top_name                    [file tail $globalSettings::DESIGN]
-set globalSettings::top_name                    [file root $globalSettings::top_name]
+set globalSettings::top_name                    [file rootname $globalSettings::top_name]
 set globalSettings::synth_top_module            "top_$globalSettings::top_name"
 set globalSettings::user_ip_repo                ""
 
@@ -925,7 +923,10 @@ AddProjectFiles
 ConfigureSynthesis
 ConfigureImplementation
 ConfigureSimulation
-UpgradeIP
+
+if {[IsVivado]} {
+  UpgradeIP
+}
 
 if {[IsQuartus]} {
   set fileName_old [file normalize "./hogTmp/.hogQsys.md5"]
@@ -977,7 +978,7 @@ if {[IsXilinx]} {
 
 
   lassign [GetDateAndTime $commit] date timee
-  [WriteGenerics "create" $DESIGN $date $timee $commit $version $top_hash $top_ver $hog_hash $hog_ver $cons_ver $cons_hash $libs $vers $hashes $ext_names $ext_hashes $user_ip_repos $user_ip_vers $user_ip_hashes $flavour $xml_ver $xml_hash ]
+  WriteGenerics "create" $DESIGN $date $timee $commit $version $top_hash $top_ver $hog_hash $hog_ver $cons_ver $cons_hash $libs $vers $hashes $ext_names $ext_hashes $user_ip_repos $user_ip_vers $user_ip_hashes $flavour $xml_ver $xml_hash
   cd $old_path
 }
 

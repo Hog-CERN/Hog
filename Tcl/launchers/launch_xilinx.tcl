@@ -232,31 +232,33 @@ if {$do_synthesis == 1} {
 
   foreach ip $ips {
     set xci_file [get_property IP_FILE $ip]
-    set gen_path [get_property IP_OUTPUT_DIR $ip]
-    set xci_path [file dir $xci_file]
-    set xci_ip_name [file root [file tail $xci_file]]
+
+    set xci_path [file dirname $xci_file]
+    set xci_ip_name [file rootname [file tail $xci_file]]
     foreach rptfile [glob -nocomplain -directory $xci_path *.rpt] {
       file copy $rptfile $bin_dir/$project_name-$describe/reports
     }
 
 # Let's leave the following commented part
 # We moved the Handle ip to the post-synthesis, in that case we can't use get_runs so to find out which IP was run, we loop over the directories enedind with _synth_1 in the .runs directory
-
 #
 #    ######### Copy IP to IP repository
-#    if {($ip_path != "")} {
-#      # IP is not in the gitlab repo
-#      set force 0
-#      if [info exist runs] {
-#        if {[lsearch $runs $ip\_synth_1] != -1} {
-#          Msg Info "$ip was synthesized, will force the copy to the IP repository..."
-#          set force 1
-#        }
-#      }
-#      Msg Info "Copying synthesised IP $xci_ip_name ($xci_file) to $ip_path..."
-#      HandleIP push $xci_file $ip_path $repo_path $gen_path $force
+#    if {[IsVivado]} {    
+#    	set gen_path [get_property IP_OUTPUT_DIR $ip]    
+#    	if {($ip_path != "")} {
+#    	  # IP is not in the gitlab repo
+#    	  set force 0
+#    	  if [info exist runs] {
+#    	    if {[lsearch $runs $ip\_synth_1] != -1} {
+#    	      Msg Info "$ip was synthesized, will force the copy to the IP repository..."
+#    	      set force 1
+#    	    }
+#    	  }
+#    	  Msg Info "Copying synthesised IP $xci_ip_name ($xci_file) to $ip_path..."
+#    	  HandleIP push $xci_file $ip_path $repo_path $gen_path $force
+#    	}
 #    }
-
+    
   }
 
   if {$prog ne "100%"} {
@@ -416,7 +418,7 @@ if {$do_implementation == 1 } {
   file mkdir $dst_dir
 
   #Version table
-  if [file exists $main_folder/versions.txt] {
+  if {[file exists $main_folder/versions.txt]} {
     file copy -force $main_folder/versions.txt $dst_dir
   } else {
     Msg Warning "No versions file found in $main_folder/versions.txt"
@@ -425,7 +427,7 @@ if {$do_implementation == 1 } {
   set timing_files [ glob -nocomplain "$main_folder/timing_*.txt" ]
   set timing_file [file normalize [lindex $timing_files 0]]
 
-  if [file exists $timing_file ] {
+  if {[file exists $timing_file]} {
     file copy -force $timing_file $dst_dir/
   } else {
     Msg Warning "No timing file found, not a problem if running locally"

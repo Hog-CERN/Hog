@@ -12,9 +12,7 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-
-
-
+##nagelfar variable quartus
 #parsing command options
 load_package report
 if { [catch {package require cmdline} ERROR] } {
@@ -150,7 +148,7 @@ if { $check_syntax == 1 } {
   lassign [GetHogFiles -list_files "*.src" -repo_path $repo_path "$repo_path/Top/$project_name/list/" ] src_files dummy
   dict for {lib files} $src_files {
     foreach f $files {
-      set file_extension [file ext $f]
+      set file_extension [file extension $f]
       if { $file_extension == ".vhd" || $file_extension == ".vhdl" || $file_extension == ".v" ||  $file_extension == ".sv" } {
         if { [catch {execute_module -tool map -args "--analyze_file=$f"} result]} {
           Msg Error "\nResult: $result\n"

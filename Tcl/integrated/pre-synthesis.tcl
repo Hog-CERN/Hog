@@ -17,6 +17,9 @@
 # The pre synthesis script checks the status of your git repository and stores into a set of variables that are fed as generics to the HDL project.
 # This script is automatically integrated into the Vivado/Quartus workflow by the Create Project script.
 
+##nagelfar variable quartus
+##nagelfar variable project
+
 set tcl_path [file normalize "[file dirname [info script]]/.."]
 source $tcl_path/hog.tcl
 
@@ -112,9 +115,9 @@ cd $repo_path
 set group [GetGroupName $proj_dir]
 
 # Calculating flavour if any
-set flavour [string map {. ""} [file ext $proj_name]]
+set flavour [string map {. ""} [file extension $proj_name]]
 if {$flavour != ""} {
-  if [string is integer $flavour] {
+  if {[string is integer $flavour]} {
     Msg Info "Project $proj_name has flavour = $flavour, the generic variable FLAVOUR will be set to $flavour"
   } else {
     Msg Warning "Project name has a unexpected non numeric extension, flavour will be set to -1"
@@ -156,6 +159,7 @@ if {[file exists "$tcl_path/../../Top/$group/$proj_name/hog.conf"]} {
 set this_commit [GetSHA]
 
 if {[IsVivado]} {
+  ##nagelfar ignore
   if {![string equal ext_path ""]} {
     set argv [list "-ext_path" "$ext_path" "-project" "$group/$proj_name" "-outDir" "$dst_dir" "-log_list" "[expr {!$allow_fail_on_list}]" "-log_conf" "[expr {!$allow_fail_on_conf}]"]
   } else {
@@ -200,7 +204,7 @@ if {!$allow_fail_on_git} {
     foreach fileName $fileNames {
       if {[FileCommitted $fileName] == 0} {
         set fp [open "$dst_dir/diff_presynthesis.txt" a+]
-        set $found_uncommitted 1
+        set found_uncommitted 1
         puts $fp "\n[Relative $tcl_path/../../ $fileName] is not in the git repository"
         Msg CriticalWarning "[Relative $tcl_path/../../ $fileName] is not in the git repository. Will use current SHA ($this_commit) and version will be set to 0."
         close $fp
@@ -281,7 +285,7 @@ set clock_seconds [clock seconds]
 set tt [clock format $clock_seconds -format {%d/%m/%Y at %H:%M:%S}]
 
 # lassign [GetDateAndTime $commit] date timee
-if [GitVersion 2.9.3] {
+if {[GitVersion 2.9.3]} {
   set date [Git "log -1 --format=%cd --date=format:%d%m%Y $commit"]
   set timee [Git "log -1 --format=%cd --date=format:00%H%M%S $commit"]
 } else {

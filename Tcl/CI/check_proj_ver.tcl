@@ -13,12 +13,19 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-# Import tcllib
-if {[info exists env(HOG_TCLLIB_PATH)]} {
-  lappend auto_path $env(HOG_TCLLIB_PATH) 
-} else {
-  puts "ERROR: To run Hog with Microsemi Libero SoC, you need to define the HOG_TCLLIB_PATH variable."
-  return
+set tcl_path [file normalize "[file dirname [info script]]/.."]
+set repo_path [file normalize "$tcl_path/../.."]
+
+source $tcl_path/hog.tcl
+
+# Import tcllib for libero
+if {[IsLibero]} {
+  if {[info exists env(HOG_TCLLIB_PATH)]} {
+    lappend auto_path $env(HOG_TCLLIB_PATH) 
+  } else {
+    puts "ERROR: To run Hog with Microsemi Libero SoC, you need to define the HOG_TCLLIB_PATH variable."
+    return
+  }
 }
 
 #parsing command options
@@ -33,10 +40,6 @@ set parameters {
 }
 
 set usage "- USAGE: $::argv0 \[OPTIONS\] <project> \n. Options:"
-set tcl_path [file normalize "[file dirname [info script]]/.."]
-set repo_path [file normalize "$tcl_path/../.."]
-
-source $tcl_path/hog.tcl
 
 if { $::argc eq 0 } {
   Msg Info [cmdline::usage $parameters $usage]
@@ -45,6 +48,7 @@ if { $::argc eq 0 } {
   #Vivado
   Msg Info [cmdline::usage $parameters $usage]
   exit 1
+  ##nagelfar ignore Unknown variable
 } elseif {[IsQuartus] && [ catch {array set options [cmdline::getoptions quartus(args) $parameters $usage] } ] || $::argc eq 0 } {
   #Quartus
   Msg Info [cmdline::usage $parameters $usage]

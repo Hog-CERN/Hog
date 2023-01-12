@@ -48,7 +48,7 @@ function argument_parser() {
             shift
             break
             ;;
-        -* | --*=) # unsupported flags
+        -*) # unsupported flags
             Msg Error "Unsupported flag $1" >&2
             return 1
             ;;
@@ -83,25 +83,23 @@ function help_message() {
   echo "          -github                    If sets, use the github API"
   echo
 
-  exit -1 
+  exit 0
 }
 
-argument_parser $@
+argument_parser "$@"
 
 if [ -z "$1" ]; then
-    help_message $0
-    exit 0
+    help_message "$0"
 else
     if [ "$1" == "-h" ] || [ "$1" == "-help" ] || [ "$1" == "--help" ] || [ "$1" == "-H" ]; then
-        help_message $0
-        exit 0
+        help_message "$0"
     fi
 
     # GET all artifacts from collect_artifacts
     echo "Hog-INFO: downloading artifacts..."
     if [[ $github == "1" ]]; then
-        artifact_id=$(curl -H "Accept: application/vnd.github+json" -H "Authorization: token ${push_token}" $api/repos/$proj/actions/runs/$mr/artifacts | jq '.artifacts[] | select (.name=="Collect-Artifacts") .id')
-        curl -L -H "Accept: application/vnd.github+json" -H "Authorization: token ${push_token}" $api/repos/$proj/actions/artifacts/$artifact_id/zip -o collect_artifacts.zip
+        artifact_id=$(curl -H "Accept: application/vnd.github+json" -H "Authorization: token ${push_token}" "$api/repos/$proj/actions/runs/$mr/artifacts" | jq '.artifacts[] | select (.name=="Collect-Artifacts") .id')
+        curl -L -H "Accept: application/vnd.github+json" -H "Authorization: token ${push_token}" "$api/repos/$proj/actions/artifacts/$artifact_id/zip" -o collect_artifacts.zip
         echo "Hog-INFO: unzipping artifacts from collect_artifacts job..."
         unzip -oq collect_artifacts.zip -d bin
     else
@@ -117,8 +115,8 @@ else
     # Get artifacts from make_doxygen stage
     if [ "$get_doxygen" == "1" ]; then
         if [[ $github == "1" ]]; then
-            artifact_id=$(curl -H "Accept: application/vnd.github+json" -H "Authorization: token ${push_token}" $api/repos/$proj/actions/runs/$mr/artifacts | jq '.artifacts[] | select (.name=="Doxygen-Artifacts") .id')
-            curl -L -H "Accept: application/vnd.github+json" -H "Authorization: token ${push_token}" $api/repos/$proj/actions/artifacts/$artifact_id/zip -o doxygen.zip
+            artifact_id=$(curl -H "Accept: application/vnd.github+json" -H "Authorization: token ${push_token}" "$api/repos/$proj/actions/runs/$mr/artifacts" | jq '.artifacts[] | select (.name=="Doxygen-Artifacts") .id')
+            curl -L -H "Accept: application/vnd.github+json" -H "Authorization: token ${push_token}" "$api/repos/$proj/actions/artifacts/$artifact_id/zip" -o doxygen.zip
             echo "Hog-INFO: unzipping artifacts from make_doxygen job..."
             unzip -oq doxygen.zip -d Doc
         else
@@ -151,16 +149,16 @@ else
 
         for PRJ_BIT in ${PRJ_BITS}; do
             PRJ_DIR=$(dirname "$PRJ_BIT")
-            PRJ_BASE=$(basename $PRJ_DIR)
+            PRJ_BASE=$(basename "$PRJ_DIR")
             PRJ_NAME="${PRJ_DIR%.*}"
             PRJ_NAME="${PRJ_NAME%-*}"
-            PRJ_NAME_BASE=$(basename $PRJ_NAME)
+            PRJ_NAME_BASE=$(basename "$PRJ_NAME")
             PRJ_SHA="${PRJ_DIR##*-hog}"
-            PRJ_SHA=$(echo $PRJ_SHA | sed -e 's/-dirty$//')
+            PRJ_SHA=${PRJ_SHA/-dirty/} 
 	        TAG=$(git tag --sort=creatordate --contain "$PRJ_SHA" -l "v*.*.*" | head -1)
             PRJ_BINS=("$(ls "$PRJ_DIR"/"${PRJ_BASE}"*)")
             echo "Hog-INFO: Found project $PRJ_NAME"
-            for PRJ_BIN in ${PRJ_BINS[@]}; do
+            for PRJ_BIN in "${PRJ_BINS[@]}"; do
                 regex="($PRJ_NAME_BASE)-(.*v[0-9]+\.[0-9]+\.[0-9]+)-hog([0-9,a-f,A-F]{7})(-dirty)?(.+)"
                 if [[ $PRJ_BIN =~ $regex ]]
                 then

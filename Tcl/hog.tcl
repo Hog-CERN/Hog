@@ -78,7 +78,7 @@ proc IsQuartus {} {
 
 ## Get whether we are in tclsh
 proc IsTclsh {} {
-  return [expr ![IsQuartus] && ![IsXilinx] && ![IsLibero] && ![IsSynplify]]
+  return [expr {![IsQuartus] && ![IsXilinx] && ![IsLibero] && ![IsSynplify]}]
 }
 
 proc Msg {level msg {title ""}} {
@@ -107,7 +107,7 @@ proc Msg {level msg {title ""}} {
     exit -1
   }
 
-  if {$title == ""} {set title [lindex [info level [expr [info level]-1]] 0]}
+  if {$title == ""} {set title [lindex [info level [expr {[info level]-1}]] 0]}
   if {[IsXilinx]} {
     # Vivado
     set status [catch {send_msg_id Hog:$title-0 $vlevel $msg}]
@@ -375,8 +375,8 @@ proc CompareVersions {ver1 ver2} {
 
   if {[string is integer $v1] && [string is integer $v2]} {
   
-    set ver1 [expr [scan [lindex $ver1 0] %d]*100000 + [scan [lindex $ver1 1] %d]*1000 + [scan [lindex $ver1 2] %d]]
-    set ver2 [expr [scan [lindex $ver2 0] %d]*100000 + [scan [lindex $ver2 1] %d]*1000 + [scan [lindex $ver2 2] %d]]
+    set ver1 [expr {[scan [lindex $ver1 0] %d]*100000 + [scan [lindex $ver1 1] %d]*1000 + [scan [lindex $ver1 2] %d]}]
+    set ver2 [expr {[scan [lindex $ver2 0] %d]*100000 + [scan [lindex $ver2 1] %d]*1000 + [scan [lindex $ver2 2] %d]}]
 
     if {$ver1 > $ver2 } {
       set ret 1
@@ -390,7 +390,7 @@ proc CompareVersions {ver1 ver2} {
     Msg Warning "Version is not numeric: $ver1, $ver2"
     set ret 0
   }
-  return [expr $ret]
+  return [expr {$ret}]
 }
 
 ## @brief Check git version installed in this machine
@@ -404,9 +404,9 @@ proc GitVersion {target_version} {
   set v [Git --version]
   #Msg Info "Found Git version: $v"
   set current_ver [split [lindex $v 2] "."]
-  set target [expr [lindex $ver 0]*100000 + [lindex $ver 1]*100 + [lindex $ver 2]]
-  set current [expr [lindex $current_ver 0]*100000 + [lindex $current_ver 1]*100 + [lindex $current_ver 2]]
-  return [expr $target <= $current]
+  set target [expr {[lindex $ver 0]*100000 + [lindex $ver 1]*100 + [lindex $ver 2]}]
+  set current [expr {[lindex $current_ver 0]*100000 + [lindex $current_ver 1]*100 + [lindex $current_ver 2]}]
+  return [expr {$target <= $current}]
 }
 
 ## @brief Checks doxygen version installed in this machine
@@ -420,10 +420,10 @@ proc DoxygenVersion {target_version} {
   set v [Execute doxygen --version]
   Msg Info "Found doxygen version: $v"
   set current_ver [split $v ". "]
-  set target [expr [lindex $ver 0]*100000 + [lindex $ver 1]*100 + [lindex $ver 2]]
-  set current [expr [lindex $current_ver 0]*100000 + [lindex $current_ver 1]*100 + [lindex $current_ver 2]]
+  set target [expr {[lindex $ver 0]*100000 + [lindex $ver 1]*100 + [lindex $ver 2]}]
+  set current [expr {[lindex $current_ver 0]*100000 + [lindex $current_ver 1]*100 + [lindex $current_ver 2]}]
 
-  return [expr $target <= $current]
+  return [expr {$target <= $current}]
 }
 
 ## @brief determine file type from extension
@@ -431,7 +431,7 @@ proc DoxygenVersion {target_version} {
 #
 ## @return FILE_TYPE the file Type
 proc FindFileType {file_name} {
-  set extension [file ext $file_name]
+  set extension [file extension $file_name]
   switch $extension {
     .stp {
       set file_extension "USE_SIGNALTAP_FILE"
@@ -492,7 +492,7 @@ proc FindFileType {file_name} {
 #
 # @return "-hdl_version VHDL_2008" if the file is a *.vhd files else ""
 proc FindVhdlVersion {file_name} {
-  set extension [file ext $file_name]
+  set extension [file extension $file_name]
   switch $extension {
     .vhd {
       set vhdl_version "-hdl_version VHDL_2008"
@@ -577,7 +577,7 @@ proc ReadListFile args {
   set fp [open $list_file r]
   set file_data [read $fp]
   close $fp
-  set list_file_ext [file ext $list_file]
+  set list_file_ext [file extension $list_file]
   set libraries [dict create]
   set main_libs [dict create]
   set properties [dict create]
@@ -613,7 +613,7 @@ proc ReadListFile args {
       foreach vhdlfile $srcfiles {
         if {[file exists $vhdlfile]} {
           set vhdlfile [file normalize $vhdlfile]
-          set extension [file ext $vhdlfile]
+          set extension [file extension $vhdlfile]
 
           if { $extension == $list_file_ext } {
             if {$verbose == 1} {
@@ -790,7 +790,7 @@ proc GetFileList {FILE path} {
       set vhdlfile [lindex $file_and_prop 0]
       set vhdlfile "$path/$vhdlfile"
       if {[file exists $vhdlfile]} {
-        set extension [file ext $vhdlfile]
+        set extension [file extension $vhdlfile]
         if { [lsearch {.src .sim .con} $extension] >= 0 } {
           lappend file_list {*}[GetFileList $vhdlfile $path]
         } else {
@@ -870,7 +870,7 @@ proc GetVer {path {force_develop 0}} {
   if {[file isdirectory $p]} {
     cd $p
   } else {
-    cd [file dir $p]
+    cd [file dirname $p]
   }
   set repo_path [Git {rev-parse --show-toplevel}]
   cd $old_path
@@ -915,7 +915,7 @@ proc GetVerFromSHA {SHA repo_path {force_develop 0}} {
 
           set branch_name [Git {rev-parse --abbrev-ref HEAD}]
 
-          if [file exists $repo_conf] {
+          if {[file exists $repo_conf]} {
             set PROPERTIES [ReadConf $repo_conf]
 	          # [main] section
             if {[dict exists $PROPERTIES main]} {
@@ -1108,11 +1108,11 @@ proc GetHogDescribe {sha} {
 #
 proc GetSubmodule {path_file} {
   set old_dir [pwd]
-  set directory [file normalize [file dir $path_file]]
+  set directory [file normalize [file dirname $path_file]]
   cd $directory
   lassign [GitRet {rev-parse --show-superproject-working-tree}] ret base
   if {$ret != 0} {
-    Msg CriticalWarning "Git repository error: $sub"
+    Msg CriticalWarning "Git repository error: $base"
     cd $old_dir
     return ""
   }
@@ -1140,7 +1140,7 @@ proc GetSubmodule {path_file} {
 #  @return[in] a list containing the full path of the hog.conf, sim.conf, pre-creation.tcl, post-creation.tcl and proj.tcl files
 
 proc GetConfFiles {proj_dir} {
-  if ![file isdirectory $proj_dir] {
+  if {![file isdirectory $proj_dir]} {
     Msg Error "$proj_dir is supposed to be the top project directory"
     return -1
   }
@@ -1307,7 +1307,7 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
   }
 
   # Ipbus XML
-  if [file exists ./list/xml.lst] {
+  if {[file exists ./list/xml.lst]} {
     #Msg Info "Found IPbus XML list file, evaluating version and SHA of listed files..."
     lassign [GetHogFiles  -list_files "xml.lst" -repo_path $repo_path  -sha_mode "./list/"] xml_files dummy
     lassign [GetVer  [dict get $xml_files "xml.lst"] ] xml_ver xml_hash
@@ -1326,7 +1326,7 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
   set user_ip_repo_hashes ""
   set user_ip_repo_vers ""
   # User IP Repository (Vivado only, hog.conf only)
-  if [file exists [lindex $conf_files 0]] {
+  if {[file exists [lindex $conf_files 0]]} {
 
     set PROPERTIES [ReadConf [lindex $conf_files 0]]
     set has_user_ip 0
@@ -1518,7 +1518,7 @@ proc CopyXMLsFromListFile {list_file path dst {xml_version "0.0.0"} {xml_sha "00
         if {[file exists $x]} {
           lassign [ExecuteRet gen_ipbus_addr_decode $x 2>&1]  status log
           if {$status == 0} {
-            set generated_vhdl ./ipbus_decode_[file root [file tail $x]].vhd
+            set generated_vhdl ./ipbus_decode_[file rootname [file tail $x]].vhd
             if {$generate == 1} {
               Msg Info "Copying generated VHDL file $generated_vhdl into $v (replacing if necessary)"
               file copy -force -- $generated_vhdl $v
@@ -1526,9 +1526,9 @@ proc CopyXMLsFromListFile {list_file path dst {xml_version "0.0.0"} {xml_sha "00
               if {[file exists $v]} {
                 set diff [CompareVHDL $generated_vhdl $v]
                 if {[llength $diff] > 0} {
-                  Msg CriticalWarning "$v does not correspond to its XML $x, [expr $n/3] line/s differ:"
+                  Msg CriticalWarning "$v does not correspond to its XML $x, [expr {$n/3}] line/s differ:"
                   Msg Status [join $diff "\n"]
-                  set diff_file [open ../diff_[file root [file tail $x]].txt w]
+                  set diff_file [open ../diff_[file rootname [file tail $x]].txt w]
                   puts $diff_file $diff
                   close $diff_file
                 } else {
@@ -1650,7 +1650,7 @@ proc GetProjectFiles {} {
   set simulator [get_property target_simulator [current_project]]
   set SIM [dict create]
   set SRC [dict create]
-
+  set OTHER [dict create]
   set top [get_property "top"  [current_fileset]]
   set topfile [lindex [get_files -compile_order sources -used_in synthesis] end]
   dict lappend properties $topfile "top=$top"
@@ -1686,6 +1686,7 @@ proc GetProjectFiles {} {
       foreach simulator [GetSimulators] {
         set wavefile [get_property "$simulator.simulate.custom_wave_do" [get_filesets $fs]]
         if {![string equal "$wavefile" ""]} {
+          ##nagelfar ignore
           dict lappend properties $wavefile wavefile
           break
         }
@@ -1745,17 +1746,12 @@ proc GetProjectFiles {} {
           if {![string equal $prop ""]} {
             dict lappend properties $f $prop
           }
-        } elseif {[string equal $type "VHDL"]} {
+        } elseif {[string equal $type "VHDL"] || [string equal $type "Verilog"] || [string equal $type "SystemVerilog"] } {
           dict lappend SRC $lib $f
           if {![string equal $prop ""]} {
             dict lappend properties $f $prop
           }
         } elseif {[string equal $type "Verilog Header"]} {
-          dict lappend libraries "OTHER" $f
-          if {![string equal $prop ""]} {
-            dict lappend properties $f $prop
-          }
-        } elseif {[string equal [lindex $type 0] "SystemVerilog"] } {
           dict lappend libraries "OTHER" $f
           if {![string equal $prop ""]} {
             dict lappend properties $f $prop
@@ -1767,6 +1763,7 @@ proc GetProjectFiles {} {
         } else {
           dict lappend libraries "OTHER" $f
         }
+
 
         if {[lindex [get_property -quiet used_in_synthesis  [GetFile $f]] 0] == 0} {
           dict lappend properties $f "nosynth"
@@ -1955,14 +1952,14 @@ proc AddHogFiles { libraries properties main_libs {verbose 0}} {
         foreach f $lib_files {
           set file_obj [get_files -of_objects [get_filesets $file_set] [list "*$f"]]
           #ADDING LIBRARY
-          if {[file ext $f] == ".vhd" || [file ext $f] == ".vhdl" || [file ext $f] == ".v" || [file ext $f] == ".sv"} {
+          if {[file extension $f] == ".vhd" || [file extension $f] == ".vhdl" || [file extension $f] == ".v" || [file extension $f] == ".sv"} {
             set_property -name "library" -value $rootlib -objects $file_obj
           }
 
           #ADDING FILE PROPERTIES
           set props [dict get $properties $f]
-          if {[file ext $f] == ".vhd" || [file ext $f] == ".vhdl"} {
-            if {[lsearch -inline -regex $props "93"] < 0} {
+          if {[file extension $f] == ".vhd" || [file extension $f] == ".vhdl"} {
+            if {[lsearch -inline -regexp $props "93"] < 0} {
               # ISE does not support vhdl2008
               if {[IsVivado]} {
                 set_property -name "file_type" -value "VHDL 2008" -objects $file_obj
@@ -1972,7 +1969,7 @@ proc AddHogFiles { libraries properties main_libs {verbose 0}} {
             }
           }
 
-          if {[lsearch -inline -regex $props "SystemVerilog"] > 0} {
+          if {[lsearch -inline -regexp $props "SystemVerilog"] > 0} {
             # ISE does not support SystemVerilog
             if {[IsVivado]} {
               set_property -name "file_type" -value "SystemVerilog" -objects $file_obj
@@ -1992,7 +1989,7 @@ proc AddHogFiles { libraries properties main_libs {verbose 0}} {
           }
 
           # XDC
-          if {[lsearch -inline -regex $props "XDC"] >= 0 || [file ext $f] == ".xdc"} {
+          if {[lsearch -inline -regexp $props "XDC"] >= 0 || [file extension $f] == ".xdc"} {
             if {$verbose == 1} {
               Msg Info "Setting filetype XDC for $f"
             }
@@ -2000,25 +1997,25 @@ proc AddHogFiles { libraries properties main_libs {verbose 0}} {
           }
 
           # Verilog headers
-          if {[lsearch -inline -regex $props "verilog_header"] >= 0} {
+          if {[lsearch -inline -regexp $props "verilog_header"] >= 0} {
             Msg Info "Setting verilog header type for $f..."
             set_property file_type {Verilog Header} [get_files $f]
           }
 
           # Not used in synthesis
-          if {[lsearch -inline -regex $props "nosynth"] >= 0} {
+          if {[lsearch -inline -regexp $props "nosynth"] >= 0} {
             Msg Info "Setting not used in synthesis for $f..."
             set_property -name "used_in_synthesis" -value "false" -objects $file_obj
           }
 
           # Not used in implementation
-          if {[lsearch -inline -regex $props "noimpl"] >= 0} {
+          if {[lsearch -inline -regexp $props "noimpl"] >= 0} {
             Msg Info "Setting not used in implementation for $f..."
             set_property -name "used_in_implementation" -value "false" -objects $file_obj
           }
 
           # Not used in simulation
-          if {[lsearch -inline -regex $props "nosim"] >= 0} {
+          if {[lsearch -inline -regexp $props "nosim"] >= 0} {
             Msg Info "Setting not used in simulation for $f..."
             set_property -name "used_in_simulation" -value "false" -objects $file_obj
           }
@@ -2046,30 +2043,29 @@ proc AddHogFiles { libraries properties main_libs {verbose 0}} {
           }
 
           # Wave do file
-          if {[lsearch -inline -regex $props "wavefile"] >= 0} {
+          if {[lsearch -inline -regexp $props "wavefile"] >= 0} {
             Msg Warning "Setting a wave do file from simulation list files will be deprecated in future Hog releases. Please consider setting this property in the sim.conf file, by adding the following line under the \[$file_set\] section.\n<simulator_name>.simulate.custom_wave_do=[file tail $f]"
 
             if {$verbose == 1} {
               Msg Info "Setting $f as wave do file for simulation file set $file_set..."
             }
             # check if file exists...
-            if [file exists $f] {
+            if {[file exists $f]} {
               foreach simulator [GetSimulators] {
                 set_property "$simulator.simulate.custom_wave_do" [file tail $f] [get_filesets $file_set]
               }
             } else {
               Msg Warning "File $f was not found."
-
             }
           }
 
           #Do file
-          if {[lsearch -inline -regex $props "dofile"] >= 0} {
+          if {[lsearch -inline -regexp $props "dofile"] >= 0} {
             Msg Warning "Setting a custom do file from simulation list files will be deprecated in future Hog releases. Please consider setting this property in the sim.conf file, by adding the following line under the \[$file_set\] section.\n<simulator_name>.simulate.custom_do=[file tail $f]"
             if {$verbose == 1} {
               Msg Info "Setting $f as do file for simulation file set $file_set..."
             }
-            if [file exists $f] {
+            if {[file exists $f]} {
               foreach simulator [GetSimulators] {
                 set_property "$simulator.simulate.custom_udo" [file tail $f] [get_filesets $file_set]
               }
@@ -2079,8 +2075,8 @@ proc AddHogFiles { libraries properties main_libs {verbose 0}} {
           }
 
           # Tcl
-          if {[file ext $f] == ".tcl" && $ext != ".con"} {
-            if { [lsearch -inline -regex $props "source"] >= 0} {
+          if {[file extension $f] == ".tcl" && $ext != ".con"} {
+            if { [lsearch -inline -regexp $props "source"] >= 0} {
               Msg Info "Sourcing Tcl script $f..."
               source $f
             }
@@ -2093,13 +2089,13 @@ proc AddHogFiles { libraries properties main_libs {verbose 0}} {
           #ADDING FILE PROPERTIES
           set props [dict get $properties $f]
           # Lock the IP
-          if {[lsearch -inline -regex $props "locked"] >= 0} {
+          if {[lsearch -inline -regexp $props "locked"] >= 0} {
             Msg Info "Locking IP $f..."
             set_property IS_MANAGED 0 [get_files $f]
           }
 
           # Generating Target for BD File
-          if {[file ext $f] == ".bd"} {
+          if {[file extension $f] == ".bd"} {
             Msg Info "Generating Target for [file tail $f], please remember to commit the (possible) changed file."
             generate_target all [get_files $f]
           }
@@ -2268,8 +2264,8 @@ proc AddHogFiles { libraries properties main_libs {verbose 0}} {
       if {$ext == ".con"} {
         foreach con_file $lib_files {
           # Check for valid constrain files
-          set con_ext [file ext $con_file]
-          if {[lsearch {.sdc .pin .dcf .gcf .pdc .crt .vcd } [file ext $con_file]] >= 0} {
+          set con_ext [file extension $con_file]
+          if {[lsearch {.sdc .pin .dcf .gcf .pdc .crt .vcd } [file extension $con_file]] >= 0} {
             set option [string map {. -} $con_ext]
             create_links -convert_EDN_to_HDL 0 -library {work} $option $con_file 
           } else {
@@ -2297,7 +2293,7 @@ proc AddHogFiles { libraries properties main_libs {verbose 0}} {
         }
 
         # exclude sdc from timing
-        if {[lsearch -inline -regex $props "notiming"] == -1 } {
+        if {[lsearch -inline -regexp $props "notiming"] == -1 } {
           organize_tool_files -tool {VERIFYTIMING} -file $cur_file -input_type {constraint}
         }
       }
@@ -2431,7 +2427,7 @@ proc CheckExtraFiles {libraries} {
 #
 proc ReadExtraFileList { extra_file_name } {
   set extra_file_dict [dict create]
-  if [file exists $extra_file_name] {
+  if {[file exists $extra_file_name]} {
     set file [open $extra_file_name "r"]
     set file_data [read $file]
     close $file
@@ -2567,16 +2563,16 @@ proc HandleIP {what_to_do xci_file ip_path repo_path {gen_dir "."} {force 0}} {
     file mkdir $ip_path
   }
 
-  if !([file exists $xci_file]) {
+  if {!([file exists $xci_file])} {
     Msg CriticalWarning "Could not find $xci_file."
     cd $old_path
     return -1
   }
 
 
-  set xci_path [file dir $xci_file]
+  set xci_path [file dirname $xci_file]
   set xci_name [file tail $xci_file]
-  set xci_ip_name [file root [file tail $xci_file]]
+  set xci_ip_name [file rootname [file tail $xci_file]]
   set xci_dir_name [file tail $xci_path]
   set gen_path $gen_dir
 
@@ -2707,7 +2703,7 @@ proc HandleIP {what_to_do xci_file ip_path repo_path {gen_dir "."} {force 0}} {
 #
 #  @param[in] file_name: the name of the file of which you want to evaluate the md5 checksum
 proc Md5Sum {file_name} {
-  if !([file exists $file_name]) {
+  if {!([file exists $file_name])} {
     Msg Warning "Could not find $file_name."
     set file_hash -1
   }
@@ -2743,11 +2739,11 @@ proc CheckYmlRef {repo_path allow_failure} {
 
   # Go to repository path
   cd "$repo_path"
-  if [file exists .gitlab-ci.yml] {
+  if {[file exists .gitlab-ci.yml]} {
     #get .gitlab-ci ref
     set YML_REF ""
     set YML_NAME ""
-    if { [file exist .gitlab-ci.yml] } {
+    if { [file exists .gitlab-ci.yml] } {
       set fp [open ".gitlab-ci.yml" r]
       set file_data [read $fp]
       close $fp
@@ -2766,8 +2762,8 @@ proc CheckYmlRef {repo_path allow_failure} {
       dict for {dictKey dictValue} $yamlDict {
         #looking for Hog include in .gitlab-ci.yml
         if {"$dictKey" == "include" && ([lsearch [split $dictValue " {}"] "/hog.yml" ] != "-1" || [lsearch [split $dictValue " {}"] "/hog-dynamic.yml" ] != "-1")} {
-          set YML_REF [lindex [split $dictValue " {}"]  [expr [lsearch -dictionary [split $dictValue " {}"] "ref"]+1 ] ]
-          set YML_NAME [lindex [split $dictValue " {}"]  [expr [lsearch -dictionary [split $dictValue " {}"] "file"]+1 ] ]
+          set YML_REF [lindex [split $dictValue " {}"]  [expr {[lsearch -dictionary [split $dictValue " {}"] "ref"]+1} ] ]
+          set YML_NAME [lindex [split $dictValue " {}"]  [expr {[lsearch -dictionary [split $dictValue " {}"] "file"]+1} ] ]
         }
       }
     }
@@ -2802,7 +2798,7 @@ proc CheckYmlRef {repo_path allow_failure} {
         #looking for included files
         if {"$dictKey" == "include"} {
           foreach v $dictValue {
-            lappend YML_FILES [lindex [split $v " "]  [expr [lsearch -dictionary [split $v " "] "local"]+1 ] ]
+            lappend YML_FILES [lindex [split $v " "]  [expr {[lsearch -dictionary [split $v " "] "local"]+1} ] ]
           }
         }
       }
@@ -2877,7 +2873,7 @@ proc ParseJSON {JSON_FILE JSON_KEY} {
 #  @returns a list of 2 elements: the return value (0 if no error occurred) and the output of the EOS command
 proc eos {command {attempt 1}}  {
   global env
-  if ![info exists env(EOS_MGM_URL)] {
+  if {![info exists env(EOS_MGM_URL)]} {
     Msg Warning "Environment variable EOS_MGM_URL not set, setting it to default value root://eosuser.cern.ch"
     set ::env(EOS_MGM_URL) "root://eosuser.cern.ch"
   }
@@ -2893,7 +2889,7 @@ proc eos {command {attempt 1}}  {
       if {$attempt > 1} {
         set wait [expr {1+int(rand()*29)}]
         Msg Warning "Command $command failed ($i/$attempt): $result, trying again in $wait seconds..."
-        after [expr $wait*1000]
+        after [expr {$wait*1000}]
       }
     }
   }
@@ -3005,7 +3001,7 @@ proc Execute {args}  {
 #
 proc GetMaxThreads {proj_dir} {
   set maxThreads 1
-  if {[file exist $proj_dir/hog.conf]} {
+  if {[file exists $proj_dir/hog.conf]} {
     set properties [ReadConf [lindex [GetConfFiles $proj_dir] 0]]
     if {[dict exists $properties parameters]} {
       set propDict [dict get $properties parameters]
@@ -3103,6 +3099,7 @@ proc WriteGitLabCIYAML {proj_name {ci_conf ""}} {
 proc FindNewestVersion { versions } {
   set new_ver 00000000
   foreach ver $versions {
+    ##nagelfar ignore
     if {[ expr 0x$ver > 0x$new_ver ] } {
       set new_ver $ver
     }
@@ -3145,7 +3142,7 @@ proc SearchHogProjects {dir} {
   set projects_list {}
   if {[file exists $dir]} {
     if {[file isdirectory $dir]} {
-      foreach proj_dir [glob -nocomplain -type d $dir/* ] {
+      foreach proj_dir [glob -nocomplain -types d $dir/* ] {
         if {![regexp {^.*Top/+(.*)$} $proj_dir dummy proj_name]} {
           Msg Warning "Could not parse Top directory $dir"
           break
@@ -3176,7 +3173,7 @@ proc SearchHogProjects {dir} {
 #
 proc GetGroupName {proj_dir} {
   if {[regexp {^.*Projects/+(.*?)/*$} $proj_dir dummy dir]} {
-    set group [file dir $dir]
+    set group [file dirname $dir]
     if { $group == "." } {
       set group ""
     }
@@ -3333,7 +3330,7 @@ proc WriteUtilizationSummary {input output project_name run} {
 proc GetDateAndTime {commit} {
   set clock_seconds [clock seconds]
 
-  if [GitVersion 2.9.3] {
+  if {[GitVersion 2.9.3]} {
     set date [Git "log -1 --format=%cd --date=format:%d%m%Y $commit"]
     set timee [Git "log -1 --format=%cd --date=format:00%H%M%S $commit"]
   } else {
@@ -3349,9 +3346,9 @@ proc GetDateAndTime {commit} {
 #  @param[in]    proj_name The project name
 proc GetProjectFlavour {proj_name} {
   # Calculating flavour if any
-  set flavour [string map {. ""} [file ext $proj_name]]
+  set flavour [string map {. ""} [file extension $proj_name]]
   if {$flavour != ""} {
-    if [string is integer $flavour] {
+    if {[string is integer $flavour]} {
       Msg Info "Project $proj_name has flavour = $flavour, the generic variable FLAVOUR will be set to $flavour"
     } else {
       Msg Warning "Project name has a unexpected non numeric extension, flavour will be set to -1"
@@ -3384,11 +3381,19 @@ proc FormatGeneric {generic} {
 #                         defines the output format of the string
 # @return string with generics 
 #
-proc GetGenericFromConf {proj_dir target} {
+proc GetGenericFromConf {proj_dir target {sim 0}} {
   set prj_generics ""
   set top_dir "Top/$proj_dir"
-  if {[file exist $top_dir/hog.conf]} {
-    set properties [ReadConf [lindex [GetConfFiles $top_dir] 0]]
+  set conf_file "$top_dir/hog.conf"
+  set conf_index 0
+  if {$sim == 1} {
+    set conf_file "$top_dir/sim.conf"
+    set conf_index 1
+  }
+
+
+  if {[file exists $conf_file]} {
+    set properties [ReadConf [lindex [GetConfFiles $top_dir] $conf_index]]
     if {[dict exists $properties generics]} {
       set propDict [dict get $properties generics]
       dict for {theKey theValue} $propDict {
@@ -3421,7 +3426,7 @@ proc GetGenericFromConf {proj_dir target} {
             set numHex 0
             scan $valueHex %x numHex
             binary scan [binary format "I" $numHex] "B*" binval
-            set numBits [expr $numBits-1]
+            set numBits [expr {$numBits-1}]
             set numBin [string range $binval end-$numBits end]
             set prj_generics "$prj_generics $theKey=\"$numBin\""
 
@@ -3456,13 +3461,14 @@ proc SetGenericsSimulation {proj_dir target} {
   set read_aux [GetConfFiles $top_dir]
   set sim_cfg_index [lsearch -regexp -index 0 $read_aux ".*sim.conf"]
   set sim_cfg_index [lsearch -regexp -index 0 [GetConfFiles $top_dir] ".*sim.conf"]
-  if {[file exist $top_dir/sim.conf]} {
-    set sim_cfg_list [ReadConf [lindex [GetConfFiles $top_dir] [lsearch -regexp -index 0 $read_aux ".*sim.conf"]]]
-    set sim_cfg_dict [dict get $sim_cfg_list ]
-    dict for {theKey theValue} $sim_cfg_dict {
-      set sim_generics [GetGenericFromConf $proj_dir $target]
-      set_property generic $sim_generics [get_filesets $theKey]
-      Msg Info "Setting simulator $target for file set $theKey generics : $sim_generics"
+  if {[file exists $top_dir/sim.conf]} {
+    set simsets [get_filesets -quiet *_sim]
+    set sim_generics [GetGenericFromConf $proj_dir $target 1]
+    if {$sim_generics != ""} {
+      foreach simset $simsets {
+        set_property generic $sim_generics [get_filesets $simset]
+        Msg Info "Setting generics $sim_generics for simulator $target and simulation file-set $simset..."
+      }
     }
   } else {
     Msg warning "No sim.conf found in project Top"
@@ -3668,6 +3674,8 @@ proc WriteGenerics {mode design date timee commit version top_hash top_ver hog_h
   # Dealing with project generics in Vivado
   set prj_generics [GetGenericFromConf $design "Vivado"]
   set generic_string "$prj_generics $generic_string"
+
+  # Extract the generics from the top level source file 
   if {[IsXilinx]} {
 
     set top_file [GetTopFile]
@@ -3692,7 +3700,7 @@ proc WriteGenerics {mode design date timee commit version top_hash top_ver hog_h
         }
     }
 
-    # only filter in ISE...
+    # only filter in ISE
     if {[IsISE]} {
         set generic_string $filtered_generic_string
     }
@@ -3700,12 +3708,13 @@ proc WriteGenerics {mode design date timee commit version top_hash top_ver hog_h
     set_property generic $generic_string [current_fileset]
     Msg Info "Setting generics : $generic_string"
 
-    # Dealing with project generics in Simulators
-    # set simulator [get_property target_simulator [current_project]]
-    # if {$mode == "create"} {
-    #   SetGenericsSimulation $design $simulator
-    # }
-
+    if {[IsVivado]} {
+      # Dealing with project generics in Simulators
+      set simulator [get_property target_simulator [current_project]]
+      if {$mode == "create"} {
+        SetGenericsSimulation $design $simulator
+      }
+    }
   } elseif {[IsSynplify]} {
     foreach generic $generic_string {
       Msg Info "Setting Synplify generic: $generic"

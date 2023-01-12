@@ -18,6 +18,7 @@
 
 ## Import common functions from Other/CommonFunctions.sh in a POSIX compliant way
 #
+# shellcheck source=CommonFunctions.sh
 . $(dirname "$0")/CommonFunctions.sh
 
 ## @fn help_message
@@ -64,7 +65,7 @@ function argument_parser() {
       EXT_PATH="-ext_path $2"
       shift 2
       ;;
-    -? | -h | -help)
+    -h | -help)
       HELP="-h"
       shift 1
       ;;
@@ -72,7 +73,7 @@ function argument_parser() {
       shift
       break
       ;;
-    -* | --*=) # unsupported flags
+    -* ) # unsupported flags
       echo "Error: Unsupported flag $1" >&2
       return 1
       ;;
@@ -94,77 +95,80 @@ function argument_parser() {
 # @param[in]    $@ all the inputs to this script
 function main() {
   # Define directory variables as local: only main will change directory
-  local OLD_DIR=$(pwd)
-  local THIS_DIR="$(dirname "$0")"
+  local OLD_DIR
+  OLD_DIR=$(pwd)
+  local THIS_DIR
+  THIS_DIR="$(dirname "$0")"
 
   if [ "a$1" == "a" ]; then
-    help_message $0
+    help_message "$0"
     exit 1
   fi
 
-  argument_parser $@
+  argument_parser "$@"
   if [ $? = 1 ]; then
     exit 1
   fi
   set -- "${PARAMS[@]}"
 
   if [ "$HELP" == "-h" ]; then
-    help_message $0
+    help_message "$0"
     exit 0
   fi
 
-  cd "${THIS_DIR}"
+  cd "${THIS_DIR}" || exit
 
   if [ -e ../../Top ]; then
     local DIR="../../Top"
   else
     echo "Hog-ERROR: Top folder not found, Hog is not in a Hog-compatible HDL repository."
     echo
-    cd "${OLD_DIR}"
+    cd "${OLD_DIR}" || exit 
     exit 1
   fi
 
-  local PROJ=$(echo $1)
-  local PROJ_DIR="$DIR/$PROJ"
+  local PROJ
+  PROJ=$1
+  local PROJ_DIR
+  PROJ_DIR="$DIR/$PROJ"
 
   if [ -d "$PROJ_DIR" ]; then
 
     #Choose if the project is quartus, vivado, vivado_hls [...]
     local PROJ_DIR="$PWD/$PROJ_DIR"
-    select_command $PROJ_DIR
-    if [ $? != 0 ]; then
+    
+    if ! select_command "$PROJ_DIR"; then
       echo "Hog-ERROR: Failed to select project type: exiting!"
       exit 1
     fi
 
     #select full path to executable and place it in HDL_COMPILER global variable
-    select_compiler_executable $COMMAND
-    if [ $? != 0 ]; then
+    if ! select_compiler_executable "$COMMAND"; then
       echo "Hog-ERROR: failed to get HDL compiler executable for $COMMAND"
       exit 1
     fi
 
     if [ ! -f "${HDL_COMPILER}" ]; then
       echo "Hog-ERROR: HDL compiler executable $HDL_COMPILER not found"
-      cd "${OLD_DIR}"
+      cd "${OLD_DIR}" || exit
       exit 1
     else
       echo "Hog-INFO: using executable: $HDL_COMPILER"
     fi
 
-    if [ $COMMAND = "quartus_sh" ]; then
+    if [ "$COMMAND" = "quartus_sh" ]; then
       echo "Hog-INFO: Executing:  ${HDL_COMPILER} $COMMAND_OPT $DIR/../../Hog/Tcl/CI/check_proj_ver.tcl $EXT_PATH $SIM $PROJ"
-      "${HDL_COMPILER}" $COMMAND_OPT $DIR/../Hog/Tcl/CI/check_proj_ver.tcl $EXT_PATH $SIM $PROJ
-    elif [ $COMMAND = "vivado_hls" ]; then
+      "${HDL_COMPILER}" "$COMMAND_OPT" $DIR/../Hog/Tcl/CI/check_proj_ver.tcl "$EXT_PATH" "$SIM" "$PROJ"
+    elif [ "$COMMAND" = "vivado_hls" ]; then
       echo "Hog-ERROR: Vivado HLS is not yet supported by this script!"
-    elif [ $COMMAND = "libero" ]; then
+    elif [ "$COMMAND" = "libero" ]; then
       echo "Hog-INFO: Executing:  ${HDL_COMPILER} $COMMAND_OPT $DIR/../../Hog/Tcl/CI/check_proj_ver.tcl ${POST_COMMAND_OPT}$EXT_PATH $SIM $PROJ"
-      "${HDL_COMPILER}" ${COMMAND_OPT}$DIR/../Hog/Tcl/CI/check_proj_ver.tcl ${POST_COMMAND_OPT}"$PROJ"
+      "${HDL_COMPILER}" "${COMMAND_OPT}"$DIR/../Hog/Tcl/CI/check_proj_ver.tcl "${POST_COMMAND_OPT}""$PROJ"
     else
       echo "Hog-INFO: Executing:  ${HDL_COMPILER} $COMMAND_OPT $DIR/../../Hog/Tcl/CI/check_proj_ver.tcl ${POST_COMMAND_OPT}$EXT_PATH $SIM $PROJ"
-      "${HDL_COMPILER}" $COMMAND_OPT $DIR/../Hog/Tcl/CI/check_proj_ver.tcl ${POST_COMMAND_OPT}$EXT_PATH $SIM $PROJ
+      "${HDL_COMPILER}" "$COMMAND_OPT" $DIR/../Hog/Tcl/CI/check_proj_ver.tcl "${POST_COMMAND_OPT}""$EXT_PATH" "$SIM" "$PROJ"
     fi
   fi
 }
 
-main $@
+main "$@"

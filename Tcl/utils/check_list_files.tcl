@@ -846,6 +846,10 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
         if {[string tolower $hogset] == "false" && $currset == 0} {
           continue
         }
+        if {[regexp {\_VER$} [string toupper $settings]] || [regexp {\_SHA$} [string toupper $settings]] } {
+          continue
+        }
+
         if {[string toupper $settings] != "STRATEGY"} {
           dict set newRunDict $settings $currset
           if {$options(recreate_conf) == 1} {

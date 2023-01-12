@@ -1746,12 +1746,12 @@ proc GetProjectFiles {} {
           if {![string equal $prop ""]} {
             dict lappend properties $f $prop
           }
-        } elseif {[string equal $type "VHDL"] || [string equal $type "Verilog"] || [string equal $type "SystemVerilog"] } {
+        } elseif {[string equal $type "VHDL"] } {
           dict lappend SRC $lib $f
           if {![string equal $prop ""]} {
             dict lappend properties $f $prop
           }
-        } elseif {[string equal $type "Verilog Header"]} {
+        } elseif {[string equal $type "Verilog Header"] || [string equal $type "Verilog"] || [string equal $type "SystemVerilog"]} {
           dict lappend libraries "OTHER" $f
           if {![string equal $prop ""]} {
             dict lappend properties $f $prop
@@ -1952,7 +1952,7 @@ proc AddHogFiles { libraries properties main_libs {verbose 0}} {
         foreach f $lib_files {
           set file_obj [get_files -of_objects [get_filesets $file_set] [list "*$f"]]
           #ADDING LIBRARY
-          if {[file extension $f] == ".vhd" || [file extension $f] == ".vhdl" || [file extension $f] == ".v" || [file extension $f] == ".sv"} {
+          if {[file extension $f] == ".vhd" || [file extension $f] == ".vhdl"} {
             set_property -name "library" -value $rootlib -objects $file_obj
           }
 

@@ -13,12 +13,14 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-# Import tcllib
-if {[info exists env(HOG_TCLLIB_PATH)]} {
-  lappend auto_path $env(HOG_TCLLIB_PATH) 
-} else {
-  puts "ERROR: To run Hog with Microsemi Libero SoC, you need to define the HOG_TCLLIB_PATH variable."
-  return
+# Import tcllib for libero
+if {[info commands get_libero_version] != ""} {
+  if {[info exists env(HOG_TCLLIB_PATH)]} {
+    lappend auto_path $env(HOG_TCLLIB_PATH) 
+  } else {
+    puts "ERROR: To run Hog with Microsemi Libero SoC, you need to define the HOG_TCLLIB_PATH variable."
+    return
+  }
 }
 
 #parsing command options

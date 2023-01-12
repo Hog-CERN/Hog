@@ -13,8 +13,13 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+set tcl_path [file normalize "[file dirname [info script]]/.."]
+set repo_path [file normalize "$tcl_path/../.."]
+
+source $tcl_path/hog.tcl
+
 # Import tcllib for libero
-if {[info commands get_libero_version] != ""} {
+if {[IsLibero]} {
   if {[info exists env(HOG_TCLLIB_PATH)]} {
     lappend auto_path $env(HOG_TCLLIB_PATH) 
   } else {
@@ -35,10 +40,6 @@ set parameters {
 }
 
 set usage "- USAGE: $::argv0 \[OPTIONS\] <project> \n. Options:"
-set tcl_path [file normalize "[file dirname [info script]]/.."]
-set repo_path [file normalize "$tcl_path/../.."]
-
-source $tcl_path/hog.tcl
 
 if { $::argc eq 0 } {
   Msg Info [cmdline::usage $parameters $usage]

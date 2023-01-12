@@ -156,13 +156,13 @@ function Launch_project(){
           #Choose if the project is quartus, vivado, vivado_hls [...]
           if ! select_executable_from_project_dir "$PROJ_DIR"; then
               Msg Error "Failed to get HDL compiler executable for $PROJ_DIR"
-              exit 0
+              exit 1
           fi
 
           if [ ! -f "${HDL_COMPILER}" ]; then
               Msg Error "HDL compiler executable $HDL_COMPILER not found"
               cd "${OLD_DIR}" || exit 
-              exit 0
+              exit 1
           else
               Msg Info "Using executable: $HDL_COMPILER"
           fi
@@ -190,7 +190,7 @@ function Launch_project(){
         Msg Error "Project $PROJ not found. Possible projects are:"
         search_projects Top
         cd "${OLD_DIR}" || exit 
-        exit 0
+        exit 1
     fi
   fi
 }

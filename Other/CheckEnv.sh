@@ -123,20 +123,20 @@ if [ -d "$PROJ_DIR" ]; then
     
     if ! select_command "$PROJ_DIR" ; then
         Msg Error "Failed to select project type: exiting!"
-        exit 0
+        exit 1
     fi
     
     #select full path to executable and place it in HDL_COMPILER global variable
     
     if ! select_compiler_executable "$COMMAND" ; then
         Msg Error "Failed to get HDL compiler executable for $COMMAND"
-        exit 0
+        exit 1
     fi
 
     if [ ! -f "${HDL_COMPILER}" ]; then
         Msg Error "HDL compiler executable $HDL_COMPILER not found"
         cd "${OLD_DIR}" || exit 
-        exit 0
+        exit 1
     else
         Msg Info "Using executable: $HDL_COMPILER"
     fi

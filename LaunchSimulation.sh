@@ -116,11 +116,11 @@ function SimulateProject(){
     cd "${OLD_DIR}" || exit
     echo
     echo "Possible projects are:"
-      echo ""
+    echo ""
     search_projects "$DIR/../Top"
-      echo
-      cd "${OLD_DIR}" || exit
-      exit 0
+    echo
+    cd "${OLD_DIR}" || exit
+    exit 0
   else
     if [ "$HELP" == "-h" ]; then
       help_message "$0"
@@ -128,12 +128,12 @@ function SimulateProject(){
       echo
       cd "${OLD_DIR}" || exit 
       exit 0
-      fi
+    fi
 
     PROJ=$1
-      if [[ $PROJ == "Top/"* ]]; then
-        PROJ=${PROJ#"Top/"}
-      fi
+    if [[ $PROJ == "Top/"* ]]; then
+      PROJ=${PROJ#"Top/"}
+    fi
     PROJ_DIR="$DIR/../Top/"$PROJ
     if [ -d "$PROJ_DIR" ]; then
 
@@ -141,20 +141,20 @@ function SimulateProject(){
       
       if ! select_command "$PROJ_DIR"; then
         Msg Error "Failed to select project type: exiting!"
-        exit 0
+        exit 1
       fi
 
       #select full path to executable and place it in HDL_COMPILER global variable
       
       if ! select_compiler_executable "$COMMAND"; then
         Msg Error "Failed to get HDL compiler executable for $COMMAND"
-        exit 0
+        exit 1
       fi
 
       if [ ! -f "${HDL_COMPILER}" ]; then
         Msg Error "HDL compiler executable $HDL_COMPILER not found"
         cd "${OLD_DIR}" || exit 
-        exit 0
+        exit 1
       else
         Msg Info "Using executable: $HDL_COMPILER"
       fi
@@ -180,7 +180,7 @@ function SimulateProject(){
     else
       Msg Error "Project $PROJ not found: possible projects are: $(search_projects "$DIR/../Top")"
       cd "${OLD_DIR}" || exit 
-      exit 0
+      exit 1
     fi
   fi
 

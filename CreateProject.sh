@@ -83,7 +83,7 @@ function create_project() {
   else
     Msg Error "Top folder not found, Hog is not in a Hog-compatible HDL repository."
     cd "${OLD_DIR}" || exit
-    exit 0
+    exit 1
   fi
 
   if [ "a$1" == "a" ]; then
@@ -96,7 +96,8 @@ function create_project() {
     cd "${OLD_DIR}" || exit 
     exit 0
   else
-    local PROJ=$1
+    local PROJ
+    PROJ=$1
     if [[ $PROJ == "Top/"* ]]; then
       PROJ=${PROJ#"Top/"}
     fi
@@ -127,20 +128,20 @@ function create_project() {
     
     if ! select_command "$PROJ_DIR"; then
       Msg Error "Failed to select project type: exiting!"
-      exit 0
+      exit 1
     fi
 
     #select full path to executable and place it in HDL_COMPILER global variable
     
     if ! select_compiler_executable "$COMMAND"; then
       Msg Error "Failed to get HDL compiler executable for $COMMAND"
-      exit 0
+      exit 1
     fi
 
     if [ ! -f "${HDL_COMPILER}" ]; then
       Msg Error "HDL compiler executable $HDL_COMPILER not found"
       cd "${OLD_DIR}" || exit 
-      exit 0
+      exit 1
     else
       Msg Info "Using executable: $HDL_COMPILER"
     fi
@@ -180,14 +181,14 @@ function create_project() {
     if [ $? != 0 ]; then
       Msg Error "HDL compiler returned an error state."
       cd "${OLD_DIR}" || exit 
-      exit 0
+      exit 1
     fi
   else
     Msg Error "Project $PROJ not found: possible projects are:"
     search_projects "${OLD_DIR}/Top"
     echo
     cd "${OLD_DIR}" || exit
-    exit 0
+    exit 1
   fi
 
   cd "${OLD_DIR}" || exit 

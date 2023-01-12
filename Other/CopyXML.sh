@@ -57,8 +57,8 @@ else
             exit 1
         fi
         #select full path to executable and place it in HDL_COMPILER global variable
-        select_compiler_executable $COMMAND
-        if [ $? != 0 ]; then
+        
+        if ! select_compiler_executable $COMMAND; then
             echo "Hog-WARNING: failed to get HDL compiler executable for $COMMAND"
             echo "Hog-INFO: will optimistically try Tcl shell..."
             tclsh $DIR/../Tcl/utils/copy_xml.tcl $ARGS

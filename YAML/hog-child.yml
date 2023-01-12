@@ -148,7 +148,7 @@
             export HOG_IP_PATH="$HOG_IP_EOS_PATH";
             if [[ $HOG_IP_PATH = /eos/* ]]; then
               if [ $ENABLE_EOS -eq 1 ]; then
-                echo "Hog-CI(info) - Running command: kinit $EOS_USER@CERN.CH";
+                echo "Hog-CI(info) - Running command kinit $EOS_USER@CERN.CH";
                 until echo $EOS_PASSWORD | kinit $EOS_USER@CERN.CH ; do echo "Retrying"; sleep 2; done;
               fi;
             fi;

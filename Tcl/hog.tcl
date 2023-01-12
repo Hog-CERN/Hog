@@ -3202,7 +3202,6 @@ proc ReadConf {file_name} {
 
     #manipulate strings here:
     regsub -all {\{\"} $key_pairs "\{" key_pairs
-    #" Comment for VSCode
     regsub -all {\"\}} $key_pairs "\}" key_pairs
 
     dict set properties $new_sec [dict create {*}$key_pairs]

@@ -832,7 +832,8 @@ if {[file exists $conf_file]} {
     dict for {p v} $main {
       # notice the dollar in front of p: creates new variables and fill them with the value
       Msg Info "Main property $p set to $v"
-      set p $v
+      ##nagelfar ignore
+      set $p $v
     }
   } else {
     Msg Error "No main section found in $conf_file, make sure it has a section called \[main\] containing the mandatory properties."

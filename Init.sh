@@ -15,7 +15,7 @@
 
 ## @file Init.sh
 # shellcheck source=Other/CommonFunctions.sh
-. "$(dirname "$0")"/Other/CommonFunctions.sh
+. $(dirname "$0")/Other/CommonFunctions.sh
 
 ## @fn help_message
 #
@@ -45,7 +45,7 @@ function help_message() {
 function init() {
 
   local OLD_DIR
-  OLD_DIR="$(pwd)"
+  OLD_DIR=$(pwd)
   local DIR
   DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
@@ -106,7 +106,7 @@ function init() {
         fi
 
         Msg Info "Compiling $SIMULATOR libraries into $SIMDIR..."
-        "${VIVADO}" -mode batch -notrace -source ./Tcl/utils/compile_simlib.tcl -tclargs -simulator "$SIMULATOR" -output_dir "$SIMDIR"
+        "${VIVADO}" -mode batch -notrace -source ./Tcl/utils/compile_simlib.tcl -tclargs -simulator $SIMULATOR -output_dir $SIMDIR
         rm -f ./Tcl/.cxl.*
         rm -f ./Tcl/compile_simlib.log
         rm -f ./Tcl/*.ini
@@ -162,7 +162,7 @@ function init() {
   ##! NOTE use read to grab user input
   ##! NOTE if the user input contains Y or y then is accepted as yes
 
-  Vivado_prjs=$(find "$DIR"/.. -path "$DIR"/../Projects -prune -false -o -name "*.xpr")
+  Vivado_prjs=$(find "$DIR/.." -path "$DIR/../Projects" -prune -false -o -name "*.xpr")
 
   for Vivado_prj in $Vivado_prjs; do
     echo
@@ -180,7 +180,7 @@ function init() {
           continue
         fi
       fi
-      vivado -mode batch -notrace -source "$DIR"/Tcl/utils/check_list_files.tcl "$Vivado_prj" -tclargs -recreate "$Force" -recreate_conf
+      vivado -mode batch -notrace -source $DIR/Tcl/utils/check_list_files.tcl $Vivado_prj -tclargs -recreate $Force -recreate_conf
     fi
   done
 
@@ -193,9 +193,9 @@ function init() {
   if [[ "${REPLY}" =~ ^[Yy]$ ]]; then
     cd ..
     proj=$(search_projects Top)
-    Msg "Info Creating projects for: $proj..."
+    Msg Info "Creating projects for: $proj..."
     for f in $proj; do
-      Msg "Info Creating Vivado project: $f..."
+      Msg Info "Creating Vivado project: $f..."
       ./Hog/CreateProject.sh "${f}"
     done
   fi
@@ -209,12 +209,12 @@ function init() {
     echo
     echo
     if [[ "${REPLY}" =~ ^[Yy]$ ]]; then
-      vivado -mode batch -notrace -source "$DIR"/Tcl/utils/add_hog_custom_button.tcl
+      vivado -mode batch -notrace -source $DIR/Tcl/utils/add_hog_custom_button.tcl
     fi
   fi
 
   ##! Check if hog tags tag exist, and if not ask user if they want to create v0.0.1
-  cd "$DIR"/.. || exit
+  cd "$DIR/.." || exit
   if git describe --match "v*.*.*" >/dev/null 2>&1; then
     Msg Info "Repository contains Hog-compatible tags."
   else
@@ -232,9 +232,12 @@ function init() {
 
 
 function HogInitFunc(){
+  # init $@
+  # echo "HogInitFunc ($*)"
   init "$@"
   exit 0
 }
+
 if [[ ${BASH_SOURCE[0]} == "$0" ]]; then
   print_hog "$(dirname "$0")"
   init "$@"

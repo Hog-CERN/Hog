@@ -22,9 +22,8 @@
 
 ## Import common functions from Other/CommonFunctions.sh in a POSIX compliant way
 #
-
 # shellcheck source=Other/CommonFunctions.sh
-. "$(dirname "$0")"/Other/CommonFunctions.sh
+. $(dirname "$0")/Other/CommonFunctions.sh
 
 
 
@@ -41,47 +40,44 @@
 #  @return                  1 if error or help, else 0
 
 function argument_parser() {
-	PARAMS=""
-	while (("$#")); do
-		case "$1" in
-		-l | -lib_path)
-			SIMLIBPATH="-lib_path $2"
-			shift 2
-			;;
-		-quiet)
-			QUIET="-quiet"
-			shift 1
-			;;
-		-simset)
-			SIMSET="-simset $2"
-			shift 2
-			;;		
-    -L | Logs)
-			HOG_LOGGER="all"
-			shift 1
-			;;
-		-recreate)
-      RECREATE="-recreate"
+  PARAMS=""
+  while (("$#")); do
+    case "$1" in
+    -l | -lib_path)
+      SIMLIBPATH="-lib_path $2"
+      shift 2
+      ;;
+    -quiet)
+      QUIET="-quiet"
       shift 1
       ;;
-		-h | -help)
-			shift 1
-			;;
-		--) # end argument parsing
-			shift
-			break
-			;;
-		-* ) # unsupported flags
-			Msg Error "Unsupported flag $1" >&2
-			return 1
-			;;
-		*) # preserve positional arguments
-			PARAMS="$PARAMS $1"
-			shift
-			;;
-		esac
-	done
-	# set positional arguments in their proper place
+    -simset)
+      SIMSET="-simset $2"
+      shift 2
+      ;;    
+    -recreate)
+            RECREATE="-recreate"
+            shift 1
+            ;;
+    -h | -help)
+      HELP="-h"
+      shift 1
+      ;;
+    --) # end argument parsing
+      shift
+      break
+      ;;
+    -*) # unsupported flags
+      Msg Error "Unsupported flag $1" >&2
+      return 1
+      ;;
+    *) # preserve positional arguments
+      PARAMS="$PARAMS $1"
+      shift
+      ;;
+    esac
+  done
+  # set positional arguments in their proper place
 }
 
 function help_message() {
@@ -120,68 +116,69 @@ function SimulateProject(){
     cd "${OLD_DIR}" || exit
     echo
     echo "Possible projects are:"
-    echo ""
-    search_projects "$DIR"/../Top
-    echo
-    cd "${OLD_DIR}" || exit
-    exit 0
-  else
-    if [ "$1" == "-h" ] || [ "$1" == "-help" ] || [ "$1" == "--help" ] || [ "$1" == "-H" ]; then
-      help_message "$0"
-      search_projects "$DIR"/../Top
+      echo ""
+    search_projects "$DIR/../Top"
       echo
       cd "${OLD_DIR}" || exit
       exit 0
-    fi
+  else
+    if [ "$HELP" == "-h" ]; then
+      help_message "$0"
+      search_projects "$DIR/../Top"
+      echo
+      cd "${OLD_DIR}" || exit 
+      exit 0
+      fi
 
     PROJ=$1
-    if [[ $PROJ == "Top/"* ]]; then
-      PROJ=${PROJ#"Top/"}
-    fi
+      if [[ $PROJ == "Top/"* ]]; then
+        PROJ=${PROJ#"Top/"}
+      fi
     PROJ_DIR="$DIR/../Top/"$PROJ
     if [ -d "$PROJ_DIR" ]; then
 
       #Choose if the project is quartus, vivado, vivado_hls [...]
+      
       if ! select_command "$PROJ_DIR"; then
         Msg Error "Failed to select project type: exiting!"
         exit 0
       fi
 
       #select full path to executable and place it in HDL_COMPILER global variable
-      select_compiler_executable $COMMAND
-      if ! select_compiler_executable $COMMAND; then
+      
+      if ! select_compiler_executable "$COMMAND"; then
         Msg Error "Failed to get HDL compiler executable for $COMMAND"
         exit 0
       fi
 
       if [ ! -f "${HDL_COMPILER}" ]; then
         Msg Error "HDL compiler executable $HDL_COMPILER not found"
-        cd "${OLD_DIR}" || exit
+        cd "${OLD_DIR}" || exit 
         exit 0
       else
         Msg Info "Using executable: $HDL_COMPILER"
       fi
 
-      if [ $COMMAND = "quartus_sh" ]; then
+      if [ "$COMMAND" = "quartus_sh" ]; then
         Msg Error "Quartus is not yet supported by this script!"
         #echo "Running:  ${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_simulation.tcl $SIMLIBPATH $1"
         #"${HDL_COMPILER}" $COMMAND_OPT $DIR/Tcl/launchers/launch_simulation.tcl $SIMLIBPATH $1
 
-      elif [ $COMMAND = "libero" ]; then
+      elif [ "$COMMAND" = "libero" ]; then
         Msg Error "Libero is not yet supported by this script!"
       else
         if [ -z "${SIMLIBPATH}" ]; then
           if [ -z "${HOG_SIMULATION_LIB_PATH}" ]; then
-            "${HDL_COMPILER}" "$COMMAND_OPT" "$DIR"/Tcl/launchers/launch_simulation.tcl -tclargs "$SIMSET" "$QUIET" "$RECREATE" "$PROJ"
+            "${HDL_COMPILER}" $COMMAND_OPT $DIR/Tcl/launchers/launch_simulation.tcl -tclargs $SIMSET $QUIET $RECREATE $PROJ
           else
-            "${HDL_COMPILER}" "$COMMAND_OPT" "$DIR"/Tcl/launchers/launch_simulation.tcl -tclargs -lib_path "$HOG_SIMULATION_LIB_PATH" "$SIMSET" "$QUIET" "$RECREATE" "$PROJ"
+            "${HDL_COMPILER}" $COMMAND_OPT $DIR/Tcl/launchers/launch_simulation.tcl -tclargs -lib_path $HOG_SIMULATION_LIB_PATH $SIMSET $QUIET $RECREATE $PROJ
           fi
         else
-          "${HDL_COMPILER}" "$COMMAND_OPT" "$DIR"/Tcl/launchers/launch_simulation.tcl -tclargs "$SIMLIBPATH" "$SIMSET" "$QUIET" "$RECREATE" "$PROJ"
+          "${HDL_COMPILER}" $COMMAND_OPT $DIR/Tcl/launchers/launch_simulation.tcl -tclargs $SIMLIBPATH $SIMSET $QUIET $RECREATE $PROJ
         fi
       fi
     else
-      Msg Error "Project $PROJ not found: possible projects are: $(search_projects "$DIR"/../Top)"
+      Msg Error "Project $PROJ not found: possible projects are: $(search_projects "$DIR/../Top")"
       cd "${OLD_DIR}" || exit 
       exit 0
     fi

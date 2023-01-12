@@ -3587,25 +3587,28 @@ proc GetVhdlGenerics {file} {
         regsub "(.*)--.*" $line {\1} line
         if {![string equal $line ""]} {
             append lines $line " "
+            #puts $line
         }
     }
 
     # extract the generic block
-    set match1 ""
-    regexp {(?i).*entity\s+[A-Za-z0-9_]+\s+is\s+generic\s*\((.*)\);\s*port.*} $lines matchall match1
-
+    set generic_block ""
+    set entity ""
     set generics [dict create]
 
-    # loop over the generic lines
-    foreach line [split $match1 ";"]  {
+    if {[regexp {(?i).*entity\s+([^\s]+)\s+is\s+generic\s*\(([^\)]+)\)\s*;\s*port.*} $lines matchall entity generic_block]} {
 
-        # split the line into the generic + the type
-        regexp {(.*):\s*([A-Za-z0-9_]+).*} $line all generic type
+        # loop over the generic lines
+        foreach line [split $generic_block ";"]  {
 
-        # one line can have multiple generics of the same type, so loop over them
-        set splits [split $generic ","]
-        foreach split $splits {
-            dict set generics [string trim $split] [string trim $type]
+            # split the line into the generic + the type
+            regexp {(.*):\s*([A-Za-z0-9_]+).*} $line all generic type
+
+            # one line can have multiple generics of the same type, so loop over them
+            set splits [split $generic ","]
+            foreach split $splits {
+                dict set generics [string trim $split] [string trim $type]
+            }
         }
     }
     return $generics

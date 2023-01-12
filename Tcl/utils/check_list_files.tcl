@@ -721,30 +721,8 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
 
   set HOG_GENERICS [ list GLOBAL_DATE \
     GLOBAL_TIME \
-    GLOBAL_VER \
-    GLOBAL_SHA \
-    TOP_SHA \
-    TOP_VER \
-    HOG_SHA \
-    HOG_VER \
-    CON_VER \
-    CON_SHA \
-    XML_VER \
-    XML_SHA \
     FLAVOUR \
   ]
-
-  foreach lib [dict keys $prjSrcDict] {
-    lappend HOG_GENERICS "[string toupper $lib]_VER"
-    lappend HOG_GENERICS "[string toupper $lib]_SHA"
-  }
-
-  foreach user_ip_repos [get_property "ip_repo_paths" [current_project]] {
-    set repo_name [file tail $user_ip_repos]
-    lappend HOG_GENERICS "[string toupper $repo_name]_VER"
-    lappend HOG_GENERICS "[string toupper $repo_name]_SHA"
-  }
-
 
   #filling defaultConfDict and projConfDict
   foreach proj_run [list [current_project] [get_runs synth_1] [get_runs impl_1] [current_fileset]] {

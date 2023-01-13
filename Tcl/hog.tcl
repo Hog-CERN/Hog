@@ -3682,29 +3682,29 @@ proc WriteGenerics {mode design date timee commit version top_hash top_ver hog_h
 
     set top_file [GetTopFile]
     set top_name [GetTopModule]
+
     if {[file exists $top_file]} {
+
         set generics [GetFileGenerics $top_file]
-    } else {
-        set generics ""
-    }
 
-    Msg Info "Found top level generics $generics in $top_file"
+        Msg Info "Found top level generics $generics in $top_file"
 
-    set filtered_generic_string ""
+        set filtered_generic_string ""
 
-    foreach generic_to_set [split [string trim $generic_string]] {
-        set key [lindex [split $generic_to_set "="] 0]
-        if {[dict exists $generics $key]} {
-            Msg Info "Hog generic $key found in $top_name"
-            lappend filtered_generic_string "$generic_to_set"
-        } else {
-            Msg Warning "Hog generic $key NOT found in $top_name"
+        foreach generic_to_set [split [string trim $generic_string]] {
+            set key [lindex [split $generic_to_set "="] 0]
+            if {[dict exists $generics $key]} {
+                Msg Info "Hog generic $key found in $top_name"
+                lappend filtered_generic_string "$generic_to_set"
+            } else {
+                Msg Warning "Hog generic $key NOT found in $top_name"
+            }
         }
-    }
 
-    # only filter in ISE
-    if {[IsISE]} {
-        set generic_string $filtered_generic_string
+        # only filter in ISE
+        if {[IsISE]} {
+            set generic_string $filtered_generic_string
+        }
     }
 
     set_property generic $generic_string [current_fileset]

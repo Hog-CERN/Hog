@@ -17,7 +17,7 @@ set tcl_path [file normalize "[file dirname [info script]]/.."]
 set repo_path [file normalize "$tcl_path/../.."]
 
 source $tcl_path/hog.tcl
-
+  
 # Import tcllib for libero
 if {[IsLibero]} {
   if {[info exists env(HOG_TCLLIB_PATH)]} {

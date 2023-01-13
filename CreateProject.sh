@@ -154,20 +154,20 @@ function create_project() {
           if [ "$COMMAND" == "libero" ]; then
             "${HDL_COMPILER}" "${COMMAND_OPT}"../Hog/Tcl/create_project.tcl "${POST_COMMAND_OPT}$PROJ"
           else
-            "${HDL_COMPILER}" "${COMMAND_OPT}"../Hog/Tcl/create_project.tcl "${POST_COMMAND_OPT}$PROJ"
+            ${HDL_COMPILER} ${COMMAND_OPT}../Hog/Tcl/create_project.tcl ${POST_COMMAND_OPT}$PROJ
           fi
         else
           if [ "$COMMAND" == "libero" ]; then
             "${HDL_COMPILER}" "${COMMAND_OPT}"../Hog/Tcl/create_project.tcl "${POST_COMMAND_OPT}-simlib_path ${HOG_SIMULATION_LIB_PATH} $PROJ"
           else
-            "${HDL_COMPILER}" "${COMMAND_OPT}"../Hog/Tcl/create_project.tcl "${POST_COMMAND_OPT}-simlib_path ${HOG_SIMULATION_LIB_PATH} $PROJ"
+            ${HDL_COMPILER} ${COMMAND_OPT}../Hog/Tcl/create_project.tcl ${POST_COMMAND_OPT}-simlib_path ${HOG_SIMULATION_LIB_PATH} $PROJ
           fi
         fi
       else
         if [ "$COMMAND" == "libero" ]; then
           "${HDL_COMPILER}" "${COMMAND_OPT}"../Hog/Tcl/create_project.tcl "${POST_COMMAND_OPT}-simlib_path ${HOG_LIBPATH} $PROJ"
         else
-          "${HDL_COMPILER}" "${COMMAND_OPT}"../Hog/Tcl/create_project.tcl "${POST_COMMAND_OPT}-simlib_path ${HOG_LIBPATH} $PROJ"
+          ${HDL_COMPILER} ${COMMAND_OPT}../Hog/Tcl/create_project.tcl ${POST_COMMAND_OPT}-simlib_path ${HOG_LIBPATH} $PROJ
         fi
       fi
     elif [ "$FILE_TYPE" == "TCL" ]; then

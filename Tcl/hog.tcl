@@ -3576,7 +3576,7 @@ proc GetVerilogGenerics {file} {
 #
 #  @param[in] file File to read Generics from
 
-proc GetVhdlGenerics {file} {
+proc GetVhdlGenerics {file {entity ""} } {
     set data [exec cat $file]
     set lines []
 
@@ -3586,22 +3586,26 @@ proc GetVhdlGenerics {file} {
         regsub "(.*)--.*" $line {\1} line
         if {![string equal $line ""]} {
             append lines $line " "
-            #puts $line
         }
     }
 
     # extract the generic block
     set generic_block ""
-    set entity ""
     set generics [dict create]
 
-    if {[regexp {(?i).*entity\s+([^\s]+)\s+is\s+generic\s*\(([^\)]+)\)\s*;\s*port.*} $lines matchall entity generic_block]} {
+    if {1==[string equal $entity ""]} {
+        regexp {(?i).*entity\s+([^\s]+)\s+is} $lines _ entity
+    }
+
+    set generics_regexp "(?i).*entity\\s+$entity\\s+is\\s+generic\\s*\\((.*)\\)\\s*;\\s*port.*end.*$entity"
+
+    if {[regexp $generics_regexp $lines _ generic_block]} {
 
         # loop over the generic lines
         foreach line [split $generic_block ";"]  {
 
             # split the line into the generic + the type
-            regexp {(.*):\s*([A-Za-z0-9_]+).*} $line all generic type
+            regexp {(.*):\s*([A-Za-z0-9_]+).*} $line _ generic type
 
             # one line can have multiple generics of the same type, so loop over them
             set splits [split $generic ","]
@@ -3613,12 +3617,12 @@ proc GetVhdlGenerics {file} {
     return $generics
 }
 
-proc GetFileGenerics {filename} {
-  set file_type [FindFileType $filename]
-  if {[string equal $file_type "VERILOG_FILE"]} {
-      return [GetVerilogGenerics $filename]
+proc GetFileGenerics {filename {entity ""}} {
+    set file_type [FindFileType $filename]
+    if {[string equal $file_type "VERILOG_FILE"]} {
+        return [GetVerilogGenerics $filename]
     } elseif {[string equal $file_type "VHDL_FILE"]} {
-        return [GetVhdlGenerics $filename]
+        return [GetVhdlGenerics $filename $entity]
     } else {
         Msg CriticalWarning "Could not determine extension of top level file."
     }
@@ -3685,7 +3689,7 @@ proc WriteGenerics {mode design date timee commit version top_hash top_ver hog_h
 
     if {[file exists $top_file]} {
 
-        set generics [GetFileGenerics $top_file]
+        set generics [GetFileGenerics $top_file $top_name]
 
         Msg Info "Found top level generics $generics in $top_file"
 

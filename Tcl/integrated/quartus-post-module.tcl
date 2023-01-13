@@ -15,8 +15,10 @@
 
 # @file quartus-pre-flow.tcl
 # The pre synthesis flow checks the status of your git repository and stores into a set of variables that are fed as generics to the HDL project.
-# This script is automatically integrated into the Vivado/Quartus workflow by the Create Project script.
+# This script is automatically integrated into the Quartus workflow by the Create Project script.
 #
+
+##nagelfar variable quartus
 
 set tcl_path  [file normalize "[file dirname [info script]]/.."]
 if {[info procs Msg] == "" } {
@@ -36,7 +38,7 @@ if { [string compare $stage "quartus_map"] == 0 || [string compare $stage "quart
   return 0
 }
 
-if [file exists $script_path] {
+if {[file exists $script_path]} {
   source $script_path
 } 
 

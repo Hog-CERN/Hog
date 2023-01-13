@@ -73,10 +73,10 @@ function log_stdout(){
   # echo "std_out init : $*"
   if [ -n "${2}" ]; then
     IN_out="${2}"
-    in_type="${1}"
+    # in_type="${1}"
     # echo "stdout : ${IN_out}" 
   else
-    while read IN_out # This reads a string from stdin and stores it in a variable called IN_out
+    while read -r IN_out # This reads a string from stdin and stores it in a variable called IN_out
     do
       line=${IN_out}
       # echo "${line}"
@@ -164,14 +164,14 @@ function log_stdout(){
 # @param[in] execution line to process
 function Logger(){
   {
-    print_hog $(dirname "$0")
+    print_hog "$(dirname "$0")"
     echo "-----------------------------------------------"
     echo " HOG INFO LOG "
     echo " CMD : ${1} "
     echo "-----------------------------------------------"
   } > $loginfofile
   {
-    print_hog $(dirname "$0")
+    print_hog "$(dirname "$0")"
     echo "-----------------------------------------------"
     echo " HOG WARNINGS AND ERRORS"
     echo " CMD : ${1} "
@@ -181,7 +181,7 @@ function Logger(){
   echo "LogColorVivado : $*"
   log_stdout "stdout" "LogColorVivado : $*"
   log_stdout "stderr" "LogColorVivado : $*"
-  $* > >(log_stdout "stdout") 2> >(log_stdout "stderr" >&2)
+  "$*" > >(log_stdout "stdout") 2> >(log_stdout "stderr" >&2)
 }
 
 # @function Msg
@@ -205,7 +205,7 @@ function Msg() {
 
   #Define colours
   Red=$'\e[0;31m'
-  Green=$'\e[0;32m'
+  # Green=$'\e[0;32m'
   Orange=$'\e[0;33m'
   LightBlue=$'\e[0;36m'
   Default=$'\e[0m'
@@ -322,7 +322,7 @@ function select_command_from_line() {
 # @returns  0 for ok, 1 for error
 #
 function select_command() {
-  proj=$(basename $1)
+  proj=$(basename "$1")
   conf="$1"/"hog.conf"
   tcl="$1"/"$proj.tcl"
 
@@ -337,8 +337,8 @@ function select_command() {
     return 1
   fi
 
-  select_command_from_line "$(head -1 $file)"
-  if [ $? != 0 ]; then
+  
+  if ! select_command_from_line "$(head -1 "$file")"; then
     Msg Error "Failed to select COMMAND, COMMAND_OPT and POST_COMMAND_OPT"
     return 1
   fi
@@ -368,13 +368,13 @@ function select_compiler_executable() {
     return 1
   fi
 
-  if [ $(command -v $1) ]; then
-    HDL_COMPILER=$(command -v $1)
+  if [ "$(command -v "$1")" ]; then
+    HDL_COMPILER=$(command -v "$1")
   else
-    if [ $1 == "vivado" ]; then
+    if [ "$1" == "vivado" ]; then
       if [ -z ${XILINX_VIVADO+x} ]; then
         Msg Error "No vivado executable found and no variable XILINX_VIVADO set\n"
-        cd "${OLD_DIR}"
+        cd "${OLD_DIR}" || exit
         return 1
       elif [ -d "$XILINX_VIVADO" ]; then
         Msg Info "XILINX_VIVADO is set to '$ XILINX_VIVADO'"
@@ -383,10 +383,10 @@ function select_compiler_executable() {
         Msg Error "Failed locate '$1' executable from XILINX_VIVADO: $XILINX_VIVADO"
         return 1
       fi
-    elif [ $1 == "quartus_sh" ]; then
+    elif [ "$1" == "quartus_sh" ]; then
       if [ -z ${QUARTUS_ROOTDIR+x} ]; then
         Msg Error "No quartus_sh executable found and no variable QUARTUS_ROOTDIR set\n"
-        cd "${OLD_DIR}"
+        cd "${OLD_DIR}" || exit 
         return 1
       else
         Msg Info "QUARTUS_ROOTDIR is set to '$QUARTUS_ROOTDIR'"
@@ -401,9 +401,9 @@ function select_compiler_executable() {
           return 1
         fi
       fi
-    elif [$1 == "libero" ]; then
+    elif [ "$1" == "libero" ]; then
       Msg Error "No libero executable found."
-      cd "${OLD_DIR}"
+      cd "${OLD_DIR}" || exit
       return 1
     else
       Msg Error "cannot find the executable for $1."
@@ -434,15 +434,15 @@ function select_executable_from_project_dir() {
     Msg Error "missing input! Got: $1!"
     return 1
   fi
-  select_command $1
-  if [ $? != 0 ]; then
+  
+  if ! select_command "$1"; then
     Msg Error "Failed to select project type: exiting!"
     return 1
   fi
 
   #select full path to executable and place it in HDL_COMPILER global variable
-  select_compiler_executable $COMMAND
-  if [ $? != 0 ]; then
+  
+  if ! select_compiler_executable $COMMAND; then
     Msg Error "Failed to get HDL compiler executable for $COMMAND"
     return 1
   fi
@@ -459,14 +459,14 @@ function print_hog() {
     Msg Error "missing input! Got: $1!"
     return 1
   fi
-  cd "$1"
+  cd "$1" || exit
   ver=$(git describe --always)
   echo
   cat ./images/hog_logo.txt
   echo " Version: ${ver}"
   echo
-  cd - >> /dev/null
-  HogVer $1
+  cd - || exit >> /dev/null
+  HogVer "$1"
 
   return 0
 }
@@ -485,13 +485,12 @@ function search_projects() {
   fi
 
   if [[ -d "$1" ]]; then
-    for dir in $1/*; do
-      project_name=$(basename $dir)
+    for dir in "$1"/*; do
       if [ -f "$dir/hog.conf" ]; then
         subname=${dir#*Top/}
-        echo $subname
+        echo "$subname"
       else
-        search_projects $dir
+        search_projects "$dir"
       fi
     done
   fi
@@ -517,13 +516,13 @@ function HogVer() {
   fi
 
   if [[ -d "$1" ]]; then
-    cd $1
+    cd "$1" || exit
     current_version=$(git describe --always)
-    current_sha=$(git log $current_version -1 --format=format:%H)
+    current_sha=$(git log "$current_version" -1 --format=format:%H)
     timeout 5s git fetch
     master_version=$(git describe origin/master)
-    master_sha=$(git log $master_version -1 --format=format:%H)    
-    merge_base=$(git merge-base $current_sha $master_sha)
+    master_sha=$(git log "$master_version" -1 --format=format:%H)    
+    merge_base=$(git merge-base "$current_sha" "$master_sha")
 
     # The next line checks if master_sha is an ancestor of current_sha 
     if [ "$merge_base" != "$master_sha" ]; then
@@ -540,7 +539,7 @@ function HogVer() {
     fi
 
   fi
-  cd - >> /dev/null
+  cd - || exit >> /dev/null
 }
 
 
@@ -551,7 +550,7 @@ function HogVer() {
 # @returns  0 if success, 1 if failure
 #
 function check_command() {
-  if ! command -v $1 &> /dev/null
+  if ! command -v "$1" &> /dev/null
   then
     Msg Warning "Command $1 could not be found"
     return 1
@@ -574,8 +573,8 @@ function print_projects() {
     echo
     echo "Possible projects are:"
     echo ""
-    search_projects $1
+    search_projects "$1"
     echo
-    cd $2
+    cd "$2" || exit 
 
 }

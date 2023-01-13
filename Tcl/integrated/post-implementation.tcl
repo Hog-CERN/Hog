@@ -23,6 +23,8 @@
 # - The Multithread option must be disabled
 # This script is automatically integrated into the Vivado/Quartus workflow by the Create Project script.
 
+##nagelfar variable quartus
+
 set old_path [pwd]
 set tcl_path [file normalize "[file dirname [info script]]/.."]
 source $tcl_path/hog.tcl
@@ -206,9 +208,9 @@ if {[IsXilinx]} {
   } else {
     set reps [glob -nocomplain "$run_dir/*/*.rpt"]
   }
-  if [file exists [lindex $reps 0]] {
+  if {[file exists [lindex $reps 0]]} {
     file copy -force {*}$reps $dst_dir/reports
-    if [file exists [glob -nocomplain "$dst_dir/reports/${top_name}_utilization_placed.rpt"] ] {
+    if {[file exists [glob -nocomplain "$dst_dir/reports/${top_name}_utilization_placed.rpt"] ]} {
       set utilization_file [file normalize $dst_dir/utilization.txt]
       set report_file [glob -nocomplain "$dst_dir/reports/${top_name}_utilization_placed.rpt"]
       if {$group_name != ""} {
@@ -224,7 +226,7 @@ if {[IsXilinx]} {
   # Log files
   set logs [glob -nocomplain "$run_dir/*/runme.log"]
   foreach log $logs {
-    set run_name [file tail [file dir $log]]
+    set run_name [file tail [file dirname $log]]
     file copy -force $log $dst_dir/reports/$run_name.log
   }
 

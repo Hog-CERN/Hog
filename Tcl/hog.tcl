@@ -3171,21 +3171,21 @@ proc SearchHogProjects {dir} {
 ## Returns the group name from the project directory
 #
 #  @param[in]    proj_dir project directory
+#  @param[in]    repo_dir repository directory
 #
 #  @return       the group name without initial and final slashes
 #
-proc GetGroupName {proj_dir} {
-  # The following regex is dangerous, what if there is another Projects Directory somewhere in the repo?
-  if {[regexp {^(.*)/(Projects|Top)/+(.*?)/*$} $proj_dir dummy repo_dir proj_or_top dir]} {
-    # The Top or Project folder is in the root of a git repository
-    if {[file exists $repo_dir/.git]} {
+proc GetGroupName {proj_dir repo_dir} {
+  if {[regexp {^(.*)/(Projects|Top)/+(.*?)/*$} $proj_dir dummy possible_repo_dir proj_or_top dir]} {
+    # The Top or Project folder is in the root of a the git repository
+    if {[file normalize $repo_dir] eq [file normalize $possible_repo_dir]} {
       set group [file dir $dir]
       if { $group == "." } {
 	set group ""
       }
     } else {
     # The Top or Project folder is NOT in the root of a git repository
-      Msg Warning "Project directory $proj_dir seems to be in $repo_dir which is not a Git repository."
+      Msg Warning "Project directory $proj_dir seems to be in $possible_repo_dir which is not a the main Git repository $repo_dir."
     }
   } else {
     Msg Warning "Could not parse project directory $proj_dir"

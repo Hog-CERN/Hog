@@ -85,7 +85,7 @@ set bin_dir [file normalize "$repo_path/bin"]
 
 cd $repo_path
 
-set group_name [GetGroupName $proj_dir]
+set group_name [GetGroupName $proj_dir "$tcl_path/../.."]
 
 Msg Info "Evaluating Git sha for $proj_name..."
 lassign [GetRepoVersions [file normalize ./Top/$group_name/$proj_name] $repo_path] sha

@@ -114,7 +114,7 @@ if {[IsXilinx]} {
   set run_dir [file normalize "$work_path/.."]
 }
 
-set group_name [GetGroupName $proj_dir]
+set group_name [GetGroupName $proj_dir "$tcl_path/../.."]
 
 # Vivado
 if {[IsXilinx] && [file exists $bit_file]} {

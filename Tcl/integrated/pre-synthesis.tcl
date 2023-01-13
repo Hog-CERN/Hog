@@ -109,7 +109,7 @@ if {[IsXilinx]} {
 set repo_path [file normalize "$tcl_path/../.."]
 cd $repo_path
 
-set group [GetGroupName $proj_dir]
+set group [GetGroupName $proj_dir "$tcl_path/../.."]
 
 # Calculating flavour if any
 set flavour [string map {. ""} [file ext $proj_name]]

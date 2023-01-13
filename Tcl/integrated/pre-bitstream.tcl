@@ -40,7 +40,7 @@ if {[IsXilinx]} {
   set proj_name [file tail [file normalize $work_path/../../]]
   set proj_dir [file normalize "$work_path/../.."]
 
-  set group_name [GetGroupName $proj_dir]
+  set group_name [GetGroupName $proj_dir "$tcl_path/../.."]
 
 } else {
   #Tclssh

@@ -105,13 +105,13 @@ if {![string equal $options(project) ""]} {
     open_project "$repo_path/Projects/$project/$project_name.xpr"
     set proj_file [get_property DIRECTORY [current_project]]
     set proj_dir [file normalize $proj_file]
-    set group_name [GetGroupName $proj_dir]
+    set group_name [GetGroupName  $proj_dir $repo_path]
   }
 } else {
   set project_name [get_projects [current_project]]
   set proj_file [get_property DIRECTORY [current_project]]
   set proj_dir [file normalize $proj_file]
-  set group_name [GetGroupName $proj_dir]
+  set group_name [GetGroupName  $proj_dir $repo_path]
 }
 
 

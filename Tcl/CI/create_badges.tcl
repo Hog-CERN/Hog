@@ -61,7 +61,7 @@ while {1} {
 }
 
 
-if [catch {glob -type d $repo_path/bin/$project-${ver} } prj_dir] {
+if {[catch {glob -types d $repo_path/bin/$project-${ver} } prj_dir]} {
     Msg CriticalWarning "Cannot find $project binaries in artifacts"
     return
 }

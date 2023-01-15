@@ -23,6 +23,8 @@
 # - The Multithread option must be disabled
 # This script is automatically integrated into the Vivado/Quartus workflow by the Create Project script.
 
+##nagelfar variable quartus
+
 set old_path [pwd]
 set tcl_path [file normalize "[file dirname [info script]]/.."]
 source $tcl_path/hog.tcl
@@ -55,7 +57,7 @@ if {[IsXilinx]} {
   Msg CriticalWarning "You seem to be running locally on tclsh, so this is a debug, the project file will be set to $proj_file and was derived from the path you launched this script from: $old_path. If you want this script to work properly in debug mode, please launch it from the top folder of one project, for example Repo/Projects/fpga1/ or Repo/Top/fpga1/"
 }
 
-set group_name [GetGroupName $proj_dir]
+set group_name [GetGroupName $proj_dir "$tcl_path/../.."]
 Msg Info "Evaluating Git sha for $proj_name..."
 lassign [GetRepoVersions [file normalize ./Top/$group_name/$proj_name] $repo_path] sha
 
@@ -206,9 +208,9 @@ if {[IsXilinx]} {
   } else {
     set reps [glob -nocomplain "$run_dir/*/*.rpt"]
   }
-  if [file exists [lindex $reps 0]] {
+  if {[file exists [lindex $reps 0]]} {
     file copy -force {*}$reps $dst_dir/reports
-    if [file exists [glob -nocomplain "$dst_dir/reports/${top_name}_utilization_placed.rpt"] ] {
+    if {[file exists [glob -nocomplain "$dst_dir/reports/${top_name}_utilization_placed.rpt"] ]} {
       set utilization_file [file normalize $dst_dir/utilization.txt]
       set report_file [glob -nocomplain "$dst_dir/reports/${top_name}_utilization_placed.rpt"]
       if {$group_name != ""} {
@@ -224,7 +226,7 @@ if {[IsXilinx]} {
   # Log files
   set logs [glob -nocomplain "$run_dir/*/runme.log"]
   foreach log $logs {
-    set run_name [file tail [file dir $log]]
+    set run_name [file tail [file dirname $log]]
     file copy -force $log $dst_dir/reports/$run_name.log
   }
 

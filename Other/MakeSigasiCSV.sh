@@ -16,6 +16,7 @@
 ## @file MakeSigasiCSV.sh
 # brief Creates Sisgasi csv file
 
+# shellcheck source=CommonFunctions.sh
 . "$(dirname "$0")"/CommonFunctions.sh
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -59,7 +60,7 @@ else
         else
             echo "Hog-INFO: using executable: $HDL_COMPILER"
         fi
-        "$HDL_COMPILER" $COMMAND_OPT "$DIR/../Tcl/utils/make_sigasi_csv.tcl" -tclargs $@
+        "$HDL_COMPILER" $COMMAND_OPT "$DIR/../Tcl/utils/make_sigasi_csv.tcl" -tclargs "$@"
     else
         echo "Hog-ERROR could not find $PROJ_DIR"
     fi

@@ -14,6 +14,7 @@
 #   limitations under the License.
 
 ## @file Init.sh
+# shellcheck source=Other/CommonFunctions.sh
 . $(dirname "$0")/Other/CommonFunctions.sh
 
 ## @fn help_message
@@ -43,23 +44,25 @@ function help_message() {
 #
 function init() {
 
-  local OLD_DIR=$(pwd)
-  local DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  local OLD_DIR
+  OLD_DIR=$(pwd)
+  local DIR
+  DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
   if [ "$1" == "-h" ] || [ "$1" == "-help" ] || [ "$1" == "--help" ] || [ "$1" == "-H" ]; then
-    help_message $0
-    exit 0
+    help_message "$0"
   fi
 
-  cd "${DIR}"
+  cd "${DIR}" || exit
 
   COMPILER_FOUND=false
 
   ##! The script checks if Vivado is installed and set up on the shell.
   ##! NOTE that these checks are performed using 'command -v '
-  if [ $(command -v vivado) ]; then
+  if [ "$(command -v vivado)" ]; then
     COMPILER_FOUND=true
-    local VIVADO=$(command -v vivado)
+    local VIVADO
+    VIVADO=$(command -v vivado)
     ##! If Vivado is installed it checks if vsim command is defined (Questasim or Modelsim is installed and set-up in the shell).
     ##! NOTE that these checks are performed using 'command -v '
     echo
@@ -73,7 +76,7 @@ function init() {
       printf "1. Questa Advanced Simulator \n2. ModelSim Simulator \n3. Riviera-PRO Simulator \n4. Incisive Enterprise Simulator (IES) \n5. Xcelium Parallel Simulator \n6. Verilog Compiler Simulator (VCS)"
       read -p " " -n 1 -r
       echo
-      if [ ${REPLY} -le 6 ] && [ ${REPLY} -gt 0 ]; then
+      if [ "${REPLY}" -le 6 ] && [ "${REPLY}" -gt 0 ]; then
         case $REPLY in
         1)
           SIMULATOR=questa
@@ -96,7 +99,7 @@ function init() {
         esac
 
         echo "Where do you want the simulation libraries to be saved? (skip for default: SimulationLib)"
-        read SIMDIR
+        read -r SIMDIR
         echo
         if [[ $SIMDIR == "" ]]; then
           SIMDIR="SimulationLib"
@@ -115,12 +118,13 @@ function init() {
   fi
 
   # Repeat compilation using Quartus
-  if [ $(command -v quartus_sh) ]; then
+  if [ "$(command -v quartus_sh)" ]; then
     COMPILER_FOUND=true
-    local QUARTUS=$(command -v quartus_sh)
+    local QUARTUS
+    QUARTUS=$(command -v quartus_sh)
     ##! If Quartus is installed it checks if vsim command is defined (Questasim or Modelsim is installed and set-up in the shell).
     ##! NOTE that these checks are performed using 'command -v '
-    if [ $(command -v vsim) ]; then
+    if [ "$(command -v vsim)" ]; then
       echo
       ##! If Questasim or Modelsim is installed ask user if he wants to compile
       ##! NOTE use read to grab user input
@@ -158,11 +162,11 @@ function init() {
   ##! NOTE use read to grab user input
   ##! NOTE if the user input contains Y or y then is accepted as yes
 
-  Vivado_prjs=$(find $DIR/.. -path $DIR/../Projects -prune -false -o -name *.xpr)
+  Vivado_prjs=$(find "$DIR/.." -path "$DIR/../Projects" -prune -false -o -name "*.xpr")
 
   for Vivado_prj in $Vivado_prjs; do
     echo
-    Vivado_prj_base=$(basename $Vivado_prj)
+    Vivado_prj_base=$(basename "$Vivado_prj")
     read -p "  Found existing Vivado project $Vivado_prj_base. Do you want to convert it to a Hog compatible project? (creates listfiles and hog.conf) " -n 1 -r
     echo # (optional) move to a new line
     if [[ "${REPLY}" =~ ^[Yy]$ ]]; then
@@ -189,9 +193,9 @@ function init() {
   if [[ "${REPLY}" =~ ^[Yy]$ ]]; then
     cd ..
     proj=$(search_projects Top)
-    Msg Info Creating projects for: $proj...
+    Msg Info "Creating projects for: $proj..."
     for f in $proj; do
-      Msg Info Creating Vivado project: $f...
+      Msg Info "Creating Vivado project: $f..."
       ./Hog/CreateProject.sh "${f}"
     done
   fi
@@ -199,7 +203,7 @@ function init() {
   ##! Ask user if he wants to add custom Vivado GUI button to automatically update listfiles
   ##! NOTE use read to grab user input
   ##! NOTE if the user input contains Y or y then is accepted as yes
-  if [ $(command -v vivado) ]; then
+  if [ "$(command -v vivado)" ]; then
     echo
     read -p "  Do you want to add three buttons to the Vivado GUI to check and update the list files and the project hog.conf file automatically? " -n 1 -r
     echo
@@ -210,7 +214,7 @@ function init() {
   fi
 
   ##! Check if hog tags tag exist, and if not ask user if they want to create v0.0.1
-  cd $DIR/..
+  cd "$DIR/.." || exit
   if git describe --match "v*.*.*" >/dev/null 2>&1; then
     Msg Info "Repository contains Hog-compatible tags."
   else
@@ -222,7 +226,7 @@ function init() {
   fi
 
   Msg Info "All done."
-  cd "${OLD_DIR}"
+  cd "${OLD_DIR}" || exit 
 }
 
 
@@ -230,16 +234,12 @@ function init() {
 function HogInitFunc(){
   # init $@
   # echo "HogInitFunc ($*)"
-  init $@
+  init "$@"
   exit 0
 }
-if [[ ${BASH_SOURCE[0]} == $0 ]]; then
-#   printf "script '%s' is sourced in\n" "${BASH_SOURCE[0]}"
-# else
-  print_hog $(dirname "$0")
-  init $@
+
+if [[ ${BASH_SOURCE[0]} == "$0" ]]; then
+  print_hog "$(dirname "$0")"
+  init "$@"
 fi
-# echo "from ${BASH_SOURCE[0]} : BASH_SOURCE = ${BASH_SOURCE[*]}"
-# # if
-# print_hog $(dirname "$0")
-# init $@
+

@@ -17,6 +17,9 @@
 # The post synthesis script copies the synthesis reports and other files to the bin.
 # This script is automatically integrated into the Vivado/Quartus workflow by the Create Project script.
 
+##nagelfar variable quartus
+##nagelfar variable project
+
 if {[catch {package require struct::matrix} ERROR]} {
   puts "$ERROR\n If you are running this script on tclsh, you can fix this by installing 'tcllib'"
   return
@@ -85,7 +88,7 @@ set bin_dir [file normalize "$repo_path/bin"]
 
 cd $repo_path
 
-set group_name [GetGroupName $proj_dir]
+set group_name [GetGroupName $proj_dir "$tcl_path/../.."]
 
 Msg Info "Evaluating Git sha for $proj_name..."
 lassign [GetRepoVersions [file normalize ./Top/$group_name/$proj_name] $repo_path] sha
@@ -117,9 +120,9 @@ if {[IsXilinx]} {
   } else {
     set reps [glob -nocomplain "$run_dir/*/*.rpt"]
   }
-  if [file exists [lindex $reps 0]] {
+  if {[file exists [lindex $reps 0]]} {
     file copy -force {*}$reps $dst_dir/reports
-    if [file exists [glob -nocomplain "$dst_dir/reports/${top_name}_utilization_synth.rpt"] ] {
+    if {[file exists [glob -nocomplain "$dst_dir/reports/${top_name}_utilization_synth.rpt"] ]} {
       set utilization_file [file normalize $dst_dir/utilization.txt]
       set report_file [glob -nocomplain "$dst_dir/reports/${top_name}_utilization_synth.rpt"]
       if {$group_name != ""} {
@@ -132,48 +135,50 @@ if {[IsXilinx]} {
     Msg Warning "No reports found in $run_dir subfolders"
   }
 
- # Handle IPs 
-if {[info exists env(HOG_IP_PATH)]} {
-  set ip_repo $env(HOG_IP_PATH)
 
-  if {[IsISE]} {
-    # Do nothing...
-  } else {
-
-    set ips [get_ips *]
-    set run_paths [glob -nocomplain "$run_dir/*"]
-    set runs {}
-    foreach r $run_paths {
-      if {[regexp -all {^(.+)_synth_1}  $r whole_match run]} {
-	lappend runs [file tail $run]
-      }
-    }
-    
-    foreach ip $ips {
-      if {$ip in $runs} {
-	set force 1
+  # Handle IPs 
+  if {[IsVivado]} {
+    if {[info exists env(HOG_IP_PATH)]} {
+      set ip_repo $env(HOG_IP_PATH)
+      
+      if {[IsISE]} {
+	# Do nothing...
       } else {
-	set force 0
+	
+	set ips [get_ips *]
+	set run_paths [glob -nocomplain "$run_dir/*"]
+	set runs {}
+	foreach r $run_paths {
+	  if {[regexp -all {^(.+)_synth_1}  $r whole_match run]} {
+	    lappend runs [file tail $run]
+	  }
+	}
+	
+	foreach ip $ips {
+	  if {$ip in $runs} {
+	    set force 1
+	  } else {
+	    set force 0
+	  }
+	  Msg Info "Copying synthesised IP $ip to $ip_repo..."
+	  HandleIP push [get_property IP_FILE $ip] $ip_repo $repo_path [get_property IP_OUTPUT_DIR $ip] $force
+	}
       }
-      Msg Info "Copying synthesised IP $ip to $ip_repo..."
-      HandleIP push [get_property IP_FILE $ip] $ip_repo $repo_path [get_property IP_OUTPUT_DIR $ip] $force
     }
   }
-}
-
 
 
  # Log files
   set logs [glob -nocomplain "$run_dir/*/runme.log"]
   foreach log $logs {
-    set run_name [file tail [file dir $log]]
+    set run_name [file tail [file dirname $log]]
     file copy -force $log $dst_dir/reports/$run_name.log
   }
 } elseif {[IsQuartus]} {
   #Reports
   set reps [glob -nocomplain "$proj_dir/output_files/*.rpt"]
 
-  if [file exists [lindex $reps 0]] {
+  if {[file exists [lindex $reps 0]]} {
     file copy -force {*}$reps $dst_dir/reports
   } else {
     Msg Warning "No reports found in $proj_dir/output_files subfolders"

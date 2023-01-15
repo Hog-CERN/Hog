@@ -14,15 +14,16 @@
 
 # This file must be copied inside the '.github/workflows/' folder of your repository
 
+---
 name: Deploy
 
 on:
   push:
-    branches: 
+    branches:
       - master
       - main
       - release
-      - develop 
+      - develop
 
 jobs:
   hog-workflow:

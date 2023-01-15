@@ -68,6 +68,7 @@ if {[IsXilinx]} {
 
 } elseif {[IsQuartus]} {
   # Quartus
+  ##nagelfar ignore Unknown variable
   set proj_name [lindex $quartus(args) 1]
   set proj_dir [pwd]
   set xml_dir [file normalize "$repo_path/xml"]
@@ -88,7 +89,9 @@ if {[IsXilinx]} {
 
 } elseif {[IsLibero]} {
   # Libero
+  ##nagelfar ignore Unknown variable
   set proj_name $project
+  ##nagelfar ignore Unknown variable
   set proj_dir $main_folder
   set map_file [file normalize [lindex [glob -nocomplain "$proj_dir/synthesis/*.map"] 0]]
   set sap_file [file normalize [lindex [glob -nocomplain "$proj_dir/synthesis/*.sap"] 0]]
@@ -114,7 +117,7 @@ if {[IsXilinx]} {
   set run_dir [file normalize "$work_path/.."]
 }
 
-set group_name [GetGroupName $proj_dir]
+set group_name [GetGroupName $proj_dir "$tcl_path/../.."]
 
 # Vivado
 if {[IsXilinx] && [file exists $bit_file]} {
@@ -143,7 +146,7 @@ if {[IsXilinx] && [file exists $bit_file]} {
   file copy -force $bit_file $dst_bit
 
   # bin File
-  if [file exists $bin_file] {
+  if {[file exists $bin_file]} {
     Msg Info "Copying bin file $bin_file into $dst_bin..."
     file copy -force $bin_file $dst_bin
   } else {
@@ -153,7 +156,7 @@ if {[IsXilinx] && [file exists $bit_file]} {
   write_debug_probes -quiet $ltx_file
 
   # ltx File
-  if [file exists $ltx_file] {
+  if {[file exists $ltx_file]} {
     Msg Info "Copying ltx file $ltx_file into $dst_ltx..."
     file copy -force $ltx_file $dst_ltx
   } else {
@@ -202,7 +205,7 @@ if {[IsXilinx] && [file exists $bit_file]} {
   }
 
   #pof file
-  if [file exists $pof_file] {
+  if {[file exists $pof_file]} {
     Msg Info "Copying pof file $pof_file into $dst_pof..."
     file copy -force $pof_file $dst_pof
   } else {
@@ -213,14 +216,14 @@ if {[IsXilinx] && [file exists $bit_file]} {
   file mkdir $dst_dir/reports
   set reps [glob -nocomplain "$proj_dir/output_files/*.rpt"]
 
-  if [file exists [lindex $reps 0]] {
+  if {[file exists [lindex $reps 0]]} {
     file copy -force {*}$reps $dst_dir/reports
   } else {
     Msg Warning "No reports found in $proj_dir/output_files subfolders"
   }
 
   # sof File
-  if [file exists $sof_file] {
+  if {[file exists $sof_file]} {
     Msg Info "Copying sof file $sof_file into $dst_sof..."
     file copy -force $sof_file $dst_sof
   } else {
@@ -230,10 +233,10 @@ if {[IsXilinx] && [file exists $bit_file]} {
 
   #rbf rpd
   if { [file exists $rbf_file] ||  [file exists $rpd_file] } {
-    if [file exists $rbf_file] {
+    if {[file exists $rbf_file]} {
       file copy -force $rbf_file $dst_rbf
     }
-    if [file exists $rpd_file] {
+    if {[file exists $rpd_file]} {
       file copy -force $rpd_file $dst_rpd
     }
   } else {
@@ -242,10 +245,10 @@ if {[IsXilinx] && [file exists $bit_file]} {
 
   # stp and spf File
   if {[file exists $stp_file] || [file exists $spf_file]} {
-    if [file exists $stp_file] {
+    if {[file exists $stp_file]} {
       file copy -force $stp_file $dst_stp
     }
-    if [file exists $spf_file] {
+    if {[file exists $spf_file]} {
       file copy -force $spf_file $dst_spf
     }
   } else {
@@ -255,7 +258,7 @@ if {[IsXilinx] && [file exists $bit_file]} {
 } elseif {[IsLibero] } {
   # Go to repository path
   cd $tcl_path/../../
-
+  ##nagelfar variable project
   Msg Info "Evaluating Git sha for $project..."
   lassign [GetRepoVersions [file normalize ./Top/$group_name/$project] $repo_path] sha
   set describe [GetHogDescribe $sha]
@@ -305,9 +308,9 @@ if {[IsXilinx] && [file exists $bit_file]} {
 
 
 # IPbus XML
-if [file exists $xml_dir] {
+if {[file exists $xml_dir]} {
   Msg Info "XML directory found, copying xml files from $xml_dir to $dst_xml..."
-  if [file exists $dst_xml] {
+  if {[file exists $dst_xml]} {
     Msg Info "Directory $dst_xml exists, deleting it..."
     file delete -force $dst_xml
   }
@@ -315,13 +318,12 @@ if [file exists $xml_dir] {
 }
 
 # Zynq XSA Export
-if {[IsXilinx]} { # Vivado
+if {[IsXilinx]} { 
+  # Vivado
   # automatically export for zynqs (checking via regex)
   set export_xsa false
   set part [get_property part [current_project]]
-  set is_zynq [expr \
-    [regexp {xc7z.*} $part] || \
-    [regexp {xczu.*} $part]]
+  set is_zynq [expr {[regexp {xc7z.*} $part] || [regexp {xczu.*} $part]}]
   if {${is_zynq} == 1} {
     set export_xsa true
   }

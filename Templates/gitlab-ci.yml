@@ -12,23 +12,24 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+---
 include:
-    - project: 'hog/Hog'
-      file: '/hog.yml'
-      ref: 'v0.2.1'
+  - project: 'hog/Hog'
+    file: '/hog.yml'
+    ref: 'v0.2.1'
 
 #################### example ###########################
 ### Change 'example' with your project name
 
 GEN:example:
-    extends: .generate_project
-    variables:
-      extends: .vars
-      PROJECT_NAME: example
-      HOG_ONLY_SYNTH: 0 # if 1 runs only the synthesis
+  extends: .generate_project
+  variables:
+    extends: .vars
+    PROJECT_NAME: example
+    HOG_ONLY_SYNTH: 0  # if 1 runs only the synthesis
 
 SIM:example:
-    extends: .simulate_project
-    variables:
-      extends: .vars
-      PROJECT_NAME: example
+  extends: .simulate_project
+  variables:
+    extends: .vars
+    PROJECT_NAME: example

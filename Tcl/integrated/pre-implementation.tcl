@@ -35,7 +35,7 @@ if {[IsXilinx]} {
   }
   set proj_dir [file normalize [file dirname $proj_file]]
   set proj_name [file rootname [file tail $proj_file]]
-  set group_name [GetGroupName $proj_dir]
+  set group_name [GetGroupName $proj_dir "$tcl_path/../.."]
 } else {
   #Tclssh
   set proj_file $old_path/[file tail $old_path].xpr

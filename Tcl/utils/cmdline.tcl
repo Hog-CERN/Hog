@@ -107,6 +107,7 @@ proc ::cmdline::getopt {argvVar optstring optVar valVar} {
   upvar 1 $optVar option
   upvar 1 $valVar value
 
+  ## nagelfar ignore
   set result [getKnownOpt argsList $optstring option value]
 
   if {$result < 0} {
@@ -256,7 +257,7 @@ proc ::cmdline::getoptions {arglistVar optlist {usage options:}} {
     }
     set result($opt) $arg
   }
-  if {[info exist result(?)] || [info exists result(help)]} {
+  if {[info exists result(?)] || [info exists result(help)]} {
     Error [usage $optlist $usage] USAGE
   }
   return [array get result]
@@ -323,7 +324,7 @@ proc ::cmdline::getKnownOptions {arglistVar optlist {usage options:}} {
     # argList so that the application doesn't lose them.
   set argv [concat $unknownOptions $argv]
 
-  if {[info exist result(?)] || [info exists result(help)]} {
+  if {[info exists result(?)] || [info exists result(help)]} {
     Error [usage $optlist $usage] USAGE
   }
   return [array get result]
@@ -510,7 +511,8 @@ namespace eval ::cmdline {
     #    String of character class names separated by "|" characters.
 
   variable charclasses
-    #checker exclude badKey
+  #checker exclude badKey
+  ##nagelfar ignore
   catch {string is . .} charclasses
   variable dummy
   regexp      -- {must be (.+)$} $charclasses dummy charclasses
@@ -653,7 +655,9 @@ proc ::cmdline::typedGetopt {argvVar optstring optVar argVar} {
 
           } elseif {[regexp -- "\\.(arg|$charclasses)\$" $opt dummy charclass]
           || [regexp -- {\.\(([^)]+)\)} $opt dummy charclass]} {
+            ##nagelfar ignore
             if {[string equal arg $charclass]} {
+              ##nagelfar ignore
               set type arg
             } elseif {[regexp -- "^($charclasses)\$" $charclass]} {
               set type class
@@ -700,11 +704,8 @@ proc ::cmdline::typedGetopt {argvVar optstring optVar argVar} {
                   set retval -2
                 }
                 set quantifier ""
-              } elseif {($type == "arg")
-                || (($type == "oneof")
-                && [string first "|[lindex $argsList 0]|" "|$charclass|"] != -1)
-                || (($type == "class")
-              && [string is $charclass [lindex $argsList 0]])} {
+                ##nagelfar ignore
+              } elseif {($type == "arg") || (($type == "oneof") && [string first "|[lindex $argsList 0]|" "|$charclass|"] != -1) || (($type == "class") && [string is $charclass [lindex $argsList 0]])} {
                 set retval 1
                 set retvar $opt
                 lappend optarg [lindex $argsList 0]

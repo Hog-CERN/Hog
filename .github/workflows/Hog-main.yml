@@ -12,6 +12,7 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+---
 name: Hog-main
 
 on:
@@ -41,7 +42,7 @@ on:
         required: false
       EOS_MGM_URL:
         required: false
-        
+
 env:
   HOG_PUSH_TOKEN: ${{ secrets.HOG_PUSH_TOKEN }}
   HOG_USER: ${{ secrets.HOG_USER }}
@@ -58,29 +59,29 @@ jobs:
       runid: ${{ steps.tag.outputs.runid}}
     steps:
       - uses: actions/checkout@v2
-        with: 
+        with:
           fetch-depth: 0
       - uses: webfactory/ssh-agent@v0.5.4
         with:
-            ssh-private-key: ${{ secrets.SUBMODULE_CONTENT_PULL_KEY }}
+          ssh-private-key: ${{ secrets.SUBMODULE_CONTENT_PULL_KEY }}
       - name: tag_official_version
         id: tag
         run: |
           git config --global user.email "$HOG_EMAIL"
           git config --global user.name "$HOG_USER"
-          git fetch 
+          git fetch
           git checkout $GITHUB_HEAD_REF
           git pull
           commit_message=$(git show --pretty=format:"%B" --no-patch)
           echo "Removing merge commit..."
           echo "Current commit is $(git rev-parse HEAD)"
           echo "Reverting to $(git log -n 1 --skip 1 --pretty=format:"%H")"
-          previous_commit=$(git log -n 1 --skip 1 --pretty=format:"%H")  
+          previous_commit=$(git log -n 1 --skip 1 --pretty=format:"%H")
           git reset --hard $previous_commit
           git push --force
           git fetch origin refs/notes/*:refs/notes/*
           note=(`git notes show`) || {
-            echo "No note found, probably you pushed to a branch that should protected (e.g. master, develop)"; 
+            echo "No note found, probably you pushed to a branch that should protected (e.g. master, develop)";
             exit 1;
           }
           new_tag=${note[2]}
@@ -95,7 +96,7 @@ jobs:
                 new_tag="$new_tag-0";
               fi;
             fi;
-            git tag $new_tag -m "Official_version_${new_tag}" 
+            git tag $new_tag -m "Official_version_${new_tag}"
             git push --tags
           else
             echo "Tagging is not necessary because the present commit is already tagged as:\ $new_tag.";
@@ -111,16 +112,16 @@ jobs:
     container: gitlab-registry.cern.ch/hog/hog-docker:tclsh
     steps:
       - uses: actions/checkout@v2
-        with: 
+        with:
           fetch-depth: 0
       - uses: webfactory/ssh-agent@v0.5.4
         with:
-            ssh-private-key: ${{ secrets.SUBMODULE_CONTENT_PULL_KEY }}
+          ssh-private-key: ${{ secrets.SUBMODULE_CONTENT_PULL_KEY }}
       - name: Get Artifacts
         run: |
           git config --global user.email "$HOG_EMAIL"
           git config --global user.name "$HOG_USER"
-          git fetch 
+          git fetch
           git checkout $GITHUB_HEAD_REF
           git pull
           git submodule init
@@ -158,11 +159,11 @@ jobs:
     if: ${{ inputs.HOG_CREATE_OFFICIAL_RELEASE }}
     steps:
       - uses: actions/checkout@v2
-        with: 
+        with:
           fetch-depth: 0
       - uses: webfactory/ssh-agent@v0.5.4
         with:
-            ssh-private-key: ${{ secrets.SUBMODULE_CONTENT_PULL_KEY }}
+          ssh-private-key: ${{ secrets.SUBMODULE_CONTENT_PULL_KEY }}
       - name: Get Artifacts
         run: |
           git config --global user.email "$HOG_EMAIL"
@@ -172,13 +173,14 @@ jobs:
           git pull
           git submodule init
           git submodule update
-          ./Hog/Other/GetArtifactsAndRename.sh -token $HOG_PUSH_TOKEN -url $GITHUB_API_URL -proj_id $GITHUB_REPOSITORY -mr ${{ needs.tag_official_version.outputs.runid}} -github;         
+          ./Hog/Other/GetArtifactsAndRename.sh -token $HOG_PUSH_TOKEN -url $GITHUB_API_URL -proj_id $GITHUB_REPOSITORY -mr ${{ needs.tag_official_version.outputs.runid}} -github;
           zip -r binaries.zip bin
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # This token is provided by Actions, you do not need to create your own token
         with:
           tag_name: ${{ needs.tag_official_version.outputs.tag }}
           release_name: Release ${{ needs.tag_official_version.outputs.tag }}
@@ -186,12 +188,13 @@ jobs:
           draft: false
           prerelease: false
       - name: Upload Release Asset
-        id: upload-release-asset 
+        id: upload-release-asset
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps
           asset_path: ./binaries.zip
           asset_name: Binaries
           asset_content_type: application/zip

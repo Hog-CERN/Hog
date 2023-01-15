@@ -22,11 +22,12 @@ else
     pr=$4
     file=$5
 
+    # shellcheck disable=SC2006
     curl \
     -X POST \
     -H "Accept: application/vnd.github+json" \
     -H "Authorization: token $push_token" \
-    $api/repos/$proj/issues/$pr/comments \
-    -d '{"body":"'"`sed -e ':a' -e 'N' -e '$!ba' -e 's/\n/\\\\n/g' $file`"'"}'
+    "$api/repos/$proj/issues/$pr/comments" \
+    -d '{"body":"'"`sed -e ':a' -e 'N' -e '$!ba' -e 's/\n/\\\\n/g' "$file"`"'"}'
 
 fi

@@ -14,11 +14,12 @@
 
 # This file must be copied inside the '.github/workflows/' folder of your repository
 
+---
 name: Deploy
 
 on:
   pull_request:
-    branches: [ master, main ]
+    branches: [master, main]
 
 jobs:
   hog-workflow:
@@ -45,5 +46,3 @@ jobs:
       HOG_NO_RESET_BD: True
       HOG_CHECK_PROJVER: True
       HOG_NO_BITSTREAM: False
-
-    

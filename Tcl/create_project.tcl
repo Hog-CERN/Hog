@@ -418,7 +418,7 @@ proc ConfigureImplementation {} {
       #QUARTUS only
       set_global_assignment -name POST_MODULE_SCRIPT_FILE quartus_sh:$globalSettings::quartus_post_module
     }
-    Msg info "Setting $globalSettings::post_impl to be run after implementation" 
+    Msg info "Setting ${globalSettings::post_impl} to be run after implementation" 
   }
 
   ## set pre write bitstream script

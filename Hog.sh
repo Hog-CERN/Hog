@@ -133,22 +133,22 @@ else
   case "$activity" in
     -I|Init)
       # echo "Init"
-      HogInitFunc $@
+      HogInitFunc "$*"
       exit 0
     ;;
     -C|Create)
       Msg Info "Create $*"
-      HogCreateFunc $*
+      HogCreateFunc "$*"
     ;;
     -W|Workflow)
       Msg Info " Workflow"
-      HogLaunchFunc $*
+      HogLaunchFunc "$*"
       # ./Hog/LaunchWorkflow.sh $*
     ;;
     -S|Simulation)
       Msg Info " Simulation"
       # ./Hog/LaunchSimulation.sh $*
-      HogSimulateFunc $*
+      HogSimulateFunc "$*"
     ;;
     # -V|--verbose)
     #   echo " Verbose level"
@@ -157,7 +157,7 @@ else
     # ;;
     *)
       Msg Error "Activity not recognized"
-      help_Unic $0
+      help_Unic "$0"
     ;;
   esac
 fi

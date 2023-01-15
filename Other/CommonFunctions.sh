@@ -41,7 +41,10 @@ export POST_COMMAND_OPT=""
 #
 export HDL_COMPILER=""
 
-
+## @var HOG_PROJECT_FOLDER
+#  @brief Global variable containing the full path of the root project folder
+#
+export HOG_PROJECT_FOLDER=""
 
 
 ## @var LOGGER
@@ -103,6 +106,7 @@ echo_d() {
 # @param[in] execution line to process
 shopt -s extglob
 function log_stdout(){
+  # Msg Debug "Init function"
   local color_reset="\e[0;37m"
   local color_red="\e[0;31m"
   local color_blue="\e[0;34m"
@@ -238,6 +242,13 @@ function log_stdout(){
 # 
 # @param[in] execution line to process
 function Logger(){
+  Msg Debug "Logger : $*"
+  Msg Debug "Logger : $0"
+  Msg Debug "$(dirname $0)"
+  Msg Debug "$(pwd)"
+  cd ..
+  # print_hog "$(dirname "$0")"
+  # exit
   {
     print_hog "$(dirname "$0")"
     echo "-----------------------------------------------"
@@ -256,7 +267,9 @@ function Logger(){
   Msg Debug "LogColorVivado : $*"
   log_stdout "stdout" "LogColorVivado : $*"
   log_stdout "stderr" "LogColorVivado : $*"
-  "$*" > >(log_stdout "stdout") 2> >(log_stdout "stderr" >&2)
+  cd Top
+  Msg Debug "$(pwd)"
+  $* > >(log_stdout "stdout") 2> >(log_stdout "stderr" >&2)
 }
 
 # @function Msg
@@ -598,6 +611,8 @@ function print_hog() {
     Msg Error "missing input! Got: $1!"
     return 1
   fi
+  echo "----------------- $1"
+  echo "***************** $(pwd)"
   cd "$1" || exit
   ver=$(git describe --always)
   echo

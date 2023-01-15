@@ -62,11 +62,14 @@ function create_project() {
 
   local OLD_DIR
   OLD_DIR=$(pwd)
+  Msg Debug "OLD_DIR($OLD_DIR)"
   local THIS_DIR
   THIS_DIR="$(dirname "$0")"
+  Msg Debug "THIS_DIR ($THIS_DIR)"
+  HOG_PROJECT_FOLDER="$OLD_DIR"
 
-  echo_d "HogInitFunc 0 ($0)"
-  echo_d "HogInitFunc 1 ($1)"
+  Msg Debug "HogInitFunc 0 ($0)"
+  Msg Debug "HogInitFunc 1 ($1)"
 
   if [ "$1" == "-h" ] || [ "$1" == "-help" ] || [ "$1" == "--help" ] || [ "$1" == "-H" ]; then
     help_message "$0"
@@ -151,6 +154,7 @@ function create_project() {
 
     if [ "$FILE_TYPE" == "CONF" ]; then
       cd "${DIR}" || exit 
+      Msg Debug "****** $(pwd)"
       Msg Info "Creating project $PROJ using hog.conf..."
       if [[ -z $HOG_COLORED ]]; then
         if [ -z ${HOG_LIBPATH+x} ]; then
@@ -230,14 +234,18 @@ function create_project() {
 function HogCreateFunc(){
   # init $@
   # shift
-  echo_d "HogInitFunc ($*)"
+  # repoPath="$(dirname "$0")"
+  # echo "$repoPath"
+  Msg Debug "HogInitFunc ($*)"
   create_project $*
+  
   # exit 0
 }
 if [[ ${BASH_SOURCE[0]} == "$0" ]]; then
 #   printf "script '%s' is sourced in\n" "${BASH_SOURCE[0]}"
 # else
   repoPath="$(dirname "$0")"
+  echo "$repoPath"
   print_hog "$repoPath"
   create_project "$@"
 fi

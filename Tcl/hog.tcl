@@ -82,6 +82,7 @@ proc IsTclsh {} {
 }
 
 proc Msg {level msg {title ""}} {
+  global DEBUG_MODE
   set level [string tolower $level]
   if {$level == 0 || $level == "status" || $level == "extra_info"} {
     set vlevel {STATUS}
@@ -99,9 +100,14 @@ proc Msg {level msg {title ""}} {
     set vlevel {ERROR}
     set qlevel "error"
   } elseif {$level == 5 || $level == "debug"} {
-    set vlevel {STATUS}
-    set qlevel info
-    set msg "DEBUG: $msg"
+    
+    if {[info exists DEBUG_MODE] && $DEBUG_MODE == 1} {
+	set vlevel {STATUS}
+	set qlevel info
+	set msg "::DEBUG:: $msg"
+    } else {
+      return
+    }
   } else {
     puts "Hog Error: level $level not defined"
     exit -1

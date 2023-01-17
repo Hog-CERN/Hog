@@ -81,6 +81,7 @@ proc IsTclsh {} {
   return [expr {![IsQuartus] && ![IsXilinx] && ![IsLibero] && ![IsSynplify]}]
 }
 
+## Hog message printout function
 proc Msg {level msg {title ""}} {
   global DEBUG_MODE
   set level [string tolower $level]
@@ -524,7 +525,6 @@ proc FindVhdlVersion {file_name} {
 # Options:
 # * -lib \<library\> name of the library files will be added to, if not given will be extracted from the file name
 # * -sha_mode  if not set to 0, the list files will be added as well and the IPs will be added to the file rather than to the special ip library. The sha mode should be used when you use the lists to calculate the git SHA, rather than to add the files to the project.
-# * -verbose enable verbose messages
 #
 # @return              a list of 3 dictionaries: "libraries" has library name as keys and a list of filenames as values, "properties" has as file names as keys and a list of properties as values, main_libs has library name as keys and the correspondent top list file name as value
 #
@@ -542,7 +542,6 @@ proc ReadListFile args {
     {lib.arg ""  "The name of the library files will be added to, if not given will be extracted from the file name."}
     {main_lib.arg "" The name of the library, from the main list file}
     {sha_mode "If set, the list files will be added as well and the IPs will be added to the file rather than to the special ip library. The sha mode should be used when you use the lists to calculate the git SHA, rather than to add the files to the project."}
-    {verbose "Verbose messages"}
   }
   set usage "USAGE: ReadListFile \[options\] <list file> <path>"
   if {[catch {array set options [cmdline::getoptions args $parameters $usage]}] ||  [llength $args] != 2 } {
@@ -554,18 +553,11 @@ proc ReadListFile args {
   set sha_mode $options(sha_mode)
   set lib $options(lib)
   set main_lib $options(main_lib)
-  set verbose $options(verbose)
 
   if { $sha_mode == 1} {
     set sha_mode_opt "-sha_mode"
   } else {
     set sha_mode_opt  ""
-  }
-
-  if { $verbose == 1} {
-    set verbose_opt "-verbose"
-  } else {
-    set verbose_opt  ""
   }
 
   # if no library is given, work it out from the file name
@@ -590,9 +582,7 @@ proc ReadListFile args {
   #  Process data file
   set data [split $file_data "\n"]
   set n [llength $data]
-  if {$verbose == 1} {
-    Msg Info "$n lines read from $list_file."
-  }
+  Msg Debug "$n lines read from $list_file."
   set cnt 0
 
   foreach line $data {
@@ -606,9 +596,8 @@ proc ReadListFile args {
 
       # glob the file list for wildcards
       if {$srcfiles != $srcfile && ! [string equal $srcfiles "" ]} {
-        if {$verbose == 1} {
-          Msg Info "Wildcard source expanded from $srcfile to $srcfiles"
-        }
+	Msg Debug "Wildcard source expanded from $srcfile to $srcfiles"
+        
       } else {
         if {![file exists $srcfile]} {
           Msg CriticalWarning "$srcfile not found in $list_file."
@@ -622,23 +611,19 @@ proc ReadListFile args {
           set extension [file extension $vhdlfile]
 
           if { $extension == $list_file_ext } {
-            if {$verbose == 1} {
-              Msg Info "List file $vhdlfile found in list file, recursively opening it..."
-            }
+	    Msg Debug "List file $vhdlfile found in list file, recursively opening it..."
+
             ### Set list file properties
             set prop [lrange $file_and_prop 1 end]
             set library [lindex [regexp -inline {lib\s*=\s*(.+?)\y.*} $prop] 1]
             if { $library != "" } {
-              if {$verbose == 1} {
-                Msg Info "Setting $library as library for list file $vhdlfile..."
-              }
+	      Msg Debug "Setting $library as library for list file $vhdlfile..."
+	      
             } else {
-              if {$verbose == 1} {
-                Msg Info "Setting $lib as library for list file $vhdlfile..."
-              }
+	      Msg Debug "Setting $lib as library for list file $vhdlfile..."
               set library $lib
             }
-            lassign [ReadListFile {*}"-lib $library -main_lib $main_lib $sha_mode_opt $verbose_opt $vhdlfile $path"] l p m
+            lassign [ReadListFile {*}"-lib $library -main_lib $main_lib $sha_mode_opt $vhdlfile $path"] l p m
             set libraries [MergeDict $l $libraries]
             set properties [MergeDict $p $properties]
             set main_libs [dict merge $m $main_libs]
@@ -649,18 +634,16 @@ proc ReadListFile args {
             set prop [lrange $file_and_prop 1 end]
             regsub -all " *= *" $prop "=" prop
             dict lappend properties $vhdlfile $prop
-            if {$verbose == 1} {
-              Msg Info "Adding property $prop to $vhdlfile..."
-            }
-            ### Set File Set
+	    Msg Debug "Adding property $prop to $vhdlfile..."
+            
+	    ### Set File Set
             #Adding IP library
             if {$sha_mode == 0 && [lsearch {.xci .ip .bd} $extension] >= 0} {
               dict lappend libraries "$lib.ip" $vhdlfile
               dict set main_libs "$lib.ip" "$main_lib.ip"
 
-              if {$verbose == 1} {
-                Msg Info "Appending $vhdlfile to IP list..."
-              }
+	      Msg Debug "Appending $vhdlfile to IP list..."
+
             } else {
               set m [dict create]
               dict set m $lib$ext $main_lib$ext
@@ -1812,7 +1795,6 @@ proc GetProjectFiles {} {
 # * -repo_path \<repo path\> the absolute of the top directory of the repository
 # * -sha_mode forwarded to ReadListFile, see there for info
 # * -ext_path \<external path\> path for external libraries forwarded to ReadListFile
-# * -verbose enable verbose messages
 #
 # @return a list of 2 dictionaries: libraries and properties
 # - libraries has library name as keys and a list of filenames as values
@@ -1835,7 +1817,6 @@ proc GetHogFiles args {
     {repo_path.arg ""  "The absolute path of the top directory of the repository."}
     {sha_mode "Forwarded to ReadListFile, see there for info."}
     {ext_path.arg "" "Path for the external libraries forwarded to ReadListFile."}
-    {verbose  "Verbose messages"}
   }
   set usage "USAGE: GetHogFiles \[options\] <list path>"
   if {[catch {array set options [cmdline::getoptions args $parameters $usage]}] ||  [llength $args] != 1 } {
@@ -1846,18 +1827,12 @@ proc GetHogFiles args {
   set list_files $options(list_files)
   set sha_mode $options(sha_mode)
   set ext_path $options(ext_path)
-  set verbose $options(verbose)
   set repo_path $options(repo_path)
 
   if { $sha_mode == 1 } {
     set sha_mode_opt "-sha_mode"
   } else {
     set sha_mode_opt ""
-  }
-  if { $verbose==1 } {
-    set verbose_opt "-verbose"
-  } else {
-    set verbose_opt ""
   }
 
   if { $list_files == "" } {
@@ -1871,9 +1846,9 @@ proc GetHogFiles args {
   foreach f $list_files {
     set ext [file extension $f]
     if {$ext == ".ext"} {
-      lassign [ReadListFile {*}"$sha_mode_opt $verbose_opt $f $ext_path"] l p m
+      lassign [ReadListFile {*}"$sha_mode_opt  $f $ext_path"] l p m
     } else {
-      lassign [ReadListFile {*}"$sha_mode_opt $verbose_opt $f $repo_path"] l p m
+      lassign [ReadListFile {*}"$sha_mode_opt  $f $repo_path"] l p m
     }
     set libraries [MergeDict $l $libraries]
     set properties [MergeDict $p $properties]
@@ -1915,7 +1890,7 @@ proc ParseFirstLineHogFiles {list_path list_file} {
 # @param[in] libraries has library name as keys and a list of filenames as values
 # @param[in] properties has as file names as keys and a list of properties as values
 #
-proc AddHogFiles { libraries properties main_libs {verbose 0}} {
+proc AddHogFiles { libraries properties main_libs } {
   Msg Info "Adding source files to project..."
 
   foreach lib [dict keys $libraries] {
@@ -1996,9 +1971,7 @@ proc AddHogFiles { libraries properties main_libs {verbose 0}} {
 
           # XDC
           if {[lsearch -inline -regexp $props "XDC"] >= 0 || [file extension $f] == ".xdc"} {
-            if {$verbose == 1} {
-              Msg Info "Setting filetype XDC for $f"
-            }
+	    Msg Debug "Setting filetype XDC for $f"
             set_property -name "file_type" -value "XDC" -objects $file_obj
           }
 
@@ -2052,9 +2025,8 @@ proc AddHogFiles { libraries properties main_libs {verbose 0}} {
           if {[lsearch -inline -regexp $props "wavefile"] >= 0} {
             Msg Warning "Setting a wave do file from simulation list files will be deprecated in future Hog releases. Please consider setting this property in the sim.conf file, by adding the following line under the \[$file_set\] section.\n<simulator_name>.simulate.custom_wave_do=[file tail $f]"
 
-            if {$verbose == 1} {
-              Msg Info "Setting $f as wave do file for simulation file set $file_set..."
-            }
+	    Msg Debug "Setting $f as wave do file for simulation file set $file_set..."
+
             # check if file exists...
             if {[file exists $f]} {
               foreach simulator [GetSimulators] {
@@ -2068,9 +2040,8 @@ proc AddHogFiles { libraries properties main_libs {verbose 0}} {
           #Do file
           if {[lsearch -inline -regexp $props "dofile"] >= 0} {
             Msg Warning "Setting a custom do file from simulation list files will be deprecated in future Hog releases. Please consider setting this property in the sim.conf file, by adding the following line under the \[$file_set\] section.\n<simulator_name>.simulate.custom_do=[file tail $f]"
-            if {$verbose == 1} {
-              Msg Info "Setting $f as do file for simulation file set $file_set..."
-            }
+	    Msg Debug "Setting $f as do file for simulation file set $file_set..."
+
             if {[file exists $f]} {
               foreach simulator [GetSimulators] {
                 set_property "$simulator.simulate.custom_udo" [file tail $f] [get_filesets $file_set]

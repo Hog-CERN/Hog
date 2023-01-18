@@ -3243,7 +3243,7 @@ proc IsRelativePath {path} {
 
 # Check Git Version when sourcing hog.tcl
 if {[GitVersion 2.7.2] == 0 } {
-  Msg CriticalWarning "Found Git version older than 2.7.2. Hog might not work as expected.\n"
+  Msg Error "Found Git version older than 2.7.2. Hog will not work as expected, exiting now."
 }
 
 

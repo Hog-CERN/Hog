@@ -814,6 +814,9 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
       set hogset [DictGet  $hogConfRunDict $settings]
       set defset [DictGet  $defaultRunDict $settings]
 
+      # Remove quotes from vivado properties
+      regsub -all {\"} $currset "" currset
+
       if {[string toupper $currset] != [string toupper $hogset] && ([string toupper $currset] != [string toupper $defset] || $hogset != "")} {
         if {[string first "DEFAULT" [string toupper $currset]] != -1 && $hogset == ""} {
           continue
@@ -846,7 +849,7 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
 
     #if anything remains into hogConfDict it means that something is wrong
     foreach settings [dict keys $hogConfRunDict] {
-      if {[dict exists $projRunDict $settings]==0} {
+      if {[dict exists $projRunDict [string toupper $settings]]==0} {
         if {$settings in $PROP_BAN_LIST} {
           Msg CriticalWarning "In hog.conf file the property $proj_run is set to \"$settings\". This property is usually ignored and will not be automatically rewritten when automatically recreating hog.conf."
           continue
@@ -925,7 +928,7 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
 
   #filling defaultConfDict and projConfDict
   foreach proj_simset [get_filesets *sim*] {
-    #creting dictionary for each simset
+    #creating dictionary for each simset
     set projSimDict [dict create]
     set defaultSimDict [dict create]
     #selecting only READ/WRITE properties
@@ -1028,15 +1031,45 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
       } elseif {[string toupper $currset] == [string toupper $allhogset] && [string toupper $allhogset] != ""} {
         dict set newSimDict $setting $currset
       }
-
-
+      # Check if this is the active simulation set
+      if {$simset == [current_fileset -simset]} {
+        dict set newSimDict "ACTIVE" "1" 
+      }
     }
     dict set newSimConfDict $simset $newSimDict
     dict set newSimConfDict generics $newGenericsDict
 
     #if anything remains into hogConfDict it means that something is wrong
-    foreach setting [dict keys $hogConfRunDict] {
-      if {[dict exists $projRunDict $setting]==0} {
+    foreach setting [dict keys $hogConfSimDict] {
+      set hogset [DictGet $hogConfSimDict $setting]
+      if {$setting == "ACTIVE"} {
+        if {$hogset == "1" && $simset != [current_fileset -simset]} {
+          incr SimConfErrorCnt
+          if {$options(recreate_conf) == 0} {
+            WarningAndLog "Simulation set $simset is set as active, but the actual active one in the project is [current_fileset -simset]"
+          } else {
+            Msg Info "Simulation set $simset was set as active in old sim.conf. I will set [current_fileset -simset] as active in the file instead."
+          }
+        }
+        continue
+      }
+
+      # ignore settings for other simulators
+      set other_sim_prop 0 
+      foreach simulator [GetSimulators] {
+        if {[string toupper $simulator] != [string toupper [get_property target_simulator [current_project]]]} {
+          if {[string first [string toupper $simulator] [string toupper $setting]] == 0} {
+            set other_sim_prop 1
+            break
+          }
+        }
+      }
+
+      if {$other_sim_prop == 1} {
+        continue
+      }
+
+      if {[dict exists $projSimDict [string toupper $setting]]==0 && [dict exists $projSimDict $setting]==0} {
         incr SimConfErrorCnt
         if {$options(recreate_conf) == 0} {
           WarningAndLog "sim.conf property $setting is not a valid Vivado property." $outSimFile

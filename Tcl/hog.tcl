@@ -600,7 +600,7 @@ proc ReadListFile args {
         
       } else {
         if {![file exists $srcfile]} {
-          Msg CriticalWarning "File: $srcfile (specified in $list_file) does not exist."
+          Msg CriticalWarning "File: $srcfile (from list file: $list_file) does not exist."
           continue
         }
       }
@@ -3682,10 +3682,10 @@ proc WriteGenerics {mode design date timee commit version top_hash top_ver hog_h
         foreach generic_to_set [split [string trim $generic_string]] {
             set key [lindex [split $generic_to_set "="] 0]
             if {[dict exists $generics $key]} {
-                Msg Info "Hog generic $key found in $top_name"
+                Msg Debug "Hog generic $key found in $top_name"
                 lappend filtered_generic_string "$generic_to_set"
             } else {
-                Msg Warning "Hog generic $key NOT found in $top_name"
+                Msg Warning "Generic $key is passed by Hog but is NOT present in $top_name"
             }
         }
 

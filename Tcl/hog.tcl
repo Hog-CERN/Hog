@@ -1977,25 +1977,25 @@ proc AddHogFiles { libraries properties main_libs } {
 
           # Verilog headers
           if {[lsearch -inline -regexp $props "verilog_header"] >= 0} {
-            Msg Info "Setting verilog header type for $f..."
+            Msg Debug "Setting verilog header type for $f..."
             set_property file_type {Verilog Header} [get_files $f]
           }
 
           # Not used in synthesis
           if {[lsearch -inline -regexp $props "nosynth"] >= 0} {
-            Msg Info "Setting not used in synthesis for $f..."
+            Msg Debug "Setting not used in synthesis for $f..."
             set_property -name "used_in_synthesis" -value "false" -objects $file_obj
           }
 
           # Not used in implementation
           if {[lsearch -inline -regexp $props "noimpl"] >= 0} {
-            Msg Info "Setting not used in implementation for $f..."
+            Msg Debug "Setting not used in implementation for $f..."
             set_property -name "used_in_implementation" -value "false" -objects $file_obj
           }
 
           # Not used in simulation
           if {[lsearch -inline -regexp $props "nosim"] >= 0} {
-            Msg Info "Setting not used in simulation for $f..."
+            Msg Debug "Setting not used in simulation for $f..."
             set_property -name "used_in_simulation" -value "false" -objects $file_obj
           }
 
@@ -2080,7 +2080,7 @@ proc AddHogFiles { libraries properties main_libs } {
         }
 
       }
-      Msg Info "[llength $lib_files] file/s added to $rootlib..."
+      Msg Info "[llength $lib_files] file/s added to library $rootlib..."
     } elseif {[IsQuartus] } {
       #QUARTUS ONLY
       if { $ext == ".sim"} {
@@ -3450,7 +3450,7 @@ proc SetGenericsSimulation {proj_dir target} {
     if {$sim_generics != ""} {
       foreach simset $simsets {
         set_property generic $sim_generics [get_filesets $simset]
-        Msg Info "Setting generics $sim_generics for simulator $target and simulation file-set $simset..."
+        Msg Debug "Setting generics $sim_generics for simulator $target and simulation file-set $simset..."
       }
     }
   } else {
@@ -3616,7 +3616,7 @@ proc GetFileGenerics {filename {entity ""}} {
 #
 #  @param[in]    list of variables to be written in the generics
 proc WriteGenerics {mode design date timee commit version top_hash top_ver hog_hash hog_ver cons_ver cons_hash libs vers hashes ext_names ext_hashes user_ip_repos user_ip_vers user_ip_hashes flavour {xml_ver ""} {xml_hash ""}} {
-  Msg Info "Project $design writing generics."
+  Msg Info "Passing parameters/generics to project $design's top module..."
   #####  Passing Hog generic to top file
   # set global generic variables
   set generic_string [concat \
@@ -3675,7 +3675,7 @@ proc WriteGenerics {mode design date timee commit version top_hash top_ver hog_h
 
         set generics [GetFileGenerics $top_file $top_name]
 
-        Msg Info "Found top level generics $generics in $top_file"
+        Msg Debug "Found top level generics $generics in $top_file"
 
         set filtered_generic_string ""
 
@@ -3685,7 +3685,7 @@ proc WriteGenerics {mode design date timee commit version top_hash top_ver hog_h
                 Msg Debug "Hog generic $key found in $top_name"
                 lappend filtered_generic_string "$generic_to_set"
             } else {
-                Msg Warning "Generic $key is passed by Hog but is NOT present in $top_name"
+	      Msg Warning "Generic $key is passed by Hog but is NOT present in $top_name."
             }
         }
 
@@ -3696,7 +3696,7 @@ proc WriteGenerics {mode design date timee commit version top_hash top_ver hog_h
     }
 
     set_property generic $generic_string [current_fileset]
-    Msg Info "Setting generics : $generic_string"
+    Msg Debug "Setting generics : $generic_string"
 
     if {[IsVivado]} {
       # Dealing with project generics in Simulators

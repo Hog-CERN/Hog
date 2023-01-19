@@ -156,8 +156,13 @@ else
             PRJ_SHA="${PRJ_DIR##*-hog}"
             PRJ_SHA=${PRJ_SHA/-dirty/} 
 	        TAG=$(git tag --sort=creatordate --contain "$PRJ_SHA" -l "v*.*.*" | head -1)
-            PRJ_BINS=("$(ls "$PRJ_DIR"/"${PRJ_BASE}"*)")
             echo "Hog-INFO: Found project $PRJ_NAME"
+            if ! ls "$PRJ_DIR"/"${PRJ_BASE}"* > /dev/null 2>&1; then
+                echo "Hog-INFO: Project $PRJ_NAME do not contain any bitfile..."
+                PRJ_BINS=""
+            else 
+                PRJ_BINS=("$(ls "$PRJ_DIR"/"${PRJ_BASE}"*)")
+            fi
             # shellcheck disable=SC2048
             for PRJ_BIN in ${PRJ_BINS[*]}; do
                 regex="($PRJ_NAME_BASE)-(.*v[0-9]+\.[0-9]+\.[0-9]+)-hog([0-9,a-f,A-F]{7})(-dirty)?(.+)"

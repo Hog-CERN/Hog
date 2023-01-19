@@ -98,6 +98,7 @@ if {$static == 1 } {
   set fp2 [open "$repo_path/Hog/YAML/hog-child.yml" r]
   set file_data [read $fp2]
   close $fp2
+  regsub -all {\-\-\-} $file_data "" file_data
   puts $fp $file_data
   puts $fp "\n"
   if { [ file exists "$repo_path/hog-ci-users.yml" ] == 1} {

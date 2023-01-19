@@ -653,12 +653,16 @@ proc UpgradeIP {} {
   } else {
     Msg Info "HOG_IP_PATH not set, will not push/pull synthesised IPs."
   }
-  
+
+  flush stdout
   if {$ips != ""} {
     Msg Info "Upgrading IPs if any..."
+    flush stdout
     foreach ip $ips {
       puts "upgrading $ip"
+      flush stdout
       upgrade_ip -verbose $ip
+      flush stdout
     }
   }
 }

@@ -654,11 +654,13 @@ proc UpgradeIP {} {
     Msg Info "HOG_IP_PATH not set, will not push/pull synthesised IPs."
   }
   
-  
-  #Msg Info "Upgrading IPs if any..."
-  #if {$ips != ""} {
-  #  upgrade_ip $ips
-  #}
+  if {$ips != ""} {
+    Msg Info "Upgrading IPs if any..."
+    foreach ip $ips {
+      puts "upgrading $ip"
+      upgrade_ip -verbose $ip
+    }
+  }
 }
 
 proc SetGlobalVar {var {default_value HOG_NONE}} {

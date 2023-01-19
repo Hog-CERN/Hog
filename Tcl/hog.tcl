@@ -3483,16 +3483,16 @@ proc SetGenericsSimulation {proj_dir target} {
 
 ## @brief Return the path to the active top file
 proc GetTopFile {} {
-    if {[IsVivado]} {
-        return [lindex [get_files -compile_order sources -used_in synthesis] end]
-    } elseif {[IsISE]} {
-        debug::design_graph_mgr -create [current_fileset]
-        debug::design_graph -add_fileset [current_fileset]
-        debug::design_graph -update_all
-        return [lindex [debug::design_graph -get_compile_order] end]
-    } else {
-        Msg Error "GetTopFile not yet implemented for this IDE"
-    }
+  if {[IsVivado]} {
+    return [lindex [get_files -quiet -compile_order sources -used_in synthesis] end]
+  } elseif {[IsISE]} {
+      debug::design_graph_mgr -create [current_fileset]
+      debug::design_graph -add_fileset [current_fileset]
+      debug::design_graph -update_all
+      return [lindex [debug::design_graph -get_compile_order] end]
+  } else {
+      Msg Error "GetTopFile not yet implemented for this IDE"
+  }
 }
 
 ## @brief Return the name of the active top module
@@ -3639,7 +3639,7 @@ proc GetFileGenerics {filename {entity ""}} {
 #
 #  @param[in]    list of variables to be written in the generics
 proc WriteGenerics {mode design date timee commit version top_hash top_ver hog_hash hog_ver cons_ver cons_hash libs vers hashes ext_names ext_hashes user_ip_repos user_ip_vers user_ip_hashes flavour {xml_ver ""} {xml_hash ""}} {
-  Msg Info "Project $design writing generics."
+  Msg Info "Writing the generics for project $design..."
   #####  Passing Hog generic to top file
   # set global generic variables
   set generic_string [concat \
@@ -3653,14 +3653,12 @@ proc WriteGenerics {mode design date timee commit version top_hash top_ver hog_h
                           "HOG_VER=[FormatGeneric $hog_ver]" \
                           "CON_VER=[FormatGeneric $cons_ver]" \
                           "CON_SHA=[FormatGeneric $cons_hash]"]
-  #'"
   # xml hash
   if {$xml_hash != "" && $xml_ver != ""} {
     lappend generic_string \
           "XML_VER=[FormatGeneric $xml_ver]" \
           "XML_SHA=[FormatGeneric $xml_hash]"
   }
-  #'"
   #set project specific lists
   foreach l $libs v $vers h $hashes {
     set ver "[string toupper $l]_VER=[FormatGeneric $v]"
@@ -3690,7 +3688,6 @@ proc WriteGenerics {mode design date timee commit version top_hash top_ver hog_h
 
   # Extract the generics from the top level source file 
   if {[IsXilinx]} {
-
     set top_file [GetTopFile]
     set top_name [GetTopModule]
 
@@ -3719,7 +3716,7 @@ proc WriteGenerics {mode design date timee commit version top_hash top_ver hog_h
     }
 
     set_property generic $generic_string [current_fileset]
-    Msg Info "Setting generics : $generic_string"
+    Msg Info "Setting generics: $generic_string"
 
     if {[IsVivado]} {
       # Dealing with project generics in Simulators

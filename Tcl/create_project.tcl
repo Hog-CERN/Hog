@@ -722,7 +722,7 @@ if { $::argc eq 0 && ![info exists DESIGN]} {
       set DESIGN [lindex $argv 0]
     }
   } else {
-    Msg Info "Design is parsed from project.tcl: $DESIGN"
+    Msg Info "Design is passed from project.tcl: $DESIGN"
   }
 } elseif { [IsQuartus] } {
   # Quartus

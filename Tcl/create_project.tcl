@@ -657,7 +657,7 @@ proc UpgradeIP {} {
   
   Msg Info "Upgrading IPs if any..."
   if {$ips != ""} {
-    upgrade_ip -quiet $ips
+    upgrade_ip $ips
   }
 }
 

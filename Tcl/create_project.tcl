@@ -655,10 +655,10 @@ proc UpgradeIP {} {
   }
   
   
-  Msg Info "Upgrading IPs if any..."
-  if {$ips != ""} {
-    upgrade_ip $ips
-  }
+  #Msg Info "Upgrading IPs if any..."
+  #if {$ips != ""} {
+  #  upgrade_ip $ips
+  #}
 }
 
 proc SetGlobalVar {var {default_value HOG_NONE}} {

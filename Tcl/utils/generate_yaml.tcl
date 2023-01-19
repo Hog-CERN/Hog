@@ -106,6 +106,7 @@ if {$static == 1 } {
     set fp3 [open "$repo_path/hog-ci-users.yml" r]
     set file_data [read $fp3]
     close $fp3
+    regsub -all {\-\-\-} $file_data "" file_data
     puts $fp $file_data
     puts $fp "\n"
   }

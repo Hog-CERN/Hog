@@ -158,7 +158,8 @@ else
 	        TAG=$(git tag --sort=creatordate --contain "$PRJ_SHA" -l "v*.*.*" | head -1)
             PRJ_BINS=("$(ls "$PRJ_DIR"/"${PRJ_BASE}"*)")
             echo "Hog-INFO: Found project $PRJ_NAME"
-            for PRJ_BIN in "${PRJ_BINS[@]}"; do
+            # shellcheck disable=SC2048
+            for PRJ_BIN in ${PRJ_BINS[*]}; do
                 regex="($PRJ_NAME_BASE)-(.*v[0-9]+\.[0-9]+\.[0-9]+)-hog([0-9,a-f,A-F]{7})(-dirty)?(.+)"
                 if [[ $PRJ_BIN =~ $regex ]]
                 then

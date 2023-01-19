@@ -158,7 +158,7 @@ else
 	        TAG=$(git tag --sort=creatordate --contain "$PRJ_SHA" -l "v*.*.*" | head -1)
             echo "Hog-INFO: Found project $PRJ_NAME"
             if ! ls "$PRJ_DIR"/"${PRJ_BASE}"* > /dev/null 2>&1; then
-                echo "Hog-INFO: Project $PRJ_NAME do not contain any bitfile..."
+                echo "Hog-INFO: Project $PRJ_NAME does not contain any bitfile..."
                 PRJ_BINS=""
             else 
                 PRJ_BINS=("$(ls "$PRJ_DIR"/"${PRJ_BASE}"*)")

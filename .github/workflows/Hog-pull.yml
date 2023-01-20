@@ -141,7 +141,7 @@ jobs:
             hotfix_branch=$(awk -F "=" '/HOTFIX/ {print $2}' Top/repo.conf);
             if [ "$hotfix_branch" == "" ]; then
               hotfix_branch="hotfix/";
-            fi;            
+            fi;
           fi;
           if [ "$enable_develop_branch" == "1" ]; then
             if [ "$HOG_DEVELOP_BRANCH" == "" ]; then

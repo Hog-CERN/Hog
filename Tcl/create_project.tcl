@@ -627,7 +627,7 @@ proc ConfigureProperties {} {
 
 ## @brief upgrade IPs in the project and copy them from HOG_IP_PATH if defined
 #
-proc UpgradeIP {} {
+proc ManageIPs {} {
   set tcl_path [file normalize "[file dirname [info script]]"]
   set repo_path [file normalize $tcl_path/../..]
   source $tcl_path/hog.tcl  
@@ -640,7 +640,7 @@ proc UpgradeIP {} {
   ##############
   set ips [get_ips *]
   
-  Msg Info "Running report_ip_status, before upgrading and hadnling IPs..."
+  Msg Info "Running report_ip_status, before upgrading and handling IPs..."
   report_ip_status
   
   #Pull ips from repo
@@ -652,12 +652,6 @@ proc UpgradeIP {} {
     }
   } else {
     Msg Info "HOG_IP_PATH not set, will not push/pull synthesised IPs."
-  }
-  
-  
-  Msg Info "Upgrading IPs if any..."
-  if {$ips != ""} {
-    upgrade_ip -quiet $ips
   }
 }
 
@@ -925,7 +919,8 @@ ConfigureImplementation
 ConfigureSimulation
 
 if {[IsVivado]} {
-  UpgradeIP
+  # Use HandleIP to pull IPs from HOG_IP_PATH if specified
+  ManageIPs
 }
 
 if {[IsQuartus]} {

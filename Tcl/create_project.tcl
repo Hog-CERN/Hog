@@ -696,6 +696,7 @@ set parameters {
 
 set usage "Create Vivado/ISE/Questus/Libero project.\nUsage: create_project.tcl \[OPTIONS\] <project> \n. Options:"
 
+# The DESIGN varibale is used for quartus, should be improved in the future
 if { $::argc eq 0 && ![info exists DESIGN]} {
   puts "here1"
   Msg Info [cmdline::usage $parameters $usage]
@@ -714,12 +715,23 @@ if { $::argc eq 0 && ![info exists DESIGN]} {
   # Quartus
   puts "i am in quartus"
   # Beware!! Quartus uses quartus(args) rather than argv...
-  if { [ catch {array set options [cmdline::getoptions quartus(args) $parameters $usage] }] || [lindex $quartus(args) 0] eq "" } {
+  if { [ catch {array set options [cmdline::getoptions quartus(args) $parameters $usage] } ] } {
     Msg Info [cmdline::usage $parameters $usage]
     exit 1
   }
   
-  set DESIGN [lindex $quartus(args) 0]
+  if { ![info exists DESIGN] || $DESIGN eq "" } {
+    if { [lindex $quartus(args) 0] eq "" } {
+      Msg Error "Variable DESIGN not set!"
+      Msg Info [cmdline::usage $parameters $usage]
+      exit 1
+    } else {
+      set DESIGN [lindex $quartus(args) 0]
+    }
+  } else {
+    Msg Info "Design is taken from DEISGN variable: $DESIGN"
+  }
+
 } else {
   Msg Error "Can't run outside an IDE."
   exit 1

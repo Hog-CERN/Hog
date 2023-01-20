@@ -174,18 +174,33 @@ function Launch_project(){
                 SIMLIBPATH="-simlib_path ${HOG_SIMULATION_LIB_PATH}"
             fi
         fi
-
-        if [ "$COMMAND" = "quartus_sh" ]; then
+        if [[ -z $HOG_COLORED ]]; then
+          if [ "$COMMAND" = "quartus_sh" ]; then
             ${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_quartus.tcl $HELP $NO_BITSTREAM $SYNTH_ONLY $NJOBS $CHECK_SYNTAX $RECREATE $EXT_PATH $IMPL_ONLY -project $PROJ
-        elif [ "$COMMAND" = "vivado_hls" ]; then
+          elif [ "$COMMAND" = "vivado_hls" ]; then
             Msg Error "Vivado HLS is not yet supported by this script!"
-        elif [ "$COMMAND" = "libero" ]; then
+          elif [ "$COMMAND" = "libero" ]; then
             echo "${HDL_COMPILER} ${COMMAND_OPT}$DIR/Tcl/launchers/launch_libero.tcl SCRIPT_ARGS:\"$NJOBS $CHECK_SYNTAX $RECREATE $EXT_PATH $IMPL_ONLY $SIMLIBPATH $PROJ\""
             ${HDL_COMPILER} ${COMMAND_OPT}$DIR/Tcl/launchers/launch_libero.tcl SCRIPT_ARGS:"$NJOBS $CHECK_SYNTAX $RECREATE $EXT_PATH $IMPL_ONLY $SIMLIBPATH $PROJ "
-        else
+          else
             Msg Info "${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_xilinx.tcl -tclargs $HELP $NO_RESET $NO_BITSTREAM $SYNTH_ONLY $NJOBS $RECREATE $EXT_PATH $IMPL_ONLY $SIMLIBPATH $PROJ"
             ${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_xilinx.tcl -tclargs $HELP $NO_RESET $NO_BITSTREAM $SYNTH_ONLY $NJOBS $RECREATE $EXT_PATH $IMPL_ONLY $SIMLIBPATH $PROJ
+          fi
+        else
+          if [ "$COMMAND" = "quartus_sh" ]; then
+            Logger ${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_quartus.tcl $HELP $NO_BITSTREAM $SYNTH_ONLY $NJOBS $CHECK_SYNTAX $RECREATE $EXT_PATH $IMPL_ONLY -project $PROJ
+          elif [ "$COMMAND" = "vivado_hls" ]; then
+            Msg Error "Vivado HLS is not yet supported by this script!"
+          elif [ "$COMMAND" = "libero" ]; then
+            Msg Info "${HDL_COMPILER} ${COMMAND_OPT}$DIR/Tcl/launchers/launch_libero.tcl SCRIPT_ARGS:\"$NJOBS $CHECK_SYNTAX $RECREATE $EXT_PATH $IMPL_ONLY $SIMLIBPATH $PROJ\""
+            Logger ${HDL_COMPILER} ${COMMAND_OPT}$DIR/Tcl/launchers/launch_libero.tcl SCRIPT_ARGS:"$NJOBS $CHECK_SYNTAX $RECREATE $EXT_PATH $IMPL_ONLY $SIMLIBPATH $PROJ "
+          else
+            Msg Info "${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_xilinx.tcl -tclargs $HELP $NO_RESET $NO_BITSTREAM $SYNTH_ONLY $NJOBS $RECREATE $EXT_PATH $IMPL_ONLY $SIMLIBPATH $PROJ"
+            Logger ${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_xilinx.tcl -tclargs $HELP $NO_RESET $NO_BITSTREAM $SYNTH_ONLY $NJOBS $RECREATE $EXT_PATH $IMPL_ONLY $SIMLIBPATH $PROJ
+          fi
         fi
+
+        
     else
         Msg Error "Project $PROJ not found. Possible projects are:"
         search_projects Top

@@ -142,12 +142,16 @@ jobs:
             if [ "$hotfix_branch" == "" ]; then
               hotfix_branch="hotfix/";
             fi;
+            
           fi;
           if [ "$enable_develop_branch" == "1" ]; then
+            if [ "$HOG_DEVELOP_BRANCH" == "" ]; then
+              HOG_DEVELOP_BRANCH="develop";
+            fi;
             pat="^(master|main|release.*)";
             if [[ $GITHUB_BASE_REF =~ $pat ]] || [ "$GITHUB_BASE_REF" == "$HOG_TARGET_BRANCH" ] ; then
               if [[ $GITHUB_HEAD_REF != $hotfix_branch* ]]; then
-                echo "[Hog::ERROR] The target of this MR is $GITHUB_HEAD_REF, but the source is not a hotfix branch. Please, change the name of source branch or direct the MR to $HOG_DEVELOP_BRANCH.";
+                echo "[Hog::ERROR] The target of this PR is $GITHUB_BASE_REF, but the source is not a hotfix branch. Please, change the name of source branch or direct the MR to $HOG_DEVELOP_BRANCH.";
               exit 1;
               fi;
             fi;
@@ -266,11 +270,9 @@ jobs:
                 if [ -z "${HOG_IP_PATH}" ]; then
                   if [[ -z "${HOG_IP_EOS_PATH}" ]]; then
                     echo "Hog-CI(info) - No EOS/LOCAL path for IPs defined.";
-                    export IP_PATH="";
                   else
                     echo "Hog-CI(warning) HOG_IP_EOS_PATH is deprecated, you should use HOG_IP_PATH";
                     echo "Hog-CI(info) - IPs will be copied to/from $HOG_IP_EOS_PATH.";
-                    export IP_PATH="-ip_path $HOG_IP_EOS_PATH";
                     if [[ $HOG_IP_EOS_PATH = /eos/* ]]; then
                       echo "kinit $EOS_USER@CERN.CH";
                       until echo $EOS_PASSWORD | kinit $EOS_USER@CERN.CH ; do echo "Retrying"; sleep 2; done;
@@ -278,7 +280,6 @@ jobs:
                   fi;
                 else
                   echo "Hog-CI(info) - IPs will be copied to/from $HOG_IP_PATH.";
-                  export IP_PATH="-ip_path $HOG_IP_PATH";
                   if [[ $HOG_IP_PATH = /eos/* ]]; then
                     until echo $EOS_PASSWORD | kinit $EOS_USER@CERN.CH ; do echo "Retrying"; sleep 2; done;
                   fi;
@@ -319,7 +320,7 @@ jobs:
                   echo "Hog-CI(info) - no custom files will be reset.";
                 fi;
                 echo "Hog-CI(info) - Launching workflow now...";
-                EXEC_CMD="./Hog/LaunchWorkflow.sh -njobs $HOG_NJOBS $IP_PATH $NO_BITSTREAM $ONLY_SYNTH $CHECK_SYNTAX $PROJECT_NAME";
+                EXEC_CMD="./Hog/LaunchWorkflow.sh -njobs $HOG_NJOBS $NO_BITSTREAM $ONLY_SYNTH $CHECK_SYNTAX $PROJECT_NAME";
                 if [ -z "$HOG_APPTAINER_IMAGE" ]; then
                   echo $EXEC_CMD;
                   $(echo $EXEC_CMD);

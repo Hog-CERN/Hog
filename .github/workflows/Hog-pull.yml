@@ -142,12 +142,16 @@ jobs:
             if [ "$hotfix_branch" == "" ]; then
               hotfix_branch="hotfix/";
             fi;
+            
           fi;
           if [ "$enable_develop_branch" == "1" ]; then
+            if [ "$HOG_DEVELOP_BRANCH" == "" ]; then
+              HOG_DEVELOP_BRANCH="develop";
+            fi;
             pat="^(master|main|release.*)";
             if [[ $GITHUB_BASE_REF =~ $pat ]] || [ "$GITHUB_BASE_REF" == "$HOG_TARGET_BRANCH" ] ; then
               if [[ $GITHUB_HEAD_REF != $hotfix_branch* ]]; then
-                echo "[Hog::ERROR] The target of this MR is $GITHUB_HEAD_REF, but the source is not a hotfix branch. Please, change the name of source branch or direct the MR to $HOG_DEVELOP_BRANCH.";
+                echo "[Hog::ERROR] The target of this PR is $GITHUB_BASE_REF, but the source is not a hotfix branch. Please, change the name of source branch or direct the MR to $HOG_DEVELOP_BRANCH.";
               exit 1;
               fi;
             fi;

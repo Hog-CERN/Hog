@@ -98,6 +98,7 @@ if {$static == 1 } {
   set fp2 [open "$repo_path/Hog/YAML/hog-child.yml" r]
   set file_data [read $fp2]
   close $fp2
+  regsub -all {\-\-\-} $file_data "" file_data
   puts $fp $file_data
   puts $fp "\n"
   if { [ file exists "$repo_path/hog-ci-users.yml" ] == 1} {
@@ -105,6 +106,7 @@ if {$static == 1 } {
     set fp3 [open "$repo_path/hog-ci-users.yml" r]
     set file_data [read $fp3]
     close $fp3
+    regsub -all {\-\-\-} $file_data "" file_data
     puts $fp $file_data
     puts $fp "\n"
   }
@@ -136,14 +138,11 @@ foreach proj $projects_list {
       Msg Info "$proj is set to always run, adding it to CI..."
     }
     if { [ file exists "$dir/ci.conf" ] == 1} {
-      Msg Info "Foung CI configuration file $dir/ci.conf, reading configuration for $proj..."
+      Msg Info "Found CI configuration file $dir/ci.conf, reading configuration for $proj..."
       puts $fp [ WriteGitLabCIYAML $proj $dir/ci.conf ]
     } else {
       Msg Info "No CI configuration file found ($dir/ci.conf) for $proj, creating all jobs..."
-      foreach stage $stage_list {
-        Msg Info "Adding job $stage for project: $proj..."
-        puts $fp [ WriteGitLabCIYAML $proj ]
-      }
+      puts $fp [ WriteGitLabCIYAML $proj ]    
     }
   } else {
     Msg Info "$proj was not modified since version: $ver, skipping."

@@ -80,7 +80,9 @@ proc IsTclsh {} {
   return [expr {![IsQuartus] && ![IsXilinx] && ![IsLibero] && ![IsSynplify]}]
 }
 
+## Hog message printout function
 proc Msg {level msg {title ""}} {
+  global DEBUG_MODE
   set level [string tolower $level]
   if {$level == 0 || $level == "status" || $level == "extra_info"} {
     set vlevel {STATUS}
@@ -98,9 +100,14 @@ proc Msg {level msg {title ""}} {
     set vlevel {ERROR}
     set qlevel "error"
   } elseif {$level == 5 || $level == "debug"} {
-    set vlevel {STATUS}
-    set qlevel info
-    set msg "DEBUG: $msg"
+    
+    if {[info exists DEBUG_MODE] && $DEBUG_MODE == 1} {
+	set vlevel {STATUS}
+	set qlevel info
+	set msg "::DEBUG:: $msg"
+    } else {
+      return
+    }
   } else {
     puts "Hog Error: level $level not defined"
     exit -1
@@ -517,7 +524,6 @@ proc FindVhdlVersion {file_name} {
 # Options:
 # * -lib \<library\> name of the library files will be added to, if not given will be extracted from the file name
 # * -sha_mode  if not set to 0, the list files will be added as well and the IPs will be added to the file rather than to the special ip library. The sha mode should be used when you use the lists to calculate the git SHA, rather than to add the files to the project.
-# * -verbose enable verbose messages
 #
 # @return              a list of 3 dictionaries: "libraries" has library name as keys and a list of filenames as values, "properties" has as file names as keys and a list of properties as values, main_libs has library name as keys and the correspondent top list file name as value
 #
@@ -535,7 +541,6 @@ proc ReadListFile args {
     {lib.arg ""  "The name of the library files will be added to, if not given will be extracted from the file name."}
     {main_lib.arg "" The name of the library, from the main list file}
     {sha_mode "If set, the list files will be added as well and the IPs will be added to the file rather than to the special ip library. The sha mode should be used when you use the lists to calculate the git SHA, rather than to add the files to the project."}
-    {verbose "Verbose messages"}
   }
   set usage "USAGE: ReadListFile \[options\] <list file> <path>"
   if {[catch {array set options [cmdline::getoptions args $parameters $usage]}] ||  [llength $args] != 2 } {
@@ -547,18 +552,11 @@ proc ReadListFile args {
   set sha_mode $options(sha_mode)
   set lib $options(lib)
   set main_lib $options(main_lib)
-  set verbose $options(verbose)
 
   if { $sha_mode == 1} {
     set sha_mode_opt "-sha_mode"
   } else {
     set sha_mode_opt  ""
-  }
-
-  if { $verbose == 1} {
-    set verbose_opt "-verbose"
-  } else {
-    set verbose_opt  ""
   }
 
   # if no library is given, work it out from the file name
@@ -583,9 +581,7 @@ proc ReadListFile args {
   #  Process data file
   set data [split $file_data "\n"]
   set n [llength $data]
-  if {$verbose == 1} {
-    Msg Info "$n lines read from $list_file."
-  }
+  Msg Debug "$n lines read from $list_file."
   set cnt 0
 
   foreach line $data {
@@ -599,12 +595,11 @@ proc ReadListFile args {
 
       # glob the file list for wildcards
       if {$srcfiles != $srcfile && ! [string equal $srcfiles "" ]} {
-        if {$verbose == 1} {
-          Msg Info "Wildcard source expanded from $srcfile to $srcfiles"
-        }
+	Msg Debug "Wildcard source expanded from $srcfile to $srcfiles"
+        
       } else {
         if {![file exists $srcfile]} {
-          Msg CriticalWarning "$srcfile not found in $list_file."
+          Msg CriticalWarning "File: $srcfile (from list file: $list_file) does not exist."
           continue
         }
       }
@@ -615,23 +610,19 @@ proc ReadListFile args {
           set extension [file extension $vhdlfile]
 
           if { $extension == $list_file_ext } {
-            if {$verbose == 1} {
-              Msg Info "List file $vhdlfile found in list file, recursively opening it..."
-            }
+	    Msg Debug "List file $vhdlfile found in list file, recursively opening it..."
+
             ### Set list file properties
             set prop [lrange $file_and_prop 1 end]
             set library [lindex [regexp -inline {lib\s*=\s*(.+?)\y.*} $prop] 1]
             if { $library != "" } {
-              if {$verbose == 1} {
-                Msg Info "Setting $library as library for list file $vhdlfile..."
-              }
+	      Msg Debug "Setting $library as library for list file $vhdlfile..."
+	      
             } else {
-              if {$verbose == 1} {
-                Msg Info "Setting $lib as library for list file $vhdlfile..."
-              }
+	      Msg Debug "Setting $lib as library for list file $vhdlfile..."
               set library $lib
             }
-            lassign [ReadListFile {*}"-lib $library -main_lib $main_lib $sha_mode_opt $verbose_opt $vhdlfile $path"] l p m
+            lassign [ReadListFile {*}"-lib $library -main_lib $main_lib $sha_mode_opt $vhdlfile $path"] l p m
             set libraries [MergeDict $l $libraries]
             set properties [MergeDict $p $properties]
             set main_libs [dict merge $m $main_libs]
@@ -642,18 +633,16 @@ proc ReadListFile args {
             set prop [lrange $file_and_prop 1 end]
             regsub -all " *= *" $prop "=" prop
             dict lappend properties $vhdlfile $prop
-            if {$verbose == 1} {
-              Msg Info "Adding property $prop to $vhdlfile..."
-            }
-            ### Set File Set
+	    Msg Debug "Adding property $prop to $vhdlfile..."
+            
+	    ### Set File Set
             #Adding IP library
             if {$sha_mode == 0 && [lsearch {.xci .ip .bd} $extension] >= 0} {
               dict lappend libraries "$lib.ip" $vhdlfile
               dict set main_libs "$lib.ip" "$main_lib.ip"
 
-              if {$verbose == 1} {
-                Msg Info "Appending $vhdlfile to IP list..."
-              }
+	      Msg Debug "Appending $vhdlfile to IP list..."
+
             } else {
               set m [dict create]
               dict set m $lib$ext $main_lib$ext
@@ -1158,7 +1147,7 @@ proc GetConfFiles {proj_dir} {
 #  @param[in] ext_path: path for external libraries
 #  @param[in] sim: if enabled, check the version also for the simulation files
 #
-#  @return  a list containing all the versions: global, top (project tcl file), constraints, libraries, submodules, external, ipbus xml, user ip repos
+#  @return  a list containing all the versions: global, top (hog.conf, pre and post tcl scrpts, etc.), constraints, libraries, submodules, external, ipbus xml, user ip repos
 #
 proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
   if { [catch {package require cmdline} ERROR] } {
@@ -1805,7 +1794,6 @@ proc GetProjectFiles {} {
 # * -repo_path \<repo path\> the absolute of the top directory of the repository
 # * -sha_mode forwarded to ReadListFile, see there for info
 # * -ext_path \<external path\> path for external libraries forwarded to ReadListFile
-# * -verbose enable verbose messages
 #
 # @return a list of 2 dictionaries: libraries and properties
 # - libraries has library name as keys and a list of filenames as values
@@ -1828,7 +1816,6 @@ proc GetHogFiles args {
     {repo_path.arg ""  "The absolute path of the top directory of the repository."}
     {sha_mode "Forwarded to ReadListFile, see there for info."}
     {ext_path.arg "" "Path for the external libraries forwarded to ReadListFile."}
-    {verbose  "Verbose messages"}
   }
   set usage "USAGE: GetHogFiles \[options\] <list path>"
   if {[catch {array set options [cmdline::getoptions args $parameters $usage]}] ||  [llength $args] != 1 } {
@@ -1839,18 +1826,12 @@ proc GetHogFiles args {
   set list_files $options(list_files)
   set sha_mode $options(sha_mode)
   set ext_path $options(ext_path)
-  set verbose $options(verbose)
   set repo_path $options(repo_path)
 
   if { $sha_mode == 1 } {
     set sha_mode_opt "-sha_mode"
   } else {
     set sha_mode_opt ""
-  }
-  if { $verbose==1 } {
-    set verbose_opt "-verbose"
-  } else {
-    set verbose_opt ""
   }
 
   if { $list_files == "" } {
@@ -1864,9 +1845,9 @@ proc GetHogFiles args {
   foreach f $list_files {
     set ext [file extension $f]
     if {$ext == ".ext"} {
-      lassign [ReadListFile {*}"$sha_mode_opt $verbose_opt $f $ext_path"] l p m
+      lassign [ReadListFile {*}"$sha_mode_opt  $f $ext_path"] l p m
     } else {
-      lassign [ReadListFile {*}"$sha_mode_opt $verbose_opt $f $repo_path"] l p m
+      lassign [ReadListFile {*}"$sha_mode_opt  $f $repo_path"] l p m
     }
     set libraries [MergeDict $l $libraries]
     set properties [MergeDict $p $properties]
@@ -1908,7 +1889,7 @@ proc ParseFirstLineHogFiles {list_path list_file} {
 # @param[in] libraries has library name as keys and a list of filenames as values
 # @param[in] properties has as file names as keys and a list of properties as values
 #
-proc AddHogFiles { libraries properties main_libs {verbose 0}} {
+proc AddHogFiles { libraries properties main_libs } {
   Msg Info "Adding source files to project..."
 
   foreach lib [dict keys $libraries] {
@@ -1964,7 +1945,7 @@ proc AddHogFiles { libraries properties main_libs {verbose 0}} {
                 set_property -name "file_type" -value "VHDL 2008" -objects $file_obj
               }
             } else {
-              Msg Info "Filetype is VHDL 93 for $f"
+              Msg Debug "Filetype is VHDL 93 for $f"
             }
           }
 
@@ -1972,7 +1953,7 @@ proc AddHogFiles { libraries properties main_libs {verbose 0}} {
             # ISE does not support SystemVerilog
             if {[IsVivado]} {
               set_property -name "file_type" -value "SystemVerilog" -objects $file_obj
-              Msg Info "Filetype is SystemVerilog for $f"
+              Msg Debug "Filetype is SystemVerilog for $f"
 
             } else {
               Msg Warning "Xilinx PlanAhead/ISE does not support SystemVerilog. Property not set for $f"
@@ -1989,33 +1970,31 @@ proc AddHogFiles { libraries properties main_libs {verbose 0}} {
 
           # XDC
           if {[lsearch -inline -regexp $props "XDC"] >= 0 || [file extension $f] == ".xdc"} {
-            if {$verbose == 1} {
-              Msg Info "Setting filetype XDC for $f"
-            }
+	    Msg Debug "Setting filetype XDC for $f"
             set_property -name "file_type" -value "XDC" -objects $file_obj
           }
 
           # Verilog headers
           if {[lsearch -inline -regexp $props "verilog_header"] >= 0} {
-            Msg Info "Setting verilog header type for $f..."
+            Msg Debug "Setting verilog header type for $f..."
             set_property file_type {Verilog Header} [get_files $f]
           }
 
           # Not used in synthesis
           if {[lsearch -inline -regexp $props "nosynth"] >= 0} {
-            Msg Info "Setting not used in synthesis for $f..."
+            Msg Debug "Setting not used in synthesis for $f..."
             set_property -name "used_in_synthesis" -value "false" -objects $file_obj
           }
 
           # Not used in implementation
           if {[lsearch -inline -regexp $props "noimpl"] >= 0} {
-            Msg Info "Setting not used in implementation for $f..."
+            Msg Debug "Setting not used in implementation for $f..."
             set_property -name "used_in_implementation" -value "false" -objects $file_obj
           }
 
           # Not used in simulation
           if {[lsearch -inline -regexp $props "nosim"] >= 0} {
-            Msg Info "Setting not used in simulation for $f..."
+            Msg Debug "Setting not used in simulation for $f..."
             set_property -name "used_in_simulation" -value "false" -objects $file_obj
           }
 
@@ -2045,9 +2024,8 @@ proc AddHogFiles { libraries properties main_libs {verbose 0}} {
           if {[lsearch -inline -regexp $props "wavefile"] >= 0} {
             Msg Warning "Setting a wave do file from simulation list files will be deprecated in future Hog releases. Please consider setting this property in the sim.conf file, by adding the following line under the \[$file_set\] section.\n<simulator_name>.simulate.custom_wave_do=[file tail $f]"
 
-            if {$verbose == 1} {
-              Msg Info "Setting $f as wave do file for simulation file set $file_set..."
-            }
+	    Msg Debug "Setting $f as wave do file for simulation file set $file_set..."
+
             # check if file exists...
             if {[file exists $f]} {
               foreach simulator [GetSimulators] {
@@ -2061,9 +2039,8 @@ proc AddHogFiles { libraries properties main_libs {verbose 0}} {
           #Do file
           if {[lsearch -inline -regexp $props "dofile"] >= 0} {
             Msg Warning "Setting a custom do file from simulation list files will be deprecated in future Hog releases. Please consider setting this property in the sim.conf file, by adding the following line under the \[$file_set\] section.\n<simulator_name>.simulate.custom_do=[file tail $f]"
-            if {$verbose == 1} {
-              Msg Info "Setting $f as do file for simulation file set $file_set..."
-            }
+	    Msg Debug "Setting $f as do file for simulation file set $file_set..."
+
             if {[file exists $f]} {
               foreach simulator [GetSimulators] {
                 set_property "$simulator.simulate.custom_udo" [file tail $f] [get_filesets $file_set]
@@ -2102,7 +2079,7 @@ proc AddHogFiles { libraries properties main_libs {verbose 0}} {
         }
 
       }
-      Msg Info "[llength $lib_files] file/s added to $rootlib..."
+      Msg Info "[llength $lib_files] file/s added to library $rootlib..."
     } elseif {[IsQuartus] } {
       #QUARTUS ONLY
       if { $ext == ".sim"} {
@@ -3265,7 +3242,7 @@ proc IsRelativePath {path} {
 
 # Check Git Version when sourcing hog.tcl
 if {[GitVersion 2.7.2] == 0 } {
-  Msg CriticalWarning "Found Git version older than 2.7.2. Hog might not work as expected.\n"
+  Msg Error "Found Git version older than 2.7.2. Hog will not work as expected, exiting now."
 }
 
 
@@ -3466,32 +3443,35 @@ proc SetGenericsSimulation {proj_dir target} {
   set read_aux [GetConfFiles $top_dir]
   set sim_cfg_index [lsearch -regexp -index 0 $read_aux ".*sim.conf"]
   set sim_cfg_index [lsearch -regexp -index 0 [GetConfFiles $top_dir] ".*sim.conf"]
-  if {[file exists $top_dir/sim.conf]} {
-    set simsets [get_filesets -quiet *_sim]
-    set sim_generics [GetGenericFromConf $proj_dir $target 1]
-    if {$sim_generics != ""} {
-      foreach simset $simsets {
-        set_property generic $sim_generics [get_filesets $simset]
-        Msg Info "Setting generics $sim_generics for simulator $target and simulation file-set $simset..."
+  set simsets [get_filesets -quiet *_sim]
+
+  if { $simsets != "" } {
+    if {[file exists $top_dir/sim.conf]} {
+      set sim_generics [GetGenericFromConf $proj_dir $target 1]
+      if {$sim_generics != ""} {
+	foreach simset $simsets {
+	  set_property generic $sim_generics [get_filesets $simset]
+	  Msg Debug "Setting generics $sim_generics for simulator $target and simulation file-set $simset..."
+	}
       }
+    } else {
+      Msg Warning "Simulation sets are present in the project but no sim.conf found in $top_dir. Please refer to Hog's manual to create one."
     }
-  } else {
-    Msg warning "No sim.conf found in project Top"
   }
 }
 
 ## @brief Return the path to the active top file
 proc GetTopFile {} {
-    if {[IsVivado]} {
-        return [lindex [get_files -compile_order sources -used_in synthesis] end]
-    } elseif {[IsISE]} {
-        debug::design_graph_mgr -create [current_fileset]
-        debug::design_graph -add_fileset [current_fileset]
-        debug::design_graph -update_all
-        return [lindex [debug::design_graph -get_compile_order] end]
-    } else {
-        Msg Error "GetTopFile not yet implemented for this IDE"
-    }
+  if {[IsVivado]} {
+    return [lindex [get_files -quiet -compile_order sources -used_in synthesis] end]
+  } elseif {[IsISE]} {
+      debug::design_graph_mgr -create [current_fileset]
+      debug::design_graph -add_fileset [current_fileset]
+      debug::design_graph -update_all
+      return [lindex [debug::design_graph -get_compile_order] end]
+  } else {
+      Msg Error "GetTopFile not yet implemented for this IDE"
+  }
 }
 
 ## @brief Return the name of the active top module
@@ -3638,7 +3618,7 @@ proc GetFileGenerics {filename {entity ""}} {
 #
 #  @param[in]    list of variables to be written in the generics
 proc WriteGenerics {mode design date timee commit version top_hash top_ver hog_hash hog_ver cons_ver cons_hash libs vers hashes ext_names ext_hashes user_ip_repos user_ip_vers user_ip_hashes flavour {xml_ver ""} {xml_hash ""}} {
-  Msg Info "Project $design writing generics."
+  Msg Info "Passing parameters/generics to project $design's top module..."
   #####  Passing Hog generic to top file
   # set global generic variables
   set generic_string [concat \
@@ -3652,14 +3632,12 @@ proc WriteGenerics {mode design date timee commit version top_hash top_ver hog_h
                           "HOG_VER=[FormatGeneric $hog_ver]" \
                           "CON_VER=[FormatGeneric $cons_ver]" \
                           "CON_SHA=[FormatGeneric $cons_hash]"]
-  #'"
   # xml hash
   if {$xml_hash != "" && $xml_ver != ""} {
     lappend generic_string \
           "XML_VER=[FormatGeneric $xml_ver]" \
           "XML_SHA=[FormatGeneric $xml_hash]"
   }
-  #'"
   #set project specific lists
   foreach l $libs v $vers h $hashes {
     set ver "[string toupper $l]_VER=[FormatGeneric $v]"
@@ -3689,7 +3667,6 @@ proc WriteGenerics {mode design date timee commit version top_hash top_ver hog_h
 
   # Extract the generics from the top level source file 
   if {[IsXilinx]} {
-
     set top_file [GetTopFile]
     set top_name [GetTopModule]
 
@@ -3697,17 +3674,17 @@ proc WriteGenerics {mode design date timee commit version top_hash top_ver hog_h
 
         set generics [GetFileGenerics $top_file $top_name]
 
-        Msg Info "Found top level generics $generics in $top_file"
+        Msg Debug "Found top level generics $generics in $top_file"
 
         set filtered_generic_string ""
 
         foreach generic_to_set [split [string trim $generic_string]] {
             set key [lindex [split $generic_to_set "="] 0]
             if {[dict exists $generics $key]} {
-                Msg Info "Hog generic $key found in $top_name"
+                Msg Debug "Hog generic $key found in $top_name"
                 lappend filtered_generic_string "$generic_to_set"
             } else {
-                Msg Warning "Hog generic $key NOT found in $top_name"
+	      Msg Warning "Generic $key is passed by Hog but is NOT present in $top_name."
             }
         }
 
@@ -3718,7 +3695,7 @@ proc WriteGenerics {mode design date timee commit version top_hash top_ver hog_h
     }
 
     set_property generic $generic_string [current_fileset]
-    Msg Info "Setting generics : $generic_string"
+    Msg Info "Setting generics: $generic_string"
 
     if {[IsVivado]} {
       # Dealing with project generics in Simulators

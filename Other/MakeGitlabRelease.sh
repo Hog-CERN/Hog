@@ -88,7 +88,7 @@ else
         continue
       fi
       IFS=' '
-      LINKS="($line)"
+      LINKS=($line) # convert line into an array
       ext="${LINKS[1]##*.}"
       DESC=$DESC"\n- [${LINKS[0]}.$ext](${LINKS[1]})"
     done <"$input"

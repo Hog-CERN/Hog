@@ -306,7 +306,7 @@ proc ConfigureSynthesis {} {
        configure_tool -name {SYNTHESIZE} -params SYNPLIFY_TCL_FILE:$globalSettings::pre_synth
     }
 
-    Msg Info "Setting $globalSettings::pre_synth to be run before synthesis"
+    Msg Debug "Setting $globalSettings::pre_synth to be run before synthesis"
   }
 
   ## set post synthesis script
@@ -324,7 +324,7 @@ proc ConfigureSynthesis {} {
       set_global_assignment -name POST_MODULE_SCRIPT_FILE quartus_sh:$globalSettings::quartus_post_module
 
     }
-    Msg Info "Setting $globalSettings::post_synth to be run after synthesis"
+    Msg Debug "Setting $globalSettings::post_synth to be run after synthesis"
   }
 
 
@@ -336,7 +336,7 @@ proc ConfigureSynthesis {} {
     ## Report Strategy
     if {[string equal [get_property -quiet report_strategy $obj] ""]} {
       # No report strategy needed
-      Msg Info "No report strategy needed for synthesis"
+      Msg Debug "No report strategy needed for synthesis"
 
     } else {
       # Report strategy needed since version 2017.3
@@ -400,7 +400,7 @@ proc ConfigureImplementation {} {
       #set_global_assignment -name PRE_FLOW_SCRIPT_FILE quartus_sh:$globalSettings::pre_impl
 
     }
-    Msg info "Setting $globalSettings::pre_impl to be run after implementation"
+    Msg Debug "Setting $globalSettings::pre_impl to be run after implementation"
   }
 
 
@@ -418,7 +418,8 @@ proc ConfigureImplementation {} {
       #QUARTUS only
       set_global_assignment -name POST_MODULE_SCRIPT_FILE quartus_sh:$globalSettings::quartus_post_module
     }
-    Msg info "Setting ${globalSettings::post_impl} to be run after implementation" 
+    # Msg info "Setting ${globalSettings::post_impl} to be run after implementation" 
+    Msg Debug "Setting $globalSettings::post_impl to be run after implementation" 
   }
 
   ## set pre write bitstream script
@@ -436,7 +437,7 @@ proc ConfigureImplementation {} {
       #set_global_assignment -name PRE_FLOW_SCRIPT_FILE quartus_sh:$globalSettings::pre_bit
 
     }
-    Msg info "Setting $globalSettings::pre_bit to be run after bitfile generation"
+    Msg Debug "Setting $globalSettings::pre_bit to be run after bitfile generation"
   }
 
   ## set post write bitstream script
@@ -453,7 +454,7 @@ proc ConfigureImplementation {} {
       #QUARTUS only
       set_global_assignment -name POST_MODULE_SCRIPT_FILE quartus_sh:$globalSettings::quartus_post_module
     }
-    Msg info "Setting $globalSettings::post_bit to be run after bitfile generation"
+    Msg Debug "Setting $globalSettings::post_bit to be run after bitfile generation"
   }
 
   CreateReportStrategy $obj
@@ -467,7 +468,7 @@ proc ConfigureSimulation {} {
     ##############
     # SIMULATION #
     ##############
-    Msg Info "Setting load_glbl parameter to true for every fileset..."
+    Msg Debug "Setting load_glbl parameter to true for every fileset..."
     foreach simset [get_filesets -quiet *_sim] {
       set_property -name {xsim.elaborate.load_glbl} -value {true} -objects [get_filesets $simset]
       # Setting Simulation Properties
@@ -480,16 +481,16 @@ proc ConfigureSimulation {} {
             Msg Info "Setting $simset as active simulation set..."
             current_fileset -simset [ get_filesets $simset ]
           } else {
-            Msg Info "Setting $prop_name = $prop_val"
+            Msg Debug "Setting $prop_name = $prop_val"
             set_property $prop_name $prop_val [get_filesets $simset]
           }
         }
       }
       if {[dict exists $globalSettings::SIM_PROPERTIES sim]} {
-        Msg Info "Setting properties for simulation set: $simset..."
+        Msg Info "Setting properties for simulation set: sim..."
         set sim_props [dict get $globalSettings::SIM_PROPERTIES sim]
         dict for {prop_name prop_val} $sim_props {
-          Msg Info "Setting $prop_name = $prop_val"
+          Msg Debug "Setting $prop_name = $prop_val"
           set_property $prop_name $prop_val [get_filesets $simset]
         }
       }
@@ -520,7 +521,7 @@ proc ConfigureProperties {} {
         dict for {prop_name prop_val} $proj_props {
 
           if { [ string tolower $prop_name ] != "ip_repo_paths" } {
-            Msg Info "Setting $prop_name = $prop_val"
+            Msg Debug "Setting $prop_name = $prop_val"
             set_property $prop_name $prop_val [current_project]
           } else {
             set ip_repo_list [regsub -all {\s+} $prop_val " $globalSettings::repo_path/"]
@@ -543,7 +544,7 @@ proc ConfigureProperties {} {
           set run_props [dict get $globalSettings::PROPERTIES $run]
           #set_property -dict $run_props $run
           set stragety_str "STRATEGY strategy Strategy"
-          Msg Info "Setting Strategy and Flow for run $run (if specified in hog.conf)"
+          Msg Debug "Setting Strategy and Flow for run $run (if specified in hog.conf)"
           foreach s $stragety_str {
             if {[dict exists $run_props $s]} {
               set prop [dict get $run_props $s]
@@ -555,7 +556,7 @@ proc ConfigureProperties {} {
           }
 
           dict for {prop_name prop_val} $run_props {
-            Msg Info "Setting $prop_name = $prop_val"
+            Msg Debug "Setting $prop_name = $prop_val"
             set_property $prop_name $prop_val $run
           }
         }
@@ -574,7 +575,7 @@ proc ConfigureProperties {} {
         set dev_props [dict get $globalSettings::PROPERTIES main]
         dict for {prop_name prop_val} $dev_props {
           if { !([string toupper $prop_name] in $globalSettings::LIBERO_MANDATORY_VARIABLES) } {
-            Msg Info "Setting $prop_name = $prop_val"
+            Msg Debug "Setting $prop_name = $prop_val"
             set_device -[string tolower $prop_name] $prop_val
           }
         }
@@ -584,7 +585,7 @@ proc ConfigureProperties {} {
         Msg Info "Setting project-wide properties..."
         set dev_props [dict get $globalSettings::PROPERTIES project]
         dict for {prop_name prop_val} $dev_props {
-          Msg Info "Setting $prop_name = $prop_val"
+          Msg Debug "Setting $prop_name = $prop_val"
           project_settings -[string tolower $prop_name] $prop_val
         }
       }
@@ -593,7 +594,7 @@ proc ConfigureProperties {} {
         Msg Info "Setting Synthesis properties..."
         set synth_props [dict get $globalSettings::PROPERTIES synth]
         dict for {prop_name prop_val} $synth_props {
-          Msg Info "Setting $prop_name = $prop_val"
+          Msg Debug "Setting $prop_name = $prop_val"
           configure_tool -name {SYNTHESIZE} -params "[string toupper $prop_name]:$prop_val"
         }
       }
@@ -602,7 +603,7 @@ proc ConfigureProperties {} {
         Msg Info "Setting Implementation properties..."
         set impl_props [dict get $globalSettings::PROPERTIES impl]
         dict for {prop_name prop_val} $impl_props {
-          Msg Info "Setting $prop_name = $prop_val"
+          Msg Debug "Setting $prop_name = $prop_val"
           configure_tool -name {PLACEROUTE} -params "[string toupper $prop_name]:$prop_val"
         }
       }
@@ -612,7 +613,7 @@ proc ConfigureProperties {} {
         Msg Info "Setting Bitstream properties..."
         set impl_props [dict get $globalSettings::PROPERTIES impl]
         dict for {prop_name prop_val} $impl_props {
-          Msg Info "Setting $prop_name = $prop_val"
+          Msg Debug "Setting $prop_name = $prop_val"
           configure_tool -name {GENERATEPROGRAMMINGFILE} -params "[string toupper $prop_name]:$prop_val"
         }
       }
@@ -627,7 +628,7 @@ proc ConfigureProperties {} {
 
 ## @brief upgrade IPs in the project and copy them from HOG_IP_PATH if defined
 #
-proc UpgradeIP {} {
+proc ManageIPs {} {
   set tcl_path [file normalize "[file dirname [info script]]"]
   set repo_path [file normalize $tcl_path/../..]
   source $tcl_path/hog.tcl  
@@ -640,7 +641,7 @@ proc UpgradeIP {} {
   ##############
   set ips [get_ips *]
   
-  Msg Info "Running report_ip_status, before upgrading and hadnling IPs..."
+  Msg Info "Running report_ip_status, before upgrading and handling IPs..."
   report_ip_status
   
   #Pull ips from repo
@@ -653,18 +654,12 @@ proc UpgradeIP {} {
   } else {
     Msg Info "HOG_IP_PATH not set, will not push/pull synthesised IPs."
   }
-  
-  
-  Msg Info "Upgrading IPs if any..."
-  if {$ips != ""} {
-    upgrade_ip -quiet $ips
-  }
 }
 
 proc SetGlobalVar {var {default_value HOG_NONE}} {
   ##nagelfar ignore
   if {[info exists ::$var]} {
-    Msg Info "Setting $var to [subst $[subst ::$var]]"
+    Msg Debug "Setting $var to [subst $[subst ::$var]]"
     ##nagelfar ignore
     set globalSettings::$var [subst $[subst ::$var]]
   } elseif {$default_value == "HOG_NONE"} {
@@ -700,36 +695,30 @@ set parameters {
   {simlib_path.arg  "" "Path of simulation libs"}
 }
 
-set usage   "Create Vivado/Quartus project. If no project is given, will expect the name of the project defined in a variable called DESIGN.\nUsage: $::argv0 \[OPTIONS\] <project> \n. Options:"
+set usage "Create Vivado/ISE/Questus/Libero project.\nUsage: create_project.tcl \[OPTIONS\] <project> \n. Options:"
 
-puts $argv
-
+# The DESIGN varibale is used for quartus, should be improved in the future
 if { $::argc eq 0 && ![info exists DESIGN]} {
   Msg Info [cmdline::usage $parameters $usage]
   exit 1
-} elseif {[IsXilinx]} {
-  # Vivado and ISE
-  if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] } {
+
+} elseif {[IsXilinx] || [IsLibero]} {
+  # Libero, Vivado and ISE
+  if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] || [lindex $argv 0] eq ""} {
     Msg Info [cmdline::usage $parameters $usage]
     exit 1
   }
-  if { ![info exists DESIGN] || $DESIGN eq "" } {
-    if { [lindex $argv 0] eq "" } {
-      Msg Error "Variable DESIGN not set!"
-      Msg Info [cmdline::usage $parameters $usage]
-      exit 1
-    } else {
-      set DESIGN [lindex $argv 0]
-    }
-  } else {
-    Msg Info "Design is parsed from project.tcl: $DESIGN"
-  }
+
+  set DESIGN [lindex $argv 0]
+
 } elseif { [IsQuartus] } {
   # Quartus
+  # Beware!! Quartus uses quartus(args) rather than argv...
   if { [ catch {array set options [cmdline::getoptions quartus(args) $parameters $usage] } ] } {
     Msg Info [cmdline::usage $parameters $usage]
     exit 1
   }
+  
   if { ![info exists DESIGN] || $DESIGN eq "" } {
     if { [lindex $quartus(args) 0] eq "" } {
       Msg Error "Variable DESIGN not set!"
@@ -739,27 +728,11 @@ if { $::argc eq 0 && ![info exists DESIGN]} {
       set DESIGN [lindex $quartus(args) 0]
     }
   } else {
-    Msg Info "Design is parsed from project.tcl: $DESIGN"
+    Msg Info "Design is taken from DEISGN variable: $DESIGN"
   }
-} elseif { [IsLibero] } {
-  # Libero
-  if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] } {
-    Msg Info [cmdline::usage $parameters $usage]
-    exit 1
-  }
-  if { ![info exists DESIGN] || $DESIGN eq "" } {
-    if { [lindex $argv 0] eq "" } {
-      Msg Error "Variable DESIGN not set!"
-      Msg Info [cmdline::usage $parameters $usage]
-      exit 1
-    } else {
-      set DESIGN [lindex $argv 0]
-    }
-  } else {
-    Msg Info "Design is parsed from project.tcl: $DESIGN"
-  }
+
 } else {
-  Msg Error "Not under Vivado, ISE or Quartus... Aborting!"
+  Msg Error "Can't run outside an IDE."
   exit 1
 }
 
@@ -925,7 +898,8 @@ ConfigureImplementation
 ConfigureSimulation
 
 if {[IsVivado]} {
-  UpgradeIP
+  # Use HandleIP to pull IPs from HOG_IP_PATH if specified
+  ManageIPs
 }
 
 if {[IsQuartus]} {
@@ -982,4 +956,4 @@ if {[IsXilinx]} {
   cd $old_path
 }
 
-Msg Info "Project $DESIGN created successfully in $globalSettings::build_dir."
+Msg Info "Project $DESIGN created successfully in [Relative $repo_path $globalSettings::build_dir]."

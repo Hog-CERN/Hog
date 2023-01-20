@@ -619,7 +619,7 @@ function print_hog() {
   cat ./images/hog_logo.txt
   echo " Version: ${ver}"
   echo
-  cd - || exit >> /dev/null
+  cd "${OLDPWD}" || exit >> /dev/null
   HogVer "$1"
 
   return 0
@@ -719,7 +719,7 @@ function HogVer() {
     fi
 
   fi
-  cd - || exit >> /dev/null
+  cd ${OLDPWD} || exit >> /dev/null
 }
 
 

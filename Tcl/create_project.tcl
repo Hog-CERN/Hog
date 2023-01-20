@@ -712,7 +712,7 @@ if { $::argc eq 0 && ![info exists DESIGN]} {
 } elseif { [IsQuartus] } {
   # Quartus
   # Beware!! Quartus uses quartus(args) rather than argv...
-  if { [ catch {array set options [cmdline::getoptions quartus(args) $parameters $usage] }] && [lindex $quartus(args) 0] eq "" } {
+  if { [ catch {array set options [cmdline::getoptions quartus(args) $parameters $usage] }] || [lindex $quartus(args) 0] eq "" } {
     Msg Info [cmdline::usage $parameters $usage]
     exit 1
   }

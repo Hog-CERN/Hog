@@ -1148,7 +1148,7 @@ proc GetConfFiles {proj_dir} {
 #  @param[in] ext_path: path for external libraries
 #  @param[in] sim: if enabled, check the version also for the simulation files
 #
-#  @return  a list containing all the versions: global, top (project tcl file), constraints, libraries, submodules, external, ipbus xml, user ip repos
+#  @return  a list containing all the versions: global, top (hog.conf, pre and post tcl scrpts, etc.), constraints, libraries, submodules, external, ipbus xml, user ip repos
 #
 proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
   if { [catch {package require cmdline} ERROR] } {

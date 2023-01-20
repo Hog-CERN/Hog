@@ -694,66 +694,32 @@ set parameters {
   {simlib_path.arg  "" "Path of simulation libs"}
 }
 
-set usage   "Create Vivado/Quartus project. If no project is given, will expect the name of the project defined in a variable called DESIGN.\nUsage: $::argv0 \[OPTIONS\] <project> \n. Options:"
-
-puts $argv
+set usage "Create Vivado/ISE/Questus/Libero project.\nUsage: create_project.tcl \[OPTIONS\] <project> \n. Options:"
 
 if { $::argc eq 0 && ![info exists DESIGN]} {
   Msg Info [cmdline::usage $parameters $usage]
   exit 1
-} elseif {[IsXilinx]} {
-  # Vivado and ISE
-  if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] } {
+
+} elseif {[IsXilinx] || [IsLibero]} {
+  # Libero, Vivado and ISE
+  if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] || [lindex $argv 0] eq ""} {
     Msg Info [cmdline::usage $parameters $usage]
     exit 1
   }
-  if { ![info exists DESIGN] || $DESIGN eq "" } {
-    if { [lindex $argv 0] eq "" } {
-      Msg Error "Variable DESIGN not set!"
-      Msg Info [cmdline::usage $parameters $usage]
-      exit 1
-    } else {
-      set DESIGN [lindex $argv 0]
-    }
-  } else {
-    Msg Info "Design is passed from project.tcl: $DESIGN"
-  }
+
+  set DESIGN [lindex $argv 0]
+
 } elseif { [IsQuartus] } {
   # Quartus
-  if { [ catch {array set options [cmdline::getoptions quartus(args) $parameters $usage] } ] } {
+  # Beware!! Quartus uses quartus(args) rather than argv...
+  if { [ catch {array set options [cmdline::getoptions quartus(args) $parameters $usage] }] && [lindex $quartus(args) 0] eq "" } {
     Msg Info [cmdline::usage $parameters $usage]
     exit 1
   }
-  if { ![info exists DESIGN] || $DESIGN eq "" } {
-    if { [lindex $quartus(args) 0] eq "" } {
-      Msg Error "Variable DESIGN not set!"
-      Msg Info [cmdline::usage $parameters $usage]
-      exit 1
-    } else {
-      set DESIGN [lindex $quartus(args) 0]
-    }
-  } else {
-    Msg Info "Design is parsed from project.tcl: $DESIGN"
-  }
-} elseif { [IsLibero] } {
-  # Libero
-  if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] } {
-    Msg Info [cmdline::usage $parameters $usage]
-    exit 1
-  }
-  if { ![info exists DESIGN] || $DESIGN eq "" } {
-    if { [lindex $argv 0] eq "" } {
-      Msg Error "Variable DESIGN not set!"
-      Msg Info [cmdline::usage $parameters $usage]
-      exit 1
-    } else {
-      set DESIGN [lindex $argv 0]
-    }
-  } else {
-    Msg Info "Design is parsed from project.tcl: $DESIGN"
-  }
+  
+  set DESIGN [lindex $quartus(args) 0]
 } else {
-  Msg Error "Not under Vivado, ISE or Quartus... Aborting!"
+  Msg Error "Can't run outside an IDE."
   exit 1
 }
 

@@ -698,7 +698,6 @@ set usage "Create Vivado/ISE/Questus/Libero project.\nUsage: create_project.tcl 
 
 # The DESIGN varibale is used for quartus, should be improved in the future
 if { $::argc eq 0 && ![info exists DESIGN]} {
-  puts "here1"
   Msg Info [cmdline::usage $parameters $usage]
   exit 1
 
@@ -713,7 +712,6 @@ if { $::argc eq 0 && ![info exists DESIGN]} {
 
 } elseif { [IsQuartus] } {
   # Quartus
-  puts "i am in quartus"
   # Beware!! Quartus uses quartus(args) rather than argv...
   if { [ catch {array set options [cmdline::getoptions quartus(args) $parameters $usage] } ] } {
     Msg Info [cmdline::usage $parameters $usage]

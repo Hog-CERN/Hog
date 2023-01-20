@@ -697,6 +697,7 @@ set parameters {
 set usage "Create Vivado/ISE/Questus/Libero project.\nUsage: create_project.tcl \[OPTIONS\] <project> \n. Options:"
 
 if { $::argc eq 0 && ![info exists DESIGN]} {
+  puts "here1"
   Msg Info [cmdline::usage $parameters $usage]
   exit 1
 
@@ -711,6 +712,7 @@ if { $::argc eq 0 && ![info exists DESIGN]} {
 
 } elseif { [IsQuartus] } {
   # Quartus
+  puts "i am in quartus"
   # Beware!! Quartus uses quartus(args) rather than argv...
   if { [ catch {array set options [cmdline::getoptions quartus(args) $parameters $usage] }] || [lindex $quartus(args) 0] eq "" } {
     Msg Info [cmdline::usage $parameters $usage]

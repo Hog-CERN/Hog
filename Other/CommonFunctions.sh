@@ -165,7 +165,7 @@ function log_stdout(){
           *'ERROR:'* | *'Error:'* | *':Error'* | *'error:'* | *'Error '* | *'FATAL ERROR'*)
             if [[ -n "$HOG_COLORED" ]]; then
               if [ $echo_info == 1 ]; then 
-                echo -e "$txtylw WARNING $txtwht: ${line#*@(ERROR:|Error:)} "; 
+                echo -e "$txtred ERROR $txtwht: ${line#*@(ERROR:|Error:)} "; 
               fi
               if [[ -z $HOG_LOGGER ]]; then
                 if [[ -z $logwarningfile ]]; then 
@@ -242,11 +242,11 @@ function log_stdout(){
 # 
 # @param[in] execution line to process
 function Logger(){
-  Msg Debug "Logger : $*"
-  Msg Debug "Logger : $0"
-  Msg Debug "$(dirname $0)"
-  Msg Debug "$(pwd)"
-  cd ..
+  Msg Debug "L* : Logger : $*"
+  Msg Debug "L0 : Logger : $0"
+  Msg Debug "dirname : $(dirname $0)"
+  Msg Debug "pwd : $(pwd)"
+  # cd ..
   # print_hog "$(dirname "$0")"
   # exit
   {
@@ -268,7 +268,7 @@ function Logger(){
   log_stdout "stdout" "LogColorVivado : $*"
   log_stdout "stderr" "LogColorVivado : $*"
   cd Top
-  Msg Debug "$(pwd)"
+  Msg Debug "PWD2 : $(pwd)"
   $* > >(log_stdout "stdout") 2> >(log_stdout "stderr" >&2)
 }
 
@@ -345,7 +345,7 @@ function Msg() {
   "Error")
     if [[ -n "$HOG_COLORED" ]]; then
       if [ $echo_info == 1 ]; then 
-        echo -e "$txtblu   ERROR $txtwht: HOG [${FUNCNAME[1]}] : $text "; 
+        echo -e "$txtred   ERROR $txtwht: HOG [${FUNCNAME[1]}] : $text "; 
       fi
       if [[ -z $HOG_LOGGER ]]; then
         if [[ -z $loginfofile ]]; then 

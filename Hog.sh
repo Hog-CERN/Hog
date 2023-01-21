@@ -38,44 +38,49 @@ function help_Unic() {
   echo "    -W / Workflow"
   echo "    -S / Simulation"
   echo " ---------------------------"
+  echo " EXAMPLES:"
+  echo " "
+  echo "./Hog/Hog.sh -h      : Print this help message"
+  echo "./Hog/Hog.sh -C -h   : Print Project Creator help"
+  echo ""
   exit 0
 }
 
-function help_Init() {
-  echo
-  echo " Hog - Initialise repository"
-  echo " ---------------------------"
-  echo " Initialise your Hog-handled firmware repository"
-  echo " - (optional) Compile questasim/modelsim/riviera libraries (if questasim executable is found)"
-  echo " - (optional) Create vivado projects (if vivado executable is found)"
-  echo
-  exit 0
-}
+# function help_Init() {
+#   echo
+#   echo " Hog - Initialise repository"
+#   echo " ---------------------------"
+#   echo " Initialise your Hog-handled firmware repository"
+#   echo " - (optional) Compile questasim/modelsim/riviera libraries (if questasim executable is found)"
+#   echo " - (optional) Create vivado projects (if vivado executable is found)"
+#   echo
+#   exit 0
+# }
 
-function help_Create() {
-  echo
-  echo " Hog - Create HDL project"
-  echo " ---------------------------"
-  echo " Create the specified Vivado, Quartus or PlanAhead project"
-  echo 
-  echo " The project type is selected using the first line of the hog.conf generating the project"
-  echo " Following options are available: "
-  echo " #vivado "
-  echo " #quartus "
-  echo " #planahead "
-  echo
-  echo " Usage: $1 <project name> [OPTIONS]"
-  echo " Options:"
-  echo "          -l/--lib  <sim_lib_path>  Path to simulation library. If not defined it will be set to the HOG_SIMULATION_LIB_PATH environmental library, or if this does not exist to the default $(pwd)/SimulationLib"
-  echo
-  echo " Hint: Hog accepts as <project name> both the actual project name and the relative path containing the project configuration. E.g. ./Hog/CreateProject.sh Top/myproj or ./Hog/CreateProject.sh myproj"
-  exit 0
-}
-
-
+# function help_Create() {
+#   echo
+#   echo " Hog - Create HDL project"
+#   echo " ---------------------------"
+#   echo " Create the specified Vivado, Quartus or PlanAhead project"
+#   echo 
+#   echo " The project type is selected using the first line of the hog.conf generating the project"
+#   echo " Following options are available: "
+#   echo " #vivado "
+#   echo " #quartus "
+#   echo " #planahead "
+#   echo
+#   echo " Usage: $1 <project name> [OPTIONS]"
+#   echo " Options:"
+#   echo "          -l/--lib  <sim_lib_path>  Path to simulation library. If not defined it will be set to the HOG_SIMULATION_LIB_PATH environmental library, or if this does not exist to the default $(pwd)/SimulationLib"
+#   echo
+#   echo " Hint: Hog accepts as <project name> both the actual project name and the relative path containing the project configuration. E.g. ./Hog/CreateProject.sh Top/myproj or ./Hog/CreateProject.sh myproj"
+#   exit 0
+# }
 
 
-arguments=$*
+
+
+# arguments=$*
 new_print_hog $(dirname "$0")
 # Logger HogVer $(dirname "$0")
 
@@ -89,38 +94,46 @@ if [ $# == 0 ]; then
   return 1
 else 
   #Check if help vist 
-  if [[ "$*" == *"-h"* ]] || [[ "$*" == *"-help"* ]]; then
-    help_Unic
-    exit 0
-  fi
+  # if [[ "$*" == *"-h"* ]] || [[ "$*" == *"-help"* ]]; then
+  #   help_Unic
+  #   exit 0
+  # fi
   #Check if help vist 
-  if [[ "$*" == *"-v"* ]] || [[ "$*" == *"-verbose"* ]]; then
+  args="$@"
+  if [[ "$*" == *"-v"* ]] || [[ "$*" == *"--verbose"* ]]; then
     Msg Debug "Verbose level"
     DEBUG_VERBOSE=1
-    shift
+    delete=("-v" "--verbose")
+    for del in "${delete[@]}"
+    do
+      args=(${args[@]/$del})
+    done
+    # args="${args[*]/$delete}"
   fi
   ## 
-  Msg Debug "Input parameters ($#) :: $*"
+  Msg Debug "Input parameters (${args[*]}) :: ${#args})"
 
 
   # for ((i=0;i<${#$};i++)); do
   #   echo "${i} :: ${$[i]}"
   # done
   # act_finder=0;
-  for arg in "$@" 
-  do
-    if [[ $arg == "-I" ]]; then
-      if [[ "$*" == *"-h"* ]] || [[ "$*" == *"-help"* ]]; then
-        # echo "Y"
-        help_Unic
-        exit 0
-      fi
-      act_ind=act_finder
-    fi
-    act_finder=$(($act_finder+1))
-    # echo $arg
-  done
-  
+  # for arg in "$@"; do
+  #   if [[ $arg == "-I" ]] || [[ $arg == "-C" ]] || [[ $arg == "-S" ]] || [[ $arg == "-W" ]] ; then
+  #     Msg Debug "Activity detected"
+  #     break
+  #   fi
+  #   if [[ "$arg" == *"-h"* ]] || [[ "$arg" == *"-help"* ]]; then
+  #     # echo "Y"
+  #     help_Unic
+  #     exit 0
+  #   fi
+  #   # act_ind=act_finder
+  #   # fi
+  #   # act_finder=$(($act_finder+1))
+  #   # echo $arg
+  # done
+  # exit 0
   
   # if [[ "$*" == *"-h"* ]] || [[ "$*" == *"-help"* ]]; then
   #   # echo "Y"
@@ -128,33 +141,38 @@ else
   #   exit 0
   # fi
 
-  activity=$1
+  activity=${args[0]}
+  args=${args[@]:1}
+  Msg Debug "$args"
   shift
   case "$activity" in
     -I|Init)
       # echo "Init"
-      HogInitFunc "$*"
+      HogInitFunc "$args"
       exit 0
     ;;
     -C|Create)
-      Msg Info "Create $*"
-      HogCreateFunc "$*"
+      Msg Info "Create $args"
+      HogCreateFunc "$args"
+      exit 0
+
     ;;
     -W|Workflow)
       Msg Info " Workflow"
-      HogLaunchFunc "$*"
+      HogLaunchFunc "$args"
       # ./Hog/LaunchWorkflow.sh $*
+      exit 0
     ;;
     -S|Simulation)
       Msg Info " Simulation"
       # ./Hog/LaunchSimulation.sh $*
-      HogSimulateFunc "$*"
+      HogSimulateFunc "$args"
+      exit 0
+
     ;;
-    # -V|--verbose)
-    #   echo " Verbose level"
-    #   # ./Hog/LaunchSimulation.sh $*
-    #   # Logger HogSimulateFunc $*
-    # ;;
+    -h|--help)
+      help_Unic
+    ;;
     *)
       Msg Error "Activity not recognized"
       help_Unic "$0"

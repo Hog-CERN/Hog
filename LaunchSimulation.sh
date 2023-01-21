@@ -80,7 +80,7 @@ function argument_parser() {
   # set positional arguments in their proper place
 }
 
-function help_message() {
+function help_simulation_message() {
   echo
   echo " Hog - LaunchSimulation"
   echo " ---------------------------"
@@ -112,7 +112,7 @@ function SimulateProject(){
   fi
   eval set -- "$PARAMS"
   if [ -z "$1" ]; then
-    help_message "$0"
+    help_simulation_message "$0"
     cd "${OLD_DIR}" || exit
     echo
     echo "Possible projects are:"
@@ -123,7 +123,7 @@ function SimulateProject(){
     exit 0
   else
     if [ "$HELP" == "-h" ]; then
-      help_message "$0"
+      help_simulation_message "$0"
       search_projects "$DIR/../Top"
       echo
       cd "${OLD_DIR}" || exit 
@@ -203,7 +203,7 @@ function SimulateProject(){
 
 function HogSimulateFunc(){
   # init $@
-  echo "HogInitFunc ($*)"
+  Msg Info "HogInitFunc ($*)"
   SimulateProject "$@"
   # exit 0
 }

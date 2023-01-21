@@ -97,7 +97,7 @@ function argument_parser() {
     # set positional arguments in their proper place
 }
 
-function help_message() {
+function help_wokflow_message() {
   echo
   echo " Hog - LaunchWorkflow"
   echo " ---------------------------"
@@ -133,7 +133,7 @@ function Launch_project(){
   fi
   eval set -- "$PARAMS"
   if [ -z "$1" ]; then
-      help_message "$0"
+      help_wokflow_message "$0"
       echo "Possible projects are:"
       echo ""
       search_projects "$DIR/../Top"
@@ -142,7 +142,7 @@ function Launch_project(){
       exit 0
   else
       if [ "$1" == "-h" ] || [ "$1" == "-help" ] || [ "$1" == "--help" ] || [ "$1" == "-H" ]; then
-          help_message "$0"
+          help_wokflow_message "$0"
           exit 0
       fi
 
@@ -213,13 +213,14 @@ function Launch_project(){
 function HogLaunchFunc(){
   # init $@
   # shift
-  echo "HogInitFunc ($*)"
-  Launch_project "$@"
+  Msg Info "HogLaunchFunc ($*)"
+  Launch_project "$*"
   # exit 0
 }
 if [[ ${BASH_SOURCE[0]} == $0 ]]; then
 #   printf "script '%s' is sourced in\n" "${BASH_SOURCE[0]}"
 # else
+  Msg Info "HogLaunchFunc ($*)"
   repoPath=$(dirname "$0")
   print_hog $repoPath
   Launch_project "$@"        

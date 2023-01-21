@@ -206,7 +206,7 @@ function HogSimulateFunc(){
   Msg Info "HogInitFunc ($*)"
   Msg Debug "pwd : $(pwd)"
 
-  SimulateProject "$@"
+  SimulateProject $*
   # exit 0
 }
 if [[ ${BASH_SOURCE[0]} == "$0" ]]; then

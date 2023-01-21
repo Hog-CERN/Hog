@@ -46,6 +46,10 @@ export HDL_COMPILER=""
 #
 export HOG_PROJECT_FOLDER=""
 
+## @var HOG_GIT_VERSION
+#  @brief Global variable containing the full path of the root project folder
+#
+export HOG_GIT_VERSION=""
 
 ## @var LOGGER
 #  @brief Global variable used to contain the logger
@@ -141,10 +145,17 @@ function log_stdout(){
           *'CRITICAL:'* | *'CRITICAL WARNING:'* )
             if [ $echo_warnings == 1 ]; then
               echo -e "${color_yellow}CRITICAL $color_reset: $line" 
-              #| $(${colorizer} warning: critical error: info: hog: )
             fi
-            echo "$line" >> $logwarningfile
-            echo "$line" >> $loginfofile
+            if [[ -n $HOG_LOGGER ]]; then
+              if [[ -n $logwarningfile ]]; then 
+                echo "CRITICAL : ${line#*@(WARNING: |Warning: |warning: )}" >> $logwarningfile
+              fi
+              if [[ -n $loginfofile ]]; then 
+                echo "CRITICAL : ${line#*@(WARNING: |Warning: |warning: )}" >> $loginfofile; 
+              fi
+            fi
+            # echo "$line" >> $logwarningfile
+            # echo "$line" >> $loginfofile
             
           ;;
           *'WARNING:'* | *'Warning:'* | *'warning:'*)
@@ -152,13 +163,13 @@ function log_stdout(){
               if [ $echo_info == 1 ]; then 
                 echo -e "$txtylw WARNING $txtwht: ${line#*@(WARNING: |Warning: |warning: )} "; 
               fi
-              if [[ -z $HOG_LOGGER ]]; then
-                if [[ -z $logwarningfile ]]; then 
-                  echo "$line" >> $logwarningfile
-                fi
-                if [[ -z $loginfofile ]]; then 
-                  echo "$text" >> $loginfofile; 
-                fi
+            fi
+            if [[ -n $HOG_LOGGER ]]; then
+              if [[ -n $logwarningfile ]]; then 
+                echo " WARNING : ${line#*@(WARNING: |Warning: |warning: )}" >> $logwarningfile
+              fi
+              if [[ -n $loginfofile ]]; then 
+                echo " WARNING : ${line#*@(WARNING: |Warning: |warning: )}" >> $loginfofile; 
               fi
             fi
           ;;
@@ -167,13 +178,13 @@ function log_stdout(){
               if [ $echo_info == 1 ]; then 
                 echo -e "$txtred ERROR $txtwht: ${line#*@(ERROR:|Error:)} "; 
               fi
-              if [[ -z $HOG_LOGGER ]]; then
-                if [[ -z $logwarningfile ]]; then 
-                  echo "$line" >> $logwarningfile
-                fi
-                if [[ -z $loginfofile ]]; then 
-                  echo "$text" >> $loginfofile; 
-                fi
+            fi
+            if [[ -n $HOG_LOGGER ]]; then
+              if [[ -n $logwarningfile ]]; then 
+                echo " ERROR : ${line#*@(ERROR:|Error:)} " >> $logwarningfile
+              fi
+              if [[ -n $loginfofile ]]; then 
+                echo " ERROR : ${line#*@(ERROR:|Error:)} " >> $loginfofile; 
               fi
             fi
             # if [ $echo_errors == 1 ]; then
@@ -189,10 +200,10 @@ function log_stdout(){
               if [ $echo_info == 1 ]; then 
                 echo -e "$txtblu    INFO $txtwht: ${line#INFO: }"; 
               fi
-              if [[ -z $HOG_LOGGER ]]; then
-                if [[ -z $loginfofile ]]; then 
-                  echo "$text" >> $loginfofile; 
-                fi
+            fi
+            if [[ -n $HOG_LOGGER ]]; then
+              if [[ -n $loginfofile ]]; then 
+                echo "    INFO : ${line#INFO: }" >> $loginfofile; 
               fi
             fi
             # if [ $echo_info == 1 ]; then
@@ -202,31 +213,96 @@ function log_stdout(){
             # echo "$line" >> $loginfofile
           ;;
           *'DEBUG:'*)
-            if [ $echo_info == 1 ]; then
-              echo -e "$color_green   DEBUG $color_reset: $line" 
-              #| xcol warning: critical error: info: hog: 
+            if [[ -n "$HOG_COLORED" ]]; then
+              if [ $echo_info == 1 ]; then
+                echo -e "$color_green   DEBUG $color_reset: ${line#DEBUG: }" 
+              fi
+              if [[ -n $HOG_LOGGER ]]; then
+                if [[ -n $loginfofile ]]; then 
+                  echo "   DEBUG : ${line#DEBUG: }" >> $loginfofile; 
+                fi
+              fi
             fi
-            echo "$line" >> $loginfofile
+            # if [ $echo_info == 1 ]; then
+            #   echo -e "$color_green   DEBUG $color_reset: $line" 
+            # fi
+            # echo "$line" >> $loginfofile
           ;;
           *'vcom'*)
-            echo -e "$color_blue    INFO $color_reset: $line" #| xcol warning critical error vcom hog 
-            echo "$line" >> $loginfofile
+            if [[ -n "$HOG_COLORED" ]]; then
+              if [ $echo_info == 1 ]; then 
+                echo -e "$txtblu    VCOM $txtwht: ${line#INFO: }"; 
+              fi
+              if [[ -n $HOG_LOGGER ]]; then
+                if [[ -n $loginfofile ]]; then 
+                  echo "    VCOM : ${line#INFO: }" >> $loginfofile; 
+                fi
+              fi
+            fi
+            # echo -e "$color_blue    INFO $color_reset: $line" #| xcol warning critical error vcom hog 
+            # echo "$line" >> $loginfofile
           ;;
           *'Errors'* | *'Warnings'* | *'errors'* | *'warnings'*)
-            echo -e "$color_blue    INFO $color_reset: $line" #| xcol warnings critical errors vcom hog 
-            echo "$line" >> $loginfofile
+            # echo -e "$color_blue    INFO $color_reset: $line" #| xcol warnings critical errors vcom hog 
+            # echo "$line" >> $loginfofile
+            # if [[ -n "$HOG_COLORED" ]]; then
+            #   if [ $echo_info == 1 ]; then 
+            #     echo -e "$txtred ERROR $txtwht: ${line#*@(ERROR:|Error:)} "; 
+            #   fi
+            #   if [[ -n $HOG_LOGGER ]]; then
+            #     if [[ -n $logwarningfile ]]; then 
+            #       echo " ERROR : ${line#*@(ERROR:|Error:)} " >> $logwarningfile
+            #     fi
+            #     if [[ -z $loginfofile ]]; then 
+            #       echo " ERROR : ${line#*@(ERROR:|Error:)} " >> $loginfofile; 
+            #     fi
+            #   fi
+            # fi
+            if [[ -n "$HOG_COLORED" ]]; then
+              if [ $echo_info == 1 ]; then 
+                echo -e "$txtblu    INFO $txtwht: ${line#INFO: }"; 
+              fi
+              if [[ -n $HOG_LOGGER ]]; then
+                if [[ -n $loginfofile ]]; then 
+                  echo "    INFO : ${line#INFO: }" >> $loginfofile; 
+                fi
+              fi
+            fi
           ;;
           *)
-            if [ $echo_info == 1 ]; then
-              echo -e "$color_blue    INFO $color_reset: $line" #| xcol warning: critical error: info: hog: 
-              echo "$line" >> $loginfofile
+            # if [ $echo_info == 1 ]; then
+            #   echo -e "$color_blue    INFO $color_reset: $line" #| xcol warning: critical error: info: hog: 
+            #   echo "$line" >> $loginfofile
+            # fi
+            if [[ -n "$HOG_COLORED" ]]; then
+              if [ $echo_info == 1 ]; then 
+                echo -e "$txtblu    INFO $txtwht: ${line#INFO: }"; 
+              fi
+              if [[ -n $HOG_LOGGER ]]; then
+                if [[ -n $loginfofile ]]; then 
+                  echo "    INFO : ${line#INFO: }" >> $loginfofile; 
+                fi
+              fi
             fi
           ;;
         esac
       elif [ "${1}" == "stderr" ]; then
-        echo -e "$color_red  *ERROR $color_reset: $line" 
-        echo "$line" >> $logwarningfile
-        echo "$line" >> $loginfofile
+        # echo -e "$color_red  *ERROR $color_reset: $line" 
+        # echo "$line" >> $logwarningfile
+        # echo "$line" >> $loginfofile
+        if [[ -n "$HOG_COLORED" ]]; then
+          if [ $echo_info == 1 ]; then 
+            echo -e "$txtred*ERROR $txtwht: ${line#*@(ERROR:|Error:)} "; 
+          fi
+          if [[ -n $HOG_LOGGER ]]; then
+            if [[ -n $logwarningfile ]]; then 
+              echo "*ERROR : ${line#*@(ERROR:|Error:)} " >> $logwarningfile
+            fi
+            if [[ -n $loginfofile ]]; then 
+              echo "*ERROR : ${line#*@(ERROR:|Error:)} " >> $loginfofile; 
+            fi
+          fi
+        fi
 
 
       else
@@ -242,22 +318,24 @@ function log_stdout(){
 # 
 # @param[in] execution line to process
 function Logger(){
-  Msg Debug "L* : Logger : $*"
-  Msg Debug "L0 : Logger : $0"
+  Msg Debug "L* : $*"
+  Msg Debug "L0 : $0"
   Msg Debug "dirname : $(dirname $0)"
   Msg Debug "pwd : $(pwd)"
   # cd ..
   # print_hog "$(dirname "$0")"
   # exit
+  loginfofile=$HOG_PROJECT_FOLDER"/hog_info.log"
+  logwarningfile=$HOG_PROJECT_FOLDER"/hog_warning_errors.log"
   {
-    print_hog "$(dirname "$0")"
+    print_log_hog $HOG_GIT_VERSION
     echo "-----------------------------------------------"
     echo " HOG INFO LOG "
     echo " CMD : ${1} "
     echo "-----------------------------------------------"
   } > $loginfofile
   {
-    print_hog "$(dirname "$0")"
+    print_log_hog $HOG_GIT_VERSION
     echo "-----------------------------------------------"
     echo " HOG WARNINGS AND ERRORS"
     echo " CMD : ${1} "
@@ -267,7 +345,7 @@ function Logger(){
   Msg Debug "LogColorVivado : $*"
   log_stdout "stdout" "LogColorVivado : $*"
   log_stdout "stderr" "LogColorVivado : $*"
-  cd Top
+  # cd Top
   Msg Debug "PWD2 : $(pwd)"
   $* > >(log_stdout "stdout") 2> >(log_stdout "stderr" >&2)
 }
@@ -305,9 +383,9 @@ function Msg() {
       if [ $echo_info == 1 ]; then 
         echo -e "$txtblu    INFO $txtwht: HOG [${FUNCNAME[1]}] : $text "; 
       fi
-      if [[ -z $HOG_LOGGER ]]; then
-        if [[ -z $loginfofile ]]; then 
-          echo "$text" >> $loginfofile; 
+      if [[ -n $HOG_LOGGER ]]; then
+        if [[ -n $loginfofile ]]; then 
+          echo "    INFO : HOG [${FUNCNAME[1]}] : $text" >> $loginfofile; 
         fi
       fi
     else
@@ -319,9 +397,9 @@ function Msg() {
       if [ $echo_info == 1 ]; then 
         echo -e "$txtylw WARNING $txtwht: HOG [${FUNCNAME[1]}] : $text "; 
       fi
-      if [[ -z $HOG_LOGGER ]]; then
-        if [[ -z $loginfofile ]]; then 
-          echo "$text" >> $loginfofile; 
+      if [[ -n $HOG_LOGGER ]]; then
+        if [[ -n $loginfofile ]]; then 
+          echo "WARNING : HOG [${FUNCNAME[1]}] : $text" >> $loginfofile; 
         fi
       fi
     else
@@ -333,9 +411,9 @@ function Msg() {
       if [ $echo_info == 1 ]; then 
         echo -e "${txtblu}CRITICAL $txtwht: HOG [${FUNCNAME[1]}] : $text "; 
       fi
-      if [[ -z $HOG_LOGGER ]]; then
-        if [[ -z $loginfofile ]]; then 
-          echo "$text" >> $loginfofile; 
+      if [[ -n $HOG_LOGGER ]]; then
+        if [[ -n $loginfofile ]]; then 
+          echo "CRITICAL : HOG [${FUNCNAME[1]}] : $text " >> $loginfofile; 
         fi
       fi
     else
@@ -347,9 +425,9 @@ function Msg() {
       if [ $echo_info == 1 ]; then 
         echo -e "$txtred   ERROR $txtwht: HOG [${FUNCNAME[1]}] : $text "; 
       fi
-      if [[ -z $HOG_LOGGER ]]; then
-        if [[ -z $loginfofile ]]; then 
-          echo "$text" >> $loginfofile; 
+      if [[ -n $HOG_LOGGER ]]; then
+        if [[ -n $loginfofile ]]; then 
+          echo "   ERROR : HOG [${FUNCNAME[1]}] : $text " >> $loginfofile; 
         fi
       fi
     else
@@ -361,9 +439,9 @@ function Msg() {
       if [[ $DEBUG_VERBOSE -gt 0 ]]; then
         echo -e "${txtgrn}   DEBUG${txtwht} : HOG [${FUNCNAME[1]}] : $text "; 
       fi;
-      if [[ -z $HOG_LOGGER ]]; then
-        if [[ -z $loginfofile ]]; then 
-          echo "$text" >> $loginfofile; 
+      if [[ -n $HOG_LOGGER ]]; then
+        if [[ -n $loginfofile ]]; then 
+          echo "   DEBUG : HOG [${FUNCNAME[1]}] : $text " >> $loginfofile; 
         fi
       fi
     else
@@ -611,8 +689,8 @@ function print_hog() {
     Msg Error "missing input! Got: $1!"
     return 1
   fi
-  echo "----------------- $1"
-  echo "***************** $(pwd)"
+  # echo "----------------- $1"
+  # echo "***************** $(pwd)"
   cd "$1" || exit
   ver=$(git describe --always)
   echo
@@ -621,6 +699,30 @@ function print_hog() {
   echo
   cd "${OLDPWD}" || exit >> /dev/null
   HogVer "$1"
+
+  return 0
+}
+
+# @fn print_hog
+#
+# @param[in] $1 path to Hog dir
+# @brief prints the hog logo
+function print_log_hog() {
+  if [ -z ${1+x} ]; then
+    Msg Error "missing input! Got: $1!"
+    return 1
+  fi
+  # echo "----------------- $1"
+  # echo "***************** $(pwd)"
+  # cd "$1" || exit
+  # ver=$(git describe --always)
+  echo
+  cat ${HOG_PROJECT_FOLDER}"/Hog/images/hog_logo.txt"
+  echo " Version: ${HOG_GIT_VERSION}"
+  echo
+  # cd "${OLDPWD}" 
+  # || exit >> /dev/null
+  # HogVer "$1"
 
   return 0
 }
@@ -635,14 +737,14 @@ function new_print_hog() {
     return 1
   fi
   cd "$1"
-  ver=$(git describe --always)
+  HOG_GIT_VERSION=$(git describe --always)
   # echo
   # cat ./images/hog_logo.txt
   while IFS= read -r line; do
     echo -e "$line"
   done < ./images/hog_logo_color.txt
   echo
-  echo " Version: ${ver}"
+  echo " Version: ${HOG_GIT_VERSION}"
   echo
   echo "***************************************************"
   cd - >> /dev/null

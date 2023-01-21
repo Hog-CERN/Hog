@@ -59,7 +59,7 @@ function help_message() {
 # @param[in]    "$@" all the inputs to this script
 function create_project() {
   # Define directory variables as local: only main will change directory
-
+  # exit 0
   local OLD_DIR
   OLD_DIR=$(pwd)
   Msg Debug "OLD_DIR($OLD_DIR)"
@@ -152,6 +152,8 @@ function create_project() {
       Msg Info "Using executable: $HDL_COMPILER"
     fi
 
+    Msg Debug "155 - pwd : $(pwd)"
+
     if [ "$FILE_TYPE" == "CONF" ]; then
       cd "${DIR}" || exit 
       Msg Debug "****** $(pwd)"
@@ -237,6 +239,7 @@ function HogCreateFunc(){
   # repoPath="$(dirname "$0")"
   # echo "$repoPath"
   Msg Debug "HogInitFunc ($*)"
+  Msg Debug "pwd : $(pwd)"
   create_project $*
   
   # exit 0
@@ -246,6 +249,7 @@ if [[ ${BASH_SOURCE[0]} == "$0" ]]; then
 # else
   repoPath="$(dirname "$0")"
   echo "$repoPath"
+  echo "pwd : $(pwd)"
   print_hog "$repoPath"
   create_project "$@"
 fi

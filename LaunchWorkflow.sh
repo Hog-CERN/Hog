@@ -125,7 +125,7 @@ function help_wokflow_message() {
 }
 
 function Launch_project(){
-
+  # exit 0
   DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
   argument_parser "$@"
   if [ $? = 1 ]; then
@@ -174,6 +174,7 @@ function Launch_project(){
                 SIMLIBPATH="-simlib_path ${HOG_SIMULATION_LIB_PATH}"
             fi
         fi
+        Msg Debug "177 - pwd : $(pwd)"
         if [[ -z $HOG_COLORED ]]; then
           if [ "$COMMAND" = "quartus_sh" ]; then
             ${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_quartus.tcl $HELP $NO_BITSTREAM $SYNTH_ONLY $NJOBS $CHECK_SYNTAX $RECREATE $EXT_PATH $IMPL_ONLY -project $PROJ
@@ -214,6 +215,7 @@ function HogLaunchFunc(){
   # init $@
   # shift
   Msg Info "HogLaunchFunc ($*)"
+  Msg Debug "pwd : $(pwd)"
   Launch_project "$*"
   # exit 0
 }
@@ -222,6 +224,7 @@ if [[ ${BASH_SOURCE[0]} == $0 ]]; then
 # else
   Msg Info "HogLaunchFunc ($*)"
   repoPath=$(dirname "$0")
+  echo "pwd : $(pwd)"
   print_hog $repoPath
   Launch_project "$@"        
 fi

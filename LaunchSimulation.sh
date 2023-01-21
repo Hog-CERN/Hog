@@ -103,7 +103,7 @@ function help_simulation_message() {
 }
 
 function SimulateProject(){
-
+  # exit 0
   DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
   argument_parser "$@"
 
@@ -204,6 +204,8 @@ function SimulateProject(){
 function HogSimulateFunc(){
   # init $@
   Msg Info "HogInitFunc ($*)"
+  Msg Debug "pwd : $(pwd)"
+
   SimulateProject "$@"
   # exit 0
 }
@@ -211,6 +213,7 @@ if [[ ${BASH_SOURCE[0]} == "$0" ]]; then
 #   printf "script '%s' is sourced in\n" "${BASH_SOURCE[0]}"
 # else
   repoPath=$(dirname "$0")
+  echo "pwd : $(pwd)"
   print_hog "$repoPath"
   SimulateProject "$@"
 fi

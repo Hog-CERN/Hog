@@ -31,7 +31,7 @@
 
 # DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-## @function argument_parser()
+## @function sim_argument_parser()
 #  @brief parse arguments and sets environment variables
 #  @param[out] SIMLIBPATH   empty or "-lib_path $2"
 #  @param[out] QUIET        empty or "-quiet"
@@ -39,7 +39,7 @@
 #  @param[out] PARAMS       positional parameters
 #  @return                  1 if error or help, else 0
 
-function argument_parser() {
+function sim_argument_parser() {
   PARAMS=""
   while (("$#")); do
     case "$1" in
@@ -105,7 +105,7 @@ function help_simulation_message() {
 function SimulateProject(){
   # exit 0
   DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-  argument_parser "$@"
+  sim_argument_parser "$@"
 
   if [ $? = 1 ]; then
     exit 1

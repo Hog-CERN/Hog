@@ -146,30 +146,30 @@ else
   Msg Warning "activity $activity"
 
   args=("${args[@]:1}")
-  Msg Warning "151 - args : $args"
+  Msg Warning "151 - args : ${args[*]}"
   shift
   case "$activity" in
     -I|Init)
       # echo "Init"
-      HogInitFunc "$args"
+      HogInitFunc "${args[*]}"
       exit 0
     ;;
     -C|Create)
-      Msg Info "Create $args"
-      HogCreateFunc "$args"
+      Msg Info "Create ${args[*]}"
+      HogCreateFunc "${args[*]}"
       exit 0
 
     ;;
     -W|Workflow)
       Msg Info " Workflow"
-      HogLaunchFunc "$args"
+      HogLaunchFunc "${args[*]}"
       # ./Hog/LaunchWorkflow.sh $*
       exit 0
     ;;
     -S|Simulation)
       Msg Info " Simulation"
       # ./Hog/LaunchSimulation.sh $*
-      HogSimulateFunc "$args"
+      HogSimulateFunc "${args[*]}"
       exit 0
 
     ;;

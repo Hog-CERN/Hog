@@ -22,7 +22,7 @@
 . $(dirname "$0")/Other/CommonFunctions.sh
 
 # print_hog $(dirname "$0")
-## @function argument_parser()
+## @function wf_argument_parser()
 #  @brief parse arguments and sets environment variables
 #  @param[out] SIMLIBPATH   empty or "-simlib_path $2"
 #  @param[out] NJOBS        empty or "-NJOBS $2"
@@ -36,9 +36,11 @@
 #  @param[out] PARAMS       positional parameters
 #  @return                  1 if error or help, else 0
 
-function argument_parser() {
+function wf_argument_parser() {
+    Msg Debug "$# : $@"
     PARAMS=""
     while (("$#")); do
+        Msg Debug "$1"
         case "$1" in
         -njobs)
             NJOBS="-njobs $2"
@@ -127,7 +129,8 @@ function help_wokflow_message() {
 function Launch_project(){
   # exit 0
   DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-  argument_parser "$@"
+  Msg Debug "Init ::: $@"
+  wf_argument_parser "$@"
   if [ $? = 1 ]; then
       exit 1
   fi
@@ -216,7 +219,7 @@ function HogLaunchFunc(){
   # shift
   Msg Info "HogLaunchFunc ($*)"
   Msg Debug "pwd : $(pwd)"
-  Launch_project "$*"
+  Launch_project $*
   # exit 0
 }
 if [[ ${BASH_SOURCE[0]} == $0 ]]; then

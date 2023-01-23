@@ -851,7 +851,7 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
     foreach settings [dict keys $hogConfRunDict] {
       if {[dict exists $projRunDict [string toupper $settings]]==0} {
         if {$settings in $PROP_BAN_LIST} {
-          Msg CriticalWarning "In hog.conf file the property $proj_run is set to \"$settings\". This property is usually ignored and will not be automatically rewritten when automatically recreating hog.conf."
+          Msg Warning "In hog.conf file the property $proj_run is set to \"$settings\". This property is usually ignored and will not be automatically rewritten when automatically recreating hog.conf."
           continue
         }
         incr ConfErrorCnt

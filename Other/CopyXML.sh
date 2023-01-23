@@ -71,7 +71,7 @@ else
         else
             echo "Hog-INFO: using executable: $HDL_COMPILER"
         fi
-        "${HDL_COMPILER}" $COMMAND_OPT $DIR/../Tcl/utils/copy_xml.tcl -tclargs $ARGS
+        ${HDL_COMPILER} $COMMAND_OPT $DIR/../Tcl/utils/copy_xml.tcl -tclargs $ARGS
     else
         echo "Hog-ERROR could not find $PROJ_DIR"
     fi

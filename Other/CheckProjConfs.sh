@@ -32,7 +32,7 @@
 #
 function help_message() {
   echo
-  echo " Hog - Check Project Version"
+  echo " Hog - Check Project Configurations"
   echo " ---------------------------"
   echo
   echo " Usage: $1 <project name>"
@@ -57,16 +57,24 @@ function argument_parser() {
   PARAMS=""
   while (("$#")); do
     case "$1" in
-    -sim)
-      SIM="-sim"
-      shift 1
-      ;;
     -ext_path)
       EXT_PATH="-ext_path $2"
       shift 2
       ;;
     -h | -help)
       HELP="-h"
+      shift 1
+      ;;
+    -recreate )
+      RECREATE="-recreate"
+      shift 1
+      ;;
+    -recreate_conf )
+      RECREATE_CONF="-recreate_conf"
+      shift 1
+      ;;
+    -force )
+      FORCE="-force"
       shift 1
       ;;
     --) # end argument parsing
@@ -99,7 +107,6 @@ function main() {
   OLD_DIR=$(pwd)
   local THIS_DIR
   THIS_DIR="$(dirname "$0")"
-
   if [ "a$1" == "a" ]; then
     help_message "$0"
     exit 1
@@ -127,7 +134,7 @@ function main() {
     exit 1
   fi
 
-  local PROJ
+
   PROJ=$1
   if [[ $PROJ == "Top/"* ]]; then
     PROJ=${PROJ#"Top/"}
@@ -158,17 +165,11 @@ function main() {
       echo "Hog-INFO: using executable: $HDL_COMPILER"
     fi
 
-    if [ "$COMMAND" = "quartus_sh" ]; then
-      echo "Hog-INFO: Executing:  ${HDL_COMPILER} $COMMAND_OPT $DIR/../../Hog/Tcl/CI/check_proj_ver.tcl $EXT_PATH $SIM $PROJ"
-      ${HDL_COMPILER} $COMMAND_OPT $DIR/../Hog/Tcl/CI/check_proj_ver.tcl $EXT_PATH $SIM $PROJ
-    elif [ "$COMMAND" = "vivado_hls" ]; then
-      echo "Hog-ERROR: Vivado HLS is not yet supported by this script!"
-    elif [ "$COMMAND" = "libero" ]; then
-      echo "Hog-INFO: Executing:  ${HDL_COMPILER} $COMMAND_OPT $DIR/../../Hog/Tcl/CI/check_proj_ver.tcl ${POST_COMMAND_OPT}$EXT_PATH $SIM $PROJ"
-      ${HDL_COMPILER} ${COMMAND_OPT}$DIR/../Hog/Tcl/CI/check_proj_ver.tcl ${POST_COMMAND_OPT}$PROJ
-    else
-      echo "Hog-INFO: Executing:  ${HDL_COMPILER} $COMMAND_OPT $DIR/../../Hog/Tcl/CI/check_proj_ver.tcl ${POST_COMMAND_OPT}$EXT_PATH $SIM $PROJ"
-      ${HDL_COMPILER} ${COMMAND_OPT}$DIR/../Hog/Tcl/CI/check_proj_ver.tcl ${POST_COMMAND_OPT} $EXT_PATH $SIM $PROJ
+    if [ "$COMMAND" = "vivado" ]; then
+      echo "Hog-INFO: Executing:  ${HDL_COMPILER} $COMMAND_OPT $DIR/../../Hog/Tcl/utils/check_list_files.tcl ${POST_COMMAND_OPT} $EXT_PATH $RECREATE_CONF $RECREATE $FORCE -proj $PROJ"
+      ${HDL_COMPILER} $COMMAND_OPT $DIR/../Hog/Tcl/utils/check_list_files.tcl ${POST_COMMAND_OPT} $EXT_PATH $RECREATE_CONF $RECREATE $FORCE -project $PROJ
+    else 
+      echo "This script is supported only by Xilinx Vivado for the moment, exiting..."
     fi
   fi
 }

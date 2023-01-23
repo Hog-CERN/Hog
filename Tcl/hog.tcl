@@ -3696,7 +3696,7 @@ proc WriteGenerics {mode design date timee commit version top_hash top_ver hog_h
     }
     
     set_property generic $generic_string [current_fileset]
-    Msg Info "Setting Xilinx parameters/generics..."
+    Msg Info "Setting parameters/generics..."
     Msg Debug "Detailed parameters/generics: $generic_string"
     
     if {[IsVivado]} {

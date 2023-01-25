@@ -32,24 +32,24 @@
 #
 function help_message() {
   echo
-  echo " Hog - Check Project Version"
+  echo " Hog - Check Project Configurations"
   echo " ---------------------------"
   echo
-  echo " Usage: $1 <project name>"
+  echo " Usage: $1 <project name> [OPTIONS]"
+  echo " Options:"
+  echo "          -ext_path <path>          It sets the absolute path for the external libraries"
+  echo "          -recreate                 If set, Hog will recreate the list files and hog.conf, from the current project settings"
+  echo "          -recreate_conf                 If set, Hog will recreate the hog.conf file, from the current project settings"
+  echo "          -force                    Force the overwriting of List Files. To be used together with \"-recreate\""
   echo
 }
 
 ## @function argument_parser()
-#  @brief parse arguments and sets environmental variables
-#  @param[out] IP_PATH      empty or "-eos_ip_path $2"
-#  @param[out] NJOBS        empty or "-NJOBS $2"
-#  @param[out] NO_BITSTREAM empty or "-no_bitstream"
-#  @param[out] SYNTH_ONLY   empty or "-synth_only"
-#  @param[out] IMPL_ONLY    empty or "-impl_only"
-#  @param[out] NO_RECREATE  empty or "-no_recreate"
-#  @param[out] RESET        empty or "-reset"
-#  @param[out] CHECK_SYNTAX empty or "-check_syntax"
-#  @param[out] EXT_PATH     empty or "-ext_path $2"
+#  @brief parse arguments and sets environment variables
+#  @param[in] RECREATE          empty or "-recreate"
+#  @param[in] RECREATE_CONF     empty or "-recreate"
+#  @param[in] FORCE             empty or "-force"
+#  @param[in] EXT_PATH          empty or "-ext_path $2"
 #  @param[out] PARAMS       positional parameters
 #  @return                  1 if error or help, else 0
 
@@ -57,16 +57,24 @@ function argument_parser() {
   PARAMS=""
   while (("$#")); do
     case "$1" in
-    -sim)
-      SIM="-sim"
-      shift 1
-      ;;
     -ext_path)
       EXT_PATH="-ext_path $2"
       shift 2
       ;;
     -h | -help)
       HELP="-h"
+      shift 1
+      ;;
+    -recreate )
+      RECREATE="-recreate"
+      shift 1
+      ;;
+    -recreate_conf )
+      RECREATE_CONF="-recreate_conf"
+      shift 1
+      ;;
+    -force )
+      FORCE="-force"
       shift 1
       ;;
     --) # end argument parsing
@@ -86,20 +94,20 @@ function argument_parser() {
   # set positional arguments in their proper place
 }
 
-## @fn main
+## @fn CheckProjConfs
 #
-# @ brief The main function
+# @ brief The CheckProjConfs function
 #
-# This function invokes the previous functions in the correct order, passing the expected inputs and then calls the execution of the create_project.tcl script
+# This function sources the check_list_files.tcl, which checks that the project configuration files (hog.conf and list files) matches the current settings in the Vivado Project
+# This script is available only for Vivado at the moment. 
 #
 # @param[in]    $@ all the inputs to this script
-function main() {
+function CheckProjConfs() {
   # Define directory variables as local: only main will change directory
   local OLD_DIR
   OLD_DIR=$(pwd)
   local THIS_DIR
   THIS_DIR="$(dirname "$0")"
-
   if [ "a$1" == "a" ]; then
     help_message "$0"
     exit 1
@@ -127,7 +135,7 @@ function main() {
     exit 1
   fi
 
-  local PROJ
+
   PROJ=$1
   if [[ $PROJ == "Top/"* ]]; then
     PROJ=${PROJ#"Top/"}
@@ -158,19 +166,13 @@ function main() {
       echo "Hog-INFO: using executable: $HDL_COMPILER"
     fi
 
-    if [ "$COMMAND" = "quartus_sh" ]; then
-      echo "Hog-INFO: Executing:  ${HDL_COMPILER} $COMMAND_OPT $DIR/../../Hog/Tcl/CI/check_proj_ver.tcl $EXT_PATH $SIM $PROJ"
-      ${HDL_COMPILER} $COMMAND_OPT $DIR/../Hog/Tcl/CI/check_proj_ver.tcl $EXT_PATH $SIM $PROJ
-    elif [ "$COMMAND" = "vivado_hls" ]; then
-      echo "Hog-ERROR: Vivado HLS is not yet supported by this script!"
-    elif [ "$COMMAND" = "libero" ]; then
-      echo "Hog-INFO: Executing:  ${HDL_COMPILER} $COMMAND_OPT $DIR/../../Hog/Tcl/CI/check_proj_ver.tcl ${POST_COMMAND_OPT}$EXT_PATH $SIM $PROJ"
-      ${HDL_COMPILER} ${COMMAND_OPT}$DIR/../Hog/Tcl/CI/check_proj_ver.tcl ${POST_COMMAND_OPT}$PROJ
-    else
-      echo "Hog-INFO: Executing:  ${HDL_COMPILER} $COMMAND_OPT $DIR/../../Hog/Tcl/CI/check_proj_ver.tcl ${POST_COMMAND_OPT}$EXT_PATH $SIM $PROJ"
-      ${HDL_COMPILER} ${COMMAND_OPT}$DIR/../Hog/Tcl/CI/check_proj_ver.tcl ${POST_COMMAND_OPT} $EXT_PATH $SIM $PROJ
+    if [ "$COMMAND" = "vivado" ]; then
+      echo "Hog-INFO: Executing:  ${HDL_COMPILER} $COMMAND_OPT $DIR/../../Hog/Tcl/utils/check_list_files.tcl ${POST_COMMAND_OPT} $EXT_PATH $RECREATE_CONF $RECREATE $FORCE -proj $PROJ"
+      ${HDL_COMPILER} $COMMAND_OPT $DIR/../Hog/Tcl/utils/check_list_files.tcl ${POST_COMMAND_OPT} $EXT_PATH $RECREATE_CONF $RECREATE $FORCE -project $PROJ
+    else 
+      echo "This script is supported only by Xilinx Vivado for the moment, exiting..."
     fi
   fi
 }
 
-main "$@"
+CheckProjConfs "$@"

@@ -3693,10 +3693,11 @@ proc WriteGenerics {mode design date timee commit version top_hash top_ver hog_h
             set generic_string $filtered_generic_string
         }
     }
-
+    
     set_property generic $generic_string [current_fileset]
-    Msg Info "Setting generics: $generic_string"
-
+    Msg Info "Setting parameters/generics..."
+    Msg Debug "Detailed parameters/generics: $generic_string"
+    
     if {[IsVivado]} {
       # Dealing with project generics in Simulators
       set simulator [get_property target_simulator [current_project]]
@@ -3705,8 +3706,9 @@ proc WriteGenerics {mode design date timee commit version top_hash top_ver hog_h
       }
     }
   } elseif {[IsSynplify]} {
+    Msg Info "Setting Synplify parameters/generics one by one..."
     foreach generic $generic_string {
-      Msg Info "Setting Synplify generic: $generic"
+      Msg Debug "Setting Synplify generic: $generic"
       set_option -hdl_param -set "$generic"
     }
   } 

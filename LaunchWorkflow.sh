@@ -37,7 +37,7 @@
 #  @return                  1 if error or help, else 0
 
 function wf_argument_parser() {
-    Msg Debug "$# : $@"
+    Msg Debug "$# : $*"
     PARAMS=""
     while (("$#")); do
         Msg Debug "$1"
@@ -129,7 +129,7 @@ function help_wokflow_message() {
 function Launch_project(){
   # exit 0
   DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-  Msg Debug "Init ::: $@"
+  Msg Debug "Init ::: $*"
   wf_argument_parser "$@"
   if [ $? = 1 ]; then
       exit 1

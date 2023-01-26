@@ -13,12 +13,12 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-
 . $(dirname "$0")/Other/CommonFunctions.sh
 . $(dirname "$0")/Init.sh
 . $(dirname "$0")/CreateProject.sh
 . $(dirname "$0")/LaunchWorkflow.sh
 . $(dirname "$0")/LaunchSimulation.sh
+
 
 
 function help_Unic() {
@@ -46,7 +46,7 @@ function help_Unic() {
   exit 0
 }
 
-HOG_PROJECT_FOLDER=$(pwd)
+
 
 # function help_Init() {
   #   echo
@@ -79,11 +79,40 @@ HOG_PROJECT_FOLDER=$(pwd)
   #   exit 0
   # }
 
+# function Hog_exit () {
+#   Msg Info "================ RESUME ================ "
+#   Msg Info " # of Info messages: ${info_cnt}"
+#   Msg Info " # of debug messages : ${debug_cnt}"
+#   Msg Info " # of warning messages : ${warning_cnt}"
+#   Msg Info " # of critical warning messages : ${critical_cnt}"
+#   Msg Info " # of Errors messages : ${error_cnt}"
+#   Msg Info "======================================== "
+#   if [[ $error_cnt -gt 0 ]]; then
+#     exit -1
+#   else
+#     exit 0
+#   fi
+# }
 
 
+
+ROOT_PROJECT_FOLDER=$(pwd)
+LOG_INFO_FILE=$ROOT_PROJECT_FOLDER"/hog_info.log"
+LOG_WAR_ERR_FILE=$ROOT_PROJECT_FOLDER"/hog_warning_errors.log"
+
+msg_counter init
+
+if [[ -n "$HOG_COLORED" ]]; then
+  new_print_hog $(dirname "$0")
+else
+  print_hog $(dirname "$0")
+fi
+if [[ -n $HOG_LOGGER ]]; then
+  Logger_Init
+fi
 
 # arguments=$*
-new_print_hog $(dirname "$0")
+# new_print_hog $(dirname "$0")
 # Logger HogVer $(dirname "$0")
 
 if [ $# == 0 ]; then
@@ -157,20 +186,20 @@ else
     -C|Create)
       Msg Info "Create ${args[*]}"
       HogCreateFunc "${args[*]}"
-      exit 0
+      Hog_exit
 
     ;;
     -W|Workflow)
       Msg Info " Workflow"
       HogLaunchFunc "${args[*]}"
       # ./Hog/LaunchWorkflow.sh $*
-      exit 0
+      Hog_exit
     ;;
     -S|Simulation)
       Msg Info " Simulation"
       # ./Hog/LaunchSimulation.sh $*
       HogSimulateFunc "${args[*]}"
-      exit 0
+      Hog_exit
 
     ;;
     -h|--help)
@@ -182,4 +211,5 @@ else
     ;;
   esac
 fi
+
 

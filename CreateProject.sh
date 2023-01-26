@@ -227,7 +227,7 @@ function create_project() {
 
   cd "${OLD_DIR}" || exit 
 
-  exit 0
+  # exit 0
 
 }
 
@@ -252,4 +252,6 @@ if [[ ${BASH_SOURCE[0]} == "$0" ]]; then
   echo "pwd : $(pwd)"
   print_hog "$repoPath"
   create_project "$@"
+  exit 0
+
 fi

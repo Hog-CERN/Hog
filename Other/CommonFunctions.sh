@@ -96,9 +96,6 @@ function msg_counter () {
   # debug_cnt=0
 }
 
-
-
-
 echo_info=1
 echo_warnings=1
 echo_errors=1

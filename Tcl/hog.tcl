@@ -554,7 +554,8 @@ proc ReadListFile args {
   set sha_mode $options(sha_mode)
   set lib $options(lib)
   set main_lib $options(main_lib)
-
+  set board_file $options(board_file)
+  Msg Info "BOARD ILE FLAG $board_file"
   if { $sha_mode == 1} {
     set sha_mode_opt "-sha_mode"
   } else {

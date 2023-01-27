@@ -79,37 +79,21 @@ function help_Unic() {
   #   exit 0
   # }
 
-# function Hog_exit () {
-#   Msg Info "================ RESUME ================ "
-#   Msg Info " # of Info messages: ${info_cnt}"
-#   Msg Info " # of debug messages : ${debug_cnt}"
-#   Msg Info " # of warning messages : ${warning_cnt}"
-#   Msg Info " # of critical warning messages : ${critical_cnt}"
-#   Msg Info " # of Errors messages : ${error_cnt}"
-#   Msg Info "======================================== "
-#   if [[ $error_cnt -gt 0 ]]; then
-#     exit -1
-#   else
-#     exit 0
-#   fi
-# }
-
-
 
 ROOT_PROJECT_FOLDER=$(pwd)
 LOG_INFO_FILE=$ROOT_PROJECT_FOLDER"/hog_info.log"
 LOG_WAR_ERR_FILE=$ROOT_PROJECT_FOLDER"/hog_warning_errors.log"
 
-msg_counter init
+# msg_counter init
 
-if [[ -n "$HOG_COLORED" ]]; then
-  new_print_hog $(dirname "$0")
-else
-  print_hog $(dirname "$0")
-fi
-if [[ -n $HOG_LOGGER ]]; then
-  Logger_Init
-fi
+# if [[ -n "$HOG_COLORED" ]]; then
+#   new_print_hog $(dirname "$0")
+# else
+#   print_hog $(dirname "$0")
+# fi
+# if [[ -n $HOG_LOGGER ]]; then
+#   Logger_Init
+# fi
 
 # arguments=$*
 # new_print_hog $(dirname "$0")
@@ -131,8 +115,9 @@ else
   Msg Warning "100 - args : ${args[*]}"
 
   if [[ "$*" == *"-v"* ]] || [[ "$*" == *"--verbose"* ]]; then
+    export DEBUG_VERBOSE=1
+    export DEBUG_MODE=1
     Msg Debug "Verbose level"
-    DEBUG_VERBOSE=1
     delete=("-v" "--verbose")
     for del in "${delete[@]}"
     do
@@ -143,6 +128,16 @@ else
   ## 
   Msg Debug "Input parameters (${args[*]}) :: ${#args[*]})"
 
+  msg_counter init
+
+  if [[ -n "$HOG_COLORED" ]]; then
+    new_print_hog $(dirname "$0")
+  else
+    print_hog $(dirname "$0")
+  fi
+  if [[ -n $HOG_LOGGER ]]; then
+    Logger_Init
+  fi
 
   # for ((i=0;i<${#$};i++)); do
   #   echo "${i} :: ${$[i]}"

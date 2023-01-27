@@ -68,32 +68,61 @@ fi
 #
 export DEBUG_VERBOSE=""
 
+temp_i_cnt_file="/dev/shm/hog_i_cnt"
+temp_d_cnt_file="/dev/shm/hog_d_cnt"
+temp_w_cnt_file="/dev/shm/hog_w_cnt"
+temp_c_cnt_file="/dev/shm/hog_c_cnt"
+temp_e_cnt_file="/dev/shm/hog_e_cnt"
+
+function update_cnt () {
+  
+  if [[ -e "$1" ]]; then
+    while read line ; do local_cnt=$(($line+1)); done < "$1"
+    echo "$local_cnt" > "$1"
+  fi
+  echo "$local_cnt"
+}
+
+
 function msg_counter () {
  case "$1" in
   init)
-    local info_cnt=0
-    local error_cnt=0
-    local warning_cnt=0
-    local critical_cnt=0
-    local debug_cnt=0
+    echo "0" > "$temp_i_cnt_file"
+    echo "0" > "$temp_d_cnt_file"
+    echo "0" > "$temp_w_cnt_file"
+    echo "0" > "$temp_c_cnt_file"
+    echo "0" > "$temp_e_cnt_file"
   ;;
   iw)
-    (( info_cnt++ ))
-    echo "IC : $info_cnt"
+    info_cnt=$(update_cnt $temp_i_cnt_file)
+    echo "IC : $info_cnt :  $BASHPID"
   ;;
-  ir)
-    echo "$info_cnt"
+  ir) echo "$info_cnt" ;;
+  dw)
+    debug_cnt=$(update_cnt $temp_d_cnt_file)
+    echo "DC : $debug_cnt :  $BASHPID"
   ;;
+  dr) echo "$debug_cnt" ;;
+  ww)
+    warn_cnt=$(update_cnt $temp_w_cnt_file)
+    echo "WC : $warn_cnt :  $BASHPID"
+  ;;
+  wr) echo "$warn_cnt" ;;
+  cw)
+    critical_cnt=$(update_cnt $temp_c_cnt_file)
+    echo "CC : $critical_cnt :  $BASHPID"
+  ;;
+  cr) echo "$critical_cnt" ;;
+  ew)
+    error_cnt=$(update_cnt $temp_e_cnt_file)
+    echo "EC : $error_cnt :  $BASHPID"
+  ;;
+  er) echo "$error_cnt" ;;
   *)
     Msg Error "counter update doesn't exist"
   ;;
  esac
- 
-  # info_cnt=0
-  # error_cnt=0
-  # warning_cnt=0
-  # critical_cnt=0
-  # debug_cnt=0
+
 }
 
 echo_info=1
@@ -136,7 +165,7 @@ echo_d() {
 # @param[in] execution line to process
 shopt -s extglob
 function log_stdout(){
-  # Msg Debug "Init function"
+  # Msg Info "Init function"
   local color_reset="\e[0;37m"
   local color_red="\e[0;31m"
   local color_blue="\e[0;34m"
@@ -165,7 +194,7 @@ function log_stdout(){
                 echo "CRITICAL : ${line#*@(WARNING: |Warning: |warning: )}" >> $LOG_INFO_FILE; 
               fi
             fi
-            ((++critical_cnt))
+            msg_counter cw
           ;;
           *'WARNING:'* | *'Warning:'* | *'warning:'*)
             if [[ -n "$HOG_COLORED" ]]; then
@@ -181,7 +210,7 @@ function log_stdout(){
                 echo " WARNING : ${line#*@(WARNING: |Warning: |warning: )}" >> $LOG_INFO_FILE; 
               fi
             fi
-            ((warning_cnt++))
+            msg_counter ww
           ;;
           *'ERROR:'* | *'Error:'* | *':Error'* | *'error:'* | *'Error '* | *'FATAL ERROR'*)
             if [[ -n "$HOG_COLORED" ]]; then
@@ -197,7 +226,7 @@ function log_stdout(){
                 echo " ERROR : ${line#*@(ERROR:|Error:)} " >> $LOG_INFO_FILE; 
               fi
             fi
-            ((++error_cnt))
+            msg_counter ew
           ;;
           *'INFO:'*)
             if [[ -n "$HOG_COLORED" ]]; then
@@ -213,9 +242,11 @@ function log_stdout(){
             msg_counter iw
           ;;
           *'DEBUG:'*)
+            
             if [[ -n "$HOG_COLORED" ]]; then
               if [ $echo_info == 1 ]; then
                 echo -e "$color_green   DEBUG $color_reset: ${line#DEBUG: }" 
+                
               fi
               if [[ -n $HOG_LOGGER ]]; then
                 if [[ -n $LOG_INFO_FILE ]]; then 
@@ -223,7 +254,7 @@ function log_stdout(){
                 fi
               fi
             fi
-            ((++debug_cnt))
+            msg_counter dw
 
           ;;
           *'vcom'*)
@@ -281,7 +312,7 @@ function log_stdout(){
             fi
           fi
         fi
-        ((++error_cnt))
+        msg_counter ew
 
 
       else
@@ -328,12 +359,13 @@ function Logger_Init() {
 }
 
 function Hog_exit () {
+  msg_counter ir
   Msg Info "================ RESUME ================ "
   Msg Info " # of Info messages: $(msg_counter ir)"
-  Msg Info " # of debug messages : ${debug_cnt}"
-  Msg Info " # of warning messages : ${warning_cnt}"
-  Msg Info " # of critical warning messages : ${critical_cnt}"
-  Msg Info " # of Errors messages : ${error_cnt}"
+  Msg Info " # of debug messages : $(msg_counter dr)"
+  Msg Info " # of warning messages : $(msg_counter wr)"
+  Msg Info " # of critical warning messages : $(msg_counter cr)"
+  Msg Info " # of Errors messages : $(msg_counter er)"
   Msg Info "======================================== "
   if [[ $error_cnt -gt 0 ]]; then
     exit -1
@@ -348,7 +380,7 @@ function Hog_exit () {
 # 
 # @param[in] execution line to process
 function Logger(){
-  # Msg Debug "L* : $*"
+  Msg Info "L* : $*"
   # Msg Debug "L0 : $0"
   # Msg Debug "dirname : $(dirname $0)"
   # Msg Debug "pwd : $(pwd)"
@@ -437,7 +469,7 @@ function Msg() {
     else
       Colour=$LightBlue
     fi
-    ((++warning_cnt))
+    msg_counter ww
     ;;
   "CriticalWarning")
     if [[ -n "$HOG_COLORED" ]]; then
@@ -452,7 +484,7 @@ function Msg() {
     else
       Colour=$Orange
     fi
-    # ((++critical_cnt))
+    msg_counter cw
     ;;
   "Error")
     if [[ -n "$HOG_COLORED" ]]; then
@@ -467,7 +499,7 @@ function Msg() {
     else
       Colour=$Red
     fi
-    # ((++error_cnt))
+    msg_counter ew
     ;;
   "Debug")
     if [[ -n "$HOG_COLORED" ]]; then
@@ -482,7 +514,7 @@ function Msg() {
     else
       Colour=$Green
     fi
-    # ((++$debug_cnt))
+    msg_counter dw
     ;;
   *)
     Msg Error "messageLevel: $1 not supported! Use Info, Warning, CriticalWarning, Error"

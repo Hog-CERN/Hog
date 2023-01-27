@@ -1850,24 +1850,51 @@ proc GetHogFiles args {
   }
 
   if { $list_files == "" } {
-    set list_files {.src,.con,.sub,.sim,.ext}
+    set list_files {.src,.con,.sub,.sim,.ext,.board}
   }
   set libraries [dict create]
   set properties [dict create]
   set list_files [glob -nocomplain -directory $list_path "*{$list_files}"]
   set main_libs [dict create]
-
+  set boards_and_flags [dict create]
+  set rm_board_files []
+  set prj_brd ""
   foreach f $list_files {
     set ext [file extension $f]
     if {$ext == ".ext"} {
-      lassign [ReadListFile {*}"$sha_mode_opt  $f $ext_path"] l p m
+      lassign [ReadListFile {*}"$sha_mode_opt  $f $ext_path"] l p m b
+    } elseif {$ext == ".board"} {
+      Msg Info "BOARD FILE FOUND"
+      lassign [ReadListFile {*}"-board_file 1 $sha_mode_opt  $f $repo_path"] l p m b
+      set boards_and_flags [MergeDict $b $boards_and_flags]
     } else {
-      lassign [ReadListFile {*}"$sha_mode_opt  $f $repo_path"] l p m
+      lassign [ReadListFile {*}"$sha_mode_opt  $f $repo_path"] l p m b
     }
     set libraries [MergeDict $l $libraries]
     set properties [MergeDict $p $properties]
     set main_libs [dict merge $m $main_libs]
   }
+  foreach board [dict keys $boards_and_flags] {
+      if { [dict get $boards_and_flags $board] == 1 } {set prj_brd $board}
+      Msg Info "BOARD is $prj_brd"
+  }
+  set boards_and_flags [dict remove $boards_and_flags $prj_brd ]
+  foreach item [dict keys $properties] {
+      set val [dict get $properties $item]
+      if { [dict exists $boards_and_flags $val] == 1 }  {
+	  set properties [dict remove $properties $item]
+	  set rm_board_files [list {*}$rm_board_files $item]
+      }
+  }
+  foreach lib_items [dict keys $libraries] {
+    set lib_list [dict get $libraries $lib_items]
+    foreach fl_path $rm_board_files { set lib_list [lsearch -inline -all -not -exact $lib_list $fl_path] }
+    set libraries [dict replace $libraries $lib_items $lib_list]
+}
+  Msg Info "REMOVING $rm_board_files"
+  Msg Info "PROPS PROPS PROPS $properties"
+  Msg Info "LIBS LIBS LIBS \n $libraries"
+  Msg Info "MLIBS MLIBS MLIBS \n $main_libs"
   return [list $libraries $properties $main_libs]
 }
 

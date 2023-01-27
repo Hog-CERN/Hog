@@ -79,7 +79,7 @@ function help_Unic() {
   #   exit 0
   # }
 
-
+msg_counter init
 ROOT_PROJECT_FOLDER=$(pwd)
 LOG_INFO_FILE=$ROOT_PROJECT_FOLDER"/hog_info.log"
 LOG_WAR_ERR_FILE=$ROOT_PROJECT_FOLDER"/hog_warning_errors.log"
@@ -110,9 +110,9 @@ else
   #   exit 0
   # fi
   #Check if help vist 
-  Msg Warning "$ : $*"
+  # Msg Warning "$ : $*"
   declare -a args=($*)
-  Msg Warning "100 - args : ${args[*]}"
+  # Msg Warning "100 - args : ${args[*]}"
 
   if [[ "$*" == *"-v"* ]] || [[ "$*" == *"--verbose"* ]]; then
     export DEBUG_VERBOSE=1
@@ -128,7 +128,7 @@ else
   ## 
   Msg Debug "Input parameters (${args[*]}) :: ${#args[*]})"
 
-  msg_counter init
+  
 
   if [[ -n "$HOG_COLORED" ]]; then
     new_print_hog $(dirname "$0")

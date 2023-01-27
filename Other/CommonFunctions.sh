@@ -74,11 +74,19 @@ temp_w_cnt_file="/dev/shm/hog_w_cnt"
 temp_c_cnt_file="/dev/shm/hog_c_cnt"
 temp_e_cnt_file="/dev/shm/hog_e_cnt"
 
+warn_cnt=0
+error_cnt=0
+
 function update_cnt () {
-  
   if [[ -e "$1" ]]; then
     while read line ; do local_cnt=$(($line+1)); done < "$1"
     echo "$local_cnt" > "$1"
+  fi
+  echo "$local_cnt"
+}
+function read_tmp_cnt () {
+  if [[ -e "$1" ]]; then
+    while read line ; do local_cnt=$line; done < "$1"
   fi
   echo "$local_cnt"
 }
@@ -95,29 +103,33 @@ function msg_counter () {
   ;;
   iw)
     info_cnt=$(update_cnt $temp_i_cnt_file)
-    echo "IC : $info_cnt :  $BASHPID"
+    # echo "IC : $info_cnt :  $BASHPID"
   ;;
-  ir) echo "$info_cnt" ;;
+  ir) read_tmp_cnt $temp_i_cnt_file ;;
+
   dw)
     debug_cnt=$(update_cnt $temp_d_cnt_file)
-    echo "DC : $debug_cnt :  $BASHPID"
+    # echo "DC : $debug_cnt :  $BASHPID"
   ;;
-  dr) echo "$debug_cnt" ;;
+  dr) read_tmp_cnt $temp_d_cnt_file ;;
+
   ww)
     warn_cnt=$(update_cnt $temp_w_cnt_file)
-    echo "WC : $warn_cnt :  $BASHPID"
+    # echo "WC : $warn_cnt :  $BASHPID"
   ;;
-  wr) echo "$warn_cnt" ;;
+  wr) read_tmp_cnt $temp_w_cnt_file ;;
+
   cw)
     critical_cnt=$(update_cnt $temp_c_cnt_file)
-    echo "CC : $critical_cnt :  $BASHPID"
+    # echo "CC : $critical_cnt :  $BASHPID"
   ;;
-  cr) echo "$critical_cnt" ;;
+  cr) read_tmp_cnt $temp_c_cnt_file ;;
+
   ew)
     error_cnt=$(update_cnt $temp_e_cnt_file)
-    echo "EC : $error_cnt :  $BASHPID"
+    # echo "EC : $error_cnt :  $BASHPID"
   ;;
-  er) echo "$error_cnt" ;;
+  er) read_tmp_cnt $temp_e_cnt_file ;;
   *)
     Msg Error "counter update doesn't exist"
   ;;
@@ -131,8 +143,6 @@ echo_errors=1
 
 export LOG_INFO_FILE=""
 export LOG_WAR_ERR_FILE=""
-# logerrorfile="hog_warning_errors.log"
-
 
 txtblk='\e[0;30m' # Black - Regular
 txtred='\e[0;31m' # Red
@@ -144,19 +154,19 @@ txtpur='\e[0;35m' # Purple
 txtcyn='\e[0;36m' # Cyan
 txtwht='\e[0;37m' # White
 
-echo_e() { echo -e " old echo e ${txtred}  ERROR${txtwht} : $1"; }
-echo_c() { echo -e " old echo c ${txtorg}WARNING${txtwht} : $1"; }
-echo_w() { echo -e " old echo w ${txtylw}WARNING${txtwht} : $1"; }
-echo_i() { 
-  # echo -e "${txtblu}   INFO${txtwht} : $1";
-    if [ $echo_info == 1 ]; then echo -e " old echo i $txtblu    INFO $txtwht: $1"; fi
-    if [[ -z $LOG_INFO_FILE ]]; then echo "$line" >> $LOG_INFO_FILE; fi
-  }
-echo_d() { 
-  if [[ $DEBUG_VERBOSE -gt 0 ]]; then 
-  echo -e " old echo d ${txtgrn}   DEBUG${txtwht} : $1"; 
-  fi;
-  }
+# echo_e() { echo -e " old echo e ${txtred}  ERROR${txtwht} : $1"; }
+# echo_c() { echo -e " old echo c ${txtorg}WARNING${txtwht} : $1"; }
+# echo_w() { echo -e " old echo w ${txtylw}WARNING${txtwht} : $1"; }
+# echo_i() { 
+#   # echo -e "${txtblu}   INFO${txtwht} : $1";
+#     if [ $echo_info == 1 ]; then echo -e " old echo i $txtblu    INFO $txtwht: $1"; fi
+#     if [[ -z $LOG_INFO_FILE ]]; then echo "$line" >> $LOG_INFO_FILE; fi
+#   }
+# echo_d() { 
+#   if [[ $DEBUG_VERBOSE -gt 0 ]]; then 
+#   echo -e " old echo d ${txtgrn}   DEBUG${txtwht} : $1"; 
+#   fi;
+#   }
 
 ## @function log_stdout()
 # 
@@ -165,14 +175,6 @@ echo_d() {
 # @param[in] execution line to process
 shopt -s extglob
 function log_stdout(){
-  # Msg Info "Init function"
-  local color_reset="\e[0;37m"
-  local color_red="\e[0;31m"
-  local color_blue="\e[0;34m"
-  local color_orange="\e[0;33m"
-  local color_yellow="\e[0;93m"
-  local color_green="\e[0;32m"
-
   if [ -n "${2}" ]; then
     IN_out="${2}"
   else
@@ -184,7 +186,7 @@ function log_stdout(){
         case "$line" in
           *'CRITICAL:'* | *'CRITICAL WARNING:'* )
             if [ $echo_warnings == 1 ]; then
-              echo -e "${color_yellow}CRITICAL $color_reset: $line" 
+              echo -e "${txtylw}CRITICAL $txtwht: $line" 
             fi
             if [[ -n $HOG_LOGGER ]]; then
               if [[ -n $LOG_WAR_ERR_FILE ]]; then 
@@ -198,7 +200,7 @@ function log_stdout(){
           ;;
           *'WARNING:'* | *'Warning:'* | *'warning:'*)
             if [[ -n "$HOG_COLORED" ]]; then
-              if [ $echo_info == 1 ]; then 
+              if [ $echo_warnings == 1 ]; then 
                 echo -e "$txtylw WARNING $txtwht: ${line#*@(WARNING: |Warning: |warning: )} "; 
               fi
             fi
@@ -214,7 +216,7 @@ function log_stdout(){
           ;;
           *'ERROR:'* | *'Error:'* | *':Error'* | *'error:'* | *'Error '* | *'FATAL ERROR'*)
             if [[ -n "$HOG_COLORED" ]]; then
-              if [ $echo_info == 1 ]; then 
+              if [ $echo_errors == 1 ]; then 
                 echo -e "$txtred ERROR $txtwht: ${line#*@(ERROR:|Error:)} "; 
               fi
             fi
@@ -245,7 +247,7 @@ function log_stdout(){
             
             if [[ -n "$HOG_COLORED" ]]; then
               if [ $echo_info == 1 ]; then
-                echo -e "$color_green   DEBUG $color_reset: ${line#DEBUG: }" 
+                echo -e "$txtgrn   DEBUG $txtwht: ${line#DEBUG: }" 
                 
               fi
               if [[ -n $HOG_LOGGER ]]; then
@@ -359,7 +361,7 @@ function Logger_Init() {
 }
 
 function Hog_exit () {
-  msg_counter ir
+  # msg_counter ir
   Msg Info "================ RESUME ================ "
   Msg Info " # of Info messages: $(msg_counter ir)"
   Msg Info " # of debug messages : $(msg_counter dr)"
@@ -368,7 +370,7 @@ function Hog_exit () {
   Msg Info " # of Errors messages : $(msg_counter er)"
   Msg Info "======================================== "
   if [[ $error_cnt -gt 0 ]]; then
-    exit -1
+    exit 1
   else
     exit 0
   fi
@@ -380,34 +382,6 @@ function Hog_exit () {
 # 
 # @param[in] execution line to process
 function Logger(){
-  Msg Info "L* : $*"
-  # Msg Debug "L0 : $0"
-  # Msg Debug "dirname : $(dirname $0)"
-  # Msg Debug "pwd : $(pwd)"
-  # # cd ..
-  # # print_hog "$(dirname "$0")"
-  # # exit
-
-  # {
-  #   print_log_hog $HOG_GIT_VERSION
-  #   echo "-----------------------------------------------"
-  #   echo " HOG INFO LOG "
-  #   echo " CMD : ${1} "
-  #   echo "-----------------------------------------------"
-  # } > $LOG_INFO_FILE
-  # {
-  #   print_log_hog $HOG_GIT_VERSION
-  #   echo "-----------------------------------------------"
-  #   echo " HOG WARNINGS AND ERRORS"
-  #   echo " CMD : ${1} "
-  #   echo "-----------------------------------------------"
-  # } > $LOG_WAR_ERR_FILE
-
-  # Msg Debug "LogColorVivado : $*"
-  # log_stdout "stdout" "LogColorVivado : $*"
-  # log_stdout "stderr" "LogColorVivado : $*"
-  # # cd Top
-  # Msg Debug "PWD2 : $(pwd)"
   $* > >(log_stdout "stdout") 2> >(log_stdout "stderr" >&2)
 }
 

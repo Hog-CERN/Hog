@@ -555,7 +555,7 @@ proc ReadListFile args {
   set lib $options(lib)
   set main_lib $options(main_lib)
   set board_file $options(board_file)
-  Msg Info "BOARD ILE FLAG $board_file"
+  Msg Debug "BOARD FILE FLAG $board_file"
   if { $sha_mode == 1} {
     set sha_mode_opt "-sha_mode"
   } else {
@@ -1891,10 +1891,10 @@ proc GetHogFiles args {
     foreach fl_path $rm_board_files { set lib_list [lsearch -inline -all -not -exact $lib_list $fl_path] }
     set libraries [dict replace $libraries $lib_items $lib_list]
 }
-  Msg Info "REMOVING $rm_board_files"
-  Msg Info "PROPS PROPS PROPS $properties"
-  Msg Info "LIBS LIBS LIBS \n $libraries"
-  Msg Info "MLIBS MLIBS MLIBS \n $main_libs"
+  Msg Debug "REMOVING $rm_board_files"
+  Msg Debug "PROPERTIES DICT $properties"
+  Msg Debug "LIBRARIES DICT \n $libraries"
+  Msg Debug "MAIN LIBS DICT \n $main_libs"
   return [list $libraries $properties $main_libs]
 }
 

@@ -581,92 +581,104 @@ proc ReadListFile args {
   set libraries [dict create]
   set main_libs [dict create]
   set properties [dict create]
+  set boards_and_flags [dict create]
   #  Process data file
   set data [split $file_data "\n"]
   set n [llength $data]
   Msg Debug "$n lines read from $list_file."
   set cnt 0
 
-  foreach line $data {
-    # Exclude empty lines and comments
-    if {![regexp {^ *$} $line] & ![regexp {^ *\#} $line] } {
-      set file_and_prop [regexp -all -inline {\S+} $line]
-      set srcfile [lindex $file_and_prop 0]
-      set srcfile "$path/$srcfile"
-
-      set srcfiles [glob -nocomplain $srcfile]
-
-      # glob the file list for wildcards
-      if {$srcfiles != $srcfile && ! [string equal $srcfiles "" ]} {
-	Msg Debug "Wildcard source expanded from $srcfile to $srcfiles"
-        
-      } else {
-        if {![file exists $srcfile]} {
-          Msg CriticalWarning "File: $srcfile (from list file: $list_file) does not exist."
-          continue
-        }
+  if {$board_file == 1} {
+      foreach line $data {
+	  # Exclude empty lines and comments
+	  if {![regexp {^ *$} $line] & ![regexp {^ *\#} $line] } {
+	      set board_and_flag [regexp -all -inline {\S+} $line]
+	      set boards_and_flags [dict merge $boards_and_flags $board_and_flag]
+	  }
       }
+      Msg Debug "BOARD AND FLAG $boards_and_flags"
+  } else {
+      foreach line $data {
+	  # Exclude empty lines and comments
+	  if {![regexp {^ *$} $line] & ![regexp {^ *\#} $line] } {
+	      set file_and_prop [regexp -all -inline {\S+} $line]
+	      set srcfile [lindex $file_and_prop 0]
+	      set srcfile "$path/$srcfile"
 
-      foreach vhdlfile $srcfiles {
-        if {[file exists $vhdlfile]} {
-          set vhdlfile [file normalize $vhdlfile]
-          set extension [file extension $vhdlfile]
 
-          if { $extension == $list_file_ext } {
-	    Msg Debug "List file $vhdlfile found in list file, recursively opening it..."
+	      set srcfiles [glob -nocomplain $srcfile]
 
-            ### Set list file properties
-            set prop [lrange $file_and_prop 1 end]
-            set library [lindex [regexp -inline {lib\s*=\s*(.+?)\y.*} $prop] 1]
-            if { $library != "" } {
-	      Msg Debug "Setting $library as library for list file $vhdlfile..."
-	      
-            } else {
-	      Msg Debug "Setting $lib as library for list file $vhdlfile..."
-              set library $lib
-            }
-            lassign [ReadListFile {*}"-lib $library -main_lib $main_lib $sha_mode_opt $vhdlfile $path"] l p m
-            set libraries [MergeDict $l $libraries]
-            set properties [MergeDict $p $properties]
-            set main_libs [dict merge $m $main_libs]
-          } elseif {[lsearch {.src .sim .con .ext} $extension] >= 0 } {
-            Msg Error "$vhdlfile cannot be included into $list_file, $extension files must be included into $extension files."
-          } else {
-            ### Set file properties
-            set prop [lrange $file_and_prop 1 end]
-            regsub -all " *= *" $prop "=" prop
-            dict lappend properties $vhdlfile $prop
-	    Msg Debug "Adding property $prop to $vhdlfile..."
-            
-	    ### Set File Set
-            #Adding IP library
-            if {$sha_mode == 0 && [lsearch {.xci .ip .bd} $extension] >= 0} {
-              dict lappend libraries "$lib.ip" $vhdlfile
-              dict set main_libs "$lib.ip" "$main_lib.ip"
+	      # glob the file list for wildcards
+	      if {$srcfiles != $srcfile && ! [string equal $srcfiles "" ]} {
+		  Msg Debug "Wildcard source expanded from $srcfile to $srcfiles"
+	      } else {
+		  if {![file exists $srcfile]} {
+		      Msg CriticalWarning "File: $srcfile (from list file: $list_file) does not exist."
+		      continue
+		  }
+	      }
 
-	      Msg Debug "Appending $vhdlfile to IP list..."
+	      foreach vhdlfile $srcfiles {
+		  if {[file exists $vhdlfile]} {
+		      set vhdlfile [file normalize $vhdlfile]
+		      set extension [file extension $vhdlfile]
 
-            } else {
-              set m [dict create]
-              dict set m $lib$ext $main_lib$ext
-              dict lappend libraries $lib$ext $vhdlfile
-              if {[dict exists $main_libs $lib$ext] == 0} {
-                set main_libs [dict merge $m $main_libs]
-              }
-            }
-          }
-          incr cnt
-        } else {
-          Msg CriticalWarning "File $vhdlfile not found."
-        }
+		      if { $extension == $list_file_ext } {
+			  Msg Debug "List file $vhdlfile found in list file, recursively opening it..."
+
+			  ### Set list file properties
+			  set prop [lrange $file_and_prop 1 end]
+			  set library [lindex [regexp -inline {lib\s*=\s*(.+?)\y.*} $prop] 1]
+			  if { $library != "" } {
+			      Msg Debug "Setting $library as library for list file $vhdlfile..."
+			      
+			  } else {
+			      Msg Debug "Setting $lib as library for list file $vhdlfile..."
+			      set library $lib
+			  }
+			  lassign [ReadListFile {*}"-lib $library -main_lib $main_lib $sha_mode_opt $vhdlfile $path"] l p m
+			  set libraries [MergeDict $l $libraries]
+			  set properties [MergeDict $p $properties]
+			  set main_libs [dict merge $m $main_libs]
+		      } elseif {[lsearch {.src .sim .con .ext} $extension] >= 0 } {
+			  Msg Error "$vhdlfile cannot be included into $list_file, $extension files must be included into $extension files."
+		      } else {
+			  ### Set file properties
+			  set prop [lrange $file_and_prop 1 end]
+			  regsub -all " *= *" $prop "=" prop
+			  dict lappend properties $vhdlfile $prop
+			  Msg Debug "Adding property $prop to $vhdlfile..."
+			  
+			  ### Set File Set
+			  #Adding IP library
+			  if {$sha_mode == 0 && [lsearch {.xci .ip .bd} $extension] >= 0} {
+			      dict lappend libraries "$lib.ip" $vhdlfile
+			      dict set main_libs "$lib.ip" "$main_lib.ip"
+
+			      Msg Debug "Appending $vhdlfile to IP list..."
+
+			  } else {
+			      set m [dict create]
+			      dict set m $lib$ext $main_lib$ext
+			      dict lappend libraries $lib$ext $vhdlfile
+			      if {[dict exists $main_libs $lib$ext] == 0} {
+				  set main_libs [dict merge $m $main_libs]
+			      }
+			  }
+		      }
+		      incr cnt
+		  } else {
+		      Msg CriticalWarning "File $vhdlfile not found."
+		  }
+	      }
+	  }
       }
-    }
   }
 
   if {$sha_mode != 0} {
     dict lappend libraries $lib$ext $list_file
   }
-  return [list $libraries $properties $main_libs]
+  return [list $libraries $properties $main_libs $boards_and_flags]
 }
 
 ## @brief Merge two tcl dictionaries of lists

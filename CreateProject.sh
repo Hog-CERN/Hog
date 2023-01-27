@@ -215,14 +215,14 @@ function create_project() {
     if [ $? != 0 ]; then
       Msg Error "HDL compiler returned an error state."
       cd "${OLD_DIR}" || exit 
-      exit 1
+      # exit 1
     fi
   else
     Msg Error "Project $PROJ not found: possible projects are:"
     search_projects "${OLD_DIR}/Top"
     echo
     cd "${OLD_DIR}" || exit
-    exit 1
+    # exit 1
   fi
 
   cd "${OLD_DIR}" || exit 

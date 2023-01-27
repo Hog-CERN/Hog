@@ -369,9 +369,11 @@ function Hog_exit () {
   Msg Info " # of critical warning messages : $(msg_counter cr)"
   Msg Info " # of Errors messages : $(msg_counter er)"
   Msg Info "======================================== "
-  if [[ $error_cnt -gt 0 ]]; then
+  if [[ $(msg_counter er) -gt 0 ]]; then
+    Msg Error "Hog finished  with errors"
     exit 1
   else
+    Msg Info "Hog finished  without errors"
     exit 0
   fi
 }

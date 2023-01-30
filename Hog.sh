@@ -28,9 +28,10 @@ function help_Unic() {
   echo " USAGE: ./Hog/Hog.sh [GLOBAL OPTIONS] ACTIVITY [ACTIVITY OPTIONS] [PATH TO PROJECT] "
   echo ""
   echo "  HOG OPTIONS"
-  echo "    -v / --verbose    : Sets level of verbose"
-  echo "    -h / --help       : Show this message" 
-  echo "    -o / --colorfull  : enables colorfull logs" 
+  echo "    -v  / --verbose       : Sets level of verbose to debug"
+  # echo "    - / --verbose_color : Sets level of verbose "
+  echo "    -h  / --help       : Show this message" 
+  echo "    -o  / --color  : enables colorfull logs" 
   echo "" 
   echo "  ACTIVITIES"
   echo "    -I / Init"
@@ -117,7 +118,7 @@ else
   if [[ "$*" == *"-v "* ]] || [[ "$*" == *"--verbose "* ]]; then
     export DEBUG_VERBOSE=1
     export DEBUG_MODE=1
-    Msg Debug "Verbose level"
+    Msg Debug "Verbose level debug"
     delete=("-v" "--verbose")
     for del in "${delete[@]}"
     do
@@ -126,12 +127,10 @@ else
     # args="${args[*]/$delete}"
   fi
 
-  if [[ "$*" == *"-vc "* ]] || [[ "$*" == *"--verbose_color "* ]]; then
-    export DEBUG_VERBOSE=1
-    export DEBUG_MODE=1
+  if [[ "$*" == *"-o "* ]] || [[ "$*" == *"--color "* ]]; then
     export HOG_COLORED=1
-    Msg Debug "Verbose level with colors"
-    delete=("-vc" "--verbose_color")
+    Msg Debug "Verbose with colors"
+    delete=("-o" "--color")
     for del in "${delete[@]}"
     do
       args=(${args[@]/$del})
@@ -140,10 +139,11 @@ else
   fi
 
   if [[ "$*" == *"-l"* ]] || [[ "$*" == *"--logger"* ]]; then
-    export DEBUG_VERBOSE=1
-    export DEBUG_MODE=1
-    Msg Debug "Verbose level"
-    delete=("-v" "--verbose")
+    # export DEBUG_VERBOSE=1
+    # export DEBUG_MODE=1
+    export HOG_LOGGER=1
+    Msg Debug "logger to file"
+    delete=("-l" "--logger")
     for del in "${delete[@]}"
     do
       args=(${args[@]/$del})

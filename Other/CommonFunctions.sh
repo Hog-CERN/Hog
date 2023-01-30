@@ -844,7 +844,8 @@ function new_print_hog() {
   echo " Version: ${HOG_GIT_VERSION}"
   echo
   echo "***************************************************"
-  cd - >> /dev//dev/null
+  # cd - >> /dev//dev/null
+  cd "${OLDPWD}" || exit >> /dev//dev/null
   # HogVer $1
   # exit 0
   return 0

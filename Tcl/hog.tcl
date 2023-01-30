@@ -102,9 +102,9 @@ proc Msg {level msg {title ""}} {
   } elseif {$level == 5 || $level == "debug"} {
     
     if {[info exists DEBUG_MODE] && $DEBUG_MODE == 1} {
-	set vlevel {STATUS}
-	set qlevel info
-	set msg "::DEBUG:: $msg"
+      set vlevel {STATUS}
+      set qlevel info
+      set msg "::DEBUG:: $msg"
     } else {
       return
     }

@@ -330,10 +330,10 @@ function log_stdout(){
 # 
 # @param[in] execution line to process
 function Logger_Init() {
-  Msg Debug "L* : $*"
-  Msg Debug "L0 : $0"
-  Msg Debug "dirname : $(dirname $0)"
-  Msg Debug "pwd : $(pwd)"
+  # Msg Debug "L* : $*"
+  # Msg Debug "L0 : $0"
+  # Msg Debug "dirname : $(dirname $0)"
+  # Msg Debug "pwd : $(pwd)"
   # cd ..
   # print_hog "$(dirname "$0")"
   # exit
@@ -357,7 +357,7 @@ function Logger_Init() {
   log_stdout "stdout" "LogColorVivado : $*"
   log_stdout "stderr" "LogColorVivado : $*"
   # cd Top
-  Msg Debug "PWD2 : $(pwd)"
+  # Msg Debug "PWD2 : $(pwd)"
 }
 
 function Hog_exit () {
@@ -384,6 +384,7 @@ function Hog_exit () {
 # 
 # @param[in] execution line to process
 function Logger(){
+  Msg Debug "$*"
   $* > >(log_stdout "stdout") 2> >(log_stdout "stderr" >&2)
 }
 
@@ -497,7 +498,7 @@ function Msg() {
     ;;
   esac
 
-  if [[ -n $NEW_COLOR_LOGS ]]; then
+  if [[ -n $HOG_COLORED ]]; then
     echo "${Colour}HOG:$1[${FUNCNAME[1]}] $text $Default"
   fi
     

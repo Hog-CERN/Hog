@@ -62,14 +62,14 @@ function create_project() {
   # exit 0
   local OLD_DIR
   OLD_DIR=$(pwd)
-  Msg Debug "OLD_DIR($OLD_DIR)"
+  # Msg Debug "OLD_DIR($OLD_DIR)"
   local THIS_DIR
   THIS_DIR="$(dirname "$0")"
-  Msg Debug "THIS_DIR ($THIS_DIR)"
+  # Msg Debug "THIS_DIR ($THIS_DIR)"
   HOG_PROJECT_FOLDER="$OLD_DIR"
 
-  Msg Debug "HogInitFunc 0 ($0)"
-  Msg Debug "HogInitFunc 1 ($1)"
+  # Msg Debug "HogInitFunc 0 ($0)"
+  # Msg Debug "HogInitFunc 1 ($1)"
 
   if [ "$1" == "-h" ] || [ "$1" == "-help" ] || [ "$1" == "--help" ] || [ "$1" == "-H" ]; then
     help_message "$0"
@@ -152,11 +152,8 @@ function create_project() {
       Msg Info "Using executable: $HDL_COMPILER"
     fi
 
-    Msg Debug "155 - pwd : $(pwd)"
-
     if [ "$FILE_TYPE" == "CONF" ]; then
       cd "${DIR}" || exit 
-      Msg Debug "****** $(pwd)"
       Msg Info "Creating project $PROJ using hog.conf..."
       if [[ -z $HOG_COLORED ]]; then
         if [ -z ${HOG_LIBPATH+x} ]; then
@@ -184,7 +181,7 @@ function create_project() {
         if [ -z ${HOG_LIBPATH+x} ]; then
           if [ -z ${HOG_SIMULATION_LIB_PATH+x} ]; then
             if [ "$COMMAND" == "libero" ]; then
-              Logger "${HDL_COMPILER}" "${COMMAND_OPT}"../Hog/Tcl/create_project.tcl "${POST_COMMAND_OPT}$PROJ"
+              Logger "${HDL_COMPILER}" "${COMMAND_OPT}"../Hog/Tcl/create_project.tcl "${POST_COMMAND_OPT}$PROJ" 
             else
               Logger ${HDL_COMPILER} ${COMMAND_OPT}../Hog/Tcl/create_project.tcl ${POST_COMMAND_OPT}$PROJ
             fi

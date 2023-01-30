@@ -760,6 +760,9 @@ if {[info exists workflow_simlib_path]} {
 
 ###########################################################################################################################################################################################
 
+# Guillermo Tests
+# Msg Info "- - - - - - - - - "
+# Msg Info "$argc ::: $argv"
 
 set proj_dir $repo_path/Top/$DESIGN
 lassign [GetConfFiles $proj_dir] conf_file sim_file pre_file post_file

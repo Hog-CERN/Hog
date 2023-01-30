@@ -101,38 +101,17 @@ function msg_counter () {
     echo "0" > "$temp_c_cnt_file"
     echo "0" > "$temp_e_cnt_file"
   ;;
-  iw)
-    info_cnt=$(update_cnt $temp_i_cnt_file)
-    # echo "IC : $info_cnt :  $BASHPID"
-  ;;
+  iw) update_cnt $temp_i_cnt_file ;;
   ir) read_tmp_cnt $temp_i_cnt_file ;;
-
-  dw)
-    debug_cnt=$(update_cnt $temp_d_cnt_file)
-    # echo "DC : $debug_cnt :  $BASHPID"
-  ;;
+  dw) update_cnt $temp_d_cnt_file ;;
   dr) read_tmp_cnt $temp_d_cnt_file ;;
-
-  ww)
-    warn_cnt=$(update_cnt $temp_w_cnt_file)
-    # echo "WC : $warn_cnt :  $BASHPID"
-  ;;
+  ww) update_cnt $temp_w_cnt_file ;;
   wr) read_tmp_cnt $temp_w_cnt_file ;;
-
-  cw)
-    critical_cnt=$(update_cnt $temp_c_cnt_file)
-    # echo "CC : $critical_cnt :  $BASHPID"
-  ;;
+  cw) update_cnt $temp_c_cnt_file ;;
   cr) read_tmp_cnt $temp_c_cnt_file ;;
-
-  ew)
-    error_cnt=$(update_cnt $temp_e_cnt_file)
-    # echo "EC : $error_cnt :  $BASHPID"
-  ;;
+  ew) update_cnt $temp_e_cnt_file ;;
   er) read_tmp_cnt $temp_e_cnt_file ;;
-  *)
-    Msg Error "counter update doesn't exist"
-  ;;
+  *) Msg Error "counter update doesn't exist" ;;
  esac
 
 }
@@ -182,9 +161,15 @@ function log_stdout(){
     do
       line=${IN_out}
 
+
       if [ "${1}" == "stdout" ]; then
         case "$line" in
           *'CRITICAL:'* | *'CRITICAL WARNING:'* )
+            if [[ $DEBUG_VERBOSE -gt 0 ]]; then
+              printf "%d : %d :" $BASHPID "$(msg_counter cw)"
+            else
+              msg_counter cw >> /dev/null 
+            fi;
             if [ $echo_warnings == 1 ]; then
               echo -e "${txtylw}CRITICAL $txtwht: $line" 
             fi
@@ -196,9 +181,14 @@ function log_stdout(){
                 echo "CRITICAL : ${line#*@(WARNING: |Warning: |warning: )}" >> $LOG_INFO_FILE; 
               fi
             fi
-            msg_counter cw
+            # msg_counter cw
           ;;
           *'WARNING:'* | *'Warning:'* | *'warning:'*)
+            if [[ $DEBUG_VERBOSE -gt 0 ]]; then
+              printf "%d : %d :" $BASHPID "$(msg_counter ww)"
+            else
+              msg_counter ww >> /dev/null
+            fi;
             if [[ -n "$HOG_COLORED" ]]; then
               if [ $echo_warnings == 1 ]; then 
                 echo -e "$txtylw WARNING $txtwht: ${line#*@(WARNING: |Warning: |warning: )} "; 
@@ -212,9 +202,14 @@ function log_stdout(){
                 echo " WARNING : ${line#*@(WARNING: |Warning: |warning: )}" >> $LOG_INFO_FILE; 
               fi
             fi
-            msg_counter ww
+            # msg_counter ww
           ;;
           *'ERROR:'* | *'Error:'* | *':Error'* | *'error:'* | *'Error '* | *'FATAL ERROR'*)
+            if [[ $DEBUG_VERBOSE -gt 0 ]]; then
+              printf "%d : %d :" $BASHPID "$(msg_counter ew)"  
+            else
+              msg_counter ew >> /dev/null
+            fi;
             if [[ -n "$HOG_COLORED" ]]; then
               if [ $echo_errors == 1 ]; then 
                 echo -e "$txtred ERROR $txtwht: ${line#*@(ERROR:|Error:)} "; 
@@ -228,9 +223,14 @@ function log_stdout(){
                 echo " ERROR : ${line#*@(ERROR:|Error:)} " >> $LOG_INFO_FILE; 
               fi
             fi
-            msg_counter ew
+            # msg_counter ew
           ;;
           *'INFO:'*)
+            if [[ $DEBUG_VERBOSE -gt 0 ]]; then
+              printf "%d : %d :" $BASHPID "$(msg_counter iw)"
+            else
+              msg_counter iw >> /dev/null
+            fi;
             if [[ -n "$HOG_COLORED" ]]; then
               if [ $echo_info == 1 ]; then 
                 echo -e "$txtblu    INFO $txtwht: ${line#INFO: }"; 
@@ -241,10 +241,14 @@ function log_stdout(){
                 echo "    INFO : ${line#INFO: }" >> $LOG_INFO_FILE; 
               fi
             fi
-            msg_counter iw
+            # msg_counter iw
           ;;
           *'DEBUG:'*)
-            
+            if [[ $DEBUG_VERBOSE -gt 0 ]]; then
+              printf "%d : %d :" $BASHPID "$(msg_counter dw)" 
+            else
+              msg_counter dw >> /dev/null
+            fi;
             if [[ -n "$HOG_COLORED" ]]; then
               if [ $echo_info == 1 ]; then
                 echo -e "$txtgrn   DEBUG $txtwht: ${line#DEBUG: }" 
@@ -256,10 +260,15 @@ function log_stdout(){
                 fi
               fi
             fi
-            msg_counter dw
+            # msg_counter dw
 
           ;;
           *'vcom'*)
+            if [[ $DEBUG_VERBOSE -gt 0 ]]; then
+              printf "%d : %d :" $BASHPID "$(msg_counter iw)"
+            else
+              msg_counter iw >> /dev/null
+            fi;
             if [[ -n "$HOG_COLORED" ]]; then
               if [ $echo_info == 1 ]; then 
                 echo -e "$txtblu    VCOM $txtwht: ${line#INFO: }"; 
@@ -270,10 +279,15 @@ function log_stdout(){
                 fi
               fi
             fi
-            msg_counter iw
+            # msg_counter iw
 
           ;;
           *'Errors'* | *'Warnings'* | *'errors'* | *'warnings'*)
+            if [[ $DEBUG_VERBOSE -gt 0 ]]; then
+              printf "%d : %d :" $BASHPID "$(msg_counter iw)"
+            else
+              msg_counter iw >> /dev/null
+            fi;
             if [[ -n "$HOG_COLORED" ]]; then
               if [ $echo_info == 1 ]; then 
                 echo -e "$txtblu    INFO $txtwht: ${line#INFO: }"; 
@@ -284,9 +298,14 @@ function log_stdout(){
                 fi
               fi
             fi
-            msg_counter iw
+            # msg_counter iw
           ;;
           *)
+            if [[ $DEBUG_VERBOSE -gt 0 ]]; then
+              printf "%d : %d :" $BASHPID "$(msg_counter iw)"
+            else
+              msg_counter iw >> /dev/null
+            fi;
             if [[ -n "$HOG_COLORED" ]]; then
               if [ $echo_info == 1 ]; then 
                 echo -e "$txtblu    INFO $txtwht: ${line#INFO: }"; 
@@ -297,10 +316,15 @@ function log_stdout(){
                 fi
               fi
             fi
-            msg_counter iw
+            # msg_counter iw
           ;;
         esac
       elif [ "${1}" == "stderr" ]; then
+        if [[ $DEBUG_VERBOSE -gt 0 ]]; then
+          printf "%d : %d :" $BASHPID "$(msg_counter ew)"  
+        else
+          msg_counter ew >> /dev/null
+        fi;
         if [[ -n "$HOG_COLORED" ]]; then
           if [ $echo_info == 1 ]; then 
             echo -e "$txtred*ERROR $txtwht: ${line#*@(ERROR:|Error:)} "; 
@@ -314,7 +338,7 @@ function log_stdout(){
             fi
           fi
         fi
-        msg_counter ew
+        # msg_counter ew
 
 
       else
@@ -415,8 +439,17 @@ function Msg() {
   LightBlue=$'\e[0;36m'
   Default=$'\e[0m'
 
+  # if [[ $DEBUG_VERBOSE -gt 0 ]]; then
+  #   printf "$(msg_counter iw) : $BASHPID : " 
+  # fi;
+
   case $1 in
   "Info")
+    if [[ $DEBUG_VERBOSE -gt 0 ]]; then
+      printf "%d : %d :" $BASHPID "$(msg_counter iw)"
+    else
+      msg_counter iw >> /dev/null
+    fi;
     if [[ -n "$HOG_COLORED" ]]; then
       if [ $echo_info == 1 ]; then 
         echo -e "$txtblu    INFO $txtwht: HOG [${FUNCNAME[1]}] : $text "; 
@@ -429,11 +462,16 @@ function Msg() {
         echo "    INFO : HOG [${FUNCNAME[1]}] : $text" >> $LOG_INFO_FILE; 
       fi
     fi
-    msg_counter iw
+    # msg_counter iw
 
 
     ;;
   "Warning")
+    if [[ $DEBUG_VERBOSE -gt 0 ]]; then
+      printf "%d : %d :" $BASHPID "$(msg_counter ww)"
+    else
+      msg_counter ww >> /dev/null
+    fi;
     if [[ -n "$HOG_COLORED" ]]; then
       if [ $echo_info == 1 ]; then 
         echo -e "$txtylw WARNING $txtwht: HOG [${FUNCNAME[1]}] : $text "; 
@@ -446,9 +484,14 @@ function Msg() {
         echo "WARNING : HOG [${FUNCNAME[1]}] : $text" >> $LOG_INFO_FILE; 
       fi
     fi
-    msg_counter ww
+    # msg_counter ww
     ;;
   "CriticalWarning")
+    if [[ $DEBUG_VERBOSE -gt 0 ]]; then
+      printf "%d : %d :" $BASHPID "$(msg_counter cw)"
+    else
+      msg_counter cw >> /dev/null 
+    fi;
     if [[ -n "$HOG_COLORED" ]]; then
       if [ $echo_info == 1 ]; then 
         echo -e "${txtblu}CRITICAL $txtwht: HOG [${FUNCNAME[1]}] : $text "; 
@@ -461,9 +504,14 @@ function Msg() {
         echo "CRITICAL : HOG [${FUNCNAME[1]}] : $text " >> $LOG_INFO_FILE; 
       fi
     fi
-    msg_counter cw
+    # msg_counter cw
     ;;
   "Error")
+    if [[ $DEBUG_VERBOSE -gt 0 ]]; then
+      printf "%d : %d :" $BASHPID "$(msg_counter ew)"  
+    else
+      msg_counter ew >> /dev/null
+    fi;
     if [[ -n "$HOG_COLORED" ]]; then
       if [ $echo_info == 1 ]; then 
         echo -e "$txtred   ERROR $txtwht: HOG [${FUNCNAME[1]}] : $text "; 
@@ -476,9 +524,14 @@ function Msg() {
         echo "   ERROR : HOG [${FUNCNAME[1]}] : $text " >> $LOG_INFO_FILE; 
       fi
     fi
-    msg_counter ew
+    # msg_counter ew
     ;;
   "Debug")
+    if [[ $DEBUG_VERBOSE -gt 0 ]]; then
+      printf "%d : %d :" $BASHPID "$(msg_counter dw)" 
+    else
+      msg_counter dw >> /dev/null
+    fi;
     if [[ -n "$HOG_COLORED" ]]; then
       if [[ $DEBUG_VERBOSE -gt 0 ]]; then
         echo -e "${txtgrn}   DEBUG${txtwht} : HOG [${FUNCNAME[1]}] : $text "; 
@@ -491,7 +544,7 @@ function Msg() {
         echo "   DEBUG : HOG [${FUNCNAME[1]}] : $text " >> $LOG_INFO_FILE; 
       fi
     fi
-    msg_counter dw
+    # msg_counter dw
     ;;
   *)
     Msg Error "messageLevel: $1 not supported! Use Info, Warning, CriticalWarning, Error"
@@ -741,7 +794,7 @@ function print_hog() {
   cat ./images/hog_logo.txt
   echo " Version: ${ver}"
   echo
-  cd "${OLDPWD}" || exit >> /dev/null
+  cd "${OLDPWD}" || exit >> /dev//dev/null
   HogVer "$1"
 
   return 0
@@ -765,7 +818,7 @@ function print_log_hog() {
   echo " Version: ${HOG_GIT_VERSION}"
   echo
   # cd "${OLDPWD}" 
-  # || exit >> /dev/null
+  # || exit >> /dev//dev/null
   # HogVer "$1"
 
   return 0
@@ -791,7 +844,7 @@ function new_print_hog() {
   echo " Version: ${HOG_GIT_VERSION}"
   echo
   echo "***************************************************"
-  cd - >> /dev/null
+  cd - >> /dev//dev/null
   # HogVer $1
   # exit 0
   return 0
@@ -865,7 +918,7 @@ function HogVer() {
     fi
 
   fi
-  cd ${OLDPWD} || exit >> /dev/null
+  cd ${OLDPWD} || exit >> /dev//dev/null
 }
 
 
@@ -876,7 +929,7 @@ function HogVer() {
 # @returns  0 if success, 1 if failure
 #
 function check_command() {
-  if ! command -v "$1" &> /dev/null
+  if ! command -v "$1" &> /dev//dev/null
   then
     Msg Warning "Command $1 could not be found"
     return 1

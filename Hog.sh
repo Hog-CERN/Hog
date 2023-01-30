@@ -114,7 +114,7 @@ else
   declare -a args=($*)
   # Msg Warning "100 - args : ${args[*]}"
 
-  if [[ "$*" == *"-v"* ]] || [[ "$*" == *"--verbose"* ]]; then
+  if [[ "$*" == *"-v "* ]] || [[ "$*" == *"--verbose "* ]]; then
     export DEBUG_VERBOSE=1
     export DEBUG_MODE=1
     Msg Debug "Verbose level"
@@ -125,6 +125,32 @@ else
     done
     # args="${args[*]/$delete}"
   fi
+
+  if [[ "$*" == *"-vc "* ]] || [[ "$*" == *"--verbose_color "* ]]; then
+    export DEBUG_VERBOSE=1
+    export DEBUG_MODE=1
+    export HOG_COLORED=1
+    Msg Debug "Verbose level with colors"
+    delete=("-vc" "--verbose_color")
+    for del in "${delete[@]}"
+    do
+      args=(${args[@]/$del})
+    done
+    # args="${args[*]/$delete}"
+  fi
+
+  if [[ "$*" == *"-l"* ]] || [[ "$*" == *"--logger"* ]]; then
+    export DEBUG_VERBOSE=1
+    export DEBUG_MODE=1
+    Msg Debug "Verbose level"
+    delete=("-v" "--verbose")
+    for del in "${delete[@]}"
+    do
+      args=(${args[@]/$del})
+    done
+    # args="${args[*]/$delete}"
+  fi
+
   ## 
   Msg Debug "Input parameters (${args[*]}) :: ${#args[*]})"
 

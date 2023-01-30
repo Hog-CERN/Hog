@@ -421,13 +421,13 @@ function Msg() {
       if [ $echo_info == 1 ]; then 
         echo -e "$txtblu    INFO $txtwht: HOG [${FUNCNAME[1]}] : $text "; 
       fi
-      if [[ -n $HOG_LOGGER ]]; then
-        if [[ -n $LOG_INFO_FILE ]]; then 
-          echo "    INFO : HOG [${FUNCNAME[1]}] : $text" >> $LOG_INFO_FILE; 
-        fi
-      fi
     else
       Colour=$Default
+    fi
+    if [[ -n $HOG_LOGGER ]]; then
+      if [[ -n $LOG_INFO_FILE ]]; then 
+        echo "    INFO : HOG [${FUNCNAME[1]}] : $text" >> $LOG_INFO_FILE; 
+      fi
     fi
     msg_counter iw
 
@@ -438,13 +438,13 @@ function Msg() {
       if [ $echo_info == 1 ]; then 
         echo -e "$txtylw WARNING $txtwht: HOG [${FUNCNAME[1]}] : $text "; 
       fi
-      if [[ -n $HOG_LOGGER ]]; then
-        if [[ -n $LOG_INFO_FILE ]]; then 
-          echo "WARNING : HOG [${FUNCNAME[1]}] : $text" >> $LOG_INFO_FILE; 
-        fi
-      fi
     else
       Colour=$LightBlue
+    fi
+    if [[ -n $HOG_LOGGER ]]; then
+      if [[ -n $LOG_INFO_FILE ]]; then 
+        echo "WARNING : HOG [${FUNCNAME[1]}] : $text" >> $LOG_INFO_FILE; 
+      fi
     fi
     msg_counter ww
     ;;
@@ -453,13 +453,13 @@ function Msg() {
       if [ $echo_info == 1 ]; then 
         echo -e "${txtblu}CRITICAL $txtwht: HOG [${FUNCNAME[1]}] : $text "; 
       fi
-      if [[ -n $HOG_LOGGER ]]; then
-        if [[ -n $LOG_INFO_FILE ]]; then 
-          echo "CRITICAL : HOG [${FUNCNAME[1]}] : $text " >> $LOG_INFO_FILE; 
-        fi
-      fi
     else
       Colour=$Orange
+    fi
+    if [[ -n $HOG_LOGGER ]]; then
+      if [[ -n $LOG_INFO_FILE ]]; then 
+        echo "CRITICAL : HOG [${FUNCNAME[1]}] : $text " >> $LOG_INFO_FILE; 
+      fi
     fi
     msg_counter cw
     ;;
@@ -468,13 +468,13 @@ function Msg() {
       if [ $echo_info == 1 ]; then 
         echo -e "$txtred   ERROR $txtwht: HOG [${FUNCNAME[1]}] : $text "; 
       fi
-      if [[ -n $HOG_LOGGER ]]; then
-        if [[ -n $LOG_INFO_FILE ]]; then 
-          echo "   ERROR : HOG [${FUNCNAME[1]}] : $text " >> $LOG_INFO_FILE; 
-        fi
-      fi
     else
       Colour=$Red
+    fi
+    if [[ -n $HOG_LOGGER ]]; then
+      if [[ -n $LOG_INFO_FILE ]]; then 
+        echo "   ERROR : HOG [${FUNCNAME[1]}] : $text " >> $LOG_INFO_FILE; 
+      fi
     fi
     msg_counter ew
     ;;
@@ -483,13 +483,13 @@ function Msg() {
       if [[ $DEBUG_VERBOSE -gt 0 ]]; then
         echo -e "${txtgrn}   DEBUG${txtwht} : HOG [${FUNCNAME[1]}] : $text "; 
       fi;
-      if [[ -n $HOG_LOGGER ]]; then
-        if [[ -n $LOG_INFO_FILE ]]; then 
-          echo "   DEBUG : HOG [${FUNCNAME[1]}] : $text " >> $LOG_INFO_FILE; 
-        fi
-      fi
     else
       Colour=$Green
+    fi
+    if [[ -n $HOG_LOGGER ]]; then
+      if [[ -n $LOG_INFO_FILE ]]; then 
+        echo "   DEBUG : HOG [${FUNCNAME[1]}] : $text " >> $LOG_INFO_FILE; 
+      fi
     fi
     msg_counter dw
     ;;
@@ -498,11 +498,10 @@ function Msg() {
     ;;
   esac
 
-  if [[ -n $HOG_COLORED ]]; then
+  if [[ -z $HOG_COLORED ]]; then
     echo "${Colour}HOG:$1[${FUNCNAME[1]}] $text $Default"
   fi
-    
-
+  
   return 0
 }
 

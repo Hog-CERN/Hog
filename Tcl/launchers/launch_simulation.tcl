@@ -27,7 +27,7 @@ set parameters {
   {lib_path.arg ""   "Compiled simulation library path"}
   {simset.arg  ""    "Simulation sets, separated by commas, to be run."}
   {recreate          "If set, the project will be re-created if it already exists."}
-  {verbose}          "If set, launch the script in verbose mode."}
+  {verbose          "If set, launch the script in verbose mode."}
 }
 
 set usage "- USAGE: $::argv0 \[OPTIONS\] <project> \n. Options:"

@@ -258,6 +258,9 @@ create_badge:
     variables:
       - $CI_COMMIT_TAG =~ /^v.*$/ && $HOG_BADGE_PROJECTS != null
   <<: *tag-badge
+  variables:
+    GIT_STRATEGY: clone
+    GIT_SUBMODULE_STRATEGY: recursive
   stage: badge
   script:
     - for project in $HOG_BADGE_PROJECTS; do

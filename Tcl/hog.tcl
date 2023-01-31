@@ -83,7 +83,7 @@ proc IsTclsh {} {
 
 ## Hog message printout function
 proc Msg {level msg {title ""}} {
-  global DEBUG_MODE
+
   set level [string tolower $level]
   if {$level == 0 || $level == "status" || $level == "extra_info"} {
     set vlevel {STATUS}
@@ -101,11 +101,9 @@ proc Msg {level msg {title ""}} {
     set vlevel {ERROR}
     set qlevel "error"
   } elseif {$level == 5 || $level == "debug"} {
-    
-    if {[info exists DEBUG_MODE] && $DEBUG_MODE == 1} {
-	set vlevel {STATUS}
-	set qlevel info
-	set msg "::DEBUG:: $msg"
+    if {$::DEBUG_MODE == 1} {
+  	  set vlevel {STATUS}
+  	  set qlevel extra_info
     } else {
       return
     }
@@ -128,7 +126,7 @@ proc Msg {level msg {title ""}} {
       exit 1
     }
   } else {
-    # Tcl Shell
+    # Tcl Shell / Libero
     puts "*** Hog:$title $vlevel $msg"
     if {$qlevel == "error"} {
       exit 1

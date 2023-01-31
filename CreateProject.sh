@@ -46,6 +46,7 @@ function help_message() {
   echo " Usage: $1 <project name> [OPTIONS]"
   echo " Options:"
   echo "          -l/--lib  <sim_lib_path>  Path to simulation library. If not defined it will be set to the HOG_SIMULATION_LIB_PATH environmental library, or if this does not exist to the default $(pwd)/SimulationLib"
+  echo "          -v/-verbose If set, launch the script in verbose mode."
   echo
   echo " Hint: Hog accepts as <project name> both the actual project name and the relative path containing the project configuration. E.g. ./Hog/CreateProject.sh Top/myproj or ./Hog/CreateProject.sh myproj"
 }
@@ -114,6 +115,10 @@ function create_project() {
       shift # past argument
       shift # past value
       ;;
+    -v | -verbose)
+      VERBOSE="-verbose"
+      shift 1
+      ;;
     *)                   # unknown option
       POSITIONAL+=("$1") # save it in an array for later
       shift              # past argument
@@ -152,22 +157,22 @@ function create_project() {
       if [ -z ${HOG_LIBPATH+x} ]; then
         if [ -z ${HOG_SIMULATION_LIB_PATH+x} ]; then
           if [ "$COMMAND" == "libero" ]; then
-            "${HDL_COMPILER}" "${COMMAND_OPT}"../Hog/Tcl/create_project.tcl "${POST_COMMAND_OPT}$PROJ"
+            "${HDL_COMPILER}" "${COMMAND_OPT}"../Hog/Tcl/create_project.tcl "${POST_COMMAND_OPT}$VERBOSE $PROJ"
           else
-            ${HDL_COMPILER} ${COMMAND_OPT}../Hog/Tcl/create_project.tcl ${POST_COMMAND_OPT}$PROJ
+            ${HDL_COMPILER} ${COMMAND_OPT}../Hog/Tcl/create_project.tcl ${POST_COMMAND_OPT}$VERBOSE $PROJ
           fi
         else
           if [ "$COMMAND" == "libero" ]; then
-            "${HDL_COMPILER}" "${COMMAND_OPT}"../Hog/Tcl/create_project.tcl "${POST_COMMAND_OPT}-simlib_path ${HOG_SIMULATION_LIB_PATH} $PROJ"
+            "${HDL_COMPILER}" "${COMMAND_OPT}"../Hog/Tcl/create_project.tcl "${POST_COMMAND_OPT}-simlib_path ${HOG_SIMULATION_LIB_PATH} $VERBOSE $PROJ"
           else
-            ${HDL_COMPILER} ${COMMAND_OPT}../Hog/Tcl/create_project.tcl ${POST_COMMAND_OPT}-simlib_path ${HOG_SIMULATION_LIB_PATH} $PROJ
+            ${HDL_COMPILER} ${COMMAND_OPT}../Hog/Tcl/create_project.tcl ${POST_COMMAND_OPT}-simlib_path ${HOG_SIMULATION_LIB_PATH} $VERBOSE $PROJ
           fi
         fi
       else
         if [ "$COMMAND" == "libero" ]; then
-          "${HDL_COMPILER}" "${COMMAND_OPT}"../Hog/Tcl/create_project.tcl "${POST_COMMAND_OPT}-simlib_path ${HOG_LIBPATH} $PROJ"
+          "${HDL_COMPILER}" "${COMMAND_OPT}"../Hog/Tcl/create_project.tcl "${POST_COMMAND_OPT}-simlib_path ${HOG_LIBPATH} $VERBOSE $PROJ"
         else
-          ${HDL_COMPILER} ${COMMAND_OPT}../Hog/Tcl/create_project.tcl ${POST_COMMAND_OPT}-simlib_path ${HOG_LIBPATH} $PROJ
+          ${HDL_COMPILER} ${COMMAND_OPT}../Hog/Tcl/create_project.tcl ${POST_COMMAND_OPT}-simlib_path ${HOG_LIBPATH} $VERBOSE $PROJ
         fi
       fi
     elif [ "$FILE_TYPE" == "TCL" ]; then

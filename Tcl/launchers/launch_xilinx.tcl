@@ -32,6 +32,8 @@ set parameters {
   {njobs.arg 4 "Number of jobs. Default: 4"}
   {ext_path.arg "" "Sets the absolute path for the external libraries."}
   {simlib_path.arg  "" "Path of simulation libs"}
+  {verbose         "If set, launch the script in verbose mode"}
+
 }
 
 set usage "- USAGE: $::argv0 \[OPTIONS\] <project> \n. Options:"
@@ -100,6 +102,11 @@ if { $options(ext_path) != ""} {
 if { $options(simlib_path) != ""} {
   set workflow_simlib_path $options(simlib_path)
 }
+
+if { $options(verbose) == 1 } {
+  variable ::DEBUG_MODE 1
+}
+
 
 # Let's leave the following commented section in case something comes up
 # It was able to retrieve the ips before creating the project, but this cannot be used if generated file are in the Projects folder

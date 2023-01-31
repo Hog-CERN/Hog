@@ -41,6 +41,7 @@ set parameters {
   {njobs.arg 4 "Number of jobs. Default: 4"}
   {ext_path.arg "" "Sets the absolute path for the external libraries."}
   {simlib_path.arg  "" "Path of simulation libs"}
+  {verbose         "If set, launch the script in verbose mode"}
 }
 
 set usage "- USAGE: $::argv0 \[OPTIONS\] <project> \n. Options:"
@@ -108,6 +109,10 @@ if { $options(ext_path) != ""} {
 
 if { $options(simlib_path) != ""} {
   set workflow_simlib_path $options(simlib_path)
+}
+
+if { $options(verbose) == 1 } {
+  variable ::DEBUG_MODE 1
 }
 
 #Copy IP from IP repository

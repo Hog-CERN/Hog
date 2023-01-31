@@ -47,20 +47,20 @@ function argument_parser() {
       SIMLIBPATH="-lib_path $2"
       shift 2
       ;;
-    -quiet)
-      QUIET="-quiet"
-      shift 1
-      ;;
     -simset)
       SIMSET="-simset $2"
       shift 2
       ;;    
     -recreate)
-            RECREATE="-recreate"
-            shift 1
-            ;;
+      RECREATE="-recreate"
+      shift 1
+      ;;
     -h | -help)
       HELP="-h"
+      shift 1
+      ;;
+    -v | -verbose)
+      VERBOSE="-verbose"
       shift 1
       ;;
     --) # end argument parsing
@@ -96,8 +96,8 @@ function help_message() {
   echo " Options:"
   echo "          -l/--lib  <sim_lib_path>  Path to simulation library. If not defined it will be set to the HOG_SIMULATION_LIB_PATH environmental library, or if this does not exist to the default $(pwd)/SimulationLib"
   echo "          -simset <simset>          Launch the simulation only for the specified simulation set"
-  echo "          -quiet                    If set, it runs the simulation in quiet mode"
   echo "          -recreate                 If set, Hog will recreate the HDL project before running the workflow"
+  echo "          -v/-verbose               If set, Launch the simulation script in verbose mode. "
   echo 
   echo " Hint: Hog accepts as <project name> both the actual project name and the relative path containing the project configuration. E.g. ./Hog/LaunchSimulation.sh Top/myproj or ./Hog/LaunchSimulation.sh myproj"
 }
@@ -169,12 +169,12 @@ function SimulateProject(){
       else
         if [ -z "${SIMLIBPATH}" ]; then
           if [ -z "${HOG_SIMULATION_LIB_PATH}" ]; then
-            "${HDL_COMPILER}" $COMMAND_OPT $DIR/Tcl/launchers/launch_simulation.tcl -tclargs $SIMSET $QUIET $RECREATE $PROJ
+            "${HDL_COMPILER}" $COMMAND_OPT $DIR/Tcl/launchers/launch_simulation.tcl -tclargs $SIMSET $RECREATE $VERBOSE $PROJ
           else
-            "${HDL_COMPILER}" $COMMAND_OPT $DIR/Tcl/launchers/launch_simulation.tcl -tclargs -lib_path $HOG_SIMULATION_LIB_PATH $SIMSET $QUIET $RECREATE $PROJ
+            "${HDL_COMPILER}" $COMMAND_OPT $DIR/Tcl/launchers/launch_simulation.tcl -tclargs -lib_path $HOG_SIMULATION_LIB_PATH $SIMSET $RECREATE $VERBOSE $PROJ
           fi
         else
-          "${HDL_COMPILER}" $COMMAND_OPT $DIR/Tcl/launchers/launch_simulation.tcl -tclargs $SIMLIBPATH $SIMSET $QUIET $RECREATE $PROJ
+          "${HDL_COMPILER}" $COMMAND_OPT $DIR/Tcl/launchers/launch_simulation.tcl -tclargs $SIMLIBPATH $SIMSET $RECREATE $VERBOSE $PROJ
         fi
       fi
     else

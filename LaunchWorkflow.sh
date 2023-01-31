@@ -181,14 +181,15 @@ function Launch_project(){
         fi
 
         if [ "$COMMAND" = "quartus_sh" ]; then
+            Msg Info "${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_quartus.tcl $HELP $NO_BITSTREAM $SYNTH_ONLY $NJOBS $CHECK_SYNTAX $RECREATE $EXT_PATH $IMPL_ONLY $VERBOSE -project $PROJ"
             ${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_quartus.tcl $HELP $NO_BITSTREAM $SYNTH_ONLY $NJOBS $CHECK_SYNTAX $RECREATE $EXT_PATH $IMPL_ONLY $VERBOSE -project $PROJ
         elif [ "$COMMAND" = "vivado_hls" ]; then
             Msg Error "Vivado HLS is not yet supported by this script!"
         elif [ "$COMMAND" = "libero" ]; then
-            echo "${HDL_COMPILER} ${COMMAND_OPT}$DIR/Tcl/launchers/launch_libero.tcl SCRIPT_ARGS:\"$NJOBS $CHECK_SYNTAX $RECREATE $EXT_PATH $IMPL_ONLY $SIMLIBPATH $PROJ\""
+            echo "${HDL_COMPILER} ${COMMAND_OPT}$DIR/Tcl/launchers/launch_libero.tcl SCRIPT_ARGS:\"$NJOBS $CHECK_SYNTAX $RECREATE $EXT_PATH $IMPL_ONLY $SIMLIBPATH $VERBOSE $PROJ\""
             ${HDL_COMPILER} ${COMMAND_OPT}$DIR/Tcl/launchers/launch_libero.tcl SCRIPT_ARGS:"$NJOBS $CHECK_SYNTAX $RECREATE $EXT_PATH $IMPL_ONLY $SIMLIBPATH $VERBOSE $PROJ "
         else
-            Msg Info "${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_xilinx.tcl -tclargs $HELP $NO_RESET $NO_BITSTREAM $SYNTH_ONLY $NJOBS $RECREATE $EXT_PATH $IMPL_ONLY $SIMLIBPATH $PROJ"
+            Msg Info "${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_xilinx.tcl -tclargs $HELP $NO_RESET $NO_BITSTREAM $SYNTH_ONLY $NJOBS $RECREATE $EXT_PATH $IMPL_ONLY $SIMLIBPATH $VERBOSE $PROJ"
             ${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_xilinx.tcl -tclargs $HELP $NO_RESET $NO_BITSTREAM $SYNTH_ONLY $NJOBS $RECREATE $EXT_PATH $IMPL_ONLY $SIMLIBPATH $VERBOSE $PROJ
         fi
     else

@@ -101,7 +101,7 @@ proc Msg {level msg {title ""}} {
     set vlevel {ERROR}
     set qlevel "error"
   } elseif {$level == 5 || $level == "debug"} {
-    if {$::DEBUG_MODE == 1} {
+    if {[info exists ::DEBUG_MODE] && $::DEBUG_MODE == 1} {
   	  set vlevel {STATUS}
   	  set qlevel extra_info
     } else {

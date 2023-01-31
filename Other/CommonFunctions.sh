@@ -794,7 +794,7 @@ function print_hog() {
   cat ./images/hog_logo.txt
   echo " Version: ${ver}"
   echo
-  cd "${OLDPWD}" || exit >> /dev//dev/null
+  cd "${OLDPWD}" || exit >> /dev/null
   HogVer "$1"
 
   return 0
@@ -818,7 +818,7 @@ function print_log_hog() {
   echo " Version: ${HOG_GIT_VERSION}"
   echo
   # cd "${OLDPWD}" 
-  # || exit >> /dev//dev/null
+  # || exit >> /dev/null
   # HogVer "$1"
 
   return 0
@@ -844,8 +844,8 @@ function new_print_hog() {
   echo " Version: ${HOG_GIT_VERSION}"
   echo
   echo "***************************************************"
-  # cd - >> /dev//dev/null
-  cd "${OLDPWD}" || exit >> /dev//dev/null
+  # cd - >> /dev/null
+  cd "${OLDPWD}" || exit >> /dev/null
   # HogVer $1
   # exit 0
   return 0
@@ -919,7 +919,7 @@ function HogVer() {
     fi
 
   fi
-  cd ${OLDPWD} || exit >> /dev//dev/null
+  cd ${OLDPWD} || exit >> /dev/null
 }
 
 
@@ -930,7 +930,7 @@ function HogVer() {
 # @returns  0 if success, 1 if failure
 #
 function check_command() {
-  if ! command -v "$1" &> /dev//dev/null
+  if ! command -v "$1" &> /dev/null
   then
     Msg Warning "Command $1 could not be found"
     return 1

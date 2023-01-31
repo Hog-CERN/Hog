@@ -529,16 +529,16 @@ function Msg() {
   "Debug")
     if [[ $DEBUG_VERBOSE -gt 0 ]]; then
       printf "%d : %d :" $BASHPID "$(msg_counter dw)" 
+      if [[ -n "$HOG_COLORED" ]]; then
+        # if [[ $DEBUG_VERBOSE -gt 0 ]]; then
+          echo -e "${txtgrn}   DEBUG${txtwht} : HOG [${FUNCNAME[1]}] : $text "; 
+        # fi;
+      else
+        Colour=$Green
+      fi
     else
       msg_counter dw >> /dev/null
     fi;
-    if [[ -n "$HOG_COLORED" ]]; then
-      if [[ $DEBUG_VERBOSE -gt 0 ]]; then
-        echo -e "${txtgrn}   DEBUG${txtwht} : HOG [${FUNCNAME[1]}] : $text "; 
-      fi;
-    else
-      Colour=$Green
-    fi
     if [[ -n $HOG_LOGGER ]]; then
       if [[ -n $LOG_INFO_FILE ]]; then 
         echo "   DEBUG : HOG [${FUNCNAME[1]}] : $text " >> $LOG_INFO_FILE; 
@@ -551,8 +551,15 @@ function Msg() {
     ;;
   esac
 
-  if [[ -z $HOG_COLORED ]]; then
-    echo "${Colour}HOG:$1[${FUNCNAME[1]}] $text $Default"
+  
+  if [[ -z $HOG_COLORED ]] ; then
+    if [[ "$1" != "Debug" ]]; then
+      echo "${Colour}HOG:$1[${FUNCNAME[1]}] $text $Default"
+    else
+      if [[ $DEBUG_VERBOSE -gt 0 ]]; then
+        echo "${Colour}HOG:$1[${FUNCNAME[1]}] $text $Default"
+      fi
+    fi
   fi
   
   return 0

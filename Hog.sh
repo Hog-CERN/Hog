@@ -116,15 +116,17 @@ else
   # Msg Warning "100 - args : ${args[*]}"
 
   if [[ "$*" == *"-v "* ]] || [[ "$*" == *"--verbose "* ]]; then
-    export DEBUG_VERBOSE=1
-    export DEBUG_MODE=1
+    DEBUG_VERBOSE=1
+    DEBUG_MODE=1
     Msg Debug "Verbose level debug"
     delete=("-v" "--verbose")
     for del in "${delete[@]}"
     do
       args=(${args[@]/$del})
     done
-    # args="${args[*]/$delete}"
+  else
+    DEBUG_VERBOSE=0
+    DEBUG_MODE=0
   fi
 
   if [[ "$*" == *"-o "* ]] || [[ "$*" == *"--color "* ]]; then
@@ -193,10 +195,10 @@ else
   # fi
 
   activity=("${args[0]}")
-  Msg Warning "activity $activity"
+  # Msg Warning "activity $activity"
 
   args=("${args[@]:1}")
-  Msg Warning "151 - args : ${args[*]}"
+  # Msg Warning "151 - args : ${args[*]}"
   shift
   case "$activity" in
     -I|Init)

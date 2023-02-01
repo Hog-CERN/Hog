@@ -25,10 +25,11 @@ function help_Unic() {
   # echo
   # echo " Hog - Initialise repository"
   echo " ---------------------------"
-  echo " USAGE: ./Hog/Hog.sh [GLOBAL OPTIONS] ACTIVITY [ACTIVITY OPTIONS] [PATH TO PROJECT] "
+  echo " USAGE: ./Hog/Hog.sh [GLOBAL OPTIONS] ACTIVITY  [PATH TO PROJECT] [ACTIVITY OPTIONS]"
   echo ""
   echo "  HOG OPTIONS"
   echo "    -v  / --verbose : Sets level of verbose to debug"
+  echo "                      If no value is passed verbose is set to 5 - debug"
   echo "    -l  / --logger  : enables logger to file"
   echo "    -h  / --help    : Show this message" 
   echo "    -o  / --color   : enables colorfull logs" 
@@ -43,7 +44,8 @@ function help_Unic() {
   echo " "
   echo "./Hog/Hog.sh -h      : Print this help message"
   echo "./Hog/Hog.sh -C -h   : Print Project Creator help"
-  echo ""
+  echo "./Hog/Hog.sh -v 2 -l -C Top/MainBlocks/BA3_ucm_divIP/"
+  echo "./Hog/Hog.sh -o -v 2 -l -C Top/MainBlocks/BA3_ucm_divIP/"
   exit 0
 }
 
@@ -85,45 +87,18 @@ ROOT_PROJECT_FOLDER=$(pwd)
 LOG_INFO_FILE=$ROOT_PROJECT_FOLDER"/hog_info.log"
 LOG_WAR_ERR_FILE=$ROOT_PROJECT_FOLDER"/hog_warning_errors.log"
 
-# msg_counter init
-
-# if [[ -n "$HOG_COLORED" ]]; then
-#   new_print_hog $(dirname "$0")
-# else
-#   print_hog $(dirname "$0")
-# fi
-# if [[ -n $HOG_LOGGER ]]; then
-#   Logger_Init
-# fi
-
-# arguments=$*
-# new_print_hog $(dirname "$0")
-# Logger HogVer $(dirname "$0")
-
-
-
 if [ $# == 0 ]; then
   # help_message $0
   help_Unic
   return 1
 else 
-  #Check if help vist 
-  # if [[ "$*" == *"-h"* ]] || [[ "$*" == *"-help"* ]]; then
-  #   help_Unic
-  #   exit 0
-  # fi
-  #Check if help vist 
-  # Msg Warning "$ : $*"
+
   declare -a args=($*)
-  # Msg Warning "100 - args : ${args[*]}"
-    # echo "${#args[@]} :-: ${args[*]}"
 
   ind_verb=("-v" "--verbose")
   if [[ "$*" == *"-v "* ]] || [[ "$*" == *"--verbose "* ]]; then
     pos_arg=0
-    # echo "${args[@]}"
     for pos_i_arg in "${args[@]}"; do
-      # echo "$pos_i_arg"
       if [[ "$pos_i_arg" == $ind_verb ]]; then break; fi
       pos_arg=$(($pos_arg+1))
     done
@@ -139,15 +114,6 @@ else
       unset -v 'args[pos_arg]'
       unset -v 'args[$((pos_arg+1))]'
     fi
-    # echo "$pos_arg :: ${args[$pos_arg]}"
-    # unset -v 'args[pos_arg]'
-    # echo "${#args[@]} :-: ${args[*]}"
-    # unset -v 'args[pos_arg]'
-    # echo "${#args[@]} :-: ${args[*]}"
-    # unset -v 'args[$((pos_arg+1))]'
-    # echo "${#args[@]} :-: ${args[*]}"
-    # DEBUG_VERBOSE=1
-    # DEBUG_MODE=1
     Msg Debug "Verbose level debug"
     delete=("-v" "--verbose")
     for del in "${delete[@]}"
@@ -167,12 +133,9 @@ else
     do
       args=(${args[@]/$del})
     done
-    # args="${args[*]/$delete}"
   fi
 
   if [[ "$*" == *"-l"* ]] || [[ "$*" == *"--logger"* ]]; then
-    # export DEBUG_VERBOSE=1
-    # export DEBUG_MODE=1
     export HOG_LOGGER=1
     Msg Debug "logger to file"
     delete=("-l" "--logger")
@@ -180,7 +143,6 @@ else
     do
       args=(${args[@]/$del})
     done
-    # args="${args[*]/$delete}"
   fi
 
   ## 
@@ -197,39 +159,10 @@ else
     Logger_Init "$*"
   fi
 
-# exit 0
-  # for ((i=0;i<${#$};i++)); do
-  #   echo "${i} :: ${$[i]}"
-  # done
-  # act_finder=0;
-  # for arg in "$@"; do
-  #   if [[ $arg == "-I" ]] || [[ $arg == "-C" ]] || [[ $arg == "-S" ]] || [[ $arg == "-W" ]] ; then
-  #     Msg Debug "Activity detected"
-  #     break
-  #   fi
-  #   if [[ "$arg" == *"-h"* ]] || [[ "$arg" == *"-help"* ]]; then
-  #     # echo "Y"
-  #     help_Unic
-  #     exit 0
-  #   fi
-  #   # act_ind=act_finder
-  #   # fi
-  #   # act_finder=$(($act_finder+1))
-  #   # echo $arg
-  # done
-  # exit 0
-  
-  # if [[ "$*" == *"-h"* ]] || [[ "$*" == *"-help"* ]]; then
-  #   # echo "Y"
-  #   help_Unic
-  #   exit 0
-  # fi
-
   activity=("${args[0]}")
-  # Msg Warning "activity $activity"
 
   args=("${args[@]:1}")
-  # Msg Warning "151 - args : ${args[*]}"
+
   shift
   case "$activity" in
     -I|Init)

@@ -131,20 +131,6 @@ txtpur='\e[0;35m' # Purple
 txtcyn='\e[0;36m' # Cyan
 txtwht='\e[0;37m' # White
 
-# echo_e() { echo -e " old echo e ${txtred}  ERROR${txtwht} : $1"; }
-# echo_c() { echo -e " old echo c ${txtorg}WARNING${txtwht} : $1"; }
-# echo_w() { echo -e " old echo w ${txtylw}WARNING${txtwht} : $1"; }
-# echo_i() { 
-#   # echo -e "${txtblu}   INFO${txtwht} : $1";
-#     if [ $echo_info == 1 ]; then echo -e " old echo i $txtblu    INFO $txtwht: $1"; fi
-#     if [[ -z $LOG_INFO_FILE ]]; then echo "$line" >> $LOG_INFO_FILE; fi
-#   }
-# echo_d() { 
-#   if [[ $DEBUG_VERBOSE -gt 0 ]]; then 
-#   echo -e " old echo d ${txtgrn}   DEBUG${txtwht} : $1"; 
-#   fi;
-#   }
-
 ## @function log_stdout()
 # 
 # @brief parsers the output of the executed program ( Vivado, Questa,...) 
@@ -248,7 +234,6 @@ function log_stdout(){
                 echo "    INFO : ${info_line#INFO: }" >> $LOG_INFO_FILE; 
               fi
             fi
-            # msg_counter iw
           ;;
           *'DEBUG:'*)
             debug_line=$line
@@ -364,14 +349,6 @@ function log_stdout(){
 # 
 # @param[in] execution line to process
 function Logger_Init() {
-  # Msg Debug "L* : $*"
-  # Msg Debug "L0 : $0"
-  # Msg Debug "dirname : $(dirname $0)"
-  # Msg Debug "pwd : $(pwd)"
-  # cd ..
-  # print_hog "$(dirname "$0")"
-  # exit
-
   {
     print_log_hog $HOG_GIT_VERSION
     echo "-----------------------------------------------"
@@ -390,8 +367,6 @@ function Logger_Init() {
   Msg Debug "LogColorVivado : $*"
   log_stdout "stdout" "LogColorVivado : $*"
   log_stdout "stderr" "LogColorVivado : $*"
-  # cd Top
-  # Msg Debug "PWD2 : $(pwd)"
 }
 
 ## @function Hog_exit()
@@ -431,8 +406,6 @@ function Logger(){
 #
 # @return  '1' if missing arguments else '0'
 function Msg() {
-  #check input variables
-  # echo "------- $*"
   if [ "a$1" == "a" ]; then
     Msg Error "messageLevel not set!"
     return 1
@@ -443,12 +416,6 @@ function Msg() {
   else
       text="$2"
   fi
-
-
-
-  # if [[ $DEBUG_VERBOSE -gt 0 ]]; then
-  #   printf "$(msg_counter iw) : $BASHPID : " 
-  # fi;
 
   local print_msg=0
 
@@ -804,8 +771,6 @@ function print_hog() {
     Msg Error "missing input! Got: $1!"
     return 1
   fi
-  # echo "----------------- $1"
-  # echo "***************** $(pwd)"
   cd "$1" || exit
   ver=$(git describe --always)
   HOG_GIT_VERSION=$(git describe --always)
@@ -828,18 +793,9 @@ function print_log_hog() {
     Msg Error "Missing input! Got: $1!"
     return 1
   fi
-  # echo "----------------- $1"
-  # echo "***************** $(pwd)"
-  # cd "$1" || exit
-  # ver=$(git describe --always)
-  # echo
   cat ${ROOT_PROJECT_FOLDER}"/Hog/images/hog_logo.txt"
   echo " Version: ${HOG_GIT_VERSION}"
   echo
-  # cd "${OLDPWD}" 
-  # || exit >> /dev/null
-  # HogVer "$1"
-
   return 0
 }
 
@@ -854,8 +810,6 @@ function new_print_hog() {
   fi
   cd "$1"
   HOG_GIT_VERSION=$(git describe --always)
-  # echo
-  # cat ./images/hog_logo.txt
   while IFS= read -r line; do
     echo -e "$line"
   done < ./images/hog_logo_color.txt
@@ -863,10 +817,7 @@ function new_print_hog() {
   echo " Version: ${HOG_GIT_VERSION}"
   echo
   echo "***************************************************"
-  # cd - >> /dev/null
   cd "${OLDPWD}" || exit >> /dev/null
-  # HogVer $1
-  # exit 0
   return 0
 }
 

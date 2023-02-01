@@ -155,29 +155,29 @@ function create_project() {
     if [ "$FILE_TYPE" == "CONF" ]; then
       cd "${DIR}" || exit 
       Msg Info "Creating project $PROJ using hog.conf..."
-      if [[ -z $HOG_COLORED ]]; then
-        if [ -z ${HOG_LIBPATH+x} ]; then
-          if [ -z ${HOG_SIMULATION_LIB_PATH+x} ]; then
-            if [ "$COMMAND" == "libero" ]; then
-              "${HDL_COMPILER}" "${COMMAND_OPT}"../Hog/Tcl/create_project.tcl "${POST_COMMAND_OPT}$PROJ"
-            else
-              ${HDL_COMPILER} ${COMMAND_OPT}../Hog/Tcl/create_project.tcl ${POST_COMMAND_OPT}$PROJ
-            fi
-          else
-            if [ "$COMMAND" == "libero" ]; then
-              "${HDL_COMPILER}" "${COMMAND_OPT}"../Hog/Tcl/create_project.tcl "${POST_COMMAND_OPT}-simlib_path ${HOG_SIMULATION_LIB_PATH} $PROJ"
-            else
-              ${HDL_COMPILER} ${COMMAND_OPT}../Hog/Tcl/create_project.tcl ${POST_COMMAND_OPT}-simlib_path ${HOG_SIMULATION_LIB_PATH} $PROJ
-            fi
-          fi
-        else
-          if [ "$COMMAND" == "libero" ]; then
-            "${HDL_COMPILER}" "${COMMAND_OPT}"../Hog/Tcl/create_project.tcl "${POST_COMMAND_OPT}-simlib_path ${HOG_LIBPATH} $PROJ"
-          else
-            ${HDL_COMPILER} ${COMMAND_OPT}../Hog/Tcl/create_project.tcl ${POST_COMMAND_OPT}-simlib_path ${HOG_LIBPATH} $PROJ
-          fi
-        fi
-      else
+      # if [[ -z $HOG_COLORED ]]; then
+      #   if [ -z ${HOG_LIBPATH+x} ]; then
+      #     if [ -z ${HOG_SIMULATION_LIB_PATH+x} ]; then
+      #       if [ "$COMMAND" == "libero" ]; then
+      #         "${HDL_COMPILER}" "${COMMAND_OPT}"../Hog/Tcl/create_project.tcl "${POST_COMMAND_OPT}$PROJ"
+      #       else
+      #         ${HDL_COMPILER} ${COMMAND_OPT}../Hog/Tcl/create_project.tcl ${POST_COMMAND_OPT}$PROJ
+      #       fi
+      #     else
+      #       if [ "$COMMAND" == "libero" ]; then
+      #         "${HDL_COMPILER}" "${COMMAND_OPT}"../Hog/Tcl/create_project.tcl "${POST_COMMAND_OPT}-simlib_path ${HOG_SIMULATION_LIB_PATH} $PROJ"
+      #       else
+      #         ${HDL_COMPILER} ${COMMAND_OPT}../Hog/Tcl/create_project.tcl ${POST_COMMAND_OPT}-simlib_path ${HOG_SIMULATION_LIB_PATH} $PROJ
+      #       fi
+      #     fi
+      #   else
+      #     if [ "$COMMAND" == "libero" ]; then
+      #       "${HDL_COMPILER}" "${COMMAND_OPT}"../Hog/Tcl/create_project.tcl "${POST_COMMAND_OPT}-simlib_path ${HOG_LIBPATH} $PROJ"
+      #     else
+      #       ${HDL_COMPILER} ${COMMAND_OPT}../Hog/Tcl/create_project.tcl ${POST_COMMAND_OPT}-simlib_path ${HOG_LIBPATH} $PROJ
+      #     fi
+      #   fi
+      # else
         if [ -z ${HOG_LIBPATH+x} ]; then
           if [ -z ${HOG_SIMULATION_LIB_PATH+x} ]; then
             if [ "$COMMAND" == "libero" ]; then
@@ -199,7 +199,7 @@ function create_project() {
             Logger ${HDL_COMPILER} ${COMMAND_OPT}../Hog/Tcl/create_project.tcl ${POST_COMMAND_OPT}-simlib_path ${HOG_LIBPATH} $PROJ
           fi
         fi
-      fi
+      # fi
       
     elif [ "$FILE_TYPE" == "TCL" ]; then
       Msg Error "Creating project $PROJ using $PROJ.tcl is no longer supported. Please create a hog.conf file..."

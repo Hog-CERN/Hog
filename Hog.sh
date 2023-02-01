@@ -100,6 +100,8 @@ LOG_WAR_ERR_FILE=$ROOT_PROJECT_FOLDER"/hog_warning_errors.log"
 # new_print_hog $(dirname "$0")
 # Logger HogVer $(dirname "$0")
 
+
+
 if [ $# == 0 ]; then
   # help_message $0
   help_Unic
@@ -114,10 +116,38 @@ else
   # Msg Warning "$ : $*"
   declare -a args=($*)
   # Msg Warning "100 - args : ${args[*]}"
+    # echo "${#args[@]} :-: ${args[*]}"
 
+  ind_verb=("-v" "--verbose")
   if [[ "$*" == *"-v "* ]] || [[ "$*" == *"--verbose "* ]]; then
-    DEBUG_VERBOSE=1
-    DEBUG_MODE=1
+    pos_arg=0
+    # echo "${args[@]}"
+    for pos_i_arg in "${args[@]}"; do
+      # echo "$pos_i_arg"
+      if [[ "$pos_i_arg" == $ind_verb ]]; then break; fi
+      pos_arg=$(($pos_arg+1))
+    done
+    if [[ ${args[$((pos_arg+1))]} == "-"* ]]; then
+      DEBUG_VERBOSE=5
+      # DEBUG_MODE=5
+      Msg Warning "No level of verbose fixed, level will be set to 5(debug)"
+      unset -v 'args[pos_arg]'
+    else
+      DEBUG_VERBOSE=${args[$((pos_arg+1))]}
+      # DEBUG_MODE=5
+      Msg Debug "Level of verbose set to ($DEBUG_VERBOSE)"
+      unset -v 'args[pos_arg]'
+      unset -v 'args[$((pos_arg+1))]'
+    fi
+    # echo "$pos_arg :: ${args[$pos_arg]}"
+    # unset -v 'args[pos_arg]'
+    # echo "${#args[@]} :-: ${args[*]}"
+    # unset -v 'args[pos_arg]'
+    # echo "${#args[@]} :-: ${args[*]}"
+    # unset -v 'args[$((pos_arg+1))]'
+    # echo "${#args[@]} :-: ${args[*]}"
+    # DEBUG_VERBOSE=1
+    # DEBUG_MODE=1
     Msg Debug "Verbose level debug"
     delete=("-v" "--verbose")
     for del in "${delete[@]}"
@@ -125,8 +155,8 @@ else
       args=(${args[@]/$del})
     done
   else
-    DEBUG_VERBOSE=0
-    DEBUG_MODE=0
+    DEBUG_VERBOSE=4
+    # DEBUG_MODE=0
   fi
 
   if [[ "$*" == *"-o "* ]] || [[ "$*" == *"--color "* ]]; then
@@ -159,14 +189,15 @@ else
   
 
   if [[ -n "$HOG_COLORED" ]]; then
-    new_print_hog $(dirname "$0")
+    new_print_hog "$(dirname "$0")"
   else
-    print_hog $(dirname "$0")
+    print_hog "$(dirname "$0")"
   fi
   if [[ -n $HOG_LOGGER ]]; then
-    Logger_Init
+    Logger_Init "$*"
   fi
 
+# exit 0
   # for ((i=0;i<${#$};i++)); do
   #   echo "${i} :: ${$[i]}"
   # done

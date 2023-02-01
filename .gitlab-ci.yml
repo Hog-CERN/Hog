@@ -114,7 +114,7 @@ tagging_master_hotfix:
     - MR_INFO=( `git notes show` )
     - BRANCH=${MR_INFO[1]}
     - if [[ ${BRANCH} != "develop" ]]; then
-        new_tag=`echo \"source Tcl/hog.tcl; puts v[HexVersionToString [GetVer . 0]]\" | tclsh`;
+        new_tag=`echo "source Tcl/hog.tcl; puts v[HexVersionToString [GetVer . 0]]" | tclsh`;
         echo "New tag is $new_tag";
         git tag $new_tag -m "Official_version_${new_tag}";
       else

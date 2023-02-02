@@ -223,8 +223,8 @@ function HogLaunchFunc(){
   # exit 0
 }
 if [[ ${BASH_SOURCE[0]} == $0 ]]; then
-#   printf "script '%s' is sourced in\n" "${BASH_SOURCE[0]}"
-# else
+
+  DEBUG_VERBOSE=4
   Msg Info "HogLaunchFunc ($*)"
   repoPath=$(dirname "$0")
   echo "pwd : $(pwd)"

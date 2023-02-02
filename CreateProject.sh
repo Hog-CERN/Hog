@@ -218,13 +218,11 @@ function HogCreateFunc(){
   # exit 0
 }
 if [[ ${BASH_SOURCE[0]} == "$0" ]]; then
-#   printf "script '%s' is sourced in\n" "${BASH_SOURCE[0]}"
-# else
+  DEBUG_VERBOSE=4
   repoPath="$(dirname "$0")"
   echo "$repoPath"
   echo "pwd : $(pwd)"
   print_hog "$repoPath"
   create_project "$@"
   exit 0
-
 fi

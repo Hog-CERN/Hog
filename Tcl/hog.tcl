@@ -108,7 +108,7 @@ proc Msg {level msg {title ""}} {
       set vlevel {STATUS}
       set qlevel extra_info
       set msg "DEBUG: \[Hog:$title\] $msg"
-    } else {q
+    } else {
       return
     }
     

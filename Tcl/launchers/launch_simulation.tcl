@@ -87,9 +87,7 @@ if { $options(recreate) == 1 } {
   set recreate 1
 }
 
-set verbose 0
 if { $options(verbose) == 1 } {
-  set verbose 1
   variable ::DEBUG_MODE 1
 }
 
@@ -208,11 +206,10 @@ if {[info exists sim_scripts]} {
     } else {
       lappend success $sim_name
     }
-    if {$verbose == 1} {
-      Msg Info "###################### Compilation log starts ######################"
-      Msg Status "\n\n$log\n\n"
-      Msg Info "######################  Compilation log ends  ######################"
-    }
+    Msg Debug "###################### Compilation log starts ######################"
+    Msg Debug "\n\n$log\n\n"
+    Msg Debug "######################  Compilation log ends  ######################"
+  
 
     if { [file exists "./elaborate.sh"] } {
       set cmd ./elaborate.sh
@@ -225,11 +222,9 @@ if {[info exists sim_scripts]} {
       } else {
         lappend success $sim_name
       }
-      if {$verbose == 1} {
-        Msg Info "###################### Elaboration log starts ######################"
-        Msg Status "\n\n$log\n\n"
-        Msg Info "######################  Elaboration log ends  ######################"
-      }
+      Msg Debug "###################### Elaboration log starts ######################"
+      Msg Debug "\n\n$log\n\n"
+      Msg Debug "######################  Elaboration log ends  ######################"
     }
     set cmd ./simulate.sh
     Msg Info " ************* Simulating: $s  ************* "  
@@ -241,11 +236,10 @@ if {[info exists sim_scripts]} {
     } else {
       lappend success $sim_name
     }
-    if {$verbose == 1} {
-      Msg Info "###################### Simulation log starts ######################"
-      Msg Status "\n\n$log\n\n"
-      Msg Info "######################  Simulation log ends  ######################"
-    }
+    Msg Debug "###################### Simulation log starts ######################"
+    Msg Debug "\n\n$log\n\n"
+    Msg Debug "######################  Simulation log ends  ######################"
+    
   }
 }
 

@@ -87,6 +87,7 @@ if { $options(recreate) == 1 } {
   set recreate 1
 }
 
+set verbose 0
 if { $options(verbose) == 1 } {
   set verbose 1
   variable ::DEBUG_MODE 1

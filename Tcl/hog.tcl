@@ -82,8 +82,11 @@ proc IsTclsh {} {
 
 ## Hog message printout function
 proc Msg {level msg {title ""}} {
-  global DEBUG_MODE
+
   set level [string tolower $level]
+
+  if {$title == ""} {set title [lindex [info level [expr {[info level]-1}]] 0]}
+  
   if {$level == 0 || $level == "status" || $level == "extra_info"} {
     set vlevel {STATUS}
     set qlevel info
@@ -100,20 +103,20 @@ proc Msg {level msg {title ""}} {
     set vlevel {ERROR}
     set qlevel "error"
   } elseif {$level == 5 || $level == "debug"} {
-    
-    if {[info exists DEBUG_MODE] && $DEBUG_MODE == 1} {
+    if {([info exists ::DEBUG_MODE] && $::DEBUG_MODE == 1) || ([info exists ::env(HOG_DEBUG_MODE)] && $::env(HOG_DEBUG_MODE) == 1)} {
       set vlevel {STATUS}
-      set qlevel info
-      set msg "::DEBUG:: $msg"
+      set qlevel extra_info
+      set msg "DEBUG: \[Hog:$title\] $msg"
     } else {
       return
     }
+    
   } else {
     puts "Hog Error: level $level not defined"
     exit -1
   }
 
-  if {$title == ""} {set title [lindex [info level [expr {[info level]-1}]] 0]}
+
   if {[IsXilinx]} {
     # Vivado
     set status [catch {send_msg_id Hog:$title-0 $vlevel $msg}]
@@ -127,7 +130,7 @@ proc Msg {level msg {title ""}} {
       exit 1
     }
   } else {
-    # Tcl Shell
+    # Tcl Shell / Libero
     puts "*** Hog:$title $vlevel $msg"
     if {$qlevel == "error"} {
       exit 1

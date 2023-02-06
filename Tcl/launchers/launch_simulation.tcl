@@ -25,9 +25,9 @@ if {[catch {package require cmdline} ERROR]} {
 
 set parameters {
   {lib_path.arg ""   "Compiled simulation library path"}
-  {simset.arg  ""   "Simulation sets, separated by commas, to be run."}
-  {recreate        "If set, the project will be re-created if it already exists."}
-  {quiet             "Simulation sets, separated by commas, to be run."}  
+  {simset.arg  ""    "Simulation sets, separated by commas, to be run."}
+  {recreate          "If set, the project will be re-created if it already exists."}
+  {verbose          "If set, launch the script in verbose mode."}
 }
 
 set usage "- USAGE: $::argv0 \[OPTIONS\] <project> \n. Options:"
@@ -83,14 +83,12 @@ if {$options(simset)!= ""} {
   Msg Info "Will run only the following simsets (if they exist): $simsets_todo"
 }
 
-set verbose 1
-if {$options(quiet) == 1} {
-  set verbose 0 
-  Msg Info "Will run in quiet mode"
-}
-
 if { $options(recreate) == 1 } {
   set recreate 1
+}
+
+if { $options(verbose) == 1 } {
+  variable ::DEBUG_MODE 1
 }
 
 
@@ -208,11 +206,10 @@ if {[info exists sim_scripts]} {
     } else {
       lappend success $sim_name
     }
-    if {$verbose == 1} {
-      Msg Info "###################### Compilation log starts ######################"
-      Msg Status "\n\n$log\n\n"
-      Msg Info "######################  Compilation log ends  ######################"
-    }
+    Msg Debug "###################### Compilation log starts ######################"
+    Msg Debug "\n\n$log\n\n"
+    Msg Debug "######################  Compilation log ends  ######################"
+  
 
     if { [file exists "./elaborate.sh"] } {
       set cmd ./elaborate.sh
@@ -225,11 +222,9 @@ if {[info exists sim_scripts]} {
       } else {
         lappend success $sim_name
       }
-      if {$verbose == 1} {
-        Msg Info "###################### Elaboration log starts ######################"
-        Msg Status "\n\n$log\n\n"
-        Msg Info "######################  Elaboration log ends  ######################"
-      }
+      Msg Debug "###################### Elaboration log starts ######################"
+      Msg Debug "\n\n$log\n\n"
+      Msg Debug "######################  Elaboration log ends  ######################"
     }
     set cmd ./simulate.sh
     Msg Info " ************* Simulating: $s  ************* "  
@@ -241,11 +236,10 @@ if {[info exists sim_scripts]} {
     } else {
       lappend success $sim_name
     }
-    if {$verbose == 1} {
-      Msg Info "###################### Simulation log starts ######################"
-      Msg Status "\n\n$log\n\n"
-      Msg Info "######################  Simulation log ends  ######################"
-    }
+    Msg Debug "###################### Simulation log starts ######################"
+    Msg Debug "\n\n$log\n\n"
+    Msg Debug "######################  Simulation log ends  ######################"
+    
   }
 }
 

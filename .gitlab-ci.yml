@@ -113,10 +113,15 @@ tagging_master_hotfix:
     - git fetch origin refs/notes/*:refs/notes/*
     - MR_INFO=( `git notes show` )
     - BRANCH=${MR_INFO[1]}
-    - if [[ ${BRANCH} != "develop" ]]; then "new_tag=`echo \"source Tcl/hog.tcl; puts
-      v[HexVersionToString [GetVer . 0]]\" | tclsh`"; echo "New tag is $new_tag";
-      git tag $new_tag -m "Official_version_${new_tag}"; else echo "Skipping because
-      it is not a hotfix"; fi;
+    - if [[ ${BRANCH} != "develop" ]]; then
+        new_tag=`echo "source Tcl/hog.tcl; puts v[HexVersionToString [GetVer . 0]]" | tclsh`;
+        echo "New tag is $new_tag";
+        git tag $new_tag -m "Official_version_${new_tag}";
+        git push --tags;
+      else
+        echo "Skipping because it is not a hotfix";
+      fi;
+
 
 shellcheck:
   stage: tag

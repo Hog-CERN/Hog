@@ -23,10 +23,11 @@ set parameters {\
   {no_bitstream    "If set, the bitstream file will not be produced."}
   {synth_only      "If set, only the synthesis will be performed."}
   {impl_only       "If set, only the implementation will be performed. This assumes synthesis should was already done."}
-  {recreate     "If set, the project will not be re created if it already exists."}
+  {recreate        "If set, the project will not be re created if it already exists."}
   {check_syntax    "If set, the HDL syntax will be checked at the beginning of the workflow."}
-  {project.arg "" "The project name"}
-  {njobs.arg 4 "Number of jobs. Default: 4"}
+  {project.arg     "" "The project name"}
+  {njobs.arg 4     "Number of jobs. Default: 4"}
+  {verbose         "If set, launch the script in verbose mode"}
 }
 
 set usage   "- USAGE: $::argv0 \[OPTIONS\] -project <project> \n  Options:"
@@ -88,6 +89,10 @@ if { $options(impl_only) == 1 } {
 
 if { $options(check_syntax) == 1 } {
   set check_syntax 1
+}
+
+if { $options(verbose) == 1 } {
+  variable ::DEBUG_MODE 1
 }
 
 #############################

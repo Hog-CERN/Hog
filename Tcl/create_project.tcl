@@ -693,6 +693,7 @@ if {[catch {package require cmdline} ERROR]} {
 
 set parameters {
   {simlib_path.arg  "" "Path of simulation libs"}
+  {verbose "If set, launch the script in verbose mode."}
 }
 
 set usage "Create Vivado/ISE/Questus/Libero project.\nUsage: create_project.tcl \[OPTIONS\] <project> \n. Options:"
@@ -728,12 +729,16 @@ if { $::argc eq 0 && ![info exists DESIGN]} {
       set DESIGN [lindex $quartus(args) 0]
     }
   } else {
-    Msg Info "Design is taken from DEISGN variable: $DESIGN"
+    Msg Info "Design is taken from DESIGN variable: $DESIGN"
   }
 
 } else {
   Msg Error "Can't run outside an IDE."
   exit 1
+}
+
+if { $options(verbose) == 1 } {
+  variable ::DEBUG_MODE 1
 }
 
 SetGlobalVar DESIGN
@@ -757,6 +762,7 @@ if {[info exists workflow_simlib_path]} {
     Msg Info "Simulation library path set to default $repo_path/SimulationLib"
   }
 }
+
 
 ###########################################################################################################################################################################################
 
@@ -822,6 +828,7 @@ if {[file exists $conf_file]} {
 } else {
   Msg Error "$conf_file was not found in your project directory, please create one."
 }
+
 
 if {![IsLibero]} {
   SetGlobalVar PART

@@ -78,6 +78,10 @@ function wf_argument_parser() {
             CHECK_SYNTAX="-check_syntax"
             shift 1
             ;;
+        -v | -verbose)
+            VERBOSE="-verbose"
+            shift 1
+            ;;
         -h | -help)
             HELP="-h"
             shift 1
@@ -122,6 +126,7 @@ function help_wokflow_message() {
   echo "          -synth_only               If set, it runs only the synthesis"
   echo "          -no_reset                 If set, the workflow will not be reset before running it"
   echo "          -check_syntax             If set, the HDL syntax will be checked before running the workflow"
+  echo "          -v/-verbose              If set, launch Hog scripts in verbose mode."
   echo 
   echo " Hint: Hog accepts as <project name> both the actual project name and the relative path containing the project configuration. E.g. ./Hog/LaunchWorkflow.sh Top/myproj or ./Hog/LaunchWorkflow.sh myproj"
 }
@@ -177,34 +182,19 @@ function Launch_project(){
                 SIMLIBPATH="-simlib_path ${HOG_SIMULATION_LIB_PATH}"
             fi
         fi
-        Msg Debug "177 - pwd : $(pwd)"
-        # if [[ -z $HOG_COLORED ]]; then
-        #   if [ "$COMMAND" = "quartus_sh" ]; then
-        #     ${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_quartus.tcl $HELP $NO_BITSTREAM $SYNTH_ONLY $NJOBS $CHECK_SYNTAX $RECREATE $EXT_PATH $IMPL_ONLY -project $PROJ
-        #   elif [ "$COMMAND" = "vivado_hls" ]; then
-        #     Msg Error "Vivado HLS is not yet supported by this script!"
-        #   elif [ "$COMMAND" = "libero" ]; then
-        #     echo "${HDL_COMPILER} ${COMMAND_OPT}$DIR/Tcl/launchers/launch_libero.tcl SCRIPT_ARGS:\"$NJOBS $CHECK_SYNTAX $RECREATE $EXT_PATH $IMPL_ONLY $SIMLIBPATH $PROJ\""
-        #     ${HDL_COMPILER} ${COMMAND_OPT}$DIR/Tcl/launchers/launch_libero.tcl SCRIPT_ARGS:"$NJOBS $CHECK_SYNTAX $RECREATE $EXT_PATH $IMPL_ONLY $SIMLIBPATH $PROJ "
-        #   else
-        #     Msg Info "${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_xilinx.tcl -tclargs $HELP $NO_RESET $NO_BITSTREAM $SYNTH_ONLY $NJOBS $RECREATE $EXT_PATH $IMPL_ONLY $SIMLIBPATH $PROJ"
-        #     ${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_xilinx.tcl -tclargs $HELP $NO_RESET $NO_BITSTREAM $SYNTH_ONLY $NJOBS $RECREATE $EXT_PATH $IMPL_ONLY $SIMLIBPATH $PROJ
-        #   fi
-        # else
-          if [ "$COMMAND" = "quartus_sh" ]; then
-            Logger ${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_quartus.tcl $HELP $NO_BITSTREAM $SYNTH_ONLY $NJOBS $CHECK_SYNTAX $RECREATE $EXT_PATH $IMPL_ONLY -project $PROJ
-          elif [ "$COMMAND" = "vivado_hls" ]; then
-            Msg Error "Vivado HLS is not yet supported by this script!"
-          elif [ "$COMMAND" = "libero" ]; then
-            Msg Info "${HDL_COMPILER} ${COMMAND_OPT}$DIR/Tcl/launchers/launch_libero.tcl SCRIPT_ARGS:\"$NJOBS $CHECK_SYNTAX $RECREATE $EXT_PATH $IMPL_ONLY $SIMLIBPATH $PROJ\""
-            Logger ${HDL_COMPILER} ${COMMAND_OPT}$DIR/Tcl/launchers/launch_libero.tcl SCRIPT_ARGS:"$NJOBS $CHECK_SYNTAX $RECREATE $EXT_PATH $IMPL_ONLY $SIMLIBPATH $PROJ "
-          else
-            Msg Info "${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_xilinx.tcl -tclargs $HELP $NO_RESET $NO_BITSTREAM $SYNTH_ONLY $NJOBS $RECREATE $EXT_PATH $IMPL_ONLY $SIMLIBPATH $PROJ"
-            Logger ${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_xilinx.tcl -tclargs $HELP $NO_RESET $NO_BITSTREAM $SYNTH_ONLY $NJOBS $RECREATE $EXT_PATH $IMPL_ONLY $SIMLIBPATH $PROJ
-          fi
-        # fi
 
-        
+        if [ "$COMMAND" = "quartus_sh" ]; then
+            Msg Info "${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_quartus.tcl $HELP $NO_BITSTREAM $SYNTH_ONLY $NJOBS $CHECK_SYNTAX $RECREATE $EXT_PATH $IMPL_ONLY $VERBOSE -project $PROJ"
+            Logger ${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_quartus.tcl $HELP $NO_BITSTREAM $SYNTH_ONLY $NJOBS $CHECK_SYNTAX $RECREATE $EXT_PATH $IMPL_ONLY $VERBOSE -project $PROJ
+        elif [ "$COMMAND" = "vivado_hls" ]; then
+            Msg Error "Vivado HLS is not yet supported by this script!"
+        elif [ "$COMMAND" = "libero" ]; then
+            echo "${HDL_COMPILER} ${COMMAND_OPT}$DIR/Tcl/launchers/launch_libero.tcl SCRIPT_ARGS:\"$NJOBS $CHECK_SYNTAX $RECREATE $EXT_PATH $IMPL_ONLY $SIMLIBPATH $VERBOSE $PROJ\""
+            Logger ${HDL_COMPILER} ${COMMAND_OPT}$DIR/Tcl/launchers/launch_libero.tcl SCRIPT_ARGS:"$NJOBS $CHECK_SYNTAX $RECREATE $EXT_PATH $IMPL_ONLY $SIMLIBPATH $VERBOSE $PROJ "
+        else
+            Msg Info "${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_xilinx.tcl -tclargs $HELP $NO_RESET $NO_BITSTREAM $SYNTH_ONLY $NJOBS $RECREATE $EXT_PATH $IMPL_ONLY $SIMLIBPATH $VERBOSE $PROJ"
+            Logger ${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_xilinx.tcl -tclargs $HELP $NO_RESET $NO_BITSTREAM $SYNTH_ONLY $NJOBS $RECREATE $EXT_PATH $IMPL_ONLY $SIMLIBPATH $VERBOSE $PROJ
+        fi
     else
         Msg Error "Project $PROJ not found. Possible projects are:"
         search_projects Top

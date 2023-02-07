@@ -83,7 +83,7 @@ proc CreateProject {} {
   if {[IsXilinx]} {
     create_project -force [file tail $globalSettings::DESIGN] $globalSettings::build_dir -part $globalSettings::PART
     if { [regexp {^(xcvp|xcvm|xcve|xcvc|xqvc|xqvm).*} $globalSettings::PART] } {
-      Msg Info "This project uses a Versal device the write_bistream step will be called write_device_image."
+      Msg Info "This project uses a Versal device; the write_bitstream step will be called write_device_image."
       set globalSettings::bitfile_step_name "write_device_image"
     } 
 

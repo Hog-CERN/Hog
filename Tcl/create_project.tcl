@@ -31,6 +31,9 @@ namespace eval globalSettings {
   variable DESIGN
 
   variable PART
+  # introduced to handle Versal chips
+  variable bitfile_step_name
+
   # Quartus only
   variable FAMILY
   # Libero only
@@ -74,9 +77,15 @@ namespace eval globalSettings {
 
 ################# FUNCTIONS ################################
 proc CreateProject {} {
+  # This was introduced to handle Versal chips
+  set globalSettings::bitfile_step_name "write_bitstream"
 
   if {[IsXilinx]} {
     create_project -force [file tail $globalSettings::DESIGN] $globalSettings::build_dir -part $globalSettings::PART
+    if { [regexp {^(xcvp|xcvm|xcve|xcvc|xqvc|xqvm).*} $globalSettings::PART] } {
+      Msg Info "This project uses a Versal device the write_bistream step will be called write_device_image."
+      set globalSettings::bitfile_step_name "write_device_image"
+    } 
 
     ## Set project properties
     set obj [get_projects [file tail $globalSettings::DESIGN] ]
@@ -376,8 +385,8 @@ proc ConfigureImplementation {} {
     set obj [get_runs impl_1]
     set_property "part" $globalSettings::PART $obj
 
-    set_property "steps.write_bitstream.args.readback_file" "0" $obj
-    set_property "steps.write_bitstream.args.verbose" "0" $obj
+    set_property "steps.${globalSettings::bitfile_step_name}.args.readback_file" "0" $obj
+    set_property "steps.${globalSettings::bitfile_step_name}.args.verbose" "0" $obj
 
   } elseif {[IsQuartus]} {
     #QUARTUS only
@@ -429,7 +438,7 @@ proc ConfigureImplementation {} {
         if {[get_filesets -quiet utils_1] != ""} {
           AddFile $globalSettings::pre_bit [get_filesets -quiet utils_1]
         }
-        set_property STEPS.WRITE_BITSTREAM.TCL.PRE $globalSettings::pre_bit $obj
+        set_property STEPS.${globalSettings::bitfile_step_name}.TCL.PRE $globalSettings::pre_bit $obj
       }
     } elseif {[IsQuartus]} {
       #QUARTUS only
@@ -447,7 +456,7 @@ proc ConfigureImplementation {} {
         if {[get_filesets -quiet utils_1] != ""} {
           AddFile $globalSettings::post_bit [get_filesets -quiet utils_1]
         }
-        set_property STEPS.WRITE_BITSTREAM.TCL.POST $globalSettings::post_bit $obj
+        set_property STEPS.${globalSettings::bitfile_step_name}.TCL.POST $globalSettings::post_bit $obj
       }
     } elseif {[IsQuartus]} {
       #QUARTUS only

@@ -386,13 +386,13 @@ if {$do_implementation == 1 } {
       # PlanAhead command
       Msg Info "running pre-bitstream"
       source  $path/../../Hog/Tcl/integrated/pre-bitstream.tcl
-      launch_runs impl_1 -to_step Bitgen -jobs 4 -dir $main_folder
+      launch_runs impl_1 -to_step Bitgen $options(njobs) -dir $main_folder
       wait_on_run impl_1
       Msg Info "running post-bitstream"
       source  $path/../../Hog/Tcl/integrated/post-bitstream.tcl
     } elseif { [string first Vivado [version]] ==0} {
       # Vivado command
-      launch_runs impl_1 -to_step write_bitstream -jobs 4 -dir $main_folder
+      launch_runs impl_1 -to_step [BinaryStepName [get_property PART [current_project]]] $options(njobs) -dir $main_folder
       wait_on_run impl_1
     }
 

@@ -81,6 +81,24 @@ proc IsTclsh {} {
   return [expr {![IsQuartus] && ![IsXilinx] && ![IsLibero] && ![IsSynplify]}]
 }
 
+## Find out if the given Xilinx part is a Vesal chip
+proc IsVersal {part} {
+  if { [regexp {^(xcvp|xcvm|xcve|xcvc|xqvc|xqvm).*} $part] } {
+    return 1
+  } else {
+    return 0
+  }
+}
+
+# Versal chip have a different step for producing the binary file
+proc BinaryStepName {part} {
+  if {[IsVersal $part]} {
+    return "WRITE_DEVICE_IMAGE"
+  } else {
+    return "WRITE_BITSTREAM"
+  }
+}
+
 ## Hog message printout function
 proc Msg {level msg {title ""}} {
 

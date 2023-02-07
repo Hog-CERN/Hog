@@ -77,6 +77,9 @@ namespace eval globalSettings {
 proc CreateProject {} {
   if {[IsXilinx]} {
     create_project -force [file tail $globalSettings::DESIGN] $globalSettings::build_dir -part $globalSettings::PART
+    if { [IsVersal $globalSettings::PART] } {
+      Msg Info "This project uses a Versal device."
+    } 
 
     ## Set project properties
     set obj [get_projects [file tail $globalSettings::DESIGN] ]

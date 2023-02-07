@@ -3371,6 +3371,7 @@ proc GetGenericFromConf {proj_dir target {sim 0}} {
   set top_dir "Top/$proj_dir"
   set conf_file "$top_dir/hog.conf"
   set conf_index 0
+  # Msg Info " Top dir = $top_dir"
   if {$sim == 1} {
     set conf_file "$top_dir/sim.conf"
     set conf_index 1
@@ -3636,11 +3637,13 @@ proc WriteGenerics {mode design date timee commit version top_hash top_ver hog_h
                           "CON_VER=[FormatGeneric $cons_ver]" \
                           "CON_SHA=[FormatGeneric $cons_hash]"]
   # xml hash
+  #'"
   if {$xml_hash != "" && $xml_ver != ""} {
     lappend generic_string \
           "XML_VER=[FormatGeneric $xml_ver]" \
           "XML_SHA=[FormatGeneric $xml_hash]"
   }
+  #'"
   #set project specific lists
   foreach l $libs v $vers h $hashes {
     set ver "[string toupper $l]_VER=[FormatGeneric $v]"
@@ -3663,8 +3666,10 @@ proc WriteGenerics {mode design date timee commit version top_hash top_ver hog_h
   if {$flavour != -1} {
     lappend generic_string "FLAVOUR=$flavour"
   }
-
+  #'"
   # Dealing with project generics in Vivado
+  Msg Debug " design = $design"
+  # exit 1
   set prj_generics [GetGenericFromConf $design "Vivado"]
   set generic_string "$prj_generics $generic_string"
 

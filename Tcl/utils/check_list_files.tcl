@@ -986,6 +986,9 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
           set generic [string toupper [lindex $generic_and_value 0]]
           set gen_value [lindex $generic_and_value 1]
           set generichogset [Dict $hogGenericsSimDict $generic ]
+
+          # Remove quotes from vivado properties
+          regsub -all {\"} $gen_value "" gen_value
           dict set newGenericsDict $generic $gen_value
           if { $gen_value != $generichogset} {
             if {$options(recreate_conf) == 1} {

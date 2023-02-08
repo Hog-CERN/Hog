@@ -59,18 +59,15 @@ if {[IsXilinx]} {
   }
       
   
-  set fw_file   [file normalize [lindex [glob -nocomplain "$work_path/*.$fw_file_ext"] 0]]
+  set main_file   [file normalize [lindex [glob -nocomplain "$work_path/*.$fw_file_ext"] 0]]
   set proj_name [file tail [file normalize $work_path/../../]]
   set proj_dir [file normalize "$work_path/../.."]
   puts "Post-Bitstream proj_dir $proj_dir"
 
-  set top_name  [file rootname [file tail $fw_file]]
+  set top_name  [file rootname [file tail $main_file]]
 
-  set additional_ext ".bin .ltx .vdi"
+  set additional_ext "bin ltx vdi"
 
-  set main_file [file normalize "$work_path/$top_name.bit"]
-
-  
   set xml_dir [file normalize "$work_path/../xml"]
   set run_dir [file normalize "$work_path/.."]
 
@@ -144,35 +141,30 @@ if {[IsXilinx] && [file exists $main_file]} {
   set dst_dir [file normalize "$bin_dir/$group_name/$proj_name\-$describe"]
   set dst_main [file normalize "$dst_dir/$proj_name\-$describe.$fw_file_ext"]
 
-  foreach e in $additional_ext {
-    lappend dst_bin [file normalize]
-  }
-
   Msg Info "Creating $dst_dir..."
   file mkdir $dst_dir
 
   Msg Info "Copying main binary file $main_file into $dst_main..."
   file copy -force $main_file $dst_main
 
+  # LTX file for ILA, needs a special treatment...
+  set ltx_file "$work_path/$top_name.ltx"
+  write_debug_probes -quiet $ltx_file
+  
   # Additional files
-  foreach e in $additional_ext {
+  foreach e $additional_ext {
     set orig [file normalize "$work_path/$top_name.$e"]
     set dst  [file normalize "$dst_dir/$proj_name\-$describe.$e"]
     if {[file exists $orig]} {
       Msg Info "Copying $orig file into $dst..."
       file copy -force $orig $dst
-    } 
+    } else {
+      Msg Debug "File: $orig not found."
+    }
+      
   }
 
-  write_debug_probes -quiet $ltx_file
 
-  # ltx File
-  if {[file exists $ltx_file]} {
-    Msg Info "Copying ltx file $ltx_file into $dst_ltx..."
-    file copy -force $ltx_file $dst_ltx
-  } else {
-    Msg Info "No ltx file found: $ltx_file, that is not a problem"
-  }
 
 } elseif {[IsQuartus]} {
   #Quartus
@@ -270,7 +262,7 @@ if {[IsXilinx] && [file exists $main_file]} {
   # Go to repository path
   cd $tcl_path/../../
   ##nagelfar variable project
-  Msg Info "Evaluating Git sha for $project..."
+  Msg Info "Evaluating git SHA for $project..."
   lassign [GetRepoVersions [file normalize ./Top/$group_name/$project] $repo_path] sha
   set describe [GetHogDescribe $sha]
   Msg Info "Git describe set to: $describe"

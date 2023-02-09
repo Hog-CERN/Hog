@@ -138,7 +138,8 @@ if {[IsXilinx] && [file exists $main_file]} {
 
   set dst_dir [file normalize "$bin_dir/$group_name/$proj_name\-$describe"]
   set dst_main [file normalize "$dst_dir/$proj_name\-$describe.$fw_file_ext"]
-
+  set dst_xml [file normalize "$dst_dir/xml"]
+  
   Msg Info "Creating $dst_dir..."
   file mkdir $dst_dir
 

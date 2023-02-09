@@ -17,11 +17,6 @@
 # Launch Xilinx Vivado or ISE implementation and possibly write bitstream in text mode
 
 #parsing command options
-if {[catch {package require cmdline} ERROR] || [catch {package require struct::matrix} ERROR]} {
-  puts "$ERROR\n Tcllib not found. If you are running this script on tclsh, you can fix this by installing 'tcllib'"
-  return
-}
-
 set parameters {
   {no_bitstream    "If set, the bitstream file will not be produced."}
   {synth_only      "If set, only the synthesis will be performed."}
@@ -33,15 +28,52 @@ set parameters {
   {ext_path.arg "" "Sets the absolute path for the external libraries."}
   {simlib_path.arg  "" "Path of simulation libs"}
   {verbose         "If set, launch the script in verbose mode"}
-
 }
 
 set usage "- USAGE: $::argv0 \[OPTIONS\] <project> \n. Options:"
+
+### Common put in a proc ###
+# Find out all the possible directories that are needed in all the launchers and create a dictionary that is returned by this proc
+
 set path [file normalize "[file dirname [info script]]/.."]
 set repo_path [file normalize "$path/../.."]
 set old_path [pwd]
 set bin_dir [file normalize "$path/../../bin"]
+### end ###
+
 source $path/hog.tcl
+
+if {[IsTclsh]} {
+  # Source cmdline.tcl
+
+  ### Make a proc that executes this
+if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] ||  [llength $argv] < 1 } {
+  Msg Info [cmdline::usage $parameters $usage]
+  exit 1
+} 
+
+### to here
+
+### here do some specific checks on the arguments, e.g. do file exists? Are numbers really numbers and so on
+
+### Find out what IDE to use check if it's there
+
+### run the right IDE on this script
+}
+
+
+
+
+
+
+
+if {[catch {package require cmdline} ERROR] || [catch {package require struct::matrix} ERROR]} {
+  puts "$ERROR\n Tcllib not found. If you are running this script on tclsh, you can fix this by installing 'tcllib'"
+  return
+}
+
+
+
 
 if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] ||  [llength $argv] < 1 } {
   Msg Info [cmdline::usage $parameters $usage]

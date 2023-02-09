@@ -52,16 +52,21 @@ if {[IsXilinx]} {
     set work_path $old_path
   }
 
-  set fw_file   [file normalize [lindex [glob -nocomplain "$work_path/*.bit"] 0]]
+  if {[IsVersal [get_property PART [current_design]]]} {
+    set fw_file_ext "bif"
+  } else {
+    set fw_file_ext "bit"
+  }
+      
+  
+  set main_file   [file normalize [lindex [glob -nocomplain "$work_path/*.$fw_file_ext"] 0]]
   set proj_name [file tail [file normalize $work_path/../../]]
   set proj_dir [file normalize "$work_path/../.."]
   puts "Post-Bitstream proj_dir $proj_dir"
 
-  set top_name  [file rootname [file tail $fw_file]]
+  set top_name  [file rootname [file tail $main_file]]
 
-  set bit_file [file normalize "$work_path/$top_name.bit"]
-  set bin_file [file normalize "$work_path/$top_name.bin"]
-  set ltx_file [file normalize "$work_path/$top_name.ltx"]
+  set additional_ext "bin ltx vdi"
 
   set xml_dir [file normalize "$work_path/../xml"]
   set run_dir [file normalize "$work_path/.."]
@@ -109,7 +114,7 @@ if {[IsXilinx]} {
 
   set top_name  [file rootname [file tail $fw_file]]
 
-  set bit_file [file normalize "$work_path/$top_name.bit"]
+  set main_file [file normalize "$work_path/$top_name.bit"]
   set bin_file [file normalize "$work_path/$top_name.bin"]
   set ltx_file [file normalize "$work_path/$top_name.ltx"]
 
@@ -120,7 +125,7 @@ if {[IsXilinx]} {
 set group_name [GetGroupName $proj_dir "$tcl_path/../.."]
 
 # Vivado
-if {[IsXilinx] && [file exists $bit_file]} {
+if {[IsXilinx] && [file exists $main_file]} {
 
   # Go to repository path
   cd $tcl_path/../../
@@ -129,39 +134,37 @@ if {[IsXilinx] && [file exists $bit_file]} {
   lassign [GetRepoVersions [file normalize ./Top/$group_name/$proj_name] $repo_path] sha
 
   set describe [GetHogDescribe $sha]
-  Msg Info "Git describe set to: $describe"
+  Msg Info "Hog describe set to: $describe"
 
   set ts [clock format [clock seconds] -format {%Y-%m-%d-%H-%M}]
 
   set dst_dir [file normalize "$bin_dir/$group_name/$proj_name\-$describe"]
-  set dst_bit [file normalize "$dst_dir/$proj_name\-$describe.bit"]
-  set dst_bin [file normalize "$dst_dir/$proj_name\-$describe.bin"]
-  set dst_ltx [file normalize "$dst_dir/$proj_name\-$describe.ltx"]
-  set dst_xml [file normalize "$dst_dir/xml"]
+  set dst_main [file normalize "$dst_dir/$proj_name\-$describe.$fw_file_ext"]
 
   Msg Info "Creating $dst_dir..."
   file mkdir $dst_dir
 
-  Msg Info "Copying bit file $bit_file into $dst_bit..."
-  file copy -force $bit_file $dst_bit
+  Msg Info "Copying main binary file $main_file into $dst_main..."
+  file copy -force $main_file $dst_main
 
-  # bin File
-  if {[file exists $bin_file]} {
-    Msg Info "Copying bin file $bin_file into $dst_bin..."
-    file copy -force $bin_file $dst_bin
-  } else {
-    Msg Info "No bin file found: $bin_file, that is not a problem"
-  }
-
+  # LTX file for ILA, needs a special treatment...
+  set ltx_file "$work_path/$top_name.ltx"
   write_debug_probes -quiet $ltx_file
-
-  # ltx File
-  if {[file exists $ltx_file]} {
-    Msg Info "Copying ltx file $ltx_file into $dst_ltx..."
-    file copy -force $ltx_file $dst_ltx
-  } else {
-    Msg Info "No ltx file found: $ltx_file, that is not a problem"
+  
+  # Additional files
+  foreach e $additional_ext {
+    set orig [file normalize "$work_path/$top_name.$e"]
+    set dst  [file normalize "$dst_dir/$proj_name\-$describe.$e"]
+    if {[file exists $orig]} {
+      Msg Info "Copying $orig file into $dst..."
+      file copy -force $orig $dst
+    } else {
+      Msg Debug "File: $orig not found."
+    }
+      
   }
+
+
 
 } elseif {[IsQuartus]} {
   #Quartus
@@ -259,7 +262,7 @@ if {[IsXilinx] && [file exists $bit_file]} {
   # Go to repository path
   cd $tcl_path/../../
   ##nagelfar variable project
-  Msg Info "Evaluating Git sha for $project..."
+  Msg Info "Evaluating git SHA for $project..."
   lassign [GetRepoVersions [file normalize ./Top/$group_name/$project] $repo_path] sha
   set describe [GetHogDescribe $sha]
   Msg Info "Git describe set to: $describe"

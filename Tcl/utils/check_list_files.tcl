@@ -698,12 +698,16 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
     SIM.IP.AUTO_EXPORT_SCRIPTS \
     XPM_LIBRARIES \
     REPORT_STRATEGY \
+    STEPS.WRITE_DEVICE_IMAGE.ARGS.READBACK_FILE \
+    STEPS.WRITE_DEVICE_IMAGE.ARGS.VERBOSE \
     STEPS.WRITE_BITSTREAM.ARGS.READBACK_FILE \
     STEPS.WRITE_BITSTREAM.ARGS.VERBOSE \
     STEPS.SYNTH_DESIGN.TCL.PRE \
     STEPS.SYNTH_DESIGN.TCL.POST \
     STEPS.WRITE_BITSTREAM.TCL.PRE \
     STEPS.WRITE_BITSTREAM.TCL.POST \
+    STEPS.WRITE_DEVICE_IMAGE.TCL.PRE \
+    STEPS.WRITE_DEVICE_IMAGE.TCL.POST \
     STEPS.INIT_DESIGN.TCL.POST \
     STEPS.ROUTE_DESIGN.TCL.POST \
     COMPXLIB.MODELSIM_COMPILED_LIBRARY_DIR \
@@ -715,6 +719,7 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
     NEEDS_REFRESH \
     AUTO_INCREMENTAL_CHECKPOINT.DIRECTORY \
     AUTO_INCREMENTAL_CHECKPOINT \
+    INCREMENTAL_CHECKPOINT \
     AUTO_RQS.DIRECTORY \
     ENABLE_RESOURCE_ESTIMATION
   ]
@@ -984,6 +989,9 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
           set generic [string toupper [lindex $generic_and_value 0]]
           set gen_value [lindex $generic_and_value 1]
           set generichogset [Dict $hogGenericsSimDict $generic ]
+
+          # Remove quotes from vivado properties
+          regsub -all {\"} $gen_value "" gen_value
           dict set newGenericsDict $generic $gen_value
           if { $gen_value != $generichogset} {
             if {$options(recreate_conf) == 1} {

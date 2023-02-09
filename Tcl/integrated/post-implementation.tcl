@@ -112,7 +112,7 @@ if {[file exists $dst_dir/diff_list_and_conf.txt]} {
   }
 }
 
-Msg Info "The git SHA value $commit will be set as bitstream USERID."
+Msg Info "The git SHA value $commit will be embedded in the binary file."
 
 # Set bitstream embedded variables
 if {[IsXilinx]} {
@@ -130,7 +130,11 @@ if {[IsXilinx]} {
     }
     set_property -name {steps.bitgen.args.More Options} -value $props -objects [get_runs impl_1]
   } else {
-    set_property BITSTREAM.CONFIG.USERID $commit [current_design]
+    if {[IsVersal [get_property PART [current_design]]]} {
+      Msg Info "This design uses a Versal chip, USERID does not exist."
+    } else {
+      set_property BITSTREAM.CONFIG.USERID $commit [current_design]
+    }
     set_property BITSTREAM.CONFIG.USR_ACCESS $commit_usr [current_design]
   }
 } elseif {[IsQuartus]} {

@@ -81,7 +81,11 @@ proc IsTclsh {} {
   return [expr {![IsQuartus] && ![IsXilinx] && ![IsLibero] && ![IsSynplify]}]
 }
 
-## Find out if the given Xilinx part is a Vesal chip
+## @brief Find out if the given Xilinx part is a Vesal chip
+#
+# @param[out] 1 if it's Versal 0 if it's not
+# @param[in]  part  The FPGA part
+#
 proc IsVersal {part} {
   if { [regexp {^(xcvp|xcvm|xcve|xcvc|xqvc|xqvm).*} $part] } {
     return 1
@@ -90,7 +94,14 @@ proc IsVersal {part} {
   }
 }
 
-# Versal chip have a different step for producing the binary file
+## @brief # Returns the step name for the stage that produces the binary file
+#
+# Projects using Versal chips have a different step for producing the
+# binary file, we use this function to take that into account
+#
+# @param[out] 1 if it's Versal 0 if it's not
+# @param[in]  part  The FPGA part
+#
 proc BinaryStepName {part} {
   if {[IsVersal $part]} {
     return "WRITE_DEVICE_IMAGE"

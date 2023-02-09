@@ -36,9 +36,11 @@ build-doxygen-test:
     - git clone https://hog:${CERN_PUSH_TOKEN}@gitlab.cern.ch/hog/hog-doxygen.git
       doxygen
     - doxygen ./doxygen/Hog-doxygen.cfg
-    -  ./doxygen/scripts/build-and-deploy.sh /eos/user/h/hog/www/doxy-test
+    - ./doxygen/scripts/build-and-deploy.sh /eos/user/h/hog/www/doxy-test
   artifacts:
-    - DOXY_DOCS/
+    name: doxygen
+    paths:
+      - DOXY_DOCS/
 
 build-doxygen-develop:
   stage: build_doc

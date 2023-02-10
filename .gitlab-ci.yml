@@ -25,21 +25,30 @@ default:
     - git status
     - source ./Other/CommonFunctions.sh
     - print_hog .
-stages: [tag, build_doc]
+stages: [merge_checks, tag, build_doc]
 
 build-doxygen-test:
-  stage: build_doc
-  image: gitlab-registry.cern.ch/hog/hog-docker
-  except: [develop, master, tags]
+  stage: merge_checks
+  image: gitlab-registry.cern.ch/hog/hog-docker:ubuntu
+  only:
+    refs: [merge_requests]
+    variables: [$CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /^(master|develop)$/]
+  except:
+    variables: [$CI_COMMIT_REF_NAME =~ /^test\/.*$/i]
   before_script: [echo ""]
   script:
     - git clone https://hog:${CERN_PUSH_TOKEN}@gitlab.cern.ch/hog/hog-doxygen.git
       doxygen
-    - doxygen ./doxygen/Hog-doxygen.cfg
+    - chmod +x ./doxygen/scripts/build-and-deploy.sh
+    - ./doxygen/scripts/build-and-deploy.sh /eos/user/h/hog/www/doxy-test
+  artifacts:
+    name: doxygen
+    paths:
+      - DOXY_DOCS/
 
 build-doxygen-develop:
   stage: build_doc
-  image: gitlab-registry.cern.ch/hog/hog-docker
+  image: gitlab-registry.cern.ch/hog/hog-docker:ubuntu
   only:
     refs: [tags]
     variables: [$CI_COMMIT_TAG =~ /^(v.*)$/]
@@ -52,7 +61,7 @@ build-doxygen-develop:
 
 build-doxygen-official:
   stage: build_doc
-  image: gitlab-registry.cern.ch/hog/hog-docker
+  image: gitlab-registry.cern.ch/hog/hog-docker:ubuntu
   only:
     refs: [tags]
     variables: [$CI_COMMIT_TAG =~ /^(Hog.*)$/]
@@ -64,7 +73,7 @@ build-doxygen-official:
     - ./doxygen/scripts/build-and-deploy.sh /eos/user/h/hog/www/doxy-master
 
 changelog:
-  stage: tag
+  stage: merge_checks
   image: gitlab-registry.cern.ch/hog/hog-docker:tclsh
   only:
     refs: [merge_requests]
@@ -124,7 +133,7 @@ tagging_master_hotfix:
 
 
 shellcheck:
-  stage: tag
+  stage: merge_checks
   image: gitlab-registry.cern.ch/hog/hog-docker:ubuntu
   only:
     refs: [merge_requests]
@@ -135,7 +144,7 @@ shellcheck:
     - shellcheck -x -S error Other/*.sh *.sh
 
 yamllint:
-  stage: tag
+  stage: merge_checks
   image: gitlab-registry.cern.ch/hog/hog-docker:ubuntu
   only:
     refs: [merge_requests]
@@ -147,7 +156,7 @@ yamllint:
       Templates/*.yml
 
 nagelfar:
-  stage: tag
+  stage: merge_checks
   image: gitlab-registry.cern.ch/hog/hog-docker:ubuntu
   only:
     refs: [merge_requests]

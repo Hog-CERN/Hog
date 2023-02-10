@@ -42,7 +42,9 @@ if {[info exists env(HOG_EXTERNAL_PATH)]} {
 set bin_dir [file normalize "$repo_path/bin"]
 
 if {[IsXilinx]} {
-
+  # Binary files are called .bit for ISE and for Vivado unless the chip is a Versal
+  set fw_file_ext "bit"
+  
   # Vivado + PlanAhead
   if {[IsISE]} {
     # planAhead
@@ -50,23 +52,19 @@ if {[IsXilinx]} {
   } else {
     # Vivado
     set work_path $old_path
+    if {[IsVersal [get_property PART [current_design]]]} {
+      #In Vivado if a Versal chip is used, the main binary file is called .bif
+      set fw_file_ext "bif"
+    }
   }
-
-  if {[IsVersal [get_property PART [current_design]]]} {
-    set fw_file_ext "bif"
-  } else {
-    set fw_file_ext "bit"
-  }
-      
   
   set main_file   [file normalize [lindex [glob -nocomplain "$work_path/*.$fw_file_ext"] 0]]
   set proj_name [file tail [file normalize $work_path/../../]]
   set proj_dir [file normalize "$work_path/../.."]
-  puts "Post-Bitstream proj_dir $proj_dir"
 
   set top_name  [file rootname [file tail $main_file]]
 
-  set additional_ext "bin ltx vdi"
+  set additional_ext "bin ltx pdi"
 
   set xml_dir [file normalize "$work_path/../xml"]
   set run_dir [file normalize "$work_path/.."]
@@ -140,7 +138,8 @@ if {[IsXilinx] && [file exists $main_file]} {
 
   set dst_dir [file normalize "$bin_dir/$group_name/$proj_name\-$describe"]
   set dst_main [file normalize "$dst_dir/$proj_name\-$describe.$fw_file_ext"]
-
+  set dst_xml [file normalize "$dst_dir/xml"]
+  
   Msg Info "Creating $dst_dir..."
   file mkdir $dst_dir
 

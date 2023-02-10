@@ -30,46 +30,35 @@ set parameters {
   {verbose         "If set, launch the script in verbose mode"}
 }
 
-set usage "- USAGE: $::argv0 \[OPTIONS\] <project> \n. Options:"
+set usage "\[OPTIONS\] <project> \n. Options:"
 
-### Common put in a proc ###
-# Find out all the possible directories that are needed in all the launchers and create a dictionary that is returned by this proc
+set tcl_path [file normalize "[file dirname [info script]]/.."]
+source $tcl_path/hog.tcl
 
-set path [file normalize "[file dirname [info script]]/.."]
-set repo_path [file normalize "$path/../.."]
-set old_path [pwd]
-set bin_dir [file normalize "$path/../../bin"]
-### end ###
+lassign [InitLauncher $::argv0 $tcl_path $parameters $usage $argv] project project_name group_name repo_path old_path bin_dir top_path cmd
 
-source $path/hog.tcl
+if {$cmd == 0} {
+  #This script was launched within the IDE,: Vivado, Quartus, etc
+  Msg Info "$::argv0 was launched from the IDE."
+  
+} else {
+  #This script was launched with Tclsh, we need to check the arguments and if everything is right launche the IDE on this script and return
+  Msg Info "Launching $cmd..."
 
-if {[IsTclsh]} {
-  # Source cmdline.tcl
-
-  ### Make a proc that executes this
-if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] ||  [llength $argv] < 1 } {
-  Msg Info [cmdline::usage $parameters $usage]
-  exit 1
-} 
-
-### to here
-
-### here do some specific checks on the arguments, e.g. do file exists? Are numbers really numbers and so on
-
-### Find out what IDE to use check if it's there
-
-### run the right IDE on this script
+  set ret [catch {exec -ignorestderr {*}$cmd >@ stdout} result]
+  
+  if {$ret != 0} {
+    Msg CriticalWarning "IDE returned an error state."
+  } else {
+    Msg "All done."
+  }
+  exit $ret
 }
-
-
-
-
-
 
 
 if {[catch {package require cmdline} ERROR] || [catch {package require struct::matrix} ERROR]} {
   puts "$ERROR\n Tcllib not found. If you are running this script on tclsh, you can fix this by installing 'tcllib'"
-  return
+  exit 1
 }
 
 
@@ -79,15 +68,9 @@ if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] 
   Msg Info [cmdline::usage $parameters $usage]
   exit 1
 } else {
-  set project [lindex $argv 0]
-  set group_name [file dirname $project]
-  set project [file tail $project]
-  if { $group_name != "." } {
-    set project_name "$group_name/$project"
-  } else {
-    set project_name "$project"
-  }
+
   set main_folder [file normalize "$repo_path/Projects/$project_name/$project.runs/"]
+
   set do_implementation 1
   set do_synthesis 1
   set do_bitstream 1
@@ -101,7 +84,7 @@ if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] 
 
 
 #Go to Hog/Tcl
-cd $path
+cd $tcl_path
 
 if { $options(no_bitstream) == 1 } {
   set do_bitstream 0
@@ -249,7 +232,7 @@ if {$reset == 1 } {
 }
 
 if {[IsISE]} {
-  source  $path/../../Hog/Tcl/integrated/pre-synthesis.tcl
+  source  $tcl_path/../../Hog/Tcl/integrated/pre-synthesis.tcl
 }
 
 if {$do_synthesis == 1} {
@@ -263,7 +246,7 @@ if {$do_synthesis == 1} {
   set ips [get_ips *]
 
   #go to repository path
-  cd $path/../..
+  cd $tcl_path/../..
 
   lassign [GetRepoVersions [file normalize ./Top/$project_name] $repo_path $ext_path ] sha
   set describe [GetHogDescribe $sha]
@@ -317,10 +300,10 @@ if {$do_implementation == 1 } {
     reset_run impl_1
   }
 
-  if {[IsISE]} {source $path/../../Hog/Tcl/integrated/pre-implementation.tcl}
+  if {[IsISE]} {source $tcl_path/../../Hog/Tcl/integrated/pre-implementation.tcl}
   launch_runs impl_1 -jobs $options(njobs) -dir $main_folder
   wait_on_run impl_1
-  if {[IsISE]} {source $path/../../Hog/Tcl/integrated/post-implementation.tcl}
+  if {[IsISE]} {source $tcl_path/../../Hog/Tcl/integrated/post-implementation.tcl}
 
   set prog [get_property PROGRESS [get_runs impl_1]]
   set status [get_property STATUS [get_runs impl_1]]
@@ -417,11 +400,11 @@ if {$do_implementation == 1 } {
     if {[IsISE]} {
       # PlanAhead command
       Msg Info "running pre-bitstream"
-      source  $path/../../Hog/Tcl/integrated/pre-bitstream.tcl
+      source  $tcl_path/../../Hog/Tcl/integrated/pre-bitstream.tcl
       launch_runs impl_1 -to_step Bitgen $options(njobs) -dir $main_folder
       wait_on_run impl_1
       Msg Info "running post-bitstream"
-      source  $path/../../Hog/Tcl/integrated/post-bitstream.tcl
+      source  $tcl_path/../../Hog/Tcl/integrated/post-bitstream.tcl
     } elseif { [string first Vivado [version]] ==0} {
       # Vivado command
       launch_runs impl_1 -to_step [BinaryStepName [get_property PART [current_project]]] $options(njobs) -dir $main_folder

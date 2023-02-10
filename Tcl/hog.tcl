@@ -161,7 +161,12 @@ proc Msg {level msg {title ""}} {
     }
   } else {
     # Tcl Shell / Libero
-    puts "*** Hog:$title $vlevel $msg"
+    if {$vlevel != "STATUS"} {
+      puts "$vlevel: \[Hog:$title\] $msg"
+    } else {
+      puts $msg
+    }
+    
     if {$qlevel == "error"} {
       exit 1
     }
@@ -3768,7 +3773,7 @@ proc GetIDEVersion {} {
   return $ver
 }
 
-## Get the IDE (Vivado,Quartus,PlanAhead) version from the conf file she-bang
+## Get the IDE (Vivado,Quartus,PlanAhead,Libero) version from the conf file she-bang
 #
 #  @param[in]    conf_file The hog.conf file
 proc GetIDEFromConf {conf_file} {
@@ -3822,3 +3827,165 @@ proc Copy {i_dirs o_dir} {
     file copy -force $i_dir $o_dir 
   }
 }
+
+
+proc InitLauncher {script tcl_path parameters usage argv} {
+  set repo_path [file normalize "$tcl_path/../.."]
+  set old_path [pwd]
+  set bin_path [file normalize "$tcl_path/../../bin"]
+  set top_path [file normalize "$tcl_path/../../Top"]
+  
+  # command will be filled with the IDE exectuable when this function is called by Tcl scrpt
+  set command 0
+  set project [lindex $argv 0]
+  set proj_conf [ProjectExists $project $repo_path] 
+
+  if {[IsTclsh]} {
+    if {[catch {package require cmdline} ERROR]} {
+      Msg Info "The cmdline Tcl package was not found, sourcing it from Hog..."
+      source $tcl_path/utils/cmdline.tcl
+    }
+    
+    if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] || [llength $argv] < 1 } {
+      Msg Status "USAGE: $script [cmdline::usage $parameters $usage]"
+      exit 1
+    } 
+    
+    if {$proj_conf != 0} {
+      lassign [GetIDECommand $proj_conf] cmd before_tcl_script after_tcl_script
+      Msg Info "Project $project uses $cmd IDE"
+      
+      ## The following is the IDE command to launch:
+      set command "$cmd $before_tcl_script $script $after_tcl_script $argv"
+      
+    } else {
+      Msg Warning "Project $project not found, the projects in this repository are:"
+      ListProjects $repo_path
+      exit 1
+    }
+  }
+
+  set project_group [file dirname $project]
+  set project [file tail $project]
+  if { $project_group != "." } {
+    set project_name "$project_group/$project"
+  } else {
+    set project_name "$project"
+  }
+
+  return [list $project $project_name $project_group $repo_path $old_path $bin_path $top_path $command]
+}
+
+# List projects all projects in the repository
+# print if 1  print a list
+# ret_conf if 1 returns conf file rather than list of project names
+proc ListProjects {{repo_path .} {print 1} {ret_conf 0}} {
+  set top_path [file normalize $repo_path/Top]
+  set confs [findFiles [file normalize $top_path] hog.conf]
+  set projects ""
+  
+  foreach c $confs {
+    set p [Relative $top_path [file dirname $c]]
+    if {$print == 1} {
+      # Print a list of the projects with relative IDE
+      Msg Status "$p \(IDE: [GetIDEFromConf $c]\)"
+    }
+    lappend projects $p
+  }
+
+  if {$ret_conf == 0} {
+
+    # Returns a list of project names
+    return $projects
+  } else {
+    
+    # Return the list of hog.conf with full path
+    return $confs
+  }
+}
+
+# if it exists returns the conf file
+# if it doesnt returns 0
+proc ProjectExists {project {repo_path .}} {
+  set index [lsearch -exact [ListProjects $repo_path 0] $project]
+
+  if {$index >= 0} {
+    # if project exists we return the relative hog.conf file
+    return [lindex [ListProjects $repo_path 0 1] $index]
+  } else {
+    return 0
+  }
+}
+
+# Find IDE for a project
+proc GetIDECommand {proj_conf} {
+  # GetConfFiles returns a list, the first element is hog.conf
+  if {[file exists $proj_conf]} {
+    set ide_name_and_ver [string tolower [GetIDEFromConf $proj_conf]]
+    set ide_name [lindex [regexp -all -inline {\S+} $ide_name_and_ver ] 0]
+    
+    if {$ide_name eq "vivado"} {
+      set command "vivado"
+      set before_tcl_script "-nojournal -nolog -mode batch -notrace -source "
+      set after_tcl_script "-tclargs"
+      
+    } elseif {$ide_name eq "planahead"} {
+      set command "planAhead"
+      set before_tcl_script "-nojournal -nolog -mode batch -notrace -source "
+      set after_tcl_script "-tclargs"
+      
+    } elseif {$ide_name eq "quartus"} {
+      set command "quartus_sh"
+      set before_tcl_script "-t "
+      set after_tcl_script ""
+      
+    } elseif {$ide_name eq "libero"} {
+      #I think we need quotes for libero, not sure...
+      
+      set command "\"libero\""
+      set before_tcl_script "\"SCRIPT:\""
+      set after_tcl_script "\"SCRIPT_ARGS:\""
+      
+    } else {
+      Msg Error "IDE: $ide_name not known."
+    }
+    
+  } else {
+    Msg Error "Configuration file $proj_conf not found."
+  }
+  
+  return [list $command $before_tcl_script $after_tcl_script]
+}
+
+
+# findFiles
+# basedir - the directory to start looking in
+# pattern - A pattern, as defined by the glob command, that the files must match
+# Credit: https://stackexchange.com/users/14219/jackson
+proc findFiles { basedir pattern } {
+
+    # Fix the directory name, this ensures the directory name is in the
+    # native format for the platform and contains a final directory seperator
+    set basedir [string trimright [file join [file normalize $basedir] { }]]
+    set fileList {}
+
+    # Look in the current directory for matching files, -type {f r}
+    # means ony readable normal files are looked at, -nocomplain stops
+    # an error being thrown if the returned list is empty
+    foreach fileName [glob -nocomplain -type {f r} -path $basedir $pattern] {
+        lappend fileList $fileName
+    }
+
+    # Now look for any sub direcories in the current directory
+    foreach dirName [glob -nocomplain -type {d  r} -path $basedir *] {
+        # Recusively call the routine on the sub directory and append any
+        # new files to the results
+        set subDirList [findFiles $dirName $pattern]
+        if { [llength $subDirList] > 0 } {
+            foreach subDirFile $subDirList {
+                lappend fileList $subDirFile
+            }
+        }
+    }
+    return $fileList
+ }

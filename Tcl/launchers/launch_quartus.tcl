@@ -14,11 +14,6 @@
 
 ##nagelfar variable quartus
 #parsing command options
-load_package report
-if { [catch {package require cmdline} ERROR] } {
-  puts "$ERROR\n If you are running this script on tclsh, you can fix this by installing 'tcllib'"
-  return 1
-}
 set parameters {\
   {no_bitstream    "If set, the bitstream file will not be produced."}
   {synth_only      "If set, only the synthesis will be performed."}
@@ -31,29 +26,48 @@ set parameters {\
 }
 
 set usage   "- USAGE: $::argv0 \[OPTIONS\] -project <project> \n  Options:"
-set path [file normalize "[file dirname [info script]]/.."]
-set repo_path [file normalize "$path/../.."]
-set old_path [pwd]
-cd $path
-source ./hog.tcl
+set tcl_path [file normalize "[file dirname [info script]]/.."]
 
+source $tcl_path/hog.tcl
+
+if {[IsQuartus]} {
+  load_package report
+  set argv $quartus(args)
+}
+
+lassign [InitLauncher $::argv0 $tcl_path $parameters $usage $argv] project project_name group_name repo_path old_path bin_dir top_path cmd
+
+if {$cmd == 0} {
+  #This script was launched within the IDE,: Vivado, Quartus, etc
+  Msg Info "$::argv0 was launched from the IDE."
+  
+} else {
+  #This script was launched with Tclsh, we need to check the arguments and if everything is right launche the IDE on this script and return
+  Msg Info "Launching $cmd..."
+
+  set ret [catch {exec -ignorestderr {*}$cmd >@ stdout} result]
+  
+  if {$ret != 0} {
+    Msg CriticalWarning "IDE returned an error state."
+  } else {
+    Msg "All done."
+  }
+  exit $ret
+}
+
+
+cd $tcl_path
+
+if { [catch {package require cmdline} ERROR] } {
+  puts "$ERROR\n If you are running this script on tclsh, you can fix this by installing 'tcllib'"
+  return 1
+}
 if { [ catch {array set options [cmdline::getoptions quartus(args) $parameters $usage] } ] || $::argc eq 0 } {
   Msg Info [cmdline::usage $parameters $usage]
   cd $old_path
   return 1
 } else {
-  if {$options(project) == ""} {
-    msg Error "project option not set"
-    return 1
-  }
-  set project $options(project)
-  set group_name [file dirname $project]
-  set project [file tail $project]
-  if { $group_name != "." } {
-    set project_name "$group_name/$project"
-  } else {
-    set project_name "$project"
-  }
+
   set project_path [file normalize "$repo_path/Projects/$project_name/"]
   set do_compile 1
   set do_synthesis 1

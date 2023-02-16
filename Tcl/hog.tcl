@@ -3934,11 +3934,11 @@ proc InitLauncher {script tcl_path parameters usage argv} {
     if {$proj_conf != 0} {
       CheckLatestHogRelease $repo_path
 
-      lassign [GetIDECommand $proj_conf] cmd before_tcl_script after_tcl_script
+      lassign [GetIDECommand $proj_conf] cmd before_tcl_script after_tcl_script end_marker
       Msg Info "Project $project uses $cmd IDE"
       
       ## The following is the IDE command to launch:
-      set command "$cmd $before_tcl_script $script $after_tcl_script $argv"
+      set command "$cmd $before_tcl_script$script$after_tcl_script$argv$end_marker"
       
     } else {
       Msg Status "\nERROR: Project $project not found, the projects in this repository are:\n"
@@ -4012,26 +4012,32 @@ proc GetIDECommand {proj_conf} {
     
     if {$ide_name eq "vivado"} {
       set command "vivado"
-      set before_tcl_script "-nojournal -nolog -mode batch -notrace -source "
-      set after_tcl_script "-tclargs"
+      # A space ater the before_tcl_script is important
+      set before_tcl_script " -nojournal -nolog -mode batch -notrace -source "
+      set after_tcl_script " -tclargs "
+      set end_marker ""
       
     } elseif {$ide_name eq "planahead"} {
       set command "planAhead"
-      set before_tcl_script "-nojournal -nolog -mode batch -notrace -source "
-      set after_tcl_script "-tclargs"
-      
+      # A space ater the before_tcl_script is important
+      set before_tcl_script " -nojournal -nolog -mode batch -notrace -source "
+      set after_tcl_script " -tclargs "
+      set end_marker ""      
+
     } elseif {$ide_name eq "quartus"} {
       set command "quartus_sh"
-      set before_tcl_script "-t "
-      set after_tcl_script ""
+      # A space ater the before_tcl_script is important
+      set before_tcl_script " -t "
+      set after_tcl_script " "
+      set end_marker ""
       
     } elseif {$ide_name eq "libero"} {
       #I think we need quotes for libero, not sure...
       
       set command "libero"
-      set before_tcl_script "\"SCRIPT:\""
-      set after_tcl_script "\"SCRIPT_ARGS:\""
-      
+      set before_tcl_script "SCRIPT:"
+      set after_tcl_script " SCRIPT_ARGS:\""
+      set end_marker "\""      
     } else {
       Msg Error "IDE: $ide_name not known."
     }
@@ -4040,7 +4046,7 @@ proc GetIDECommand {proj_conf} {
     Msg Error "Configuration file $proj_conf not found."
   }
   
-  return [list $command $before_tcl_script $after_tcl_script]
+  return [list $command $before_tcl_script $after_tcl_script $end_marker]
 }
 
 

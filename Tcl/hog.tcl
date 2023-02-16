@@ -3829,29 +3829,111 @@ proc Copy {i_dirs o_dir} {
 }
 
 
+#print logo in images/hog_logo.txt
+proc Logo { {repo_path .} } {
+  set logo_file "$repo_path/Hog/images/hog_logo.txt"
+
+  set old_path [pwd]
+  cd $repo_path/Hog
+  set ver [Git {describe --always}]
+  cd $old_path
+  
+  if {[file exists $logo_file]} {
+    set f [open $logo_file "r"]
+    set data [read $f]
+    close $f
+    set lines [split $data "\n"]
+    foreach l $lines {
+      Msg Status $l
+    }
+
+  } {
+    Msg CriticalWarning "Logo file: $logo_file not found"
+  }
+
+  Msg Status "Version: $ver"
+}
+
+# Check last version online
+proc CheckLatestHogRelease {{repo_path .}} {
+  set old_path [pwd]
+  cd $repo_path/Hog
+  set current_ver [Git {describe --always}]
+  Msg Debug "Current version: $current_ver"
+  set current_sha [Git "log $current_ver -1 --format=format:%H"]
+  Msg Debug "Current SHA: $current_sha"  
+
+  Msg Info "Checking for latest Hog release, can take up to 5 seconds..."
+  #We should find a proper way of checking for timeout using vwait, this'll do for now
+  ExecuteRet timeout 5s git fetch
+  
+  set master_ver [Git "describe origin/master"]
+  Msg Debug "Master version: $master_ver"  
+  set master_sha [Git "log $master_ver -1 --format=format:%H"]    
+  Msg Debug "Master SHA: $master_sha"  
+  set merge_base [Git "merge-base $current_sha $master_sha"]
+  Msg Debug "merge base: $merge_base"  
+  
+  
+  if {$merge_base != $master_sha} {
+    # If master_sha is NOT an ancestor of current_sha 
+    Msg Info "Version $master_ver has been released (https://gitlab.com/hog-cern/Hog/-/releases/$master_ver)"
+    Msg Status "You should consider updating Hog submodule with the following instructions:"
+    Msg Status ""
+    Msg Status "cd Hog && git checkout master && git pull"
+    Msg Status ""
+    Msg Info "Also pdate the ref: in your .gitlab-ci.yml to $master_ver"
+    Msg Status ""
+  } else {
+
+    # If it is
+    Msg Info "Latest official version is $master_ver, nothing to do."
+  }
+
+  cd $old_path
+
+}
+
 proc InitLauncher {script tcl_path parameters usage argv} {
   set repo_path [file normalize "$tcl_path/../.."]
   set old_path [pwd]
   set bin_path [file normalize "$tcl_path/../../bin"]
   set top_path [file normalize "$tcl_path/../../Top"]
+
+  Logo $repo_path
   
-  # command will be filled with the IDE exectuable when this function is called by Tcl scrpt
-  set command 0
+  if {[catch {package require cmdline} ERROR]} {
+    Msg Info "The cmdline Tcl package was not found, sourcing it from Hog..."
+    source $tcl_path/utils/cmdline.tcl
+  }
+  
+  if {[catch {array set options [cmdline::getoptions argv $parameters $usage]} err] } {
+    Msg Status "\nERROR: Syntax error, probably unkown option.\n\n USAGE: $err"
+    exit 1
+  }
+  Msg Debug "Argv is: $argv"
+  
+  # Argv here is modified and the options are removed
   set project [lindex $argv 0]
   set proj_conf [ProjectExists $project $repo_path] 
+  
+  if { [llength $argv] != 1} {
+    Msg Status "\nERROR: Wrong number of arguments: [llength $argv].\n\n"
+    Msg Status "USAGE: $script [cmdline::usage $parameters $usage]"
+    exit 1
+  }
+  
+  Msg Debug "Option list:"
+  foreach {key value} [array get options] {
+    Msg Debug "$key => $value"
+  }
+
 
   if {[IsTclsh]} {
-    if {[catch {package require cmdline} ERROR]} {
-      Msg Info "The cmdline Tcl package was not found, sourcing it from Hog..."
-      source $tcl_path/utils/cmdline.tcl
-    }
-    
-    if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] || [llength $argv] < 1 } {
-      Msg Status "USAGE: $script [cmdline::usage $parameters $usage]"
-      exit 1
-    } 
-    
+    # command is filled with the IDE exectuable when this function is called by Tcl scrpt
     if {$proj_conf != 0} {
+      CheckLatestHogRelease $repo_path
+
       lassign [GetIDECommand $proj_conf] cmd before_tcl_script after_tcl_script
       Msg Info "Project $project uses $cmd IDE"
       
@@ -3859,10 +3941,14 @@ proc InitLauncher {script tcl_path parameters usage argv} {
       set command "$cmd $before_tcl_script $script $after_tcl_script $argv"
       
     } else {
-      Msg Warning "Project $project not found, the projects in this repository are:"
+      Msg Status "\nERROR: Project $project not found, the projects in this repository are:\n"
       ListProjects $repo_path
+      Msg Status "\n"
       exit 1
     }
+  } else {
+    # When the launcher is executed from within an IDE, command is set to 0
+    set command 0
   }
 
   set project_group [file dirname $project]
@@ -3942,7 +4028,7 @@ proc GetIDECommand {proj_conf} {
     } elseif {$ide_name eq "libero"} {
       #I think we need quotes for libero, not sure...
       
-      set command "\"libero\""
+      set command "libero"
       set before_tcl_script "\"SCRIPT:\""
       set after_tcl_script "\"SCRIPT_ARGS:\""
       

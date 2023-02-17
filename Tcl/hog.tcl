@@ -3429,10 +3429,9 @@ proc GetGenericFromConf {proj_dir target {sim 0}} {
           } elseif { $valueIntFull != "" && $ValueInt != "" } {
             set prj_generics "$prj_generics $theKey=$ValueInt"
           } elseif { $valueStrFull != "" && $ValueStr != "" } {
-            Msg warning "Value is a string "
-            set prj_generics "$prj_generics {$theKey=\"$ValueStr\"}"
+            set prj_generics "$prj_generics $theKey=\"$ValueStr\""
           } else {
-            set prj_generics "$prj_generics {$theKey=\"$theValue\"}"
+            set prj_generics "$prj_generics $theKey=\"$theValue\""
           }
         } elseif { ( $target == "Questa" ) || ( $target == "ModelSim" ) } {
           if {$valueNumBits != "" && $valueHexFlag != "" && $valueHex != ""} {
@@ -3496,6 +3495,8 @@ proc SetGenericsSimulation {proj_dir target} {
 ## @brief Return the path to the active top file
 proc GetTopFile {} {
   if {[IsVivado]} {
+    set_property source_mgmt_mode All [current_project]
+    update_compile_order -fileset sources_1
     return [lindex [get_files -quiet -compile_order sources -used_in synthesis] end]
   } elseif {[IsISE]} {
       debug::design_graph_mgr -create [current_fileset]

@@ -3521,9 +3521,9 @@ proc GetTopModule {} {
 #
 #  @param[in] file File to read Generics from
 proc GetVerilogGenerics {file} {
-
     set fp [open $file r]
     set data [read $fp]
+    close $fp
     set lines []
 
     # read in the verilog file and remove comments
@@ -3600,6 +3600,7 @@ proc GetVerilogGenerics {file} {
 proc GetVhdlGenerics {file {entity ""} } {
     set fp [open $file r]
     set data [read $fp]
+    close $fp
     set lines []
 
     # read in the vhdl file and remove comments

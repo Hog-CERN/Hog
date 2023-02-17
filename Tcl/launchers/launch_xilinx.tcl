@@ -50,7 +50,7 @@ if {$cmd == 0} {
   if {$ret != 0} {
     Msg CriticalWarning "IDE returned an error state."
   } else {
-    Msg "All done."
+    Msg Info "All done."
   }
   exit $ret
 }

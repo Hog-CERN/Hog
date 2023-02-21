@@ -3226,7 +3226,7 @@ proc ReadConf {file_name} {
 
   return $properties
 }
-#'"
+
 
 ## Write a property configuration file from a dictionary
 #

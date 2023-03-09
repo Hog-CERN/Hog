@@ -67,7 +67,7 @@
     - if [ -f "./Projects/${PROJECT_NAME}/skip.me" ]; then
         echo "CI disabled for $PROJECT_NAME";
       else
-        if [ $HOG_DEBUG_MODE == '1' ]; then
+       if [ -n "${HOG_DEBUG_MODE}" ] && [ "${HOG_DEBUG_MODE}" == '1' ]; then
           echo "Hog-CI(info) - The simulation workflow will be run in verbose mode.";
         fi;
         if [ -z ${HOG_SIMULATION_LIB_PATH+x} ]; then
@@ -142,7 +142,7 @@
         fi;
       fi;
     - if [ ! -f "./Projects/$PROJECT_NAME/skip.me" ]; then
-        if [ $HOG_DEBUG_MODE == '1' ]; then
+       if [ -n "${HOG_DEBUG_MODE}" ] && [ "${HOG_DEBUG_MODE}" == '1' ]; then
           echo "Hog-CI(info) - The workflow will be run in verbose mode.";
         fi;
         if [ -z ${HOG_IP_PATH+x} ]; then

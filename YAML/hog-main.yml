@@ -97,7 +97,7 @@ merge_and_tag:
         fi;
       fi;
     - MERGE_STATUS=$(git merge --no-commit origin/${CI_MERGE_REQUEST_TARGET_BRANCH_NAME})
-    - if [ "$MERGE_STATUS" == "Already up to date."] ; then
+    - if [ "$MERGE_STATUS" == "Already up to date." ]; then
         echo "Branch already up-to-date with respect to $CI_MERGE_REQUEST_TARGET_BRANCH_NAME";
       else
         echo "Branch is outdated with respect to $CI_MERGE_REQUEST_TARGET_BRANCH_NAME";

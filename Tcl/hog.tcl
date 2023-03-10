@@ -3292,9 +3292,12 @@ proc WriteUtilizationSummary {input output project_name run} {
   struct::matrix util_m
   util_m add columns 12
   util_m add row
+  puts [GetIDEVersion]
   if { [GetIDEVersion] >= 2021.0 } {
+    puts "Larger than 2021.0"
     util_m add row "|          **Site Type**         |  **Used**  | **Fixed** | **Prohibited** | **Available** | **Util%** |"  
   } else {
+    puts "Smaller than 2021.0"
     util_m add row "|          **Site Type**         | **Used** | **Fixed** | **Available** | **Util%** |" 
   }
   util_m add row "|  --- | --- | --- | --- | --- |"

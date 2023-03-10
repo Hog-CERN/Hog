@@ -273,14 +273,20 @@ if {$do_implementation == 1 } {
     file copy -force $timing_file_path $dst_dir/reports/Timing_$project_name\-$describe.txt
     set timing_file [open $timing_file_path "r"]
     set status_file [open "$dst_dir/timing.txt" "w"]
-    puts $status_file "## $project_name Timing summary"
+    puts $status_file "## $project_name Timing summary\n\n"
+    puts $status_file "|  |  |"
+    puts $status_file "| --- | --- |"
     while {[gets $timing_file line] >= 0} {
       if { [string match "SUMMARY" $line] } {
         while {[gets $timing_file line] >= 0} {
           if { [string match "END SUMMARY" $line ] } {
             break
           }
-          puts $status_file "$line"
+          if {[string first ":" $line] == -1} {
+            continue
+          }
+          set out_string "| [string map {: | } $line] |"
+          puts $status_file "$out_string"
         }
       }
     }

@@ -96,6 +96,13 @@ merge_and_tag:
           fi;
         fi;
       fi;
+    - if git merge --no-commit origin/${CI_MERGE_REQUEST_TARGET_BRANCH_NAME} ; then
+        echo "Branch already up-to-date with respect to $CI_MERGE_REQUEST_TARGET_BRANCH_NAME";
+      else
+        echo "Branch is outdated with respect to $CI_MERGE_REQUEST_TARGET_BRANCH_NAME";
+        printf "Please, merge the latest changes from $CI_MERGE_REQUEST_TARGET_BRANCH_NAME with:\ngit fetch && git merge origin/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME\n";
+        exit 1;
+      fi;
     - git fetch origin refs/notes/*:refs/notes/*
     - "NEW_TAG=`echo \"source Hog/Tcl/hog.tcl; puts v[HexVersionToString [GetVer .]]\" | tclsh`"
     - echo "New tag is $NEW_TAG"

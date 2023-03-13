@@ -83,73 +83,29 @@ export DEBUG_VERBOSE=""
 #   echo "1"
 if [ -v $tempfolder ]; then
   tempfolder="/dev/shm/hog"
-  echo " y "
-  if mkdir -p $tempfolder; then
+  if mkdir -p $tempfolder 2>/dev/null ; then
     temp_i_cnt_file="$tempfolder/hog_i_cnt"
     temp_d_cnt_file="$tempfolder/hog_d_cnt"
     temp_w_cnt_file="$tempfolder/hog_w_cnt"
     temp_c_cnt_file="$tempfolder/hog_c_cnt"
     temp_e_cnt_file="$tempfolder/hog_e_cnt"
   else
+    echo " Warning : Could not create /dev/shm/hog will try /tmp/hog "
     tempfolder="/tmp/hog"
     if mkdir -p $tempfolder; then
-      temp_i_cnt_file="/tmp/hog/hog_i_cnt"
-      temp_d_cnt_file="/tmp/hog/hog_d_cnt"
-      temp_w_cnt_file="/tmp/hog/hog_w_cnt"
-      temp_c_cnt_file="/tmp/hog/hog_c_cnt"
-      temp_e_cnt_file="/tmp/hog/hog_e_cnt"
+    temp_i_cnt_file="$tempfolder/hog_i_cnt"
+    temp_d_cnt_file="$tempfolder/hog_d_cnt"
+    temp_w_cnt_file="$tempfolder/hog_w_cnt"
+    temp_c_cnt_file="$tempfolder/hog_c_cnt"
+    temp_e_cnt_file="$tempfolder/hog_e_cnt"
     else
       echo " *** ERROR Could not create /tmp/hog"
       exit 0
     fi
   fi
-else
-  echo " N "
+# else
+#   echo " N "
 fi
-echo " . "
-# exit 0
-
-# if mkdir -p "/dev/shm/hog"; then
-#   temp_i_cnt_file="$tempfolder/hog_i_cnt"
-#   temp_d_cnt_file="$tempfolder/hog_d_cnt"
-#   temp_w_cnt_file="$tempfolder/hog_w_cnt"
-#   temp_c_cnt_file="$tempfolder/hog_c_cnt"
-#   temp_e_cnt_file="$tempfolder/hog_e_cnt"
-# else
-#   echo " Warning : Could not create /dev/shm/hog will try /tmp/hog "
-#   if mkdir -p "/tmp/hog"; then
-#     temp_i_cnt_file="/tmp/hog/hog_i_cnt"
-#     temp_d_cnt_file="/tmp/hog/hog_d_cnt"
-#     temp_w_cnt_file="/tmp/hog/hog_w_cnt"
-#     temp_c_cnt_file="/tmp/hog/hog_c_cnt"
-#     temp_e_cnt_file="/tmp/hog/hog_e_cnt"
-#   else
-#     echo " *** ERROR Could not create /tmp/hog"
-#     exit 0
-#   fi
-# fi
-# } || {
-#   # elif [ -d "/tmp" ]; then
-#   # echo "2"
-#   mkdir "/tmp/hog"
-#   temp_i_cnt_file="/tmp/hog/hog_i_cnt"
-#   temp_d_cnt_file="/tmp/hog/hog_d_cnt"
-#   temp_w_cnt_file="/tmp/hog/hog_w_cnt"
-#   temp_c_cnt_file="/tmp/hog/hog_c_cnt"
-#   temp_e_cnt_file="/tmp/hog/hog_e_cnt"
-# }
-# exit 0
-# else
-  # echo "3"
-  # mkdir "/tmp/hog"
-  # temp_i_cnt_file="/tmp/hog/hog_i_cnt"
-  # temp_d_cnt_file="/tmp/hog/hog_d_cnt"
-  # temp_w_cnt_file="/tmp/hog/hog_w_cnt"
-  # temp_c_cnt_file="/tmp/hog/hog_c_cnt"
-  # temp_e_cnt_file="/tmp/hog/hog_e_cnt"
-# fi
-
-
 
 function update_cnt () {
   if [[ -e "$1" ]]; then
@@ -360,24 +316,6 @@ function log_stdout(){
               fi
             fi
             ;;
-          # *'Errors'* | *'Warnings'* | *'errors'* | *'warnings'*)
-          #   if [[ $DEBUG_VERBOSE -gt 5 ]]; then
-          #     printf "%d : %d :" $BASHPID "$(msg_counter iw)"
-          #   else
-          #     msg_counter iw >> /dev/null
-          #   fi;
-          #   if [[ -n "$HOG_COLORED" ]]; then
-          #     if [ $echo_info == 1 ]; then 
-          #       echo -e "$txtblu    INFO $txtwht: ${line#INFO: }"; 
-          #     fi
-          #     if [[ -n $HOG_LOGGER ]]; then
-          #       if [[ -n $LOG_INFO_FILE ]]; then 
-          #         echo "    INFO : ${line#INFO: }" >> $LOG_INFO_FILE; 
-          #       fi
-          #     fi
-          #   fi
-          #   # msg_counter iw
-          # ;;
           *)
             info_line=$line
             if [[ $DEBUG_VERBOSE -gt 5 ]]; then

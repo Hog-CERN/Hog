@@ -3289,14 +3289,15 @@ proc WriteUtilizationSummary {input output project_name run} {
   set o [open $output "a"]
   puts $o "## $project_name $run Utilization report"
   struct::matrix util_m
-  util_m add columns 12
+  util_m add columns 14
   util_m add row
   if { [GetIDEVersion] >= 2021.0 } {
     util_m add row "|          **Site Type**         |  **Used**  | **Fixed** | **Prohibited** | **Available** | **Util%** |"  
+    util_m add row "|  --- | --- | --- | --- | --- | --- |"
   } else {
     util_m add row "|          **Site Type**         | **Used** | **Fixed** | **Available** | **Util%** |" 
+    util_m add row "|  --- | --- | --- | --- | --- |"
   }
-  util_m add row "|  --- | --- | --- | --- | --- |"
 
   set luts 0
   set regs 0

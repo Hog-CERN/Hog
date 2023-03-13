@@ -268,10 +268,29 @@ if {$do_implementation == 1 } {
     Msg Warning "No versions file found in $main_folder/versions.txt"
   }
   #Timing file
-  set timing_file [file normalize "$repo_path/Projects/timing.txt" ]
+  set timing_file_path [file normalize "$repo_path/Projects/timing_libero.txt"]
+  if {[file exists $timing_file_path]} {
+    file copy -force $timing_file_path $dst_dir/reports/Timing_$project_name\-$describe.txt
+    set timing_file [open $timing_file_path "r"]
+    set status_file [open "$dst_dir/timing.txt" "w"]
+    puts $status_file "## $project_name Timing summary\n\n"
+    puts $status_file "|  |  |"
+    puts $status_file "| --- | --- |"
+    while {[gets $timing_file line] >= 0} {
+      if { [string match "SUMMARY" $line] } {
+        while {[gets $timing_file line] >= 0} {
+          if { [string match "END SUMMARY" $line ] } {
+            break
+          }
+          if {[string first ":" $line] == -1} {
+            continue
+          }
+          set out_string "| [string map {: | } $line] |"
+          puts $status_file "$out_string"
+        }
+      }
+    }
 
-  if {[file exists $timing_file]} {
-    file copy -force $timing_file $dst_dir/
   } else {
     Msg Warning "No timing file found, not a problem if running locally"
   }

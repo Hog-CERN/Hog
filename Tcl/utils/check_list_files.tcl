@@ -1,4 +1,4 @@
-#!/usr/bin/env tclsh
+442#!/usr/bin/env tclsh
 #   Copyright 2018-2023 The University of Birmingham
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
@@ -442,6 +442,12 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
       if {[string equal $SRC ""] } {
         continue
       }
+      foreach bf $BAN_FILES_REGEX {
+	if { [regexp "^$bf$" $SRC]} {
+	  # if the file name matches any regex in BAN_FILES_REGEX we will ignore it
+	  continue
+	}
+      }
       incr ListErrorCnt
       if {[string equal [RelativeLocal $repo_path $SRC] ""]} {
         if {[string equal [RelativeLocal $ext_path $SRC] ""]} {
@@ -724,6 +730,11 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
     INCREMENTAL_CHECKPOINT \
     AUTO_RQS.DIRECTORY \
     ENABLE_RESOURCE_ESTIMATION
+  ]
+
+  set BAN_FILES_REGEX [ list {.*/nocattrs.dat \
+    {} \
+    {} \
   ]
 
   set HOG_GENERICS [ list GLOBAL_DATE \

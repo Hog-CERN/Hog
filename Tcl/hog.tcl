@@ -628,8 +628,7 @@ proc ReadListFile args {
 
       # glob the file list for wildcards
       if {$srcfiles != $srcfile && ! [string equal $srcfiles "" ]} {
-	Msg Debug "Wildcard source expanded from $srcfile to $srcfiles"
-        
+	      Msg Debug "Wildcard source expanded from $srcfile to $srcfiles"
       } else {
         if {![file exists $srcfile]} {
           Msg CriticalWarning "File: $srcfile (from list file: $list_file) does not exist."
@@ -643,16 +642,15 @@ proc ReadListFile args {
           set extension [file extension $vhdlfile]
 
           if { $extension == $list_file_ext } {
-	    Msg Debug "List file $vhdlfile found in list file, recursively opening it..."
+	          Msg Debug "List file $vhdlfile found in list file, recursively opening it..."
 
             ### Set list file properties
             set prop [lrange $file_and_prop 1 end]
             set library [lindex [regexp -inline {lib\s*=\s*(.+?)\y.*} $prop] 1]
             if { $library != "" } {
-	      Msg Debug "Setting $library as library for list file $vhdlfile..."
-	      
+              Msg Debug "Setting $library as library for list file $vhdlfile..."
             } else {
-	      Msg Debug "Setting $lib as library for list file $vhdlfile..."
+	            Msg Debug "Setting $lib as library for list file $vhdlfile..."
               set library $lib
             }
             lassign [ReadListFile {*}"-lib $library -main_lib $main_lib $sha_mode_opt $vhdlfile $path"] l p m
@@ -666,22 +664,30 @@ proc ReadListFile args {
             set prop [lrange $file_and_prop 1 end]
             regsub -all " *= *" $prop "=" prop
             dict lappend properties $vhdlfile $prop
-	    Msg Debug "Adding property $prop to $vhdlfile..."
+	          Msg Debug "Adding property $prop to $vhdlfile..."
             
-	    ### Set File Set
+	          ### Set File Set
             #Adding IP library
             if {$sha_mode == 0 && [lsearch {.xci .ip .bd} $extension] >= 0} {
               dict lappend libraries "$lib.ip" $vhdlfile
               dict set main_libs "$lib.ip" "$main_lib.ip"
 
-	      Msg Debug "Appending $vhdlfile to IP list..."
+	            Msg Debug "Appending $vhdlfile to IP list..."
 
             } else {
               set m [dict create]
               dict set m $lib$ext $main_lib$ext
               dict lappend libraries $lib$ext $vhdlfile
               if {[dict exists $main_libs $lib$ext] == 0} {
+                Msg Debug "Adding $lib$ext to the $main_lib$ext dictionary..."
                 set main_libs [dict merge $m $main_libs]
+              } else {
+                set current_main [dict get $main_libs $lib$ext]
+                Msg Debug "$lib$ext already assigned to the $current_main..."
+                if {"$current_main" != "$main_lib$ext"} {
+                  Msg Debug "$lib$ext will also be used in the $main_lib fileset..."
+                  dict set m $lib$ext "$current_main $main_lib$ext"
+                }
               }
             }
           }
@@ -1884,7 +1890,7 @@ proc GetHogFiles args {
     }
     set libraries [MergeDict $l $libraries]
     set properties [MergeDict $p $properties]
-    set main_libs [dict merge $m $main_libs]
+    set main_libs [MergeDict $m $main_libs]
   }
   return [list $libraries $properties $main_libs]
 }
@@ -1926,193 +1932,200 @@ proc AddHogFiles { libraries properties main_libs } {
   Msg Info "Adding source files to project..."
 
   foreach lib [dict keys $libraries] {
-    # Msg Info "lib: $lib \n"
+    Msg Debug "lib: $lib \n"
     set lib_files [dict get $libraries $lib]
-    # Msg Info "Files in $lib: $lib_files \n"
+    Msg Debug "Files in $lib: $lib_files \n"
     set rootlib [file rootname [file tail $lib]]
     set ext [file extension $lib]
-    set main_lib [dict get $main_libs $lib]
-    set simlib [file rootname [file tail $main_lib]]
-    # Msg Info "lib: $lib ext: $ext simlib $simlib \n"
+    set lib_mains [dict get $main_libs $lib]
+    Msg Debug "lib: $lib ext: $ext main: $lib_mains \n"
+    set filesets ""
     switch $ext {
       .sim {
-        set file_set "$simlib\_sim"
-        # if this simulation fileset was not created we do it now
-        if {[string equal [get_filesets -quiet $file_set] ""]} {
-          create_fileset -simset $file_set
-          # Set active when creating, by default it will be the latest simset to be created, unless is specified in the sim.conf
-          current_fileset -simset [ get_filesets $file_set ]
-          set simulation  [get_filesets $file_set]
-          foreach simulator [GetSimulators] {
-            set_property -name {$simulator.compile.vhdl_syntax} -value {2008} -objects $simulation
+        foreach main_lib $lib_mains {
+          set simlib [file rootname [file tail $main_lib]]
+          set file_set "$simlib\_sim"
+          lappend filesets $file_set
+          # if this simulation fileset was not created we do it now
+          if {[string equal [get_filesets -quiet $file_set] ""]} {
+            create_fileset -simset $file_set
+            # Set active when creating, by default it will be the latest simset to be created, unless is specified in the sim.conf
+            current_fileset -simset [ get_filesets $file_set ]
+            set simulation  [get_filesets $file_set]
+            foreach simulator [GetSimulators] {
+              set_property -name {$simulator.compile.vhdl_syntax} -value {2008} -objects $simulation
+            }
+            set_property SOURCE_SET sources_1 $simulation
           }
-          set_property SOURCE_SET sources_1 $simulation
         }
       }
       .con {
-        set file_set "constrs_1"
+        lappend filesets "constrs_1"
       }
       default {
-        set file_set "sources_1"
+        lappend filesets "sources_1"
       }
     }
     # ADD NOW LISTS TO VIVADO PROJECT
     if {[IsXilinx]} {
-      add_files -norecurse -fileset $file_set $lib_files
+      foreach file_set $filesets {
+        Msg Debug "Adding $lib to $file_set"
+        add_files -norecurse -fileset $file_set $lib_files
 
-      if {$ext != ".ip"} {
-        # Add Properties
-        foreach f $lib_files {
-          set file_obj [get_files -of_objects [get_filesets $file_set] [list "*$f"]]
-          #ADDING LIBRARY
-          if {[file extension $f] == ".vhd" || [file extension $f] == ".vhdl"} {
-            set_property -name "library" -value $rootlib -objects $file_obj
-          }
+        if {$ext != ".ip"} {
+          # Add Properties
+          foreach f $lib_files {
+            set file_obj [get_files -of_objects [get_filesets $file_set] [list "*$f"]]
+            #ADDING LIBRARY
+            if {[file extension $f] == ".vhd" || [file extension $f] == ".vhdl"} {
+              set_property -name "library" -value $rootlib -objects $file_obj
+            }
 
-          #ADDING FILE PROPERTIES
-          set props [dict get $properties $f]
-          if {[file extension $f] == ".vhd" || [file extension $f] == ".vhdl"} {
-            if {[lsearch -inline -regexp $props "93"] < 0} {
-              # ISE does not support vhdl2008
+            #ADDING FILE PROPERTIES
+            set props [dict get $properties $f]
+            if {[file extension $f] == ".vhd" || [file extension $f] == ".vhdl"} {
+              if {[lsearch -inline -regexp $props "93"] < 0} {
+                # ISE does not support vhdl2008
+                if {[IsVivado]} {
+                  set_property -name "file_type" -value "VHDL 2008" -objects $file_obj
+                }
+              } else {
+                Msg Debug "Filetype is VHDL 93 for $f"
+              }
+            }
+
+            if {[lsearch -inline -regexp $props "SystemVerilog"] > 0} {
+              # ISE does not support SystemVerilog
               if {[IsVivado]} {
-                set_property -name "file_type" -value "VHDL 2008" -objects $file_obj
+                set_property -name "file_type" -value "SystemVerilog" -objects $file_obj
+                Msg Debug "Filetype is SystemVerilog for $f"
+
+              } else {
+                Msg Warning "Xilinx PlanAhead/ISE does not support SystemVerilog. Property not set for $f"
               }
-            } else {
-              Msg Debug "Filetype is VHDL 93 for $f"
             }
-          }
 
-          if {[lsearch -inline -regexp $props "SystemVerilog"] > 0} {
-            # ISE does not support SystemVerilog
-            if {[IsVivado]} {
-              set_property -name "file_type" -value "SystemVerilog" -objects $file_obj
-              Msg Debug "Filetype is SystemVerilog for $f"
 
-            } else {
-              Msg Warning "Xilinx PlanAhead/ISE does not support SystemVerilog. Property not set for $f"
+            # Top synthesis module
+            set top [lindex [regexp -inline {top\s*=\s*(.+?)\y.*} $props] 1]
+            if { $top != "" } {
+              Msg Info "Setting $top as top module for file set $file_set..."
+              set globalSettings::synth_top_module $top
             }
-          }
 
-
-          # Top synthesis module
-          set top [lindex [regexp -inline {top\s*=\s*(.+?)\y.*} $props] 1]
-          if { $top != "" } {
-            Msg Info "Setting $top as top module for file set $file_set..."
-            set globalSettings::synth_top_module $top
-          }
-
-          # XDC
-          if {[lsearch -inline -regexp $props "XDC"] >= 0 || [file extension $f] == ".xdc"} {
-	    Msg Debug "Setting filetype XDC for $f"
-            set_property -name "file_type" -value "XDC" -objects $file_obj
-          }
-
-          # Verilog headers
-          if {[lsearch -inline -regexp $props "verilog_header"] >= 0} {
-            Msg Debug "Setting verilog header type for $f..."
-            set_property file_type {Verilog Header} [get_files $f]
-          }
-
-          # Not used in synthesis
-          if {[lsearch -inline -regexp $props "nosynth"] >= 0} {
-            Msg Debug "Setting not used in synthesis for $f..."
-            set_property -name "used_in_synthesis" -value "false" -objects $file_obj
-          }
-
-          # Not used in implementation
-          if {[lsearch -inline -regexp $props "noimpl"] >= 0} {
-            Msg Debug "Setting not used in implementation for $f..."
-            set_property -name "used_in_implementation" -value "false" -objects $file_obj
-          }
-
-          # Not used in simulation
-          if {[lsearch -inline -regexp $props "nosim"] >= 0} {
-            Msg Debug "Setting not used in simulation for $f..."
-            set_property -name "used_in_simulation" -value "false" -objects $file_obj
-          }
-
-          ## Simulation properties
-          # # Top simulation module
-          set top_sim [lindex [regexp -inline {topsim\s*=\s*(.+?)\y.*} $props] 1]
-          if { $top_sim != "" } {
-            Msg Info "Setting $top_sim as top module for simulation file set $file_set..."
-            Msg Warning "Setting the simulation top module from simulation list files will be deprecated in future Hog releases. Please consider setting this property in the sim.conf file, by adding the following line under the \[$file_set\] section.\ntop=$top_sim"
-
-            set_property "top"  $top_sim [get_filesets $file_set]
-            current_fileset -simset [get_filesets $file_set]
-          }
-
-          # Simulation runtime
-          set sim_runtime [lindex [regexp -inline {runtime\s*=\s*(.+?)\y.*} $props] 1]
-          if { $sim_runtime != "" } {
-            Msg Info "Setting simulation runtime to $sim_runtime for simulation file set $file_set..."
-            Msg Warning "Setting the simulation runtime from simulation list files will be deprecated in future Hog releases. Please consider setting this property in the sim.conf file, by adding the following line under the \[$file_set\] section.\n<simulator_name>.simulate.runtime=$sim_runtime"
-            set_property -name {xsim.simulate.runtime} -value $sim_runtime -objects [get_filesets $file_set]
-            foreach simulator [GetSimulators] {
-              set_property $simulator.simulate.runtime  $sim_runtime  [get_filesets $file_set]
+            # XDC
+            if {[lsearch -inline -regexp $props "XDC"] >= 0 || [file extension $f] == ".xdc"} {
+        Msg Debug "Setting filetype XDC for $f"
+              set_property -name "file_type" -value "XDC" -objects $file_obj
             }
-          }
 
-          # Wave do file
-          if {[lsearch -inline -regexp $props "wavefile"] >= 0} {
-            Msg Warning "Setting a wave do file from simulation list files will be deprecated in future Hog releases. Please consider setting this property in the sim.conf file, by adding the following line under the \[$file_set\] section.\n<simulator_name>.simulate.custom_wave_do=[file tail $f]"
+            # Verilog headers
+            if {[lsearch -inline -regexp $props "verilog_header"] >= 0} {
+              Msg Debug "Setting verilog header type for $f..."
+              set_property file_type {Verilog Header} [get_files $f]
+            }
 
-	    Msg Debug "Setting $f as wave do file for simulation file set $file_set..."
+            # Not used in synthesis
+            if {[lsearch -inline -regexp $props "nosynth"] >= 0} {
+              Msg Debug "Setting not used in synthesis for $f..."
+              set_property -name "used_in_synthesis" -value "false" -objects $file_obj
+            }
 
-            # check if file exists...
-            if {[file exists $f]} {
+            # Not used in implementation
+            if {[lsearch -inline -regexp $props "noimpl"] >= 0} {
+              Msg Debug "Setting not used in implementation for $f..."
+              set_property -name "used_in_implementation" -value "false" -objects $file_obj
+            }
+
+            # Not used in simulation
+            if {[lsearch -inline -regexp $props "nosim"] >= 0} {
+              Msg Debug "Setting not used in simulation for $f..."
+              set_property -name "used_in_simulation" -value "false" -objects $file_obj
+            }
+
+            ## Simulation properties
+            # # Top simulation module
+            set top_sim [lindex [regexp -inline {topsim\s*=\s*(.+?)\y.*} $props] 1]
+            if { $top_sim != "" } {
+              Msg Info "Setting $top_sim as top module for simulation file set $file_set..."
+              Msg Warning "Setting the simulation top module from simulation list files will be deprecated in future Hog releases. Please consider setting this property in the sim.conf file, by adding the following line under the \[$file_set\] section.\ntop=$top_sim"
+
+              set_property "top"  $top_sim [get_filesets $file_set]
+              current_fileset -simset [get_filesets $file_set]
+            }
+
+            # Simulation runtime
+            set sim_runtime [lindex [regexp -inline {runtime\s*=\s*(.+?)\y.*} $props] 1]
+            if { $sim_runtime != "" } {
+              Msg Info "Setting simulation runtime to $sim_runtime for simulation file set $file_set..."
+              Msg Warning "Setting the simulation runtime from simulation list files will be deprecated in future Hog releases. Please consider setting this property in the sim.conf file, by adding the following line under the \[$file_set\] section.\n<simulator_name>.simulate.runtime=$sim_runtime"
+              set_property -name {xsim.simulate.runtime} -value $sim_runtime -objects [get_filesets $file_set]
               foreach simulator [GetSimulators] {
-                set_property "$simulator.simulate.custom_wave_do" [file tail $f] [get_filesets $file_set]
+                set_property $simulator.simulate.runtime  $sim_runtime  [get_filesets $file_set]
               }
-            } else {
-              Msg Warning "File $f was not found."
             }
-          }
 
-          #Do file
-          if {[lsearch -inline -regexp $props "dofile"] >= 0} {
-            Msg Warning "Setting a custom do file from simulation list files will be deprecated in future Hog releases. Please consider setting this property in the sim.conf file, by adding the following line under the \[$file_set\] section.\n<simulator_name>.simulate.custom_do=[file tail $f]"
-	    Msg Debug "Setting $f as do file for simulation file set $file_set..."
+            # Wave do file
+            if {[lsearch -inline -regexp $props "wavefile"] >= 0} {
+              Msg Warning "Setting a wave do file from simulation list files will be deprecated in future Hog releases. Please consider setting this property in the sim.conf file, by adding the following line under the \[$file_set\] section.\n<simulator_name>.simulate.custom_wave_do=[file tail $f]"
 
-            if {[file exists $f]} {
-              foreach simulator [GetSimulators] {
-                set_property "$simulator.simulate.custom_udo" [file tail $f] [get_filesets $file_set]
+        Msg Debug "Setting $f as wave do file for simulation file set $file_set..."
+
+              # check if file exists...
+              if {[file exists $f]} {
+                foreach simulator [GetSimulators] {
+                  set_property "$simulator.simulate.custom_wave_do" [file tail $f] [get_filesets $file_set]
+                }
+              } else {
+                Msg Warning "File $f was not found."
               }
-            } else {
-              Msg Warning "File $f was not found."
+            }
+
+            #Do file
+            if {[lsearch -inline -regexp $props "dofile"] >= 0} {
+              Msg Warning "Setting a custom do file from simulation list files will be deprecated in future Hog releases. Please consider setting this property in the sim.conf file, by adding the following line under the \[$file_set\] section.\n<simulator_name>.simulate.custom_do=[file tail $f]"
+        Msg Debug "Setting $f as do file for simulation file set $file_set..."
+
+              if {[file exists $f]} {
+                foreach simulator [GetSimulators] {
+                  set_property "$simulator.simulate.custom_udo" [file tail $f] [get_filesets $file_set]
+                }
+              } else {
+                Msg Warning "File $f was not found."
+              }
+            }
+
+            # Tcl
+            if {[file extension $f] == ".tcl" && $ext != ".con"} {
+              if { [lsearch -inline -regexp $props "source"] >= 0} {
+                Msg Info "Sourcing Tcl script $f..."
+                source $f
+              }
             }
           }
 
-          # Tcl
-          if {[file extension $f] == ".tcl" && $ext != ".con"} {
-            if { [lsearch -inline -regexp $props "source"] >= 0} {
-              Msg Info "Sourcing Tcl script $f..."
-              source $f
+        } else {
+          # IPs
+          foreach f $lib_files {
+            #ADDING FILE PROPERTIES
+            set props [dict get $properties $f]
+            # Lock the IP
+            if {[lsearch -inline -regexp $props "locked"] >= 0} {
+              Msg Info "Locking IP $f..."
+              set_property IS_MANAGED 0 [get_files $f]
             }
-          }
-        }
 
-      } else {
-        # IPs
-        foreach f $lib_files {
-          #ADDING FILE PROPERTIES
-          set props [dict get $properties $f]
-          # Lock the IP
-          if {[lsearch -inline -regexp $props "locked"] >= 0} {
-            Msg Info "Locking IP $f..."
-            set_property IS_MANAGED 0 [get_files $f]
-          }
+            # Generating Target for BD File
+            if {[file extension $f] == ".bd"} {
+              Msg Info "Generating Target for [file tail $f], please remember to commit the (possible) changed file."
+              generate_target all [get_files $f]
+            }
 
-          # Generating Target for BD File
-          if {[file extension $f] == ".bd"} {
-            Msg Info "Generating Target for [file tail $f], please remember to commit the (possible) changed file."
-            generate_target all [get_files $f]
           }
 
         }
-
+        Msg Info "[llength $lib_files] file/s added to library $rootlib..."
       }
-      Msg Info "[llength $lib_files] file/s added to library $rootlib..."
     } elseif {[IsQuartus] } {
       #QUARTUS ONLY
       if { $ext == ".sim"} {

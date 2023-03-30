@@ -68,10 +68,27 @@ proc WarningAndLog {msg {outFile ""}} {
   }
 }
 
+## @brief Remove duplicates in a dictionary
+#
+# @param[in] mydict the input dictionary
+#
+# @return the dictionary stripped of duplicates
+proc RemoveDuplicates {mydict} {
+  set new_dict [dict create]
+  foreach key [dict keys $mydict] {
+    set values [DictGet $mydict $key]
+    foreach value $values {
+      set idxs [lreverse [lreplace [lsearch -exact -all $values $value] 0 0]]
+      foreach idx $idxs {
+        set values [lreplace $values $idx $idx]
+      }
+    }
+    dict set new_dict $key $values
+  }
+  return $new_dict
+}
 
 set usage   "Checks if the list files matches the project ones. It can also be used to update the list files. \nUSAGE: $::argv0 \[Options\]"
-
-
 
 
 if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}]} {
@@ -163,72 +180,64 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
   set prjSrcDict  [DictGet $prjLibraries SRC]
 
 
-  # Removing duplicates from listlibraries and listProperties
-  foreach library [dict keys $listLibraries] {
-    set fileNames [DictGet $listLibraries $library]
-    foreach fileName $fileNames {
-      set idxs [lreverse [lreplace [lsearch -exact -all $fileNames $fileName] 0 0]]
-      foreach idx $idxs {
-        set fileNames [lreplace $fileNames $idx $idx]
-      }
-    }
-    dict set listLibraries $library $fileNames
-  }
-  foreach property [dict keys $listProperties] {
-    set props [lindex [dict get $listProperties $property] 0]
-    foreach prop $props {
-      set idxs [lreverse [lreplace [lsearch -exact -all $props $prop] 0 0]]
-      foreach idx $idxs {
-        set props [lreplace $props $idx $idx]
-      }
-    }
-    dict set listProperties $property [list $props]
-  }
-  # Compare List files against project files
+  # Removing duplicates from listlibraries listProperties listSimLibraries listSimProperties
+  set listLibraries [RemoveDuplicates $listLibraries]
+  set listProperties [RemoveDuplicates $listProperties]
+  set listSimLibraries [RemoveDuplicates $listSimLibraries]
+  set listSimProperties [RemoveDuplicates $listSimProperties]
+
+  #################################################################
+  ##### START COMPARISON OF LIST FILES AGAINST PROJECT FILES ######
+  #################################################################
+
   set newListfiles [dict create]
 
+  # Loop over simulation libraries in project
   foreach key [dict keys $listSimLibraries] {
+    puts $key
+    # Check that the key is a .sim file
     if {[file extension $key] == ".sim"} {
-      if {[dict exists $prjSimDict "[file rootname $key]_sim"]} {
-        set prjSIMs [DictGet $prjSimDict "[file rootname $key]_sim"]
-        # loop over list files associated with this simset
-        foreach simlist [dict keys $listSimMain] {
-          #check if project contains sim files specified in list files
-          if {[DictGet $listSimMain $simlist] == $key } {
-            foreach SIM [DictGet $listSimLibraries $simlist] {
-              if {[file extension $SIM] == ".udo" || [file extension $SIM] == ".do" || [file extension $SIM] == ".tcl"} {
-                set prop_sim_file [RelativeLocal $repo_path $SIM]
-              } else {
-                set prop_sim_file $SIM
-              }
-              set idx [lsearch -exact $prjSIMs $SIM]
-              set prjSIMs [lreplace $prjSIMs $idx $idx]
-              if {$idx < 0} {
-                if {$options(recreate) == 1} {
-                  Msg Info "$SIM was removed from the project."
-                } else {
-                  Msg Info "$SIM not found in project simulation libraries"
-                }
-                incr ListSimErrorCnt
-              } else {
-                dict lappend newListfiles $simlist [string trim "[RelativeLocal $repo_path $SIM] [DictGet $prjProperties $prop_sim_file]"]
-              }
+      # Loop over simulation filesets associated to this sim library
+      puts $listSimMain
+      foreach fileset [DictGet $listSimMain $key] {
+        puts $fileset
+        # Check if the simulation fileset exists in the project
+        if {[dict exists $prjSimDict "[file rootname $fileset]_sim"]} {
+          # Get the list of simulation sources in the project in this fileset
+          set prjSIMs [DictGet $prjSimDict "[file rootname $fileset]_sim"]
+          # Loop over files in .sim list file
+          foreach SIM [DictGet $listSimLibraries $key] {
+            if {[file extension $SIM] == ".udo" || [file extension  $SIM] == ".do" || [file extension $SIM] == ".tcl"} {
+              set prop_sim_file [RelativeLocal $repo_path $SIM]
+            } else {
+              set prop_sim_file $SIM
             }
-            dict set prjSimDict "[file rootname $key]_sim" $prjSIMs
+            # Search for the file in the current fileset
+            set idx [lsearch -exact $prjSIMs $SIM]
+            # Remove file from list of files in current fileset
+            set prjSIMs [lreplace $prjSIMs $idx $idx]
+            # If file not in project fileset, issue Warning
+            if {$idx < 0} {
+              incr ListSimErrorCnt
+              if {$options(recreate) == 1} {
+                Msg Info "$SIM was removed from the project."
+              } else {
+                WarningAndLog "$SIM not found in project simulation libraries" $outSimFile
+              }
+            } else {
+              # File is in project, copy to new list file
+              dict lappend newListfiles $key [string trim "[RelativeLocal $repo_path $SIM] [DictGet $prjProperties $prop_sim_file]"]
+            }
           }
-        }
-      } else {
-        set main_lib [dict get $listSimMain $key]
-        if { $main_lib == $key } {
-          if {$options(recreate) == 1} {
-            Msg Info "[file rootname $key]_sim fileset was removed from the project."
-          }
+          dict set prjSimDict "[file rootname $fileset]_sim" $prjSIMs
+        } else {
+          # If simulation fileset does not exist in project launch warning...
+          Msg Info "[file rootname $fileset]_sim fileset was removed from the project."
         }
       }
     }
   }
-
-
+  
   foreach key [dict keys $listLibraries] {
     if {[file extension $key] == ".ip" } {
       #check if project contains IPs specified in listfiles
@@ -684,14 +693,14 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
   }
 
 
-  #filling newConfDict with existing hog.conf properties apart from main synth_1 impl_1 and generics
+  # filling newConfDict with existing hog.conf properties apart from main synth_1 impl_1 and generics
   foreach key [dict keys $hogConfDict] {
     if {$key != "main" && $key != "synth_1" && $key != "impl_1" && $key != "generics"} {
       dict set newConfDict $key [DictGet $hogConfDict $key]
     }
   }
 
-  #list of properties that must not be checked/written
+  # list of properties that must not be checked/written
   set PROP_BAN_LIST  [ list DEFAULT_LIB \
     PART \
     IP_CACHE_PERMISSIONS \
@@ -884,11 +893,11 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
     Msg Info "$conf_file matches project. Nothing to do"
   }
 
-  #recreating hog.conf
+  # recreating hog.conf
   if {$options(recreate_conf) == 1 && ($ConfErrorCnt > 0 || [file exists $conf_file] == 0 || $hasStrategy == 1)} {
     Msg Info "Updating configuration file $repo_path/$DirName/hog.conf."
     file mkdir  $repo_path/$DirName/list
-    #writing configuration file
+    # writing configuration file
     set confFile $repo_path/$DirName/hog.conf
     set version [GetIDEVersion]
     WriteConf $confFile $newConfDict "vivado $version"
@@ -1131,7 +1140,7 @@ if {$options(recreate_conf) == 0 && $options(recreate) == 0} {
   }
 
   if { $SimConfErrorCnt > 0 } {
-    Msg Warning "Number of mismatch in simulation list files = $SimConfErrorCnt"
+    Msg Warning "Number of mismatch in simulation conf files = $SimConfErrorCnt"
   } else {
     Msg Info "Simulation config files match project. All ok!"
   }

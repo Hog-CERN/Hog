@@ -1660,6 +1660,34 @@ proc Relative {base dst} {
   return $dst
 }
 
+## @brief Returns the path of filePath relative to pathName
+#
+# @param[in] pathName   the path with respect to witch the returned path is calculated
+# @param[in] filePath   the path of filePath 
+#
+proc RelativeLocal {pathName filePath} {
+  if {[string first [file normalize $pathName] [file normalize $filePath]] != -1} {
+    return [Relative $pathName $filePath]
+  } else {
+    return ""
+  }
+}
+
+## @brief Prints a message with selected severity and optionally write into a log file
+#
+# @param[in] msg        The message to print
+# @param[in] severity   The severity of the message
+# @param[in] outFile    The path of the output logfile
+#
+proc MsgAndLog {msg {severity "CriticalWarning"} {outFile ""}} {
+  Msg severity $msg
+  if {$outFile != ""} {
+    set oF [open "$outFile" a+]
+    puts $oF $msg
+    close $oF
+  }
+}
+
 ## @ brief Returns a list of 2 dictionaries: libraries and properties
 # - libraries has library name as keys and a list of filenames as values
 # - properties has as file names as keys and a list of properties as values
@@ -2084,7 +2112,7 @@ proc AddHogFiles { libraries properties main_libs } {
             #Do file
             if {[lsearch -inline -regexp $props "dofile"] >= 0} {
               Msg Warning "Setting a custom do file from simulation list files will be deprecated in future Hog releases. Please consider setting this property in the sim.conf file, by adding the following line under the \[$file_set\] section.\n<simulator_name>.simulate.custom_do=[file tail $f]"
-        Msg Debug "Setting $f as do file for simulation file set $file_set..."
+              Msg Debug "Setting $f as do file for simulation file set $file_set..."
 
               if {[file exists $f]} {
                 foreach simulator [GetSimulators] {
@@ -3240,7 +3268,6 @@ proc ReadConf {file_name} {
 
   return $properties
 }
-#'"
 
 ## Write a property configuration file from a dictionary
 #
@@ -3839,4 +3866,24 @@ proc Copy {i_dirs o_dir} {
     
     file copy -force $i_dir $o_dir 
   }
+}
+
+## @brief Remove duplicates in a dictionary
+#
+# @param[in] mydict the input dictionary
+#
+# @return the dictionary stripped of duplicates
+proc RemoveDuplicates {mydict} {
+  set new_dict [dict create]
+  foreach key [dict keys $mydict] {
+    set values [DictGet $mydict $key]
+    foreach value $values {
+      set idxs [lreverse [lreplace [lsearch -exact -all $values $value] 0 0]]
+      foreach idx $idxs {
+        set values [lreplace $values $idx $idx]
+      }
+    }
+    dict set new_dict $key $values
+  }
+  return $new_dict
 }

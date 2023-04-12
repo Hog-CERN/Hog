@@ -206,9 +206,9 @@ if {[info exists sim_scripts]} {
     } else {
       lappend success $sim_name
     }
-    Msg Debug "###################### Compilation log starts ######################"
-    Msg Debug "\n\n$log\n\n"
-    Msg Debug "######################  Compilation log ends  ######################"
+    Msg Info "###################### Compilation log starts ######################"
+    Msg Info "\n\n$log\n\n"
+    Msg Info "######################  Compilation log ends  ######################"
   
 
     if { [file exists "./elaborate.sh"] } {
@@ -222,9 +222,9 @@ if {[info exists sim_scripts]} {
       } else {
         lappend success $sim_name
       }
-      Msg Debug "###################### Elaboration log starts ######################"
-      Msg Debug "\n\n$log\n\n"
-      Msg Debug "######################  Elaboration log ends  ######################"
+      Msg Info "###################### Elaboration log starts ######################"
+      Msg Info "\n\n$log\n\n"
+      Msg Info "######################  Elaboration log ends  ######################"
     }
     set cmd ./simulate.sh
     Msg Info " ************* Simulating: $s  ************* "  
@@ -236,9 +236,9 @@ if {[info exists sim_scripts]} {
     } else {
       lappend success $sim_name
     }
-    Msg Debug "###################### Simulation log starts ######################"
-    Msg Debug "\n\n$log\n\n"
-    Msg Debug "######################  Simulation log ends  ######################"
+    Msg Info "###################### Simulation log starts ######################"
+    Msg Info "\n\n$log\n\n"
+    Msg Info "######################  Simulation log ends  ######################"
     
   }
 }

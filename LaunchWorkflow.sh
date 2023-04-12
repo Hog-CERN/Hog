@@ -189,8 +189,8 @@ function Launch_project(){
             echo "${HDL_COMPILER} ${COMMAND_OPT}$DIR/Tcl/launchers/launch_libero.tcl SCRIPT_ARGS:\"$NJOBS $CHECK_SYNTAX $RECREATE $EXT_PATH $IMPL_ONLY $SIMLIBPATH $VERBOSE $PROJ\""
             ${HDL_COMPILER} ${COMMAND_OPT}$DIR/Tcl/launchers/launch_libero.tcl SCRIPT_ARGS:"$NJOBS $CHECK_SYNTAX $RECREATE $EXT_PATH $IMPL_ONLY $SIMLIBPATH $VERBOSE $PROJ "
         else
-            Msg Info "${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_xilinx.tcl -tclargs $HELP $NO_RESET $NO_BITSTREAM $SYNTH_ONLY $NJOBS $RECREATE $EXT_PATH $IMPL_ONLY $SIMLIBPATH $VERBOSE $PROJ"
-            ${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_xilinx.tcl -tclargs $HELP $NO_RESET $NO_BITSTREAM $SYNTH_ONLY $NJOBS $RECREATE $EXT_PATH $IMPL_ONLY $SIMLIBPATH $VERBOSE $PROJ
+            Msg Info "${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_xilinx.tcl -tclargs $HELP $NO_RESET $CHECK_SYNTAX $NO_BITSTREAM $SYNTH_ONLY $NJOBS $RECREATE $EXT_PATH $IMPL_ONLY $SIMLIBPATH $VERBOSE $PROJ"
+            ${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_xilinx.tcl -tclargs $HELP $NO_RESET $NO_BITSTREAM $CHECK_SYNTAX $SYNTH_ONLY $NJOBS $RECREATE $EXT_PATH $IMPL_ONLY $SIMLIBPATH $VERBOSE $PROJ
         fi
     else
         Msg Error "Project $PROJ not found. Possible projects are:"

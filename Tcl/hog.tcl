@@ -657,7 +657,7 @@ proc ReadListFile args {
             set libraries [MergeDict $l $libraries]
             set properties [MergeDict $p $properties]
             set main_libs [dict merge $m $main_libs]
-          } elseif {[lsearch {.src .sim .con .ext} $extension] >= 0 } {
+          } elseif {[lsearch {.src .sim .con ReadExtraFileList} $extension] >= 0 } {
             Msg Error "$vhdlfile cannot be included into $list_file, $extension files must be included into $extension files."
           } else {
             ### Set file properties
@@ -669,12 +669,11 @@ proc ReadListFile args {
 	          ### Set File Set
             #Adding IP library
             if {$sha_mode == 0 && [lsearch {.xci .ip .bd} $extension] >= 0} {
-              dict lappend libraries "$lib.ip" $vhdlfile
-              dict set main_libs "$lib.ip" "$main_lib.ip"
+              dict lappend libraries "sources.ip" $vhdlfile
+              dict set main_libs "sources.ip" "sources.ip"
 
 	            Msg Debug "Appending $vhdlfile to IP list..."
-
-            } else {
+            } elseif {[lsearch {.vhd .vhdl .xdc .tcl} $extension] >= 0} {          
               set m [dict create]
               dict set m $lib$ext $main_lib$ext
               dict lappend libraries $lib$ext $vhdlfile
@@ -689,6 +688,9 @@ proc ReadListFile args {
                   dict set m $lib$ext "$current_main $main_lib$ext"
                 }
               }
+            } else {
+              dict lappend libraries "sources.oth" $vhdlfile
+              dict set main_libs "sources.oth" "sources.oth"
             }
           }
           incr cnt
@@ -727,8 +729,6 @@ proc MergeDict {dict0 dict1} {
   }
   return $outdict
 }
-
-
 
 ## @brief Gets key from dict and returns default if key not found
 #
@@ -1680,7 +1680,7 @@ proc RelativeLocal {pathName filePath} {
 # @param[in] outFile    The path of the output logfile
 #
 proc MsgAndLog {msg {severity "CriticalWarning"} {outFile ""}} {
-  Msg severity $msg
+  Msg $severity $msg
   if {$outFile != ""} {
     set oF [open "$outFile" a+]
     puts $oF $msg
@@ -1701,6 +1701,7 @@ proc GetProjectFiles {} {
   set all_filesets [get_filesets]
   set libraries [dict create]
   set properties [dict create]
+  set sim_properties [dict create]
 
   set simulator [get_property target_simulator [current_project]]
   set SIM [dict create]
@@ -1730,10 +1731,10 @@ proc GetProjectFiles {} {
         if {[string equal [get_files -of_objects [get_filesets $fs] $simtopfile] ""] } {
           Msg Warning "Top simulation file $simtopfile not found in fileset $fs."
         } else {
-          dict lappend properties $simtopfile "topsim=$topsim"
+          dict lappend sim_properties $simtopfile "topsim=$topsim"
           if {![string equal "$runtime" "1000ns"]} {
             #not writing default value
-            dict lappend properties $simtopfile "runtime=$runtime"
+            dict lappend sim_properties $simtopfile "runtime=$runtime"
           }
         }
       }
@@ -1742,14 +1743,14 @@ proc GetProjectFiles {} {
         set wavefile [get_property "$simulator.simulate.custom_wave_do" [get_filesets $fs]]
         if {![string equal "$wavefile" ""]} {
           ##nagelfar ignore
-          dict lappend properties $wavefile wavefile
+          dict lappend sim_properties $wavefile wavefile
           break
         }
       }
       foreach simulator [GetSimulators] {
         set dofile [get_property "$simulator.simulate.custom_udo" [get_filesets $fs]]
         if {![string equal "$dofile" ""]} {
-          dict lappend properties $dofile dofile
+          dict lappend sim_properties $dofile dofile
           break
         }
       }
@@ -1783,10 +1784,6 @@ proc GetProjectFiles {} {
         # Type can be complex like VHDL 2008, in that case we want the second part to be a property
         if {[string equal [lindex $type 0] "VHDL"] && [llength $type] == 1} {
           set prop "93"
-        } elseif {[string equal [lindex $type 0] "SystemVerilog"] } {
-          set prop "SystemVerilog"
-        } elseif {[string equal $type "Verilog Header"]} {
-          set prop "verilog_header"
         } elseif  {[string equal [lindex $type 0] "Block"] && [string equal [lindex $type 1] "Designs"]} {
           set type "IP"
           set prop ""
@@ -1799,7 +1796,7 @@ proc GetProjectFiles {} {
         if {[string equal $fs_type "SimulationSrcs"]} {
           dict lappend SIM $fs $f
           if {![string equal $prop ""]} {
-            dict lappend properties $f $prop
+            dict lappend sim_properties $f $prop
           }
         } elseif {[string equal $type "VHDL"] } {
           dict lappend SRC $lib $f
@@ -1846,8 +1843,8 @@ proc GetProjectFiles {} {
 
   dict append libraries "SIM" $SIM
   dict append libraries "SRC" $SRC
-  dict lappend properties "Simulator" [get_property target_simulator [current_project]]
-  return [list $libraries $properties]
+  dict lappend sim_properties "Simulator" [get_property target_simulator [current_project]]
+  return [list $libraries $properties $sim_properties]
 }
 
 
@@ -2043,7 +2040,7 @@ proc AddHogFiles { libraries properties main_libs } {
 
             # XDC
             if {[lsearch -inline -regexp $props "XDC"] >= 0 || [file extension $f] == ".xdc"} {
-        Msg Debug "Setting filetype XDC for $f"
+              Msg Debug "Setting filetype XDC for $f"
               set_property -name "file_type" -value "XDC" -objects $file_obj
             }
 
@@ -3860,7 +3857,7 @@ proc Copy {i_dirs o_dir} {
   foreach i_dir $i_dirs {
     if {[file isdirectory $i_dir] && [file isdirectory $o_dir]} {
       if {([file tail $i_dir] == [file tail $o_dir]) || ([file exists $o_dir/[file tail $i_dir]] && [file isdirectory $o_dir/[file tail $i_dir]])} {
-	file delete -force $o_dir/[file tail $i_dir]
+	    file delete -force $o_dir/[file tail $i_dir]
       }
     }
     
@@ -3886,4 +3883,141 @@ proc RemoveDuplicates {mydict} {
     dict set new_dict $key $values
   }
   return $new_dict
+}
+
+## @brief Compare the contents of two dictionaries
+#
+# @param[in] proj_dict  The first dictionary
+# @param[in] list_dict  The second dictionary
+# @param[in] severity   The severity of  the message in case a file is not found (Default: CriticalWarning)
+# @param[in] outFile    The output log file, to write the messages (Default "")
+# @param[in] extraFiles The dictionary of extra files generated a creation time (Default "")
+#
+# @return n_diffs The number of differences
+proc CompareLibDicts {proj_dict list_dict {severity "CriticalWarning"} {outFile ""} {extraFiles ""}} {
+  set extra_files $extraFiles
+  set n_diffs 0
+  dict for {k v} $proj_dict {
+    if {![dict exists $list_dict $k]} {
+      # Ignore simulation keys
+      if {$k != "Simulator" && $v != "wavefile" && $v != "dofile" && [string first "topsim=" $v] == -1 && [string first "runtime=" $v] == -1} {
+        MsgAndLog "$k does not exist in Hog Top project files (missing list file?)" $severity $outFile  
+      } 
+      incr n_diffs
+    } else {
+      set list_lib [DictGet $list_dict $k]
+      # Loop over files in library $k
+      foreach file $v {
+        set idx [lsearch -exact $list_lib $file]
+        set list_lib [lreplace $list_lib $idx $idx]
+        if {$idx < 0} {
+          # File is in project but not in list libraries, check if it was generated at creation time...
+          if { [dict exists $extra_files $file] } {
+            # File was generated at creation time, checking the md5sum
+            set new_md5sum [Md5Sum $file]
+            set old_md5sum [DictGet $extra_files $file]
+            if {$new_md5sum != $old_md5sum} {
+              MsgAndLog "$file in project has been modified from creation time. Please update the script you used to create the file and regenerate the project, or save the file outside the Projects/ directory and add it to a project list file" $severity $outFile
+              incr n_diffs
+            }
+            set extra_files [dict remove $extra_files $file]
+          } else {
+            MsgAndLog "$file was found in project but not in list files or .hog/extra.files" $severity $outFile
+            incr n_diffs
+          }
+        }
+      }
+      # Loop over remaining files in list libraries
+      foreach file $list_lib {
+        MsgAndLog "$file was found in list files but not in project."
+        incr n_diffs
+      }
+    }
+  }
+  return [list $n_diffs $extra_files]
+}
+
+## @brief Compare the contents of two lists
+#
+# @param[in] l_proj The first list (from the project)
+# @param[in] l_list The second list (from the list files)
+#
+# @return n_diffs The number of differences
+proc CompareLibLists {l_proj l_list {severity "CriticalWarning"} {outFile ""} {extraFiles ""}} {
+  set extra_files $extraFiles
+  set n_diffs 0
+  # Loop over files in library $k
+  foreach file $l_proj {
+    set idx [lsearch -exact $l_list $file]
+    set l_list [lreplace $l_list $idx $idx]
+    if {$idx < 0} {
+      # File is in project but not in list libraries, check if it was generated at creation time...
+      if { [dict exists $extra_files $file] } {
+        # File was generated at creation time, checking the md5sum
+        set new_md5sum [Md5Sum $file]
+        set old_md5sum [DictGet $extra_files $file]
+        if {$new_md5sum != $old_md5sum} {
+          MsgAndLog "$file in project has been modified from creation time. Please update the script you used to create the file and regenerate the project, or save the file outside the Projects/ directory and add it to a project list file" $severity $outFile
+          incr n_diffs
+        }
+        set extra_files [dict remove $extra_files $file]
+      } else {
+        MsgAndLog "$file was found in project but not in list files."
+        incr n_diffs
+      }
+    }
+  }
+  # Loop over remaining files in list libraries
+  foreach file $l_list {
+    MsgAndLog "$file was found in list files but not in project."
+    incr n_diffs
+  }
+  return [list $n_diffs $extra_files]
+}
+
+## @brief Transform the input dictionary in a list, concatenating all the values
+#
+# @param[in] d The input dictionary
+#
+# @return l The resulting list
+proc DictToList {d} {
+  set l ""
+  dict for {k v} $d {
+    set l [concat $l $v]
+  }
+  return $l
+}
+
+
+## @brief Trasnsform a Vivado project fileset dictionary into a Hog-like dictionary (as extracted from the list files)
+#
+# @param[in] prjDict The vivado project fileset dictionary to transform
+#
+# @return The transformed dictionary
+proc TransformToHogDict {prjDict {dict_type ".src"}} {
+  set prjHogDict [dict create]
+  foreach fileset [dict keys $prjDict] {
+    foreach file [dict get $prjDict $fileset] {      
+      set libs [get_property "library" [get_files $file]]
+      foreach lib $libs {
+        set key "$lib$dict_type"
+        if {[dict exists $prjHogDict $key ]} {
+          dict lappend prjHogDict $key $file
+        } else {
+          dict set prjHogDict $key $file
+        }
+      }
+    }
+  }
+  return $prjHogDict
+}
+
+proc RemoveEmptyKeys {d} {
+  set newDict $d 
+  foreach {k v} $newDict {
+    if {$v == {{}} || $v == "" } {
+      set newDict [dict remove $newDict $k]
+    }
+  }
+  return $newDict
 }

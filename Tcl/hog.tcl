@@ -161,7 +161,12 @@ proc Msg {level msg {title ""}} {
     }
   } else {
     # Tcl Shell / Libero
-    puts "*** Hog:$title $vlevel $msg"
+    if {$vlevel != "STATUS"} {
+      puts "$vlevel: \[Hog:$title\] $msg"
+    } else {
+      puts $msg
+    }
+    
     if {$qlevel == "error"} {
       exit 1
     }
@@ -3810,7 +3815,7 @@ proc GetIDEVersion {} {
   return $ver
 }
 
-## Get the IDE (Vivado,Quartus,PlanAhead) version from the conf file she-bang
+## Get the IDE (Vivado,Quartus,PlanAhead,Libero) version from the conf file she-bang
 #
 #  @param[in]    conf_file The hog.conf file
 proc GetIDEFromConf {conf_file} {
@@ -4021,3 +4026,256 @@ proc RemoveEmptyKeys {d} {
   }
   return $newDict
 }
+
+#print logo in images/hog_logo.txt
+proc Logo { {repo_path .} } {
+  set logo_file "$repo_path/Hog/images/hog_logo.txt"
+
+  set old_path [pwd]
+  cd $repo_path/Hog
+  set ver [Git {describe --always}]
+  cd $old_path
+  
+  if {[file exists $logo_file]} {
+    set f [open $logo_file "r"]
+    set data [read $f]
+    close $f
+    set lines [split $data "\n"]
+    foreach l $lines {
+      Msg Status $l
+    }
+
+  } {
+    Msg CriticalWarning "Logo file: $logo_file not found"
+  }
+
+  Msg Status "Version: $ver"
+}
+
+# Check last version online
+proc CheckLatestHogRelease {{repo_path .}} {
+  set old_path [pwd]
+  cd $repo_path/Hog
+  set current_ver [Git {describe --always}]
+  Msg Debug "Current version: $current_ver"
+  set current_sha [Git "log $current_ver -1 --format=format:%H"]
+  Msg Debug "Current SHA: $current_sha"  
+
+  Msg Info "Checking for latest Hog release, can take up to 5 seconds..."
+  #We should find a proper way of checking for timeout using vwait, this'll do for now
+  ExecuteRet timeout 5s git fetch
+  
+  set master_ver [Git "describe origin/master"]
+  Msg Debug "Master version: $master_ver"  
+  set master_sha [Git "log $master_ver -1 --format=format:%H"]    
+  Msg Debug "Master SHA: $master_sha"  
+  set merge_base [Git "merge-base $current_sha $master_sha"]
+  Msg Debug "merge base: $merge_base"  
+  
+  
+  if {$merge_base != $master_sha} {
+    # If master_sha is NOT an ancestor of current_sha 
+    Msg Info "Version $master_ver has been released (https://gitlab.com/hog-cern/Hog/-/releases/$master_ver)"
+    Msg Status "You should consider updating Hog submodule with the following instructions:"
+    Msg Status ""
+    Msg Status "cd Hog && git checkout master && git pull"
+    Msg Status ""
+    Msg Status "Also pdate the ref: in your .gitlab-ci.yml to $master_ver"
+    Msg Status ""
+  } else {
+
+    # If it is
+    Msg Info "Latest official version is $master_ver, nothing to do."
+  }
+
+  cd $old_path
+
+}
+
+proc InitLauncher {script tcl_path parameters usage argv} {
+  set repo_path [file normalize "$tcl_path/../.."]
+  set old_path [pwd]
+  set bin_path [file normalize "$tcl_path/../../bin"]
+  set top_path [file normalize "$tcl_path/../../Top"]
+
+  Logo $repo_path
+  
+  if {[catch {package require cmdline} ERROR]} {
+    Msg Info "The cmdline Tcl package was not found, sourcing it from Hog..."
+    source $tcl_path/utils/cmdline.tcl
+  }
+  
+  if {[catch {array set options [cmdline::getoptions argv $parameters $usage]} err] } {
+    Msg Status "\nERROR: Syntax error, probably unkown option.\n\n USAGE: $err"
+    exit 1
+  }
+  Msg Debug "Argv is: $argv"
+  
+  # Argv here is modified and the options are removed
+  set project [lindex $argv 0]
+  set proj_conf [ProjectExists $project $repo_path] 
+  
+  if { [llength $argv] != 1} {
+    Msg Status "\nERROR: Wrong number of arguments: [llength $argv].\n\n"
+    Msg Status "USAGE: $script [cmdline::usage $parameters $usage]"
+    exit 1
+  }
+  
+  Msg Debug "Option list:"
+  foreach {key value} [array get options] {
+    Msg Debug "$key => $value"
+  }
+
+
+  if {[IsTclsh]} {
+    # command is filled with the IDE exectuable when this function is called by Tcl scrpt
+    if {$proj_conf != 0} {
+      CheckLatestHogRelease $repo_path
+
+      lassign [GetIDECommand $proj_conf] cmd before_tcl_script after_tcl_script end_marker
+      Msg Info "Project $project uses $cmd IDE"
+      
+      ## The following is the IDE command to launch:
+      set command "$cmd $before_tcl_script$script$after_tcl_script$argv$end_marker"
+      
+    } else {
+      Msg Status "\nERROR: Project $project not found, the projects in this repository are:\n"
+      ListProjects $repo_path
+      Msg Status "\n"
+      exit 1
+    }
+  } else {
+    # When the launcher is executed from within an IDE, command is set to 0
+    set command 0
+  }
+
+  set project_group [file dirname $project]
+  set project [file tail $project]
+  if { $project_group != "." } {
+    set project_name "$project_group/$project"
+  } else {
+    set project_name "$project"
+  }
+
+  return [list $project $project_name $project_group $repo_path $old_path $bin_path $top_path $command]
+}
+
+# List projects all projects in the repository
+# print if 1  print a list
+# ret_conf if 1 returns conf file rather than list of project names
+proc ListProjects {{repo_path .} {print 1} {ret_conf 0}} {
+  set top_path [file normalize $repo_path/Top]
+  set confs [findFiles [file normalize $top_path] hog.conf]
+  set projects ""
+  
+  foreach c $confs {
+    set p [Relative $top_path [file dirname $c]]
+    if {$print == 1} {
+      # Print a list of the projects with relative IDE
+      Msg Status "$p \(IDE: [GetIDEFromConf $c]\)"
+    }
+    lappend projects $p
+  }
+
+  if {$ret_conf == 0} {
+
+    # Returns a list of project names
+    return $projects
+  } else {
+    
+    # Return the list of hog.conf with full path
+    return $confs
+  }
+}
+
+# if it exists returns the conf file
+# if it doesnt returns 0
+proc ProjectExists {project {repo_path .}} {
+  set index [lsearch -exact [ListProjects $repo_path 0] $project]
+
+  if {$index >= 0} {
+    # if project exists we return the relative hog.conf file
+    return [lindex [ListProjects $repo_path 0 1] $index]
+  } else {
+    return 0
+  }
+}
+
+# Find IDE for a project
+proc GetIDECommand {proj_conf} {
+  # GetConfFiles returns a list, the first element is hog.conf
+  if {[file exists $proj_conf]} {
+    set ide_name_and_ver [string tolower [GetIDEFromConf $proj_conf]]
+    set ide_name [lindex [regexp -all -inline {\S+} $ide_name_and_ver ] 0]
+    
+    if {$ide_name eq "vivado"} {
+      set command "vivado"
+      # A space ater the before_tcl_script is important
+      set before_tcl_script " -nojournal -nolog -mode batch -notrace -source "
+      set after_tcl_script " -tclargs "
+      set end_marker ""
+      
+    } elseif {$ide_name eq "planahead"} {
+      set command "planAhead"
+      # A space ater the before_tcl_script is important
+      set before_tcl_script " -nojournal -nolog -mode batch -notrace -source "
+      set after_tcl_script " -tclargs "
+      set end_marker ""      
+
+    } elseif {$ide_name eq "quartus"} {
+      set command "quartus_sh"
+      # A space ater the before_tcl_script is important
+      set before_tcl_script " -t "
+      set after_tcl_script " "
+      set end_marker ""
+      
+    } elseif {$ide_name eq "libero"} {
+      #I think we need quotes for libero, not sure...
+      
+      set command "libero"
+      set before_tcl_script "SCRIPT:"
+      set after_tcl_script " SCRIPT_ARGS:\""
+      set end_marker "\""      
+    } else {
+      Msg Error "IDE: $ide_name not known."
+    }
+    
+  } else {
+    Msg Error "Configuration file $proj_conf not found."
+  }
+  
+  return [list $command $before_tcl_script $after_tcl_script $end_marker]
+}
+
+
+# findFiles
+# basedir - the directory to start looking in
+# pattern - A pattern, as defined by the glob command, that the files must match
+# Credit: https://stackexchange.com/users/14219/jackson
+proc findFiles { basedir pattern } {
+
+    # Fix the directory name, this ensures the directory name is in the
+    # native format for the platform and contains a final directory seperator
+    set basedir [string trimright [file join [file normalize $basedir] { }]]
+    set fileList {}
+
+    # Look in the current directory for matching files, -type {f r}
+    # means ony readable normal files are looked at, -nocomplain stops
+    # an error being thrown if the returned list is empty
+    foreach fileName [glob -nocomplain -type {f r} -path $basedir $pattern] {
+        lappend fileList $fileName
+    }
+
+    # Now look for any sub direcories in the current directory
+    foreach dirName [glob -nocomplain -type {d  r} -path $basedir *] {
+        # Recusively call the routine on the sub directory and append any
+        # new files to the results
+        set subDirList [findFiles $dirName $pattern]
+        if { [llength $subDirList] > 0 } {
+            foreach subDirFile $subDirList {
+                lappend fileList $subDirFile
+            }
+        }
+    }
+    return $fileList
+ }

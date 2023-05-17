@@ -1748,8 +1748,8 @@ proc GetProjectFiles {} {
         }
         lappend files $f
         set type  [get_property FILE_TYPE [GetFile $f]]
-        set lib [get_property LIBRARY [GetFile $f]]
-
+	# Added a -quiet because some files (.v, .sv) don't have a library
+        set lib [get_property -quiet LIBRARY [GetFile $f]]
 
         # Type can be complex like VHDL 2008, in that case we want the second part to be a property
         if {[string equal [lindex $type 0] "VHDL"] && [llength $type] == 1} {

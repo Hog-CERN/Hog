@@ -1667,7 +1667,7 @@ proc Relative {base dst} {
 
 ## @brief Returns the path of filePath relative to pathName
 #
-# @param[in] pathName   the path with respect to witch the returned path is calculated
+# @param[in] pathName   the path with respect to which the returned path is calculated
 # @param[in] filePath   the path of filePath 
 #
 proc RelativeLocal {pathName filePath} {
@@ -1904,7 +1904,7 @@ proc GetHogFiles args {
   }
 
   if { $list_files == "" } {
-    set list_files {.src,.con,.sub,.sim,.ext}
+    set list_files {.src,.con,.sim,.ext}
   }
   set libraries [dict create]
   set properties [dict create]
@@ -2077,8 +2077,7 @@ proc AddHogFiles { libraries properties main_libs } {
             # # Top simulation module
             set top_sim [lindex [regexp -inline {topsim\s*=\s*(.+?)\y.*} $props] 1]
             if { $top_sim != "" } {
-              Msg Info "Setting $top_sim as top module for simulation file set $file_set..."
-              Msg Warning "Setting the simulation top module from simulation list files will be deprecated in future Hog releases. Please consider setting this property in the sim.conf file, by adding the following line under the \[$file_set\] section.\ntop=$top_sim"
+              Msg Warning "Setting the simulation top module from simulation list files is now deprecated. Please set this property in the sim.conf file, by adding the following line under the \[$file_set\] section.\ntop=$top_sim"
 
               set_property "top"  $top_sim [get_filesets $file_set]
               current_fileset -simset [get_filesets $file_set]
@@ -2087,8 +2086,7 @@ proc AddHogFiles { libraries properties main_libs } {
             # Simulation runtime
             set sim_runtime [lindex [regexp -inline {runtime\s*=\s*(.+?)\y.*} $props] 1]
             if { $sim_runtime != "" } {
-              Msg Info "Setting simulation runtime to $sim_runtime for simulation file set $file_set..."
-              Msg Warning "Setting the simulation runtime from simulation list files will be deprecated in future Hog releases. Please consider setting this property in the sim.conf file, by adding the following line under the \[$file_set\] section.\n<simulator_name>.simulate.runtime=$sim_runtime"
+              Msg Warning "Setting the simulation runtime from simulation list files is now deprecated. Please set this property in the sim.conf file, by adding the following line under the \[$file_set\] section.\n<simulator_name>.simulate.runtime=$sim_runtime"
               set_property -name {xsim.simulate.runtime} -value $sim_runtime -objects [get_filesets $file_set]
               foreach simulator [GetSimulators] {
                 set_property $simulator.simulate.runtime  $sim_runtime  [get_filesets $file_set]
@@ -2097,9 +2095,9 @@ proc AddHogFiles { libraries properties main_libs } {
 
             # Wave do file
             if {[lsearch -inline -regexp $props "wavefile"] >= 0} {
-              Msg Warning "Setting a wave do file from simulation list files will be deprecated in future Hog releases. Please consider setting this property in the sim.conf file, by adding the following line under the \[$file_set\] section.\n<simulator_name>.simulate.custom_wave_do=[file tail $f]"
+              Msg Warning "Setting a wave do file from simulation list files is now deprecated. Set this property in the sim.conf file, by adding the following line under the \[$file_set\] section.\n<simulator_name>.simulate.custom_wave_do=[file tail $f]"
 
-        Msg Debug "Setting $f as wave do file for simulation file set $file_set..."
+              Msg Debug "Setting $f as wave do file for simulation file set $file_set..."
 
               # check if file exists...
               if {[file exists $f]} {
@@ -2113,7 +2111,7 @@ proc AddHogFiles { libraries properties main_libs } {
 
             #Do file
             if {[lsearch -inline -regexp $props "dofile"] >= 0} {
-              Msg Warning "Setting a custom do file from simulation list files will be deprecated in future Hog releases. Please consider setting this property in the sim.conf file, by adding the following line under the \[$file_set\] section.\n<simulator_name>.simulate.custom_do=[file tail $f]"
+              Msg Warning "Setting a custom do file from simulation list files is now deprecated. Set this property in the sim.conf file, by adding the following line under the \[$file_set\] section.\n<simulator_name>.simulate.custom_do=[file tail $f]"
               Msg Debug "Setting $f as do file for simulation file set $file_set..."
 
               if {[file exists $f]} {

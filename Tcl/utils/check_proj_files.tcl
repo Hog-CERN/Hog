@@ -33,8 +33,7 @@ if {[IsISE]} {
 set parameters {
   {project.arg "" "Project name. If not set gets current project"}
   {outDir.arg "" "Name of output dir containing log files."}
-  {log_list.arg "1" "Logs list files errors to outFile."}
-  {log_conf.arg "1" "Logs hog.conf errors to outFile."}
+  {log.arg "1" "Logs errors/warnings to outFile."}
   {recreate  "If set, it will create List Files from the project configuration"}
   {recreate_conf  "If set, it will create the project hog.conf file."}
   {force  "Force the overwriting of List Files. To be used together with \"-recreate\""}
@@ -97,8 +96,9 @@ if {$options(outDir)!= ""} {
     file delete $outSimFile
   }
 
-  if {!$options(log_list)} {
+  if {!$options(log)} {
     set outFile ""
+    set outSimFile ""
   }
 
 } else {
@@ -158,7 +158,6 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
   set listIPs [DictGet $listLibraries "sources.ip"]
   set listLibraries [dict remove $listLibraries "sources.ip"]
 
-
   #################################################################
   ##### START COMPARISON OF FILES IN PROJECT AND LIST FILES ######
   #################################################################
@@ -178,6 +177,7 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
   set listProperties [RemoveEmptyKeys $listProperties]
   set listSimProperties [RemoveEmptyKeys $listSimProperties]
 
+
   lassign [CompareLibDicts $prjProperties $listProperties "CriticalWarning"] n_prop_diffs
   lassign [CompareLibDicts $prjSimProperties $listSimProperties "Warning"] n_prop_sim_diffs  
 
@@ -185,28 +185,52 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
   set ListErrorCnt [expr $n_source_diffs + $n_oth_diffs + $n_con_diffs + $n_ip_diffs + $n_prop_diffs]
   set ListSimErrorCnt [expr $n_sim_diffs + $n_prop_sim_diffs]
 
-  if  {$ListErrorCnt == 0} {
+  if {$ListErrorCnt == 0} {
     Msg Info "Design List Files matches project. Nothing to do."
   }
 
-  if  {$ListSimErrorCnt == 0} {
+  if {$ListSimErrorCnt == 0} {
     Msg Info "Simulation List Files matches project. Nothing to do."
   }
 
 
-#   #recreating list files
-#   if {$options(recreate) == 1 && ($ListErrorCnt > 0 || $ListSimErrorCnt > 0) } {
-#     Msg Info "Updating list files in $repo_path/$DirName/list"
+  # Recreating src list files
+  if {$options(recreate) == 1 && ($ListErrorCnt > 0) } {
+    Msg Info "Updating list files in $repo_path/$DirName/list"
+    # Delete existing listFiles
+    if {$options(force) == 1} {
+      set listpath "$repo_path/Top/$group_name/$project_name/list/"
+      foreach F [glob -nocomplain "$listpath/*.src" "$listpath/*.ext"  "$listpath/*.con"] {
+        if {[dict exists $newListfiles [file tail $F]] == 0} {
+          file delete $F
+        }
+      }
+    }
+    file mkdir $repo_path/$DirName/list
+    foreach lib [dict keys $prjHogSrcDict] {
+      set list_file [open $repo_path/$DirName/list/$lib w]
+      foreach file [DictGet $prjHogSrcDict $lib] {
+        # Retrieve file properties from prop list
+        set props [DictGet $prjProperties $file]
+        # Check if file is local to the repository or external
+        if {[RelativeLocal $repo_path $file] != ""} {
+          set file_path [RelativeLocal $repo_path $file]
+          puts $list_file "$file_path $props"
+        } elseif {[RelativeLocal $ext_path $file] != ""} {
+          set file_path [RelativeLocal $ext_path $file]
+          set ext_list_file [open "[file rootname $list_file].ext" a]
+          puts $ext_list_file "$file_path $props"
+          close $ext_list_file
+        } else {
+          # File is not relative to repo or ext_path... Write a Warning and continue
+          Msg CriticalWarning "The path of file $file is not relative to your repository or external path. Please check!"
+        }
+      }
+    }
+  } 
 
-#     #delete existing listFiles
-#     if {$options(force) == 1} {
-#       set listpath "$repo_path/Top/$group_name/$project_name/list/"
-#       foreach F [glob -nocomplain "$listpath/*.src" "$listpath/*.sub" "$listpath/*.ext"  "$listpath/*.con"] {
-#         if {[dict exists $newListfiles [file tail $F]] == 0} {
-#           file delete $F
-#         }
-#       }
-#     }
+}
+
 
 #     file mkdir  $repo_path/$DirName/list
 #     foreach listFile [dict keys $newListfiles] {
@@ -729,8 +753,8 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
 #   }
 
 
-# }
 
-# Msg Info "All done."
+
+Msg Info "All done."
 
 # return $TotErrorCnt

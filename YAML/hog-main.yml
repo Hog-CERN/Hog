@@ -218,7 +218,7 @@ archive_binary_files:
       fi;
     - git fetch origin refs/notes/*:refs/notes/*
     - MR=( `git notes show` )
-    - if [[ -v HOG_USE_DOXYGEN ]] && [[ "$HOG_USE_DOXYGEN" == "1" ]] && [[ -v BIN_PATH]]; then
+    - if [[ -v HOG_USE_DOXYGEN ]] && [[ "$HOG_USE_DOXYGEN" == "1" ]] && [[ -v BIN_PATH ]]; then
         ./Hog/Other/GetArtifactsAndRename.sh -token $HOG_PUSH_TOKEN -url $CI_API_V4_URL -proj_id $CI_PROJECT_ID -mr $MR -doxygen ;
         echo "Copying Doxygen documentation to ${BIN_PATH}/Doc";
         if [ $ENABLE_EOS -eq 1 ]; then

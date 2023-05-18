@@ -38,3 +38,4 @@ jobs:
     with:
       HOG_CREATE_OFFICIAL_RELEASE: True
       HOG_OFFICIAL_BIN_EOS_PATH: ${{ secrets.HOG_OFFICIAL_BIN_EOS_PATH }}
+      HOG_OFFICIAL_BIN_PATH: ${{ secrets.HOG_OFFICIAL_BIN_PATH }}

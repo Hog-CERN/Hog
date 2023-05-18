@@ -171,14 +171,20 @@ archive_binary_files:
       - tags
     variables:
       - $CI_COMMIT_TAG =~ /^v.*$/ && $HOG_CREATE_OFFICIAL_RELEASE == "1"
-      - $CI_COMMIT_TAG =~ /^v.*$/ && $HOG_OFFICIAL_BIN_EOS_PATH != null
-  <<: *tag-sr
+      - $CI_COMMIT_TAG =~ /^v.*$/ && ($HOG_OFFICIAL_BIN_EOS_PATH != null || $HOG_OFFICIAL_BIN_PATH != null)
+  <<: *tag-hog
   variables:
     <<: *vars
     GIT_SUBMODULE_STRATEGY: recursive
   stage: archive
   script:
-    - if [[ -v HOG_OFFICIAL_BIN_EOS_PATH ]]; then
+    - if [[ -v $HOG_OFFICIAL_BIN_PATH ]]; then
+        BIN_PATH=$HOG_OFFICIAL_BIN_PATH;
+      elif [[ -v HOG_OFFICIAL_BIN_EOS_PATH ]]; then
+        BIN_PATH=$HOG_OFFICIAL_BIN_EOS_PATH;
+        echo "From version Hog2024.1, HOG_OFFICIAL_BIN_EOS_PATH variable will be deprecated. Please use HOG_OFFICIAL_BIN_PATH to define the path where to copy the official bitfiles."
+      fi;
+    - if [[ $BIN_PATH == /eos/* ]]; then
         ENABLE_EOS=1;
         if [ -z ${EOS_PASSWORD+x} ]; then
           if [ -z ${HOG_PASSWORD+x} ]; then
@@ -196,31 +202,31 @@ archive_binary_files:
             EOS_USER=${HOG_USER};
           fi;
         fi;
-
-        if [ $ENABLE_EOS -eq 1 ]; then
+        if [ $ENABLE_EOS -eq 1]; then
           until echo $EOS_PASSWORD | kinit $EOS_USER@CERN.CH; do
             echo Retrying;
             sleep 2;
           done;
-        fi;
-      fi;
-    - if [[ -v HOG_OFFICIAL_BIN_EOS_PATH ]]; then
-        echo -n "Variable EOS_MGM_URL is ";
-        if [ -z "$EOS_MGM_URL" ]; then
-          echo "NOT defined. This variable is essential for EOS to work properly. Hog-Ci will use the default value of root://eosuser.cern.ch";
-          EOS_MGM_URL="root://eosuser.cern.ch";
-        else
-          echo "defined.";
+          echo -n "Variable EOS_MGM_URL is ";
+          if [ -z "$EOS_MGM_URL" ]; then
+            echo "NOT defined. This variable is essential for EOS to work properly. Hog-Ci will use the default value of root://eosuser.cern.ch";
+            EOS_MGM_URL="root://eosuser.cern.ch";
+          else
+            echo "defined.";
+          fi;
         fi;
       fi;
     - git fetch origin refs/notes/*:refs/notes/*
     - MR=( `git notes show` )
-    - if [[ -v HOG_USE_DOXYGEN ]] && [[ "$HOG_USE_DOXYGEN" == "1" ]]; then
+    - if [[ -v HOG_USE_DOXYGEN ]] && [[ "$HOG_USE_DOXYGEN" == "1" ]] && [[ -v BIN_PATH]]; then
         ./Hog/Other/GetArtifactsAndRename.sh -token $HOG_PUSH_TOKEN -url $CI_API_V4_URL -proj_id $CI_PROJECT_ID -mr $MR -doxygen ;
+        echo "Copying Doxygen documentation to ${BIN_PATH}/Doc";
         if [ $ENABLE_EOS -eq 1 ]; then
-          echo "Copying Doxygen documentation to ${HOG_OFFICIAL_BIN_EOS_PATH}/Doc";
-          eos mkdir -p ${HOG_OFFICIAL_BIN_EOS_PATH}/Doc;
-          xrdcp -rsf Doc/html/* ${EOS_MGM_URL}//${HOG_OFFICIAL_BIN_EOS_PATH}/Doc;
+          eos mkdir -p ${BIN_PATH}/Doc;
+          xrdcp -rsf Doc/html/* ${EOS_MGM_URL}//${BIN_PATH}/Doc;
+        else 
+          mkdir -p ${BIN_PATH}/Doc
+          cp -r Doc/html/* ${BIN_PATH}/Doc
         fi;
       else
         ./Hog/Other/GetArtifactsAndRename.sh -token $HOG_PUSH_TOKEN -url $CI_API_V4_URL -proj_id $CI_PROJECT_ID -mr $MR;
@@ -248,11 +254,15 @@ archive_binary_files:
         fi;
         ./Hog/Other/MakeGitlabRelease.sh $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $CI_COMMIT_TAG bin/note.md -load_artifacts;
       fi;
-    - if [ $ENABLE_EOS -eq 1 ]; then
-        echo "Copying binary files to ${HOG_OFFICIAL_BIN_EOS_PATH}/${CI_COMMIT_TAG}";
-        eos mkdir $HOG_OFFICIAL_BIN_EOS_PATH/$CI_COMMIT_TAG;
-        xrdcp -rfs bin/* ${EOS_MGM_URL}//${HOG_OFFICIAL_BIN_EOS_PATH}/${CI_COMMIT_TAG};
-      fi;
+    - if [[ -v BIN_PATH]]; then
+        echo "Copying binary files to ${BIN_PATH}/${CI_COMMIT_TAG}";
+        if [ $ENABLE_EOS -eq 1 ]; then
+          eos mkdir $BIN_PATH/$CI_COMMIT_TAG;
+          xrdcp -rfs bin/* ${EOS_MGM_URL}//${BIN_PATH}/${CI_COMMIT_TAG};
+        else 
+          mkdir $BIN_PATH/$CI_COMMIT_TAG;
+          cp -r bin/* ${BIN_PATH}/${CI_COMMIT_TAG};
+        fi;
   allow_failure: true
   artifacts:
     paths:

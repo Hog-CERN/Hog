@@ -162,7 +162,7 @@ jobs:
           if [[ $BIN_PATH == /eos/* ]]; then
             eos mkdir $BIN_PATH/${{ needs.tag_official_version.outputs.tag }};
             xrdcp -rfs bin/* ${EOS_MGM_URL}//$BIN_PATH/${{ needs.tag_official_version.outputs.tag }};
-          else 
+          else
             mkdir $BIN_PATH/${{ needs.tag_official_version.outputs.tag }};
             cp -r bin/* $BIN_PATH/${{ needs.tag_official_version.outputs.tag }};
           fi;

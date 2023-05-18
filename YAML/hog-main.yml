@@ -178,7 +178,7 @@ archive_binary_files:
     GIT_SUBMODULE_STRATEGY: recursive
   stage: archive
   script:
-    - if [[ -v $HOG_OFFICIAL_BIN_PATH ]]; then
+    - if [[ -v HOG_OFFICIAL_BIN_PATH ]]; then
         BIN_PATH=$HOG_OFFICIAL_BIN_PATH;
       elif [[ -v HOG_OFFICIAL_BIN_EOS_PATH ]]; then
         BIN_PATH=$HOG_OFFICIAL_BIN_EOS_PATH;
@@ -202,7 +202,7 @@ archive_binary_files:
             EOS_USER=${HOG_USER};
           fi;
         fi;
-        if [ $ENABLE_EOS -eq 1]; then
+        if [ $ENABLE_EOS -eq 1 ]; then
           until echo $EOS_PASSWORD | kinit $EOS_USER@CERN.CH; do
             echo Retrying;
             sleep 2;
@@ -230,7 +230,7 @@ archive_binary_files:
         fi;
       else
         ./Hog/Other/GetArtifactsAndRename.sh -token $HOG_PUSH_TOKEN -url $CI_API_V4_URL -proj_id $CI_PROJECT_ID -mr $MR;
-      fi
+      fi;
     - mkdir zipped
     - cd bin
     - projects=$(find . -name "*.bit" -o -name "*.pof" -o -name "*.bif")

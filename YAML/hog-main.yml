@@ -225,8 +225,8 @@ archive_binary_files:
           eos mkdir -p ${BIN_PATH}/Doc;
           xrdcp -rsf Doc/html/* ${EOS_MGM_URL}//${BIN_PATH}/Doc;
         else 
-          mkdir -p ${BIN_PATH}/Doc
-          cp -r Doc/html/* ${BIN_PATH}/Doc
+          mkdir -p ${BIN_PATH}/Doc;
+          cp -r Doc/html/* ${BIN_PATH}/Doc;
         fi;
       else
         ./Hog/Other/GetArtifactsAndRename.sh -token $HOG_PUSH_TOKEN -url $CI_API_V4_URL -proj_id $CI_PROJECT_ID -mr $MR;

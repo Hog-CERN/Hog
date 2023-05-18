@@ -215,6 +215,8 @@ archive_binary_files:
             echo "defined.";
           fi;
         fi;
+      else
+        ENABLE_EOS=0;
       fi;
     - git fetch origin refs/notes/*:refs/notes/*
     - MR=( `git notes show` )

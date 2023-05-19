@@ -668,9 +668,10 @@ proc ReadListFile args {
             ### Set file properties
             set prop [lrange $file_and_prop 1 end]
             regsub -all " *= *" $prop "=" prop
-            dict lappend properties $vhdlfile $prop
+            foreach p $prop {
+              dict lappend properties $vhdlfile $p
+            }
 	          Msg Debug "Adding property $prop to $vhdlfile..."
-            
 	          ### Set File Set
             #Adding IP library
             if {$sha_mode == 0 && [lsearch {.xci .ip .bd} $extension] >= 0} {
@@ -3931,6 +3932,7 @@ proc CompareLibDicts {proj_dict list_dict {severity "CriticalWarning"} {outFile 
             }
             set extra_files [dict remove $extra_files $file]
           } else {
+            puts $list_lib
             MsgAndLog "$file was found in project but not in list files or .hog/extra.files" $severity $outFile
             incr n_diffs
           }

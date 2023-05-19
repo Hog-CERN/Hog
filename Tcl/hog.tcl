@@ -3745,11 +3745,13 @@ proc WriteGenerics {mode design date timee commit version top_hash top_ver hog_h
 
   # Extract the generics from the top level source file 
   if {[IsXilinx]} {
+    # Top File can be retrieved only at creation time or in ISE
+    if {$mode == "create" || [IsISE]} {
+
     set top_file [GetTopFile]
     set top_name [GetTopModule]
 
-    if {[file exists $top_file]} {
-
+      if {[file exists $top_file]} {
         set generics [GetFileGenerics $top_file $top_name]
 
         Msg Debug "Found top level generics $generics in $top_file"
@@ -3757,19 +3759,20 @@ proc WriteGenerics {mode design date timee commit version top_hash top_ver hog_h
         set filtered_generic_string ""
 
         foreach generic_to_set [split [string trim $generic_string]] {
-            set key [lindex [split $generic_to_set "="] 0]
-            if {[dict exists $generics $key]} {
-                Msg Debug "Hog generic $key found in $top_name"
-                lappend filtered_generic_string "$generic_to_set"
-            } else {
-	      Msg Warning "Generic $key is passed by Hog but is NOT present in $top_name."
-            }
+          set key [lindex [split $generic_to_set "="] 0]
+          if {[dict exists $generics $key]} {
+            Msg Debug "Hog generic $key found in $top_name"
+            lappend filtered_generic_string "$generic_to_set"
+          } else {
+            Msg Warning "Generic $key is passed by Hog but is NOT present in $top_name."
+          }
         }
 
         # only filter in ISE
         if {[IsISE]} {
             set generic_string $filtered_generic_string
         }
+      }
     }
     
     set_property generic $generic_string [current_fileset]

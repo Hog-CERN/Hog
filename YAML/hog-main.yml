@@ -209,7 +209,7 @@ archive_binary_files:
           done;
           echo -n "Variable EOS_MGM_URL is ";
           if [ -z "$EOS_MGM_URL" ]; then
-            echo "NOT defined. This variable is essential for EOS to work properly. Hog-Ci will use the default value of root://eosuser.cern.ch";
+            echo "NOT defined. This variable is essential for EOS to work properly. Hog-CI will use the default value of root://eosuser.cern.ch";
             EOS_MGM_URL="root://eosuser.cern.ch";
           else
             echo "defined.";

@@ -691,7 +691,7 @@ proc ReadListFile args {
 		#if the file is a link, also add the linked file
 		set real_file [file readlink $vhdlfile]
 		dict lappend libraries $lib$ext $real_file
-		Msd Info "File $vhdlfile is a soft link, also adding the real file: $real_file"
+		Msg Info "File $vhdlfile is a soft link, also adding the real file: $real_file"
 	      }
 	      
               if {[dict exists $main_libs $lib$ext] == 0} {
@@ -715,7 +715,7 @@ proc ReadListFile args {
       #if the file is a link, also add the linked file
       set real_file [file readlink $list_file]
       dict lappend libraries $lib$ext $real_file
-      Msd Info "List file $list_file is a soft link, also adding the real file: $real_file"
+      Msg Info "List file $list_file is a soft link, also adding the real file: $real_file"
     }    
   }
   return [list $libraries $properties $main_libs]

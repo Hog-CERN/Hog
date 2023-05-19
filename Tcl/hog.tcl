@@ -1209,7 +1209,7 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
   # Hog submodule
   cd $repo_path
 
-  #Append the SHA in which Hog submodule was changed, not the submodule SHA
+  # Append the SHA in which Hog submodule was changed, not the submodule SHA
   lappend SHAs [GetSHA {Hog}]
   lappend versions [GetVerFromSHA $SHAs $repo_path]
 
@@ -1245,10 +1245,13 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
   # Specify sha_mode 1 for GetHogFiles to get all the files, including the list-files themselves
   lassign [GetHogFiles -list_files "*.src" -sha_mode -repo_path $repo_path "./list/"] src_files dummy
   dict for {f files} $src_files {
-    #library names have a .src extension in values returned by GetHogFiles
+    # library names have a .src extension in values returned by GetHogFiles
     set name [file rootname [file tail $f]]
-    lassign [GetVer  $files] ver hash
-    #Msg Info "Found source list file $f, version: $ver commit SHA: $hash"
+    if {[file ext $f] == ".oth"} {
+      set name "OTHERS"
+    }
+    lassign [GetVer $files] ver hash
+    # Msg Info "Found source list file $f, version: $ver commit SHA: $hash"
     lappend libs $name
     lappend versions $ver
     lappend vers $ver

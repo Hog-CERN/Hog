@@ -682,7 +682,7 @@ proc ReadListFile args {
 	      Msg Debug "Appending $vhdlfile to IP list..."
 
             } else {
-	      # we are in SHA mode here, the filese are colelcted just to find out the git SHA
+	      # we are in SHA mode here, the files are collected just to find out the git SHA
 
               set m [dict create]
               dict set m $lib$ext $main_lib$ext

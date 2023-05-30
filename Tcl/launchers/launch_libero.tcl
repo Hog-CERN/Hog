@@ -16,6 +16,20 @@
 
 # Launch Libero implementation and possibly write bitstream in text mode
 
+# Import tcllib
+if {[info exists env(HOG_TCLLIB_PATH)]} {
+  lappend auto_path $env(HOG_TCLLIB_PATH) 
+} else {
+  puts "ERROR: To run Hog with Microsemi Libero SoC, you need to define the HOG_TCLLIB_PATH variable."
+  return
+}
+
+#parsing command options
+if {[catch {package require cmdline} ERROR] || [catch {package require struct::matrix} ERROR]} {
+  puts "$ERROR\n Tcllib not found. If you are running this script on tclsh, you can fix this by installing 'tcllib'"
+  return
+}
+
 set parameters {
   {ip_path.arg "" "If set, the synthesised IPs will be copied to the specified IP repository path."}
   {no_bitstream    "If set, the bitstream file will not be produced."}
@@ -31,40 +45,11 @@ set parameters {
 }
 
 set usage "- USAGE: $::argv0 \[OPTIONS\] <project> \n. Options:"
-set tcl_path [file normalize "[file dirname [info script]]/.."]
-source $tcl_path/hog.tcl
-
-lassign [InitLauncher $::argv0 $tcl_path $parameters $usage $argv] project project_name group_name repo_path old_path bin_dir top_path cmd
-
-if {$cmd == 0} {
-  #This script was launched within the IDE,: Vivado, Quartus, etc
-  Msg Info "$::argv0 was launched from the IDE."
-  
-} else {
-  #This script was launched with Tclsh, we need to check the arguments and if everything is right launche the IDE on this script and return
-  Msg Info "Launching $cmd..."
-  set ret [catch {exec -ignorestderr {*}$cmd >@ stdout} result]
-  if {$ret != 0} {
-    Msg CriticalWarning "IDE returned an error state: \n $result"
-  } else {
-    Msg Info "All done."
-  }
-  exit $ret
-}
-
-# Import tcllib
-if {[info exists env(HOG_TCLLIB_PATH)]} {
-  lappend auto_path $env(HOG_TCLLIB_PATH) 
-} else {
-  puts "ERROR: To run Hog with Microsemi Libero SoC, you need to define the HOG_TCLLIB_PATH variable."
-  return
-}
-
-#parsing command options
-if {[catch {package require cmdline} ERROR] || [catch {package require struct::matrix} ERROR]} {
-  puts "$ERROR\n Tcllib not found. If you are running this script on tclsh, you can fix this by installing 'tcllib'"
-  return
-}
+set path [file normalize "[file dirname [info script]]/.."]
+set repo_path [file normalize "$path/../.."]
+set old_path [pwd]
+set bin_dir [file normalize "$path/../../bin"]
+source $path/hog.tcl
 
 if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] ||  [llength $argv] < 1 } {
   Msg Info [cmdline::usage $parameters $usage]
@@ -90,8 +75,9 @@ if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] 
   set simlib_path ""
 }
 
+
 #Go to Hog/Tcl
-cd $tcl_path
+cd $path
 
 if { $options(no_bitstream) == 1 } {
   set do_bitstream 0
@@ -241,7 +227,7 @@ if {$do_implementation == 1 } {
     Msg Info "PLACEROUTE PASSED."
   }
 
-  # source $tcl_path/../../Hog/Tcl/integrated/post-implementation.tcl
+  # source $path/../../Hog/Tcl/integrated/post-implementation.tcl
 
   # Check timing
   Msg Info "Run VERIFYTIMING ..."
@@ -261,7 +247,7 @@ if {$do_implementation == 1 } {
       Msg Info "GENERATEPROGRAMMINGDATA PASSED."
     }
     Msg Info "Sourcing Hog/Tcl/integrated/post-bitstream.tcl"       
-    source $tcl_path/../../Hog/Tcl/integrated/post-bitstream.tcl
+    source $path/../../Hog/Tcl/integrated/post-bitstream.tcl
   }
 
   #Go to repository path

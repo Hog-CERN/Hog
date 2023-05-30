@@ -16,65 +16,6 @@
 # @file
 # Check if the content of list files matches the project. It can also be used to update the list files.
 
-
-### BAN LIST DEFINITIONS ###
-
-#list of properties that must not be checked/written
-set PROP_BAN_LIST  [ list DEFAULT_LIB \
-			 PART \
-			 IP_CACHE_PERMISSIONS \
-			 SIM.IP.AUTO_EXPORT_SCRIPTS \
-			 XPM_LIBRARIES \
-			 REPORT_STRATEGY \
-			 STEPS.WRITE_DEVICE_IMAGE.ARGS.READBACK_FILE \
-			 STEPS.WRITE_DEVICE_IMAGE.ARGS.VERBOSE \
-			 STEPS.WRITE_BITSTREAM.ARGS.READBACK_FILE \
-			 STEPS.WRITE_BITSTREAM.ARGS.VERBOSE \
-			 STEPS.SYNTH_DESIGN.TCL.PRE \
-			 STEPS.SYNTH_DESIGN.TCL.POST \
-			 STEPS.WRITE_BITSTREAM.TCL.PRE \
-			 STEPS.WRITE_BITSTREAM.TCL.POST \
-			 STEPS.WRITE_DEVICE_IMAGE.TCL.PRE \
-			 STEPS.WRITE_DEVICE_IMAGE.TCL.POST \
-			 STEPS.INIT_DESIGN.TCL.POST \
-			 STEPS.ROUTE_DESIGN.TCL.POST \
-			 IP.USER_FILES_DIR \
-			 SIM.IPSTATIC.SOURCE_DIR \
-			 COMPXLIB.MODELSIM_COMPILED_LIBRARY_DIR \
-			 COMPXLIB.QUESTA_COMPILED_LIBRARY_DIR \
-			 COMPXLIB.RIVIERA_COMPILED_LIBRARY_DIR \
-			 COMPXLIB.ACTIVEHDL_COMPILED_LIBRARY_DIR \
-			 COMPXLIB.IES_COMPILED_LIBRARY_DIR \
-			 COMPXLIB.VCS_COMPILED_LIBRARY_DIR \
-			 NEEDS_REFRESH \
-			 AUTO_INCREMENTAL_CHECKPOINT.DIRECTORY \
-			 AUTO_INCREMENTAL_CHECKPOINT \
-			 INCREMENTAL_CHECKPOINT \
-			 AUTO_RQS.DIRECTORY \
-			 ENABLE_RESOURCE_ESTIMATION
-		    ]
-
-set HOG_GENERICS [ list GLOBAL_DATE \
-		       GLOBAL_TIME \
-		       FLAVOUR \
-		      ]
-
-# List of non-source files that should not be checked
-# nocattr.dat is added by the NoC on Versal devices
-set BAN_OTHER_REGEX [ list {.*/nocattrs\.dat}\
-			  {}\
-			  {}\
-			 ]
-
-# List of source files that should not be checked
-# empty for now
-set BAN_SRC_REGEX [ list {}\
-			{}\
-			{}\
-		       ]
-
-### END OF BAN LIST ###
-
 #parsing command options
 if {[catch {package require cmdline} ERROR]} {
   puts "$ERROR\n If you are running this script on tclsh, you can fix this by installing 'tcllib'"
@@ -501,19 +442,6 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
       if {[string equal $SRC ""] } {
         continue
       }
-
-      set ignore_this_one 0
-      foreach bf $BAN_SRC_REGEX {
-	if { [regexp "^$bf$" $SRC]} {
-	  Msg Debug "Ignored $SRC because of ^$bf$"
-	  set ignore_this_one 1
-	  continue
-	}
-      }
-      if {$ignore_this_one == 1} {
-	continue
-      }
-      
       incr ListErrorCnt
       if {[string equal [RelativeLocal $repo_path $SRC] ""]} {
         if {[string equal [RelativeLocal $ext_path $SRC] ""]} {
@@ -561,18 +489,6 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
   }
 
   foreach SRC $prjOTHERs {
-    set ignore_this_one 0
-    foreach bf $BAN_OTHER_REGEX {
-      if { [regexp "^$bf$" $SRC]} {
-	Msg Debug "Ignored $SRC because of ^$bf$"
-	set ignore_this_one 1
-	continue
-      }
-    }
-    if {$ignore_this_one == 1} {
-      continue
-    }
-
     incr ListErrorCnt
     if {[string equal [RelativeLocal $repo_path $SRC] ""]} {
       if {[string equal [RelativeLocal $ext_path $SRC] ""]} {
@@ -725,6 +641,7 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
   }
 }
 
+
 set conf_file "$repo_path/Top/$group_name/$project_name/hog.conf"
 #checking project settings
 if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
@@ -773,6 +690,44 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
       dict set newConfDict $key [DictGet $hogConfDict $key]
     }
   }
+
+  #list of properties that must not be checked/written
+  set PROP_BAN_LIST  [ list DEFAULT_LIB \
+    PART \
+    IP_CACHE_PERMISSIONS \
+    SIM.IP.AUTO_EXPORT_SCRIPTS \
+    XPM_LIBRARIES \
+    REPORT_STRATEGY \
+    STEPS.WRITE_DEVICE_IMAGE.ARGS.READBACK_FILE \
+    STEPS.WRITE_DEVICE_IMAGE.ARGS.VERBOSE \
+    STEPS.WRITE_BITSTREAM.ARGS.READBACK_FILE \
+    STEPS.WRITE_BITSTREAM.ARGS.VERBOSE \
+    STEPS.SYNTH_DESIGN.TCL.PRE \
+    STEPS.SYNTH_DESIGN.TCL.POST \
+    STEPS.WRITE_BITSTREAM.TCL.PRE \
+    STEPS.WRITE_BITSTREAM.TCL.POST \
+    STEPS.WRITE_DEVICE_IMAGE.TCL.PRE \
+    STEPS.WRITE_DEVICE_IMAGE.TCL.POST \
+    STEPS.INIT_DESIGN.TCL.POST \
+    STEPS.ROUTE_DESIGN.TCL.POST \
+    COMPXLIB.MODELSIM_COMPILED_LIBRARY_DIR \
+    COMPXLIB.QUESTA_COMPILED_LIBRARY_DIR \
+    COMPXLIB.RIVIERA_COMPILED_LIBRARY_DIR \
+    COMPXLIB.ACTIVEHDL_COMPILED_LIBRARY_DIR \
+    COMPXLIB.IES_COMPILED_LIBRARY_DIR \
+    COMPXLIB.VCS_COMPILED_LIBRARY_DIR \
+    NEEDS_REFRESH \
+    AUTO_INCREMENTAL_CHECKPOINT.DIRECTORY \
+    AUTO_INCREMENTAL_CHECKPOINT \
+    INCREMENTAL_CHECKPOINT \
+    AUTO_RQS.DIRECTORY \
+    ENABLE_RESOURCE_ESTIMATION
+  ]
+
+  set HOG_GENERICS [ list GLOBAL_DATE \
+    GLOBAL_TIME \
+    FLAVOUR \
+  ]
 
   #filling defaultConfDict and projConfDict
   foreach proj_run [list [current_project] [get_runs synth_1] [get_runs impl_1] [current_fileset]] {

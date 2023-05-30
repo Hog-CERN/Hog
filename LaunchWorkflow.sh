@@ -184,10 +184,8 @@ function Launch_project(){
         fi
 
         if [ "$COMMAND" = "quartus_sh" ]; then
-            # Msg Info "${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_quartus.tcl $HELP $NO_BITSTREAM $SYNTH_ONLY $NJOBS $CHECK_SYNTAX $RECREATE $EXT_PATH $IMPL_ONLY $VERBOSE -project $PROJ"
-            # Logger ${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_quartus.tcl $HELP $NO_BITSTREAM $SYNTH_ONLY $NJOBS $CHECK_SYNTAX $RECREATE $EXT_PATH $IMPL_ONLY $VERBOSE -project $PROJ
-            Msg Info "${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_quartus.tcl $HELP $NO_BITSTREAM $SYNTH_ONLY $NJOBS $CHECK_SYNTAX $RECREATE $EXT_PATH $IMPL_ONLY $VERBOSE $PROJ"
-            Logger ${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_quartus.tcl $HELP $NO_BITSTREAM $SYNTH_ONLY $NJOBS $CHECK_SYNTAX $RECREATE $EXT_PATH $IMPL_ONLY $VERBOSE $PROJ
+            Msg Info "${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_quartus.tcl $HELP $NO_BITSTREAM $SYNTH_ONLY $NJOBS $CHECK_SYNTAX $RECREATE $EXT_PATH $IMPL_ONLY $VERBOSE -project $PROJ"
+            Logger ${HDL_COMPILER} $COMMAND_OPT $DIR/Tcl/launchers/launch_quartus.tcl $HELP $NO_BITSTREAM $SYNTH_ONLY $NJOBS $CHECK_SYNTAX $RECREATE $EXT_PATH $IMPL_ONLY $VERBOSE -project $PROJ
         elif [ "$COMMAND" = "vivado_hls" ]; then
             Msg Error "Vivado HLS is not yet supported by this script!"
         elif [ "$COMMAND" = "libero" ]; then

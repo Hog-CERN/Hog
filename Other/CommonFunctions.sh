@@ -41,6 +41,14 @@ export POST_COMMAND_OPT=""
 #
 export HDL_COMPILER=""
 
+
+##############################################################
+##############################################################
+#   FROM HERE ALL THE ELEMENTS FOR THE LOGGER
+#   Guillermo
+##############################################################
+##############################################################
+
 ## @var HOG_PROJECT_FOLDER
 #  @brief Global variable containing the full path of the root project folder
 #
@@ -82,7 +90,8 @@ export DEBUG_VERBOSE=""
 # if [ -w "/dev/shm" ]; then
 #   echo "1"
 if [ -v $tempfolder ]; then
-  tempfolder="/dev/shm/hog"
+  tmptimestamp=$(date +%s)
+  tempfolder="/dev/shm/$USER/hog$tmptimestamp"
   if mkdir -p $tempfolder 2>/dev/null ; then
     temp_i_cnt_file="$tempfolder/hog_i_cnt"
     temp_d_cnt_file="$tempfolder/hog_d_cnt"
@@ -90,8 +99,8 @@ if [ -v $tempfolder ]; then
     temp_c_cnt_file="$tempfolder/hog_c_cnt"
     temp_e_cnt_file="$tempfolder/hog_e_cnt"
   else
-    echo " Warning : Could not create /dev/shm/hog will try /tmp/hog "
-    tempfolder="/tmp/hog"
+    echo " Warning : Could not create /dev/shm/$USER/hog$tmptimestamp will try /tmp/$USER/hog$tmptimestamp "
+    tempfolder="/tmp/$USER/hog$tmptimestamp"
     if mkdir -p $tempfolder; then
     temp_i_cnt_file="$tempfolder/hog_i_cnt"
     temp_d_cnt_file="$tempfolder/hog_d_cnt"
@@ -99,7 +108,7 @@ if [ -v $tempfolder ]; then
     temp_c_cnt_file="$tempfolder/hog_c_cnt"
     temp_e_cnt_file="$tempfolder/hog_e_cnt"
     else
-      echo " *** ERROR Could not create /tmp/hog"
+      echo " *** ERROR Could not create /tmp/$USER/hog$tmptimestamp"
       exit 0
     fi
   fi
@@ -566,7 +575,12 @@ function Msg() {
   return 0
 }
 
-
+##############################################################
+##############################################################
+#   TILL HERE ALL THE ELEMENTS FOR THE LOGGER
+#   Guillermo
+##############################################################
+##############################################################
 
 ## @fn select_command_from_line
 #

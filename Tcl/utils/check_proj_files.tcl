@@ -196,39 +196,22 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
 
   # Recreating src list files
   if {$options(recreate) == 1 && ($ListErrorCnt > 0) } {
-    Msg Info "Updating list files in $repo_path/$DirName/list"
+    set listpath "$repo_path/$DirName/list/"
+    Msg Info "Updating list files in $listpath"
     # Delete existing listFiles
     if {$options(force) == 1} {
-      set listpath "$repo_path/Top/$group_name/$project_name/list/"
-      foreach F [glob -nocomplain "$listpath/*.src" "$listpath/*.ext"  "$listpath/*.con"] {
-        if {[dict exists $newListfiles [file tail $F]] == 0} {
+      foreach F [glob -nocomplain "$listpath/*.src" "$listpath/*.ext" "$listpath/*.sim" "$listpath/*.con"] {
+        if {[dict exists $prjHogSrcDict [file tail $F]] == 0} {
           file delete $F
         }
       }
     }
-    file mkdir $repo_path/$DirName/list
-    foreach lib [dict keys $prjHogSrcDict] {
-      set list_file [open $repo_path/$DirName/list/$lib w]
-      foreach file [DictGet $prjHogSrcDict $lib] {
-        # Retrieve file properties from prop list
-        set props [DictGet $prjProperties $file]
-        # Check if file is local to the repository or external
-        if {[RelativeLocal $repo_path $file] != ""} {
-          set file_path [RelativeLocal $repo_path $file]
-          puts $list_file "$file_path $props"
-        } elseif {[RelativeLocal $ext_path $file] != ""} {
-          set file_path [RelativeLocal $ext_path $file]
-          set ext_list_file [open "[file rootname $list_file].ext" a]
-          puts $ext_list_file "$file_path $props"
-          close $ext_list_file
-        } else {
-          # File is not relative to repo or ext_path... Write a Warning and continue
-          Msg CriticalWarning "The path of file $file is not relative to your repository or external path. Please check!"
-        }
-      }
-    }
+    # Create the list path, if it does not exist yet
+    file mkdir $listpath
+    WriteListFiles $prjHogSrcDict $prjProperties $listpath $repo_path $ext_path
+    WriteOthListFiles [concat $prjOTHERs $prjXDCs $prjIPs] $prjProperties $listpath $repo_path $project_name
+    WriteListFiles $prjHogSimDict $prjProperties $listpath $repo_path $ext_path 
   } 
-
 }
 
 

@@ -43,7 +43,7 @@ set parameters {
 
 
 
-set usage   "Checks if the list files matches the project ones. It can also be used to update the list files. \nUSAGE: $::argv0 \[Options\]"
+set usage "Checks if the list files matches the project ones. It can also be used to update the list files. \nUSAGE: $::argv0 \[Options\]"
 
 
 if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}]} {

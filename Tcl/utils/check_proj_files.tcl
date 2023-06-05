@@ -148,12 +148,11 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
   set listConstraints [DictToList $listConstraints]
   set prjHogSimDict [RemoveDuplicates $prjHogSimDict]
   set prjHogSrcDict [RemoveDuplicates $prjHogSrcDict]
-
   # Move sources.oth from listSimLibraries and listLibraries to a new list
   set listOthers [concat [DictGet $listLibraries "sources.oth"] [DictGet $listSimLibraries "sources.oth"] ]
   set listLibraries [dict remove $listLibraries "sources.oth"]
   set listSimLibraries [dict remove $listSimLibraries "sources.oth"]
-
+  
   # Move sources.ip from listSimLibraries and listLibraries to a new list
   set listIPs [DictGet $listLibraries "sources.ip"]
   set listLibraries [dict remove $listLibraries "sources.ip"]
@@ -161,11 +160,11 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
   #################################################################
   ##### START COMPARISON OF FILES IN PROJECT AND LIST FILES ######
   #################################################################
-  lassign [CompareLibDicts $prjHogSimDict $listSimLibraries "Warning" $outSimFile $extraFiles] n_sim_diffs extraFiles
-  lassign [CompareLibDicts $prjHogSrcDict $listLibraries "CriticalWarning" $outFile $extraFiles] n_source_diffs extraFiles
-  lassign [CompareLibLists $prjOTHERs $listOthers "CriticalWarning" $outFile $extraFiles] n_oth_diffs extraFiles
-  lassign [CompareLibLists $prjXDCs $listConstraints "CriticalWarning" $outFile $extraFiles] n_con_diffs extraFiles
-  lassign [CompareLibLists $prjIPs $listIPs "CriticalWarning" $outFile $extraFiles] n_ip_diffs extraFiles
+  lassign [CompareLibDicts $prjHogSrcDict $listLibraries 0 "CriticalWarning" $outFile $extraFiles] n_source_diffs extraFiles
+  lassign [CompareLibDicts $prjHogSimDict $listSimLibraries 0 "Warning" $outSimFile $extraFiles] n_sim_diffs extraFiles
+  lassign [CompareLibLists $prjOTHERs $listOthers 0 "CriticalWarning" $outFile $extraFiles] n_oth_diffs extraFiles
+  lassign [CompareLibLists $prjXDCs $listConstraints 0 "CriticalWarning" $outFile $extraFiles] n_con_diffs extraFiles
+  lassign [CompareLibLists $prjIPs $listIPs 0 "CriticalWarning" $outFile $extraFiles] n_ip_diffs extraFiles
 
   # Check if any files remained in extraFiles
   foreach {k v} $extraFiles {
@@ -178,8 +177,8 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
   set listSimProperties [RemoveEmptyKeys $listSimProperties]
 
 
-  lassign [CompareLibDicts $prjProperties $listProperties "CriticalWarning"] n_prop_diffs
-  lassign [CompareLibDicts $prjSimProperties $listSimProperties "Warning"] n_prop_sim_diffs  
+  lassign [CompareLibDicts $prjProperties $listProperties 1 "CriticalWarning"] n_prop_diffs
+  lassign [CompareLibDicts $prjSimProperties $listSimProperties 1 "Warning"] n_prop_sim_diffs  
 
   # Summary of errors found
   set ListErrorCnt [expr $n_source_diffs + $n_oth_diffs + $n_con_diffs + $n_ip_diffs + $n_prop_diffs]
@@ -208,9 +207,9 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
     }
     # Create the list path, if it does not exist yet
     file mkdir $listpath
-    WriteListFiles $prjHogSrcDict $prjProperties $listpath $repo_path $ext_path
+    WriteLibListFiles $prjHogSrcDict $prjProperties $listpath $repo_path $ext_path
     WriteOthListFiles [concat $prjOTHERs $prjXDCs $prjIPs] $prjProperties $listpath $repo_path $project_name
-    WriteListFiles $prjHogSimDict $prjProperties $listpath $repo_path $ext_path 
+    WriteLibListFiles $prjHogSimDict $prjProperties $listpath $repo_path $ext_path 
   } 
 }
 

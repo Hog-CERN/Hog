@@ -2201,158 +2201,160 @@ proc AddHogFiles { libraries properties main_libs } {
         Msg Info "[llength $lib_files] file/s added to library $rootlib..."
       }
     } elseif {[IsQuartus] } {
-      #QUARTUS ONLY
-      if { $ext == ".sim"} {
-        Msg Warning "Simulation files not supported in Quartus Prime mode... Skipping $lib"
-      } else {
-        if {! [is_project_open] } {
-          Msg Error "Project is closed"
-        }
-        foreach cur_file $lib_files {
-          set file_type [FindFileType $cur_file]
-
-          #ADDING FILE PROPERTIES
-          set props [dict get $properties $cur_file]
-
-          # Top synthesis module
-          set top [lindex [regexp -inline {top\s*=\s*(.+?)\y.*} $props] 1]
-          if { $top != "" } {
-            Msg Info "Setting $top as top module for file set $file_set..."
-            set globalSettings::synth_top_module $top
+      foreach file_set $filesets {
+        #QUARTUS ONLY
+        if { $ext == ".sim"} {
+          Msg Warning "Simulation files not supported in Quartus Prime mode... Skipping $lib"
+        } else {
+          if {! [is_project_open] } {
+            Msg Error "Project is closed"
           }
-          if {[string first "VHDL" $file_type] != -1 } {
+          foreach cur_file $lib_files {
+            set file_type [FindFileType $cur_file]
 
-            if {[string first "1987" $props] != -1 } {
-              set hdl_version "VHDL_1987"
-            } elseif {[string first "1993" $props] != -1 } {
-              set hdl_version "VHDL_1993"
-            } elseif {[string first "2008" $props] != -1 } {
-              set hdl_version "VHDL_2008"
-            } else {
-              set hdl_version "default"
-            }
-            if { $hdl_version == "default" } {
-              set_global_assignment -name $file_type $cur_file -library $rootlib
-            } else {
-              set_global_assignment -name $file_type $cur_file -hdl_version $hdl_version -library $rootlib
-            }
-          } elseif {[string first "SYSTEMVERILOG" $file_type] != -1 } {
-            if {[string first "2005" $props] != -1 } {
-              set hdl_version "systemverilog_2005"
-            } elseif {[string first "2009" $props] != -1 } {
-              set hdl_version "systemverilog_2009"
-            } else {
-              set hdl_version "default"
-            }
-            if { $hdl_version == "default" } {
-              set_global_assignment -name $file_type $cur_file
-            } else {
-              set_global_assignment -name $file_type $cur_file -hdl_version $hdl_version
-            }
-          } elseif {[string first "VERILOG" $file_type] != -1 } {
-            if {[string first "1995" $props] != -1 } {
-              set hdl_version "verilog_1995"
-            } elseif {[string first "2001" $props] != -1 } {
-              set hdl_version "verilog_2001"
-            } else {
-              set hdl_version "default"
-            }
-            if { $hdl_version == "default" } {
-              set_global_assignment -name $file_type $cur_file
-            } else {
-              set_global_assignment -name $file_type $cur_file -hdl_version $hdl_version
-            }
-          } elseif {[string first "SOURCE" $file_type] != -1 || [string first "COMMAND_MACRO" $file_type] != -1 } {
-            set_global_assignment  -name $file_type $cur_file
-            if { $ext == ".con"} {
-              source $cur_file
-            } elseif { $ext == ".src"} {
+            #ADDING FILE PROPERTIES
+            set props [dict get $properties $cur_file]
 
-              # If this is a Platform Designer file then generate the system
-              if {[string first "qsys" $props] != -1 } {
-                # remove qsys from options since we used it
-                set emptyString ""
-                regsub -all {\{||qsys||\}} $props $emptyString props
+            # Top synthesis module
+            set top [lindex [regexp -inline {top\s*=\s*(.+?)\y.*} $props] 1]
+            if { $top != "" } {
+              Msg Info "Setting $top as top module for file set $file_set..."
+              set globalSettings::synth_top_module $top
+            }
+            if {[string first "VHDL" $file_type] != -1 } {
 
-                set qsysPath [file dirname $cur_file]
-                set qsysName "[file rootname [file tail $cur_file]].qsys"
-                set qsysFile "$qsysPath/$qsysName"
-                set qsysLogFile "$qsysPath/[file rootname [file tail $cur_file]].qsys-script.log"
+              if {[string first "1987" $props] != -1 } {
+                set hdl_version "VHDL_1987"
+              } elseif {[string first "1993" $props] != -1 } {
+                set hdl_version "VHDL_1993"
+              } elseif {[string first "2008" $props] != -1 } {
+                set hdl_version "VHDL_2008"
+              } else {
+                set hdl_version "default"
+              }
+              if { $hdl_version == "default" } {
+                set_global_assignment -name $file_type $cur_file -library $rootlib
+              } else {
+                set_global_assignment -name $file_type $cur_file -hdl_version $hdl_version -library $rootlib
+              }
+            } elseif {[string first "SYSTEMVERILOG" $file_type] != -1 } {
+              if {[string first "2005" $props] != -1 } {
+                set hdl_version "systemverilog_2005"
+              } elseif {[string first "2009" $props] != -1 } {
+                set hdl_version "systemverilog_2009"
+              } else {
+                set hdl_version "default"
+              }
+              if { $hdl_version == "default" } {
+                set_global_assignment -name $file_type $cur_file
+              } else {
+                set_global_assignment -name $file_type $cur_file -hdl_version $hdl_version
+              }
+            } elseif {[string first "VERILOG" $file_type] != -1 } {
+              if {[string first "1995" $props] != -1 } {
+                set hdl_version "verilog_1995"
+              } elseif {[string first "2001" $props] != -1 } {
+                set hdl_version "verilog_2001"
+              } else {
+                set hdl_version "default"
+              }
+              if { $hdl_version == "default" } {
+                set_global_assignment -name $file_type $cur_file
+              } else {
+                set_global_assignment -name $file_type $cur_file -hdl_version $hdl_version
+              }
+            } elseif {[string first "SOURCE" $file_type] != -1 || [string first "COMMAND_MACRO" $file_type] != -1 } {
+              set_global_assignment  -name $file_type $cur_file
+              if { $ext == ".con"} {
+                source $cur_file
+              } elseif { $ext == ".src"} {
 
-                set qsys_rootdir ""
-                if {! [info exists ::env(QSYS_ROOTDIR)] } {
-                  if {[info exists ::env(QUARTUS_ROOTDIR)] } {
-                    set qsys_rootdir "$::env(QUARTUS_ROOTDIR)/sopc_builder/bin"
-                    Msg Warning "The QSYS_ROOTDIR environment variable is not set! I will use $qsys_rootdir"
+                # If this is a Platform Designer file then generate the system
+                if {[string first "qsys" $props] != -1 } {
+                  # remove qsys from options since we used it
+                  set emptyString ""
+                  regsub -all {\{||qsys||\}} $props $emptyString props
+
+                  set qsysPath [file dirname $cur_file]
+                  set qsysName "[file rootname [file tail $cur_file]].qsys"
+                  set qsysFile "$qsysPath/$qsysName"
+                  set qsysLogFile "$qsysPath/[file rootname [file tail $cur_file]].qsys-script.log"
+
+                  set qsys_rootdir ""
+                  if {! [info exists ::env(QSYS_ROOTDIR)] } {
+                    if {[info exists ::env(QUARTUS_ROOTDIR)] } {
+                      set qsys_rootdir "$::env(QUARTUS_ROOTDIR)/sopc_builder/bin"
+                      Msg Warning "The QSYS_ROOTDIR environment variable is not set! I will use $qsys_rootdir"
+                    } else {
+                      Msg CriticalWarning "The QUARTUS_ROOTDIR environment variable is not set! Assuming all quartus executables are contained in your PATH!"
+                    }
                   } else {
-                    Msg CriticalWarning "The QUARTUS_ROOTDIR environment variable is not set! Assuming all quartus executables are contained in your PATH!"
+                    set qsys_rootdir $::env(QSYS_ROOTDIR)
                   }
-                } else {
-                  set qsys_rootdir $::env(QSYS_ROOTDIR)
-                }
 
-                set cmd "$qsys_rootdir/qsys-script"
-                set cmd_options " --script=$cur_file"
-                if {![catch {"exec $cmd -version"}] || [lindex $::errorCode 0] eq "NONE"} {
-                  Msg Info "Executing: $cmd $cmd_options"
-                  Msg Info "Saving logfile in: $qsysLogFile"
-                  if { [ catch {eval exec -ignorestderr "$cmd $cmd_options >>& $qsysLogFile"} ret opt ]} {
-                    set makeRet [lindex [dict get $opt -errorcode] end]
-                    Msg CriticalWarning "$cmd returned with $makeRet"
-                  }
-                } else {
-                  Msg Error " Could not execute command $cmd"
-                  exit 1
-                }
-                # Check the system is generated correctly and move file to correct directory
-                if { [file exists $qsysName] != 0} {
-                  file rename -force $qsysName $qsysFile
-                  # Write checksum to file
-                  set qsysMd5Sum [Md5Sum $qsysFile]
-                  # open file for writing
-                  set fileDir [file normalize "./hogTmp"]
-                  set fileName "$fileDir/.hogQsys.md5"
-                  if {![file exists $fileDir]} {
-                    file mkdir $fileDir
-                  }
-                  set hogQsysFile [open $fileName "a"]
-                  set fileEntry "$qsysFile\t$qsysMd5Sum"
-                  puts $hogQsysFile $fileEntry
-                  close $hogQsysFile
-                } else {
-                  Msg ERROR "Error while moving the generated qsys file to final location: $qsysName not found!";
-                }
-                if { [file exists $qsysFile] != 0} {
-                  if {[string first "noadd" $props] == -1} {
-                    set qsysFileType [FindFileType $qsysFile]
-                    set_global_assignment  -name $qsysFileType $qsysFile
+                  set cmd "$qsys_rootdir/qsys-script"
+                  set cmd_options " --script=$cur_file"
+                  if {![catch {"exec $cmd -version"}] || [lindex $::errorCode 0] eq "NONE"} {
+                    Msg Info "Executing: $cmd $cmd_options"
+                    Msg Info "Saving logfile in: $qsysLogFile"
+                    if { [ catch {eval exec -ignorestderr "$cmd $cmd_options >>& $qsysLogFile"} ret opt ]} {
+                      set makeRet [lindex [dict get $opt -errorcode] end]
+                      Msg CriticalWarning "$cmd returned with $makeRet"
+                    }
                   } else {
-                    regsub -all {noadd} $props $emptyString props
+                    Msg Error " Could not execute command $cmd"
+                    exit 1
                   }
-                  if {[string first "nogenerate" $props] == -1} {
-                    GenerateQsysSystem $qsysFile $props
+                  # Check the system is generated correctly and move file to correct directory
+                  if { [file exists $qsysName] != 0} {
+                    file rename -force $qsysName $qsysFile
+                    # Write checksum to file
+                    set qsysMd5Sum [Md5Sum $qsysFile]
+                    # open file for writing
+                    set fileDir [file normalize "./hogTmp"]
+                    set fileName "$fileDir/.hogQsys.md5"
+                    if {![file exists $fileDir]} {
+                      file mkdir $fileDir
+                    }
+                    set hogQsysFile [open $fileName "a"]
+                    set fileEntry "$qsysFile\t$qsysMd5Sum"
+                    puts $hogQsysFile $fileEntry
+                    close $hogQsysFile
+                  } else {
+                    Msg ERROR "Error while moving the generated qsys file to final location: $qsysName not found!";
                   }
+                  if { [file exists $qsysFile] != 0} {
+                    if {[string first "noadd" $props] == -1} {
+                      set qsysFileType [FindFileType $qsysFile]
+                      set_global_assignment  -name $qsysFileType $qsysFile
+                    } else {
+                      regsub -all {noadd} $props $emptyString props
+                    }
+                    if {[string first "nogenerate" $props] == -1} {
+                      GenerateQsysSystem $qsysFile $props
+                    }
 
-                } else {
-                  Msg ERROR "Error while generating ip variations from qsys: $qsysFile not found!";
+                  } else {
+                    Msg ERROR "Error while generating ip variations from qsys: $qsysFile not found!";
+                  }
                 }
               }
-            }
-          } elseif {[string first "QSYS" $file_type] != -1 } {
-            set emptyString ""
-            regsub -all {\{||\}} $props $emptyString props
-            if {[string first "noadd" $props] == -1} {
-              set_global_assignment  -name $file_type $cur_file
-            } else {
-              regsub -all {noadd} $props $emptyString props
-            }
+            } elseif {[string first "QSYS" $file_type] != -1 } {
+              set emptyString ""
+              regsub -all {\{||\}} $props $emptyString props
+              if {[string first "noadd" $props] == -1} {
+                set_global_assignment  -name $file_type $cur_file
+              } else {
+                regsub -all {noadd} $props $emptyString props
+              }
 
-            #Generate IPs
-            if {[string first "nogenerate" $props] == -1} {
-              GenerateQsysSystem $cur_file $props
+              #Generate IPs
+              if {[string first "nogenerate" $props] == -1} {
+                GenerateQsysSystem $cur_file $props
+              }
+            } else {
+              set_global_assignment -name $file_type $cur_file -library $rootlib
             }
-          } else {
-            set_global_assignment -name $file_type $cur_file -library $rootlib
           }
         }
       }
@@ -2374,23 +2376,24 @@ proc AddHogFiles { libraries properties main_libs } {
         }
       }
       build_design_hierarchy 
+      foreach file_set $filesets {
+        foreach cur_file $lib_files {
+          set file_type [FindFileType $cur_file]
 
-      foreach cur_file $lib_files {
-        set file_type [FindFileType $cur_file]
+          #ADDING FILE PROPERTIES
+          set props [dict get $properties $cur_file]
 
-        #ADDING FILE PROPERTIES
-        set props [dict get $properties $cur_file]
+          # Top synthesis module
+          set top [lindex [regexp -inline {top\s*=\s*(.+?)\y.*} $props] 1]
+          if { $top != "" } {
+            Msg Info "Setting $top as top module for file set $file_set..."
+            set globalSettings::synth_top_module "${top}::$rootlib"
+          }
 
-        # Top synthesis module
-        set top [lindex [regexp -inline {top\s*=\s*(.+?)\y.*} $props] 1]
-        if { $top != "" } {
-          Msg Info "Setting $top as top module for file set $file_set..."
-          set globalSettings::synth_top_module "${top}::$rootlib"
-        }
-
-        # exclude sdc from timing
-        if {[lsearch -inline -regexp $props "notiming"] == -1 } {
-          organize_tool_files -tool {VERIFYTIMING} -file $cur_file -input_type {constraint}
+          # exclude sdc from timing
+          if {[lsearch -inline -regexp $props "notiming"] == -1 } {
+            organize_tool_files -tool {VERIFYTIMING} -file $cur_file -input_type {constraint}
+          }
         }
       }
     }

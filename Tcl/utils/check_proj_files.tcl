@@ -551,7 +551,7 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
     foreach setting [dict keys $projSimDict] {
       set currset [DictGet $projSimDict $setting]
       set hogset [DictGet $hogConfSimDict $setting]
-      set allhogset [Dict $hogAllSimDict $setting]
+      set allhogset [DictGet $hogAllSimDict $setting]
       set defset [DictGet $defaultRunDict $setting]
 
       if {[string toupper $setting] == "GENERIC"} {

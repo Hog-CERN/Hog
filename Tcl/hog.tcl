@@ -3941,19 +3941,24 @@ proc RemoveDuplicates {mydict} {
 #
 # @param[in] proj_dict  The first dictionary
 # @param[in] list_dict  The second dictionary
+# @param[in] prop       If set, we are comparing properties
 # @param[in] severity   The severity of  the message in case a file is not found (Default: CriticalWarning)
 # @param[in] outFile    The output log file, to write the messages (Default "")
 # @param[in] extraFiles The dictionary of extra files generated a creation time (Default "")
 #
 # @return n_diffs The number of differences
-proc CompareLibDicts {proj_dict list_dict {severity "CriticalWarning"} {outFile ""} {extraFiles ""}} {
+proc CompareLibDicts {proj_dict list_dict {prop 0} {severity "CriticalWarning"} {outFile ""} {extraFiles ""}} {
   set extra_files $extraFiles
   set n_diffs 0
   dict for {k v} $proj_dict {
     if {![dict exists $list_dict $k]} {
       # Ignore simulation keys
       if {$k != "Simulator" && $v != "wavefile" && $v != "dofile" && [string first "topsim=" $v] == -1 && [string first "runtime=" $v] == -1} {
-        MsgAndLog "$k does not exist in Hog Top project files (missing list file?)" $severity $outFile  
+        if {$prop == 1} {
+          MsgAndLog "Property/ies $v for file $k are not set in Hog project list file" $severity $outFile  
+        } else {
+          MsgAndLog "$k does not exist in Hog Top project files (missing list file?)" $severity $outFile  
+        }
       } 
       incr n_diffs
     } else {
@@ -3975,14 +3980,22 @@ proc CompareLibDicts {proj_dict list_dict {severity "CriticalWarning"} {outFile 
             set extra_files [dict remove $extra_files $file]
           } else {
             puts $list_lib
-            MsgAndLog "$file was found in project but not in list files or .hog/extra.files" $severity $outFile
+            if {$prop == 1} {
+              MsgAndLog "Property $file of $k is set in project but not in list files" $severity $outFile
+            } else {
+              MsgAndLog "$file was found in project but not in list files or .hog/extra.files" $severity $outFile
+            }
             incr n_diffs
           }
         }
       }
       # Loop over remaining files in list libraries
       foreach file $list_lib {
-        MsgAndLog "$file was found in list files but not in project."
+        if {$prop == 1} {
+          MsgAndLog "Property $file of $k was found in list files but not set in project."
+        } else {
+          MsgAndLog "$file was found in list files but not in project."
+        }
         incr n_diffs
       }
     }
@@ -3996,7 +4009,7 @@ proc CompareLibDicts {proj_dict list_dict {severity "CriticalWarning"} {outFile 
 # @param[in] l_list The second list (from the list files)
 #
 # @return n_diffs The number of differences
-proc CompareLibLists {l_proj l_list {severity "CriticalWarning"} {outFile ""} {extraFiles ""}} {
+proc CompareLibLists {l_proj l_list {prop 0} {severity "CriticalWarning"} {outFile ""} {extraFiles ""}} {
   set extra_files $extraFiles
   set n_diffs 0
   # Loop over files in library $k

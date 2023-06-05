@@ -149,8 +149,7 @@ set allow_fail_on_git 0
 set full_diff_log     0
 if {[file exists "$tcl_path/../../Top/$group/$proj_name/hog.conf"]} {
   set confDict [ReadConf "$tcl_path/../../Top/$group/$proj_name/hog.conf"]
-  set allow_fail_on_conf [DictGet [DictGet $confDict "hog"] "ALLOW_FAIL_ON_CONF" 0]
-  set allow_fail_on_list [DictGet [DictGet $confDict "hog"] "ALLOW_FAIL_ON_LIST" 0]
+  set allow_fail_on_check [DictGet [DictGet $confDict "hog"] "ALLOW_FAIL_ON_CHECK" 0]
   set allow_fail_on_git  [DictGet [DictGet $confDict "hog"] "ALLOW_FAIL_ON_GIT"  0]
   set full_diff_log      [DictGet [DictGet $confDict "hog"] "FULL_DIFF_LOG"      0]
 }
@@ -161,9 +160,9 @@ set this_commit [GetSHA]
 if {[IsVivado]} {
   ##nagelfar ignore
   if {![string equal ext_path ""]} {
-    set argv [list "-ext_path" "$ext_path" "-project" "$group/$proj_name" "-outDir" "$dst_dir" "-log_list" "[expr {!$allow_fail_on_list}]" "-log_conf" "[expr {!$allow_fail_on_conf}]"]
+    set argv [list "-ext_path" "$ext_path" "-project" "$group/$proj_name" "-outDir" "$dst_dir" "-log" "[expr {!$allow_fail_on_check}]"]
   } else {
-    set argv [list "-project" "$group/$proj_name" "-outDir" "$dst_dir" "-log_list" "[expr {!$allow_fail_on_list}]" "-log_conf" "[expr {!$allow_fail_on_conf}]"]
+    set argv [list "-project" "$group/$proj_name" "-outDir" "$dst_dir" "-log" "[expr {!$allow_fail_on_check}]"]
   }
   source $tcl_path/utils/check_proj_files.tcl
   if {[file exists "$dst_dir/diff_list_and_conf.txt"]} {

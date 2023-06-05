@@ -673,7 +673,7 @@ proc ReadListFile args {
             }
 	          Msg Debug "Adding property $prop to $vhdlfile..."
 	          ### Set File Set
-            #Adding IP library
+            # Adding IP library
             if {$sha_mode == 0 && [lsearch {.xci .ip .bd} $extension] >= 0} {
               dict lappend libraries "sources.ip" $vhdlfile
               dict set main_libs "sources.ip" "sources.ip"
@@ -682,7 +682,14 @@ proc ReadListFile args {
             } elseif {[lsearch {.vhd .vhdl .xdc .tcl} $extension] >= 0} {          
               set m [dict create]
               dict set m $lib$ext $main_lib$ext
-              dict lappend libraries $lib$ext $vhdlfile
+              dict lappend libraries $lib$ext [file normalize $vhdlfile]
+              if {[file type $vhdlfile] eq "link"} {
+                #if the file is a link, also add the linked file
+                set real_file [GetLinkedFile $vhdlfile]
+                dict lappend libraries $lib$ext $real_file
+                Msg Debug "File $vhdlfile is a soft link, also adding the real file: $real_file"
+              }
+	      
               if {[dict exists $main_libs $lib$ext] == 0} {
                 Msg Debug "Adding $lib$ext to the $main_lib$ext dictionary..."
                 set main_libs [dict merge $m $main_libs]
@@ -696,6 +703,12 @@ proc ReadListFile args {
               }
             } else {
               dict lappend libraries "sources.oth" $vhdlfile
+              if {[file type $vhdlfile] eq "link"} {
+                #if the file is a link, also add the linked file
+                set real_file [GetLinkedFile $vhdlfile]
+                dict lappend libraries "sources.oth" $real_file
+                Msg Debug "File $vhdlfile is a soft link, also adding the real file: $real_file"
+              }
               dict set main_libs "sources.oth" "sources.oth"
             }
           }
@@ -708,9 +721,38 @@ proc ReadListFile args {
   }
 
   if {$sha_mode != 0} {
-    dict lappend libraries $lib$ext $list_file
+    #In SHA mode we also need to add the list file to the list
+    
+    dict lappend libraries $lib$ext [file normalize $list_file]
+    if {[file type $list_file] eq "link"} {
+      #if the file is a link, also add the linked file
+      set real_file [GetLinkedFile $list_file]
+      dict lappend libraries $lib$ext $real_file
+      Msg Debug "List file $list_file is a soft link, also adding the real file: $real_file"
+    }    
   }
   return [list $libraries $properties $main_libs]
+}
+
+## @brief Return the real file linked by a soft link
+#
+# If the provided file is not a soft link, will give a Warning and return an empty string.
+# If the link is broken, will give a warning but still return the linked file
+#
+# @param[in] link_file the soft link file
+proc GetLinkedFile {link_file} {
+  if {[file type $link_file] eq "link"} {
+    set real_file [file normalize [file dirname $link_file]/[file link $link_file]]
+    if {![file exists $real_file]} {
+      Msg Warning "$link_file is a broken link, because the linked file: $real_file does not exist."
+    }
+    
+  } else {
+    Msg Warning "$link file is not a soft link"
+    set real_file ""
+  }
+
+  return $real_file
 }
 
 ## @brief Merge two tcl dictionaries of lists
@@ -2016,7 +2058,7 @@ proc AddHogFiles { libraries properties main_libs } {
             }
 
             #ADDING FILE PROPERTIES
-            set props [dict get $properties $f]
+            set props [DictGet $properties $f]
             if {[file extension $f] == ".vhd" || [file extension $f] == ".vhdl"} {
               if {[lsearch -inline -regexp $props "93"] < 0} {
                 # ISE does not support vhdl2008
@@ -2139,8 +2181,8 @@ proc AddHogFiles { libraries properties main_libs } {
         } else {
           # IPs
           foreach f $lib_files {
-            #ADDING FILE PROPERTIES
-            set props [dict get $properties $f]
+            # ADDING FILE PROPERTIES
+            set props [DictGet $properties $f]
             # Lock the IP
             if {[lsearch -inline -regexp $props "locked"] >= 0} {
               Msg Info "Locking IP $f..."
@@ -3984,6 +4026,71 @@ proc CompareLibLists {l_proj l_list {severity "CriticalWarning"} {outFile ""} {e
     incr n_diffs
   }
   return [list $n_diffs $extra_files]
+}
+
+# @brief Write the content of Hog-library-dictionary created from the project into a list file
+#
+# @param[in] prj_dict   The Hog-Library dictionary with the list of files in the project to write
+# @param[in] prj_pros   The Hog-library dictionary with the file properties
+# @param[in] list_path  The path of the output list file
+# @param[in] repo_path  The main repository path
+# @param[in] ext_path   The external path
+proc WriteLibListFiles {prj_dict prj_props list_path repo_path {$ext_path ""}} {
+  foreach lib [dict keys $prj_dict] {
+    set list_file [open $list_path/$lib w]
+    Msg Info "Writing $list_path/$lib..."
+    foreach file [DictGet $prj_dict $lib] {
+      # Retrieve file properties from prop list
+      set props [DictGet $prj_props $file]
+      # Check if file is local to the repository or external
+      if {[RelativeLocal $repo_path $file] != ""} {
+        set file_path [RelativeLocal $repo_path $file]
+        puts $list_file "$file_path $props"
+      } elseif {[RelativeLocal $ext_path $file] != ""} {
+        set file_path [RelativeLocal $ext_path $file]
+        set ext_list_file [open "[file rootname $list_file].ext" a]
+        puts $ext_list_file "$file_path $props"
+        close $ext_list_file
+      } else {
+        # File is not relative to repo or ext_path... Write a Warning and continue
+        Msg CriticalWarning "The path of file $file is not relative to your repository or external path. Please check!"
+      }
+    }
+    close $list_file
+  }
+}
+
+# @brief Write the content of Hog-source list created from the project into a list file
+#
+# @param[in] prj_list   The Hog-sources list with the list of files in the project to write
+# @param[in] prj_pros   The Hog-sources list with the file properties
+# @param[in] list_path  The path of the output list file
+# @param[in] repo_path  The main repository path
+# @param[in] prj_name   The name of the project
+proc WriteOthListFiles {prj_list prj_props list_path repo_path prj_name} {
+  foreach f $prj_list {
+    # Retrieve properties
+    set props [DictGet $prj_props $f]
+    # Write IP files to others.src
+    if {[file ext $f] == ".xci" || [file ext $f] == ".bd"} {
+      set list_file_path $list_path/others.src
+    } elseif {([file ext $f] == ".v" || [file ext $f] == ".sv") && [get_property -quiet used_in_synthesis [GetFile $f]] == 1 } {
+      set list_file_path $list_path/others.src
+    } elseif {[file ext $f] == ".do" || [file ext $f] == ".udo" || ([get_property -quiet used_in_synthesis [GetFile $f]] == 0 && [get_property -quiet used_in_simulation [GetFile $f]] == 1) } {
+      set list_file_path $list_path/others.sim
+    } else {
+      set list_file_path $list_path/${prj_name}.con
+    }
+    if {[RelativeLocal $repo_path $f] != ""} {
+      set file_path [RelativeLocal $repo_path $f]
+      set list_file [open $list_file_path a]
+      puts $list_file "$file_path $props"
+      close $list_file
+    } else {
+      # File is not relative to repo... Write a Warning and continue
+      Msg CriticalWarning "The path of file $file is not relative to your repository or external path. Please check!"
+    }
+  }
 }
 
 ## @brief Transform the input dictionary in a list, concatenating all the values

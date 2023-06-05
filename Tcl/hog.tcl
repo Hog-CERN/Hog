@@ -3745,7 +3745,7 @@ proc GetFileGenerics {filename {entity ""}} {
 #
 #  @param[in]    list of variables to be written in the generics
 proc WriteGenerics {mode design date timee commit version top_hash top_ver hog_hash hog_ver cons_ver cons_hash libs vers hashes ext_names ext_hashes user_ip_repos user_ip_vers user_ip_hashes flavour {xml_ver ""} {xml_hash ""}} {
-  Msg Info "Passing parameters/generics to project $design's top module..."
+  Msg Info "Passing parameters/generics to project's top module..."
   #####  Passing Hog generic to top file
   # set global generic variables
   set generic_string [concat \

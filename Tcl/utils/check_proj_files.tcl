@@ -707,7 +707,7 @@ if {$options(recreate_conf) == 0 && $options(recreate) == 0} {
   } else {
     Msg Info "Simulation config files match project. All ok!"
   }
-
+}
 
 
 

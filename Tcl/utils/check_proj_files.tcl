@@ -535,7 +535,7 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
       # default values
       dict set defaultSimDict [string toupper $prop]  [list_property_value -default $prop $proj_simset]
       dict set projConfDict $proj_simset  $projSimDict
-      dict set defaultConfDict $proj_simset $defaultRunDict
+      dict set defaultConfDict $proj_simset $defaultSimDict
     }
   }
 

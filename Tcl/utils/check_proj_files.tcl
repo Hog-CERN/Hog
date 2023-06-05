@@ -414,7 +414,7 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
             incr ConfErrorCnt
             Msg Info "$proj_run setting $settings has been changed from \"$hogset\" in hog.conf to \"$currset\" in project."
           } elseif {[file exists $repo_path/Top/$group_name/$project_name/hog.conf] && $hasStrategy == 0} {
-            CriticalAndLog "Project $proj_run setting $settings value \"$currset\" does not match hog.conf \"$hogset\"." $outFile
+            MsgAndLog "Project $proj_run setting $settings value \"$currset\" does not match hog.conf \"$hogset\"." "CriticalWarning" $outFile
             incr ConfErrorCnt
           }
         }
@@ -433,7 +433,7 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
         }
         incr ConfErrorCnt
         if {$options(recreate_conf) == 0} {
-          CriticalAndLog "hog.conf property $settings is not a valid Vivado property." $outFile
+          MsgAndLog "hog.conf property $settings is not a valid Vivado property." "CriticalWarning" $outFile
         } else {
           Msg Info "found property $settings in old hog.conf. This is not a valid Vivado property and will be deleted."
         }
@@ -446,7 +446,7 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
   if {[file exists $conf_file]} {
     lassign [GetIDEFromConf $conf_file] ide conf_version
     if {$actual_version != $conf_version} {
-      CriticalAndLog "The version specified in the first line of hog.conf is wrong or no version was specified. If you want to run this project with $ide $actual_version, the first line of hog.conf should be: \#$ide $actual_version"
+      MsgAndLog "The version specified in the first line of hog.conf is wrong or no version was specified. If you want to run this project with $ide $actual_version, the first line of hog.conf should be: \#$ide $actual_version" "CriticalWarning" $outFile
       incr ConfErrorCnt
     }
   }
@@ -569,7 +569,7 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
               incr SimConfErrorCnt
               Msg Info "$simset generics setting $generic has been changed from \"$generichogset\" in sim.conf to \"$gen_value\" in project."
             } elseif {[file exists $sim_conf]} {
-              WarningAndLog "Simset $simset setting $generic value \"$gen_value\" does not match sim.conf \"$generichogset\"." $outSimFile
+              MsgAndLog "Simset $simset setting $generic value \"$gen_value\" does not match sim.conf \"$generichogset\"." "Warning" $outSimFile
               incr SimConfErrorCnt
             }
           }
@@ -602,7 +602,7 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
           incr SimConfErrorCnt
           Msg Info "$simset setting $setting has been changed from \"$hogset\" (\"$allhogset\") in sim.conf to \"$currset\" in project."
         } elseif {[file exists $sim_conf]} {
-          WarningAndLog "Simset $simset setting $setting value \"$currset\" does not match sim.conf \"$hogset\" (\"$allhogset\")." $outSimFile
+          MsgAndLog "Simset $simset setting $setting value \"$currset\" does not match sim.conf \"$hogset\" (\"$allhogset\")." "Warning" $outSimFile
           incr SimConfErrorCnt
         }
       } elseif {[string toupper $currset] == [string toupper $hogset] && [string toupper $hogset] != ""} {
@@ -625,7 +625,7 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
         if {$hogset == "1" && $simset != [current_fileset -simset]} {
           incr SimConfErrorCnt
           if {$options(recreate_conf) == 0} {
-            WarningAndLog "Simulation set $simset is set as active, but the actual active one in the project is [current_fileset -simset]"
+            MsgAndLog "Simulation set $simset is set as active, but the actual active one in the project is [current_fileset -simset]" "Warning" $outSimFile
           } else {
             Msg Info "Simulation set $simset was set as active in old sim.conf. I will set [current_fileset -simset] as active in the file instead."
           }
@@ -651,7 +651,7 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
       if {[dict exists $projSimDict [string toupper $setting]]==0 && [dict exists $projSimDict $setting]==0} {
         incr SimConfErrorCnt
         if {$options(recreate_conf) == 0} {
-          WarningAndLog "sim.conf property $setting is not a valid Vivado property." $outSimFile
+          MsgAndLog "sim.conf property $setting is not a valid Vivado property." "Warning" $outSimFile
         } else {
           Msg Info "Found property $setting in old sim.conf. This is not a valid Vivado property and will be deleted."
         }

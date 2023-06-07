@@ -698,6 +698,47 @@ proc ReadListFile args {
   return [list $libraries $properties $main_libs]
 }
 
+## @brief Return operative sistem
+proc OS {} {
+	global tcl_platform
+	return $tcl_platform(platform)
+}
+
+## @brief Return the real file linked by a soft link
+#
+# If the provided file is not a soft link, will give a Warning and return an empty string.
+# If the link is broken, will give a warning but still return the linked file
+#
+# @param[in] link_file the soft link file
+proc GetLinkedFile {link_file} {
+	if {[file type $link_file] eq "link"} {
+		if {[OS] == "windows" } {
+		    #on windows we need to use readlink because Tcl is broken
+			lassign  [ExecuteRet realpath $link_file] ret msg
+			lassign  [ExecuteRet cygpath -m $msg] ret2 msg2
+			if {$ret == 0 && $ret2 == 0} {
+				set real_file $msg2
+				Msg Debug "Found link file $link_file on Windows, the linked file is: $real_file"
+			} else {
+				Msg CriticalWarning "[file normalize $link_file] is a soft link. Soft link are not supported on Windows and readlink.exe or cygpath.exe did not work: readlink=$ret: $msg, cygpath=$ret2: $msg2."
+				set real_file $link_file
+			}
+		} else {
+			#on linux Tcl just works
+			set linked_file [file link $link_file]
+			set real_file [file normalize [file dirname $link_file]/$linked_file]
+		}
+		
+		if {![file exists $real_file]} {
+			Msg Warning "$link_file is a broken link, because the linked file: $real_file does not exist."
+		}
+	} else {
+		Msg Warning "$link file is not a soft link"
+		set real_file $link_file
+	}
+  return $real_file
+}
+
 ## @brief Merge two tcl dictionaries of lists
 #
 # If the dictionaries contain same keys, the list at the common key is a merging of the two

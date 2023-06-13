@@ -164,7 +164,7 @@ if {[IsVivado]} {
   } else {
     set argv [list "-project" "$group/$proj_name" "-outDir" "$dst_dir" "-log" "[expr {!$allow_fail_on_check}]"]
   }
-  source $tcl_path/utils/check_proj_files.tcl
+  source $tcl_path/utils/check_list_files.tcl
   if {[file exists "$dst_dir/diff_list_and_conf.txt"]} {
     Msg CriticalWarning "Project list or hog.conf mismatch, will use current SHA ($this_commit) and version will be set to 0."
     set commit 0000000

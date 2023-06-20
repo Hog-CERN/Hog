@@ -125,7 +125,7 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
   lassign [GetHogFiles -ext_path "$ext_path" -repo_path $repo_path -list_files ".sim" "$repo_path/Top/$group_name/$project_name/list/"] listSimLibraries listSimProperties listSimMain
   # Get files generated at creation time
   set extraFiles [ReadExtraFileList "$repo_path/Projects/$group_name/$project_name/.hog/extra.files"]
-
+  set extraFiles_copy $extraFiles
   # Get project libraries and properties from Vivado
   lassign [GetProjectFiles] prjLibraries prjProperties prjSimProperties
   set prjIPs      [DictGet $prjLibraries IP]
@@ -168,7 +168,7 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
 
   # Check if any files remained in extraFiles
   foreach {k v} $extraFiles {
-    MsgAndLog "$file was found in .hog/extra.files but not in project." "CriticalWarning" $outFile 
+    MsgAndLog "$k was found in .hog/extra.files but not in project." "CriticalWarning" $outFile 
     incr ListErrorCnt
   }
 
@@ -177,8 +177,8 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
   set listSimProperties [RemoveEmptyKeys $listSimProperties]
 
 
-  lassign [CompareLibDicts $prjProperties $listProperties 1 "CriticalWarning"] n_prop_diffs
-  lassign [CompareLibDicts $prjSimProperties $listSimProperties 1 "Warning"] n_prop_sim_diffs  
+  lassign [CompareLibDicts $prjProperties $listProperties 1 "CriticalWarning" $outFile $extraFiles_copy] n_prop_diffs
+  lassign [CompareLibDicts $prjSimProperties $listSimProperties 1 "Warning" $outSimFile $extraFiles_copy] n_prop_sim_diffs  
 
   # Summary of errors found
   set ListErrorCnt [expr $n_source_diffs + $n_oth_diffs + $n_con_diffs + $n_ip_diffs + $n_prop_diffs]

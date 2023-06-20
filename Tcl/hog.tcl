@@ -3976,7 +3976,7 @@ proc CompareLibDicts {proj_dict list_dict {prop 0} {severity "CriticalWarning"} 
   dict for {k v} $proj_dict {
     if {![dict exists $list_dict $k]} {
       # Ignore simulation keys
-      if {$k != "Simulator" && $v != "wavefile" && $v != "dofile" && [string first "topsim=" $v] == -1 && [string first "runtime=" $v] == -1 && [file extension $k] != ".tcl"} {
+      if {$k != "Simulator" && $v != "wavefile" && $v != "dofile" && [string first "topsim=" $v] == -1 && [string first "runtime=" $v] == -1 } {
         if {$prop == 1} {
           if {![dict exists $extra_files $k]} {
             # If file is auto-generated ignore property check

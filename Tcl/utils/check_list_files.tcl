@@ -175,6 +175,8 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
   # Compare properties dictionaries
   set listProperties [RemoveEmptyKeys $listProperties]
   set listSimProperties [RemoveEmptyKeys $listSimProperties]
+  set listConProperties [RemoveEmptyKeys $listConProperties]
+  set listProperties [concat $listProperties $listConProperties]
 
 
   lassign [CompareLibDicts $prjProperties $listProperties 1 "CriticalWarning" $outFile $extraFiles_copy] n_prop_diffs

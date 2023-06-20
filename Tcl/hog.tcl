@@ -3976,14 +3976,36 @@ proc CompareLibDicts {proj_dict list_dict {prop 0} {severity "CriticalWarning"} 
   dict for {k v} $proj_dict {
     if {![dict exists $list_dict $k]} {
       # Ignore simulation keys
-      if {$k != "Simulator" && $v != "wavefile" && $v != "dofile" && [string first "topsim=" $v] == -1 && [string first "runtime=" $v] == -1} {
+      if {$k != "Simulator" && $v != "wavefile" && $v != "dofile" && [string first "topsim=" $v] == -1 && [string first "runtime=" $v] == -1 && [file extension $k] != ".tcl"} {
         if {$prop == 1} {
-          MsgAndLog "Property/ies $v for file $k are not set in Hog project list file" $severity $outFile  
+          if {![dict exists $extra_files $k]} {
+            # If file is auto-generated ignore property check
+            MsgAndLog "Property/ies $v for file $k are not set in Hog project list file" $severity $outFile  
+          }
         } else {
-          MsgAndLog "$k does not exist in Hog Top project files (missing list file?)" $severity $outFile  
+          set found_files 0
+          # Check if the files is generated at creation time
+          foreach file $v {
+            if { [dict exists $extra_files $file] } {
+              incr found_files
+              # File was generated at creation time, checking the md5sum
+              set new_md5sum [Md5Sum $file]
+              set old_md5sum [DictGet $extra_files $file]
+              if {$new_md5sum != $old_md5sum} {
+                MsgAndLog "$file in project has been modified from creation time. Please update the script you used to create the file and regenerate the project, or save the file outside the Projects/ directory and add it to a project list file" $severity $outFile
+                incr n_diffs
+              }
+              set extra_files [dict remove $extra_files $file]
+            } else {
+              MsgAndLog "$file was found in project but not in list files or .hog/extra.files" $severity $outFile
+              incr n_diffs
+            }
+          }
+          if {$found_files == 0} {
+            MsgAndLog "$k does not exist in Hog Top project files (missing list file?)" $severity $outFile  
+          }
         }
       } 
-      incr n_diffs
     } else {
       set list_lib [DictGet $list_dict $k]
       # Loop over files in library $k

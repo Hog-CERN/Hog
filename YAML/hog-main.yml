@@ -136,7 +136,7 @@ tag_official_version:
   rules:
     - if: '$HOG_TARGET_BRANCH != null && $CI_COMMIT_REF_NAME == $HOG_TARGET_BRANCH && $CI_PIPELINE_SOURCE == "push"'
       when: always
-    - if: '$HOG_TARGET_BRANCH == null && $CI_COMMIT_REF_NAME =~ /^master|main|release.*$/  && $CI_PIPELINE_SOURCE == "push"'
+    - if: '$HOG_TARGET_BRANCH == null && $CI_COMMIT_REF_NAME =~ /^(master|main|release).*$/  && $CI_PIPELINE_SOURCE == "push"'
       when: always
     - if: '$HOG_DEVELOP_BRANCH != null && $CI_COMMIT_REF_NAME == $HOG_DEVELOP_BRANCH && $CI_PIPELINE_SOURCE == "push"'
       when: always

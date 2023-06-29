@@ -200,7 +200,7 @@ if {($proj_found == 0 || $recreate == 1) && $do_synthesis == 1} {
   lassign [GetConfFiles $repo_path/Top/$project_name] conf sim pre post
 
   if {[file exists $conf]} {
-    source ./create_project.tcl
+    CreateProject $project_name
   } else {
     Msg Error "Project $project_name is incomplete: no hog.conf file found, please create one..."
   }

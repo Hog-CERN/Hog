@@ -132,10 +132,8 @@ if { $proj_found == 0 || $recreate == 1 } {
   lassign [GetConfFiles $repo_path/Top/$project_name] conf sim pre post tcl_file
 
   if {[file exists $conf]} {
-    set ::DESIGN $project_name
-    source ./create_project.tcl 
-  } elseif {[file exists $tcl_file]} {
-    source $repo_path/Top/$project_name/$project.tcl
+    CreateProject $project_name
+
   } else {
     Msg Error "Project $project_name is incomplete: not Tcl file or hog.conf file found."
   }

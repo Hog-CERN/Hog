@@ -4450,3 +4450,5 @@ proc findFiles { basedir pattern } {
     }
     return $fileList
  }
+
+source [file dirname [info script]]/create_project.tcl

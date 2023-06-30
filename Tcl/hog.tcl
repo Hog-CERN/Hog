@@ -582,7 +582,7 @@ proc ReadListFile args {
   }
   set usage "USAGE: ReadListFile \[options\] <list file> <path>"
   if {[catch {array set options [cmdline::getoptions args $parameters $usage]}] ||  [llength $args] != 2 } {
-    Msg Error "[cmdline::usage $parameters $usage]"
+    Msg CriticalWarning "[cmdline::usage $parameters $usage]"
     return
   }
   set list_file [lindex $args 0]
@@ -1809,8 +1809,9 @@ proc GetProjectFiles {} {
           }
         }
       }
-
+      set old_simulator [get_property target_simulator [current_project]]
       foreach simulator [GetSimulators] {
+	set_property target_simulator $simulator [current_project]
         set wavefile [get_property "$simulator.simulate.custom_wave_do" [get_filesets $fs]]
         if {![string equal "$wavefile" ""]} {
           ##nagelfar ignore
@@ -1819,12 +1820,15 @@ proc GetProjectFiles {} {
         }
       }
       foreach simulator [GetSimulators] {
+	set_property target_simulator $simulator [current_project]
         set dofile [get_property "$simulator.simulate.custom_udo" [get_filesets $fs]]
         if {![string equal "$dofile" ""]} {
           dict lappend sim_properties $dofile dofile
           break
         }
       }
+      set_property target_simulator $old_simulator [current_project]
+
     }
 
     foreach f $all_files {
@@ -1954,7 +1958,7 @@ proc GetHogFiles args {
   }
   set usage "USAGE: GetHogFiles \[options\] <list path>"
   if {[catch {array set options [cmdline::getoptions args $parameters $usage]}] ||  [llength $args] != 1 } {
-    Msg Error [cmdline::usage $parameters $usage]
+    Msg CriticalWarning [cmdline::usage $parameters $usage]
     return
   }
   set list_path [lindex $args 0]
@@ -1982,6 +1986,7 @@ proc GetHogFiles args {
     if {$ext == ".ext"} {
       lassign [ReadListFile {*}"$sha_mode_opt  $f $ext_path"] l p m
     } else {
+      puts "@@@@@@@@@@ Syntax: ReadListFile $sha_mode_opt  $f $repo_path"
       lassign [ReadListFile {*}"$sha_mode_opt  $f $repo_path"] l p m
     }
     set libraries [MergeDict $l $libraries]
@@ -2151,6 +2156,7 @@ proc AddHogFiles { libraries properties main_libs } {
 
             # Simulation runtime
             set sim_runtime [lindex [regexp -inline {runtime\s*=\s*(.+?)\y.*} $props] 1]
+
             if { $sim_runtime != "" } {
               Msg Warning "Setting the simulation runtime from simulation list files is now deprecated. Please set this property in the sim.conf file, by adding the following line under the \[$file_set\] section.\n<simulator_name>.simulate.runtime=$sim_runtime"
               set_property -name {xsim.simulate.runtime} -value $sim_runtime -objects [get_filesets $file_set]

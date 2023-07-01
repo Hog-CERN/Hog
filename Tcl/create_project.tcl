@@ -181,8 +181,7 @@ proc AddProjectFiles {} {
     source $globalSettings::tcl_path/utils/cmdline.tcl
   }
 
-  puts "@@@@@@@@@@@@ GetHogFiles -ext_path $globalSettings::HOG_EXTERNAL_PATH -repo_path $globalSettings::repo_path  $globalSettings::list_path"
-  AddHogFiles {*}[GetHogFiles -ext_path $globalSettings::HOG_EXTERNAL_PATH -repo_path $globalSettings::repo_path  $globalSettings::list_path]
+  AddHogFiles {*}[GetHogFiles -ext_path $globalSettings::HOG_EXTERNAL_PATH $globalSettings::list_path $globalSettings::repo_path]
 
   ## Set synthesis TOP
   SetTopProperty $globalSettings::synth_top_module $sources
@@ -904,7 +903,7 @@ proc CreateProject args {
   
   # Check extra IPs
   
-  lassign [GetHogFiles -ext_path "$globalSettings::HOG_EXTERNAL_PATH" -repo_path $globalSettings::repo_path "$globalSettings::repo_path/Top/$globalSettings::DESIGN/list/"] listLibraries listProperties listMain
+  lassign [GetHogFiles -ext_path "$globalSettings::HOG_EXTERNAL_PATH" "$globalSettings::repo_path/Top/$globalSettings::DESIGN/list/" $globalSettings::repo_path] listLibraries listProperties listMain
   
   CheckExtraFiles $listLibraries
   

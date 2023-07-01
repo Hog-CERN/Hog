@@ -195,7 +195,7 @@ if {$diff != ""} {
   Msg CriticalWarning "Repository is not clean, will use current SHA ($this_commit) and create a dirty bitfile..."
 }
 
-lassign [GetHogFiles  -ext_path "$ext_path" -repo_path "$tcl_path/../../" "$tcl_path/../../Top/$group/$proj_name/list/"] listLibraries listProperties
+lassign [GetHogFiles  -ext_path "$ext_path" "$tcl_path/../../Top/$group/$proj_name/list/" "$tcl_path/../../"] listLibraries listProperties
 
 if {!$allow_fail_on_git} {
   foreach library [dict keys $listLibraries] {

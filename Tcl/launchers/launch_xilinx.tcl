@@ -122,44 +122,6 @@ if { $options(verbose) == 1 } {
   variable ::DEBUG_MODE 1
 }
 
-
-# Let's leave the following commented section in case something comes up
-# It was able to retrieve the ips before creating the project, but this cannot be used if generated file are in the Projects folder
-
-#Copy IP from IP repository
-# if { $options(ip_path) != "" } {
-#   set ip_path $options(ip_path)
-# 
-#   Msg Info "Getting IPs for $project_name..."
-#   set ips {}
-#   lassign [GetHogFiles -list_files "*.src" -repo_path $repo_path "$repo_path/Top/$project_name/list/" ] src_files dummy
-#   dict for {f files} $src_files {
-#     #library names have a .src extension in values returned by GetHogFiles
-#     if { [file ext $f] == ".ip" } {
-#       lappend ips {*}$files
-#     }
-#   }
-# 
-#   Msg Info "Copying IPs from $ip_path..."
-#   set copied_ips 0
-#   set repo_ips {}
-#   foreach ip $ips {
-#     set ip_folder [file dirname $ip]
-#     set files_in_folder [glob -directory $ip_folder -- *]
-#     if { [llength $files_in_folder] == 1 } {
-#       set ret [HandleIP pull $ip $ip_path $repo_path $main_folder]
-#       if {$ret == 0} {
-#         incr copied_ips
-#       }
-#     } else {
-#       Msg Info "Synthesised files for IP $ip are already in the repository. Do not copy from IP repository..."
-#       lappend repo_ips $ip
-#     }
-#   }
-#   Msg Info "$copied_ips IPs were copied from the IP repository."
-# }
-
-
 if {$do_synthesis == 0} {
   Msg Info "Will launch implementation only..."
 

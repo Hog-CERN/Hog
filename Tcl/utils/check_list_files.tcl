@@ -118,11 +118,11 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
 
   Msg Info "Retrieved Vivado project files..."
   # Get project libraries and properties from list files
-  lassign [GetHogFiles -ext_path "$ext_path" -repo_path $repo_path -list_files ".src,.ext" "$repo_path/Top/$group_name/$project_name/list/"] listLibraries listProperties listMain
+  lassign [GetHogFiles -ext_path "$ext_path" -list_files ".src,.ext" "$repo_path/Top/$group_name/$project_name/list/" $repo_path] listLibraries listProperties listMain
   # Get project constraints and properties from list files
-  lassign [GetHogFiles -ext_path "$ext_path" -repo_path $repo_path -list_files ".con" "$repo_path/Top/$group_name/$project_name/list/"] listConstraints listConProperties listConMain
+  lassign [GetHogFiles -ext_path "$ext_path" -list_files ".con" "$repo_path/Top/$group_name/$project_name/list/" $repo_path] listConstraints listConProperties listConMain
   # Get project simulation libraries and properties from list files
-  lassign [GetHogFiles -ext_path "$ext_path" -repo_path $repo_path -list_files ".sim" "$repo_path/Top/$group_name/$project_name/list/"] listSimLibraries listSimProperties listSimMain
+  lassign [GetHogFiles -ext_path "$ext_path" -list_files ".sim" "$repo_path/Top/$group_name/$project_name/list/" $repo_path] listSimLibraries listSimProperties listSimMain
   # Get files generated at creation time
   set extraFiles [ReadExtraFileList "$repo_path/Projects/$group_name/$project_name/.hog/extra.files"]
   set extraFiles_copy $extraFiles

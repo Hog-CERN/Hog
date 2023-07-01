@@ -161,7 +161,7 @@ load_package flow
 ################
 if { $check_syntax == 1 } {
   Msg Info "Checking syntax for project $project_name..."
-  lassign [GetHogFiles -list_files "*.src" -repo_path $repo_path "$repo_path/Top/$project_name/list/" ] src_files dummy
+  lassign [GetHogFiles -list_files "*.src" "$repo_path/Top/$project_name/list/" $repo_path] src_files dummy
   dict for {lib files} $src_files {
     foreach f $files {
       set file_extension [file extension $f]

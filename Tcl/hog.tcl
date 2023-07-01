@@ -1306,7 +1306,7 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
   set vers ""
   set hashes ""
   # Specify sha_mode 1 for GetHogFiles to get all the files, including the list-files themselves
-  lassign [GetHogFiles -list_files "*.src" -sha_mode -repo_path $repo_path "./list/"] src_files dummy
+  lassign [GetHogFiles -list_files "*.src" -sha_mode "./list/" $repo_path] src_files dummy
   dict for {f files} $src_files {
     # library names have a .src extension in values returned by GetHogFiles
     set name [file rootname [file tail $f]]
@@ -1325,7 +1325,7 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
   # Read constraint list files
   set cons_hashes ""
   # Specify sha_mode 1 for GetHogFiles to get all the files, including the list-files themselves
-  lassign [GetHogFiles  -list_files "*.con" -sha_mode -repo_path $repo_path  "./list/" ] cons_files dummy
+  lassign [GetHogFiles  -list_files "*.con" -sha_mode "./list/" $repo_path] cons_files dummy
   dict for {f files} $cons_files {
     #library names have a .con extension in values returned by GetHogFiles
     set name [file rootname [file tail $f]]
@@ -1343,7 +1343,7 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
   if {$sim == 1} {
     set sim_hashes ""
     # Specify sha_mode 1 for GetHogFiles to get all the files, including the list-files themselves
-    lassign [GetHogFiles  -list_files "*.sim" -sha_mode -repo_path $repo_path  "./list/"] sim_files dummy
+    lassign [GetHogFiles  -list_files "*.sim" -sha_mode "./list/" $repo_path] sim_files dummy
     dict for {f files} $sim_files {
       #library names have a .sim extension in values returned by GetHogFiles
       set name [file rootname [file tail $f]]
@@ -1407,7 +1407,7 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
   # Ipbus XML
   if {[file exists ./list/xml.lst]} {
     #Msg Info "Found IPbus XML list file, evaluating version and SHA of listed files..."
-    lassign [GetHogFiles  -list_files "xml.lst" -repo_path $repo_path  -sha_mode "./list/"] xml_files dummy
+    lassign [GetHogFiles  -list_files "xml.lst" -sha_mode "./list/" $repo_path] xml_files dummy
     lassign [GetVer  [dict get $xml_files "xml.lst"] ] xml_ver xml_hash
     lappend SHAs $xml_hash
     lappend versions $xml_ver
@@ -1809,9 +1809,7 @@ proc GetProjectFiles {} {
           }
         }
       }
-      set old_simulator [get_property target_simulator [current_project]]
       foreach simulator [GetSimulators] {
-	set_property target_simulator $simulator [current_project]
         set wavefile [get_property "$simulator.simulate.custom_wave_do" [get_filesets $fs]]
         if {![string equal "$wavefile" ""]} {
           ##nagelfar ignore
@@ -1820,14 +1818,12 @@ proc GetProjectFiles {} {
         }
       }
       foreach simulator [GetSimulators] {
-	set_property target_simulator $simulator [current_project]
         set dofile [get_property "$simulator.simulate.custom_udo" [get_filesets $fs]]
         if {![string equal "$dofile" ""]} {
           dict lappend sim_properties $dofile dofile
           break
         }
       }
-      set_property target_simulator $old_simulator [current_project]
 
     }
 
@@ -1926,11 +1922,10 @@ proc GetProjectFiles {} {
 
 ## @brief Extract files, libraries and properties from the project's list files
 #
-# @param[in] args The arguments are \<list_path\> [options]
+# @param[in] args The arguments are \<list_path\> \<repository path\>[options]
 # * list_path path to the list file directory
 # Options:
 # * -list_files \<List files\> the file wildcard, if not specified all Hog list files will be looked for
-# * -repo_path \<repo path\> the absolute of the top directory of the repository
 # * -sha_mode forwarded to ReadListFile, see there for info
 # * -ext_path \<external path\> path for external libraries forwarded to ReadListFile
 #
@@ -1952,20 +1947,21 @@ proc GetHogFiles args {
 
   set parameters {
     {list_files.arg ""  "The file wildcard, if not specified all Hog list files will be looked for."}
-    {repo_path.arg ""  "The absolute path of the top directory of the repository."}
     {sha_mode "Forwarded to ReadListFile, see there for info."}
     {ext_path.arg "" "Path for the external libraries forwarded to ReadListFile."}
   }
-  set usage "USAGE: GetHogFiles \[options\] <list path>"
-  if {[catch {array set options [cmdline::getoptions args $parameters $usage]}] ||  [llength $args] != 1 } {
+  set usage "USAGE: GetHogFiles \[options\] <list path> <repository path>"
+  if {[catch {array set options [cmdline::getoptions args $parameters $usage]}] ||  [llength $args] != 2 } {
     Msg CriticalWarning [cmdline::usage $parameters $usage]
     return
   }
   set list_path [lindex $args 0]
+  set repo_path [lindex $args 1]
+
   set list_files $options(list_files)
   set sha_mode $options(sha_mode)
   set ext_path $options(ext_path)
-  set repo_path $options(repo_path)
+
 
   if { $sha_mode == 1 } {
     set sha_mode_opt "-sha_mode"
@@ -1986,7 +1982,6 @@ proc GetHogFiles args {
     if {$ext == ".ext"} {
       lassign [ReadListFile {*}"$sha_mode_opt  $f $ext_path"] l p m
     } else {
-      puts "@@@@@@@@@@ Syntax: ReadListFile $sha_mode_opt  $f $repo_path"
       lassign [ReadListFile {*}"$sha_mode_opt  $f $repo_path"] l p m
     }
     set libraries [MergeDict $l $libraries]
@@ -2157,43 +2152,49 @@ proc AddHogFiles { libraries properties main_libs } {
             # Simulation runtime
             set sim_runtime [lindex [regexp -inline {runtime\s*=\s*(.+?)\y.*} $props] 1]
 
-            if { $sim_runtime != "" } {
-              Msg Warning "Setting the simulation runtime from simulation list files is now deprecated. Please set this property in the sim.conf file, by adding the following line under the \[$file_set\] section.\n<simulator_name>.simulate.runtime=$sim_runtime"
-              set_property -name {xsim.simulate.runtime} -value $sim_runtime -objects [get_filesets $file_set]
-              foreach simulator [GetSimulators] {
-                set_property $simulator.simulate.runtime  $sim_runtime  [get_filesets $file_set]
-              }
-            }
+	    # The next section is done only for Simulation sources
+	    if {[get_property FILESET_TYPE [get_filesets $file_set]] eq "SimulationSrcs"} {
 
-            # Wave do file
-            if {[lsearch -inline -regexp $props "wavefile"] >= 0} {
-              Msg Warning "Setting a wave do file from simulation list files is now deprecated. Set this property in the sim.conf file, by adding the following line under the \[$file_set\] section.\n<simulator_name>.simulate.custom_wave_do=[file tail $f]"
-
-              Msg Debug "Setting $f as wave do file for simulation file set $file_set..."
-
-              # check if file exists...
-              if {[file exists $f]} {
-                foreach simulator [GetSimulators] {
-                  set_property "$simulator.simulate.custom_wave_do" [file tail $f] [get_filesets $file_set]
-                }
-              } else {
-                Msg Warning "File $f was not found."
-              }
-            }
-
-            #Do file
-            if {[lsearch -inline -regexp $props "dofile"] >= 0} {
-              Msg Warning "Setting a custom do file from simulation list files is now deprecated. Set this property in the sim.conf file, by adding the following line under the \[$file_set\] section.\n<simulator_name>.simulate.custom_do=[file tail $f]"
-              Msg Debug "Setting $f as do file for simulation file set $file_set..."
-
-              if {[file exists $f]} {
-                foreach simulator [GetSimulators] {
-                  set_property "$simulator.simulate.custom_udo" [file tail $f] [get_filesets $file_set]
-                }
-              } else {
-                Msg Warning "File $f was not found."
-              }
-            }
+	    
+	      if { $sim_runtime != "" } {
+		Msg Warning "Setting the simulation runtime from simulation list files is now deprecated. Please set this property in the sim.conf file, by adding the following line under the \[$file_set\] section.\n<simulator_name>.simulate.runtime=$sim_runtime"
+		set_property -name {xsim.simulate.runtime} -value $sim_runtime -objects [get_filesets $file_set]
+		foreach simulator [GetSimulators] {
+		  set_property $simulator.simulate.runtime  $sim_runtime  [get_filesets $file_set]
+		}
+	      }
+	      
+	      # Wave do file
+	      if {[lsearch -inline -regexp $props "wavefile"] >= 0} {
+		Msg Warning "Setting a wave do file from simulation list files is now deprecated. Set this property in the sim.conf file, by adding the following line under the \[$file_set\] section.\n<simulator_name>.simulate.custom_wave_do=[file tail $f]"
+		
+		Msg Debug "Setting $f as wave do file for simulation file set $file_set..."
+		
+		# check if file exists...
+		if {[file exists $f]} {
+		  foreach simulator [GetSimulators] {
+		    set_property "$simulator.simulate.custom_wave_do" [file tail $f] [get_filesets $file_set]
+		  }
+		} else {
+		  Msg Warning "File $f was not found."
+		}
+	      }
+	      
+	      #Do file
+	      if {[lsearch -inline -regexp $props "dofile"] >= 0} {
+		Msg Warning "Setting a custom do file from simulation list files is now deprecated. Set this property in the sim.conf file, by adding the following line under the \[$file_set\] section.\n<simulator_name>.simulate.custom_do=[file tail $f]"
+		Msg Debug "Setting $f as do file for simulation file set $file_set..."
+		
+		if {[file exists $f]} {
+		  foreach simulator [GetSimulators] {
+		    set_property "$simulator.simulate.custom_udo" [file tail $f] [get_filesets $file_set]
+		  }
+		} else {
+		  Msg Warning "File $f was not found."
+		}
+	      }
+	    }
+	    ############
 
             # Tcl
             if {[file extension $f] == ".tcl" && $ext != ".con"} {

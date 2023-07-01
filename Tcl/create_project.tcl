@@ -181,6 +181,7 @@ proc AddProjectFiles {} {
     source $globalSettings::tcl_path/utils/cmdline.tcl
   }
 
+  Msg Info "********** GetHogFiles -ext_path $globalSettings::HOG_EXTERNAL_PATH $globalSettings::list_path $globalSettings::repo_path"
   AddHogFiles {*}[GetHogFiles -ext_path $globalSettings::HOG_EXTERNAL_PATH $globalSettings::list_path $globalSettings::repo_path]
 
   ## Set synthesis TOP

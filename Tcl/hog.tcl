@@ -2240,8 +2240,11 @@ proc AddHogFiles { libraries properties main_libs } {
             set file_type [FindFileType $cur_file]
 
             #ADDING FILE PROPERTIES
-            set props [dict get $properties $cur_file]
-
+	    if {[info exists properties($cur_file)]} { 
+	      set props [dict get $properties $cur_file]
+	    } else {
+	      set props {}
+	    }
             # Top synthesis module
             set top [lindex [regexp -inline {top\s*=\s*(.+?)\y.*} $props] 1]
             if { $top != "" } {

@@ -702,14 +702,20 @@ proc ReadListFile args {
                 }
               }
             } else {
-              dict lappend libraries "sources.oth" $vhdlfile
-              if {[file type $vhdlfile] eq "link"} {
-                #if the file is a link, also add the linked file
-                set real_file [GetLinkedFile $vhdlfile]
-                dict lappend libraries "sources.oth" $real_file
-                Msg Debug "File $vhdlfile is a soft link, also adding the real file: $real_file"
-              }
-              dict set main_libs "sources.oth" "sources.oth"
+	      if {$ext == ".sim" } {
+		set file_set_name "others.sim"
+	      } else {
+		set file_set_name "sources.oth"		
+	      }
+	      dict lappend libraries $file_set_name $vhdlfile
+
+	      if {[file type $vhdlfile] eq "link"} {
+		#if the file is a link, also add the linked file
+		set real_file [GetLinkedFile $vhdlfile]
+		dict lappend libraries $file_set_name $real_file
+		Msg Debug "File $vhdlfile is a soft link, also adding the real file: $real_file"
+	      }
+	      dict set main_libs $file_set_name $file_set_name
             }
           }
           incr cnt
@@ -2152,49 +2158,44 @@ proc AddHogFiles { libraries properties main_libs } {
             # Simulation runtime
             set sim_runtime [lindex [regexp -inline {runtime\s*=\s*(.+?)\y.*} $props] 1]
 
-	    # The next section is done only for Simulation sources
-	    if {[get_property FILESET_TYPE [get_filesets $file_set]] eq "SimulationSrcs"} {
-
 	    
-	      if { $sim_runtime != "" } {
-		Msg Warning "Setting the simulation runtime from simulation list files is now deprecated. Please set this property in the sim.conf file, by adding the following line under the \[$file_set\] section.\n<simulator_name>.simulate.runtime=$sim_runtime"
-		set_property -name {xsim.simulate.runtime} -value $sim_runtime -objects [get_filesets $file_set]
-		foreach simulator [GetSimulators] {
-		  set_property $simulator.simulate.runtime  $sim_runtime  [get_filesets $file_set]
-		}
+	    if { $sim_runtime != "" } {
+	      Msg Warning "Setting the simulation runtime from simulation list files is now deprecated. Please set this property in the sim.conf file, by adding the following line under the \[$file_set\] section.\n<simulator_name>.simulate.runtime=$sim_runtime"
+	      set_property -name {xsim.simulate.runtime} -value $sim_runtime -objects [get_filesets $file_set]
+	      foreach simulator [GetSimulators] {
+		set_property $simulator.simulate.runtime  $sim_runtime  [get_filesets $file_set]
 	      }
-	      
+	    }
+	    
 	      # Wave do file
-	      if {[lsearch -inline -regexp $props "wavefile"] >= 0} {
-		Msg Warning "Setting a wave do file from simulation list files is now deprecated. Set this property in the sim.conf file, by adding the following line under the \[$file_set\] section.\n<simulator_name>.simulate.custom_wave_do=[file tail $f]"
-		
-		Msg Debug "Setting $f as wave do file for simulation file set $file_set..."
-		
-		# check if file exists...
-		if {[file exists $f]} {
+	    if {[lsearch -inline -regexp $props "wavefile"] >= 0} {
+	      Msg Warning "Setting a wave do file from simulation list files is now deprecated. Set this property in the sim.conf file, by adding the following line under the \[$file_set\] section.\n<simulator_name>.simulate.custom_wave_do=[file tail $f]"
+	      
+	      Msg Debug "Setting $f as wave do file for simulation file set $file_set..."
+	      
+	      # check if file exists...
+	      if {[file exists $f]} {
 		  foreach simulator [GetSimulators] {
 		    set_property "$simulator.simulate.custom_wave_do" [file tail $f] [get_filesets $file_set]
 		  }
-		} else {
-		  Msg Warning "File $f was not found."
-		}
-	      }
-	      
-	      #Do file
-	      if {[lsearch -inline -regexp $props "dofile"] >= 0} {
-		Msg Warning "Setting a custom do file from simulation list files is now deprecated. Set this property in the sim.conf file, by adding the following line under the \[$file_set\] section.\n<simulator_name>.simulate.custom_do=[file tail $f]"
-		Msg Debug "Setting $f as do file for simulation file set $file_set..."
-		
-		if {[file exists $f]} {
-		  foreach simulator [GetSimulators] {
-		    set_property "$simulator.simulate.custom_udo" [file tail $f] [get_filesets $file_set]
-		  }
-		} else {
-		  Msg Warning "File $f was not found."
-		}
+	      } else {
+		Msg Warning "File $f was not found."
 	      }
 	    }
-	    ############
+	    
+	    #Do file
+	    if {[lsearch -inline -regexp $props "dofile"] >= 0} {
+	      Msg Warning "Setting a custom do file from simulation list files is now deprecated. Set this property in the sim.conf file, by adding the following line under the \[$file_set\] section.\n<simulator_name>.simulate.custom_do=[file tail $f]"
+	      Msg Debug "Setting $f as do file for simulation file set $file_set..."
+	      
+	      if {[file exists $f]} {
+		foreach simulator [GetSimulators] {
+		  set_property "$simulator.simulate.custom_udo" [file tail $f] [get_filesets $file_set]
+		}
+	      } else {
+		  Msg Warning "File $f was not found."
+	      }
+	    }
 
             # Tcl
             if {[file extension $f] == ".tcl" && $ext != ".con"} {
@@ -2240,11 +2241,8 @@ proc AddHogFiles { libraries properties main_libs } {
             set file_type [FindFileType $cur_file]
 
             #ADDING FILE PROPERTIES
-	    if {[info exists properties($cur_file)]} { 
-	      set props [dict get $properties $cur_file]
-	    } else {
-	      set props {}
-	    }
+            set props [DictGet $properties $cur_file]
+
             # Top synthesis module
             set top [lindex [regexp -inline {top\s*=\s*(.+?)\y.*} $props] 1]
             if { $top != "" } {

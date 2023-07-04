@@ -606,9 +606,6 @@ proc ReadListFile args {
     set main_lib $lib
   }
 
-  set ext [file extension $list_file]
-
-  set list_file
   set fp [open $list_file r]
   set file_data [read $fp]
   close $fp
@@ -679,43 +676,38 @@ proc ReadListFile args {
               dict set main_libs "sources.ip" "sources.ip"
 
 	            Msg Debug "Appending $vhdlfile to IP list..."
-            } elseif {[lsearch {.vhd .vhdl .xdc .tcl} $extension] >= 0} {          
+            } elseif {[lsearch {.vhd .vhdl .xdc .tcl} $extension] >= 0 || $list_file_ext == ".sim"} {          
               set m [dict create]
-              dict set m $lib$ext $main_lib$ext
-              dict lappend libraries $lib$ext [file normalize $vhdlfile]
+              dict set m $lib$list_file_ext $main_lib$list_file_ext
+              dict lappend libraries $lib$list_file_ext [file normalize $vhdlfile]
               if {[file type $vhdlfile] eq "link"} {
                 #if the file is a link, also add the linked file
                 set real_file [GetLinkedFile $vhdlfile]
-                dict lappend libraries $lib$ext $real_file
+                dict lappend libraries $lib$list_file_ext $real_file
                 Msg Debug "File $vhdlfile is a soft link, also adding the real file: $real_file"
               }
 	      
-              if {[dict exists $main_libs $lib$ext] == 0} {
-                Msg Debug "Adding $lib$ext to the $main_lib$ext dictionary..."
+              if {[dict exists $main_libs $lib$list_file_ext] == 0} {
+                Msg Debug "Adding $lib$list_file_ext to the $main_lib$list_file_ext dictionary..."
                 set main_libs [dict merge $m $main_libs]
               } else {
-                set current_main [dict get $main_libs $lib$ext]
-                Msg Debug "$lib$ext already assigned to the $current_main..."
-                if {"$current_main" != "$main_lib$ext"} {
-                  Msg Debug "$lib$ext will also be used in the $main_lib fileset..."
-                  dict set m $lib$ext "$current_main $main_lib$ext"
+                set current_main [dict get $main_libs $lib$list_file_ext]
+                Msg Debug "$lib$list_file_ext already assigned to the $current_main..."
+                if {"$current_main" != "$main_lib$list_file_ext"} {
+                  Msg Debug "$lib$list_file_ext will also be used in the $main_lib fileset..."
+                  dict set m $lib$list_file_ext "$current_main $main_lib$list_file_ext"
                 }
               }
-            } else {
-	      if {$ext == ".sim" } {
-		set file_set_name "others.sim"
-	      } else {
-		set file_set_name "sources.oth"		
-	      }
-	      dict lappend libraries $file_set_name $vhdlfile
-
-	      if {[file type $vhdlfile] eq "link"} {
-		#if the file is a link, also add the linked file
-		set real_file [GetLinkedFile $vhdlfile]
-		dict lappend libraries $file_set_name $real_file
-		Msg Debug "File $vhdlfile is a soft link, also adding the real file: $real_file"
-	      }
-	      dict set main_libs $file_set_name $file_set_name
+            } else {	      
+              set file_set_name "sources.oth"			      
+	            dict lappend libraries $file_set_name $vhdlfile
+              if {[file type $vhdlfile] eq "link"} {
+                #if the file is a link, also add the linked file
+                set real_file [GetLinkedFile $vhdlfile]
+                dict lappend libraries $file_set_name $real_file
+                Msg Debug "File $vhdlfile is a soft link, also adding the real file: $real_file"
+              }
+              dict set main_libs $file_set_name $file_set_name
             }
           }
           incr cnt
@@ -729,11 +721,11 @@ proc ReadListFile args {
   if {$sha_mode != 0} {
     #In SHA mode we also need to add the list file to the list
     
-    dict lappend libraries $lib$ext [file normalize $list_file]
+    dict lappend libraries $lib$list_file_ext [file normalize $list_file]
     if {[file type $list_file] eq "link"} {
       #if the file is a link, also add the linked file
       set real_file [GetLinkedFile $list_file]
-      dict lappend libraries $lib$ext $real_file
+      dict lappend libraries $lib$list_file_ext $real_file
       Msg Debug "List file $list_file is a soft link, also adding the real file: $real_file"
     }    
   }

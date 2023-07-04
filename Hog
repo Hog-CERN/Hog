@@ -1,0 +1,49 @@
+#!/bin/bash
+
+# Function to find the directory of an executable in the PATH
+find_executable_dir() {
+    local executable="$1"
+    local IFS=':'
+    for dir in $PATH; do
+        local path="$dir/$executable"
+        if [ -x "$path" ]; then
+            echo "$(dirname "$path")"
+            return 0
+        fi
+    done
+    return 1
+}
+
+# Function to normalize a path
+normalize_path() {
+    local path="$1"
+    echo "$(cd "$(dirname "$path")" && pwd)/$(basename "$path")"
+}
+
+# Check executables in order
+executable_dir=""
+
+if executable_dir=$(find_executable_dir "vivado"); then
+    executable_dir+="/unwrapped/lnx64.o"
+elif executable_dir=$(find_executable_dir "quartus"); then
+    executable_dir+=""
+elif executable_dir=$(find_executable_dir "planAhead"); then
+    executable_dir+="/lin64"
+elif executable_dir=$(find_executable_dir "libero"); then
+    executable_dir+="/../bin64"
+else
+    echo "Error: No relevant executables found!" >&2
+    exit 1
+fi
+
+executable_path="$executable_dir/tclsh8.5"
+executable_path=$(normalize_path "$executable_path")
+echo "$executable_path"
+exit 0
+
+
+
+
+
+
+

@@ -702,14 +702,20 @@ proc ReadListFile args {
                 }
               }
             } else {
-              dict lappend libraries "sources.oth" $vhdlfile
-              if {[file type $vhdlfile] eq "link"} {
-                #if the file is a link, also add the linked file
-                set real_file [GetLinkedFile $vhdlfile]
-                dict lappend libraries "sources.oth" $real_file
-                Msg Debug "File $vhdlfile is a soft link, also adding the real file: $real_file"
-              }
-              dict set main_libs "sources.oth" "sources.oth"
+	      if {$ext == ".sim" } {
+		set file_set_name "others.sim"
+	      } else {
+		set file_set_name "sources.oth"		
+	      }
+	      dict lappend libraries $file_set_name $vhdlfile
+
+	      if {[file type $vhdlfile] eq "link"} {
+		#if the file is a link, also add the linked file
+		set real_file [GetLinkedFile $vhdlfile]
+		dict lappend libraries $file_set_name $real_file
+		Msg Debug "File $vhdlfile is a soft link, also adding the real file: $real_file"
+	      }
+	      dict set main_libs $file_set_name $file_set_name
             }
           }
           incr cnt
@@ -2233,7 +2239,7 @@ proc AddHogFiles { libraries properties main_libs } {
             set file_type [FindFileType $cur_file]
 
             #ADDING FILE PROPERTIES
-            set props [dict get $properties $cur_file]
+            set props [DictGet $properties $cur_file]
 
             # Top synthesis module
             set top [lindex [regexp -inline {top\s*=\s*(.+?)\y.*} $props] 1]

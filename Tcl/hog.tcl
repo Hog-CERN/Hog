@@ -3543,7 +3543,7 @@ proc GetGenericFromConf {proj_dir target {sim 0}} {
           } else {
             set prj_generics "$prj_generics $theKey=\"$theValue\""
           }
-        } elseif { ( $target == "Questa" ) || ( $target == "ModelSim" ) } {
+        } elseif { [lsearch -exact [GetSimulators] [string tolower $target] ] >= 0 } {
           if {$valueNumBits != "" && $valueHexFlag != "" && $valueHex != ""} {
             set numBits 0
             scan $valueNumBits %d numBits
@@ -3563,7 +3563,7 @@ proc GetGenericFromConf {proj_dir target {sim 0}} {
             set prj_generics "$prj_generics {$theKey=\"$theValue\"}"
           }
         } else {
-          Msg warning "Target : $target not implemented"
+          Msg Warning "Target : $target not implemented"
         }
       }
     }
@@ -3586,15 +3586,14 @@ proc SetGenericsSimulation {proj_dir target} {
   set sim_cfg_index [lsearch -regexp -index 0 $read_aux ".*sim.conf"]
   set sim_cfg_index [lsearch -regexp -index 0 [GetConfFiles $top_dir] ".*sim.conf"]
   set simsets [get_filesets -quiet *_sim]
-
   if { $simsets != "" } {
     if {[file exists $top_dir/sim.conf]} {
       set sim_generics [GetGenericFromConf $proj_dir $target 1]
       if {$sim_generics != ""} {
-	foreach simset $simsets {
-	  set_property generic $sim_generics [get_filesets $simset]
-	  Msg Debug "Setting generics $sim_generics for simulator $target and simulation file-set $simset..."
-	}
+        foreach simset $simsets {
+          set_property generic $sim_generics [get_filesets $simset]
+          Msg Debug "Setting generics $sim_generics for simulator $target and simulation file-set $simset..."
+        }
       }
     } else {
       Msg Warning "Simulation sets are present in the project but no sim.conf found in $top_dir. Please refer to Hog's manual to create one."

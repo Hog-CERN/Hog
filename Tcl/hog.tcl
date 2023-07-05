@@ -2390,6 +2390,7 @@ proc AddHogFiles { libraries properties main_libs } {
         }
       } elseif {$ext == ".src"} {
         foreach f $lib_files {
+	  Msg Debug "Adding source $f to library $rootlib..."
           create_links -library $rootlib -hdl_source $f
         }
       }
@@ -2399,7 +2400,7 @@ proc AddHogFiles { libraries properties main_libs } {
           set file_type [FindFileType $cur_file]
 
           #ADDING FILE PROPERTIES
-          set props [dict get $properties $cur_file]
+          set props [DictGet $properties $cur_file]
 
           # Top synthesis module
           set top [lindex [regexp -inline {top\s*=\s*(.+?)\y.*} $props] 1]

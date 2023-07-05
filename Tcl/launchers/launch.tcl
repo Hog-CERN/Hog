@@ -18,23 +18,29 @@
 
 #parsing command options
 set parameters {
-  {create_only     "If set, the project will be only created."}
   {no_bitstream    "If set, the bitstream file will not be produced."}
-  {synth_only      "If set, only the synthesis will be performed."}
-  {impl_only       "If set, only the implementation will be performed. This assumes synthesis should was already done."}
   {recreate        "If set, the project will be re-created if it already exists."}
   {no_reset        "If set, runs (synthesis and implementation) won't be reset before launching them."}
   {check_syntax    "If set, the HDL syntax will be checked at the beginning of the workflow."}
   {njobs.arg 4     "Number of jobs. Default: 4"}
   {ext_path.arg "" "Sets the absolute path for the external libraries."}
 
-  {simulate}       "If set, simulations will be run"
   {simlib_path.arg  "" "Compiled simulation library path"}
   {simset.arg  ""    "Simulation sets, separated by commas, to be run."}
   {verbose         "If set, launch the script in verbose mode"}
 }
 
-set usage "\[OPTIONS\] <project> \n Options:"
+set usage "\[OPTIONS\] <directive> <project>\n The most common <directive> values are CREATE (or C), WORKFLOW (or W), SIMULATE (or S).
+
+Directives:
+CREATE or C: Create the project, replacing it if already existing.
+WORKFLOW or W: Launches the complete workflow, creates the project if not existing.
+CREATEWORKFLOW or CW: Creates the project -even if existing- and launches the complete workflow.
+SIMULATE or S: Simulate the project, createing it if not existing.
+IMPLEMENT: Runs the implementation only, the project must already exist and be synthesised.
+SYNTHESIS: Runs the sysnthesis only, creates the project if not existing.
+
+Options:"
 
 set tcl_path [file normalize "[file dirname [info script]]/.."]
 source $tcl_path/hog.tcl
@@ -45,9 +51,62 @@ if {[IsQuartus]} {
   set argv $quartus(args)
 }
 
-lassign [InitLauncher $::argv0 $tcl_path $parameters $usage $argv] project project_name group_name repo_path old_path bin_dir top_path cmd
+lassign [InitLauncher $::argv0 $tcl_path $parameters $usage $argv] directive project project_name group_name repo_path old_path bin_dir top_path cmd
 
 Msg Debug "Returned by InitLauncher: $project $project_name $group_name $repo_path $old_path $bin_dir $top_path $cmd"
+
+
+######## DEAFULTS #########
+set do_implementation 0; set do_synthesis 0; set do_bitstream 0; set do_create 0; set do_compile 0; set do_simulation 0; set recreate 0; set reset 1
+
+
+# The directive 
+switch $directive {
+  "CREATE" -or "C" {
+    set do_create 1
+    set recreate 1
+  }
+  
+  "IMPLEMENT" -or "IMPLEMENTATION" -or "IMPL" {
+    set do_implementation 1
+    set do_bitstream 1
+    set do_compile 1
+  }
+  
+  "SYNTHESIS" -or "SYNTEHSISE" -or "SYNT" {
+    set do_synthesis 1
+    set do_compile 1
+  }
+  
+  "SIMULATE" -or "SIMULATION" -or "SIM" -or "S" {
+    set do_simulation 1
+  }
+  
+  "WORKFLOW" -or "WORK" -or "W" {
+    set do_implementation 1
+    set do_synthesis 1
+    set do_bitstream 1
+    set do_create 1
+    set do_compile 1
+  }
+
+  "RECREATEWORKFLOW" -or  "RW" {
+    set do_implementation 1
+    set do_synthesis 1
+    set do_bitstream 1
+    set do_create 1
+    set do_compile 1
+    set recreate 1
+  }
+  
+  default {
+    Msg "Unknown directive $directive."
+    exit 1
+  }
+}
+
+
+
 
 if {$cmd == 0} {
   #This script was launched within the IDE,: Vivado, Quartus, etc
@@ -85,23 +144,15 @@ if {[catch {package require cmdline} ERROR] || [catch {package require struct::m
   exit 1
 }
 
-if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] ||  [llength $argv] < 1 } {
+if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] ||  [llength $argv] != 2 } {
   Msg Info [cmdline::usage $parameters $usage]
   exit 1
 } else {
   set main_folder [file normalize "$repo_path/Projects/$project_name/$project.runs/"]
   set main_sim_folder [file normalize "$repo_path/Projects/$project_name/$project.sim/"]
-  set do_implementation 1
-  set do_synthesis 1
-  set do_bitstream 1
-  set do_create 1
-  set recreate 0
-  set reset 1
   set check_syntax 0
   set ext_path ""
   set simlib_path ""
-  set do_compile 1
-  set do_simulation 0
 
   #Quartus only
   set project_path [file normalize "$repo_path/Projects/$project_name/"]
@@ -117,24 +168,6 @@ if { $options(recreate) == 1 } {
   set recreate 1
 }
 
-if { $options(create_only) == 1 } {
-  set do_synthesis 0
-  set do_implementation 0
-  set do_compile 0
-  set do_create 1
-  set recreate 1
-}
-
-
-if { $options(synth_only) == 1 } {
-  set do_implementation 0
-  set do_compile 0
-}
-
-if { $options(impl_only) == 1 } {
-  set do_synthesis 0
-  set do_compile 0
-}
 
 if { $options(no_reset) == 1 } {
   set reset 0
@@ -144,11 +177,7 @@ if { $options(check_syntax) == 1 } {
   set check_syntax 1
 }
 
-if { $options(simulate) == 1 } {
-  set do_simulation 1
-  set do_synthesis 0
-  set do_implementation 0
-  set do_compile 0
+if { $do_simulation == 1 } {
   set simsets $options(simset)
 }
 
@@ -157,13 +186,10 @@ if { $options(ext_path) != ""} {
 }
 
 if {$options(simlib_path)!= ""} {
-  #Strange directory changes were happening here...
-  #cd $old_path 
   set lib_path [file normalize $options(simlib_path)]
-  #set workflow_simlib_path [file normalize $options(simlib_path)]
-  #cd $path
 } else {
   set lib_path [file normalize "$repo_path/SimulationLib"]
+  #we should check if it exists
 }
 
 

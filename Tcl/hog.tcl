@@ -4077,7 +4077,7 @@ proc CompareLibLists {l_proj l_list {prop 0} {severity "CriticalWarning"} {outFi
   }
   # Loop over remaining files in list libraries
   foreach file $l_list {
-    MsgAndLog "$file was found in list files but not in project."
+    MsgAndLog "$file was found in list files but not in project libraries."
     incr n_diffs
   }
   return [list $n_diffs $extra_files]
@@ -4171,14 +4171,19 @@ proc TransformToHogDict {prjDict {dict_type ".src"}} {
   set prjHogDict [dict create]
   foreach fileset [dict keys $prjDict] {
     foreach file [dict get $prjDict $fileset] {      
-      set libs [get_property "library" [get_files $file]]
-      foreach lib $libs {
+      set lib [get_property "library" [get_files $file]]
+      if {$dict_type == ".sim"} {
+        # Each simulation list file creates a fileset, so we need to use the fileset as key
+        set key [string map {_sim .sim} $fileset]
+        # set key $fileset
+      } else {
+        # For the other list files the key is different.
         set key "$lib$dict_type"
-        if {[dict exists $prjHogDict $key ]} {
-          dict lappend prjHogDict $key $file
-        } else {
-          dict set prjHogDict $key $file
-        }
+      }
+      if {[dict exists $prjHogDict $key ]} {
+        dict lappend prjHogDict $key $file
+      } else {
+        dict set prjHogDict $key $file
       }
     }
   }

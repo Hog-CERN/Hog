@@ -1,4 +1,13 @@
 #!/bin/bash
+# Array of IDE executables, the paths where tclsh is located wrt to them, and the tclsh executable name.
+# The separator must be comma and space and the path separator in the second element must be : with no spaces
+executables=(
+    "tclsh, ., tclsh"
+    "vivado, unwrapped/lnx64.o/:/unwrapped/win64.o/:/unwrapped/lnx32.o/:/unwrapped/win32.o/, tclsh8.5"
+    "quartus, ., tclsh"
+    "planAhead, lin64/:lin32/:win32/:win64/, tclsh"
+    "libero, ../bin64/:../bin32, acttclsh"
+)
 
 # Function to find the directory of an executable in the PATH
 find_executable_dir() {
@@ -20,28 +29,39 @@ normalize_path() {
     echo "$(cd "$(dirname "$path")" && pwd)/$(basename "$path")"
 }
 
-# Check executables in order
-executable_dir=""
 
-if executable_dir=$(find_executable_dir "vivado"); then
-    executable_dir+="/unwrapped/lnx64.o"
-elif executable_dir=$(find_executable_dir "quartus"); then
-    executable_dir+=""
-elif executable_dir=$(find_executable_dir "planAhead"); then
-    executable_dir+="/lin64"
-elif executable_dir=$(find_executable_dir "libero"); then
-    executable_dir+="/../bin64"
+hog_dir="$(cd "$(dirname "$0")" && pwd)"
+
+found=0
+# Loop through the executables array
+for executable in "${executables[@]}"; do
+    # Split the executable and additional path
+    IFS=', ' read -r exe_name exe_paths tclsh_name <<< "$executable"
+    
+    # Find the directory path of the executable
+    executable_dir=""
+    if executable_dir=$(find_executable_dir "$exe_name"); then
+	IFS=":" read -ra exe_paths <<< "$exe_paths"
+        for exe_path in "${exe_paths[@]}"; do
+            executable_path=$(normalize_path "$executable_dir/$exe_path/$tclsh_name")
+	    if [ -x "$executable_path" ]; then
+		found=1
+		break
+	    fi
+	done
+    fi
+    if [ "$found" == 1 ]; then
+	break
+    fi
+done
+
+if [ "$found" == 1 ]; then
+    $executable_path $hog_dir/Tcl/launchers/launch.tcl "$@" 
+    exit 0
 else
     echo "Error: No relevant executables found!" >&2
     exit 1
 fi
-
-executable_path="$executable_dir/tclsh8.5"
-executable_path=$(normalize_path "$executable_path")
-echo "$executable_path"
-exit 0
-
-
 
 
 

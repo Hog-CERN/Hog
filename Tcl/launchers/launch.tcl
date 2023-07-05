@@ -18,19 +18,20 @@
 
 #parsing command options
 set parameters {
+  {create_only     "If set, the project will be only created."}
   {no_bitstream    "If set, the bitstream file will not be produced."}
   {synth_only      "If set, only the synthesis will be performed."}
   {impl_only       "If set, only the implementation will be performed. This assumes synthesis should was already done."}
   {recreate        "If set, the project will be re-created if it already exists."}
   {no_reset        "If set, runs (synthesis and implementation) won't be reset before launching them."}
   {check_syntax    "If set, the HDL syntax will be checked at the beginning of the workflow."}
-  {njobs.arg 4 "Number of jobs. Default: 4"}
+  {njobs.arg 4     "Number of jobs. Default: 4"}
   {ext_path.arg "" "Sets the absolute path for the external libraries."}
   {simlib_path.arg  "" "Path of simulation libs"}
   {verbose         "If set, launch the script in verbose mode"}
 }
 
-set usage "\[OPTIONS\] <project> \n. Options:"
+set usage "\[OPTIONS\] <project> \n Options:"
 
 set tcl_path [file normalize "[file dirname [info script]]/.."]
 source $tcl_path/hog.tcl
@@ -43,13 +44,15 @@ if {[IsQuartus]} {
 
 lassign [InitLauncher $::argv0 $tcl_path $parameters $usage $argv] project project_name group_name repo_path old_path bin_dir top_path cmd
 
+Msg Debug "Returned by InitLauncher: $project $project_name $group_name $repo_path $old_path $bin_dir $top_path $cmd"
+
 if {$cmd == 0} {
   #This script was launched within the IDE,: Vivado, Quartus, etc
   Msg Info "$::argv0 was launched from the IDE."
   
 } else {
   #This script was launched with Tclsh, we need to check the arguments and if everything is right launche the IDE on this script and return
-  Msg Info "Launching $cmd..."
+  Msg Info "Launching command: $cmd..."
 
   set ret [catch {exec -ignorestderr {*}$cmd >@ stdout} result]
   
@@ -64,8 +67,18 @@ if {$cmd == 0} {
 #After this line, we are in the IDE
 ##################################################################################
 
+# We need to Import tcllib if we are using Libero
+if {[IsLibero]} {
+  if {[info exists env(HOG_TCLLIB_PATH)]} {
+    lappend auto_path $env(HOG_TCLLIB_PATH) 
+  } else {
+    puts "ERROR: To run Hog with Microsemi Libero SoC, you need to define the HOG_TCLLIB_PATH variable."
+    return
+  }  
+}
+
 if {[catch {package require cmdline} ERROR] || [catch {package require struct::matrix} ERROR]} {
-  puts "$ERROR\n Tcllib not found. If you are running this script on tclsh fr debuggin purpose, you can fix this by installing 'tcllib'"
+  puts "$ERROR\n Tcllib not found. If you are running this script on tclsh for debuggin purpose ONLY, you can fix this by installing 'tcllib'"
   exit 1
 }
 
@@ -77,6 +90,7 @@ if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] 
   set do_implementation 1
   set do_synthesis 1
   set do_bitstream 1
+  set do_create 1
   set recreate 0
   set reset 1
   set check_syntax 0
@@ -97,6 +111,15 @@ if { $options(no_bitstream) == 1 } {
 if { $options(recreate) == 1 } {
   set recreate 1
 }
+
+if { $options(create_only) == 1 } {
+  set do_synthesis 0
+  set do_implementation 0
+  set do_compile 0
+  set do_create 1
+  set recreate 1
+}
+
 
 if { $options(synth_only) == 1 } {
   set do_implementation 0
@@ -128,21 +151,6 @@ if { $options(verbose) == 1 } {
   variable ::DEBUG_MODE 1
 }
 
-if {$do_synthesis == 0} {
-  Msg Info "Will launch implementation only..."
-
-} else {
-  if {$do_implementation == 1} {
-    if {$do_bitstream == 1} {
-      Msg Info "Will launch implementation and write bitstream..."
-    } else {
-      Msg Info "Will launch implementation only..."
-    }
-  } else {
-    Msg Info "Will launch synthesis only..."
-  }
-}
-
 Msg Info "Number of jobs set to $options(njobs)."
 
 
@@ -168,13 +176,13 @@ if {[IsXilinx]} {
 	  set proj_found 0
 	}
 	
-	if {($proj_found == 0 || $recreate == 1) && $do_synthesis == 1} {
+	if {($proj_found == 0 || $recreate == 1) && ($do_synthesis == 1 || $do_create == 1)} {
 	  Msg Info "Creating (possibly replacing) the project $project_name..."
 	  lassign [GetConfFiles $repo_path/Top/$project_name] conf sim pre post
 	
 	  if {[file exists $conf]} {
 	    #Still not sure of the difference between project and project_name
-	    CreateProject $project_name 
+	    CreateProject $project_name $repo_path 
 	  } else {
 	    Msg Error "Project $project_name is incomplete: no hog.conf file found, please create one..."
 	  }
@@ -198,11 +206,11 @@ if {[IsXilinx]} {
 	    }
 	  }
 	} else {
-	  Msg Info "Skipping syntax check for project $project_name"
+	  Msg Debug "Skipping syntax check for project $project_name"
 	}
 	
 	############# SYNTH ###############
-	if {$reset == 1 } {
+	if {$reset == 1 && $do_create == 0} {
 	  Msg Info "Resetting run before launching synthesis..."
 	  reset_run synth_1
 	
@@ -264,7 +272,7 @@ if {[IsXilinx]} {
 	    Msg Error "Synthesis error, status is: $status"
 	  }
 	} else {
-	  Msg Info "Skipping synthesis (and IP handling)..."
+	  Msg Debug "Skipping synthesis (and IP handling)..."
 	}
 	
 	############### IMPL ###################
@@ -272,7 +280,7 @@ if {[IsXilinx]} {
 	if {$do_implementation == 1 } {
 	
 	  Msg Info "Starting implementation flow..."
-	  if { $reset == 1 } {
+	  if { $reset == 1 && $do_create == 0} {
 	    Msg Info "Resetting run before launching implementation..."
 	    reset_run impl_1
 	  }
@@ -456,7 +464,7 @@ if {[IsXilinx]} {
     set proj_found 0
   }
   
-  if { $proj_found == 0 || $recreate == 1 } {
+  if { $proj_found == 0 || $recreate == 1 || $do_create == 1} {
     Msg Info "Creating (possibly replacing) the project $project_name..."
     lassign [GetConfFiles $repo_path/Top/$project_name] conf sim pre post tcl_file
     
@@ -627,12 +635,12 @@ if {[IsXilinx]} {
     set proj_found 0
   }
   
-  if {($proj_found == 0 || $recreate == 1) && $do_synthesis == 1} {
+  if {($proj_found == 0 || $recreate == 1) && ($do_synthesis == 1  || $do_create == 1)} {
     Msg Info "Creating (possibly replacing) the project $project_name..."
     lassign [GetConfFiles $repo_path/Top/$project_name] conf sim pre post
     
     if {[file exists $conf]} {
-      CreateProject $project_name
+      CreateProject $project_name $repo_path
     } else {
       Msg Error "Project $project_name is incomplete: no hog.conf file found, please create one..."
     }
@@ -659,7 +667,7 @@ if {[IsXilinx]} {
       Msg Info "SYNTHESIZE PASSED!"
     }  
   } else {
-    Msg Info "Skipping synthesis (and IP handling)..."
+    Msg Debug "Skipping synthesis (and IP handling)..."
   }
   
   ############### IMPL ###################

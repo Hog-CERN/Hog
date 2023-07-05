@@ -4284,11 +4284,14 @@ proc InitLauncher {script tcl_path parameters usage argv} {
     source $tcl_path/utils/cmdline.tcl
   }
   
+  set orig_argv $argv
   if {[catch {array set options [cmdline::getoptions argv $parameters $usage]} err] } {
     Msg Status "\nERROR: Syntax error, probably unkown option.\n\n USAGE: $err"
     exit 1
   }
-  Msg Debug "Argv is: $argv"
+
+  Msg Debug "Original argv is: $orig_argv"
+  Msg Debug "Cleaned-up argv is: $argv"
   
   # Argv here is modified and the options are removed
   set project [lindex $argv 0]
@@ -4315,7 +4318,7 @@ proc InitLauncher {script tcl_path parameters usage argv} {
       Msg Info "Project $project uses $cmd IDE"
       
       ## The following is the IDE command to launch:
-      set command "$cmd $before_tcl_script$script$after_tcl_script$argv$end_marker"
+      set command "$cmd $before_tcl_script$script$after_tcl_script$orig_argv$end_marker"
       
     } else {
       Msg Status "\nERROR: Project $project not found, the projects in this repository are:\n"

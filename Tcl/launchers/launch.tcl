@@ -39,6 +39,7 @@ CREATEWORKFLOW or CW: Creates the project -even if existing- and launches the co
 SIMULATE or S: Simulate the project, createing it if not existing.
 IMPLEMENT: Runs the implementation only, the project must already exist and be synthesised.
 SYNTHESIS: Runs the sysnthesis only, creates the project if not existing.
+LIST or L: Only list all the projects
 
 Options:"
 
@@ -57,10 +58,8 @@ Msg Debug "Returned by InitLauncher: $project $project_name $group_name $repo_pa
 
 
 ######## DEAFULTS #########
-set do_implementation 0; set do_synthesis 0; set do_bitstream 0; set do_create 0; set do_compile 0; set do_simulation 0; set recreate 0; set reset 1
+set do_implementation 0; set do_synthesis 0; set do_bitstream 0; set do_create 0; set do_compile 0; set do_simulation 0; set recreate 0; set reset 1;
 
-
-# The directive 
 switch -regexp -- $directive {
   CREATE|C {
     set do_create 1
@@ -104,9 +103,6 @@ switch -regexp -- $directive {
     exit 1
   }
 }
-
-
-
 
 if {$cmd == 0} {
   #This script was launched within the IDE,: Vivado, Quartus, etc

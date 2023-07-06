@@ -4294,15 +4294,20 @@ proc InitLauncher {script tcl_path parameters usage argv} {
   Msg Debug "Cleaned-up argv is: $argv"
   
   # Argv here is modified and the options are removed
-  set directive [lindex $argv 0]
-  set project  [lindex $argv 1]
-  set proj_conf [ProjectExists $project $repo_path] 
-  
-  if { [llength $argv] != 2} {
+  set directive [string toupper [lindex $argv 0]]
+
+  if { [llength $argv] == 1 && ($directive == "L" || $directive == "LIST")} {
+    ListProjects $repo_path
+    Msg Status "\n"
+    exit 0
+  } elseif { [llength $argv] != 2} {
     Msg Status "\nERROR: Wrong number of arguments: [llength $argv].\n\n"
     Msg Status "USAGE: $script [cmdline::usage $parameters $usage]"
     exit 1
   }
+
+  set project  [lindex $argv 1]
+  set proj_conf [ProjectExists $project $repo_path] 
   
   Msg Debug "Option list:"
   foreach {key value} [array get options] {
@@ -4340,7 +4345,7 @@ proc InitLauncher {script tcl_path parameters usage argv} {
     set project_name "$project"
   }
 
-  return [list [string toupper $directive] $project $project_name $project_group $repo_path $old_path $bin_path $top_path $command]
+  return [list $directive $project $project_name $project_group $repo_path $old_path $bin_path $top_path $command]
 }
 
 # List projects all projects in the repository

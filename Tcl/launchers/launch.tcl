@@ -61,28 +61,28 @@ set do_implementation 0; set do_synthesis 0; set do_bitstream 0; set do_create 0
 
 
 # The directive 
-switch $directive {
-  "CREATE" -or "C" {
+switch -regexp -- $directive {
+  CREATE|C {
     set do_create 1
     set recreate 1
   }
   
-  "IMPLEMENT" -or "IMPLEMENTATION" -or "IMPL" {
+  IMPLEMENT|IMPLEMENTATION|IMPL {
     set do_implementation 1
     set do_bitstream 1
     set do_compile 1
   }
   
-  "SYNTHESIS" -or "SYNTEHSISE" -or "SYNT" {
+  SYNTHESIS|SYNTEHSISE|SYNT {
     set do_synthesis 1
     set do_compile 1
   }
   
-  "SIMULATE" -or "SIMULATION" -or "SIM" -or "S" {
+  SIMULATE|SIMULATION|SIM|S {
     set do_simulation 1
   }
   
-  "WORKFLOW" -or "WORK" -or "W" {
+  WORKFLOW|WORK|W {
     set do_implementation 1
     set do_synthesis 1
     set do_bitstream 1
@@ -90,7 +90,7 @@ switch $directive {
     set do_compile 1
   }
 
-  "RECREATEWORKFLOW" -or  "RW" {
+  CREATEWORKFLOW|CW {
     set do_implementation 1
     set do_synthesis 1
     set do_bitstream 1

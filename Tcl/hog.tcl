@@ -582,7 +582,7 @@ proc ReadListFile args {
   }
   set usage "USAGE: ReadListFile \[options\] <list file> <path>"
   if {[catch {array set options [cmdline::getoptions args $parameters $usage]}] ||  [llength $args] != 2 } {
-    Msg Error "[cmdline::usage $parameters $usage]"
+    Msg CriticalWarning "[cmdline::usage $parameters $usage]"
     return
   }
   set list_file [lindex $args 0]
@@ -1312,7 +1312,7 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
   set vers ""
   set hashes ""
   # Specify sha_mode 1 for GetHogFiles to get all the files, including the list-files themselves
-  lassign [GetHogFiles -list_files "*.src" -sha_mode -repo_path $repo_path "./list/"] src_files dummy
+  lassign [GetHogFiles -list_files "*.src" -sha_mode "./list/" $repo_path] src_files dummy
   dict for {f files} $src_files {
     # library names have a .src extension in values returned by GetHogFiles
     set name [file rootname [file tail $f]]
@@ -1331,7 +1331,7 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
   # Read constraint list files
   set cons_hashes ""
   # Specify sha_mode 1 for GetHogFiles to get all the files, including the list-files themselves
-  lassign [GetHogFiles  -list_files "*.con" -sha_mode -repo_path $repo_path  "./list/" ] cons_files dummy
+  lassign [GetHogFiles  -list_files "*.con" -sha_mode "./list/" $repo_path] cons_files dummy
   dict for {f files} $cons_files {
     #library names have a .con extension in values returned by GetHogFiles
     set name [file rootname [file tail $f]]
@@ -1349,7 +1349,7 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
   if {$sim == 1} {
     set sim_hashes ""
     # Specify sha_mode 1 for GetHogFiles to get all the files, including the list-files themselves
-    lassign [GetHogFiles  -list_files "*.sim" -sha_mode -repo_path $repo_path  "./list/"] sim_files dummy
+    lassign [GetHogFiles  -list_files "*.sim" -sha_mode "./list/" $repo_path] sim_files dummy
     dict for {f files} $sim_files {
       #library names have a .sim extension in values returned by GetHogFiles
       set name [file rootname [file tail $f]]
@@ -1413,7 +1413,7 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
   # Ipbus XML
   if {[file exists ./list/xml.lst]} {
     #Msg Info "Found IPbus XML list file, evaluating version and SHA of listed files..."
-    lassign [GetHogFiles  -list_files "xml.lst" -repo_path $repo_path  -sha_mode "./list/"] xml_files dummy
+    lassign [GetHogFiles  -list_files "xml.lst" -sha_mode "./list/" $repo_path] xml_files dummy
     lassign [GetVer  [dict get $xml_files "xml.lst"] ] xml_ver xml_hash
     lappend SHAs $xml_hash
     lappend versions $xml_ver
@@ -1890,11 +1890,10 @@ proc GetProjectFiles {} {
 
 ## @brief Extract files, libraries and properties from the project's list files
 #
-# @param[in] args The arguments are \<list_path\> [options]
+# @param[in] args The arguments are \<list_path\> \<repository path\>[options]
 # * list_path path to the list file directory
 # Options:
 # * -list_files \<List files\> the file wildcard, if not specified all Hog list files will be looked for
-# * -repo_path \<repo path\> the absolute of the top directory of the repository
 # * -sha_mode forwarded to ReadListFile, see there for info
 # * -ext_path \<external path\> path for external libraries forwarded to ReadListFile
 #
@@ -1916,20 +1915,21 @@ proc GetHogFiles args {
 
   set parameters {
     {list_files.arg ""  "The file wildcard, if not specified all Hog list files will be looked for."}
-    {repo_path.arg ""  "The absolute path of the top directory of the repository."}
     {sha_mode "Forwarded to ReadListFile, see there for info."}
     {ext_path.arg "" "Path for the external libraries forwarded to ReadListFile."}
   }
-  set usage "USAGE: GetHogFiles \[options\] <list path>"
-  if {[catch {array set options [cmdline::getoptions args $parameters $usage]}] ||  [llength $args] != 1 } {
-    Msg Error [cmdline::usage $parameters $usage]
+  set usage "USAGE: GetHogFiles \[options\] <list path> <repository path>"
+  if {[catch {array set options [cmdline::getoptions args $parameters $usage]}] ||  [llength $args] != 2 } {
+    Msg CriticalWarning [cmdline::usage $parameters $usage]
     return
   }
   set list_path [lindex $args 0]
+  set repo_path [lindex $args 1]
+
   set list_files $options(list_files)
   set sha_mode $options(sha_mode)
   set ext_path $options(ext_path)
-  set repo_path $options(repo_path)
+
 
   if { $sha_mode == 1 } {
     set sha_mode_opt "-sha_mode"
@@ -4047,21 +4047,30 @@ proc InitLauncher {script tcl_path parameters usage argv} {
     source $tcl_path/utils/cmdline.tcl
   }
   
+  set orig_argv $argv
   if {[catch {array set options [cmdline::getoptions argv $parameters $usage]} err] } {
     Msg Status "\nERROR: Syntax error, probably unkown option.\n\n USAGE: $err"
     exit 1
   }
-  Msg Debug "Argv is: $argv"
+
+  Msg Debug "Original argv is: $orig_argv"
+  Msg Debug "Cleaned-up argv is: $argv"
   
   # Argv here is modified and the options are removed
-  set project [lindex $argv 0]
-  set proj_conf [ProjectExists $project $repo_path] 
-  
-  if { [llength $argv] != 1} {
+  set directive [string toupper [lindex $argv 0]]
+
+  if { [llength $argv] == 1 && ($directive == "L" || $directive == "LIST")} {
+    ListProjects $repo_path
+    Msg Status "\n"
+    exit 0
+  } elseif { [llength $argv] != 2} {
     Msg Status "\nERROR: Wrong number of arguments: [llength $argv].\n\n"
     Msg Status "USAGE: $script [cmdline::usage $parameters $usage]"
     exit 1
   }
+
+  set project  [lindex $argv 1]
+  set proj_conf [ProjectExists $project $repo_path] 
   
   Msg Debug "Option list:"
   foreach {key value} [array get options] {
@@ -4078,7 +4087,7 @@ proc InitLauncher {script tcl_path parameters usage argv} {
       Msg Info "Project $project uses $cmd IDE"
       
       ## The following is the IDE command to launch:
-      set command "$cmd $before_tcl_script$script$after_tcl_script$argv$end_marker"
+      set command "$cmd $before_tcl_script$script$after_tcl_script$orig_argv$end_marker"
       
     } else {
       Msg Status "\nERROR: Project $project not found, the projects in this repository are:\n"
@@ -4099,7 +4108,7 @@ proc InitLauncher {script tcl_path parameters usage argv} {
     set project_name "$project"
   }
 
-  return [list $project $project_name $project_group $repo_path $old_path $bin_path $top_path $command]
+  return [list $directive $project $project_name $project_group $repo_path $old_path $bin_path $top_path $command]
 }
 
 # List projects all projects in the repository
@@ -4230,4 +4239,5 @@ proc IsInList {element list} {
     return 0
   }
 }
+source [file dirname [info script]]/create_project.tcl
 

@@ -1,3 +1,4 @@
+#!/usr/bin/env tclsh
 # @file
 #   Copyright 2018-2023 The University of Birmingham
 #
@@ -32,18 +33,18 @@ set parameters {
 
 set usage "\[OPTIONS\] <directive> <project>\n The most common <directive> values are CREATE (or C), WORKFLOW (or W), SIMULATE (or S).
 
-Directives:
-CREATE or C: Create the project, replacing it if already existing.
-WORKFLOW or W: Launches the complete workflow, creates the project if not existing.
-CREATEWORKFLOW or CW: Creates the project -even if existing- and launches the complete workflow.
-SIMULATE or S: Simulate the project, createing it if not existing.
-IMPLEMENT: Runs the implementation only, the project must already exist and be synthesised.
-SYNTHESIS: Runs the sysnthesis only, creates the project if not existing.
-LIST or L: Only list all the projects
+** Directives:
+- CREATE or C: Create the project, replacing it if already existing.
+- WORKFLOW or W: Launches the complete workflow, creates the project if not existing.
+- CREATEWORKFLOW or CW: Creates the project -even if existing- and launches the complete workflow.
+- SIMULATE or S: Simulate the project, createing it if not existing.
+- IMPLEMENT: Runs the implementation only, the project must already exist and be synthesised.
+- SYNTHESIS: Runs the sysnthesis only, creates the project if not existing.
+- LIST or L: Only list all the projects
 
-Options:"
+** Options:"
 
-set tcl_path [file normalize "[file dirname [info script]]/.."]
+set tcl_path [file normalize "[file dirname [info script]]"]
 source $tcl_path/hog.tcl
 
 # Quartus needs extra packages and treats the argv in a different way
@@ -61,12 +62,15 @@ Msg Debug "Returned by InitLauncher: $project $project_name $group_name $repo_pa
 set do_implementation 0; set do_synthesis 0; set do_bitstream 0; set do_create 0; set do_compile 0; set do_simulation 0; set recreate 0; set reset 1;
 
 switch -regexp -- $directive {
+
   CREATE|C {
+    puts c
     set do_create 1
     set recreate 1
   }
   
   IMPLEMENT|IMPLEMENTATION|IMPL {
+    puts i
     set do_implementation 1
     set do_bitstream 1
     set do_compile 1
@@ -99,12 +103,26 @@ switch -regexp -- $directive {
   }
   
   default {
-    Msg "Unknown directive $directive."
+    Msg Status "ERROR: Unknown directive $directive.\n\n[cmdline::usage $parameters $usage]"
     exit 1
   }
 }
 
-if {$cmd == 0} {
+if {$cmd == -1} {
+#This is if the project was not found
+  Msg Status "\n\n Possible projects are:"
+  ListProjects $repo_path
+  Msg Status "\n"
+  exit 1
+} elseif {$cmd == -2} {
+  # Project not given but needed
+  Msg Status "ERROR: You must specify a project with directive $directive.\n\n[cmdline::usage $parameters $usage]"
+  Msg Status "\n Possible projects are:"
+  ListProjects $repo_path
+  Msg Status "\n"
+  exit 1
+  
+} elseif {$cmd == 0} {
   #This script was launched within the IDE,: Vivado, Quartus, etc
   Msg Info "$::argv0 was launched from the IDE."
   

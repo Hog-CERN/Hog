@@ -4297,12 +4297,20 @@ proc InitLauncher {script tcl_path parameters usage argv} {
   set directive [string toupper [lindex $argv 0]]
 
   if { [llength $argv] == 1 && ($directive == "L" || $directive == "LIST")} {
+    Msg Status "\n** The projects in this repository are:"
     ListProjects $repo_path
     Msg Status "\n"
     exit 0
-  } elseif { [llength $argv] != 2} {
+  } elseif { [llength $argv] == 0} {
+    Msg Status "USAGE: [cmdline::usage $parameters $usage]"
+    Msg Status "** The projects in this repository are:"
+    ListProjects $repo_path
+    Msg Status "\n"
+    exit 0
+
+  } elseif { [llength $argv] > 2} {
     Msg Status "\nERROR: Wrong number of arguments: [llength $argv].\n\n"
-    Msg Status "USAGE: $script [cmdline::usage $parameters $usage]"
+    Msg Status "USAGE: [cmdline::usage $parameters $usage]"
     exit 1
   }
 
@@ -4327,10 +4335,13 @@ proc InitLauncher {script tcl_path parameters usage argv} {
       set command "$cmd $before_tcl_script$script$after_tcl_script$orig_argv$end_marker"
       
     } else {
-      Msg Status "\nERROR: Project $project not found, the projects in this repository are:\n"
-      ListProjects $repo_path
-      Msg Status "\n"
-      exit 1
+      if {$project != ""} {
+	#Project not given
+	set command -1
+      } else {
+	#Project not found
+	set command -2
+      }
     }
   } else {
     # When the launcher is executed from within an IDE, command is set to 0
@@ -4360,7 +4371,7 @@ proc ListProjects {{repo_path .} {print 1} {ret_conf 0}} {
     set p [Relative $top_path [file dirname $c]]
     if {$print == 1} {
       # Print a list of the projects with relative IDE
-      Msg Status "$p \(IDE: [GetIDEFromConf $c]\)"
+      Msg Status "$p \([GetIDEFromConf $c]\)"
     }
     lappend projects $p
   }

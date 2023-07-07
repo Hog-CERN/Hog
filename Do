@@ -56,10 +56,10 @@ for executable in "${executables[@]}"; do
 done
 
 if [ "$found" == 1 ]; then
-    $executable_path $hog_dir/Tcl/launchers/launch.tcl "$@" 
+    $executable_path $hog_dir/Tcl/launch.tcl "$@" 
     exit 0
 else
-    echo "Error: No relevant executables found!" >&2
+    echo "Error: No IDE exectuable found in PATH. You need an IDE in your PATH to use Hog." >&2
     exit 1
 fi
 

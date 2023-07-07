@@ -142,44 +142,62 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
   #################################################################
   ##### START COMPARISON OF FILES IN PROJECT AND LIST FILES ######
   #################################################################
-  lassign [CompareLibDicts $prjLibraries $listLibraries $prjSrcSets $listSrcSets $prjProperties $listProperties "CriticalWarning" $outFile $extraFiles] n_source_diffs extraFiles
-  lassign [CompareLibDicts $prjSimLibraries $listSimLibraries $prjSimSets $listSimSets $prjProperties $listProperties "Warning" $outSimFile $extraFiles] n_sim_diffs extraFiles
-  lassign [CompareLibDicts $prjConstraints $listConstraints $prjConSets $listConSets $prjProperties $listProperties  "CriticalWarning" $outFile $extraFiles] n_con_diffs extraFiles
+  lassign [CompareLibDicts $prjLibraries $listLibraries $prjSrcSets $listSrcSets $prjProperties $listProperties "CriticalWarning" $outFile $extraFiles] SrcListErrorCnt extraFiles
+  lassign [CompareLibDicts $prjSimLibraries $listSimLibraries $prjSimSets $listSimSets $prjProperties $listProperties "Warning" $outSimFile $extraFiles] SimListErrorCnt extraFiles
+  lassign [CompareLibDicts $prjConstraints $listConstraints $prjConSets $listConSets $prjProperties $listProperties  "CriticalWarning" $outFile $extraFiles] ConListErrorCnt extraFiles
 
   # Check if any files remained in extraFiles
   foreach {k v} $extraFiles {
     MsgAndLog "$k was found in .hog/extra.files but not in project." "CriticalWarning" $outFile 
-    incr ListErrorCnt
+    incr SrcListErrorCnt
   }
 
-  # Summary of errors found
-  set ListErrorCnt [expr $n_source_diffs + $n_con_diffs ]
-  set ListSimErrorCnt [expr $n_sim_diffs ]
-
-  if {$ListErrorCnt == 0} {
+  if {$SrcListErrorCnt == 0} {
     Msg Info "Design List Files matches project. Nothing to do."
   }
 
-  if {$ListSimErrorCnt == 0} {
+  if {$SimListErrorCnt == 0} {
     Msg Info "Simulation List Files matches project. Nothing to do."
+  }
+
+  if {$ConListErrorCnt == 0} {
+    Msg Info "Constraint List Files matches project. Nothing to do."
   }
 
 
   # Recreating src list files
-  if {$options(recreate) == 1 && ($ListErrorCnt > 0) } {
+  if {$options(recreate) == 1 && ($SrcListErrorCnt > 0 || $SimListErrorCnt > 0 || $ConListErrorCnt > 0) } {
     set listpath "$repo_path/$DirName/list/"
     Msg Info "Updating list files in $listpath"
-    # Delete existing listFiles
-    if {$options(force) == 1} {
-      foreach F [glob -nocomplain "$listpath/*.src" "$listpath/*.ext" "$listpath/*.sim" "$listpath/*.con"] {
-        if {[dict exists $prjHogSrcDict [file tail $F]] == 0} {
+    # Create the list path, if it does not exist yet
+    file mkdir $listpath
+    if {$SrcListErrorCnt > 0} {
+      # Delete existing .src list files
+      if {$options(force) == 1} {
+        foreach F [glob -nocomplain "$listpath/*.src" "$listpath/*.ext"] {
           file delete $F
         }
       }
+      WriteListFiles $prjLibraries $prjProperties $listpath $repo_path $ext_path
     }
-    # Create the list path, if it does not exist yet
-    file mkdir $listpath
-    WriteListFiles $prjLibraries $prjSrcSets $prjProperties $listpath $repo_path $ext_path
+    if {$SimListErrorCnt > 0} {
+      # Delete existing .sim list files
+      if {$options(force) == 1} {
+        foreach F [glob -nocomplain "$listpath/*.sim"] {
+          file delete $F
+        }
+      }
+      WriteSimListFiles $prjLibraries $prjProperties $listpath $repo_path
+    }
+    if {$ConListErrorCnt > 0} {
+      # Delete existing .con list files
+      if {$options(force) == 1} {
+        foreach F [glob -nocomplain "$listpath/*.con"] {
+          file delete $F
+        }
+      }
+      WriteListFiles $prjConstraints $prjProperties $listpath $repo_path
+    }
   } 
 }
 
@@ -654,19 +672,19 @@ if {![string equal $options(project) ""]} {
 }
 
 
-set TotErrorCnt [expr {$ConfErrorCnt + $ListErrorCnt}]
+set TotErrorCnt [expr {$ConfErrorCnt + $SrcListErrorCnt + $ConListErrorCnt}]
 
 if {$options(recreate_conf) == 0 && $options(recreate) == 0} {
   if {$options(pedantic) == 1 && $TotErrorCnt > 0} {
-    Msg Error "Number of errors: $TotErrorCnt. (Design List files = $ListErrorCnt, hog.conf = $ConfErrorCnt)."
+    Msg Error "Number of errors: $TotErrorCnt. (Design List files = [expr $SrcListErrorCnt + $ConListErrorCnt], hog.conf = $ConfErrorCnt)."
   } elseif {$TotErrorCnt > 0} {
-    Msg CriticalWarning "Number of errors: $TotErrorCnt (Design List files = $ListErrorCnt, hog.conf = $ConfErrorCnt)."
+    Msg CriticalWarning "Number of errors: $TotErrorCnt (Design List files = [expr $SrcListErrorCnt + $ConListErrorCnt], hog.conf = $ConfErrorCnt)."
   } else {
     Msg Info "Design List files and hog.conf match project. All ok!"
   }
 
-  if { $ListSimErrorCnt > 0 } {
-    Msg Warning "Number of mismatch in simulation list files = $ListSimErrorCnt"
+  if { $SimListErrorCnt > 0 } {
+    Msg Warning "Number of mismatch in simulation list files = $SimListErrorCnt"
   } else {
     Msg Info "Simulation list files match project. All ok!"
   }

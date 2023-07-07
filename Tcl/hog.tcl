@@ -563,8 +563,8 @@ proc FindVhdlVersion {file_name} {
 # * -lib \<library\> name of the library files will be added to, if not given will be extracted from the file name
 # * -sha_mode  if not set to 0, the list files will be added as well and the IPs will be added to the file rather than to the special ip library. The sha mode should be used when you use the lists to calculate the git SHA, rather than to add the files to the project.
 #
-# @return              a list of 3 dictionaries: "libraries" has library name as keys and a list of filenames as values, "properties" has as file names as keys and a list of properties as values, main_libs has library name as keys and the correspondent top list file name as value
-#
+# @return              a list of 3 dictionaries: "libraries" has library name as keys and a list of filenames as values, "properties" has as file names as keys and a list of properties as values, "filesets" has fileset name as keys and the list of associated libraries as values.
+
 proc ReadListFile args {
 
   if {[IsQuartus]} {
@@ -577,7 +577,7 @@ proc ReadListFile args {
 
   set parameters {
     {lib.arg ""  "The name of the library files will be added to, if not given will be extracted from the file name."}
-    {main_lib.arg "" The name of the library, from the main list file}
+    {fileset.arg "" The name of the library, from the main list file}
     {sha_mode "If set, the list files will be added as well and the IPs will be added to the file rather than to the special ip library. The sha mode should be used when you use the lists to calculate the git SHA, rather than to add the files to the project."}
   }
   set usage "USAGE: ReadListFile \[options\] <list file> <path>"
@@ -589,7 +589,7 @@ proc ReadListFile args {
   set path [lindex $args 1]
   set sha_mode $options(sha_mode)
   set lib $options(lib)
-  set main_lib $options(main_lib)
+  set fileset $options(fileset)
 
   if { $sha_mode == 1} {
     set sha_mode_opt "-sha_mode"
@@ -601,17 +601,27 @@ proc ReadListFile args {
   if {$lib eq ""} {
     set lib [file rootname [file tail $list_file]]
   }
-
-  if {$main_lib eq ""} {
-    set main_lib $lib
-  }
-
   set fp [open $list_file r]
   set file_data [read $fp]
   close $fp
   set list_file_ext [file extension $list_file]
+  switch $list_file_ext {
+    .sim {
+      if {$fileset eq ""} {
+        # If fileset is empty, use the library name for .sim file
+        set fileset "$lib"
+      }
+    }
+    .con {
+      set fileset "constrs_1"
+    }
+    default {
+      set fileset "sources_1"
+    }
+  }
+
   set libraries [dict create]
-  set main_libs [dict create]
+  set filesets [dict create]
   set properties [dict create]
   #  Process data file
   set data [split $file_data "\n"]
@@ -642,72 +652,68 @@ proc ReadListFile args {
         if {[file exists $vhdlfile]} {
           set vhdlfile [file normalize $vhdlfile]
           set extension [file extension $vhdlfile]
+          ### Set file properties
+          set prop [lrange $file_and_prop 1 end]
+          set library [lindex [regexp -inline {lib\s*=\s*(.+?)\y.*} $prop] 1]
+          if { $library == "" } {
+            set library $lib
+          }
 
           if { $extension == $list_file_ext } {
+            # Deal with recusive list files
 	          Msg Debug "List file $vhdlfile found in list file, recursively opening it..."
-
-            ### Set list file properties
-            set prop [lrange $file_and_prop 1 end]
-            set library [lindex [regexp -inline {lib\s*=\s*(.+?)\y.*} $prop] 1]
-            if { $library != "" } {
-              Msg Debug "Setting $library as library for list file $vhdlfile..."
-            } else {
-	            Msg Debug "Setting $lib as library for list file $vhdlfile..."
-              set library $lib
-            }
-            lassign [ReadListFile {*}"-lib $library -main_lib $main_lib $sha_mode_opt $vhdlfile $path"] l p m
+            lassign [ReadListFile {*}"-lib $library -fileset $fileset $sha_mode_opt $vhdlfile $path"] l p fs
             set libraries [MergeDict $l $libraries]
             set properties [MergeDict $p $properties]
-            set main_libs [dict merge $m $main_libs]
+            set filesets [dict merge $fs $filesets]
           } elseif {[lsearch {.src .sim .con ReadExtraFileList} $extension] >= 0 } {
+            # Not supported extensions
             Msg Error "$vhdlfile cannot be included into $list_file, $extension files must be included into $extension files."
           } else {
-            ### Set file properties
-            set prop [lrange $file_and_prop 1 end]
+            # Deal with single files
             regsub -all " *= *" $prop "=" prop
+            # Fill property dictionary
             foreach p $prop {
               dict lappend properties $vhdlfile $p
+              Msg Debug "Adding property $p to $vhdlfile..."
             }
-	          Msg Debug "Adding property $prop to $vhdlfile..."
-	          ### Set File Set
-            # Adding IP library
             if {$sha_mode == 0 && [lsearch {.xci .ip .bd} $extension] >= 0} {
-              dict lappend libraries "sources.ip" $vhdlfile
-              dict set main_libs "sources.ip" "sources.ip"
-
-	            Msg Debug "Appending $vhdlfile to IP list..."
-            } elseif {[lsearch {.vhd .vhdl .xdc .tcl} $extension] >= 0 || $list_file_ext == ".sim"} {          
-              set m [dict create]
-              dict set m $lib$list_file_ext $main_lib$list_file_ext
-              dict lappend libraries $lib$list_file_ext [file normalize $vhdlfile]
-              if {[file type $vhdlfile] eq "link"} {
-                #if the file is a link, also add the linked file
-                set real_file [GetLinkedFile $vhdlfile]
-                dict lappend libraries $lib$list_file_ext $real_file
-                Msg Debug "File $vhdlfile is a soft link, also adding the real file: $real_file"
-              }
-	      
-              if {[dict exists $main_libs $lib$list_file_ext] == 0} {
-                Msg Debug "Adding $lib$list_file_ext to the $main_lib$list_file_ext dictionary..."
-                set main_libs [dict merge $m $main_libs]
+              # Adding IP library
+              set lib_name "sources.ip"
+            } elseif { [IsInList $extension {.vhd .vhdl}] || $list_file_ext == ".sim"} {
+              # VHDL files and simulation
+              if { [IsInList $extension {.do .udo}]} {
+                set lib_name "xil_defaultlib.sim"
               } else {
-                set current_main [dict get $main_libs $lib$list_file_ext]
-                Msg Debug "$lib$list_file_ext already assigned to the $current_main..."
-                if {"$current_main" != "$main_lib$list_file_ext"} {
-                  Msg Debug "$lib$list_file_ext will also be used in the $main_lib fileset..."
-                  dict set m $lib$list_file_ext "$current_main $main_lib$list_file_ext"
-                }
+                set lib_name "$library$list_file_ext"
               }
-            } else {	      
-              set file_set_name "sources.oth"			      
-	            dict lappend libraries $file_set_name $vhdlfile
-              if {[file type $vhdlfile] eq "link"} {
-                #if the file is a link, also add the linked file
-                set real_file [GetLinkedFile $vhdlfile]
-                dict lappend libraries $file_set_name $real_file
-                Msg Debug "File $vhdlfile is a soft link, also adding the real file: $real_file"
+            } elseif { $list_file_ext == ".con" } { 
+              set lib_name "sources.con"
+            } else {	 
+              # Other files are stored in the OTHER dictionary from vivado (no library assignment)     
+              set lib_name "others.src"			      
+            }
+            Msg Debug "Appending $vhdlfile to $lib_name list..."
+            dict lappend libraries $lib_name $vhdlfile
+            if {[file type $vhdlfile] eq "link"} {
+              #if the file is a link, also add the linked file
+              set real_file [GetLinkedFile $vhdlfile]
+              dict lappend libraries $lib_name $real_file
+              Msg Debug "File $vhdlfile is a soft link, also adding the real file: $real_file"
+            }
+
+
+            # Create the fileset (if not already) and append the library
+            if {[dict exists $filesets $fileset] == 0} {
+              # Fileset has not been defined yet, adding to dictionary...
+              Msg Debug "Adding $fileset to the fileset dictionary..."
+              dict set filesets $fileset $lib_name
+            } else {
+              # Fileset already exist in dictionary, append library to list, if not already there
+              if {[IsInList $lib_name [DictGet $filesets $fileset]] == 0} {
+                Msg Debug "Adding library $lib_name to fileset $fileset..."
+                dict lappend filesets $fileset $lib_name
               }
-              dict set main_libs $file_set_name $file_set_name
             }
           }
           incr cnt
@@ -719,8 +725,7 @@ proc ReadListFile args {
   }
 
   if {$sha_mode != 0} {
-    #In SHA mode we also need to add the list file to the list
-    
+    #In SHA mode we also need to add the list file to the list    
     dict lappend libraries $lib$list_file_ext [file normalize $list_file]
     if {[file type $list_file] eq "link"} {
       #if the file is a link, also add the linked file
@@ -729,7 +734,7 @@ proc ReadListFile args {
       Msg Debug "List file $list_file is a soft link, also adding the real file: $real_file"
     }    
   }
-  return [list $libraries $properties $main_libs]
+  return [list $libraries $properties $filesets]
 }
 
 ## @brief Return operative sistem
@@ -789,7 +794,10 @@ proc MergeDict {dict0 dict1} {
     if {[dict exists $dict0 $key]} {
       set temp_list [dict get $dict1 $key]
       foreach vhdfile $temp_list {
-        dict lappend outdict $key $vhdfile
+        # Avoid duplication
+        if {[IsInList $vhdfile [DictGet $outdict $key]] == 0} {
+          dict lappend outdict $key $vhdfile
+        }
       }
     }
   }
@@ -884,7 +892,7 @@ proc GetFileList {FILE path} {
       set vhdlfile "$path/$vhdlfile"
       if {[file exists $vhdlfile]} {
         set extension [file extension $vhdlfile]
-        if { [lsearch {.src .sim .con} $extension] >= 0 } {
+        if { [IsInList $extension {.src .sim .con} ] } {
           lappend file_list {*}[GetFileList $vhdlfile $path]
         } else {
           lappend file_list $vhdlfile
@@ -1766,16 +1774,15 @@ proc MsgAndLog {msg {severity "CriticalWarning"} {outFile ""}} {
 # @return a list of two elements. The first element is a dictionary containing all libraries. The second elements is a discretionary containing all properties
 proc GetProjectFiles {} {
 
-
   set all_filesets [get_filesets]
   set libraries [dict create]
+  set simlibraries [dict create]
+  set constraints [dict create]
   set properties [dict create]
-  set sim_properties [dict create]
-
+  set consets [dict create]
+  set srcsets [dict create]
+  set simsets [dict create]
   set simulator [get_property target_simulator [current_project]]
-  set SIM [dict create]
-  set SRC [dict create]
-  set OTHER [dict create]
   set top [get_property "top"  [current_fileset]]
   set topfile [lindex [get_files -compile_order sources -used_in synthesis] end]
   dict lappend properties $topfile "top=$top"
@@ -1789,42 +1796,6 @@ proc GetProjectFiles {} {
     set all_files [get_files -quiet -of_objects [get_filesets $fs]]
     set fs_type [get_property FILESET_TYPE [get_filesets $fs]]
 
-    if {[string equal $fs_type "SimulationSrcs"] && [llength $all_files] > 0} {
-      set topsim [get_property "top"  [get_filesets $fs]]
-      set runtime [get_property "$simulator.simulate.runtime"  [get_filesets $fs]]
-      #getting file containing top module as explained here: https://forums.xilinx.com/t5/Vivado-TCL-Community/How-can-I-get-the-file-path-of-the-top-module-in-the-current/td-p/455740
-      if {[string equal "$topsim" ""]} {
-        Msg Warning "No top simulation module found for fileset $fs."
-      } else {
-        set simtopfile [lindex [get_files -compile_order sources -used_in simulation -of_objects [get_filesets $fs]] end]
-        if {[string equal [get_files -of_objects [get_filesets $fs] $simtopfile] ""] } {
-          Msg Warning "Top simulation file $simtopfile not found in fileset $fs."
-        } else {
-          dict lappend sim_properties $simtopfile "topsim=$topsim"
-          if {![string equal "$runtime" "1000ns"]} {
-            #not writing default value
-            dict lappend sim_properties $simtopfile "runtime=$runtime"
-          }
-        }
-      }
-
-      foreach simulator [GetSimulators] {
-        set wavefile [get_property "$simulator.simulate.custom_wave_do" [get_filesets $fs]]
-        if {![string equal "$wavefile" ""]} {
-          ##nagelfar ignore
-          dict lappend sim_properties $wavefile wavefile
-          break
-        }
-      }
-      foreach simulator [GetSimulators] {
-        set dofile [get_property "$simulator.simulate.custom_udo" [get_filesets $fs]]
-        if {![string equal "$dofile" ""]} {
-          dict lappend sim_properties $dofile dofile
-          break
-        }
-      }
-    }
-
     foreach f $all_files {
       # Ignore files that are part of the vivado/planahead project but would not be reflected
       # in list files (e.g. generated products from ip cores)
@@ -1832,12 +1803,12 @@ proc GetProjectFiles {} {
       set ignore 0
       # Generated files point to a parent composite file;
       # planahead does not have an IS_GENERATED property
-      if {-1 != [lsearch -exact [list_property [GetFile $f]] IS_GENERATED]} {
+      if { [IsInList "IS_GENERATED" [list_property [GetFile $f]]]} {
         if { [lindex [get_property  IS_GENERATED [GetFile $f]] 0] != 0} {
           set ignore 1
         }
       }
-      if {-1 != [lsearch -exact [list_property  $f] PARENT_COMPOSITE_FILE]} {
+      if {[IsInList "PARENT_COMPOSITE_FILE" [list_property  $f]]} {
         set ignore 1
       }
 
@@ -1861,30 +1832,42 @@ proc GetProjectFiles {} {
           set prop ""
         }
 
-        #check where the file is used and add it to prop
-        if {[string equal $fs_type "SimulationSrcs"]} {
-          dict lappend SIM $fs $f
-          if {![string equal $prop ""]} {
-            dict lappend sim_properties $f $prop
-          }
-        } elseif {[string equal $type "VHDL"] } {
-          dict lappend SRC $lib $f
-          if {![string equal $prop ""]} {
-            dict lappend properties $f $prop
-          }
-        } elseif {[string equal $type "Verilog Header"] || [string equal $type "Verilog"] || [string equal $type "SystemVerilog"]} {
-          dict lappend libraries "OTHER" $f
-          if {![string equal $prop ""]} {
-            dict lappend properties $f $prop
-          }
-        } elseif {[string equal $type "IP"]} {
-          dict lappend libraries "IP" $f
-        } elseif {[string equal $fs_type "Constrs"]} {
-          dict lappend libraries "XDC" $f
-        } else {
-          dict lappend libraries "OTHER" $f
+        if {![string equal $prop ""]} {
+          dict lappend properties $f $prop
         }
 
+        # check where the file is used and add it to prop
+        if {[string equal $fs_type "SimulationSrcs"]} {
+          # Simulation sources
+          if {[IsInList "${lib}.sim" [DictGet $simsets $fs]]==0} {
+            dict lappend simsets $fs "${lib}.sim"
+          }
+          dict lappend simlibraries "${lib}.sim" $f
+        } elseif {[string equal $type "VHDL"] } {
+          # VHDL files
+          if {[IsInList "${lib}.src" [DictGet $srcsets $fs]]==0} {
+            dict lappend srcsets $fs "${lib}.src"
+          }
+          dict lappend libraries "${lib}.src" $f
+        } elseif {[string equal $type "IP"]} {
+          # IPs
+          if {[IsInList "sources.ip" [DictGet $srcsets $fs]]==0} {
+            dict lappend srcsets $fs "sources.ip"
+          }
+          dict lappend libraries "sources.ip" $f
+        } elseif {[string equal $fs_type "Constrs"]} {
+          # Constraints
+          if {[IsInList "sources.con" [DictGet $consets $fs]]==0} {
+            dict lappend consets $fs "sources.con"
+          }
+          dict lappend constraints "sources.con" $f
+        } else {
+          # Verilog and other files
+          if {[IsInList "others.src" [DictGet $srcsets $fs]]==0} {
+            dict lappend srcsets $fs "others.src"
+          }
+          dict lappend libraries "others.src" $f
+        }
 
         if {[lindex [get_property -quiet used_in_synthesis  [GetFile $f]] 0] == 0} {
           dict lappend properties $f "nosynth"
@@ -1895,25 +1878,12 @@ proc GetProjectFiles {} {
         if {[lindex [get_property -quiet used_in_simulation  [GetFile $f]] 0] == 0} {
           dict lappend properties $f "nosim"
         }
-
       }
-
     }
-
-    #    dict for {lib f} $libraries {
-    #   Msg Status "   Library: $lib: \n *******"
-    #   foreach n $f {
-    #       Msg Status "$n"
-    #   }
-    #
-    #   Msg Status "*******"
-    #    }
   }
 
-  dict append libraries "SIM" $SIM
-  dict append libraries "SRC" $SRC
-  dict lappend sim_properties "Simulator" [get_property target_simulator [current_project]]
-  return [list $libraries $properties $sim_properties]
+  dict lappend properties "Simulator" [get_property target_simulator [current_project]]
+  return [list $libraries $properties $simlibraries $constraints $srcsets $simsets $consets]
 }
 
 
@@ -1928,10 +1898,10 @@ proc GetProjectFiles {} {
 # * -sha_mode forwarded to ReadListFile, see there for info
 # * -ext_path \<external path\> path for external libraries forwarded to ReadListFile
 #
-# @return a list of 2 dictionaries: libraries and properties
+# @return a list of 3 dictionaries: libraries and properties
 # - libraries has library name as keys and a list of filenames as values
 # - properties has as file names as keys and a list of properties as values
-# - main_libs has library name as keys and a the correspondent top list filename as values
+# - filesets has filset name as keys and the correspondent list of libraries as values (significant only for simulations)
 
 proc GetHogFiles args {
 
@@ -1973,20 +1943,22 @@ proc GetHogFiles args {
   set libraries [dict create]
   set properties [dict create]
   set list_files [glob -nocomplain -directory $list_path "*{$list_files}"]
-  set main_libs [dict create]
+  set filesets [dict create]
 
   foreach f $list_files {
     set ext [file extension $f]
     if {$ext == ".ext"} {
-      lassign [ReadListFile {*}"$sha_mode_opt  $f $ext_path"] l p m
+      lassign [ReadListFile {*}"$sha_mode_opt  $f $ext_path"] l p fs
     } else {
-      lassign [ReadListFile {*}"$sha_mode_opt  $f $repo_path"] l p m
+      lassign [ReadListFile {*}"$sha_mode_opt  $f $repo_path"] l p fs
     }
     set libraries [MergeDict $l $libraries]
     set properties [MergeDict $p $properties]
-    set main_libs [MergeDict $m $main_libs]
+    Msg Debug "list file $f, filesets: $fs"
+    set filesets [MergeDict $fs $filesets]
+    Msg Debug "Merged filesets $filesets"
   }
-  return [list $libraries $properties $main_libs]
+  return [list $libraries $properties $filesets]
 }
 
 
@@ -2022,204 +1994,180 @@ proc ParseFirstLineHogFiles {list_path list_file} {
 # @param[in] libraries has library name as keys and a list of filenames as values
 # @param[in] properties has as file names as keys and a list of properties as values
 #
-proc AddHogFiles { libraries properties main_libs } {
+proc AddHogFiles { libraries properties filesets } {
   Msg Info "Adding source files to project..."
-
-  foreach lib [dict keys $libraries] {
-    Msg Debug "lib: $lib \n"
-    set lib_files [dict get $libraries $lib]
-    Msg Debug "Files in $lib: $lib_files \n"
-    set rootlib [file rootname [file tail $lib]]
-    set ext [file extension $lib]
-    set lib_mains [dict get $main_libs $lib]
-    Msg Debug "lib: $lib ext: $ext main: $lib_mains \n"
-    set filesets ""
-    switch $ext {
-      .sim {
-        foreach main_lib $lib_mains {
-          set simlib [file rootname [file tail $main_lib]]
-          set file_set "$simlib\_sim"
-          lappend filesets $file_set
-          # if this simulation fileset was not created we do it now
-          if {[string equal [get_filesets -quiet $file_set] ""]} {
-            create_fileset -simset $file_set
-            # Set active when creating, by default it will be the latest simset to be created, unless is specified in the sim.conf
-            current_fileset -simset [ get_filesets $file_set ]
-            set simulation  [get_filesets $file_set]
-            foreach simulator [GetSimulators] {
-              set_property -name {$simulator.compile.vhdl_syntax} -value {2008} -objects $simulation
-            }
-            set_property SOURCE_SET sources_1 $simulation
-          }
+  Msg Debug "Filesets: $filesets"
+  foreach fileset [dict keys $filesets] {
+    Msg Debug "Fileset: $fileset"
+    # Create fileset if it doesn't exist yet
+    if {[string equal [get_filesets -quiet $fileset] ""]} {
+      if {[IsVivado]} {
+        # Simulation list files supported only by Vivado
+        create_fileset -simset $fileset
+        # Set active when creating, by default it will be the latest simset to be created, unless is specified in the sim.conf
+        current_fileset -simset [ get_filesets $fileset ]
+        set simulation [get_filesets $fileset]
+        foreach simulator [GetSimulators] {
+          set_property -name {$simulator.compile.vhdl_syntax} -value {2008} -objects $simulation
         }
-      }
-      .con {
-        lappend filesets "constrs_1"
-      }
-      default {
-        lappend filesets "sources_1"
+        set_property SOURCE_SET sources_1 $simulation
       }
     }
-    # ADD NOW LISTS TO VIVADO PROJECT
-    if {[IsXilinx]} {
-      foreach file_set $filesets {
-        Msg Debug "Adding $lib to $file_set"
-        add_files -norecurse -fileset $file_set $lib_files
+    # Loop over libraries in fileset 
+    foreach lib [DictGet $filesets $fileset] {
+      Msg Debug "lib: $lib \n"
+      set lib_files [DictGet $libraries $lib]
+      Msg Debug "Files in $lib: $lib_files"
+      set rootlib [file rootname [file tail $lib]]
+      set ext [file extension $lib]
+      Msg Debug "lib: $lib ext: $ext fileset: $fileset"
+      # ADD NOW LISTS TO VIVADO PROJECT
+      if {[IsXilinx]} {
+        Msg Debug "Adding $lib to $fileset"
+        add_files -norecurse -fileset $fileset $lib_files
+        # Add Properties
+        foreach f $lib_files {
+          set file_obj [get_files -of_objects [get_filesets $fileset] [list "*$f"]]
+          #ADDING LIBRARY
+          if {[file extension $f] == ".vhd" || [file extension $f] == ".vhdl"} {
+            set_property -name "library" -value $rootlib -objects $file_obj
+          }
 
-        if {$ext != ".ip"} {
-          # Add Properties
-          foreach f $lib_files {
-            set file_obj [get_files -of_objects [get_filesets $file_set] [list "*$f"]]
-            #ADDING LIBRARY
-            if {[file extension $f] == ".vhd" || [file extension $f] == ".vhdl"} {
-              set_property -name "library" -value $rootlib -objects $file_obj
-            }
-
-            #ADDING FILE PROPERTIES
-            set props [DictGet $properties $f]
-            if {[file extension $f] == ".vhd" || [file extension $f] == ".vhdl"} {
-              if {[lsearch -inline -regexp $props "93"] < 0} {
-                # ISE does not support vhdl2008
-                if {[IsVivado]} {
-                  set_property -name "file_type" -value "VHDL 2008" -objects $file_obj
-                }
-              } else {
-                Msg Debug "Filetype is VHDL 93 for $f"
-              }
-            }
-
-            if {[lsearch -inline -regexp $props "SystemVerilog"] > 0} {
-              # ISE does not support SystemVerilog
+          #ADDING FILE PROPERTIES
+          set props [DictGet $properties $f]
+          if {[file extension $f] == ".vhd" || [file extension $f] == ".vhdl"} {
+            # VHDL 93 property
+            if {[lsearch -inline -regexp $props "93"] < 0} {
+              # ISE does not support vhdl2008
               if {[IsVivado]} {
-                set_property -name "file_type" -value "SystemVerilog" -objects $file_obj
-                Msg Debug "Filetype is SystemVerilog for $f"
-
-              } else {
-                Msg Warning "Xilinx PlanAhead/ISE does not support SystemVerilog. Property not set for $f"
+                set_property -name "file_type" -value "VHDL 2008" -objects $file_obj
               }
-            }
-
-
-            # Top synthesis module
-            set top [lindex [regexp -inline {top\s*=\s*(.+?)\y.*} $props] 1]
-            if { $top != "" } {
-              Msg Info "Setting $top as top module for file set $file_set..."
-              set globalSettings::synth_top_module $top
-            }
-
-            # XDC
-            if {[lsearch -inline -regexp $props "XDC"] >= 0 || [file extension $f] == ".xdc"} {
-              Msg Debug "Setting filetype XDC for $f"
-              set_property -name "file_type" -value "XDC" -objects $file_obj
-            }
-
-            # Verilog headers
-            if {[lsearch -inline -regexp $props "verilog_header"] >= 0} {
-              Msg Debug "Setting verilog header type for $f..."
-              set_property file_type {Verilog Header} [get_files $f]
-            }
-
-            # Not used in synthesis
-            if {[lsearch -inline -regexp $props "nosynth"] >= 0} {
-              Msg Debug "Setting not used in synthesis for $f..."
-              set_property -name "used_in_synthesis" -value "false" -objects $file_obj
-            }
-
-            # Not used in implementation
-            if {[lsearch -inline -regexp $props "noimpl"] >= 0} {
-              Msg Debug "Setting not used in implementation for $f..."
-              set_property -name "used_in_implementation" -value "false" -objects $file_obj
-            }
-
-            # Not used in simulation
-            if {[lsearch -inline -regexp $props "nosim"] >= 0} {
-              Msg Debug "Setting not used in simulation for $f..."
-              set_property -name "used_in_simulation" -value "false" -objects $file_obj
-            }
-
-            ## Simulation properties
-            # # Top simulation module
-            set top_sim [lindex [regexp -inline {topsim\s*=\s*(.+?)\y.*} $props] 1]
-            if { $top_sim != "" } {
-              Msg Warning "Setting the simulation top module from simulation list files is now deprecated. Please set this property in the sim.conf file, by adding the following line under the \[$file_set\] section.\ntop=$top_sim"
-
-              set_property "top"  $top_sim [get_filesets $file_set]
-              current_fileset -simset [get_filesets $file_set]
-            }
-
-            # Simulation runtime
-            set sim_runtime [lindex [regexp -inline {runtime\s*=\s*(.+?)\y.*} $props] 1]
-            if { $sim_runtime != "" } {
-              Msg Warning "Setting the simulation runtime from simulation list files is now deprecated. Please set this property in the sim.conf file, by adding the following line under the \[$file_set\] section.\n<simulator_name>.simulate.runtime=$sim_runtime"
-              set_property -name {xsim.simulate.runtime} -value $sim_runtime -objects [get_filesets $file_set]
-              foreach simulator [GetSimulators] {
-                set_property $simulator.simulate.runtime  $sim_runtime  [get_filesets $file_set]
-              }
-            }
-
-            # Wave do file
-            if {[lsearch -inline -regexp $props "wavefile"] >= 0} {
-              Msg Warning "Setting a wave do file from simulation list files is now deprecated. Set this property in the sim.conf file, by adding the following line under the \[$file_set\] section.\n<simulator_name>.simulate.custom_wave_do=[file tail $f]"
-
-              Msg Debug "Setting $f as wave do file for simulation file set $file_set..."
-
-              # check if file exists...
-              if {[file exists $f]} {
-                foreach simulator [GetSimulators] {
-                  set_property "$simulator.simulate.custom_wave_do" [file tail $f] [get_filesets $file_set]
-                }
-              } else {
-                Msg Warning "File $f was not found."
-              }
-            }
-
-            #Do file
-            if {[lsearch -inline -regexp $props "dofile"] >= 0} {
-              Msg Warning "Setting a custom do file from simulation list files is now deprecated. Set this property in the sim.conf file, by adding the following line under the \[$file_set\] section.\n<simulator_name>.simulate.custom_do=[file tail $f]"
-              Msg Debug "Setting $f as do file for simulation file set $file_set..."
-
-              if {[file exists $f]} {
-                foreach simulator [GetSimulators] {
-                  set_property "$simulator.simulate.custom_udo" [file tail $f] [get_filesets $file_set]
-                }
-              } else {
-                Msg Warning "File $f was not found."
-              }
-            }
-
-            # Tcl
-            if {[file extension $f] == ".tcl" && $ext != ".con"} {
-              if { [lsearch -inline -regexp $props "source"] >= 0} {
-                Msg Info "Sourcing Tcl script $f..."
-                source $f
-              }
+            } else {
+              Msg Debug "Filetype is VHDL 93 for $f"
             }
           }
 
-        } else {
-          # IPs
-          foreach f $lib_files {
-            # ADDING FILE PROPERTIES
-            set props [DictGet $properties $f]
-            # Lock the IP
-            if {[lsearch -inline -regexp $props "locked"] >= 0} {
-              Msg Info "Locking IP $f..."
-              set_property IS_MANAGED 0 [get_files $f]
+          # SystemVerilog property
+          if {[lsearch -inline -regexp $props "SystemVerilog"] > 0} {
+            # ISE does not support SystemVerilog
+            if {[IsVivado]} {
+              set_property -name "file_type" -value "SystemVerilog" -objects $file_obj
+              Msg Debug "Filetype is SystemVerilog for $f"
+            } else {
+              Msg Warning "Xilinx PlanAhead/ISE does not support SystemVerilog. Property not set for $f"
             }
-
-            # Generating Target for BD File
-            if {[file extension $f] == ".bd"} {
-              Msg Info "Generating Target for [file tail $f], please remember to commit the (possible) changed file."
-              generate_target all [get_files $f]
-            }
-
           }
 
+          # Top synthesis module
+          set top [lindex [regexp -inline {top\s*=\s*(.+?)\y.*} $props] 1]
+          if { $top != "" } {
+            Msg Info "Setting $top as top module for file set $fileset..."
+            set globalSettings::synth_top_module $top
+          }
+
+          # XDC
+          if {[lsearch -inline -regexp $props "XDC"] >= 0 || [file extension $f] == ".xdc"} {
+            Msg Debug "Setting filetype XDC for $f"
+            set_property -name "file_type" -value "XDC" -objects $file_obj
+          }
+
+          # Verilog headers
+          if {[lsearch -inline -regexp $props "verilog_header"] >= 0} {
+            Msg Debug "Setting verilog header type for $f..."
+            set_property file_type {Verilog Header} [get_files $f]
+          }
+
+          # Not used in synthesis
+          if {[lsearch -inline -regexp $props "nosynth"] >= 0} {
+            Msg Debug "Setting not used in synthesis for $f..."
+            set_property -name "used_in_synthesis" -value "false" -objects $file_obj
+          }
+
+          # Not used in implementation
+          if {[lsearch -inline -regexp $props "noimpl"] >= 0} {
+            Msg Debug "Setting not used in implementation for $f..."
+            set_property -name "used_in_implementation" -value "false" -objects $file_obj
+          }
+
+          # Not used in simulation
+          if {[lsearch -inline -regexp $props "nosim"] >= 0} {
+            Msg Debug "Setting not used in simulation for $f..."
+            set_property -name "used_in_simulation" -value "false" -objects $file_obj
+          }
+
+          ## Simulation properties
+          # Top simulation module
+          set top_sim [lindex [regexp -inline {topsim\s*=\s*(.+?)\y.*} $props] 1]
+          if { $top_sim != "" } {
+            Msg Warning "Setting the simulation top module from simulation list files is now deprecated. Please set this property in the sim.conf file, by adding the following line under the \[$fileset\] section.\ntop=$top_sim"
+
+            set_property "top"  $top_sim [get_filesets $fileset]
+            current_fileset -simset [get_filesets $fileset]
+          }
+
+          # Simulation runtime
+          set sim_runtime [lindex [regexp -inline {runtime\s*=\s*(.+?)\y.*} $props] 1]
+          if { $sim_runtime != "" } {
+            Msg Warning "Setting the simulation runtime from simulation list files is now deprecated. Please set this property in the sim.conf file, by adding the following line under the \[$fileset\] section.\n<simulator_name>.simulate.runtime=$sim_runtime"
+            # set_property -name {xsim.simulate.runtime} -value $sim_runtime -objects [get_filesets $fileset]
+            # foreach simulator [GetSimulators] {
+            #   set_property $simulator.simulate.runtime  $sim_runtime  [get_filesets $fileset]
+            # }
+          }
+
+          # Wave do file
+          if {[lsearch -inline -regexp $props "wavefile"] >= 0} {
+            Msg Warning "Setting a wave do file from simulation list files is now deprecated. Set this property in the sim.conf file, by adding the following line under the \[$fileset\] section.\n<simulator_name>.simulate.custom_wave_do=[file tail $f]"
+
+            # Msg Debug "Setting $f as wave do file for simulation file set $fileset..."
+
+            # # check if file exists...
+            # if {[file exists $f]} {
+            #   foreach simulator [GetSimulators] {
+            #     set_property "$simulator.simulate.custom_wave_do" [file tail $f] [get_filesets $fileset]
+            #   }
+            # } else {
+            #   Msg Warning "File $f was not found."
+            # }
+          }
+
+          #Do file
+          if {[lsearch -inline -regexp $props "dofile"] >= 0} {
+            Msg Warning "Setting a custom do file from simulation list files is now deprecated. Set this property in the sim.conf file, by adding the following line under the \[$fileset\] section.\n<simulator_name>.simulate.custom_do=[file tail $f]"
+            # Msg Debug "Setting $f as do file for simulation file set $fileset..."
+
+            # if {[file exists $f]} {
+            #   foreach simulator [GetSimulators] {
+            #     set_property "$simulator.simulate.custom_udo" [file tail $f] [get_filesets $fileset]
+            #   }
+            # } else {
+            #   Msg Warning "File $f was not found."
+            # }
+          }
+
+          # Lock the IP
+          if {[lsearch -inline -regexp $props "locked"] >= 0 && $ext == ".ip"} {
+            Msg Info "Locking IP $f..."
+            set_property IS_MANAGED 0 [get_files $f]
+          }
+
+          # Generating Target for BD File
+          if {[file extension $f] == ".bd"} {
+            Msg Info "Generating Target for [file tail $f], please remember to commit the (possible) changed file."
+            generate_target all [get_files $f]
+          }
+
+
+          # Tcl
+          if {[file extension $f] == ".tcl" && $ext != ".con"} {
+            if { [lsearch -inline -regexp $props "source"] >= 0} {
+              Msg Info "Sourcing Tcl script $f..."
+              source $f
+            }
+          }
         }
         Msg Info "[llength $lib_files] file/s added to library $rootlib..."
-      }
-    } elseif {[IsQuartus] } {
-      foreach file_set $filesets {
+      } elseif {[IsQuartus] } {
         #QUARTUS ONLY
         if { $ext == ".sim"} {
           Msg Warning "Simulation files not supported in Quartus Prime mode... Skipping $lib"
@@ -2236,11 +2184,11 @@ proc AddHogFiles { libraries properties main_libs } {
             # Top synthesis module
             set top [lindex [regexp -inline {top\s*=\s*(.+?)\y.*} $props] 1]
             if { $top != "" } {
-              Msg Info "Setting $top as top module for file set $file_set..."
+              Msg Info "Setting $top as top module for file set $fileset..."
               set globalSettings::synth_top_module $top
             }
+            # VHDL file properties
             if {[string first "VHDL" $file_type] != -1 } {
-
               if {[string first "1987" $props] != -1 } {
                 set hdl_version "VHDL_1987"
               } elseif {[string first "1993" $props] != -1 } {
@@ -2256,6 +2204,7 @@ proc AddHogFiles { libraries properties main_libs } {
                 set_global_assignment -name $file_type $cur_file -hdl_version $hdl_version -library $rootlib
               }
             } elseif {[string first "SYSTEMVERILOG" $file_type] != -1 } {
+              # SystemVerilog file properties
               if {[string first "2005" $props] != -1 } {
                 set hdl_version "systemverilog_2005"
               } elseif {[string first "2009" $props] != -1 } {
@@ -2269,6 +2218,7 @@ proc AddHogFiles { libraries properties main_libs } {
                 set_global_assignment -name $file_type $cur_file -hdl_version $hdl_version
               }
             } elseif {[string first "VERILOG" $file_type] != -1 } {
+              # Verilog file properties
               if {[string first "1995" $props] != -1 } {
                 set hdl_version "verilog_1995"
               } elseif {[string first "2001" $props] != -1 } {
@@ -2286,7 +2236,6 @@ proc AddHogFiles { libraries properties main_libs } {
               if { $ext == ".con"} {
                 source $cur_file
               } elseif { $ext == ".src"} {
-
                 # If this is a Platform Designer file then generate the system
                 if {[string first "qsys" $props] != -1 } {
                   # remove qsys from options since we used it
@@ -2375,27 +2324,25 @@ proc AddHogFiles { libraries properties main_libs } {
             }
           }
         }
-      }
-    } elseif {[IsLibero] } {
-      if {$ext == ".con"} {
-        foreach con_file $lib_files {
-          # Check for valid constrain files
-          set con_ext [file extension $con_file]
-          if {[lsearch {.sdc .pin .dcf .gcf .pdc .crt .vcd } [file extension $con_file]] >= 0} {
-            set option [string map {. -} $con_ext]
-            create_links -convert_EDN_to_HDL 0 -library {work} $option $con_file 
-          } else {
-            Msg CriticalWarning "Constraint file $con_file does not have a valid extension. Allowed extensions are: \n .sdc .pin .dcf .gcf .pdc .crt .vcd"
+      } elseif {[IsLibero] } {
+        if {$ext == ".con"} {
+          foreach con_file $lib_files {
+            # Check for valid constrain files
+            set con_ext [file extension $con_file]
+            if {[IsInList [file extension $con_file]  {.sdc .pin .dcf .gcf .pdc .crt .vcd } ]} {
+              set option [string map {. -} $con_ext]
+              create_links -convert_EDN_to_HDL 0 -library {work} $option $con_file 
+            } else {
+              Msg CriticalWarning "Constraint file $con_file does not have a valid extension. Allowed extensions are: \n .sdc .pin .dcf .gcf .pdc .crt .vcd"
+            }
+          }
+        } elseif {$ext == ".src"} {
+          foreach f $lib_files {
+            Msg Debug "Adding source $f to library $rootlib..."
+            create_links -library $rootlib -hdl_source $f
           }
         }
-      } elseif {$ext == ".src"} {
-        foreach f $lib_files {
-	  Msg Debug "Adding source $f to library $rootlib..."
-          create_links -library $rootlib -hdl_source $f
-        }
-      }
-      build_design_hierarchy 
-      foreach file_set $filesets {
+        build_design_hierarchy 
         foreach cur_file $lib_files {
           set file_type [FindFileType $cur_file]
 
@@ -2405,8 +2352,8 @@ proc AddHogFiles { libraries properties main_libs } {
           # Top synthesis module
           set top [lindex [regexp -inline {top\s*=\s*(.+?)\y.*} $props] 1]
           if { $top != "" } {
-            Msg Info "Setting $top as top module for file set $file_set..."
-            set globalSettings::synth_top_module "${top}::$rootlib"
+            Msg Info "Setting $top as top module for file set $fileset..."
+            set globalSettings::synth_top_module "${top}::$fileset" 
           }
 
           # exclude sdc from timing
@@ -2414,11 +2361,13 @@ proc AddHogFiles { libraries properties main_libs } {
             organize_tool_files -tool {VERIFYTIMING} -file $cur_file -input_type {constraint}
           }
         }
+      # Closing IDE if cascade
       }
+    # Closing library loop
     }
+  # Closing fileset loop
   }
-
-}
+} 
 
 # @brief Function searching for extra IP/BD files added at creation time using user scripts, and writing the list in
 # Project/proj/.hog/extra.files, with the correspondent md5sum
@@ -2427,113 +2376,27 @@ proc AddHogFiles { libraries properties main_libs } {
 proc CheckExtraFiles {libraries} {
   ### CHECK NOW FOR IP OUTSIDE OF LIST FILE (Vivado only!)
   if {[IsVivado]} {
-    lassign [GetProjectFiles] prjLibraries prjProperties
-    set prjIPs  [DictGet $prjLibraries IP]
-    set prjXDCs  [DictGet $prjLibraries XDC]
-    set prjOTHERs [DictGet $prjLibraries OTHER]
-    set prjSrcDict  [DictGet $prjLibraries SRC]
-
+    lassign [GetProjectFiles] prjLibraries prjProperties prjSimLibraries prjConstraints
+    set prjLibraries [MergeDict $prjLibraries $prjSimLibraries]
+    set prjLibraries [MergeDict $prjLibraries $prjConstraints]
     set prj_dir [get_property DIRECTORY [current_project]]
     file mkdir "$prj_dir/.hog"
     set extra_file_name "$prj_dir/.hog/extra.files"
     set new_extra_file [open $extra_file_name "w"]
 
-
-    foreach prjIP $prjIPs {
-      set ip_in_list 0
-      foreach lib [dict keys $libraries] {
-        set ext [file extension $lib]
-        if {$ext == ".ip"} {
-          set lib_files [dict get $libraries $lib]
-          foreach list_ip $lib_files {
-            if {[lsearch $prjIP $list_ip] != -1} {
-              set ip_in_list 1
-              break
-            }
+    dict for {prjLib prjFiles} $prjLibraries {
+      foreach prjFile $prjFiles {
+        if {[IsInList $prjFile [DictGet $libraries $prjLib]]==0} { 
+          if {[file extension $prjFile] == ".bd"} {
+            # Generating BD products to save md5sum of already modified BD
+            Msg Info "Generating targets of $prjFile..."
+            generate_target all [get_files $prjFile]
           }
-        }
-      }
-      if {$ip_in_list == 0} {
-        if {[file extension $prjIP] == ".bd"} {
-          # Generating BD products to save md5sum of already modified BD
-          Msg Info "Generating targets of $prjIP..."
-          generate_target all [get_files $prjIP]
-        }
-        puts $new_extra_file "$prjIP [Md5Sum $prjIP]"
-        Msg Info "$prjIP has been generated by an external script. Adding to $extra_file_name..."
-      }
-    }
-
-    foreach prjXDC $prjXDCs {
-      set xdc_in_list 0
-      foreach lib [dict keys $libraries] {
-        set ext [file extension $lib]
-        if {$ext != ".ip"} {
-          set lib_files [dict get $libraries $lib]
-          foreach list_file $lib_files {
-            if {[lsearch $prjXDC $list_file] != -1} {
-              set xdc_in_list 1
-              break
-            }
-          }
-        }
-      }
-      if {$xdc_in_list == 0} {
-        puts $new_extra_file "$prjXDC [Md5Sum $prjXDC]"
-        Msg Info "$prjXDC has been generated by an external script. Adding to $extra_file_name..."
-      }
-    }
-
-    foreach prjOTHER $prjOTHERs {
-      set oth_in_list 0
-      foreach lib [dict keys $libraries] {
-        set ext [file extension $lib]
-        if {$ext != ".ip"} {
-          set prjOTHER_ext [file extension $prjOTHER]
-          if {$prjOTHER_ext == ".coe"} {
-            set prjOTHER [file normalize $prjOTHER]
-          }
-          set lib_files [dict get $libraries $lib]
-          foreach list_file $lib_files {
-            if {[lsearch $prjOTHER $list_file] != -1} {
-              set oth_in_list 1
-              break
-            }
-          }
-        }
-      }
-      if {$oth_in_list == 0} {
-        puts $new_extra_file "$prjOTHER [Md5Sum $prjOTHER]"
-        Msg Info "$prjOTHER has been generated by an external script. Adding to $extra_file_name..."
-      }
-    }
-
-    foreach prjSRCs [dict keys $prjSrcDict] {
-      set prjSRCs [dict get $prjSrcDict $prjSRCs]
-      foreach prjSRC $prjSRCs {
-        set src_in_list 0
-        foreach lib [dict keys $libraries] {
-          set ext [file extension $lib]
-          if {$ext == ".src"} {
-            set lib_files [dict get $libraries $lib]
-            foreach list_file $lib_files {
-              if {[lsearch $prjSRC $list_file] != -1} {
-                set src_in_list 1
-                break
-              }
-            }
-          }
-          if {$src_in_list == 1} {
-            break
-          }
-        }
-        if {$src_in_list == 0} {
-          puts $new_extra_file "$prjSRC [Md5Sum $prjSRC]"
-          Msg Info "$prjSRC has been generated by an external script. Adding to $extra_file_name..."
+          puts $new_extra_file "$prjFile [Md5Sum $prjFile]"
+          Msg Info "$prjFile has been generated by an external script. Adding to $extra_file_name..."
         }
       }
     }
-
     close $new_extra_file
   }
 }
@@ -3960,144 +3823,121 @@ proc RemoveDuplicates {mydict} {
 
 ## @brief Compare the contents of two dictionaries
 #
-# @param[in] proj_dict  The first dictionary
-# @param[in] list_dict  The second dictionary
-# @param[in] prop       If set, we are comparing properties
+# @param[in] proj_libs  The dictionary of libraries in the project
+# @param[in] list_libs  The dictionary of libraries in list files
+# @param[in] proj_sets  The dictionary of filesets in the project
+# @param[in] list_sets  The dictionary of filesets in list files
+# @param[in] proj_props The dictionary of file properties in the project
+# @param[in] list_props The dictionary of file pproperties in list files
 # @param[in] severity   The severity of  the message in case a file is not found (Default: CriticalWarning)
 # @param[in] outFile    The output log file, to write the messages (Default "")
 # @param[in] extraFiles The dictionary of extra files generated a creation time (Default "")
 #
 # @return n_diffs The number of differences
-proc CompareLibDicts {proj_dict list_dict {prop 0} {severity "CriticalWarning"} {outFile ""} {extraFiles ""}} {
+# @return extra_files Remaining list of extra files
+
+proc CompareLibDicts {proj_libs list_libs proj_sets list_sets proj_props list_props {severity "CriticalWarning"} {outFile ""} {extraFiles ""} } {
   set extra_files $extraFiles
   set n_diffs 0
-  dict for {k v} $proj_dict {
-    if {![dict exists $list_dict $k]} {
-      # Ignore simulation keys
-      if {$k != "Simulator" && $v != "wavefile" && $v != "dofile" && [string first "topsim=" $v] == -1 && [string first "runtime=" $v] == -1 } {
-        if {$prop == 1} {
-          if {![dict exists $extra_files $k]} {
-            # If file is auto-generated ignore property check
-            MsgAndLog "Property/ies $v for file $k are not set in Hog project list file" $severity $outFile  
-          }
-        } else {
-          set found_files 0
-          # Check if the files is generated at creation time
-          foreach file $v {
-            if { [dict exists $extra_files $file] } {
-              incr found_files
-              # File was generated at creation time, checking the md5sum
-              set new_md5sum [Md5Sum $file]
-              set old_md5sum [DictGet $extra_files $file]
-              if {$new_md5sum != $old_md5sum} {
-                MsgAndLog "$file in project has been modified from creation time. Please update the script you used to create the file and regenerate the project, or save the file outside the Projects/ directory and add it to a project list file" $severity $outFile
+  # Loop over filesets in project
+  dict for {prjSet prjLibraries} $proj_sets { 
+    # Check if sets is also in list files
+    if {[IsInList $prjSet $list_sets]} {
+      set listLibraries [DictGet $list_sets $prjSet]
+      # Loop over libraries in fileset
+      foreach prjLib $prjLibraries {
+        # Check if library exists in list files
+        if {[IsInList $prjLib $listLibraries]} {
+          # Loop over files in library
+          set prjFiles [DictGet $proj_libs $prjLib]
+          set listFiles [DictGet $list_libs $prjLib]
+
+          foreach prjFile $prjFiles {
+            set idx [lsearch -exact $listFiles $prjFile]
+            set listFiles [lreplace $listFiles $idx $idx]
+            if {$idx < 0} {
+              # File is in project but not in list libraries, check if it was generated at creation time...
+              if { [dict exists $extra_files $prjFile] } {
+                # File was generated at creation time, checking the md5sum
+                set new_md5sum [Md5Sum $prjFile]
+                set old_md5sum [DictGet $extra_files $prjFile]
+                if {$new_md5sum != $old_md5sum} {
+                  MsgAndLog "$prjFile in project has been modified from creation time. Please update the script you used to create the file and regenerate the project, or save the file outside the Projects/ directory and add it to a project list file" $severity $outFile
+                  incr n_diffs
+                }
+                set extra_files [dict remove $extra_files $prjFile]
+              } else {
+                # File is neither in list files nor in extra_files
+                MsgAndLog "$prjFile was found in project but not in list files or .hog/extra.files" $severity $outFile
                 incr n_diffs
               }
-              set extra_files [dict remove $extra_files $file]
             } else {
-              MsgAndLog "$file was found in project but not in list files or .hog/extra.files" $severity $outFile
-              incr n_diffs
+              # File is both in list files and project, checking properties...
+              set prjProps  [DictGet $proj_props $prjFile]
+              set listProps [DictGet $list_props $prjFile]
+              foreach prjProp $prjProps {
+                set idx [lsearch -exact $listProps $prjProp]
+                set listProps [lreplace $listProps $idx $idx]
+                if {$idx < 0} {
+                  MsgAndLog "Property $prjProp of $prjFile was set in project but not in list files" $severity $outFile
+                  incr n_diffs
+                }
+              }
+              foreach listProp $listProps {
+                MsgAndLog "Property $listProp of $prjFile was found in list files but not set in project." $severity $outFile
+                incr n_diffs
+              }
             }
           }
-          if {$found_files == 0} {
-            MsgAndLog "$k does not exist in Hog Top project files (missing list file?)" $severity $outFile  
-          }
-        }
-      } 
-    } else {
-      set list_lib [DictGet $list_dict $k]
-      # Loop over files in library $k
-      foreach file $v {
-        set idx [lsearch -exact $list_lib $file]
-        set list_lib [lreplace $list_lib $idx $idx]
-        if {$idx < 0} {
-          # File is in project but not in list libraries, check if it was generated at creation time...
-          if { [dict exists $extra_files $file] } {
-            # File was generated at creation time, checking the md5sum
-            set new_md5sum [Md5Sum $file]
-            set old_md5sum [DictGet $extra_files $file]
-            if {$new_md5sum != $old_md5sum} {
-              MsgAndLog "$file in project has been modified from creation time. Please update the script you used to create the file and regenerate the project, or save the file outside the Projects/ directory and add it to a project list file" $severity $outFile
-              incr n_diffs
-            }
-            set extra_files [dict remove $extra_files $file]
-          } else {
-            puts $list_lib
-            if {$prop == 1} {
-              MsgAndLog "Property $file of $k is set in project but not in list files" $severity $outFile
-            } else {
-              MsgAndLog "$file was found in project but not in list files or .hog/extra.files" $severity $outFile
-            }
+          # Loop over remaining files in list libraries
+          foreach listFile $listFiles {
+            MsgAndLog "$listFile was found in list files but not in project." $severity $outFile
             incr n_diffs
           }
-        }
-      }
-      # Loop over remaining files in list libraries
-      foreach file $list_lib {
-        if {$prop == 1} {
-          MsgAndLog "Property $file of $k was found in list files but not set in project."
         } else {
-          MsgAndLog "$file was found in list files but not in project."
+          MsgAndLog "Library $prjLib of fileset $prjSet found in project but not in list files" $severity $outFile
+          incr n_diffs
         }
-        incr n_diffs
       }
+    } else {
+      MsgAndLog "Fileset $prjSet found in project but not in list files" $severity $outFile
+      incr n_diffs
     }
   }
+
   return [list $n_diffs $extra_files]
 }
 
-## @brief Compare the contents of two lists
-#
-# @param[in] l_proj The first list (from the project)
-# @param[in] l_list The second list (from the list files)
-#
-# @return n_diffs The number of differences
-proc CompareLibLists {l_proj l_list {prop 0} {severity "CriticalWarning"} {outFile ""} {extraFiles ""}} {
-  set extra_files $extraFiles
-  set n_diffs 0
-  # Loop over files in library $k
-  foreach file $l_proj {
-    set idx [lsearch -exact $l_list $file]
-    set l_list [lreplace $l_list $idx $idx]
-    if {$idx < 0} {
-      # File is in project but not in list libraries, check if it was generated at creation time...
-      if { [dict exists $extra_files $file] } {
-        # File was generated at creation time, checking the md5sum
-        set new_md5sum [Md5Sum $file]
-        set old_md5sum [DictGet $extra_files $file]
-        if {$new_md5sum != $old_md5sum} {
-          MsgAndLog "$file in project has been modified from creation time. Please update the script you used to create the file and regenerate the project, or save the file outside the Projects/ directory and add it to a project list file" $severity $outFile
-          incr n_diffs
-        }
-        set extra_files [dict remove $extra_files $file]
-      } else {
-        MsgAndLog "$file was found in project but not in list files."
-        incr n_diffs
-      }
-    }
-  }
-  # Loop over remaining files in list libraries
-  foreach file $l_list {
-    MsgAndLog "$file was found in list files but not in project libraries."
-    incr n_diffs
-  }
-  return [list $n_diffs $extra_files]
-}
 
 # @brief Write the content of Hog-library-dictionary created from the project into a list file
 #
-# @param[in] prj_dict   The Hog-Library dictionary with the list of files in the project to write
-# @param[in] prj_pros   The Hog-library dictionary with the file properties
+# @param[in] libs      The Hog-Library dictionary with the list of files in the project to write
+# @param[in] props     The Hog-library dictionary with the file sets
 # @param[in] list_path  The path of the output list file
 # @param[in] repo_path  The main repository path
 # @param[in] ext_path   The external path
-proc WriteLibListFiles {prj_dict prj_props list_path repo_path {$ext_path ""}} {
+# @param[in] sets       The Hog-library dictionary with the file sets (relevant only for simulation)
+
+proc WriteListFiles {libs props list_path repo_path {$ext_path ""} {sets ""}} {
+  if { $sets != ""} {
+    # Writing simulation list files
+    foreach simset [dict keys $sets] {
+      set list_file_name $list_path/[string map {"_" "."} $simset] 
+      set list_file [open $list_file_name w]
+      Msg Info "Writing $list_file_name..."
+      foreach lib [DictGet $sets $simset] {
+        foreach file [DictGet $libs $lib] {
+          # Retrieve file properties from prop list
+          set props [DictGet $prj_props $file]
+        }
+      }
+    }
+  }
+
   foreach lib [dict keys $prj_dict] {
     set list_file [open $list_path/$lib w]
-    Msg Info "Writing $list_path/$lib..."
     foreach file [DictGet $prj_dict $lib] {
-      # Retrieve file properties from prop list
-      set props [DictGet $prj_props $file]
+      
       # Check if file is local to the repository or external
       if {[RelativeLocal $repo_path $file] != ""} {
         set file_path [RelativeLocal $repo_path $file]
@@ -4116,81 +3956,9 @@ proc WriteLibListFiles {prj_dict prj_props list_path repo_path {$ext_path ""}} {
   }
 }
 
-# @brief Write the content of Hog-source list created from the project into a list file
-#
-# @param[in] prj_list   The Hog-sources list with the list of files in the project to write
-# @param[in] prj_pros   The Hog-sources list with the file properties
-# @param[in] list_path  The path of the output list file
-# @param[in] repo_path  The main repository path
-# @param[in] prj_name   The name of the project
-proc WriteOthListFiles {prj_list prj_props list_path repo_path prj_name} {
-  foreach f $prj_list {
-    # Retrieve properties
-    set props [DictGet $prj_props $f]
-    # Write IP files to others.src
-    if {[file ext $f] == ".xci" || [file ext $f] == ".bd"} {
-      set list_file_path $list_path/others.src
-    } elseif {([file ext $f] == ".v" || [file ext $f] == ".sv") && [get_property -quiet used_in_synthesis [GetFile $f]] == 1 } {
-      set list_file_path $list_path/others.src
-    } elseif {[file ext $f] == ".do" || [file ext $f] == ".udo" || ([get_property -quiet used_in_synthesis [GetFile $f]] == 0 && [get_property -quiet used_in_simulation [GetFile $f]] == 1) } {
-      set list_file_path $list_path/others.sim
-    } else {
-      set list_file_path $list_path/${prj_name}.con
-    }
-    if {[RelativeLocal $repo_path $f] != ""} {
-      set file_path [RelativeLocal $repo_path $f]
-      set list_file [open $list_file_path a]
-      puts $list_file "$file_path $props"
-      close $list_file
-    } else {
-      # File is not relative to repo... Write a Warning and continue
-      Msg CriticalWarning "The path of file $file is not relative to your repository or external path. Please check!"
-    }
-  }
-}
-
-## @brief Transform the input dictionary in a list, concatenating all the values
-#
-# @param[in] d The input dictionary
-#
-# @return l The resulting list
-proc DictToList {d} {
-  set l ""
-  dict for {k v} $d {
-    set l [concat $l $v]
-  }
-  return $l
-}
 
 
-## @brief Trasnsform a Vivado project fileset dictionary into a Hog-like dictionary (as extracted from the list files)
-#
-# @param[in] prjDict The vivado project fileset dictionary to transform
-#
-# @return The transformed dictionary
-proc TransformToHogDict {prjDict {dict_type ".src"}} {
-  set prjHogDict [dict create]
-  foreach fileset [dict keys $prjDict] {
-    foreach file [dict get $prjDict $fileset] {      
-      set lib [get_property "library" [get_files $file]]
-      if {$dict_type == ".sim"} {
-        # Each simulation list file creates a fileset, so we need to use the fileset as key
-        set key [string map {_sim .sim} $fileset]
-        # set key $fileset
-      } else {
-        # For the other list files the key is different.
-        set key "$lib$dict_type"
-      }
-      if {[dict exists $prjHogDict $key ]} {
-        dict lappend prjHogDict $key $file
-      } else {
-        dict set prjHogDict $key $file
-      }
-    }
-  }
-  return $prjHogDict
-}
-
+# @brief Remove empty keys from dictionary 
 proc RemoveEmptyKeys {d} {
   set newDict $d 
   foreach {k v} $newDict {
@@ -4451,5 +4219,15 @@ proc findFiles { basedir pattern } {
             }
         }
     }
-    return $fileList
- }
+  return $fileList
+}
+
+# Check if element is in list
+proc IsInList {element list} {
+  if {[lsearch -exact $list $element] >= 0} {
+    return 1
+  } else {
+    return 0
+  }
+}
+

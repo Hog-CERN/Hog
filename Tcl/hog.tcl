@@ -4277,10 +4277,13 @@ proc InitLauncher {script tcl_path parameters usage argv} {
   set bin_path [file normalize "$tcl_path/../../bin"]
   set top_path [file normalize "$tcl_path/../../Top"]
 
-  Logo $repo_path
-  
+  if {[IsTclsh]} {
+    #Just display the logo the first time, not when the scripot is run in the IDE
+    Logo $repo_path
+  }
+
   if {[catch {package require cmdline} ERROR]} {
-    Msg Info "The cmdline Tcl package was not found, sourcing it from Hog..."
+    Msg Debug "The cmdline Tcl package was not found, sourcing it from Hog..."
     source $tcl_path/utils/cmdline.tcl
   }
   
@@ -4301,9 +4304,9 @@ proc InitLauncher {script tcl_path parameters usage argv} {
     ListProjects $repo_path
     Msg Status "\n"
     exit 0
-  } elseif { [llength $argv] == 0} {
-    Msg Status "USAGE: [cmdline::usage $parameters $usage]"
-    Msg Status "** The projects in this repository are:"
+
+  } elseif {  [llength $argv] == 0 || ([llength $argv] == 1 && ($directive == "H" || $directive == "HELP"))} {
+    Msg Status "\n** The projects in this repository are:"
     ListProjects $repo_path
     Msg Status "\n"
     exit 0

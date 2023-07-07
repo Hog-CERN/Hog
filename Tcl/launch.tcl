@@ -31,9 +31,9 @@ set parameters {
   {verbose         "If set, launch the script in verbose mode"}
 }
 
-set usage "\[OPTIONS\] <directive> <project>\n The most common <directive> values are CREATE (or C), WORKFLOW (or W), SIMULATE (or S).
+set usage " \[OPTIONS\] <directive> <project>\n The most common <directive> values are CREATE (or C), WORKFLOW (or W), SIMULATE (or S).
 
-** Directives:
+** Directives (case insensitive):
 - CREATE or C: Create the project, replacing it if already existing.
 - WORKFLOW or W: Launches the complete workflow, creates the project if not existing.
 - CREATEWORKFLOW or CW: Creates the project -even if existing- and launches the complete workflow.
@@ -41,6 +41,7 @@ set usage "\[OPTIONS\] <directive> <project>\n The most common <directive> value
 - IMPLEMENT: Runs the implementation only, the project must already exist and be synthesised.
 - SYNTHESIS: Runs the sysnthesis only, creates the project if not existing.
 - LIST or L: Only list all the projects
+- HELP or H: This help screen
 
 ** Options:"
 

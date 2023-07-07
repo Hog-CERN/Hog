@@ -679,7 +679,7 @@ proc ReadListFile args {
             }
             if {$sha_mode == 0 && [lsearch {.xci .ip .bd} $extension] >= 0} {
               # Adding IP library
-              set lib_name "sources.ip"
+              set lib_name "ips.src"
             } elseif { [IsInList $extension {.vhd .vhdl}] || $list_file_ext == ".sim"} {
               # VHDL files and simulation
               if { [IsInList $extension {.do .udo}]} {
@@ -1851,10 +1851,10 @@ proc GetProjectFiles {} {
           dict lappend libraries "${lib}.src" $f
         } elseif {[string equal $type "IP"]} {
           # IPs
-          if {[IsInList "sources.ip" [DictGet $srcsets $fs]]==0} {
-            dict lappend srcsets $fs "sources.ip"
+          if {[IsInList "ips.src" [DictGet $srcsets $fs]]==0} {
+            dict lappend srcsets $fs "ips.src"
           }
-          dict lappend libraries "sources.ip" $f
+          dict lappend libraries "ips.src" $f
         } elseif {[string equal $fs_type "Constrs"]} {
           # Constraints
           if {[IsInList "sources.con" [DictGet $consets $fs]]==0} {
@@ -3908,56 +3908,74 @@ proc CompareLibDicts {proj_libs list_libs proj_sets list_sets proj_props list_pr
   return [list $n_diffs $extra_files]
 }
 
+# @brief Write the content of Hog-library-dictionary created from the project into a .sim list file
+#
+# @param[in] libs      The Hog-Library dictionary with the list of files in the project to write
+# @param[in] props     The Hog-library dictionary with the file sets
+# @param[in] simsets       The Hog-library dictionary with the file sets (relevant only for simulation)
+# @param[in] list_path  The path of the output list file
+# @param[in] repo_path  The main repository path
+proc WriteSimListFiles {libs props simsets list_path repo_path } {
+  # Writing simulation list files
+  foreach simset [dict keys $simsets] {
+    set list_file_name $list_path/${simset}.sim 
+    set list_file [open $list_file_name w]
+    Msg Info "Writing $list_file_name..."
+    foreach lib [DictGet $simsets $simset] {
+      foreach file [DictGet $libs $lib] {
+        # Retrieve file properties from prop list
+        set props [DictGet $prj_props $file]
+        # Check if file is local to the repository or external
+        if {[RelativeLocal $repo_path $file] != ""} {
+          set file_path [RelativeLocal $repo_path $file]
+          set lib_name [file rootname $lib]
+          if {$lib_name != $simset} {
+            lappend props "lib=$lib_name"
+          }
+          puts $list_file "$file_path $props"
+        } else {
+          # File is not relative to repo or ext_path... Write a Warning and continue
+          Msg Warning "The path of file $file is not relative to your repository. Please check!"
+        }
+      }
+    }
+  }
+}
 
-# @brief Write the content of Hog-library-dictionary created from the project into a list file
+
+# @brief Write the content of Hog-library-dictionary created from the project into a .src/.ext/.con list file
 #
 # @param[in] libs      The Hog-Library dictionary with the list of files in the project to write
 # @param[in] props     The Hog-library dictionary with the file sets
 # @param[in] list_path  The path of the output list file
 # @param[in] repo_path  The main repository path
 # @param[in] ext_path   The external path
-# @param[in] sets       The Hog-library dictionary with the file sets (relevant only for simulation)
-
-proc WriteListFiles {libs props list_path repo_path {$ext_path ""} {sets ""}} {
-  if { $sets != ""} {
-    # Writing simulation list files
-    foreach simset [dict keys $sets] {
-      set list_file_name $list_path/[string map {"_" "."} $simset] 
-      set list_file [open $list_file_name w]
-      Msg Info "Writing $list_file_name..."
-      foreach lib [DictGet $sets $simset] {
-        foreach file [DictGet $libs $lib] {
-          # Retrieve file properties from prop list
-          set props [DictGet $prj_props $file]
-        }
-      }
-    }
-  }
-
-  foreach lib [dict keys $prj_dict] {
-    set list_file [open $list_path/$lib w]
-    foreach file [DictGet $prj_dict $lib] {
-      
+proc WriteListFiles {libs props list_path repo_path {$ext_path ""} } {
+  # Writing simulation list files
+  foreach lib [dict keys $libs] {
+    set list_file_name $list_path$lib
+    set list_file [open $list_file_name w]
+    Msg Info "Writing $list_file_name..."
+    foreach file [DictGet $libs $lib] {
+      # Retrieve file properties from prop list
+      set prop [DictGet $props $file]
       # Check if file is local to the repository or external
       if {[RelativeLocal $repo_path $file] != ""} {
         set file_path [RelativeLocal $repo_path $file]
-        puts $list_file "$file_path $props"
+        puts $list_file "$file_path $prop"
       } elseif {[RelativeLocal $ext_path $file] != ""} {
         set file_path [RelativeLocal $ext_path $file]
         set ext_list_file [open "[file rootname $list_file].ext" a]
-        puts $ext_list_file "$file_path $props"
+        puts $ext_list_file "$file_path $prop"
         close $ext_list_file
       } else {
         # File is not relative to repo or ext_path... Write a Warning and continue
-        Msg CriticalWarning "The path of file $file is not relative to your repository or external path. Please check!"
+        Msg Warning "The path of file $file is not relative to your repository. Please check!"
       }
     }
-    close $list_file
   }
 }
-
-
-
+ 
 # @brief Remove empty keys from dictionary 
 proc RemoveEmptyKeys {d} {
   set newDict $d 

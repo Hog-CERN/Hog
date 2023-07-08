@@ -134,8 +134,7 @@ if {$cmd == -1} {
   set ret [catch {exec -ignorestderr {*}$cmd >@ stdout} result]
   
   if {$ret != 0} {
-    Msg CriticalWarning "IDE returned an error state."
-    exit -1
+    Msg Error "IDE returned an error state."
   } else {
     Msg Info "All done."
     exit 0
@@ -202,7 +201,7 @@ if { $options(ext_path) != ""} {
   set ext_path $options(ext_path)
 }
 
-if {$options(simlib_path)!= ""} {
+if {$options(lib)!= ""} {
   set lib_path [file normalize $options(lib)]
 } else {
   set lib_path [file normalize "$repo_path/SimulationLib"]

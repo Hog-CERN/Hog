@@ -77,7 +77,7 @@ switch -regexp -- $directive {
     set do_compile 1
   }
   
-  SYNTHESIS|SYNTEHSISE|SYNT {
+  SYNTHESIS|SYNTEHSISE|SYNTH {
     set do_synthesis 1
     set do_compile 1
   }

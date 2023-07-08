@@ -207,22 +207,23 @@
         echo "Hog-CI(info) - Launching workflow now...";
       fi;
     - if [ ! -f "./Projects/$PROJECT_NAME/skip.me" ]; then
-        if [[ $ONLY_SYNTH == '1' ]]; then 
-          EXEC_CMD="./Hog/Do -njobs $HOG_NJOBS $NO_BITSTREAM $CHECK_SYNTAX WORKFLOW $PROJECT_NAME";
-        else
-          EXEC_CMD="./Hog/Do -njobs $HOG_NJOBS $NO_BITSTREAM $CHECK_SYNTAX SYNTH $PROJECT_NAME";
-        fi
-        if [[ -f $HOG_APPTAINER_IMAGE ]]; then
-          echo "singularity exec -H $PWD $HOG_APPTAINER_IMAGE $EXEC_CMD";
-          if [[ -n $HOG_APPTAINER_EXTRA_PATH ]]; then
-            EXTRA_PATH="-B $HOG_APPTAINER_EXTRA_PATH";
-          fi;
-          apptainer exec -H $PWD $EXTRA_PATH $HOG_APPTAINER_IMAGE /bin/bash -c "PATH=${HOG_PATH}:$PATH; $EXEC_CMD";
-        else
-          echo $EXEC_CMD;
-          $(echo $EXEC_CMD);
-        fi;
-      fi;
+         if [[ $ONLY_SYNTH == '1' ]]; then
+             EXEC_CMD="./Hog/Do -njobs $HOG_NJOBS $NO_BITSTREAM $CHECK_SYNTAX WORKFLOW $PROJECT_NAME"
+         else
+             EXEC_CMD="./Hog/Do -njobs $HOG_NJOBS $NO_BITSTREAM $CHECK_SYNTAX SYNTH $PROJECT_NAME"
+         fi
+         
+         if [[ -f $HOG_APPTAINER_IMAGE ]]; then
+             echo "singularity exec -H $PWD $HOG_APPTAINER_IMAGE $EXEC_CMD"
+             if [[ -n $HOG_APPTAINER_EXTRA_PATH ]]; then
+                 EXTRA_PATH="-B $HOG_APPTAINER_EXTRA_PATH"
+             fi
+             apptainer exec -H $PWD $EXTRA_PATH $HOG_APPTAINER_IMAGE /bin/bash -c "PATH=${HOG_PATH}:$PATH; $EXEC_CMD"
+         else
+             echo $EXEC_CMD
+             $(echo $EXEC_CMD)
+         fi
+      fi
     - if [ ! -f "./Projects/$PROJECT_NAME/skip.me" ]; then
         if [[ -n "$HOG_ONLY_SYNTH" ]] && [[ $HOG_ONLY_SYNTH == '1' ]]; then
           echo "Hog-CI(info) - Adding version and utilization summaries to note...";

@@ -26,7 +26,7 @@ set parameters {
   {njobs.arg 4     "Number of jobs. Default: 4"}
   {ext_path.arg "" "Sets the absolute path for the external libraries."}
 
-  {simlib_path.arg  "" "Compiled simulation library path"}
+  {lib.arg  "" "Compiled simulation library path"}
   {simset.arg  ""    "Simulation sets, separated by commas, to be run."}
   {verbose         "If set, launch the script in verbose mode"}
 }
@@ -135,10 +135,12 @@ if {$cmd == -1} {
   
   if {$ret != 0} {
     Msg CriticalWarning "IDE returned an error state."
+    exit -1
   } else {
     Msg Info "All done."
+    exit 0
   }
-  exit $ret
+
 }
 
 #After this line, we are in the IDE
@@ -201,7 +203,7 @@ if { $options(ext_path) != ""} {
 }
 
 if {$options(simlib_path)!= ""} {
-  set lib_path [file normalize $options(simlib_path)]
+  set lib_path [file normalize $options(lib)]
 } else {
   set lib_path [file normalize "$repo_path/SimulationLib"]
   #we should check if it exists

@@ -74,7 +74,7 @@
           echo 'Simulation library path is not defined';
           SIM_CMD="./Hog/Do SIMULATE $PROJECT_NAME";
         else
-          SIM_CMD="./Hog/Do -l $HOG_SIMULATION_LIB_PATH SIMULATE $PROJECT_NAME";
+          SIM_CMD="./Hog/Do -lib $HOG_SIMULATION_LIB_PATH SIMULATE $PROJECT_NAME";
         fi;
         if [[ -f $HOG_APPTAINER_IMAGE ]]; then
           echo "apptainer exec -H $PWD $HOG_APPTAINER_IMAGE $SIM_CMD";

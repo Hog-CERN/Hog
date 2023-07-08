@@ -57,7 +57,7 @@ done
 
 if [ "$found" == 1 ]; then
     $executable_path $hog_dir/Tcl/launch.tcl "$@" 
-    exit 0
+    exit $?
 else
     echo "Error: No IDE exectuable found in PATH. You need an IDE in your PATH to use Hog." >&2
     exit 1

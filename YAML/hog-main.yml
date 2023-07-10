@@ -235,13 +235,12 @@ archive_binary_files:
       fi;
     - mkdir zipped
     - cd bin
-    - projects=$(find . -name "*.bit" -o -name "*.pof" -o -name "*.bif")
+    - project_dirs=$(find . -name "*.bit" -o -name "*.pof" -o -name "*.bif" -o -name "*.bin" | xargs dirname | sort | uniq)
     - if [ -z ${HOG_MAX_ZIP_SIZE+x} ]; then
         export HOG_MAX_ZIP_SIZE=10m;
         echo "Hog-CI(info) - Maximum size of artifact zip set to $HOG_MAX_ZIP_SIZE";
       fi;
-    - for proj in $projects; do
-        PRJ_DIR=$(dirname "$proj");
+    - for PRJ_DIR in $project_dirs; do
         PRJ_DIR=$(echo "$PRJ_DIR" | sed -r 's#\./##g');
         DEST_ZIP=$(echo "$PRJ_DIR" | sed -r 's#/#_#g');
         echo "Archiving $PRJ_DIR into $HOG_MAX_ZIP_SIZE";

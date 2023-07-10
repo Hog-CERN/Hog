@@ -140,7 +140,9 @@ if {[catch {package require cmdline} ERROR] || [catch {package require struct::m
   exit 1
 }
 
-if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] ||  [llength $argv] != 2 } {
+lassign [ GetOptions $::argv ] option_list arg_list 
+
+if {[catch {array set options [cmdline::getoptions option_list $parameters $usage]}] || [llength $arg_list] != 2 } {
   Msg Info [cmdline::usage $parameters $usage]
   exit 1
 } else {

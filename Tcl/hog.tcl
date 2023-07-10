@@ -4052,6 +4052,24 @@ proc CheckLatestHogRelease {{repo_path .}} {
 
 }
 
+# @brief Gets the command argv list and returns a list of 
+#        options and arguments
+proc GetOptions {argv} {
+  # Get Options from argv
+  set option_list [list]
+  set arg_list [list]
+  foreach arg $argv {
+    if {[string first - $arg] == 0} {
+      lappend option_list $arg
+    } else {
+      lappend arg_list $arg
+    }
+  }
+  Msg Debug "Options: $option_list"
+  Msg Debug "Arguments: $arg_list"
+  return [list $option_list $arg_list]
+}
+
 proc InitLauncher {script tcl_path parameters usage argv} {
   set repo_path [file normalize "$tcl_path/../.."]
   set old_path [pwd]
@@ -4065,29 +4083,27 @@ proc InitLauncher {script tcl_path parameters usage argv} {
     source $tcl_path/utils/cmdline.tcl
   }
   
-  set orig_argv $argv
-  if {[catch {array set options [cmdline::getoptions argv $parameters $usage]} err] } {
+  lassign [ GetOptions $argv ] option_list arg_list 
+
+  if {[catch {array set options [cmdline::getoptions option_list $parameters $usage]} err] } {
     Msg Status "\nERROR: Syntax error, probably unkown option.\n\n USAGE: $err"
     exit 1
   }
-
-  Msg Debug "Original argv is: $orig_argv"
-  Msg Debug "Cleaned-up argv is: $argv"
   
   # Argv here is modified and the options are removed
-  set directive [string toupper [lindex $argv 0]]
+  set directive [string toupper [lindex $arg_list 0]]
 
-  if { [llength $argv] == 1 && ($directive == "L" || $directive == "LIST")} {
+  if { [llength $arg_list] == 1 && ($directive == "L" || $directive == "LIST")} {
     ListProjects $repo_path
     Msg Status "\n"
     exit 0
-  } elseif { [llength $argv] != 2} {
-    Msg Status "\nERROR: Wrong number of arguments: [llength $argv].\n\n"
+  } elseif { [llength $arg_list] != 2} {
+    Msg Status "\nERROR: Wrong number of arguments: [llength $arg_list].\n\n"
     Msg Status "USAGE: $script [cmdline::usage $parameters $usage]"
     exit 1
   }
 
-  set project  [lindex $argv 1]
+  set project  [lindex $arg_list 1]
   set proj_conf [ProjectExists $project $repo_path] 
   
   Msg Debug "Option list:"
@@ -4105,7 +4121,7 @@ proc InitLauncher {script tcl_path parameters usage argv} {
       Msg Info "Project $project uses $cmd IDE"
       
       ## The following is the IDE command to launch:
-      set command "$cmd $before_tcl_script$script$after_tcl_script$orig_argv$end_marker"
+      set command "$cmd $before_tcl_script$script$after_tcl_script$argv$end_marker"
       
     } else {
       Msg Status "\nERROR: Project $project not found, the projects in this repository are:\n"

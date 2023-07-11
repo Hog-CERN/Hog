@@ -12,10 +12,6 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-# @file
-# @brief Collection of Tcl functions used in Vivado/Quartus scripts
-
-
 ## @file hog.tcl
 # @brief Collection of Tcl functions used in Vivado/Quartus scripts
 
@@ -4054,17 +4050,35 @@ proc CheckLatestHogRelease {{repo_path .}} {
 
 # @brief Gets the command argv list and returns a list of 
 #        options and arguments
-proc GetOptions {argv} {
+proc GetOptions {argv parameters usage} {
   # Get Options from argv
-  set option_list [list]
   set arg_list [list]
-  foreach arg $argv {
-    if {[string first - $arg] == 0} {
-      lappend option_list $arg
+  set param_list [list]
+  set option_list [list]
+
+  foreach p $parameters {
+    lappend param_list [lindex $p 0]
+  }
+
+  set index 0
+  while {$index < [llength $argv]} {
+    set arg [lindex $argv $index]
+    if {[string first - $arg] >= 0} {
+      puts $arg
+      set option [string trimleft $arg "-"]
+      incr index
+      lappend option_list $option
+      if {[lsearch $param_list ${option}*] >= 0 && [string first ".arg" [lsearch -inline $param_list ${option}*]] >= 0} {
+        puts [lindex $argv $index]
+        lappend option_list [lindex $argv $index]
+        incr index
+      }
     } else {
       lappend arg_list $arg
+      incr index
     }
   }
+
   Msg Debug "Options: $option_list"
   Msg Debug "Arguments: $arg_list"
   return [list $option_list $arg_list]
@@ -4083,9 +4097,9 @@ proc InitLauncher {script tcl_path parameters usage argv} {
     source $tcl_path/utils/cmdline.tcl
   }
   
-  lassign [ GetOptions $argv ] option_list arg_list 
+  lassign [ GetOptions $argv $parameters $usage] option_list arg_list 
 
-  if {[catch {array set options [cmdline::getoptions option_list $parameters $usage]} err] } {
+  if {[catch {array set options [cmdline::getoptions argv $parameters $usage]} err] } {
     Msg Status "\nERROR: Syntax error, probably unkown option.\n\n USAGE: $err"
     exit 1
   }

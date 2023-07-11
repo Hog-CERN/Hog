@@ -695,17 +695,6 @@ proc CreateProject args {
     return 1
   }
 
-  if {[IsLibero]} {
-    if {[info exists env(HOG_TCLLIB_PATH)]} {
-      lappend auto_path $env(HOG_TCLLIB_PATH) 
-    } else {
-      puts "ERROR: To run Hog with Microsemi Libero SoC, you need to define the HOG_TCLLIB_PATH variable."
-      return
-    }
-  }
-  
-
-    
   set globalSettings::DESIGN [lindex $args 0]
   if {[file exists [lindex $args 1]]} {
     set globalSettings::repo_path [file normalize [lindex $args 1]]

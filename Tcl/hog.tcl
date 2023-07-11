@@ -1996,8 +1996,8 @@ proc AddHogFiles { libraries properties filesets } {
   foreach fileset [dict keys $filesets] {
     Msg Debug "Fileset: $fileset"
     # Create fileset if it doesn't exist yet
-    if {[string equal [get_filesets -quiet $fileset] ""]} {
-      if {[IsVivado]} {
+    if {[IsVivado]} {
+      if {[string equal [get_filesets -quiet $fileset] ""]} {
         # Simulation list files supported only by Vivado
         create_fileset -simset $fileset
         # Set active when creating, by default it will be the latest simset to be created, unless is specified in the sim.conf

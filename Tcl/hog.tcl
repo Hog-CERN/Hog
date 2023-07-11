@@ -4064,12 +4064,10 @@ proc GetOptions {argv parameters usage} {
   while {$index < [llength $argv]} {
     set arg [lindex $argv $index]
     if {[string first - $arg] >= 0} {
-      puts $arg
       set option [string trimleft $arg "-"]
       incr index
-      lappend option_list $option
+      lappend option_list $arg
       if {[lsearch $param_list ${option}*] >= 0 && [string first ".arg" [lsearch -inline $param_list ${option}*]] >= 0} {
-        puts [lindex $argv $index]
         lappend option_list [lindex $argv $index]
         incr index
       }
@@ -4099,11 +4097,10 @@ proc InitLauncher {script tcl_path parameters usage argv} {
   
   lassign [ GetOptions $argv $parameters $usage] option_list arg_list 
 
-  if {[catch {array set options [cmdline::getoptions argv $parameters $usage]} err] } {
+  if {[catch {array set options [cmdline::getoptions option_list $parameters $usage]} err] } {
     Msg Status "\nERROR: Syntax error, probably unkown option.\n\n USAGE: $err"
     exit 1
   }
-  
   # Argv here is modified and the options are removed
   set directive [string toupper [lindex $arg_list 0]]
 

@@ -2348,8 +2348,8 @@ proc AddHogFiles { libraries properties filesets } {
           # Top synthesis module
           set top [lindex [regexp -inline {top\s*=\s*(.+?)\y.*} $props] 1]
           if { $top != "" } {
-            Msg Info "Setting $top as top module for file set $fileset..."
-            set globalSettings::synth_top_module "${top}::$fileset" 
+            Msg Info "Setting $top as top module for file set $rootlib..."
+            set globalSettings::synth_top_module "${top}::$rootlib" 
           }
 
           # exclude sdc from timing

@@ -906,7 +906,7 @@ if {[IsXilinx]} {
     
     # Check timing
     Msg Info "Run VERIFYTIMING ..."
-    if {[catch {run_tool -name {VERIFYTIMING} -script {integrated/libero_timing.tcl} }] } {
+    if {[catch {run_tool -name {VERIFYTIMING} -script {Hog/Tcl/integrated/libero_timing.tcl} }] } {
       Msg CriticalWarning "VERIFYTIMING FAILED!"
     } else {
       Msg Info "VERIFYTIMING PASSED \n"

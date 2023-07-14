@@ -45,17 +45,17 @@ Options:"
 
 set tcl_path [file normalize "[file dirname [info script]]/.."]
 source $tcl_path/hog.tcl
-
 # Quartus needs extra packages and treats the argv in a different way
 if {[IsQuartus]} {
   load_package report
   set argv $quartus(args)
 }
 
+Msg Debug "s: $::argv0 a: $argv"
+
 lassign [InitLauncher $::argv0 $tcl_path $parameters $usage $argv] directive project project_name group_name repo_path old_path bin_dir top_path cmd
 
 Msg Debug "Returned by InitLauncher: $project $project_name $group_name $repo_path $old_path $bin_dir $top_path $cmd"
-
 
 ######## DEAFULTS #########
 set do_implementation 0; set do_synthesis 0; set do_bitstream 0; set do_create 0; set do_compile 0; set do_simulation 0; set recreate 0; set reset 1;
@@ -111,6 +111,15 @@ if {$cmd == 0} {
 } else {
   #This script was launched with Tclsh, we need to check the arguments and if everything is right launche the IDE on this script and return
   Msg Info "Launching command: $cmd..."
+  if {[string first libero $cmd] >= 0} {
+    # The SCRIPT_ARGS: flag of libero makes tcl crazy...
+    # Let's pipe the command into a shell script and remove it later
+    set libero_script [open "launch-libero-hog.sh" w]
+    puts $libero_script "#!/bin/sh"
+    puts $libero_script $cmd
+    close $libero_script
+    set cmd "sh launch-libero-hog.sh"
+  } 
 
   set ret [catch {exec -ignorestderr {*}$cmd >@ stdout} result]
   
@@ -119,6 +128,11 @@ if {$cmd == 0} {
   } else {
     Msg Info "All done."
   }
+
+  if {[string first libero $cmd] >= 0} {
+    file delete "launch-libero-hog.sh"
+  }
+
   exit $ret
 }
 

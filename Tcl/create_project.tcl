@@ -97,8 +97,6 @@ proc CreateProject {} {
     if {[IsVivado]} {
       set_param project.enableVHDL2008 1
       set_property "enable_vhdl_2008" 1 $obj
-      ## Enable Automatic compile order mode, otherwise we cannot find the right top module...
-      set_property source_mgmt_mode All [current_project]
     }
 
     ConfigureProperties

@@ -4076,7 +4076,7 @@ proc GetOptions {argv parameters usage} {
       incr index
     }
   }
-
+  Msg Debug "Argv: $argv"
   Msg Debug "Options: $option_list"
   Msg Debug "Arguments: $arg_list"
   return [list $option_list $arg_list]
@@ -4104,11 +4104,11 @@ proc InitLauncher {script tcl_path parameters usage argv} {
   # Argv here is modified and the options are removed
   set directive [string toupper [lindex $arg_list 0]]
 
-  if { [llength $arg_list] == 1 && ($directive == "L" || $directive == "LIST")} {
+  if { [llength $arg_list] == 1 && ($directive == "L" || $directive == "LIST" )} {
     ListProjects $repo_path
     Msg Status "\n"
     exit 0
-  } elseif { [llength $arg_list] != 2} {
+  } elseif { ([llength $arg_list] != 2)} {
     Msg Status "\nERROR: Wrong number of arguments: [llength $arg_list].\n\n"
     Msg Status "USAGE: $script [cmdline::usage $parameters $usage]"
     exit 1

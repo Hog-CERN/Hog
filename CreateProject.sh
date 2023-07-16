@@ -7,7 +7,7 @@ echo "Hog [Warning]: $0 is obsolete, you should use ./Hog/Hog now!"
 if [ "$#" -eq 0 ]; then
     ./Hog/Hog LIST
 else
-    ./Hog/Hog CREATE $@
+    ./Hog/Hog CREATE "$@"
 fi
 
 cd "${OLD_DIR}"

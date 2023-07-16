@@ -3,5 +3,5 @@
  DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
  cd "${DIR}/.."
  echo "Hog [Warning]: $0 is obsolete, you should use ./Hog/Hog now!"
- ./Hog/Hog SIMULATE $@
+ ./Hog/Hog SIMULATE "$@"
  cd "${OLD_DIR}"

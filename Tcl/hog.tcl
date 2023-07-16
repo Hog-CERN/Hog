@@ -3150,7 +3150,7 @@ proc SearchHogProjects {dir} {
 #  @return       the group name without initial and final slashes
 #
 proc GetGroupName {proj_dir repo_dir} {
-  if {[regexp {^(.*)/(Top)/+(.*?)/*$} $proj_dir dummy possible_repo_dir proj_or_top dir]} {
+  if {[regexp {^(.*)/(Projects)/+(.*?)/*$} $proj_dir dummy possible_repo_dir proj_or_top dir]} {
     # The Top or Project folder is in the root of a the git repository
     if {[file normalize $repo_dir] eq [file normalize $possible_repo_dir]} {
       set group [file dir $dir]

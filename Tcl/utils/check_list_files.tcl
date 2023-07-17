@@ -118,26 +118,16 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
 
   Msg Info "Retrieved Vivado project files..."
   # Get project libraries and properties from list files
-  lassign [GetHogFiles -ext_path "$ext_path" -list_files ".src,.ext" "$repo_path/Top/$group_name/$project_name/list/" $repo_path] listLibraries listProperties listMain
+  lassign [GetHogFiles -ext_path "$ext_path" -list_files ".src,.ext" "$repo_path/Top/$group_name/$project_name/list/" $repo_path] listLibraries listProperties listSrcSets
   # Get project constraints and properties from list files
-  lassign [GetHogFiles -ext_path "$ext_path" -list_files ".con" "$repo_path/Top/$group_name/$project_name/list/" $repo_path] listConstraints listConProperties listConMain
+  lassign [GetHogFiles -ext_path "$ext_path" -list_files ".con" "$repo_path/Top/$group_name/$project_name/list/" $repo_path] listConstraints listConProperties listConSets
   # Get project simulation libraries and properties from list files
-  lassign [GetHogFiles -ext_path "$ext_path" -list_files ".sim" "$repo_path/Top/$group_name/$project_name/list/" $repo_path] listSimLibraries listSimProperties listSimMain
+  lassign [GetHogFiles -ext_path "$ext_path" -list_files ".sim" "$repo_path/Top/$group_name/$project_name/list/" $repo_path] listSimLibraries listSimProperties listSimSets
   # Get files generated at creation time
   set extraFiles [ReadExtraFileList "$repo_path/Projects/$group_name/$project_name/.hog/extra.files"]
   set extraFiles_copy $extraFiles
   # Get project libraries and properties from Vivado
-  lassign [GetProjectFiles] prjLibraries prjProperties prjSimProperties
-  set prjIPs      [DictGet $prjLibraries IP]
-  set prjXDCs     [DictGet $prjLibraries XDC]
-  set prjOTHERs   [DictGet $prjLibraries OTHER]
-  set prjSimDict  [DictGet $prjLibraries SIM]
-  set prjSrcDict  [DictGet $prjLibraries SRC]
-
-  # Transform project dictionaries in "Hog" format
-  set prjHogSimDict [TransformToHogDict $prjSimDict ".sim"]
-  set prjHogSrcDict [TransformToHogDict $prjSrcDict ".src"]
-  # set prjHogOthDict [TransformToHogDict $prjOTHERs ".oth"]
+  lassign [GetProjectFiles] prjLibraries prjProperties prjSimLibraries prjConstraints prjSrcSets prjSimSets prjConSets
 
   # Removing duplicates from listlibraries listProperties listSimLibraries listSimProperties
   set listLibraries [RemoveDuplicates $listLibraries]
@@ -145,73 +135,69 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
   set listSimLibraries [RemoveDuplicates $listSimLibraries]
   set listSimProperties [RemoveDuplicates $listSimProperties]
   set listConstraints [RemoveDuplicates $listConstraints]
-  set listConstraints [DictToList $listConstraints]
-  set prjHogSimDict [RemoveDuplicates $prjHogSimDict]
-  set prjHogSrcDict [RemoveDuplicates $prjHogSrcDict]
-  # Move sources.oth from listSimLibraries and listLibraries to a new list
-  set listOthers [concat [DictGet $listLibraries "sources.oth"] [DictGet $listSimLibraries "sources.oth"] ]
-  set listLibraries [dict remove $listLibraries "sources.oth"]
-  set listSimLibraries [dict remove $listSimLibraries "sources.oth"]
+  set prjSimLibraries [RemoveDuplicates $prjSimLibraries]
+  set prjLibraries [RemoveDuplicates $prjLibraries]
+  set prjConstraints [RemoveDuplicates $prjConstraints]
   
-  # Move sources.ip from listSimLibraries and listLibraries to a new list
-  set listIPs [DictGet $listLibraries "sources.ip"]
-  set listLibraries [dict remove $listLibraries "sources.ip"]
-
   #################################################################
   ##### START COMPARISON OF FILES IN PROJECT AND LIST FILES ######
   #################################################################
-  lassign [CompareLibDicts $prjHogSrcDict $listLibraries 0 "CriticalWarning" $outFile $extraFiles] n_source_diffs extraFiles
-  lassign [CompareLibDicts $prjHogSimDict $listSimLibraries 0 "Warning" $outSimFile $extraFiles] n_sim_diffs extraFiles
-  lassign [CompareLibLists $prjOTHERs $listOthers 0 "CriticalWarning" $outFile $extraFiles] n_oth_diffs extraFiles
-  lassign [CompareLibLists $prjXDCs $listConstraints 0 "CriticalWarning" $outFile $extraFiles] n_con_diffs extraFiles
-  lassign [CompareLibLists $prjIPs $listIPs 0 "CriticalWarning" $outFile $extraFiles] n_ip_diffs extraFiles
+  lassign [CompareLibDicts $prjLibraries $listLibraries $prjSrcSets $listSrcSets $prjProperties $listProperties "CriticalWarning" $outFile $extraFiles] SrcListErrorCnt extraFiles
+  lassign [CompareLibDicts $prjSimLibraries $listSimLibraries $prjSimSets $listSimSets $prjProperties $listProperties "Warning" $outSimFile $extraFiles] SimListErrorCnt extraFiles
+  lassign [CompareLibDicts $prjConstraints $listConstraints $prjConSets $listConSets $prjProperties $listProperties  "CriticalWarning" $outFile $extraFiles] ConListErrorCnt extraFiles
 
   # Check if any files remained in extraFiles
   foreach {k v} $extraFiles {
     MsgAndLog "$k was found in .hog/extra.files but not in project." "CriticalWarning" $outFile 
-    incr ListErrorCnt
+    incr SrcListErrorCnt
   }
 
-  # Compare properties dictionaries
-  set listProperties [RemoveEmptyKeys $listProperties]
-  set listSimProperties [RemoveEmptyKeys $listSimProperties]
-  set listConProperties [RemoveEmptyKeys $listConProperties]
-  set listProperties [concat $listProperties $listConProperties]
-
-
-  lassign [CompareLibDicts $prjProperties $listProperties 1 "CriticalWarning" $outFile $extraFiles_copy] n_prop_diffs
-  lassign [CompareLibDicts $prjSimProperties $listSimProperties 1 "Warning" $outSimFile $extraFiles_copy] n_prop_sim_diffs  
-
-  # Summary of errors found
-  set ListErrorCnt [expr $n_source_diffs + $n_oth_diffs + $n_con_diffs + $n_ip_diffs + $n_prop_diffs]
-  set ListSimErrorCnt [expr $n_sim_diffs + $n_prop_sim_diffs]
-
-  if {$ListErrorCnt == 0} {
+  if {$SrcListErrorCnt == 0} {
     Msg Info "Design List Files matches project. Nothing to do."
   }
 
-  if {$ListSimErrorCnt == 0} {
+  if {$SimListErrorCnt == 0} {
     Msg Info "Simulation List Files matches project. Nothing to do."
+  }
+
+  if {$ConListErrorCnt == 0} {
+    Msg Info "Constraint List Files matches project. Nothing to do."
   }
 
 
   # Recreating src list files
-  if {$options(recreate) == 1 && ($ListErrorCnt > 0) } {
+  if {$options(recreate) == 1 && ($SrcListErrorCnt > 0 || $SimListErrorCnt > 0 || $ConListErrorCnt > 0) } {
     set listpath "$repo_path/$DirName/list/"
     Msg Info "Updating list files in $listpath"
-    # Delete existing listFiles
-    if {$options(force) == 1} {
-      foreach F [glob -nocomplain "$listpath/*.src" "$listpath/*.ext" "$listpath/*.sim" "$listpath/*.con"] {
-        if {[dict exists $prjHogSrcDict [file tail $F]] == 0} {
+    # Create the list path, if it does not exist yet
+    file mkdir $listpath
+    if {$SrcListErrorCnt > 0} {
+      # Delete existing .src list files
+      if {$options(force) == 1} {
+        foreach F [glob -nocomplain "$listpath/*.src" "$listpath/*.ext"] {
           file delete $F
         }
       }
+      WriteListFiles $prjLibraries $prjProperties $listpath $repo_path $ext_path
     }
-    # Create the list path, if it does not exist yet
-    file mkdir $listpath
-    WriteLibListFiles $prjHogSrcDict $prjProperties $listpath $repo_path $ext_path
-    WriteOthListFiles [concat $prjOTHERs $prjXDCs $prjIPs] $prjProperties $listpath $repo_path $project_name
-    WriteLibListFiles $prjHogSimDict $prjProperties $listpath $repo_path $ext_path 
+    if {$SimListErrorCnt > 0} {
+      # Delete existing .sim list files
+      if {$options(force) == 1} {
+        foreach F [glob -nocomplain "$listpath/*.sim"] {
+          file delete $F
+        }
+      }
+      WriteSimListFiles $prjLibraries $prjProperties $listpath $repo_path
+    }
+    if {$ConListErrorCnt > 0} {
+      # Delete existing .con list files
+      if {$options(force) == 1} {
+        foreach F [glob -nocomplain "$listpath/*.con"] {
+          file delete $F
+        }
+      }
+      WriteListFiles $prjConstraints $prjProperties $listpath $repo_path
+    }
   } 
 }
 
@@ -686,19 +672,19 @@ if {![string equal $options(project) ""]} {
 }
 
 
-set TotErrorCnt [expr {$ConfErrorCnt + $ListErrorCnt}]
+set TotErrorCnt [expr {$ConfErrorCnt + $SrcListErrorCnt + $ConListErrorCnt}]
 
 if {$options(recreate_conf) == 0 && $options(recreate) == 0} {
   if {$options(pedantic) == 1 && $TotErrorCnt > 0} {
-    Msg Error "Number of errors: $TotErrorCnt. (Design List files = $ListErrorCnt, hog.conf = $ConfErrorCnt)."
+    Msg Error "Number of errors: $TotErrorCnt. (Design List files = [expr $SrcListErrorCnt + $ConListErrorCnt], hog.conf = $ConfErrorCnt)."
   } elseif {$TotErrorCnt > 0} {
-    Msg CriticalWarning "Number of errors: $TotErrorCnt (Design List files = $ListErrorCnt, hog.conf = $ConfErrorCnt)."
+    Msg CriticalWarning "Number of errors: $TotErrorCnt (Design List files = [expr $SrcListErrorCnt + $ConListErrorCnt], hog.conf = $ConfErrorCnt)."
   } else {
     Msg Info "Design List files and hog.conf match project. All ok!"
   }
 
-  if { $ListSimErrorCnt > 0 } {
-    Msg Warning "Number of mismatch in simulation list files = $ListSimErrorCnt"
+  if { $SimListErrorCnt > 0 } {
+    Msg Warning "Number of mismatch in simulation list files = $SimListErrorCnt"
   } else {
     Msg Info "Simulation list files match project. All ok!"
   }

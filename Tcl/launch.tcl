@@ -25,8 +25,9 @@ set parameters {
   {check_syntax    "If set, the HDL syntax will be checked at the beginning of the workflow."}
   {njobs.arg 4     "Number of jobs. Default: 4"}
   {ext_path.arg "" "Sets the absolute path for the external libraries."}
-
   {lib.arg  "" "Compiled simulation library path"}
+  {synth_only      "If set, only the synthesis will be performed."}
+  {impl_only       "If set, only the implementation will be performed. This assumes synthesis should was already done."}
   {simset.arg  ""    "Simulation sets, separated by commas, to be run."}
   {verbose         "If set, launch the script in verbose mode"}
 }
@@ -47,19 +48,19 @@ set usage " \[OPTIONS\] <directive> <project>\n The most common <directive> valu
 
 set tcl_path [file normalize "[file dirname [info script]]"]
 source $tcl_path/hog.tcl
-
 # Quartus needs extra packages and treats the argv in a different way
 if {[IsQuartus]} {
   load_package report
   set argv $quartus(args)
 }
 
+Msg Debug "s: $::argv0 a: $argv"
+
 lassign [InitLauncher $::argv0 $tcl_path $parameters $usage $argv] directive project project_name group_name repo_path old_path bin_dir top_path cmd
 
 Msg Debug "Returned by InitLauncher: $project $project_name $group_name $repo_path $old_path $bin_dir $top_path $cmd"
 
-
-######## DEAFULTS #########
+######## DEFAULTS #########
 set do_implementation 0; set do_synthesis 0; set do_bitstream 0; set do_create 0; set do_compile 0; set do_simulation 0; set recreate 0; set reset 1;
 
 switch -regexp -- $directive {
@@ -130,6 +131,15 @@ if {$cmd == -1} {
 } else {
   #This script was launched with Tclsh, we need to check the arguments and if everything is right launche the IDE on this script and return
   Msg Info "Launching command: $cmd..."
+  if {[string first libero $cmd] >= 0} {
+    # The SCRIPT_ARGS: flag of libero makes tcl crazy...
+    # Let's pipe the command into a shell script and remove it later
+    set libero_script [open "launch-libero-hog.sh" w]
+    puts $libero_script "#!/bin/sh"
+    puts $libero_script $cmd
+    close $libero_script
+    set cmd "sh launch-libero-hog.sh"
+  } 
 
   set ret [catch {exec -ignorestderr {*}$cmd >@ stdout} result]
   
@@ -140,6 +150,11 @@ if {$cmd == -1} {
     exit 0
   }
 
+  if {[string first libero $cmd] >= 0} {
+    file delete "launch-libero-hog.sh"
+  }
+
+  exit $ret
 }
 
 #After this line, we are in the IDE
@@ -160,11 +175,16 @@ if {[catch {package require cmdline} ERROR] || [catch {package require struct::m
   exit 1
 }
 
-if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] ||  [llength $argv] != 2 } {
+lassign [ GetOptions $::argv $parameters $usage] option_list arg_list 
+
+if {[catch {array set options [cmdline::getoptions option_list $parameters $usage]}] || [llength $arg_list] != 2 } {
   Msg Info [cmdline::usage $parameters $usage]
   exit 1
 } else {
   set main_folder [file normalize "$repo_path/Projects/$project_name/$project.runs/"]
+  if {[IsLibero]} {
+    set main_folder [file normalize "$repo_path/Projects/$project_name/"]
+  }
   set main_sim_folder [file normalize "$repo_path/Projects/$project_name/$project.sim/"]
   set check_syntax 0
   set ext_path ""
@@ -182,6 +202,22 @@ if { $options(no_bitstream) == 1 } {
 
 if { $options(recreate) == 1 } {
   set recreate 1
+}
+
+if { $options(synth_only) == 1} {
+  set do_implementation 0
+  set do_synthesis 1
+  set do_bitstream 0
+  set do_create 1
+  set do_compile 1
+}
+
+if { $options(impl_only) == 1} {
+  set do_implementation 0
+  set do_synthesis 0
+  set do_bitstream 0
+  set do_create 0
+  set do_compile 1
 }
 
 
@@ -383,13 +419,13 @@ if {[IsXilinx]} {
       close $status_file
       
       if {$errs == 0} {
-	Msg Info "Time requirements are met"
-	file rename -force "$main_folder/timing.txt" "$main_folder/timing_ok.txt"
-	set timing_ok 1
+        Msg Info "Time requirements are met"
+        file rename -force "$main_folder/timing.txt" "$main_folder/timing_ok.txt"
+        set timing_ok 1
       } else {
-	Msg CriticalWarning "Time requirements are NOT met"
-	file rename -force "$main_folder/timing.txt" "$main_folder/timing_error.txt"
-	set timing_ok 0
+        Msg CriticalWarning "Time requirements are NOT met"
+        file rename -force "$main_folder/timing.txt" "$main_folder/timing_error.txt"
+        set timing_ok 0
       }
     }
     
@@ -431,9 +467,9 @@ if {[IsXilinx]} {
       puts $status_file [m format 2string]
       puts $status_file "\n"
       if {$timing_ok == 1} {
-	puts $status_file " Time requirements are met."
+	      puts $status_file " Time requirements are met."
       } else {
-	puts $status_file "Time requirements are **NOT** met."
+	      puts $status_file "Time requirements are **NOT** met."
       }
       puts $status_file "\n\n"
       close $status_file
@@ -446,17 +482,17 @@ if {[IsXilinx]} {
     if {$do_bitstream == 1} {
       Msg Info "Starting write bitstream flow..."
       if {[IsISE]} {
-	# PlanAhead command
-	Msg Info "running pre-bitstream"
-	source  $tcl_path/../../Hog/Tcl/integrated/pre-bitstream.tcl
-	launch_runs impl_1 -to_step Bitgen $options(njobs) -dir $main_folder
-	wait_on_run impl_1
-	Msg Info "running post-bitstream"
-	source  $tcl_path/../../Hog/Tcl/integrated/post-bitstream.tcl
+	      # PlanAhead command
+        Msg Info "running pre-bitstream"
+        source  $tcl_path/../../Hog/Tcl/integrated/pre-bitstream.tcl
+        launch_runs impl_1 -to_step Bitgen $options(njobs) -dir $main_folder
+        wait_on_run impl_1
+        Msg Info "running post-bitstream"
+        source  $tcl_path/../../Hog/Tcl/integrated/post-bitstream.tcl
       } elseif { [string first Vivado [version]] ==0} {
-	# Vivado command
-	launch_runs impl_1 -to_step [BinaryStepName [get_property PART [current_project]]] $options(njobs) -dir $main_folder
-	wait_on_run impl_1
+        # Vivado command
+        launch_runs impl_1 -to_step [BinaryStepName [get_property PART [current_project]]] $options(njobs) -dir $main_folder
+        wait_on_run impl_1
       }
       
       set prog [get_property PROGRESS [get_runs impl_1]]
@@ -464,15 +500,15 @@ if {[IsXilinx]} {
       Msg Info "Run: impl_1 progress: $prog, status : $status"
       
       if {$prog ne "100%"} {
-	Msg Error "Write bitstream error, status is: $status"
+        Msg Error "Write bitstream error, status is: $status"
       }
       
       if {[IsVivado]} {
-	Msg Status "*** Timing summary (again) ***"
-	Msg Status "WNS: $wns"
-	Msg Status "TNS: $tns"
-	Msg Status "WHS: $whs"
-	Msg Status "THS: $ths"
+        Msg Status "*** Timing summary (again) ***"
+        Msg Status "WNS: $wns"
+        Msg Status "TNS: $tns"
+        Msg Status "WHS: $whs"
+        Msg Status "THS: $ths"
       }
     }
     
@@ -726,19 +762,19 @@ if {[IsXilinx]} {
     lassign [GetHogFiles -list_files "*.src" "$repo_path/Top/$project_name/list/" $repo_path] src_files dummy
     dict for {lib files} $src_files {
       foreach f $files {
-	set file_extension [file extension $f]
-	if { $file_extension == ".vhd" || $file_extension == ".vhdl" || $file_extension == ".v" ||  $file_extension == ".sv" } {
-	  if { [catch {execute_module -tool map -args "--analyze_file=$f"} result]} {
-	    Msg Error "\nResult: $result\n"
-	    Msg Error "Check syntax failed.\n"
-	  } else {
-	    if { $result == "" } {
-	      Msg Info "Check syntax was successful for $f.\n"
-	    } else {
-	      Msg Warning "Found syntax error in file $f:\n $result\n"
-	    }
-	  } 
-	}
+      set file_extension [file extension $f]
+        if { $file_extension == ".vhd" || $file_extension == ".vhdl" || $file_extension == ".v" ||  $file_extension == ".sv" } {
+          if { [catch {execute_module -tool map -args "--analyze_file=$f"} result]} {
+            Msg Error "\nResult: $result\n"
+            Msg Error "Check syntax failed.\n"
+          } else {
+            if { $result == "" } {
+              Msg Info "Check syntax was successful for $f.\n"
+            } else {
+              Msg Warning "Found syntax error in file $f:\n $result\n"
+            }
+          } 
+        }
       }
     }
   }
@@ -776,24 +812,24 @@ if {[IsXilinx]} {
       
       lassign [ExecuteRet {*}$cmd ] ret log
       if {$ret != 0} {
-	Msg Warning "Can not execute command $cmd"
-	Msg Warning "LOG: $log"
+        Msg Warning "Can not execute command $cmd"
+        Msg Warning "LOG: $log"
       } else {
-	Msg Info "Pre flow script executed!"
+        Msg Info "Pre flow script executed!"
       }
       
       # Re-open project
       if { ![is_project_open ] } {
-	Msg Info "Re-opening project file $project_name..."
-	project_open $project -current_revision
+        Msg Info "Re-opening project file $project_name..."
+        project_open $project -current_revision
       }
       
       # Execute synthesis
       if {[catch {execute_module -tool map -args "--parallel"} result]} {
-	Msg Error "Result: $result\n"
-	Msg Error "Analysis & Synthesis failed. See the report file.\n"
+        Msg Error "Result: $result\n"
+        Msg Error "Analysis & Synthesis failed. See the report file.\n"
       } else {
-	Msg Info "Analysis & Synthesis was successful for revision $revision.\n"
+        Msg Info "Analysis & Synthesis was successful for revision $revision.\n"
       }
     }
     #############################
@@ -801,45 +837,45 @@ if {[IsXilinx]} {
     #############################
     if { $do_implementation == 1 } {
       if {[catch {execute_module -tool fit} result]} {
-	Msg Error "Result: $result\n"
-	Msg Error "Place & Route failed. See the report file.\n"
+        Msg Error "Result: $result\n"
+        Msg Error "Place & Route failed. See the report file.\n"
       } else {
-	Msg Info "\nINFO: Place & Route was successful for revision $revision.\n"
+        Msg Info "\nINFO: Place & Route was successful for revision $revision.\n"
       }
       #############################
       # Generate bitstream
       #############################
       if { $do_bitstream == 1 } {
-	if {[catch {execute_module -tool asm} result]} {
-	  Msg Error "Result: $result\n"
-	  Msg Error "Generate bitstream failed. See the report file.\n"
-	} else {
-	  Msg Info "Generate bitstream was successful for revision $revision.\n"
-	}
+        if {[catch {execute_module -tool asm} result]} {
+          Msg Error "Result: $result\n"
+          Msg Error "Generate bitstream failed. See the report file.\n"
+        } else {
+          Msg Info "Generate bitstream was successful for revision $revision.\n"
+        }
       }
       #############################
       # Additional tools to be run on the project
       #############################
       #TODO
       if {[catch {execute_module -tool sta -args "--do_report_timing"} result]} {
-	Msg Error "Result: $result\n"
-	Msg Error "Time Quest failed. See the report file.\n"
+        Msg Error "Result: $result\n"
+        Msg Error "Time Quest failed. See the report file.\n"
       } else {
-	Msg Info "Time Quest was successfully run for revision $revision.\n"
-	load_package report
-	load_report
-	set panel "Timing Analyzer||Timing Analyzer Summary"
-	set device       [ get_report_panel_data -name $panel -col 1 -row_name "Device Name" ]
-	set timing_model [ get_report_panel_data -name $panel -col 1 -row_name "Timing Models" ]
-	set delay_model  [ get_report_panel_data -name $panel -col 1 -row_name "Delay Model" ]
-	#set slack        [ get_timing_analysis_summary_results -slack ]
-	Msg Info "*******************************************************************"
-	Msg Info "Device: $device"
-	Msg Info "Timing Models: $timing_model"
-	Msg Info "Delay Model: $delay_model"
-	Msg Info "Slack:"
-	#Msg Info  $slack
-	Msg Info "*******************************************************************"
+        Msg Info "Time Quest was successfully run for revision $revision.\n"
+        load_package report
+        load_report
+        set panel "Timing Analyzer||Timing Analyzer Summary"
+        set device       [ get_report_panel_data -name $panel -col 1 -row_name "Device Name" ]
+        set timing_model [ get_report_panel_data -name $panel -col 1 -row_name "Timing Models" ]
+        set delay_model  [ get_report_panel_data -name $panel -col 1 -row_name "Delay Model" ]
+        #set slack        [ get_timing_analysis_summary_results -slack ]
+        Msg Info "*******************************************************************"
+        Msg Info "Device: $device"
+        Msg Info "Timing Models: $timing_model"
+        Msg Info "Delay Model: $delay_model"
+        Msg Info "Slack:"
+        #Msg Info  $slack
+        Msg Info "*******************************************************************"
       }
     }
   }
@@ -910,7 +946,7 @@ if {[IsXilinx]} {
     
     # Check timing
     Msg Info "Run VERIFYTIMING ..."
-    if {[catch {run_tool -name {VERIFYTIMING} -script {integrated/libero_timing.tcl} }] } {
+    if {[catch {run_tool -name {VERIFYTIMING} -script {Hog/Tcl/integrated/libero_timing.tcl} }] } {
       Msg CriticalWarning "VERIFYTIMING FAILED!"
     } else {
       Msg Info "VERIFYTIMING PASSED \n"
@@ -921,9 +957,9 @@ if {[IsXilinx]} {
       Msg Info "Starting write bitstream flow..."
       Msg Info "Run GENERATEPROGRAMMINGDATA ..."
       if {[catch {run_tool -name {GENERATEPROGRAMMINGDATA}  }] } {
-	Msg Error "GENERATEPROGRAMMINGDATA FAILED!"
+        Msg Error "GENERATEPROGRAMMINGDATA FAILED!"
       } else {
-	Msg Info "GENERATEPROGRAMMINGDATA PASSED."
+        Msg Info "GENERATEPROGRAMMINGDATA PASSED."
       }
       Msg Info "Sourcing Hog/Tcl/integrated/post-bitstream.tcl"       
       source $tcl_path/../../Hog/Tcl/integrated/post-bitstream.tcl
@@ -956,20 +992,19 @@ if {[IsXilinx]} {
       puts $status_file "|  |  |"
       puts $status_file "| --- | --- |"
       while {[gets $timing_file line] >= 0} {
-	if { [string match "SUMMARY" $line] } {
-	  while {[gets $timing_file line] >= 0} {
-	    if { [string match "END SUMMARY" $line ] } {
-	      break
-	    }
-	    if {[string first ":" $line] == -1} {
-	      continue
-	    }
-	    set out_string "| [string map {: | } $line] |"
-	    puts $status_file "$out_string"
-	  }
-	}
+        if { [string match "SUMMARY" $line] } {
+          while {[gets $timing_file line] >= 0} {
+            if { [string match "END SUMMARY" $line ] } {
+              break
+            }
+            if {[string first ":" $line] == -1} {
+              continue
+            }
+            set out_string "| [string map {: | } $line] |"
+            puts $status_file "$out_string"
+          }
+        }
       }
-      
     } else {
       Msg Warning "No timing file found, not a problem if running locally"
     }

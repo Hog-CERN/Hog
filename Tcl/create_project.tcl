@@ -695,17 +695,6 @@ proc CreateProject args {
     return 1
   }
 
-  if {[IsLibero]} {
-    if {[info exists env(HOG_TCLLIB_PATH)]} {
-      lappend auto_path $env(HOG_TCLLIB_PATH) 
-    } else {
-      puts "ERROR: To run Hog with Microsemi Libero SoC, you need to define the HOG_TCLLIB_PATH variable."
-      return
-    }
-  }
-  
-
-    
   set globalSettings::DESIGN [lindex $args 0]
   if {[file exists [lindex $args 1]]} {
     set globalSettings::repo_path [file normalize [lindex $args 1]]
@@ -730,9 +719,9 @@ proc CreateProject args {
   } else {
     if {$options(simlib_path)!= ""} {
       if {[IsRelativePath $options(simlib_path)] == 0} {
-	set globalSettings::simlib_path "$options(simlib_path)"
+	      set globalSettings::simlib_path "$options(simlib_path)"
       } else {
-	set globalSettings::simlib_path "$globalSettings::repo_path/$options(simlib_path)"
+	      set globalSettings::simlib_path "$globalSettings::repo_path/$options(simlib_path)"
       }
       Msg Info "Simulation library path set to $options(simlib_path)"
     } else {
@@ -748,7 +737,7 @@ proc CreateProject args {
   set user_repo 0
   if {[file exists $conf_file]} {
     Msg Info "Parsing configuration file $conf_file..."
-    set PROPERTIES [ReadConf $conf_file]
+    SetGlobalVar PROPERTIES [ReadConf $conf_file]
     
     #Checking Vivado/Quartus/ISE/Libero version
     set actual_version [GetIDEVersion]
@@ -760,34 +749,34 @@ proc CreateProject args {
       set c_v [split $conf_version "."]
       
       if { [llength $a_v] < 2} {
-	Msg Error "Couldn't parse IDE version: $actual_version."
+	      Msg Error "Couldn't parse IDE version: $actual_version."
       } elseif {[llength $a_v] == 2} {
-	lappend a_v 0
+        lappend a_v 0
       }
       if { [llength $c_v] < 2} {
-	Msg Error "Wrong version format in hog.conf: $conf_version."
+        Msg Error "Wrong version format in hog.conf: $conf_version."
       } elseif {[llength $c_v] == 2} {
-	lappend c_v 0
+        lappend c_v 0
       }
       
       set comp [CompareVersions $a_v $c_v]
       if {$comp == 0} {
-	Msg Info "Project version and $ide version match: $conf_version."
+        Msg Info "Project version and $ide version match: $conf_version."
       }	elseif {$comp == 1} {
-	Msg CriticalWarning "The $ide version in use is $actual_version, that is newer than $conf_version, as specified in the first line of $conf_file, if you want update this project to version $actual_version, please update the configuration file."
+        Msg CriticalWarning "The $ide version in use is $actual_version, that is newer than $conf_version, as specified in the first line of $conf_file, if you want update this project to version $actual_version, please update the configuration file."
       } else {
-	Msg Error "The $ide version in use is $actual_version, that is older than $conf_version as specified in $conf_file. The project will not be created.\nIf you absolutely want to create this project that was meant for version $conf_version with $ide version $actual_version, you can change the version from the first line of $conf_file.\nThis is HIGHLY discouraged as there could be unrecognised properties in the configuration file and IPs created with a newer $ide version cannot be downgraded."
+        Msg Error "The $ide version in use is $actual_version, that is older than $conf_version as specified in $conf_file. The project will not be created.\nIf you absolutely want to create this project that was meant for version $conf_version with $ide version $actual_version, you can change the version from the first line of $conf_file.\nThis is HIGHLY discouraged as there could be unrecognised properties in the configuration file and IPs created with a newer $ide version cannot be downgraded."
       }
     } else {
       Msg CriticalWarning "No version found in the first line of $conf_file. It is HIGHLY recommended to replace the first line of $conf_file with: \#$ide $actual_version"
     }
-    if {[dict exists $PROPERTIES main]} {
-      set main [dict get $PROPERTIES main]
+    if {[dict exists $globalSettings::PROPERTIES main]} {
+      set main [dict get $globalSettings::PROPERTIES main]
       dict for {p v} $main {
-	# notice the dollar in front of p: creates new variables and fill them with the value
-	Msg Info "Main property $p set to $v"
-	##nagelfar ignore
-	set ::$p $v
+        # notice the dollar in front of p: creates new variables and fill them with the value
+        Msg Info "Main property $p set to $v"
+        ##nagelfar ignore
+        set ::$p $v
       }
     } else {
       Msg Error "No main section found in $conf_file, make sure it has a section called \[main\] containing the mandatory properties."
@@ -795,7 +784,9 @@ proc CreateProject args {
     
     if {[file exists $sim_file]} {
       Msg Info "Parsing simulation configuration file $sim_file..."
-      set SIM_PROPERTIES [ReadConf $sim_file]
+      SetGlobalVar SIM_PROPERTIES [ReadConf $sim_file]
+    } else {
+      SetGlobalVar SIM_PROPERTIES ""
     }
   } else {
     Msg Error "$conf_file was not found in your project directory, please create one."
@@ -822,10 +813,6 @@ proc CreateProject args {
   } else {
     set globalSettings::HOG_EXTERNAL_PATH ""
   }
-  
-  SetGlobalVar PROPERTIES ""
-  SetGlobalVar SIM_PROPERTIES ""
-  
   
   #Derived variables from now on...
   
@@ -903,7 +890,7 @@ proc CreateProject args {
   
   # Check extra IPs
   
-  lassign [GetHogFiles -ext_path "$globalSettings::HOG_EXTERNAL_PATH" "$globalSettings::repo_path/Top/$globalSettings::DESIGN/list/" $globalSettings::repo_path] listLibraries listProperties listMain
+  lassign [GetHogFiles -ext_path "$globalSettings::HOG_EXTERNAL_PATH" "$globalSettings::repo_path/Top/$globalSettings::DESIGN/list/" $globalSettings::repo_path] listLibraries listProperties listFilesets
   
   CheckExtraFiles $listLibraries
   

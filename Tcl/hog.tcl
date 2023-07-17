@@ -661,7 +661,7 @@ proc ReadListFile args {
             lassign [ReadListFile {*}"-lib $library -fileset $fileset $sha_mode_opt $vhdlfile $path"] l p fs
             set libraries [MergeDict $l $libraries]
             set properties [MergeDict $p $properties]
-            set filesets [dict merge $fs $filesets]
+            set filesets [MergeDict $fs $filesets]
           } elseif {[lsearch {.src .sim .con ReadExtraFileList} $extension] >= 0 } {
             # Not supported extensions
             Msg Error "$vhdlfile cannot be included into $list_file, $extension files must be included into $extension files."
@@ -703,6 +703,7 @@ proc ReadListFile args {
             if {[dict exists $filesets $fileset] == 0} {
               # Fileset has not been defined yet, adding to dictionary...
               Msg Debug "Adding $fileset to the fileset dictionary..."
+              Msg Debug "Adding library $lib_name to fileset $fileset..."
               dict set filesets $fileset $lib_name
             } else {
               # Fileset already exist in dictionary, append library to list, if not already there
@@ -1993,6 +1994,8 @@ proc ParseFirstLineHogFiles {list_path list_file} {
 proc AddHogFiles { libraries properties filesets } {
   Msg Info "Adding source files to project..."
   Msg Debug "Filesets: $filesets"
+  Msg Debug "Libraries: $libraries"
+  Msg Debug "Properties: $properties"
   foreach fileset [dict keys $filesets] {
     Msg Debug "Fileset: $fileset"
     # Create fileset if it doesn't exist yet

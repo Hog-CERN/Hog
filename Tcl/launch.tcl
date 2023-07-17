@@ -66,7 +66,6 @@ set do_implementation 0; set do_synthesis 0; set do_bitstream 0; set do_create 0
 switch -regexp -- $directive {
 
   CREATE|C {
-    puts c
     set do_create 1
     set recreate 1
   }
@@ -85,6 +84,7 @@ switch -regexp -- $directive {
   
   SIMULATE|SIMULATION|SIM|S {
     set do_simulation 1
+    set do_create 1
   }
   
   WORKFLOW|WORK|W {

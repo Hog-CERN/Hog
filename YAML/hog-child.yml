@@ -211,8 +211,7 @@
             EXEC_CMD="./Hog/Do -njobs $HOG_NJOBS $NO_BITSTREAM $CHECK_SYNTAX SYNTH $PROJECT_NAME";
         else
             EXEC_CMD="./Hog/Do -njobs $HOG_NJOBS $NO_BITSTREAM $CHECK_SYNTAX WORKFLOW $PROJECT_NAME";
-        fi;
-        
+        fi;        
         if [[ -f $HOG_APPTAINER_IMAGE ]]; then
             echo "singularity exec -H $PWD $HOG_APPTAINER_IMAGE $EXEC_CMD";
             if [[ -n $HOG_APPTAINER_EXTRA_PATH ]]; then

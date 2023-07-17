@@ -565,58 +565,57 @@ if {[IsXilinx]} {
     foreach s [get_filesets] {
       set type [get_property FILESET_TYPE $s]
       if {$type eq "SimulationSrcs"} {
-	if {$simsets_todo != "" && $s ni $simsets_todo} {
-	  Msg Info "Skipping $s as it was not specified with the -simset option..."
-	  continue
-	}
-	if {!($s eq "sim_1")} {
-	  set filename [string range $s 0 [expr {[string last "_sim" $s] -1 }]]
-	  set fp [open "$repo_path/Top/$project_name/list/$filename.sim" r]
-	  set file_data [read $fp]
-	  close $fp
-	  set data [split $file_data "\n"]
-	  set n [llength $data]
-	  Msg Info "$n lines read from $filename"
-	  
-	  set firstline [lindex $data 0]
-	  #find simulator
-	  if { [regexp {^ *\#Simulator} $firstline] } {
-	    set simulator_prop [regexp -all -inline {\S+} $firstline]
-	    set simulator [string tolower [lindex $simulator_prop 1]]
-	  } else {
-	    set simulator "modelsim"
-	  }
-	  if {$simulator eq "skip_simulation"} {
-	    Msg Info "Skipping simulation for $s"
-	    continue
-	  }
-	  set_property "target_simulator" $simulator [current_project]
-	  Msg Info "Creating simulation scripts for $s..."
-	  current_fileset -simset $s
-	  set sim_dir $main_sim_folder/$s/behav
-	  if { ([string tolower $simulator] eq "xsim") } {
-	    set sim_name "xsim:$s"		
-	    if { [catch { launch_simulation -simset [get_filesets $s] } log] } {
-	      Msg CriticalWarning "Simulation failed for $s, error info: $::errorInfo"
-	      lappend failed $sim_name
-	    } else {
-	      lappend success $sim_name
-	    }
-	  } else {
-	    if {$simlib_ok == 1} {
-	      set_property "compxlib.${simulator}_compiled_library_dir" [file normalize $lib_path] [current_project]
-	      launch_simulation -scripts_only -simset [get_filesets $s]
-	      set top_name [get_property TOP $s]
-	      set sim_script  [file normalize $sim_dir/$simulator/]
-	      Msg Info "Adding simulation script location $sim_script for $s..."
-	      lappend sim_scripts $sim_script
-	      dict append sim_dic $sim_script $s
-	    } else {
-	      Msg Error "Cannot run $simulator simulations without a valid library path"
-	      exit -1
-	    }
-	  }
-	}
+        if {$simsets_todo != "" && $s ni $simsets_todo} {
+          Msg Info "Skipping $s as it was not specified with the -simset option..."
+          continue
+        }
+        if {[file exists "$repo_path/Top/$project_name/list/$s.sim"]} {
+          set fp [open "$repo_path/Top/$project_name/list/$s.sim" r]
+          set file_data [read $fp]
+          close $fp
+          set data [split $file_data "\n"]
+          set n [llength $data]
+          Msg Info "$n lines read from $s.sim"
+          
+          set firstline [lindex $data 0]
+          #find simulator
+          if { [regexp {^ *\#Simulator} $firstline] } {
+            set simulator_prop [regexp -all -inline {\S+} $firstline]
+            set simulator [string tolower [lindex $simulator_prop 1]]
+          } else {
+            set simulator "modelsim"
+          }
+          if {$simulator eq "skip_simulation"} {
+            Msg Info "Skipping simulation for $s"
+            continue
+          }
+          set_property "target_simulator" $simulator [current_project]
+          Msg Info "Creating simulation scripts for $s..."
+          current_fileset -simset $s
+          set sim_dir $main_sim_folder/$s/behav
+          if { ([string tolower $simulator] eq "xsim") } {
+            set sim_name "xsim:$s"		
+            if { [catch { launch_simulation -simset [get_filesets $s] } log] } {
+              Msg CriticalWarning "Simulation failed for $s, error info: $::errorInfo"
+              lappend failed $sim_name
+            } else {
+              lappend success $sim_name
+            }
+          } else {
+            if {$simlib_ok == 1} {
+              set_property "compxlib.${simulator}_compiled_library_dir" [file normalize $lib_path] [current_project]
+              launch_simulation -scripts_only -simset [get_filesets $s]
+              set top_name [get_property TOP $s]
+              set sim_script  [file normalize $sim_dir/$simulator/]
+              Msg Info "Adding simulation script location $sim_script for $s..."
+              lappend sim_scripts $sim_script
+              dict append sim_dic $sim_script $s
+            } else {
+              Msg Error "Cannot run $simulator simulations without a valid library path"
+              exit -1
+            }
+          }
+        }
       }
     }
     

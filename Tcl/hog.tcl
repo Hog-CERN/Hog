@@ -4107,19 +4107,19 @@ proc InitLauncher {script tcl_path parameters usage argv} {
   # Argv here is modified and the options are removed
   set directive [string toupper [lindex $arg_list 0]]
 
-  if { [llength $argv] == 1 && ($directive == "L" || $directive == "LIST")} {
+  if { [llength $arg_list] == 1 && ($directive == "L" || $directive == "LIST")} {
     Msg Status "\n** The projects in this repository are:"
     ListProjects $repo_path
     Msg Status "\n"
     exit 0
 
-  } elseif {  [llength $argv] == 0 || ([llength $argv] == 1 && ($directive == "H" || $directive == "HELP"))} {
+  } elseif {  [llength $arg_list] == 0 || ([llength $arg_list] == 1 && ($directive == "H" || $directive == "HELP"))} {
     Msg Status "\n** The projects in this repository are:"
     ListProjects $repo_path
     Msg Status "\n"
     exit 1
 
-  } elseif { [llength $argv] > 2} {
+  } elseif { [llength $arg_list] > 2} {
     Msg Status "\nERROR: Wrong number of arguments: [llength $argv].\n\n"
     Msg Status "USAGE: [cmdline::usage $parameters $usage]"
     exit 1

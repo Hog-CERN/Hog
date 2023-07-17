@@ -4147,11 +4147,11 @@ proc InitLauncher {script tcl_path parameters usage argv} {
       
     } else {
       if {$project != ""} {
-	#Project not given
-	set command -1
+        #Project not given
+        set command -1
       } else {
-	#Project not found
-	set command -2
+        #Project not found
+        set command -2
       }
     }
   } else {

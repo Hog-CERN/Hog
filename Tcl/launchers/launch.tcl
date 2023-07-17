@@ -24,7 +24,8 @@ set parameters {
   {check_syntax    "If set, the HDL syntax will be checked at the beginning of the workflow."}
   {njobs.arg 4     "Number of jobs. Default: 4"}
   {ext_path.arg "" "Sets the absolute path for the external libraries."}
-
+  {synth_only      "If set, only the synthesis will be performed."}
+  {impl_only       "If set, only the implementation will be performed. This assumes synthesis should was already done."}
   {simlib_path.arg  "" "Compiled simulation library path"}
   {simset.arg  ""    "Simulation sets, separated by commas, to be run."}
   {verbose         "If set, launch the script in verbose mode"}
@@ -57,7 +58,7 @@ lassign [InitLauncher $::argv0 $tcl_path $parameters $usage $argv] directive pro
 
 Msg Debug "Returned by InitLauncher: $project $project_name $group_name $repo_path $old_path $bin_dir $top_path $cmd"
 
-######## DEAFULTS #########
+######## DEFAULTS #########
 set do_implementation 0; set do_synthesis 0; set do_bitstream 0; set do_create 0; set do_compile 0; set do_simulation 0; set recreate 0; set reset 1;
 
 switch -regexp -- $directive {
@@ -181,6 +182,22 @@ if { $options(no_bitstream) == 1 } {
 
 if { $options(recreate) == 1 } {
   set recreate 1
+}
+
+if { $options(synth_only) == 1} {
+  set do_implementation 0
+  set do_synthesis 1
+  set do_bitstream 0
+  set do_create 1
+  set do_compile 1
+}
+
+if { $options(impl_only) == 1} {
+  set do_implementation 0
+  set do_synthesis 0
+  set do_bitstream 0
+  set do_create 0
+  set do_compile 1
 }
 
 
@@ -725,19 +742,19 @@ if {[IsXilinx]} {
     lassign [GetHogFiles -list_files "*.src" "$repo_path/Top/$project_name/list/" $repo_path] src_files dummy
     dict for {lib files} $src_files {
       foreach f $files {
-	set file_extension [file extension $f]
-	if { $file_extension == ".vhd" || $file_extension == ".vhdl" || $file_extension == ".v" ||  $file_extension == ".sv" } {
-	  if { [catch {execute_module -tool map -args "--analyze_file=$f"} result]} {
-	    Msg Error "\nResult: $result\n"
-	    Msg Error "Check syntax failed.\n"
-	  } else {
-	    if { $result == "" } {
-	      Msg Info "Check syntax was successful for $f.\n"
-	    } else {
-	      Msg Warning "Found syntax error in file $f:\n $result\n"
-	    }
-	  } 
-	}
+      set file_extension [file extension $f]
+        if { $file_extension == ".vhd" || $file_extension == ".vhdl" || $file_extension == ".v" ||  $file_extension == ".sv" } {
+          if { [catch {execute_module -tool map -args "--analyze_file=$f"} result]} {
+            Msg Error "\nResult: $result\n"
+            Msg Error "Check syntax failed.\n"
+          } else {
+            if { $result == "" } {
+              Msg Info "Check syntax was successful for $f.\n"
+            } else {
+              Msg Warning "Found syntax error in file $f:\n $result\n"
+            }
+          } 
+        }
       }
     }
   }

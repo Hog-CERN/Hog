@@ -1816,7 +1816,7 @@ proc GetProjectFiles {} {
         }
         lappend files $f
         set type  [get_property FILE_TYPE [GetFile $f]]
-	# Added a -quiet because some files (.v, .sv) don't have a library
+	      # Added a -quiet because some files (.v, .sv) don't have a library
         set lib [get_property -quiet LIBRARY [GetFile $f]]
 
         # Type can be complex like VHDL 2008, in that case we want the second part to be a property
@@ -3884,8 +3884,10 @@ proc CompareLibDicts {proj_libs list_libs proj_sets list_sets proj_props list_pr
                 }
               }
               foreach listProp $listProps {
-                MsgAndLog "Property $listProp of $prjFile was found in list files but not set in project." $severity $outFile
-                incr n_diffs
+                if {[string first  $listProp "topsim="] != -1} {
+                  MsgAndLog "Property $listProp of $prjFile was found in list files but not set in project." $severity $outFile
+                  incr n_diffs  
+                }                
               }
             }
           }

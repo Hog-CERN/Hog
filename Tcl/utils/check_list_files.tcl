@@ -138,13 +138,13 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
   set prjSimLibraries [RemoveDuplicates $prjSimLibraries]
   set prjLibraries [RemoveDuplicates $prjLibraries]
   set prjConstraints [RemoveDuplicates $prjConstraints]
-  
+
   #################################################################
   ##### START COMPARISON OF FILES IN PROJECT AND LIST FILES ######
   #################################################################
   lassign [CompareLibDicts $prjLibraries $listLibraries $prjSrcSets $listSrcSets $prjProperties $listProperties "CriticalWarning" $outFile $extraFiles] SrcListErrorCnt extraFiles
-  lassign [CompareLibDicts $prjSimLibraries $listSimLibraries $prjSimSets $listSimSets $prjProperties $listProperties "Warning" $outSimFile $extraFiles] SimListErrorCnt extraFiles
-  lassign [CompareLibDicts $prjConstraints $listConstraints $prjConSets $listConSets $prjProperties $listProperties  "CriticalWarning" $outFile $extraFiles] ConListErrorCnt extraFiles
+  lassign [CompareLibDicts $prjSimLibraries $listSimLibraries $prjSimSets $listSimSets $prjProperties $listSimProperties "Warning" $outSimFile $extraFiles] SimListErrorCnt extraFiles
+  lassign [CompareLibDicts $prjConstraints $listConstraints $prjConSets $listConSets $prjProperties $listConProperties  "CriticalWarning" $outFile $extraFiles] ConListErrorCnt extraFiles
 
   # Check if any files remained in extraFiles
   foreach {k v} $extraFiles {

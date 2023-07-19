@@ -890,7 +890,7 @@ proc CreateProject args {
   
   # Check extra IPs
   
-  lassign [GetHogFiles -ext_path "$globalSettings::HOG_EXTERNAL_PATH" "$globalSettings::repo_path/Top/$globalSettings::DESIGN/list/" $globalSettings::repo_path] listLibraries listProperties listFilesets
+  lassign [GetHogFiles -ext_path "$globalSettings::HOG_EXTERNAL_PATH" "$globalSettings::repo_path/Top/$globalSettings::group_name/$globalSettings::DESIGN/list/" $globalSettings::repo_path] listLibraries listProperties listFilesets
   
   CheckExtraFiles $listLibraries
   

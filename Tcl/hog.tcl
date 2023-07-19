@@ -1266,6 +1266,7 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
   }
 
   set old_path [pwd]
+  puts $proj_dir
   set conf_files [GetConfFiles $proj_dir]
 
   # This will be the list of all the SHAs of this project, the most recent will be picked up as GLOBAL SHA
@@ -3153,7 +3154,7 @@ proc SearchHogProjects {dir} {
 #  @return       the group name without initial and final slashes
 #
 proc GetGroupName {proj_dir repo_dir} {
-  if {[regexp {^(.*)/(Projects)/+(.*?)/*$} $proj_dir dummy possible_repo_dir proj_or_top dir]} {
+  if {[regexp {^(.*)/(Top|Projects)/+(.*?)/*$} $proj_dir dummy possible_repo_dir proj_or_top dir]} {
     # The Top or Project folder is in the root of a the git repository
     if {[file normalize $repo_dir] eq [file normalize $possible_repo_dir]} {
       set group [file dir $dir]

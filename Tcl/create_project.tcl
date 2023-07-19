@@ -899,7 +899,7 @@ proc CreateProject args {
     cd $globalSettings::repo_path
     set flavour [GetProjectFlavour $globalSettings::DESIGN]
     # Getting all the versions and SHAs of the repository
-    lassign [GetRepoVersions [file normalize $globalSettings::repo_path/Top/$globalSettings::DESIGN] $globalSettings::repo_path $globalSettings::HOG_EXTERNAL_PATH] commit version  hog_hash hog_ver  top_hash top_ver  libs hashes vers  cons_ver cons_hash  ext_names ext_hashes  xml_hash xml_ver user_ip_repos user_ip_hashes user_ip_vers
+    lassign [GetRepoVersions [file normalize $globalSettings::repo_path/Top/$globalSettings::group_name/$globalSettings::DESIGN] $globalSettings::repo_path $globalSettings::HOG_EXTERNAL_PATH] commit version  hog_hash hog_ver  top_hash top_ver  libs hashes vers  cons_ver cons_hash  ext_names ext_hashes  xml_hash xml_ver user_ip_repos user_ip_hashes user_ip_vers
     
     set this_commit  [GetSHA]
     
@@ -915,7 +915,7 @@ proc CreateProject args {
     
     
     lassign [GetDateAndTime $commit] date timee
-    WriteGenerics "create" $globalSettings::DESIGN $date $timee $commit $version $top_hash $top_ver $hog_hash $hog_ver $cons_ver $cons_hash $libs $vers $hashes $ext_names $ext_hashes $user_ip_repos $user_ip_vers $user_ip_hashes $flavour $xml_ver $xml_hash
+    WriteGenerics "create" $globalSettings::group_name/$globalSettings::DESIGN $date $timee $commit $version $top_hash $top_ver $hog_hash $hog_ver $cons_ver $cons_hash $libs $vers $hashes $ext_names $ext_hashes $user_ip_repos $user_ip_vers $user_ip_hashes $flavour $xml_ver $xml_hash
     cd $old_path
   }
   

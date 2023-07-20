@@ -75,14 +75,25 @@ build-doxygen-official:
 changelog:
   stage: merge_checks
   image: gitlab-registry.cern.ch/hog/hog-docker:tclsh
-  only:
-    refs: [merge_requests]
-    variables: [$CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /^(master|develop)$/]
+  rules:
+    - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == master && $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME != develop'
+      when: on_success
+    - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == develop'
+      when: on_success
   except:
     variables: [$CI_COMMIT_REF_NAME =~ /^test\/.*$/i]
   script:
+    - if [[ $CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ "master" ]] ] ; then
+        if [[ $CI_COMMIT_REF_NAME != hotfix* ]]; then
+          echo "[ERROR] The target of this MR is $CI_MERGE_REQUEST_TARGET_BRANCH_NAME, but the source is not a hotfix branch ($CI_COMMIT_REF_NAME). Please, change the name of source branch or direct the MR to develop.";
+          echo "[Hog::INFO] A hotfix branch name should start with hotfix/.
+          exit 1;
+        fi;
+      fi;
     - git fetch origin refs/notes/*:refs/notes/*
-    - git notes add -fm "$CI_MERGE_REQUEST_IID $CI_COMMIT_REF_NAME"
+    - "NEW_TAG=`echo \"source Hog/Tcl/hog.tcl; puts v[HexVersionToString [GetVer . 1]]\" | tclsh`"
+    - echo "New tag is $NEW_TAG"
+    - git notes add -fm "$CI_MERGE_REQUEST_IID $CI_COMMIT_REF_NAME $NEW_TAG"
     - git push origin refs/notes/*
     - "printf \"## Repository info\n- Merge request number: $CI_MERGE_REQUEST_IID\n\
       - Branch name: $CI_COMMIT_REF_NAME\n\n\" > changelog.md"
@@ -93,44 +104,38 @@ changelog:
     paths: [changelog.md]
     expire_in: 1 month
 
-tagging_develop:
+tagging:
   stage: tag
   image: gitlab-registry.cern.ch/hog/hog-docker:tclsh
-  only: [push, web]
-  except:
-    variables:
-      - $CI_PIPELINE_SOURCE != "push"
-      - $CI_COMMIT_REF_NAME != "develop"
+  rules:
+    - if: '$CI_COMMIT_REF_NAME == master  && $CI_PIPELINE_SOURCE == "push"'
+      when: always
+    - if: '$CI_COMMIT_REF_NAME == develop && $CI_PIPELINE_SOURCE == "push"'
+      when: always
+    - when: never
   script:
     - git fetch origin refs/notes/*:refs/notes/*
-    - note=(`git notes show`) || { echo "No note found, probably you pushed to a branch
-      that should protected (e.g. master, develop)"; exit 1; }
-    - new_tag=`echo "source Tcl/hog.tcl; puts v[HexVersionToString [GetVer . 1]]" | tclsh`
-    - echo "New tag is $new_tag"
-    - git tag $new_tag -m "Official_version_${new_tag}";
-    - git push --tags;
-
-tagging_master_hotfix:
-  stage: tag
-  image: gitlab-registry.cern.ch/hog/hog-docker:tclsh
-  only: [push, web]
-  except:
-    variables:
-      - $CI_PIPELINE_SOURCE != "push"
-      - $CI_COMMIT_REF_NAME != "master"
-  script:
-    - git fetch origin refs/notes/*:refs/notes/*
-    - MR_INFO=( `git notes show` )
-    - BRANCH=${MR_INFO[1]}
-    - if [[ ${BRANCH} != "develop" ]]; then
-        new_tag=`echo "source Tcl/hog.tcl; puts v[HexVersionToString [GetVer . 0]]" | tclsh`;
-        echo "New tag is $new_tag";
-        git tag $new_tag -m "Official_version_${new_tag}";
-        git push --tags;
+    - note=(`git notes show`) || {
+        echo "No note found, probably you pushed to a branch that should protected (e.g. master, develop)";
+        exit 1;
+      }
+    - new_tag=${note[2]}
+    - present_tag=(`git describe`)
+    - if [ $present_tag != $new_tag ]; then
+         if [ "$(git tag --list ${new_tag}*)" != "" ]; then
+           latest_tag=(`git tag -l ${new_tag}* --sort=-v:refname --merged`);
+             if [[ $latest_tag =~ .*-(.*) ]]; then
+               nr="${BASH_REMATCH[1]}";
+               new_tag="$new_tag-$(($nr+1))";
+             else
+               new_tag="$new_tag-0";
+             fi;
+           fi;
+         git tag $new_tag -m "Official_version_${new_tag}";
+         git push --tags;
       else
-        echo "Skipping because it is not a hotfix";
+        echo "Tagging is not necessary because the present commit is already tagged as $new_tag.";
       fi;
-
 
 shellcheck:
   stage: merge_checks

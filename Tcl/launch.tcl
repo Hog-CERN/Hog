@@ -65,41 +65,38 @@ set do_implementation 0; set do_synthesis 0; set do_bitstream 0; set do_create 0
 
 switch -regexp -- $directive {
 
-  CREATE|C {
+  \^C(REATE)?$ {
     set do_create 1
     set recreate 1
   }
   
-  IMPLEMENT|IMPLEMENTATION|IMPL {
-    puts i
+  \^I(MPL(EMENT(ATION)?)?)?$ {
     set do_implementation 1
     set do_bitstream 1
     set do_compile 1
   }
   
-  SYNTHESIS|SYNTEHSISE|SYNTH {
+  \^SYNT(H(ESIS(E)?)?)? {
     set do_synthesis 1
     set do_compile 1
   }
   
-  SIMULATE|SIMULATION|SIM|S {
+  \^S(IM(ULAT(ION|E)?)?)?$ {
     set do_simulation 1
     set do_create 1
   }
   
-  WORKFLOW|WORK|W {
+  \^W(ORK(FLOW)?)?$ {
     set do_implementation 1
     set do_synthesis 1
     set do_bitstream 1
-    set do_create 1
     set do_compile 1
   }
 
-  CREATEWORKFLOW|CW {
+  \^(CREATEWORKFLOW|CW)$ {
     set do_implementation 1
     set do_synthesis 1
     set do_bitstream 1
-    set do_create 1
     set do_compile 1
     set recreate 1
   }

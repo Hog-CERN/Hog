@@ -80,8 +80,6 @@ changelog:
       when: on_success
     - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == develop'
       when: on_success
-  except:
-    variables: [$CI_COMMIT_REF_NAME =~ /^test\/.*$/i]
   script:
     - if [[ $CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ "master" ]] ] ; then
         if [[ $CI_COMMIT_REF_NAME != hotfix* ]]; then

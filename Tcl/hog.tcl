@@ -980,12 +980,11 @@ proc GetVer {path {force_develop 0}} {
 #
 # @param[in] SHA the git SHA of the commit
 # @param[in] repo_path the path of the repository, this is used to open the Top/repo.conf file
+# @param[in] force_develop Force a tag for the develop branch (increase m)
 #
 # @return  a list: the git SHA, the version in hex format
 #
 proc GetVerFromSHA {SHA repo_path {force_develop 0}} {
-  #Let's keep this for a while, more bugs may come soon...
-  #Msg Info "############################### $repo_path #############################################"
   if { $SHA eq ""} {
     Msg CriticalWarning "Empty SHA found"
     set ver "v0.0.0"
@@ -1041,12 +1040,12 @@ proc GetVerFromSHA {SHA repo_path {force_develop 0}} {
                 set major_prefix [dict get $prefixDict MAJOR_VERSION]
               }
 	            # More properties in [prefixes] here ...
-            }
+            }           
+          }
 
-            if {$enable_develop_branch == 1 } {
-              if {[string match "$hotfix_prefix*" $branch_name]} {
-                set is_hotfix 1
-              }
+          if {$enable_develop_branch == 1 } {
+            if {[string match "$hotfix_prefix*" $branch_name]} {
+              set is_hotfix 1
             }
           }
 

@@ -76,9 +76,9 @@ changelog:
   stage: merge_checks
   image: gitlab-registry.cern.ch/hog/hog-docker:tclsh
   rules:
-    - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == master && $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME != develop'
+    - if: $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "master" && $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME != "develop"
       when: on_success
-    - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == develop'
+    - if: $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "develop"
       when: on_success
   script:
     - if [[ $CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ "master" ]] ] ; then
@@ -106,9 +106,9 @@ tagging:
   stage: tag
   image: gitlab-registry.cern.ch/hog/hog-docker:tclsh
   rules:
-    - if: '$CI_COMMIT_REF_NAME == master  && $CI_PIPELINE_SOURCE == "push"'
+    - if: '$CI_COMMIT_REF_NAME == "master"  && $CI_PIPELINE_SOURCE == "push"'
       when: always
-    - if: '$CI_COMMIT_REF_NAME == develop && $CI_PIPELINE_SOURCE == "push"'
+    - if: '$CI_COMMIT_REF_NAME == "develop" && $CI_PIPELINE_SOURCE == "push"'
       when: always
     - when: never
   script:

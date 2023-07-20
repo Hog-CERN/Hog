@@ -89,7 +89,7 @@ changelog:
         fi;
       fi;
     - git fetch origin refs/notes/*:refs/notes/*
-    - "NEW_TAG=`echo \"source Hog/Tcl/hog.tcl; puts v[HexVersionToString [GetVer . 1]]\" | tclsh`"
+    - "NEW_TAG=`echo \"source Tcl/hog.tcl; puts v[HexVersionToString [GetVer . 1]]\" | tclsh`"
     - echo "New tag is $NEW_TAG"
     - git notes add -fm "$CI_MERGE_REQUEST_IID $CI_COMMIT_REF_NAME $NEW_TAG"
     - git push origin refs/notes/*

@@ -4131,6 +4131,8 @@ proc InitLauncher {script tcl_path parameters usage argv} {
   }
 
   set project  [lindex $arg_list 1]
+  # Remove leading Top/ if in project_name
+  regsub -all "Top/" $project "" project
   set proj_conf [ProjectExists $project $repo_path] 
   
   Msg Debug "Option list:"
@@ -4171,6 +4173,8 @@ proc InitLauncher {script tcl_path parameters usage argv} {
   } else {
     set project_name "$project"
   }
+
+
 
   return [list $directive $project $project_name $project_group $repo_path $old_path $bin_path $top_path $command]
 }

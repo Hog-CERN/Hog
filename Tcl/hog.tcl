@@ -685,6 +685,8 @@ proc ReadListFile args {
               }
             } elseif { $list_file_ext == ".con" } { 
               set lib_name "sources.con"
+            } elseif { [string first "xml.lst" $list_file] != -1 } {
+              set lib_name "xml.lst"
             } else {	 
               # Other files are stored in the OTHER dictionary from vivado (no library assignment)     
               set lib_name "others.src"			      
@@ -1288,7 +1290,7 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
     set hog_hash "0000000"
     set hog_ver "00000000"
   }
-
+  
   cd $proj_dir
 
   if {[Git {status --untracked-files=no  --porcelain}] eq ""} {

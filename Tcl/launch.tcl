@@ -109,7 +109,7 @@ switch -regexp -- $directive {
 
 if {$cmd == -1} {
 #This is if the project was not found
-  Msg Status "\n\n Possible projects are:"
+  Msg Status "\n\nPossible projects are:"
   ListProjects $repo_path
   Msg Status "\n"
   exit 1

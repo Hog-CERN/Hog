@@ -652,7 +652,7 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
   }
 
   #recreating hog.conf
-  if {$options(recreate_conf) == 1 && ($SimConfErrorCnt > 0 || [file exists $sim_conf] == 0 )} {
+  if {$options(recreate_conf) == 1 && $SimConfErrorCnt > 0 } {
     Msg Info "Updating configuration file $sim_conf"
     file mkdir  $repo_path/$DirName/list
     #writing configuration file

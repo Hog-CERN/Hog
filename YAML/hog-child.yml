@@ -286,18 +286,23 @@ collect_artifacts:
         done;
       fi
     # Returns a list of version, utilization and timing files in bin/ sorted alphabetically
-    - files=$(find . -name "versions*.txt" -o -name "timing*.txt" -o -name "utilization*.txt" | sort);
+    - files=$(find . -name "versions*.txt");
     - if (( ${#files} )); then
         for fp in $files; do
           proj_name=$(echo $fp | sed -E 's|^./(.*)-v[0-9]+\.[0-9]+\.[0-9]+-hog.*|\1|');
-          if [[ $HOG_MR_MSG == '1' ]]; then
-            printf "<p>\n<details>\n<summary>## ${proj_name}</summary>"; >> $old_dir/mr_note.md;
-            sed '/^##/d' $fp >> $old_dir/mr_note.md;
-            printf "</details>\n</p>" >> $old_dir/mr_note.md;
+          cd $(dirname $fp);
+          printf "<p>\n<details>\n<summary>${proj_name}</summary> \n\n " >> section.md;
+          ut_files=$(find . -name "utilization*.txt -o -name "timing*.txt" -o -name "versions.txt");
+          if (( ${#ut_files} )); then
+            for ut in $ut_files; do
+              sed "s|^## ${proj_name} ||" $ut >> section.md;
+            done;
           fi;
-          printf "<p>\n<details>\n<summary>## ${proj_name}</summary>"; >> $old_dir/note.md;
-          sed '/^##/d' $fp >>  $old_dir/note.md;
-          printf "</details>\n</p>" >> $old_dir/note.md;
+          printf "</details>\n</p>" >> section.md;
+          if [[ $HOG_MR_MSG == '1' ]]; then
+            cat section.md >> $old_dir/mr_note.md;
+          fi;
+          cat section.md >> $old_dir/note.md;
         done;
       fi;
     - cd $old_dir

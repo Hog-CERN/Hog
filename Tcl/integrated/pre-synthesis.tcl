@@ -364,7 +364,7 @@ if {[IsXilinx] || [IsSynplify]} {
     file mkdir "$old_path/output_files"
   }
 
-  set  status_file "$old_path/output_files/versions.txt"
+  set status_file "$old_path/output_files/versions.txt"
   project_close
 
 } else {
@@ -392,9 +392,9 @@ if {$flavour != -1} {
 
 set version [HexVersionToString $version]
 if {$group != ""} {
-  puts $status_file "## $group/$proj_name Version Table"
+  puts $status_file "## $group/$proj_name Version Table\n"
 } else {
-  puts $status_file "## $proj_name Version Table"
+  puts $status_file "## $proj_name Version Table\n"
 }
 
 struct::matrix m

@@ -307,7 +307,7 @@ collect_artifacts:
             cat section.md >> "$old_dir/mr_note.md";
           fi;
           cat section.md >> "$old_dir/note.md";
-          cd $old_dir/bin
+          cd $old_dir/bin;
         done;
       fi;
     - cd $old_dir

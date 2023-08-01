@@ -292,11 +292,11 @@ collect_artifacts:
           proj_name=$(echo $fp | sed -E 's|^./(.*)-v[0-9]+\.[0-9]+\.[0-9]+-hog.*|\1|');
           if [[ $HOG_MR_MSG == '1' ]]; then
             printf "<p>\n<details>\n<summary>## ${proj_name}</summary>"; >> $old_dir/mr_note.md;
-            sed '/^##/d' fp.txt >> $old_dir/mr_note.md;
+            sed '/^##/d' $fp >> $old_dir/mr_note.md;
             printf "</details>\n</p>" >> $old_dir/mr_note.md;
           fi;
           printf "<p>\n<details>\n<summary>## ${proj_name}</summary>"; >> $old_dir/note.md;
-          sed '/^##/d' fp.txt >>  $old_dir/note.md;
+          sed '/^##/d' $fp >>  $old_dir/note.md;
           printf "</details>\n</p>" >> $old_dir/note.md;
         done;
       fi;

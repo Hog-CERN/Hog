@@ -74,9 +74,10 @@ namespace eval globalSettings {
 }
 
 ################# FUNCTIONS ################################
-proc CreateProject {} {
+proc InitProject {} {
   if {[IsXilinx]} {
     create_project -force [file tail $globalSettings::DESIGN] $globalSettings::build_dir -part $globalSettings::PART
+    file mkdir "$globalSettings::build_dir/[file tail $globalSettings::DESIGN].gen/sources_1"
     if { [IsVersal $globalSettings::PART] } {
       Msg Info "This project uses a Versal device."
     } 
@@ -177,11 +178,10 @@ proc AddProjectFiles {} {
   }
 
   if {[IsISE]} {
-    set tcl_path [file normalize "[file dirname [info script]]"]
-    source $tcl_path/utils/cmdline.tcl
+    source $globalSettings::tcl_path/utils/cmdline.tcl
   }
 
-  AddHogFiles {*}[GetHogFiles -ext_path $globalSettings::HOG_EXTERNAL_PATH -repo_path $globalSettings::repo_path  $globalSettings::list_path]
+  AddHogFiles {*}[GetHogFiles -ext_path $globalSettings::HOG_EXTERNAL_PATH $globalSettings::list_path $globalSettings::repo_path]
 
   ## Set synthesis TOP
   SetTopProperty $globalSettings::synth_top_module $sources
@@ -634,10 +634,6 @@ proc ConfigureProperties {} {
 ## @brief upgrade IPs in the project and copy them from HOG_IP_PATH if defined
 #
 proc ManageIPs {} {
-  set tcl_path [file normalize "[file dirname [info script]]"]
-  set repo_path [file normalize $tcl_path/../..]
-  source $tcl_path/hog.tcl  
-  
   # set the current impl run
   current_run -implementation [get_runs impl_1]
   
@@ -678,294 +674,250 @@ proc SetGlobalVar {var {default_value HOG_NONE}} {
 
 ###########################################################################################################################################################################################
 
-set tcl_path [file normalize "[file dirname [info script]]"]
-set repo_path [file normalize $tcl_path/../..]
-source $tcl_path/hog.tcl
+proc CreateProject args {
 
-if {[IsLibero]} {
-  if {[info exists env(HOG_TCLLIB_PATH)]} {
-    lappend auto_path $env(HOG_TCLLIB_PATH) 
-  } else {
-    puts "ERROR: To run Hog with Microsemi Libero SoC, you need to define the HOG_TCLLIB_PATH variable."
+#  set tcl_path [file normalize "[file dirname [info script]]"]
+#  set repo_path [file normalize $tcl_path/../..]
+
+  if {[catch {package require cmdline} ERROR]} {
+    puts "ERROR: If you are running this script on tclsh, you can fix this by installing 'tcllib'"
     return
   }
-}
+  set parameters {
+    {simlib_path.arg  "" "Path of simulation libs"}
+    {verbose "If set, launch the script in verbose mode."}
+  }
+	
+  set usage "Create Vivado/ISE/Quartus/Libero project.\nUsage: CreateProject \[OPTIONS\] <project> <repository path>\n Options:"
 
-if {[catch {package require cmdline} ERROR]} {
-  puts "ERROR: If you are running this script on tclsh, you can fix this by installing 'tcllib'"
-  return
-}
-
-set parameters {
-  {simlib_path.arg  "" "Path of simulation libs"}
-  {verbose "If set, launch the script in verbose mode."}
-}
-
-set usage "Create Vivado/ISE/Questus/Libero project.\nUsage: create_project.tcl \[OPTIONS\] <project> \n. Options:"
-
-# The DESIGN varibale is used for quartus, should be improved in the future
-if { $::argc eq 0 && ![info exists DESIGN]} {
-  Msg Info [cmdline::usage $parameters $usage]
-  exit 1
-
-} elseif {[IsXilinx] || [IsLibero]} {
-  # Libero, Vivado and ISE
-  if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] || [lindex $argv 0] eq ""} {
+  if {[catch {array set options [cmdline::getoptions args $parameters $usage]}] || [llength $args] < 2 ||[lindex $args 0] eq""} {
     Msg Info [cmdline::usage $parameters $usage]
-    exit 1
+    return 1
   }
 
-  set DESIGN [lindex $argv 0]
+  set globalSettings::DESIGN [lindex $args 0]
+  if {[file exists [lindex $args 1]]} {
+    set globalSettings::repo_path [file normalize [lindex $args 1]]
+  } else {
+    Msg Error "The second argument, [lindex $args 1], should be the repository path."
+  }
+  set globalSettings::tcl_path $globalSettings::repo_path/Hog/Tcl                   
 
-} elseif { [IsQuartus] } {
-  # Quartus
-  # Beware!! Quartus uses quartus(args) rather than argv...
-  if { [ catch {array set options [cmdline::getoptions quartus(args) $parameters $usage] } ] } {
-    Msg Info [cmdline::usage $parameters $usage]
-    exit 1
+
+  if { $options(verbose) == 1 } {
+    variable ::DEBUG_MODE 1
   }
   
-  if { ![info exists DESIGN] || $DESIGN eq "" } {
-    if { [lindex $quartus(args) 0] eq "" } {
-      Msg Error "Variable DESIGN not set!"
-      Msg Info [cmdline::usage $parameters $usage]
-      exit 1
+
+  if {[info exists workflow_simlib_path]} {
+    if {[IsRelativePath $workflow_simlib_path] == 0} {
+      set globalSettings::simlib_path "$workflow_simlib_path"
     } else {
-      set DESIGN [lindex $quartus(args) 0]
+      set globalSettings::simlib_path "$globalSettings::repo_path/$workflow_simlib_path"
     }
+    Msg Info "Simulation library path set to $workflow_simlib_path"
   } else {
-    Msg Info "Design is taken from DESIGN variable: $DESIGN"
-  }
-
-} else {
-  Msg Error "Can't run outside an IDE."
-  exit 1
-}
-
-if { $options(verbose) == 1 } {
-  variable ::DEBUG_MODE 1
-}
-
-SetGlobalVar DESIGN
-if {[info exists workflow_simlib_path]} {
-  if {[IsRelativePath $workflow_simlib_path] == 0} {
-    set globalSettings::simlib_path "$workflow_simlib_path"
-  } else {
-    set globalSettings::simlib_path "$repo_path/$workflow_simlib_path"
-  }
-  Msg Info "Simulation library path set to $workflow_simlib_path"
-} else {
-  if {$options(simlib_path)!= ""} {
-    if {[IsRelativePath $options(simlib_path)] == 0} {
-      set globalSettings::simlib_path "$options(simlib_path)"
+    if {$options(simlib_path)!= ""} {
+      if {[IsRelativePath $options(simlib_path)] == 0} {
+	      set globalSettings::simlib_path "$options(simlib_path)"
+      } else {
+	      set globalSettings::simlib_path "$globalSettings::repo_path/$options(simlib_path)"
+      }
+      Msg Info "Simulation library path set to $options(simlib_path)"
     } else {
-      set globalSettings::simlib_path "$repo_path/$options(simlib_path)"
+      set globalSettings::simlib_path "$globalSettings::repo_path/SimulationLib"
+      Msg Info "Simulation library path set to default $globalSettings::repo_path/SimulationLib"
     }
-    Msg Info "Simulation library path set to $options(simlib_path)"
-  } else {
-    set globalSettings::simlib_path "$repo_path/SimulationLib"
-    Msg Info "Simulation library path set to default $repo_path/SimulationLib"
   }
-}
-
-
-###########################################################################################################################################################################################
-
-
-set proj_dir $repo_path/Top/$DESIGN
-lassign [GetConfFiles $proj_dir] conf_file sim_file pre_file post_file
-
-set user_repo 0
-if {[file exists $conf_file]} {
-  Msg Info "Parsing configuration file $conf_file..."
-  set PROPERTIES [ReadConf $conf_file]
-
-  #Checking Vivado/Quartus/ISE/Libero version
-  set actual_version [GetIDEVersion]
-  lassign [GetIDEFromConf $conf_file] ide conf_version
-  if {$conf_version != "0.0.0"} {
-
-
-    set a_v [split $actual_version "."]
-    set c_v [split $conf_version "."]
-
-    if { [llength $a_v] < 2} {
-      Msg Error "Couldn't parse IDE version: $actual_version."
-    } elseif {[llength $a_v] == 2} {
-      lappend a_v 0
-    }
-    if { [llength $c_v] < 2} {
-      Msg Error "Wrong version format in hog.conf: $conf_version."
-    } elseif {[llength $c_v] == 2} {
-      lappend c_v 0
-    }
-
-    set comp [CompareVersions $a_v $c_v]
-    if {$comp == 0} {
-      Msg Info "Project version and $ide version match: $conf_version."
-    }	elseif {$comp == 1} {
-      Msg CriticalWarning "The $ide version in use is $actual_version, that is newer than $conf_version, as specified in the first line of $conf_file, if you want update this project to version $actual_version, please update the configuration file."
-    } else {
-      Msg Error "The $ide version in use is $actual_version, that is older than $conf_version as specified in $conf_file. The project will not be created.\nIf you absolutely want to create this project that was meant for version $conf_version with $ide version $actual_version, you can change the version from the first line of $conf_file.\nThis is HIGHLY discouraged as there could be unrecognised properties in the configuration file and IPs created with a newer $ide version cannot be downgraded."
-    }
-  } else {
-    Msg CriticalWarning "No version found in the first line of $conf_file. It is HIGHLY recommended to replace the first line of $conf_file with: \#$ide $actual_version"
-  }
-  if {[dict exists $PROPERTIES main]} {
-    set main [dict get $PROPERTIES main]
-    dict for {p v} $main {
-      # notice the dollar in front of p: creates new variables and fill them with the value
-      Msg Info "Main property $p set to $v"
-      ##nagelfar ignore
-      set $p $v
-    }
-  } else {
-    Msg Error "No main section found in $conf_file, make sure it has a section called \[main\] containing the mandatory properties."
-  }
-
-  if {[file exists $sim_file]} {
-    Msg Info "Parsing simulation configuration file $sim_file..."
-    set SIM_PROPERTIES [ReadConf $sim_file]
-  }
-} else {
-  Msg Error "$conf_file was not found in your project directory, please create one."
-}
-
-
-if {![IsLibero]} {
-  SetGlobalVar PART
-}
-#Family is needed in quartus and libero only
-if {[IsQuartus] || [IsLibero]} {
-  #Quartus only
-  SetGlobalVar FAMILY
-  if {[IsLibero]} {
-    SetGlobalVar DIE
-    SetGlobalVar PACKAGE
-  }
-}
-
-
-
-SetGlobalVar TARGET_SIMULATOR "ModelSim"
-
-if {[info exists env(HOG_EXTERNAL_PATH)]} {
-  set globalSettings::HOG_EXTERNAL_PATH $env(HOG_EXTERNAL_PATH)
-} else {
-  set globalSettings::HOG_EXTERNAL_PATH ""
-}
-
-SetGlobalVar PROPERTIES ""
-SetGlobalVar SIM_PROPERTIES ""
-
-
-#Derived variables from now on...
-
-set build_dir_name "Projects"
-set globalSettings::tcl_path                    $tcl_path
-set globalSettings::repo_path                   $repo_path
-set globalSettings::group_name                  [file dirname $globalSettings::DESIGN]
-set globalSettings::pre_synth_file              "pre-synthesis.tcl"
-set globalSettings::post_synth_file             "post-synthesis.tcl"
-set globalSettings::pre_impl_file               "pre-implementation.tcl"
-set globalSettings::post_impl_file              "post-implementation.tcl"
-set globalSettings::pre_bit_file                "pre-bitstream.tcl"
-set globalSettings::post_bit_file               "post-bitstream.tcl"
-set globalSettings::quartus_post_module_file    "quartus-post-module.tcl"
-set globalSettings::top_path                    "$globalSettings::repo_path/Top/$DESIGN"
-set globalSettings::list_path                   "$globalSettings::top_path/list"
-set globalSettings::build_dir                   "$globalSettings::repo_path/$build_dir_name/$DESIGN"
-set globalSettings::DESIGN                      [file tail $globalSettings::DESIGN]
-set globalSettings::top_name                    [file tail $globalSettings::DESIGN]
-set globalSettings::top_name                    [file rootname $globalSettings::top_name]
-set globalSettings::synth_top_module            "top_$globalSettings::top_name"
-set globalSettings::user_ip_repo                ""
-
-set globalSettings::pre_synth           [file normalize "$globalSettings::tcl_path/integrated/$globalSettings::pre_synth_file"]
-set globalSettings::post_synth          [file normalize "$globalSettings::tcl_path/integrated/$globalSettings::post_synth_file"]
-set globalSettings::pre_impl            [file normalize "$globalSettings::tcl_path/integrated/$globalSettings::pre_impl_file"]
-set globalSettings::post_impl           [file normalize "$globalSettings::tcl_path/integrated/$globalSettings::post_impl_file"]
-set globalSettings::pre_bit             [file normalize "$globalSettings::tcl_path/integrated/$globalSettings::pre_bit_file"]
-set globalSettings::post_bit            [file normalize "$globalSettings::tcl_path/integrated/$globalSettings::post_bit_file"]
-set globalSettings::quartus_post_module [file normalize "$globalSettings::tcl_path/integrated/$globalSettings::quartus_post_module_file"]
-set globalSettings::LIBERO_MANDATORY_VARIABLES {"FAMILY" "PACKAGE" "DIE" }
-
-
-
-if {[file exists $pre_file]} {
-  Msg Info "Found pre-creation Tcl script $pre_file, executing it..."
-  source $pre_file
-}
-
-if {[info exists env(HOG_IP_PATH)]} {
-  set globalSettings::HOG_IP_PATH $env(HOG_IP_PATH)
-} else {
-  set globalSettings::HOG_IP_PATH ""
-}
-
-CreateProject
-AddProjectFiles
-ConfigureSynthesis
-ConfigureImplementation
-ConfigureSimulation
-
-if {[IsVivado]} {
-  # Use HandleIP to pull IPs from HOG_IP_PATH if specified
-  ManageIPs
-}
-
-if {[IsQuartus]} {
-  set fileName_old [file normalize "./hogTmp/.hogQsys.md5"]
-  set fileDir  [file normalize "$globalSettings::build_dir/.hog/"]
-  file mkdir $fileDir
-  set fileName_new [file normalize "$fileDir/.hogQsys.md5"]
-  if {[file exists $fileName_new]} {
-    file delete $fileName_new
-  }
-  if {[file exists $fileName_old]} {
-    file rename -force $fileName_old $fileName_new
-    file delete -force -- "./hogTmp"
-  }
-}
-
-if {[file exists $post_file]} {
-  Msg Info "Found post-creation Tcl script $post_file, executing it..."
-  source $post_file
-  if {[IsLibero]} {
-    # Regenerate the hierarchy in case a new file has been added
-    build_design_hierarchy
-  }
-}
-
-# Check extra IPs
-
-lassign [GetHogFiles -ext_path "$globalSettings::HOG_EXTERNAL_PATH" -repo_path $repo_path "$repo_path/Top/$DESIGN/list/"] listLibraries listProperties listMain
-
-CheckExtraFiles $listLibraries
-
-if {[IsXilinx]} {
-  set old_path [pwd]
-  cd $repo_path
-  set flavour [GetProjectFlavour $DESIGN]
-  # Getting all the versions and SHAs of the repository
-  lassign [GetRepoVersions [file normalize $repo_path/Top/$DESIGN] $repo_path $globalSettings::HOG_EXTERNAL_PATH] commit version  hog_hash hog_ver  top_hash top_ver  libs hashes vers  cons_ver cons_hash  ext_names ext_hashes  xml_hash xml_ver user_ip_repos user_ip_hashes user_ip_vers
   
-  set this_commit  [GetSHA]
-
-  if {$commit == 0 } {
-    set commit $this_commit
-  }
-
-  if {$xml_hash != 0} {
-    set use_ipbus 1
+  
+  set proj_dir [file normalize $globalSettings::repo_path/Top/$globalSettings::DESIGN]
+  lassign [GetConfFiles $proj_dir] conf_file sim_file pre_file post_file
+  
+  set user_repo 0
+  if {[file exists $conf_file]} {
+    Msg Info "Parsing configuration file $conf_file..."
+    SetGlobalVar PROPERTIES [ReadConf $conf_file]
+    
+    #Checking Vivado/Quartus/ISE/Libero version
+    set actual_version [GetIDEVersion]
+    lassign [GetIDEFromConf $conf_file] ide conf_version
+    if {$conf_version != "0.0.0"} {
+      
+      
+      set a_v [split $actual_version "."]
+      set c_v [split $conf_version "."]
+      
+      if { [llength $a_v] < 2} {
+	      Msg Error "Couldn't parse IDE version: $actual_version."
+      } elseif {[llength $a_v] == 2} {
+        lappend a_v 0
+      }
+      if { [llength $c_v] < 2} {
+        Msg Error "Wrong version format in hog.conf: $conf_version."
+      } elseif {[llength $c_v] == 2} {
+        lappend c_v 0
+      }
+      
+      set comp [CompareVersions $a_v $c_v]
+      if {$comp == 0} {
+        Msg Info "Project version and $ide version match: $conf_version."
+      }	elseif {$comp == 1} {
+        Msg CriticalWarning "The $ide version in use is $actual_version, that is newer than $conf_version, as specified in the first line of $conf_file, if you want update this project to version $actual_version, please update the configuration file."
+      } else {
+        Msg Error "The $ide version in use is $actual_version, that is older than $conf_version as specified in $conf_file. The project will not be created.\nIf you absolutely want to create this project that was meant for version $conf_version with $ide version $actual_version, you can change the version from the first line of $conf_file.\nThis is HIGHLY discouraged as there could be unrecognised properties in the configuration file and IPs created with a newer $ide version cannot be downgraded."
+      }
+    } else {
+      Msg CriticalWarning "No version found in the first line of $conf_file. It is HIGHLY recommended to replace the first line of $conf_file with: \#$ide $actual_version"
+    }
+    if {[dict exists $globalSettings::PROPERTIES main]} {
+      set main [dict get $globalSettings::PROPERTIES main]
+      dict for {p v} $main {
+        # notice the dollar in front of p: creates new variables and fill them with the value
+        Msg Info "Main property $p set to $v"
+        ##nagelfar ignore
+        set ::$p $v
+      }
+    } else {
+      Msg Error "No main section found in $conf_file, make sure it has a section called \[main\] containing the mandatory properties."
+    }
+    
+    if {[file exists $sim_file]} {
+      Msg Info "Parsing simulation configuration file $sim_file..."
+      SetGlobalVar SIM_PROPERTIES [ReadConf $sim_file]
+    } else {
+      SetGlobalVar SIM_PROPERTIES ""
+    }
   } else {
-    set use_ipbus 0
+    Msg Error "$conf_file was not found in your project directory, please create one."
   }
-
-
-  lassign [GetDateAndTime $commit] date timee
-  WriteGenerics "create" $DESIGN $date $timee $commit $version $top_hash $top_ver $hog_hash $hog_ver $cons_ver $cons_hash $libs $vers $hashes $ext_names $ext_hashes $user_ip_repos $user_ip_vers $user_ip_hashes $flavour $xml_ver $xml_hash
-  cd $old_path
+  
+  
+  if {![IsLibero]} {
+    SetGlobalVar PART
+  }
+  #Family is needed in quartus and libero only
+  if {[IsQuartus] || [IsLibero]} {
+    #Quartus only
+    SetGlobalVar FAMILY
+    if {[IsLibero]} {
+      SetGlobalVar DIE
+      SetGlobalVar PACKAGE
+    }
+  }
+  
+  SetGlobalVar TARGET_SIMULATOR "ModelSim"
+  
+  if {[info exists env(HOG_EXTERNAL_PATH)]} {
+    set globalSettings::HOG_EXTERNAL_PATH $env(HOG_EXTERNAL_PATH)
+  } else {
+    set globalSettings::HOG_EXTERNAL_PATH ""
+  }
+  
+  #Derived variables from now on...
+  
+  set build_dir_name "Projects"
+  set globalSettings::group_name                  [file dirname $globalSettings::DESIGN]
+  set globalSettings::pre_synth_file              "pre-synthesis.tcl"
+  set globalSettings::post_synth_file             "post-synthesis.tcl"
+  set globalSettings::pre_impl_file               "pre-implementation.tcl"
+  set globalSettings::post_impl_file              "post-implementation.tcl"
+  set globalSettings::pre_bit_file                "pre-bitstream.tcl"
+  set globalSettings::post_bit_file               "post-bitstream.tcl"
+  set globalSettings::quartus_post_module_file    "quartus-post-module.tcl"
+  set globalSettings::top_path                    "$globalSettings::repo_path/Top/$globalSettings::DESIGN"
+  set globalSettings::list_path                   "$globalSettings::top_path/list"
+  set globalSettings::build_dir                   "$globalSettings::repo_path/$build_dir_name/$globalSettings::DESIGN"
+  set globalSettings::DESIGN                      [file tail $globalSettings::DESIGN]
+  set globalSettings::top_name                    [file tail $globalSettings::DESIGN]
+  set globalSettings::top_name                    [file rootname $globalSettings::top_name]
+  set globalSettings::synth_top_module            "top_$globalSettings::top_name"
+  set globalSettings::user_ip_repo                ""
+  
+  set globalSettings::pre_synth           [file normalize "$globalSettings::tcl_path/integrated/$globalSettings::pre_synth_file"]
+  set globalSettings::post_synth          [file normalize "$globalSettings::tcl_path/integrated/$globalSettings::post_synth_file"]
+  set globalSettings::pre_impl            [file normalize "$globalSettings::tcl_path/integrated/$globalSettings::pre_impl_file"]
+  set globalSettings::post_impl           [file normalize "$globalSettings::tcl_path/integrated/$globalSettings::post_impl_file"]
+  set globalSettings::pre_bit             [file normalize "$globalSettings::tcl_path/integrated/$globalSettings::pre_bit_file"]
+  set globalSettings::post_bit            [file normalize "$globalSettings::tcl_path/integrated/$globalSettings::post_bit_file"]
+  set globalSettings::quartus_post_module [file normalize "$globalSettings::tcl_path/integrated/$globalSettings::quartus_post_module_file"]
+  set globalSettings::LIBERO_MANDATORY_VARIABLES {"FAMILY" "PACKAGE" "DIE" }
+	
+  if {[file exists $pre_file]} {
+    Msg Info "Found pre-creation Tcl script $pre_file, executing it..."
+    source $pre_file
+  }
+  
+  if {[info exists env(HOG_IP_PATH)]} {
+    set globalSettings::HOG_IP_PATH $env(HOG_IP_PATH)
+  } else {
+    set globalSettings::HOG_IP_PATH ""
+  }
+  
+  InitProject
+  AddProjectFiles
+  ConfigureSynthesis
+  ConfigureImplementation
+  ConfigureSimulation
+  
+  if {[IsVivado]} {
+    # Use HandleIP to pull IPs from HOG_IP_PATH if specified
+    ManageIPs
+  }
+  
+  if {[IsQuartus]} {
+    set fileName_old [file normalize "./hogTmp/.hogQsys.md5"]
+    set fileDir  [file normalize "$globalSettings::build_dir/.hog/"]
+    file mkdir $fileDir
+    set fileName_new [file normalize "$fileDir/.hogQsys.md5"]
+    if {[file exists $fileName_new]} {
+      file delete $fileName_new
+    }
+    if {[file exists $fileName_old]} {
+      file rename -force $fileName_old $fileName_new
+      file delete -force -- "./hogTmp"
+    }
+  }
+  
+  if {[file exists $post_file]} {
+    Msg Info "Found post-creation Tcl script $post_file, executing it..."
+    source $post_file
+    if {[IsLibero]} {
+      # Regenerate the hierarchy in case a new file has been added
+      build_design_hierarchy
+    }
+  }
+  
+  # Check extra IPs
+  
+  lassign [GetHogFiles -ext_path "$globalSettings::HOG_EXTERNAL_PATH" "$globalSettings::repo_path/Top/$globalSettings::group_name/$globalSettings::DESIGN/list/" $globalSettings::repo_path] listLibraries listProperties listFilesets
+  
+  CheckExtraFiles $listLibraries
+  
+  if {[IsXilinx]} {
+    set old_path [pwd]
+    cd $globalSettings::repo_path
+    set flavour [GetProjectFlavour $globalSettings::DESIGN]
+    # Getting all the versions and SHAs of the repository
+    lassign [GetRepoVersions [file normalize $globalSettings::repo_path/Top/$globalSettings::group_name/$globalSettings::DESIGN] $globalSettings::repo_path $globalSettings::HOG_EXTERNAL_PATH] commit version  hog_hash hog_ver  top_hash top_ver  libs hashes vers  cons_ver cons_hash  ext_names ext_hashes  xml_hash xml_ver user_ip_repos user_ip_hashes user_ip_vers
+    
+    set this_commit  [GetSHA]
+    
+    if {$commit == 0 } {
+      set commit $this_commit
+    }
+    
+    if {$xml_hash != 0} {
+      set use_ipbus 1
+    } else {
+      set use_ipbus 0
+    }
+    
+    
+    lassign [GetDateAndTime $commit] date timee
+    WriteGenerics "create" $globalSettings::group_name/$globalSettings::DESIGN $date $timee $commit $version $top_hash $top_ver $hog_hash $hog_ver $cons_ver $cons_hash $libs $vers $hashes $ext_names $ext_hashes $user_ip_repos $user_ip_vers $user_ip_hashes $flavour $xml_ver $xml_hash
+    cd $old_path
+  }
+  
+  Msg Info "Project $globalSettings::DESIGN created successfully in [Relative $globalSettings::repo_path $globalSettings::build_dir]."
 }
-
-Msg Info "Project $DESIGN created successfully in [Relative $repo_path $globalSettings::build_dir]."

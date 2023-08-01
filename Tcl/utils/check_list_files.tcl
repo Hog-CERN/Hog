@@ -16,65 +16,6 @@
 # @file
 # Check if the content of list files matches the project. It can also be used to update the list files.
 
-
-### BAN LIST DEFINITIONS ###
-
-#list of properties that must not be checked/written
-set PROP_BAN_LIST  [ list DEFAULT_LIB \
-			 PART \
-			 IP_CACHE_PERMISSIONS \
-			 SIM.IP.AUTO_EXPORT_SCRIPTS \
-			 XPM_LIBRARIES \
-			 REPORT_STRATEGY \
-			 STEPS.WRITE_DEVICE_IMAGE.ARGS.READBACK_FILE \
-			 STEPS.WRITE_DEVICE_IMAGE.ARGS.VERBOSE \
-			 STEPS.WRITE_BITSTREAM.ARGS.READBACK_FILE \
-			 STEPS.WRITE_BITSTREAM.ARGS.VERBOSE \
-			 STEPS.SYNTH_DESIGN.TCL.PRE \
-			 STEPS.SYNTH_DESIGN.TCL.POST \
-			 STEPS.WRITE_BITSTREAM.TCL.PRE \
-			 STEPS.WRITE_BITSTREAM.TCL.POST \
-			 STEPS.WRITE_DEVICE_IMAGE.TCL.PRE \
-			 STEPS.WRITE_DEVICE_IMAGE.TCL.POST \
-			 STEPS.INIT_DESIGN.TCL.POST \
-			 STEPS.ROUTE_DESIGN.TCL.POST \
-			 IP.USER_FILES_DIR \
-			 SIM.IPSTATIC.SOURCE_DIR \
-			 COMPXLIB.MODELSIM_COMPILED_LIBRARY_DIR \
-			 COMPXLIB.QUESTA_COMPILED_LIBRARY_DIR \
-			 COMPXLIB.RIVIERA_COMPILED_LIBRARY_DIR \
-			 COMPXLIB.ACTIVEHDL_COMPILED_LIBRARY_DIR \
-			 COMPXLIB.IES_COMPILED_LIBRARY_DIR \
-			 COMPXLIB.VCS_COMPILED_LIBRARY_DIR \
-			 NEEDS_REFRESH \
-			 AUTO_INCREMENTAL_CHECKPOINT.DIRECTORY \
-			 AUTO_INCREMENTAL_CHECKPOINT \
-			 INCREMENTAL_CHECKPOINT \
-			 AUTO_RQS.DIRECTORY \
-			 ENABLE_RESOURCE_ESTIMATION
-		    ]
-
-set HOG_GENERICS [ list GLOBAL_DATE \
-		       GLOBAL_TIME \
-		       FLAVOUR \
-		      ]
-
-# List of non-source files that should not be checked
-# nocattr.dat is added by the NoC on Versal devices
-set BAN_OTHER_REGEX [ list {.*/nocattrs\.dat}\
-			  {}\
-			  {}\
-			 ]
-
-# List of source files that should not be checked
-# empty for now
-set BAN_SRC_REGEX [ list {}\
-			{}\
-			{}\
-		       ]
-
-### END OF BAN LIST ###
-
 #parsing command options
 if {[catch {package require cmdline} ERROR]} {
   puts "$ERROR\n If you are running this script on tclsh, you can fix this by installing 'tcllib'"
@@ -92,8 +33,7 @@ if {[IsISE]} {
 set parameters {
   {project.arg "" "Project name. If not set gets current project"}
   {outDir.arg "" "Name of output dir containing log files."}
-  {log_list.arg "1" "Logs list files errors to outFile."}
-  {log_conf.arg "1" "Logs hog.conf errors to outFile."}
+  {log.arg "1" "Logs errors/warnings to outFile."}
   {recreate  "If set, it will create List Files from the project configuration"}
   {recreate_conf  "If set, it will create the project hog.conf file."}
   {force  "Force the overwriting of List Files. To be used together with \"-recreate\""}
@@ -101,36 +41,9 @@ set parameters {
   {ext_path.arg "" "Sets the absolute path for the external libraries."}
 }
 
-proc RelativeLocal {pathName fileName} {
-  if {[string first [file normalize $pathName] [file normalize $fileName]] != -1} {
-    return [Relative $pathName $fileName]
-  } else {
-    return ""
-  }
-}
-
-proc CriticalAndLog {msg {outFile ""}} {
-  Msg CriticalWarning $msg
-  if {$outFile != ""} {
-    set oF [open "$outFile" a+]
-    puts $oF $msg
-    close $oF
-  }
-}
-
-proc WarningAndLog {msg {outFile ""}} {
-  Msg Warning $msg
-  if {$outFile != ""} {
-    set oF [open "$outFile" a+]
-    puts $oF $msg
-    close $oF
-  }
-}
 
 
-set usage   "Checks if the list files matches the project ones. It can also be used to update the list files. \nUSAGE: $::argv0 \[Options\]"
-
-
+set usage "Checks if the list and conf files matches the project ones. It can also be used to update the list and conf files. \nUSAGE: $::argv0 \[Options\]"
 
 
 if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}]} {
@@ -138,9 +51,7 @@ if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}]}
   exit 1
 }
 
-
 set ext_path $options(ext_path)
-
 
 set ListErrorCnt 0
 set ListSimErrorCnt 0
@@ -185,8 +96,9 @@ if {$options(outDir)!= ""} {
     file delete $outSimFile
   }
 
-  if {!$options(log_list)} {
+  if {!$options(log)} {
     set outFile ""
+    set outSimFile ""
   }
 
 } else {
@@ -201,532 +113,97 @@ if {[file exists $repo_path/Top/$group_name/$project_name] && [file isdirectory 
   set DirName Top/$group_name/$project_name
 }
 
-
-
-
 if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
   Msg Info "Checking $project_name list files..."
-  # Get project libraries and properties from Vivado
-  lassign [GetProjectFiles] prjLibraries prjProperties
+
   Msg Info "Retrieved Vivado project files..."
   # Get project libraries and properties from list files
-  lassign [GetHogFiles -ext_path "$ext_path" -repo_path $repo_path -list_files ".src,.con,.ext" "$repo_path/Top/$group_name/$project_name/list/"] listLibraries listProperties listMain
-  lassign [GetHogFiles -ext_path "$ext_path" -repo_path $repo_path -list_files ".sim" "$repo_path/Top/$group_name/$project_name/list/"] listSimLibraries listSimProperties listSimMain
+  lassign [GetHogFiles -ext_path "$ext_path" -list_files ".src,.ext" "$repo_path/Top/$group_name/$project_name/list/" $repo_path] listLibraries listProperties listSrcSets
+  # Get project constraints and properties from list files
+  lassign [GetHogFiles -ext_path "$ext_path" -list_files ".con" "$repo_path/Top/$group_name/$project_name/list/" $repo_path] listConstraints listConProperties listConSets
+  # Get project simulation libraries and properties from list files
+  lassign [GetHogFiles -ext_path "$ext_path" -list_files ".sim" "$repo_path/Top/$group_name/$project_name/list/" $repo_path] listSimLibraries listSimProperties listSimSets
   # Get files generated at creation time
   set extraFiles [ReadExtraFileList "$repo_path/Projects/$group_name/$project_name/.hog/extra.files"]
+  set extraFiles_copy $extraFiles
+  # Get project libraries and properties from Vivado
+  lassign [GetProjectFiles] prjLibraries prjProperties prjSimLibraries prjConstraints prjSrcSets prjSimSets prjConSets
 
-  set prjIPs      [DictGet $prjLibraries IP]
-  set prjXDCs     [DictGet $prjLibraries XDC]
-  set prjOTHERs   [DictGet $prjLibraries OTHER]
-  set prjSimDict  [DictGet $prjLibraries SIM]
-  set prjSrcDict  [DictGet $prjLibraries SRC]
+  # Removing duplicates from listlibraries listProperties listSimLibraries listSimProperties
+  set listLibraries [RemoveDuplicates $listLibraries]
+  set listProperties [RemoveDuplicates $listProperties]
+  set listSimLibraries [RemoveDuplicates $listSimLibraries]
+  set listSimProperties [RemoveDuplicates $listSimProperties]
+  set listConstraints [RemoveDuplicates $listConstraints]
+  set prjSimLibraries [RemoveDuplicates $prjSimLibraries]
+  set prjLibraries [RemoveDuplicates $prjLibraries]
+  set prjConstraints [RemoveDuplicates $prjConstraints]
 
+  #################################################################
+  ##### START COMPARISON OF FILES IN PROJECT AND LIST FILES ######
+  #################################################################
+  lassign [CompareLibDicts $prjLibraries $listLibraries $prjSrcSets $listSrcSets $prjProperties $listProperties "CriticalWarning" $outFile $extraFiles] SrcListErrorCnt extraFiles
+  lassign [CompareLibDicts $prjSimLibraries $listSimLibraries $prjSimSets $listSimSets $prjProperties $listSimProperties "Warning" $outSimFile $extraFiles] SimListErrorCnt extraFiles
+  lassign [CompareLibDicts $prjConstraints $listConstraints $prjConSets $listConSets $prjProperties $listConProperties  "CriticalWarning" $outFile $extraFiles] ConListErrorCnt extraFiles
 
-  # Removing duplicates from listlibraries and listProperties
-  foreach library [dict keys $listLibraries] {
-    set fileNames [DictGet $listLibraries $library]
-    foreach fileName $fileNames {
-      set idxs [lreverse [lreplace [lsearch -exact -all $fileNames $fileName] 0 0]]
-      foreach idx $idxs {
-        set fileNames [lreplace $fileNames $idx $idx]
-      }
-    }
-    dict set listLibraries $library $fileNames
-  }
-  foreach property [dict keys $listProperties] {
-    set props [lindex [dict get $listProperties $property] 0]
-    foreach prop $props {
-      set idxs [lreverse [lreplace [lsearch -exact -all $props $prop] 0 0]]
-      foreach idx $idxs {
-        set props [lreplace $props $idx $idx]
-      }
-    }
-    dict set listProperties $property [list $props]
-  }
-  # Compare List files against project files
-  set newListfiles [dict create]
-
-  foreach key [dict keys $listSimLibraries] {
-    if {[file extension $key] == ".sim"} {
-      if {[dict exists $prjSimDict "[file rootname $key]_sim"]} {
-        set prjSIMs [DictGet $prjSimDict "[file rootname $key]_sim"]
-        # loop over list files associated with this simset
-        foreach simlist [dict keys $listSimMain] {
-          #check if project contains sim files specified in list files
-          if {[DictGet $listSimMain $simlist] == $key } {
-            foreach SIM [DictGet $listSimLibraries $simlist] {
-              if {[file extension $SIM] == ".udo" || [file extension $SIM] == ".do" || [file extension $SIM] == ".tcl"} {
-                set prop_sim_file [RelativeLocal $repo_path $SIM]
-              } else {
-                set prop_sim_file $SIM
-              }
-              set idx [lsearch -exact $prjSIMs $SIM]
-              set prjSIMs [lreplace $prjSIMs $idx $idx]
-              if {$idx < 0} {
-                if {$options(recreate) == 1} {
-                  Msg Info "$SIM was removed from the project."
-                } else {
-                  Msg Info "$SIM not found in project simulation libraries"
-                }
-                incr ListSimErrorCnt
-              } else {
-                dict lappend newListfiles $simlist [string trim "[RelativeLocal $repo_path $SIM] [DictGet $prjProperties $prop_sim_file]"]
-              }
-            }
-            dict set prjSimDict "[file rootname $key]_sim" $prjSIMs
-          }
-        }
-      } else {
-        set main_lib [dict get $listSimMain $key]
-        if { $main_lib == $key } {
-          if {$options(recreate) == 1} {
-            Msg Info "[file rootname $key]_sim fileset was removed from the project."
-          }
-        }
-      }
-    }
+  # Check if any files remained in extraFiles
+  foreach {k v} $extraFiles {
+    MsgAndLog "$k was found in .hog/extra.files but not in project." "CriticalWarning" $outFile 
+    incr SrcListErrorCnt
   }
 
-
-  foreach key [dict keys $listLibraries] {
-    if {[file extension $key] == ".ip" } {
-      #check if project contains IPs specified in listfiles
-      foreach IP [DictGet $listLibraries $key] {
-        set idx [lsearch -exact $prjIPs $IP]
-        set prjIPs [lreplace $prjIPs $idx $idx]
-        if {$idx < 0} {
-          if {$options(recreate) == 1} {
-            Msg Info "$IP was found in list files but not in project."
-          } else {
-            CriticalAndLog "$IP found in list files but not in project IPs." $outFile
-          }
-          incr ListErrorCnt
-        } else {
-          dict lappend newListfiles [file rootname $key].src [string trim "[RelativeLocal $repo_path $IP] [DictGet $prjProperties $IP]"]
-        }
-      }
-    } elseif {[file extension $key] == ".con" } {
-      #check if project contains XDCs specified in listfiles
-      foreach XDC [DictGet $listLibraries $key] {
-        set idx [lsearch -exact $prjXDCs $XDC]
-        set prjXDCs [lreplace $prjXDCs $idx $idx]
-        if {$idx < 0} {
-          if {$options(recreate) == 1} {
-            Msg Info "$XDC was removed from the project."
-          } else {
-            CriticalAndLog "$XDC not found in project constraints." $outFile
-          }
-          incr ListErrorCnt
-        } else {
-          dict lappend newListfiles $key [string trim "[RelativeLocal $repo_path $XDC] [DictGet $prjProperties $XDC]"]
-        }
-      }
-    } elseif {[file extension $key] == ".src" } {
-      #check if project contains sources specified in listfiles
-      set prjSRCs [DictGet $prjSrcDict [file rootname $key]]
-
-      foreach SRC [DictGet $listLibraries $key] {
-        set idx [lsearch -exact $prjSRCs $SRC]
-        set prjSRCs [lreplace $prjSRCs $idx $idx]
-        if {$idx < 0} {
-          set idx [lsearch -exact $prjOTHERs $SRC]
-          set prjOTHERs [lreplace $prjOTHERs $idx $idx]
-          if {$idx < 0} {
-            if {$options(recreate) == 1} {
-              Msg Info "$SRC was removed from the project."
-            } else {
-              CriticalAndLog "$SRC was found in Hog list files but not in project." $outFile
-            }
-            incr ListErrorCnt
-          } else {
-            dict lappend newListfiles $key [string trim "[RelativeLocal $repo_path $SRC] [DictGet $prjProperties $SRC]"]
-          }
-        } else {
-          dict lappend newListfiles $key [string trim "[RelativeLocal $repo_path $SRC] [DictGet $prjProperties $SRC]"]
-        }
-      }
-      dict set prjSrcDict [file rootname $key] $prjSRCs
-
-    } elseif {[file extension $key] == ".ext" } {
-      #check if project contains external files specified in listfiles
-      set prjSRCs [DictGet $prjSrcDict [file rootname $key]]
-
-      foreach SRC [DictGet $listLibraries $key] {
-        set idx [lsearch -exact $prjSRCs $SRC]
-        set prjSRCs [lreplace $prjSRCs $idx $idx]
-        if {$idx < 0} {
-          set idx [lsearch -exact $prjOTHERs $SRC]
-          set prjOTHERs [lreplace $prjOTHERs $idx $idx]
-          if {$idx < 0} {
-            if {$options(recreate) == 1} {
-              Msg Info "$SRC was removed from the project."
-            } else {
-              CriticalAndLog "$SRC not found in project source files." $outFile
-            }
-            incr ListErrorCnt
-          } else {
-            dict lappend newListfiles $key [string trim "[RelativeLocal $ext_path $SRC] [Md5Sum $SRC] [DictGet $prjProperties $SRC]"]
-            dict lappend prjProperties $SRC [Md5Sum $SRC]
-          }
-        } else {
-          dict lappend newListfiles $key [string trim "[RelativeLocal $ext_path $SRC] [Md5Sum $SRC] [DictGet $prjProperties $SRC]"]
-          dict lappend prjProperties $SRC [Md5Sum $SRC]
-        }
-      }
-      dict set prjSrcDict [file rootname $key] $prjSRCs
-    } else {
-      Msg CriticalWarning "$key list file format unrecognized by Hog."
-      incr ListErrorCnt
-    }
-  }
-
-  # Check Extra Files
-  foreach f [dict keys $extraFiles] {
-    set idxIP [lsearch -exact $prjIPs $f]
-    set prjIPs [lreplace $prjIPs $idxIP $idxIP]
-
-    set idxSRC -1
-    foreach lib [dict keys $prjSrcDict] {
-      set prjSRCs [dict get $prjSrcDict $lib]
-      set idxSRC [lsearch -exact $prjSRCs $f]
-      set prjSRCs [lreplace $prjSRCs $idxSRC $idxSRC]
-      dict set prjSrcDict $lib $prjSRCs
-      if {$idxSRC > -1} {
-        break
-      }
-    }
-
-    set idxOTH [lsearch -exact $prjOTHERs $f]
-    set prjOTHERs [lreplace $prjOTHERs $idxOTH $idxOTH]
-
-    set idxXDC [lsearch -exact $prjXDCs $f]
-    set prjXDCs [lreplace $prjXDCs $idxXDC $idxXDC]
-
-    if {$idxIP < 0 && $idxSRC < 0 && $idxOTH < 0 && $idxXDC < 0 } {
-      if {$options(recreate) == 1} {
-        Msg Info "$f was found in list files but not in project."
-      } else {
-        CriticalAndLog "$f found in list files but not in project." $outFile
-      }
-      incr ListErrorCnt
-    } else {
-      # Check that the file hasn't changed
-      set new_md5sum [Md5Sum $f]
-      set old_md5sum [DictGet $extraFiles $f]
-      if {$new_md5sum != $old_md5sum} {
-        CriticalAndLog "$f in project has been modified from creation time. Please update the script you used to create the file and regenerate the project, or save the file outside the Projects/ directory and add it to a project list file" $outFile
-      }
-    }
-  }
-
-
-  foreach IP $prjIPs {
-    incr ListErrorCnt
-    if {[string equal [RelativeLocal $repo_path $IP] ""]} {
-      if {[string equal [RelativeLocal $ext_path $IP] ""]} {
-        Msg CriticalWarning "Source $IP is used in the project but is not in the repository or in a known external path."
-      } else {
-        if {$options(recreate) == 1} {
-          Msg Info "External IP $IP was added to the project."
-        } else {
-          CriticalAndLog "External IP $IP is used in the project but is not in the list files." $outFile
-        }
-        dict lappend newListfiles Default.ext [string trim "[RelativeLocal $ext_path $IP] [Md5Sum $IP] [DictGet $prjProperties $IP]"]
-      }
-    } else {
-      if {$options(recreate) == 1} {
-        Msg Info "$IP was added to the project."
-      } else {
-        CriticalAndLog "$IP is used in project but is not in the list files." $outFile
-      }
-      dict lappend newListfiles Default.src [string trim "[RelativeLocal $repo_path $IP] [DictGet $prjProperties $IP]"]
-    }
-  }
-
-  foreach XDC $prjXDCs {
-    incr ListErrorCnt
-    if {[string equal [RelativeLocal $repo_path $XDC] ""]} {
-      if {[string equal [RelativeLocal $ext_path $XDC] ""]} {
-        CriticalAndLog "Source $XDC is used in the project but is not in the repository or in a known external path." $outFile
-      } else {
-        if {$options(recreate) == 1} {
-          Msg Info "External source $XDC was added to the project."
-        } else {
-          CriticalAndLog "External source $XDC is used in the project but is not in the list files." $outFile
-        }
-        dict lappend newListfiles Default.ext [string trim "[RelativeLocal $ext_path $XDC] [Md5Sum $XDC] [DictGet $prjProperties $XDC]"]
-      }
-    } else {
-      if {$options(recreate) == 1} {
-        Msg Info "$XDC was added to the project."
-      } else {
-        CriticalAndLog "$XDC is used in the project but is not in the list files." $outFile
-      }
-      dict lappend newListfiles Default.con [string trim "[RelativeLocal $repo_path $XDC] [DictGet $prjProperties $XDC]"]
-    }
-  }
-
-  foreach key [dict keys $prjSimDict] {
-    if {[string equal $key ""] } {
-      continue
-    }
-    foreach SIM [dict get $prjSimDict $key] {
-      if {[string equal $SIM ""] } {
-        continue
-      }
-      if {[file extension $SIM] == ".udo" || [file extension $SIM] == ".do" || [file extension $SIM] == ".tcl"} {
-        set prop_sim_file [RelativeLocal $repo_path $SIM]
-      } else {
-        set prop_sim_file $SIM
-      }
-      if {[string range $key end-3 end]=="_sim"} {
-        dict lappend newListfiles [string range $key 0 end-4].sim [string trim "[RelativeLocal $repo_path $SIM] [DictGet $prjProperties $prop_sim_file]"]
-        if {$options(recreate) == 1} {
-          Msg Info "$SIM was added to the project."
-        }
-      } else {
-        dict lappend newListfiles $key.sim [string trim "[RelativeLocal $repo_path $SIM] [DictGet $prjProperties $prop_sim_file]"]
-        if {$options(recreate) == 1} {
-          Msg Info "$key simulation fileset does not respect Hog format. It will be renamed to ${key}_sim"
-        }
-      }
-    }
-  }
-
-  foreach key [dict keys $prjSrcDict] {
-    if {[string equal $key ""] } {
-      continue
-    }
-    foreach SRC [dict get $prjSrcDict $key] {
-      if {[string equal $SRC ""] } {
-        continue
-      }
-
-      set ignore_this_one 0
-      foreach bf $BAN_SRC_REGEX {
-	if { [regexp "^$bf$" $SRC]} {
-	  Msg Debug "Ignored $SRC because of ^$bf$"
-	  set ignore_this_one 1
-	  continue
-	}
-      }
-      if {$ignore_this_one == 1} {
-	continue
-      }
-      
-      incr ListErrorCnt
-      if {[string equal [RelativeLocal $repo_path $SRC] ""]} {
-        if {[string equal [RelativeLocal $ext_path $SRC] ""]} {
-          CriticalAndLog "Source $SRC is used in the project but is not in the repository or in a known external path." $outFile
-        } else {
-          if {$options(recreate) == 1} {
-            Msg Info "External source $SRC was added to the project (library $key)."
-          } else {
-            CriticalAndLog "External source $SRC is used in the project (library $key) but is not in the list files." $outFile
-          }
-          dict lappend newListfiles ${key}.ext [string trim "[RelativeLocal $ext_path $SRC] [Md5Sum $SRC] [DictGet $prjProperties $SRC]"]
-        }
-      } else {
-        if {$options(recreate) == 1} {
-          Msg Info "$SRC was added to the project (library $key)."
-        } else {
-          CriticalAndLog "$SRC is used in the project (library $key) but is not in the list files." $outFile
-        }
-        dict lappend newListfiles ${key}.src [string trim "[RelativeLocal $repo_path $SRC] [DictGet $prjProperties $SRC]"]
-      }
-    }
-  }
-
-  foreach key [dict keys $prjSimDict] {
-    if {[string equal $key ""] } {
-      continue
-    }
-    foreach SRC [dict get $prjSimDict $key] {
-      if {[string equal $SRC ""] } {
-        continue
-      }
-      incr ListSimErrorCnt
-      if {[string equal [RelativeLocal $repo_path $SRC] ""]} {
-        WarningAndLog "Simulation source $SRC is used in the project but is not in the repository or in a known external path." $outSimFile
-
-      } else {
-        if {$options(recreate) == 1} {
-          Msg Info "Simulation $SRC was added to the project (library $key)."
-        } else {
-          WarningAndLog "Simulation file $SRC is used in the project (library $key) but is not in the list files." $outSimFile
-        }
-        dict lappend newListfiles ${key}.sim [string trim "[RelativeLocal $repo_path $SRC] [DictGet $prjProperties $SRC]"]
-      }
-    }
-  }
-
-  foreach SRC $prjOTHERs {
-    set ignore_this_one 0
-    foreach bf $BAN_OTHER_REGEX {
-      if { [regexp "^$bf$" $SRC]} {
-	Msg Debug "Ignored $SRC because of ^$bf$"
-	set ignore_this_one 1
-	continue
-      }
-    }
-    if {$ignore_this_one == 1} {
-      continue
-    }
-
-    incr ListErrorCnt
-    if {[string equal [RelativeLocal $repo_path $SRC] ""]} {
-      if {[string equal [RelativeLocal $ext_path $SRC] ""]} {
-        CriticalAndLog "Source $SRC is used in the project but is not in the repository or in a known external path." $outFile
-      } else {
-        if {$options(recreate) == 1} {
-          Msg Info "External source $SRC was added to the project."
-        } else {
-          CriticalAndLog "External source $SRC is used in the project but is not in the list files." $outFile
-        }
-        dict lappend newListfiles Default.ext [string trim "[RelativeLocal $ext_path $SRC] [Md5Sum $SRC] [DictGet $prjProperties $SRC]"]
-      }
-    } else {
-      if {$options(recreate) == 1} {
-        Msg Info "$SRC was added to the project."
-      } else {
-        CriticalAndLog "$SRC is used in the project but is not in the list files." $outFile
-      }
-      dict lappend newListfiles Default.src [string trim "[RelativeLocal $repo_path $SRC] [DictGet $prjProperties $SRC]"]
-    }
-  }
-
-
-  # Checking properties in list file
-  foreach key [dict keys $listProperties] {
-    foreach prop [lindex [DictGet $listProperties $key] 0] {
-      set prop_file $key
-
-      if {[lsearch -nocase [DictGet $prjProperties $prop_file] $prop] < 0 && ![string equal $prop ""] && ![string equal $prop "XDC"] && ![string equal $prop "source"]} {
-
-        if {$options(recreate) == 1} {
-          Msg Info "$prop_file property $prop was removed from the project."
-        } else {
-          CriticalAndLog "$prop_file property $prop is set in list files but not in project." $outFile
-
-        }
-        incr ListErrorCnt
-      }
-    }
-  }
-
-  # Checking properties in list file
-  foreach key [dict keys $listSimProperties] {
-    foreach prop [lindex [DictGet $listSimProperties $key] 0] {
-      set prop_file $key
-      if {[lsearch -nocase [DictGet $prjProperties $prop_file] $prop] < 0 && ![string equal $prop ""] && ![string equal $prop "XDC"] && [string first "topsim=" $prop] == -1 && $prop != "wavefile" && $prop != "dofile" && [string first "runtime=" $prop] == -1} {
-
-        if {$options(recreate) == 1} {
-          Msg Info "$prop_file property $prop was removed from the project."
-        } else {
-          WarningAndLog "Property $prop of simulation file $prop_file is set in list files but not in project." $outSimFile
-
-        }
-        incr ListErrorCnt
-      }
-    }
-  }
-
-
-  foreach key [dict keys $prjProperties] {
-    if {[dict exists $extraFiles $key]} {
-      # Skip property check for file generated at creation time.
-      continue
-    }
-    foreach prop [DictGet $prjProperties $key] {
-      set prop_file $key
-      if {([string first "vh" [file extension $prop_file]] != -1 && $prop == "verilog_header") || ([string first "sv" [file extension $prop_file]] != -1 && $prop == "SystemVerilog") } {
-        # Do nothing this is the default for vh and svh files
-        break
-      }
-
-      if {[lsearch -nocase [lindex [DictGet $listProperties $prop_file] 0] $prop] < 0 && ![string equal $prop ""] && ![string equal $prop_file "Simulator"] && ![string equal $prop "top=top_[file rootname $project_name]"] && [lsearch -nocase [lindex [DictGet $listSimProperties $prop_file] 0] $prop] < 0 && $prop != "wavefile" && $prop != "dofile" && [string first "runtime=" $prop] == -1 && [string first "topsim=" $prop] == -1} {
-        set is_sim_file 0
-        ##nagelfar ignore
-        set AllSimDict  [DictGet $prjLibraries SIM]
-        foreach simset [dict keys $AllSimDict] {
-          set SimSetDict [DictGet $AllSimDict $simset]
-          if {$prop_file in $SimSetDict} {
-            set is_sim_file 1
-            break
-          }
-        }
-
-        if {$is_sim_file == 1} {
-          # File is only in simulation source, send only a warning.
-          if {$options(recreate) == 1} {
-            Msg Info "Property $prop for simulation file $prop_file was added to the project."
-          } else {
-            WarningAndLog "Property $prop of simulation file $prop_file is set in project but not in list files!" $outSimFile
-          }
-          incr ListSimErrorCnt
-        } else {
-          if {$options(recreate) == 1} {
-            Msg Info "$prop_file property $prop was added to the project."
-          } else {
-            CriticalAndLog "$prop_file property $prop is set in project but not in list files!" $outFile
-          }
-          incr ListErrorCnt
-        }
-      }
-    }
-  }
-
-  #summary of errors found
-  if  {$ListErrorCnt == 0} {
+  if {$SrcListErrorCnt == 0} {
     Msg Info "Design List Files matches project. Nothing to do."
   }
 
-  if  {$ListSimErrorCnt == 0} {
+  if {$SimListErrorCnt == 0} {
     Msg Info "Simulation List Files matches project. Nothing to do."
   }
 
+  if {$ConListErrorCnt == 0} {
+    Msg Info "Constraint List Files matches project. Nothing to do."
+  }
 
-  #recreating list files
-  if {$options(recreate) == 1 && ($ListErrorCnt > 0 || $ListSimErrorCnt > 0) } {
-    Msg Info "Updating list files in $repo_path/$DirName/list"
 
-    #delete existing listFiles
-    if {$options(force) == 1} {
-      set listpath "$repo_path/Top/$group_name/$project_name/list/"
-      foreach F [glob -nocomplain "$listpath/*.src" "$listpath/*.sub" "$listpath/*.ext"  "$listpath/*.con"] {
-        if {[dict exists $newListfiles [file tail $F]] == 0} {
+  # Recreating src list files
+  if {$options(recreate) == 1 && ($SrcListErrorCnt > 0 || $SimListErrorCnt > 0 || $ConListErrorCnt > 0) } {
+    set listpath "$repo_path/$DirName/list/"
+    Msg Info "Updating list files in $listpath"
+    # Create the list path, if it does not exist yet
+    file mkdir $listpath
+    if {$SrcListErrorCnt > 0} {
+      # Delete existing .src list files
+      if {$options(force) == 1} {
+        foreach F [glob -nocomplain "$listpath/*.src" "$listpath/*.ext"] {
           file delete $F
         }
       }
+      WriteListFiles $prjLibraries $prjProperties $listpath $repo_path $ext_path
     }
-
-    file mkdir  $repo_path/$DirName/list
-    foreach listFile [dict keys $newListfiles] {
-      if {[string equal [file extension $listFile] ".sim"]} {
-        if {[file exists "$repo_path/Top/$group_name/$project_name/list/$listFile"]} {
-          set listSim [ParseFirstLineHogFiles "$repo_path/Top/$group_name/$project_name/list/" $listFile]
-        } else {
-          set listSim ""
+    if {$SimListErrorCnt > 0} {
+      # Delete existing .sim list files
+      if {$options(force) == 1} {
+        foreach F [glob -nocomplain "$listpath/*.sim"] {
+          file delete $F
         }
-        set lFd [open $repo_path/$DirName/list/$listFile w]
-        if {[string equal -nocase [lindex [split $listSim " "] 0] "Simulator"] && [string equal -nocase [lindex [split $listSim " "] 1] "skip_simulation"]} {
-          puts $lFd "#$listSim"
-        } else {
-          puts $lFd "#Simulator [DictGet $prjProperties Simulator]"
-        }
-      } else {
-        set lFd [open $repo_path/$DirName/list/$listFile w]
       }
-      foreach ln [DictGet $newListfiles $listFile] {
-        puts $lFd "$ln"
-      }
-      close $lFd
+      WriteSimListFiles $prjLibraries $prjProperties $listpath $repo_path
     }
-  }
+    if {$ConListErrorCnt > 0} {
+      # Delete existing .con list files
+      if {$options(force) == 1} {
+        foreach F [glob -nocomplain "$listpath/*.con"] {
+          file delete $F
+        }
+      }
+      WriteListFiles $prjConstraints $prjProperties $listpath $repo_path
+    }
+  } 
 }
 
+
 set conf_file "$repo_path/Top/$group_name/$project_name/hog.conf"
-#checking project settings
+# checking project settings
 if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
   #creating 4 dicts:
   #   - hogConfDict:     hog.conf properties (if exists)
@@ -767,12 +244,50 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
   }
 
 
-  #filling newConfDict with existing hog.conf properties apart from main synth_1 impl_1 and generics
+  # filling newConfDict with existing hog.conf properties apart from main synth_1 impl_1 and generics
   foreach key [dict keys $hogConfDict] {
     if {$key != "main" && $key != "synth_1" && $key != "impl_1" && $key != "generics"} {
       dict set newConfDict $key [DictGet $hogConfDict $key]
     }
   }
+
+  # list of properties that must not be checked/written
+  set PROP_BAN_LIST  [ list DEFAULT_LIB \
+    PART \
+    IP_CACHE_PERMISSIONS \
+    SIM.IP.AUTO_EXPORT_SCRIPTS \
+    XPM_LIBRARIES \
+    REPORT_STRATEGY \
+    STEPS.WRITE_DEVICE_IMAGE.ARGS.READBACK_FILE \
+    STEPS.WRITE_DEVICE_IMAGE.ARGS.VERBOSE \
+    STEPS.WRITE_BITSTREAM.ARGS.READBACK_FILE \
+    STEPS.WRITE_BITSTREAM.ARGS.VERBOSE \
+    STEPS.SYNTH_DESIGN.TCL.PRE \
+    STEPS.SYNTH_DESIGN.TCL.POST \
+    STEPS.WRITE_BITSTREAM.TCL.PRE \
+    STEPS.WRITE_BITSTREAM.TCL.POST \
+    STEPS.WRITE_DEVICE_IMAGE.TCL.PRE \
+    STEPS.WRITE_DEVICE_IMAGE.TCL.POST \
+    STEPS.INIT_DESIGN.TCL.POST \
+    STEPS.ROUTE_DESIGN.TCL.POST \
+    COMPXLIB.MODELSIM_COMPILED_LIBRARY_DIR \
+    COMPXLIB.QUESTA_COMPILED_LIBRARY_DIR \
+    COMPXLIB.RIVIERA_COMPILED_LIBRARY_DIR \
+    COMPXLIB.ACTIVEHDL_COMPILED_LIBRARY_DIR \
+    COMPXLIB.IES_COMPILED_LIBRARY_DIR \
+    COMPXLIB.VCS_COMPILED_LIBRARY_DIR \
+    NEEDS_REFRESH \
+    AUTO_INCREMENTAL_CHECKPOINT.DIRECTORY \
+    AUTO_INCREMENTAL_CHECKPOINT \
+    INCREMENTAL_CHECKPOINT \
+    AUTO_RQS.DIRECTORY \
+    ENABLE_RESOURCE_ESTIMATION
+  ]
+
+  set HOG_GENERICS [ list GLOBAL_DATE \
+    GLOBAL_TIME \
+    FLAVOUR \
+  ]
 
   #filling defaultConfDict and projConfDict
   foreach proj_run [list [current_project] [get_runs synth_1] [get_runs impl_1] [current_fileset]] {
@@ -887,7 +402,7 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
             incr ConfErrorCnt
             Msg Info "$proj_run setting $settings has been changed from \"$hogset\" in hog.conf to \"$currset\" in project."
           } elseif {[file exists $repo_path/Top/$group_name/$project_name/hog.conf] && $hasStrategy == 0} {
-            CriticalAndLog "Project $proj_run setting $settings value \"$currset\" does not match hog.conf \"$hogset\"." $outFile
+            MsgAndLog "Project $proj_run setting $settings value \"$currset\" does not match hog.conf \"$hogset\"." "CriticalWarning" $outFile
             incr ConfErrorCnt
           }
         }
@@ -906,7 +421,7 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
         }
         incr ConfErrorCnt
         if {$options(recreate_conf) == 0} {
-          CriticalAndLog "hog.conf property $settings is not a valid Vivado property." $outFile
+          MsgAndLog "hog.conf property $settings is not a valid Vivado property." "CriticalWarning" $outFile
         } else {
           Msg Info "found property $settings in old hog.conf. This is not a valid Vivado property and will be deleted."
         }
@@ -919,7 +434,7 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
   if {[file exists $conf_file]} {
     lassign [GetIDEFromConf $conf_file] ide conf_version
     if {$actual_version != $conf_version} {
-      CriticalAndLog "The version specified in the first line of hog.conf is wrong or no version was specified. If you want to run this project with $ide $actual_version, the first line of hog.conf should be: \#$ide $actual_version"
+      MsgAndLog "The version specified in the first line of hog.conf is wrong or no version was specified. If you want to run this project with $ide $actual_version, the first line of hog.conf should be: \#$ide $actual_version" "CriticalWarning" $outFile
       incr ConfErrorCnt
     }
   }
@@ -929,17 +444,16 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
     Msg Info "$conf_file matches project. Nothing to do"
   }
 
-  #recreating hog.conf
-  if {$options(recreate_conf) == 1 && ($ConfErrorCnt > 0 || [file exists $conf_file] == 0 || $hasStrategy == 1)} {
+  # recreating hog.conf
+  if { $options(recreate_conf) == 1 && ($ConfErrorCnt > 0 || [file exists $conf_file] == 0 || $hasStrategy == 1)} {
     Msg Info "Updating configuration file $repo_path/$DirName/hog.conf."
-    file mkdir  $repo_path/$DirName/list
-    #writing configuration file
+    # writing configuration file
     set confFile $repo_path/$DirName/hog.conf
     set version [GetIDEVersion]
     WriteConf $confFile $newConfDict "vivado $version"
+    
   }
-
-}
+ } 
 
 set sim_conf "$repo_path/Top/$group_name/$project_name/sim.conf"
 # Checking simulation settings
@@ -1006,9 +520,9 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
       }
 
       # default values
-      dict set defaultRunDict [string toupper $prop]  [list_property_value -default $prop $proj_simset]
+      dict set defaultSimDict [string toupper $prop]  [list_property_value -default $prop $proj_simset]
       dict set projConfDict $proj_simset  $projSimDict
-      dict set defaultConfDict $proj_simset $defaultRunDict
+      dict set defaultConfDict $proj_simset $defaultSimDict
     }
   }
 
@@ -1024,7 +538,7 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
     foreach setting [dict keys $projSimDict] {
       set currset [DictGet $projSimDict $setting]
       set hogset [DictGet $hogConfSimDict $setting]
-      set allhogset [Dict $hogAllSimDict $setting]
+      set allhogset [DictGet $hogAllSimDict $setting]
       set defset [DictGet $defaultRunDict $setting]
 
       if {[string toupper $setting] == "GENERIC"} {
@@ -1033,7 +547,7 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
           set generic_and_value [split $gen_set =]
           set generic [string toupper [lindex $generic_and_value 0]]
           set gen_value [lindex $generic_and_value 1]
-          set generichogset [Dict $hogGenericsSimDict $generic ]
+          set generichogset [DictGet $hogGenericsSimDict $generic ]
 
           # Remove quotes from vivado properties
           regsub -all {\"} $gen_value "" gen_value
@@ -1043,7 +557,7 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
               incr SimConfErrorCnt
               Msg Info "$simset generics setting $generic has been changed from \"$generichogset\" in sim.conf to \"$gen_value\" in project."
             } elseif {[file exists $sim_conf]} {
-              WarningAndLog "Simset $simset setting $generic value \"$gen_value\" does not match sim.conf \"$generichogset\"." $outSimFile
+              MsgAndLog "Simset $simset setting $generic value \"$gen_value\" does not match sim.conf \"$generichogset\"." "Warning" $outSimFile
               incr SimConfErrorCnt
             }
           }
@@ -1076,7 +590,7 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
           incr SimConfErrorCnt
           Msg Info "$simset setting $setting has been changed from \"$hogset\" (\"$allhogset\") in sim.conf to \"$currset\" in project."
         } elseif {[file exists $sim_conf]} {
-          WarningAndLog "Simset $simset setting $setting value \"$currset\" does not match sim.conf \"$hogset\" (\"$allhogset\")." $outSimFile
+          MsgAndLog "Simset $simset setting $setting value \"$currset\" does not match sim.conf \"$hogset\" (\"$allhogset\")." "Warning" $outSimFile
           incr SimConfErrorCnt
         }
       } elseif {[string toupper $currset] == [string toupper $hogset] && [string toupper $hogset] != ""} {
@@ -1099,7 +613,7 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
         if {$hogset == "1" && $simset != [current_fileset -simset]} {
           incr SimConfErrorCnt
           if {$options(recreate_conf) == 0} {
-            WarningAndLog "Simulation set $simset is set as active, but the actual active one in the project is [current_fileset -simset]"
+            MsgAndLog "Simulation set $simset is set as active, but the actual active one in the project is [current_fileset -simset]" "Warning" $outSimFile
           } else {
             Msg Info "Simulation set $simset was set as active in old sim.conf. I will set [current_fileset -simset] as active in the file instead."
           }
@@ -1125,7 +639,7 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
       if {[dict exists $projSimDict [string toupper $setting]]==0 && [dict exists $projSimDict $setting]==0} {
         incr SimConfErrorCnt
         if {$options(recreate_conf) == 0} {
-          WarningAndLog "sim.conf property $setting is not a valid Vivado property." $outSimFile
+          MsgAndLog "sim.conf property $setting is not a valid Vivado property." "Warning" $outSimFile
         } else {
           Msg Info "Found property $setting in old sim.conf. This is not a valid Vivado property and will be deleted."
         }
@@ -1138,7 +652,7 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
   }
 
   #recreating hog.conf
-  if {$options(recreate_conf) == 1 && ($SimConfErrorCnt > 0 || [file exists $sim_conf] == 0 )} {
+  if {$options(recreate_conf) == 1 && $SimConfErrorCnt > 0 } {
     Msg Info "Updating configuration file $sim_conf"
     file mkdir  $repo_path/$DirName/list
     #writing configuration file
@@ -1158,31 +672,31 @@ if {![string equal $options(project) ""]} {
 }
 
 
-set TotErrorCnt [expr {$ConfErrorCnt + $ListErrorCnt}]
+set TotErrorCnt [expr {$ConfErrorCnt + $SrcListErrorCnt + $ConListErrorCnt}]
 
 if {$options(recreate_conf) == 0 && $options(recreate) == 0} {
   if {$options(pedantic) == 1 && $TotErrorCnt > 0} {
-    Msg Error "Number of errors: $TotErrorCnt. (Design List files = $ListErrorCnt, hog.conf = $ConfErrorCnt)."
+    Msg Error "Number of errors: $TotErrorCnt. (Design List files = [expr $SrcListErrorCnt + $ConListErrorCnt], hog.conf = $ConfErrorCnt)."
   } elseif {$TotErrorCnt > 0} {
-    Msg CriticalWarning "Number of errors: $TotErrorCnt (Design List files = $ListErrorCnt, hog.conf = $ConfErrorCnt)."
+    Msg CriticalWarning "Number of errors: $TotErrorCnt (Design List files = [expr $SrcListErrorCnt + $ConListErrorCnt], hog.conf = $ConfErrorCnt)."
   } else {
     Msg Info "Design List files and hog.conf match project. All ok!"
   }
 
-  if { $ListSimErrorCnt > 0 } {
-    Msg Warning "Number of mismatch in simulation list files = $ListSimErrorCnt"
+  if { $SimListErrorCnt > 0 } {
+    Msg Warning "Number of mismatch in simulation list files = $SimListErrorCnt"
   } else {
     Msg Info "Simulation list files match project. All ok!"
   }
 
   if { $SimConfErrorCnt > 0 } {
-    Msg Warning "Number of mismatch in simulation list files = $SimConfErrorCnt"
+    Msg Warning "Number of mismatch in simulation conf files = $SimConfErrorCnt"
   } else {
     Msg Info "Simulation config files match project. All ok!"
   }
-
-
 }
+
+
 
 Msg Info "All done."
 

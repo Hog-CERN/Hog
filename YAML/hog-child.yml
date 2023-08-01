@@ -23,7 +23,7 @@
       when: never
     - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $HOG_DEVELOP_BRANCH && $HOG_DEVELOP_BRANCH != null'
       when: on_success
-    - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /^master|main|release.*$/ && $HOG_TARGET_BRANCH == null && $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME != $HOG_DEVELOP_BRANCH'
+    - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /^(master|main|release).*$/ && $HOG_TARGET_BRANCH == null && $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME != $HOG_DEVELOP_BRANCH'
       when: on_success
     - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $HOG_TARGET_BRANCH && $HOG_TARGET_BRANCH != null && $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME != $HOG_DEVELOP_BRANCH'
       when: on_success
@@ -72,9 +72,9 @@
         fi;
         if [ -z ${HOG_SIMULATION_LIB_PATH+x} ]; then
           echo 'Simulation library path is not defined';
-          SIM_CMD="./Hog/LaunchSimulation.sh $PROJECT_NAME";
+          SIM_CMD="./Hog/Do SIMULATE $PROJECT_NAME";
         else
-          SIM_CMD="./Hog/LaunchSimulation.sh $PROJECT_NAME -l $HOG_SIMULATION_LIB_PATH";
+          SIM_CMD="./Hog/Do -lib $HOG_SIMULATION_LIB_PATH SIMULATE $PROJECT_NAME";
         fi;
         if [[ -f $HOG_APPTAINER_IMAGE ]]; then
           echo "apptainer exec -H $PWD $HOG_APPTAINER_IMAGE $SIM_CMD";
@@ -168,10 +168,10 @@
           fi;
         fi;
         if [[ -n "$HOG_ONLY_SYNTH" ]] && [[ $HOG_ONLY_SYNTH == '1' ]]; then
-          export ONLY_SYNTH="-synth_only";
+          export ONLY_SYNTH=1;
           echo "Hog-CI(info) - Only the synthesis will be run.";
         else
-          export ONLY_SYNTH="";
+          export ONLY_SYNTH=0;
           if [[ -n "$HOG_NO_BITSTREAM" ]] && [[ $HOG_NO_BITSTREAM == '1' ]]; then
             export NO_BITSTREAM="-no_bitstream";
             echo "Hog-CI(info) - No binary files will be generated.";
@@ -207,18 +207,22 @@
         echo "Hog-CI(info) - Launching workflow now...";
       fi;
     - if [ ! -f "./Projects/$PROJECT_NAME/skip.me" ]; then
-        EXEC_CMD="./Hog/LaunchWorkflow.sh -njobs $HOG_NJOBS $NO_BITSTREAM $ONLY_SYNTH $CHECK_SYNTAX $PROJECT_NAME";
-        if [[ -f $HOG_APPTAINER_IMAGE ]]; then
-          echo "singularity exec -H $PWD $HOG_APPTAINER_IMAGE $EXEC_CMD";
-          if [[ -n $HOG_APPTAINER_EXTRA_PATH ]]; then
-            EXTRA_PATH="-B $HOG_APPTAINER_EXTRA_PATH";
-          fi;
-          apptainer exec -H $PWD $EXTRA_PATH $HOG_APPTAINER_IMAGE /bin/bash -c "PATH=${HOG_PATH}:$PATH; $EXEC_CMD";
+        if [ $ONLY_SYNTH == '1' ]; then
+            EXEC_CMD="./Hog/Do -njobs $HOG_NJOBS $NO_BITSTREAM $CHECK_SYNTAX SYNTH $PROJECT_NAME";
         else
-          echo $EXEC_CMD;
-          $(echo $EXEC_CMD);
+            EXEC_CMD="./Hog/Do -njobs $HOG_NJOBS $NO_BITSTREAM $CHECK_SYNTAX WORKFLOW $PROJECT_NAME";
         fi;
-      fi;
+        if [[ -f $HOG_APPTAINER_IMAGE ]]; then
+            echo "singularity exec -H $PWD $HOG_APPTAINER_IMAGE $EXEC_CMD";
+            if [[ -n $HOG_APPTAINER_EXTRA_PATH ]]; then
+                EXTRA_PATH="-B $HOG_APPTAINER_EXTRA_PATH";
+            fi;
+            apptainer exec -H $PWD $EXTRA_PATH $HOG_APPTAINER_IMAGE /bin/bash -c "PATH=${HOG_PATH}:$PATH; $EXEC_CMD";
+        else
+            echo $EXEC_CMD;
+            $(echo $EXEC_CMD);
+        fi
+      fi
     - if [ ! -f "./Projects/$PROJECT_NAME/skip.me" ]; then
         if [[ -n "$HOG_ONLY_SYNTH" ]] && [[ $HOG_ONLY_SYNTH == '1' ]]; then
           echo "Hog-CI(info) - Adding version and utilization summaries to note...";

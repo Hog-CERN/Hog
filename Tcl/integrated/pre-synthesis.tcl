@@ -149,8 +149,7 @@ set allow_fail_on_git 0
 set full_diff_log     0
 if {[file exists "$tcl_path/../../Top/$group/$proj_name/hog.conf"]} {
   set confDict [ReadConf "$tcl_path/../../Top/$group/$proj_name/hog.conf"]
-  set allow_fail_on_conf [DictGet [DictGet $confDict "hog"] "ALLOW_FAIL_ON_CONF" 0]
-  set allow_fail_on_list [DictGet [DictGet $confDict "hog"] "ALLOW_FAIL_ON_LIST" 0]
+  set allow_fail_on_check [DictGet [DictGet $confDict "hog"] "ALLOW_FAIL_ON_CHECK" 0]
   set allow_fail_on_git  [DictGet [DictGet $confDict "hog"] "ALLOW_FAIL_ON_GIT"  0]
   set full_diff_log      [DictGet [DictGet $confDict "hog"] "FULL_DIFF_LOG"      0]
 }
@@ -161,11 +160,11 @@ set this_commit [GetSHA]
 if {[IsVivado]} {
   ##nagelfar ignore
   if {![string equal ext_path ""]} {
-    set argv [list "-ext_path" "$ext_path" "-project" "$group/$proj_name" "-outDir" "$dst_dir" "-log_list" "[expr {!$allow_fail_on_list}]" "-log_conf" "[expr {!$allow_fail_on_conf}]"]
+    set argv [list "-ext_path" "$ext_path" "-project" "$group/$proj_name" "-outDir" "$dst_dir" "-log" "[expr {!$allow_fail_on_check}]"]
   } else {
-    set argv [list "-project" "$group/$proj_name" "-outDir" "$dst_dir" "-log_list" "[expr {!$allow_fail_on_list}]" "-log_conf" "[expr {!$allow_fail_on_conf}]"]
+    set argv [list "-project" "$group/$proj_name" "-outDir" "$dst_dir" "-log" "[expr {!$allow_fail_on_check}]"]
   }
-  source  $tcl_path/utils/check_list_files.tcl
+  source $tcl_path/utils/check_list_files.tcl
   if {[file exists "$dst_dir/diff_list_and_conf.txt"]} {
     Msg CriticalWarning "Project list or hog.conf mismatch, will use current SHA ($this_commit) and version will be set to 0."
     set commit 0000000
@@ -196,7 +195,7 @@ if {$diff != ""} {
   Msg CriticalWarning "Repository is not clean, will use current SHA ($this_commit) and create a dirty bitfile..."
 }
 
-lassign [GetHogFiles  -ext_path "$ext_path" -repo_path "$tcl_path/../../" "$tcl_path/../../Top/$group/$proj_name/list/"] listLibraries listProperties
+lassign [GetHogFiles  -ext_path "$ext_path" "$tcl_path/../../Top/$group/$proj_name/list/" "$tcl_path/../../"] listLibraries listProperties
 
 if {!$allow_fail_on_git} {
   foreach library [dict keys $listLibraries] {

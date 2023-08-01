@@ -12,10 +12,6 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-# @file
-# @brief Collection of Tcl functions used in Vivado/Quartus scripts
-
-
 ## @file hog.tcl
 # @brief Collection of Tcl functions used in Vivado/Quartus scripts
 
@@ -161,7 +157,12 @@ proc Msg {level msg {title ""}} {
     }
   } else {
     # Tcl Shell / Libero
-    puts "*** Hog:$title $vlevel $msg"
+    if {$vlevel != "STATUS"} {
+      puts "$vlevel: \[Hog:$title\] $msg"
+    } else {
+      puts $msg
+    }
+    
     if {$qlevel == "error"} {
       exit 1
     }
@@ -558,8 +559,8 @@ proc FindVhdlVersion {file_name} {
 # * -lib \<library\> name of the library files will be added to, if not given will be extracted from the file name
 # * -sha_mode  if not set to 0, the list files will be added as well and the IPs will be added to the file rather than to the special ip library. The sha mode should be used when you use the lists to calculate the git SHA, rather than to add the files to the project.
 #
-# @return              a list of 3 dictionaries: "libraries" has library name as keys and a list of filenames as values, "properties" has as file names as keys and a list of properties as values, main_libs has library name as keys and the correspondent top list file name as value
-#
+# @return              a list of 3 dictionaries: "libraries" has library name as keys and a list of filenames as values, "properties" has as file names as keys and a list of properties as values, "filesets" has fileset name as keys and the list of associated libraries as values.
+
 proc ReadListFile args {
 
   if {[IsQuartus]} {
@@ -572,19 +573,19 @@ proc ReadListFile args {
 
   set parameters {
     {lib.arg ""  "The name of the library files will be added to, if not given will be extracted from the file name."}
-    {main_lib.arg "" The name of the library, from the main list file}
+    {fileset.arg "" The name of the library, from the main list file}
     {sha_mode "If set, the list files will be added as well and the IPs will be added to the file rather than to the special ip library. The sha mode should be used when you use the lists to calculate the git SHA, rather than to add the files to the project."}
   }
   set usage "USAGE: ReadListFile \[options\] <list file> <path>"
   if {[catch {array set options [cmdline::getoptions args $parameters $usage]}] ||  [llength $args] != 2 } {
-    Msg Error "[cmdline::usage $parameters $usage]"
+    Msg CriticalWarning "[cmdline::usage $parameters $usage]"
     return
   }
   set list_file [lindex $args 0]
   set path [lindex $args 1]
   set sha_mode $options(sha_mode)
   set lib $options(lib)
-  set main_lib $options(main_lib)
+  set fileset $options(fileset)
 
   if { $sha_mode == 1} {
     set sha_mode_opt "-sha_mode"
@@ -596,20 +597,27 @@ proc ReadListFile args {
   if {$lib eq ""} {
     set lib [file rootname [file tail $list_file]]
   }
-
-  if {$main_lib eq ""} {
-    set main_lib $lib
-  }
-
-  set ext [file extension $list_file]
-
-  set list_file
   set fp [open $list_file r]
   set file_data [read $fp]
   close $fp
   set list_file_ext [file extension $list_file]
+  switch $list_file_ext {
+    .sim {
+      if {$fileset eq ""} {
+        # If fileset is empty, use the library name for .sim file
+        set fileset "$lib"
+      }
+    }
+    .con {
+      set fileset "constrs_1"
+    }
+    default {
+      set fileset "sources_1"
+    }
+  }
+
   set libraries [dict create]
-  set main_libs [dict create]
+  set filesets [dict create]
   set properties [dict create]
   #  Process data file
   set data [split $file_data "\n"]
@@ -628,8 +636,7 @@ proc ReadListFile args {
 
       # glob the file list for wildcards
       if {$srcfiles != $srcfile && ! [string equal $srcfiles "" ]} {
-	Msg Debug "Wildcard source expanded from $srcfile to $srcfiles"
-        
+	      Msg Debug "Wildcard source expanded from $srcfile to $srcfiles"
       } else {
         if {![file exists $srcfile]} {
           Msg CriticalWarning "File: $srcfile (from list file: $list_file) does not exist."
@@ -641,47 +648,70 @@ proc ReadListFile args {
         if {[file exists $vhdlfile]} {
           set vhdlfile [file normalize $vhdlfile]
           set extension [file extension $vhdlfile]
+          ### Set file properties
+          set prop [lrange $file_and_prop 1 end]
+          set library [lindex [regexp -inline {lib\s*=\s*(.+?)\y.*} $prop] 1]
+          if { $library == "" } {
+            set library $lib
+          }
 
           if { $extension == $list_file_ext } {
-	    Msg Debug "List file $vhdlfile found in list file, recursively opening it..."
-
-            ### Set list file properties
-            set prop [lrange $file_and_prop 1 end]
-            set library [lindex [regexp -inline {lib\s*=\s*(.+?)\y.*} $prop] 1]
-            if { $library != "" } {
-	      Msg Debug "Setting $library as library for list file $vhdlfile..."
-	      
-            } else {
-	      Msg Debug "Setting $lib as library for list file $vhdlfile..."
-              set library $lib
-            }
-            lassign [ReadListFile {*}"-lib $library -main_lib $main_lib $sha_mode_opt $vhdlfile $path"] l p m
+            # Deal with recusive list files
+	          Msg Debug "List file $vhdlfile found in list file, recursively opening it..."
+            lassign [ReadListFile {*}"-lib $library -fileset $fileset $sha_mode_opt $vhdlfile $path"] l p fs
             set libraries [MergeDict $l $libraries]
             set properties [MergeDict $p $properties]
-            set main_libs [dict merge $m $main_libs]
-          } elseif {[lsearch {.src .sim .con .ext} $extension] >= 0 } {
+            set filesets [MergeDict $fs $filesets]
+          } elseif {[lsearch {.src .sim .con ReadExtraFileList} $extension] >= 0 } {
+            # Not supported extensions
             Msg Error "$vhdlfile cannot be included into $list_file, $extension files must be included into $extension files."
           } else {
-            ### Set file properties
-            set prop [lrange $file_and_prop 1 end]
+            # Deal with single files
             regsub -all " *= *" $prop "=" prop
-            dict lappend properties $vhdlfile $prop
-	    Msg Debug "Adding property $prop to $vhdlfile..."
-            
-	    ### Set File Set
-            #Adding IP library
+            # Fill property dictionary
+            foreach p $prop {
+              dict lappend properties $vhdlfile $p
+              Msg Debug "Adding property $p to $vhdlfile..."
+            }
             if {$sha_mode == 0 && [lsearch {.xci .ip .bd} $extension] >= 0} {
-              dict lappend libraries "$lib.ip" $vhdlfile
-              dict set main_libs "$lib.ip" "$main_lib.ip"
+              # Adding IP library
+              set lib_name "ips.src"
+            } elseif { [IsInList $extension {.vhd .vhdl}] || $list_file_ext == ".sim"} {
+              # VHDL files and simulation
+              if { [IsInList $extension {.do .udo}]} {
+                set lib_name "xil_defaultlib.sim"
+              } else {
+                set lib_name "$library$list_file_ext"
+              }
+            } elseif { $list_file_ext == ".con" } { 
+              set lib_name "sources.con"
+            } elseif { [string first "xml.lst" $list_file] != -1 } {
+              set lib_name "xml.lst"
+            } else {	 
+              # Other files are stored in the OTHER dictionary from vivado (no library assignment)     
+              set lib_name "others.src"			      
+            }
+            Msg Debug "Appending $vhdlfile to $lib_name list..."
+            dict lappend libraries $lib_name $vhdlfile
+            if {[file type $vhdlfile] eq "link"} {
+              #if the file is a link, also add the linked file
+              set real_file [GetLinkedFile $vhdlfile]
+              dict lappend libraries $lib_name $real_file
+              Msg Debug "File $vhdlfile is a soft link, also adding the real file: $real_file"
+            }
 
-	      Msg Debug "Appending $vhdlfile to IP list..."
 
+            # Create the fileset (if not already) and append the library
+            if {[dict exists $filesets $fileset] == 0} {
+              # Fileset has not been defined yet, adding to dictionary...
+              Msg Debug "Adding $fileset to the fileset dictionary..."
+              Msg Debug "Adding library $lib_name to fileset $fileset..."
+              dict set filesets $fileset $lib_name
             } else {
-              set m [dict create]
-              dict set m $lib$ext $main_lib$ext
-              dict lappend libraries $lib$ext $vhdlfile
-              if {[dict exists $main_libs $lib$ext] == 0} {
-                set main_libs [dict merge $m $main_libs]
+              # Fileset already exist in dictionary, append library to list, if not already there
+              if {[IsInList $lib_name [DictGet $filesets $fileset]] == 0} {
+                Msg Debug "Adding library $lib_name to fileset $fileset..."
+                dict lappend filesets $fileset $lib_name
               }
             }
           }
@@ -694,9 +724,57 @@ proc ReadListFile args {
   }
 
   if {$sha_mode != 0} {
-    dict lappend libraries $lib$ext $list_file
+    #In SHA mode we also need to add the list file to the list    
+    dict lappend libraries $lib$list_file_ext [file normalize $list_file]
+    if {[file type $list_file] eq "link"} {
+      #if the file is a link, also add the linked file
+      set real_file [GetLinkedFile $list_file]
+      dict lappend libraries $lib$list_file_ext $real_file
+      Msg Debug "List file $list_file is a soft link, also adding the real file: $real_file"
+    }    
   }
-  return [list $libraries $properties $main_libs]
+  return [list $libraries $properties $filesets]
+}
+
+## @brief Return operative sistem
+proc OS {} {
+	global tcl_platform
+	return $tcl_platform(platform)
+}
+
+## @brief Return the real file linked by a soft link
+#
+# If the provided file is not a soft link, will give a Warning and return an empty string.
+# If the link is broken, will give a warning but still return the linked file
+#
+# @param[in] link_file the soft link file
+proc GetLinkedFile {link_file} {
+	if {[file type $link_file] eq "link"} {
+		if {[OS] == "windows" } {
+		    #on windows we need to use readlink because Tcl is broken
+			lassign  [ExecuteRet realpath $link_file] ret msg
+			lassign  [ExecuteRet cygpath -m $msg] ret2 msg2
+			if {$ret == 0 && $ret2 == 0} {
+				set real_file $msg2
+				Msg Debug "Found link file $link_file on Windows, the linked file is: $real_file"
+			} else {
+				Msg CriticalWarning "[file normalize $link_file] is a soft link. Soft link are not supported on Windows and readlink.exe or cygpath.exe did not work: readlink=$ret: $msg, cygpath=$ret2: $msg2."
+				set real_file $link_file
+			}
+		} else {
+			#on linux Tcl just works
+			set linked_file [file link $link_file]
+			set real_file [file normalize [file dirname $link_file]/$linked_file]
+		}
+		
+		if {![file exists $real_file]} {
+			Msg Warning "$link_file is a broken link, because the linked file: $real_file does not exist."
+		}
+	} else {
+		Msg Warning "$link file is not a soft link"
+		set real_file $link_file
+	}
+  return $real_file
 }
 
 ## @brief Merge two tcl dictionaries of lists
@@ -715,14 +793,15 @@ proc MergeDict {dict0 dict1} {
     if {[dict exists $dict0 $key]} {
       set temp_list [dict get $dict1 $key]
       foreach vhdfile $temp_list {
-        dict lappend outdict $key $vhdfile
+        # Avoid duplication
+        if {[IsInList $vhdfile [DictGet $outdict $key]] == 0} {
+          dict lappend outdict $key $vhdfile
+        }
       }
     }
   }
   return $outdict
 }
-
-
 
 ## @brief Gets key from dict and returns default if key not found
 #
@@ -812,7 +891,7 @@ proc GetFileList {FILE path} {
       set vhdlfile "$path/$vhdlfile"
       if {[file exists $vhdlfile]} {
         set extension [file extension $vhdlfile]
-        if { [lsearch {.src .sim .con} $extension] >= 0 } {
+        if { [IsInList $extension {.src .sim .con} ] } {
           lappend file_list {*}[GetFileList $vhdlfile $path]
         } else {
           lappend file_list $vhdlfile
@@ -903,12 +982,11 @@ proc GetVer {path {force_develop 0}} {
 #
 # @param[in] SHA the git SHA of the commit
 # @param[in] repo_path the path of the repository, this is used to open the Top/repo.conf file
+# @param[in] force_develop Force a tag for the develop branch (increase m)
 #
 # @return  a list: the git SHA, the version in hex format
 #
 proc GetVerFromSHA {SHA repo_path {force_develop 0}} {
-  #Let's keep this for a while, more bugs may come soon...
-  #Msg Info "############################### $repo_path #############################################"
   if { $SHA eq ""} {
     Msg CriticalWarning "Empty SHA found"
     set ver "v0.0.0"
@@ -964,12 +1042,12 @@ proc GetVerFromSHA {SHA repo_path {force_develop 0}} {
                 set major_prefix [dict get $prefixDict MAJOR_VERSION]
               }
 	            # More properties in [prefixes] here ...
-            }
+            }           
+          }
 
-            if {$enable_develop_branch == 1 } {
-              if {[string match "$hotfix_prefix*" $branch_name]} {
-                set is_hotfix 1
-              }
+          if {$enable_develop_branch == 1 } {
+            if {[string match "$hotfix_prefix*" $branch_name]} {
+              set is_hotfix 1
             }
           }
 
@@ -1189,6 +1267,7 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
   }
 
   set old_path [pwd]
+  puts $proj_dir
   set conf_files [GetConfFiles $proj_dir]
 
   # This will be the list of all the SHAs of this project, the most recent will be picked up as GLOBAL SHA
@@ -1198,7 +1277,7 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
   # Hog submodule
   cd $repo_path
 
-  #Append the SHA in which Hog submodule was changed, not the submodule SHA
+  # Append the SHA in which Hog submodule was changed, not the submodule SHA
   lappend SHAs [GetSHA {Hog}]
   lappend versions [GetVerFromSHA $SHAs $repo_path]
 
@@ -1211,7 +1290,7 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
     set hog_hash "0000000"
     set hog_ver "00000000"
   }
-
+  
   cd $proj_dir
 
   if {[Git {status --untracked-files=no  --porcelain}] eq ""} {
@@ -1232,12 +1311,15 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
   set vers ""
   set hashes ""
   # Specify sha_mode 1 for GetHogFiles to get all the files, including the list-files themselves
-  lassign [GetHogFiles -list_files "*.src" -sha_mode -repo_path $repo_path "./list/"] src_files dummy
+  lassign [GetHogFiles -list_files "*.src" -sha_mode "./list/" $repo_path] src_files dummy
   dict for {f files} $src_files {
-    #library names have a .src extension in values returned by GetHogFiles
+    # library names have a .src extension in values returned by GetHogFiles
     set name [file rootname [file tail $f]]
-    lassign [GetVer  $files] ver hash
-    #Msg Info "Found source list file $f, version: $ver commit SHA: $hash"
+    if {[file ext $f] == ".oth"} {
+      set name "OTHERS"
+    }
+    lassign [GetVer $files] ver hash
+    # Msg Info "Found source list file $f, version: $ver commit SHA: $hash"
     lappend libs $name
     lappend versions $ver
     lappend vers $ver
@@ -1248,7 +1330,7 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
   # Read constraint list files
   set cons_hashes ""
   # Specify sha_mode 1 for GetHogFiles to get all the files, including the list-files themselves
-  lassign [GetHogFiles  -list_files "*.con" -sha_mode -repo_path $repo_path  "./list/" ] cons_files dummy
+  lassign [GetHogFiles  -list_files "*.con" -sha_mode "./list/" $repo_path] cons_files dummy
   dict for {f files} $cons_files {
     #library names have a .con extension in values returned by GetHogFiles
     set name [file rootname [file tail $f]]
@@ -1266,7 +1348,7 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
   if {$sim == 1} {
     set sim_hashes ""
     # Specify sha_mode 1 for GetHogFiles to get all the files, including the list-files themselves
-    lassign [GetHogFiles  -list_files "*.sim" -sha_mode -repo_path $repo_path  "./list/"] sim_files dummy
+    lassign [GetHogFiles  -list_files "*.sim" -sha_mode "./list/" $repo_path] sim_files dummy
     dict for {f files} $sim_files {
       #library names have a .sim extension in values returned by GetHogFiles
       set name [file rootname [file tail $f]]
@@ -1330,7 +1412,7 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
   # Ipbus XML
   if {[file exists ./list/xml.lst]} {
     #Msg Info "Found IPbus XML list file, evaluating version and SHA of listed files..."
-    lassign [GetHogFiles  -list_files "xml.lst" -repo_path $repo_path  -sha_mode "./list/"] xml_files dummy
+    lassign [GetHogFiles  -list_files "xml.lst" -sha_mode "./list/" $repo_path] xml_files dummy
     lassign [GetVer  [dict get $xml_files "xml.lst"] ] xml_ver xml_hash
     lappend SHAs $xml_hash
     lappend versions $xml_ver
@@ -1654,6 +1736,34 @@ proc Relative {base dst} {
   return $dst
 }
 
+## @brief Returns the path of filePath relative to pathName
+#
+# @param[in] pathName   the path with respect to which the returned path is calculated
+# @param[in] filePath   the path of filePath 
+#
+proc RelativeLocal {pathName filePath} {
+  if {[string first [file normalize $pathName] [file normalize $filePath]] != -1} {
+    return [Relative $pathName $filePath]
+  } else {
+    return ""
+  }
+}
+
+## @brief Prints a message with selected severity and optionally write into a log file
+#
+# @param[in] msg        The message to print
+# @param[in] severity   The severity of the message
+# @param[in] outFile    The path of the output logfile
+#
+proc MsgAndLog {msg {severity "CriticalWarning"} {outFile ""}} {
+  Msg $severity $msg
+  if {$outFile != ""} {
+    set oF [open "$outFile" a+]
+    puts $oF $msg
+    close $oF
+  }
+}
+
 ## @ brief Returns a list of 2 dictionaries: libraries and properties
 # - libraries has library name as keys and a list of filenames as values
 # - properties has as file names as keys and a list of properties as values
@@ -1663,15 +1773,15 @@ proc Relative {base dst} {
 # @return a list of two elements. The first element is a dictionary containing all libraries. The second elements is a discretionary containing all properties
 proc GetProjectFiles {} {
 
-
   set all_filesets [get_filesets]
   set libraries [dict create]
+  set simlibraries [dict create]
+  set constraints [dict create]
   set properties [dict create]
-
+  set consets [dict create]
+  set srcsets [dict create]
+  set simsets [dict create]
   set simulator [get_property target_simulator [current_project]]
-  set SIM [dict create]
-  set SRC [dict create]
-  set OTHER [dict create]
   set top [get_property "top"  [current_fileset]]
   set topfile [lindex [get_files -compile_order sources -used_in synthesis] end]
   dict lappend properties $topfile "top=$top"
@@ -1685,42 +1795,6 @@ proc GetProjectFiles {} {
     set all_files [get_files -quiet -of_objects [get_filesets $fs]]
     set fs_type [get_property FILESET_TYPE [get_filesets $fs]]
 
-    if {[string equal $fs_type "SimulationSrcs"] && [llength $all_files] > 0} {
-      set topsim [get_property "top"  [get_filesets $fs]]
-      set runtime [get_property "$simulator.simulate.runtime"  [get_filesets $fs]]
-      #getting file containing top module as explained here: https://forums.xilinx.com/t5/Vivado-TCL-Community/How-can-I-get-the-file-path-of-the-top-module-in-the-current/td-p/455740
-      if {[string equal "$topsim" ""]} {
-        Msg Warning "No top simulation module found for fileset $fs."
-      } else {
-        set simtopfile [lindex [get_files -compile_order sources -used_in simulation -of_objects [get_filesets $fs]] end]
-        if {[string equal [get_files -of_objects [get_filesets $fs] $simtopfile] ""] } {
-          Msg Warning "Top simulation file $simtopfile not found in fileset $fs."
-        } else {
-          dict lappend properties $simtopfile "topsim=$topsim"
-          if {![string equal "$runtime" "1000ns"]} {
-            #not writing default value
-            dict lappend properties $simtopfile "runtime=$runtime"
-          }
-        }
-      }
-
-      foreach simulator [GetSimulators] {
-        set wavefile [get_property "$simulator.simulate.custom_wave_do" [get_filesets $fs]]
-        if {![string equal "$wavefile" ""]} {
-          ##nagelfar ignore
-          dict lappend properties $wavefile wavefile
-          break
-        }
-      }
-      foreach simulator [GetSimulators] {
-        set dofile [get_property "$simulator.simulate.custom_udo" [get_filesets $fs]]
-        if {![string equal "$dofile" ""]} {
-          dict lappend properties $dofile dofile
-          break
-        }
-      }
-    }
-
     foreach f $all_files {
       # Ignore files that are part of the vivado/planahead project but would not be reflected
       # in list files (e.g. generated products from ip cores)
@@ -1728,12 +1802,12 @@ proc GetProjectFiles {} {
       set ignore 0
       # Generated files point to a parent composite file;
       # planahead does not have an IS_GENERATED property
-      if {-1 != [lsearch -exact [list_property [GetFile $f]] IS_GENERATED]} {
+      if { [IsInList "IS_GENERATED" [list_property [GetFile $f]]]} {
         if { [lindex [get_property  IS_GENERATED [GetFile $f]] 0] != 0} {
           set ignore 1
         }
       }
-      if {-1 != [lsearch -exact [list_property  $f] PARENT_COMPOSITE_FILE]} {
+      if {[IsInList "PARENT_COMPOSITE_FILE" [list_property  $f]]} {
         set ignore 1
       }
 
@@ -1743,16 +1817,12 @@ proc GetProjectFiles {} {
         }
         lappend files $f
         set type  [get_property FILE_TYPE [GetFile $f]]
-	# Added a -quiet because some files (.v, .sv) don't have a library
+	      # Added a -quiet because some files (.v, .sv) don't have a library
         set lib [get_property -quiet LIBRARY [GetFile $f]]
 
         # Type can be complex like VHDL 2008, in that case we want the second part to be a property
         if {[string equal [lindex $type 0] "VHDL"] && [llength $type] == 1} {
           set prop "93"
-        } elseif {[string equal [lindex $type 0] "SystemVerilog"] } {
-          set prop "SystemVerilog"
-        } elseif {[string equal $type "Verilog Header"]} {
-          set prop "verilog_header"
         } elseif  {[string equal [lindex $type 0] "Block"] && [string equal [lindex $type 1] "Designs"]} {
           set type "IP"
           set prop ""
@@ -1761,30 +1831,42 @@ proc GetProjectFiles {} {
           set prop ""
         }
 
-        #check where the file is used and add it to prop
-        if {[string equal $fs_type "SimulationSrcs"]} {
-          dict lappend SIM $fs $f
-          if {![string equal $prop ""]} {
-            dict lappend properties $f $prop
-          }
-        } elseif {[string equal $type "VHDL"] } {
-          dict lappend SRC $lib $f
-          if {![string equal $prop ""]} {
-            dict lappend properties $f $prop
-          }
-        } elseif {[string equal $type "Verilog Header"] || [string equal $type "Verilog"] || [string equal $type "SystemVerilog"]} {
-          dict lappend libraries "OTHER" $f
-          if {![string equal $prop ""]} {
-            dict lappend properties $f $prop
-          }
-        } elseif {[string equal $type "IP"]} {
-          dict lappend libraries "IP" $f
-        } elseif {[string equal $fs_type "Constrs"]} {
-          dict lappend libraries "XDC" $f
-        } else {
-          dict lappend libraries "OTHER" $f
+        if {![string equal $prop ""]} {
+          dict lappend properties $f $prop
         }
 
+        # check where the file is used and add it to prop
+        if {[string equal $fs_type "SimulationSrcs"]} {
+          # Simulation sources
+          if {[IsInList "${lib}.sim" [DictGet $simsets $fs]]==0} {
+            dict lappend simsets $fs "${lib}.sim"
+          }
+          dict lappend simlibraries "${lib}.sim" $f
+        } elseif {[string equal $type "VHDL"] } {
+          # VHDL files
+          if {[IsInList "${lib}.src" [DictGet $srcsets $fs]]==0} {
+            dict lappend srcsets $fs "${lib}.src"
+          }
+          dict lappend libraries "${lib}.src" $f
+        } elseif {[string equal $type "IP"]} {
+          # IPs
+          if {[IsInList "ips.src" [DictGet $srcsets $fs]]==0} {
+            dict lappend srcsets $fs "ips.src"
+          }
+          dict lappend libraries "ips.src" $f
+        } elseif {[string equal $fs_type "Constrs"]} {
+          # Constraints
+          if {[IsInList "sources.con" [DictGet $consets $fs]]==0} {
+            dict lappend consets $fs "sources.con"
+          }
+          dict lappend constraints "sources.con" $f
+        } else {
+          # Verilog and other files
+          if {[IsInList "others.src" [DictGet $srcsets $fs]]==0} {
+            dict lappend srcsets $fs "others.src"
+          }
+          dict lappend libraries "others.src" $f
+        }
 
         if {[lindex [get_property -quiet used_in_synthesis  [GetFile $f]] 0] == 0} {
           dict lappend properties $f "nosynth"
@@ -1795,43 +1877,29 @@ proc GetProjectFiles {} {
         if {[lindex [get_property -quiet used_in_simulation  [GetFile $f]] 0] == 0} {
           dict lappend properties $f "nosim"
         }
-
       }
-
     }
-
-    #    dict for {lib f} $libraries {
-    #   Msg Status "   Library: $lib: \n *******"
-    #   foreach n $f {
-    #       Msg Status "$n"
-    #   }
-    #
-    #   Msg Status "*******"
-    #    }
   }
 
-  dict append libraries "SIM" $SIM
-  dict append libraries "SRC" $SRC
   dict lappend properties "Simulator" [get_property target_simulator [current_project]]
-  return [list $libraries $properties]
+  return [list $libraries $properties $simlibraries $constraints $srcsets $simsets $consets]
 }
 
 
 
 ## @brief Extract files, libraries and properties from the project's list files
 #
-# @param[in] args The arguments are \<list_path\> [options]
+# @param[in] args The arguments are \<list_path\> \<repository path\>[options]
 # * list_path path to the list file directory
 # Options:
 # * -list_files \<List files\> the file wildcard, if not specified all Hog list files will be looked for
-# * -repo_path \<repo path\> the absolute of the top directory of the repository
 # * -sha_mode forwarded to ReadListFile, see there for info
 # * -ext_path \<external path\> path for external libraries forwarded to ReadListFile
 #
-# @return a list of 2 dictionaries: libraries and properties
+# @return a list of 3 dictionaries: libraries and properties
 # - libraries has library name as keys and a list of filenames as values
 # - properties has as file names as keys and a list of properties as values
-# - main_libs has library name as keys and a the correspondent top list filename as values
+# - filesets has filset name as keys and the correspondent list of libraries as values (significant only for simulations)
 
 proc GetHogFiles args {
 
@@ -1846,20 +1914,21 @@ proc GetHogFiles args {
 
   set parameters {
     {list_files.arg ""  "The file wildcard, if not specified all Hog list files will be looked for."}
-    {repo_path.arg ""  "The absolute path of the top directory of the repository."}
     {sha_mode "Forwarded to ReadListFile, see there for info."}
     {ext_path.arg "" "Path for the external libraries forwarded to ReadListFile."}
   }
-  set usage "USAGE: GetHogFiles \[options\] <list path>"
-  if {[catch {array set options [cmdline::getoptions args $parameters $usage]}] ||  [llength $args] != 1 } {
-    Msg Error [cmdline::usage $parameters $usage]
+  set usage "USAGE: GetHogFiles \[options\] <list path> <repository path>"
+  if {[catch {array set options [cmdline::getoptions args $parameters $usage]}] ||  [llength $args] != 2 } {
+    Msg CriticalWarning [cmdline::usage $parameters $usage]
     return
   }
   set list_path [lindex $args 0]
+  set repo_path [lindex $args 1]
+
   set list_files $options(list_files)
   set sha_mode $options(sha_mode)
   set ext_path $options(ext_path)
-  set repo_path $options(repo_path)
+
 
   if { $sha_mode == 1 } {
     set sha_mode_opt "-sha_mode"
@@ -1868,25 +1937,27 @@ proc GetHogFiles args {
   }
 
   if { $list_files == "" } {
-    set list_files {.src,.con,.sub,.sim,.ext}
+    set list_files {.src,.con,.sim,.ext}
   }
   set libraries [dict create]
   set properties [dict create]
   set list_files [glob -nocomplain -directory $list_path "*{$list_files}"]
-  set main_libs [dict create]
+  set filesets [dict create]
 
   foreach f $list_files {
     set ext [file extension $f]
     if {$ext == ".ext"} {
-      lassign [ReadListFile {*}"$sha_mode_opt  $f $ext_path"] l p m
+      lassign [ReadListFile {*}"$sha_mode_opt  $f $ext_path"] l p fs
     } else {
-      lassign [ReadListFile {*}"$sha_mode_opt  $f $repo_path"] l p m
+      lassign [ReadListFile {*}"$sha_mode_opt  $f $repo_path"] l p fs
     }
     set libraries [MergeDict $l $libraries]
     set properties [MergeDict $p $properties]
-    set main_libs [dict merge $m $main_libs]
+    Msg Debug "list file $f, filesets: $fs"
+    set filesets [MergeDict $fs $filesets]
+    Msg Debug "Merged filesets $filesets"
   }
-  return [list $libraries $properties $main_libs]
+  return [list $libraries $properties $filesets]
 }
 
 
@@ -1922,56 +1993,51 @@ proc ParseFirstLineHogFiles {list_path list_file} {
 # @param[in] libraries has library name as keys and a list of filenames as values
 # @param[in] properties has as file names as keys and a list of properties as values
 #
-proc AddHogFiles { libraries properties main_libs } {
+proc AddHogFiles { libraries properties filesets } {
   Msg Info "Adding source files to project..."
-
-  foreach lib [dict keys $libraries] {
-    # Msg Info "lib: $lib \n"
-    set lib_files [dict get $libraries $lib]
-    # Msg Info "Files in $lib: $lib_files \n"
-    set rootlib [file rootname [file tail $lib]]
-    set ext [file extension $lib]
-    set main_lib [dict get $main_libs $lib]
-    set simlib [file rootname [file tail $main_lib]]
-    # Msg Info "lib: $lib ext: $ext simlib $simlib \n"
-    switch $ext {
-      .sim {
-        set file_set "$simlib\_sim"
-        # if this simulation fileset was not created we do it now
-        if {[string equal [get_filesets -quiet $file_set] ""]} {
-          create_fileset -simset $file_set
-          # Set active when creating, by default it will be the latest simset to be created, unless is specified in the sim.conf
-          current_fileset -simset [ get_filesets $file_set ]
-          set simulation  [get_filesets $file_set]
-          foreach simulator [GetSimulators] {
-            set_property -name {$simulator.compile.vhdl_syntax} -value {2008} -objects $simulation
-          }
-          set_property SOURCE_SET sources_1 $simulation
+  Msg Debug "Filesets: $filesets"
+  Msg Debug "Libraries: $libraries"
+  Msg Debug "Properties: $properties"
+  foreach fileset [dict keys $filesets] {
+    Msg Debug "Fileset: $fileset"
+    # Create fileset if it doesn't exist yet
+    if {[IsVivado]} {
+      if {[string equal [get_filesets -quiet $fileset] ""]} {
+        # Simulation list files supported only by Vivado
+        create_fileset -simset $fileset
+        # Set active when creating, by default it will be the latest simset to be created, unless is specified in the sim.conf
+        current_fileset -simset [ get_filesets $fileset ]
+        set simulation [get_filesets $fileset]
+        foreach simulator [GetSimulators] {
+          set_property -name {$simulator.compile.vhdl_syntax} -value {2008} -objects $simulation
         }
-      }
-      .con {
-        set file_set "constrs_1"
-      }
-      default {
-        set file_set "sources_1"
+        set_property SOURCE_SET sources_1 $simulation
       }
     }
-    # ADD NOW LISTS TO VIVADO PROJECT
-    if {[IsXilinx]} {
-      add_files -norecurse -fileset $file_set $lib_files
-
-      if {$ext != ".ip"} {
+    # Loop over libraries in fileset 
+    foreach lib [DictGet $filesets $fileset] {
+      Msg Debug "lib: $lib \n"
+      set lib_files [DictGet $libraries $lib]
+      Msg Debug "Files in $lib: $lib_files"
+      set rootlib [file rootname [file tail $lib]]
+      set ext [file extension $lib]
+      Msg Debug "lib: $lib ext: $ext fileset: $fileset"
+      # ADD NOW LISTS TO VIVADO PROJECT
+      if {[IsXilinx]} {
+        Msg Debug "Adding $lib to $fileset"
+        add_files -norecurse -fileset $fileset $lib_files
         # Add Properties
         foreach f $lib_files {
-          set file_obj [get_files -of_objects [get_filesets $file_set] [list "*$f"]]
+          set file_obj [get_files -of_objects [get_filesets $fileset] [list "*$f"]]
           #ADDING LIBRARY
           if {[file extension $f] == ".vhd" || [file extension $f] == ".vhdl"} {
             set_property -name "library" -value $rootlib -objects $file_obj
           }
 
           #ADDING FILE PROPERTIES
-          set props [dict get $properties $f]
+          set props [DictGet $properties $f]
           if {[file extension $f] == ".vhd" || [file extension $f] == ".vhdl"} {
+            # VHDL 93 property
             if {[lsearch -inline -regexp $props "93"] < 0} {
               # ISE does not support vhdl2008
               if {[IsVivado]} {
@@ -1982,28 +2048,27 @@ proc AddHogFiles { libraries properties main_libs } {
             }
           }
 
+          # SystemVerilog property
           if {[lsearch -inline -regexp $props "SystemVerilog"] > 0} {
             # ISE does not support SystemVerilog
             if {[IsVivado]} {
               set_property -name "file_type" -value "SystemVerilog" -objects $file_obj
               Msg Debug "Filetype is SystemVerilog for $f"
-
             } else {
               Msg Warning "Xilinx PlanAhead/ISE does not support SystemVerilog. Property not set for $f"
             }
           }
 
-
           # Top synthesis module
           set top [lindex [regexp -inline {top\s*=\s*(.+?)\y.*} $props] 1]
           if { $top != "" } {
-            Msg Info "Setting $top as top module for file set $file_set..."
+            Msg Info "Setting $top as top module for file set $fileset..."
             set globalSettings::synth_top_module $top
           }
 
           # XDC
           if {[lsearch -inline -regexp $props "XDC"] >= 0 || [file extension $f] == ".xdc"} {
-	    Msg Debug "Setting filetype XDC for $f"
+            Msg Debug "Setting filetype XDC for $f"
             set_property -name "file_type" -value "XDC" -objects $file_obj
           }
 
@@ -2032,73 +2097,57 @@ proc AddHogFiles { libraries properties main_libs } {
           }
 
           ## Simulation properties
-          # # Top simulation module
+          # Top simulation module
           set top_sim [lindex [regexp -inline {topsim\s*=\s*(.+?)\y.*} $props] 1]
           if { $top_sim != "" } {
-            Msg Info "Setting $top_sim as top module for simulation file set $file_set..."
-            Msg Warning "Setting the simulation top module from simulation list files will be deprecated in future Hog releases. Please consider setting this property in the sim.conf file, by adding the following line under the \[$file_set\] section.\ntop=$top_sim"
+            Msg Warning "Setting the simulation top module from simulation list files is now deprecated. Please set this property in the sim.conf file, by adding the following line under the \[$fileset\] section.\ntop=$top_sim"
 
-            set_property "top"  $top_sim [get_filesets $file_set]
-            current_fileset -simset [get_filesets $file_set]
+            set_property "top"  $top_sim [get_filesets $fileset]
+            current_fileset -simset [get_filesets $fileset]
           }
 
           # Simulation runtime
           set sim_runtime [lindex [regexp -inline {runtime\s*=\s*(.+?)\y.*} $props] 1]
           if { $sim_runtime != "" } {
-            Msg Info "Setting simulation runtime to $sim_runtime for simulation file set $file_set..."
-            Msg Warning "Setting the simulation runtime from simulation list files will be deprecated in future Hog releases. Please consider setting this property in the sim.conf file, by adding the following line under the \[$file_set\] section.\n<simulator_name>.simulate.runtime=$sim_runtime"
-            set_property -name {xsim.simulate.runtime} -value $sim_runtime -objects [get_filesets $file_set]
-            foreach simulator [GetSimulators] {
-              set_property $simulator.simulate.runtime  $sim_runtime  [get_filesets $file_set]
-            }
+            Msg Warning "Setting the simulation runtime from simulation list files is now deprecated. Please set this property in the sim.conf file, by adding the following line under the \[$fileset\] section.\n<simulator_name>.simulate.runtime=$sim_runtime"
+            # set_property -name {xsim.simulate.runtime} -value $sim_runtime -objects [get_filesets $fileset]
+            # foreach simulator [GetSimulators] {
+            #   set_property $simulator.simulate.runtime  $sim_runtime  [get_filesets $fileset]
+            # }
           }
 
           # Wave do file
           if {[lsearch -inline -regexp $props "wavefile"] >= 0} {
-            Msg Warning "Setting a wave do file from simulation list files will be deprecated in future Hog releases. Please consider setting this property in the sim.conf file, by adding the following line under the \[$file_set\] section.\n<simulator_name>.simulate.custom_wave_do=[file tail $f]"
+            Msg Warning "Setting a wave do file from simulation list files is now deprecated. Set this property in the sim.conf file, by adding the following line under the \[$fileset\] section.\n<simulator_name>.simulate.custom_wave_do=[file tail $f]"
 
-	    Msg Debug "Setting $f as wave do file for simulation file set $file_set..."
+            # Msg Debug "Setting $f as wave do file for simulation file set $fileset..."
 
-            # check if file exists...
-            if {[file exists $f]} {
-              foreach simulator [GetSimulators] {
-                set_property "$simulator.simulate.custom_wave_do" [file tail $f] [get_filesets $file_set]
-              }
-            } else {
-              Msg Warning "File $f was not found."
-            }
+            # # check if file exists...
+            # if {[file exists $f]} {
+            #   foreach simulator [GetSimulators] {
+            #     set_property "$simulator.simulate.custom_wave_do" [file tail $f] [get_filesets $fileset]
+            #   }
+            # } else {
+            #   Msg Warning "File $f was not found."
+            # }
           }
 
           #Do file
           if {[lsearch -inline -regexp $props "dofile"] >= 0} {
-            Msg Warning "Setting a custom do file from simulation list files will be deprecated in future Hog releases. Please consider setting this property in the sim.conf file, by adding the following line under the \[$file_set\] section.\n<simulator_name>.simulate.custom_do=[file tail $f]"
-	    Msg Debug "Setting $f as do file for simulation file set $file_set..."
+            Msg Warning "Setting a custom do file from simulation list files is now deprecated. Set this property in the sim.conf file, by adding the following line under the \[$fileset\] section.\n<simulator_name>.simulate.custom_do=[file tail $f]"
+            # Msg Debug "Setting $f as do file for simulation file set $fileset..."
 
-            if {[file exists $f]} {
-              foreach simulator [GetSimulators] {
-                set_property "$simulator.simulate.custom_udo" [file tail $f] [get_filesets $file_set]
-              }
-            } else {
-              Msg Warning "File $f was not found."
-            }
+            # if {[file exists $f]} {
+            #   foreach simulator [GetSimulators] {
+            #     set_property "$simulator.simulate.custom_udo" [file tail $f] [get_filesets $fileset]
+            #   }
+            # } else {
+            #   Msg Warning "File $f was not found."
+            # }
           }
 
-          # Tcl
-          if {[file extension $f] == ".tcl" && $ext != ".con"} {
-            if { [lsearch -inline -regexp $props "source"] >= 0} {
-              Msg Info "Sourcing Tcl script $f..."
-              source $f
-            }
-          }
-        }
-
-      } else {
-        # IPs
-        foreach f $lib_files {
-          #ADDING FILE PROPERTIES
-          set props [dict get $properties $f]
           # Lock the IP
-          if {[lsearch -inline -regexp $props "locked"] >= 0} {
+          if {[lsearch -inline -regexp $props "locked"] >= 0 && $ext == ".ip"} {
             Msg Info "Locking IP $f..."
             set_property IS_MANAGED 0 [get_files $f]
           }
@@ -2109,207 +2158,217 @@ proc AddHogFiles { libraries properties main_libs } {
             generate_target all [get_files $f]
           }
 
-        }
 
-      }
-      Msg Info "[llength $lib_files] file/s added to library $rootlib..."
-    } elseif {[IsQuartus] } {
-      #QUARTUS ONLY
-      if { $ext == ".sim"} {
-        Msg Warning "Simulation files not supported in Quartus Prime mode... Skipping $lib"
-      } else {
-        if {! [is_project_open] } {
-          Msg Error "Project is closed"
+          # Tcl
+          if {[file extension $f] == ".tcl" && $ext != ".con"} {
+            if { [lsearch -inline -regexp $props "source"] >= 0} {
+              Msg Info "Sourcing Tcl script $f..."
+              source $f
+            }
+          }
         }
+        Msg Info "[llength $lib_files] file/s added to library $rootlib..."
+      } elseif {[IsQuartus] } {
+        #QUARTUS ONLY
+        if { $ext == ".sim"} {
+          Msg Warning "Simulation files not supported in Quartus Prime mode... Skipping $lib"
+        } else {
+          if {! [is_project_open] } {
+            Msg Error "Project is closed"
+          }
+          foreach cur_file $lib_files {
+            set file_type [FindFileType $cur_file]
+
+            #ADDING FILE PROPERTIES
+            set props [DictGet $properties $cur_file]
+
+            # Top synthesis module
+            set top [lindex [regexp -inline {top\s*=\s*(.+?)\y.*} $props] 1]
+            if { $top != "" } {
+              Msg Info "Setting $top as top module for file set $fileset..."
+              set globalSettings::synth_top_module $top
+            }
+            # VHDL file properties
+            if {[string first "VHDL" $file_type] != -1 } {
+              if {[string first "1987" $props] != -1 } {
+                set hdl_version "VHDL_1987"
+              } elseif {[string first "1993" $props] != -1 } {
+                set hdl_version "VHDL_1993"
+              } elseif {[string first "2008" $props] != -1 } {
+                set hdl_version "VHDL_2008"
+              } else {
+                set hdl_version "default"
+              }
+              if { $hdl_version == "default" } {
+                set_global_assignment -name $file_type $cur_file -library $rootlib
+              } else {
+                set_global_assignment -name $file_type $cur_file -hdl_version $hdl_version -library $rootlib
+              }
+            } elseif {[string first "SYSTEMVERILOG" $file_type] != -1 } {
+              # SystemVerilog file properties
+              if {[string first "2005" $props] != -1 } {
+                set hdl_version "systemverilog_2005"
+              } elseif {[string first "2009" $props] != -1 } {
+                set hdl_version "systemverilog_2009"
+              } else {
+                set hdl_version "default"
+              }
+              if { $hdl_version == "default" } {
+                set_global_assignment -name $file_type $cur_file
+              } else {
+                set_global_assignment -name $file_type $cur_file -hdl_version $hdl_version
+              }
+            } elseif {[string first "VERILOG" $file_type] != -1 } {
+              # Verilog file properties
+              if {[string first "1995" $props] != -1 } {
+                set hdl_version "verilog_1995"
+              } elseif {[string first "2001" $props] != -1 } {
+                set hdl_version "verilog_2001"
+              } else {
+                set hdl_version "default"
+              }
+              if { $hdl_version == "default" } {
+                set_global_assignment -name $file_type $cur_file
+              } else {
+                set_global_assignment -name $file_type $cur_file -hdl_version $hdl_version
+              }
+            } elseif {[string first "SOURCE" $file_type] != -1 || [string first "COMMAND_MACRO" $file_type] != -1 } {
+              set_global_assignment  -name $file_type $cur_file
+              if { $ext == ".con"} {
+                source $cur_file
+              } elseif { $ext == ".src"} {
+                # If this is a Platform Designer file then generate the system
+                if {[string first "qsys" $props] != -1 } {
+                  # remove qsys from options since we used it
+                  set emptyString ""
+                  regsub -all {\{||qsys||\}} $props $emptyString props
+
+                  set qsysPath [file dirname $cur_file]
+                  set qsysName "[file rootname [file tail $cur_file]].qsys"
+                  set qsysFile "$qsysPath/$qsysName"
+                  set qsysLogFile "$qsysPath/[file rootname [file tail $cur_file]].qsys-script.log"
+
+                  set qsys_rootdir ""
+                  if {! [info exists ::env(QSYS_ROOTDIR)] } {
+                    if {[info exists ::env(QUARTUS_ROOTDIR)] } {
+                      set qsys_rootdir "$::env(QUARTUS_ROOTDIR)/sopc_builder/bin"
+                      Msg Warning "The QSYS_ROOTDIR environment variable is not set! I will use $qsys_rootdir"
+                    } else {
+                      Msg CriticalWarning "The QUARTUS_ROOTDIR environment variable is not set! Assuming all quartus executables are contained in your PATH!"
+                    }
+                  } else {
+                    set qsys_rootdir $::env(QSYS_ROOTDIR)
+                  }
+
+                  set cmd "$qsys_rootdir/qsys-script"
+                  set cmd_options " --script=$cur_file"
+                  if {![catch {"exec $cmd -version"}] || [lindex $::errorCode 0] eq "NONE"} {
+                    Msg Info "Executing: $cmd $cmd_options"
+                    Msg Info "Saving logfile in: $qsysLogFile"
+                    if { [ catch {eval exec -ignorestderr "$cmd $cmd_options >>& $qsysLogFile"} ret opt ]} {
+                      set makeRet [lindex [dict get $opt -errorcode] end]
+                      Msg CriticalWarning "$cmd returned with $makeRet"
+                    }
+                  } else {
+                    Msg Error " Could not execute command $cmd"
+                    exit 1
+                  }
+                  # Check the system is generated correctly and move file to correct directory
+                  if { [file exists $qsysName] != 0} {
+                    file rename -force $qsysName $qsysFile
+                    # Write checksum to file
+                    set qsysMd5Sum [Md5Sum $qsysFile]
+                    # open file for writing
+                    set fileDir [file normalize "./hogTmp"]
+                    set fileName "$fileDir/.hogQsys.md5"
+                    if {![file exists $fileDir]} {
+                      file mkdir $fileDir
+                    }
+                    set hogQsysFile [open $fileName "a"]
+                    set fileEntry "$qsysFile\t$qsysMd5Sum"
+                    puts $hogQsysFile $fileEntry
+                    close $hogQsysFile
+                  } else {
+                    Msg ERROR "Error while moving the generated qsys file to final location: $qsysName not found!";
+                  }
+                  if { [file exists $qsysFile] != 0} {
+                    if {[string first "noadd" $props] == -1} {
+                      set qsysFileType [FindFileType $qsysFile]
+                      set_global_assignment  -name $qsysFileType $qsysFile
+                    } else {
+                      regsub -all {noadd} $props $emptyString props
+                    }
+                    if {[string first "nogenerate" $props] == -1} {
+                      GenerateQsysSystem $qsysFile $props
+                    }
+
+                  } else {
+                    Msg ERROR "Error while generating ip variations from qsys: $qsysFile not found!";
+                  }
+                }
+              }
+            } elseif {[string first "QSYS" $file_type] != -1 } {
+              set emptyString ""
+              regsub -all {\{||\}} $props $emptyString props
+              if {[string first "noadd" $props] == -1} {
+                set_global_assignment  -name $file_type $cur_file
+              } else {
+                regsub -all {noadd} $props $emptyString props
+              }
+
+              #Generate IPs
+              if {[string first "nogenerate" $props] == -1} {
+                GenerateQsysSystem $cur_file $props
+              }
+            } else {
+              set_global_assignment -name $file_type $cur_file -library $rootlib
+            }
+          }
+        }
+      } elseif {[IsLibero] } {
+        if {$ext == ".con"} {
+          foreach con_file $lib_files {
+            # Check for valid constrain files
+            set con_ext [file extension $con_file]
+            if {[IsInList [file extension $con_file]  {.sdc .pin .dcf .gcf .pdc .crt .vcd } ]} {
+              set option [string map {. -} $con_ext]
+              create_links -convert_EDN_to_HDL 0 -library {work} $option $con_file 
+            } else {
+              Msg CriticalWarning "Constraint file $con_file does not have a valid extension. Allowed extensions are: \n .sdc .pin .dcf .gcf .pdc .crt .vcd"
+            }
+          }
+        } elseif {$ext == ".src"} {
+          foreach f $lib_files {
+            Msg Debug "Adding source $f to library $rootlib..."
+            create_links -library $rootlib -hdl_source $f
+          }
+        }
+        build_design_hierarchy 
         foreach cur_file $lib_files {
           set file_type [FindFileType $cur_file]
 
           #ADDING FILE PROPERTIES
-          set props [dict get $properties $cur_file]
+          set props [DictGet $properties $cur_file]
 
           # Top synthesis module
           set top [lindex [regexp -inline {top\s*=\s*(.+?)\y.*} $props] 1]
           if { $top != "" } {
-            Msg Info "Setting $top as top module for file set $file_set..."
-            set globalSettings::synth_top_module $top
+            Msg Info "Setting $top as top module for file set $rootlib..."
+            set globalSettings::synth_top_module "${top}::$rootlib" 
           }
-          if {[string first "VHDL" $file_type] != -1 } {
 
-            if {[string first "1987" $props] != -1 } {
-              set hdl_version "VHDL_1987"
-            } elseif {[string first "1993" $props] != -1 } {
-              set hdl_version "VHDL_1993"
-            } elseif {[string first "2008" $props] != -1 } {
-              set hdl_version "VHDL_2008"
-            } else {
-              set hdl_version "default"
-            }
-            if { $hdl_version == "default" } {
-              set_global_assignment -name $file_type $cur_file -library $rootlib
-            } else {
-              set_global_assignment -name $file_type $cur_file -hdl_version $hdl_version -library $rootlib
-            }
-          } elseif {[string first "SYSTEMVERILOG" $file_type] != -1 } {
-            if {[string first "2005" $props] != -1 } {
-              set hdl_version "systemverilog_2005"
-            } elseif {[string first "2009" $props] != -1 } {
-              set hdl_version "systemverilog_2009"
-            } else {
-              set hdl_version "default"
-            }
-            if { $hdl_version == "default" } {
-              set_global_assignment -name $file_type $cur_file
-            } else {
-              set_global_assignment -name $file_type $cur_file -hdl_version $hdl_version
-            }
-          } elseif {[string first "VERILOG" $file_type] != -1 } {
-            if {[string first "1995" $props] != -1 } {
-              set hdl_version "verilog_1995"
-            } elseif {[string first "2001" $props] != -1 } {
-              set hdl_version "verilog_2001"
-            } else {
-              set hdl_version "default"
-            }
-            if { $hdl_version == "default" } {
-              set_global_assignment -name $file_type $cur_file
-            } else {
-              set_global_assignment -name $file_type $cur_file -hdl_version $hdl_version
-            }
-          } elseif {[string first "SOURCE" $file_type] != -1 || [string first "COMMAND_MACRO" $file_type] != -1 } {
-            set_global_assignment  -name $file_type $cur_file
-            if { $ext == ".con"} {
-              source $cur_file
-            } elseif { $ext == ".src"} {
-
-              # If this is a Platform Designer file then generate the system
-              if {[string first "qsys" $props] != -1 } {
-                # remove qsys from options since we used it
-                set emptyString ""
-                regsub -all {\{||qsys||\}} $props $emptyString props
-
-                set qsysPath [file dirname $cur_file]
-                set qsysName "[file rootname [file tail $cur_file]].qsys"
-                set qsysFile "$qsysPath/$qsysName"
-                set qsysLogFile "$qsysPath/[file rootname [file tail $cur_file]].qsys-script.log"
-
-                set qsys_rootdir ""
-                if {! [info exists ::env(QSYS_ROOTDIR)] } {
-                  if {[info exists ::env(QUARTUS_ROOTDIR)] } {
-                    set qsys_rootdir "$::env(QUARTUS_ROOTDIR)/sopc_builder/bin"
-                    Msg Warning "The QSYS_ROOTDIR environment variable is not set! I will use $qsys_rootdir"
-                  } else {
-                    Msg CriticalWarning "The QUARTUS_ROOTDIR environment variable is not set! Assuming all quartus executables are contained in your PATH!"
-                  }
-                } else {
-                  set qsys_rootdir $::env(QSYS_ROOTDIR)
-                }
-
-                set cmd "$qsys_rootdir/qsys-script"
-                set cmd_options " --script=$cur_file"
-                if {![catch {"exec $cmd -version"}] || [lindex $::errorCode 0] eq "NONE"} {
-                  Msg Info "Executing: $cmd $cmd_options"
-                  Msg Info "Saving logfile in: $qsysLogFile"
-                  if { [ catch {eval exec -ignorestderr "$cmd $cmd_options >>& $qsysLogFile"} ret opt ]} {
-                    set makeRet [lindex [dict get $opt -errorcode] end]
-                    Msg CriticalWarning "$cmd returned with $makeRet"
-                  }
-                } else {
-                  Msg Error " Could not execute command $cmd"
-                  exit 1
-                }
-                # Check the system is generated correctly and move file to correct directory
-                if { [file exists $qsysName] != 0} {
-                  file rename -force $qsysName $qsysFile
-                  # Write checksum to file
-                  set qsysMd5Sum [Md5Sum $qsysFile]
-                  # open file for writing
-                  set fileDir [file normalize "./hogTmp"]
-                  set fileName "$fileDir/.hogQsys.md5"
-                  if {![file exists $fileDir]} {
-                    file mkdir $fileDir
-                  }
-                  set hogQsysFile [open $fileName "a"]
-                  set fileEntry "$qsysFile\t$qsysMd5Sum"
-                  puts $hogQsysFile $fileEntry
-                  close $hogQsysFile
-                } else {
-                  Msg ERROR "Error while moving the generated qsys file to final location: $qsysName not found!";
-                }
-                if { [file exists $qsysFile] != 0} {
-                  if {[string first "noadd" $props] == -1} {
-                    set qsysFileType [FindFileType $qsysFile]
-                    set_global_assignment  -name $qsysFileType $qsysFile
-                  } else {
-                    regsub -all {noadd} $props $emptyString props
-                  }
-                  if {[string first "nogenerate" $props] == -1} {
-                    GenerateQsysSystem $qsysFile $props
-                  }
-
-                } else {
-                  Msg ERROR "Error while generating ip variations from qsys: $qsysFile not found!";
-                }
-              }
-            }
-          } elseif {[string first "QSYS" $file_type] != -1 } {
-            set emptyString ""
-            regsub -all {\{||\}} $props $emptyString props
-            if {[string first "noadd" $props] == -1} {
-              set_global_assignment  -name $file_type $cur_file
-            } else {
-              regsub -all {noadd} $props $emptyString props
-            }
-
-            #Generate IPs
-            if {[string first "nogenerate" $props] == -1} {
-              GenerateQsysSystem $cur_file $props
-            }
-          } else {
-            set_global_assignment -name $file_type $cur_file -library $rootlib
+          # exclude sdc from timing
+          if {[lsearch -inline -regexp $props "notiming"] == -1 } {
+            organize_tool_files -tool {VERIFYTIMING} -file $cur_file -input_type {constraint}
           }
         }
+      # Closing IDE if cascade
       }
-    } elseif {[IsLibero] } {
-      if {$ext == ".con"} {
-        foreach con_file $lib_files {
-          # Check for valid constrain files
-          set con_ext [file extension $con_file]
-          if {[lsearch {.sdc .pin .dcf .gcf .pdc .crt .vcd } [file extension $con_file]] >= 0} {
-            set option [string map {. -} $con_ext]
-            create_links -convert_EDN_to_HDL 0 -library {work} $option $con_file 
-          } else {
-            Msg CriticalWarning "Constraint file $con_file does not have a valid extension. Allowed extensions are: \n .sdc .pin .dcf .gcf .pdc .crt .vcd"
-          }
-        }
-      } elseif {$ext == ".src"} {
-        foreach f $lib_files {
-          create_links -library $rootlib -hdl_source $f
-        }
-      }
-      build_design_hierarchy 
-
-      foreach cur_file $lib_files {
-        set file_type [FindFileType $cur_file]
-
-        #ADDING FILE PROPERTIES
-        set props [dict get $properties $cur_file]
-
-        # Top synthesis module
-        set top [lindex [regexp -inline {top\s*=\s*(.+?)\y.*} $props] 1]
-        if { $top != "" } {
-          Msg Info "Setting $top as top module for file set $file_set..."
-          set globalSettings::synth_top_module "${top}::$rootlib"
-        }
-
-        # exclude sdc from timing
-        if {[lsearch -inline -regexp $props "notiming"] == -1 } {
-          organize_tool_files -tool {VERIFYTIMING} -file $cur_file -input_type {constraint}
-        }
-      }
+    # Closing library loop
     }
+  # Closing fileset loop
   }
-
-}
+} 
 
 # @brief Function searching for extra IP/BD files added at creation time using user scripts, and writing the list in
 # Project/proj/.hog/extra.files, with the correspondent md5sum
@@ -2318,113 +2377,27 @@ proc AddHogFiles { libraries properties main_libs } {
 proc CheckExtraFiles {libraries} {
   ### CHECK NOW FOR IP OUTSIDE OF LIST FILE (Vivado only!)
   if {[IsVivado]} {
-    lassign [GetProjectFiles] prjLibraries prjProperties
-    set prjIPs  [DictGet $prjLibraries IP]
-    set prjXDCs  [DictGet $prjLibraries XDC]
-    set prjOTHERs [DictGet $prjLibraries OTHER]
-    set prjSrcDict  [DictGet $prjLibraries SRC]
-
+    lassign [GetProjectFiles] prjLibraries prjProperties prjSimLibraries prjConstraints
+    set prjLibraries [MergeDict $prjLibraries $prjSimLibraries]
+    set prjLibraries [MergeDict $prjLibraries $prjConstraints]
     set prj_dir [get_property DIRECTORY [current_project]]
     file mkdir "$prj_dir/.hog"
     set extra_file_name "$prj_dir/.hog/extra.files"
     set new_extra_file [open $extra_file_name "w"]
 
-
-    foreach prjIP $prjIPs {
-      set ip_in_list 0
-      foreach lib [dict keys $libraries] {
-        set ext [file extension $lib]
-        if {$ext == ".ip"} {
-          set lib_files [dict get $libraries $lib]
-          foreach list_ip $lib_files {
-            if {[lsearch $prjIP $list_ip] != -1} {
-              set ip_in_list 1
-              break
-            }
+    dict for {prjLib prjFiles} $prjLibraries {
+      foreach prjFile $prjFiles {
+        if {[IsInList $prjFile [DictGet $libraries $prjLib]]==0} { 
+          if {[file extension $prjFile] == ".bd"} {
+            # Generating BD products to save md5sum of already modified BD
+            Msg Info "Generating targets of $prjFile..."
+            generate_target all [get_files $prjFile]
           }
-        }
-      }
-      if {$ip_in_list == 0} {
-        if {[file extension $prjIP] == ".bd"} {
-          # Generating BD products to save md5sum of already modified BD
-          Msg Info "Generating targets of $prjIP..."
-          generate_target all [get_files $prjIP]
-        }
-        puts $new_extra_file "$prjIP [Md5Sum $prjIP]"
-        Msg Info "$prjIP has been generated by an external script. Adding to $extra_file_name..."
-      }
-    }
-
-    foreach prjXDC $prjXDCs {
-      set xdc_in_list 0
-      foreach lib [dict keys $libraries] {
-        set ext [file extension $lib]
-        if {$ext != ".ip"} {
-          set lib_files [dict get $libraries $lib]
-          foreach list_file $lib_files {
-            if {[lsearch $prjXDC $list_file] != -1} {
-              set xdc_in_list 1
-              break
-            }
-          }
-        }
-      }
-      if {$xdc_in_list == 0} {
-        puts $new_extra_file "$prjXDC [Md5Sum $prjXDC]"
-        Msg Info "$prjXDC has been generated by an external script. Adding to $extra_file_name..."
-      }
-    }
-
-    foreach prjOTHER $prjOTHERs {
-      set oth_in_list 0
-      foreach lib [dict keys $libraries] {
-        set ext [file extension $lib]
-        if {$ext != ".ip"} {
-          set prjOTHER_ext [file extension $prjOTHER]
-          if {$prjOTHER_ext == ".coe"} {
-            set prjOTHER [file normalize $prjOTHER]
-          }
-          set lib_files [dict get $libraries $lib]
-          foreach list_file $lib_files {
-            if {[lsearch $prjOTHER $list_file] != -1} {
-              set oth_in_list 1
-              break
-            }
-          }
-        }
-      }
-      if {$oth_in_list == 0} {
-        puts $new_extra_file "$prjOTHER [Md5Sum $prjOTHER]"
-        Msg Info "$prjOTHER has been generated by an external script. Adding to $extra_file_name..."
-      }
-    }
-
-    foreach prjSRCs [dict keys $prjSrcDict] {
-      set prjSRCs [dict get $prjSrcDict $prjSRCs]
-      foreach prjSRC $prjSRCs {
-        set src_in_list 0
-        foreach lib [dict keys $libraries] {
-          set ext [file extension $lib]
-          if {$ext == ".src"} {
-            set lib_files [dict get $libraries $lib]
-            foreach list_file $lib_files {
-              if {[lsearch $prjSRC $list_file] != -1} {
-                set src_in_list 1
-                break
-              }
-            }
-          }
-          if {$src_in_list == 1} {
-            break
-          }
-        }
-        if {$src_in_list == 0} {
-          puts $new_extra_file "$prjSRC [Md5Sum $prjSRC]"
-          Msg Info "$prjSRC has been generated by an external script. Adding to $extra_file_name..."
+          puts $new_extra_file "$prjFile [Md5Sum $prjFile]"
+          Msg Info "$prjFile has been generated by an external script. Adding to $extra_file_name..."
         }
       }
     }
-
     close $new_extra_file
   }
 }
@@ -3182,12 +3155,12 @@ proc SearchHogProjects {dir} {
 #  @return       the group name without initial and final slashes
 #
 proc GetGroupName {proj_dir repo_dir} {
-  if {[regexp {^(.*)/(Projects|Top)/+(.*?)/*$} $proj_dir dummy possible_repo_dir proj_or_top dir]} {
+  if {[regexp {^(.*)/(Top|Projects)/+(.*?)/*$} $proj_dir dummy possible_repo_dir proj_or_top dir]} {
     # The Top or Project folder is in the root of a the git repository
     if {[file normalize $repo_dir] eq [file normalize $possible_repo_dir]} {
       set group [file dir $dir]
       if { $group == "." } {
-	set group ""
+	      set group ""
       }
     } else {
     # The Top or Project folder is NOT in the root of a git repository
@@ -3433,7 +3406,7 @@ proc GetGenericFromConf {proj_dir target {sim 0}} {
           } else {
             set prj_generics "$prj_generics $theKey=\"$theValue\""
           }
-        } elseif { ( $target == "Questa" ) || ( $target == "ModelSim" ) } {
+        } elseif { [lsearch -exact [GetSimulators] [string tolower $target] ] >= 0 } {
           if {$valueNumBits != "" && $valueHexFlag != "" && $valueHex != ""} {
             set numBits 0
             scan $valueNumBits %d numBits
@@ -3453,7 +3426,7 @@ proc GetGenericFromConf {proj_dir target {sim 0}} {
             set prj_generics "$prj_generics {$theKey=\"$theValue\"}"
           }
         } else {
-          Msg warning "Target : $target not implemented"
+          Msg Warning "Target : $target not implemented"
         }
       }
     }
@@ -3476,15 +3449,14 @@ proc SetGenericsSimulation {proj_dir target} {
   set sim_cfg_index [lsearch -regexp -index 0 $read_aux ".*sim.conf"]
   set sim_cfg_index [lsearch -regexp -index 0 [GetConfFiles $top_dir] ".*sim.conf"]
   set simsets [get_filesets -quiet *_sim]
-
   if { $simsets != "" } {
     if {[file exists $top_dir/sim.conf]} {
       set sim_generics [GetGenericFromConf $proj_dir $target 1]
       if {$sim_generics != ""} {
-	foreach simset $simsets {
-	  set_property generic $sim_generics [get_filesets $simset]
-	  Msg Debug "Setting generics $sim_generics for simulator $target and simulation file-set $simset..."
-	}
+        foreach simset $simsets {
+          set_property generic $sim_generics [get_filesets $simset]
+          Msg Debug "Setting generics $sim_generics for simulator $target and simulation file-set $simset..."
+        }
       }
     } else {
       Msg Warning "Simulation sets are present in the project but no sim.conf found in $top_dir. Please refer to Hog's manual to create one."
@@ -3655,7 +3627,7 @@ proc GetFileGenerics {filename {entity ""}} {
 #
 #  @param[in]    list of variables to be written in the generics
 proc WriteGenerics {mode design date timee commit version top_hash top_ver hog_hash hog_ver cons_ver cons_hash libs vers hashes ext_names ext_hashes user_ip_repos user_ip_vers user_ip_hashes flavour {xml_ver ""} {xml_hash ""}} {
-  Msg Info "Passing parameters/generics to project $design's top module..."
+  Msg Info "Passing parameters/generics to project's top module..."
   #####  Passing Hog generic to top file
   # set global generic variables
   set generic_string [concat \
@@ -3704,11 +3676,13 @@ proc WriteGenerics {mode design date timee commit version top_hash top_ver hog_h
 
   # Extract the generics from the top level source file 
   if {[IsXilinx]} {
+    # Top File can be retrieved only at creation time or in ISE
+    if {$mode == "create" || [IsISE]} {
+
     set top_file [GetTopFile]
     set top_name [GetTopModule]
 
-    if {[file exists $top_file]} {
-
+      if {[file exists $top_file]} {
         set generics [GetFileGenerics $top_file $top_name]
 
         Msg Debug "Found top level generics $generics in $top_file"
@@ -3716,19 +3690,20 @@ proc WriteGenerics {mode design date timee commit version top_hash top_ver hog_h
         set filtered_generic_string ""
 
         foreach generic_to_set [split [string trim $generic_string]] {
-            set key [lindex [split $generic_to_set "="] 0]
-            if {[dict exists $generics $key]} {
-                Msg Debug "Hog generic $key found in $top_name"
-                lappend filtered_generic_string "$generic_to_set"
-            } else {
-	      Msg Warning "Generic $key is passed by Hog but is NOT present in $top_name."
-            }
+          set key [lindex [split $generic_to_set "="] 0]
+          if {[dict exists $generics $key]} {
+            Msg Debug "Hog generic $key found in $top_name"
+            lappend filtered_generic_string "$generic_to_set"
+          } else {
+            Msg Warning "Generic $key is passed by Hog but is NOT present in $top_name."
+          }
         }
 
         # only filter in ISE
         if {[IsISE]} {
             set generic_string $filtered_generic_string
         }
+      }
     }
     
     set_property generic $generic_string [current_fileset]
@@ -3772,7 +3747,7 @@ proc GetIDEVersion {} {
   return $ver
 }
 
-## Get the IDE (Vivado,Quartus,PlanAhead) version from the conf file she-bang
+## Get the IDE (Vivado,Quartus,PlanAhead,Libero) version from the conf file she-bang
 #
 #  @param[in]    conf_file The hog.conf file
 proc GetIDEFromConf {conf_file} {
@@ -3819,10 +3794,520 @@ proc Copy {i_dirs o_dir} {
   foreach i_dir $i_dirs {
     if {[file isdirectory $i_dir] && [file isdirectory $o_dir]} {
       if {([file tail $i_dir] == [file tail $o_dir]) || ([file exists $o_dir/[file tail $i_dir]] && [file isdirectory $o_dir/[file tail $i_dir]])} {
-	file delete -force $o_dir/[file tail $i_dir]
+	    file delete -force $o_dir/[file tail $i_dir]
       }
     }
     
     file copy -force $i_dir $o_dir 
   }
 }
+
+## @brief Remove duplicates in a dictionary
+#
+# @param[in] mydict the input dictionary
+#
+# @return the dictionary stripped of duplicates
+proc RemoveDuplicates {mydict} {
+  set new_dict [dict create]
+  foreach key [dict keys $mydict] {
+    set values [DictGet $mydict $key]
+    foreach value $values {
+      set idxs [lreverse [lreplace [lsearch -exact -all $values $value] 0 0]]
+      foreach idx $idxs {
+        set values [lreplace $values $idx $idx]
+      }
+    }
+    dict set new_dict $key $values
+  }
+  return $new_dict
+}
+
+## @brief Compare the contents of two dictionaries
+#
+# @param[in] proj_libs  The dictionary of libraries in the project
+# @param[in] list_libs  The dictionary of libraries in list files
+# @param[in] proj_sets  The dictionary of filesets in the project
+# @param[in] list_sets  The dictionary of filesets in list files
+# @param[in] proj_props The dictionary of file properties in the project
+# @param[in] list_props The dictionary of file pproperties in list files
+# @param[in] severity   The severity of  the message in case a file is not found (Default: CriticalWarning)
+# @param[in] outFile    The output log file, to write the messages (Default "")
+# @param[in] extraFiles The dictionary of extra files generated a creation time (Default "")
+#
+# @return n_diffs The number of differences
+# @return extra_files Remaining list of extra files
+
+proc CompareLibDicts {proj_libs list_libs proj_sets list_sets proj_props list_props {severity "CriticalWarning"} {outFile ""} {extraFiles ""} } {
+  set extra_files $extraFiles
+  set n_diffs 0
+  # Loop over filesets in project
+  dict for {prjSet prjLibraries} $proj_sets { 
+    # Check if sets is also in list files
+    if {[IsInList $prjSet $list_sets]} {
+      set listLibraries [DictGet $list_sets $prjSet]
+      # Loop over libraries in fileset
+      foreach prjLib $prjLibraries {
+        # Check if library exists in list files
+        if {[IsInList $prjLib $listLibraries]} {
+          # Loop over files in library
+          set prjFiles [DictGet $proj_libs $prjLib]
+          set listFiles [DictGet $list_libs $prjLib]
+
+          foreach prjFile $prjFiles {
+            set idx [lsearch -exact $listFiles $prjFile]
+            set listFiles [lreplace $listFiles $idx $idx]
+            if {$idx < 0} {
+              # File is in project but not in list libraries, check if it was generated at creation time...
+              if { [dict exists $extra_files $prjFile] } {
+                # File was generated at creation time, checking the md5sum
+                set new_md5sum [Md5Sum $prjFile]
+                set old_md5sum [DictGet $extra_files $prjFile]
+                if {$new_md5sum != $old_md5sum} {
+                  MsgAndLog "$prjFile in project has been modified from creation time. Please update the script you used to create the file and regenerate the project, or save the file outside the Projects/ directory and add it to a project list file" $severity $outFile
+                  incr n_diffs
+                }
+                set extra_files [dict remove $extra_files $prjFile]
+              } else {
+                # File is neither in list files nor in extra_files
+                MsgAndLog "$prjFile was found in project but not in list files or .hog/extra.files" $severity $outFile
+                incr n_diffs
+              }
+            } else {
+              # File is both in list files and project, checking properties...
+              set prjProps  [DictGet $proj_props $prjFile]
+              set listProps [DictGet $list_props $prjFile]
+              foreach prjProp $prjProps {
+                set idx [lsearch -exact $listProps $prjProp]
+                set listProps [lreplace $listProps $idx $idx]
+                if {$idx < 0} {
+                  MsgAndLog "Property $prjProp of $prjFile was set in project but not in list files" $severity $outFile
+                  incr n_diffs
+                }
+              }
+              foreach listProp $listProps {
+                if {[string first  $listProp "topsim="] != -1} {
+                  MsgAndLog "Property $listProp of $prjFile was found in list files but not set in project." $severity $outFile
+                  incr n_diffs  
+                }                
+              }
+            }
+          }
+          # Loop over remaining files in list libraries
+          foreach listFile $listFiles {
+            MsgAndLog "$listFile was found in list files but not in project." $severity $outFile
+            incr n_diffs
+          }
+        } else {
+          MsgAndLog "Library $prjLib of fileset $prjSet found in project but not in list files" $severity $outFile
+          incr n_diffs
+        }
+      }
+    } else {
+      MsgAndLog "Fileset $prjSet found in project but not in list files" $severity $outFile
+      incr n_diffs
+    }
+  }
+
+  return [list $n_diffs $extra_files]
+}
+
+# @brief Write the content of Hog-library-dictionary created from the project into a .sim list file
+#
+# @param[in] libs      The Hog-Library dictionary with the list of files in the project to write
+# @param[in] props     The Hog-library dictionary with the file sets
+# @param[in] simsets       The Hog-library dictionary with the file sets (relevant only for simulation)
+# @param[in] list_path  The path of the output list file
+# @param[in] repo_path  The main repository path
+proc WriteSimListFiles {libs props simsets list_path repo_path } {
+  # Writing simulation list files
+  foreach simset [dict keys $simsets] {
+    set list_file_name $list_path/${simset}.sim 
+    set list_file [open $list_file_name w]
+    Msg Info "Writing $list_file_name..."
+    foreach lib [DictGet $simsets $simset] {
+      foreach file [DictGet $libs $lib] {
+        # Retrieve file properties from prop list
+        set props [DictGet $prj_props $file]
+        # Check if file is local to the repository or external
+        if {[RelativeLocal $repo_path $file] != ""} {
+          set file_path [RelativeLocal $repo_path $file]
+          set lib_name [file rootname $lib]
+          if {$lib_name != $simset} {
+            lappend props "lib=$lib_name"
+          }
+          puts $list_file "$file_path $props"
+        } else {
+          # File is not relative to repo or ext_path... Write a Warning and continue
+          Msg Warning "The path of file $file is not relative to your repository. Please check!"
+        }
+      }
+    }
+  }
+}
+
+
+# @brief Write the content of Hog-library-dictionary created from the project into a .src/.ext/.con list file
+#
+# @param[in] libs      The Hog-Library dictionary with the list of files in the project to write
+# @param[in] props     The Hog-library dictionary with the file sets
+# @param[in] list_path  The path of the output list file
+# @param[in] repo_path  The main repository path
+# @param[in] ext_path   The external path
+proc WriteListFiles {libs props list_path repo_path {$ext_path ""} } {
+  # Writing simulation list files
+  foreach lib [dict keys $libs] {
+    set list_file_name $list_path$lib
+    set list_file [open $list_file_name w]
+    Msg Info "Writing $list_file_name..."
+    foreach file [DictGet $libs $lib] {
+      # Retrieve file properties from prop list
+      set prop [DictGet $props $file]
+      # Check if file is local to the repository or external
+      if {[RelativeLocal $repo_path $file] != ""} {
+        set file_path [RelativeLocal $repo_path $file]
+        puts $list_file "$file_path $prop"
+      } elseif {[RelativeLocal $ext_path $file] != ""} {
+        set file_path [RelativeLocal $ext_path $file]
+        set ext_list_file [open "[file rootname $list_file].ext" a]
+        puts $ext_list_file "$file_path $prop"
+        close $ext_list_file
+      } else {
+        # File is not relative to repo or ext_path... Write a Warning and continue
+        Msg Warning "The path of file $file is not relative to your repository. Please check!"
+      }
+    }
+  }
+}
+ 
+# @brief Remove empty keys from dictionary 
+proc RemoveEmptyKeys {d} {
+  set newDict $d 
+  foreach {k v} $newDict {
+    if {$v == {{}} || $v == "" } {
+      set newDict [dict remove $newDict $k]
+    }
+  }
+  return $newDict
+}
+
+#print logo in images/hog_logo.txt
+proc Logo { {repo_path .} } {
+  set logo_file "$repo_path/Hog/images/hog_logo.txt"
+
+  set old_path [pwd]
+  cd $repo_path/Hog
+  set ver [Git {describe --always}]
+  cd $old_path
+  
+  if {[file exists $logo_file]} {
+    set f [open $logo_file "r"]
+    set data [read $f]
+    close $f
+    set lines [split $data "\n"]
+    foreach l $lines {
+      Msg Status $l
+    }
+
+  } {
+    Msg CriticalWarning "Logo file: $logo_file not found"
+  }
+
+  Msg Status "Version: $ver"
+}
+
+# Check last version online
+proc CheckLatestHogRelease {{repo_path .}} {
+  set old_path [pwd]
+  cd $repo_path/Hog
+  set current_ver [Git {describe --always}]
+  Msg Debug "Current version: $current_ver"
+  set current_sha [Git "log $current_ver -1 --format=format:%H"]
+  Msg Debug "Current SHA: $current_sha"  
+
+  Msg Info "Checking for latest Hog release, can take up to 5 seconds..."
+  #We should find a proper way of checking for timeout using vwait, this'll do for now
+  ExecuteRet timeout 5s git fetch
+  
+  set master_ver [Git "describe origin/master"]
+  Msg Debug "Master version: $master_ver"  
+  set master_sha [Git "log $master_ver -1 --format=format:%H"]    
+  Msg Debug "Master SHA: $master_sha"  
+  set merge_base [Git "merge-base $current_sha $master_sha"]
+  Msg Debug "merge base: $merge_base"  
+  
+  
+  if {$merge_base != $master_sha} {
+    # If master_sha is NOT an ancestor of current_sha 
+    Msg Info "Version $master_ver has been released (https://gitlab.com/hog-cern/Hog/-/releases/$master_ver)"
+    Msg Status "You should consider updating Hog submodule with the following instructions:"
+    Msg Status ""
+    Msg Status "cd Hog && git checkout master && git pull"
+    Msg Status ""
+    Msg Status "Also pdate the ref: in your .gitlab-ci.yml to $master_ver"
+    Msg Status ""
+  } else {
+
+    # If it is
+    Msg Info "Latest official version is $master_ver, nothing to do."
+  }
+
+  cd $old_path
+
+}
+
+# @brief Gets the command argv list and returns a list of 
+#        options and arguments
+proc GetOptions {argv parameters usage} {
+  # Get Options from argv
+  set arg_list [list]
+  set param_list [list]
+  set option_list [list]
+
+  foreach p $parameters {
+    lappend param_list [lindex $p 0]
+  }
+
+  set index 0
+  while {$index < [llength $argv]} {
+    set arg [lindex $argv $index]
+    if {[string first - $arg] >= 0} {
+      set option [string trimleft $arg "-"]
+      incr index
+      lappend option_list $arg
+      if {[lsearch $param_list ${option}*] >= 0 && [string first ".arg" [lsearch -inline $param_list ${option}*]] >= 0} {
+        lappend option_list [lindex $argv $index]
+        incr index
+      }
+    } else {
+      lappend arg_list $arg
+      incr index
+    }
+  }
+  Msg Debug "Argv: $argv"
+  Msg Debug "Options: $option_list"
+  Msg Debug "Arguments: $arg_list"
+  return [list $option_list $arg_list]
+}
+
+proc InitLauncher {script tcl_path parameters usage argv} {
+  set repo_path [file normalize "$tcl_path/../.."]
+  set old_path [pwd]
+  set bin_path [file normalize "$tcl_path/../../bin"]
+  set top_path [file normalize "$tcl_path/../../Top"]
+
+  if {[IsTclsh]} {
+    #Just display the logo the first time, not when the scripot is run in the IDE
+    Logo $repo_path
+  }
+
+  if {[catch {package require cmdline} ERROR]} {
+    Msg Debug "The cmdline Tcl package was not found, sourcing it from Hog..."
+    source $tcl_path/utils/cmdline.tcl
+  }
+  
+  lassign [ GetOptions $argv $parameters $usage] option_list arg_list 
+
+  if {[catch {array set options [cmdline::getoptions option_list $parameters $usage]} err] } {
+    Msg Status "\nERROR: Syntax error, probably unkown option.\n\n USAGE: $err"
+    exit 1
+  }
+  # Argv here is modified and the options are removed
+  set directive [string toupper [lindex $arg_list 0]]
+
+  if { [llength $arg_list] == 1 && ($directive == "L" || $directive == "LIST")} {
+    Msg Status "\n** The projects in this repository are:"
+    ListProjects $repo_path
+    Msg Status "\n"
+    exit 0
+
+  } elseif {  [llength $arg_list] == 0 || ([llength $arg_list] == 1 && ($directive == "H" || $directive == "HELP"))} {
+    Msg Status "\n** The projects in this repository are:"
+    ListProjects $repo_path
+    Msg Status "\n"
+    exit 1
+
+  } elseif { [llength $arg_list] > 2} {
+    Msg Status "\nERROR: Wrong number of arguments: [llength $argv].\n\n"
+    Msg Status "USAGE: [cmdline::usage $parameters $usage]"
+    exit 1
+  }
+
+  set project  [lindex $arg_list 1]
+  # Remove leading Top/ if in project_name
+  regsub "^(\./)?Top/" $project "" project
+  set proj_conf [ProjectExists $project $repo_path] 
+  
+  Msg Debug "Option list:"
+  foreach {key value} [array get options] {
+    Msg Debug "$key => $value"
+  }
+
+
+  if {[IsTclsh]} {
+    # command is filled with the IDE exectuable when this function is called by Tcl scrpt
+    if {$proj_conf != 0} {
+      CheckLatestHogRelease $repo_path
+
+      lassign [GetIDECommand $proj_conf] cmd before_tcl_script after_tcl_script end_marker
+      Msg Info "Project $project uses $cmd IDE"
+      
+      ## The following is the IDE command to launch:
+      set command "$cmd $before_tcl_script$script$after_tcl_script$argv$end_marker"
+      
+    } else {
+      if {$project != ""} {
+        #Project not given
+        set command -1
+      } else {
+        #Project not found
+        set command -2
+      }
+    }
+  } else {
+    # When the launcher is executed from within an IDE, command is set to 0
+    set command 0
+  }
+
+  set project_group [file dirname $project]
+  set project [file tail $project]
+  if { $project_group != "." } {
+    set project_name "$project_group/$project"
+  } else {
+    set project_name "$project"
+  }
+
+
+
+  return [list $directive $project $project_name $project_group $repo_path $old_path $bin_path $top_path $command]
+}
+
+# List projects all projects in the repository
+# print if 1  print a list
+# ret_conf if 1 returns conf file rather than list of project names
+proc ListProjects {{repo_path .} {print 1} {ret_conf 0}} {
+  set top_path [file normalize $repo_path/Top]
+  set confs [findFiles [file normalize $top_path] hog.conf]
+  set projects ""
+  
+  foreach c $confs {
+    set p [Relative $top_path [file dirname $c]]
+    if {$print == 1} {
+      # Print a list of the projects with relative IDE
+      Msg Status "$p \([GetIDEFromConf $c]\)"
+    }
+    lappend projects $p
+  }
+
+  if {$ret_conf == 0} {
+
+    # Returns a list of project names
+    return $projects
+  } else {
+    
+    # Return the list of hog.conf with full path
+    return $confs
+  }
+}
+
+# if it exists returns the conf file
+# if it doesnt returns 0
+proc ProjectExists {project {repo_path .}} {
+  set index [lsearch -exact [ListProjects $repo_path 0] $project]
+
+  if {$index >= 0} {
+    # if project exists we return the relative hog.conf file
+    return [lindex [ListProjects $repo_path 0 1] $index]
+  } else {
+    return 0
+  }
+}
+
+# Find IDE for a project
+proc GetIDECommand {proj_conf} {
+  # GetConfFiles returns a list, the first element is hog.conf
+  if {[file exists $proj_conf]} {
+    set ide_name_and_ver [string tolower [GetIDEFromConf $proj_conf]]
+    set ide_name [lindex [regexp -all -inline {\S+} $ide_name_and_ver ] 0]
+    
+    if {$ide_name eq "vivado"} {
+      set command "vivado"
+      # A space ater the before_tcl_script is important
+      set before_tcl_script " -nojournal -nolog -mode batch -notrace -source "
+      set after_tcl_script " -tclargs "
+      set end_marker ""
+      
+    } elseif {$ide_name eq "planahead"} {
+      set command "planAhead"
+      # A space ater the before_tcl_script is important
+      set before_tcl_script " -nojournal -nolog -mode batch -notrace -source "
+      set after_tcl_script " -tclargs "
+      set end_marker ""      
+
+    } elseif {$ide_name eq "quartus"} {
+      set command "quartus_sh"
+      # A space ater the before_tcl_script is important
+      set before_tcl_script " -t "
+      set after_tcl_script " "
+      set end_marker ""
+      
+    } elseif {$ide_name eq "libero"} {
+      #I think we need quotes for libero, not sure...
+      
+      set command "libero"
+      set before_tcl_script "SCRIPT:"
+      set after_tcl_script " SCRIPT_ARGS:\""
+      set end_marker "\""      
+    } else {
+      Msg Error "IDE: $ide_name not known."
+    }
+    
+  } else {
+    Msg Error "Configuration file $proj_conf not found."
+  }
+  
+  return [list $command $before_tcl_script $after_tcl_script $end_marker]
+}
+
+
+# findFiles
+# basedir - the directory to start looking in
+# pattern - A pattern, as defined by the glob command, that the files must match
+# Credit: https://stackexchange.com/users/14219/jackson
+proc findFiles { basedir pattern } {
+
+    # Fix the directory name, this ensures the directory name is in the
+    # native format for the platform and contains a final directory seperator
+    set basedir [string trimright [file join [file normalize $basedir] { }]]
+    set fileList {}
+
+    # Look in the current directory for matching files, -type {f r}
+    # means ony readable normal files are looked at, -nocomplain stops
+    # an error being thrown if the returned list is empty
+    foreach fileName [glob -nocomplain -type {f r} -path $basedir $pattern] {
+        lappend fileList $fileName
+    }
+
+    # Now look for any sub direcories in the current directory
+    foreach dirName [glob -nocomplain -type {d  r} -path $basedir *] {
+        # Recusively call the routine on the sub directory and append any
+        # new files to the results
+        set subDirList [findFiles $dirName $pattern]
+        if { [llength $subDirList] > 0 } {
+            foreach subDirFile $subDirList {
+                lappend fileList $subDirFile
+            }
+        }
+    }
+  return $fileList
+}
+
+# Check if element is in list
+proc IsInList {element list} {
+  if {[lsearch -exact $list $element] >= 0} {
+    return 1
+  } else {
+    return 0
+  }
+}
+source [file dirname [info script]]/create_project.tcl
+

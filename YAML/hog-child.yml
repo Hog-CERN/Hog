@@ -304,7 +304,7 @@ collect_artifacts:
             done;
           fi;
           printf "</details>\n</p>" >> section.md;
-          echo "" >> section.md
+          echo "" >> section.md;
           if [[ $HOG_MR_MSG == '1' ]]; then
             cat section.md >> "$old_dir/mr_note.md";
           fi;

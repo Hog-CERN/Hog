@@ -285,18 +285,21 @@ collect_artifacts:
           echo "" >> $CI_PROJECT_DIR/bin/note.md;
         done;
       fi
-    - note_files="versions timing utilization";
-    - for f in $note_files; do
-        files=$(find . -name "$f*.txt");
-        if (( ${#files} )); then
-          for fp in $files; do
-            if [[ $HOG_MR_MSG == '1' ]]; then
-              cat $fp >> $old_dir/mr_note.md;
-            fi;
-            cat $fp >> $CI_PROJECT_DIR/bin/note.md;
-          done;
-        fi;
-      done;
+    # Returns a list of version, utilization and timing files in bin/ sorted alphabetically
+    - files=$(find . -name "versions*.txt" -o -name "timing*.txt" -o -name "utilization*.txt" | sort);
+    - if (( ${#files} )); then
+        for fp in $files; do
+          proj_name=$(echo $fp | sed -E 's|^./(.*)-v[0-9]+\.[0-9]+\.[0-9]+-hog.*|\1|');
+          if [[ $HOG_MR_MSG == '1' ]]; then
+            printf "<p>\n<details>\n<summary>## ${proj_name}</summary>"; >> $old_dir/mr_note.md;
+            sed '/^##/d' fp.txt >> $old_dir/mr_note.md;
+            printf "</details>\n</p>" >> $old_dir/mr_note.md;
+          fi;
+          printf "<p>\n<details>\n<summary>## ${proj_name}</summary>"; >> $old_dir/note.md;
+          sed '/^##/d' fp.txt >>  $old_dir/note.md;
+          printf "</details>\n</p>" >> $old_dir/note.md;
+        done;
+      fi;
     - cd $old_dir
     - if [[ -z "$HOG_MR_MSG" ]] || [[ $HOG_MR_MSG == '1' ]] || [[ $HOG_MR_MSG == '2' ]]; then
         echo "Hog-CI(info) - Writing note on gitlab website...";

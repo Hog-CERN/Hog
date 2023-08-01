@@ -688,7 +688,7 @@ if {[IsXilinx]} {
       set failures [join $failed "\n"]
       Msg Error "The following simulation sets have failed:\n\n$failures\n\n"
       exit -1
-    } else {
+    } elseif {[llength $success] > 0} {
       Msg Info "All the [llength $success] compilations, elaborations and simulations were successful."
     }
     

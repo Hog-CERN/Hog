@@ -295,7 +295,7 @@ collect_artifacts:
           ut_files=$(find . -name "utilization*.txt" -o -name "timing*.txt" -o -name "versions.txt")
           if (( ${#ut_files} )); then
             for ut in $ut_files; do
-              sed "s|^## ${proj_name} ||" "$ut" >> section.md
+              sed "s|^## ${proj_name} ||" "$ut" >> section.md;
             done;
           fi;
           printf "</details>\n</p>" >> section.md;

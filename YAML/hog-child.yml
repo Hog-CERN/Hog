@@ -306,7 +306,7 @@ collect_artifacts:
           if [[ $HOG_MR_MSG == '1' ]]; then
             cat section.md >> "$old_dir/mr_note.md";
           fi;
-          cat section.md >> "$old_dir/note.md";
+          cat section.md >> "$CI_PROJECT_DIR/bin/note.md";
           cd $old_dir/bin;
         done;
       fi;

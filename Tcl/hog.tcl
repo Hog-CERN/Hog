@@ -3264,7 +3264,7 @@ if {[GitVersion 2.7.2] == 0 } {
 proc WriteUtilizationSummary {input output project_name run} {
   set f [open $input "r"]
   set o [open $output "a"]
-  puts $o "## $project_name $run Utilization report"
+  puts $o "## $project_name $run Utilization report\n\n"
   struct::matrix util_m
   util_m add columns 14
   util_m add row

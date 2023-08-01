@@ -3227,7 +3227,6 @@ proc ReadConf {file_name} {
 
   return $properties
 }
-#'"
 
 ## Write a property configuration file from a dictionary
 #
@@ -3496,26 +3495,26 @@ proc SetGenericsSimulation {proj_dir target} {
 ## @brief Return the path to the active top file
 proc GetTopFile {} {
   if {[IsVivado]} {
-    set_property source_mgmt_mode All [current_project]
-    update_compile_order -fileset sources_1
+    # set_property source_mgmt_mode All [current_project]
+    # update_compile_order -fileset sources_1
     return [lindex [get_files -quiet -compile_order sources -used_in synthesis] end]
   } elseif {[IsISE]} {
-      debug::design_graph_mgr -create [current_fileset]
-      debug::design_graph -add_fileset [current_fileset]
-      debug::design_graph -update_all
-      return [lindex [debug::design_graph -get_compile_order] end]
+    debug::design_graph_mgr -create [current_fileset]
+    debug::design_graph -add_fileset [current_fileset]
+    debug::design_graph -update_all
+    return [lindex [debug::design_graph -get_compile_order] end]
   } else {
-      Msg Error "GetTopFile not yet implemented for this IDE"
+    Msg Error "GetTopFile not yet implemented for this IDE"
   }
 }
 
 ## @brief Return the name of the active top module
 proc GetTopModule {} {
-    if {[IsXilinx]} {
-        return [get_property top [current_fileset]]
-    } else {
-        Msg Error "GetTopModule not yet implemented for this IDE"
-    }
+  if {[IsXilinx]} {
+    return [get_property top [current_fileset]]
+  } else {
+    Msg Error "GetTopModule not yet implemented for this IDE"
+  }
 }
 
 ## Get a dictionary of verilog generics with their types for a given file

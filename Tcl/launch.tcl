@@ -433,13 +433,13 @@ if {[IsXilinx]} {
       set ths [get_property STATS.THS [get_runs [current_run]]]
       
       if {$wns >= 0 && $whs >= 0} {
-	Msg Info "Time requirements are met"
-	set status_file [open "$main_folder/timing_ok.txt" "w"]
-	set timing_ok 1
+        Msg Info "Time requirements are met"
+        set status_file [open "$main_folder/timing_ok.txt" "w"]
+        set timing_ok 1
       } else {
-	Msg CriticalWarning "Time requirements are NOT met"
-	set status_file [open "$main_folder/timing_error.txt" "w"]
-	set timing_ok 0
+        Msg CriticalWarning "Time requirements are NOT met"
+        set status_file [open "$main_folder/timing_error.txt" "w"]
+        set timing_ok 0
       }
       
       Msg Status "*** Timing summary ***"
@@ -789,6 +789,7 @@ if {[IsXilinx]} {
     }
     if {[file exists "output_files/versions.txt" ]} {
       set dst_dir [file normalize "$repo_path/bin/$project_name\-$describe"]
+      file mkdir $dst_dir
       file copy -force "output_files/versions.txt" $dst_dir
     }
   } else {

@@ -295,7 +295,8 @@ collect_artifacts:
         for fp in $files; do
           proj_name=$(echo $fp | sed -E 's|^./(.*)-v[0-9]+\.[0-9]+\.[0-9]+-hog.*|\1|');
           cd $(dirname $fp);
-          printf "<p>\n<details>\n<summary>${proj_name}</summary> \n\n " >> section.md;
+          echo "## ${proj_name}" >> section.md
+          printf "<p>\n<details>\n<summary>show/hide</summary> \n\n " >> section.md;
           ut_files=$(find . -name "utilization*.txt" -o -name "timing*.txt" -o -name "versions.txt");
           if (( ${#ut_files} )); then
             for ut in $ut_files; do

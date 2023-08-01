@@ -135,7 +135,7 @@ ResetRepoFiles "./Projects/hog_reset_files"
 lassign [GetRepoVersions [file normalize $repo_path/Top/$group/$proj_name] $repo_path $ext_path] commit version  hog_hash hog_ver  top_hash top_ver  libs hashes vers  cons_ver cons_hash  ext_names ext_hashes  xml_hash xml_ver user_ip_repos user_ip_hashes user_ip_vers
 
 
-set describe [GetHogDescribe $commit]
+set describe [GetHogDescribe $commit $repo_path]
 set dst_dir [file normalize "bin/$group/$proj_name\-$describe"]
 Msg Info "Creating $dst_dir..."
 file mkdir $dst_dir/reports

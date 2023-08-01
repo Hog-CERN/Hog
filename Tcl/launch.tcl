@@ -330,7 +330,7 @@ if {[IsXilinx]} {
     cd $tcl_path/../..
     
     lassign [GetRepoVersions [file normalize ./Top/$project_name] $repo_path $ext_path ] sha
-    set describe [GetHogDescribe $sha]
+    set describe [GetHogDescribe $sha $repo_path]
     Msg Info "Git describe set to $describe"
     
     foreach ip $ips {
@@ -513,7 +513,7 @@ if {[IsXilinx]} {
     cd $repo_path
     
     lassign [GetRepoVersions [file normalize ./Top/$project_name] $repo_path] sha
-    set describe [GetHogDescribe $sha]
+    set describe [GetHogDescribe $sha $repo_path]
     Msg Info "Git describe set to $describe"
     
     set dst_dir [file normalize "$bin_dir/$project_name\-$describe"]
@@ -777,7 +777,7 @@ if {[IsXilinx]} {
   
   # keep track of the current revision and of the top level entity name
   lassign [GetRepoVersions [file normalize $repo_path/Top/$project_name] $repo_path ] sha
-  set describe [GetHogDescribe $sha]
+  set describe [GetHogDescribe $sha $repo_path]
   #set top_level_name [ get_global_assignment -name TOP_LEVEL_ENTITY ]
   set revision [get_current_revision]
   if { $do_compile == 1 } {
@@ -966,7 +966,7 @@ if {[IsXilinx]} {
     cd $repo_path
     
     lassign [GetRepoVersions [file normalize ./Top/$project_name] $repo_path] sha
-    set describe [GetHogDescribe $sha]
+    set describe [GetHogDescribe $sha $repo_path]
     Msg Info "Git describe set to $describe"
     
     set dst_dir [file normalize "$bin_dir/$project_name\-$describe"]

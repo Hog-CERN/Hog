@@ -1181,11 +1181,12 @@ proc GetProjectVersion {proj_dir repo_path {ext_path ""} {sim 0}} {
 
 ## Get custom Hog describe of a specific SHA
 #
-#  @param[in] sha     the git sha of the commit you want to calculate the describe of
+#  @param[in] sha         the git sha of the commit you want to calculate the describe of
+#  @param[in] repo_path   the main path of the repository
 #
 #  @return            the Hog describe of the sha or the current one if the sha is 0
 #
-proc GetHogDescribe {sha} {
+proc GetHogDescribe {sha {repo_path .}} {
   if {$sha == 0 } {
     # in case the repo is dirty, we use the last committed sha and add a -dirty suffix
     set new_sha "[GetSHA]"
@@ -1194,7 +1195,7 @@ proc GetHogDescribe {sha} {
     set new_sha $sha
     set suffix ""
   }
-  set describe "v[HexVersionToString [GetVerFromSHA $new_sha .]]-hog$new_sha$suffix"
+  set describe "v[HexVersionToString [GetVerFromSHA $new_sha $repo_path]]-hog$new_sha$suffix"
   return $describe
 }
 

@@ -1795,6 +1795,10 @@ proc GetProjectFiles {} {
     set all_files [get_files -quiet -of_objects [get_filesets $fs]]
     set fs_type [get_property FILESET_TYPE [get_filesets $fs]]
 
+    if {$fs_type == "BlockSrcs"} {
+      # Vivado creates for each ip a blockset... Let's redirect to sources_1
+      set fs "sources_1"
+    }
     foreach f $all_files {
       # Ignore files that are part of the vivado/planahead project but would not be reflected
       # in list files (e.g. generated products from ip cores)

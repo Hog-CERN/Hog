@@ -3453,12 +3453,15 @@ proc SetGenericsSimulation {proj_dir target} {
   set read_aux [GetConfFiles $top_dir]
   set sim_cfg_index [lsearch -regexp -index 0 $read_aux ".*sim.conf"]
   set sim_cfg_index [lsearch -regexp -index 0 [GetConfFiles $top_dir] ".*sim.conf"]
-  set simsets [get_filesets -quiet *_sim]
+  set simsets [get_filesets]
   if { $simsets != "" } {
     if {[file exists $top_dir/sim.conf]} {
       set sim_generics [GetGenericFromConf $proj_dir $target 1]
       if {$sim_generics != ""} {
         foreach simset $simsets {
+          if {[get_property FILESET_TYPE $simset] != "SimulationSrcs" } {            
+            continue
+          }
           set_property generic $sim_generics [get_filesets $simset]
           Msg Debug "Setting generics $sim_generics for simulator $target and simulation file-set $simset..."
         }

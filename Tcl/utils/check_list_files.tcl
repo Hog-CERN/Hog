@@ -491,7 +491,10 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
   }
 
   #filling defaultConfDict and projConfDict
-  foreach proj_simset [get_filesets *sim*] {
+  foreach proj_simset [get_filesets] {
+    if {[get_property FILESET_TYPE $proj_simset] != "SimulationSrcs" } {
+      continue
+    }
     #creating dictionary for each simset
     set projSimDict [dict create]
     set defaultSimDict [dict create]
@@ -526,7 +529,10 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
     }
   }
 
-  foreach simset [get_filesets -quiet *_sim] {
+  foreach simset [get_filesets -quiet] {
+    if {[get_property FILESET_TYPE $simset] != "SimulationSrcs" } {            
+      continue
+    }
     set hogConfSimDict [DictGet $simConfDict $simset]
     set hogAllSimDict [DictGet $simConfDict sim]
     set hogGenericsSimDict [DictGet $simConfDict generics]

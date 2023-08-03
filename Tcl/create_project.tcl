@@ -474,7 +474,10 @@ proc ConfigureSimulation {} {
     # SIMULATION #
     ##############
     Msg Debug "Setting load_glbl parameter to true for every fileset..."
-    foreach simset [get_filesets -quiet *_sim] {
+    foreach simset [get_filesets -quiet] {
+      if {[get_property FILESET_TYPE $simset] != "SimulationSrcs" } {
+        continue
+      }
       set_property -name {xsim.elaborate.load_glbl} -value {true} -objects [get_filesets $simset]
       # Setting Simulation Properties
       if {[dict exists $globalSettings::SIM_PROPERTIES $simset]} {

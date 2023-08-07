@@ -187,7 +187,7 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
           file delete $F
         }
       }
-      WriteSimListFiles $prjLibraries $prjProperties $listpath $repo_path
+      WriteSimListFiles $prjSimLibraries $prjProperties $prjSimSets $listpath $repo_path
     }
     if {$ConListErrorCnt > 0} {
       # Delete existing .con list files

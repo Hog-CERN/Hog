@@ -4140,8 +4140,10 @@ proc InitLauncher {script tcl_path parameters usage argv} {
   }
 
   set project  [lindex $arg_list 1]
-  # Remove leading Top/ if in project_name
+  # Remove leading Top/ or ./Top/ if in project_name
   regsub "^(\./)?Top/" $project "" project
+  # Remove trailing / and spaces if in project_name
+  regsub "/? *\$" $project "" project  
   set proj_conf [ProjectExists $project $repo_path] 
   
   Msg Debug "Option list:"

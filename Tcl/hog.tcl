@@ -1268,7 +1268,6 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
   }
 
   set old_path [pwd]
-  puts $proj_dir
   set conf_files [GetConfFiles $proj_dir]
 
   # This will be the list of all the SHAs of this project, the most recent will be picked up as GLOBAL SHA

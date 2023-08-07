@@ -3935,15 +3935,15 @@ proc WriteSimListFiles {libs props simsets list_path repo_path } {
     foreach lib [DictGet $simsets $simset] {
       foreach file [DictGet $libs $lib] {
         # Retrieve file properties from prop list
-        set props [DictGet $prj_props $file]
+        set prop [DictGet $props $file]
         # Check if file is local to the repository or external
         if {[RelativeLocal $repo_path $file] != ""} {
           set file_path [RelativeLocal $repo_path $file]
           set lib_name [file rootname $lib]
           if {$lib_name != $simset} {
-            lappend props "lib=$lib_name"
+            lappend prop "lib=$lib_name"
           }
-          puts $list_file "$file_path $props"
+          puts $list_file "$file_path $prop"
         } else {
           # File is not relative to repo or ext_path... Write a Warning and continue
           Msg Warning "The path of file $file is not relative to your repository. Please check!"

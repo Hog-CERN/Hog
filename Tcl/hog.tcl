@@ -3854,12 +3854,11 @@ proc CompareLibDicts {proj_libs list_libs proj_sets list_sets proj_props list_pr
       set listLibraries [DictGet $list_sets $prjSet]
       # Loop over libraries in fileset
       foreach prjLib $prjLibraries {
+        set prjFiles [DictGet $proj_libs $prjLib]
         # Check if library exists in list files
         if {[IsInList $prjLib $listLibraries]} {
           # Loop over files in library
-          set prjFiles [DictGet $proj_libs $prjLib]
           set listFiles [DictGet $list_libs $prjLib]
-
           foreach prjFile $prjFiles {
             set idx [lsearch -exact $listFiles $prjFile]
             set listFiles [lreplace $listFiles $idx $idx]
@@ -3905,8 +3904,23 @@ proc CompareLibDicts {proj_libs list_libs proj_sets list_sets proj_props list_pr
             incr n_diffs
           }
         } else {
-          MsgAndLog "Library $prjLib of fileset $prjSet found in project but not in list files" $severity $outFile
-          incr n_diffs
+          # Check extra files again...
+          foreach prjFile $prjFiles {
+            if { [dict exists $extra_files $prjFile] } {
+              # File was generated at creation time, checking the md5sum
+              set new_md5sum [Md5Sum $prjFile]
+              set old_md5sum [DictGet $extra_files $prjFile]
+              if {$new_md5sum != $old_md5sum} {
+                MsgAndLog "$prjFile in project has been modified from creation time. Please update the script you used to create the file and regenerate the project, or save the file outside the Projects/ directory and add it to a project list file" $severity $outFile
+                incr n_diffs
+              }
+              set extra_files [dict remove $extra_files $prjFile]
+            } else {
+              # File is neither in list files nor in extra_files
+              MsgAndLog "$prjFile was found in project but not in list files or .hog/extra.files" $severity $outFile
+              incr n_diffs
+            }
+          }
         }
       }
     } else {

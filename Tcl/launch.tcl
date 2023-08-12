@@ -38,9 +38,9 @@ set usage " \[OPTIONS\] <directive> <project>\n The most common <directive> valu
 - CREATE or C: Create the project, replacing it if already existing.
 - WORKFLOW or W: Launches the complete workflow, creates the project if not existing.
 - CREATEWORKFLOW or CW: Creates the project -even if existing- and launches the complete workflow.
-- SIMULATE or S: Simulate the project, createing it if not existing.
-- IMPLEMENT: Runs the implementation only, the project must already exist and be synthesised.
-- SYNTHESIS: Runs the sysnthesis only, creates the project if not existing.
+- SIMULATE or S: Simulate the project, creating it if not existing.
+- IMPLEMENT: Runs the implementation only, the project must already exist and be synthesized.
+- SYNTHESIS: Runs the synthesis only, creates the project if not existing.
 - LIST or L: Only list all the projects
 - HELP or H: This help screen
 
@@ -100,7 +100,12 @@ switch -regexp -- $directive {
     set do_compile 1
     set recreate 1
   }
-  
+
+  \^(HELP|H)$ {
+    Msg Status "\n\n[cmdline::usage $parameters $usage]"
+    exit 1
+  }
+
   default {
     Msg Status "ERROR: Unknown directive $directive.\n\n[cmdline::usage $parameters $usage]"
     exit 1

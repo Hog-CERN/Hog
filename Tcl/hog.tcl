@@ -4140,7 +4140,7 @@ proc InitLauncher {script tcl_path parameters usage argv} {
   lassign [ GetOptions $argv $parameters $usage] option_list arg_list 
 
   if {[catch {array set options [cmdline::getoptions option_list $parameters $usage]} err] } {
-    Msg Status "\nERROR: Syntax error, probably unkown option.\n\n USAGE: $err"
+    Msg Status "\nERROR: Syntax error, probably unknown option.\n\n USAGE: $err"
     exit 1
   }
   # Argv here is modified and the options are removed

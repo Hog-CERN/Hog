@@ -131,7 +131,7 @@ jobs:
           ssh-private-key: ${{ secrets.SUBMODULE_CONTENT_PULL_KEY }}
       - name: Merge And Tag
         run: |
-          git config --system --add safe.directory /w
+          git config --system --add safe.directory $GITHUB_ACTION_PATH
           git config --global user.email "$HOG_EMAIL"
           git config --global user.name "$HOG_USER"
           git fetch

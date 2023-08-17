@@ -16,7 +16,7 @@
 include:
   - project: 'hog/Hog'
     file: '/hog.yml'
-    ref: 'v0.2.1'
+    ref: 'Hog2023.2'
 
 #################### example ###########################
 ### Change 'example' with your project name

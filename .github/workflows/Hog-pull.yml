@@ -45,6 +45,9 @@ on:
       HOG_ONLY_SYNTH:
         required: false
         type: boolean
+      HOG_DEBUG_MODE:
+        required: false
+        type: string
     secrets:
       SUBMODULE_CONTENT_PULL_KEY:
         required: true
@@ -155,8 +158,14 @@ jobs:
               fi;
             fi;
           fi;
-          PULL_PARAMETERS=`curl -H "Accept: application/vnd.github.v3+json" $GITHUB_API_URL/repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER --header  "Authorization: token ${HOG_PUSH_TOKEN}"`
-          # tclsh ./Hog/Tcl/CI/merge_and_tag.tcl -github 1 -mr_par "$PULL_PARAMETERS" -mr_id $PR_NUMBER -main_branch $GITHUB_BASE_REF -source_branch $GITHUB_HEAD_REF -push $GITHUB_HEAD_REF -run_id $GITHUB_RUN_ID
+          MERGE_STATUS=$(git merge --no-commit origin/${GITHUB_BASE_REF})
+          if [ "$MERGE_STATUS" == "Already up to date." ]; then
+            echo "Branch already up-to-date with respect to $GITHUB_BASE_REF";
+          else
+            echo "Branch is outdated with respect to $GITHUB_BASE_REF";
+            printf "Please, merge the latest changes from $GITHUB_BASE_REF with:\ngit fetch && git merge origin/$GITHUB_BASE_REF\n";
+            exit 1;
+          fi;
           git fetch origin refs/notes/*:refs/notes/*
           NEW_TAG=`echo "source Hog/Tcl/hog.tcl; puts v[HexVersionToString [GetVer .]]" | tclsh`
           echo "New tag is $NEW_TAG"
@@ -262,6 +271,9 @@ jobs:
               if [ -f "./Projects/$PROJECT_NAME/skip.me" ]; then
                 echo "Hog-CI(info) - CI disabled for $PROJECT_NAME";
               else
+                if [ -n "${{ inputs.HOG_DEBUG_MODE }}" ] && [ "${{ inputs.HOG_DEBUG_MODE }}" == '1' ]; then
+                  echo "Hog-CI(info) - The workflow will be run in verbose mode.";
+                fi;
                 if [ -z "${HOG_NJOBS}" ]; then
                   export HOG_NJOBS=4;
                   echo "Hog-CI(info) - Number of jobs set to $HOG_NJOBS";
@@ -416,6 +428,9 @@ jobs:
               if [ -f "./Projects/$PROJECT_NAME/skip.me" ]; then
                 echo "CI disabled for $PROJECT_NAME";
               else
+                if [ -n "${{ inputs.HOG_DEBUG_MODE }}" ] && [ "${{ inputs.HOG_DEBUG_MODE }}" == '1' ]; then
+                  echo "Hog-CI(info) - The simulation workflow will be run in verbose mode.";
+                fi;
                 if [ -z "$HOG_SIMULATION_LIB_PATH" ]; then
                   echo 'Simulation library path is not defined';
                   SIM_CMD="./Hog/Do SIMULATE $PROJECT_NAME";

@@ -110,7 +110,8 @@ jobs:
           # echo "::set-output name=tag::$new_tag"
           # echo "::set-output name=runid::${note[0]}"
   archive_binary_files:
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
+    container: gitlab-registry.cern.ch/hog/hog-docker:tclsh
     if: ${{ inputs.HOG_OFFICIAL_BIN_EOS_PATH != '' || inputs.HOG_OFFICIAL_BIN_PATH != '' }}
     needs: [tag_official_version]
     steps:

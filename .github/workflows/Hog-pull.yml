@@ -228,7 +228,6 @@ jobs:
                 echo "Hog-CI(info): No projects will be built. Exiting..."
                 exit 0;
               fi;
-              git config --system --add safe.directory $(pwd)
               git config --global user.email "$HOG_EMAIL"
               git config --global user.name "$HOG_USER"
               echo "Initialising the Hog submodule..."
@@ -407,7 +406,6 @@ jobs:
           ssh-private-key: ${{ secrets.SUBMODULE_CONTENT_PULL_KEY }}
       - name: Simulate
         run: |
-              git config --system --add safe.directory $(pwd)
               git config --global user.email "$HOG_EMAIL"
               git config --global user.name "$HOG_USER"
               echo "Initialising the Hog submodule..."

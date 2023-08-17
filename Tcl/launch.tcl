@@ -39,7 +39,7 @@ set usage " \[OPTIONS\] <directive> <project>\n The most common <directive> valu
 - WORKFLOW or W: Launches the complete workflow, creates the project if not existing.
 - CREATEWORKFLOW or CW: Creates the project -even if existing- and launches the complete workflow.
 - SIMULATE or S: Simulate the project, creating it if not existing.
-- IMPLEMENT: Runs the implementation only, the project must already exist and be synthesized.
+- IMPLEMENT: Runs the implementation only, the project must already exist and be synthesised.
 - SYNTHESIS: Runs the synthesis only, creates the project if not existing.
 - LIST or L: Only list all the projects
 - HELP or H: This help screen

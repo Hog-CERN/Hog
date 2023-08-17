@@ -188,6 +188,7 @@ jobs:
           ssh-private-key: ${{ secrets.SUBMODULE_CONTENT_PULL_KEY }}
       - name: Doxygen
         run: |
+          git config --system --add safe.directory $(pwd)
           git config --global user.email "$HOG_EMAIL"
           git config --global user.name "$HOG_USER"
           git fetch

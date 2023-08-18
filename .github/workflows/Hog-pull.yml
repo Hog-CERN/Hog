@@ -125,7 +125,7 @@ jobs:
         name: Checkout Repository
         with:
           fetch-depth: 0
-      - uses: webfactory/ssh-agent@v0.8.0
+      - uses: webfactory/ssh-agent@v0.7.0
         name: SSH-Agent
         with:
           ssh-private-key: ${{ secrets.SUBMODULE_CONTENT_PULL_KEY }}
@@ -182,7 +182,7 @@ jobs:
         name: Checkout Repository
         with:
           fetch-depth: 0
-      - uses: webfactory/ssh-agent@v0.8.0
+      - uses: webfactory/ssh-agent@v0.7.0
         name: SSH-Agent
         with:
           ssh-private-key: ${{ secrets.SUBMODULE_CONTENT_PULL_KEY }}
@@ -217,7 +217,7 @@ jobs:
         name: Checkout Repository
         with:
           fetch-depth: 0
-      - uses: webfactory/ssh-agent@v0.8.0
+      - uses: webfactory/ssh-agent@v0.7.0
         name: SSH-Agent
         with:
           ssh-private-key: ${{ secrets.SUBMODULE_CONTENT_PULL_KEY }}
@@ -400,7 +400,7 @@ jobs:
         name: Checkout Repository
         with:
           fetch-depth: 0
-      - uses: webfactory/ssh-agent@v0.8.0
+      - uses: webfactory/ssh-agent@v0.7.0
         name: SSH-Agent
         with:
           ssh-private-key: ${{ secrets.SUBMODULE_CONTENT_PULL_KEY }}
@@ -466,7 +466,7 @@ jobs:
         name: Checkout Repository
         with:
           fetch-depth: 0
-      - uses: webfactory/ssh-agent@v0.8.0
+      - uses: webfactory/ssh-agent@v0.7.0
         name: SSH-Agent
         with:
           ssh-private-key: ${{ secrets.SUBMODULE_CONTENT_PULL_KEY }}
@@ -546,7 +546,7 @@ jobs:
         name: Checkout
         with:
           fetch-depth: 0
-      - uses: webfactory/ssh-agent@v0.8.0
+      - uses: webfactory/ssh-agent@v0.7.0
         name: SSH-Agent
         with:
           ssh-private-key: ${{ secrets.SUBMODULE_CONTENT_PULL_KEY }}

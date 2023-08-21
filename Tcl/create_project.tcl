@@ -484,7 +484,9 @@ proc ConfigureSimulation {} {
       if {[get_property FILESET_TYPE $simset] != "SimulationSrcs" } {
         continue
       }
-      set_property -name {xsim.elaborate.load_glbl} -value {true} -objects [get_filesets $simset]
+      if {[IsVivado]} {
+	set_property -name {xsim.elaborate.load_glbl} -value {true} -objects [get_filesets $simset]
+      }
       # Setting Simulation Properties
       if {[dict exists $globalSettings::SIM_PROPERTIES $simset]} {
         Msg Info "Setting properties for simulation set: $simset..."

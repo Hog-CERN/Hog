@@ -1203,10 +1203,10 @@ proc GetHogDescribe {sha {repo_path .}} {
     set new_sha "[GetSHA]"
     set suffix "-dirty"
   } else {
-    set new_sha $sha
+    set new_sha [string toupper $sha]
     set suffix ""
   }
-  set describe "v[HexVersionToString [GetVerFromSHA $new_sha $repo_path]]-hog$new_sha$suffix"
+  set describe "v[HexVersionToString [GetVerFromSHA $new_sha $repo_path]]-$new_sha$suffix"
   return $describe
 }
 

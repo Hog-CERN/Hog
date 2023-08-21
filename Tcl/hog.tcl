@@ -915,7 +915,7 @@ proc GetSHA {{path ""}} {
   if {$path == ""} {
     lassign [GitRet {log --format=%h --abbrev=7 -1}] status result
     if {$status == 0} {
-      return [string toupper $result]
+      return [string tolower $result]
     } else {
       Msg Error "Something went wrong while finding the latest SHA. Does the repository have a commit?"
       exit 1
@@ -956,12 +956,12 @@ proc GetSHA {{path ""}} {
 
   lassign [GitRet {log --format=%h --abbrev=7 -1} $paths] status result
   if {$status == 0} {
-    return [string toupper $result]
+    return [string tolower $result]
   } else {
     Msg Error "Something went wrong while finding the latest SHA. Does the repository have a commit?"
     exit 1
   }    
-  return [string toupper $result]
+  return [string tolower $result]
 }
 
 ## @brief Get git version and commit hash of a subset of files

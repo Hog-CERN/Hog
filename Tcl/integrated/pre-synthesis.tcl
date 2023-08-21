@@ -283,7 +283,6 @@ if {[IsXilinx]} {
 set clock_seconds [clock seconds]
 set tt [clock format $clock_seconds -format {%d/%m/%Y at %H:%M:%S}]
 
-# lassign [GetDateAndTime $commit] date timee
 if {[GitVersion 2.9.3]} {
   set date [Git "log -1 --format=%cd --date=format:%d%m%Y $commit"]
   set timee [Git "log -1 --format=%cd --date=format:00%H%M%S $commit"]
@@ -403,30 +402,30 @@ m add columns 7
 m add row  "| \"**File set**\" | \"**Commit SHA**\" | **Version**  |"
 m add row  "| --- | --- | --- |"
 Msg Status " Global SHA: $commit, VER: $version"
-m add row  "| Global | [string tolower $commit] | $version |"
+m add row  "| Global | [string toupper $commit] | $version |"
 
 set cons_ver [HexVersionToString $cons_ver]
 Msg Status " Constraints SHA: $cons_hash, VER: $cons_ver"
-m add row  "| Constraints | [string tolower $cons_hash] | $cons_ver |"
+m add row  "| Constraints | [string toupper $cons_hash] | $cons_ver |"
 
 if {$use_ipbus == 1} {
   set xml_ver [HexVersionToString $xml_ver]
   Msg Status " IPbus XML SHA: $xml_hash, VER: $xml_ver"
-  m add row "| \"IPbus XML\" | [string tolower $xml_hash] | $xml_ver |"
+  m add row "| \"IPbus XML\" | [string toupper $xml_hash] | $xml_ver |"
 }
 set top_ver [HexVersionToString $top_ver]
 Msg Status " Top SHA: $top_hash, VER: $top_ver"
-m add row "| \"Top Directory\" | [string tolower $top_hash] | $top_ver |"
+m add row "| \"Top Directory\" | [string toupper $top_hash] | $top_ver |"
 
 set hog_ver [HexVersionToString $hog_ver]
 Msg Status " Hog SHA: $hog_hash, VER: $hog_ver"
-m add row "| Hog | [string tolower $hog_hash] | $hog_ver |"
+m add row "| Hog | [string toupper $hog_hash] | $hog_ver |"
 
 Msg Status " --- Libraries ---"
 foreach l $libs v $vers h $hashes {
   set v [HexVersionToString $v]
   Msg Status " $l SHA: $h, VER: $v"
-  m add row "| \"**Lib:** $l\" |  [string tolower $h] | $v |"
+  m add row "| \"**Lib:** $l\" |  [string toupper $h] | $v |"
 }
 
 if {[llength $user_ip_repos] > 0} {
@@ -436,7 +435,7 @@ if {[llength $user_ip_repos] > 0} {
     set v [HexVersionToString $v]
     set repo_name [file tail $r]
     Msg Status " $repo_name SHA: $h, VER: $v"
-    m add row "| \"**Repo:** $repo_name\" |  [string tolower $h] | $v |"
+    m add row "| \"**Repo:** $repo_name\" |  [string toupper $h] | $v |"
   }
 }
 
@@ -444,7 +443,7 @@ if {[llength $ext_names] > 0} {
   Msg Status " --- External Libraries ---"
   foreach e $ext_names eh $ext_hashes {
     Msg Status " $e SHA: $eh"
-    m add row "| \"**Ext:** $e\" | [string tolower $eh] | \" \" |"
+    m add row "| \"**Ext:** $e\" | [string toupper $eh] | \" \" |"
   }
 }
 

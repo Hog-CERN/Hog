@@ -1378,7 +1378,7 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
     Msg CriticalWarning "No hashes found for constraints files (not in git)"
     set cons_hash ""
   } else {
-    set cons_hash [string toupper [Git "log --format=%h -1 $cons_hashes"]]
+    set cons_hash [string tolower [Git "log --format=%h -1 $cons_hashes"]]
   }
   set cons_ver [GetVerFromSHA $cons_hash $repo_path]
   #Msg Info "Among all the constraint list files, if more than one, the most recent version was chosen: $cons_ver commit SHA: $cons_hash"

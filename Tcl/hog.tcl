@@ -2775,7 +2775,7 @@ proc CheckYmlRef {repo_path allow_failure} {
 
     if {$YML_NAME == ""} {
       Msg $MSG_TYPE "Hog included yml file not specified, assuming hog.yml"
-      set YML_NAME_F hog.yml
+      set YM[OL_NAME_F hog.yml
     } else {
       set YML_NAME_F [regsub -all "^/" $YML_NAME ""]
     }
@@ -2812,7 +2812,6 @@ proc CheckYmlRef {repo_path allow_failure} {
         set EXPECTEDYML_SHA ""
       }
     }
-    set EXPECTEDYML_SHA [string toupper $EXPECTEDYML_SHA]
     if  {!($EXPECTEDYML_SHA eq "")} {
       if {$HOGYML_SHA == $EXPECTEDYML_SHA} {
         Msg Info "Hog included file $YML_FILES matches with $YML_REF in .gitlab-ci.yml."

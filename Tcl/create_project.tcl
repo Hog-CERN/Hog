@@ -76,9 +76,11 @@ namespace eval globalSettings {
 ################# FUNCTIONS ################################
 proc InitProject {} {
   if {[IsXilinx]} {
-    # Suppress unnecessary warnings
-    set_msg_config -suppress -regexp -string {".*The IP file '.*' has been moved from its original location, as a result the outputs for this IP will now be generated in '.*'. Alternatively a copy of the IP can be imported into the project using one of the 'import_ip' or 'import_files' commands..*"}
-    set_msg_config -suppress -regexp -string {".*File '.*.xci' referenced by design '.*' could not be found..*"}
+    if {[IsVivado]} {
+      # Suppress unnecessary warnings
+      set_msg_config -suppress -regexp -string {".*The IP file '.*' has been moved from its original location, as a result the outputs for this IP will now be generated in '.*'. Alternatively a copy of the IP can be imported into the project using one of the 'import_ip' or 'import_files' commands..*"}
+      set_msg_config -suppress -regexp -string {".*File '.*.xci' referenced by design '.*' could not be found..*"}
+    }
     # Create project
     create_project -force [file tail $globalSettings::DESIGN] $globalSettings::build_dir -part $globalSettings::PART
     file mkdir "$globalSettings::build_dir/[file tail $globalSettings::DESIGN].gen/sources_1"

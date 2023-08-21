@@ -2775,7 +2775,7 @@ proc CheckYmlRef {repo_path allow_failure} {
 
     if {$YML_NAME == ""} {
       Msg $MSG_TYPE "Hog included yml file not specified, assuming hog.yml"
-      set YM[OL_NAME_F hog.yml
+      set YML_NAME_F hog.yml
     } else {
       set YML_NAME_F [regsub -all "^/" $YML_NAME ""]
     }

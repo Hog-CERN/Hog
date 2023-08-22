@@ -283,7 +283,7 @@ if {[IsXilinx]} {
     
     if {[file exists $conf]} {
       #Still not sure of the difference between project and project_name
-      CreateProject $project_name $repo_path 
+      CreateProject -simlib_path $lib_path $project_name $repo_path 
     } else {
       Msg Error "Project $project_name is incomplete: no hog.conf file found, please create one..."
     }
@@ -731,8 +731,7 @@ if {[IsXilinx]} {
     lassign [GetConfFiles $repo_path/Top/$project_name] conf sim pre post tcl_file
     
     if {[file exists $conf]} {
-      CreateProject $project_name $repo_path
-      
+      CreateProject -simlib_path $lib_path $project_name $repo_path
     } else {
       Msg Error "Project $project_name is incomplete: not Tcl file or hog.conf file found."
     }
@@ -903,7 +902,7 @@ if {[IsXilinx]} {
     lassign [GetConfFiles $repo_path/Top/$project_name] conf sim pre post
     
     if {[file exists $conf]} {
-      CreateProject $project_name $repo_path
+      CreateProject -simlib_path $lib_path $project_name $repo_path
     } else {
       Msg Error "Project $project_name is incomplete: no hog.conf file found, please create one..."
     }

@@ -720,25 +720,16 @@ proc CreateProject args {
   }
   
   if {[IsVivado]} {
-    if {[info exists workflow_simlib_path]} {
-      if {[IsRelativePath $workflow_simlib_path] == 0} {
-        set globalSettings::simlib_path "$workflow_simlib_path"
+    if {$options(simlib_path)!= ""} {
+      if {[IsRelativePath $options(simlib_path)] == 0} {
+        set globalSettings::simlib_path "$options(simlib_path)"
       } else {
-        set globalSettings::simlib_path "$globalSettings::repo_path/$workflow_simlib_path"
+        set globalSettings::simlib_path "$globalSettings::repo_path/$options(simlib_path)"
       }
-      Msg Info "Simulation library path set to $workflow_simlib_path"
+      Msg Info "Simulation library path set to $options(simlib_path)"
     } else {
-      if {$options(simlib_path)!= ""} {
-        if {[IsRelativePath $options(simlib_path)] == 0} {
-          set globalSettings::simlib_path "$options(simlib_path)"
-        } else {
-          set globalSettings::simlib_path "$globalSettings::repo_path/$options(simlib_path)"
-        }
-        Msg Info "Simulation library path set to $options(simlib_path)"
-      } else {
-        set globalSettings::simlib_path "$globalSettings::repo_path/SimulationLib"
-        Msg Info "Simulation library path set to default $globalSettings::repo_path/SimulationLib"
-      }
+      set globalSettings::simlib_path "$globalSettings::repo_path/SimulationLib"
+      Msg Info "Simulation library path set to default $globalSettings::repo_path/SimulationLib"
     }
   }
   

@@ -4101,7 +4101,7 @@ proc GetOptions {argv parameters usage} {
   set index 0
   while {$index < [llength $argv]} {
     set arg [lindex $argv $index]
-    if {[string first - $arg] >= 0} {
+    if {[string first - $arg] == 0} {
       set option [string trimleft $arg "-"]
       incr index
       lappend option_list $arg

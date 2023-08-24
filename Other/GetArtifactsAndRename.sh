@@ -153,7 +153,7 @@ else
             PRJ_NAME="${PRJ_DIR%.*}"
             PRJ_NAME="${PRJ_NAME%-*}"
             PRJ_NAME_BASE=$(basename "$PRJ_NAME")
-	    if [[ $PRJ_DIR =~ "-([0-9,a-f,A-F]{7})(-dirty)?$" ]]; then
+	    if [[ $PRJ_DIR =~ ".*-([0-9,a-f,A-F]{7})(-dirty)?$" ]]; then
 		PRJ_SHA=${BASH_REMATCH[1]}
 	    else
 		echo "ERROR: The project directory doesn't match the pattern"

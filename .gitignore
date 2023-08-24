@@ -6,3 +6,7 @@ vivado*
 cxl_error.log
 *.DS_Store
 *.Xil
+
+# UVVM
+_Alert.txt
+_Log.txt

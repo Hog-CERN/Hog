@@ -1,0 +1,69 @@
+#!/bin/bash
+# Array of IDE executables, the paths where tclsh is located wrt to them, and the tclsh executable name.
+# The separator must be comma and space and the path separator in the second element must be : with no spaces
+executables=(
+    "tclsh, ., tclsh"
+    "vivado, unwrapped/lnx64.o/:/unwrapped/win64.o/:/unwrapped/lnx32.o/:/unwrapped/win32.o/, tclsh8.5"
+    "quartus, ., tclsh"
+    "planAhead, lin64/:lin32/:win32/:win64/, tclsh"
+    "libero, ../bin64/:../bin32, acttclsh"
+)
+
+# Function to find the directory of an executable in the PATH
+find_executable_dir() {
+    local executable="$1"
+    local IFS=':'
+    for dir in $PATH; do
+        local path="$dir/$executable"
+        if [ -x "$path" ]; then
+            echo "$(dirname "$path")"
+            return 0
+        fi
+    done
+    return 1
+}
+
+# Function to normalize a path
+normalize_path() {
+    local path="$1"
+    echo "$(cd "$(dirname "$path")" && pwd)/$(basename "$path")"
+}
+
+
+hog_dir="$(cd "$(dirname "$0")" && pwd)"
+
+found=0
+# Loop through the executables array
+for executable in "${executables[@]}"; do
+    # Split the executable and additional path
+    IFS=', ' read -r exe_name exe_paths tclsh_name <<< "$executable"
+    
+    # Find the directory path of the executable
+    executable_dir=""
+    if executable_dir=$(find_executable_dir "$exe_name"); then
+	IFS=":" read -ra exe_paths <<< "$exe_paths"
+        for exe_path in "${exe_paths[@]}"; do
+            executable_path=$(normalize_path "$executable_dir/$exe_path/$tclsh_name")
+	    if [ -x "$executable_path" ]; then
+		found=1
+		break
+	    fi
+	done
+    fi
+    if [ "$found" == 1 ]; then
+	break
+    fi
+done
+
+if [ "$found" == 1 ]; then
+    $executable_path $hog_dir/Tcl/launch.tcl "$@" 
+    exit $?
+else
+    echo "Error: No IDE exectuable found in PATH. You need an IDE in your PATH to use Hog." >&2
+    exit 1
+fi
+
+
+
+
+

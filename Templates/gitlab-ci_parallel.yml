@@ -1,0 +1,53 @@
+#   Copyright 2018-2023 The University of Birmingham
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at
+#
+#       http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+
+---
+include:
+  - project: 'hog/Hog'
+    file: '/hog.yml'
+    ref: 'Hog2023.2'
+
+#################### example ###########################
+# The PROVIDER variable is used to steer your job to a particular GitLab runner, identified with its tag. If no provider is specified, the default `hog` runner will be used
+# For each item in the matrix, you can define a set of projects to run, and different variables, to configure the workflow as specified in the Hog documentation https://hog.readthedocs.io/en/latest/02-User-Manual/02-Hog-CI/01-GitLab-CI/01-setup-CI.html#environment-variables
+# More info here: https://docs.gitlab.com/ee/ci/yaml/#parallel
+
+generate:
+  extends: .generate_project
+  variables:
+    extends: .vars
+  parallel:
+    matrix:
+      - PROVIDER: runner-tag-1
+        PROJECT_NAME: [proj_1, proj_2]
+        HOG_ONLY_SYNTH: 1
+      - PROVIDER: runner-tag-2
+        PROJECT_NAME: [proj_3]
+      - PROVIDER: mdt-1
+        PROJECT_NAME: [ull_vu13p/ull_vu13_b3a_ucm_mpl, l0mdt_ku15p_ull_ucm]
+        HOG_ONLY_SYNTH: 1
+  tags:
+    - ${PROVIDER}
+
+simulate:
+  extends: .simulate_project
+  variables:
+    extends: .vars
+  parallel:
+    matrix:
+      - PROJECT_NAME: [proj_1, proj_2]
+        PROVIDER: questa
+  allow_failure: false
+  tags:
+    - ${PROVIDER}

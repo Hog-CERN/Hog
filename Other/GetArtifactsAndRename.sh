@@ -153,9 +153,14 @@ else
             PRJ_NAME="${PRJ_DIR%.*}"
             PRJ_NAME="${PRJ_NAME%-*}"
             PRJ_NAME_BASE=$(basename "$PRJ_NAME")
-            PRJ_SHA="${PRJ_DIR##*-hog}"
-            PRJ_SHA=${PRJ_SHA/-dirty/} 
-	        TAG=$(git tag --sort=creatordate --contain "$PRJ_SHA" -l "v*.*.*" | head -1)
+	    if [[ $PRJ_DIR =~ "-([0-9,a-f,A-F]{7})(-dirty)?$" ]]; then
+		PRJ_SHA=${BASH_REMATCH[1]}
+	    else
+		echo "ERROR: The project directory doesn't match the pattern"
+		PRJ_SHA=""
+	    fi
+	    
+	    TAG=$(git tag --sort=creatordate --contain "$PRJ_SHA" -l "v*.*.*" | head -1)
             echo "Hog-INFO: Found project $PRJ_NAME"
             if ! ls "$PRJ_DIR"/"${PRJ_BASE}"* > /dev/null 2>&1; then
                 echo "Hog-INFO: Project $PRJ_NAME does not contain any bitfile..."
@@ -163,9 +168,10 @@ else
             else 
                 PRJ_BINS=("$(ls "$PRJ_DIR"/"${PRJ_BASE}"*)")
             fi
+	    
             # shellcheck disable=SC2048
             for PRJ_BIN in ${PRJ_BINS[*]}; do
-                regex="($PRJ_NAME_BASE)-(.*v[0-9]+\.[0-9]+\.[0-9]+)-hog([0-9,a-f,A-F]{7})(-dirty)?(.+)"
+                regex="($PRJ_NAME_BASE)-(.*v[0-9]+\.[0-9]+\.[0-9]+)-([0-9,a-f,A-F]{7})(-dirty)?(.+)"
                 if [[ $PRJ_BIN =~ $regex ]]
                 then
                     re_proj="${BASH_REMATCH[1]}"

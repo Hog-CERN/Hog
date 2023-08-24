@@ -136,7 +136,7 @@ ResetRepoFiles "./Projects/hog_reset_files"
 lassign [GetRepoVersions [file normalize $repo_path/Top/$group/$proj_name] $repo_path $ext_path] commit version  hog_hash hog_ver  top_hash top_ver  libs hashes vers  cons_ver cons_hash  ext_names ext_hashes  xml_hash xml_ver user_ip_repos user_ip_hashes user_ip_vers
 
 
-set describe [GetHogDescribe $commit]
+set describe [GetHogDescribe $commit $repo_path]
 set dst_dir [file normalize "bin/$group/$proj_name\-$describe"]
 Msg Info "Creating $dst_dir..."
 file mkdir $dst_dir/reports
@@ -196,7 +196,7 @@ if {$diff != ""} {
   Msg CriticalWarning "Repository is not clean, will use current SHA ($this_commit) and create a dirty bitfile..."
 }
 
-lassign [GetHogFiles  -ext_path "$ext_path" -repo_path "$tcl_path/../../" "$tcl_path/../../Top/$group/$proj_name/list/"] listLibraries listProperties
+lassign [GetHogFiles  -ext_path "$ext_path" "$tcl_path/../../Top/$group/$proj_name/list/" "$tcl_path/../../"] listLibraries listProperties
 
 if {!$allow_fail_on_git} {
   foreach library [dict keys $listLibraries] {
@@ -284,7 +284,6 @@ if {[IsXilinx]} {
 set clock_seconds [clock seconds]
 set tt [clock format $clock_seconds -format {%d/%m/%Y at %H:%M:%S}]
 
-# lassign [GetDateAndTime $commit] date timee
 if {[GitVersion 2.9.3]} {
   set date [Git "log -1 --format=%cd --date=format:%d%m%Y $commit"]
   set timee [Git "log -1 --format=%cd --date=format:00%H%M%S $commit"]
@@ -366,7 +365,7 @@ if {[IsXilinx] || [IsSynplify]} {
     file mkdir "$old_path/output_files"
   }
 
-  set  status_file "$old_path/output_files/versions.txt"
+  set status_file "$old_path/output_files/versions.txt"
   project_close
 
 } else {
@@ -394,9 +393,9 @@ if {$flavour != -1} {
 
 set version [HexVersionToString $version]
 if {$group != ""} {
-  puts $status_file "## $group/$proj_name Version Table"
+  puts $status_file "## $group/$proj_name Version Table\n"
 } else {
-  puts $status_file "## $proj_name Version Table"
+  puts $status_file "## $proj_name Version Table\n"
 }
 
 struct::matrix m
@@ -405,30 +404,30 @@ m add columns 7
 m add row  "| \"**File set**\" | \"**Commit SHA**\" | **Version**  |"
 m add row  "| --- | --- | --- |"
 Msg Status " Global SHA: $commit, VER: $version"
-m add row  "| Global | [string tolower $commit] | $version |"
+m add row  "| Global | $commit | $version |"
 
 set cons_ver [HexVersionToString $cons_ver]
 Msg Status " Constraints SHA: $cons_hash, VER: $cons_ver"
-m add row  "| Constraints | [string tolower $cons_hash] | $cons_ver |"
+m add row  "| Constraints | $cons_hash | $cons_ver |"
 
 if {$use_ipbus == 1} {
   set xml_ver [HexVersionToString $xml_ver]
   Msg Status " IPbus XML SHA: $xml_hash, VER: $xml_ver"
-  m add row "| \"IPbus XML\" | [string tolower $xml_hash] | $xml_ver |"
+  m add row "| \"IPbus XML\" | $xml_hash | $xml_ver |"
 }
 set top_ver [HexVersionToString $top_ver]
 Msg Status " Top SHA: $top_hash, VER: $top_ver"
-m add row "| \"Top Directory\" | [string tolower $top_hash] | $top_ver |"
+m add row "| \"Top Directory\" | $top_hash | $top_ver |"
 
 set hog_ver [HexVersionToString $hog_ver]
 Msg Status " Hog SHA: $hog_hash, VER: $hog_ver"
-m add row "| Hog | [string tolower $hog_hash] | $hog_ver |"
+m add row "| Hog | $hog_hash | $hog_ver |"
 
 Msg Status " --- Libraries ---"
 foreach l $libs v $vers h $hashes {
   set v [HexVersionToString $v]
   Msg Status " $l SHA: $h, VER: $v"
-  m add row "| \"**Lib:** $l\" |  [string tolower $h] | $v |"
+  m add row "| \"**Lib:** $l\" | $h | $v |"
 }
 
 if {[llength $user_ip_repos] > 0} {
@@ -438,7 +437,7 @@ if {[llength $user_ip_repos] > 0} {
     set v [HexVersionToString $v]
     set repo_name [file tail $r]
     Msg Status " $repo_name SHA: $h, VER: $v"
-    m add row "| \"**Repo:** $repo_name\" |  [string tolower $h] | $v |"
+    m add row "| \"**Repo:** $repo_name\" | $h | $v |"
   }
 }
 
@@ -446,7 +445,7 @@ if {[llength $ext_names] > 0} {
   Msg Status " --- External Libraries ---"
   foreach e $ext_names eh $ext_hashes {
     Msg Status " $e SHA: $eh"
-    m add row "| \"**Ext:** $e\" | [string tolower $eh] | \" \" |"
+    m add row "| \"**Ext:** $e\" | $eh | \" \" |"
   }
 }
 

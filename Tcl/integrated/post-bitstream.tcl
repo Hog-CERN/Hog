@@ -131,7 +131,7 @@ if {[IsXilinx] && [file exists $main_file]} {
   Msg Info "Evaluating Git sha for $proj_name..."
   lassign [GetRepoVersions [file normalize ./Top/$group_name/$proj_name] $repo_path] sha
 
-  set describe [GetHogDescribe $sha]
+  set describe [GetHogDescribe $sha $repo_path]
   Msg Info "Hog describe set to: $describe"
 
   set ts [clock format [clock seconds] -format {%Y-%m-%d-%H-%M}]
@@ -174,7 +174,7 @@ if {[IsXilinx] && [file exists $main_file]} {
   puts "$repo_path repo_path"
   lassign [GetRepoVersions "$repo_path/Top/$group_name/$name" "$repo_path"] sha
 
-  set describe [GetHogDescribe $sha]
+  set describe [GetHogDescribe $sha $repo_path]
   Msg Info "Git describe set to: $describe"
 
   set ts [clock format [clock seconds] -format {%Y-%m-%d-%H-%M}]
@@ -263,7 +263,7 @@ if {[IsXilinx] && [file exists $main_file]} {
   ##nagelfar variable project
   Msg Info "Evaluating git SHA for $project..."
   lassign [GetRepoVersions [file normalize ./Top/$group_name/$project] $repo_path] sha
-  set describe [GetHogDescribe $sha]
+  set describe [GetHogDescribe $sha $repo_path]
   Msg Info "Git describe set to: $describe"
 
   set ts [clock format [clock seconds] -format {%Y-%m-%d-%H-%M}]

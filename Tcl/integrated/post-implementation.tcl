@@ -61,7 +61,7 @@ set group_name [GetGroupName $proj_dir "$tcl_path/../.."]
 Msg Info "Evaluating Git sha for $proj_name..."
 lassign [GetRepoVersions [file normalize ./Top/$group_name/$proj_name] $repo_path] sha
 
-set describe [GetHogDescribe $sha]
+set describe [GetHogDescribe $sha $repo_path]
 Msg Info "Git describe set to: $describe"
 
 set ts [clock format [clock seconds] -format {%Y-%m-%d-%H-%M}]
@@ -162,7 +162,7 @@ if {[IsXilinx]} {
   Msg Info "Evaluating Git sha for $proj_name..."
   lassign [GetRepoVersions [file normalize ./Top/$group_name/$proj_name] $repo_path] sha
 
-  set describe [GetHogDescribe $sha]
+  set describe [GetHogDescribe $sha $repo_path]
   Msg Info "Git describe set to: $describe"
 
   set ts [clock format [clock seconds] -format {%Y-%m-%d-%H-%M}]

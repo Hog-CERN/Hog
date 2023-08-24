@@ -45,6 +45,9 @@ on:
       HOG_ONLY_SYNTH:
         required: false
         type: boolean
+      HOG_DEBUG_MODE:
+        required: false
+        type: string
     secrets:
       SUBMODULE_CONTENT_PULL_KEY:
         required: true
@@ -122,12 +125,13 @@ jobs:
         name: Checkout Repository
         with:
           fetch-depth: 0
-      - uses: webfactory/ssh-agent@v0.5.4
+      - uses: webfactory/ssh-agent@v0.7.0
         name: SSH-Agent
         with:
           ssh-private-key: ${{ secrets.SUBMODULE_CONTENT_PULL_KEY }}
       - name: Merge And Tag
         run: |
+          git config --system --add safe.directory $(pwd)
           git config --global user.email "$HOG_EMAIL"
           git config --global user.name "$HOG_USER"
           git fetch
@@ -155,8 +159,14 @@ jobs:
               fi;
             fi;
           fi;
-          PULL_PARAMETERS=`curl -H "Accept: application/vnd.github.v3+json" $GITHUB_API_URL/repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER --header  "Authorization: token ${HOG_PUSH_TOKEN}"`
-          # tclsh ./Hog/Tcl/CI/merge_and_tag.tcl -github 1 -mr_par "$PULL_PARAMETERS" -mr_id $PR_NUMBER -main_branch $GITHUB_BASE_REF -source_branch $GITHUB_HEAD_REF -push $GITHUB_HEAD_REF -run_id $GITHUB_RUN_ID
+          MERGE_STATUS=$(git merge --no-commit origin/${GITHUB_BASE_REF})
+          if [ "$MERGE_STATUS" == "Already up to date." ]; then
+            echo "Branch already up-to-date with respect to $GITHUB_BASE_REF";
+          else
+            echo "Branch is outdated with respect to $GITHUB_BASE_REF";
+            printf "Please, merge the latest changes from $GITHUB_BASE_REF with:\ngit fetch && git merge origin/$GITHUB_BASE_REF\n";
+            exit 1;
+          fi;
           git fetch origin refs/notes/*:refs/notes/*
           NEW_TAG=`echo "source Hog/Tcl/hog.tcl; puts v[HexVersionToString [GetVer .]]" | tclsh`
           echo "New tag is $NEW_TAG"
@@ -172,12 +182,13 @@ jobs:
         name: Checkout Repository
         with:
           fetch-depth: 0
-      - uses: webfactory/ssh-agent@v0.5.4
+      - uses: webfactory/ssh-agent@v0.7.0
         name: SSH-Agent
         with:
           ssh-private-key: ${{ secrets.SUBMODULE_CONTENT_PULL_KEY }}
       - name: Doxygen
         run: |
+          git config --system --add safe.directory $(pwd)
           git config --global user.email "$HOG_EMAIL"
           git config --global user.name "$HOG_USER"
           git fetch
@@ -206,7 +217,7 @@ jobs:
         name: Checkout Repository
         with:
           fetch-depth: 0
-      - uses: webfactory/ssh-agent@v0.5.4
+      - uses: webfactory/ssh-agent@v0.7.0
         name: SSH-Agent
         with:
           ssh-private-key: ${{ secrets.SUBMODULE_CONTENT_PULL_KEY }}
@@ -262,6 +273,9 @@ jobs:
               if [ -f "./Projects/$PROJECT_NAME/skip.me" ]; then
                 echo "Hog-CI(info) - CI disabled for $PROJECT_NAME";
               else
+                if [ -n "${{ inputs.HOG_DEBUG_MODE }}" ] && [ "${{ inputs.HOG_DEBUG_MODE }}" == '1' ]; then
+                  echo "Hog-CI(info) - The workflow will be run in verbose mode.";
+                fi;
                 if [ -z "${HOG_NJOBS}" ]; then
                   export HOG_NJOBS=4;
                   echo "Hog-CI(info) - Number of jobs set to $HOG_NJOBS";
@@ -284,10 +298,10 @@ jobs:
                   fi;
                 fi;
                 if [ ${{ inputs.HOG_ONLY_SYNTH }}]; then
-                  export ONLY_SYNTH="-synth_only";
+                  export ONLY_SYNTH=1;
                   echo "Hog-CI(info) - Only the synthesis will be run.";
                 else
-                  export ONLY_SYNTH="";
+                  export ONLY_SYNTH=0;
                   if [ ${{ inputs.HOG_NO_BITSTREAM }}]; then
                     export NO_BITSTREAM="-no_bitstream";
                     echo "Hog-CI(info) - No binary files will be generated.";
@@ -319,7 +333,11 @@ jobs:
                   echo "Hog-CI(info) - no custom files will be reset.";
                 fi;
                 echo "Hog-CI(info) - Launching workflow now...";
-                EXEC_CMD="./Hog/LaunchWorkflow.sh -njobs $HOG_NJOBS $NO_BITSTREAM $ONLY_SYNTH $CHECK_SYNTAX $PROJECT_NAME";
+                if [ $ONLY_SYNTH == '1' ]; then
+                  EXEC_CMD="./Hog/Do -njobs $HOG_NJOBS $NO_BITSTREAM $CHECK_SYNTAX SYNTH $PROJECT_NAME";
+                else
+                  EXEC_CMD="./Hog/Do -njobs $HOG_NJOBS $NO_BITSTREAM $CHECK_SYNTAX WORKFLOW $PROJECT_NAME";
+                fi;
                 if [ -z "$HOG_APPTAINER_IMAGE" ]; then
                   echo $EXEC_CMD;
                   $(echo $EXEC_CMD);
@@ -330,8 +348,6 @@ jobs:
                   fi;
                   apptainer exec -H $PWD $EXTRA_PATH $HOG_APPTAINER_IMAGE /bin/bash -c "PATH=${HOG_PATH}:$PATH; $EXEC_CMD";
                 fi;
-                echo "./Hog/LaunchWorkflow.sh -njobs $HOG_NJOBS $IP_PATH $NO_BITSTREAM $ONLY_SYNTH $CHECK_SYNTAX $PROJECT_NAME";
-                ./Hog/LaunchWorkflow.sh -njobs $HOG_NJOBS $IP_PATH $NO_BITSTREAM $ONLY_SYNTH $CHECK_SYNTAX $PROJECT_NAME;
               fi;
               if [[ -n "$HOG_ONLY_SYNTH" ]] && [[ $HOG_ONLY_SYNTH == '1' ]]; then
                 echo "Hog-CI(info) - Adding version and utilization summaries to note...";
@@ -384,7 +400,7 @@ jobs:
         name: Checkout Repository
         with:
           fetch-depth: 0
-      - uses: webfactory/ssh-agent@v0.5.4
+      - uses: webfactory/ssh-agent@v0.7.0
         name: SSH-Agent
         with:
           ssh-private-key: ${{ secrets.SUBMODULE_CONTENT_PULL_KEY }}
@@ -414,11 +430,14 @@ jobs:
               if [ -f "./Projects/$PROJECT_NAME/skip.me" ]; then
                 echo "CI disabled for $PROJECT_NAME";
               else
+                if [ -n "${{ inputs.HOG_DEBUG_MODE }}" ] && [ "${{ inputs.HOG_DEBUG_MODE }}" == '1' ]; then
+                  echo "Hog-CI(info) - The simulation workflow will be run in verbose mode.";
+                fi;
                 if [ -z "$HOG_SIMULATION_LIB_PATH" ]; then
                   echo 'Simulation library path is not defined';
-                  SIM_CMD="./Hog/LaunchSimulation.sh $PROJECT_NAME";
+                  SIM_CMD="./Hog/Do SIMULATE $PROJECT_NAME";
                 else
-                  SIM_CMD="./Hog/LaunchSimulation.sh $PROJECT_NAME -l $HOG_SIMULATION_LIB_PATH" ;
+                  SIM_CMD="./Hog/Do -lib $HOG_SIMULATION_LIB_PATH SIMULATE $PROJECT_NAME" ;
                 fi
                 if [ -z "$HOG_APPTAINER_IMAGE" ]; then
                   echo $SIM_CMD;
@@ -447,7 +466,7 @@ jobs:
         name: Checkout Repository
         with:
           fetch-depth: 0
-      - uses: webfactory/ssh-agent@v0.5.4
+      - uses: webfactory/ssh-agent@v0.7.0
         name: SSH-Agent
         with:
           ssh-private-key: ${{ secrets.SUBMODULE_CONTENT_PULL_KEY }}
@@ -456,6 +475,7 @@ jobs:
       - name: Collect
         continue-on-error: true
         run: |
+              git config --system --add safe.directory $(pwd)
               git config --global user.email "$HOG_EMAIL"
               git config --global user.name "$HOG_USER"
               git fetch
@@ -482,18 +502,29 @@ jobs:
                   echo "" >> bin/note.md;
                 done;
               fi
-              note_files="versions timing utilization";
-              for f in $note_files; do
-                files=$(find . -name "$f*.txt");
-                if (( ${#files} )); then
-                  for fp in $files; do
-                    if [[ $HOG_PR_MSG == '1' ]]; then
-                      cat $fp >> $old_dir/pr_note.md;
-                    fi;
-                    cat $fp >> note.md;
-                  done;
-                fi;
-              done;
+              # Returns a list of version, utilization and timing files in bin/ sorted alphabetically
+              files=$(find . -name "versions*.txt");
+              if (( ${#files} )); then
+                for fp in $files; do
+                  proj_name=$(echo $fp | sed -E 's|^./(.*)-v[0-9]+\.[0-9]+\.[0-9]+-hog.*|\1|');
+                  cd $(dirname $fp);
+                  echo "## ${proj_name}" >> section.md;
+                  printf "\n\n<p>\n<details>\n<summary>show/hide</summary> \n\n " >> section.md;
+                  ut_files=$(find . -name "utilization*.txt" -o -name "timing*.txt" -o -name "versions.txt");
+                  if (( ${#ut_files} )); then
+                    for ut in $ut_files; do
+                      sed "s|^## ${proj_name} ||" "$ut" >> section.md;
+                    done;
+                  fi;
+                  printf "</details>\n</p>\n\n" >> section.md;
+                  echo " " >> section.md;
+                  if [[ $HOG_MR_MSG == '1' ]]; then
+                    cat section.md >> "$old_dir/pr_note.md";
+                  fi;
+                  cat section.md >> "$CI_PROJECT_DIR/bin/note.md";
+                  cd $old_dir/bin;
+                done;
+              fi;
               cd $old_dir
               if [[ -z "$HOG_MR_MSG" ]] || [[ $HOG_MR_MSG == '1' ]] || [[ $HOG_MR_MSG == '2' ]]; then
                 echo "Hog-CI(info) - Writing note on GitHub website...";
@@ -515,7 +546,7 @@ jobs:
         name: Checkout
         with:
           fetch-depth: 0
-      - uses: webfactory/ssh-agent@v0.5.4
+      - uses: webfactory/ssh-agent@v0.7.0
         name: SSH-Agent
         with:
           ssh-private-key: ${{ secrets.SUBMODULE_CONTENT_PULL_KEY }}

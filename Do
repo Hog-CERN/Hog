@@ -71,7 +71,7 @@ for executable in "${executables[@]}"; do
 done
 
 if [ "$found" == 1 ]; then
-    Logger $executable_path $hog_dir/Tcl/launch.tcl "$@" &
+    Logger $executable_path $hog_dir/Tcl/launch.tcl "$@"
     # exit $?
     Hog_exit
 else

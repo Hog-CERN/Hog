@@ -429,9 +429,11 @@ function Hog_exit () {
 function Logger(){
   Msg Debug "$*"
   $* > >(log_stdout "stdout") 2> >(log_stdout "stderr" >&2) &
-  pid=$!
-  Msg Debug "pid = $pid"
-  wait $pid
+  tcl_pid=$!
+  Msg Debug "pid = $tcl_pid"
+  while kill -0 $tcl_pid 2>/dev/null; do
+      sleep 1
+  done
 }
 
 # @function Msg

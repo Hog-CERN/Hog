@@ -1,6 +1,21 @@
 #!/bin/bash
 # Array of IDE executables, the paths where tclsh is located wrt to them, and the tclsh executable name.
 # The separator must be comma and space and the path separator in the second element must be : with no spaces
+. $(dirname "$0")/Other/CommonFunctions.sh
+msg_counter init
+DEBUG_VERBOSE=5
+ROOT_PROJECT_FOLDER=$(pwd)
+LOG_INFO_FILE=$ROOT_PROJECT_FOLDER"/hog_info.log"
+LOG_WAR_ERR_FILE=$ROOT_PROJECT_FOLDER"/hog_warning_errors.log"
+#  if [[ -n "$HOG_COLORED" ]]; then
+#     new_print_hog "$(dirname "$0")"
+#   else
+#     print_hog "$(dirname "$0")"
+#   fi
+  if [[ -n $HOG_LOGGER ]]; then
+    Logger_Init "$*"
+  fi
+
 executables=(
     "tclsh, ., tclsh"
     "vivado, unwrapped/lnx64.o/:/unwrapped/win64.o/:/unwrapped/lnx32.o/:/unwrapped/win32.o/, tclsh8.5"
@@ -56,8 +71,9 @@ for executable in "${executables[@]}"; do
 done
 
 if [ "$found" == 1 ]; then
-    $executable_path $hog_dir/Tcl/launch.tcl "$@" 
-    exit $?
+    Logger $executable_path $hog_dir/Tcl/launch.tcl "$@" &
+    # exit $?
+    Hog_exit
 else
     echo "Error: No IDE exectuable found in PATH. You need an IDE in your PATH to use Hog." >&2
     exit 1

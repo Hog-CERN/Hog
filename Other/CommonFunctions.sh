@@ -382,14 +382,14 @@ function log_stdout(){
 # @param[in] execution line to process
 function Logger_Init() {
   {
-    print_log_hog $HOG_GIT_VERSION
+    # print_log_hog $HOG_GIT_VERSION
     echo "-----------------------------------------------"
     echo " HOG INFO LOG "
     echo " CMD : ${1} "
     echo "-----------------------------------------------"
   } > $LOG_INFO_FILE
   {
-    print_log_hog $HOG_GIT_VERSION
+    # print_log_hog $HOG_GIT_VERSION
     echo "-----------------------------------------------"
     echo " HOG WARNINGS AND ERRORS"
     echo " CMD : ${1} "
@@ -428,7 +428,10 @@ function Hog_exit () {
 # @param[in] execution line to process
 function Logger(){
   Msg Debug "$*"
-  $* > >(log_stdout "stdout") 2> >(log_stdout "stderr" >&2)
+  $* > >(log_stdout "stdout") 2> >(log_stdout "stderr" >&2) &
+  pid=$!
+  Msg Debug "pid = $pid"
+  wait $pid
 }
 
 # @function Msg

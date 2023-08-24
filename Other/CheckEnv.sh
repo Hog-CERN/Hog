@@ -207,7 +207,7 @@ else
     echo "defined."
 fi
 
-if [ -n "$HOG_OFFICIAL_BIN_EOS_PATH" ]; then
+if [ -n "$HOG_OFFICIAL_BIN_EOS_PATH" ] || [[ $HOG_OFFICIAL_BIN_PATH == /eos/* ]]; then
     echo -n "Variable: EOS_PASSWORD is "
     if [ -z "$EOS_PASSWORD" ]; then
         if [ -z "$HOG_PASSWORD" ]; then
@@ -308,11 +308,16 @@ else
 fi
 echo --------------------------------
 
-echo -n "Variable: HOG_OFFICIAL_BIN_EOS_PATH is "
-if [ -z "$HOG_OFFICIAL_BIN_EOS_PATH" ]; then
-    echo "NOT defined. Hog-CI will not be able to copy official bitfile to EOS."
+echo -n "Variable: HOG_OFFICIAL_BIN_PATH is "
+if [ -z "$HOG_OFFICIAL_BIN_PATH" ]; then
+    echo "NOT defined."
+    if [ -z "$HOG_OFFICIAL_BIN_EOS_PATH" ]; then
+        echo "Hog-CI will not be able to copy official bitfile to EOS."
+    else
+        echo "Variable: HOG_OFFICIAL_BIN_EOS_PATH is defined. From Hog2024.1 this variable will be deprecated. Please, use HOG_OFFICIAL_BIN_PATH instead."
+    fi
 else
-    echo "defined."
+    echo "defined. Hog-CI will copy the official bitfiles to $HOG_OFFICIAL_BIN_PATH"
 fi
 echo ================================
 echo

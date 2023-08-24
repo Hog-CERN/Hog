@@ -25,6 +25,7 @@
 set CI_STAGES {"generate_project" "simulate_project"}
 set CI_PROPS {"-synth_only"}
 
+
 #### FUNCTIONS
 
 proc GetSimulators {} {
@@ -156,7 +157,12 @@ proc Msg {level msg {title ""}} {
     }
   } else {
     # Tcl Shell / Libero
-    puts "*** Hog:$title $vlevel $msg"
+    if {$vlevel != "STATUS"} {
+      puts "$vlevel: \[Hog:$title\] $msg"
+    } else {
+      puts $msg
+    }
+    
     if {$qlevel == "error"} {
       exit 1
     }
@@ -3209,7 +3215,6 @@ proc ReadConf {file_name} {
   return $properties
 }
 
-
 ## Write a property configuration file from a dictionary
 #
 #  @param[in]    file_name the configuration file
@@ -3383,7 +3388,6 @@ proc GetGenericFromConf {proj_dir target {sim 0}} {
   set top_dir "Top/$proj_dir"
   set conf_file "$top_dir/hog.conf"
   set conf_index 0
-  # Msg Info " Top dir = $top_dir"
   if {$sim == 1} {
     set conf_file "$top_dir/sim.conf"
     set conf_index 1
@@ -3655,13 +3659,11 @@ proc WriteGenerics {mode design date timee commit version top_hash top_ver hog_h
                           "CON_VER=[FormatGeneric $cons_ver]" \
                           "CON_SHA=[FormatGeneric $cons_hash]"]
   # xml hash
-  #'"
   if {$xml_hash != "" && $xml_ver != ""} {
     lappend generic_string \
           "XML_VER=[FormatGeneric $xml_ver]" \
           "XML_SHA=[FormatGeneric $xml_hash]"
   }
-  #'"
   #set project specific lists
   foreach l $libs v $vers h $hashes {
     set ver "[string toupper $l]_VER=[FormatGeneric $v]"
@@ -3684,20 +3686,20 @@ proc WriteGenerics {mode design date timee commit version top_hash top_ver hog_h
   if {$flavour != -1} {
     lappend generic_string "FLAVOUR=$flavour"
   }
-  #'"
+
   # Dealing with project generics in Vivado
-  Msg Debug " design = $design"
-  # exit 1
   set prj_generics [GetGenericFromConf $design "Vivado"]
   set generic_string "$prj_generics $generic_string"
 
   # Extract the generics from the top level source file 
   if {[IsXilinx]} {
+    # Top File can be retrieved only at creation time or in ISE
+    if {$mode == "create" || [IsISE]} {
+
     set top_file [GetTopFile]
     set top_name [GetTopModule]
 
-    if {[file exists $top_file]} {
-
+      if {[file exists $top_file]} {
         set generics [GetFileGenerics $top_file $top_name]
 
         Msg Debug "Found top level generics $generics in $top_file"
@@ -3705,19 +3707,20 @@ proc WriteGenerics {mode design date timee commit version top_hash top_ver hog_h
         set filtered_generic_string ""
 
         foreach generic_to_set [split [string trim $generic_string]] {
-            set key [lindex [split $generic_to_set "="] 0]
-            if {[dict exists $generics $key]} {
-                Msg Debug "Hog generic $key found in $top_name"
-                lappend filtered_generic_string "$generic_to_set"
-            } else {
-	      Msg Warning "Generic $key is passed by Hog but is NOT present in $top_name."
-            }
+          set key [lindex [split $generic_to_set "="] 0]
+          if {[dict exists $generics $key]} {
+            Msg Debug "Hog generic $key found in $top_name"
+            lappend filtered_generic_string "$generic_to_set"
+          } else {
+            Msg Warning "Generic $key is passed by Hog but is NOT present in $top_name."
+          }
         }
 
         # only filter in ISE
         if {[IsISE]} {
             set generic_string $filtered_generic_string
         }
+      }
     }
     
     set_property generic $generic_string [current_fileset]
@@ -3761,7 +3764,7 @@ proc GetIDEVersion {} {
   return $ver
 }
 
-## Get the IDE (Vivado,Quartus,PlanAhead) version from the conf file she-bang
+## Get the IDE (Vivado,Quartus,PlanAhead,Libero) version from the conf file she-bang
 #
 #  @param[in]    conf_file The hog.conf file
 proc GetIDEFromConf {conf_file} {

@@ -153,6 +153,7 @@ else
             PRJ_NAME="${PRJ_DIR%.*}"
             PRJ_NAME="${PRJ_NAME%-*}"
             PRJ_NAME_BASE=$(basename "$PRJ_NAME")
+            # Regex must be in a variable to work in bash scripts...
             regex_sha="-([0-9,a-f,A-F]{7})(-dirty)?$"
             if [[ $PRJ_DIR =~ $regex_sha ]]; then
                 PRJ_SHA=${BASH_REMATCH[1]}

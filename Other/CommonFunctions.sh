@@ -432,7 +432,7 @@ function Logger(){
   tcl_pid=$!
   Msg Debug "pid = $tcl_pid"
   while kill -0 $tcl_pid 2>/dev/null; do
-      sleep 1
+    sleep 1
   done
 }
 

@@ -4023,7 +4023,12 @@ proc RemoveEmptyKeys {d} {
 
 #print logo in images/hog_logo.txt
 proc Logo { {repo_path .} } {
-  set logo_file "$repo_path/Hog/images/hog_logo.txt"
+  if {[info exists ::env(HOG_COLORED)] && [string match "ENABLED" $::env(HOG_COLORED)]} {
+    set logo_file "$repo_path/Hog/images/hog_logo_color.txt"
+  } else {
+    set logo_file "$repo_path/Hog/images/hog_logo.txt"
+  }
+  # set logo_file "$repo_path/Hog/images/hog_logo.txt"
 
   set old_path [pwd]
   cd $repo_path/Hog

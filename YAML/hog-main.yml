@@ -235,7 +235,10 @@ archive_binary_files:
       fi;
     - mkdir zipped
     - cd bin
-    - project_dirs=$(find . -name "*.bit" -o -name "*.pof" -o -name "*.bif" -o -name "*.bin" | xargs dirname | sort | uniq)
+    - bit_files=$(find . -name "*.bit" -o -name "*.pof" -o -name "*.bif" -o -name "*.bin")
+    - if [ "$bit_files" != "" ]; then
+        project_dirs=$(echo $bit_files | xargs dirname | sort | uniq);
+      fi;
     - if [ -z ${HOG_MAX_ZIP_SIZE+x} ]; then
         export HOG_MAX_ZIP_SIZE=10m;
         echo "Hog-CI(info) - Maximum size of artifact zip set to $HOG_MAX_ZIP_SIZE";

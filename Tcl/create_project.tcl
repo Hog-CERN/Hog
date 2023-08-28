@@ -178,9 +178,9 @@ proc AddProjectFiles {} {
   ##############
 
   if {[file isdirectory $globalSettings::list_path]} {
-      set list_files [glob -directory $globalSettings::list_path "*"]
+    set list_files [glob -directory $globalSettings::list_path "*"]
   } else {
-      Msg Error "No list directory found at  $globalSettings::list_path"
+    Msg Error "No list directory found at  $globalSettings::list_path"
   }
 
   if {[IsISE]} {
@@ -315,7 +315,7 @@ proc ConfigureSynthesis {} {
       set_global_assignment -name PRE_FLOW_SCRIPT_FILE quartus_sh:$globalSettings::pre_synth
 
     } elseif {[IsLibero]} {
-       configure_tool -name {SYNTHESIZE} -params SYNPLIFY_TCL_FILE:$globalSettings::pre_synth
+      configure_tool -name {SYNTHESIZE} -params SYNPLIFY_TCL_FILE:$globalSettings::pre_synth
     }
 
     Msg Debug "Setting $globalSettings::pre_synth to be run before synthesis"
@@ -485,7 +485,7 @@ proc ConfigureSimulation {} {
         continue
       }
       if {[IsVivado]} {
-	set_property -name {xsim.elaborate.load_glbl} -value {true} -objects [get_filesets $simset]
+        set_property -name {xsim.elaborate.load_glbl} -value {true} -objects [get_filesets $simset]
       }
       # Setting Simulation Properties
       if {[dict exists $globalSettings::SIM_PROPERTIES $simset]} {
@@ -647,15 +647,15 @@ proc ConfigureProperties {} {
 proc ManageIPs {} {
   # set the current impl run
   current_run -implementation [get_runs impl_1]
-  
+
   ##############
   # UPGRADE IP #
   ##############
   set ips [get_ips *]
-  
+
   Msg Info "Running report_ip_status, before upgrading and handling IPs..."
   report_ip_status
-  
+
   #Pull ips from repo
   if {$globalSettings::HOG_IP_PATH != ""} {
     set ip_repo_path $globalSettings::HOG_IP_PATH
@@ -698,7 +698,7 @@ proc CreateProject args {
     {simlib_path.arg  "" "Path of simulation libs"}
     {verbose "If set, launch the script in verbose mode."}
   }
-	
+
   set usage "Create Vivado/ISE/Quartus/Libero project.\nUsage: CreateProject \[OPTIONS\] <project> <repository path>\n Options:"
 
   if {[catch {array set options [cmdline::getoptions args $parameters $usage]}] || [llength $args] < 2 ||[lindex $args 0] eq""} {
@@ -718,7 +718,7 @@ proc CreateProject args {
   if { $options(verbose) == 1 } {
     variable ::DEBUG_MODE 1
   }
-  
+
   if {[IsVivado]} {
     if {$options(simlib_path)!= ""} {
       if {[IsRelativePath $options(simlib_path)] == 0} {
@@ -732,27 +732,27 @@ proc CreateProject args {
       Msg Info "Simulation library path set to default $globalSettings::repo_path/SimulationLib"
     }
   }
-  
-  
+
+
   set proj_dir [file normalize $globalSettings::repo_path/Top/$globalSettings::DESIGN]
   lassign [GetConfFiles $proj_dir] conf_file sim_file pre_file post_file
-  
+
   set user_repo 0
   if {[file exists $conf_file]} {
     Msg Info "Parsing configuration file $conf_file..."
     SetGlobalVar PROPERTIES [ReadConf $conf_file]
-    
+
     #Checking Vivado/Quartus/ISE/Libero version
     set actual_version [GetIDEVersion]
     lassign [GetIDEFromConf $conf_file] ide conf_version
     if {$conf_version != "0.0.0"} {
-      
-      
+
+
       set a_v [split $actual_version "."]
       set c_v [split $conf_version "."]
-      
+
       if { [llength $a_v] < 2} {
-	      Msg Error "Couldn't parse IDE version: $actual_version."
+        Msg Error "Couldn't parse IDE version: $actual_version."
       } elseif {[llength $a_v] == 2} {
         lappend a_v 0
       }
@@ -761,7 +761,7 @@ proc CreateProject args {
       } elseif {[llength $c_v] == 2} {
         lappend c_v 0
       }
-      
+
       set comp [CompareVersions $a_v $c_v]
       if {$comp == 0} {
         Msg Info "Project version and $ide version match: $conf_version."
@@ -784,7 +784,7 @@ proc CreateProject args {
     } else {
       Msg Error "No main section found in $conf_file, make sure it has a section called \[main\] containing the mandatory properties."
     }
-    
+
     if {[file exists $sim_file]} {
       Msg Info "Parsing simulation configuration file $sim_file..."
       SetGlobalVar SIM_PROPERTIES [ReadConf $sim_file]
@@ -794,8 +794,8 @@ proc CreateProject args {
   } else {
     Msg Error "$conf_file was not found in your project directory, please create one."
   }
-  
-  
+
+
   if {![IsLibero]} {
     SetGlobalVar PART
   }
@@ -808,17 +808,17 @@ proc CreateProject args {
       SetGlobalVar PACKAGE
     }
   }
-  
+
   SetGlobalVar TARGET_SIMULATOR "ModelSim"
-  
+
   if {[info exists env(HOG_EXTERNAL_PATH)]} {
     set globalSettings::HOG_EXTERNAL_PATH $env(HOG_EXTERNAL_PATH)
   } else {
     set globalSettings::HOG_EXTERNAL_PATH ""
   }
-  
+
   #Derived variables from now on...
-  
+
   set build_dir_name "Projects"
   set globalSettings::group_name                  [file dirname $globalSettings::DESIGN]
   set globalSettings::pre_synth_file              "pre-synthesis.tcl"
@@ -836,7 +836,7 @@ proc CreateProject args {
   set globalSettings::top_name                    [file rootname $globalSettings::top_name]
   set globalSettings::synth_top_module            "top_$globalSettings::top_name"
   set globalSettings::user_ip_repo                ""
-  
+
   set globalSettings::pre_synth           [file normalize "$globalSettings::tcl_path/integrated/$globalSettings::pre_synth_file"]
   set globalSettings::post_synth          [file normalize "$globalSettings::tcl_path/integrated/$globalSettings::post_synth_file"]
   set globalSettings::pre_impl            [file normalize "$globalSettings::tcl_path/integrated/$globalSettings::pre_impl_file"]
@@ -845,29 +845,29 @@ proc CreateProject args {
   set globalSettings::post_bit            [file normalize "$globalSettings::tcl_path/integrated/$globalSettings::post_bit_file"]
   set globalSettings::quartus_post_module [file normalize "$globalSettings::tcl_path/integrated/$globalSettings::quartus_post_module_file"]
   set globalSettings::LIBERO_MANDATORY_VARIABLES {"FAMILY" "PACKAGE" "DIE" }
-	
+
   if {[file exists $pre_file]} {
     Msg Info "Found pre-creation Tcl script $pre_file, executing it..."
     source $pre_file
   }
-  
+
   if {[info exists env(HOG_IP_PATH)]} {
     set globalSettings::HOG_IP_PATH $env(HOG_IP_PATH)
   } else {
     set globalSettings::HOG_IP_PATH ""
   }
-  
+
   InitProject
   AddProjectFiles
   ConfigureSynthesis
   ConfigureImplementation
   ConfigureSimulation
-  
+
   if {[IsVivado]} {
     # Use HandleIP to pull IPs from HOG_IP_PATH if specified
     ManageIPs
   }
-  
+
   if {[IsQuartus]} {
     set fileName_old [file normalize "./hogTmp/.hogQsys.md5"]
     set fileDir  [file normalize "$globalSettings::build_dir/.hog/"]
@@ -881,7 +881,7 @@ proc CreateProject args {
       file delete -force -- "./hogTmp"
     }
   }
-  
+
   if {[file exists $post_file]} {
     Msg Info "Found post-creation Tcl script $post_file, executing it..."
     source $post_file
@@ -890,37 +890,37 @@ proc CreateProject args {
       build_design_hierarchy
     }
   }
-  
+
   # Check extra IPs
-  
+
   lassign [GetHogFiles -ext_path "$globalSettings::HOG_EXTERNAL_PATH" "$globalSettings::repo_path/Top/$globalSettings::group_name/$globalSettings::DESIGN/list/" $globalSettings::repo_path] listLibraries listProperties listFilesets
-  
+
   CheckExtraFiles $listLibraries
-  
+
   if {[IsXilinx]} {
     set old_path [pwd]
     cd $globalSettings::repo_path
     set flavour [GetProjectFlavour $globalSettings::DESIGN]
     # Getting all the versions and SHAs of the repository
     lassign [GetRepoVersions [file normalize $globalSettings::repo_path/Top/$globalSettings::group_name/$globalSettings::DESIGN] $globalSettings::repo_path $globalSettings::HOG_EXTERNAL_PATH] commit version  hog_hash hog_ver  top_hash top_ver  libs hashes vers  cons_ver cons_hash  ext_names ext_hashes  xml_hash xml_ver user_ip_repos user_ip_hashes user_ip_vers
-    
+
     set this_commit  [GetSHA]
-    
+
     if {$commit == 0 } {
       set commit $this_commit
     }
-    
+
     if {$xml_hash != 0} {
       set use_ipbus 1
     } else {
       set use_ipbus 0
     }
-    
-    
+
+
     lassign [GetDateAndTime $commit] date timee
     WriteGenerics "create" $globalSettings::group_name/$globalSettings::DESIGN $date $timee $commit $version $top_hash $top_ver $hog_hash $hog_ver $cons_ver $cons_hash $libs $vers $hashes $ext_names $ext_hashes $user_ip_repos $user_ip_vers $user_ip_hashes $flavour $xml_ver $xml_hash
     cd $old_path
   }
-  
+
   Msg Info "Project $globalSettings::DESIGN created successfully in [Relative $globalSettings::repo_path $globalSettings::build_dir]."
 }

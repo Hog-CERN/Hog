@@ -44,7 +44,7 @@ set bin_dir [file normalize "$repo_path/bin"]
 if {[IsXilinx]} {
   # Binary files are called .bit for ISE and for Vivado unless the chip is a Versal
   set fw_file_ext "bit"
-  
+
   # Vivado + PlanAhead
   if {[IsISE]} {
     # planAhead
@@ -57,7 +57,7 @@ if {[IsXilinx]} {
       set fw_file_ext "bif"
     }
   }
-  
+
   set main_file   [file normalize [lindex [glob -nocomplain "$work_path/*.$fw_file_ext"] 0]]
   set proj_name [file tail [file normalize $work_path/../../]]
   set proj_dir [file normalize "$work_path/../.."]
@@ -139,7 +139,7 @@ if {[IsXilinx] && [file exists $main_file]} {
   set dst_dir [file normalize "$bin_dir/$group_name/$proj_name\-$describe"]
   set dst_main [file normalize "$dst_dir/$proj_name\-$describe.$fw_file_ext"]
   set dst_xml [file normalize "$dst_dir/xml"]
-  
+
   Msg Info "Creating $dst_dir..."
   file mkdir $dst_dir
 
@@ -149,7 +149,7 @@ if {[IsXilinx] && [file exists $main_file]} {
   # LTX file for ILA, needs a special treatment...
   set ltx_file "$work_path/$top_name.ltx"
   write_debug_probes -quiet $ltx_file
-  
+
   # Additional files
   foreach e $additional_ext {
     set orig [file normalize "$work_path/$top_name.$e"]
@@ -160,7 +160,7 @@ if {[IsXilinx] && [file exists $main_file]} {
     } else {
       Msg Debug "File: $orig not found."
     }
-      
+
   }
 
 
@@ -298,7 +298,7 @@ if {[IsXilinx] && [file exists $main_file]} {
     Msg Info "Copying srm file $srm_file into $dst_srm..."
     file copy -force $srm_file $dst_map
   }
-  
+
   if {[file exists $srs_file]} {
     Msg Info "Copying srs file $srs_file into $dst_srs..."
     file copy -force $srs_file $dst_map

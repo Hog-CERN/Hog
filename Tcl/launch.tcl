@@ -321,6 +321,18 @@ if {[IsXilinx]} {
     source  $tcl_path/../../Hog/Tcl/integrated/pre-synthesis.tcl
   }
 
+  ## Create bin folder for all cases
+  #Go to repository path
+  cd $repo_path
+
+  lassign [GetRepoVersions [file normalize ./Top/$project_name] $repo_path] sha
+  set describe [GetHogDescribe $sha $repo_path]
+  Msg Info "Git describe set to $describe"
+
+  set dst_dir [file normalize "$bin_dir/$project_name\-$describe"]
+
+  file mkdir $dst_dir
+
   if {$do_synthesis == 1} {
     launch_runs synth_1  -jobs $options(njobs) -dir $main_folder
     wait_on_run synth_1
@@ -513,17 +525,6 @@ if {[IsXilinx]} {
         Msg Status "THS: $ths"
       }
     }
-
-    #Go to repository path
-    cd $repo_path
-
-    lassign [GetRepoVersions [file normalize ./Top/$project_name] $repo_path] sha
-    set describe [GetHogDescribe $sha $repo_path]
-    Msg Info "Git describe set to $describe"
-
-    set dst_dir [file normalize "$bin_dir/$project_name\-$describe"]
-
-    file mkdir $dst_dir
 
     #Timing file
     set timing_files [ glob -nocomplain "$main_folder/timing_*.txt" ]

@@ -321,18 +321,6 @@ if {[IsXilinx]} {
     source  $tcl_path/../../Hog/Tcl/integrated/pre-synthesis.tcl
   }
 
-  ## Create bin folder for all cases
-  #Go to repository path
-  cd $repo_path
-
-  lassign [GetRepoVersions [file normalize ./Top/$project_name] $repo_path] sha
-  set describe [GetHogDescribe $sha $repo_path]
-  Msg Info "Git describe set to $describe"
-
-  set dst_dir [file normalize "$bin_dir/$project_name\-$describe"]
-
-  file mkdir $dst_dir
-
   if {$do_synthesis == 1} {
     launch_runs synth_1  -jobs $options(njobs) -dir $main_folder
     wait_on_run synth_1
@@ -526,6 +514,23 @@ if {[IsXilinx]} {
       }
     }
 
+    #Go to repository path
+    cd $repo_path
+
+    lassign [GetRepoVersions [file normalize ./Top/$project_name] $repo_path] sha
+    set describe [GetHogDescribe $sha $repo_path]
+    Msg Info "Git describe set to $describe"
+
+    set dst_dir [file normalize "$bin_dir/$project_name\-$describe"]
+
+    file mkdir $dst_dir
+
+    #Version table
+    if {[file exists $main_folder/versions.txt]} {
+      file copy -force $main_folder/versions.txt $dst_dir
+    } else {
+      Msg Warning "No versions file found in $main_folder/versions.txt"
+    }
     #Timing file
     set timing_files [ glob -nocomplain "$main_folder/timing_*.txt" ]
     set timing_file [file normalize [lindex $timing_files 0]]
@@ -536,15 +541,6 @@ if {[IsXilinx]} {
       Msg Warning "No timing file found, not a problem if running locally"
     }
 
-  }
-
-  if {$do_synthesis == 1 || $do_implementation == 1 } {
-    # Version table
-    if {[file exists $main_folder/versions.txt]} {
-      file copy -force $main_folder/versions.txt $dst_dir
-    } else {
-      Msg Warning "No versions file found in $main_folder/versions.txt"
-    }
   }
 
   if {$do_simulation == 1} {

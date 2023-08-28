@@ -226,9 +226,9 @@
     - if [ ! -f "./Projects/$PROJECT_NAME/skip.me" ]; then
         if [[ -n "$HOG_ONLY_SYNTH" ]] && [[ $HOG_ONLY_SYNTH == '1' ]]; then
           echo "Hog-CI(info) - Adding version and utilization summaries to note...";
-          if [[ -d "$CI_PROJECT_DIR/Projects/$PROJECT_NAME/$PROJECT_NAME.runs/" ]]; then
-            cat $CI_PROJECT_DIR/Projects/$PROJECT_NAME/$PROJECT_NAME.runs/versions* > note.md;
-            cp $CI_PROJECT_DIR/Projects/$PROJECT_NAME/$PROJECT_NAME.runs/versions* $CI_PROJECT_DIR/bin/$PROJECT_NAME*/;
+          if [[ -d "$CI_PROJECT_DIR/Projects/$PROJECT_NAME/$(basename PROJECT_NAME).runs/" ]]; then
+            cat $CI_PROJECT_DIR/Projects/$PROJECT_NAME/$(basename PROJECT_NAME).runs/versions* > note.md;
+            cp $CI_PROJECT_DIR/Projects/$PROJECT_NAME/$(basename PROJECT_NAME).runs/versions* $CI_PROJECT_DIR/bin/$PROJECT_NAME*/;
           fi;
           if [[ -d "$CI_PROJECT_DIR/Projects/$PROJECT_NAME/output_files/" ]]; then
             cat $CI_PROJECT_DIR/Projects/$PROJECT_NAME/output_files/versions* > note.md;

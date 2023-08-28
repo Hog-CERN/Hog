@@ -351,9 +351,9 @@ jobs:
               fi;
               if [[ -n "$HOG_ONLY_SYNTH" ]] && [[ $HOG_ONLY_SYNTH == '1' ]]; then
                 echo "Hog-CI(info) - Adding version and utilization summaries to note...";
-                if [[ -d "Projects/$PROJECT_NAME/$PROJECT_NAME.runs/" ]]; then
-                  cat Projects/$PROJECT_NAME/$PROJECT_NAME.runs/versions* > note.md;
-                  cp Projects/$PROJECT_NAME/$PROJECT_NAME.runs/versions* bin/$PROJECT_NAME*/;
+                if [[ -d "Projects/$PROJECT_NAME/$(basename PROJECT_NAME).runs/" ]]; then
+                  cat Projects/$PROJECT_NAME/$(basename PROJECT_NAME).runs/versions* > note.md;
+                  cp Projects/$PROJECT_NAME/$(basename PROJECT_NAME).runs/versions* bin/$PROJECT_NAME*/;
                 fi;
                 if [[ -d "Projects/$PROJECT_NAME/output_files/" ]]; then
                   cat Projects/$PROJECT_NAME/output_files/versions* > note.md;

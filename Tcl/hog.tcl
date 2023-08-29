@@ -4055,10 +4055,14 @@ proc CheckLatestHogRelease {{repo_path .}} {
   set current_sha [Git "log $current_ver -1 --format=format:%H"]
   Msg Debug "Current SHA: $current_sha"  
 
-  Msg Info "Checking for latest Hog release, can take up to 5 seconds..."
   #We should find a proper way of checking for timeout using vwait, this'll do for now
-  ExecuteRet timeout 5s git fetch
-
+  if {[OS] == "windows" } {
+	Msg Warning "On windows we cannot set a timeout on 'git fetch', hopefully nothing will go wrong..."
+    Git fetch
+  } else {	
+	Msg Info "Checking for latest Hog release, can take up to 5 seconds..."
+    ExecuteRet timeout 5s git fetch
+  }
   set master_ver [Git "describe origin/master"]
   Msg Debug "Master version: $master_ver"  
   set master_sha [Git "log $master_ver -1 --format=format:%H"]    

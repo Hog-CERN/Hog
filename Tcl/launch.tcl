@@ -242,8 +242,15 @@ if { $options(ext_path) != ""} {
 if {$options(lib)!= ""} {
   set lib_path [file normalize $options(lib)]
 } else {
-  set lib_path [file normalize "$repo_path/SimulationLib"]
-  #we should check if it exists
+  if {[info exists env(HOG_SIMULATION_LIB_PATH)]} {
+    set lib_path $env(HOG_SIMULATION_LIB_PATH)
+  } else {
+    if {[file exists "$repo_path/SimulationLib"]} {
+      set lib_path [file normalize "$repo_path/SimulationLib"]
+    } else {
+      set lib_path ""
+    }
+  }
 }
 
 

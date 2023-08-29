@@ -433,12 +433,7 @@ jobs:
                 if [ -n "${{ inputs.HOG_DEBUG_MODE }}" ] && [ "${{ inputs.HOG_DEBUG_MODE }}" == '1' ]; then
                   echo "Hog-CI(info) - The simulation workflow will be run in verbose mode.";
                 fi;
-                if [ -z "$HOG_SIMULATION_LIB_PATH" ]; then
-                  echo 'Simulation library path is not defined';
-                  SIM_CMD="./Hog/Do SIMULATE $PROJECT_NAME";
-                else
-                  SIM_CMD="./Hog/Do -lib $HOG_SIMULATION_LIB_PATH SIMULATE $PROJECT_NAME" ;
-                fi
+                SIM_CMD="./Hog/Do SIMULATE $PROJECT_NAME";
                 if [ -z "$HOG_APPTAINER_IMAGE" ]; then
                   echo $SIM_CMD;
                   $(echo $SIM_CMD);

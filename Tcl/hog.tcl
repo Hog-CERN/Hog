@@ -4057,10 +4057,10 @@ proc CheckLatestHogRelease {{repo_path .}} {
 
   #We should find a proper way of checking for timeout using vwait, this'll do for now
   if {[OS] == "windows" } {
-	Msg Warning "On windows we cannot set a timeout on 'git fetch', hopefully nothing will go wrong..."
+    Msg Info "On windows we cannot set a timeout on 'git fetch', hopefully nothing will go wrong..."
     Git fetch
   } else {	
-	Msg Info "Checking for latest Hog release, can take up to 5 seconds..."
+    Msg Info "Checking for latest Hog release, can take up to 5 seconds..."
     ExecuteRet timeout 5s git fetch
   }
   set master_ver [Git "describe origin/master"]

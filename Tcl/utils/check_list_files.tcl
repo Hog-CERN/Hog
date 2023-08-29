@@ -453,7 +453,7 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
     WriteConf $confFile $newConfDict "vivado $version"
     
   }
- } 
+ }
 
 set sim_conf "$repo_path/Top/$group_name/$project_name/sim.conf"
 # Checking simulation settings

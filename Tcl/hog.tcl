@@ -112,7 +112,7 @@ proc Msg {level msg {title ""}} {
   set level [string tolower $level]
 
   if {$title == ""} {set title [lindex [info level [expr {[info level]-1}]] 0]}
-  
+
   if {$level == 0 || $level == "status" || $level == "extra_info"} {
     set vlevel {STATUS}
     set qlevel info
@@ -136,7 +136,7 @@ proc Msg {level msg {title ""}} {
     } else {
       return
     }
-    
+
   } else {
     puts "Hog Error: level $level not defined"
     exit -1
@@ -162,7 +162,7 @@ proc Msg {level msg {title ""}} {
     } else {
       puts $msg
     }
-    
+
     if {$qlevel == "error"} {
       exit 1
     }
@@ -414,7 +414,7 @@ proc CompareVersions {ver1 ver2} {
   set v2 "1$v2"
 
   if {[string is integer $v1] && [string is integer $v2]} {
-  
+
     set ver1 [expr {[scan [lindex $ver1 0] %d]*100000 + [scan [lindex $ver1 1] %d]*1000 + [scan [lindex $ver1 2] %d]}]
     set ver2 [expr {[scan [lindex $ver2 0] %d]*100000 + [scan [lindex $ver2 1] %d]*1000 + [scan [lindex $ver2 2] %d]}]
 
@@ -636,7 +636,7 @@ proc ReadListFile args {
 
       # glob the file list for wildcards
       if {$srcfiles != $srcfile && ! [string equal $srcfiles "" ]} {
-	      Msg Debug "Wildcard source expanded from $srcfile to $srcfiles"
+        Msg Debug "Wildcard source expanded from $srcfile to $srcfiles"
       } else {
         if {![file exists $srcfile]} {
           Msg CriticalWarning "File: $srcfile (from list file: $list_file) does not exist."
@@ -657,7 +657,7 @@ proc ReadListFile args {
 
           if { $extension == $list_file_ext } {
             # Deal with recusive list files
-	          Msg Debug "List file $vhdlfile found in list file, recursively opening it..."
+            Msg Debug "List file $vhdlfile found in list file, recursively opening it..."
             lassign [ReadListFile {*}"-lib $library -fileset $fileset $sha_mode_opt $vhdlfile $path"] l p fs
             set libraries [MergeDict $l $libraries]
             set properties [MergeDict $p $properties]
@@ -738,8 +738,8 @@ proc ReadListFile args {
 
 ## @brief Return operative sistem
 proc OS {} {
-	global tcl_platform
-	return $tcl_platform(platform)
+  global tcl_platform
+  return $tcl_platform(platform)
 }
 
 ## @brief Return the real file linked by a soft link
@@ -749,31 +749,31 @@ proc OS {} {
 #
 # @param[in] link_file the soft link file
 proc GetLinkedFile {link_file} {
-	if {[file type $link_file] eq "link"} {
-		if {[OS] == "windows" } {
+  if {[file type $link_file] eq "link"} {
+    if {[OS] == "windows" } {
 		    #on windows we need to use readlink because Tcl is broken
-			lassign  [ExecuteRet realpath $link_file] ret msg
-			lassign  [ExecuteRet cygpath -m $msg] ret2 msg2
-			if {$ret == 0 && $ret2 == 0} {
-				set real_file $msg2
-				Msg Debug "Found link file $link_file on Windows, the linked file is: $real_file"
-			} else {
-				Msg CriticalWarning "[file normalize $link_file] is a soft link. Soft link are not supported on Windows and readlink.exe or cygpath.exe did not work: readlink=$ret: $msg, cygpath=$ret2: $msg2."
-				set real_file $link_file
-			}
-		} else {
+      lassign  [ExecuteRet realpath $link_file] ret msg
+      lassign  [ExecuteRet cygpath -m $msg] ret2 msg2
+      if {$ret == 0 && $ret2 == 0} {
+        set real_file $msg2
+        Msg Debug "Found link file $link_file on Windows, the linked file is: $real_file"
+      } else {
+        Msg CriticalWarning "[file normalize $link_file] is a soft link. Soft link are not supported on Windows and readlink.exe or cygpath.exe did not work: readlink=$ret: $msg, cygpath=$ret2: $msg2."
+        set real_file $link_file
+      }
+    } else {
 			#on linux Tcl just works
-			set linked_file [file link $link_file]
-			set real_file [file normalize [file dirname $link_file]/$linked_file]
-		}
-		
-		if {![file exists $real_file]} {
-			Msg Warning "$link_file is a broken link, because the linked file: $real_file does not exist."
-		}
-	} else {
-		Msg Warning "$link file is not a soft link"
-		set real_file $link_file
-	}
+      set linked_file [file link $link_file]
+      set real_file [file normalize [file dirname $link_file]/$linked_file]
+    }
+
+    if {![file exists $real_file]} {
+      Msg Warning "$link_file is a broken link, because the linked file: $real_file does not exist."
+    }
+  } else {
+    Msg Warning "$link file is not a soft link"
+    set real_file $link_file
+  }
   return $real_file
 }
 
@@ -1301,7 +1301,7 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
     set hog_hash "0000000"
     set hog_ver "00000000"
   }
-  
+
   cd $proj_dir
 
   if {[Git {status --untracked-files=no  --porcelain}] eq ""} {
@@ -2627,16 +2627,16 @@ proc HandleIP {what_to_do xci_file ip_path repo_path {gen_dir "."} {force 0}} {
         }
 
         Msg Info "Creating local archive with IP generated files..."
-	set first_file 0
-	foreach f $ip_gen_files {
-	  if {$first_file == 0} {
-	    ::tar::create $file_name.tar "[Relative [file normalize $repo_path] $f]"
-	    set first_file 1
-	  } else {
-	    ::tar::add $file_name.tar "[Relative [file normalize $repo_path] $f]"
-	  }
-	}
-	
+        set first_file 0
+        foreach f $ip_gen_files {
+          if {$first_file == 0} {
+            ::tar::create $file_name.tar "[Relative [file normalize $repo_path] $f]"
+            set first_file 1
+          } else {
+            ::tar::add $file_name.tar "[Relative [file normalize $repo_path] $f]"
+          }
+        }
+
         Msg Info "Copying IP generated files for $xci_name..."
         if {$on_eos == 1} {
           lassign [ExecuteRet xrdcp -f -s $file_name.tar  $::env(EOS_MGM_URL)//$ip_path/] ret msg
@@ -2674,7 +2674,7 @@ proc HandleIP {what_to_do xci_file ip_path repo_path {gen_dir "."} {force 0}} {
       if {[file exists "$ip_path/$file_name.tar"]} {
         Msg Info "IP $xci_name found in local repository $ip_path/$file_name.tar, copying it locally to $repo_path..."
         Copy $ip_path/$file_name.tar $repo_path
-        
+
       } else {
         Msg Info "Nothing for $xci_name was found in the local IP repository, cannot pull."
         cd $old_path
@@ -3174,7 +3174,7 @@ proc GetGroupName {proj_dir repo_dir} {
     if {[file normalize $repo_dir] eq [file normalize $possible_repo_dir]} {
       set group [file dir $dir]
       if { $group == "." } {
-	      set group ""
+        set group ""
       }
     } else {
     # The Top or Project folder is NOT in the root of a git repository
@@ -3510,76 +3510,76 @@ proc GetTopModule {} {
 #
 #  @param[in] file File to read Generics from
 proc GetVerilogGenerics {file} {
-    set fp [open $file r]
-    set data [read $fp]
-    close $fp
-    set lines []
+  set fp [open $file r]
+  set data [read $fp]
+  close $fp
+  set lines []
 
     # read in the verilog file and remove comments
-    foreach line [split $data "\n"] {
-        regsub "^\\s*\/\/.*" $line "" line
-        regsub "(.*)\/\/.*" $line {\1} line
-        if {![string equal $line ""]} {
-            append lines $line " "
-        }
+  foreach line [split $data "\n"] {
+    regsub "^\\s*\/\/.*" $line "" line
+    regsub "(.*)\/\/.*" $line {\1} line
+    if {![string equal $line ""]} {
+      append lines $line " "
     }
+  }
 
     # remove block comments also /* */
-    regsub -all {/\*.*\*/} $lines "" lines
+  regsub -all {/\*.*\*/} $lines "" lines
 
     # create a list of characters to split for tokenizing
-    set punctuation [list]
-    foreach char [list "(" ")" ";" "," " " "!" "<=" ":=" "=" "\[" "\]"] {
-        lappend punctuation $char "\000$char\000"
-    }
+  set punctuation [list]
+  foreach char [list "(" ")" ";" "," " " "!" "<=" ":=" "=" "\[" "\]"] {
+    lappend punctuation $char "\000$char\000"
+  }
 
     # split the file into tokens
-    set tokens [split [string map $punctuation $lines] \000]
+  set tokens [split [string map $punctuation $lines] \000]
 
-    set parameters [dict create]
+  set parameters [dict create]
 
-    set PARAM_NAME 1
-    set PARAM_VALUE 2
-    set LEXING 3
-    set PARAM_WIDTH 4
-    set state $LEXING
+  set PARAM_NAME 1
+  set PARAM_VALUE 2
+  set LEXING 3
+  set PARAM_WIDTH 4
+  set state $LEXING
 
     # # loop over the generic lines
-    foreach token $tokens {
-        set token [string trim $token]
-        if {![string equal "" $token]} {
-            if {[string equal [string tolower $token] "parameter"]} {
-                set state $PARAM_NAME
-            } elseif {[string equal $token ")"] || [string equal $token ";"]} {
-                set state $LEXING
-            } elseif {$state == $PARAM_WIDTH} {
-                if {[string equal $token "\]"]} {
-                    set state $PARAM_NAME
-                }
-            } elseif {$state == $PARAM_VALUE} {
-                if {[string equal $token ","]} {
-                    set state $PARAM_NAME
-                } elseif {[string equal $token ";"]} {
-                    set state $LEXING
-                } else {
-                }
-            } elseif {$state == $PARAM_NAME} {
+  foreach token $tokens {
+    set token [string trim $token]
+    if {![string equal "" $token]} {
+      if {[string equal [string tolower $token] "parameter"]} {
+        set state $PARAM_NAME
+      } elseif {[string equal $token ")"] || [string equal $token ";"]} {
+        set state $LEXING
+      } elseif {$state == $PARAM_WIDTH} {
+        if {[string equal $token "\]"]} {
+          set state $PARAM_NAME
+        }
+      } elseif {$state == $PARAM_VALUE} {
+        if {[string equal $token ","]} {
+          set state $PARAM_NAME
+        } elseif {[string equal $token ";"]} {
+          set state $LEXING
+        } else {
+        }
+      } elseif {$state == $PARAM_NAME} {
 
-                if {[string equal $token "="]} {
-                    set state $PARAM_VALUE
-                } elseif {[string equal $token "\["]} {
-                    set state $PARAM_WIDTH
-                } elseif {[string equal $token ","]} {
-                    set state $PARAM_NAME
-                } elseif {[string equal $token ";"]} {
-                    set state $LEXING
-                } elseif {[string equal $token ")"]} {
-                    set state $LEXING
-                } else {
-                    dict set parameters $token "integer"
-                }}}}
+        if {[string equal $token "="]} {
+          set state $PARAM_VALUE
+        } elseif {[string equal $token "\["]} {
+          set state $PARAM_WIDTH
+        } elseif {[string equal $token ","]} {
+          set state $PARAM_NAME
+        } elseif {[string equal $token ";"]} {
+          set state $LEXING
+        } elseif {[string equal $token ")"]} {
+          set state $LEXING
+        } else {
+          dict set parameters $token "integer"
+  }}}}
 
-    return $parameters
+  return $parameters
 }
 
 ## Get a dictionary of VHDL generics with their types for a given file
@@ -3587,57 +3587,57 @@ proc GetVerilogGenerics {file} {
 #  @param[in] file File to read Generics from
 
 proc GetVhdlGenerics {file {entity ""} } {
-    set fp [open $file r]
-    set data [read $fp]
-    close $fp
-    set lines []
+  set fp [open $file r]
+  set data [read $fp]
+  close $fp
+  set lines []
 
     # read in the vhdl file and remove comments
-    foreach line [split $data "\n"] {
-        regsub "^\\s*--.*" $line "" line
-        regsub "(.*)--.*" $line {\1} line
-        if {![string equal $line ""]} {
-            append lines $line " "
-        }
+  foreach line [split $data "\n"] {
+    regsub "^\\s*--.*" $line "" line
+    regsub "(.*)--.*" $line {\1} line
+    if {![string equal $line ""]} {
+      append lines $line " "
     }
+  }
 
     # extract the generic block
-    set generic_block ""
-    set generics [dict create]
+  set generic_block ""
+  set generics [dict create]
 
-    if {1==[string equal $entity ""]} {
-        regexp {(?i).*entity\s+([^\s]+)\s+is} $lines _ entity
-    }
+  if {1==[string equal $entity ""]} {
+    regexp {(?i).*entity\s+([^\s]+)\s+is} $lines _ entity
+  }
 
-    set generics_regexp "(?i).*entity\\s+$entity\\s+is\\s+generic\\s*\\((.*)\\)\\s*;\\s*port.*end.*$entity"
+  set generics_regexp "(?i).*entity\\s+$entity\\s+is\\s+generic\\s*\\((.*)\\)\\s*;\\s*port.*end.*$entity"
 
-    if {[regexp $generics_regexp $lines _ generic_block]} {
+  if {[regexp $generics_regexp $lines _ generic_block]} {
 
         # loop over the generic lines
-        foreach line [split $generic_block ";"]  {
+    foreach line [split $generic_block ";"]  {
 
             # split the line into the generic + the type
-            regexp {(.*):\s*([A-Za-z0-9_]+).*} $line _ generic type
+      regexp {(.*):\s*([A-Za-z0-9_]+).*} $line _ generic type
 
             # one line can have multiple generics of the same type, so loop over them
-            set splits [split $generic ","]
-            foreach split $splits {
-                dict set generics [string trim $split] [string trim $type]
-            }
-        }
+      set splits [split $generic ","]
+      foreach split $splits {
+        dict set generics [string trim $split] [string trim $type]
+      }
     }
-    return $generics
+  }
+  return $generics
 }
 
 proc GetFileGenerics {filename {entity ""}} {
-    set file_type [FindFileType $filename]
-    if {[string equal $file_type "VERILOG_FILE"]} {
-        return [GetVerilogGenerics $filename]
-    } elseif {[string equal $file_type "VHDL_FILE"]} {
-        return [GetVhdlGenerics $filename $entity]
-    } else {
-        Msg CriticalWarning "Could not determine extension of top level file."
-    }
+  set file_type [FindFileType $filename]
+  if {[string equal $file_type "VERILOG_FILE"]} {
+    return [GetVerilogGenerics $filename]
+  } elseif {[string equal $file_type "VHDL_FILE"]} {
+    return [GetVhdlGenerics $filename $entity]
+  } else {
+    Msg CriticalWarning "Could not determine extension of top level file."
+  }
 }
 
 ## Setting the generic property
@@ -3696,8 +3696,8 @@ proc WriteGenerics {mode design date timee commit version top_hash top_ver hog_h
     # Top File can be retrieved only at creation time or in ISE
     if {$mode == "create" || [IsISE]} {
 
-    set top_file [GetTopFile]
-    set top_name [GetTopModule]
+      set top_file [GetTopFile]
+      set top_name [GetTopModule]
 
       if {[file exists $top_file]} {
         set generics [GetFileGenerics $top_file $top_name]
@@ -3718,15 +3718,15 @@ proc WriteGenerics {mode design date timee commit version top_hash top_ver hog_h
 
         # only filter in ISE
         if {[IsISE]} {
-            set generic_string $filtered_generic_string
+          set generic_string $filtered_generic_string
         }
       }
     }
-    
+
     set_property generic $generic_string [current_fileset]
     Msg Info "Setting parameters/generics..."
     Msg Debug "Detailed parameters/generics: $generic_string"
-    
+
     if {[IsVivado]} {
       # Dealing with project generics in Simulators
       set simulator [get_property target_simulator [current_project]]
@@ -3752,7 +3752,7 @@ proc GetIDEVersion {} {
     #Vivado or planAhead
     regexp {\d+\.\d+(\.\d+)?} [version -short] ver
     # This regex will cut away anything after the numbers, useful for patched version 2020.1_AR75210
-    
+
   } elseif {[IsQuartus]} {
     # Quartus
     global quartus
@@ -3811,10 +3811,10 @@ proc Copy {i_dirs o_dir} {
   foreach i_dir $i_dirs {
     if {[file isdirectory $i_dir] && [file isdirectory $o_dir]} {
       if {([file tail $i_dir] == [file tail $o_dir]) || ([file exists $o_dir/[file tail $i_dir]] && [file isdirectory $o_dir/[file tail $i_dir]])} {
-	    file delete -force $o_dir/[file tail $i_dir]
+        file delete -force $o_dir/[file tail $i_dir]
       }
     }
-    
+
     file copy -force $i_dir $o_dir 
   }
 }
@@ -4009,7 +4009,7 @@ proc WriteListFiles {libs props list_path repo_path {$ext_path ""} } {
     }
   }
 }
- 
+
 # @brief Remove empty keys from dictionary 
 proc RemoveEmptyKeys {d} {
   set newDict $d 
@@ -4034,7 +4034,7 @@ proc Logo { {repo_path .} } {
   cd $repo_path/Hog
   set ver [Git {describe --always}]
   cd $old_path
-  
+
   if {[file exists $logo_file]} {
     set f [open $logo_file "r"]
     set data [read $f]
@@ -4060,18 +4060,22 @@ proc CheckLatestHogRelease {{repo_path .}} {
   set current_sha [Git "log $current_ver -1 --format=format:%H"]
   Msg Debug "Current SHA: $current_sha"  
 
-  Msg Info "Checking for latest Hog release, can take up to 5 seconds..."
   #We should find a proper way of checking for timeout using vwait, this'll do for now
-  ExecuteRet timeout 5s git fetch
-  
+  if {[OS] == "windows" } {
+    Msg Info "On windows we cannot set a timeout on 'git fetch', hopefully nothing will go wrong..."
+    Git fetch
+  } else {	
+    Msg Info "Checking for latest Hog release, can take up to 5 seconds..."
+    ExecuteRet timeout 5s git fetch
+  }
   set master_ver [Git "describe origin/master"]
   Msg Debug "Master version: $master_ver"  
   set master_sha [Git "log $master_ver -1 --format=format:%H"]    
   Msg Debug "Master SHA: $master_sha"  
   set merge_base [Git "merge-base $current_sha $master_sha"]
   Msg Debug "merge base: $merge_base"  
-  
-  
+
+
   if {$merge_base != $master_sha} {
     # If master_sha is NOT an ancestor of current_sha 
     Msg Info "Version $master_ver has been released (https://gitlab.com/hog-cern/Hog/-/releases/$master_ver)"
@@ -4140,7 +4144,7 @@ proc InitLauncher {script tcl_path parameters usage argv} {
     Msg Debug "The cmdline Tcl package was not found, sourcing it from Hog..."
     source $tcl_path/utils/cmdline.tcl
   }
-  
+
   lassign [ GetOptions $argv $parameters $usage] option_list arg_list 
 
   if {[catch {array set options [cmdline::getoptions option_list $parameters $usage]} err] } {
@@ -4174,7 +4178,7 @@ proc InitLauncher {script tcl_path parameters usage argv} {
   # Remove trailing / and spaces if in project_name
   regsub "/? *\$" $project "" project  
   set proj_conf [ProjectExists $project $repo_path] 
-  
+
   Msg Debug "Option list:"
   foreach {key value} [array get options] {
     Msg Debug "$key => $value"
@@ -4188,10 +4192,10 @@ proc InitLauncher {script tcl_path parameters usage argv} {
 
       lassign [GetIDECommand $proj_conf] cmd before_tcl_script after_tcl_script end_marker
       Msg Info "Project $project uses $cmd IDE"
-      
+
       ## The following is the IDE command to launch:
       set command "$cmd $before_tcl_script$script$after_tcl_script$argv$end_marker"
-      
+
     } else {
       if {$project != ""} {
         #Project not given
@@ -4226,7 +4230,7 @@ proc ListProjects {{repo_path .} {print 1} {ret_conf 0}} {
   set top_path [file normalize $repo_path/Top]
   set confs [findFiles [file normalize $top_path] hog.conf]
   set projects ""
-  
+
   foreach c $confs {
     set p [Relative $top_path [file dirname $c]]
     if {$print == 1} {
@@ -4241,7 +4245,7 @@ proc ListProjects {{repo_path .} {print 1} {ret_conf 0}} {
     # Returns a list of project names
     return $projects
   } else {
-    
+
     # Return the list of hog.conf with full path
     return $confs
   }
@@ -4266,14 +4270,14 @@ proc GetIDECommand {proj_conf} {
   if {[file exists $proj_conf]} {
     set ide_name_and_ver [string tolower [GetIDEFromConf $proj_conf]]
     set ide_name [lindex [regexp -all -inline {\S+} $ide_name_and_ver ] 0]
-    
+
     if {$ide_name eq "vivado"} {
       set command "vivado"
       # A space ater the before_tcl_script is important
       set before_tcl_script " -nojournal -nolog -mode batch -notrace -source "
       set after_tcl_script " -tclargs "
       set end_marker ""
-      
+
     } elseif {$ide_name eq "planahead"} {
       set command "planAhead"
       # A space ater the before_tcl_script is important
@@ -4287,10 +4291,10 @@ proc GetIDECommand {proj_conf} {
       set before_tcl_script " -t "
       set after_tcl_script " "
       set end_marker ""
-      
+
     } elseif {$ide_name eq "libero"} {
       #I think we need quotes for libero, not sure...
-      
+
       set command "libero"
       set before_tcl_script "SCRIPT:"
       set after_tcl_script " SCRIPT_ARGS:\""
@@ -4298,11 +4302,11 @@ proc GetIDECommand {proj_conf} {
     } else {
       Msg Error "IDE: $ide_name not known."
     }
-    
+
   } else {
     Msg Error "Configuration file $proj_conf not found."
   }
-  
+
   return [list $command $before_tcl_script $after_tcl_script $end_marker]
 }
 
@@ -4315,27 +4319,27 @@ proc findFiles { basedir pattern } {
 
     # Fix the directory name, this ensures the directory name is in the
     # native format for the platform and contains a final directory seperator
-    set basedir [string trimright [file join [file normalize $basedir] { }]]
-    set fileList {}
+  set basedir [string trimright [file join [file normalize $basedir] { }]]
+  set fileList {}
 
     # Look in the current directory for matching files, -type {f r}
     # means ony readable normal files are looked at, -nocomplain stops
     # an error being thrown if the returned list is empty
-    foreach fileName [glob -nocomplain -type {f r} -path $basedir $pattern] {
-        lappend fileList $fileName
-    }
+  foreach fileName [glob -nocomplain -type {f r} -path $basedir $pattern] {
+    lappend fileList $fileName
+  }
 
     # Now look for any sub direcories in the current directory
-    foreach dirName [glob -nocomplain -type {d  r} -path $basedir *] {
+  foreach dirName [glob -nocomplain -type {d  r} -path $basedir *] {
         # Recusively call the routine on the sub directory and append any
         # new files to the results
-        set subDirList [findFiles $dirName $pattern]
-        if { [llength $subDirList] > 0 } {
-            foreach subDirFile $subDirList {
-                lappend fileList $subDirFile
-            }
-        }
+    set subDirList [findFiles $dirName $pattern]
+    if { [llength $subDirList] > 0 } {
+      foreach subDirFile $subDirList {
+        lappend fileList $subDirFile
+      }
     }
+  }
   return $fileList
 }
 

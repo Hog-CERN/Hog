@@ -1200,7 +1200,7 @@ proc GetProjectVersion {proj_dir repo_path {ext_path ""} {sim 0}} {
 proc GetHogDescribe {sha {repo_path .}} {
   if {$sha == 0 } {
     # in case the repo is dirty, we use the last committed sha and add a -dirty suffix
-    set new_sha "[GetSHA]"
+    set new_sha "[string toupper [GetSHA]]"
     set suffix "-dirty"
   } else {
     set new_sha [string toupper $sha]

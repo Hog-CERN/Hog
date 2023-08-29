@@ -4142,6 +4142,11 @@ proc InitLauncher {script tcl_path parameters usage argv} {
 
   lassign [ GetOptions $argv $parameters $usage] option_list arg_list 
 
+  if { [IsInList "-help" $option_list] || [IsInList "-?" $option_list] || [IsInList "-h" $option_list] } {
+    Msg Info [cmdline::usage $parameters $usage]
+    exit 0
+  }
+
   if {[catch {array set options [cmdline::getoptions option_list $parameters $usage]} err] } {
     Msg Status "\nERROR: Syntax error, probably unknown option.\n\n USAGE: $err"
     exit 1
@@ -4155,13 +4160,7 @@ proc InitLauncher {script tcl_path parameters usage argv} {
     Msg Status "\n"
     exit 0
 
-  } elseif {  [llength $arg_list] == 0 || ([llength $arg_list] == 1 && ($directive == "H" || $directive == "HELP"))} {
-    Msg Status "\n** The projects in this repository are:"
-    ListProjects $repo_path
-    Msg Status "\n"
-    exit 1
-
-  } elseif { [llength $arg_list] > 2} {
+  } elseif { [llength $arg_list] == 0 || [llength $arg_list] > 2} {
     Msg Status "\nERROR: Wrong number of arguments: [llength $argv].\n\n"
     Msg Status "USAGE: [cmdline::usage $parameters $usage]"
     exit 1

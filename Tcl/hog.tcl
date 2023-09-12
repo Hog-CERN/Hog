@@ -1826,6 +1826,11 @@ proc GetProjectFiles {} {
         set ignore 1
       }
 
+      # Ignore nocattrs.dat for Versal
+      if {[file tail $f] == "nocattrs.dat"} {
+        set ignore 1
+      }
+
       if {!$ignore} {
         if {[file extension $f] != ".coe"} {
           set f [file normalize $f]

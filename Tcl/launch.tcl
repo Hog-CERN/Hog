@@ -42,7 +42,6 @@ set usage " \[OPTIONS\] <directive> <project>\n The most common <directive> valu
 - IMPLEMENT: Runs the implementation only, the project must already exist and be synthesised.
 - SYNTHESIS: Runs the synthesis only, creates the project if not existing.
 - LIST or L: Only list all the projects
-- HELP or H: This help screen
 
 ** Options:"
 
@@ -99,11 +98,6 @@ switch -regexp -- $directive {
     set do_bitstream 1
     set do_compile 1
     set recreate 1
-  }
-
-  \^(HELP|H)$ {
-    Msg Status "\n\n[cmdline::usage $parameters $usage]"
-    exit 1
   }
 
   default {

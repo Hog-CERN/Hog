@@ -27,6 +27,10 @@ set parameters {
 
 set usage "Compile the simulation libraries for the target simulator - USAGE: compile_simlib.tcl \[options\]"
 
+set tcl_path [file dirname [info script]]
+set repo_path [file normalize $tcl_path/../../..]
+source $tcl_path/../hog.tcl
+
 if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}]} {
   Msg Info [cmdline::usage $parameters $usage]
   exit 1

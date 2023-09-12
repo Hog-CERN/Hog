@@ -127,7 +127,7 @@ proc Msg {level msg {title ""}} {
     set qlevel critical_warning
   } elseif {$level == 4 || $level == "error"} {
     set vlevel {ERROR}
-    set qlevel "error"
+    set qlevel error
   } elseif {$level == 5 || $level == "debug"} {
     if {([info exists ::DEBUG_MODE] && $::DEBUG_MODE == 1) || ([info exists ::env(HOG_DEBUG_MODE)] && $::env(HOG_DEBUG_MODE) == 1)} {
       set vlevel {STATUS}
@@ -1200,7 +1200,7 @@ proc GetProjectVersion {proj_dir repo_path {ext_path ""} {sim 0}} {
 proc GetHogDescribe {sha {repo_path .}} {
   if {$sha == 0 } {
     # in case the repo is dirty, we use the last committed sha and add a -dirty suffix
-    set new_sha "[GetSHA]"
+    set new_sha "[string toupper [GetSHA]]"
     set suffix "-dirty"
   } else {
     set new_sha [string toupper $sha]
@@ -4147,6 +4147,11 @@ proc InitLauncher {script tcl_path parameters usage argv} {
 
   lassign [ GetOptions $argv $parameters $usage] option_list arg_list 
 
+  if { [IsInList "-help" $option_list] || [IsInList "-?" $option_list] || [IsInList "-h" $option_list] } {
+    Msg Info [cmdline::usage $parameters $usage]
+    exit 0
+  }
+
   if {[catch {array set options [cmdline::getoptions option_list $parameters $usage]} err] } {
     Msg Status "\nERROR: Syntax error, probably unknown option.\n\n USAGE: $err"
     exit 1
@@ -4160,13 +4165,7 @@ proc InitLauncher {script tcl_path parameters usage argv} {
     Msg Status "\n"
     exit 0
 
-  } elseif {  [llength $arg_list] == 0 || ([llength $arg_list] == 1 && ($directive == "H" || $directive == "HELP"))} {
-    Msg Status "\n** The projects in this repository are:"
-    ListProjects $repo_path
-    Msg Status "\n"
-    exit 1
-
-  } elseif { [llength $arg_list] > 2} {
+  } elseif { [llength $arg_list] == 0 || [llength $arg_list] > 2} {
     Msg Status "\nERROR: Wrong number of arguments: [llength $argv].\n\n"
     Msg Status "USAGE: [cmdline::usage $parameters $usage]"
     exit 1

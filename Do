@@ -28,7 +28,7 @@ find_executable_dir() {
 normalize_path() {
     local path="$1"
     echo $(readlink -m $path)
-	#an alternative could be realpath -m
+    #an alternative could be realpath -m
 }
 
 
@@ -44,39 +44,39 @@ for executable in "${executables[@]}"; do
     # Find the directory path of the executable
     executable_dir=""
     if executable_dir=$(find_executable_dir "$exe_name"); then
-		IFS=":" read -ra exe_paths <<< "$exe_paths"
+	IFS=":" read -ra exe_paths <<< "$exe_paths"
         for exe_path in "${exe_paths[@]}"; do
             executable_path=$(normalize_path "$executable_dir/$exe_path")
-			if [ -x "$executable_path" ]; then
-				#Setting LD_LIBRARY_PATH now
-				IFS=":" read -ra lib_paths <<< "$lib_paths"
-				for lib_path in "${lib_paths[@]}"; do
-					library_path=$(normalize_path "$executable_dir/$lib_path")
-					if [ -d "$library_path" ]; then
-						found_lib=1
-						break
-					fi
-				done
-		
-				# Optionally we want to set TCL_LIB
-				IFS=":" read -ra tcl_libs <<< "$tcl_libs"
-				for tcl_lib in "${tcl_libs[@]}"; do
-					tcl_library=$(normalize_path "$executable_dir/$tcl_lib")
-					if [ -d "$tcl_library" ]; then
-						found_tcl_lib=1
-						break
-				fi
-				done
-		
-				if [ "$found_lib" == 1 ]; then
-					found=1
-					break
-				fi
-			fi
+	    if [ -x "$executable_path" ]; then
+		#Setting LD_LIBRARY_PATH now
+		IFS=":" read -ra lib_paths <<< "$lib_paths"
+		for lib_path in "${lib_paths[@]}"; do
+		    library_path=$(normalize_path "$executable_dir/$lib_path")
+		    if [ -d "$library_path" ]; then
+			found_lib=1
+			break
+		    fi
 		done
+		
+		# Optionally we want to set TCL_LIB
+		IFS=":" read -ra tcl_libs <<< "$tcl_libs"
+		for tcl_lib in "${tcl_libs[@]}"; do
+		    tcl_library=$(normalize_path "$executable_dir/$tcl_lib")
+		    if [ -d "$tcl_library" ]; then
+			found_tcl_lib=1
+			break
+		    fi
+		done
+		
+		if [ "$found_lib" == 1 ]; then
+		    found=1
+		    break
+		fi
+	    fi
+	done
     fi
     if [ "$found" == 1 ]; then
-		break
+	break
     fi
 done
 

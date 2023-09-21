@@ -55,6 +55,17 @@ for executable in "${executables[@]}"; do
 			break
 		    fi
 		done
+		
+		# Optionally we want to set TCL_LIB
+		IFS=":" read -ra tcl_libs <<< "$tcl_libs"
+		for tcl_lib in "${tcl_libs[@]}"; do
+		    tcl_library=$(normalize_path "$executable_dir/$tcl_lib")
+		    if [ -d "$tcl_library" ]; then
+			found_tcl_lib=1
+			break
+		    fi
+		done
+		
 		if [ "$found_lib" == 1 ]; then
 		    found=1
 		    break
@@ -69,6 +80,11 @@ done
 
 if [ "$found" == 1 ]; then
     export LD_LIBRARY_PATH=$library_path:$LD_LIBRARY_PATH
+    if [ "$found_tcl_lib" == 1 ]; then
+	#This is where init.tcl is located to avoid the initial warning when running tclsh
+	export TCL_LIBRARY=$tcl_library
+    fi
+    
     $executable_path $hog_dir/Tcl/launch.tcl "$@" 
     exit $?
 else

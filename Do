@@ -1,12 +1,13 @@
 #!/bin/bash
-# Array of IDE executables, the paths where tclsh is located wrt to them, and the tclsh executable name.
+# Array of IDE executables, the paths to the tclsh is located wrt to them including the tclsh executable name, the LD_LIBRARY_PATH to add for tclsh, optionally the TCL_LIB path (where init.tcl is located)
 # The separator must be comma and space and the path separator in the second element must be : with no spaces
+
 executables=(
-    "tclsh,     .,                                                                                                                                          ,                   , tclsh"
-    "vivado,    unwrapped/lnx64.o/:unwrapped/win64.o/:unwrapped/lnx32.o/:unwrapped/win32.o/, ../lib/lnx64.o/:../lib/lnx32.o/:../lib/win64.o/:../lib/win32.o/, ../tps/tcl/tcl8.5/, tclsh8.5"
-    "quartus,   .,                                                                           ../linux64/:../linux32/:../win64/:../win32,                                        , tclsh"
-    "planAhead, lin64/:lin32/:win32/:win64/,                                                 ../lib/lin64/:../lib/lin32/:../lib/win32/:../lib/win64/,                           , tclsh"
-    "libero,    ../bin64/:../bin32,                                                          ../lib64/:../lib32/,                              ../lib64/tcl8.5/:../lib64/tcl8.6/, acttclsh"
+    "tclsh, ./tclsh,  .,  "
+    "vivado,    unwrapped/lnx64.o/tclsh8.5:unwrapped/lnx32.o/tclsh:, ../lib/lnx64.o/:../lib/lnx32.o/:, ../tps/tcl/tcl8.5/"
+    "quartus,   ./tclsh, ../linux64:../linux32:,  "
+    "planAhead, lin64/tclsh:lin32/tclsh:, ../lib/lin64/:../lib/lin32/:,  "
+    "libero,    ../bin64/acttclsh:../bin32/acttclsh,  ../lib64/:../lib32/,  ../lib64/tcl8.5/:../lib64/tcl8.6/"
 )
 
 # Function to find the directory of an executable in the PATH
@@ -26,7 +27,8 @@ find_executable_dir() {
 # Function to normalize a path
 normalize_path() {
     local path="$1"
-    echo "$(cd "$(dirname "$path")" && pwd)/$(basename "$path")"
+    echo $(readlink -m $path)
+	#an alternative could be realpath -m
 }
 
 
@@ -37,44 +39,44 @@ found_lib=0
 # Loop through the executables array
 for executable in "${executables[@]}"; do
     # Split the executable and additional path
-    IFS=', ' read -r exe_name exe_paths lib_paths tcl_libs tclsh_name <<< "$executable"
+    IFS=', ' read -r exe_name exe_paths lib_paths tcl_libs <<< "$executable"
     
     # Find the directory path of the executable
     executable_dir=""
     if executable_dir=$(find_executable_dir "$exe_name"); then
-	IFS=":" read -ra exe_paths <<< "$exe_paths"
+		IFS=":" read -ra exe_paths <<< "$exe_paths"
         for exe_path in "${exe_paths[@]}"; do
-            executable_path=$(normalize_path "$executable_dir/$exe_path/$tclsh_name")
-	    if [ -x "$executable_path" ]; then
-		#Setting LD_LIBRARY_PATH now
-		IFS=":" read -ra lib_paths <<< "$lib_paths"
-		for lib_path in "${lib_paths[@]}"; do
-		    library_path=$(normalize_path "$executable_dir/$lib_path")
-		    if [ -d "$library_path" ]; then
-			found_lib=1
-			break
-		    fi
-		done
+            executable_path=$(normalize_path "$executable_dir/$exe_path")
+			if [ -x "$executable_path" ]; then
+				#Setting LD_LIBRARY_PATH now
+				IFS=":" read -ra lib_paths <<< "$lib_paths"
+				for lib_path in "${lib_paths[@]}"; do
+					library_path=$(normalize_path "$executable_dir/$lib_path")
+					if [ -d "$library_path" ]; then
+						found_lib=1
+						break
+					fi
+				done
 		
-		# Optionally we want to set TCL_LIB
-		IFS=":" read -ra tcl_libs <<< "$tcl_libs"
-		for tcl_lib in "${tcl_libs[@]}"; do
-		    tcl_library=$(normalize_path "$executable_dir/$tcl_lib")
-		    if [ -d "$tcl_library" ]; then
-			found_tcl_lib=1
-			break
-		    fi
-		done
+				# Optionally we want to set TCL_LIB
+				IFS=":" read -ra tcl_libs <<< "$tcl_libs"
+				for tcl_lib in "${tcl_libs[@]}"; do
+					tcl_library=$(normalize_path "$executable_dir/$tcl_lib")
+					if [ -d "$tcl_library" ]; then
+						found_tcl_lib=1
+						break
+				fi
+				done
 		
-		if [ "$found_lib" == 1 ]; then
-		    found=1
-		    break
-		fi
-	    fi
-	done
+				if [ "$found_lib" == 1 ]; then
+					found=1
+					break
+				fi
+			fi
+		done
     fi
     if [ "$found" == 1 ]; then
-	break
+		break
     fi
 done
 

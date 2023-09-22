@@ -57,9 +57,9 @@
     - ./Hog/Other/CheckEnv.sh $PROJECT_NAME -a $HOG_APPTAINER_IMAGE;
     - if [[ -v HOG_CHECK_PROJVER ]] && [[ $HOG_CHECK_PROJVER == '1' ]]; then
         if [[ -v HOG_EXTERNAL_PATH ]]; then
-          CHK_CMD=./Hog/Other/CheckProjVer.sh -ext_path "$HOG_EXTERNAL_PATH" -sim $PROJECT_NAME;
+          CHK_CMD="./Hog/Other/CheckProjVer.sh -ext_path \"$HOG_EXTERNAL_PATH\" -sim $PROJECT_NAME";
         else
-          CHK_CMD=./Hog/Other/CheckProjVer.sh -sim $PROJECT_NAME;
+          CHK_CMD="./Hog/Other/CheckProjVer.sh -sim $PROJECT_NAME";
         fi;
         if [[ -f $HOG_APPTAINER_IMAGE ]]; then
           echo "apptainer exec -H $PWD $HOG_APPTAINER_IMAGE $CHK_CMD";
@@ -116,9 +116,9 @@
       fi;
     - if [[ -v HOG_CHECK_PROJVER ]] && [[ $HOG_CHECK_PROJVER == '1' ]]; then
         if [[ -v HOG_EXTERNAL_PATH ]]; then
-          CHK_CMD=./Hog/Other/CheckProjVer.sh -ext_path "$HOG_EXTERNAL_PATH" $PROJECT_NAME;
+          CHK_CMD="./Hog/Other/CheckProjVer.sh -ext_path \"$HOG_EXTERNAL_PATH\" $PROJECT_NAME";
         else
-          CHK_CMD=./Hog/Other/CheckProjVer.sh $PROJECT_NAME;
+          CHK_CMD="./Hog/Other/CheckProjVer.sh $PROJECT_NAME";
         fi;
         if [[ -f $HOG_APPTAINER_IMAGE ]]; then
           echo "apptainer exec -H $PWD $HOG_APPTAINER_IMAGE $CHK_CMD";

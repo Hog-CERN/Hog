@@ -17,16 +17,10 @@
     - hog
 
 .tag-sr: &tag-sr
-  tags:
-    - docker
-    - k8s-default
   image: gitlab-registry.cern.ch/hog/hog-docker:tclsh
 
 
 .tag-badge: &tag-badge
-  tags:
-    - docker
-    - k8s-default
   image: gitlab-registry.cern.ch/hog/hog-docker:ubuntu
 
 .vars: &vars
@@ -115,9 +109,6 @@ merge_and_tag:
 
 make_doxygen:
   <<: *only-default-doxygen
-  tags:
-    - docker
-    - k8s-default
   image: gitlab-registry.cern.ch/hog/hog-docker:doxygen
   stage: generation_and_simulation
   variables:

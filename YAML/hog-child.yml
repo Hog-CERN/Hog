@@ -39,6 +39,7 @@
 .tag-sr: &tag-sr
   tags:
     - docker
+    - k8s-default
   image: gitlab-registry.cern.ch/hog/hog-docker:tclsh
 
 .vars: &vars

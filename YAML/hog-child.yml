@@ -263,6 +263,9 @@
         if [[ -f "$CI_PROJECT_DIR/bin/$PROJECT_NAME*/utilization.txt" ]]; then
           cat $CI_PROJECT_DIR/bin/$PROJECT_NAME*/utilization.txt >> note.md;
         fi;
+        if HOG_LOGGER; then
+          cp hog_info.log bin/$PROJECT_NAME*;
+        end if;
         if [[ -n "$HOG_MR_MSG" ]] && [[ $HOG_MR_MSG == '3' ]]; then
           echo "Hog-CI(info) - Writing note on gitlab website...";
           ./Hog/Other/WriteGitlabNote.sh $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $CI_MERGE_REQUEST_IID note.md;

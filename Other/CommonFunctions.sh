@@ -61,15 +61,15 @@ export HOG_GIT_VERSION=""
 
 ## @var LOGGER
 #  @brief Global variable used to contain the logger
-if [[ -z $HOG_LOGGER ]]; then 
-  export HOG_LOGGER=""; 
-fi
+# if [[ -z $HOG_LOGGER ]]; then 
+#   export HOG_LOGGER=""; 
+# fi
 
 ## @var LOGGER
 #  @brief Global variable used to contain the logger
-if [[ -z $HOG_COLORED ]]; then 
-  export HOG_COLORED=""; 
-fi
+# if [[ -z $HOG_COLORED ]]; then 
+#   export HOG_COLORED=""; 
+# fi
 
 ## @var DEBUG_VERBOSE
 #  @brief Global variable 

@@ -263,10 +263,20 @@ jobs:
               fi;
               if [ ${{inputs.HOG_CHECK_PROJVER }} ]; then
                 if [[ -z "$HOG_EXTERNAL_PATH" ]]; then
-                  ./Hog/Other/CheckProjVer.sh $PROJECT_NAME;
+                  CHK_CMD="./Hog/Other/CheckProjVer.sh $PROJECT_NAME"
                 else
-                  ./Hog/Other/CheckProjVer.sh -ext_path "$HOG_EXTERNAL_PATH" $PROJECT_NAME;
+                  CHK_CMD="./Hog/Other/CheckProjVer.sh -ext_path $HOG_EXTERNAL_PATH $PROJECT_NAME"
                 fi;
+                if [ -z "$HOG_APPTAINER_IMAGE" ]; then
+                  echo $CHK_CMD;
+                  $(echo $CHK_CMD);
+                else
+                  echo "singularity exec -H $PWD $HOG_APPTAINER_IMAGE $CHK_CMD";
+                  if [ "$HOG_APPTAINER_EXTRA_PATH" != "" ]; then
+                    EXTRA_PATH="-B $HOG_APPTAINER_EXTRA_PATH";
+                  fi;
+                  apptainer exec -H $PWD $EXTRA_PATH $HOG_APPTAINER_IMAGE /bin/bash -c "PATH=${HOG_PATH}:$PATH; $CHK_CMD";
+                fi
               else
                 echo "Project version checker is disabled.";
               fi;
@@ -418,12 +428,22 @@ jobs:
               export PATH=${HOG_PATH}:$PATH
               PROJECT_NAME=${{ matrix.PROJECT_NAME }}
               ./Hog/Other/CheckEnv.sh $PROJECT_NAME -a $HOG_APPTAINER_IMAGE
-              if [[ -v HOG_CHECK_PROJVER ]] && [[ $HOG_CHECK_PROJVER == '1' ]]; then
+              if [ ${{inputs.HOG_CHECK_PROJVER }} ]; then
                 if [[ -z "$HOG_EXTERNAL_PATH" ]]; then
-                  ./Hog/Other/CheckProjVer.sh $PROJECT_NAME;
+                  CHK_CMD="./Hog/Other/CheckProjVer.sh $PROJECT_NAME -sim"
                 else
-                  ./Hog/Other/CheckProjVer.sh -ext_path "$HOG_EXTERNAL_PATH" $PROJECT_NAME;
+                  CHK_CMD="./Hog/Other/CheckProjVer.sh -ext_path $HOG_EXTERNAL_PATH $PROJECT_NAME -sim"
                 fi;
+                if [ -z "$HOG_APPTAINER_IMAGE" ]; then
+                  echo $CHK_CMD;
+                  $(echo $CHK_CMD);
+                else
+                  echo "singularity exec -H $PWD $HOG_APPTAINER_IMAGE $CHK_CMD";
+                  if [ "$HOG_APPTAINER_EXTRA_PATH" != "" ]; then
+                    EXTRA_PATH="-B $HOG_APPTAINER_EXTRA_PATH";
+                  fi;
+                  apptainer exec -H $PWD $EXTRA_PATH $HOG_APPTAINER_IMAGE /bin/bash -c "PATH=${HOG_PATH}:$PATH; $CHK_CMD";
+                fi
               else
                 echo "Project version checker is disabled.";
               fi;

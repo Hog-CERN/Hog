@@ -37,8 +37,6 @@
     - hog
 
 .tag-sr: &tag-sr
-  tags:
-    - docker
   image: gitlab-registry.cern.ch/hog/hog-docker:tclsh
 
 .vars: &vars
@@ -57,9 +55,19 @@
     - ./Hog/Other/CheckEnv.sh $PROJECT_NAME -a $HOG_APPTAINER_IMAGE;
     - if [[ -v HOG_CHECK_PROJVER ]] && [[ $HOG_CHECK_PROJVER == '1' ]]; then
         if [[ -v HOG_EXTERNAL_PATH ]]; then
-          ./Hog/Other/CheckProjVer.sh -ext_path "$HOG_EXTERNAL_PATH" -sim $PROJECT_NAME;
+          CHK_CMD="./Hog/Other/CheckProjVer.sh -ext_path \"$HOG_EXTERNAL_PATH\" -sim $PROJECT_NAME";
         else
-          ./Hog/Other/CheckProjVer.sh -sim $PROJECT_NAME;
+          CHK_CMD="./Hog/Other/CheckProjVer.sh -sim $PROJECT_NAME";
+        fi;
+        if [[ -f $HOG_APPTAINER_IMAGE ]]; then
+          echo "apptainer exec -H $PWD $HOG_APPTAINER_IMAGE $CHK_CMD";
+          if [[ -n $HOG_APPTAINER_EXTRA_PATH ]]; then
+            EXTRA_PATH="-B $HOG_APPTAINER_EXTRA_PATH";
+          fi;
+          apptainer exec -H $PWD $EXTRA_PATH $HOG_APPTAINER_IMAGE /bin/bash -c "export PATH=${HOG_PATH}:$PATH; $CHK_CMD";
+        else
+          echo $CHK_CMD;
+          $(echo $CHK_CMD);
         fi;
       else
         echo "Project version checker is disabled.";
@@ -106,13 +114,23 @@
       fi;
     - if [[ -v HOG_CHECK_PROJVER ]] && [[ $HOG_CHECK_PROJVER == '1' ]]; then
         if [[ -v HOG_EXTERNAL_PATH ]]; then
-          ./Hog/Other/CheckProjVer.sh -ext_path "$HOG_EXTERNAL_PATH" $PROJECT_NAME;
+          CHK_CMD="./Hog/Other/CheckProjVer.sh -ext_path \"$HOG_EXTERNAL_PATH\" $PROJECT_NAME";
         else
-          ./Hog/Other/CheckProjVer.sh $PROJECT_NAME;
+          CHK_CMD="./Hog/Other/CheckProjVer.sh $PROJECT_NAME";
+        fi;
+        if [[ -f $HOG_APPTAINER_IMAGE ]]; then
+          echo "apptainer exec -H $PWD $HOG_APPTAINER_IMAGE $CHK_CMD";
+          if [[ -n $HOG_APPTAINER_EXTRA_PATH ]]; then
+            EXTRA_PATH="-B $HOG_APPTAINER_EXTRA_PATH";
+          fi;
+          apptainer exec -H $PWD $EXTRA_PATH $HOG_APPTAINER_IMAGE /bin/bash -c "export PATH=${HOG_PATH}:$PATH; $CHK_CMD";
+        else
+          echo $CHK_CMD;
+          $(echo $CHK_CMD);
         fi;
       else
         echo "Project version checker is disabled.";
-      fi
+      fi;
     - if [ -f "./Projects/$PROJECT_NAME/skip.me" ]; then
         echo "Hog-CI(info) - CI disabled for $PROJECT_NAME";
       else
@@ -288,14 +306,15 @@ collect_artifacts:
     - files=$(find . -name "versions*.txt");
     - if (( ${#files} )); then
         for fp in $files; do
-          proj_name=$(echo $fp | sed -E 's|^./(.*)-v[0-9]+\.[0-9]+\.[0-9]+-hog.*|\1|');
+          proj=$(echo $fp | sed -E 's|^./(.*)-v[0-9]+\.[0-9]+\.[0-9]+-hog.*|\1|');
           cd $(dirname $fp);
+          proj_name=$(echo "$(dirname "$proj")" | sed 's/\.\///;s/-v[0-9]\+\.[0-9]\+\.[0-9]\+.*//');
           echo "## ${proj_name}" >> section.md;
           printf "\n\n<p>\n<details>\n<summary>show/hide</summary> \n\n " >> section.md;
           ut_files=$(find . -name "utilization*.txt" -o -name "timing*.txt" -o -name "versions.txt");
           if (( ${#ut_files} )); then
             for ut in $ut_files; do
-              sed "s|^## ${proj_name} ||" "$ut" >> section.md;
+              sed "s|^## ${proj} ||" "$ut" >> section.md;
             done;
           fi;
           printf "</details>\n</p>\n\n" >> section.md;

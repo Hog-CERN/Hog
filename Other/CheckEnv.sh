@@ -96,7 +96,7 @@ if [ ! "$APPTAINER_IMAGE" == "none" ]; then
             echo
             $CMD --version
             echo
-            apptainer exec -H "$(realpath "$THIS_DIR"/../..)" "$APPTAINER_IMAGE" /bin/bash -c "source /opt/Xilinx/Vivado/2020.2/settings64.sh; ${THIS_DIR}/CheckEnv.sh $PROJ";
+            apptainer exec -H "$(realpath "$THIS_DIR"/../..)" "$APPTAINER_IMAGE" /bin/bash -c "${THIS_DIR}/CheckEnv.sh $PROJ";
             exit $?
         else
             echo "Hog-Warning: apptainer executable not found."

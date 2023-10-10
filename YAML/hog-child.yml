@@ -264,7 +264,7 @@
           cat $CI_PROJECT_DIR/bin/$PROJECT_NAME*/utilization.txt >> note.md;
         fi;
         if [[ -v HOG_LOGGER && $HOG_LOGGER == ENABLED ]]; then
-          if [[ -f "$CI_PROJECT_DIR/hog_warning_errors" ]]; then
+          if [[ -f "$CI_PROJECT_DIR/hog_warning_errors.log" ]]; then
             cp hog_warning_errors.log $CI_PROJECT_DIR/bin/$PROJECT_NAME*/;
           fi;
           if [[ -f "$CI_PROJECT_DIR/hog_info.log" ]]; then

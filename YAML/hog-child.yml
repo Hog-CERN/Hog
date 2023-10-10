@@ -264,7 +264,12 @@
           cat $CI_PROJECT_DIR/bin/$PROJECT_NAME*/utilization.txt >> note.md;
         fi;
         if [[ -v HOG_LOGGER && $HOG_LOGGER == ENABLED ]]; then
-          cp hog_info.log $CI_PROJECT_DIR/bin/$PROJECT_NAME*/;
+          if [[ -f "$CI_PROJECT_DIR/hog_warning_errors" ]]; then
+            cp hog_warning_errors.log $CI_PROJECT_DIR/bin/$PROJECT_NAME*/;
+          fi;
+          if [[ -f "$CI_PROJECT_DIR/hog_info.log" ]]; then
+            cp hog_info.log $CI_PROJECT_DIR/bin/$PROJECT_NAME*/;
+          fi;
         fi;
         if [[ -n "$HOG_MR_MSG" ]] && [[ $HOG_MR_MSG == '3' ]]; then
           echo "Hog-CI(info) - Writing note on gitlab website...";

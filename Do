@@ -3,7 +3,7 @@
 
 # Array of: IDE executable names, the paths to the tclsh wrt to them (including the tclsh executable name), the LD_LIBRARY_PATH for tclsh, optionally the TCL_LIB path (where init.tcl is located)
 # The separator must be comma and space and the path separator in the second element must be : with no spaces
-. $(dirname "$0")/Other/CommonFunctions.sh
+. $(dirname "$0")/Other/Logger.sh
 if [[ -v HOG_LOGGER && $HOG_LOGGER == ENABLED ]]; then
     msg_counter init
     DEBUG_VERBOSE=5

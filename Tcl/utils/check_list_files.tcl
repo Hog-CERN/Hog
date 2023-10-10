@@ -58,6 +58,7 @@ set ListSimErrorCnt 0
 set ConfErrorCnt 0
 set SrcListErrorCnt 0
 set SimConfErrorCnt 0
+set ConListErrorCnt 0
 set TotErrorCnt 0
 set SIM_PROPS  [list "dofile" \
   "wavefile" \

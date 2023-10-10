@@ -6,7 +6,7 @@
 . $(dirname "$0")/Other/Logger.sh
 if [[ -v HOG_LOGGER && $HOG_LOGGER == ENABLED ]]; then
     msg_counter init
-    DEBUG_VERBOSE=5
+    DEBUG_VERBOSE=4
     ROOT_PROJECT_FOLDER=$(pwd)
     LOG_INFO_FILE=$ROOT_PROJECT_FOLDER"/hog_info.log"
     LOG_WAR_ERR_FILE=$ROOT_PROJECT_FOLDER"/hog_warning_errors.log"

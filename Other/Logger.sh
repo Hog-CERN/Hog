@@ -20,46 +20,11 @@
 ##############################################################
 ##############################################################
 
-## @var HOG_PROJECT_FOLDER
-#  @brief Global variable containing the full path of the root project folder
-#
-# export HOG_PROJECT_FOLDER=""
-
-## @var HOG_GIT_VERSION
-#  @brief Global variable containing the full path of the root project folder
-#
-# export HOG_GIT_VERSION=""
-
-## @var LOGGER
-#  @brief Global variable used to contain the logger
-# if [[ -z $HOG_LOGGER ]]; then 
-#   export HOG_LOGGER=""; 
-# fi
-
-## @var LOGGER
-#  @brief Global variable used to contain the logger
-# if [[ -z $HOG_COLORED ]]; then 
-#   export HOG_COLORED=""; 
-# fi
-
 ## @var DEBUG_VERBOSE
 #  @brief Global variable 
 #
 export DEBUG_VERBOSE=""
 
-#Define temp files in shared memory
-# dirToCreate=/dev/shm/hog/
-# if [ ! -w "$(dirname "$dirToCreate")" ]; then
-#     echo "Insufficient permissions to create $dirToCreate" >&2
-# else
-#     mkdir "$dirToCreate" || {
-#         echo "Error creating $dirToCreate (due to something other than permissions)" >&2
-#     }
-# fi
-
-
-# if [ -w "/dev/shm" ]; then
-#   echo "1"
 if [ -v $tempfolder ]; then
   tmptimestamp=$(date +%s)
   tempfolder="/dev/shm/$USER/hog$tmptimestamp"
@@ -73,18 +38,16 @@ if [ -v $tempfolder ]; then
     echo " Warning : Could not create /dev/shm/$USER/hog$tmptimestamp will try /tmp/$USER/hog$tmptimestamp "
     tempfolder="/tmp/$USER/hog$tmptimestamp"
     if mkdir -p $tempfolder; then
-    temp_i_cnt_file="$tempfolder/hog_i_cnt"
-    temp_d_cnt_file="$tempfolder/hog_d_cnt"
-    temp_w_cnt_file="$tempfolder/hog_w_cnt"
-    temp_c_cnt_file="$tempfolder/hog_c_cnt"
-    temp_e_cnt_file="$tempfolder/hog_e_cnt"
+      temp_i_cnt_file="$tempfolder/hog_i_cnt"
+      temp_d_cnt_file="$tempfolder/hog_d_cnt"
+      temp_w_cnt_file="$tempfolder/hog_w_cnt"
+      temp_c_cnt_file="$tempfolder/hog_c_cnt"
+      temp_e_cnt_file="$tempfolder/hog_e_cnt"
     else
       echo " *** ERROR Could not create /tmp/$USER/hog$tmptimestamp"
       exit 0
     fi
   fi
-# else
-#   echo " N "
 fi
 
 function update_cnt () {

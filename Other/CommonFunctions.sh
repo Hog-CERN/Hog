@@ -13,6 +13,8 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+. $(dirname "$0")/Other/Logger.sh
+
 ## @file CreateProject.sh
 #  @brief Create the specified Vivado or Quartus project
 

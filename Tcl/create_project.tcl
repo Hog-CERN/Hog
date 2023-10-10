@@ -98,14 +98,13 @@ proc InitProject {} {
         set_property "compxlib.${simulator}_compiled_library_dir" $globalSettings::simlib_path $obj
       }
       set_property "default_lib" "xil_defaultlib" $obj
-    }
-
-    ## Enable VHDL 2008
-    if {[IsVivado]} {
+      ## Enable VHDL 2008
       set_param project.enableVHDL2008 1
       set_property "enable_vhdl_2008" 1 $obj
       ## Enable Automatic compile order mode, otherwise we cannot find the right top module...
       set_property source_mgmt_mode All [current_project]
+      # Set PART Immediately
+      set_property PART $globalSettings::PART [current_project]
     }
 
     ConfigureProperties
@@ -535,10 +534,13 @@ proc ConfigureProperties {} {
         Msg Info "Setting project-wide properties..."
         set proj_props [dict get $globalSettings::PROPERTIES main]
         dict for {prop_name prop_val} $proj_props {
-
+          
           if { [ string tolower $prop_name ] != "ip_repo_paths" } {
-            Msg Debug "Setting $prop_name = $prop_val"
-            set_property $prop_name $prop_val [current_project]
+            if {[ string tolower $prop_name] != "part"} {
+              # Part is already set
+              Msg Debug "Setting $prop_name = $prop_val"
+              set_property $prop_name $prop_val [current_project]
+            }
           } else {
             set ip_repo_list [regsub -all {\s+} $prop_val " $globalSettings::repo_path/"]
             set ip_repo_list $globalSettings::repo_path/$ip_repo_list

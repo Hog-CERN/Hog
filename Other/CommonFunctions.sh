@@ -13,7 +13,10 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-. /Other/Logger.sh
+# Get the directory containing the script
+script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+. ${script_dir}/Logger.sh
 
 ## @file CreateProject.sh
 #  @brief Create the specified Vivado or Quartus project

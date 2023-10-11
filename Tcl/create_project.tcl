@@ -104,6 +104,7 @@ proc InitProject {} {
       ## Enable Automatic compile order mode, otherwise we cannot find the right top module...
       set_property source_mgmt_mode All [current_project]
       # Set PART Immediately
+      Msg Debug "Setting PART = $globalSettings::PART"
       set_property PART $globalSettings::PART [current_project]
     }
 

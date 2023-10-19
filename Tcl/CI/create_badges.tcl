@@ -98,11 +98,13 @@ if {[file exists utilization.txt]} {
   Execute anybadge -l "$project-$ver" -v "$res_value" -f $prj_name.svg --color=blue -o;
   dict set new_badges "$prj_name" "$prj_name"
 
-    # Timing Badge
+  # Timing Badge
   if {[file exists timing_error.txt]} {
     Execute anybadge -l timing -v "FAILED" -f timing-$prj_name.svg --color=red -o;
-  } else {
+  } elseif {[file exists timing_ok.txt]}  
     Execute anybadge -l timing -v "OK" -f timing-$prj_name.svg --color=green -o;
+  } else {
+    Execute anybadge -l timing -v "UNKNOWN" -f timing-$prj_name.svg --color=orange -o;
   }
   dict set new_badges "timing-$prj_name" "timing-$prj_name"
 

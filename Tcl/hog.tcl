@@ -3491,8 +3491,7 @@ proc GetTopFile {} {
   if {[IsVivado]} {
     # set_property source_mgmt_mode All [current_project]
     # update_compile_order -fileset sources_1
-    return [lindex [get_files -quiet -compile_order sources -used_in synthesis] end]
-  } elseif {[IsISE]} {
+    return [lindex [get_files -quiet -compile_order sources -used_in synthesis -filter {FILE_TYPE =~ "VHDL*" || FILE_TYPE =~ "*Verilog*" } ] end]  } elseif {[IsISE]} {
     debug::design_graph_mgr -create [current_fileset]
     debug::design_graph -add_fileset [current_fileset]
     debug::design_graph -update_all

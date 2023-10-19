@@ -101,7 +101,7 @@ if {[file exists utilization.txt]} {
   # Timing Badge
   if {[file exists timing_error.txt]} {
     Execute anybadge -l timing -v "FAILED" -f timing-$prj_name.svg --color=red -o;
-  } elseif {[file exists timing_ok.txt]}  
+  } elseif {[file exists timing_ok.txt]} {
     Execute anybadge -l timing -v "OK" -f timing-$prj_name.svg --color=green -o;
   } else {
     Execute anybadge -l timing -v "UNKNOWN" -f timing-$prj_name.svg --color=orange -o;

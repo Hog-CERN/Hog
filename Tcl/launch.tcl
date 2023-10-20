@@ -129,7 +129,7 @@ if {$cmd == -1} {
   Msg Info "Launching command: $cmd..."
 
   # Check if the IDE is actually in the path...
-  set ret [catch {exec command $ide}]
+  set ret [catch {exec command -v $ide}]
   if {$ret != 0} {
     Msg Error "$ide not found in your system. Make sure to add $ide to your PATH enviromental variable."
     exit $ret

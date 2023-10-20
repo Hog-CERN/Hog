@@ -381,8 +381,6 @@ proc ConfigureImplementation {} {
     # Create 'impl_1' run (if not found)
     if {[string equal [get_runs -quiet impl_1] ""]} {
       create_run -name impl_1 -part $globalSettings::PART  -constrset constrs_1 -parent_run synth_1
-    } else {
-
     }
 
     set obj [get_runs impl_1]
@@ -576,7 +574,11 @@ proc ConfigureProperties {} {
 
           dict for {prop_name prop_val} $run_props {
             Msg Debug "Setting $prop_name = $prop_val"
-            set_property $prop_name $prop_val $run
+            if {[string first "TCL.PRE" $prop_name] != -1 || [string first "TCL.POST" $prop_name] != -1 } {
+              set_property $prop_name $globalSettings::repo_path/$prop_val $run
+            } else {
+              set_property $prop_name $prop_val $run
+            }
           }
         }
       }

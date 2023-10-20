@@ -4182,6 +4182,7 @@ proc InitLauncher {script tcl_path parameters usage argv} {
     Msg Debug "$key => $value"
   }
 
+  set cmd ""
 
   if {[IsTclsh]} {
     # command is filled with the IDE exectuable when this function is called by Tcl scrpt
@@ -4218,7 +4219,7 @@ proc InitLauncher {script tcl_path parameters usage argv} {
 
 
 
-  return [list $directive $project $project_name $project_group $repo_path $old_path $bin_path $top_path $command]
+  return [list $directive $project $project_name $project_group $repo_path $old_path $bin_path $top_path $command $cmd]
 }
 
 # List projects all projects in the repository

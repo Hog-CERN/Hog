@@ -286,6 +286,7 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
     STEPS.INIT_DESIGN.TCL.POST \
     STEPS.ROUTE_DESIGN.TCL.POST \
     XPM_LIBRARIES \
+    BOARD_PART_REPO_PATHS \
   ]
 
   set HOG_GENERICS [ list GLOBAL_DATE \

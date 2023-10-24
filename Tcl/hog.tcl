@@ -1026,24 +1026,26 @@ proc GetVerFromSHA {SHA repo_path {force_develop 0}} {
       if {[regexp {^ *$} $result]} {
 	# We do not want the most recent tag, we want the biggest value
         lassign [GitRet "log --oneline --pretty=\"%d\" $SHA"] status2 tag_list
+	Msg Debug "List of all tags including $SHA: $tag_list."	
+	#cleanup the list and get only the tags
+	set pattern {v\d+\.\d+\.\d+}
+	set real_tag_list {}
+	foreach x $tag_list {
+	  lappend real_tag_list [regexp -all -inline $pattern $x]
+	}
+	Msg Debug "Cleaned up list: $real_tag_list."		
+	# Sort the tags in version order
+	set sorted_tags [lsort -decreasing -command CompareVersions $real_tag_list]
+
+	Msg Debug "Sorted Tag list: $sorted_tags"	
+	# Select the newst tag in terms of number, not time
+	set tag [lindex $sorted_tags 0]
 	
-	if {$status2 != 0} {
+	Msg Debug "Chosen Tag $tag"
+	if {![regexp $pattern $tag]} {
           Msg CriticalWarning "No Hog version tags found in this repository."
           set ver v0.0.0
         } else {
-
-	  #cleanup the list and get only the tags
-	  set pattern {v\d+\.\d+\.\d+}
-	  set real_tag_list {}
-	  foreach x $tag_list {
-	    lappend real_tag_list [regexp -all -inline $pattern $x]
-	  }
-	  
-	  # Sort the tags in version order
-	  set sorted_tags [lsort -command CompareVersions $real_tag_list]
-	  
-	  # Select the newst tag in terms of number, not time
-	  set tag [lindex $sorted_tags 0]
 
 	  lassign [ExtractVersionFromTag $tag] M m p mr
 	        # Open repo.conf and check prefixes

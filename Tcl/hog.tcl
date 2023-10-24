@@ -3491,6 +3491,7 @@ proc GetTopFile {} {
   if {[IsVivado]} {
     # set_property source_mgmt_mode All [current_project]
     # update_compile_order -fileset sources_1
+
     return [lindex [get_files -quiet -compile_order sources -used_in synthesis -filter {FILE_TYPE =~ "VHDL*" || FILE_TYPE =~ "*Verilog*" } ] end]
   } elseif {[IsISE]} {
     debug::design_graph_mgr -create [current_fileset]
@@ -4188,6 +4189,7 @@ proc InitLauncher {script tcl_path parameters usage argv} {
     Msg Debug "$key => $value"
   }
 
+  set cmd ""
 
   if {[IsTclsh]} {
     # command is filled with the IDE exectuable when this function is called by Tcl scrpt
@@ -4224,7 +4226,7 @@ proc InitLauncher {script tcl_path parameters usage argv} {
 
 
 
-  return [list $directive $project $project_name $project_group $repo_path $old_path $bin_path $top_path $command]
+  return [list $directive $project $project_name $project_group $repo_path $old_path $bin_path $top_path $command $cmd]
 }
 
 # List projects all projects in the repository

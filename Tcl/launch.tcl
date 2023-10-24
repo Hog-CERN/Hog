@@ -55,7 +55,7 @@ if {[IsQuartus]} {
 
 Msg Debug "s: $::argv0 a: $argv"
 
-lassign [InitLauncher $::argv0 $tcl_path $parameters $usage $argv] directive project project_name group_name repo_path old_path bin_dir top_path cmd
+lassign [InitLauncher $::argv0 $tcl_path $parameters $usage $argv] directive project project_name group_name repo_path old_path bin_dir top_path cmd ide
 
 Msg Debug "Returned by InitLauncher: $project $project_name $group_name $repo_path $old_path $bin_dir $top_path $cmd"
 
@@ -125,8 +125,16 @@ if {$cmd == -1} {
   Msg Info "$::argv0 was launched from the IDE."
 
 } else {
-  #This script was launched with Tclsh, we need to check the arguments and if everything is right launche the IDE on this script and return
+  # This script was launched with Tclsh, we need to check the arguments and if everything is right launche the IDE on this script and return
   Msg Info "Launching command: $cmd..."
+
+  # Check if the IDE is actually in the path...
+  set ret [catch {exec which $ide}]
+  if {$ret != 0} {
+    Msg Error "$ide not found in your system. Make sure to add $ide to your PATH enviromental variable."
+    exit $ret
+  }
+
   if {[string first libero $cmd] >= 0} {
     # The SCRIPT_ARGS: flag of libero makes tcl crazy...
     # Let's pipe the command into a shell script and remove it later
@@ -136,6 +144,8 @@ if {$cmd == -1} {
     close $libero_script
     set cmd "sh launch-libero-hog.sh"
   } 
+
+
 
   set ret [catch {exec -ignorestderr {*}$cmd >@ stdout} result]
 

@@ -305,7 +305,11 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
         lappend run_props [lindex $propReport 0]
       }
     }
-
+    # Append BOARD_PART_REPO_PATHS since it is not in given by report_property...
+    if {$proj_run == [current_project]} {
+      lappend run_props "BOARD_PART_REPO_PATHS"
+    }
+    
     foreach prop $run_props {
       #ignoring properties in $PROP_BAN_LIST
       if {$prop in $PROP_BAN_LIST} {

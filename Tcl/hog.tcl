@@ -404,9 +404,27 @@ proc GetRepoPath {} {
 # @param[in] ver1 a list of 3 numbers M m p
 # @param[in] ver2 a list of 3 numbers M m p
 #
+# In case the ver1 or ver2 are in the vormat vX.Y.Z rather than a list, they will be converted.
+# If one of the tags is an empty string it will be considered as 0.0.0
+#
 # @return Return 1 ver1 is greather than ver2, 0 if they are equal, and -1 if ver2 is greater than ver1
 #
 proc CompareVersions {ver1 ver2} {
+  if {$ver1 eq ""} {
+    set ver1 v0.0.0
+  }
+
+  if {$ver2 eq ""} {
+    set ver2 v0.0.0
+  }
+  
+  if {[regexp {v(\d+)\.(\d+)\.(\d+)} $ver1 - x y z]} {
+    set ver1 [list $x $y $z]
+  }
+  if {[regexp {v(\d+)\.(\d+)\.(\d+)} $ver2 - x y z]} {
+    set ver2 [list $x $y $z]
+  }
+
   # Add 1 in front to avoid crazy Tcl behaviour with leading 0 being octal...
   set v1 [join $ver1 ""]
   set v1 "1$v1"
@@ -1003,15 +1021,31 @@ proc GetVerFromSHA {SHA repo_path {force_develop 0}} {
     set ver "v0.0.0"
   } else {
     lassign [GitRet "tag --sort=creatordate --contain $SHA -l v*.*.* -l b*v*.*.*" ] status result
+
     if {$status == 0} {
       if {[regexp {^ *$} $result]} {
-        #newest tag of the repo, parent of the SHA
-        lassign [GitRet {describe --tags --abbrev=0 --match=v*.*.* --match=b*v*.*.*}] ret tag
-        if {$ret != 0} {
+	# We do not want the most recent tag, we want the biggest value
+        lassign [GitRet {log --oneline --pretty="%d" $SHA}] status2 tag_list
+	
+	if {$status2 != 0} {
           Msg CriticalWarning "No Hog version tags found in this repository."
           set ver v0.0.0
         } else {
-          lassign [ExtractVersionFromTag $tag] M m p mr
+
+	  #cleanup the list and get only the tags
+	  set pattern {v\d+\.\d+\.\d+}
+	  set real_tag_list {}
+	  foreach x $tag_list {
+	    lappend real_tag_list [regexp -all -inline $::pattern $x]
+	  }
+	  
+	  # Sort the tags in version order
+	  set sorted_tags [lsort -command CompareVersions $real_tag_list]
+	  
+	  # Select the newst tag in terms of number, not time
+	  set tag [lindex $sorted_tags 0]
+
+	  lassign [ExtractVersionFromTag $tag] M m p mr
 	        # Open repo.conf and check prefixes
           set repo_conf $repo_path/Top/repo.conf
 

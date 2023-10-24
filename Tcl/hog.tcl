@@ -1025,7 +1025,7 @@ proc GetVerFromSHA {SHA repo_path {force_develop 0}} {
     if {$status == 0} {
       if {[regexp {^ *$} $result]} {
 	# We do not want the most recent tag, we want the biggest value
-        lassign [GitRet {log --oneline --pretty="%d" $SHA}] status2 tag_list
+        lassign [GitRet "log --oneline --pretty=\"%d\" $SHA"] status2 tag_list
 	
 	if {$status2 != 0} {
           Msg CriticalWarning "No Hog version tags found in this repository."
@@ -1036,7 +1036,7 @@ proc GetVerFromSHA {SHA repo_path {force_develop 0}} {
 	  set pattern {v\d+\.\d+\.\d+}
 	  set real_tag_list {}
 	  foreach x $tag_list {
-	    lappend real_tag_list [regexp -all -inline $::pattern $x]
+	    lappend real_tag_list [regexp -all -inline $pattern $x]
 	  }
 	  
 	  # Sort the tags in version order

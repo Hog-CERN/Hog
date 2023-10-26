@@ -76,7 +76,7 @@ if { $options(ext_path) != "" } {
 set ver [ GetProjectVersion $project_dir $repo_path $ext_path $sim ]
 if {$ver == 0} {
   Msg Info "$project was modified, continuing with the CI..."
-} else {
+} elseif {$ver != -1} {
   Msg Info "$project was not modified since version: $ver, disabling the CI..."
   file mkdir $repo_path/Projects/$project
   set fp [open "$repo_path/Projects/$project/skip.me" w+]

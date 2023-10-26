@@ -1025,7 +1025,7 @@ proc GetVerFromSHA {SHA repo_path {force_develop 0}} {
   if {$status == 0} {
     if {[regexp {^ *$} $result]} {
     	# We do not want the most recent tag, we want the biggest value
-      lassign [GitRet "log --oneline --pretty=\"%d\" $SHA"] status2 tag_list
+      lassign [GitRet "log --oneline --pretty=\"%d\""] status2 tag_list
     	Msg Debug "List of all tags including $SHA: $tag_list."	
     	#cleanup the list and get only the tags
     	set pattern {v\d+\.\d+\.\d+}

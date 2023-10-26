@@ -1022,37 +1022,37 @@ proc GetVerFromSHA {SHA repo_path {force_develop 0}} {
   } else {
     lassign [GitRet "tag --sort=creatordate --contain $SHA -l v*.*.* -l b*v*.*.*" ] status result
 
-  if {$status == 0} {
-    if {[regexp {^ *$} $result]} {
-    	# We do not want the most recent tag, we want the biggest value
-      lassign [GitRet "log --oneline --pretty=\"%d\""] status2 tag_list
-    	Msg Debug "List of all tags including $SHA: $tag_list."	
-    	#cleanup the list and get only the tags
-    	set pattern {v\d+\.\d+\.\d+}
-    	set real_tag_list {}
-    	foreach x $tag_list {
-    	  lappend real_tag_list [regexp -all -inline $pattern $x]
-    	}
-    	Msg Debug "Cleaned up list: $real_tag_list."		
-    	# Sort the tags in version order
-    	set sorted_tags [lsort -decreasing -command CompareVersions $real_tag_list]
+    if {$status == 0} {
+      if {[regexp {^ *$} $result]} {
+      	# We do not want the most recent tag, we want the biggest value
+        lassign [GitRet "log --oneline --pretty=\"%d\""] status2 tag_list
+      	# Msg Debug "List of all tags including $SHA: $tag_list."	
+      	#cleanup the list and get only the tags
+      	set pattern {v\d+\.\d+\.\d+}
+      	set real_tag_list {}
+      	foreach x $tag_list {
+      	  lappend real_tag_list [regexp -all -inline $pattern $x]
+      	}
+      	# Msg Debug "Cleaned up list: $real_tag_list."		
+      	# Sort the tags in version order
+      	set sorted_tags [lsort -decreasing -command CompareVersions $real_tag_list]
 
-    	# Msg Debug "Sorted Tag list: $sorted_tags"	
-    	# Select the newest tag in terms of number, not time
-    	set tag [lindex $sorted_tags 0]
-    	
-    	Msg Debug "Chosen Tag $tag"
-    	if {![regexp $pattern $tag]} {
-              Msg CriticalWarning "No Hog version tags found in this repository."
-              set ver v0.0.0
-            } else {
+      	# Msg Debug "Sorted Tag list: $sorted_tags"	
+      	# Select the newest tag in terms of number, not time
+      	set tag [lindex $sorted_tags 0]
+      	
+      	# Msg Debug "Chosen Tag $tag"
+      	if {![regexp $pattern $tag]} {
+          Msg CriticalWarning "No Hog version tags found in this repository."
+          set ver v0.0.0
+        } else {
 
-	  lassign [ExtractVersionFromTag $tag] M m p mr
-	        # Open repo.conf and check prefixes
+      	  lassign [ExtractVersionFromTag $tag] M m p mr
+          # Open repo.conf and check prefixes
           set repo_conf $repo_path/Top/repo.conf
 
-	        # Check if the develop/master scheme is used and where is the merge directed to
-	        # Default values
+          # Check if the develop/master scheme is used and where is the merge directed to
+          # Default values
           set hotfix_prefix "hotfix/"
           set minor_prefix "minor_version/"
           set major_prefix "major_version/"
@@ -1063,19 +1063,19 @@ proc GetVerFromSHA {SHA repo_path {force_develop 0}} {
 
           if {[file exists $repo_conf]} {
             set PROPERTIES [ReadConf $repo_conf]
-	          # [main] section
+            # [main] section
             if {[dict exists $PROPERTIES main]} {
               set mainDict [dict get $PROPERTIES main]
 
-	            # ENABLE_DEVELOP_ BRANCH property
+              # ENABLE_DEVELOP_ BRANCH property
               if {[dict exists $mainDict ENABLE_DEVELOP_BRANCH]} {
                 set enable_develop_branch [dict get $mainDict ENABLE_DEVELOP_BRANCH]
               }
-	            # More properties in [main] here ...
+  	            # More properties in [main] here ...
 
             }
 
-	          # [prefixes] section
+            # [prefixes] section
             if {[dict exists $PROPERTIES prefixes]} {
               set prefixDict [dict get $PROPERTIES prefixes]
 
@@ -1088,7 +1088,7 @@ proc GetVerFromSHA {SHA repo_path {force_develop 0}} {
               if {[dict exists $prefixDict MAJOR_VERSION]} {
                 set major_prefix [dict get $prefixDict MAJOR_VERSION]
               }
-	            # More properties in [prefixes] here ...
+              # More properties in [prefixes] here ...
             }           
           }
 
@@ -1099,18 +1099,18 @@ proc GetVerFromSHA {SHA repo_path {force_develop 0}} {
           }
 
           if {[string match "$major_prefix*" $branch_name]} {
-	          # If major prefix is used, we increase M regardless of anything else
+            # If major prefix is used, we increase M regardless of anything else
             set version_level major
           } elseif {[string match "$minor_prefix*" $branch_name] || ($enable_develop_branch == 1 && $is_hotfix == 0)} {
-	          # This is tricky. We increase m if the minor prefix is used or if we are in develop mode and this IS NOT a hotfix
+            # This is tricky. We increase m if the minor prefix is used or if we are in develop mode and this IS NOT a hotfix
             set version_level minor
           } else {
-	          # This is even trickier... We increase p if no prefix is used AND we are not in develop mode or if we are in develop mode this IS a Hotfix
+            # This is even trickier... We increase p if no prefix is used AND we are not in develop mode or if we are in develop mode this IS a Hotfix
             set version_level patch
           }
 
           #Let's keep this for a while, more bugs may come soon
-	        #Msg Info "******** $repo_path HF: $hotfix_prefix, M: $major_prefix, m: $minor_prefix, is_hotfix: $is_hotfix: VL: $version_level, BRANCH: $branch_name"
+          #Msg Info "******** $repo_path HF: $hotfix_prefix, M: $major_prefix, m: $minor_prefix, is_hotfix: $is_hotfix: VL: $version_level, BRANCH: $branch_name"
 
 
           if {$M == -1} {

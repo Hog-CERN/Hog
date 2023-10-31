@@ -17,10 +17,27 @@ include:
   - local: YAML/hog-common.yml
   - local: YAML/hog-main.yml
 
+.ci-rules: &ci-rules
+  rules:
+    - if: '$CI_COMMIT_REF_NAME =~ /^test\/.*$/i'
+      when: never
+    - if: '$CI_COMMIT_MESSAGE =~ /DOXYGEN_ONLY/'
+      when: never
+    - if: '$CI_MERGE_REQUEST_TITLE =~ /^Draft:.*$/ && $CI_COMMIT_MESSAGE !~ /^RESOLVE_WIP:/'
+      when: never
+    - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $HOG_DEVELOP_BRANCH && $HOG_DEVELOP_BRANCH != null'
+      when: on_success
+    - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /^(master|main|release).*$/ && $HOG_TARGET_BRANCH == null && $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME != $HOG_DEVELOP_BRANCH'
+      when: on_success
+    - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $HOG_TARGET_BRANCH && $HOG_TARGET_BRANCH != null && $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME != $HOG_DEVELOP_BRANCH'
+      when: on_success
+    - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $HOG_INTERMEDIATE_BRANCH && $INTERMEDIATE_BUILD == "1" && $HOG_INTERMEDIATE_BRANCH != null'
+      when: on_success
+    - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $HOG_INTERMEDIATE_BRANCH && $CI_BUILD_STAGE == "collect" && $HOG_INTERMEDIATE_BRANCH != null'
+      when: on_success
+
 generate-config:
-  # only:
-  #   refs:
-  #     - merge_requests
+  <<: *ci-rules
   stage: dynamic_generate
   image: gitlab-registry.cern.ch/hog/hog-docker:tclsh
   script:
@@ -35,23 +52,19 @@ generate-config:
     paths:
       - generated-config.yml
       - .env
-  rules:
-    - if: $CI_MERGE_REQUEST_ID
-  tags:
-    - docker
   interruptible: true
 
 child-pipeline:
+  <<: *ci-rules
   stage: dynamic_triggers
   trigger:
     include:
       - artifact: generated-config.yml
         job: generate-config
     strategy: depend
-  rules:
-    - if: $CI_MERGE_REQUEST_ID
 
 collect_artifacts:
+  <<: *ci-rules
   image: gitlab-registry.cern.ch/hog/hog-docker:tclsh
   stage: collect
   script:
@@ -66,11 +79,7 @@ collect_artifacts:
         exit 1;
       fi
   coverage: '/Statements\s+:\s(\d+.?\d+)%/'
-  rules:
-    - if: $CI_MERGE_REQUEST_ID
   artifacts:
     paths:
       - bin/
     expire_in: 30 days
-  tags:
-    - docker

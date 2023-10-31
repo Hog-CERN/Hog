@@ -325,8 +325,9 @@ if {[IsXilinx]} {
   # automatically export for zynqs (checking via regex)
   set export_xsa false
   set part [get_property part [current_project]]
-  set is_zynq [expr {[regexp {xc7z.*} $part] || [regexp {xczu.*} $part]}]
-  if {${is_zynq} == 1} {
+
+  if { IsZynq $part == 1 || IsVersal $part} {
+    Msg Info "SoC FPGA detected (Zynq or Versal), automatically enabling XSA file creation. To disable it add EXPORT_XSA = false in the \[hog\] sexction of hog.conf."
     set export_xsa true
   }
 

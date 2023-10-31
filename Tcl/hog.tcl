@@ -90,6 +90,21 @@ proc IsVersal {part} {
   }
 }
 
+## @brief Find out if the given Xilinx part is a Vesal chip
+#
+# @param[out] 1 if it's Zynq 0 if it's not
+# @param[in]  part  The FPGA part
+#
+proc IsZynq {part} {
+  if { [regexp {^(xc7z|xczu).*} $part] } {
+    return 1
+  } else {
+    return 0
+  }
+}
+
+
+
 ## @brief # Returns the step name for the stage that produces the binary file
 #
 # Projects using Versal chips have a different step for producing the

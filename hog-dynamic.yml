@@ -36,8 +36,15 @@ include:
     - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $HOG_INTERMEDIATE_BRANCH && $CI_BUILD_STAGE == "collect" && $HOG_INTERMEDIATE_BRANCH != null'
       when: on_success
 
+.vars: &vars
+  GIT_STRATEGY: clone
+  GIT_SUBMODULE_STRATEGY: recursive
+  # CI_DEBUG_TRACE: "true"
+
+
 generate-config:
   <<: *ci-rules
+  <<: *vars
   stage: dynamic_generate
   image: gitlab-registry.cern.ch/hog/hog-docker:tclsh
   script:

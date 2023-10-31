@@ -44,7 +44,8 @@ include:
 
 generate-config:
   <<: *ci-rules
-  <<: *vars
+  variables:
+    <<: *vars 
   stage: dynamic_generate
   image: gitlab-registry.cern.ch/hog/hog-docker:tclsh
   script:

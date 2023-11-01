@@ -3440,7 +3440,7 @@ proc GetGenericFromConf {proj_dir target {sim 0}} {
           } else {
             set prj_generics "$prj_generics $theKey=\"$theValue\""
           }
-        } elseif { [lsearch -exact [GetSimulators] [string tolower $target] ] >= 0 } {
+        } elseif { [lsearch -exact "[GetSimulators] xsim" [string tolower $target] ] >= 0 } {
           if {$valueNumBits != "" && $valueHexFlag != "" && $valueHex != ""} {
             set numBits 0
             scan $valueNumBits %d numBits

@@ -3430,7 +3430,7 @@ proc GetGenericFromConf {proj_dir target {sim 0}} {
         regexp {([0-9]*)('h)([0-9a-fA-F]*)} $theValue valueHexFull valueNumBits valueHexFlag valueHex
         regexp {^([0-9]*)$} $theValue valueIntFull ValueInt
         regexp {(?!^\d+$)^.+$} $theValue valueStrFull ValueStr 
-        if { $target == "Vivado" } {
+        if { [string tolower $target] == "vivado" || [string tolower $target] == "xsim" } {
           if {$valueNumBits != "" && $valueHexFlag != "" && $valueHex != ""} {
             set prj_generics "$prj_generics $theKey=$valueHexFull"
           } elseif { $valueIntFull != "" && $ValueInt != "" } {
@@ -3440,7 +3440,7 @@ proc GetGenericFromConf {proj_dir target {sim 0}} {
           } else {
             set prj_generics "$prj_generics $theKey=\"$theValue\""
           }
-        } elseif { [lsearch -exact "[GetSimulators] xsim" [string tolower $target] ] >= 0 } {
+        } elseif { [lsearch -exact [GetSimulators] [string tolower $target] ] >= 0 } {
           if {$valueNumBits != "" && $valueHexFlag != "" && $valueHex != ""} {
             set numBits 0
             scan $valueNumBits %d numBits

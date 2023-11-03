@@ -919,7 +919,6 @@ if {[IsXilinx]} {
     }
   } else {
     Msg Info "Opening existing project file $project_file..."
-    file mkdir "$repo_path/Projects/$project_name/$project.gen/sources_1"
     open_project -file $project_file -do_backup_on_convert 1 -backup_file {./Projects/$project_file.zip}
   }
 
@@ -985,8 +984,7 @@ if {[IsXilinx]} {
     Msg Info "Git describe set to $describe"
 
     set dst_dir [file normalize "$bin_dir/$project_name\-$describe"]
-
-    file mkdir $dst_dir
+    file mkdir $dst_dir/reports
 
     #Version table
     if {[file exists $main_folder/versions.txt]} {

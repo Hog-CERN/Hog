@@ -101,6 +101,16 @@ if {[IsXilinx]} {
   set srd_file [file normalize [lindex [glob -nocomplain "$proj_dir/synthesis/*.srd"] 0]]
   set srm_file [file normalize [lindex [glob -nocomplain "$proj_dir/synthesis/*.srm"] 0]]
   set srs_file [file normalize [lindex [glob -nocomplain "$proj_dir/synthesis/*.srs"] 0]]
+  set srr_file [file normalize [lindex [glob -nocomplain "$proj_dir/synthesis/*.srr"] 0]]
+  set top_name [file rootname [file tail $srr_file]]
+  set stxt_files [glob -nocomplain "$proj_dir/synthesis/*.txt"]
+  set scsv_files [glob -nocomplain "$proj_dir/synthesis/*.csv"]
+  set slog_files [glob -nocomplain "$proj_dir/synthesis/*.log"]
+  set srpt_files [glob -nocomplain "$proj_dir/synthesis/*.rpt"]
+  set dtxt_files [glob -nocomplain "$proj_dir/designer/$top_name/*.txt"]
+  set dcsv_files [glob -nocomplain "$proj_dir/designer/$top_name/*.csv"]
+  set dlog_files [glob -nocomplain "$proj_dir/designer/$top_name/*.log"]
+  set drpt_files [glob -nocomplain "$proj_dir/designer/$top_name/*.rpt"]
   set xml_dir [file normalize "$repo_path/xml"]
 
 } else {
@@ -274,10 +284,12 @@ if {[IsXilinx] && [file exists $main_file]} {
   set dst_srd [file normalize "$dst_dir/$project\-$describe.srd"]
   set dst_srm [file normalize "$dst_dir/$project\-$describe.srm"]
   set dst_srs [file normalize "$dst_dir/$project\-$describe.srs"]
+  set dst_srr [file normalize "$dst_dir/$project\-$describe.srr"]
+  set dst_rpt [file normalize "$dst_dir/reports"]
   set dst_xml [file normalize "$dst_dir/xml"]
 
   Msg Info "Creating $dst_dir..."
-  file mkdir $dst_dir
+  file mkdir $dst_dir/reports
 
   if {[file exists $map_file]} {
     Msg Info "Copying map file $map_file into $dst_map..."
@@ -301,8 +313,31 @@ if {[IsXilinx] && [file exists $main_file]} {
 
   if {[file exists $srs_file]} {
     Msg Info "Copying srs file $srs_file into $dst_srs..."
-    file copy -force $srs_file $dst_map
+    file copy -force $srs_file $dst_srs
   }
+
+  if {[file exists $srr_file]} {
+    Msg Info "Copying srr file $srr_file into $dst_srr..."
+    file copy -force $srr_file $dst_srr
+  }
+
+  Msg Info "Copying synth txt files $stxt_files into $dst_rpt..."
+  file copy -force {*}$stxt_files $dst_rpt
+  Msg Info "Copying synth csv files $scsv_files into $dst_rpt..."
+  file copy -force {*}$scsv_files $dst_rpt
+  Msg Info "Copying synth log files $slog_files into $dst_rpt..."
+  file copy -force {*}$slog_files $dst_rpt
+  Msg Info "Copying synth rpt files $srpt_files into $dst_rpt..."
+  file copy -force {*}$srpt_files $dst_rpt
+
+  Msg Info "Copying impl txt files $dtxt_files into $dst_rpt..."
+  file copy -force {*}$dtxt_files $dst_rpt
+  Msg Info "Copying impl csv files $dcsv_files into $dst_rpt..."
+  file copy -force {*}$dcsv_files $dst_rpt
+  Msg Info "Copying impl log files $dlog_files into $dst_rpt..."
+  file copy -force {*}$dlog_files $dst_rpt
+  Msg Info "Copying impl rpt files $drpt_files into $dst_rpt..."
+  file copy -force {*}$drpt_files $dst_rpt
 
 } else {
   Msg CriticalWarning "Firmware binary file not found."

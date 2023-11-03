@@ -509,6 +509,15 @@ proc FindFileType {file_name} {
     .sdc {
       set file_extension "SDC_FILE"
     }
+    .pdc {
+      set file_extension "PDC_FILE"
+    }
+    .ndc {
+      set file_extension "NDC_FILE"
+    }
+    .fdc {
+      set file_extension "FDC_FILE"
+    }
     .qsf {
       set file_extension "SOURCE_FILE"
     }
@@ -2383,14 +2392,17 @@ proc AddHogFiles { libraries properties filesets } {
         }
       } elseif {[IsLibero] } {
         if {$ext == ".con"} {
+          set vld_exts {.sdc .pin .dcf .gcf .pdc .ndc .fdc .crt .vcd }
           foreach con_file $lib_files {
             # Check for valid constrain files
             set con_ext [file extension $con_file]
-            if {[IsInList [file extension $con_file]  {.sdc .pin .dcf .gcf .pdc .crt .vcd } ]} {
+            if {[IsInList [file extension $con_file]  $vld_exts ]} {
               set option [string map {. -} $con_ext]
+              set option [string map {fdc net_fdc} $option]
+              set option [string map {pdc io_pdc} $option]
               create_links -convert_EDN_to_HDL 0 -library {work} $option $con_file 
             } else {
-              Msg CriticalWarning "Constraint file $con_file does not have a valid extension. Allowed extensions are: \n .sdc .pin .dcf .gcf .pdc .crt .vcd"
+              Msg CriticalWarning "Constraint file $con_file does not have a valid extension. Allowed extensions are: \n $vld_exts"
             }
           }
         } elseif {$ext == ".src"} {

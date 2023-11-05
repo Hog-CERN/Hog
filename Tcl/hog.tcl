@@ -4037,6 +4037,7 @@ proc WriteListFiles {libs props list_path repo_path {$ext_path ""} } {
         Msg Warning "The path of file $file is not relative to your repository. Please check!"
       }
     }
+    close $list_file
   }
 }
 

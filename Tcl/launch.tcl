@@ -984,7 +984,6 @@ if {[IsXilinx]} {
     Msg Info "Git describe set to $describe"
 
     set dst_dir [file normalize "$bin_dir/$project_name\-$describe"]
-
     file mkdir $dst_dir/reports
 
     #Version table

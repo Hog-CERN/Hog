@@ -321,6 +321,7 @@ if {[IsXilinx] && [file exists $main_file]} {
     file copy -force $srr_file $dst_srr
   }
 
+
   Msg Info "Copying synth txt files $stxt_files into $dst_rpt..."
   file copy -force {*}$stxt_files $dst_rpt
   Msg Info "Copying synth csv files $scsv_files into $dst_rpt..."
@@ -360,8 +361,9 @@ if {[IsXilinx]} {
   # automatically export for zynqs (checking via regex)
   set export_xsa false
   set part [get_property part [current_project]]
-  set is_zynq [expr {[regexp {xc7z.*} $part] || [regexp {xczu.*} $part]}]
-  if {${is_zynq} == 1} {
+
+  if { [IsZynq $part] || [IsVersal $part]} {
+    Msg Info "SoC FPGA detected (Zynq or Versal), automatically enabling XSA file creation. To disable it, add 'EXPORT_XSA = false' in the \[hog\] section of hog.conf."
     set export_xsa true
   }
 

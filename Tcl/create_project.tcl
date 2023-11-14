@@ -851,6 +851,12 @@ proc CreateProject args {
   set globalSettings::quartus_post_module [file normalize "$globalSettings::tcl_path/integrated/$globalSettings::quartus_post_module_file"]
   set globalSettings::LIBERO_MANDATORY_VARIABLES {"FAMILY" "PACKAGE" "DIE" }
 
+  set user_hog_file "$globalSettings::repo_path/Top/hog.tcl"
+  if {[file exists $user_hog_file]} {
+    Msg Info "Sourcing user hog.tcl file..."
+    source $user_hog_file
+  }
+
   if {[file exists $pre_file]} {
     Msg Info "Found pre-creation Tcl script $pre_file, executing it..."
     source $pre_file

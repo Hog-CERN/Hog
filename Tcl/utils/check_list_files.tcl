@@ -332,10 +332,18 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
       } else {
         #Project values
         # setting only relative paths
-        if {[string first  $repo_path [get_property $prop $proj_run]] != -1} {
-          dict set projRunDict [string toupper $prop] [Relative $repo_path [get_property $prop $proj_run]]
+        if {[string first $repo_path [get_property $prop $proj_run]] != -1} {
+          set prop_val ""
+          foreach p [get_property $prop $proj_run] {
+            set prop_val "$prop_val[Relative $repo_path $p] "
+          }
+          dict set projRunDict [string toupper $prop] [string trim $prop_val]
         } elseif {[string first  $ext_path [get_property $prop $proj_run]] != -1} {
-          dict set projRunDict [string toupper $prop]  [Relative $ext_path [get_property $prop $proj_run]]
+          set prop_val ""
+          foreach p [get_property $prop $proj_run] {
+            set prop_val "$prop_val[Relative $ext_path $p] "
+          }
+          dict set projRunDict [string toupper $prop] [string trim $prop_val]
         } else {
           dict set projRunDict [string toupper $prop] [get_property $prop $proj_run]
         }

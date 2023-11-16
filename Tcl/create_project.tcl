@@ -73,6 +73,10 @@ namespace eval globalSettings {
   variable quartus_post_module
 }
 
+set VIVADO_PATH_PROPERTIES {
+  "TCL.PRE" "TCL.POST" "RQS_FILES"
+}
+
 ################# FUNCTIONS ################################
 proc InitProject {} {
   if {[IsXilinx]} {
@@ -574,7 +578,7 @@ proc ConfigureProperties {} {
 
           dict for {prop_name prop_val} $run_props {
             Msg Debug "Setting $prop_name = $prop_val"
-            if {[string first "TCL.PRE" $prop_name] != -1 || [string first "TCL.POST" $prop_name] != -1 } {
+            if {[string first "TCL.PRE" $prop_name] != -1 || [string first "TCL.POST" $prop_name] != -1 || $prop_name == "RQS_FILES" } {
               set_property $prop_name $globalSettings::repo_path/$prop_val $run
             } else {
               set_property $prop_name $prop_val $run

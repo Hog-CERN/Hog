@@ -90,6 +90,21 @@ proc IsVersal {part} {
   }
 }
 
+## @brief Find out if the given Xilinx part is a Vesal chip
+#
+# @param[out] 1 if it's Zynq 0 if it's not
+# @param[in]  part  The FPGA part
+#
+proc IsZynq {part} {
+  if { [regexp {^(xc7z|xczu).*} $part] } {
+    return 1
+  } else {
+    return 0
+  }
+}
+
+
+
 ## @brief # Returns the step name for the stage that produces the binary file
 #
 # Projects using Versal chips have a different step for producing the
@@ -3463,7 +3478,7 @@ proc GetGenericFromConf {proj_dir target {sim 0}} {
         regexp {([0-9]*)('h)([0-9a-fA-F]*)} $theValue valueHexFull valueNumBits valueHexFlag valueHex
         regexp {^([0-9]*)$} $theValue valueIntFull ValueInt
         regexp {(?!^\d+$)^.+$} $theValue valueStrFull ValueStr 
-        if { $target == "Vivado" } {
+        if { [string tolower $target] == "vivado" || [string tolower $target] == "xsim" } {
           if {$valueNumBits != "" && $valueHexFlag != "" && $valueHex != ""} {
             set prj_generics "$prj_generics $theKey=$valueHexFull"
           } elseif { $valueIntFull != "" && $ValueInt != "" } {
@@ -4061,6 +4076,7 @@ proc WriteListFiles {libs props list_path repo_path {$ext_path ""} } {
         Msg Warning "The path of file $file is not relative to your repository. Please check!"
       }
     }
+    close $list_file
   }
 }
 

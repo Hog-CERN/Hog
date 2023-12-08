@@ -1050,22 +1050,29 @@ proc GetVerFromSHA {SHA repo_path {force_develop 0}} {
       if {[regexp {^ *$} $result]} {
       	# We do not want the most recent tag, we want the biggest value
         lassign [GitRet "log --oneline --pretty=\"%d\""] status2 tag_list
-      	# Msg Debug "List of all tags including $SHA: $tag_list."	
+      	#Msg Status "List of all tags including $SHA: $tag_list."	
       	#cleanup the list and get only the tags
-      	set pattern {v\d+\.\d+\.\d+}
+      	set pattern {tag: v\d+\.\d+\.\d+}
       	set real_tag_list {}
       	foreach x $tag_list {
-      	  lappend real_tag_list [regexp -all -inline $pattern $x]
+	  set x_untrimmed [regexp -all -inline $pattern $x]
+	  regsub "tag: " $x_untrimmed "" x_trimmed
+	  set tt [lindex $x_trimmed 0]
+	  if {![string equal $tt ""]} { 
+	    lappend real_tag_list $tt
+	    #puts "<$tt>"
+	  }
       	}
-      	# Msg Debug "Cleaned up list: $real_tag_list."		
+      	#Msg Status "Cleaned up list: $real_tag_list."		
       	# Sort the tags in version order
       	set sorted_tags [lsort -decreasing -command CompareVersions $real_tag_list]
 
-      	# Msg Debug "Sorted Tag list: $sorted_tags"	
+      	#Msg Status "Sorted Tag list: $sorted_tags" 
       	# Select the newest tag in terms of number, not time
       	set tag [lindex $sorted_tags 0]
       	
       	# Msg Debug "Chosen Tag $tag"
+	set pattern {v\d+\.\d+\.\d+}
       	if {![regexp $pattern $tag]} {
           Msg CriticalWarning "No Hog version tags found in this repository."
           set ver v0.0.0
@@ -1139,6 +1146,7 @@ proc GetVerFromSHA {SHA repo_path {force_develop 0}} {
 
           if {$M == -1} {
             Msg CriticalWarning "Tag $tag does not contain a Hog compatible version in this repository."
+	    exit
             #set ver v0.0.0
           } elseif {$mr == 0} {
             #Msg Info "No tag contains $SHA, will use most recent tag $tag. As this is an official tag, patch will be incremented to $p."

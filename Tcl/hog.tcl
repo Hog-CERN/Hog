@@ -1536,18 +1536,31 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
 
   #The global SHA and ver is the most recent among everything
   if {$clean == 1} {
-    set commit [Git "log --format=%h -1 --abbrev=7 $SHAs"]
-    set version [FindNewestVersion $versions]
+    set found 0
+    while {$found == 0} {
+      set global_commit [Git "log --format=%h -1 --abbrev=7 $SHAs"]
+      foreach sha $SHAs {
+	set found 1
+	if {![IsCommitAncestor $sha $global_commit]} {
+	  set common_child  [FindCommonGitChild $global_commit $sha]
+	  lappend SHAs $common_child
+	  set found 0
+	  Msg Info "The commit $sha is not an ancestor of the global commit $global_commit, adding the first common child $common_child instead..."
+	  break
+	}
+      }
+    }
+    set global_version [FindNewestVersion $versions]
   } else {
-    set commit  "0000000"
-    set version "00000000"
+    set global_commit  "0000000"
+    set global_version "00000000"
   }
 
   cd $old_path
 
   set top_hash [format %+07s $top_hash]
   set cons_hash [format %+07s $cons_hash]
-  return [list $commit $version  $hog_hash $hog_ver  $top_hash $top_ver  $libs $hashes $vers  $cons_ver $cons_hash  $ext_names $ext_hashes  $xml_hash $xml_ver $user_ip_repos $user_ip_repo_hashes $user_ip_repo_vers ]
+  return [list $global_commit $global_version  $hog_hash $hog_ver  $top_hash $top_ver  $libs $hashes $vers  $cons_ver $cons_hash  $ext_names $ext_hashes  $xml_hash $xml_ver $user_ip_repos $user_ip_repo_hashes $user_ip_repo_vers ]
 }
 
 
@@ -4429,5 +4442,34 @@ proc IsInList {element list} {
     return 0
   }
 }
+
+# Function to check if a commit is an ancestor of another
+proc IsCommitAncestor {ancestor commit} {
+  lassign [GitRet "merge-base --is-ancestor $ancestor $commit"] status result
+  if {$status == 0 } {
+    return 1
+  } else {
+    return 0
+  }
+}
+
+proc FindCommonGitChild {SHA1 SHA2} {
+  # Get the list of all commits in the repository
+  set commits [Git {log --oneline --merges}]
+  set ancestor 0
+  # Iterate over each commit
+  foreach line [split $commits "\n"] {
+    set commit [lindex [split $line] 0]
+    
+    # Check if both SHA1 and SHA2 are ancestors of the commit
+    if {[IsCommitAncestor $SHA1 $commit] && [IsCommitAncestor $SHA2 $commit] } {
+      set ancestor $commit
+      break
+    }
+  }
+  return $ancestor
+}
+
+### Source the Create project file
 source [file dirname [info script]]/create_project.tcl
 

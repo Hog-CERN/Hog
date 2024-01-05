@@ -1837,8 +1837,12 @@ proc GetProjectFiles {} {
     foreach f $all_files {
       # Ignore files that are part of the vivado/planahead project but would not be reflected
       # in list files (e.g. generated products from ip cores)
-
       set ignore 0
+      if {[get_files -quiet $f] == ""} {
+	#Cannot run GetFile on files that are not in the project, but what are these files
+	Msg Debug "Project file: $f not found in the project!"
+	continue
+      }
       # Generated files point to a parent composite file;
       # planahead does not have an IS_GENERATED property
       if { [IsInList "IS_GENERATED" [list_property [GetFile $f]]]} {

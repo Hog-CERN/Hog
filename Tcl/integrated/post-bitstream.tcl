@@ -102,12 +102,15 @@ if {[IsXilinx]} {
   set srm_file [file normalize [lindex [glob -nocomplain "$proj_dir/synthesis/*.srm"] 0]]
   set srs_file [file normalize [lindex [glob -nocomplain "$proj_dir/synthesis/*.srs"] 0]]
   set srr_file [file normalize [lindex [glob -nocomplain "$proj_dir/synthesis/*.srr"] 0]]
-  set top_name [file rootname [file tail srr_file]]
-  set txt_files [glob -nocomplain "$proj_dir/synthesis/*.txt"]
-  set csv_files [glob -nocomplain "$proj_dir/synthesis/*.csv"]
+  set top_name [file rootname [file tail $srr_file]]
+  set stxt_files [glob -nocomplain "$proj_dir/synthesis/*.txt"]
+  set scsv_files [glob -nocomplain "$proj_dir/synthesis/*.csv"]
   set slog_files [glob -nocomplain "$proj_dir/synthesis/*.log"]
+  set srpt_files [glob -nocomplain "$proj_dir/synthesis/*.rpt"]
+  set dtxt_files [glob -nocomplain "$proj_dir/designer/$top_name/*.txt"]
+  set dcsv_files [glob -nocomplain "$proj_dir/designer/$top_name/*.csv"]
   set dlog_files [glob -nocomplain "$proj_dir/designer/$top_name/*.log"]
-  set rpt_files [glob -nocomplain "$proj_dir/designer/$top_name/*.rpt"]
+  set drpt_files [glob -nocomplain "$proj_dir/designer/$top_name/*.rpt"]
   set xml_dir [file normalize "$repo_path/xml"]
 
 } else {
@@ -318,17 +321,24 @@ if {[IsXilinx] && [file exists $main_file]} {
     file copy -force $srr_file $dst_srr
   }
 
-  Msg Info "Copying txt files into $dst_rpt..."
-  file copy -force {*}$txt_files $dst_rpt
-  Msg Info "Copying csv files into $dst_rpt..."
-  file copy -force {*}$csv_files $dst_rpt
-  Msg Info "Copying synth log files into $dst_rpt..."
-  file copy -force {*}$slog_files $dst_rpt
-  Msg Info "Copying impl log files into $dst_rpt..."
-  file copy -force {*}$dlog_files $dst_rpt
-  Msg Info "Copying rpt files into $dst_rpt..."
-  file copy -force {*}$rpt_files $dst_rpt
 
+  Msg Info "Copying synth txt files $stxt_files into $dst_rpt..."
+  file copy -force {*}$stxt_files $dst_rpt
+  Msg Info "Copying synth csv files $scsv_files into $dst_rpt..."
+  file copy -force {*}$scsv_files $dst_rpt
+  Msg Info "Copying synth log files $slog_files into $dst_rpt..."
+  file copy -force {*}$slog_files $dst_rpt
+  Msg Info "Copying synth rpt files $srpt_files into $dst_rpt..."
+  file copy -force {*}$srpt_files $dst_rpt
+
+  Msg Info "Copying impl txt files $dtxt_files into $dst_rpt..."
+  file copy -force {*}$dtxt_files $dst_rpt
+  Msg Info "Copying impl csv files $dcsv_files into $dst_rpt..."
+  file copy -force {*}$dcsv_files $dst_rpt
+  Msg Info "Copying impl log files $dlog_files into $dst_rpt..."
+  file copy -force {*}$dlog_files $dst_rpt
+  Msg Info "Copying impl rpt files $drpt_files into $dst_rpt..."
+  file copy -force {*}$drpt_files $dst_rpt
 
 } else {
   Msg CriticalWarning "Firmware binary file not found."

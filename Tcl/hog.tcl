@@ -142,7 +142,7 @@ proc Msg {level msg {title ""}} {
     set qlevel critical_warning
   } elseif {$level == 4 || $level == "error"} {
     set vlevel {ERROR}
-    set qlevel "error"
+    set qlevel error
   } elseif {$level == 5 || $level == "debug"} {
     if {([info exists ::DEBUG_MODE] && $::DEBUG_MODE == 1) || ([info exists ::env(HOG_DEBUG_MODE)] && $::env(HOG_DEBUG_MODE) == 1)} {
       set vlevel {STATUS}
@@ -419,9 +419,27 @@ proc GetRepoPath {} {
 # @param[in] ver1 a list of 3 numbers M m p
 # @param[in] ver2 a list of 3 numbers M m p
 #
+# In case the ver1 or ver2 are in the vormat vX.Y.Z rather than a list, they will be converted.
+# If one of the tags is an empty string it will be considered as 0.0.0
+#
 # @return Return 1 ver1 is greather than ver2, 0 if they are equal, and -1 if ver2 is greater than ver1
 #
 proc CompareVersions {ver1 ver2} {
+  if {$ver1 eq ""} {
+    set ver1 v0.0.0
+  }
+
+  if {$ver2 eq ""} {
+    set ver2 v0.0.0
+  }
+  
+  if {[regexp {v(\d+)\.(\d+)\.(\d+)} $ver1 - x y z]} {
+    set ver1 [list $x $y $z]
+  }
+  if {[regexp {v(\d+)\.(\d+)\.(\d+)} $ver2 - x y z]} {
+    set ver2 [list $x $y $z]
+  }
+
   # Add 1 in front to avoid crazy Tcl behaviour with leading 0 being octal...
   set v1 [join $ver1 ""]
   set v1 "1$v1"
@@ -1027,20 +1045,45 @@ proc GetVerFromSHA {SHA repo_path {force_develop 0}} {
     set ver "v0.0.0"
   } else {
     lassign [GitRet "tag --sort=creatordate --contain $SHA -l v*.*.* -l b*v*.*.*" ] status result
+
     if {$status == 0} {
       if {[regexp {^ *$} $result]} {
-        #newest tag of the repo, parent of the SHA
-        lassign [GitRet {describe --tags --abbrev=0 --match=v*.*.* --match=b*v*.*.*}] ret tag
-        if {$ret != 0} {
+      	# We do not want the most recent tag, we want the biggest value
+        lassign [GitRet "log --oneline --pretty=\"%d\""] status2 tag_list
+      	#Msg Status "List of all tags including $SHA: $tag_list."	
+      	#cleanup the list and get only the tags
+      	set pattern {tag: v\d+\.\d+\.\d+}
+      	set real_tag_list {}
+      	foreach x $tag_list {
+	  set x_untrimmed [regexp -all -inline $pattern $x]
+	  regsub "tag: " $x_untrimmed "" x_trimmed
+	  set tt [lindex $x_trimmed 0]
+	  if {![string equal $tt ""]} { 
+	    lappend real_tag_list $tt
+	    #puts "<$tt>"
+	  }
+      	}
+      	#Msg Status "Cleaned up list: $real_tag_list."		
+      	# Sort the tags in version order
+      	set sorted_tags [lsort -decreasing -command CompareVersions $real_tag_list]
+
+      	#Msg Status "Sorted Tag list: $sorted_tags" 
+      	# Select the newest tag in terms of number, not time
+      	set tag [lindex $sorted_tags 0]
+      	
+      	# Msg Debug "Chosen Tag $tag"
+	set pattern {v\d+\.\d+\.\d+}
+      	if {![regexp $pattern $tag]} {
           Msg CriticalWarning "No Hog version tags found in this repository."
           set ver v0.0.0
         } else {
-          lassign [ExtractVersionFromTag $tag] M m p mr
-	        # Open repo.conf and check prefixes
+
+      	  lassign [ExtractVersionFromTag $tag] M m p mr
+          # Open repo.conf and check prefixes
           set repo_conf $repo_path/Top/repo.conf
 
-	        # Check if the develop/master scheme is used and where is the merge directed to
-	        # Default values
+          # Check if the develop/master scheme is used and where is the merge directed to
+          # Default values
           set hotfix_prefix "hotfix/"
           set minor_prefix "minor_version/"
           set major_prefix "major_version/"
@@ -1051,19 +1094,19 @@ proc GetVerFromSHA {SHA repo_path {force_develop 0}} {
 
           if {[file exists $repo_conf]} {
             set PROPERTIES [ReadConf $repo_conf]
-	          # [main] section
+            # [main] section
             if {[dict exists $PROPERTIES main]} {
               set mainDict [dict get $PROPERTIES main]
 
-	            # ENABLE_DEVELOP_ BRANCH property
+              # ENABLE_DEVELOP_ BRANCH property
               if {[dict exists $mainDict ENABLE_DEVELOP_BRANCH]} {
                 set enable_develop_branch [dict get $mainDict ENABLE_DEVELOP_BRANCH]
               }
-	            # More properties in [main] here ...
+  	            # More properties in [main] here ...
 
             }
 
-	          # [prefixes] section
+            # [prefixes] section
             if {[dict exists $PROPERTIES prefixes]} {
               set prefixDict [dict get $PROPERTIES prefixes]
 
@@ -1076,7 +1119,7 @@ proc GetVerFromSHA {SHA repo_path {force_develop 0}} {
               if {[dict exists $prefixDict MAJOR_VERSION]} {
                 set major_prefix [dict get $prefixDict MAJOR_VERSION]
               }
-	            # More properties in [prefixes] here ...
+              # More properties in [prefixes] here ...
             }           
           }
 
@@ -1087,22 +1130,23 @@ proc GetVerFromSHA {SHA repo_path {force_develop 0}} {
           }
 
           if {[string match "$major_prefix*" $branch_name]} {
-	          # If major prefix is used, we increase M regardless of anything else
+            # If major prefix is used, we increase M regardless of anything else
             set version_level major
           } elseif {[string match "$minor_prefix*" $branch_name] || ($enable_develop_branch == 1 && $is_hotfix == 0)} {
-	          # This is tricky. We increase m if the minor prefix is used or if we are in develop mode and this IS NOT a hotfix
+            # This is tricky. We increase m if the minor prefix is used or if we are in develop mode and this IS NOT a hotfix
             set version_level minor
           } else {
-	          # This is even trickier... We increase p if no prefix is used AND we are not in develop mode or if we are in develop mode this IS a Hotfix
+            # This is even trickier... We increase p if no prefix is used AND we are not in develop mode or if we are in develop mode this IS a Hotfix
             set version_level patch
           }
 
           #Let's keep this for a while, more bugs may come soon
-	        #Msg Info "******** $repo_path HF: $hotfix_prefix, M: $major_prefix, m: $minor_prefix, is_hotfix: $is_hotfix: VL: $version_level, BRANCH: $branch_name"
+          #Msg Info "******** $repo_path HF: $hotfix_prefix, M: $major_prefix, m: $minor_prefix, is_hotfix: $is_hotfix: VL: $version_level, BRANCH: $branch_name"
 
 
           if {$M == -1} {
             Msg CriticalWarning "Tag $tag does not contain a Hog compatible version in this repository."
+	    exit
             #set ver v0.0.0
           } elseif {$mr == 0} {
             #Msg Info "No tag contains $SHA, will use most recent tag $tag. As this is an official tag, patch will be incremented to $p."
@@ -1492,18 +1536,31 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
 
   #The global SHA and ver is the most recent among everything
   if {$clean == 1} {
-    set commit [Git "log --format=%h -1 --abbrev=7 $SHAs"]
-    set version [FindNewestVersion $versions]
+    set found 0
+    while {$found == 0} {
+      set global_commit [Git "log --format=%h -1 --abbrev=7 $SHAs"]
+      foreach sha $SHAs {
+	set found 1
+	if {![IsCommitAncestor $sha $global_commit]} {
+	  set common_child  [FindCommonGitChild $global_commit $sha]
+	  lappend SHAs $common_child
+	  set found 0
+	  Msg Info "The commit $sha is not an ancestor of the global commit $global_commit, adding the first common child $common_child instead..."
+	  break
+	}
+      }
+    }
+    set global_version [FindNewestVersion $versions]
   } else {
-    set commit  "0000000"
-    set version "00000000"
+    set global_commit  "0000000"
+    set global_version "00000000"
   }
 
   cd $old_path
 
   set top_hash [format %+07s $top_hash]
   set cons_hash [format %+07s $cons_hash]
-  return [list $commit $version  $hog_hash $hog_ver  $top_hash $top_ver  $libs $hashes $vers  $cons_ver $cons_hash  $ext_names $ext_hashes  $xml_hash $xml_ver $user_ip_repos $user_ip_repo_hashes $user_ip_repo_vers ]
+  return [list $global_commit $global_version  $hog_hash $hog_ver  $top_hash $top_ver  $libs $hashes $vers  $cons_ver $cons_hash  $ext_names $ext_hashes  $xml_hash $xml_ver $user_ip_repos $user_ip_repo_hashes $user_ip_repo_vers ]
 }
 
 
@@ -2370,16 +2427,17 @@ proc AddHogFiles { libraries properties filesets } {
         }
       } elseif {[IsLibero] } {
         if {$ext == ".con"} {
+          set vld_exts {.sdc .pin .dcf .gcf .pdc .ndc .fdc .crt .vcd }
           foreach con_file $lib_files {
             # Check for valid constrain files
             set con_ext [file extension $con_file]
-            if {[IsInList [file extension $con_file]  {.sdc .pin .dcf .gcf .pdc .ndc .fdc .crt .vcd } ]} {
+            if {[IsInList [file extension $con_file]  $vld_exts ]} {
               set option [string map {. -} $con_ext]
               set option [string map {fdc net_fdc} $option]
               set option [string map {pdc io_pdc} $option]
               create_links -convert_EDN_to_HDL 0 -library {work} $option $con_file 
             } else {
-              Msg CriticalWarning "Constraint file $con_file does not have a valid extension. Allowed extensions are: \n .sdc .pin .dcf .gcf .pdc .ndc .fdc .crt .vcd"
+              Msg CriticalWarning "Constraint file $con_file does not have a valid extension. Allowed extensions are: \n $vld_exts"
             }
           }
         } elseif {$ext == ".src"} {
@@ -3516,7 +3574,9 @@ proc GetTopFile {} {
   if {[IsVivado]} {
     # set_property source_mgmt_mode All [current_project]
     # update_compile_order -fileset sources_1
-    return [lindex [get_files -quiet -compile_order sources -used_in synthesis -filter {FILE_TYPE =~ "VHDL*" || FILE_TYPE =~ "*Verilog*" } ] end]  } elseif {[IsISE]} {
+
+    return [lindex [get_files -quiet -compile_order sources -used_in synthesis -filter {FILE_TYPE =~ "VHDL*" || FILE_TYPE =~ "*Verilog*" } ] end]
+  } elseif {[IsISE]} {
     debug::design_graph_mgr -create [current_fileset]
     debug::design_graph -add_fileset [current_fileset]
     debug::design_graph -update_all
@@ -3727,7 +3787,7 @@ proc WriteGenerics {mode design date timee commit version top_hash top_ver hog_h
 
       set top_file [GetTopFile]
       set top_name [GetTopModule]
-
+      Msg Debug "$top_file"
       if {[file exists $top_file]} {
         set generics [GetFileGenerics $top_file $top_name]
 
@@ -4053,7 +4113,12 @@ proc RemoveEmptyKeys {d} {
 
 #print logo in images/hog_logo.txt
 proc Logo { {repo_path .} } {
-  set logo_file "$repo_path/Hog/images/hog_logo.txt"
+  if {[info exists ::env(HOG_COLORED)] && [string match "ENABLED" $::env(HOG_COLORED)]} {
+    set logo_file "$repo_path/Hog/images/hog_logo_color.txt"
+  } else {
+    set logo_file "$repo_path/Hog/images/hog_logo.txt"
+  }
+  # set logo_file "$repo_path/Hog/images/hog_logo.txt"
 
   set old_path [pwd]
   cd $repo_path/Hog
@@ -4376,5 +4441,34 @@ proc IsInList {element list} {
     return 0
   }
 }
+
+# Function to check if a commit is an ancestor of another
+proc IsCommitAncestor {ancestor commit} {
+  lassign [GitRet "merge-base --is-ancestor $ancestor $commit"] status result
+  if {$status == 0 } {
+    return 1
+  } else {
+    return 0
+  }
+}
+
+proc FindCommonGitChild {SHA1 SHA2} {
+  # Get the list of all commits in the repository
+  set commits [Git {log --oneline --merges}]
+  set ancestor 0
+  # Iterate over each commit
+  foreach line [split $commits "\n"] {
+    set commit [lindex [split $line] 0]
+    
+    # Check if both SHA1 and SHA2 are ancestors of the commit
+    if {[IsCommitAncestor $SHA1 $commit] && [IsCommitAncestor $SHA2 $commit] } {
+      set ancestor $commit
+      break
+    }
+  }
+  return $ancestor
+}
+
+### Source the Create project file
 source [file dirname [info script]]/create_project.tcl
 

@@ -13,6 +13,11 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+# Get the directory containing the script
+script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+. ${script_dir}/Logger.sh
+
 ## @file CreateProject.sh
 #  @brief Create the specified Vivado or Quartus project
 
@@ -41,197 +46,15 @@ export POST_COMMAND_OPT=""
 #
 export HDL_COMPILER=""
 
-## @var LOGGER
-#  @brief Global variable used to contain the logger
-export HOG_LOGGER="" 
-
-## @var COLORED
-#  @brief Global variable used to contain the colorer
-# if [[ -z ${CONSOLE_COLORER} ]]; then
-#   export CONSOLE_COLORER=""
-# else
-#   echo "there is a colorer : ${CONSOLE_COLORER}"
-# fi
-
-echo_info=1
-echo_warnings=1
-echo_errors=1
-
-loginfofile="hog_info.log"
-logwarningfile="hog_warning_errors.log"
-# logerrorfile="hog_warning_errors.log"
-
-
-function log_stdout(){
-  local color_reset="\e[0;37m"
-  local color_red="\e[0;31m"
-  local color_blue="\e[0;34m"
-  local color_orange="\e[0;33m"
-  local color_yellow="\e[0;93m"
-  local color_green="\e[0;32m"
-
-  # echo "std_out init : $*"
-  if [ -n "${2}" ]; then
-    IN_out="${2}"
-    # in_type="${1}"
-    # echo "stdout : ${IN_out}" 
-  else
-    while read -r IN_out # This reads a string from stdin and stores it in a variable called IN_out
-    do
-      line=${IN_out}
-      # echo "${line}"
-      # echo "${1} = ${line}"
-      if [ "${1}" == "stdout" ]; then
-        # line=${IN_out}
-        # echo "${line}"
-        # echo $line >> $logfile
-        # string=$line
-        # echo "$line" | xcol warning: critical error: info: hog: 
-        case "$line" in
-          *'CRITICAL WARNING:'* )
-            if [ $echo_warnings == 1 ]; then
-              echo -e "${color_yellow}CRITICAL $color_reset: $line" 
-              #| $(${colorizer} warning: critical error: info: hog: )
-            fi
-            echo "$line" >> $logwarningfile
-            echo "$line" >> $loginfofile
-
-          ;;
-          *'WARNING:'* | *'Warning:'* | *'warning:'*)
-            if [ $echo_warnings == 1 ]; then
-              echo -e "${color_orange} WARNING $color_reset: $line" 
-              #| $(${colorizer} warning: critical error: info: hog: )
-            fi
-            echo "$line" >> $logwarningfile
-            echo "$line" >> $loginfofile
-
-          ;;
-          *'ERROR:'* | *'Error:'* | *':Error'* | *'error:'*)
-            if [ $echo_errors == 1 ]; then
-              echo -e "$color_red   ERROR $color_reset: $line"  
-              #| xcol warning: critical error info: hog: 
-            fi
-            echo "$line" >> $logwarningfile
-            echo "$line" >> $loginfofile
-
-          ;;
-          *'INFO:'*)
-            if [ $echo_info == 1 ]; then
-              echo -e "$color_blue    INFO $color_reset: $line" 
-              #| xcol warning: critical error: info: hog: 
-            fi
-            echo "$line" >> $loginfofile
-          ;;
-          *'DEBUG:'*)
-            if [ $echo_info == 1 ]; then
-              echo -e "$color_green   DEBUG $color_reset: $line" 
-              #| xcol warning: critical error: info: hog: 
-            fi
-            echo "$line" >> $loginfofile
-          ;;
-          *'vcom'*)
-            echo -e "$color_blue    INFO $color_reset: $line" #| xcol warning critical error vcom hog 
-            echo "$line" >> $loginfofile
-          ;;
-          *'Errors'* | *'Warnings'* | *'errors'* | *'warnings'*)
-            echo -e "$color_blue    INFO $color_reset: $line" #| xcol warnings critical errors vcom hog 
-            echo "$line" >> $loginfofile
-          ;;
-          *)
-            if [ $echo_info == 1 ]; then
-              echo -e "$color_blue    INFO $color_reset: $line" #| xcol warning: critical error: info: hog: 
-              echo "$line" >> $loginfofile
-            fi
-          ;;
-        esac
-      elif [ "${1}" == "stderr" ]; then
-        echo -e "$color_red   ERROR $color_reset: $line" 
-        echo "$line" >> $logwarningfile
-        echo "$line" >> $loginfofile
-
-
-      else
-       echo "----------------------- error -----------------------------------" 
-      fi  
-    done    
-  fi
-}
-
-## @function Logger()
-# 
-# @brief creates output files and pipelines stdout and stderr to 
-# 
-# @param[in] execution line to process
-function Logger(){
-  {
-    print_hog "$(dirname "$0")"
-    echo "-----------------------------------------------"
-    echo " HOG INFO LOG "
-    echo " CMD : ${1} "
-    echo "-----------------------------------------------"
-  } > $loginfofile
-  {
-    print_hog "$(dirname "$0")"
-    echo "-----------------------------------------------"
-    echo " HOG WARNINGS AND ERRORS"
-    echo " CMD : ${1} "
-    echo "-----------------------------------------------"
-  } > $logwarningfile
-
-  echo "LogColorVivado : $*"
-  log_stdout "stdout" "LogColorVivado : $*"
-  log_stdout "stderr" "LogColorVivado : $*"
-  "$*" > >(log_stdout "stdout") 2> >(log_stdout "stderr" >&2)
-}
-
-# @function Msg
+## @var HOG_GIT_VERSION
+#  @brief Global variable containing the full path of the root project folder
 #
-# @param[in] messageLevel: it can be Info, Warning, CriticalWarning, Error
-# @param[in] message: the error message to be printed
+export HOG_GIT_VERSION=""
+
+## @var DEBUG_VERBOSE
+#  @brief Global variable 
 #
-# @return  '1' if missing arguments else '0'
-function Msg() {
-  #check input variables
-  if [ "a$1" == "a" ]; then
-    Msg Error "messageLevel not set!"
-    return 1
-  fi
-
-  if [ "a$2" == "a" ]; then
-      text=""
-  else
-      text="$2"
-  fi
-
-  #Define colours
-  Red=$'\e[0;31m'
-  # Green=$'\e[0;32m'
-  Orange=$'\e[0;33m'
-  LightBlue=$'\e[0;36m'
-  Default=$'\e[0m'
-
-  case $1 in
-  "Info")
-    Colour=$Default
-    ;;
-  "Warning")
-    Colour=$LightBlue
-    ;;
-  "CriticalWarning")
-    Colour=$Orange
-    ;;
-  "Error")
-    Colour=$Red
-    ;;
-  *)
-    Msg Error "messageLevel: $1 not supported! Use Info, Warning, CriticalWarning, Error"
-    ;;
-  esac
-
-  echo "${Colour}HOG:$1[${FUNCNAME[1]}] $text $Default"
-
-  return 0
-}
+export DEBUG_VERBOSE=""
 
 ## @fn select_command_from_line
 #
@@ -461,6 +284,7 @@ function print_hog() {
   fi
   cd "$1" || exit
   ver=$(git describe --always)
+  HOG_GIT_VERSION=$(git describe --always)
   echo
   cat ./images/hog_logo.txt
   echo " Version: ${ver}"
@@ -468,6 +292,43 @@ function print_hog() {
   cd "${OLDPWD}" || exit >> /dev/null
   HogVer "$1"
 
+  return 0
+}
+
+# @fn print_hog
+#
+# @param[in] $1 path to Hog dir
+# @brief prints the hog logo
+function print_log_hog() {
+  if [ -z ${1+x} ]; then
+    Msg Error "Missing input! Got: $1!"
+    return 1
+  fi
+  cat ${ROOT_PROJECT_FOLDER}"/Hog/images/hog_logo.txt"
+  echo " Version: ${HOG_GIT_VERSION}"
+  echo
+  return 0
+}
+
+# @fn new_print_hog
+#
+# @param[in] $1 path to Hog dir
+# @brief prints the hog logo
+function new_print_hog() {
+  if [ -z ${1+x} ]; then
+    Msg Error "missing input! Got: $1!"
+    return 1
+  fi
+  cd "$1"
+  HOG_GIT_VERSION=$(git describe --always)
+  while IFS= read -r line; do
+    echo -e "$line"
+  done < ./images/hog_logo_color.txt
+  echo
+  echo " Version: ${HOG_GIT_VERSION}"
+  echo
+  echo "***************************************************"
+  cd "${OLDPWD}" || exit >> /dev/null
   return 0
 }
 
@@ -488,7 +349,7 @@ function search_projects() {
     for dir in "$1"/*; do
       if [ -f "$dir/hog.conf" ]; then
         subname=${dir#*Top/}
-        echo "$subname"
+        Msg Info $subname
       else
         search_projects "$dir"
       fi

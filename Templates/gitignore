@@ -19,7 +19,7 @@
 # - only .xci files are committed.
 #
 IP/*/*
-!IP/*/*.xci
+!IP/*/*.xci*
 
 BD/*
 !BD/*.bd

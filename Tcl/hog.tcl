@@ -2499,7 +2499,6 @@ proc CheckExtraFiles {libraries} {
 
     dict for {prjLib prjFiles} $prjLibraries {
       foreach prjFile $prjFiles {
-        puts "extra file $prjFile"
         if {[file extension $prjFile] == ".xcix"} {
           Msg Warning "IP $prjFile is packed in a .xcix core container. This files are not suitable for version control systems. We recommend to use .xci files instead."
           continue

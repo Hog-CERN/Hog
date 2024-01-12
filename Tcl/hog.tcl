@@ -1902,7 +1902,17 @@ proc GetProjectFiles {} {
           set ignore 1
         }
       }
-      if {[IsInList "PARENT_COMPOSITE_FILE" [list_property  $f]]} {
+      if { [IsInList "CORE_CONTAINER" [list_property [GetFile $f]]]} {
+        if {[get_property CORE_CONTAINER [GetFile $f]] != ""} {
+          if { [file extension $f] == ".xcix"} {
+            set f [get_property CORE_CONTAINER [GetFile $f]]
+          } else {
+            set ignore 1
+          }
+        } 
+
+      }
+      if {[IsInList "PARENT_COMPOSITE_FILE" [list_property [GetFile $f]]]} {
         set ignore 1
       }
 
@@ -1934,7 +1944,6 @@ proc GetProjectFiles {} {
         if {![string equal $prop ""]} {
           dict lappend properties $f $prop
         }
-
         # check where the file is used and add it to prop
         if {[string equal $fs_type "SimulationSrcs"]} {
           # Simulation sources
@@ -2490,8 +2499,18 @@ proc CheckExtraFiles {libraries} {
 
     dict for {prjLib prjFiles} $prjLibraries {
       foreach prjFile $prjFiles {
+        puts "extra file $prjFile"
+        if {[file extension $prjFile] == ".xcix"} {
+          Msg Warning "IP $prjFile is packed in a .xcix core container. This files are not suitable for version control systems. We recommend to use .xci files instead."
+          continue
+        }
+        if {[file extension $prjFile] == ".xci" && [get_property CORE_CONTAINER [get_files $prjFile]] != ""} {
+          Msg Info "$prjFile is a virtual IP file in a core container. Ignoring it..."
+          continue
+        }
+
         if {[IsInList $prjFile [DictGet $libraries $prjLib]]==0} { 
-          if {[file extension $prjFile] == ".bd"} {
+          if { [file extension $prjFile] == ".bd"} {
             # Generating BD products to save md5sum of already modified BD
             Msg Info "Generating targets of $prjFile..."
             generate_target all [get_files $prjFile]

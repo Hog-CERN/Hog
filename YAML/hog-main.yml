@@ -288,3 +288,5 @@ create_badge:
     paths:
       - bin
     expire_in: 10 years
+  needs:
+    - archive_binary_files

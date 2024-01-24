@@ -2123,8 +2123,14 @@ proc AddHogFiles { libraries properties filesets } {
         set_property SOURCE_SET sources_1 $simulation
       }
     }
+	# Check if ips.src is in $fileset
+    set libs_in_fileset [DictGet $filesets $fileset] 
+    if { [IsInList "ips.src" $libs_in_fileset] } {
+      set libs_in_fileset [moveElementToEnd $libs_in_fileset "ips.src"] 
+    }
+	
     # Loop over libraries in fileset 
-    foreach lib [DictGet $filesets $fileset] {
+    foreach lib $libs_in_fileset {
       Msg Debug "lib: $lib \n"
       set lib_files [DictGet $libraries $lib]
       Msg Debug "Files in $lib: $lib_files"
@@ -4487,6 +4493,16 @@ proc FindCommonGitChild {SHA1 SHA2} {
   return $ancestor
 }
 
+
+# Move an element in the list to the end
+proc moveElementToEnd {inputList element} {
+    set index [lsearch $inputList $element]
+    if {$index != -1} {
+        set inputList [lreplace $inputList $index $index]
+        lappend inputList $element
+    }
+    return $inputList
+}
+
 ### Source the Create project file
 source [file dirname [info script]]/create_project.tcl
-

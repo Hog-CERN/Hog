@@ -139,17 +139,17 @@ function log_stdout(){
             fi;
             if [[ $DEBUG_VERBOSE -gt 0 ]]; then
               if [[ -n "$HOG_COLORED" ]]; then
-                echo -e "$txtred ERROR $txtwht: ${error_line#*@(ERROR:|Error:)} "; 
+                echo -e "$txtred   ERROR $txtwht: ${error_line#*@(ERROR:|Error:)} "; 
               else
                 echo -e "$error_line"
               fi
             fi
             if [[ -n $HOG_LOGGER ]]; then
               if [[ -n $LOG_WAR_ERR_FILE ]]; then 
-                echo " ERROR : ${error_line#*@(ERROR:|Error:)} " >> $LOG_WAR_ERR_FILE
+                echo "   ERROR : ${error_line#*@(ERROR:|Error:)} " >> $LOG_WAR_ERR_FILE
               fi
               if [[ -n $LOG_INFO_FILE ]]; then 
-                echo " ERROR : ${error_line#*@(ERROR:|Error:)} " >> $LOG_INFO_FILE; 
+                echo "   ERROR : ${error_line#*@(ERROR:|Error:)} " >> $LOG_INFO_FILE; 
               fi
             fi
           ;;
@@ -289,17 +289,17 @@ function log_stdout(){
         fi;
         if [[ $DEBUG_VERBOSE -gt 0 ]]; then
           if [[ -n "$HOG_COLORED" ]]; then
-            echo -e "$txtred*ERROR $txtwht: ${stderr_line#*@(ERROR:|Error:)} "; 
+            echo -e "$txtred*  ERROR $txtwht: ${stderr_line#*@(ERROR:|Error:)} "; 
           else
             echo -e "$stderr_line"
           fi
         fi
         if [[ -n $HOG_LOGGER ]]; then
           if [[ -n $LOG_WAR_ERR_FILE ]]; then 
-            echo "*ERROR : ${stderr_line#*@(ERROR:|Error:)} " >> $LOG_WAR_ERR_FILE
+            echo "*  ERROR : ${stderr_line#*@(ERROR:|Error:)} " >> $LOG_WAR_ERR_FILE
           fi
           if [[ -n $LOG_INFO_FILE ]]; then 
-            echo "*ERROR : ${stderr_line#*@(ERROR:|Error:)} " >> $LOG_INFO_FILE; 
+            echo "*  ERROR : ${stderr_line#*@(ERROR:|Error:)} " >> $LOG_INFO_FILE; 
           fi
         fi
       else

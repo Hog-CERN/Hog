@@ -910,7 +910,10 @@ proc CreateProject args {
 
   lassign [GetHogFiles -ext_path "$globalSettings::HOG_EXTERNAL_PATH" "$globalSettings::repo_path/Top/$globalSettings::group_name/$globalSettings::DESIGN/list/" $globalSettings::repo_path] listLibraries listProperties listFilesets
 
+  set old_path [pwd]
+  cd $globalSettings::build_dir
   CheckExtraFiles $listLibraries
+  cd $old_path
 
   if {[IsXilinx]} {
     set old_path [pwd]

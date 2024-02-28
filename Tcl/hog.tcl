@@ -3744,7 +3744,7 @@ proc GetVhdlGenerics {file {entity ""} } {
 
 proc GetFileGenerics {filename {entity ""}} {
   set file_type [FindFileType $filename]
-  if {[string equal $file_type "VERILOG_FILE"]} {
+  if {[string equal $file_type "VERILOG_FILE"] || [string equal $file_type "SYSTEMVERILOG_FILE"]} {
     return [GetVerilogGenerics $filename]
   } elseif {[string equal $file_type "VHDL_FILE"]} {
     return [GetVhdlGenerics $filename $entity]

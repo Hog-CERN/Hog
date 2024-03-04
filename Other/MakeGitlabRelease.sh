@@ -78,6 +78,9 @@ else
   else
     # shellcheck disable=SC2006
     DESC=`sed -e ':a' -e 'N' -e '$!ba' -e 's/\n/\\\\n/g' "$file"`" \n\n### Downloads\nIn case [multipart archives](https://koenaerts.ca/unzip-multi-part-archives-in-linux/) are created (e.g. .z01, .z02, etc.), join the files together, for example with cat and unzip the resulting file.\n\n"
+    # escape double quotes
+    DESC=$(echo "$DESC" | sed 's/"/\\"/g')
+
     # READ THE LINK FILE
     input="$DIR/../../project_links.txt"
     OLDIFS=$IFS

@@ -26,6 +26,7 @@
 export DEBUG_VERBOSE=""
 export HOG_LOG_EN=""
 export HOG_COLOR_EN=""
+export clrschselected="dark"
 
 # export
 
@@ -119,6 +120,13 @@ darkColorScheme[warning]="$txtylw WARNING :$txtwht"
 darkColorScheme[debug]="$txtgrn   DEBUG :$txtwht"
 darkColorScheme[info]="$txtblu    INFO :$txtwht"
 darkColorScheme[vcom]="$txtblu    VCOM :$txtwht"
+declare -A clearColorScheme
+clearColorScheme[error]="$txtred   ERROR :$txtblk"
+clearColorScheme[critical]="${txtylw}CRITICAL :$txtblk"
+clearColorScheme[warning]="$txtylw WARNING :$txtblk"
+clearColorScheme[debug]="$txtgrn   DEBUG :$txtblk"
+clearColorScheme[info]="$txtblu    INFO :$txtblk"
+clearColorScheme[vcom]="$txtblu    VCOM :$txtblk"
 
 clrschselected="dark"
 # colorsDark[txtblk]='\e[0;30m' # Black - Regular
@@ -132,10 +140,17 @@ clrschselected="dark"
 # colorsDark[txtwht]='\e[0;37m' # White
 
 declare -A msgHeadBW
-declare -A msgHeadC
+msgHeadBW[error]="   ERROR :"
+msgHeadBW[critical]=" :"
+msgHeadBW[warning]=" WARNING :"
+msgHeadBW[debug]="   DEBUG :"
 msgHeadBW[info]="    INFO :"
+msgHeadBW[vcom]="    VCOM :"
 
-msgHeadC[dark]=darkColorScheme
+# declare -A msgHeadC
+# msgHeadBW[info]="    INFO :"
+
+# msgHeadC[dark]=darkColorScheme
 
 declare -A msgCounter
 msgCounter[error]="ew"
@@ -194,213 +209,68 @@ function log_stdout(){
             fi
             error_line=$line
             msgType="error"
-            # if [[ $DEBUG_VERBOSE -gt 5 ]]; then
-            #   printf "%d : %d :" $BASHPID "$(msg_counter ew)"  
-            # else
-            #   msg_counter ew >> /dev/null
-            # fi;
-            # if [[ $DEBUG_VERBOSE -gt 0 ]]; then
-            #   if [[ -n "$HOG_COLORED" ]]; then
-            #     echo -e "$txtred   ERROR $txtwht: ${error_line#*@(ERROR:|Error:)} "; 
-            #   else
-            #     echo -e "$error_line"
-            #   fi
-            # fi
-            # if [[ -n $HOG_LOGGER ]]; then
-            #   if [[ -n $LOG_WAR_ERR_FILE ]]; then 
-            #     echo "   ERROR : ${error_line#*@(ERROR:|Error:)} " >> $LOG_WAR_ERR_FILE
-            #   fi
-            #   if [[ -n $LOG_INFO_FILE ]]; then 
-            #     echo "   ERROR : ${error_line#*@(ERROR:|Error:)} " >> $LOG_INFO_FILE; 
-            #   fi
-            # fi
           ;;
           *'CRITICAL:'* | *'CRITICAL WARNING:'* )
             critical_line=$line
             msgType="critical"
-            # if [[ $DEBUG_VERBOSE -gt 5 ]]; then
-            #   printf "%d : %d :" $BASHPID "$(msg_counter cw)"
-            # else
-            #   msg_counter cw >> /dev/null 
-            # fi;
-            # if [[ $DEBUG_VERBOSE -gt 1 ]]; then
-            #   if [[ -n "$HOG_COLORED" ]]; then
-            #     echo -e "${txtylw}CRITICAL $txtwht: $critical_line" 
-            #   else
-            #     echo -e "$critical_line"
-            #   fi
-            # fi
-            # if [[ -n $HOG_LOGGER ]]; then
-            #   if [[ -n $LOG_WAR_ERR_FILE ]]; then 
-            #     echo "CRITICAL : ${critical_line#*@(WARNING: |Warning: |warning: )}" >> $LOG_WAR_ERR_FILE
-            #   fi
-            #   if [[ -n $LOG_INFO_FILE ]]; then 
-            #     echo "CRITICAL : ${critical_line#*@(WARNING: |Warning: |warning: )}" >> $LOG_INFO_FILE; 
-            #   fi
-            # fi
           ;;
           *'WARNING:'* | *'Warning:'* | *'warning:'*)
             warning_line=$line
             msgType="warning"
-            # if [[ $DEBUG_VERBOSE -gt 5 ]]; then
-            #   printf "%d : %d :" $BASHPID "$(msg_counter ww)"
-            # else
-            #   msg_counter ww >> /dev/null
-            # fi;
-            # if [[ $DEBUG_VERBOSE -gt 2 ]]; then
-            #   if [[ -n "$HOG_COLORED" ]]; then
-            #     echo -e "$txtylw WARNING $txtwht: ${warning_line#*@(WARNING: |Warning: |warning: )} "; 
-            #   else
-            #     echo -e "$warning_line"
-            #   fi
-            # fi
-            # if [[ -n $HOG_LOGGER ]]; then
-            #   if [[ -n $LOG_WAR_ERR_FILE ]]; then 
-            #     echo " WARNING : ${warning_line#*@(WARNING: |Warning: |warning: )}" >> $LOG_WAR_ERR_FILE
-            #   fi
-            #   if [[ -n $LOG_INFO_FILE ]]; then 
-            #     echo " WARNING : ${warning_line#*@(WARNING: |Warning: |warning: )}" >> $LOG_INFO_FILE; 
-            #   fi
-            # fi
           ;;
           *'INFO:'*)
             info_line=$line
             msgType="info"
-            # if [[ $DEBUG_VERBOSE -gt 5 ]]; then
-            #   printf "%d : %d :" $BASHPID "$(msg_counter iw)"
-            # else
-            #   msg_counter iw >> /dev/null
-            # fi;
-            # if [[ $DEBUG_VERBOSE -gt 3 ]]; then
-            #   if [[ -n "$HOG_COLORED" ]]; then
-            #     echo -e "$txtblu    INFO $txtwht: ${info_line#INFO: }"; 
-            #   else
-            #     echo -e "${info_line}"
-            #   fi
-            # fi
-            # if [[ -n $HOG_LOGGER ]]; then
-            #   if [[ -n $LOG_INFO_FILE ]]; then 
-            #     echo "    INFO : ${info_line#INFO: }" >> $LOG_INFO_FILE; 
-            #   fi
-            # fi
           ;;
           *'DEBUG:'*)
             debug_line=$line
             msgType="debug"
-            # if [[ $DEBUG_VERBOSE -gt 5 ]]; then
-            #   printf "%d : %d :" $BASHPID "$(msg_counter dw)" 
-            # else
-            #   msg_counter dw >> /dev/null
-            # fi;
-            # if [[ $DEBUG_VERBOSE -gt 4 ]]; then
-            #   if [[ -n "$HOG_COLORED" ]]; then
-            #     echo -e "$txtgrn   DEBUG $txtwht: ${debug_line#DEBUG: }" 
-            #   else
-            #     echo -e "$debug_line"
-            #   fi
-            # fi
-            # if [[ -n $HOG_LOGGER ]]; then
-            #   if [[ -n $LOG_INFO_FILE ]]; then 
-            #     echo "   DEBUG : ${debug_line#DEBUG: }" >> $LOG_INFO_FILE; 
-            #   fi
-            # fi
             ;;
           *'vcom'*)
             vcom_line=$line
             msgType="vcom"
-            # if [[ $DEBUG_VERBOSE -gt 5 ]]; then
-            #   printf "%d : %d :" $BASHPID "$(msg_counter iw)"
-            # else
-            #   msg_counter iw >> /dev/null
-            # fi;
-            # if [[ $DEBUG_VERBOSE -gt 3 ]]; then
-            #   if [[ -n "$HOG_COLORED" ]]; then
-            #     echo -e "$txtblu    VCOM $txtwht: ${vcom_line#INFO: }"; 
-            #   else
-            #     echo -e "$vcom_line"
-            #   fi
-            # fi
-            # if [[ -n $HOG_LOGGER ]]; then
-            #   if [[ -n $LOG_INFO_FILE ]]; then 
-            #     echo "    VCOM : ${vcom_line#INFO: }" >> $LOG_INFO_FILE; 
-            #   fi
-            # fi
             ;;
           *)
             info_line=$line
             msgType="info"
-            # if [[ $DEBUG_VERBOSE -gt 5 ]]; then
-            #   printf "%d : %d :" $BASHPID "$(msg_counter iw)"
-            # else
-            #   msg_counter iw >> /dev/null
-            # fi;
-            # if [[ $DEBUG_VERBOSE -gt 3 ]]; then
-            #   if [[ -n "$HOG_COLORED" ]]; then
-            #     echo -e "$txtblu    INFO $txtwht: ${info_line#INFO: }"; 
-            #   else
-            #     echo -e "$info_line"
-            #   fi
-            # fi
-            # if [[ -n $HOG_LOGGER ]]; then
-            #   if [[ -n $LOG_INFO_FILE ]]; then 
-            #     echo "   *INFO : ${info_line#INFO: }" >> $LOG_INFO_FILE; 
-            #   fi
-            # fi
             ;;
         esac
       elif [ "${1}" == "stderr" ]; then
         stderr_line=$line
         msgType="error"
-        # if [[ $DEBUG_VERBOSE -gt 5 ]]; then
-        #   printf "%d : %d :" $BASHPID "$(msg_counter ew)"  
-        # else
-        #   msg_counter ew >> /dev/null
-        # fi;
-        # if [[ $DEBUG_VERBOSE -gt 0 ]]; then
-        #   if [[ -n "$HOG_COLORED" ]]; then
-        #     echo -e "$txtred*  ERROR $txtwht: ${stderr_line#*@(ERROR:|Error:)} "; 
-        #   else
-        #     echo -e "$stderr_line"
-        #   fi
-        # fi
-        # if [[ -n $HOG_LOGGER ]]; then
-        #   if [[ -n $LOG_WAR_ERR_FILE ]]; then 
-        #     echo "*  ERROR : ${stderr_line#*@(ERROR:|Error:)} " >> $LOG_WAR_ERR_FILE
-        #   fi
-        #   if [[ -n $LOG_INFO_FILE ]]; then 
-        #     echo "*  ERROR : ${stderr_line#*@(ERROR:|Error:)} " >> $LOG_INFO_FILE; 
-        #   fi
-        # fi
       else
        Msg Error "Error in logger" 
       fi  
       #######################################
         # The writing will be done here
       #######################################
-        if [[ $DEBUG_VERBOSE -gt 5 ]]; then
-          printf "%d : %d :" $BASHPID "$(msg_counter ${msgCounter[$msgType]})"  
+      if [[ $DEBUG_VERBOSE -gt 5 ]]; then
+        printf "%d : %d :" $BASHPID "$(msg_counter ${msgCounter[$msgType]})"  
+      else
+        msg_counter "${msgCounter[$msgType]}" >> /dev/null
+      fi;
+      if [[ $DEBUG_VERBOSE -gt ${msgDbgLvl[$msgType]} ]]; then
+        if [[ -n "$HOG_COLOR_EN" ]]; then
+          case "${clrschselected}" in
+            "dark")
+              echo -e "${darkColorScheme[$msgType]} ${dataLine#${msgRemove[$msgType]}} " 
+            ;;
+            "clear")
+              echo -e "${clearColorScheme[$msgType]} ${dataLine#${msgRemove[$msgType]}} " 
+            ;;
+          esac
         else
-          msg_counter "${msgCounter[$msgType]}" >> /dev/null
-        fi;
-        if [[ $DEBUG_VERBOSE -gt ${msgDbgLvl[$msgType]} ]]; then
-          if [[ -n "$HOG_COLOR_EN" ]]; then
-            case "${clrschselected}" in
-              "dark")
-                echo -e "${darkColorScheme[$msgType]} ${dataLine#${msgRemove[$msgType]}} " 
-              ;;
-            esac
-          else
-            echo -e "$info_line"
-          fi
+          echo -e "$info_line"
         fi
-        # if [[ -n $HOG_LOGGER ]]; then
-        #   if [[ -n $LOG_WAR_ERR_FILE ]]; then 
-        #     echo "*  ERROR : ${stderr_line#*@"${MsgRemove[$msgType]}"} " >> $LOG_WAR_ERR_FILE
-        #   fi
-        #   if [[ -n $LOG_INFO_FILE ]]; then 
-        #     echo "*  ERROR : ${stderr_line#*@"${MsgRemove[$msgType]}"} " >> $LOG_INFO_FILE; 
-        #   fi
-        # fi
+      fi
+      if [[ -n $HOG_LOGGER ]]; then
+        if [[ -n $LOG_WAR_ERR_FILE ]]; then 
+          echo "${msgHeadBW[$msgType]} ${dataLine#${msgRemove[$msgType]}} "  >> $LOG_WAR_ERR_FILE
+        fi
+        if [[ -n $LOG_INFO_FILE ]]; then 
+          echo "${msgHeadBW[$msgType]} ${dataLine#${msgRemove[$msgType]}} "  >> $LOG_INFO_FILE; 
+        fi
+      fi
 
 
 
@@ -409,202 +279,6 @@ function log_stdout(){
     done    
   fi
 }
-# function log_stdout(){
-#   if [ -n "${2}" ]; then
-#     IN_out="${2}"
-#   else
-#     while read -r IN_out # This reads a string from stdin and stores it in a variable called IN_out
-#     do
-#       if [[ $next_is_err == 0 ]]; then
-#         line=${IN_out}
-#       else
-#         line="ERROR:${IN_out}"
-#         next_is_err=$(($next_is_err-1))
-#       fi
-#       if [ "${1}" == "stdout" ]; then
-#         case "$line" in
-#           *'ERROR:'* | *'Error:'* | *':Error'* | *'error:'* | *'Error '* | *'FATAL ERROR'* | *'Fatal'*)
-#             if [[ "$line" == *'Fatal'* ]]; then
-#               next_is_err=1
-#             fi
-#             error_line=$line
-#             if [[ $DEBUG_VERBOSE -gt 5 ]]; then
-#               printf "%d : %d :" $BASHPID "$(msg_counter ew)"  
-#             else
-#               msg_counter ew >> /dev/null
-#             fi;
-#             if [[ $DEBUG_VERBOSE -gt 0 ]]; then
-#               if [[ -n "$HOG_COLORED" ]]; then
-#                 echo -e "$txtred   ERROR $txtwht: ${error_line#*@(ERROR:|Error:)} "; 
-#               else
-#                 echo -e "$error_line"
-#               fi
-#             fi
-#             if [[ -n $HOG_LOGGER ]]; then
-#               if [[ -n $LOG_WAR_ERR_FILE ]]; then 
-#                 echo "   ERROR : ${error_line#*@(ERROR:|Error:)} " >> $LOG_WAR_ERR_FILE
-#               fi
-#               if [[ -n $LOG_INFO_FILE ]]; then 
-#                 echo "   ERROR : ${error_line#*@(ERROR:|Error:)} " >> $LOG_INFO_FILE; 
-#               fi
-#             fi
-#           ;;
-#           *'CRITICAL:'* | *'CRITICAL WARNING:'* )
-#             critical_line=$line
-#             if [[ $DEBUG_VERBOSE -gt 5 ]]; then
-#               printf "%d : %d :" $BASHPID "$(msg_counter cw)"
-#             else
-#               msg_counter cw >> /dev/null 
-#             fi;
-#             if [[ $DEBUG_VERBOSE -gt 1 ]]; then
-#               if [[ -n "$HOG_COLORED" ]]; then
-#                 echo -e "${txtylw}CRITICAL $txtwht: $critical_line" 
-#               else
-#                 echo -e "$critical_line"
-#               fi
-#             fi
-#             if [[ -n $HOG_LOGGER ]]; then
-#               if [[ -n $LOG_WAR_ERR_FILE ]]; then 
-#                 echo "CRITICAL : ${critical_line#*@(WARNING: |Warning: |warning: )}" >> $LOG_WAR_ERR_FILE
-#               fi
-#               if [[ -n $LOG_INFO_FILE ]]; then 
-#                 echo "CRITICAL : ${critical_line#*@(WARNING: |Warning: |warning: )}" >> $LOG_INFO_FILE; 
-#               fi
-#             fi
-#           ;;
-#           *'WARNING:'* | *'Warning:'* | *'warning:'*)
-#             warning_line=$line
-#             if [[ $DEBUG_VERBOSE -gt 5 ]]; then
-#               printf "%d : %d :" $BASHPID "$(msg_counter ww)"
-#             else
-#               msg_counter ww >> /dev/null
-#             fi;
-#             if [[ $DEBUG_VERBOSE -gt 2 ]]; then
-#               if [[ -n "$HOG_COLORED" ]]; then
-#                 echo -e "$txtylw WARNING $txtwht: ${warning_line#*@(WARNING: |Warning: |warning: )} "; 
-#               else
-#                 echo -e "$warning_line"
-#               fi
-#             fi
-#             if [[ -n $HOG_LOGGER ]]; then
-#               if [[ -n $LOG_WAR_ERR_FILE ]]; then 
-#                 echo " WARNING : ${warning_line#*@(WARNING: |Warning: |warning: )}" >> $LOG_WAR_ERR_FILE
-#               fi
-#               if [[ -n $LOG_INFO_FILE ]]; then 
-#                 echo " WARNING : ${warning_line#*@(WARNING: |Warning: |warning: )}" >> $LOG_INFO_FILE; 
-#               fi
-#             fi
-#           ;;
-#           *'INFO:'*)
-#             info_line=$line
-#             if [[ $DEBUG_VERBOSE -gt 5 ]]; then
-#               printf "%d : %d :" $BASHPID "$(msg_counter iw)"
-#             else
-#               msg_counter iw >> /dev/null
-#             fi;
-#             if [[ $DEBUG_VERBOSE -gt 3 ]]; then
-#               if [[ -n "$HOG_COLORED" ]]; then
-#                 echo -e "$txtblu    INFO $txtwht: ${info_line#INFO: }"; 
-#               else
-#                 echo -e "${info_line}"
-#               fi
-#             fi
-#             if [[ -n $HOG_LOGGER ]]; then
-#               if [[ -n $LOG_INFO_FILE ]]; then 
-#                 echo "    INFO : ${info_line#INFO: }" >> $LOG_INFO_FILE; 
-#               fi
-#             fi
-#           ;;
-#           *'DEBUG:'*)
-#             debug_line=$line
-#             if [[ $DEBUG_VERBOSE -gt 5 ]]; then
-#               printf "%d : %d :" $BASHPID "$(msg_counter dw)" 
-#             else
-#               msg_counter dw >> /dev/null
-#             fi;
-#             if [[ $DEBUG_VERBOSE -gt 4 ]]; then
-#               if [[ -n "$HOG_COLORED" ]]; then
-#                 echo -e "$txtgrn   DEBUG $txtwht: ${debug_line#DEBUG: }" 
-#               else
-#                 echo -e "$debug_line"
-#               fi
-#             fi
-#             if [[ -n $HOG_LOGGER ]]; then
-#               if [[ -n $LOG_INFO_FILE ]]; then 
-#                 echo "   DEBUG : ${debug_line#DEBUG: }" >> $LOG_INFO_FILE; 
-#               fi
-#             fi
-#             ;;
-#           *'vcom'*)
-#             vcom_line=$line
-#             if [[ $DEBUG_VERBOSE -gt 5 ]]; then
-#               printf "%d : %d :" $BASHPID "$(msg_counter iw)"
-#             else
-#               msg_counter iw >> /dev/null
-#             fi;
-#             if [[ $DEBUG_VERBOSE -gt 3 ]]; then
-#               if [[ -n "$HOG_COLORED" ]]; then
-#                 echo -e "$txtblu    VCOM $txtwht: ${vcom_line#INFO: }"; 
-#               else
-#                 echo -e "$vcom_line"
-#               fi
-#             fi
-#             if [[ -n $HOG_LOGGER ]]; then
-#               if [[ -n $LOG_INFO_FILE ]]; then 
-#                 echo "    VCOM : ${vcom_line#INFO: }" >> $LOG_INFO_FILE; 
-#               fi
-#             fi
-#             ;;
-#           *)
-#             info_line=$line
-#             if [[ $DEBUG_VERBOSE -gt 5 ]]; then
-#               printf "%d : %d :" $BASHPID "$(msg_counter iw)"
-#             else
-#               msg_counter iw >> /dev/null
-#             fi;
-#             if [[ $DEBUG_VERBOSE -gt 3 ]]; then
-#               if [[ -n "$HOG_COLORED" ]]; then
-#                 echo -e "$txtblu    INFO $txtwht: ${info_line#INFO: }"; 
-#               else
-#                 echo -e "$info_line"
-#               fi
-#             fi
-#             if [[ -n $HOG_LOGGER ]]; then
-#               if [[ -n $LOG_INFO_FILE ]]; then 
-#                 echo "   *INFO : ${info_line#INFO: }" >> $LOG_INFO_FILE; 
-#               fi
-#             fi
-#             ;;
-#         esac
-#       elif [ "${1}" == "stderr" ]; then
-#         stderr_line=$line
-#         if [[ $DEBUG_VERBOSE -gt 5 ]]; then
-#           printf "%d : %d :" $BASHPID "$(msg_counter ew)"  
-#         else
-#           msg_counter ew >> /dev/null
-#         fi;
-#         if [[ $DEBUG_VERBOSE -gt 0 ]]; then
-#           if [[ -n "$HOG_COLORED" ]]; then
-#             echo -e "$txtred*  ERROR $txtwht: ${stderr_line#*@(ERROR:|Error:)} "; 
-#           else
-#             echo -e "$stderr_line"
-#           fi
-#         fi
-#         if [[ -n $HOG_LOGGER ]]; then
-#           if [[ -n $LOG_WAR_ERR_FILE ]]; then 
-#             echo "*  ERROR : ${stderr_line#*@(ERROR:|Error:)} " >> $LOG_WAR_ERR_FILE
-#           fi
-#           if [[ -n $LOG_INFO_FILE ]]; then 
-#             echo "*  ERROR : ${stderr_line#*@(ERROR:|Error:)} " >> $LOG_INFO_FILE; 
-#           fi
-#         fi
-#       else
-#        Msg Error "Error in logger" 
-#       fi  
-#     done    
-#   fi
-# }
-
 
 
 ## @function Hog_exit()
@@ -872,19 +546,28 @@ function Logger_Init() {
       echo "File does not exist."
   fi
 
-  if [[ -v HOG_LOGGER && $HOG_LOGGER == ENABLED ]] || [[ -v CONF["terminal_logger"] && ${CONF["terminal_logger"]} == 1 ]]; then
+  if [[ -v HOG_LOGGER && $HOG_LOGGER == ENABLED ]] || [[ -v CONF["global_terminal_logger"] && ${CONF["global_terminal_logger"]} == 1 ]]; then
     HOG_LOG_EN=1
   else
       HOG_LOG_EN=0
   fi
   Msg Debug "HOG_LOG_EN -- $HOG_LOG_EN"
 
-  if [[ -v HOG_COLORED && $HOG_COLORED == ENABLED ]] || [[ -v CONF["terminal_colored"] && ${CONF["terminal_colored"]} == 1 ]]; then
+  if [[ -v HOG_COLORED && $HOG_COLORED == ENABLED ]] || [[ -v CONF["global_terminal_colored"] && ${CONF["global_terminal_colored"]} == 1 ]]; then
     HOG_COLOR_EN=1
   else
     HOG_COLOR_EN=0
   fi
   Msg Debug "HOG_COLOR_EN -- $HOG_COLOR_EN"
+
+  if  [[ -v CONF[global_terminal_colorscheme] ]]; then
+    clrschselected="${CONF['global_terminal_colorscheme']}"
+  else
+    clrschselected="dark"
+  fi
+  echo "color terminal = $clrschselected"
+
+  custom_timestamp=$(date +"%Y-%m-%d_%H:%M:%S")
 
   if [ "$HOG_LOG_EN" -eq 1 ]; then
 
@@ -893,6 +576,7 @@ function Logger_Init() {
       echo "-----------------------------------------------"
       echo " HOG INFO LOG "
       echo " CMD : ${1} "
+      echo " Timestamp: $custom_timestamp"
       echo "-----------------------------------------------"
     } > $LOG_INFO_FILE
     {
@@ -900,6 +584,7 @@ function Logger_Init() {
       echo "-----------------------------------------------"
       echo " HOG WARNINGS AND ERRORS"
       echo " CMD : ${1} "
+      echo " Timestamp: $custom_timestamp"
       echo "-----------------------------------------------"
     } > $LOG_WAR_ERR_FILE
 

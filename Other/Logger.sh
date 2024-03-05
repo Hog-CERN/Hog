@@ -112,6 +112,7 @@ txtpur='\e[0;35m' # Purple
 txtcyn='\e[0;36m' # Cyan
 txtwht='\e[0;37m' # White
 
+vldColorSchemes=("dark" "clear")
 
 declare -A darkColorScheme
 darkColorScheme[error]="$txtred   ERROR :$txtwht"
@@ -250,7 +251,7 @@ function log_stdout(){
         msg_counter "${msgCounter[$msgType]}" >> /dev/null
       fi;
       if [[ $DEBUG_VERBOSE -gt ${msgDbgLvl[$msgType]} ]]; then
-        if [[ -n "$HOG_COLOR_EN" ]]; then
+        if [[ $HOG_COLOR_EN -gt 0 ]]; then
           case "${clrschselected}" in
             "dark")
               echo -e "${darkColorScheme[$msgType]} ${dataLine#${msgRemove[$msgType]}} " 
@@ -260,7 +261,7 @@ function log_stdout(){
             ;;
           esac
         else
-          echo -e "$info_line"
+          echo -e "$dataLine"
         fi
       fi
       if [[ -n $HOG_LOGGER ]]; then
@@ -546,6 +547,9 @@ function Logger_Init() {
       echo "File does not exist."
   fi
 
+  current_user=$(whoami)
+  echo "Current user: $current_user"
+
   if [[ -v HOG_LOGGER && $HOG_LOGGER == ENABLED ]] || [[ -v CONF["global_terminal_logger"] && ${CONF["global_terminal_logger"]} == 1 ]]; then
     HOG_LOG_EN=1
   else
@@ -553,15 +557,30 @@ function Logger_Init() {
   fi
   Msg Debug "HOG_LOG_EN -- $HOG_LOG_EN"
 
-  if [[ -v HOG_COLORED && $HOG_COLORED == ENABLED ]] || [[ -v CONF["global_terminal_colored"] && ${CONF["global_terminal_colored"]} == 1 ]]; then
-    HOG_COLOR_EN=1
+  user_tc="${current_user}_terminal_colored"
+  echo "$user_tc"
+  if [[ -v CONF["$user_tc"] ]]; then
+    if [[ ${CONF["$user_tc"]} == 1 ]]; then
+      HOG_COLOR_EN=1
+    else
+      HOG_COLOR_EN=0
+    fi
   else
-    HOG_COLOR_EN=0
+    if [[ -v HOG_COLORED && $HOG_COLORED == ENABLED ]] || [[ -v CONF["global_terminal_colored"] && ${CONF["global_terminal_colored"]} == 1 ]]; then
+      HOG_COLOR_EN=1
+    else
+      HOG_COLOR_EN=0
+    fi
   fi
   Msg Debug "HOG_COLOR_EN -- $HOG_COLOR_EN"
 
   if  [[ -v CONF[global_terminal_colorscheme] ]]; then
     clrschselected="${CONF['global_terminal_colorscheme']}"
+    if [[ " ${vldColorSchemes[@]} " =~ " $clrschselected " ]]; then
+      Msg Info "Color Scheme set to $clrschselected"
+    else
+      Msg error "Invalid color scheme $clrschselected"
+    fi
   else
     clrschselected="dark"
   fi

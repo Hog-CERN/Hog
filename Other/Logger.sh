@@ -16,7 +16,7 @@
 ##############################################################
 ##############################################################
 #   FROM HERE ALL THE ELEMENTS FOR THE LOGGER
-#   Guillermo
+#   Guillermo Loustau
 ##############################################################
 ##############################################################
 
@@ -24,6 +24,10 @@
 #  @brief Global variable 
 #
 export DEBUG_VERBOSE=""
+export HOG_LOG_EN=""
+export HOG_COLOR_EN=""
+
+# export
 
 if [ -v $tempfolder ]; then
   tmptimestamp=$(date +%s)
@@ -309,31 +313,7 @@ function log_stdout(){
   fi
 }
 
-## @function Logger_Init()
-# 
-# @brief creates output files and pipelines stdout and stderr to 
-# 
-# @param[in] execution line to process
-function Logger_Init() {
-  {
-    # print_log_hog $HOG_GIT_VERSION
-    echo "-----------------------------------------------"
-    echo " HOG INFO LOG "
-    echo " CMD : ${1} "
-    echo "-----------------------------------------------"
-  } > $LOG_INFO_FILE
-  {
-    # print_log_hog $HOG_GIT_VERSION
-    echo "-----------------------------------------------"
-    echo " HOG WARNINGS AND ERRORS"
-    echo " CMD : ${1} "
-    echo "-----------------------------------------------"
-  } > $LOG_WAR_ERR_FILE
 
-  Msg Debug "LogColorVivado : $*"
-  log_stdout "stdout" "LogColorVivado : $*"
-  log_stdout "stderr" "LogColorVivado : $*"
-}
 
 ## @function Hog_exit()
 # 
@@ -514,22 +494,119 @@ function Msg() {
   return 0
 }
 
-# ##############################################################
-# ##############################################################
-# #   TILL HERE ALL THE ELEMENTS FOR THE LOGGER
-# #   Guillermo
-# ##############################################################
-# ##############################################################
+## @function Logger_Init()
+# 
+# @brief creates output files and pipelines stdout and stderr to 
+# 
+# @param[in] execution line to process
+function Logger_Init() {
+
+  DEBUG_VERBOSE=4
+  for ((i=1; i<=$#; i++)); do
+    echo "Parameter $i: ${!i}"
+    if [[ "${!i}" == "-verbose" ]]; then
+      DEBUG_VERBOSE=5
+    fi
+  done
+
+   
+  ROOT_PROJECT_FOLDER=$(pwd)
+  LOG_INFO_FILE=$ROOT_PROJECT_FOLDER"/hog_info.log"
+  LOG_WAR_ERR_FILE=$ROOT_PROJECT_FOLDER"/hog_warning_errors.log"
+  msg_counter init
+
+  declare -A CONF
+  CONF[test]="on"
+  function parse_yaml {
+    local prefix=$2
+    local s='[[:space:]]*' w='[a-zA-Z0-9_]*' fs=$(echo @|tr @ '\034')
+    sed -ne "s|,$s\]$s\$|]|" \
+          -e ":1;s|^\($s\)\($w\)$s:$s\[$s\(.*\)$s,$s\(.*\)$s\]|\1\2: [\3]\n\1  - \4|;t1" \
+          -e "s|^\($s\)\($w\)$s:$s\[$s\(.*\)$s\]|\1\2:\n\1  - \3|;p" $1 | \
+    sed -ne "s|,$s}$s\$|}|" \
+          -e ":1;s|^\($s\)-$s{$s\(.*\)$s,$s\($w\)$s:$s\(.*\)$s}|\1- {\2}\n\1  \3: \4|;t1" \
+          -e    "s|^\($s\)-$s{$s\(.*\)$s}|\1-\n\1  \2|;p" | \
+    sed -ne "s|^\($s\):|\1|" \
+          -e "s|^\($s\)-$s[\"']\(.*\)[\"']$s\$|\1$fs$fs\2|p" \
+          -e "s|^\($s\)-$s\(.*\)$s\$|\1$fs$fs\2|p" \
+          -e "s|^\($s\)\($w\)$s:$s[\"']\(.*\)[\"']$s\$|\1$fs\2$fs\3|p" \
+          -e "s|^\($s\)\($w\)$s:$s\(.*\)$s\$|\1$fs\2$fs\3|p" | \
+    awk -F$fs '{
+        indent = length($1)/2;
+        vname[indent] = $2;
+        for (i in vname) {if (i > indent) {delete vname[i]; idx[i]=0}}
+        if(length($2)== 0){  vname[indent]= ++idx[indent] };
+        if (length($3) > 0) {
+          vn=""; for (i=0; i<indent; i++) { vn=(vn)(vname[i])("_")}
+          printf("CONF[%s%s]=\"%s\"\n",vn, vname[indent], $3);
+        }
+    }'
+  }
+  # printf("%s%s%s=\"%s\"\n", "'$prefix'",vn, vname[indent], $3);
+
+  # declare -A yaml_dict
+  yaml_file=$(pwd)"/hog_conf.yml"
+  if test -f $yaml_file; then
+    Msg Info "Hog configuration file $yaml_file exists."
+    eval $(parse_yaml $yaml_file "CONF_")
+    size=${#CONF[@]}
+    Msg Debug  " --------------- The size of the dictionary is $size"
+    for key in "${!CONF[@]}"; do
+        Msg Debug "CONF[$key] --- ${CONF[$key]}"
+    done
+
+  else
+      echo "File does not exist."
+  fi
+
+  if [[ -v HOG_LOGGER && $HOG_LOGGER == ENABLED ]] || [[ -v CONF["terminal_logger"] && ${CONF["terminal_logger"]} == 1 ]]; then
+    HOG_LOG_EN=1
+  else
+      HOG_LOG_EN=0
+  fi
+
+  if [[ -v HOG_COLORED && $HOG_COLORED == ENABLED ]] || [[ -v CONF["terminal_colored"] && ${CONF["terminal_colored"]} == 1 ]]; then
+    HOG_COLOR_EN=1
+  else
+    HOG_COLOR_EN=0
+  fi
+
+  # if [[ -v HOG_COLORED && $HOG_COLORED == ENABLED ]]; then
+  #   HOG_COLOR_EN=1
+  # else
+  #   if [ -v CONF[$terminal_logger] ]; then
+  #     HOG_COLOR_EN=1
+  #   else
+  #     HOG_COLOR_EN=0
+  #   fi
+  # fi
+
+  echo "HOG_LOG_EN -- $HOG_LOG_EN"
+  echo "HOG_COLOR_EN -- $HOG_COLOR_EN"
+  
 
 
+  {
+    # print_log_hog $HOG_GIT_VERSION
+    echo "-----------------------------------------------"
+    echo " HOG INFO LOG "
+    echo " CMD : ${1} "
+    echo "-----------------------------------------------"
+  } > $LOG_INFO_FILE
+  {
+    # print_log_hog $HOG_GIT_VERSION
+    echo "-----------------------------------------------"
+    echo " HOG WARNINGS AND ERRORS"
+    echo " CMD : ${1} "
+    echo "-----------------------------------------------"
+  } > $LOG_WAR_ERR_FILE
 
+  Msg Debug "LogColorVivado : $*"
+  log_stdout "stdout" "LogColorVivado : $*"
+  log_stdout "stderr" "LogColorVivado : $*"
 
-
-
-
-
-
-
+  # exit
+}
 
 
 

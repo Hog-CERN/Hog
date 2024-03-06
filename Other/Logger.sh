@@ -130,15 +130,6 @@ clearColorScheme[info]="$txtblu    INFO :$txtblk"
 clearColorScheme[vcom]="$txtblu    VCOM :$txtblk"
 
 clrschselected="dark"
-# colorsDark[txtblk]='\e[0;30m' # Black - Regular
-# colorsDark[txtred]='\e[0;31m' # Red
-# colorsDark[txtgrn]='\e[0;32m' # Green
-# colorsDark[txtylw]='\e[0;93m' # Yellow
-# colorsDark[txtorg]='\e[0;33m' # Yellow
-# colorsDark[txtblu]='\e[0;34m' # Blue
-# colorsDark[txtpur]='\e[0;35m' # Purple
-# colorsDark[txtcyn]='\e[0;36m' # Cyan
-# colorsDark[txtwht]='\e[0;37m' # White
 
 declare -A msgHeadBW
 msgHeadBW[error]="   ERROR :"
@@ -148,10 +139,13 @@ msgHeadBW[debug]="   DEBUG :"
 msgHeadBW[info]="    INFO :"
 msgHeadBW[vcom]="    VCOM :"
 
-# declare -A msgHeadC
-# msgHeadBW[info]="    INFO :"
-
-# msgHeadC[dark]=darkColorScheme
+declare -A simpleColor
+simpleColor[error]="$txtred"
+simpleColor[critical]="$txtorg"
+simpleColor[warning]="$txtcyn"
+simpleColor[debug]="$txtgrn"
+simpleColor[info]="$txtwht"
+simpleColor[vcom]="$txtwht"
 
 declare -A msgCounter
 msgCounter[error]="ew"
@@ -208,31 +202,24 @@ function log_stdout(){
             if [[ "$line" == *'Fatal'* ]]; then
               next_is_err=1
             fi
-            error_line=$line
             msgType="error"
           ;;
           *'CRITICAL:'* | *'CRITICAL WARNING:'* )
-            critical_line=$line
             msgType="critical"
           ;;
           *'WARNING:'* | *'Warning:'* | *'warning:'*)
-            warning_line=$line
             msgType="warning"
           ;;
           *'INFO:'*)
-            info_line=$line
             msgType="info"
           ;;
           *'DEBUG:'*)
-            debug_line=$line
             msgType="debug"
             ;;
           *'vcom'*)
-            vcom_line=$line
             msgType="vcom"
             ;;
           *)
-            info_line=$line
             msgType="info"
             ;;
         esac
@@ -251,7 +238,7 @@ function log_stdout(){
         msg_counter "${msgCounter[$msgType]}" >> /dev/null
       fi;
       if [[ $DEBUG_VERBOSE -gt ${msgDbgLvl[$msgType]} ]]; then
-        if [[ $HOG_COLOR_EN -gt 0 ]]; then
+        if [[ $HOG_COLOR_EN -gt 1 ]]; then
           case "${clrschselected}" in
             "dark")
               echo -e "${darkColorScheme[$msgType]} ${dataLine#${msgRemove[$msgType]}} " 
@@ -260,6 +247,8 @@ function log_stdout(){
               echo -e "${clearColorScheme[$msgType]} ${dataLine#${msgRemove[$msgType]}} " 
             ;;
           esac
+        elif [[ $HOG_COLOR_EN -gt 0 ]]; then
+          echo -e "${simpleColor[$msgType]} $dataLine $txtwht"
         else
           echo -e "$dataLine"
         fi
@@ -275,7 +264,6 @@ function log_stdout(){
     done    
   fi
 }
-
 
 ## @function Hog_exit()
   # 
@@ -353,117 +341,12 @@ function Msg() {
   local print_msg=0
 
   case $1 in
-    "Error")
-      msgType="error"
-      # if [[ $DEBUG_VERBOSE -gt 5 ]]; then
-      #   printf "%d : %d :" $BASHPID "$(msg_counter ew)"  
-      # else
-      #   msg_counter ew >> /dev/null
-      # fi;
-      # if [[ $DEBUG_VERBOSE -gt 0 ]]; then
-      #   print_msg=1
-      #   if [[ -n "$HOG_COLORED" ]]; then
-      #     echo -e "$txtred   ERROR $txtwht: HOG [${FUNCNAME[1]}] : $text "; 
-      #   else
-          Colour=$txtred
-      #   fi
-      # fi
-      # if [[ -n $HOG_LOGGER ]]; then
-      #   if [[ -n $LOG_INFO_FILE ]]; then 
-      #     echo "   ERROR : HOG [${FUNCNAME[1]}] : $text " >> $LOG_INFO_FILE; 
-      #     echo "   ERROR : HOG [${FUNCNAME[1]}] : $text " >> $LOG_WAR_ERR_FILE; 
-      #   fi
-      # fi
-      ;;
-    "CriticalWarning")
-      msgType="critical"
-      # if [[ $DEBUG_VERBOSE -gt 5 ]]; then
-      #   printf "%d : %d :" $BASHPID "$(msg_counter cw)"
-      # else
-      #   msg_counter cw >> /dev/null 
-      # fi;
-      # if [[ $DEBUG_VERBOSE -gt 1 ]]; then
-      #   print_msg=1
-      #   if [[ -n "$HOG_COLORED" ]]; then
-      #     echo -e "${txtblu}CRITICAL $txtwht: HOG [${FUNCNAME[1]}] : $text "; 
-      #   else
-          Colour=$txtorg
-      #   fi
-      # fi
-      # if [[ -n $HOG_LOGGER ]]; then
-      #   if [[ -n $LOG_INFO_FILE ]]; then 
-      #     echo "CRITICAL : HOG [${FUNCNAME[1]}] : $text " >> $LOG_INFO_FILE; 
-      #     echo "CRITICAL : HOG [${FUNCNAME[1]}] : $text " >> $LOG_WAR_ERR_FILE; 
-      #   fi
-      # fi
-      ;;
-    "Warning")
-      msgType="warning"
-      # if [[ $DEBUG_VERBOSE -gt 5 ]]; then
-      #   printf "%d : %d :" $BASHPID "$(msg_counter ww)"
-      # else
-      #   msg_counter ww >> /dev/null
-      # fi;
-      # if [[ $DEBUG_VERBOSE -gt 2 ]]; then
-      #   print_msg=1
-      #   if [[ -n "$HOG_COLORED" ]]; then
-      #     echo -e "$txtylw WARNING $txtwht: HOG [${FUNCNAME[1]}] : $text "; 
-      #   else
-          Colour=$txtcyn
-      #   fi
-      # fi
-      # if [[ -n $HOG_LOGGER ]]; then
-      #   if [[ -n $LOG_INFO_FILE ]]; then 
-      #     echo "WARNING : HOG [${FUNCNAME[1]}] : $text" >> $LOG_INFO_FILE; 
-      #     echo "WARNING : HOG [${FUNCNAME[1]}] : $text" >> $LOG_WAR_ERR_FILE; 
-      #   fi
-      # fi
-      ;;
-    "Info")
-      msgType="info"
-      # if [[ $DEBUG_VERBOSE -gt 5 ]]; then
-      #   printf "%d : %d :" $BASHPID "$(msg_counter iw)"
-      # else
-      #   msg_counter iw >> /dev/null
-      # fi;
-      # if [[ $DEBUG_VERBOSE -gt 3 ]]; then
-      #   print_msg=1
-      #   if [[ -n "$HOG_COLORED" ]]; then
-      #     echo -e "$txtblu    INFO $txtwht: HOG [${FUNCNAME[1]}] : $text "; 
-      #   else
-          Colour=$txtwht
-      #   fi
-      # fi
-      # if [[ -n $HOG_LOGGER ]]; then
-      #   if [[ -n $LOG_INFO_FILE ]]; then 
-      #     echo "    INFO : HOG [${FUNCNAME[1]}] : $text" >> $LOG_INFO_FILE; 
-      #   fi
-      # fi
-      ;;
-    "Debug")
-      msgType="debug"
-      # if [[ $DEBUG_VERBOSE -gt 5 ]]; then
-      #   printf "%d : %d :" $BASHPID "$(msg_counter dw)" 
-      # else
-      #   msg_counter dw >> /dev/null
-      # fi;
-      # if [[ $DEBUG_VERBOSE -gt 4 ]]; then
-      #   print_msg=1
-      #   if [[ -n "$HOG_COLORED" ]]; then
-      #       echo -e "${txtgrn}   DEBUG${txtwht} : HOG [${FUNCNAME[1]}] : $text "; 
-      #   else
-          Colour=$txtgrn
-      #   fi
-      # fi
-      # if [[ -n $HOG_LOGGER ]]; then
-      #   if [[ -n $LOG_INFO_FILE ]]; then 
-      #     echo "   DEBUG : HOG [${FUNCNAME[1]}] : $text " >> $LOG_INFO_FILE; 
-      #   fi
-      # fi
-      ;;
-    *)
-      Msg Error "messageLevel: $1 not supported! Use Info, Warning, CriticalWarning, Error"
-      ;;
+    "Error") msgType="error" ;;
+    "CriticalWarning") msgType="critical" ;;
+    "Warning") msgType="warning" ;;
+    "Info") msgType="info" ;;
+    "Debug") msgType="debug" ;;
+    *) Msg Error "messageLevel: $1 not supported! Use Info, Warning, CriticalWarning, Error" ;;
   esac
   ####### The printing
   if [[ $DEBUG_VERBOSE -gt 5 ]]; then
@@ -471,14 +354,6 @@ function Msg() {
   else
     msg_counter dw >> /dev/null
   fi;
-  # if [[ $DEBUG_VERBOSE -gt ${msgDbgLvl[$msgType]} ]]; then
-  #   print_msg=1
-  #   if [[ -n "$HOG_COLORED" ]]; then
-  #       echo -e "${txtgrn}   DEBUG${txtwht} : HOG [${FUNCNAME[1]}] : $text "; 
-  #   else
-  #     Colour=$txtgrn
-  #   fi
-  # fi
   if [[ $DEBUG_VERBOSE -gt ${msgDbgLvl[$msgType]} ]]; then
     if [[ $HOG_COLOR_EN -gt 1 ]]; then
       case "${clrschselected}" in
@@ -490,15 +365,11 @@ function Msg() {
         ;;
       esac
     elif [[ $HOG_COLOR_EN -gt 0 ]]; then
-        echo -e "${Colour} HOG:$1[${FUNCNAME[1]}] $text $txtwht"
+        echo -e "${simpleColor[$msgType]} HOG:$1[${FUNCNAME[1]}] $text $txtwht"
     else
         echo -e " HOG:$1[${FUNCNAME[1]}] $text"
     fi
   fi
-  # if [[ -n $HOG_LOGGER ]]; then
-    # if [[ -n $LOG_INFO_FILE ]]; then 
-    #   echo "   DEBUG : HOG [${FUNCNAME[1]}] : $text " >> $LOG_INFO_FILE; 
-    # fi
   if [[ $HOG_LOG_EN -gt 0 ]]; then
     if [[ -n $LOG_WAR_ERR_FILE ]] && [[ 3 -gt ${msgDbgLvl[$msgType]} ]]; then 
       echo "${msgHeadBW[$msgType]} HOG [${FUNCNAME[1]}] : $text " >> $LOG_INFO_FILE; 
@@ -509,28 +380,14 @@ function Msg() {
       # echo "${msgHeadBW[$msgType]} ${dataLine#${msgRemove[$msgType]}} "  >> $LOG_INFO_FILE; 
     fi
   fi
-  # fi
-  # if [[ $print_msg == 1 ]]; then
-  #   if [[ -z $HOG_COLORED ]] ; then
-  #     if [[ "$1" != "Debug" ]]; then
-  #       echo -e "${Colour}HOG:$1[${FUNCNAME[1]}] $text $txtwht"
-  #     else
-  #       if [[ $DEBUG_VERBOSE -gt 0 ]]; then
-  #         echo -e "${Colour}HOG:$1[${FUNCNAME[1]}] $text $txtwht"
-  #       fi
-  #     fi
-  #   fi
-  # fi
-  
-  
   return 0
 }
 
 ## @function Logger_Init()
-# 
-# @brief creates output files and pipelines stdout and stderr to 
-# 
-# @param[in] execution line to process
+  # 
+  # @brief creates output files and pipelines stdout and stderr to 
+  # 
+  # @param[in] execution line to process
 function Logger_Init() {
 
   DEBUG_VERBOSE=4
@@ -687,7 +544,6 @@ function Logger_Init() {
   custom_timestamp=$(date +"%Y-%m-%d_%H:%M:%S")
 
   if [ "$HOG_LOG_EN" -eq 1 ]; then
-
     {
       # print_log_hog $HOG_GIT_VERSION
       echo "-----------------------------------------------"
@@ -709,67 +565,7 @@ function Logger_Init() {
     log_stdout "stdout" "LogColorVivado : $*"
     log_stdout "stderr" "LogColorVivado : $*"
   fi
-  
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

@@ -171,6 +171,12 @@ msgRemove[debug]="DEBUG: "
 msgRemove[info]="INFO: "
 msgRemove[vcom]="INFO: "
 
+declare -A errorOverload
+declare -A criticalOverload
+declare -A warningOverload
+declare -A infoOverload
+declare -A debugOverload
+
 ## @function log_stdout()
 # 
 # @brief parsers the output of the executed program ( Vivado, Questa,...) 
@@ -389,7 +395,7 @@ function Msg() {
   # 
   # @param[in] execution line to process
 function Logger_Init() {
-
+  # shellcheck disable=SC1087
   DEBUG_VERBOSE=4
   if [[ "$@" =~ "-verbose" ]]; then
     DEBUG_VERBOSE=5
@@ -468,6 +474,11 @@ function Logger_Init() {
     # else
     fi
   fi
+  if [[ "$@" =~ "-verbose" ]]; then
+    if (( $DEBUG_VERBOSE < int2 )); then
+      DEBUG_VERBOSE=5
+    fi
+  fi
   Msg Debug "DEBUG_VERBOSE -- $DEBUG_VERBOSE"
 
   # SETTING LOGGER
@@ -539,8 +550,82 @@ function Logger_Init() {
     Msg Warning "Invalid color scheme $clrschselected ; Color scheme set to dark"
     clrschselected="dark"
   fi
-  # Msg Debug "color terminal = $clrschselected"
-# exit
+  Msg Debug "color terminal = $clrschselected"
+
+
+  
+  hog_user_eo="${current_user}_overloads"
+  use_user_ol=0
+  use_glob_ol=1
+  for key in "${!CONF[@]}"; do
+    if [[ $key == *"$hog_user_eo"* ]]; then
+      # echo "key $key"
+      if [[ $key == *"include_global"* ]]; then
+        use_glob_ol=${CONF["${hog_user_eo}_include_global"]}
+      fi
+      if [[ $key =~ _[a-z]2[a-z]_ ]]; then
+          # echo "aaaaa"
+          case "${key}" in
+            *"2e"*) destination="error" ;;
+            *"2c"*) destination="critical" ;;
+            *"2w"*) destination="warning" ;;
+            *"2i"*) destination="info" ;;
+            *"2d"*) destination="debug" ;;
+          esac
+          case "${key}" in
+            *"e2"*) errorOverload["${CONF[$key]}"]=$destination ;;
+            *"c2"*) criticalOverload["${CONF[$key]}"]=$destination ;;
+            *"w2"*) warningOverload["${CONF[$key]}"]=$destination ;;
+            *"e2"*) infoOverload["${CONF[$key]}"]=$destination ;;
+            *"e2"*) debugOverload["${CONF[$key]}"]=$destination ;;
+          esac
+        fi
+    fi
+  done
+
+  echo "use_glob_ol : $use_glob_ol"
+
+  if (( $use_glob_ol == 1 )); then
+    for key in "${!CONF[@]}"; do
+      if [[ $key == *"global_overloads"* ]]; then
+        # echo "key--- $key"
+        if [[ $key =~ _[a-z]2[a-z]_ ]]; then
+          # echo "aaaaa"
+          case "${key}" in
+            *"2e"*) destination="error" ;;
+            *"2c"*) destination="critical" ;;
+            *"2w"*) destination="warning" ;;
+            *"2i"*) destination="info" ;;
+            *"2d"*) destination="debug" ;;
+          esac
+          case "${key}" in
+            *"e2"*) errorOverload["${CONF[$key]}"]=$destination ;;
+            *"c2"*) criticalOverload["${CONF[$key]}"]=$destination ;;
+            *"w2"*) warningOverload["${CONF[$key]}"]=$destination ;;
+            *"e2"*) infoOverload["${CONF[$key]}"]=$destination ;;
+            *"e2"*) debugOverload["${CONF[$key]}"]=$destination ;;
+          esac
+        fi
+      fi
+    done
+  fi
+  for key in "${!errorOverload[@]}"; do
+    Msg Debug "::: errorOverload[$key] --- ${errorOverload[$key]}"
+  done
+  for key in "${!criticalOverload[@]}"; do
+    Msg Debug "::: criticalOverload[$key] --- ${criticalOverload[$key]}"
+  done
+  for key in "${!warningOverload[@]}"; do
+    Msg Debug "::: warningOverload[$key] --- ${warningOverload[$key]}"
+  done
+  for key in "${!infoOverload[@]}"; do
+    Msg Debug "::: infoOverload[$key] --- ${infoOverload[$key]}"
+  done
+  for key in "${!debugOverload[@]}"; do
+    Msg Debug "::: debugOverload[$key] --- ${debugOverload[$key]}"
+  done
+
+
   custom_timestamp=$(date +"%Y-%m-%d_%H:%M:%S")
 
   if [ "$HOG_LOG_EN" -eq 1 ]; then

@@ -177,6 +177,11 @@ declare -A warningOverload
 declare -A infoOverload
 declare -A debugOverload
 
+function name () {
+  echo "$1" # arguments are accessible through $1, $2,...
+}
+
+
 ## @function log_stdout()
 # 
 # @brief parsers the output of the executed program ( Vivado, Questa,...) 

@@ -177,10 +177,72 @@ declare -A warningOverload
 declare -A infoOverload
 declare -A debugOverload
 
-function name () {
-  echo "$1" # arguments are accessible through $1, $2,...
+function msgTypeOverload () {
+  # echo $1
+  # echo $2
+  # echo $3
+  local __msgTypeOut=$1
+  local msgTypeOut="error"
+  case "$2" in
+    "error")
+      # echo "inside error"
+      for key in "${!errorOverload[@]}"; do
+        # echo "key :-: $key"
+        if [[ $3 == *"$key"* ]]; then
+          Msg Debug "Message level Override: Key < '$key' > exists in the string < $3 > with value '${errorOverload[$key]}'"
+          eval $__msgTypeOut="'${errorOverload[$key]}'"
+        else
+          eval $__msgTypeOut=$2
+        fi
+      done
+    ;;
+    "critical") 
+      # echo "inside c"
+      for key in "${!criticalOverload[@]}"; do
+        if [[ $3 == *"$key"* ]]; then
+          Msg Debug "Message level Override: Key < '$key' > exists in the string < $3 > with value '${criticalOverload[$key]}'"
+          eval $__msgTypeOut="'${criticalOverload[$key]}'"
+        fi
+      done
+    ;;
+    "warning") 
+      # echo "inside w"
+      for key in "${!warningOverload[@]}"; do
+        if [[ $3 == *"$key"* ]]; then
+          Msg Debug "Message level Override: Key < '$key' > exists in the string < $3 > with value '${warningOverload[$key]}'"
+          eval $__msgTypeOut="'${warningOverload[$key]}'"
+        fi
+      done
+    ;;
+    "info") 
+      # echo "inside i"
+      for key in "${!infoOverload[@]}"; do
+        if [[ $3 == *"$key"* ]]; then
+          Msg Debug "Message level Override: Key < '$key' > exists in the string < $3 > with value '${infoOverload[$key]}'"
+          eval $__msgTypeOut="'${infoOverload[$key]}'"
+        fi
+      done
+    ;;
+    "vcom") 
+      # echo "inside i"
+      for key in "${!infoOverload[@]}"; do
+        if [[ $3 == *"$key"* ]]; then
+          Msg Debug "Message level Override: Key < '$key' > exists in the string < $3 > with value '${infoOverload[$key]}'"
+          eval $__msgTypeOut="'${infoOverload[$key]}'"
+        fi
+      done
+    ;;
+    "debug") 
+      # echo "inside d"
+      for key in "${!debugOverload[@]}"; do
+        if [[ $3 == *"$key"* ]]; then
+          Msg Debug "Message level Override: Key < '$key' > exists in the string < $3 > with value '${debugOverload[$key]}'"
+          eval $__msgTypeOut="'${debugOverload[$key]}'"
+        fi
+      done
+    ;;
+  esac
 }
-
 
 ## @function log_stdout()
 # 
@@ -213,24 +275,31 @@ function log_stdout(){
             if [[ "$line" == *'Fatal'* ]]; then
               next_is_err=1
             fi
-            msgType="error"
+            # msgType="error"
+            msgTypeOverload msgType "error" "$line"
           ;;
-          *'CRITICAL:'* | *'CRITICAL WARNING:'* )
-            msgType="critical"
+          *'CRITICAL:'* | *'CRITICAL WARNING:'* ) 
+            msgTypeOverload msgType "critical" "$line"
+            # msgType="critical"
           ;;
           *'WARNING:'* | *'Warning:'* | *'warning:'*)
-            msgType="warning"
+            msgTypeOverload msgType "warning" "$line"
+            # msgType="warning"
           ;;
           *'INFO:'*)
-            msgType="info"
+            msgTypeOverload msgType "info" "$line"
+            # msgType="info"
           ;;
           *'DEBUG:'*)
-            msgType="debug"
+            msgTypeOverload msgType "debug" "$line"
+            # msgType="debug"
             ;;
           *'vcom'*)
+            msgTypeOverload msgType "vcom" "$line"
             msgType="vcom"
             ;;
           *)
+            msgTypeOverload msgType "info" "$line"
             msgType="info"
             ;;
         esac
@@ -549,7 +618,7 @@ function Logger_Init() {
   else
     clrschselected="dark"
   fi
-  if [[ " ${vldColorSchemes[@]} " =~ " $clrschselected " ]]; then
+  if [[ " ${vldColorSchemes[*]} " =~ " $clrschselected " ]]; then
     Msg Info "Color Scheme set to $clrschselected"
   else
     Msg Warning "Invalid color scheme $clrschselected ; Color scheme set to dark"
@@ -588,7 +657,7 @@ function Logger_Init() {
     fi
   done
 
-  echo "use_glob_ol : $use_glob_ol"
+  # echo "use_glob_ol : $use_glob_ol"
 
   if (( $use_glob_ol == 1 )); then
     for key in "${!CONF[@]}"; do

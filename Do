@@ -103,18 +103,10 @@ if [ "$found" == 1 ]; then
 	  #This is where init.tcl is located to avoid the initial warning when running tclsh
 	  export TCL_LIBRARY=$tcl_library
   fi
-    
-  # if [[ -v HOG_LOGGER && $HOG_LOGGER == ENABLED ]]; then
-  #   Logger $executable_path $hog_dir/Tcl/launch.tcl "$@"
-  #   Hog_exit
-  # else
-  #   $executable_path $hog_dir/Tcl/launch.tcl "$@"
-  #   exit $?
-  # fi
   Logger $executable_path $hog_dir/Tcl/launch.tcl "$@"
   Hog_exit
 else
-    echo "Error: No IDE exectuable found in PATH. You need an IDE in your PATH to use Hog." >&2
-    exit 1
+  echo "Error: No IDE exectuable found in PATH. You need an IDE in your PATH to use Hog." >&2
+  exit 1
 fi
 

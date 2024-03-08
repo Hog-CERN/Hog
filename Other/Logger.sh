@@ -24,8 +24,8 @@
 #  @brief Global variable 
 #
 export DEBUG_VERBOSE=""
-export HOG_LOG_EN=""
-export HOG_COLOR_EN=""
+HOG_LOG_EN=0
+HOG_COLOR_EN=0
 export clrschselected="dark"
 
 # export
@@ -177,72 +177,96 @@ declare -A warningOverload
 declare -A infoOverload
 declare -A debugOverload
 
-function msgTypeOverload () {
-  # echo $1
-  # echo $2
-  # echo $3
-  local __msgTypeOut=$1
-  local msgTypeOut="error"
-  case "$2" in
-    "error")
-      # echo "inside error"
-      for key in "${!errorOverload[@]}"; do
-        # echo "key :-: $key"
-        if [[ $3 == *"$key"* ]]; then
-          Msg Debug "Message level Override: Key < '$key' > exists in the string < $3 > with value '${errorOverload[$key]}'"
-          eval $__msgTypeOut="'${errorOverload[$key]}'"
-        else
-          eval $__msgTypeOut=$2
-        fi
-      done
-    ;;
-    "critical") 
-      # echo "inside c"
-      for key in "${!criticalOverload[@]}"; do
-        if [[ $3 == *"$key"* ]]; then
-          Msg Debug "Message level Override: Key < '$key' > exists in the string < $3 > with value '${criticalOverload[$key]}'"
-          eval $__msgTypeOut="'${criticalOverload[$key]}'"
-        fi
-      done
-    ;;
-    "warning") 
-      # echo "inside w"
-      for key in "${!warningOverload[@]}"; do
-        if [[ $3 == *"$key"* ]]; then
-          Msg Debug "Message level Override: Key < '$key' > exists in the string < $3 > with value '${warningOverload[$key]}'"
-          eval $__msgTypeOut="'${warningOverload[$key]}'"
-        fi
-      done
-    ;;
-    "info") 
-      # echo "inside i"
-      for key in "${!infoOverload[@]}"; do
-        if [[ $3 == *"$key"* ]]; then
-          Msg Debug "Message level Override: Key < '$key' > exists in the string < $3 > with value '${infoOverload[$key]}'"
-          eval $__msgTypeOut="'${infoOverload[$key]}'"
-        fi
-      done
-    ;;
-    "vcom") 
-      # echo "inside i"
-      for key in "${!infoOverload[@]}"; do
-        if [[ $3 == *"$key"* ]]; then
-          Msg Debug "Message level Override: Key < '$key' > exists in the string < $3 > with value '${infoOverload[$key]}'"
-          eval $__msgTypeOut="'${infoOverload[$key]}'"
-        fi
-      done
-    ;;
-    "debug") 
-      # echo "inside d"
-      for key in "${!debugOverload[@]}"; do
-        if [[ $3 == *"$key"* ]]; then
-          Msg Debug "Message level Override: Key < '$key' > exists in the string < $3 > with value '${debugOverload[$key]}'"
-          eval $__msgTypeOut="'${debugOverload[$key]}'"
-        fi
-      done
-    ;;
-  esac
-}
+# function msgTypeOverload () {
+#   echo " --------------------- "
+#   echo " msgTypeOverload : $* "
+#   echo " --------------------- "
+#   # echo $1
+#   echo "1 - $1"
+#   # echo $2
+#   echo "2 - $2"
+#   # echo $3
+#   # echo "3 - $3"
+#   echo " ,,,,,,,,,,,,,,,,,,,,, "
+#   # local __msgTypeOut=$1
+#   # local msgTypeOut="error"
+#   msgTypeOut="$1"
+#   case "$1" in
+#     "error")
+#       echo "inside error"
+#       for key in "${!errorOverload[@]}"; do
+#         # echo "key :-: $key"
+#         if [[ "$2" == *"$key"* ]]; then
+#           Msg Debug "Message level Override: Key < '$key' > exists in the string < $2 > with value '${errorOverload[$key]}'"
+#           msgTypeOut="'${errorOverload[$key]}'"
+#         # else
+#         #   msgTypeOut=$2
+#         fi
+#       done
+#     ;;
+#     "critical") 
+#       echo "inside c"
+#       for key in "${!criticalOverload[@]}"; do
+#         if [[ "$2" == *"$key"* ]]; then
+#           Msg Debug "Message level Override: Key < '$key' > exists in the string < $2 > with value '${criticalOverload[$key]}'"
+#           msgTypeOut="'${criticalOverload[$key]}'"
+#         # else
+#         #   msgTypeOut=$2
+#         fi
+#       done
+#     ;;
+#     "warning") 
+#       echo "inside w"
+#       for key in "${!warningOverload[@]}"; do
+#         if [[ "$2+" == *"$key"* ]]; then
+#           Msg Debug "Message level Override: Key < '$key' > exists in the string < $2 > with value '${warningOverload[$key]}'"
+#           msgTypeOut="'${warningOverload[$key]}'"
+#         # else
+#         #   msgTypeOut=$2
+#         fi
+#       done
+#     ;;
+#     "info") 
+#       echo "inside i - $2"
+#       for key in "${!infoOverload[@]}"; do
+#         echo " joder que meirda"
+#         if [[ "$2" == *"$key"* ]]; then
+#           Msg Debug "Message level Override: Key < '$key' > exists in the string < $2 > with value '${infoOverload[$key]}'"
+#           msgTypeOut="'${infoOverload[$key]}'"
+#         # else
+#         #   msgTypeOut="$2"
+#         fi
+#       done
+#       echo "inside i - msgTypeOut -:-: $msgTypeOut"
+
+#     ;;
+#     "vcom") 
+#       echo "inside v"
+#       for key in "${!infoOverload[@]}"; do
+#         if [[ "$2" == *"$key"* ]]; then
+#           Msg Debug "Message level Override: Key < '$key' > exists in the string < $2 > with value '${infoOverload[$key]}'"
+#           msgTypeOut="'${infoOverload[$key]}'"
+#         # else
+#         #   msgTypeOut=$2
+#         fi
+#       done
+#     ;;
+#     "debug") 
+#       echo "inside d"
+#       for key in "${!debugOverload[@]}"; do
+#         if [[ "$2" == *"$key"* ]]; then
+#           Msg Debug "Message level Override: Key < '$key' > exists in the string < $2 > with value '${debugOverload[$key]}'"
+#           msgTypeOut="'${debugOverload[$key]}'"
+#         # else
+#         #   msgTypeOut=$2
+#         fi
+#       done
+#     ;;
+#   esac
+#   echo "msgTypeOut -:-: $msgTypeOut"
+#   echo $msgTypeOut
+#   # eval $__msgTypeOut="'$msgTypeOut'"
+# }
 
 ## @function log_stdout()
 # 
@@ -262,7 +286,7 @@ function log_stdout(){
     while read -r IN_out # This reads a string from stdin and stores it in a variable called IN_out
     do
       if [[ $next_is_err == 0 ]]; then
-        line=${IN_out}
+        line="${IN_out}"
       else
         line="ERROR:${IN_out}"
         next_is_err=$(($next_is_err-1))
@@ -270,48 +294,119 @@ function log_stdout(){
       if [ "${1}" == "stdout" ]; then
         # echo " :::::: $line"
         dataLine=$line
+        # for value in $dataLine
+        # do
+        #     echo $value
+        # done
+        # echo "  ************************************ "
         case "$line" in
           *'ERROR:'* | *'Error:'* | *':Error'* | *'error:'* | *'Error '* | *'FATAL ERROR'* | *'Fatal'*)
             if [[ "$line" == *'Fatal'* ]]; then
               next_is_err=1
             fi
-            # msgType="error"
-            msgTypeOverload msgType "error" "$line"
+            msgType="error"
+            # msgType=$(msgTypeOverload "error" "$dataLine")
           ;;
           *'CRITICAL:'* | *'CRITICAL WARNING:'* ) 
-            msgTypeOverload msgType "critical" "$line"
-            # msgType="critical"
+            # msgTypeOverload msgType "critical" "$dataLine"
+            msgType="critical"
           ;;
           *'WARNING:'* | *'Warning:'* | *'warning:'*)
-            msgTypeOverload msgType "warning" "$line"
-            # msgType="warning"
+            # msgTypeOverload msgType "warning" "$dataLine"
+            msgType="warning"
           ;;
           *'INFO:'*)
-            msgTypeOverload msgType "info" "$line"
-            # msgType="info"
+            # msgTypeOverload msgType "info" $dataLine
+            msgType="info"
           ;;
           *'DEBUG:'*)
-            msgTypeOverload msgType "debug" "$line"
-            # msgType="debug"
+            # msgTypeOverload msgType "debug" "$dataLine"
+            msgType="debug"
             ;;
           *'vcom'*)
-            msgTypeOverload msgType "vcom" "$line"
+            # msgTypeOverload msgType "vcom" "$dataLine"
             msgType="vcom"
             ;;
           *)
-            msgTypeOverload msgType "info" "$line"
+            # msgType=$(msgTypeOverload "info" "$dataLine")
             msgType="info"
+            # echo " Jodeeeeeeeeeeeeeeeeeeer : $msgType"
             ;;
         esac
       elif [ "${1}" == "stderr" ]; then
-        stderr_line=$line
+        stderr_line=$dataLine
         msgType="error"
       else
        Msg Error "Error in logger" 
       fi  
       #######################################
+      # Overwriting
+      #######################################
+      case "$msgType" in
+        "error")
+          # echo "inside error"
+          for key in "${!errorOverload[@]}"; do
+            # echo "key :-: $key"
+            if [[ "$line" == *"$key"* ]]; then
+              Msg Debug "Message level Override: Key < '$key' > exists in the string < $line > with value '${errorOverload[$key]}'"
+              msgType="${errorOverload[$key]}"
+            fi
+          done
+        ;;
+        "critical") 
+          # echo "inside c"
+          for key in "${!criticalOverload[@]}"; do
+            if [[ "$line" == *"$key"* ]]; then
+              Msg Debug "Message level Override: Key < '$key' > exists in the string < $line > with value '${criticalOverload[$key]}'"
+              msgType="${criticalOverload[$key]}"
+            fi
+          done
+        ;;
+        "warning") 
+          # echo "inside w"
+          for key in "${!warningOverload[@]}"; do
+            if [[ "$line+" == *"$key"* ]]; then
+              Msg Debug "Message level Override: Key < '$key' > exists in the string < $line > with value '${warningOverload[$key]}'"
+              msgType="${warningOverload[$key]}"
+            fi
+          done
+        ;;
+        "info") 
+          # echo "inside i - $line"
+          for key in "${!infoOverload[@]}"; do
+            echo " joder que meirda"
+            if [[ "$line" == *"$key"* ]]; then
+              Msg Debug "Message level Override: Key < '$key' > exists in the string < $line > with value '${infoOverload[$key]}'"
+              msgType="${infoOverload[$key]}"
+            fi
+          done
+          # echo "inside i - msgTypeOut -:-: $msgTypeOut"
+
+        ;;
+        "vcom") 
+          # echo "inside v"
+          for key in "${!infoOverload[@]}"; do
+            if [[ "$line" == *"$key"* ]]; then
+              Msg Debug "Message level Override: Key < '$key' > exists in the string < $line > with value '${infoOverload[$key]}'"
+              msgType="${infoOverload[$key]}"
+            fi
+          done
+        ;;
+        "debug") 
+          # echo "inside d"
+          for key in "${!debugOverload[@]}"; do
+            if [[ "$line" == *"$key"* ]]; then
+              Msg Debug "Message level Override: Key < '$key' > exists in the string < $line > with value '${debugOverload[$key]}'"
+              msgType="${debugOverload[$key]}"
+            fi
+          done
+        ;;
+      esac
+      #######################################
         # The writing will be done here
       #######################################
+  # echo "HOG_COLOR_EN = $HOG_COLOR_EN"
+      # echo "msgType :-: $msgType"
       if [[ $DEBUG_VERBOSE -gt 5 ]]; then
         printf "%d : %d :" $BASHPID "$(msg_counter ${msgCounter[$msgType]})"  
       else
@@ -365,6 +460,28 @@ function Hog_exit () {
   fi
 }
 
+# function test1 () {
+#   # echo "test1 :: $1" # arguments are accessible through $1, $2,...
+#   if [ -n "${2}" ]; then
+#     IN_out="${2}"
+#   else
+#     while read -r IN_out # This reads a string from stdin and stores it in a variable called IN_out
+#     do
+#       if [[ $next_is_err == 0 ]]; then
+#         line="${IN_out}"
+#       else
+#         line="ERROR:${IN_out}"
+#         next_is_err=$(($next_is_err-1))
+#       fi
+#       echo " :::::: '$line'"
+#     done
+#   fi
+# }
+# function test2 () {
+#   echo "test2 :: $1" # arguments are accessible through $1, $2,...
+# }
+
+
 ## @function Log_capture()
   # 
   # @brief creates output files and pipelines stdout and stderr to 
@@ -374,6 +491,7 @@ function Log_capture(){
 
   Msg Debug "Logger args : $*"
   $* > >(log_stdout "stdout") 2> >(log_stdout "stderr" >&2) &
+  # $* > >(test1 "stdout") 2> >(test2 "stderr") &
   tcl_pid=$!
   Msg Debug "pid = $tcl_pid"
   while kill -0 $tcl_pid 2>/dev/null; do
@@ -388,12 +506,12 @@ function Log_capture(){
   # @param[in] execution line to process
 function Logger () {
   # echo "$@"
-  if [[ "$HOG_LOG_EN" -eq 1 ]] || [[  "$HOG_COLOR_EN" -eq 1 ]]; then
+  if [[ "$HOG_LOG_EN" -gt 0 ]] || [[  "$HOG_COLOR_EN" -gt 0 ]]; then
     Log_capture "$@"
   else
     "$@"
   fi
-  if [[  "$HOG_COLOR_EN" -eq 1 ]]; then
+  if [[  "$HOG_COLOR_EN" -gt 0 ]]; then
     Hog_exit
   else
     exit $?
@@ -413,9 +531,9 @@ function Msg() {
   fi
 
   if [ "a$2" == "a" ]; then
-      text=""
+    text=""
   else
-      text="$2"
+    text="$2"
   fi
 
   local print_msg=0
@@ -429,11 +547,13 @@ function Msg() {
     *) Msg Error "messageLevel: $1 not supported! Use Info, Warning, CriticalWarning, Error" ;;
   esac
   ####### The printing
+  # echo "HOG_COLOR_EN = $HOG_COLOR_EN"
   if [[ $DEBUG_VERBOSE -gt 5 ]]; then
     printf "%d : %d :" $BASHPID "$(msg_counter dw)" 
   else
     msg_counter dw >> /dev/null
   fi;
+  
   if [[ $DEBUG_VERBOSE -gt ${msgDbgLvl[$msgType]} ]]; then
     if [[ $HOG_COLOR_EN -gt 1 ]]; then
       case "${clrschselected}" in
@@ -528,7 +648,7 @@ function Logger_Init() {
 
   # SETTING DEBUG_VERBOSE
   hog_user_td="${current_user}_terminal_debug"
-  HOG_LOG_EN=0
+  # HOG_LOG_EN=0
   # echo "$hog_user_tc"
   if [[ -v CONF["$hog_user_td"] ]]; then
     if [[ ${CONF["$hog_user_td"]} =~ ^[0-9]$ ]]; then

@@ -27,6 +27,8 @@ export DEBUG_VERBOSE=""
 HOG_LOG_EN=0
 HOG_COLOR_EN=0
 export clrschselected="dark"
+export fail_when_error=0
+error_failing=0
 
 # export
 
@@ -176,97 +178,6 @@ declare -A criticalOverload
 declare -A warningOverload
 declare -A infoOverload
 declare -A debugOverload
-
-# function msgTypeOverload () {
-#   echo " --------------------- "
-#   echo " msgTypeOverload : $* "
-#   echo " --------------------- "
-#   # echo $1
-#   echo "1 - $1"
-#   # echo $2
-#   echo "2 - $2"
-#   # echo $3
-#   # echo "3 - $3"
-#   echo " ,,,,,,,,,,,,,,,,,,,,, "
-#   # local __msgTypeOut=$1
-#   # local msgTypeOut="error"
-#   msgTypeOut="$1"
-#   case "$1" in
-#     "error")
-#       echo "inside error"
-#       for key in "${!errorOverload[@]}"; do
-#         # echo "key :-: $key"
-#         if [[ "$2" == *"$key"* ]]; then
-#           Msg Debug "Message level Override: Key < '$key' > exists in the string < $2 > with value '${errorOverload[$key]}'"
-#           msgTypeOut="'${errorOverload[$key]}'"
-#         # else
-#         #   msgTypeOut=$2
-#         fi
-#       done
-#     ;;
-#     "critical") 
-#       echo "inside c"
-#       for key in "${!criticalOverload[@]}"; do
-#         if [[ "$2" == *"$key"* ]]; then
-#           Msg Debug "Message level Override: Key < '$key' > exists in the string < $2 > with value '${criticalOverload[$key]}'"
-#           msgTypeOut="'${criticalOverload[$key]}'"
-#         # else
-#         #   msgTypeOut=$2
-#         fi
-#       done
-#     ;;
-#     "warning") 
-#       echo "inside w"
-#       for key in "${!warningOverload[@]}"; do
-#         if [[ "$2+" == *"$key"* ]]; then
-#           Msg Debug "Message level Override: Key < '$key' > exists in the string < $2 > with value '${warningOverload[$key]}'"
-#           msgTypeOut="'${warningOverload[$key]}'"
-#         # else
-#         #   msgTypeOut=$2
-#         fi
-#       done
-#     ;;
-#     "info") 
-#       echo "inside i - $2"
-#       for key in "${!infoOverload[@]}"; do
-#         echo " joder que meirda"
-#         if [[ "$2" == *"$key"* ]]; then
-#           Msg Debug "Message level Override: Key < '$key' > exists in the string < $2 > with value '${infoOverload[$key]}'"
-#           msgTypeOut="'${infoOverload[$key]}'"
-#         # else
-#         #   msgTypeOut="$2"
-#         fi
-#       done
-#       echo "inside i - msgTypeOut -:-: $msgTypeOut"
-
-#     ;;
-#     "vcom") 
-#       echo "inside v"
-#       for key in "${!infoOverload[@]}"; do
-#         if [[ "$2" == *"$key"* ]]; then
-#           Msg Debug "Message level Override: Key < '$key' > exists in the string < $2 > with value '${infoOverload[$key]}'"
-#           msgTypeOut="'${infoOverload[$key]}'"
-#         # else
-#         #   msgTypeOut=$2
-#         fi
-#       done
-#     ;;
-#     "debug") 
-#       echo "inside d"
-#       for key in "${!debugOverload[@]}"; do
-#         if [[ "$2" == *"$key"* ]]; then
-#           Msg Debug "Message level Override: Key < '$key' > exists in the string < $2 > with value '${debugOverload[$key]}'"
-#           msgTypeOut="'${debugOverload[$key]}'"
-#         # else
-#         #   msgTypeOut=$2
-#         fi
-#       done
-#     ;;
-#   esac
-#   echo "msgTypeOut -:-: $msgTypeOut"
-#   echo $msgTypeOut
-#   # eval $__msgTypeOut="'$msgTypeOut'"
-# }
 
 ## @function log_stdout()
 # 
@@ -436,6 +347,27 @@ function log_stdout(){
           echo "${msgHeadBW[$msgType]} ${dataLine#${msgRemove[$msgType]}} "  >> $LOG_INFO_FILE; 
         fi
       fi
+      if [[ "$msgType" == "error" ]]; then
+        # echo "The two strings are the same -- $msgType"
+        if (( $fail_when_error > 0 )); then
+          # echo "fail_when_error -- $error_failing -- $fail_when_error"
+          error_failing=$fail_when_error
+          failing_en=1
+        fi
+      fi
+      if [[ $failing_en -gt 0 ]];then
+        if [[ $error_failing -gt 1 ]]; then
+          # echo "error_failing -- $error_failing"
+          error_failing=$(($error_failing - 1))
+        else
+          # echo "exitaaaando"
+          exit -1
+        fi
+      fi
+      
+      
+      
+      
     done    
   fi
 }
@@ -459,28 +391,6 @@ function Hog_exit () {
     exit 0
   fi
 }
-
-# function test1 () {
-#   # echo "test1 :: $1" # arguments are accessible through $1, $2,...
-#   if [ -n "${2}" ]; then
-#     IN_out="${2}"
-#   else
-#     while read -r IN_out # This reads a string from stdin and stores it in a variable called IN_out
-#     do
-#       if [[ $next_is_err == 0 ]]; then
-#         line="${IN_out}"
-#       else
-#         line="ERROR:${IN_out}"
-#         next_is_err=$(($next_is_err-1))
-#       fi
-#       echo " :::::: '$line'"
-#     done
-#   fi
-# }
-# function test2 () {
-#   echo "test2 :: $1" # arguments are accessible through $1, $2,...
-# }
-
 
 ## @function Log_capture()
   # 
@@ -745,6 +655,28 @@ function Logger_Init() {
     clrschselected="dark"
   fi
   Msg Debug "color terminal = $clrschselected"
+
+  # error fail
+  hog_user_fwe="${current_user}_fail_when_error_enabled"
+  hog_user_dfwe="${current_user}_fail_when_error_delay"
+  if [[ -v CONF["$hog_user_fwe"] ]]; then
+    if [[ -v CONF["$hog_user_dfwe"] ]]; then
+      fail_when_error=$((1 + ${CONF["$hog_user_dfwe"]}))
+    else
+      fail_when_error=1
+    fi
+  elif  [[ -v CONF[global_fail_when_error_enabled] ]]; then
+    if [[ -v CONF["global_fail_when_error_delay"] ]]; then
+      fail_when_error=$((1 + ${CONF["global_fail_when_error_delay"]}))
+    else
+      fail_when_error=1
+    fi
+  else
+    fail_when_error=0
+  fi
+  Msg Debug "fail_when_error = $fail_when_error"
+
+  
 
 
   

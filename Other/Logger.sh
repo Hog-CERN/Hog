@@ -493,6 +493,22 @@ function Msg() {
   return 0
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 declare -A Hog_Prj_dict  
 declare -A Hog_Usr_dict  
 
@@ -500,58 +516,122 @@ process_toml_file() {
   local file_path=$1
   local dict_name=$2
   declare -n toml_dict=$dict_name
-  while IFS= read -r line; do
+  while IFS= read -r rline; do
     echo " ######################### "
-    echo $line
+    echo "1a : $rline"
     # line="${line%%#*}"
-    line=$(echo "$line" | sed -E 's/#.*$|("[^"]*")|('\''[^'\'']*'\'')/\1/g')
-    echo $line
+    line=$(echo "$rline" | sed -E 's/#.*$|("[^"]*")|('\''[^'\'']*'\'')/\1/g')
+    echo "1b = $line"
+    # line=$(echo "$line" | sed -E 's/("[^"]*")/g')
+    # line="${line// /}"
+    # echo "1 - $line"
+    if [[ ! $line = *[!\ ]* ]]; then continue; fi
+     
     if [[ $line =~ ^\[.*\] ]]; then
       # echo "1 - $line"
       section_name=$(echo "$line" | sed 's/[[:space:]]*$//' | sed 's/\[\(.*\)\]/\1/' | sed 's/ /_/g' )
       echo "section_name :-: $section_name"
-    elif [[ $line =~ ^[a-zA-Z_][a-zA-Z0-9_]*= ]]; then
-      echo "2 - $line"
-      # key=$(echo "$line" | cut -d'=' -f1 | xargs)  # Trim leading/trailing whitespace
-      key=$(echo "$line" | sed 's/=.*//')
-      echo "2 - key - $key"
-      if ! [[ $(echo "$line" | sed 's/.*=//') =~ [\[\],] ]]; then
-        value=$(echo "$line" | sed -n 's/.*=\(.*\)/\1/p' | sed 's/\[\|\]//g') 
-        echo "21 - value - $value"
-        if [[ $value == *,* ]]; then
-          index=0
-          # Loop over all the elements separated by a comma
-          IFS=',' read -ra elements <<< "$value"
-          for element in "${elements[@]}"; do
-            echo "211 - Element: $element"
-            toml_dict["$section_name.$key_$index"]="$value"
-            ((index++))
-          done
-        else
-          echo "212 - value - $value"
-          toml_dict["$section_name.$key"]="$value"
-        fi
-        
-      else
-        if [[ $(echo "$line" | sed 's/.*=//') =~ ^[A-Za-z0-9_]+$ ]]; then
-        if [[ $(echo "$line" | sed 's/.*=//') =~ \[[^\]] ]]; then
-          echo "open array"
-        else
-          value=$(echo "$line" | sed -n 's/.*=\(.*\)/\1/p')
-          echo "22 - value - $value"
-          toml_dict["$section_name.$key"]="$value"
-        fi
-      fi
-      fi
-      # Check if the content after = contains only numbers, characters, or underscores
-      
-
-      # value=$(echo "$line" | cut -d'=' -f2- | xargs)  # Trim leading/trailing whitespace
-    else
-      echo "3 - $line"
+      continue
+    elif [[ $line =~ ^[a-zA-Z0-9_[:space:]]*= ]]; then
+      echo "12a - $line"
+      key=$(echo "${line// /}" | sed 's/=.*//')
+      echo "12k - $key"
+      line=$(echo "$line" | sed 's/.*=//')
     fi
+    # if [[ ! $line = *[!\ ]* ]]; then continue; fi
+    echo "2a - $line"
+    # line=$(echo "$line" |  sed -E 's/("[^"]*")|('\''[^'\'']*'\'')| //g')
+    # echo "2b - $line"
+    # echo $line
+    # echo "$line"
+
+    if [[ $line =~ \[ || $line =~ \] ]]; then
+        echo "The string contains [ or ]"
+    else
+        echo "The string does not contain [ or ]"
+    fi
+
+
+    while [[ -n $line ]]; do
+      echo $line
+      if [[ "$line" =~ \[ ]]; then
+        echo open
+        line="${line#*[}"
+      elif [[ "$line" =~ \] ]]; then
+        echo close
+        line="${line#*]}"
+      else
+        line=""
+      fi
+    done
+
+    # regexp='\[.*\]'
+    # if [[ "$line" =~ $regexp ]]; then
+    #   echo open
+    # # elif [[ "$line" =~ \] ]]; then
+    # #   echo close
+    # else
+    #   echo yes
+    # fi
+    #   value=$(echo "$line" | sed 's/\[\|\]//g') 
+    #   echo "21 - value - $value"
+    #   if [[ $value == *,* ]]; then
+    #     index=0
+    #     # Loop over all the elements separated by a comma
+    #     IFS=',' read -ra elements <<< "$value"
+    #     for element in "${elements[@]}"; do
+    #       echo "211 - Element: $element"
+    #       toml_dict["$section_name.${key}_$index"]="$element"
+    #       ((index++))
+    #     done
+    #   else
+    #     echo "212 - value - $value"
+    #     toml_dict["$section_name.$key"]="$value"
+    #   fi
+    # else
+    #   if [[ $(echo "$line" | sed 's/.*=//') =~ ^[A-Za-z0-9_]+$ ]]; then
+    #     if [[ $(echo "$line" | sed 's/.*=//') =~ \[[^\]] ]]; then
+    #       echo "open array"
+    #     else
+    #       value=$(echo "$line" | sed -n 's/.*=\(.*\)/\1/p')
+    #       echo "22 - value - $value"
+    #       toml_dict["$section_name.$key"]="$value"
+    #     fi
+    #   fi
+    # fi
+      # Check if the content after = contains only numbers, characters, or underscores
+      # value=$(echo "$line" | cut -d'=' -f2- | xargs)  # Trim leading/trailing whitespace
+    # else
+    #   echo "3 - $line"
+    # fi
   done < $1  # Replace with the actual path to your TOML file
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ## @function Logger_Init()
   # 
@@ -581,7 +661,7 @@ function Logger_Init() {
     Msg Info "Hog project configuration file $hog_proj_cfg exists."
     process_toml_file $hog_proj_cfg "Hog_Prj_dict"
     for key in "${!Hog_Prj_dict[@]}"; do
-      echo "First File - Key: $key, Value: ${Hog_Prj_dict[$key]}"
+      echo "Hog_Prj_dict[ $key ] = ${Hog_Prj_dict[$key]}"
     done
     
   else

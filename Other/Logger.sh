@@ -493,6 +493,66 @@ function Msg() {
   return 0
 }
 
+declare -A Hog_Prj_dict  
+declare -A Hog_Usr_dict  
+
+process_toml_file() {
+  local file_path=$1
+  local dict_name=$2
+  declare -n toml_dict=$dict_name
+  while IFS= read -r line; do
+    echo " ######################### "
+    echo $line
+    # line="${line%%#*}"
+    line=$(echo "$line" | sed -E 's/#.*$|("[^"]*")|('\''[^'\'']*'\'')/\1/g')
+    echo $line
+    if [[ $line =~ ^\[.*\] ]]; then
+      # echo "1 - $line"
+      section_name=$(echo "$line" | sed 's/[[:space:]]*$//' | sed 's/\[\(.*\)\]/\1/' | sed 's/ /_/g' )
+      echo "section_name :-: $section_name"
+    elif [[ $line =~ ^[a-zA-Z_][a-zA-Z0-9_]*= ]]; then
+      echo "2 - $line"
+      # key=$(echo "$line" | cut -d'=' -f1 | xargs)  # Trim leading/trailing whitespace
+      key=$(echo "$line" | sed 's/=.*//')
+      echo "2 - key - $key"
+      if ! [[ $(echo "$line" | sed 's/.*=//') =~ [\[\],] ]]; then
+        value=$(echo "$line" | sed -n 's/.*=\(.*\)/\1/p' | sed 's/\[\|\]//g') 
+        echo "21 - value - $value"
+        if [[ $value == *,* ]]; then
+          index=0
+          # Loop over all the elements separated by a comma
+          IFS=',' read -ra elements <<< "$value"
+          for element in "${elements[@]}"; do
+            echo "211 - Element: $element"
+            toml_dict["$section_name.$key_$index"]="$value"
+            ((index++))
+          done
+        else
+          echo "212 - value - $value"
+          toml_dict["$section_name.$key"]="$value"
+        fi
+        
+      else
+        if [[ $(echo "$line" | sed 's/.*=//') =~ ^[A-Za-z0-9_]+$ ]]; then
+        if [[ $(echo "$line" | sed 's/.*=//') =~ \[[^\]] ]]; then
+          echo "open array"
+        else
+          value=$(echo "$line" | sed -n 's/.*=\(.*\)/\1/p')
+          echo "22 - value - $value"
+          toml_dict["$section_name.$key"]="$value"
+        fi
+      fi
+      fi
+      # Check if the content after = contains only numbers, characters, or underscores
+      
+
+      # value=$(echo "$line" | cut -d'=' -f2- | xargs)  # Trim leading/trailing whitespace
+    else
+      echo "3 - $line"
+    fi
+  done < $1  # Replace with the actual path to your TOML file
+}
+
 ## @function Logger_Init()
   # 
   # @brief creates output files and pipelines stdout and stderr to 
@@ -512,49 +572,41 @@ function Logger_Init() {
 
   declare -A CONF
   CONF[test]="on"
-  function parse_yaml {
-    local prefix=$2
-    local s='[[:space:]]*' w='[a-zA-Z0-9_]*' fs=$(echo @|tr @ '\034')
-    sed -ne "s|,$s\]$s\$|]|" \
-          -e ":1;s|^\($s\)\($w\)$s:$s\[$s\(.*\)$s,$s\(.*\)$s\]|\1\2: [\3]\n\1  - \4|;t1" \
-          -e "s|^\($s\)\($w\)$s:$s\[$s\(.*\)$s\]|\1\2:\n\1  - \3|;p" $1 | \
-    sed -ne "s|,$s}$s\$|}|" \
-          -e ":1;s|^\($s\)-$s{$s\(.*\)$s,$s\($w\)$s:$s\(.*\)$s}|\1- {\2}\n\1  \3: \4|;t1" \
-          -e    "s|^\($s\)-$s{$s\(.*\)$s}|\1-\n\1  \2|;p" | \
-    sed -ne "s|^\($s\):|\1|" \
-          -e "s|^\($s\)-$s[\"']\(.*\)[\"']$s\$|\1$fs$fs\2|p" \
-          -e "s|^\($s\)-$s\(.*\)$s\$|\1$fs$fs\2|p" \
-          -e "s|^\($s\)\($w\)$s:$s[\"']\(.*\)[\"']$s\$|\1$fs\2$fs\3|p" \
-          -e "s|^\($s\)\($w\)$s:$s\(.*\)$s\$|\1$fs\2$fs\3|p" | \
-    awk -F$fs '{
-        indent = length($1)/2;
-        vname[indent] = $2;
-        for (i in vname) {if (i > indent) {delete vname[i]; idx[i]=0}}
-        if(length($2)== 0){  vname[indent]= ++idx[indent] };
-        if (length($3) > 0) {
-          vn=""; for (i=0; i<indent; i++) { vn=(vn)(vname[i])("_")}
-          printf("CONF[%s%s]=\"%s\"\n",vn, vname[indent], $3);
-        }
-    }'
-  }
-  # printf("%s%s%s=\"%s\"\n", "'$prefix'",vn, vname[indent], $3);
 
   # declare -A yaml_dict
-  yaml_file=$(pwd)"/hog_conf.yml"
-  if test -f $yaml_file; then
-    Msg Info "Hog configuration file $yaml_file exists."
-    eval $(parse_yaml $yaml_file "CONF_")
-    size=${#CONF[@]}
-    Msg Debug  " --------------- The size of the dictionary is $size"
-    for key in "${!CONF[@]}"; do
-        Msg Debug "CONF[$key] --- ${CONF[$key]}"
-    done
-  else
-      Msg Warning "Configuration file does not exist."
-  fi
-
   current_user=$(whoami)
+  hog_proj_cfg=$(pwd)"/HogEnv.conf"
+  hog_user_cfg=$(eval echo "~$USER")"/HogEnv.conf"
+  if test -f $hog_proj_cfg; then
+    Msg Info "Hog project configuration file $hog_proj_cfg exists."
+    process_toml_file $hog_proj_cfg "Hog_Prj_dict"
+    for key in "${!Hog_Prj_dict[@]}"; do
+      echo "First File - Key: $key, Value: ${Hog_Prj_dict[$key]}"
+    done
+    
+  else
+    Msg Debug "Hog project configuration file $hog_proj_cfg doesn't exists."
+  fi
+  if test -f $hog_user_cfg; then
+    Msg Info "Hog user configuration file $hog_user_cfg exists."
+  else
+    Msg Debug "Hog user configuration file $hog_user_cfg doesn't exists."
+  fi
+  #   eval $(parse_yaml $hog_prj_cfg "CONF_")
+  #   size=${#CONF[@]}
+  #   Msg Debug  " --------------- The size of the dictionary is $size"
+  #   for key in "${!CONF[@]}"; do
+  #       Msg Debug "CONF[$key] --- ${CONF[$key]}"
+  #   done
+  # else
+  #     Msg Warning "Configuration file does not exist."
+  # fi
+
+  
   # echo "Current user: $current_user"
+
+
+  exit
 
   # SETTING DEBUG_VERBOSE
   hog_user_td="${current_user}_terminal_debug"

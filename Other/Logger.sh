@@ -512,57 +512,196 @@ function Msg() {
 declare -A Hog_Prj_dict  
 declare -A Hog_Usr_dict  
 
+trim() {
+  local var=$1
+  var="${var#"${var%%[![:space:]]*}"}"
+  var="${var%"${var##*[![:space:]]}"}"
+  echo -n "$var"
+}
+
 process_toml_file() {
   local file_path=$1
   local dict_name=$2
   declare -n toml_dict=$dict_name
+  local arraylvl=0
+  local index=0
   while IFS= read -r rline; do
-    echo " ######################### "
-    echo "1a : $rline"
-    # line="${line%%#*}"
-    line=$(echo "$rline" | sed -E 's/#.*$|("[^"]*")|('\''[^'\'']*'\'')/\1/g')
-    echo "1b = $line"
-    # line=$(echo "$line" | sed -E 's/("[^"]*")/g')
-    # line="${line// /}"
-    # echo "1 - $line"
+    echo " ######################### ::: <${rline}>"
+    # echo "$rline"
+    if [[ "$rline" =~ ^[:space:]*#.*$ ]]; then continue; fi
+    if [[ "$rline" =~ ^[:space:]*$ ]]; then continue; fi
+    chari=0
+    cnt1=0
+    for ((i=0; i<${#rline}; i++)); do
+      char="${rline:i:1}"
+      chari=$((i+1))
+      if [[ $char == '"' ]]; then ((cnt1++)); fi
+      if [[ $((cnt1 % 2)) == 0 ]]; then
+        if [[ $char == "#" ]]; then 
+          chari=$i
+          break
+        fi
+      fi
+    done
+    line=${rline:0:$chari}
+    echo "new line ::: <$line>"
     if [[ ! $line = *[!\ ]* ]]; then continue; fi
-     
+    # regexp=
+    # echo "1c - $(sed 's/"[^"]*"//g' <<< "$line")"
+    # echo "1d - $(sed 's/"[^"]*"//g' <<< "$line")"
+    # if [[ $line =~ [^\[\]\"]*\][^\[\]\"]* ]] || [[ $line =~ [^\[\]\']*\][^\[\]\']* ]] ; then
+    #   echo "The string contains ']' outside of double quotes or single quotes"
+    # else
+    #   echo "The string does not contain ']' outside of double quotes or single quotes"
+    # fi
+    # regexp='["].*\].*["]' #"']
+    # if [[ $line =~ ["].*\].*["] ]] || [[ $line =~ ['].*\].*['] ]] ; then 
+    #     echo "The string contains ']' inside double quotes or single quotes"
+    # else
+    #     echo "The string does not contain ']' inside double quotes or single quotes"
+    # fi
+    # continue
+    
+
     if [[ $line =~ ^\[.*\] ]]; then
-      # echo "1 - $line"
+      echo "1 - $line"
       section_name=$(echo "$line" | sed 's/[[:space:]]*$//' | sed 's/\[\(.*\)\]/\1/' | sed 's/ /_/g' )
       echo "section_name :-: $section_name"
       continue
     elif [[ $line =~ ^[a-zA-Z0-9_[:space:]]*= ]]; then
-      echo "12a - $line"
+      # echo "12a - $line"
       key=$(echo "${line// /}" | sed 's/=.*//')
       echo "12k - $key"
       line=$(echo "$line" | sed 's/.*=//')
     fi
-    # if [[ ! $line = *[!\ ]* ]]; then continue; fi
-    echo "2a - $line"
-    # line=$(echo "$line" |  sed -E 's/("[^"]*")|('\''[^'\'']*'\'')| //g')
-    # echo "2b - $line"
-    # echo $line
-    # echo "$line"
-
-    if [[ $line =~ \[ || $line =~ \] ]]; then
-        echo "The string contains [ or ]"
-    else
-        echo "The string does not contain [ or ]"
-    fi
-
-
+    
     while [[ -n $line ]]; do
-      echo $line
-      if [[ "$line" =~ \[ ]]; then
-        echo open
-        line="${line#*[}"
-      elif [[ "$line" =~ \] ]]; then
-        echo close
-        line="${line#*]}"
-      else
-        line=""
+      echo "L  = <${line}>"
+      echo "AL = $arraylvl"
+      if [[ $arraylvl -eq 0 ]]; then
+        if [[ $line =~ \[ || $line =~ \] || $line =~ \, ]]; then
+          echo "pased0 <$line>"
+          if [[ "$line" =~ ^[^\"]*\[[^\"]*$ ]]; then
+            echo " [ esta solo"
+          fi
+          if [[ "$line" =~ ^[^\"]*\][^\"]*$ ]]; then
+            echo " ] esta solo"
+          fi
+          if [[ "$line" =~ \"[^\"]*[][^\"]*\" ]]; then
+            echo " [ esta dentro 1"
+          fi
+          if [[ "$line" =~ ^[.]*[\"][.]*\[.*[\"] ]]; then
+            echo "esta dentro 2"
+          fi
+          if [[ "$line" =~ ^[^\"][^\"]*\[[^\"][^\"]* ]]; then
+            echo "esta antes"
+          fi
+          if [[ "$line" =~ \"[^\"]*\[[^\"]*\" ]]; then
+            echo "esta antes 2"
+          fi
+          regexp="[^\"].*\[.*"
+          if [[ "$line" =~ $regexp ]]; then
+            echo "open 0"
+            line="${line#*[}"
+            ((arraylvl++))
+            index=0
+          elif [[ $line =~ '.*\][^\"].*' ]]; then
+            Msg Error "clossing array error: $line"
+            line=""
+          else
+            echo "pased else"
+            line=""
+          fi
+        else
+          # value="${line#"${line%%[![:space:]]*}"}"
+          # value="${value%"${value##*[![:space:]]}"}"
+          # value=$(trim "$line")
+          # value=$(echo "$line" | sed -n 's/.*=\(.*\)/\1/p')
+          # echo "Simple value --- $value"
+          toml_dict["$section_name.$key"]=$(trim "$line")
+          Msg Debug "toml_dict[ ${section_name}.${key} ] = <${Hog_Prj_dict[$section_name.${key}]}>"
+          line=""
+        fi
+      else # arraylvl = 0
+        if [[ $line =~ '[^"].*\[.*' ]]; then
+          echo "open 1"
+          line="${line#*[}"
+        elif [[ "$line" =~ '\]' ]]; then
+          echo "582 ------------ $line"
+          # if [[ $line =~ [^\[\]\"']*\][^\[\]\"']* ]]; then
+          #   echo "The string contains ']' outside of double quotes or single quotes"
+          # else
+          #   echo "The string does not contain ']' outside of double quotes or single quotes"
+          # fi
+          regexp='[^]]+'
+          if [[ $line =~ $regexp ]]; then 
+            echo "The string contains characters before ]"
+            if [[ $value == *,* ]]; then
+              IFS=',' read -ra elements <<< "$value"
+              for element in "${elements[@]}"; do
+                element=$(trim "$element")
+                echo "211x - Element: <${element}> ..............................."
+                if [[ ! -z $element ]]; then
+                  toml_dict["$section_name.${key}.$index"]=$element
+                  ((index++))
+                fi
+              done
+            else
+              ele="${line%%\]*}"
+              # value="${ele#"${ele%%[![:space:]]*}"}"
+              # value="${value%"${value##*[![:space:]]}"}"
+              # value=$(echo "$line" | sed -n 's/.*=\(.*\)/\1/p')
+              # echo "Array value 1 --- $value"
+              toml_dict["$section_name.${key}.$index"]=$(trim "$ele")
+              Msg Debug "toml_dict[ ${section_name}.${key}.${index} ] = <${Hog_Prj_dict[$section_name.${key}.$index]}>"
+              line=""
+            fi
+          else
+            echo "The string does not contain characters before ["
+            # echo clossing
+            # ((arraylvl--))
+            # index=0
+          fi
+          echo clossing
+          ((arraylvl--))
+          index=0
+          line=""
+        else
+          if [[ $line == *,* ]]; then
+            IFS=',' read -ra elements <<< "$line"
+            for element in "${elements[@]}"; do
+              element=$(trim "$element")
+              echo "211x - Element: <${element}> "
+              if [[ ! -z $element ]]; then
+                toml_dict["$section_name.${key}.$index"]=$element
+                Msg Debug "toml_dict[ ${section_name}.${key}.${index} ] = <${Hog_Prj_dict[$section_name.${key}.$index]}>"
+                ((index++))
+              fi
+              # echo "211 - Element: <${element}>"
+              # toml_dict["$section_name.${key}.$index"]=$(trim "$element")
+              # Msg Debug "toml_dict[ ${section_name}.${key}.${index} ] = <${Hog_Prj_dict[$section_name.${key}.$index]}>"
+              # ((index++))
+            done
+          else
+            ele="${line%%\]*}"
+            # value="${ele#"${ele%%[![:space:]]*}"}"
+            # value="${value%"${value##*[![:space:]]}"}"
+            # value=$(echo "$line" | sed -n 's/.*=\(.*\)/\1/p')
+            toml_dict["$section_name.${key}.$index"]=$(trim "$ele")
+            echo "Array value 2 --- $value"
+          fi
+          line=""
+        fi
       fi
+      # if [[ "$line" =~ \[ ]]; then
+      #   echo open
+      #   line="${line#*[}"
+      # elif [[ "$line" =~ \] ]]; then
+      #   echo close
+      #   line="${line#*]}"
+      # else
+      #   line=""
+      # fi
     done
 
     # regexp='\[.*\]'
@@ -605,6 +744,7 @@ process_toml_file() {
     #   echo "3 - $line"
     # fi
   done < $1  # Replace with the actual path to your TOML file
+  echo " =============== DONE ============== "
 }
 
 
@@ -661,7 +801,7 @@ function Logger_Init() {
     Msg Info "Hog project configuration file $hog_proj_cfg exists."
     process_toml_file $hog_proj_cfg "Hog_Prj_dict"
     for key in "${!Hog_Prj_dict[@]}"; do
-      echo "Hog_Prj_dict[ $key ] = ${Hog_Prj_dict[$key]}"
+      echo "Hog_Prj_dict[ $key ] = <${Hog_Prj_dict[$key]}>"
     done
     
   else

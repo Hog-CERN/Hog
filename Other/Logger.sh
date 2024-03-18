@@ -526,7 +526,7 @@ process_toml_file() {
   local arraylvl=0
   local index=0
   while IFS= read -r rline; do
-    echo " ######################### ::: <${rline}>"
+    Msg Info " ######################### ::: <${rline}>"
     # echo "$rline"
     if [[ "$rline" =~ ^[:space:]*#.*$ ]]; then continue; fi
     if [[ "$rline" =~ ^[:space:]*$ ]]; then continue; fi
@@ -790,28 +790,43 @@ function Logger_Init() {
   LOG_WAR_ERR_FILE=$ROOT_PROJECT_FOLDER"/hog_warning_errors.log"
   msg_counter init
 
+  ############################################
+  #    USER CONFIGURATIONS
+  ############################################
+
   declare -A CONF
   CONF[test]="on"
 
   # declare -A yaml_dict
   current_user=$(whoami)
-  hog_proj_cfg=$(pwd)"/HogEnv.conf"
   hog_user_cfg=$(eval echo "~$USER")"/HogEnv.conf"
-  if test -f $hog_proj_cfg; then
-    Msg Info "Hog project configuration file $hog_proj_cfg exists."
-    process_toml_file $hog_proj_cfg "Hog_Prj_dict"
-    for key in "${!Hog_Prj_dict[@]}"; do
-      echo "Hog_Prj_dict[ $key ] = <${Hog_Prj_dict[$key]}>"
-    done
-    
-  else
-    Msg Debug "Hog project configuration file $hog_proj_cfg doesn't exists."
-  fi
   if test -f $hog_user_cfg; then
-    Msg Info "Hog user configuration file $hog_user_cfg exists."
+    Msg Info "Hog project configuration file $hog_user_cfg exists."
+    process_toml_file $hog_user_cfg "Hog_Usr_dict"
+    for key in "${!Hog_Usr_dict[@]}"; do
+      Msg Debug "Hog_Usr_dict[ $key ] = <${Hog_Usr_dict[$key]}>"
+    done
   else
-    Msg Debug "Hog user configuration file $hog_user_cfg doesn't exists."
+    Msg Debug "Hog project configuration file $hog_user_cfg doesn't exists."
   fi
+
+
+
+  # hog_proj_cfg=$(pwd)"/HogEnv.conf"
+  # if test -f $hog_proj_cfg; then
+  #   Msg Info "Hog project configuration file $hog_proj_cfg exists."
+  #   process_toml_file $hog_proj_cfg "Hog_Prj_dict"
+  #   for key in "${!Hog_Prj_dict[@]}"; do
+  #     echo "Hog_Prj_dict[ $key ] = <${Hog_Prj_dict[$key]}>"
+  #   done
+  # else
+  #   Msg Debug "Hog project configuration file $hog_proj_cfg doesn't exists."
+  # fi
+  # if test -f $hog_user_cfg; then
+  #   Msg Info "Hog user configuration file $hog_user_cfg exists."
+  # else
+  #   Msg Debug "Hog user configuration file $hog_user_cfg doesn't exists."
+  # fi
   #   eval $(parse_yaml $hog_prj_cfg "CONF_")
   #   size=${#CONF[@]}
   #   Msg Debug  " --------------- The size of the dictionary is $size"
@@ -826,29 +841,56 @@ function Logger_Init() {
   # echo "Current user: $current_user"
 
 
-  exit
+  # exit
+
+  # SETTING COLORS
+  HOG_COLOR_EN=0
+  # hog_user_tc="${current_user}_terminal_colored"
+  # echo "$hog_user_tc"
+  if [[ -v Hog_Usr_dict["terminal.colored"] ]]; then
+    if [[ ${Hog_Usr_dict["terminal.colored"]} =~ ^[0-9]$ ]]; then
+      Msg Debug "The variable <terminal.colored> is a one-digit number"
+      HOG_COLOR_EN=${Hog_Usr_dict["terminal.colored"]}
+    else
+      Msg Warning "The variable <terminal.colored> is not a one-digit number, Defaulting to 0"
+    fi
+  else
+    # if [[ -v CONF[global_terminal_colored] ]]; then
+    #   if [[ ${CONF["global_terminal_colored"]} =~ ^[0-9]$ ]]; then
+    #     Msg Debug "The variable global_terminal_colored is a one-digit number"
+    #     HOG_COLOR_EN=${CONF["global_terminal_colored"]}
+    #   else 
+    #     Msg Warning "The variable global_terminal_colored is not a one-digit number, Defaulting to 0"
+    #   fi
+    # else
+      if [[ -v HOG_COLORED && $HOG_COLORED == ENABLED ]]; then
+        HOG_COLOR_EN=1
+      fi
+    # fi
+  fi
+  Msg Debug "HOG_COLOR_EN -- $HOG_COLOR_EN"
 
   # SETTING DEBUG_VERBOSE
-  hog_user_td="${current_user}_terminal_debug"
+  # hog_user_td="${current_user}_terminal_debug"
   # HOG_LOG_EN=0
   # echo "$hog_user_tc"
-  if [[ -v CONF["$hog_user_td"] ]]; then
-    if [[ ${CONF["$hog_user_td"]} =~ ^[0-9]$ ]]; then
-      Msg Debug "The variable $hog_user_td is ${CONF['$hog_user_td']}"
-      DEBUG_VERBOSE=${CONF["$hog_user_td"]}
+  if [[ -v Hog_Usr_dict["terminal.debug"] ]]; then
+    if [[ ${Hog_Usr_dict["terminal.debug"]} =~ ^[0-9]$ ]]; then
+      Msg Debug "The variable <terminal.debug> is ${Hog_Usr_dict['terminal.debug']}"
+      DEBUG_VERBOSE=${Hog_Usr_dict["terminal.debug"]}
     else
       Msg Warning "The variable $hog_user_td is not a one-digit number, Defaulting to 0"
     fi
-  else
-    if [[ -v CONF[global_terminal_debug] ]]; then
-      if [[ ${CONF["global_terminal_debug"]} =~ ^[0-9]$ ]]; then
-        Msg Debug "The variable global_terminal_debug is a one-digit number"
-        DEBUG_VERBOSE=${CONF["global_terminal_debug"]}
-      else 
-        Msg Warning "The variable global_terminal_debug is not a one-digit number, Defaulting to 0, Defaulting to 0"
-      fi
+  # else
+  #   if [[ -v CONF[global_terminal_debug] ]]; then
+  #     if [[ ${CONF["global_terminal_debug"]} =~ ^[0-9]$ ]]; then
+  #       Msg Debug "The variable global_terminal_debug is a one-digit number"
+  #       DEBUG_VERBOSE=${CONF["global_terminal_debug"]}
+  #     else 
+  #       Msg Warning "The variable global_terminal_debug is not a one-digit number, Defaulting to 0, Defaulting to 0"
+  #     fi
     # else
-    fi
+    # fi
   fi
   if [[ "$@" =~ "-verbose" ]]; then
     if (( $DEBUG_VERBOSE < int2 )); then
@@ -858,65 +900,38 @@ function Logger_Init() {
   Msg Debug "DEBUG_VERBOSE -- $DEBUG_VERBOSE"
 
   # SETTING LOGGER
-  hog_user_tl="${current_user}_terminal_logger"
+  # hog_user_tl="${current_user}_terminal_logger"
   HOG_LOG_EN=0
   # echo "$hog_user_tc"
-  if [[ -v CONF["$hog_user_tl"] ]]; then
-    if [[ ${CONF["$hog_user_tl"]} =~ ^[01]$ ]]; then
-      Msg Debug "The variable $hog_user_tl is ${CONF['$hog_user_tl']}"
-      HOG_LOG_EN=${CONF["$hog_user_tl"]}
+  if [[ -v Hog_Usr_dict["terminal.logger"] ]]; then
+    if [[ ${Hog_Usr_dict["terminal.logger"]} =~ ^[01]$ ]]; then
+      Msg Debug "The variable <terminal.logger> is ${Hog_Usr_dict['terminal.logger']}"
+      HOG_LOG_EN=${Hog_Usr_dict["terminal.logger"]}
     else
-      Msg Warning "The variable $hog_user_tl is not 1 or 0, Default to 0"
+      Msg Warning "The variable terminal.logger is not 1 or 0, Default to 0"
     fi
   else
-    if [[ -v CONF[global_terminal_logger] ]]; then
-      if [[ ${CONF["global_terminal_logger"]} =~ ^[01]$ ]]; then
-        Msg Debug "The variable global_terminal_logger is a one-digit number"
-        HOG_LOG_EN=${CONF["global_terminal_logger"]}
-      else 
-        Msg Warning "The variable global_terminal_logger is not a one-digit number, Defaulting to 0"
-      fi
-    else
+    # if [[ -v CONF[global_terminal_logger] ]]; then
+    #   if [[ ${CONF["global_terminal_logger"]} =~ ^[01]$ ]]; then
+    #     Msg Debug "The variable global_terminal_logger is a one-digit number"
+    #     HOG_LOG_EN=${CONF["global_terminal_logger"]}
+    #   else 
+    #     Msg Warning "The variable global_terminal_logger is not a one-digit number, Defaulting to 0"
+    #   fi
+    # else
       if [[ -v HOG_LOGGER && $HOG_LOGGER == ENABLED ]]; then
         HOG_LOG_EN=1
       fi
-    fi
+    # fi
   fi
   Msg Debug "HOG_LOG_EN -- $HOG_LOG_EN"
 
-  # SETTING COLORS
-  HOG_COLOR_EN=0
-  hog_user_tc="${current_user}_terminal_colored"
-  # echo "$hog_user_tc"
-  if [[ -v CONF["$hog_user_tc"] ]]; then
-    if [[ ${CONF["$hog_user_tc"]} =~ ^[0-9]$ ]]; then
-      Msg Debug "The variable $hog_user_tc is a one-digit number"
-      HOG_COLOR_EN=${CONF["$hog_user_tc"]}
-    else
-      Msg Warning "The variable $hog_user_tc is not a one-digit number, Defaulting to 0"
-    fi
-  else
-    if [[ -v CONF[global_terminal_colored] ]]; then
-      if [[ ${CONF["global_terminal_colored"]} =~ ^[0-9]$ ]]; then
-        Msg Debug "The variable global_terminal_colored is a one-digit number"
-        HOG_COLOR_EN=${CONF["global_terminal_colored"]}
-      else 
-        Msg Warning "The variable global_terminal_colored is not a one-digit number, Defaulting to 0"
-      fi
-    else
-      if [[ -v HOG_COLORED && $HOG_COLORED == ENABLED ]]; then
-        HOG_COLOR_EN=1
-      fi
-    fi
-  fi
-  Msg Debug "HOG_COLOR_EN -- $HOG_COLOR_EN"
-
-  hog_user_cs="${current_user}_terminal_colorscheme"
+  # hog_user_cs="${current_user}_terminal_colorscheme"
   # echo $hog_user_cs
-  if [[ -v CONF["$hog_user_cs"] ]]; then
-    clrschselected=${CONF["$hog_user_cs"]}
-  elif  [[ -v CONF[global_terminal_colorscheme] ]]; then
-    clrschselected="${CONF['global_terminal_colorscheme']}"
+  if [[ -v Hog_Usr_dict["terminal.colorscheme"] ]]; then
+    clrschselected=${Hog_Usr_dict["terminal.colorscheme"]}
+  # elif  [[ -v CONF[global_terminal_colorscheme] ]]; then
+  #   clrschselected="${CONF['global_terminal_colorscheme']}"
   else
     clrschselected="dark"
   fi
@@ -927,6 +942,26 @@ function Logger_Init() {
     clrschselected="dark"
   fi
   Msg Debug "color terminal = $clrschselected"
+
+  # exit
+
+  ############################################
+  #    PROJECT CONFIGURATIONS
+  ############################################
+  
+
+  hog_proj_cfg=$(pwd)"/HogEnv.conf"
+  if test -f $hog_proj_cfg; then
+    Msg Info "Hog project configuration file $hog_proj_cfg exists."
+    process_toml_file $hog_proj_cfg "Hog_Prj_dict"
+    for key in "${!Hog_Prj_dict[@]}"; do
+      Msg Debug "Hog_Prj_dict[ $key ] = <${Hog_Prj_dict[$key]}>"
+    done
+  else
+    Msg Debug "Hog project configuration file $hog_proj_cfg doesn't exists."
+  fi
+
+  exit
 
   # error fail
   hog_user_fwe="${current_user}_fail_when_error_enabled"
@@ -947,8 +982,6 @@ function Logger_Init() {
     fail_when_error=0
   fi
   Msg Debug "fail_when_error = $fail_when_error"
-
-  
 
 
   

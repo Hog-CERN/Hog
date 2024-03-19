@@ -644,29 +644,6 @@ process_toml_file() {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 ## @function Logger_Init()
   # 
   # @brief creates output files and pipelines stdout and stderr to 
@@ -757,8 +734,12 @@ function Logger_Init() {
     #     Msg Warning "The variable global_terminal_colored is not a one-digit number, Defaulting to 0"
     #   fi
     # else
-      if [[ -v HOG_COLORED && $HOG_COLORED == ENABLED ]]; then
-        HOG_COLOR_EN=1
+      if [[ -v HOG_COLORED ]]; then
+        if [[ $HOG_COLORED =~ ^[0-9]$ ]]; then
+          HOG_COLOR_EN=$HOG_COLORED
+        else
+          HOG_COLOR_EN=1
+        fi 
       fi
     # fi
   fi

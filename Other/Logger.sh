@@ -212,9 +212,9 @@ function log_stdout(){
         # echo "  ************************************ "
         case "$line" in
           *'ERROR:'* | *'Error:'* | *':Error'* | *'error:'* | *'Error '* | *'FATAL ERROR'* | *'Fatal'*)
-            if [[ "$line" == *'Fatal'* ]]; then
-              next_is_err=1
-            fi
+            # if [[ "$line" == *'Fatal'* ]]; then
+            #   next_is_err=1
+            # fi
             msgType="error"
             # msgType=$(msgTypeOverload "error" "$dataLine")
           ;;
@@ -496,22 +496,14 @@ function Msg() {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
 declare -A Hog_Prj_dict  
 declare -A Hog_Usr_dict  
 
+# @function trim
+  #
+  # @param[in] string
+  #
+  # @return  string
 trim() {
   local var=$1
   var="${var#"${var%%[![:space:]]*}"}"
@@ -519,6 +511,12 @@ trim() {
   echo -n "$var"
 }
 
+# @function Msg
+  #
+  # @param[in] file path to configuration in (simple)toml format
+  # @param[in] dictionary name where to store the data
+  #
+  # @return  '1' if missing arguments else '0'
 process_toml_file() {
   local file_path=$1
   local dict_name=$2
@@ -628,10 +626,10 @@ process_toml_file() {
       if [[ ${#proc_line} > 0 ]]; then
         Msg Debug "saving in dict ::: $proc_line"
         if [[ $arraylvl == 0 ]]; then
-          toml_dict["$section_name.$key"]=$proc_line #(trim "$line")
+          toml_dict["$section_name.$key"]=$(trim ${proc_line//\"/}) #${proc_line//\"/} #(trim "$line")
           # echo " ==========  toml_dict[ ${section_name}.${key} ] = <${toml_dict[$section_name.${key}]}>"
         else
-          toml_dict["$section_name.${key}.$index"]=$(trim "$proc_line")
+          toml_dict["$section_name.${key}.$index"]=$(trim ${proc_line//\"/})
           # echo "toml_dict[ ${section_name}.${key}.${index} ] = <${toml_dict[$section_name.${key}.$index]}>"
           ((index++))
         fi
@@ -665,8 +663,8 @@ function Logger_Init() {
   #    USER CONFIGURATIONS
   ############################################
 
-  declare -A CONF
-  CONF[test]="on"
+  # declare -A CONF
+  # CONF[test]="on"
 
   # declare -A yaml_dict
   current_user=$(whoami)
@@ -841,35 +839,33 @@ function Logger_Init() {
   # error fail
   hog_user_fwe="${current_user}_fail_when_error_enabled"
   hog_user_dfwe="${current_user}_fail_when_error_delay"
-  if [[ -v CONF["$hog_user_fwe"] ]]; then
-    if [[ -v CONF["$hog_user_dfwe"] ]]; then
-      fail_when_error=$((1 + ${CONF["$hog_user_dfwe"]}))
+  if [[ -v Hog_Prj_dict["$hog_user_fwe"] ]]; then
+    if [[ -v Hog_Prj_dict["$hog_user_dfwe"] ]]; then
+      fail_when_error=$((1 + ${Hog_Prj_dict["$hog_user_dfwe"]}))
     else
       fail_when_error=1
     fi
-  elif  [[ -v CONF[global_fail_when_error_enabled] ]]; then
-    if [[ -v CONF["global_fail_when_error_delay"] ]]; then
-      fail_when_error=$((1 + ${CONF["global_fail_when_error_delay"]}))
-    else
-      fail_when_error=1
-    fi
+  # elif  [[ -v Hog_Prj_dict[global_fail_when_error_enabled] ]]; then
+  #   if [[ -v Hog_Prj_dict["global_fail_when_error_delay"] ]]; then
+  #     fail_when_error=$((1 + ${Hog_Prj_dict["global_fail_when_error_delay"]}))
+  #   else
+  #     fail_when_error=1
+  #   fi
   else
     fail_when_error=0
   fi
   Msg Debug "fail_when_error = $fail_when_error"
-
-
   
   hog_user_eo="${current_user}_overloads"
   use_user_ol=0
   use_glob_ol=1
-  for key in "${!CONF[@]}"; do
-    if [[ $key == *"$hog_user_eo"* ]]; then
+  for key in "${!Hog_Prj_dict[@]}"; do
+    if [[ $key == *"overloads"* ]]; then
       # echo "key $key"
       if [[ $key == *"include_global"* ]]; then
-        use_glob_ol=${CONF["${hog_user_eo}_include_global"]}
+        use_glob_ol=${Hog_Prj_dict["overloads"]}
       fi
-      if [[ $key =~ _[a-z]2[a-z]_ ]]; then
+      if [[ $key =~ \.[a-z]2[a-z]\. ]]; then
           # echo "aaaaa"
           case "${key}" in
             *"2e"*) destination="error" ;;
@@ -879,11 +875,11 @@ function Logger_Init() {
             *"2d"*) destination="debug" ;;
           esac
           case "${key}" in
-            *"e2"*) errorOverload["${CONF[$key]}"]=$destination ;;
-            *"c2"*) criticalOverload["${CONF[$key]}"]=$destination ;;
-            *"w2"*) warningOverload["${CONF[$key]}"]=$destination ;;
-            *"e2"*) infoOverload["${CONF[$key]}"]=$destination ;;
-            *"e2"*) debugOverload["${CONF[$key]}"]=$destination ;;
+            *"e2"*) errorOverload["${Hog_Prj_dict[$key]}"]=$destination ;;
+            *"c2"*) criticalOverload["${Hog_Prj_dict[$key]}"]=$destination ;;
+            *"w2"*) warningOverload["${Hog_Prj_dict[$key]}"]=$destination ;;
+            *"e2"*) infoOverload["${Hog_Prj_dict[$key]}"]=$destination ;;
+            *"e2"*) debugOverload["${Hog_Prj_dict[$key]}"]=$destination ;;
           esac
         fi
     fi
@@ -891,44 +887,47 @@ function Logger_Init() {
 
   # echo "use_glob_ol : $use_glob_ol"
 
-  if (( $use_glob_ol == 1 )); then
-    for key in "${!CONF[@]}"; do
-      if [[ $key == *"global_overloads"* ]]; then
-        # echo "key--- $key"
-        if [[ $key =~ _[a-z]2[a-z]_ ]]; then
-          # echo "aaaaa"
-          case "${key}" in
-            *"2e"*) destination="error" ;;
-            *"2c"*) destination="critical" ;;
-            *"2w"*) destination="warning" ;;
-            *"2i"*) destination="info" ;;
-            *"2d"*) destination="debug" ;;
-          esac
-          case "${key}" in
-            *"e2"*) errorOverload["${CONF[$key]}"]=$destination ;;
-            *"c2"*) criticalOverload["${CONF[$key]}"]=$destination ;;
-            *"w2"*) warningOverload["${CONF[$key]}"]=$destination ;;
-            *"e2"*) infoOverload["${CONF[$key]}"]=$destination ;;
-            *"e2"*) debugOverload["${CONF[$key]}"]=$destination ;;
-          esac
-        fi
-      fi
-    done
-  fi
+  # if (( $use_glob_ol == 1 )); then
+  #   for key in "${!Hog_Prj_dict[@]}"; do
+  #     if [[ $key == *"global_overloads"* ]]; then
+  #       # echo "key--- $key"
+  #       if [[ $key =~ _[a-z]2[a-z]_ ]]; then
+  #         # echo "aaaaa"
+  #         case "${key}" in
+  #           *"2e"*) destination="error" ;;
+  #           *"2c"*) destination="critical" ;;
+  #           *"2w"*) destination="warning" ;;
+  #           *"2i"*) destination="info" ;;
+  #           *"2d"*) destination="debug" ;;
+  #         esac
+  #         case "${key}" in
+  #           *"e2"*) errorOverload["${Hog_Prj_dict[$key]}"]=$destination ;;
+  #           *"c2"*) criticalOverload["${Hog_Prj_dict[$key]}"]=$destination ;;
+  #           *"w2"*) warningOverload["${Hog_Prj_dict[$key]}"]=$destination ;;
+  #           *"e2"*) infoOverload["${Hog_Prj_dict[$key]}"]=$destination ;;
+  #           *"e2"*) debugOverload["${Hog_Prj_dict[$key]}"]=$destination ;;
+  #         esac
+  #       fi
+  #     fi
+  #   done
+  # fi
+  Msg Debug " ========================================= "
+  Msg Debug "        Message Overloads"
+  Msg Debug " ========================================= "
   for key in "${!errorOverload[@]}"; do
-    Msg Debug "::: errorOverload[$key] --- ${errorOverload[$key]}"
+    Msg Warning "::: errorOverload[$key] --- ${errorOverload[$key]}"
   done
   for key in "${!criticalOverload[@]}"; do
-    Msg Debug "::: criticalOverload[$key] --- ${criticalOverload[$key]}"
+    Msg Warning "::: criticalOverload[$key] --- ${criticalOverload[$key]}"
   done
   for key in "${!warningOverload[@]}"; do
-    Msg Debug "::: warningOverload[$key] --- ${warningOverload[$key]}"
+    Msg Warning "::: warningOverload[$key] --- ${warningOverload[$key]}"
   done
   for key in "${!infoOverload[@]}"; do
-    Msg Debug "::: infoOverload[$key] --- ${infoOverload[$key]}"
+    Msg Warning "::: infoOverload[$key] --- ${infoOverload[$key]}"
   done
   for key in "${!debugOverload[@]}"; do
-    Msg Debug "::: debugOverload[$key] --- ${debugOverload[$key]}"
+    Msg Warning "::: debugOverload[$key] --- ${debugOverload[$key]}"
   done
 
 

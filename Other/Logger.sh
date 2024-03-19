@@ -247,6 +247,7 @@ function log_stdout(){
       elif [ "${1}" == "stderr" ]; then
         stderr_line=$dataLine
         msgType="error"
+        echo $line
       else
        Msg Error "Error in logger" 
       fi  

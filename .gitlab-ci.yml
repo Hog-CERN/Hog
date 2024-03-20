@@ -27,6 +27,18 @@ default:
     - print_hog .
 stages: [merge_checks, tag, build_doc]
 
+launch_testfirmware:
+  stage: merge_checks
+  image: gitlab-registry.cern.ch/hog/hog-docker:ubuntu
+  only:
+    refs: [merge_requests]
+    variables: [$CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /^(master|develop)$/]
+  except:
+    variables: [$CI_COMMIT_REF_NAME =~ /^test\/.*$/i]
+  script:
+    # Clone TestFirmware
+    - git clone --recursive https://hog_user:${HOG_PUSH_TOKEN}@gitlab.com/hog-cern/test/TestFirmware.git
+
 build-doxygen-test:
   stage: merge_checks
   image: gitlab-registry.cern.ch/hog/hog-docker:ubuntu

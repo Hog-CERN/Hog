@@ -16,7 +16,7 @@
 ##############################################################
 ##############################################################
 #   FROM HERE ALL THE ELEMENTS FOR THE LOGGER
-#   Guillermo Loustau
+#   any question contact: guillermo.ldl@cern.ch
 ##############################################################
 ##############################################################
 
@@ -203,13 +203,7 @@ function log_stdout(){
         next_is_err=$(($next_is_err-1))
       fi
       if [ "${1}" == "stdout" ]; then
-        # echo " :::::: $line"
         dataLine=$line
-        # for value in $dataLine
-        # do
-        #     echo $value
-        # done
-        # echo "  ************************************ "
         case "$line" in
           *'ERROR:'* | *'Error:'* | *':Error'* | *'error:'* | *'Error '* | *'FATAL ERROR'* | *'Fatal'*)
             # if [[ "$line" == *'Fatal'* ]]; then
@@ -256,7 +250,6 @@ function log_stdout(){
       #######################################
       case "$msgType" in
         "error")
-          # echo "inside error"
           for key in "${!errorOverload[@]}"; do
             # echo "key :-: $key"
             if [[ "$line" == *"$key"* ]]; then
@@ -266,7 +259,6 @@ function log_stdout(){
           done
         ;;
         "critical") 
-          # echo "inside c"
           for key in "${!criticalOverload[@]}"; do
             if [[ "$line" == *"$key"* ]]; then
               Msg Debug "Message level Override: Key < '$key' > exists in the string < $line > with value '${criticalOverload[$key]}'"
@@ -275,7 +267,6 @@ function log_stdout(){
           done
         ;;
         "warning") 
-          # echo "inside w"
           for key in "${!warningOverload[@]}"; do
             if [[ "$line+" == *"$key"* ]]; then
               Msg Debug "Message level Override: Key < '$key' > exists in the string < $line > with value '${warningOverload[$key]}'"
@@ -284,7 +275,6 @@ function log_stdout(){
           done
         ;;
         "info") 
-          # echo "inside i - $line"
           for key in "${!infoOverload[@]}"; do
             echo " joder que meirda"
             if [[ "$line" == *"$key"* ]]; then
@@ -292,11 +282,8 @@ function log_stdout(){
               msgType="${infoOverload[$key]}"
             fi
           done
-          # echo "inside i - msgTypeOut -:-: $msgTypeOut"
-
         ;;
         "vcom") 
-          # echo "inside v"
           for key in "${!infoOverload[@]}"; do
             if [[ "$line" == *"$key"* ]]; then
               Msg Debug "Message level Override: Key < '$key' > exists in the string < $line > with value '${infoOverload[$key]}'"
@@ -305,7 +292,6 @@ function log_stdout(){
           done
         ;;
         "debug") 
-          # echo "inside d"
           for key in "${!debugOverload[@]}"; do
             if [[ "$line" == *"$key"* ]]; then
               Msg Debug "Message level Override: Key < '$key' > exists in the string < $line > with value '${debugOverload[$key]}'"
@@ -317,8 +303,6 @@ function log_stdout(){
       #######################################
         # The writing will be done here
       #######################################
-  # echo "HOG_COLOR_EN = $HOG_COLOR_EN"
-      # echo "msgType :-: $msgType"
       if [[ $DEBUG_VERBOSE -gt 5 ]]; then
         printf "%d : %d :" $BASHPID "$(msg_counter ${msgCounter[$msgType]})"  
       else
@@ -349,26 +333,19 @@ function log_stdout(){
         fi
       fi
       if [[ "$msgType" == "error" ]]; then
-        # echo "The two strings are the same -- $msgType"
         if (( $fail_when_error > 0 )); then
-          # echo "fail_when_error -- $error_failing -- $fail_when_error"
           error_failing=$fail_when_error
           failing_en=1
         fi
       fi
       if [[ $failing_en -gt 0 ]];then
         if [[ $error_failing -gt 1 ]]; then
-          # echo "error_failing -- $error_failing"
           error_failing=$(($error_failing - 1))
         else
-          # echo "exitaaaando"
+          Msg Error "exitaaaando"
           exit 2
         fi
       fi
-      
-      
-      
-      
     done    
   fi
 }
@@ -458,7 +435,6 @@ function Msg() {
     *) Msg Error "messageLevel: $1 not supported! Use Info, Warning, CriticalWarning, Error" ;;
   esac
   ####### The printing
-  # echo "HOG_COLOR_EN = $HOG_COLOR_EN"
   if [[ $DEBUG_VERBOSE -gt 5 ]]; then
     printf "%d : %d :" $BASHPID "$(msg_counter dw)" 
   else
@@ -494,9 +470,6 @@ function Msg() {
   return 0
 }
 
-
-
-
 declare -A Hog_Prj_dict  
 declare -A Hog_Usr_dict  
 
@@ -525,11 +498,8 @@ process_toml_file() {
   local arraylvl=0
   local index=0
   while IFS= read -r rline; do
-    # echo " ######################### ::: <${rline}>"
-    # echo "$rline"
     if [[ "$rline" =~ ^[:space:]*#.*$ ]]; then continue; fi
     if [[ "$rline" =~ ^[:space:]*$ ]]; then continue; fi
-    # echo " ######################### ::: <${rline}>"
     chari=0
     cnt1=0
     for ((i=0; i<${#rline}; i++)); do
@@ -544,43 +514,28 @@ process_toml_file() {
       fi
     done
     line=${rline:0:$chari}
-    # echo "new line ::: <$line>"
     if [[ ! $line = *[!\ ]* ]]; then echo "he pasado por aqui";continue; fi # no me acuerdo que hace est0?
-    # echo "new line ::: <$line>"
     if [[ $line =~ ^\[.*\] ]]; then
-      # echo "1 - $line"
       section_name=$(echo "$line" | sed 's/[[:space:]]*$//' | sed 's/\[\(.*\)\]/\1/' | sed 's/ /_/g' )
-      # echo "section_name ::: $section_name"
       continue
     elif [[ $line =~ ^[a-zA-Z0-9_[:space:]]*= ]]; then
-      # echo "12a - $line"
       key=$(echo "${line// /}" | sed 's/=.*//')
-      # echo "key ::: $key"
       line=$(echo "$line" | sed 's/.*=//')
     fi
     line=$(trim "$line")
-    # echo "line post key :::: <$line>"
-    
     while [[ -n $line ]]; do
-      # echo "oL = <${line}>"
       line=$(trim "$line")
-      # echo "nL = <${line}>"
-      # echo "AL = $arraylvl"
-
       if [[ ${line:0:1} == "[" ]]; then
         line=${line:1}
         ((arraylvl++))
-        # echo "OPENING ARRAY"
         index=0
         continue
       fi
       if [[ ${line:0:1} == "]" ]]; then
         line=${line:1}
         ((arraylvl--))
-        # echo "CLOSING ARRAY"
         continue
       fi
-
       open_array=-1
       closing_array=-1
       cnt_dc=0
@@ -588,7 +543,6 @@ process_toml_file() {
       first_coma=-1
       for ((i=0; i<${#line}; i++)); do
         char="${line:i:1}"
-        # echo "char --- $char"
         chari=$((i+1))
         if [[ $char == '"' ]]; then ((cnt_dc++)); fi
         if [[ $((cnt_dc % 2)) == 0 ]]; then #discarding things inside strings
@@ -606,11 +560,6 @@ process_toml_file() {
           fi
         fi
       done
-
-      # echo "coma cnt ::: $coma_cnt"
-      # echo "first_coma ::: $first_coma"
-      # echo "last_coma ::: $last_coma"
-      # echo "closing_array ::: $closing_array"
       proc_line=""
       if [[ $coma_cnt -gt 0 ]]; then
         proc_line=${line:0:first_coma}
@@ -622,26 +571,18 @@ process_toml_file() {
         proc_line=$line
         line=""
       fi
-      # echo "proc line ::: <$proc_line>"
-      # echo "next line ::: <$line>"
-      if [[ ${#proc_line} > 0 ]]; then
+      if [[ ${#proc_line} -gt 0 ]]; then
         Msg Debug "saving in dict ::: $proc_line"
         if [[ $arraylvl == 0 ]]; then
           toml_dict["$section_name.$key"]=$(trim ${proc_line//\"/}) #${proc_line//\"/} #(trim "$line")
-          # echo " ==========  toml_dict[ ${section_name}.${key} ] = <${toml_dict[$section_name.${key}]}>"
         else
           toml_dict["$section_name.${key}.$index"]=$(trim ${proc_line//\"/})
-          # echo "toml_dict[ ${section_name}.${key}.${index} ] = <${toml_dict[$section_name.${key}.$index]}>"
           ((index++))
         fi
       fi
     done
   done < $1 
-  # echo " =============== DONE ============== "
 }
-
-
-
 
 ## @function Logger_Init()
   # 
@@ -649,7 +590,6 @@ process_toml_file() {
   # 
   # @param[in] execution line to process
 function Logger_Init() {
-  # shellcheck disable=SC1087
   DEBUG_VERBOSE=4
   if [[ "$*" =~ "-verbose" ]]; then
     DEBUG_VERBOSE=5
@@ -664,10 +604,6 @@ function Logger_Init() {
   #    USER CONFIGURATIONS
   ############################################
 
-  # declare -A CONF
-  # CONF[test]="on"
-
-  # declare -A yaml_dict
   current_user=$(whoami)
   hog_user_cfg=$(eval echo "~$USER")"/HogEnv.conf"
   if test -f $hog_user_cfg; then
@@ -679,39 +615,6 @@ function Logger_Init() {
   else
     Msg Debug "Hog project configuration file $hog_user_cfg doesn't exists."
   fi
-
-
-
-  # hog_proj_cfg=$(pwd)"/HogEnv.conf"
-  # if test -f $hog_proj_cfg; then
-  #   Msg Info "Hog project configuration file $hog_proj_cfg exists."
-  #   process_toml_file $hog_proj_cfg "Hog_Prj_dict"
-  #   for key in "${!Hog_Prj_dict[@]}"; do
-  #     echo "Hog_Prj_dict[ $key ] = <${Hog_Prj_dict[$key]}>"
-  #   done
-  # else
-  #   Msg Debug "Hog project configuration file $hog_proj_cfg doesn't exists."
-  # fi
-  # if test -f $hog_user_cfg; then
-  #   Msg Info "Hog user configuration file $hog_user_cfg exists."
-  # else
-  #   Msg Debug "Hog user configuration file $hog_user_cfg doesn't exists."
-  # fi
-  #   eval $(parse_yaml $hog_prj_cfg "CONF_")
-  #   size=${#CONF[@]}
-  #   Msg Debug  " --------------- The size of the dictionary is $size"
-  #   for key in "${!CONF[@]}"; do
-  #       Msg Debug "CONF[$key] --- ${CONF[$key]}"
-  #   done
-  # else
-  #     Msg Warning "Configuration file does not exist."
-  # fi
-
-  
-  # echo "Current user: $current_user"
-
-
-  # exit
 
   # SETTING COLORS
   HOG_COLOR_EN=0
@@ -725,29 +628,17 @@ function Logger_Init() {
       Msg Warning "The variable <terminal.colored> is not a one-digit number, Defaulting to 0"
     fi
   else
-    # if [[ -v CONF[global_terminal_colored] ]]; then
-    #   if [[ ${CONF["global_terminal_colored"]} =~ ^[0-9]$ ]]; then
-    #     Msg Debug "The variable global_terminal_colored is a one-digit number"
-    #     HOG_COLOR_EN=${CONF["global_terminal_colored"]}
-    #   else 
-    #     Msg Warning "The variable global_terminal_colored is not a one-digit number, Defaulting to 0"
-    #   fi
-    # else
-      if [[ -v HOG_COLORED ]]; then
-        if [[ $HOG_COLORED =~ ^[0-9]$ ]]; then
-          HOG_COLOR_EN=$HOG_COLORED
-        else
-          HOG_COLOR_EN=1
-        fi 
-      fi
-    # fi
+    if [[ -v HOG_COLORED ]]; then
+      if [[ $HOG_COLORED =~ ^[0-9]$ ]]; then
+        HOG_COLOR_EN=$HOG_COLORED
+      else
+        HOG_COLOR_EN=1
+      fi 
+    fi
   fi
   Msg Debug "HOG_COLOR_EN -- $HOG_COLOR_EN"
 
   # SETTING DEBUG_VERBOSE
-  # hog_user_td="${current_user}_terminal_debug"
-  # HOG_LOG_EN=0
-  # echo "$hog_user_tc"
   if [[ -v Hog_Usr_dict["terminal.debug"] ]]; then
     if [[ ${Hog_Usr_dict["terminal.debug"]} =~ ^[0-9]$ ]]; then
       Msg Debug "The variable <terminal.debug> is ${Hog_Usr_dict['terminal.debug']}"
@@ -755,16 +646,6 @@ function Logger_Init() {
     else
       Msg Warning "The variable $hog_user_td is not a one-digit number, Defaulting to 0"
     fi
-  # else
-  #   if [[ -v CONF[global_terminal_debug] ]]; then
-  #     if [[ ${CONF["global_terminal_debug"]} =~ ^[0-9]$ ]]; then
-  #       Msg Debug "The variable global_terminal_debug is a one-digit number"
-  #       DEBUG_VERBOSE=${CONF["global_terminal_debug"]}
-  #     else 
-  #       Msg Warning "The variable global_terminal_debug is not a one-digit number, Defaulting to 0, Defaulting to 0"
-  #     fi
-    # else
-    # fi
   fi
   if [[ "$*" =~ "-verbose" ]]; then
     if (( $DEBUG_VERBOSE < int2 )); then
@@ -774,9 +655,7 @@ function Logger_Init() {
   Msg Debug "DEBUG_VERBOSE -- $DEBUG_VERBOSE"
 
   # SETTING LOGGER
-  # hog_user_tl="${current_user}_terminal_logger"
   HOG_LOG_EN=0
-  # echo "$hog_user_tc"
   if [[ -v Hog_Usr_dict["terminal.logger"] ]]; then
     if [[ ${Hog_Usr_dict["terminal.logger"]} =~ ^[01]$ ]]; then
       Msg Debug "The variable <terminal.logger> is ${Hog_Usr_dict['terminal.logger']}"
@@ -785,27 +664,14 @@ function Logger_Init() {
       Msg Warning "The variable terminal.logger is not 1 or 0, Default to 0"
     fi
   else
-    # if [[ -v CONF[global_terminal_logger] ]]; then
-    #   if [[ ${CONF["global_terminal_logger"]} =~ ^[01]$ ]]; then
-    #     Msg Debug "The variable global_terminal_logger is a one-digit number"
-    #     HOG_LOG_EN=${CONF["global_terminal_logger"]}
-    #   else 
-    #     Msg Warning "The variable global_terminal_logger is not a one-digit number, Defaulting to 0"
-    #   fi
-    # else
-      if [[ -v HOG_LOGGER && $HOG_LOGGER == ENABLED ]]; then
-        HOG_LOG_EN=1
-      fi
-    # fi
+    if [[ -v HOG_LOGGER && $HOG_LOGGER == ENABLED ]]; then
+      HOG_LOG_EN=1
+    fi
   fi
   Msg Debug "HOG_LOG_EN -- $HOG_LOG_EN"
 
-  # hog_user_cs="${current_user}_terminal_colorscheme"
-  # echo $hog_user_cs
   if [[ -v Hog_Usr_dict["terminal.colorscheme"] ]]; then
     clrschselected=${Hog_Usr_dict["terminal.colorscheme"]}
-  # elif  [[ -v CONF[global_terminal_colorscheme] ]]; then
-  #   clrschselected="${CONF['global_terminal_colorscheme']}"
   else
     clrschselected="dark"
   fi
@@ -817,12 +683,10 @@ function Logger_Init() {
   fi
   Msg Debug "color terminal = $clrschselected"
 
-  # exit
 
   ############################################
   #    PROJECT CONFIGURATIONS
   ############################################
-  
 
   hog_proj_cfg=$(pwd)"/HogEnv.conf"
   if test -f $hog_proj_cfg; then
@@ -846,12 +710,6 @@ function Logger_Init() {
     else
       fail_when_error=1
     fi
-  # elif  [[ -v Hog_Prj_dict[global_fail_when_error_enabled] ]]; then
-  #   if [[ -v Hog_Prj_dict["global_fail_when_error_delay"] ]]; then
-  #     fail_when_error=$((1 + ${Hog_Prj_dict["global_fail_when_error_delay"]}))
-  #   else
-  #     fail_when_error=1
-  #   fi
   else
     fail_when_error=0
   fi
@@ -886,32 +744,6 @@ function Logger_Init() {
     fi
   done
 
-  # echo "use_glob_ol : $use_glob_ol"
-
-  # if (( $use_glob_ol == 1 )); then
-  #   for key in "${!Hog_Prj_dict[@]}"; do
-  #     if [[ $key == *"global_overloads"* ]]; then
-  #       # echo "key--- $key"
-  #       if [[ $key =~ _[a-z]2[a-z]_ ]]; then
-  #         # echo "aaaaa"
-  #         case "${key}" in
-  #           *"2e"*) destination="error" ;;
-  #           *"2c"*) destination="critical" ;;
-  #           *"2w"*) destination="warning" ;;
-  #           *"2i"*) destination="info" ;;
-  #           *"2d"*) destination="debug" ;;
-  #         esac
-  #         case "${key}" in
-  #           *"e2"*) errorOverload["${Hog_Prj_dict[$key]}"]=$destination ;;
-  #           *"c2"*) criticalOverload["${Hog_Prj_dict[$key]}"]=$destination ;;
-  #           *"w2"*) warningOverload["${Hog_Prj_dict[$key]}"]=$destination ;;
-  #           *"e2"*) infoOverload["${Hog_Prj_dict[$key]}"]=$destination ;;
-  #           *"e2"*) debugOverload["${Hog_Prj_dict[$key]}"]=$destination ;;
-  #         esac
-  #       fi
-  #     fi
-  #   done
-  # fi
   Msg Debug " ========================================= "
   Msg Debug "        Message Overloads"
   Msg Debug " ========================================= "
@@ -936,7 +768,6 @@ function Logger_Init() {
 
   if [ "$HOG_LOG_EN" -eq 1 ]; then
     {
-      # print_log_hog $HOG_GIT_VERSION
       echo "-----------------------------------------------"
       echo " HOG INFO LOG "
       echo " CMD : ${1} "
@@ -944,7 +775,6 @@ function Logger_Init() {
       echo "-----------------------------------------------"
     } > $LOG_INFO_FILE
     {
-      # print_log_hog $HOG_GIT_VERSION
       echo "-----------------------------------------------"
       echo " HOG WARNINGS AND ERRORS"
       echo " CMD : ${1} "

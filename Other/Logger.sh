@@ -362,7 +362,7 @@ function log_stdout(){
           error_failing=$(($error_failing - 1))
         else
           # echo "exitaaaando"
-          exit -1
+          exit 2
         fi
       fi
       
@@ -612,10 +612,10 @@ process_toml_file() {
       # echo "last_coma ::: $last_coma"
       # echo "closing_array ::: $closing_array"
       proc_line=""
-      if [[ $coma_cnt > 0 ]]; then
+      if [[ $coma_cnt -gt 0 ]]; then
         proc_line=${line:0:first_coma}
         line=${line:((first_coma + 1))}
-      elif [[ $closing_array > -1 ]]; then
+      elif [[ $closing_array -gt -1 ]]; then
         proc_line=${line:0:closing_array}
         line=${line:closing_array}
       else
@@ -651,7 +651,7 @@ process_toml_file() {
 function Logger_Init() {
   # shellcheck disable=SC1087
   DEBUG_VERBOSE=4
-  if [[ "$@" =~ "-verbose" ]]; then
+  if [[ "$*" =~ "-verbose" ]]; then
     DEBUG_VERBOSE=5
   fi
   
@@ -766,7 +766,7 @@ function Logger_Init() {
     # else
     # fi
   fi
-  if [[ "$@" =~ "-verbose" ]]; then
+  if [[ "$*" =~ "-verbose" ]]; then
     if (( $DEBUG_VERBOSE < int2 )); then
       DEBUG_VERBOSE=5
     fi

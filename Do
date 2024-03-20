@@ -8,14 +8,6 @@
 script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 . ${script_dir}/Other/Logger.sh
 
-if [[ -v HOG_LOGGER && $HOG_LOGGER == ENABLED ]]; then
-    msg_counter init
-    DEBUG_VERBOSE=4
-    ROOT_PROJECT_FOLDER=$(pwd)
-    LOG_INFO_FILE=$ROOT_PROJECT_FOLDER"/hog_info.log"
-    LOG_WAR_ERR_FILE=$ROOT_PROJECT_FOLDER"/hog_warning_errors.log"
-    Logger_Init "$*"
-fi
 
 
 executables=(
@@ -47,6 +39,7 @@ normalise_path() {
     #an alternative could be realpath -m
 }
 
+Logger_Init "$*"
 
 hog_dir="$(cd "$(dirname "$0")" && pwd)"
 
@@ -102,16 +95,10 @@ if [ "$found" == 1 ]; then
 	  #This is where init.tcl is located to avoid the initial warning when running tclsh
 	  export TCL_LIBRARY=$tcl_library
   fi
-    
-  if [[ -v HOG_LOGGER && $HOG_LOGGER == ENABLED ]]; then
-    Logger $executable_path $hog_dir/Tcl/launch.tcl "$@"
-    Hog_exit
-  else
-    $executable_path $hog_dir/Tcl/launch.tcl "$@"
-    exit $?
-  fi
+  Logger $executable_path $hog_dir/Tcl/launch.tcl "$@"
+  # Hog_exit
 else
-    echo "Error: No IDE exectuable found in PATH. You need an IDE in your PATH to use Hog." >&2
-    exit 1
+  echo "Error: No IDE exectuable found in PATH. You need an IDE in your PATH to use Hog." >&2
+  exit 1
 fi
 

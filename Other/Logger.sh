@@ -251,7 +251,6 @@ function log_stdout(){
       case "$msgType" in
         "error")
           for key in "${!errorOverload[@]}"; do
-            # echo "key :-: $key"
             if [[ "$line" == *"$key"* ]]; then
               Msg Debug "Message level Override: Key < '$key' > exists in the string < $line > with value '${errorOverload[$key]}'"
               msgType="${errorOverload[$key]}"
@@ -618,8 +617,6 @@ function Logger_Init() {
 
   # SETTING COLORS
   HOG_COLOR_EN=0
-  # hog_user_tc="${current_user}_terminal_colored"
-  # echo "$hog_user_tc"
   if [[ -v Hog_Usr_dict["terminal.colored"] ]]; then
     if [[ ${Hog_Usr_dict["terminal.colored"]} =~ ^[0-9]$ ]]; then
       Msg Debug "The variable <terminal.colored> is a one-digit number"
@@ -699,8 +696,6 @@ function Logger_Init() {
     Msg Debug "Hog project configuration file $hog_proj_cfg doesn't exists."
   fi
 
-  # exit
-
   # error fail
   hog_user_fwe="${current_user}_fail_when_error_enabled"
   hog_user_dfwe="${current_user}_fail_when_error_delay"
@@ -762,7 +757,6 @@ function Logger_Init() {
   for key in "${!debugOverload[@]}"; do
     Msg Warning "::: debugOverload[$key] --- ${debugOverload[$key]}"
   done
-
 
   custom_timestamp=$(date +"%Y-%m-%d_%H:%M:%S")
 

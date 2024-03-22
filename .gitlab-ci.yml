@@ -56,10 +56,8 @@ launch_testfirmware:
     # Check if there is already a MR open with the current branch, if not open it
     - response=$(curl --header "PRIVATE-TOKEN:\ $HOG_PUSH_TOKEN" "https://gitlab.example.com/api/v4/projects/28784308/merge_requests?source_branch=auto/$CI_COMMIT_REF_NAME")
     - if [ $? -eq 0 ]; then
-      # Check if there are any merge requests in the response
-      if [ $(echo "$response" | jq length) -gt 0 ]; then
-        echo "There is an open merge request with source branch 'auto/$CI_COMMIT_REF_NAME'.";
-        # If you want to extract more information about the MR, you can parse the response here
+        if [ $(echo "$response" | jq length) -gt 0 ]; then
+          echo "There is an open merge request with source branch 'auto/$CI_COMMIT_REF_NAME'.";
         else
           echo "There are no open merge requests with source branch 'auto/$CI_COMMIT_REF_NAME'. I will open one...";
         fi;

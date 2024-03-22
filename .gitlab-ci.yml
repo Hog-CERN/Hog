@@ -45,6 +45,7 @@ launch_testfirmware:
       else
         git checkout -b auto/$CI_COMMIT_REF_NAME;
       fi
+    - git pull
     - cd Hog
     - git checkout $CI_COMMIT_REF_NAME
     - cd ..

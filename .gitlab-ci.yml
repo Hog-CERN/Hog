@@ -53,7 +53,7 @@ launch_testfirmware:
     - sed -i '/ref:/s#.*#      ref:\ '"$CI_COMMIT_REF_NAME"'#' .gitlab-ci.yml
     - git commit -am "Updating Hog to $CI_COMMIT_REF_NAME"
     - git push origin auto/$CI_COMMIT_REF_NAME
-     # Check if there is already a MR open with the current branch, if not open it
+    # Check if there is already a MR open with the current branch, if not open it
     - response=$(curl --header "PRIVATE-TOKEN:\ ${TESTFIRMWARE_TOKEN}" "https://gitlab.com/api/v4/projects/28784308/merge_requests?source_branch=auto/$CI_COMMIT_REF_NAME")
     - echo $response
     - if [ $? -eq 0 ]; then

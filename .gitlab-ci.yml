@@ -57,6 +57,7 @@ launch_testfirmware:
     - response=$(curl --header "PRIVATE-TOKEN:\ $TESTFIRMWARE_TOKEN" "https://gitlab.com/api/v4/projects/28784308/merge_requests?source_branch=auto/$CI_COMMIT_REF_NAME")
     - if [ $? -eq 0 ]; then
         if [ $(echo "$response" | jq length) -gt 0 ]; then
+          echo "$response" | jq length;
           echo "There is an open merge request with source branch 'auto/$CI_COMMIT_REF_NAME'.";
         else
           echo "There are no open merge requests with source branch 'auto/$CI_COMMIT_REF_NAME'. I will open one...";

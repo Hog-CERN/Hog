@@ -42,7 +42,8 @@ launch_testfirmware:
     - git checkout $CI_COMMIT_REF_NAME
     - cd .. 
     - sed -i '/ref:/s#.*#      ref:'"$CI_COMMIT_REF_NAME"'#' .gitlab-ci.yml
-    - less .gitlab-ci.yml
+    - git checkout -b auto/$CI_COMMIT_REF_NAME
+    - git push origin auto/$CI_COMMIT_REF_NAME
 
 build-doxygen-test:
   stage: merge_checks

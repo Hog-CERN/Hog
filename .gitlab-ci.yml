@@ -40,7 +40,7 @@ launch_testfirmware:
     - git clone --recursive https://hog_user:${HOG_PUSH_TOKEN}@gitlab.com/hog-cern/test/TestFirmware.git
     - cd TestFirmware/
     # Check if auto-generated Hog branch exists
-    - if git branch --list auto/$CI_COMMIT_REF_NAME | grep -q "^auto/$CI_COMMIT_REF_NAME$"; then
+    - if git branch -a --list *auto/$CI_COMMIT_REF_NAME | grep -q "auto/$CI_COMMIT_REF_NAME$"; then
         git checkout auto/$CI_COMMIT_REF_NAME;
         git branch --set-upstream-to=origin/auto/$CI_COMMIT_REF_NAME auto/$CI_COMMIT_REF_NAME;
         git pull;

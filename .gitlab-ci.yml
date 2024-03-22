@@ -40,17 +40,18 @@ launch_testfirmware:
     - git clone --recursive https://hog_user:${HOG_PUSH_TOKEN}@gitlab.com/hog-cern/test/TestFirmware.git
     - cd TestFirmware/
     # Check if auto-generated Hog branch exists
-    - git show-ref --verify --quiet refs/heads/auto/$CI_COMMIT_REF_NAME
+    - git show-ref --verify --quiet refs/heads/auto/$CI_COMMIT_REF_NAME;
       if [ $? -eq 0 ]; then
-        git checkout auto/$CI_COMMIT_REF_NAME
+        git checkout auto/$CI_COMMIT_REF_NAME;
       else
-        git checkout -b auto/$CI_COMMIT_REF_NAME
+        git checkout -b auto/$CI_COMMIT_REF_NAME;
       fi
     - cd Hog
     - git checkout $CI_COMMIT_REF_NAME
     - cd ..
     - sed -i '/ref:/s#.*#      ref:'"$CI_COMMIT_REF_NAME"'#' .gitlab-ci.yml
     - git push origin auto/$CI_COMMIT_REF_NAME
+  interruptible: true
 
 build-doxygen-test:
   stage: merge_checks
@@ -70,6 +71,7 @@ build-doxygen-test:
     name: doxygen
     paths:
       - DOXY_DOCS/
+  interruptible: true
 
 build-doxygen-develop:
   stage: build_doc
@@ -126,6 +128,7 @@ changelog:
     name: changelog
     paths: [changelog.md]
     expire_in: 1 month
+  interruptible: true
 
 tagging:
   stage: tag
@@ -170,6 +173,7 @@ shellcheck:
     variables: [$CI_COMMIT_REF_NAME =~ /^test\/.*$/i]
   script:
     - shellcheck -x -S error Other/*.sh *.sh
+  interruptible: true
 
 yamllint:
   stage: merge_checks
@@ -182,6 +186,7 @@ yamllint:
   script:
     - yamllint -c /scripts/hog-yaml.yaml YAML/*.yml *.yml .gitlab-ci.yml .github/workflows/*.yml
       Templates/*.yml
+  interruptible: true
 
 nagelfar:
   stage: merge_checks
@@ -194,6 +199,7 @@ nagelfar:
   script:
     - /scripts/nagelfar133/nagelfar.tcl -Wunusedvar -filter "*Unknown command*" -filter "*Found constant*which is also a variable*" Tcl/*.tcl
       Tcl/*/*.tcl
+  interruptible: true
 
 create_release_note:
   stage: tag

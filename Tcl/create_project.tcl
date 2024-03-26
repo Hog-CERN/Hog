@@ -512,8 +512,19 @@ proc ConfigureSimulation {} {
           set_property $prop_name $prop_val [get_filesets $simset]
         }
       }
+      # Setting Simulation generics/parameters options
+      if {[dict exists $globalSettings::SIM_PROPERTIES generics]} {
+        set sim_generics [dict get $globalSettings::SIM_PROPERTIES generics]
+        dict for {prop_name prop_val} $sim_generics {
+          if { $prop_name == "HOG_SIMPASS_STR"} {
+            Msg Info "Setting simulation pass string as '$prop_val'"
+            set ::env(HOG_SIMPASS_STR) $prop_val
+          } else {
+            Msg Debug "Simulation pass string not set, relying on simulator exit code."
+          }
+        }
+      }
     }
-
 
   } elseif {[IsQuartus]} {
     #QUARTUS only

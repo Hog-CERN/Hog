@@ -680,6 +680,15 @@ if {[IsXilinx]} {
         set cmd ./simulate.sh
         Msg Info " ************* Simulating: $s  ************* "  
         lassign [ExecuteRet $cmd] ret log
+
+        # If HOG_SIMPASS_STR is set, search for the string and update return code from simulation if the string is not found in simulation log
+        if {[info exists env(HOG_SIMPASS_STR)]} {
+          Msg Info "Searching for simulation pass string: '$env(HOG_SIMPASS_STR)'"
+          if {[string first $env(HOG_SIMPASS_STR) $log] == -1} {
+            set ret 1
+          }
+        }
+
         set sim_name "sim:[dict get $sim_dic $s]"  
         if {$ret != 0} {
           Msg CriticalWarning "Simulation failed for $s, error info: $::errorInfo"

@@ -78,11 +78,11 @@ launch_testfirmware:
         exit 1;
       fi;
     - sleep 10s
+    - i=0
     - while true; do
         pipeline_response=$(curl -sS -X GET "https://gitlab.com/api/v4/projects/28784308/pipelines?merge_request_iid=$MR_ID" --header "Private-Token:$TF_TOKEN");
         pipeline_status=$(echo "$pipeline_response" | jq -r '.[0].status');
         pipeline_url=$(echo "$pipeline_response" | jq -r '.[0].web_url');
-        i=0;
         if [ $i = 0 ]; then 
           echo "Waiting for TestFirmware pipeline to finish...";
           echo "Pipeline Status $pipeline_status";

@@ -54,11 +54,11 @@ launch_testfirmware:
     - git commit -am "Updating Hog to $CI_COMMIT_REF_NAME"
     - git push origin auto/$CI_COMMIT_REF_NAME
     # Check if there is already a MR open with the current branch, if not open it
-    - response=$(curl --header "PRIVATE-TOKEN:${TF_TOKEN}" "https://gitlab.com/api/v4/projects/28784308/merge_requests?source_branch=auto/$CI_COMMIT_REF_NAME")
+    - response=$(curl --header "PRIVATE-TOKEN:${TF_TOKEN}" "https://gitlab.com/api/v4/projects/28784308/merge_requests?source_branch=auto/$CI_COMMIT_REF_NAME&state=opened")
     - if [ $? -eq 0 ]; then
         if [ $(echo "$response" | jq length) -gt 0 ]; then
-          MR_ID=$(echo "$response" | jq .[].iid);
-          MR_URL=$(echo "$response" | jq .[].web_url);
+          MR_ID=$(echo "$response" | jq .[0].iid);
+          MR_URL=$(echo "$response" | jq .[0].web_url);
           echo "There is already an open merge request with source branch 'auto/$CI_COMMIT_REF_NAME'.";
           echo "$MR_URL";
         else
@@ -82,9 +82,13 @@ launch_testfirmware:
         pipeline_response=$(curl -sS -X GET "https://gitlab.com/api/v4/projects/28784308/pipelines?merge_request_iid=$MR_ID" --header "Private-Token:$TF_TOKEN");
         pipeline_status=$(echo "$pipeline_response" | jq -r '.[0].status');
         pipeline_url=$(echo "$pipeline_response" | jq -r '.[0].web_url');
-        echo "Waiting for TestFirmware pipeline to finish...";
-        echo "Pipeline Status:\ $pipeline_status";
-        echo "Pipeline URL:\ $pipeline_url";
+        i=0;
+        while [ $i = 0 ]; do 
+          echo "Waiting for TestFirmware pipeline to finish...";
+          echo "Pipeline Status $pipeline_status";
+          echo "Pipeline URL $pipeline_url";
+          ((i++));
+        done;
         if [ "$pipeline_status" = "failed" ]; then
           echo "TestFirmware pipeline failed. $pipeline_url";
           exit 1;

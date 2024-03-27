@@ -90,7 +90,7 @@ launch_testfirmware:
           echo "TestFirmware pipeline failed. $pipeline_url";
           exit 1;
         elif [ "$pipeline_status" = "success" ]; then
-          echo "TestFirmware pipeline was successful!"
+          echo "TestFirmware pipeline was successful!";
           break;
         fi;
         sleep 5;

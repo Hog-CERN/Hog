@@ -160,12 +160,12 @@ else
 
   
 
-  if [[ -n "$HOG_COLORED" ]]; then
+  if [[ -v "$HOG_COLORED" && $HOG_COLORED == "ENABLED" ]]; then
     new_print_hog "$(dirname "$0")"
   else
     print_hog "$(dirname "$0")"
   fi
-  if [[ -n $HOG_LOGGER ]]; then
+  if [[ -v HOG_LOGGER && $HOG_LOGGER == "ENABLED" ]]; then
     Logger_Init "$*"
   fi
 

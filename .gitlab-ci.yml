@@ -57,20 +57,25 @@ launch_testfirmware:
     - response=$(curl --header "PRIVATE-TOKEN:${TF_TOKEN}" "https://gitlab.com/api/v4/projects/28784308/merge_requests?source_branch=auto/$CI_COMMIT_REF_NAME")
     - if [ $? -eq 0 ]; then
         if [ $(echo "$response" | jq length) -gt 0 ]; then
+          MR_ID=$(echo "$response" | jq -r '.iid');
           echo "There is already an open merge request with source branch 'auto/$CI_COMMIT_REF_NAME'.";
         else
           echo "There are no open merge requests with source branch 'auto/$CI_COMMIT_REF_NAME'. I will open one...";
           response_MR=$(curl --request POST --header "PRIVATE-TOKEN:$TF_TOKEN" --header "Content-Type:application/json" --data "{\"source_branch\":\"auto/$CI_COMMIT_REF_NAME\", \"target_branch\":\"develop\", \"title\":\"Automatic MR with Hog branch $CI_COMMIT_REF_NAME\", \"description\":\"\"}" "https://gitlab.com/api/v4/projects/28784308/merge_requests");
           if [ $? -eq 0 ]; then
             MR_URL=$(echo "$response_MR" | jq -r '.web_url');
-            echo "Merge request created successfully. URL= $MR_URL";
+            MR_ID=$(echo "$response" | jq -r '.iid');
+            echo "Merge request created successfully. URL= $MR_URL ID=$MR_ID";
           else
             echo "Failed to create merge request. Please check your GitLab API endpoint and token.";
+            exit 1;
           fi;
         fi;
       else
         echo "Failed to retrieve merge requests. Please check your GitLab API endpoint and token.";
-      fi
+        exit 1;
+      fi;
+    - curl -X GET "https://gitlab.com/api/v4/projects/28784308/pipelines?merge_request_iid=$MR_ID" --header "Private-Token:$TF_TOKEN"
   interruptible: true
 
 build-doxygen-test:

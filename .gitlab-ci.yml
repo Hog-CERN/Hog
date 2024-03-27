@@ -94,15 +94,6 @@ launch_testfirmware:
         fi;
         sleep 5;
       done
-    # - if [ "$pipeline_status" = "failed" ]; then
-    #     echo "TestFirmware pipeline failed. $pipeline_url";
-    #     exit 1;
-    #   elif [ "$pipeline_status" = "success" ]; then 
-    #     echo "TestFirmware pipeline was successful!";
-    #   else 
-    #     echo "TestFirmware pipeline status unknown... Exiting!";
-    #     exit 1;
-    #   fi;
   interruptible: true
 
 build-doxygen-test:

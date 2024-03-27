@@ -83,7 +83,7 @@ launch_testfirmware:
         pipeline_status=$(echo "$pipeline_response" | jq -r '.[0].status');
         pipeline_url=$(echo "$pipeline_response" | jq -r '.[0].web_url');
         i=0;
-        if [ $i = 0 ]; do 
+        if [ $i = 0 ]; then 
           echo "Waiting for TestFirmware pipeline to finish...";
           echo "Pipeline Status $pipeline_status";
           echo "Pipeline URL $pipeline_url";

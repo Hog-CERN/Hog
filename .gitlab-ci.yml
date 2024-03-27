@@ -78,26 +78,32 @@ launch_testfirmware:
         exit 1;
       fi;
     - sleep 10s
-    - pipeline_status="running"
-    - while [ "$pipeline_status" = "running" ]; do
-        pipeline_response=$(curl -X GET "https://gitlab.com/api/v4/projects/28784308/pipelines?merge_request_iid=$MR_ID" --header "Private-Token:$TF_TOKEN");
-        pipeline_status=$(echo $pipeline_response | jq .[0].status);
-        pipeline_url=$(echo $pipeline_response | jq .[0].web_url);
+    - while true; do
+        pipeline_response=$(curl -sS -X GET "https://gitlab.com/api/v4/projects/28784308/pipelines?merge_request_iid=$MR_ID" --header "Private-Token:$TF_TOKEN");
+        pipeline_status=$(echo "$pipeline_response" | jq -r '.[0].status');
+        pipeline_url=$(echo "$pipeline_response" | jq -r '.[0].web_url');
         echo "Waiting for TestFirmware pipeline to finish...";
-        echo $pipeline_response | jq .[0];
-        echo "Pipeline Status $pipeline_status";
-        echo "$pipeline_url";
-        sleep 5s;
+        echo "Pipeline Status:\ $pipeline_status";
+        echo "Pipeline URL:\ $pipeline_url";
+        echo "DEBUG:\ Pipeline response:\ $pipeline_response";
+        if [ "$pipeline_status" = "failed" ]; then
+          echo "TestFirmware pipeline failed. $pipeline_url";
+          exit 1;
+        elif [ "$pipeline_status" = "success" ]; then
+          echo "TestFirmware pipeline was successful!"
+          break;
+        fi;
+        sleep 5;
       done
-    - if [ "$pipeline_status" = "failed" ]; then
-        echo "TestFirmware pipeline failed. $pipeline_url";
-        exit 1;
-      elif [ "$pipeline_status" = "success" ]; then 
-        echo "TestFirmware pipeline was successful!";
-      else 
-        echo "TestFirmware pipeline status unknown... Exiting!";
-        exit 1;
-      fi;
+    # - if [ "$pipeline_status" = "failed" ]; then
+    #     echo "TestFirmware pipeline failed. $pipeline_url";
+    #     exit 1;
+    #   elif [ "$pipeline_status" = "success" ]; then 
+    #     echo "TestFirmware pipeline was successful!";
+    #   else 
+    #     echo "TestFirmware pipeline status unknown... Exiting!";
+    #     exit 1;
+    #   fi;
   interruptible: true
 
 build-doxygen-test:

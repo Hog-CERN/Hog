@@ -60,7 +60,7 @@ launch_testfirmware:
           MR_ID=$(echo "$response" | jq .[].iid);
           MR_URL=$(echo "$response" | jq .[].web_url);
           echo "There is already an open merge request with source branch 'auto/$CI_COMMIT_REF_NAME'.";
-          echo "$MR_URL"
+          echo "$MR_URL";
         else
           echo "There are no open merge requests with source branch 'auto/$CI_COMMIT_REF_NAME'. I will open one...";
           response_MR=$(curl --request POST --header "PRIVATE-TOKEN:$TF_TOKEN" --header "Content-Type:application/json" --data "{\"source_branch\":\"auto/$CI_COMMIT_REF_NAME\", \"target_branch\":\"develop\", \"title\":\"Automatic MR with Hog branch $CI_COMMIT_REF_NAME\", \"description\":\"\"}" "https://gitlab.com/api/v4/projects/28784308/merge_requests");

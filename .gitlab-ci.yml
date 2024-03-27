@@ -85,7 +85,7 @@ launch_testfirmware:
         pipeline_url=$(echo $pipeline_response | jq .[0].web_url);
         echo "Waiting for TestFirmware pipeline to finish..."
         echo "$pipeline_url"
-        sleep 5s
+        sleep 5s;
       done
     - if [ "$pipeline_status" = "failed"]; then
         echo "TestFirmware pipeline failed. $pipeline_url";

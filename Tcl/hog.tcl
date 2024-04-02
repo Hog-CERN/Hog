@@ -715,7 +715,7 @@ proc ReadListFile args {
               dict lappend properties $vhdlfile $p
               Msg Debug "Adding property $p to $vhdlfile..."
             }
-            if {$sha_mode == 0 && [lsearch {.xci .ip .bd} $extension] >= 0} {
+            if { [lsearch {.xci .ip .bd .xcix} $extension] >= 0} {
               # Adding IP library
               set lib_name "ips.src"
             } elseif { [IsInList $extension {.vhd .vhdl}] || $list_file_ext == ".sim"} {

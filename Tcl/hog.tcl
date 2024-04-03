@@ -3343,6 +3343,10 @@ proc WriteConf {file_name config {comment ""}} {
   foreach sec [dict keys $config] {
     set section [dict get $config $sec]
     dict for {p v} $section {
+      if {[string trim $v] == ""} {
+          Msg Warning "Property $p has empty value. Skipping..."
+          continue;
+      }
       ::ini::set $f $sec $p $v
     }
   }

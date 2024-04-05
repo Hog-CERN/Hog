@@ -512,10 +512,10 @@ proc ConfigureSimulation {} {
           set_property $prop_name $prop_val [get_filesets $simset]
         }
       }
-      # Setting Simulation generics/parameters options
-      if {[dict exists $globalSettings::SIM_PROPERTIES generics]} {
-        set sim_generics [dict get $globalSettings::SIM_PROPERTIES generics]
-        dict for {prop_name prop_val} $sim_generics {
+      # Setting Hog specific simulation properties
+      if {[dict exists $globalSettings::SIM_PROPERTIES hog]} {
+        set hog_sim_props [dict get $globalSettings::SIM_PROPERTIES hog]
+        dict for {prop_name prop_val} $hog_sim_props {
           if { $prop_name == "HOG_SIMPASS_STR"} {
             Msg Info "Setting simulation pass string as '$prop_val'"
             set ::env(HOG_SIMPASS_STR) $prop_val

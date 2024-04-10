@@ -27,6 +27,79 @@ default:
     - print_hog .
 stages: [merge_checks, tag, build_doc]
 
+launch_testfirmware:
+  stage: merge_checks
+  image: gitlab-registry.cern.ch/hog/hog-docker:ubuntu
+  only:
+    refs: [merge_requests]
+    variables: [$CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /^(master|develop)$/]
+  except:
+    variables: [$CI_COMMIT_REF_NAME =~ /^test\/.*$/i]
+  script:
+    # Clone TestFirmware
+    - git clone --recursive https://hog_user:${HOG_PUSH_TOKEN}@gitlab.com/hog-cern/test/TestFirmware.git
+    - cd TestFirmware/
+    # Check if auto-generated Hog branch exists
+    - if git branch -a --list *auto/$CI_COMMIT_REF_NAME | grep -q "auto/$CI_COMMIT_REF_NAME$"; then
+        git checkout auto/$CI_COMMIT_REF_NAME;
+        git branch --set-upstream-to=origin/auto/$CI_COMMIT_REF_NAME auto/$CI_COMMIT_REF_NAME;
+        git pull;
+      else
+        git checkout -b auto/$CI_COMMIT_REF_NAME;
+      fi
+    - cd Hog
+    - git checkout $CI_COMMIT_REF_NAME
+    - cd ..
+    - sed -i '/ref:/s#.*#      ref:\ '"$CI_COMMIT_REF_NAME"'#' .gitlab-ci.yml
+    - git diff-index --quiet HEAD || git commit -am "Updating Hog to $CI_COMMIT_REF_NAME"
+    - git push origin auto/$CI_COMMIT_REF_NAME
+    # Check if there is already a MR open with the current branch, if not open it
+    - response=$(curl --header "PRIVATE-TOKEN:${TF_TOKEN}" "https://gitlab.com/api/v4/projects/28784308/merge_requests?source_branch=auto/$CI_COMMIT_REF_NAME&state=opened")
+    - if [ $? -eq 0 ]; then
+        if [ $(echo "$response" | jq length) -gt 0 ]; then
+          MR_ID=$(echo "$response" | jq .[0].iid);
+          MR_URL=$(echo "$response" | jq .[0].web_url);
+          echo "There is already an open merge request with source branch 'auto/$CI_COMMIT_REF_NAME'.";
+          echo "$MR_URL";
+        else
+          echo "There are no open merge requests with source branch 'auto/$CI_COMMIT_REF_NAME'. I will open one...";
+          response_MR=$(curl --request POST --header "PRIVATE-TOKEN:$TF_TOKEN" --header "Content-Type:application/json" --data "{\"source_branch\":\"auto/$CI_COMMIT_REF_NAME\", \"target_branch\":\"develop\", \"title\":\"Automatic MR with Hog branch $CI_COMMIT_REF_NAME\", \"description\":\"\"}" "https://gitlab.com/api/v4/projects/28784308/merge_requests");
+          if [ $? -eq 0 ]; then
+            MR_URL=$(echo "$response_MR" | jq -r '.web_url');
+            MR_ID=$(echo "$response_MR" | jq -r '.iid');
+            echo "Merge request created successfully. URL= $MR_URL ID=$MR_ID";
+          else
+            echo "Failed to create merge request. Please check your GitLab API endpoint and token.";
+            exit 1;
+          fi;
+        fi;
+      else
+        echo "Failed to retrieve merge requests. Please check your GitLab API endpoint and token.";
+        exit 1;
+      fi;
+    - sleep 10s
+    - i=0
+    - while true; do
+        pipeline_response=$(curl -sS -X GET "https://gitlab.com/api/v4/projects/28784308/pipelines?merge_request_iid=$MR_ID" --header "Private-Token:$TF_TOKEN");
+        pipeline_status=$(echo "$pipeline_response" | jq -r '.[0].status');
+        pipeline_url=$(echo "$pipeline_response" | jq -r '.[0].web_url');
+        if [ $i = 0 ]; then
+          echo "Waiting for TestFirmware pipeline to finish...";
+          echo "Pipeline Status $pipeline_status";
+          echo "Pipeline URL $pipeline_url";
+          i=1;
+        fi;
+        if [ "$pipeline_status" = "failed" ]; then
+          echo "TestFirmware pipeline failed. $pipeline_url";
+          exit 1;
+        elif [ "$pipeline_status" = "success" ]; then
+          echo "TestFirmware pipeline was successful!";
+          break;
+        fi;
+        sleep 5;
+      done
+  interruptible: true
+
 build-doxygen-test:
   stage: merge_checks
   image: gitlab-registry.cern.ch/hog/hog-docker:ubuntu
@@ -45,6 +118,7 @@ build-doxygen-test:
     name: doxygen
     paths:
       - DOXY_DOCS/
+  interruptible: true
 
 build-doxygen-develop:
   stage: build_doc
@@ -101,6 +175,7 @@ changelog:
     name: changelog
     paths: [changelog.md]
     expire_in: 1 month
+  interruptible: true
 
 tagging:
   stage: tag
@@ -145,6 +220,7 @@ shellcheck:
     variables: [$CI_COMMIT_REF_NAME =~ /^test\/.*$/i]
   script:
     - shellcheck -x -S error Other/*.sh *.sh
+  interruptible: true
 
 yamllint:
   stage: merge_checks
@@ -157,6 +233,7 @@ yamllint:
   script:
     - yamllint -c /scripts/hog-yaml.yaml YAML/*.yml *.yml .gitlab-ci.yml .github/workflows/*.yml
       Templates/*.yml
+  interruptible: true
 
 nagelfar:
   stage: merge_checks
@@ -169,6 +246,7 @@ nagelfar:
   script:
     - /scripts/nagelfar133/nagelfar.tcl -Wunusedvar -filter "*Unknown command*" -filter "*Found constant*which is also a variable*" Tcl/*.tcl
       Tcl/*/*.tcl
+  interruptible: true
 
 create_release_note:
   stage: tag

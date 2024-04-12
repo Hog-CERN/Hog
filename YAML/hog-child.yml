@@ -274,7 +274,7 @@
     name: implementation_and_bitfiles
     paths:
       - bin
-      - *.log
+      - "*.log"
     expire_in: 30 day
   interruptible: true
 

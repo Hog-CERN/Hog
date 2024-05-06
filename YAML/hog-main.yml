@@ -142,6 +142,11 @@ tag_official_version:
         exit 1;
       }
     - new_tag=${note[2]}
+    - if [ -z "$new_tag" ]; then
+        echo "It was impossible to get the tag number from the git note of this commit. Check that your repository settigns allows only fast-forward merge, and that the merge_and_tag job in your Merge pipeline succeded.";
+        echo "More info here https://hog.readthedocs.io/en/latest/02-User-Manual/02-Hog-CI/01-GitLab-CI/01-setup-CI.html?highlight=fast%20forward#remove-merge-commit";
+        exit 1;
+      fi
     - present_tag=(`git describe`)
     - if [ $present_tag != $new_tag ]; then
          if [ "$(git tag --list ${new_tag}*)" != "" ]; then

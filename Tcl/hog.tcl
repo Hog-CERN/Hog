@@ -2277,8 +2277,11 @@ proc AddHogFiles { libraries properties filesets } {
           # Tcl
           if {[file extension $f] == ".tcl" && $ext != ".con"} {
             if { [lsearch -inline -regexp $props "source"] >= 0} {
-              Msg Info "Sourcing Tcl script $f..."
+              Msg Info "Sourcing Tcl script $f, and setting it not used in synthesis, implementation and simulation..."
               source $f
+              set_property -name "used_in_synthesis" -value "false" -objects $file_obj
+              set_property -name "used_in_implementation" -value "false" -objects $file_obj
+              set_property -name "used_in_simulation" -value "false" -objects $file_obj
             }
           }
         }

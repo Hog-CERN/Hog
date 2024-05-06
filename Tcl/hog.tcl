@@ -1055,13 +1055,13 @@ proc GetVerFromSHA {SHA repo_path {force_develop 0}} {
       	set pattern {tag: v\d+\.\d+\.\d+}
       	set real_tag_list {}
       	foreach x $tag_list {
-	  set x_untrimmed [regexp -all -inline $pattern $x]
-	  regsub "tag: " $x_untrimmed "" x_trimmed
-	  set tt [lindex $x_trimmed 0]
-	  if {![string equal $tt ""]} { 
-	    lappend real_tag_list $tt
-	    #puts "<$tt>"
-	  }
+    	  set x_untrimmed [regexp -all -inline $pattern $x]
+    	  regsub "tag: " $x_untrimmed "" x_trimmed
+    	  set tt [lindex $x_trimmed 0]
+    	  if {![string equal $tt ""]} { 
+    	    lappend real_tag_list $tt
+    	    #puts "<$tt>"
+    	  }
       	}
       	#Msg Status "Cleaned up list: $real_tag_list."		
       	# Sort the tags in version order
@@ -1072,11 +1072,11 @@ proc GetVerFromSHA {SHA repo_path {force_develop 0}} {
       	set tag [lindex $sorted_tags 0]
       	
       	# Msg Debug "Chosen Tag $tag"
-	set pattern {v\d+\.\d+\.\d+}
-      	if {![regexp $pattern $tag]} {
-          Msg CriticalWarning "No Hog version tags found in this repository."
-          set ver v0.0.0
-        } else {
+	      set pattern {v\d+\.\d+\.\d+}
+      	  if {![regexp $pattern $tag]} {
+            Msg CriticalWarning "No Hog version tags found in this repository."
+            set ver v0.0.0
+          } else {
 
       	  lassign [ExtractVersionFromTag $tag] M m p mr
           # Open repo.conf and check prefixes
@@ -3309,7 +3309,12 @@ proc GetGroupName {proj_dir repo_dir} {
 #  @return       The dictionary
 #
 proc ReadConf {file_name} {
-  package require inifile 0.2.3
+
+  if { [catch {package require inifile 0.2.3} ERROR] } {
+    puts "$ERROR\n If you are running this script on tclsh, you can fix this by installing 'tcllib'"
+    return 1
+  }
+
 
   ::ini::commentchar "#"
   set f [::ini::open $file_name]
@@ -3338,8 +3343,11 @@ proc ReadConf {file_name} {
 #
 #
 proc WriteConf {file_name config {comment ""}} {
-  package require inifile 0.2.3
-
+  if { [catch {package require inifile 0.2.3} ERROR] } {
+    puts "$ERROR\n If you are running this script on tclsh, you can fix this by installing 'tcllib'"
+    return 1
+  }
+  
   ::ini::commentchar "#"
   set f [::ini::open $file_name w]
 

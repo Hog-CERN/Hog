@@ -383,18 +383,18 @@ if {[IsXilinx]} {
     if {[string compare "2020.1" $VIVADO_VERSION]==0} {
       Msg Warning "Vivado 2020.1, a patch must be applied to Vivado to export XSA Files, c.f. https://www.xilinx.com/support/answers/75210.html"
     } else {
+
+      set dst_xsa [file normalize "$dst_dir/${proj_name}\-$describe.xsa"]
+      Msg Info "Generating XSA File at $dst_xsa"
       if { [IsVersal $part] } {
-	set include_bit "-include_bit"
 	set pdi_post_imp [file normalize "$work_path/$top_name.pdi"]
 	set_property platform.full_pdi_file $pdi_post_imp [current_project]
 	Msg Info "XSA file will be generated for Versal with this PDI: $pdi_post_imp"
-	# include bit is not necessary with Versal device
-	set include_bit ""
+	write_hw_platform -fixed -force -file "$dst_xsa"
+      } else {
+	write_hw_platform -include_bit -fixed -force -file "$dst_xsa"
       }
-      set dst_xsa [file normalize "$dst_dir/${proj_name}\-$describe.xsa"]
-      Msg Info "Generating XSA File at $dst_xsa"
-
-      write_hw_platform -fixed -force $include_bit -file "$dst_xsa"
+    
     }
   }
 }

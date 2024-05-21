@@ -3985,6 +3985,8 @@ proc RemoveDuplicates {mydict} {
 proc CompareLibDicts {proj_libs list_libs proj_sets list_sets proj_props list_props {severity "CriticalWarning"} {outFile ""} {extraFiles ""} } {
   set extra_files $extraFiles
   set n_diffs 0
+  set out_prjlibs $proj_libs
+  set out_prjprops $proj_props
   # Loop over filesets in project
   dict for {prjSet prjLibraries} $proj_sets { 
     # Check if sets is also in list files
@@ -4004,6 +4006,9 @@ proc CompareLibDicts {proj_libs list_libs proj_sets list_sets proj_props list_pr
               # File is in project but not in list libraries, check if it was generated at creation time...
               if { [dict exists $extra_files $prjFile] } {
                 # File was generated at creation time, checking the md5sum
+                # Removing the file from the prjFiles list
+                set idx2 [lsearch -exact $prjFiles $prjFile]
+                set prjFiles [lreplace $prjFiles $idx2 $idx2]
                 set new_md5sum [Md5Sum $prjFile]
                 set old_md5sum [DictGet $extra_files $prjFile]
                 if {$new_md5sum != $old_md5sum} {
@@ -4020,20 +4025,40 @@ proc CompareLibDicts {proj_libs list_libs proj_sets list_sets proj_props list_pr
               # File is both in list files and project, checking properties...
               set prjProps  [DictGet $proj_props $prjFile]
               set listProps [DictGet $list_props $prjFile]
+              # Check if it is a potential sourced file 
+              if {[IsInList "nosynth" $prjProps] && [IsInList "noimpl" $prjProps] && [IsInList "nosim" $prjProps]} {
+                # Check if it is sourced
+                set idx_source [lsearch -exact $listProps "source"]
+                if {$idx_source >= 0 } {
+                  # It is sourced, let's replace the individual properties with source
+                  set idx [lsearch -exact $prjProps "noimpl"]
+                  set prjProps [lreplace $prjProps $idx $idx]
+                  set idx [lsearch -exact $prjProps "nosynth"]
+                  set prjProps [lreplace $prjProps $idx $idx]
+                  set idx [lsearch -exact $prjProps "nosim"]
+                  set prjProps [lreplace $prjProps $idx $idx]
+                  lappend prjProps "source"
+                }
+              }
+
               foreach prjProp $prjProps {
                 set idx [lsearch -exact $listProps $prjProp]
                 set listProps [lreplace $listProps $idx $idx]
                 if {$idx < 0} {
                   MsgAndLog "Property $prjProp of $prjFile was set in project but not in list files" $severity $outFile
                   incr n_diffs
-                }
+                }  
               }
+
               foreach listProp $listProps {
-                if {[string first  $listProp "topsim="] != -1} {
+                if {[string first $listProp "topsim="] == -1} {
                   MsgAndLog "Property $listProp of $prjFile was found in list files but not set in project." $severity $outFile
-                  incr n_diffs  
-                }                
+                  incr n_diffs    
+                }                  
               }
+
+              # Update project prjProps 
+              dict set out_prjprops $prjFile $prjProps
             }
           }
           # Loop over remaining files in list libraries
@@ -4046,6 +4071,9 @@ proc CompareLibDicts {proj_libs list_libs proj_sets list_sets proj_props list_pr
           foreach prjFile $prjFiles {
             if { [dict exists $extra_files $prjFile] } {
               # File was generated at creation time, checking the md5sum
+              # Removing the file from the prjFiles list
+              set idx2 [lsearch -exact $prjFiles $prjFile]
+              set prjFiles [lreplace $prjFiles $idx2 $idx2]
               set new_md5sum [Md5Sum $prjFile]
               set old_md5sum [DictGet $extra_files $prjFile]
               if {$new_md5sum != $old_md5sum} {
@@ -4060,6 +4088,8 @@ proc CompareLibDicts {proj_libs list_libs proj_sets list_sets proj_props list_pr
             }
           }
         }
+        # Update prjLibraries
+        dict set out_prjlibs $prjLib $prjFiles
       }
     } else {
       MsgAndLog "Fileset $prjSet found in project but not in list files" $severity $outFile
@@ -4067,7 +4097,7 @@ proc CompareLibDicts {proj_libs list_libs proj_sets list_sets proj_props list_pr
     }
   }
 
-  return [list $n_diffs $extra_files]
+  return [list $n_diffs $extra_files $out_prjlibs $out_prjprops]
 }
 
 # @brief Write the content of Hog-library-dictionary created from the project into a .sim list file
@@ -4115,27 +4145,29 @@ proc WriteSimListFiles {libs props simsets list_path repo_path } {
 proc WriteListFiles {libs props list_path repo_path {$ext_path ""} } {
   # Writing simulation list files
   foreach lib [dict keys $libs] {
-    set list_file_name $list_path$lib
-    set list_file [open $list_file_name w]
-    Msg Info "Writing $list_file_name..."
-    foreach file [DictGet $libs $lib] {
-      # Retrieve file properties from prop list
-      set prop [DictGet $props $file]
-      # Check if file is local to the repository or external
-      if {[RelativeLocal $repo_path $file] != ""} {
-        set file_path [RelativeLocal $repo_path $file]
-        puts $list_file "$file_path $prop"
-      } elseif {[RelativeLocal $ext_path $file] != ""} {
-        set file_path [RelativeLocal $ext_path $file]
-        set ext_list_file [open "[file rootname $list_file].ext" a]
-        puts $ext_list_file "$file_path $prop"
-        close $ext_list_file
-      } else {
-        # File is not relative to repo or ext_path... Write a Warning and continue
-        Msg Warning "The path of file $file is not relative to your repository. Please check!"
+    if {[llength [DictGet $libs $lib]] > 0} {
+      set list_file_name $list_path$lib
+      set list_file [open $list_file_name w]
+      Msg Info "Writing $list_file_name..."
+      foreach file [DictGet $libs $lib] {
+        # Retrieve file properties from prop list
+        set prop [DictGet $props $file]
+        # Check if file is local to the repository or external
+        if {[RelativeLocal $repo_path $file] != ""} {
+          set file_path [RelativeLocal $repo_path $file]
+          puts $list_file "$file_path $prop"
+        } elseif {[RelativeLocal $ext_path $file] != ""} {
+          set file_path [RelativeLocal $ext_path $file]
+          set ext_list_file [open "[file rootname $list_file].ext" a]
+          puts $ext_list_file "$file_path $prop"
+          close $ext_list_file
+        } else {
+          # File is not relative to repo or ext_path... Write a Warning and continue
+          Msg Warning "The path of file $file is not relative to your repository. Please check!"
+        }
       }
+      close $list_file
     }
-    close $list_file
   }
 }
 

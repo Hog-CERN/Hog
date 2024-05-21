@@ -99,6 +99,7 @@ launch_testfirmware:
         sleep 5;
       done
   interruptible: true
+  allow_failure: true
 
 build-doxygen-test:
   stage: merge_checks

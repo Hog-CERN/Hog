@@ -77,7 +77,7 @@ launch_testfirmware:
     - while true; do
         mr_response=$(glab mr view $MR_ID -R hog-cern/test/TestFirmware -F json)
         pipeline_status=$(echo "$mr_response" | jq '.pipeline.status');
-        pipeline_url=$(echo "$pipeline_response" | jq '.pipeline.web_url');
+        pipeline_url=$(echo "$mr_response" | jq '.pipeline.web_url');
         if [ $i = 0 ]; then
           echo "Waiting for TestFirmware pipeline to finish...";
           echo "Pipeline Status $pipeline_status";

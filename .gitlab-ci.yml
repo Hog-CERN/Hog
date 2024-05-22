@@ -54,7 +54,7 @@ launch_testfirmware:
     - git diff-index --quiet HEAD || git commit -am "Updating Hog to $CI_COMMIT_REF_NAME"
     - git push origin auto/$CI_COMMIT_REF_NAME
     # Check if there is already a MR open with the current branch, if not open it
-    - response=$(glab mr list -F json -R hog-cern/test/TestFirmware --source-branch=auto/$CI_COMMIT_REF_NAME)
+    - response=$(glab mr list -F json -R hog-cern/test/TestFirmware --source-branch=auto/$CI_COMMIT_REF_NAME --target=develop)
     - if [ $? -eq 0 ]; then
         if [ $(echo "$response" | jq length) -gt 0 ]; then
           MR_ID=$(echo "$response" | jq .[0].iid);
@@ -63,15 +63,10 @@ launch_testfirmware:
           echo "$MR_URL";
         else
           echo "There are no open merge requests with source branch 'auto/$CI_COMMIT_REF_NAME'. I will open one...";
-          response_MR=$(curl --request POST --header "PRIVATE-TOKEN:$TF_TOKEN" --header "Content-Type:application/json" --data "{\"source_branch\":\"auto/$CI_COMMIT_REF_NAME\", \"target_branch\":\"develop\", \"title\":\"Automatic MR with Hog branch $CI_COMMIT_REF_NAME\", \"description\":\"\"}" "https://gitlab.com/api/v4/projects/28784308/merge_requests");
-          if [ $? -eq 0 ]; then
-            MR_URL=$(echo "$response_MR" | jq -r '.web_url');
-            MR_ID=$(echo "$response_MR" | jq -r '.iid');
-            echo "Merge request created successfully. URL= $MR_URL ID=$MR_ID";
-          else
-            echo "Failed to create merge request. Please check your GitLab API endpoint and token.";
-            exit 1;
-          fi;
+          glab mr create -s auto/$CI_COMMIT_REF_NAME -b develop -t "Automatic MR with Hog branch $CI_COMMIT_REF_NAME" -R hog-cern/test/TestFirmware --remove-source-branch -y -f;
+          response=$(glab mr list -F json -R hog-cern/test/TestFirmware --source-branch=auto/$CI_COMMIT_REF_NAME --target=develop)
+          MR_ID=$(echo "$response" | jq .[0].iid);
+          MR_URL=$(echo "$response" | jq .[0].web_url);
         fi;
       else
         echo "Failed to retrieve merge requests. Please check your GitLab API endpoint and token.";
@@ -80,9 +75,9 @@ launch_testfirmware:
     - sleep 10s
     - i=0
     - while true; do
-        pipeline_response=$(curl -sS -X GET "https://gitlab.com/api/v4/projects/28784308/pipelines?merge_request_iid=$MR_ID" --header "Private-Token:$TF_TOKEN");
-        pipeline_status=$(echo "$pipeline_response" | jq -r '.[0].status');
-        pipeline_url=$(echo "$pipeline_response" | jq -r '.[0].web_url');
+        mr_response=$(glab mr view $MR_ID -R hog-cern/test/TestFirmware -F json)
+        pipeline_status=$(echo "$mr_response" | jq '.pipeline.status');
+        pipeline_url=$(echo "$pipeline_response" | jq '.pipeline.web_url');
         if [ $i = 0 ]; then
           echo "Waiting for TestFirmware pipeline to finish...";
           echo "Pipeline Status $pipeline_status";

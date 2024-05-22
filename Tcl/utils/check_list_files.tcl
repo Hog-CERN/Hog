@@ -144,10 +144,10 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
   #################################################################
   ##### START COMPARISON OF FILES IN PROJECT AND LIST FILES ######
   #################################################################
-  lassign [CompareLibDicts $prjLibraries $listLibraries $prjSrcSets $listSrcSets $prjProperties $listProperties "CriticalWarning" $outFile $extraFiles] SrcListErrorCnt extraFiles
-  lassign [CompareLibDicts $prjSimLibraries $listSimLibraries $prjSimSets $listSimSets $prjProperties $listSimProperties "Warning" $outSimFile $extraFiles] SimListErrorCnt extraFiles
-  lassign [CompareLibDicts $prjConstraints $listConstraints $prjConSets $listConSets $prjProperties $listConProperties  "CriticalWarning" $outFile $extraFiles] ConListErrorCnt extraFiles
-
+  lassign [CompareLibDicts $prjLibraries $listLibraries $prjSrcSets $listSrcSets $prjProperties $listProperties "CriticalWarning" $outFile $extraFiles] SrcListErrorCnt extraFiles prjLibraries prjProperties
+  lassign [CompareLibDicts $prjSimLibraries $listSimLibraries $prjSimSets $listSimSets $prjProperties $listSimProperties "Warning" $outSimFile $extraFiles] SimListErrorCnt extraFiles prjSimLibraries prjProperties
+  lassign [CompareLibDicts $prjConstraints $listConstraints $prjConSets $listConSets $prjProperties $listConProperties  "CriticalWarning" $outFile $extraFiles] ConListErrorCnt extraFiles prjConstraints prjProperties
+  
   # Check if any files remained in extraFiles
   foreach {k v} $extraFiles {
     MsgAndLog "$k was found in .hog/extra.files but not in project." "CriticalWarning" $outFile 

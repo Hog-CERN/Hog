@@ -1055,13 +1055,13 @@ proc GetVerFromSHA {SHA repo_path {force_develop 0}} {
       	set pattern {tag: v\d+\.\d+\.\d+}
       	set real_tag_list {}
       	foreach x $tag_list {
-	  set x_untrimmed [regexp -all -inline $pattern $x]
-	  regsub "tag: " $x_untrimmed "" x_trimmed
-	  set tt [lindex $x_trimmed 0]
-	  if {![string equal $tt ""]} { 
-	    lappend real_tag_list $tt
-	    #puts "<$tt>"
-	  }
+    	  set x_untrimmed [regexp -all -inline $pattern $x]
+    	  regsub "tag: " $x_untrimmed "" x_trimmed
+    	  set tt [lindex $x_trimmed 0]
+    	  if {![string equal $tt ""]} { 
+    	    lappend real_tag_list $tt
+    	    #puts "<$tt>"
+    	  }
       	}
       	#Msg Status "Cleaned up list: $real_tag_list."		
       	# Sort the tags in version order
@@ -1072,11 +1072,11 @@ proc GetVerFromSHA {SHA repo_path {force_develop 0}} {
       	set tag [lindex $sorted_tags 0]
       	
       	# Msg Debug "Chosen Tag $tag"
-	set pattern {v\d+\.\d+\.\d+}
-      	if {![regexp $pattern $tag]} {
-          Msg CriticalWarning "No Hog version tags found in this repository."
-          set ver v0.0.0
-        } else {
+	      set pattern {v\d+\.\d+\.\d+}
+      	  if {![regexp $pattern $tag]} {
+            Msg CriticalWarning "No Hog version tags found in this repository."
+            set ver v0.0.0
+          } else {
 
       	  lassign [ExtractVersionFromTag $tag] M m p mr
           # Open repo.conf and check prefixes
@@ -2277,8 +2277,11 @@ proc AddHogFiles { libraries properties filesets } {
           # Tcl
           if {[file extension $f] == ".tcl" && $ext != ".con"} {
             if { [lsearch -inline -regexp $props "source"] >= 0} {
-              Msg Info "Sourcing Tcl script $f..."
+              Msg Info "Sourcing Tcl script $f, and setting it not used in synthesis, implementation and simulation..."
               source $f
+              set_property -name "used_in_synthesis" -value "false" -objects $file_obj
+              set_property -name "used_in_implementation" -value "false" -objects $file_obj
+              set_property -name "used_in_simulation" -value "false" -objects $file_obj
             }
           }
         }
@@ -3306,7 +3309,12 @@ proc GetGroupName {proj_dir repo_dir} {
 #  @return       The dictionary
 #
 proc ReadConf {file_name} {
-  package require inifile 0.2.3
+
+  if { [catch {package require inifile 0.2.3} ERROR] } {
+    puts "$ERROR\n If you are running this script on tclsh, you can fix this by installing 'tcllib'"
+    return 1
+  }
+
 
   ::ini::commentchar "#"
   set f [::ini::open $file_name]
@@ -3335,14 +3343,21 @@ proc ReadConf {file_name} {
 #
 #
 proc WriteConf {file_name config {comment ""}} {
-  package require inifile 0.2.3
-
+  if { [catch {package require inifile 0.2.3} ERROR] } {
+    puts "$ERROR\n If you are running this script on tclsh, you can fix this by installing 'tcllib'"
+    return 1
+  }
+  
   ::ini::commentchar "#"
   set f [::ini::open $file_name w]
 
   foreach sec [dict keys $config] {
     set section [dict get $config $sec]
     dict for {p v} $section {
+      if {[string trim $v] == ""} {
+          Msg Warning "Property $p has empty value. Skipping..."
+          continue;
+      }
       ::ini::set $f $sec $p $v
     }
   }
@@ -3970,6 +3985,8 @@ proc RemoveDuplicates {mydict} {
 proc CompareLibDicts {proj_libs list_libs proj_sets list_sets proj_props list_props {severity "CriticalWarning"} {outFile ""} {extraFiles ""} } {
   set extra_files $extraFiles
   set n_diffs 0
+  set out_prjlibs $proj_libs
+  set out_prjprops $proj_props
   # Loop over filesets in project
   dict for {prjSet prjLibraries} $proj_sets { 
     # Check if sets is also in list files
@@ -3989,6 +4006,9 @@ proc CompareLibDicts {proj_libs list_libs proj_sets list_sets proj_props list_pr
               # File is in project but not in list libraries, check if it was generated at creation time...
               if { [dict exists $extra_files $prjFile] } {
                 # File was generated at creation time, checking the md5sum
+                # Removing the file from the prjFiles list
+                set idx2 [lsearch -exact $prjFiles $prjFile]
+                set prjFiles [lreplace $prjFiles $idx2 $idx2]
                 set new_md5sum [Md5Sum $prjFile]
                 set old_md5sum [DictGet $extra_files $prjFile]
                 if {$new_md5sum != $old_md5sum} {
@@ -4005,20 +4025,40 @@ proc CompareLibDicts {proj_libs list_libs proj_sets list_sets proj_props list_pr
               # File is both in list files and project, checking properties...
               set prjProps  [DictGet $proj_props $prjFile]
               set listProps [DictGet $list_props $prjFile]
+              # Check if it is a potential sourced file 
+              if {[IsInList "nosynth" $prjProps] && [IsInList "noimpl" $prjProps] && [IsInList "nosim" $prjProps]} {
+                # Check if it is sourced
+                set idx_source [lsearch -exact $listProps "source"]
+                if {$idx_source >= 0 } {
+                  # It is sourced, let's replace the individual properties with source
+                  set idx [lsearch -exact $prjProps "noimpl"]
+                  set prjProps [lreplace $prjProps $idx $idx]
+                  set idx [lsearch -exact $prjProps "nosynth"]
+                  set prjProps [lreplace $prjProps $idx $idx]
+                  set idx [lsearch -exact $prjProps "nosim"]
+                  set prjProps [lreplace $prjProps $idx $idx]
+                  lappend prjProps "source"
+                }
+              }
+
               foreach prjProp $prjProps {
                 set idx [lsearch -exact $listProps $prjProp]
                 set listProps [lreplace $listProps $idx $idx]
                 if {$idx < 0} {
                   MsgAndLog "Property $prjProp of $prjFile was set in project but not in list files" $severity $outFile
                   incr n_diffs
-                }
+                }  
               }
+
               foreach listProp $listProps {
-                if {[string first  $listProp "topsim="] != -1} {
+                if {[string first $listProp "topsim="] == -1} {
                   MsgAndLog "Property $listProp of $prjFile was found in list files but not set in project." $severity $outFile
-                  incr n_diffs  
-                }                
+                  incr n_diffs    
+                }                  
               }
+
+              # Update project prjProps 
+              dict set out_prjprops $prjFile $prjProps
             }
           }
           # Loop over remaining files in list libraries
@@ -4031,6 +4071,9 @@ proc CompareLibDicts {proj_libs list_libs proj_sets list_sets proj_props list_pr
           foreach prjFile $prjFiles {
             if { [dict exists $extra_files $prjFile] } {
               # File was generated at creation time, checking the md5sum
+              # Removing the file from the prjFiles list
+              set idx2 [lsearch -exact $prjFiles $prjFile]
+              set prjFiles [lreplace $prjFiles $idx2 $idx2]
               set new_md5sum [Md5Sum $prjFile]
               set old_md5sum [DictGet $extra_files $prjFile]
               if {$new_md5sum != $old_md5sum} {
@@ -4045,6 +4088,8 @@ proc CompareLibDicts {proj_libs list_libs proj_sets list_sets proj_props list_pr
             }
           }
         }
+        # Update prjLibraries
+        dict set out_prjlibs $prjLib $prjFiles
       }
     } else {
       MsgAndLog "Fileset $prjSet found in project but not in list files" $severity $outFile
@@ -4052,7 +4097,7 @@ proc CompareLibDicts {proj_libs list_libs proj_sets list_sets proj_props list_pr
     }
   }
 
-  return [list $n_diffs $extra_files]
+  return [list $n_diffs $extra_files $out_prjlibs $out_prjprops]
 }
 
 # @brief Write the content of Hog-library-dictionary created from the project into a .sim list file
@@ -4100,27 +4145,29 @@ proc WriteSimListFiles {libs props simsets list_path repo_path } {
 proc WriteListFiles {libs props list_path repo_path {$ext_path ""} } {
   # Writing simulation list files
   foreach lib [dict keys $libs] {
-    set list_file_name $list_path$lib
-    set list_file [open $list_file_name w]
-    Msg Info "Writing $list_file_name..."
-    foreach file [DictGet $libs $lib] {
-      # Retrieve file properties from prop list
-      set prop [DictGet $props $file]
-      # Check if file is local to the repository or external
-      if {[RelativeLocal $repo_path $file] != ""} {
-        set file_path [RelativeLocal $repo_path $file]
-        puts $list_file "$file_path $prop"
-      } elseif {[RelativeLocal $ext_path $file] != ""} {
-        set file_path [RelativeLocal $ext_path $file]
-        set ext_list_file [open "[file rootname $list_file].ext" a]
-        puts $ext_list_file "$file_path $prop"
-        close $ext_list_file
-      } else {
-        # File is not relative to repo or ext_path... Write a Warning and continue
-        Msg Warning "The path of file $file is not relative to your repository. Please check!"
+    if {[llength [DictGet $libs $lib]] > 0} {
+      set list_file_name $list_path$lib
+      set list_file [open $list_file_name w]
+      Msg Info "Writing $list_file_name..."
+      foreach file [DictGet $libs $lib] {
+        # Retrieve file properties from prop list
+        set prop [DictGet $props $file]
+        # Check if file is local to the repository or external
+        if {[RelativeLocal $repo_path $file] != ""} {
+          set file_path [RelativeLocal $repo_path $file]
+          puts $list_file "$file_path $prop"
+        } elseif {[RelativeLocal $ext_path $file] != ""} {
+          set file_path [RelativeLocal $ext_path $file]
+          set ext_list_file [open "[file rootname $list_file].ext" a]
+          puts $ext_list_file "$file_path $prop"
+          close $ext_list_file
+        } else {
+          # File is not relative to repo or ext_path... Write a Warning and continue
+          Msg Warning "The path of file $file is not relative to your repository. Please check!"
+        }
       }
+      close $list_file
     }
-    close $list_file
   }
 }
 

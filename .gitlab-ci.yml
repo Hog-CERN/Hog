@@ -64,7 +64,7 @@ launch_testfirmware:
         else
           echo "There are no open merge requests with source branch 'auto/$CI_COMMIT_REF_NAME'. I will open one...";
           glab mr create -s auto/$CI_COMMIT_REF_NAME -b develop -t "Automatic MR with Hog branch $CI_COMMIT_REF_NAME" -R hog-cern/test/TestFirmware --remove-source-branch -y -f;
-          response=$(glab mr list -F json -R hog-cern/test/TestFirmware --source-branch=auto/$CI_COMMIT_REF_NAME --target=develop)
+          response=$(glab mr list -F json -R hog-cern/test/TestFirmware --source-branch=auto/$CI_COMMIT_REF_NAME --target-branch=develop)
           MR_ID=$(echo "$response" | jq .[0].iid);
           MR_URL=$(echo "$response" | jq .[0].web_url);
         fi;

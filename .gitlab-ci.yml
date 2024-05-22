@@ -54,7 +54,7 @@ launch_testfirmware:
     - git diff-index --quiet HEAD || git commit -am "Updating Hog to $CI_COMMIT_REF_NAME"
     - git push origin auto/$CI_COMMIT_REF_NAME
     # Check if there is already a MR open with the current branch, if not open it
-    - response=$(glab mr list -F json -R hog-cern/test/TestFirmware --source-branch=auto/$CI_COMMIT_REF_NAME --target=develop)
+    - response=$(glab mr list -F json -R hog-cern/test/TestFirmware --source-branch=auto/$CI_COMMIT_REF_NAME --target-branch=develop)
     - if [ $? -eq 0 ]; then
         if [ $(echo "$response" | jq length) -gt 0 ]; then
           MR_ID=$(echo "$response" | jq .[0].iid);

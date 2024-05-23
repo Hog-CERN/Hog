@@ -42,6 +42,7 @@
 .vars: &vars
   GIT_STRATEGY: clone
   GIT_SUBMODULE_STRATEGY: recursive
+  GIT_SUBMODULE_FORCE_HTTPS: "true"
 # CI_DEBUG_TRACE: "true"
 
 

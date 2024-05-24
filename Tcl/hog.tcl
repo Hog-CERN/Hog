@@ -720,7 +720,7 @@ proc ReadListFile args {
               set lib_name "ips.src"
             } elseif { [IsInList $extension {.vhd .vhdl}] || $list_file_ext == ".sim"} {
               # VHDL files and simulation
-              if { [IsInList $extension {.do .udo}]} {
+              if { ![IsInList $extension {.vhd .vhdl}]} {
                 set lib_name "xil_defaultlib.sim"
               } else {
                 set lib_name "$library$list_file_ext"
@@ -1936,6 +1936,12 @@ proc GetProjectFiles {} {
         } elseif  {[string equal [lindex $type 0] "Block"] && [string equal [lindex $type 1] "Designs"]} {
           set type "IP"
           set prop ""
+        } elseif {[string equal [lindex $type 0] "SystemVerilog"] && [file extension $f] != ".sv"} {
+          set prop "SystemVerilog"
+        } elseif {[string equal [lindex $type 0] "XDC"] && [file extension $f] != ".xdc"} {
+          set prop "XDC"
+        } elseif {[string equal [lindex $type 0] "Verilog Header"] && [file extension $f] != ".vh"} {
+          set prop "verilog_header"
         } else {
           set type [lindex $type 0]
           set prop ""
@@ -1986,11 +1992,15 @@ proc GetProjectFiles {} {
         if {[lindex [get_property -quiet used_in_simulation  [GetFile $f]] 0] == 0} {
           dict lappend properties $f "nosim"
         }
+        if {[lindex [get_property -quiet IS_MANAGED [GetFile $f]] 0] == 0} {
+          dict lappend properties $f "locked"
+        }
       }
     }
   }
 
   dict lappend properties "Simulator" [get_property target_simulator [current_project]]
+
   return [list $libraries $properties $simlibraries $constraints $srcsets $simsets $consets]
 }
 
@@ -2164,7 +2174,7 @@ proc AddHogFiles { libraries properties filesets } {
           }
 
           # SystemVerilog property
-          if {[lsearch -inline -regexp $props "SystemVerilog"] > 0} {
+          if {[lsearch -inline -regexp $props "SystemVerilog"] > 0 || [file extension $f] == ".sv"} {
             # ISE does not support SystemVerilog
             if {[IsVivado]} {
               set_property -name "file_type" -value "SystemVerilog" -objects $file_obj
@@ -2188,7 +2198,7 @@ proc AddHogFiles { libraries properties filesets } {
           }
 
           # Verilog headers
-          if {[lsearch -inline -regexp $props "verilog_header"] >= 0} {
+          if {[lsearch -inline -regexp $props "verilog_header"] >= 0 || [file extension $f] == ".vh"} {
             Msg Debug "Setting verilog header type for $f..."
             set_property file_type {Verilog Header} [get_files $f]
           }

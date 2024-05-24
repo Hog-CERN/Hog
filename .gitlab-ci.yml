@@ -84,11 +84,11 @@ launch_testfirmware:
           echo "Pipeline URL $pipeline_url";
           i=1;
         fi;
-        echo $pipeline_status;
-        if [ "$pipeline_status" = "\"failed\"" ]; then
+        unquoted_status=$(echo "$pipeline_status" | sed 's/^"//; s/"$//')
+        if [ "$unquoted_status" == "failed" ]; then
           echo "TestFirmware pipeline failed. $pipeline_url";
           exit 1;
-        elif [ "$pipeline_status" = "\"success\" ]; then
+        elif [ "$unquoted_status" == "success" ]; then
           echo "TestFirmware pipeline was successful!";
           break;
         fi;

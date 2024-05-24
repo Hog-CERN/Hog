@@ -84,6 +84,7 @@ launch_testfirmware:
           echo "Pipeline URL $pipeline_url";
           i=1;
         fi;
+        echo $pipeline_status;
         if [ "$pipeline_status" = "failed" ]; then
           echo "TestFirmware pipeline failed. $pipeline_url";
           exit 1;

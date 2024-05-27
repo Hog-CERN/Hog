@@ -117,7 +117,6 @@ else
     if [ "$PUSH_TOKEN" != "" ] && [ "$API" != "" ] && [ "$PROJ" != "" ] && [ "$NUMBER" != "" ]; then
         echo "## MR Description"
         glab mr view ${NUMBER} -F json | jq -r ".description"
-        # curl --request GET --header "PRIVATE-TOKEN: ${PUSH_TOKEN}" "$API/projects/${PROJ}/merge_requests/${NUMBER}" | jq -r ".description"
     fi
 fi
 

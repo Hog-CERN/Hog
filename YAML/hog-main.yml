@@ -66,9 +66,11 @@ merge_and_tag:
   variables:
     GIT_STRATEGY: clone
   script:
-    - "if [[ $CI_COMMIT_MESSAGE == *RESOLVE_WIP* && $CI_MERGE_REQUEST_TITLE == Draft* ]]; then echo 'removing Draft status'; curl ${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/merge_requests/${CI_MERGE_REQUEST_IID}/notes?body=/ready --header \"PRIVATE-TOKEN: ${HOG_PUSH_TOKEN}\" --request POST; fi;"
-    - "MR_PARAMETERS=`curl --header \"PRIVATE-TOKEN: ${HOG_PUSH_TOKEN}\" ${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/merge_requests/${CI_MERGE_REQUEST_IID}`"
-
+    - glab auth login -t $HOG_PUSH_TOKEN
+    - if [[ $CI_COMMIT_MESSAGE == *RESOLVE_WIP* && $CI_MERGE_REQUEST_TITLE == Draft* ]]; then
+        echo 'removing Draft status'; 
+        glab mr update $CI_MERGE_REQUEST_IID --ready;
+      fi;
     - if [[ ${HOG_CHECK_YAMLREF} != 1 ]]; then
         echo 'Yaml consistency checker is disabled';
       else

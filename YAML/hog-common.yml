@@ -61,5 +61,6 @@ stages:
   - user_proj
   - collect
   - user_post
+  - release
   - archive
   - badge

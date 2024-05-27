@@ -39,12 +39,10 @@ if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] 
   return
 }
 
-set push_token [lindex $argv 0]
-set api [lindex $argv 1]
-set proj_id [lindex $argv 2]
-set prj_url [lindex $argv 3]
-set tag [lindex $argv 4]
-set ext_path [lindex $argv 5]
+set proj_id [lindex $argv 0]
+set prj_url [lindex $argv 1]
+set tag [lindex $argv 2]
+set ext_path [lindex $argv 3]
 
 set fp [open "$repo_path/project_links.txt" w]
 
@@ -72,7 +70,7 @@ foreach proj $projects_list {
     }
     foreach f $files {
       Msg Info "Uploading file $f"
-      lassign [ExecuteRet curl -s --request POST --header "PRIVATE-TOKEN: ${push_token}" --form "file=@$f" ${api}/projects/${proj_id}/uploads] ret content
+      lassign [ExecuteRet glab api POST --form "file=@$f" /projects/${proj_id}/uploads] ret content
       if {$ret != 0} {
         Msg CriticalWarning "Error with curl while trying to upload $f: $content"
       } else {
@@ -91,12 +89,12 @@ foreach proj $projects_list {
     return
   } else {
     Msg Info "Retrieving existing link for $proj binaries and tag $ver"
-    lassign [ExecuteRet curl -s --header "PRIVATE-TOKEN: ${push_token}" "${api}/projects/${proj_id}/releases/$ver"] ret msg
+    lassign [ExecuteRet glab release view $ver] ret msg
     if {$ret != 0} {
       Msg Warning "Some problem when fetching release $ver : $msg"
     } else {
       set link ""
-      foreach line [split  [ParseJSON $msg description] "\n"] {
+      foreach line [split $msg "\n"] {
         if { $proj_dir != "." } {
           if {[string first "\[${proj_dir}/${proj_name}.z" $line] != -1} {
             set link [lindex [split $line "()"] 1]

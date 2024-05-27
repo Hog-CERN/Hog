@@ -28,14 +28,6 @@ function argument_parser() {
             push_token="$2"
             shift 2
             ;;
-        -url)
-            api="$2"
-            shift 2
-            ;;
-        -proj_id)
-            proj="$2"
-            shift 2
-            ;;
         -mr)
             mr="$2"
             shift 2
@@ -76,8 +68,6 @@ function help_message() {
   echo " Usage: $1 [OPTIONS]"
   echo " Options:"
   echo "          -token <push_token>        The GitLab Push Token"
-  echo "          -url <gitlab url>          The GitLab CI URL "
-  echo "          -proj_id <id>              The ID of the GitLab project "
   echo "          -mr <Merge Request Number> The MR number  "
   echo "          -doxygen                   If sets, get also the artifacts from make_doxygen job."
   echo "          -github                    If sets, use the github API"

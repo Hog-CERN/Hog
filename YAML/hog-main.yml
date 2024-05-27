@@ -175,6 +175,7 @@ archive_binary_files:
     GIT_SUBMODULE_STRATEGY: recursive
   stage: archive
   script:
+    - glab auth login -t $HOG_PUSH_TOKEN
     - if [[ -v HOG_OFFICIAL_BIN_PATH ]]; then
         BIN_PATH=$HOG_OFFICIAL_BIN_PATH;
       elif [[ -v HOG_OFFICIAL_BIN_EOS_PATH ]]; then
@@ -218,7 +219,7 @@ archive_binary_files:
     - git fetch origin refs/notes/*:refs/notes/*
     - MR=( `git notes show` )
     - if [[ -v HOG_USE_DOXYGEN ]] && [[ "$HOG_USE_DOXYGEN" == "1" ]] && [[ -v BIN_PATH ]]; then
-        ./Hog/Other/GetArtifactsAndRename.sh -token $HOG_PUSH_TOKEN -url $CI_API_V4_URL -proj_id $CI_PROJECT_ID -mr $MR -doxygen ;
+        ./Hog/Other/GetArtifactsAndRename.sh -mr $MR -doxygen ;
         echo "Copying Doxygen documentation to ${BIN_PATH}/Doc";
         if [ $ENABLE_EOS -eq 1 ]; then
           eos mkdir -p ${BIN_PATH}/Doc;
@@ -228,7 +229,7 @@ archive_binary_files:
           cp -r Doc/html/* ${BIN_PATH}/Doc;
         fi;
       else
-        ./Hog/Other/GetArtifactsAndRename.sh -token $HOG_PUSH_TOKEN -url $CI_API_V4_URL -proj_id $CI_PROJECT_ID -mr $MR;
+        ./Hog/Other/GetArtifactsAndRename.sh -mr $MR;
       fi;
     - mkdir zipped
     - cd bin
@@ -249,11 +250,11 @@ archive_binary_files:
     - cd ..
     - if [[ -v HOG_CREATE_OFFICIAL_RELEASE ]] && [[ $HOG_CREATE_OFFICIAL_RELEASE == "1" ]]; then
         if [[ -v HOG_CHECK_PROJVER ]] && [[ $HOG_CHECK_PROJVER == '1' ]]; then
-            tclsh ./Hog/Tcl/CI/get_binary_links.tcl $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $CI_PROJECT_URL $CI_COMMIT_TAG "$HOG_EXTERNAL_PATH";
+            tclsh ./Hog/Tcl/CI/get_binary_links.tcl  $CI_PROJECT_ID $CI_PROJECT_URL $CI_COMMIT_TAG "$HOG_EXTERNAL_PATH";
         else
-            tclsh ./Hog/Tcl/CI/get_binary_links.tcl -force $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $CI_PROJECT_URL $CI_COMMIT_TAG "$HOG_EXTERNAL_PATH";
+            tclsh ./Hog/Tcl/CI/get_binary_links.tcl -force  $CI_PROJECT_ID $CI_PROJECT_URL $CI_COMMIT_TAG "$HOG_EXTERNAL_PATH";
         fi;
-        ./Hog/Other/MakeGitlabRelease.sh $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $CI_COMMIT_TAG bin/note.md -load_artifacts;
+        ./Hog/Other/MakeGitlabRelease.sh $CI_COMMIT_TAG bin/note.md -load_artifacts;
       fi;
     - if [[ -v BIN_PATH ]]; then
         echo "Copying binary files to ${BIN_PATH}/${CI_COMMIT_TAG}";

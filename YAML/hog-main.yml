@@ -17,10 +17,6 @@
     - hog
 
 .tag-sr: &tag-sr
-  image: gitlab-registry.cern.ch/hog/hog-docker:tclsh
-
-
-.tag-badge: &tag-badge
   image: gitlab-registry.cern.ch/hog/hog-docker:ubuntu
 
 .vars: &vars
@@ -281,7 +277,7 @@ create_badge:
       - tags
     variables:
       - $CI_COMMIT_TAG =~ /^v.*$/ && $HOG_BADGE_PROJECTS != null
-  <<: *tag-badge
+  <<: *tag-sr
   variables:
     GIT_STRATEGY: clone
     GIT_SUBMODULE_STRATEGY: recursive

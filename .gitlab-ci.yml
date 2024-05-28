@@ -280,7 +280,7 @@ update_mirrors:
   stage: mirrors
   image: gitlab-registry.cern.ch/hog/hog-docker:ubuntu
   script:
-    - glab auth -t $CERN_PUSH_TOKEN
+    - glab auth login -t $HOG_PUSH_TOKEN
     # Update Mirror
     - glab api /projects/37942198/remote_mirrors/517789/sync --method POST
     - glab api /projects/37942198/remote_mirrors/1748198/sync --method POST

@@ -216,6 +216,7 @@ make_release:
         fi;
         ./Hog/Other/MakeGitlabRelease.sh $CI_COMMIT_TAG bin/note.md -load_artifacts;
       fi;
+    allow_failure: true
     artifacts:
       paths:
         - Doc 
@@ -232,6 +233,9 @@ archive_binary_files:
   <<: *tag-hog
   variables:
     <<: *vars
+  needs:
+    - job: make_release
+      artifacts: true
   stage: archive
   script:
     - if [[ -v HOG_OFFICIAL_BIN_PATH ]]; then

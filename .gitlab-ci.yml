@@ -37,8 +37,10 @@ launch_github:
     variables: [$CI_COMMIT_REF_NAME =~ /^test\/.*$/i]
   script:
     - gh auth status
-    - gh repo clone Hog-CERN/TestFirmware -- --recursive
+    - gh repo clone Hog-CERN/TestFirmware
     - cd TestFirmware/
+    - git submodule init Hog
+    - git submodule update Hog
     - if git branch -a --list *auto/$CI_COMMIT_REF_NAME | grep -q "auto/$CI_COMMIT_REF_NAME$"; then
         git checkout auto/$CI_COMMIT_REF_NAME;
         git branch --set-upstream-to=origin/auto/$CI_COMMIT_REF_NAME auto/$CI_COMMIT_REF_NAME;

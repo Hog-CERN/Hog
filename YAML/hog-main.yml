@@ -179,11 +179,11 @@ make_release:
     - git fetch origin refs/notes/*:refs/notes/*
     - MR=( `git notes show` )
     - if [[ -v HOG_USE_DOXYGEN ]] && [[ "$HOG_USE_DOXYGEN" == "1" ]] && [[ -v BIN_PATH ]]; then
-      ./Hog/Other/GetArtifactsAndRename.sh -mr $MR -doxygen ;
-      echo "Copying Doxygen documentation to ${BIN_PATH}/Doc";
-      if [ $ENABLE_EOS -eq 1 ]; then
-        eos mkdir -p ${BIN_PATH}/Doc;
-        xrdcp -rsf Doc/html/* ${EOS_MGM_URL}//${BIN_PATH}/Doc;
+        ./Hog/Other/GetArtifactsAndRename.sh -mr $MR -doxygen;
+        echo "Copying Doxygen documentation to ${BIN_PATH}/Doc";
+        if [ $ENABLE_EOS -eq 1 ]; then
+          eos mkdir -p ${BIN_PATH}/Doc;
+          xrdcp -rsf Doc/html/* ${EOS_MGM_URL}//${BIN_PATH}/Doc;
         else
           mkdir -p ${BIN_PATH}/Doc;
           cp -r Doc/html/* ${BIN_PATH}/Doc;
@@ -216,11 +216,11 @@ make_release:
         fi;
         ./Hog/Other/MakeGitlabRelease.sh $CI_COMMIT_TAG bin/note.md -load_artifacts;
       fi;
-    allow_failure: true
-    artifacts:
-      paths:
-        - Doc 
-        - bin
+  allow_failure: true
+  artifacts:
+    paths:
+      - Doc
+      - bin
 
 
 archive_binary_files:

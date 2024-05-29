@@ -121,24 +121,18 @@ jobs:
     runs-on: ubuntu-latest
     container: gitlab-registry.cern.ch/hog/hog-docker:tclsh
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         name: Checkout Repository
         with:
           fetch-depth: 0
-      - uses: webfactory/ssh-agent@v0.7.0
-        name: SSH-Agent
-        with:
-          ssh-private-key: ${{ secrets.SUBMODULE_CONTENT_PULL_KEY }}
+          token: ${{secrets.HOG_PUSH_TOKEN}}
+          submodules: 'true'
+      # - uses: webfactory/ssh-agent@v0.7.0
+      #   name: SSH-Agent
+      #   with:
+      #     ssh-private-key: ${{ secrets.SUBMODULE_CONTENT_PULL_KEY }}
       - name: Merge And Tag
         run: |
-          git config --system --add safe.directory $(pwd)
-          git config --global user.email "$HOG_EMAIL"
-          git config --global user.name "$HOG_USER"
-          git fetch
-          git checkout $GITHUB_HEAD_REF
-          git pull
-          git submodule init
-          git submodule update
           # Check if this is a valid hotfix or feature branch
           if [ -f "Top/repo.conf" ]; then
             enable_develop_branch=$(awk -F "=" '/ENABLE_DEVELOP_BRANCH/{ gsub(" |\t",""); print $2}' Top/repo.conf);

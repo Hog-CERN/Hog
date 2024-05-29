@@ -55,7 +55,7 @@ launch_github:
     - perl -pi -e 's/^\s*uses:.*$/    uses:\ hog-CERN\/Hog\/.github\/workflows\/Hog-main.yml\@'"$CI_COMMIT_REF_NAME"'/' .github/workflows/main.yml
     - perl -pi -e 's/^\s*uses:.*$/    uses:\ hog-CERN\/Hog\/.github\/workflows\/Hog-main.yml\@'"$CI_COMMIT_REF_NAME"'/' .github/workflows/pull.yml
     - git diff-index --quiet HEAD || git commit -am "Updating Hog to $CI_COMMIT_REF_NAME"
-    - git push -u https://hog-user:${GITHUB_TOKEN}@github.com/hog-CERN/TestFirmware.git origin auto/$CI_COMMIT_REF_NAME
+    - git push -u https://hog-user:${GITHUB_TOKEN}@github.com/hog-CERN/TestFirmware.git auto/$CI_COMMIT_REF_NAME
 
 launch_testfirmware:
   stage: merge_checks

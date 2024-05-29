@@ -57,7 +57,7 @@ launch_github:
     - git diff-index --quiet HEAD || git commit -am "Updating Hog to $CI_COMMIT_REF_NAME"
     - git push -u https://hog-user:${GITHUB_TOKEN}@github.com/hog-CERN/TestFirmware.git auto/$CI_COMMIT_REF_NAME
     # Check if there is already a MR open with the current branch, if not open it
-    - PR_NR=$(gh pr list -R hog-CERN/TestFirmware -H apptainer --json number -q '.[0].number')
+    - PR_NR=$(gh pr list -R hog-CERN/TestFirmware -H auto/${CI_COMMIT_REF_NAME} -B develop --json number -q '.[0].number')
     - if [[ "$PR_NR" == "" ]]; then
         echo "There are no open pull requests with source branch 'auto/$CI_COMMIT_REF_NAME'. I will open one...";
           gh pr create -H auto/$CI_COMMIT_REF_NAME -B develop -f -R hog-CERN/TestFirmware;

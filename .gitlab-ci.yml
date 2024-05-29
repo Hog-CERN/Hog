@@ -63,6 +63,7 @@ launch_github:
           gh pr create -H auto/$CI_COMMIT_REF_NAME -B develop -f -R hog-CERN/TestFirmware;
           PR_NR=$(gh pr list -R hog-CERN/TestFirmware -H apptainer --json number -q '.[0].number');
       fi;
+    - gh pr checks $PR_NR --watch
 
 launch_testfirmware:
   stage: merge_checks

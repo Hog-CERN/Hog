@@ -38,7 +38,7 @@ launch_github:
   script:
     - glab auth login -t $HOG_PUSH_TOKEN
     - gh auth status
-    - gh repo clone Hog-CERN/TestFirmware
+    - git clone --recursive https://hog-user:${GITLAB_TOKEN}@github.com/hog-CERN/TestFirmware.git
     - cd TestFirmware/
     - git submodule init Hog
     - git submodule update Hog

@@ -119,7 +119,7 @@ env:
 jobs:
   merge:
     runs-on: ubuntu-latest
-    container: gitlab-registry.cern.ch/hog/hog-docker:tclsh
+    container: gitlab-registry.cern.ch/hog/hog-docker:ubuntu
     steps:
       - uses: actions/checkout@v4
         name: Checkout Repository

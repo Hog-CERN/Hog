@@ -133,6 +133,7 @@ jobs:
       #     ssh-private-key: ${{ secrets.SUBMODULE_CONTENT_PULL_KEY }}
       - name: Merge And Tag
         run: |
+          git config --global --add safe.directory /__w/TestFirmware/TestFirmware
           # Check if this is a valid hotfix or feature branch
           if [ -f "Top/repo.conf" ]; then
             enable_develop_branch=$(awk -F "=" '/ENABLE_DEVELOP_BRANCH/{ gsub(" |\t",""); print $2}' Top/repo.conf);

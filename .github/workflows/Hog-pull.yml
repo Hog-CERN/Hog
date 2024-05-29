@@ -177,15 +177,14 @@ jobs:
     needs: merge
     if: ${{ inputs.HOG_USE_DOXYGEN }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         name: Checkout Repository
         with:
           fetch-depth: 0
-      - uses: webfactory/ssh-agent@v0.7.0
-        name: SSH-Agent
-        with:
-          ssh-private-key: ${{ secrets.SUBMODULE_CONTENT_PULL_KEY }}
+          token: ${{secrets.HOG_PUSH_TOKEN}}
+          submodules: 'true'
       - name: Doxygen
+        shell: bash
         run: |
           git config --system --add safe.directory $(pwd)
           git config --global user.email "$HOG_EMAIL"
@@ -212,15 +211,14 @@ jobs:
     steps:
       - uses: ATOS-Actions/clean-self-hosted-runner@v1
         name: Cleaning
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         name: Checkout Repository
         with:
           fetch-depth: 0
-      - uses: webfactory/ssh-agent@v0.7.0
-        name: SSH-Agent
-        with:
-          ssh-private-key: ${{ secrets.SUBMODULE_CONTENT_PULL_KEY }}
+          token: ${{secrets.HOG_PUSH_TOKEN}}
+          submodules: 'true'
       - name: Build
+        shell: bash
         run: |
               PROJECT_NAME=${{ matrix.PROJECT_NAME}}
               if [ -z "$PROJECT_NAME" ]; then
@@ -405,15 +403,14 @@ jobs:
     steps:
       - uses: ATOS-Actions/clean-self-hosted-runner@v1
         name: Cleaning
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         name: Checkout Repository
         with:
           fetch-depth: 0
-      - uses: webfactory/ssh-agent@v0.7.0
-        name: SSH-Agent
-        with:
-          ssh-private-key: ${{ secrets.SUBMODULE_CONTENT_PULL_KEY }}
+          token: ${{secrets.HOG_PUSH_TOKEN}}
+          submodules: 'true'
       - name: Simulate
+        shell: bash
         run: |
               git config --global user.email "$HOG_EMAIL"
               git config --global user.name "$HOG_USER"
@@ -476,18 +473,17 @@ jobs:
     needs: [generate_project, simulate_project]
     container: gitlab-registry.cern.ch/hog/hog-docker:tclsh
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         name: Checkout Repository
         with:
           fetch-depth: 0
-      - uses: webfactory/ssh-agent@v0.7.0
-        name: SSH-Agent
-        with:
-          ssh-private-key: ${{ secrets.SUBMODULE_CONTENT_PULL_KEY }}
+          token: ${{secrets.HOG_PUSH_TOKEN}}
+          submodules: 'true'
       - uses: actions/download-artifact@v3
         name: Download Artifacts
       - name: Collect
         continue-on-error: true
+        shell: bash
         run: |
               git config --system --add safe.directory $(pwd)
               git config --global user.email "$HOG_EMAIL"
@@ -556,18 +552,17 @@ jobs:
     if: ${{ inputs.BUILD_PROJECTS }}
     needs: [generate_project]
     steps:
-      - uses: actions/checkout@v2
-        name: Checkout
+      - uses: actions/checkout@v4
+        name: Checkout Repository
         with:
           fetch-depth: 0
-      - uses: webfactory/ssh-agent@v0.7.0
-        name: SSH-Agent
-        with:
-          ssh-private-key: ${{ secrets.SUBMODULE_CONTENT_PULL_KEY }}
+          token: ${{secrets.HOG_PUSH_TOKEN}}
+          submodules: 'true'
       - uses: actions/download-artifact@v3
         name: Download Artifacts
       - name: Check Timing
         continue-on-error: true
+        shell: bash
         run: |
             cd Build-Artifacts
             PRJ_BITS=$(find . -iname "versions.txt")

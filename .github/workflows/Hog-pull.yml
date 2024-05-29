@@ -128,6 +128,7 @@ jobs:
           token: ${{secrets.HOG_PUSH_TOKEN}}
           submodules: 'true'
       - name: Merge And Tag
+        shell: bash
         run: |
           git config --system --add safe.directory $(pwd)
           git config --global user.email "$HOG_EMAIL"

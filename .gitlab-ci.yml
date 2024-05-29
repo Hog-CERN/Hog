@@ -40,7 +40,6 @@ launch_github:
     - gh auth status
     - gh repo clone Hog-CERN/TestFirmware
     - cd TestFirmware/
-
     - git submodule init Hog
     - git submodule update Hog
     - if git branch -a --list *auto/$CI_COMMIT_REF_NAME | grep -q "auto/$CI_COMMIT_REF_NAME$"; then
@@ -53,7 +52,10 @@ launch_github:
     - cd Hog
     - git checkout $CI_COMMIT_REF_NAME
     - cd ..
-    - sed -i '/ref:/s#.*#      ref:\ '"$CI_COMMIT_REF_NAME"'#' .gitlab-ci.yml
+    - perl -pi -e 's/^\s*uses:.*$/    uses:\ hog-CERN\/Hog\/.github\/workflows\/Hog-main.yml\@'"$CI_COMMIT_REF_NAME"'/' .github/workflows/main.yml
+    - perl -pi -e 's/^\s*uses:.*$/    uses:\ hog-CERN\/Hog\/.github\/workflows\/Hog-main.yml\@'"$CI_COMMIT_REF_NAME"'/' .github/workflows/pull.yml
+    - git diff-index --quiet HEAD || git commit -am "Updating Hog to $CI_COMMIT_REF_NAME"
+    - git push origin auto/$CI_COMMIT_REF_NAME
 
 launch_testfirmware:
   stage: merge_checks
@@ -284,8 +286,6 @@ update_mirrors:
     # Update Mirror
     - glab api /projects/37942198/remote_mirrors/517789/sync --method POST
     - glab api /projects/37942198/remote_mirrors/1748198/sync --method POST
-
-
 
 create_release_note:
   stage: tag

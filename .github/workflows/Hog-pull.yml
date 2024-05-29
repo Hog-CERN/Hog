@@ -119,7 +119,7 @@ env:
 jobs:
   merge:
     runs-on: ubuntu-latest
-    container: gitlab-registry.cern.ch/hog/hog-docker:ubuntu
+    container: gitlab-registry.cern.ch/hog/hog-docker
     steps:
       - uses: actions/checkout@v4
         name: Checkout Repository
@@ -471,7 +471,7 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ inputs.BUILD_PROJECTS || inputs.SIM_PROJECTS }} && ${{ always() }}
     needs: [generate_project, simulate_project]
-    container: gitlab-registry.cern.ch/hog/hog-docker:ubuntu
+    container: gitlab-registry.cern.ch/hog/hog-docker
     steps:
       - uses: actions/checkout@v4
         name: Checkout Repository
@@ -548,7 +548,7 @@ jobs:
             bin
   check_timing:
     runs-on: ubuntu-latest
-    container: gitlab-registry.cern.ch/hog/hog-docker:ubuntu
+    container: gitlab-registry.cern.ch/hog/hog-docker
     if: ${{ inputs.BUILD_PROJECTS }}
     needs: [generate_project]
     steps:

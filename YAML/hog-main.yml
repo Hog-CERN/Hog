@@ -17,7 +17,7 @@
     - hog
 
 .tag-sr: &tag-sr
-  image: gitlab-registry.cern.ch/hog/hog-docker:ubuntu
+  image: gitlab-registry.cern.ch/hog/hog-docker
 
 .vars: &vars
   GIT_STRATEGY: clone

@@ -29,7 +29,7 @@ stages: [mirrors, merge_checks, tag, build_doc]
 
 launch_github:
   stage: merge_checks
-  image: gitlab-registry.cern.ch/hog/hog-docker:ubuntu
+  image: gitlab-registry.cern.ch/hog/hog-docker
   only:
     refs: [merge_requests]
     variables: [$CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /^(master|develop)$/]
@@ -38,7 +38,7 @@ launch_github:
   script:
     - glab auth login -t $HOG_PUSH_TOKEN
     - gh auth status
-    - git clone --recursive https://hog-user:${GITLAB_TOKEN}@github.com/hog-CERN/TestFirmware.git
+    - git clone https://hog-user:${GITLAB_TOKEN}@github.com/hog-CERN/TestFirmware.git
     - cd TestFirmware/
     - git submodule init Hog
     - git submodule update Hog
@@ -59,7 +59,7 @@ launch_github:
 
 launch_testfirmware:
   stage: merge_checks
-  image: gitlab-registry.cern.ch/hog/hog-docker:ubuntu
+  image: gitlab-registry.cern.ch/hog/hog-docker
   variables:
     GITLAB_TOKEN: $TF_TOKEN
   only:
@@ -131,7 +131,7 @@ launch_testfirmware:
 
 build-doxygen-test:
   stage: merge_checks
-  image: gitlab-registry.cern.ch/hog/hog-docker:ubuntu
+  image: gitlab-registry.cern.ch/hog/hog-docker
   only:
     refs: [merge_requests]
     variables: [$CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /^(master|develop)$/]
@@ -151,7 +151,7 @@ build-doxygen-test:
 
 build-doxygen-develop:
   stage: build_doc
-  image: gitlab-registry.cern.ch/hog/hog-docker:ubuntu
+  image: gitlab-registry.cern.ch/hog/hog-docker
   only:
     refs: [tags]
     variables: [$CI_COMMIT_TAG =~ /^(v.*)$/]
@@ -164,7 +164,7 @@ build-doxygen-develop:
 
 build-doxygen-official:
   stage: build_doc
-  image: gitlab-registry.cern.ch/hog/hog-docker:ubuntu
+  image: gitlab-registry.cern.ch/hog/hog-docker
   only:
     refs: [tags]
     variables: [$CI_COMMIT_TAG =~ /^(Hog.*)$/]
@@ -177,7 +177,7 @@ build-doxygen-official:
 
 changelog:
   stage: merge_checks
-  image: gitlab-registry.cern.ch/hog/hog-docker:ubuntu
+  image: gitlab-registry.cern.ch/hog/hog-docker
   rules:
     - if: $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "master" && $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME != "develop"
       when: on_success
@@ -209,7 +209,7 @@ changelog:
 
 tagging:
   stage: tag
-  image: gitlab-registry.cern.ch/hog/hog-docker:ubuntu
+  image: gitlab-registry.cern.ch/hog/hog-docker
   rules:
     - if: '$CI_COMMIT_REF_NAME == "master"  && $CI_PIPELINE_SOURCE == "push"'
       when: always
@@ -242,7 +242,7 @@ tagging:
 
 shellcheck:
   stage: merge_checks
-  image: gitlab-registry.cern.ch/hog/hog-docker:ubuntu
+  image: gitlab-registry.cern.ch/hog/hog-docker
   only:
     refs: [merge_requests]
     variables: [$CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /^(master|develop)$/]
@@ -254,7 +254,7 @@ shellcheck:
 
 yamllint:
   stage: merge_checks
-  image: gitlab-registry.cern.ch/hog/hog-docker:ubuntu
+  image: gitlab-registry.cern.ch/hog/hog-docker
   only:
     refs: [merge_requests]
     variables: [$CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /^(master|develop)$/]
@@ -267,7 +267,7 @@ yamllint:
 
 nagelfar:
   stage: merge_checks
-  image: gitlab-registry.cern.ch/hog/hog-docker:ubuntu
+  image: gitlab-registry.cern.ch/hog/hog-docker
   only:
     refs: [merge_requests]
     variables: [$CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /^(master|develop)$/]
@@ -280,7 +280,7 @@ nagelfar:
 
 update_mirrors:
   stage: mirrors
-  image: gitlab-registry.cern.ch/hog/hog-docker:ubuntu
+  image: gitlab-registry.cern.ch/hog/hog-docker
   script:
     - glab auth login -t $HOG_PUSH_TOKEN
     # Update Mirror
@@ -289,7 +289,7 @@ update_mirrors:
 
 create_release_note:
   stage: tag
-  image: gitlab-registry.cern.ch/hog/hog-docker:ubuntu
+  image: gitlab-registry.cern.ch/hog/hog-docker
   only:
     refs: [tags]
     variables: [$CI_COMMIT_TAG =~ /^(v.*)|(Hog.*)$/]
@@ -303,7 +303,7 @@ create_release_note:
     - if [[ $CI_COMMIT_TAG =~ ^Hog.*$ ]]; then ./Other/MakeGitlabRelease.sh $CI_COMMIT_TAG note.md; fi
 
 # launch_validation:
-#   image: gitlab-registry.cern.ch/hog/hog-docker:tclsh
+#   image: gitlab-registry.cern.ch/hog/hog-docker
 #   only: [develop]
 #   script:
 #     - 'if [[ $CI_COMMIT_REF_NAME == "develop" ]]; then curl --request POST --header

@@ -62,6 +62,8 @@ launch_github:
         echo "There are no open pull requests with source branch 'auto/$CI_COMMIT_REF_NAME'. I will open one...";
           gh pr create -H auto/$CI_COMMIT_REF_NAME -B develop -f -R hog-CERN/TestFirmware;
           PR_NR=$(gh pr list -R hog-CERN/TestFirmware -H apptainer --json number -q '.[0].number');
+      else
+        gh pr view $PR_NR;
       fi;
     - sleep 10s
     - gh pr checks $PR_NR --watch

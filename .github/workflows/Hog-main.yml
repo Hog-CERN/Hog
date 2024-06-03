@@ -29,8 +29,6 @@ env:
   HOG_PUSH_TOKEN: ${{ secrets.HOG_PUSH_TOKEN }}
   HOG_USER: ${{ secrets.HOG_USER }}
   HOG_EMAIL: ${{ secrets.HOG_EMAIL }}
-  EOS_USER: ${{ secrets.EOS_USER}}
-  EOS_PASSWORD: ${{ secrets.EOS_PASSWORD}}
 
 jobs:
   tag_official_version:

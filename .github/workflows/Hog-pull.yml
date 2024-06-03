@@ -504,12 +504,12 @@ jobs:
               echo "Pipeline $GITHUB_RUN_ID passed for pull request #$PR_NUMBER" >> $old_dir/pr_note.md
               if [[ $diff_files != "" ]]; then
                 echo "## Uncommitted differences" >> $old_dir/pr_note.md;
-                echo "## Uncommitted differences" >> bin/note.md;
+                echo "## Uncommitted differences" >> $old_dir/bin/note.md;
                 for f in $diff_files; do
                   echo "Found uncommitted differences, check log file bin/$f in the artifacts." >> $old_dir/pr_note.md;
                   echo "" >> $old_dir/pr_note.md;
-                  echo "Found uncommitted differences, check log file bin/$f in the artifacts." >> bin/note.md;
-                  echo "" >> bin/note.md;
+                  echo "Found uncommitted differences, check log file bin/$f in the artifacts." >> $old_dir/bin/note.md;
+                  echo "" >> $old_dir/bin/note.md;
                 done;
               fi
               # Returns a list of version, utilization and timing files in bin/ sorted alphabetically
@@ -531,7 +531,7 @@ jobs:
                   if [[ $HOG_MR_MSG == '1' ]]; then
                     cat section.md >> "$old_dir/pr_note.md";
                   fi;
-                  cat section.md >> "$CI_PROJECT_DIR/bin/note.md";
+                  cat section.md >> "$old_dir/bin/note.md";
                   cd $old_dir/bin;
                 done;
               fi;

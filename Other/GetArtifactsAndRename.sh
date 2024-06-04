@@ -37,6 +37,7 @@ function argument_parser() {
             ;;
         -github)
             github="1"
+            echo "Running for Github"
             shift 1
             ;;
         --) # end argument parsing
@@ -90,7 +91,7 @@ else
 
     # GET all artifacts from collect_artifacts
     echo "Hog-INFO: downloading artifacts..."
-    echo $github
+    echo "Github $github"
     if [[ $github == "1" ]]; then
         echo "ciao"
         artifact_id=$(curl -H "Accept: application/vnd.github+json" -H "Authorization: token ${push_token}" "$api/repos/$proj/actions/runs/$mr/artifacts" | jq '.artifacts[] | select (.name=="Collect-Artifacts") .id')

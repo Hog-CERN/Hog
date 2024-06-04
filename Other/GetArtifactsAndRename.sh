@@ -90,7 +90,9 @@ else
 
     # GET all artifacts from collect_artifacts
     echo "Hog-INFO: downloading artifacts..."
+    echo $github
     if [[ $github == "1" ]]; then
+        echo "ciao"
         artifact_id=$(curl -H "Accept: application/vnd.github+json" -H "Authorization: token ${push_token}" "$api/repos/$proj/actions/runs/$mr/artifacts" | jq '.artifacts[] | select (.name=="Collect-Artifacts") .id')
         curl -L -H "Accept: application/vnd.github+json" -H "Authorization: token ${push_token}" "$api/repos/$proj/actions/artifacts/$artifact_id/zip" -o collect_artifacts.zip
         echo "Hog-INFO: unzipping artifacts from collect_artifacts job..."

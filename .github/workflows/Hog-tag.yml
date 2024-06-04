@@ -76,6 +76,7 @@ jobs:
           git checkout $GITHUB_HEAD_REF
           git submodule init
           git submodule update
+          source ./Hog/Other/CommonFunctions.sh
           git fetch origin refs/notes/*:refs/notes/*
           note=(`git notes show`) || {
             echo "No note found, probably you pushed to a branch that should protected (e.g. master, develop)";
@@ -83,6 +84,7 @@ jobs:
           }
           runid=${note[0]}
           tag=${note[2]}
+          echo "PR number $runid"
           if [[ "${{ inputs.HOG_OFFICIAL_BIN_PATH}}" != "" ]]; then
             BIN_PATH=${{ inputs.HOG_OFFICIAL_BIN_PATH}}
           elif [[ "${{ inputs.HOG_OFFICIAL_BIN_EOS_PATH }}" != "" ]]; then
@@ -101,17 +103,19 @@ jobs:
             export EOS_MGM_URL="root://eosuser.cern.ch"
           fi;
           if [[ "${{ inputs.HOG_USE_DOXYGEN }}" == "1" ]]; then
-            ./Hog/Other/GetArtifactsAndRename.sh -token $HOG_PUSH_TOKEN -url $GITHUB_API_URL -proj_id $GITHUB_REPOSITORY -mr ${runid} -doxygen -github ;
-            echo "Copying Doxygen documentation to $BIN_PATH/Doc";
+            echo "./Hog/Other/GetArtifactsAndRename.sh -token $HOG_PUSH_TOKEN -url $GITHUB_API_URL -proj_id $GITHUB_REPOSITORY -mr ${runid} -doxygen -github"
+            ./Hog/Other/GetArtifactsAndRename.sh -token $HOG_PUSH_TOKEN -url $GITHUB_API_URL -proj_id $GITHUB_REPOSITORY -mr ${runid} -doxygen -github
+            echo "Copying Doxygen documentation to $BIN_PATH/Doc"
             if [[ $BIN_PATH == /eos/* ]]; then
-              eos mkdir -p $BIN_PATH/Doc;
-              xrdcp -rsf Doc/html/* ${EOS_MGM_URL}/$BIN_PATH/Doc;
+              eos mkdir -p $BIN_PATH/Doc
+              xrdcp -rsf Doc/html/* ${EOS_MGM_URL}/$BIN_PATH/Doc
             else
               mkdir -p $BIN_PATH/Doc
               cp -r Doc/html/* $BIN_PATH/Doc
             fi;
           else
-            ./Hog/Other/GetArtifactsAndRename.sh -token $HOG_PUSH_TOKEN -url $GITHUB_API_URL -proj_id $GITHUB_REPOSITORY -mr ${runid} -github;
+            echo "./Hog/Other/GetArtifactsAndRename.sh -token $HOG_PUSH_TOKEN -url $GITHUB_API_URL -proj_id $GITHUB_REPOSITORY -mr ${runid} -github"
+            ./Hog/Other/GetArtifactsAndRename.sh -token $HOG_PUSH_TOKEN -url $GITHUB_API_URL -proj_id $GITHUB_REPOSITORY -mr ${runid} -github
           fi
           echo "Copying binary files to $BIN_PATH/${tag}";
           if [[ $BIN_PATH == /eos/* ]]; then
@@ -145,6 +149,7 @@ jobs:
           git checkout $GITHUB_HEAD_REF
           git submodule init
           git submodule update
+          source ./Hog/Other/CommonFunctions.sh
           ./Hog/Other/GetArtifactsAndRename.sh -token $HOG_PUSH_TOKEN -url $GITHUB_API_URL -proj_id $GITHUB_REPOSITORY -mr ${{ needs.archive_binary_files.outputs.runid }} -github;
           zip -r binaries.zip bin
       - name: Create Release

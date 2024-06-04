@@ -16,6 +16,9 @@
 #DIR="$( dirname "${BASH_SOURCE[0]}" )/../.."
 #OLDDIR="$( pwd )"
 
+. $(dirname "$0")/CommonFunctions.sh
+
+
 function argument_parser() {
     PARAMS=""
     while (("$#")); do

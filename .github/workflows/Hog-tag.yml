@@ -128,7 +128,6 @@ jobs:
       - name: Get Artifacts
         shell: bash
         run: |
-          git config --system --add safe.directory $(pwd)
           git config --global user.email "$HOG_EMAIL"
           git config --global user.name "$HOG_USER"
           git fetch

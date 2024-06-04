@@ -46,8 +46,7 @@ on:
 
 jobs:
   archive_binary_files:
-    runs-on: ubuntu-latest
-    container: gitlab-registry.cern.ch/hog/hog-docker
+    runs-on: self-hosted
     if: ${{ inputs.HOG_OFFICIAL_BIN_EOS_PATH != '' || inputs.HOG_OFFICIAL_BIN_PATH != '' }}
     steps:
       - uses: actions/checkout@v4
@@ -118,6 +117,7 @@ jobs:
     runs-on: ubuntu-latest
     container: gitlab-registry.cern.ch/hog/hog-docker
     if: ${{ inputs.HOG_CREATE_OFFICIAL_RELEASE }}
+    needs: archive_binary_files
     steps:
       - uses: actions/checkout@v4
         name: Checkout Repository

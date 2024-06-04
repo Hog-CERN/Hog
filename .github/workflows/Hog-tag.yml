@@ -44,6 +44,17 @@ on:
       EOS_MGM_URL:
         required: false
 
+env:
+  PR_NUMBER: ${{ github.event.number }}
+  HOG_PUSH_TOKEN: ${{ secrets.HOG_PUSH_TOKEN }}
+  COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+  HOG_USER: ${{ secrets.HOG_USER }}
+  HOG_EMAIL: ${{ secrets.HOG_EMAIL }}
+  HOG_PATH: ${{ secrets.HOG_PATH }}
+  EOS_USER: ${{ secrets.EOS_USER }}
+  EOS_PASSWORD: ${{ secrets.EOS_PASSWORD }}
+  GH_TOKEN: ${{ secrets.HOG_PUSH_TOKEN }}
+  
 jobs:
   archive_binary_files:
     runs-on: self-hosted
@@ -79,7 +90,6 @@ jobs:
             echo "From version Hog2024.1, HOG_OFFICIAL_BIN_EOS_PATH variable will be deprecated. Please use HOG_OFFICIAL_BIN_PATH to define the path where to copy the official bitfiles."
           fi
           if [[ $BIN_PATH == /eos/* ]]; then
-            klist
             until echo $EOS_PASSWORD | kinit -V $EOS_USER@CERN.CH; do
             echo Retrying;
             sleep 2;

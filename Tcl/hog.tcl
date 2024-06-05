@@ -712,8 +712,11 @@ proc ReadListFile args {
             regsub -all " *= *" $prop "=" prop
             # Fill property dictionary
             foreach p $prop {
-              dict lappend properties $vhdlfile $p
-              Msg Debug "Adding property $p to $vhdlfile..."
+              # No need to append the lib= property
+              if { [string first "lib=" $p ] == -1} {
+                dict lappend properties $vhdlfile $p
+                Msg Debug "Adding property $p to $vhdlfile..."
+              }
             }
             if { [lsearch {.xci .ip .bd .xcix} $extension] >= 0} {
               # Adding IP library
@@ -721,7 +724,7 @@ proc ReadListFile args {
             } elseif { [IsInList $extension {.vhd .vhdl}] || $list_file_ext == ".sim"} {
               # VHDL files and simulation
               if { ![IsInList $extension {.vhd .vhdl}]} {
-                set lib_name "xil_defaultlib.sim"
+                set lib_name "others.sim"
               } else {
                 set lib_name "$library$list_file_ext"
               }
@@ -2226,9 +2229,6 @@ proc AddHogFiles { libraries properties filesets } {
           set top_sim [lindex [regexp -inline {topsim\s*=\s*(.+?)\y.*} $props] 1]
           if { $top_sim != "" } {
             Msg Warning "Setting the simulation top module from simulation list files is now deprecated. Please set this property in the sim.conf file, by adding the following line under the \[$fileset\] section.\ntop=$top_sim"
-
-            set_property "top"  $top_sim [get_filesets $fileset]
-            current_fileset -simset [get_filesets $fileset]
           }
 
           # Simulation runtime

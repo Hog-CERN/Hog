@@ -144,6 +144,38 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
   #################################################################
   ##### START COMPARISON OF FILES IN PROJECT AND LIST FILES ######
   #################################################################
+  Msg Debug "Project Libraries"
+  Msg Debug $prjLibraries
+  Msg Debug "Source List Libraries"
+  Msg Debug $listLibraries
+  Msg Debug "Project Filesets"
+  Msg Debug $prjSrcSets
+  Msg Debug "List Filesets"
+  Msg Debug $listSrcSets
+  Msg Debug "Project File Properties"
+  Msg Debug $prjProperties
+  Msg Debug "List File Properties"
+  Msg Debug $listProperties
+  Msg Debug "Project Sim Libraries"
+  Msg Debug $prjSimLibraries
+  Msg Debug "Sim List Libraries"
+  Msg Debug $listSimLibraries
+  Msg Debug "Project SimSets"
+  Msg Debug $prjSimSets
+  Msg Debug "List SimSets"
+  Msg Debug $listSimSets
+  Msg Debug "Sim List File Properties"
+  Msg Debug $listSimProperties
+  Msg Debug "Project Constraints"
+  Msg Debug $prjConstraints
+  Msg Debug "List Constraints"
+  Msg Debug $listConstraints
+  Msg Debug "Project ConSets"
+  Msg Debug $prjConSets
+  Msg Debug "List ConSets"
+  Msg Debug $listConSets
+  Msg Debug "List Constraint Properties"
+  Msg Debug $listConProperties
 
   lassign [CompareLibDicts $prjLibraries $listLibraries $prjSrcSets $listSrcSets $prjProperties $listProperties "CriticalWarning" $outFile $extraFiles] SrcListErrorCnt extraFiles prjLibraries prjProperties
   lassign [CompareLibDicts $prjSimLibraries $listSimLibraries $prjSimSets $listSimSets $prjProperties $listSimProperties "Warning" $outSimFile $extraFiles] SimListErrorCnt extraFiles prjSimLibraries prjProperties

@@ -54,7 +54,7 @@ env:
   EOS_USER: ${{ secrets.EOS_USER }}
   EOS_PASSWORD: ${{ secrets.EOS_PASSWORD }}
   GH_TOKEN: ${{ secrets.HOG_PUSH_TOKEN }}
-  
+
 jobs:
   get_artifacts:
     runs-on: ubuntu-latest
@@ -91,13 +91,13 @@ jobs:
           ./Hog/Other/GetArtifactsAndRename.sh -mr ${runid} -github ${dox_var}
           echo "tag=$new_tag" >> $GITHUB_OUTPUT
           echo "runid=${note[0]}" >> $GITHUB_OUTPUT
-        - name: Archive Simulation Artifacts
-          uses: actions/upload-artifact@v4
-          with:
-            name: Archive-Artifacts
-            path: |
-              bin 
-              Doc
+      - name: Archive Simulation Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: Archive-Artifacts
+          path: |
+            bin
+            Doc
   archive_binary_files:
     runs-on: self-hosted
     if: ${{ inputs.HOG_OFFICIAL_BIN_EOS_PATH != '' || inputs.HOG_OFFICIAL_BIN_PATH != '' }}
@@ -116,15 +116,15 @@ jobs:
           fi
           if [[ $BIN_PATH == /eos/* ]]; then
             until echo $EOS_PASSWORD | kinit -V $EOS_USER@CERN.CH; do
-            echo Retrying;
-            sleep 2;
-            done;
-          fi;
+              echo Retrying
+              sleep 2
+            done
+          fi
           if [ -v "${{ secrets.EOS_MGM_URL}}" ]; then
             export EOS_MGM_URL=${{ secrets.EOS_MGM_URL }}
           else
             export EOS_MGM_URL="root://eosuser.cern.ch"
-          fi;    
+          fi
           echo "Copying Doxygen documentation to $BIN_PATH/Doc"
           if [[ $BIN_PATH == /eos/* ]]; then
             eos mkdir -p $BIN_PATH/Doc
@@ -132,14 +132,14 @@ jobs:
           else
             mkdir -p $BIN_PATH/Doc
             cp -r Archive-Artifacts/Doc/html/* $BIN_PATH/Doc
-          fi;
-          echo "Copying binary files to $BIN_PATH/${tag}";
-          if [[ $BIN_PATH == /eos/* ]]; then
-            eos mkdir $BIN_PATH/${tag};
-            xrdcp -rfs Archive-Artifacts/bin/* ${EOS_MGM_URL}//$BIN_PATH/${tag};
+          fi
+          echo "Copying binary files to $BIN_PATH/${tag}"
+          if [[ $BIN_PATH == /eos/* ]] then
+            eos mkdir $BIN_PATH/${tag}
+            xrdcp -rfs Archive-Artifacts/bin/* ${EOS_MGM_URL}//$BIN_PATH/${tag}
           else
-            mkdir $BIN_PATH/${tag};
-            cp -r Archive-Artifacts/bin/* $BIN_PATH/${tag};
+            mkdir $BIN_PATH/${tag}
+            cp -r Archive-Artifacts/bin/* $BIN_PATH/${tag}
           fi;
   create_github_release:
     runs-on: ubuntu-latest

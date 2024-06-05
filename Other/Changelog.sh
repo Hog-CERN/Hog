@@ -35,18 +35,6 @@ function argument_parser() {
             TARGET_BRANCH=$2
             shift 2
             ;;
-        -pt | -push_token)
-            PUSH_TOKEN=$2
-            shift 2
-            ;;
-        -a | -api)
-            API=$2
-            shift 2
-            ;;
-        -p | -proj)
-            PROJ=$2
-            shift 2
-            ;;
         -n | -number)
             NUMBER=$2
             shift 2
@@ -90,9 +78,6 @@ function help_message() {
   echo " Usage: $1 [OPTIONS]"
   echo " Options:"
   echo "          -t/-target  <target_branch>  Target branch of the merge/pull request"
-  echo "          -pt/-push_token <token>      The GitLab/GitHub push token"
-  echo "          -a/-api                      The GitLab/GitHub API URL"
-  echo "          -p/-proj                     The GitLab/GitHub project name"
   echo "          -n/-number                   The Merge/Pull request number"
   echo "          -github                      If true, runs the GitHub API, otherwise the GitLab. Default false."
   echo "          -r/-repo                     The GitHub repository name."
@@ -114,7 +99,7 @@ if [ "$GITHUB" == "1" ]; then
     echo "## Pull Request Description"
     gh api -H "Accept: application/vnd.github+json" /repos/"$REPO_NAME"/pulls/"$NUMBER" | jq -r ".body"
 else
-    if [ "$PUSH_TOKEN" != "" ] && [ "$API" != "" ] && [ "$PROJ" != "" ] && [ "$NUMBER" != "" ]; then
+    if [ "$NUMBER" != "" ]; then
         echo "## MR Description"
         glab mr view ${NUMBER} -F json | jq -r ".description"
     fi

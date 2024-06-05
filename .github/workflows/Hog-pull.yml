@@ -493,7 +493,7 @@ jobs:
               mkdir -p Build-Artifacts
               mv Build-Artifacts bin
               printf "## Repository info\n- Pull request number: $PR_NUMBER\n- Branch name: $GITHUB_HEAD_REF\n\n" > bin/note.md
-              ./Hog/Other/Changelog.sh -t $GITHUB_BASE_REF -pt $HOG_PUSH_TOKEN -r $GITHUB_REPOSITORY -github -n $PR_NUMBER >> bin/note.md
+              ./Hog/Other/Changelog.sh -t $GITHUB_BASE_REF -r $GITHUB_REPOSITORY -github -n $PR_NUMBER >> bin/note.md
               cd bin
               diff_files=$(find . -name "diff_list*.txt");
               touch $old_dir/pr_note.md

@@ -210,8 +210,7 @@ changelog:
     - git push origin refs/notes/*
     - "printf \"## Repository info\n- Merge request number: $CI_MERGE_REQUEST_IID\n\
       - Branch name: $CI_COMMIT_REF_NAME\n\n\" > changelog.md"
-    - ./Other/Changelog.sh -t $CI_MERGE_REQUEST_TARGET_BRANCH_NAME -pt $HOG_PUSH_TOKEN
-      -a $CI_API_V4_URL -p $CI_PROJECT_ID -n $CI_MERGE_REQUEST_IID  >> changelog.md
+    - ./Other/Changelog.sh -t $CI_MERGE_REQUEST_TARGET_BRANCH_NAME -p $CI_PROJECT_ID -n $CI_MERGE_REQUEST_IID  >> changelog.md
   artifacts:
     name: changelog
     paths: [changelog.md]

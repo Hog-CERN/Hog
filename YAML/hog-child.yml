@@ -281,10 +281,11 @@ collect_artifacts:
   variables:
     GIT_STRATEGY: clone
   script:
+    - glab auth login -t $HOG_PUSH_TOKEN
     - old_dir=`pwd`
     - mkdir -p $CI_PROJECT_DIR/bin
     - "printf \"## Repository info\n- Merge request number: $CI_MERGE_REQUEST_IID\n- Branch name: $CI_COMMIT_REF_NAME\n\n\" > $CI_PROJECT_DIR/bin/note.md"
-    - ./Hog/Other/Changelog.sh -t $CI_MERGE_REQUEST_TARGET_BRANCH_NAME -pt $HOG_PUSH_TOKEN -a $CI_API_V4_URL -p $CI_PROJECT_ID -n $CI_MERGE_REQUEST_IID  >> $CI_PROJECT_DIR/bin/note.md
+    - ./Hog/Other/Changelog.sh -t $CI_MERGE_REQUEST_TARGET_BRANCH_NAME -n $CI_MERGE_REQUEST_IID  >> $CI_PROJECT_DIR/bin/note.md
     - cd $CI_PROJECT_DIR/bin/
     - diff_files=$(find . -name "diff_list*.txt");
     - touch $old_dir/mr_note.md
@@ -328,7 +329,7 @@ collect_artifacts:
         echo "Hog-CI(info) - Writing note on gitlab website...";
         sed -i 's/\n/\\n/g' mr_note.md;
         note=$(cat mr_note.md);
-        glab mr note $CI_MERGE_REQUEST_IID -m $note;
+        glab mr note $CI_MERGE_REQUEST_IID -m "$note";
       fi;
   artifacts:
     when: always

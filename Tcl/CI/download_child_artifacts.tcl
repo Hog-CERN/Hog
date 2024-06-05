@@ -21,22 +21,17 @@ set TclPath [file dirname [info script]]/..
 set repo_path [file normalize "$TclPath/../.."]
 source $TclPath/hog.tcl
 
-if {[catch {package require cmdline} ERROR]} {
-  Msg Error "$ERROR\n If you are running this script on tclsh, you can fix this by installing 'tcllib'"
-  return
-}
+set usage "- CI script that downloads artifacts from child pipelines.\n USAGE: $::argv0 <push token> <Gitlab api url> <project id> <commit SHA> <create_job id>."
 
-set usage "- CI script that downloads artifacts from child pipelines.\n USAGE: $::argv0 <project id> <commit SHA> <create_job id>."
-
-if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] ||  [llength $argv] < 5 } {
+if { [llength $argv] < 3 } {
   Msg Info $usage
   cd $OldPath
   return
 }
 
-set proj_id [lindex $argv 1]
-set commit_sha [lindex $argv 3]
-set create_job_id [lindex $argv 4]
+set proj_id [lindex $argv 0]
+set commit_sha [lindex $argv 1]
+set create_job_id [lindex $argv 2]
 set page 1
 
 lassign [ExecuteRet glab api "/projects/$proj_id/jobs/?page=1"] ret msg

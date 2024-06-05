@@ -56,9 +56,9 @@ env:
   GH_TOKEN: ${{ secrets.HOG_PUSH_TOKEN }}
   
 jobs:
-  archive_binary_files:
-    runs-on: self-hosted
-    if: ${{ inputs.HOG_OFFICIAL_BIN_EOS_PATH != '' || inputs.HOG_OFFICIAL_BIN_PATH != '' }}
+  get_artifacts:
+    runs-on: ubuntu-latest
+    container: gitlab-registry.cern.ch/hog/hog-docker
     steps:
       - uses: actions/checkout@v4
         name: Checkout Repository
@@ -85,6 +85,29 @@ jobs:
           runid=${note[0]}
           tag=${note[2]}
           echo "PR number $runid"
+          if [[ "${{ inputs.HOG_USE_DOXYGEN }}" == "1" ]]; then
+            dox_var="-doxygen"
+          fi
+          ./Hog/Other/GetArtifactsAndRename.sh -mr ${runid} -github ${dox_var}
+          echo "tag=$new_tag" >> $GITHUB_OUTPUT
+          echo "runid=${note[0]}" >> $GITHUB_OUTPUT
+        - name: Archive Simulation Artifacts
+          uses: actions/upload-artifact@v4
+          with:
+            name: Archive-Artifacts
+            path: |
+              bin 
+              Doc
+  archive_binary_files:
+    runs-on: self-hosted
+    if: ${{ inputs.HOG_OFFICIAL_BIN_EOS_PATH != '' || inputs.HOG_OFFICIAL_BIN_PATH != '' }}
+    needs: get_artifacts
+    steps:
+      - uses: actions/download-artifact@v4
+        name: Download Artifacts
+      - name: Archive
+        shell: bash
+        run: |
           if [[ "${{ inputs.HOG_OFFICIAL_BIN_PATH}}" != "" ]]; then
             BIN_PATH=${{ inputs.HOG_OFFICIAL_BIN_PATH}}
           elif [[ "${{ inputs.HOG_OFFICIAL_BIN_EOS_PATH }}" != "" ]]; then
@@ -101,37 +124,28 @@ jobs:
             export EOS_MGM_URL=${{ secrets.EOS_MGM_URL }}
           else
             export EOS_MGM_URL="root://eosuser.cern.ch"
-          fi;
-          if [[ "${{ inputs.HOG_USE_DOXYGEN }}" == "1" ]]; then
-            echo "./Hog/Other/GetArtifactsAndRename.sh -token $HOG_PUSH_TOKEN -url $GITHUB_API_URL -proj_id $GITHUB_REPOSITORY -mr ${runid} -doxygen -github"
-            ./Hog/Other/GetArtifactsAndRename.sh -token $HOG_PUSH_TOKEN -url $GITHUB_API_URL -proj_id $GITHUB_REPOSITORY -mr ${runid} -doxygen -github
-            echo "Copying Doxygen documentation to $BIN_PATH/Doc"
-            if [[ $BIN_PATH == /eos/* ]]; then
-              eos mkdir -p $BIN_PATH/Doc
-              xrdcp -rsf Doc/html/* ${EOS_MGM_URL}/$BIN_PATH/Doc
-            else
-              mkdir -p $BIN_PATH/Doc
-              cp -r Doc/html/* $BIN_PATH/Doc
-            fi;
+          fi;    
+          echo "Copying Doxygen documentation to $BIN_PATH/Doc"
+          if [[ $BIN_PATH == /eos/* ]]; then
+            eos mkdir -p $BIN_PATH/Doc
+            xrdcp -rsf Archive-Artifacts/Doc/html/* ${EOS_MGM_URL}/$BIN_PATH/Doc
           else
-            echo "./Hog/Other/GetArtifactsAndRename.sh -token $HOG_PUSH_TOKEN -url $GITHUB_API_URL -proj_id $GITHUB_REPOSITORY -mr ${runid} -github"
-            ./Hog/Other/GetArtifactsAndRename.sh -token $HOG_PUSH_TOKEN -url $GITHUB_API_URL -proj_id $GITHUB_REPOSITORY -mr ${runid} -github
-          fi
+            mkdir -p $BIN_PATH/Doc
+            cp -r Archive-Artifacts/Doc/html/* $BIN_PATH/Doc
+          fi;
           echo "Copying binary files to $BIN_PATH/${tag}";
           if [[ $BIN_PATH == /eos/* ]]; then
             eos mkdir $BIN_PATH/${tag};
-            xrdcp -rfs bin/* ${EOS_MGM_URL}//$BIN_PATH/${tag};
+            xrdcp -rfs Archive-Artifacts/bin/* ${EOS_MGM_URL}//$BIN_PATH/${tag};
           else
             mkdir $BIN_PATH/${tag};
-            cp -r bin/* $BIN_PATH/${tag};
+            cp -r Archive-Artifacts/bin/* $BIN_PATH/${tag};
           fi;
-          echo "tag=$new_tag" >> $GITHUB_OUTPUT
-          echo "runid=${note[0]}" >> $GITHUB_OUTPUT
   create_github_release:
     runs-on: ubuntu-latest
     container: gitlab-registry.cern.ch/hog/hog-docker
     if: ${{ inputs.HOG_CREATE_OFFICIAL_RELEASE }}
-    needs: archive_binary_files
+    needs: get_artifacts
     steps:
       - uses: actions/checkout@v4
         name: Checkout Repository
@@ -139,19 +153,8 @@ jobs:
           fetch-depth: 0
           token: ${{secrets.HOG_PUSH_TOKEN}}
           submodules: 'true'
-      - name: Get Artifacts
-        shell: bash
-        run: |
-          git config --system --add safe.directory $(pwd)
-          git config --global user.email "$HOG_EMAIL"
-          git config --global user.name "$HOG_USER"
-          git fetch
-          git checkout $GITHUB_HEAD_REF
-          git submodule init
-          git submodule update
-          source ./Hog/Other/CommonFunctions.sh
-          ./Hog/Other/GetArtifactsAndRename.sh -token $HOG_PUSH_TOKEN -url $GITHUB_API_URL -proj_id $GITHUB_REPOSITORY -mr ${{ needs.archive_binary_files.outputs.runid }} -github;
-          zip -r binaries.zip bin
+      - uses: actions/download-artifact@v4
+        name: Download Artifacts
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1
@@ -159,9 +162,9 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # This token is provided by Actions, you do not need to create your own token
         with:
-          tag_name: ${{ needs.archive_binary_files.outputs.tag }}
-          release_name: Release ${{ needs.archive_binary_files.outputs.tag }}
-          body_path: bin/note.md
+          tag_name: ${{ github.ref_name  }}
+          release_name: Release ${{ github.ref_name }}
+          body_path: Archive-Artifacts/bin/note.md
           draft: false
           prerelease: false
       - name: Upload Release Asset

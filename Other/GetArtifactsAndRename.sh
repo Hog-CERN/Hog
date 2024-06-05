@@ -27,10 +27,6 @@ function argument_parser() {
             get_doxygen="1"
             shift 1
             ;;
-        -token)
-            push_token="$2"
-            shift 2
-            ;;
         -mr)
             mr="$2"
             shift 2
@@ -91,13 +87,8 @@ else
     echo "$@"
     # GET all artifacts from collect_artifacts
     echo "Hog-INFO: downloading artifacts..."
-    echo "Github $github"
     if [[ $github == "1" ]]; then
-        echo "ciao"
-        artifact_id=$(curl -H "Accept: application/vnd.github+json" -H "Authorization: token ${push_token}" "$api/repos/$proj/actions/runs/$mr/artifacts" | jq '.artifacts[] | select (.name=="Collect-Artifacts") .id')
-        curl -L -H "Accept: application/vnd.github+json" -H "Authorization: token ${push_token}" "$api/repos/$proj/actions/artifacts/$artifact_id/zip" -o collect_artifacts.zip
-        echo "Hog-INFO: unzipping artifacts from collect_artifacts job..."
-        unzip -oq collect_artifacts.zip -d bin
+        gh run download $mr -n "Collect-Artifacts" -D bin
     else
         ref=refs/merge-requests%2F$mr%2Fhead
         # curl --location --header "PRIVATE-TOKEN: ${push_token}" "$api"/projects/"${proj}"/jobs/artifacts/"$ref"/download?job=collect_artifacts -o collect_artifacts.zip
@@ -107,11 +98,7 @@ else
     # Get artifacts from make_doxygen stage
     if [ "$get_doxygen" == "1" ]; then
         if [[ $github == "1" ]]; then
-            artifact_id=$(curl -H "Accept: application/vnd.github+json" -H "Authorization: token ${push_token}" "$api/repos/$proj/actions/runs/$mr/artifacts" | jq '.artifacts[] | select (.name=="Doxygen-Artifacts") .id')
-            curl -L -H "Accept: application/vnd.github+json" -H "Authorization: token ${push_token}" "$api/repos/$proj/actions/artifacts/$artifact_id/zip" -o doxygen.zip
-            echo "Hog-INFO: unzipping artifacts from make_doxygen job..."
-            unzip -oq doxygen.zip -d Doc
-            rm doxygen.zip
+            gh run download $mr -n "Doxygen-Artifacts" -D Doc
         else
             glab job artifact $ref make_doxygen 
         fi    

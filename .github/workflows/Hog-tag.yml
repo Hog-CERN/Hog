@@ -126,6 +126,7 @@ jobs:
           else
             export EOS_MGM_URL="root://eosuser.cern.ch"
           fi
+          ls -lrt Archive-Artifacts/
           echo "Copying Doxygen documentation to $BIN_PATH/Doc"
           if [[ $BIN_PATH == /eos/* ]]; then
             eos mkdir -p $BIN_PATH/Doc

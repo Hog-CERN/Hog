@@ -26,17 +26,15 @@ if {[catch {package require cmdline} ERROR]} {
   return
 }
 
-set usage "- CI script that downloads artifacts from child pipelines.\n USAGE: $::argv0 \[OPTIONS\] <push token> <Gitlab api url> <project id> <commit SHA> <create_job id> \n. Options:"
+set usage "- CI script that downloads artifacts from child pipelines.\n USAGE: $::argv0 <project id> <commit SHA> <create_job id>."
 
 if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] ||  [llength $argv] < 5 } {
-  Msg Info [cmdline::usage $parameters $usage]
+  Msg Info $usage
   cd $OldPath
   return
 }
 
-set push_token [lindex $argv 0]
-set api [lindex $argv 1]
-set proj_id [lindex $argv 2]
+set proj_id [lindex $argv 1]
 set commit_sha [lindex $argv 3]
 set create_job_id [lindex $argv 4]
 set page 1

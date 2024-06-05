@@ -126,14 +126,15 @@ jobs:
           else
             export EOS_MGM_URL="root://eosuser.cern.ch"
           fi
-          ls -lrt Archive-Artifacts/
-          echo "Copying Doxygen documentation to $BIN_PATH/Doc"
-          if [[ $BIN_PATH == /eos/* ]]; then
-            eos mkdir -p $BIN_PATH/Doc
-            xrdcp -rsf Archive-Artifacts/Doc/html/* ${EOS_MGM_URL}/$BIN_PATH/Doc
-          else
-            mkdir -p $BIN_PATH/Doc
-            cp -r Archive-Artifacts/Doc/html/* $BIN_PATH/Doc
+          if [[ "${{ inputs.HOG_USE_DOXYGEN }}" == "1" ]]; then
+            echo "Copying Doxygen documentation to $BIN_PATH/Doc"
+            if [[ $BIN_PATH == /eos/* ]]; then
+              eos mkdir -p $BIN_PATH/Doc
+              xrdcp -rsf Archive-Artifacts/Doc/html/* ${EOS_MGM_URL}/$BIN_PATH/Doc
+            else
+              mkdir -p $BIN_PATH/Doc
+              cp -r Archive-Artifacts/Doc/html/* $BIN_PATH/Doc
+            fi
           fi
           echo "Copying binary files to $BIN_PATH/${tag}"
           if [[ $BIN_PATH == /eos/* ]] then

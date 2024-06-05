@@ -91,7 +91,6 @@ else
         gh run download $mr -n "Collect-Artifacts" -D bin
     else
         ref=refs/merge-requests%2F$mr%2Fhead
-        # curl --location --header "PRIVATE-TOKEN: ${push_token}" "$api"/projects/"${proj}"/jobs/artifacts/"$ref"/download?job=collect_artifacts -o collect_artifacts.zip
         glab job artifact $ref collect_artifacts 
     fi
 

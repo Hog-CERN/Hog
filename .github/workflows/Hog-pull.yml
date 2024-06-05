@@ -382,10 +382,6 @@ jobs:
               if [[ -f "bin/$PROJECT_NAME*/utilization.txt" ]]; then
                 cat bin/$PROJECT_NAME*/utilization.txt >> note.md;
               fi;
-              if [[ -n "$HOG_MR_MSG" ]] && [[ $HOG_MR_MSG == '3' ]]; then
-                echo "Hog-CI(info) - Writing note on gitlab website...";
-                ./Hog/Other/WriteGithubNote.sh $HOG_PUSH_TOKEN $GITHUB_API_URL $GITHUB_REPOSITORY $PR_NUMBER note.md;
-              fi
               echo "Hog-CI(info) - All done.";
       - name: Archive Generate Artifacts
         uses: actions/upload-artifact@v4
@@ -537,8 +533,9 @@ jobs:
               fi;
               cd $old_dir
               if [[ -z "$HOG_MR_MSG" ]] || [[ $HOG_MR_MSG == '1' ]] || [[ $HOG_MR_MSG == '2' ]]; then
-                echo "Hog-CI(info) - Writing note on GitHub website...";
-                ./Hog/Other/WriteGithubNote.sh $HOG_PUSH_TOKEN $GITHUB_API_URL $GITHUB_REPOSITORY $PR_NUMBER pr_note.md;
+                echo "Hog-CI(info) - Writing note on GitHub Pull Request Page...";
+                sed -i 's/\n/\\n/g' pr_note.md
+                gh pr comment $PR_NUMBER -F pr_note.md
               fi;
       - name: Artifacts
         uses: actions/upload-artifact@v4

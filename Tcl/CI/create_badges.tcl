@@ -50,7 +50,7 @@ set current_badges []
 set page 1
 
 while {1} {
-  lassign [ExecuteRet curl --header "PRIVATE-TOKEN: $push_token" "$api_url/projects/${project_id}/badges?page=$page" --request GET] ret content
+  lassign [ExecuteRet glab api /projects/${project_id}/badges?page=$page] ret content
   if {[llength $content] > 0 && $page < 100} {
     set accumulated "$accumulated$content"
     incr page
@@ -112,7 +112,7 @@ if {[file exists utilization.txt]} {
 
   foreach badge_name [dict keys $new_badges] {
     set badge_found 0
-    lassign [ExecuteRet curl -s --request POST --header "PRIVATE-TOKEN: ${push_token}" --form "file=@$badge_name.svg" $api_url/projects/$project_id/uploads] ret content
+    lassign [ExecuteRet glab api -X "POST" --form "file=@$badge_name.svg" /projects/$project_id/uploads] ret content
     set image_url [ParseJSON $content url]
     foreach badge $current_badges {
       set current_badge_name [dict get $badge "name"]
@@ -120,13 +120,13 @@ if {[file exists utilization.txt]} {
       if {$current_badge_name == $badge_name} {
         set badge_found 1
         Msg Info "Badge $badge_name exists, updating it..."
-        Execute curl --header "PRIVATE-TOKEN: $push_token" "$api_url/projects/${project_id}/badges/$badge_id" --request PUT --data "image_url=$project_url/$image_url"
+        Execute glab api -X "PUT" --data "image_url=$project_url/$image_url" /projects/${project_id}/badges/$badge_id
         break
       }
     }
     if {$badge_found == 0} {
       Msg Info "Badge $badge_name does not exist yet. Creating it..."
-      Execute curl --header "PRIVATE-TOKEN: $push_token" --request POST --data "link_url=$project_url/-/releases&image_url=$project_url/$image_url&name=$badge_name" "$api_url/projects/$project_id/badges"
+      Execute glab api -X "POST" --data "link_url=$project_url/-/releases&image_url=$project_url/$image_url&name=$badge_name" /projects/$project_id/badges
     }
   }
 }

@@ -72,7 +72,7 @@ foreach proj $projects_list {
       Msg Info "Uploading file $f"
       lassign [ExecuteRet glab api -X "POST" --form "file=@$f" /projects/${proj_id}/uploads] ret content
       if {$ret != 0} {
-        Msg CriticalWarning "Error with curl while trying to upload $f: $content"
+        Msg CriticalWarning "Error with glab while trying to upload $f: $content"
       } else {
         if {[string index $content 0] eq "\{" } {
           set url [ParseJSON $content "url"]

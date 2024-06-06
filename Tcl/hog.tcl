@@ -1966,12 +1966,13 @@ proc GetProjectFiles {} {
             dict lappend srcsets $fs "${lib}.src"
           }
           dict lappend libraries "${lib}.src" $f
-        } elseif {[string equal $type "IP"]} {
+        } elseif {[string first "IP" $type] != -1} {
           # IPs
           if {[IsInList "ips.src" [DictGet $srcsets $fs]]==0} {
             dict lappend srcsets $fs "ips.src"
           }
           dict lappend libraries "ips.src" $f
+          Msg Debug "Appending $f to ips.src"
         } elseif {[string equal $fs_type "Constrs"]} {
           # Constraints
           if {[IsInList "sources.con" [DictGet $consets $fs]]==0} {
@@ -1984,6 +1985,7 @@ proc GetProjectFiles {} {
             dict lappend srcsets $fs "others.src"
           }
           dict lappend libraries "others.src" $f
+          Msg Debug "Appending $f to others.src"
         }
 
         if {[lindex [get_property -quiet used_in_synthesis  [GetFile $f]] 0] == 0} {
@@ -1995,7 +1997,7 @@ proc GetProjectFiles {} {
         if {[lindex [get_property -quiet used_in_simulation  [GetFile $f]] 0] == 0} {
           dict lappend properties $f "nosim"
         }
-        if {[lindex [get_property -quiet IS_MANAGED [GetFile $f]] 0] == 0} {
+        if {[lindex [get_property -quiet IS_MANAGED [GetFile $f]] 0] == 0 && [file extension $f] != ".xcix" } {
           dict lappend properties $f "locked"
         }
       }

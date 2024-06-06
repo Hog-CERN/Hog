@@ -87,7 +87,7 @@ if {$ret != 0} {
       continue
     }
 
-    Msg Info "Downloading artifacts for child job at: ${api}/projects/${proj_id}/jobs/${child_job_id}/artifacts/"
+    Msg Info "Downloading artifacts for child job at: projects/${proj_id}/jobs/${child_job_id}/artifacts/"
     lassign [ExecuteRet glab api "/projects/${proj_id}/jobs/${child_job_id}/artifacts/" > output_${child_job_id}.zip] ret msg
     if {$ret != 0} {
       Msg Error "Some problem when downloading artifacts for child job id:$child_job_id. Error message: $msg"

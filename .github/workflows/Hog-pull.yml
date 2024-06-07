@@ -161,7 +161,9 @@ jobs:
               fi
             fi
           fi
+          set +e
           MERGE_STATUS=$(git merge --no-commit origin/${GITHUB_BASE_REF})
+          set -e
           if [[ "$MERGE_STATUS" == *"Already up to date."* ]]; then
             echo "Branch already up-to-date with respect to $GITHUB_BASE_REF"
           else
@@ -179,7 +181,7 @@ jobs:
     container: gitlab-registry.cern.ch/hog/hog-docker:doxygen
     needs: merge
     concurrency:
-      group: doxygen-group
+      group: doxygen-${{ github.ref }}
       cancel-in-progress: true
     if: ${{ inputs.HOG_USE_DOXYGEN }}
     steps:
@@ -215,7 +217,7 @@ jobs:
         PROJECT_NAME: ${{fromJson(inputs.BUILD_PROJECTS)}}
     needs: merge
     concurrency:
-      group: ci-${{ github.ref }}
+      group: gen-${{ github.ref }}
       cancel-in-progress: true
     steps:
       - uses: ATOS-Actions/clean-self-hosted-runner@v1
@@ -406,7 +408,7 @@ jobs:
         PROJECT_NAME: ${{fromJson(inputs.SIM_PROJECTS)}}
     needs: merge
     concurrency:
-      group: ci-${{ github.ref }}
+      group: sim-${{ github.ref }}
       cancel-in-progress: true
     steps:
       - uses: ATOS-Actions/clean-self-hosted-runner@v1
@@ -481,7 +483,7 @@ jobs:
     needs: [generate_project, simulate_project]
     container: gitlab-registry.cern.ch/hog/hog-docker
     concurrency:
-      group: ci-${{ github.ref }}
+      group: collect-${{ github.ref }}
       cancel-in-progress: true
     steps:
       - uses: actions/checkout@v4
@@ -564,7 +566,7 @@ jobs:
     if: ${{ inputs.BUILD_PROJECTS }}
     needs: [generate_project]
     concurrency:
-      group: ci-${{ github.ref }}
+      group: time-${{ github.ref }}
       cancel-in-progress: true
     steps:
       - uses: actions/checkout@v4

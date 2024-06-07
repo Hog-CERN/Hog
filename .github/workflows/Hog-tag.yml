@@ -91,7 +91,7 @@ jobs:
           fi
           ./Hog/Other/GetArtifactsAndRename.sh -mr ${runid} -github ${dox_var}
           tar -czvf binaries.tar.gz bin
-          if [[ "${{ inputs.HOG_CREATE_OFFICIAL_RELEASE }}" == "1" ]]; then
+          if [[ ${{ inputs.HOG_CREATE_OFFICIAL_RELEASE }}]]; then
             echo "Creating release ${{ github.ref_name }}"
             gh release create ${{ github.ref_name }} binaries.tar.gz -F bin/note.md -t "Release ${{ github.ref_name }}"
           fi

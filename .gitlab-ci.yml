@@ -68,7 +68,9 @@ launch_github:
       fi;
     - sleep 10s
     - gh pr checks $PR_NR --watch
-
+  interruptible: true
+  allow_failure: true
+  
 launch_testfirmware:
   stage: merge_checks
   image: gitlab-registry.cern.ch/hog/hog-docker

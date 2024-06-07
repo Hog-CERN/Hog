@@ -119,6 +119,9 @@ env:
 jobs:
   merge:
     runs-on: ubuntu-latest
+    concurrency:
+      group: ci-${{ github.ref }}
+      cancel-in-progress: true
     container: gitlab-registry.cern.ch/hog/hog-docker
     steps:
       - uses: actions/checkout@v4
@@ -175,6 +178,9 @@ jobs:
     runs-on: ubuntu-latest
     container: gitlab-registry.cern.ch/hog/hog-docker:doxygen
     needs: merge
+    concurrency:
+      group: doxygen-group
+      cancel-in-progress: true
     if: ${{ inputs.HOG_USE_DOXYGEN }}
     steps:
       - uses: actions/checkout@v4
@@ -208,6 +214,9 @@ jobs:
       matrix:
         PROJECT_NAME: ${{fromJson(inputs.BUILD_PROJECTS)}}
     needs: merge
+    concurrency:
+      group: ci-${{ github.ref }}
+      cancel-in-progress: true
     steps:
       - uses: ATOS-Actions/clean-self-hosted-runner@v1
         name: Cleaning
@@ -396,6 +405,9 @@ jobs:
       matrix:
         PROJECT_NAME: ${{fromJson(inputs.SIM_PROJECTS)}}
     needs: merge
+    concurrency:
+      group: ci-${{ github.ref }}
+      cancel-in-progress: true
     steps:
       - uses: ATOS-Actions/clean-self-hosted-runner@v1
         name: Cleaning
@@ -468,6 +480,9 @@ jobs:
     if: ${{ inputs.BUILD_PROJECTS || inputs.SIM_PROJECTS }} && ${{ always() }}
     needs: [generate_project, simulate_project]
     container: gitlab-registry.cern.ch/hog/hog-docker
+    concurrency:
+      group: ci-${{ github.ref }}
+      cancel-in-progress: true
     steps:
       - uses: actions/checkout@v4
         name: Checkout Repository
@@ -548,6 +563,9 @@ jobs:
     container: gitlab-registry.cern.ch/hog/hog-docker
     if: ${{ inputs.BUILD_PROJECTS }}
     needs: [generate_project]
+    concurrency:
+      group: ci-${{ github.ref }}
+      cancel-in-progress: true
     steps:
       - uses: actions/checkout@v4
         name: Checkout Repository

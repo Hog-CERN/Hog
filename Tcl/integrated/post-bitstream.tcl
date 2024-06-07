@@ -387,6 +387,12 @@ if {[IsXilinx]} {
       set dst_xsa [file normalize "$dst_dir/${proj_name}\-$describe.xsa"]
       Msg Info "Generating XSA File at $dst_xsa"
       if { [IsVersal $part] } {
+	# Run user pre-platform file
+        set user_pre_platform_file "./Top/$group_name/$proj_name/pre-platform.tcl"
+        if {[file exists $user_pre_platform_file]} {
+          Msg Info "Sourcing user pre-platform file $user_pre_platform_file"
+          source $user_pre_platform_file
+        }
 	set pdi_post_imp [file normalize "$work_path/$top_name.pdi"]
 	set_property platform.full_pdi_file $pdi_post_imp [current_project]
 	Msg Info "XSA file will be generated for Versal with this PDI: $pdi_post_imp"
@@ -394,7 +400,6 @@ if {[IsXilinx]} {
       } else {
 	write_hw_platform -include_bit -fixed -force -file "$dst_xsa"
       }
-    
     }
   }
 }

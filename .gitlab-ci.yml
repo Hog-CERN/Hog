@@ -50,11 +50,12 @@ launch_github:
         git checkout -b auto/$CI_COMMIT_REF_NAME;
       fi
     - cd Hog
-    - git checkout $CI_COMMIT_REF_NAME
+    - git checkout $CI_COMMIT_SHA
     - cd ..
-    - perl -pi -e 's/^\s*uses:.*$/    uses:\ hog-CERN\/Hog\/.github\/workflows\/Hog-main.yml\@'"$CI_COMMIT_REF_NAME"'/' .github/workflows/main.yml
-    - perl -pi -e 's/^\s*uses:.*$/    uses:\ hog-CERN\/Hog\/.github\/workflows\/Hog-pull.yml\@'"$CI_COMMIT_REF_NAME"'/' .github/workflows/pull.yml
-    - git diff-index --quiet HEAD || git commit -am "Updating Hog to $CI_COMMIT_REF_NAME"
+    - perl -pi -e 's/^\s*uses:.*$/    uses:\ hog-CERN\/Hog\/.github\/workflows\/Hog-main.yml\@'"$CI_COMMIT_SHA"'/' .github/workflows/main.yml
+    - perl -pi -e 's/^\s*uses:.*$/    uses:\ hog-CERN\/Hog\/.github\/workflows\/Hog-pull.yml\@'"$CI_COMMIT_SHA"'/' .github/workflows/pull.yml
+    - perl -pi -e 's/^\s*uses:.*$/    uses:\ hog-CERN\/Hog\/.github\/workflows\/Hog-tag.yml\@'"$CI_COMMIT_SHA"'/' .github/workflows/tag.yml
+    - git diff-index --quiet HEAD || git commit -am "Updating Hog to $CI_COMMIT_SHA"
     - git push -u https://hog-user:${GITHUB_TOKEN}@github.com/hog-CERN/TestFirmware.git auto/$CI_COMMIT_REF_NAME
     # Check if there is already a MR open with the current branch, if not open it
     - PR_NR=$(gh pr list -R hog-CERN/TestFirmware -H auto/${CI_COMMIT_REF_NAME} -B develop --json number -q '.[0].number')
@@ -91,10 +92,10 @@ launch_testfirmware:
         git checkout -b auto/$CI_COMMIT_REF_NAME;
       fi
     - cd Hog
-    - git checkout $CI_COMMIT_REF_NAME
+    - git checkout $CI_COMMIT_SHA
     - cd ..
-    - sed -i '/ref:/s#.*#      ref:\ '"$CI_COMMIT_REF_NAME"'#' .gitlab-ci.yml
-    - git diff-index --quiet HEAD || git commit -am "Updating Hog to $CI_COMMIT_REF_NAME"
+    - sed -i '/ref:/s#.*#      ref:\ '"$CI_COMMIT_SHA"'#' .gitlab-ci.yml
+    - git diff-index --quiet HEAD || git commit -am "Updating Hog to $CI_COMMIT_SHA"
     - git push origin auto/$CI_COMMIT_REF_NAME
     # Check if there is already a MR open with the current branch, if not open it
     - response=$(glab mr list -F json -R hog-cern/test/TestFirmware --source-branch=auto/$CI_COMMIT_REF_NAME --target-branch=develop)

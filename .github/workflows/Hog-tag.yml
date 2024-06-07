@@ -66,7 +66,7 @@ jobs:
           fetch-depth: 0
           token: ${{secrets.HOG_PUSH_TOKEN}}
           submodules: 'true'
-      - name: Get Artifacts
+      - name: Get Artifacts and Release
         id: artifacts
         shell: bash
         run: |
@@ -90,6 +90,11 @@ jobs:
             dox_var="-doxygen"
           fi
           ./Hog/Other/GetArtifactsAndRename.sh -mr ${runid} -github ${dox_var}
+          tar -czvf binaries.tar.gz bin 
+          if [[ "${{ inputs.HOG_CREATE_OFFICIAL_RELEASE }}" == "1" ]]; then
+            echo "Creating release ${{ github.ref_name }}"
+            gh release create ${{ github.ref_name }} binaries.tar.gz -F bin/note.md -t "Release ${{ github.ref_name }}"
+          fi
           echo "tag=$new_tag" >> $GITHUB_OUTPUT
           echo "runid=${note[0]}" >> $GITHUB_OUTPUT
       - name: Archive Simulation Artifacts
@@ -137,47 +142,12 @@ jobs:
             fi
           fi
           echo "Copying binary files to $BIN_PATH/${tag}"
-          if [[ $BIN_PATH == /eos/* ]] then
+          if [[ $BIN_PATH == /eos/* ]]; then
             eos mkdir $BIN_PATH/${tag}
             xrdcp -rfs Archive-Artifacts/bin/* ${EOS_MGM_URL}//$BIN_PATH/${tag}
           else
             mkdir $BIN_PATH/${tag}
             cp -r Archive-Artifacts/bin/* $BIN_PATH/${tag}
           fi;
-  create_github_release:
-    runs-on: ubuntu-latest
-    container: gitlab-registry.cern.ch/hog/hog-docker
-    if: ${{ inputs.HOG_CREATE_OFFICIAL_RELEASE }}
-    needs: get_artifacts
-    steps:
-      - uses: actions/checkout@v4
-        name: Checkout Repository
-        with:
-          fetch-depth: 0
-          token: ${{secrets.HOG_PUSH_TOKEN}}
-          submodules: 'true'
-      - uses: actions/download-artifact@v4
-        name: Download Artifacts
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # This token is provided by Actions, you do not need to create your own token
-        with:
-          tag_name: ${{ github.ref_name  }}
-          release_name: Release ${{ github.ref_name }}
-          body_path: Archive-Artifacts/bin/note.md
-          draft: false
-          prerelease: false
-      - name: Upload Release Asset
-        id: upload-release-asset
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps
-          asset_path: ./binaries.zip
-          asset_name: Binaries
-          asset_content_type: application/zip
+
+

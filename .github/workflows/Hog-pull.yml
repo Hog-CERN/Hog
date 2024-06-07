@@ -479,8 +479,8 @@ jobs:
             Projects
   collect_artifacts:
     runs-on: ubuntu-latest
-    if: ${{ inputs.BUILD_PROJECTS || inputs.SIM_PROJECTS }} && ${{ always() }}
-    needs: [generate_project, simulate_project]
+    if: ${{ inputs.BUILD_PROJECTS }}
+    needs: [generate_project]
     container: gitlab-registry.cern.ch/hog/hog-docker
     concurrency:
       group: collect-${{ github.ref }}

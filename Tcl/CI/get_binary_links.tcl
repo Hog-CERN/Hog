@@ -33,7 +33,7 @@ set parameters {
 
 set usage "- CI script that retrieves binary files links or creates new ones to be uploaded as Releases\n USAGE: $::argv0 <push token> <Gitlab api url> <project id> <project url> <tag> \[OPTIONS\] \n. Options:"
 
-if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] ||  [llength $argv] < 6 } {
+if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] ||  [llength $argv] < 4 } {
   Msg Info [cmdline::usage $parameters $usage]
   cd $OldPath
   return

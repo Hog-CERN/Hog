@@ -162,7 +162,7 @@ tag_official_version:
         echo "Tagging is not necessary because the present commit is already tagged as $new_tag.";
       fi;
 
-make_release:
+artifacts_and_release:
   only:
     refs:
       - tags

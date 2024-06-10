@@ -479,6 +479,7 @@ declare -A Hog_Usr_dict
   # @return  string
 trim() {
   local var=$1
+  # echo $var
   var="${var#"${var%%[![:space:]]*}"}"
   var="${var%"${var##*[![:space:]]}"}"
   echo -n "$var"
@@ -571,11 +572,11 @@ process_toml_file() {
         line=""
       fi
       if [[ ${#proc_line} -gt 0 ]]; then
-        Msg Debug "saving in dict ::: $proc_line"
+        Msg Debug "saving in dict ::: <${proc_line}>"
         if [[ $arraylvl == 0 ]]; then
-          toml_dict["$section_name.$key"]=$(trim ${proc_line//\"/}) #${proc_line//\"/} #(trim "$line")
+          toml_dict["$section_name.$key"]=$(trim "${proc_line//\"/}")
         else
-          toml_dict["$section_name.${key}.$index"]=$(trim ${proc_line//\"/})
+          toml_dict["$section_name.${key}.$index"]=$(trim "${proc_line//\"/}")
           ((index++))
         fi
       fi
@@ -606,10 +607,10 @@ function Logger_Init() {
   current_user=$(whoami)
   hog_user_cfg=$(eval echo "~$USER")"/HogEnv.conf"
   if test -f $hog_user_cfg; then
-    Msg Info "Hog project configuration file $hog_user_cfg exists."
+    Msg Debug "Hog project configuration file $hog_user_cfg exists."
     process_toml_file $hog_user_cfg "Hog_Usr_dict"
     for key in "${!Hog_Usr_dict[@]}"; do
-      Msg Info "Hog_Usr_dict[ $key ] = <${Hog_Usr_dict[$key]}>"
+      Msg Debug "Hog_Usr_dict[ $key ] = <${Hog_Usr_dict[$key]}>"
     done
   else
     Msg Debug "Hog project configuration file $hog_user_cfg doesn't exists."
@@ -633,7 +634,17 @@ function Logger_Init() {
       fi 
     fi
   fi
+
+############ FROM HERE WILL USE LOGGER COLORS IF ENABLED
   Msg Debug "HOG_COLOR_EN -- $HOG_COLOR_EN"
+  if test -f $hog_user_cfg; then
+    Msg Info "Hog project configuration file $hog_user_cfg exists."
+    for key in "${!Hog_Usr_dict[@]}"; do
+      Msg Info "Hog_Usr_dict[ $key ] = <${Hog_Usr_dict[$key]}>"
+    done
+  else
+    Msg Debug "Hog project configuration file $hog_user_cfg doesn't exists."
+  fi
 
   # SETTING DEBUG_VERBOSE
   if [[ -v Hog_Usr_dict["terminal.debug"] ]]; then
@@ -715,12 +726,10 @@ function Logger_Init() {
   use_glob_ol=1
   for key in "${!Hog_Prj_dict[@]}"; do
     if [[ $key == *"overloads"* ]]; then
-      # echo "key $key"
       if [[ $key == *"include_global"* ]]; then
         use_glob_ol=${Hog_Prj_dict["overloads"]}
       fi
       if [[ $key =~ \.[a-z]2[a-z]\. ]]; then
-          # echo "aaaaa"
           case "${key}" in
             *"2e"*) destination="error" ;;
             *"2c"*) destination="critical" ;;
@@ -776,7 +785,7 @@ function Logger_Init() {
   else
     Msg Debug " There are not Overload instructions"
   fi
-  exit
+  # exit
   custom_timestamp=$(date +"%Y-%m-%d_%H:%M:%S")
 
   if [ "$HOG_LOG_EN" -eq 1 ]; then

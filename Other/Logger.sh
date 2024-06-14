@@ -73,26 +73,26 @@ function read_tmp_cnt () {
 
 
 function msg_counter () {
- case "$1" in
-  init)
-    echo "0" > "$temp_i_cnt_file"
-    echo "0" > "$temp_d_cnt_file"
-    echo "0" > "$temp_w_cnt_file"
-    echo "0" > "$temp_c_cnt_file"
-    echo "0" > "$temp_e_cnt_file"
-  ;;
-  iw) update_cnt $temp_i_cnt_file ;;
-  ir) read_tmp_cnt $temp_i_cnt_file ;;
-  dw) update_cnt $temp_d_cnt_file ;;
-  dr) read_tmp_cnt $temp_d_cnt_file ;;
-  ww) update_cnt $temp_w_cnt_file ;;
-  wr) read_tmp_cnt $temp_w_cnt_file ;;
-  cw) update_cnt $temp_c_cnt_file ;;
-  cr) read_tmp_cnt $temp_c_cnt_file ;;
-  ew) update_cnt $temp_e_cnt_file ;;
-  er) read_tmp_cnt $temp_e_cnt_file ;;
-  *) Msg Error "counter update doesn't exist" ;;
- esac
+  case "$1" in
+    init)
+      echo "0" > "$temp_i_cnt_file"
+      echo "0" > "$temp_d_cnt_file"
+      echo "0" > "$temp_w_cnt_file"
+      echo "0" > "$temp_c_cnt_file"
+      echo "0" > "$temp_e_cnt_file"
+    ;;
+    iw) update_cnt $temp_i_cnt_file ;;
+    ir) read_tmp_cnt $temp_i_cnt_file ;;
+    dw) update_cnt $temp_d_cnt_file ;;
+    dr) read_tmp_cnt $temp_d_cnt_file ;;
+    ww) update_cnt $temp_w_cnt_file ;;
+    wr) read_tmp_cnt $temp_w_cnt_file ;;
+    cw) update_cnt $temp_c_cnt_file ;;
+    cr) read_tmp_cnt $temp_c_cnt_file ;;
+    ew) update_cnt $temp_e_cnt_file ;;
+    er) read_tmp_cnt $temp_e_cnt_file ;;
+    *) Msg Error "counter update doesn't exist" ;;
+  esac
 }
 
 echo_info=1
@@ -243,7 +243,7 @@ function log_stdout(){
         msgType="error"
         echo $line
       else
-       Msg Error "Error in logger" 
+        Msg Error "Error in logger" 
       fi  
       #######################################
       # Overwriting
@@ -479,6 +479,7 @@ declare -A Hog_Usr_dict
   # @return  string
 trim() {
   local var=$1
+  # echo $var
   var="${var#"${var%%[![:space:]]*}"}"
   var="${var%"${var##*[![:space:]]}"}"
   echo -n "$var"
@@ -571,11 +572,11 @@ process_toml_file() {
         line=""
       fi
       if [[ ${#proc_line} -gt 0 ]]; then
-        Msg Debug "saving in dict ::: $proc_line"
+        Msg Debug "saving in dict ::: <${proc_line}>"
         if [[ $arraylvl == 0 ]]; then
-          toml_dict["$section_name.$key"]=$(trim ${proc_line//\"/}) #${proc_line//\"/} #(trim "$line")
+          toml_dict["$section_name.$key"]=$(trim "${proc_line//\"/}")
         else
-          toml_dict["$section_name.${key}.$index"]=$(trim ${proc_line//\"/})
+          toml_dict["$section_name.${key}.$index"]=$(trim "${proc_line//\"/}")
           ((index++))
         fi
       fi
@@ -606,10 +607,10 @@ function Logger_Init() {
   current_user=$(whoami)
   hog_user_cfg=$(eval echo "~$USER")"/HogEnv.conf"
   if test -f $hog_user_cfg; then
-    Msg Info "Hog project configuration file $hog_user_cfg exists."
+    Msg Debug "Hog project configuration file $hog_user_cfg exists."
     process_toml_file $hog_user_cfg "Hog_Usr_dict"
     for key in "${!Hog_Usr_dict[@]}"; do
-      Msg Info "Hog_Usr_dict[ $key ] = <${Hog_Usr_dict[$key]}>"
+      Msg Debug "Hog_Usr_dict[ $key ] = <${Hog_Usr_dict[$key]}>"
     done
   else
     Msg Debug "Hog project configuration file $hog_user_cfg doesn't exists."
@@ -633,7 +634,17 @@ function Logger_Init() {
       fi 
     fi
   fi
+
+############ FROM HERE WILL USE LOGGER COLORS IF ENABLED
   Msg Debug "HOG_COLOR_EN -- $HOG_COLOR_EN"
+  if test -f $hog_user_cfg; then
+    Msg Info "Hog project configuration file $hog_user_cfg exists."
+    for key in "${!Hog_Usr_dict[@]}"; do
+      Msg Info "Hog_Usr_dict[ $key ] = <${Hog_Usr_dict[$key]}>"
+    done
+  else
+    Msg Debug "Hog project configuration file $hog_user_cfg doesn't exists."
+  fi
 
   # SETTING DEBUG_VERBOSE
   if [[ -v Hog_Usr_dict["terminal.debug"] ]]; then
@@ -690,7 +701,7 @@ function Logger_Init() {
     Msg Info "Hog project configuration file $hog_proj_cfg exists."
     process_toml_file $hog_proj_cfg "Hog_Prj_dict"
     for key in "${!Hog_Prj_dict[@]}"; do
-      Msg Info "Hog_Prj_dict[ $key ] = <${Hog_Prj_dict[$key]}>"
+      Msg Debug "Hog_Prj_dict[ $key ] = <${Hog_Prj_dict[$key]}>"
     done
   else
     Msg Debug "Hog project configuration file $hog_proj_cfg doesn't exists."
@@ -715,12 +726,10 @@ function Logger_Init() {
   use_glob_ol=1
   for key in "${!Hog_Prj_dict[@]}"; do
     if [[ $key == *"overloads"* ]]; then
-      # echo "key $key"
       if [[ $key == *"include_global"* ]]; then
         use_glob_ol=${Hog_Prj_dict["overloads"]}
       fi
       if [[ $key =~ \.[a-z]2[a-z]\. ]]; then
-          # echo "aaaaa"
           case "${key}" in
             *"2e"*) destination="error" ;;
             *"2c"*) destination="critical" ;;
@@ -739,25 +748,44 @@ function Logger_Init() {
     fi
   done
 
-  Msg Debug " ========================================= "
-  Msg Debug "        Message Overloads"
-  Msg Debug " ========================================= "
-  for key in "${!errorOverload[@]}"; do
-    Msg Warning "::: errorOverload[$key] --- ${errorOverload[$key]}"
-  done
-  for key in "${!criticalOverload[@]}"; do
-    Msg Warning "::: criticalOverload[$key] --- ${criticalOverload[$key]}"
-  done
-  for key in "${!warningOverload[@]}"; do
-    Msg Warning "::: warningOverload[$key] --- ${warningOverload[$key]}"
-  done
-  for key in "${!infoOverload[@]}"; do
-    Msg Warning "::: infoOverload[$key] --- ${infoOverload[$key]}"
-  done
-  for key in "${!debugOverload[@]}"; do
-    Msg Warning "::: debugOverload[$key] --- ${debugOverload[$key]}"
-  done
-
+  if [[ -v errorOverload[@] || -v criticalOverload[@] || -v warningOverload[@] || -v infoOverload[@] || -v debugOverload[@] ]]; then
+    Msg Info " ========================================= "
+    Msg Info "        Message Overloads"
+    Msg Info " ========================================= "
+    if [[ -v errorOverload[@] ]]; then
+      Msg Info "errorOverload"
+      for key in "${!errorOverload[@]}"; do
+        Msg Info " 2 ${errorOverload[$key]} ::: [$key] "
+      done
+    fi
+    if [[ -v criticalOverload[@] ]]; then
+      Msg Info "criticalOverload"
+      for key in "${!criticalOverload[@]}"; do
+        Msg Info " 2 ${criticalOverload[$key]} ::: [$key]"
+      done
+    fi
+    if [[ -v warningOverload[@] ]]; then
+      Msg Info "warningOverload"
+      for key in "${!warningOverload[@]}"; do
+        Msg Info " 2 ${warningOverload[$key]} ::: [$key]"
+      done
+    fi
+    if [[ -v infoOverload[@] ]]; then
+      Msg Info "infoOverload"
+      for key in "${!infoOverload[@]}"; do
+        Msg Info " 2 ${infoOverload[$key]} ::: [$key]"
+      done
+    fi
+    if [[ -v debugOverload[@] ]]; then
+      Msg Info "debugOverload"
+      for key in "${!debugOverload[@]}"; do
+        Msg Info " 2 ${debugOverload[$key]} ::: [$key]"
+      done
+    fi
+  else
+    Msg Debug " There are not Overload instructions"
+  fi
+  # exit
   custom_timestamp=$(date +"%Y-%m-%d_%H:%M:%S")
 
   if [ "$HOG_LOG_EN" -eq 1 ]; then

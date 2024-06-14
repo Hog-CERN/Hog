@@ -221,7 +221,7 @@ archive_binary_files:
   variables:
     <<: *vars
   needs:
-    - job: make_release
+    - job: artifacts_and_release
       artifacts: true
   stage: archive
   script:

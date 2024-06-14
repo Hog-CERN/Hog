@@ -198,9 +198,9 @@ artifacts_and_release:
     - cd ..
     - if [[ -v HOG_CREATE_OFFICIAL_RELEASE ]] && [[ $HOG_CREATE_OFFICIAL_RELEASE == "1" ]]; then
         if [[ -v HOG_CHECK_PROJVER ]] && [[ $HOG_CHECK_PROJVER == '1' ]]; then
-            tclsh ./Hog/Tcl/CI/get_binary_links.tcl  $CI_PROJECT_ID $CI_PROJECT_URL $CI_COMMIT_TAG "$HOG_EXTERNAL_PATH";
+            tclsh ./Hog/Tcl/CI/get_binary_links.tcl  $CI_PROJECT_ID $CI_PROJECT_URL $CI_COMMIT_TAG "$HOG_EXTERNAL_PATH" $CI_API_V4_URL $HOG_PUSH_TOKEN;
         else
-            tclsh ./Hog/Tcl/CI/get_binary_links.tcl -force  $CI_PROJECT_ID $CI_PROJECT_URL $CI_COMMIT_TAG "$HOG_EXTERNAL_PATH";
+            tclsh ./Hog/Tcl/CI/get_binary_links.tcl -force  $CI_PROJECT_ID $CI_PROJECT_URL $CI_COMMIT_TAG "$HOG_EXTERNAL_PATH" $CI_API_V4_URL $HOG_PUSH_TOKEN;
         fi;
         ./Hog/Other/MakeGitlabRelease.sh $CI_COMMIT_TAG bin/note.md -load_artifacts;
       fi;

@@ -31,7 +31,7 @@ set parameters {
   {force "Forces the creation of new project links"}
 }
 
-set usage "- CI script that retrieves binary files links or creates new ones to be uploaded as Releases\n USAGE: $::argv0 <push token> <Gitlab api url> <project id> <project url> <tag> \[OPTIONS\] \n. Options:"
+set usage "- CI script that retrieves binary files links or creates new ones to be uploaded as Releases\n USAGE: $::argv0 <push token> <Gitlab api url> <project id> <project url> <tag> <api_url> <push_token>\[OPTIONS\] \n. Options:"
 
 if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] ||  [llength $argv] < 4 } {
   Msg Info [cmdline::usage $parameters $usage]
@@ -43,6 +43,8 @@ set proj_id [lindex $argv 0]
 set prj_url [lindex $argv 1]
 set tag [lindex $argv 2]
 set ext_path [lindex $argv 3]
+set api [lindex $argv 4]
+set push_token [lindex $argv 5]
 
 set fp [open "$repo_path/project_links.txt" w]
 
@@ -70,9 +72,9 @@ foreach proj $projects_list {
     }
     foreach f $files {
       Msg Info "Uploading file $f"
-      lassign [ExecuteRet glab api -X "POST" --form "file=@$f" /projects/${proj_id}/uploads] ret content
+      lassign [ExecuteRet curl -s --request POST --header "PRIVATE-TOKEN: ${push_token}" --form "file=@$f" ${api}/projects/${proj_id}/uploads] ret content
       if {$ret != 0} {
-        Msg CriticalWarning "Error with glab while trying to upload $f: $content"
+        Msg CriticalWarning "Error with curl while trying to upload $f: $content"
       } else {
         if {[string index $content 0] eq "\{" } {
           set url [ParseJSON $content "url"]

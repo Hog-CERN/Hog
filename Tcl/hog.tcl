@@ -1543,9 +1543,14 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
 	set found 1
 	if {![IsCommitAncestor $sha $global_commit]} {
 	  set common_child  [FindCommonGitChild $global_commit $sha]
-	  lappend SHAs $common_child
+	  if {$common_child == 0} {
+            Msg CriticalWarning "The commit $sha is not an ancestor of the global commit $global_commit, which is OK. But $sha and $global_commit do not have any common child, which is NOT OK. This is probably do to a REBASE that is forbidden in Hog methodology as it changes git history. Hog cannot gaurantee the accuracy of the SHAs. A way to fix this is to make a commit that touches all the projects in the repositories (e.g. change the Hog version) but please do not rebase in the official branches in the future."
+	  } else { 
+            Msg Info "The commit $sha is not an ancestor of the global commit $global_commit, adding the first common child $common_child instead..."
+	    lappend SHAs $common_child
+	  }
 	  set found 0
-	  Msg Info "The commit $sha is not an ancestor of the global commit $global_commit, adding the first common child $common_child instead..."
+	  
 	  break
 	}
       }

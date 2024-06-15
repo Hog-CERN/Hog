@@ -35,9 +35,12 @@ if {"$result" != "0"} {
   return -1
 }
 
-set project_url [lindex $argv 0]
-set project [lindex $argv 1]
-set ext_path [lindex $argv 2]
+set push_token [lindex $argv 0]
+set api_url [lindex $argv 1]
+set project_id [lindex $argv 2]
+set project_url [lindex $argv 3]
+set project [lindex $argv 4]
+set ext_path [lindex $argv 5]
 
 set resources [dict create "LUTs" "LUTs" "Registers" "FFs" "Block" "BRAM" "URAM" "URAM" "DSPs" "DSPs"]
 set ver [ GetProjectVersion $repo_path/Top/$project $repo_path $ext_path 0 ]
@@ -47,7 +50,7 @@ set current_badges []
 set page 1
 
 while {1} {
-  lassign [ExecuteRet glab api /projects/:id/badges?page=$page] ret content
+  lassign [ExecuteRet curl --header "PRIVATE-TOKEN: $push_token" "$api_url/projects/${project_id}/badges?page=$page" --request GET] ret content
   if {[llength $content] > 0 && $page < 100} {
     set accumulated "$accumulated$content"
     incr page
@@ -109,7 +112,7 @@ if {[file exists utilization.txt]} {
 
   foreach badge_name [dict keys $new_badges] {
     set badge_found 0
-    lassign [ExecuteRet glab api -X "POST" --form "file=@$badge_name.svg" /projects/:id/uploads] ret content
+    lassign [ExecuteRet curl -s --request POST --header "PRIVATE-TOKEN: ${push_token}" --form "file=@$badge_name.svg" $api_url/projects/$project_id/uploads] ret content
     set image_url [ParseJSON $content url]
     foreach badge $current_badges {
       set current_badge_name [dict get $badge "name"]
@@ -117,13 +120,13 @@ if {[file exists utilization.txt]} {
       if {$current_badge_name == $badge_name} {
         set badge_found 1
         Msg Info "Badge $badge_name exists, updating it..."
-        Execute glab api -X "PUT" --data "image_url=$project_url/$image_url" /projects/:id/badges/$badge_id
+        Execute curl --header "PRIVATE-TOKEN: $push_token" "$api_url/projects/${project_id}/badges/$badge_id" --request PUT --data "image_url=$project_url/$image_url"
         break
       }
     }
     if {$badge_found == 0} {
       Msg Info "Badge $badge_name does not exist yet. Creating it..."
-      Execute glab api -X "POST" --data "link_url=$project_url/-/releases&image_url=$project_url/$image_url&name=$badge_name" /projects/:id/badges
+      Execute curl --header "PRIVATE-TOKEN: $push_token" --request POST --data "link_url=$project_url/-/releases&image_url=$project_url/$image_url&name=$badge_name" "$api_url/projects/$project_id/badges"
     }
   }
 }

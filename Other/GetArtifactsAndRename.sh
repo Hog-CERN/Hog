@@ -85,10 +85,11 @@ else
     fi
     # GET all artifacts from collect_artifacts
     echo "Hog-INFO: downloading artifacts..."
+    ref=refs/merge-requests%2F$mr%2Fhead
+
     if [[ $github == "1" ]]; then
         gh run download $mr -n "Collect-Artifacts" -D bin
     else
-        ref=refs/merge-requests%2F$mr%2Fhead
         glab job artifact $ref collect_artifacts
     fi
 
@@ -103,8 +104,10 @@ else
 
     if [[ $github != "1" ]]; then
         # GET all artifacts from user_post stage
-        pipeline=$(glab mr view $mr -F json | jq '.pipeline.id')
-        job=$(glab ci get -p $pipeline -F json | jq -r '.jobs.[0].name')
+        pipeline=$(glab mr view $mr -F json | jq ".pipeline.id")
+        echo "Retrieving pipeline $pipeline..."
+        job=$(glab ci get -p $pipeline -F json | jq -r ".jobs.[0].name")
+        echo "Last job in pipeline was $job"
         if [ "$job" != "collect_artifacts" ]; then
             glab job artifact $ref $job
         fi

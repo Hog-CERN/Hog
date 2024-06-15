@@ -83,7 +83,6 @@ else
     if [ "$1" == "-h" ] || [ "$1" == "-help" ] || [ "$1" == "--help" ] || [ "$1" == "-H" ]; then
         help_message "$0"
     fi
-    echo "$@"
     # GET all artifacts from collect_artifacts
     echo "Hog-INFO: downloading artifacts..."
     if [[ $github == "1" ]]; then

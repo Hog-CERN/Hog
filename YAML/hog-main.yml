@@ -307,8 +307,9 @@ create_badge:
     GIT_SUBMODULE_STRATEGY: recursive
   stage: badge
   script:
+    - glab auth login -t $HOG_PUSH_TOKEN
     - for project in $HOG_BADGE_PROJECTS; do
-        tclsh Hog/Tcl/CI/create_badges.tcl $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $CI_PROJECT_URL $project "$HOG_EXTERNAL_PATH";
+        tclsh Hog/Tcl/CI/create_badges.tcl $CI_PROJECT_URL $project "$HOG_EXTERNAL_PATH";
       done;
   allow_failure: true
   artifacts:

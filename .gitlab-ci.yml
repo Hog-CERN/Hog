@@ -311,10 +311,14 @@ create_release_note:
     - glab auth -t $HOG_PUSH_TOKEN
     - git fetch origin refs/notes/*:refs/notes/*
     - MR=( `git notes show` )
-    - ./Other/GetGitlabArtifact.sh $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $MR
-      changelog.md changelog > note.md
-    - if [[ $CI_COMMIT_TAG =~ ^v.*$ ]]; then ./Other/MakeGitlabRelease.sh $CI_COMMIT_TAG note.md -b; fi
-    - if [[ $CI_COMMIT_TAG =~ ^Hog.*$ ]]; then ./Other/MakeGitlabRelease.sh $CI_COMMIT_TAG note.md; fi
+    - ref=refs/merge-requests%2F$MR%2Fhead
+    - glab job artifact $ref changelog
+    - if [[ $CI_COMMIT_TAG =~ ^v.*$ ]]; then
+        glab release create $CI_COMMIT_TAG -F changelog.md -n "Beta version $CI_COMMIT_TAG";
+      fi
+    - if [[ $CI_COMMIT_TAG =~ ^Hog.*$ ]]; then
+        glab release create $CI_COMMIT_TAG -F changelog.md -n "Official version $CI_COMMIT_TAG";
+      fi
 
 # launch_validation:
 #   image: gitlab-registry.cern.ch/hog/hog-docker

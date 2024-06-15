@@ -33,7 +33,7 @@ set parameters {
 
 set usage "- CI script that retrieves binary files links or creates new ones to be uploaded to a GitLab release\n USAGE: $::argv0 <tag> <ext_path> \[OPTIONS\] \n. Options:"
 
-if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] ||  [llength $argv] < 4 } {
+if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] ||  [llength $argv] < 2 } {
   Msg Info [cmdline::usage $parameters $usage]
   cd $OldPath
   return
@@ -60,13 +60,13 @@ foreach proj $projects_list {
     }
     if { $proj_dir != "." } {
       set proj_zip [string map {/ _} $proj_dir]
-      set files [glob -nocomplain -directory "$repo_path/zipped/" ${proj_zip}_${proj_name}-${ver}.z*]
+      set files [glob -nocomplain -directory "$repo_path/zipped/" ${proj_zip}_${proj_name}-${tag}.z*]
     } else {
-      set files [glob -nocomplain -directory "$repo_path/zipped/" ${proj_name}-${ver}.z*]
+      set files [glob -nocomplain -directory "$repo_path/zipped/" ${proj_name}-${tag}.z*]
     }
     foreach f $files {
       set ext [file extension $f]
-      glab release upload $tag "$f#${proj}-${ver}$ext"
+      Execute glab release upload $tag "$f#${proj}-${tag}$ext"
     }
   } elseif {"$ver"=="-1"} {
     # Something went wrong...

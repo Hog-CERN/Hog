@@ -64,10 +64,9 @@ function help_message() {
   echo " Hog - GetArtifactsAndRename "
   echo " ---------------------------"
   echo " Get the artifacts from collect_artifacts job of the chosen MR"
-  echo 
+  echo
   echo " Usage: $1 [OPTIONS]"
   echo " Options:"
-  echo "          -token <push_token>        The GitLab Push Token"
   echo "          -mr <Merge Request Number> The MR number  "
   echo "          -doxygen                   If sets, get also the artifacts from make_doxygen job."
   echo "          -github                    If sets, use the github API"
@@ -91,7 +90,7 @@ else
         gh run download $mr -n "Collect-Artifacts" -D bin
     else
         ref=refs/merge-requests%2F$mr%2Fhead
-        glab job artifact $ref collect_artifacts 
+        glab job artifact $ref collect_artifacts
     fi
 
     # Get artifacts from make_doxygen stage
@@ -99,17 +98,16 @@ else
         if [[ $github == "1" ]]; then
             gh run download $mr -n "Doxygen-Artifacts" -D Doc
         else
-            glab job artifact $ref make_doxygen 
-        fi    
+            glab job artifact $ref make_doxygen
+        fi
     fi
 
     if [[ $github != "1" ]]; then
         # GET all artifacts from user_post stage
         pipeline=$(glab mr view $mr -F json | jq '.pipeline.id')
         job=$(glab ci get -p $pipeline -F json | jq -r '.jobs.[0].name')
-            
         if [ "$job" != "collect_artifacts" ]; then
-            glab job artifact $ref $job 
+            glab job artifact $ref $job
         fi
     fi
 
@@ -132,16 +130,16 @@ else
                 echo "ERROR: The project directory doesn't match the pattern"
                 PRJ_SHA=""
             fi
-	    
+
             TAG=$(git tag --sort=creatordate --contain "$PRJ_SHA" -l "v*.*.*" | head -1)
             echo "Hog-INFO: Found project $PRJ_NAME"
             if ! ls "$PRJ_DIR"/"${PRJ_BASE}"* > /dev/null 2>&1; then
                 echo "Hog-INFO: Project $PRJ_NAME does not contain any bitfile..."
                 PRJ_BINS=""
-            else 
+            else
                 PRJ_BINS=("$(ls "$PRJ_DIR"/"${PRJ_BASE}"*)")
             fi
-	    
+
             # shellcheck disable=SC2048
             for PRJ_BIN in ${PRJ_BINS[*]}; do
                 regex="($PRJ_NAME_BASE)-(.*v[0-9]+\.[0-9]+\.[0-9]+)-([0-9,a-f,A-F]{7})(-dirty)?(.+)"

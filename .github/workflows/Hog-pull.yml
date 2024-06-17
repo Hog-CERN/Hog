@@ -48,9 +48,9 @@ on:
       HOG_DEBUG_MODE:
         required: false
         type: string
+      HOG_NJOBS:
+        required: false
     secrets:
-      SUBMODULE_CONTENT_PULL_KEY:
-        required: true
       HOG_PUSH_TOKEN:
         required: true
       HOG_EMAIL:
@@ -72,8 +72,6 @@ on:
       HOG_IP_PATH:
         required: false
       HOG_RESET_FILES:
-        required: false
-      HOG_NJOBS:
         required: false
       HOG_IP_NJOBS:
         required: false
@@ -106,7 +104,6 @@ env:
   HOG_SIMULATION_LIB_PATH: ${{ secrets.HOG_SIMULATION_LIB_PATH }}
   HOG_IP_PATH: ${{ secrets.HOG_IP_PATH }}
   HOG_RESET_FILES: ${{ secrets.HOG_RESET_FILES }}
-  HOG_NJOBS: ${{ secrets.HOG_NJOBS }}
   HOG_IP_NJOBS: ${{ secrets.HOG_IP_NJOBS }}
   GH_TOKEN: ${{ secrets.HOG_PUSH_TOKEN }}
   HOG_PR_MSG: ${{ secrets.HOG_PR_MSG }}
@@ -294,7 +291,7 @@ jobs:
                 if [ -n "${{ inputs.HOG_DEBUG_MODE }}" ] && [ "${{ inputs.HOG_DEBUG_MODE }}" == '1' ]; then
                   echo "Hog-CI(info) - The workflow will be run in verbose mode.";
                 fi;
-                if [ -z "${HOG_NJOBS}" ]; then
+                if [ -z "${{ inputs.HOG_NJOBS}}" ]; then
                   export HOG_NJOBS=4;
                   echo "Hog-CI(info) - Number of jobs set to $HOG_NJOBS";
                 fi;

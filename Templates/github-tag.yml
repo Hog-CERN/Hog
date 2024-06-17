@@ -15,36 +15,23 @@
 # This file must be copied inside the '.github/workflows/' folder of your repository
 
 ---
-name: Pull
+name: Tag
 
-# Select here the target branch of the pull request, which should run the pipeline
+# Runs only for tag respecting the v*.*.* format
 on:
-  pull_request:
-    branches: [ master, main, develop, release ]
+  push:
+    tags:
+      - 'v*.*.*'
 
 jobs:
   hog-workflow:
-    # Here you can change the hog version
-    uses: hog-CERN/Hog/.github/workflows/Hog-pull.yml@Hog2024.2
+    # Here you can change the Hog version to use
+    uses: hog-CERN/Hog/.github/workflows/Hog-tag.yml@Hog2024.2
     secrets:
       HOG_PUSH_TOKEN: ${{ secrets.HOG_PUSH_TOKEN }}
       HOG_EMAIL: ${{ secrets.HOG_EMAIL}}
       HOG_USER: ${{ secrets.HOG_USER}}
-      HOG_PATH: ${{ secrets.HOG_PATH}}
-      HOG_XIL_LICENSE: ${{ secrets.HOG_XIL_LICENSE }}
     with:
-      BUILD_PROJECTS: >-
-        ["my_project"]
-      SIM_PROJECTS: >-
-        ["my_project"]
-      HOG_USE_DOXYGEN: True
-      HOG_CHECK_SYNTAX: True
-      HOG_NO_RESET_BD: True
-      HOG_CHECK_PROJVER: True
-      HOG_NO_BITSTREAM: False
-
-# This allows Hog to cancel pipelines, if a new commit is pushed to the same pull request branch
-concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
-
+      HOG_CREATE_OFFICIAL_RELEASE: True
+      HOG_OFFICIAL_BIN_PATH: "/path/to/store/official/binaries"
+      HOG_USE_DOXYGEN: "1"

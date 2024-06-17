@@ -117,7 +117,7 @@ env:
   HOG_APPTAINER_EXTRA_PATH: ${{ secrets.HOG_APPTAINER_EXTRA_PATH }}
 
 jobs:
-  merge:
+  check:
     runs-on: ubuntu-latest
     concurrency:
       group: ci-${{ github.ref }}
@@ -130,7 +130,7 @@ jobs:
           fetch-depth: 0
           token: ${{secrets.HOG_PUSH_TOKEN}}
           submodules: 'true'
-      - name: Merge And Tag
+      - name: Check Branch State
         shell: bash
         run: |
           git config --system --add safe.directory $(pwd)

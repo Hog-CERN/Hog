@@ -55,10 +55,10 @@
     - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $HOG_TARGET_BRANCH && $HOG_TARGET_BRANCH != null && $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME != $HOG_DEVELOP_BRANCH'
       when: on_success
 
-merge_and_tag:
+check_branch_state:
   <<: *only-default
   <<: *tag-sr
-  stage: merge
+  stage: check
   variables:
     GIT_STRATEGY: clone
   script:
@@ -124,7 +124,7 @@ make_doxygen:
 
 tag_official_version:
   <<: *tag-sr
-  stage: merge
+  stage: tag
   rules:
     - if: '$HOG_TARGET_BRANCH != null && $CI_COMMIT_REF_NAME == $HOG_TARGET_BRANCH && $CI_PIPELINE_SOURCE == "push"'
       when: always

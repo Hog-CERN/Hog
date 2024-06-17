@@ -21,7 +21,7 @@ set TclPath [file dirname [info script]]/..
 set repo_path [file normalize "$TclPath/../.."]
 source $TclPath/hog.tcl
 
-set usage "- CI script that downloads artifacts from child pipelines.\n USAGE: $::argv0 <push token> <Gitlab api url> <project id> <commit SHA> <create_job id>."
+set usage "- CI script that downloads artifacts from child pipelines.\n USAGE: $::argv0 <project id> <commit SHA> <create_job id>."
 
 if { [llength $argv] < 3 } {
   Msg Info $usage

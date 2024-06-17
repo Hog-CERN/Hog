@@ -20,7 +20,7 @@ name: Pull
 # Select here the target branch of the pull request, which should run the pipeline
 on:
   pull_request:
-    branches: [ master, main, develop, release ]
+    branches: [master, main, develop, release]
 
 jobs:
   hog-workflow:

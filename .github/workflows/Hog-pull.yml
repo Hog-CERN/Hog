@@ -50,7 +50,7 @@ on:
         type: string
       HOG_NJOBS:
         required: false
-        type: number
+        type: string
     secrets:
       HOG_PUSH_TOKEN:
         required: true
@@ -253,7 +253,7 @@ jobs:
               if [ ${{inputs.HOG_USE_DOXYGEN}} ]; then
                 export HOG_USE_DOXYGEN=1
               fi;
-              if [ ${{ inputs.HOG_NO_BITSTREAM}}]; then
+              if [ ${{ inputs.HOG_NO_BITSTREAM}} ]; then
                 export HOG_NO_BITSTREAM=1
               fi
               source Hog/Other/CommonFunctions.sh
@@ -313,12 +313,12 @@ jobs:
                     until echo $EOS_PASSWORD | kinit $EOS_USER@CERN.CH ; do echo "Retrying"; sleep 2; done;
                   fi;
                 fi;
-                if [ ${{ inputs.HOG_ONLY_SYNTH }}]; then
+                if [ ${{ inputs.HOG_ONLY_SYNTH }} ]; then
                   export ONLY_SYNTH=1;
                   echo "Hog-CI(info) - Only the synthesis will be run.";
                 else
                   export ONLY_SYNTH=0;
-                  if [ ${{ inputs.HOG_NO_BITSTREAM }}]; then
+                  if [ ${{ inputs.HOG_NO_BITSTREAM }} ]; then
                     export NO_BITSTREAM="-no_bitstream";
                     echo "Hog-CI(info) - No binary files will be generated.";
                   else

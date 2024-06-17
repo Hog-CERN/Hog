@@ -308,7 +308,7 @@ create_release_note:
     refs: [tags]
     variables: [$CI_COMMIT_TAG =~ /^(v.*)|(Hog.*)$/]
   script:
-    - glab auth -t $HOG_PUSH_TOKEN
+    - glab auth login -t $HOG_PUSH_TOKEN
     - git fetch origin refs/notes/*:refs/notes/*
     - MR=( `git notes show` )
     - ref=refs/merge-requests%2F$MR%2Fhead

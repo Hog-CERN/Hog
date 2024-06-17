@@ -179,7 +179,7 @@ jobs:
   make_doxygen:
     runs-on: ubuntu-latest
     container: gitlab-registry.cern.ch/hog/hog-docker:doxygen
-    needs: merge
+    needs: check
     concurrency:
       group: doxygen-${{ github.ref }}
       cancel-in-progress: true
@@ -215,7 +215,7 @@ jobs:
     strategy:
       matrix:
         PROJECT_NAME: ${{fromJson(inputs.BUILD_PROJECTS)}}
-    needs: merge
+    needs: check
     concurrency:
       group: gen-${{ github.ref }}
       cancel-in-progress: true
@@ -406,7 +406,7 @@ jobs:
     strategy:
       matrix:
         PROJECT_NAME: ${{fromJson(inputs.SIM_PROJECTS)}}
-    needs: merge
+    needs: check
     concurrency:
       group: sim-${{ github.ref }}
       cancel-in-progress: true

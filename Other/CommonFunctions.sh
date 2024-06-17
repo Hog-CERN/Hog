@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#   Copyright 2018-2023 The University of Birmingham
+#   Copyright 2018-2024 The University of Birmingham
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -52,7 +52,7 @@ export HDL_COMPILER=""
 export HOG_GIT_VERSION=""
 
 ## @var DEBUG_VERBOSE
-#  @brief Global variable 
+#  @brief Global variable
 #
 export DEBUG_VERBOSE=""
 
@@ -160,7 +160,7 @@ function select_command() {
     return 1
   fi
 
-  
+
   if ! select_command_from_line "$(head -1 "$file")"; then
     Msg Error "Failed to select COMMAND, COMMAND_OPT and POST_COMMAND_OPT"
     return 1
@@ -209,7 +209,7 @@ function select_compiler_executable() {
     elif [ "$1" == "quartus_sh" ]; then
       if [ -z ${QUARTUS_ROOTDIR+x} ]; then
         Msg Error "No quartus_sh executable found and no variable QUARTUS_ROOTDIR set\n"
-        cd "${OLD_DIR}" || exit 
+        cd "${OLD_DIR}" || exit
         return 1
       else
         Msg Info "QUARTUS_ROOTDIR is set to '$QUARTUS_ROOTDIR'"
@@ -257,14 +257,14 @@ function select_executable_from_project_dir() {
     Msg Error "missing input! Got: $1!"
     return 1
   fi
-  
+
   if ! select_command "$1"; then
     Msg Error "Failed to select project type: exiting!"
     return 1
   fi
 
   #select full path to executable and place it in HDL_COMPILER global variable
-  
+
   if ! select_compiler_executable $COMMAND; then
     Msg Error "Failed to get HDL compiler executable for $COMMAND"
     return 1
@@ -382,19 +382,19 @@ function HogVer() {
     current_sha=$(git log "$current_version" -1 --format=format:%H)
     timeout 5s git fetch
     master_version=$(git describe origin/master)
-    master_sha=$(git log "$master_version" -1 --format=format:%H)    
+    master_sha=$(git log "$master_version" -1 --format=format:%H)
     merge_base=$(git merge-base "$current_sha" "$master_sha")
 
-    # The next line checks if master_sha is an ancestor of current_sha 
+    # The next line checks if master_sha is an ancestor of current_sha
     if [ "$merge_base" != "$master_sha" ]; then
       Msg Info
       Msg Info "Version $master_version has been released (https://gitlab.cern.ch/hog/Hog/-/releases/$master_version)"
       Msg Info "You should consider updating Hog submodule with the following instructions:"
       echo
       Msg Info "cd Hog && git checkout master && git pull"
-      echo 
+      echo
       Msg Info "Remember also to update the ref: in your .gitlab-ci.yml to $master_version"
-      echo 
+      echo
     else
       Msg Info "Latest official version is $master_version, nothing to do."
     fi
@@ -436,6 +436,6 @@ function print_projects() {
     echo ""
     search_projects "$1"
     echo
-    cd "$2" || exit 
+    cd "$2" || exit
 
 }

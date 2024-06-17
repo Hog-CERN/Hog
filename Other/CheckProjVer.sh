@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#   Copyright 2018-2023 The University of Birmingham
+#   Copyright 2018-2024 The University of Birmingham
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -123,7 +123,7 @@ function main() {
   else
     echo "Hog-ERROR: Top folder not found, Hog is not in a Hog-compatible HDL repository."
     echo
-    cd "${OLD_DIR}" || exit 
+    cd "${OLD_DIR}" || exit
     exit 1
   fi
 
@@ -138,7 +138,7 @@ function main() {
 
     #Choose if the project is quartus, vivado, vivado_hls [...]
     local PROJ_DIR="$PWD/$PROJ_DIR"
-    
+
     if ! select_command "$PROJ_DIR"; then
       echo "Hog-ERROR: Failed to select project type: exiting!"
       exit 1

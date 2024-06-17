@@ -1,5 +1,5 @@
 #!/usr/bin/env tclsh
-#   Copyright 2018-2023 The University of Birmingham
+#   Copyright 2018-2024 The University of Birmingham
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -180,10 +180,10 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
   lassign [CompareLibDicts $prjLibraries $listLibraries $prjSrcSets $listSrcSets $prjProperties $listProperties "CriticalWarning" $outFile $extraFiles] SrcListErrorCnt extraFiles prjLibraries prjProperties
   lassign [CompareLibDicts $prjSimLibraries $listSimLibraries $prjSimSets $listSimSets $prjProperties $listSimProperties "Warning" $outSimFile $extraFiles] SimListErrorCnt extraFiles prjSimLibraries prjProperties
   lassign [CompareLibDicts $prjConstraints $listConstraints $prjConSets $listConSets $prjProperties $listConProperties  "CriticalWarning" $outFile $extraFiles] ConListErrorCnt extraFiles prjConstraints prjProperties
-  
+
   # Check if any files remained in extraFiles
   foreach {k v} $extraFiles {
-    MsgAndLog "$k was found in .hog/extra.files but not in project." "CriticalWarning" $outFile 
+    MsgAndLog "$k was found in .hog/extra.files but not in project." "CriticalWarning" $outFile
     incr SrcListErrorCnt
   }
 
@@ -233,7 +233,7 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
       }
       WriteListFiles $prjConstraints $prjProperties $listpath $repo_path
     }
-  } 
+  }
 }
 
 
@@ -342,7 +342,7 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
     if {$proj_run == [current_project]} {
       lappend run_props "BOARD_PART_REPO_PATHS"
     }
-    
+
     foreach prop $run_props {
       #ignoring properties in $PROP_BAN_LIST
       if {$prop in $PROP_BAN_LIST} {
@@ -360,7 +360,7 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
               dict set projRunDict [string toupper [lindex $generic_prop_value 0]] [lindex $generic_prop_value 1]
               dict set defaultRunDict [string toupper $prop] ""
             }
-          } 
+          }
         }
       } else {
         #Project values
@@ -500,7 +500,7 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
     set confFile $repo_path/$DirName/hog.conf
     set version [GetIDEVersion]
     WriteConf $confFile $newConfDict "vivado $version"
-    
+
   }
  }
 
@@ -579,7 +579,7 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
   }
 
   foreach simset [get_filesets -quiet] {
-    if {[get_property FILESET_TYPE $simset] != "SimulationSrcs" } {            
+    if {[get_property FILESET_TYPE $simset] != "SimulationSrcs" } {
       continue
     }
     set hogConfSimDict [DictGet $simConfDict $simset]
@@ -655,7 +655,7 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
       }
       # Check if this is the active simulation set
       if {$simset == [current_fileset -simset]} {
-        dict set newSimDict "ACTIVE" "1" 
+        dict set newSimDict "ACTIVE" "1"
       }
     }
     dict set newSimConfDict $simset $newSimDict
@@ -677,7 +677,7 @@ if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
       }
 
       # ignore settings for other simulators
-      set other_sim_prop 0 
+      set other_sim_prop 0
       foreach simulator [GetSimulators] {
         if {[string toupper $simulator] != [string toupper [get_property target_simulator [current_project]]]} {
           if {[string first [string toupper $simulator] [string toupper $setting]] == 0} {

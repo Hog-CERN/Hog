@@ -1,5 +1,5 @@
 #!/usr/bin/env tclsh
-#   Copyright 2018-2023 The University of Birmingham
+#   Copyright 2018-2024 The University of Birmingham
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -142,7 +142,7 @@ foreach proj $projects_list {
       puts $fp [ WriteGitLabCIYAML $proj $dir/ci.conf ]
     } else {
       Msg Info "No CI configuration file found ($dir/ci.conf) for $proj, creating all jobs..."
-      puts $fp [ WriteGitLabCIYAML $proj ]    
+      puts $fp [ WriteGitLabCIYAML $proj ]
     }
   } else {
     Msg Info "$proj was not modified since version: $ver, skipping."

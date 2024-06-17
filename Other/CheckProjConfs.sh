@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#   Copyright 2018-2023 The University of Birmingham
+#   Copyright 2018-2024 The University of Birmingham
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -99,7 +99,7 @@ function argument_parser() {
 # @ brief The CheckProjConfs function
 #
 # This function sources the check_list_files.tcl, which checks that the project configuration files (hog.conf and list files) matches the current settings in the Vivado Project
-# This script is available only for Vivado at the moment. 
+# This script is available only for Vivado at the moment.
 #
 # @param[in]    $@ all the inputs to this script
 function CheckProjConfs() {
@@ -131,7 +131,7 @@ function CheckProjConfs() {
   else
     echo "Hog-ERROR: Top folder not found, Hog is not in a Hog-compatible HDL repository."
     echo
-    cd "${OLD_DIR}" || exit 
+    cd "${OLD_DIR}" || exit
     exit 1
   fi
 
@@ -146,7 +146,7 @@ function CheckProjConfs() {
 
     #Choose if the project is quartus, vivado, vivado_hls [...]
     local PROJ_DIR="$PWD/$PROJ_DIR"
-    
+
     if ! select_command "$PROJ_DIR"; then
       echo "Hog-ERROR: Failed to select project type: exiting!"
       exit 1
@@ -169,7 +169,7 @@ function CheckProjConfs() {
     if [ "$COMMAND" = "vivado" ]; then
       echo "Hog-INFO: Executing:  ${HDL_COMPILER} $COMMAND_OPT $DIR/../../Hog/Tcl/utils/check_list_files.tcl ${POST_COMMAND_OPT} $EXT_PATH $RECREATE_CONF $RECREATE $FORCE -proj $PROJ"
       ${HDL_COMPILER} $COMMAND_OPT $DIR/../Hog/Tcl/utils/check_list_files.tcl ${POST_COMMAND_OPT} $EXT_PATH $RECREATE_CONF $RECREATE $FORCE -project $PROJ
-    else 
+    else
       echo "This script is supported only by Xilinx Vivado for the moment, exiting..."
     fi
   fi

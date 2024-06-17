@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#   Copyright 2018-2023 The University of Birmingham
+#   Copyright 2018-2024 The University of Birmingham
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -21,7 +21,7 @@
 ##############################################################
 
 ## @var DEBUG_VERBOSE
-#  @brief Global variable 
+#  @brief Global variable
 #
 export DEBUG_VERBOSE=""
 HOG_LOG_EN=0
@@ -180,9 +180,9 @@ declare -A infoOverload
 declare -A debugOverload
 
 ## @function log_stdout()
-# 
-# @brief parsers the output of the executed program ( Vivado, Questa,...) 
-# 
+#
+# @brief parsers the output of the executed program ( Vivado, Questa,...)
+#
 # @param[in] execution line to process
 next_is_err=0
 shopt -s extglob
@@ -212,7 +212,7 @@ function log_stdout(){
             msgType="error"
             # msgType=$(msgTypeOverload "error" "$dataLine")
           ;;
-          *'CRITICAL:'* | *'CRITICAL WARNING:'* ) 
+          *'CRITICAL:'* | *'CRITICAL WARNING:'* )
             # msgTypeOverload msgType "critical" "$dataLine"
             msgType="critical"
           ;;
@@ -243,8 +243,8 @@ function log_stdout(){
         msgType="error"
         echo $line
       else
-        Msg Error "Error in logger" 
-      fi  
+        Msg Error "Error in logger"
+      fi
       #######################################
       # Overwriting
       #######################################
@@ -257,7 +257,7 @@ function log_stdout(){
             fi
           done
         ;;
-        "critical") 
+        "critical")
           for key in "${!criticalOverload[@]}"; do
             if [[ "$line" == *"$key"* ]]; then
               Msg Debug "Message level Override: Key < '$key' > exists in the string < $line > with value '${criticalOverload[$key]}'"
@@ -265,7 +265,7 @@ function log_stdout(){
             fi
           done
         ;;
-        "warning") 
+        "warning")
           for key in "${!warningOverload[@]}"; do
             if [[ "$line+" == *"$key"* ]]; then
               Msg Debug "Message level Override: Key < '$key' > exists in the string < $line > with value '${warningOverload[$key]}'"
@@ -273,7 +273,7 @@ function log_stdout(){
             fi
           done
         ;;
-        "info") 
+        "info")
           for key in "${!infoOverload[@]}"; do
             echo " joder que meirda"
             if [[ "$line" == *"$key"* ]]; then
@@ -282,7 +282,7 @@ function log_stdout(){
             fi
           done
         ;;
-        "vcom") 
+        "vcom")
           for key in "${!infoOverload[@]}"; do
             if [[ "$line" == *"$key"* ]]; then
               Msg Debug "Message level Override: Key < '$key' > exists in the string < $line > with value '${infoOverload[$key]}'"
@@ -290,7 +290,7 @@ function log_stdout(){
             fi
           done
         ;;
-        "debug") 
+        "debug")
           for key in "${!debugOverload[@]}"; do
             if [[ "$line" == *"$key"* ]]; then
               Msg Debug "Message level Override: Key < '$key' > exists in the string < $line > with value '${debugOverload[$key]}'"
@@ -303,7 +303,7 @@ function log_stdout(){
         # The writing will be done here
       #######################################
       if [[ $DEBUG_VERBOSE -gt 5 ]]; then
-        printf "%d : %d :" $BASHPID "$(msg_counter ${msgCounter[$msgType]})"  
+        printf "%d : %d :" $BASHPID "$(msg_counter ${msgCounter[$msgType]})"
       else
         msg_counter "${msgCounter[$msgType]}" >> /dev/null
       fi;
@@ -311,10 +311,10 @@ function log_stdout(){
         if [[ $HOG_COLOR_EN -gt 1 ]]; then
           case "${clrschselected}" in
             "dark")
-              echo -e "${darkColorScheme[$msgType]} ${dataLine#${msgRemove[$msgType]}} " 
+              echo -e "${darkColorScheme[$msgType]} ${dataLine#${msgRemove[$msgType]}} "
             ;;
             "clear")
-              echo -e "${clearColorScheme[$msgType]} ${dataLine#${msgRemove[$msgType]}} " 
+              echo -e "${clearColorScheme[$msgType]} ${dataLine#${msgRemove[$msgType]}} "
             ;;
           esac
         elif [[ $HOG_COLOR_EN -gt 0 ]]; then
@@ -324,11 +324,11 @@ function log_stdout(){
         fi
       fi
       if [[ $HOG_LOG_EN -gt 0 ]]; then
-        if [[ -n $LOG_WAR_ERR_FILE ]] && [[ 3 -gt ${msgDbgLvl[$msgType]} ]]; then 
+        if [[ -n $LOG_WAR_ERR_FILE ]] && [[ 3 -gt ${msgDbgLvl[$msgType]} ]]; then
           echo "${msgHeadBW[$msgType]} ${dataLine#${msgRemove[$msgType]}} "  >> $LOG_WAR_ERR_FILE
         fi
-        if [[ -n $LOG_INFO_FILE ]]; then 
-          echo "${msgHeadBW[$msgType]} ${dataLine#${msgRemove[$msgType]}} "  >> $LOG_INFO_FILE; 
+        if [[ -n $LOG_INFO_FILE ]]; then
+          echo "${msgHeadBW[$msgType]} ${dataLine#${msgRemove[$msgType]}} "  >> $LOG_INFO_FILE;
         fi
       fi
       if [[ "$msgType" == "error" ]]; then
@@ -345,12 +345,12 @@ function log_stdout(){
           exit 2
         fi
       fi
-    done    
+    done
   fi
 }
 
 ## @function Hog_exit()
-  # 
+  #
   # @brief Prints a resum of the messages types
 function Hog_exit () {
   echo "================ RESUME ================ "
@@ -370,9 +370,9 @@ function Hog_exit () {
 }
 
 ## @function Log_capture()
-  # 
-  # @brief creates output files and pipelines stdout and stderr to 
-  # 
+  #
+  # @brief creates output files and pipelines stdout and stderr to
+  #
   # @param[in] execution line to process
 function Log_capture(){
 
@@ -387,9 +387,9 @@ function Log_capture(){
 }
 
 ## @function Log_capture()
-  # 
-  # @brief creates output files and pipelines stdout and stderr to 
-  # 
+  #
+  # @brief creates output files and pipelines stdout and stderr to
+  #
   # @param[in] execution line to process
 function Logger () {
   # echo "$@"
@@ -435,19 +435,19 @@ function Msg() {
   esac
   ####### The printing
   if [[ $DEBUG_VERBOSE -gt 5 ]]; then
-    printf "%d : %d :" $BASHPID "$(msg_counter dw)" 
+    printf "%d : %d :" $BASHPID "$(msg_counter dw)"
   else
     msg_counter dw >> /dev/null
   fi;
-  
+
   if [[ $DEBUG_VERBOSE -gt ${msgDbgLvl[$msgType]} ]]; then
     if [[ $HOG_COLOR_EN -gt 1 ]]; then
       case "${clrschselected}" in
         "dark")
-          echo -e "${darkColorScheme[$msgType]} HOG:$1[${FUNCNAME[1]}] $text" 
+          echo -e "${darkColorScheme[$msgType]} HOG:$1[${FUNCNAME[1]}] $text"
         ;;
         "clear")
-          echo -e "${clearColorScheme[$msgType]} HOG:$1[${FUNCNAME[1]}] $text " 
+          echo -e "${clearColorScheme[$msgType]} HOG:$1[${FUNCNAME[1]}] $text "
         ;;
       esac
     elif [[ $HOG_COLOR_EN -gt 0 ]]; then
@@ -457,20 +457,20 @@ function Msg() {
     fi
   fi
   if [[ $HOG_LOG_EN -gt 0 ]]; then
-    if [[ -n $LOG_WAR_ERR_FILE ]] && [[ 3 -gt ${msgDbgLvl[$msgType]} ]]; then 
-      echo "${msgHeadBW[$msgType]} HOG [${FUNCNAME[1]}] : $text " >> $LOG_INFO_FILE; 
+    if [[ -n $LOG_WAR_ERR_FILE ]] && [[ 3 -gt ${msgDbgLvl[$msgType]} ]]; then
+      echo "${msgHeadBW[$msgType]} HOG [${FUNCNAME[1]}] : $text " >> $LOG_INFO_FILE;
       # echo "${msgHeadBW[$msgType]} ${dataLine#${msgRemove[$msgType]}} "  >> $LOG_WAR_ERR_FILE
     fi
-    if [[ -n $LOG_INFO_FILE ]]; then 
-      echo "${msgHeadBW[$msgType]} HOG [${FUNCNAME[1]}] : $text " >> $LOG_INFO_FILE; 
-      # echo "${msgHeadBW[$msgType]} ${dataLine#${msgRemove[$msgType]}} "  >> $LOG_INFO_FILE; 
+    if [[ -n $LOG_INFO_FILE ]]; then
+      echo "${msgHeadBW[$msgType]} HOG [${FUNCNAME[1]}] : $text " >> $LOG_INFO_FILE;
+      # echo "${msgHeadBW[$msgType]} ${dataLine#${msgRemove[$msgType]}} "  >> $LOG_INFO_FILE;
     fi
   fi
   return 0
 }
 
-declare -A Hog_Prj_dict  
-declare -A Hog_Usr_dict  
+declare -A Hog_Prj_dict
+declare -A Hog_Usr_dict
 
 # @function trim
   #
@@ -507,7 +507,7 @@ process_toml_file() {
       chari=$((i+1))
       if [[ $char == '"' ]]; then ((cnt1++)); fi
       if [[ $((cnt1 % 2)) == 0 ]]; then
-        if [[ $char == "#" ]]; then 
+        if [[ $char == "#" ]]; then
           chari=$i
           break
         fi
@@ -546,14 +546,14 @@ process_toml_file() {
         chari=$((i+1))
         if [[ $char == '"' ]]; then ((cnt_dc++)); fi
         if [[ $((cnt_dc % 2)) == 0 ]]; then #discarding things inside strings
-          if [[ $char == "[" ]]; then 
+          if [[ $char == "[" ]]; then
             Msg Error "error!!!!!!!!!!!!"
             exit
           fi
-          if [[ $char == "]" ]]; then 
+          if [[ $char == "]" ]]; then
             closing_array=$i
           fi
-          if [[ $char == "," ]]; then 
+          if [[ $char == "," ]]; then
             if [[ $coma_cnt == 0 ]]; then first_coma=$i; fi
             ((coma_cnt++))
             last_coma=$i
@@ -581,20 +581,20 @@ process_toml_file() {
         fi
       fi
     done
-  done < $1 
+  done < $1
 }
 
 ## @function Logger_Init()
-  # 
-  # @brief creates output files and pipelines stdout and stderr to 
-  # 
+  #
+  # @brief creates output files and pipelines stdout and stderr to
+  #
   # @param[in] execution line to process
 function Logger_Init() {
   DEBUG_VERBOSE=4
   if [[ "$*" =~ "-verbose" ]]; then
     DEBUG_VERBOSE=5
   fi
-  
+
   ROOT_PROJECT_FOLDER=$(pwd)
   LOG_INFO_FILE=$ROOT_PROJECT_FOLDER"/hog_info.log"
   LOG_WAR_ERR_FILE=$ROOT_PROJECT_FOLDER"/hog_warning_errors.log"
@@ -631,7 +631,7 @@ function Logger_Init() {
         HOG_COLOR_EN=$HOG_COLORED
       else
         HOG_COLOR_EN=1
-      fi 
+      fi
     fi
   fi
 
@@ -720,7 +720,7 @@ function Logger_Init() {
     fail_when_error=0
   fi
   Msg Debug "fail_when_error = $fail_when_error"
-  
+
   hog_user_eo="${current_user}_overloads"
   use_user_ol=0
   use_glob_ol=1

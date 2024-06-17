@@ -1,4 +1,4 @@
-#   Copyright 2018-2023 The University of Birmingham
+#   Copyright 2018-2024 The University of Birmingham
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@
 include:
   - project: 'hog/Hog'
     file: '/hog.yml'
-    ref: 'Hog2023.2'
+    ref: 'Hog2024.2'
 
 #################### example ###########################
 ### Change 'example' with your project name

@@ -34,6 +34,3 @@ jobs:
       HOG_PUSH_TOKEN: ${{ secrets.HOG_PUSH_TOKEN }}
       HOG_EMAIL: ${{ secrets.HOG_EMAIL}}
       HOG_USER: ${{ secrets.HOG_USER}}
-
-
-

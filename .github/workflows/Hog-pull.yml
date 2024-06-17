@@ -50,6 +50,7 @@ on:
         type: string
       HOG_NJOBS:
         required: false
+        type: number
     secrets:
       HOG_PUSH_TOKEN:
         required: true

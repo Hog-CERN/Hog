@@ -53,7 +53,8 @@ before_script:
   - print_hog Hog/
 
 stages:
-  - merge
+  - check
+  - tag
   - dynamic_generate
   - dynamic_triggers
   - user_pre

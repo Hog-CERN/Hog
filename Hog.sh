@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#   Copyright 2018-2023 The University of Birmingham
+#   Copyright 2018-2024 The University of Birmingham
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -28,24 +28,24 @@ function help_Unic() {
   echo " USAGE: ./Hog/Hog.sh [GLOBAL OPTIONS] ACTIVITY PATH_TO_PROJECT [ACTIVITY_OPTIONS]"
   echo ""
   echo "  HOG OPTIONS:"
-  echo "    -h , --help     Show this message" 
+  echo "    -h , --help     Show this message"
   echo "    -v LEVEL , --verbose LEVEL "
   echo "                    Sets level of verbose to debug"
   echo "                    If no value is passed verbose is set to 5 - debug"
   echo "    -l , --logger   Enables logger to file"
-  echo "                    To make it permanenet and not need to add this option in the calling, please export HOG_LOGGER=1" 
-  echo "    -o , --color    Enables colorful logs" 
-  echo "                    To make it permanent and not need to add this option in the calling, please export HOG_COLORED=1" 
-  echo "" 
+  echo "                    To make it permanenet and not need to add this option in the calling, please export HOG_LOGGER=1"
+  echo "    -o , --color    Enables colorful logs"
+  echo "                    To make it permanent and not need to add this option in the calling, please export HOG_COLORED=1"
+  echo ""
   echo "  ACTIVITIES:"
   echo "    -I  PATH_TO_PROJECT [ACTIVITY_OPTIONS] , Init  PATH_TO_PROJECT [ACTIVITY_OPTIONS]"
-  echo "                    Initializes the Hog repository" 
+  echo "                    Initializes the Hog repository"
   echo "    -C  PATH_TO_PROJECT [ACTIVITY_OPTIONS] , Create  PATH_TO_PROJECT [ACTIVITY_OPTIONS]"
-  echo "                    Creates a Projects" 
+  echo "                    Creates a Projects"
   echo "    -W  PATH_TO_PROJECT [ACTIVITY_OPTIONS] , Workflow  PATH_TO_PROJECT [ACTIVITY_OPTIONS]"
-  echo "                    Launches the tasks to build, synthesize or implement the project " 
+  echo "                    Launches the tasks to build, synthesize or implement the project "
   echo "    -S  PATH_TO_PROJECT [ACTIVITY_OPTIONS] , Simulation  PATH_TO_PROJECT [ACTIVITY_OPTIONS]"
-  echo "                    Launches the simulation of the project"  
+  echo "                    Launches the simulation of the project"
   echo " ------------------------------------------------------ "
   echo " EXAMPLES:"
   echo " "
@@ -77,7 +77,7 @@ function help_Unic() {
   #   echo " Hog - Create HDL project"
   #   echo " ---------------------------"
   #   echo " Create the specified Vivado, Quartus or PlanAhead project"
-  #   echo 
+  #   echo
   #   echo " The project type is selected using the first line of the hog.conf generating the project"
   #   echo " Following options are available: "
   #   echo " #vivado "
@@ -101,7 +101,7 @@ if [ $# == 0 ]; then
   # help_message $0
   help_Unic
   return 1
-else 
+else
 
   declare -a args=($*)
 
@@ -155,10 +155,10 @@ else
     done
   fi
 
-  ## 
+  ##
   Msg Debug "Input parameters (${args[*]}) :: ${#args[*]})"
 
-  
+
 
   if [[ -v "$HOG_COLORED" && $HOG_COLORED == "ENABLED" ]]; then
     new_print_hog "$(dirname "$0")"

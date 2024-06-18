@@ -1,5 +1,5 @@
 #!/bin/bash
-#   Copyright 2018-2023 The University of Birmingham
+#   Copyright 2018-2024 The University of Birmingham
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -16,6 +16,9 @@
 #DIR="$( dirname "${BASH_SOURCE[0]}" )/../.."
 #OLDDIR="$( pwd )"
 
+. $(dirname "$0")/CommonFunctions.sh
+
+
 function argument_parser() {
     PARAMS=""
     while (("$#")); do
@@ -24,24 +27,13 @@ function argument_parser() {
             get_doxygen="1"
             shift 1
             ;;
-        -token)
-            push_token="$2"
-            shift 2
-            ;;
-        -url)
-            api="$2"
-            shift 2
-            ;;
-        -proj_id)
-            proj="$2"
-            shift 2
-            ;;
         -mr)
             mr="$2"
             shift 2
             ;;
         -github)
             github="1"
+            echo "Running for Github"
             shift 1
             ;;
         --) # end argument parsing
@@ -72,12 +64,9 @@ function help_message() {
   echo " Hog - GetArtifactsAndRename "
   echo " ---------------------------"
   echo " Get the artifacts from collect_artifacts job of the chosen MR"
-  echo 
+  echo
   echo " Usage: $1 [OPTIONS]"
   echo " Options:"
-  echo "          -token <push_token>        The GitLab Push Token"
-  echo "          -url <gitlab url>          The GitLab CI URL "
-  echo "          -proj_id <id>              The ID of the GitLab project "
   echo "          -mr <Merge Request Number> The MR number  "
   echo "          -doxygen                   If sets, get also the artifacts from make_doxygen job."
   echo "          -github                    If sets, use the github API"
@@ -94,51 +83,33 @@ else
     if [ "$1" == "-h" ] || [ "$1" == "-help" ] || [ "$1" == "--help" ] || [ "$1" == "-H" ]; then
         help_message "$0"
     fi
-
     # GET all artifacts from collect_artifacts
     echo "Hog-INFO: downloading artifacts..."
+    ref=refs/merge-requests%2F$mr%2Fhead
+
     if [[ $github == "1" ]]; then
-        artifact_id=$(curl -H "Accept: application/vnd.github+json" -H "Authorization: token ${push_token}" "$api/repos/$proj/actions/runs/$mr/artifacts" | jq '.artifacts[] | select (.name=="Collect-Artifacts") .id')
-        curl -L -H "Accept: application/vnd.github+json" -H "Authorization: token ${push_token}" "$api/repos/$proj/actions/artifacts/$artifact_id/zip" -o collect_artifacts.zip
-        echo "Hog-INFO: unzipping artifacts from collect_artifacts job..."
-        unzip -oq collect_artifacts.zip -d bin
+        gh run download $mr -n "Collect-Artifacts" -D bin
     else
-        ref=refs/merge-requests%2F$mr%2Fhead
-        curl --location --header "PRIVATE-TOKEN: ${push_token}" "$api"/projects/"${proj}"/jobs/artifacts/"$ref"/download?job=collect_artifacts -o collect_artifacts.zip
-        echo "Hog-INFO: unzipping artifacts from collect_artifacts job..."
-        unzip -oq collect_artifacts.zip
+        glab job artifact $ref collect_artifacts
     fi
 
-    rm collect_artifacts.zip
-
-    
     # Get artifacts from make_doxygen stage
     if [ "$get_doxygen" == "1" ]; then
         if [[ $github == "1" ]]; then
-            artifact_id=$(curl -H "Accept: application/vnd.github+json" -H "Authorization: token ${push_token}" "$api/repos/$proj/actions/runs/$mr/artifacts" | jq '.artifacts[] | select (.name=="Doxygen-Artifacts") .id')
-            curl -L -H "Accept: application/vnd.github+json" -H "Authorization: token ${push_token}" "$api/repos/$proj/actions/artifacts/$artifact_id/zip" -o doxygen.zip
-            echo "Hog-INFO: unzipping artifacts from make_doxygen job..."
-            unzip -oq doxygen.zip -d Doc
+            gh run download $mr -n "Doxygen-Artifacts" -D Doc
         else
-            curl --location --header "PRIVATE-TOKEN: ${push_token}" "$api"/projects/"${proj}"/jobs/artifacts/"$ref"/download?job=make_doxygen -o doxygen.zip
-            echo "Hog-INFO: unzipping artifacts from make_doxygen job..."
-            unzip -oq doxygen.zip 
+            glab job artifact $ref make_doxygen
         fi
-
-        rm doxygen.zip
     fi
 
     if [[ $github != "1" ]]; then
         # GET all artifacts from user_post stage
-        pipeline=$(curl --globoff --header "PRIVATE-TOKEN: ${push_token}" "$api/projects/${proj}/merge_requests/$mr/pipelines" | jq '.[0].id')
-        
-        job=$(curl --globoff --header "PRIVATE-TOKEN: ${push_token}" "$api/projects/${proj}/pipelines/${pipeline}/jobs" | jq -r '.[0].name')
-        
+        pipeline=$(glab mr view $mr -F json | jq ".pipeline.id")
+        echo "Retrieving pipeline $pipeline..."
+        job=$(glab ci get -p $pipeline -F json | jq -r ".jobs.[0].name")
+        echo "Last job in pipeline was $job"
         if [ "$job" != "collect_artifacts" ]; then
-            curl --location --header "PRIVATE-TOKEN: ${push_token}" "$api"/projects/"${proj}"/jobs/artifacts/"$ref"/download?job="$job" -o user_post.zip
-            echo "Hog-INFO: unzipping artifacts from $job job..."
-            unzip -oq user_post.zip
-            rm user_post.zip
+            glab job artifact $ref $job
         fi
     fi
 
@@ -161,16 +132,16 @@ else
                 echo "ERROR: The project directory doesn't match the pattern"
                 PRJ_SHA=""
             fi
-	    
+
             TAG=$(git tag --sort=creatordate --contain "$PRJ_SHA" -l "v*.*.*" | head -1)
             echo "Hog-INFO: Found project $PRJ_NAME"
             if ! ls "$PRJ_DIR"/"${PRJ_BASE}"* > /dev/null 2>&1; then
                 echo "Hog-INFO: Project $PRJ_NAME does not contain any bitfile..."
                 PRJ_BINS=""
-            else 
+            else
                 PRJ_BINS=("$(ls "$PRJ_DIR"/"${PRJ_BASE}"*)")
             fi
-	    
+
             # shellcheck disable=SC2048
             for PRJ_BIN in ${PRJ_BINS[*]}; do
                 regex="($PRJ_NAME_BASE)-(.*v[0-9]+\.[0-9]+\.[0-9]+)-([0-9,a-f,A-F]{7})(-dirty)?(.+)"

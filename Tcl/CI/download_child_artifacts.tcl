@@ -1,5 +1,5 @@
 # @file
-#   Copyright 2018-2023 The University of Birmingham
+#   Copyright 2018-2024 The University of Birmingham
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -21,38 +21,20 @@ set TclPath [file dirname [info script]]/..
 set repo_path [file normalize "$TclPath/../.."]
 source $TclPath/hog.tcl
 
-if {[catch {package require cmdline} ERROR]} {
-  Msg Error "$ERROR\n If you are running this script on tclsh, you can fix this by installing 'tcllib'"
-  return
-}
+set usage "- CI script that downloads artifacts from child pipelines.\n USAGE: $::argv0 <project id> <commit SHA> <create_job id>."
 
-set parameters {
-  parent_pipeline_id.arg "" "Parent pipeline identifier"
-}
-
-set usage "- CI script that downloads artifacts from child pipelines.\n USAGE: $::argv0 \[OPTIONS\] <push token> <Gitlab api url> <project id> <commit SHA> <create_job id> \n. Options:"
-
-if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] ||  [llength $argv] < 5 } {
-  Msg Info [cmdline::usage $parameters $usage]
+if { [llength $argv] < 3 } {
+  Msg Info $usage
   cd $OldPath
   return
 }
 
-set push_token [lindex $argv 0]
-set api [lindex $argv 1]
-set proj_id [lindex $argv 2]
-set commit_sha [lindex $argv 3]
-set create_job_id [lindex $argv 4]
+set proj_id [lindex $argv 0]
+set commit_sha [lindex $argv 1]
+set create_job_id [lindex $argv 2]
 set page 1
 
-
-if {"$options(parent_pipeline_id)" == ""} {
-  set curl_url ${api}/projects/$proj_id/jobs/?page=1
-} else {
-  set parent_pipeline_id $options(parent_pipeline_id)
-  set curl_url "${api}/projects/${proj_id}/pipelines/${parent_pipeline_id}/jobs/?page=${page}"
-}
-lassign [ExecuteRet curl -s --request GET --header "PRIVATE-TOKEN: ${push_token}" $curl_url] ret msg
+lassign [ExecuteRet glab api "/projects/$proj_id/jobs/?page=1"] ret msg
 if {$ret != 0} {
   Msg Error "Some problem when getting parent pipeline: $msg"
   return -1
@@ -105,8 +87,8 @@ if {$ret != 0} {
       continue
     }
 
-    Msg Info "Downloading artifacts for child job at: ${api}/projects/${proj_id}/jobs/${child_job_id}/artifacts/"
-    lassign [ExecuteRet curl -s --location --header "PRIVATE-TOKEN: ${push_token}" ${api}/projects/${proj_id}/jobs/${child_job_id}/artifacts/ -o output_${child_job_id}.zip] ret msg
+    Msg Info "Downloading artifacts for child job at: projects/${proj_id}/jobs/${child_job_id}/artifacts/"
+    lassign [ExecuteRet glab api "/projects/${proj_id}/jobs/${child_job_id}/artifacts/" > output_${child_job_id}.zip] ret msg
     if {$ret != 0} {
       Msg Error "Some problem when downloading artifacts for child job id:$child_job_id. Error message: $msg"
       return -1

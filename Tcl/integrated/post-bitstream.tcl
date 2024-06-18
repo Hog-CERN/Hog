@@ -1,5 +1,5 @@
 #!/usr/bin/env tclsh
-#   Copyright 2018-2023 The University of Birmingham
+#   Copyright 2018-2024 The University of Birmingham
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -25,7 +25,7 @@ set repo_path [file normalize "$tcl_path/../../"]
 # Import tcllib
 if {[IsLibero]} {
   if {[info exists env(HOG_TCLLIB_PATH)]} {
-    lappend auto_path $env(HOG_TCLLIB_PATH) 
+    lappend auto_path $env(HOG_TCLLIB_PATH)
   } else {
     puts "ERROR: To run Hog with Microsemi Libero SoC, you need to define the HOG_TCLLIB_PATH variable."
     return
@@ -356,7 +356,7 @@ if {[file exists $xml_dir]} {
 }
 
 # Zynq XSA Export
-if {[IsXilinx]} { 
+if {[IsXilinx]} {
   # Vivado
   # automatically export for zynqs (checking via regex)
   set export_xsa false
@@ -375,7 +375,7 @@ if {[IsXilinx]} {
       set export_xsa [dict get $propDict "EXPORT_XSA"]
     }
   }
-  
+
   if {[string compare [string tolower $export_xsa] "true"]==0} {
     # there is a bug in Vivado 2020.1, check for that version and warn
     # that we can't export XSAs

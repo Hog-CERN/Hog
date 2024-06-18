@@ -1,4 +1,4 @@
-#   Copyright 2018-2023 The University of Birmingham
+#   Copyright 2018-2024 The University of Birmingham
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -25,11 +25,57 @@ default:
     - git status
     - source ./Other/CommonFunctions.sh
     - print_hog .
-stages: [merge_checks, tag, build_doc]
+stages: [mirrors, merge_checks, tag, build_doc]
+
+launch_github:
+  stage: merge_checks
+  image: gitlab-registry.cern.ch/hog/hog-docker
+  only:
+    refs: [merge_requests]
+    variables: [$CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /^(master|develop)$/]
+  except:
+    variables: [$CI_COMMIT_REF_NAME =~ /^test\/.*$/i]
+  script:
+    - glab auth login -t $HOG_PUSH_TOKEN
+    - gh auth status
+    - git clone https://hog-user:${GITHUB_TOKEN}@github.com/hog-CERN/TestFirmware.git
+    - cd TestFirmware/
+    - git submodule init Hog
+    - git submodule update Hog
+    - if git branch -a --list *auto/$CI_COMMIT_REF_NAME | grep -q "auto/$CI_COMMIT_REF_NAME$"; then
+        git checkout auto/$CI_COMMIT_REF_NAME;
+        git branch --set-upstream-to=origin/auto/$CI_COMMIT_REF_NAME auto/$CI_COMMIT_REF_NAME;
+        git pull;
+      else
+        git checkout -b auto/$CI_COMMIT_REF_NAME;
+      fi
+    - cd Hog
+    - git checkout $CI_COMMIT_SHA
+    - cd ..
+    - perl -pi -e 's/^\s*uses:.*$/    uses:\ hog-CERN\/Hog\/.github\/workflows\/Hog-main.yml\@'"$CI_COMMIT_SHA"'/' .github/workflows/main.yml
+    - perl -pi -e 's/^\s*uses:.*$/    uses:\ hog-CERN\/Hog\/.github\/workflows\/Hog-pull.yml\@'"$CI_COMMIT_SHA"'/' .github/workflows/pull.yml
+    - perl -pi -e 's/^\s*uses:.*$/    uses:\ hog-CERN\/Hog\/.github\/workflows\/Hog-tag.yml\@'"$CI_COMMIT_SHA"'/' .github/workflows/tag.yml
+    - git diff-index --quiet HEAD || git commit -am "Updating Hog to $CI_COMMIT_SHA"
+    - git push -u https://hog-user:${GITHUB_TOKEN}@github.com/hog-CERN/TestFirmware.git auto/$CI_COMMIT_REF_NAME
+    # Check if there is already a MR open with the current branch, if not open it
+    - PR_NR=$(gh pr list -R hog-CERN/TestFirmware -H auto/${CI_COMMIT_REF_NAME} -B develop --json number -q '.[0].number')
+    - if [[ "$PR_NR" == "" ]]; then
+        echo "There are no open pull requests with source branch 'auto/$CI_COMMIT_REF_NAME'. I will open one...";
+          gh pr create -H auto/$CI_COMMIT_REF_NAME -B develop -f -R hog-CERN/TestFirmware;
+          PR_NR=$(gh pr list -R hog-CERN/TestFirmware -H apptainer --json number -q '.[0].number');
+      else
+        gh pr view $PR_NR;
+      fi;
+    - sleep 10s
+    - gh pr checks $PR_NR --watch
+  interruptible: true
+  allow_failure: true
 
 launch_testfirmware:
   stage: merge_checks
-  image: gitlab-registry.cern.ch/hog/hog-docker:ubuntu
+  image: gitlab-registry.cern.ch/hog/hog-docker
+  variables:
+    GITLAB_TOKEN: $TF_TOKEN
   only:
     refs: [merge_requests]
     variables: [$CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /^(master|develop)$/]
@@ -48,13 +94,13 @@ launch_testfirmware:
         git checkout -b auto/$CI_COMMIT_REF_NAME;
       fi
     - cd Hog
-    - git checkout $CI_COMMIT_REF_NAME
+    - git checkout $CI_COMMIT_SHA
     - cd ..
-    - sed -i '/ref:/s#.*#      ref:\ '"$CI_COMMIT_REF_NAME"'#' .gitlab-ci.yml
-    - git diff-index --quiet HEAD || git commit -am "Updating Hog to $CI_COMMIT_REF_NAME"
+    - sed -i '/ref:/s#.*#      ref:\ '"$CI_COMMIT_SHA"'#' .gitlab-ci.yml
+    - git diff-index --quiet HEAD || git commit -am "Updating Hog to $CI_COMMIT_SHA"
     - git push origin auto/$CI_COMMIT_REF_NAME
     # Check if there is already a MR open with the current branch, if not open it
-    - response=$(curl --header "PRIVATE-TOKEN:${TF_TOKEN}" "https://gitlab.com/api/v4/projects/28784308/merge_requests?source_branch=auto/$CI_COMMIT_REF_NAME&state=opened")
+    - response=$(glab mr list -F json -R hog-cern/test/TestFirmware --source-branch=auto/$CI_COMMIT_REF_NAME --target-branch=develop)
     - if [ $? -eq 0 ]; then
         if [ $(echo "$response" | jq length) -gt 0 ]; then
           MR_ID=$(echo "$response" | jq .[0].iid);
@@ -63,15 +109,10 @@ launch_testfirmware:
           echo "$MR_URL";
         else
           echo "There are no open merge requests with source branch 'auto/$CI_COMMIT_REF_NAME'. I will open one...";
-          response_MR=$(curl --request POST --header "PRIVATE-TOKEN:$TF_TOKEN" --header "Content-Type:application/json" --data "{\"source_branch\":\"auto/$CI_COMMIT_REF_NAME\", \"target_branch\":\"develop\", \"title\":\"Automatic MR with Hog branch $CI_COMMIT_REF_NAME\", \"description\":\"\"}" "https://gitlab.com/api/v4/projects/28784308/merge_requests");
-          if [ $? -eq 0 ]; then
-            MR_URL=$(echo "$response_MR" | jq -r '.web_url');
-            MR_ID=$(echo "$response_MR" | jq -r '.iid');
-            echo "Merge request created successfully. URL= $MR_URL ID=$MR_ID";
-          else
-            echo "Failed to create merge request. Please check your GitLab API endpoint and token.";
-            exit 1;
-          fi;
+          glab mr create -s auto/$CI_COMMIT_REF_NAME -b develop -t "Automatic MR with Hog branch $CI_COMMIT_REF_NAME" -R hog-cern/test/TestFirmware --remove-source-branch -y -f;
+          response=$(glab mr list -F json -R hog-cern/test/TestFirmware --source-branch=auto/$CI_COMMIT_REF_NAME --target-branch=develop)
+          MR_ID=$(echo "$response" | jq .[0].iid);
+          MR_URL=$(echo "$response" | jq .[0].web_url);
         fi;
       else
         echo "Failed to retrieve merge requests. Please check your GitLab API endpoint and token.";
@@ -80,19 +121,19 @@ launch_testfirmware:
     - sleep 10s
     - i=0
     - while true; do
-        pipeline_response=$(curl -sS -X GET "https://gitlab.com/api/v4/projects/28784308/pipelines?merge_request_iid=$MR_ID" --header "Private-Token:$TF_TOKEN");
-        pipeline_status=$(echo "$pipeline_response" | jq -r '.[0].status');
-        pipeline_url=$(echo "$pipeline_response" | jq -r '.[0].web_url');
+        mr_response=$(glab mr view $MR_ID -R hog-cern/test/TestFirmware -F json)
+        pipeline_status=$(echo "$mr_response" | jq -r '.pipeline.status');
+        pipeline_url=$(echo "$mr_response" | jq -r '.pipeline.web_url');
         if [ $i = 0 ]; then
           echo "Waiting for TestFirmware pipeline to finish...";
           echo "Pipeline Status $pipeline_status";
           echo "Pipeline URL $pipeline_url";
           i=1;
         fi;
-        if [ "$pipeline_status" = "failed" ]; then
+        if [ "$pipeline_status" == "failed" ]; then
           echo "TestFirmware pipeline failed. $pipeline_url";
           exit 1;
-        elif [ "$pipeline_status" = "success" ]; then
+        elif [ "$pipeline_status" == "success" ]; then
           echo "TestFirmware pipeline was successful!";
           break;
         fi;
@@ -104,7 +145,7 @@ launch_testfirmware:
 
 build-doxygen-test:
   stage: merge_checks
-  image: gitlab-registry.cern.ch/hog/hog-docker:ubuntu
+  image: gitlab-registry.cern.ch/hog/hog-docker
   only:
     refs: [merge_requests]
     variables: [$CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /^(master|develop)$/]
@@ -124,7 +165,7 @@ build-doxygen-test:
 
 build-doxygen-develop:
   stage: build_doc
-  image: gitlab-registry.cern.ch/hog/hog-docker:ubuntu
+  image: gitlab-registry.cern.ch/hog/hog-docker
   only:
     refs: [tags]
     variables: [$CI_COMMIT_TAG =~ /^(v.*)$/]
@@ -137,7 +178,7 @@ build-doxygen-develop:
 
 build-doxygen-official:
   stage: build_doc
-  image: gitlab-registry.cern.ch/hog/hog-docker:ubuntu
+  image: gitlab-registry.cern.ch/hog/hog-docker
   only:
     refs: [tags]
     variables: [$CI_COMMIT_TAG =~ /^(Hog.*)$/]
@@ -150,13 +191,14 @@ build-doxygen-official:
 
 changelog:
   stage: merge_checks
-  image: gitlab-registry.cern.ch/hog/hog-docker:tclsh
+  image: gitlab-registry.cern.ch/hog/hog-docker
   rules:
     - if: $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "master" && $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME != "develop"
       when: on_success
     - if: $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "develop"
       when: on_success
   script:
+    - glab auth login -t $HOG_PUSH_TOKEN
     - if [[ $CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ "master" ]] ; then
         if [[ $CI_COMMIT_REF_NAME != hotfix* ]]; then
           echo "[ERROR] The target of this MR is $CI_MERGE_REQUEST_TARGET_BRANCH_NAME, but the source is not a hotfix branch ($CI_COMMIT_REF_NAME). Please, change the name of source branch or direct the MR to develop.";
@@ -171,8 +213,7 @@ changelog:
     - git push origin refs/notes/*
     - "printf \"## Repository info\n- Merge request number: $CI_MERGE_REQUEST_IID\n\
       - Branch name: $CI_COMMIT_REF_NAME\n\n\" > changelog.md"
-    - ./Other/Changelog.sh -t $CI_MERGE_REQUEST_TARGET_BRANCH_NAME -pt $HOG_PUSH_TOKEN
-      -a $CI_API_V4_URL -p $CI_PROJECT_ID -n $CI_MERGE_REQUEST_IID  >> changelog.md
+    - ./Other/Changelog.sh -t $CI_MERGE_REQUEST_TARGET_BRANCH_NAME -n $CI_MERGE_REQUEST_IID  >> changelog.md
   artifacts:
     name: changelog
     paths: [changelog.md]
@@ -181,7 +222,7 @@ changelog:
 
 tagging:
   stage: tag
-  image: gitlab-registry.cern.ch/hog/hog-docker:tclsh
+  image: gitlab-registry.cern.ch/hog/hog-docker
   rules:
     - if: '$CI_COMMIT_REF_NAME == "master"  && $CI_PIPELINE_SOURCE == "push"'
       when: always
@@ -214,7 +255,7 @@ tagging:
 
 shellcheck:
   stage: merge_checks
-  image: gitlab-registry.cern.ch/hog/hog-docker:ubuntu
+  image: gitlab-registry.cern.ch/hog/hog-docker
   only:
     refs: [merge_requests]
     variables: [$CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /^(master|develop)$/]
@@ -226,7 +267,7 @@ shellcheck:
 
 yamllint:
   stage: merge_checks
-  image: gitlab-registry.cern.ch/hog/hog-docker:ubuntu
+  image: gitlab-registry.cern.ch/hog/hog-docker
   only:
     refs: [merge_requests]
     variables: [$CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /^(master|develop)$/]
@@ -239,7 +280,7 @@ yamllint:
 
 nagelfar:
   stage: merge_checks
-  image: gitlab-registry.cern.ch/hog/hog-docker:ubuntu
+  image: gitlab-registry.cern.ch/hog/hog-docker
   only:
     refs: [merge_requests]
     variables: [$CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /^(master|develop)$/]
@@ -250,28 +291,40 @@ nagelfar:
       Tcl/*/*.tcl
   interruptible: true
 
+update_mirrors:
+  stage: mirrors
+  image: gitlab-registry.cern.ch/hog/hog-docker
+  script:
+    - glab auth login -t $HOG_PUSH_TOKEN
+    # Update Mirror
+    - glab api /projects/37942198/remote_mirrors/517789/sync --method POST
+    - glab api /projects/37942198/remote_mirrors/1748198/sync --method POST
+  interruptible: true
+
 create_release_note:
   stage: tag
-  image: gitlab-registry.cern.ch/hog/hog-docker:tclsh
+  image: gitlab-registry.cern.ch/hog/hog-docker
   only:
     refs: [tags]
     variables: [$CI_COMMIT_TAG =~ /^(v.*)|(Hog.*)$/]
   script:
+    - glab auth login -t $HOG_PUSH_TOKEN
     - git fetch origin refs/notes/*:refs/notes/*
     - MR=( `git notes show` )
-    - ./Other/GetGitlabArtifact.sh $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $MR
-      changelog.md changelog > note.md
-    - if [[ $CI_COMMIT_TAG =~ ^v.*$ ]]; then ./Other/MakeGitlabRelease.sh $HOG_PUSH_TOKEN
-      $CI_API_V4_URL $CI_PROJECT_ID $CI_COMMIT_TAG note.md -b; fi
-    - if [[ $CI_COMMIT_TAG =~ ^Hog.*$ ]]; then ./Other/MakeGitlabRelease.sh $HOG_PUSH_TOKEN
-      $CI_API_V4_URL $CI_PROJECT_ID $CI_COMMIT_TAG note.md; fi
+    - ref=refs/merge-requests%2F$MR%2Fhead
+    - glab job artifact $ref changelog
+    - if [[ $CI_COMMIT_TAG =~ ^v.*$ ]]; then
+        glab release create $CI_COMMIT_TAG -F changelog.md -n "Beta version $CI_COMMIT_TAG";
+      fi
+    - if [[ $CI_COMMIT_TAG =~ ^Hog.*$ ]]; then
+        glab release create $CI_COMMIT_TAG -F changelog.md -n "Official version $CI_COMMIT_TAG";
+      fi
 
-
-launch_validation:
-  image: gitlab-registry.cern.ch/hog/hog-docker:tclsh
-  only: [develop]
-  script:
-    - 'if [[ $CI_COMMIT_REF_NAME == "develop" ]]; then curl --request POST --header
-      "PRIVATE-TOKEN: ${HOG_PUSH_TOKEN}" "$CI_API_V4_URL/projects/40979880/pipeline_schedules/311873/play";
-      fi;'
-  stage: tag
+# launch_validation:
+#   image: gitlab-registry.cern.ch/hog/hog-docker
+#   only: [develop]
+#   script:
+#     - 'if [[ $CI_COMMIT_REF_NAME == "develop" ]]; then curl --request POST --header
+#       "PRIVATE-TOKEN: ${HOG_PUSH_TOKEN}" "$CI_API_V4_URL/projects/40979880/pipeline_schedules/311873/play";
+#       fi;'
+#   stage: tag

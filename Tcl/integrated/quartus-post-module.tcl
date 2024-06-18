@@ -1,4 +1,4 @@
-#   Copyright 2018-2023 The University of Birmingham
+#   Copyright 2018-2024 The University of Birmingham
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -40,6 +40,6 @@ if { [string compare $stage "quartus_map"] == 0 || [string compare $stage "quart
 
 if {[file exists $script_path]} {
   source $script_path
-} 
+}
 
 

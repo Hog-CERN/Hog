@@ -1,4 +1,4 @@
-#   Copyright 2018-2023 The University of Birmingham
+#   Copyright 2018-2024 The University of Birmingham
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -53,7 +53,8 @@ before_script:
   - print_hog Hog/
 
 stages:
-  - merge
+  - check
+  - tag
   - dynamic_generate
   - dynamic_triggers
   - user_pre
@@ -61,5 +62,6 @@ stages:
   - user_proj
   - collect
   - user_post
+  - release
   - archive
   - badge

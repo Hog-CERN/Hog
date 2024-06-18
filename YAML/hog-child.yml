@@ -1,4 +1,4 @@
-#   Copyright 2018-2023 The University of Birmingham
+#   Copyright 2018-2024 The University of Birmingham
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -37,7 +37,7 @@
     - hog
 
 .tag-sr: &tag-sr
-  image: gitlab-registry.cern.ch/hog/hog-docker:tclsh
+  image: gitlab-registry.cern.ch/hog/hog-docker
 
 .vars: &vars
   GIT_STRATEGY: clone
@@ -263,10 +263,6 @@
         if [[ -f "$CI_PROJECT_DIR/bin/$PROJECT_NAME*/utilization.txt" ]]; then
           cat $CI_PROJECT_DIR/bin/$PROJECT_NAME*/utilization.txt >> note.md;
         fi;
-        if [[ -n "$HOG_MR_MSG" ]] && [[ $HOG_MR_MSG == '3' ]]; then
-          echo "Hog-CI(info) - Writing note on gitlab website...";
-          ./Hog/Other/WriteGitlabNote.sh $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $CI_MERGE_REQUEST_IID note.md;
-        fi;
         echo "Hog-CI(info) - All done.";
       fi;
   artifacts:
@@ -285,10 +281,11 @@ collect_artifacts:
   variables:
     GIT_STRATEGY: clone
   script:
+    - glab auth login -t $HOG_PUSH_TOKEN
     - old_dir=`pwd`
     - mkdir -p $CI_PROJECT_DIR/bin
     - "printf \"## Repository info\n- Merge request number: $CI_MERGE_REQUEST_IID\n- Branch name: $CI_COMMIT_REF_NAME\n\n\" > $CI_PROJECT_DIR/bin/note.md"
-    - ./Hog/Other/Changelog.sh -t $CI_MERGE_REQUEST_TARGET_BRANCH_NAME -pt $HOG_PUSH_TOKEN -a $CI_API_V4_URL -p $CI_PROJECT_ID -n $CI_MERGE_REQUEST_IID  >> $CI_PROJECT_DIR/bin/note.md
+    - ./Hog/Other/Changelog.sh -t $CI_MERGE_REQUEST_TARGET_BRANCH_NAME -n $CI_MERGE_REQUEST_IID  >> $CI_PROJECT_DIR/bin/note.md
     - cd $CI_PROJECT_DIR/bin/
     - diff_files=$(find . -name "diff_list*.txt");
     - touch $old_dir/mr_note.md
@@ -330,7 +327,9 @@ collect_artifacts:
     - cd $old_dir
     - if [[ -z "$HOG_MR_MSG" ]] || [[ $HOG_MR_MSG == '1' ]] || [[ $HOG_MR_MSG == '2' ]]; then
         echo "Hog-CI(info) - Writing note on gitlab website...";
-        ./Hog/Other/WriteGitlabNote.sh $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $CI_MERGE_REQUEST_IID mr_note.md;
+        sed -i 's/\n/\\n/g' mr_note.md;
+        note=$(cat mr_note.md);
+        glab mr note $CI_MERGE_REQUEST_IID -m "$note";
       fi;
   artifacts:
     when: always

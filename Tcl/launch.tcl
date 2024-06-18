@@ -591,12 +591,13 @@ if {[IsXilinx]} {
           Msg Info "$n lines read from $s.sim"
 
           set firstline [lindex $data 0]
-          #find simulator
+          # Find simulator
           if { [regexp {^ *\#Simulator} $firstline] } {
             set simulator_prop [regexp -all -inline {\S+} $firstline]
             set simulator [string tolower [lindex $simulator_prop 1]]
           } else {
-            set simulator "modelsim"
+            Msg Warning "Simulator not set in $s.sim. The first line of $s.sim should be #Simulator <SIMULATOR_NAME>, where <SIMULATOR_NAME> can be xsim, questa, modelsim, riviera, activehdl, ies, or vcs, e.g. #Simulator questa. Setting simulator by default as xsim."
+            set simulator "xsim"
           }
           if {$simulator eq "skip_simulation"} {
             Msg Info "Skipping simulation for $s"

@@ -275,7 +275,6 @@ function log_stdout(){
         ;;
         "info") 
           for key in "${!infoOverload[@]}"; do
-            echo " joder que meirda"
             if [[ "$line" == *"$key"* ]]; then
               Msg Debug "Message level Override: Key < '$key' > exists in the string < $line > with value '${infoOverload[$key]}'"
               msgType="${infoOverload[$key]}"
@@ -741,8 +740,8 @@ function Logger_Init() {
             *"e2"*) errorOverload["${Hog_Prj_dict[$key]}"]=$destination ;;
             *"c2"*) criticalOverload["${Hog_Prj_dict[$key]}"]=$destination ;;
             *"w2"*) warningOverload["${Hog_Prj_dict[$key]}"]=$destination ;;
-            *"e2"*) infoOverload["${Hog_Prj_dict[$key]}"]=$destination ;;
-            *"e2"*) debugOverload["${Hog_Prj_dict[$key]}"]=$destination ;;
+            *"i2"*) infoOverload["${Hog_Prj_dict[$key]}"]=$destination ;;
+            *"d2"*) debugOverload["${Hog_Prj_dict[$key]}"]=$destination ;;
           esac
         fi
     fi

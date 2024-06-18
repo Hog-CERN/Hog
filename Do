@@ -39,7 +39,7 @@ normalise_path() {
     #an alternative could be realpath -m
 }
 
-if [[ -v HOG_LOGGER && $HOG_LOGGER == ENABLED ]]; then
+if [[ -v HOG_LOGGER && $HOG_LOGGER == ENABLED ]] || [[ -f $(eval echo "~$USER")"/HogEnv.conf" ]] || [[ -f $(pwd)"/HogEnv.conf" ]]; then
 	Logger_Init "$*"
 fi
 
@@ -98,7 +98,7 @@ if [ "$found" == 1 ]; then
 	  export TCL_LIBRARY=$tcl_library
   fi
 
-  if [[ -v HOG_LOGGER && $HOG_LOGGER == ENABLED ]]; then
+  if [[ -v HOG_LOGGER && $HOG_LOGGER == ENABLED ]] || [[ -f $(eval echo "~$USER")"/HogEnv.conf" ]] || [[ -f $(pwd)"/HogEnv.conf" ]]; then
     Logger $executable_path $hog_dir/Tcl/launch.tcl "$@"
     Hog_exit
   else

@@ -1,4 +1,4 @@
-#   Copyright 2018-2023 The University of Birmingham
+#   Copyright 2018-2024 The University of Birmingham
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -90,7 +90,7 @@ proc InitProject {} {
     file mkdir "$globalSettings::build_dir/[file tail $globalSettings::DESIGN].gen/sources_1"
     if { [IsVersal $globalSettings::PART] } {
       Msg Info "This project uses a Versal device."
-    } 
+    }
 
     ## Set project properties
     set obj [get_projects [file tail $globalSettings::DESIGN] ]
@@ -137,7 +137,7 @@ proc InitProject {} {
     if {[file exists $globalSettings::build_dir]} {
       file delete -force $globalSettings::build_dir
     }
-    new_project -location $globalSettings::build_dir -name [file tail $globalSettings::DESIGN] -die $globalSettings::DIE -package $globalSettings::PACKAGE -family $globalSettings::FAMILY -hdl VHDL 
+    new_project -location $globalSettings::build_dir -name [file tail $globalSettings::DESIGN] -die $globalSettings::DIE -package $globalSettings::PACKAGE -family $globalSettings::FAMILY -hdl VHDL
   } else {
     puts "Creating project for $globalSettings::DESIGN part $globalSettings::PART"
     puts "Configuring project settings:"
@@ -432,7 +432,7 @@ proc ConfigureImplementation {} {
       #QUARTUS only
       set_global_assignment -name POST_MODULE_SCRIPT_FILE quartus_sh:$globalSettings::quartus_post_module
     }
-    Msg Debug "Setting $globalSettings::post_impl to be run after implementation" 
+    Msg Debug "Setting $globalSettings::post_impl to be run after implementation"
   }
 
   ## set pre write bitstream script
@@ -548,7 +548,7 @@ proc ConfigureProperties {} {
         Msg Info "Setting project-wide properties..."
         set proj_props [dict get $globalSettings::PROPERTIES main]
         dict for {prop_name prop_val} $proj_props {
-          
+
           if { [ string tolower $prop_name ] != "ip_repo_paths" } {
             if {[ string tolower $prop_name] != "part"} {
               # Part is already set
@@ -589,6 +589,10 @@ proc ConfigureProperties {} {
 
           dict for {prop_name prop_val} $run_props {
             Msg Debug "Setting $prop_name = $prop_val"
+            if {[string trim $prop_val] == ""} {
+                Msg Warning "Property $prop_name has empty value. Skipping..."
+                continue
+            }
             if {[string first "TCL.PRE" $prop_name] != -1 || [string first "TCL.POST" $prop_name] != -1 || $prop_name == "RQS_FILES" } {
               set_property $prop_name $globalSettings::repo_path/$prop_val $run
             } else {
@@ -732,7 +736,7 @@ proc CreateProject args {
   } else {
     Msg Error "The second argument, [lindex $args 1], should be the repository path."
   }
-  set globalSettings::tcl_path $globalSettings::repo_path/Hog/Tcl                   
+  set globalSettings::tcl_path $globalSettings::repo_path/Hog/Tcl
 
 
   if { $options(verbose) == 1 } {

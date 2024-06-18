@@ -1,4 +1,4 @@
-#   Copyright 2018-2023 The University of Birmingham
+#   Copyright 2018-2024 The University of Birmingham
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -48,9 +48,10 @@ on:
       HOG_DEBUG_MODE:
         required: false
         type: string
+      HOG_NJOBS:
+        required: false
+        type: string
     secrets:
-      SUBMODULE_CONTENT_PULL_KEY:
-        required: true
       HOG_PUSH_TOKEN:
         required: true
       HOG_EMAIL:
@@ -72,8 +73,6 @@ on:
       HOG_IP_PATH:
         required: false
       HOG_RESET_FILES:
-        required: false
-      HOG_NJOBS:
         required: false
       HOG_IP_NJOBS:
         required: false
@@ -106,7 +105,6 @@ env:
   HOG_SIMULATION_LIB_PATH: ${{ secrets.HOG_SIMULATION_LIB_PATH }}
   HOG_IP_PATH: ${{ secrets.HOG_IP_PATH }}
   HOG_RESET_FILES: ${{ secrets.HOG_RESET_FILES }}
-  HOG_NJOBS: ${{ secrets.HOG_NJOBS }}
   HOG_IP_NJOBS: ${{ secrets.HOG_IP_NJOBS }}
   GH_TOKEN: ${{ secrets.HOG_PUSH_TOKEN }}
   HOG_PR_MSG: ${{ secrets.HOG_PR_MSG }}
@@ -117,19 +115,21 @@ env:
   HOG_APPTAINER_EXTRA_PATH: ${{ secrets.HOG_APPTAINER_EXTRA_PATH }}
 
 jobs:
-  merge:
+  check:
     runs-on: ubuntu-latest
-    container: gitlab-registry.cern.ch/hog/hog-docker:tclsh
+    concurrency:
+      group: ci-${{ github.ref }}
+      cancel-in-progress: true
+    container: gitlab-registry.cern.ch/hog/hog-docker
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         name: Checkout Repository
         with:
           fetch-depth: 0
-      - uses: webfactory/ssh-agent@v0.7.0
-        name: SSH-Agent
-        with:
-          ssh-private-key: ${{ secrets.SUBMODULE_CONTENT_PULL_KEY }}
-      - name: Merge And Tag
+          token: ${{secrets.HOG_PUSH_TOKEN}}
+          submodules: 'true'
+      - name: Check Branch State
+        shell: bash
         run: |
           git config --system --add safe.directory $(pwd)
           git config --global user.email "$HOG_EMAIL"
@@ -140,53 +140,57 @@ jobs:
           git submodule init
           git submodule update
           # Check if this is a valid hotfix or feature branch
-          if [ -f "Top/repo.conf" ]; then
-            enable_develop_branch=$(awk -F "=" '/ENABLE_DEVELOP_BRANCH/{ gsub(" |\t",""); print $2}' Top/repo.conf);
-            hotfix_branch=$(awk -F "=" '/HOTFIX/ {print $2}' Top/repo.conf);
+          if [[ -f "Top/repo.conf" ]]; then
+            enable_develop_branch=$(awk -F "=" '/ENABLE_DEVELOP_BRANCH/{ gsub(" |\t",""); print $2}' Top/repo.conf)
+            hotfix_branch=$(awk -F "=" '/HOTFIX/ {print $2}' Top/repo.conf)
             if [ "$hotfix_branch" == "" ]; then
-              hotfix_branch="hotfix/";
-            fi;
-          fi;
-          if [ "$enable_develop_branch" == "1" ]; then
-            if [ "$HOG_DEVELOP_BRANCH" == "" ]; then
-              HOG_DEVELOP_BRANCH="develop";
-            fi;
-            pat="^(master|main|release.*)";
-            if [[ $GITHUB_BASE_REF =~ $pat ]] || [ "$GITHUB_BASE_REF" == "$HOG_TARGET_BRANCH" ] ; then
+              hotfix_branch="hotfix/"
+            fi
+          fi
+          if [[ "$enable_develop_branch" == "1" ]]; then
+            if [[ "$HOG_DEVELOP_BRANCH" == "" ]]; then
+              HOG_DEVELOP_BRANCH="develop"
+            fi
+            pat="^(master|main|release.*)"
+            if [[ $GITHUB_BASE_REF =~ $pat ]] || [[ "$GITHUB_BASE_REF" == "$HOG_TARGET_BRANCH" ]]; then
               if [[ $GITHUB_HEAD_REF != $hotfix_branch* ]]; then
-                echo "[Hog::ERROR] The target of this PR is $GITHUB_BASE_REF, but the source is not a hotfix branch. Please, change the name of source branch or direct the MR to $HOG_DEVELOP_BRANCH.";
-              exit 1;
-              fi;
-            fi;
-          fi;
+                echo "[Hog::ERROR] The target of this PR is $GITHUB_BASE_REF, but the source is not a hotfix branch. Please, change the name of the source branch or direct the MR to $HOG_DEVELOP_BRANCH."
+                exit 1
+              fi
+            fi
+          fi
+          set +e
           MERGE_STATUS=$(git merge --no-commit origin/${GITHUB_BASE_REF})
-          if [ "$MERGE_STATUS" == "Already up to date." ]; then
-            echo "Branch already up-to-date with respect to $GITHUB_BASE_REF";
+          set -e
+          if [[ "$MERGE_STATUS" == *"Already up to date."* ]]; then
+            echo "Branch already up-to-date with respect to $GITHUB_BASE_REF"
           else
-            echo "Branch is outdated with respect to $GITHUB_BASE_REF";
-            printf "Please, merge the latest changes from $GITHUB_BASE_REF with:\ngit fetch && git merge origin/$GITHUB_BASE_REF\n";
-            exit 1;
-          fi;
+            echo "Branch is outdated with respect to $GITHUB_BASE_REF"
+            printf "Please, merge the latest changes from $GITHUB_BASE_REF with:\ngit fetch && git merge origin/$GITHUB_BASE_REF\n"
+            exit 1
+          fi
           git fetch origin refs/notes/*:refs/notes/*
-          NEW_TAG=`echo "source Hog/Tcl/hog.tcl; puts v[HexVersionToString [GetVer .]]" | tclsh`
+          NEW_TAG=$(echo "source Hog/Tcl/hog.tcl; puts v[HexVersionToString [GetVer .]]" | tclsh)
           echo "New tag is $NEW_TAG"
           git notes add -fm "$GITHUB_RUN_ID $GITHUB_HEAD_REF $NEW_TAG"
           git push origin refs/notes/*
   make_doxygen:
     runs-on: ubuntu-latest
     container: gitlab-registry.cern.ch/hog/hog-docker:doxygen
-    needs: merge
+    needs: check
+    concurrency:
+      group: doxygen-${{ github.ref }}
+      cancel-in-progress: true
     if: ${{ inputs.HOG_USE_DOXYGEN }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         name: Checkout Repository
         with:
           fetch-depth: 0
-      - uses: webfactory/ssh-agent@v0.7.0
-        name: SSH-Agent
-        with:
-          ssh-private-key: ${{ secrets.SUBMODULE_CONTENT_PULL_KEY }}
+          token: ${{secrets.HOG_PUSH_TOKEN}}
+          submodules: 'true'
       - name: Doxygen
+        shell: bash
         run: |
           git config --system --add safe.directory $(pwd)
           git config --global user.email "$HOG_EMAIL"
@@ -198,7 +202,7 @@ jobs:
           git submodule update
           tclsh ./Hog/Tcl/utils/make_doxygen.tcl
       - name: Archive Doxygen artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: Doxygen-Artifacts
           path: |
@@ -209,19 +213,21 @@ jobs:
     strategy:
       matrix:
         PROJECT_NAME: ${{fromJson(inputs.BUILD_PROJECTS)}}
-    needs: merge
+    needs: check
+    concurrency:
+      group: gen-${{ github.ref }}
+      cancel-in-progress: true
     steps:
       - uses: ATOS-Actions/clean-self-hosted-runner@v1
         name: Cleaning
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         name: Checkout Repository
         with:
           fetch-depth: 0
-      - uses: webfactory/ssh-agent@v0.7.0
-        name: SSH-Agent
-        with:
-          ssh-private-key: ${{ secrets.SUBMODULE_CONTENT_PULL_KEY }}
+          token: ${{secrets.HOG_PUSH_TOKEN}}
+          submodules: 'true'
       - name: Build
+        shell: bash
         run: |
               PROJECT_NAME=${{ matrix.PROJECT_NAME}}
               if [ -z "$PROJECT_NAME" ]; then
@@ -247,7 +253,7 @@ jobs:
               if [ ${{inputs.HOG_USE_DOXYGEN}} ]; then
                 export HOG_USE_DOXYGEN=1
               fi;
-              if [ ${{ inputs.HOG_NO_BITSTREAM}}]; then
+              if [ ${{ inputs.HOG_NO_BITSTREAM}} ]; then
                 export HOG_NO_BITSTREAM=1
               fi
               source Hog/Other/CommonFunctions.sh
@@ -286,7 +292,7 @@ jobs:
                 if [ -n "${{ inputs.HOG_DEBUG_MODE }}" ] && [ "${{ inputs.HOG_DEBUG_MODE }}" == '1' ]; then
                   echo "Hog-CI(info) - The workflow will be run in verbose mode.";
                 fi;
-                if [ -z "${HOG_NJOBS}" ]; then
+                if [ -z "${{ inputs.HOG_NJOBS}}" ]; then
                   export HOG_NJOBS=4;
                   echo "Hog-CI(info) - Number of jobs set to $HOG_NJOBS";
                 fi;
@@ -307,12 +313,12 @@ jobs:
                     until echo $EOS_PASSWORD | kinit $EOS_USER@CERN.CH ; do echo "Retrying"; sleep 2; done;
                   fi;
                 fi;
-                if [ ${{ inputs.HOG_ONLY_SYNTH }}]; then
+                if [ ${{ inputs.HOG_ONLY_SYNTH }} ]; then
                   export ONLY_SYNTH=1;
                   echo "Hog-CI(info) - Only the synthesis will be run.";
                 else
                   export ONLY_SYNTH=0;
-                  if [ ${{ inputs.HOG_NO_BITSTREAM }}]; then
+                  if [ ${{ inputs.HOG_NO_BITSTREAM }} ]; then
                     export NO_BITSTREAM="-no_bitstream";
                     echo "Hog-CI(info) - No binary files will be generated.";
                   else
@@ -385,13 +391,9 @@ jobs:
               if [[ -f "bin/$PROJECT_NAME*/utilization.txt" ]]; then
                 cat bin/$PROJECT_NAME*/utilization.txt >> note.md;
               fi;
-              if [[ -n "$HOG_MR_MSG" ]] && [[ $HOG_MR_MSG == '3' ]]; then
-                echo "Hog-CI(info) - Writing note on gitlab website...";
-                ./Hog/Other/WriteGithubNote.sh $HOG_PUSH_TOKEN $GITHUB_API_URL $GITHUB_REPOSITORY $PR_NUMBER note.md;
-              fi
               echo "Hog-CI(info) - All done.";
       - name: Archive Generate Artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: Build-Artifacts
           path: |
@@ -402,19 +404,21 @@ jobs:
     strategy:
       matrix:
         PROJECT_NAME: ${{fromJson(inputs.SIM_PROJECTS)}}
-    needs: merge
+    needs: check
+    concurrency:
+      group: sim-${{ github.ref }}
+      cancel-in-progress: true
     steps:
       - uses: ATOS-Actions/clean-self-hosted-runner@v1
         name: Cleaning
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         name: Checkout Repository
         with:
           fetch-depth: 0
-      - uses: webfactory/ssh-agent@v0.7.0
-        name: SSH-Agent
-        with:
-          ssh-private-key: ${{ secrets.SUBMODULE_CONTENT_PULL_KEY }}
+          token: ${{secrets.HOG_PUSH_TOKEN}}
+          submodules: 'true'
       - name: Simulate
+        shell: bash
         run: |
               git config --global user.email "$HOG_EMAIL"
               git config --global user.name "$HOG_USER"
@@ -466,29 +470,31 @@ jobs:
                 fi
               fi
       - name: Archive Simulation Artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: Simulation-Artifacts
           path: |
             Projects
   collect_artifacts:
     runs-on: ubuntu-latest
-    if: ${{ inputs.BUILD_PROJECTS || inputs.SIM_PROJECTS }} && ${{ always() }}
-    needs: [generate_project, simulate_project]
-    container: gitlab-registry.cern.ch/hog/hog-docker:tclsh
+    if: ${{ inputs.BUILD_PROJECTS }}
+    needs: [generate_project]
+    container: gitlab-registry.cern.ch/hog/hog-docker
+    concurrency:
+      group: collect-${{ github.ref }}
+      cancel-in-progress: true
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         name: Checkout Repository
         with:
           fetch-depth: 0
-      - uses: webfactory/ssh-agent@v0.7.0
-        name: SSH-Agent
-        with:
-          ssh-private-key: ${{ secrets.SUBMODULE_CONTENT_PULL_KEY }}
-      - uses: actions/download-artifact@v3
+          token: ${{secrets.HOG_PUSH_TOKEN}}
+          submodules: 'true'
+      - uses: actions/download-artifact@v4
         name: Download Artifacts
       - name: Collect
         continue-on-error: true
+        shell: bash
         run: |
               git config --system --add safe.directory $(pwd)
               git config --global user.email "$HOG_EMAIL"
@@ -502,27 +508,28 @@ jobs:
               mkdir -p Build-Artifacts
               mv Build-Artifacts bin
               printf "## Repository info\n- Pull request number: $PR_NUMBER\n- Branch name: $GITHUB_HEAD_REF\n\n" > bin/note.md
-              ./Hog/Other/Changelog.sh -t $GITHUB_BASE_REF -pt $HOG_PUSH_TOKEN -r $GITHUB_REPOSITORY -github -n $PR_NUMBER >> bin/note.md
+              ./Hog/Other/Changelog.sh -t $GITHUB_BASE_REF -r $GITHUB_REPOSITORY -github -n $PR_NUMBER >> bin/note.md
               cd bin
               diff_files=$(find . -name "diff_list*.txt");
               touch $old_dir/pr_note.md
               echo "Pipeline $GITHUB_RUN_ID passed for pull request #$PR_NUMBER" >> $old_dir/pr_note.md
               if [[ $diff_files != "" ]]; then
                 echo "## Uncommitted differences" >> $old_dir/pr_note.md;
-                echo "## Uncommitted differences" >> bin/note.md;
+                echo "## Uncommitted differences" >> $old_dir/bin/note.md;
                 for f in $diff_files; do
                   echo "Found uncommitted differences, check log file bin/$f in the artifacts." >> $old_dir/pr_note.md;
                   echo "" >> $old_dir/pr_note.md;
-                  echo "Found uncommitted differences, check log file bin/$f in the artifacts." >> bin/note.md;
-                  echo "" >> bin/note.md;
+                  echo "Found uncommitted differences, check log file bin/$f in the artifacts." >> $old_dir/bin/note.md;
+                  echo "" >> $old_dir/bin/note.md;
                 done;
               fi
               # Returns a list of version, utilization and timing files in bin/ sorted alphabetically
               files=$(find . -name "versions*.txt");
               if (( ${#files} )); then
                 for fp in $files; do
-                  proj_name=$(echo $fp | sed -E 's|^./(.*)-v[0-9]+\.[0-9]+\.[0-9]+-hog.*|\1|');
+                  proj=$(echo $fp | sed -E 's|^./(.*)-v[0-9]+\.[0-9]+\.[0-9]+-hog.*|\1|');
                   cd $(dirname $fp);
+                  proj_name=$(echo "$(dirname "$proj")" | sed 's/\.\///;s/-v[0-9]\+\.[0-9]\+\.[0-9]\+.*//');
                   echo "## ${proj_name}" >> section.md;
                   printf "\n\n<p>\n<details>\n<summary>show/hide</summary> \n\n " >> section.md;
                   ut_files=$(find . -name "utilization*.txt" -o -name "timing*.txt" -o -name "versions.txt");
@@ -536,39 +543,42 @@ jobs:
                   if [[ $HOG_MR_MSG == '1' ]]; then
                     cat section.md >> "$old_dir/pr_note.md";
                   fi;
-                  cat section.md >> "$CI_PROJECT_DIR/bin/note.md";
+                  cat section.md >> "$old_dir/bin/note.md";
                   cd $old_dir/bin;
                 done;
               fi;
               cd $old_dir
               if [[ -z "$HOG_MR_MSG" ]] || [[ $HOG_MR_MSG == '1' ]] || [[ $HOG_MR_MSG == '2' ]]; then
-                echo "Hog-CI(info) - Writing note on GitHub website...";
-                ./Hog/Other/WriteGithubNote.sh $HOG_PUSH_TOKEN $GITHUB_API_URL $GITHUB_REPOSITORY $PR_NUMBER pr_note.md;
+                echo "Hog-CI(info) - Writing note on GitHub Pull Request Page...";
+                sed -i 's/\n/\\n/g' pr_note.md
+                gh pr comment $PR_NUMBER -F pr_note.md
               fi;
       - name: Artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: Collect-Artifacts
           path: |
             bin
   check_timing:
     runs-on: ubuntu-latest
-    container: gitlab-registry.cern.ch/hog/hog-docker:tclsh
+    container: gitlab-registry.cern.ch/hog/hog-docker
     if: ${{ inputs.BUILD_PROJECTS }}
     needs: [generate_project]
+    concurrency:
+      group: time-${{ github.ref }}
+      cancel-in-progress: true
     steps:
-      - uses: actions/checkout@v2
-        name: Checkout
+      - uses: actions/checkout@v4
+        name: Checkout Repository
         with:
           fetch-depth: 0
-      - uses: webfactory/ssh-agent@v0.7.0
-        name: SSH-Agent
-        with:
-          ssh-private-key: ${{ secrets.SUBMODULE_CONTENT_PULL_KEY }}
-      - uses: actions/download-artifact@v3
+          token: ${{secrets.HOG_PUSH_TOKEN}}
+          submodules: 'true'
+      - uses: actions/download-artifact@v4
         name: Download Artifacts
       - name: Check Timing
         continue-on-error: true
+        shell: bash
         run: |
             cd Build-Artifacts
             PRJ_BITS=$(find . -iname "versions.txt")

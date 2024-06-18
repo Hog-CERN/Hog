@@ -1,6 +1,6 @@
 #!/usr/bin/env tclsh
 # @file
-#   Copyright 2018-2023 The University of Birmingham
+#   Copyright 2018-2024 The University of Birmingham
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -143,7 +143,7 @@ if {$cmd == -1} {
     puts $libero_script $cmd
     close $libero_script
     set cmd "sh launch-libero-hog.sh"
-  } 
+  }
 
 
 
@@ -169,11 +169,11 @@ if {$cmd == -1} {
 # We need to Import tcllib if we are using Libero
 if {[IsLibero]} {
   if {[info exists env(HOG_TCLLIB_PATH)]} {
-    lappend auto_path $env(HOG_TCLLIB_PATH) 
+    lappend auto_path $env(HOG_TCLLIB_PATH)
   } else {
     puts "ERROR: To run Hog with Microsemi Libero SoC, you need to define the HOG_TCLLIB_PATH variable."
     return
-  }  
+  }
 }
 
 if {[catch {package require cmdline} ERROR] || [catch {package require struct::matrix} ERROR]} {
@@ -181,7 +181,7 @@ if {[catch {package require cmdline} ERROR] || [catch {package require struct::m
   exit 1
 }
 
-lassign [ GetOptions $::argv $parameters $usage] option_list arg_list 
+lassign [ GetOptions $::argv $parameters $usage] option_list arg_list
 
 if {[catch {array set options [cmdline::getoptions option_list $parameters $usage]}] || [llength $arg_list] != 2 } {
   Msg Info [cmdline::usage $parameters $usage]
@@ -294,7 +294,7 @@ if {[IsXilinx]} {
 
     if {[file exists $conf]} {
       #Still not sure of the difference between project and project_name
-      CreateProject -simlib_path $lib_path $project_name $repo_path 
+      CreateProject -simlib_path $lib_path $project_name $repo_path
     } else {
       Msg Error "Project $project_name is incomplete: no hog.conf file found, please create one..."
     }
@@ -362,8 +362,8 @@ if {[IsXilinx]} {
       # We moved the Handle ip to the post-synthesis, in that case we can't use get_runs so to find out which IP was run, we loop over the directories enedind with _synth_1 in the .runs directory
       #
       #    ######### Copy IP to IP repository
-      #    if {[IsVivado]} {    
-      #    	set gen_path [get_property IP_OUTPUT_DIR $ip]    
+      #    if {[IsVivado]} {
+      #    	set gen_path [get_property IP_OUTPUT_DIR $ip]
       #    	if {($ip_path != "")} {
       #    	  # IP is not in the gitlab repo
       #    	  set force 0
@@ -570,7 +570,7 @@ if {[IsXilinx]} {
     }
 
 
-    set failed [] 
+    set failed []
     set success []
     set sim_dic [dict create]
 
@@ -607,7 +607,7 @@ if {[IsXilinx]} {
           current_fileset -simset $s
           set sim_dir $main_sim_folder/$s/behav
           if { ([string tolower $simulator] eq "xsim") } {
-            set sim_name "xsim:$s"		
+            set sim_name "xsim:$s"
             if { [catch { launch_simulation -simset [get_filesets $s] } log] } {
               Msg CriticalWarning "Simulation failed for $s, error info: $::errorInfo"
               lappend failed $sim_name
@@ -632,7 +632,7 @@ if {[IsXilinx]} {
       }
     }
 
-    if {[info exists sim_scripts]} { 
+    if {[info exists sim_scripts]} {
       # Only for modelsim/questasim
       Msg Info "Generating IP simulation targets, if any..."
 
@@ -664,9 +664,9 @@ if {[IsXilinx]} {
 
         if { [file exists "./elaborate.sh"] } {
           set cmd ./elaborate.sh
-          Msg Info " ************* Elaborating: $s  ************* "  
+          Msg Info " ************* Elaborating: $s  ************* "
           lassign [ExecuteRet $cmd] ret log
-          set sim_name "elab:[dict get $sim_dic $s]"    
+          set sim_name "elab:[dict get $sim_dic $s]"
           if {$ret != 0} {
             Msg CriticalWarning "Elaboration failed for $s, error info: $::errorInfo"
             lappend failed $sim_name
@@ -678,7 +678,7 @@ if {[IsXilinx]} {
           Msg Info "######################  Elaboration log ends  ######################"
         }
         set cmd ./simulate.sh
-        Msg Info " ************* Simulating: $s  ************* "  
+        Msg Info " ************* Simulating: $s  ************* "
         lassign [ExecuteRet $cmd] ret log
 
         # If HOG_SIMPASS_STR is set, search for the string and update return code from simulation if the string is not found in simulation log
@@ -689,7 +689,7 @@ if {[IsXilinx]} {
           }
         }
 
-        set sim_name "sim:[dict get $sim_dic $s]"  
+        set sim_name "sim:[dict get $sim_dic $s]"
         if {$ret != 0} {
           Msg CriticalWarning "Simulation failed for $s, error info: $::errorInfo"
           lappend failed $sim_name
@@ -793,7 +793,7 @@ if {[IsXilinx]} {
             } else {
               Msg Warning "Found syntax error in file $f:\n $result\n"
             }
-          } 
+          }
         }
       }
     }
@@ -933,7 +933,7 @@ if {[IsXilinx]} {
 
   ########## CHECK SYNTAX ###########
   if { $check_syntax == 1 } {
-    Msg Info "Checking syntax option is not supported for Microchip Libero Soc yet. Skipping.."  
+    Msg Info "Checking syntax option is not supported for Microchip Libero Soc yet. Skipping.."
   }
 
   defvar_set -name RWNETLIST_32_64_MIXED_FLOW -value 0
@@ -946,7 +946,7 @@ if {[IsXilinx]} {
       Msg Error "SYNTHESIZE FAILED!"
     } else {
       Msg Info "SYNTHESIZE PASSED!"
-    }  
+    }
   } else {
     Msg Debug "Skipping synthesis (and IP handling)..."
   }
@@ -981,7 +981,7 @@ if {[IsXilinx]} {
       } else {
         Msg Info "GENERATEPROGRAMMINGDATA PASSED."
       }
-      Msg Info "Sourcing Hog/Tcl/integrated/post-bitstream.tcl"       
+      Msg Info "Sourcing Hog/Tcl/integrated/post-bitstream.tcl"
       source $tcl_path/../../Hog/Tcl/integrated/post-bitstream.tcl
     }
 

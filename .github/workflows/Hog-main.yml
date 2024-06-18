@@ -1,4 +1,4 @@
-#   Copyright 2018-2023 The University of Birmingham
+#   Copyright 2018-2024 The University of Birmingham
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -17,58 +17,32 @@ name: Hog-main
 
 on:
   workflow_call:
-    inputs:
-      HOG_CREATE_OFFICIAL_RELEASE:
-        required: false
-        type: boolean
-      HOG_OFFICIAL_BIN_EOS_PATH:
-        type: string
-        required: false
-      HOG_OFFICIAL_BIN_PATH:
-        type: string
-        required: false
-      HOG_USE_DOXYGEN:
-        required: false
-        type: boolean
     secrets:
-      SUBMODULE_CONTENT_PULL_KEY:
-        required: true
       HOG_PUSH_TOKEN:
         required: true
       HOG_EMAIL:
         required: true
       HOG_USER:
         required: true
-      EOS_PASSWORD:
-        required: false
-      EOS_USER:
-        required: false
-      EOS_MGM_URL:
-        required: false
 
 env:
   HOG_PUSH_TOKEN: ${{ secrets.HOG_PUSH_TOKEN }}
   HOG_USER: ${{ secrets.HOG_USER }}
   HOG_EMAIL: ${{ secrets.HOG_EMAIL }}
-  EOS_USER: ${{ secrets.EOS_USER}}
-  EOS_PASSWORD: ${{ secrets.EOS_PASSWORD}}
 
 jobs:
   tag_official_version:
     runs-on: ubuntu-latest
-    container: gitlab-registry.cern.ch/hog/hog-docker:tclsh
-    outputs:
-      tag: ${{ steps.tag.outputs.tag }}
-      runid: ${{ steps.tag.outputs.runid}}
+    container: gitlab-registry.cern.ch/hog/hog-docker
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
+        name: Checkout Repository
         with:
           fetch-depth: 0
-      - uses: webfactory/ssh-agent@v0.7.0
-        with:
-          ssh-private-key: ${{ secrets.SUBMODULE_CONTENT_PULL_KEY }}
+          token: ${{secrets.HOG_PUSH_TOKEN}}
+          submodules: 'true'
       - name: tag_official_version
-        id: tag
+        shell: bash
         run: |
           git config --system --add safe.directory $(pwd)
           git config --global user.email "$HOG_EMAIL"
@@ -77,18 +51,26 @@ jobs:
           git checkout $GITHUB_HEAD_REF
           git pull
           commit_message=$(git show --pretty=format:"%B" --no-patch)
-          echo "Removing merge commit..."
-          echo "Current commit is $(git rev-parse HEAD)"
-          echo "Reverting to $(git log -n 1 --skip 1 --pretty=format:"%H")"
-          previous_commit=$(git log -n 1 --skip 1 --pretty=format:"%H")
-          git reset --hard $previous_commit
-          git push --force
+          if [[ $commit_message == "Merge pull request"* ]]; then
+            echo "Removing merge commit..."
+            echo "Current commit is $(git rev-parse HEAD)"
+            echo "Reverting to $(git log -n 1 --skip 1 --pretty=format:"%H")"
+            previous_commit=$(git log -n 1 --skip 1 --pretty=format:"%H")
+            git reset --hard $previous_commit
+            git push --force
+            exit 0
+          fi
           git fetch origin refs/notes/*:refs/notes/*
           note=(`git notes show`) || {
             echo "No note found, probably you pushed to a branch that should protected (e.g. master, develop)";
             exit 1;
           }
           new_tag=${note[2]}
+          if [ -z "$new_tag" ]; then
+            echo "It was impossible to get the tag number from the git note of this commit. Check that your repository settigns allows only merge commis, and that the merge_and_tag job in your Merge pipeline succeded."
+            echo "More info here https://hog.readthedocs.io/en/latest/02-User-Manual/02-Hog-CI/02-GitHub-Actions/01-Setup-Actions.html#merge-commit-handling-on-github-com"
+            exit 1
+          fi
           present_tag=(`git describe`)
           if [ $present_tag != $new_tag ]; then
             if [ "$(git tag --list ${new_tag}*)" != "" ]; then
@@ -105,112 +87,3 @@ jobs:
           else
             echo "Tagging is not necessary because the present commit is already tagged as:\ $new_tag.";
           fi;
-          echo "tag=$new_tag" >> $GITHUB_OUTPUT
-          echo "runid=${note[0]}" >> $GITHUB_OUTPUT
-  archive_binary_files:
-    runs-on: ubuntu-latest
-    container: gitlab-registry.cern.ch/hog/hog-docker:tclsh
-    if: ${{ inputs.HOG_OFFICIAL_BIN_EOS_PATH != '' || inputs.HOG_OFFICIAL_BIN_PATH != '' }}
-    needs: [tag_official_version]
-    steps:
-      - uses: actions/checkout@v2
-        with:
-          fetch-depth: 0
-      - uses: webfactory/ssh-agent@v0.7.0
-        with:
-          ssh-private-key: ${{ secrets.SUBMODULE_CONTENT_PULL_KEY }}
-      - name: Get Artifacts
-        run: |
-          git config --system --add safe.directory $(pwd)
-          git config --global user.email "$HOG_EMAIL"
-          git config --global user.name "$HOG_USER"
-          git fetch
-          git checkout $GITHUB_HEAD_REF
-          git pull
-          git submodule init
-          git submodule update
-          if [[ "${{ inputs.HOG_OFFICIAL_BIN_PATH}}" != "" ]]; then
-            BIN_PATH=${{ inputs.HOG_OFFICIAL_BIN_PATH}}
-          elif [[ "${{ inputs.HOG_OFFICIAL_BIN_EOS_PATH }}" != "" ]]; then
-            BIN_PATH=${{ inputs.HOG_OFFICIAL_BIN_EOS_PATH }}
-            echo "From version Hog2024.1, HOG_OFFICIAL_BIN_EOS_PATH variable will be deprecated. Please use HOG_OFFICIAL_BIN_PATH to define the path where to copy the official bitfiles."
-          fi
-          if [[ $BIN_PATH == /eos/* ]]; then
-            until echo $EOS_PASSWORD | kinit $EOS_USER@CERN.CH; do
-            echo Retrying;
-            sleep 2;
-            done;
-          fi;
-          if [ -v "${{ secrets.EOS_MGM_URL}}" ]; then
-            export EOS_MGM_URL=${{ secrets.EOS_MGM_URL }}
-          else
-            export EOS_MGM_URL="root://eosuser.cern.ch"
-          fi;
-          if [[ "${{ inputs.HOG_USE_DOXYGEN }}" == "1" ]]; then
-            ./Hog/Other/GetArtifactsAndRename.sh -token $HOG_PUSH_TOKEN -url $GITHUB_API_URL -proj_id $GITHUB_REPOSITORY -mr ${{ needs.tag_official_version.outputs.runid}} -doxygen -github ;
-            echo "Copying Doxygen documentation to $BIN_PATH/Doc";
-            if [[ $BIN_PATH == /eos/* ]]; then
-              eos mkdir -p $BIN_PATH/Doc;
-              xrdcp -rsf Doc/html/* ${EOS_MGM_URL}/$BIN_PATH/Doc;
-            else
-              mkdir -p $BIN_PATH/Doc
-              cp -r Doc/html/* $BIN_PATH/Doc
-            fi;
-          else
-            ./Hog/Other/GetArtifactsAndRename.sh -token $HOG_PUSH_TOKEN -url $GITHUB_API_URL -proj_id $GITHUB_REPOSITORY -mr ${{ needs.tag_official_version.outputs.runid}} -github;
-          fi
-          echo "Copying binary files to $BIN_PATH/${{ needs.tag_official_version.outputs.tag }}";
-          if [[ $BIN_PATH == /eos/* ]]; then
-            eos mkdir $BIN_PATH/${{ needs.tag_official_version.outputs.tag }};
-            xrdcp -rfs bin/* ${EOS_MGM_URL}//$BIN_PATH/${{ needs.tag_official_version.outputs.tag }};
-          else
-            mkdir $BIN_PATH/${{ needs.tag_official_version.outputs.tag }};
-            cp -r bin/* $BIN_PATH/${{ needs.tag_official_version.outputs.tag }};
-          fi;
-  create_github_release:
-    runs-on: ubuntu-latest
-    needs: [tag_official_version]
-    container: gitlab-registry.cern.ch/hog/hog-docker:tclsh
-    if: ${{ inputs.HOG_CREATE_OFFICIAL_RELEASE }}
-    steps:
-      - uses: actions/checkout@v2
-        with:
-          fetch-depth: 0
-      - uses: webfactory/ssh-agent@v0.7.0
-        with:
-          ssh-private-key: ${{ secrets.SUBMODULE_CONTENT_PULL_KEY }}
-      - name: Get Artifacts
-        run: |
-          git config --system --add safe.directory $(pwd)
-          git config --global user.email "$HOG_EMAIL"
-          git config --global user.name "$HOG_USER"
-          git fetch
-          git checkout -f $GITHUB_REF_NAME
-          git pull
-          git submodule init
-          git submodule update
-          ./Hog/Other/GetArtifactsAndRename.sh -token $HOG_PUSH_TOKEN -url $GITHUB_API_URL -proj_id $GITHUB_REPOSITORY -mr ${{ needs.tag_official_version.outputs.runid}} -github;
-          zip -r binaries.zip bin
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # This token is provided by Actions, you do not need to create your own token
-        with:
-          tag_name: ${{ needs.tag_official_version.outputs.tag }}
-          release_name: Release ${{ needs.tag_official_version.outputs.tag }}
-          body_path: bin/note.md
-          draft: false
-          prerelease: false
-      - name: Upload Release Asset
-        id: upload-release-asset
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps
-          asset_path: ./binaries.zip
-          asset_name: Binaries
-          asset_content_type: application/zip

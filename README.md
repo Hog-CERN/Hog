@@ -12,7 +12,7 @@ Hog is a set of Tcl/Shell scripts plus a suitable methodology to allow a fruitfu
 More information on the how to use Hog can be found in the [user documentation website](http://hog-user-docs.web.cern.ch/)
 
 ## Hog Releases
-Stable Hog releases are stored in the `master branch` and  are tagged as `Hog<YEAR>.<n>`, for example `Hog2020.1`.
+Stable Hog releases are stored in the `master branch` and  are tagged as `Hog<YEAR>.<n>`, for example `Hog2024.1`.
 Pulling the `master` branch always gives you the most updated Hog stable release.
 
 Hog developers use the `develop` branch, tagging functional but not

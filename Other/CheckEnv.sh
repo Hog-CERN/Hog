@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#   Copyright 2018-2023 The University of Birmingham
+#   Copyright 2018-2024 The University of Birmingham
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -28,7 +28,7 @@ function help_message() {
   echo " Hog - CheckEnv for project"
   echo " ---------------------------"
   echo " Check the environment for the specified project"
-  echo 
+  echo
   echo " The project type is selected using the first line of the hog.conf generating the project"
   echo " Following options are available: "
   echo " #vivado "
@@ -110,7 +110,7 @@ if [ ! "$APPTAINER_IMAGE" == "none" ]; then
     exit $?
 fi
 
-cd "${THIS_DIR}" || exit 
+cd "${THIS_DIR}" || exit
 
 
 #################### exectuables
@@ -120,14 +120,14 @@ echo ========= EXECUTABLES ==========
 if [ -d "$PROJ_DIR" ]; then
 
     #Choose if the project is quartus, vivado, vivado_hls [...]
-    
+
     if ! select_command "$PROJ_DIR" ; then
         Msg Error "Failed to select project type: exiting!"
         exit 1
     fi
-    
+
     #select full path to executable and place it in HDL_COMPILER global variable
-    
+
     if ! select_compiler_executable "$COMMAND" ; then
         Msg Error "Failed to get HDL compiler executable for $COMMAND"
         exit 1
@@ -135,7 +135,7 @@ if [ -d "$PROJ_DIR" ]; then
 
     if [ ! -f "${HDL_COMPILER}" ]; then
         Msg Error "HDL compiler executable $HDL_COMPILER not found"
-        cd "${OLD_DIR}" || exit 
+        cd "${OLD_DIR}" || exit
         exit 1
     else
         Msg Info "Using executable: $HDL_COMPILER"

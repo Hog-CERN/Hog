@@ -1,4 +1,4 @@
-#   Copyright 2018-2023 The University of Birmingham
+#   Copyright 2018-2024 The University of Birmingham
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -47,7 +47,7 @@ generate-config:
   variables:
     <<: *vars
   stage: dynamic_generate
-  image: gitlab-registry.cern.ch/hog/hog-docker:tclsh
+  image: gitlab-registry.cern.ch/hog/hog-docker
   script:
     - if [[ ${HOG_CHECK_PROJVER} != 1 ]]; then
         echo "Project version checker is disabled.";
@@ -73,7 +73,7 @@ child-pipeline:
 
 collect_artifacts:
   <<: *ci-rules
-  image: gitlab-registry.cern.ch/hog/hog-docker:tclsh
+  image: gitlab-registry.cern.ch/hog/hog-docker
   stage: collect
   script:
     - if [ ! -f .env ]; then
@@ -82,7 +82,8 @@ collect_artifacts:
       else
         source .env;
       fi;
-    - tclsh Hog/Tcl/CI/download_child_artifacts.tcl $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $CI_COMMIT_SHA $CREATE_JOB_ID
+    - glab auth login -t $HOG_PUSH_TOKEN
+    - tclsh Hog/Tcl/CI/download_child_artifacts.tcl $CI_PROJECT_ID $CI_COMMIT_SHA $CREATE_JOB_ID
     - if [ $? -ne 0 ]; then
         exit 1;
       fi

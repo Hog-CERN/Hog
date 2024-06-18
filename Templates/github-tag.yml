@@ -12,13 +12,26 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-[sim]
-XSIM.ELABORATE.RANGECHECK = False
+# This file must be copied inside the '.github/workflows/' folder of your repository
 
-[my_sim]
-ACTIVE=1
-MODELSIM.COMPILE.VHDL_SYNTAX=2008
-MODELSIM.CUSTOM_UDO=file1.do
-MODELSIM.SIMULATE.CUSTOM_UDO=file1.do
-MODELSIM.SIMULATE.CUSTOM_WAVE_DO=file1.tcl
-TOP=tb_my_sim
+---
+name: Tag
+
+# Runs only for tag respecting the v*.*.* format
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  hog-workflow:
+    # Here you can change the Hog version to use
+    uses: hog-CERN/Hog/.github/workflows/Hog-tag.yml@Hog2024.2
+    secrets:
+      HOG_PUSH_TOKEN: ${{ secrets.HOG_PUSH_TOKEN }}
+      HOG_EMAIL: ${{ secrets.HOG_EMAIL}}
+      HOG_USER: ${{ secrets.HOG_USER}}
+    with:
+      HOG_CREATE_OFFICIAL_RELEASE: True
+      HOG_OFFICIAL_BIN_PATH: "/path/to/store/official/binaries"
+      HOG_USE_DOXYGEN: "1"

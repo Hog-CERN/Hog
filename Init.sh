@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#   Copyright 2018-2023 The University of Birmingham
+#   Copyright 2018-2024 The University of Birmingham
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -226,7 +226,7 @@ function init() {
   fi
 
   Msg Info "All done."
-  cd "${OLD_DIR}" || exit 
+  cd "${OLD_DIR}" || exit
 }
 
 

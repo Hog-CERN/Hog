@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#   Copyright 2018-2023 The University of Birmingham
+#   Copyright 2018-2024 The University of Birmingham
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -57,7 +57,7 @@ else
             exit 1
         fi
         #select full path to executable and place it in HDL_COMPILER global variable
-        
+
         if ! select_compiler_executable $COMMAND; then
             echo "Hog-WARNING: failed to get HDL compiler executable for $COMMAND"
             echo "Hog-INFO: will optimistically try Tcl shell..."

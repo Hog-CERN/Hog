@@ -513,7 +513,6 @@ process_toml_file() {
       fi
     done
     line=${rline:0:$chari}
-    # if [[ ! $line = *[!\ ]* ]]; then echo "he pasado por aqui";continue; fi # no me acuerdo que hace est0?
     if [[ $line =~ ^\[.*\] ]]; then
       section_name=$(echo "$line" | sed 's/[[:space:]]*$//' | sed 's/\[\(.*\)\]/\1/' | sed 's/ /_/g' )
       continue

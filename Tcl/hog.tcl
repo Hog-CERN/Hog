@@ -796,7 +796,7 @@ proc OS {} {
 proc GetLinkedFile {link_file} {
   if {[file type $link_file] eq "link"} {
     if {[OS] == "windows" } {
-		    #on windows we need to use readlink because Tcl is broken
+        #on windows we need to use readlink because Tcl is broken
       lassign  [ExecuteRet realpath $link_file] ret msg
       lassign  [ExecuteRet cygpath -m $msg] ret2 msg2
       if {$ret == 0 && $ret2 == 0} {
@@ -807,7 +807,7 @@ proc GetLinkedFile {link_file} {
         set real_file $link_file
       }
     } else {
-			#on linux Tcl just works
+      #on linux Tcl just works
       set linked_file [file link $link_file]
       set real_file [file normalize [file dirname $link_file]/$linked_file]
     }
@@ -1051,37 +1051,37 @@ proc GetVerFromSHA {SHA repo_path {force_develop 0}} {
 
     if {$status == 0} {
       if {[regexp {^ *$} $result]} {
-      	# We do not want the most recent tag, we want the biggest value
+        # We do not want the most recent tag, we want the biggest value
         lassign [GitRet "log --oneline --pretty=\"%d\""] status2 tag_list
-      	#Msg Status "List of all tags including $SHA: $tag_list."
-      	#cleanup the list and get only the tags
-      	set pattern {tag: v\d+\.\d+\.\d+}
-      	set real_tag_list {}
-      	foreach x $tag_list {
-    	  set x_untrimmed [regexp -all -inline $pattern $x]
-    	  regsub "tag: " $x_untrimmed "" x_trimmed
-    	  set tt [lindex $x_trimmed 0]
-    	  if {![string equal $tt ""]} {
-    	    lappend real_tag_list $tt
-    	    #puts "<$tt>"
-    	  }
-      	}
-      	#Msg Status "Cleaned up list: $real_tag_list."
-      	# Sort the tags in version order
-      	set sorted_tags [lsort -decreasing -command CompareVersions $real_tag_list]
+        #Msg Status "List of all tags including $SHA: $tag_list."
+        #cleanup the list and get only the tags
+        set pattern {tag: v\d+\.\d+\.\d+}
+        set real_tag_list {}
+        foreach x $tag_list {
+        set x_untrimmed [regexp -all -inline $pattern $x]
+        regsub "tag: " $x_untrimmed "" x_trimmed
+        set tt [lindex $x_trimmed 0]
+        if {![string equal $tt ""]} {
+          lappend real_tag_list $tt
+          #puts "<$tt>"
+        }
+        }
+        #Msg Status "Cleaned up list: $real_tag_list."
+        # Sort the tags in version order
+        set sorted_tags [lsort -decreasing -command CompareVersions $real_tag_list]
 
-      	#Msg Status "Sorted Tag list: $sorted_tags"
-      	# Select the newest tag in terms of number, not time
-      	set tag [lindex $sorted_tags 0]
+        #Msg Status "Sorted Tag list: $sorted_tags"
+        # Select the newest tag in terms of number, not time
+        set tag [lindex $sorted_tags 0]
 
-      	# Msg Debug "Chosen Tag $tag"
-	      set pattern {v\d+\.\d+\.\d+}
-      	  if {![regexp $pattern $tag]} {
+        # Msg Debug "Chosen Tag $tag"
+        set pattern {v\d+\.\d+\.\d+}
+          if {![regexp $pattern $tag]} {
             Msg CriticalWarning "No Hog version tags found in this repository."
             set ver v0.0.0
           } else {
 
-      	  lassign [ExtractVersionFromTag $tag] M m p mr
+          lassign [ExtractVersionFromTag $tag] M m p mr
           # Open repo.conf and check prefixes
           set repo_conf $repo_path/Top/repo.conf
 
@@ -1105,7 +1105,7 @@ proc GetVerFromSHA {SHA repo_path {force_develop 0}} {
               if {[dict exists $mainDict ENABLE_DEVELOP_BRANCH]} {
                 set enable_develop_branch [dict get $mainDict ENABLE_DEVELOP_BRANCH]
               }
-  	            # More properties in [main] here ...
+                # More properties in [main] here ...
 
             }
 
@@ -1149,7 +1149,7 @@ proc GetVerFromSHA {SHA repo_path {force_develop 0}} {
 
           if {$M == -1} {
             Msg CriticalWarning "Tag $tag does not contain a Hog compatible version in this repository."
-	    exit
+      exit
             #set ver v0.0.0
           } elseif {$mr == 0} {
             #Msg Info "No tag contains $SHA, will use most recent tag $tag. As this is an official tag, patch will be incremented to $p."
@@ -1512,15 +1512,11 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
   set user_ip_repo_vers ""
   # User IP Repository (Vivado only, hog.conf only)
   if {[file exists [lindex $conf_files 0]]} {
-
     set PROPERTIES [ReadConf [lindex $conf_files 0]]
-    set has_user_ip 0
-
     if {[dict exists $PROPERTIES main]} {
       set main [dict get $PROPERTIES main]
       dict for {p v} $main {
         if { [ string tolower $p ] == "ip_repo_paths" } {
-          set has_user_ip 1
           foreach repo $v {
             lappend user_ip_repos "$repo_path/$repo"
           }
@@ -1528,11 +1524,21 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
       }
     }
 
+    # For each defined IP repository get hash and version if directory exists and not empty
     foreach repo $user_ip_repos {
-      lassign [GetVer $repo] ver sha
-      lappend user_ip_repo_hashes $sha
-      lappend user_ip_repo_vers $ver
-      lappend versions $ver
+      if {[file isdirectory $repo]} {
+        set repo_file_list [glob -nocomplain "$repo/*"]
+        if {[llength $repo_file_list] != 0} {
+          lassign [GetVer $repo] ver sha
+          lappend user_ip_repo_hashes $sha
+          lappend user_ip_repo_vers $ver
+          lappend versions $ver
+        } else {
+          Msg Warning "IP_REPO_PATHS property set to $repo in hog.conf but directory is empty."
+        }
+      } else {
+        Msg Warning "IP_REPO_PATHS property set to $repo in hog.conf but directory does not exist."
+      }
     }
   }
 
@@ -1543,19 +1549,19 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
     while {$found == 0} {
       set global_commit [Git "log --format=%h -1 --abbrev=7 $SHAs"]
       foreach sha $SHAs {
-	set found 1
-	if {![IsCommitAncestor $sha $global_commit]} {
-	  set common_child  [FindCommonGitChild $global_commit $sha]
-	  if {$common_child == 0} {
+  set found 1
+  if {![IsCommitAncestor $sha $global_commit]} {
+    set common_child  [FindCommonGitChild $global_commit $sha]
+    if {$common_child == 0} {
             Msg CriticalWarning "The commit $sha is not an ancestor of the global commit $global_commit, which is OK. But $sha and $global_commit do not have any common child, which is NOT OK. This is probably do to a REBASE that is forbidden in Hog methodology as it changes git history. Hog cannot gaurantee the accuracy of the SHAs. A way to fix this is to make a commit that touches all the projects in the repositories (e.g. change the Hog version) but please do not rebase in the official branches in the future."
-	  } else { 
+    } else {
             Msg Info "The commit $sha is not an ancestor of the global commit $global_commit, adding the first common child $common_child instead..."
-	    lappend SHAs $common_child
-	  }
-	  set found 0
-	  
-	  break
-	}
+      lappend SHAs $common_child
+    }
+    set found 0
+    
+    break
+  }
       }
     }
     set global_version [FindNewestVersion $versions]
@@ -1935,7 +1941,7 @@ proc GetProjectFiles {} {
         }
         lappend files $f
         set type  [get_property FILE_TYPE [GetFile $f]]
-	      # Added a -quiet because some files (.v, .sv) don't have a library
+        # Added a -quiet because some files (.v, .sv) don't have a library
         set lib [get_property -quiet LIBRARY [GetFile $f]]
 
         # Type can be complex like VHDL 2008, in that case we want the second part to be a property
@@ -2143,7 +2149,7 @@ proc AddHogFiles { libraries properties filesets } {
         set_property SOURCE_SET sources_1 $simulation
       }
     }
-	# Check if ips.src is in $fileset
+  # Check if ips.src is in $fileset
     set libs_in_fileset [DictGet $filesets $fileset]
     if { [IsInList "ips.src" $libs_in_fileset] } {
       set libs_in_fileset [moveElementToEnd $libs_in_fileset "ips.src"]

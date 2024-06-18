@@ -238,7 +238,7 @@ if {$commit == 0 } {
   }
 }
 
-if {$xml_hash != 0} {
+if {$xml_hash != ""} {
   set xml_dst [file normalize $old_path/../xml]
   Msg Info "Creating XML directory $xml_dst..."
   file mkdir $xml_dst

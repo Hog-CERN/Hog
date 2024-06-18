@@ -943,7 +943,7 @@ proc CreateProject args {
       set commit $this_commit
     }
 
-    if {$xml_hash != 0} {
+    if {$xml_hash != ""} {
       set use_ipbus 1
     } else {
       set use_ipbus 0

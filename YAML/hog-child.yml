@@ -281,7 +281,7 @@ collect_artifacts:
   variables:
     GIT_STRATEGY: clone
   script:
-    - glab auth login -t $HOG_PUSH_TOKEN
+    - glab auth login -t $HOG_PUSH_TOKEN -h $CI_SERVER_HOST
     - old_dir=`pwd`
     - mkdir -p $CI_PROJECT_DIR/bin
     - "printf \"## Repository info\n- Merge request number: $CI_MERGE_REQUEST_IID\n- Branch name: $CI_COMMIT_REF_NAME\n\n\" > $CI_PROJECT_DIR/bin/note.md"

@@ -82,7 +82,7 @@ collect_artifacts:
       else
         source .env;
       fi;
-    - glab auth login -t $HOG_PUSH_TOKEN
+    - glab auth login -t $HOG_PUSH_TOKEN -h $CI_SERVER_HOST
     - tclsh Hog/Tcl/CI/download_child_artifacts.tcl $CI_PROJECT_ID $CI_COMMIT_SHA $CREATE_JOB_ID
     - if [ $? -ne 0 ]; then
         exit 1;

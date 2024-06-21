@@ -833,7 +833,7 @@ proc CreateProject args {
     }
   }
 
-  SetGlobalVar TARGET_SIMULATOR "ModelSim"
+  SetGlobalVar TARGET_SIMULATOR "XSim"
 
   if {[info exists env(HOG_EXTERNAL_PATH)]} {
     set globalSettings::HOG_EXTERNAL_PATH $env(HOG_EXTERNAL_PATH)

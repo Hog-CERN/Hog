@@ -14,6 +14,6 @@
 
 ---
 include:
-    - project: 'hog-cern/Hog' # Use hog/Hog at gitlab.cern.ch
-      file: '/hog-dynamic.yml'
-      ref: 'Hog2024.2'
+  - project: 'hog-cern/Hog' # Use hog/Hog at gitlab.cern.ch
+    file: '/hog-dynamic.yml'
+    ref: 'Hog2024.2'

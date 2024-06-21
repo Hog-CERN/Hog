@@ -14,7 +14,7 @@
 
 ---
 include:
-  - project: 'hog/Hog'
+  - project: 'hog-cern/Hog'
     file: '/hog.yml'
     ref: 'Hog2024.2'
 

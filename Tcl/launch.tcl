@@ -562,14 +562,6 @@ if {[IsXilinx]} {
       Msg Info "Will run only the following simsets (if they exist): $simsets_todo"
     }
 
-    Msg Info "Simulation library path is set to $lib_path."
-    set simlib_ok 1
-    if {!([file exists $lib_path])} {
-      Msg Warning "Could not find simulation library path: $lib_path, Modelsim/Questasim simulation will not work."
-      set simlib_ok 0
-    }
-
-
     set failed []
     set success []
     set sim_dic [dict create]
@@ -616,6 +608,13 @@ if {[IsXilinx]} {
               lappend success $sim_name
             }
           } else {
+            Msg Info "Simulation library path is set to $lib_path."
+            set simlib_ok 1
+            if {!([file exists $lib_path])} {
+              Msg Warning "Could not find simulation library path: $lib_path, $simulator simulation will not work."
+              set simlib_ok 0
+            }
+
             if {$simlib_ok == 1} {
               set_property "compxlib.${simulator}_compiled_library_dir" [file normalize $lib_path] [current_project]
               launch_simulation -scripts_only -simset [get_filesets $s]

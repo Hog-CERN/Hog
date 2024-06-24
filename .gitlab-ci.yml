@@ -40,6 +40,7 @@ launch_github:
     - gh auth status
     - git clone https://hog-user:${GITHUB_TOKEN}@github.com/hog-CERN/TestFirmware.git
     - cd TestFirmware/
+    - sleep 60
     - git submodule init Hog
     - git submodule update Hog
     - if git branch -a --list *auto/$CI_COMMIT_REF_NAME | grep -q "auto/$CI_COMMIT_REF_NAME$"; then

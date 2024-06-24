@@ -40,6 +40,7 @@ launch_github:
     - gh auth status
     - git clone https://hog-user:${GITHUB_TOKEN}@github.com/hog-CERN/TestFirmware.git
     - cd TestFirmware/
+    # Let's wait 60s for the mirror to update
     - sleep 60
     - git submodule init Hog
     - git submodule update Hog

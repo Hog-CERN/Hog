@@ -19,8 +19,8 @@
 
 set OldPath [pwd]
 set TclPath [file dirname [info script]]/..
-set repo_path [file normalize "$TclPath/../.."]
-source $TclPath/hog.tcl
+set repo_path [file normalize "."]
+source Hog/Tcl/hog.tcl
 
 if {[catch {package require cmdline} ERROR]} {
   Msg Error "$ERROR\n If you are running this script on tclsh, you can fix this by installing 'tcllib'"
@@ -82,18 +82,11 @@ foreach proj $projects_list {
     } else {
       set link ""
       foreach line [split $msg "\n"] {
-        if {[string first "${proj}-{ver}.z" $line]} {
+        if {[string first "${proj}-${ver}.z" $line] > -1} {
           set name [lindex [split $line] 0]
           set link [lindex [split $line] 1]
-          lassign [Execute glab release upload $tag --assets-links='
-          [
-            {
-              "name": "Asset1",
-              "url": "$link",
-              "link_type": "other",
-              "direct_asset_path": "$name"
-            }
-          ]']
+          set json "\[{ \"name\": \"$name\", \"url\": \"$link\", \"link_type\": \"other\" } \]"
+          Execute glab release upload $tag --assets-links=$json
         }
       }
     }

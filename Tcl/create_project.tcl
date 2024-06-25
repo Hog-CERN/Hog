@@ -833,7 +833,7 @@ proc CreateProject args {
     }
   }
 
-  SetGlobalVar TARGET_SIMULATOR "ModelSim"
+  SetGlobalVar TARGET_SIMULATOR "XSim"
 
   if {[info exists env(HOG_EXTERNAL_PATH)]} {
     set globalSettings::HOG_EXTERNAL_PATH $env(HOG_EXTERNAL_PATH)
@@ -943,7 +943,7 @@ proc CreateProject args {
       set commit $this_commit
     }
 
-    if {$xml_hash != 0} {
+    if {$xml_hash != ""} {
       set use_ipbus 1
     } else {
       set use_ipbus 0

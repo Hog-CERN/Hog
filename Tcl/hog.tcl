@@ -1503,8 +1503,8 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
 
   } else {
     Msg Info "This project does not use IPbus XMLs"
-    set xml_ver  00000000
-    set xml_hash 0000000
+    set xml_ver  ""
+    set xml_hash ""
   }
 
   set user_ip_repos ""

@@ -562,14 +562,6 @@ if {[IsXilinx]} {
       Msg Info "Will run only the following simsets (if they exist): $simsets_todo"
     }
 
-    Msg Info "Simulation library path is set to $lib_path."
-    set simlib_ok 1
-    if {!([file exists $lib_path])} {
-      Msg Warning "Could not find simulation library path: $lib_path, Modelsim/Questasim simulation will not work."
-      set simlib_ok 0
-    }
-
-
     set failed []
     set success []
     set sim_dic [dict create]
@@ -591,12 +583,13 @@ if {[IsXilinx]} {
           Msg Info "$n lines read from $s.sim"
 
           set firstline [lindex $data 0]
-          #find simulator
+          # Find simulator
           if { [regexp {^ *\#Simulator} $firstline] } {
             set simulator_prop [regexp -all -inline {\S+} $firstline]
             set simulator [string tolower [lindex $simulator_prop 1]]
           } else {
-            set simulator "modelsim"
+            Msg Warning "Simulator not set in $s.sim. The first line of $s.sim should be #Simulator <SIMULATOR_NAME>, where <SIMULATOR_NAME> can be xsim, questa, modelsim, riviera, activehdl, ies, or vcs, e.g. #Simulator questa. Setting simulator by default as xsim."
+            set simulator "xsim"
           }
           if {$simulator eq "skip_simulation"} {
             Msg Info "Skipping simulation for $s"
@@ -615,6 +608,13 @@ if {[IsXilinx]} {
               lappend success $sim_name
             }
           } else {
+            Msg Info "Simulation library path is set to $lib_path."
+            set simlib_ok 1
+            if {!([file exists $lib_path])} {
+              Msg Warning "Could not find simulation library path: $lib_path, $simulator simulation will not work."
+              set simlib_ok 0
+            }
+
             if {$simlib_ok == 1} {
               set_property "compxlib.${simulator}_compiled_library_dir" [file normalize $lib_path] [current_project]
               launch_simulation -scripts_only -simset [get_filesets $s]

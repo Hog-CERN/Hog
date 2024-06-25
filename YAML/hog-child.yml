@@ -346,7 +346,12 @@ check-timing:
   variables:
     GIT_STRATEGY: clone
   script:
-    - cd $CI_PROJECT_DIR/bin/
+    - if [ -d $CI_PROJECT_DIR/bin ]; then
+        cd $CI_PROJECT_DIR/bin/;
+      else
+        echo "Bin directory does not exist. No projects have been built by the Hog-CI.";
+        exit 0;
+      fi;
     - PRJ_BITS=$(find . -iname "versions.txt")
     - FAILED_PRJS=""
     - for PRJ_BIT in ${PRJ_BITS}; do

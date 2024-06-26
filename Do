@@ -35,18 +35,18 @@ find_executable_dir() {
 normalise_path() {
     local path="$1"
     if [[ "$(uname)" == "Darwin" ]]; then
-    	# Install greadlink on mac with `brew install coreutils`
-	    echo $(greadlink -m $path)
-	else
-		echo $(readlink -m $path)
+        # Install greadlink on mac with `brew install coreutils`
+        echo $(greadlink -m $path)
+    else
+        echo $(readlink -m $path)
     fi
 
     #an alternative could be realpath -m
 }
 
 if [[ "$HOG_LOGGER" == "ENABLED" ]] || [[ -f "$HOME/HogEnv.conf" ]] || [[ -f "$(pwd)/HogEnv.conf" ]]; then
-	source ${script_dir}/Other/Logger.sh
-	Logger_Init "$*"
+    source ${script_dir}/Other/Logger.sh
+    Logger_Init "$*"
 fi
 
 hog_dir="$(cd "$(dirname "$0")" && pwd)"
@@ -61,47 +61,47 @@ for executable in "${executables[@]}"; do
     # Find the directory path of the executable
     executable_dir=""
     if executable_dir=$(find_executable_dir "$exe_name"); then
-	IFS=":" read -ra exe_paths <<< "$exe_paths"
+    IFS=":" read -ra exe_paths <<< "$exe_paths"
         for exe_path in "${exe_paths[@]}"; do
             executable_path=$(normalise_path "$executable_dir/$exe_path")
-	    if [ -x "$executable_path" ]; then
-		#Setting LD_LIBRARY_PATH now
-		IFS=":" read -ra lib_paths <<< "$lib_paths"
-		for lib_path in "${lib_paths[@]}"; do
-		    library_path=$(normalise_path "$executable_dir/$lib_path")
-		    if [ -d "$library_path" ]; then
-			found_lib=1
-			break
-		    fi
-		done
+        if [ -x "$executable_path" ]; then
+        #Setting LD_LIBRARY_PATH now
+        IFS=":" read -ra lib_paths <<< "$lib_paths"
+        for lib_path in "${lib_paths[@]}"; do
+            library_path=$(normalise_path "$executable_dir/$lib_path")
+            if [ -d "$library_path" ]; then
+            found_lib=1
+            break
+            fi
+        done
 
-		# Optionally we want to set TCL_LIB
-		IFS=":" read -ra tcl_libs <<< "$tcl_libs"
-		for tcl_lib in "${tcl_libs[@]}"; do
-		    tcl_library=$(normalise_path "$executable_dir/$tcl_lib")
-		    if [ -d "$tcl_library" ]; then
-			found_tcl_lib=1
-			break
-		    fi
-		done
+        # Optionally we want to set TCL_LIB
+        IFS=":" read -ra tcl_libs <<< "$tcl_libs"
+        for tcl_lib in "${tcl_libs[@]}"; do
+            tcl_library=$(normalise_path "$executable_dir/$tcl_lib")
+            if [ -d "$tcl_library" ]; then
+            found_tcl_lib=1
+            break
+            fi
+        done
 
-		if [ "$found_lib" == 1 ]; then
-		    found=1
-		    break
-		fi
-	    fi
-	done
+        if [ "$found_lib" == 1 ]; then
+            found=1
+            break
+        fi
+        fi
+    done
     fi
     if [ "$found" == 1 ]; then
-	break
+    break
     fi
 done
 
 if [ "$found" == 1 ]; then
   export LD_LIBRARY_PATH=$library_path:$LD_LIBRARY_PATH
   if [ "$found_tcl_lib" == 1 ]; then
-	  #This is where init.tcl is located to avoid the initial warning when running tclsh
-	  export TCL_LIBRARY=$tcl_library
+      #This is where init.tcl is located to avoid the initial warning when running tclsh
+      export TCL_LIBRARY=$tcl_library
   fi
 
 if [[ "$HOG_LOGGER" == "ENABLED" ]] || [[ -f "$HOME/HogEnv.conf" ]] || [[ -f "$(pwd)/HogEnv.conf" ]]; then

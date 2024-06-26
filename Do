@@ -6,7 +6,6 @@
 
 # Get the directory containing the script
 script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-. ${script_dir}/Other/Logger.sh
 
 
 
@@ -35,11 +34,18 @@ find_executable_dir() {
 # Function to normalise a path
 normalise_path() {
     local path="$1"
-    echo $(readlink -m $path)
+    if [[ "$(uname)" == "Darwin" ]]; then
+    	# Install greadlink on mac with `brew install coreutils`
+	    echo $(greadlink -m $path)
+	else
+		echo $(readlink -m $path)
+    fi
+
     #an alternative could be realpath -m
 }
 
-if [[ -v HOG_LOGGER && $HOG_LOGGER == ENABLED ]] || [[ -f $(eval echo "~$USER")"/HogEnv.conf" ]] || [[ -f $(pwd)"/HogEnv.conf" ]]; then
+if [[ "$HOG_LOGGER" == "ENABLED" ]] || [[ -f "$HOME/HogEnv.conf" ]] || [[ -f "$(pwd)/HogEnv.conf" ]]; then
+	source ${script_dir}/Other/Logger.sh
 	Logger_Init "$*"
 fi
 
@@ -51,7 +57,7 @@ found_lib=0
 for executable in "${executables[@]}"; do
     # Split the executable and additional path
     IFS=', ' read -r exe_name exe_paths lib_paths tcl_libs <<< "$executable"
-    
+
     # Find the directory path of the executable
     executable_dir=""
     if executable_dir=$(find_executable_dir "$exe_name"); then
@@ -68,7 +74,7 @@ for executable in "${executables[@]}"; do
 			break
 		    fi
 		done
-		
+
 		# Optionally we want to set TCL_LIB
 		IFS=":" read -ra tcl_libs <<< "$tcl_libs"
 		for tcl_lib in "${tcl_libs[@]}"; do
@@ -78,7 +84,7 @@ for executable in "${executables[@]}"; do
 			break
 		    fi
 		done
-		
+
 		if [ "$found_lib" == 1 ]; then
 		    found=1
 		    break
@@ -98,7 +104,7 @@ if [ "$found" == 1 ]; then
 	  export TCL_LIBRARY=$tcl_library
   fi
 
-  if [[ -v HOG_LOGGER && $HOG_LOGGER == ENABLED ]] || [[ -f $(eval echo "~$USER")"/HogEnv.conf" ]] || [[ -f $(pwd)"/HogEnv.conf" ]]; then
+if [[ "$HOG_LOGGER" == "ENABLED" ]] || [[ -f "$HOME/HogEnv.conf" ]] || [[ -f "$(pwd)/HogEnv.conf" ]]; then
     Logger $executable_path $hog_dir/Tcl/launch.tcl "$@"
     Hog_exit
   else

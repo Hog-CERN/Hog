@@ -1966,7 +1966,6 @@ proc GetProjectFiles {} {
           set prop "XDC"
         } elseif {[string equal $type "Verilog Header"] && [file extension $f] != ".vh"} {
           set prop "verilog_header"
-          puts "Appending property $prop"
         } else {
           set type [lindex $type 0]
           set prop ""

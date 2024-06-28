@@ -2458,7 +2458,7 @@ proc AddHogFiles { libraries properties filesets } {
                   }
                 }
               }
-            } elseif {[string `first "QSYS" $file_type] != -1 } {
+            } elseif {[string [first "QSYS" $file_type] != -1 } {
               set emptyString ""
               regsub -all {\{||\}} $props $emptyString props
               if {[string first "noadd" $props] == -1} {

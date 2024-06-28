@@ -25,6 +25,10 @@
 set CI_STAGES {"generate_project" "simulate_project"}
 set CI_PROPS {"-synth_only"}
 
+proc ALLOWED_PROPS {} {
+return [dict create ".vhd" [list "93" "nosynth" "noimpl" "nosim" "1987" "1993" "2008" ] ".vhdl" [list "93" "nosynth" "noimpl" "nosim" "1987" "1993" "2008" ] ".v" [list "SystemVerilog" "verilog_header" "nosynth" "noimpl" "nosim" "1995" "2001"] ".sv" [list "verilog" "verilog_header" "nosynth" "noimpl" "nosim" "2005" "2009"] ".do" [list "nosim"] ".udo" [list "nosim"] ".xci" [list "nosynth" "noimpl" "nosim" "locked"] ".tcl" [list "nosynth" "noimpl" "nosim" "source" "qsys" "noadd"] ".qsys" [list "nogenerate" "noadd"] ".sdc" [list "notiming"]]
+}
+
 
 #### FUNCTIONS
 
@@ -714,8 +718,12 @@ proc ReadListFile args {
             foreach p $prop {
               # No need to append the lib= property
               if { [string first "lib=" $p ] == -1} {
-                dict lappend properties $vhdlfile $p
-                Msg Debug "Adding property $p to $vhdlfile..."
+                if { [IsInList $p [DictGet [ALLOWED_PROPS]  $extension ] ] || [string first "top" $p] == 0} {
+                  dict lappend properties $vhdlfile $p
+                  Msg Debug "Adding property $p to $vhdlfile..."
+                } else {
+                  Msg Warning "Setting Property $p is not supported for file $vhdlfile or it is already its default. The allowed properties for this file type are \[ [DictGet [ALLOWED_PROPS] $extension ]\]"
+                }
               }
             }
             if { [lsearch {.xci .ip .bd .xcix} $extension] >= 0} {
@@ -1559,7 +1567,7 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
       lappend SHAs $common_child
     }
     set found 0
-    
+
     break
   }
       }
@@ -1945,17 +1953,20 @@ proc GetProjectFiles {} {
         set lib [get_property -quiet LIBRARY [GetFile $f]]
 
         # Type can be complex like VHDL 2008, in that case we want the second part to be a property
+        Msg Debug "File $f Extension [file extension $f] Type [lindex $type 0]"
+
         if {[string equal [lindex $type 0] "VHDL"] && [llength $type] == 1} {
           set prop "93"
         } elseif  {[string equal [lindex $type 0] "Block"] && [string equal [lindex $type 1] "Designs"]} {
           set type "IP"
           set prop ""
-        } elseif {[string equal [lindex $type 0] "SystemVerilog"] && [file extension $f] != ".sv"} {
+        } elseif {[string equal $type "SystemVerilog"] && [file extension $f] != ".sv"} {
           set prop "SystemVerilog"
         } elseif {[string equal [lindex $type 0] "XDC"] && [file extension $f] != ".xdc"} {
           set prop "XDC"
-        } elseif {[string equal [lindex $type 0] "Verilog Header"] && [file extension $f] != ".vh"} {
+        } elseif {[string equal $type "Verilog Header"] && [file extension $f] != ".vh"} {
           set prop "verilog_header"
+          puts "Appending property $prop"
         } else {
           set type [lindex $type 0]
           set prop ""
@@ -2175,7 +2186,7 @@ proc AddHogFiles { libraries properties filesets } {
             set_property -name "library" -value $rootlib -objects $file_obj
           }
 
-          #ADDING FILE PROPERTIES
+          # ADDING FILE PROPERTIES
           set props [DictGet $properties $f]
           if {[file extension $f] == ".vhd" || [file extension $f] == ".vhdl"} {
             # VHDL 93 property
@@ -2190,7 +2201,7 @@ proc AddHogFiles { libraries properties filesets } {
           }
 
           # SystemVerilog property
-          if {[lsearch -inline -regexp $props "SystemVerilog"] > 0 || [file extension $f] == ".sv"} {
+          if {[lsearch -inline -regexp $props "SystemVerilog"] > 0 } {
             # ISE does not support SystemVerilog
             if {[IsVivado]} {
               set_property -name "file_type" -value "SystemVerilog" -objects $file_obj
@@ -2207,16 +2218,16 @@ proc AddHogFiles { libraries properties filesets } {
             set globalSettings::synth_top_module $top
           }
 
-          # XDC
-          if {[lsearch -inline -regexp $props "XDC"] >= 0 || [file extension $f] == ".xdc"} {
-            Msg Debug "Setting filetype XDC for $f"
-            set_property -name "file_type" -value "XDC" -objects $file_obj
+          # Verilog headers
+          if {[lsearch -inline -regexp $props "verilog_header"] >= 0} {
+            Msg Debug "Setting verilog header type for $f..."
+            set_property file_type {Verilog Header} [get_files $f]
           }
 
           # Verilog headers
-          if {[lsearch -inline -regexp $props "verilog_header"] >= 0 || [file extension $f] == ".vh"} {
-            Msg Debug "Setting verilog header type for $f..."
-            set_property file_type {Verilog Header} [get_files $f]
+          if {[lsearch -inline -regexp $props "verilog"] >= 0} {
+            Msg Debug "Setting verilog type for $f..."
+            set_property file_type {Verilog} [get_files $f]
           }
 
           # Not used in synthesis
@@ -2448,7 +2459,7 @@ proc AddHogFiles { libraries properties filesets } {
                   }
                 }
               }
-            } elseif {[string first "QSYS" $file_type] != -1 } {
+            } elseif {[string `first "QSYS" $file_type] != -1 } {
               set emptyString ""
               regsub -all {\{||\}} $props $emptyString props
               if {[string first "noadd" $props] == -1} {

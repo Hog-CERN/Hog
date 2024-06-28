@@ -26,7 +26,7 @@ set CI_STAGES {"generate_project" "simulate_project"}
 set CI_PROPS {"-synth_only"}
 
 proc ALLOWED_PROPS {} {
-return [dict create ".vhd" [list "93" "nosynth" "noimpl" "nosim" "1987" "1993" "2008" ] ".vhdl" [list "93" "nosynth" "noimpl" "nosim" "1987" "1993" "2008" ] ".v" [list "SystemVerilog" "verilog_header" "nosynth" "noimpl" "nosim" "1995" "2001"] ".sv" [list "verilog" "verilog_header" "nosynth" "noimpl" "nosim" "2005" "2009"] ".do" [list "nosim"] ".udo" [list "nosim"] ".xci" [list "nosynth" "noimpl" "nosim" "locked"] ".tcl" [list "nosynth" "noimpl" "nosim" "source" "qsys" "noadd"] ".qsys" [list "nogenerate" "noadd"] ".sdc" [list "notiming"]]
+return [dict create ".vhd" [list "93" "nosynth" "noimpl" "nosim" "1987" "1993" "2008" ] ".vhdl" [list "93" "nosynth" "noimpl" "nosim" "1987" "1993" "2008" ] ".v" [list "SystemVerilog" "verilog_header" "verilog_template" "nosynth" "noimpl" "nosim" "1995" "2001"] ".sv" [list "verilog" "verilog_header" "verilog_template" "nosynth" "noimpl" "nosim" "2005" "2009"] ".do" [list "nosim"] ".udo" [list "nosim"] ".xci" [list "nosynth" "noimpl" "nosim" "locked"] ".tcl" [list "nosynth" "noimpl" "nosim" "source" "qsys" "noadd"] ".qsys" [list "nogenerate" "noadd"] ".sdc" [list "notiming"]]
 }
 
 
@@ -1966,6 +1966,8 @@ proc GetProjectFiles {} {
           set prop "XDC"
         } elseif {[string equal $type "Verilog Header"] && [file extension $f] != ".vh" && [file extension $f] != ".svh"} {
           set prop "verilog_header"
+        } elseif {[string equal $type "Verilog Template"] && [file extension $f] == ".v" && [file extension $f] != ".sv"} {
+          set prop "verilog_template"
         } else {
           set type [lindex $type 0]
           set prop ""
@@ -2217,14 +2219,17 @@ proc AddHogFiles { libraries properties filesets } {
             set globalSettings::synth_top_module $top
           }
 
+          
           # Verilog headers
           if {[lsearch -inline -regexp $props "verilog_header"] >= 0} {
             Msg Debug "Setting verilog header type for $f..."
             set_property file_type {Verilog Header} [get_files $f]
-          }
-
-          # Verilog headers
-          if {[lsearch -inline -regexp $props "verilog"] >= 0} {
+          } elseif {[lsearch -inline -regexp $props "verilog_template"] >= 0} {
+            # Verilog Template
+            Msg Debug "Setting verilog template type for $f..."
+            set_property file_type {Verilog Template} [get_files $f]
+          } elseif {[lsearch -inline -regexp $props "verilog"] >= 0} {
+            # Normal Verilog
             Msg Debug "Setting verilog type for $f..."
             set_property file_type {Verilog} [get_files $f]
           }

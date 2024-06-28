@@ -1964,7 +1964,7 @@ proc GetProjectFiles {} {
           set prop "SystemVerilog"
         } elseif {[string equal [lindex $type 0] "XDC"] && [file extension $f] != ".xdc"} {
           set prop "XDC"
-        } elseif {[string equal $type "Verilog Header"] && [file extension $f] != ".vh"} {
+        } elseif {[string equal $type "Verilog Header"] && [file extension $f] != ".vh" && [file extension $f] != ".svh"} {
           set prop "verilog_header"
         } else {
           set type [lindex $type 0]

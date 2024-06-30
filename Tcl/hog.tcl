@@ -2487,6 +2487,29 @@ proc AddHogFiles { libraries properties filesets } {
               set option [string map {fdc net_fdc} $option]
               set option [string map {pdc io_pdc} $option]
               create_links -convert_EDN_to_HDL 0 -library {work} $option $con_file
+
+              if {$con_ext == ".sdc"} {
+                if { [lsearch -inline -regexp $props "notiming"] == -1 } {
+                  organize_tool_files -tool {VERIFYTIMING} -file $cur_file -input_type {constraint}
+                } else {
+                  Msg Info "Excluding $cur_file from timing verification..."
+                }
+
+                if { [lsearch -inline -regexp $props "nosynth"] == -1 } {
+                  organize_tool_files -tool {SYNTHESIZE} -file $cur_file -input_type {constraint}
+                } else {
+                  Msg Info "Excluding $cur_file from synthesis..."
+                }
+              }
+
+              if {$con_ext == ".pdc" || $con_ext == ".sdc"} {
+                if { [lsearch -inline -regexp $props "noplace"] == -1 } {
+                  organize_tool_files -tool {PLACEROUTE} -file $cur_file -input_type {constraint}
+                } else {
+                  Msg Info "Excluding $cur_file from synthesis..."
+                }
+              }
+
             } else {
               Msg CriticalWarning "Constraint file $con_file does not have a valid extension. Allowed extensions are: \n $vld_exts"
             }
@@ -2511,10 +2534,7 @@ proc AddHogFiles { libraries properties filesets } {
             set globalSettings::synth_top_module "${top}::$rootlib"
           }
 
-          # exclude sdc from timing
-          if {[lsearch -inline -regexp $props "notiming"] == -1 } {
-            organize_tool_files -tool {VERIFYTIMING} -file $cur_file -input_type {constraint}
-          }
+
         }
       # Closing IDE if cascade
       }

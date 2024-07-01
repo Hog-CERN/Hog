@@ -197,7 +197,7 @@ proc AddProjectFiles {} {
   ## Set synthesis TOP
   SetTopProperty $globalSettings::synth_top_module $sources
 
-  # Libero need the top files to be set before adding the constraints
+  # Libero needs the top files to be set before adding the constraints
   AddHogFiles {*}[GetHogFiles -list_files {.con} -ext_path $globalSettings::HOG_EXTERNAL_PATH $globalSettings::list_path $globalSettings::repo_path ]
   ## Set simulation Properties
 

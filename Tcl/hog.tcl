@@ -721,7 +721,7 @@ proc ReadListFile args {
                 if { [IsInList $p [DictGet [ALLOWED_PROPS]  $extension ] ] || [string first "top" $p] == 0} {
                   dict lappend properties $vhdlfile $p
                   Msg Debug "Adding property $p to $vhdlfile..."
-                } elseif { $extension != ".xml" } {
+                } elseif { $list_file_ext != ".lst" } {
                   Msg Warning "Setting Property $p is not supported for file $vhdlfile or it is already its default. The allowed properties for this file type are \[ [DictGet [ALLOWED_PROPS] $extension ]\]"
                 }
               }

@@ -118,7 +118,6 @@ echo ========= EXECUTABLES ==========
 
 
 if [ -d "$PROJ_DIR" ]; then
-    echo $PROJ_DIR
     #Choose if the project is quartus, vivado, vivado_hls [...]
 
     if ! select_command "$PROJ_DIR" ; then

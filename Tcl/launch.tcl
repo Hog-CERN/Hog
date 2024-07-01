@@ -1004,7 +1004,7 @@ if {[IsXilinx]} {
     #Timing file
     set timing_file_path [file normalize "$repo_path/Projects/timing_libero.txt"]
     if {[file exists $timing_file_path]} {
-      file copy -force $timing_file_path $dst_dir/reports/Timing_$project_name\-$describe.txt
+      file copy -force $timing_file_path $dst_dir/reports/timing.txt
       set timing_file [open $timing_file_path "r"]
       set status_file [open "$dst_dir/timing.txt" "w"]
       puts $status_file "## $project_name Timing summary\n\n"

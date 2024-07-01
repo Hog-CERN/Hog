@@ -191,11 +191,14 @@ proc AddProjectFiles {} {
     source $globalSettings::tcl_path/utils/cmdline.tcl
   }
 
-  AddHogFiles {*}[GetHogFiles -ext_path $globalSettings::HOG_EXTERNAL_PATH $globalSettings::list_path $globalSettings::repo_path]
+  # Add first .src, .sim, and .ext list files
+  AddHogFiles {*}[GetHogFiles -list_files {.src,.sim,.ext} -ext_path $globalSettings::HOG_EXTERNAL_PATH $globalSettings::list_path $globalSettings::repo_path ]
 
   ## Set synthesis TOP
   SetTopProperty $globalSettings::synth_top_module $sources
 
+  # Libero needs the top files to be set before adding the constraints
+  AddHogFiles {*}[GetHogFiles -list_files {.con} -ext_path $globalSettings::HOG_EXTERNAL_PATH $globalSettings::list_path $globalSettings::repo_path ]
   ## Set simulation Properties
 
   ## Libero Properties must be set after that root has been defined
@@ -833,7 +836,9 @@ proc CreateProject args {
     }
   }
 
-  SetGlobalVar TARGET_SIMULATOR "XSim"
+  if {[IsVivado]} {
+    SetGlobalVar TARGET_SIMULATOR "XSim"
+  }
 
   if {[info exists env(HOG_EXTERNAL_PATH)]} {
     set globalSettings::HOG_EXTERNAL_PATH $env(HOG_EXTERNAL_PATH)

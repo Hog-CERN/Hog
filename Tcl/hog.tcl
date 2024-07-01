@@ -26,7 +26,7 @@ set CI_STAGES {"generate_project" "simulate_project"}
 set CI_PROPS {"-synth_only"}
 
 proc ALLOWED_PROPS {} {
-return [dict create ".vhd" [list "93" "nosynth" "noimpl" "nosim" "1987" "1993" "2008" ] ".vhdl" [list "93" "nosynth" "noimpl" "nosim" "1987" "1993" "2008" ] ".v" [list "SystemVerilog" "verilog_header" "verilog_template" "nosynth" "noimpl" "nosim" "1995" "2001"] ".sv" [list "verilog" "verilog_header" "verilog_template" "nosynth" "noimpl" "nosim" "2005" "2009"] ".do" [list "nosim"] ".udo" [list "nosim"] ".xci" [list "nosynth" "noimpl" "nosim" "locked"] ".tcl" [list "nosynth" "noimpl" "nosim" "source" "qsys" "noadd"] ".qsys" [list "nogenerate" "noadd"] ".sdc" [list "notiming"]]
+return [dict create ".vhd" [list "93" "nosynth" "noimpl" "nosim" "1987" "1993" "2008" ] ".vhdl" [list "93" "nosynth" "noimpl" "nosim" "1987" "1993" "2008" ] ".v" [list "SystemVerilog" "verilog_header" "nosynth" "noimpl" "nosim" "1995" "2001"] ".sv" [list "verilog" "verilog_header" "nosynth" "noimpl" "nosim" "2005" "2009"] ".do" [list "nosim"] ".udo" [list "nosim"] ".xci" [list "nosynth" "noimpl" "nosim" "locked"] ".tcl" [list "nosynth" "noimpl" "nosim" "source" "qsys" "noadd"] ".qsys" [list "nogenerate" "noadd"] ".sdc" [list "notiming" "nosynth" "noplace"] ".pdc" [list "nosynth" "noplace"]]
 }
 
 
@@ -2145,6 +2145,16 @@ proc AddHogFiles { libraries properties filesets } {
   Msg Debug "Filesets: $filesets"
   Msg Debug "Libraries: $libraries"
   Msg Debug "Properties: $properties"
+
+  if {[IsLibero]} {
+    set synth_conf_command "organize_tool_files -tool {SYNTHESIZE} -input_type {constraint}"
+    set synth_conf 0
+    set timing_conf_command "organize_tool_files -tool {VERIFYTIMING} -input_type {constraint}"
+    set timing_conf 0
+    set place_conf_command "organize_tool_files -tool {PLACEROUTE} -input_type {constraint}"
+    set place_conf 0
+  }
+
   foreach fileset [dict keys $filesets] {
     Msg Debug "Fileset: $fileset"
     # Create fileset if it doesn't exist yet
@@ -2161,7 +2171,7 @@ proc AddHogFiles { libraries properties filesets } {
         set_property SOURCE_SET sources_1 $simulation
       }
     }
-  # Check if ips.src is in $fileset
+    # Check if ips.src is in $fileset
     set libs_in_fileset [DictGet $filesets $fileset]
     if { [IsInList "ips.src" $libs_in_fileset] } {
       set libs_in_fileset [moveElementToEnd $libs_in_fileset "ips.src"]
@@ -2219,7 +2229,7 @@ proc AddHogFiles { libraries properties filesets } {
             set globalSettings::synth_top_module $top
           }
 
-          
+
           # Verilog headers
           if {[lsearch -inline -regexp $props "verilog_header"] >= 0} {
             Msg Debug "Setting verilog header type for $f..."
@@ -2492,6 +2502,37 @@ proc AddHogFiles { libraries properties filesets } {
               set option [string map {fdc net_fdc} $option]
               set option [string map {pdc io_pdc} $option]
               create_links -convert_EDN_to_HDL 0 -library {work} $option $con_file
+
+              set props [DictGet $properties $con_file]
+
+              if {$con_ext == ".sdc"} {
+                if { [lsearch $props "notiming"] >= 0 } {
+                  Msg Info "Excluding $con_file from timing verification..."
+                } else {
+                  Msg Info "Adding $con_file to time verification"
+                  append timing_conf_command " -file $con_file"
+                  set timing_conf 1
+                }
+
+                if { [lsearch $props "nosynth"] >= 0 } {
+                  Msg Info "Excluding $con_file from synthesis..."
+                } else {
+                  Msg Info "Adding $con_file to synthesis"
+                  append synth_conf_command " -file $con_file"
+                  set synth_conf 1
+                }
+              }
+
+              if {$con_ext == ".pdc" || $con_ext == ".sdc"} {
+                if { [lsearch $props "noplace"] >= 0 } {
+                  Msg Info "Excluding $con_file from place and route..."
+                } else {
+                  Msg Info "Adding $con_file to place and route"
+                  append place_conf_command " -file $con_file"
+                  set place_conf 1
+                }
+              }
+
             } else {
               Msg CriticalWarning "Constraint file $con_file does not have a valid extension. Allowed extensions are: \n $vld_exts"
             }
@@ -2515,11 +2556,6 @@ proc AddHogFiles { libraries properties filesets } {
             Msg Info "Setting $top as top module for file set $rootlib..."
             set globalSettings::synth_top_module "${top}::$rootlib"
           }
-
-          # exclude sdc from timing
-          if {[lsearch -inline -regexp $props "notiming"] == -1 } {
-            organize_tool_files -tool {VERIFYTIMING} -file $cur_file -input_type {constraint}
-          }
         }
       # Closing IDE if cascade
       }
@@ -2527,6 +2563,24 @@ proc AddHogFiles { libraries properties filesets } {
     }
   # Closing fileset loop
   }
+
+  # Add constraints to workflow in Libero
+  if {[IsLibero]} {
+    if {$synth_conf == 1} {
+      Msg Info $synth_conf_command
+      eval $synth_conf_command
+    }
+    if {$timing_conf == 1} {
+      Msg Info $timing_conf_command
+      eval $timing_conf_command
+    }
+    if {$place_conf == 1} {
+      Msg Info $place_conf_command
+      eval $place_conf_command
+    }
+  }
+
+
 }
 
 # @brief Function searching for extra IP/BD files added at creation time using user scripts, and writing the list in

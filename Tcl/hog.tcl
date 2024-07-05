@@ -3912,6 +3912,29 @@ proc GetFileGenerics {filename {entity ""}} {
   }
 }
 
+proc WriteGenericsToIPs {generic_string} {
+  Msg Info "Looking for IPs to add generics to..."
+  Msg Debug "Parameters/generics passed to WriteGenericsToIP: $generic_string"
+
+  set ips_generic_string ""
+  foreach generic_to_set [split [string trim $generic_string]] {
+    set key [lindex [split $generic_to_set "="] 0]
+    set value [lindex [split $generic_to_set "="] 1]
+    append ips_generic_string "CONFIG.$key $value "
+  }
+
+  set ip_list [get_ips *]
+  foreach {ip} $ip_list {
+    set ip_props [list_property [get_ips $ip]]
+    foreach {ip_prop} $ip_props {
+      if {[dict exists $ips_generic_string $ip_prop ]} {
+        Msg Info "$ip contains: $ip_prop, setting it to [ dict get $ips_generic_string $ip_prop ]"
+        set_property $ip_prop [ dict get $ips_generic_string $ip_prop ] [ get_ips $ip ]
+      }
+    }
+  }
+}
+
 ## Set the generics property
 #
 #  @param[in]    mode if it's "create", the function will assume the project is being created
@@ -4002,6 +4025,10 @@ proc WriteGenerics {mode repo_path design date timee commit version top_hash top
     set_property generic $generic_string [current_fileset]
     Msg Info "Setting parameters/generics..."
     Msg Debug "Detailed parameters/generics: $generic_string"
+
+    if {[IsVivado]} {
+      WriteGenericsToIPs $generic_string
+    }
 
     if {[IsVivado]} {
       # Dealing with project generics in Simulators

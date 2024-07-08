@@ -1665,8 +1665,8 @@ proc CopyIPbusXMLs {proj_dir path dst {xml_version "0.0.0"} {xml_sha "00000000"}
     Msg CriticalWarning "No files with .ipb extension found in $proj_dir/list."
     return
   }
-  set file_data
-  for lf in $list_files {
+  set file_data ""
+  foreach lf $list_files {
     set fp [open $lf r]
     set file_data "$file_data \n [read $fp]"
     close $fp

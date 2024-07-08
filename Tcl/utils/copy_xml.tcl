@@ -50,14 +50,14 @@ if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] 
   }
 }
 
-set list_file $repo_path/Top/$project/list/xml.lst
-if {[file exists $list_file]} {
+set proj_dir $repo_path/Top/$project
+if {[llength [glob -nocomplain $proj_dir/list/*.ipb]] > 0 } {
   if {![file exists $dst]} {
     Msg Info "$dst directory not found, creating it..."
     file mkdir $dst
   }
 } else {
-  Msg Error "$list_file not found"
+  Msg Error "No .ipb files found in $proj_dir/list/"
   exit
 }
 set ret [GetRepoVersions $repo_path/Top/$project $repo_path $ext_path]
@@ -66,4 +66,4 @@ set sha [lindex $ret 13]
 set hex_ver [lindex $ret 14]
 
 set ver [HexVersionToString $hex_ver]
-CopyXMLsFromListFile $list_file $repo_path $dst $ver $sha $generate
+CopyIPbusXMLs $proj_dir $repo_path $dst $ver $sha $generate

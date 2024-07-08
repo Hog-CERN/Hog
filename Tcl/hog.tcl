@@ -721,7 +721,7 @@ proc ReadListFile args {
                 if { [IsInList $p [DictGet [ALLOWED_PROPS]  $extension ] ] || [string first "top" $p] == 0} {
                   dict lappend properties $vhdlfile $p
                   Msg Debug "Adding property $p to $vhdlfile..."
-                } elseif { $list_file_ext != ".lst" } {
+                } elseif { $list_file_ext != ".ipb" } {
                   Msg Warning "Setting Property $p is not supported for file $vhdlfile or it is already its default. The allowed properties for this file type are \[ [DictGet [ALLOWED_PROPS] $extension ]\]"
                 }
               }
@@ -738,8 +738,8 @@ proc ReadListFile args {
               }
             } elseif { $list_file_ext == ".con" } {
               set lib_name "sources.con"
-            } elseif { [string first "xml.lst" $list_file] != -1 } {
-              set lib_name "xml.lst"
+            } elseif { $list_file_ext == ".ipb" } {
+              set lib_name "ipbus_xml"
             } else {
               # Other files are stored in the OTHER dictionary from vivado (no library assignment)
               set lib_name "others.src"
@@ -1500,10 +1500,10 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
   }
 
   # Ipbus XML
-  if {[file exists ./list/xml.lst]} {
+  if {[llength [glob -nocomplain ./list/*.ipb]] > 0 } {
     #Msg Info "Found IPbus XML list file, evaluating version and SHA of listed files..."
-    lassign [GetHogFiles  -list_files "xml.lst" -sha_mode "./list/" $repo_path] xml_files dummy
-    lassign [GetVer  [dict get $xml_files "xml.lst"] ] xml_ver xml_hash
+    lassign [GetHogFiles  -list_files "*.ipb" -sha_mode "./list/" $repo_path] xml_files dummy
+    lassign [GetVer  [dict get $xml_files "ipbus_xml"] ] xml_ver xml_hash
     lappend SHAs $xml_hash
     lappend versions $xml_ver
 
@@ -1625,14 +1625,14 @@ proc ExtractVersionFromTag {tag} {
 #
 # Additional information is provided with text separated from the file name with one or more spaces
 #
-# @param[in] list_file   file containing list of XML files with optional properties
+# @param[in] proj_dir    project path, path containing the ./list directory containing at least a list file with .ipb extention
 # @param[in] path        the path the XML files are referred to in the list file
 # @param[in] dst         the path the XML files must be copied to
 # @param[in] xml_version the M.m.p version to be used to replace the __VERSION__ placeholder in any of the xml files
 # @param[in] xml_sha     the Git-SHA to be used to replace the __GIT_SHA__ placeholder in any of the xml files
 # @param[in] generate    if set to 1, tells the function to generate the VHDL decode address files rather than check them
 #
-proc CopyXMLsFromListFile {list_file path dst {xml_version "0.0.0"} {xml_sha "00000000"}  {generate 0} } {
+proc CopyIPbusXMLs {proj_dir path dst {xml_version "0.0.0"} {xml_sha "00000000"}  {generate 0} } {
   # set ::env(PYTHONHOME) "/usr"
   lassign  [ExecuteRet python -c "from __future__ import print_function; from sys import path;print(':'.join(path\[1:\]))"] ret msg
   if {$ret == 0} {
@@ -1658,14 +1658,24 @@ proc CopyXMLsFromListFile {list_file path dst {xml_version "0.0.0"} {xml_sha "00
     }
   }
 
-  set list_file
-  set fp [open $list_file r]
-  set file_data [read $fp]
-  close $fp
+  set list_files [glob -nocomplain $proj_dir/list/*.ipb]
+
+  set n_list_files [llength $list_files]
+  if {$n_list_files == 0} {
+    Msg CriticalWarning "No files with .ipb extension found in $proj_dir/list."
+    return
+  }
+  set file_data
+  for lf in $list_files {
+    set fp [open $lf r]
+    set file_data "$file_data \n [read $fp]"
+    close $fp
+  }
+  
   # Process data file
   set data [split $file_data "\n"]
   set n [llength $data]
-  Msg Info "$n lines read from $list_file"
+  Msg Info "$n lines read from $n_list_files .ipb files."
   set cnt 0
   set xmls {}
   set vhdls {}
@@ -1688,7 +1698,7 @@ proc CopyXMLsFromListFile {list_file path dst {xml_version "0.0.0"} {xml_sha "00
       foreach xmlfile $xmlfiles {
 
         if {[file isdirectory $xmlfile]} {
-          Msg CriticalWarning "Directory $xmlfile listed in xml.lst. Directories are not supported!"
+          Msg CriticalWarning "Directory $xmlfile listed in xml list file $list_file. Directories are not supported!"
           set xml_list_error 1
         }
 
@@ -1717,7 +1727,7 @@ proc CopyXMLsFromListFile {list_file path dst {xml_version "0.0.0"} {xml_sha "00
         }
       }
       if {${xml_list_error}} {
-        Msg Error "Invalid files added to xml.lst!"
+        Msg Error "Invalid files added to $list_file!"
       }
     }
   }

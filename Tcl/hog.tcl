@@ -780,7 +780,7 @@ proc ReadListFile args {
   if {$sha_mode != 0} {
     #In SHA mode we also need to add the list file to the list
     if {$list_file_ext eq ".ipb"} {
-      set sha_lib = "xml.ipb"
+      set sha_lib "xml.ipb"
     } else {
       set sha_lib $lib$list_file_ext
     }

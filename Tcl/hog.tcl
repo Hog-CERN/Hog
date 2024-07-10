@@ -778,7 +778,7 @@ proc ReadListFile args {
 
   if {$sha_mode != 0} {
     #In SHA mode we also need to add the list file to the list
-    dict lappend libraries $lib_name [file normalize $list_file]
+    dict lappend libraries $lib [file normalize $list_file]
     if {[file type $list_file] eq "link"} {
       #if the file is a link, also add the linked file
       set real_file [GetLinkedFile $list_file]

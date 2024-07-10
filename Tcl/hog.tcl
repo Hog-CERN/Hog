@@ -619,7 +619,7 @@ proc ReadListFile args {
 
   set parameters {
     {lib.arg ""  "The name of the library files will be added to, if not given will be extracted from the file name."}
-    {fileset.arg "" The name of the library, from the main list file}
+    {fileset.arg "" "The name of the library, from the main list file"}
     {sha_mode "If set, the list files will be added as well and the IPs will be added to the file rather than to the special ip library. The sha mode should be used when you use the lists to calculate the git SHA, rather than to add the files to the project."}
   }
   set usage "USAGE: ReadListFile \[options\] <list file> <path>"
@@ -739,11 +739,12 @@ proc ReadListFile args {
             } elseif { $list_file_ext == ".con" } {
               set lib_name "sources.con"
             } elseif { $list_file_ext == ".ipb" } {
-              set lib_name "ipbus_xml"
+              set lib_name "xml.ipb"
             } else {
               # Other files are stored in the OTHER dictionary from vivado (no library assignment)
               set lib_name "others.src"
             }
+
             Msg Debug "Appending $vhdlfile to $lib_name list..."
             dict lappend libraries $lib_name $vhdlfile
             if { $sha_mode != 0 && [file type $vhdlfile] eq "link"} {
@@ -778,10 +779,9 @@ proc ReadListFile args {
 
   if {$sha_mode != 0} {
     #In SHA mode we also need to add the list file to the list
-    if [info exists lib_name] {
-      set sha_lib $lib_name
+    if {$list_file_ext eq ".ipb"} {
+      set sha_lib = "xml.ipb"
     } else {
-      puts "********************************************************************* $lib $list_file_ext *******************************"
       set sha_lib $lib$list_file_ext
     }
     dict lappend libraries $sha_lib [file normalize $list_file]
@@ -1509,7 +1509,7 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
   if {[llength [glob -nocomplain ./list/*.ipb]] > 0 } {
     #Msg Info "Found IPbus XML list file, evaluating version and SHA of listed files..."
     lassign [GetHogFiles  -list_files "*.ipb" -sha_mode "./list/" $repo_path] xml_files dummy
-    lassign [GetVer  [dict get $xml_files "ipbus_xml"] ] xml_ver xml_hash
+    lassign [GetVer  [dict get $xml_files "xml.ipb"] ] xml_ver xml_hash
     lappend SHAs $xml_hash
     lappend versions $xml_ver
 

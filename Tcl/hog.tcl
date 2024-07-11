@@ -718,7 +718,7 @@ proc ReadListFile args {
             foreach p $prop {
               # No need to append the lib= property
               if { [string first "lib=" $p ] == -1} {
-                if { [IsInList $p [DictGet [ALLOWED_PROPS]  $extension ] ] || [string first "top" $p] == 0} {
+                if { [IsInList $p [DictGet [ALLOWED_PROPS]  $extension ] ] || [string first "top" $p] == 0  || $list_file_ext eq ".ipb"} {
                   dict lappend properties $vhdlfile $p
                   Msg Debug "Adding property $p to $vhdlfile..."
                 } elseif { $list_file_ext != ".ipb" } {
@@ -1664,89 +1664,76 @@ proc CopyIPbusXMLs {proj_dir path dst {xml_version "0.0.0"} {xml_sha "00000000"}
     }
   }
 
-  set list_files [glob -nocomplain $proj_dir/list/*.ipb]
-
-  set n_list_files [llength $list_files]
-  if {$n_list_files == 0} {
+  set ipb_files [glob -nocomplain $proj_dir/list/*.ipb]
+  set n_ipb_files [llength $ipb_files]  
+  if {$n_ipb_files == 0} {
     Msg CriticalWarning "No files with .ipb extension found in $proj_dir/list."
     return
   }
-  set file_data ""
-  foreach lf $list_files {
-    set fp [open $lf r]
-    set file_data "$file_data \n [read $fp]"
-    close $fp
+  set libraries [dict create]
+  set vhdl_dict [dict create]
+
+  foreach ipb_file $ipb_files {
+    lassign [ReadListFile {*}"$ipb_file $path"] l p fs
+    set libraries [MergeDict $l $libraries]
+    set vhdl_dict [MergeDict $p $vhdl_dict]
   }
+
+  puts $libraries
   
-  # Process data file
-  set data [split $file_data "\n"]
-  set n [llength $data]
-  Msg Info "$n lines read from $n_list_files .ipb files."
-  set cnt 0
-  set xmls {}
-  set vhdls {}
-  foreach line $data {
-    if {![regexp {^ *$} $line] & ![regexp {^ *\#} $line] } {
-      # Exclude empty lines and comments
-      set file_and_prop [regexp -all -inline {\S+} $line]
-      set xmlfiles [glob "$path/[lindex $file_and_prop 0]"]
+  set xmlfiles [dict get $libraries "xml.ipb"]
+  
 
-      # for single non-globbed xmlfiles, we can have an associated vhdl file
-      # multiple globbed xml does not make sense with a vhdl property
-      if {[llength $xmlfiles]==1 && [llength $file_and_prop] > 1} {
-        set vhdlfile [lindex $file_and_prop 1]
-        set vhdlfile "$path/$vhdlfile"
-      } else {
-        set vhdlfile 0
+# [dict get $dictname $keyname]
+  set xml_list_error 0
+  foreach xmlfile $xmlfiles {
+    
+    if {[file isdirectory $xmlfile]} {
+      Msg CriticalWarning "Directory $xmlfile listed in xml list file $list_file. Directories are not supported!"
+      set xml_list_error 1
+    }
+    
+    if {[file exists $xmlfile]} {
+      lappend vhdls [file normalize [dict get $vhdl_dict $xmlfile] ]
+      set xmlfile [file normalize $xmlfile]
+      Msg Info "Copying $xmlfile to $dst and replacing place holders..."
+      set in  [open $xmlfile r]
+      set out [open $dst/[file tail $xmlfile] w]
+      
+      while {[gets $in line] != -1} {
+	set new_line [regsub {(.*)__VERSION__(.*)} $line "\\1$xml_version\\2"]
+	set new_line2 [regsub {(.*)__GIT_SHA__(.*)} $new_line "\\1$xml_sha\\2"]
+	puts $out $new_line2
       }
-
-      set xml_list_error 0
-      foreach xmlfile $xmlfiles {
-
-        if {[file isdirectory $xmlfile]} {
-          Msg CriticalWarning "Directory $xmlfile listed in xml list file $list_file. Directories are not supported!"
-          set xml_list_error 1
-        }
-
-        if {[file exists $xmlfile]} {
-          set xmlfile [file normalize $xmlfile]
-          Msg Info "Copying $xmlfile to $dst..."
-          set in  [open $xmlfile r]
-          set out [open $dst/[file tail $xmlfile] w]
-
-          while {[gets $in line] != -1} {
-            set new_line [regsub {(.*)__VERSION__(.*)} $line "\\1$xml_version\\2"]
-            set new_line2 [regsub {(.*)__GIT_SHA__(.*)} $new_line "\\1$xml_sha\\2"]
-            puts $out $new_line2
-          }
-          close $in
-          close $out
-          lappend xmls [file tail $xmlfile]
-          if {$vhdlfile == 0 } {
-            lappend vhdls 0
-          } else {
-            lappend vhdls [file normalize $vhdlfile]
-          }
-
-        } else {
-          Msg Warning "XML file $xmlfile not found"
-        }
-      }
-      if {${xml_list_error}} {
-        Msg Error "Invalid files added to $list_file!"
-      }
+      close $in
+      close $out
+      lappend xmls  [file tail $xmlfile]
+      #      if {[dict exists] $vhdlfile == 0 } {
+#	lappend vhdls 0
+#      } else {
+#	lappend vhdls [file normalize $vhdlfile]
+#      }
+      
+    } else {
+      Msg Warning "XML file $xmlfile not found"
     }
   }
+  if {${xml_list_error}} {
+    Msg Error "Invalid files added to $list_file!"
+  }
+  
   set cnt [llength $xmls]
-  Msg Info "$cnt file/s copied"
+  Msg Info "$cnt xml file/s copied"
+
 
   if {$can_generate == 1} {
     set old_dir [pwd]
     cd $dst
     file mkdir "address_decode"
     cd "address_decode"
-    foreach x $xmls v $vhdls {
-      if {$v != 0} {
+
+    foreach x $xmls  v $vhdls{
+      if {$v ! eq ""} {
         set x [file normalize ../$x]
         if {[file exists $x]} {
           lassign [ExecuteRet gen_ipbus_addr_decode $x 2>&1]  status log

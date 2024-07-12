@@ -26,18 +26,18 @@ set CI_STAGES {"generate_project" "simulate_project"}
 set CI_PROPS {"-synth_only"}
 
 proc ALLOWED_PROPS {} {
-  return [dict create ".vhd" [list "93" "nosynth" "noimpl" "nosim" "1987" "1993" "2008" ]
-	  ".vhdl" [list "93" "nosynth" "noimpl" "nosim" "1987" "1993" "2008" ]
-	  ".v" [list "SystemVerilog" "verilog_header" "nosynth" "noimpl" "nosim" "1995" "2001"]
-	  ".sv" [list "verilog" "verilog_header" "nosynth" "noimpl" "nosim" "2005" "2009"]
-	  ".do" [list "nosim"]
-	  ".udo" [list "nosim"]
-	  ".xci" [list "nosynth" "noimpl" "nosim" "locked"]
-	  ".xdc" [list "nosynth" "noimpl" "nosim"]	  
-	  ".tcl" [list "nosynth" "noimpl" "nosim" "source" "qsys" "noadd"]
-	  ".qsys" [list "nogenerate" "noadd"]
-	  ".sdc" [list "notiming" "nosynth" "noplace"]
-	  ".pdc" [list "nosynth" "noplace"]]
+  return [dict create ".vhd" [list "93" "nosynth" "noimpl" "nosim" "1987" "1993" "2008" ]\
+	  ".vhdl" [list "93" "nosynth" "noimpl" "nosim" "1987" "1993" "2008" ]\
+	  ".v" [list "SystemVerilog" "verilog_header" "nosynth" "noimpl" "nosim" "1995" "2001"]\
+	  ".sv" [list "verilog" "verilog_header" "nosynth" "noimpl" "nosim" "2005" "2009"]\
+	  ".do" [list "nosim"]\
+	  ".udo" [list "nosim"]\
+	  ".xci" [list "nosynth" "noimpl" "nosim" "locked"]\
+	  ".xdc" [list "nosynth" "noimpl" "nosim"]\
+	  ".tcl" [list "nosynth" "noimpl" "nosim" "source" "qsys" "noadd"]\
+	  ".qsys" [list "nogenerate" "noadd"]\
+	  ".sdc" [list "notiming" "nosynth" "noplace"]\
+	  ".pdc" [list "nosynth" "noplace"]]\
 }
 
 

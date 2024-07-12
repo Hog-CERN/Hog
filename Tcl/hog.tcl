@@ -2584,6 +2584,12 @@ proc AddHogFiles { libraries properties filesets } {
   # Closing fileset loop
   }
 
+  if {[IsVivado]} {
+    if {[DictGet $filesets "sim_1"] == ""} {
+      delete_fileset -quiet [ get_filesets "sim_1" ]
+    }
+  }
+  
   # Add constraints to workflow in Libero
   if {[IsLibero]} {
     if {$synth_conf == 1} {

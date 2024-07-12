@@ -1983,23 +1983,28 @@ proc GetProjectFiles {} {
           set type [lindex $type 0]
           set prop ""
         }
-
+	#If type is "VHDL 2008" we will keep only VHDL
+	
         if {![string equal $prop ""]} {
           dict lappend properties $f $prop
         }
         # check where the file is used and add it to prop
         if {[string equal $fs_type "SimulationSrcs"]} {
           # Simulation sources
-          if {[IsInList "${lib}.sim" [DictGet $simsets $fs]]==0} {
-            dict lappend simsets $fs "${lib}.sim"
-          }
 	  if {[string equal $type "VHDL"] } {
-	    lappend simlibraries "${lib}.sim" $f
+	    set library "${lib}.sim"
 	  } else {
-	    lappend simlibraries "others.sim" $f
+	    set library "others.sim"
 	  }
+
+	  if {[IsInList $library [DictGet $simsets $fs]]==0} {
+            dict lappend simsets $fs $library
+          }
+
+	  dict lappend simlibraries $library $f
+
 	} elseif {[string equal $type "VHDL"] } {
-          # VHDL files
+          # VHDL files (both 2008 and 93)
           if {[IsInList "${lib}.src" [DictGet $srcsets $fs]]==0} {
             dict lappend srcsets $fs "${lib}.src"
           }

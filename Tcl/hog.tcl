@@ -21,6 +21,7 @@
 # @param[in] msg    the message text.
 # @param[in] title  the name of the script displaying the message, if not given, the calling script name will be used by default.
 #
+
 #### GLOBAL CONSTANTS
 set CI_STAGES {"generate_project" "simulate_project"}
 set CI_PROPS {"-synth_only"}

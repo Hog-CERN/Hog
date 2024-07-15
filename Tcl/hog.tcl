@@ -33,7 +33,7 @@ proc ALLOWED_PROPS {} {
 	  ".do" [list "nosim"]\
 	  ".udo" [list "nosim"]\
 	  ".xci" [list "nosynth" "noimpl" "nosim" "locked"]\
-	  ".xdc" [list "nosynth" "noimpl" "nosim"]\
+	  ".xdc" [list "nosynth" "noimpl" ]\
 	  ".tcl" [list "nosynth" "noimpl" "nosim" "source" "qsys" "noadd"]\
 	  ".qsys" [list "nogenerate" "noadd"]\
 	  ".sdc" [list "notiming" "nosynth" "noplace"]\

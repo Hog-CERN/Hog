@@ -1691,12 +1691,9 @@ proc CopyIPbusXMLs {proj_dir path dst {xml_version "0.0.0"} {xml_sha "00000000"}
     set vhdl_dict [MergeDict $p $vhdl_dict]
   }
 
-  puts $libraries
-  
   set xmlfiles [dict get $libraries "xml.ipb"]
   
 
-# [dict get $dictname $keyname]
   set xml_list_error 0
   foreach xmlfile $xmlfiles {
     
@@ -1720,12 +1717,6 @@ proc CopyIPbusXMLs {proj_dir path dst {xml_version "0.0.0"} {xml_sha "00000000"}
       close $in
       close $out
       lappend xmls  [file tail $xmlfile]
-      #      if {[dict exists] $vhdlfile == 0 } {
-#	lappend vhdls 0
-#      } else {
-#	lappend vhdls [file normalize $vhdlfile]
-#      }
-      
     } else {
       Msg Warning "XML file $xmlfile not found"
     }

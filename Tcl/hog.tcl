@@ -4546,6 +4546,7 @@ proc ListProjects {{repo_path .} {print 1} {ret_conf 0}} {
     set p [Relative $top_path [file dirname $c]]
     set d [file dirname $c]
     if {[string equal $p "hog-commands"]} {
+      Msg Error "./Top/$p/ directory contains hog.conf file. This directory is reserved for custom commands and cannot be used as a project. Please remove hog.conf or change the project's name."
       continue
     }
     if {$print == 1} {

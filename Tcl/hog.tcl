@@ -4408,6 +4408,7 @@ proc InitLauncher {script tcl_path parameters usage argv} {
   set old_path [pwd]
   set bin_path [file normalize "$tcl_path/../../bin"]
   set top_path [file normalize "$tcl_path/../../Top"]
+  set commands_path [file normalize "$top_path/hog-commands/"]
 
   if {[IsTclsh]} {
     #Just display the logo the first time, not when the scripot is run in the IDE
@@ -4419,9 +4420,9 @@ proc InitLauncher {script tcl_path parameters usage argv} {
     source $tcl_path/utils/cmdline.tcl
   }
 
-  if {[CheckCustomCommands $top_path/commands/]} {
+  if {[CheckCustomCommands $commands_path]} {
     append usage "\n** Custom Commands:\n"
-    dict for {custom_command custom_script} [GetCustomCommands $top_path/commands/] {
+    dict for {custom_command custom_script} [GetCustomCommands $commands_path] {
       append usage "- $custom_command: runs $custom_script \n"
     }
   }
@@ -4503,7 +4504,7 @@ proc InitLauncher {script tcl_path parameters usage argv} {
 
 
 
-  return [list $directive $project $project_name $project_group $repo_path $old_path $bin_path $top_path $command $cmd]
+  return [list $directive $project $project_name $project_group $repo_path $old_path $bin_path $top_path $commands_path $command $cmd]
 }
 
 # Searches directory for tcl scripts
@@ -4543,6 +4544,10 @@ proc ListProjects {{repo_path .} {print 1} {ret_conf 0}} {
 
   foreach c $confs {
     set p [Relative $top_path [file dirname $c]]
+    set d [file dirname $c]
+    if {[string equal $p "hog-commands"]} {
+      continue
+    }
     if {$print == 1} {
       # Print a list of the projects with relative IDE
       Msg Status "$p \([GetIDEFromConf $c]\)"

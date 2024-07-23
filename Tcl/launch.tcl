@@ -54,13 +54,13 @@ if {[IsQuartus]} {
 
 Msg Debug "s: $::argv0 a: $argv"
 
-lassign [InitLauncher $::argv0 $tcl_path $parameters $usage $argv] directive project project_name group_name repo_path old_path bin_dir top_path cmd ide
+lassign [InitLauncher $::argv0 $tcl_path $parameters $usage $argv] directive project project_name group_name repo_path old_path bin_dir top_path commands_path cmd ide
 
 Msg Debug "Returned by InitLauncher: $project $project_name $group_name $repo_path $old_path $bin_dir $top_path $cmd"
 
-if {[CheckCustomCommands $top_path/commands/]} {
+if {[CheckCustomCommands $commands_path]} {
   append usage "\n** Custom Commands:\n"
-  dict for {custom_command custom_script} [GetCustomCommands $top_path/commands/] {
+  dict for {custom_command custom_script} [GetCustomCommands $commands_path] {
     append usage "- $custom_command: runs $custom_script \n"
   }
 }
@@ -114,7 +114,7 @@ set default_commands {
 }
 
 set custom_commands ""
-dict for {custom_command custom_script} [GetCustomCommands $top_path/commands/] {
+dict for {custom_command custom_script} [GetCustomCommands $commands_path] {
   append custom_commands "
   \\^$custom_command\$ {
     Msg Info \"Running custom script: $custom_script\"

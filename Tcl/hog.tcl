@@ -4419,6 +4419,15 @@ proc InitLauncher {script tcl_path parameters usage argv} {
     source $tcl_path/utils/cmdline.tcl
   }
 
+  if {[CheckCustomCommands $top_path/commands/]} {
+    append usage "\n** Custom Commands:\n"
+    dict for {command script} [GetCustomCommands $top_path/commands/] {
+      append usage "- $command: runs $script \n"
+    }
+  }
+
+  append usage "\n** Options:"
+
   lassign [ GetOptions $argv $parameters $usage] option_list arg_list
 
   if { [IsInList "-help" $option_list] || [IsInList "-?" $option_list] || [IsInList "-h" $option_list] } {
@@ -4495,6 +4504,33 @@ proc InitLauncher {script tcl_path parameters usage argv} {
 
 
   return [list $directive $project $project_name $project_group $repo_path $old_path $bin_path $top_path $command $cmd]
+}
+
+# Searches directory for tcl scripts
+# Returns true if a command file exists
+proc CheckCustomCommands {directory} {
+  set commands [dict create]
+
+  foreach file [glob -nocomplain $directory/*.tcl ] {
+    if {[file isfile $file]} {
+      return true
+    }
+  }
+  return false
+}
+
+# Searches directory for tcl scripts
+# Returns dictionary of command name and file
+proc GetCustomCommands {directory} {
+  set commands [dict create]
+
+  foreach file [glob -nocomplain $directory/*.tcl ] {
+    if {[file isfile $file]} {
+      set base_name [string toupper [file rootname [file tail $file]]]
+      dict set commands $base_name $file
+    }
+  }
+  return $commands
 }
 
 # List projects all projects in the repository

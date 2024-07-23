@@ -42,8 +42,7 @@ set usage " \[OPTIONS\] <directive> <project>\n The most common <directive> valu
 - IMPLEMENT: Runs the implementation only, the project must already exist and be synthesised.
 - SYNTHESIS: Runs the synthesis only, creates the project if not existing.
 - LIST or L: Only list all the projects
-
-** Options:"
+"
 
 set tcl_path [file normalize "[file dirname [info script]]"]
 source $tcl_path/hog.tcl
@@ -59,10 +58,18 @@ lassign [InitLauncher $::argv0 $tcl_path $parameters $usage $argv] directive pro
 
 Msg Debug "Returned by InitLauncher: $project $project_name $group_name $repo_path $old_path $bin_dir $top_path $cmd"
 
+if {[CheckCustomCommands $top_path/commands/]} {
+  append usage "\n** Custom Commands:\n"
+  dict for {command script} [GetCustomCommands $top_path/commands/] {
+    append usage "- $command: runs $script \n"
+  }
+}
+append usage "\n** Options:"
+
 ######## DEFAULTS #########
 set do_implementation 0; set do_synthesis 0; set do_bitstream 0; set do_create 0; set do_compile 0; set do_simulation 0; set recreate 0; set reset 1;
 
-switch -regexp -- $directive {
+set default_commands {
 
   \^C(REATE)?$ {
     set do_create 1
@@ -105,6 +112,21 @@ switch -regexp -- $directive {
     exit 1
   }
 }
+
+set custom_commands ""
+dict for {command script} [GetCustomCommands $top_path/commands/] {
+  append custom_commands "
+  \\^$command\$ {
+    Msg Info \"Running custom script: $script\"
+    source \"$script\"
+    Msg Info \"Done running custom script...\"
+    exit
+  }
+ "
+}
+
+Msg Debug "looking for a $directive in : $default_commands $custom_commands"
+switch -regexp -- $directive "$default_commands $custom_commands"
 
 if {$cmd == -1} {
 #This is if the project was not found

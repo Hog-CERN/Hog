@@ -60,8 +60,8 @@ Msg Debug "Returned by InitLauncher: $project $project_name $group_name $repo_pa
 
 if {[CheckCustomCommands $top_path/commands/]} {
   append usage "\n** Custom Commands:\n"
-  dict for {command script} [GetCustomCommands $top_path/commands/] {
-    append usage "- $command: runs $script \n"
+  dict for {custom_command custom_script} [GetCustomCommands $top_path/commands/] {
+    append usage "- $custom_command: runs $custom_script \n"
   }
 }
 append usage "\n** Options:"
@@ -114,11 +114,11 @@ set default_commands {
 }
 
 set custom_commands ""
-dict for {command script} [GetCustomCommands $top_path/commands/] {
+dict for {custom_command custom_script} [GetCustomCommands $top_path/commands/] {
   append custom_commands "
-  \\^$command\$ {
-    Msg Info \"Running custom script: $script\"
-    source \"$script\"
+  \\^$custom_command\$ {
+    Msg Info \"Running custom script: $custom_script\"
+    source \"$custom_script\"
     Msg Info \"Done running custom script...\"
     exit
   }

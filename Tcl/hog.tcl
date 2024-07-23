@@ -4421,8 +4421,8 @@ proc InitLauncher {script tcl_path parameters usage argv} {
 
   if {[CheckCustomCommands $top_path/commands/]} {
     append usage "\n** Custom Commands:\n"
-    dict for {command script} [GetCustomCommands $top_path/commands/] {
-      append usage "- $command: runs $script \n"
+    dict for {custom_command custom_script} [GetCustomCommands $top_path/commands/] {
+      append usage "- $custom_command: runs $custom_script \n"
     }
   }
 

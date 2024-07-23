@@ -56,7 +56,7 @@ Msg Debug "s: $::argv0 a: $argv"
 
 lassign [InitLauncher $::argv0 $tcl_path $parameters $usage $argv] directive project project_name group_name repo_path old_path bin_dir top_path commands_path cmd ide
 
-Msg Debug "Returned by InitLauncher: $project $project_name $group_name $repo_path $old_path $bin_dir $top_path $cmd"
+Msg Debug "Returned by InitLauncher: $project $project_name $group_name $repo_path $old_path $bin_dir $top_path $commands_path $cmd"
 
 if {[CheckCustomCommands $commands_path]} {
   append usage "\n** Custom Commands:\n"

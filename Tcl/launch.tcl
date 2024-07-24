@@ -58,12 +58,7 @@ lassign [InitLauncher $::argv0 $tcl_path $parameters $usage $argv] directive pro
 
 Msg Debug "Returned by InitLauncher: $project $project_name $group_name $repo_path $old_path $bin_dir $top_path $commands_path $cmd"
 
-if {[CheckCustomCommands $commands_path]} {
-  append usage "\n** Custom Commands:\n"
-  dict for {custom_command custom_script} [GetCustomCommands $commands_path] {
-    append usage "- $custom_command: runs $custom_script \n"
-  }
-}
+append usage [GetCustomCommands $commands_path]
 append usage "\n** Options:"
 
 ######## DEFAULTS #########
@@ -113,19 +108,9 @@ set default_commands {
   }
 }
 
-set custom_commands ""
-dict for {custom_command custom_script} [GetCustomCommands $commands_path] {
-  append custom_commands "
-  \\^$custom_command\$ {
-    Msg Info \"Running custom script: $custom_script\"
-    source \"$custom_script\"
-    Msg Info \"Done running custom script...\"
-    exit
-  }
- "
-}
+set custom_commands [GetCustomCommands $commands_path 1]
 
-Msg Debug "looking for a $directive in : $default_commands $custom_commands"
+Msg Debug "Looking for a $directive in : $default_commands $custom_commands"
 switch -regexp -- $directive "$default_commands $custom_commands"
 
 if {$cmd == -1} {

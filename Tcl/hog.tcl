@@ -4420,13 +4420,7 @@ proc InitLauncher {script tcl_path parameters usage argv} {
     source $tcl_path/utils/cmdline.tcl
   }
 
-  if {[CheckCustomCommands $commands_path]} {
-    append usage "\n** Custom Commands:\n"
-    dict for {custom_command custom_script} [GetCustomCommands $commands_path] {
-      append usage "- $custom_command: runs $custom_script \n"
-    }
-  }
-
+  append usage [GetCustomCommands $commands_path]
   append usage "\n** Options:"
 
   lassign [ GetOptions $argv $parameters $usage] option_list arg_list
@@ -4507,31 +4501,38 @@ proc InitLauncher {script tcl_path parameters usage argv} {
   return [list $directive $project $project_name $project_group $repo_path $old_path $bin_path $top_path $commands_path $command $cmd]
 }
 
-# Searches directory for tcl scripts
-# Returns true if a command file exists
-proc CheckCustomCommands {directory} {
-  set commands [dict create]
+# Searches directory for tcl scripts to add as custom commands
+# Returns string of tcl scripts formatted as usage or switch statement
+# ret_commands if 1 returns commands as switch statement string instead of usage
+proc GetCustomCommands {{directory .} {ret_commands 0}} {
+  set commands_dict [dict create]
+  set commands_files [glob -nocomplain $directory/*.tcl ]
+  set commands_string ""
 
-  foreach file [glob -nocomplain $directory/*.tcl ] {
-    if {[file isfile $file]} {
-      return true
+  if {[llength $commands_files] == 0} {
+    return ""
+  }
+
+  if {$ret_commands == 0} {
+   append commands_string "\n** Custom Commands:\n"
+  }
+
+  foreach file $commands_files {
+    set base_name [string toupper [file rootname [file tail $file]]]
+    if {$ret_commands == 1} {
+      append commands_string "
+      \\^$base_name\$ {
+        Msg Info \"Running custom script: $file\"
+        source \"$file\"
+        Msg Info \"Done running custom script...\"
+        exit
+      }
+      "
+    } else {
+      append commands_string "- $base_name: runs $file \n"
     }
   }
-  return false
-}
-
-# Searches directory for tcl scripts
-# Returns dictionary of command name and file
-proc GetCustomCommands {directory} {
-  set commands [dict create]
-
-  foreach file [glob -nocomplain $directory/*.tcl ] {
-    if {[file isfile $file]} {
-      set base_name [string toupper [file rootname [file tail $file]]]
-      dict set commands $base_name $file
-    }
-  }
-  return $commands
+  return $commands_string
 }
 
 # List projects all projects in the repository

@@ -731,7 +731,7 @@ proc ReadListFile args {
               if { [string first "lib=" $p ] == -1} {
                 # Get property name up to the = (for QSYS properties at the moment)
                 set pos [string first "=" $p]
-                if { pos == -1 } {
+                if { $pos == -1 } {
                   set prop_name $p
                 } else {
                   set prop_name [string range $p 0 [expr {$pos - 1}]]

@@ -4544,7 +4544,6 @@ proc ListProjects {{repo_path .} {print 1} {ret_conf 0}} {
 
   foreach c $confs {
     set p [Relative $top_path [file dirname $c]]
-    set d [file dirname $c]
     if {$print == 1} {
       # Print a list of the projects with relative IDE
       Msg Status "$p \([GetIDEFromConf $c]\)"

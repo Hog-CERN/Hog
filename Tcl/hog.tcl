@@ -4357,7 +4357,7 @@ proc CheckLatestHogRelease {{repo_path .}} {
     Msg Status ""
     Msg Status "cd Hog && git checkout master && git pull"
     Msg Status ""
-    Msg Status "Also pdate the ref: in your .gitlab-ci.yml to $master_ver"
+    Msg Status "Also update the ref: in your .gitlab-ci.yml to $master_ver"
     Msg Status ""
   } else {
 

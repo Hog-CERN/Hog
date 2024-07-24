@@ -34,8 +34,8 @@ proc ALLOWED_PROPS {} {
 	  ".udo" [list "nosim"]\
 	  ".xci" [list "nosynth" "noimpl" "nosim" "locked"]\
 	  ".xdc" [list "nosynth" "noimpl" ]\
-	  ".tcl" [list "nosynth" "noimpl" "nosim" "source" "qsys" "noadd"]\
-	  ".qsys" [list "nogenerate" "noadd"]\
+	  ".tcl" [list "nosynth" "noimpl" "nosim" "source" "qsys" "noadd" "--block-symbol-file" "--clear-output-directory" "--example-design" "--export-qsys-script" "--family" "--greybox" "--ipxact" "--jvm-max-heap-size" "--parallel" "--part" "--search-path" "--simulation" "--synthesis" "--testbench" "--testbench-simulation" "--upgrade-ip-cores" "--upgrade-variation-file"]\
+	  ".qsys" [list "nogenerate" "noadd" "--block-symbol-file" "--clear-output-directory" "--example-design" "--export-qsys-script" "--family" "--greybox" "--ipxact" "--jvm-max-heap-size" "--parallel" "--part" "--search-path" "--simulation" "--synthesis" "--testbench" "--testbench-simulation" "--upgrade-ip-cores" "--upgrade-variation-file"]\
 	  ".sdc" [list "notiming" "nosynth" "noplace"]\
 	  ".pdc" [list "nosynth" "noplace"]]\
 }
@@ -729,7 +729,14 @@ proc ReadListFile args {
             foreach p $prop {
               # No need to append the lib= property
               if { [string first "lib=" $p ] == -1} {
-                if { [IsInList $p [DictGet [ALLOWED_PROPS]  $extension ] ] || [string first "top" $p] == 0} {
+                # Get property name up to the = (for QSYS properties at the moment)
+                set pos [string first "=" $p]
+                if { pos == -1 } {
+                  set prop_name $p
+                } else {
+                  set prop_name [string range $p 0 [expr {$pos - 1}]]
+                }
+                if { [IsInList $prop_name [DictGet [ALLOWED_PROPS]  $extension ] ] || [string first "top" $p] == 0 } {
                   dict lappend properties $vhdlfile $p
                   Msg Debug "Adding property $p to $vhdlfile..."
                 } elseif { $list_file_ext != ".lst" } {

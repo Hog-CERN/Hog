@@ -4408,7 +4408,7 @@ proc InitLauncher {script tcl_path parameters usage argv} {
   set old_path [pwd]
   set bin_path [file normalize "$tcl_path/../../bin"]
   set top_path [file normalize "$tcl_path/../../Top"]
-  set commands_path [file normalize "$top_path/hog-commands/"]
+  set commands_path [file normalize "$tcl_path/../../hog-commands/"]
 
   if {[IsTclsh]} {
     #Just display the logo the first time, not when the scripot is run in the IDE
@@ -4545,10 +4545,6 @@ proc ListProjects {{repo_path .} {print 1} {ret_conf 0}} {
   foreach c $confs {
     set p [Relative $top_path [file dirname $c]]
     set d [file dirname $c]
-    if {[string equal $p "hog-commands"]} {
-      Msg Error "./Top/$p/ directory contains hog.conf file. This directory is reserved for custom commands and cannot be used as a project. Please remove hog.conf or change the project's name."
-      continue
-    }
     if {$print == 1} {
       # Print a list of the projects with relative IDE
       Msg Status "$p \([GetIDEFromConf $c]\)"

@@ -708,15 +708,23 @@ proc ReadListFile args {
           set extension [file extension $vhdlfile]
           ### Set file properties
           set prop [lrange $file_and_prop 1 end]
+
+	  # The next lines should be inside the case for recursive list files, also we should check the allowed properties for the .src as well
           set library [lindex [regexp -inline {lib\s*=\s*(.+?)\y.*} $prop] 1]
-          if { $library == "" } {
+	  if { $library == "" } {
             set library $lib
           }
 
           if { $extension == $list_file_ext } {
             # Deal with recusive list files
-            Msg Debug "List file $vhdlfile found in list file, recursively opening it..."
-            lassign [ReadListFile {*}"-lib $library -fileset $fileset $sha_mode_opt $vhdlfile $path"] l p fs
+	    set ref_path [lindex [regexp -inline {path\s*=\s*(.+?)\y.*} $prop] 1]
+	    if { $ref_path eq "" } {
+	      set ref_path $path
+	    } else {
+	      set ref_path [file normalize $path/$ref_path]
+	    }
+            Msg Debug "List file $vhdlfile found in list file, recursively opening it using path \"$ref_path\"..."
+            lassign [ReadListFile {*}"-lib $library -fileset $fileset $sha_mode_opt $vhdlfile $ref_path"] l p fs
             set libraries [MergeDict $l $libraries]
             set properties [MergeDict $p $properties]
             set filesets [MergeDict $fs $filesets]

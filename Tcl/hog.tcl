@@ -1915,7 +1915,8 @@ proc GetProjectFiles {} {
   set simsets [dict create]
   set simulator [get_property target_simulator [current_project]]
   set top [get_property "top"  [current_fileset]]
-  set topfile [lindex [get_files -compile_order sources -used_in synthesis] end]
+  
+  set topfile [GetTopFile]
   dict lappend properties $topfile "top=$top"
 
   foreach fs $all_filesets {
@@ -3728,7 +3729,8 @@ proc SetGenericsSimulation {proj_dir target} {
         }
       }
     } else {
-      Msg Warning "Simulation sets are present in the project but no sim.conf found in $top_dir. Please refer to Hog's manual to create one."
+      # The following warning needs to me removed because of sim_1
+      #Msg Warning "Simulation sets are present in the project but no sim.conf found in $top_dir. Please refer to Hog's manual to create one."
     }
   }
 }
@@ -3736,9 +3738,11 @@ proc SetGenericsSimulation {proj_dir target} {
 ## @brief Return the path to the active top file
 proc GetTopFile {} {
   if {[IsVivado]} {
-    # set_property source_mgmt_mode All [current_project]
-    # update_compile_order -fileset sources_1
-
+    if {! $compile_order_prop eq "All"} {
+      Msg Warming "Compile order is not set to automatic, setting it now..."
+      set_property source_mgmt_mode All [current_project]
+      update_compile_order -fileset sources_1
+    }
     return [lindex [get_files -quiet -compile_order sources -used_in synthesis -filter {FILE_TYPE =~ "VHDL*" || FILE_TYPE =~ "*Verilog*" } ] end]
   } elseif {[IsISE]} {
     debug::design_graph_mgr -create [current_fileset]

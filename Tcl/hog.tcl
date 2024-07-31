@@ -1915,7 +1915,6 @@ proc GetProjectFiles {} {
   set simsets [dict create]
   set simulator [get_property target_simulator [current_project]]
   set top [get_property "top"  [current_fileset]]
-  
   set topfile [GetTopFile]
   dict lappend properties $topfile "top=$top"
 
@@ -3738,7 +3737,8 @@ proc SetGenericsSimulation {proj_dir target} {
 ## @brief Return the path to the active top file
 proc GetTopFile {} {
   if {[IsVivado]} {
-    if {! $compile_order_prop eq "All"} {
+    set compile_order_prop [get_property source_mgmt_mode [current_project]]
+    if {$compile_order_prop ne "All"} {
       Msg Warming "Compile order is not set to automatic, setting it now..."
       set_property source_mgmt_mode All [current_project]
       update_compile_order -fileset sources_1

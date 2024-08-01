@@ -23,7 +23,7 @@
 ## @var DEBUG_VERBOSE
 #  @brief Global variable
 #
-export DEBUG_VERBOSE=5
+export DEBUG_VERBOSE=4
 export EN_SHOW_PID=1
 export ENABLE_LINE_NUMBER=1
 export ENABLE_MSG_TYPE_CNT=1
@@ -334,7 +334,7 @@ function log_stdout(){
 
       if [[ $DEBUG_VERBOSE -gt ${msgDbgLvl[$msgType]} ]]; then
         if [[ $EN_SHOW_PID -gt 0 ]]; then
-          printf "PID:%-6d : " $BASHPID
+          printf "PID:%06d : " $BASHPID
         fi
         if [[ $ENABLE_LINE_NUMBER -gt 0 ]]; then
           printf "%05d : " $(msg_counter r g)
@@ -489,10 +489,10 @@ function Msg() {
   #   msg_counter r "${msgCounter[$msgType]}" >> /dev/null
   # fi;
   # printf "${msgDbgLvl[$msgType]} + "
-  # echo "${msgCounter[$msgType]}"
+  # echo "$DEBUG_VERBOSE ::: ${msgDbgLvl[$msgType]}"
   if [[ $DEBUG_VERBOSE -gt ${msgDbgLvl[$msgType]} ]]; then
     if [[ $EN_SHOW_PID -gt 0 ]]; then
-      printf "PID:%-6d : " $BASHPID
+      printf "PID:%06d : " $BASHPID
     fi
     if [[ $ENABLE_LINE_NUMBER -gt 0 ]]; then
       printf "%05d : " $(msg_counter r g)
@@ -754,7 +754,7 @@ function Logger_Init() {
   fi
   if [[ "$*" =~ "-verbose" ]]; then
     if (( $DEBUG_VERBOSE < int2 )); then
-      DEBUG_VERBOSE=6
+      DEBUG_VERBOSE=4
     fi
   fi
   Msg Debug "DEBUG_VERBOSE -- $DEBUG_VERBOSE"

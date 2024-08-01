@@ -23,7 +23,9 @@
 ## @var DEBUG_VERBOSE
 #  @brief Global variable
 #
-export DEBUG_VERBOSE=""
+export DEBUG_VERBOSE=5
+export EN_SHOW_PID=1
+export ENABLE_LINE_NUMBER=1
 HOG_LOG_EN=0
 HOG_COLOR_EN=0
 export clrschselected="dark"
@@ -60,6 +62,10 @@ if [ -v $tempfolder ]; then
 fi
 
 function update_cnt () {
+  if [[ -e "$temp_g_cnt_file" ]]; then
+    while read line ; do glob_cnt=$(($line+1)); done < "$temp_g_cnt_file"
+    echo "$glob_cnt" > "$temp_g_cnt_file"
+  fi
   if [[ -e "$1" ]]; then
     while read line ; do local_cnt=$(($line+1)); done < "$1"
     echo "$local_cnt" > "$1"
@@ -84,19 +90,29 @@ function msg_counter () {
       echo "0" > "$temp_c_cnt_file"
       echo "0" > "$temp_e_cnt_file"
     ;;
-    iw) update_cnt $temp_i_cnt_file ;;
-    ir) read_tmp_cnt $temp_i_cnt_file ;;
-    dw) update_cnt $temp_d_cnt_file ;;
-    dr) read_tmp_cnt $temp_d_cnt_file ;;
-    ww) update_cnt $temp_w_cnt_file ;;
-    wr) read_tmp_cnt $temp_w_cnt_file ;;
-    cw) update_cnt $temp_c_cnt_file ;;
-    cr) read_tmp_cnt $temp_c_cnt_file ;;
-    ew) update_cnt $temp_e_cnt_file ;;
-    er) read_tmp_cnt $temp_e_cnt_file ;;
-    *) Msg Error "counter update doesn't exist" ;;
+    read|r)
+    case "$2" in
+      g) read_tmp_cnt $temp_g_cnt_file ;;
+      i) read_tmp_cnt $temp_i_cnt_file ;;
+      d) read_tmp_cnt $temp_d_cnt_file ;;
+      w) read_tmp_cnt $temp_w_cnt_file ;;
+      c) read_tmp_cnt $temp_c_cnt_file ;;
+      e) read_tmp_cnt $temp_e_cnt_file ;;
+      *) Msg Error "counter <$2> doesn't exist" ;;
+    esac
+    ;;
+    update|w)
+    case "$2" in
+      i) update_cnt $temp_i_cnt_file ;;
+      d) update_cnt $temp_d_cnt_file ;;
+      w) update_cnt $temp_w_cnt_file ;;
+      c) update_cnt $temp_c_cnt_file ;;
+      e) update_cnt $temp_e_cnt_file ;;
+      *) Msg Error "counter <$2> doesn't exist" ;;
+    esac
+    ;;    
+    *) Msg Error "counter action <$1> doesn't exist" ;;
   esac
-  update_cnt $temp_g_cnt_file
 }
 
 echo_info=1
@@ -154,12 +170,12 @@ simpleColor[info]="$txtwht"
 simpleColor[vcom]="$txtwht"
 
 declare -A msgCounter
-msgCounter[error]="ew"
-msgCounter[critical]="cw"
-msgCounter[warning]="ww"
-msgCounter[debug]="dw"
-msgCounter[info]="iw"
-msgCounter[vcom]="iw"
+msgCounter[error]="e"
+msgCounter[critical]="c"
+msgCounter[warning]="w"
+msgCounter[debug]="d"
+msgCounter[info]="i"
+msgCounter[vcom]="i"
 
 declare -A msgDbgLvl
 msgDbgLvl[error]=0
@@ -239,7 +255,6 @@ function log_stdout(){
           *)
             # msgType=$(msgTypeOverload "info" "$dataLine")
             msgType="info"
-            # echo " Jodeeeeeeeeeeeeeeeeeeer : $msgType"
             ;;
         esac
       elif [ "${1}" == "stderr" ]; then
@@ -305,10 +320,22 @@ function log_stdout(){
       #######################################
         # The writing will be done here
       #######################################
+      if [[ $ENABLE_LINE_NUMBER -gt 0 ]]; then
+        # printf "%d : " ${6} $(msg_counter w g)
+        printf "%05d : " $(msg_counter r g)
+      fi
+      if [[ $EN_SHOW_PID -gt 0 ]]; then
+        printf "%d : " $BASHPID
+      fi
+      # if [[ $DEBUG_VERBOSE -gt 5 ]]; then
+      #   printf "%d : " $(msg_counter r d)
+      # # else
+      # #   msg_counter w d >> /dev/null
+      # fi;
       if [[ $DEBUG_VERBOSE -gt 5 ]]; then
-        printf "%d : %d :" $BASHPID "$(msg_counter ${msgCounter[$msgType]})"
+        printf "%d : " $(msg_counter w ${msgCounter[$msgType]})
       else
-        msg_counter "${msgCounter[$msgType]}" >> /dev/null
+        msg_counter r "${msgCounter[$msgType]}" >> /dev/null
       fi;
       if [[ $DEBUG_VERBOSE -gt ${msgDbgLvl[$msgType]} ]]; then
         if [[ $HOG_COLOR_EN -gt 1 ]]; then
@@ -357,13 +384,14 @@ function log_stdout(){
   # @brief Prints a resum of the messages types
 function Hog_exit () {
   echo "================ RESUME ================ "
-  echo " # of Info messages: $(msg_counter ir)"
-  echo " # of debug messages : $(msg_counter dr)"
-  echo " # of warning messages : $(msg_counter wr)"
-  echo " # of critical warning messages : $(msg_counter cr)"
-  echo " # of Errors messages : $(msg_counter er)"
+  echo " # of Total messages: $(msg_counter r g)"
+  echo " # of Info messages: $(msg_counter r i)"
+  echo " # of debug messages : $(msg_counter r d)"
+  echo " # of warning messages : $(msg_counter r w)"
+  echo " # of critical warning messages : $(msg_counter r c)"
+  echo " # of Errors messages : $(msg_counter r e)"
   echo "======================================== "
-  if [[ $(msg_counter er) -gt 0 ]]; then
+  if [[ $(msg_counter r e) -gt 0 ]]; then
     echo -e "$txtred *** Hog finished with errors *** $txtwht"
     exit 1
   else
@@ -437,13 +465,26 @@ function Msg() {
     *) Msg Error "messageLevel: $1 not supported! Use Info, Warning, CriticalWarning, Error" ;;
   esac
   ####### The printing
-  if [[ $DEBUG_VERBOSE -gt 5 ]]; then
-    printf "%d : %d :" $BASHPID "$(msg_counter dw)"
-  else
-    msg_counter dw >> /dev/null
-  fi;
-
+  if [[ $ENABLE_LINE_NUMBER -gt 0 ]]; then
+    # printf "%d : " ${6} $(msg_counter w g)
+    printf "%05d : " $(msg_counter r g)
+  fi
+  if [[ $EN_SHOW_PID -gt 0 ]]; then
+    printf "%d : " $BASHPID
+  fi
+  # if [[ $DEBUG_VERBOSE -gt 5 ]]; then
+  #   printf "%d : " $(msg_counter w d)
+  # else
+  #   msg_counter w d >> /dev/null
+  # fi;
   if [[ $DEBUG_VERBOSE -gt ${msgDbgLvl[$msgType]} ]]; then
+    printf "%d : " $(msg_counter w ${msgCounter[$msgType]})
+  else
+    msg_counter r "${msgCounter[$msgType]}" >> /dev/null
+  fi;
+  # printf "${msgDbgLvl[$msgType]} + "
+  if [[ $DEBUG_VERBOSE -gt ${msgDbgLvl[$msgType]} ]]; then
+    # printf "*"
     if [[ $HOG_COLOR_EN -gt 1 ]]; then
       case "${clrschselected}" in
         "dark")
@@ -494,7 +535,7 @@ trim() {
   # @param[in] dictionary name where to store the data
   #
   # @return  '1' if missing arguments else '0'
-process_toml_file() {
+process_HogEnv_config() {
   local file_path=$1
   local dict_name=$2
   declare -n toml_dict=$dict_name
@@ -574,7 +615,7 @@ process_toml_file() {
         line=""
       fi
       if [[ ${#proc_line} -gt 0 ]]; then
-        Msg Debug "saving in dict ::: <${proc_line}>"
+        Msg Debug "saving to dict ::: $section_name[$key] = <${proc_line}>"
         if [[ $arraylvl == 0 ]]; then
           toml_dict["$section_name.$key"]=$(trim "${proc_line//\"/}")
         else
@@ -610,7 +651,7 @@ function Logger_Init() {
   hog_user_cfg=$(eval echo "~$USER")"/HogEnv.conf"
   if test -f $hog_user_cfg; then
     Msg Debug "Hog project configuration file $hog_user_cfg exists."
-    process_toml_file $hog_user_cfg "Hog_Usr_dict"
+    process_HogEnv_config $hog_user_cfg "Hog_Usr_dict"
     for key in "${!Hog_Usr_dict[@]}"; do
       Msg Debug "Hog_Usr_dict[ $key ] = <${Hog_Usr_dict[$key]}>"
     done
@@ -637,33 +678,64 @@ function Logger_Init() {
     fi
   fi
 
+  # SETTING Message number
+  ENABLE_LINE_NUMBER=0
+  if [[ -v Hog_Usr_dict["verbose.lineCounter"] ]]; then
+    if [[ ${Hog_Usr_dict["verbose.lineCounter"]} =~ ^[01]$ ]]; then
+      ENABLE_LINE_NUMBER=${Hog_Usr_dict["verbose.lineCounter"]}
+      Msg Debug "The variable <verbose.lineCounter> is ${Hog_Usr_dict['verbose.lineCounter']}"
+    else
+      Msg Warning "The variable verbose.lineCounter is not 1 or 0, Default to 0"
+    fi
+  fi
+
+  # SETTING pidshow
+  EN_SHOW_PID=0
+  if [[ -v Hog_Usr_dict["verbose.pidshow"] ]]; then
+    if [[ ${Hog_Usr_dict["verbose.pidshow"]} =~ ^[01]$ ]]; then
+      EN_SHOW_PID=${Hog_Usr_dict["verbose.pidshow"]}
+      Msg Debug "The variable <verbose.pidshow> is ${Hog_Usr_dict['verbose.pidshow']}"
+    else
+      Msg Warning "The variable verbose.pidshow is not 1 or 0, Default to 0"
+    fi
+  fi
+
 ############ FROM HERE WILL USE LOGGER COLORS IF ENABLED
   Msg Debug "HOG_COLOR_EN -- $HOG_COLOR_EN"
   if test -f $hog_user_cfg; then
-    Msg Info "Hog project configuration file $hog_user_cfg exists."
+    Msg Debug "Hog project configuration file $hog_user_cfg exists."
     for key in "${!Hog_Usr_dict[@]}"; do
-      Msg Info "Hog_Usr_dict[ $key ] = <${Hog_Usr_dict[$key]}>"
+      Msg Debug "Hog_Usr_dict[ $key ] = <${Hog_Usr_dict[$key]}>"
     done
   else
     Msg Debug "Hog project configuration file $hog_user_cfg doesn't exists."
   fi
 
+  
+
   # SETTING DEBUG_VERBOSE
-  if [[ -v Hog_Usr_dict["terminal.debug"] ]]; then
-    if [[ ${Hog_Usr_dict["terminal.debug"]} =~ ^[0-9]$ ]]; then
-      Msg Debug "The variable <terminal.debug> is ${Hog_Usr_dict['terminal.debug']}"
-      DEBUG_VERBOSE=${Hog_Usr_dict["terminal.debug"]}
+  if [[ -v Hog_Usr_dict["verbose.level"] ]]; then
+    if [[ ${Hog_Usr_dict["verbose.level"]} =~ ^[0-9]$ ]]; then
+      Msg Debug "The variable <verbose.level> is ${Hog_Usr_dict['verbose.level']}"
+      DEBUG_VERBOSE=${Hog_Usr_dict["verbose.level"]}
     else
-      Msg Warning "The variable $hog_user_td is not a one-digit number, Defaulting to 0"
+      Msg Warning "The variable verbose.level is not a one-digit number, Defaulting to 0"
     fi
   fi
   if [[ "$*" =~ "-verbose" ]]; then
     if (( $DEBUG_VERBOSE < int2 )); then
-      DEBUG_VERBOSE=5
+      DEBUG_VERBOSE=6
     fi
   fi
   Msg Debug "DEBUG_VERBOSE -- $DEBUG_VERBOSE"
 
+
+
+
+
+
+
+# exit
   # SETTING LOGGER
   HOG_LOG_EN=0
   if [[ -v Hog_Usr_dict["terminal.logger"] ]]; then
@@ -701,13 +773,14 @@ function Logger_Init() {
   hog_proj_cfg=$(pwd)"/HogEnv.conf"
   if test -f $hog_proj_cfg; then
     Msg Info "Hog project configuration file $hog_proj_cfg exists."
-    process_toml_file $hog_proj_cfg "Hog_Prj_dict"
+    process_HogEnv_config $hog_proj_cfg "Hog_Prj_dict"
     for key in "${!Hog_Prj_dict[@]}"; do
       Msg Debug "Hog_Prj_dict[ $key ] = <${Hog_Prj_dict[$key]}>"
     done
   else
     Msg Debug "Hog project configuration file $hog_proj_cfg doesn't exists."
   fi
+  # debug
 
   # error fail
   hog_user_fwe="${current_user}_fail_when_error_enabled"

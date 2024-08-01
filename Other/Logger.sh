@@ -26,6 +26,7 @@
 export DEBUG_VERBOSE=5
 export EN_SHOW_PID=1
 export ENABLE_LINE_NUMBER=1
+export ENABLE_MSG_TYPE_CNT=1
 HOG_LOG_EN=0
 HOG_COLOR_EN=0
 export clrschselected="dark"
@@ -320,24 +321,27 @@ function log_stdout(){
       #######################################
         # The writing will be done here
       #######################################
-      if [[ $ENABLE_LINE_NUMBER -gt 0 ]]; then
-        # printf "%d : " ${6} $(msg_counter w g)
-        printf "%05d : " $(msg_counter r g)
-      fi
-      if [[ $EN_SHOW_PID -gt 0 ]]; then
-        printf "%d : " $BASHPID
-      fi
-      # if [[ $DEBUG_VERBOSE -gt 5 ]]; then
-      #   printf "%d : " $(msg_counter r d)
-      # # else
-      # #   msg_counter w d >> /dev/null
-      # fi;
-      if [[ $DEBUG_VERBOSE -gt 5 ]]; then
-        printf "%d : " $(msg_counter w ${msgCounter[$msgType]})
-      else
-        msg_counter r "${msgCounter[$msgType]}" >> /dev/null
-      fi;
+      # if [[ $ENABLE_LINE_NUMBER -gt 0 ]]; then
+      #   # printf "%d : " ${6} $(msg_counter w g)
+      #   printf "%05d : " $(msg_counter r g)
+      # fi
+      # if [[ $EN_SHOW_PID -gt 0 ]]; then
+      #   printf "%d : " $BASHPID
+      # fi
+      # if [[ $ENABLE_MSG_TYPE_CNT -gt 0 ]]; then
+      #   printf "%d : " $(msg_counter w ${msgCounter[$msgType]})
+      # else
+
       if [[ $DEBUG_VERBOSE -gt ${msgDbgLvl[$msgType]} ]]; then
+        if [[ $EN_SHOW_PID -gt 0 ]]; then
+          printf "PID:%-6d : " $BASHPID
+        fi
+        if [[ $ENABLE_LINE_NUMBER -gt 0 ]]; then
+          printf "%05d : " $(msg_counter r g)
+        fi
+        if [[ $ENABLE_MSG_TYPE_CNT -gt 0 ]]; then
+          printf "%d : " $(msg_counter w ${msgCounter[$msgType]})
+        fi
         if [[ $HOG_COLOR_EN -gt 1 ]]; then
           case "${clrschselected}" in
             "dark")
@@ -352,6 +356,8 @@ function log_stdout(){
         else
           echo -e "$dataLine"
         fi
+      else
+        msg_counter w ${msgCounter[$msgType]} >> /dev/null
       fi
       if [[ $HOG_LOG_EN -gt 0 ]]; then
         if [[ -n $LOG_WAR_ERR_FILE ]] && [[ 3 -gt ${msgDbgLvl[$msgType]} ]]; then
@@ -424,6 +430,7 @@ function Log_capture(){
   # @param[in] execution line to process
 function Logger () {
   # echo "$@"
+  Msg Debug "Running: $*"
   if [[ "$HOG_LOG_EN" -gt 0 ]] || [[  "$HOG_COLOR_EN" -gt 0 ]]; then
     Log_capture "$@"
   else
@@ -465,26 +472,35 @@ function Msg() {
     *) Msg Error "messageLevel: $1 not supported! Use Info, Warning, CriticalWarning, Error" ;;
   esac
   ####### The printing
-  if [[ $ENABLE_LINE_NUMBER -gt 0 ]]; then
-    # printf "%d : " ${6} $(msg_counter w g)
-    printf "%05d : " $(msg_counter r g)
-  fi
-  if [[ $EN_SHOW_PID -gt 0 ]]; then
-    printf "%d : " $BASHPID
-  fi
+  # if [[ $ENABLE_LINE_NUMBER -gt 0 ]]; then
+  #   printf "%05d : " $(msg_counter r g)
+  # fi
+  # if [[ $EN_SHOW_PID -gt 0 ]]; then
+  #   printf "%d : " $BASHPID
+  # fi
   # if [[ $DEBUG_VERBOSE -gt 5 ]]; then
   #   printf "%d : " $(msg_counter w d)
   # else
   #   msg_counter w d >> /dev/null
   # fi;
-  if [[ $DEBUG_VERBOSE -gt ${msgDbgLvl[$msgType]} ]]; then
-    printf "%d : " $(msg_counter w ${msgCounter[$msgType]})
-  else
-    msg_counter r "${msgCounter[$msgType]}" >> /dev/null
-  fi;
+  # if [[ $DEBUG_VERBOSE -gt ${msgDbgLvl[$msgType]} ]]; then
+  #   printf "%d : " $(msg_counter w ${msgCounter[$msgType]})
+  # else
+  #   msg_counter r "${msgCounter[$msgType]}" >> /dev/null
+  # fi;
   # printf "${msgDbgLvl[$msgType]} + "
+  # echo "${msgCounter[$msgType]}"
   if [[ $DEBUG_VERBOSE -gt ${msgDbgLvl[$msgType]} ]]; then
-    # printf "*"
+    if [[ $EN_SHOW_PID -gt 0 ]]; then
+      printf "PID:%-6d : " $BASHPID
+    fi
+    if [[ $ENABLE_LINE_NUMBER -gt 0 ]]; then
+      printf "%05d : " $(msg_counter r g)
+    fi
+    if [[ $ENABLE_MSG_TYPE_CNT -gt 0 ]]; then
+      printf "%d : " $(msg_counter w ${msgCounter[$msgType]})
+    fi
+    
     if [[ $HOG_COLOR_EN -gt 1 ]]; then
       case "${clrschselected}" in
         "dark")
@@ -499,6 +515,8 @@ function Msg() {
     else
         echo -e " HOG:$1[${FUNCNAME[1]}] $text"
     fi
+  else
+    msg_counter w ${msgCounter[$msgType]} >> /dev/null
   fi
   if [[ $HOG_LOG_EN -gt 0 ]]; then
     if [[ -n $LOG_WAR_ERR_FILE ]] && [[ 3 -gt ${msgDbgLvl[$msgType]} ]]; then
@@ -678,6 +696,17 @@ function Logger_Init() {
     fi
   fi
 
+  # SETTING Message type counter
+  ENABLE_MSG_TYPE_CNT=0
+  if [[ -v Hog_Usr_dict["verbose.msgtypeCounter"] ]]; then
+    if [[ ${Hog_Usr_dict["verbose.msgtypeCounter"]} =~ ^[01]$ ]]; then
+      ENABLE_MSG_TYPE_CNT=${Hog_Usr_dict["verbose.msgtypeCounter"]}
+      Msg Debug "The variable <verbose.msgtypeCounter> is ${Hog_Usr_dict['verbose.msgtypeCounter']}"
+    else
+      Msg Warning "The variable verbose.msgtypeCounter is not 1 or 0, Default to 0"
+    fi
+  fi
+
   # SETTING Message number
   ENABLE_LINE_NUMBER=0
   if [[ -v Hog_Usr_dict["verbose.lineCounter"] ]]; then
@@ -700,12 +729,13 @@ function Logger_Init() {
     fi
   fi
 
+
 ############ FROM HERE WILL USE LOGGER COLORS IF ENABLED
   Msg Debug "HOG_COLOR_EN -- $HOG_COLOR_EN"
   if test -f $hog_user_cfg; then
-    Msg Debug "Hog project configuration file $hog_user_cfg exists."
+    Msg Info "Hog project configuration file $hog_user_cfg exists."
     for key in "${!Hog_Usr_dict[@]}"; do
-      Msg Debug "Hog_Usr_dict[ $key ] = <${Hog_Usr_dict[$key]}>"
+      Msg Info "Hog_Usr_dict[ $key ] = <${Hog_Usr_dict[$key]}>"
     done
   else
     Msg Debug "Hog project configuration file $hog_user_cfg doesn't exists."

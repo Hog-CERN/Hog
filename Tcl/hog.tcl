@@ -3739,7 +3739,7 @@ proc GetTopFile {} {
   if {[IsVivado]} {
     set compile_order_prop [get_property source_mgmt_mode [current_project]]
     if {$compile_order_prop ne "All"} {
-      Msg Warming "Compile order is not set to automatic, setting it now..."
+      Msg CriticalWarning "Compile order is not set to automatic, setting it now..."
       set_property source_mgmt_mode All [current_project]
       update_compile_order -fileset sources_1
     }

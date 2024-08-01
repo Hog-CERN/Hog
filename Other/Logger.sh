@@ -36,6 +36,7 @@ if [ -v $tempfolder ]; then
   tmptimestamp=$(date +%s)
   tempfolder="/dev/shm/$USER/hog$tmptimestamp"
   if mkdir -p $tempfolder 2>/dev/null ; then
+    temp_g_cnt_file="$tempfolder/hog_g_cnt"
     temp_i_cnt_file="$tempfolder/hog_i_cnt"
     temp_d_cnt_file="$tempfolder/hog_d_cnt"
     temp_w_cnt_file="$tempfolder/hog_w_cnt"
@@ -45,6 +46,7 @@ if [ -v $tempfolder ]; then
     echo " Warning : Could not create /dev/shm/$USER/hog$tmptimestamp will try /tmp/$USER/hog$tmptimestamp "
     tempfolder="/tmp/$USER/hog$tmptimestamp"
     if mkdir -p $tempfolder; then
+      temp_g_cnt_file="$tempfolder/hog_g_cnt"
       temp_i_cnt_file="$tempfolder/hog_i_cnt"
       temp_d_cnt_file="$tempfolder/hog_d_cnt"
       temp_w_cnt_file="$tempfolder/hog_w_cnt"
@@ -75,6 +77,7 @@ function read_tmp_cnt () {
 function msg_counter () {
   case "$1" in
     init)
+      echo "0" > "$temp_g_cnt_file"
       echo "0" > "$temp_i_cnt_file"
       echo "0" > "$temp_d_cnt_file"
       echo "0" > "$temp_w_cnt_file"
@@ -93,6 +96,7 @@ function msg_counter () {
     er) read_tmp_cnt $temp_e_cnt_file ;;
     *) Msg Error "counter update doesn't exist" ;;
   esac
+  update_cnt $temp_g_cnt_file
 }
 
 echo_info=1

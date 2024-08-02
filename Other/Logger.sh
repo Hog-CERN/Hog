@@ -33,6 +33,11 @@ export clrschselected="dark"
 export fail_when_error=0
 error_failing=0
 
+export error_delay=0
+export error_fail=0
+export error_pid=""
+export failing_en=0
+
 # export
 
 if [ -v $tempfolder ]; then
@@ -332,6 +337,7 @@ function log_stdout(){
       #   printf "%d : " $(msg_counter w ${msgCounter[$msgType]})
       # else
 
+
       if [[ $DEBUG_VERBOSE -gt ${msgDbgLvl[$msgType]} ]]; then
         if [[ $EN_SHOW_PID -gt 0 ]]; then
           printf "PID:%06d : " $BASHPID
@@ -371,13 +377,17 @@ function log_stdout(){
         if (( $fail_when_error > 0 )); then
           error_failing=$fail_when_error
           failing_en=1
+          error_pid=$BASHPID
+          Msg Debug "Process $error_pid will be killed in $error_failing"
         fi
       fi
       if [[ $failing_en -gt 0 ]];then
         if [[ $error_failing -gt 1 ]]; then
           error_failing=$(($error_failing - 1))
+          # Msg Debug "Process $BASHPID will be killed in $error_failing"
         else
           Msg Error "exitaaaando"
+          kill -9 "$error_pid"
           exit 2
         fi
       fi
@@ -760,12 +770,6 @@ function Logger_Init() {
   Msg Debug "DEBUG_VERBOSE -- $DEBUG_VERBOSE"
 
 
-
-
-
-
-
-# exit
   # SETTING LOGGER
   HOG_LOG_EN=0
   if [[ -v Hog_Usr_dict["terminal.logger"] ]]; then
@@ -813,19 +817,41 @@ function Logger_Init() {
   # debug
 
   # error fail
-  hog_user_fwe="${current_user}_fail_when_error_enabled"
-  hog_user_dfwe="${current_user}_fail_when_error_delay"
-  if [[ -v Hog_Prj_dict["$hog_user_fwe"] ]]; then
-    if [[ -v Hog_Prj_dict["$hog_user_dfwe"] ]]; then
-      fail_when_error=$((1 + ${Hog_Prj_dict["$hog_user_dfwe"]}))
+  # hog_prj_fwe="${current_user}_fail_when_error_enabled"
+  # hog_user_dfwe="${current_user}_fail_when_error_delay"
+  if [[ -v Hog_Prj_dict["fail_when_error.enabled"] ]]; then
+    if [[ ${Hog_Prj_dict["fail_when_error.enabled"]} =~ ^[01]$ ]]; then
+      if [[ -v Hog_Prj_dict["fail_when_error.delay"] ]]; then
+        Msg Warning "Fail when error enabled"
+        if [[ ${Hog_Prj_dict["fail_when_error.delay"]} =~ ^[0-9]+$ ]]; then
+          fail_when_error=$((1 + ${Hog_Prj_dict["fail_when_error.delay"]}))
+          Msg Warning "The fail delay is set to $fail_when_error"
+        else
+          fail_when_error=10
+          Msg Warning "The variable fail_when_error.delay is not only nunmbers delay set to 10"
+        fi
+      fi
     else
-      fail_when_error=1
+      Msg Warning "The variable terminal.logger is not 1 or 0, Default to 0"
+      fail_when_error=0
     fi
   else
     fail_when_error=0
   fi
   Msg Debug "fail_when_error = $fail_when_error"
-
+  # hog_user_fwe="${current_user}_fail_when_error_enabled"
+  # hog_user_dfwe="${current_user}_fail_when_error_delay"
+  # if [[ -v Hog_Prj_dict["$hog_user_fwe"] ]]; then
+  #   if [[ -v Hog_Prj_dict["$hog_user_dfwe"] ]]; then
+  #     fail_when_error=$((1 + ${Hog_Prj_dict["$hog_user_dfwe"]}))
+  #   else
+  #     fail_when_error=1
+  #   fi
+  # else
+  #   fail_when_error=0
+  # fi
+  # Msg Debug "fail_when_error = $fail_when_error"
+# exit
   hog_user_eo="${current_user}_overloads"
   use_user_ol=0
   use_glob_ol=1

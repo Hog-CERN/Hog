@@ -237,37 +237,13 @@ function log_stdout(){
       if [ "${1}" == "stdout" ]; then
         dataLine=$line
         case "$line" in
-          *'ERROR:'* | *'Error:'* | *':Error'* | *'error:'* | *'Error '* | *'FATAL ERROR'* | *'Fatal'*)
-            # if [[ "$line" == *'Fatal'* ]]; then
-            #   next_is_err=1
-            # fi
-            msgType="error"
-            # msgType=$(msgTypeOverload "error" "$dataLine")
-          ;;
-          *'CRITICAL:'* | *'CRITICAL WARNING:'* )
-            # msgTypeOverload msgType "critical" "$dataLine"
-            msgType="critical"
-          ;;
-          *'WARNING:'* | *'Warning:'* | *'warning:'*)
-            # msgTypeOverload msgType "warning" "$dataLine"
-            msgType="warning"
-          ;;
-          *'INFO:'*)
-            # msgTypeOverload msgType "info" $dataLine
-            msgType="info"
-          ;;
-          *'DEBUG:'*)
-            # msgTypeOverload msgType "debug" "$dataLine"
-            msgType="debug"
-            ;;
-          *'vcom'*)
-            # msgTypeOverload msgType "vcom" "$dataLine"
-            msgType="vcom"
-            ;;
-          *)
-            # msgType=$(msgTypeOverload "info" "$dataLine")
-            msgType="info"
-            ;;
+          *'ERROR:'* | *'Error:'* | *':Error'* | *'error:'* | *'Error '* | *'FATAL ERROR'* | *'Fatal'*) msgType="error";;
+          *'CRITICAL:'* | *'CRITICAL WARNING:'*) msgType="critical" ;;
+          *'WARNING:'* | *'Warning:'* | *'warning:'*) msgType="warning" ;;
+          *'INFO:'*) msgType="info" ;;
+          *'DEBUG:'*) msgType="debug" ;;
+          *'vcom'*) msgType="vcom" ;;
+          *) msgType="info" ;;
         esac
       elif [ "${1}" == "stderr" ]; then
         stderr_line=$dataLine
@@ -332,18 +308,6 @@ function log_stdout(){
       #######################################
         # The writing will be done here
       #######################################
-      # if [[ $ENABLE_LINE_NUMBER -gt 0 ]]; then
-      #   # printf "%d : " ${6} $(msg_counter w g)
-      #   printf "%05d : " $(msg_counter r g)
-      # fi
-      # if [[ $EN_SHOW_PID -gt 0 ]]; then
-      #   printf "%d : " $BASHPID
-      # fi
-      # if [[ $ENABLE_MSG_TYPE_CNT -gt 0 ]]; then
-      #   printf "%d : " $(msg_counter w ${msgCounter[$msgType]})
-      # else
-
-
       if [[ $DEBUG_VERBOSE -gt ${msgDbgLvl[$msgType]} ]]; then
         if [[ $EN_SHOW_PID -gt 0 ]]; then
           printf "PID:%06d : " $BASHPID
@@ -379,34 +343,6 @@ function log_stdout(){
           echo "${msgHeadBW[$msgType]} ${dataLine#${msgRemove[$msgType]}} "  >> $LOG_INFO_FILE;
         fi
       fi
-      # if [[ "$msgType" == "error" ]]; then
-      #   if (( $fail_when_error > 0 )); then
-      #     fwe_failing=$fail_when_error
-      #     failing_en=1
-      #     error_pid=$BASHPID
-      #     Msg Debug "Process $error_pid will be killed in $fwe_failing"
-      #   fi
-      # fi
-      # if [[ $failing_en -gt 0 ]];then
-      #   if [[ $fwe_failing -gt 1 ]]; then
-      #     fwe_failing=$(($fwe_failing - 1))
-      #     # Msg Debug "Process $BASHPID will be killed in $fwe_failing"
-      #   else
-      #     Msg Error "exitaaaando"
-      #     kill -9 "$error_pid"
-      #     exit 2
-      #   fi
-      # fi
-      # if [[ $failing_en -gt -1 ]];then
-      # export ENABLE_FWE=0
-      # export hog_pid=""
-      # export error_pid=""
-      # export fail_when_error=0
-      # export fwe_failing=0
-      # export fwe_delay=0
-      # export fwe_fail_trig=0
-      # export failing_en=0
-
       if [[ $ENABLE_FWE -eq 1 ]];then
         # Msg Debug "$fwe_fail_trig "
         if [[ $fwe_fail_trig -eq 0 ]]; then
@@ -424,70 +360,9 @@ function log_stdout(){
             if [[ $fwe_failing -gt 0 ]];then
               fwe_failing=$(($fwe_failing - 1))
               # Msg Debug "Process $BASHPID will be killed in $fwe_failing"
-              Msg Debug "Process $error_pid will be killed in $fwe_failing"
-              Msg Debug "Hog_PID = $hog_pid"
-              Msg Debug "hog_sh_pid = $hog_sh_pid"
-              Msg Debug "error_pid = $error_pid"
-              Msg Debug "tcl_pid = $tcl_pid"
-
-              
-
-
-
-
-
-
-
-
-
-
-              Msg Debug "launch_tcl_pid = $launch_tcl_pid"
+              Msg Debug "Process $hog_pid will be killed in $fwe_failing"
             else
-
-
-              # last_pids=$(ps -eo pid,cmd --sort=pid | tail -n 6)
-              # # tcl_cmd_pid=$($last_pids | grep "tcl" ) #| awk '{print $1}')
-              # echo "Last 3 PIDs:"
-              # echo "$last_pids"
-              # # echo "TCL PID : $tcl_cmd_pid"
-              # # Define the substring to search for
-              # search_string="launch.tcl"
-
-              # # Initialize a variable to hold the matching line
-              # matching_line=""
-
-              # # Read the multiline string line by line
-              # while IFS= read -r line; do
-              #   echo "$line"
-              #   if [[ "$line" == *"$search_string"* ]]; then
-              #     matching_line="$line"
-              #     break  # Exit the loop after finding the first match
-              #   fi
-              # done <<< "$last_pids"
-
-              # # Check if a matching line was found
-              # if [[ -n "$matching_line" ]]; then
-              #   echo "Found matching line: $matching_line"
-              # else
-              #   echo "No matching line found."
-              # fi
-              # if [[ $matching_line =~ ([0-9]{2,}) ]]; then
-              #   first_multidigit_number="${BASH_REMATCH[1]}"
-              #   echo "The first multidigit number is: $first_multidigit_number"
-              # else
-              #   echo "No multidigit number found."
-              # fi
-              # launch_tcl_pid="$first_multidigit_number"
-
-
-
-
-
               Msg Error "exitaaaando"
-              # kill -SIGINT "$error_pid"
-              # kill -SIGINT "-$hog_pid"
-              # kill -SIGINT "-$launch_tcl_pid"
-              # pkill -P "$launch_tcl_pid"
               wait "$launch_tcl_pid" 2>/dev/null
               echo "Process $hog_pid has been terminated."
               failing_en=-1
@@ -496,7 +371,6 @@ function log_stdout(){
           fi
         fi
       fi
-      
     done
   fi
 }
@@ -515,13 +389,11 @@ function Hog_exit () {
   echo "======================================== "
   if [[ $(msg_counter r e) -gt 0 ]]; then
     echo -e "$txtred *** Hog finished with errors *** $txtwht"
-              kill -SIGINT "-$hog_pid"
-
+    kill -SIGINT "-$hog_pid"
     exit 1
   else
     echo -e "$txtgrn *** Hog finished  without errors *** $txtwht"
-              kill -SIGINT "-$hog_pid"
-
+    kill -SIGINT "-$hog_pid"
     exit 0
   fi
 
@@ -539,43 +411,6 @@ function Log_capture(){
   # $* > >(test1 "stdout") 2> >(test2 "stderr") &
   tcl_pid=$!
   Msg Debug "pid = $tcl_pid"
-  # last_pids=$(ps -eo pid,cmd --sort=pid | tail -n 6)
-  # # tcl_cmd_pid=$($last_pids | grep "tcl" ) #| awk '{print $1}')
-  # echo "Last 3 PIDs:"
-  # echo "$last_pids"
-  # # echo "TCL PID : $tcl_cmd_pid"
-  # # Define the substring to search for
-  # search_string="launch.tcl"
-
-  # # Initialize a variable to hold the matching line
-  # matching_line=""
-
-  # # Read the multiline string line by line
-  # while IFS= read -r line; do
-  #   echo "$line"
-  #   if [[ "$line" == *"$search_string"* ]]; then
-  #     matching_line="$line"
-  #     break  # Exit the loop after finding the first match
-  #   fi
-  # done <<< "$last_pids"
-
-  # # Check if a matching line was found
-  # if [[ -n "$matching_line" ]]; then
-  #   echo "Found matching line: $matching_line"
-  # else
-  #   echo "No matching line found."
-  # fi
-  # if [[ $matching_line =~ ([0-9]{2,}) ]]; then
-  #   first_multidigit_number="${BASH_REMATCH[1]}"
-  #   echo "The first multidigit number is: $first_multidigit_number"
-  # else
-  #   echo "No multidigit number found."
-  # fi
-  # launch_tcl_pid="$first_multidigit_number"
-
-  # echo "TCL PID : $launch_tcl_pid"
-
-  
   while kill -0 $tcl_pid 2>/dev/null; do
     sleep 1
   done

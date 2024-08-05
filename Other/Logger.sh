@@ -362,7 +362,7 @@ function log_stdout(){
               # Msg Debug "Process $BASHPID will be killed in $fwe_failing"
               Msg Debug "Process $hog_pid will be killed in $fwe_failing"
             else
-              Msg Error "exitaaaando"
+              # Msg Error "exitaaaando"
               wait "$launch_tcl_pid" 2>/dev/null
               echo "Process $hog_pid has been terminated."
               failing_en=-1
@@ -521,27 +521,34 @@ function Msg() {
       # echo "${msgHeadBW[$msgType]} ${dataLine#${msgRemove[$msgType]}} "  >> $LOG_INFO_FILE;
     fi
   fi
-  # if [[ $failing_en -gt 0 ]];then
-  #   if [[ $fwe_failing -gt 1 ]]; then
-  #     fwe_failing=$(($fwe_failing - 1))
-  #     # Msg Debug "Process $BASHPID will be killed in $fwe_failing"
-  #     Msg Debug "Process $error_pid will be killed in $fwe_failing"
-  #   else
-  #     Msg Error "exitaaaando"
-  #     kill -9 "$error_pid"
-  #     failing_en=0
-  #     exit 2
-  #   fi
-  # else
-  #   if [[ "$msgType" == "error" ]]; then
-  #     if (( $fail_when_error > 0 )); then
-  #       fwe_failing=$fail_when_error
-  #       failing_en=1
-  #       error_pid=$BASHPID
-  #       Msg Warning "Process $error_pid will be killed in $fwe_failing"
-  #     fi
-  #   fi
-  # fi
+  if [[ $ENABLE_FWE -eq 1 ]];then
+        # Msg Debug "$fwe_fail_trig "
+        if [[ $fwe_fail_trig -eq 0 ]]; then
+          if [[ "$msgType" == "error" ]]; then
+            # if (( $fail_when_error > 0 )); then
+              fwe_failing=$fwe_delay
+              fwe_fail_trig=1
+              error_fail=1
+              error_pid=$BASHPID
+              Msg Warning "Process $error_pid will be killed in $fwe_failing"
+            # fi
+          fi
+        else
+          if [[ $failing_en -eq 0 ]];then
+            if [[ $fwe_failing -gt 0 ]];then
+              fwe_failing=$(($fwe_failing - 1))
+              # Msg Debug "Process $BASHPID will be killed in $fwe_failing"
+              Msg Debug "Process $hog_pid will be killed in $fwe_failing"
+            else
+              # Msg Error "exitaaaando"
+              wait "$launch_tcl_pid" 2>/dev/null
+              echo "Process $hog_pid has been terminated."
+              failing_en=-1
+              Hog_exit
+            fi
+          fi
+        fi
+      fi
   return 0
 }
 
@@ -827,16 +834,17 @@ function Logger_Init() {
   # hog_user_dfwe="${current_user}_fail_when_error_delay"
   if [[ -v Hog_Prj_dict["fail_when_error.enabled"] ]]; then
     if [[ ${Hog_Prj_dict["fail_when_error.enabled"]} =~ ^[01]$ ]]; then
-      if [[ -v Hog_Prj_dict["fail_when_error.delay"] ]]; then
-        ENABLE_FWE=1
+      ENABLE_FWE=$((${Hog_Prj_dict["fail_when_error.enabled"]}))
+      if [[ $ENABLE_FWE -eq 1 ]]; then
         Msg Warning "Fail when error enabled"
-        if [[ ${Hog_Prj_dict["fail_when_error.delay"]} =~ ^[0-9]+$ ]]; then
-          fwe_delay=$((${Hog_Prj_dict["fail_when_error.delay"]}))
-          Msg Warning "The fail delay is set to $fail_when_error"
-        else
-          
-          fwe_delay=10
-          Msg Warning "The variable fail_when_error.delay is not only nunmbers delay set to 10"
+        if [[ -v Hog_Prj_dict["fail_when_error.delay"] ]]; then
+          if [[ ${Hog_Prj_dict["fail_when_error.delay"]} =~ ^[0-9]+$ ]]; then
+            fwe_delay=$((${Hog_Prj_dict["fail_when_error.delay"]}))
+            Msg Warning "The fail delay is set to $fail_when_error"
+          else
+            fwe_delay=10
+            Msg Warning "The variable fail_when_error.delay is not only nunmbers delay set to 10"
+          fi
         fi
       fi
     else

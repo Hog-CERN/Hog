@@ -74,10 +74,10 @@ if [ -v $tempfolder ]; then
 fi
 
 function update_cnt () {
-  if [[ -e "$temp_g_cnt_file" ]]; then
-    while read line ; do glob_cnt=$(($line+1)); done < "$temp_g_cnt_file"
-    echo "$glob_cnt" > "$temp_g_cnt_file"
-  fi
+  # if [[ -e "$temp_g_cnt_file" ]]; then
+  #   while read line ; do glob_cnt=$(($line+1)); done < "$temp_g_cnt_file"
+  #   echo "$glob_cnt" > "$temp_g_cnt_file"
+  # fi
   if [[ -e "$1" ]]; then
     while read line ; do local_cnt=$(($line+1)); done < "$1"
     echo "$local_cnt" > "$1"
@@ -114,6 +114,7 @@ function msg_counter () {
     esac
     ;;
     update|w)
+    update_cnt $temp_g_cnt_file 
     case "$2" in
       i) update_cnt $temp_i_cnt_file ;;
       d) update_cnt $temp_d_cnt_file ;;
@@ -360,13 +361,13 @@ function log_stdout(){
             if [[ $fwe_failing -gt 0 ]];then
               fwe_failing=$(($fwe_failing - 1))
               # Msg Debug "Process $BASHPID will be killed in $fwe_failing"
-              Msg Debug "Process $hog_pid will be killed in $fwe_failing"
+              # Msg Debug "Process $hog_pid will be killed in $fwe_failing"
             else
               # Msg Error "exitaaaando"
               wait "$launch_tcl_pid" 2>/dev/null
               echo "Process $hog_pid has been terminated."
               failing_en=-1
-              Hog_exit
+              Hog_exit_fwe
             fi
           fi
         fi
@@ -379,6 +380,30 @@ function log_stdout(){
   #
   # @brief Prints a resum of the messages types
 function Hog_exit () {
+  echo "================ RESUME ================ "
+  echo " # of Total messages: $(msg_counter r g)"
+  echo " # of Info messages: $(msg_counter r i)"
+  echo " # of debug messages : $(msg_counter r d)"
+  echo " # of warning messages : $(msg_counter r w)"
+  echo " # of critical warning messages : $(msg_counter r c)"
+  echo " # of Errors messages : $(msg_counter r e)"
+  echo "======================================== "
+  if [[ $(msg_counter r e) -gt 0 ]]; then
+    echo -e "$txtred *** Hog finished with errors *** $txtwht"
+    # kill -SIGINT "-$hog_pid"
+    exit 1
+  else
+    echo -e "$txtgrn *** Hog finished  without errors *** $txtwht"
+    # kill -SIGINT "-$hog_pid"
+    exit 0
+  fi
+
+}
+
+## @function Hog_exit()
+  #
+  # @brief Prints a resum of the messages types
+function Hog_exit_fwe () {
   echo "================ RESUME ================ "
   echo " # of Total messages: $(msg_counter r g)"
   echo " # of Info messages: $(msg_counter r i)"
@@ -538,13 +563,13 @@ function Msg() {
             if [[ $fwe_failing -gt 0 ]];then
               fwe_failing=$(($fwe_failing - 1))
               # Msg Debug "Process $BASHPID will be killed in $fwe_failing"
-              Msg Debug "Process $hog_pid will be killed in $fwe_failing"
+              # Msg Debug "Process $hog_pid will be killed in $fwe_failing"
             else
               # Msg Error "exitaaaando"
               wait "$launch_tcl_pid" 2>/dev/null
               echo "Process $hog_pid has been terminated."
               failing_en=-1
-              Hog_exit
+              Hog_exit_fwe
             fi
           fi
         fi

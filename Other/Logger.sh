@@ -74,10 +74,10 @@ if [ -v $tempfolder ]; then
 fi
 
 function update_cnt () {
-  # if [[ -e "$temp_g_cnt_file" ]]; then
-  #   while read line ; do glob_cnt=$(($line+1)); done < "$temp_g_cnt_file"
-  #   echo "$glob_cnt" > "$temp_g_cnt_file"
-  # fi
+  if [[ -e "$temp_g_cnt_file" ]]; then
+    while read line ; do glob_cnt=$(($line+1)); done < "$temp_g_cnt_file"
+    echo "$glob_cnt" > "$temp_g_cnt_file"
+  fi
   if [[ -e "$1" ]]; then
     while read line ; do local_cnt=$(($line+1)); done < "$1"
     echo "$local_cnt" > "$1"
@@ -93,6 +93,7 @@ function read_tmp_cnt () {
 
 
 function msg_counter () {
+  # echo "msg_counter $1 $2"
   case "$1" in
     init)
       echo "0" > "$temp_g_cnt_file"
@@ -114,7 +115,7 @@ function msg_counter () {
     esac
     ;;
     update|w)
-    update_cnt $temp_g_cnt_file 
+    # update_cnt $temp_g_cnt_file 
     case "$2" in
       i) update_cnt $temp_i_cnt_file ;;
       d) update_cnt $temp_d_cnt_file ;;
@@ -318,6 +319,8 @@ function log_stdout(){
         fi
         if [[ $ENABLE_MSG_TYPE_CNT -gt 0 ]]; then
           printf "%d : " $(msg_counter w ${msgCounter[$msgType]})
+        else
+          msg_counter w ${msgCounter[$msgType]} >> /dev/null
         fi
         if [[ $HOG_COLOR_EN -gt 1 ]]; then
           case "${clrschselected}" in
@@ -345,25 +348,19 @@ function log_stdout(){
         fi
       fi
       if [[ $ENABLE_FWE -eq 1 ]];then
-        # Msg Debug "$fwe_fail_trig "
         if [[ $fwe_fail_trig -eq 0 ]]; then
           if [[ "$msgType" == "error" ]]; then
-            # if (( $fail_when_error > 0 )); then
-              fwe_failing=$fwe_delay
-              fwe_fail_trig=1
-              error_fail=1
-              error_pid=$BASHPID
-              Msg Warning "Process $error_pid will be killed in $fwe_failing"
-            # fi
+            fwe_failing=$fwe_delay
+            fwe_fail_trig=1
+            error_fail=1
+            error_pid=$BASHPID
+            Msg Warning "Process $error_pid will be killed in $fwe_failing"
           fi
         else
           if [[ $failing_en -eq 0 ]];then
             if [[ $fwe_failing -gt 0 ]];then
               fwe_failing=$(($fwe_failing - 1))
-              # Msg Debug "Process $BASHPID will be killed in $fwe_failing"
-              # Msg Debug "Process $hog_pid will be killed in $fwe_failing"
             else
-              # Msg Error "exitaaaando"
               wait "$launch_tcl_pid" 2>/dev/null
               echo "Process $hog_pid has been terminated."
               failing_en=-1
@@ -490,24 +487,6 @@ function Msg() {
     *) Msg Error "messageLevel: $1 not supported! Use Info, Warning, CriticalWarning, Error" ;;
   esac
   ####### The printing
-  # if [[ $ENABLE_LINE_NUMBER -gt 0 ]]; then
-  #   printf "%05d : " $(msg_counter r g)
-  # fi
-  # if [[ $EN_SHOW_PID -gt 0 ]]; then
-  #   printf "%d : " $BASHPID
-  # fi
-  # if [[ $DEBUG_VERBOSE -gt 5 ]]; then
-  #   printf "%d : " $(msg_counter w d)
-  # else
-  #   msg_counter w d >> /dev/null
-  # fi;
-  # if [[ $DEBUG_VERBOSE -gt ${msgDbgLvl[$msgType]} ]]; then
-  #   printf "%d : " $(msg_counter w ${msgCounter[$msgType]})
-  # else
-  #   msg_counter r "${msgCounter[$msgType]}" >> /dev/null
-  # fi;
-  # printf "${msgDbgLvl[$msgType]} + "
-  # echo "$DEBUG_VERBOSE ::: ${msgDbgLvl[$msgType]}"
   if [[ $DEBUG_VERBOSE -gt ${msgDbgLvl[$msgType]} ]]; then
     if [[ $EN_SHOW_PID -gt 0 ]]; then
       printf "PID:%06d : " $BASHPID
@@ -517,6 +496,8 @@ function Msg() {
     fi
     if [[ $ENABLE_MSG_TYPE_CNT -gt 0 ]]; then
       printf "%d : " $(msg_counter w ${msgCounter[$msgType]})
+    else
+      msg_counter w ${msgCounter[$msgType]} >> /dev/null
     fi
     
     if [[ $HOG_COLOR_EN -gt 1 ]]; then

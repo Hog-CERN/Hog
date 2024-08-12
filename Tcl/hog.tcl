@@ -3704,13 +3704,14 @@ proc GetGenericFromConf {proj_dir target {sim 0}} {
 
 ## @brief Sets the generics in all the sim.conf simulation file sets
 #
+# @param[in] repo_path:   the top folder of the projectThe path to the main git repository
 # @param[in] proj_dir:    the top folder of the project
 # @param[in] target:      software target(vivado, questa)
 #                         defines the output format of the string
 #
 proc SetGenericsSimulation {proj_dir target} {
   set sim_generics ""
-  set top_dir "Top/$proj_dir"
+  set top_dir "$repo_path/Top/$proj_dir"
   set read_aux [GetConfFiles $top_dir]
   set sim_cfg_index [lsearch -regexp -index 0 $read_aux ".*sim.conf"]
   set sim_cfg_index [lsearch -regexp -index 0 [GetConfFiles $top_dir] ".*sim.conf"]
@@ -3729,7 +3730,9 @@ proc SetGenericsSimulation {proj_dir target} {
       }
     } else {
       # The following warning needs to me removed because of sim_1
-      #Msg Warning "Simulation sets are present in the project but no sim.conf found in $top_dir. Please refer to Hog's manual to create one."
+      if {"" ne [glob -nocomplain "repo_path$/*.sim"]} {
+	Msg CriticalWarning "Simulation sets and .sim files are present in the project but no sim.conf found in $top_dir. Please refer to Hog's manual to create one."
+      }
     }
   }
 }
@@ -3900,7 +3903,7 @@ proc GetFileGenerics {filename {entity ""}} {
 ## Setting the generic property
 #
 #  @param[in]    list of variables to be written in the generics
-proc WriteGenerics {mode design date timee commit version top_hash top_ver hog_hash hog_ver cons_ver cons_hash libs vers hashes ext_names ext_hashes user_ip_repos user_ip_vers user_ip_hashes flavour {xml_ver ""} {xml_hash ""}} {
+proc WriteGenerics {mode repo_path design date timee commit version top_hash top_ver hog_hash hog_ver cons_ver cons_hash libs vers hashes ext_names ext_hashes user_ip_repos user_ip_vers user_ip_hashes flavour {xml_ver ""} {xml_hash ""}} {
   Msg Info "Passing parameters/generics to project's top module..."
   #####  Passing Hog generic to top file
   # set global generic variables
@@ -3955,7 +3958,6 @@ proc WriteGenerics {mode design date timee commit version top_hash top_ver hog_h
 
       set top_file [GetTopFile]
       set top_name [GetTopModule]
-      Msg Debug "$top_file"
       if {[file exists $top_file]} {
         set generics [GetFileGenerics $top_file $top_name]
 
@@ -3988,7 +3990,7 @@ proc WriteGenerics {mode design date timee commit version top_hash top_ver hog_h
       # Dealing with project generics in Simulators
       set simulator [get_property target_simulator [current_project]]
       if {$mode == "create"} {
-        SetGenericsSimulation $design $simulator
+        SetGenericsSimulation $repo_path $design $simulator
       }
     }
   } elseif {[IsSynplify]} {

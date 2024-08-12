@@ -3709,7 +3709,7 @@ proc GetGenericFromConf {proj_dir target {sim 0}} {
 # @param[in] target:      software target(vivado, questa)
 #                         defines the output format of the string
 #
-proc SetGenericsSimulation {proj_dir target} {
+proc SetGenericsSimulation {repo_path proj_dir target} {
   set sim_generics ""
   set top_dir "$repo_path/Top/$proj_dir"
   set read_aux [GetConfFiles $top_dir]

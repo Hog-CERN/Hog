@@ -2593,7 +2593,7 @@ proc AddHogFiles { libraries properties filesets } {
 
   if {[IsVivado]} {
     if {[DictGet $filesets "sim_1"] == ""} {
-      delete_fileset -quiet [ get_filesets "sim_1" ]
+      delete_fileset -quiet [get_filesets -quiet "sim_1" ]
     }
   }
   
@@ -3730,7 +3730,7 @@ proc SetGenericsSimulation {repo_path proj_dir target} {
       }
     } else {
       # The following warning needs to me removed because of sim_1
-      if {"" ne [glob -nocomplain "repo_path$/*.sim"]} {
+      if {[glob -nocomplain "$top_dir/list/*.sim"] ne ""} {
 	Msg CriticalWarning "Simulation sets and .sim files are present in the project but no sim.conf found in $top_dir. Please refer to Hog's manual to create one."
       }
     }

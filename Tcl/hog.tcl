@@ -35,8 +35,8 @@ proc ALLOWED_PROPS {} {
 	  ".udo" [list "nosim"]\
 	  ".xci" [list "nosynth" "noimpl" "nosim" "locked"]\
 	  ".xdc" [list "nosynth" "noimpl" ]\
-	  ".tcl" [list "nosynth" "noimpl" "nosim" "source" "qsys" "noadd"]\
-	  ".qsys" [list "nogenerate" "noadd"]\
+	  ".tcl" [list "nosynth" "noimpl" "nosim" "source" "qsys" "noadd" "--block-symbol-file" "--clear-output-directory" "--example-design" "--export-qsys-script" "--family" "--greybox" "--ipxact" "--jvm-max-heap-size" "--parallel" "--part" "--search-path" "--simulation" "--synthesis" "--testbench" "--testbench-simulation" "--upgrade-ip-cores" "--upgrade-variation-file"]\
+	  ".qsys" [list "nogenerate" "noadd" "--block-symbol-file" "--clear-output-directory" "--example-design" "--export-qsys-script" "--family" "--greybox" "--ipxact" "--jvm-max-heap-size" "--parallel" "--part" "--search-path" "--simulation" "--synthesis" "--testbench" "--testbench-simulation" "--upgrade-ip-cores" "--upgrade-variation-file"]\
 	  ".sdc" [list "notiming" "nosynth" "noplace"]\
 	  ".pdc" [list "nosynth" "noplace"]]\
 }
@@ -708,15 +708,23 @@ proc ReadListFile args {
           set extension [file extension $vhdlfile]
           ### Set file properties
           set prop [lrange $file_and_prop 1 end]
+
+	  # The next lines should be inside the case for recursive list files, also we should check the allowed properties for the .src as well
           set library [lindex [regexp -inline {lib\s*=\s*(.+?)\y.*} $prop] 1]
-          if { $library == "" } {
+	  if { $library == "" } {
             set library $lib
           }
 
           if { $extension == $list_file_ext } {
             # Deal with recusive list files
-            Msg Debug "List file $vhdlfile found in list file, recursively opening it..."
-            lassign [ReadListFile {*}"-lib $library -fileset $fileset $sha_mode_opt $vhdlfile $path"] l p fs
+	    set ref_path [lindex [regexp -inline {path\s*=\s*(.+?)\y.*} $prop] 1]
+	    if { $ref_path eq "" } {
+	      set ref_path $path
+	    } else {
+	      set ref_path [file normalize $path/$ref_path]
+	    }
+            Msg Debug "List file $vhdlfile found in list file, recursively opening it using path \"$ref_path\"..."
+            lassign [ReadListFile {*}"-lib $library -fileset $fileset $sha_mode_opt $vhdlfile $ref_path"] l p fs
             set libraries [MergeDict $l $libraries]
             set properties [MergeDict $p $properties]
             set filesets [MergeDict $fs $filesets]
@@ -730,7 +738,14 @@ proc ReadListFile args {
             foreach p $prop {
               # No need to append the lib= property
               if { [string first "lib=" $p ] == -1} {
-                if { [IsInList $p [DictGet [ALLOWED_PROPS]  $extension ] ] || [string first "top" $p] == 0  || $list_file_ext eq ".ipb"} {
+                # Get property name up to the = (for QSYS properties at the moment)
+                set pos [string first "=" $p]
+                if { $pos == -1 } {
+                  set prop_name $p
+                } else {
+                  set prop_name [string range $p 0 [expr {$pos - 1}]]
+                }
+                if { [IsInList $prop_name [DictGet [ALLOWED_PROPS]  $extension ] ] || [string first "top" $p] == 0 || $list_file_ext eq ".ipb"} {
                   dict lappend properties $vhdlfile $p
                   Msg Debug "Adding property $p to $vhdlfile..."
                 } elseif { $list_file_ext != ".ipb" } {
@@ -1903,7 +1918,7 @@ proc GetProjectFiles {} {
   set simsets [dict create]
   set simulator [get_property target_simulator [current_project]]
   set top [get_property "top"  [current_fileset]]
-  set topfile [lindex [get_files -compile_order sources -used_in synthesis] end]
+  set topfile [GetTopFile]
   dict lappend properties $topfile "top=$top"
 
   foreach fs $all_filesets {
@@ -2581,7 +2596,7 @@ proc AddHogFiles { libraries properties filesets } {
 
   if {[IsVivado]} {
     if {[DictGet $filesets "sim_1"] == ""} {
-      delete_fileset -quiet [ get_filesets "sim_1" ]
+      delete_fileset -quiet [get_filesets -quiet "sim_1" ]
     }
   }
   
@@ -3692,13 +3707,14 @@ proc GetGenericFromConf {proj_dir target {sim 0}} {
 
 ## @brief Sets the generics in all the sim.conf simulation file sets
 #
+# @param[in] repo_path:   the top folder of the projectThe path to the main git repository
 # @param[in] proj_dir:    the top folder of the project
 # @param[in] target:      software target(vivado, questa)
 #                         defines the output format of the string
 #
-proc SetGenericsSimulation {proj_dir target} {
+proc SetGenericsSimulation {repo_path proj_dir target} {
   set sim_generics ""
-  set top_dir "Top/$proj_dir"
+  set top_dir "$repo_path/Top/$proj_dir"
   set read_aux [GetConfFiles $top_dir]
   set sim_cfg_index [lsearch -regexp -index 0 $read_aux ".*sim.conf"]
   set sim_cfg_index [lsearch -regexp -index 0 [GetConfFiles $top_dir] ".*sim.conf"]
@@ -3716,7 +3732,9 @@ proc SetGenericsSimulation {proj_dir target} {
         }
       }
     } else {
-      Msg Warning "Simulation sets are present in the project but no sim.conf found in $top_dir. Please refer to Hog's manual to create one."
+      if {[glob -nocomplain "$top_dir/list/*.sim"] ne "" } {
+	Msg CriticalWarning "Simulation sets and .sim files are present in the project but no sim.conf found in $top_dir. Please refer to Hog's manual to create one."
+      }
     }
   }
 }
@@ -3724,9 +3742,12 @@ proc SetGenericsSimulation {proj_dir target} {
 ## @brief Return the path to the active top file
 proc GetTopFile {} {
   if {[IsVivado]} {
-    # set_property source_mgmt_mode All [current_project]
-    # update_compile_order -fileset sources_1
-
+    set compile_order_prop [get_property source_mgmt_mode [current_project]]
+    if {$compile_order_prop ne "All"} {
+      Msg CriticalWarning "Compile order is not set to automatic, setting it now..."
+      set_property source_mgmt_mode All [current_project]
+      update_compile_order -fileset sources_1
+    }
     return [lindex [get_files -quiet -compile_order sources -used_in synthesis -filter {FILE_TYPE =~ "VHDL*" || FILE_TYPE =~ "*Verilog*" } ] end]
   } elseif {[IsISE]} {
     debug::design_graph_mgr -create [current_fileset]
@@ -3881,10 +3902,15 @@ proc GetFileGenerics {filename {entity ""}} {
   }
 }
 
-## Setting the generic property
+## Set the generics property
 #
-#  @param[in]    list of variables to be written in the generics
-proc WriteGenerics {mode design date timee commit version top_hash top_ver hog_hash hog_ver cons_ver cons_hash libs vers hashes ext_names ext_hashes user_ip_repos user_ip_vers user_ip_hashes flavour {xml_ver ""} {xml_hash ""}} {
+#  @param[in]    mode if it's "create", the function will assume the project is being created
+#  @param[in]    repo_path The path to the main git repository
+#  @param[in]    design The name of the design
+
+#  @param[in]    list of variables to be written in the generics in the usual order
+
+proc WriteGenerics {mode repo_path design date timee commit version top_hash top_ver hog_hash hog_ver cons_ver cons_hash libs vers hashes ext_names ext_hashes user_ip_repos user_ip_vers user_ip_hashes flavour {xml_ver ""} {xml_hash ""}} {
   Msg Info "Passing parameters/generics to project's top module..."
   #####  Passing Hog generic to top file
   # set global generic variables
@@ -3939,7 +3965,6 @@ proc WriteGenerics {mode design date timee commit version top_hash top_ver hog_h
 
       set top_file [GetTopFile]
       set top_name [GetTopModule]
-      Msg Debug "$top_file"
       if {[file exists $top_file]} {
         set generics [GetFileGenerics $top_file $top_name]
 
@@ -3972,7 +3997,7 @@ proc WriteGenerics {mode design date timee commit version top_hash top_ver hog_h
       # Dealing with project generics in Simulators
       set simulator [get_property target_simulator [current_project]]
       if {$mode == "create"} {
-        SetGenericsSimulation $design $simulator
+        SetGenericsSimulation $repo_path $design $simulator
       }
     }
   } elseif {[IsSynplify]} {

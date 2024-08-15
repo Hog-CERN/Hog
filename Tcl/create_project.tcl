@@ -956,7 +956,7 @@ proc CreateProject args {
 
 
     lassign [GetDateAndTime $commit] date timee
-    WriteGenerics "create" $globalSettings::group_name/$globalSettings::DESIGN $date $timee $commit $version $top_hash $top_ver $hog_hash $hog_ver $cons_ver $cons_hash $libs $vers $hashes $ext_names $ext_hashes $user_ip_repos $user_ip_vers $user_ip_hashes $flavour $xml_ver $xml_hash
+    WriteGenerics "create" $globalSettings::repo_path $globalSettings::group_name/$globalSettings::DESIGN $date $timee $commit $version $top_hash $top_ver $hog_hash $hog_ver $cons_ver $cons_hash $libs $vers $hashes $ext_names $ext_hashes $user_ip_repos $user_ip_vers $user_ip_hashes $flavour $xml_ver $xml_hash
     cd $old_path
   }
 

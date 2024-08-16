@@ -3862,7 +3862,7 @@ proc GetVhdlGenerics {file {entity ""} } {
   set fp [open $file r]
   set data [read $fp]
   close $fp
-  set lines []/WARN
+  set lines []
 
     # read in the vhdl file and remove comments
   foreach line [split $data "\n"] {

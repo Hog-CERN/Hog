@@ -3862,7 +3862,7 @@ proc GetVhdlGenerics {file {entity ""} } {
   set fp [open $file r]
   set data [read $fp]
   close $fp
-  set lines []
+  set lines []/WARN
 
     # read in the vhdl file and remove comments
   foreach line [split $data "\n"] {
@@ -3912,6 +3912,9 @@ proc GetFileGenerics {filename {entity ""}} {
   }
 }
 
+## @brief Applies generic values to IPs within block designs
+#
+#  @param[in]    generic_string the string containing the generics to be applied
 proc WriteGenericsToIPs {generic_string} {
   Msg Info "Looking for IPs to add generics to..."
   Msg Debug "Parameters/generics passed to WriteGenericsToIP: $generic_string"
@@ -3926,8 +3929,13 @@ proc WriteGenericsToIPs {generic_string} {
   set ip_list [get_ips *]
   foreach {ip} $ip_list {
     set ip_props [list_property [get_ips $ip]]
+    set WARN_ABOUT_IP false
     foreach {ip_prop} $ip_props {
       if {[dict exists $ips_generic_string $ip_prop ]} {
+        if {$WARN_ABOUT_IP == false} {
+          Msg Warning "The IP \[$ip\] contains generics that are set by Hog. If this is IP is apart of a block design, the .bd file may contain stale, unused, values. Hog will always apply the most up-to-date values to the IP during synthesis, however these values may or may not be reflected in the .bd file."
+          set WARN_ABOUT_IP true
+        }
         Msg Info "$ip contains: $ip_prop, setting it to [ dict get $ips_generic_string $ip_prop ]"
         set_property $ip_prop [ dict get $ips_generic_string $ip_prop ] [ get_ips $ip ]
       }

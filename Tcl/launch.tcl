@@ -606,11 +606,11 @@ if {[IsXilinx]} {
           Msg Info "Creating simulation scripts for $s..."
           if { [file exists $repo_path/Top/$project_name/pre-simulation.tcl] } { 
             Msg Info "Running $repo_path/Top/$project_name/pre-simulation.tcl"
-            source 
+            source $repo_path/Top/$project_name/pre-simulation.tcl
           }
           if { [file exists $repo_path/Top/$project_name/pre-$s-simulation.tcl] } { 
             Msg Info "Running $repo_path/Top/$project_name/pre-$s-simulation.tcl"
-            source 
+            source Running $repo_path/Top/$project_name/pre-$s-simulation.tcl
           }
           current_fileset -simset $s
           set sim_dir $main_sim_folder/$s/behav

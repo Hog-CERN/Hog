@@ -236,7 +236,7 @@ if {[IsXilinx]} {
 
   if {[IsVivado]} {
     if {[info exists env(HOG_SAVE_DCP)]} {
-      file mkdir $dst_dir/synth_dcp
+      file mkdir $dst_dir/impl_dcp
       set dcps [glob -nocomplain "$run_dir/impl*/*.dcp"]
       if {[file exists [lindex $dcps 0]]} {
         file copy -force {*}$dcps $dst_dir/impl_dcp

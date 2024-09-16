@@ -234,6 +234,16 @@ if {[IsXilinx]} {
     file copy -force $log $dst_dir/reports/$run_name.log
   }
 
+  if {[IsVivado]} {
+    if {[info exists env(HOG_SAVE_DCP)]} {
+      file mkdir $dst_dir/synth_dcp
+      set dcps [glob -nocomplain "$run_dir/impl*/*.dcp"]
+      if {[file exists [lindex $dcps 0]]} {
+        file copy -force {*}$dcps $dst_dir/impl_dcp
+      }
+    }
+  }
+
 }
 
 # Run user post-implementation file

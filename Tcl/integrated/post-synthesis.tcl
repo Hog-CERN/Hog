@@ -102,6 +102,8 @@ file mkdir $dst_dir
 # Reports
 file mkdir $dst_dir/reports
 
+
+
 # Vivado
 if {[IsXilinx]} {
 
@@ -140,30 +142,36 @@ if {[IsXilinx]} {
   if {[IsVivado]} {
     if {[info exists env(HOG_IP_PATH)]} {
       set ip_repo $env(HOG_IP_PATH)
-
-      if {[IsISE]} {
-	      # Do nothing...
-      } else {
-        set ips [get_ips *]
-        set run_paths [glob -nocomplain "$run_dir/*"]
-        set runs {}
-        foreach r $run_paths {
-          if {[regexp -all {^(.+)_synth_1}  $r whole_match run]} {
-            lappend runs [file tail $run]
-          }
-        }
-
-        foreach ip $ips {
-          if {$ip in $runs} {
-            set force 1
-          } else {
-            set force 0
-          }
-          Msg Info "Copying synthesised IP $ip to $ip_repo..."
-          HandleIP push [get_property IP_FILE $ip] $ip_repo $repo_path [get_property IP_OUTPUT_DIR $ip] $force
+      set ips [get_ips *]
+      set run_paths [glob -nocomplain "$run_dir/*"]
+      set runs {}
+      foreach r $run_paths {
+        if {[regexp -all {^(.+)_synth_1}  $r whole_match run]} {
+          lappend runs [file tail $run]
         }
       }
+
+      foreach ip $ips {
+        if {$ip in $runs} {
+          set force 1
+        } else {
+          set force 0
+        }
+        Msg Info "Copying synthesised IP $ip to $ip_repo..."
+        HandleIP push [get_property IP_FILE $ip] $ip_repo $repo_path [get_property IP_OUTPUT_DIR $ip] $force
+      }
     }
+
+    # Copy DCP to artifacts, if HOG_SAVE_DCP is set
+    if {[info exists env(HOG_SAVE_DCP)] && $env(HOG_SAVE_DCP) == 1} {
+      file mkdir $dst_dir/synth_dcp
+      set dcps [glob -nocomplain "$run_dir/synth*/*.dcp"]
+      if {[file exists [lindex $dcps 0]]} {
+        file copy -force {*}$dcps $dst_dir/synth_dcp
+      }
+    }
+
+
   }
 
 

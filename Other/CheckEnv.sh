@@ -422,7 +422,15 @@ if [[ ${HOG_USE_DOXYGEN} != 1 ]]; then
 else
     echo "defined. Hog-CI will run Doxygen and copy the official documentation over when you merge to the official branch."
 fi
-echo ================================
+echo --------------------------------
+
+echo -n "Variable: HOG_SAVE_DCP is "
+if [[ ${HOG_SAVE_DCP} != 1 ]]; then
+    echo "NOT defined. Set this variable to 1 to make Hog-CI save the run checkpoint DCP files (Vivado only) in the artifacts."
+else
+    echo "defined. Hog-CI will save the checkpoint DCP files in the pipeline artifacts."
+fi
+echo --------------------------------
 
 echo -n "Variable: HOG_APPTAINER_IMAGE is "
 if [ -z "$HOG_APPTAINER_IMAGE" ]; then

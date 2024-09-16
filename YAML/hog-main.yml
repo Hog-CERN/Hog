@@ -293,7 +293,7 @@ archive_binary_files:
   artifacts:
     paths:
       - bin
-    expire_in: 10 years
+    expire_in: 1 year
 
 create_badge:
   only:
@@ -314,6 +314,6 @@ create_badge:
   artifacts:
     paths:
       - bin
-    expire_in: 10 years
+    expire_in: 30 days
   needs:
     - archive_binary_files

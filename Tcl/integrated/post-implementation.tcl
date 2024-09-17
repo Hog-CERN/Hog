@@ -235,7 +235,7 @@ if {[IsXilinx]} {
   }
 
   if {[IsVivado]} {
-    if {[info exists env(HOG_SAVE_DCP)]} {
+    if {[info exists env(HOG_SAVE_DCP)] && ($env(HOG_SAVE_DCP) == 1 || $env(HOG_SAVE_DCP) == 3)} {
       file mkdir $dst_dir/impl_dcp
       set dcps [glob -nocomplain "$run_dir/impl*/*.dcp"]
       if {[file exists [lindex $dcps 0]]} {

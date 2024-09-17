@@ -163,7 +163,7 @@ if {[IsXilinx]} {
     }
 
     # Copy DCP to artifacts, if HOG_SAVE_DCP is set
-    if {[info exists env(HOG_SAVE_DCP)] && $env(HOG_SAVE_DCP) == 1} {
+    if {[info exists env(HOG_SAVE_DCP)] && ($env(HOG_SAVE_DCP) == 1 || $env(HOG_SAVE_DCP) == 2)} {
       file mkdir $dst_dir/synth_dcp
       set dcps [glob -nocomplain "$run_dir/synth*/*.dcp"]
       if {[file exists [lindex $dcps 0]]} {

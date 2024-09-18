@@ -26,6 +26,11 @@
 set CI_STAGES {"generate_project" "simulate_project"}
 set CI_PROPS {"-synth_only"}
 
+proc VIVADO_PATH_PROPERTIES {} {
+  return {"TCL.PRE" "TCL.POST" "RQS_FILES" "INCREMENTAL_CHECKPOINT"}
+}
+
+
 proc ALLOWED_PROPS {} {
   return [dict create ".vhd" [list "93" "nosynth" "noimpl" "nosim" "1987" "1993" "2008" ]\
 	  ".vhdl" [list "93" "nosynth" "noimpl" "nosim" "1987" "1993" "2008" ]\
@@ -1692,7 +1697,7 @@ proc CopyIPbusXMLs {proj_dir path dst {xml_version "0.0.0"} {xml_sha "00000000"}
   }
 
   set ipb_files [glob -nocomplain $proj_dir/list/*.ipb]
-  set n_ipb_files [llength $ipb_files]  
+  set n_ipb_files [llength $ipb_files]
   if {$n_ipb_files == 0} {
     Msg CriticalWarning "No files with .ipb extension found in $proj_dir/list."
     return
@@ -1707,23 +1712,23 @@ proc CopyIPbusXMLs {proj_dir path dst {xml_version "0.0.0"} {xml_sha "00000000"}
   }
 
   set xmlfiles [dict get $libraries "xml.ipb"]
-  
+
 
   set xml_list_error 0
   foreach xmlfile $xmlfiles {
-    
+
     if {[file isdirectory $xmlfile]} {
       Msg CriticalWarning "Directory $xmlfile listed in xml list file $list_file. Directories are not supported!"
       set xml_list_error 1
     }
-    
+
     if {[file exists $xmlfile]} {
       lappend vhdls [file normalize [dict get $vhdl_dict $xmlfile] ]
       set xmlfile [file normalize $xmlfile]
       Msg Info "Copying $xmlfile to $dst and replacing place holders..."
       set in  [open $xmlfile r]
       set out [open $dst/[file tail $xmlfile] w]
-      
+
       while {[gets $in line] != -1} {
 	set new_line [regsub {(.*)__VERSION__(.*)} $line "\\1$xml_version\\2"]
 	set new_line2 [regsub {(.*)__GIT_SHA__(.*)} $new_line "\\1$xml_sha\\2"]
@@ -1739,7 +1744,7 @@ proc CopyIPbusXMLs {proj_dir path dst {xml_version "0.0.0"} {xml_sha "00000000"}
   if {${xml_list_error}} {
     Msg Error "Invalid files added to $list_file!"
   }
-  
+
   set cnt [llength $xmls]
   Msg Info "$cnt xml file/s copied"
 
@@ -1994,7 +1999,7 @@ proc GetProjectFiles {} {
           set prop ""
         }
 	#If type is "VHDL 2008" we will keep only VHDL
-	
+
         if {![string equal $prop ""]} {
           dict lappend properties $f $prop
         }
@@ -2599,7 +2604,7 @@ proc AddHogFiles { libraries properties filesets } {
       delete_fileset -quiet [get_filesets -quiet "sim_1" ]
     }
   }
-  
+
   # Add constraints to workflow in Libero
   if {[IsLibero]} {
     if {$synth_conf == 1} {

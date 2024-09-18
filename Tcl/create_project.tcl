@@ -73,10 +73,6 @@ namespace eval globalSettings {
   variable quartus_post_module
 }
 
-set VIVADO_PATH_PROPERTIES {
-  "TCL.PRE" "TCL.POST" "RQS_FILES"
-}
-
 ################# FUNCTIONS ################################
 proc InitProject {} {
   if {[IsXilinx]} {
@@ -596,8 +592,13 @@ proc ConfigureProperties {} {
                 Msg Warning "Property $prop_name has empty value. Skipping..."
                 continue
             }
-            if {[string first "TCL.PRE" $prop_name] != -1 || [string first "TCL.POST" $prop_name] != -1 || $prop_name == "RQS_FILES" } {
-              set_property $prop_name $globalSettings::repo_path/$prop_val $run
+            if {[IsInList [string toupper $prop_name] [VIVADO_PATH_PROPERTIES]]} {
+              # Check that the file exists before setting these properties
+              if {[file exists $globalSettings::repo_path/$prop_val]} {
+                set_property $prop_name $globalSettings::repo_path/$prop_val $run
+              } else {
+                Msg Warning "Impossible to set property $prop_name to $prop_val. File is missing"
+              }
             } else {
               set_property $prop_name $prop_val $run
             }

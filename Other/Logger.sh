@@ -363,8 +363,8 @@ function Hog_exit () {
     echo -e "$txtred *** Hog finished with errors *** $txtwht"
     exit 0
   else
-    echo -e "$txtgrn *** Hog finished  without errors *** $txtwht"
-    exit 0
+    echo -e "$txtgrn *** Hog finished without errors *** $txtwht"
+    exit 1
   fi
 }
 

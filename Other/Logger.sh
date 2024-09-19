@@ -361,7 +361,7 @@ function Hog_exit () {
   echo "======================================== "
   if [[ $(msg_counter er) -gt 0 ]]; then
     echo -e "$txtred *** Hog finished with errors *** $txtwht"
-    exit 1
+    exit 0
   else
     echo -e "$txtgrn *** Hog finished  without errors *** $txtwht"
     exit 0

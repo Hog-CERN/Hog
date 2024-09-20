@@ -209,6 +209,7 @@ function log_stdout(){
             # if [[ "$line" == *'Fatal'* ]]; then
             #   next_is_err=1
             # fi
+            echo $line
             msgType="error"
             # msgType=$(msgTypeOverload "error" "$dataLine")
           ;;

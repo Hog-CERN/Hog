@@ -106,7 +106,7 @@ else
         # GET all artifacts from user_post stage
         pipeline=$(glab mr view $mr -F json | jq ".pipeline.id")
         echo "Retrieving pipeline $pipeline..."
-        job=$(glab ci get -p $pipeline -F json | jq -r ".jobs.[0].name")
+        job=$(glab ci get -p $pipeline -F json | jq -r '.jobs[0].name')
         echo "Last job in pipeline was $job"
         if [ "$job" != "collect_artifacts" ]; then
             glab job artifact $ref $job

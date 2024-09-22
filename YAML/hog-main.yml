@@ -17,7 +17,7 @@
     - hog
 
 .tag-sr: &tag-sr
-  image: gitlab-registry.cern.ch/hog/hog-docker
+  image: gitlab-registry.cern.ch/hog/hog-docker:master
 
 .vars: &vars
   GIT_STRATEGY: clone
@@ -107,7 +107,7 @@ check_branch_state:
 
 make_doxygen:
   <<: *only-default-doxygen
-  image: gitlab-registry.cern.ch/hog/hog-docker:doxygen
+  image: gitlab-registry.cern.ch/hog/hog-docker:master:doxygen
   stage: generation_and_simulation
   variables:
     <<: *vars

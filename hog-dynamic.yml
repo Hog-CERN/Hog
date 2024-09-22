@@ -47,7 +47,7 @@ generate-config:
   variables:
     <<: *vars
   stage: dynamic_generate
-  image: gitlab-registry.cern.ch/hog/hog-docker
+  image: gitlab-registry.cern.ch/hog/hog-docker:master
   script:
     - if [[ ${HOG_CHECK_PROJVER} != 1 ]]; then
         echo "Project version checker is disabled.";
@@ -73,7 +73,7 @@ child-pipeline:
 
 collect_artifacts:
   <<: *ci-rules
-  image: gitlab-registry.cern.ch/hog/hog-docker
+  image: gitlab-registry.cern.ch/hog/hog-docker:master
   stage: collect
   script:
     - if [ ! -f .env ]; then

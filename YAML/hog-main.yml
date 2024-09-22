@@ -107,7 +107,7 @@ check_branch_state:
 
 make_doxygen:
   <<: *only-default-doxygen
-  image: gitlab-registry.cern.ch/hog/hog-docker:master:doxygen
+  image: gitlab-registry.cern.ch/hog/hog-docker:doxygen
   stage: generation_and_simulation
   variables:
     <<: *vars

@@ -21,9 +21,9 @@ set TclPath [file dirname [info script]]/..
 set repo_path [file normalize "$TclPath/../.."]
 source $TclPath/hog.tcl
 
-set usage "- CI script that creates GitLab badges with utilisation and timing results for a chosen Hog project \n USAGE: $::argv0 <push token> <Gitlab api url> <Gitlab project id> <Gitlab project url> <Hog project> <ext_path>"
+set usage "- CI script that creates GitLab badges with utilisation and timing results for a chosen Hog project \n USAGE: $::argv0 <push token> <Gitlab api url> <Gitlab project id> <Gitlab project url> <GitLab Server URL> <Hog project> <ext_path>"
 
-if { [llength $argv] < 1 } {
+if { [llength $argv] < 7 } {
   Msg Info [cmdline::usage $usage]
   cd $OldPath
   return
@@ -39,8 +39,9 @@ set push_token [lindex $argv 0]
 set api_url [lindex $argv 1]
 set project_id [lindex $argv 2]
 set project_url [lindex $argv 3]
-set project [lindex $argv 4]
-set ext_path [lindex $argv 5]
+set gitlab_url [lindex $argv 4]
+set project [lindex $argv 5]
+set ext_path [lindex $argv 6]
 
 set resources [dict create "LUTs" "LUTs" "Registers" "FFs" "Block" "BRAM" "URAM" "URAM" "DSPs" "DSPs"]
 set ver [ GetProjectVersion $repo_path/Top/$project $repo_path $ext_path 0 ]
@@ -114,22 +115,21 @@ if {[file exists utilization.txt]} {
     set badge_found 0
     Msg Info "Uploading badge image $badge_name.svg ...."
     lassign [ExecuteRet curl --request POST --header "PRIVATE-TOKEN: ${push_token}" --form "file=@$badge_name.svg" $api_url/projects/$project_id/uploads] ret content
-    puts $content
-    puts $ret
-    set image_url [ParseJSON $content url]
+    set image_url [ParseJSON $content full_path]
+    set image_url $gitlab_url/$image_url
     foreach badge $current_badges {
       set current_badge_name [dict get $badge "name"]
       set badge_id [dict get $badge "id"]
       if {$current_badge_name == $badge_name} {
         set badge_found 1
         Msg Info "Badge $badge_name exists, updating it..."
-        Execute curl --header "PRIVATE-TOKEN: $push_token" "$api_url/projects/${project_id}/badges/$badge_id" --request PUT --data "image_url=$project_url/$image_url"
+        Execute curl --header "PRIVATE-TOKEN: $push_token" "$api_url/projects/${project_id}/badges/$badge_id" --request PUT --data "image_url=$image_url"
         break
       }
     }
     if {$badge_found == 0} {
       Msg Info "Badge $badge_name does not exist yet. Creating it..."
-      Execute curl --header "PRIVATE-TOKEN: $push_token" --request POST --data "link_url=$project_url/-/releases&image_url=$project_url/$image_url&name=$badge_name" "$api_url/projects/$project_id/badges"
+      Execute curl --header "PRIVATE-TOKEN: $push_token" --request POST --data "link_url=$project_url/-/releases&image_url=$image_url&name=$badge_name" "$api_url/projects/$project_id/badges"
     }
   }
 }

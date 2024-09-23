@@ -114,6 +114,8 @@ if {[file exists utilization.txt]} {
     set badge_found 0
     Msg Info "Uploading badge image $badge_name.svg ...."
     lassign [ExecuteRet curl --request POST --header "PRIVATE-TOKEN: ${push_token}" --form "file=@$badge_name.svg" $api_url/projects/$project_id/uploads] ret content
+    puts $content
+    puts $ret
     set image_url [ParseJSON $content url]
     foreach badge $current_badges {
       set current_badge_name [dict get $badge "name"]

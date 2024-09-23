@@ -323,7 +323,7 @@ create_badge:
   stage: badge
   script:
     - for project in $HOG_BADGE_PROJECTS; do
-        tclsh Hog/Tcl/CI/create_badges.tcl $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $CI_PROJECT_URL $project "$HOG_EXTERNAL_PATH";
+        tclsh Hog/Tcl/CI/create_badges.tcl $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $CI_PROJECT_URL $CI_SERVER_URL $project "$HOG_EXTERNAL_PATH";
       done;
   allow_failure: true
   needs:

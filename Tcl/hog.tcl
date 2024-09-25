@@ -41,6 +41,9 @@ proc ALLOWED_PROPS {} {
 	  ".pdc" [list "nosynth" "noplace"]]\
 }
 
+proc VIVADO_PATH_PROPERTIES {} {
+  return {"\.*\.TCL\.PRE$" "^.*\.TCL\.POST$" "^RQS_FILES$" "^INCREMENTAL\_CHECKPOINT$"}
+}
 
 #### FUNCTIONS
 
@@ -4681,13 +4684,19 @@ proc findFiles { basedir pattern } {
 }
 
 # Check if element is in list
-proc IsInList {element list} {
-  if {[lsearch -exact $list $element] >= 0} {
-    return 1
-  } else {
-    return 0
+proc IsInList {element list {regex 0}} {
+  foreach x $list {
+    if {$regex == 1 &&  [regexp $x $element] } {
+  	return 1
+      } elseif { $regex == 0 && $x eq $element } {
+  	return 1
+      }
   }
+  return 0
 }
+  
+
+
 
 # Function to check if a commit is an ancestor of another
 proc IsCommitAncestor {ancestor commit} {

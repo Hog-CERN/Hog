@@ -17,7 +17,7 @@
     - hog
 
 .tag-sr: &tag-sr
-  image: gitlab-registry.cern.ch/hog/hog-docker
+  image: gitlab-registry.cern.ch/hog/hog-docker:master
 
 .vars: &vars
   GIT_STRATEGY: clone
@@ -270,24 +270,39 @@ archive_binary_files:
       else
         ENABLE_EOS=0;
       fi;
+    - copy_error=0
     - if [[ -v HOG_USE_DOXYGEN ]] && [[ "$HOG_USE_DOXYGEN" == "1" ]] && [[ -v BIN_PATH ]]; then
-        if [ $ENABLE_EOS -eq 1 ]; then
-          eos mkdir -p ${BIN_PATH}/Doc;
-          xrdcp -rsf Doc/html/* ${EOS_MGM_URL}//${BIN_PATH}/Doc;
+        if [ -d Doc/html ]; then
+          if [ $ENABLE_EOS -eq 1 ]; then
+            eos mkdir -p ${BIN_PATH}/Doc;
+            xrdcp -rsf Doc/html/* ${EOS_MGM_URL}//${BIN_PATH}/Doc;
+          else
+            mkdir -p ${BIN_PATH}/Doc;
+            cp -r Doc/html/* ${BIN_PATH}/Doc;
+          fi;
         else
-          mkdir -p ${BIN_PATH}/Doc;
-          cp -r Doc/html/* ${BIN_PATH}/Doc;
+          echo "[HOG-ERROR] No Doxygen documentation found in Doc/html. Skipping...";
+          copy_error=1;
         fi;
       fi;
     - if [[ -v BIN_PATH ]]; then
-        echo "Copying binary files to ${BIN_PATH}/${CI_COMMIT_TAG}";
-        if [ $ENABLE_EOS -eq 1 ]; then
-          eos mkdir $BIN_PATH/$CI_COMMIT_TAG;
-          xrdcp -rfs bin/* ${EOS_MGM_URL}//${BIN_PATH}/${CI_COMMIT_TAG};
+        if [ -d bin ]; then
+          echo "Copying binary files to ${BIN_PATH}/${CI_COMMIT_TAG}";
+          if [ $ENABLE_EOS -eq 1 ]; then
+            eos mkdir $BIN_PATH/$CI_COMMIT_TAG;
+            xrdcp -rfs bin/* ${EOS_MGM_URL}//${BIN_PATH}/${CI_COMMIT_TAG};
+          else
+            mkdir $BIN_PATH/$CI_COMMIT_TAG;
+            cp -r bin/* ${BIN_PATH}/${CI_COMMIT_TAG};
+          fi;
         else
-          mkdir $BIN_PATH/$CI_COMMIT_TAG;
-          cp -r bin/* ${BIN_PATH}/${CI_COMMIT_TAG};
+          echo "[HOG-ERROR] The binary folder bin was not found...";
+          copy_error=1;
         fi;
+      fi;
+    - if [[ $copy_error -eq 1 ]]; then
+        echo "[HOG-ERROR] Some artifacts were not copied. Please check your configuration and try again.";
+        exit 1;
       fi;
   allow_failure: true
   artifacts:
@@ -308,7 +323,7 @@ create_badge:
   stage: badge
   script:
     - for project in $HOG_BADGE_PROJECTS; do
-        tclsh Hog/Tcl/CI/create_badges.tcl $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $CI_PROJECT_URL $project "$HOG_EXTERNAL_PATH";
+        tclsh Hog/Tcl/CI/create_badges.tcl $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $CI_PROJECT_URL $CI_SERVER_URL $project "$HOG_EXTERNAL_PATH";
       done;
   allow_failure: true
   artifacts:

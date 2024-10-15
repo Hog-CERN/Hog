@@ -75,9 +75,20 @@ if {[file exists utilization.txt]} {
   set new_badges [dict create]
   set prj_name [string map {/ _} $project]
 
+  # Timing Badge
+  if {[file exists timing_error.txt]} {
+    Execute anybadge -l $prj_name -v $ver -f timing-$prj_name.svg --color=red -o;
+  } elseif {[file exists timing_ok.txt]} {
+    Execute anybadge -l $prj_name -v $ver -f timing-$prj_name.svg --color=green -o;
+  } else {
+    Execute anybadge -l $prj_name -v $ver -f timing-$prj_name.svg --color=orange -o;
+  }
+  dict set new_badges "timing-$prj_name" "timing-$prj_name"
+
+
   set res_value ""
   set usage_dict [dict create]
-    # Resource Badges
+  # Resource Badges
   foreach line $lines {
     set str [string map {| ""} $line]
     set str [string map {"<" ""} $str]
@@ -96,18 +107,10 @@ if {[file exists utilization.txt]} {
     append res_value $res ": $usage\% "
   }
 
-  Execute anybadge -l "$project-$ver" -v "$res_value" -f $prj_name.svg --color=blue -o;
+  Execute anybadge -l "Res:" -v "$res_value" -f $prj_name.svg --color=blue -o;
   dict set new_badges "$prj_name" "$prj_name"
 
-  # Timing Badge
-  if {[file exists timing_error.txt]} {
-    Execute anybadge -l timing -v "FAILED" -f timing-$prj_name.svg --color=red -o;
-  } elseif {[file exists timing_ok.txt]} {
-    Execute anybadge -l timing -v "OK" -f timing-$prj_name.svg --color=green -o;
-  } else {
-    Execute anybadge -l timing -v "UNKNOWN" -f timing-$prj_name.svg --color=orange -o;
-  }
-  dict set new_badges "timing-$prj_name" "timing-$prj_name"
+
 
 
 

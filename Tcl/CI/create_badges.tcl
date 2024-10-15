@@ -110,10 +110,6 @@ if {[file exists utilization.txt]} {
   Execute anybadge -l "Res:" -v "$res_value" -f $prj_name.svg --color=blue -o;
   dict set new_badges "$prj_name" "$prj_name"
 
-
-
-
-
   foreach badge_name [dict keys $new_badges] {
     set badge_found 0
     Msg Info "Uploading badge image $badge_name.svg ...."

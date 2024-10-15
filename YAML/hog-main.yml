@@ -100,6 +100,10 @@ check_branch_state:
       fi;
     - git fetch origin refs/notes/*:refs/notes/*
     - "NEW_TAG=`echo \"source Hog/Tcl/hog.tcl; puts v[HexVersionToString [GetVer .]]\" | tclsh`"
+    - if [[ ! $NEW_TAG =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+        echo "There was a problem calculating the new tag of the repository. Hog returned the following message:";
+        echo $new_tag;
+      fi;
     - echo "New tag is $NEW_TAG"
     - "git notes add -fm \"$CI_MERGE_REQUEST_IID $CI_COMMIT_REF_NAME $NEW_TAG\""
     - git push origin refs/notes/*
@@ -141,8 +145,12 @@ tag_official_version:
       }
     - new_tag=${note[2]}
     - if [ -z "$new_tag" ]; then
-        echo "It was impossible to get the tag number from the git note of this commit. Check that your repository settigns allows only fast-forward merge, and that the merge_and_tag job in your Merge pipeline succeded.";
+        echo "It was impossible to get the tag number from the git note of this commit. Check that your repository settings allows only fast-forward merge, and that the merge_and_tag job in your Merge pipeline succeeded.";
         echo "More info here https://hog.readthedocs.io/en/latest/02-User-Manual/02-Hog-CI/01-GitLab-CI/01-setup-CI.html?highlight=fast%20forward#remove-merge-commit";
+        exit 1;
+      fi
+    - if [[ ! $new_tag =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+        echo "[ERROR] The tag number extracted from the note is not of the right format. Check the check_branch_state of merge request ${note[0]}"
         exit 1;
       fi
     - present_tag=(`git describe`)

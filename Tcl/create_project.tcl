@@ -499,7 +499,16 @@ proc ConfigureSimulation {} {
             current_fileset -simset [ get_filesets $simset ]
           } else {
             Msg Debug "Setting $prop_name = $prop_val"
-            set_property $prop_name $prop_val [get_filesets $simset]
+            if {[IsInList [string toupper $prop_name] [VIVADO_PATH_PROPERTIES] 1]} {
+              # Check that the file exists before setting these properties
+              if {[file exists $globalSettings::repo_path/$prop_val]} {
+                set_property $prop_name $globalSettings::repo_path/$prop_val [get_filesets $simset]
+              } else {
+                Msg Warning "Impossible to set property $prop_name to $prop_val. File is missing"
+              }
+            } else {
+              set_property $prop_name $prop_val [get_filesets $simset]
+            }
           }
         }
       }
@@ -592,7 +601,7 @@ proc ConfigureProperties {} {
                 Msg Warning "Property $prop_name has empty value. Skipping..."
                 continue
             }
-            if {[IsInList [string toupper $prop_name] [VIVADO_PATH_PROPERTIES]]} {
+            if {[IsInList [string toupper $prop_name] [VIVADO_PATH_PROPERTIES] 1]} {
               # Check that the file exists before setting these properties
               if {[file exists $globalSettings::repo_path/$prop_val]} {
                 set_property $prop_name $globalSettings::repo_path/$prop_val $run

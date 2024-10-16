@@ -85,8 +85,6 @@ if {[file exists utilization.txt]} {
   }
   dict set new_badges "timing-$prj_name" "timing-$prj_name"
 
-
-  set res_value ""
   set usage_dict [dict create]
   # Resource Badges
   foreach line $lines {
@@ -104,11 +102,16 @@ if {[file exists utilization.txt]} {
   }
   foreach res [dict keys $usage_dict] {
     set usage [DictGet $usage_dict $res]
-    append res_value $res ": $usage\% "
+    set res_value "$res: $usage\% "
+    if {[ expr {$usage < 50.0} ]} {
+      Execute anybadge -l "$prj_name" -v "$res_value" -f $res-$prj_name.svg --color=green -o;
+    } elseif {[ expr {$usage < 80.0} ]} {
+      Execute anybadge -l "$prj_name" -v "$res_value" -f $res-$prj_name.svg --color=orange -o;
+    } else {
+      Execute anybadge -l "$prj_name" -v "$res_value" -f $res-$prj_name.svg --color=red -o;
+    }
+    dict set new_badges "$res-$prj_name" "$res-$prj_name"
   }
-
-  Execute anybadge -l "Res:" -v "$res_value" -f $prj_name.svg --color=blue -o;
-  dict set new_badges "$prj_name" "$prj_name"
 
   foreach badge_name [dict keys $new_badges] {
     set badge_found 0

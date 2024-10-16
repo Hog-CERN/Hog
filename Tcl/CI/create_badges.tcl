@@ -106,9 +106,9 @@ if {[file exists utilization.txt]} {
     if {[ expr {$usage < 50.0} ]} {
       Execute anybadge -l "$prj_name" -v "$res_value" -f $res-$prj_name.svg --color=green -o;
     } elseif {[ expr {$usage < 80.0} ]} {
-      Execute anybadge -l "$prj_name" -v "$res_value" -f $res-$prj_name.svg --color=orange -o;
+      Execute anybadge -l "$prj_name" -v "$res_value" -f $res-$prj_name.svg --color=blue -o;
     } else {
-      Execute anybadge -l "$prj_name" -v "$res_value" -f $res-$prj_name.svg --color=red -o;
+      Execute anybadge -l "$prj_name" -v "$res_value" -f $res-$prj_name.svg --color=purple -o;
     }
     dict set new_badges "$res-$prj_name" "$res-$prj_name"
   }

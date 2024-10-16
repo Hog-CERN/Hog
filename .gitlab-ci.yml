@@ -262,6 +262,23 @@ tagging:
         echo "Closing issue $issue_number...";
         glab issue close $issue_number;
       fi
+    - branch=${note[1]}
+    - git clone --recursive https://hog_user:${HOG_PUSH_TOKEN}@gitlab.com/hog-cern/test/TestFirmware.git
+    - cd TestFirmware/
+    # Check if there is still a branch connected to the merged MR
+    - if git branch -a --list *auto/$branch | grep -q "auto/$branch$"; then
+        response=$(glab mr list -F json -R hog-cern/test/TestFirmware --source-branch=auto/$branch --target-branch=develop);
+        if [ $? -eq 0 ]; then
+          if [ $(echo "$response" | jq length) -gt 0 ]; then
+            MR_ID=$(echo "$response" | jq .[0].iid);
+            MR_URL=$(echo "$response" | jq .[0].web_url);
+            echo "Merging MR on TestFirmware'.";
+            glab mr merge $MR_ID;
+          fi;
+        else
+          git push origin --delete auto/$branch
+        fi;
+      fi;
 
 
 shellcheck:

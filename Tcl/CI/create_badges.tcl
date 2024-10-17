@@ -102,13 +102,13 @@ if {[file exists utilization.txt]} {
   }
   foreach res [dict keys $usage_dict] {
     set usage [DictGet $usage_dict $res]
-    set res_value "$res: $usage\% "
+    set res_value "$usage\% "
     if {[ expr {$usage < 50.0} ]} {
-      Execute anybadge -l "$prj_name" -v "$res_value" -f $res-$prj_name.svg --color=green -o;
+      Execute anybadge -l "$res" -v "$res_value" -f $res-$prj_name.svg --color=green -o;
     } elseif {[ expr {$usage < 80.0} ]} {
-      Execute anybadge -l "$prj_name" -v "$res_value" -f $res-$prj_name.svg --color=blue -o;
+      Execute anybadge -l "$res" -v "$res_value" -f $res-$prj_name.svg --color=blue -o;
     } else {
-      Execute anybadge -l "$prj_name" -v "$res_value" -f $res-$prj_name.svg --color=purple -o;
+      Execute anybadge -l "$res" -v "$res_value" -f $res-$prj_name.svg --color=purple -o;
     }
     dict set new_badges "$res-$prj_name" "$res-$prj_name"
   }

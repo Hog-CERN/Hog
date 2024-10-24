@@ -79,7 +79,7 @@ if {[file exists utilization.txt]} {
   if {[file exists timing_error.txt]} {
     Execute anybadge -l $prj_name -v $ver --style=gitlab-scoped -f timing-$prj_name.svg --color=red -o ;
   } elseif {[file exists timing_ok.txt]} {
-    Execute anybadge -l $prj_name -v $ver --style=gitlab-scoped -f timing-$prj_name.svg --color=green -o;
+    Execute anybadge -l $prj_name -v $ver --style=gitlab-scoped -f timing-$prj_name.svg --color=darkgreen -o;
   } else {
     Execute anybadge -l $prj_name -v $ver --style=gitlab-scoped -f timing-$prj_name.svg --color=orange -o;
   }

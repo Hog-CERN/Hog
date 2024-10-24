@@ -77,11 +77,11 @@ if {[file exists utilization.txt]} {
 
   # Timing Badge
   if {[file exists timing_error.txt]} {
-    Execute anybadge -l $prj_name -v $ver -f timing-$prj_name.svg --color=red -o;
+    Execute anybadge -l $prj_name -v $ver --style=gitlab-scoped -f timing-$prj_name.svg --color=red -o ;
   } elseif {[file exists timing_ok.txt]} {
-    Execute anybadge -l $prj_name -v $ver -f timing-$prj_name.svg --color=green -o;
+    Execute anybadge -l $prj_name -v $ver --style=gitlab-scoped -f timing-$prj_name.svg --color=green -o;
   } else {
-    Execute anybadge -l $prj_name -v $ver -f timing-$prj_name.svg --color=orange -o;
+    Execute anybadge -l $prj_name -v $ver --style=gitlab-scoped -f timing-$prj_name.svg --color=orange -o;
   }
   dict set new_badges "timing-$prj_name" "timing-$prj_name"
 

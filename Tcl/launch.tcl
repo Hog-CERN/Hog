@@ -614,13 +614,36 @@ if {[IsXilinx]} {
           }
           current_fileset -simset $s
           set sim_dir $main_sim_folder/$s/behav
+          set sim_output_logfile $sim_dir/xsim/simulate.log
           if { ([string tolower $simulator] eq "xsim") } {
             set sim_name "xsim:$s"
             if { [catch { launch_simulation -simset [get_filesets $s] } log] } {
+              # Explicitly close xsim simulation
+              close_sim
               Msg CriticalWarning "Simulation failed for $s, error info: $::errorInfo"
               lappend failed $sim_name
             } else {
-              lappend success $sim_name
+              # Explicitly close xsim simulation
+              close_sim
+              # If HOG_SIMPASS_STR is set, search for the string and update return code from simulation if the string is not found in simulation log
+              if {[info exists env(HOG_SIMPASS_STR)]} {
+                # Get the simulation output log
+                # Note, xsim should always output simulation.log, hence no check for existence
+                set file_desc [open $sim_output_logfile r]
+                set log [read $file_desc]
+                close $file_desc
+
+                Msg Info "Searching for simulation pass string: '$env(HOG_SIMPASS_STR)'"
+                if {[string first $env(HOG_SIMPASS_STR) $log] == -1} {
+                  Msg CriticalWarning "Simulation failed for $s, error info: '$env(HOG_SIMPASS_STR)' NOT found!"
+                  lappend failed $sim_name
+                } else {
+                  # HOG_SIMPASS_STR found, success
+                  lappend success $sim_name
+                }
+              } else {
+                lappend success $sim_name
+              }
             }
           } else {
             Msg Info "Simulation library path is set to $lib_path."

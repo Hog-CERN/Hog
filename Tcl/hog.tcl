@@ -3636,14 +3636,67 @@ proc FormatGeneric {generic} {
   }
 }
 
+## Format generics from conf file to string that simulators accepts
+#
+# @param[in]              dict containing generics from conf file
+# @param[in] target:      software target(vivado, questa)
+#                         defines the output format of the string
+proc GenericToSimulatorString {prop_dict target} {
+  set prj_generics ""
+  dict for {theKey theValue} $prop_dict {
+    set valueHexFull ""
+    set valueNumBits ""
+    set valueHexFlag ""
+    set valueHex ""
+    set valueIntFull ""
+    set ValueInt ""
+    set valueStrFull ""
+    set ValueStr ""
+    regexp {([0-9]*)('h)([0-9a-fA-F]*)} $theValue valueHexFull valueNumBits valueHexFlag valueHex
+    regexp {^([0-9]*)$} $theValue valueIntFull ValueInt
+    regexp {(?!^\d+$)^.+$} $theValue valueStrFull ValueStr
+    if { [string tolower $target] == "vivado" || [string tolower $target] == "xsim" } {
+      if {$valueNumBits != "" && $valueHexFlag != "" && $valueHex != ""} {
+        set prj_generics "$prj_generics $theKey=$valueHexFull"
+      } elseif { $valueIntFull != "" && $ValueInt != "" } {
+        set prj_generics "$prj_generics $theKey=$ValueInt"
+      } elseif { $valueStrFull != "" && $ValueStr != "" } {
+        set prj_generics "$prj_generics $theKey=\"$ValueStr\""
+      } else {
+        set prj_generics "$prj_generics $theKey=\"$theValue\""
+      }
+    } elseif { [lsearch -exact [GetSimulators] [string tolower $target] ] >= 0 } {
+      if {$valueNumBits != "" && $valueHexFlag != "" && $valueHex != ""} {
+        set numBits 0
+        scan $valueNumBits %d numBits
+        set numHex 0
+        scan $valueHex %x numHex
+        binary scan [binary format "I" $numHex] "B*" binval
+        set numBits [expr {$numBits-1}]
+        set numBin [string range $binval end-$numBits end]
+        set prj_generics "$prj_generics $theKey=\"$numBin\""
+
+      } elseif { $valueIntFull != "" && $ValueInt != "" } {
+        set prj_generics "$prj_generics $theKey=$ValueInt"
+      } elseif { $valueStrFull != "" && $ValueStr != "" } {
+        set prj_generics "$prj_generics {$theKey=\"$ValueStr\"}"
+
+      } else {
+        set prj_generics "$prj_generics {$theKey=\"$theValue\"}"
+      }
+    } else {
+      Msg Warning "Target : $target not implemented"
+    }
+  }
+  return $prj_generics
+}
+
 ## @brief Gets custom generics from hog.conf
 #
 # @param[in] proj_dir:    the top folder of the project
-# @param[in] target:      software target(vivado, questa)
-#                         defines the output format of the string
-# @return string with generics
+# @return dict with generics
 #
-proc GetGenericFromConf {proj_dir target {sim 0}} {
+proc GetGenericsFromConf {proj_dir {sim 0}} {
   set prj_generics ""
   set top_dir "Top/$proj_dir"
   set conf_file "$top_dir/hog.conf"
@@ -3657,52 +3710,8 @@ proc GetGenericFromConf {proj_dir target {sim 0}} {
   if {[file exists $conf_file]} {
     set properties [ReadConf [lindex [GetConfFiles $top_dir] $conf_index]]
     if {[dict exists $properties generics]} {
-      set propDict [dict get $properties generics]
-      dict for {theKey theValue} $propDict {
-        set valueHexFull ""
-        set valueNumBits ""
-        set valueHexFlag ""
-        set valueHex ""
-        set valueIntFull ""
-        set ValueInt ""
-        set valueStrFull ""
-        set ValueStr ""
-        regexp {([0-9]*)('h)([0-9a-fA-F]*)} $theValue valueHexFull valueNumBits valueHexFlag valueHex
-        regexp {^([0-9]*)$} $theValue valueIntFull ValueInt
-        regexp {(?!^\d+$)^.+$} $theValue valueStrFull ValueStr
-        if { [string tolower $target] == "vivado" || [string tolower $target] == "xsim" } {
-          if {$valueNumBits != "" && $valueHexFlag != "" && $valueHex != ""} {
-            set prj_generics "$prj_generics $theKey=$valueHexFull"
-          } elseif { $valueIntFull != "" && $ValueInt != "" } {
-            set prj_generics "$prj_generics $theKey=$ValueInt"
-          } elseif { $valueStrFull != "" && $ValueStr != "" } {
-            set prj_generics "$prj_generics $theKey=\"$ValueStr\""
-          } else {
-            set prj_generics "$prj_generics $theKey=\"$theValue\""
-          }
-        } elseif { [lsearch -exact [GetSimulators] [string tolower $target] ] >= 0 } {
-          if {$valueNumBits != "" && $valueHexFlag != "" && $valueHex != ""} {
-            set numBits 0
-            scan $valueNumBits %d numBits
-            set numHex 0
-            scan $valueHex %x numHex
-            binary scan [binary format "I" $numHex] "B*" binval
-            set numBits [expr {$numBits-1}]
-            set numBin [string range $binval end-$numBits end]
-            set prj_generics "$prj_generics $theKey=\"$numBin\""
-
-          } elseif { $valueIntFull != "" && $ValueInt != "" } {
-            set prj_generics "$prj_generics $theKey=$ValueInt"
-          } elseif { $valueStrFull != "" && $ValueStr != "" } {
-            set prj_generics "$prj_generics {$theKey=\"$ValueStr\"}"
-
-          } else {
-            set prj_generics "$prj_generics {$theKey=\"$theValue\"}"
-          }
-        } else {
-          Msg Warning "Target : $target not implemented"
-        }
-      }
+      set prj_generics [dict get $properties generics]
+      #set prj_generics [GenericToSimulatorString $propDict $target]
     }
   } else {
     Msg Warning "File $top_dir/hog.conf not found."
@@ -3710,12 +3719,36 @@ proc GetGenericFromConf {proj_dir target {sim 0}} {
   return $prj_generics
 }
 
+## @brief Gets all custom <simset>:generics from hog.conf
+#
+# @param[in] proj_dir:    the top folder of the project
+# @return dict with all <simset>:generics
+#
+proc GetSimsetGenericsFromConf {proj_dir} {
+  set simset_generics ""
+  set top_dir "Top/$proj_dir"
+  set conf_file "$top_dir/sim.conf"
+  set conf_index 1
+
+
+  if {[file exists $conf_file]} {
+    set properties [ReadConf [lindex [GetConfFiles $top_dir] $conf_index]]
+    puts "SIMSET GENERICS -----> properties = $properties"
+
+    # Filter the dictionary for keys ending with ":generic"
+    set simset_generics [dict filter $properties key *:generics]
+    puts "SIMSET GENERICS -----> simset_generics = $simset_generics"
+  } else {
+    Msg Warning "File $top_dir/hog.conf not found."
+  }
+  return $simset_generics
+}
+
 ## @brief Sets the generics in all the sim.conf simulation file sets
 #
 # @param[in] repo_path:   the top folder of the projectThe path to the main git repository
 # @param[in] proj_dir:    the top folder of the project
 # @param[in] target:      software target(vivado, questa)
-#                         defines the output format of the string
 #
 proc SetGenericsSimulation {repo_path proj_dir target} {
   set sim_generics ""
@@ -3726,7 +3759,7 @@ proc SetGenericsSimulation {repo_path proj_dir target} {
   set simsets [get_filesets]
   if { $simsets != "" } {
     if {[file exists $top_dir/sim.conf]} {
-      set sim_generics [GetGenericFromConf $proj_dir $target 1]
+      set sim_generics [GenericToSimulatorString [GetGenericsFromConf $proj_dir 1] $target]
       if {$sim_generics != ""} {
         foreach simset $simsets {
           if {[get_property FILESET_TYPE $simset] != "SimulationSrcs" } {
@@ -3960,7 +3993,7 @@ proc WriteGenerics {mode repo_path design date timee commit version top_hash top
   }
 
   # Dealing with project generics in Vivado
-  set prj_generics [GetGenericFromConf $design "Vivado"]
+  set prj_generics [GenericToSimulatorString [GetGenericsFromConf $design] "Vivado"]
   set generic_string "$prj_generics $generic_string"
 
   # Extract the generics from the top level source file

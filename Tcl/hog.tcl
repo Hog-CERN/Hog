@@ -3691,13 +3691,13 @@ proc GenericToSimulatorString {prop_dict target} {
   return $prj_generics
 }
 
-## @brief Gets custom generics from hog.conf
+## @brief Gets custom generics from hog|sim.conf
 #
 # @param[in] proj_dir:    the top folder of the project
 # @return dict with generics
 #
 proc GetGenericsFromConf {proj_dir {sim 0}} {
-  set prj_generics ""
+  set generics_dict [dict create]
   set top_dir "Top/$proj_dir"
   set conf_file "$top_dir/hog.conf"
   set conf_index 0
@@ -3706,42 +3706,36 @@ proc GetGenericsFromConf {proj_dir {sim 0}} {
     set conf_index 1
   }
 
-
   if {[file exists $conf_file]} {
     set properties [ReadConf [lindex [GetConfFiles $top_dir] $conf_index]]
     if {[dict exists $properties generics]} {
-      set prj_generics [dict get $properties generics]
-      #set prj_generics [GenericToSimulatorString $propDict $target]
+      set generics_dict [dict get $properties generics]
     }
   } else {
-    Msg Warning "File $top_dir/hog.conf not found."
+    Msg Warning "File $conf_file not found."
   }
-  return $prj_generics
+  return $generics_dict
 }
 
-## @brief Gets all custom <simset>:generics from hog.conf
+## @brief Gets all custom <simset>:generics from sim.conf
 #
 # @param[in] proj_dir:    the top folder of the project
-# @return dict with all <simset>:generics
+# @return nested dict with all <simset>:generics
 #
 proc GetSimsetGenericsFromConf {proj_dir} {
-  set simset_generics ""
+  set simsets_generics_dict [dict create]
   set top_dir "Top/$proj_dir"
   set conf_file "$top_dir/sim.conf"
   set conf_index 1
 
-
   if {[file exists $conf_file]} {
     set properties [ReadConf [lindex [GetConfFiles $top_dir] $conf_index]]
-    puts "SIMSET GENERICS -----> properties = $properties"
-
-    # Filter the dictionary for keys ending with ":generic"
-    set simset_generics [dict filter $properties key *:generics]
-    puts "SIMSET GENERICS -----> simset_generics = $simset_generics"
+    # Filter the dictionary for keys ending with ":generics"
+    set simsets_generics_dict [dict filter $properties key *:generics]
   } else {
-    Msg Warning "File $top_dir/hog.conf not found."
+    Msg Warning "File $conf_file not found."
   }
-  return $simset_generics
+  return $simsets_generics_dict
 }
 
 ## @brief Sets the generics in all the sim.conf simulation file sets
@@ -3751,7 +3745,6 @@ proc GetSimsetGenericsFromConf {proj_dir} {
 # @param[in] target:      software target(vivado, questa)
 #
 proc SetGenericsSimulation {repo_path proj_dir target} {
-  set sim_generics ""
   set top_dir "$repo_path/Top/$proj_dir"
   set read_aux [GetConfFiles $top_dir]
   set sim_cfg_index [lsearch -regexp -index 0 $read_aux ".*sim.conf"]
@@ -3759,14 +3752,28 @@ proc SetGenericsSimulation {repo_path proj_dir target} {
   set simsets [get_filesets]
   if { $simsets != "" } {
     if {[file exists $top_dir/sim.conf]} {
-      set sim_generics [GenericToSimulatorString [GetGenericsFromConf $proj_dir 1] $target]
-      if {$sim_generics != ""} {
+      set sim_generics_dict [GetGenericsFromConf $proj_dir 1]
+      set simsets_generics_dict [GetSimsetGenericsFromConf $proj_dir]
+
+      if {[dict size $sim_generics_dict] > 0 || [dict size $simsets_generics_dict] > 0} {
         foreach simset $simsets {
+          # Only for simulation filesets
           if {[get_property FILESET_TYPE $simset] != "SimulationSrcs" } {
             continue
           }
-          set_property generic $sim_generics [get_filesets $simset]
-          Msg Debug "Setting generics $sim_generics for simulator $target and simulation file-set $simset..."
+          # Check if any specific generics for this simset
+          if {[dict exists $simsets_generics_dict $simset:generics]} {
+            set simset_generics_dict [dict get $simsets_generics_dict $simset:generics]
+            # Merge with global sim generics (if any), specific simset generics also have priority
+            set merged_generics_dict [dict merge $sim_generics_dict $simset_generics_dict]
+            set generic_str [GenericToSimulatorString $merged_generics_dict $target]
+            set_property generic $generic_str [get_filesets $simset]
+            Msg Debug "Setting generics $generic_str for simulator $target and simulation file-set $simset..."
+          } elseif {[dict size $sim_generics_dict] > 0} {
+            set generic_str [GenericToSimulatorString $sim_generics_dict $target]
+            set_property generic $generic_str [get_filesets $simset]
+            Msg Debug "Setting generics $generic_str for simulator $target and simulation file-set $simset..."
+          }
         }
       }
     } else {

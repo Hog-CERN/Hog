@@ -47,16 +47,19 @@ set resources [dict create "LUTs" "LUTs" "Registers" "FFs" "Block" "BRAM" "URAM"
 set ver [ GetProjectVersion $repo_path/Top/$project $repo_path $ext_path 0 ]
 
 set accumulated ""
-set current_badges []
-set page 1
+set current_badges [dict create]
+set page 0
 
 while {1} {
   lassign [ExecuteRet curl --header "PRIVATE-TOKEN: $push_token" "$api_url/projects/${project_id}/badges?page=$page" --request GET] ret content
-  if {[llength $content] > 0 && $page < 100} {
-    set accumulated "$accumulated$content"
+  set content_dict [json::json2dict $content]
+  puts [llength $content_dict]
+  if {[llength $content_dict] > 0} {
+    foreach it $content_dict {
+      dict set current_badges [DictGet $it name] [DictGet $it id]
+    }
     incr page
   } else {
-    set current_badges [json::json2dict $accumulated]
     break
   }
 }
@@ -119,17 +122,12 @@ if {[file exists utilization.txt]} {
     lassign [ExecuteRet curl --request POST --header "PRIVATE-TOKEN: ${push_token}" --form "file=@$badge_name.svg" $api_url/projects/$project_id/uploads] ret content
     set image_url [ParseJSON $content full_path]
     set image_url $gitlab_url/$image_url
-    foreach badge $current_badges {
-      set current_badge_name [dict get $badge "name"]
-      set badge_id [dict get $badge "id"]
-      if {$current_badge_name == $badge_name} {
-        set badge_found 1
-        Msg Info "Badge $badge_name exists, updating it..."
-        Execute curl --header "PRIVATE-TOKEN: $push_token" "$api_url/projects/${project_id}/badges/$badge_id" --request PUT --data "image_url=$image_url"
-        break
-      }
-    }
-    if {$badge_found == 0} {
+
+    if {[dict exists $current_badges $badge_name]} {
+      Msg Info "Badge $badge_name exists, updating it..."
+      set badge_id [DictGet $current_badges $badge_name]
+      Execute curl --header "PRIVATE-TOKEN: $push_token" "$api_url/projects/${project_id}/badges/$badge_id" --request PUT --data "image_url=$image_url"
+    } else {
       Msg Info "Badge $badge_name does not exist yet. Creating it..."
       Execute curl --header "PRIVATE-TOKEN: $push_token" --request POST --data "link_url=$project_url/-/releases&image_url=$image_url&name=$badge_name" "$api_url/projects/$project_id/badges"
     }

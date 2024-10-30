@@ -50,10 +50,10 @@ set accumulated ""
 set current_badges [dict create]
 set page 0
 
+Msg Info "Retrieving current badges..."
 while {1} {
   lassign [ExecuteRet curl --header "PRIVATE-TOKEN: $push_token" "$api_url/projects/${project_id}/badges?page=$page" --request GET] ret content
   set content_dict [json::json2dict $content]
-  puts [llength $content_dict]
   if {[llength $content_dict] > 0} {
     foreach it $content_dict {
       dict set current_badges [DictGet $it name] [DictGet $it id]

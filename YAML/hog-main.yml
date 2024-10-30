@@ -334,9 +334,5 @@ create_badge:
         tclsh Hog/Tcl/CI/create_badges.tcl $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $CI_PROJECT_URL $CI_SERVER_URL $project "$HOG_EXTERNAL_PATH";
       done;
   allow_failure: true
-  artifacts:
-    paths:
-      - bin
-    expire_in: 30 days
   needs:
     - archive_binary_files

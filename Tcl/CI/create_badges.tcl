@@ -80,15 +80,15 @@ if {[file exists utilization.txt]} {
 
   if {[string length $prj_name] < 32} {
     set padding [expr {(32 - [string length $prj_name]) / 2}]
-    set timing-label [format "%*s%s%*s" $padding "" $prj_name $padding ""]
+    set timing_label [format "%*s%s%*s" $padding "" $prj_name $padding ""]
   }
   # Timing Badge
   if {[file exists timing_error.txt]} {
-    Execute anybadge -l $timing-label -v $ver --style=gitlab-scoped -f timing-$prj_name.svg --color=red -o ;
+    Execute anybadge -l $timing_label -v $ver --style=gitlab-scoped -f timing-$prj_name.svg --color=red -o ;
   } elseif {[file exists timing_ok.txt]} {
-    Execute anybadge -l $timing-label -v $ver --style=gitlab-scoped -f timing-$prj_name.svg --color=darkgreen -o;
+    Execute anybadge -l $timing_label -v $ver --style=gitlab-scoped -f timing-$prj_name.svg --color=darkgreen -o;
   } else {
-    Execute anybadge -l $timing-label -v $ver --style=gitlab-scoped -f timing-$prj_name.svg --color=dimgray -o;
+    Execute anybadge -l $timing_label -v $ver --style=gitlab-scoped -f timing-$prj_name.svg --color=dimgray -o;
   }
   dict set new_badges "timing-$prj_name" "timing-$prj_name"
 

@@ -44,7 +44,7 @@ normalise_path() {
     #an alternative could be realpath -m
 }
 
-if [[ "$HOG_LOGGER" == "ENABLED" ]] || [[ -f "$HOME/HogEnv.conf" ]] || [[ -f "$(pwd)/HogEnv.conf" ]]; then
+if [[ "$HOG_LOGGER" == "ENABLED" ]]; then
     source ${script_dir}/Other/Logger.sh
     Logger_Init "$*"
 fi

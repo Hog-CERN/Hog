@@ -79,8 +79,11 @@ if {[file exists utilization.txt]} {
   set prj_name [string map {/ _} $project]
 
   if {[string length $prj_name] < 32} {
-    set padding [expr {(32 - [string length $prj_name]) / 2}]
-    set timing_label [format "%*s%s%*s" $padding "" $prj_name $padding ""]
+    set total_length 32
+    set len [string length $prj_name]
+    set padding [expr {($total_length - $len) / 2}]
+    set remaining_padding [expr {$total_length - $padding * 2 - $len}]
+    set timing_label [format "%*s%s%*s%s" $padding "" $prj_name $padding "" [string repeat " " $remaining_padding]]
   } else {
     set timing_label $prj_name
   }

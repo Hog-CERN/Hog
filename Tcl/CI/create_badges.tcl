@@ -19,13 +19,13 @@
 
 proc generate_prj_badge {prj_name ver color file} {
     set svg_content "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
-<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"296\" height=\"20\">
+<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"250\" height=\"20\">
     <linearGradient id=\"b\" x2=\"0\" y2=\"100%\">
         <stop offset=\"0\" stop-color=\"#bbb\" stop-opacity=\".1\"/>
         <stop offset=\"1\" stop-opacity=\".1\"/>
     </linearGradient>
     <mask id=\"hog_prj_badge\">
-        <rect width=\"296\" height=\"20\" rx=\"10\" fill=\"#fff\"/>
+        <rect width=\"250\" height=\"20\" rx=\"10\" fill=\"#fff\"/>
     </mask>
     <g mask=\"url(#hog_prj_badge)\">
         <path fill=\"$color\" d=\"M0 0h296v20H0z\"/>
@@ -37,7 +37,7 @@ proc generate_prj_badge {prj_name ver color file} {
         <text x=\"98\" y=\"14\">$prj_name</text>
     </g>
     <g fill=\"#fff\" text-anchor=\"middle\" font-family=\"DejaVu Sans,Verdana,Geneva,sans-serif\" font-size=\"11\">
-        <text x=\"243\" y=\"14\">$ver</text>
+        <text x=\"210\" y=\"14\">$ver</text>
     </g>
 </svg>"
 

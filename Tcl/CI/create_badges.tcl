@@ -153,7 +153,7 @@ if {[file exists utilization.txt]} {
   } elseif {[file exists timing_ok.txt]} {
     generate_prj_badge $prj_name $ver "#006400" "timing-$prj_name.svg"
   } else {
-    generate_prj_badge $prj_name $ver "#DFB317" "timing-$prj_name.svg"
+    generate_prj_badge $prj_name $ver "#696969" "timing-$prj_name.svg"
   }
   dict set new_badges "timing-$prj_name" "timing-$prj_name"
 

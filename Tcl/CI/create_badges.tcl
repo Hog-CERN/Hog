@@ -16,6 +16,75 @@
 # @file
 # Create and uploads GitLab badges for chosen projects
 
+
+proc generate_prj_badge {prj_name ver color file} {
+    set svg_content "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
+<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"296\" height=\"20\">
+    <linearGradient id=\"b\" x2=\"0\" y2=\"100%\">
+        <stop offset=\"0\" stop-color=\"#bbb\" stop-opacity=\".1\"/>
+        <stop offset=\"1\" stop-opacity=\".1\"/>
+    </linearGradient>
+    <mask id=\"hog_prj_badge\">
+        <rect width=\"296\" height=\"20\" rx=\"10\" fill=\"#fff\"/>
+    </mask>
+    <g mask=\"url(#hog_prj_badge)\">
+        <path fill=\"$color\" d=\"M0 0h296v20H0z\"/>
+        <path fill=\"#262626\" d=\"M196 2h92v16H196z\"/>
+        <path fill=\"#262626\" d=\"M287,18 a1,1 0 0,0 0,-16\"/>
+        <path fill=\"url(#b)\" d=\"M0 0h296v20H0z\"/>
+    </g>
+    <g fill=\"#fff\" text-anchor=\"middle\" font-family=\"DejaVu Sans,Verdana,Geneva,sans-serif\" font-size=\"11\">
+        <text x=\"98\" y=\"14\">$prj_name</text>
+    </g>
+    <g fill=\"#fff\" text-anchor=\"middle\" font-family=\"DejaVu Sans,Verdana,Geneva,sans-serif\" font-size=\"11\">
+        <text x=\"243\" y=\"14\">$ver</text>
+    </g>
+</svg>"
+
+    if {[catch {
+        set fh [open $file w]
+        puts $fh $svg_content
+        close $fh
+    } error_msg]} {
+        error "Failed to write to file: $error_msg"
+    }
+}
+
+proc generate_res_badge {res res_value color file} {
+    set svg_content "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
+<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"120\" height=\"20\">
+    <linearGradient id=\"b\" x2=\"0\" y2=\"100%\">
+        <stop offset=\"0\" stop-color=\"#bbb\" stop-opacity=\".1\"/>
+        <stop offset=\"1\" stop-opacity=\".1\"/>
+    </linearGradient>
+    <mask id=\"hog_res_badge\">
+        <rect width=\"120\" height=\"20\" rx=\"3\" fill=\"#fff\"/>
+    </mask>
+    <g mask=\"url(#hog_res_badge)\">
+        <path fill=\"#555\" d=\"M0 0h60v20H0z\"/>
+        <path fill=\"$color\" d=\"M60 0h60v20H60z\"/>
+        <path fill=\"url(#b)\" d=\"M0 0h120v20H0z\"/>
+    </g>
+    <g fill=\"#fff\" text-anchor=\"middle\" font-family=\"DejaVu Sans,Verdana,Geneva,sans-serif\" font-size=\"11\">
+        <text x=\"30\" y=\"15\" fill=\"#010101\" fill-opacity=\".3\">$res</text>
+        <text x=\"30\" y=\"14\">$res</text>
+    </g>
+    <g fill=\"#fff\" text-anchor=\"middle\" font-family=\"DejaVu Sans,Verdana,Geneva,sans-serif\" font-size=\"11\">
+        <text x=\"90\" y=\"15\" fill=\"#010101\" fill-opacity=\".3\">$res_value</text>
+        <text x=\"90\" y=\"14\">$res_value</text>
+    </g>
+</svg>"
+
+    if {[catch {
+        set fh [open $file w]
+        puts $fh $svg_content
+        close $fh
+    } error_msg]} {
+        error "Failed to write to file: $error_msg"
+    }
+
+}
+
 set OldPath [pwd]
 set TclPath [file dirname [info script]]/..
 set repo_path [file normalize "$TclPath/../.."]
@@ -78,22 +147,13 @@ if {[file exists utilization.txt]} {
   set new_badges [dict create]
   set prj_name [string map {/ _} $project]
 
-  if {[string length $prj_name] < 32} {
-    set total_length 32
-    set len [string length $prj_name]
-    set padding [expr {($total_length - $len) / 2}]
-    set remaining_padding [expr {$total_length - $padding * 2 - $len}]
-    set timing_label [format "%*s%s%*s%s" $padding "" $prj_name $padding "" [string repeat " " $remaining_padding]]
-  } else {
-    set timing_label $prj_name
-  }
   # Timing Badge
   if {[file exists timing_error.txt]} {
-    Execute anybadge -l $timing_label -v $ver --style=gitlab-scoped -f timing-$prj_name.svg --color=red -o ;
+    generate_prj_badge $prj_name $ver "#E05D44" "timing-$prj_name.svg"
   } elseif {[file exists timing_ok.txt]} {
-    Execute anybadge -l $timing_label -v $ver --style=gitlab-scoped -f timing-$prj_name.svg --color=darkgreen -o;
+    generate_prj_badge $prj_name $ver "#006400" "timing-$prj_name.svg"
   } else {
-    Execute anybadge -l $timing_label -v $ver --style=gitlab-scoped -f timing-$prj_name.svg --color=dimgray -o;
+    generate_prj_badge $prj_name $ver "#DFB317" "timing-$prj_name.svg"
   }
   dict set new_badges "timing-$prj_name" "timing-$prj_name"
 
@@ -116,11 +176,11 @@ if {[file exists utilization.txt]} {
     set usage [DictGet $usage_dict $res]
     set res_value "$usage\% "
     if {[ expr {$usage < 50.0} ]} {
-      Execute anybadge -l "$res" -v "$res_value" -f $res-$prj_name.svg --color=cadetblue -o;
+      generate_res_badge $res $res_value "#90CAF9" "$res-$prj_name.svg"
     } elseif {[ expr {$usage < 80.0} ]} {
-      Execute anybadge -l "$res" -v "$res_value" -f $res-$prj_name.svg --color=cornflowerblue -o;
+      generate_res_badge $res $res_value "#1565C0" "$res-$prj_name.svg"
     } else {
-      Execute anybadge -l "$res" -v "$res_value" -f $res-$prj_name.svg --color=blue -o;
+      generate_res_badge $res $res_value "#0D2B6B" "$res-$prj_name.svg"
     }
     dict set new_badges "$res-$prj_name" "$res-$prj_name"
   }

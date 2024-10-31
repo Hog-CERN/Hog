@@ -28,16 +28,16 @@ proc generate_prj_badge {prj_name ver color file} {
         <rect width=\"250\" height=\"20\" rx=\"10\" fill=\"#fff\"/>
     </mask>
     <g mask=\"url(#hog_prj_badge)\">
-        <path fill=\"$color\" d=\"M0 0h296v20H0z\"/>
-        <path fill=\"#262626\" d=\"M196 2h92v16H196z\"/>
-        <path fill=\"#262626\" d=\"M287,18 a1,1 0 0,0 0,-16\"/>
-        <path fill=\"url(#b)\" d=\"M0 0h296v20H0z\"/>
+        <path fill=\"$color\" d=\"M0 0h250v20H0z\"/>
+        <path fill=\"#262626\" d=\"M160 0h90v20H160z\"/>
+        <path fill=\"#262626\" d=\"M250,20 a1,1 0 0,0 0,-16\"/>
+        <path fill=\"url(#b)\" d=\"M0 0h250v20H0z\"/>
     </g>
     <g fill=\"#fff\" text-anchor=\"middle\" font-family=\"DejaVu Sans,Verdana,Geneva,sans-serif\" font-size=\"11\">
-        <text x=\"98\" y=\"14\">$prj_name</text>
+        <text x=\"80\" y=\"14\">$prj_name</text>
     </g>
     <g fill=\"#fff\" text-anchor=\"middle\" font-family=\"DejaVu Sans,Verdana,Geneva,sans-serif\" font-size=\"11\">
-        <text x=\"210\" y=\"14\">$ver</text>
+        <text x=\"205\" y=\"14\">$ver</text>
     </g>
 </svg>"
 

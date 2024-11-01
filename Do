@@ -43,8 +43,7 @@ normalise_path() {
 
     #an alternative could be realpath -m
 }
-
-if [[ "$HOG_LOGGER" == "ENABLED" ]]; then
+if [[ "$HOG_LOGGER" == "ENABLED" ]] || [[ -f "$HOME/HogEnv.conf" ]] || [[ -f "$(pwd)/HogEnv.conf" ]]; then
     source ${script_dir}/Other/Logger.sh
     Logger_Init "$*"
 fi
@@ -104,8 +103,8 @@ if [ "$found" == 1 ]; then
       export TCL_LIBRARY=$tcl_library
   fi
 
-# if [[ "$HOG_LOGGER" == "ENABLED" ]] || [[ -f "$HOME/HogEnv.conf" ]] || [[ -f "$(pwd)/HogEnv.conf" ]]; then
-if [[ "$HOG_LOGGER" == "ENABLED" ]]; then
+if [[ "$HOG_LOGGER" == "ENABLED" ]] || [[ -f "$HOME/HogEnv.conf" ]] || [[ -f "$(pwd)/HogEnv.conf" ]]; then
+# if [[ "$HOG_LOGGER" == "ENABLED" ]]; then
     Logger $executable_path $hog_dir/Tcl/launch.tcl "$@"
     Hog_exit
   else

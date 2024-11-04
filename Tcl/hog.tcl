@@ -1755,8 +1755,8 @@ proc CopyIPbusXMLs {proj_dir path dst {xml_version "0.0.0"} {xml_sha "00000000"}
     file mkdir "address_decode"
     cd "address_decode"
 
-    foreach x $xmls  v $vhdls{
-      if {$v ! eq ""} {
+    foreach x $xmls  v $vhdls {
+      if {$v ne ""} {
         set x [file normalize ../$x]
         if {[file exists $x]} {
           lassign [ExecuteRet gen_ipbus_addr_decode $x 2>&1]  status log
@@ -1768,7 +1768,8 @@ proc CopyIPbusXMLs {proj_dir path dst {xml_version "0.0.0"} {xml_sha "00000000"}
             } else {
               if {[file exists $v]} {
                 set diff [CompareVHDL $generated_vhdl $v]
-                if {[llength $diff] > 0} {
+		set n [llength $diff]
+		if {$n > 0} {
                   Msg CriticalWarning "$v does not correspond to its XML $x, [expr {$n/3}] line/s differ:"
                   Msg Status [join $diff "\n"]
                   set diff_file [open ../diff_[file rootname [file tail $x]].txt w]

@@ -271,6 +271,7 @@
     paths:
       - bin
       - "*.log"
+      - DCPs
     expire_in: 30 day
   interruptible: true
 

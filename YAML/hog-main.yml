@@ -100,6 +100,10 @@ check_branch_state:
       fi;
     - git fetch origin refs/notes/*:refs/notes/*
     - "NEW_TAG=`echo \"source Hog/Tcl/hog.tcl; puts v[HexVersionToString [GetVer .]]\" | tclsh`"
+    - if [[ ! $NEW_TAG =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+        echo "There was a problem calculating the new tag of the repository. Hog returned the following message:";
+        echo $new_tag;
+      fi;
     - echo "New tag is $NEW_TAG"
     - "git notes add -fm \"$CI_MERGE_REQUEST_IID $CI_COMMIT_REF_NAME $NEW_TAG\""
     - git push origin refs/notes/*
@@ -141,23 +145,27 @@ tag_official_version:
       }
     - new_tag=${note[2]}
     - if [ -z "$new_tag" ]; then
-        echo "It was impossible to get the tag number from the git note of this commit. Check that your repository settigns allows only fast-forward merge, and that the merge_and_tag job in your Merge pipeline succeded.";
+        echo "It was impossible to get the tag number from the git note of this commit. Check that your repository settings allows only fast-forward merge, and that the merge_and_tag job in your Merge pipeline succeeded.";
         echo "More info here https://hog.readthedocs.io/en/latest/02-User-Manual/02-Hog-CI/01-GitLab-CI/01-setup-CI.html?highlight=fast%20forward#remove-merge-commit";
+        exit 1;
+      fi
+    - if [[ ! $new_tag =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+        echo "[ERROR] The tag number extracted from the note is not of the right format. Check the check_branch_state of merge request ${note[0]}"
         exit 1;
       fi
     - present_tag=(`git describe`)
     - if [ $present_tag != $new_tag ]; then
-         if [ "$(git tag --list ${new_tag}*)" != "" ]; then
-           latest_tag=(`git tag -l ${new_tag}* --sort=-v:refname --merged`);
-             if [[ $latest_tag =~ .*-(.*) ]]; then
-               nr="${BASH_REMATCH[1]}";
-               new_tag="$new_tag-$(($nr+1))";
-             else
-               new_tag="$new_tag-0";
-             fi;
-           fi;
-         git tag $new_tag -m "Official_version_${new_tag}";
-         git push --tags;
+        if [ "$(git tag --list ${new_tag}*)" != "" ]; then
+          latest_tag=(`git tag -l ${new_tag}* --sort=-v:refname --merged`);
+            if [[ $latest_tag =~ .*-(.*) ]]; then
+              nr="${BASH_REMATCH[1]}";
+              new_tag="$new_tag-$(($nr+1))";
+            else
+              new_tag="$new_tag-0";
+            fi;
+          fi;
+        git tag $new_tag -m "Official_version_${new_tag}";
+        git push --tags;
       else
         echo "Tagging is not necessary because the present commit is already tagged as $new_tag.";
       fi;
@@ -204,9 +212,9 @@ artifacts_and_release:
     - if [[ -v HOG_CREATE_OFFICIAL_RELEASE ]] && [[ $HOG_CREATE_OFFICIAL_RELEASE == "1" ]]; then
         glab release create $CI_COMMIT_TAG -F bin/note.md -n "Official version $CI_COMMIT_TAG";
         if [[ -v HOG_CHECK_PROJVER ]] && [[ $HOG_CHECK_PROJVER == '1' ]]; then
-            tclsh ./Hog/Tcl/CI/get_binary_links.tcl $CI_COMMIT_TAG "$HOG_EXTERNAL_PATH";
+          tclsh ./Hog/Tcl/CI/get_binary_links.tcl $CI_COMMIT_TAG "$HOG_EXTERNAL_PATH";
         else
-            tclsh ./Hog/Tcl/CI/get_binary_links.tcl -force $CI_COMMIT_TAG "$HOG_EXTERNAL_PATH";
+          tclsh ./Hog/Tcl/CI/get_binary_links.tcl -force $CI_COMMIT_TAG "$HOG_EXTERNAL_PATH";
         fi;
       fi;
   allow_failure: true
@@ -326,9 +334,5 @@ create_badge:
         tclsh Hog/Tcl/CI/create_badges.tcl $HOG_PUSH_TOKEN $CI_API_V4_URL $CI_PROJECT_ID $CI_PROJECT_URL $CI_SERVER_URL $project "$HOG_EXTERNAL_PATH";
       done;
   allow_failure: true
-  artifacts:
-    paths:
-      - bin
-    expire_in: 30 days
   needs:
     - archive_binary_files

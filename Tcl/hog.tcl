@@ -3915,11 +3915,11 @@ proc GetFileGenerics {filename {entity ""}} {
 ## @brief Applies generic values to IPs within block designs
 #
 #  @param[in]    generic_string the string containing the generics to be applied
-proc WriteGenericsToBdIPs {proj generic_string} {
+proc WriteGenericsToBdIPs {repo_path proj generic_string} {
   Msg Debug "Parameters/generics passed to WriteGenericsToIP: $generic_string"
 
   set bd_ip_generics false
-  set properties [ReadConf [lindex [GetConfFiles $globalSettings::repo_path/Top/$proj] 0]]
+  set properties [ReadConf [lindex [GetConfFiles $repo_path/Top/$proj] 0]]
   if {[dict exists $properties "hog"]} {
     set propDict [dict get $properties "hog"]
     if {[dict exists $propDict "BD_IP_GENERICS"]} {
@@ -4081,7 +4081,7 @@ proc WriteGenerics {mode repo_path design date timee commit version top_hash top
         SetGenericsSimulation $repo_path $design $simulator
       }
 
-      WriteGenericsToBdIPs $design $generic_string
+      WriteGenericsToBdIPs $repo_path $design $generic_string
     }
   } elseif {[IsSynplify]} {
     Msg Info "Setting Synplify parameters/generics one by one..."

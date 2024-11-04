@@ -1726,9 +1726,13 @@ proc CopyIPbusXMLs {proj_dir path dst {xml_version "0.0.0"} {xml_sha "00000000"}
     }
 
     if {[file exists $xmlfile]} {
-      if {[dict exists $vhdl_dict $xmlfile]} {
-	lappend vhdls [file normalize [dict get $vhdl_dict $xmlfile]]
+      if {[dict exists $vhdl_dict $xmlfile]} {	
+	set vhdl_file [file normalize [dict get $vhdl_dict $xmlfile]]
+      } else {
+	set vhdl_file ""
       }
+      lappend vhdls $vhdl_file
+      
       set xmlfile [file normalize $xmlfile]
       Msg Info "Copying $xmlfile to $dst and replacing place holders..."
       set in  [open $xmlfile r]

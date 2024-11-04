@@ -3915,10 +3915,23 @@ proc GetFileGenerics {filename {entity ""}} {
 ## @brief Applies generic values to IPs within block designs
 #
 #  @param[in]    generic_string the string containing the generics to be applied
-proc WriteGenericsToBdIPs {generic_string} {
-  Msg Info "Looking for IPs to add generics to..."
+proc WriteGenericsToBdIPs {proj generic_string} {
   Msg Debug "Parameters/generics passed to WriteGenericsToIP: $generic_string"
 
+  set bd_ip_generics false
+  set properties [ReadConf [lindex [GetConfFiles $globalSettings::repo_path/Top/$proj] 0]]
+  if {[dict exists $properties "hog"]} {
+    set propDict [dict get $properties "hog"]
+    if {[dict exists $propDict "BD_IP_GENERICS"]} {
+      set bd_ip_generics [dict get $propDict "BD_IP_GENERICS"]
+    }
+  }
+
+  if {[string compare [string tolower $bd_ip_generics] "false"]==0} {
+    return
+  }
+
+  Msg Info "Looking for IPs to add generics to..."
   set ips_generic_string ""
   foreach generic_to_set [split [string trim $generic_string]] {
     set key [lindex [split $generic_to_set "="] 0]
@@ -3926,7 +3939,16 @@ proc WriteGenericsToBdIPs {generic_string} {
     append ips_generic_string "CONFIG.$key $value "
   }
 
-  set ip_list [get_ips *]
+
+  if {[string compare [string tolower $bd_ip_generics] "true"]==0} {
+    set ip_regex ".*"
+  } else {
+    set ip_regex $bd_ip_generics
+  }
+
+  set ip_list [get_ips -regex $ip_regex]
+  Msg Info "IPs found with regex \{$ip_regex\}: $ip_list"
+
   foreach {ip} $ip_list {
     set WARN_ABOUT_IP false
     set ip_props [list_property [get_ips $ip]]
@@ -4059,7 +4081,7 @@ proc WriteGenerics {mode repo_path design date timee commit version top_hash top
         SetGenericsSimulation $repo_path $design $simulator
       }
 
-      WriteGenericsToBdIPs $generic_string
+      WriteGenericsToBdIPs $design $generic_string
     }
   } elseif {[IsSynplify]} {
     Msg Info "Setting Synplify parameters/generics one by one..."

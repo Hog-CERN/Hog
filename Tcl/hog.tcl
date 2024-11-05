@@ -3952,7 +3952,9 @@ proc WriteGenericsToBdIPs {mode repo_path proj generic_string} {
   }
 
   set ip_list [get_ips -regex $ip_regex]
-  Msg Info "IPs found with regex \{$ip_regex\}: $ip_list"
+  Msg Debug "IPs found with regex \{$ip_regex\}: $ip_list"
+
+  set regen_targets {}
 
   foreach {ip} $ip_list {
     set WARN_ABOUT_IP false
@@ -3967,6 +3969,7 @@ proc WriteGenericsToBdIPs {mode repo_path proj generic_string} {
       foreach {ip_prop} $ip_props {
         if {[dict exists $ips_generic_string $ip_prop ]} {
           if {$WARN_ABOUT_IP == false} {
+            lappend regen_targets [get_property SCOPE [get_ips $ip]]
             Msg Warning "The ip \{$ip\} contains generics that are set by Hog. If this is IP is apart of a block design, the .bd file may contain stale, unused, values. Hog will always apply the most up-to-date values to the IP during synthesis, however these values may or may not be reflected in the .bd file."
             set WARN_ABOUT_IP true
           }
@@ -3987,6 +3990,13 @@ proc WriteGenericsToBdIPs {mode repo_path proj generic_string} {
   }
 
   if {$mode == "synth"} {
+    foreach {regen_target} [lsort -unique $regen_targets] {
+      Msg Info "Regenerating target: $regen_target"
+      if {[catch {generate_target -force all [get_files $regen_target]} prop_error]} {
+        Msg CriticalWarning "Failed to regen targets: $prop_error"
+      }
+    }
+
     close_project
   }
 }

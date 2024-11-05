@@ -3915,8 +3915,13 @@ proc GetFileGenerics {filename {entity ""}} {
 ## @brief Applies generic values to IPs within block designs
 #
 #  @param[in]    generic_string the string containing the generics to be applied
-proc WriteGenericsToBdIPs {repo_path proj generic_string} {
+proc WriteGenericsToBdIPs {mode repo_path proj generic_string} {
   Msg Debug "Parameters/generics passed to WriteGenericsToIP: $generic_string"
+
+  if {$mode == "synth"} {
+    set PARENT_PRJ [get_property "PARENT.PROJECT_PATH" [current_project]]
+    open_project $PARENT_PRJ
+  }
 
   set bd_ip_generics false
   set properties [ReadConf [lindex [GetConfFiles $repo_path/Top/$proj] 0]]
@@ -3979,6 +3984,10 @@ proc WriteGenericsToBdIPs {repo_path proj generic_string} {
         }
       }
     }
+  }
+
+  if {$mode == "synth"} {
+    close_project
   }
 }
 
@@ -4081,7 +4090,7 @@ proc WriteGenerics {mode repo_path design date timee commit version top_hash top
         SetGenericsSimulation $repo_path $design $simulator
       }
 
-      WriteGenericsToBdIPs $repo_path $design $generic_string
+      WriteGenericsToBdIPs $mode $repo_path $design $generic_string
     }
   } elseif {[IsSynplify]} {
     Msg Info "Setting Synplify parameters/generics one by one..."

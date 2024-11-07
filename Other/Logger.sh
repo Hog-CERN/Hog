@@ -397,7 +397,7 @@ function Logger () {
   else
     "$@"
   fi
-  if [[  "$HOG_COLOR_EN" -gt 0 ]]; then
+  if [[ "$HOG_LOG_EN" -gt 0 ]]; then
     Hog_exit
   else
     exit $?

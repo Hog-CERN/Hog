@@ -3918,22 +3918,22 @@ proc GetFileGenerics {filename {entity ""}} {
 proc WriteGenericsToBdIPs {mode repo_path proj generic_string} {
   Msg Debug "Parameters/generics passed to WriteGenericsToIP: $generic_string"
 
-  if {$mode == "synth"} {
-    set PARENT_PRJ [get_property "PARENT.PROJECT_PATH" [current_project]]
-    open_project $PARENT_PRJ
-  }
-
   set bd_ip_generics false
   set properties [ReadConf [lindex [GetConfFiles $repo_path/Top/$proj] 0]]
   if {[dict exists $properties "hog"]} {
     set propDict [dict get $properties "hog"]
-    if {[dict exists $propDict "BD_IP_GENERICS"]} {
-      set bd_ip_generics [dict get $propDict "BD_IP_GENERICS"]
+    if {[dict exists $propDict "PASS_GENERICS_TO_BD_IPS"]} {
+      set bd_ip_generics [dict get $propDict "PASS_GENERICS_TO_BD_IPS"]
     }
   }
 
   if {[string compare [string tolower $bd_ip_generics] "false"]==0} {
     return
+  }
+
+  if {$mode == "synth"} {
+    set PARENT_PRJ [get_property "PARENT.PROJECT_PATH" [current_project]]
+    open_project $PARENT_PRJ
   }
 
   Msg Info "Looking for IPs to add generics to..."

@@ -4567,7 +4567,6 @@ proc GetCustomCommands {{directory .} {ret_commands 0}} {
       set f [open $file r]
       set first_line [gets $f]
       close $f
-      puts "looking for $base_name in $file"
       if {[regexp -nocase "^#\s*$base_name:\s*(.*)" $first_line full_match script_des]} {
         append commands_string "- $base_name: $script_des\n"
       } else {

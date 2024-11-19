@@ -273,7 +273,7 @@ tagging:
             MR_ID=$(echo "$response" | jq .[0].iid);
             MR_URL=$(echo "$response" | jq .[0].web_url);
             echo "Merging MR on TestFirmware.";
-            glab mr merge $MR_ID;
+            glab mr merge $MR_ID -d;
           fi;
         else
           git push origin --delete auto/$branch;

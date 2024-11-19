@@ -1685,7 +1685,7 @@ proc CopyIPbusXMLs {proj_dir path dst {xml_version "0.0.0"} {xml_sha "00000000"}
       set can_generate 1
     }
   } else {
-    Msg Warning "Error while trying to run python: $msg"
+    Msg CriticalWarning "Problem while trying to run python: $msg"
     set can_generate 0
   }
   set dst [file normalize $dst]

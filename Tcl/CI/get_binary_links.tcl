@@ -82,7 +82,7 @@ foreach proj $projects_list {
     } else {
       set link ""
       foreach line [split $msg "\n"] {
-        if {[string first "${proj}-${ver}.z" $line] > -1} {
+        if {[string first "${proj}-${ver}.z" $line] == 0} {
           set name [lindex [split $line] 0]
           set link [lindex [split $line] 1]
           set json "\[{ \"name\": \"$name\",\"url\": \"$link\",\"link_type\": \"other\" } \]"

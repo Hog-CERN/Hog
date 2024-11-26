@@ -3751,8 +3751,8 @@ proc SetGenericsSimulation {repo_path proj_dir target} {
         }
       }
     } else {
-      if {[glob -nocomplain "$top_dir/list/*.sim"] ne "" } {
-  Msg CriticalWarning "Simulation sets and .sim files are present in the project but no sim.conf found in $top_dir. Please refer to Hog's manual to create one."
+      if {[glob -nocomplain "$top_dir/list/*.sim"] ne ""} {
+        Msg CriticalWarning "Simulation sets and .sim files are present in the project but no sim.conf found in $top_dir. Please refer to Hog's manual to create one."
       }
     }
   }

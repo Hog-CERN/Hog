@@ -202,7 +202,6 @@ if {[file exists utilization.txt]} {
     lassign [ExecuteRet curl --request POST --header "PRIVATE-TOKEN: ${push_token}" --form "file=@$badge_name.svg" $api_url/projects/$project_id/uploads] ret content
     set image_url [ParseJSON $content full_path]
     set image_url $gitlab_url/$image_url
-
     if {[dict exists $current_badges $badge_name]} {
       Msg Info "Badge $badge_name exists, updating it..."
       set badge_id [DictGet $current_badges $badge_name]

@@ -1,0 +1,18 @@
+Showing 15 open merge requests on hog-cern/test/testfirmware (Page 1)
+
+!113	hog-cern/test/TestFirmware!113	Automatic MR with Hog branch merge_hotfix	(develop) ← (auto/merge_hotfix)
+!112	hog-cern/test/TestFirmware!112	Automatic MR with Hog branch hotfix/342-error-with-tcl-script-for-ip	(develop) ← (auto/hotfix/342-error-with-tcl-script-for-ip)
+!110	hog-cern/test/TestFirmware!110	Automatic MR with Hog branch fix/logger_artifacts	(develop) ← (auto/fix/logger_artifacts)
+!109	hog-cern/test/TestFirmware!109	Automatic MR with Hog branch debug2	(develop) ← (auto/debug2)
+!108	hog-cern/test/TestFirmware!108	Automatic MR with Hog branch debug_ci	(develop) ← (auto/debug_ci)
+!107	hog-cern/test/TestFirmware!107	Automatic MR with Hog branch features/logger_updates	(develop) ← (auto/features/logger_updates)
+!106	hog-cern/test/TestFirmware!106	Automatic MR with Hog branch 293-ci-simulation-tests-do-not-fail-when-using-questasim-and-uvvm	(develop) ← (auto/293-ci-simulation-tests-do-not-fail-when-using-questasim-and-uvvm)
+!105	hog-cern/test/TestFirmware!105	Automatic MR with Hog branch 340-hog-generates-incorrect-ips_sha-ips_ver-and-others_sha-ver	(develop) ← (auto/340-hog-generates-incorrect-ips_sha-ips_ver-and-others_sha-ver)
+!103	hog-cern/test/TestFirmware!103	testing HOG_NO_BITSTREAM	(develop) ← (no_bitstream)
+!95	hog-cern/test/TestFirmware!95	Test xsa	(develop) ← (test_xsa)
+!90	hog-cern/test/TestFirmware!90	updated hog to 208-hog-logs	(develop) ← (test-208-hog-logs)
+!88	hog-cern/test/TestFirmware!88	hog	(develop) ← (export)
+!85	hog-cern/test/TestFirmware!85	Help	(develop) ← (help)
+!84	hog-cern/test/TestFirmware!84	versions	(develop) ← (fix_versiosn)
+!72	hog-cern/test/TestFirmware!72	Develop	(master) ← (develop)
+

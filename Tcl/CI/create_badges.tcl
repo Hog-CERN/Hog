@@ -18,6 +18,17 @@
 
 
 proc generate_prj_badge {prj_name ver color file} {
+    set font_size 11.0
+    set max_characters 20.0
+    puts [string length $prj_name]
+    if { [expr {[string length $prj_name] > $max_characters}] } {
+      set scaling_factor [expr { $max_characters / [string length $prj_name] } ]
+      puts $font_size
+      set font_size [expr {ceil($scaling_factor*$font_size)}]
+      puts $scaling_factor
+      puts $font_size
+    }
+
     set svg_content "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
 <svg xmlns=\"http://www.w3.org/2000/svg\" width=\"250\" height=\"20\">
     <linearGradient id=\"b\" x2=\"0\" y2=\"100%\">
@@ -33,7 +44,7 @@ proc generate_prj_badge {prj_name ver color file} {
         <path fill=\"#262626\" d=\"M250,20 a1,1 0 0,0 0,-16\"/>
         <path fill=\"url(#b)\" d=\"M0 0h250v20H0z\"/>
     </g>
-    <g fill=\"#fff\" text-anchor=\"middle\" font-family=\"DejaVu Sans,Verdana,Geneva,sans-serif\" font-size=\"11\">
+    <g fill=\"#fff\" text-anchor=\"middle\" font-family=\"DejaVu Sans,Verdana,Geneva,sans-serif\" font-size=\"$font_size\">
         <text x=\"80\" y=\"14\">$prj_name</text>
     </g>
     <g fill=\"#fff\" text-anchor=\"middle\" font-family=\"DejaVu Sans,Verdana,Geneva,sans-serif\" font-size=\"11\">
@@ -191,7 +202,6 @@ if {[file exists utilization.txt]} {
     lassign [ExecuteRet curl --request POST --header "PRIVATE-TOKEN: ${push_token}" --form "file=@$badge_name.svg" $api_url/projects/$project_id/uploads] ret content
     set image_url [ParseJSON $content full_path]
     set image_url $gitlab_url/$image_url
-
     if {[dict exists $current_badges $badge_name]} {
       Msg Info "Badge $badge_name exists, updating it..."
       set badge_id [DictGet $current_badges $badge_name]

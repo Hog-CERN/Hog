@@ -719,11 +719,30 @@ if {[IsXilinx]} {
         Msg Info " ************* Simulating: $s  ************* "
         lassign [ExecuteRet $cmd] ret log
 
-        # If HOG_SIMPASS_STR is set, search for the string and update return code from simulation if the string is not found in simulation log
-        if {[info exists env(HOG_SIMPASS_STR)]} {
-          Msg Info "Searching for simulation pass string: '$env(HOG_SIMPASS_STR)'"
-          if {[string first $env(HOG_SIMPASS_STR) $log] == -1} {
-            set ret 1
+
+        # Get simulation properties
+        set proj_dir [file normalize $repo_path/Top/$project_name]
+        set sim_file [file normalize $proj_dir/sim.conf]
+        if {[file exists $sim_file]} {
+          Msg Info "Parsing simulation configuration file $sim_file..."
+          SetGlobalVar SIM_PROPERTIES [ReadConf $sim_file]
+        } else {
+          SetGlobalVar SIM_PROPERTIES ""
+        }
+
+        # Get Hog specific simulation properties
+        if {[dict exists $globalSettings::SIM_PROPERTIES hog]} {
+          set hog_sim_props [dict get $globalSettings::SIM_PROPERTIES hog]
+          dict for {prop_name prop_val} $hog_sim_props {
+            # If HOG_SIMPASS_STR is set, search for the string in simulation log and set return code to error if the string is not found
+            if { $prop_name == "HOG_SIMPASS_STR" && $prop_val != "" } {
+              Msg Info "Setting simulation pass string as '$prop_val'"
+              if {[string first $prop_val $log] == -1} {
+                set ret 1
+              }
+            } else {
+              Msg Debug "Simulation pass string not set, relying on simulator exit code."
+            }
           }
         }
 

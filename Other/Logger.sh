@@ -202,8 +202,17 @@ function log_stdout(){
         line="ERROR:${IN_out}"
         next_is_err=$(($next_is_err-1))
       fi
+      dataLine=$line
       if [ "${1}" == "stdout" ]; then
-        dataLine=$line
+        stderr_ack=" "
+      elif [ "${1}" == "stderr" ]; then
+        # dataLine=$line
+        stderr_ack="*"
+        # echo $line
+      else
+        stderr_ack="E"
+        # Msg Error "Error in logger"
+      fi
         case "$line" in
           *'ERROR:'* | *'Error:'* | *':Error'* | *'error:'* | *'Error '* | *'FATAL ERROR'* | *'Fatal'*)
             # if [[ "$line" == *'Fatal'* ]]; then
@@ -238,13 +247,13 @@ function log_stdout(){
             # echo " Jodeeeeeeeeeeeeeeeeeeer : $msgType"
             ;;
         esac
-      elif [ "${1}" == "stderr" ]; then
-        stderr_line=$dataLine
-        msgType="error"
-        echo $line
-      else
-        Msg Error "Error in logger"
-      fi
+      # elif [ "${1}" == "stderr" ]; then
+      #   stderr_line=$dataLine
+      #   msgType="error"
+      #   echo $line
+      # else
+      #   Msg Error "Error in logger"
+      # fi
       #######################################
       # Overwriting
       #######################################
@@ -310,24 +319,24 @@ function log_stdout(){
         if [[ $HOG_COLOR_EN -gt 1 ]]; then
           case "${clrschselected}" in
             "dark")
-              echo -e "${darkColorScheme[$msgType]} ${dataLine#${msgRemove[$msgType]}} "
+              echo -e "${stderr_ack}${darkColorScheme[$msgType]} ${dataLine#${msgRemove[$msgType]}} "
             ;;
             "clear")
-              echo -e "${clearColorScheme[$msgType]} ${dataLine#${msgRemove[$msgType]}} "
+              echo -e "${stderr_ack}${clearColorScheme[$msgType]} ${dataLine#${msgRemove[$msgType]}} "
             ;;
           esac
         elif [[ $HOG_COLOR_EN -gt 0 ]]; then
-          echo -e "${simpleColor[$msgType]} $dataLine $txtwht"
+          echo -e "${stderr_ack}${simpleColor[$msgType]} $dataLine $txtwht"
         else
-          echo -e "$dataLine"
+          echo -e "${stderr_ack}$dataLine"
         fi
       fi
       if [[ $HOG_LOG_EN -gt 0 ]]; then
         if [[ -n $LOG_WAR_ERR_FILE ]] && [[ 3 -gt ${msgDbgLvl[$msgType]} ]]; then
-          echo "${msgHeadBW[$msgType]} ${dataLine#${msgRemove[$msgType]}} "  >> $LOG_WAR_ERR_FILE
+          echo "${stderr_ack}${msgHeadBW[$msgType]} ${dataLine#${msgRemove[$msgType]}} "  >> $LOG_WAR_ERR_FILE
         fi
         if [[ -n $LOG_INFO_FILE ]]; then
-          echo "${msgHeadBW[$msgType]} ${dataLine#${msgRemove[$msgType]}} "  >> $LOG_INFO_FILE;
+          echo "${stderr_ack}${msgHeadBW[$msgType]} ${dataLine#${msgRemove[$msgType]}} "  >> $LOG_INFO_FILE;
         fi
       fi
       if [[ "$msgType" == "error" ]]; then
@@ -397,7 +406,7 @@ function Logger () {
   else
     "$@"
   fi
-  if [[  "$HOG_COLOR_EN" -gt 0 ]]; then
+  if [[ "$HOG_LOG_EN" -gt 0 ]]; then
     Hog_exit
   else
     exit $?

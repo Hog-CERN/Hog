@@ -267,19 +267,25 @@ tagging:
     - cd TestFirmware/
     # Check if there is still a branch connected to the merged MR
     - if git branch -a --list *auto/$branch | grep -q "auto/$branch$"; then
-        response=$(glab mr list -F json -R hog-cern/test/TestFirmware --source-branch=auto/$branch --target-branch=develop);
-        if [ $? -eq 0 ]; then
-          if [ $(echo "$response" | jq length) -gt 0 ]; then
-            MR_ID=$(echo "$response" | jq .[0].iid);
-            MR_URL=$(echo "$response" | jq .[0].web_url);
-            echo "Merging MR on TestFirmware.";
-            glab mr merge $MR_ID;
+        git checkout auto/$branch
+        set +e; MERGE_STATUS=$(git merge --no-commit origin/develop); set -e;
+        if [ "$MERGE_STATUS" == "Already up to date." ]; then
+          response=$(glab mr list -F json -R hog-cern/test/TestFirmware --source-branch=auto/$branch --target-branch=develop);
+          if [ $? -eq 0 ]; then
+            if [ $(echo "$response" | jq length) -gt 0 ]; then
+              MR_ID=$(echo "$response" | jq .[0].iid);
+              MR_URL=$(echo "$response" | jq .[0].web_url);
+              echo "Merging MR on TestFirmware.";
+              glab mr merge $MR_ID -d;
+            fi;
+          else
+            git push origin --delete auto/$branch;
           fi;
         else
+          echo "Branch is outdated with respect to develop. Deleting it...";
           git push origin --delete auto/$branch;
         fi;
       fi;
-
 
 shellcheck:
   stage: merge_checks

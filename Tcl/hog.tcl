@@ -1685,7 +1685,7 @@ proc CopyIPbusXMLs {proj_dir path dst {xml_version "0.0.0"} {xml_sha "00000000"}
       set can_generate 1
     }
   } else {
-    Msg Warning "Error while trying to run python: $msg"
+    Msg CriticalWarning "Problem while trying to run python: $msg"
     set can_generate 0
   }
   set dst [file normalize $dst]
@@ -4569,7 +4569,14 @@ proc GetCustomCommands {{directory .} {ret_commands 0}} {
       }
       "
     } else {
-      append commands_string "- $base_name: runs $file \n"
+      set f [open $file r]
+      set first_line [gets $f]
+      close $f
+      if {[regexp -nocase "^#\s*$base_name:\s*(.*)" $first_line full_match script_des]} {
+        append commands_string "- $base_name: $script_des\n"
+      } else {
+        append commands_string "- $base_name: runs $file\n"
+      }
     }
   }
   return $commands_string

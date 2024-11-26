@@ -3921,6 +3921,95 @@ proc GetFileGenerics {filename {entity ""}} {
   }
 }
 
+## @brief Applies generic values to IPs within block designs
+#
+#  @param[in]    generic_string the string containing the generics to be applied
+proc WriteGenericsToBdIPs {mode repo_path proj generic_string} {
+  Msg Debug "Parameters/generics passed to WriteGenericsToIP: $generic_string"
+
+  set bd_ip_generics false
+  set properties [ReadConf [lindex [GetConfFiles $repo_path/Top/$proj] 0]]
+  if {[dict exists $properties "hog"]} {
+    set propDict [dict get $properties "hog"]
+    if {[dict exists $propDict "PASS_GENERICS_TO_BD_IPS"]} {
+      set bd_ip_generics [dict get $propDict "PASS_GENERICS_TO_BD_IPS"]
+    }
+  }
+
+  if {[string compare [string tolower $bd_ip_generics] "false"]==0} {
+    return
+  }
+
+  if {$mode == "synth"} {
+    set PARENT_PRJ [get_property "PARENT.PROJECT_PATH" [current_project]]
+    open_project $PARENT_PRJ
+  }
+
+  Msg Info "Looking for IPs to add generics to..."
+  set ips_generic_string ""
+  foreach generic_to_set [split [string trim $generic_string]] {
+    set key [lindex [split $generic_to_set "="] 0]
+    set value [lindex [split $generic_to_set "="] 1]
+    append ips_generic_string "CONFIG.$key $value "
+  }
+
+
+  if {[string compare [string tolower $bd_ip_generics] "true"]==0} {
+    set ip_regex ".*"
+  } else {
+    set ip_regex $bd_ip_generics
+  }
+
+  set ip_list [get_ips -regex $ip_regex]
+  Msg Debug "IPs found with regex \{$ip_regex\}: $ip_list"
+
+  set regen_targets {}
+
+  foreach {ip} $ip_list {
+    set WARN_ABOUT_IP false
+    set ip_props [list_property [get_ips $ip]]
+
+    #Not sure if this is needed, but it's here to prevent potential errors with get_property
+    if {[lsearch -exact $ip_props "IS_BD_CONTEXT"] == -1} {
+      continue
+    }
+
+    if {[get_property "IS_BD_CONTEXT" [get_ips $ip]] eq "1"} {
+      foreach {ip_prop} $ip_props {
+        if {[dict exists $ips_generic_string $ip_prop ]} {
+          if {$WARN_ABOUT_IP == false} {
+            lappend regen_targets [get_property SCOPE [get_ips $ip]]
+            Msg Warning "The ip \{$ip\} contains generics that are set by Hog. If this is IP is apart of a block design, the .bd file may contain stale, unused, values. Hog will always apply the most up-to-date values to the IP during synthesis, however these values may or may not be reflected in the .bd file."
+            set WARN_ABOUT_IP true
+          }
+
+          set value_to_set [dict get $ips_generic_string $ip_prop]
+          if {[string match "32'h*" $value_to_set]} {
+            set value_to_set [format "%d" [scan $value_to_set "32'h%x"]]
+          }
+
+          Msg Info "The IP \{$ip\} contains: $ip_prop, setting it to $value_to_set."
+          if {[catch {set_property -name $ip_prop -value $value_to_set -objects [ get_ips $ip ]} prop_error]} {
+            Msg CriticalWarning "Failed to set property $ip_prop to $value_to_set for IP \{$ip\}: $prop_error"
+          }
+
+        }
+      }
+    }
+  }
+
+  if {$mode == "synth"} {
+    foreach {regen_target} [lsort -unique $regen_targets] {
+      Msg Info "Regenerating target: $regen_target"
+      if {[catch {generate_target -force all [get_files $regen_target]} prop_error]} {
+        Msg CriticalWarning "Failed to regen targets: $prop_error"
+      }
+    }
+
+    close_project
+  }
+}
+
 ## Set the generics property
 #
 #  @param[in]    mode if it's "create", the function will assume the project is being created
@@ -4012,12 +4101,15 @@ proc WriteGenerics {mode repo_path design date timee commit version top_hash top
     Msg Info "Setting parameters/generics..."
     Msg Debug "Detailed parameters/generics: $generic_string"
 
+
     if {[IsVivado]} {
       # Dealing with project generics in Simulators
       set simulator [get_property target_simulator [current_project]]
       if {$mode == "create"} {
         SetGenericsSimulation $repo_path $design $simulator
       }
+
+      WriteGenericsToBdIPs $mode $repo_path $design $generic_string
     }
   } elseif {[IsSynplify]} {
     Msg Info "Setting Synplify parameters/generics one by one..."

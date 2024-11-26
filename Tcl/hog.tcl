@@ -33,17 +33,17 @@ proc VIVADO_PATH_PROPERTIES {} {
 
 proc ALLOWED_PROPS {} {
   return [dict create ".vhd" [list "93" "nosynth" "noimpl" "nosim" "1987" "1993" "2008" ]\
-	  ".vhdl" [list "93" "nosynth" "noimpl" "nosim" "1987" "1993" "2008" ]\
-	  ".v" [list "SystemVerilog" "verilog_header" "nosynth" "noimpl" "nosim" "1995" "2001"]\
-	  ".sv" [list "verilog" "verilog_header" "nosynth" "noimpl" "nosim" "2005" "2009"]\
-	  ".do" [list "nosim"]\
-	  ".udo" [list "nosim"]\
-	  ".xci" [list "nosynth" "noimpl" "nosim" "locked"]\
-	  ".xdc" [list "nosynth" "noimpl" ]\
-	  ".tcl" [list "nosynth" "noimpl" "nosim" "source" "qsys" "noadd" "--block-symbol-file" "--clear-output-directory" "--example-design" "--export-qsys-script" "--family" "--greybox" "--ipxact" "--jvm-max-heap-size" "--parallel" "--part" "--search-path" "--simulation" "--synthesis" "--testbench" "--testbench-simulation" "--upgrade-ip-cores" "--upgrade-variation-file"]\
-	  ".qsys" [list "nogenerate" "noadd" "--block-symbol-file" "--clear-output-directory" "--example-design" "--export-qsys-script" "--family" "--greybox" "--ipxact" "--jvm-max-heap-size" "--parallel" "--part" "--search-path" "--simulation" "--synthesis" "--testbench" "--testbench-simulation" "--upgrade-ip-cores" "--upgrade-variation-file"]\
-	  ".sdc" [list "notiming" "nosynth" "noplace"]\
-	  ".pdc" [list "nosynth" "noplace"]]\
+    ".vhdl" [list "93" "nosynth" "noimpl" "nosim" "1987" "1993" "2008" ]\
+    ".v" [list "SystemVerilog" "verilog_header" "nosynth" "noimpl" "nosim" "1995" "2001"]\
+    ".sv" [list "verilog" "verilog_header" "nosynth" "noimpl" "nosim" "2005" "2009"]\
+    ".do" [list "nosim"]\
+    ".udo" [list "nosim"]\
+    ".xci" [list "nosynth" "noimpl" "nosim" "locked"]\
+    ".xdc" [list "nosynth" "noimpl" ]\
+    ".tcl" [list "nosynth" "noimpl" "nosim" "source" "qsys" "noadd" "--block-symbol-file" "--clear-output-directory" "--example-design" "--export-qsys-script" "--family" "--greybox" "--ipxact" "--jvm-max-heap-size" "--parallel" "--part" "--search-path" "--simulation" "--synthesis" "--testbench" "--testbench-simulation" "--upgrade-ip-cores" "--upgrade-variation-file"]\
+    ".qsys" [list "nogenerate" "noadd" "--block-symbol-file" "--clear-output-directory" "--example-design" "--export-qsys-script" "--family" "--greybox" "--ipxact" "--jvm-max-heap-size" "--parallel" "--part" "--search-path" "--simulation" "--synthesis" "--testbench" "--testbench-simulation" "--upgrade-ip-cores" "--upgrade-variation-file"]\
+    ".sdc" [list "notiming" "nosynth" "noplace"]\
+    ".pdc" [list "nosynth" "noplace"]]\
 }
 
 proc VIVADO_PATH_PROPERTIES {} {
@@ -717,20 +717,20 @@ proc ReadListFile args {
           ### Set file properties
           set prop [lrange $file_and_prop 1 end]
 
-	  # The next lines should be inside the case for recursive list files, also we should check the allowed properties for the .src as well
+    # The next lines should be inside the case for recursive list files, also we should check the allowed properties for the .src as well
           set library [lindex [regexp -inline {lib\s*=\s*(.+?)\y.*} $prop] 1]
-	  if { $library == "" } {
+    if { $library == "" } {
             set library $lib
           }
 
           if { $extension == $list_file_ext } {
             # Deal with recusive list files
-	    set ref_path [lindex [regexp -inline {path\s*=\s*(.+?)\y.*} $prop] 1]
-	    if { $ref_path eq "" } {
-	      set ref_path $path
-	    } else {
-	      set ref_path [file normalize $path/$ref_path]
-	    }
+      set ref_path [lindex [regexp -inline {path\s*=\s*(.+?)\y.*} $prop] 1]
+      if { $ref_path eq "" } {
+        set ref_path $path
+      } else {
+        set ref_path [file normalize $path/$ref_path]
+      }
             Msg Debug "List file $vhdlfile found in list file, recursively opening it using path \"$ref_path\"..."
             lassign [ReadListFile {*}"-lib $library -fileset $fileset $sha_mode_opt $vhdlfile $ref_path"] l p fs
             set libraries [MergeDict $l $libraries]
@@ -1666,37 +1666,41 @@ proc ExtractVersionFromTag {tag} {
 #
 # Additional information is provided with text separated from the file name with one or more spaces
 #
-# @param[in] proj_dir    project path, path containing the ./list directory containing at least a list file with .ipb extention
-# @param[in] path        the path the XML files are referred to in the list file
-# @param[in] dst         the path the XML files must be copied to
-# @param[in] xml_version the M.m.p version to be used to replace the __VERSION__ placeholder in any of the xml files
-# @param[in] xml_sha     the Git-SHA to be used to replace the __GIT_SHA__ placeholder in any of the xml files
-# @param[in] generate    if set to 1, tells the function to generate the VHDL decode address files rather than check them
-#
-proc CopyIPbusXMLs {proj_dir path dst {xml_version "0.0.0"} {xml_sha "00000000"}  {generate 0} } {
-  # set ::env(PYTHONHOME) "/usr"
-  lassign  [ExecuteRet python -c "from __future__ import print_function; from sys import path;print(':'.join(path\[1:\]))"] ret msg
-  if {$ret == 0} {
-    set ::env(PYTHONPATH) $msg
-    lassign [ExecuteRet gen_ipbus_addr_decode -h] ret msg
-    if {$ret != 0}  {
-      set can_generate 0
+# @param[in] proj_dir     project path, path containing the ./list directory containing at least a list file with .ipb extention
+# @param[in] path         the path the XML files are referred to in the list file
+# @param[in] dst          the path the XML files must be copied to
+# @param[in] xml_version  the M.m.p version to be used to replace the __VERSION__ placeholder in any of the xml files
+# @param[in] xml_sha      the Git-SHA to be used to replace the __GIT_SHA__ placeholder in any of the xml files
+# @param[in] use_ipbus_sw if set to 1, use the IPbus sw to generate or check the vhdl files
+# @param[in] generate     if set to 1, tells the function to generate the VHDL decode address files rather than check them
+
+proc CopyIPbusXMLs {proj_dir path dst {xml_version "0.0.0"} {xml_sha "00000000"} {use_ipbus_sw 0} {generate 0} } {
+  if {$use_ipbus_sw == 1} {
+    lassign  [ExecuteRet python -c "from __future__ import print_function; from sys import path;print(':'.join(path\[1:\]))"] ret msg
+    if {$ret == 0} {
+      set ::env(PYTHONPATH) $msg
+      lassign [ExecuteRet gen_ipbus_addr_decode -h] ret msg
+      if {$ret != 0}  {
+        set can_generate 0
+      } else {
+        set can_generate 1
+      }
     } else {
-      set can_generate 1
+      Msg CriticalWarning "Problem while trying to run python: $msg"
+      set can_generate 0
+    }
+    set dst [file normalize $dst]
+    if {$can_generate == 0} {
+      if {$generate == 1} {
+        Msg Error "Cannot generate IPbus address files, IPbus executable gen_ipbus_addr_decode not found or not working: $msg"
+        return -1
+
+      } else {
+        Msg Warning "IPbus executable gen_ipbus_addr_decode not found or not working, will not verify IPbus address tables."
+      }
     }
   } else {
-    Msg CriticalWarning "Problem while trying to run python: $msg"
     set can_generate 0
-  }
-  set dst [file normalize $dst]
-  if {$can_generate == 0} {
-    if {$generate == 1} {
-      Msg Error "Cannot generate IPbus address files, IPbus executable gen_ipbus_addr_decode not found or not working: $msg"
-      return -1
-
-    } else {
-      Msg Warning "IPbus executable gen_ipbus_addr_decode not found or not working, will not verify IPbus address tables."
-    }
   }
 
   set ipb_files [glob -nocomplain $proj_dir/list/*.ipb]
@@ -1726,22 +1730,22 @@ proc CopyIPbusXMLs {proj_dir path dst {xml_version "0.0.0"} {xml_sha "00000000"}
     }
 
     if {[file exists $xmlfile]} {
-      if {[dict exists $vhdl_dict $xmlfile]} {	
-	set vhdl_file [file normalize [dict get $vhdl_dict $xmlfile]]
+      if {[dict exists $vhdl_dict $xmlfile]} {
+        set vhdl_file [file normalize [dict get $vhdl_dict $xmlfile]]
       } else {
-	set vhdl_file ""
+        set vhdl_file ""
       }
       lappend vhdls $vhdl_file
-      
+
       set xmlfile [file normalize $xmlfile]
       Msg Info "Copying $xmlfile to $dst and replacing place holders..."
       set in  [open $xmlfile r]
       set out [open $dst/[file tail $xmlfile] w]
 
       while {[gets $in line] != -1} {
-	set new_line [regsub {(.*)__VERSION__(.*)} $line "\\1$xml_version\\2"]
-	set new_line2 [regsub {(.*)__GIT_SHA__(.*)} $new_line "\\1$xml_sha\\2"]
-	puts $out $new_line2
+        set new_line [regsub {(.*)__VERSION__(.*)} $line "\\1$xml_version\\2"]
+        set new_line2 [regsub {(.*)__GIT_SHA__(.*)} $new_line "\\1$xml_sha\\2"]
+        puts $out $new_line2
       }
       close $in
       close $out
@@ -1777,8 +1781,8 @@ proc CopyIPbusXMLs {proj_dir path dst {xml_version "0.0.0"} {xml_sha "00000000"}
             } else {
               if {[file exists $v]} {
                 set diff [CompareVHDL $generated_vhdl $v]
-		set n [llength $diff]
-		if {$n > 0} {
+                set n [llength $diff]
+                if {$n > 0} {
                   Msg CriticalWarning "$v does not correspond to its XML $x, [expr {$n/3}] line/s differ:"
                   Msg Status [join $diff "\n"]
                   set diff_file [open ../diff_[file rootname [file tail $x]].txt w]
@@ -2008,7 +2012,7 @@ proc GetProjectFiles {} {
           set type [lindex $type 0]
           set prop ""
         }
-	#If type is "VHDL 2008" we will keep only VHDL
+  #If type is "VHDL 2008" we will keep only VHDL
 
         if {![string equal $prop ""]} {
           dict lappend properties $f $prop
@@ -2016,19 +2020,19 @@ proc GetProjectFiles {} {
         # check where the file is used and add it to prop
         if {[string equal $fs_type "SimulationSrcs"]} {
           # Simulation sources
-	  if {[string equal $type "VHDL"] } {
-	    set library "${lib}.sim"
-	  } else {
-	    set library "others.sim"
-	  }
+    if {[string equal $type "VHDL"] } {
+      set library "${lib}.sim"
+    } else {
+      set library "others.sim"
+    }
 
-	  if {[IsInList $library [DictGet $simsets $fs]]==0} {
+    if {[IsInList $library [DictGet $simsets $fs]]==0} {
             dict lappend simsets $fs $library
           }
 
-	  dict lappend simlibraries $library $f
+    dict lappend simlibraries $library $f
 
-	} elseif {[string equal $type "VHDL"] } {
+  } elseif {[string equal $type "VHDL"] } {
           # VHDL files (both 2008 and 93)
           if {[IsInList "${lib}.src" [DictGet $srcsets $fs]]==0} {
             dict lappend srcsets $fs "${lib}.src"
@@ -3748,7 +3752,7 @@ proc SetGenericsSimulation {repo_path proj_dir target} {
       }
     } else {
       if {[glob -nocomplain "$top_dir/list/*.sim"] ne "" } {
-	Msg CriticalWarning "Simulation sets and .sim files are present in the project but no sim.conf found in $top_dir. Please refer to Hog's manual to create one."
+  Msg CriticalWarning "Simulation sets and .sim files are present in the project but no sim.conf found in $top_dir. Please refer to Hog's manual to create one."
       }
     }
   }
@@ -4706,14 +4710,14 @@ proc findFiles { basedir pattern } {
 proc IsInList {element list {regex 0}} {
   foreach x $list {
     if {$regex == 1 &&  [regexp $x $element] } {
-  	return 1
+    return 1
       } elseif { $regex == 0 && $x eq $element } {
-  	return 1
+    return 1
       }
   }
   return 0
 }
-  
+
 
 
 

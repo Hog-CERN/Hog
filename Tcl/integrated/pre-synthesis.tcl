@@ -295,9 +295,10 @@ if {[GitVersion 2.9.3]} {
 #####  Passing Hog generic to top file
 if {[IsXilinx] || [IsSynplify]} {
   ### VIVADO
-  set proj_path "$group/$proj_name"
+  set proj_group_and_name "$group/$proj_name"
   # set global generic variables
-  WriteGenerics "synth" $proj_path $date $timee $commit $version $top_hash $top_ver $hog_hash $hog_ver $cons_ver $cons_hash  $libs $vers $hashes $ext_names $ext_hashes $user_ip_repos $user_ip_vers $user_ip_hashes $flavour $xml_ver $xml_hash
+  
+  WriteGenerics "synth" $repo_path $proj_group_and_name $date $timee $commit $version $top_hash $top_ver $hog_hash $hog_ver $cons_ver $cons_hash  $libs $vers $hashes $ext_names $ext_hashes $user_ip_repos $user_ip_vers $user_ip_hashes $flavour $xml_ver $xml_hash
   set status_file [file normalize "$old_path/../versions.txt"]
 
 } elseif {[IsQuartus]} {

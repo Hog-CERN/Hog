@@ -22,7 +22,8 @@ if {[catch {package require cmdline} ERROR]} {
 }
 
 set parameters {
-  {generate  "If set, the VHDL address files will be generated and replaced if already exisiting."}
+  {no_ipbus_sw "If set, do not use the IPBus software to generate and check the VHDL files."}
+  {generate  "If set, the VHDL address files will be generated and replaced if already existing."}
   {arg.ext_path "" "Path to external libraries"}
 }
 
@@ -42,6 +43,11 @@ if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] 
     set generate 1
   } else {
     set generate 0
+  }
+  if { $options(no_ipbus_sw) == 1 } {
+    set use_ipbus_sw 0
+  } else {
+    set use_ipbus_sw 1
   }
   if { $options(arg.ext_path) == "" } {
     set ext_path ""
@@ -66,4 +72,4 @@ set sha [lindex $ret 13]
 set hex_ver [lindex $ret 14]
 
 set ver [HexVersionToString $hex_ver]
-CopyIPbusXMLs $proj_dir $repo_path $dst $ver $sha $generate
+CopyIPbusXMLs $proj_dir $repo_path $dst $ver $sha $use_ipbus_sw $generate

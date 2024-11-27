@@ -234,6 +234,17 @@ if {[IsXilinx]} {
     file copy -force $log $dst_dir/reports/$run_name.log
   }
 
+  if {[IsVivado]} {
+    if {[info exists env(HOG_SAVE_DCP)] && ($env(HOG_SAVE_DCP) == 1 || $env(HOG_SAVE_DCP) == 3)} {
+      set dcp_dir [file normalize "$repo_path/DCPs/$group_name/$proj_name/impl_dcp"]
+      file mkdir $dcp_dir
+      set dcps [glob -nocomplain "$run_dir/impl*/*.dcp"]
+      if {[file exists [lindex $dcps 0]]} {
+        file copy -force {*}$dcps $dcp_dir
+      }
+    }
+  }
+
 }
 
 # Run user post-implementation file

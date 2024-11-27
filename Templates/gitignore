@@ -41,6 +41,7 @@ gitk
 **.pyc
 Doc/*
 **.log
+DCPs/
 
 ## CERNbox
 ._*

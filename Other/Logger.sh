@@ -219,6 +219,9 @@ function log_stdout(){
             #   next_is_err=1
             # fi
             msgType="error"
+            if [[ "$line" =~ [Ee]os ]]; then
+              msgType="critical"
+            fi
             # msgType=$(msgTypeOverload "error" "$dataLine")
           ;;
           *'CRITICAL:'* | *'CRITICAL WARNING:'* )

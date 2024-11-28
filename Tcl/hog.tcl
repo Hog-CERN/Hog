@@ -26,11 +26,41 @@
 set CI_STAGES {"generate_project" "simulate_project"}
 set CI_PROPS {"-synth_only"}
 
-proc VIVADO_PATH_PROPERTIES {} {
-  return {"TCL.PRE" "TCL.POST" "RQS_FILES" "INCREMENTAL_CHECKPOINT"}
+#### FUNCTIONS
+
+## @brief Add a new file to a fileset in Vivado
+#
+# @param[in] file    The name of the file to add. NOTE: directories are not supported.
+# @param[in] fileset The fileset name
+#
+proc AddFile {file fileset} {
+  if {[IsXilinx]} {
+    add_files -norecurse -fileset $fileset $file
+  }
 }
 
+## @brief Adds the file containing the top module to the project
+#
+# It automatically recognises whether it is in Vivado or Quartus mode
+#
+# @param[in] top_module name of the top module, expected @c top_<project_name>
+# @param[in] top_file   name of the file containing the top module
+# @param[in] fileset    name of the fileset to which to add the file (default sources_1)
+proc AddTopFile {top_module top_file {fileset "sources_1"}} {
+  if {[IsXilinx]} {
+    #VIVADO_ONLY
+    add_files -norecurse -fileset $fileset $top_file
+  } elseif {[IsQuartus]} {
+    #QUARTUS ONLY
+    set file_type [FindFileType $top_file]
+    set hdl_version [FindVhdlVersion $top_file]
+    set_global_assignment -name $file_type $top_file
+  } else {
+    puts "Adding project top module $top_module"
+  }
+}
 
+## @brief Returns a dictionary for the allowed properties for each file type
 proc ALLOWED_PROPS {} {
   return [dict create ".vhd" [list "93" "nosynth" "noimpl" "nosim" "1987" "1993" "2008" ]\
     ".vhdl" [list "93" "nosynth" "noimpl" "nosim" "1987" "1993" "2008" ]\
@@ -45,89 +75,6 @@ proc ALLOWED_PROPS {} {
     ".sdc" [list "notiming" "nosynth" "noplace"]\
     ".pdc" [list "nosynth" "noplace"]]\
 }
-
-proc VIVADO_PATH_PROPERTIES {} {
-  return {"\.*\.TCL\.PRE$" "^.*\.TCL\.POST$" "^RQS_FILES$" "^INCREMENTAL\_CHECKPOINT$"}
-}
-
-#### FUNCTIONS
-
-proc GetSimulators {} {
-  set SIMULATORS [list "modelsim" "questa" "riviera" "activehdl" "ies" "vcs"]
-  return $SIMULATORS
-}
-
-## Get whether the IDE is MicroSemi Libero
-proc IsLibero {} {
-  return [expr {[info commands get_libero_version] != ""}]
-}
-
-### Get whether the Synthesis tools is Synplify
-proc IsSynplify {} {
-  return [expr {[info commands program_version] != ""}]
-}
-
-
-## Get whether the IDE is Xilinx (Vivado or ISE)
-proc IsXilinx {} {
-  return [expr {[info commands get_property] != ""}]
-}
-
-## Get whether the IDE is vivado
-proc IsVivado {} {
-  if {[IsXilinx]} {
-    return [expr {[string first Vivado [version]] == 0}]
-  } else {
-    return 0
-  }
-}
-
-## Get whether the IDE is ISE (planAhead)
-proc IsISE {} {
-  if {[IsXilinx]} {
-    return [expr {[string first PlanAhead [version]] == 0}]
-  } else {
-    return 0
-  }
-}
-
-## Get whether the IDE is Quartus
-proc IsQuartus {} {
-  return [expr {[info commands project_new] != ""}]
-}
-
-## Get whether we are in tclsh
-proc IsTclsh {} {
-  return [expr {![IsQuartus] && ![IsXilinx] && ![IsLibero] && ![IsSynplify]}]
-}
-
-## @brief Find out if the given Xilinx part is a Vesal chip
-#
-# @param[out] 1 if it's Versal 0 if it's not
-# @param[in]  part  The FPGA part
-#
-proc IsVersal {part} {
-  if { [regexp {^(xcvp|xcvm|xcve|xcvc|xqvc|xqvm).*} $part] } {
-    return 1
-  } else {
-    return 0
-  }
-}
-
-## @brief Find out if the given Xilinx part is a Vesal chip
-#
-# @param[out] 1 if it's Zynq 0 if it's not
-# @param[in]  part  The FPGA part
-#
-proc IsZynq {part} {
-  if { [regexp {^(xc7z|xczu).*} $part] } {
-    return 1
-  } else {
-    return 0
-  }
-}
-
-
 
 ## @brief # Returns the step name for the stage that produces the binary file
 #
@@ -145,309 +92,15 @@ proc BinaryStepName {part} {
   }
 }
 
-## Hog message printout function
-proc Msg {level msg {title ""}} {
-
-  set level [string tolower $level]
-
-  if {$title == ""} {set title [lindex [info level [expr {[info level]-1}]] 0]}
-
-  if {$level == 0 || $level == "status" || $level == "extra_info"} {
-    set vlevel {STATUS}
-    set qlevel info
-  } elseif {$level == 1 || $level == "info"} {
-    set vlevel {INFO}
-    set qlevel info
-  } elseif {$level == 2 || $level == "warning"} {
-    set vlevel {WARNING}
-    set qlevel warning
-  } elseif {$level == 3 || [string first "critical" $level] !=-1} {
-    set vlevel {CRITICAL WARNING}
-    set qlevel critical_warning
-  } elseif {$level == 4 || $level == "error"} {
-    set vlevel {ERROR}
-    set qlevel error
-  } elseif {$level == 5 || $level == "debug"} {
-    if {([info exists ::DEBUG_MODE] && $::DEBUG_MODE == 1) || ([info exists ::env(HOG_DEBUG_MODE)] && $::env(HOG_DEBUG_MODE) == 1)} {
-      set vlevel {STATUS}
-      set qlevel extra_info
-      set msg "DEBUG: \[Hog:$title\] $msg"
-    } else {
-      return
-    }
-
-  } else {
-    puts "Hog Error: level $level not defined"
-    exit -1
-  }
-
-
-  if {[IsXilinx]} {
-    # Vivado
-    set status [catch {send_msg_id Hog:$title-0 $vlevel $msg}]
-    if {$status != 0} {
-      exit $status
-    }
-  } elseif {[IsQuartus]} {
-    # Quartus
-    post_message -type $qlevel "Hog:$title $msg"
-    if { $qlevel == "error"} {
-      exit 1
-    }
-  } else {
-    # Tcl Shell / Libero
-    if {$vlevel != "STATUS"} {
-      puts "$vlevel: \[Hog:$title\] $msg"
-    } else {
-      puts $msg
-    }
-
-    if {$qlevel == "error"} {
-      exit 1
-    }
-  }
-}
-
-## @brief Write a into file, if the file exists, it will append the string
-#
-# @param[out] File The log file onto which write the message
-# @param[in]  msg  The message text
-#
-proc WriteToFile {File msg} {
-  set f [open $File a+]
-  puts $f $msg
-  close $f
-}
-
-## @brief Sets a property of an object to a given value.
-#
-# It automatically recognises whether it is in Vivado or Quartus mode
-#
-# @param[out] property:
-# @param[in] value:
-# @param[out] object
-#
-proc  SetProperty {property value object} {
-  if {[IsXilinx]} {
-    # Vivado
-    set_property $property $value $object
-
-  } elseif {[IsQuartus]} {
-    # Quartus
-
-  } else {
-    # Tcl Shell
-    puts "***DEBUG Hog:SetProperty $property to $value of $object"
-  }
-
-
-}
-
-## @brief Retrieves the value of a property of an object
-#
-# It automatically recognises whether it is in Vivado or Quartus mode
-#
-# @param[in] property the name of the property to be retrieved
-# @param[in] object   the object from which to retrieve the property
-#
-# @returns            the value of object.property
-#
-proc  GetProperty {property object} {
-  if {[IsXilinx]} {
-    # Vivado
-    return [get_property -quiet $property $object]
-
-  } elseif {[IsQuartus]} {
-    # Quartus
-    return ""
-  } else {
-    # Tcl Shell
-    puts "***DEBUG Hog:GetProperty $property of $object"
-    return "DEBUG_property_value"
-  }
-}
-
-## @brief Sets the value of a parameter to a given value.
-#
-# This function is a wrapper for set_param $parameter $value
-#
-# @param[out] parameter the parameter whose value must be set
-# @param[in]  value     the value of the parameter
-
-proc  SetParameter {parameter value } {
-  set_param $parameter $value
-}
-
-## @brief Adds the file containing the top module to the project
-#
-# It automatically recognises whether it is in Vivado or Quartus mode
-#
-# @param[in] top_module name of the top module, expected @c top_<project_name>
-# @param[in] top_file   name of the file containing the top module
-# @param[in] sources     list of source files
-proc AddTopFile {top_module top_file sources} {
-  if {[IsXilinx]} {
-    #VIVADO_ONLY
-    add_files -norecurse -fileset $sources $top_file
-  } elseif {[IsQuartus]} {
-    #QUARTUS ONLY
-    set file_type [FindFileType $top_file]
-    set hdl_version [FindVhdlVersion $top_file]
-    set_global_assignment -name $file_type $top_file
-  } else {
-    puts "Adding project top module $top_module"
-  }
-}
-
-## @brief set the top module as top module.
-#
-# It automatically recognises whether it is in Vivado or Quartus mode
-#
-# @param[out] top_module  name of the top module
-# @param[in]  sources     list of all source files in the project
-#
-proc SetTopProperty {top_module sources} {
-  Msg Info "Setting TOP property to $top_module module"
-  if {[IsXilinx]} {
-    #VIVADO_ONLY
-    set_property "top" $top_module $sources
-  } elseif {[IsQuartus]} {
-    #QUARTUS ONLY
-    set_global_assignment -name TOP_LEVEL_ENTITY $top_module
-  } elseif {[IsLibero]} {
-    set_root -module $top_module
-  }
-
-}
-
-## @brief Retrieves the project named proj
-#
-#  It automatically recognises whether it is in Vivado or Quartus mode
-#
-#  @param[in] proj  the project name
-#
-#  @return          the project $proj
-#
-proc GetProject {proj} {
-  if {[IsXilinx]} {
-    # Vivado
-    return [get_projects $proj]
-
-  } elseif {[IsQuartus]} {
-    # Quartus
-    return ""
-  } else {
-    # Tcl Shell
-    puts "***DEBUG Hog:GetProject $proj"
-    return "DEBUG_project"
-  }
-
-}
-
-## @brief Gets a list of synthesis and implementation runs in the current project that match a run (passed as parameter)
-#
-# The run name is matched against the input parameter
-#
-#  @param[in] run  the run identifier
-#
-#  @return         a list of synthesis and implementation runs matching the parameter
-#
-proc GetRun {run} {
-  if {[IsXilinx]} {
-    # Vivado
-    return [get_runs -quiet $run]
-
-  } elseif {[IsQuartus]} {
-    # Quartus
-    return ""
-  } else {
-    # Tcl Shell
-    puts "***DEBUG Hog:GetRun $run"
-    return "DEBUG_run"
-  }
-}
-
-## @brief Gets a list of files contained in the current fileset that match a file name (passed as parameter)
-#
-# The file name is matched against the input parameter.
-#
-#  @param[in] file name (or part of it)
-#  @param[in] fileset name 
-#
-#  @return    a list of files matching the parameter in the chosen fileset
-#
-proc GetFile {file fileset} {
-  if {[IsXilinx]} {
-    # Vivado
-    set Files [get_files -all $file -of_object [get_filesets $fileset]]
-    set f [lindex $Files 0]
-
-    return $f
-
-  } elseif {[IsQuartus]} {
-    # Quartus
-    return ""
-  } else {
-    # Tcl Shell
-    puts "***DEBUG Hog:GetFile $file"
-    return "DEBUG_file"
-  }
-}
-
-## @brief Creates a new fileset
-#
-# A file set is a list of files with a specific function within the project.
-#
-# @param[in] fileset
-#
-# @returns The create_fileset command returns the name of the newly created fileset
-#
-proc CreateFileSet {fileset} {
-  set a  [create_fileset -srcset $fileset]
-  return  $a
-}
-
-## @brief Retrieves a fileset
-#
-# Gets a list of filesets in the current project that match a specified search pattern.
-# The default command gets a list of all filesets in the project.
-#
-# @param[in] fileset the name to be checked
-#
-# @return a list of filesets in the current project that match the specified search pattern.
-#
-proc GetFileSet {fileset} {
-  set a  [get_filesets $fileset]
-  return  $a
-}
-
-## @brief Add a new file to a fileset
-#
-# @param[in] file    name of the files to add. NOTE: directories are not supported.
-# @param[in] fileset fileset name
-#
-proc AddFile {file fileset} {
-  add_files -norecurse -fileset $fileset $file
-}
-
-## @brief gets the full path to the /../../ folder
-#
-# @return "[file normalize [file dirname [info script]]]/../../"
-#
-proc GetRepoPath {} {
-  return "[file normalize [file dirname [info script]]]/../../"
-}
-
 ## @brief Compare two semantic versions
 #
 # @param[in] ver1 a list of 3 numbers M m p
 # @param[in] ver2 a list of 3 numbers M m p
 #
-# In case the ver1 or ver2 are in the vormat vX.Y.Z rather than a list, they will be converted.
+# In case the ver1 or ver2 are in the format vX.Y.Z rather than a list, they will be converted.
 # If one of the tags is an empty string it will be considered as 0.0.0
 #
-# @return Return 1 ver1 is greather than ver2, 0 if they are equal, and -1 if ver2 is greater than ver1
-#
+# @return Returns 1 ver1 is greater than ver2, 0 if they are equal, and -1 if ver2 is greater than ver1
 proc CompareVersions {ver1 ver2} {
   if {$ver1 eq ""} {
     set ver1 v0.0.0
@@ -490,32 +143,31 @@ proc CompareVersions {ver1 ver2} {
   return [expr {$ret}]
 }
 
-## @brief Check git version installed in this machine
+
+## @brief Returns the value in a Tcl dictionary corresponding to the chosen key
 #
-# @param[in] target_version the version required by the current project
+# @param[in] dictName the name of the dictionary
+# @param[in] keyName  the name of the key
+# @param[in] default  the default value to be returned if the key is not found (default "")
 #
-# @return Return 1 if the system git version is greater or equal to the target
-#
-proc GitVersion {target_version} {
-  set ver [split $target_version "."]
-  set v [Git --version]
-  #Msg Info "Found Git version: $v"
-  set current_ver [split [lindex $v 2] "."]
-  set target [expr {[lindex $ver 0]*100000 + [lindex $ver 1]*100 + [lindex $ver 2]}]
-  set current [expr {[lindex $current_ver 0]*100000 + [lindex $current_ver 1]*100 + [lindex $current_ver 2]}]
-  return [expr {$target <= $current}]
+# @return             The value in the dictionary corresponding to the provided key
+proc DictGet {dictName keyName {default ""}} {
+  if {[dict exists $dictName $keyName]} {
+    return [dict get $dictName $keyName]
+  } else {
+    return $default
+  }
 }
 
-## @brief Checks doxygen version installed in this machine
+## @brief Checks the Doxygen version installed in this machine
 #
 # @param[in] target_version the version required by the current project
 #
-# @return Return 1 if the system Doxygen version is greater or equal to the target
-#
+# @return Returns 1, if the system Doxygen version is greater or equal to the target
 proc DoxygenVersion {target_version} {
   set ver [split $target_version "."]
   set v [Execute doxygen --version]
-  Msg Info "Found doxygen version: $v"
+  Msg Info "Found Doxygen version: $v"
   set current_ver [split $v ". "]
   set target [expr {[lindex $ver 0]*100000 + [lindex $ver 1]*100 + [lindex $ver 2]}]
   set current [expr {[lindex $current_ver 0]*100000 + [lindex $current_ver 1]*100 + [lindex $current_ver 2]}]
@@ -614,19 +266,304 @@ proc FindVhdlVersion {file_name} {
   return $vhdl_version
 }
 
-## @brief Read a list file and adds the files to Vivado/Quartus, adding the additional information as file type.
+## @brief Gets a list of files contained in the current fileset that match a file name (passed as parameter)
+#
+# The file name is matched against the input parameter.
+#
+#  @param[in] file name (or part of it)
+#  @param[in] fileset name
+#
+#  @return    a list of files matching the parameter in the chosen fileset
+#
+proc GetFile {file fileset} {
+  if {[IsXilinx]} {
+    # Vivado
+    set Files [get_files -all $file -of_object [get_filesets $fileset]]
+    set f [lindex $Files 0]
+
+    return $f
+
+  } elseif {[IsQuartus]} {
+    # Quartus
+    return ""
+  } else {
+    # Tcl Shell
+    puts "***DEBUG Hog:GetFile $file"
+    return "DEBUG_file"
+  }
+}
+
+## @brief Returns the real file linked by a soft link
+#
+# If the provided file is not a soft link, it will give a Warning and return an empty string.
+# If the link is broken, will give a warning but still return the linked file
+#
+# @param[in] link_file The soft link file
+proc GetLinkedFile {link_file} {
+  if {[file type $link_file] eq "link"} {
+    if {[OS] == "windows" } {
+        #on windows we need to use readlink because Tcl is broken
+      lassign  [ExecuteRet realpath $link_file] ret msg
+      lassign  [ExecuteRet cygpath -m $msg] ret2 msg2
+      if {$ret == 0 && $ret2 == 0} {
+        set real_file $msg2
+        Msg Debug "Found link file $link_file on Windows, the linked file is: $real_file"
+      } else {
+        Msg CriticalWarning "[file normalize $link_file] is a soft link. Soft link are not supported on Windows and readlink.exe or cygpath.exe did not work: readlink=$ret: $msg, cygpath=$ret2: $msg2."
+        set real_file $link_file
+      }
+    } else {
+      #on linux Tcl just works
+      set linked_file [file link $link_file]
+      set real_file [file normalize [file dirname $link_file]/$linked_file]
+    }
+
+    if {![file exists $real_file]} {
+      Msg Warning "$link_file is a broken link, because the linked file: $real_file does not exist."
+    }
+  } else {
+    Msg Warning "$link file is not a soft link"
+    set real_file $link_file
+  }
+  return $real_file
+}
+
+## @brief Get a list of all modified the files matching then pattern
+#
+# @param[in] repo_path the path of the git repository
+# @param[in] pattern the pattern with wildcards that files should match
+#
+# @return    a list of all modified files matching the pattern
+#
+proc GetModifiedFiles {{repo_path "."} {pattern "."}} {
+  set old_path [pwd]
+  cd $repo_path
+  set ret [Git "ls-files --modified $pattern"]
+  cd $old_path
+  return $ret
+}
+
+## @brief Retrieves the value of a property of an object
+#
+# It automatically recognises whether it is in Vivado or Quartus mode
+#
+# @param[in] property the name of the property to be retrieved
+# @param[in] object   the object from which to retrieve the property
+#
+# @returns            the value of object.property
+#
+proc GetProperty {property object} {
+  if {[IsXilinx]} {
+    # Vivado
+    return [get_property -quiet $property $object]
+
+  } elseif {[IsQuartus]} {
+    # Quartus
+    return ""
+  } else {
+    # Tcl Shell
+    puts "***DEBUG Hog:GetProperty $property of $object"
+    return "DEBUG_property_value"
+  }
+}
+
+## @brief Returns the list of Simulators supported by Vivado
+proc GetSimulators {} {
+  set SIMULATORS [list "modelsim" "questa" "riviera" "activehdl" "ies" "vcs"]
+  return $SIMULATORS
+}
+
+## @brief Check git version installed in this machine
+#
+# @param[in] target_version the version required by the current project
+#
+# @return Returns 1, if the system git version is greater or equal to the target
+proc GitVersion {target_version} {
+  set ver [split $target_version "."]
+  set v [Git --version]
+  #Msg Info "Found Git version: $v"
+  set current_ver [split [lindex $v 2] "."]
+  set target [expr {[lindex $ver 0]*100000 + [lindex $ver 1]*100 + [lindex $ver 2]}]
+  set current [expr {[lindex $current_ver 0]*100000 + [lindex $current_ver 1]*100 + [lindex $current_ver 2]}]
+  return [expr {$target <= $current}]
+}
+
+## @brief Returns true if the IDE is MicroSemi Libero
+proc IsLibero {} {
+  return [expr {[info commands get_libero_version] != ""}]
+}
+
+## @brief Returns true, if the IDE is ISE/PlanAhead
+proc IsISE {} {
+  if {[IsXilinx]} {
+    return [expr {[string first PlanAhead [version]] == 0}]
+  } else {
+    return 0
+  }
+}
+
+## @brief Returns true, if IDE is Quartus
+proc IsQuartus {} {
+  return [expr {[info commands project_new] != ""}]
+}
+
+## @brief Returns true if the Synthesis tool is Synplify
+proc IsSynplify {} {
+  return [expr {[info commands program_version] != ""}]
+}
+
+## @brief Returns true, if we are in tclsh
+proc IsTclsh {} {
+  return [expr {![IsQuartus] && ![IsXilinx] && ![IsLibero] && ![IsSynplify]}]
+}
+
+## @brief Find out if the given Xilinx part is a Vesal chip
+#
+# @param[out] 1 if it's Versal 0 if it's not
+# @param[in]  part  The FPGA part
+#
+proc IsVersal {part} {
+  if { [regexp {^(xcvp|xcvm|xcve|xcvc|xqvc|xqvm).*} $part] } {
+    return 1
+  } else {
+    return 0
+  }
+}
+
+## @brief Returns true, if the IDE is Vivado
+proc IsVivado {} {
+  if {[IsXilinx]} {
+    return [expr {[string first Vivado [version]] == 0}]
+  } else {
+    return 0
+  }
+}
+
+## @brief Return true, if the IDE is Xilinx (Vivado or ISE)
+proc IsXilinx {} {
+  return [expr {[info commands get_property] != ""}]
+}
+
+## @brief Find out if the given Xilinx part is a Vesal chip
+#
+# @param[out] 1 if it's Zynq 0 if it's not
+# @param[in]  part  The FPGA part
+#
+proc IsZynq {part} {
+  if { [regexp {^(xc7z|xczu).*} $part] } {
+    return 1
+  } else {
+    return 0
+  }
+}
+
+## @brief Merges two tcl dictionaries of lists
+#
+# If the dictionaries contain same keys, the list at the common key is a merging of the two
+#
+# @param[in] dict0 the name of the first dictionary
+# @param[in] dict1 the name of the second dictionary
+#
+# @return  the merged dictionary
+#
+proc MergeDict {dict0 dict1} {
+  set outdict [dict merge $dict1 $dict0]
+  foreach key [dict keys $dict1 ] {
+    if {[dict exists $dict0 $key]} {
+      set temp_list [dict get $dict1 $key]
+      foreach vhdfile $temp_list {
+        # Avoid duplication
+        if {[IsInList $vhdfile [DictGet $outdict $key]] == 0} {
+          dict lappend outdict $key $vhdfile
+        }
+      }
+    }
+  }
+  return $outdict
+}
+
+
+## @brief The Hog Printout Msg function
+#
+# @param[in] level The severity level (status, info, warning, critical, error, debug)
+# @param[in] msg   The message to print
+# @param[in] title The title string to be included in the header of the message [Hog:$title] (default "")
+proc Msg {level msg {title ""}} {
+  set level [string tolower $level]
+  if {$title == ""} {set title [lindex [info level [expr {[info level]-1}]] 0]}
+  if {$level == 0 || $level == "status" || $level == "extra_info"} {
+    set vlevel {STATUS}
+    set qlevel info
+  } elseif {$level == 1 || $level == "info"} {
+    set vlevel {INFO}
+    set qlevel info
+  } elseif {$level == 2 || $level == "warning"} {
+    set vlevel {WARNING}
+    set qlevel warning
+  } elseif {$level == 3 || [string first "critical" $level] !=-1} {
+    set vlevel {CRITICAL WARNING}
+    set qlevel critical_warning
+  } elseif {$level == 4 || $level == "error"} {
+    set vlevel {ERROR}
+    set qlevel error
+  } elseif {$level == 5 || $level == "debug"} {
+    if {([info exists ::DEBUG_MODE] && $::DEBUG_MODE == 1) || ([info exists ::env(HOG_DEBUG_MODE)] && $::env(HOG_DEBUG_MODE) == 1)} {
+      set vlevel {STATUS}
+      set qlevel extra_info
+      set msg "DEBUG: \[Hog:$title\] $msg"
+    } else {
+      return
+    }
+  } else {
+    puts "Hog Error: level $level not defined"
+    exit -1
+  }
+
+
+  if {[IsXilinx]} {
+    # Vivado
+    set status [catch {send_msg_id Hog:$title-0 $vlevel $msg}]
+    if {$status != 0} {
+      exit $status
+    }
+  } elseif {[IsQuartus]} {
+    # Quartus
+    post_message -type $qlevel "Hog:$title $msg"
+    if { $qlevel == "error"} {
+      exit 1
+    }
+  } else {
+    # Tcl Shell / Libero
+    if {$vlevel != "STATUS"} {
+      puts "$vlevel: \[Hog:$title\] $msg"
+    } else {
+      puts $msg
+    }
+
+    if {$qlevel == "error"} {
+      exit 1
+    }
+  }
+}
+
+## @brief Return the operative system name
+proc OS {} {
+  global tcl_platform
+  return $tcl_platform(platform)
+}
+
+## @brief Read a list file and return a list of three dictionaries
 #
 # Additional information is provided with text separated from the file name with one or more spaces
 #
 # @param[in] args The arguments are \<list_file\> \<path\> [options]
-# * list_file file containing vhdl list with optional properties
-# * path      path the vhdl file are referred to in the list file
+#                 * list_file file containing vhdl list with optional properties
+#                 * path      path the vhdl file are referred to in the list file
 # Options:
-# * -lib \<library\> name of the library files will be added to, if not given will be extracted from the file name
-# * -sha_mode  if not set to 0, the list files will be added as well and the IPs will be added to the file rather than to the special ip library. The sha mode should be used when you use the lists to calculate the git SHA, rather than to add the files to the project.
+#                 * -lib \<library\> name of the library files will be added to, if not given will be extracted from the file name
+#                 * -sha_mode  if not set to 0, the list files will be added as well and the IPs will be added to the file rather than to the special ip library. The SHA mode should be used when you use the lists to calculate the git SHA, rather than to add the files to the project.
 #
-# @return              a list of 3 dictionaries: "libraries" has library name as keys and a list of filenames as values, "properties" has as file names as keys and a list of properties as values, "filesets" has fileset name as keys and the list of associated libraries as values.
-
+# @return              a list of 3 dictionaries: "libraries" has library name as keys and a list of filenames as values, "properties" has as file names as keys and a list of properties as values, "filesets" has the fileset' names as keys and the list of associated libraries as values.
 proc ReadListFile args {
 
   if {[IsQuartus]} {
@@ -640,7 +577,7 @@ proc ReadListFile args {
   set parameters {
     {lib.arg ""  "The name of the library files will be added to, if not given will be extracted from the file name."}
     {fileset.arg "" "The name of the library, from the main list file"}
-    {sha_mode "If set, the list files will be added as well and the IPs will be added to the file rather than to the special ip library. The sha mode should be used when you use the lists to calculate the git SHA, rather than to add the files to the project."}
+    {sha_mode "If set, the list files will be added as well and the IPs will be added to the file rather than to the special IP library. The SHA mode should be used when you use the lists to calculate the git SHA, rather than to add the files to the project."}
   }
   set usage "USAGE: ReadListFile \[options\] <list file> <path>"
   if {[catch {array set options [cmdline::getoptions args $parameters $usage]}] ||  [llength $args] != 2 } {
@@ -717,20 +654,20 @@ proc ReadListFile args {
           ### Set file properties
           set prop [lrange $file_and_prop 1 end]
 
-    # The next lines should be inside the case for recursive list files, also we should check the allowed properties for the .src as well
+          # The next lines should be inside the case for recursive list files, also we should check the allowed properties for the .src as well
           set library [lindex [regexp -inline {lib\s*=\s*(.+?)\y.*} $prop] 1]
-    if { $library == "" } {
+          if { $library == "" } {
             set library $lib
           }
 
           if { $extension == $list_file_ext } {
-            # Deal with recusive list files
-      set ref_path [lindex [regexp -inline {path\s*=\s*(.+?)\y.*} $prop] 1]
-      if { $ref_path eq "" } {
-        set ref_path $path
-      } else {
-        set ref_path [file normalize $path/$ref_path]
-      }
+            # Deal with recursive list files
+            set ref_path [lindex [regexp -inline {path\s*=\s*(.+?)\y.*} $prop] 1]
+            if { $ref_path eq "" } {
+              set ref_path $path
+            } else {
+              set ref_path [file normalize $path/$ref_path]
+            }
             Msg Debug "List file $vhdlfile found in list file, recursively opening it using path \"$ref_path\"..."
             lassign [ReadListFile {*}"-lib $library -fileset $fileset $sha_mode_opt $vhdlfile $ref_path"] l p fs
             set libraries [MergeDict $l $libraries]
@@ -830,123 +767,118 @@ proc ReadListFile args {
   return [list $libraries $properties $filesets]
 }
 
-## @brief Return operative sistem
-proc OS {} {
-  global tcl_platform
-  return $tcl_platform(platform)
+# TODO: This function is not used, check if we can remove it...
+## @brief Sets the value of a parameter to a given value.
+#
+# This function is a wrapper for set_param $parameter $value
+#
+# @param[in]  parameter the parameter whose value must be set
+# @param[in]  value     the value of the parameter
+
+proc SetParameter {parameter value } {
+  set_param $parameter $value
 }
 
-## @brief Return the real file linked by a soft link
+## @brief Sets a property of an object to a given value.
 #
-# If the provided file is not a soft link, will give a Warning and return an empty string.
-# If the link is broken, will give a warning but still return the linked file
+# It automatically recognises the IDE
 #
-# @param[in] link_file the soft link file
-proc GetLinkedFile {link_file} {
-  if {[file type $link_file] eq "link"} {
-    if {[OS] == "windows" } {
-        #on windows we need to use readlink because Tcl is broken
-      lassign  [ExecuteRet realpath $link_file] ret msg
-      lassign  [ExecuteRet cygpath -m $msg] ret2 msg2
-      if {$ret == 0 && $ret2 == 0} {
-        set real_file $msg2
-        Msg Debug "Found link file $link_file on Windows, the linked file is: $real_file"
-      } else {
-        Msg CriticalWarning "[file normalize $link_file] is a soft link. Soft link are not supported on Windows and readlink.exe or cygpath.exe did not work: readlink=$ret: $msg, cygpath=$ret2: $msg2."
-        set real_file $link_file
-      }
-    } else {
-      #on linux Tcl just works
-      set linked_file [file link $link_file]
-      set real_file [file normalize [file dirname $link_file]/$linked_file]
-    }
-
-    if {![file exists $real_file]} {
-      Msg Warning "$link_file is a broken link, because the linked file: $real_file does not exist."
-    }
-  } else {
-    Msg Warning "$link file is not a soft link"
-    set real_file $link_file
+# @param[in] property The property to set
+# @param[in] value    The value of the property to set
+# @param[in] object   The object for which the property will be set
+proc  SetProperty {property value object} {
+  if {[IsXilinx]} {
+    # Vivado / ISE
+    set_property $property $value $object
+  } elseif {[IsQuartus]} {
+    # TODO: Define the function for Quartus
+  } elseif {[IsLibero]} {
+    # TODO: Define the function for Libero
   }
-  return $real_file
-}
-
-## @brief Merge two tcl dictionaries of lists
-#
-# If the dictionaries contain same keys, the list at the common key is a merging of the two
-#
-#
-# @param[in] dict0 the name of the first dictionary
-# @param[in] dict1 the name of the second dictionary
-#
-# @return        the merged dictionary
-#
-proc MergeDict {dict0 dict1} {
-  set outdict [dict merge $dict1 $dict0]
-  foreach key [dict keys $dict1 ] {
-    if {[dict exists $dict0 $key]} {
-      set temp_list [dict get $dict1 $key]
-      foreach vhdfile $temp_list {
-        # Avoid duplication
-        if {[IsInList $vhdfile [DictGet $outdict $key]] == 0} {
-          dict lappend outdict $key $vhdfile
-        }
-      }
-    }
-  }
-  return $outdict
-}
-
-## @brief Gets key from dict and returns default if key not found
-#
-# @param[in] dictName the name of the dictionary
-# @param[in] keyName the name of the key
-# @param[in] default the default value to be returned if the key is not found
-#
-# @return        the dictionary key value
-
-proc DictGet {dictName keyName {default ""}} {
-  if {[dict exists $dictName $keyName]} {
-    return [dict get $dictName $keyName]
-  } else {
-    return $default
+  else {
+    # Tcl Shell
+    puts "***DEBUG Hog:SetProperty $property to $value of $object"
   }
 }
 
-## @brief Get git SHA of a vivado library
+## @brief set the top module as top module in the chosen fileset
 #
-# If the special string "ALL" is used, returns the global hash
+# It automatically recognises the IDE
 #
-# @param[in] lib the name of the library whose latest commit hash will be returned
+# @param[out] top_module  Name of the top module
+# @param[in]  fileset     The name of the fileset
 #
-# @return        the git SHA of the specified library
-#
-proc GetHashLib {lib} {
-  if {$lib eq "ALL"} {
-    set ret [GetSHA]
-  } else {
-    set ff [get_files -filter LIBRARY==$lib]
-    set ret [GetSHA $ff]
+proc SetTopProperty {top_module fileset} {
+  Msg Info "Setting TOP property to $top_module module"
+  if {[IsXilinx]} {
+    #VIVADO_ONLY
+    set_property "top" $top_module [get_filesets $fileset]
+  } elseif {[IsQuartus]} {
+    #QUARTUS ONLY
+    set_global_assignment -name TOP_LEVEL_ENTITY $top_module
+  } elseif {[IsLibero]} {
+    set_root -module $top_module
   }
+}
 
-  return $ret
+## @brief Returns a list of Vivado properties that expect a PATH for value
+proc VIVADO_PATH_PROPERTIES {} {
+  return {"\.*\.TCL\.PRE$" "^.*\.TCL\.POST$" "^RQS_FILES$" "^INCREMENTAL\_CHECKPOINT$"}
+}
+
+## @brief Write into a file, and if the file exists, it will append the string
+#
+# @param[out] File The log file to write into the message
+# @param[in]  msg  The message text
+proc WriteToFile {File msg} {
+  set f [open $File a+]
+  puts $f $msg
+  close $f
 }
 
 
-## @brief Get a list of all modified the files matching then pattern
-#
-# @param[in] repo_path the path of the git repository
-# @param[in] pattern the pattern with wildcards that files should match
-#
-# @return    a list of all modified files matchin the pattern
-#
-proc GetModifiedFiles {{repo_path "."} {pattern "."}} {
-  set old_path [pwd]
-  cd $repo_path
-  set ret [Git "ls-files --modified $pattern"]
-  cd $old_path
-  return $ret
-}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ## @brief Restore with checkout -- the files specified in pattern
 #

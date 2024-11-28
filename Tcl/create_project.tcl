@@ -153,7 +153,7 @@ proc AddProjectFiles {} {
     if {[string equal [get_filesets -quiet sources_1] ""]} {
       create_fileset -srcset sources_1
     }
-    set sources [get_filesets sources_1]
+    set sources "sources_1"
   } else {
     set sources 0
   }

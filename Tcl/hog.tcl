@@ -1956,7 +1956,6 @@ proc GetProjectFiles {} {
       set dict_fs $fs
     }
     foreach f $all_files {
-      puts $f
       # Ignore files that are part of the vivado/planahead project but would not be reflected
       # in list files (e.g. generated products from ip cores)
       set ignore 0
@@ -1967,6 +1966,12 @@ proc GetProjectFiles {} {
           set ignore 1
         }
       }
+
+      if {[get_property FILE_TYPE [GetFile $f $fs]] == "Configuration Files"} {
+        set ignore 1
+      }
+
+
       if { [IsInList "CORE_CONTAINER" [list_property [GetFile $f $fs]]]} {
         if {[get_property CORE_CONTAINER [GetFile $f $fs]] != ""} {
           if { [file extension $f] == ".xcix"} {

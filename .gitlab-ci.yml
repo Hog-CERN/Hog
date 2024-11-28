@@ -267,7 +267,7 @@ tagging:
     - cd TestFirmware/
     # Check if there is still a branch connected to the merged MR
     - if git branch -a | grep -q "auto/$branch"; then
-        git checkout auto/$branch
+        git checkout auto/$branch;
         git branch --set-upstream-to=origin/auto/$branch auto/$branch;
         set +e; MERGE_STATUS=$(git merge --no-commit origin/develop); set -e;
         if [ "$MERGE_STATUS" == "Already up to date." ]; then

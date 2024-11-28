@@ -1883,7 +1883,9 @@ proc GetProjectFiles {} {
 
     if {$fs_type == "BlockSrcs"} {
       # Vivado creates for each ip a blockset... Let's redirect to sources_1
-      set fs "sources_1"
+      set dict_fs "sources_1"
+    } else {
+      set dict_fs $fs
     }
     foreach f $all_files {
       # Ignore files that are part of the vivado/planahead project but would not be reflected
@@ -1896,6 +1898,12 @@ proc GetProjectFiles {} {
           set ignore 1
         }
       }
+
+      if {[get_property FILE_TYPE [GetFile $f $fs]] == "Configuration Files"} {
+        set ignore 1
+      }
+
+
       if { [IsInList "CORE_CONTAINER" [list_property [GetFile $f $fs]]]} {
         if {[get_property CORE_CONTAINER [GetFile $f $fs]] != ""} {
           if { [file extension $f] == ".xcix"} {
@@ -1969,35 +1977,35 @@ proc GetProjectFiles {} {
             set library "others.sim"
           }
 
-          if {[IsInList $library [DictGet $simsets $fs]]==0} {
-            dict lappend simsets $fs $library
+          if {[IsInList $library [DictGet $simsets $dict_fs]]==0} {
+            dict lappend simsets $dict_fs $library
           }
 
           dict lappend simlibraries $library $f
 
         } elseif {[string equal $type "VHDL"] } {
           # VHDL files (both 2008 and 93)
-          if {[IsInList "${lib}.src" [DictGet $srcsets $fs]]==0} {
-            dict lappend srcsets $fs "${lib}.src"
+          if {[IsInList "${lib}.src" [DictGet $srcsets $dict_fs]]==0} {
+            dict lappend srcsets $dict_fs "${lib}.src"
           }
           dict lappend libraries "${lib}.src" $f
         } elseif {[string first "IP" $type] != -1} {
           # IPs
-          if {[IsInList "ips.src" [DictGet $srcsets $fs]]==0} {
-            dict lappend srcsets $fs "ips.src"
+          if {[IsInList "ips.src" [DictGet $srcsets $dict_fs]]==0} {
+            dict lappend srcsets $dict_fs "ips.src"
           }
           dict lappend libraries "ips.src" $f
           Msg Debug "Appending $f to ips.src"
         } elseif {[string equal $fs_type "Constrs"]} {
           # Constraints
-          if {[IsInList "sources.con" [DictGet $consets $fs]]==0} {
-            dict lappend consets $fs "sources.con"
+          if {[IsInList "sources.con" [DictGet $consets $dict_fs]]==0} {
+            dict lappend consets $dict_fs "sources.con"
           }
           dict lappend constraints "sources.con" $f
         } else {
           # Verilog and other files
-          if {[IsInList "others.src" [DictGet $srcsets $fs]]==0} {
-            dict lappend srcsets $fs "others.src"
+          if {[IsInList "others.src" [DictGet $srcsets $dict_fs]]==0} {
+            dict lappend srcsets $dict_fs "others.src"
           }
           dict lappend libraries "others.src" $f
           Msg Debug "Appending $f to others.src"

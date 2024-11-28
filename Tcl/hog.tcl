@@ -367,19 +367,19 @@ proc GetRun {run} {
   }
 }
 
-## @brief Gets a list of files contained in the current project that match a file name (passed as parameter)
+## @brief Gets a list of files contained in the current fileset that match a file name (passed as parameter)
 #
 # The file name is matched against the input parameter.
-# IF no parameter if passed returns a list of all files in the project
 #
 #  @param[in] file name (or part of it)
+#  @param[in] fileset name 
 #
-#  @return         a list of files matching the parameter
+#  @return    a list of files matching the parameter in the chosen fileset
 #
-proc GetFile {file} {
+proc GetFile {file fileset} {
   if {[IsXilinx]} {
     # Vivado
-    set Files [get_files -all $file]
+    set Files [get_files -all $file -of_object [get_filesets $fileset]]
     set f [lindex $Files 0]
 
     return $f
@@ -1959,34 +1959,34 @@ proc GetProjectFiles {} {
       set ignore 0
       # Generated files point to a parent composite file;
       # planahead does not have an IS_GENERATED property
-      if { [IsInList "IS_GENERATED" [list_property [GetFile $f]]]} {
-        if { [lindex [get_property  IS_GENERATED [GetFile $f]] 0] != 0} {
+      if { [IsInList "IS_GENERATED" [list_property [GetFile $f $fs]]]} {
+        if { [lindex [get_property  IS_GENERATED [GetFile $f $fs]] 0] != 0} {
           set ignore 1
         }
       }
-      if { [IsInList "CORE_CONTAINER" [list_property [GetFile $f]]]} {
-        if {[get_property CORE_CONTAINER [GetFile $f]] != ""} {
+      if { [IsInList "CORE_CONTAINER" [list_property [GetFile $f $fs]]]} {
+        if {[get_property CORE_CONTAINER [GetFile $f $fs]] != ""} {
           if { [file extension $f] == ".xcix"} {
-            set f [get_property CORE_CONTAINER [GetFile $f]]
+            set f [get_property CORE_CONTAINER [GetFile $f $fs]]
           } else {
             set ignore 1
           }
         }
       }
 
-      if {[IsInList "SCOPED_TO_REF" [list_property [GetFile $f]]]} {
-        if {[get_property SCOPED_TO_REF [GetFile $f]] != ""} {
-          dict lappend properties $f "scoped_to_ref=[get_property SCOPED_TO_REF [GetFile $f]]"
+      if {[IsInList "SCOPED_TO_REF" [list_property [GetFile $f $fs]]]} {
+        if {[get_property SCOPED_TO_REF [GetFile $f $fs]] != ""} {
+          dict lappend properties $f "scoped_to_ref=[get_property SCOPED_TO_REF [GetFile $f $fs]]"
         }
       }
 
-      if {[IsInList "SCOPED_TO_CELLS" [list_property [GetFile $f]]]} {
-        if {[get_property SCOPED_TO_CELLS [GetFile $f]] != ""} {
-          dict lappend properties $f "scoped_to_cells=[get_property SCOPED_TO_CELLS [GetFile $f]]"
+      if {[IsInList "SCOPED_TO_CELLS" [list_property [GetFile $f $fs]]]} {
+        if {[get_property SCOPED_TO_CELLS [GetFile $f $fs]] != ""} {
+          dict lappend properties $f "scoped_to_cells=[get_property SCOPED_TO_CELLS [GetFile $f $fs]]"
         }
       }
 
-      if {[IsInList "PARENT_COMPOSITE_FILE" [list_property [GetFile $f]]]} {
+      if {[IsInList "PARENT_COMPOSITE_FILE" [list_property [GetFile $f $fs]]]} {
         set ignore 1
       }
 
@@ -2000,9 +2000,9 @@ proc GetProjectFiles {} {
           set f [file normalize $f]
         }
         lappend files $f
-        set type  [get_property FILE_TYPE [GetFile $f]]
+        set type  [get_property FILE_TYPE [GetFile $f $fs]]
         # Added a -quiet because some files (.v, .sv) don't have a library
-        set lib [get_property -quiet LIBRARY [GetFile $f]]
+        set lib [get_property -quiet LIBRARY [GetFile $f $fs]]
 
         # Type can be complex like VHDL 2008, in that case we want the second part to be a property
         Msg Debug "File $f Extension [file extension $f] Type [lindex $type 0]"
@@ -2071,16 +2071,16 @@ proc GetProjectFiles {} {
           Msg Debug "Appending $f to others.src"
         }
 
-        if {[lindex [get_property -quiet used_in_synthesis  [GetFile $f]] 0] == 0} {
+        if {[lindex [get_property -quiet used_in_synthesis  [GetFile $f $fs]] 0] == 0} {
           dict lappend properties $f "nosynth"
         }
-        if {[lindex [get_property -quiet used_in_implementation  [GetFile $f]] 0] == 0} {
+        if {[lindex [get_property -quiet used_in_implementation  [GetFile $f $fs]] 0] == 0} {
           dict lappend properties $f "noimpl"
         }
-        if {[lindex [get_property -quiet used_in_simulation  [GetFile $f]] 0] == 0} {
+        if {[lindex [get_property -quiet used_in_simulation  [GetFile $f $fs]] 0] == 0} {
           dict lappend properties $f "nosim"
         }
-        if {[lindex [get_property -quiet IS_MANAGED [GetFile $f]] 0] == 0 && [file extension $f] != ".xcix" } {
+        if {[lindex [get_property -quiet IS_MANAGED [GetFile $f $fs]] 0] == 0 && [file extension $f] != ".xcix" } {
           dict lappend properties $f "locked"
         }
       }

@@ -13,14 +13,11 @@
 #   limitations under the License.
 
 ## @file hog.tcl
-# @brief Collection of Tcl functions used in Vivado/Quartus scripts
 
-### @brief Display a Vivado/Quartus/Tcl-shell info message
-#
-# @param[in] level  the severity level of the message given as string or integer: status/extra_info 0, info 1, warning 2, critical warning 3, error 4.
-# @param[in] msg    the message text.
-# @param[in] title  the name of the script displaying the message, if not given, the calling script name will be used by default.
-#
+# Check Git Version when sourcing hog.tcl
+if {[GitVersion 2.7.2] == 0 } {
+  Msg Error "Found Git version older than 2.7.2. Hog will not work as expected, exiting now."
+}
 
 #### GLOBAL CONSTANTS
 set CI_STAGES {"generate_project" "simulate_project"}
@@ -39,2106 +36,11 @@ proc AddFile {file fileset} {
   }
 }
 
-## @brief Adds the file containing the top module to the project
-#
-# It automatically recognises whether it is in Vivado or Quartus mode
-#
-# @param[in] top_module name of the top module, expected @c top_<project_name>
-# @param[in] top_file   name of the file containing the top module
-# @param[in] fileset    name of the fileset to which to add the file (default sources_1)
-proc AddTopFile {top_module top_file {fileset "sources_1"}} {
-  if {[IsXilinx]} {
-    #VIVADO_ONLY
-    add_files -norecurse -fileset $fileset $top_file
-  } elseif {[IsQuartus]} {
-    #QUARTUS ONLY
-    set file_type [FindFileType $top_file]
-    set hdl_version [FindVhdlVersion $top_file]
-    set_global_assignment -name $file_type $top_file
-  } else {
-    puts "Adding project top module $top_module"
-  }
-}
-
-## @brief Returns a dictionary for the allowed properties for each file type
-proc ALLOWED_PROPS {} {
-  return [dict create ".vhd" [list "93" "nosynth" "noimpl" "nosim" "1987" "1993" "2008" ]\
-    ".vhdl" [list "93" "nosynth" "noimpl" "nosim" "1987" "1993" "2008" ]\
-    ".v" [list "SystemVerilog" "verilog_header" "nosynth" "noimpl" "nosim" "1995" "2001"]\
-    ".sv" [list "verilog" "verilog_header" "nosynth" "noimpl" "nosim" "2005" "2009"]\
-    ".do" [list "nosim"]\
-    ".udo" [list "nosim"]\
-    ".xci" [list "nosynth" "noimpl" "nosim" "locked"]\
-    ".xdc" [list "nosynth" "noimpl" ]\
-    ".tcl" [list "nosynth" "noimpl" "nosim" "source" "qsys" "noadd" "--block-symbol-file" "--clear-output-directory" "--example-design" "--export-qsys-script" "--family" "--greybox" "--ipxact" "--jvm-max-heap-size" "--parallel" "--part" "--search-path" "--simulation" "--synthesis" "--testbench" "--testbench-simulation" "--upgrade-ip-cores" "--upgrade-variation-file"]\
-    ".qsys" [list "nogenerate" "noadd" "--block-symbol-file" "--clear-output-directory" "--example-design" "--export-qsys-script" "--family" "--greybox" "--ipxact" "--jvm-max-heap-size" "--parallel" "--part" "--search-path" "--simulation" "--synthesis" "--testbench" "--testbench-simulation" "--upgrade-ip-cores" "--upgrade-variation-file"]\
-    ".sdc" [list "notiming" "nosynth" "noplace"]\
-    ".pdc" [list "nosynth" "noplace"]]\
-}
-
-## @brief # Returns the step name for the stage that produces the binary file
-#
-# Projects using Versal chips have a different step for producing the
-# binary file, we use this function to take that into account
-#
-# @param[out] 1 if it's Versal 0 if it's not
-# @param[in]  part  The FPGA part
-#
-proc BinaryStepName {part} {
-  if {[IsVersal $part]} {
-    return "WRITE_DEVICE_IMAGE"
-  } else {
-    return "WRITE_BITSTREAM"
-  }
-}
-
-## @brief Compare two semantic versions
-#
-# @param[in] ver1 a list of 3 numbers M m p
-# @param[in] ver2 a list of 3 numbers M m p
-#
-# In case the ver1 or ver2 are in the format vX.Y.Z rather than a list, they will be converted.
-# If one of the tags is an empty string it will be considered as 0.0.0
-#
-# @return Returns 1 ver1 is greater than ver2, 0 if they are equal, and -1 if ver2 is greater than ver1
-proc CompareVersions {ver1 ver2} {
-  if {$ver1 eq ""} {
-    set ver1 v0.0.0
-  }
-
-  if {$ver2 eq ""} {
-    set ver2 v0.0.0
-  }
-
-  if {[regexp {v(\d+)\.(\d+)\.(\d+)} $ver1 - x y z]} {
-    set ver1 [list $x $y $z]
-  }
-  if {[regexp {v(\d+)\.(\d+)\.(\d+)} $ver2 - x y z]} {
-    set ver2 [list $x $y $z]
-  }
-
-  # Add 1 in front to avoid crazy Tcl behaviour with leading 0 being octal...
-  set v1 [join $ver1 ""]
-  set v1 "1$v1"
-  set v2 [join $ver2 ""]
-  set v2 "1$v2"
-
-  if {[string is integer $v1] && [string is integer $v2]} {
-
-    set ver1 [expr {[scan [lindex $ver1 0] %d]*100000 + [scan [lindex $ver1 1] %d]*1000 + [scan [lindex $ver1 2] %d]}]
-    set ver2 [expr {[scan [lindex $ver2 0] %d]*100000 + [scan [lindex $ver2 1] %d]*1000 + [scan [lindex $ver2 2] %d]}]
-
-    if {$ver1 > $ver2 } {
-      set ret 1
-    } elseif {$ver1 == $ver2} {
-      set ret 0
-    } else {
-      set ret -1
-    }
-
-  } else {
-    Msg Warning "Version is not numeric: $ver1, $ver2"
-    set ret 0
-  }
-  return [expr {$ret}]
-}
-
-
-## @brief Returns the value in a Tcl dictionary corresponding to the chosen key
-#
-# @param[in] dictName the name of the dictionary
-# @param[in] keyName  the name of the key
-# @param[in] default  the default value to be returned if the key is not found (default "")
-#
-# @return             The value in the dictionary corresponding to the provided key
-proc DictGet {dictName keyName {default ""}} {
-  if {[dict exists $dictName $keyName]} {
-    return [dict get $dictName $keyName]
-  } else {
-    return $default
-  }
-}
-
-## @brief Checks the Doxygen version installed in this machine
-#
-# @param[in] target_version the version required by the current project
-#
-# @return Returns 1, if the system Doxygen version is greater or equal to the target
-proc DoxygenVersion {target_version} {
-  set ver [split $target_version "."]
-  set v [Execute doxygen --version]
-  Msg Info "Found Doxygen version: $v"
-  set current_ver [split $v ". "]
-  set target [expr {[lindex $ver 0]*100000 + [lindex $ver 1]*100 + [lindex $ver 2]}]
-  set current [expr {[lindex $current_ver 0]*100000 + [lindex $current_ver 1]*100 + [lindex $current_ver 2]}]
-
-  return [expr {$target <= $current}]
-}
-
-## @brief determine file type from extension
-#  Used only for Quartus
-#
-## @return FILE_TYPE the file Type
-proc FindFileType {file_name} {
-  set extension [file extension $file_name]
-  switch $extension {
-    .stp {
-      set file_extension "USE_SIGNALTAP_FILE"
-    }
-    .vhd {
-      set file_extension "VHDL_FILE"
-    }
-    .vhdl {
-      set file_extension "VHDL_FILE"
-    }
-    .v {
-      set file_extension "VERILOG_FILE"
-    }
-    .sv {
-      set file_extension "SYSTEMVERILOG_FILE"
-    }
-    .sdc {
-      set file_extension "SDC_FILE"
-    }
-    .pdc {
-      set file_extension "PDC_FILE"
-    }
-    .ndc {
-      set file_extension "NDC_FILE"
-    }
-    .fdc {
-      set file_extension "FDC_FILE"
-    }
-    .qsf {
-      set file_extension "SOURCE_FILE"
-    }
-    .ip {
-      set file_extension "IP_FILE"
-    }
-    .qsys {
-      set file_extension "QSYS_FILE"
-    }
-    .qip {
-      set file_extension "QIP_FILE"
-    }
-    .sip {
-      set file_extension "SIP_FILE"
-    }
-    .bsf {
-      set file_extension "BSF_FILE"
-    }
-    .bdf {
-      set file_extension "BDF_FILE"
-    }
-    .tcl {
-      set file_extension "COMMAND_MACRO_FILE"
-    }
-    .vdm {
-      set file_extension "VQM_FILE"
-    }
-    default {
-      set file_extension "ERROR"
-      Msg Error "Unknown file extension $extension"
-    }
-  }
-  return $file_extension
-}
-
-## @brief Set VHDL version to 2008 for *.vhd files
-#
-# @param[in] file_name the name of the HDL file
-#
-# @return "-hdl_version VHDL_2008" if the file is a *.vhd files else ""
-proc FindVhdlVersion {file_name} {
-  set extension [file extension $file_name]
-  switch $extension {
-    .vhd {
-      set vhdl_version "-hdl_version VHDL_2008"
-    }
-    .vhdl {
-      set vhdl_version "-hdl_version VHDL_2008"
-    }
-    default {
-      set vhdl_version ""
-    }
-  }
-
-  return $vhdl_version
-}
-
-## @brief Gets a list of files contained in the current fileset that match a file name (passed as parameter)
-#
-# The file name is matched against the input parameter.
-#
-#  @param[in] file name (or part of it)
-#  @param[in] fileset name
-#
-#  @return    a list of files matching the parameter in the chosen fileset
-#
-proc GetFile {file fileset} {
-  if {[IsXilinx]} {
-    # Vivado
-    set Files [get_files -all $file -of_object [get_filesets $fileset]]
-    set f [lindex $Files 0]
-
-    return $f
-
-  } elseif {[IsQuartus]} {
-    # Quartus
-    return ""
-  } else {
-    # Tcl Shell
-    puts "***DEBUG Hog:GetFile $file"
-    return "DEBUG_file"
-  }
-}
-
-## @brief Returns the real file linked by a soft link
-#
-# If the provided file is not a soft link, it will give a Warning and return an empty string.
-# If the link is broken, will give a warning but still return the linked file
-#
-# @param[in] link_file The soft link file
-proc GetLinkedFile {link_file} {
-  if {[file type $link_file] eq "link"} {
-    if {[OS] == "windows" } {
-        #on windows we need to use readlink because Tcl is broken
-      lassign  [ExecuteRet realpath $link_file] ret msg
-      lassign  [ExecuteRet cygpath -m $msg] ret2 msg2
-      if {$ret == 0 && $ret2 == 0} {
-        set real_file $msg2
-        Msg Debug "Found link file $link_file on Windows, the linked file is: $real_file"
-      } else {
-        Msg CriticalWarning "[file normalize $link_file] is a soft link. Soft link are not supported on Windows and readlink.exe or cygpath.exe did not work: readlink=$ret: $msg, cygpath=$ret2: $msg2."
-        set real_file $link_file
-      }
-    } else {
-      #on linux Tcl just works
-      set linked_file [file link $link_file]
-      set real_file [file normalize [file dirname $link_file]/$linked_file]
-    }
-
-    if {![file exists $real_file]} {
-      Msg Warning "$link_file is a broken link, because the linked file: $real_file does not exist."
-    }
-  } else {
-    Msg Warning "$link file is not a soft link"
-    set real_file $link_file
-  }
-  return $real_file
-}
-
-## @brief Get a list of all modified the files matching then pattern
-#
-# @param[in] repo_path the path of the git repository
-# @param[in] pattern the pattern with wildcards that files should match
-#
-# @return    a list of all modified files matching the pattern
-#
-proc GetModifiedFiles {{repo_path "."} {pattern "."}} {
-  set old_path [pwd]
-  cd $repo_path
-  set ret [Git "ls-files --modified $pattern"]
-  cd $old_path
-  return $ret
-}
-
-## @brief Retrieves the value of a property of an object
-#
-# It automatically recognises whether it is in Vivado or Quartus mode
-#
-# @param[in] property the name of the property to be retrieved
-# @param[in] object   the object from which to retrieve the property
-#
-# @returns            the value of object.property
-#
-proc GetProperty {property object} {
-  if {[IsXilinx]} {
-    # Vivado
-    return [get_property -quiet $property $object]
-
-  } elseif {[IsQuartus]} {
-    # Quartus
-    return ""
-  } else {
-    # Tcl Shell
-    puts "***DEBUG Hog:GetProperty $property of $object"
-    return "DEBUG_property_value"
-  }
-}
-
-## @brief Returns the list of Simulators supported by Vivado
-proc GetSimulators {} {
-  set SIMULATORS [list "modelsim" "questa" "riviera" "activehdl" "ies" "vcs"]
-  return $SIMULATORS
-}
-
-## @brief Check git version installed in this machine
-#
-# @param[in] target_version the version required by the current project
-#
-# @return Returns 1, if the system git version is greater or equal to the target
-proc GitVersion {target_version} {
-  set ver [split $target_version "."]
-  set v [Git --version]
-  #Msg Info "Found Git version: $v"
-  set current_ver [split [lindex $v 2] "."]
-  set target [expr {[lindex $ver 0]*100000 + [lindex $ver 1]*100 + [lindex $ver 2]}]
-  set current [expr {[lindex $current_ver 0]*100000 + [lindex $current_ver 1]*100 + [lindex $current_ver 2]}]
-  return [expr {$target <= $current}]
-}
-
-## @brief Returns true if the IDE is MicroSemi Libero
-proc IsLibero {} {
-  return [expr {[info commands get_libero_version] != ""}]
-}
-
-## @brief Returns true, if the IDE is ISE/PlanAhead
-proc IsISE {} {
-  if {[IsXilinx]} {
-    return [expr {[string first PlanAhead [version]] == 0}]
-  } else {
-    return 0
-  }
-}
-
-## @brief Returns true, if IDE is Quartus
-proc IsQuartus {} {
-  return [expr {[info commands project_new] != ""}]
-}
-
-## @brief Returns true if the Synthesis tool is Synplify
-proc IsSynplify {} {
-  return [expr {[info commands program_version] != ""}]
-}
-
-## @brief Returns true, if we are in tclsh
-proc IsTclsh {} {
-  return [expr {![IsQuartus] && ![IsXilinx] && ![IsLibero] && ![IsSynplify]}]
-}
-
-## @brief Find out if the given Xilinx part is a Vesal chip
-#
-# @param[out] 1 if it's Versal 0 if it's not
-# @param[in]  part  The FPGA part
-#
-proc IsVersal {part} {
-  if { [regexp {^(xcvp|xcvm|xcve|xcvc|xqvc|xqvm).*} $part] } {
-    return 1
-  } else {
-    return 0
-  }
-}
-
-## @brief Returns true, if the IDE is Vivado
-proc IsVivado {} {
-  if {[IsXilinx]} {
-    return [expr {[string first Vivado [version]] == 0}]
-  } else {
-    return 0
-  }
-}
-
-## @brief Return true, if the IDE is Xilinx (Vivado or ISE)
-proc IsXilinx {} {
-  return [expr {[info commands get_property] != ""}]
-}
-
-## @brief Find out if the given Xilinx part is a Vesal chip
-#
-# @param[out] 1 if it's Zynq 0 if it's not
-# @param[in]  part  The FPGA part
-#
-proc IsZynq {part} {
-  if { [regexp {^(xc7z|xczu).*} $part] } {
-    return 1
-  } else {
-    return 0
-  }
-}
-
-## @brief Merges two tcl dictionaries of lists
-#
-# If the dictionaries contain same keys, the list at the common key is a merging of the two
-#
-# @param[in] dict0 the name of the first dictionary
-# @param[in] dict1 the name of the second dictionary
-#
-# @return  the merged dictionary
-#
-proc MergeDict {dict0 dict1} {
-  set outdict [dict merge $dict1 $dict0]
-  foreach key [dict keys $dict1 ] {
-    if {[dict exists $dict0 $key]} {
-      set temp_list [dict get $dict1 $key]
-      foreach vhdfile $temp_list {
-        # Avoid duplication
-        if {[IsInList $vhdfile [DictGet $outdict $key]] == 0} {
-          dict lappend outdict $key $vhdfile
-        }
-      }
-    }
-  }
-  return $outdict
-}
-
-
-## @brief The Hog Printout Msg function
-#
-# @param[in] level The severity level (status, info, warning, critical, error, debug)
-# @param[in] msg   The message to print
-# @param[in] title The title string to be included in the header of the message [Hog:$title] (default "")
-proc Msg {level msg {title ""}} {
-  set level [string tolower $level]
-  if {$title == ""} {set title [lindex [info level [expr {[info level]-1}]] 0]}
-  if {$level == 0 || $level == "status" || $level == "extra_info"} {
-    set vlevel {STATUS}
-    set qlevel info
-  } elseif {$level == 1 || $level == "info"} {
-    set vlevel {INFO}
-    set qlevel info
-  } elseif {$level == 2 || $level == "warning"} {
-    set vlevel {WARNING}
-    set qlevel warning
-  } elseif {$level == 3 || [string first "critical" $level] !=-1} {
-    set vlevel {CRITICAL WARNING}
-    set qlevel critical_warning
-  } elseif {$level == 4 || $level == "error"} {
-    set vlevel {ERROR}
-    set qlevel error
-  } elseif {$level == 5 || $level == "debug"} {
-    if {([info exists ::DEBUG_MODE] && $::DEBUG_MODE == 1) || ([info exists ::env(HOG_DEBUG_MODE)] && $::env(HOG_DEBUG_MODE) == 1)} {
-      set vlevel {STATUS}
-      set qlevel extra_info
-      set msg "DEBUG: \[Hog:$title\] $msg"
-    } else {
-      return
-    }
-  } else {
-    puts "Hog Error: level $level not defined"
-    exit -1
-  }
-
-
-  if {[IsXilinx]} {
-    # Vivado
-    set status [catch {send_msg_id Hog:$title-0 $vlevel $msg}]
-    if {$status != 0} {
-      exit $status
-    }
-  } elseif {[IsQuartus]} {
-    # Quartus
-    post_message -type $qlevel "Hog:$title $msg"
-    if { $qlevel == "error"} {
-      exit 1
-    }
-  } else {
-    # Tcl Shell / Libero
-    if {$vlevel != "STATUS"} {
-      puts "$vlevel: \[Hog:$title\] $msg"
-    } else {
-      puts $msg
-    }
-
-    if {$qlevel == "error"} {
-      exit 1
-    }
-  }
-}
-
-## @brief Return the operative system name
-proc OS {} {
-  global tcl_platform
-  return $tcl_platform(platform)
-}
-
-## @brief Read a list file and return a list of three dictionaries
-#
-# Additional information is provided with text separated from the file name with one or more spaces
-#
-# @param[in] args The arguments are \<list_file\> \<path\> [options]
-#                 * list_file file containing vhdl list with optional properties
-#                 * path      path the vhdl file are referred to in the list file
-# Options:
-#                 * -lib \<library\> name of the library files will be added to, if not given will be extracted from the file name
-#                 * -sha_mode  if not set to 0, the list files will be added as well and the IPs will be added to the file rather than to the special ip library. The SHA mode should be used when you use the lists to calculate the git SHA, rather than to add the files to the project.
-#
-# @return              a list of 3 dictionaries: "libraries" has library name as keys and a list of filenames as values, "properties" has as file names as keys and a list of properties as values, "filesets" has the fileset' names as keys and the list of associated libraries as values.
-proc ReadListFile args {
-
-  if {[IsQuartus]} {
-    load_package report
-    if { [catch {package require cmdline} ERROR] } {
-      puts "$ERROR\n If you are running this script on tclsh, you can fix this by installing 'tcllib'"
-      return 1
-    }
-  }
-
-  set parameters {
-    {lib.arg ""  "The name of the library files will be added to, if not given will be extracted from the file name."}
-    {fileset.arg "" "The name of the library, from the main list file"}
-    {sha_mode "If set, the list files will be added as well and the IPs will be added to the file rather than to the special IP library. The SHA mode should be used when you use the lists to calculate the git SHA, rather than to add the files to the project."}
-  }
-  set usage "USAGE: ReadListFile \[options\] <list file> <path>"
-  if {[catch {array set options [cmdline::getoptions args $parameters $usage]}] ||  [llength $args] != 2 } {
-    Msg CriticalWarning "[cmdline::usage $parameters $usage]"
-    return
-  }
-  set list_file [lindex $args 0]
-  set path [lindex $args 1]
-  set sha_mode $options(sha_mode)
-  set lib $options(lib)
-  set fileset $options(fileset)
-
-  if { $sha_mode == 1} {
-    set sha_mode_opt "-sha_mode"
-  } else {
-    set sha_mode_opt  ""
-  }
-
-  # if no library is given, work it out from the file name
-  if {$lib eq ""} {
-    set lib [file rootname [file tail $list_file]]
-  }
-  set fp [open $list_file r]
-  set file_data [read $fp]
-  close $fp
-  set list_file_ext [file extension $list_file]
-  switch $list_file_ext {
-    .sim {
-      if {$fileset eq ""} {
-        # If fileset is empty, use the library name for .sim file
-        set fileset "$lib"
-      }
-    }
-    .con {
-      set fileset "constrs_1"
-    }
-    default {
-      set fileset "sources_1"
-    }
-  }
-
-  set libraries [dict create]
-  set filesets [dict create]
-  set properties [dict create]
-  #  Process data file
-  set data [split $file_data "\n"]
-  set n [llength $data]
-  Msg Debug "$n lines read from $list_file."
-  set cnt 0
-
-  foreach line $data {
-    # Exclude empty lines and comments
-    if {![regexp {^ *$} $line] & ![regexp {^ *\#} $line] } {
-      set file_and_prop [regexp -all -inline {\S+} $line]
-      set srcfile [lindex $file_and_prop 0]
-      set srcfile "$path/$srcfile"
-
-      set srcfiles [glob -nocomplain $srcfile]
-
-      # glob the file list for wildcards
-      if {$srcfiles != $srcfile && ! [string equal $srcfiles "" ]} {
-        Msg Debug "Wildcard source expanded from $srcfile to $srcfiles"
-      } else {
-        if {![file exists $srcfile]} {
-          Msg CriticalWarning "File: $srcfile (from list file: $list_file) does not exist."
-          continue
-        }
-      }
-
-      foreach vhdlfile $srcfiles {
-        if {[file exists $vhdlfile]} {
-          set vhdlfile [file normalize $vhdlfile]
-          set extension [file extension $vhdlfile]
-          ### Set file properties
-          set prop [lrange $file_and_prop 1 end]
-
-          # The next lines should be inside the case for recursive list files, also we should check the allowed properties for the .src as well
-          set library [lindex [regexp -inline {lib\s*=\s*(.+?)\y.*} $prop] 1]
-          if { $library == "" } {
-            set library $lib
-          }
-
-          if { $extension == $list_file_ext } {
-            # Deal with recursive list files
-            set ref_path [lindex [regexp -inline {path\s*=\s*(.+?)\y.*} $prop] 1]
-            if { $ref_path eq "" } {
-              set ref_path $path
-            } else {
-              set ref_path [file normalize $path/$ref_path]
-            }
-            Msg Debug "List file $vhdlfile found in list file, recursively opening it using path \"$ref_path\"..."
-            lassign [ReadListFile {*}"-lib $library -fileset $fileset $sha_mode_opt $vhdlfile $ref_path"] l p fs
-            set libraries [MergeDict $l $libraries]
-            set properties [MergeDict $p $properties]
-            set filesets [MergeDict $fs $filesets]
-          } elseif {[lsearch {.src .sim .con ReadExtraFileList} $extension] >= 0 } {
-            # Not supported extensions
-            Msg Error "$vhdlfile cannot be included into $list_file, $extension files must be included into $extension files."
-          } else {
-            # Deal with single files
-            regsub -all " *= *" $prop "=" prop
-            # Fill property dictionary
-            foreach p $prop {
-              # No need to append the lib= property
-              if { [string first "lib=" $p ] == -1} {
-                # Get property name up to the = (for QSYS properties at the moment)
-                set pos [string first "=" $p]
-                if { $pos == -1 } {
-                  set prop_name $p
-                } else {
-                  set prop_name [string range $p 0 [expr {$pos - 1}]]
-                }
-                if { [IsInList $prop_name [DictGet [ALLOWED_PROPS]  $extension ] ] || [string first "top" $p] == 0 || $list_file_ext eq ".ipb"} {
-                  dict lappend properties $vhdlfile $p
-                  Msg Debug "Adding property $p to $vhdlfile..."
-                } elseif { $list_file_ext != ".ipb" } {
-                  Msg Warning "Setting Property $p is not supported for file $vhdlfile or it is already its default. The allowed properties for this file type are \[ [DictGet [ALLOWED_PROPS] $extension ]\]"
-                }
-              }
-            }
-            if { [lsearch {.xci .ip .bd .xcix} $extension] >= 0} {
-              # Adding IP library
-              set lib_name "ips.src"
-            } elseif { [IsInList $extension {.vhd .vhdl}] || $list_file_ext == ".sim"} {
-              # VHDL files and simulation
-              if { ![IsInList $extension {.vhd .vhdl}]} {
-                set lib_name "others.sim"
-              } else {
-                set lib_name "$library$list_file_ext"
-              }
-            } elseif { $list_file_ext == ".con" } {
-              set lib_name "sources.con"
-            } elseif { $list_file_ext == ".ipb" } {
-              set lib_name "xml.ipb"
-            } else {
-              # Other files are stored in the OTHER dictionary from vivado (no library assignment)
-              set lib_name "others.src"
-            }
-
-            Msg Debug "Appending $vhdlfile to $lib_name list..."
-            dict lappend libraries $lib_name $vhdlfile
-            if { $sha_mode != 0 && [file type $vhdlfile] eq "link"} {
-              #if the file is a link, also add the linked file in sha mode
-              set real_file [GetLinkedFile $vhdlfile]
-              dict lappend libraries $lib_name $real_file
-              Msg Debug "File $vhdlfile is a soft link, also adding the real file: $real_file"
-            }
-
-
-            # Create the fileset (if not already) and append the library
-            if {[dict exists $filesets $fileset] == 0} {
-              # Fileset has not been defined yet, adding to dictionary...
-              Msg Debug "Adding $fileset to the fileset dictionary..."
-              Msg Debug "Adding library $lib_name to fileset $fileset..."
-              dict set filesets $fileset $lib_name
-            } else {
-              # Fileset already exist in dictionary, append library to list, if not already there
-              if {[IsInList $lib_name [DictGet $filesets $fileset]] == 0} {
-                Msg Debug "Adding library $lib_name to fileset $fileset..."
-                dict lappend filesets $fileset $lib_name
-              }
-            }
-          }
-          incr cnt
-        } else {
-          Msg CriticalWarning "File $vhdlfile not found."
-        }
-      }
-    }
-  }
-
-  if {$sha_mode != 0} {
-    #In SHA mode we also need to add the list file to the list
-    if {$list_file_ext eq ".ipb"} {
-      set sha_lib "xml.ipb"
-    } else {
-      set sha_lib $lib$list_file_ext
-    }
-    dict lappend libraries $sha_lib [file normalize $list_file]
-    if {[file type $list_file] eq "link"} {
-      #if the file is a link, also add the linked file
-      set real_file [GetLinkedFile $list_file]
-      dict lappend libraries $lib$list_file_ext $real_file
-      Msg Debug "List file $list_file is a soft link, also adding the real file: $real_file"
-    }
-  }
-  return [list $libraries $properties $filesets]
-}
-
-# TODO: This function is not used, check if we can remove it...
-## @brief Sets the value of a parameter to a given value.
-#
-# This function is a wrapper for set_param $parameter $value
-#
-# @param[in]  parameter the parameter whose value must be set
-# @param[in]  value     the value of the parameter
-
-proc SetParameter {parameter value } {
-  set_param $parameter $value
-}
-
-## @brief Sets a property of an object to a given value.
-#
-# It automatically recognises the IDE
-#
-# @param[in] property The property to set
-# @param[in] value    The value of the property to set
-# @param[in] object   The object for which the property will be set
-proc  SetProperty {property value object} {
-  if {[IsXilinx]} {
-    # Vivado / ISE
-    set_property $property $value $object
-  } elseif {[IsQuartus]} {
-    # TODO: Define the function for Quartus
-  } elseif {[IsLibero]} {
-    # TODO: Define the function for Libero
-  }
-  else {
-    # Tcl Shell
-    puts "***DEBUG Hog:SetProperty $property to $value of $object"
-  }
-}
-
-## @brief set the top module as top module in the chosen fileset
-#
-# It automatically recognises the IDE
-#
-# @param[out] top_module  Name of the top module
-# @param[in]  fileset     The name of the fileset
-#
-proc SetTopProperty {top_module fileset} {
-  Msg Info "Setting TOP property to $top_module module"
-  if {[IsXilinx]} {
-    #VIVADO_ONLY
-    set_property "top" $top_module [get_filesets $fileset]
-  } elseif {[IsQuartus]} {
-    #QUARTUS ONLY
-    set_global_assignment -name TOP_LEVEL_ENTITY $top_module
-  } elseif {[IsLibero]} {
-    set_root -module $top_module
-  }
-}
-
-## @brief Returns a list of Vivado properties that expect a PATH for value
-proc VIVADO_PATH_PROPERTIES {} {
-  return {"\.*\.TCL\.PRE$" "^.*\.TCL\.POST$" "^RQS_FILES$" "^INCREMENTAL\_CHECKPOINT$"}
-}
-
-## @brief Write into a file, and if the file exists, it will append the string
-#
-# @param[out] File The log file to write into the message
-# @param[in]  msg  The message text
-proc WriteToFile {File msg} {
-  set f [open $File a+]
-  puts $f $msg
-  close $f
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-## @brief Restore with checkout -- the files specified in pattern
-#
-# @param[in] repo_path the path of the git repository
-# @param[in] pattern the pattern with wildcards that files should match
-#
-proc RestoreModifiedFiles {{repo_path "."} {pattern "."}} {
-  set old_path [pwd]
-  cd $repo_path
-  set ret [Git checkout $pattern]
-  cd $old_path
-  return
-}
-
-## @brief Recursively gets file names from list file
-#
-#  If the list file contains files with extension .src .sim .con, it will recursively open them
-#
-#  @param[in] FILE  list file to open
-#  @param[in] path  the path the files are referred to in the list file
-#
-#  @returns         a list of the files contained in the list file
-#
-proc GetFileList {FILE path} {
-  set fp [open $FILE r]
-  set file_data [read $fp]
-  set file_list {}
-  close $fp
-  #  Process data file
-  set data [split $file_data "\n"]
-  foreach line $data {
-    if {![regexp {^ *$} $line] & ![regexp {^ *\#} $line] } {
-      #Exclude empty lines and comments
-      set file_and_prop [regexp -all -inline {\S+} $line]
-      set vhdlfile [lindex $file_and_prop 0]
-      set vhdlfile "$path/$vhdlfile"
-      if {[file exists $vhdlfile]} {
-        set extension [file extension $vhdlfile]
-        if { [IsInList $extension {.src .sim .con} ] } {
-          lappend file_list {*}[GetFileList $vhdlfile $path]
-        } else {
-          lappend file_list $vhdlfile
-        }
-      } else {
-        Msg Warning "File $vhdlfile not found"
-      }
-    }
-  }
-
-  return $file_list
-}
-
-## @brief Get git SHA of a subset of list file
-#
-# @param[in] path the file/path or list of files/path the git SHA should be evaluated from. If is not set, use the current path
-#
-# @return         the value of the desired SHA
-#
-proc GetSHA {{path ""}} {
-  if {$path == ""} {
-    lassign [GitRet {log --format=%h --abbrev=7 -1}] status result
-    if {$status == 0} {
-      return [string tolower $result]
-    } else {
-      Msg Error "Something went wrong while finding the latest SHA. Does the repository have a commit?"
-      exit 1
-    }
-  }
-
-  # Get repository top level
-  set repo_path [lindex [Git {rev-parse --show-toplevel}] 0]
-  set paths {}
-  # Retrieve the list of submodules in the repository
-  foreach f $path {
-    set file_in_module 0
-    if {[file exists $repo_path/.gitmodules]} {
-      lassign [GitRet "config --file $repo_path/.gitmodules --get-regexp path"] status result
-      if {$status == 0} {
-        set submodules [split $result "\n"]
-      } else {
-        set submodules ""
-        Msg Warning "Something went wrong while trying to find submodules: $result"
-      }
-
-      foreach mod $submodules {
-        set module [lindex $mod 1]
-        if {[string first "$repo_path/$module" $f] == 0} {
-          # File is in a submodule. Append
-          set file_in_module 1
-          lappend paths "$repo_path/$module"
-          break
-        }
-      }
-
-    }
-    if {$file_in_module == 0} {
-      #File is not in a submodule
-      lappend paths $f
-    }
-  }
-
-  lassign [GitRet {log --format=%h --abbrev=7 -1} $paths] status result
-  if {$status == 0} {
-    return [string tolower $result]
-  } else {
-    Msg Error "Something went wrong while finding the latest SHA. Does the repository have a commit?"
-    exit 1
-  }
-  return [string tolower $result]
-}
-
-## @brief Get git version and commit hash of a subset of files
-#
-# @param[in] path list file or path containing the subset of files whose latest commit hash will be returned
-#
-# @return  a list: the git SHA, the version in hex format
-#
-proc GetVer {path {force_develop 0}} {
-  set SHA [GetSHA $path]
-  #oldest tag containing SHA
-  if {$SHA eq ""} {
-    Msg CriticalWarning "Empty SHA found for ${path}. Commit to Git to resolve this warning."
-  }
-  set old_path [pwd]
-  set p [lindex $path 0]
-  if {[file isdirectory $p]} {
-    cd $p
-  } else {
-    cd [file dirname $p]
-  }
-  set repo_path [Git {rev-parse --show-toplevel}]
-  cd $old_path
-
-  return [list [GetVerFromSHA $SHA $repo_path $force_develop] $SHA]
-}
-
-## @brief Get git version and commit hash of a specific commit give the SHA
-#
-# @param[in] SHA the git SHA of the commit
-# @param[in] repo_path the path of the repository, this is used to open the Top/repo.conf file
-# @param[in] force_develop Force a tag for the develop branch (increase m)
-#
-# @return  a list: the git SHA, the version in hex format
-#
-proc GetVerFromSHA {SHA repo_path {force_develop 0}} {
-  if { $SHA eq ""} {
-    Msg CriticalWarning "Empty SHA found"
-    set ver "v0.0.0"
-  } else {
-    lassign [GitRet "tag --sort=creatordate --contain $SHA -l v*.*.* -l b*v*.*.*" ] status result
-
-    if {$status == 0} {
-      if {[regexp {^ *$} $result]} {
-        # We do not want the most recent tag, we want the biggest value
-        lassign [GitRet "log --oneline --pretty=\"%d\""] status2 tag_list
-        #Msg Status "List of all tags including $SHA: $tag_list."
-        #cleanup the list and get only the tags
-        set pattern {tag: v\d+\.\d+\.\d+}
-        set real_tag_list {}
-        foreach x $tag_list {
-        set x_untrimmed [regexp -all -inline $pattern $x]
-        regsub "tag: " $x_untrimmed "" x_trimmed
-        set tt [lindex $x_trimmed 0]
-        if {![string equal $tt ""]} {
-          lappend real_tag_list $tt
-          #puts "<$tt>"
-        }
-        }
-        #Msg Status "Cleaned up list: $real_tag_list."
-        # Sort the tags in version order
-        set sorted_tags [lsort -decreasing -command CompareVersions $real_tag_list]
-
-        #Msg Status "Sorted Tag list: $sorted_tags"
-        # Select the newest tag in terms of number, not time
-        set tag [lindex $sorted_tags 0]
-
-        # Msg Debug "Chosen Tag $tag"
-        set pattern {v\d+\.\d+\.\d+}
-          if {![regexp $pattern $tag]} {
-            Msg CriticalWarning "No Hog version tags found in this repository."
-            set ver v0.0.0
-          } else {
-
-          lassign [ExtractVersionFromTag $tag] M m p mr
-          # Open repo.conf and check prefixes
-          set repo_conf $repo_path/Top/repo.conf
-
-          # Check if the develop/master scheme is used and where is the merge directed to
-          # Default values
-          set hotfix_prefix "hotfix/"
-          set minor_prefix "minor_version/"
-          set major_prefix "major_version/"
-          set is_hotfix 0
-          set enable_develop_branch $force_develop
-
-          set branch_name [Git {rev-parse --abbrev-ref HEAD}]
-
-          if {[file exists $repo_conf]} {
-            set PROPERTIES [ReadConf $repo_conf]
-            # [main] section
-            if {[dict exists $PROPERTIES main]} {
-              set mainDict [dict get $PROPERTIES main]
-
-              # ENABLE_DEVELOP_ BRANCH property
-              if {[dict exists $mainDict ENABLE_DEVELOP_BRANCH]} {
-                set enable_develop_branch [dict get $mainDict ENABLE_DEVELOP_BRANCH]
-              }
-                # More properties in [main] here ...
-
-            }
-
-            # [prefixes] section
-            if {[dict exists $PROPERTIES prefixes]} {
-              set prefixDict [dict get $PROPERTIES prefixes]
-
-              if {[dict exists $prefixDict HOTFIX]} {
-                set hotfix_prefix [dict get $prefixDict HOTFIX]
-              }
-              if {[dict exists $prefixDict MINOR_VERSION]} {
-                set minor_prefix [dict get $prefixDict MINOR_VERSION]
-              }
-              if {[dict exists $prefixDict MAJOR_VERSION]} {
-                set major_prefix [dict get $prefixDict MAJOR_VERSION]
-              }
-              # More properties in [prefixes] here ...
-            }
-          }
-
-          if {$enable_develop_branch == 1 } {
-            if {[string match "$hotfix_prefix*" $branch_name]} {
-              set is_hotfix 1
-            }
-          }
-
-          if {[string match "$major_prefix*" $branch_name]} {
-            # If major prefix is used, we increase M regardless of anything else
-            set version_level major
-          } elseif {[string match "$minor_prefix*" $branch_name] || ($enable_develop_branch == 1 && $is_hotfix == 0)} {
-            # This is tricky. We increase m if the minor prefix is used or if we are in develop mode and this IS NOT a hotfix
-            set version_level minor
-          } else {
-            # This is even trickier... We increase p if no prefix is used AND we are not in develop mode or if we are in develop mode this IS a Hotfix
-            set version_level patch
-          }
-
-          #Let's keep this for a while, more bugs may come soon
-          #Msg Info "******** $repo_path HF: $hotfix_prefix, M: $major_prefix, m: $minor_prefix, is_hotfix: $is_hotfix: VL: $version_level, BRANCH: $branch_name"
-
-
-          if {$M == -1} {
-            Msg CriticalWarning "Tag $tag does not contain a Hog compatible version in this repository."
-      exit
-            #set ver v0.0.0
-          } elseif {$mr == 0} {
-            #Msg Info "No tag contains $SHA, will use most recent tag $tag. As this is an official tag, patch will be incremented to $p."
-            switch $version_level {
-              minor {
-                incr m
-                set p 0
-              }
-              major {
-                incr M
-                set m 0
-                set p 0
-              }
-              default {
-                incr p
-              }
-            }
-
-          } else {
-            Msg Info "No tag contains $SHA, will use most recent tag $tag. As this is a candidate tag, the patch level will be kept at $p."
-          }
-          set ver v$M.$m.$p
-        }
-      } else {
-        #The tag in $result contains the current SHA
-        set vers [split $result "\n"]
-        set ver [lindex $vers 0]
-        foreach v $vers {
-          if {[regexp {^v.*$} $v]} {
-            set un_ver $ver
-            set ver $v
-            break
-          }
-        }
-      }
-    } else {
-      Msg CriticalWarning "Error while trying to find tag for $SHA"
-      set ver "v0.0.0"
-    }
-  }
-  lassign [ExtractVersionFromTag $ver] M m c mr
-
-  if {$mr > -1} {
-    # Candidate tab
-    set M [format %02X $M]
-    set m [format %02X $m]
-    set c [format %04X $c]
-
-  } elseif { $M > -1 } {
-    # official tag
-    set M [format %02X $M]
-    set m [format %02X $m]
-    set c [format %04X $c]
-
-  } else {
-    Msg Warning "Tag does not contain a properly formatted version: $ver"
-    set M [format %02X 0]
-    set m [format %02X 0]
-    set c [format %04X 0]
-  }
-
-  return $M$m$c
-}
-
-## Get the project version
-#
-#  @param[in] proj_dir: The top folder of the project of which all the version must be calculated
-#  @param[in] repo_path: The top folder of the repository
-#  @param[in] ext_path: path for external libraries
-#  @param[in] sim: if enabled, check the version also for the simulation files
-#
-#  @return  returns the project version
-#
-proc GetProjectVersion {proj_dir repo_path {ext_path ""} {sim 0}} {
-  if { ![file exists $proj_dir] } {
-    Msg CriticalWarning "$proj_dir not found"
-    return -1
-  }
-  set old_dir [pwd]
-  cd $proj_dir
-
-  #The latest version the repository
-  set v_last [ExtractVersionFromTag [Git {describe --abbrev=0 --match "v*"}]]
-  lassign [GetRepoVersions $proj_dir $repo_path $ext_path $sim] sha ver
-  if {$sha == 0} {
-    Msg Warning "Repository is not clean"
-    cd $old_dir
-    return -1
-  }
-
-  #The project version
-  set v_proj [ExtractVersionFromTag v[HexVersionToString $ver]]
-  set comp [CompareVersions $v_proj $v_last]
-  if {$comp == 1} {
-    Msg Info "The specified project was modified since official version."
-    set ret 0
-  } else {
-    set ret v[HexVersionToString $ver]
-  }
-
-  if {$comp == 0} {
-    Msg Info "The specified project was modified in the latest official version $ret"
-  } elseif {$comp == -1} {
-    Msg Info "The specified project was modified in a past official version $ret"
-  }
-
-  cd $old_dir
-  return $ret
-}
-
-
-## Get custom Hog describe of a specific SHA
-#
-#  @param[in] sha         the git sha of the commit you want to calculate the describe of
-#  @param[in] repo_path   the main path of the repository
-#
-#  @return            the Hog describe of the sha or the current one if the sha is 0
-#
-proc GetHogDescribe {sha {repo_path .}} {
-  if {$sha == 0 } {
-    # in case the repo is dirty, we use the last committed sha and add a -dirty suffix
-    set new_sha "[string toupper [GetSHA]]"
-    set suffix "-dirty"
-  } else {
-    set new_sha [string toupper $sha]
-    set suffix ""
-  }
-  set describe "v[HexVersionToString [GetVerFromSHA $new_sha $repo_path]]-$new_sha$suffix"
-  return $describe
-}
-
-
-## Get submodule of a specific file. Returns an empty string if the file is not in a submodule
-#
-#  @param[in] path_file      path of the file that whose paternity must be checked
-#
-#  @return             The path of the submodule. Returns an empty string if not in a submodule.
-#
-proc GetSubmodule {path_file} {
-  set old_dir [pwd]
-  set directory [file normalize [file dirname $path_file]]
-  cd $directory
-  lassign [GitRet {rev-parse --show-superproject-working-tree}] ret base
-  if {$ret != 0} {
-    Msg CriticalWarning "Git repository error: $base"
-    cd $old_dir
-    return ""
-  }
-  if {$base eq "" } {
-    set submodule ""
-  } else {
-    lassign [GitRet {rev-parse --show-toplevel}] ret sub
-    if {$ret != 0} {
-      Msg CriticalWarning "Git submodule error: $sub"
-      cd $old_dir
-      return ""
-    }
-    set submodule [Relative $base $sub]
-  }
-
-  cd $old_dir
-  return $submodule
-}
-
-
-## Get the configuration files to create a vivado/quartus project
-#
-#  @param[in] proj_dir: The project directory containing the conf file or the the tcl file
-#
-#  @return[in] a list containing the full path of the hog.conf, sim.conf, pre-creation.tcl, post-creation.tcl and proj.tcl files
-
-proc GetConfFiles {proj_dir} {
-  if {![file isdirectory $proj_dir]} {
-    Msg Error "$proj_dir is supposed to be the top project directory"
-    return -1
-  }
-  set conf_file [file normalize $proj_dir/hog.conf]
-  set sim_file [file normalize $proj_dir/sim.conf]
-  set pre_tcl [file normalize $proj_dir/pre-creation.tcl]
-  set post_tcl [file normalize $proj_dir/post-creation.tcl]
-
-  return [list $conf_file $sim_file $pre_tcl $post_tcl]
-}
-
-## Get the versions for all libraries, submodules, etc. for a given project
-#
-#  @param[in] proj_dir: The project directory containing the conf file or the the tcl file
-#  @param[in] repo_path: top path of the repository
-#  @param[in] ext_path: path for external libraries
-#  @param[in] sim: if enabled, check the version also for the simulation files
-#
-#  @return  a list containing all the versions: global, top (hog.conf, pre and post tcl scrpts, etc.), constraints, libraries, submodules, external, ipbus xml, user ip repos
-#
-proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
-  if { [catch {package require cmdline} ERROR] } {
-    puts "$ERROR\n If you are running this script on tclsh, you can fix this by installing 'tcllib'"
-    return 1
-  }
-
-  set old_path [pwd]
-  set conf_files [GetConfFiles $proj_dir]
-
-  # This will be the list of all the SHAs of this project, the most recent will be picked up as GLOBAL SHA
-  set SHAs ""
-  set versions ""
-
-  # Hog submodule
-  cd $repo_path
-
-  # Append the SHA in which Hog submodule was changed, not the submodule SHA
-  lappend SHAs [GetSHA {Hog}]
-  lappend versions [GetVerFromSHA $SHAs $repo_path]
-
-  cd "$repo_path/Hog"
-  if {[Git {status --untracked-files=no  --porcelain}] eq ""} {
-    Msg Info "Hog submodule [pwd] clean."
-    lassign [GetVer ./] hog_ver hog_hash
-  } else {
-    Msg CriticalWarning "Hog submodule [pwd] not clean, commit hash will be set to 0."
-    set hog_hash "0000000"
-    set hog_ver "00000000"
-  }
-
-  cd $proj_dir
-
-  if {[Git {status --untracked-files=no  --porcelain}] eq ""} {
-    Msg Info "Git working directory [pwd] clean."
-    set clean 1
-  } else {
-    Msg CriticalWarning "Git working directory [pwd] not clean, commit hash, and version will be set to 0."
-    set clean 0
-  }
-
-  # Top project directory
-  lassign [GetVer [join $conf_files]] top_ver top_hash
-  lappend SHAs $top_hash
-  lappend versions $top_ver
-
-  # Read list files
-  set libs ""
-  set vers ""
-  set hashes ""
-  # Specify sha_mode 1 for GetHogFiles to get all the files, including the list-files themselves
-  lassign [GetHogFiles -list_files "*.src" -sha_mode "./list/" $repo_path] src_files dummy
-  dict for {f files} $src_files {
-    # library names have a .src extension in values returned by GetHogFiles
-    set name [file rootname [file tail $f]]
-    if {[file ext $f] == ".oth"} {
-      set name "OTHERS"
-    }
-    lassign [GetVer $files] ver hash
-    # Msg Info "Found source list file $f, version: $ver commit SHA: $hash"
-    lappend libs $name
-    lappend versions $ver
-    lappend vers $ver
-    lappend hashes $hash
-    lappend SHAs $hash
-  }
-
-  # Read constraint list files
-  set cons_hashes ""
-  # Specify sha_mode 1 for GetHogFiles to get all the files, including the list-files themselves
-  lassign [GetHogFiles  -list_files "*.con" -sha_mode "./list/" $repo_path] cons_files dummy
-  dict for {f files} $cons_files {
-    #library names have a .con extension in values returned by GetHogFiles
-    set name [file rootname [file tail $f]]
-    lassign [GetVer  $files] ver hash
-    #Msg Info "Found constraint list file $f, version: $ver commit SHA: $hash"
-    if {$hash eq ""} {
-      Msg CriticalWarning "Constraints file $f not found in Git."
-    }
-    lappend cons_hashes $hash
-    lappend SHAs $hash
-    lappend versions $ver
-  }
-
-  # Read simulation list files
-  if {$sim == 1} {
-    set sim_hashes ""
-    # Specify sha_mode 1 for GetHogFiles to get all the files, including the list-files themselves
-    lassign [GetHogFiles  -list_files "*.sim" -sha_mode "./list/" $repo_path] sim_files dummy
-    dict for {f files} $sim_files {
-      #library names have a .sim extension in values returned by GetHogFiles
-      set name [file rootname [file tail $f]]
-      lassign [GetVer  $files] ver hash
-      #Msg Info "Found simulation list file $f, version: $ver commit SHA: $hash"
-      lappend sim_hashes $hash
-      lappend SHAs $hash
-      lappend versions $ver
-    }
-  }
-
-
-  #Of all the constraints we get the most recent
-  if {"{}" eq $cons_hashes} {
-    #" Fake comment for Visual Code Studio
-    Msg CriticalWarning "No hashes found for constraints files (not in git)"
-    set cons_hash ""
-  } else {
-    set cons_hash [string tolower [Git "log --format=%h -1 $cons_hashes"]]
-  }
-  set cons_ver [GetVerFromSHA $cons_hash $repo_path]
-  #Msg Info "Among all the constraint list files, if more than one, the most recent version was chosen: $cons_ver commit SHA: $cons_hash"
-
-  # Read external library files
-  set ext_hashes ""
-  set ext_files [glob -nocomplain "./list/*.ext"]
-  set ext_names ""
-
-  foreach f $ext_files {
-    set name [file rootname [file tail $f]]
-    set hash [GetSHA $f]
-    #Msg Info "Found source file $f, commit SHA: $hash"
-    lappend ext_names $name
-    lappend ext_hashes $hash
-    lappend SHAs $hash
-    set ext_ver [GetVerFromSHA $hash $repo_path]
-    lappend versions $ext_ver
-
-    set fp [open $f r]
-    set file_data [read $fp]
-    close $fp
-    set data [split $file_data "\n"]
-    #Msg Info "Checking checksums of external library files in $f"
-    foreach line $data {
-      if {![regexp {^ *$} $line] & ![regexp {^ *\#} $line] } {
-        #Exclude empty lines and comments
-        set file_and_prop [regexp -all -inline {\S+} $line]
-        set hdlfile [lindex $file_and_prop 0]
-        set hdlfile $ext_path/$hdlfile
-        if { [file exists $hdlfile] } {
-          set hash [lindex $file_and_prop 1]
-          set current_hash [Md5Sum $hdlfile]
-          if {[string first $hash $current_hash] == -1} {
-            Msg CriticalWarning "File $hdlfile has a wrong hash. Current checksum: $current_hash, expected: $hash"
-          }
-        }
-      }
-    }
-  }
-
-  # Ipbus XML
-  if {[llength [glob -nocomplain ./list/*.ipb]] > 0 } {
-    #Msg Info "Found IPbus XML list file, evaluating version and SHA of listed files..."
-    lassign [GetHogFiles  -list_files "*.ipb" -sha_mode "./list/" $repo_path] xml_files dummy
-    lassign [GetVer  [dict get $xml_files "xml.ipb"] ] xml_ver xml_hash
-    lappend SHAs $xml_hash
-    lappend versions $xml_ver
-
-    #Msg Info "Found IPbus XML SHA: $xml_hash and version: $xml_ver."
-
-  } else {
-    Msg Info "This project does not use IPbus XMLs"
-    set xml_ver  ""
-    set xml_hash ""
-  }
-
-  set user_ip_repos ""
-  set user_ip_repo_hashes ""
-  set user_ip_repo_vers ""
-  # User IP Repository (Vivado only, hog.conf only)
-  if {[file exists [lindex $conf_files 0]]} {
-    set PROPERTIES [ReadConf [lindex $conf_files 0]]
-    if {[dict exists $PROPERTIES main]} {
-      set main [dict get $PROPERTIES main]
-      dict for {p v} $main {
-        if { [ string tolower $p ] == "ip_repo_paths" } {
-          foreach repo $v {
-            lappend user_ip_repos "$repo_path/$repo"
-          }
-        }
-      }
-    }
-
-    # For each defined IP repository get hash and version if directory exists and not empty
-    foreach repo $user_ip_repos {
-      if {[file isdirectory $repo]} {
-        set repo_file_list [glob -nocomplain "$repo/*"]
-        if {[llength $repo_file_list] != 0} {
-          lassign [GetVer $repo] ver sha
-          lappend user_ip_repo_hashes $sha
-          lappend user_ip_repo_vers $ver
-          lappend versions $ver
-        } else {
-          Msg Warning "IP_REPO_PATHS property set to $repo in hog.conf but directory is empty."
-        }
-      } else {
-        Msg Warning "IP_REPO_PATHS property set to $repo in hog.conf but directory does not exist."
-      }
-    }
-  }
-
-
-  #The global SHA and ver is the most recent among everything
-  if {$clean == 1} {
-    set found 0
-    while {$found == 0} {
-      set global_commit [Git "log --format=%h -1 --abbrev=7 $SHAs"]
-      foreach sha $SHAs {
-  set found 1
-  if {![IsCommitAncestor $sha $global_commit]} {
-    set common_child  [FindCommonGitChild $global_commit $sha]
-    if {$common_child == 0} {
-            Msg CriticalWarning "The commit $sha is not an ancestor of the global commit $global_commit, which is OK. But $sha and $global_commit do not have any common child, which is NOT OK. This is probably do to a REBASE that is forbidden in Hog methodology as it changes git history. Hog cannot gaurantee the accuracy of the SHAs. A way to fix this is to make a commit that touches all the projects in the repositories (e.g. change the Hog version) but please do not rebase in the official branches in the future."
-    } else {
-            Msg Info "The commit $sha is not an ancestor of the global commit $global_commit, adding the first common child $common_child instead..."
-      lappend SHAs $common_child
-    }
-    set found 0
-
-    break
-  }
-      }
-    }
-    set global_version [FindNewestVersion $versions]
-  } else {
-    set global_commit  "0000000"
-    set global_version "00000000"
-  }
-
-  cd $old_path
-
-  set top_hash [format %+07s $top_hash]
-  set cons_hash [format %+07s $cons_hash]
-  return [list $global_commit $global_version  $hog_hash $hog_ver  $top_hash $top_ver  $libs $hashes $vers  $cons_ver $cons_hash  $ext_names $ext_hashes  $xml_hash $xml_ver $user_ip_repos $user_ip_repo_hashes $user_ip_repo_vers ]
-}
-
-
-
-## Convert hex version to M.m.p string
-#
-#  @param[in] version the version (in 32-bit hexadecimal format 0xMMmmpppp) to be converted
-#
-#  @return            a string containing the version in M.m.p format
-#
-proc HexVersionToString {version} {
-  scan [string range $version 0 1] %x M
-  scan [string range $version 2 3] %x m
-  scan [string range $version 4 7] %x c
-  return "$M.$m.$c"
-}
-
-## @brief Tags the repository with a new version calculated on the basis of the previous tags
-#
-# @param[in] tag  a tag in the Hog format: v$M.$m.$p or b$(mr)v$M.$m.$p-$n
-#
-# @return         a list containing: Major minor patch v.
-#
-proc ExtractVersionFromTag {tag} {
-  if {[regexp {^(?:b(\d+))?v(\d+)\.(\d+).(\d+)(?:-\d+)?$} $tag -> mr M m p]} {
-    if {$mr eq ""} {
-      set mr 0
-    }
-  } else {
-    Msg Warning "Repository tag $tag is not in a Hog-compatible format."
-    set mr -1
-    set M -1
-    set m -1
-    set p -1
-  }
-  return [list $M $m $p $mr]
-}
-
-## @brief Read a XML list file and copy files to destination
-#
-# Additional information is provided with text separated from the file name with one or more spaces
-#
-# @param[in] proj_dir     project path, path containing the ./list directory containing at least a list file with .ipb extention
-# @param[in] path         the path the XML files are referred to in the list file
-# @param[in] dst          the path the XML files must be copied to
-# @param[in] xml_version  the M.m.p version to be used to replace the __VERSION__ placeholder in any of the xml files
-# @param[in] xml_sha      the Git-SHA to be used to replace the __GIT_SHA__ placeholder in any of the xml files
-# @param[in] use_ipbus_sw if set to 1, use the IPbus sw to generate or check the vhdl files
-# @param[in] generate     if set to 1, tells the function to generate the VHDL decode address files rather than check them
-
-proc CopyIPbusXMLs {proj_dir path dst {xml_version "0.0.0"} {xml_sha "00000000"} {use_ipbus_sw 0} {generate 0} } {
-  if {$use_ipbus_sw == 1} {
-    lassign  [ExecuteRet python -c "from __future__ import print_function; from sys import path;print(':'.join(path\[1:\]))"] ret msg
-    if {$ret == 0} {
-      set ::env(PYTHONPATH) $msg
-      lassign [ExecuteRet gen_ipbus_addr_decode -h] ret msg
-      if {$ret != 0}  {
-        set can_generate 0
-      } else {
-        set can_generate 1
-      }
-    } else {
-      Msg CriticalWarning "Problem while trying to run python: $msg"
-      set can_generate 0
-    }
-    set dst [file normalize $dst]
-    if {$can_generate == 0} {
-      if {$generate == 1} {
-        Msg Error "Cannot generate IPbus address files, IPbus executable gen_ipbus_addr_decode not found or not working: $msg"
-        return -1
-
-      } else {
-        Msg Warning "IPbus executable gen_ipbus_addr_decode not found or not working, will not verify IPbus address tables."
-      }
-    }
-  } else {
-    set can_generate 0
-  }
-
-  set ipb_files [glob -nocomplain $proj_dir/list/*.ipb]
-  set n_ipb_files [llength $ipb_files]
-  if {$n_ipb_files == 0} {
-    Msg CriticalWarning "No files with .ipb extension found in $proj_dir/list."
-    return
-  }
-  set libraries [dict create]
-  set vhdl_dict [dict create]
-
-  foreach ipb_file $ipb_files {
-    lassign [ReadListFile {*}"$ipb_file $path"] l p fs
-    set libraries [MergeDict $l $libraries]
-    set vhdl_dict [MergeDict $p $vhdl_dict]
-  }
-
-  set xmlfiles [dict get $libraries "xml.ipb"]
-
-
-  set xml_list_error 0
-  foreach xmlfile $xmlfiles {
-
-    if {[file isdirectory $xmlfile]} {
-      Msg CriticalWarning "Directory $xmlfile listed in xml list file $list_file. Directories are not supported!"
-      set xml_list_error 1
-    }
-
-    if {[file exists $xmlfile]} {
-      if {[dict exists $vhdl_dict $xmlfile]} {
-        set vhdl_file [file normalize [dict get $vhdl_dict $xmlfile]]
-      } else {
-        set vhdl_file ""
-      }
-      lappend vhdls $vhdl_file
-
-      set xmlfile [file normalize $xmlfile]
-      Msg Info "Copying $xmlfile to $dst and replacing place holders..."
-      set in  [open $xmlfile r]
-      set out [open $dst/[file tail $xmlfile] w]
-
-      while {[gets $in line] != -1} {
-        set new_line [regsub {(.*)__VERSION__(.*)} $line "\\1$xml_version\\2"]
-        set new_line2 [regsub {(.*)__GIT_SHA__(.*)} $new_line "\\1$xml_sha\\2"]
-        puts $out $new_line2
-      }
-      close $in
-      close $out
-      lappend xmls  [file tail $xmlfile]
-    } else {
-      Msg Warning "XML file $xmlfile not found"
-    }
-  }
-  if {${xml_list_error}} {
-    Msg Error "Invalid files added to $list_file!"
-  }
-
-  set cnt [llength $xmls]
-  Msg Info "$cnt xml file/s copied"
-
-
-  if {$can_generate == 1} {
-    set old_dir [pwd]
-    cd $dst
-    file mkdir "address_decode"
-    cd "address_decode"
-
-    foreach x $xmls  v $vhdls {
-      if {$v ne ""} {
-        set x [file normalize ../$x]
-        if {[file exists $x]} {
-          lassign [ExecuteRet gen_ipbus_addr_decode $x 2>&1]  status log
-          if {$status == 0} {
-            set generated_vhdl ./ipbus_decode_[file rootname [file tail $x]].vhd
-            if {$generate == 1} {
-              Msg Info "Copying generated VHDL file $generated_vhdl into $v (replacing if necessary)"
-              file copy -force -- $generated_vhdl $v
-            } else {
-              if {[file exists $v]} {
-                set diff [CompareVHDL $generated_vhdl $v]
-                set n [llength $diff]
-                if {$n > 0} {
-                  Msg CriticalWarning "$v does not correspond to its XML $x, [expr {$n/3}] line/s differ:"
-                  Msg Status [join $diff "\n"]
-                  set diff_file [open ../diff_[file rootname [file tail $x]].txt w]
-                  puts $diff_file $diff
-                  close $diff_file
-                } else {
-                  Msg Info "[file tail $x] and $v match."
-                }
-              } else {
-                Msg Warning "VHDL address map file $v not found."
-              }
-            }
-          } else {
-            Msg Warning "Address map generation failed for [file tail $x]: $log"
-          }
-        } else {
-          Msg Warning "Copied XML file $x not found."
-        }
-      } else {
-        Msg Info "Skipped verification of [file tail $x] as no VHDL file was specified."
-      }
-    }
-    cd ..
-    file delete -force address_decode
-    cd $old_dir
-  }
-}
-
-## @brief Compare two VHDL files ignoring spaces and comments
-#
-# @param[in] file1  the first file
-# @param[in] file2  the second file
-#
-# @ return A string with the diff of the files
-#
-proc CompareVHDL {file1 file2} {
-  set a  [open $file1 r]
-  set b  [open $file2 r]
-
-  while {[gets $a line] != -1} {
-    set line [regsub {^[\t\s]*(.*)?\s*} $line "\\1"]
-    if {![regexp {^$} $line] & ![regexp {^--} $line] } {
-      #Exclude empty lines and comments
-      lappend f1 $line
-    }
-  }
-
-  while {[gets $b line] != -1} {
-    set line [regsub {^[\t\s]*(.*)?\s*} $line "\\1"]
-    if {![regexp {^$} $line] & ![regexp {^--} $line] } {
-      #Exclude empty lines and comments
-      lappend f2 $line
-    }
-  }
-
-  close $a
-  close $b
-  set diff {}
-  foreach x $f1 y $f2 {
-    if {$x != $y} {
-      lappend diff "> $x\n< $y\n\n"
-    }
-  }
-
-  return $diff
-}
-
-## @brief Returns the dst path relative to base
-#
-# @param[in] base   the path with respect to witch the dst path is calculated
-# @param[in] dst    the path to be calculated with respect to base
-#
-proc Relative {base dst} {
-  if {![string equal [file pathtype $base] [file pathtype $dst]]} {
-    Msg CriticalWarning "Unable to compute relation for paths of different pathtypes: [file pathtype $base] vs. [file pathtype $dst], ($base vs. $dst)"
-    return ""
-  }
-
-  set base [file normalize [file join [pwd] $base]]
-  set dst  [file normalize [file join [pwd] $dst]]
-
-  set save $dst
-  set base [file split $base]
-  set dst  [file split $dst]
-
-  while {[string equal [lindex $dst 0] [lindex $base 0]]} {
-    set dst  [lrange $dst  1 end]
-    set base [lrange $base 1 end]
-    if {![llength $dst]} {break}
-  }
-
-  set dstlen  [llength $dst]
-  set baselen [llength $base]
-
-  if {($dstlen == 0) && ($baselen == 0)} {
-    set dst .
-  } else {
-    while {$baselen > 0} {
-      set dst [linsert $dst 0 ..]
-      incr baselen -1
-    }
-    set dst [eval [linsert $dst 0 file join]]
-  }
-
-  return $dst
-}
-
-## @brief Returns the path of filePath relative to pathName
-#
-# @param[in] pathName   the path with respect to which the returned path is calculated
-# @param[in] filePath   the path of filePath
-#
-proc RelativeLocal {pathName filePath} {
-  if {[string first [file normalize $pathName] [file normalize $filePath]] != -1} {
-    return [Relative $pathName $filePath]
-  } else {
-    return ""
-  }
-}
-
-## @brief Prints a message with selected severity and optionally write into a log file
-#
-# @param[in] msg        The message to print
-# @param[in] severity   The severity of the message
-# @param[in] outFile    The path of the output logfile
-#
-proc MsgAndLog {msg {severity "CriticalWarning"} {outFile ""}} {
-  Msg $severity $msg
-  if {$outFile != ""} {
-    set oF [open "$outFile" a+]
-    puts $oF $msg
-    close $oF
-  }
-}
-
-## @ brief Returns a list of 2 dictionaries: libraries and properties
-# - libraries has library name as keys and a list of filenames as values
-# - properties has as file names as keys and a list of properties as values
-#
-# Files, libraries and properties are extracted from the current Vivado project
-#
-# @return a list of two elements. The first element is a dictionary containing all libraries. The second elements is a discretionary containing all properties
-proc GetProjectFiles {} {
-
-  set all_filesets [get_filesets]
-  set libraries [dict create]
-  set simlibraries [dict create]
-  set constraints [dict create]
-  set properties [dict create]
-  set consets [dict create]
-  set srcsets [dict create]
-  set simsets [dict create]
-  set simulator [get_property target_simulator [current_project]]
-  set top [get_property "top"  [current_fileset]]
-  set topfile [GetTopFile]
-  dict lappend properties $topfile "top=$top"
-
-  foreach fs $all_filesets {
-    if {$fs == "utils_1"} {
-      # Skipping utility fileset
-      continue
-    }
-
-    set all_files [get_files -quiet -of_objects [get_filesets $fs]]
-    set fs_type [get_property FILESET_TYPE [get_filesets $fs]]
-
-    if {$fs_type == "BlockSrcs"} {
-      # Vivado creates for each ip a blockset... Let's redirect to sources_1
-      set dict_fs "sources_1"
-    } else {
-      set dict_fs $fs
-    }
-    foreach f $all_files {
-      # Ignore files that are part of the vivado/planahead project but would not be reflected
-      # in list files (e.g. generated products from ip cores)
-      set ignore 0
-      # Generated files point to a parent composite file;
-      # planahead does not have an IS_GENERATED property
-      if { [IsInList "IS_GENERATED" [list_property [GetFile $f $fs]]]} {
-        if { [lindex [get_property  IS_GENERATED [GetFile $f $fs]] 0] != 0} {
-          set ignore 1
-        }
-      }
-
-      if {[get_property FILE_TYPE [GetFile $f $fs]] == "Configuration Files"} {
-        set ignore 1
-      }
-
-
-      if { [IsInList "CORE_CONTAINER" [list_property [GetFile $f $fs]]]} {
-        if {[get_property CORE_CONTAINER [GetFile $f $fs]] != ""} {
-          if { [file extension $f] == ".xcix"} {
-            set f [get_property CORE_CONTAINER [GetFile $f $fs]]
-          } else {
-            set ignore 1
-          }
-        }
-      }
-
-      if {[IsInList "SCOPED_TO_REF" [list_property [GetFile $f $fs]]]} {
-        if {[get_property SCOPED_TO_REF [GetFile $f $fs]] != ""} {
-          dict lappend properties $f "scoped_to_ref=[get_property SCOPED_TO_REF [GetFile $f $fs]]"
-        }
-      }
-
-      if {[IsInList "SCOPED_TO_CELLS" [list_property [GetFile $f $fs]]]} {
-        if {[get_property SCOPED_TO_CELLS [GetFile $f $fs]] != ""} {
-          dict lappend properties $f "scoped_to_cells=[get_property SCOPED_TO_CELLS [GetFile $f $fs]]"
-        }
-      }
-
-      if {[IsInList "PARENT_COMPOSITE_FILE" [list_property [GetFile $f $fs]]]} {
-        set ignore 1
-      }
-
-      # Ignore nocattrs.dat for Versal
-      if {[file tail $f] == "nocattrs.dat"} {
-        set ignore 1
-      }
-
-      if {!$ignore} {
-        if {[file extension $f] != ".coe"} {
-          set f [file normalize $f]
-        }
-        lappend files $f
-        set type  [get_property FILE_TYPE [GetFile $f $fs]]
-        # Added a -quiet because some files (.v, .sv) don't have a library
-        set lib [get_property -quiet LIBRARY [GetFile $f $fs]]
-
-        # Type can be complex like VHDL 2008, in that case we want the second part to be a property
-        Msg Debug "File $f Extension [file extension $f] Type [lindex $type 0]"
-
-        if {[string equal [lindex $type 0] "VHDL"] && [llength $type] == 1} {
-          set prop "93"
-        } elseif  {[string equal [lindex $type 0] "Block"] && [string equal [lindex $type 1] "Designs"]} {
-          set type "IP"
-          set prop ""
-        } elseif {[string equal $type "SystemVerilog"] && [file extension $f] != ".sv"} {
-          set prop "SystemVerilog"
-        } elseif {[string equal [lindex $type 0] "XDC"] && [file extension $f] != ".xdc"} {
-          set prop "XDC"
-        } elseif {[string equal $type "Verilog Header"] && [file extension $f] != ".vh" && [file extension $f] != ".svh"} {
-          set prop "verilog_header"
-        } elseif {[string equal $type "Verilog Template"] && [file extension $f] == ".v" && [file extension $f] != ".sv"} {
-          set prop "verilog_template"
-        } else {
-          set type [lindex $type 0]
-          set prop ""
-        }
-        #If type is "VHDL 2008" we will keep only VHDL
-        if {![string equal $prop ""]} {
-          dict lappend properties $f $prop
-        }
-        # check where the file is used and add it to prop
-        if {[string equal $fs_type "SimulationSrcs"]} {
-          # Simulation sources
-          if {[string equal $type "VHDL"] } {
-            set library "${lib}.sim"
-          } else {
-            set library "others.sim"
-          }
-
-          if {[IsInList $library [DictGet $simsets $dict_fs]]==0} {
-            dict lappend simsets $dict_fs $library
-          }
-
-          dict lappend simlibraries $library $f
-
-        } elseif {[string equal $type "VHDL"] } {
-          # VHDL files (both 2008 and 93)
-          if {[IsInList "${lib}.src" [DictGet $srcsets $dict_fs]]==0} {
-            dict lappend srcsets $dict_fs "${lib}.src"
-          }
-          dict lappend libraries "${lib}.src" $f
-        } elseif {[string first "IP" $type] != -1} {
-          # IPs
-          if {[IsInList "ips.src" [DictGet $srcsets $dict_fs]]==0} {
-            dict lappend srcsets $dict_fs "ips.src"
-          }
-          dict lappend libraries "ips.src" $f
-          Msg Debug "Appending $f to ips.src"
-        } elseif {[string equal $fs_type "Constrs"]} {
-          # Constraints
-          if {[IsInList "sources.con" [DictGet $consets $dict_fs]]==0} {
-            dict lappend consets $dict_fs "sources.con"
-          }
-          dict lappend constraints "sources.con" $f
-        } else {
-          # Verilog and other files
-          if {[IsInList "others.src" [DictGet $srcsets $dict_fs]]==0} {
-            dict lappend srcsets $dict_fs "others.src"
-          }
-          dict lappend libraries "others.src" $f
-          Msg Debug "Appending $f to others.src"
-        }
-
-        if {[lindex [get_property -quiet used_in_synthesis  [GetFile $f $fs]] 0] == 0} {
-          dict lappend properties $f "nosynth"
-        }
-        if {[lindex [get_property -quiet used_in_implementation  [GetFile $f $fs]] 0] == 0} {
-          dict lappend properties $f "noimpl"
-        }
-        if {[lindex [get_property -quiet used_in_simulation  [GetFile $f $fs]] 0] == 0} {
-          dict lappend properties $f "nosim"
-        }
-        if {[lindex [get_property -quiet IS_MANAGED [GetFile $f $fs]] 0] == 0 && [file extension $f] != ".xcix" } {
-          dict lappend properties $f "locked"
-        }
-      }
-    }
-  }
-
-  dict lappend properties "Simulator" [get_property target_simulator [current_project]]
-
-  return [list $libraries $properties $simlibraries $constraints $srcsets $simsets $consets]
-}
-
-
-
-## @brief Extract files, libraries and properties from the project's list files
-#
-# @param[in] args The arguments are \<list_path\> \<repository path\>[options]
-# * list_path path to the list file directory
-# Options:
-# * -list_files \<List files\> the file wildcard, if not specified all Hog list files will be looked for
-# * -sha_mode forwarded to ReadListFile, see there for info
-# * -ext_path \<external path\> path for external libraries forwarded to ReadListFile
-#
-# @return a list of 3 dictionaries: libraries and properties
-# - libraries has library name as keys and a list of filenames as values
-# - properties has as file names as keys and a list of properties as values
-# - filesets has filset name as keys and the correspondent list of libraries as values (significant only for simulations)
-
-proc GetHogFiles args {
-
-  if {[IsQuartus]} {
-    load_package report
-    if { [catch {package require cmdline} ERROR] } {
-      puts "$ERROR\n If you are running this script on tclsh, you can fix this by installing 'tcllib'"
-      return 1
-    }
-  }
-
-
-  set parameters {
-    {list_files.arg ""  "The file wildcard, if not specified all Hog list files will be looked for."}
-    {sha_mode "Forwarded to ReadListFile, see there for info."}
-    {ext_path.arg "" "Path for the external libraries forwarded to ReadListFile."}
-  }
-  set usage "USAGE: GetHogFiles \[options\] <list path> <repository path>"
-  if {[catch {array set options [cmdline::getoptions args $parameters $usage]}] ||  [llength $args] != 2 } {
-    Msg CriticalWarning [cmdline::usage $parameters $usage]
-    return
-  }
-  set list_path [lindex $args 0]
-  set repo_path [lindex $args 1]
-
-  set list_files $options(list_files)
-  set sha_mode $options(sha_mode)
-  set ext_path $options(ext_path)
-
-
-  if { $sha_mode == 1 } {
-    set sha_mode_opt "-sha_mode"
-  } else {
-    set sha_mode_opt ""
-  }
-
-  if { $list_files == "" } {
-    set list_files {.src,.con,.sim,.ext}
-  }
-  set libraries [dict create]
-  set properties [dict create]
-  set list_files [glob -nocomplain -directory $list_path "*{$list_files}"]
-  set filesets [dict create]
-
-  foreach f $list_files {
-    set ext [file extension $f]
-    if {$ext == ".ext"} {
-      lassign [ReadListFile {*}"$sha_mode_opt  $f $ext_path"] l p fs
-    } else {
-      lassign [ReadListFile {*}"$sha_mode_opt  $f $repo_path"] l p fs
-    }
-    set libraries [MergeDict $l $libraries]
-    set properties [MergeDict $p $properties]
-    Msg Debug "list file $f, filesets: $fs"
-    set filesets [MergeDict $fs $filesets]
-    Msg Debug "Merged filesets $filesets"
-  }
-  return [list $libraries $properties $filesets]
-}
-
-
-## @brief Parse possible commands in the first line of Hog files (e.g. \#Vivado, \#Simulator, etc)
-#
-# @param[in] list_path path to the list file directory
-# @param[in] list_file the list file name
-#
-# @return a string with the first-line command
-# - libraries has library name as keys and a list of filenames as values
-# - properties has as file names as keys and a list of properties as values
-#
-proc ParseFirstLineHogFiles {list_path list_file} {
-  set repo_path [file normalize $list_path/../../..]
-  if {![file exists $list_path/$list_file]} {
-    Msg Error "list file $list_path/$list_file does not exist!"
-    return ""
-  }
-  set fp [open $list_path/$list_file r]
-  set line [lindex [split [read $fp] "\n"] 0]
-  close $fp
-
-  if {[string match "#*" $line]} {
-    return [string trim [string range $line 1 end]]
-  } else {
-    return ""
-  }
-}
-
-
-## @brief  Add libraries and properties to Vivado/Quartus project
+## @brief  Add libraries, properties and filesets to the project
 #
 # @param[in] libraries has library name as keys and a list of filenames as values
 # @param[in] properties has as file names as keys and a list of properties as values
+# @param[in] filesets has fileset name as keys and a list of libraries as values
 #
 proc AddHogFiles { libraries properties filesets } {
   Msg Info "Adding source files to project..."
@@ -2598,8 +500,110 @@ proc AddHogFiles { libraries properties filesets } {
       eval $place_conf_command
     }
   }
+}
 
+## @brief Adds the file containing the top module to the project
+#
+# It automatically recognises whether it is in Vivado or Quartus mode
+#
+# @param[in] top_module name of the top module, expected @c top_<project_name>
+# @param[in] top_file   name of the file containing the top module
+# @param[in] fileset    name of the fileset to which to add the file (default sources_1)
+proc AddTopFile {top_module top_file {fileset "sources_1"}} {
+  if {[IsXilinx]} {
+    #VIVADO_ONLY
+    add_files -norecurse -fileset $fileset $top_file
+  } elseif {[IsQuartus]} {
+    #QUARTUS ONLY
+    set file_type [FindFileType $top_file]
+    set hdl_version [FindVhdlVersion $top_file]
+    set_global_assignment -name $file_type $top_file
+  } else {
+    puts "Adding project top module $top_module"
+  }
+}
 
+## @brief Returns a dictionary for the allowed properties for each file type
+proc ALLOWED_PROPS {} {
+  return [dict create ".vhd" [list "93" "nosynth" "noimpl" "nosim" "1987" "1993" "2008" ]\
+    ".vhdl" [list "93" "nosynth" "noimpl" "nosim" "1987" "1993" "2008" ]\
+    ".v" [list "SystemVerilog" "verilog_header" "nosynth" "noimpl" "nosim" "1995" "2001"]\
+    ".sv" [list "verilog" "verilog_header" "nosynth" "noimpl" "nosim" "2005" "2009"]\
+    ".do" [list "nosim"]\
+    ".udo" [list "nosim"]\
+    ".xci" [list "nosynth" "noimpl" "nosim" "locked"]\
+    ".xdc" [list "nosynth" "noimpl" ]\
+    ".tcl" [list "nosynth" "noimpl" "nosim" "source" "qsys" "noadd" "--block-symbol-file" "--clear-output-directory" "--example-design" "--export-qsys-script" "--family" "--greybox" "--ipxact" "--jvm-max-heap-size" "--parallel" "--part" "--search-path" "--simulation" "--synthesis" "--testbench" "--testbench-simulation" "--upgrade-ip-cores" "--upgrade-variation-file"]\
+    ".qsys" [list "nogenerate" "noadd" "--block-symbol-file" "--clear-output-directory" "--example-design" "--export-qsys-script" "--family" "--greybox" "--ipxact" "--jvm-max-heap-size" "--parallel" "--part" "--search-path" "--simulation" "--synthesis" "--testbench" "--testbench-simulation" "--upgrade-ip-cores" "--upgrade-variation-file"]\
+    ".sdc" [list "notiming" "nosynth" "noplace"]\
+    ".pdc" [list "nosynth" "noplace"]]\
+}
+
+## @brief # Returns the step name for the stage that produces the binary file
+#
+# Projects using Versal chips have a different step for producing the
+# binary file, we use this function to take that into account
+#
+# @param[out] 1 if it's Versal 0 if it's not
+# @param[in]  part  The FPGA part
+#
+proc BinaryStepName {part} {
+  if {[IsVersal $part]} {
+    return "WRITE_DEVICE_IMAGE"
+  } else {
+    return "WRITE_BITSTREAM"
+  }
+}
+
+## @brief Compare two semantic versions
+#
+# @param[in] ver1 a list of 3 numbers M m p
+# @param[in] ver2 a list of 3 numbers M m p
+#
+# In case the ver1 or ver2 are in the format vX.Y.Z rather than a list, they will be converted.
+# If one of the tags is an empty string it will be considered as 0.0.0
+#
+# @return Returns 1 ver1 is greater than ver2, 0 if they are equal, and -1 if ver2 is greater than ver1
+proc CompareVersions {ver1 ver2} {
+  if {$ver1 eq ""} {
+    set ver1 v0.0.0
+  }
+
+  if {$ver2 eq ""} {
+    set ver2 v0.0.0
+  }
+
+  if {[regexp {v(\d+)\.(\d+)\.(\d+)} $ver1 - x y z]} {
+    set ver1 [list $x $y $z]
+  }
+  if {[regexp {v(\d+)\.(\d+)\.(\d+)} $ver2 - x y z]} {
+    set ver2 [list $x $y $z]
+  }
+
+  # Add 1 in front to avoid crazy Tcl behaviour with leading 0 being octal...
+  set v1 [join $ver1 ""]
+  set v1 "1$v1"
+  set v2 [join $ver2 ""]
+  set v2 "1$v2"
+
+  if {[string is integer $v1] && [string is integer $v2]} {
+
+    set ver1 [expr {[scan [lindex $ver1 0] %d]*100000 + [scan [lindex $ver1 1] %d]*1000 + [scan [lindex $ver1 2] %d]}]
+    set ver2 [expr {[scan [lindex $ver2 0] %d]*100000 + [scan [lindex $ver2 1] %d]*1000 + [scan [lindex $ver2 2] %d]}]
+
+    if {$ver1 > $ver2 } {
+      set ret 1
+    } elseif {$ver1 == $ver2} {
+      set ret 0
+    } else {
+      set ret -1
+    }
+
+  } else {
+    Msg Warning "Version is not numeric: $ver1, $ver2"
+    set ret 0
+  }
+  return [expr {$ret}]
 }
 
 # @brief Function searching for extra IP/BD files added at creation time using user scripts, and writing the list in
@@ -2643,27 +647,574 @@ proc CheckExtraFiles {libraries} {
   }
 }
 
-## @brief Function used to read the list of files generated at creation time by tcl scripts in Project/proj/.hog/extra.files
-#
-#  @param[in] extra_file_name the path to the extra.files file
-#  @returns a dictionary with the full name of the files as key and a SHA as value
-#
-proc ReadExtraFileList { extra_file_name } {
-  set extra_file_dict [dict create]
-  if {[file exists $extra_file_name]} {
-    set file [open $extra_file_name "r"]
-    set file_data [read $file]
-    close $file
 
-    set data [split $file_data "\n"]
-    foreach line $data {
-      if {![regexp {^ *$} $line] & ![regexp {^ *\#} $line] } {
-        set ip_and_md5 [regexp -all -inline {\S+} $line]
-        dict lappend extra_file_dict "[lindex $ip_and_md5 0]" "[lindex $ip_and_md5 1]"
+## @brief Checks that "ref" in .gitlab-ci.yml actually matches the hog.yml file in the
+#
+#  @param[in] repo_path path to the repository root
+#  @param[in] allow_failure if true throws CriticalWarnings instead of Errors
+#
+proc CheckYmlRef {repo_path allow_failure} {
+
+  if {$allow_failure} {
+    set MSG_TYPE CriticalWarning
+  } else {
+    set MSG_TYPE Error
+  }
+
+  if { [catch {package require yaml 0.3.3} YAMLPACKAGE]} {
+    Msg CriticalWarning "Cannot find package YAML, skipping consistency check of \"ref\" in gilab-ci.yaml file.\n Error message: $YAMLPACKAGE
+    You can fix this by installing package \"tcllib\""
+    return
+  }
+
+  set thisPath [pwd]
+
+  # Go to repository path
+  cd "$repo_path"
+  if {[file exists .gitlab-ci.yml]} {
+    #get .gitlab-ci ref
+    set YML_REF ""
+    set YML_NAME ""
+    if { [file exists .gitlab-ci.yml] } {
+      set fp [open ".gitlab-ci.yml" r]
+      set file_data [read $fp]
+      close $fp
+    } else {
+      Msg $MSG_TYPE "Cannot open file .gitlab-ci.yml"
+      cd $thisPath
+      return
+    }
+    set file_data "\n$file_data\n\n"
+
+    if { [catch {::yaml::yaml2dict -stream $file_data}  yamlDict]} {
+      Msg $MSG_TYPE "Parsing $repo_path/.gitlab-ci.yml failed. To fix this, check that yaml syntax is respected, remember not to use tabs."
+      cd $thisPath
+      return
+    } else {
+      dict for {dictKey dictValue} $yamlDict {
+        #looking for Hog include in .gitlab-ci.yml
+        if {"$dictKey" == "include" && ([lsearch [split $dictValue " {}"] "/hog.yml" ] != "-1" || [lsearch [split $dictValue " {}"] "/hog-dynamic.yml" ] != "-1")} {
+          set YML_REF [lindex [split $dictValue " {}"]  [expr {[lsearch -dictionary [split $dictValue " {}"] "ref"]+1} ] ]
+          set YML_NAME [lindex [split $dictValue " {}"]  [expr {[lsearch -dictionary [split $dictValue " {}"] "file"]+1} ] ]
+        }
+      }
+    }
+    if {$YML_REF == ""} {
+      Msg Warning "Hog version not specified in the .gitlab-ci.yml. Assuming that master branch is used."
+      cd Hog
+      set YML_REF_F [Git {name-rev --tags --name-only origin/master}]
+      cd ..
+    } else {
+      set YML_REF_F [regsub -all "'" $YML_REF ""]
+    }
+
+    if {$YML_NAME == ""} {
+      Msg $MSG_TYPE "Hog included yml file not specified, assuming hog.yml"
+      set YML_NAME_F hog.yml
+    } else {
+      set YML_NAME_F [regsub -all "^/" $YML_NAME ""]
+    }
+
+    lappend YML_FILES $YML_NAME_F
+
+    #getting Hog repository tag and commit
+    cd "Hog"
+
+    #check if the yml file includes other files
+    if { [catch {::yaml::yaml2dict -file $YML_NAME_F}  yamlDict]} {
+      Msg $MSG_TYPE "Parsing $YML_NAME_F failed."
+      cd $thisPath
+      return
+    } else {
+      dict for {dictKey dictValue} $yamlDict {
+        #looking for included files
+        if {"$dictKey" == "include"} {
+          foreach v $dictValue {
+            lappend YML_FILES [lindex [split $v " "]  [expr {[lsearch -dictionary [split $v " "] "local"]+1} ] ]
+          }
+        }
+      }
+    }
+
+    Msg Info "Found the following yml files: $YML_FILES"
+
+    set HOGYML_SHA [GetSHA $YML_FILES]
+    lassign [GitRet "log --format=%h -1 --abbrev=7 $YML_REF_F" $YML_FILES] ret EXPECTEDYML_SHA
+    if {$ret != 0} {
+      lassign [GitRet "log --format=%h -1 --abbrev=7 origin/$YML_REF_F" $YML_FILES] ret EXPECTEDYML_SHA
+      if {$ret != 0} {
+        Msg $MSG_TYPE "Error in project .gitlab-ci.yml. ref: $YML_REF not found"
+        set EXPECTEDYML_SHA ""
+      }
+    }
+    if  {!($EXPECTEDYML_SHA eq "")} {
+      if {$HOGYML_SHA == $EXPECTEDYML_SHA} {
+        Msg Info "Hog included file $YML_FILES matches with $YML_REF in .gitlab-ci.yml."
+
+      } else {
+        Msg $MSG_TYPE "HOG $YML_FILES SHA mismatch.
+        From Hog submodule: $HOGYML_SHA
+        From ref in .gitlab-ci.yml: $EXPECTEDYML_SHA
+        You can fix this in 2 ways: by changing the ref in your repository or by changing the Hog submodule commit"
+      }
+    } else {
+      Msg $MSG_TYPE "One or more of the following files could not be found $YML_FILES in Hog at $YML_REF"
+    }
+  } else {
+    Msg Info ".gitlab-ci.yml not found in $repo_path. Skipping this step"
+  }
+
+  cd "$thisPath"
+}
+
+
+## @brief Compare two VHDL files ignoring spaces and comments
+#
+# @param[in] file1  the first file
+# @param[in] file2  the second file
+#
+# @ return A string with the diff of the files
+#
+proc CompareVHDL {file1 file2} {
+  set a  [open $file1 r]
+  set b  [open $file2 r]
+
+  while {[gets $a line] != -1} {
+    set line [regsub {^[\t\s]*(.*)?\s*} $line "\\1"]
+    if {![regexp {^$} $line] & ![regexp {^--} $line] } {
+      #Exclude empty lines and comments
+      lappend f1 $line
+    }
+  }
+
+  while {[gets $b line] != -1} {
+    set line [regsub {^[\t\s]*(.*)?\s*} $line "\\1"]
+    if {![regexp {^$} $line] & ![regexp {^--} $line] } {
+      #Exclude empty lines and comments
+      lappend f2 $line
+    }
+  }
+
+  close $a
+  close $b
+  set diff {}
+  foreach x $f1 y $f2 {
+    if {$x != $y} {
+      lappend diff "> $x\n< $y\n\n"
+    }
+  }
+
+  return $diff
+}
+
+## @brief Read a XML list file and copy files to destination
+#
+# Additional information is provided with text separated from the file name with one or more spaces
+#
+# @param[in] proj_dir     project path, path containing the ./list directory containing at least a list file with .ipb extention
+# @param[in] path         the path the XML files are referred to in the list file
+# @param[in] dst          the path the XML files must be copied to
+# @param[in] xml_version  the M.m.p version to be used to replace the __VERSION__ placeholder in any of the xml files
+# @param[in] xml_sha      the Git-SHA to be used to replace the __GIT_SHA__ placeholder in any of the xml files
+# @param[in] use_ipbus_sw if set to 1, use the IPbus sw to generate or check the vhdl files
+# @param[in] generate     if set to 1, tells the function to generate the VHDL decode address files rather than check them
+proc CopyIPbusXMLs {proj_dir path dst {xml_version "0.0.0"} {xml_sha "00000000"} {use_ipbus_sw 0} {generate 0} } {
+  if {$use_ipbus_sw == 1} {
+    lassign  [ExecuteRet python -c "from __future__ import print_function; from sys import path;print(':'.join(path\[1:\]))"] ret msg
+    if {$ret == 0} {
+      set ::env(PYTHONPATH) $msg
+      lassign [ExecuteRet gen_ipbus_addr_decode -h] ret msg
+      if {$ret != 0}  {
+        set can_generate 0
+      } else {
+        set can_generate 1
+      }
+    } else {
+      Msg CriticalWarning "Problem while trying to run python: $msg"
+      set can_generate 0
+    }
+    set dst [file normalize $dst]
+    if {$can_generate == 0} {
+      if {$generate == 1} {
+        Msg Error "Cannot generate IPbus address files, IPbus executable gen_ipbus_addr_decode not found or not working: $msg"
+        return -1
+
+      } else {
+        Msg Warning "IPbus executable gen_ipbus_addr_decode not found or not working, will not verify IPbus address tables."
+      }
+    }
+  } else {
+    set can_generate 0
+  }
+
+  set ipb_files [glob -nocomplain $proj_dir/list/*.ipb]
+  set n_ipb_files [llength $ipb_files]
+  if {$n_ipb_files == 0} {
+    Msg CriticalWarning "No files with .ipb extension found in $proj_dir/list."
+    return
+  }
+  set libraries [dict create]
+  set vhdl_dict [dict create]
+
+  foreach ipb_file $ipb_files {
+    lassign [ReadListFile {*}"$ipb_file $path"] l p fs
+    set libraries [MergeDict $l $libraries]
+    set vhdl_dict [MergeDict $p $vhdl_dict]
+  }
+
+  set xmlfiles [dict get $libraries "xml.ipb"]
+
+
+  set xml_list_error 0
+  foreach xmlfile $xmlfiles {
+
+    if {[file isdirectory $xmlfile]} {
+      Msg CriticalWarning "Directory $xmlfile listed in xml list file $list_file. Directories are not supported!"
+      set xml_list_error 1
+    }
+
+    if {[file exists $xmlfile]} {
+      if {[dict exists $vhdl_dict $xmlfile]} {
+        set vhdl_file [file normalize [dict get $vhdl_dict $xmlfile]]
+      } else {
+        set vhdl_file ""
+      }
+      lappend vhdls $vhdl_file
+
+      set xmlfile [file normalize $xmlfile]
+      Msg Info "Copying $xmlfile to $dst and replacing place holders..."
+      set in  [open $xmlfile r]
+      set out [open $dst/[file tail $xmlfile] w]
+
+      while {[gets $in line] != -1} {
+        set new_line [regsub {(.*)__VERSION__(.*)} $line "\\1$xml_version\\2"]
+        set new_line2 [regsub {(.*)__GIT_SHA__(.*)} $new_line "\\1$xml_sha\\2"]
+        puts $out $new_line2
+      }
+      close $in
+      close $out
+      lappend xmls  [file tail $xmlfile]
+    } else {
+      Msg Warning "XML file $xmlfile not found"
+    }
+  }
+  if {${xml_list_error}} {
+    Msg Error "Invalid files added to $list_file!"
+  }
+
+  set cnt [llength $xmls]
+  Msg Info "$cnt xml file/s copied"
+
+
+  if {$can_generate == 1} {
+    set old_dir [pwd]
+    cd $dst
+    file mkdir "address_decode"
+    cd "address_decode"
+
+    foreach x $xmls  v $vhdls {
+      if {$v ne ""} {
+        set x [file normalize ../$x]
+        if {[file exists $x]} {
+          lassign [ExecuteRet gen_ipbus_addr_decode $x 2>&1]  status log
+          if {$status == 0} {
+            set generated_vhdl ./ipbus_decode_[file rootname [file tail $x]].vhd
+            if {$generate == 1} {
+              Msg Info "Copying generated VHDL file $generated_vhdl into $v (replacing if necessary)"
+              file copy -force -- $generated_vhdl $v
+            } else {
+              if {[file exists $v]} {
+                set diff [CompareVHDL $generated_vhdl $v]
+                set n [llength $diff]
+                if {$n > 0} {
+                  Msg CriticalWarning "$v does not correspond to its XML $x, [expr {$n/3}] line/s differ:"
+                  Msg Status [join $diff "\n"]
+                  set diff_file [open ../diff_[file rootname [file tail $x]].txt w]
+                  puts $diff_file $diff
+                  close $diff_file
+                } else {
+                  Msg Info "[file tail $x] and $v match."
+                }
+              } else {
+                Msg Warning "VHDL address map file $v not found."
+              }
+            }
+          } else {
+            Msg Warning "Address map generation failed for [file tail $x]: $log"
+          }
+        } else {
+          Msg Warning "Copied XML file $x not found."
+        }
+      } else {
+        Msg Info "Skipped verification of [file tail $x] as no VHDL file was specified."
+      }
+    }
+    cd ..
+    file delete -force address_decode
+    cd $old_dir
+  }
+}
+
+## @brief Returns the value in a Tcl dictionary corresponding to the chosen key
+#
+# @param[in] dictName the name of the dictionary
+# @param[in] keyName  the name of the key
+# @param[in] default  the default value to be returned if the key is not found (default "")
+#
+# @return             The value in the dictionary corresponding to the provided key
+proc DictGet {dictName keyName {default ""}} {
+  if {[dict exists $dictName $keyName]} {
+    return [dict get $dictName $keyName]
+  } else {
+    return $default
+  }
+}
+
+## @brief Checks the Doxygen version installed in this machine
+#
+# @param[in] target_version the version required by the current project
+#
+# @return Returns 1, if the system Doxygen version is greater or equal to the target
+proc DoxygenVersion {target_version} {
+  set ver [split $target_version "."]
+  set v [Execute doxygen --version]
+  Msg Info "Found Doxygen version: $v"
+  set current_ver [split $v ". "]
+  set target [expr {[lindex $ver 0]*100000 + [lindex $ver 1]*100 + [lindex $ver 2]}]
+  set current [expr {[lindex $current_ver 0]*100000 + [lindex $current_ver 1]*100 + [lindex $current_ver 2]}]
+
+  return [expr {$target <= $current}]
+}
+
+## @brief Handle eos commands
+#
+# It can be used with lassign like this: lassign [eos \<eos command\> ] ret result
+#
+#  @param[in] command: the EOS command to be run, e.g. ls, cp, mv, rm
+#  @param[in] attempt: (default 0) how many times the command should be attempted in case of failure
+#
+#  @returns a list of 2 elements: the return value (0 if no error occurred) and the output of the EOS command
+proc eos {command {attempt 1}}  {
+  global env
+  if {![info exists env(EOS_MGM_URL)]} {
+    Msg Warning "Environment variable EOS_MGM_URL not set, setting it to default value root://eosuser.cern.ch"
+    set ::env(EOS_MGM_URL) "root://eosuser.cern.ch"
+  }
+  if {$attempt < 1} {
+    Msg Warning "The value of attempt should be 1 or more, not $attempt, setting it to 1 as default"
+    set attempt 1
+  }
+  for {set i 0} {$i < $attempt} {incr i } {
+    set ret [catch {exec -ignorestderr eos {*}$command} result]
+    if {$ret == 0} {
+      break
+    } else {
+      if {$attempt > 1} {
+        set wait [expr {1+int(rand()*29)}]
+        Msg Warning "Command $command failed ($i/$attempt): $result, trying again in $wait seconds..."
+        after [expr {$wait*1000}]
       }
     }
   }
-  return $extra_file_dict
+  return [list $ret $result]
+}
+
+## @brief Handle shell commands
+#
+# It can be used with lassign like this: lassign [Execute \<command\> ] ret result
+#
+#  @param[in] args: the shell command
+#
+#  @returns the output of the command
+proc Execute {args}  {
+  global env
+  lassign [ExecuteRet {*}$args] ret result
+  if {$ret != 0} {
+    Msg Error "Command [join $args] returned error code: $ret"
+  }
+
+  return $result
+}
+
+
+## @brief Handle shell commands
+#
+# It can be used with lassign like this: lassign [ExecuteRet \<command\> ] ret result
+#
+#  @param[in] args: the shell command
+#
+#  @returns a list of 2 elements: the return value (0 if no error occurred) and the output of the command
+proc ExecuteRet {args}  {
+  global env
+  if {[llength $args] == 0} {
+    Msg CriticalWarning "No argument given"
+    set ret -1
+    set result ""
+  } else {
+    set ret [catch {exec -ignorestderr {*}$args} result]
+  }
+
+  return [list $ret $result]
+}
+
+## @brief Tags the repository with a new version calculated on the basis of the previous tags
+#
+# @param[in] tag  a tag in the Hog format: v$M.$m.$p or b$(mr)v$M.$m.$p-$n
+#
+# @return         a list containing: Major minor patch v.
+#
+proc ExtractVersionFromTag {tag} {
+  if {[regexp {^(?:b(\d+))?v(\d+)\.(\d+).(\d+)(?:-\d+)?$} $tag -> mr M m p]} {
+    if {$mr eq ""} {
+      set mr 0
+    }
+  } else {
+    Msg Warning "Repository tag $tag is not in a Hog-compatible format."
+    set mr -1
+    set M -1
+    set m -1
+    set p -1
+  }
+  return [list $M $m $p $mr]
+}
+
+
+## @brief Checks if file was committed into the repository
+#
+#
+#  @param[in] File: file name
+#
+#  @returns 1 if file was committed and 0 if file was not committed
+proc FileCommitted {File }  {
+  set Ret 1
+  set currentDir [pwd]
+  cd [file dirname [file normalize $File]]
+  set GitLog [Git ls-files [file tail $File]]
+  if {$GitLog == ""} {
+    Msg CriticalWarning "File [file normalize $File] is not in the git repository. Please add it with:\n git add [file normalize $File]\n"
+    set Ret 0
+  }
+  cd $currentDir
+  return $Ret
+}
+
+
+## @brief determine file type from extension
+#  Used only for Quartus
+#
+## @return FILE_TYPE the file Type
+proc FindFileType {file_name} {
+  set extension [file extension $file_name]
+  switch $extension {
+    .stp {
+      set file_extension "USE_SIGNALTAP_FILE"
+    }
+    .vhd {
+      set file_extension "VHDL_FILE"
+    }
+    .vhdl {
+      set file_extension "VHDL_FILE"
+    }
+    .v {
+      set file_extension "VERILOG_FILE"
+    }
+    .sv {
+      set file_extension "SYSTEMVERILOG_FILE"
+    }
+    .sdc {
+      set file_extension "SDC_FILE"
+    }
+    .pdc {
+      set file_extension "PDC_FILE"
+    }
+    .ndc {
+      set file_extension "NDC_FILE"
+    }
+    .fdc {
+      set file_extension "FDC_FILE"
+    }
+    .qsf {
+      set file_extension "SOURCE_FILE"
+    }
+    .ip {
+      set file_extension "IP_FILE"
+    }
+    .qsys {
+      set file_extension "QSYS_FILE"
+    }
+    .qip {
+      set file_extension "QIP_FILE"
+    }
+    .sip {
+      set file_extension "SIP_FILE"
+    }
+    .bsf {
+      set file_extension "BSF_FILE"
+    }
+    .bdf {
+      set file_extension "BDF_FILE"
+    }
+    .tcl {
+      set file_extension "COMMAND_MACRO_FILE"
+    }
+    .vdm {
+      set file_extension "VQM_FILE"
+    }
+    default {
+      set file_extension "ERROR"
+      Msg Error "Unknown file extension $extension"
+    }
+  }
+  return $file_extension
+}
+
+# @brief Returns the newest version in a list of versions
+#
+# @param[in] versions The list of versions
+proc FindNewestVersion { versions } {
+  set new_ver 00000000
+  foreach ver $versions {
+    ##nagelfar ignore
+    if {[ expr 0x$ver > 0x$new_ver ] } {
+      set new_ver $ver
+    }
+  }
+  return $new_ver
+}
+
+## @brief Set VHDL version to 2008 for *.vhd files
+#
+# @param[in] file_name the name of the HDL file
+#
+# @return "-hdl_version VHDL_2008" if the file is a *.vhd files else ""
+proc FindVhdlVersion {file_name} {
+  set extension [file extension $file_name]
+  switch $extension {
+    .vhd {
+      set vhdl_version "-hdl_version VHDL_2008"
+    }
+    .vhdl {
+      set vhdl_version "-hdl_version VHDL_2008"
+    }
+    default {
+      set vhdl_version ""
+    }
+  }
+
+  return $vhdl_version
+}
+
+## Format a generic to a 32 bit verilog style hex number, e.g.
+#  take in ea8394c and return 32'h0ea8394c
+#
+#  @param[in]    unformatted generic
+proc FormatGeneric {generic} {
+  if {[string is integer "0x$generic"]} {
+    return [format "32'h%08X" "0x$generic"]
+  } else {
+    # for non integers (e.g. blanks) just return 0
+    return [format "32'h%08X" 0]
+  }
 }
 
 ## @brief Function used to generate a qsys system from a .qsys file.
@@ -2729,21 +1280,1342 @@ proc GenerateQsysSystem {qsysFile commandOpts} {
   }
 }
 
-## @brief Forces all the Vivado runs to look up to date, useful before write bitstream
+## Get the configuration files to create a Hog project
 #
-proc ForceUpToDate {} {
-  Msg Info "Forcing all the runs to look up to date..."
-  set runs [get_runs]
-  foreach r $runs {
-    Msg Info "Forcing $r..."
-    set_property needs_refresh false [get_runs $r]
+#  @param[in] proj_dir: The project directory containing the conf file or the the tcl file
+#
+#  @return[in] a list containing the full path of the hog.conf, sim.conf, pre-creation.tcl, post-creation.tcl and proj.tcl files
+proc GetConfFiles {proj_dir} {
+  if {![file isdirectory $proj_dir]} {
+    Msg Error "$proj_dir is supposed to be the top project directory"
+    return -1
   }
+  set conf_file [file normalize $proj_dir/hog.conf]
+  set sim_file [file normalize $proj_dir/sim.conf]
+  set pre_tcl [file normalize $proj_dir/pre-creation.tcl]
+  set post_tcl [file normalize $proj_dir/post-creation.tcl]
+
+  return [list $conf_file $sim_file $pre_tcl $post_tcl]
 }
 
 
-## @brief Copy IP generated files from/to a remote o local direcotry (possibly EOS)
+## Get the Date and time of a commit (or current time if Git < 2.9.3)
 #
-# @param[in] what_to_do: can be "push", if you want to copy the local IP synth result to the remote direcyory or "pull" if you want to copy the files from thre remote directory to your local repository
+#  @param[in]    commit The commit
+proc GetDateAndTime {commit} {
+  set clock_seconds [clock seconds]
+
+  if {[GitVersion 2.9.3]} {
+    set date [Git "log -1 --format=%cd --date=format:%d%m%Y $commit"]
+    set timee [Git "log -1 --format=%cd --date=format:00%H%M%S $commit"]
+  } else {
+    Msg Warning "Found Git version older than 2.9.3. Using current date and time instead of commit time."
+    set date [clock format $clock_seconds  -format {%d%m%Y}]
+    set timee [clock format $clock_seconds -format {00%H%M%S}]
+  }
+  return [list $date $timee]
+}
+
+## @brief Gets a list of files contained in the current fileset that match a file name (passed as parameter)
+#
+# The file name is matched against the input parameter.
+#
+#  @param[in] file name (or part of it)
+#  @param[in] fileset name
+#
+#  @return    a list of files matching the parameter in the chosen fileset
+#
+proc GetFile {file fileset} {
+  if {[IsXilinx]} {
+    # Vivado
+    set Files [get_files -all $file -of_object [get_filesets $fileset]]
+    set f [lindex $Files 0]
+
+    return $f
+
+  } elseif {[IsQuartus]} {
+    # Quartus
+    return ""
+  } else {
+    # Tcl Shell
+    puts "***DEBUG Hog:GetFile $file"
+    return "DEBUG_file"
+  }
+}
+
+## @brief Gets custom generics from hog.conf or sim.conf
+#
+# @param[in] proj_dir:    the top folder of the project
+# @param[in] target:      software target(vivado, questa)
+# @param[in] sim:         If 1, get the generics from the sim.conf
+# @return string with generics
+#
+proc GetGenericFromConf {proj_dir target {sim 0}} {
+  set prj_generics ""
+  set top_dir "Top/$proj_dir"
+  set conf_file "$top_dir/hog.conf"
+  set conf_index 0
+  if {$sim == 1} {
+    set conf_file "$top_dir/sim.conf"
+    set conf_index 1
+  }
+
+
+  if {[file exists $conf_file]} {
+    set properties [ReadConf [lindex [GetConfFiles $top_dir] $conf_index]]
+    if {[dict exists $properties generics]} {
+      set propDict [dict get $properties generics]
+      dict for {theKey theValue} $propDict {
+        set valueHexFull ""
+        set valueNumBits ""
+        set valueHexFlag ""
+        set valueHex ""
+        set valueIntFull ""
+        set ValueInt ""
+        set valueStrFull ""
+        set ValueStr ""
+        regexp {([0-9]*)('h)([0-9a-fA-F]*)} $theValue valueHexFull valueNumBits valueHexFlag valueHex
+        regexp {^([0-9]*)$} $theValue valueIntFull ValueInt
+        regexp {(?!^\d+$)^.+$} $theValue valueStrFull ValueStr
+        if { [string tolower $target] == "vivado" || [string tolower $target] == "xsim" } {
+          if {$valueNumBits != "" && $valueHexFlag != "" && $valueHex != ""} {
+            set prj_generics "$prj_generics $theKey=$valueHexFull"
+          } elseif { $valueIntFull != "" && $ValueInt != "" } {
+            set prj_generics "$prj_generics $theKey=$ValueInt"
+          } elseif { $valueStrFull != "" && $ValueStr != "" } {
+            set prj_generics "$prj_generics $theKey=\"$ValueStr\""
+          } else {
+            set prj_generics "$prj_generics $theKey=\"$theValue\""
+          }
+        } elseif { [lsearch -exact [GetSimulators] [string tolower $target] ] >= 0 } {
+          if {$valueNumBits != "" && $valueHexFlag != "" && $valueHex != ""} {
+            set numBits 0
+            scan $valueNumBits %d numBits
+            set numHex 0
+            scan $valueHex %x numHex
+            binary scan [binary format "I" $numHex] "B*" binval
+            set numBits [expr {$numBits-1}]
+            set numBin [string range $binval end-$numBits end]
+            set prj_generics "$prj_generics $theKey=\"$numBin\""
+
+          } elseif { $valueIntFull != "" && $ValueInt != "" } {
+            set prj_generics "$prj_generics $theKey=$ValueInt"
+          } elseif { $valueStrFull != "" && $ValueStr != "" } {
+            set prj_generics "$prj_generics {$theKey=\"$ValueStr\"}"
+
+          } else {
+            set prj_generics "$prj_generics {$theKey=\"$theValue\"}"
+          }
+        } else {
+          Msg Warning "Target : $target not implemented"
+        }
+      }
+    }
+  } else {
+    Msg Warning "File $top_dir/hog.conf not found."
+  }
+  return $prj_generics
+}
+
+
+## Returns the group name from the project directory
+#
+#  @param[in]    proj_dir project directory
+#  @param[in]    repo_dir repository directory
+#
+#  @return       the group name without initial and final slashes
+#
+proc GetGroupName {proj_dir repo_dir} {
+  if {[regexp {^(.*)/(Top|Projects)/+(.*?)/*$} $proj_dir dummy possible_repo_dir proj_or_top dir]} {
+    # The Top or Project folder is in the root of a the git repository
+    if {[file normalize $repo_dir] eq [file normalize $possible_repo_dir]} {
+      set group [file dir $dir]
+      if { $group == "." } {
+        set group ""
+      }
+    } else {
+    # The Top or Project folder is NOT in the root of a git repository
+      Msg Warning "Project directory $proj_dir seems to be in $possible_repo_dir which is not a the main Git repository $repo_dir."
+    }
+  } else {
+    Msg Warning "Could not parse project directory $proj_dir"
+    set group ""
+  }
+  return $group
+}
+
+
+## Get custom Hog describe of a specific SHA
+#
+#  @param[in] sha         the git sha of the commit you want to calculate the describe of
+#  @param[in] repo_path   the main path of the repository
+#
+#  @return            the Hog describe of the sha or the current one if the sha is 0
+#
+proc GetHogDescribe {sha {repo_path .}} {
+  if {$sha == 0 } {
+    # in case the repo is dirty, we use the last committed sha and add a -dirty suffix
+    set new_sha "[string toupper [GetSHA]]"
+    set suffix "-dirty"
+  } else {
+    set new_sha [string toupper $sha]
+    set suffix ""
+  }
+  set describe "v[HexVersionToString [GetVerFromSHA $new_sha $repo_path]]-$new_sha$suffix"
+  return $describe
+}
+
+
+## @brief Extract files, libraries and properties from the project's list files
+#
+# @param[in] args The arguments are \<list_path\> \<repository path\>[options]
+# * list_path path to the list file directory
+# Options:
+# * -list_files \<List files\> the file wildcard, if not specified all Hog list files will be looked for
+# * -sha_mode forwarded to ReadListFile, see there for info
+# * -ext_path \<external path\> path for external libraries forwarded to ReadListFile
+#
+# @return a list of 3 dictionaries: libraries and properties
+# - libraries has library name as keys and a list of filenames as values
+# - properties has as file names as keys and a list of properties as values
+# - filesets has the fileset name as keys and the correspondent list of libraries as values (significant only for simulations)
+proc GetHogFiles args {
+
+  if {[IsQuartus]} {
+    load_package report
+    if { [catch {package require cmdline} ERROR] } {
+      puts "$ERROR\n If you are running this script on tclsh, you can fix this by installing 'tcllib'"
+      return 1
+    }
+  }
+
+
+  set parameters {
+    {list_files.arg ""  "The file wildcard, if not specified all Hog list files will be looked for."}
+    {sha_mode "Forwarded to ReadListFile, see there for info."}
+    {ext_path.arg "" "Path for the external libraries forwarded to ReadListFile."}
+  }
+  set usage "USAGE: GetHogFiles \[options\] <list path> <repository path>"
+  if {[catch {array set options [cmdline::getoptions args $parameters $usage]}] ||  [llength $args] != 2 } {
+    Msg CriticalWarning [cmdline::usage $parameters $usage]
+    return
+  }
+  set list_path [lindex $args 0]
+  set repo_path [lindex $args 1]
+
+  set list_files $options(list_files)
+  set sha_mode $options(sha_mode)
+  set ext_path $options(ext_path)
+
+
+  if { $sha_mode == 1 } {
+    set sha_mode_opt "-sha_mode"
+  } else {
+    set sha_mode_opt ""
+  }
+
+  if { $list_files == "" } {
+    set list_files {.src,.con,.sim,.ext}
+  }
+  set libraries [dict create]
+  set properties [dict create]
+  set list_files [glob -nocomplain -directory $list_path "*{$list_files}"]
+  set filesets [dict create]
+
+  foreach f $list_files {
+    set ext [file extension $f]
+    if {$ext == ".ext"} {
+      lassign [ReadListFile {*}"$sha_mode_opt  $f $ext_path"] l p fs
+    } else {
+      lassign [ReadListFile {*}"$sha_mode_opt  $f $repo_path"] l p fs
+    }
+    set libraries [MergeDict $l $libraries]
+    set properties [MergeDict $p $properties]
+    Msg Debug "list file $f, filesets: $fs"
+    set filesets [MergeDict $fs $filesets]
+    Msg Debug "Merged filesets $filesets"
+  }
+  return [list $libraries $properties $filesets]
+}
+
+
+## @brief Returns the real file linked by a soft link
+#
+# If the provided file is not a soft link, it will give a Warning and return an empty string.
+# If the link is broken, will give a warning but still return the linked file
+#
+# @param[in] link_file The soft link file
+proc GetLinkedFile {link_file} {
+  if {[file type $link_file] eq "link"} {
+    if {[OS] == "windows" } {
+        #on windows we need to use readlink because Tcl is broken
+      lassign  [ExecuteRet realpath $link_file] ret msg
+      lassign  [ExecuteRet cygpath -m $msg] ret2 msg2
+      if {$ret == 0 && $ret2 == 0} {
+        set real_file $msg2
+        Msg Debug "Found link file $link_file on Windows, the linked file is: $real_file"
+      } else {
+        Msg CriticalWarning "[file normalize $link_file] is a soft link. Soft link are not supported on Windows and readlink.exe or cygpath.exe did not work: readlink=$ret: $msg, cygpath=$ret2: $msg2."
+        set real_file $link_file
+      }
+    } else {
+      #on linux Tcl just works
+      set linked_file [file link $link_file]
+      set real_file [file normalize [file dirname $link_file]/$linked_file]
+    }
+
+    if {![file exists $real_file]} {
+      Msg Warning "$link_file is a broken link, because the linked file: $real_file does not exist."
+    }
+  } else {
+    Msg Warning "$link file is not a soft link"
+    set real_file $link_file
+  }
+  return $real_file
+}
+
+## @brief Gets MAX number of Threads property from property.conf file in Top/$proj_name directory.
+#
+# If property is not set returns default = 1
+#
+# @param[in] proj_dir:   the top folder of the project
+#
+# @return 1 if property is not set else the value of MaxThreads
+#
+proc GetMaxThreads {proj_dir} {
+  set maxThreads 1
+  if {[file exists $proj_dir/hog.conf]} {
+    set properties [ReadConf [lindex [GetConfFiles $proj_dir] 0]]
+    if {[dict exists $properties parameters]} {
+      set propDict [dict get $properties parameters]
+      if {[dict exists $propDict MAX_THREADS]} {
+        set maxThreads [dict get $propDict MAX_THREADS]
+      }
+    }
+  } else {
+    Msg Warning "File $proj_dir/hog.conf not found. Max threads will be set to default value 1"
+  }
+  return $maxThreads
+}
+
+
+## @brief Get a list of all modified the files matching then pattern
+#
+# @param[in] repo_path the path of the git repository
+# @param[in] pattern the pattern with wildcards that files should match
+#
+# @return    a list of all modified files matching the pattern
+#
+proc GetModifiedFiles {{repo_path "."} {pattern "."}} {
+  set old_path [pwd]
+  cd $repo_path
+  set ret [Git "ls-files --modified $pattern"]
+  cd $old_path
+  return $ret
+}
+
+# return [list $libraries $properties $simlibraries $constraints $srcsets $simsets $consets]
+## @ brief Returns a list of 7 dictionaries: libraries, properties, constraints, and filesets for sources and simulations
+#   The returned dictionaries are libraries, properties, simlibraries, constraints, srcsets, simsets, consets
+# - libraries and simlibraries have the library name as keys and a list of filenames as values
+# - properties has as file names as keys and a list of properties as values
+# - constraints is a dictionary with a single key (sources.con) and a list of constraint files as value
+# - srcsets is a dictionary with a fileset name as a key (e.g. sources_1) and a list of libraries as value
+# - simsets is a dictionary with a simset name as a key (e.g. sim_1) and a list of libraries as value
+# - consets is a dictionary with a constraints file sets name as a key (e.g. constr_1) and a list of constraint "libraries" (sources.con)
+#
+# Files, libraries and properties are extracted from the current Vivado project
+#
+# @return A list of 7 dictionaries: libraries, properties, constraints, and filesets for sources and simulations
+proc GetProjectFiles {} {
+
+  set all_filesets [get_filesets]
+  set libraries [dict create]
+  set simlibraries [dict create]
+  set constraints [dict create]
+  set properties [dict create]
+  set consets [dict create]
+  set srcsets [dict create]
+  set simsets [dict create]
+  set simulator [get_property target_simulator [current_project]]
+  set top [get_property "top"  [current_fileset]]
+  set topfile [GetTopFile]
+  dict lappend properties $topfile "top=$top"
+
+  foreach fs $all_filesets {
+    if {$fs == "utils_1"} {
+      # Skipping utility fileset
+      continue
+    }
+
+    set all_files [get_files -quiet -of_objects [get_filesets $fs]]
+    set fs_type [get_property FILESET_TYPE [get_filesets $fs]]
+
+    if {$fs_type == "BlockSrcs"} {
+      # Vivado creates for each ip a blockset... Let's redirect to sources_1
+      set dict_fs "sources_1"
+    } else {
+      set dict_fs $fs
+    }
+    foreach f $all_files {
+      # Ignore files that are part of the vivado/planahead project but would not be reflected
+      # in list files (e.g. generated products from ip cores)
+      set ignore 0
+      # Generated files point to a parent composite file;
+      # planahead does not have an IS_GENERATED property
+      if { [IsInList "IS_GENERATED" [list_property [GetFile $f $fs]]]} {
+        if { [lindex [get_property  IS_GENERATED [GetFile $f $fs]] 0] != 0} {
+          set ignore 1
+        }
+      }
+
+      if {[get_property FILE_TYPE [GetFile $f $fs]] == "Configuration Files"} {
+        set ignore 1
+      }
+
+
+      if { [IsInList "CORE_CONTAINER" [list_property [GetFile $f $fs]]]} {
+        if {[get_property CORE_CONTAINER [GetFile $f $fs]] != ""} {
+          if { [file extension $f] == ".xcix"} {
+            set f [get_property CORE_CONTAINER [GetFile $f $fs]]
+          } else {
+            set ignore 1
+          }
+        }
+      }
+
+      if {[IsInList "SCOPED_TO_REF" [list_property [GetFile $f $fs]]]} {
+        if {[get_property SCOPED_TO_REF [GetFile $f $fs]] != ""} {
+          dict lappend properties $f "scoped_to_ref=[get_property SCOPED_TO_REF [GetFile $f $fs]]"
+        }
+      }
+
+      if {[IsInList "SCOPED_TO_CELLS" [list_property [GetFile $f $fs]]]} {
+        if {[get_property SCOPED_TO_CELLS [GetFile $f $fs]] != ""} {
+          dict lappend properties $f "scoped_to_cells=[get_property SCOPED_TO_CELLS [GetFile $f $fs]]"
+        }
+      }
+
+      if {[IsInList "PARENT_COMPOSITE_FILE" [list_property [GetFile $f $fs]]]} {
+        set ignore 1
+      }
+
+      # Ignore nocattrs.dat for Versal
+      if {[file tail $f] == "nocattrs.dat"} {
+        set ignore 1
+      }
+
+      if {!$ignore} {
+        if {[file extension $f] != ".coe"} {
+          set f [file normalize $f]
+        }
+        lappend files $f
+        set type  [get_property FILE_TYPE [GetFile $f $fs]]
+        # Added a -quiet because some files (.v, .sv) don't have a library
+        set lib [get_property -quiet LIBRARY [GetFile $f $fs]]
+
+        # Type can be complex like VHDL 2008, in that case we want the second part to be a property
+        Msg Debug "File $f Extension [file extension $f] Type [lindex $type 0]"
+
+        if {[string equal [lindex $type 0] "VHDL"] && [llength $type] == 1} {
+          set prop "93"
+        } elseif  {[string equal [lindex $type 0] "Block"] && [string equal [lindex $type 1] "Designs"]} {
+          set type "IP"
+          set prop ""
+        } elseif {[string equal $type "SystemVerilog"] && [file extension $f] != ".sv"} {
+          set prop "SystemVerilog"
+        } elseif {[string equal [lindex $type 0] "XDC"] && [file extension $f] != ".xdc"} {
+          set prop "XDC"
+        } elseif {[string equal $type "Verilog Header"] && [file extension $f] != ".vh" && [file extension $f] != ".svh"} {
+          set prop "verilog_header"
+        } elseif {[string equal $type "Verilog Template"] && [file extension $f] == ".v" && [file extension $f] != ".sv"} {
+          set prop "verilog_template"
+        } else {
+          set type [lindex $type 0]
+          set prop ""
+        }
+        #If type is "VHDL 2008" we will keep only VHDL
+        if {![string equal $prop ""]} {
+          dict lappend properties $f $prop
+        }
+        # check where the file is used and add it to prop
+        if {[string equal $fs_type "SimulationSrcs"]} {
+          # Simulation sources
+          if {[string equal $type "VHDL"] } {
+            set library "${lib}.sim"
+          } else {
+            set library "others.sim"
+          }
+
+          if {[IsInList $library [DictGet $simsets $dict_fs]]==0} {
+            dict lappend simsets $dict_fs $library
+          }
+
+          dict lappend simlibraries $library $f
+
+        } elseif {[string equal $type "VHDL"] } {
+          # VHDL files (both 2008 and 93)
+          if {[IsInList "${lib}.src" [DictGet $srcsets $dict_fs]]==0} {
+            dict lappend srcsets $dict_fs "${lib}.src"
+          }
+          dict lappend libraries "${lib}.src" $f
+        } elseif {[string first "IP" $type] != -1} {
+          # IPs
+          if {[IsInList "ips.src" [DictGet $srcsets $dict_fs]]==0} {
+            dict lappend srcsets $dict_fs "ips.src"
+          }
+          dict lappend libraries "ips.src" $f
+          Msg Debug "Appending $f to ips.src"
+        } elseif {[string equal $fs_type "Constrs"]} {
+          # Constraints
+          if {[IsInList "sources.con" [DictGet $consets $dict_fs]]==0} {
+            dict lappend consets $dict_fs "sources.con"
+          }
+          dict lappend constraints "sources.con" $f
+        } else {
+          # Verilog and other files
+          if {[IsInList "others.src" [DictGet $srcsets $dict_fs]]==0} {
+            dict lappend srcsets $dict_fs "others.src"
+          }
+          dict lappend libraries "others.src" $f
+          Msg Debug "Appending $f to others.src"
+        }
+
+        if {[lindex [get_property -quiet used_in_synthesis  [GetFile $f $fs]] 0] == 0} {
+          dict lappend properties $f "nosynth"
+        }
+        if {[lindex [get_property -quiet used_in_implementation  [GetFile $f $fs]] 0] == 0} {
+          dict lappend properties $f "noimpl"
+        }
+        if {[lindex [get_property -quiet used_in_simulation  [GetFile $f $fs]] 0] == 0} {
+          dict lappend properties $f "nosim"
+        }
+        if {[lindex [get_property -quiet IS_MANAGED [GetFile $f $fs]] 0] == 0 && [file extension $f] != ".xcix" } {
+          dict lappend properties $f "locked"
+        }
+      }
+    }
+  }
+
+  dict lappend properties "Simulator" [get_property target_simulator [current_project]]
+
+  return [list $libraries $properties $simlibraries $constraints $srcsets $simsets $consets]
+}
+
+## Get the Project flavour
+#
+#  @param[in]    proj_name The project name
+proc GetProjectFlavour {proj_name} {
+  # Calculating flavour if any
+  set flavour [string map {. ""} [file extension $proj_name]]
+  if {$flavour != ""} {
+    if {[string is integer $flavour]} {
+      Msg Info "Project $proj_name has flavour = $flavour, the generic variable FLAVOUR will be set to $flavour"
+    } else {
+      Msg Warning "Project name has a unexpected non numeric extension, flavour will be set to -1"
+      set flavour -1
+    }
+
+  } else {
+    set flavour -1
+  }
+  return $flavour
+}
+
+
+## Get the project version
+#
+#  @param[in] proj_dir: The top folder of the project of which all the version must be calculated
+#  @param[in] repo_path: The top folder of the repository
+#  @param[in] ext_path: path for external libraries
+#  @param[in] sim: if enabled, check the version also for the simulation files
+#
+#  @return  returns the project version
+proc GetProjectVersion {proj_dir repo_path {ext_path ""} {sim 0}} {
+  if { ![file exists $proj_dir] } {
+    Msg CriticalWarning "$proj_dir not found"
+    return -1
+  }
+  set old_dir [pwd]
+  cd $proj_dir
+
+  #The latest version the repository
+  set v_last [ExtractVersionFromTag [Git {describe --abbrev=0 --match "v*"}]]
+  lassign [GetRepoVersions $proj_dir $repo_path $ext_path $sim] sha ver
+  if {$sha == 0} {
+    Msg Warning "Repository is not clean"
+    cd $old_dir
+    return -1
+  }
+
+  #The project version
+  set v_proj [ExtractVersionFromTag v[HexVersionToString $ver]]
+  set comp [CompareVersions $v_proj $v_last]
+  if {$comp == 1} {
+    Msg Info "The specified project was modified since official version."
+    set ret 0
+  } else {
+    set ret v[HexVersionToString $ver]
+  }
+
+  if {$comp == 0} {
+    Msg Info "The specified project was modified in the latest official version $ret"
+  } elseif {$comp == -1} {
+    Msg Info "The specified project was modified in a past official version $ret"
+  }
+
+  cd $old_dir
+  return $ret
+}
+
+
+## @brief Retrieves the value of a property of an object
+#
+# It automatically recognises whether it is in Vivado or Quartus mode
+#
+# @param[in] property the name of the property to be retrieved
+# @param[in] object   the object from which to retrieve the property
+#
+# @returns            the value of object.property
+#
+proc GetProperty {property object} {
+  if {[IsXilinx]} {
+    # Vivado
+    return [get_property -quiet $property $object]
+
+  } elseif {[IsQuartus]} {
+    # Quartus
+    return ""
+  } else {
+    # Tcl Shell
+    puts "***DEBUG Hog:GetProperty $property of $object"
+    return "DEBUG_property_value"
+  }
+}
+
+## Get the versions for all libraries, submodules, etc. for a given project
+#
+#  @param[in] proj_dir: The project directory containing the conf file or the the tcl file
+#  @param[in] repo_path: top path of the repository
+#  @param[in] ext_path: path for external libraries
+#  @param[in] sim: if enabled, check the version also for the simulation files
+#
+#  @return  a list containing all the versions: global, top (hog.conf, pre and post tcl scripts, etc.), constraints, libraries, submodules, external, ipbus xml, user ip repos
+proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
+  if { [catch {package require cmdline} ERROR] } {
+    puts "$ERROR\n If you are running this script on tclsh, you can fix this by installing 'tcllib'"
+    return 1
+  }
+
+  set old_path [pwd]
+  set conf_files [GetConfFiles $proj_dir]
+
+  # This will be the list of all the SHAs of this project, the most recent will be picked up as GLOBAL SHA
+  set SHAs ""
+  set versions ""
+
+  # Hog submodule
+  cd $repo_path
+
+  # Append the SHA in which Hog submodule was changed, not the submodule SHA
+  lappend SHAs [GetSHA {Hog}]
+  lappend versions [GetVerFromSHA $SHAs $repo_path]
+
+  cd "$repo_path/Hog"
+  if {[Git {status --untracked-files=no  --porcelain}] eq ""} {
+    Msg Info "Hog submodule [pwd] clean."
+    lassign [GetVer ./] hog_ver hog_hash
+  } else {
+    Msg CriticalWarning "Hog submodule [pwd] not clean, commit hash will be set to 0."
+    set hog_hash "0000000"
+    set hog_ver "00000000"
+  }
+
+  cd $proj_dir
+
+  if {[Git {status --untracked-files=no  --porcelain}] eq ""} {
+    Msg Info "Git working directory [pwd] clean."
+    set clean 1
+  } else {
+    Msg CriticalWarning "Git working directory [pwd] not clean, commit hash, and version will be set to 0."
+    set clean 0
+  }
+
+  # Top project directory
+  lassign [GetVer [join $conf_files]] top_ver top_hash
+  lappend SHAs $top_hash
+  lappend versions $top_ver
+
+  # Read list files
+  set libs ""
+  set vers ""
+  set hashes ""
+  # Specify sha_mode 1 for GetHogFiles to get all the files, including the list-files themselves
+  lassign [GetHogFiles -list_files "*.src" -sha_mode "./list/" $repo_path] src_files dummy
+  dict for {f files} $src_files {
+    # library names have a .src extension in values returned by GetHogFiles
+    set name [file rootname [file tail $f]]
+    if {[file ext $f] == ".oth"} {
+      set name "OTHERS"
+    }
+    lassign [GetVer $files] ver hash
+    # Msg Info "Found source list file $f, version: $ver commit SHA: $hash"
+    lappend libs $name
+    lappend versions $ver
+    lappend vers $ver
+    lappend hashes $hash
+    lappend SHAs $hash
+  }
+
+  # Read constraint list files
+  set cons_hashes ""
+  # Specify sha_mode 1 for GetHogFiles to get all the files, including the list-files themselves
+  lassign [GetHogFiles  -list_files "*.con" -sha_mode "./list/" $repo_path] cons_files dummy
+  dict for {f files} $cons_files {
+    #library names have a .con extension in values returned by GetHogFiles
+    set name [file rootname [file tail $f]]
+    lassign [GetVer  $files] ver hash
+    #Msg Info "Found constraint list file $f, version: $ver commit SHA: $hash"
+    if {$hash eq ""} {
+      Msg CriticalWarning "Constraints file $f not found in Git."
+    }
+    lappend cons_hashes $hash
+    lappend SHAs $hash
+    lappend versions $ver
+  }
+
+  # Read simulation list files
+  if {$sim == 1} {
+    set sim_hashes ""
+    # Specify sha_mode 1 for GetHogFiles to get all the files, including the list-files themselves
+    lassign [GetHogFiles  -list_files "*.sim" -sha_mode "./list/" $repo_path] sim_files dummy
+    dict for {f files} $sim_files {
+      #library names have a .sim extension in values returned by GetHogFiles
+      set name [file rootname [file tail $f]]
+      lassign [GetVer  $files] ver hash
+      #Msg Info "Found simulation list file $f, version: $ver commit SHA: $hash"
+      lappend sim_hashes $hash
+      lappend SHAs $hash
+      lappend versions $ver
+    }
+  }
+
+
+  #Of all the constraints we get the most recent
+  if {"{}" eq $cons_hashes} {
+    #" Fake comment for Visual Code Studio
+    Msg CriticalWarning "No hashes found for constraints files (not in git)"
+    set cons_hash ""
+  } else {
+    set cons_hash [string tolower [Git "log --format=%h -1 $cons_hashes"]]
+  }
+  set cons_ver [GetVerFromSHA $cons_hash $repo_path]
+  #Msg Info "Among all the constraint list files, if more than one, the most recent version was chosen: $cons_ver commit SHA: $cons_hash"
+
+  # Read external library files
+  set ext_hashes ""
+  set ext_files [glob -nocomplain "./list/*.ext"]
+  set ext_names ""
+
+  foreach f $ext_files {
+    set name [file rootname [file tail $f]]
+    set hash [GetSHA $f]
+    #Msg Info "Found source file $f, commit SHA: $hash"
+    lappend ext_names $name
+    lappend ext_hashes $hash
+    lappend SHAs $hash
+    set ext_ver [GetVerFromSHA $hash $repo_path]
+    lappend versions $ext_ver
+
+    set fp [open $f r]
+    set file_data [read $fp]
+    close $fp
+    set data [split $file_data "\n"]
+    #Msg Info "Checking checksums of external library files in $f"
+    foreach line $data {
+      if {![regexp {^ *$} $line] & ![regexp {^ *\#} $line] } {
+        #Exclude empty lines and comments
+        set file_and_prop [regexp -all -inline {\S+} $line]
+        set hdlfile [lindex $file_and_prop 0]
+        set hdlfile $ext_path/$hdlfile
+        if { [file exists $hdlfile] } {
+          set hash [lindex $file_and_prop 1]
+          set current_hash [Md5Sum $hdlfile]
+          if {[string first $hash $current_hash] == -1} {
+            Msg CriticalWarning "File $hdlfile has a wrong hash. Current checksum: $current_hash, expected: $hash"
+          }
+        }
+      }
+    }
+  }
+
+  # Ipbus XML
+  if {[llength [glob -nocomplain ./list/*.ipb]] > 0 } {
+    #Msg Info "Found IPbus XML list file, evaluating version and SHA of listed files..."
+    lassign [GetHogFiles  -list_files "*.ipb" -sha_mode "./list/" $repo_path] xml_files dummy
+    lassign [GetVer  [dict get $xml_files "xml.ipb"] ] xml_ver xml_hash
+    lappend SHAs $xml_hash
+    lappend versions $xml_ver
+
+    #Msg Info "Found IPbus XML SHA: $xml_hash and version: $xml_ver."
+
+  } else {
+    Msg Info "This project does not use IPbus XMLs"
+    set xml_ver  ""
+    set xml_hash ""
+  }
+
+  set user_ip_repos ""
+  set user_ip_repo_hashes ""
+  set user_ip_repo_vers ""
+  # User IP Repository (Vivado only, hog.conf only)
+  if {[file exists [lindex $conf_files 0]]} {
+    set PROPERTIES [ReadConf [lindex $conf_files 0]]
+    if {[dict exists $PROPERTIES main]} {
+      set main [dict get $PROPERTIES main]
+      dict for {p v} $main {
+        if { [ string tolower $p ] == "ip_repo_paths" } {
+          foreach repo $v {
+            lappend user_ip_repos "$repo_path/$repo"
+          }
+        }
+      }
+    }
+
+    # For each defined IP repository get hash and version if directory exists and not empty
+    foreach repo $user_ip_repos {
+      if {[file isdirectory $repo]} {
+        set repo_file_list [glob -nocomplain "$repo/*"]
+        if {[llength $repo_file_list] != 0} {
+          lassign [GetVer $repo] ver sha
+          lappend user_ip_repo_hashes $sha
+          lappend user_ip_repo_vers $ver
+          lappend versions $ver
+        } else {
+          Msg Warning "IP_REPO_PATHS property set to $repo in hog.conf but directory is empty."
+        }
+      } else {
+        Msg Warning "IP_REPO_PATHS property set to $repo in hog.conf but directory does not exist."
+      }
+    }
+  }
+
+
+  #The global SHA and ver is the most recent among everything
+  if {$clean == 1} {
+    set found 0
+    while {$found == 0} {
+      set global_commit [Git "log --format=%h -1 --abbrev=7 $SHAs"]
+      foreach sha $SHAs {
+  set found 1
+  if {![IsCommitAncestor $sha $global_commit]} {
+    set common_child  [FindCommonGitChild $global_commit $sha]
+    if {$common_child == 0} {
+            Msg CriticalWarning "The commit $sha is not an ancestor of the global commit $global_commit, which is OK. But $sha and $global_commit do not have any common child, which is NOT OK. This is probably do to a REBASE that is forbidden in Hog methodology as it changes git history. Hog cannot gaurantee the accuracy of the SHAs. A way to fix this is to make a commit that touches all the projects in the repositories (e.g. change the Hog version) but please do not rebase in the official branches in the future."
+    } else {
+            Msg Info "The commit $sha is not an ancestor of the global commit $global_commit, adding the first common child $common_child instead..."
+      lappend SHAs $common_child
+    }
+    set found 0
+
+    break
+  }
+      }
+    }
+    set global_version [FindNewestVersion $versions]
+  } else {
+    set global_commit  "0000000"
+    set global_version "00000000"
+  }
+
+  cd $old_path
+
+  set top_hash [format %+07s $top_hash]
+  set cons_hash [format %+07s $cons_hash]
+  return [list $global_commit $global_version  $hog_hash $hog_ver  $top_hash $top_ver  $libs $hashes $vers  $cons_ver $cons_hash  $ext_names $ext_hashes  $xml_hash $xml_ver $user_ip_repos $user_ip_repo_hashes $user_ip_repo_vers ]
+}
+
+## @brief Get git SHA of a subset of list file
+#
+# @param[in] path the file/path or list of files/path the git SHA should be evaluated from. If is not set, use the current path
+#
+# @return         the value of the desired SHA
+#
+proc GetSHA {{path ""}} {
+  if {$path == ""} {
+    lassign [GitRet {log --format=%h --abbrev=7 -1}] status result
+    if {$status == 0} {
+      return [string tolower $result]
+    } else {
+      Msg Error "Something went wrong while finding the latest SHA. Does the repository have a commit?"
+      exit 1
+    }
+  }
+
+  # Get repository top level
+  set repo_path [lindex [Git {rev-parse --show-toplevel}] 0]
+  set paths {}
+  # Retrieve the list of submodules in the repository
+  foreach f $path {
+    set file_in_module 0
+    if {[file exists $repo_path/.gitmodules]} {
+      lassign [GitRet "config --file $repo_path/.gitmodules --get-regexp path"] status result
+      if {$status == 0} {
+        set submodules [split $result "\n"]
+      } else {
+        set submodules ""
+        Msg Warning "Something went wrong while trying to find submodules: $result"
+      }
+
+      foreach mod $submodules {
+        set module [lindex $mod 1]
+        if {[string first "$repo_path/$module" $f] == 0} {
+          # File is in a submodule. Append
+          set file_in_module 1
+          lappend paths "$repo_path/$module"
+          break
+        }
+      }
+
+    }
+    if {$file_in_module == 0} {
+      #File is not in a submodule
+      lappend paths $f
+    }
+  }
+
+  lassign [GitRet {log --format=%h --abbrev=7 -1} $paths] status result
+  if {$status == 0} {
+    return [string tolower $result]
+  } else {
+    Msg Error "Something went wrong while finding the latest SHA. Does the repository have a commit?"
+    exit 1
+  }
+  return [string tolower $result]
+}
+
+## @brief Returns the list of Simulators supported by Vivado
+proc GetSimulators {} {
+  set SIMULATORS [list "modelsim" "questa" "riviera" "activehdl" "ies" "vcs"]
+  return $SIMULATORS
+}
+
+
+
+## @brief Return the path to the active top file
+proc GetTopFile {} {
+  if {[IsVivado]} {
+    set compile_order_prop [get_property source_mgmt_mode [current_project]]
+    if {$compile_order_prop ne "All"} {
+      Msg CriticalWarning "Compile order is not set to automatic, setting it now..."
+      set_property source_mgmt_mode All [current_project]
+      update_compile_order -fileset sources_1
+    }
+    return [lindex [get_files -quiet -compile_order sources -used_in synthesis -filter {FILE_TYPE =~ "VHDL*" || FILE_TYPE =~ "*Verilog*" } ] end]
+  } elseif {[IsISE]} {
+    debug::design_graph_mgr -create [current_fileset]
+    debug::design_graph -add_fileset [current_fileset]
+    debug::design_graph -update_all
+    return [lindex [debug::design_graph -get_compile_order] end]
+  } else {
+    Msg Error "GetTopFile not yet implemented for this IDE"
+  }
+}
+
+## @brief Return the name of the active top module
+proc GetTopModule {} {
+  if {[IsXilinx]} {
+    return [get_property top [current_fileset]]
+  } else {
+    Msg Error "GetTopModule not yet implemented for this IDE"
+  }
+}
+
+## @brief Get git version and commit hash of a subset of files
+#
+# @param[in] path list file or path containing the subset of files whose latest commit hash will be returned
+#
+# @return  a list: the git SHA, the version in hex format
+#
+proc GetVer {path {force_develop 0}} {
+  set SHA [GetSHA $path]
+  #oldest tag containing SHA
+  if {$SHA eq ""} {
+    Msg CriticalWarning "Empty SHA found for ${path}. Commit to Git to resolve this warning."
+  }
+  set old_path [pwd]
+  set p [lindex $path 0]
+  if {[file isdirectory $p]} {
+    cd $p
+  } else {
+    cd [file dirname $p]
+  }
+  set repo_path [Git {rev-parse --show-toplevel}]
+  cd $old_path
+
+  return [list [GetVerFromSHA $SHA $repo_path $force_develop] $SHA]
+}
+
+## @brief Get git version and commit hash of a specific commit give the SHA
+#
+# @param[in] SHA the git SHA of the commit
+# @param[in] repo_path the path of the repository, this is used to open the Top/repo.conf file
+# @param[in] force_develop Force a tag for the develop branch (increase m)
+#
+# @return  a list: the git SHA, the version in hex format
+#
+proc GetVerFromSHA {SHA repo_path {force_develop 0}} {
+  if { $SHA eq ""} {
+    Msg CriticalWarning "Empty SHA found"
+    set ver "v0.0.0"
+  } else {
+    lassign [GitRet "tag --sort=creatordate --contain $SHA -l v*.*.* -l b*v*.*.*" ] status result
+
+    if {$status == 0} {
+      if {[regexp {^ *$} $result]} {
+        # We do not want the most recent tag, we want the biggest value
+        lassign [GitRet "log --oneline --pretty=\"%d\""] status2 tag_list
+        #Msg Status "List of all tags including $SHA: $tag_list."
+        #cleanup the list and get only the tags
+        set pattern {tag: v\d+\.\d+\.\d+}
+        set real_tag_list {}
+        foreach x $tag_list {
+        set x_untrimmed [regexp -all -inline $pattern $x]
+        regsub "tag: " $x_untrimmed "" x_trimmed
+        set tt [lindex $x_trimmed 0]
+        if {![string equal $tt ""]} {
+          lappend real_tag_list $tt
+          #puts "<$tt>"
+        }
+        }
+        #Msg Status "Cleaned up list: $real_tag_list."
+        # Sort the tags in version order
+        set sorted_tags [lsort -decreasing -command CompareVersions $real_tag_list]
+
+        #Msg Status "Sorted Tag list: $sorted_tags"
+        # Select the newest tag in terms of number, not time
+        set tag [lindex $sorted_tags 0]
+
+        # Msg Debug "Chosen Tag $tag"
+        set pattern {v\d+\.\d+\.\d+}
+          if {![regexp $pattern $tag]} {
+            Msg CriticalWarning "No Hog version tags found in this repository."
+            set ver v0.0.0
+          } else {
+
+          lassign [ExtractVersionFromTag $tag] M m p mr
+          # Open repo.conf and check prefixes
+          set repo_conf $repo_path/Top/repo.conf
+
+          # Check if the develop/master scheme is used and where is the merge directed to
+          # Default values
+          set hotfix_prefix "hotfix/"
+          set minor_prefix "minor_version/"
+          set major_prefix "major_version/"
+          set is_hotfix 0
+          set enable_develop_branch $force_develop
+
+          set branch_name [Git {rev-parse --abbrev-ref HEAD}]
+
+          if {[file exists $repo_conf]} {
+            set PROPERTIES [ReadConf $repo_conf]
+            # [main] section
+            if {[dict exists $PROPERTIES main]} {
+              set mainDict [dict get $PROPERTIES main]
+
+              # ENABLE_DEVELOP_ BRANCH property
+              if {[dict exists $mainDict ENABLE_DEVELOP_BRANCH]} {
+                set enable_develop_branch [dict get $mainDict ENABLE_DEVELOP_BRANCH]
+              }
+                # More properties in [main] here ...
+
+            }
+
+            # [prefixes] section
+            if {[dict exists $PROPERTIES prefixes]} {
+              set prefixDict [dict get $PROPERTIES prefixes]
+
+              if {[dict exists $prefixDict HOTFIX]} {
+                set hotfix_prefix [dict get $prefixDict HOTFIX]
+              }
+              if {[dict exists $prefixDict MINOR_VERSION]} {
+                set minor_prefix [dict get $prefixDict MINOR_VERSION]
+              }
+              if {[dict exists $prefixDict MAJOR_VERSION]} {
+                set major_prefix [dict get $prefixDict MAJOR_VERSION]
+              }
+              # More properties in [prefixes] here ...
+            }
+          }
+
+          if {$enable_develop_branch == 1 } {
+            if {[string match "$hotfix_prefix*" $branch_name]} {
+              set is_hotfix 1
+            }
+          }
+
+          if {[string match "$major_prefix*" $branch_name]} {
+            # If major prefix is used, we increase M regardless of anything else
+            set version_level major
+          } elseif {[string match "$minor_prefix*" $branch_name] || ($enable_develop_branch == 1 && $is_hotfix == 0)} {
+            # This is tricky. We increase m if the minor prefix is used or if we are in develop mode and this IS NOT a hotfix
+            set version_level minor
+          } else {
+            # This is even trickier... We increase p if no prefix is used AND we are not in develop mode or if we are in develop mode this IS a Hotfix
+            set version_level patch
+          }
+
+          #Let's keep this for a while, more bugs may come soon
+          #Msg Info "******** $repo_path HF: $hotfix_prefix, M: $major_prefix, m: $minor_prefix, is_hotfix: $is_hotfix: VL: $version_level, BRANCH: $branch_name"
+
+
+          if {$M == -1} {
+            Msg CriticalWarning "Tag $tag does not contain a Hog compatible version in this repository."
+            exit
+            #set ver v0.0.0
+          } elseif {$mr == 0} {
+            #Msg Info "No tag contains $SHA, will use most recent tag $tag. As this is an official tag, patch will be incremented to $p."
+            switch $version_level {
+              minor {
+                incr m
+                set p 0
+              }
+              major {
+                incr M
+                set m 0
+                set p 0
+              }
+              default {
+                incr p
+              }
+            }
+
+          } else {
+            Msg Info "No tag contains $SHA, will use most recent tag $tag. As this is a candidate tag, the patch level will be kept at $p."
+          }
+          set ver v$M.$m.$p
+        }
+      } else {
+        #The tag in $result contains the current SHA
+        set vers [split $result "\n"]
+        set ver [lindex $vers 0]
+        foreach v $vers {
+          if {[regexp {^v.*$} $v]} {
+            set un_ver $ver
+            set ver $v
+            break
+          }
+        }
+      }
+    } else {
+      Msg CriticalWarning "Error while trying to find tag for $SHA"
+      set ver "v0.0.0"
+    }
+  }
+  lassign [ExtractVersionFromTag $ver] M m c mr
+
+  if {$mr > -1} {
+    # Candidate tab
+    set M [format %02X $M]
+    set m [format %02X $m]
+    set c [format %04X $c]
+
+  } elseif { $M > -1 } {
+    # official tag
+    set M [format %02X $M]
+    set m [format %02X $m]
+    set c [format %04X $c]
+
+  } else {
+    Msg Warning "Tag does not contain a properly formatted version: $ver"
+    set M [format %02X 0]
+    set m [format %02X 0]
+    set c [format %04X 0]
+  }
+
+  return $M$m$c
+}
+
+## @brief Handle git commands
+#
+#
+#  @param[in] command: the git command to be run including refs (branch, tags, sha, etc.), except files.
+#  @param[in] files: files given to git as argument. They will always be separated with -- to avoid weird accidents
+#
+#  @returns the output of the git command
+proc Git {command {files ""}}  {
+  lassign [GitRet $command $files] ret result
+  if {$ret != 0} {
+    Msg Error "Code $ret returned by git running: $command -- $files"
+  }
+
+  return $result
+}
+
+
+## Get a dictionary of verilog generics with their types for a given file
+#
+#  @param[in] file File to read Generics from
+proc GetVerilogGenerics {file} {
+  set fp [open $file r]
+  set data [read $fp]
+  close $fp
+  set lines []
+
+    # read in the verilog file and remove comments
+  foreach line [split $data "\n"] {
+    regsub "^\\s*\/\/.*" $line "" line
+    regsub "(.*)\/\/.*" $line {\1} line
+    if {![string equal $line ""]} {
+      append lines $line " "
+    }
+  }
+
+    # remove block comments also /* */
+  regsub -all {/\*.*\*/} $lines "" lines
+
+    # create a list of characters to split for tokenizing
+  set punctuation [list]
+  foreach char [list "(" ")" ";" "," " " "!" "<=" ":=" "=" "\[" "\]"] {
+    lappend punctuation $char "\000$char\000"
+  }
+
+    # split the file into tokens
+  set tokens [split [string map $punctuation $lines] \000]
+
+  set parameters [dict create]
+
+  set PARAM_NAME 1
+  set PARAM_VALUE 2
+  set LEXING 3
+  set PARAM_WIDTH 4
+  set state $LEXING
+
+    # # loop over the generic lines
+  foreach token $tokens {
+    set token [string trim $token]
+    if {![string equal "" $token]} {
+      if {[string equal [string tolower $token] "parameter"]} {
+        set state $PARAM_NAME
+      } elseif {[string equal $token ")"] || [string equal $token ";"]} {
+        set state $LEXING
+      } elseif {$state == $PARAM_WIDTH} {
+        if {[string equal $token "\]"]} {
+          set state $PARAM_NAME
+        }
+      } elseif {$state == $PARAM_VALUE} {
+        if {[string equal $token ","]} {
+          set state $PARAM_NAME
+        } elseif {[string equal $token ";"]} {
+          set state $LEXING
+        } else {
+        }
+      } elseif {$state == $PARAM_NAME} {
+
+        if {[string equal $token "="]} {
+          set state $PARAM_VALUE
+        } elseif {[string equal $token "\["]} {
+          set state $PARAM_WIDTH
+        } elseif {[string equal $token ","]} {
+          set state $PARAM_NAME
+        } elseif {[string equal $token ";"]} {
+          set state $LEXING
+        } elseif {[string equal $token ")"]} {
+          set state $LEXING
+        } else {
+          dict set parameters $token "integer"
+        }
+      }
+    }
+  }
+
+  return $parameters
+}
+
+## Get a dictionary of VHDL generics with their types for a given file
+#
+#  @param[in] file File to read Generics from
+#  @param[in] entity The entity from which extracting the generics
+proc GetVhdlGenerics {file {entity ""} } {
+  set fp [open $file r]
+  set data [read $fp]
+  close $fp
+  set lines []
+
+    # read in the vhdl file and remove comments
+  foreach line [split $data "\n"] {
+    regsub "^\\s*--.*" $line "" line
+    regsub "(.*)--.*" $line {\1} line
+    if {![string equal $line ""]} {
+      append lines $line " "
+    }
+  }
+
+  # extract the generic block
+  set generic_block ""
+  set generics [dict create]
+
+  if {1==[string equal $entity ""]} {
+    regexp {(?i).*entity\s+([^\s]+)\s+is} $lines _ entity
+  }
+
+  set generics_regexp "(?i).*entity\\s+$entity\\s+is\\s+generic\\s*\\((.*)\\)\\s*;\\s*port.*end.*$entity"
+
+  if {[regexp $generics_regexp $lines _ generic_block]} {
+    # loop over the generic lines
+    foreach line [split $generic_block ";"]  {
+      # split the line into the generic + the type
+      regexp {(.*):\s*([A-Za-z0-9_]+).*} $line _ generic type
+
+      # one line can have multiple generics of the same type, so loop over them
+      set splits [split $generic ","]
+      foreach split $splits {
+        dict set generics [string trim $split] [string trim $type]
+      }
+    }
+  }
+  return $generics
+}
+
+## @brief Handle git commands without causing an error if ret is not 0
+#
+# It can be used with lassign like this: lassign [GitRet \<git command\> \<possibly files\> ] ret result
+#
+#  @param[in] command: the git command to be run including refs (branch, tags, sha, etc.), except files.
+#  @param[in] files: files given to git as argument. They will always be separated with -- to avoid weird accidents
+# Sometimes you need to remove the --. To do that just set files to " "
+#
+#  @returns a list of 2 elements: the return value (0 if no error occurred) and the output of the git command
+proc GitRet {command {files ""}}  {
+  global env
+  if {$files eq ""} {
+    set ret [catch {exec -ignorestderr git {*}$command} result]
+  } else {
+    set ret [catch {exec -ignorestderr git {*}$command -- {*}$files} result]
+  }
+
+
+  return [list $ret $result]
+}
+
+## @brief Check git version installed in this machine
+#
+# @param[in] target_version the version required by the current project
+#
+# @return Returns 1, if the system git version is greater or equal to the target
+proc GitVersion {target_version} {
+  set ver [split $target_version "."]
+  set v [Git --version]
+  #Msg Info "Found Git version: $v"
+  set current_ver [split [lindex $v 2] "."]
+  set target [expr {[lindex $ver 0]*100000 + [lindex $ver 1]*100 + [lindex $ver 2]}]
+  set current [expr {[lindex $current_ver 0]*100000 + [lindex $current_ver 1]*100 + [lindex $current_ver 2]}]
+  return [expr {$target <= $current}]
+}
+
+## @brief Copy IP generated files from/to a remote o local directory (possibly EOS)
+#
+# @param[in] what_to_do: can be "push", if you want to copy the local IP synth result to the remote directory or "pull" if you want to copy the files from thre remote directory to your local repository
 # @param[in] xci_file: the .xci file of the IP you want to handle
 # @param[in] ip_path: the path of the directory you want the IP to be saved (possibly EOS)
 # @param[in] repo_path: the main path of your repository
@@ -2922,6 +2794,100 @@ proc HandleIP {what_to_do xci_file ip_path repo_path {gen_dir "."} {force 0}} {
   return 0
 }
 
+## Convert hex version to M.m.p string
+#
+#  @param[in] version the version (in 32-bit hexadecimal format 0xMMmmpppp) to be converted
+#
+#  @return            a string containing the version in M.m.p format
+#
+proc HexVersionToString {version} {
+  scan [string range $version 0 1] %x M
+  scan [string range $version 2 3] %x m
+  scan [string range $version 4 7] %x c
+  return "$M.$m.$c"
+}
+
+## @brief Returns true if the IDE is MicroSemi Libero
+proc IsLibero {} {
+  return [expr {[info commands get_libero_version] != ""}]
+}
+
+## @brief Returns true, if the IDE is ISE/PlanAhead
+proc IsISE {} {
+  if {[IsXilinx]} {
+    return [expr {[string first PlanAhead [version]] == 0}]
+  } else {
+    return 0
+  }
+}
+
+## @brief Returns true, if IDE is Quartus
+proc IsQuartus {} {
+  return [expr {[info commands project_new] != ""}]
+}
+
+## Check if a path is absolute or relative
+#
+#  @param[in]    the path to check
+#
+proc IsRelativePath {path} {
+  if {[string index $path 0] == "/" || [string index $path 0] == "~"} {
+    return 0
+  } else {
+    return 1
+  }
+}
+
+## @brief Returns true if the Synthesis tool is Synplify
+proc IsSynplify {} {
+  return [expr {[info commands program_version] != ""}]
+}
+
+## @brief Returns true, if we are in tclsh
+proc IsTclsh {} {
+  return [expr {![IsQuartus] && ![IsXilinx] && ![IsLibero] && ![IsSynplify]}]
+}
+
+## @brief Find out if the given Xilinx part is a Vesal chip
+#
+# @param[out] 1 if it's Versal 0 if it's not
+# @param[in]  part  The FPGA part
+#
+proc IsVersal {part} {
+  if { [regexp {^(xcvp|xcvm|xcve|xcvc|xqvc|xqvm).*} $part] } {
+    return 1
+  } else {
+    return 0
+  }
+}
+
+## @brief Returns true, if the IDE is Vivado
+proc IsVivado {} {
+  if {[IsXilinx]} {
+    return [expr {[string first Vivado [version]] == 0}]
+  } else {
+    return 0
+  }
+}
+
+## @brief Return true, if the IDE is Xilinx (Vivado or ISE)
+proc IsXilinx {} {
+  return [expr {[info commands get_property] != ""}]
+}
+
+## @brief Find out if the given Xilinx part is a Vesal chip
+#
+# @param[out] 1 if it's Zynq 0 if it's not
+# @param[in]  part  The FPGA part
+#
+proc IsZynq {part} {
+  if { [regexp {^(xc7z|xczu).*} $part] } {
+    return 1
+  } else {
+    return 0
+  }
+}
+
 ## @brief Evaluates the md5 sum of a file
 #
 #  @param[in] file_name: the name of the file of which you want to evaluate the md5 checksum
@@ -2939,126 +2905,120 @@ proc Md5Sum {file_name} {
 }
 
 
-## @brief Checks that "ref" in .gitlab-ci.yml actually matches the hog.yml file in the
+## @brief Merges two tcl dictionaries of lists
 #
-#  @param[in] repo_path path to the repository root
-#  @param[in] allow_failure if true throws CriticalWarnings instead of Errors
+# If the dictionaries contain same keys, the list at the common key is a merging of the two
 #
-proc CheckYmlRef {repo_path allow_failure} {
-
-  if {$allow_failure} {
-    set MSG_TYPE CriticalWarning
-  } else {
-    set MSG_TYPE Error
-  }
-
-  if { [catch {package require yaml 0.3.3} YAMLPACKAGE]} {
-    Msg CriticalWarning "Cannot find package YAML, skipping consistency check of \"ref\" in gilab-ci.yaml file.\n Error message: $YAMLPACKAGE
-    You can fix this by installing package \"tcllib\""
-    return
-  }
-
-  set thisPath [pwd]
-
-  # Go to repository path
-  cd "$repo_path"
-  if {[file exists .gitlab-ci.yml]} {
-    #get .gitlab-ci ref
-    set YML_REF ""
-    set YML_NAME ""
-    if { [file exists .gitlab-ci.yml] } {
-      set fp [open ".gitlab-ci.yml" r]
-      set file_data [read $fp]
-      close $fp
-    } else {
-      Msg $MSG_TYPE "Cannot open file .gitlab-ci.yml"
-      cd $thisPath
-      return
-    }
-    set file_data "\n$file_data\n\n"
-
-    if { [catch {::yaml::yaml2dict -stream $file_data}  yamlDict]} {
-      Msg $MSG_TYPE "Parsing $repo_path/.gitlab-ci.yml failed. To fix this, check that yaml syntax is respected, remember not to use tabs."
-      cd $thisPath
-      return
-    } else {
-      dict for {dictKey dictValue} $yamlDict {
-        #looking for Hog include in .gitlab-ci.yml
-        if {"$dictKey" == "include" && ([lsearch [split $dictValue " {}"] "/hog.yml" ] != "-1" || [lsearch [split $dictValue " {}"] "/hog-dynamic.yml" ] != "-1")} {
-          set YML_REF [lindex [split $dictValue " {}"]  [expr {[lsearch -dictionary [split $dictValue " {}"] "ref"]+1} ] ]
-          set YML_NAME [lindex [split $dictValue " {}"]  [expr {[lsearch -dictionary [split $dictValue " {}"] "file"]+1} ] ]
+# @param[in] dict0 the name of the first dictionary
+# @param[in] dict1 the name of the second dictionary
+#
+# @return  the merged dictionary
+#
+proc MergeDict {dict0 dict1} {
+  set outdict [dict merge $dict1 $dict0]
+  foreach key [dict keys $dict1 ] {
+    if {[dict exists $dict0 $key]} {
+      set temp_list [dict get $dict1 $key]
+      foreach vhdfile $temp_list {
+        # Avoid duplication
+        if {[IsInList $vhdfile [DictGet $outdict $key]] == 0} {
+          dict lappend outdict $key $vhdfile
         }
       }
     }
-    if {$YML_REF == ""} {
-      Msg Warning "Hog version not specified in the .gitlab-ci.yml. Assuming that master branch is used."
-      cd Hog
-      set YML_REF_F [Git {name-rev --tags --name-only origin/master}]
-      cd ..
+  }
+  return $outdict
+}
+
+
+## @brief The Hog Printout Msg function
+#
+# @param[in] level The severity level (status, info, warning, critical, error, debug)
+# @param[in] msg   The message to print
+# @param[in] title The title string to be included in the header of the message [Hog:$title] (default "")
+proc Msg {level msg {title ""}} {
+  set level [string tolower $level]
+  if {$title == ""} {set title [lindex [info level [expr {[info level]-1}]] 0]}
+  if {$level == 0 || $level == "status" || $level == "extra_info"} {
+    set vlevel {STATUS}
+    set qlevel info
+  } elseif {$level == 1 || $level == "info"} {
+    set vlevel {INFO}
+    set qlevel info
+  } elseif {$level == 2 || $level == "warning"} {
+    set vlevel {WARNING}
+    set qlevel warning
+  } elseif {$level == 3 || [string first "critical" $level] !=-1} {
+    set vlevel {CRITICAL WARNING}
+    set qlevel critical_warning
+  } elseif {$level == 4 || $level == "error"} {
+    set vlevel {ERROR}
+    set qlevel error
+  } elseif {$level == 5 || $level == "debug"} {
+    if {([info exists ::DEBUG_MODE] && $::DEBUG_MODE == 1) || ([info exists ::env(HOG_DEBUG_MODE)] && $::env(HOG_DEBUG_MODE) == 1)} {
+      set vlevel {STATUS}
+      set qlevel extra_info
+      set msg "DEBUG: \[Hog:$title\] $msg"
     } else {
-      set YML_REF_F [regsub -all "'" $YML_REF ""]
-    }
-
-    if {$YML_NAME == ""} {
-      Msg $MSG_TYPE "Hog included yml file not specified, assuming hog.yml"
-      set YML_NAME_F hog.yml
-    } else {
-      set YML_NAME_F [regsub -all "^/" $YML_NAME ""]
-    }
-
-    lappend YML_FILES $YML_NAME_F
-
-    #getting Hog repository tag and commit
-    cd "Hog"
-
-    #check if the yml file includes other files
-    if { [catch {::yaml::yaml2dict -file $YML_NAME_F}  yamlDict]} {
-      Msg $MSG_TYPE "Parsing $YML_NAME_F failed."
-      cd $thisPath
       return
-    } else {
-      dict for {dictKey dictValue} $yamlDict {
-        #looking for included files
-        if {"$dictKey" == "include"} {
-          foreach v $dictValue {
-            lappend YML_FILES [lindex [split $v " "]  [expr {[lsearch -dictionary [split $v " "] "local"]+1} ] ]
-          }
-        }
-      }
-    }
-
-    Msg Info "Found the following yml files: $YML_FILES"
-
-    set HOGYML_SHA [GetSHA $YML_FILES]
-    lassign [GitRet "log --format=%h -1 --abbrev=7 $YML_REF_F" $YML_FILES] ret EXPECTEDYML_SHA
-    if {$ret != 0} {
-      lassign [GitRet "log --format=%h -1 --abbrev=7 origin/$YML_REF_F" $YML_FILES] ret EXPECTEDYML_SHA
-      if {$ret != 0} {
-        Msg $MSG_TYPE "Error in project .gitlab-ci.yml. ref: $YML_REF not found"
-        set EXPECTEDYML_SHA ""
-      }
-    }
-    if  {!($EXPECTEDYML_SHA eq "")} {
-      if {$HOGYML_SHA == $EXPECTEDYML_SHA} {
-        Msg Info "Hog included file $YML_FILES matches with $YML_REF in .gitlab-ci.yml."
-
-      } else {
-        Msg $MSG_TYPE "HOG $YML_FILES SHA mismatch.
-        From Hog submodule: $HOGYML_SHA
-        From ref in .gitlab-ci.yml: $EXPECTEDYML_SHA
-        You can fix this in 2 ways: by changing the ref in your repository or by changing the Hog submodule commit"
-      }
-    } else {
-      Msg $MSG_TYPE "One or more of the following files could not be found $YML_FILES in Hog at $YML_REF"
     }
   } else {
-    Msg Info ".gitlab-ci.yml not found in $repo_path. Skipping this step"
+    puts "Hog Error: level $level not defined"
+    exit -1
   }
 
-  cd "$thisPath"
+
+  if {[IsXilinx]} {
+    # Vivado
+    set status [catch {send_msg_id Hog:$title-0 $vlevel $msg}]
+    if {$status != 0} {
+      exit $status
+    }
+  } elseif {[IsQuartus]} {
+    # Quartus
+    post_message -type $qlevel "Hog:$title $msg"
+    if { $qlevel == "error"} {
+      exit 1
+    }
+  } else {
+    # Tcl Shell / Libero
+    if {$vlevel != "STATUS"} {
+      puts "$vlevel: \[Hog:$title\] $msg"
+    } else {
+      puts $msg
+    }
+
+    if {$qlevel == "error"} {
+      exit 1
+    }
+  }
+}
+
+## @brief Prints a message with selected severity and optionally write into a log file
+#
+# @param[in] msg        The message to print
+# @param[in] severity   The severity of the message
+# @param[in] outFile    The path of the output logfile
+#
+proc MsgAndLog {msg {severity "CriticalWarning"} {outFile ""}} {
+  Msg $severity $msg
+  if {$outFile != ""} {
+    set oF [open "$outFile" a+]
+    puts $oF $msg
+    close $oF
+  }
+}
+
+## @brief Return the operative system name
+proc OS {} {
+  global tcl_platform
+  return $tcl_platform(platform)
 }
 
 ## @brief Parse JSON file
+#
+# @param[in] JSON_FILE  The JSON File to parse
+# @param[in] JSON_KEY   The key to extract from the JSON file
 #
 # @returns  -1 in case of failure, JSON KEY VALUE in case of success
 #
@@ -3080,161 +3040,523 @@ proc ParseJSON {JSON_FILE JSON_KEY} {
     Msg CriticalWarning "Cannot find $JSON_KEY in $JSON_FILE\n Exiting"
     return -1
   } else {
-    #Msg Info "$JSON_KEY --> $RETURNVALUE"
     return $RETURNVALUE
   }
 }
 
-## @brief Handle eos commands
+## Read a property configuration file and returns a dictionary
 #
-# It can be used with lassign like this: lassign [eos \<eos command\> ] ret result
+#  @param[in]    file_name the configuration file
 #
-#  @param[in] command: the EOS command to be run, e.g. ls, cp, mv, rm
-#  @param[in] attempt: (default 0) how many times the command should be attempted in case of failure
+#  @return       The dictionary
 #
-#  @returns a list of 2 elements: the return value (0 if no error occurred) and the output of the EOS command
-proc eos {command {attempt 1}}  {
-  global env
-  if {![info exists env(EOS_MGM_URL)]} {
-    Msg Warning "Environment variable EOS_MGM_URL not set, setting it to default value root://eosuser.cern.ch"
-    set ::env(EOS_MGM_URL) "root://eosuser.cern.ch"
+proc ReadConf {file_name} {
+
+  if { [catch {package require inifile 0.2.3} ERROR] } {
+    puts "$ERROR\n If you are running this script on tclsh, you can fix this by installing 'tcllib'"
+    return 1
   }
-  if {$attempt < 1} {
-    Msg Warning "The value of attempt should be 1 or more, not $attempt, setting it to 1 as default"
-    set attempt 1
+
+
+  ::ini::commentchar "#"
+  set f [::ini::open $file_name]
+  set properties [dict create]
+  foreach sec [::ini::sections $f] {
+    set new_sec $sec
+    set key_pairs [::ini::get $f $sec]
+
+    #manipulate strings here:
+    regsub -all {\{\"} $key_pairs "\{" key_pairs
+    regsub -all {\"\}} $key_pairs "\}" key_pairs
+
+    dict set properties $new_sec [dict create {*}$key_pairs]
   }
-  for {set i 0} {$i < $attempt} {incr i } {
-    set ret [catch {exec -ignorestderr eos {*}$command} result]
-    if {$ret == 0} {
-      break
+
+  ::ini::close $f
+
+  return $properties
+}
+
+
+## @brief Function used to read the list of files generated at creation time by tcl scripts in Project/proj/.hog/extra.files
+#
+#  @param[in] extra_file_name the path to the extra.files file
+#  @returns a dictionary with the full name of the files as key and a SHA as value
+#
+proc ReadExtraFileList { extra_file_name } {
+  set extra_file_dict [dict create]
+  if {[file exists $extra_file_name]} {
+    set file [open $extra_file_name "r"]
+    set file_data [read $file]
+    close $file
+
+    set data [split $file_data "\n"]
+    foreach line $data {
+      if {![regexp {^ *$} $line] & ![regexp {^ *\#} $line] } {
+        set ip_and_md5 [regexp -all -inline {\S+} $line]
+        dict lappend extra_file_dict "[lindex $ip_and_md5 0]" "[lindex $ip_and_md5 1]"
+      }
+    }
+  }
+  return $extra_file_dict
+}
+
+## @brief Read a list file and return a list of three dictionaries
+#
+# Additional information is provided with text separated from the file name with one or more spaces
+#
+# @param[in] args The arguments are \<list_file\> \<path\> [options]
+#                 * list_file file containing vhdl list with optional properties
+#                 * path      path the vhdl file are referred to in the list file
+# Options:
+#                 * -lib \<library\> name of the library files will be added to, if not given will be extracted from the file name
+#                 * -sha_mode  if not set to 0, the list files will be added as well and the IPs will be added to the file rather than to the special ip library. The SHA mode should be used when you use the lists to calculate the git SHA, rather than to add the files to the project.
+#
+# @return              a list of 3 dictionaries: "libraries" has library name as keys and a list of filenames as values, "properties" has as file names as keys and a list of properties as values, "filesets" has the fileset' names as keys and the list of associated libraries as values.
+proc ReadListFile args {
+
+  if {[IsQuartus]} {
+    load_package report
+    if { [catch {package require cmdline} ERROR] } {
+      puts "$ERROR\n If you are running this script on tclsh, you can fix this by installing 'tcllib'"
+      return 1
+    }
+  }
+
+  set parameters {
+    {lib.arg ""  "The name of the library files will be added to, if not given will be extracted from the file name."}
+    {fileset.arg "" "The name of the library, from the main list file"}
+    {sha_mode "If set, the list files will be added as well and the IPs will be added to the file rather than to the special IP library. The SHA mode should be used when you use the lists to calculate the git SHA, rather than to add the files to the project."}
+  }
+  set usage "USAGE: ReadListFile \[options\] <list file> <path>"
+  if {[catch {array set options [cmdline::getoptions args $parameters $usage]}] ||  [llength $args] != 2 } {
+    Msg CriticalWarning "[cmdline::usage $parameters $usage]"
+    return
+  }
+  set list_file [lindex $args 0]
+  set path [lindex $args 1]
+  set sha_mode $options(sha_mode)
+  set lib $options(lib)
+  set fileset $options(fileset)
+
+  if { $sha_mode == 1} {
+    set sha_mode_opt "-sha_mode"
+  } else {
+    set sha_mode_opt  ""
+  }
+
+  # if no library is given, work it out from the file name
+  if {$lib eq ""} {
+    set lib [file rootname [file tail $list_file]]
+  }
+  set fp [open $list_file r]
+  set file_data [read $fp]
+  close $fp
+  set list_file_ext [file extension $list_file]
+  switch $list_file_ext {
+    .sim {
+      if {$fileset eq ""} {
+        # If fileset is empty, use the library name for .sim file
+        set fileset "$lib"
+      }
+    }
+    .con {
+      set fileset "constrs_1"
+    }
+    default {
+      set fileset "sources_1"
+    }
+  }
+
+  set libraries [dict create]
+  set filesets [dict create]
+  set properties [dict create]
+  #  Process data file
+  set data [split $file_data "\n"]
+  set n [llength $data]
+  Msg Debug "$n lines read from $list_file."
+  set cnt 0
+
+  foreach line $data {
+    # Exclude empty lines and comments
+    if {![regexp {^ *$} $line] & ![regexp {^ *\#} $line] } {
+      set file_and_prop [regexp -all -inline {\S+} $line]
+      set srcfile [lindex $file_and_prop 0]
+      set srcfile "$path/$srcfile"
+
+      set srcfiles [glob -nocomplain $srcfile]
+
+      # glob the file list for wildcards
+      if {$srcfiles != $srcfile && ! [string equal $srcfiles "" ]} {
+        Msg Debug "Wildcard source expanded from $srcfile to $srcfiles"
+      } else {
+        if {![file exists $srcfile]} {
+          Msg CriticalWarning "File: $srcfile (from list file: $list_file) does not exist."
+          continue
+        }
+      }
+
+      foreach vhdlfile $srcfiles {
+        if {[file exists $vhdlfile]} {
+          set vhdlfile [file normalize $vhdlfile]
+          set extension [file extension $vhdlfile]
+          ### Set file properties
+          set prop [lrange $file_and_prop 1 end]
+
+          # The next lines should be inside the case for recursive list files, also we should check the allowed properties for the .src as well
+          set library [lindex [regexp -inline {lib\s*=\s*(.+?)\y.*} $prop] 1]
+          if { $library == "" } {
+            set library $lib
+          }
+
+          if { $extension == $list_file_ext } {
+            # Deal with recursive list files
+            set ref_path [lindex [regexp -inline {path\s*=\s*(.+?)\y.*} $prop] 1]
+            if { $ref_path eq "" } {
+              set ref_path $path
+            } else {
+              set ref_path [file normalize $path/$ref_path]
+            }
+            Msg Debug "List file $vhdlfile found in list file, recursively opening it using path \"$ref_path\"..."
+            lassign [ReadListFile {*}"-lib $library -fileset $fileset $sha_mode_opt $vhdlfile $ref_path"] l p fs
+            set libraries [MergeDict $l $libraries]
+            set properties [MergeDict $p $properties]
+            set filesets [MergeDict $fs $filesets]
+          } elseif {[lsearch {.src .sim .con ReadExtraFileList} $extension] >= 0 } {
+            # Not supported extensions
+            Msg Error "$vhdlfile cannot be included into $list_file, $extension files must be included into $extension files."
+          } else {
+            # Deal with single files
+            regsub -all " *= *" $prop "=" prop
+            # Fill property dictionary
+            foreach p $prop {
+              # No need to append the lib= property
+              if { [string first "lib=" $p ] == -1} {
+                # Get property name up to the = (for QSYS properties at the moment)
+                set pos [string first "=" $p]
+                if { $pos == -1 } {
+                  set prop_name $p
+                } else {
+                  set prop_name [string range $p 0 [expr {$pos - 1}]]
+                }
+                if { [IsInList $prop_name [DictGet [ALLOWED_PROPS]  $extension ] ] || [string first "top" $p] == 0 || $list_file_ext eq ".ipb"} {
+                  dict lappend properties $vhdlfile $p
+                  Msg Debug "Adding property $p to $vhdlfile..."
+                } elseif { $list_file_ext != ".ipb" } {
+                  Msg Warning "Setting Property $p is not supported for file $vhdlfile or it is already its default. The allowed properties for this file type are \[ [DictGet [ALLOWED_PROPS] $extension ]\]"
+                }
+              }
+            }
+            if { [lsearch {.xci .ip .bd .xcix} $extension] >= 0} {
+              # Adding IP library
+              set lib_name "ips.src"
+            } elseif { [IsInList $extension {.vhd .vhdl}] || $list_file_ext == ".sim"} {
+              # VHDL files and simulation
+              if { ![IsInList $extension {.vhd .vhdl}]} {
+                set lib_name "others.sim"
+              } else {
+                set lib_name "$library$list_file_ext"
+              }
+            } elseif { $list_file_ext == ".con" } {
+              set lib_name "sources.con"
+            } elseif { $list_file_ext == ".ipb" } {
+              set lib_name "xml.ipb"
+            } else {
+              # Other files are stored in the OTHER dictionary from vivado (no library assignment)
+              set lib_name "others.src"
+            }
+
+            Msg Debug "Appending $vhdlfile to $lib_name list..."
+            dict lappend libraries $lib_name $vhdlfile
+            if { $sha_mode != 0 && [file type $vhdlfile] eq "link"} {
+              #if the file is a link, also add the linked file in sha mode
+              set real_file [GetLinkedFile $vhdlfile]
+              dict lappend libraries $lib_name $real_file
+              Msg Debug "File $vhdlfile is a soft link, also adding the real file: $real_file"
+            }
+
+
+            # Create the fileset (if not already) and append the library
+            if {[dict exists $filesets $fileset] == 0} {
+              # Fileset has not been defined yet, adding to dictionary...
+              Msg Debug "Adding $fileset to the fileset dictionary..."
+              Msg Debug "Adding library $lib_name to fileset $fileset..."
+              dict set filesets $fileset $lib_name
+            } else {
+              # Fileset already exist in dictionary, append library to list, if not already there
+              if {[IsInList $lib_name [DictGet $filesets $fileset]] == 0} {
+                Msg Debug "Adding library $lib_name to fileset $fileset..."
+                dict lappend filesets $fileset $lib_name
+              }
+            }
+          }
+          incr cnt
+        } else {
+          Msg CriticalWarning "File $vhdlfile not found."
+        }
+      }
+    }
+  }
+
+  if {$sha_mode != 0} {
+    #In SHA mode we also need to add the list file to the list
+    if {$list_file_ext eq ".ipb"} {
+      set sha_lib "xml.ipb"
     } else {
-      if {$attempt > 1} {
-        set wait [expr {1+int(rand()*29)}]
-        Msg Warning "Command $command failed ($i/$attempt): $result, trying again in $wait seconds..."
-        after [expr {$wait*1000}]
+      set sha_lib $lib$list_file_ext
+    }
+    dict lappend libraries $sha_lib [file normalize $list_file]
+    if {[file type $list_file] eq "link"} {
+      #if the file is a link, also add the linked file
+      set real_file [GetLinkedFile $list_file]
+      dict lappend libraries $lib$list_file_ext $real_file
+      Msg Debug "List file $list_file is a soft link, also adding the real file: $real_file"
+    }
+  }
+  return [list $libraries $properties $filesets]
+}
+
+## @brief Returns the destination path relative to base
+#
+# @param[in] base   the path with respect to witch the dst path is calculated
+# @param[in] dst    the path to be calculated with respect to base
+#
+proc Relative {base dst} {
+  if {![string equal [file pathtype $base] [file pathtype $dst]]} {
+    Msg CriticalWarning "Unable to compute relation for paths of different path types: [file pathtype $base] vs. [file pathtype $dst], ($base vs. $dst)"
+    return ""
+  }
+
+  set base [file normalize [file join [pwd] $base]]
+  set dst  [file normalize [file join [pwd] $dst]]
+
+  set save $dst
+  set base [file split $base]
+  set dst  [file split $dst]
+
+  while {[string equal [lindex $dst 0] [lindex $base 0]]} {
+    set dst  [lrange $dst  1 end]
+    set base [lrange $base 1 end]
+    if {![llength $dst]} {break}
+  }
+
+  set dstlen  [llength $dst]
+  set baselen [llength $base]
+
+  if {($dstlen == 0) && ($baselen == 0)} {
+    set dst .
+  } else {
+    while {$baselen > 0} {
+      set dst [linsert $dst 0 ..]
+      incr baselen -1
+    }
+    set dst [eval [linsert $dst 0 file join]]
+  }
+
+  return $dst
+}
+
+## @brief Returns the path of filePath relative to pathName
+#
+# @param[in] pathName   the path with respect to which the returned path is calculated
+# @param[in] filePath   the path of filePath
+#
+proc RelativeLocal {pathName filePath} {
+  if {[string first [file normalize $pathName] [file normalize $filePath]] != -1} {
+    return [Relative $pathName $filePath]
+  } else {
+    return ""
+  }
+}
+
+## Reset files in the repository
+#
+#  @param[in]    reset_file a file containing a list of files separated by new lines or spaces (Hog-CI creates such a file in Projects/hog_reset_files)
+#
+#  @return       Nothing
+#
+proc ResetRepoFiles {reset_file} {
+  if {[file exists $reset_file]} {
+    Msg Info "Found $reset_file, opening it..."
+    set fp [open $reset_file r]
+    set wild_cards [lsearch -all -inline -not -regexp [split [read $fp] "\n"] "^ *$"]
+    close $fp
+    Msg Info "Found the following files/wild cards to restore if modified: $wild_cards..."
+    foreach w $wild_cards {
+      set mod_files [GetModifiedFiles "." $w]
+      if {[llength $mod_files] > 0} {
+        Msg Info "Found modified $w files: $mod_files, will restore them..."
+        RestoreModifiedFiles "." $w
+      } else {
+        Msg Info "No modified $w files found."
       }
     }
   }
-  return [list $ret $result]
 }
 
-## @brief Handle git commands
+## @brief Restore with checkout -- the files specified in pattern
 #
+# @param[in] repo_path the path of the git repository
+# @param[in] pattern the pattern with wildcards that files should match
 #
-#  @param[in] command: the git command to be run including refs (branch, tags, sha, etc.), except files.
-#  @param[in] files: files given to git as argument. They will always be separated with -- to avoid weird accidents
-#
-#  @returns the output of the git command
-proc Git {command {files ""}}  {
-  lassign [GitRet $command $files] ret result
-  if {$ret != 0} {
-    Msg Error "Code $ret returned by git running: $command -- $files"
-  }
-
-  return $result
+proc RestoreModifiedFiles {{repo_path "."} {pattern "."}} {
+  set old_path [pwd]
+  cd $repo_path
+  set ret [Git checkout $pattern]
+  cd $old_path
+  return
 }
 
-## @brief Handle git commands without causing an error if ret is not 0
+## Search the Hog projects inside a directory
 #
-# It can be used with lassign like this: lassign [GitRet \<git command\> \<possibly files\> ] ret result
+#  @param[in]    dir The directory to search
 #
-#  @param[in] command: the git command to be run including refs (branch, tags, sha, etc.), except files.
-#  @param[in] files: files given to git as argument. They will always be separated with -- to avoid weird accidents
-# Sometimes you need to remove the --. To do that just set files to " "
+#  @return       The list of projects
 #
-#  @returns a list of 2 elements: the return value (0 if no error occurred) and the output of the git command
-proc GitRet {command {files ""}}  {
-  global env
-  if {$files eq ""} {
-    set ret [catch {exec -ignorestderr git {*}$command} result]
-  } else {
-    set ret [catch {exec -ignorestderr git {*}$command -- {*}$files} result]
-  }
-
-
-  return [list $ret $result]
-}
-
-## @brief Checks if file was committed into the repository
-#
-#
-#  @param[in] File: file name
-#
-#  @returns 1 if file was committed and 0 if file was not committed
-proc FileCommitted {File }  {
-  set Ret 1
-  set currentDir [pwd]
-  cd [file dirname [file normalize $File]]
-  set GitLog [Git ls-files [file tail $File]]
-  if {$GitLog == ""} {
-    Msg CriticalWarning "File [file normalize $File] is not in the git repository. Please add it with:\n git add [file normalize $File]\n"
-    set Ret 0
-  }
-  cd $currentDir
-  return $Ret
-}
-
-
-## @brief Handle shell commands
-#
-# It can be used with lassign like this: lassign [ExecuteRet \<command\> ] ret result
-#
-#  @param[in] args: the shell command
-#
-#  @returns a list of 2 elements: the return value (0 if no error occurred) and the output of the command
-proc ExecuteRet {args}  {
-  global env
-  if {[llength $args] == 0} {
-    Msg CriticalWarning "No argument given"
-    set ret -1
-    set result ""
-  } else {
-    set ret [catch {exec -ignorestderr {*}$args} result]
-  }
-
-  return [list $ret $result]
-}
-
-## @brief Handle shell commands
-#
-# It can be used with lassign like this: lassign [Execute \<command\> ] ret result
-#
-#  @param[in] args: the shell command
-#
-#  @returns the output of the command
-proc Execute {args}  {
-  global env
-  lassign [ExecuteRet {*}$args] ret result
-  if {$ret != 0} {
-    Msg Error "Command [join $args] returned error code: $ret"
-  }
-
-  return $result
-}
-
-
-## @brief Gets MAX number of Threads property from property.conf file in Top/$proj_name directory.
-#
-# If property is not set returns default = 1
-#
-# @param[in] proj_dir:   the top folder of the project
-#
-# @return 1 if property is not set else the value of MaxThreads
-#
-proc GetMaxThreads {proj_dir} {
-  set maxThreads 1
-  if {[file exists $proj_dir/hog.conf]} {
-    set properties [ReadConf [lindex [GetConfFiles $proj_dir] 0]]
-    if {[dict exists $properties parameters]} {
-      set propDict [dict get $properties parameters]
-      if {[dict exists $propDict MAX_THREADS]} {
-        set maxThreads [dict get $propDict MAX_THREADS]
+proc SearchHogProjects {dir} {
+  set projects_list {}
+  if {[file exists $dir]} {
+    if {[file isdirectory $dir]} {
+      foreach proj_dir [glob -nocomplain -types d $dir/* ] {
+        if {![regexp {^.*Top/+(.*)$} $proj_dir dummy proj_name]} {
+          Msg Warning "Could not parse Top directory $dir"
+          break
+        }
+        if { [file exists "$proj_dir/hog.conf" ] } {
+          lappend projects_list $proj_name
+        } else {
+          foreach p [SearchHogProjects $proj_dir] {
+            lappend projects_list $p
+          }
+        }
       }
+
+    } else {
+      Msg Error "Input $dir is not a directory!"
     }
   } else {
-    Msg Warning "File $proj_dir/hog.conf not found. Max threads will be set to default value 1"
+    Msg Error "Directory $dir doesn't exist!"
   }
-  return $maxThreads
+  return $projects_list
+}
+
+## @brief Sets the generics in all the sim.conf simulation file sets
+#
+# @param[in] repo_path:   the top folder of the projectThe path to the main git repository
+# @param[in] proj_dir:    the top folder of the project
+# @param[in] target:      software target(vivado, questa)
+#                         defines the output format of the string
+#
+proc SetGenericsSimulation {repo_path proj_dir target} {
+  set sim_generics ""
+  set top_dir "$repo_path/Top/$proj_dir"
+  set read_aux [GetConfFiles $top_dir]
+  set sim_cfg_index [lsearch -regexp -index 0 $read_aux ".*sim.conf"]
+  set sim_cfg_index [lsearch -regexp -index 0 [GetConfFiles $top_dir] ".*sim.conf"]
+  set simsets [get_filesets]
+  if { $simsets != "" } {
+    if {[file exists $top_dir/sim.conf]} {
+      set sim_generics [GetGenericFromConf $proj_dir $target 1]
+      if {$sim_generics != ""} {
+        foreach simset $simsets {
+          if {[get_property FILESET_TYPE $simset] != "SimulationSrcs" } {
+            continue
+          }
+          set_property generic $sim_generics [get_filesets $simset]
+          Msg Debug "Setting generics $sim_generics for simulator $target and simulation file-set $simset..."
+        }
+      }
+    } else {
+      if {[glob -nocomplain "$top_dir/list/*.sim"] ne ""} {
+        Msg CriticalWarning "Simulation sets and .sim files are present in the project but no sim.conf found in $top_dir. Please refer to Hog's manual to create one."
+      }
+    }
+  }
+}
+
+## @brief Sets a property of an object to a given value.
+#
+# It automatically recognises the IDE
+#
+# @param[in] property The property to set
+# @param[in] value    The value of the property to set
+# @param[in] object   The object for which the property will be set
+proc SetProperty {property value object} {
+  if {[IsXilinx]} {
+    # Vivado / ISE
+    set_property $property $value $object
+  } elseif {[IsQuartus]} {
+    # TODO: Define the function for Quartus
+  } elseif {[IsLibero]} {
+    # TODO: Define the function for Libero
+  }
+  else {
+    # Tcl Shell
+    puts "***DEBUG Hog:SetProperty $property to $value of $object"
+  }
+}
+
+## @brief set the top module as top module in the chosen fileset
+#
+# It automatically recognises the IDE
+#
+# @param[out] top_module  Name of the top module
+# @param[in]  fileset     The name of the fileset
+#
+proc SetTopProperty {top_module fileset} {
+  Msg Info "Setting TOP property to $top_module module"
+  if {[IsXilinx]} {
+    #VIVADO_ONLY
+    set_property "top" $top_module [get_filesets $fileset]
+  } elseif {[IsQuartus]} {
+    #QUARTUS ONLY
+    set_global_assignment -name TOP_LEVEL_ENTITY $top_module
+  } elseif {[IsLibero]} {
+    set_root -module $top_module
+  }
+}
+
+## @brief Returns a list of Vivado properties that expect a PATH for value
+proc VIVADO_PATH_PROPERTIES {} {
+  return {"\.*\.TCL\.PRE$" "^.*\.TCL\.POST$" "^RQS_FILES$" "^INCREMENTAL\_CHECKPOINT$"}
+}
+
+
+## Write a property configuration file from a dictionary
+#
+#  @param[in]    file_name the configuration file
+#  @param[in]    config the configuration dictionary
+#  @param[in]    comment comment to add at the beginning of configuration file
+#
+#
+proc WriteConf {file_name config {comment ""}} {
+  if { [catch {package require inifile 0.2.3} ERROR] } {
+    puts "$ERROR\n If you are running this script on tclsh, you can fix this by installing 'tcllib'"
+    return 1
+  }
+
+  ::ini::commentchar "#"
+  set f [::ini::open $file_name w]
+
+  foreach sec [dict keys $config] {
+    set section [dict get $config $sec]
+    dict for {p v} $section {
+      if {[string trim $v] == ""} {
+          Msg Warning "Property $p has empty value. Skipping..."
+          continue;
+      }
+      ::ini::set $f $sec $p $v
+    }
+  }
+
+  #write comment before the first section (first line of file)
+  if {![string equal "$comment"  ""]} {
+    ::ini::comment $f [lindex [::ini::sections $f] 0] "" $comment
+  }
+  ::ini::commit $f
+
+  ::ini::close $f
+
 }
 
 
@@ -3246,7 +3568,7 @@ proc GetMaxThreads {proj_dir} {
 #
 proc WriteGitLabCIYAML {proj_name {ci_conf ""}} {
   if { [catch {package require yaml 0.3.3} YAMLPACKAGE]} {
-    Msg CriticalWarning "Cannot find package YAML.\n Error message: $YAMLPACKAGE. If you are tunning on tclsh, you can fix this by installing package \"tcllib\""
+    Msg CriticalWarning "Cannot find package YAML.\n Error message: $YAMLPACKAGE. If you are running on tclsh, you can fix this by installing package \"tcllib\""
     return -1
   }
 
@@ -3317,191 +3639,15 @@ proc WriteGitLabCIYAML {proj_name {ci_conf ""}} {
   return [ string trimleft [ yaml::huddle2yaml $out_yaml ] "-" ]
 }
 
-
-proc FindNewestVersion { versions } {
-  set new_ver 00000000
-  foreach ver $versions {
-    ##nagelfar ignore
-    if {[ expr 0x$ver > 0x$new_ver ] } {
-      set new_ver $ver
-    }
-  }
-  return $new_ver
+## @brief Write into a file, and if the file exists, it will append the string
+#
+# @param[out] File The log file to write into the message
+# @param[in]  msg  The message text
+proc WriteToFile {File msg} {
+  set f [open $File a+]
+  puts $f $msg
+  close $f
 }
-
-## Reset files in the repository
-#
-#  @param[in]    reset_file a file containing a list of files separated by new lines or spaces (Hog-CI creates such a file in Projects/hog_reset_files)
-#
-#  @return       Nothing
-#
-proc ResetRepoFiles {reset_file} {
-  if {[file exists $reset_file]} {
-    Msg Info "Found $reset_file, opening it..."
-    set fp [open $reset_file r]
-    set wild_cards [lsearch -all -inline -not -regexp [split [read $fp] "\n"] "^ *$"]
-    close $fp
-    Msg Info "Found the following files/wild cards to restore if modified: $wild_cards..."
-    foreach w $wild_cards {
-      set mod_files [GetModifiedFiles "." $w]
-      if {[llength $mod_files] > 0} {
-        Msg Info "Found modified $w files: $mod_files, will restore them..."
-        RestoreModifiedFiles "." $w
-      } else {
-        Msg Info "No modified $w files found."
-      }
-    }
-  }
-}
-
-## Search the Hog projects inside a directory
-#
-#  @param[in]    dir The directory to search
-#
-#  @return       The list of projects
-#
-proc SearchHogProjects {dir} {
-  set projects_list {}
-  if {[file exists $dir]} {
-    if {[file isdirectory $dir]} {
-      foreach proj_dir [glob -nocomplain -types d $dir/* ] {
-        if {![regexp {^.*Top/+(.*)$} $proj_dir dummy proj_name]} {
-          Msg Warning "Could not parse Top directory $dir"
-          break
-        }
-        if { [file exists "$proj_dir/hog.conf" ] } {
-          lappend projects_list $proj_name
-        } else {
-          foreach p [SearchHogProjects $proj_dir] {
-            lappend projects_list $p
-          }
-        }
-      }
-
-    } else {
-      Msg Error "Input $dir is not a directory!"
-    }
-  } else {
-    Msg Error "Directory $dir doesn't exist!"
-  }
-  return $projects_list
-}
-
-## Returns the group name from the project directory
-#
-#  @param[in]    proj_dir project directory
-#  @param[in]    repo_dir repository directory
-#
-#  @return       the group name without initial and final slashes
-#
-proc GetGroupName {proj_dir repo_dir} {
-  if {[regexp {^(.*)/(Top|Projects)/+(.*?)/*$} $proj_dir dummy possible_repo_dir proj_or_top dir]} {
-    # The Top or Project folder is in the root of a the git repository
-    if {[file normalize $repo_dir] eq [file normalize $possible_repo_dir]} {
-      set group [file dir $dir]
-      if { $group == "." } {
-        set group ""
-      }
-    } else {
-    # The Top or Project folder is NOT in the root of a git repository
-      Msg Warning "Project directory $proj_dir seems to be in $possible_repo_dir which is not a the main Git repository $repo_dir."
-    }
-  } else {
-    Msg Warning "Could not parse project directory $proj_dir"
-    set group ""
-  }
-  return $group
-}
-
-## Read a property configuration file and returns a dictionary
-#
-#  @param[in]    file_name the configuration file
-#
-#  @return       The dictionary
-#
-proc ReadConf {file_name} {
-
-  if { [catch {package require inifile 0.2.3} ERROR] } {
-    puts "$ERROR\n If you are running this script on tclsh, you can fix this by installing 'tcllib'"
-    return 1
-  }
-
-
-  ::ini::commentchar "#"
-  set f [::ini::open $file_name]
-  set properties [dict create]
-  foreach sec [::ini::sections $f] {
-    set new_sec $sec
-    set key_pairs [::ini::get $f $sec]
-
-    #manipulate strings here:
-    regsub -all {\{\"} $key_pairs "\{" key_pairs
-    regsub -all {\"\}} $key_pairs "\}" key_pairs
-
-    dict set properties $new_sec [dict create {*}$key_pairs]
-  }
-
-  ::ini::close $f
-
-  return $properties
-}
-
-## Write a property configuration file from a dictionary
-#
-#  @param[in]    file_name the configuration file
-#  @param[in]    config the configuration dictionary
-#  @param[in]    comment comment to add at the beginning of configuration file
-#
-#
-proc WriteConf {file_name config {comment ""}} {
-  if { [catch {package require inifile 0.2.3} ERROR] } {
-    puts "$ERROR\n If you are running this script on tclsh, you can fix this by installing 'tcllib'"
-    return 1
-  }
-
-  ::ini::commentchar "#"
-  set f [::ini::open $file_name w]
-
-  foreach sec [dict keys $config] {
-    set section [dict get $config $sec]
-    dict for {p v} $section {
-      if {[string trim $v] == ""} {
-          Msg Warning "Property $p has empty value. Skipping..."
-          continue;
-      }
-      ::ini::set $f $sec $p $v
-    }
-  }
-
-  #write comment before the first section (first line of file)
-  if {![string equal "$comment"  ""]} {
-    ::ini::comment $f [lindex [::ini::sections $f] 0] "" $comment
-  }
-  ::ini::commit $f
-
-  ::ini::close $f
-
-}
-
-
-## Check if a path is absolute or relative
-#
-#  @param[in]    the path to check
-#
-proc IsRelativePath {path} {
-  if {[string index $path 0] == "/" || [string index $path 0] == "~"} {
-    return 0
-  } else {
-    return 1
-  }
-}
-
-
-# Check Git Version when sourcing hog.tcl
-if {[GitVersion 2.7.2] == 0 } {
-  Msg Error "Found Git version older than 2.7.2. Hog will not work as expected, exiting now."
-}
-
 
 ## Write the resource utilization table into a a file (Vivado only)
 #
@@ -3564,315 +3710,140 @@ proc WriteUtilizationSummary {input output project_name run} {
   close $o
 }
 
-## Get the Date and time of a commit (or current time if Git < 2.9.3)
-#
-#  @param[in]    commit The commit
-proc GetDateAndTime {commit} {
-  set clock_seconds [clock seconds]
-
-  if {[GitVersion 2.9.3]} {
-    set date [Git "log -1 --format=%cd --date=format:%d%m%Y $commit"]
-    set timee [Git "log -1 --format=%cd --date=format:00%H%M%S $commit"]
-  } else {
-    Msg Warning "Found Git version older than 2.9.3. Using current date and time instead of commit time."
-    set date [clock format $clock_seconds  -format {%d%m%Y}]
-    set timee [clock format $clock_seconds -format {00%H%M%S}]
-  }
-  return [list $date $timee]
-}
-
-## Get the Project flavour
-#
-#  @param[in]    proj_name The project name
-proc GetProjectFlavour {proj_name} {
-  # Calculating flavour if any
-  set flavour [string map {. ""} [file extension $proj_name]]
-  if {$flavour != ""} {
-    if {[string is integer $flavour]} {
-      Msg Info "Project $proj_name has flavour = $flavour, the generic variable FLAVOUR will be set to $flavour"
-    } else {
-      Msg Warning "Project name has a unexpected non numeric extension, flavour will be set to -1"
-      set flavour -1
-    }
-
-  } else {
-    set flavour -1
-  }
-  return $flavour
-}
-
-## Format a generic to a 32 bit verilog style hex number, e.g.
-#  take in ea8394c and return 32'h0ea8394c
-#
-#  @param[in]    unformatted generic
-proc FormatGeneric {generic} {
-  if {[string is integer "0x$generic"]} {
-    return [format "32'h%08X" "0x$generic"]
-  } else {
-        # for non integers (e.g. blanks) just return 0
-    return [format "32'h%08X" 0]
-  }
-}
-
-## @brief Gets custom generics from hog.conf
-#
-# @param[in] proj_dir:    the top folder of the project
-# @param[in] target:      software target(vivado, questa)
-#                         defines the output format of the string
-# @return string with generics
-#
-proc GetGenericFromConf {proj_dir target {sim 0}} {
-  set prj_generics ""
-  set top_dir "Top/$proj_dir"
-  set conf_file "$top_dir/hog.conf"
-  set conf_index 0
-  if {$sim == 1} {
-    set conf_file "$top_dir/sim.conf"
-    set conf_index 1
-  }
 
 
-  if {[file exists $conf_file]} {
-    set properties [ReadConf [lindex [GetConfFiles $top_dir] $conf_index]]
-    if {[dict exists $properties generics]} {
-      set propDict [dict get $properties generics]
-      dict for {theKey theValue} $propDict {
-        set valueHexFull ""
-        set valueNumBits ""
-        set valueHexFlag ""
-        set valueHex ""
-        set valueIntFull ""
-        set ValueInt ""
-        set valueStrFull ""
-        set ValueStr ""
-        regexp {([0-9]*)('h)([0-9a-fA-F]*)} $theValue valueHexFull valueNumBits valueHexFlag valueHex
-        regexp {^([0-9]*)$} $theValue valueIntFull ValueInt
-        regexp {(?!^\d+$)^.+$} $theValue valueStrFull ValueStr
-        if { [string tolower $target] == "vivado" || [string tolower $target] == "xsim" } {
-          if {$valueNumBits != "" && $valueHexFlag != "" && $valueHex != ""} {
-            set prj_generics "$prj_generics $theKey=$valueHexFull"
-          } elseif { $valueIntFull != "" && $ValueInt != "" } {
-            set prj_generics "$prj_generics $theKey=$ValueInt"
-          } elseif { $valueStrFull != "" && $ValueStr != "" } {
-            set prj_generics "$prj_generics $theKey=\"$ValueStr\""
-          } else {
-            set prj_generics "$prj_generics $theKey=\"$theValue\""
-          }
-        } elseif { [lsearch -exact [GetSimulators] [string tolower $target] ] >= 0 } {
-          if {$valueNumBits != "" && $valueHexFlag != "" && $valueHex != ""} {
-            set numBits 0
-            scan $valueNumBits %d numBits
-            set numHex 0
-            scan $valueHex %x numHex
-            binary scan [binary format "I" $numHex] "B*" binval
-            set numBits [expr {$numBits-1}]
-            set numBin [string range $binval end-$numBits end]
-            set prj_generics "$prj_generics $theKey=\"$numBin\""
 
-          } elseif { $valueIntFull != "" && $ValueInt != "" } {
-            set prj_generics "$prj_generics $theKey=$ValueInt"
-          } elseif { $valueStrFull != "" && $ValueStr != "" } {
-            set prj_generics "$prj_generics {$theKey=\"$ValueStr\"}"
 
-          } else {
-            set prj_generics "$prj_generics {$theKey=\"$theValue\"}"
-          }
-        } else {
-          Msg Warning "Target : $target not implemented"
-        }
-      }
-    }
-  } else {
-    Msg Warning "File $top_dir/hog.conf not found."
-  }
-  return $prj_generics
-}
 
-## @brief Sets the generics in all the sim.conf simulation file sets
-#
-# @param[in] repo_path:   the top folder of the projectThe path to the main git repository
-# @param[in] proj_dir:    the top folder of the project
-# @param[in] target:      software target(vivado, questa)
-#                         defines the output format of the string
-#
-proc SetGenericsSimulation {repo_path proj_dir target} {
-  set sim_generics ""
-  set top_dir "$repo_path/Top/$proj_dir"
-  set read_aux [GetConfFiles $top_dir]
-  set sim_cfg_index [lsearch -regexp -index 0 $read_aux ".*sim.conf"]
-  set sim_cfg_index [lsearch -regexp -index 0 [GetConfFiles $top_dir] ".*sim.conf"]
-  set simsets [get_filesets]
-  if { $simsets != "" } {
-    if {[file exists $top_dir/sim.conf]} {
-      set sim_generics [GetGenericFromConf $proj_dir $target 1]
-      if {$sim_generics != ""} {
-        foreach simset $simsets {
-          if {[get_property FILESET_TYPE $simset] != "SimulationSrcs" } {
-            continue
-          }
-          set_property generic $sim_generics [get_filesets $simset]
-          Msg Debug "Setting generics $sim_generics for simulator $target and simulation file-set $simset..."
-        }
-      }
-    } else {
-      if {[glob -nocomplain "$top_dir/list/*.sim"] ne ""} {
-        Msg CriticalWarning "Simulation sets and .sim files are present in the project but no sim.conf found in $top_dir. Please refer to Hog's manual to create one."
-      }
-    }
-  }
-}
 
-## @brief Return the path to the active top file
-proc GetTopFile {} {
-  if {[IsVivado]} {
-    set compile_order_prop [get_property source_mgmt_mode [current_project]]
-    if {$compile_order_prop ne "All"} {
-      Msg CriticalWarning "Compile order is not set to automatic, setting it now..."
-      set_property source_mgmt_mode All [current_project]
-      update_compile_order -fileset sources_1
-    }
-    return [lindex [get_files -quiet -compile_order sources -used_in synthesis -filter {FILE_TYPE =~ "VHDL*" || FILE_TYPE =~ "*Verilog*" } ] end]
-  } elseif {[IsISE]} {
-    debug::design_graph_mgr -create [current_fileset]
-    debug::design_graph -add_fileset [current_fileset]
-    debug::design_graph -update_all
-    return [lindex [debug::design_graph -get_compile_order] end]
-  } else {
-    Msg Error "GetTopFile not yet implemented for this IDE"
-  }
-}
 
-## @brief Return the name of the active top module
-proc GetTopModule {} {
-  if {[IsXilinx]} {
-    return [get_property top [current_fileset]]
-  } else {
-    Msg Error "GetTopModule not yet implemented for this IDE"
-  }
-}
 
-## Get a dictionary of verilog generics with their types for a given file
-#
-#  @param[in] file File to read Generics from
-proc GetVerilogGenerics {file} {
-  set fp [open $file r]
-  set data [read $fp]
-  close $fp
-  set lines []
 
-    # read in the verilog file and remove comments
-  foreach line [split $data "\n"] {
-    regsub "^\\s*\/\/.*" $line "" line
-    regsub "(.*)\/\/.*" $line {\1} line
-    if {![string equal $line ""]} {
-      append lines $line " "
-    }
-  }
 
-    # remove block comments also /* */
-  regsub -all {/\*.*\*/} $lines "" lines
 
-    # create a list of characters to split for tokenizing
-  set punctuation [list]
-  foreach char [list "(" ")" ";" "," " " "!" "<=" ":=" "=" "\[" "\]"] {
-    lappend punctuation $char "\000$char\000"
-  }
 
-    # split the file into tokens
-  set tokens [split [string map $punctuation $lines] \000]
 
-  set parameters [dict create]
 
-  set PARAM_NAME 1
-  set PARAM_VALUE 2
-  set LEXING 3
-  set PARAM_WIDTH 4
-  set state $LEXING
 
-    # # loop over the generic lines
-  foreach token $tokens {
-    set token [string trim $token]
-    if {![string equal "" $token]} {
-      if {[string equal [string tolower $token] "parameter"]} {
-        set state $PARAM_NAME
-      } elseif {[string equal $token ")"] || [string equal $token ";"]} {
-        set state $LEXING
-      } elseif {$state == $PARAM_WIDTH} {
-        if {[string equal $token "\]"]} {
-          set state $PARAM_NAME
-        }
-      } elseif {$state == $PARAM_VALUE} {
-        if {[string equal $token ","]} {
-          set state $PARAM_NAME
-        } elseif {[string equal $token ";"]} {
-          set state $LEXING
-        } else {
-        }
-      } elseif {$state == $PARAM_NAME} {
 
-        if {[string equal $token "="]} {
-          set state $PARAM_VALUE
-        } elseif {[string equal $token "\["]} {
-          set state $PARAM_WIDTH
-        } elseif {[string equal $token ","]} {
-          set state $PARAM_NAME
-        } elseif {[string equal $token ";"]} {
-          set state $LEXING
-        } elseif {[string equal $token ")"]} {
-          set state $LEXING
-        } else {
-          dict set parameters $token "integer"
-  }}}}
 
-  return $parameters
-}
 
-## Get a dictionary of VHDL generics with their types for a given file
-#
-#  @param[in] file File to read Generics from
 
-proc GetVhdlGenerics {file {entity ""} } {
-  set fp [open $file r]
-  set data [read $fp]
-  close $fp
-  set lines []
 
-    # read in the vhdl file and remove comments
-  foreach line [split $data "\n"] {
-    regsub "^\\s*--.*" $line "" line
-    regsub "(.*)--.*" $line {\1} line
-    if {![string equal $line ""]} {
-      append lines $line " "
-    }
-  }
 
-    # extract the generic block
-  set generic_block ""
-  set generics [dict create]
 
-  if {1==[string equal $entity ""]} {
-    regexp {(?i).*entity\s+([^\s]+)\s+is} $lines _ entity
-  }
 
-  set generics_regexp "(?i).*entity\\s+$entity\\s+is\\s+generic\\s*\\((.*)\\)\\s*;\\s*port.*end.*$entity"
 
-  if {[regexp $generics_regexp $lines _ generic_block]} {
 
-        # loop over the generic lines
-    foreach line [split $generic_block ";"]  {
 
-            # split the line into the generic + the type
-      regexp {(.*):\s*([A-Za-z0-9_]+).*} $line _ generic type
 
-            # one line can have multiple generics of the same type, so loop over them
-      set splits [split $generic ","]
-      foreach split $splits {
-        dict set generics [string trim $split] [string trim $type]
-      }
-    }
-  }
-  return $generics
-}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 proc GetFileGenerics {filename {entity ""}} {
   set file_type [FindFileType $filename]

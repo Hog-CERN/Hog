@@ -141,6 +141,7 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
   set prjSimLibraries [RemoveDuplicates $prjSimLibraries]
   set prjLibraries [RemoveDuplicates $prjLibraries]
   set prjConstraints [RemoveDuplicates $prjConstraints]
+  set prjProperties [RemoveDuplicates $prjProperties]
 
   #################################################################
   ##### START COMPARISON OF FILES IN PROJECT AND LIST FILES ######

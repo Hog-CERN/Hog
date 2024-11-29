@@ -76,7 +76,7 @@ proc AddHogFiles { libraries properties filesets } {
     # Check if ips.src is in $fileset
     set libs_in_fileset [DictGet $filesets $fileset]
     if { [IsInList "ips.src" $libs_in_fileset] } {
-      set libs_in_fileset [moveElementToEnd $libs_in_fileset "ips.src"]
+      set libs_in_fileset [MoveElementToEnd $libs_in_fileset "ips.src"]
     }
 
     # Loop over libraries in fileset
@@ -647,6 +647,52 @@ proc CheckExtraFiles {libraries} {
   }
 }
 
+# @brief Check if the running Hog version is the latest stable release
+#
+# @param[in] repo_path The main path of the git repository
+proc CheckLatestHogRelease {{repo_path .}} {
+  set old_path [pwd]
+  cd $repo_path/Hog
+  set current_ver [Git {describe --always}]
+  Msg Debug "Current version: $current_ver"
+  set current_sha [Git "log $current_ver -1 --format=format:%H"]
+  Msg Debug "Current SHA: $current_sha"
+
+  #We should find a proper way of checking for timeout using wait, this'll do for now
+  if {[OS] == "windows" } {
+    Msg Info "On windows we cannot set a timeout on 'git fetch', hopefully nothing will go wrong..."
+    Git fetch
+  } else {
+    Msg Info "Checking for latest Hog release, can take up to 5 seconds..."
+    ExecuteRet timeout 5s git fetch
+  }
+  set master_ver [Git "describe origin/master"]
+  Msg Debug "Master version: $master_ver"
+  set master_sha [Git "log $master_ver -1 --format=format:%H"]
+  Msg Debug "Master SHA: $master_sha"
+  set merge_base [Git "merge-base $current_sha $master_sha"]
+  Msg Debug "merge base: $merge_base"
+
+
+  if {$merge_base != $master_sha} {
+    # If master_sha is NOT an ancestor of current_sha
+    Msg Info "Version $master_ver has been released (https://gitlab.com/hog-cern/Hog/-/releases/$master_ver)"
+    Msg Status "You should consider updating Hog submodule with the following instructions:"
+    Msg Status ""
+    Msg Status "cd Hog && git checkout master && git pull"
+    Msg Status ""
+    Msg Status "Also update the ref: in your .gitlab-ci.yml to $master_ver"
+    Msg Status ""
+  } else {
+
+    # If it is
+    Msg Info "Latest official version is $master_ver, nothing to do."
+  }
+
+  cd $old_path
+
+}
+
 
 ## @brief Checks that "ref" in .gitlab-ci.yml actually matches the hog.yml file in the
 #
@@ -768,6 +814,139 @@ proc CheckYmlRef {repo_path allow_failure} {
 }
 
 
+## @brief Compare the contents of two dictionaries
+#
+# @param[in] proj_libs  The dictionary of libraries in the project
+# @param[in] list_libs  The dictionary of libraries in list files
+# @param[in] proj_sets  The dictionary of filesets in the project
+# @param[in] list_sets  The dictionary of filesets in list files
+# @param[in] proj_props The dictionary of file properties in the project
+# @param[in] list_props The dictionary of file pproperties in list files
+# @param[in] severity   The severity of  the message in case a file is not found (Default: CriticalWarning)
+# @param[in] outFile    The output log file, to write the messages (Default "")
+# @param[in] extraFiles The dictionary of extra files generated a creation time (Default "")
+#
+# @return n_diffs The number of differences
+# @return extra_files Remaining list of extra files
+
+proc CompareLibDicts {proj_libs list_libs proj_sets list_sets proj_props list_props {severity "CriticalWarning"} {outFile ""} {extraFiles ""} } {
+  set extra_files $extraFiles
+  set n_diffs 0
+  set out_prjlibs $proj_libs
+  set out_prjprops $proj_props
+  # Loop over filesets in project
+  dict for {prjSet prjLibraries} $proj_sets {
+    # Check if sets is also in list files
+    if {[IsInList $prjSet $list_sets]} {
+      set listLibraries [DictGet $list_sets $prjSet]
+      # Loop over libraries in fileset
+      foreach prjLib $prjLibraries {
+        set prjFiles [DictGet $proj_libs $prjLib]
+        # Check if library exists in list files
+        if {[IsInList $prjLib $listLibraries]} {
+          # Loop over files in library
+          set listFiles [DictGet $list_libs $prjLib]
+          foreach prjFile $prjFiles {
+            set idx [lsearch -exact $listFiles $prjFile]
+            set listFiles [lreplace $listFiles $idx $idx]
+            if {$idx < 0} {
+              # File is in project but not in list libraries, check if it was generated at creation time...
+              if { [dict exists $extra_files $prjFile] } {
+                # File was generated at creation time, checking the md5sum
+                # Removing the file from the prjFiles list
+                set idx2 [lsearch -exact $prjFiles $prjFile]
+                set prjFiles [lreplace $prjFiles $idx2 $idx2]
+                set new_md5sum [Md5Sum $prjFile]
+                set old_md5sum [DictGet $extra_files $prjFile]
+                if {$new_md5sum != $old_md5sum} {
+                  MsgAndLog "$prjFile in project has been modified from creation time. Please update the script you used to create the file and regenerate the project, or save the file outside the Projects/ directory and add it to a project list file" $severity $outFile
+                  incr n_diffs
+                }
+                set extra_files [dict remove $extra_files $prjFile]
+              } else {
+                # File is neither in list files nor in extra_files
+                MsgAndLog "$prjFile was found in project but not in list files or .hog/extra.files" $severity $outFile
+                incr n_diffs
+              }
+            } else {
+              # File is both in list files and project, checking properties...
+              set prjProps  [DictGet $proj_props $prjFile]
+              set listProps [DictGet $list_props $prjFile]
+              # Check if it is a potential sourced file
+              if {[IsInList "nosynth" $prjProps] && [IsInList "noimpl" $prjProps] && [IsInList "nosim" $prjProps]} {
+                # Check if it is sourced
+                set idx_source [lsearch -exact $listProps "source"]
+                if {$idx_source >= 0 } {
+                  # It is sourced, let's replace the individual properties with source
+                  set idx [lsearch -exact $prjProps "noimpl"]
+                  set prjProps [lreplace $prjProps $idx $idx]
+                  set idx [lsearch -exact $prjProps "nosynth"]
+                  set prjProps [lreplace $prjProps $idx $idx]
+                  set idx [lsearch -exact $prjProps "nosim"]
+                  set prjProps [lreplace $prjProps $idx $idx]
+                  lappend prjProps "source"
+                }
+              }
+
+              foreach prjProp $prjProps {
+                set idx [lsearch -exact $listProps $prjProp]
+                set listProps [lreplace $listProps $idx $idx]
+                if {$idx < 0} {
+                  MsgAndLog "Property $prjProp of $prjFile was set in project but not in list files" $severity $outFile
+                  incr n_diffs
+                }
+              }
+
+              foreach listProp $listProps {
+                if {[string first $listProp "topsim="] == -1} {
+                  MsgAndLog "Property $listProp of $prjFile was found in list files but not set in project." $severity $outFile
+                  incr n_diffs
+                }
+              }
+
+              # Update project prjProps
+              dict set out_prjprops $prjFile $prjProps
+            }
+          }
+          # Loop over remaining files in list libraries
+          foreach listFile $listFiles {
+            MsgAndLog "$listFile was found in list files but not in project." $severity $outFile
+            incr n_diffs
+          }
+        } else {
+          # Check extra files again...
+          foreach prjFile $prjFiles {
+            if { [dict exists $extra_files $prjFile] } {
+              # File was generated at creation time, checking the md5sum
+              # Removing the file from the prjFiles list
+              set idx2 [lsearch -exact $prjFiles $prjFile]
+              set prjFiles [lreplace $prjFiles $idx2 $idx2]
+              set new_md5sum [Md5Sum $prjFile]
+              set old_md5sum [DictGet $extra_files $prjFile]
+              if {$new_md5sum != $old_md5sum} {
+                MsgAndLog "$prjFile in project has been modified from creation time. Please update the script you used to create the file and regenerate the project, or save the file outside the Projects/ directory and add it to a project list file" $severity $outFile
+                incr n_diffs
+              }
+              set extra_files [dict remove $extra_files $prjFile]
+            } else {
+              # File is neither in list files nor in extra_files
+              MsgAndLog "$prjFile was found in project but not in list files or .hog/extra.files" $severity $outFile
+              incr n_diffs
+            }
+          }
+        }
+        # Update prjLibraries
+        dict set out_prjlibs $prjLib $prjFiles
+      }
+    } else {
+      MsgAndLog "Fileset $prjSet found in project but not in list files" $severity $outFile
+      incr n_diffs
+    }
+  }
+
+  return [list $n_diffs $extra_files $out_prjlibs $out_prjprops]
+}
+
 ## @brief Compare two VHDL files ignoring spaces and comments
 #
 # @param[in] file1  the first file
@@ -805,6 +984,24 @@ proc CompareVHDL {file1 file2} {
   }
 
   return $diff
+}
+
+##
+## Copy a file or folder into a new path, not throwing an error if the final path is not empty
+##
+## @param      i_dirs  The directory or file to copy
+## @param      o_dir  The final destination
+##
+proc Copy {i_dirs o_dir} {
+  foreach i_dir $i_dirs {
+    if {[file isdirectory $i_dir] && [file isdirectory $o_dir]} {
+      if {([file tail $i_dir] == [file tail $o_dir]) || ([file exists $o_dir/[file tail $i_dir]] && [file isdirectory $o_dir/[file tail $i_dir]])} {
+        file delete -force $o_dir/[file tail $i_dir]
+      }
+    }
+
+    file copy -force $i_dir $o_dir
+  }
 }
 
 ## @brief Read a XML list file and copy files to destination
@@ -1098,6 +1295,60 @@ proc FileCommitted {File }  {
   return $Ret
 }
 
+# @brief Returns the common child of two git commits
+#
+# @param[in] SHA1 The first commit
+# @param[in] SHA2 The second commit
+proc FindCommonGitChild {SHA1 SHA2} {
+  # Get the list of all commits in the repository
+  set commits [Git {log --oneline --merges}]
+  set ancestor 0
+  # Iterate over each commit
+  foreach line [split $commits "\n"] {
+    set commit [lindex [split $line] 0]
+
+    # Check if both SHA1 and SHA2 are ancestors of the commit
+    if {[IsCommitAncestor $SHA1 $commit] && [IsCommitAncestor $SHA2 $commit] } {
+      set ancestor $commit
+      break
+    }
+  }
+  return $ancestor
+}
+
+
+# @brief Returns a list of files in a directory matching a pattern
+#
+# @param[in] basedir The directory to start looking in
+# @param[in  pattern A pattern, as defined by the glob command, that the files must match
+# Credit: https://stackexchange.com/users/14219/jackson
+proc findFiles { basedir pattern } {
+
+    # Fix the directory name, this ensures the directory name is in the
+    # native format for the platform and contains a final directory seperator
+  set basedir [string trimright [file join [file normalize $basedir] { }]]
+  set fileList {}
+
+    # Look in the current directory for matching files, -type {f r}
+    # means ony readable normal files are looked at, -nocomplain stops
+    # an error being thrown if the returned list is empty
+  foreach fileName [glob -nocomplain -type {f r} -path $basedir $pattern] {
+    lappend fileList $fileName
+  }
+
+    # Now look for any sub direcories in the current directory
+  foreach dirName [glob -nocomplain -type {d  r} -path $basedir *] {
+        # Recusively call the routine on the sub directory and append any
+        # new files to the results
+    set subDirList [findFiles $dirName $pattern]
+    if { [llength $subDirList] > 0 } {
+      foreach subDirFile $subDirList {
+        lappend fileList $subDirFile
+      }
+    }
+  }
+  return $fileList
+}
 
 ## @brief determine file type from extension
 #  Used only for Quartus
@@ -1167,6 +1418,7 @@ proc FindFileType {file_name} {
   }
   return $file_extension
 }
+
 
 # @brief Returns the newest version in a list of versions
 #
@@ -1299,6 +1551,49 @@ proc GetConfFiles {proj_dir} {
 }
 
 
+# Searches directory for tcl scripts to add as custom commands to launch.tcl
+# Returns string of tcl scripts formatted as usage or switch statement
+#
+# @param[in] directory    The directory where to look for custom tcl scripts (Default .)
+# @param[in] ret_commands if 1 returns commands as switch statement string instead of usage (Default 0)
+proc GetCustomCommands {{directory .} {ret_commands 0}} {
+  set commands_dict [dict create]
+  set commands_files [glob -nocomplain $directory/*.tcl ]
+  set commands_string ""
+
+  if {[llength $commands_files] == 0} {
+    return ""
+  }
+
+  if {$ret_commands == 0} {
+   append commands_string "\n** Custom Commands:\n"
+  }
+
+  foreach file $commands_files {
+    set base_name [string toupper [file rootname [file tail $file]]]
+    if {$ret_commands == 1} {
+      append commands_string "
+      \\^$base_name\$ {
+        Msg Info \"Running custom script: $file\"
+        source \"$file\"
+        Msg Info \"Done running custom script...\"
+        exit
+      }
+      "
+    } else {
+      set f [open $file r]
+      set first_line [gets $f]
+      close $f
+      if {[regexp -nocase "^#\s*$base_name:\s*(.*)" $first_line full_match script_des]} {
+        append commands_string "- $base_name: $script_des\n"
+      } else {
+        append commands_string "- $base_name: runs $file\n"
+      }
+    }
+  }
+  return $commands_string
+}
+
 ## Get the Date and time of a commit (or current time if Git < 2.9.3)
 #
 #  @param[in]    commit The commit
@@ -1340,6 +1635,21 @@ proc GetFile {file fileset} {
     # Tcl Shell
     puts "***DEBUG Hog:GetFile $file"
     return "DEBUG_file"
+  }
+}
+
+## @brief Extract the generics from a file
+#
+# @param[in] filename The file from which to extract the generics
+# @param[in] entity   The entity in the file from which to extract the generics (default "")
+proc GetFileGenerics {filename {entity ""}} {
+  set file_type [FindFileType $filename]
+  if {[string equal $file_type "VERILOG_FILE"] || [string equal $file_type "SYSTEMVERILOG_FILE"]} {
+    return [GetVerilogGenerics $filename]
+  } elseif {[string equal $file_type "VHDL_FILE"]} {
+    return [GetVhdlGenerics $filename $entity]
+  } else {
+    Msg CriticalWarning "Could not determine extension of top level file."
   }
 }
 
@@ -1538,6 +1848,98 @@ proc GetHogFiles args {
   return [list $libraries $properties $filesets]
 }
 
+# @brief Get the IDE of a Hog project and returns the correct argument for the IDE cli command
+#
+# @param[in] proj_conf The project hog.conf file
+proc GetIDECommand {proj_conf} {
+  # GetConfFiles returns a list, the first element is hog.conf
+  if {[file exists $proj_conf]} {
+    set ide_name_and_ver [string tolower [GetIDEFromConf $proj_conf]]
+    set ide_name [lindex [regexp -all -inline {\S+} $ide_name_and_ver ] 0]
+
+    if {$ide_name eq "vivado"} {
+      set command "vivado"
+      # A space ater the before_tcl_script is important
+      set before_tcl_script " -nojournal -nolog -mode batch -notrace -source "
+      set after_tcl_script " -tclargs "
+      set end_marker ""
+
+    } elseif {$ide_name eq "planahead"} {
+      set command "planAhead"
+      # A space ater the before_tcl_script is important
+      set before_tcl_script " -nojournal -nolog -mode batch -notrace -source "
+      set after_tcl_script " -tclargs "
+      set end_marker ""
+
+    } elseif {$ide_name eq "quartus"} {
+      set command "quartus_sh"
+      # A space ater the before_tcl_script is important
+      set before_tcl_script " -t "
+      set after_tcl_script " "
+      set end_marker ""
+
+    } elseif {$ide_name eq "libero"} {
+      #I think we need quotes for libero, not sure...
+
+      set command "libero"
+      set before_tcl_script "SCRIPT:"
+      set after_tcl_script " SCRIPT_ARGS:\""
+      set end_marker "\""
+    } else {
+      Msg Error "IDE: $ide_name not known."
+    }
+
+  } else {
+    Msg Error "Configuration file $proj_conf not found."
+  }
+
+  return [list $command $before_tcl_script $after_tcl_script $end_marker]
+}
+
+## Get the IDE (Vivado,Quartus,PlanAhead,Libero) version from the conf file she-bang
+#
+#  @param[in]    conf_file The hog.conf file
+proc GetIDEFromConf {conf_file} {
+  set f [open $conf_file "r"]
+  set line [gets $f]
+  close $f
+  if {[regexp -all {^\# *(\w*) *(\d+\.\d+(?:\.\d+)?(?:\.\d+)?)?(_.*)? *$} $line dummy ide version patch]} {
+    if {[info exists version] && $version != ""} {
+      set ver $version
+    } else {
+      set ver 0.0.0
+    }
+    # what shall we do with $patch? ignored for the time being
+    set ret [list $ide $ver]
+  } else {
+    Msg CriticalWarning "The first line of hog.conf should be \#<IDE name> <version>, where <IDE name>. is quartus, vivado, planahead and <version> the tool version, e.g. \#vivado 2020.2. Will assume vivado."
+    set ret [list "vivado" "0.0.0"]
+  }
+
+  return $ret
+}
+
+
+## Returns the version of the IDE (Vivado,Quartus,PlanAhead,Libero) in use
+#
+#  @return       the version in string format, e.g. 2020.2
+#
+proc GetIDEVersion {} {
+  if {[IsXilinx]} {
+    #Vivado or planAhead
+    regexp {\d+\.\d+(\.\d+)?} [version -short] ver
+    # This regex will cut away anything after the numbers, useful for patched version 2020.1_AR75210
+
+  } elseif {[IsQuartus]} {
+    # Quartus
+    global quartus
+    regexp {[\.0-9]+} $quartus(version) ver
+  } elseif {[IsLibero]} {
+    # Libero
+    set ver [get_libero_version]
+  }
+  return $ver
+}
 
 ## @brief Returns the real file linked by a soft link
 #
@@ -1613,6 +2015,43 @@ proc GetModifiedFiles {{repo_path "."} {pattern "."}} {
   cd $old_path
   return $ret
 }
+
+# @brief Gets the command argv list and returns a list of
+#        options and arguments
+# @param[in] argv       The command input arguments
+# @param[in] parameters The command input parameters
+proc GetOptions {argv parameters} {
+  # Get Options from argv
+  set arg_list [list]
+  set param_list [list]
+  set option_list [list]
+
+  foreach p $parameters {
+    lappend param_list [lindex $p 0]
+  }
+
+  set index 0
+  while {$index < [llength $argv]} {
+    set arg [lindex $argv $index]
+    if {[string first - $arg] == 0} {
+      set option [string trimleft $arg "-"]
+      incr index
+      lappend option_list $arg
+      if {[lsearch $param_list ${option}*] >= 0 && [string first ".arg" [lsearch -inline $param_list ${option}*]] >= 0} {
+        lappend option_list [lindex $argv $index]
+        incr index
+      }
+    } else {
+      lappend arg_list $arg
+      incr index
+    }
+  }
+  Msg Debug "Argv: $argv"
+  Msg Debug "Options: $option_list"
+  Msg Debug "Arguments: $arg_list"
+  return [list $option_list $arg_list]
+}
+
 
 # return [list $libraries $properties $simlibraries $constraints $srcsets $simsets $consets]
 ## @ brief Returns a list of 7 dictionaries: libraries, properties, constraints, and filesets for sources and simulations
@@ -2107,19 +2546,19 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
     while {$found == 0} {
       set global_commit [Git "log --format=%h -1 --abbrev=7 $SHAs"]
       foreach sha $SHAs {
-  set found 1
-  if {![IsCommitAncestor $sha $global_commit]} {
-    set common_child  [FindCommonGitChild $global_commit $sha]
-    if {$common_child == 0} {
-            Msg CriticalWarning "The commit $sha is not an ancestor of the global commit $global_commit, which is OK. But $sha and $global_commit do not have any common child, which is NOT OK. This is probably do to a REBASE that is forbidden in Hog methodology as it changes git history. Hog cannot gaurantee the accuracy of the SHAs. A way to fix this is to make a commit that touches all the projects in the repositories (e.g. change the Hog version) but please do not rebase in the official branches in the future."
-    } else {
-            Msg Info "The commit $sha is not an ancestor of the global commit $global_commit, adding the first common child $common_child instead..."
-      lappend SHAs $common_child
-    }
-    set found 0
+      set found 1
+      if {![IsCommitAncestor $sha $global_commit]} {
+        set common_child  [FindCommonGitChild $global_commit $sha]
+        if {$common_child == 0} {
+          Msg CriticalWarning "The commit $sha is not an ancestor of the global commit $global_commit, which is OK. But $sha and $global_commit do not have any common child, which is NOT OK. This is probably do to a REBASE that is forbidden in Hog methodology as it changes git history. Hog cannot guarantee the accuracy of the SHAs. A way to fix this is to make a commit that touches all the projects in the repositories (e.g. change the Hog version) but please do not rebase in the official branches in the future."
+        } else {
+                Msg Info "The commit $sha is not an ancestor of the global commit $global_commit, adding the first common child $common_child instead..."
+          lappend SHAs $common_child
+        }
+        set found 0
 
-    break
-  }
+        break
+      }
       }
     }
     set global_version [FindNewestVersion $versions]
@@ -2199,8 +2638,6 @@ proc GetSimulators {} {
   set SIMULATORS [list "modelsim" "questa" "riviera" "activehdl" "ies" "vcs"]
   return $SIMULATORS
 }
-
-
 
 ## @brief Return the path to the active top file
 proc GetTopFile {} {
@@ -2807,10 +3244,146 @@ proc HexVersionToString {version} {
   return "$M.$m.$c"
 }
 
+
+# @brief Returns 1 if a commit is an ancestor of another, otherwise 0
+#
+# @param[in] ancestor The potential ancestor commit
+# @param[in] commit   The potential descendant commit
+proc IsCommitAncestor {ancestor commit} {
+  lassign [GitRet "merge-base --is-ancestor $ancestor $commit"] status result
+  if {$status == 0 } {
+    return 1
+  } else {
+    return 0
+  }
+}
+
+# @brief Initialise the Launcher and returns a list of project parameters: directive project project_name group_name repo_path old_path bin_dir top_path commands_path cmd ide
+#
+# @param[in] script     The launch.tcl script
+# @param[in] tcl_path   The launch.tcl script path
+# @param[in] parameters The allowed parameters for launch.tcl
+# @param[in] usage      The usage snippet for launch.tcl
+# @param[in] argv       The input arguments passed to launch.tcl
+proc InitLauncher {script tcl_path parameters usage argv} {
+  set repo_path [file normalize "$tcl_path/../.."]
+  set old_path [pwd]
+  set bin_path [file normalize "$tcl_path/../../bin"]
+  set top_path [file normalize "$tcl_path/../../Top"]
+  set commands_path [file normalize "$tcl_path/../../hog-commands/"]
+
+  if {[IsTclsh]} {
+    #Just display the logo the first time, not when the scripot is run in the IDE
+    Logo $repo_path
+  }
+
+  if {[catch {package require cmdline} ERROR]} {
+    Msg Debug "The cmdline Tcl package was not found, sourcing it from Hog..."
+    source $tcl_path/utils/cmdline.tcl
+  }
+
+  append usage [GetCustomCommands $commands_path]
+  append usage "\n** Options:"
+
+  lassign [GetOptions $argv $parameters] option_list arg_list
+
+  if { [IsInList "-help" $option_list] || [IsInList "-?" $option_list] || [IsInList "-h" $option_list] } {
+    Msg Info [cmdline::usage $parameters $usage]
+    exit 0
+  }
+
+  if {[catch {array set options [cmdline::getoptions option_list $parameters $usage]} err] } {
+    Msg Status "\nERROR: Syntax error, probably unknown option.\n\n USAGE: $err"
+    exit 1
+  }
+  # Argv here is modified and the options are removed
+  set directive [string toupper [lindex $arg_list 0]]
+
+  if { [llength $arg_list] == 1 && ($directive == "L" || $directive == "LIST")} {
+    Msg Status "\n** The projects in this repository are:"
+    ListProjects $repo_path
+    Msg Status "\n"
+    exit 0
+
+  } elseif { [llength $arg_list] == 0 || [llength $arg_list] > 2} {
+    Msg Status "\nERROR: Wrong number of arguments: [llength $argv].\n\n"
+    Msg Status "USAGE: [cmdline::usage $parameters $usage]"
+    exit 1
+  }
+
+  set project  [lindex $arg_list 1]
+  # Remove leading Top/ or ./Top/ if in project_name
+  regsub "^(\./)?Top/" $project "" project
+  # Remove trailing / and spaces if in project_name
+  regsub "/? *\$" $project "" project
+  set proj_conf [ProjectExists $project $repo_path]
+
+  Msg Debug "Option list:"
+  foreach {key value} [array get options] {
+    Msg Debug "$key => $value"
+  }
+
+  set cmd ""
+
+  if {[IsTclsh]} {
+    # command is filled with the IDE exectuable when this function is called by Tcl scrpt
+    if {$proj_conf != 0} {
+      CheckLatestHogRelease $repo_path
+
+      lassign [GetIDECommand $proj_conf] cmd before_tcl_script after_tcl_script end_marker
+      Msg Info "Project $project uses $cmd IDE"
+
+      ## The following is the IDE command to launch:
+      set command "$cmd $before_tcl_script$script$after_tcl_script$argv$end_marker"
+
+    } else {
+      if {$project != ""} {
+        #Project not given
+        set command -1
+      } else {
+        #Project not found
+        set command -2
+      }
+    }
+  } else {
+    # When the launcher is executed from within an IDE, command is set to 0
+    set command 0
+  }
+
+  set project_group [file dirname $project]
+  set project [file tail $project]
+  if { $project_group != "." } {
+    set project_name "$project_group/$project"
+  } else {
+    set project_name "$project"
+  }
+
+
+
+  return [list $directive $project $project_name $project_group $repo_path $old_path $bin_path $top_path $commands_path $command $cmd]
+}
+
 ## @brief Returns true if the IDE is MicroSemi Libero
 proc IsLibero {} {
   return [expr {[info commands get_libero_version] != ""}]
 }
+
+# @brief Returns 1 if an element is a list, 0 otherwise
+#
+# @param[in] element The element to search
+# @param[in] list    The list to search into
+# @param[in] regex   An optional regex to match. If 0, the element should match exactly an object in the list
+proc IsInList {element list {regex 0}} {
+  foreach x $list {
+    if {$regex == 1 &&  [regexp $x $element] } {
+      return 1
+    } elseif { $regex == 0 && $x eq $element } {
+      return 1
+    }
+  }
+  return 0
+}
+
 
 ## @brief Returns true, if the IDE is ISE/PlanAhead
 proc IsISE {} {
@@ -2888,6 +3461,69 @@ proc IsZynq {part} {
   }
 }
 
+# Returns the list of all the Hog Projects in the repository
+#
+# @param[in] repo_path The main path of the git repository
+# @param[in] print     if 1 print the list of projects in the repository
+# @param[in] ret_conf  if 1 returns conf file rather than list of project names
+proc ListProjects {{repo_path .} {print 1} {ret_conf 0}} {
+  set top_path [file normalize $repo_path/Top]
+  set confs [findFiles [file normalize $top_path] hog.conf]
+  set projects ""
+
+  foreach c $confs {
+    set p [Relative $top_path [file dirname $c]]
+    if {$print == 1} {
+      # Print a list of the projects with relative IDE
+      Msg Status "$p \([GetIDEFromConf $c]\)"
+    }
+    lappend projects $p
+  }
+
+  if {$ret_conf == 0} {
+
+    # Returns a list of project names
+    return $projects
+  } else {
+
+    # Return the list of hog.conf with full path
+    return $confs
+  }
+}
+
+
+# @brief Print the Hog Logo
+#
+# @param[in] repo_path The main path of the git repository (default .)
+proc Logo { {repo_path .} } {
+  if {[info exists ::env(HOG_COLORED)] && [string match "ENABLED" $::env(HOG_COLORED)]} {
+    set logo_file "$repo_path/Hog/images/hog_logo_color.txt"
+  } else {
+    set logo_file "$repo_path/Hog/images/hog_logo.txt"
+  }
+  # set logo_file "$repo_path/Hog/images/hog_logo.txt"
+
+  set old_path [pwd]
+  cd $repo_path/Hog
+  set ver [Git {describe --always}]
+  cd $old_path
+
+  if {[file exists $logo_file]} {
+    set f [open $logo_file "r"]
+    set data [read $f]
+    close $f
+    set lines [split $data "\n"]
+    foreach l $lines {
+      Msg Status $l
+    }
+
+  } {
+    Msg CriticalWarning "Logo file: $logo_file not found"
+  }
+
+  Msg Status "Version: $ver"
+}
+
 ## @brief Evaluates the md5 sum of a file
 #
 #  @param[in] file_name: the name of the file of which you want to evaluate the md5 checksum
@@ -2930,6 +3566,19 @@ proc MergeDict {dict0 dict1} {
   return $outdict
 }
 
+
+# @brief Move an element in the list to the end
+#
+# @param[in] inputList the list
+# @param[in] element   the element to move to the end of the list
+proc MoveElementToEnd {inputList element} {
+  set index [lsearch $inputList $element]
+  if {$index != -1} {
+    set inputList [lreplace $inputList $index $index]
+    lappend inputList $element
+  }
+  return $inputList
+}
 
 ## @brief The Hog Printout Msg function
 #
@@ -3041,6 +3690,22 @@ proc ParseJSON {JSON_FILE JSON_KEY} {
     return -1
   } else {
     return $RETURNVALUE
+  }
+}
+
+# @brief Check if a Hog project exists, and if it exists returns the conf file
+# if it doesnt returns 0
+#
+# @brief project   The project name
+# @brief repo_path The main path of the git repository
+proc ProjectExists {project {repo_path .}} {
+  set index [lsearch -exact [ListProjects $repo_path 0] $project]
+
+  if {$index >= 0} {
+    # if project exists we return the relative hog.conf file
+    return [lindex [ListProjects $repo_path 0 1] $index]
+  } else {
+    return 0
   }
 }
 
@@ -3369,6 +4034,26 @@ proc RelativeLocal {pathName filePath} {
   }
 }
 
+## @brief Remove duplicates in a dictionary
+#
+# @param[in] mydict the input dictionary
+#
+# @return the dictionary stripped of duplicates
+proc RemoveDuplicates {mydict} {
+  set new_dict [dict create]
+  foreach key [dict keys $mydict] {
+    set values [DictGet $mydict $key]
+    foreach value $values {
+      set idxs [lreverse [lreplace [lsearch -exact -all $values $value] 0 0]]
+      foreach idx $idxs {
+        set values [lreplace $values $idx $idx]
+      }
+    }
+    dict set new_dict $key $values
+  }
+  return $new_dict
+}
+
 ## Reset files in the repository
 #
 #  @param[in]    reset_file a file containing a list of files separated by new lines or spaces (Hog-CI creates such a file in Projects/hog_reset_files)
@@ -3560,391 +4245,6 @@ proc WriteConf {file_name config {comment ""}} {
 }
 
 
-
-## @brief Returns the gitlab-ci.yml snippet for a CI stage and a defined project
-#
-# @param[in] proj_name:   The project name
-# @param[in] ci_confs:    Dictionary with CI configurations
-#
-proc WriteGitLabCIYAML {proj_name {ci_conf ""}} {
-  if { [catch {package require yaml 0.3.3} YAMLPACKAGE]} {
-    Msg CriticalWarning "Cannot find package YAML.\n Error message: $YAMLPACKAGE. If you are running on tclsh, you can fix this by installing package \"tcllib\""
-    return -1
-  }
-
-  set job_list []
-  if {$ci_conf != ""} {
-    set ci_confs [ReadConf $ci_conf]
-    foreach sec [dict keys $ci_confs] {
-      if {[string first : $sec] == -1} {
-        lappend job_list $sec
-      }
-    }
-  } else {
-    set job_list {"generate_project" "simulate_project"}
-    set ci_confs ""
-  }
-
-  set out_yaml [huddle create]
-  foreach job $job_list {
-    # Check main project configurations
-    set huddle_tags [huddle list]
-    set tag_section ""
-    set sec_dict [dict create]
-
-    if {$ci_confs != ""} {
-      foreach var [dict keys [dict get $ci_confs $job]] {
-        if {$var == "tags"} {
-          set tag_section "tags"
-          set tags [dict get [dict get $ci_confs $job] $var]
-          set tags [split $tags ","]
-          foreach tag $tags {
-            set tag_list [huddle list $tag]
-            set huddle_tags [huddle combine $huddle_tags $tag_list]
-          }
-        } else {
-          dict set sec_dict $var [dict get [dict get $ci_confs $job] $var]
-        }
-      }
-    }
-
-    # Check if there are extra variables in the conf file
-    set huddle_variables [huddle create "PROJECT_NAME" $proj_name "extends" ".vars"]
-    if {[dict exists $ci_confs "$job:variables"]} {
-      set var_dict [dict get $ci_confs $job:variables]
-      foreach var [dict keys $var_dict] {
-        # puts [dict get $var_dict $var]
-        set value [dict get $var_dict "$var"]
-        set var_inner [huddle create "$var" "$value"]
-        set huddle_variables [huddle combine $huddle_variables $var_inner]
-      }
-    }
-
-
-    set middle [huddle create "extends" ".$job" "variables" $huddle_variables]
-    foreach sec [dict keys $sec_dict] {
-      set value [dict get $sec_dict $sec]
-      set var_inner [huddle create "$sec" "$value"]
-      set middle [huddle combine $middle $var_inner]
-    }
-    if {$tag_section != ""} {
-      set middle2 [huddle create "$tag_section" $huddle_tags]
-      set middle [huddle combine $middle $middle2]
-    }
-
-    set outer [huddle create "$job:$proj_name" $middle ]
-    set out_yaml [huddle combine $out_yaml $outer]
-  }
-
-  return [ string trimleft [ yaml::huddle2yaml $out_yaml ] "-" ]
-}
-
-## @brief Write into a file, and if the file exists, it will append the string
-#
-# @param[out] File The log file to write into the message
-# @param[in]  msg  The message text
-proc WriteToFile {File msg} {
-  set f [open $File a+]
-  puts $f $msg
-  close $f
-}
-
-## Write the resource utilization table into a a file (Vivado only)
-#
-#  @param[in]    input the input .rpt report file from Vivado
-#  @param[in]    output the output file
-#  @param[in]    project_name the name of the project
-#  @param[in]    run synthesis or implementation
-proc WriteUtilizationSummary {input output project_name run} {
-  set f [open $input "r"]
-  set o [open $output "a"]
-  puts $o "## $project_name $run Utilization report\n\n"
-  struct::matrix util_m
-  util_m add columns 14
-  util_m add row
-  if { [GetIDEVersion] >= 2021.0 } {
-    util_m add row "|          **Site Type**         |  **Used**  | **Fixed** | **Prohibited** | **Available** | **Util%** |"
-    util_m add row "|  --- | --- | --- | --- | --- | --- |"
-  } else {
-    util_m add row "|          **Site Type**         | **Used** | **Fixed** | **Available** | **Util%** |"
-    util_m add row "|  --- | --- | --- | --- | --- |"
-  }
-
-  set luts 0
-  set regs 0
-  set uram 0
-  set bram 0
-  set dsps 0
-  set ios 0
-
-  while {[gets $f line] >= 0} {
-    if { ( [string first "| CLB LUTs" $line] >= 0 || [string first "| Slice LUTs" $line] >= 0 ) && $luts == 0 } {
-      util_m add row $line
-      set luts 1
-    }
-    if { ( [string first "| CLB Registers" $line] >= 0  || [string first "| Slice Registers" $line] >= 0  ) && $regs == 0} {
-      util_m add row $line
-      set regs 1
-    }
-    if { [string first "| Block RAM Tile" $line] >= 0 && $bram == 0 } {
-      util_m add row $line
-      set bram 1
-    }
-    if { [string first "URAM " $line] >= 0 && $uram == 0} {
-      util_m add row $line
-      set uram 1
-    }
-    if { [string first "DSPs" $line] >= 0 && $dsps == 0 } {
-      util_m add row $line
-      set dsps 1
-    }
-    if { [string first "Bonded IOB" $line] >= 0 && $ios == 0 } {
-      util_m add row $line
-      set ios 1
-    }
-  }
-  util_m add row
-
-  close $f
-  puts $o [util_m format 2string]
-  close $o
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-proc GetFileGenerics {filename {entity ""}} {
-  set file_type [FindFileType $filename]
-  if {[string equal $file_type "VERILOG_FILE"] || [string equal $file_type "SYSTEMVERILOG_FILE"]} {
-    return [GetVerilogGenerics $filename]
-  } elseif {[string equal $file_type "VHDL_FILE"]} {
-    return [GetVhdlGenerics $filename $entity]
-  } else {
-    Msg CriticalWarning "Could not determine extension of top level file."
-  }
-}
-
-## @brief Applies generic values to IPs within block designs
-#
-#  @param[in]    generic_string the string containing the generics to be applied
-proc WriteGenericsToBdIPs {mode repo_path proj generic_string} {
-  Msg Debug "Parameters/generics passed to WriteGenericsToIP: $generic_string"
-
-  set bd_ip_generics false
-  set properties [ReadConf [lindex [GetConfFiles $repo_path/Top/$proj] 0]]
-  if {[dict exists $properties "hog"]} {
-    set propDict [dict get $properties "hog"]
-    if {[dict exists $propDict "PASS_GENERICS_TO_BD_IPS"]} {
-      set bd_ip_generics [dict get $propDict "PASS_GENERICS_TO_BD_IPS"]
-    }
-  }
-
-  if {[string compare [string tolower $bd_ip_generics] "false"]==0} {
-    return
-  }
-
-  if {$mode == "synth"} {
-    set PARENT_PRJ [get_property "PARENT.PROJECT_PATH" [current_project]]
-    open_project $PARENT_PRJ
-  }
-
-  Msg Info "Looking for IPs to add generics to..."
-  set ips_generic_string ""
-  foreach generic_to_set [split [string trim $generic_string]] {
-    set key [lindex [split $generic_to_set "="] 0]
-    set value [lindex [split $generic_to_set "="] 1]
-    append ips_generic_string "CONFIG.$key $value "
-  }
-
-
-  if {[string compare [string tolower $bd_ip_generics] "true"]==0} {
-    set ip_regex ".*"
-  } else {
-    set ip_regex $bd_ip_generics
-  }
-
-  set ip_list [get_ips -regex $ip_regex]
-  Msg Debug "IPs found with regex \{$ip_regex\}: $ip_list"
-
-  set regen_targets {}
-
-  foreach {ip} $ip_list {
-    set WARN_ABOUT_IP false
-    set ip_props [list_property [get_ips $ip]]
-
-    #Not sure if this is needed, but it's here to prevent potential errors with get_property
-    if {[lsearch -exact $ip_props "IS_BD_CONTEXT"] == -1} {
-      continue
-    }
-
-    if {[get_property "IS_BD_CONTEXT" [get_ips $ip]] eq "1"} {
-      foreach {ip_prop} $ip_props {
-        if {[dict exists $ips_generic_string $ip_prop ]} {
-          if {$WARN_ABOUT_IP == false} {
-            lappend regen_targets [get_property SCOPE [get_ips $ip]]
-            Msg Warning "The ip \{$ip\} contains generics that are set by Hog. If this is IP is apart of a block design, the .bd file may contain stale, unused, values. Hog will always apply the most up-to-date values to the IP during synthesis, however these values may or may not be reflected in the .bd file."
-            set WARN_ABOUT_IP true
-          }
-
-          set value_to_set [dict get $ips_generic_string $ip_prop]
-          if {[string match "32'h*" $value_to_set]} {
-            set value_to_set [format "%d" [scan $value_to_set "32'h%x"]]
-          }
-
-          Msg Info "The IP \{$ip\} contains: $ip_prop, setting it to $value_to_set."
-          if {[catch {set_property -name $ip_prop -value $value_to_set -objects [ get_ips $ip ]} prop_error]} {
-            Msg CriticalWarning "Failed to set property $ip_prop to $value_to_set for IP \{$ip\}: $prop_error"
-          }
-
-        }
-      }
-    }
-  }
-
-  if {$mode == "synth"} {
-    foreach {regen_target} [lsort -unique $regen_targets] {
-      Msg Info "Regenerating target: $regen_target"
-      if {[catch {generate_target -force all [get_files $regen_target]} prop_error]} {
-        Msg CriticalWarning "Failed to regen targets: $prop_error"
-      }
-    }
-
-    close_project
-  }
-}
-
 ## Set the generics property
 #
 #  @param[in]    mode if it's "create", the function will assume the project is being created
@@ -4055,269 +4355,176 @@ proc WriteGenerics {mode repo_path design date timee commit version top_hash top
   }
 }
 
-## Returns the version of the IDE (Vivado,Quartus,PlanAhead,Libero) in use
+## @brief Applies generic values to IPs within block designs
 #
-#  @return       the version in string format, e.g. 2020.2
-#
-proc GetIDEVersion {} {
-  if {[IsXilinx]} {
-    #Vivado or planAhead
-    regexp {\d+\.\d+(\.\d+)?} [version -short] ver
-    # This regex will cut away anything after the numbers, useful for patched version 2020.1_AR75210
+#  @param[in]    mode           create: to write the generics at creation time. synth to write at synthesis time
+#  @param[in]    repo_path      The main path of the git repository
+#  @param[in]    proj           The project name
+#  @param[in]    generic_string the string containing the generics to be applied
+proc WriteGenericsToBdIPs {mode repo_path proj generic_string} {
+  Msg Debug "Parameters/generics passed to WriteGenericsToIP: $generic_string"
 
-  } elseif {[IsQuartus]} {
-    # Quartus
-    global quartus
-    regexp {[\.0-9]+} $quartus(version) ver
-  } elseif {[IsLibero]} {
-    # Libero
-    set ver [get_libero_version]
-  }
-  return $ver
-}
-
-## Get the IDE (Vivado,Quartus,PlanAhead,Libero) version from the conf file she-bang
-#
-#  @param[in]    conf_file The hog.conf file
-proc GetIDEFromConf {conf_file} {
-  set f [open $conf_file "r"]
-  set line [gets $f]
-  close $f
-  if {[regexp -all {^\# *(\w*) *(\d+\.\d+(?:\.\d+)?(?:\.\d+)?)?(_.*)? *$} $line dummy ide version patch]} {
-    if {[info exists version] && $version != ""} {
-      set ver $version
-    } else {
-      set ver 0.0.0
+  set bd_ip_generics false
+  set properties [ReadConf [lindex [GetConfFiles $repo_path/Top/$proj] 0]]
+  if {[dict exists $properties "hog"]} {
+    set propDict [dict get $properties "hog"]
+    if {[dict exists $propDict "PASS_GENERICS_TO_BD_IPS"]} {
+      set bd_ip_generics [dict get $propDict "PASS_GENERICS_TO_BD_IPS"]
     }
-    # what shall we do with $patch? ignored for the time being
-    set ret [list $ide $ver]
-  } else {
-    Msg CriticalWarning "The first line of hog.conf should be \#<IDE name> <version>, where <IDE name>. is quartus, vivado, planahead and <version> the tool version, e.g. \#vivado 2020.2. Will assume vivado."
-    set ret [list "vivado" "0.0.0"]
   }
 
-  return $ret
-}
-
-##
-## Create a new directory, not throwing an error if it already exists
-##
-## @param      dir   The dir
-##
-proc Mkdir {dir} {
-  if {[file exists $dir] && [file isdirectory $dir]} {
-    return
-  } else {
-    file mkdir $dir
+  if {[string compare [string tolower $bd_ip_generics] "false"]==0} {
     return
   }
-}
 
-##
-## Copy a file or folder into a new path, not throwing an error if the final path is not empty
-##
-## @param      i_dirs  The directory or file to copy
-## @param      o_dir  The final destination
-##
-proc Copy {i_dirs o_dir} {
-  foreach i_dir $i_dirs {
-    if {[file isdirectory $i_dir] && [file isdirectory $o_dir]} {
-      if {([file tail $i_dir] == [file tail $o_dir]) || ([file exists $o_dir/[file tail $i_dir]] && [file isdirectory $o_dir/[file tail $i_dir]])} {
-        file delete -force $o_dir/[file tail $i_dir]
-      }
-    }
-
-    file copy -force $i_dir $o_dir
-  }
-}
-
-## @brief Remove duplicates in a dictionary
-#
-# @param[in] mydict the input dictionary
-#
-# @return the dictionary stripped of duplicates
-proc RemoveDuplicates {mydict} {
-  set new_dict [dict create]
-  foreach key [dict keys $mydict] {
-    set values [DictGet $mydict $key]
-    foreach value $values {
-      set idxs [lreverse [lreplace [lsearch -exact -all $values $value] 0 0]]
-      foreach idx $idxs {
-        set values [lreplace $values $idx $idx]
-      }
-    }
-    dict set new_dict $key $values
-  }
-  return $new_dict
-}
-
-## @brief Compare the contents of two dictionaries
-#
-# @param[in] proj_libs  The dictionary of libraries in the project
-# @param[in] list_libs  The dictionary of libraries in list files
-# @param[in] proj_sets  The dictionary of filesets in the project
-# @param[in] list_sets  The dictionary of filesets in list files
-# @param[in] proj_props The dictionary of file properties in the project
-# @param[in] list_props The dictionary of file pproperties in list files
-# @param[in] severity   The severity of  the message in case a file is not found (Default: CriticalWarning)
-# @param[in] outFile    The output log file, to write the messages (Default "")
-# @param[in] extraFiles The dictionary of extra files generated a creation time (Default "")
-#
-# @return n_diffs The number of differences
-# @return extra_files Remaining list of extra files
-
-proc CompareLibDicts {proj_libs list_libs proj_sets list_sets proj_props list_props {severity "CriticalWarning"} {outFile ""} {extraFiles ""} } {
-  set extra_files $extraFiles
-  set n_diffs 0
-  set out_prjlibs $proj_libs
-  set out_prjprops $proj_props
-  # Loop over filesets in project
-  dict for {prjSet prjLibraries} $proj_sets {
-    # Check if sets is also in list files
-    if {[IsInList $prjSet $list_sets]} {
-      set listLibraries [DictGet $list_sets $prjSet]
-      # Loop over libraries in fileset
-      foreach prjLib $prjLibraries {
-        set prjFiles [DictGet $proj_libs $prjLib]
-        # Check if library exists in list files
-        if {[IsInList $prjLib $listLibraries]} {
-          # Loop over files in library
-          set listFiles [DictGet $list_libs $prjLib]
-          foreach prjFile $prjFiles {
-            set idx [lsearch -exact $listFiles $prjFile]
-            set listFiles [lreplace $listFiles $idx $idx]
-            if {$idx < 0} {
-              # File is in project but not in list libraries, check if it was generated at creation time...
-              if { [dict exists $extra_files $prjFile] } {
-                # File was generated at creation time, checking the md5sum
-                # Removing the file from the prjFiles list
-                set idx2 [lsearch -exact $prjFiles $prjFile]
-                set prjFiles [lreplace $prjFiles $idx2 $idx2]
-                set new_md5sum [Md5Sum $prjFile]
-                set old_md5sum [DictGet $extra_files $prjFile]
-                if {$new_md5sum != $old_md5sum} {
-                  MsgAndLog "$prjFile in project has been modified from creation time. Please update the script you used to create the file and regenerate the project, or save the file outside the Projects/ directory and add it to a project list file" $severity $outFile
-                  incr n_diffs
-                }
-                set extra_files [dict remove $extra_files $prjFile]
-              } else {
-                # File is neither in list files nor in extra_files
-                MsgAndLog "$prjFile was found in project but not in list files or .hog/extra.files" $severity $outFile
-                incr n_diffs
-              }
-            } else {
-              # File is both in list files and project, checking properties...
-              set prjProps  [DictGet $proj_props $prjFile]
-              set listProps [DictGet $list_props $prjFile]
-              # Check if it is a potential sourced file
-              if {[IsInList "nosynth" $prjProps] && [IsInList "noimpl" $prjProps] && [IsInList "nosim" $prjProps]} {
-                # Check if it is sourced
-                set idx_source [lsearch -exact $listProps "source"]
-                if {$idx_source >= 0 } {
-                  # It is sourced, let's replace the individual properties with source
-                  set idx [lsearch -exact $prjProps "noimpl"]
-                  set prjProps [lreplace $prjProps $idx $idx]
-                  set idx [lsearch -exact $prjProps "nosynth"]
-                  set prjProps [lreplace $prjProps $idx $idx]
-                  set idx [lsearch -exact $prjProps "nosim"]
-                  set prjProps [lreplace $prjProps $idx $idx]
-                  lappend prjProps "source"
-                }
-              }
-
-              foreach prjProp $prjProps {
-                set idx [lsearch -exact $listProps $prjProp]
-                set listProps [lreplace $listProps $idx $idx]
-                if {$idx < 0} {
-                  MsgAndLog "Property $prjProp of $prjFile was set in project but not in list files" $severity $outFile
-                  incr n_diffs
-                }
-              }
-
-              foreach listProp $listProps {
-                if {[string first $listProp "topsim="] == -1} {
-                  MsgAndLog "Property $listProp of $prjFile was found in list files but not set in project." $severity $outFile
-                  incr n_diffs
-                }
-              }
-
-              # Update project prjProps
-              dict set out_prjprops $prjFile $prjProps
-            }
-          }
-          # Loop over remaining files in list libraries
-          foreach listFile $listFiles {
-            MsgAndLog "$listFile was found in list files but not in project." $severity $outFile
-            incr n_diffs
-          }
-        } else {
-          # Check extra files again...
-          foreach prjFile $prjFiles {
-            if { [dict exists $extra_files $prjFile] } {
-              # File was generated at creation time, checking the md5sum
-              # Removing the file from the prjFiles list
-              set idx2 [lsearch -exact $prjFiles $prjFile]
-              set prjFiles [lreplace $prjFiles $idx2 $idx2]
-              set new_md5sum [Md5Sum $prjFile]
-              set old_md5sum [DictGet $extra_files $prjFile]
-              if {$new_md5sum != $old_md5sum} {
-                MsgAndLog "$prjFile in project has been modified from creation time. Please update the script you used to create the file and regenerate the project, or save the file outside the Projects/ directory and add it to a project list file" $severity $outFile
-                incr n_diffs
-              }
-              set extra_files [dict remove $extra_files $prjFile]
-            } else {
-              # File is neither in list files nor in extra_files
-              MsgAndLog "$prjFile was found in project but not in list files or .hog/extra.files" $severity $outFile
-              incr n_diffs
-            }
-          }
-        }
-        # Update prjLibraries
-        dict set out_prjlibs $prjLib $prjFiles
-      }
-    } else {
-      MsgAndLog "Fileset $prjSet found in project but not in list files" $severity $outFile
-      incr n_diffs
-    }
+  if {$mode == "synth"} {
+    set PARENT_PRJ [get_property "PARENT.PROJECT_PATH" [current_project]]
+    open_project $PARENT_PRJ
   }
 
-  return [list $n_diffs $extra_files $out_prjlibs $out_prjprops]
-}
+  Msg Info "Looking for IPs to add generics to..."
+  set ips_generic_string ""
+  foreach generic_to_set [split [string trim $generic_string]] {
+    set key [lindex [split $generic_to_set "="] 0]
+    set value [lindex [split $generic_to_set "="] 1]
+    append ips_generic_string "CONFIG.$key $value "
+  }
 
-# @brief Write the content of Hog-library-dictionary created from the project into a .sim list file
-#
-# @param[in] libs      The Hog-Library dictionary with the list of files in the project to write
-# @param[in] props     The Hog-library dictionary with the file sets
-# @param[in] simsets       The Hog-library dictionary with the file sets (relevant only for simulation)
-# @param[in] list_path  The path of the output list file
-# @param[in] repo_path  The main repository path
-proc WriteSimListFiles {libs props simsets list_path repo_path } {
-  # Writing simulation list files
-  foreach simset [dict keys $simsets] {
-    set list_file_name $list_path/${simset}.sim
-    set list_file [open $list_file_name w]
-    Msg Info "Writing $list_file_name..."
-    foreach lib [DictGet $simsets $simset] {
-      foreach file [DictGet $libs $lib] {
-        # Retrieve file properties from prop list
-        set prop [DictGet $props $file]
-        # Check if file is local to the repository or external
-        if {[RelativeLocal $repo_path $file] != ""} {
-          set file_path [RelativeLocal $repo_path $file]
-          set lib_name [file rootname $lib]
-          if {$lib_name != $simset} {
-            lappend prop "lib=$lib_name"
+
+  if {[string compare [string tolower $bd_ip_generics] "true"]==0} {
+    set ip_regex ".*"
+  } else {
+    set ip_regex $bd_ip_generics
+  }
+
+  set ip_list [get_ips -regex $ip_regex]
+  Msg Debug "IPs found with regex \{$ip_regex\}: $ip_list"
+
+  set regen_targets {}
+
+  foreach {ip} $ip_list {
+    set WARN_ABOUT_IP false
+    set ip_props [list_property [get_ips $ip]]
+
+    #Not sure if this is needed, but it's here to prevent potential errors with get_property
+    if {[lsearch -exact $ip_props "IS_BD_CONTEXT"] == -1} {
+      continue
+    }
+
+    if {[get_property "IS_BD_CONTEXT" [get_ips $ip]] eq "1"} {
+      foreach {ip_prop} $ip_props {
+        if {[dict exists $ips_generic_string $ip_prop ]} {
+          if {$WARN_ABOUT_IP == false} {
+            lappend regen_targets [get_property SCOPE [get_ips $ip]]
+            Msg Warning "The ip \{$ip\} contains generics that are set by Hog. If this is IP is apart of a block design, the .bd file may contain stale, unused, values. Hog will always apply the most up-to-date values to the IP during synthesis, however these values may or may not be reflected in the .bd file."
+            set WARN_ABOUT_IP true
           }
-          puts $list_file "$file_path $prop"
-        } else {
-          # File is not relative to repo or ext_path... Write a Warning and continue
-          Msg Warning "The path of file $file is not relative to your repository. Please check!"
+
+          set value_to_set [dict get $ips_generic_string $ip_prop]
+          if {[string match "32'h*" $value_to_set]} {
+            set value_to_set [format "%d" [scan $value_to_set "32'h%x"]]
+          }
+
+          Msg Info "The IP \{$ip\} contains: $ip_prop, setting it to $value_to_set."
+          if {[catch {set_property -name $ip_prop -value $value_to_set -objects [ get_ips $ip ]} prop_error]} {
+            Msg CriticalWarning "Failed to set property $ip_prop to $value_to_set for IP \{$ip\}: $prop_error"
+          }
+
         }
       }
     }
   }
+
+  if {$mode == "synth"} {
+    foreach {regen_target} [lsort -unique $regen_targets] {
+      Msg Info "Regenerating target: $regen_target"
+      if {[catch {generate_target -force all [get_files $regen_target]} prop_error]} {
+        Msg CriticalWarning "Failed to regen targets: $prop_error"
+      }
+    }
+
+    close_project
+  }
 }
 
+
+## @brief Returns the gitlab-ci.yml snippet for a CI stage and a defined project
+#
+# @param[in] proj_name:   The project name
+# @param[in] ci_confs:    Dictionary with CI configurations
+#
+proc WriteGitLabCIYAML {proj_name {ci_conf ""}} {
+  if { [catch {package require yaml 0.3.3} YAMLPACKAGE]} {
+    Msg CriticalWarning "Cannot find package YAML.\n Error message: $YAMLPACKAGE. If you are running on tclsh, you can fix this by installing package \"tcllib\""
+    return -1
+  }
+
+  set job_list []
+  if {$ci_conf != ""} {
+    set ci_confs [ReadConf $ci_conf]
+    foreach sec [dict keys $ci_confs] {
+      if {[string first : $sec] == -1} {
+        lappend job_list $sec
+      }
+    }
+  } else {
+    set job_list {"generate_project" "simulate_project"}
+    set ci_confs ""
+  }
+
+  set out_yaml [huddle create]
+  foreach job $job_list {
+    # Check main project configurations
+    set huddle_tags [huddle list]
+    set tag_section ""
+    set sec_dict [dict create]
+
+    if {$ci_confs != ""} {
+      foreach var [dict keys [dict get $ci_confs $job]] {
+        if {$var == "tags"} {
+          set tag_section "tags"
+          set tags [dict get [dict get $ci_confs $job] $var]
+          set tags [split $tags ","]
+          foreach tag $tags {
+            set tag_list [huddle list $tag]
+            set huddle_tags [huddle combine $huddle_tags $tag_list]
+          }
+        } else {
+          dict set sec_dict $var [dict get [dict get $ci_confs $job] $var]
+        }
+      }
+    }
+
+    # Check if there are extra variables in the conf file
+    set huddle_variables [huddle create "PROJECT_NAME" $proj_name "extends" ".vars"]
+    if {[dict exists $ci_confs "$job:variables"]} {
+      set var_dict [dict get $ci_confs $job:variables]
+      foreach var [dict keys $var_dict] {
+        # puts [dict get $var_dict $var]
+        set value [dict get $var_dict "$var"]
+        set var_inner [huddle create "$var" "$value"]
+        set huddle_variables [huddle combine $huddle_variables $var_inner]
+      }
+    }
+
+
+    set middle [huddle create "extends" ".$job" "variables" $huddle_variables]
+    foreach sec [dict keys $sec_dict] {
+      set value [dict get $sec_dict $sec]
+      set var_inner [huddle create "$sec" "$value"]
+      set middle [huddle combine $middle $var_inner]
+    }
+    if {$tag_section != ""} {
+      set middle2 [huddle create "$tag_section" $huddle_tags]
+      set middle [huddle combine $middle $middle2]
+    }
+
+    set outer [huddle create "$job:$proj_name" $middle ]
+    set out_yaml [huddle combine $out_yaml $outer]
+  }
+
+  return [ string trimleft [ yaml::huddle2yaml $out_yaml ] "-" ]
+}
 
 # @brief Write the content of Hog-library-dictionary created from the project into a .src/.ext/.con list file
 #
@@ -4355,436 +4562,111 @@ proc WriteListFiles {libs props list_path repo_path {$ext_path ""} } {
   }
 }
 
-# @brief Remove empty keys from dictionary
-proc RemoveEmptyKeys {d} {
-  set newDict $d
-  foreach {k v} $newDict {
-    if {$v == {{}} || $v == "" } {
-      set newDict [dict remove $newDict $k]
-    }
-  }
-  return $newDict
-}
-
-#print logo in images/hog_logo.txt
-proc Logo { {repo_path .} } {
-  if {[info exists ::env(HOG_COLORED)] && [string match "ENABLED" $::env(HOG_COLORED)]} {
-    set logo_file "$repo_path/Hog/images/hog_logo_color.txt"
-  } else {
-    set logo_file "$repo_path/Hog/images/hog_logo.txt"
-  }
-  # set logo_file "$repo_path/Hog/images/hog_logo.txt"
-
-  set old_path [pwd]
-  cd $repo_path/Hog
-  set ver [Git {describe --always}]
-  cd $old_path
-
-  if {[file exists $logo_file]} {
-    set f [open $logo_file "r"]
-    set data [read $f]
-    close $f
-    set lines [split $data "\n"]
-    foreach l $lines {
-      Msg Status $l
-    }
-
-  } {
-    Msg CriticalWarning "Logo file: $logo_file not found"
-  }
-
-  Msg Status "Version: $ver"
-}
-
-# Check last version online
-proc CheckLatestHogRelease {{repo_path .}} {
-  set old_path [pwd]
-  cd $repo_path/Hog
-  set current_ver [Git {describe --always}]
-  Msg Debug "Current version: $current_ver"
-  set current_sha [Git "log $current_ver -1 --format=format:%H"]
-  Msg Debug "Current SHA: $current_sha"
-
-  #We should find a proper way of checking for timeout using vwait, this'll do for now
-  if {[OS] == "windows" } {
-    Msg Info "On windows we cannot set a timeout on 'git fetch', hopefully nothing will go wrong..."
-    Git fetch
-  } else {
-    Msg Info "Checking for latest Hog release, can take up to 5 seconds..."
-    ExecuteRet timeout 5s git fetch
-  }
-  set master_ver [Git "describe origin/master"]
-  Msg Debug "Master version: $master_ver"
-  set master_sha [Git "log $master_ver -1 --format=format:%H"]
-  Msg Debug "Master SHA: $master_sha"
-  set merge_base [Git "merge-base $current_sha $master_sha"]
-  Msg Debug "merge base: $merge_base"
-
-
-  if {$merge_base != $master_sha} {
-    # If master_sha is NOT an ancestor of current_sha
-    Msg Info "Version $master_ver has been released (https://gitlab.com/hog-cern/Hog/-/releases/$master_ver)"
-    Msg Status "You should consider updating Hog submodule with the following instructions:"
-    Msg Status ""
-    Msg Status "cd Hog && git checkout master && git pull"
-    Msg Status ""
-    Msg Status "Also update the ref: in your .gitlab-ci.yml to $master_ver"
-    Msg Status ""
-  } else {
-
-    # If it is
-    Msg Info "Latest official version is $master_ver, nothing to do."
-  }
-
-  cd $old_path
-
-}
-
-# @brief Gets the command argv list and returns a list of
-#        options and arguments
-proc GetOptions {argv parameters usage} {
-  # Get Options from argv
-  set arg_list [list]
-  set param_list [list]
-  set option_list [list]
-
-  foreach p $parameters {
-    lappend param_list [lindex $p 0]
-  }
-
-  set index 0
-  while {$index < [llength $argv]} {
-    set arg [lindex $argv $index]
-    if {[string first - $arg] == 0} {
-      set option [string trimleft $arg "-"]
-      incr index
-      lappend option_list $arg
-      if {[lsearch $param_list ${option}*] >= 0 && [string first ".arg" [lsearch -inline $param_list ${option}*]] >= 0} {
-        lappend option_list [lindex $argv $index]
-        incr index
-      }
-    } else {
-      lappend arg_list $arg
-      incr index
-    }
-  }
-  Msg Debug "Argv: $argv"
-  Msg Debug "Options: $option_list"
-  Msg Debug "Arguments: $arg_list"
-  return [list $option_list $arg_list]
-}
-
-proc InitLauncher {script tcl_path parameters usage argv} {
-  set repo_path [file normalize "$tcl_path/../.."]
-  set old_path [pwd]
-  set bin_path [file normalize "$tcl_path/../../bin"]
-  set top_path [file normalize "$tcl_path/../../Top"]
-  set commands_path [file normalize "$tcl_path/../../hog-commands/"]
-
-  if {[IsTclsh]} {
-    #Just display the logo the first time, not when the scripot is run in the IDE
-    Logo $repo_path
-  }
-
-  if {[catch {package require cmdline} ERROR]} {
-    Msg Debug "The cmdline Tcl package was not found, sourcing it from Hog..."
-    source $tcl_path/utils/cmdline.tcl
-  }
-
-  append usage [GetCustomCommands $commands_path]
-  append usage "\n** Options:"
-
-  lassign [ GetOptions $argv $parameters $usage] option_list arg_list
-
-  if { [IsInList "-help" $option_list] || [IsInList "-?" $option_list] || [IsInList "-h" $option_list] } {
-    Msg Info [cmdline::usage $parameters $usage]
-    exit 0
-  }
-
-  if {[catch {array set options [cmdline::getoptions option_list $parameters $usage]} err] } {
-    Msg Status "\nERROR: Syntax error, probably unknown option.\n\n USAGE: $err"
-    exit 1
-  }
-  # Argv here is modified and the options are removed
-  set directive [string toupper [lindex $arg_list 0]]
-
-  if { [llength $arg_list] == 1 && ($directive == "L" || $directive == "LIST")} {
-    Msg Status "\n** The projects in this repository are:"
-    ListProjects $repo_path
-    Msg Status "\n"
-    exit 0
-
-  } elseif { [llength $arg_list] == 0 || [llength $arg_list] > 2} {
-    Msg Status "\nERROR: Wrong number of arguments: [llength $argv].\n\n"
-    Msg Status "USAGE: [cmdline::usage $parameters $usage]"
-    exit 1
-  }
-
-  set project  [lindex $arg_list 1]
-  # Remove leading Top/ or ./Top/ if in project_name
-  regsub "^(\./)?Top/" $project "" project
-  # Remove trailing / and spaces if in project_name
-  regsub "/? *\$" $project "" project
-  set proj_conf [ProjectExists $project $repo_path]
-
-  Msg Debug "Option list:"
-  foreach {key value} [array get options] {
-    Msg Debug "$key => $value"
-  }
-
-  set cmd ""
-
-  if {[IsTclsh]} {
-    # command is filled with the IDE exectuable when this function is called by Tcl scrpt
-    if {$proj_conf != 0} {
-      CheckLatestHogRelease $repo_path
-
-      lassign [GetIDECommand $proj_conf] cmd before_tcl_script after_tcl_script end_marker
-      Msg Info "Project $project uses $cmd IDE"
-
-      ## The following is the IDE command to launch:
-      set command "$cmd $before_tcl_script$script$after_tcl_script$argv$end_marker"
-
-    } else {
-      if {$project != ""} {
-        #Project not given
-        set command -1
-      } else {
-        #Project not found
-        set command -2
-      }
-    }
-  } else {
-    # When the launcher is executed from within an IDE, command is set to 0
-    set command 0
-  }
-
-  set project_group [file dirname $project]
-  set project [file tail $project]
-  if { $project_group != "." } {
-    set project_name "$project_group/$project"
-  } else {
-    set project_name "$project"
-  }
-
-
-
-  return [list $directive $project $project_name $project_group $repo_path $old_path $bin_path $top_path $commands_path $command $cmd]
-}
-
-# Searches directory for tcl scripts to add as custom commands
-# Returns string of tcl scripts formatted as usage or switch statement
-# ret_commands if 1 returns commands as switch statement string instead of usage
-proc GetCustomCommands {{directory .} {ret_commands 0}} {
-  set commands_dict [dict create]
-  set commands_files [glob -nocomplain $directory/*.tcl ]
-  set commands_string ""
-
-  if {[llength $commands_files] == 0} {
-    return ""
-  }
-
-  if {$ret_commands == 0} {
-   append commands_string "\n** Custom Commands:\n"
-  }
-
-  foreach file $commands_files {
-    set base_name [string toupper [file rootname [file tail $file]]]
-    if {$ret_commands == 1} {
-      append commands_string "
-      \\^$base_name\$ {
-        Msg Info \"Running custom script: $file\"
-        source \"$file\"
-        Msg Info \"Done running custom script...\"
-        exit
-      }
-      "
-    } else {
-      set f [open $file r]
-      set first_line [gets $f]
-      close $f
-      if {[regexp -nocase "^#\s*$base_name:\s*(.*)" $first_line full_match script_des]} {
-        append commands_string "- $base_name: $script_des\n"
-      } else {
-        append commands_string "- $base_name: runs $file\n"
+# @brief Write the content of Hog-library-dictionary created from the project into a .sim list file
+#
+# @param[in] libs      The Hog-Library dictionary with the list of files in the project to write
+# @param[in] props     The Hog-library dictionary with the file sets
+# @param[in] simsets       The Hog-library dictionary with the file sets (relevant only for simulation)
+# @param[in] list_path  The path of the output list file
+# @param[in] repo_path  The main repository path
+proc WriteSimListFiles {libs props simsets list_path repo_path } {
+  # Writing simulation list files
+  foreach simset [dict keys $simsets] {
+    set list_file_name $list_path/${simset}.sim
+    set list_file [open $list_file_name w]
+    Msg Info "Writing $list_file_name..."
+    foreach lib [DictGet $simsets $simset] {
+      foreach file [DictGet $libs $lib] {
+        # Retrieve file properties from prop list
+        set prop [DictGet $props $file]
+        # Check if file is local to the repository or external
+        if {[RelativeLocal $repo_path $file] != ""} {
+          set file_path [RelativeLocal $repo_path $file]
+          set lib_name [file rootname $lib]
+          if {$lib_name != $simset} {
+            lappend prop "lib=$lib_name"
+          }
+          puts $list_file "$file_path $prop"
+        } else {
+          # File is not relative to repo or ext_path... Write a Warning and continue
+          Msg Warning "The path of file $file is not relative to your repository. Please check!"
+        }
       }
     }
   }
-  return $commands_string
 }
 
-# List projects all projects in the repository
-# print if 1  print a list
-# ret_conf if 1 returns conf file rather than list of project names
-proc ListProjects {{repo_path .} {print 1} {ret_conf 0}} {
-  set top_path [file normalize $repo_path/Top]
-  set confs [findFiles [file normalize $top_path] hog.conf]
-  set projects ""
 
-  foreach c $confs {
-    set p [Relative $top_path [file dirname $c]]
-    if {$print == 1} {
-      # Print a list of the projects with relative IDE
-      Msg Status "$p \([GetIDEFromConf $c]\)"
-    }
-    lappend projects $p
-  }
+## @brief Write into a file, and if the file exists, it will append the string
+#
+# @param[out] File The log file to write into the message
+# @param[in]  msg  The message text
+proc WriteToFile {File msg} {
+  set f [open $File a+]
+  puts $f $msg
+  close $f
+}
 
-  if {$ret_conf == 0} {
-
-    # Returns a list of project names
-    return $projects
+## Write the resource utilization table into a a file (Vivado only)
+#
+#  @param[in]    input the input .rpt report file from Vivado
+#  @param[in]    output the output file
+#  @param[in]    project_name the name of the project
+#  @param[in]    run synthesis or implementation
+proc WriteUtilizationSummary {input output project_name run} {
+  set f [open $input "r"]
+  set o [open $output "a"]
+  puts $o "## $project_name $run Utilization report\n\n"
+  struct::matrix util_m
+  util_m add columns 14
+  util_m add row
+  if { [GetIDEVersion] >= 2021.0 } {
+    util_m add row "|          **Site Type**         |  **Used**  | **Fixed** | **Prohibited** | **Available** | **Util%** |"
+    util_m add row "|  --- | --- | --- | --- | --- | --- |"
   } else {
-
-    # Return the list of hog.conf with full path
-    return $confs
+    util_m add row "|          **Site Type**         | **Used** | **Fixed** | **Available** | **Util%** |"
+    util_m add row "|  --- | --- | --- | --- | --- |"
   }
-}
 
-# if it exists returns the conf file
-# if it doesnt returns 0
-proc ProjectExists {project {repo_path .}} {
-  set index [lsearch -exact [ListProjects $repo_path 0] $project]
+  set luts 0
+  set regs 0
+  set uram 0
+  set bram 0
+  set dsps 0
+  set ios 0
 
-  if {$index >= 0} {
-    # if project exists we return the relative hog.conf file
-    return [lindex [ListProjects $repo_path 0 1] $index]
-  } else {
-    return 0
-  }
-}
-
-# Find IDE for a project
-proc GetIDECommand {proj_conf} {
-  # GetConfFiles returns a list, the first element is hog.conf
-  if {[file exists $proj_conf]} {
-    set ide_name_and_ver [string tolower [GetIDEFromConf $proj_conf]]
-    set ide_name [lindex [regexp -all -inline {\S+} $ide_name_and_ver ] 0]
-
-    if {$ide_name eq "vivado"} {
-      set command "vivado"
-      # A space ater the before_tcl_script is important
-      set before_tcl_script " -nojournal -nolog -mode batch -notrace -source "
-      set after_tcl_script " -tclargs "
-      set end_marker ""
-
-    } elseif {$ide_name eq "planahead"} {
-      set command "planAhead"
-      # A space ater the before_tcl_script is important
-      set before_tcl_script " -nojournal -nolog -mode batch -notrace -source "
-      set after_tcl_script " -tclargs "
-      set end_marker ""
-
-    } elseif {$ide_name eq "quartus"} {
-      set command "quartus_sh"
-      # A space ater the before_tcl_script is important
-      set before_tcl_script " -t "
-      set after_tcl_script " "
-      set end_marker ""
-
-    } elseif {$ide_name eq "libero"} {
-      #I think we need quotes for libero, not sure...
-
-      set command "libero"
-      set before_tcl_script "SCRIPT:"
-      set after_tcl_script " SCRIPT_ARGS:\""
-      set end_marker "\""
-    } else {
-      Msg Error "IDE: $ide_name not known."
+  while {[gets $f line] >= 0} {
+    if { ( [string first "| CLB LUTs" $line] >= 0 || [string first "| Slice LUTs" $line] >= 0 ) && $luts == 0 } {
+      util_m add row $line
+      set luts 1
     }
-
-  } else {
-    Msg Error "Configuration file $proj_conf not found."
-  }
-
-  return [list $command $before_tcl_script $after_tcl_script $end_marker]
-}
-
-
-# findFiles
-# basedir - the directory to start looking in
-# pattern - A pattern, as defined by the glob command, that the files must match
-# Credit: https://stackexchange.com/users/14219/jackson
-proc findFiles { basedir pattern } {
-
-    # Fix the directory name, this ensures the directory name is in the
-    # native format for the platform and contains a final directory seperator
-  set basedir [string trimright [file join [file normalize $basedir] { }]]
-  set fileList {}
-
-    # Look in the current directory for matching files, -type {f r}
-    # means ony readable normal files are looked at, -nocomplain stops
-    # an error being thrown if the returned list is empty
-  foreach fileName [glob -nocomplain -type {f r} -path $basedir $pattern] {
-    lappend fileList $fileName
-  }
-
-    # Now look for any sub direcories in the current directory
-  foreach dirName [glob -nocomplain -type {d  r} -path $basedir *] {
-        # Recusively call the routine on the sub directory and append any
-        # new files to the results
-    set subDirList [findFiles $dirName $pattern]
-    if { [llength $subDirList] > 0 } {
-      foreach subDirFile $subDirList {
-        lappend fileList $subDirFile
-      }
+    if { ( [string first "| CLB Registers" $line] >= 0  || [string first "| Slice Registers" $line] >= 0  ) && $regs == 0} {
+      util_m add row $line
+      set regs 1
+    }
+    if { [string first "| Block RAM Tile" $line] >= 0 && $bram == 0 } {
+      util_m add row $line
+      set bram 1
+    }
+    if { [string first "URAM " $line] >= 0 && $uram == 0} {
+      util_m add row $line
+      set uram 1
+    }
+    if { [string first "DSPs" $line] >= 0 && $dsps == 0 } {
+      util_m add row $line
+      set dsps 1
+    }
+    if { [string first "Bonded IOB" $line] >= 0 && $ios == 0 } {
+      util_m add row $line
+      set ios 1
     }
   }
-  return $fileList
+  util_m add row
+
+  close $f
+  puts $o [util_m format 2string]
+  close $o
 }
 
-# Check if element is in list
-proc IsInList {element list {regex 0}} {
-  foreach x $list {
-    if {$regex == 1 &&  [regexp $x $element] } {
-    return 1
-      } elseif { $regex == 0 && $x eq $element } {
-    return 1
-      }
-  }
-  return 0
-}
-
-
-
-
-# Function to check if a commit is an ancestor of another
-proc IsCommitAncestor {ancestor commit} {
-  lassign [GitRet "merge-base --is-ancestor $ancestor $commit"] status result
-  if {$status == 0 } {
-    return 1
-  } else {
-    return 0
-  }
-}
-
-proc FindCommonGitChild {SHA1 SHA2} {
-  # Get the list of all commits in the repository
-  set commits [Git {log --oneline --merges}]
-  set ancestor 0
-  # Iterate over each commit
-  foreach line [split $commits "\n"] {
-    set commit [lindex [split $line] 0]
-
-    # Check if both SHA1 and SHA2 are ancestors of the commit
-    if {[IsCommitAncestor $SHA1 $commit] && [IsCommitAncestor $SHA2 $commit] } {
-      set ancestor $commit
-      break
-    }
-  }
-  return $ancestor
-}
-
-
-# Move an element in the list to the end
-proc moveElementToEnd {inputList element} {
-    set index [lsearch $inputList $element]
-    if {$index != -1} {
-        set inputList [lreplace $inputList $index $index]
-        lappend inputList $element
-    }
-    return $inputList
-}
-
-### Source the Create project file
+### Source the Create project file TODO: Do we need to source in hog.tcl?
 source [file dirname [info script]]/create_project.tcl

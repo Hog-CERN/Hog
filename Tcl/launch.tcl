@@ -188,7 +188,7 @@ if {[catch {package require cmdline} ERROR] || [catch {package require struct::m
   exit 1
 }
 
-lassign [ GetOptions $::argv $parameters $usage] option_list arg_list
+lassign [ GetOptions $::argv $parameters] option_list arg_list
 
 if {[catch {array set options [cmdline::getoptions option_list $parameters $usage]}] || [llength $arg_list] != 2 } {
   Msg Info [cmdline::usage $parameters $usage]
@@ -604,11 +604,11 @@ if {[IsXilinx]} {
           }
           set_property "target_simulator" $simulator [current_project]
           Msg Info "Creating simulation scripts for $s..."
-          if { [file exists $repo_path/Top/$project_name/pre-simulation.tcl] } { 
+          if { [file exists $repo_path/Top/$project_name/pre-simulation.tcl] } {
             Msg Info "Running $repo_path/Top/$project_name/pre-simulation.tcl"
             source $repo_path/Top/$project_name/pre-simulation.tcl
           }
-          if { [file exists $repo_path/Top/$project_name/pre-$s-simulation.tcl] } { 
+          if { [file exists $repo_path/Top/$project_name/pre-$s-simulation.tcl] } {
             Msg Info "Running $repo_path/Top/$project_name/pre-$s-simulation.tcl"
             source Running $repo_path/Top/$project_name/pre-$s-simulation.tcl
           }

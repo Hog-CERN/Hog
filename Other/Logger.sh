@@ -219,6 +219,12 @@ function log_stdout(){
             #   next_is_err=1
             # fi
             msgType="error"
+            if [[ "$line" =~ "error: unable to create directory (errc=1) (Operation not permitted)" ]]; then
+              msgType="critical"
+            fi
+            if [[ "$line" =~ [Ee]os ]]; then
+              msgType="critical"
+            fi
             # msgType=$(msgTypeOverload "error" "$dataLine")
           ;;
           *'CRITICAL:'* | *'CRITICAL WARNING:'* )
@@ -244,7 +250,6 @@ function log_stdout(){
           *)
             # msgType=$(msgTypeOverload "info" "$dataLine")
             msgType="info"
-            # echo " Jodeeeeeeeeeeeeeeeeeeer : $msgType"
             ;;
         esac
       # elif [ "${1}" == "stderr" ]; then

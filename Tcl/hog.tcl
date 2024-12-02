@@ -367,19 +367,19 @@ proc GetRun {run} {
   }
 }
 
-## @brief Gets a list of files contained in the current project that match a file name (passed as parameter)
+## @brief Gets a list of files contained in the current fileset that match a file name (passed as parameter)
 #
 # The file name is matched against the input parameter.
-# IF no parameter if passed returns a list of all files in the project
 #
 #  @param[in] file name (or part of it)
+#  @param[in] fileset name 
 #
-#  @return         a list of files matching the parameter
+#  @return    a list of files matching the parameter in the chosen fileset
 #
-proc GetFile {file} {
+proc GetFile {file fileset} {
   if {[IsXilinx]} {
     # Vivado
-    set Files [get_files -all $file]
+    set Files [get_files -all $file -of_object [get_filesets $fileset]]
     set f [lindex $Files 0]
 
     return $f
@@ -1951,7 +1951,9 @@ proc GetProjectFiles {} {
 
     if {$fs_type == "BlockSrcs"} {
       # Vivado creates for each ip a blockset... Let's redirect to sources_1
-      set fs "sources_1"
+      set dict_fs "sources_1"
+    } else {
+      set dict_fs $fs
     }
     foreach f $all_files {
       # Ignore files that are part of the vivado/planahead project but would not be reflected
@@ -1959,22 +1961,40 @@ proc GetProjectFiles {} {
       set ignore 0
       # Generated files point to a parent composite file;
       # planahead does not have an IS_GENERATED property
-      if { [IsInList "IS_GENERATED" [list_property [GetFile $f]]]} {
-        if { [lindex [get_property  IS_GENERATED [GetFile $f]] 0] != 0} {
+      if { [IsInList "IS_GENERATED" [list_property [GetFile $f $fs]]]} {
+        if { [lindex [get_property  IS_GENERATED [GetFile $f $fs]] 0] != 0} {
           set ignore 1
         }
       }
-      if { [IsInList "CORE_CONTAINER" [list_property [GetFile $f]]]} {
-        if {[get_property CORE_CONTAINER [GetFile $f]] != ""} {
+
+      if {[get_property FILE_TYPE [GetFile $f $fs]] == "Configuration Files"} {
+        set ignore 1
+      }
+
+
+      if { [IsInList "CORE_CONTAINER" [list_property [GetFile $f $fs]]]} {
+        if {[get_property CORE_CONTAINER [GetFile $f $fs]] != ""} {
           if { [file extension $f] == ".xcix"} {
-            set f [get_property CORE_CONTAINER [GetFile $f]]
+            set f [get_property CORE_CONTAINER [GetFile $f $fs]]
           } else {
             set ignore 1
           }
         }
-
       }
-      if {[IsInList "PARENT_COMPOSITE_FILE" [list_property [GetFile $f]]]} {
+
+      if {[IsInList "SCOPED_TO_REF" [list_property [GetFile $f $fs]]]} {
+        if {[get_property SCOPED_TO_REF [GetFile $f $fs]] != ""} {
+          dict lappend properties $f "scoped_to_ref=[get_property SCOPED_TO_REF [GetFile $f $fs]]"
+        }
+      }
+
+      if {[IsInList "SCOPED_TO_CELLS" [list_property [GetFile $f $fs]]]} {
+        if {[get_property SCOPED_TO_CELLS [GetFile $f $fs]] != ""} {
+          dict lappend properties $f "scoped_to_cells=[get_property SCOPED_TO_CELLS [GetFile $f $fs]]"
+        }
+      }
+
+      if {[IsInList "PARENT_COMPOSITE_FILE" [list_property [GetFile $f $fs]]]} {
         set ignore 1
       }
 
@@ -1988,9 +2008,9 @@ proc GetProjectFiles {} {
           set f [file normalize $f]
         }
         lappend files $f
-        set type  [get_property FILE_TYPE [GetFile $f]]
+        set type  [get_property FILE_TYPE [GetFile $f $fs]]
         # Added a -quiet because some files (.v, .sv) don't have a library
-        set lib [get_property -quiet LIBRARY [GetFile $f]]
+        set lib [get_property -quiet LIBRARY [GetFile $f $fs]]
 
         # Type can be complex like VHDL 2008, in that case we want the second part to be a property
         Msg Debug "File $f Extension [file extension $f] Type [lindex $type 0]"
@@ -2012,64 +2032,63 @@ proc GetProjectFiles {} {
           set type [lindex $type 0]
           set prop ""
         }
-  #If type is "VHDL 2008" we will keep only VHDL
-
+        #If type is "VHDL 2008" we will keep only VHDL
         if {![string equal $prop ""]} {
           dict lappend properties $f $prop
         }
         # check where the file is used and add it to prop
         if {[string equal $fs_type "SimulationSrcs"]} {
           # Simulation sources
-    if {[string equal $type "VHDL"] } {
-      set library "${lib}.sim"
-    } else {
-      set library "others.sim"
-    }
-
-    if {[IsInList $library [DictGet $simsets $fs]]==0} {
-            dict lappend simsets $fs $library
+          if {[string equal $type "VHDL"] } {
+            set library "${lib}.sim"
+          } else {
+            set library "others.sim"
           }
 
-    dict lappend simlibraries $library $f
+          if {[IsInList $library [DictGet $simsets $dict_fs]]==0} {
+            dict lappend simsets $dict_fs $library
+          }
 
-  } elseif {[string equal $type "VHDL"] } {
+          dict lappend simlibraries $library $f
+
+        } elseif {[string equal $type "VHDL"] } {
           # VHDL files (both 2008 and 93)
-          if {[IsInList "${lib}.src" [DictGet $srcsets $fs]]==0} {
-            dict lappend srcsets $fs "${lib}.src"
+          if {[IsInList "${lib}.src" [DictGet $srcsets $dict_fs]]==0} {
+            dict lappend srcsets $dict_fs "${lib}.src"
           }
           dict lappend libraries "${lib}.src" $f
         } elseif {[string first "IP" $type] != -1} {
           # IPs
-          if {[IsInList "ips.src" [DictGet $srcsets $fs]]==0} {
-            dict lappend srcsets $fs "ips.src"
+          if {[IsInList "ips.src" [DictGet $srcsets $dict_fs]]==0} {
+            dict lappend srcsets $dict_fs "ips.src"
           }
           dict lappend libraries "ips.src" $f
           Msg Debug "Appending $f to ips.src"
         } elseif {[string equal $fs_type "Constrs"]} {
           # Constraints
-          if {[IsInList "sources.con" [DictGet $consets $fs]]==0} {
-            dict lappend consets $fs "sources.con"
+          if {[IsInList "sources.con" [DictGet $consets $dict_fs]]==0} {
+            dict lappend consets $dict_fs "sources.con"
           }
           dict lappend constraints "sources.con" $f
         } else {
           # Verilog and other files
-          if {[IsInList "others.src" [DictGet $srcsets $fs]]==0} {
-            dict lappend srcsets $fs "others.src"
+          if {[IsInList "others.src" [DictGet $srcsets $dict_fs]]==0} {
+            dict lappend srcsets $dict_fs "others.src"
           }
           dict lappend libraries "others.src" $f
           Msg Debug "Appending $f to others.src"
         }
 
-        if {[lindex [get_property -quiet used_in_synthesis  [GetFile $f]] 0] == 0} {
+        if {[lindex [get_property -quiet used_in_synthesis  [GetFile $f $fs]] 0] == 0} {
           dict lappend properties $f "nosynth"
         }
-        if {[lindex [get_property -quiet used_in_implementation  [GetFile $f]] 0] == 0} {
+        if {[lindex [get_property -quiet used_in_implementation  [GetFile $f $fs]] 0] == 0} {
           dict lappend properties $f "noimpl"
         }
-        if {[lindex [get_property -quiet used_in_simulation  [GetFile $f]] 0] == 0} {
+        if {[lindex [get_property -quiet used_in_simulation  [GetFile $f $fs]] 0] == 0} {
           dict lappend properties $f "nosim"
         }
-        if {[lindex [get_property -quiet IS_MANAGED [GetFile $f]] 0] == 0 && [file extension $f] != ".xcix" } {
+        if {[lindex [get_property -quiet IS_MANAGED [GetFile $f $fs]] 0] == 0 && [file extension $f] != ".xcix" } {
           dict lappend properties $f "locked"
         }
       }
@@ -2381,6 +2400,19 @@ proc AddHogFiles { libraries properties filesets } {
               set_property -name "used_in_simulation" -value "false" -objects $file_obj
             }
           }
+
+          # Constraint Properties
+          set ref [lindex [regexp -inline {scoped_to_ref\s*=\s*(.+?)\y.*} $props] 1]
+          set cell [lindex [regexp -inline {scoped_to_cells\s*=\s*(.+?)\y.*} $props] 1]
+          if {([file extension $f] == ".tcl" || [file extension $f] == ".xdc") && $ext == ".con"} {
+            if {$ref != ""} {
+              set_property SCOPED_TO_REF $ref $file_obj
+            }
+            if {$cell != ""} {
+              set_property SCOPED_TO_CELLS $cell $file_obj
+            }
+          }
+
         }
         Msg Info "[llength $lib_files] file/s added to library $rootlib..."
       } elseif {[IsQuartus] } {

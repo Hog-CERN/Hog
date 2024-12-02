@@ -14,11 +14,6 @@
 
 ## @file hog.tcl
 
-# Check Git Version when sourcing hog.tcl
-if {[GitVersion 2.7.2] == 0 } {
-  Msg Error "Found Git version older than 2.7.2. Hog will not work as expected, exiting now."
-}
-
 #### GLOBAL CONSTANTS
 set CI_STAGES {"generate_project" "simulate_project"}
 set CI_PROPS {"-synth_only"}
@@ -4666,6 +4661,11 @@ proc WriteUtilizationSummary {input output project_name run} {
   close $f
   puts $o [util_m format 2string]
   close $o
+}
+
+# Check Git Version when sourcing hog.tcl
+if {[GitVersion 2.7.2] == 0 } {
+  Msg Error "Found Git version older than 2.7.2. Hog will not work as expected, exiting now."
 }
 
 ### Source the Create project file TODO: Do we need to source in hog.tcl?

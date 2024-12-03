@@ -572,6 +572,32 @@ if {[IsXilinx]} {
     set failed []
     set success []
     set sim_dic [dict create]
+    # Default behaviour, dont use simpass string
+    set use_simpass_str 0
+
+    # Get simulation properties from conf file
+    set proj_dir [file normalize $repo_path/Top/$project_name]
+    set sim_file [file normalize $proj_dir/sim.conf]
+    if {[file exists $sim_file]} {
+      Msg Info "Parsing simulation configuration file $sim_file..."
+      SetGlobalVar SIM_PROPERTIES [ReadConf $sim_file]
+    } else {
+      SetGlobalVar SIM_PROPERTIES ""
+    }
+
+    # Get Hog specific simulation properties
+    if {[dict exists $globalSettings::SIM_PROPERTIES hog]} {
+      set hog_sim_props [dict get $globalSettings::SIM_PROPERTIES hog]
+      dict for {prop_name prop_val} $hog_sim_props {
+        # If HOG_SIMPASS_STR is set, use the HOG_SIMPASS_STR string to search for in logs, after simulation is done
+        if { $prop_name == "HOG_SIMPASS_STR" && $prop_val != "" } {
+          Msg Info "Setting simulation pass string as '$prop_val'"
+          set use_simpass_str 1
+          set simpass_str $prop_val
+        }
+      }
+    }
+
 
     Msg Info "Retrieving list of simulation sets..."
     foreach s [get_filesets] {
@@ -614,13 +640,36 @@ if {[IsXilinx]} {
           }
           current_fileset -simset $s
           set sim_dir $main_sim_folder/$s/behav
+          set sim_output_logfile $sim_dir/xsim/simulate.log
           if { ([string tolower $simulator] eq "xsim") } {
             set sim_name "xsim:$s"
             if { [catch { launch_simulation -simset [get_filesets $s] } log] } {
+              # Explicitly close xsim simulation, without closing Vivado
+              close_sim
               Msg CriticalWarning "Simulation failed for $s, error info: $::errorInfo"
               lappend failed $sim_name
             } else {
-              lappend success $sim_name
+              # Explicitly close xsim simulation, without closing Vivado
+              close_sim
+              # If we use simpass_str, search for the string and update return code from simulation if the string is not found in simulation log
+              if {$use_simpass_str == 1} {
+                # Get the simulation output log
+                # Note, xsim should always output simulation.log, hence no check for existence
+                set file_desc [open $sim_output_logfile r]
+                set log [read $file_desc]
+                close $file_desc
+
+                Msg Info "Searching for simulation pass string: '$simpass_str'"
+                if {[string first $simpass_str $log] == -1} {
+                  Msg CriticalWarning "Simulation failed for $s, error info: '$simpass_str' NOT found!"
+                  lappend failed $sim_name
+                } else {
+                  # HOG_SIMPASS_STR found, success
+                  lappend success $sim_name
+                }
+              } else { #Rely on simulator exit code
+                lappend success $sim_name
+              }
             }
           } else {
             Msg Info "Simulation library path is set to $lib_path."
@@ -697,31 +746,16 @@ if {[IsXilinx]} {
         lassign [ExecuteRet $cmd] ret log
 
 
-        # Get simulation properties
-        set proj_dir [file normalize $repo_path/Top/$project_name]
-        set sim_file [file normalize $proj_dir/sim.conf]
-        if {[file exists $sim_file]} {
-          Msg Info "Parsing simulation configuration file $sim_file..."
-          SetGlobalVar SIM_PROPERTIES [ReadConf $sim_file]
-        } else {
-          SetGlobalVar SIM_PROPERTIES ""
-        }
-
-        # Get Hog specific simulation properties
-        if {[dict exists $globalSettings::SIM_PROPERTIES hog]} {
-          set hog_sim_props [dict get $globalSettings::SIM_PROPERTIES hog]
-          dict for {prop_name prop_val} $hog_sim_props {
-            # If HOG_SIMPASS_STR is set, search for the string in simulation log and set return code to error if the string is not found
-            if { $prop_name == "HOG_SIMPASS_STR" && $prop_val != "" } {
-              Msg Info "Setting simulation pass string as '$prop_val'"
-              if {[string first $prop_val $log] == -1} {
-                set ret 1
-              }
-            } else {
-              Msg Debug "Simulation pass string not set, relying on simulator exit code."
-            }
+        # If SIMPASS_STR is set, search log for the string
+        if {$use_simpass_str == 1} {
+          if {[string first $simpass_str $log] == -1} {
+            set ret 1
           }
+        } else {
+          Msg Debug "Simulation pass string not set, relying on simulator exit code."
         }
+          
+        
 
         set sim_name "sim:[dict get $sim_dic $s]"
         if {$ret != 0} {

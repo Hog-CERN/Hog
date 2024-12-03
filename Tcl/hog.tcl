@@ -3333,9 +3333,19 @@ proc InitLauncher {script tcl_path parameters usage argv} {
     set project_name "$project"
   }
 
+  if { $options(generate) == 1 } {
+    set xml_gen 1
+  } else {
+    set xml_gen 0
+  }
 
-
-  return [list $directive $project $project_name $project_group $repo_path $old_path $bin_path $top_path $commands_path $command $cmd]
+  if { $options(xml_dir) != "" } {
+    set xml_dst $options(xml_dir)
+  } else {
+    set xml_dst ""
+  }
+    
+  return [list $directive $project $project_name $project_group $repo_path $old_path $bin_path $top_path $commands_path $command $cmd $xml_gen $xml_dst]
 }
 
 ## @brief Returns true if the IDE is MicroSemi Libero

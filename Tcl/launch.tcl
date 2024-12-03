@@ -46,6 +46,7 @@ set usage " \[OPTIONS\] <directive> <project>\n The most common <directive> valu
 
 set tcl_path [file normalize "[file dirname [info script]]"]
 source $tcl_path/hog.tcl
+source $tcl_path/create_project.tcl
 # Quartus needs extra packages and treats the argv in a different way
 if {[IsQuartus]} {
   load_package report

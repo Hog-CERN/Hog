@@ -4142,28 +4142,6 @@ proc SetGenericsSimulation {repo_path proj_dir target} {
   }
 }
 
-## @brief Sets a property of an object to a given value.
-#
-# It automatically recognises the IDE
-#
-# @param[in] property The property to set
-# @param[in] value    The value of the property to set
-# @param[in] object   The object for which the property will be set
-proc SetProperty {property value object} {
-  if {[IsXilinx]} {
-    # Vivado / ISE
-    set_property $property $value $object
-  } elseif {[IsQuartus]} {
-    # TODO: Define the function for Quartus
-  } elseif {[IsLibero]} {
-    # TODO: Define the function for Libero
-  }
-  else {
-    # Tcl Shell
-    puts "***DEBUG Hog:SetProperty $property to $value of $object"
-  }
-}
-
 ## @brief set the top module as top module in the chosen fileset
 #
 # It automatically recognises the IDE
@@ -4654,4 +4632,4 @@ if {[GitVersion 2.7.2] == 0 } {
 }
 
 ### Source the Create project file TODO: Do we need to source in hog.tcl?
-source [file dirname [info script]]/create_project.tcl
+#source [file dirname [info script]]/create_project.tcl

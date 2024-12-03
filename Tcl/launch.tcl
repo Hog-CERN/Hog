@@ -58,9 +58,10 @@ if {[IsQuartus]} {
 
 Msg Debug "s: $::argv0 a: $argv"
 
-lassign [InitLauncher $::argv0 $tcl_path $parameters $usage $argv] directive project project_name group_name repo_path old_path bin_dir top_path commands_path cmd ide xml_gen xml_dst
+lassign [InitLauncher $::argv0 $tcl_path $parameters $usage $argv] directive project project_name group_name repo_path old_path bin_dir top_path commands_path cmd ide list_of_options
+array set options $list_of_options
 
-Msg Debug "Returned by InitLauncher: $project $project_name $group_name $repo_path $old_path $bin_dir $top_path $commands_path $cmd $xml_gen $xml_dst"
+Msg Debug "Returned by InitLauncher: $project $project_name $group_name $repo_path $old_path $bin_dir $top_path $commands_path $cmd"
 
 append usage [GetCustomCommands $commands_path]
 append usage "\n** Options:"
@@ -150,7 +151,15 @@ if {$cmd == -1} {
 
     set proj_dir $repo_path/Top/$project_name
 
-    if {$xml_dst == ""} {
+    if { $options(generate) == 1 } {
+      set xml_gen 1
+    } else {
+      set xml_gen 0
+    }
+
+    if { $options(xml_dir) != "" } {
+      set xml_dst $options(xml_dir)
+    } else {
       set xml_dst "../$project\_xml"
       Msg Info "Using default destination $xml_dst..."
     }
@@ -234,24 +243,17 @@ if {[catch {package require cmdline} ERROR] || [catch {package require struct::m
   exit 1
 }
 
-lassign [ GetOptions $::argv $parameters] option_list arg_list
-
-if {[catch {array set options [cmdline::getoptions option_list $parameters $usage]}] || [llength $arg_list] != 2 } {
-  Msg Info [cmdline::usage $parameters $usage]
-  exit 1
-} else {
-  set main_folder [file normalize "$repo_path/Projects/$project_name/$project.runs/"]
-  if {[IsLibero]} {
-    set main_folder [file normalize "$repo_path/Projects/$project_name/"]
-  }
-  set main_sim_folder [file normalize "$repo_path/Projects/$project_name/$project.sim/"]
-  set check_syntax 0
-  set ext_path ""
-  set simlib_path ""
-
-  #Quartus only
-  set project_path [file normalize "$repo_path/Projects/$project_name/"]
+set main_folder [file normalize "$repo_path/Projects/$project_name/$project.runs/"]
+if {[IsLibero]} {
+  set main_folder [file normalize "$repo_path/Projects/$project_name/"]
 }
+set main_sim_folder [file normalize "$repo_path/Projects/$project_name/$project.sim/"]
+set check_syntax 0
+set ext_path ""
+set simlib_path ""
+
+#Only for quartus, not used otherwise
+set project_path [file normalize "$repo_path/Projects/$project_name/"]
 
 
 if { $options(no_bitstream) == 1 } {

@@ -3267,6 +3267,7 @@ proc InitLauncher {script tcl_path parameters usage argv} {
     exit 0
   }
 
+  #option_list will be emptied by the next instruction
   if {[catch {array set options [cmdline::getoptions option_list $parameters $usage]} err] } {
     Msg Status "\nERROR: Syntax error, probably unknown option.\n\n USAGE: $err"
     exit 1
@@ -3345,7 +3346,7 @@ proc InitLauncher {script tcl_path parameters usage argv} {
     set xml_dst ""
   }
     
-  return [list $directive $project $project_name $project_group $repo_path $old_path $bin_path $top_path $commands_path $command $cmd $xml_gen $xml_dst]
+  return [list $directive $project $project_name $project_group $repo_path $old_path $bin_path $top_path $commands_path $command $cmd [array get options]]
 }
 
 ## @brief Returns true if the IDE is MicroSemi Libero

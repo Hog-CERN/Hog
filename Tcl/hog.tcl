@@ -1868,7 +1868,7 @@ proc GetIDECommand {proj_conf} {
 
     } elseif {$ide_name eq "quartus"} {
       set command "quartus_sh"
-      # A space ater the before_tcl_script is important
+      # A space after the before_tcl_script is important
       set before_tcl_script " -t "
       set after_tcl_script " "
       set end_marker ""
@@ -1880,6 +1880,11 @@ proc GetIDECommand {proj_conf} {
       set before_tcl_script "SCRIPT:"
       set after_tcl_script " SCRIPT_ARGS:\""
       set end_marker "\""
+    } elseif {$ide_name eq "diamond"} {
+      set command "diamondc"
+      set before_tcl_script " "
+      set after_tcl_script " "
+      set end_marker ""
     } else {
       Msg Error "IDE: $ide_name not known."
     }
@@ -1932,6 +1937,8 @@ proc GetIDEVersion {} {
   } elseif {[IsLibero]} {
     # Libero
     set ver [get_libero_version]
+  } elseif {[IsDiamond]} {
+    regexp {\d+\.\d+(\.\d+)?} [sys_install version] ver
   }
   return $ver
 }
@@ -3239,20 +3246,6 @@ proc HexVersionToString {version} {
   return "$M.$m.$c"
 }
 
-
-# @brief Returns 1 if a commit is an ancestor of another, otherwise 0
-#
-# @param[in] ancestor The potential ancestor commit
-# @param[in] commit   The potential descendant commit
-proc IsCommitAncestor {ancestor commit} {
-  lassign [GitRet "merge-base --is-ancestor $ancestor $commit"] status result
-  if {$status == 0 } {
-    return 1
-  } else {
-    return 0
-  }
-}
-
 # @brief Initialise the Launcher and returns a list of project parameters: directive project project_name group_name repo_path old_path bin_dir top_path commands_path cmd ide
 #
 # @param[in] script     The launch.tcl script
@@ -3358,6 +3351,23 @@ proc InitLauncher {script tcl_path parameters usage argv} {
   return [list $directive $project $project_name $project_group $repo_path $old_path $bin_path $top_path $commands_path $command $cmd]
 }
 
+# @brief Returns 1 if a commit is an ancestor of another, otherwise 0
+#
+# @param[in] ancestor The potential ancestor commit
+# @param[in] commit   The potential descendant commit
+proc IsCommitAncestor {ancestor commit} {
+  lassign [GitRet "merge-base --is-ancestor $ancestor $commit"] status result
+  if {$status == 0 } {
+    return 1
+  } else {
+    return 0
+  }
+}
+
+proc IsDiamond {} {
+  return [expr {[info commands sys_install] != ""}]
+}
+
 ## @brief Returns true if the IDE is MicroSemi Libero
 proc IsLibero {} {
   return [expr {[info commands get_libero_version] != ""}]
@@ -3413,7 +3423,7 @@ proc IsSynplify {} {
 
 ## @brief Returns true, if we are in tclsh
 proc IsTclsh {} {
-  return [expr {![IsQuartus] && ![IsXilinx] && ![IsLibero] && ![IsSynplify]}]
+  return [expr {![IsQuartus] && ![IsXilinx] && ![IsLibero] && ![IsSynplify] && ![IsDiamond]}]
 }
 
 ## @brief Find out if the given Xilinx part is a Vesal chip

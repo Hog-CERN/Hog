@@ -174,7 +174,7 @@ if {$cmd == -1} {
 ##################################################################################
 
 # We need to Import tcllib if we are using Libero
-if {[IsLibero]} {
+if {[IsLibero] || [IsDiamond]} {
   if {[info exists env(HOG_TCLLIB_PATH)]} {
     lappend auto_path $env(HOG_TCLLIB_PATH)
   } else {
@@ -1065,6 +1065,33 @@ if {[IsXilinx]} {
   }
 
 
+} elseif {[IsDiamond]} {
+  sys_install version
+  ############# CREATE or OPEN project ############
+  set project_file [file normalize $repo_path/Projects/$project_name/$project.ldf]
+
+  if {[file exists $project_file]} {
+    Msg Info "Found project file $project_file for $project_name."
+    set proj_found 1
+  } else {
+    Msg Info "Project file not found for $project_name."
+    set proj_found 0
+  }
+
+  if {($proj_found == 0 || $recreate == 1) && ($do_synthesis == 1  || $do_create == 1)} {
+    Msg Info "Creating (possibly replacing) the project $project_name..."
+    lassign [GetConfFiles $repo_path/Top/$project_name] conf sim pre post
+
+    if {[file exists $conf]} {
+      CreateProject -simlib_path $lib_path $project_name $repo_path
+    } else {
+      Msg Error "Project $project_name is incomplete: no hog.conf file found, please create one..."
+    }
+  } else {
+    Msg Info "Opening existing project file $project_file..."
+    open_project -file $project_file -do_backup_on_convert 1 -backup_file {./Projects/$project_file.zip}
+  }
+  
 } else {
   Msg Error "Impossible condition. You need to run this in an IDE."
   exit 1

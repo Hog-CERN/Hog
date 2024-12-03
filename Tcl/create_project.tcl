@@ -40,6 +40,8 @@ namespace eval globalSettings {
   variable ADV_OPTIONS
   variable SPEED
   variable LIBERO_MANDATORY_VARIABLES
+  # Diamond only
+  variable DEVICE
 
   variable PROPERTIES
   variable SIM_PROPERTIES
@@ -131,9 +133,18 @@ proc InitProject {} {
     }
   } elseif {[IsLibero]} {
     if {[file exists $globalSettings::build_dir]} {
-      file delete -force $globalSettings::build_dir
+      file delete -force $globalSettings::build_dir§§
     }
     new_project -location $globalSettings::build_dir -name [file tail $globalSettings::DESIGN] -die $globalSettings::DIE -package $globalSettings::PACKAGE -family $globalSettings::FAMILY -hdl VHDL
+  } elseif {[IsDiamond]} {
+    if {[file exists $globalSettings::build_dir]} {
+      file delete -force $globalSettings::build_dir
+    }
+    set old_dir [pwd]
+    file mkdir $globalSettings::build_dir
+    cd $globalSettings::build_dir
+    prj_project new -name [file tail $globalSettings::DESIGN] -dev $globalSettings::DEVICE -synthesis $globalSettings::SYNTHESIS_TOOL 
+    cd $old_dir
   } else {
     puts "Creating project for $globalSettings::DESIGN part $globalSettings::PART"
     puts "Configuring project settings:"
@@ -724,7 +735,7 @@ proc CreateProject args {
     {verbose "If set, launch the script in verbose mode."}
   }
 
-  set usage "Create Vivado/ISE/Quartus/Libero project.\nUsage: CreateProject \[OPTIONS\] <project> <repository path>\n Options:"
+  set usage "Create Vivado/ISE/Quartus/Libero/Diamond project.\nUsage: CreateProject \[OPTIONS\] <project> <repository path>\n Options:"
 
   if {[catch {array set options [cmdline::getoptions args $parameters $usage]}] || [llength $args] < 2 ||[lindex $args 0] eq""} {
     Msg Info [cmdline::usage $parameters $usage]
@@ -810,7 +821,7 @@ proc CreateProject args {
       Msg Error "No main section found in $conf_file, make sure it has a section called \[main\] containing the mandatory properties."
     }
 
-    if {[file exists $sim_file]} {
+    if {[file exists $sim_file] && [IsVivado]} {
       Msg Info "Parsing simulation configuration file $sim_file..."
       SetGlobalVar SIM_PROPERTIES [ReadConf $sim_file]
     } else {
@@ -821,7 +832,7 @@ proc CreateProject args {
   }
 
 
-  if {![IsLibero]} {
+  if {[IsXilinx] || [IsQuartus]} {
     SetGlobalVar PART
   }
   #Family is needed in quartus and libero only
@@ -832,6 +843,11 @@ proc CreateProject args {
       SetGlobalVar DIE
       SetGlobalVar PACKAGE
     }
+  }
+
+  if {[IsDiamond]} {
+    SetGlobalVar DEVICE
+    SetGlobalVar SYNTHESIS_TOOL "lse"
   }
 
   if {[IsVivado]} {

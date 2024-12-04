@@ -28,7 +28,9 @@ set parameters {
   {lib.arg  "" "Compiled simulation library path"}
   {synth_only      "If set, only the synthesis will be performed."}
   {impl_only       "If set, only the implementation will be performed. This assumes synthesis should was already done."}
-  {simset.arg  ""    "Simulation sets, separated by commas, to be run."}
+  {simset.arg  ""   "Simulation sets, separated by commas, to be run."}
+  {generate        "For IPbus XMLs, it willk re create the VHDL address decode files."}
+  {xml_dir.arg "" "For IPbus XMLs, set the destination folder (default is ../<project_name>_xml)."}
   {verbose         "If set, launch the script in verbose mode"}
 }
 
@@ -42,10 +44,12 @@ set usage " \[OPTIONS\] <directive> <project>\n The most common <directive> valu
 - IMPLEMENT: Runs the implementation only, the project must already exist and be synthesised.
 - SYNTHESIS: Runs the synthesis only, creates the project if not existing.
 - LIST or L: Only list all the projects
+- XML or X: Copy, check or create IPbus XMLs
 "
 
 set tcl_path [file normalize "[file dirname [info script]]"]
 source $tcl_path/hog.tcl
+source $tcl_path/create_project.tcl
 # Quartus needs extra packages and treats the argv in a different way
 if {[IsQuartus]} {
   load_package report
@@ -54,7 +58,8 @@ if {[IsQuartus]} {
 
 Msg Debug "s: $::argv0 a: $argv"
 
-lassign [InitLauncher $::argv0 $tcl_path $parameters $usage $argv] directive project project_name group_name repo_path old_path bin_dir top_path commands_path cmd ide
+lassign [InitLauncher $::argv0 $tcl_path $parameters $usage $argv] directive project project_name group_name repo_path old_path bin_dir top_path commands_path cmd ide list_of_options
+array set options $list_of_options
 
 Msg Debug "Returned by InitLauncher: $project $project_name $group_name $repo_path $old_path $bin_dir $top_path $commands_path $cmd"
 
@@ -62,7 +67,7 @@ append usage [GetCustomCommands $commands_path]
 append usage "\n** Options:"
 
 ######## DEFAULTS #########
-set do_implementation 0; set do_synthesis 0; set do_bitstream 0; set do_create 0; set do_compile 0; set do_simulation 0; set recreate 0; set reset 1;
+set do_implementation 0; set do_synthesis 0; set do_bitstream 0; set do_create 0; set do_compile 0; set do_simulation 0; set recreate 0; set reset 1; set do_ipbus_xml 0;
 
 set default_commands {
 
@@ -102,6 +107,11 @@ set default_commands {
     set recreate 1
   }
 
+  \^X(ML)?$ {
+    set do_ipbus_xml 1
+  }
+
+  
   default {
     Msg Status "ERROR: Unknown directive $directive.\n\n[cmdline::usage $parameters $usage]"
     exit 1
@@ -132,7 +142,52 @@ if {$cmd == -1} {
   Msg Info "$::argv0 was launched from the IDE."
 
 } else {
-  # This script was launched with Tclsh, we need to check the arguments and if everything is right launche the IDE on this script and return
+  # This script was launched with Tclsh, we need to check the arguments and if everything is right launch the IDE on this script and return
+
+  #### Commands to be handled in tclsh should be here ###
+  if {$do_ipbus_xml == 1} {
+    Msg Info "Handling IPbus XMLs for $project_name..."
+    #Msg Info "Returned by InitLauncher: $project $project_name $group_name $repo_path $old_path $bin_dir $top_path $commands_path $cmd"
+
+    set proj_dir $repo_path/Top/$project_name
+
+    if { $options(generate) == 1 } {
+      set xml_gen 1
+    } else {
+      set xml_gen 0
+    }
+
+    if { $options(xml_dir) != "" } {
+      set xml_dst $options(xml_dir)
+    } else {
+      set xml_dst "../$project\_xml"
+      Msg Info "Using default destination $xml_dst..."
+    }
+    
+    if {[llength [glob -nocomplain $proj_dir/list/*.ipb]] > 0 } {
+      if {![file exists $xml_dst]} {
+	Msg Info "$xml_dst directory not found, creating it..."
+	file mkdir $xml_dst
+      }
+    } else {
+      Msg Error "No .ipb files found in $proj_dir/list/"
+      exit
+    }
+
+    set ret [GetRepoVersions $proj_dir $repo_path ""]
+    set sha [lindex $ret 13]
+    set hex_ver [lindex $ret 14]
+
+    set ver [HexVersionToString $hex_ver]
+    CopyIPbusXMLs $proj_dir $repo_path $xml_dst $ver $sha 1 $xml_gen
+
+    exit 0
+  }
+
+
+
+
+  #### END of tclsh commands ####
   Msg Info "Launching command: $cmd..."
 
   # Check if the IDE is actually in the path...
@@ -188,24 +243,17 @@ if {[catch {package require cmdline} ERROR] || [catch {package require struct::m
   exit 1
 }
 
-lassign [ GetOptions $::argv $parameters] option_list arg_list
-
-if {[catch {array set options [cmdline::getoptions option_list $parameters $usage]}] || [llength $arg_list] != 2 } {
-  Msg Info [cmdline::usage $parameters $usage]
-  exit 1
-} else {
-  set main_folder [file normalize "$repo_path/Projects/$project_name/$project.runs/"]
-  if {[IsLibero]} {
-    set main_folder [file normalize "$repo_path/Projects/$project_name/"]
-  }
-  set main_sim_folder [file normalize "$repo_path/Projects/$project_name/$project.sim/"]
-  set check_syntax 0
-  set ext_path ""
-  set simlib_path ""
-
-  #Quartus only
-  set project_path [file normalize "$repo_path/Projects/$project_name/"]
+set main_folder [file normalize "$repo_path/Projects/$project_name/$project.runs/"]
+if {[IsLibero]} {
+  set main_folder [file normalize "$repo_path/Projects/$project_name/"]
 }
+set main_sim_folder [file normalize "$repo_path/Projects/$project_name/$project.sim/"]
+set check_syntax 0
+set ext_path ""
+set simlib_path ""
+
+#Only for quartus, not used otherwise
+set project_path [file normalize "$repo_path/Projects/$project_name/"]
 
 
 if { $options(no_bitstream) == 1 } {

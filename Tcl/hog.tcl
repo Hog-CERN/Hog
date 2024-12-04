@@ -509,27 +509,6 @@ proc AddHogFiles { libraries properties filesets } {
   }
 }
 
-## @brief Adds the file containing the top module to the project
-#
-# It automatically recognises whether it is in Vivado or Quartus mode
-#
-# @param[in] top_module name of the top module, expected @c top_<project_name>
-# @param[in] top_file   name of the file containing the top module
-# @param[in] fileset    name of the fileset to which to add the file (default sources_1)
-proc AddTopFile {top_module top_file {fileset "sources_1"}} {
-  if {[IsXilinx]} {
-    #VIVADO_ONLY
-    add_files -norecurse -fileset $fileset $top_file
-  } elseif {[IsQuartus]} {
-    #QUARTUS ONLY
-    set file_type [FindFileType $top_file]
-    set hdl_version [FindVhdlVersion $top_file]
-    set_global_assignment -name $file_type $top_file
-  } else {
-    puts "Adding project top module $top_module"
-  }
-}
-
 ## @brief Returns a dictionary for the allowed properties for each file type
 proc ALLOWED_PROPS {} {
   return [dict create ".vhd" [list "93" "nosynth" "noimpl" "nosim" "1987" "1993" "2008" ]\
@@ -1716,7 +1695,6 @@ proc GetFileGenerics {filename {entity ""}} {
   }
 }
 
-
 ## @brief Gets custom generics from hog|sim.conf
 #
 # @param[in] proj_dir:    the top folder of the project
@@ -1742,7 +1720,6 @@ proc GetGenericsFromConf {proj_dir {sim 0}} {
   }
   return $generics_dict
 }
-
 
 ## @brief Gets all custom <simset>:generics from sim.conf
 #
@@ -1792,7 +1769,6 @@ proc GetGroupName {proj_dir repo_dir} {
   return $group
 }
 
-
 ## Get custom Hog describe of a specific SHA
 #
 #  @param[in] sha         the git sha of the commit you want to calculate the describe of
@@ -1812,7 +1788,6 @@ proc GetHogDescribe {sha {repo_path .}} {
   set describe "v[HexVersionToString [GetVerFromSHA $new_sha $repo_path]]-$new_sha$suffix"
   return $describe
 }
-
 
 ## @brief Extract files, libraries and properties from the project's list files
 #
@@ -2306,7 +2281,6 @@ proc GetProjectFlavour {proj_name} {
   return $flavour
 }
 
-
 ## Get the project version
 #
 #  @param[in] proj_dir: The top folder of the project of which all the version must be calculated
@@ -2350,31 +2324,6 @@ proc GetProjectVersion {proj_dir repo_path {ext_path ""} {sim 0}} {
 
   cd $old_dir
   return $ret
-}
-
-
-## @brief Retrieves the value of a property of an object
-#
-# It automatically recognises whether it is in Vivado or Quartus mode
-#
-# @param[in] property the name of the property to be retrieved
-# @param[in] object   the object from which to retrieve the property
-#
-# @returns            the value of object.property
-#
-proc GetProperty {property object} {
-  if {[IsXilinx]} {
-    # Vivado
-    return [get_property -quiet $property $object]
-
-  } elseif {[IsQuartus]} {
-    # Quartus
-    return ""
-  } else {
-    # Tcl Shell
-    puts "***DEBUG Hog:GetProperty $property of $object"
-    return "DEBUG_property_value"
-  }
 }
 
 ## Get the versions for all libraries, submodules, etc. for a given project
@@ -3323,6 +3272,7 @@ proc InitLauncher {script tcl_path parameters usage argv} {
     exit 0
   }
 
+  #option_list will be emptied by the next instruction
   if {[catch {array set options [cmdline::getoptions option_list $parameters $usage]} err] } {
     Msg Status "\nERROR: Syntax error, probably unknown option.\n\n USAGE: $err"
     exit 1
@@ -3389,9 +3339,19 @@ proc InitLauncher {script tcl_path parameters usage argv} {
     set project_name "$project"
   }
 
+  if { $options(generate) == 1 } {
+    set xml_gen 1
+  } else {
+    set xml_gen 0
+  }
 
-
-  return [list $directive $project $project_name $project_group $repo_path $old_path $bin_path $top_path $commands_path $command $cmd]
+  if { $options(xml_dir) != "" } {
+    set xml_dst $options(xml_dir)
+  } else {
+    set xml_dst ""
+  }
+    
+  return [list $directive $project $project_name $project_group $repo_path $old_path $bin_path $top_path $commands_path $command $cmd [array get options]]
 }
 
 # @brief Returns 1 if a commit is an ancestor of another, otherwise 0
@@ -3549,7 +3509,6 @@ proc Logo { {repo_path .} } {
   } else {
     set logo_file "$repo_path/Hog/images/hog_logo.txt"
   }
-  # set logo_file "$repo_path/Hog/images/hog_logo.txt"
 
   set old_path [pwd]
   cd $repo_path/Hog
@@ -3588,7 +3547,6 @@ proc Md5Sum {file_name} {
   }
 }
 
-
 ## @brief Merges two tcl dictionaries of lists
 #
 # If the dictionaries contain same keys, the list at the common key is a merging of the two
@@ -3613,7 +3571,6 @@ proc MergeDict {dict0 dict1} {
   }
   return $outdict
 }
-
 
 # @brief Move an element in the list to the end
 #
@@ -3789,7 +3746,6 @@ proc ReadConf {file_name} {
 
   return $properties
 }
-
 
 ## @brief Function used to read the list of files generated at creation time by tcl scripts in Project/proj/.hog/extra.files
 #
@@ -4173,7 +4129,6 @@ proc SearchHogProjects {dir} {
   return $projects_list
 }
 
-
 ## @brief Sets the generics in all the sim.conf simulation file sets
 #
 # @param[in] repo_path:   the top folder of the projectThe path to the main git repository
@@ -4220,29 +4175,6 @@ proc SetGenericsSimulation {repo_path proj_dir target} {
   }
 }
 
-
-## @brief Sets a property of an object to a given value.
-#
-# It automatically recognises the IDE
-#
-# @param[in] property The property to set
-# @param[in] value    The value of the property to set
-# @param[in] object   The object for which the property will be set
-proc SetProperty {property value object} {
-  if {[IsXilinx]} {
-    # Vivado / ISE
-    set_property $property $value $object
-  } elseif {[IsQuartus]} {
-    # TODO: Define the function for Quartus
-  } elseif {[IsLibero]} {
-    # TODO: Define the function for Libero
-  }
-  else {
-    # Tcl Shell
-    puts "***DEBUG Hog:SetProperty $property to $value of $object"
-  }
-}
-
 ## @brief set the top module as top module in the chosen fileset
 #
 # It automatically recognises the IDE
@@ -4269,7 +4201,6 @@ proc SetTopProperty {top_module fileset} {
 proc VIVADO_PATH_PROPERTIES {} {
   return {"\.*\.TCL\.PRE$" "^.*\.TCL\.POST$" "^RQS_FILES$" "^INCREMENTAL\_CHECKPOINT$"}
 }
-
 
 ## Write a property configuration file from a dictionary
 #
@@ -4510,7 +4441,6 @@ proc WriteGenericsToBdIPs {mode repo_path proj generic_string} {
   }
 }
 
-
 ## @brief Returns the gitlab-ci.yml snippet for a CI stage and a defined project
 #
 # @param[in] proj_name:   The project name
@@ -4737,4 +4667,4 @@ if {[GitVersion 2.7.2] == 0 } {
 }
 
 ### Source the Create project file TODO: Do we need to source in hog.tcl?
-source [file dirname [info script]]/create_project.tcl
+#source [file dirname [info script]]/create_project.tcl

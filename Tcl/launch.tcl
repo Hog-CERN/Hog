@@ -1176,7 +1176,9 @@ if {[IsXilinx]} {
 
   if {$do_synthesis == 1} {
     prj_run Synthesis
-    
+    if {[prj_syn] == "simplify"} {
+      
+    }
   }
   prj_project close
 } else {

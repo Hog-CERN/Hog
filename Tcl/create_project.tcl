@@ -143,8 +143,9 @@ proc InitProject {} {
     set old_dir [pwd]
     file mkdir $globalSettings::build_dir
     cd $globalSettings::build_dir
-    prj_project new -name [file tail $globalSettings::DESIGN] -dev $globalSettings::DEVICE -synthesis $globalSettings::SYNTHESIS_TOOL 
+    prj_project new -name [file tail $globalSettings::DESIGN] -dev $globalSettings::DEVICE -synthesis $globalSettings::SYNTHESIS_TOOL
     cd $old_dir
+    ConfigureProperties
   } else {
     puts "Creating project for $globalSettings::DESIGN part $globalSettings::PART"
     puts "Configuring project settings:"
@@ -220,6 +221,8 @@ proc AddProjectFiles {} {
 #  @param[in] obj the project object
 #
 proc CreateReportStrategy {obj} {
+  #TODO: Add ReportStrategy for Quartus/Libero and Diamond
+
   if {[IsVivado]} {
     ## Vivado Report Strategy
     if {[string equal [get_property -quiet report_strategy $obj] ""]} {
@@ -330,6 +333,8 @@ proc ConfigureSynthesis {} {
 
     } elseif {[IsLibero]} {
       configure_tool -name {SYNTHESIZE} -params SYNPLIFY_TCL_FILE:$globalSettings::pre_synth
+    } elseif {[IsDiamond]} {
+      prj_impl pre_script "syn" $globalSettings::pre_synth
     }
 
     Msg Debug "Setting $globalSettings::pre_synth to be run before synthesis"
@@ -349,6 +354,8 @@ proc ConfigureSynthesis {} {
       #QUARTUS only
       set_global_assignment -name POST_MODULE_SCRIPT_FILE quartus_sh:$globalSettings::quartus_post_module
 
+    } elseif {[IsDiamond]} {
+      prj_impl post_script "syn" $globalSettings::pre_synth
     }
     Msg Debug "Setting $globalSettings::post_synth to be run after synthesis"
   }
@@ -379,6 +386,10 @@ proc ConfigureSynthesis {} {
     #QUARTUS only
     #TO BE DONE
 
+  } elseif {[IsLibero]} {
+    #TODO: LIBERO
+  } elseif {[IsDiamond]} {
+    #TODO: Diamond
   } else {
     Msg info "Reporting strategy for synthesis"
   }
@@ -422,7 +433,8 @@ proc ConfigureImplementation {} {
     } elseif {[IsQuartus]} {
       #QUARTUS only
       #set_global_assignment -name PRE_FLOW_SCRIPT_FILE quartus_sh:$globalSettings::pre_impl
-
+    } elseif {[IsDiamond]} {
+      prj_impl pre_script "par" $globalSettings::pre_impl
     }
     Msg Debug "Setting $globalSettings::pre_impl to be run after implementation"
   }
@@ -441,6 +453,8 @@ proc ConfigureImplementation {} {
     } elseif {[IsQuartus]} {
       #QUARTUS only
       set_global_assignment -name POST_MODULE_SCRIPT_FILE quartus_sh:$globalSettings::quartus_post_module
+    } elseif {[IsDiamond]} {
+      prj_impl post_script "par" $globalSettings::post_impl_file
     }
     Msg Debug "Setting $globalSettings::post_impl to be run after implementation"
   }
@@ -458,7 +472,8 @@ proc ConfigureImplementation {} {
     } elseif {[IsQuartus]} {
       #QUARTUS only
       #set_global_assignment -name PRE_FLOW_SCRIPT_FILE quartus_sh:$globalSettings::pre_bit
-
+    } elseif {[IsDiamond]} {
+      prj_impl pre_script "export" $globalSettings::pre_bit_file
     }
     Msg Debug "Setting $globalSettings::pre_bit to be run after bitfile generation"
   }
@@ -476,6 +491,8 @@ proc ConfigureImplementation {} {
     } elseif {[IsQuartus]} {
       #QUARTUS only
       set_global_assignment -name POST_MODULE_SCRIPT_FILE quartus_sh:$globalSettings::quartus_post_module
+    } elseif {[IsDiamond]} {
+      prj_impl post_script "export" $globalSettings::post_bit_file
     }
     Msg Debug "Setting $globalSettings::post_bit to be run after bitfile generation"
   }
@@ -671,6 +688,31 @@ proc ConfigureProperties {} {
       }
       # Configure VERIFYTIMING tool to generate a txt file report
       configure_tool -name {VERIFYTIMING} -params {FORMAT:TEXT}
+    }
+  } elseif {[IsDiamond]} {
+    if {[info exists globalSettings::PROPERTIES]} {
+      # Project (main) Properties
+      if {[dict exists $globalSettings::PROPERTIES main]} {
+        Msg Info "Setting Project-wide properties..."
+        set dev_props [dict get $globalSettings::PROPERTIES main]
+        dict for {prop_name prop_val} $dev_props {
+          # Device is already set
+          if { [string toupper $prop_name] != "DEVICE" } {
+            Msg Debug "Setting $prop_name = $prop_val"
+            prj_project option $prop_name $prop_val
+          }
+        }
+      }
+      # Implementation properties
+      if {[dict exists $globalSettings::PROPERTIES impl]} {
+        Msg Info "Setting Implementation properties..."
+        set dev_props [dict get $globalSettings::PROPERTIES impl]
+        dict for {prop_name prop_val} $dev_props {
+          # Device is already set
+          Msg Debug "Setting $prop_name = $prop_val"
+          prj_impl option $prop_name $prop_val
+        }
+      }
     }
   } else {
     Msg info "Configuring Properties"

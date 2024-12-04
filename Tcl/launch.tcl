@@ -1123,9 +1123,14 @@ if {[IsXilinx]} {
     }
   } else {
     Msg Info "Opening existing project file $project_file..."
-    open_project -file $project_file -do_backup_on_convert 1 -backup_file {./Projects/$project_file.zip}
+    prj_project open $project_file
   }
-  
+
+  if {$do_synthesis == 1} {
+    prj_run Synthesis
+    
+  }
+  prj_project close
 } else {
   Msg Error "Impossible condition. You need to run this in an IDE."
   exit 1

@@ -24,7 +24,7 @@ set tcl_path [file normalize "[file dirname [info script]]/.."]
 source $tcl_path/hog.tcl
 
 # Import tcllib
-if {[IsSynplify]} {
+if {[IsSynplify] || [IsDiamond]} {
   if {[info exists env(HOG_TCLLIB_PATH)]} {
     lappend auto_path $env(HOG_TCLLIB_PATH)
   } else {
@@ -98,6 +98,10 @@ if {[IsXilinx]} {
   }
 } elseif {[IsSynplify]} {
   set proj_dir [file normalize [file dirname "[project_data -dir]/../.."]  ]
+  set proj_name [file tail $proj_dir]
+  set project $proj_name
+} elseif {[IsDiamond]} {
+  set proj_dir [file normalize "[pwd]/.."]
   set proj_name [file tail $proj_dir]
   set project $proj_name
 } else {
@@ -367,6 +371,9 @@ if {[IsXilinx] || [IsSynplify]} {
   set status_file "$old_path/output_files/versions.txt"
   project_close
 
+} elseif {[IsDiamond]} {
+  set status_file [file normalize "$old_path/../versions.txt"]
+  #TODO: Diamond Generics
 } else {
   ### Tcl Shell
   puts "Hog:DEBUG GLOBAL_DATE=$date GLOBAL_TIME=$timee"

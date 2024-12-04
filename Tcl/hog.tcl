@@ -468,6 +468,18 @@ proc AddHogFiles { libraries properties filesets } {
           }
         }
       # Closing IDE if cascade
+      } elseif {[IsDiamond]} {
+        if {$ext == ".src" || $ext == ".con" || $ext == ".ext"} {
+          foreach f $lib_files {
+            Msg Debug "Adding source $f to library $rootlib..."
+            prj_src add -work $rootlib $f
+          }
+        } elseif {$ext == ".sim"} {
+          foreach f $lib_files {
+            Msg Debug "Adding source $f to library $rootlib..."
+            prj_src add -work $rootlib -simulate_only $f 
+          }
+        }
       }
     # Closing library loop
     }
@@ -4248,6 +4260,8 @@ proc SetTopProperty {top_module fileset} {
     set_global_assignment -name TOP_LEVEL_ENTITY $top_module
   } elseif {[IsLibero]} {
     set_root -module $top_module
+  } elseif {[IsDiamond]} {
+    prj_impl option top $top_module
   }
 }
 

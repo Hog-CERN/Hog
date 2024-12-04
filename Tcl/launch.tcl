@@ -502,8 +502,9 @@ if {[IsXilinx]} {
       set tns [get_property STATS.TNS [get_runs [current_run]]]
       set whs [get_property STATS.WHS [get_runs [current_run]]]
       set ths [get_property STATS.THS [get_runs [current_run]]]
+      set tpws [get_property STATS.TPWS [get_runs [current_run]]]
 
-      if {$wns >= 0 && $whs >= 0} {
+      if {$wns >= 0 && $whs >= 0 && $tpws >= 0} {
         Msg Info "Time requirements are met"
         set status_file [open "$main_folder/timing_ok.txt" "w"]
         set timing_ok 1
@@ -518,6 +519,7 @@ if {[IsXilinx]} {
       Msg Status "TNS: $tns"
       Msg Status "WHS: $whs"
       Msg Status "THS: $ths"
+      Msg Status "TPWS: $tpws"
 
       struct::matrix m
       m add columns 5
@@ -531,6 +533,7 @@ if {[IsXilinx]} {
       m add row  "|  TNS:  |  $tns  |"
       m add row  "|  WHS:  |  $whs  |"
       m add row  "|  THS:  |  $ths  |"
+      m add row  "|  TPWS: |  $tpws  |"
 
       puts $status_file [m format 2string]
       puts $status_file "\n"
@@ -577,6 +580,7 @@ if {[IsXilinx]} {
         Msg Status "TNS: $tns"
         Msg Status "WHS: $whs"
         Msg Status "THS: $ths"
+        Msg Status "TPWS: $tpws"
       }
     }
 

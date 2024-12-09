@@ -471,15 +471,24 @@ proc AddHogFiles { libraries properties filesets } {
       } elseif {[IsDiamond]} {
         if {$ext == ".src" || $ext == ".con" || $ext == ".ext"} {
           foreach f $lib_files {
-            Msg Debug "Adding source $f to library $rootlib..."
+            Msg Debug "Diamond Adding source $f to library $rootlib..."
             prj_src add -work $rootlib $f
+            set props [DictGet $properties $f]
+            # Top synthesis module
+            set top [lindex [regexp -inline {top\s*=\s*(.+?)\y.*} $props] 1]
+            if { $top != "" } {
+              Msg Info "Setting $top as top module for the project..."
+              set globalSettings::synth_top_module $top            
+            }
           }
         } elseif {$ext == ".sim"} {
           foreach f $lib_files {
-            Msg Debug "Adding source $f to library $rootlib..."
+            Msg Debug "Diamond Adding source $f to library $rootlib..."
             prj_src add -work $rootlib -simulate_only $f 
           }
         }
+
+        
       }
     # Closing library loop
     }
@@ -538,6 +547,41 @@ proc BinaryStepName {part} {
     return "WRITE_DEVICE_IMAGE"
   } else {
     return "WRITE_BITSTREAM"
+  }
+}
+
+# @brief Check the syntax of the source files in the
+# 
+# @param[in] project_name the name of the project
+# @param[in] repo_path    The main path of the git repository
+proc CheckSyntax { project_name repo_path} {
+  if {[IsVivado]} {
+    set syntax [check_syntax -return_string]
+    if {[string first "CRITICAL" $syntax ] != -1} {
+      check_syntax
+      exit 1
+    }
+  } elseif {[IsQuartus]} {  
+    lassign [GetHogFiles -list_files "*.src" "$repo_path/Top/$project_name/list/" $repo_path] src_files dummy
+    dict for {lib files} $src_files {
+      foreach f $files {
+        set file_extension [file extension $f]
+        if { $file_extension == ".vhd" || $file_extension == ".vhdl" || $file_extension == ".v" ||  $file_extension == ".sv" } {
+          if { [catch {execute_module -tool map -args "--analyze_file=$f"} result]} {
+            Msg Error "\nResult: $result\n"
+            Msg Error "Check syntax failed.\n"
+          } else {
+            if { $result == "" } {
+              Msg Info "Check syntax was successful for $f.\n"
+            } else {
+              Msg Warning "Found syntax error in file $f:\n $result\n"
+            }
+          }
+        }
+      }
+    }
+  } else {
+    Msg Info "The Checking Syntax is not supported by this IDE. Skipping..."
   }
 }
 
@@ -3469,6 +3513,284 @@ proc IsZynq {part} {
   }
 }
 
+# @brief Launch the Implementation, for the current IDE and project
+# 
+# @param[in] reset        Reset the Implementation run
+# @param[in] do_create    Recreate the project
+# @param[in] run_folder   The folder where to store the run results
+# @param[in] project_name The name of the project
+# @param[in] repo_path    The main path of the git repository (Default .)
+# @param[in] ext_path     The path of source files external to the git repo (Default "")
+# @param[in] njobs        The number of parallel CPU jobs for the Implementation (Default 4)
+proc LaunchImplementation {reset do_create run_folder project_name {repo_path .} {ext_path ""} {njobs 4}} {
+  Msg Info "Starting implementation flow..."
+  if {[IsXilinx]} {
+    if { $reset == 1 && $do_create == 0} {
+      Msg Info "Resetting run before launching implementation..."
+      reset_run impl_1
+    }
+
+    if {[IsISE]} {
+      source $repo_path/Hog/Tcl/integrated/pre-implementation.tcl
+    }
+    
+    launch_runs impl_1 -jobs $options(njobs) -dir $run_folder
+    wait_on_run impl_1
+    
+    if {[IsISE]} {
+      source $repo_path/Hog/Tcl/integrated/post-implementation.tcl
+    }
+
+    set prog [get_property PROGRESS [get_runs impl_1]]
+    set status [get_property STATUS [get_runs impl_1]]
+    Msg Info "Run: impl_1 progress: $prog, status : $status"
+
+    # Check timing
+    if {[IsISE]} {
+      set status_file [open "$run_folder/timing.txt" "w"]
+      puts $status_file "## $project_name Timing summary"
+
+      set f [open [lindex [glob "$run_folder/impl_1/*.twr" 0]]]
+      set errs -1
+      while {[gets $f line] >= 0} {
+        if { [string match "Timing summary:" $line] } {
+          while {[gets $f line] >= 0} {
+            if { [string match "Timing errors:*" $line] } {
+              set errs [regexp -inline -- {[0-9]+} $line]
+            }
+            if { [string match "*Footnotes*" $line ] } {
+              break
+            }
+            puts $status_file "$line"
+          }
+        }
+      }
+
+      close $f
+      close $status_file
+
+      if {$errs == 0} {
+        Msg Info "Time requirements are met"
+        file rename -force "$run_folder/timing.txt" "$run_folder/timing_ok.txt"
+        set timing_ok 1
+      } else {
+        Msg CriticalWarning "Time requirements are NOT met"
+        file rename -force "$run_folder/timing.txt" "$run_folder/timing_error.txt"
+        set timing_ok 0
+      }
+    }
+
+    if {[IsVivado]} {
+      set wns [get_property STATS.WNS [get_runs [current_run]]]
+      set tns [get_property STATS.TNS [get_runs [current_run]]]
+      set whs [get_property STATS.WHS [get_runs [current_run]]]
+      set ths [get_property STATS.THS [get_runs [current_run]]]
+
+      if {$wns >= 0 && $whs >= 0} {
+        Msg Info "Time requirements are met"
+        set status_file [open "$run_folder/timing_ok.txt" "w"]
+        set timing_ok 1
+      } else {
+        Msg CriticalWarning "Time requirements are NOT met"
+        set status_file [open "$run_folder/timing_error.txt" "w"]
+        set timing_ok 0
+      }
+
+      Msg Status "*** Timing summary ***"
+      Msg Status "WNS: $wns"
+      Msg Status "TNS: $tns"
+      Msg Status "WHS: $whs"
+      Msg Status "THS: $ths"
+
+      struct::matrix m
+      m add columns 5
+      m add row
+
+      puts $status_file "## $project_name Timing summary"
+
+      m add row  "| **Parameter** | \"**value (ns)**\" |"
+      m add row  "| --- | --- |"
+      m add row  "|  WNS:  |  $wns  |"
+      m add row  "|  TNS:  |  $tns  |"
+      m add row  "|  WHS:  |  $whs  |"
+      m add row  "|  THS:  |  $ths  |"
+
+      puts $status_file [m format 2string]
+      puts $status_file "\n"
+      if {$timing_ok == 1} {
+        puts $status_file " Time requirements are met."
+      } else {
+        puts $status_file "Time requirements are **NOT** met."
+      }
+      puts $status_file "\n\n"
+      close $status_file
+    }
+
+    if {$prog ne "100%"} {
+      Msg Error "Implementation error"
+    }
+  } elseif {[IsQuartus]} {
+    if {[catch {execute_module -tool fit} result]} {
+      Msg Error "Result: $result\n"
+      Msg Error "Place & Route failed. See the report file.\n"
+    } else {
+      Msg Info "\nINFO: Place & Route was successful for revision $revision.\n"
+    } elseif {[IsLibero]} {
+      Msg Info "Starting implementation flow..."
+      if {[catch {run_tool -name {PLACEROUTE}  }] } {
+        Msg Error "PLACEROUTE FAILED!"
+      } else {
+        Msg Info "PLACEROUTE PASSED."
+      } 
+
+      # Check timing
+      Msg Info "Run VERIFYTIMING ..."
+      if {[catch {run_tool -name {VERIFYTIMING} -script {$repo_path/Hog/Tcl/integrated/libero_timing.tcl} }] } {
+        Msg CriticalWarning "VERIFYTIMING FAILED!"
+      } else {
+        Msg Info "VERIFYTIMING PASSED \n"
+      }
+    }
+  } elseif {[IsDiamond]} {
+
+  }
+
+
+
+}
+
+
+# @brief Launch the synthesis, for the current IDE and project
+# 
+# @param[in] reset        Reset the Synthesis run
+# @param[in] do_create    Recreate the project
+# @param[in] run_folder   The folder where to store the run results
+# @param[in] project_name The name of the project
+# @param[in] repo_path    The main path of the git repository (Default .)
+# @param[in] ext_path     The path of source files external to the git repo (Default "")
+# @param[in] njobs        The number of parallel CPU jobs for the synthesis (Default 4)
+proc LaunchSynthesis {reset do_create run_folder project_name {repo_path .} {ext_path ""} {njobs 4}} {
+  if {[IsXilinx]} {
+    if {$reset == 1 && $do_create == 0} {
+      Msg Info "Resetting run before launching synthesis..."
+      reset_run synth_1
+    }
+    if {[IsISE]} {
+      source $repo_path/Hog/Tcl/integrated/pre-synthesis.tcl
+    }
+    launch_runs synth_1  -jobs $options(njobs) -dir $run_folder
+    wait_on_run synth_1
+    set prog [get_property PROGRESS [get_runs synth_1]]
+    set status [get_property STATUS [get_runs synth_1]]
+    Msg Info "Run: synth_1 progress: $prog, status : $status"
+    # Copy IP reports in bin/
+    set ips [get_ips *]
+
+    #go to repository path
+    cd $repo_path
+
+    lassign [GetRepoVersions [file normalize ./Top/$project_name] $repo_path $ext_path ] sha
+    set describe [GetHogDescribe $sha $repo_path]
+    Msg Info "Git describe set to $describe"
+
+    foreach ip $ips {
+      set xci_file [get_property IP_FILE $ip]
+
+      set xci_path [file dirname $xci_file]
+      set xci_ip_name [file rootname [file tail $xci_file]]
+      foreach rptfile [glob -nocomplain -directory $xci_path *.rpt] {
+        file copy $rptfile $repo_path/bin/$project_name-$describe/reports
+      }
+
+      # Let's leave the following commented part
+      # We moved the Handle ip to the post-synthesis, in that case we can't use get_runs so to find out which IP was run, we loop over the directories enedind with _synth_1 in the .runs directory
+      #
+      #    ######### Copy IP to IP repository
+      #    if {[IsVivado]} {
+      #     set gen_path [get_property IP_OUTPUT_DIR $ip]
+      #     if {($ip_path != "")} {
+      #       # IP is not in the gitlab repo
+      #       set force 0
+      #       if [info exist runs] {
+      #         if {[lsearch $runs $ip\_synth_1] != -1} {
+      #           Msg Info "$ip was synthesized, will force the copy to the IP repository..."
+      #           set force 1
+      #         }
+      #       }
+      #       Msg Info "Copying synthesised IP $xci_ip_name ($xci_file) to $ip_path..."
+      #       HandleIP push $xci_file $ip_path $repo_path $gen_path $force
+      #     }
+      #    }
+    }
+
+    if {$prog ne "100%"} {
+      Msg Error "Synthesis error, status is: $status"
+    }
+  } elseif {[IsQuartus]} {
+    # TODO: Missing reset
+    set project [file tail [file rootname $project_name]]
+
+    Msg Info "Number of jobs set to $options(njobs)."
+    set_global_assignment -name NUM_PARALLEL_PROCESSORS $options(njobs)
+    load_package flow
+
+    # keep track of the current revision and of the top level entity name
+    lassign [GetRepoVersions [file normalize $repo_path/Top/$project_name] $repo_path ] sha
+    set describe [GetHogDescribe $sha $repo_path]
+    #set top_level_name [ get_global_assignment -name TOP_LEVEL_ENTITY ]
+    set revision [get_current_revision]
+
+    #run PRE_FLOW_SCRIPT by hand
+    set tool_and_command [ split [get_global_assignment -name PRE_FLOW_SCRIPT_FILE] ":"]
+    set tool [lindex $tool_and_command 0]
+    set pre_flow_script [lindex $tool_and_command 1]
+    set cmd "$tool -t $pre_flow_script quartus_map $project $revision"
+    #Close project to avoid conflict with pre synthesis script
+    project_close
+
+    lassign [ExecuteRet {*}$cmd ] ret log
+    if {$ret != 0} {
+      Msg Warning "Can not execute command $cmd"
+      Msg Warning "LOG: $log"
+    } else {
+      Msg Info "Pre flow script executed!"
+    }
+
+    # Re-open project
+    if { ![is_project_open ] } {
+      Msg Info "Re-opening project file $project_name..."
+      project_open $project -current_revision
+    }
+
+    # Execute synthesis
+    if {[catch {execute_module -tool map -args "--parallel"} result]} {
+      Msg Error "Result: $result\n"
+      Msg Error "Analysis & Synthesis failed. See the report file.\n"
+    } else {
+      Msg Info "Analysis & Synthesis was successful for revision $revision.\n"
+    }
+  } elseif {[IsLibero]} {
+    # TODO: Missing Reset
+    defvar_set -name RWNETLIST_32_64_MIXED_FLOW -value 0
+
+    Msg Info "Run SYNTHESIS..."
+    if {[catch {run_tool -name {SYNTHESIZE}  }] } {
+      Msg Error "SYNTHESIZE FAILED!"
+    } else {
+      Msg Info "SYNTHESIZE PASSED!"
+    }
+  } elseif {[IsDiamond]} {
+    # TODO: Missing Reset
+    prj_run Synthesis
+    if {[prj_syn] == "simplify"} {
+      
+    }
+  } else {
+    Msg Error "Impossible condition. You need to run this in an IDE."
+    exit 1
+  }
+}
+
 # Returns the list of all the Hog Projects in the repository
 #
 # @param[in] repo_path The main path of the git repository
@@ -3660,6 +3982,38 @@ proc MsgAndLog {msg {severity "CriticalWarning"} {outFile ""}} {
     set oF [open "$outFile" a+]
     puts $oF $msg
     close $oF
+  }
+}
+
+# @brief Open the project with the corresponding IDE
+#
+# @param[in] project_file The project_file
+# @param[in] repo_path    The main path of the git repository
+proc OpenProject {project_file repo_path} {
+  if {[IsXilinx]} {
+    open_project $project_file
+  } elseif {[IsQuartus]} {
+    set project_folder [file dirname $project_file]
+    set project [file tail [file rootname $project_file]]
+    if {[file exists $project_folder]} {
+      cd $project_folder
+      if { ![is_project_open ] } {
+        Msg Info "Opening existing project file $project_file..."
+        project_open $project -current_revision
+      }
+    } else {
+      Msg Error "Project directory not found for $project_file."
+      return 1
+    }
+  } elseif {[IsLibero]} {
+    Msg Info "Opening existing project file $project_file..."
+    cd $repo_path
+    open_project -file $project_file -do_backup_on_convert 1 -backup_file {./Projects/$project_file.zip}
+  } elseif {[IsDiamond]} {
+    Msg Info "Opening existing project file $project_file..."
+    prj_project open $project_file
+  } else {
+    Msg Error "This IDE is currently not supported by Hog. Exiting!" 
   }
 }
 
@@ -4345,6 +4699,12 @@ proc WriteGenerics {mode repo_path design date timee commit version top_hash top
     foreach generic $generic_string {
       Msg Debug "Setting Synplify generic: $generic"
       set_option -hdl_param -set "$generic"
+    }
+  } elseif {[IsDiamond]} {
+    Msg Info "Setting Diamond parameters/generics one by one..."
+    foreach generic $generic_string {
+      Msg Debug "Setting Diamond generic: $generic"
+      
     }
   }
 }

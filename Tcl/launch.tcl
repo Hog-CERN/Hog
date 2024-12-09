@@ -243,9 +243,9 @@ if {[catch {package require cmdline} ERROR] || [catch {package require struct::m
   exit 1
 }
 
-set main_folder [file normalize "$repo_path/Projects/$project_name/$project.runs/"]
+set run_folder [file normalize "$repo_path/Projects/$project_name/$project.runs/"]
 if {[IsLibero]} {
-  set main_folder [file normalize "$repo_path/Projects/$project_name/"]
+  set run_folder [file normalize "$repo_path/Projects/$project_name/"]
 }
 set main_sim_folder [file normalize "$repo_path/Projects/$project_name/$project.sim/"]
 set check_syntax 0
@@ -274,7 +274,7 @@ if { $options(synth_only) == 1} {
 }
 
 if { $options(impl_only) == 1} {
-  set do_implementation 0
+  set do_implementation 1
   set do_synthesis 0
   set do_bitstream 0
   set do_create 0
@@ -320,293 +320,132 @@ if { $options(verbose) == 1 } {
 
 Msg Info "Number of jobs set to $options(njobs)."
 
+############## Quartus ########################
+set argv ""
+
+############# CREATE or OPEN project ############
+if {[IsISE]} {
+  cd $tcl_path
+  set project_file [file normalize $repo_path/Projects/$project_name/$project.ppr]
+} elseif {[IsVivado]} {
+  cd $tcl_path
+  set project_file [file normalize $repo_path/Projects/$project_name/$project.xpr]
+} elseif {[IsQuartus]} {
+  if { [catch {package require ::quartus::project} ERROR] } {
+    Msg Error "$ERROR\n Can not find package ::quartus::project"
+    cd $old_path
+    return 1
+  } else {
+    Msg Info "Loaded package ::quartus::project"
+  }
+  set project_file "$project_path/$project.qpf"
+} elseif {[IsLibero]} {
+  set project_file [file normalize $repo_path/Projects/$project_name/$project.prjx]
+} elseif [[IsDiamond]] {
+  sys_install version  
+  set project_file [file normalize $repo_path/Projects/$project_name/$project.ldf]
+}
+
+if {[file exists $project_file]} {
+  Msg Info "Found project file $project_file for $project_name."
+  set proj_found 1
+} else {
+  Msg Info "Project file not found for $project_name."
+  set proj_found 0
+}
+
+if {($proj_found == 0 || $recreate == 1) && ($do_synthesis == 1 || $do_create == 1)} {
+  Msg Info "Creating (possibly replacing) the project $project_name..."
+  lassign [GetConfFiles $repo_path/Top/$project_name] conf sim pre post
+
+  if {[file exists $conf]} {
+    #Still not sure of the difference between project and project_name
+    CreateProject -simlib_path $lib_path $project_name $repo_path
+  } else {
+    Msg Error "Project $project_name is incomplete: no hog.conf file found, please create one..."
+  }
+} else {
+  Msg Info "Opening existing project file $project_file..."
+  if {[IsXilinx]} {
+    file mkdir "$repo_path/Projects/$project_name/$project.gen/sources_1"  
+  }
+  OpenProject $project_file $repo_path
+}
+
+
+########## CHECK SYNTAX ###########
+if { $check_syntax == 1 } {
+  Msg Info "Checking syntax for project $project_name..."
+  CheckSyntax $project_name
+}
+
+######### LaunchSynthesis ########
+if {$do_synthesis == 1} {
+  LaunchSynthesis $reset $do_create $run_folder $project_name $repo_path $ext_path $njobs 
+}
+
+########## LaunchImplementation ###################
 
 if {[IsXilinx]} {
 
-  ############# Vivado or ISE ####################
-
-  #Go to Hog/Tcl
-  cd $tcl_path
-
-  ############# CREATE or OPEN project ############
-  if {[IsISE]} {
-    set project_file [file normalize $repo_path/Projects/$project_name/$project.ppr]
-  } else {
-    set project_file [file normalize $repo_path/Projects/$project_name/$project.xpr]
-  }
-
-  if {[file exists $project_file]} {
-    Msg Info "Found project file $project_file for $project_name."
-    set proj_found 1
-  } else {
-    Msg Info "Project file not found for $project_name."
-    set proj_found 0
-  }
-
-  if {($proj_found == 0 || $recreate == 1) && ($do_synthesis == 1 || $do_create == 1)} {
-    Msg Info "Creating (possibly replacing) the project $project_name..."
-    lassign [GetConfFiles $repo_path/Top/$project_name] conf sim pre post
-
-    if {[file exists $conf]} {
-      #Still not sure of the difference between project and project_name
-      CreateProject -simlib_path $lib_path $project_name $repo_path
-    } else {
-      Msg Error "Project $project_name is incomplete: no hog.conf file found, please create one..."
-    }
-  } else {
-    Msg Info "Opening existing project file $project_file..."
-    file mkdir "$repo_path/Projects/$project_name/$project.gen/sources_1"
-    open_project $project_file
-  }
-
-  ########## CHECK SYNTAX ###########
-  if { $check_syntax == 1 } {
+  if {$do_bitstream == 1} {
+    Msg Info "Starting write bitstream flow..."
     if {[IsISE]} {
-      Msg Info "Checking syntax option is not supported by Xilinx PlanAhead. Skipping.."
-    } else {
-      Msg Info "Checking syntax for project $project_name..."
-      set syntax [check_syntax -return_string]
-
-      if {[string first "CRITICAL" $syntax ] != -1} {
-        check_syntax
-        exit 1
-      }
+      # PlanAhead command
+      Msg Info "running pre-bitstream"
+      source  $tcl_path/../../Hog/Tcl/integrated/pre-bitstream.tcl
+      launch_runs impl_1 -to_step Bitgen $options(njobs) -dir $run_folder
+      wait_on_run impl_1
+      Msg Info "running post-bitstream"
+      source  $tcl_path/../../Hog/Tcl/integrated/post-bitstream.tcl
+    } elseif { [string first Vivado [version]] ==0} {
+      # Vivado command
+      launch_runs impl_1 -to_step [BinaryStepName [get_property PART [current_project]]] $options(njobs) -dir $run_folder
+      wait_on_run impl_1
     }
-  } else {
-    Msg Debug "Skipping syntax check for project $project_name"
-  }
-
-  ############# SYNTH ###############
-  if {$reset == 1 && $do_create == 0} {
-    Msg Info "Resetting run before launching synthesis..."
-    reset_run synth_1
-
-  }
-
-  if {[IsISE]} {
-    source  $tcl_path/../../Hog/Tcl/integrated/pre-synthesis.tcl
-  }
-
-  if {$do_synthesis == 1} {
-    launch_runs synth_1  -jobs $options(njobs) -dir $main_folder
-    wait_on_run synth_1
-    set prog [get_property PROGRESS [get_runs synth_1]]
-    set status [get_property STATUS [get_runs synth_1]]
-    Msg Info "Run: synth_1 progress: $prog, status : $status"
-
-    # Copy IP reports in bin/
-    set ips [get_ips *]
-
-    #go to repository path
-    cd $tcl_path/../..
-
-    lassign [GetRepoVersions [file normalize ./Top/$project_name] $repo_path $ext_path ] sha
-    set describe [GetHogDescribe $sha $repo_path]
-    Msg Info "Git describe set to $describe"
-
-    foreach ip $ips {
-      set xci_file [get_property IP_FILE $ip]
-
-      set xci_path [file dirname $xci_file]
-      set xci_ip_name [file rootname [file tail $xci_file]]
-      foreach rptfile [glob -nocomplain -directory $xci_path *.rpt] {
-        file copy $rptfile $bin_dir/$project_name-$describe/reports
-      }
-
-      # Let's leave the following commented part
-      # We moved the Handle ip to the post-synthesis, in that case we can't use get_runs so to find out which IP was run, we loop over the directories enedind with _synth_1 in the .runs directory
-      #
-      #    ######### Copy IP to IP repository
-      #    if {[IsVivado]} {
-      #    	set gen_path [get_property IP_OUTPUT_DIR $ip]
-      #    	if {($ip_path != "")} {
-      #    	  # IP is not in the gitlab repo
-      #    	  set force 0
-      #    	  if [info exist runs] {
-      #    	    if {[lsearch $runs $ip\_synth_1] != -1} {
-      #    	      Msg Info "$ip was synthesized, will force the copy to the IP repository..."
-      #    	      set force 1
-      #    	    }
-      #    	  }
-      #    	  Msg Info "Copying synthesised IP $xci_ip_name ($xci_file) to $ip_path..."
-      #    	  HandleIP push $xci_file $ip_path $repo_path $gen_path $force
-      #    	}
-      #    }
-
-    }
-
-    if {$prog ne "100%"} {
-      Msg Error "Synthesis error, status is: $status"
-    }
-  } else {
-    Msg Debug "Skipping synthesis (and IP handling)..."
-  }
-
-  ############### IMPL ###################
-
-  if {$do_implementation == 1 } {
-
-    Msg Info "Starting implementation flow..."
-    if { $reset == 1 && $do_create == 0} {
-      Msg Info "Resetting run before launching implementation..."
-      reset_run impl_1
-    }
-
-    if {[IsISE]} {source $tcl_path/../../Hog/Tcl/integrated/pre-implementation.tcl}
-    launch_runs impl_1 -jobs $options(njobs) -dir $main_folder
-    wait_on_run impl_1
-    if {[IsISE]} {source $tcl_path/../../Hog/Tcl/integrated/post-implementation.tcl}
 
     set prog [get_property PROGRESS [get_runs impl_1]]
     set status [get_property STATUS [get_runs impl_1]]
     Msg Info "Run: impl_1 progress: $prog, status : $status"
 
-    # Check timing
-    if {[IsISE]} {
-
-      set status_file [open "$main_folder/timing.txt" "w"]
-      puts $status_file "## $project_name Timing summary"
-
-      set f [open [lindex [glob "$main_folder/impl_1/*.twr" 0]]]
-      set errs -1
-      while {[gets $f line] >= 0} {
-        if { [string match "Timing summary:" $line] } {
-          while {[gets $f line] >= 0} {
-            if { [string match "Timing errors:*" $line] } {
-              set errs [regexp -inline -- {[0-9]+} $line]
-            }
-            if { [string match "*Footnotes*" $line ] } {
-              break
-            }
-            puts $status_file "$line"
-          }
-        }
-      }
-
-      close $f
-      close $status_file
-
-      if {$errs == 0} {
-        Msg Info "Time requirements are met"
-        file rename -force "$main_folder/timing.txt" "$main_folder/timing_ok.txt"
-        set timing_ok 1
-      } else {
-        Msg CriticalWarning "Time requirements are NOT met"
-        file rename -force "$main_folder/timing.txt" "$main_folder/timing_error.txt"
-        set timing_ok 0
-      }
+    if {$prog ne "100%"} {
+      Msg Error "Write bitstream error, status is: $status"
     }
 
     if {[IsVivado]} {
-      set wns [get_property STATS.WNS [get_runs [current_run]]]
-      set tns [get_property STATS.TNS [get_runs [current_run]]]
-      set whs [get_property STATS.WHS [get_runs [current_run]]]
-      set ths [get_property STATS.THS [get_runs [current_run]]]
-
-      if {$wns >= 0 && $whs >= 0} {
-        Msg Info "Time requirements are met"
-        set status_file [open "$main_folder/timing_ok.txt" "w"]
-        set timing_ok 1
-      } else {
-        Msg CriticalWarning "Time requirements are NOT met"
-        set status_file [open "$main_folder/timing_error.txt" "w"]
-        set timing_ok 0
-      }
-
-      Msg Status "*** Timing summary ***"
+      Msg Status "*** Timing summary (again) ***"
       Msg Status "WNS: $wns"
       Msg Status "TNS: $tns"
       Msg Status "WHS: $whs"
       Msg Status "THS: $ths"
-
-      struct::matrix m
-      m add columns 5
-      m add row
-
-      puts $status_file "## $project_name Timing summary"
-
-      m add row  "| **Parameter** | \"**value (ns)**\" |"
-      m add row  "| --- | --- |"
-      m add row  "|  WNS:  |  $wns  |"
-      m add row  "|  TNS:  |  $tns  |"
-      m add row  "|  WHS:  |  $whs  |"
-      m add row  "|  THS:  |  $ths  |"
-
-      puts $status_file [m format 2string]
-      puts $status_file "\n"
-      if {$timing_ok == 1} {
-        puts $status_file " Time requirements are met."
-      } else {
-        puts $status_file "Time requirements are **NOT** met."
-      }
-      puts $status_file "\n\n"
-      close $status_file
     }
+  }
 
-    if {$prog ne "100%"} {
-      Msg Error "Implementation error"
-    }
+  #Go to repository path
+  cd $repo_path
 
-    if {$do_bitstream == 1} {
-      Msg Info "Starting write bitstream flow..."
-      if {[IsISE]} {
-	      # PlanAhead command
-        Msg Info "running pre-bitstream"
-        source  $tcl_path/../../Hog/Tcl/integrated/pre-bitstream.tcl
-        launch_runs impl_1 -to_step Bitgen $options(njobs) -dir $main_folder
-        wait_on_run impl_1
-        Msg Info "running post-bitstream"
-        source  $tcl_path/../../Hog/Tcl/integrated/post-bitstream.tcl
-      } elseif { [string first Vivado [version]] ==0} {
-        # Vivado command
-        launch_runs impl_1 -to_step [BinaryStepName [get_property PART [current_project]]] $options(njobs) -dir $main_folder
-        wait_on_run impl_1
-      }
+  lassign [GetRepoVersions [file normalize ./Top/$project_name] $repo_path] sha
+  set describe [GetHogDescribe $sha $repo_path]
+  Msg Info "Git describe set to $describe"
 
-      set prog [get_property PROGRESS [get_runs impl_1]]
-      set status [get_property STATUS [get_runs impl_1]]
-      Msg Info "Run: impl_1 progress: $prog, status : $status"
+  set dst_dir [file normalize "$bin_dir/$project_name\-$describe"]
 
-      if {$prog ne "100%"} {
-        Msg Error "Write bitstream error, status is: $status"
-      }
+  file mkdir $dst_dir
 
-      if {[IsVivado]} {
-        Msg Status "*** Timing summary (again) ***"
-        Msg Status "WNS: $wns"
-        Msg Status "TNS: $tns"
-        Msg Status "WHS: $whs"
-        Msg Status "THS: $ths"
-      }
-    }
+  #Version table
+  if {[file exists $run_folder/versions.txt]} {
+    file copy -force $run_folder/versions.txt $dst_dir
+  } else {
+    Msg Warning "No versions file found in $run_folder/versions.txt"
+  }
+  #Timing file
+  set timing_files [ glob -nocomplain "$run_folder/timing_*.txt" ]
+  set timing_file [file normalize [lindex $timing_files 0]]
 
-    #Go to repository path
-    cd $repo_path
-
-    lassign [GetRepoVersions [file normalize ./Top/$project_name] $repo_path] sha
-    set describe [GetHogDescribe $sha $repo_path]
-    Msg Info "Git describe set to $describe"
-
-    set dst_dir [file normalize "$bin_dir/$project_name\-$describe"]
-
-    file mkdir $dst_dir
-
-    #Version table
-    if {[file exists $main_folder/versions.txt]} {
-      file copy -force $main_folder/versions.txt $dst_dir
-    } else {
-      Msg Warning "No versions file found in $main_folder/versions.txt"
-    }
-    #Timing file
-    set timing_files [ glob -nocomplain "$main_folder/timing_*.txt" ]
-    set timing_file [file normalize [lindex $timing_files 0]]
-
-    if {[file exists $timing_file]} {
-      file copy -force $timing_file $dst_dir/
-    } else {
-      Msg Warning "No timing file found, not a problem if running locally"
-    }
-
+  if {[file exists $timing_file]} {
+    file copy -force $timing_file $dst_dir/
+  } else {
+    Msg Warning "No timing file found, not a problem if running locally"
   }
 
   if {$do_simulation == 1} {
@@ -836,90 +675,8 @@ if {[IsXilinx]} {
     Msg Info "Simulation done."
 
   }
-
-
-
-
 } elseif [IsQuartus] {
-  ############## Quartus ########################
-  set argv ""
-  #############################
-  # Recreate the project file #
-  #############################
-  if { [catch {package require ::quartus::project} ERROR] } {
-    Msg Error "$ERROR\n Can not find package ::quartus::project"
-    cd $old_path
-    return 1
-  } else {
-    Msg Info "Loaded package ::quartus::project"
-  }
 
-  if {[file exists "$project_path/$project.qpf" ]} {
-    Msg Info "Found project file $project.qpf for $project_name."
-    set proj_found 1
-  } else {
-    Msg Warning "Project file not found for $project_name."
-    set proj_found 0
-  }
-
-  if { $proj_found == 0 || $recreate == 1 || $do_create == 1} {
-    Msg Info "Creating (possibly replacing) the project $project_name..."
-    lassign [GetConfFiles $repo_path/Top/$project_name] conf sim pre post tcl_file
-
-    if {[file exists $conf]} {
-      CreateProject -simlib_path $lib_path $project_name $repo_path
-    } else {
-      Msg Error "Project $project_name is incomplete: not Tcl file or hog.conf file found."
-    }
-  }
-
-  if {[file exists "$project_path" ]} {
-    cd $project_path
-  } else {
-    Msg Error "Project directory not found for $project_name."
-    return 1
-  }
-
-  if { ![is_project_open ] } {
-    Msg Info "Opening existing project file $project_name..."
-    project_open $project -current_revision
-  }
-
-  Msg Info "Number of jobs set to $options(njobs)."
-  set_global_assignment -name NUM_PARALLEL_PROCESSORS $options(njobs)
-
-  load_package flow
-
-  ################
-  # CHECK SYNTAX #
-  ################
-  if { $check_syntax == 1 } {
-    Msg Info "Checking syntax for project $project_name..."
-    lassign [GetHogFiles -list_files "*.src" "$repo_path/Top/$project_name/list/" $repo_path] src_files dummy
-    dict for {lib files} $src_files {
-      foreach f $files {
-        set file_extension [file extension $f]
-        if { $file_extension == ".vhd" || $file_extension == ".vhdl" || $file_extension == ".v" ||  $file_extension == ".sv" } {
-          if { [catch {execute_module -tool map -args "--analyze_file=$f"} result]} {
-            Msg Error "\nResult: $result\n"
-            Msg Error "Check syntax failed.\n"
-          } else {
-            if { $result == "" } {
-              Msg Info "Check syntax was successful for $f.\n"
-            } else {
-              Msg Warning "Found syntax error in file $f:\n $result\n"
-            }
-          }
-        }
-      }
-    }
-  }
-
-  # keep track of the current revision and of the top level entity name
-  lassign [GetRepoVersions [file normalize $repo_path/Top/$project_name] $repo_path ] sha
-  set describe [GetHogDescribe $sha $repo_path]
-  #set top_level_name [ get_global_assignment -name TOP_LEVEL_ENTITY ]
-  set revision [get_current_revision]
   if { $do_compile == 1 } {
     if {[catch {execute_flow -compile} result]} {
       Msg Error "Result: $result\n"
@@ -933,52 +690,12 @@ if {[IsXilinx]} {
       file copy -force "output_files/versions.txt" $dst_dir
     }
   } else {
-    #############################
-    # Analysis and Synthesis
-    #############################
-    if { $do_synthesis == 1 } {
 
-
-      #run PRE_FLOW_SCRIPT by hand
-      set tool_and_command [ split [get_global_assignment -name PRE_FLOW_SCRIPT_FILE] ":"]
-      set tool [lindex $tool_and_command 0]
-      set pre_flow_script [lindex $tool_and_command 1]
-      set cmd "$tool -t $pre_flow_script quartus_map $project $revision"
-      #Close project to avoid conflict with pre synthesis script
-      project_close
-
-      lassign [ExecuteRet {*}$cmd ] ret log
-      if {$ret != 0} {
-        Msg Warning "Can not execute command $cmd"
-        Msg Warning "LOG: $log"
-      } else {
-        Msg Info "Pre flow script executed!"
-      }
-
-      # Re-open project
-      if { ![is_project_open ] } {
-        Msg Info "Re-opening project file $project_name..."
-        project_open $project -current_revision
-      }
-
-      # Execute synthesis
-      if {[catch {execute_module -tool map -args "--parallel"} result]} {
-        Msg Error "Result: $result\n"
-        Msg Error "Analysis & Synthesis failed. See the report file.\n"
-      } else {
-        Msg Info "Analysis & Synthesis was successful for revision $revision.\n"
-      }
-    }
     #############################
     # Place & Route
     #############################
     if { $do_implementation == 1 } {
-      if {[catch {execute_module -tool fit} result]} {
-        Msg Error "Result: $result\n"
-        Msg Error "Place & Route failed. See the report file.\n"
-      } else {
-        Msg Info "\nINFO: Place & Route was successful for revision $revision.\n"
-      }
+      
       #############################
       # Generate bitstream
       #############################
@@ -1022,61 +739,12 @@ if {[IsXilinx]} {
 
 } elseif {[IsLibero]} {
 
-  ############# CREATE or OPEN project ############
-  set project_file [file normalize $repo_path/Projects/$project_name/$project.prjx]
-
-  if {[file exists $project_file]} {
-    Msg Info "Found project file $project_file for $project_name."
-    set proj_found 1
-  } else {
-    Msg Info "Project file not found for $project_name."
-    set proj_found 0
-  }
-
-  if {($proj_found == 0 || $recreate == 1) && ($do_synthesis == 1  || $do_create == 1)} {
-    Msg Info "Creating (possibly replacing) the project $project_name..."
-    lassign [GetConfFiles $repo_path/Top/$project_name] conf sim pre post
-
-    if {[file exists $conf]} {
-      CreateProject -simlib_path $lib_path $project_name $repo_path
-    } else {
-      Msg Error "Project $project_name is incomplete: no hog.conf file found, please create one..."
-    }
-  } else {
-    Msg Info "Opening existing project file $project_file..."
-    open_project -file $project_file -do_backup_on_convert 1 -backup_file {./Projects/$project_file.zip}
-  }
-
-  ########## CHECK SYNTAX ###########
-  if { $check_syntax == 1 } {
-    Msg Info "Checking syntax option is not supported for Microchip Libero Soc yet. Skipping.."
-  }
-
-  defvar_set -name RWNETLIST_32_64_MIXED_FLOW -value 0
-
-  ############# SYNTH ###############
-
-  if {$do_synthesis == 1} {
-    Msg Info "Run SYNTHESIS..."
-    if {[catch {run_tool -name {SYNTHESIZE}  }] } {
-      Msg Error "SYNTHESIZE FAILED!"
-    } else {
-      Msg Info "SYNTHESIZE PASSED!"
-    }
-  } else {
-    Msg Debug "Skipping synthesis (and IP handling)..."
-  }
 
   ############### IMPL ###################
 
   if {$do_implementation == 1 } {
 
-    Msg Info "Starting implementation flow..."
-    if {[catch {run_tool -name {PLACEROUTE}  }] } {
-      Msg Error "PLACEROUTE FAILED!"
-    } else {
-      Msg Info "PLACEROUTE PASSED."
-    }
+    
 
     # source $tcl_path/../../Hog/Tcl/integrated/post-implementation.tcl
 
@@ -1112,10 +780,10 @@ if {[IsXilinx]} {
     file mkdir $dst_dir/reports
 
     #Version table
-    if {[file exists $main_folder/versions.txt]} {
-      file copy -force $main_folder/versions.txt $dst_dir
+    if {[file exists $run_folder/versions.txt]} {
+      file copy -force $run_folder/versions.txt $dst_dir
     } else {
-      Msg Warning "No versions file found in $main_folder/versions.txt"
+      Msg Warning "No versions file found in $run_folder/versions.txt"
     }
     #Timing file
     set timing_file_path [file normalize "$repo_path/Projects/timing_libero.txt"]
@@ -1147,44 +815,10 @@ if {[IsXilinx]} {
   }
 
 
-} elseif {[IsDiamond]} {
-  sys_install version
-  ############# CREATE or OPEN project ############
-  set project_file [file normalize $repo_path/Projects/$project_name/$project.ldf]
-
-  if {[file exists $project_file]} {
-    Msg Info "Found project file $project_file for $project_name."
-    set proj_found 1
-  } else {
-    Msg Info "Project file not found for $project_name."
-    set proj_found 0
-  }
-
-  if {($proj_found == 0 || $recreate == 1) && ($do_synthesis == 1  || $do_create == 1)} {
-    Msg Info "Creating (possibly replacing) the project $project_name..."
-    lassign [GetConfFiles $repo_path/Top/$project_name] conf sim pre post
-
-    if {[file exists $conf]} {
-      CreateProject -simlib_path $lib_path $project_name $repo_path
-    } else {
-      Msg Error "Project $project_name is incomplete: no hog.conf file found, please create one..."
-    }
-  } else {
-    Msg Info "Opening existing project file $project_file..."
-    prj_project open $project_file
-  }
-
-  if {$do_synthesis == 1} {
-    prj_run Synthesis
-    if {[prj_syn] == "simplify"} {
-      
-    }
-  }
+} 
+  prj_project save
   prj_project close
-} else {
-  Msg Error "Impossible condition. You need to run this in an IDE."
-  exit 1
-}
+} 
 
 Msg Info "All done."
 cd $old_path

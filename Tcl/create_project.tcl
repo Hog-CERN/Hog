@@ -355,7 +355,7 @@ proc ConfigureSynthesis {} {
       set_global_assignment -name POST_MODULE_SCRIPT_FILE quartus_sh:$globalSettings::quartus_post_module
 
     } elseif {[IsDiamond]} {
-      prj_impl post_script "syn" $globalSettings::pre_synth
+      prj_impl post_script "syn" $globalSettings::post_synth
     }
     Msg Debug "Setting $globalSettings::post_synth to be run after synthesis"
   }

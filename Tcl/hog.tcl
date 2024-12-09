@@ -1551,6 +1551,7 @@ proc GenerateBitstream {{run_folder ""} {repo_path .} {njobs 1}} \
     set tns [get_property STATS.TNS [get_runs [current_run]]]
     set whs [get_property STATS.WHS [get_runs [current_run]]]
     set ths [get_property STATS.THS [get_runs [current_run]]]
+    set tpws [get_property STATS.TPWS [get_runs [current_run]]]
 
     if {[IsVivado]} {
       Msg Status "*** Timing summary (again) ***"
@@ -1558,6 +1559,7 @@ proc GenerateBitstream {{run_folder ""} {repo_path .} {njobs 1}} \
       Msg Status "TNS: $tns"
       Msg Status "WHS: $whs"
       Msg Status "THS: $ths"
+      Msg Status "TPWS: $tpws"
     }
   } elseif {[IsQuartus]} {
     set revision [get_current_revision]
@@ -3696,8 +3698,9 @@ proc LaunchImplementation {reset do_create run_folder project_name {repo_path .}
       set tns [get_property STATS.TNS [get_runs [current_run]]]
       set whs [get_property STATS.WHS [get_runs [current_run]]]
       set ths [get_property STATS.THS [get_runs [current_run]]]
+      set tpws [get_property STATS.TPWS [get_runs [current_run]]]
 
-      if {$wns >= 0 && $whs >= 0} {
+      if {$wns >= 0 && $whs >= 0 && $tpws >= 0} {
         Msg Info "Time requirements are met"
         set status_file [open "$run_folder/timing_ok.txt" "w"]
         set timing_ok 1
@@ -3712,6 +3715,7 @@ proc LaunchImplementation {reset do_create run_folder project_name {repo_path .}
       Msg Status "TNS: $tns"
       Msg Status "WHS: $whs"
       Msg Status "THS: $ths"
+      Msg Status "TPWS: $tpws"
 
       struct::matrix m
       m add columns 5
@@ -3725,6 +3729,7 @@ proc LaunchImplementation {reset do_create run_folder project_name {repo_path .}
       m add row  "|  TNS:  |  $tns  |"
       m add row  "|  WHS:  |  $whs  |"
       m add row  "|  THS:  |  $ths  |"
+      m add row  "|  TPWS: |  $tpws  |"
 
       puts $status_file [m format 2string]
       puts $status_file "\n"

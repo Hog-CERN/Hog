@@ -397,68 +397,6 @@ if {$do_simulation == 1} {
   LaunchSimulation $project_name $simsets $repo_path
 }
 
-
-########## LaunchImplementation ###################
-
-# if {[IsXilinx]} {    
-# } elseif [IsQuartus] {
-
-#   if { $do_compile == 1 } {
-#     if {[catch {execute_flow -compile} result]} {
-#       Msg Error "Result: $result\n"
-#       Msg Error "Full compile flow failed. See the report file.\n"
-#     } else {
-#       Msg Info "Full compile Flow was successful for revision $revision.\n"
-#     }
-#     if {[file exists "output_files/versions.txt" ]} {
-#       set dst_dir [file normalize "$repo_path/bin/$project_name\-$describe"]
-#       file mkdir $dst_dir
-#       file copy -force "output_files/versions.txt" $dst_dir
-#     }
-#   } else {
-
-#     #############################
-#     # Place & Route
-#     #############################
-#     if { $do_implementation == 1 } {
-      
-#       #############################
-#       # Generate bitstream
-#       #############################
-#       #############################
-#       # Additional tools to be run on the project
-#       #############################
-#       #TODO
-#       
-#     }
-#   }
-
-#   # close project
-#   
-
-# } elseif {[IsLibero]} {
-
-
-#   ############### IMPL ###################
-
-#   if {$do_implementation == 1 } {
-
-    
-
-
-
-
-
-
-#     
-
-#   }
-
-
-# } 
-
-# } 
-
 ## CLOSE Projects
 CloseProject
 

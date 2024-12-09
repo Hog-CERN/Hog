@@ -29,9 +29,16 @@ set old_path [pwd]
 set tcl_path [file normalize "[file dirname [info script]]/.."]
 source $tcl_path/hog.tcl
 
-# Go to repository pathcd $old_pathcd $old_path
-cd $tcl_path/../../
-set repo_path "$tcl_path/../.."
+
+# Import tcllib
+if {[IsSynplify] || [IsDiamond]} {
+  if {[info exists env(HOG_TCLLIB_PATH)]} {
+    lappend auto_path $env(HOG_TCLLIB_PATH)
+  } else {
+    puts "ERROR: To run Hog with Microsemi Libero SoC, you need to define the HOG_TCLLIB_PATH variable."
+    return
+  }
+}
 
 if {[IsXilinx]} {
   # Vivado + planAhead
@@ -51,6 +58,10 @@ if {[IsXilinx]} {
   # Quartus
   set proj_name [lindex $quartus(args) 1]
   set proj_dir $old_path
+} elseif {[IsDiamond]} {
+  set proj_dir [file normalize "[pwd]/.."]
+  set proj_name [file tail $proj_dir]
+  set project $proj_name
 } else {
   #Tclssh
   set proj_file $old_path/[file tail $old_path].xpr
@@ -58,6 +69,11 @@ if {[IsXilinx]} {
 }
 
 set group_name [GetGroupName $proj_dir "$tcl_path/../.."]
+
+# Go to repository pathcd $old_pathcd $old_path
+cd $tcl_path/../../
+set repo_path "$tcl_path/../.."
+
 Msg Info "Evaluating Git sha for $proj_name..."
 lassign [GetRepoVersions [file normalize ./Top/$group_name/$proj_name] $repo_path] sha
 

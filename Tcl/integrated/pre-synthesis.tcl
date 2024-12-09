@@ -104,8 +104,6 @@ if {[IsXilinx]} {
   set proj_dir [file normalize "[pwd]/.."]
   set proj_name [file tail $proj_dir]
   set project $proj_name
-  puts $proj_dir 
-  puts $project
 } else {
   #Tclssh
   set proj_file $old_path/[file tail $old_path].xpr

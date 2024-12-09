@@ -17,14 +17,22 @@ set old_path [pwd]
 set tcl_path [file normalize "[file dirname [info script]]/.."]
 source $tcl_path/hog.tcl
 
+# Import tcllib
+if {[IsSynplify] || [IsDiamond]} {
+  if {[info exists env(HOG_TCLLIB_PATH)]} {
+    lappend auto_path $env(HOG_TCLLIB_PATH)
+  } else {
+    puts "ERROR: To run Hog with Microsemi Libero SoC, you need to define the HOG_TCLLIB_PATH variable."
+    return
+  }
+}
+
 if {[IsQuartus]} {
   # Quartus
   Msg Error "Pre-module scripts are not supported in Quartus mode!"
   return TCL_ERROR
 }
 
-# Go to repository path
-cd "$tcl_path/../.."
 
 if {[IsXilinx]} {
   # Vivado + PlanAhead
@@ -39,15 +47,20 @@ if {[IsXilinx]} {
 
   set proj_name [file tail [file normalize $work_path/../../]]
   set proj_dir [file normalize "$work_path/../.."]
-
-  set group_name [GetGroupName $proj_dir "$tcl_path/../.."]
-
+} elseif {[IsDiamond]} {
+  set proj_dir [file normalize "[pwd]/.."]
+  set proj_name [file tail $proj_dir]
+  set project $proj_name
 } else {
   #Tclssh
   set proj_name [file tail [file normalize $old_path/../..]]
   Msg CriticalWarning "You seem to be running locally on tclsh, so this is a debug, the project file will be set to $proj_file and was derived from the path you launched this script from: $old_path. If you want this script to work properly in debug mode, please launch it from the top folder of one project, for example Repo/Projects/fpga1/ or Repo/Top/fpga1/"
 }
 
+set group_name [GetGroupName $proj_dir "$tcl_path/../.."]
+
+# Go to repository path
+cd "$tcl_path/../.."
 
 #number of threads
 set maxThreads [GetMaxThreads [file normalize $tcl_path/../../Top/$group_name/$proj_name]]

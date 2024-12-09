@@ -454,7 +454,7 @@ proc ConfigureImplementation {} {
       #QUARTUS only
       set_global_assignment -name POST_MODULE_SCRIPT_FILE quartus_sh:$globalSettings::quartus_post_module
     } elseif {[IsDiamond]} {
-      prj_impl post_script "par" $globalSettings::post_impl_file
+      prj_impl post_script "par" $globalSettings::post_impl
     }
     Msg Debug "Setting $globalSettings::post_impl to be run after implementation"
   }
@@ -473,7 +473,7 @@ proc ConfigureImplementation {} {
       #QUARTUS only
       #set_global_assignment -name PRE_FLOW_SCRIPT_FILE quartus_sh:$globalSettings::pre_bit
     } elseif {[IsDiamond]} {
-      prj_impl pre_script "export" $globalSettings::pre_bit_file
+      prj_impl pre_script "export" $globalSettings::pre_bit
     }
     Msg Debug "Setting $globalSettings::pre_bit to be run after bitfile generation"
   }
@@ -492,7 +492,7 @@ proc ConfigureImplementation {} {
       #QUARTUS only
       set_global_assignment -name POST_MODULE_SCRIPT_FILE quartus_sh:$globalSettings::quartus_post_module
     } elseif {[IsDiamond]} {
-      prj_impl post_script "export" $globalSettings::post_bit_file
+      prj_impl post_script "export" $globalSettings::post_bit
     }
     Msg Debug "Setting $globalSettings::post_bit to be run after bitfile generation"
   }

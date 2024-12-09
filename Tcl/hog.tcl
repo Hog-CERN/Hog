@@ -585,6 +585,20 @@ proc CheckSyntax { project_name repo_path} {
   }
 }
 
+# Close the open project
+proc CloseProject {} {
+  if {[IsXilinx]} {
+    
+  } elseif {[IsQuartus]} {
+    project_close
+  } elseif {[IsLibero]} {
+
+  } elseif {[IsDiamond]} {
+    prj_project save
+    prj_project close
+  }
+}
+
 ## @brief Compare two semantic versions
 #
 # @param[in] ver1 a list of 3 numbers M m p
@@ -1499,6 +1513,74 @@ proc FormatGeneric {generic} {
   }
 }
 
+# @brief Generate the bitstream
+#
+# @param[in] project_name The name of the project
+# @param[in] run_folder   The path where to run the implementation
+# @param[in] repo_path    The main path of the git repository 
+# @param[in] njobs        The number of CPU jobs to run in parallel 
+# 
+proc GenerateBitstream {{run_folder ""} {repo_path .} {njobs 1}} \
+{
+  Msg Info "Starting write bitstream flow..."
+  if {[IsXilinx]} {
+    if {[IsISE]} {
+      # PlanAhead command
+      Msg Info "running pre-bitstream"
+      source  $repo_path/Hog/Tcl/integrated/pre-bitstream.tcl
+      launch_runs impl_1 -to_step Bitgen $njobs -dir $run_folder
+      wait_on_run impl_1
+      Msg Info "running post-bitstream"
+      source  $repo_path/Hog/Tcl/integrated/post-bitstream.tcl
+    } elseif { [IsVivado] } {
+      # Vivado command
+      launch_runs impl_1 -to_step [BinaryStepName [get_property PART [current_project]]] $njobs -dir $run_folder
+      wait_on_run impl_1
+    }
+  
+
+    set prog [get_property PROGRESS [get_runs impl_1]]
+    set status [get_property STATUS [get_runs impl_1]]
+    Msg Info "Run: impl_1 progress: $prog, status : $status"
+
+    if {$prog ne "100%"} {
+      Msg Error "Write bitstream error, status is: $status"
+    }
+
+    set wns [get_property STATS.WNS [get_runs [current_run]]]
+    set tns [get_property STATS.TNS [get_runs [current_run]]]
+    set whs [get_property STATS.WHS [get_runs [current_run]]]
+    set ths [get_property STATS.THS [get_runs [current_run]]]
+
+    if {[IsVivado]} {
+      Msg Status "*** Timing summary (again) ***"
+      Msg Status "WNS: $wns"
+      Msg Status "TNS: $tns"
+      Msg Status "WHS: $whs"
+      Msg Status "THS: $ths"
+    }
+  } elseif {[IsQuartus]} {
+    set revision [get_current_revision]
+    if {[catch {execute_module -tool asm} result]} {
+      Msg Error "Result: $result\n"
+      Msg Error "Generate bitstream failed. See the report file.\n"
+    } else {
+      Msg Info "Generate bitstream was successful for revision $revision.\n"
+    }
+  } elseif {[IsLibero]} {
+      Msg Info "Run GENERATEPROGRAMMINGDATA ..."
+      if {[catch {run_tool -name {GENERATEPROGRAMMINGDATA}  }] } {
+        Msg Error "GENERATEPROGRAMMINGDATA FAILED!"
+      } else {
+        Msg Info "GENERATEPROGRAMMINGDATA PASSED."
+      }
+      Msg Info "Sourcing Hog/Tcl/integrated/post-bitstream.tcl"
+      source $repo_path/Hog/Tcl/integrated/post-bitstream.tcl
+  } elseif {[IsDiamond]} {
+    prj_run Export -impl Implementation0 -task Bitgen
+  }
+}
+
 ## @brief Function used to generate a qsys system from a .qsys file.
 #  The procedure adds the generated IPs to the project.
 #
@@ -1981,6 +2063,22 @@ proc GetIDEFromConf {conf_file} {
   return $ret
 }
 
+# @brief Returns the name of the running IDE
+proc GetIDEName {} {
+  if {[IsISE]} {
+    return "ISE/PlanAhead"
+  } elseif {[IsVivado]} {
+    return "Vivado"
+  } elseif {[IsQuartus]} {
+    return "Quartus"
+  } elseif {[IsLibero]} {
+    return "Libero"
+  } elseif {[IsDiamond]} {
+    return "Diamond"
+  } else {
+    return ""
+  }
+}
 
 ## Returns the version of the IDE (Vivado,Quartus,PlanAhead,Libero) in use
 #
@@ -2004,6 +2102,8 @@ proc GetIDEVersion {} {
   }
   return $ver
 }
+
+
 
 ## @brief Returns the real file linked by a soft link
 #
@@ -2115,7 +2215,6 @@ proc GetOptions {argv parameters} {
   Msg Debug "Arguments: $arg_list"
   return [list $option_list $arg_list]
 }
-
 
 # return [list $libraries $properties $simlibraries $constraints $srcsets $simsets $consets]
 ## @ brief Returns a list of 7 dictionaries: libraries, properties, constraints, and filesets for sources and simulations
@@ -3282,6 +3381,19 @@ proc HexVersionToString {version} {
   return "$M.$m.$c"
 }
 
+# @brief Import TCL Lib from an external installation for Libero, Synplify and Diamond 
+proc ImportTclLib {} {
+  if {[IsLibero] || [IsDiamond] || [IsSynplify]} {
+    if {[info exists env(HOG_TCLLIB_PATH)]} {
+      lappend auto_path $env(HOG_TCLLIB_PATH)
+      return 1
+    } else {
+      puts "ERROR: To run Hog with Microsemi Libero SoC or Lattice Diamond, you need to define the HOG_TCLLIB_PATH variable."
+      return 0
+    }
+  }
+}
+
 # @brief Initialise the Launcher and returns a list of project parameters: directive project project_name group_name repo_path old_path bin_dir top_path commands_path cmd ide
 #
 # @param[in] script     The launch.tcl script
@@ -3520,9 +3632,8 @@ proc IsZynq {part} {
 # @param[in] run_folder   The folder where to store the run results
 # @param[in] project_name The name of the project
 # @param[in] repo_path    The main path of the git repository (Default .)
-# @param[in] ext_path     The path of source files external to the git repo (Default "")
 # @param[in] njobs        The number of parallel CPU jobs for the Implementation (Default 4)
-proc LaunchImplementation {reset do_create run_folder project_name {repo_path .} {ext_path ""} {njobs 4}} {
+proc LaunchImplementation {reset do_create run_folder project_name {repo_path .} {njobs 4}} {
   Msg Info "Starting implementation flow..."
   if {[IsXilinx]} {
     if { $reset == 1 && $do_create == 0} {
@@ -3534,7 +3645,7 @@ proc LaunchImplementation {reset do_create run_folder project_name {repo_path .}
       source $repo_path/Hog/Tcl/integrated/pre-implementation.tcl
     }
     
-    launch_runs impl_1 -jobs $options(njobs) -dir $run_folder
+    launch_runs impl_1 -jobs $njobs -dir $run_folder
     wait_on_run impl_1
     
     if {[IsISE]} {
@@ -3629,36 +3740,370 @@ proc LaunchImplementation {reset do_create run_folder project_name {repo_path .}
     if {$prog ne "100%"} {
       Msg Error "Implementation error"
     }
+
+    #Go to repository path
+    cd $repo_path
+    lassign [GetRepoVersions [file normalize ./Top/$project_name] $repo_path] sha
+    set describe [GetHogDescribe $sha $repo_path]
+    Msg Info "Git describe set to $describe"
+
+    set dst_dir [file normalize "$repo_path/bin/$project_name\-$describe"]
+
+    file mkdir $dst_dir
+
+    #Version table
+    if {[file exists $run_folder/versions.txt]} {
+      file copy -force $run_folder/versions.txt $dst_dir
+    } else {
+      Msg Warning "No versions file found in $run_folder/versions.txt"
+    }
+    #Timing file
+    set timing_files [ glob -nocomplain "$run_folder/timing_*.txt" ]
+    set timing_file [file normalize [lindex $timing_files 0]]
+
+    if {[file exists $timing_file]} {
+      file copy -force $timing_file $dst_dir/
+    } else {
+      Msg Warning "No timing file found, not a problem if running locally"
+    }
+
   } elseif {[IsQuartus]} {
+    set revision [get_current_revision]
+
     if {[catch {execute_module -tool fit} result]} {
       Msg Error "Result: $result\n"
       Msg Error "Place & Route failed. See the report file.\n"
     } else {
       Msg Info "\nINFO: Place & Route was successful for revision $revision.\n"
-    } elseif {[IsLibero]} {
-      Msg Info "Starting implementation flow..."
-      if {[catch {run_tool -name {PLACEROUTE}  }] } {
-        Msg Error "PLACEROUTE FAILED!"
-      } else {
-        Msg Info "PLACEROUTE PASSED."
-      } 
+    }
 
-      # Check timing
-      Msg Info "Run VERIFYTIMING ..."
-      if {[catch {run_tool -name {VERIFYTIMING} -script {$repo_path/Hog/Tcl/integrated/libero_timing.tcl} }] } {
-        Msg CriticalWarning "VERIFYTIMING FAILED!"
-      } else {
-        Msg Info "VERIFYTIMING PASSED \n"
+    if {[catch {execute_module -tool sta -args "--do_report_timing"} result]} {
+      Msg Error "Result: $result\n"
+      Msg Error "Time Quest failed. See the report file.\n"
+    } else {
+      Msg Info "Time Quest was successfully run for revision $revision.\n"
+      load_package report
+      load_report
+      set panel "Timing Analyzer||Timing Analyzer Summary"
+      set device       [ get_report_panel_data -name $panel -col 1 -row_name "Device Name" ]
+      set timing_model [ get_report_panel_data -name $panel -col 1 -row_name "Timing Models" ]
+      set delay_model  [ get_report_panel_data -name $panel -col 1 -row_name "Delay Model" ]
+      #set slack        [ get_timing_analysis_summary_results -slack ]
+      Msg Info "*******************************************************************"
+      Msg Info "Device: $device"
+      Msg Info "Timing Models: $timing_model"
+      Msg Info "Delay Model: $delay_model"
+      Msg Info "Slack:"
+      #Msg Info  $slack
+      Msg Info "*******************************************************************"
+    }
+  } elseif {[IsLibero]} {
+      Msg Info "Starting implementation flow..."
+    if {[catch {run_tool -name {PLACEROUTE}  }] } {
+      Msg Error "PLACEROUTE FAILED!"
+    } else {
+      Msg Info "PLACEROUTE PASSED."
+    } 
+
+    # Check timing
+    Msg Info "Run VERIFYTIMING ..."
+    if {[catch {run_tool -name {VERIFYTIMING} -script {$repo_path/Hog/Tcl/integrated/libero_timing.tcl} }] } {
+      Msg CriticalWarning "VERIFYTIMING FAILED!"
+    } else {
+      Msg Info "VERIFYTIMING PASSED \n"
+    }
+
+    #Go to repository path
+    cd $repo_path
+
+    lassign [GetRepoVersions [file normalize ./Top/$project_name] $repo_path] sha
+    set describe [GetHogDescribe $sha $repo_path]
+    Msg Info "Git describe set to $describe"
+
+    set dst_dir [file normalize "$bin_dir/$project_name\-$describe"]
+    file mkdir $dst_dir/reports
+
+    #Version table
+    if {[file exists $run_folder/versions.txt]} {
+      file copy -force $run_folder/versions.txt $dst_dir
+    } else {
+      Msg Warning "No versions file found in $run_folder/versions.txt"
+    }
+    #Timing file
+    set timing_file_path [file normalize "$repo_path/Projects/timing_libero.txt"]
+    if {[file exists $timing_file_path]} {
+      file copy -force $timing_file_path $dst_dir/reports/Timing.txt
+      set timing_file [open $timing_file_path "r"]
+      set status_file [open "$dst_dir/timing.txt" "w"]
+      puts $status_file "## $project_name Timing summary\n\n"
+      puts $status_file "|  |  |"
+      puts $status_file "| --- | --- |"
+      while {[gets $timing_file line] >= 0} {
+        if { [string match "SUMMARY" $line] } {
+          while {[gets $timing_file line] >= 0} {
+            if { [string match "END SUMMARY" $line ] } {
+              break
+            }
+            if {[string first ":" $line] == -1} {
+              continue
+            }
+            set out_string "| [string map {: | } $line] |"
+            puts $status_file "$out_string"
+          }
+        }
       }
+    } else {
+      Msg Warning "No timing file found, not a problem if running locally"
     }
   } elseif {[IsDiamond]} {
+    set force_rst ""
+    if {$reset == 1} {
+      set force_rst "-forceOne"
+    }
+    prj_run Map $force_rst
+    prj_run PAR $force_rst
 
+    # TODO: Check Timing for Diamond
   }
-
-
-
 }
 
+
+# @brief Launch the simulation (Vivado only for the moment)
+#
+# @param[in] project_name The name of the project
+# @param[in] simsets      The simulation sets to simulate
+# @param[in] repo_path    The main path of the git repository
+proc LaunchSimulation {project_name {simsets ""} {repo_path .}} {
+  if {[IsVivado]} {
+    ##################### SIMULATION #######################
+    set project [file tail $project_name]
+    set main_sim_folder [file normalize "$repo_path/Projects/$project_name/$project.sim/"]
+    set simsets_todo ""
+    if {$simsets != ""} {
+      set simsets_todo [split $simsets ","]
+      Msg Info "Will run only the following simsets (if they exist): $simsets_todo"
+    }
+
+    set failed []
+    set success []
+    set sim_dic [dict create]
+    # Default behaviour, dont use simpass string
+    set use_simpass_str 0
+
+    # Get simulation properties from conf file
+    set proj_dir [file normalize $repo_path/Top/$project_name]
+    set sim_file [file normalize $proj_dir/sim.conf]
+    if {[file exists $sim_file]} {
+      Msg Info "Parsing simulation configuration file $sim_file..."
+      SetGlobalVar SIM_PROPERTIES [ReadConf $sim_file]
+    } else {
+      SetGlobalVar SIM_PROPERTIES ""
+    }
+
+    # Get Hog specific simulation properties
+    if {[dict exists $globalSettings::SIM_PROPERTIES hog]} {
+      set hog_sim_props [dict get $globalSettings::SIM_PROPERTIES hog]
+      dict for {prop_name prop_val} $hog_sim_props {
+        # If HOG_SIMPASS_STR is set, use the HOG_SIMPASS_STR string to search for in logs, after simulation is done
+        if { $prop_name == "HOG_SIMPASS_STR" && $prop_val != "" } {
+          Msg Info "Setting simulation pass string as '$prop_val'"
+          set use_simpass_str 1
+          set simpass_str $prop_val
+        }
+      }
+    }
+
+    Msg Info "Retrieving list of simulation sets..."
+    foreach s [get_filesets] {
+      set type [get_property FILESET_TYPE $s]
+      if {$type eq "SimulationSrcs"} {
+        if {$simsets_todo != "" && $s ni $simsets_todo} {
+          Msg Info "Skipping $s as it was not specified with the -simset option..."
+          continue
+        }
+        if {[file exists "$repo_path/Top/$project_name/list/$s.sim"]} {
+          set fp [open "$repo_path/Top/$project_name/list/$s.sim" r]
+          set file_data [read $fp]
+          close $fp
+          set data [split $file_data "\n"]
+          set n [llength $data]
+          Msg Info "$n lines read from $s.sim"
+
+          set firstline [lindex $data 0]
+          # Find simulator
+          if { [regexp {^ *\#Simulator} $firstline] } {
+            set simulator_prop [regexp -all -inline {\S+} $firstline]
+            set simulator [string tolower [lindex $simulator_prop 1]]
+          } else {
+            Msg Warning "Simulator not set in $s.sim. The first line of $s.sim should be #Simulator <SIMULATOR_NAME>, where <SIMULATOR_NAME> can be xsim, questa, modelsim, riviera, activehdl, ies, or vcs, e.g. #Simulator questa. Setting simulator by default as xsim."
+            set simulator "xsim"
+          }
+          if {$simulator eq "skip_simulation"} {
+            Msg Info "Skipping simulation for $s"
+            continue
+          }
+          set_property "target_simulator" $simulator [current_project]
+          Msg Info "Creating simulation scripts for $s..."
+          if { [file exists $repo_path/Top/$project_name/pre-simulation.tcl] } {
+            Msg Info "Running $repo_path/Top/$project_name/pre-simulation.tcl"
+            source $repo_path/Top/$project_name/pre-simulation.tcl
+          }
+          if { [file exists $repo_path/Top/$project_name/pre-$s-simulation.tcl] } {
+            Msg Info "Running $repo_path/Top/$project_name/pre-$s-simulation.tcl"
+            source Running $repo_path/Top/$project_name/pre-$s-simulation.tcl
+          }
+          current_fileset -simset $s
+          set sim_dir $main_sim_folder/$s/behav
+          set sim_output_logfile $sim_dir/xsim/simulate.log
+          if { ([string tolower $simulator] eq "xsim") } {
+            set sim_name "xsim:$s"
+            if { [catch { launch_simulation -simset [get_filesets $s] } log] } {
+              # Explicitly close xsim simulation, without closing Vivado
+              close_sim
+              Msg CriticalWarning "Simulation failed for $s, error info: $::errorInfo"
+              lappend failed $sim_name
+            } else {
+              # Explicitly close xsim simulation, without closing Vivado
+              close_sim
+              # If we use simpass_str, search for the string and update return code from simulation if the string is not found in simulation log
+              if {$use_simpass_str == 1} {
+                # Get the simulation output log
+                # Note, xsim should always output simulation.log, hence no check for existence
+                set file_desc [open $sim_output_logfile r]
+                set log [read $file_desc]
+                close $file_desc
+
+                Msg Info "Searching for simulation pass string: '$simpass_str'"
+                if {[string first $simpass_str $log] == -1} {
+                  Msg CriticalWarning "Simulation failed for $s, error info: '$simpass_str' NOT found!"
+                  lappend failed $sim_name
+                } else {
+                  # HOG_SIMPASS_STR found, success
+                  lappend success $sim_name
+                }
+              } else { #Rely on simulator exit code
+                lappend success $sim_name
+              }
+            }
+          } else {
+            Msg Info "Simulation library path is set to $lib_path."
+            set simlib_ok 1
+            if {!([file exists $lib_path])} {
+              Msg Warning "Could not find simulation library path: $lib_path, $simulator simulation will not work."
+              set simlib_ok 0
+            }
+
+            if {$simlib_ok == 1} {
+              set_property "compxlib.${simulator}_compiled_library_dir" [file normalize $lib_path] [current_project]
+              launch_simulation -scripts_only -simset [get_filesets $s]
+              set top_name [get_property TOP $s]
+              set sim_script  [file normalize $sim_dir/$simulator/]
+              Msg Info "Adding simulation script location $sim_script for $s..."
+              lappend sim_scripts $sim_script
+              dict append sim_dic $sim_script $s
+            } else {
+              Msg Error "Cannot run $simulator simulations without a valid library path"
+              exit -1
+            }
+          }
+        }
+      }
+    }
+
+    if {[info exists sim_scripts]} {
+      # Only for modelsim/questasim
+      Msg Info "Generating IP simulation targets, if any..."
+
+      foreach ip [get_ips] {
+        generate_target simulation -quiet $ip
+      }
+
+
+      Msg Status "\n\n"
+      Msg Info "====== Starting simulations runs ======"
+      Msg Status "\n\n"
+
+      foreach s $sim_scripts {
+        cd $s
+        set cmd ./compile.sh
+        Msg Info " ************* Compiling: $s  ************* "
+        lassign [ExecuteRet $cmd] ret log
+        set sim_name "comp:[dict get $sim_dic $s]"
+        if {$ret != 0} {
+          Msg CriticalWarning "Compilation failed for $s, error info: $::errorInfo"
+          lappend failed $sim_name
+        } else {
+          lappend success $sim_name
+        }
+        Msg Info "###################### Compilation log starts ######################"
+        Msg Info "\n\n$log\n\n"
+        Msg Info "######################  Compilation log ends  ######################"
+
+
+        if { [file exists "./elaborate.sh"] } {
+          set cmd ./elaborate.sh
+          Msg Info " ************* Elaborating: $s  ************* "
+          lassign [ExecuteRet $cmd] ret log
+          set sim_name "elab:[dict get $sim_dic $s]"
+          if {$ret != 0} {
+            Msg CriticalWarning "Elaboration failed for $s, error info: $::errorInfo"
+            lappend failed $sim_name
+          } else {
+            lappend success $sim_name
+          }
+          Msg Info "###################### Elaboration log starts ######################"
+          Msg Info "\n\n$log\n\n"
+          Msg Info "######################  Elaboration log ends  ######################"
+        }
+        set cmd ./simulate.sh
+        Msg Info " ************* Simulating: $s  ************* "
+        lassign [ExecuteRet $cmd] ret log
+
+
+        # If SIMPASS_STR is set, search log for the string
+        if {$use_simpass_str == 1} {
+          if {[string first $simpass_str $log] == -1} {
+            set ret 1
+          }
+        } else {
+          Msg Debug "Simulation pass string not set, relying on simulator exit code."
+        }
+          
+        
+
+        set sim_name "sim:[dict get $sim_dic $s]"
+        if {$ret != 0} {
+          Msg CriticalWarning "Simulation failed for $s, error info: $::errorInfo"
+          lappend failed $sim_name
+        } else {
+          lappend success $sim_name
+        }
+        Msg Info "###################### Simulation log starts ######################"
+        Msg Info "\n\n$log\n\n"
+        Msg Info "######################  Simulation log ends  ######################"
+
+      }
+    }
+
+
+    if {[llength $success] > 0} {
+      set successes [join $success "\n"]
+      Msg Info "The following simulation sets were successful:\n\n$successes\n\n"
+    }
+
+    if {[llength $failed] > 0} {
+      set failures [join $failed "\n"]
+      Msg Error "The following simulation sets have failed:\n\n$failures\n\n"
+      exit -1
+    } elseif {[llength $success] > 0} {
+      Msg Info "All the [llength $success] compilations, elaborations and simulations were successful."
+    }
+
+    Msg Info "Simulation done."
+  } else {
+    Msg Warning "Simulation is not yet supported for [GetIDEName]."
+  }
+}
 
 # @brief Launch the synthesis, for the current IDE and project
 # 
@@ -3678,7 +4123,7 @@ proc LaunchSynthesis {reset do_create run_folder project_name {repo_path .} {ext
     if {[IsISE]} {
       source $repo_path/Hog/Tcl/integrated/pre-synthesis.tcl
     }
-    launch_runs synth_1  -jobs $options(njobs) -dir $run_folder
+    launch_runs synth_1  -jobs $njobs -dir $run_folder
     wait_on_run synth_1
     set prog [get_property PROGRESS [get_runs synth_1]]
     set status [get_property STATUS [get_runs synth_1]]
@@ -3730,8 +4175,8 @@ proc LaunchSynthesis {reset do_create run_folder project_name {repo_path .} {ext
     # TODO: Missing reset
     set project [file tail [file rootname $project_name]]
 
-    Msg Info "Number of jobs set to $options(njobs)."
-    set_global_assignment -name NUM_PARALLEL_PROCESSORS $options(njobs)
+    Msg Info "Number of jobs set to $njobs."
+    set_global_assignment -name NUM_PARALLEL_PROCESSORS $njobs
     load_package flow
 
     # keep track of the current revision and of the top level entity name
@@ -3781,9 +4226,13 @@ proc LaunchSynthesis {reset do_create run_folder project_name {repo_path .} {ext
     }
   } elseif {[IsDiamond]} {
     # TODO: Missing Reset
-    prj_run Synthesis
-    if {[prj_syn] == "simplify"} {
-      
+    set force_rst ""
+    if {$reset == 1} {
+      set force_rst "-forceOne"
+    }
+    prj_run Synthesis $force_rst
+    if {[prj_syn] == "synplify"} {
+      prj_run Translate $force_rst
     }
   } else {
     Msg Error "Impossible condition. You need to run this in an IDE."
@@ -4702,10 +5151,7 @@ proc WriteGenerics {mode repo_path design date timee commit version top_hash top
     }
   } elseif {[IsDiamond]} {
     Msg Info "Setting Diamond parameters/generics one by one..."
-    foreach generic $generic_string {
-      Msg Debug "Setting Diamond generic: $generic"
-      
-    }
+    prj_impl option -impl Implementation0 HDL_PARAM "$generic_string"
   }
 }
 

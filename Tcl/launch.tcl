@@ -247,7 +247,7 @@ set run_folder [file normalize "$repo_path/Projects/$project_name/$project.runs/
 if {[IsLibero]} {
   set run_folder [file normalize "$repo_path/Projects/$project_name/"]
 }
-set main_sim_folder [file normalize "$repo_path/Projects/$project_name/$project.sim/"]
+
 set check_syntax 0
 set ext_path ""
 set simlib_path ""
@@ -318,7 +318,7 @@ if { $options(verbose) == 1 } {
   variable ::DEBUG_MODE 1
 }
 
-Msg Info "Number of jobs set to $options(njobs)."
+# Msg Info "Number of jobs set to $options(njobs)."
 
 ############## Quartus ########################
 set argv ""
@@ -341,7 +341,7 @@ if {[IsISE]} {
   set project_file "$project_path/$project.qpf"
 } elseif {[IsLibero]} {
   set project_file [file normalize $repo_path/Projects/$project_name/$project.prjx]
-} elseif [[IsDiamond]] {
+} elseif {[IsDiamond]} {
   sys_install version  
   set project_file [file normalize $repo_path/Projects/$project_name/$project.ldf]
 }
@@ -381,444 +381,86 @@ if { $check_syntax == 1 } {
 
 ######### LaunchSynthesis ########
 if {$do_synthesis == 1} {
-  LaunchSynthesis $reset $do_create $run_folder $project_name $repo_path $ext_path $njobs 
+  LaunchSynthesis $reset $do_create $run_folder $project_name $repo_path $ext_path $options(njobs) 
 }
+
+if {$do_implementation == 1 } {
+  LaunchImplementation $reset $do_create $run_folder $project_name $repo_path $options(njobs) 
+}
+
+
+if {$do_bitstream == 1} {
+  GenerateBitstream $run_folder $repo_path $options(njobs)
+}
+
+if {$do_simulation == 1} {
+  LaunchSimulation $project_name $simsets $repo_path
+}
+
 
 ########## LaunchImplementation ###################
 
-if {[IsXilinx]} {
+# if {[IsXilinx]} {    
+# } elseif [IsQuartus] {
 
-  if {$do_bitstream == 1} {
-    Msg Info "Starting write bitstream flow..."
-    if {[IsISE]} {
-      # PlanAhead command
-      Msg Info "running pre-bitstream"
-      source  $tcl_path/../../Hog/Tcl/integrated/pre-bitstream.tcl
-      launch_runs impl_1 -to_step Bitgen $options(njobs) -dir $run_folder
-      wait_on_run impl_1
-      Msg Info "running post-bitstream"
-      source  $tcl_path/../../Hog/Tcl/integrated/post-bitstream.tcl
-    } elseif { [string first Vivado [version]] ==0} {
-      # Vivado command
-      launch_runs impl_1 -to_step [BinaryStepName [get_property PART [current_project]]] $options(njobs) -dir $run_folder
-      wait_on_run impl_1
-    }
+#   if { $do_compile == 1 } {
+#     if {[catch {execute_flow -compile} result]} {
+#       Msg Error "Result: $result\n"
+#       Msg Error "Full compile flow failed. See the report file.\n"
+#     } else {
+#       Msg Info "Full compile Flow was successful for revision $revision.\n"
+#     }
+#     if {[file exists "output_files/versions.txt" ]} {
+#       set dst_dir [file normalize "$repo_path/bin/$project_name\-$describe"]
+#       file mkdir $dst_dir
+#       file copy -force "output_files/versions.txt" $dst_dir
+#     }
+#   } else {
 
-    set prog [get_property PROGRESS [get_runs impl_1]]
-    set status [get_property STATUS [get_runs impl_1]]
-    Msg Info "Run: impl_1 progress: $prog, status : $status"
-
-    if {$prog ne "100%"} {
-      Msg Error "Write bitstream error, status is: $status"
-    }
-
-    if {[IsVivado]} {
-      Msg Status "*** Timing summary (again) ***"
-      Msg Status "WNS: $wns"
-      Msg Status "TNS: $tns"
-      Msg Status "WHS: $whs"
-      Msg Status "THS: $ths"
-    }
-  }
-
-  #Go to repository path
-  cd $repo_path
-
-  lassign [GetRepoVersions [file normalize ./Top/$project_name] $repo_path] sha
-  set describe [GetHogDescribe $sha $repo_path]
-  Msg Info "Git describe set to $describe"
-
-  set dst_dir [file normalize "$bin_dir/$project_name\-$describe"]
-
-  file mkdir $dst_dir
-
-  #Version table
-  if {[file exists $run_folder/versions.txt]} {
-    file copy -force $run_folder/versions.txt $dst_dir
-  } else {
-    Msg Warning "No versions file found in $run_folder/versions.txt"
-  }
-  #Timing file
-  set timing_files [ glob -nocomplain "$run_folder/timing_*.txt" ]
-  set timing_file [file normalize [lindex $timing_files 0]]
-
-  if {[file exists $timing_file]} {
-    file copy -force $timing_file $dst_dir/
-  } else {
-    Msg Warning "No timing file found, not a problem if running locally"
-  }
-
-  if {$do_simulation == 1} {
-    ##################### SIMULATION #######################
-    set simsets_todo ""
-    if {$simsets != ""} {
-      set simsets_todo [split $simsets ","]
-      Msg Info "Will run only the following simsets (if they exist): $simsets_todo"
-    }
-
-    set failed []
-    set success []
-    set sim_dic [dict create]
-    # Default behaviour, dont use simpass string
-    set use_simpass_str 0
-
-    # Get simulation properties from conf file
-    set proj_dir [file normalize $repo_path/Top/$project_name]
-    set sim_file [file normalize $proj_dir/sim.conf]
-    if {[file exists $sim_file]} {
-      Msg Info "Parsing simulation configuration file $sim_file..."
-      SetGlobalVar SIM_PROPERTIES [ReadConf $sim_file]
-    } else {
-      SetGlobalVar SIM_PROPERTIES ""
-    }
-
-    # Get Hog specific simulation properties
-    if {[dict exists $globalSettings::SIM_PROPERTIES hog]} {
-      set hog_sim_props [dict get $globalSettings::SIM_PROPERTIES hog]
-      dict for {prop_name prop_val} $hog_sim_props {
-        # If HOG_SIMPASS_STR is set, use the HOG_SIMPASS_STR string to search for in logs, after simulation is done
-        if { $prop_name == "HOG_SIMPASS_STR" && $prop_val != "" } {
-          Msg Info "Setting simulation pass string as '$prop_val'"
-          set use_simpass_str 1
-          set simpass_str $prop_val
-        }
-      }
-    }
-
-
-    Msg Info "Retrieving list of simulation sets..."
-    foreach s [get_filesets] {
-      set type [get_property FILESET_TYPE $s]
-      if {$type eq "SimulationSrcs"} {
-        if {$simsets_todo != "" && $s ni $simsets_todo} {
-          Msg Info "Skipping $s as it was not specified with the -simset option..."
-          continue
-        }
-        if {[file exists "$repo_path/Top/$project_name/list/$s.sim"]} {
-          set fp [open "$repo_path/Top/$project_name/list/$s.sim" r]
-          set file_data [read $fp]
-          close $fp
-          set data [split $file_data "\n"]
-          set n [llength $data]
-          Msg Info "$n lines read from $s.sim"
-
-          set firstline [lindex $data 0]
-          # Find simulator
-          if { [regexp {^ *\#Simulator} $firstline] } {
-            set simulator_prop [regexp -all -inline {\S+} $firstline]
-            set simulator [string tolower [lindex $simulator_prop 1]]
-          } else {
-            Msg Warning "Simulator not set in $s.sim. The first line of $s.sim should be #Simulator <SIMULATOR_NAME>, where <SIMULATOR_NAME> can be xsim, questa, modelsim, riviera, activehdl, ies, or vcs, e.g. #Simulator questa. Setting simulator by default as xsim."
-            set simulator "xsim"
-          }
-          if {$simulator eq "skip_simulation"} {
-            Msg Info "Skipping simulation for $s"
-            continue
-          }
-          set_property "target_simulator" $simulator [current_project]
-          Msg Info "Creating simulation scripts for $s..."
-          if { [file exists $repo_path/Top/$project_name/pre-simulation.tcl] } {
-            Msg Info "Running $repo_path/Top/$project_name/pre-simulation.tcl"
-            source $repo_path/Top/$project_name/pre-simulation.tcl
-          }
-          if { [file exists $repo_path/Top/$project_name/pre-$s-simulation.tcl] } {
-            Msg Info "Running $repo_path/Top/$project_name/pre-$s-simulation.tcl"
-            source Running $repo_path/Top/$project_name/pre-$s-simulation.tcl
-          }
-          current_fileset -simset $s
-          set sim_dir $main_sim_folder/$s/behav
-          set sim_output_logfile $sim_dir/xsim/simulate.log
-          if { ([string tolower $simulator] eq "xsim") } {
-            set sim_name "xsim:$s"
-            if { [catch { launch_simulation -simset [get_filesets $s] } log] } {
-              # Explicitly close xsim simulation, without closing Vivado
-              close_sim
-              Msg CriticalWarning "Simulation failed for $s, error info: $::errorInfo"
-              lappend failed $sim_name
-            } else {
-              # Explicitly close xsim simulation, without closing Vivado
-              close_sim
-              # If we use simpass_str, search for the string and update return code from simulation if the string is not found in simulation log
-              if {$use_simpass_str == 1} {
-                # Get the simulation output log
-                # Note, xsim should always output simulation.log, hence no check for existence
-                set file_desc [open $sim_output_logfile r]
-                set log [read $file_desc]
-                close $file_desc
-
-                Msg Info "Searching for simulation pass string: '$simpass_str'"
-                if {[string first $simpass_str $log] == -1} {
-                  Msg CriticalWarning "Simulation failed for $s, error info: '$simpass_str' NOT found!"
-                  lappend failed $sim_name
-                } else {
-                  # HOG_SIMPASS_STR found, success
-                  lappend success $sim_name
-                }
-              } else { #Rely on simulator exit code
-                lappend success $sim_name
-              }
-            }
-          } else {
-            Msg Info "Simulation library path is set to $lib_path."
-            set simlib_ok 1
-            if {!([file exists $lib_path])} {
-              Msg Warning "Could not find simulation library path: $lib_path, $simulator simulation will not work."
-              set simlib_ok 0
-            }
-
-            if {$simlib_ok == 1} {
-              set_property "compxlib.${simulator}_compiled_library_dir" [file normalize $lib_path] [current_project]
-              launch_simulation -scripts_only -simset [get_filesets $s]
-              set top_name [get_property TOP $s]
-              set sim_script  [file normalize $sim_dir/$simulator/]
-              Msg Info "Adding simulation script location $sim_script for $s..."
-              lappend sim_scripts $sim_script
-              dict append sim_dic $sim_script $s
-            } else {
-              Msg Error "Cannot run $simulator simulations without a valid library path"
-              exit -1
-            }
-          }
-        }
-      }
-    }
-
-    if {[info exists sim_scripts]} {
-      # Only for modelsim/questasim
-      Msg Info "Generating IP simulation targets, if any..."
-
-      foreach ip [get_ips] {
-        generate_target simulation -quiet $ip
-      }
-
-
-      Msg Status "\n\n"
-      Msg Info "====== Starting simulations runs ======"
-      Msg Status "\n\n"
-
-      foreach s $sim_scripts {
-        cd $s
-        set cmd ./compile.sh
-        Msg Info " ************* Compiling: $s  ************* "
-        lassign [ExecuteRet $cmd] ret log
-        set sim_name "comp:[dict get $sim_dic $s]"
-        if {$ret != 0} {
-          Msg CriticalWarning "Compilation failed for $s, error info: $::errorInfo"
-          lappend failed $sim_name
-        } else {
-          lappend success $sim_name
-        }
-        Msg Info "###################### Compilation log starts ######################"
-        Msg Info "\n\n$log\n\n"
-        Msg Info "######################  Compilation log ends  ######################"
-
-
-        if { [file exists "./elaborate.sh"] } {
-          set cmd ./elaborate.sh
-          Msg Info " ************* Elaborating: $s  ************* "
-          lassign [ExecuteRet $cmd] ret log
-          set sim_name "elab:[dict get $sim_dic $s]"
-          if {$ret != 0} {
-            Msg CriticalWarning "Elaboration failed for $s, error info: $::errorInfo"
-            lappend failed $sim_name
-          } else {
-            lappend success $sim_name
-          }
-          Msg Info "###################### Elaboration log starts ######################"
-          Msg Info "\n\n$log\n\n"
-          Msg Info "######################  Elaboration log ends  ######################"
-        }
-        set cmd ./simulate.sh
-        Msg Info " ************* Simulating: $s  ************* "
-        lassign [ExecuteRet $cmd] ret log
-
-
-        # If SIMPASS_STR is set, search log for the string
-        if {$use_simpass_str == 1} {
-          if {[string first $simpass_str $log] == -1} {
-            set ret 1
-          }
-        } else {
-          Msg Debug "Simulation pass string not set, relying on simulator exit code."
-        }
-          
-        
-
-        set sim_name "sim:[dict get $sim_dic $s]"
-        if {$ret != 0} {
-          Msg CriticalWarning "Simulation failed for $s, error info: $::errorInfo"
-          lappend failed $sim_name
-        } else {
-          lappend success $sim_name
-        }
-        Msg Info "###################### Simulation log starts ######################"
-        Msg Info "\n\n$log\n\n"
-        Msg Info "######################  Simulation log ends  ######################"
-
-      }
-    }
-
-
-    if {[llength $success] > 0} {
-      set successes [join $success "\n"]
-      Msg Info "The following simulation sets were successful:\n\n$successes\n\n"
-    }
-
-    if {[llength $failed] > 0} {
-      set failures [join $failed "\n"]
-      Msg Error "The following simulation sets have failed:\n\n$failures\n\n"
-      exit -1
-    } elseif {[llength $success] > 0} {
-      Msg Info "All the [llength $success] compilations, elaborations and simulations were successful."
-    }
-
-    Msg Info "Simulation done."
-
-  }
-} elseif [IsQuartus] {
-
-  if { $do_compile == 1 } {
-    if {[catch {execute_flow -compile} result]} {
-      Msg Error "Result: $result\n"
-      Msg Error "Full compile flow failed. See the report file.\n"
-    } else {
-      Msg Info "Full compile Flow was successful for revision $revision.\n"
-    }
-    if {[file exists "output_files/versions.txt" ]} {
-      set dst_dir [file normalize "$repo_path/bin/$project_name\-$describe"]
-      file mkdir $dst_dir
-      file copy -force "output_files/versions.txt" $dst_dir
-    }
-  } else {
-
-    #############################
-    # Place & Route
-    #############################
-    if { $do_implementation == 1 } {
+#     #############################
+#     # Place & Route
+#     #############################
+#     if { $do_implementation == 1 } {
       
-      #############################
-      # Generate bitstream
-      #############################
-      if { $do_bitstream == 1 } {
-        if {[catch {execute_module -tool asm} result]} {
-          Msg Error "Result: $result\n"
-          Msg Error "Generate bitstream failed. See the report file.\n"
-        } else {
-          Msg Info "Generate bitstream was successful for revision $revision.\n"
-        }
-      }
-      #############################
-      # Additional tools to be run on the project
-      #############################
-      #TODO
-      if {[catch {execute_module -tool sta -args "--do_report_timing"} result]} {
-        Msg Error "Result: $result\n"
-        Msg Error "Time Quest failed. See the report file.\n"
-      } else {
-        Msg Info "Time Quest was successfully run for revision $revision.\n"
-        load_package report
-        load_report
-        set panel "Timing Analyzer||Timing Analyzer Summary"
-        set device       [ get_report_panel_data -name $panel -col 1 -row_name "Device Name" ]
-        set timing_model [ get_report_panel_data -name $panel -col 1 -row_name "Timing Models" ]
-        set delay_model  [ get_report_panel_data -name $panel -col 1 -row_name "Delay Model" ]
-        #set slack        [ get_timing_analysis_summary_results -slack ]
-        Msg Info "*******************************************************************"
-        Msg Info "Device: $device"
-        Msg Info "Timing Models: $timing_model"
-        Msg Info "Delay Model: $delay_model"
-        Msg Info "Slack:"
-        #Msg Info  $slack
-        Msg Info "*******************************************************************"
-      }
-    }
-  }
+#       #############################
+#       # Generate bitstream
+#       #############################
+#       #############################
+#       # Additional tools to be run on the project
+#       #############################
+#       #TODO
+#       
+#     }
+#   }
 
-  # close project
-  project_close
+#   # close project
+#   
 
-} elseif {[IsLibero]} {
+# } elseif {[IsLibero]} {
 
 
-  ############### IMPL ###################
+#   ############### IMPL ###################
 
-  if {$do_implementation == 1 } {
+#   if {$do_implementation == 1 } {
 
     
 
-    # source $tcl_path/../../Hog/Tcl/integrated/post-implementation.tcl
-
-    # Check timing
-    Msg Info "Run VERIFYTIMING ..."
-    if {[catch {run_tool -name {VERIFYTIMING} -script {Hog/Tcl/integrated/libero_timing.tcl} }] } {
-      Msg CriticalWarning "VERIFYTIMING FAILED!"
-    } else {
-      Msg Info "VERIFYTIMING PASSED \n"
-    }
 
 
-    if {$do_bitstream == 1} {
-      Msg Info "Starting write bitstream flow..."
-      Msg Info "Run GENERATEPROGRAMMINGDATA ..."
-      if {[catch {run_tool -name {GENERATEPROGRAMMINGDATA}  }] } {
-        Msg Error "GENERATEPROGRAMMINGDATA FAILED!"
-      } else {
-        Msg Info "GENERATEPROGRAMMINGDATA PASSED."
-      }
-      Msg Info "Sourcing Hog/Tcl/integrated/post-bitstream.tcl"
-      source $tcl_path/../../Hog/Tcl/integrated/post-bitstream.tcl
-    }
-
-    #Go to repository path
-    cd $repo_path
-
-    lassign [GetRepoVersions [file normalize ./Top/$project_name] $repo_path] sha
-    set describe [GetHogDescribe $sha $repo_path]
-    Msg Info "Git describe set to $describe"
-
-    set dst_dir [file normalize "$bin_dir/$project_name\-$describe"]
-    file mkdir $dst_dir/reports
-
-    #Version table
-    if {[file exists $run_folder/versions.txt]} {
-      file copy -force $run_folder/versions.txt $dst_dir
-    } else {
-      Msg Warning "No versions file found in $run_folder/versions.txt"
-    }
-    #Timing file
-    set timing_file_path [file normalize "$repo_path/Projects/timing_libero.txt"]
-    if {[file exists $timing_file_path]} {
-      file copy -force $timing_file_path $dst_dir/reports/Timing.txt
-      set timing_file [open $timing_file_path "r"]
-      set status_file [open "$dst_dir/timing.txt" "w"]
-      puts $status_file "## $project_name Timing summary\n\n"
-      puts $status_file "|  |  |"
-      puts $status_file "| --- | --- |"
-      while {[gets $timing_file line] >= 0} {
-        if { [string match "SUMMARY" $line] } {
-          while {[gets $timing_file line] >= 0} {
-            if { [string match "END SUMMARY" $line ] } {
-              break
-            }
-            if {[string first ":" $line] == -1} {
-              continue
-            }
-            set out_string "| [string map {: | } $line] |"
-            puts $status_file "$out_string"
-          }
-        }
-      }
-    } else {
-      Msg Warning "No timing file found, not a problem if running locally"
-    }
-
-  }
 
 
-} 
-  prj_project save
-  prj_project close
-} 
+
+#     
+
+#   }
+
+
+# } 
+
+# } 
+
+## CLOSE Projects
+CloseProject
 
 Msg Info "All done."
 cd $old_path

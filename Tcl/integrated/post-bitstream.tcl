@@ -23,7 +23,7 @@ source $tcl_path/hog.tcl
 set repo_path [file normalize "$tcl_path/../../"]
 
 # Import tcllib
-if {[IsLibero]} {
+if {[IsLibero] || [IsDiamond]} {
   if {[info exists env(HOG_TCLLIB_PATH)]} {
     lappend auto_path $env(HOG_TCLLIB_PATH)
   } else {
@@ -113,6 +113,11 @@ if {[IsXilinx]} {
   set drpt_files [glob -nocomplain "$proj_dir/designer/$top_name/*.rpt"]
   set xml_dir [file normalize "$repo_path/xml"]
 
+} elseif {[IsDiamond]} {
+  set proj_dir [file normalize "[pwd]/.."]
+  set proj_name [file tail $proj_dir]
+  set project $proj_name
+  set xml_dir [file normalize "$repo_path/xml"]
 } else {
   #tcl shell
   set work_path $old_path

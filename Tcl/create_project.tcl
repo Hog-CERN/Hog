@@ -133,7 +133,7 @@ proc InitProject {} {
     }
   } elseif {[IsLibero]} {
     if {[file exists $globalSettings::build_dir]} {
-      file delete -force $globalSettings::build_dir§§
+      file delete -force $globalSettings::build_dir
     }
     new_project -location $globalSettings::build_dir -name [file tail $globalSettings::DESIGN] -die $globalSettings::DIE -package $globalSettings::PACKAGE -family $globalSettings::FAMILY -hdl VHDL
   } elseif {[IsDiamond]} {

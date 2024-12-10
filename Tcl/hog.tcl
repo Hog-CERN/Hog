@@ -3825,7 +3825,7 @@ proc LaunchImplementation {reset do_create run_folder project_name {repo_path .}
     set describe [GetHogDescribe $sha $repo_path]
     Msg Info "Git describe set to $describe"
 
-    set dst_dir [file normalize "$bin_dir/$project_name\-$describe"]
+    set dst_dir [file normalize "$repo_path/bin/$project_name\-$describe"]
     file mkdir $dst_dir/reports
 
     #Version table

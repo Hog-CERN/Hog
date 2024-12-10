@@ -3812,7 +3812,7 @@ proc LaunchImplementation {reset do_create run_folder project_name {repo_path .}
 
     # Check timing
     Msg Info "Run VERIFYTIMING ..."
-    if {[catch {run_tool -name {VERIFYTIMING} -script {$repo_path/Hog/Tcl/integrated/libero_timing.tcl} }] } {
+    if {[catch {run_tool -name {VERIFYTIMING} -script {Hog/Tcl/integrated/libero_timing.tcl} }] } {
       Msg CriticalWarning "VERIFYTIMING FAILED!"
     } else {
       Msg Info "VERIFYTIMING PASSED \n"
@@ -4182,7 +4182,7 @@ proc LaunchSynthesis {reset do_create run_folder project_name {repo_path .} {ext
 
     Msg Info "Number of jobs set to $njobs."
     set_global_assignment -name NUM_PARALLEL_PROCESSORS $njobs
-    load_package flow
+
 
     # keep track of the current revision and of the top level entity name
     lassign [GetRepoVersions [file normalize $repo_path/Top/$project_name] $repo_path ] sha

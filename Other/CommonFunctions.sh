@@ -114,10 +114,15 @@ function select_command_from_line() {
     COMMAND_OPT="-nojournal -nolog -mode batch -notrace -source "
     POST_COMMAND_OPT="-tclargs"
   elif [[ $TCL_FIRST_LINE =~ 'libero' ]]; then
-    Msg Info " Recognised Libero SoC project"
+    Msg Info "Recognised Libero SoC project"
     COMMAND="libero"
     COMMAND_OPT="SCRIPT:"
     POST_COMMAND_OPT="SCRIPT_ARGS:"
+  elif [[ $TCL_FIRST_LINE =~ 'diamond' ]]; then
+    Msg Info "Recognised Lattice Diamond project"
+    COMMAND="diamondc"
+    COMMAND_OPT=" "
+    POST_COMMAND_OPT=" "
   else
     Msg Warning " You should write #vivado, #quartus or #planahead as first line in your hog.conf file or project Tcl file, assuming Vivado... "
     Msg Info " Recognised Vivado project"

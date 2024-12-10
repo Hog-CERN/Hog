@@ -337,6 +337,7 @@ if {[IsISE]} {
     return 1
   } else {
     Msg Info "Loaded package ::quartus::project"
+    load_package flow
   }
   set project_file "$project_path/$project.qpf"
 } elseif {[IsLibero]} {

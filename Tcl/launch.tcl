@@ -376,7 +376,7 @@ if {($proj_found == 0 || $recreate == 1) && ($do_synthesis == 1 || $do_create ==
 ########## CHECK SYNTAX ###########
 if { $check_syntax == 1 } {
   Msg Info "Checking syntax for project $project_name..."
-  CheckSyntax $project_name
+  CheckSyntax $project_name $repo_path
 }
 
 ######### LaunchSynthesis ########

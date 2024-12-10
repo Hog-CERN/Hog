@@ -395,7 +395,7 @@ if {$do_bitstream == 1} {
 }
 
 if {$do_simulation == 1} {
-  LaunchSimulation $project_name $simsets $repo_path
+  LaunchSimulation $project_name $lib_path $simsets $repo_path
 }
 
 ## CLOSE Projects

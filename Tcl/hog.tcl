@@ -3876,9 +3876,10 @@ proc LaunchImplementation {reset do_create run_folder project_name {repo_path .}
 # @brief Launch the simulation (Vivado only for the moment)
 #
 # @param[in] project_name The name of the project
+# @param[in] lib_path     The path to the simulation libraries
 # @param[in] simsets      The simulation sets to simulate
 # @param[in] repo_path    The main path of the git repository
-proc LaunchSimulation {project_name {simsets ""} {repo_path .}} {
+proc LaunchSimulation {project_name lib_path {simsets ""} {repo_path .}} {
   if {[IsVivado]} {
     ##################### SIMULATION #######################
     set project [file tail $project_name]

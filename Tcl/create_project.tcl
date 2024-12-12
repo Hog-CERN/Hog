@@ -1016,5 +1016,9 @@ proc CreateProject args {
     cd $old_path
   }
 
+  if {[IsLibero]} {
+    save_project
+  }
+
   Msg Info "Project $globalSettings::DESIGN created successfully in [Relative $globalSettings::repo_path $globalSettings::build_dir]."
 }

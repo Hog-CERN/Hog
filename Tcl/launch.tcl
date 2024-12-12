@@ -111,7 +111,7 @@ set default_commands {
     set do_ipbus_xml 1
   }
 
-  
+
   default {
     Msg Status "ERROR: Unknown directive $directive.\n\n[cmdline::usage $parameters $usage]"
     exit 1
@@ -163,7 +163,7 @@ if {$cmd == -1} {
       set xml_dst "../$project\_xml"
       Msg Info "Using default destination $xml_dst..."
     }
-    
+
     if {[llength [glob -nocomplain $proj_dir/list/*.ipb]] > 0 } {
       if {![file exists $xml_dst]} {
 	Msg Info "$xml_dst directory not found, creating it..."
@@ -343,7 +343,7 @@ if {[IsISE]} {
 } elseif {[IsLibero]} {
   set project_file [file normalize $repo_path/Projects/$project_name/$project.prjx]
 } elseif {[IsDiamond]} {
-  sys_install version  
+  sys_install version
   set project_file [file normalize $repo_path/Projects/$project_name/$project.ldf]
 }
 
@@ -368,7 +368,7 @@ if {($proj_found == 0 || $recreate == 1) && ($do_synthesis == 1 || $do_create ==
 } else {
   Msg Info "Opening existing project file $project_file..."
   if {[IsXilinx]} {
-    file mkdir "$repo_path/Projects/$project_name/$project.gen/sources_1"  
+    file mkdir "$repo_path/Projects/$project_name/$project.gen/sources_1"
   }
   OpenProject $project_file $repo_path
 }
@@ -377,16 +377,16 @@ if {($proj_found == 0 || $recreate == 1) && ($do_synthesis == 1 || $do_create ==
 ########## CHECK SYNTAX ###########
 if { $check_syntax == 1 } {
   Msg Info "Checking syntax for project $project_name..."
-  CheckSyntax $project_name $repo_path
+  CheckSyntax $project_name $repo_path $project_file
 }
 
 ######### LaunchSynthesis ########
 if {$do_synthesis == 1} {
-  LaunchSynthesis $reset $do_create $run_folder $project_name $repo_path $ext_path $options(njobs) 
+  LaunchSynthesis $reset $do_create $run_folder $project_name $repo_path $ext_path $options(njobs)
 }
 
 if {$do_implementation == 1 } {
-  LaunchImplementation $reset $do_create $run_folder $project_name $repo_path $options(njobs) 
+  LaunchImplementation $reset $do_create $run_folder $project_name $repo_path $options(njobs)
 }
 
 

@@ -452,6 +452,9 @@ proc AddHogFiles { libraries properties filesets } {
             Msg Debug "Adding source $f to library $rootlib..."
             create_links -library $rootlib -hdl_source $f
           }
+        } elseif {$ext == ".sim"} {
+          Msg Debug "Adding stimulus file $f to library..."
+          create_links -library $rootlib -stimulus $f
         }
         build_design_hierarchy
         foreach cur_file $lib_files {
@@ -478,17 +481,17 @@ proc AddHogFiles { libraries properties filesets } {
             set top [lindex [regexp -inline {top\s*=\s*(.+?)\y.*} $props] 1]
             if { $top != "" } {
               Msg Info "Setting $top as top module for the project..."
-              set globalSettings::synth_top_module $top            
+              set globalSettings::synth_top_module $top
             }
           }
         } elseif {$ext == ".sim"} {
           foreach f $lib_files {
-            Msg Debug "Diamond Adding source $f to library $rootlib..."
-            prj_src add -work $rootlib -simulate_only $f 
+            Msg Debug "Diamond Adding simulation file $f to library $rootlib..."
+            prj_src add -work $rootlib -simulate_only $f
           }
         }
 
-        
+
       }
     # Closing library loop
     }
@@ -551,17 +554,18 @@ proc BinaryStepName {part} {
 }
 
 # @brief Check the syntax of the source files in the
-# 
+#
 # @param[in] project_name the name of the project
 # @param[in] repo_path    The main path of the git repository
-proc CheckSyntax { project_name repo_path} {
+# @param[in] project_file The project file (for Libero)
+proc CheckSyntax { project_name repo_path {project_file ""}} {
   if {[IsVivado]} {
     set syntax [check_syntax -return_string]
     if {[string first "CRITICAL" $syntax ] != -1} {
       check_syntax
       exit 1
     }
-  } elseif {[IsQuartus]} {  
+  } elseif {[IsQuartus]} {
     lassign [GetHogFiles -list_files "*.src" "$repo_path/Top/$project_name/list/" $repo_path] src_files dummy
     dict for {lib files} $src_files {
       foreach f $files {
@@ -580,6 +584,16 @@ proc CheckSyntax { project_name repo_path} {
         }
       }
     }
+  } elseif {[IsLibero]} {
+    lassign [GetProjectFiles $project_file] prjLibraries prjProperties prjSimLibraries prjConstraints prjSrcSets prjSimSets prjConSets
+    dict for {lib sources} $prjLibraries {
+      if {[file extension $lib] == ".src"} {
+        foreach f $sources {
+          Msg Info "Checking Syntax of $f"
+          check_hdl -file $f
+        }
+      }
+    }
   } else {
     Msg Info "The Checking Syntax is not supported by this IDE. Skipping..."
   }
@@ -588,7 +602,7 @@ proc CheckSyntax { project_name repo_path} {
 # Close the open project
 proc CloseProject {} {
   if {[IsXilinx]} {
-    
+
   } elseif {[IsQuartus]} {
     project_close
   } elseif {[IsLibero]} {
@@ -1517,9 +1531,9 @@ proc FormatGeneric {generic} {
 #
 # @param[in] project_name The name of the project
 # @param[in] run_folder   The path where to run the implementation
-# @param[in] repo_path    The main path of the git repository 
-# @param[in] njobs        The number of CPU jobs to run in parallel 
-# 
+# @param[in] repo_path    The main path of the git repository
+# @param[in] njobs        The number of CPU jobs to run in parallel
+#
 proc GenerateBitstream {{run_folder ""} {repo_path .} {njobs 1}} \
 {
   Msg Info "Starting write bitstream flow..."
@@ -1537,7 +1551,7 @@ proc GenerateBitstream {{run_folder ""} {repo_path .} {njobs 1}} \
       launch_runs impl_1 -to_step [BinaryStepName [get_property PART [current_project]]] $njobs -dir $run_folder
       wait_on_run impl_1
     }
-  
+
 
     set prog [get_property PROGRESS [get_runs impl_1]]
     set status [get_property STATUS [get_runs impl_1]]
@@ -2220,6 +2234,7 @@ proc GetOptions {argv parameters} {
 
 # return [list $libraries $properties $simlibraries $constraints $srcsets $simsets $consets]
 ## @ brief Returns a list of 7 dictionaries: libraries, properties, constraints, and filesets for sources and simulations
+#
 #   The returned dictionaries are libraries, properties, simlibraries, constraints, srcsets, simsets, consets
 # - libraries and simlibraries have the library name as keys and a list of filenames as values
 # - properties has as file names as keys and a list of properties as values
@@ -2228,12 +2243,12 @@ proc GetOptions {argv parameters} {
 # - simsets is a dictionary with a simset name as a key (e.g. sim_1) and a list of libraries as value
 # - consets is a dictionary with a constraints file sets name as a key (e.g. constr_1) and a list of constraint "libraries" (sources.con)
 #
-# Files, libraries and properties are extracted from the current Vivado project
+# Files, libraries and properties are extracted from the current project
 #
+# @param[in] project_file The project file (for Libero and Diamond)
 # @return A list of 7 dictionaries: libraries, properties, constraints, and filesets for sources and simulations
-proc GetProjectFiles {} {
+proc GetProjectFiles {{project_file ""}} {
 
-  set all_filesets [get_filesets]
   set libraries [dict create]
   set simlibraries [dict create]
   set constraints [dict create]
@@ -2241,168 +2256,230 @@ proc GetProjectFiles {} {
   set consets [dict create]
   set srcsets [dict create]
   set simsets [dict create]
-  set simulator [get_property target_simulator [current_project]]
-  set top [get_property "top"  [current_fileset]]
-  set topfile [GetTopFile]
-  dict lappend properties $topfile "top=$top"
 
-  foreach fs $all_filesets {
-    if {$fs == "utils_1"} {
-      # Skipping utility fileset
-      continue
-    }
+  if {[IsVivado]} {
+    set all_filesets [get_filesets]
+    set simulator [get_property target_simulator [current_project]]
+    set top [get_property "top"  [current_fileset]]
+    set topfile [GetTopFile]
+    dict lappend properties $topfile "top=$top"
 
-    set all_files [get_files -quiet -of_objects [get_filesets $fs]]
-    set fs_type [get_property FILESET_TYPE [get_filesets $fs]]
-
-    if {$fs_type == "BlockSrcs"} {
-      # Vivado creates for each ip a blockset... Let's redirect to sources_1
-      set dict_fs "sources_1"
-    } else {
-      set dict_fs $fs
-    }
-    foreach f $all_files {
-      # Ignore files that are part of the vivado/planahead project but would not be reflected
-      # in list files (e.g. generated products from ip cores)
-      set ignore 0
-      # Generated files point to a parent composite file;
-      # planahead does not have an IS_GENERATED property
-      if { [IsInList "IS_GENERATED" [list_property [GetFile $f $fs]]]} {
-        if { [lindex [get_property  IS_GENERATED [GetFile $f $fs]] 0] != 0} {
-          set ignore 1
-        }
+    foreach fs $all_filesets {
+      if {$fs == "utils_1"} {
+        # Skipping utility fileset
+        continue
       }
 
-      if {[get_property FILE_TYPE [GetFile $f $fs]] == "Configuration Files"} {
-        set ignore 1
+      set all_files [get_files -quiet -of_objects [get_filesets $fs]]
+      set fs_type [get_property FILESET_TYPE [get_filesets $fs]]
+
+      if {$fs_type == "BlockSrcs"} {
+        # Vivado creates for each ip a blockset... Let's redirect to sources_1
+        set dict_fs "sources_1"
+      } else {
+        set dict_fs $fs
       }
-
-
-      if { [IsInList "CORE_CONTAINER" [list_property [GetFile $f $fs]]]} {
-        if {[get_property CORE_CONTAINER [GetFile $f $fs]] != ""} {
-          if { [file extension $f] == ".xcix"} {
-            set f [get_property CORE_CONTAINER [GetFile $f $fs]]
-          } else {
+      foreach f $all_files {
+        # Ignore files that are part of the vivado/planahead project but would not be reflected
+        # in list files (e.g. generated products from ip cores)
+        set ignore 0
+        # Generated files point to a parent composite file;
+        # planahead does not have an IS_GENERATED property
+        if { [IsInList "IS_GENERATED" [list_property [GetFile $f $fs]]]} {
+          if { [lindex [get_property  IS_GENERATED [GetFile $f $fs]] 0] != 0} {
             set ignore 1
           }
         }
-      }
 
-      if {[IsInList "SCOPED_TO_REF" [list_property [GetFile $f $fs]]]} {
-        if {[get_property SCOPED_TO_REF [GetFile $f $fs]] != ""} {
-          dict lappend properties $f "scoped_to_ref=[get_property SCOPED_TO_REF [GetFile $f $fs]]"
+        if {[get_property FILE_TYPE [GetFile $f $fs]] == "Configuration Files"} {
+          set ignore 1
         }
-      }
 
-      if {[IsInList "SCOPED_TO_CELLS" [list_property [GetFile $f $fs]]]} {
-        if {[get_property SCOPED_TO_CELLS [GetFile $f $fs]] != ""} {
-          dict lappend properties $f "scoped_to_cells=[get_property SCOPED_TO_CELLS [GetFile $f $fs]]"
+
+        if { [IsInList "CORE_CONTAINER" [list_property [GetFile $f $fs]]]} {
+          if {[get_property CORE_CONTAINER [GetFile $f $fs]] != ""} {
+            if { [file extension $f] == ".xcix"} {
+              set f [get_property CORE_CONTAINER [GetFile $f $fs]]
+            } else {
+              set ignore 1
+            }
+          }
         }
-      }
 
-      if {[IsInList "PARENT_COMPOSITE_FILE" [list_property [GetFile $f $fs]]]} {
-        set ignore 1
-      }
-
-      # Ignore nocattrs.dat for Versal
-      if {[file tail $f] == "nocattrs.dat"} {
-        set ignore 1
-      }
-
-      if {!$ignore} {
-        if {[file extension $f] != ".coe"} {
-          set f [file normalize $f]
+        if {[IsInList "SCOPED_TO_REF" [list_property [GetFile $f $fs]]]} {
+          if {[get_property SCOPED_TO_REF [GetFile $f $fs]] != ""} {
+            dict lappend properties $f "scoped_to_ref=[get_property SCOPED_TO_REF [GetFile $f $fs]]"
+          }
         }
-        lappend files $f
-        set type  [get_property FILE_TYPE [GetFile $f $fs]]
-        # Added a -quiet because some files (.v, .sv) don't have a library
-        set lib [get_property -quiet LIBRARY [GetFile $f $fs]]
 
-        # Type can be complex like VHDL 2008, in that case we want the second part to be a property
-        Msg Debug "File $f Extension [file extension $f] Type [lindex $type 0]"
+        if {[IsInList "SCOPED_TO_CELLS" [list_property [GetFile $f $fs]]]} {
+          if {[get_property SCOPED_TO_CELLS [GetFile $f $fs]] != ""} {
+            dict lappend properties $f "scoped_to_cells=[get_property SCOPED_TO_CELLS [GetFile $f $fs]]"
+          }
+        }
 
-        if {[string equal [lindex $type 0] "VHDL"] && [llength $type] == 1} {
-          set prop "93"
-        } elseif  {[string equal [lindex $type 0] "Block"] && [string equal [lindex $type 1] "Designs"]} {
-          set type "IP"
-          set prop ""
-        } elseif {[string equal $type "SystemVerilog"] && [file extension $f] != ".sv"} {
-          set prop "SystemVerilog"
-        } elseif {[string equal [lindex $type 0] "XDC"] && [file extension $f] != ".xdc"} {
-          set prop "XDC"
-        } elseif {[string equal $type "Verilog Header"] && [file extension $f] != ".vh" && [file extension $f] != ".svh"} {
-          set prop "verilog_header"
-        } elseif {[string equal $type "Verilog Template"] && [file extension $f] == ".v" && [file extension $f] != ".sv"} {
-          set prop "verilog_template"
-        } else {
-          set type [lindex $type 0]
-          set prop ""
+        if {[IsInList "PARENT_COMPOSITE_FILE" [list_property [GetFile $f $fs]]]} {
+          set ignore 1
         }
-        #If type is "VHDL 2008" we will keep only VHDL
-        if {![string equal $prop ""]} {
-          dict lappend properties $f $prop
+
+        # Ignore nocattrs.dat for Versal
+        if {[file tail $f] == "nocattrs.dat"} {
+          set ignore 1
         }
-        # check where the file is used and add it to prop
-        if {[string equal $fs_type "SimulationSrcs"]} {
-          # Simulation sources
-          if {[string equal $type "VHDL"] } {
-            set library "${lib}.sim"
+
+        if {!$ignore} {
+          if {[file extension $f] != ".coe"} {
+            set f [file normalize $f]
+          }
+          lappend files $f
+          set type  [get_property FILE_TYPE [GetFile $f $fs]]
+          # Added a -quiet because some files (.v, .sv) don't have a library
+          set lib [get_property -quiet LIBRARY [GetFile $f $fs]]
+
+          # Type can be complex like VHDL 2008, in that case we want the second part to be a property
+          Msg Debug "File $f Extension [file extension $f] Type [lindex $type 0]"
+
+          if {[string equal [lindex $type 0] "VHDL"] && [llength $type] == 1} {
+            set prop "93"
+          } elseif  {[string equal [lindex $type 0] "Block"] && [string equal [lindex $type 1] "Designs"]} {
+            set type "IP"
+            set prop ""
+          } elseif {[string equal $type "SystemVerilog"] && [file extension $f] != ".sv"} {
+            set prop "SystemVerilog"
+          } elseif {[string equal [lindex $type 0] "XDC"] && [file extension $f] != ".xdc"} {
+            set prop "XDC"
+          } elseif {[string equal $type "Verilog Header"] && [file extension $f] != ".vh" && [file extension $f] != ".svh"} {
+            set prop "verilog_header"
+          } elseif {[string equal $type "Verilog Template"] && [file extension $f] == ".v" && [file extension $f] != ".sv"} {
+            set prop "verilog_template"
           } else {
-            set library "others.sim"
+            set type [lindex $type 0]
+            set prop ""
+          }
+          #If type is "VHDL 2008" we will keep only VHDL
+          if {![string equal $prop ""]} {
+            dict lappend properties $f $prop
+          }
+          # check where the file is used and add it to prop
+          if {[string equal $fs_type "SimulationSrcs"]} {
+            # Simulation sources
+            if {[string equal $type "VHDL"] } {
+              set library "${lib}.sim"
+            } else {
+              set library "others.sim"
+            }
+
+            if {[IsInList $library [DictGet $simsets $dict_fs]]==0} {
+              dict lappend simsets $dict_fs $library
+            }
+
+            dict lappend simlibraries $library $f
+
+          } elseif {[string equal $type "VHDL"] } {
+            # VHDL files (both 2008 and 93)
+            if {[IsInList "${lib}.src" [DictGet $srcsets $dict_fs]]==0} {
+              dict lappend srcsets $dict_fs "${lib}.src"
+            }
+            dict lappend libraries "${lib}.src" $f
+          } elseif {[string first "IP" $type] != -1} {
+            # IPs
+            if {[IsInList "ips.src" [DictGet $srcsets $dict_fs]]==0} {
+              dict lappend srcsets $dict_fs "ips.src"
+            }
+            dict lappend libraries "ips.src" $f
+            Msg Debug "Appending $f to ips.src"
+          } elseif {[string equal $fs_type "Constrs"]} {
+            # Constraints
+            if {[IsInList "sources.con" [DictGet $consets $dict_fs]]==0} {
+              dict lappend consets $dict_fs "sources.con"
+            }
+            dict lappend constraints "sources.con" $f
+          } else {
+            # Verilog and other files
+            if {[IsInList "others.src" [DictGet $srcsets $dict_fs]]==0} {
+              dict lappend srcsets $dict_fs "others.src"
+            }
+            dict lappend libraries "others.src" $f
+            Msg Debug "Appending $f to others.src"
           }
 
-          if {[IsInList $library [DictGet $simsets $dict_fs]]==0} {
-            dict lappend simsets $dict_fs $library
+          if {[lindex [get_property -quiet used_in_synthesis  [GetFile $f $fs]] 0] == 0} {
+            dict lappend properties $f "nosynth"
           }
+          if {[lindex [get_property -quiet used_in_implementation  [GetFile $f $fs]] 0] == 0} {
+            dict lappend properties $f "noimpl"
+          }
+          if {[lindex [get_property -quiet used_in_simulation  [GetFile $f $fs]] 0] == 0} {
+            dict lappend properties $f "nosim"
+          }
+          if {[lindex [get_property -quiet IS_MANAGED [GetFile $f $fs]] 0] == 0 && [file extension $f] != ".xcix" } {
+            dict lappend properties $f "locked"
+          }
+        }
+      }
+    }
 
-          dict lappend simlibraries $library $f
+    dict lappend properties "Simulator" [get_property target_simulator [current_project]]
+  } elseif {[IsLibero]} {
 
-        } elseif {[string equal $type "VHDL"] } {
-          # VHDL files (both 2008 and 93)
-          if {[IsInList "${lib}.src" [DictGet $srcsets $dict_fs]]==0} {
-            dict lappend srcsets $dict_fs "${lib}.src"
-          }
-          dict lappend libraries "${lib}.src" $f
-        } elseif {[string first "IP" $type] != -1} {
-          # IPs
-          if {[IsInList "ips.src" [DictGet $srcsets $dict_fs]]==0} {
-            dict lappend srcsets $dict_fs "ips.src"
-          }
-          dict lappend libraries "ips.src" $f
-          Msg Debug "Appending $f to ips.src"
-        } elseif {[string equal $fs_type "Constrs"]} {
-          # Constraints
-          if {[IsInList "sources.con" [DictGet $consets $dict_fs]]==0} {
-            dict lappend consets $dict_fs "sources.con"
-          }
-          dict lappend constraints "sources.con" $f
-        } else {
-          # Verilog and other files
-          if {[IsInList "others.src" [DictGet $srcsets $dict_fs]]==0} {
-            dict lappend srcsets $dict_fs "others.src"
-          }
-          dict lappend libraries "others.src" $f
-          Msg Debug "Appending $f to others.src"
-        }
+    # Open the project file
+    set file [open $project_file r]
+    set in_file_manager 0
+    while {[gets $file line] >= 0} {
+      # Detect the ActiveRoot (Top) module
+      if {[regexp {^KEY ActiveRoot \"([^\"]+)\"} $line -> value]} {
+        set top $value
+      }
 
-        if {[lindex [get_property -quiet used_in_synthesis  [GetFile $f $fs]] 0] == 0} {
-          dict lappend properties $f "nosynth"
+      # Detect the start of the FileManager section
+      if {[regexp {^LIST FileManager} $line]} {
+        set in_file_manager 1
+        continue
+      }
+
+      # Detect the end of the FileManager section
+      if {$in_file_manager && [regexp {^ENDLIST} $line]} {
+        break
+      }
+
+      # Extract file paths from the VALUE entries
+      if {$in_file_manager && [regexp {^VALUE \"([^\"]+)} $line -> value]} {
+        # lappend source_files [remove_after_comma $filepath]
+        # set file_path ""
+        lassign [split $value ,] file_path file_type
+        # Extract file properties
+        set parent_file ""
+        set library "others"
+        while {[gets $file line] >= 0} {
+          if {$line == "ENDFILE"} {
+            break
+          }
+          regexp {^LIBRARY=\"([^\"]+)} $line -> library
+          regexp {^PARENT=\"([^\"]+)} $line -> parent_file
         }
-        if {[lindex [get_property -quiet used_in_implementation  [GetFile $f $fs]] 0] == 0} {
-          dict lappend properties $f "noimpl"
-        }
-        if {[lindex [get_property -quiet used_in_simulation  [GetFile $f $fs]] 0] == 0} {
-          dict lappend properties $f "nosim"
-        }
-        if {[lindex [get_property -quiet IS_MANAGED [GetFile $f $fs]] 0] == 0 && [file extension $f] != ".xcix" } {
-          dict lappend properties $f "locked"
+        Msg Info "Found file ${file_path} in project.."
+        if {$parent_file == ""} {
+          if {$file_type == "hdl"} {
+            # VHDL files (both 2008 and 93)
+            if {[IsInList "${library}.src" [DictGet $srcsets "sources_1"]]==0} {
+              dict lappend srcsets "sources_1" "${library}.src"
+            }
+            dict lappend libraries "${library}.src" $file_path
+          } elseif {$file_type == "tb_hdl"} {
+            if {[IsInList "${library}.sim" [DictGet $simsets "sim_1"]]==0} {
+              dict lappend simsets "sim_1" "${library}.sim"
+            }
+            dict lappend libraries "${library}.sim" $file_path
+          } elseif {$file_type == "io_pdc" || $file_type == "sdc"} {
+            if {[IsInList "sources.con" [DictGet $consets "constrs_1"]]==0} {
+              dict lappend consets "constrs_1" "sources.con"
+            }
+            dict lappend libraries "sources.con" $file_path
+          }
         }
       }
     }
   }
-
-  dict lappend properties "Simulator" [get_property target_simulator [current_project]]
-
   return [list $libraries $properties $simlibraries $constraints $srcsets $simsets $consets]
 }
 
@@ -3038,7 +3115,7 @@ proc GetVerilogGenerics {file} {
   close $fp
   set lines []
 
-    # read in the verilog file and remove comments
+  # read in the verilog file and remove comments
   foreach line [split $data "\n"] {
     regsub "^\\s*\/\/.*" $line "" line
     regsub "(.*)\/\/.*" $line {\1} line
@@ -3047,7 +3124,7 @@ proc GetVerilogGenerics {file} {
     }
   }
 
-    # remove block comments also /* */
+  # remove block comments also /* */
   regsub -all {/\*.*\*/} $lines "" lines
 
     # create a list of characters to split for tokenizing
@@ -3383,7 +3460,7 @@ proc HexVersionToString {version} {
   return "$M.$m.$c"
 }
 
-# @brief Import TCL Lib from an external installation for Libero, Synplify and Diamond 
+# @brief Import TCL Lib from an external installation for Libero, Synplify and Diamond
 proc ImportTclLib {} {
   if {[IsLibero] || [IsDiamond] || [IsSynplify]} {
     if {[info exists env(HOG_TCLLIB_PATH)]} {
@@ -3508,7 +3585,7 @@ proc InitLauncher {script tcl_path parameters usage argv} {
   } else {
     set xml_dst ""
   }
-    
+
   return [list $directive $project $project_name $project_group $repo_path $old_path $bin_path $top_path $commands_path $command $cmd [array get options]]
 }
 
@@ -3628,7 +3705,7 @@ proc IsZynq {part} {
 }
 
 # @brief Launch the Implementation, for the current IDE and project
-# 
+#
 # @param[in] reset        Reset the Implementation run
 # @param[in] do_create    Recreate the project
 # @param[in] run_folder   The folder where to store the run results
@@ -3646,10 +3723,10 @@ proc LaunchImplementation {reset do_create run_folder project_name {repo_path .}
     if {[IsISE]} {
       source $repo_path/Hog/Tcl/integrated/pre-implementation.tcl
     }
-    
+
     launch_runs impl_1 -jobs $njobs -dir $run_folder
     wait_on_run impl_1
-    
+
     if {[IsISE]} {
       source $repo_path/Hog/Tcl/integrated/post-implementation.tcl
     }
@@ -3808,7 +3885,7 @@ proc LaunchImplementation {reset do_create run_folder project_name {repo_path .}
       Msg Error "PLACEROUTE FAILED!"
     } else {
       Msg Info "PLACEROUTE PASSED."
-    } 
+    }
 
     # Check timing
     Msg Info "Run VERIFYTIMING ..."
@@ -4074,8 +4151,8 @@ proc LaunchSimulation {project_name lib_path {simsets ""} {repo_path .}} {
         } else {
           Msg Debug "Simulation pass string not set, relying on simulator exit code."
         }
-          
-        
+
+
 
         set sim_name "sim:[dict get $sim_dic $s]"
         if {$ret != 0} {
@@ -4112,7 +4189,7 @@ proc LaunchSimulation {project_name lib_path {simsets ""} {repo_path .}} {
 }
 
 # @brief Launch the synthesis, for the current IDE and project
-# 
+#
 # @param[in] reset        Reset the Synthesis run
 # @param[in] do_create    Recreate the project
 # @param[in] run_folder   The folder where to store the run results
@@ -4468,7 +4545,7 @@ proc OpenProject {project_file repo_path} {
     Msg Info "Opening existing project file $project_file..."
     prj_project open $project_file
   } else {
-    Msg Error "This IDE is currently not supported by Hog. Exiting!" 
+    Msg Error "This IDE is currently not supported by Hog. Exiting!"
   }
 }
 

@@ -4191,7 +4191,7 @@ proc SetTopProperty {top_module fileset} {
 
 
 ## @brief Check if a project is a test project not to be displayed in normal list
-# Test projects have a #est comment in the second line
+# Test projects have a #test comment in the second line
 #
 # @param[in] conf_file  the path to the hog.conf file
 #

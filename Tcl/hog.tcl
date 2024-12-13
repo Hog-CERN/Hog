@@ -3267,6 +3267,12 @@ proc InitLauncher {script tcl_path parameters usage argv} {
     exit 0
   }
 
+  if { [IsInList "-all" $option_list] } {
+    set list_all 1
+  } else {
+    set list_all 2
+  }
+
   #option_list will be emptied by the next instruction
   if {[catch {array set options [cmdline::getoptions option_list $parameters $usage]} err] } {
     Msg Status "\nERROR: Syntax error, probably unknown option.\n\n USAGE: $err"
@@ -3276,8 +3282,9 @@ proc InitLauncher {script tcl_path parameters usage argv} {
   set directive [string toupper [lindex $arg_list 0]]
 
   if { [llength $arg_list] == 1 && ($directive == "L" || $directive == "LIST")} {
+
     Msg Status "\n** The projects in this repository are:"
-    ListProjects $repo_path
+    ListProjects $repo_path $list_all
     Msg Status "\n"
     exit 0
 
@@ -3449,19 +3456,28 @@ proc IsZynq {part} {
 
 # Returns the list of all the Hog Projects in the repository
 #
-# @param[in] repo_path The main path of the git repository
-# @param[in] print     if 1 print the list of projects in the repository
-# @param[in] ret_conf  if 1 returns conf file rather than list of project names
-proc ListProjects {{repo_path .} {print 1} {ret_conf 0}} {
+# @param[in] repo_path  The main path of the git repository
+# @param[in] print      if 1 print the list of projects in the repository, if 2 does not print test projects
+# @param[in] ret_conf   if 1 returns conf file rather than list of project names
+
+proc ListProjects {{repo_path .} {print 1} {ret_conf 0} {all 1} } {
   set top_path [file normalize $repo_path/Top]
   set confs [findFiles [file normalize $top_path] hog.conf]
   set projects ""
 
   foreach c $confs {
     set p [Relative $top_path [file dirname $c]]
-    if {$print == 1} {
-      # Print a list of the projects with relative IDE
-      Msg Status "$p \([GetIDEFromConf $c]\)"
+    if {$print >= 1} {
+      if {[TestFromConf $c] == 1} {
+	set test_string " (Test project)"
+      } else {
+	set test_string ""
+      }
+      
+      if {$print == 1 || $test_string eq ""} {
+	# Print a list of the projects with relative IDE
+	Msg Status "$p \([GetIDEFromConf $c]\)$test_string"
+      }
     }
     lappend projects $p
   }
@@ -4171,6 +4187,27 @@ proc SetTopProperty {top_module fileset} {
   } elseif {[IsLibero]} {
     set_root -module $top_module
   }
+}
+
+
+## @brief Check if a project is a test project not to be displayed in normal list
+# Test projects have a #est comment in the second line
+#
+# @param[in] conf_file  the path to the hog.conf file
+#
+proc TestFromConf {conf_file} {
+  set f [open $conf_file "r"]
+  set lines [split [read $f] "\n"]
+  close $f
+  set second_line [lindex $lines 1]
+
+  if {[regexp -all {^\# *test|Test|TEST *$} $second_line]} {
+    set ret 1
+  } else {
+    set ret 0
+  }
+
+  return $ret
 }
 
 ## @brief Returns a list of Vivado properties that expect a PATH for value

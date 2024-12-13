@@ -29,6 +29,7 @@ set parameters {
   {synth_only      "If set, only the synthesis will be performed."}
   {impl_only       "If set, only the implementation will be performed. This assumes synthesis should was already done."}
   {simset.arg  ""   "Simulation sets, separated by commas, to be run."}
+  {all             "List all projects, including test projects. Test projects have #test on the second line of hog.conf."}
   {generate        "For IPbus XMLs, it willk re create the VHDL address decode files."}
   {xml_dir.arg "" "For IPbus XMLs, set the destination folder (default is ../<project_name>_xml)."}
   {verbose         "If set, launch the script in verbose mode"}
@@ -67,7 +68,7 @@ append usage [GetCustomCommands $commands_path]
 append usage "\n** Options:"
 
 ######## DEFAULTS #########
-set do_implementation 0; set do_synthesis 0; set do_bitstream 0; set do_create 0; set do_compile 0; set do_simulation 0; set recreate 0; set reset 1; set do_ipbus_xml 0;
+set do_implementation 0; set do_synthesis 0; set do_bitstream 0; set do_create 0; set do_compile 0; set do_simulation 0; set recreate 0; set reset 1; set do_ipbus_xml 0; set list_all 2;
 
 set default_commands {
 
@@ -123,17 +124,23 @@ set custom_commands [GetCustomCommands $commands_path 1]
 Msg Debug "Looking for a $directive in : $default_commands $custom_commands"
 switch -regexp -- $directive "$default_commands $custom_commands"
 
+if { $options(all) == 1 } {
+  set list_all 1
+} else {
+  set list_all 2
+}
+
 if {$cmd == -1} {
 #This is if the project was not found
   Msg Status "\n\nPossible projects are:"
-  ListProjects $repo_path
+  ListProjects $repo_path $list_all
   Msg Status "\n"
   exit 1
 } elseif {$cmd == -2} {
   # Project not given but needed
   Msg Status "ERROR: You must specify a project with directive $directive.\n\n[cmdline::usage $parameters $usage]"
   Msg Status "\n Possible projects are:"
-  ListProjects $repo_path
+  ListProjects $repo_path $list_all
   Msg Status "\n"
   exit 1
 

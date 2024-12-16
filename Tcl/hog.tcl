@@ -2420,15 +2420,16 @@ proc GetProjectFiles {{project_file ""}} {
     }
 
     dict lappend properties "Simulator" [get_property target_simulator [current_project]]
-  } elseif {[IsLibero]} {
+  } elseif {[IsLibero] || [IsSynplify]} {
 
     # Open the project file
     set file [open $project_file r]
     set in_file_manager 0
+    set top ""
     while {[gets $file line] >= 0} {
       # Detect the ActiveRoot (Top) module
       if {[regexp {^KEY ActiveRoot \"([^\"]+)\"} $line -> value]} {
-        set top $value
+        set top [string range $value 0 [expr {[string first "::" $value] - 1}]]
       }
 
       # Detect the start of the FileManager section
@@ -2457,7 +2458,7 @@ proc GetProjectFiles {{project_file ""}} {
           regexp {^LIBRARY=\"([^\"]+)} $line -> library
           regexp {^PARENT=\"([^\"]+)} $line -> parent_file
         }
-        Msg Info "Found file ${file_path} in project.."
+        Msg Debug "Found file ${file_path} in project.."
         if {$parent_file == ""} {
           if {$file_type == "hdl"} {
             # VHDL files (both 2008 and 93)
@@ -2465,16 +2466,24 @@ proc GetProjectFiles {{project_file ""}} {
               dict lappend srcsets "sources_1" "${library}.src"
             }
             dict lappend libraries "${library}.src" $file_path
+            # Check if file is top_module in project
+            Msg Debug "File $file_path module [GetModuleName $file_path]"
+
+            if {[GetModuleName $file_path] == [string tolower $top] && $top != ""} {
+              Msg Debug "Found top module $top in $file_path"
+              dict lappend properties $file_path "top=$top"
+            }
+
           } elseif {$file_type == "tb_hdl"} {
             if {[IsInList "${library}.sim" [DictGet $simsets "sim_1"]]==0} {
               dict lappend simsets "sim_1" "${library}.sim"
             }
-            dict lappend libraries "${library}.sim" $file_path
+            dict lappend simlibraries "${library}.sim" $file_path
           } elseif {$file_type == "io_pdc" || $file_type == "sdc"} {
             if {[IsInList "sources.con" [DictGet $consets "constrs_1"]]==0} {
               dict lappend consets "constrs_1" "sources.con"
             }
-            dict lappend libraries "sources.con" $file_path
+            dict lappend constraints "sources.con" $file_path
           }
         }
       }
@@ -3106,6 +3115,49 @@ proc Git {command {files ""}}  {
 }
 
 
+# @brief Get the name of the module in a HDL file. If module is not found, it returns an empty string
+#
+# @param[in] filename The name of the hdl file
+
+proc GetModuleName {filename} {
+  # Check if the file exists
+  if {![file exists $filename]} {
+    Msg CriticalWarning "Error: File $filename does not exist."
+    return ""
+  }
+
+  # Open the file for reading
+  set fileId [open $filename r]
+
+  # Read the content of the file
+  set file_content [read $fileId]
+
+  # Close the file
+  close $fileId
+
+
+  if {[file extension $filename] == ".vhd" || [file extension $filename] == ".vhdl"} {
+    # Convert the file content to lowercase for case-insensitive matching
+    set file_content [string tolower $file_content]
+    # Regular expression to match the entity name after the 'entity' keyword
+    set pattern {(?m)^\s*entity\s+(\S+)\s+is}
+  } elseif {[file extension $filename] == ".v" || [file extension $filename] == ".sv"} {
+    # Regular expression to match the module name after the 'module' keyword
+    set pattern {^\s*module\s+(\S+)}
+  } else {
+    Msg Warning "File is neither VHDL nor Verilog... Returning empty string..."
+    return "'"
+  }
+
+  # Search for the module name using the regular expression
+  if {[regexp $pattern $file_content match module_name]} {
+    return $module_name
+  } else {
+    Msg Warning "No module was found in $filename. Returning an empty string..."
+    return ""
+  }
+}
+
 ## Get a dictionary of verilog generics with their types for a given file
 #
 #  @param[in] file File to read Generics from
@@ -3127,13 +3179,13 @@ proc GetVerilogGenerics {file} {
   # remove block comments also /* */
   regsub -all {/\*.*\*/} $lines "" lines
 
-    # create a list of characters to split for tokenizing
+  # create a list of characters to split for tokenizing
   set punctuation [list]
   foreach char [list "(" ")" ";" "," " " "!" "<=" ":=" "=" "\[" "\]"] {
     lappend punctuation $char "\000$char\000"
   }
 
-    # split the file into tokens
+  # split the file into tokens
   set tokens [split [string map $punctuation $lines] \000]
 
   set parameters [dict create]
@@ -3144,7 +3196,7 @@ proc GetVerilogGenerics {file} {
   set PARAM_WIDTH 4
   set state $LEXING
 
-    # # loop over the generic lines
+  # loop over the generic lines
   foreach token $tokens {
     set token [string trim $token]
     if {![string equal "" $token]} {

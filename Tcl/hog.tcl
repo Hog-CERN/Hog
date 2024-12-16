@@ -1210,6 +1210,31 @@ proc CopyIPbusXMLs {proj_dir path dst {xml_version "0.0.0"} {xml_sha "00000000"}
   }
 }
 
+## @brief Returns the description from the hog.conf file.
+# The description is the comment in the second line stripped of the hashes
+# If the description contains the word test, Test or TEST, then "test" is simply returned.
+# This is used to avoid printing them in ListProjects unless -all is specified
+#
+# @param[in] conf_file  the path to the hog.conf file
+#
+proc DescriptionFromConf {conf_file} {
+  set f [open $conf_file "r"]
+  set lines [split [read $f] "\n"]
+  close $f
+  set second_line [lindex $lines 1]
+
+
+  if {![regexp {\#+ *(.+)} $second_line - description]} {
+    set description ""  
+  }
+  
+  if {[regexp -all {test|Test|TEST} $description]} {
+    set description "test"
+  }
+
+  return $description
+}
+
 ## @brief Returns the value in a Tcl dictionary corresponding to the chosen key
 #
 # @param[in] dictName the name of the dictionary
@@ -3559,6 +3584,12 @@ proc InitLauncher {script tcl_path parameters usage argv} {
     exit 0
   }
 
+  if { [IsInList "-all" $option_list] } {
+    set list_all 1
+  } else {
+    set list_all 2
+  }
+
   #option_list will be emptied by the next instruction
   if {[catch {array set options [cmdline::getoptions option_list $parameters $usage]} err] } {
     Msg Status "\nERROR: Syntax error, probably unknown option.\n\n USAGE: $err"
@@ -3568,8 +3599,9 @@ proc InitLauncher {script tcl_path parameters usage argv} {
   set directive [string toupper [lindex $arg_list 0]]
 
   if { [llength $arg_list] == 1 && ($directive == "L" || $directive == "LIST")} {
+
     Msg Status "\n** The projects in this repository are:"
-    ListProjects $repo_path
+    ListProjects $repo_path $list_all
     Msg Status "\n"
     exit 0
 
@@ -4377,19 +4409,36 @@ proc LaunchSynthesis {reset do_create run_folder project_name {repo_path .} {ext
 
 # Returns the list of all the Hog Projects in the repository
 #
-# @param[in] repo_path The main path of the git repository
-# @param[in] print     if 1 print the list of projects in the repository
-# @param[in] ret_conf  if 1 returns conf file rather than list of project names
+# @param[in] repo_path  The main path of the git repository
+# @param[in] print      if 1 print the list of projects in the repository, if 2 does not print test projects
+# @param[in] ret_conf   if 1 returns conf file rather than list of project names
+
 proc ListProjects {{repo_path .} {print 1} {ret_conf 0}} {
   set top_path [file normalize $repo_path/Top]
   set confs [findFiles [file normalize $top_path] hog.conf]
   set projects ""
+  set confs [lsort $confs]
+  set g ""
 
   foreach c $confs {
     set p [Relative $top_path [file dirname $c]]
-    if {$print == 1} {
-      # Print a list of the projects with relative IDE
-      Msg Status "$p \([GetIDEFromConf $c]\)"
+    if {$print >= 1} {
+      set description [DescriptionFromConf $c]
+      if { $description eq "test"} {
+	set description " - Test project"
+      } elseif { $description ne ""} {
+	set description " - $description"
+      }
+      
+      if {$print == 1 || $description ne " - Test project"} {
+	set old_g $g
+	set g [file dirname $p]
+	# Print a list of the projects with relative IDE and description (second line comment in hog.conf)
+	if {$g ne $old_g} {
+	  Msg Status ""
+	}
+	Msg Status "$p \([GetIDEFromConf $c]\)$description"
+      }
     }
     lappend projects $p
   }
@@ -5140,7 +5189,7 @@ proc VIVADO_PATH_PROPERTIES {} {
   return {"\.*\.TCL\.PRE$" "^.*\.TCL\.POST$" "^RQS_FILES$" "^INCREMENTAL\_CHECKPOINT$"}
 }
 
-## Write a property configuration file from a dictionary
+## @brief Write a property configuration file from a dictionary
 #
 #  @param[in]    file_name the configuration file
 #  @param[in]    config the configuration dictionary

@@ -474,7 +474,7 @@ proc AddHogFiles { libraries properties filesets } {
       } elseif {[IsDiamond]} {
         if {$ext == ".src" || $ext == ".con" || $ext == ".ext"} {
           foreach f $lib_files {
-            Msg Debug "Diamond Adding source $f to library $rootlib..."
+            Msg Debug "Diamond: adding source file $f to library $rootlib..."
             prj_src add -work $rootlib $f
             set props [DictGet $properties $f]
             # Top synthesis module
@@ -599,7 +599,7 @@ proc CheckSyntax { project_name repo_path {project_file ""}} {
   }
 }
 
-# Close the open project
+# @brief Close the open project (does nothing for Xilinx and Libero)
 proc CloseProject {} {
   if {[IsXilinx]} {
 

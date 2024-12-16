@@ -1126,6 +1126,31 @@ proc CopyIPbusXMLs {proj_dir path dst {xml_version "0.0.0"} {xml_sha "00000000"}
   }
 }
 
+## @brief Returns the description from the hog.conf file.
+# The description is the comment in the second line stripped of the hashes
+# If the description contains the word test, Test or TEST, then "test" is simply returned.
+# This is used to avoid printing them in ListProjects unless -all is specified
+#
+# @param[in] conf_file  the path to the hog.conf file
+#
+proc DescriptionFromConf {conf_file} {
+  set f [open $conf_file "r"]
+  set lines [split [read $f] "\n"]
+  close $f
+  set second_line [lindex $lines 1]
+
+
+  if {![regexp {\#+ *(.+)} $second_line - description]} {
+    set description ""  
+  }
+  
+  if {[regexp -all {test|Test|TEST} $description]} {
+    set description "test"
+  }
+
+  return $description
+}
+
 ## @brief Returns the value in a Tcl dictionary corresponding to the chosen key
 #
 # @param[in] dictName the name of the dictionary
@@ -3460,23 +3485,31 @@ proc IsZynq {part} {
 # @param[in] print      if 1 print the list of projects in the repository, if 2 does not print test projects
 # @param[in] ret_conf   if 1 returns conf file rather than list of project names
 
-proc ListProjects {{repo_path .} {print 1} {ret_conf 0} {all 1} } {
+proc ListProjects {{repo_path .} {print 1} {ret_conf 0}} {
   set top_path [file normalize $repo_path/Top]
   set confs [findFiles [file normalize $top_path] hog.conf]
   set projects ""
+  set confs [lsort $confs]
+  set g ""
 
   foreach c $confs {
     set p [Relative $top_path [file dirname $c]]
     if {$print >= 1} {
-      if {[TestFromConf $c] == 1} {
-	set test_string " (Test project)"
-      } else {
-	set test_string ""
+      set description [DescriptionFromConf $c]
+      if { $description eq "test"} {
+	set description " - Test project"
+      } elseif { $description ne ""} {
+	set description " - $description"
       }
       
-      if {$print == 1 || $test_string eq ""} {
-	# Print a list of the projects with relative IDE
-	Msg Status "$p \([GetIDEFromConf $c]\)$test_string"
+      if {$print == 1 || $description ne " - Test project"} {
+	set old_g $g
+	set g [file dirname $p]
+	# Print a list of the projects with relative IDE and description (second line comment in hog.conf)
+	if {$g ne $old_g} {
+	  Msg Status ""
+	}
+	Msg Status "$p \([GetIDEFromConf $c]\)$description"
       }
     }
     lappend projects $p
@@ -4190,32 +4223,12 @@ proc SetTopProperty {top_module fileset} {
 }
 
 
-## @brief Check if a project is a test project not to be displayed in normal list
-# Test projects have a #est comment in the second line
-#
-# @param[in] conf_file  the path to the hog.conf file
-#
-proc TestFromConf {conf_file} {
-  set f [open $conf_file "r"]
-  set lines [split [read $f] "\n"]
-  close $f
-  set second_line [lindex $lines 1]
-
-  if {[regexp -all {^\# *test|Test|TEST *$} $second_line]} {
-    set ret 1
-  } else {
-    set ret 0
-  }
-
-  return $ret
-}
-
 ## @brief Returns a list of Vivado properties that expect a PATH for value
 proc VIVADO_PATH_PROPERTIES {} {
   return {"\.*\.TCL\.PRE$" "^.*\.TCL\.POST$" "^RQS_FILES$" "^INCREMENTAL\_CHECKPOINT$"}
 }
 
-## Write a property configuration file from a dictionary
+## @brief Write a property configuration file from a dictionary
 #
 #  @param[in]    file_name the configuration file
 #  @param[in]    config the configuration dictionary

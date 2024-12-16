@@ -693,7 +693,7 @@ proc ConfigureProperties {} {
     if {[info exists globalSettings::PROPERTIES]} {
       # Project (main) Properties
       if {[dict exists $globalSettings::PROPERTIES main]} {
-        Msg Info "Setting Project-wide properties..."
+        Msg Info "Setting project-wide properties..."
         set dev_props [dict get $globalSettings::PROPERTIES main]
         dict for {prop_name prop_val} $dev_props {
           # Device is already set

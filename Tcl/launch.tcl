@@ -397,8 +397,13 @@ if {[IsXilinx]} {
       reset_run impl_1
     }
 
+
     if {[IsISE]} {source $tcl_path/../../Hog/Tcl/integrated/pre-implementation.tcl}
-    launch_runs impl_1 -jobs $options(njobs) -dir $main_folder
+    if {$do_bitstream == 1 && [IsVivado]} {
+      launch_runs impl_1 -jobs $options(njobs) -dir $main_folder -to_step [BinaryStepName [get_property PART [current_project]]]
+    } else {
+      launch_runs impl_1 -jobs $options(njobs) -dir $main_folder
+    }
     wait_on_run impl_1
     if {[IsISE]} {source $tcl_path/../../Hog/Tcl/integrated/post-implementation.tcl}
 
@@ -488,13 +493,17 @@ if {[IsXilinx]} {
       close $status_file
     }
 
+    set prog [get_property PROGRESS [get_runs impl_1]]
+    set status [get_property STATUS [get_runs impl_1]]
+    Msg Info "Run: impl_1 progress: $prog, status : $status"
+
     if {$prog ne "100%"} {
-      Msg Error "Implementation error"
+      Msg Error "Implementation error, status is: $status"
     }
 
     if {$do_bitstream == 1} {
-      Msg Info "Starting write bitstream flow..."
       if {[IsISE]} {
+        Msg Info "Starting write bitstream flow..."
 	      # PlanAhead command
         Msg Info "running pre-bitstream"
         source  $tcl_path/../../Hog/Tcl/integrated/pre-bitstream.tcl
@@ -502,26 +511,6 @@ if {[IsXilinx]} {
         wait_on_run impl_1
         Msg Info "running post-bitstream"
         source  $tcl_path/../../Hog/Tcl/integrated/post-bitstream.tcl
-      } elseif { [string first Vivado [version]] ==0} {
-        # Vivado command
-        launch_runs impl_1 -to_step [BinaryStepName [get_property PART [current_project]]] $options(njobs) -dir $main_folder
-        wait_on_run impl_1
-      }
-
-      set prog [get_property PROGRESS [get_runs impl_1]]
-      set status [get_property STATUS [get_runs impl_1]]
-      Msg Info "Run: impl_1 progress: $prog, status : $status"
-
-      if {$prog ne "100%"} {
-        Msg Error "Write bitstream error, status is: $status"
-      }
-
-      if {[IsVivado]} {
-        Msg Status "*** Timing summary (again) ***"
-        Msg Status "WNS: $wns"
-        Msg Status "TNS: $tns"
-        Msg Status "WHS: $whs"
-        Msg Status "THS: $ths"
       }
     }
 

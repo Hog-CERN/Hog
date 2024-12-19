@@ -20,11 +20,6 @@
 ##nagelfar variable quartus
 ##nagelfar variable project
 
-if {[catch {package require struct::matrix} ERROR]} {
-  puts "$ERROR\n If you are running this script on tclsh, you can fix this by installing 'tcllib'"
-  return
-}
-
 set tcl_path [file normalize "[file dirname [info script]]/.."]
 source $tcl_path/hog.tcl
 
@@ -74,12 +69,28 @@ if {[IsXilinx]} {
     }
 
   }
+} elseif {[IsDiamond]} {
+  # Import tcllib
+  if {[info exists env(HOG_TCLLIB_PATH)]} {
+    lappend auto_path $env(HOG_TCLLIB_PATH)
+  } else {
+    puts "ERROR: To run Hog with Microsemi Libero SoC, you need to define the HOG_TCLLIB_PATH variable."
+    return
+  }
+  set proj_dir [file normalize "[pwd]/.."]
+  set proj_name [file tail $proj_dir]
+  set project $proj_name
 } else {
   #Tclssh
   set proj_file $old_path/[file tail $old_path].xpr
   set proj_dir [file normalize [file dirname $proj_file]]
   set proj_name [file rootname [file tail $proj_file]]
   Msg CriticalWarning "You seem to be running locally on tclsh, so this is a debug, the project file will be set to $proj_file and was derived from the path you launched this script from: $old_path. If you want this script to work properly in debug mode, please launch it from the top folder of one project, for example Repo/Projects/fpga1/ or Repo/Top/fpga1/"
+}
+
+if {[catch {package require struct::matrix} ERROR]} {
+  puts "$ERROR\n If you are running this script on tclsh, you can fix this by installing 'tcllib'"
+  return
 }
 
 # Go to repository path
@@ -191,6 +202,34 @@ if {[IsXilinx]} {
   } else {
     Msg Warning "No reports found in $proj_dir/output_files subfolders"
   }
+} elseif {[IsDiamond]} {
+  #Logs
+  set logs [glob -nocomplain "$proj_dir/Implementation0/*.log"]
+
+  if {[file exists [lindex $logs 0]]} {
+    file copy -force {*}$logs $dst_dir/reports
+  } else {
+    Msg Warning "No .log reports found in $proj_dir/Implementation0 subfolders"
+  }
+
+  # Arearep
+  set areas [glob -nocomplain "$proj_dir/Implementation0/*.arearep"]
+
+  if {[file exists [lindex $areas 0]]} {
+    file copy -force {*}$areas $dst_dir/reports
+  } else {
+    Msg Warning "No .arearep reports found in $proj_dir/Implementation0 subfolders"
+  }
+
+  # Timing (TWR)
+  set t_reps [glob -nocomplain "$proj_dir/Implementation0/*.twr"]
+
+  if {[file exists [lindex $t_reps 0]]} {
+    file copy -force {*}$t_reps $dst_dir/reports
+  } else {
+    Msg Warning "No .twr reports found in $proj_dir/Implementation0 subfolders"
+  }
+
 }
 
 # Run user post-synthesis file

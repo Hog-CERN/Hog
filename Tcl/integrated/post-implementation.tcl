@@ -170,64 +170,65 @@ if {[file exists $user_post_implementation_file]} {
   source $user_post_implementation_file
 }
 
-# Vivado
+
+# Go to repository path
+cd $tcl_path/../../
+
+Msg Info "Evaluating Git sha for $proj_name..."
+lassign [GetRepoVersions [file normalize ./Top/$group_name/$proj_name] $repo_path] sha
+
+set describe [GetHogDescribe $sha $repo_path]
+Msg Info "Git describe set to: $describe"
+
+set ts [clock format [clock seconds] -format {%Y-%m-%d-%H-%M}]
+
+set dst_dir [file normalize "$bin_dir/$group_name/$proj_name\-$describe"]
+Msg Info "Creating $dst_dir..."
+file mkdir $dst_dir
+
+#check list files and project properties
+set confDict [dict create]
+set full_diff_log 0
+if {[file exists "$tcl_path/../../Top/$group_name/$proj_name/hog.conf"]} {
+  set confDict [ReadConf "$tcl_path/../../Top/$group_name/$proj_name/hog.conf"]
+  set full_diff_log [DictGet [DictGet $confDict "hog"] "FULL_DIFF_LOG"  0]
+}
+
+Msg Info "Evaluating differences with last commit..."
+set found_uncommitted 0
+set diff [Git diff]
+set diff_stat [Git "diff --stat"]
+if {$diff != ""} {
+  set found_uncommitted 1
+  Msg Warning "Found non committed changes:"
+  if {$full_diff_log} {
+    Msg Status "$diff"
+  } else {
+    Msg Status "$diff_stat"
+  }
+  set fp [open "$dst_dir/diff_postimplementation.txt" w+]
+  puts $fp "$diff"
+  close $fp
+}
+
+if {$found_uncommitted == 0} {
+  Msg Info "No uncommitted changes found."
+}
+
+# Reports
+file mkdir $dst_dir/reports
+
 if {[IsXilinx]} {
-  # Go to repository path
-  cd $tcl_path/../../
-
-  Msg Info "Evaluating Git sha for $proj_name..."
-  lassign [GetRepoVersions [file normalize ./Top/$group_name/$proj_name] $repo_path] sha
-
-  set describe [GetHogDescribe $sha $repo_path]
-  Msg Info "Git describe set to: $describe"
-
-  set ts [clock format [clock seconds] -format {%Y-%m-%d-%H-%M}]
-
-  set dst_dir [file normalize "$bin_dir/$group_name/$proj_name\-$describe"]
-  Msg Info "Creating $dst_dir..."
-  file mkdir $dst_dir
-
-  #check list files and project properties
-  set confDict [dict create]
-  set full_diff_log 0
-  if {[file exists "$tcl_path/../../Top/$group_name/$proj_name/hog.conf"]} {
-    set confDict [ReadConf "$tcl_path/../../Top/$group_name/$proj_name/hog.conf"]
-    set full_diff_log [DictGet [DictGet $confDict "hog"] "FULL_DIFF_LOG"  0]
-  }
-
-  Msg Info "Evaluating differences with last commit..."
-  set found_uncommitted 0
-  set diff [Git diff]
-  set diff_stat [Git "diff --stat"]
-  if {$diff != ""} {
-    set found_uncommitted 1
-    Msg Warning "Found non committed changes:"
-    if {$full_diff_log} {
-      Msg Status "$diff"
-    } else {
-      Msg Status "$diff_stat"
-    }
-    set fp [open "$dst_dir/diff_postimplementation.txt" w+]
-    puts $fp "$diff"
-    close $fp
-  }
-
-  if {$found_uncommitted == 0} {
-    Msg Info "No uncommitted changes found."
-  }
-
-  # Reports
-  file mkdir $dst_dir/reports
   if {[IsVivado]} {
     report_utilization -hierarchical -hierarchical_percentages -file $dst_dir/reports/hierarchical_utilization.txt
   }
-
 
   if {[IsISE]} {
     set reps [glob -nocomplain "$run_dir/*/*{.syr,.srp,.mrp,.map,.twr,.drc,.bgn,_routed.par,_routed_pad.txt,_routed.unroutes}"]
   } else {
     set reps [glob -nocomplain "$run_dir/*/*.rpt"]
   }
+
   if {[file exists [lindex $reps 0]]} {
     file copy -force {*}$reps $dst_dir/reports
     if {[file exists [glob -nocomplain "$dst_dir/reports/${top_name}_utilization_placed.rpt"] ]} {
@@ -260,8 +261,53 @@ if {[IsXilinx]} {
       }
     }
   }
+} elseif {[IsDiamond]} {
+  #Logs
+  set logs [glob -nocomplain "$proj_dir/Implementation0/*.log"]
 
+  if {[file exists [lindex $logs 0]]} {
+    file copy -force {*}$logs $dst_dir/reports
+  } else {
+    Msg Warning "No .log reports found in $proj_dir/Implementation0 subfolders"
+  }
+
+  # Arearep
+  set areas [glob -nocomplain "$proj_dir/Implementation0/*.arearep"]
+
+  if {[file exists [lindex $areas 0]]} {
+    file copy -force {*}$areas $dst_dir/reports
+  } else {
+    Msg Warning "No .arearep reports found in $proj_dir/Implementation0 subfolders"
+  }
+
+  # Timing (TWR)
+  set t_reps [glob -nocomplain "$proj_dir/Implementation0/*.twr"]
+
+  if {[file exists [lindex $t_reps 0]]} {
+    file copy -force {*}$t_reps $dst_dir/reports
+  } else {
+    Msg Warning "No .twr reports found in $proj_dir/Implementation0 subfolders"
+  }
+
+  # Mapping Report Files (MRP)
+  set m_reps [glob -nocomplain "$proj_dir/Implementation0/*.mrp"]
+
+  if {[file exists [lindex $m_reps 0]]} {
+    file copy -force {*}$m_reps $dst_dir/reports
+  } else {
+    Msg Warning "No .mrp reports found in $proj_dir/Implementation0 subfolders"
+  }
+
+   # P&R Report Files (PAR)
+  set par_reps [glob -nocomplain "$proj_dir/Implementation0/*.par"]
+
+  if {[file exists [lindex $par_reps 0]]} {
+    file copy -force {*}$par_reps $dst_dir/reports
+  } else {
+    Msg Warning "No .par reports found in $proj_dir/Implementation0 subfolders"
+  }
 }
+
 
 # Run user post-implementation file
 set user_post_implementation_file "./Top/$group_name/$proj_name/post-implementation.tcl"

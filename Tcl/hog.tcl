@@ -1225,9 +1225,9 @@ proc DescriptionFromConf {conf_file} {
 
 
   if {![regexp {\#+ *(.+)} $second_line - description]} {
-    set description ""  
+    set description ""
   }
-  
+
   if {[regexp -all {test|Test|TEST} $description]} {
     set description "test"
   }
@@ -1558,25 +1558,16 @@ proc FormatGeneric {generic} {
 # @param[in] run_folder   The path where to run the implementation
 # @param[in] repo_path    The main path of the git repository
 # @param[in] njobs        The number of CPU jobs to run in parallel
-#
-proc GenerateBitstream {{run_folder ""} {repo_path .} {njobs 1}} \
-{
+proc GenerateBitstream { {run_folder ""} {repo_path .} {njobs 1} } {
   Msg Info "Starting write bitstream flow..."
-  if {[IsXilinx]} {
-    if {[IsISE]} {
-      # PlanAhead command
-      Msg Info "running pre-bitstream"
-      source  $repo_path/Hog/Tcl/integrated/pre-bitstream.tcl
-      launch_runs impl_1 -to_step Bitgen $njobs -dir $run_folder
-      wait_on_run impl_1
-      Msg Info "running post-bitstream"
-      source  $repo_path/Hog/Tcl/integrated/post-bitstream.tcl
-    } elseif { [IsVivado] } {
-      # Vivado command
-      launch_runs impl_1 -to_step [BinaryStepName [get_property PART [current_project]]] $njobs -dir $run_folder
-      wait_on_run impl_1
-    }
-
+  if {[IsIse]} {
+    # PlanAhead command
+    Msg Info "running pre-bitstream"
+    source  $repo_path/Hog/Tcl/integrated/pre-bitstream.tcl
+    launch_runs impl_1 -to_step Bitgen $njobs -dir $run_folder
+    wait_on_run impl_1
+    Msg Info "running post-bitstream"
+    source  $repo_path/Hog/Tcl/integrated/post-bitstream.tcl
 
     set prog [get_property PROGRESS [get_runs impl_1]]
     set status [get_property STATUS [get_runs impl_1]]
@@ -1592,14 +1583,6 @@ proc GenerateBitstream {{run_folder ""} {repo_path .} {njobs 1}} \
     set ths [get_property STATS.THS [get_runs [current_run]]]
     set tpws [get_property STATS.TPWS [get_runs [current_run]]]
 
-    if {[IsVivado]} {
-      Msg Status "*** Timing summary (again) ***"
-      Msg Status "WNS: $wns"
-      Msg Status "TNS: $tns"
-      Msg Status "WHS: $whs"
-      Msg Status "THS: $ths"
-      Msg Status "TPWS: $tpws"
-    }
   } elseif {[IsQuartus]} {
     set revision [get_current_revision]
     if {[catch {execute_module -tool asm} result]} {
@@ -3796,7 +3779,7 @@ proc IsZynq {part} {
 # @param[in] project_name The name of the project
 # @param[in] repo_path    The main path of the git repository (Default .)
 # @param[in] njobs        The number of parallel CPU jobs for the Implementation (Default 4)
-proc LaunchImplementation {reset do_create run_folder project_name {repo_path .} {njobs 4}} {
+proc LaunchImplementation {reset do_create run_folder project_name {repo_path .} {njobs 4} {do_bitstream 0}} {
   Msg Info "Starting implementation flow..."
   if {[IsXilinx]} {
     if { $reset == 1 && $do_create == 0} {
@@ -3808,7 +3791,11 @@ proc LaunchImplementation {reset do_create run_folder project_name {repo_path .}
       source $repo_path/Hog/Tcl/integrated/pre-implementation.tcl
     }
 
-    launch_runs impl_1 -jobs $njobs -dir $run_folder
+    if {[IsVivado] && $do_bitstream == 1} {
+      launch_runs impl_1 -to_step [BinaryStepName [get_property PART [current_project]]] $njobs -dir $run_folder
+    } else {
+      launch_runs impl_1 -jobs $njobs -dir $run_folder
+    }
     wait_on_run impl_1
 
     if {[IsISE]} {
@@ -4429,7 +4416,7 @@ proc ListProjects {{repo_path .} {print 1} {ret_conf 0}} {
       } elseif { $description ne ""} {
 	set description " - $description"
       }
-      
+
       if {$print == 1 || $description ne " - Test project"} {
 	set old_g $g
 	set g [file dirname $p]

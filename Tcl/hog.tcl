@@ -2548,6 +2548,7 @@ proc GetProjectVersion {proj_dir repo_path {ext_path ""} {sim 0}} {
   #The project version
   set v_proj [ExtractVersionFromTag v[HexVersionToString $ver]]
   set comp [CompareVersions $v_proj $v_last]
+  Msg Debug "Project version $v_proj, latest tag $v_last"
   if {$comp == 1} {
     Msg Info "The specified project was modified since official version."
     set ret 0

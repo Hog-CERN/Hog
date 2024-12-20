@@ -646,8 +646,8 @@ proc CompareVersions {ver1 ver2} {
 
   if {[string is integer $v1] && [string is integer $v2]} {
 
-    set ver1 [expr {[scan [lindex $ver1 0] %d]*100000 + [scan [lindex $ver1 1] %d]*1000 + [scan [lindex $ver1 2] %d]}]
-    set ver2 [expr {[scan [lindex $ver2 0] %d]*100000 + [scan [lindex $ver2 1] %d]*1000 + [scan [lindex $ver2 2] %d]}]
+    set ver1 [expr {[scan [lindex $ver1 0] %d]*1000000 + [scan [lindex $ver1 1] %d]*1000 + [scan [lindex $ver1 2] %d]}]
+    set ver2 [expr {[scan [lindex $ver2 0] %d]*1000000 + [scan [lindex $ver2 1] %d]*1000 + [scan [lindex $ver2 2] %d]}]
 
     if {$ver1 > $ver2 } {
       set ret 1
@@ -2959,11 +2959,11 @@ proc GetVerFromSHA {SHA repo_path {force_develop 0}} {
           #puts "<$tt>"
         }
         }
-        #Msg Status "Cleaned up list: $real_tag_list."
+        Msg Debug "Cleaned up list: $real_tag_list."
         # Sort the tags in version order
         set sorted_tags [lsort -decreasing -command CompareVersions $real_tag_list]
 
-        #Msg Status "Sorted Tag list: $sorted_tags"
+        Msg Status "Sorted Tag list: $sorted_tags"
         # Select the newest tag in terms of number, not time
         set tag [lindex $sorted_tags 0]
 

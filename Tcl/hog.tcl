@@ -2963,7 +2963,7 @@ proc GetVerFromSHA {SHA repo_path {force_develop 0}} {
         # Sort the tags in version order
         set sorted_tags [lsort -decreasing -command CompareVersions $real_tag_list]
 
-        Msg Status "Sorted Tag list: $sorted_tags"
+        Msg Debug "Sorted Tag list: $sorted_tags"
         # Select the newest tag in terms of number, not time
         set tag [lindex $sorted_tags 0]
 

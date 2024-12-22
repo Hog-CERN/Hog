@@ -1560,7 +1560,7 @@ proc FormatGeneric {generic} {
 # @param[in] njobs        The number of CPU jobs to run in parallel
 proc GenerateBitstream { {run_folder ""} {repo_path .} {njobs 1} } {
   Msg Info "Starting write bitstream flow..."
-  if {[IsIse]} {
+  if {[IsISE]} {
     # PlanAhead command
     Msg Info "running pre-bitstream"
     source  $repo_path/Hog/Tcl/integrated/pre-bitstream.tcl

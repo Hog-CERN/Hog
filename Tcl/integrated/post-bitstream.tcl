@@ -324,7 +324,7 @@ if {[IsXilinx] && [file exists $main_file]} {
   Msg Info "Copying main binary file $main_file.bit into $dst_main..."
   file copy -force $main_file.bit $dst_main
   Msg Info "Copying binary generation log $main_file.bgn into $dst_dir/reports..."
-  file copy -force $main_file.bit $dst_dir/reports
+  file copy -force $main_file.bgn $dst_dir/reports
 
 
 } else {

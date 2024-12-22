@@ -118,6 +118,7 @@ if {[IsXilinx]} {
   set proj_name [file tail $proj_dir]
   set project $proj_name
   set xml_dir [file normalize "$repo_path/xml"]
+  set main_file [file normalize "$proj_dir/Implementation0/${proj_name}_Implementation0" ]
 } else {
   #tcl shell
   set work_path $old_path
@@ -136,28 +137,27 @@ if {[IsXilinx]} {
 }
 
 set group_name [GetGroupName $proj_dir "$tcl_path/../.."]
+# Go to repository path
+cd $repo_path
+
+Msg Info "Evaluating Git sha for $proj_name..."
+lassign [GetRepoVersions [file normalize ./Top/$group_name/$proj_name] $repo_path] sha
+
+set describe [GetHogDescribe $sha $repo_path]
+Msg Info "Hog describe set to: $describe"
+
+set dst_dir [file normalize "$bin_dir/$group_name/$proj_name\-$describe"]
+set dst_xml [file normalize "$dst_dir/xml"]
+
+Msg Info "Creating $dst_dir..."
+file mkdir $dst_dir
+
+set ts [clock format [clock seconds] -format {%Y-%m-%d-%H-%M}]
+
 
 # Vivado
 if {[IsXilinx] && [file exists $main_file]} {
-
-  # Go to repository path
-  cd $tcl_path/../../
-
-  Msg Info "Evaluating Git sha for $proj_name..."
-  lassign [GetRepoVersions [file normalize ./Top/$group_name/$proj_name] $repo_path] sha
-
-  set describe [GetHogDescribe $sha $repo_path]
-  Msg Info "Hog describe set to: $describe"
-
-  set ts [clock format [clock seconds] -format {%Y-%m-%d-%H-%M}]
-
-  set dst_dir [file normalize "$bin_dir/$group_name/$proj_name\-$describe"]
   set dst_main [file normalize "$dst_dir/$proj_name\-$describe.$fw_file_ext"]
-  set dst_xml [file normalize "$dst_dir/xml"]
-
-  Msg Info "Creating $dst_dir..."
-  file mkdir $dst_dir
-
   Msg Info "Copying main binary file $main_file into $dst_main..."
   file copy -force $main_file $dst_main
 
@@ -181,20 +181,7 @@ if {[IsXilinx] && [file exists $main_file]} {
 
 
 } elseif {[IsQuartus]} {
-  #Quartus
-  # Go to repository path
-  cd $repo_path
 
-  Msg Info "Evaluating Git sha for $name... repo_path: $repo_path"
-  puts "$repo_path repo_path"
-  lassign [GetRepoVersions "$repo_path/Top/$group_name/$name" "$repo_path"] sha
-
-  set describe [GetHogDescribe $sha $repo_path]
-  Msg Info "Git describe set to: $describe"
-
-  set ts [clock format [clock seconds] -format {%Y-%m-%d-%H-%M}]
-
-  set dst_dir [file normalize "$bin_dir/$group_name/$proj_name\-$describe"]
   set dst_pof [file normalize "$dst_dir/$name\-$describe.pof"]
   set dst_sof [file normalize "$dst_dir/$name\-$describe.sof"]
   set dst_rbf [file normalize "$dst_dir/$name\-$describe.rbf"]
@@ -203,8 +190,6 @@ if {[IsXilinx] && [file exists $main_file]} {
   set dst_spf [file normalize "$dst_dir/$name\-$describe.spf"]
   set dst_xml [file normalize "$dst_dir/xml"]
 
-  Msg Info "Creating $dst_dir..."
-  file mkdir $dst_dir
   Msg Info "Evaluating differences with last commit..."
   set found_uncommitted 0
   set diff [Git diff]
@@ -273,17 +258,7 @@ if {[IsXilinx] && [file exists $main_file]} {
   }
 
 } elseif {[IsLibero] } {
-  # Go to repository path
-  cd $tcl_path/../../
-  ##nagelfar variable project
-  Msg Info "Evaluating git SHA for $project..."
-  lassign [GetRepoVersions [file normalize ./Top/$group_name/$project] $repo_path] sha
-  set describe [GetHogDescribe $sha $repo_path]
-  Msg Info "Git describe set to: $describe"
 
-  set ts [clock format [clock seconds] -format {%Y-%m-%d-%H-%M}]
-
-  set dst_dir [file normalize "$bin_dir/$group_name/$project\-$describe"]
   set dst_map [file normalize "$dst_dir/$project\-$describe.map"]
   set dst_sap [file normalize "$dst_dir/$project\-$describe.sap"]
   set dst_srd [file normalize "$dst_dir/$project\-$describe.srd"]
@@ -293,7 +268,6 @@ if {[IsXilinx] && [file exists $main_file]} {
   set dst_rpt [file normalize "$dst_dir/reports"]
   set dst_xml [file normalize "$dst_dir/xml"]
 
-  Msg Info "Creating $dst_dir..."
   file mkdir $dst_dir/reports
 
   if {[file exists $map_file]} {
@@ -344,6 +318,14 @@ if {[IsXilinx] && [file exists $main_file]} {
   file copy -force {*}$dlog_files $dst_rpt
   Msg Info "Copying impl rpt files $drpt_files into $dst_rpt..."
   file copy -force {*}$drpt_files $dst_rpt
+
+} elseif {[IsDiamond] } {
+  set dst_main [file normalize "$dst_dir/$proj_name\-$describe.bit"]
+  Msg Info "Copying main binary file $main_file.bit into $dst_main..."
+  file copy -force $main_file.bit $dst_main
+  Msg Info "Copying binary generation log $main_file.bgn into $dst_dir/reports..."
+  file copy -force $main_file.bit $dst_dir/reports
+
 
 } else {
   Msg CriticalWarning "Firmware binary file not found."

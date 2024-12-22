@@ -398,7 +398,7 @@ if {$do_implementation == 1 } {
 
 
 if {$do_bitstream == 1 && ![IsVivado] } {
-  # GenerateBitstream $run_folder $repo_path $options(njobs)
+  GenerateBitstream $run_folder $repo_path $options(njobs)
 }
 
 if {$do_simulation == 1} {

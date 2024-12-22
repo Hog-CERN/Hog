@@ -393,12 +393,12 @@ if {$do_synthesis == 1} {
 }
 
 if {$do_implementation == 1 } {
-  LaunchImplementation $reset $do_create $run_folder $project_name $repo_path $options(njobs)
+  LaunchImplementation $reset $do_create $run_folder $project_name $repo_path $options(njobs) $do_bitstream
 }
 
 
-if {$do_bitstream == 1} {
-  GenerateBitstream $run_folder $repo_path $options(njobs)
+if {$do_bitstream == 1 && ![IsVivado] } {
+  # GenerateBitstream $run_folder $repo_path $options(njobs)
 }
 
 if {$do_simulation == 1} {

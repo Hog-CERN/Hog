@@ -81,6 +81,8 @@ if {![string equal $options(project) ""]} {
     set group_name [GetGroupName  $proj_dir $repo_path]
   } elseif {[IsSynplify]} {
     set proj_file $repo_path/Projects/$project/$project_name.prjx
+  } elseif {[IsDiamond]} {
+    set proj_file $repo_path/Projects/$project/$project_name.ldf
   }
 } else {
   if {[IsVivado]} {
@@ -92,7 +94,13 @@ if {![string equal $options(project) ""]} {
     set proj_name [file tail $proj_dir]
     set proj_file $proj_dir/$proj_name.prjx
     set project $proj_name
+  } elseif {[IsDiamond]} {
+    set proj_dir [pwd]
+    set proj_name [file tail $proj_dir]
+    set proj_file $proj_dir/$proj_name.ldf
+    set project $proj_name
   }
+
   set group_name [GetGroupName $proj_dir $repo_path]
 }
 

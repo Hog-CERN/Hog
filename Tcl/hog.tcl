@@ -5342,11 +5342,11 @@ proc WriteGenerics {mode repo_path design date timee commit version top_hash top
   }
 
   # Dealing with project generics in Vivado
-  if {[IsVivado]}
+  if {[IsVivado]} {
     set prj_generics [GenericToSimulatorString [GetGenericsFromConf $design] "Vivado"]
     set generic_string "$prj_generics $generic_string"
   }
-  
+
   # Extract the generics from the top level source file
   if {[IsXilinx]} {
     # Top File can be retrieved only at creation time or in ISE

@@ -2496,6 +2496,81 @@ proc GetProjectFiles {{project_file ""}} {
         }
       }
     }
+  } elseif {[IsDiamond]} {
+    # Open the Diamond XML project file content
+    set fileData [read [open $project_file]]
+
+    set project_path [file dirname $project_file]
+
+    # Remove XML declaration
+    regsub {<\?xml.*\?>} $fileData "" fileData
+
+    # Extract the Implementation block
+    regexp {<Implementation.*?>(.*)</Implementation>} $fileData -> implementationContent
+
+    # Extract each Source block one by one
+    set sources {}
+    set sourceRegex {<Source name="([^"]*?)" type="([^"]*?)" type_short="([^"]*?)".*?>(.*?)</Source>}
+
+    set optionsRegex {<Options(.*?)\/>}
+    regexp $optionsRegex $implementationContent -> prj_options
+    foreach option $prj_options {
+      if {[regexp {^top=\"([^\"]+)\"} $option match result]} {
+        set top $result
+      }
+    }
+
+    while {[regexp $sourceRegex $implementationContent match name type type_short optionsContent]} {
+      Msg Debug "Found file ${name} in project..."
+      set file_path [file normalize $project_path/$name]
+      # Extract the Options attributes
+      set optionsRegex {<Options(.*?)\/>}
+      regexp $optionsRegex $optionsContent -> options
+      set library "others"
+      set isSV 0
+      foreach option $options {
+        if {[string first "System Verilog" $option]} {
+          set isSV 1
+        }
+        if {[regexp {^lib=\"([^\"]+)\"} $option match1 result]} {
+          set library $result
+        }
+      }
+      set ext ".src"
+      if {[regexp {syn_sim="([^"]*?)"} $match match_sim simonly]} {
+        set ext ".sim"
+      }        
+
+      # Append VHDL files
+      if { $type_short == "VHDL" || $type_short == "Verilog" || $type_short == "IPX"} {
+        if { $ext == ".src"} {
+          if {[IsInList "${library}${ext}" [DictGet $srcsets "sources_1"]]==0} {
+            dict lappend srcsets "sources_1" "${library}${ext}"
+          }
+          dict lappend libraries "${library}${ext}" $file_path
+        } elseif { $ext == ".sim"} {
+          if {[IsInList "${library}.sim" [DictGet $simsets "sim_1"]]==0} {
+            dict lappend simsets "sim_1" "${library}.sim"
+          }
+          dict lappend simlibraries "${library}.sim" $file_path
+        }
+        # Check if file is top_module in project
+        Msg Debug "File $file_path module [GetModuleName $file_path]"
+
+        if {[GetModuleName $file_path] == [string tolower $top] && $top != ""} {
+          Msg Debug "Found top module $top in $file_path"
+          dict lappend properties $file_path "top=$top"
+        }
+      } elseif { $type_short == "SDC"} {
+        if {[IsInList "sources.con" [DictGet $consets "constrs_1"]]==0} {
+          dict lappend consets "constrs_1" "sources.con"
+        }
+        dict lappend constraints "sources.con" $file_path
+      }
+
+      # Remove the processed Source block from the implementation content
+      regsub -- $match $implementationContent "" implementationContent
+    }
   }
   return [list $libraries $properties $simlibraries $constraints $srcsets $simsets $consets]
 }
@@ -3154,7 +3229,7 @@ proc GetModuleName {filename} {
     # Regular expression to match the module name after the 'module' keyword
     set pattern {^\s*module\s+(\S+)}
   } else {
-    Msg Warning "File is neither VHDL nor Verilog... Returning empty string..."
+    Msg Debug "File is neither VHDL nor Verilog... Returning empty string..."
     return "'"
   }
 
@@ -3162,7 +3237,7 @@ proc GetModuleName {filename} {
   if {[regexp $pattern $file_content match module_name]} {
     return $module_name
   } else {
-    Msg Warning "No module was found in $filename. Returning an empty string..."
+    Msg Debug "No module was found in $filename. Returning an empty string..."
     return ""
   }
 }
@@ -5267,9 +5342,11 @@ proc WriteGenerics {mode repo_path design date timee commit version top_hash top
   }
 
   # Dealing with project generics in Vivado
-  set prj_generics [GenericToSimulatorString [GetGenericsFromConf $design] "Vivado"]
-  set generic_string "$prj_generics $generic_string"
-
+  if {[IsVivado]}
+    set prj_generics [GenericToSimulatorString [GetGenericsFromConf $design] "Vivado"]
+    set generic_string "$prj_generics $generic_string"
+  }
+  
   # Extract the generics from the top level source file
   if {[IsXilinx]} {
     # Top File can be retrieved only at creation time or in ISE

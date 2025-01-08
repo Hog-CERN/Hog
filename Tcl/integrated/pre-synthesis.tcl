@@ -157,7 +157,8 @@ if {[file exists "$tcl_path/../../Top/$group/$proj_name/hog.conf"]} {
 
 set this_commit [GetSHA]
 
-if {[IsVivado]} {
+if {[IsVivado] || [IsSynplify] || [IsDiamond]} {
+  Msg Info "Running list file checker..."
   ##nagelfar ignore
   if {![string equal ext_path ""]} {
     set argv [list "-ext_path" "$ext_path" "-project" "$group/$proj_name" "-outDir" "$dst_dir" "-log" "[expr {!$allow_fail_on_check}]"]
@@ -173,19 +174,6 @@ if {[IsVivado]} {
 } elseif {[IsQuartus]} {
   # Quartus
   #TO BE IMPLEMENTED
-} elseif {[IsSynplify]} {
-  Msg Info "Running list file checker..."
-  if {![string equal ext_path ""]} {
-    set argv [list "-ext_path" "$ext_path" "-project" "$group/$proj_name" "-outDir" "$dst_dir" "-log" "[expr {!$allow_fail_on_check}]"]
-  } else {
-    set argv [list "-project" "$group/$proj_name" "-outDir" "$dst_dir" "-log" "[expr {!$allow_fail_on_check}]"]
-  }
-  source $tcl_path/utils/check_list_files.tcl
-  if {[file exists "$dst_dir/diff_list_and_conf.txt"]} {
-    Msg CriticalWarning "Project list or hog.conf mismatch, will use current SHA ($this_commit) and version will be set to 0."
-    set commit 0000000
-    set version 00000000
-  }
 } else {
   #Tclssh
 }

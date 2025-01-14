@@ -1,5 +1,5 @@
 #!/usr/bin/env tclsh
-#   Copyright 2018-2024 The University of Birmingham
+#   Copyright 2018-2025 The University of Birmingham
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -93,12 +93,10 @@ if {![string equal $options(project) ""]} {
     set proj_dir [file normalize [file dirname "[project_data -dir]/../.."]  ]
     set proj_name [file tail $proj_dir]
     set proj_file $proj_dir/$proj_name.prjx
-    set project $proj_name
   } elseif {[IsDiamond]} {
     set proj_dir [pwd]
     set proj_name [file tail $proj_dir]
     set proj_file $proj_dir/$proj_name.ldf
-    set project $proj_name
   }
 
   set group_name [GetGroupName $proj_dir $repo_path]

@@ -5,7 +5,7 @@
 * (  (oo)  )   |_||_\___/\__, /___\__/___| |_(_)___| *
 *     ~~                 |___/                       *
 *                                                    *
-* Copyright 2018-2024  The University of Birmingham  *
+* Copyright 2018-2025  The University of Birmingham  *
 * Documentation: https://cern.ch/hog                 *
 * Register to our newsletter: http://cern.ch/go/nBn8 *
 ******************************************************

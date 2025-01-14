@@ -5,7 +5,7 @@
 * \e[1;31m (  (oo)  ) \e[1;37m |_||_\___/\__, /___\__/___| |_(_)___| \e[0;37m  *
 *  \e[1;31m    ~~     \e[1;37m           |___/                       \e[0;37m  *
 *                                                    *
-* Copyright 2018-2024  The University of Birmingham  *
+* Copyright 2018-2025  The University of Birmingham  *
 * Documentation: https://cern.ch/hog                 *
 * Register to our newsletter: http://cern.ch/go/nBn8 *
 ******************************************************

@@ -101,7 +101,21 @@ proc AddHogFiles { libraries properties filesets } {
             if {[lsearch -inline -regexp $props "93"] < 0} {
               # ISE does not support vhdl2008
               if {[IsVivado]} {
-                set_property -name "file_type" -value "VHDL 2008" -objects $file_obj
+		if {[lsearch -inline -regexp $props "2008"] < 0} {
+		  set vhdl_year "VHDL 2008"
+		} elseif {[lsearch -inline -regexp $props "2019"] < 0} {
+		  if { [GetIDEVersion] >= 2023.2 } {
+		    set vhdl_year "VHDL 2019"
+		  } else {
+		    Msg Critical Warming "VHDL 2019 is not supported in Vivado version older than 2023.2, using vhdl 2008, but this might not work."
+		    set vhdl_year "2008"
+		  }
+		} else {
+
+		  # The default VHDL year is 2008
+		  set vhdl_year "VHDL 2008"
+		}
+                set_property -name "file_type" -value $vhdl_year -objects $file_obj
               }
             } else {
               Msg Debug "Filetype is VHDL 93 for $f"
@@ -524,7 +538,7 @@ proc AddHogFiles { libraries properties filesets } {
 ## @brief Returns a dictionary for the allowed properties for each file type
 proc ALLOWED_PROPS {} {
   return [dict create ".vhd" [list "93" "nosynth" "noimpl" "nosim" "1987" "1993" "2008" ]\
-    ".vhdl" [list "93" "nosynth" "noimpl" "nosim" "1987" "1993" "2008" ]\
+    ".vhdl" [list "93" "nosynth" "noimpl" "nosim" "1987" "1993" "2008" "2019"]\
     ".v" [list "SystemVerilog" "verilog_header" "nosynth" "noimpl" "nosim" "1995" "2001"]\
     ".sv" [list "verilog" "verilog_header" "nosynth" "noimpl" "nosim" "2005" "2009"]\
     ".do" [list "nosim"]\

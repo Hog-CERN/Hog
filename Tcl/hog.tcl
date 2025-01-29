@@ -4536,7 +4536,7 @@ proc ListProjects {{repo_path .} {print 1} {ret_conf 0}} {
 #
 # @param[in] repo_path The main path of the git repository (default .)
 proc Logo { {repo_path .} } {
-  if {[info exists ::env(HOG_COLORED)] && [string match "ENABLED" $::env(HOG_COLORED)]} {
+  if {[info exists ::env(HOG_COLORED)] && ([string match "ENABLED" $::env(HOG_COLORED)] || [string is integer -strict $::env(HOG_COLORED)] && $::env(HOG_COLORED) > 0 )} {
     set logo_file "$repo_path/Hog/images/hog_logo_color.txt"
   } else {
     set logo_file "$repo_path/Hog/images/hog_logo.txt"

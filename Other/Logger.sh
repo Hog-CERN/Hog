@@ -379,7 +379,7 @@ function Hog_exit () {
     echo -e "$txtred *** Hog finished with errors *** $txtrst"
     exit 1
   elif [[ $(msg_counter cr) -gt 0 ]]; then
-    echo -e "$txtylw *** Hog finished without Critical Warnings *** $txtrst"
+    echo -e "$txtylw *** Hog finished with Critical Warnings *** $txtrst"
     exit 0
   else
     echo -e "$txtgrn *** Hog finished without errors *** $txtrst"

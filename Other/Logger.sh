@@ -113,23 +113,25 @@ txtblu='\e[0;34m' # Blue
 txtpur='\e[0;35m' # Purple
 txtcyn='\e[0;36m' # Cyan
 txtwht='\e[0;37m' # White
+txtrst='\e[0m\e[1m' # rst
+txtbln='\e[5m' # Blink
 
 vldColorSchemes=("dark" "clear")
 
 declare -A darkColorScheme
-darkColorScheme[error]="$txtred   ERROR :$txtwht"
-darkColorScheme[critical]="${txtylw}CRITICAL :$txtwht"
-darkColorScheme[warning]="$txtylw WARNING :$txtwht"
-darkColorScheme[debug]="$txtgrn   DEBUG :$txtwht"
-darkColorScheme[info]="$txtblu    INFO :$txtwht"
-darkColorScheme[vcom]="$txtblu    VCOM :$txtwht"
+darkColorScheme[error]="$txtred   ERROR :$txtrst"
+darkColorScheme[critical]="${txtylw}CRITICAL :$txtrst"
+darkColorScheme[warning]="$txtylw WARNING :$txtrst"
+darkColorScheme[debug]="$txtgrn   DEBUG :$txtrst"
+darkColorScheme[info]="$txtblu    INFO :$txtrst"
+darkColorScheme[vcom]="$txtblu    VCOM :$txtrst"
 declare -A clearColorScheme
-clearColorScheme[error]="$txtred   ERROR :$txtblk"
-clearColorScheme[critical]="${txtylw}CRITICAL :$txtblk"
-clearColorScheme[warning]="$txtylw WARNING :$txtblk"
-clearColorScheme[debug]="$txtgrn   DEBUG :$txtblk"
-clearColorScheme[info]="$txtblu    INFO :$txtblk"
-clearColorScheme[vcom]="$txtblu    VCOM :$txtblk"
+clearColorScheme[error]="$txtred   ERROR :$txtrst"
+clearColorScheme[critical]="${txtylw}CRITICAL :$txtrst"
+clearColorScheme[warning]="$txtylw WARNING :$txtrst"
+clearColorScheme[debug]="$txtgrn   DEBUG :$txtrst"
+clearColorScheme[info]="$txtblu    INFO :$txtrst"
+clearColorScheme[vcom]="$txtblu    VCOM :$txtrst"
 
 clrschselected="dark"
 
@@ -146,8 +148,8 @@ simpleColor[error]="$txtred"
 simpleColor[critical]="$txtorg"
 simpleColor[warning]="$txtcyn"
 simpleColor[debug]="$txtgrn"
-simpleColor[info]="$txtwht"
-simpleColor[vcom]="$txtwht"
+simpleColor[info]="$txtrst"
+simpleColor[vcom]="$txtrst"
 
 declare -A msgCounter
 msgCounter[error]="ew"
@@ -374,10 +376,13 @@ function Hog_exit () {
   echo " # of Errors messages : $(msg_counter er)"
   echo "======================================== "
   if [[ $(msg_counter er) -gt 0 ]]; then
-    echo -e "$txtred *** Hog finished with errors *** $txtwht"
+    echo -e "$txtred *** Hog finished with errors *** $txtrst"
     exit 1
+  elif [[ $(msg_counter cr) -gt 0 ]]; then
+    echo -e "$txtylw *** Hog finished without Critical Warnings *** $txtrst"
+    exit 0
   else
-    echo -e "$txtgrn *** Hog finished without errors *** $txtwht"
+    echo -e "$txtgrn *** Hog finished without errors *** $txtrst"
     exit 0
   fi
 }

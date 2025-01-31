@@ -603,9 +603,8 @@ process_toml_file() {
 
 ## @function print_hog_logo()
   #
-  # @brief creates output files and pipelines stdout and stderr to
+  # @brief prints the logo
   #
-  # @param[in] execution line to process
 function print_hog_logo () {
   if [[ -n "HOG_COLOR" && "${HOG_COLOR}" =~ ^[0-9]+$ && "${HOG_COLOR}" -gt 0 ]]; then
     if [[ "${HOG_COLOR}" =~ ^[0-9]+$ && "${HOG_COLOR}" -gt 1 ]]; then

@@ -368,6 +368,9 @@ function log_stdout(){
   #
   # @brief Prints a resum of the messages types
 function Hog_exit () {
+  if [[  "$HOG_COLOR_EN" -gt 0 ]]; then
+    echo -e "$txtrst"
+  fi
   echo "================ RESUME ================ "
   echo " # of Info messages: $(msg_counter ir)"
   echo " # of debug messages : $(msg_counter dr)"

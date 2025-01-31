@@ -35,7 +35,7 @@ function help_Unic() {
   echo "    -l , --logger   Enables logger to file"
   echo "                    To make it permanenet and not need to add this option in the calling, please export HOG_LOGGER=1"
   echo "    -o , --color    Enables colorful logs"
-  echo "                    To make it permanent and not need to add this option in the calling, please export HOG_COLORED=1"
+  echo "                    To make it permanent and not need to add this option in the calling, please export HOG_COLOR=1"
   echo ""
   echo "  ACTIVITIES:"
   echo "    -I  PATH_TO_PROJECT [ACTIVITY_OPTIONS] , Init  PATH_TO_PROJECT [ACTIVITY_OPTIONS]"
@@ -136,7 +136,7 @@ else
   fi
 
   if [[ "$*" == *"-o "* ]] || [[ "$*" == *"--color "* ]]; then
-    export HOG_COLORED=1
+    export HOG_COLOR=1
     Msg Debug "Verbose with colors"
     delete=("-o" "--color")
     for del in "${delete[@]}"
@@ -160,7 +160,7 @@ else
 
 
 
-  if [[ -v "$HOG_COLORED" && $HOG_COLORED == "ENABLED" ]]; then
+  if [[ -v "$HOG_COLOR" && $HOG_COLOR == "ENABLED" ]]; then
     new_print_hog "$(dirname "$0")"
   else
     print_hog "$(dirname "$0")"

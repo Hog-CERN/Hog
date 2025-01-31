@@ -462,10 +462,10 @@ function Msg() {
     if [[ $HOG_COLOR_EN -gt 1 ]]; then
       case "${clrschselected}" in
         "dark")
-          echo -e "${darkColorScheme[$msgType]} HOG:$1[${FUNCNAME[1]}] $text"
+          echo -e " ${darkColorScheme[$msgType]} HOG:$1[${FUNCNAME[1]}] $text"
         ;;
         "clear")
-          echo -e "${clearColorScheme[$msgType]} HOG:$1[${FUNCNAME[1]}] $text "
+          echo -e " ${clearColorScheme[$msgType]} HOG:$1[${FUNCNAME[1]}] $text "
         ;;
       esac
     elif [[ $HOG_COLOR_EN -gt 0 ]]; then
@@ -601,6 +601,34 @@ process_toml_file() {
   done < $1
 }
 
+## @function print_hog_logo()
+  #
+  # @brief creates output files and pipelines stdout and stderr to
+  #
+  # @param[in] execution line to process
+function print_hog_logo () {
+  if [[ -n "HOG_COLOR" && "${HOG_COLOR}" =~ ^[0-9]+$ && "${HOG_COLOR}" -gt 0 ]]; then
+    if [[ "${HOG_COLOR}" =~ ^[0-9]+$ && "${HOG_COLOR}" -gt 1 ]]; then
+      logo_file=$ROOT_PROJECT_FOLDER/Hog/images/hog_logo_full_color.txt
+    else
+      logo_file=$ROOT_PROJECT_FOLDER/Hog/images/hog_logo_color.txt
+    fi
+  else
+    logo_file=$ROOT_PROJECT_FOLDER/Hog/images/hog_logo.txt
+  fi
+  if [ -f $logo_file ]; then
+    while IFS= read -r line; do
+      echo -e "$line" 
+    done < "$logo_file"
+    Msg Info "$(git describe --always)"
+    export HOG_LOGO_PRINTED=1
+  else
+    Msg Warning "Logo file $logo_file doesn't exist"
+  fi
+  
+
+}
+
 ## @function Logger_Init()
   #
   # @brief creates output files and pipelines stdout and stderr to
@@ -635,17 +663,20 @@ function Logger_Init() {
 
   # SETTING COLORS
   HOG_COLOR_EN=0
+  Msg Debug " SETTING COLORS"
   if [[ -v Hog_Usr_dict["terminal.colored"] ]]; then
+    Msg Debug "terminal.colored exists"
     if [[ ${Hog_Usr_dict["terminal.colored"]} =~ ^[0-9]$ ]]; then
       Msg Debug "The variable <terminal.colored> is a one-digit number"
       HOG_COLOR_EN=${Hog_Usr_dict["terminal.colored"]}
+      export HOG_COLOR=$HOG_COLOR_EN
     else
       Msg Warning "The variable <terminal.colored> is not a one-digit number, Defaulting to 0"
     fi
   else
-    if [[ -v HOG_COLORED ]]; then
-      if [[ $HOG_COLORED =~ ^[0-9]$ ]]; then
-        HOG_COLOR_EN=$HOG_COLORED
+    if [[ -v HOG_COLOR ]]; then
+      if [[ $HOG_COLOR =~ ^[0-9]$ ]]; then
+        HOG_COLOR_EN=$HOG_COLOR
       else
         HOG_COLOR_EN=1
       fi
@@ -653,7 +684,18 @@ function Logger_Init() {
   fi
 
 ############ FROM HERE WILL USE LOGGER COLORS IF ENABLED
-  Msg Debug "HOG_COLOR_EN -- $HOG_COLOR_EN"
+  print_hog_logo
+  # Msg Debug "HOG_COLOR_EN -- $HOG_COLOR_EN"
+  Msg Info "Loading Hog configuration..."
+  if test -f $hog_user_cfg; then
+    Msg Info "Hog project configuration file $hog_user_cfg exists."
+    process_toml_file $hog_user_cfg "Hog_Usr_dict"
+    for key in "${!Hog_Usr_dict[@]}"; do
+      Msg Info "Hog_Usr_dict[ $key ] = <${Hog_Usr_dict[$key]}>"
+    done
+  else
+    Msg Debug "Hog project configuration file $hog_user_cfg doesn't exists."
+  fi
   if test -f $hog_user_cfg; then
     Msg Info "Hog project configuration file $hog_user_cfg exists."
     for key in "${!Hog_Usr_dict[@]}"; do
@@ -825,6 +867,8 @@ function Logger_Init() {
     log_stdout "stdout" "LogColorVivado : $*"
     log_stdout "stderr" "LogColorVivado : $*"
   fi
+
+  Msg Info "Hog configuration setup done!!!"
 }
 
 

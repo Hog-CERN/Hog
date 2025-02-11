@@ -609,7 +609,7 @@ process_toml_file() {
   # @brief prints the logo
   #
 function print_hog_logo () {
-  if [[ -n "HOG_COLOR" && "${HOG_COLOR}" =~ ^[0-9]+$ && "${HOG_COLOR}" -gt 0 ]]; then
+  if [[ -v "HOG_COLOR" && "${HOG_COLOR}" =~ ^[0-9]+$ && "${HOG_COLOR}" -gt 0 ]]; then
     if [[ "${HOG_COLOR}" =~ ^[0-9]+$ && "${HOG_COLOR}" -gt 1 ]]; then
       logo_file=$ROOT_PROJECT_FOLDER/Hog/images/hog_logo_full_color.txt
     else

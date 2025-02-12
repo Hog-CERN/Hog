@@ -5441,8 +5441,24 @@ proc WriteGenericsToBdIPs {mode repo_path proj generic_string} {
   }
 
   if {$mode == "synth"} {
+    Msg Info "Attempting to apply generics pre-synthesis..."
     set PARENT_PRJ [get_property "PARENT.PROJECT_PATH" [current_project]]
-    open_project $PARENT_PRJ
+    set workaround [open "$repo_path/Projects/$proj/.hog/presynth_workaround.tcl" "w"]
+    puts $workaround "source \[lindex \$argv 0\];"
+    puts $workaround "open_project \[lindex \$argv 1\];"
+    puts $workaround "WriteGenericsToBdIPs \[lindex \$argv 2\] \[lindex \$argv 3\] \[lindex \$argv 4\] \[lindex \$argv 5\];"
+    puts $workaround "close_project"
+    close $workaround
+    if {[catch {
+      exec vivado -mode batch -source $repo_path/Projects/$proj/.hog/presynth_workaround.tcl \
+      -tclargs $repo_path/Hog/Tcl/hog.tcl $PARENT_PRJ \
+      "childprocess" $repo_path $proj $generic_string
+    } errMsg] != 0} {
+      Msg Error "Encountered an error while attempting workaround: $errMsg"
+    }
+    file delete $repo_path/Projects/$proj/.hog/presynth_workaround.tcl
+    Msg Info "Done applying generics pre-synthesis."
+    return
   }
 
   Msg Info "Looking for IPs to add generics to..."
@@ -5479,35 +5495,37 @@ proc WriteGenericsToBdIPs {mode repo_path proj generic_string} {
         if {[dict exists $ips_generic_string $ip_prop ]} {
           if {$WARN_ABOUT_IP == false} {
             lappend regen_targets [get_property SCOPE [get_ips $ip]]
-            Msg Warning "The ip \{$ip\} contains generics that are set by Hog. If this is IP is apart of a block design, the .bd file may contain stale, unused, values. Hog will always apply the most up-to-date values to the IP during synthesis, however these values may or may not be reflected in the .bd file."
+            Msg Warning "The ip \{$ip\} contains generics that are set by Hog.\
+              If this is IP is apart of a block design, the .bd file may contain stale, unused, values.\
+              Hog will always apply the most up-to-date values to the IP during synthesis,\
+              however these values may or may not be reflected in the .bd file."
             set WARN_ABOUT_IP true
           }
 
+          # Make sure we are using the format vivado likes
           set value_to_set [dict get $ips_generic_string $ip_prop]
           if {[string match "32'h*" $value_to_set]} {
-            set value_to_set [format "%d" [scan $value_to_set "32'h%x"]]
+            set value_to_set [string map {"32'h" "0x"} $value_to_set]
+          } else {
+            set value_to_set [format "0x%x" $value_to_set]
           }
 
           Msg Info "The IP \{$ip\} contains: $ip_prop, setting it to $value_to_set."
           if {[catch {set_property -name $ip_prop -value $value_to_set -objects [ get_ips $ip ]} prop_error]} {
             Msg CriticalWarning "Failed to set property $ip_prop to $value_to_set for IP \{$ip\}: $prop_error"
           }
-
         }
       }
     }
   }
 
-  if {$mode == "synth"} {
-    foreach {regen_target} [lsort -unique $regen_targets] {
-      Msg Info "Regenerating target: $regen_target"
-      if {[catch {generate_target -force all [get_files $regen_target]} prop_error]} {
-        Msg CriticalWarning "Failed to regen targets: $prop_error"
-      }
+  foreach {regen_target} [lsort -unique $regen_targets] {
+    Msg Info "Regenerating target: $regen_target"
+    if {[catch {generate_target -force all [get_files $regen_target]} prop_error]} {
+      Msg CriticalWarning "Failed to regen targets: $prop_error"
     }
-
-    close_project
   }
+
 }
 
 ## @brief Returns the gitlab-ci.yml snippet for a CI stage and a defined project

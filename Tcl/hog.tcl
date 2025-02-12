@@ -4548,7 +4548,6 @@ proc Logo { {repo_path .} } {
     set old_path [pwd]
     cd $repo_path/Hog
     # set ver [Git {describe --always}]
-    cd $old_path
 
     if {[file exists $logo_file]} {
       set f [open $logo_file "r"]
@@ -4565,6 +4564,8 @@ proc Logo { {repo_path .} } {
     
     set ver [Git {describe --always}]
     Msg Status "Version: $ver"
+    cd $old_path
+
   }
 
 }

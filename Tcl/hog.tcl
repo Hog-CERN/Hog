@@ -5502,8 +5502,48 @@ proc WriteGenericsToBdIPs {mode repo_path proj generic_string} {
             set WARN_ABOUT_IP true
           }
 
+<<<<<<< Updated upstream
           set value_to_set [dict get $ips_generic_string $ip_prop]
           Msg Info "The IP \{$ip\} contains: $ip_prop, setting it to $value_to_set."
+=======
+          # vivado is annoying about the format when setting generics for ips
+          # this tries to find and set the format to what vivado likes
+          set xci_path [get_property IP_FILE [get_ips $ip]]
+          set generic_format [GetGenericFormatFromXci $ip_prop $xci_path]
+          if {[string equal $generic_format "ERROR"]} {
+            Msg Warning "Could not find format for generic $ip_prop in IP $ip. Skipping..."
+            continue
+          }
+
+          set value_to_set [dict get $ips_generic_string $ip_prop]
+          switch -exact $generic_format {
+            "long" {
+              set value_to_set [format "%d" $value_to_set]
+            }
+            "bool" {
+              set value_to_set [expr {$value_to_set ? "true" : "false"}]
+            }
+            "float" {
+              set value_to_set [format "%f" $value_to_set]
+            }
+            "bitString" {
+              if {[string match "32'h*" $value_to_set]} {
+                set value_to_set [string map {"32'h" "0x"} $value_to_set]
+              } else {
+                set value_to_set [format "0x%x" $value_to_set]
+              }
+            }
+            "string" {
+              set value_to_set [format "%s" $value_to_set]
+            }
+            default {
+              Msg Warning "Unknown generic format $generic_format for IP $ip. Using default format."
+            }
+          }
+
+
+          Msg Info "The IP \{$ip\} contains: $ip_prop ($generic_format), setting it to $value_to_set."
+>>>>>>> Stashed changes
           if {[catch {set_property -name $ip_prop -value $value_to_set -objects [ get_ips $ip ]} prop_error]} {
             Msg CriticalWarning "Failed to set property $ip_prop to $value_to_set for IP \{$ip\}: $prop_error"
           }
@@ -5520,6 +5560,78 @@ proc WriteGenericsToBdIPs {mode repo_path proj generic_string} {
   }
 
 }
+
+## @brief Returns the format of a generic from an XML file
+## @param[in] generic_name: The name of the generic
+## @param[in] xml_file: The path to the XML XCI file
+proc GetGenericFormatFromXciXML {generic_name xml_file} {
+
+  if {![file exists $xml_file]} {
+    Msg Error "Could not find XML file: $xml_file"
+    return "ERROR"
+  }
+
+  set fp [open $xml_file r]
+  set xci_data [read $fp]
+  close $fp
+
+  set paramType "string"
+  set modelparam_regex [format {^.*\y%s\y.*$} [string map {"CONFIG." "MODELPARAM_VALUE."} $generic_name]]
+  set format_regex {format="([^"]+)"}
+
+  set line [lindex [regexp -inline -line $modelparam_regex $xci_data] 0]
+  Msg Debug "line: $line"
+
+  if {[regexp $format_regex $line match format_value]} {
+    Msg Debug "Extracted: $format_value format from xml"
+    set paramType $format_value
+  } else {
+    Msg Debug "No format found, using string"
+  }
+
+  return $paramType
+}
+
+## @brief Returns the format of a generic from an XCI file
+## @param[in] generic_name: The name of the generic
+## @param[in] xci_file: The path to the XCI file
+proc GetGenericFormatFromXci {generic_name xci_file} {
+
+  if {! [file exists $xci_file]} {
+    Msg Error "Could not find XCI file: $xci_file"
+    return "ERROR"
+  }
+
+  set fp [open $xci_file r]
+  set xci_data [read $fp]
+  close $fp
+
+  set paramType "string"
+  if {[string first "xilinx.com:schema:json_instance:1.0" $xci_data] == -1} {
+    Msg Debug "XCI format is not JSON, trying XML..."
+    set xml_file "[file rootname $xci_file].xml"
+    return [GetGenericFormatFromXciXML $generic_name $xml_file]
+
+  }
+
+  set generic_name [string map {"CONFIG." ""} $generic_name]
+  set ip_inst [ParseJSON $xci_data "ip_inst"]
+  set parameters [dict get $ip_inst parameters]
+  set component_parameters [dict get $parameters component_parameters]
+  if {[dict exists $component_parameters $generic_name]} {
+    set generic_info [dict get $component_parameters $generic_name]
+    if {[dict exists [lindex $generic_info 0] format]} {
+      set paramType [dict get [lindex $generic_info 0] format]
+      Msg Debug "Extracted: $paramType format from xci"
+      return $paramType
+    }
+    Msg Debug "No format found, using string"
+    return $paramType
+  } else {
+    return "ERROR"
+  }
+}
+
 
 ## @brief Returns the gitlab-ci.yml snippet for a CI stage and a defined project
 #

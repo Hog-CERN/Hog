@@ -5502,14 +5502,7 @@ proc WriteGenericsToBdIPs {mode repo_path proj generic_string} {
             set WARN_ABOUT_IP true
           }
 
-          # Make sure we are using the format vivado likes
           set value_to_set [dict get $ips_generic_string $ip_prop]
-          if {[string match "32'h*" $value_to_set]} {
-            set value_to_set [string map {"32'h" "0x"} $value_to_set]
-          } else {
-            set value_to_set [format "0x%x" $value_to_set]
-          }
-
           Msg Info "The IP \{$ip\} contains: $ip_prop, setting it to $value_to_set."
           if {[catch {set_property -name $ip_prop -value $value_to_set -objects [ get_ips $ip ]} prop_error]} {
             Msg CriticalWarning "Failed to set property $ip_prop to $value_to_set for IP \{$ip\}: $prop_error"

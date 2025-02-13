@@ -5502,10 +5502,6 @@ proc WriteGenericsToBdIPs {mode repo_path proj generic_string} {
             set WARN_ABOUT_IP true
           }
 
-<<<<<<< Updated upstream
-          set value_to_set [dict get $ips_generic_string $ip_prop]
-          Msg Info "The IP \{$ip\} contains: $ip_prop, setting it to $value_to_set."
-=======
           # vivado is annoying about the format when setting generics for ips
           # this tries to find and set the format to what vivado likes
           set xci_path [get_property IP_FILE [get_ips $ip]]
@@ -5543,7 +5539,6 @@ proc WriteGenericsToBdIPs {mode repo_path proj generic_string} {
 
 
           Msg Info "The IP \{$ip\} contains: $ip_prop ($generic_format), setting it to $value_to_set."
->>>>>>> Stashed changes
           if {[catch {set_property -name $ip_prop -value $value_to_set -objects [ get_ips $ip ]} prop_error]} {
             Msg CriticalWarning "Failed to set property $ip_prop to $value_to_set for IP \{$ip\}: $prop_error"
           }

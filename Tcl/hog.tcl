@@ -5514,26 +5514,26 @@ proc WriteGenericsToBdIPs {mode repo_path proj generic_string} {
           set value_to_set [dict get $ips_generic_string $ip_prop]
           switch -exact $generic_format {
             "long" {
-              set value_to_set [format "%d" $value_to_set]
+              if {[string first "32'h" $value_to_set] != -1} {
+                scan [string map {"32'h" ""} $value_to_set] "%x" value_to_set
+              }
             }
             "bool" {
               set value_to_set [expr {$value_to_set ? "true" : "false"}]
             }
             "float" {
-              set value_to_set [format "%f" $value_to_set]
+              if {[string first "32'h" $value_to_set] != -1} {
+                binary scan [binary format H* [string map {"32'h" ""} $value_to_set]] d value_to_set
+              }
             }
             "bitString" {
-              if {[string match "32'h*" $value_to_set]} {
-                set value_to_set [string map {"32'h" "0x"} $value_to_set]
-              } else {
-                set value_to_set [format "0x%x" $value_to_set]
-              }
+                set value_to_set [format "0x%x" [string map {"32'h" ""} $value_to_set]]
             }
             "string" {
               set value_to_set [format "%s" $value_to_set]
             }
             default {
-              Msg Warning "Unknown generic format $generic_format for IP $ip. Using default format."
+              Msg Warning "Unknown generic format $generic_format for IP $ip. Will attempt to pass as string..."
             }
           }
 

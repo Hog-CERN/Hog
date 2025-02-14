@@ -5514,7 +5514,7 @@ proc WriteGenericsToBdIPs {mode repo_path proj generic_string} {
           set value_to_set [dict get $ips_generic_string $ip_prop]
           switch -exact $generic_format {
             "long" {
-              if {[string first "32'h" $value_to_set] != -1} {
+              if {[string match "32'h*" $value_to_set]} {
                 scan [string map {"32'h" ""} $value_to_set] "%x" value_to_set
               }
             }
@@ -5522,12 +5522,14 @@ proc WriteGenericsToBdIPs {mode repo_path proj generic_string} {
               set value_to_set [expr {$value_to_set ? "true" : "false"}]
             }
             "float" {
-              if {[string first "32'h" $value_to_set] != -1} {
+              if {[string match "32'h*" $value_to_set]} {
                 binary scan [binary format H* [string map {"32'h" ""} $value_to_set]] d value_to_set
               }
             }
             "bitString" {
-                set value_to_set [format "0x%x" [string map {"32'h" ""} $value_to_set]]
+              if {[string match "32'h*" $value_to_set]} {
+                set value_to_set [string map {"32'h" "0x"} $value_to_set]
+              }
             }
             "string" {
               set value_to_set [format "%s" $value_to_set]

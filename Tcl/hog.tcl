@@ -1,4 +1,4 @@
-#   Copyright 2018-2024 The University of Birmingham
+#   Copyright 2018-2025 The University of Birmingham
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -1269,7 +1269,7 @@ proc GetProjectVersion {proj_dir repo_path {ext_path ""} {sim 0}} {
   #The project version
   set v_proj [ExtractVersionFromTag v[HexVersionToString $ver]]
   set comp [CompareVersions $v_proj $v_last]
-  if {$comp == 1} {
+  if {![info exists ::env(HOG_GLOBAL_VERSIONS) ] && $comp == 1} {
     Msg Info "The specified project was modified since official version."
     set ret 0
   } else {

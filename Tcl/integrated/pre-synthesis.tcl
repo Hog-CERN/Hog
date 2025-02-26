@@ -42,7 +42,8 @@ if {[catch {package require struct::matrix} ERROR]} {
 
 if {[IsISE]} {
   # Vivado + PlanAhead
-  set old_path [file normalize "../../Projects/$project/$project.runs/synth_1"]
+  set project [file tail $project_name]
+  set old_path [file normalize "../../Projects/${project_name}/$project.runs/synth_1"]
   file mkdir $old_path
 } else {
   set old_path [pwd]
@@ -58,7 +59,7 @@ if {[info exists env(HOG_EXTERNAL_PATH)]} {
 if {[IsXilinx]} {
   # Vivado + PlanAhead
   if {[IsISE]} {
-    set proj_file [get_property DIRECTORY [current_project]]
+    set proj_file "[get_property DIRECTORY [current_project]]/$project.prr"
   } else {
     set proj_file [get_property parent.project_path [current_project]]
   }

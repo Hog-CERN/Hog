@@ -34,7 +34,9 @@ if {[IsISE]} {
 if {[IsXilinx]} {
   # Vivado + PlanAhead
   if {[IsISE]} {
-    set proj_file [get_property DIRECTORY [current_project]]
+    set proj_dir [get_property DIRECTORY [current_project]]
+    set project [file tail $proj_dir]
+    set proj_file $proj_dir/$project.prr
   } else {
     set proj_file [get_property parent.project_path [current_project]]
   }

@@ -38,17 +38,11 @@ before_script:
     else
       echo "defined.";
     fi;
-  # - export REPO=`echo $CI_PROJECT_URL | sed -e s#https://##`
-  # - git remote set-url origin https://${HOG_USER}:${HOG_PUSH_TOKEN}@$REPO
-  # - git config user.email ${HOG_EMAIL}
-  # - git config user.name ${HOG_USER}
-  # - git config http.emptyauth false
-  # - git fetch
-  # - git checkout $CI_COMMIT_REF_NAME --
-  - export XILINXD_LICENSE_FILE=${HOG_XIL_LICENSE}
+  - if [ -n "$HOG_XIL_LICENSE" ]; then
+      export XILINXD_LICENSE_FILE=${HOG_XIL_LICENSE};
+    fi
   - export PATH=${HOG_PATH}:$PATH
   - export LD_LIBRARY_PATH=${HOG_LD_LIBRARY_PATH}:$LD_LIBRARY_PATH
-  # - git submodule update --init Hog
   - source Hog/Other/CommonFunctions.sh
   - print_hog Hog/
 

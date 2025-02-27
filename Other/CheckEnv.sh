@@ -121,23 +121,23 @@ if [ -d "$PROJ_DIR" ]; then
     #Choose if the project is quartus, vivado, vivado_hls [...]
 
     if ! select_command "$PROJ_DIR" ; then
-        echo "[CheckEnv:ERROR] Failed to select project type: exiting!"
+        Msg Error "Failed to select project type: exiting!"
         exit 1
     fi
 
     #select full path to executable and place it in HDL_COMPILER global variable
 
     if ! select_compiler_executable "$COMMAND" ; then
-        echo "[CheckEnv:ERROR] Failed to get HDL compiler executable for $COMMAND"
+        Msg Error "Failed to get HDL compiler executable for $COMMAND"
         exit 1
     fi
 
     if [ ! -f "${HDL_COMPILER}" ]; then
-        echo "[CheckEnv:ERROR] HDL compiler executable $HDL_COMPILER not found"
+        Msg Error "HDL compiler executable $HDL_COMPILER not found"
         cd "${OLD_DIR}" || exit
         exit 1
     else
-        echo "[CheckEnv:INFO] Using executable: $HDL_COMPILER"
+        Msg Info "Using executable: $HDL_COMPILER"
     fi
 fi
 

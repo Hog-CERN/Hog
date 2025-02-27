@@ -1,4 +1,4 @@
-#!/usr/bin/env sh
+#!/usr/bin/env bash
 #   Copyright 2018-2025 The University of Birmingham
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,7 +14,9 @@
 #   limitations under the License.
 
 # Get the directory containing the script
-script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+. ${script_dir}/Logger.sh
 
 ## @file CreateProject.sh
 #  @brief Create the specified Vivado or Quartus project
@@ -75,55 +77,55 @@ export DEBUG_VERBOSE=""
 #
 # @returns  0 if success, 1 if failure
 #
-select_command_from_line() {
-  if [ -z "$1" ]; then
-    echo "[ERROR] Missing input! Got: $1!"
+function select_command_from_line() {
+  if [ -z ${1+x} ]; then
+    Msg Error " missing input! Got: $1!"
     return 1
   fi
 
-  TCL_FIRST_LINE=$1
+  local TCL_FIRST_LINE=$1
 
-  if echo "$TCL_FIRST_LINE" | grep -q 'vivado'; then
-    if echo "$TCL_FIRST_LINE" | grep -q 'vivadoHLS'; then
-      echo "[INFO] Recognised VivadoHLS project"
+  if [[ $TCL_FIRST_LINE =~ 'vivado' ]]; then
+    if [[ $TCL_FIRST_LINE =~ 'vivadoHLS' ]]; then
+      Msg Info " Recognised VivadoHLS project"
       COMMAND="vivado_hls"
       COMMAND_OPT="-f"
     else
-      echo "[INFO] Recognised Vivado project"
+      Msg Info " Recognised Vivado project"
       COMMAND="vivado"
       COMMAND_OPT="-nojournal -nolog -mode batch -notrace -source "
       POST_COMMAND_OPT="-tclargs "
     fi
-  elif echo "$TCL_FIRST_LINE" | grep -q 'quartus'; then
-    if echo "$TCL_FIRST_LINE" | grep -q 'quartusHLS'; then
-      echo "[ERROR] Intel HLS compiler is not supported!"
+  elif [[ $TCL_FIRST_LINE =~ 'quartus' ]]; then
+    if [[ $TCL_FIRST_LINE =~ 'quartusHLS' ]]; then
+      Msg Error " Intel HLS compiler is not supported!"
       return 1
     else
-      echo "[INFO] Recognised QuartusPrime project"
+      Msg Info " Recognised QuartusPrime project"
       COMMAND="quartus_sh"
       COMMAND_OPT="-t "
     fi
-  elif echo "$TCL_FIRST_LINE" | grep -q 'intelHLS'; then
-    echo "[ERROR] Intel HLS compiler is not supported!"
+  elif [[ $TCL_FIRST_LINE =~ 'intelHLS' ]]; then
+    Msg Error "Intel HLS compiler is not supported!"
     return 1
-  elif echo "$TCL_FIRST_LINE" | grep -q 'planahead'; then
-    echo "[INFO] Recognised planAhead project"
+  elif [[ $TCL_FIRST_LINE =~ 'planahead' ]]; then
+    Msg Info " Recognised planAhead project"
     COMMAND="planAhead"
     COMMAND_OPT="-nojournal -nolog -mode batch -notrace -source "
     POST_COMMAND_OPT="-tclargs"
-  elif echo "$TCL_FIRST_LINE" | grep -q 'libero'; then
-    echo "[INFO] Recognised Libero SoC project"
+  elif [[ $TCL_FIRST_LINE =~ 'libero' ]]; then
+    Msg Info "Recognised Libero SoC project"
     COMMAND="libero"
     COMMAND_OPT="SCRIPT:"
     POST_COMMAND_OPT="SCRIPT_ARGS:"
-  elif echo "$TCL_FIRST_LINE" | grep -q 'diamond'; then
-    echo "[INFO] Recognised Lattice Diamond project"
+  elif [[ $TCL_FIRST_LINE =~ 'diamond' ]]; then
+    Msg Info "Recognised Lattice Diamond project"
     COMMAND="diamondc"
     COMMAND_OPT=" "
     POST_COMMAND_OPT=" "
   else
-    echo "[WARNING] You should write #vivado, #quartus or #planahead as first line in your hog.conf file or project Tcl file, assuming Vivado... "
-    echo "[INFO] Recognised Vivado project"
+    Msg Warning " You should write #vivado, #quartus or #planahead as first line in your hog.conf file or project Tcl file, assuming Vivado... "
+    Msg Info " Recognised Vivado project"
     COMMAND="vivado"
     COMMAND_OPT="-mode batch -notrace -source"
     POST_COMMAND_OPT="-tclargs"
@@ -147,10 +149,10 @@ select_command_from_line() {
 #
 # @returns  0 for ok, 1 for error
 #
-select_command() {
+function select_command() {
   proj=$(basename "$1")
-  conf="$1/hog.conf"
-  tcl="$1/$proj.tcl"
+  conf="$1"/"hog.conf"
+  tcl="$1"/"$proj.tcl"
 
   if [ -f "$conf" ]; then
     file="$conf"
@@ -159,12 +161,13 @@ select_command() {
     file="$tcl"
     FILE_TYPE=TCL
   else
-    echo "[ERROR] No suitable file found in $1!"
+    Msg Error "No suitable file found in $1!"
     return 1
   fi
 
+
   if ! select_command_from_line "$(head -1 "$file")"; then
-    echo "[ERROR] Failed to select COMMAND, COMMAND_OPT and POST_COMMAND_OPT"
+    Msg Error "Failed to select COMMAND, COMMAND_OPT and POST_COMMAND_OPT"
     return 1
   fi
 
@@ -187,50 +190,51 @@ select_command() {
 #
 # @returns  0 if success, 1 if failure
 #
-select_compiler_executable() {
-  if [ "a$1" = "a" ]; then
-    echo "[ERROR] select_compiler_executable(): Variable COMMAND is not set!"
+function select_compiler_executable() {
+  if [ "a$1" == "a" ]; then
+    Msg Error "select_compiler_executable(): Variable COMMAND is not set!"
     return 1
   fi
 
-  if command -v "$1" > /dev/null; then
+  if [ "$(command -v "$1")" ]; then
     HDL_COMPILER=$(command -v "$1")
   else
-    if [ "$1" = "vivado" ]; then
-      if [ -z "${XILINX_VIVADO+x}" ]; then
-        echo "[ERROR] No vivado executable found and no variable XILINX_VIVADO set"
+    if [ "$1" == "vivado" ]; then
+      if [ -z ${XILINX_VIVADO+x} ]; then
+        Msg Error "No vivado executable found and no variable XILINX_VIVADO set\n"
         cd "${OLD_DIR}" || exit
         return 1
       elif [ -d "$XILINX_VIVADO" ]; then
-        echo "[INFO] XILINX_VIVADO is set to '$XILINX_VIVADO'"
+        Msg Info "XILINX_VIVADO is set to '$ XILINX_VIVADO'"
         HDL_COMPILER="$XILINX_VIVADO/bin/$1"
       else
-        echo "[ERROR] Failed locate '$1' executable from XILINX_VIVADO: $XILINX_VIVADO"
+        Msg Error "Failed locate '$1' executable from XILINX_VIVADO: $XILINX_VIVADO"
         return 1
       fi
-    elif [ "$1" = "quartus_sh" ]; then
-      if [ -z "${QUARTUS_ROOTDIR+x}" ]; then
-        echo "[ERROR] No quartus_sh executable found and no variable QUARTUS_ROOTDIR set"
+    elif [ "$1" == "quartus_sh" ]; then
+      if [ -z ${QUARTUS_ROOTDIR+x} ]; then
+        Msg Error "No quartus_sh executable found and no variable QUARTUS_ROOTDIR set\n"
         cd "${OLD_DIR}" || exit
         return 1
       else
-        echo "[INFO] QUARTUS_ROOTDIR is set to '$QUARTUS_ROOTDIR'"
-        # Decide if you are to use bin or bin64
+        Msg Info "QUARTUS_ROOTDIR is set to '$QUARTUS_ROOTDIR'"
+        #Decide if you are to use bin or bin 64
+        #Note things like $PROCESSOR_ARCHITECTURE==x86 won't work in Windows because this will return the version of the git bash
         if [ -d "$QUARTUS_ROOTDIR/bin64" ]; then
           HDL_COMPILER="$QUARTUS_ROOTDIR/bin64/$1"
         elif [ -d "$QUARTUS_ROOTDIR/bin" ]; then
           HDL_COMPILER="$QUARTUS_ROOTDIR/bin/$1"
         else
-          echo "[ERROR] Failed locate '$1' executable from QUARTUS_ROOTDIR: $QUARTUS_ROOTDIR"
+          Msg Error "Failed locate '$1' executable from QUARTUS_ROOTDIR: $QUARTUS_ROOTDIR"
           return 1
         fi
       fi
-    elif [ "$1" = "libero" ]; then
-      echo "[ERROR] No libero executable found."
+    elif [ "$1" == "libero" ]; then
+      Msg Error "No libero executable found."
       cd "${OLD_DIR}" || exit
       return 1
     else
-      echo "[ERROR] cannot find the executable for $1."
+      Msg Error "cannot find the executable for $1."
       echo "Probable causes are:"
       echo "- $1 was not setup"
       echo "- command not available on the machine"
@@ -241,7 +245,7 @@ select_compiler_executable() {
   return 0
 }
 
-## @fn select_executable_from_project_dir
+## @fn select_executable_from_project
 #
 # @brief Selects which compiler executable has to be used based on the first line of the conf or tcl file
 #
@@ -253,20 +257,21 @@ select_compiler_executable() {
 #
 # @returns  0 if success, 1 if failure
 #
-select_executable_from_project_dir() {
-  if [ -z "$1" ]; then
-    echo "[ERROR] missing input! Got: $1!"
+function select_executable_from_project_dir() {
+  if [ -z ${1+x} ]; then
+    Msg Error "missing input! Got: $1!"
     return 1
   fi
 
   if ! select_command "$1"; then
-    echo "[ERROR] Failed to select project type: exiting!"
+    Msg Error "Failed to select project type: exiting!"
     return 1
   fi
 
-  # select full path to executable and place it in HDL_COMPILER global variable
-  if ! select_compiler_executable "$COMMAND"; then
-    echo "[ERROR] Failed to get HDL compiler executable for $COMMAND"
+  #select full path to executable and place it in HDL_COMPILER global variable
+
+  if ! select_compiler_executable $COMMAND; then
+    Msg Error "Failed to get HDL compiler executable for $COMMAND"
     return 1
   fi
 
@@ -277,9 +282,9 @@ select_executable_from_project_dir() {
 #
 # @param[in] $1 path to Hog dir
 # @brief prints the hog logo
-print_hog() {
-  if [ -z "$1" ]; then
-    echo "[ERROR] missing input! Got: $1!"
+function print_hog() {
+  if [ -z ${1+x} ]; then
+    Msg Error "missing input! Got: $1!"
     return 1
   fi
   cd "$1" || exit
@@ -289,22 +294,22 @@ print_hog() {
   cat ./images/hog_logo.txt
   echo " Version: ${ver}"
   echo
-  cd "${OLDPWD}" || exit
-  set +e; HogVer "$1"; set -e;
+  cd "${OLDPWD}" || exit >> /dev/null
+  HogVer "$1"
 
   return 0
 }
 
-# @fn print_log_hog
+# @fn print_hog
 #
 # @param[in] $1 path to Hog dir
 # @brief prints the hog logo
-print_log_hog() {
-  if [ -z "$1" ]; then
-    echo "[ERROR] Missing input! Got: $1!"
+function print_log_hog() {
+  if [ -z ${1+x} ]; then
+    Msg Error "Missing input! Got: $1!"
     return 1
   fi
-  cat "${ROOT_PROJECT_FOLDER}/Hog/images/hog_logo.txt"
+  cat ${ROOT_PROJECT_FOLDER}"/Hog/images/hog_logo.txt"
   echo " Version: ${HOG_GIT_VERSION}"
   echo
   return 0
@@ -314,42 +319,42 @@ print_log_hog() {
 #
 # @param[in] $1 path to Hog dir
 # @brief prints the hog logo
-new_print_hog() {
-  if [ -z "$1" ]; then
-    echo "[ERROR] missing input! Got: $1!"
+function new_print_hog() {
+  if [ -z ${1+x} ]; then
+    Msg Error "missing input! Got: $1!"
     return 1
   fi
   cd "$1"
   HOG_GIT_VERSION=$(git describe --always)
   while IFS= read -r line; do
-    echo "$line"
+    echo -e "$line"
   done < ./images/hog_logo_color.txt
   echo
   echo " Version: ${HOG_GIT_VERSION}"
   echo
   echo "***************************************************"
-  cd "${OLDPWD}" || exit
+  cd "${OLDPWD}" || exit >> /dev/null
   return 0
 }
 
-## @fn search_projects
+## @fn search available projects inside input folder
 #
 # @brief Search all hog projects inside a folder
 #
 # @param[in]    $1 full path to the dir containing the projects
 # @returns  0 if success, 1 if failure
 #
-search_projects() {
-  if [ -z "$1" ]; then
-    echo "[ERROR] missing input! Got: $1!"
+function search_projects() {
+  if [ -z ${1+x} ]; then
+    Msg Error "missing input! Got: $1!"
     return 1
   fi
 
-  if [ -d "$1" ]; then
+  if [[ -d "$1" ]]; then
     for dir in "$1"/*; do
       if [ -f "$dir/hog.conf" ]; then
         subname=${dir#*Top/}
-        echo "$subname"
+        Msg Info $subname
       else
         search_projects "$dir"
       fi
@@ -358,25 +363,25 @@ search_projects() {
   return 0
 }
 
-## @fn HogVer
 #
 # @brief Check if the running Hog version is older than the latest stable
 #
 # @param[in]    $1 full path to the dir containing the HDL repo
 # @returns  0 if success, 1 if failure
 #
-HogVer() {
-  echo "Checking the latest available Hog version..."
-  if ! check_command timeout; then
+function HogVer() {
+  Msg Info "Checking the latest available Hog version..."
+  if ! check_command timeout
+  then
     return 1
   fi
 
-  if [ -z "$1" ]; then
-    echo "ERROR: Missing input! You should give the path to your Hog submodule. Got: $1!"
+  if [ -z ${1+x} ]; then
+    Msg Error "Missing input! You should give the path to your Hog submodule. Got: $1!"
     return 1
   fi
 
-  if [ -d "$1" ]; then
+  if [[ -d "$1" ]]; then
     cd "$1" || exit
     current_version=$(git describe --always)
     current_sha=$(git log "$current_version" -1 --format=format:%H)
@@ -387,35 +392,38 @@ HogVer() {
 
     # The next line checks if master_sha is an ancestor of current_sha
     if [ "$merge_base" != "$master_sha" ]; then
+      Msg Info
+      Msg Info "Version $master_version has been released (https://gitlab.cern.ch/hog/Hog/-/releases/$master_version)"
+      Msg Info "You should consider updating Hog submodule with the following instructions:"
       echo
-      echo "Version $master_version has been released (https://gitlab.cern.ch/hog/Hog/-/releases/$master_version)"
-      echo "You should consider updating Hog submodule with the following instructions:"
+      Msg Info "cd Hog && git checkout master && git pull"
       echo
-      echo "cd Hog && git checkout master && git pull"
-      echo
-      echo "Remember also to update the ref: in your .gitlab-ci.yml to $master_version"
+      Msg Info "Remember also to update the ref: in your .gitlab-ci.yml to $master_version"
       echo
     else
-      echo "Latest official version is $master_version, nothing to do."
+      Msg Info "Latest official version is $master_version, nothing to do."
     fi
+
   fi
-  cd "${OLDPWD}" || exit
+  cd ${OLDPWD} || exit >> /dev/null
 }
 
-## @fn check_command
+
 #
 # @brief Check if a command is available on the running machine
 #
 # @param[in]    $1 Command name
 # @returns  0 if success, 1 if failure
 #
-check_command() {
-  if ! command -v "$1" > /dev/null; then
-    echo "WARNING: Command $1 could not be found"
+function check_command() {
+  if ! command -v "$1" &> /dev/null
+  then
+    Msg Warning "Command $1 could not be found"
     return 1
   fi
   return 0
 }
+
 
 ## @fn print_projects
 #
@@ -427,11 +435,12 @@ check_command() {
 # @param[in]    $1 search directory
 # @param[in]    $2 return directory
 #
-print_projects() {
-  echo
-  echo "Possible projects are:"
-  echo ""
-  search_projects "$1"
-  echo
-  cd "$2" || exit
+function print_projects() {
+    echo
+    echo "Possible projects are:"
+    echo ""
+    search_projects "$1"
+    echo
+    cd "$2" || exit
+
 }

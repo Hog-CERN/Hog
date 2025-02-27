@@ -236,11 +236,11 @@
           echo "Hog-CI(info) - Adding version and utilization summaries to note...";
           if [ -d "$CI_PROJECT_DIR/Projects/$PROJECT_NAME/$(basename $PROJECT_NAME).runs/" ]; then
             cat $CI_PROJECT_DIR/Projects/$PROJECT_NAME/$(basename $PROJECT_NAME).runs/versions* > note.md;
-            cp $CI_PROJECT_DIR/Projects/$PROJECT_NAME/$(basename $PROJECT_NAME).runs/versions* "$CI_PROJECT_DIR/bin/$PROJECT_NAME*/";
+            cp $CI_PROJECT_DIR/Projects/$PROJECT_NAME/$(basename $PROJECT_NAME).runs/versions* $CI_PROJECT_DIR/bin/$PROJECT_NAME*/;
           fi;
           if [ -d "$CI_PROJECT_DIR/Projects/$PROJECT_NAME/output_files/" ]; then
             cat $CI_PROJECT_DIR/Projects/$PROJECT_NAME/output_files/versions* > note.md;
-            cp $CI_PROJECT_DIR/Projects/$PROJECT_NAME/output_files/versions* "$CI_PROJECT_DIR/bin/$PROJECT_NAME*/";
+            cp $CI_PROJECT_DIR/Projects/$PROJECT_NAME/output_files/versions* $CI_PROJECT_DIR/bin/$PROJECT_NAME*/;
           fi;
         else
           echo "Hog-CI(info) - Adding versions, timing and utilization summary to note...";

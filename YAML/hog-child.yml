@@ -241,21 +241,17 @@
           if [ -d "$CI_PROJECT_DIR/Projects/$PROJECT_NAME/output_files/" ]; then
             cp $CI_PROJECT_DIR/Projects/$PROJECT_NAME/output_files/versions* $CI_PROJECT_DIR/bin/$PROJECT_NAME*/;
           fi;
+          if [ -f "$CI_PROJECT_DIR/Projects/$PROJECT_NAME/versions.txt" ]; then
+            cp $CI_PROJECT_DIR/Projects/$PROJECT_NAME/versions.txt $CI_PROJECT_DIR/bin/$PROJECT_NAME*/;
+          fi;
         else
           echo "Hog-CI(info) - Adding versions, timing and utilization summary to note...";
           if [ -d "$CI_PROJECT_DIR/Projects/$PROJECT_NAME/output_files/" ]; then
             cp $CI_PROJECT_DIR/Projects/$PROJECT_NAME/output_files/versions* $CI_PROJECT_DIR/bin/$PROJECT_NAME*/;
-          else
-            if [ -f "$CI_PROJECT_DIR/bin/$PROJECT_NAME*/versions*" ]; then
-              cat $CI_PROJECT_DIR/bin/$PROJECT_NAME*/versions* > note.md;
-            fi;
-            if [ -f "$CI_PROJECT_DIR/bin/$PROJECT_NAME*/timing_*" ]; then
-              cat $CI_PROJECT_DIR/bin/$PROJECT_NAME*/timing_* >> note.md;
-            fi;
           fi;
-        fi;
-        if [ -f "$CI_PROJECT_DIR/bin/$PROJECT_NAME*/utilization.txt" ]; then
-          cat $CI_PROJECT_DIR/bin/$PROJECT_NAME*/utilization.txt >> note.md;
+          if [ -f "$CI_PROJECT_DIR/Projects/$PROJECT_NAME/versions.txt" ]; then
+            cp $CI_PROJECT_DIR/Projects/$PROJECT_NAME/versions.txt $CI_PROJECT_DIR/bin/$PROJECT_NAME*/;
+          fi;
         fi;
         echo "Hog-CI(info) - All done.";
       fi;

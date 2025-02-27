@@ -562,6 +562,8 @@ proc ALLOWED_PROPS {} {
 proc BinaryStepName {part} {
   if {[IsVersal $part]} {
     return "WRITE_DEVICE_IMAGE"
+  } elseif {[IsIse]} {
+    return "Bitgen"
   } else {
     return "WRITE_BITSTREAM"
   }
@@ -1574,30 +1576,7 @@ proc FormatGeneric {generic} {
 # @param[in] njobs        The number of CPU jobs to run in parallel
 proc GenerateBitstream { {run_folder ""} {repo_path .} {njobs 1} } {
   Msg Info "Starting write bitstream flow..."
-  if {[IsISE]} {
-    # PlanAhead command
-    Msg Info "running pre-bitstream"
-    source  $repo_path/Hog/Tcl/integrated/pre-bitstream.tcl
-    launch_runs impl_1 -to_step Bitgen $njobs -dir $run_folder
-    wait_on_run impl_1
-    Msg Info "running post-bitstream"
-    source  $repo_path/Hog/Tcl/integrated/post-bitstream.tcl
-
-    set prog [get_property PROGRESS [get_runs impl_1]]
-    set status [get_property STATUS [get_runs impl_1]]
-    Msg Info "Run: impl_1 progress: $prog, status : $status"
-
-    if {$prog ne "100%"} {
-      Msg Error "Write bitstream error, status is: $status"
-    }
-
-    set wns [get_property STATS.WNS [get_runs [current_run]]]
-    set tns [get_property STATS.TNS [get_runs [current_run]]]
-    set whs [get_property STATS.WHS [get_runs [current_run]]]
-    set ths [get_property STATS.THS [get_runs [current_run]]]
-    set tpws [get_property STATS.TPWS [get_runs [current_run]]]
-
-  } elseif {[IsQuartus]} {
+  if {[IsQuartus]} {
     set revision [get_current_revision]
     if {[catch {execute_module -tool asm} result]} {
       Msg Error "Result: $result\n"
@@ -3881,7 +3860,7 @@ proc LaunchImplementation {reset do_create run_folder project_name {repo_path .}
       source $repo_path/Hog/Tcl/integrated/pre-implementation.tcl
     }
 
-    if {[IsVivado] && $do_bitstream == 1} {
+    if {$do_bitstream == 1} {
       launch_runs impl_1 -to_step [BinaryStepName [get_property PART [current_project]]] $njobs -dir $run_folder
     } else {
       launch_runs impl_1 -jobs $njobs -dir $run_folder
@@ -3889,7 +3868,14 @@ proc LaunchImplementation {reset do_create run_folder project_name {repo_path .}
     wait_on_run impl_1
 
     if {[IsISE]} {
+      Msg Info "running post-implementation"
       source $repo_path/Hog/Tcl/integrated/post-implementation.tcl
+      if {$do_bitstream == 1} {
+        Msg Info "running pre-bitstream"
+        source $repo_path/Hog/Tcl/integrated/pre-bitstream.tcl
+        Msg Info "running post-bitstream"
+        source $repo_path/Hog/Tcl/integrated/post-bitstream.tcl
+      }
     }
 
     set prog [get_property PROGRESS [get_runs impl_1]]

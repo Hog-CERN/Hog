@@ -240,28 +240,28 @@
         if [ -n "$HOG_ONLY_SYNTH" ] && [ "$HOG_ONLY_SYNTH" = '1' ]; then
           echo "Hog-CI(info) - Adding version and utilization summaries to note...";
           if [ -d "$CI_PROJECT_DIR/Projects/$PROJECT_NAME/$(basename $PROJECT_NAME).runs/" ]; then
-            cat "$CI_PROJECT_DIR/Projects/$PROJECT_NAME/$(basename $PROJECT_NAME).runs/versions*" > note.md;
-            cp "$CI_PROJECT_DIR/Projects/$PROJECT_NAME/$(basename $PROJECT_NAME).runs/versions*" "$CI_PROJECT_DIR/bin/$PROJECT_NAME*/";
+            cat $CI_PROJECT_DIR/Projects/$PROJECT_NAME/$(basename $PROJECT_NAME).runs/versions* > note.md;
+            cp $CI_PROJECT_DIR/Projects/$PROJECT_NAME/$(basename $PROJECT_NAME).runs/versions* "$CI_PROJECT_DIR/bin/$PROJECT_NAME*/";
           fi;
           if [ -d "$CI_PROJECT_DIR/Projects/$PROJECT_NAME/output_files/" ]; then
-            cat "$CI_PROJECT_DIR/Projects/$PROJECT_NAME/output_files/versions*" > note.md;
-            cp "$CI_PROJECT_DIR/Projects/$PROJECT_NAME/output_files/versions*" "$CI_PROJECT_DIR/bin/$PROJECT_NAME*/";
+            cat $CI_PROJECT_DIR/Projects/$PROJECT_NAME/output_files/versions* > note.md;
+            cp $CI_PROJECT_DIR/Projects/$PROJECT_NAME/output_files/versions* "$CI_PROJECT_DIR/bin/$PROJECT_NAME*/";
           fi;
         else
           echo "Hog-CI(info) - Adding versions, timing and utilization summary to note...";
           if [ -d "$CI_PROJECT_DIR/Projects/$PROJECT_NAME/output_files/" ]; then
-            cat "$CI_PROJECT_DIR/Projects/$PROJECT_NAME/output_files/versions*" > note.md;
+            cat $CI_PROJECT_DIR/Projects/$PROJECT_NAME/output_files/versions* > note.md;
           else
             if [ -f "$CI_PROJECT_DIR/bin/$PROJECT_NAME*/versions*" ]; then
-              cat "$CI_PROJECT_DIR/bin/$PROJECT_NAME*/versions*" > note.md;
+              cat $CI_PROJECT_DIR/bin/$PROJECT_NAME*/versions* > note.md;
             fi;
             if [ -f "$CI_PROJECT_DIR/bin/$PROJECT_NAME*/timing_*" ]; then
-              cat "$CI_PROJECT_DIR/bin/$PROJECT_NAME*/timing_*" >> note.md;
+              cat $CI_PROJECT_DIR/bin/$PROJECT_NAME*/timing_* >> note.md;
             fi;
           fi;
         fi;
         if [ -f "$CI_PROJECT_DIR/bin/$PROJECT_NAME*/utilization.txt" ]; then
-          cat "$CI_PROJECT_DIR/bin/$PROJECT_NAME*/utilization.txt" >> note.md;
+          cat $CI_PROJECT_DIR/bin/$PROJECT_NAME*/utilization.txt >> note.md;
         fi;
         echo "Hog-CI(info) - All done.";
       fi;

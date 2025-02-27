@@ -64,6 +64,10 @@ check_branch_state:
     GIT_SUBMODULE_STRATEGY: recursive
   script:
     - glab auth login -t $HOG_PUSH_TOKEN -h $CI_SERVER_HOST
+    - export REPO=`echo $CI_PROJECT_URL | sed -e s#https://##`
+    - git remote set-url origin https://${HOG_USER}:${HOG_PUSH_TOKEN}@$REPO
+    - git config user.email ${HOG_EMAIL}
+    - git config user.name ${HOG_USER}
     - if [[ $CI_COMMIT_MESSAGE == *RESOLVE_WIP* && $CI_MERGE_REQUEST_TITLE == Draft* ]]; then
         echo 'removing Draft status';
         glab mr update $CI_MERGE_REQUEST_IID --ready;

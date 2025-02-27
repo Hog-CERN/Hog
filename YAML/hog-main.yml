@@ -144,6 +144,10 @@ tag_official_version:
     - when: never
   script:
     - git fetch origin refs/notes/*:refs/notes/*
+    - export REPO=`echo $CI_PROJECT_URL | sed -e s#https://##`
+    - git remote set-url origin https://${HOG_USER}:${HOG_PUSH_TOKEN}@$REPO
+    - git config user.email ${HOG_EMAIL}
+    - git config user.name ${HOG_USER}
     - note=(`git notes show`) || {
         echo "No note found, probably you pushed to a branch that should protected (e.g. master, develop)";
         exit 1;

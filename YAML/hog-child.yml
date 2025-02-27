@@ -163,6 +163,7 @@
             echo "Hog-CI(info) - No EOS/LOCAL path for IPs defined.";
           else
             echo "Hog-CI(warning) HOG_IP_EOS_PATH is deprecated, you should use HOG_IP_PATH";
+          fi;
         else
           echo "Hog-CI(info) - IPs will be copied to/from $HOG_IP_PATH.";
           if echo "$HOG_IP_PATH" | grep -q '^/eos/'; then
@@ -235,17 +236,15 @@
         if [ -n "$HOG_ONLY_SYNTH" ] && [ "$HOG_ONLY_SYNTH" = '1' ]; then
           echo "Hog-CI(info) - Adding version and utilization summaries to note...";
           if [ -d "$CI_PROJECT_DIR/Projects/$PROJECT_NAME/$(basename $PROJECT_NAME).runs/" ]; then
-            cat $CI_PROJECT_DIR/Projects/$PROJECT_NAME/$(basename $PROJECT_NAME).runs/versions* > note.md;
             cp $CI_PROJECT_DIR/Projects/$PROJECT_NAME/$(basename $PROJECT_NAME).runs/versions* $CI_PROJECT_DIR/bin/$PROJECT_NAME*/;
           fi;
           if [ -d "$CI_PROJECT_DIR/Projects/$PROJECT_NAME/output_files/" ]; then
-            cat $CI_PROJECT_DIR/Projects/$PROJECT_NAME/output_files/versions* > note.md;
             cp $CI_PROJECT_DIR/Projects/$PROJECT_NAME/output_files/versions* $CI_PROJECT_DIR/bin/$PROJECT_NAME*/;
           fi;
         else
           echo "Hog-CI(info) - Adding versions, timing and utilization summary to note...";
           if [ -d "$CI_PROJECT_DIR/Projects/$PROJECT_NAME/output_files/" ]; then
-            cat $CI_PROJECT_DIR/Projects/$PROJECT_NAME/output_files/versions* > note.md;
+            cp $CI_PROJECT_DIR/Projects/$PROJECT_NAME/output_files/versions* $CI_PROJECT_DIR/bin/$PROJECT_NAME*/;
           else
             if [ -f "$CI_PROJECT_DIR/bin/$PROJECT_NAME*/versions*" ]; then
               cat $CI_PROJECT_DIR/bin/$PROJECT_NAME*/versions* > note.md;

@@ -562,7 +562,7 @@ proc ALLOWED_PROPS {} {
 proc BinaryStepName {part} {
   if {[IsVersal $part]} {
     return "WRITE_DEVICE_IMAGE"
-  } elseif {[IsIse]} {
+  } elseif {[IsISE]} {
     return "Bitgen"
   } else {
     return "WRITE_BITSTREAM"

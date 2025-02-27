@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/usr/bin/env sh
 #   Copyright 2018-2025 The University of Birmingham
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,8 +15,6 @@
 
 # Get the directory containing the script
 script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-
-. ${script_dir}/Logger.sh
 
 ## @file CreateProject.sh
 #  @brief Create the specified Vivado or Quartus project

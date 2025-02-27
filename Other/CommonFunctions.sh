@@ -293,7 +293,7 @@ function print_hog() {
   echo " Version: ${ver}"
   echo
   cd "${OLDPWD}" || exit >> /dev/null
-  HogVer "$1"
+  set +e; HogVer "$1"; set -e;
 
   return 0
 }

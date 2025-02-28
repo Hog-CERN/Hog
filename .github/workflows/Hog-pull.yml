@@ -309,7 +309,7 @@ jobs:
                       until echo $EOS_PASSWORD | kinit $EOS_USER@CERN.CH ; do echo "Retrying"; sleep 2; done;
                     else
                       echo "kinit command not found. Skipping kinit step.";
-                    fi;             
+                    fi;
                   fi;
                 fi;
                 if [ ${{ inputs.HOG_ONLY_SYNTH }} ]; then

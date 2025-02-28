@@ -75,3 +75,18 @@ function HogVer() {
   fi
   cd ${OLDPWD} || exit >> /dev/null
 }
+
+#
+# @brief Check if a command is available on the running machine
+#
+# @param[in]    $1 Command name
+# @returns  0 if success, 1 if failure
+#
+function check_command() {
+  if ! command -v "$1" &> /dev/null
+  then
+    echo "Error: Command $1 could not be found"
+    return 1
+  fi
+  return 0
+}

@@ -67,7 +67,7 @@
           apptainer exec -H $PWD $EXTRA_PATH $HOG_APPTAINER_IMAGE /bin/bash -c "export PATH=${HOG_PATH}:$PATH; $CHK_CMD";
         else
           echo $CHK_CMD;
-          $(echo $CHK_CMD);
+          eval $CHK_CMD;
         fi;
       else
         echo "Project version checker is disabled.";
@@ -107,26 +107,27 @@
     <<: *vars
   script:
     - ./Hog/Other/CheckEnv.sh $PROJECT_NAME -a $HOG_APPTAINER_IMAGE;
+    - source ./Hog/Other/CommonFunctions.sh
     - select_command Top/$PROJECT_NAME;
-    - if [ "$COMMAND" == "libero" ]; then
+    - if [ "$COMMAND" = "libero" ]; then
         Xvfb :99 &
         export DISPLAY=:99;
       fi;
-    - if [[ -v HOG_CHECK_PROJVER ]] && [[ $HOG_CHECK_PROJVER == '1' ]]; then
-        if [[ -v HOG_EXTERNAL_PATH ]]; then
+    - if [ -n "${HOG_CHECK_PROJVER}" ] && [ "$HOG_CHECK_PROJVER" = '1' ]; then
+        if [ -n "${HOG_EXTERNAL_PATH}" ]; then
           CHK_CMD="./Hog/Other/CheckProjVer.sh -ext_path \"$HOG_EXTERNAL_PATH\" $PROJECT_NAME";
         else
           CHK_CMD="./Hog/Other/CheckProjVer.sh $PROJECT_NAME";
         fi;
-        if [[ -f $HOG_APPTAINER_IMAGE ]]; then
+        if [ -f "$HOG_APPTAINER_IMAGE" ]; then
           echo "apptainer exec -H $PWD $HOG_APPTAINER_IMAGE $CHK_CMD";
-          if [[ -n $HOG_APPTAINER_EXTRA_PATH ]]; then
+          if [ -n "$HOG_APPTAINER_EXTRA_PATH" ]; then
             EXTRA_PATH="-B $HOG_APPTAINER_EXTRA_PATH";
           fi;
           apptainer exec -H $PWD $EXTRA_PATH $HOG_APPTAINER_IMAGE /bin/bash -c "export PATH=${HOG_PATH}:$PATH; $CHK_CMD";
         else
           echo $CHK_CMD;
-          $(echo $CHK_CMD);
+          eval $CHK_CMD;
         fi;
       else
         echo "Project version checker is disabled.";
@@ -134,20 +135,20 @@
     - if [ -f "./Projects/$PROJECT_NAME/skip.me" ]; then
         echo "Hog-CI(info) - CI disabled for $PROJECT_NAME";
       else
-        if [ -z ${HOG_NJOBS+x} ]; then
+        if [ -z "${HOG_NJOBS}" ]; then
           export HOG_NJOBS=4;
           echo "Hog-CI(info) - Number of jobs set to $HOG_NJOBS";
         fi;
         ENABLE_EOS=1;
-        if [ -z ${EOS_PASSWORD+x} ]; then
-          if [ -z ${HOG_PASSWORD+x} ]; then
+        if [ -z "${EOS_PASSWORD}" ]; then
+          if [ -z "${HOG_PASSWORD}" ]; then
             ENABLE_EOS=0;
           else
             EOS_PASSWORD=${HOG_PASSWORD};
           fi;
         fi;
-        if [ -z ${EOS_USER+x} ]; then
-          if [ -z ${HOG_USER+x} ]; then
+        if [ -z "${EOS_USER}" ]; then
+          if [ -z "${HOG_USER}" ]; then
             ENABLE_EOS=0;
           else
             EOS_USER=${HOG_USER};
@@ -155,37 +156,33 @@
         fi;
       fi;
     - if [ ! -f "./Projects/$PROJECT_NAME/skip.me" ]; then
-       if [ -n "${HOG_DEBUG_MODE}" ] && [ "${HOG_DEBUG_MODE}" == '1' ]; then
+       if [ -n "${HOG_DEBUG_MODE}" ] && [ "${HOG_DEBUG_MODE}" = '1' ]; then
           echo "Hog-CI(info) - The workflow will be run in verbose mode.";
         fi;
-        if [ -z ${HOG_IP_PATH+x} ]; then
-          if [[ -z ${HOG_IP_EOS_PATH+x} ]]; then
+        if [ -z "${HOG_IP_PATH}" ]; then
+          if [ -z "${HOG_IP_EOS_PATH}" ]; then
             echo "Hog-CI(info) - No EOS/LOCAL path for IPs defined.";
           else
             echo "Hog-CI(warning) HOG_IP_EOS_PATH is deprecated, you should use HOG_IP_PATH";
-            echo "Hog-CI(info) - IPs will be copied to/from $HOG_IP_EOS_PATH.";
-            export HOG_IP_PATH="$HOG_IP_EOS_PATH";
-            if [[ $HOG_IP_PATH = /eos/* ]]; then
-              if [ $ENABLE_EOS -eq 1 ]; then
-                echo "Hog-CI(info) - Running command kinit $EOS_USER@CERN.CH";
-                until echo $EOS_PASSWORD | kinit $EOS_USER@CERN.CH ; do echo "Retrying"; sleep 2; done;
-              fi;
-            fi;
           fi;
         else
           echo "Hog-CI(info) - IPs will be copied to/from $HOG_IP_PATH.";
-          if [[ $HOG_IP_PATH = /eos/* ]]; then
-            if [ $ENABLE_EOS -eq 1 ]; then
-              until echo $EOS_PASSWORD | kinit $EOS_USER@CERN.CH ; do echo "Retrying"; sleep 2; done;
+          if echo "$HOG_IP_PATH" | grep -q '^/eos/'; then
+            if [ "$ENABLE_EOS" -eq 1 ]; then
+              if command -v kinit &> /dev/null; then
+                until echo "$EOS_PASSWORD" | kinit "$EOS_USER@CERN.CH"; do echo "Retrying"; sleep 2; done;
+              else
+                echo "Hog-CI(warning) - kinit command not found, skipping EOS authentication.";
+              fi;
             fi;
           fi;
         fi;
-        if [[ -n "$HOG_ONLY_SYNTH" ]] && [[ $HOG_ONLY_SYNTH == '1' ]]; then
+        if [ -n "$HOG_ONLY_SYNTH" ] && [ "$HOG_ONLY_SYNTH" = '1' ]; then
           export ONLY_SYNTH=1;
           echo "Hog-CI(info) - Only the synthesis will be run.";
         else
           export ONLY_SYNTH=0;
-          if [[ -n "$HOG_NO_BITSTREAM" ]] && [[ $HOG_NO_BITSTREAM == '1' ]]; then
+          if [ -n "$HOG_NO_BITSTREAM" ] && [ "$HOG_NO_BITSTREAM" = '1' ]; then
             export NO_BITSTREAM="-no_bitstream";
             echo "Hog-CI(info) - No binary files will be generated.";
           else
@@ -195,21 +192,21 @@
         fi;
       fi;
     - if [ ! -f "./Projects/$PROJECT_NAME/skip.me" ]; then
-        if [[ -n "$HOG_CHECK_SYNTAX" ]] && [[ $HOG_CHECK_SYNTAX == '1' ]]; then
+        if [ -n "$HOG_CHECK_SYNTAX" ] && [ "$HOG_CHECK_SYNTAX" = '1' ]; then
           echo "Hog-CI(info) - HDL syntax will be checked before starting the synthesis";
           export CHECK_SYNTAX="-check_syntax";
         else
           echo "Hog-CI(info) - HDL syntax will not be checked.";
           export CHECK_SYNTAX="";
         fi;
-        if [[ -n "$HOG_NO_RESET_BD" ]] && [[ $HOG_NO_RESET_BD == '1' ]]; then
+        if [ -n "$HOG_NO_RESET_BD" ] && [ "$HOG_NO_RESET_BD" = '1' ]; then
           echo "Hog-CI(info) - BD files will NOT be reset at pre synthesis time";
         else
           echo "Hog-CI(info) - BD files will be reset at pre-synthesis time";
           mkdir -p Projects;
           echo "*.bd" >> Projects/hog_reset_files;
         fi;
-        if [[ -n "$HOG_RESET_FILES" ]]; then
+        if [ -n "$HOG_RESET_FILES" ]; then
           echo "Hog-CI(info) - found files to be reset before synthesis, before implementation, and before bitstream";
           echo "$HOG_RESET_FILES";
           mkdir -p Projects;
@@ -220,48 +217,42 @@
         echo "Hog-CI(info) - Launching workflow now...";
       fi;
     - if [ ! -f "./Projects/$PROJECT_NAME/skip.me" ]; then
-        if [ $ONLY_SYNTH == '1' ]; then
+        if [ "$ONLY_SYNTH" = '1' ]; then
             EXEC_CMD="./Hog/Do -njobs $HOG_NJOBS $NO_BITSTREAM $CHECK_SYNTAX SYNTH $PROJECT_NAME";
         else
             EXEC_CMD="./Hog/Do -njobs $HOG_NJOBS $NO_BITSTREAM $CHECK_SYNTAX WORKFLOW $PROJECT_NAME";
         fi;
-        if [[ -f $HOG_APPTAINER_IMAGE ]]; then
+        if [ -f "$HOG_APPTAINER_IMAGE" ]; then
             echo "singularity exec -H $PWD $HOG_APPTAINER_IMAGE $EXEC_CMD";
-            if [[ -n $HOG_APPTAINER_EXTRA_PATH ]]; then
+            if [ -n "$HOG_APPTAINER_EXTRA_PATH" ]; then
                 EXTRA_PATH="-B $HOG_APPTAINER_EXTRA_PATH";
             fi;
             apptainer exec -H $PWD $EXTRA_PATH $HOG_APPTAINER_IMAGE /bin/bash -c "PATH=${HOG_PATH}:$PATH; $EXEC_CMD";
         else
-            echo $EXEC_CMD;
-            $(echo $EXEC_CMD);
-        fi
-      fi
+            echo "$EXEC_CMD";
+            eval "$EXEC_CMD";
+        fi;
+      fi;
     - if [ ! -f "./Projects/$PROJECT_NAME/skip.me" ]; then
-        if [[ -n "$HOG_ONLY_SYNTH" ]] && [[ $HOG_ONLY_SYNTH == '1' ]]; then
+        if [ -n "$HOG_ONLY_SYNTH" ] && [ "$HOG_ONLY_SYNTH" = '1' ]; then
           echo "Hog-CI(info) - Adding version and utilization summaries to note...";
-          if [[ -d "$CI_PROJECT_DIR/Projects/$PROJECT_NAME/$(basename $PROJECT_NAME).runs/" ]]; then
-            cat $CI_PROJECT_DIR/Projects/$PROJECT_NAME/$(basename $PROJECT_NAME).runs/versions* > note.md;
+          if [ -d "$CI_PROJECT_DIR/Projects/$PROJECT_NAME/$(basename $PROJECT_NAME).runs/" ]; then
             cp $CI_PROJECT_DIR/Projects/$PROJECT_NAME/$(basename $PROJECT_NAME).runs/versions* $CI_PROJECT_DIR/bin/$PROJECT_NAME*/;
           fi;
-          if [[ -d "$CI_PROJECT_DIR/Projects/$PROJECT_NAME/output_files/" ]]; then
-            cat $CI_PROJECT_DIR/Projects/$PROJECT_NAME/output_files/versions* > note.md;
+          if [ -d "$CI_PROJECT_DIR/Projects/$PROJECT_NAME/output_files/" ]; then
             cp $CI_PROJECT_DIR/Projects/$PROJECT_NAME/output_files/versions* $CI_PROJECT_DIR/bin/$PROJECT_NAME*/;
+          fi;
+          if [ -f "$CI_PROJECT_DIR/Projects/$PROJECT_NAME/versions.txt" ]; then
+            cp $CI_PROJECT_DIR/Projects/$PROJECT_NAME/versions.txt $CI_PROJECT_DIR/bin/$PROJECT_NAME*/;
           fi;
         else
           echo "Hog-CI(info) - Adding versions, timing and utilization summary to note...";
-          if [[ -d "$CI_PROJECT_DIR/Projects/$PROJECT_NAME/output_files/" ]]; then
-            cat $CI_PROJECT_DIR/Projects/$PROJECT_NAME/output_files/versions* > note.md;
-          else
-            if [[ -f $CI_PROJECT_DIR/bin/$PROJECT_NAME*/versions* ]]; then
-              cat $CI_PROJECT_DIR/bin/$PROJECT_NAME*/versions* > note.md;
-            fi;
-            if [[ -f $CI_PROJECT_DIR/bin/$PROJECT_NAME*/timing_* ]]; then
-              cat $CI_PROJECT_DIR/bin/$PROJECT_NAME*/timing_* >> note.md;
-            fi;
+          if [ -d "$CI_PROJECT_DIR/Projects/$PROJECT_NAME/output_files/" ]; then
+            cp $CI_PROJECT_DIR/Projects/$PROJECT_NAME/output_files/versions* $CI_PROJECT_DIR/bin/$PROJECT_NAME*/;
           fi;
-        fi;
-        if [[ -f "$CI_PROJECT_DIR/bin/$PROJECT_NAME*/utilization.txt" ]]; then
-          cat $CI_PROJECT_DIR/bin/$PROJECT_NAME*/utilization.txt >> note.md;
+          if [ -f "$CI_PROJECT_DIR/Projects/$PROJECT_NAME/versions.txt" ]; then
+            cp $CI_PROJECT_DIR/Projects/$PROJECT_NAME/versions.txt $CI_PROJECT_DIR/bin/$PROJECT_NAME*/;
+          fi;
         fi;
         echo "Hog-CI(info) - All done.";
       fi;

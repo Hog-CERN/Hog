@@ -397,7 +397,7 @@ if {$do_implementation == 1 } {
 }
 
 
-if {$do_bitstream == 1 && ![IsVivado] } {
+if {$do_bitstream == 1 && ![IsXilinx] } {
   GenerateBitstream $run_folder $repo_path $options(njobs)
 }
 

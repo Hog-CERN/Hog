@@ -121,10 +121,11 @@ jobs:
             echo "From version Hog2024.1, HOG_OFFICIAL_BIN_EOS_PATH variable will be deprecated. Please use HOG_OFFICIAL_BIN_PATH to define the path where to copy the official bitfiles."
           fi
           if [[ $BIN_PATH == /eos/* ]]; then
-            until echo $EOS_PASSWORD | kinit -V $EOS_USER@CERN.CH; do
-              echo Retrying
-              sleep 2
-            done
+            if command -v kinit &> /dev/null; then
+              until echo $EOS_PASSWORD | kinit $EOS_USER@CERN.CH ; do echo "Retrying"; sleep 2; done;
+            else
+              echo "kinit command not found. Skipping kinit step.";
+            fi;
           fi
           if [ -v "${{ secrets.EOS_MGM_URL}}" ]; then
             export EOS_MGM_URL=${{ secrets.EOS_MGM_URL }}

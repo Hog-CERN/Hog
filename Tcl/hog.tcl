@@ -562,6 +562,8 @@ proc ALLOWED_PROPS {} {
 proc BinaryStepName {part} {
   if {[IsVersal $part]} {
     return "WRITE_DEVICE_IMAGE"
+  } elseif {[IsISE]} {
+    return "Bitgen"
   } else {
     return "WRITE_BITSTREAM"
   }
@@ -1574,30 +1576,7 @@ proc FormatGeneric {generic} {
 # @param[in] njobs        The number of CPU jobs to run in parallel
 proc GenerateBitstream { {run_folder ""} {repo_path .} {njobs 1} } {
   Msg Info "Starting write bitstream flow..."
-  if {[IsISE]} {
-    # PlanAhead command
-    Msg Info "running pre-bitstream"
-    source  $repo_path/Hog/Tcl/integrated/pre-bitstream.tcl
-    launch_runs impl_1 -to_step Bitgen $njobs -dir $run_folder
-    wait_on_run impl_1
-    Msg Info "running post-bitstream"
-    source  $repo_path/Hog/Tcl/integrated/post-bitstream.tcl
-
-    set prog [get_property PROGRESS [get_runs impl_1]]
-    set status [get_property STATUS [get_runs impl_1]]
-    Msg Info "Run: impl_1 progress: $prog, status : $status"
-
-    if {$prog ne "100%"} {
-      Msg Error "Write bitstream error, status is: $status"
-    }
-
-    set wns [get_property STATS.WNS [get_runs [current_run]]]
-    set tns [get_property STATS.TNS [get_runs [current_run]]]
-    set whs [get_property STATS.WHS [get_runs [current_run]]]
-    set ths [get_property STATS.THS [get_runs [current_run]]]
-    set tpws [get_property STATS.TPWS [get_runs [current_run]]]
-
-  } elseif {[IsQuartus]} {
+  if {[IsQuartus]} {
     set revision [get_current_revision]
     if {[catch {execute_module -tool asm} result]} {
       Msg Error "Result: $result\n"
@@ -3882,7 +3861,7 @@ proc LaunchImplementation {reset do_create run_folder project_name {repo_path .}
       source $repo_path/Hog/Tcl/integrated/pre-implementation.tcl
     }
 
-    if {[IsVivado] && $do_bitstream == 1} {
+    if {$do_bitstream == 1} {
       launch_runs impl_1 -to_step [BinaryStepName [get_property PART [current_project]]] $njobs -dir $run_folder
     } else {
       launch_runs impl_1 -jobs $njobs -dir $run_folder
@@ -3890,7 +3869,14 @@ proc LaunchImplementation {reset do_create run_folder project_name {repo_path .}
     wait_on_run impl_1
 
     if {[IsISE]} {
+      Msg Info "running post-implementation"
       source $repo_path/Hog/Tcl/integrated/post-implementation.tcl
+      if {$do_bitstream == 1} {
+        Msg Info "running pre-bitstream"
+        source $repo_path/Hog/Tcl/integrated/pre-bitstream.tcl
+        Msg Info "running post-bitstream"
+        source $repo_path/Hog/Tcl/integrated/post-bitstream.tcl
+      }
     }
 
     set prog [get_property PROGRESS [get_runs impl_1]]
@@ -5448,8 +5434,24 @@ proc WriteGenericsToBdIPs {mode repo_path proj generic_string} {
   }
 
   if {$mode == "synth"} {
+    Msg Info "Attempting to apply generics pre-synthesis..."
     set PARENT_PRJ [get_property "PARENT.PROJECT_PATH" [current_project]]
-    open_project $PARENT_PRJ
+    set workaround [open "$repo_path/Projects/$proj/.hog/presynth_workaround.tcl" "w"]
+    puts $workaround "source \[lindex \$argv 0\];"
+    puts $workaround "open_project \[lindex \$argv 1\];"
+    puts $workaround "WriteGenericsToBdIPs \[lindex \$argv 2\] \[lindex \$argv 3\] \[lindex \$argv 4\] \[lindex \$argv 5\];"
+    puts $workaround "close_project"
+    close $workaround
+    if {[catch {
+      exec vivado -mode batch -source $repo_path/Projects/$proj/.hog/presynth_workaround.tcl \
+      -tclargs $repo_path/Hog/Tcl/hog.tcl $PARENT_PRJ \
+      "childprocess" $repo_path $proj $generic_string
+    } errMsg] != 0} {
+      Msg Error "Encountered an error while attempting workaround: $errMsg"
+    }
+    file delete $repo_path/Projects/$proj/.hog/presynth_workaround.tcl
+    Msg Info "Done applying generics pre-synthesis."
+    return
   }
 
   Msg Info "Looking for IPs to add generics to..."
@@ -5486,36 +5488,140 @@ proc WriteGenericsToBdIPs {mode repo_path proj generic_string} {
         if {[dict exists $ips_generic_string $ip_prop ]} {
           if {$WARN_ABOUT_IP == false} {
             lappend regen_targets [get_property SCOPE [get_ips $ip]]
-            Msg Warning "The ip \{$ip\} contains generics that are set by Hog. If this is IP is apart of a block design, the .bd file may contain stale, unused, values. Hog will always apply the most up-to-date values to the IP during synthesis, however these values may or may not be reflected in the .bd file."
+            Msg Warning "The ip \{$ip\} contains generics that are set by Hog.\
+              If this is IP is apart of a block design, the .bd file may contain stale, unused, values.\
+              Hog will always apply the most up-to-date values to the IP during synthesis,\
+              however these values may or may not be reflected in the .bd file."
             set WARN_ABOUT_IP true
           }
 
-          set value_to_set [dict get $ips_generic_string $ip_prop]
-          if {[string match "32'h*" $value_to_set]} {
-            set value_to_set [format "%d" [scan $value_to_set "32'h%x"]]
+          # vivado is annoying about the format when setting generics for ips
+          # this tries to find and set the format to what vivado likes
+          set xci_path [get_property IP_FILE [get_ips $ip]]
+          set generic_format [GetGenericFormatFromXci $ip_prop $xci_path]
+          if {[string equal $generic_format "ERROR"]} {
+            Msg Warning "Could not find format for generic $ip_prop in IP $ip. Skipping..."
+            continue
           }
 
-          Msg Info "The IP \{$ip\} contains: $ip_prop, setting it to $value_to_set."
+          set value_to_set [dict get $ips_generic_string $ip_prop]
+          switch -exact $generic_format {
+            "long" {
+              if {[string match "32'h*" $value_to_set]} {
+                scan [string map {"32'h" ""} $value_to_set] "%x" value_to_set
+              }
+            }
+            "bool" {
+              set value_to_set [expr {$value_to_set ? "true" : "false"}]
+            }
+            "float" {
+              if {[string match "32'h*" $value_to_set]} {
+                binary scan [binary format H* [string map {"32'h" ""} $value_to_set]] d value_to_set
+              }
+            }
+            "bitString" {
+              if {[string match "32'h*" $value_to_set]} {
+                set value_to_set [string map {"32'h" "0x"} $value_to_set]
+              }
+            }
+            "string" {
+              set value_to_set [format "%s" $value_to_set]
+            }
+            default {
+              Msg Warning "Unknown generic format $generic_format for IP $ip. Will attempt to pass as string..."
+            }
+          }
+
+
+          Msg Info "The IP \{$ip\} contains: $ip_prop ($generic_format), setting it to $value_to_set."
           if {[catch {set_property -name $ip_prop -value $value_to_set -objects [ get_ips $ip ]} prop_error]} {
             Msg CriticalWarning "Failed to set property $ip_prop to $value_to_set for IP \{$ip\}: $prop_error"
           }
-
         }
       }
     }
   }
 
-  if {$mode == "synth"} {
-    foreach {regen_target} [lsort -unique $regen_targets] {
-      Msg Info "Regenerating target: $regen_target"
-      if {[catch {generate_target -force all [get_files $regen_target]} prop_error]} {
-        Msg CriticalWarning "Failed to regen targets: $prop_error"
-      }
+  foreach {regen_target} [lsort -unique $regen_targets] {
+    Msg Info "Regenerating target: $regen_target"
+    if {[catch {generate_target -force all [get_files $regen_target]} prop_error]} {
+      Msg CriticalWarning "Failed to regen targets: $prop_error"
     }
+  }
 
-    close_project
+}
+
+## @brief Returns the format of a generic from an XML file
+## @param[in] generic_name: The name of the generic
+## @param[in] xml_file: The path to the XML XCI file
+proc GetGenericFormatFromXciXML {generic_name xml_file} {
+
+  if {![file exists $xml_file]} {
+    Msg Error "Could not find XML file: $xml_file"
+    return "ERROR"
+  }
+
+  set fp [open $xml_file r]
+  set xci_data [read $fp]
+  close $fp
+
+  set paramType "string"
+  set modelparam_regex [format {^.*\y%s\y.*$} [string map {"CONFIG." "MODELPARAM_VALUE."} $generic_name]]
+  set format_regex {format="([^"]+)"}
+
+  set line [lindex [regexp -inline -line $modelparam_regex $xci_data] 0]
+  Msg Debug "line: $line"
+
+  if {[regexp $format_regex $line match format_value]} {
+    Msg Debug "Extracted: $format_value format from xml"
+    set paramType $format_value
+  } else {
+    Msg Debug "No format found, using string"
+  }
+
+  return $paramType
+}
+
+## @brief Returns the format of a generic from an XCI file
+## @param[in] generic_name: The name of the generic
+## @param[in] xci_file: The path to the XCI file
+proc GetGenericFormatFromXci {generic_name xci_file} {
+
+  if {! [file exists $xci_file]} {
+    Msg Error "Could not find XCI file: $xci_file"
+    return "ERROR"
+  }
+
+  set fp [open $xci_file r]
+  set xci_data [read $fp]
+  close $fp
+
+  set paramType "string"
+  if {[string first "xilinx.com:schema:json_instance:1.0" $xci_data] == -1} {
+    Msg Debug "XCI format is not JSON, trying XML..."
+    set xml_file "[file rootname $xci_file].xml"
+    return [GetGenericFormatFromXciXML $generic_name $xml_file]
+
+  }
+
+  set generic_name [string map {"CONFIG." ""} $generic_name]
+  set ip_inst [ParseJSON $xci_data "ip_inst"]
+  set parameters [dict get $ip_inst parameters]
+  set component_parameters [dict get $parameters component_parameters]
+  if {[dict exists $component_parameters $generic_name]} {
+    set generic_info [dict get $component_parameters $generic_name]
+    if {[dict exists [lindex $generic_info 0] format]} {
+      set paramType [dict get [lindex $generic_info 0] format]
+      Msg Debug "Extracted: $paramType format from xci"
+      return $paramType
+    }
+    Msg Debug "No format found, using string"
+    return $paramType
+  } else {
+    return "ERROR"
   }
 }
+
 
 ## @brief Returns the gitlab-ci.yml snippet for a CI stage and a defined project
 #

@@ -43,7 +43,8 @@ if {[IsSynplify] || [IsDiamond]} {
 if {[IsXilinx]} {
   # Vivado + planAhead
   if {[IsISE]} {
-    set proj_file [get_property DIRECTORY [current_project]]
+    set proj_dir [get_property DIRECTORY [current_project]]
+    set proj_file $proj_dir/[file tail $proj_dir].prr
     set work_path [get_property DIRECTORY [get_runs impl_1]]
   } else {
     set proj_file [get_property parent.project_path [current_project]]

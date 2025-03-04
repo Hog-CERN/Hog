@@ -21,7 +21,7 @@
 
 .vars: &vars
   GIT_STRATEGY: clone
-#   CI_DEBUG_TRACE: "true"
+  GIT_SUBMODULE_STRATEGY: recursive
 
 .only-default: &only-default
   rules:

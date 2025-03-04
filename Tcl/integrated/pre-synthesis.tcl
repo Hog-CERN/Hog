@@ -299,7 +299,7 @@ if {[IsXilinx] || [IsSynplify] || [IsDiamond]} {
   set proj_group_and_name "$group/$proj_name"
   # set global generic variables
   if {[IsDiamond]} {
-    prj_project open $proj_dir/$project.ldf
+    prj_project open $proj_dir/$proj_name.ldf
   }
   WriteGenerics "synth" $repo_path $proj_group_and_name $date $timee $commit $version $top_hash $top_ver $hog_hash $hog_ver $cons_ver $cons_hash  $libs $vers $hashes $ext_names $ext_hashes $user_ip_repos $user_ip_vers $user_ip_hashes $flavour $xml_ver $xml_hash
   if {[IsDiamond]} {

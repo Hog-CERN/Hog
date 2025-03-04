@@ -21,7 +21,6 @@
 
 .vars: &vars
   GIT_STRATEGY: clone
-  GIT_SUBMODULE_STRATEGY: recursive
 
 .only-default: &only-default
   rules:
@@ -119,13 +118,14 @@ make_doxygen:
   stage: generation_and_simulation
   variables:
     <<: *vars
+    GIT_SUBMODULE_STRATEGY: recursive
   script:
     - tclsh ./Hog/Tcl/utils/make_doxygen.tcl
   artifacts:
     name: docs
     paths:
       - Doc
-    expire_in: 10 years
+    expire_in: 30 days
   dependencies: []
   allow_failure: true
   interruptible: true
@@ -190,6 +190,7 @@ artifacts_and_release:
   <<: *tag-sr
   variables:
     <<: *vars
+    GIT_SUBMODULE_STRATEGY: recursive
   stage: release
   script:
     - glab auth login -t $HOG_PUSH_TOKEN -h $CI_SERVER_HOST
@@ -336,6 +337,7 @@ create_badge:
   <<: *tag-sr
   variables:
     <<: *vars
+    GIT_SUBMODULE_STRATEGY: recursive
   stage: badge
   script:
     - for project in $HOG_BADGE_PROJECTS; do

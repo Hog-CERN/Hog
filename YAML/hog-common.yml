@@ -43,6 +43,7 @@ before_script:
     fi
   - export PATH=${HOG_PATH}:$PATH
   - export LD_LIBRARY_PATH=${HOG_LD_LIBRARY_PATH}:$LD_LIBRARY_PATH
+  - git submodule update --init Hog
   - source Hog/Other/HogPrint.sh
   - print_hog Hog/
 

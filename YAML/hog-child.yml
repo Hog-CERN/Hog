@@ -270,7 +270,7 @@ collect_artifacts:
   <<: *only-default
   <<: *tag-sr
   variables:
-    <<: *vars
+    GIT_STRATEGY: clone
   stage: collect
   script:
     - glab auth login -t $HOG_PUSH_TOKEN -h $CI_SERVER_HOST
@@ -335,7 +335,7 @@ check-timing:
   <<: *only-default
   <<: *tag-sr
   variables:
-    <<: *vars
+    GIT_STRATEGY: clone
   stage: collect
   script:
     - glab auth login -t $HOG_PUSH_TOKEN -h $CI_SERVER_HOST

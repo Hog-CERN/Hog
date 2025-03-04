@@ -23,7 +23,7 @@ default:
     - git fetch origin $CI_COMMIT_REF_NAME
     - git checkout $CI_COMMIT_REF_NAME --
     - git status
-    - source ./Other/CommonFunctions.sh
+    - source ./Other/HogPrint.sh
     - print_hog .
 
 stages: [mirrors, merge_checks, tag, build_doc]

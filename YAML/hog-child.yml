@@ -107,6 +107,7 @@
     <<: *vars
   script:
     - ./Hog/Other/CheckEnv.sh $PROJECT_NAME -a $HOG_APPTAINER_IMAGE;
+    - source ./Hog/Other/CommonFunctions.sh
     - select_command Top/$PROJECT_NAME;
     - if [ "$COMMAND" = "libero" ]; then
         Xvfb :99 &

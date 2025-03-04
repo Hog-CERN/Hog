@@ -16,7 +16,7 @@
 # Get the directory containing the script
 script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-source $(script_dir)/HogPrint.sh
+source ${script_dir}/HogPrint.sh
 . ${script_dir}/Logger.sh
 
 ## @file CreateProject.sh

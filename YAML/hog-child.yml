@@ -269,9 +269,9 @@
 collect_artifacts:
   <<: *only-default
   <<: *tag-sr
-  stage: collect
   variables:
     GIT_STRATEGY: clone
+  stage: collect
   script:
     - glab auth login -t $HOG_PUSH_TOKEN -h $CI_SERVER_HOST
     - old_dir=`pwd`
@@ -334,9 +334,9 @@ collect_artifacts:
 check-timing:
   <<: *only-default
   <<: *tag-sr
-  stage: collect
   variables:
     GIT_STRATEGY: clone
+  stage: collect
   script:
     - glab auth login -t $HOG_PUSH_TOKEN -h $CI_SERVER_HOST
     - if [ -d $CI_PROJECT_DIR/bin ]; then

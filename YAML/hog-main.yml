@@ -21,7 +21,6 @@
 
 .vars: &vars
   GIT_STRATEGY: clone
-#   CI_DEBUG_TRACE: "true"
 
 .only-default: &only-default
   rules:
@@ -60,8 +59,7 @@ check_branch_state:
   <<: *tag-sr
   stage: check
   variables:
-    GIT_STRATEGY: clone
-    GIT_SUBMODULE_STRATEGY: recursive
+    <<: *vars
   script:
     - glab auth login -t $HOG_PUSH_TOKEN -h $CI_SERVER_HOST
     - export REPO=`echo $CI_PROJECT_URL | sed -e s#https://##`
@@ -120,19 +118,22 @@ make_doxygen:
   stage: generation_and_simulation
   variables:
     <<: *vars
+    GIT_SUBMODULE_STRATEGY: recursive
   script:
     - tclsh ./Hog/Tcl/utils/make_doxygen.tcl
   artifacts:
     name: docs
     paths:
       - Doc
-    expire_in: 10 years
+    expire_in: 30 days
   dependencies: []
   allow_failure: true
   interruptible: true
 
 tag_official_version:
   <<: *tag-sr
+  variables:
+    <<: *vars
   stage: tag
   rules:
     - if: '$HOG_TARGET_BRANCH != null && $CI_COMMIT_REF_NAME == $HOG_TARGET_BRANCH && $CI_PIPELINE_SOURCE == "push"'
@@ -335,7 +336,7 @@ create_badge:
       - $CI_COMMIT_TAG =~ /^v.*$/ && $HOG_BADGE_PROJECTS != null
   <<: *tag-sr
   variables:
-    GIT_STRATEGY: clone
+    <<: *vars
     GIT_SUBMODULE_STRATEGY: recursive
   stage: badge
   script:

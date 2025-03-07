@@ -5444,7 +5444,7 @@ proc WriteGenericsToBdIPs {mode repo_path proj generic_string} {
       Msg Error "Encountered an error while attempting workaround: $errMsg"
     }
     file delete $repo_path/Projects/$proj/.hog/presynth_workaround.tcl
-    ResetRepoFiles "./Projects/hog_reset_files"
+    ResetRepoFiles "$repo_path/Projects/hog_reset_files"
     Msg Info "Done applying generics pre-synthesis."
     return
   }

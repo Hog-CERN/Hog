@@ -113,7 +113,7 @@ txtblu='\e[0;34m' # Blue
 txtpur='\e[0;35m' # Purple
 txtcyn='\e[0;36m' # Cyan
 txtwht='\e[0;37m' # White
-txtrst='\e[0m\e[1m' # rst
+txtrst='\e[0m' # rst
 txtbln='\e[5m' # Blink
 
 vldColorSchemes=("dark" "clear")

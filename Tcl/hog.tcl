@@ -556,7 +556,7 @@ proc ALLOWED_PROPS {} {
     ".qsys" [list "nogenerate" "noadd" "--block-symbol-file" "--clear-output-directory" "--example-design" "--export-qsys-script" "--family" "--greybox" "--ipxact" "--jvm-max-heap-size" "--parallel" "--part" "--search-path" "--simulation" "--synthesis" "--testbench" "--testbench-simulation" "--upgrade-ip-cores" "--upgrade-variation-file"]\
     ".sdc" [list "notiming" "nosynth" "noplace"]\
     ".pdc" [list "nosynth" "noplace"]\
-    '.lpf' [list "enable"]]
+    ".lpf" [list "enable"]]
 }
 
 ## @brief # Returns the step name for the stage that produces the binary file

@@ -499,7 +499,7 @@ proc AddHogFiles { libraries properties filesets } {
             }
 
             # Active LPF property
-            if {[lsearch -inline -regexp $props "active"] >= 0} {
+            if {[lsearch -inline -regexp $props "enable"] >= 0} {
               Msg Debug "Setting $f as active Logic Preference file"
               prj_src enable $f
             }

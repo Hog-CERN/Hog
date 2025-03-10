@@ -555,8 +555,10 @@ proc ALLOWED_PROPS {} {
     ".tcl" [list "nosynth" "noimpl" "nosim" "source" "qsys" "noadd" "--block-symbol-file" "--clear-output-directory" "--example-design" "--export-qsys-script" "--family" "--greybox" "--ipxact" "--jvm-max-heap-size" "--parallel" "--part" "--search-path" "--simulation" "--synthesis" "--testbench" "--testbench-simulation" "--upgrade-ip-cores" "--upgrade-variation-file"]\
     ".qsys" [list "nogenerate" "noadd" "--block-symbol-file" "--clear-output-directory" "--example-design" "--export-qsys-script" "--family" "--greybox" "--ipxact" "--jvm-max-heap-size" "--parallel" "--part" "--search-path" "--simulation" "--synthesis" "--testbench" "--testbench-simulation" "--upgrade-ip-cores" "--upgrade-variation-file"]\
     ".sdc" [list "notiming" "nosynth" "noplace"]\
-    ".pdc" [list "nosynth" "noplace"]\
-    ".lpf" [list "enable"]]
+    ".elf" [list "scoped_to_ref" "scoped_to_cells" "nosim" "noimpl"]\
+    ".pdc" [list "nosynth" "noplace"]
+    ".lpf" [list "enable"]\
+    ]\
 }
 
 ## @brief # Returns the step name for the stage that produces the binary file
@@ -5452,6 +5454,7 @@ proc WriteGenericsToBdIPs {mode repo_path proj generic_string} {
       Msg Error "Encountered an error while attempting workaround: $errMsg"
     }
     file delete $repo_path/Projects/$proj/.hog/presynth_workaround.tcl
+    ResetRepoFiles "$repo_path/Projects/hog_reset_files"
     Msg Info "Done applying generics pre-synthesis."
     return
   }

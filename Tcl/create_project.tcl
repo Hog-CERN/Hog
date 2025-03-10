@@ -1020,5 +1020,9 @@ proc CreateProject args {
     save_project
   }
 
+  if {[IsDiamond]} {
+    prj_project save
+  }
+
   Msg Info "Project $globalSettings::DESIGN created successfully in [Relative $globalSettings::repo_path $globalSettings::build_dir]."
 }

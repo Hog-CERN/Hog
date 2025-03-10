@@ -144,6 +144,7 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
   set extraFiles [ReadExtraFileList "$repo_path/Projects/$group_name/$project_name/.hog/extra.files"]
   set extraFiles_copy $extraFiles
   # Get project libraries and properties from Vivado
+  puts $proj_file
   lassign [GetProjectFiles $proj_file] prjLibraries prjProperties prjSimLibraries prjConstraints prjSrcSets prjSimSets prjConSets
   Msg Info "Retrieved project files..."
 

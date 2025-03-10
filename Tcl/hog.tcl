@@ -982,6 +982,7 @@ proc CompareLibDicts {proj_libs list_libs proj_sets list_sets proj_props list_pr
               }
 
               foreach listProp $listProps {
+                puts "$prjFile $listProp"
                 if {[string first $listProp "topsim="] == -1 && [string first $listProp "enable"] == -1} {
                   MsgAndLog "Property $listProp of $prjFile was found in list files but not set in project." $severity $outFile
                   incr n_diffs
@@ -2544,6 +2545,7 @@ proc GetProjectFiles {{project_file ""}} {
         set ext ".sim"
       }
 
+      puts "$library$ext"
       # Append VHDL files
       if { $type_short == "VHDL" || $type_short == "Verilog" || $type_short == "IPX"} {
         if { $ext == ".src"} {

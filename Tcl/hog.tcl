@@ -3232,7 +3232,7 @@ proc GetModuleName {filename} {
     set pattern {(?m)^\s*entity\s+(\S+)\s+is}
   } elseif {[file extension $filename] == ".v" || [file extension $filename] == ".sv"} {
     # Regular expression to match the module name after the 'module' keyword
-    set pattern {\s*module\s+(\S+)}
+    set pattern {\n\s*module\s*(\w+)(\s*|\(|\n)}
   } else {
     Msg Debug "File is neither VHDL nor Verilog... Returning empty string..."
     return "'"

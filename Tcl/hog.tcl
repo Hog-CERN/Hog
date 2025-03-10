@@ -101,20 +101,20 @@ proc AddHogFiles { libraries properties filesets } {
             if {[lsearch -inline -regexp $props "93"] < 0} {
               # ISE does not support vhdl2008
               if {[IsVivado]} {
-		if {[lsearch -inline -regexp $props "2008"] >= 0} {
-		  set vhdl_year "VHDL 2008"
-		} elseif {[lsearch -inline -regexp $props "2019"] >= 0} {
-		  if { [GetIDEVersion] >= 2023.2 } {
-		    set vhdl_year "VHDL 2019"
-		  } else {
-		    Msg CriticalWarning "VHDL 2019 is not supported in Vivado version older than 2023.2, using vhdl 2008, but this might not work."
-		    set vhdl_year "VHDL 2008"
-		  }
-		} else {
-		  # The default VHDL year is 2008
-		  set vhdl_year "VHDL 2008"
-		}
-		Msg Debug "File type for $f is $vhdl_year"
+                if {[lsearch -inline -regexp $props "2008"] >= 0} {
+                  set vhdl_year "VHDL 2008"
+                } elseif {[lsearch -inline -regexp $props "2019"] >= 0} {
+                  if { [GetIDEVersion] >= 2023.2 } {
+                    set vhdl_year "VHDL 2019"
+                  } else {
+                    Msg CriticalWarning "VHDL 2019 is not supported in Vivado version older than 2023.2, using vhdl 2008, but this might not work."
+                    set vhdl_year "VHDL 2008"
+                  }
+                } else {
+                  # The default VHDL year is 2008
+                  set vhdl_year "VHDL 2008"
+                }
+                Msg Debug "File type for $f is $vhdl_year"
                 set_property -name "file_type" -value $vhdl_year -objects $file_obj
               }
             } else {
@@ -497,6 +497,13 @@ proc AddHogFiles { libraries properties filesets } {
               Msg Info "Setting $top as top module for the project..."
               set globalSettings::synth_top_module $top
             }
+
+            # Active LPF property
+            if {[lsearch -inline -regexp $props "active"] >= 0} {
+              Msg Debug "Setting $f as active Logic Preference file"
+              prj_src enable $f
+            }
+
           }
         } elseif {$ext == ".sim"} {
           foreach f $lib_files {
@@ -548,7 +555,8 @@ proc ALLOWED_PROPS {} {
     ".tcl" [list "nosynth" "noimpl" "nosim" "source" "qsys" "noadd" "--block-symbol-file" "--clear-output-directory" "--example-design" "--export-qsys-script" "--family" "--greybox" "--ipxact" "--jvm-max-heap-size" "--parallel" "--part" "--search-path" "--simulation" "--synthesis" "--testbench" "--testbench-simulation" "--upgrade-ip-cores" "--upgrade-variation-file"]\
     ".qsys" [list "nogenerate" "noadd" "--block-symbol-file" "--clear-output-directory" "--example-design" "--export-qsys-script" "--family" "--greybox" "--ipxact" "--jvm-max-heap-size" "--parallel" "--part" "--search-path" "--simulation" "--synthesis" "--testbench" "--testbench-simulation" "--upgrade-ip-cores" "--upgrade-variation-file"]\
     ".sdc" [list "notiming" "nosynth" "noplace"]\
-    ".pdc" [list "nosynth" "noplace"]]\
+    ".pdc" [list "nosynth" "noplace"]\
+    '.lpf' [list "enable"]]
 }
 
 ## @brief # Returns the step name for the stage that produces the binary file
@@ -972,7 +980,7 @@ proc CompareLibDicts {proj_libs list_libs proj_sets list_sets proj_props list_pr
               }
 
               foreach listProp $listProps {
-                if {[string first $listProp "topsim="] == -1} {
+                if {[string first $listProp "topsim="] == -1 && [string first $listProp "enable"] == -1} {
                   MsgAndLog "Property $listProp of $prjFile was found in list files but not set in project." $severity $outFile
                   incr n_diffs
                 }
@@ -2532,7 +2540,7 @@ proc GetProjectFiles {{project_file ""}} {
       set ext ".src"
       if {[regexp {syn_sim="([^"]*?)"} $match match_sim simonly]} {
         set ext ".sim"
-      }        
+      }
 
       # Append VHDL files
       if { $type_short == "VHDL" || $type_short == "Verilog" || $type_short == "IPX"} {
@@ -3220,7 +3228,7 @@ proc GetModuleName {filename} {
     set pattern {(?m)^\s*entity\s+(\S+)\s+is}
   } elseif {[file extension $filename] == ".v" || [file extension $filename] == ".sv"} {
     # Regular expression to match the module name after the 'module' keyword
-    set pattern {^\s*module\s+(\S+)}
+    set pattern {\s*module\s+(\S+)}
   } else {
     Msg Debug "File is neither VHDL nor Verilog... Returning empty string..."
     return "'"
@@ -4488,19 +4496,19 @@ proc ListProjects {{repo_path .} {print 1} {ret_conf 0}} {
     if {$print >= 1} {
       set description [DescriptionFromConf $c]
       if { $description eq "test"} {
-	set description " - Test project"
+  set description " - Test project"
       } elseif { $description ne ""} {
-	set description " - $description"
+  set description " - $description"
       }
 
       if {$print == 1 || $description ne " - Test project"} {
-	set old_g $g
-	set g [file dirname $p]
-	# Print a list of the projects with relative IDE and description (second line comment in hog.conf)
-	if {$g ne $old_g} {
-	  Msg Status ""
-	}
-	Msg Status "$p \([GetIDEFromConf $c]\)$description"
+  set old_g $g
+  set g [file dirname $p]
+  # Print a list of the projects with relative IDE and description (second line comment in hog.conf)
+  if {$g ne $old_g} {
+    Msg Status ""
+  }
+  Msg Status "$p \([GetIDEFromConf $c]\)$description"
       }
     }
     lappend projects $p

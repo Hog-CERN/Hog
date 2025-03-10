@@ -196,7 +196,7 @@ function init() {
     Msg Info "Creating projects for: $proj..."
     for f in $proj; do
       Msg Info "Creating Vivado project: $f..."
-      ./Hog/CreateProject.sh "${f}"
+      ./Hog/Do C "${f}"
     done
   fi
 

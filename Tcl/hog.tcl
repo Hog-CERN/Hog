@@ -2520,7 +2520,6 @@ proc GetProjectFiles {{project_file ""}} {
     foreach option $prj_options {
       if {[regexp {^top=\"([^\"]+)\"} $option match result]} {
         set top $result
-        puts "top = $result"
       }
     }
 

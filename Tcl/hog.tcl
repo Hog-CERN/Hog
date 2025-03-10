@@ -2518,6 +2518,7 @@ proc GetProjectFiles {{project_file ""}} {
     foreach option $prj_options {
       if {[regexp {^top=\"([^\"]+)\"} $option match result]} {
         set top $result
+        puts "top = $result"
       }
     }
 
@@ -2558,7 +2559,7 @@ proc GetProjectFiles {{project_file ""}} {
         # Check if file is top_module in project
         Msg Debug "File $file_path module [GetModuleName $file_path]"
 
-        if {[GetModuleName $file_path] == [string tolower $top] && $top != ""} {
+        if {[GetModuleName $file_path] == $top && $top != ""} {
           Msg Debug "Found top module $top in $file_path"
           dict lappend properties $file_path "top=$top"
         }

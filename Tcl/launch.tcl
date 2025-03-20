@@ -68,8 +68,17 @@ append usage [GetCustomCommands $commands_path]
 append usage "\n** Options:"
 
 ######## DEFAULTS #########
-set do_implementation 0; set do_synthesis 0; set do_bitstream 0; set do_create 0; set do_compile 0; set do_simulation 0; set recreate 0; set do_reset 1; set do_ipbus_xml 0; set do_list_all 2;
+set do_implementation 0; set do_synthesis 0; set do_bitstream 0; set do_create 0; set do_compile 0; set do_simulation 0; set recreate 0; set do_reset 1; set do_list_all 2;
 
+### Hog stand-alone directives ###
+# The following directives are used WITHOUT ever calling the IDE, they are run in tclsh
+# A place holder called new_directive can be followed to add new commands
+
+set do_ipbus_xml 0;
+
+# set do_new_directive 0;
+
+###
 set default_commands {
 
   \^C(REATE)?$ {
@@ -108,10 +117,17 @@ set default_commands {
     set recreate 1
   }
 
+  ### Hog stand-alone directives ###
+  
   \^X(ML)?$ {
     set do_ipbus_xml 1
   }
 
+  # \^NEW_DIRECTIVE$ {
+  # set do_new_directive 1
+  # }
+
+  #######
 
   default {
     Msg Status "ERROR: Unknown directive $directive.\n\n[cmdline::usage $parameters $usage]"
@@ -152,6 +168,7 @@ if {$cmd == -1} {
   # This script was launched with Tclsh, we need to check the arguments and if everything is right launch the IDE on this script and return
 
   #### Commands to be handled in tclsh should be here ###
+
   if {$do_ipbus_xml == 1} {
     Msg Info "Handling IPbus XMLs for $project_name..."
     #Msg Info "Returned by InitLauncher: $project $project_name $group_name $repo_path $old_path $bin_dir $top_path $commands_path $cmd"
@@ -191,7 +208,12 @@ if {$cmd == -1} {
     exit 0
   }
 
-
+  # if $do_new_directive ==1 } {
+  #
+  # # Do things here
+  #
+  # exit 0
+  #}
 
 
   #### END of tclsh commands ####

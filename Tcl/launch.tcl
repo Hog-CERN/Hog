@@ -45,6 +45,7 @@ set usage " \[OPTIONS\] <directive> <project>\n The most common <directive> valu
 - IMPLEMENT: Runs the implementation only, the project must already exist and be synthesised.
 - SYNTHESIS: Runs the synthesis only, creates the project if not existing.
 - LIST or L: Only list all the projects
+- CHECKSYNTAX or CS: Check the syntax of the specified project
 - XML or X: Copy, check or create IPbus XMLs
 "
 
@@ -68,7 +69,7 @@ append usage [GetCustomCommands $commands_path]
 append usage "\n** Options:"
 
 ######## DEFAULTS #########
-set do_implementation 0; set do_synthesis 0; set do_bitstream 0; set do_create 0; set do_compile 0; set do_simulation 0; set recreate 0; set do_reset 1; set do_list_all 2;
+set do_implementation 0; set do_synthesis 0; set do_bitstream 0; set do_create 0; set do_compile 0; set do_simulation 0; set recreate 0; set do_reset 1; set do_list_all 2; set do_check_syntax 0;
 
 ### Hog stand-alone directives ###
 # The following directives are used WITHOUT ever calling the IDE, they are run in tclsh
@@ -117,23 +118,26 @@ set default_commands {
     set recreate 1
   }
 
-  ### Hog stand-alone directives ###
-  
+  \^(CHECKSYNTAX|CS)$ {
+    set do_check_syntax 1
+  }
+
   \^X(ML)?$ {
     set do_ipbus_xml 1
   }
-
-  # \^NEW_DIRECTIVE$ {
-  # set do_new_directive 1
-  # }
-
-  #######
 
   default {
     Msg Status "ERROR: Unknown directive $directive.\n\n[cmdline::usage $parameters $usage]"
     exit 1
   }
 }
+
+# Add this bit abouve!
+#  \^NEW_DIRECTIVE?$ {
+#    set do_new_directive 1
+#  }
+
+
 
 set custom_commands [GetCustomCommands $commands_path 1]
 
@@ -208,7 +212,7 @@ if {$cmd == -1} {
     exit 0
   }
 
-  # if $do_new_directive ==1 } {
+  # if {$do_new_directive ==1 } {
   #
   # # Do things here
   #
@@ -277,7 +281,6 @@ if {[IsLibero]} {
   set run_folder [file normalize "$repo_path/Projects/$project_name/"]
 }
 
-set check_syntax 0
 set ext_path ""
 set simlib_path ""
 
@@ -316,7 +319,7 @@ if { $options(no_reset) == 1 } {
 }
 
 if { $options(check_syntax) == 1 } {
-  set check_syntax 1
+  set do_check_syntax 1
 }
 
 if { $do_simulation == 1 } {
@@ -384,7 +387,7 @@ if {[file exists $project_file]} {
   set proj_found 0
 }
 
-if {($proj_found == 0 || $recreate == 1) && ($do_synthesis == 1 || $do_create == 1)} {
+if {($proj_found == 0 || $recreate == 1)} {
   Msg Info "Creating (possibly replacing) the project $project_name..."
   lassign [GetConfFiles $repo_path/Top/$project_name] conf sim pre post
 
@@ -404,7 +407,7 @@ if {($proj_found == 0 || $recreate == 1) && ($do_synthesis == 1 || $do_create ==
 
 
 ########## CHECK SYNTAX ###########
-if { $check_syntax == 1 } {
+if { $do_check_syntax == 1 } {
   Msg Info "Checking syntax for project $project_name..."
   CheckSyntax $project_name $repo_path $project_file
 }

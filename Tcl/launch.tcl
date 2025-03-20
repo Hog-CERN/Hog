@@ -46,6 +46,7 @@ set usage " \[OPTIONS\] <directive> <project>\n The most common <directive> valu
 - SYNTHESIS: Runs the synthesis only, creates the project if not existing.
 - LIST or L: Only list all the projects
 - CHECKSYNTAX or CS: Check the syntax of the specified project
+- CHECKYAML or YML: Check that the ref to Hog repository in the yml files matches the one in Hog submodule
 - XML or X: Copy, check or create IPbus XMLs
 "
 
@@ -60,27 +61,19 @@ if {[IsQuartus]} {
 
 Msg Debug "s: $::argv0 a: $argv"
 
-lassign [InitLauncher $::argv0 $tcl_path $parameters $usage $argv] directive project project_name group_name repo_path old_path bin_dir top_path commands_path cmd ide list_of_options
-array set options $list_of_options
 
-Msg Debug "Returned by InitLauncher: $project $project_name $group_name $repo_path $old_path $bin_dir $top_path $commands_path $cmd"
 
-append usage [GetCustomCommands $commands_path]
-append usage "\n** Options:"
 
-######## DEFAULTS #########
-set do_implementation 0; set do_synthesis 0; set do_bitstream 0; set do_create 0; set do_compile 0; set do_simulation 0; set recreate 0; set do_reset 1; set do_list_all 2; set do_check_syntax 0;
-
-### Hog stand-alone directives ###
-# The following directives are used WITHOUT ever calling the IDE, they are run in tclsh
-# A place holder called new_directive can be followed to add new commands
-
-set do_ipbus_xml 0;
-
-# set do_new_directive 0;
 
 ###
 set default_commands {
+
+  \^L(IST)?$ {
+    Msg Status "\n** The projects in this repository are:"
+    ListProjects $repo_path $list_all
+    Msg Status "\n"
+    exit 0
+  }
 
   \^C(REATE)?$ {
     set do_create 1
@@ -126,6 +119,12 @@ set default_commands {
     set do_ipbus_xml 1
   }
 
+  \^(CHECKYAML|YML)$ {
+    set min_n_of_args -1
+    set max_n_of_args 1
+    set do_check_yaml_ref 1
+  }
+
   default {
     Msg Status "ERROR: Unknown directive $directive.\n\n[cmdline::usage $parameters $usage]"
     exit 1
@@ -137,9 +136,28 @@ set default_commands {
 #    set do_new_directive 1
 #  }
 
-
-
+set commands_path [file normalize "$tcl_path/../../hog-commands/"]
+### CUSTOM COMMANDS ###
 set custom_commands [GetCustomCommands $commands_path 1]
+append usage [GetCustomCommands $commands_path]
+append usage "\n** Options:"
+
+
+lassign [InitLauncher $::argv0 $tcl_path $parameters $default_commands $usage $argv] directive project project_name group_name repo_path old_path bin_dir top_path cmd ide list_of_options
+array set options $list_of_options
+Msg Debug "Returned by InitLauncher: $project $project_name $group_name $repo_path $old_path $bin_dir $top_path $cmd"
+
+######## DEFAULTS #########
+set do_implementation 0; set do_synthesis 0; set do_bitstream 0; set do_create 0; set do_compile 0; set do_simulation 0; set recreate 0; set do_reset 1; set do_list_all 2; set do_check_syntax 0;
+
+### Hog stand-alone directives ###
+# The following directives are used WITHOUT ever calling the IDE, they are run in tclsh
+# A place holder called new_directive can be followed to add new commands
+
+set do_ipbus_xml 0;
+set do_check_yaml_ref 0;
+
+# set do_new_directive 0;
 
 Msg Debug "Looking for a $directive in : $default_commands $custom_commands"
 switch -regexp -- $directive "$default_commands $custom_commands"
@@ -212,13 +230,19 @@ if {$cmd == -1} {
     exit 0
   }
 
+   if {$do_check_yaml_ref ==1 } {
+    Msg Info "Checking if \"ref\" in .gitlab-ci.yml actually matches the included yml file in Hog submodule"
+    CheckYmlRef $repo_path false
+   exit 0
+  }
+
+
   # if {$do_new_directive ==1 } {
   #
   # # Do things here
   #
   # exit 0
   #}
-
 
   #### END of tclsh commands ####
   Msg Info "Launching command: $cmd..."

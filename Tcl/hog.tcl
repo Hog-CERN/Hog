@@ -3612,22 +3612,23 @@ proc ImportTclLib {} {
   }
 }
 
-# @brief Initialise the Launcher and returns a list of project parameters: directive project project_name group_name repo_path old_path bin_dir top_path commands_path cmd ide
+# @brief Initialise the Launcher and returns a list of project parameters: directive project project_name group_name repo_path old_path bin_dir top_path cmd ide
 #
 # @param[in] script     The launch.tcl script
 # @param[in] tcl_path   The launch.tcl script path
 # @param[in] parameters The allowed parameters for launch.tcl
+# @param[in] commands   The allowed directives for launch.tcl
 # @param[in] usage      The usage snippet for launch.tcl
 # @param[in] argv       The input arguments passed to launch.tcl
-proc InitLauncher {script tcl_path parameters usage argv} {
+
+proc InitLauncher {script tcl_path parameters commands usage argv} {
   set repo_path [file normalize "$tcl_path/../.."]
   set old_path [pwd]
   set bin_path [file normalize "$tcl_path/../../bin"]
   set top_path [file normalize "$tcl_path/../../Top"]
-  set commands_path [file normalize "$tcl_path/../../hog-commands/"]
 
   if {[IsTclsh]} {
-    #Just display the logo the first time, not when the scripot is run in the IDE
+    #Just display the logo the first time, not when the script is run in the IDE
     Logo $repo_path
   }
 
@@ -3636,10 +3637,7 @@ proc InitLauncher {script tcl_path parameters usage argv} {
     source $tcl_path/utils/cmdline.tcl
   }
 
-  append usage [GetCustomCommands $commands_path]
-  append usage "\n** Options:"
-
-  lassign [GetOptions $argv $parameters] option_list arg_list
+   lassign [GetOptions $argv $parameters] option_list arg_list
 
   if { [IsInList "-help" $option_list] || [IsInList "-?" $option_list] || [IsInList "-h" $option_list] } {
     Msg Info [cmdline::usage $parameters $usage]
@@ -3660,14 +3658,12 @@ proc InitLauncher {script tcl_path parameters usage argv} {
   # Argv here is modified and the options are removed
   set directive [string toupper [lindex $arg_list 0]]
 
-  if { [llength $arg_list] == 1 && ($directive == "L" || $directive == "LIST")} {
+  set min_n_of_args 0
+  set max_n_of_args 2
+  
+  switch -regexp -- $directive "$commands"
 
-    Msg Status "\n** The projects in this repository are:"
-    ListProjects $repo_path $list_all
-    Msg Status "\n"
-    exit 0
-
-  } elseif { [llength $arg_list] == 0 || [llength $arg_list] > 2} {
+  if { [llength $arg_list] <= $min_n_of_args || [llength $arg_list] > $max_n_of_args} {
     Msg Status "\nERROR: Wrong number of arguments: [llength $argv].\n\n"
     Msg Status "USAGE: [cmdline::usage $parameters $usage]"
     exit 1
@@ -3702,6 +3698,9 @@ proc InitLauncher {script tcl_path parameters usage argv} {
       if {$project != ""} {
         #Project not given
         set command -1
+      } elseif {$min_n_of_args < 0} {
+        #Project not needed
+        set command -3 
       } else {
         #Project not found
         set command -2
@@ -3732,7 +3731,7 @@ proc InitLauncher {script tcl_path parameters usage argv} {
     set xml_dst ""
   }
 
-  return [list $directive $project $project_name $project_group $repo_path $old_path $bin_path $top_path $commands_path $command $cmd [array get options]]
+  return [list $directive $project $project_name $project_group $repo_path $old_path $bin_path $top_path $command $cmd [array get options]]
 }
 
 # @brief Returns 1 if a commit is an ancestor of another, otherwise 0

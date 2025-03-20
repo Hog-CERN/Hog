@@ -45,6 +45,7 @@ set usage " \[OPTIONS\] <directive> <project>\n The most common <directive> valu
 - IMPLEMENT: Runs the implementation only, the project must already exist and be synthesised.
 - SYNTHESIS: Runs the synthesis only, creates the project if not existing.
 - LIST or L: Only list all the projects
+- BUTTONS or B: Create Hog buttons (Vivado only)
 - CHECKSYNTAX or CS: Check the syntax of the specified project
 - CHECKYAML or YML: Check that the ref to Hog repository in the yml files matches the one in Hog submodule
 - XML or X: Copy, check or create IPbus XMLs
@@ -60,9 +61,6 @@ if {[IsQuartus]} {
 }
 
 Msg Debug "s: $::argv0 a: $argv"
-
-
-
 
 
 ###
@@ -125,6 +123,13 @@ set default_commands {
     set do_check_yaml_ref 1
   }
 
+\^B(UTTONS)?$ {
+    set min_n_of_args -1
+    set max_n_of_args 1
+    set do_buttons 1
+  }
+
+
   default {
     Msg Status "ERROR: Unknown directive $directive.\n\n[cmdline::usage $parameters $usage]"
     exit 1
@@ -156,6 +161,7 @@ set do_implementation 0; set do_synthesis 0; set do_bitstream 0; set do_create 0
 
 set do_ipbus_xml 0;
 set do_check_yaml_ref 0;
+set do_buttons 0;
 
 # set do_new_directive 0;
 
@@ -233,6 +239,13 @@ if {$cmd == -1} {
    if {$do_check_yaml_ref ==1 } {
     Msg Info "Checking if \"ref\" in .gitlab-ci.yml actually matches the included yml file in Hog submodule"
     CheckYmlRef $repo_path false
+   exit 0
+  }
+
+ if {$do_buttons ==1 } {
+   Msg Info "Adding Hog buttons to Vivado bar (won't work without Vivado)..."
+   Execute vivado -mode batch -notrace -source $repo_path/Hog/Tcl/utils/add_hog_custom_button.tcl
+   Msg Info "Done."
    exit 0
   }
 

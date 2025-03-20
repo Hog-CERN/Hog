@@ -68,7 +68,7 @@ append usage [GetCustomCommands $commands_path]
 append usage "\n** Options:"
 
 ######## DEFAULTS #########
-set do_implementation 0; set do_synthesis 0; set do_bitstream 0; set do_create 0; set do_compile 0; set do_simulation 0; set recreate 0; set reset 1; set do_ipbus_xml 0; set list_all 2;
+set do_implementation 0; set do_synthesis 0; set do_bitstream 0; set do_create 0; set do_compile 0; set do_simulation 0; set recreate 0; set do_reset 1; set do_ipbus_xml 0; set do_list_all 2;
 
 set default_commands {
 
@@ -125,22 +125,22 @@ Msg Debug "Looking for a $directive in : $default_commands $custom_commands"
 switch -regexp -- $directive "$default_commands $custom_commands"
 
 if { $options(all) == 1 } {
-  set list_all 1
+  set do_list_all 1
 } else {
-  set list_all 2
+  set do_list_all 2
 }
 
 if {$cmd == -1} {
 #This is if the project was not found
   Msg Status "\n\nPossible projects are:"
-  ListProjects $repo_path $list_all
+  ListProjects $repo_path $do_list_all
   Msg Status "\n"
   exit 1
 } elseif {$cmd == -2} {
   # Project not given but needed
   Msg Status "ERROR: You must specify a project with directive $directive.\n\n[cmdline::usage $parameters $usage]"
   Msg Status "\n Possible projects are:"
-  ListProjects $repo_path $list_all
+  ListProjects $repo_path $do_list_all
   Msg Status "\n"
   exit 1
 
@@ -290,7 +290,7 @@ if { $options(impl_only) == 1} {
 
 
 if { $options(no_reset) == 1 } {
-  set reset 0
+  set do_reset 0
 }
 
 if { $options(check_syntax) == 1 } {
@@ -389,11 +389,11 @@ if { $check_syntax == 1 } {
 
 ######### LaunchSynthesis ########
 if {$do_synthesis == 1} {
-  LaunchSynthesis $reset $do_create $run_folder $project_name $repo_path $ext_path $options(njobs)
+  LaunchSynthesis $do_reset $do_create $run_folder $project_name $repo_path $ext_path $options(njobs)
 }
 
 if {$do_implementation == 1 } {
-  LaunchImplementation $reset $do_create $run_folder $project_name $repo_path $options(njobs) $do_bitstream
+  LaunchImplementation $do_reset $do_create $run_folder $project_name $repo_path $options(njobs) $do_bitstream
 }
 
 

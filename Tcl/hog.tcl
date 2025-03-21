@@ -3719,18 +3719,6 @@ proc InitLauncher {script tcl_path parameters commands usage argv} {
     set project_name "$project"
   }
 
-  if { $options(generate) == 1 } {
-    set xml_gen 1
-  } else {
-    set xml_gen 0
-  }
-
-  if { $options(xml_dir) != "" } {
-    set xml_dst $options(xml_dir)
-  } else {
-    set xml_dst ""
-  }
-
   return [list $directive $project $project_name $project_group $repo_path $old_path $bin_path $top_path $command $cmd [array get options]]
 }
 
@@ -4684,6 +4672,12 @@ proc Msg {level msg {title ""}} {
 proc MsgAndLog {msg {severity "CriticalWarning"} {outFile ""}} {
   Msg $severity $msg
   if {$outFile != ""} {
+    set directory [file dir $outFile]
+    if {![file exists $directory]} {
+      Msg Info "Creating $directory..."
+      file mkdir $directory
+    }
+
     set oF [open "$outFile" a+]
     puts $oF $msg
     close $oF

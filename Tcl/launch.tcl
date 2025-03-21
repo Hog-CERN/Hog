@@ -31,7 +31,7 @@ set parameters {
   {simset.arg  ""   "Simulation sets, separated by commas, to be run."}
   {all             "List all projects, including test projects. Test projects have #test on the second line of hog.conf."}
   {generate        "For IPbus XMLs, it willk re create the VHDL address decode files."}
-  {xml_dir.arg "" "For IPbus XMLs, set the destination folder (default is ../<project_name>_xml)."}
+  {dst_dir.arg ""  "For reports, IPbus XMLs, set the destination folder (default is in the ./bin folder)."}
   {verbose         "If set, launch the script in verbose mode"}
 }
 
@@ -48,6 +48,7 @@ set usage " \[OPTIONS\] <directive> <project>\n The most common <directive> valu
 - BUTTONS or B: Create Hog buttons (Vivado only)
 - CHECKSYNTAX or CS: Check the syntax of the specified project
 - CHECKYAML or YML: Check that the ref to Hog repository in the yml files matches the one in Hog submodule
+- CHECKLIST or CL: Check that list files on disk what's on the project
 - XML or X: Copy, check or create IPbus XMLs
 "
 
@@ -129,6 +130,11 @@ set default_commands {
     set do_buttons 1
   }
 
+\^(CHECKLIST|CL)$ {
+    set do_check_list_files 1
+  }
+
+
 
   default {
     Msg Status "ERROR: Unknown directive $directive.\n\n[cmdline::usage $parameters $usage]"
@@ -136,7 +142,7 @@ set default_commands {
   }
 }
 
-# Add this bit abouve!
+# Add this bit above!
 #  \^NEW_DIRECTIVE?$ {
 #    set do_new_directive 1
 #  }
@@ -152,6 +158,13 @@ lassign [InitLauncher $::argv0 $tcl_path $parameters $default_commands $usage $a
 array set options $list_of_options
 Msg Debug "Returned by InitLauncher: $project $project_name $group_name $repo_path $old_path $bin_dir $top_path $cmd"
 
+set ext_path ""
+if { $options(ext_path) != ""} {
+  set ext_path $options(ext_path)
+}
+set simlib_path ""
+
+
 ######## DEFAULTS #########
 set do_implementation 0; set do_synthesis 0; set do_bitstream 0; set do_create 0; set do_compile 0; set do_simulation 0; set recreate 0; set do_reset 1; set do_list_all 2; set do_check_syntax 0;
 
@@ -162,6 +175,7 @@ set do_implementation 0; set do_synthesis 0; set do_bitstream 0; set do_create 0
 set do_ipbus_xml 0;
 set do_check_yaml_ref 0;
 set do_buttons 0;
+set do_check_list_files 0;
 
 # set do_new_directive 0;
 
@@ -172,6 +186,14 @@ if { $options(all) == 1 } {
   set do_list_all 1
 } else {
   set do_list_all 2
+}
+
+
+if {$options(dst_dir) == "" && ($do_ipbus_xml ==1 || $do_check_list_files == 1)} {
+  # Getting all the versions and SHAs of the repository
+   lassign [GetRepoVersions [file normalize $repo_path/Top/$group_name/$project] $repo_path $ext_path] commit version  hog_hash hog_ver  top_hash top_ver  libs hashes vers  cons_ver cons_hash  ext_names ext_hashes  xml_hash xml_ver user_ip_repos user_ip_hashes user_ip_vers
+   set describe [GetHogDescribe $commit $repo_path]
+   set dst_dir [file normalize "bin/$group_name/$project\-$describe"]
 }
 
 if {$cmd == -1} {
@@ -195,11 +217,13 @@ if {$cmd == -1} {
 } else {
   # This script was launched with Tclsh, we need to check the arguments and if everything is right launch the IDE on this script and return
 
-  #### Commands to be handled in tclsh should be here ###
+ 
+  
+  #### Directives to be handled in tclsh should be here ###
+  ### IMPORTANT: Each if block should either end with "exit 0" or set both $ide and $cmd to be executed when this script is run again
 
   if {$do_ipbus_xml == 1} {
     Msg Info "Handling IPbus XMLs for $project_name..."
-    #Msg Info "Returned by InitLauncher: $project $project_name $group_name $repo_path $old_path $bin_dir $top_path $commands_path $cmd"
 
     set proj_dir $repo_path/Top/$project_name
 
@@ -209,17 +233,14 @@ if {$cmd == -1} {
       set xml_gen 0
     }
 
-    if { $options(xml_dir) != "" } {
-      set xml_dst $options(xml_dir)
-    } else {
-      set xml_dst "../$project\_xml"
-      Msg Info "Using default destination $xml_dst..."
-    }
+    
+    set xml_dst "$dst_dir/xml"
+    
 
     if {[llength [glob -nocomplain $proj_dir/list/*.ipb]] > 0 } {
       if {![file exists $xml_dst]} {
-	Msg Info "$xml_dst directory not found, creating it..."
-	file mkdir $xml_dst
+	    Msg Info "$xml_dst directory not found, creating it..."
+	    file mkdir $xml_dst
       }
     } else {
       Msg Error "No .ipb files found in $proj_dir/list/"
@@ -243,11 +264,9 @@ if {$cmd == -1} {
   }
 
  if {$do_buttons ==1 } {
-   Msg Info "Adding Hog buttons to Vivado bar (won't work without Vivado)..."
+   Msg Info "Adding Hog buttons to Vivado bar (will use the vivado currently in PATH)..."
    set ide vivado
    set cmd "vivado -mode batch -notrace -source $repo_path/Hog/Tcl/utils/add_hog_custom_button.tcl"
-   #Msg Info "Done."
-   #exit 0
   }
 
 
@@ -319,9 +338,6 @@ if {[IsLibero]} {
   set run_folder [file normalize "$repo_path/Projects/$project_name/"]
 }
 
-set ext_path ""
-set simlib_path ""
-
 #Only for quartus, not used otherwise
 set project_path [file normalize "$repo_path/Projects/$project_name/"]
 
@@ -364,9 +380,7 @@ if { $do_simulation == 1 } {
   set simsets $options(simset)
 }
 
-if { $options(ext_path) != ""} {
-  set ext_path $options(ext_path)
-}
+
 
 if {$options(lib)!= ""} {
   set lib_path [file normalize $options(lib)]
@@ -467,6 +481,28 @@ if {$do_bitstream == 1 && ![IsXilinx] } {
 if {$do_simulation == 1} {
   LaunchSimulation $project_name $lib_path $simsets $repo_path
 }
+
+
+if {$do_check_list_files} {
+  Msg Info "Running list file checker..."
+  
+   #if {![file exists $dst_dir]} {
+	 #   Msg Info "$dst_dir directory not found, creating it..."
+	 #   file mkdir $dst_dir
+   # }
+
+
+set argv0 check_list_files
+  if {$ext_path ne ""} {
+    set argv [list  "-ext_path" "$ext_path" "-outDir" "$dst_dir" "-pedantic"]
+  } else {
+    set argv [list "-outDir" "$dst_dir" "-pedantic"]
+  }
+  
+  source $tcl_path/utils/check_list_files.tcl
+}
+
+
 
 ## CLOSE Projects
 CloseProject

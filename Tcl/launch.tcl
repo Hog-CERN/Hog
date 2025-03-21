@@ -244,9 +244,10 @@ if {$cmd == -1} {
 
  if {$do_buttons ==1 } {
    Msg Info "Adding Hog buttons to Vivado bar (won't work without Vivado)..."
-   Execute vivado -mode batch -notrace -source $repo_path/Hog/Tcl/utils/add_hog_custom_button.tcl
-   Msg Info "Done."
-   exit 0
+   set ide vivado
+   set cmd "vivado -mode batch -notrace -source $repo_path/Hog/Tcl/utils/add_hog_custom_button.tcl"
+   #Msg Info "Done."
+   #exit 0
   }
 
 

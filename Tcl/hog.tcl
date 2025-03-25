@@ -134,7 +134,7 @@ proc AddHogFiles { libraries properties filesets } {
           }
 
           # Top synthesis module
-          set top [lindex [regexp -inline {top\s*=\s*(.+?)\y.*} $props] 1]
+          set top [lindex [regexp -inline {\ytop\s*=\s*(.+?)\y.*} $props] 1]
           if { $top != "" } {
             Msg Info "Setting $top as top module for file set $fileset..."
             set globalSettings::synth_top_module $top
@@ -175,13 +175,13 @@ proc AddHogFiles { libraries properties filesets } {
 
           ## Simulation properties
           # Top simulation module
-          set top_sim [lindex [regexp -inline {topsim\s*=\s*(.+?)\y.*} $props] 1]
+          set top_sim [lindex [regexp -inline {\ytopsim\s*=\s*(.+?)\y.*} $props] 1]
           if { $top_sim != "" } {
             Msg Warning "Setting the simulation top module from simulation list files is now deprecated. Please set this property in the sim.conf file, by adding the following line under the \[$fileset\] section.\ntop=$top_sim"
           }
 
           # Simulation runtime
-          set sim_runtime [lindex [regexp -inline {runtime\s*=\s*(.+?)\y.*} $props] 1]
+          set sim_runtime [lindex [regexp -inline {\yruntime\s*=\s*(.+?)\y.*} $props] 1]
           if { $sim_runtime != "" } {
             Msg Warning "Setting the simulation runtime from simulation list files is now deprecated. Please set this property in the sim.conf file, by adding the following line under the \[$fileset\] section.\n<simulator_name>.simulate.runtime=$sim_runtime"
             # set_property -name {xsim.simulate.runtime} -value $sim_runtime -objects [get_filesets $fileset]
@@ -245,8 +245,8 @@ proc AddHogFiles { libraries properties filesets } {
           }
 
           # Constraint Properties
-          set ref [lindex [regexp -inline {scoped_to_ref\s*=\s*(.+?)\y.*} $props] 1]
-          set cell [lindex [regexp -inline {scoped_to_cells\s*=\s*(.+?)\y.*} $props] 1]
+          set ref [lindex [regexp -inline {\yscoped_to_ref\s*=\s*(.+?)\y.*} $props] 1]
+          set cell [lindex [regexp -inline {\yscoped_to_cells\s*=\s*(.+?)\y.*} $props] 1]
           if {([file extension $f] == ".tcl" || [file extension $f] == ".xdc") && $ext == ".con"} {
             if {$ref != ""} {
               set_property SCOPED_TO_REF $ref $file_obj
@@ -273,7 +273,7 @@ proc AddHogFiles { libraries properties filesets } {
             set props [DictGet $properties $cur_file]
 
             # Top synthesis module
-            set top [lindex [regexp -inline {top\s*=\s*(.+?)\y.*} $props] 1]
+            set top [lindex [regexp -inline {\ytop\s*=\s*(.+?)\y.*} $props] 1]
             if { $top != "" } {
               Msg Info "Setting $top as top module for file set $fileset..."
               set globalSettings::synth_top_module $top
@@ -478,7 +478,7 @@ proc AddHogFiles { libraries properties filesets } {
           set props [DictGet $properties $cur_file]
 
           # Top synthesis module
-          set top [lindex [regexp -inline {top\s*=\s*(.+?)\y.*} $props] 1]
+          set top [lindex [regexp -inline {\ytop\s*=\s*(.+?)\y.*} $props] 1]
           if { $top != "" } {
             Msg Info "Setting $top as top module for file set $rootlib..."
             set globalSettings::synth_top_module "${top}::$rootlib"
@@ -492,7 +492,7 @@ proc AddHogFiles { libraries properties filesets } {
             prj_src add -work $rootlib $f
             set props [DictGet $properties $f]
             # Top synthesis module
-            set top [lindex [regexp -inline {top\s*=\s*(.+?)\y.*} $props] 1]
+            set top [lindex [regexp -inline {\ytop\s*=\s*(.+?)\y.*} $props] 1]
             if { $top != "" } {
               Msg Info "Setting $top as top module for the project..."
               set globalSettings::synth_top_module $top
@@ -4933,14 +4933,15 @@ proc ReadListFile args {
           set prop [lrange $file_and_prop 1 end]
 
           # The next lines should be inside the case for recursive list files, also we should check the allowed properties for the .src as well
-          set library [lindex [regexp -inline {lib\s*=\s*(.+?)\y.*} $prop] 1]
+          set library [lindex [regexp -inline {\ylib\s*=\s*(.+?)\y.*} $prop] 1]
           if { $library == "" } {
             set library $lib
           }
 
           if { $extension == $list_file_ext } {
             # Deal with recursive list files
-            set ref_path [lindex [regexp -inline {path\s*=\s*(.+?)\y.*} $prop] 1]
+            # In the next regex we use \S+ instead of .+? because we want to include forward slashes
+            set ref_path [lindex [regexp -inline {\ypath\s*=\s*(\S+).*} $prop] 1]
             if { $ref_path eq "" } {
               set ref_path $path
             } else {

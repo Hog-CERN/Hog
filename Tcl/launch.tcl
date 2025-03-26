@@ -25,17 +25,17 @@ set parameters {
   {check_syntax    "If set, the HDL syntax will be checked at the beginning of the workflow."}
   {njobs.arg 4     "Number of jobs. Default: 4"}
   {ext_path.arg "" "Sets the absolute path for the external libraries."}
-  {lib.arg  "" "Compiled simulation library path"}
+  {lib.arg      "" "Simulation library path, compiled or to be compiled"}
   {synth_only      "If set, only the synthesis will be performed."}
   {impl_only       "If set, only the implementation will be performed. This assumes synthesis should was already done."}
-  {simset.arg  ""   "Simulation sets, separated by commas, to be run."}
+  {simset.arg   "" "Simulation sets, separated by commas, to be run."}
   {all             "List all projects, including test projects. Test projects have #test on the second line of hog.conf."}
   {generate        "For IPbus XMLs, it willk re create the VHDL address decode files."}
-  {dst_dir.arg ""  "For reports, IPbus XMLs, set the destination folder (default is in the ./bin folder)."}
+  {dst_dir.arg  "" "For reports, IPbus XMLs, set the destination folder (default is in the ./bin folder)."}
   {verbose         "If set, launch the script in verbose mode"}
 }
 
-set usage " \[OPTIONS\] <directive> <project>\n The most common <directive> values are CREATE (or C), WORKFLOW (or W), SIMULATE (or S).
+set usage " \[OPTIONS\] <directive> \[project\]\n The most common <directive> values are CREATE (or C), WORKFLOW (or W), SIMULATE (or S).
 
 ** Directives (case insensitive):
 - CREATE or C: Create the project, replacing it if already existing.
@@ -46,7 +46,8 @@ set usage " \[OPTIONS\] <directive> <project>\n The most common <directive> valu
 - SYNTHESIS: Runs the synthesis only, creates the project if not existing.
 - LIST or L: Only list all the projects
 - BUTTONS or B: Create Hog buttons (Vivado only)
-- CHECKSYNTAX or CS: Check the syntax of the specified project
+- COMPILE or COMP: Compile simulation libs (Vivado only)
+- CHECKSYNTAX or CS: Check the syntax of the specified project (Vivado Only)
 - CHECKYAML or YML: Check that the ref to Hog repository in the yml files matches the one in Hog submodule
 - CHECKLIST or CL: Check that list files on disk what's on the project
 - XML or X: Copy, check or create IPbus XMLs
@@ -134,6 +135,10 @@ set default_commands {
     set do_check_list_files 1
   }
 
+\^(COMPILE|COMP)$ {
+    set do_compile_lib 1
+    set argument_is_no_project 1
+  }
 
 
   default {
@@ -176,6 +181,7 @@ set do_ipbus_xml 0;
 set do_check_yaml_ref 0;
 set do_buttons 0;
 set do_check_list_files 0;
+set do_compile_lib 0;
 
 # set do_new_directive 0;
 
@@ -269,6 +275,28 @@ if {$cmd == -1} {
    set cmd "vivado -mode batch -notrace -source $repo_path/Hog/Tcl/utils/add_hog_custom_button.tcl"
   }
 
+ if {$do_compile_lib == 1} {
+    if {$project eq ""} {
+      Msg Error "You need to specify a simulator as first argument."
+      exit 1
+    } else {
+      set simulator $project
+      Msg Info "Selectring $simulator simulator..."
+    }
+    if { $options(dst_dir) != "" } {
+      set output_dir $options(dst_dir)
+    } else {
+      Msg Info "No destination directory defined. Using default: SimulationLib/"
+      set output_dir "SimulationLib"
+    }
+    
+    set ide vivado
+    set cmd "vivado -mode batch -notrace -source $repo_path/Hog/Tcl/utils/compile_simlib.tcl  -tclargs -simulator $simulator -output_dir $output_dir"
+  }
+
+
+
+  
 
   # if {$do_new_directive ==1 } {
   #
@@ -501,7 +529,6 @@ set argv0 check_list_files
   
   source $tcl_path/utils/check_list_files.tcl
 }
-
 
 
 ## CLOSE Projects

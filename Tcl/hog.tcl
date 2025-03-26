@@ -3660,7 +3660,7 @@ proc InitLauncher {script tcl_path parameters commands usage argv} {
 
   set min_n_of_args 0
   set max_n_of_args 2
-  
+  set argument_is_no_project 0
   switch -regexp -- $directive "$commands"
 
   if { [llength $arg_list] <= $min_n_of_args || [llength $arg_list] > $max_n_of_args} {
@@ -3670,11 +3670,16 @@ proc InitLauncher {script tcl_path parameters commands usage argv} {
   }
 
   set project  [lindex $arg_list 1]
-  # Remove leading Top/ or ./Top/ if in project_name
-  regsub "^(\./)?Top/" $project "" project
-  # Remove trailing / and spaces if in project_name
-  regsub "/? *\$" $project "" project
-  set proj_conf [ProjectExists $project $repo_path]
+
+  if {$argument_is_no_project == 0 } {
+    # Remove leading Top/ or ./Top/ if in project_name
+    regsub "^(\./)?Top/" $project "" project
+    # Remove trailing / and spaces if in project_name
+    regsub "/? *\$" $project "" project
+    set proj_conf [ProjectExists $project $repo_path]
+  } else {
+    set proj_conf 0
+  }
 
   Msg Debug "Option list:"
   foreach {key value} [array get options] {
@@ -3695,12 +3700,15 @@ proc InitLauncher {script tcl_path parameters commands usage argv} {
       set command "$cmd $before_tcl_script$script$after_tcl_script$argv$end_marker"
 
     } else {
-      if {$project != ""} {
+      if {$argument_is_no_project == 1} {
+        set command -4
+        Msg Debug "$project will be used as first argument"
+      } elseif {$project != ""} {
         #Project not given
         set command -1
       } elseif {$min_n_of_args < 0} {
         #Project not needed
-        set command -3 
+        set command -3   
       } else {
         #Project not found
         set command -2

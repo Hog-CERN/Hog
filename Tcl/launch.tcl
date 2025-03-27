@@ -50,6 +50,7 @@ set usage " \[OPTIONS\] <directive> \[project\]\n The most common <directive> va
 - CHECKSYNTAX or CS: Check the syntax of the specified project (Vivado Only)
 - CHECKYAML or YML: Check that the ref to Hog repository in the yml files matches the one in Hog submodule
 - CHECKLIST or CL: Check that list files on disk what's on the project
+- SIGASI or SI: Create a .csv file to be used in Sigasi
 - XML or X: Copy, check or create IPbus XMLs
 "
 
@@ -141,6 +142,10 @@ set default_commands {
   }
 
 
+ \^SI(GASI)$ {
+  set do_sigasi 1
+ }
+
   default {
     Msg Status "ERROR: Unknown directive $directive.\n\n[cmdline::usage $parameters $usage]"
     exit 1
@@ -182,6 +187,7 @@ set do_check_yaml_ref 0;
 set do_buttons 0;
 set do_check_list_files 0;
 set do_compile_lib 0;
+set do_sigasi 0;
 
 # set do_new_directive 0;
 
@@ -531,7 +537,60 @@ set argv0 check_list_files
 }
 
 
-## CLOSE Projects
+if {$do_sigasi} {
+  Msg Info "Creating Sigasi file for $project..."
+
+  #Simulation
+  set csv_name "${project}_sigasi_sim.csv"
+  #Create IPs here
+  Msg Info "Generating IP targets for simulations..."
+  foreach ip [get_ips] {
+    set targets [list_targets [get_files [file tail [get_property IP_FILE $ip]]]]
+    if { [ lsearch -exact $targets simulation] >= 0 }  {
+      generate_target simulation $ip
+    } else {
+      Msg Warning "IP $ip is not a simulation target, skipping..."
+    }
+  }
+
+
+  set source_files [get_files -filter {(FILE_TYPE == VHDL || FILE_TYPE == "VHDL 2008" || FILE_TYPE == "VHDL 2019" || FILE_TYPE == VERILOG || FILE_TYPE == SYSTEMVERILOG) && USED_IN_SIMULATION == 1 } ]
+  if {$options(dst_dir) == ""} {
+    set dst_path "$repo_path"
+  } else {
+    set dst_path $repo_path/$options(dst_dir)
+    if {![file exists $dst_path]} {
+      Msg Info "Creating $dst_path..."
+      file mkdir $dst_path
+    }
+  }
+  
+  Msg Info "Creating sigasi csv file for simulation $dst_path/$csv_name..."
+  set csv_file [open $dst_path/$csv_name w]
+   
+  foreach source_file $source_files {
+    puts  $csv_file [ concat  [ get_property LIBRARY $source_file ] "," $source_file ]
+  }
+  close $csv_file
+
+  #Synthesis
+  set csv_name "${project}_sigasi_synth.csv"
+  Msg Info "Generating IP targets for synthesis..."
+  foreach ip [get_ips] {
+    generate_target synthesis $ip
+  }
+
+  set source_files [get_files -filter {(FILE_TYPE == VHDL || FILE_TYPE == "VHDL 2008" || FILE_TYPE == "VHDL 2019" || FILE_TYPE == VERILOG || FILE_TYPE == SYSTEMVERILOG) && USED_IN_SYNTHESIS == 1 } ]
+  Msg Info "Creating sigasi csv file for synthesis $dst_path/$csv_name..."
+  set csv_file [open $dst_path/$csv_name w]
+  foreach source_file $source_files {
+    puts  $csv_file [ concat  [ get_property LIBRARY $source_file ] "," $source_file ]
+  }
+  close $csv_file
+
+}
+
+## CLOSE Project
 CloseProject
 
 Msg Info "All done."

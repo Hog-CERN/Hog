@@ -5713,7 +5713,7 @@ proc WriteGitLabCIYAML {proj_name {ci_conf ""}} {
 # @param[in] list_path  The path of the output list file
 # @param[in] repo_path  The main repository path
 # @param[in] ext_path   The external path
-proc WriteListFiles {libs props list_path repo_path {$ext_path ""} } {
+proc WriteListFiles {libs props list_path repo_path {ext_path ""} } {
   # Writing simulation list files
   foreach lib [dict keys $libs] {
     if {[llength [DictGet $libs $lib]] > 0} {

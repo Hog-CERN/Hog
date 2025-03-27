@@ -2578,6 +2578,7 @@ proc GetProjectFiles {{project_file ""}} {
   return [list $libraries $properties $simlibraries $constraints $srcsets $simsets $consets]
 }
 
+#"
 ## Get the Project flavour
 #
 #  @param[in]    proj_name The project name
@@ -4527,31 +4528,37 @@ proc ListProjects {{repo_path .} {print 1} {ret_conf 0}} {
 #
 # @param[in] repo_path The main path of the git repository (default .)
 proc Logo { {repo_path .} } {
-  if {[info exists ::env(HOG_COLORED)] && [string match "ENABLED" $::env(HOG_COLORED)]} {
-    set logo_file "$repo_path/Hog/images/hog_logo_color.txt"
-  } else {
-    set logo_file "$repo_path/Hog/images/hog_logo.txt"
-  }
-
-  set old_path [pwd]
-  cd $repo_path/Hog
-  set ver [Git {describe --always}]
-  cd $old_path
-
-  if {[file exists $logo_file]} {
-    set f [open $logo_file "r"]
-    set data [read $f]
-    close $f
-    set lines [split $data "\n"]
-    foreach l $lines {
-      Msg Status $l
+  # Msg Warning "HOG_LOGO_PRINTED : $HOG_LOGO_PRINTED"
+  if {![info exists ::env(HOG_LOGO_PRINTED)] || $::env(HOG_LOGO_PRINTED) eq "0"} {
+    if {[info exists ::env(HOG_COLOR)] && ([string match "ENABLED" $::env(HOG_COLOR)] || [string is integer -strict $::env(HOG_COLOR)] && $::env(HOG_COLOR) > 0 )} {
+      set logo_file "$repo_path/Hog/images/hog_logo_color.txt"
+    } else {
+      set logo_file "$repo_path/Hog/images/hog_logo.txt"
     }
 
-  } {
-    Msg CriticalWarning "Logo file: $logo_file not found"
+    set old_path [pwd]
+    cd $repo_path/Hog
+    # set ver [Git {describe --always}]
+
+    if {[file exists $logo_file]} {
+      set f [open $logo_file "r"]
+      set data [read $f]
+      close $f
+      set lines [split $data "\n"]
+      foreach l $lines {
+        Msg Status $l
+      }
+
+    } {
+      Msg CriticalWarning "Logo file: $logo_file not found"
+    }
+    
+    set ver [Git {describe --always}]
+    Msg Status "Version: $ver"
+    cd $old_path
+
   }
 
-  Msg Status "Version: $ver"
 }
 
 ## @brief Evaluates the md5 sum of a file

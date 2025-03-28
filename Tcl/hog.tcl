@@ -3785,7 +3785,13 @@ proc IsISE {} {
 
 ## @brief Returns true, if IDE is Quartus
 proc IsQuartus {} {
-  return [expr {[info commands project_new] != ""}]
+  if {[catch {package require ::quartus::flow} result]} {
+    # not available
+    return 0
+  } else {
+    # available
+    return 1 
+  }
 }
 
 ## Check if a path is absolute or relative
@@ -3834,7 +3840,17 @@ proc IsVivado {} {
 
 ## @brief Return true, if the IDE is Xilinx (Vivado or ISE)
 proc IsXilinx {} {
-  return [expr {[info commands get_property] != ""}]
+  if {[info commands version] != ""} {
+    set current_version [version]
+    if {[string first PlanAhead $current_version] == 0 || [string first Vivado $current_version] == 0} {
+      return 1
+    } else {
+      Msg Warning "This IDE has the version command but it is not PlanAhead or Vivado: $current_version"
+      return 0
+    }
+  } else {
+    return 0
+  }
 }
 
 ## @brief Find out if the given Xilinx part is a Vesal chip

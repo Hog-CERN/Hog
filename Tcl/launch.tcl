@@ -126,17 +126,17 @@ set default_commands {
     set do_check_yaml_ref 1
   }
 
-\^B(UTTONS)?$ {
+  \^B(UTTONS)?$ {
     set min_n_of_args -1
     set max_n_of_args 1
     set do_buttons 1
   }
 
-\^(CHECKLIST|CL)$ {
+  \^(CHECKLIST|CL)$ {
     set do_check_list_files 1
   }
 
-\^(COMPILE|COMP)$ {
+  \^(COMPILE|COMP)$ {
     set do_compile_lib 1
     set argument_is_no_project 1
   }
@@ -164,9 +164,11 @@ append usage [GetCustomCommands $commands_path]
 append usage "\n** Options:"
 
 
-lassign [InitLauncher $::argv0 $tcl_path $parameters $default_commands $usage $argv] directive project project_name group_name repo_path old_path bin_dir top_path cmd ide list_of_options
+lassign [InitLauncher $::argv0 $tcl_path $parameters $default_commands $usage $argv] directive\
+    project project_name group_name repo_path old_path bin_dir top_path cmd ide list_of_options
 array set options $list_of_options
-Msg Debug "Returned by InitLauncher: $project $project_name $group_name $repo_path $old_path $bin_dir $top_path $cmd"
+Msg Debug "Returned by InitLauncher: \
+$project $project_name $group_name $repo_path $old_path $bin_dir $top_path $cmd"
 
 set ext_path ""
 if { $options(ext_path) != ""} {
@@ -176,7 +178,9 @@ set simlib_path ""
 
 
 ######## DEFAULTS #########
-set do_implementation 0; set do_synthesis 0; set do_bitstream 0; set do_create 0; set do_compile 0; set do_simulation 0; set recreate 0; set do_reset 1; set do_list_all 2; set do_check_syntax 0;
+set do_implementation 0; set do_synthesis 0; set do_bitstream 0;
+set do_create 0; set do_compile 0; set do_simulation 0; set recreate 0;
+set do_reset 1; set do_list_all 2; set do_check_syntax 0;
 
 ### Hog stand-alone directives ###
 # The following directives are used WITHOUT ever calling the IDE, they are run in tclsh
@@ -192,7 +196,7 @@ set do_sigasi 0;
 # set do_new_directive 0;
 
 Msg Debug "Looking for a $directive in : $default_commands $custom_commands"
-switch -regexp -- $directive "$default_commands $custom_commands"
+switch -regexp -- $directive {$default_commands $custom_commands}
 
 if { $options(all) == 1 } {
   set do_list_all 1
@@ -203,7 +207,11 @@ if { $options(all) == 1 } {
 
 if {$options(dst_dir) == "" && ($do_ipbus_xml ==1 || $do_check_list_files == 1)} {
   # Getting all the versions and SHAs of the repository
-   lassign [GetRepoVersions [file normalize $repo_path/Top/$group_name/$project] $repo_path $ext_path] commit version  hog_hash hog_ver  top_hash top_ver  libs hashes vers  cons_ver cons_hash  ext_names ext_hashes  xml_hash xml_ver user_ip_repos user_ip_hashes user_ip_vers
+   lassign [GetRepoVersions [file normalize $repo_path/Top/$group_name/$project] \
+   $repo_path $ext_path] commit version hog_hash hog_ver top_hash top_ver libs hashes vers \
+   cons_ver cons_hash  ext_names ext_hashes xml_hash xml_ver user_ip_repos \
+   user_ip_hashes user_ip_vers
+
    set describe [GetHogDescribe $commit $repo_path]
    set dst_dir [file normalize "bin/$group_name/$project\-$describe"]
 }
@@ -216,7 +224,8 @@ if {$cmd == -1} {
   exit 1
 } elseif {$cmd == -2} {
   # Project not given but needed
-  Msg Status "ERROR: You must specify a project with directive $directive.\n\n[cmdline::usage $parameters $usage]"
+  Msg Status "ERROR: You must specify a project with directive $directive.\
+  \n\n[cmdline::usage $parameters $usage]"
   Msg Status "\n Possible projects are:"
   ListProjects $repo_path $do_list_all
   Msg Status "\n"
@@ -227,12 +236,14 @@ if {$cmd == -1} {
   Msg Info "$::argv0 was launched from the IDE."
 
 } else {
-  # This script was launched with Tclsh, we need to check the arguments and if everything is right launch the IDE on this script and return
+  # This script was launched with Tclsh, we need to check the arguments
+  # and if everything is right launch the IDE on this script and return
 
- 
-  
+
+
   #### Directives to be handled in tclsh should be here ###
-  ### IMPORTANT: Each if block should either end with "exit 0" or set both $ide and $cmd to be executed when this script is run again
+  ### IMPORTANT: Each if block should either end with "exit 0" or
+  ### set both $ide and $cmd to be executed when this script is run again
 
   if {$do_ipbus_xml == 1} {
     Msg Info "Handling IPbus XMLs for $project_name..."
@@ -245,9 +256,9 @@ if {$cmd == -1} {
       set xml_gen 0
     }
 
-    
+
     set xml_dst "$dst_dir/xml"
-    
+
 
     if {[llength [glob -nocomplain $proj_dir/list/*.ipb]] > 0 } {
       if {![file exists $xml_dst]} {
@@ -269,19 +280,19 @@ if {$cmd == -1} {
     exit 0
   }
 
-   if {$do_check_yaml_ref ==1 } {
+  if {$do_check_yaml_ref == 1 } {
     Msg Info "Checking if \"ref\" in .gitlab-ci.yml actually matches the included yml file in Hog submodule"
     CheckYmlRef $repo_path false
-   exit 0
+    exit 0
   }
 
- if {$do_buttons ==1 } {
-   Msg Info "Adding Hog buttons to Vivado bar (will use the vivado currently in PATH)..."
-   set ide vivado
-   set cmd "vivado -mode batch -notrace -source $repo_path/Hog/Tcl/utils/add_hog_custom_button.tcl"
+  if {$do_buttons == 1 } {
+    Msg Info "Adding Hog buttons to Vivado bar (will use the vivado currently in PATH)..."
+    set ide vivado
+    set cmd "vivado -mode batch -notrace -source $repo_path/Hog/Tcl/utils/add_hog_custom_button.tcl"
   }
 
- if {$do_compile_lib == 1} {
+  if {$do_compile_lib == 1} {
     if {$project eq ""} {
       Msg Error "You need to specify a simulator as first argument."
       exit 1
@@ -295,14 +306,20 @@ if {$cmd == -1} {
       Msg Info "No destination directory defined. Using default: SimulationLib/"
       set output_dir "SimulationLib"
     }
-    
+
     set ide vivado
     set cmd "vivado -mode batch -notrace -source $repo_path/Hog/Tcl/utils/compile_simlib.tcl  -tclargs -simulator $simulator -output_dir $output_dir"
   }
 
-
-
-  
+  if {$do_simulation == 1} {
+    # Get all simsets in the project
+    set simsets_dict [GetSimSets $project_name $repo_path $options(simset)]
+    dict for {simset_name simulator} $simsets_dict {
+      if {$simulator == "ghdl"} {
+        LaunchGHDL $project_name $repo_path $simset_name
+      }
+    }
+  }
 
   # if {$do_new_directive ==1 } {
   #
@@ -331,8 +348,6 @@ if {$cmd == -1} {
     set cmd "sh launch-libero-hog.sh"
   }
 
-
-
   set ret [catch {exec -ignorestderr {*}$cmd >@ stdout} result]
 
   if {$ret != 0} {
@@ -357,7 +372,8 @@ if {[IsLibero] || [IsDiamond]} {
   if {[info exists env(HOG_TCLLIB_PATH)]} {
     lappend auto_path $env(HOG_TCLLIB_PATH)
   } else {
-    puts "ERROR: To run Hog with Microsemi Libero SoC or Lattice Diamond, you need to define the HOG_TCLLIB_PATH variable."
+    puts "ERROR: To run Hog with Microsemi Libero SoC or Lattice Diamond,\
+    you need to define the HOG_TCLLIB_PATH variable."
     return
   }
 }
@@ -410,9 +426,6 @@ if { $options(check_syntax) == 1 } {
   set do_check_syntax 1
 }
 
-if { $do_simulation == 1 } {
-  set simsets $options(simset)
-}
 
 
 
@@ -519,7 +532,7 @@ if {$do_simulation == 1} {
 
 if {$do_check_list_files} {
   Msg Info "Running list file checker..."
-  
+
    #if {![file exists $dst_dir]} {
 	 #   Msg Info "$dst_dir directory not found, creating it..."
 	 #   file mkdir $dst_dir
@@ -532,7 +545,7 @@ set argv0 check_list_files
   } else {
     set argv [list "-outDir" "$dst_dir" "-pedantic"]
   }
-  
+
   source $tcl_path/utils/check_list_files.tcl
 }
 
@@ -564,10 +577,10 @@ if {$do_sigasi} {
       file mkdir $dst_path
     }
   }
-  
+
   Msg Info "Creating sigasi csv file for simulation $dst_path/$csv_name..."
   set csv_file [open $dst_path/$csv_name w]
-   
+
   foreach source_file $source_files {
     puts  $csv_file [ concat  [ get_property LIBRARY $source_file ] "," $source_file ]
   }

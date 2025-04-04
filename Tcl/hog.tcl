@@ -1874,6 +1874,52 @@ proc GetGenericsFromConf {proj_dir {sim 0}} {
   return $generics_dict
 }
 
+##
+proc GetSimSets { project_name repo_path {simsets ""}} {
+  set simsets_dict [dict create]
+  set list_dir "$repo_path/Top/$project_name/list"
+  set list_files []
+  if {$simsets != ""} {
+    foreach s $simsets {
+      set list_file "$list_dir/$s.sim"
+      if {[file exists $list_file]} {
+        lappend list_files $list_file
+      } else {
+        Msg CriticalWarning "Simulation set list file $list_file not found."
+      }
+    }
+  } else {
+    set list_files [glob -nocomplain -directory $list_dir "*.sim"]
+  }
+
+  foreach list_file $list_files {
+    set file_name [file tail $list_file]
+    set simset_name [file rootname $file_name]
+    set fp [open $list_file r]
+    set file_data [read $fp]
+    close $fp
+    set data [split $file_data "\n"]
+    set n [llength $data]
+    Msg Info "$n lines read from $s.sim"
+
+    set firstline [lindex $data 0]
+    # Find simulator
+    if { [regexp {^ *\#Simulator} $firstline] } {
+      set simulator_prop [regexp -all -inline {\S+} $firstline]
+      set simulator [string tolower [lindex $simulator_prop 1]]
+    } else {
+      Msg Warning "Simulator not set in $s.sim. The first line of $s.sim should be #Simulator <SIMULATOR_NAME>, where <SIMULATOR_NAME> can be xsim, questa, modelsim, riviera, activehdl, ies, or vcs, e.g. #Simulator questa. Setting simulator by default as xsim."
+      set simulator "xsim"
+    }
+    if {$simulator eq "skip_simulation"} {
+      Msg Info "Skipping simulation for $s"
+      continue
+    }
+    dict set simsets_dict $simset_name $simulator
+  }
+  return $simsets_dict
+}
+
 ## @brief Gets all custom <simset>:generics from sim.conf
 #
 # @param[in] proj_dir:    the top folder of the project
@@ -3370,6 +3416,12 @@ proc GetVhdlGenerics {file {entity ""} } {
   return $generics
 }
 
+## @brief Runs a GHDL command and returns its output and exit state
+proc GHDLRet {command} {
+  set ret [catch {exec -ignorestderr ghdl {*}$command} result]
+  return [list $ret $result]
+}
+
 ## @brief Handle git commands without causing an error if ret is not 0
 #
 # It can be used with lassign like this: lassign [GitRet \<git command\> \<possibly files\> ] ret result
@@ -3386,8 +3438,6 @@ proc GitRet {command {files ""}}  {
   } else {
     set ret [catch {exec -ignorestderr git {*}$command -- {*}$files} result]
   }
-
-
   return [list $ret $result]
 }
 
@@ -3709,7 +3759,7 @@ proc InitLauncher {script tcl_path parameters commands usage argv} {
         set command -1
       } elseif {$min_n_of_args < 0} {
         #Project not needed
-        set command -3   
+        set command -3
       } else {
         #Project not found
         set command -2
@@ -3844,6 +3894,52 @@ proc IsZynq {part} {
   } else {
     return 0
   }
+}
+
+
+proc LaunchGHDL { project_name repo_path simset {ext_path ""}} {
+  set list_path "$project_name/list"]
+  lassign [ReadListFile $list_path/$simset.sim $repo_path] sim_files sim_props simsets
+  lassign [GetHogFiles -list_files {.src,.ext} -ext_path $ext_path $list_path $repo_path ] src_files properties filesets
+  # Get simulation properties from conf file
+  set proj_dir [file normalize $repo_path/Top/$project_name]
+  set sim_file [file normalize $proj_dir/sim.conf]
+  if {[file exists $sim_file]} {
+    Msg Info "Parsing simulation configuration file $sim_file..."
+    SetGlobalVar SIM_PROPERTIES [ReadConf $sim_file]
+  } else {
+    SetGlobalVar SIM_PROPERTIES ""
+  }
+  set top_sim ""
+  # Setting Simulation Properties
+  if {[dict exists $globalSettings::SIM_PROPERTIES $simset]} {
+    Msg Info "Setting properties for simulation set: $simset..."
+    set sim_props [dict get $globalSettings::SIM_PROPERTIES $simset]
+    dict for {prop_name prop_val} $sim_props {
+      set prop_name [string toupper $prop_name]
+      if { $prop_name == "TOP"} {
+        set top_sim $prop_val
+      }
+    }
+  }
+  # Import GHDL files
+  set workdir $repo_path/$project_name/ghdl
+  file mkdir $workdir
+
+  dict for {lib sources} $sim_files {
+    foreach f $sources {
+      if {[file extension $f] != ".vhd" && [file extension $f] != ".vhdl"} {
+        Msg Info "File $f is not a VHDL file, skipping..."
+        continue
+      } else {
+        lassign [GHDLRet "-i --work=$lib --workdir=$workdir/$lib --std=08 -fsynopsys --ieee=standard $f"] ret result
+      }
+    }
+  }
+  # Analyse and elaborate the design
+  lassign [GHDLRet "-m --workdir=$workdir/$simset --std=08 -fsynopsys --ieee=standard $top_sim"] ret result
+
+
 }
 
 # @brief Launch the Implementation, for the current IDE and project
@@ -4166,18 +4262,7 @@ proc LaunchSimulation {project_name lib_path {simsets ""} {repo_path .}} {
           Msg Info "$n lines read from $s.sim"
 
           set firstline [lindex $data 0]
-          # Find simulator
-          if { [regexp {^ *\#Simulator} $firstline] } {
-            set simulator_prop [regexp -all -inline {\S+} $firstline]
-            set simulator [string tolower [lindex $simulator_prop 1]]
-          } else {
-            Msg Warning "Simulator not set in $s.sim. The first line of $s.sim should be #Simulator <SIMULATOR_NAME>, where <SIMULATOR_NAME> can be xsim, questa, modelsim, riviera, activehdl, ies, or vcs, e.g. #Simulator questa. Setting simulator by default as xsim."
-            set simulator "xsim"
-          }
-          if {$simulator eq "skip_simulation"} {
-            Msg Info "Skipping simulation for $s"
-            continue
-          }
+
           set_property "target_simulator" $simulator [current_project]
           Msg Info "Creating simulation scripts for $s..."
           if { [file exists $repo_path/Top/$project_name/pre-simulation.tcl] } {
@@ -4552,7 +4637,7 @@ proc Logo { {repo_path .} } {
     } {
       Msg CriticalWarning "Logo file: $logo_file not found"
     }
-    
+
     set ver [Git {describe --always}]
     Msg Status "Version: $ver"
     cd $old_path
@@ -4838,7 +4923,7 @@ proc ReadExtraFileList { extra_file_name } {
   return $extra_file_dict
 }
 
-## @brief Read a list file and return a list of three dictionaries
+# @brief Read a list file and return a list of three dictionaries
 #
 # Additional information is provided with text separated from the file name with one or more spaces
 #
@@ -4850,7 +4935,7 @@ proc ReadExtraFileList { extra_file_name } {
 #                 * -sha_mode  if not set to 0, the list files will be added as well and the IPs will be added to the file rather than to the special ip library. The SHA mode should be used when you use the lists to calculate the git SHA, rather than to add the files to the project.
 #
 # @return              a list of 3 dictionaries: "libraries" has library name as keys and a list of filenames as values, "properties" has as file names as keys and a list of properties as values, "filesets" has the fileset' names as keys and the list of associated libraries as values.
-proc ReadListFile args {
+proc ReadListFile {args} {
 
   if {[IsQuartus]} {
     load_package report
@@ -5860,6 +5945,3 @@ proc WriteUtilizationSummary {input output project_name run} {
 if {[GitVersion 2.7.2] == 0 } {
   Msg Error "Found Git version older than 2.7.2. Hog will not work as expected, exiting now."
 }
-
-### Source the Create project file TODO: Do we need to source in hog.tcl?
-#source [file dirname [info script]]/create_project.tcl

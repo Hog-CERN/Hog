@@ -196,7 +196,7 @@ set do_sigasi 0;
 # set do_new_directive 0;
 
 Msg Debug "Looking for a $directive in : $default_commands $custom_commands"
-switch -regexp -- $directive {$default_commands $custom_commands}
+switch -regexp -- $directive "$default_commands $custom_commands"
 
 if { $options(all) == 1 } {
   set do_list_all 1
@@ -311,13 +311,25 @@ if {$cmd == -1} {
     set cmd "vivado -mode batch -notrace -source $repo_path/Hog/Tcl/utils/compile_simlib.tcl  -tclargs -simulator $simulator -output_dir $output_dir"
   }
 
+  puts $do_simulation
   if {$do_simulation == 1} {
     # Get all simsets in the project
     set simsets_dict [GetSimSets $project_name $repo_path $options(simset)]
+    set ghdl_import 0
     dict for {simset_name simulator} $simsets_dict {
       if {$simulator == "ghdl"} {
-        LaunchGHDL $project_name $repo_path $simset_name
+        if {$ghdl_import == 0} {
+          ImportGHDL $project_name $repo_path $ext_path
+          set ghdl_import 1
+        }
+        LaunchGHDL $project_name $repo_path $simset_name $ext_path
+        dict unset simsets_dict $simset_name
       }
+    }
+    if {[dict size $simsets_dict] == 0} {
+      # All simulations have been run, exiting
+      Msg Info "All simulations have been run, exiting..."
+      exit 0
     }
   }
 

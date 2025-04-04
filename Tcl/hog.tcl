@@ -1900,7 +1900,7 @@ proc GetSimSets { project_name repo_path {simsets ""}} {
     close $fp
     set data [split $file_data "\n"]
     set n [llength $data]
-    Msg Info "$n lines read from $s.sim"
+    Msg Info "$n lines read from $simset_name.sim"
 
     set firstline [lindex $data 0]
     # Find simulator
@@ -1908,11 +1908,11 @@ proc GetSimSets { project_name repo_path {simsets ""}} {
       set simulator_prop [regexp -all -inline {\S+} $firstline]
       set simulator [string tolower [lindex $simulator_prop 1]]
     } else {
-      Msg Warning "Simulator not set in $s.sim. The first line of $s.sim should be #Simulator <SIMULATOR_NAME>, where <SIMULATOR_NAME> can be xsim, questa, modelsim, riviera, activehdl, ies, or vcs, e.g. #Simulator questa. Setting simulator by default as xsim."
+      Msg Warning "Simulator not set in $simset_name.sim. The first line of $simset_name.sim should be #Simulator <SIMULATOR_NAME>, where <SIMULATOR_NAME> can be xsim, questa, modelsim, riviera, activehdl, ies, or vcs, e.g. #Simulator questa. Setting simulator by default as xsim."
       set simulator "xsim"
     }
     if {$simulator eq "skip_simulation"} {
-      Msg Info "Skipping simulation for $s"
+      Msg Info "Skipping simulation for $simset_name"
       continue
     }
     dict set simsets_dict $simset_name $simulator
@@ -2099,6 +2099,11 @@ proc GetIDECommand {proj_conf} {
       set end_marker "\""
     } elseif {$ide_name eq "diamond"} {
       set command "diamondc"
+      set before_tcl_script " "
+      set after_tcl_script " "
+      set end_marker ""
+    } elseif {$ide_name eq "ghdl"} {
+      set command "ghdl"
       set before_tcl_script " "
       set after_tcl_script " "
       set end_marker ""
@@ -3417,9 +3422,12 @@ proc GetVhdlGenerics {file {entity ""} } {
 }
 
 ## @brief Runs a GHDL command and returns its output and exit state
-proc GHDLRet {command} {
+proc GHDL {command} {
   set ret [catch {exec -ignorestderr ghdl {*}$command} result]
-  return [list $ret $result]
+  if {$ret != 0} {
+    Msg CriticalWarning "GHDL execution failed."
+    puts $result
+  }
 }
 
 ## @brief Handle git commands without causing an error if ret is not 0
@@ -3896,11 +3904,25 @@ proc IsZynq {part} {
   }
 }
 
-
-proc LaunchGHDL { project_name repo_path simset {ext_path ""}} {
-  set list_path "$project_name/list"]
-  lassign [ReadListFile $list_path/$simset.sim $repo_path] sim_files sim_props simsets
-  lassign [GetHogFiles -list_files {.src,.ext} -ext_path $ext_path $list_path $repo_path ] src_files properties filesets
+proc ImportGHDL { project_name repo_path {ext_path ""}} {
+  set list_path "$repo_path/Top/$project_name/list"
+  lassign [GetHogFiles -list_files {.src,.ext,.sim} -ext_path $ext_path $list_path $repo_path ] src_files properties filesets
+  cd $repo_path
+  # Import GHDL files
+  set workdir Projects/$project_name/ghdl
+  dict for {lib sources} $src_files {
+    set libname [file rootname $lib]
+    file mkdir $workdir/$libname
+    foreach f $sources {
+      if {[file extension $f] != ".vhd" && [file extension $f] != ".vhdl"} {
+        Msg Info "File $f is not a VHDL file, skipping..."
+        continue
+      } else {
+        set file_path [Relative $repo_path $f]
+        GHDL "-i --work=$libname --workdir=$workdir/$libname -fsynopsys --ieee=standard $file_path"
+      }
+    }
+  }
   # Get simulation properties from conf file
   set proj_dir [file normalize $repo_path/Top/$project_name]
   set sim_file [file normalize $proj_dir/sim.conf]
@@ -3910,6 +3932,10 @@ proc LaunchGHDL { project_name repo_path simset {ext_path ""}} {
   } else {
     SetGlobalVar SIM_PROPERTIES ""
   }
+}
+
+proc LaunchGHDL { project_name repo_path simset {ext_path ""}} {
+
   set top_sim ""
   # Setting Simulation Properties
   if {[dict exists $globalSettings::SIM_PROPERTIES $simset]} {
@@ -3922,23 +3948,10 @@ proc LaunchGHDL { project_name repo_path simset {ext_path ""}} {
       }
     }
   }
-  # Import GHDL files
-  set workdir $repo_path/$project_name/ghdl
-  file mkdir $workdir
-
-  dict for {lib sources} $sim_files {
-    foreach f $sources {
-      if {[file extension $f] != ".vhd" && [file extension $f] != ".vhdl"} {
-        Msg Info "File $f is not a VHDL file, skipping..."
-        continue
-      } else {
-        lassign [GHDLRet "-i --work=$lib --workdir=$workdir/$lib --std=08 -fsynopsys --ieee=standard $f"] ret result
-      }
-    }
-  }
+  set workdir $repo_path/Projects/$project_name/ghdl
   # Analyse and elaborate the design
-  lassign [GHDLRet "-m --workdir=$workdir/$simset --std=08 -fsynopsys --ieee=standard $top_sim"] ret result
-
+  GHDL "-m --work=$simset --workdir=$workdir/$simset -fsynopsys --ieee=standard $top_sim"
+  GHDL "-r --work=$simset --workdir=$workdir/$simset -fsynopsys  --ieee=standard $top_sim --assert-level=note"
 
 }
 

@@ -3816,7 +3816,7 @@ proc IsTclsh {} {
 # @param[in]  part  The FPGA part
 #
 proc IsVersal {part} {
-  if { [regexp {^(xcvp|xcvm|xcve|xcvc|xqvc|xqvm).*} $part] } {
+  if {[get_property ARCHITECTURE [get_parts $part]] eq "versal"} {
     return 1
   } else {
     return 0

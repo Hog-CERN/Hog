@@ -3790,7 +3790,7 @@ proc IsQuartus {} {
     return 0
   } else {
     # available
-    return 1 
+    return 1
   }
 }
 
@@ -4462,6 +4462,9 @@ proc LaunchSynthesis {reset do_create run_folder project_name {repo_path .} {ext
       Msg Info "Re-opening project file $project_name..."
       project_open $project -current_revision
     }
+
+    # Generate IP Files
+    generate_project_ip_files -clean
 
     # Execute synthesis
     if {[catch {execute_module -tool map -args "--parallel"} result]} {

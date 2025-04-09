@@ -4464,7 +4464,12 @@ proc LaunchSynthesis {reset do_create run_folder project_name {repo_path .} {ext
     }
 
     # Generate IP Files
-    generate_project_ip_files -clean
+    if {[catch {execute_module -tool ipg --args "--clean"} result]} {
+      Msg Error "Result: $result\n"
+      Msg Error "IP Generation failed. See the report file.\n"
+    } else {
+      Msg Info "IP Generation was successful for revision $revision.\n"
+    }
 
     # Execute synthesis
     if {[catch {execute_module -tool map -args "--parallel"} result]} {

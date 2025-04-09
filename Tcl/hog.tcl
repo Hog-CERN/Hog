@@ -4464,7 +4464,7 @@ proc LaunchSynthesis {reset do_create run_folder project_name {repo_path .} {ext
     }
 
     # Generate IP Files
-    if {[catch {execute_module -tool ipg --args "--clean"} result]} {
+    if {[catch {execute_module -tool ipg -args "--clean"} result]} {
       Msg Error "Result: $result\n"
       Msg Error "IP Generation failed. See the report file.\n"
     } else {

@@ -198,11 +198,11 @@ if {[IsXilinx] && [file exists $main_file]} {
   if {$main_file_suffix ne ""} {
     foreach e $additional_ext {
       lappend new_ext $e
-      lappend new_ext $main_suffix$e
-      lappend new_ext $secondary_suffix$e      
+      lappend new_ext $main_file_suffix$e
+      lappend new_ext $secondary_file_suffix$e      
       lappend ltx_files "$top_name$.ltx"
-      lappend ltx_files "$top_name$main_suffix.ltx"
-      lappend ltx_files "$top_name$secondary_suffix.ltx"      
+      lappend ltx_files "$top_name$main_file_suffix.ltx"
+      lappend ltx_files "$top_name$secondary_file_suffix.ltx"      
     }
     set additional_ext $new_ext
   }

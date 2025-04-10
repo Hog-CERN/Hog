@@ -77,8 +77,6 @@ launch_github:
 launch_testfirmware:
   stage: merge_checks
   image: gitlab-registry.cern.ch/hog/hog-docker:master
-  variables:
-    GITLAB_TOKEN: $TF_TOKEN
   only:
     refs: [merge_requests]
     variables: [$CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /^(master|develop)$/]

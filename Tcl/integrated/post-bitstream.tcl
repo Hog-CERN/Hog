@@ -58,13 +58,37 @@ if {[IsXilinx]} {
     }
   }
 
-  set main_file   [file normalize [lindex [glob -nocomplain "$work_path/*.$fw_file_ext"] 0]]
+  set main_files [lsort [glob -nocomplain "$work_path/*.$fw_file_ext"]]
+  if {[llength $main_files] > 1} {
+    #In case of segmented configuration on Versal there are 2 .pdi files: <top>_boot.pdi and <top>_pld.pdi
+    # Main file is the pld, so not the first
+    set main_file [file normalize [lindex $main_files 1]]
+    # Secondary file is the boot, so the first!
+    set secondary_file [file normalize [lindex $main_files 0]]
+    set main_file_suffix "_pld"
+    set secondary_file_suffix "_boot"
+    Msg Info "Found man and secondary binary file main: $main_file, secondary: $secondary_file..."
+    
+    if {[llength $main_files] > 2} {
+      Msg Warning "Multiple (more than 2) binary files found: $main_files."
+    }
+  } else {
+    set main_file [file normalize [lindex $main_files 0]]
+    set main_file_suffix ""
+    set secondary_file ""
+    set secondary_file_suffix ""    
+  }
+
+
+  
+
+  
   set proj_name [file tail [file normalize $work_path/../../]]
   set proj_dir [file normalize "$work_path/../.."]
 
   set top_name  [file rootname [file tail $main_file]]
 
-  set additional_ext "bin ltx pdi"
+  set additional_ext ".bin .ltx .pdi"
 
   set xml_dir [file normalize "$work_path/../xml"]
   set run_dir [file normalize "$work_path/.."]
@@ -157,18 +181,44 @@ set ts [clock format [clock seconds] -format {%Y-%m-%d-%H-%M}]
 
 # Vivado
 if {[IsXilinx] && [file exists $main_file]} {
-  set dst_main [file normalize "$dst_dir/$proj_name\-$describe.$fw_file_ext"]
+  set dst_main [file normalize "$dst_dir/$proj_name$main_file_suffix\-$describe.$fw_file_ext"]
   Msg Info "Copying main binary file $main_file into $dst_main..."
   file copy -force $main_file $dst_main
+  if {$secondary_file != ""} {
+    set dst_secondary [file normalize "$dst_dir/$proj_name$secondary_file_suffix\-$describe.$fw_file_ext"]    
+    Msg Info "Copying secondary binary file $secondary_file into $dst_secondary..."
+    file copy -force $secondary_file $dst_secondary    
+  }
 
-  # LTX file for ILA, needs a special treatment...
-  set ltx_file "$work_path/$top_name.ltx"
-  write_debug_probes -quiet $ltx_file
+  
+
 
   # Additional files
+  # In case of Segmented Configuration, there are 2 files per extension.
+  if {$main_file_suffix ne ""} {
+    foreach e $additional_ext {
+      lappend $new_ext $e
+      lappend $new_ext $main_suffix$e
+      lappend $new_ext $secondary_suffix$e      
+      lappend $ltx_files "$top_name$.ltx"
+      lappend $ltx_files "$top_name$main_suffix.ltx"
+      lappend $ltx_files "$top_name$secondary_suffix.ltx"      
+    }
+    set additional_ext $new_ext
+  }
+
+  # LTX file for ILA, needs a special treatment...
+  foreach l $ltx_files {
+    set ltx_file "$work_path/$l"
+    if {[file exists $ltx_file]} {
+      Msg Info "Writing debug probes for $ltx_file..."
+      write_debug_probes -quiet $ltx_file
+    }
+  }
+  
   foreach e $additional_ext {
-    set orig [file normalize "$work_path/$top_name.$e"]
-    set dst  [file normalize "$dst_dir/$proj_name\-$describe.$e"]
+    set orig [file normalize "$work_path/$top_name$e"]
+    set dst  [file normalize "$dst_dir/$proj_name\-$describe$e"]
     if {[file exists $orig]} {
       Msg Info "Copying $orig file into $dst..."
       file copy -force $orig $dst

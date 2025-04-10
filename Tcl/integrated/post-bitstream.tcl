@@ -67,7 +67,7 @@ if {[IsXilinx]} {
     set secondary_file [file normalize [lindex $main_files 0]]
     set main_file_suffix "_pld"
     set secondary_file_suffix "_boot"
-    Msg Info "Found man and secondary binary file main: $main_file, secondary: $secondary_file..."
+    Msg Info "Found main and secondary binary file main: [file tail $main_file], secondary: [file tail $secondary_file]..."
     
     if {[llength $main_files] > 2} {
       Msg Warning "Multiple (more than 2) binary files found: $main_files."
@@ -197,12 +197,12 @@ if {[IsXilinx] && [file exists $main_file]} {
   # In case of Segmented Configuration, there are 2 files per extension.
   if {$main_file_suffix ne ""} {
     foreach e $additional_ext {
-      lappend $new_ext $e
-      lappend $new_ext $main_suffix$e
-      lappend $new_ext $secondary_suffix$e      
-      lappend $ltx_files "$top_name$.ltx"
-      lappend $ltx_files "$top_name$main_suffix.ltx"
-      lappend $ltx_files "$top_name$secondary_suffix.ltx"      
+      lappend new_ext $e
+      lappend new_ext $main_suffix$e
+      lappend new_ext $secondary_suffix$e      
+      lappend ltx_files "$top_name$.ltx"
+      lappend ltx_files "$top_name$main_suffix.ltx"
+      lappend ltx_files "$top_name$secondary_suffix.ltx"      
     }
     set additional_ext $new_ext
   }

@@ -68,7 +68,8 @@ if {[IsXilinx]} {
     set main_file_suffix "_pld"
     set secondary_file_suffix "_boot"
     Msg Info "Found main and secondary binary file main: [file tail $main_file], secondary: [file tail $secondary_file]..."
-    
+    # remove _pld suffix only at the end
+    set top_name  [regsub $main_file_suffix\$ [file rootname [file tail $main_file]] ""]
     if {[llength $main_files] > 2} {
       Msg Warning "Multiple (more than 2) binary files found: $main_files."
     }
@@ -76,7 +77,8 @@ if {[IsXilinx]} {
     set main_file [file normalize [lindex $main_files 0]]
     set main_file_suffix ""
     set secondary_file ""
-    set secondary_file_suffix ""    
+    set secondary_file_suffix ""
+    set top_name  [file rootname [file tail $main_file]]    
   }
 
 
@@ -86,7 +88,7 @@ if {[IsXilinx]} {
   set proj_name [file tail [file normalize $work_path/../../]]
   set proj_dir [file normalize "$work_path/../.."]
 
-  set top_name  [file rootname [file tail $main_file]]
+
 
   set additional_ext ".bin .ltx .pdi"
 
@@ -195,18 +197,21 @@ if {[IsXilinx] && [file exists $main_file]} {
 
   # Additional files
   # In case of Segmented Configuration, there are 2 files per extension.
-  if {$main_file_suffix ne ""} {
+  if {$main_file_suffix != ""} {
     foreach e $additional_ext {
       lappend new_ext $e
       lappend new_ext $main_file_suffix$e
       lappend new_ext $secondary_file_suffix$e      
-      lappend ltx_files "$top_name$.ltx"
+      lappend ltx_files "$top_name.ltx"
       lappend ltx_files "$top_name$main_file_suffix.ltx"
       lappend ltx_files "$top_name$secondary_file_suffix.ltx"      
     }
     set additional_ext $new_ext
   }
-
+  puts "##############################################################"
+  puts "extensions: $additional_ext, ltx_files: $ltx_files!"
+  puts "##############################################################"
+  
   # LTX file for ILA, needs a special treatment...
   foreach l $ltx_files {
     set ltx_file "$work_path/$l"
@@ -223,7 +228,10 @@ if {[IsXilinx] && [file exists $main_file]} {
       Msg Info "Copying $orig file into $dst..."
       file copy -force $orig $dst
     } else {
+      puts "*********************************************************"
       Msg Debug "File: $orig not found."
+      puts "File: $orig not found."
+      puts "*********************************************************"      
     }
 
   }

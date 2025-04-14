@@ -53,8 +53,8 @@ if {[IsXilinx]} {
     # Vivado
     set work_path $old_path
     if {[IsVersal [get_property PART [current_design]]]} {
-      #In Vivado if a Versal chip is used, the main binary file is called .bif
-      set fw_file_ext "bif"
+      #In Vivado if a Versal chip is used, the main binary file is called .pdi
+      set fw_file_ext "pdi"
     }
   }
 
@@ -90,7 +90,7 @@ if {[IsXilinx]} {
 
 
 
-  set additional_ext ".bin .ltx .pdi"
+  set additional_ext ".bin .ltx .bif"
 
   set xml_dir [file normalize "$work_path/../xml"]
   set run_dir [file normalize "$work_path/.."]
@@ -208,9 +208,7 @@ if {[IsXilinx] && [file exists $main_file]} {
     }
     set additional_ext $new_ext
   }
-  puts "##############################################################"
-  puts "extensions: $additional_ext, ltx_files: $ltx_files!"
-  puts "##############################################################"
+
   
   # LTX file for ILA, needs a special treatment...
   foreach l $ltx_files {
@@ -228,10 +226,7 @@ if {[IsXilinx] && [file exists $main_file]} {
       Msg Info "Copying $orig file into $dst..."
       file copy -force $orig $dst
     } else {
-      puts "*********************************************************"
       Msg Debug "File: $orig not found."
-      puts "File: $orig not found."
-      puts "*********************************************************"      
     }
 
   }
@@ -431,6 +426,7 @@ if {[IsXilinx]} {
 
       set dst_xsa [file normalize "$dst_dir/${proj_name}\-$describe.xsa"]
       Msg Info "Generating XSA File at $dst_xsa"
+
       if { [IsVersal $part] } {
 	# Run user pre-platform file
         set user_pre_platform_file "./Top/$group_name/$proj_name/pre-platform.tcl"
@@ -438,9 +434,13 @@ if {[IsXilinx]} {
           Msg Info "Sourcing user pre-platform file $user_pre_platform_file"
           source $user_pre_platform_file
         }
-	set pdi_post_imp [file normalize "$work_path/$top_name.pdi"]
-	set_property platform.full_pdi_file $pdi_post_imp [current_project]
-	Msg Info "XSA file will be generated for Versal with this PDI: $pdi_post_imp"
+
+	#We do not want to touch the full_pdi_file property if there is a _boot .pdi file
+	if {$secondary_file == ""} {
+	  set pdi_post_imp [file normalize "$work_path/$top_name.pdi"]
+	  set_property platform.full_pdi_file $pdi_post_imp [current_project]
+	  Msg Info "XSA file will be generated for Versal with this PDI: $pdi_post_imp"
+	}
 	write_hw_platform -fixed -force -file "$dst_xsa"
       } else {
 	write_hw_platform -include_bit -fixed -force -file "$dst_xsa"

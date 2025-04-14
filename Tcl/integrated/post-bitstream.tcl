@@ -197,6 +197,7 @@ if {[IsXilinx] && [file exists $main_file]} {
 
   # Additional files
   # In case of Segmented Configuration, there are 2 files per extension.
+  set lxt_files {}
   if {$main_file_suffix != ""} {
     foreach e $additional_ext {
       lappend new_ext $e

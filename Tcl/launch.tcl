@@ -77,6 +77,7 @@ set default_commands {
     set do_synthesis 1
     set do_bitstream 1
     set do_compile 1
+    set do_vitis_build 1
   # NAME*: WORKFLOW or W
   # DESCRIPTION: Runs the full workflow, creates the project if not existing.
   # OPTIONS: check_syntax, ext_path.arg, impl_only, njobs.arg, no_bitstream, recreate, synth_only, verbose
@@ -88,6 +89,7 @@ set default_commands {
     set do_bitstream 1
     set do_compile 1
     set recreate 1
+    set do_vitis_build 1
   # NAME: CREATEWORKFLOW or CW
   # DESCRIPTION: Creates the project -even if existing- and launches the complete workflow.
   # OPTIONS: check_syntax, ext_path.arg, njobs.arg, no_bitstream, synth_only, verbose
@@ -233,7 +235,7 @@ if {$options(verbose) == 1} {
 ######## DEFAULTS #########
 set do_implementation 0; set do_synthesis 0; set do_bitstream 0
 set do_create 0; set do_compile 0; set do_simulation 0; set recreate 0
-set do_reset 1; set do_list_all 2; set do_check_syntax 0
+set do_reset 1; set do_list_all 2; set do_check_syntax 0; set do_vitis_build 0;
 
 ### Hog stand-alone directives ###
 # The following directives are used WITHOUT ever calling the IDE, they are run in tclsh
@@ -526,6 +528,10 @@ if {[IsISE]} {
 } elseif {[IsVivado]} {
   cd $tcl_path
   set project_file [file normalize $repo_path/Projects/$project_name/$project.xpr]
+} elseif {[IsVitisClassic]} {
+  cd $tcl_path
+  set project_file [file normalize $repo_path/Projects/$project_name/.metadata]
+
 } elseif {[IsQuartus]} {
   if {[catch {package require ::quartus::project} ERROR]} {
     Msg Error "$ERROR\n Can not find package ::quartus::project"
@@ -566,7 +572,13 @@ if {($proj_found == 0 || $recreate == 1)} {
   if {[IsXilinx]} {
     file mkdir "$repo_path/Projects/$project_name/$project.gen/sources_1"
   }
-  OpenProject $project_file $repo_path
+
+  if {[IsVitisClassic]} {
+    set project_file [file normalize $repo_path/Projects/$project_name/]
+    setws $project_file
+  } else {
+    OpenProject $project_file $repo_path
+  }
 }
 
 
@@ -574,6 +586,11 @@ if {($proj_found == 0 || $recreate == 1)} {
 if {$do_check_syntax == 1} {
   Msg Info "Checking syntax for project $project_name..."
   CheckSyntax $project_name $repo_path $project_file
+}
+
+if {[IsVitisClassic] && $do_vitis_build == 1} {
+  LaunchVitisBuild $project_name $repo_path
+  set do_implementation 0; set do_synthesis 0; set do_bitstream 0;
 }
 
 ######### LaunchSynthesis ########

@@ -797,10 +797,10 @@ proc ConfigureApp {} {
     ## Check if the app has a name
     if {[dict exists $app name]} {
       append app_options " -name $\{[dict get $app name]\}"
-      set plat_name "[dict get $app name]"
+      set app_name "[dict get $app name]"
     } elseif {[regexp {app:([^:]+)} $app_key -> app_name]} {
       append app_options " -name \{$app_name\}"
-      set plat_name "$app_name"
+      set app_name "$app_name"
     } else {
       Msg Warning "No name found for app key: $app_key"
       return
@@ -808,7 +808,6 @@ proc ConfigureApp {} {
 
     #A sysproj may have been created before, we must remove it
     if {[catch {set sys_projs [sysproj list -dict]}]} { set sys_projs "" }
-    Msg Info "sys_projs: $sys_projs"
     if {[dict exists $app sysproj]} {
       set sys_proj_name [dict get $app sysproj]
       if {[lsearch -exact $sys_projs "Name $sys_proj_name"] != -1} {
@@ -816,8 +815,7 @@ proc ConfigureApp {} {
         sysproj remove $sys_proj_name
       }
     } else {
-      set sys_proj_name $app_name
-      append sys_proj_name "_system"
+      set sys_proj_name "$app_name\_system"
       if {[lsearch -exact $sys_projs "Name $sys_proj_name"] != -1} {
         Msg Info "Removing $sys_proj_name..."
         sysproj remove $sys_proj_name
@@ -848,6 +846,7 @@ proc ConfigureApp {} {
       set p_lower [string tolower $p]
       if {[IsInList $p_lower $create_options] && ![IsInList $p_lower $conf_options]} {
         if {[string equal $p_lower "platform"]} {
+          Msg Info "Setting App $app_name platform to $v"
           platform active $v
         }
         append app_options " -$p_lower $v"
@@ -855,6 +854,10 @@ proc ConfigureApp {} {
         Msg Warning "Attempting to use unknown app option: $p_lower"
         append app_options " -$p_lower $v"
       }
+    }
+
+    if {![dict exists $app template]} {
+      append app_options " -template \{Empty Application\}"
     }
 
     Msg Info "Creating application \{ $app_name \} with options: \{$app_options\}"

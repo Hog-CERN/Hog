@@ -3713,6 +3713,7 @@ proc InitLauncher {script tcl_path parameters commands usage argv} {
     "^B(UTTONS)?$" [list "verbose"]\
     "^COMPSIM(LIB)?$" [list "verbose"]\
     "^SIG(ASI)?$" [list "recreate" "ext_path.arg" "verbose"]\
+    "^(CHECKYAML|YML)?$" [list "verbose"]
   ]
 
 

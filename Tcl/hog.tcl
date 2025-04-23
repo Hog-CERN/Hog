@@ -501,6 +501,29 @@ proc AddHogFiles {libraries properties filesets} {
             prj_src add -work $rootlib -simulate_only $f
           }
         }
+
+
+      } elseif {[IsVitisClassic]} {
+        # if lib is others skip
+        if {[string first "others" $lib] != -1} {
+          continue
+        }
+
+        if {[catch {set ws_apps [app list -dict]}]} {
+          set ws_apps ""
+        }
+
+        set app_index [lsearch -exact -nocase $ws_apps $rootlib]
+        if {$app_index == -1} {
+          Msg Error "The application $rootlib does not exist. Please add it to hog.conf."
+        }
+
+        set app_name [lindex $ws_apps [expr {$app_index + 1}]]
+
+        foreach f $lib_files {
+          Msg Debug "Vitis Classic: adding source file $f to library $app_name..."
+          importsources -name $app_name -soft-link -path $f
+        }
       }
       # Closing library loop
     }
@@ -2202,6 +2225,12 @@ proc GetIDECommand {proj_conf} {
       set before_tcl_script " "
       set after_tcl_script " "
       set end_marker ""
+    } elseif {$ide_name eq "vitis_classic"} {
+      set command "xsct"
+      # A space after the before_tcl_script is important
+      set before_tcl_script ""
+      set after_tcl_script " "
+      set end_marker ""
     } elseif {$ide_name eq "ghdl"} {
       set command "ghdl"
       set before_tcl_script " "
@@ -2277,6 +2306,8 @@ proc GetIDEVersion {} {
     set ver [get_libero_version]
   } elseif {[IsDiamond]} {
     regexp {\d+\.\d+(\.\d+)?} [sys_install version] ver
+  } elseif {[IsVitisClassic]} {
+    regexp {\d+\.\d+(\.\d+)?} [version] ver
   }
   return $ver
 }
@@ -4061,7 +4092,7 @@ proc IsSynplify {} {
 
 ## @brief Returns true, if we are in tclsh
 proc IsTclsh {} {
-  return [expr {![IsQuartus] && ![IsXilinx] && ![IsLibero] && ![IsSynplify] && ![IsDiamond]}]
+  return [expr {![IsQuartus] && ![IsXilinx] && ![IsVitisClassic] && ![IsLibero] && ![IsSynplify] && ![IsDiamond]}]
 }
 
 ## @brief Find out if the given Xilinx part is a Vesal chip
@@ -4099,6 +4130,11 @@ proc IsXilinx {} {
   } else {
     return 0
   }
+}
+
+## @brief Returns true, if the IDE is vitis_classic
+proc IsVitisClassic {} {
+  return [expr {[info commands platform] != ""}]
 }
 
 ## @brief Find out if the given Xilinx part is a Vesal chip
@@ -4802,6 +4838,48 @@ proc LaunchSynthesis {reset do_create run_folder project_name {repo_path .} {ext
   }
 }
 
+
+proc LaunchVitisBuild {project_name {repo_path .}} {
+  set proj_name [file tail $project_name]
+  set bin_dir [file normalize "$repo_path/bin"]
+  set group_name [GetGroupName $proj_name $repo_path]
+
+
+  cd $repo_path
+
+  if {[catch {set ws_apps [app list -dict]}]} { set ws_apps "" }
+  lassign [GetRepoVersions [file normalize $repo_path/Top/$proj_name] $repo_path ] commit version  hog_hash hog_ver  top_hash top_ver  libs hashes vers  cons_ver cons_hash  ext_names ext_hashes  xml_hash xml_ver user_ip_repos user_ip_hashes user_ip_vers
+  set this_commit  [GetSHA]
+  if {$commit == 0 } { set commit $this_commit }
+  set flavour [GetProjectFlavour $project_name]
+  lassign [GetDateAndTime $commit] date timee
+
+  foreach app_name [dict keys $ws_apps] {
+    app config -name $app_name -set build-config Release
+
+  }
+  WriteGenerics "vitisbuild" $repo_path $proj_name $date $timee $commit $version $top_hash $top_ver $hog_hash $hog_ver $cons_ver $cons_hash  $libs $vers $hashes $ext_names $ext_hashes $user_ip_repos $user_ip_vers $user_ip_hashes $flavour $xml_ver $xml_hash
+  foreach app_name [dict keys $ws_apps] { app build -name $app_name }
+
+  Msg Info "Evaluating Git sha for $proj_name..."
+  lassign [GetRepoVersions [file normalize ./Top/$group_name/$proj_name] $repo_path] sha
+
+  set describe [GetHogDescribe $sha $repo_path]
+  Msg Info "Hog describe set to: $describe"
+  set dst_dir [file normalize "$bin_dir/$group_name/$proj_name\-$describe"]
+  Msg Info "Creating $dst_dir..."
+  file mkdir $dst_dir
+
+  foreach app_name [dict keys $ws_apps] {
+    set main_file "$repo_path/Projects/$proj_name/$app_name/Release/$app_name.elf"
+    set dst_main [file normalize "$dst_dir/$app_name\-$describe.elf"]
+    Msg Info "Copying main binary file $main_file into $dst_main..."
+    file copy -force $main_file $dst_main
+    }
+
+
+}
+
 # Returns the list of all the Hog Projects in the repository
 #
 # @param[in] repo_path  The main path of the git repository
@@ -5425,6 +5503,8 @@ proc ReadListFile {args} {
               set lib_name "sources.con"
             } elseif {$list_file_ext == ".ipb"} {
               set lib_name "xml.ipb"
+            } elseif { [IsVitisClassic] && [IsInList $list_file_ext {.src .header}] && [IsInList $extension {.c .cpp .h .hpp .ld}] } {
+              set lib_name "$library$list_file_ext"
             } else {
               # Other files are stored in the OTHER dictionary from vivado (no library assignment)
               set lib_name "others.src"
@@ -5680,6 +5760,11 @@ proc VIVADO_PATH_PROPERTIES {} {
   return {"\.*\.TCL\.PRE$" "^.*\.TCL\.POST$" "^RQS_FILES$" "^INCREMENTAL\_CHECKPOINT$" "NOC\_SOLUTION\_FILE"}
 }
 
+## @brief Returns a list of Vitis properties that expect a PATH for value
+proc VITIS_PATH_PROPERTIES {} {
+  return {"^HW$" "^XPFM$" "^LINKER-SCRIPT$" "^LIBRARIES$" "^LIBRARY-SEARCH-PATH$"}
+}
+
 ## @brief Write a property configuration file from a dictionary
 #
 #  @param[in]    file_name the configuration file
@@ -5774,7 +5859,7 @@ proc WriteGenerics {mode repo_path design date timee\
   }
 
   # Dealing with project generics in Vivado
-  if {[IsVivado]} {
+  if {[IsVivado] || [IsVitisClassic]} {
     set prj_generics [GenericToSimulatorString [GetGenericsFromConf $design] "Vivado"]
     set generic_string "$prj_generics $generic_string"
   }
@@ -5832,6 +5917,29 @@ proc WriteGenerics {mode repo_path design date timee\
   } elseif {[IsDiamond]} {
     Msg Info "Setting Diamond parameters/generics one by one..."
     prj_impl option -impl Implementation0 HDL_PARAM "$generic_string"
+  } elseif {[IsVitisClassic]} {
+    if {[catch {set ws_apps [app list -dict]}]} { set ws_apps "" }
+
+    foreach app_name [dict keys $ws_apps] {
+      set defined_symbols [app config -name $app_name -get define-compiler-symbols]
+      foreach generic_to_set [split [string trim $generic_string]] {
+        set key [lindex [split $generic_to_set "="] 0]
+        set value [lindex [split $generic_to_set "="] 1]
+        if {[string match "32'h*" $value]} {
+            set value [string map {"32'h" "0x"} $value]
+        }
+
+        foreach symbol [split $defined_symbols ";"] {
+          if {[string match "$key=*" $symbol]} {
+            Msg Debug "Generic $key found in $app_name, removing it..."
+            app config -name $app_name -remove define-compiler-symbols "$symbol"
+          }
+        }
+
+        Msg Info "Setting Vitis parameters/generics for app $app_name: $key=$value"
+        app config -name $app_name define-compiler-symbols "$key=$value"
+      }
+    }
   }
 }
 

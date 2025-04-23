@@ -146,6 +146,8 @@ proc InitProject {} {
     prj_project new -name [file tail $globalSettings::DESIGN] -dev $globalSettings::DEVICE -synthesis $globalSettings::SYNTHESIS_TOOL
     cd $old_dir
     ConfigureProperties
+  } elseif {[IsVitisClassic]} {
+    setws $globalSettings::build_dir
   } else {
     puts "Creating project for $globalSettings::DESIGN part $globalSettings::PART"
     puts "Configuring project settings:"
@@ -720,6 +722,160 @@ proc ConfigureProperties {} {
   cd $cur_dir
 }
 
+
+proc ConfigurePlatform {} {
+  set platforms [dict filter $globalSettings::PROPERTIES key {platform*}]
+
+  foreach {platform_key platform} [dict get $platforms] {
+    Msg Info "Configuring platform $platform_key..."
+    set platform_options ""
+    set platform_create_options { "desc" "hw" "out" "prebuilt" "proc" "arch" "samples" "os" "xpfm" "no-boot-bsp" "rp"}
+
+    ## Check if the platform has a name
+    if {[dict exists $platform name]} {
+      append platform_options " -name $\{[dict get $platform name]\}"
+      set plat_name "[dict get $platform name]"
+    } elseif {[regexp {platform:([^:]+)} $platform_key -> platform_name]} {
+      append platform_options " -name \{$platform_name\}"
+      set plat_name "$platform_name"
+    } else {
+      Msg Warning "No name found for platform key: $platform_key"
+      return
+    }
+
+    if {[catch {set ws_platforms [app list -dict]}]} {
+      set ws_platforms ""
+    }
+
+    if {[lsearch -exact $ws_platforms $plat_name] != -1} {
+      Msg Info "Platform $plat_name already exists, removing it..."
+      platform remove $plat_name
+    }
+
+    dict for {p v} $platform {
+      if {[IsInList [string toupper $p] [VITIS_PATH_PROPERTIES] 1]} {
+        if {[file exists $globalSettings::repo_path/$v]} {
+          set v $globalSettings::repo_path/$v
+        } else {
+          Msg Warning "Impossible to set property $p to $v. File is missing"
+        }
+      }
+
+      set p_lower [string tolower $p]
+      if {[IsInList $p_lower $platform_create_options]} {
+        append platform_options " -$p_lower $v"
+      } else {
+        Msg Warning "Attempting to use unknown platform option: $p_lower"
+        append platform_options " -$p_lower $v"
+      }
+    }
+
+
+    Msg Info "Creating platform \{ $plat_name \} with options: \{$platform_options\}"
+    set plat_create "platform create $platform_options"
+    eval $plat_create
+    platform active $plat_name
+    platform generate
+  }
+
+}
+
+proc ConfigureApp {} {
+
+  set apps [dict filter $globalSettings::PROPERTIES key {app*}]
+  set create_options { "platform" "domain" "sysproj" "hw" "proc" "template" "os" "lang" "arch" }
+  set conf_options {
+    "assembler-flags" "build-config" "compiler-misc" "compiler-optimization"
+    "define-compiler-symbols" "include-path" "libraries" "library-search-path"
+    "linker-misc" "linker-script" "undef-compiler-symbols"
+  }
+
+  foreach {app_key app} [dict get $apps] {
+    Msg Info "Configuring app \{$app_key\}..."
+    set app_options ""
+
+    ## Check if the app has a name
+    if {[dict exists $app name]} {
+      append app_options " -name $\{[dict get $app name]\}"
+      set plat_name "[dict get $app name]"
+    } elseif {[regexp {app:([^:]+)} $app_key -> app_name]} {
+      append app_options " -name \{$app_name\}"
+      set plat_name "$app_name"
+    } else {
+      Msg Warning "No name found for app key: $app_key"
+      return
+    }
+
+    #A sysproj may have been created before, we must remove it
+    if {[catch {set sys_projs [sysproj list -dict]}]} { set sys_projs "" }
+    Msg Info "sys_projs: $sys_projs"
+    if {[dict exists $app sysproj]} {
+      set sys_proj_name [dict get $app sysproj]
+      if {[lsearch -exact $sys_projs "Name $sys_proj_name"] != -1} {
+        Msg Info "Removing $sys_proj_name..."
+        sysproj remove $sys_proj_name
+      }
+    } else {
+      set sys_proj_name $app_name
+      append sys_proj_name "_system"
+      if {[lsearch -exact $sys_projs "Name $sys_proj_name"] != -1} {
+        Msg Info "Removing $sys_proj_name..."
+        sysproj remove $sys_proj_name
+      }
+    }
+
+    #A app may have been created before, we must remove it
+    if {[catch {set ws_apps [app list -dict]}]} { set ws_apps "" }
+    if {[lsearch -exact $ws_apps $app_name] != -1} {
+      Msg Info "app $app_name already exists, removing it..."
+      app remove $app_name
+    }
+
+    # Append repo_path to the path-based properties
+    dict for {p v} $app {
+      if {[IsInList [string toupper $p] [VITIS_PATH_PROPERTIES] 1]} {
+        if {[file exists $globalSettings::repo_path/$v]} {
+          set v $globalSettings::repo_path/$v
+        } else {
+          Msg Warning "Impossible to set property $p to $v. File is missing"
+        }
+      }
+    }
+
+
+    #App create options
+    dict for {p v} $app {
+      set p_lower [string tolower $p]
+      if {[IsInList $p_lower $create_options] && ![IsInList $p_lower $conf_options]} {
+        if {[string equal $p_lower "platform"]} {
+          platform active $v
+        }
+        append app_options " -$p_lower $v"
+      } elseif {![IsInList $p_lower $conf_options]} {
+        Msg Warning "Attempting to use unknown app option: $p_lower"
+        append app_options " -$p_lower $v"
+      }
+    }
+
+    Msg Info "Creating application \{ $app_name \} with options: \{$app_options\}"
+    set app_create "app create $app_options"
+    eval $app_create
+    app config -name $app_name -set build-config Release
+
+    # App config options
+    dict for {p v} $app {
+      if {![IsInList $p_lower $create_options] && [IsInList $p_lower $conf_options]} {
+        app config -name $app_name -set $p_lower $v
+      }
+    }
+  }
+}
+
+
+proc AddAppFiles {} {
+  AddHogFiles {*}[GetHogFiles -list_files {.src,.header} -ext_path $globalSettings::HOG_EXTERNAL_PATH $globalSettings::list_path $globalSettings::repo_path ]
+}
+
 ## @brief upgrade IPs in the project and copy them from HOG_IP_PATH if defined
 #
 proc ManageIPs {} {
@@ -777,7 +933,7 @@ proc CreateProject args {
     {verbose "If set, launch the script in verbose mode."}
   }
 
-  set usage "Create Vivado/ISE/Quartus/Libero/Diamond project.\nUsage: CreateProject \[OPTIONS\] <project> <repository path>\n Options:"
+  set usage "Create Vivado/Vitis/ISE/Quartus/Libero/Diamond project.\nUsage: CreateProject \[OPTIONS\] <project> <repository path>\n Options:"
 
   if {[catch {array set options [cmdline::getoptions args $parameters $usage]}] || [llength $args] < 2 ||[lindex $args 0] eq""} {
     Msg Info [cmdline::usage $parameters $usage]
@@ -851,6 +1007,13 @@ proc CreateProject args {
     } else {
       Msg CriticalWarning "No version found in the first line of $conf_file. It is HIGHLY recommended to replace the first line of $conf_file with: \#$ide $actual_version"
     }
+
+    if {[IsVitisClassic]} {
+      if {[CompareVersions $a_v "2020 2 0"] == -1 || [CompareVersions $c_v "2020 2 0"] == -1} {
+        Msg Error "Vitis flow is not supported for versions < 2020.2. Please use Vitis 2020.2 or newer." }
+    }
+
+
     if {[dict exists $globalSettings::PROPERTIES main]} {
       set main [dict get $globalSettings::PROPERTIES main]
       dict for {p v} $main {
@@ -949,10 +1112,19 @@ proc CreateProject args {
   }
 
   InitProject
-  AddProjectFiles
-  ConfigureSynthesis
-  ConfigureImplementation
-  ConfigureSimulation
+
+  if {![IsVitisClassic]} {
+    AddProjectFiles
+    ConfigureSynthesis
+    ConfigureImplementation
+    ConfigureSimulation
+  }
+
+  if {[IsVitisClassic]} {
+    ConfigurePlatform
+    ConfigureApp
+    AddAppFiles
+  }
 
   if {[IsVivado]} {
     # Use HandleIP to pull IPs from HOG_IP_PATH if specified

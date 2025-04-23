@@ -3686,6 +3686,36 @@ proc InitLauncher {script tcl_path parameters commands usage argv} {
   set bin_path [file normalize "$tcl_path/../../bin"]
   set top_path [file normalize "$tcl_path/../../Top"]
 
+  set directives_with_projects {
+    "^C(REATE)?$"\
+    "^I(MPL(EMENT(ATION)?)?)?$"\
+    "^SYNT(H(ESIS(E)?)?)?"\
+    "^S(IM(ULAT(ION|E)?)?)?$"\
+    "^W(ORK(FLOW)?)?$"\
+    "^(CREATEWORKFLOW|CW)?$"\
+    "^(CHECKSYNTAX|CS)?$"\
+    "^X(ML)?$"\
+    "^(CHECKLIST|CL)?$"\
+    "^SIG(ASI)?$"\
+  }
+
+  set command_options [dict create "^C(REATE)?$" [list "ext_path.arg" "lib.arg" "verbose"]\
+    "^L(IST)?$" [list "all" "verbose"]\
+    "^H(ELP)?$" [list]\
+    "^I(MPL(EMENT(ATION)?)?)?$" [list "check_syntax" "ext_path.arg" "njobs.arg" "no_bitstream" "no_reset" "recreate" "verbose"]\
+    "^SYNT(H(ESIS(E)?)?)?" [list "check_syntax" "ext_path.arg" "njobs.arg" "recreate" "verbose"]\
+    "^S(IM(ULAT(ION|E)?)?)?$" [list "check_syntax" "ext_path.arg" "lib.arg" "recreate" "simset.arg" "verbose"]\
+    "^W(ORK(FLOW)?)?$" [list "check_syntax" "ext_path.arg" "impl_only" "njobs.arg" "no_bitstream" "recreate" "synth_only" "verbose"]\
+    "^(CREATEWORKFLOW|CW)?$" [list "check_syntax" "ext_path.arg" "njobs.arg" "no_bitstream" "synth_only" "verbose"]\
+    "^(CHECKSYNTAX|CS)?$" [list "ext_path.arg" "recreate" "verbose"]\
+    "^X(ML)?$" [list "dst_dir.arg" "generate" "verbose"]\
+    "^(CHECKLIST|CL)?$" [list "ext_path.arg" "verbose"]\
+    "^B(UTTONS)?$" [list "verbose"]\
+    "^COMPSIM(LIB)?$" [list "verbose"]\
+    "^SIG(ASI)?$" [list "recreate" "ext_path.arg" "verbose"]\
+  ]
+
+
   if {[IsTclsh]} {
     #Just display the logo the first time, not when the script is run in the IDE
     Logo $repo_path
@@ -3696,12 +3726,7 @@ proc InitLauncher {script tcl_path parameters commands usage argv} {
     source $tcl_path/utils/cmdline.tcl
   }
 
-   lassign [GetOptions $argv $parameters] option_list arg_list
-
-  if { [IsInList "-help" $option_list] || [IsInList "-?" $option_list] || [IsInList "-h" $option_list] } {
-    Msg Info [cmdline::usage $parameters $usage]
-    exit 0
-  }
+  lassign [GetOptions $argv $parameters] option_list arg_list
 
   if { [IsInList "-all" $option_list] } {
     set list_all 1
@@ -3710,17 +3735,54 @@ proc InitLauncher {script tcl_path parameters commands usage argv} {
   }
 
   #option_list will be emptied by the next instruction
-  if {[catch {array set options [cmdline::getoptions option_list $parameters $usage]} err] } {
-    Msg Status "\nERROR: Syntax error, probably unknown option.\n\n USAGE: $err"
-    exit 1
-  }
+
   # Argv here is modified and the options are removed
   set directive [string toupper [lindex $arg_list 0]]
-
   set min_n_of_args 0
   set max_n_of_args 2
   set argument_is_no_project 0
   switch -regexp -- $directive "$commands"
+
+  if { [IsInList "-help" $option_list] || [IsInList "-?" $option_list] || [IsInList "-h" $option_list] } {
+    if {$directive != ""} {
+      if {[IsInList $directive $directives_with_projects 1]} {
+        puts "usage: ./Hog/Do \[OPTIONS\] $directive <project>\n"
+      } else {
+        puts "usage: ./Hog/Do \[OPTIONS\] $directive \n"
+      }
+
+      dict for {dir opts} $command_options {
+        if {[regexp $dir $directive]} {
+          puts "Available options:"
+          foreach opt $opts {
+            foreach par $parameters {
+              if {$opt == [lindex $par 0]} {
+                if {[string first ".arg" $opt] != -1} {
+                  puts "  -[string trimright $opt ".arg"] <argument>"
+                } else {
+                  puts "  -[string trimright $opt ".arg"]"
+                }
+                puts "     [lindex $par [llength $par]-1]"
+              }
+            }
+          }
+        }
+      }
+
+    }
+    # Msg Info [cmdline::usage $parameters $usage]
+    exit 0
+  }
+
+  if {[catch {array set options [cmdline::getoptions option_list $parameters $usage]} err] } {
+    Msg Status "\nERROR: Syntax error, probably unknown option.\n\n USAGE: $err"
+    exit 1
+  }
+
+
+
+
+
 
   if { [llength $arg_list] <= $min_n_of_args || [llength $arg_list] > $max_n_of_args} {
     Msg Status "\nERROR: Wrong number of arguments: [llength $argv].\n\n"
@@ -4592,19 +4654,19 @@ proc ListProjects {{repo_path .} {print 1} {ret_conf 0}} {
     if {$print >= 1} {
       set description [DescriptionFromConf $c]
       if { $description eq "test"} {
-  set description " - Test project"
+        set description " - Test project"
       } elseif { $description ne ""} {
-  set description " - $description"
+        set description " - $description"
       }
 
       if {$print == 1 || $description ne " - Test project"} {
-  set old_g $g
-  set g [file dirname $p]
-  # Print a list of the projects with relative IDE and description (second line comment in hog.conf)
-  if {$g ne $old_g} {
-    Msg Status ""
-  }
-  Msg Status "$p \([GetIDEFromConf $c]\)$description"
+        set old_g $g
+        set g [file dirname $p]
+        # Print a list of the projects with relative IDE and description (second line comment in hog.conf)
+        if {$g ne $old_g} {
+          Msg Status ""
+        }
+        Msg Status "$p \([GetIDEFromConf $c]\)$description"
       }
     }
     lappend projects $p

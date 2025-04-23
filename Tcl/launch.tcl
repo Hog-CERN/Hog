@@ -17,6 +17,7 @@
 
 # Launch Xilinx Vivado or ISE implementation and possibly write bitstream in text mode
 
+
 #parsing command options
 set parameters {
   {no_bitstream    "If set, the bitstream file will not be produced."}
@@ -30,14 +31,15 @@ set parameters {
   {impl_only       "If set, only the implementation will be performed. This assumes synthesis should was already done."}
   {simset.arg   "" "Simulation sets, separated by commas, to be run."}
   {all             "List all projects, including test projects. Test projects have #test on the second line of hog.conf."}
-  {generate        "For IPbus XMLs, it willk re create the VHDL address decode files."}
+  {generate        "For IPbus XMLs, it will re create the VHDL address decode files."}
   {dst_dir.arg  "" "For reports, IPbus XMLs, set the destination folder (default is in the ./bin folder)."}
   {verbose         "If set, launch the script in verbose mode"}
 }
 
-set usage " \[OPTIONS\] <directive> \[project\]\n The most common <directive> values are CREATE (or C), WORKFLOW (or W), SIMULATE (or S).
+set usage "
+usage: ./Hog/Do \[OPTIONS\] <directive> \[project\]\nThe most common <directive> values are CREATE (or C), WORKFLOW (or W), SIMULATE (or S).
 
-** Directives (case insensitive):
+Directives (case insensitive):
 - CREATE or C: Create the project, replacing it if already existing.
 - WORKFLOW or W: Launches the complete workflow, creates the project if not existing.
 - CREATEWORKFLOW or CW: Creates the project -even if existing- and launches the complete workflow.
@@ -46,12 +48,14 @@ set usage " \[OPTIONS\] <directive> \[project\]\n The most common <directive> va
 - SYNTHESIS: Runs the synthesis only, creates the project if not existing.
 - LIST or L: Only list all the projects
 - BUTTONS or B: Create Hog buttons (Vivado only)
-- COMPILE or COMP: Compile simulation libs (Vivado only)
+- COMPSIM or COMPSIMLIB : Compile simulation libs (Vivado only)
 - CHECKSYNTAX or CS: Check the syntax of the specified project (Vivado Only)
 - CHECKYAML or YML: Check that the ref to Hog repository in the yml files matches the one in Hog submodule
-- CHECKLIST or CL: Check that list files on disk what's on the project
-- SIGASI or SI: Create a .csv file to be used in Sigasi
+- CHECKLIST or CL: Check that list and configuration files on disk match what is on the project
+- SIGASI or SIG: Create a .csv file to be used in Sigasi
 - XML or X: Copy, check or create IPbus XMLs
+
+'./Hog/Do -help <directive>' list available options for the chosen directive.
 "
 
 set tcl_path [file normalize "[file dirname [info script]]"]
@@ -73,6 +77,11 @@ set default_commands {
     Msg Status "\n** The projects in this repository are:"
     ListProjects $repo_path $list_all
     Msg Status "\n"
+    exit 0
+  }
+
+  \^H(ELP)?$ {
+    puts "$usage"
     exit 0
   }
 
@@ -104,7 +113,7 @@ set default_commands {
     set do_compile 1
   }
 
-  \^(CREATEWORKFLOW|CW)$ {
+  \^(CREATEWORKFLOW|CW)?$ {
     set do_implementation 1
     set do_synthesis 1
     set do_bitstream 1
@@ -112,7 +121,7 @@ set default_commands {
     set recreate 1
   }
 
-  \^(CHECKSYNTAX|CS)$ {
+  \^(CHECKSYNTAX|CS)?$ {
     set do_check_syntax 1
   }
 
@@ -120,7 +129,7 @@ set default_commands {
     set do_ipbus_xml 1
   }
 
-  \^(CHECKYAML|YML)$ {
+  \^(CHECKYAML|YML)?$ {
     set min_n_of_args -1
     set max_n_of_args 1
     set do_check_yaml_ref 1
@@ -132,23 +141,28 @@ set default_commands {
     set do_buttons 1
   }
 
-  \^(CHECKLIST|CL)$ {
+  \^(CHECKLIST|CL)?$ {
     set do_check_list_files 1
   }
 
-  \^(COMPILE|COMP)$ {
+  \^COMPSIM(LIB)?$ {
     set do_compile_lib 1
     set argument_is_no_project 1
   }
 
-
- \^SI(GASI)$ {
-  set do_sigasi 1
- }
+  \^SIG(ASI)?$ {
+    set do_sigasi 1
+  }
 
   default {
-    Msg Status "ERROR: Unknown directive $directive.\n\n[cmdline::usage $parameters $usage]"
-    exit 1
+    if {$directive != ""} {
+      Msg Status "ERROR: Unknown directive $directive.\n\n"
+      puts $usage
+      exit 1
+    } else {
+      puts "$usage"
+      exit 0
+    }
   }
 }
 
@@ -161,7 +175,7 @@ set commands_path [file normalize "$tcl_path/../../hog-commands/"]
 ### CUSTOM COMMANDS ###
 set custom_commands [GetCustomCommands $commands_path 1]
 append usage [GetCustomCommands $commands_path]
-append usage "\n** Options:"
+# append usage "\n** Options:"
 
 
 lassign [InitLauncher $::argv0 $tcl_path $parameters $default_commands $usage $argv] directive\
@@ -224,11 +238,10 @@ if {$cmd == -1} {
   exit 1
 } elseif {$cmd == -2} {
   # Project not given but needed
-  Msg Status "ERROR: You must specify a project with directive $directive.\
-  \n\n[cmdline::usage $parameters $usage]"
-  Msg Status "\n Possible projects are:"
+  Msg Status "ERROR: You must specify a project with directive $directive."
+  # \n\n[cmdline::usage $parameters $usage]"
+  Msg Status "Possible projects are:"
   ListProjects $repo_path $do_list_all
-  Msg Status "\n"
   exit 1
 
 } elseif {$cmd == 0} {

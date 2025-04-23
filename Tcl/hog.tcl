@@ -518,11 +518,16 @@ proc AddHogFiles {libraries properties filesets} {
           Msg Error "The application $rootlib does not exist. Please add it to hog.conf."
         }
 
-        set app_name [lindex $ws_apps [expr {$app_index + 1}]]
+        set app_name [lindex $ws_apps $app_index]
 
         foreach f $lib_files {
-          Msg Debug "Vitis Classic: adding source file $f to library $app_name..."
-          importsources -name $app_name -soft-link -path $f
+          Msg Info "Adding source file $f to vitis app \[$app_name\]..."
+
+          set proj_f_path [regsub "^$globalSettings::repo_path" $f ""]
+          set proj_f_path [regsub  "[file tail $f]$" $proj_f_path ""]
+          Msg Debug "Project_f_path is $proj_f_path"
+
+          importsources -name $app_name -soft-link -path $f -target $proj_f_path
         }
       }
       # Closing library loop

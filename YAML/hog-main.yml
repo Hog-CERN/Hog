@@ -73,7 +73,7 @@ check_branch_state:
     - if [ "${HOG_CHECK_YAMLREF}" != "1" ]; then
         echo 'Yaml consistency checker is disabled';
       else
-        tclsh ./Hog/Tcl/utils/check_yaml_ref.tcl;
+        ./Hog/Do YML;
       fi;
     # Check if this is a valid hotfix or feature branch
     - if [ -f "Top/repo.conf" ]; then

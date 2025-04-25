@@ -514,30 +514,18 @@ proc AddHogFiles { libraries properties filesets } {
 
 
       } elseif {[IsVitisClassic]} {
-        # if lib is others skip
-        if {[string first "others" $lib] != -1} {
-          continue
-        }
+        #Here's where having a predefined app name pattern would help
+        if {[catch {set ws_apps [app list -dict]}]} { set ws_apps "" }
+        foreach app_name [dict keys $ws_apps] {
+          foreach f $lib_files {
+            Msg Debug "Adding source file $f from lib: $lib to vitis app \[$app_name\]..."
 
-        if {[catch {set ws_apps [app list -dict]}]} {
-          set ws_apps ""
-        }
+            set proj_f_path [regsub "^$globalSettings::repo_path" $f ""]
+            set proj_f_path [regsub  "[file tail $f]$" $proj_f_path ""]
+            Msg Debug "Project_f_path is $proj_f_path"
 
-        set app_index [lsearch -exact -nocase $ws_apps $rootlib]
-        if {$app_index == -1} {
-          Msg Error "The application $rootlib does not exist. Please add it to hog.conf."
-        }
-
-        set app_name [lindex $ws_apps $app_index]
-
-        foreach f $lib_files {
-          Msg Info "Adding source file $f to vitis app \[$app_name\]..."
-
-          set proj_f_path [regsub "^$globalSettings::repo_path" $f ""]
-          set proj_f_path [regsub  "[file tail $f]$" $proj_f_path ""]
-          Msg Debug "Project_f_path is $proj_f_path"
-
-          importsources -name $app_name -soft-link -path $f -target $proj_f_path
+            importsources -name $app_name -soft-link -path $f -target $proj_f_path
+          }
         }
       }
     # Closing library loop
@@ -5081,7 +5069,7 @@ proc ReadListFile args {
               set lib_name "sources.con"
             } elseif { $list_file_ext == ".ipb" } {
               set lib_name "xml.ipb"
-            } elseif { [IsVitisClassic] && [IsInList $list_file_ext {.src .header}] && [IsInList $extension {.c .cpp .h .hpp .ld}] } {
+            } elseif { [IsVitisClassic] && [IsInList $list_file_ext {.src .header}] && [IsInList $extension {.c .cpp .h .hpp}] } {
               set lib_name "$library$list_file_ext"
             } else {
               # Other files are stored in the OTHER dictionary from vivado (no library assignment)

@@ -752,7 +752,7 @@ proc ConfigurePlatform {} {
   } else {
     Msg Warning "No platform name found in config"
     set plat_name "$globalSettings::DESIGN\_platform"
-    platform_options " -name $plat_name"
+    append platform_options " -name $plat_name"
   }
 
   if {[catch {set ws_platforms [platform list -dict]}]} { set ws_platforms "" }
@@ -819,7 +819,7 @@ proc ConfigureApp {} {
     set app_name "[dict get $app name]"
   } else {
     set app_name "$globalSettings::DESIGN\_app"
-    app_options " -name $app_name"
+    append app_options " -name $app_name"
   }
 
   #A sysproj may have been created before, we must remove it

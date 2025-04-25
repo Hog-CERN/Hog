@@ -730,152 +730,159 @@ proc ConfigureProperties {} {
 
 
 proc ConfigurePlatform {} {
-  set platforms [dict filter $globalSettings::PROPERTIES key {platform*}]
 
-  foreach {platform_key platform} [dict get $platforms] {
-    Msg Info "Configuring platform $platform_key..."
-    set platform_options ""
-    set platform_create_options { "desc" "hw" "out" "prebuilt" "proc" "arch" "samples" "os" "xpfm" "no-boot-bsp" "rp"}
-
-    ## Check if the platform has a name
-    if {[dict exists $platform name]} {
-      append platform_options " -name $\{[dict get $platform name]\}"
-      set plat_name "[dict get $platform name]"
-    } elseif {[regexp {platform:([^:]+)} $platform_key -> platform_name]} {
-      append platform_options " -name \{$platform_name\}"
-      set plat_name "$platform_name"
-    } else {
-      Msg Warning "No name found for platform key: $platform_key"
-      return
-    }
-
-    if {[catch {set ws_platforms [app list -dict]}]} {
-      set ws_platforms ""
-    }
-
-    if {[lsearch -exact $ws_platforms $plat_name] != -1} {
-      Msg Info "Platform $plat_name already exists, removing it..."
-      platform remove $plat_name
-    }
-
-    dict for {p v} $platform {
-      if {[IsInList [string toupper $p] [VITIS_PATH_PROPERTIES] 1]} {
-        if {[file exists $globalSettings::repo_path/$v]} {
-          set v $globalSettings::repo_path/$v
-        } else {
-          Msg Warning "Impossible to set property $p to $v. File is missing"
-        }
-      }
-
-      set p_lower [string tolower $p]
-      if {[IsInList $p_lower $platform_create_options]} {
-        append platform_options " -$p_lower $v"
-      } else {
-        Msg Warning "Attempting to use unknown platform option: $p_lower"
-        append platform_options " -$p_lower $v"
-      }
-    }
-
-
-    Msg Info "Creating platform \{ $plat_name \} with options: \{$platform_options\}"
-    set plat_create "platform create $platform_options"
-    eval $plat_create
-    platform active $plat_name
-    platform generate
+  set platform_create_options {
+    "desc" "hw" "out" "prebuilt" "proc" "arch"
+    "samples" "os" "xpfm" "no-boot-bsp" "rp" "name"
   }
+
+  if {[dict exists $globalSettings::PROPERTIES platform]} {
+      set platform [dict get $globalSettings::PROPERTIES platform]
+  } else {
+      Msg Info "No platform found in the configuration file"
+      return
+  }
+
+  Msg Info "Configuring platform..."
+  set platform_options ""
+
+  ## Check if the platform has a name
+  if {[dict exists $platform name]} {
+    set plat_name "[dict get $platform name]"
+  } else {
+    Msg Warning "No platform name found in config"
+    set plat_name "$globalSettings::DESIGN\_platform"
+  }
+
+  if {[catch {set ws_platforms [platform list -dict]}]} { set ws_platforms "" }
+  if {[lsearch -exact $ws_platforms $plat_name] != -1} {
+    Msg Info "Platform $plat_name already exists, removing it..."
+    platform remove $plat_name
+  }
+
+  dict for {p v} $platform {
+    if {[IsInList [string toupper $p] [VITIS_PATH_PROPERTIES] 1]} {
+      if {[file exists $globalSettings::repo_path/$v]} {
+        set v $globalSettings::repo_path/$v
+      } else {
+        Msg Warning "Impossible to set property $p to $v. File is missing"
+      }
+    }
+
+    set p_lower [string tolower $p]
+    if {[IsInList $p_lower $platform_create_options]} {
+      append platform_options " -$p_lower $v"
+    } else {
+      Msg Warning "Attempting to use unknown platform option: $p_lower"
+      append platform_options " -$p_lower $v"
+    }
+  }
+
+
+  Msg Info "Creating platform \[$plat_name\] with options: \{$platform_options\}"
+  set plat_create "platform create $platform_options"
+  eval $plat_create
+  platform active $plat_name
+  platform generate
 
 }
 
 proc ConfigureApp {} {
 
-  set apps [dict filter $globalSettings::PROPERTIES key {app*}]
-  set create_options { "platform" "domain" "sysproj" "hw" "proc" "template" "os" "lang" "arch" }
+  set create_options {
+    "platform" "domain" "sysproj" "hw"
+    "proc" "template" "os" "lang" "arch" "name"
+  }
+
   set conf_options {
     "assembler-flags" "build-config" "compiler-misc" "compiler-optimization"
     "define-compiler-symbols" "include-path" "libraries" "library-search-path"
     "linker-misc" "linker-script" "undef-compiler-symbols"
   }
 
-  foreach {app_key app} [dict get $apps] {
-    Msg Info "Configuring app \{$app_key\}..."
-    set app_options ""
+  if {[dict exists $globalSettings::PROPERTIES app]} {
+      set app [dict get $globalSettings::PROPERTIES app]
+  } else {
+      Msg Error "No app found in the configuration file"
+  }
 
-    ## Check if the app has a name
-    if {[dict exists $app name]} {
-      append app_options " -name $\{[dict get $app name]\}"
-      set app_name "[dict get $app name]"
-    } elseif {[regexp {app:([^:]+)} $app_key -> app_name]} {
-      append app_options " -name \{$app_name\}"
-      set app_name "$app_name"
-    } else {
-      Msg Warning "No name found for app key: $app_key"
-      return
+  Msg Info "Configuring app..."
+  set app_options ""
+
+  # Check if the app has a name
+  # Should we even let the user define the app name?
+  # having a predefined name pattern would make it easier
+  # remove old sysproj and app,
+  # and to find the app when applying generics and adding files to it
+  if {[dict exists $app name]} {
+    set app_name "[dict get $app name]"
+  } else {
+    set app_name "$globalSettings::DESIGN\_app"
+  }
+
+  #A sysproj may have been created before, we must remove it
+  if {[catch {set sys_projs [sysproj list -dict]}]} { set sys_projs "" }
+  if {[dict exists $app sysproj]} {
+    set sys_proj_name [dict get $app sysproj]
+    if {[lsearch -exact $sys_projs "Name $sys_proj_name"] != -1} {
+      Msg Info "Removing $sys_proj_name..."
+      sysproj remove $sys_proj_name
     }
-
-    #A sysproj may have been created before, we must remove it
-    if {[catch {set sys_projs [sysproj list -dict]}]} { set sys_projs "" }
-    if {[dict exists $app sysproj]} {
-      set sys_proj_name [dict get $app sysproj]
-      if {[lsearch -exact $sys_projs "Name $sys_proj_name"] != -1} {
-        Msg Info "Removing $sys_proj_name..."
-        sysproj remove $sys_proj_name
-      }
-    } else {
-      set sys_proj_name "$app_name\_system"
-      if {[lsearch -exact $sys_projs "Name $sys_proj_name"] != -1} {
-        Msg Info "Removing $sys_proj_name..."
-        sysproj remove $sys_proj_name
-      }
+  } else {
+    set sys_proj_name "$app_name\_system"
+    if {[lsearch -exact $sys_projs "Name $sys_proj_name"] != -1} {
+      Msg Info "Removing $sys_proj_name..."
+      sysproj remove $sys_proj_name
     }
+  }
 
-    #A app may have been created before, we must remove it
-    if {[catch {set ws_apps [app list -dict]}]} { set ws_apps "" }
-    if {[lsearch -exact $ws_apps $app_name] != -1} {
-      Msg Info "app $app_name already exists, removing it..."
-      app remove $app_name
-    }
+  #A app may have been created before, we must remove it
+  if {[catch {set ws_apps [app list -dict]}]} { set ws_apps "" }
+  if {[lsearch -exact $ws_apps $app_name] != -1} {
+    Msg Info "app $app_name already exists, removing it..."
+    app remove $app_name
+  }
 
-    # Append repo_path to the path-based properties
-    dict for {p v} $app {
-      if {[IsInList [string toupper $p] [VITIS_PATH_PROPERTIES] 1]} {
-        if {[file exists $globalSettings::repo_path/$v]} {
-          set v $globalSettings::repo_path/$v
-        } else {
-          Msg Warning "Impossible to set property $p to $v. File is missing"
-        }
-      }
-    }
-
-
-    #App create options
-    dict for {p v} $app {
-      set p_lower [string tolower $p]
-      if {[IsInList $p_lower $create_options] && ![IsInList $p_lower $conf_options]} {
-        if {[string equal $p_lower "platform"]} {
-          Msg Info "Setting App $app_name platform to $v"
-          platform active $v
-        }
-        append app_options " -$p_lower $v"
-      } elseif {![IsInList $p_lower $conf_options]} {
-        Msg Warning "Attempting to use unknown app option: $p_lower"
-        append app_options " -$p_lower $v"
+  # Append repo_path to the path-based properties
+  dict for {p v} $app {
+    if {[IsInList [string toupper $p] [VITIS_PATH_PROPERTIES] 1]} {
+      if {[file exists $globalSettings::repo_path/$v]} {
+        set v $globalSettings::repo_path/$v
+      } else {
+        Msg Warning "Impossible to set property $p to $v. File is missing"
       }
     }
+  }
 
-    if {![dict exists $app template]} {
-      append app_options " -template \{Empty Application\}"
-    }
 
-    Msg Info "Creating application \{ $app_name \} with options: \{$app_options\}"
-    set app_create "app create $app_options"
-    eval $app_create
-    app config -name $app_name -set build-config Release
-
-    # App config options
-    dict for {p v} $app {
-      if {![IsInList $p_lower $create_options] && [IsInList $p_lower $conf_options]} {
-        app config -name $app_name -set $p_lower $v
+  #App create options
+  dict for {p v} $app {
+    set p_lower [string tolower $p]
+    if {[IsInList $p_lower $create_options] && ![IsInList $p_lower $conf_options]} {
+      if {[string equal $p_lower "platform"]} {
+        Msg Info "Setting App $app_name platform to $v"
+        platform active $v
       }
+      append app_options " -$p_lower $v"
+    } elseif {![IsInList $p_lower $conf_options]} {
+      Msg Warning "Attempting to use unknown app option: $p_lower"
+      append app_options " -$p_lower $v"
+    }
+  }
+
+  if {![dict exists $app template]} {
+    append app_options " -template \{Empty Application\}"
+  }
+
+  Msg Info "Creating application \[$app_name\] with options: \{$app_options\}"
+  set app_create "app create $app_options"
+  eval $app_create
+  app config -name $app_name -set build-config Release
+
+  # App config options
+  dict for {p v} $app {
+    if {![IsInList $p_lower $create_options] && [IsInList $p_lower $conf_options]} {
+      app config -name $app_name -set $p_lower $v
     }
   }
 }

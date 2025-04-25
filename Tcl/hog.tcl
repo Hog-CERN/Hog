@@ -4865,7 +4865,7 @@ proc LaunchVitisBuild {project_name {repo_path .}} {
 
   foreach app_name [dict keys $ws_apps] {
     set main_file "$repo_path/Projects/$proj_name/$app_name/Release/$app_name.elf"
-    set dst_main [file normalize "$dst_dir/$app_name\-$describe.elf"]
+    set dst_main [file normalize "$dst_dir/$proj_name\-$app_name\-$describe.elf"]
     Msg Info "Copying main binary file $main_file into $dst_main..."
     file copy -force $main_file $dst_main
     }

@@ -3798,7 +3798,6 @@ proc InitLauncher {script tcl_path parameters commands usage short_usage argv} {
           puts ""
         }
       }
-
     } else {
       puts $usage
     }

@@ -337,7 +337,6 @@ if {$cmd == -1} {
     set cmd "vivado -mode batch -notrace -source $repo_path/Hog/Tcl/utils/compile_simlib.tcl  -tclargs -simulator $simulator -output_dir $output_dir"
   }
 
-  puts $do_simulation
   if {$do_simulation == 1} {
     # Get all simsets in the project
     set simsets_dict [GetSimSets $project_name $repo_path $options(simset)]

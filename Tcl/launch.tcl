@@ -45,7 +45,10 @@ Most common directives (case insensitive):
 - WORKFLOW or W: Launches the complete workflow, creates the project if not existing.
 
 To see all the available directives, run:
-./Hog/Do HELP
+./Hog/Do HELP.
+
+'./Hog/Do <directive> HELP' lists available options for the chosen directive.
+
 "
 
 set usage "
@@ -68,7 +71,7 @@ Directives (case insensitive):
 - XML or X: Copy, check or create the IPbus XMLs for the project.
 - WORKFLOW or W: Launches the complete workflow, creates the project if not existing.
 
-'./Hog/Do -help <directive>' list available options for the chosen directive.
+'./Hog/Do <directive> HELP' lists available options for the chosen directive.
 "
 
 set tcl_path [file normalize "[file dirname [info script]]"]

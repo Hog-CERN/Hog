@@ -3745,6 +3745,8 @@ proc InitLauncher {script tcl_path parameters commands usage short_usage argv} {
     source $tcl_path/utils/cmdline.tcl
   }
 
+  set argv [regsub -all {(?i)\mHELP\M} $argv "-help"]
+
   lassign [GetOptions $argv $parameters] option_list arg_list
 
   if { [IsInList "-all" $option_list] } {
@@ -3793,9 +3795,12 @@ proc InitLauncher {script tcl_path parameters commands usage short_usage argv} {
               }
             }
           }
+          puts ""
         }
       }
 
+    } else {
+      puts $usage
     }
     # Msg Info [cmdline::usage $parameters $usage]
     exit 0

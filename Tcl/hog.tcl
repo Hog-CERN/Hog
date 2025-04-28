@@ -3673,14 +3673,15 @@ proc ImportTclLib {} {
 
 # @brief Initialise the Launcher and returns a list of project parameters: directive project project_name group_name repo_path old_path bin_dir top_path cmd ide
 #
-# @param[in] script     The launch.tcl script
-# @param[in] tcl_path   The launch.tcl script path
-# @param[in] parameters The allowed parameters for launch.tcl
-# @param[in] commands   The allowed directives for launch.tcl
-# @param[in] usage      The usage snippet for launch.tcl
-# @param[in] argv       The input arguments passed to launch.tcl
+# @param[in] script      The launch.tcl script
+# @param[in] tcl_path    The launch.tcl script path
+# @param[in] parameters  The allowed parameters for launch.tcl
+# @param[in] commands    The allowed directives for launch.tcl
+# @param[in] short_usage The short usage snippet for launch.tcl
+# @param[in] usage       The usage snippet for launch.tcl
+# @param[in] argv        The input arguments passed to launch.tcl
 
-proc InitLauncher {script tcl_path parameters commands usage argv} {
+proc InitLauncher {script tcl_path parameters commands usage short_usage argv} {
   set repo_path [file normalize "$tcl_path/../.."]
   set old_path [pwd]
   set bin_path [file normalize "$tcl_path/../../bin"]
@@ -3716,6 +3717,23 @@ proc InitLauncher {script tcl_path parameters commands usage argv} {
     "^(CHECKYAML|YML)?$" [list "verbose"]
   ]
 
+  set directive_descriptions [dict create "^C(REATE)?$" "Creates the project, replacing it if already existing." \
+    "^L(IST)?$" "List the projects in the repository."\
+    "^H(ELP)?$" "Display this help message."\
+    "^I(MPL(EMENT(ATION)?)?)?$" "Runs only the implementation, the project must already exist and be synthesised."\
+    "^SYNT(H(ESIS(E)?)?)?" "Runs only the synthesis, creates the project if not existing."\
+    "^S(IM(ULAT(ION|E)?)?)?$" "Simulate the project, creating it if not existing, unless it is a GHDL simulation."\
+    "^W(ORK(FLOW)?)?$" "Runs the full workflow, creates the project if not existing."\
+    "^(CREATEWORKFLOW|CW)?$" "Creates the project -even if existing- and launches the complete workflow."\
+    "^(CHECKSYNTAX|CS)?$" "Checks the syntax of the project. Only for Vivado, Quartus and Libero projects."\
+    "^X(ML)?$" "Copy, check or create the IPbus XMLs for the project."\
+    "^(CHECKLIST|CL)?$" "Check that list and configuration files on disk match what is on the project."\
+    "^B(UTTONS)?$" "Add Hog buttons to the Vivado GUI, to check and recreate Hog list and configuration files."\
+    "^COMPSIM(LIB)?$" "Compiles the simulation library for the chosen simulator with Vivado."\
+    "^SIG(ASI)?$" "Create a .csv file to be used in Sigasi."\
+    "^(CHECKYAML|YML)?$" "Check that the ref to Hog repository in the .gitlab-ci.yml file, matches the one in Hog submodule."\
+  ]
+
 
   if {[IsTclsh]} {
     #Just display the logo the first time, not when the script is run in the IDE
@@ -3748,8 +3766,16 @@ proc InitLauncher {script tcl_path parameters commands usage argv} {
     if {$directive != ""} {
       if {[IsInList $directive $directives_with_projects 1]} {
         puts "usage: ./Hog/Do \[OPTIONS\] $directive <project>\n"
+      } elseif {[regexp "^COMPSIM(LIB)?$" $directive]} {
+        puts "usage: ./Hog/Do \[OPTIONS\] $directive <simulator>\n"
       } else {
         puts "usage: ./Hog/Do \[OPTIONS\] $directive \n"
+      }
+      dict for {dir desc} $directive_descriptions {
+        if {[regexp $dir $directive]} {
+          puts "$desc\n"
+          break
+        }
       }
 
       dict for {dir opts} $command_options {
@@ -3780,14 +3806,9 @@ proc InitLauncher {script tcl_path parameters commands usage argv} {
     exit 1
   }
 
-
-
-
-
-
   if { [llength $arg_list] <= $min_n_of_args || [llength $arg_list] > $max_n_of_args} {
-    Msg Status "\nERROR: Wrong number of arguments: [llength $argv].\n\n"
-    Msg Status "USAGE: [cmdline::usage $parameters $usage]"
+    Msg Status "\nERROR: Wrong number of arguments: [llength $argv]"
+    puts $short_usage
     exit 1
   }
 

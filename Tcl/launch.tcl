@@ -36,24 +36,36 @@ set parameters {
   {verbose         "If set, launch the script in verbose mode"}
 }
 
+set short_usage "
+usage: ./Hog/Do \[OPTIONS\] <directive> \[project\]
+
+Most common directives (case insensitive):
+- CREATE or C: Create the project, replacing it if already existing.
+- SIMULATE or S: Simulate the project, creating it if not existing.
+- WORKFLOW or W: Launches the complete workflow, creates the project if not existing.
+
+To see all the available directives, run:
+./Hog/Do HELP
+"
+
 set usage "
 usage: ./Hog/Do \[OPTIONS\] <directive> \[project\]\nThe most common <directive> values are CREATE (or C), WORKFLOW (or W), SIMULATE (or S).
 
 Directives (case insensitive):
-- BUTTONS or B: Create Hog buttons (Vivado only)
-- CHECKLIST or CL: Check that list and configuration files on disk match what is on the project
-- CHECKSYNTAX or CS: Check the syntax of the specified project (Vivado Only)
-- CHECKYAML or YML: Check that the ref to Hog repository in the yml files matches the one in Hog submodule
-- COMPSIM or COMPSIMLIB : Compile simulation libs (Vivado only)
+- BUTTONS or B: Create Hog buttons (Vivado only).
+- CHECKLIST or CL: Check that list and configuration files on disk match what is on the project.
+- CHECKSYNTAX or CS: Check the syntax of the specified project.
+- CHECKYAML or YML: Check that the ref to Hog repository in the .gitlab-ci.yml file, matches the one in Hog submodule.
+- COMPSIM or COMPSIMLIB : Compile simulation libs (Vivado only).
 - CREATE or C: Create the project, replacing it if already existing.
 - CREATEWORKFLOW or CW: Creates the project -even if existing- and launches the complete workflow.
 - HELP: Print this message.
 - IMPLEMENT: Runs the implementation only, the project must already exist and be synthesised.
-- LIST or L: Only list all the projects
-- SIGASI or SIG: Create a .csv file to be used in Sigasi
-- SIMULATE or S: Simulate the project, creating it if not existing.
+- LIST or L: Only list all the projects.
+- SIGASI or SIG: Create a .csv file to be used in Sigasi.
+- SIMULATE or S: Simulate the project, creating it if not existing, unless it is a GHDL simulation.
 - SYNTHESIS: Runs the synthesis only, creates the project if not existing.
-- XML or X: Copy, check or create IPbus XMLs
+- XML or X: Copy, check or create the IPbus XMLs for the project.
 - WORKFLOW or W: Launches the complete workflow, creates the project if not existing.
 
 './Hog/Do -help <directive>' list available options for the chosen directive.
@@ -179,7 +191,7 @@ append usage [GetCustomCommands $commands_path]
 # append usage "\n** Options:"
 
 
-lassign [InitLauncher $::argv0 $tcl_path $parameters $default_commands $usage $argv] directive\
+lassign [InitLauncher $::argv0 $tcl_path $parameters $default_commands $usage $short_usage $argv] directive\
     project project_name group_name repo_path old_path bin_dir top_path cmd ide list_of_options
 array set options $list_of_options
 Msg Debug "Returned by InitLauncher: \

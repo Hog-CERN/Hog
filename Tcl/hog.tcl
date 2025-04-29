@@ -4379,7 +4379,13 @@ proc LaunchSimulation {project_name lib_path {simsets ""} {repo_path .}} {
           Msg Info "$n lines read from $s.sim"
 
           set firstline [lindex $data 0]
-
+          if { [regexp {^ *\#Simulator} $firstline] } {
+            set simulator_prop [regexp -all -inline {\S+} $firstline]
+            set simulator [string tolower [lindex $simulator_prop 1]]
+          } else {
+            Msg Warning "Simulator not set in $simset_name.sim. The first line of $simset_name.sim should be #Simulator <SIMULATOR_NAME>, where <SIMULATOR_NAME> can be xsim, questa, modelsim, riviera, activehdl, ies, or vcs, e.g. #Simulator questa. Setting simulator by default as xsim."
+            set simulator "xsim"
+          }
           set_property "target_simulator" $simulator [current_project]
           Msg Info "Creating simulation scripts for $s..."
           if { [file exists $repo_path/Top/$project_name/pre-simulation.tcl] } {

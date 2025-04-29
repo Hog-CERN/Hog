@@ -340,6 +340,7 @@ if {$cmd == -1} {
     set cmd "vivado -mode batch -notrace -source $repo_path/Hog/Tcl/utils/compile_simlib.tcl  -tclargs -simulator $simulator -output_dir $output_dir"
   }
 
+  set simsets ""
   if {$do_simulation == 1} {
     # Get all simsets in the project
     set simsets_dict [GetSimSets $project_name $repo_path $options(simset)]
@@ -352,6 +353,8 @@ if {$cmd == -1} {
         }
         LaunchGHDL $project_name $repo_path $simset_name $ext_path
         dict unset simsets_dict $simset_name
+      } else {
+        lappend simsets $simset_name
       }
     }
     if {[dict size $simsets_dict] == 0} {
@@ -566,6 +569,7 @@ if {$do_bitstream == 1 && ![IsXilinx] } {
 }
 
 if {$do_simulation == 1} {
+  set simsets $options(simset)
   LaunchSimulation $project_name $lib_path $simsets $repo_path
 }
 

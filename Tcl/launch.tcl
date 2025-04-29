@@ -42,7 +42,7 @@ usage: ./Hog/Do \[OPTIONS\] <directive> \[project\]
 Most common directives (case insensitive):
 - CREATE or C: Create the project, replacing it if already existing.
 - SIMULATE or S: Simulate the project, creating it if not existing.
-- WORKFLOW or W: Launches the complete workflow, creates the project if not existing.
+- WORKFLOW or W: Launch the complete workflow, create the project if not existing.
 
 To see all the available directives, run:
 ./Hog/Do HELP.
@@ -52,7 +52,7 @@ To see all the available directives, run:
 "
 
 set usage "
-usage: ./Hog/Do \[OPTIONS\] <directive> \[project\]\nThe most common <directive> values are CREATE (or C), WORKFLOW (or W), SIMULATE (or S).
+usage: ./Hog/Do \[OPTIONS\] <directive> \[project\]
 
 Directives (case insensitive):
 - BUTTONS or B: Create Hog buttons (Vivado only).
@@ -61,15 +61,15 @@ Directives (case insensitive):
 - CHECKYAML or YML: Check that the ref to Hog repository in the .gitlab-ci.yml file, matches the one in Hog submodule.
 - COMPSIM or COMPSIMLIB : Compile simulation libs (Vivado only).
 - CREATE or C: Create the project, replacing it if already existing.
-- CREATEWORKFLOW or CW: Creates the project -even if existing- and launches the complete workflow.
+- CREATEWORKFLOW or CW: Create the project -even if existing- and launch the complete workflow.
 - HELP: Print this message.
-- IMPLEMENT: Runs the implementation only, the project must already exist and be synthesised.
-- LIST or L: Only list all the projects.
+- IMPLEMENT: Run the implementation only, the project must already exist and be synthesised.
+- LIST or L: List projects in the repository (to show hidden projects use -all)
 - SIGASI or SIG: Create a .csv file to be used in Sigasi.
 - SIMULATE or S: Simulate the project, creating it if not existing, unless it is a GHDL simulation.
-- SYNTHESIS: Runs the synthesis only, creates the project if not existing.
+- SYNTHESIS: Run the synthesis only, create the project if not existing.
 - XML or X: Copy, check or create the IPbus XMLs for the project.
-- WORKFLOW or W: Launches the complete workflow, creates the project if not existing.
+- WORKFLOW or W: Launch the complete workflow, create the project if not existing.
 
 './Hog/Do <directive> HELP' lists available options for the chosen directive.
 "

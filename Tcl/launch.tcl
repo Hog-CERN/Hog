@@ -17,6 +17,152 @@
 
 # Launch Xilinx Vivado or ISE implementation and possibly write bitstream in text mode
 
+set default_commands {
+
+  \^L(IST)?$ {
+    Msg Status "\n** The projects in this repository are:"
+    ListProjects $repo_path $list_all
+    Msg Status "\n"
+    exit 0
+  }
+  # NAME: LIST
+  # DESCRIPTION: List the projects in the repository. To show hidden projects use the -all option
+  # OPTIONS: all, verbose
+  
+  \^H(ELP)?$ {
+    puts "$usage"
+    exit 0
+  }
+  # NAME: HELP
+  # DESCRIPTION: Display this help message or specific help for each directive
+  # OPTIONS: 
+  
+  \^C(REATE)?$ {#
+    set do_create 1
+    set recreate 1
+  }
+  # NAME: CREATE
+  # DESCRIPTION: Create the project, replace it if already existing.
+  # OPTIONS: ext_path.arg, lib.arg, verbose
+  
+  \^I(MPL(EMENT(ATION)?)?)?$ {#
+    set do_implementation 1
+    set do_bitstream 1
+    set do_compile 1
+  }
+  # NAME: IMPLEMENTATION
+  # DESCRIPTION: Runs only the implementation, the project must already exist and be synthesised.
+  # OPTIONS: check_syntax, ext_path.arg, njobs.arg, no_bitstream, no_reset, recreate, verbose
+    
+  \^SYNT(H(ESIS(E)?)?)? {#
+    set do_synthesis 1
+    set do_compile 1
+  }
+  # NAME: SYNTH
+  # DESCRIPTION: Run synthesis only, create the project if not existing.
+  # OPTIONS: check_syntax, ext_path.arg, njobs.arg, recreate, verbose
+  
+  
+  \^S(IM(ULAT(ION|E)?)?)?$ {#
+    set do_simulation 1
+    set do_create 1
+  }
+  # NAME: SIMULATION
+  # DESCRIPTION: Simulate the project, creating it if not existing, unless it is a GHDL simulation.
+  # OPTIONS: check_syntax, ext_path.arg, lib.arg, recreate, simset.arg, verbose
+  
+  \^W(ORK(FLOW)?)?$ {#
+    set do_implementation 1
+    set do_synthesis 1
+    set do_bitstream 1
+    set do_compile 1
+  }
+  # NAME: WORKFLOW
+  # DESCRIPTION: Runs the full workflow, creates the project if not existing.
+  # OPTIONS: check_syntax, ext_path.arg, impl_only, njobs.arg, no_bitstream, recreate, synth_only, verbose
+  
+  \^(CREATEWORKFLOW|CW)?$ {#
+    set do_implementation 1
+    set do_synthesis 1
+    set do_bitstream 1
+    set do_compile 1
+    set recreate 1
+  }
+  # NAME: CREATEWORKFLOW
+  # DESCRIPTION: Creates the project -even if existing- and launches the complete workflow.
+  # OPTIONS: check_syntax, ext_path.arg, njobs.arg, no_bitstream, synth_only, verbose
+  
+  \^(CHECKSYNTAX|CS)?$ {#proj
+    set do_check_syntax 1
+  }
+  # NAME: CECHSYNTAX
+  # DESCRIPTION: Check the syntax of the project. Only for Vivado, Quartus and Libero projects.
+  # OPTIONS: ext_path.arg, recreate, verbose
+  
+  \^X(ML)?$ {#proj
+    set do_ipbus_xml 1
+  }
+  # NAME: XML
+  # DESCRIPTION: Copy, check or create the IPbus XMLs for the project.
+  # OPTIONS: dst_dir.arg, generate, verbose
+  
+  \^(CHECKYAML|YML)?$ {
+    set min_n_of_args -1
+    set max_n_of_args 1
+    set do_check_yaml_ref 1
+  }
+  # NAME: CHECKYML
+  # DESCRIPTION: Check that the ref to Hog repository in the .gitlab-ci.yml file, matches the one in Hog submodule. 
+  # OPTIONS: verbose
+
+  \^B(UTTONS)?$ {
+    set min_n_of_args -1
+    set max_n_of_args 1
+    set do_buttons 1
+  }
+  # NAME: BUTTONS
+  # DESCRIPTION: Add Hog buttons to the Vivado GUI, to check and recreate Hog list and configuration files.
+  # OPTIONS: verbose
+  
+  \^(CHECKLIST|CL)?$ {#proj
+    set do_check_list_files 1
+  }
+  # NAME: CHECKLIST
+  # DESCRIPTION: Check that list and configuration files on disk match what is on the project.
+  # OPTIONS: ext_path.arg, verbose
+
+  \^COMPSIM(LIB)?$ {
+    set do_compile_lib 1
+    set argument_is_no_project 1
+  }
+  # NAME: COMPSIM
+  # DESCRIPTION: Compiles the simulation library for the chosen simulator with Vivado.
+  # OPTIONS: verbose
+  
+  \^SIG(ASI)?$ {#
+    set do_sigasi 1
+  }
+  # NAME: SIGASI
+  # DESCRIPTION: Create a .csv file to be used in Sigasi.
+  # OPTIONS: verbose
+  
+  default {
+    if {$directive != ""} {
+      Msg Status "ERROR: Unknown directive $directive.\n\n"
+      puts $usage
+      exit 1
+    } else {
+      puts "$usage"
+      exit 0
+    }
+  }
+}
+
+# Add this bit above!
+#  \^NEW_DIRECTIVE?$ {
+#    set do_new_directive 1
+#  }
+
 
 #parsing command options
 set parameters {
@@ -87,105 +233,7 @@ Msg Debug "s: $::argv0 a: $argv"
 
 
 ###
-set default_commands {
 
-  \^L(IST)?$ {
-    Msg Status "\n** The projects in this repository are:"
-    ListProjects $repo_path $list_all
-    Msg Status "\n"
-    exit 0
-  }
-
-  \^H(ELP)?$ {
-    puts "$usage"
-    exit 0
-  }
-
-  \^C(REATE)?$ {
-    set do_create 1
-    set recreate 1
-  }
-
-  \^I(MPL(EMENT(ATION)?)?)?$ {
-    set do_implementation 1
-    set do_bitstream 1
-    set do_compile 1
-  }
-
-  \^SYNT(H(ESIS(E)?)?)? {
-    set do_synthesis 1
-    set do_compile 1
-  }
-
-  \^S(IM(ULAT(ION|E)?)?)?$ {
-    set do_simulation 1
-    set do_create 1
-  }
-
-  \^W(ORK(FLOW)?)?$ {
-    set do_implementation 1
-    set do_synthesis 1
-    set do_bitstream 1
-    set do_compile 1
-  }
-
-  \^(CREATEWORKFLOW|CW)?$ {
-    set do_implementation 1
-    set do_synthesis 1
-    set do_bitstream 1
-    set do_compile 1
-    set recreate 1
-  }
-
-  \^(CHECKSYNTAX|CS)?$ {
-    set do_check_syntax 1
-  }
-
-  \^X(ML)?$ {
-    set do_ipbus_xml 1
-  }
-
-  \^(CHECKYAML|YML)?$ {
-    set min_n_of_args -1
-    set max_n_of_args 1
-    set do_check_yaml_ref 1
-  }
-
-  \^B(UTTONS)?$ {
-    set min_n_of_args -1
-    set max_n_of_args 1
-    set do_buttons 1
-  }
-
-  \^(CHECKLIST|CL)?$ {
-    set do_check_list_files 1
-  }
-
-  \^COMPSIM(LIB)?$ {
-    set do_compile_lib 1
-    set argument_is_no_project 1
-  }
-
-  \^SIG(ASI)?$ {
-    set do_sigasi 1
-  }
-
-  default {
-    if {$directive != ""} {
-      Msg Status "ERROR: Unknown directive $directive.\n\n"
-      puts $usage
-      exit 1
-    } else {
-      puts "$usage"
-      exit 0
-    }
-  }
-}
-
-# Add this bit above!
-#  \^NEW_DIRECTIVE?$ {
-#    set do_new_directive 1
-#  }
 
 set commands_path [file normalize "$tcl_path/../../hog-commands/"]
 ### CUSTOM COMMANDS ###

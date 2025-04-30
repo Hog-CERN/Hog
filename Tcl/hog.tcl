@@ -3686,55 +3686,60 @@ proc InitLauncher {script tcl_path parameters commands usage short_usage argv} {
   set old_path [pwd]
   set bin_path [file normalize "$tcl_path/../../bin"]
   set top_path [file normalize "$tcl_path/../../Top"]
+  
+  set cmd_lines [split $commands "\n"]
+  
+  set command_options [dict create]
+  set directive_descriptions [dict create]
+  set directive_names [dict create]  
 
-  set directives_with_projects {
-    "^C(REATE)?$"\
-    "^I(MPL(EMENT(ATION)?)?)?$"\
-    "^SYNT(H(ESIS(E)?)?)?"\
-    "^S(IM(ULAT(ION|E)?)?)?$"\
-    "^W(ORK(FLOW)?)?$"\
-    "^(CREATEWORKFLOW|CW)?$"\
-    "^(CHECKSYNTAX|CS)?$"\
-    "^X(ML)?$"\
-    "^(CHECKLIST|CL)?$"\
-    "^SIG(ASI)?$"\
+  foreach l $cmd_lines {
+    
+    #excludes direcitve with a # just after the \{
+    if { [regexp {\\(.*) \{\#} $l minc d] } {
+      lappend directives_with_projects  $d
+    }
+    
+    #gets all the regexes
+    if { [regexp {\\(.*) \{} $l minc regular_expression]} {
+      lappend directive_regex $regular_expression
+    }
+    
+    #gets all the names
+    if { [regexp {\#\s*NAME:\s*(.*)\s*} $l minc name] } {
+      dict set directive_names $regular_expression $name
+    }
+    
+    #gets all the descriptions	 
+    if { [regexp {\#\s*DESCRIPTION:\s*(.*)\s*} $l minc x]} {
+      dict set directive_description $regular_expression $x
+    }
+    
+    #gets all the list of options
+    if { [regexp {\#\s*OPTIONS:\s*(.*)\s*} $l minc x]} {
+      dict set command_options $regular_expression [list [split [regsub -all {[ \t\n]+} $x {} ] ","]]
+    }
+    
   }
 
-  set command_options [dict create "^C(REATE)?$" [list "ext_path.arg" "lib.arg" "verbose"]\
-    "^L(IST)?$" [list "all" "verbose"]\
-    "^H(ELP)?$" [list]\
-    "^I(MPL(EMENT(ATION)?)?)?$" [list "check_syntax" "ext_path.arg" "njobs.arg" "no_bitstream" "no_reset" "recreate" "verbose"]\
-    "^SYNT(H(ESIS(E)?)?)?" [list "check_syntax" "ext_path.arg" "njobs.arg" "recreate" "verbose"]\
-    "^S(IM(ULAT(ION|E)?)?)?$" [list "check_syntax" "ext_path.arg" "lib.arg" "recreate" "simset.arg" "verbose"]\
-    "^W(ORK(FLOW)?)?$" [list "check_syntax" "ext_path.arg" "impl_only" "njobs.arg" "no_bitstream" "recreate" "synth_only" "verbose"]\
-    "^(CREATEWORKFLOW|CW)?$" [list "check_syntax" "ext_path.arg" "njobs.arg" "no_bitstream" "synth_only" "verbose"]\
-    "^(CHECKSYNTAX|CS)?$" [list "ext_path.arg" "recreate" "verbose"]\
-    "^X(ML)?$" [list "dst_dir.arg" "generate" "verbose"]\
-    "^(CHECKLIST|CL)?$" [list "ext_path.arg" "verbose"]\
-    "^B(UTTONS)?$" [list "verbose"]\
-    "^COMPSIM(LIB)?$" [list "verbose"]\
-    "^SIG(ASI)?$" [list "recreate" "ext_path.arg" "verbose"]\
-    "^(CHECKYAML|YML)?$" [list "verbose"]
-  ]
+  puts directive_names
+  dict for {key value} $directive_names {
+    puts "$key $value"
+  }
+  
+  puts command_options
+  dict for {key value} $command_options {
+    puts "$key $value"
+  }
 
-  set directive_descriptions [dict create "^C(REATE)?$" "Creates the project, replacing it if already existing." \
-    "^L(IST)?$" "List the projects in the repository."\
-    "^H(ELP)?$" "Display this help message."\
-    "^I(MPL(EMENT(ATION)?)?)?$" "Runs only the implementation, the project must already exist and be synthesised."\
-    "^SYNT(H(ESIS(E)?)?)?" "Runs only the synthesis, creates the project if not existing."\
-    "^S(IM(ULAT(ION|E)?)?)?$" "Simulate the project, creating it if not existing, unless it is a GHDL simulation."\
-    "^W(ORK(FLOW)?)?$" "Runs the full workflow, creates the project if not existing."\
-    "^(CREATEWORKFLOW|CW)?$" "Creates the project -even if existing- and launches the complete workflow."\
-    "^(CHECKSYNTAX|CS)?$" "Checks the syntax of the project. Only for Vivado, Quartus and Libero projects."\
-    "^X(ML)?$" "Copy, check or create the IPbus XMLs for the project."\
-    "^(CHECKLIST|CL)?$" "Check that list and configuration files on disk match what is on the project."\
-    "^B(UTTONS)?$" "Add Hog buttons to the Vivado GUI, to check and recreate Hog list and configuration files."\
-    "^COMPSIM(LIB)?$" "Compiles the simulation library for the chosen simulator with Vivado."\
-    "^SIG(ASI)?$" "Create a .csv file to be used in Sigasi."\
-    "^(CHECKYAML|YML)?$" "Check that the ref to Hog repository in the .gitlab-ci.yml file, matches the one in Hog submodule."\
-  ]
-
-
+  puts directive_description
+  dict for {key value} $directive_description {
+    puts "$key $value"
+  }
+  
+  set commands [regsub -all {\#.*?\n} $commands "\n"]
+  puts "COMMANDS: \n $commands \n***\n"
+  
   if {[IsTclsh]} {
     #Just display the logo the first time, not when the script is run in the IDE
     Logo $repo_path
@@ -3762,6 +3767,7 @@ proc InitLauncher {script tcl_path parameters commands usage short_usage argv} {
   set min_n_of_args 0
   set max_n_of_args 2
   set argument_is_no_project 0
+
   switch -regexp -- $directive "$commands"
 
   if { [IsInList "-help" $option_list] || [IsInList "-?" $option_list] || [IsInList "-h" $option_list] } {

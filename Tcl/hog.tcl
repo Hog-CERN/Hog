@@ -898,6 +898,11 @@ proc CheckYmlRef {repo_path allow_failure} {
 }
 
 
+proc CleanupCommands {commands} {
+  set ret [regsub -all {\#.*?\n} $commands "\n"]
+  return $ret
+}
+
 ## @brief Compare the contents of two dictionaries
 #
 # @param[in] proj_libs  The dictionary of libraries in the project
@@ -3712,33 +3717,32 @@ proc InitLauncher {script tcl_path parameters commands usage short_usage argv} {
     
     #gets all the descriptions	 
     if { [regexp {\#\s*DESCRIPTION:\s*(.*)\s*} $l minc x]} {
-      dict set directive_description $regular_expression $x
+      dict set directive_descriptions $regular_expression $x
     }
     
     #gets all the list of options
     if { [regexp {\#\s*OPTIONS:\s*(.*)\s*} $l minc x]} {
-      dict set command_options $regular_expression [list [split [regsub -all {[ \t\n]+} $x {} ] ","]]
+      dict set command_options $regular_expression [split [regsub -all {[ \t\n]+} $x {} ] ","]
     }
     
   }
 
-  puts directive_names
-  dict for {key value} $directive_names {
-    puts "$key $value"
-  }
+#  puts directive_names
+#  dict for {key value} $directive_names {
+#    puts "$key $value"
+#  }
+#  
+#  puts command_options
+#  dict for {key value} $command_options {
+#    puts "$key $value"
+#  }
+#
+#  puts directive_descriptions
+#  dict for {key value} $directive_descriptions {
+#    puts "$key $value"
+#  }
   
-  puts command_options
-  dict for {key value} $command_options {
-    puts "$key $value"
-  }
-
-  puts directive_description
-  dict for {key value} $directive_description {
-    puts "$key $value"
-  }
-  
-  set commands [regsub -all {\#.*?\n} $commands "\n"]
-  puts "COMMANDS: \n $commands \n***\n"
+  set commands [CleanupCommands $commands]
   
   if {[IsTclsh]} {
     #Just display the logo the first time, not when the script is run in the IDE
@@ -3779,6 +3783,7 @@ proc InitLauncher {script tcl_path parameters commands usage short_usage argv} {
       } else {
         puts "usage: ./Hog/Do \[OPTIONS\] $directive \n"
       }
+
       dict for {dir desc} $directive_descriptions {
         if {[regexp $dir $directive]} {
           puts "$desc\n"

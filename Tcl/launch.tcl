@@ -18,7 +18,7 @@
 # Launch Xilinx Vivado or ISE implementation and possibly write bitstream in text mode
 
 set default_commands {
-
+  
   \^L(IST)?$ {
     Msg Status "\n** The projects in this repository are:"
     ListProjects $repo_path $list_all
@@ -37,6 +37,7 @@ set default_commands {
   # DESCRIPTION: Display this help message or specific help for each directive
   # OPTIONS: 
   
+
   \^C(REATE)?$ {#
     set do_create 1
     set recreate 1
@@ -45,6 +46,7 @@ set default_commands {
   # DESCRIPTION: Create the project, replace it if already existing.
   # OPTIONS: ext_path.arg, lib.arg, verbose
   
+
   \^I(MPL(EMENT(ATION)?)?)?$ {#
     set do_implementation 1
     set do_bitstream 1
@@ -242,8 +244,7 @@ append usage [GetCustomCommands $commands_path]
 # append usage "\n** Options:"
 
 
-lassign [InitLauncher $::argv0 $tcl_path $parameters $default_commands $usage $short_usage $argv] directive\
-    project project_name group_name repo_path old_path bin_dir top_path cmd ide list_of_options
+lassign [InitLauncher $::argv0 $tcl_path $parameters $default_commands $usage $short_usage $argv] directive project project_name group_name repo_path old_path bin_dir top_path cmd ide list_of_options
 array set options $list_of_options
 Msg Debug "Returned by InitLauncher: \
 $project $project_name $group_name $repo_path $old_path $bin_dir $top_path $cmd"
@@ -273,6 +274,7 @@ set do_sigasi 0;
 
 # set do_new_directive 0;
 
+set default_commands [CleanupCommands $default_commands]
 Msg Debug "Looking for a $directive in : $default_commands $custom_commands"
 switch -regexp -- $directive "$default_commands $custom_commands"
 

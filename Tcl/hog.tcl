@@ -4536,12 +4536,21 @@ proc LaunchVitisBuild {project_name {repo_path .}} {
   Msg Info "Creating $dst_dir..."
   file mkdir $dst_dir
 
-  foreach app_name [dict keys $ws_apps] {
-    set main_file "$repo_path/Projects/$proj_name/$app_name/Release/$app_name.elf"
-    set dst_main [file normalize "$dst_dir/$proj_name\-$app_name\-$describe.elf"]
-    Msg Info "Copying main binary file $main_file into $dst_main..."
-    file copy -force $main_file $dst_main
+  if {[dict exists $globalSettings::PROPERTIES app]} {
+      set app [dict get $globalSettings::PROPERTIES app]
+      if {[dict exists $app name]} {
+        set app_name "[dict get $app name]"
+      } else {
+        set app_name "$globalSettings::DESIGN\_app"
+      }
+  } else {
+    return
   }
+
+  set main_file "$repo_path/Projects/$proj_name/$app_name/Release/$app_name.elf"
+  set dst_main [file normalize "$dst_dir/$proj_name\-$describe.elf"]
+  Msg Info "Copying main binary file $main_file into $dst_main..."
+  file copy -force $main_file $dst_main
 
   #Create versions.txt file
   set version_file [file normalize "$dst_dir/versions.txt"]

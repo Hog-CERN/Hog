@@ -449,7 +449,7 @@ if {[IsXilinx]} {
       } 
       # we leave include bit also for Versal
       write_hw_platform -include_bit -fixed -force -file "$dst_xsa"
-      }
+
     }
   }
 }

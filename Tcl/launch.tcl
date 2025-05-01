@@ -24,64 +24,61 @@ set default_commands {
     ListProjects $repo_path $list_all
     Msg Status "\n"
     exit 0
-  }
-  # NAME: LIST
+  # NAME*: LIST or L
   # DESCRIPTION: List the projects in the repository. To show hidden projects use the -all option
   # OPTIONS: all, verbose
+  }
   
   \^H(ELP)?$ {
     puts "$usage"
     exit 0
-  }
-  # NAME: HELP
+  # NAME: HELP or H
   # DESCRIPTION: Display this help message or specific help for each directive
   # OPTIONS: 
-  
+  }  
 
   \^C(REATE)?$ {#
     set do_create 1
     set recreate 1
-  }
-  # NAME: CREATE
+  # NAME*: CREATE or C
   # DESCRIPTION: Create the project, replace it if already existing.
   # OPTIONS: ext_path.arg, lib.arg, verbose
-  
+  }  
 
   \^I(MPL(EMENT(ATION)?)?)?$ {#
     set do_implementation 1
     set do_bitstream 1
     set do_compile 1
-  }
-  # NAME: IMPLEMENTATION
+  # NAME: IMPLEMENTATION or I
   # DESCRIPTION: Runs only the implementation, the project must already exist and be synthesised.
   # OPTIONS: check_syntax, ext_path.arg, njobs.arg, no_bitstream, no_reset, recreate, verbose
-    
+  }
+  
   \^SYNT(H(ESIS(E)?)?)? {#
     set do_synthesis 1
     set do_compile 1
-  }
   # NAME: SYNTH
   # DESCRIPTION: Run synthesis only, create the project if not existing.
   # OPTIONS: check_syntax, ext_path.arg, njobs.arg, recreate, verbose
-  
+  }  
   
   \^S(IM(ULAT(ION|E)?)?)?$ {#
     set do_simulation 1
     set do_create 1
-  }
-  # NAME: SIMULATION
+  # NAME*: SIMULATION or S
   # DESCRIPTION: Simulate the project, creating it if not existing, unless it is a GHDL simulation.
   # OPTIONS: check_syntax, ext_path.arg, lib.arg, recreate, simset.arg, verbose
-  
+  }
+    
   \^W(ORK(FLOW)?)?$ {#
     set do_implementation 1
     set do_synthesis 1
     set do_bitstream 1
     set do_compile 1
-  }
-  # NAME: WORKFLOW
+  # NAME*: WORKFLOW or W
   # DESCRIPTION: Runs the full workflow, creates the project if not existing.
   # OPTIONS: check_syntax, ext_path.arg, impl_only, njobs.arg, no_bitstream, recreate, synth_only, verbose
+  }
   
   \^(CREATEWORKFLOW|CW)?$ {#
     set do_implementation 1
@@ -89,64 +86,64 @@ set default_commands {
     set do_bitstream 1
     set do_compile 1
     set recreate 1
-  }
-  # NAME: CREATEWORKFLOW
+  # NAME: CREATEWORKFLOW or CW
   # DESCRIPTION: Creates the project -even if existing- and launches the complete workflow.
   # OPTIONS: check_syntax, ext_path.arg, njobs.arg, no_bitstream, synth_only, verbose
+  }
   
   \^(CHECKSYNTAX|CS)?$ {#proj
     set do_check_syntax 1
-  }
-  # NAME: CECHSYNTAX
+  # NAME: CECHSYNTAX or CS
   # DESCRIPTION: Check the syntax of the project. Only for Vivado, Quartus and Libero projects.
   # OPTIONS: ext_path.arg, recreate, verbose
+  }
   
   \^X(ML)?$ {#proj
     set do_ipbus_xml 1
-  }
-  # NAME: XML
+  # NAME: XML or X
   # DESCRIPTION: Copy, check or create the IPbus XMLs for the project.
   # OPTIONS: dst_dir.arg, generate, verbose
+  }
   
   \^(CHECKYAML|YML)?$ {
     set min_n_of_args -1
     set max_n_of_args 1
     set do_check_yaml_ref 1
-  }
-  # NAME: CHECKYML
+  # NAME: CHECKYML or YML
   # DESCRIPTION: Check that the ref to Hog repository in the .gitlab-ci.yml file, matches the one in Hog submodule. 
   # OPTIONS: verbose
-
+  }
+  
   \^B(UTTONS)?$ {
     set min_n_of_args -1
     set max_n_of_args 1
     set do_buttons 1
-  }
-  # NAME: BUTTONS
+  # NAME: BUTTONS or B
   # DESCRIPTION: Add Hog buttons to the Vivado GUI, to check and recreate Hog list and configuration files.
   # OPTIONS: verbose
+  }
   
   \^(CHECKLIST|CL)?$ {#proj
     set do_check_list_files 1
-  }
-  # NAME: CHECKLIST
+  # NAME: CHECKLIST or CL
   # DESCRIPTION: Check that list and configuration files on disk match what is on the project.
   # OPTIONS: ext_path.arg, verbose
+  }
 
   \^COMPSIM(LIB)?$ {
     set do_compile_lib 1
     set argument_is_no_project 1
-  }
-  # NAME: COMPSIM
+  # NAME: COMPSIMLIB or COMPSIM
   # DESCRIPTION: Compiles the simulation library for the chosen simulator with Vivado.
   # OPTIONS: verbose
+  }
   
   \^SIG(ASI)?$ {#
     set do_sigasi 1
-  }
-  # NAME: SIGASI
+  # NAME: SIGASI or SIG
   # DESCRIPTION: Create a .csv file to be used in Sigasi.
   # OPTIONS: verbose
+  }
   
   default {
     if {$directive != ""} {
@@ -184,44 +181,6 @@ set parameters {
   {verbose         "If set, launch the script in verbose mode"}
 }
 
-set short_usage "
-usage: ./Hog/Do \[OPTIONS\] <directive> \[project\]
-
-Most common directives (case insensitive):
-- CREATE or C: Create the project, replacing it if already existing.
-- SIMULATE or S: Simulate the project, creating it if not existing.
-- WORKFLOW or W: Launch the complete workflow, create the project if not existing.
-
-To see all the available directives, run:
-./Hog/Do HELP.
-
-'./Hog/Do <directive> HELP' lists available options for the chosen directive.
-
-"
-
-set usage "
-usage: ./Hog/Do \[OPTIONS\] <directive> \[project\]
-
-Directives (case insensitive):
-- BUTTONS or B: Create Hog buttons (Vivado only).
-- CHECKLIST or CL: Check that list and configuration files on disk match what is on the project.
-- CHECKSYNTAX or CS: Check the syntax of the specified project.
-- CHECKYAML or YML: Check that the ref to Hog repository in the .gitlab-ci.yml file, matches the one in Hog submodule.
-- COMPSIM or COMPSIMLIB : Compile simulation libs (Vivado only).
-- CREATE or C: Create the project, replacing it if already existing.
-- CREATEWORKFLOW or CW: Create the project -even if existing- and launch the complete workflow.
-- HELP: Print this message.
-- IMPLEMENT: Run the implementation only, the project must already exist and be synthesised.
-- LIST or L: List projects in the repository (to show hidden projects use -all)
-- SIGASI or SIG: Create a .csv file to be used in Sigasi.
-- SIMULATE or S: Simulate the project, creating it if not existing, unless it is a GHDL simulation.
-- SYNTHESIS: Run the synthesis only, create the project if not existing.
-- XML or X: Copy, check or create the IPbus XMLs for the project.
-- WORKFLOW or W: Launch the complete workflow, create the project if not existing.
-
-'./Hog/Do <directive> HELP' lists available options for the chosen directive.
-"
-
 set tcl_path [file normalize "[file dirname [info script]]"]
 source $tcl_path/hog.tcl
 source $tcl_path/create_project.tcl
@@ -233,18 +192,13 @@ if {[IsQuartus]} {
 
 Msg Debug "s: $::argv0 a: $argv"
 
-
-###
-
-
 set commands_path [file normalize "$tcl_path/../../hog-commands/"]
 ### CUSTOM COMMANDS ###
 set custom_commands [GetCustomCommands $commands_path 1]
 append usage [GetCustomCommands $commands_path]
 # append usage "\n** Options:"
 
-
-lassign [InitLauncher $::argv0 $tcl_path $parameters $default_commands $usage $short_usage $argv] directive project project_name group_name repo_path old_path bin_dir top_path cmd ide list_of_options
+lassign [InitLauncher $::argv0 $tcl_path $parameters $default_commands $argv] directive project project_name group_name repo_path old_path bin_dir top_path usage short_usage cmd ide list_of_options
 array set options $list_of_options
 Msg Debug "Returned by InitLauncher: \
 $project $project_name $group_name $repo_path $old_path $bin_dir $top_path $cmd"
@@ -274,7 +228,6 @@ set do_sigasi 0;
 
 # set do_new_directive 0;
 
-set default_commands [CleanupCommands $default_commands]
 Msg Debug "Looking for a $directive in : $default_commands $custom_commands"
 switch -regexp -- $directive "$default_commands $custom_commands"
 

@@ -897,12 +897,6 @@ proc CheckYmlRef {repo_path allow_failure} {
   cd "$thisPath"
 }
 
-
-proc CleanupCommands {commands} {
-  set ret [regsub -all {\#.*?\n} $commands "\n"]
-  return $ret
-}
-
 ## @brief Compare the contents of two dictionaries
 #
 # @param[in] proj_libs  The dictionary of libraries in the project
@@ -3686,7 +3680,7 @@ proc ImportTclLib {} {
 # @param[in] usage       The usage snippet for launch.tcl
 # @param[in] argv        The input arguments passed to launch.tcl
 
-proc InitLauncher {script tcl_path parameters commands usage short_usage argv} {
+proc InitLauncher {script tcl_path parameters commands argv} {
   set repo_path [file normalize "$tcl_path/../.."]
   set old_path [pwd]
   set bin_path [file normalize "$tcl_path/../../bin"]
@@ -3696,7 +3690,8 @@ proc InitLauncher {script tcl_path parameters commands usage short_usage argv} {
   
   set command_options [dict create]
   set directive_descriptions [dict create]
-  set directive_names [dict create]  
+  set directive_names [dict create]
+  set common_directive_names [dict create]
 
   foreach l $cmd_lines {
     
@@ -3704,16 +3699,21 @@ proc InitLauncher {script tcl_path parameters commands usage short_usage argv} {
     if { [regexp {\\(.*) \{\#} $l minc d] } {
       lappend directives_with_projects  $d
     }
-    
+
     #gets all the regexes
     if { [regexp {\\(.*) \{} $l minc regular_expression]} {
       lappend directive_regex $regular_expression
     }
     
-    #gets all the names
-    if { [regexp {\#\s*NAME:\s*(.*)\s*} $l minc name] } {
-      dict set directive_names $regular_expression $name
+    #gets all common directives
+    if { [regexp {\#\s*NAME(\*)?:\s*(.*)\s*} $l minc star name] } {
+      dict set directive_names $name $regular_expression
+      if {$star eq "*"} {
+	dict set common_directive_names $name $regular_expression 
+      }
     }
+    set directive_names [dict'sort $directive_names]
+    set common_directive_names [dict'sort $common_directive_names]    
     
     #gets all the descriptions	 
     if { [regexp {\#\s*DESCRIPTION:\s*(.*)\s*} $l minc x]} {
@@ -3727,23 +3727,38 @@ proc InitLauncher {script tcl_path parameters commands usage short_usage argv} {
     
   }
 
-#  puts directive_names
-#  dict for {key value} $directive_names {
-#    puts "$key $value"
-#  }
-#  
-#  puts command_options
-#  dict for {key value} $command_options {
-#    puts "$key $value"
-#  }
-#
-#  puts directive_descriptions
-#  dict for {key value} $directive_descriptions {
-#    puts "$key $value"
-#  }
+   set short_usage "
+   usage: ./Hog/Do \[OPTIONS\] <directive> \[project\]
+   
+   Most common directives (case insensitive):
+   "
+
+   dict for {key value} $common_directive_names {
+     set short_usage "$short_usage\n   - $key: [dict get $directive_descriptions $value]"
+   }
   
-  set commands [CleanupCommands $commands]
-  
+   set short_usage "$short_usage\n
+   To see all the available directives, run:
+   ./Hog/Do HELP.
+   
+   './Hog/Do <directive> HELP' lists available options for the chosen directive.
+   
+   "
+   
+   set usage "
+   usage: ./Hog/Do \[OPTIONS\] <directive> \[project\]
+   
+   Directives (case insensitive):
+   "
+
+  dict for {key value} $directive_names {
+     set usage "$usage\n   - $key: [dict get $directive_descriptions $value]"
+   }   
+
+   set usage "$usage\n  
+   './Hog/Do <directive> HELP' lists available options for the chosen directive.
+   "
+
   if {[IsTclsh]} {
     #Just display the logo the first time, not when the script is run in the IDE
     Logo $repo_path
@@ -3885,7 +3900,7 @@ proc InitLauncher {script tcl_path parameters commands usage short_usage argv} {
     set project_name "$project"
   }
 
-  return [list $directive $project $project_name $project_group $repo_path $old_path $bin_path $top_path $command $cmd [array get options]]
+  return [list $directive $project $project_name $project_group $repo_path $old_path $bin_path $top_path $usage $short_usage $command $cmd [array get options]]
 }
 
 # @brief Returns 1 if a commit is an ancestor of another, otherwise 0
@@ -6083,7 +6098,16 @@ proc WriteUtilizationSummary {input output project_name run} {
   close $o
 }
 
+proc dict'sort {dict args} {
+    set res {}
+    foreach key [lsort {*}$args [dict keys $dict]] {
+        dict set res $key [dict get $dict $key] 
+    }
+    set res
+}
+
 # Check Git Version when sourcing hog.tcl
 if {[GitVersion 2.7.2] == 0 } {
   Msg Error "Found Git version older than 2.7.2. Hog will not work as expected, exiting now."
 }
+

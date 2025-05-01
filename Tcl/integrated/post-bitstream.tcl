@@ -400,13 +400,8 @@ if {[file exists $xml_dir]} {
 if {[IsXilinx]} {
   # Vivado
   # automatically export for zynqs (checking via regex)
-  set export_xsa false
+  set export_xsa "NONE"
   set part [get_property part [current_project]]
-
-  if { [IsZynq $part] || [IsVersal $part]} {
-    Msg Info "SoC FPGA detected (Zynq or Versal), automatically enabling XSA file creation. To disable it, add 'EXPORT_XSA = false' in the \[hog\] section of hog.conf."
-    set export_xsa true
-  }
 
   # check for explicit EXPORT_XSA flag in hog.conf
   set properties [ReadConf [lindex [GetConfFiles $repo_path/Top/$group_name/$proj_name] 0]]
@@ -414,6 +409,14 @@ if {[IsXilinx]} {
     set propDict [dict get $properties "hog"]
     if {[dict exists $propDict "EXPORT_XSA"]} {
       set export_xsa [dict get $propDict "EXPORT_XSA"]
+    }
+  }
+
+  if { $export_xsa == "NONE" } {
+    set export_xsa false
+    if {([IsZynq $part] || [IsVersal $part])} {
+      Msg Info "SoC FPGA detected (Zynq or Versal), automatically enabling XSA file creation. To disable it, add 'EXPORT_XSA = false' in the \[hog\] section of hog.conf."
+      set export_xsa true
     }
   }
 
@@ -442,9 +445,10 @@ if {[IsXilinx]} {
 	  set_property platform.full_pdi_file $pdi_post_imp [current_project]
 	  Msg Info "XSA file will be generated for Versal with this PDI: $pdi_post_imp"
 	}
-	write_hw_platform -fixed -force -file "$dst_xsa"
-      } else {
-	write_hw_platform -include_bit -fixed -force -file "$dst_xsa"
+
+      } 
+      # we leave include bit also for Versal
+      write_hw_platform -include_bit -fixed -force -file "$dst_xsa"
       }
     }
   }

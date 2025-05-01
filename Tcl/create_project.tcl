@@ -845,31 +845,40 @@ proc ConfigureApp {} {
     app remove $app_name
   }
 
-  # Append repo_path to the path-based properties
+  set app_create_options [dict create]
+  set app_conf_options [dict create]
+
+
   dict for {p v} $app {
+    set p_lower [string tolower $p]
+
     if {[IsInList [string toupper $p] [VITIS_PATH_PROPERTIES] 1]} {
       if {[file exists $globalSettings::repo_path/$v]} {
         set v $globalSettings::repo_path/$v
       } else {
         Msg Warning "Impossible to set property $p to $v. File is missing"
+        continue
       }
+    }
+
+    if {[IsInList $p_lower $create_options]} {
+      Msg Info "$p_lower is in create options"
+      dict append app_create_options $p_lower $v
+    } elseif {[IsInList $p_lower $conf_options]} {
+      Msg Info "$p_lower is in conf options"
+      dict append app_conf_options $p_lower $v
+    } else {
+      Msg Warning "Unknown app option: $p_lower"
     }
   }
 
 
-  #App create options
-  dict for {p v} $app {
-    set p_lower [string tolower $p]
-    if {[IsInList $p_lower $create_options] && ![IsInList $p_lower $conf_options]} {
-      if {[string equal $p_lower "platform"]} {
-        Msg Info "Setting App $app_name platform to $v"
-        platform active $v
-      }
-      append app_options " -$p_lower $v"
-    } elseif {![IsInList $p_lower $conf_options]} {
-      Msg Warning "Attempting to use unknown app option: $p_lower"
-      append app_options " -$p_lower $v"
+  dict for {p v} $app_create_options {
+    if {[string equal $p "platform"]} {
+      Msg Info "Setting App $app_name platform to $v"
+      platform active $v
     }
+    append app_options " -$p $v"
   }
 
   if {![dict exists $app template]} {
@@ -882,10 +891,9 @@ proc ConfigureApp {} {
   app config -name $app_name -set build-config Release
 
   # App config options
-  dict for {p v} $app {
-    if {![IsInList $p_lower $create_options] && [IsInList $p_lower $conf_options]} {
-      app config -name $app_name -set $p_lower $v
-    }
+  dict for {p v} $app_conf_options {
+    Msg Info "Configuring app option $p to $v"
+    app config -name $app_name -set $p $v
   }
 }
 

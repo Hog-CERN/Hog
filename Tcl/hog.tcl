@@ -4541,8 +4541,75 @@ proc LaunchVitisBuild {project_name {repo_path .}} {
     set dst_main [file normalize "$dst_dir/$proj_name\-$app_name\-$describe.elf"]
     Msg Info "Copying main binary file $main_file into $dst_main..."
     file copy -force $main_file $dst_main
-    }
+  }
 
+  #Create versions.txt file
+  set version_file [file normalize "$dst_dir/versions.txt"]
+  Msg Status " ------------------------- VERSIONS -------------------------"
+  Msg Info "Opening version file $version_file..."
+  set version_file [open $version_file "w+"]
+  Msg Status " Firmware date and time: $date, $timee"
+  if {$flavour != -1} {
+    Msg Status " Project flavour: $flavour"
+  }
+
+  set version [HexVersionToString $version]
+  if {$group_name != ""} {
+    puts $version_file "## $group_name/$proj_name Version Table\n"
+  } else {
+    puts $version_file "## $proj_name Version Table\n"
+  }
+
+  struct::matrix m
+  m add columns 7
+
+  m add row  "| \"**File set**\" | \"**Commit SHA**\" | **Version**  |"
+  m add row  "| --- | --- | --- |"
+  Msg Status " Global SHA: $commit, VER: $version"
+  m add row  "| Global | $commit | $version |"
+
+  set cons_ver [HexVersionToString $cons_ver]
+  Msg Status " Constraints SHA: $cons_hash, VER: $cons_ver"
+  m add row  "| Constraints | $cons_hash | $cons_ver |"
+
+  set top_ver [HexVersionToString $top_ver]
+  Msg Status " Top SHA: $top_hash, VER: $top_ver"
+  m add row "| \"Top Directory\" | $top_hash | $top_ver |"
+
+  set hog_ver [HexVersionToString $hog_ver]
+  Msg Status " Hog SHA: $hog_hash, VER: $hog_ver"
+  m add row "| Hog | $hog_hash | $hog_ver |"
+
+  Msg Status " --- Libraries ---"
+  foreach l $libs v $vers h $hashes {
+    set v [HexVersionToString $v]
+    Msg Status " $l SHA: $h, VER: $v"
+    m add row "| \"**Lib:** $l\" | $h | $v |"
+  }
+
+  if {[llength $user_ip_repos] > 0} {
+
+    Msg Status " --- User IP Repositories ---"
+    foreach r $user_ip_repos v $user_ip_vers h $user_ip_hashes {
+      set v [HexVersionToString $v]
+      set repo_name [file tail $r]
+      Msg Status " $repo_name SHA: $h, VER: $v"
+      m add row "| \"**Repo:** $repo_name\" | $h | $v |"
+    }
+  }
+
+  if {[llength $ext_names] > 0} {
+    Msg Status " --- External Libraries ---"
+    foreach e $ext_names eh $ext_hashes {
+      Msg Status " $e SHA: $eh"
+      m add row "| \"**Ext:** $e\" | $eh | \" \" |"
+    }
+  }
+
+  Msg Status " -----------------------------------------------------------------"
+  puts $version_file [m format 2string]
+  puts $version_file "\n\n"
+  close $version_file
 
 }
 

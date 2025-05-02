@@ -4242,7 +4242,7 @@ proc LaunchImplementation {reset do_create run_folder project_name {repo_path .}
     }
 
     #### XSA here only for Versal Segmented Configuration
-    if {IsVersal [get_property part [current_project]]} {
+    if {[IsVersal [get_property part [current_project]]]} {
       if {get_property segmented_configuration [current_project] == 1} {
 	Msg Info "Versal Segmented configuration detected: exporting XSA file..."
 	set xsa_name "$dst_dir/$project_name\-$describe.xsa"

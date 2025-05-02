@@ -173,6 +173,20 @@ proc AddHogFiles { libraries properties filesets } {
             set_property -name "used_in_simulation" -value "false" -objects $file_obj
           }
 
+          # scoped_to_ref
+          if {[lsearch -inline -regexp $props "scoped_to_ref"] >= 0} {
+            set ref [lindex [regexp -inline {\yscoped_to_ref\s*=\s*(.+?)\y.*} $props] 1]
+            Msg Debug "Setting scoped_to_ref for $f to $ref..."
+            set_property SCOPED_TO_REF $ref $file_obj
+          }
+
+          # scoped_to_cells
+          if {[lsearch -inline -regexp $props "scoped_to_cells"] >= 0} {
+            set cell [lindex [regexp -inline {\yscoped_to_cells\s*=\s*(.+?)\y.*} $props] 1]
+            Msg Debug "Setting scoped_to_cells for $f to $cell..."
+            set_property SCOPED_TO_CELLS $cell $file_obj
+          }
+
           ## Simulation properties
           # Top simulation module
           set top_sim [lindex [regexp -inline {\ytopsim\s*=\s*(.+?)\y.*} $props] 1]

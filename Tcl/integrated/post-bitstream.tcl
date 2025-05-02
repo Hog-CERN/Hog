@@ -64,7 +64,7 @@ if {[IsXilinx]} {
 
   set top_name  [file rootname [file tail $main_file]]
 
-  set additional_ext "bin ltx pdi"
+  set additional_ext "bin ltx pdi mmi"
 
   set xml_dir [file normalize "$work_path/../xml"]
   set run_dir [file normalize "$work_path/.."]

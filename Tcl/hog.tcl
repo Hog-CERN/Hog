@@ -3685,16 +3685,16 @@ proc InitLauncher {script tcl_path parameters commands argv} {
   set old_path [pwd]
   set bin_path [file normalize "$tcl_path/../../bin"]
   set top_path [file normalize "$tcl_path/../../Top"]
-  
+
   set cmd_lines [split $commands "\n"]
-  
+
   set command_options [dict create]
   set directive_descriptions [dict create]
   set directive_names [dict create]
   set common_directive_names [dict create]
 
   foreach l $cmd_lines {
-    
+
     #excludes direcitve with a # just after the \{
     if { [regexp {\\(.*) \{\#} $l minc d] } {
       lappend directives_with_projects  $d
@@ -3704,59 +3704,47 @@ proc InitLauncher {script tcl_path parameters commands argv} {
     if { [regexp {\\(.*) \{} $l minc regular_expression]} {
       lappend directive_regex $regular_expression
     }
-    
+
     #gets all common directives
     if { [regexp {\#\s*NAME(\*)?:\s*(.*)\s*} $l minc star name] } {
       dict set directive_names $name $regular_expression
       if {$star eq "*"} {
-	dict set common_directive_names $name $regular_expression 
+	      dict set common_directive_names $name $regular_expression
       }
     }
     set directive_names [dict'sort $directive_names]
-    set common_directive_names [dict'sort $common_directive_names]    
-    
-    #gets all the descriptions	 
+    set common_directive_names [dict'sort $common_directive_names]
+
+    #gets all the descriptions
     if { [regexp {\#\s*DESCRIPTION:\s*(.*)\s*} $l minc x]} {
       dict set directive_descriptions $regular_expression $x
     }
-    
+
     #gets all the list of options
     if { [regexp {\#\s*OPTIONS:\s*(.*)\s*} $l minc x]} {
       dict set command_options $regular_expression [split [regsub -all {[ \t\n]+} $x {} ] ","]
     }
-    
+
   }
 
-   set short_usage "
-   usage: ./Hog/Do \[OPTIONS\] <directive> \[project\]
-   
-   Most common directives (case insensitive):
-   "
+  set short_usage "usage: ./Hog/Do \[OPTIONS\] <directive> \[project\]\n\nMost common directives (case insensitive):"
 
-   dict for {key value} $common_directive_names {
-     set short_usage "$short_usage\n   - $key: [dict get $directive_descriptions $value]"
-   }
-  
-   set short_usage "$short_usage\n
-   To see all the available directives, run:
-   ./Hog/Do HELP.
-   
-   './Hog/Do <directive> HELP' lists available options for the chosen directive.
-   
-   "
-   
-   set usage "
-   usage: ./Hog/Do \[OPTIONS\] <directive> \[project\]
-   
-   Directives (case insensitive):
+  dict for {key value} $common_directive_names {
+    set short_usage "$short_usage\n   - $key: [dict get $directive_descriptions $value]"
+  }
+
+  set short_usage "$short_usage\n\nTo see all the available directives, run:\n./Hog/Do HELP\n\nTo list available options for the chosen directive run:\n./Hog/Do <directive> HELP
+
+  "
+
+  set usage "usage: ./Hog/Do \[OPTIONS\] <directive> \[project\]\n\nDirectives (case insensitive):
    "
 
   dict for {key value} $directive_names {
      set usage "$usage\n   - $key: [dict get $directive_descriptions $value]"
-   }   
+   }
 
-   set usage "$usage\n  
-   './Hog/Do <directive> HELP' lists available options for the chosen directive.
+  set usage "$usage\n\nTo list available options for the chosen directive run:\n./Hog/Do <directive> HELP
    "
 
   if {[IsTclsh]} {
@@ -3770,7 +3758,7 @@ proc InitLauncher {script tcl_path parameters commands argv} {
   }
 
   set argv [regsub -all {(?i) HELP\y} $argv " -help"]
-  
+
   lassign [GetOptions $argv $parameters] option_list arg_list
 
   if { [IsInList "-all" $option_list] } {
@@ -6101,7 +6089,7 @@ proc WriteUtilizationSummary {input output project_name run} {
 proc dict'sort {dict args} {
     set res {}
     foreach key [lsort {*}$args [dict keys $dict]] {
-        dict set res $key [dict get $dict $key] 
+        dict set res $key [dict get $dict $key]
     }
     set res
 }

@@ -4241,6 +4241,15 @@ proc LaunchImplementation {reset do_create run_folder project_name {repo_path .}
       Msg Warning "No timing file found, not a problem if running locally"
     }
 
+    #### XSA here only for Versal Segmented Configuration
+    if {IsVersal [get_property part [current_project]]} {
+      if {get_property segmented_configuration [current_project] == 1} {
+	Msg Info "Versal Segmented configuration detected: exporting XSA file..."
+	set xsa_name "$dst_dir/$project_name\-$describe.xsa"
+	write_hw_platform -fixed -force -file $xsa_name
+      }
+    }
+      
   } elseif {[IsQuartus]} {
     set revision [get_current_revision]
 

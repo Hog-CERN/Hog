@@ -444,12 +444,14 @@ if {[IsXilinx]} {
 	  set pdi_post_imp [file normalize "$work_path/$top_name.pdi"]
 	  set_property platform.full_pdi_file $pdi_post_imp [current_project]
 	  Msg Info "XSA file will be generated for Versal with this PDI: $pdi_post_imp"
+	  write_hw_platform -fixed -force -file "$dst_xsa"	  
 	}
+	Msg Warning "No XSA will be produced in post-bitream for segmented configuration mode. If you're running with the GUI, please type the following on the Tcl console: write_hw_platform -fixed -force -file $dst_xsa."
 
-      } 
+      } else {
       # we leave include bit also for Versal
       write_hw_platform -include_bit -fixed -force -file "$dst_xsa"
-
+      }
     }
   }
 }

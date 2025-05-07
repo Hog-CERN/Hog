@@ -173,20 +173,6 @@ proc AddHogFiles { libraries properties filesets } {
             set_property -name "used_in_simulation" -value "false" -objects $file_obj
           }
 
-          # scoped_to_ref
-          if {[lsearch -inline -regexp $props "scoped_to_ref"] >= 0} {
-            set ref [lindex [regexp -inline {\yscoped_to_ref\s*=\s*(.+?)\y.*} $props] 1]
-            Msg Debug "Setting scoped_to_ref for $f to $ref..."
-            set_property SCOPED_TO_REF $ref $file_obj
-          }
-
-          # scoped_to_cells
-          if {[lsearch -inline -regexp $props "scoped_to_cells"] >= 0} {
-            set cell [lindex [regexp -inline {\yscoped_to_cells\s*=\s*(.+?)\y.*} $props] 1]
-            Msg Debug "Setting scoped_to_cells for $f to $cell..."
-            set_property SCOPED_TO_CELLS $cell $file_obj
-          }
-
           ## Simulation properties
           # Top simulation module
           set top_sim [lindex [regexp -inline {\ytopsim\s*=\s*(.+?)\y.*} $props] 1]
@@ -259,14 +245,14 @@ proc AddHogFiles { libraries properties filesets } {
           }
 
           # Constraint Properties
-          set ref [lindex [regexp -inline {\yscoped_to_ref\s*=\s*(.+?)\y.*} $props] 1]
-          set cell [lindex [regexp -inline {\yscoped_to_cells\s*=\s*(.+?)\y.*} $props] 1]
-          if {([file extension $f] == ".tcl" || [file extension $f] == ".xdc") && $ext == ".con"} {
+          set ref [lindex [regexp -inline {\yscoped_to_ref\s*=\s*([^ ]+)} $props] 1]
+          set cell [lindex [regexp -inline {\yscoped_to_cells\s*=\s*([^ ]+)} $props] 1]
+          if {[file extension $f] == ".elf" || (([file extension $f] == ".tcl" || [file extension $f] == ".xdc") && $ext == ".con")} {
             if {$ref != ""} {
               set_property SCOPED_TO_REF $ref $file_obj
             }
             if {$cell != ""} {
-              set_property SCOPED_TO_CELLS $cell $file_obj
+              set_property SCOPED_TO_CELLS {[split $cell ","]} $file_obj
             }
           }
 
@@ -2339,7 +2325,7 @@ proc GetProjectFiles {{project_file ""}} {
 
         if {[IsInList "SCOPED_TO_CELLS" [list_property [GetFile $f $fs]]]} {
           if {[get_property SCOPED_TO_CELLS [GetFile $f $fs]] != ""} {
-            dict lappend properties $f "scoped_to_cells=[get_property SCOPED_TO_CELLS [GetFile $f $fs]]"
+            dict lappend properties $f "scoped_to_cells=[regsub " " [get_property SCOPED_TO_CELLS [GetFile $f $fs]] ","]"
           }
         }
 

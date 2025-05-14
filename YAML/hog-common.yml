@@ -46,8 +46,8 @@ before_script:
   - git config --global --add safe.directory . || ':' 
   - git config --global --add safe.directory ./Hog || ':'
   - git submodule update --init Hog || ':'
-  - source Hog/Other/HogPrint.sh
-  - print_hog Hog/
+  - source Hog/Other/HogPrint.sh || ':'
+  - print_hog Hog/ || ':'
 
 stages:
   - check

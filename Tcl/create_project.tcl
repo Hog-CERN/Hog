@@ -1,4 +1,4 @@
-#   Copyright 2018-2024 The University of Birmingham
+#   Copyright 2018-2025 The University of Birmingham
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -40,6 +40,8 @@ namespace eval globalSettings {
   variable ADV_OPTIONS
   variable SPEED
   variable LIBERO_MANDATORY_VARIABLES
+  # Diamond only
+  variable DEVICE
 
   variable PROPERTIES
   variable SIM_PROPERTIES
@@ -134,6 +136,16 @@ proc InitProject {} {
       file delete -force $globalSettings::build_dir
     }
     new_project -location $globalSettings::build_dir -name [file tail $globalSettings::DESIGN] -die $globalSettings::DIE -package $globalSettings::PACKAGE -family $globalSettings::FAMILY -hdl VHDL
+  } elseif {[IsDiamond]} {
+    if {[file exists $globalSettings::build_dir]} {
+      file delete -force $globalSettings::build_dir
+    }
+    set old_dir [pwd]
+    file mkdir $globalSettings::build_dir
+    cd $globalSettings::build_dir
+    prj_project new -name [file tail $globalSettings::DESIGN] -dev $globalSettings::DEVICE -synthesis $globalSettings::SYNTHESIS_TOOL
+    cd $old_dir
+    ConfigureProperties
   } else {
     puts "Creating project for $globalSettings::DESIGN part $globalSettings::PART"
     puts "Configuring project settings:"
@@ -153,7 +165,7 @@ proc AddProjectFiles {} {
     if {[string equal [get_filesets -quiet sources_1] ""]} {
       create_fileset -srcset sources_1
     }
-    set sources [get_filesets sources_1]
+    set sources "sources_1"
   } else {
     set sources 0
   }
@@ -209,6 +221,8 @@ proc AddProjectFiles {} {
 #  @param[in] obj the project object
 #
 proc CreateReportStrategy {obj} {
+  #TODO: Add ReportStrategy for Quartus/Libero and Diamond
+
   if {[IsVivado]} {
     ## Vivado Report Strategy
     if {[string equal [get_property -quiet report_strategy $obj] ""]} {
@@ -319,6 +333,8 @@ proc ConfigureSynthesis {} {
 
     } elseif {[IsLibero]} {
       configure_tool -name {SYNTHESIZE} -params SYNPLIFY_TCL_FILE:$globalSettings::pre_synth
+    } elseif {[IsDiamond]} {
+      prj_impl pre_script "syn" $globalSettings::pre_synth
     }
 
     Msg Debug "Setting $globalSettings::pre_synth to be run before synthesis"
@@ -338,6 +354,8 @@ proc ConfigureSynthesis {} {
       #QUARTUS only
       set_global_assignment -name POST_MODULE_SCRIPT_FILE quartus_sh:$globalSettings::quartus_post_module
 
+    } elseif {[IsDiamond]} {
+      prj_impl post_script "syn" $globalSettings::post_synth
     }
     Msg Debug "Setting $globalSettings::post_synth to be run after synthesis"
   }
@@ -368,6 +386,10 @@ proc ConfigureSynthesis {} {
     #QUARTUS only
     #TO BE DONE
 
+  } elseif {[IsLibero]} {
+    #TODO: LIBERO
+  } elseif {[IsDiamond]} {
+    #TODO: Diamond
   } else {
     Msg info "Reporting strategy for synthesis"
   }
@@ -411,7 +433,8 @@ proc ConfigureImplementation {} {
     } elseif {[IsQuartus]} {
       #QUARTUS only
       #set_global_assignment -name PRE_FLOW_SCRIPT_FILE quartus_sh:$globalSettings::pre_impl
-
+    } elseif {[IsDiamond]} {
+      prj_impl pre_script "par" $globalSettings::pre_impl
     }
     Msg Debug "Setting $globalSettings::pre_impl to be run after implementation"
   }
@@ -430,6 +453,8 @@ proc ConfigureImplementation {} {
     } elseif {[IsQuartus]} {
       #QUARTUS only
       set_global_assignment -name POST_MODULE_SCRIPT_FILE quartus_sh:$globalSettings::quartus_post_module
+    } elseif {[IsDiamond]} {
+      prj_impl post_script "par" $globalSettings::post_impl
     }
     Msg Debug "Setting $globalSettings::post_impl to be run after implementation"
   }
@@ -447,7 +472,8 @@ proc ConfigureImplementation {} {
     } elseif {[IsQuartus]} {
       #QUARTUS only
       #set_global_assignment -name PRE_FLOW_SCRIPT_FILE quartus_sh:$globalSettings::pre_bit
-
+    } elseif {[IsDiamond]} {
+      prj_impl pre_script "export" $globalSettings::pre_bit
     }
     Msg Debug "Setting $globalSettings::pre_bit to be run after bitfile generation"
   }
@@ -465,6 +491,8 @@ proc ConfigureImplementation {} {
     } elseif {[IsQuartus]} {
       #QUARTUS only
       set_global_assignment -name POST_MODULE_SCRIPT_FILE quartus_sh:$globalSettings::quartus_post_module
+    } elseif {[IsDiamond]} {
+      prj_impl post_script "export" $globalSettings::post_bit
     }
     Msg Debug "Setting $globalSettings::post_bit to be run after bitfile generation"
   }
@@ -661,6 +689,31 @@ proc ConfigureProperties {} {
       # Configure VERIFYTIMING tool to generate a txt file report
       configure_tool -name {VERIFYTIMING} -params {FORMAT:TEXT}
     }
+  } elseif {[IsDiamond]} {
+    if {[info exists globalSettings::PROPERTIES]} {
+      # Project (main) Properties
+      if {[dict exists $globalSettings::PROPERTIES main]} {
+        Msg Info "Setting project-wide properties..."
+        set dev_props [dict get $globalSettings::PROPERTIES main]
+        dict for {prop_name prop_val} $dev_props {
+          # Device is already set
+          if { [string toupper $prop_name] != "DEVICE" } {
+            Msg Debug "Setting $prop_name = $prop_val"
+            prj_project option $prop_name $prop_val
+          }
+        }
+      }
+      # Implementation properties
+      if {[dict exists $globalSettings::PROPERTIES impl]} {
+        Msg Info "Setting Implementation properties..."
+        set dev_props [dict get $globalSettings::PROPERTIES impl]
+        dict for {prop_name prop_val} $dev_props {
+          # Device is already set
+          Msg Debug "Setting $prop_name = $prop_val"
+          prj_impl option $prop_name $prop_val
+        }
+      }
+    }
   } else {
     Msg info "Configuring Properties"
   }
@@ -724,7 +777,7 @@ proc CreateProject args {
     {verbose "If set, launch the script in verbose mode."}
   }
 
-  set usage "Create Vivado/ISE/Quartus/Libero project.\nUsage: CreateProject \[OPTIONS\] <project> <repository path>\n Options:"
+  set usage "Create Vivado/ISE/Quartus/Libero/Diamond project.\nUsage: CreateProject \[OPTIONS\] <project> <repository path>\n Options:"
 
   if {[catch {array set options [cmdline::getoptions args $parameters $usage]}] || [llength $args] < 2 ||[lindex $args 0] eq""} {
     Msg Info [cmdline::usage $parameters $usage]
@@ -810,7 +863,7 @@ proc CreateProject args {
       Msg Error "No main section found in $conf_file, make sure it has a section called \[main\] containing the mandatory properties."
     }
 
-    if {[file exists $sim_file]} {
+    if {[file exists $sim_file] && [IsVivado]} {
       Msg Info "Parsing simulation configuration file $sim_file..."
       SetGlobalVar SIM_PROPERTIES [ReadConf $sim_file]
     } else {
@@ -821,7 +874,7 @@ proc CreateProject args {
   }
 
 
-  if {![IsLibero]} {
+  if {[IsXilinx] || [IsQuartus]} {
     SetGlobalVar PART
   }
   #Family is needed in quartus and libero only
@@ -832,6 +885,11 @@ proc CreateProject args {
       SetGlobalVar DIE
       SetGlobalVar PACKAGE
     }
+  }
+
+  if {[IsDiamond]} {
+    SetGlobalVar DEVICE
+    SetGlobalVar SYNTHESIS_TOOL "lse"
   }
 
   if {[IsVivado]} {
@@ -956,6 +1014,14 @@ proc CreateProject args {
     lassign [GetDateAndTime $commit] date timee
     WriteGenerics "create" $globalSettings::repo_path $globalSettings::group_name/$globalSettings::DESIGN $date $timee $commit $version $top_hash $top_ver $hog_hash $hog_ver $cons_ver $cons_hash $libs $vers $hashes $ext_names $ext_hashes $user_ip_repos $user_ip_vers $user_ip_hashes $flavour $xml_ver $xml_hash
     cd $old_path
+  }
+
+  if {[IsLibero]} {
+    save_project
+  }
+
+  if {[IsDiamond]} {
+    prj_project save
   }
 
   Msg Info "Project $globalSettings::DESIGN created successfully in [Relative $globalSettings::repo_path $globalSettings::build_dir]."

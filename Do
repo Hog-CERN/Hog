@@ -1,4 +1,17 @@
 #!/bin/bash
+#   Copyright 2018-2025 The University of Birmingham
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at
+#
+#       http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
 # This script will find a suitable tclsh executable and call the launch.tcl file with it.
 
 # Array of: IDE executable names, the paths to the tclsh wrt to them (including the tclsh executable name), the LD_LIBRARY_PATH for tclsh, optionally the TCL_LIB path (where init.tcl is located)
@@ -7,14 +20,13 @@
 # Get the directory containing the script
 script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-
-
 executables=(
     "tclsh, ./tclsh,  .,  "
-    "vivado, unwrapped/lnx64.o/tclsh8.5:unwrapped/lnx32.o/tclsh8.5, ../lib/lnx64.o/:../lib/lnx32.o/, ../tps/tcl/tcl8.5/"
+    "vivado, unwrapped/lnx64.o/tclsh8.5:unwrapped/lnx32.o/tclsh8.5:unwrapped/lnx64.o/tclsh8.6:unwrapped/lnx32.o/tclsh8.6, ../lib/lnx64.o/:../lib/lnx32.o/, ../tps/tcl/tcl8.5/:../tps/tcl/tcl8.6/"
     "quartus, ./tclsh, ../linux64:../linux32, "
     "planAhead, lin64/tclsh:lin32/tclsh, ../lib/lin64/:../lib/lin32/, "
     "libero, ../bin64/acttclsh:../bin32/acttclsh, ../lib64/:../lib32/, ../lib64/tcl8.5/:../lib64/tcl8.6/"
+    "diamond, ../../tcltk/bin/tclsh, ../../tcltk/lib, ../../tcltk/lib/tcl8.5/:../../tcltk/lib/tcl8.6/:"
 )
 
 # Function to find the directory of an executable in the PATH
@@ -104,7 +116,6 @@ if [ "$found" == 1 ]; then
   fi
 
 if [[ "$HOG_LOGGER" == "ENABLED" ]]; then
-# if [[ "$HOG_LOGGER" == "ENABLED" ]]; then
     Logger $executable_path $hog_dir/Tcl/launch.tcl "$@"
     Hog_exit
   else

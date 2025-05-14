@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#   Copyright 2018-2024 The University of Birmingham
+#   Copyright 2018-2025 The University of Birmingham
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 # Get the directory containing the script
 script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
+source ${script_dir}/HogPrint.sh
 . ${script_dir}/Logger.sh
 
 ## @file CreateProject.sh
@@ -114,10 +115,15 @@ function select_command_from_line() {
     COMMAND_OPT="-nojournal -nolog -mode batch -notrace -source "
     POST_COMMAND_OPT="-tclargs"
   elif [[ $TCL_FIRST_LINE =~ 'libero' ]]; then
-    Msg Info " Recognised Libero SoC project"
+    Msg Info "Recognised Libero SoC project"
     COMMAND="libero"
     COMMAND_OPT="SCRIPT:"
     POST_COMMAND_OPT="SCRIPT_ARGS:"
+  elif [[ $TCL_FIRST_LINE =~ 'diamond' ]]; then
+    Msg Info "Recognised Lattice Diamond project"
+    COMMAND="diamondc"
+    COMMAND_OPT=" "
+    POST_COMMAND_OPT=" "
   else
     Msg Warning " You should write #vivado, #quartus or #planahead as first line in your hog.conf file or project Tcl file, assuming Vivado... "
     Msg Info " Recognised Vivado project"
@@ -277,28 +283,6 @@ function select_executable_from_project_dir() {
 #
 # @param[in] $1 path to Hog dir
 # @brief prints the hog logo
-function print_hog() {
-  if [ -z ${1+x} ]; then
-    Msg Error "missing input! Got: $1!"
-    return 1
-  fi
-  cd "$1" || exit
-  ver=$(git describe --always)
-  HOG_GIT_VERSION=$(git describe --always)
-  echo
-  cat ./images/hog_logo.txt
-  echo " Version: ${ver}"
-  echo
-  cd "${OLDPWD}" || exit >> /dev/null
-  HogVer "$1"
-
-  return 0
-}
-
-# @fn print_hog
-#
-# @param[in] $1 path to Hog dir
-# @brief prints the hog logo
 function print_log_hog() {
   if [ -z ${1+x} ]; then
     Msg Error "Missing input! Got: $1!"
@@ -357,68 +341,6 @@ function search_projects() {
   fi
   return 0
 }
-
-#
-# @brief Check if the running Hog version is older than the latest stable
-#
-# @param[in]    $1 full path to the dir containing the HDL repo
-# @returns  0 if success, 1 if failure
-#
-function HogVer() {
-  Msg Info "Checking the latest available Hog version..."
-  if ! check_command timeout
-  then
-    return 1
-  fi
-
-  if [ -z ${1+x} ]; then
-    Msg Error "Missing input! You should give the path to your Hog submodule. Got: $1!"
-    return 1
-  fi
-
-  if [[ -d "$1" ]]; then
-    cd "$1" || exit
-    current_version=$(git describe --always)
-    current_sha=$(git log "$current_version" -1 --format=format:%H)
-    timeout 5s git fetch
-    master_version=$(git describe origin/master)
-    master_sha=$(git log "$master_version" -1 --format=format:%H)
-    merge_base=$(git merge-base "$current_sha" "$master_sha")
-
-    # The next line checks if master_sha is an ancestor of current_sha
-    if [ "$merge_base" != "$master_sha" ]; then
-      Msg Info
-      Msg Info "Version $master_version has been released (https://gitlab.cern.ch/hog/Hog/-/releases/$master_version)"
-      Msg Info "You should consider updating Hog submodule with the following instructions:"
-      echo
-      Msg Info "cd Hog && git checkout master && git pull"
-      echo
-      Msg Info "Remember also to update the ref: in your .gitlab-ci.yml to $master_version"
-      echo
-    else
-      Msg Info "Latest official version is $master_version, nothing to do."
-    fi
-
-  fi
-  cd ${OLDPWD} || exit >> /dev/null
-}
-
-
-#
-# @brief Check if a command is available on the running machine
-#
-# @param[in]    $1 Command name
-# @returns  0 if success, 1 if failure
-#
-function check_command() {
-  if ! command -v "$1" &> /dev/null
-  then
-    Msg Warning "Command $1 could not be found"
-    return 1
-  fi
-  return 0
-}
-
 
 ## @fn print_projects
 #

@@ -1,4 +1,4 @@
-#   Copyright 2018-2024 The University of Birmingham
+#   Copyright 2018-2025 The University of Birmingham
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -23,8 +23,9 @@ default:
     - git fetch origin $CI_COMMIT_REF_NAME
     - git checkout $CI_COMMIT_REF_NAME --
     - git status
-    - source ./Other/CommonFunctions.sh
+    - source ./Other/HogPrint.sh
     - print_hog .
+
 stages: [mirrors, merge_checks, tag, build_doc]
 
 launch_github:
@@ -44,7 +45,7 @@ launch_github:
     - sleep 60
     - git submodule init Hog
     - git submodule update Hog
-    - if git branch -a --list *auto/$CI_COMMIT_REF_NAME | grep -q "auto/$CI_COMMIT_REF_NAME$"; then
+    - if git branch -a | grep -q "auto/$CI_COMMIT_REF_NAME"; then
         git checkout auto/$CI_COMMIT_REF_NAME;
         git branch --set-upstream-to=origin/auto/$CI_COMMIT_REF_NAME auto/$CI_COMMIT_REF_NAME;
         git pull;
@@ -76,19 +77,18 @@ launch_github:
 launch_testfirmware:
   stage: merge_checks
   image: gitlab-registry.cern.ch/hog/hog-docker:master
-  variables:
-    GITLAB_TOKEN: $TF_TOKEN
   only:
     refs: [merge_requests]
     variables: [$CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /^(master|develop)$/]
   except:
     variables: [$CI_COMMIT_REF_NAME =~ /^test\/.*$/i]
   script:
+    - glab auth login -t $HOG_PUSH_TOKEN -h $CI_SERVER_HOST
     # Clone TestFirmware
     - git clone --recursive https://hog_user:${HOG_PUSH_TOKEN}@gitlab.com/hog-cern/test/TestFirmware.git
     - cd TestFirmware/
     # Check if auto-generated Hog branch exists
-    - if git branch -a --list *auto/$CI_COMMIT_REF_NAME | grep -q "auto/$CI_COMMIT_REF_NAME$"; then
+    - if git branch -a | grep -q "auto/$CI_COMMIT_REF_NAME"; then
         git checkout auto/$CI_COMMIT_REF_NAME;
         git branch --set-upstream-to=origin/auto/$CI_COMMIT_REF_NAME auto/$CI_COMMIT_REF_NAME;
         git pull;
@@ -266,8 +266,9 @@ tagging:
     - git clone --recursive https://hog_user:${HOG_PUSH_TOKEN}@gitlab.com/hog-cern/test/TestFirmware.git
     - cd TestFirmware/
     # Check if there is still a branch connected to the merged MR
-    - if git branch -a --list *auto/$branch | grep -q "auto/$branch$"; then
-        git checkout auto/$branch
+    - if git branch -a | grep -q "auto/$branch"; then
+        git checkout auto/$branch;
+        git branch --set-upstream-to=origin/auto/$branch auto/$branch;
         set +e; MERGE_STATUS=$(git merge --no-commit origin/develop); set -e;
         if [ "$MERGE_STATUS" == "Already up to date." ]; then
           response=$(glab mr list -F json -R hog-cern/test/TestFirmware --source-branch=auto/$branch --target-branch=develop);
@@ -332,7 +333,7 @@ update_mirrors:
     - glab auth login -t $HOG_PUSH_TOKEN -h $CI_SERVER_HOST
     # Update Mirror
     - glab api /projects/37942198/remote_mirrors/517789/sync --method POST
-    - glab api /projects/37942198/remote_mirrors/1748198/sync --method POST
+    - glab api /projects/37942198/remote_mirrors/2811150/sync --method POST
   interruptible: true
 
 create_release_note:

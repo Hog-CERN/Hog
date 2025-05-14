@@ -1,5 +1,5 @@
 #!/usr/bin/env tclsh
-#   Copyright 2018-2024 The University of Birmingham
+#   Copyright 2018-2025 The University of Birmingham
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -24,17 +24,13 @@ set tcl_path [file normalize "[file dirname [info script]]/.."]
 source $tcl_path/hog.tcl
 
 # Import tcllib
-if {[IsSynplify]} {
+if {[IsSynplify] || [IsDiamond]} {
   if {[info exists env(HOG_TCLLIB_PATH)]} {
     lappend auto_path $env(HOG_TCLLIB_PATH)
   } else {
     puts "ERROR: To run Hog with Microsemi Libero SoC, you need to define the HOG_TCLLIB_PATH variable."
     return
   }
-}
-
-if {[IsLibero]} {
-  puts "I am running Libero"
 }
 
 if {[catch {package require struct::matrix} ERROR]} {
@@ -46,7 +42,8 @@ if {[catch {package require struct::matrix} ERROR]} {
 
 if {[IsISE]} {
   # Vivado + PlanAhead
-  set old_path [file normalize "../../Projects/$project/$project.runs/synth_1"]
+  set project [file tail $project_name]
+  set old_path [file normalize "../../Projects/${project_name}/$project.runs/synth_1"]
   file mkdir $old_path
 } else {
   set old_path [pwd]
@@ -62,7 +59,7 @@ if {[info exists env(HOG_EXTERNAL_PATH)]} {
 if {[IsXilinx]} {
   # Vivado + PlanAhead
   if {[IsISE]} {
-    set proj_file [get_property DIRECTORY [current_project]]
+    set proj_file "[get_property DIRECTORY [current_project]]/$project.prr"
   } else {
     set proj_file [get_property parent.project_path [current_project]]
   }
@@ -98,6 +95,10 @@ if {[IsXilinx]} {
   }
 } elseif {[IsSynplify]} {
   set proj_dir [file normalize [file dirname "[project_data -dir]/../.."]  ]
+  set proj_name [file tail $proj_dir]
+  set project $proj_name
+} elseif {[IsDiamond]} {
+  set proj_dir [file normalize "[pwd]/.."]
   set proj_name [file tail $proj_dir]
   set project $proj_name
 } else {
@@ -157,7 +158,8 @@ if {[file exists "$tcl_path/../../Top/$group/$proj_name/hog.conf"]} {
 
 set this_commit [GetSHA]
 
-if {[IsVivado]} {
+if {[IsVivado] || [IsSynplify] || [IsDiamond]} {
+  Msg Info "Running list file checker..."
   ##nagelfar ignore
   if {![string equal ext_path ""]} {
     set argv [list "-ext_path" "$ext_path" "-project" "$group/$proj_name" "-outDir" "$dst_dir" "-log" "[expr {!$allow_fail_on_check}]"]
@@ -250,36 +252,35 @@ if {$xml_hash != ""} {
 }
 
 #number of threads
-set maxThreads [GetMaxThreads [file normalize ./Top/$group/$proj_name/]]
-if {$maxThreads != 1} {
-  Msg CriticalWarning "Multithreading enabled. Bitfile will not be deterministic. Number of threads: $maxThreads"
-} else {
-  Msg Info "Disabling multithreading to assure deterministic bitfile"
-}
+if {![IsDiamond]} {
+  set maxThreads [GetMaxThreads [file normalize ./Top/$group/$proj_name/]]
 
-if {[IsXilinx]} {
-  ### Vivado
-  set_param general.maxThreads $maxThreads
-} elseif {[IsQuartus]} {
-  # QUARTUS
-  if { [catch {package require ::quartus::project} ERROR] } {
-    Msg Error "$ERROR\n Can not find package ::quartus::project"
-    cd $old_path
-    return 1
+  if {$maxThreads != 1} {
+    Msg CriticalWarning "Multithreading enabled. Bitfile will not be deterministic. Number of threads: $maxThreads"
+  } else {
+    Msg Info "Disabling multithreading to assure deterministic bitfile"
   }
-  set this_dir [pwd]
-  cd $proj_dir
-  project_open $proj_name -current_revision
-  cd $this_dir
-  set_global_assignment -name NUM_PARALLEL_PROCESSORS $maxThreads
-  project_close
-} elseif {[IsSynplify]} {
-  set_option -max_parallel_jobs $maxThreads
-} else {
-  ### Tcl Shell
-  puts "Hog:DEBUG MaxThread is set to: $maxThreads"
-}
 
+  if {[IsXilinx]} {
+    ### Vivado
+    set_param general.maxThreads $maxThreads
+  } elseif {[IsQuartus]} {
+    # QUARTUS
+    if { [catch {package require ::quartus::project} ERROR] } {
+      Msg Error "$ERROR\n Can not find package ::quartus::project"
+      cd $old_path
+      return 1
+    }
+    set this_dir [pwd]
+    cd $proj_dir
+    project_open $proj_name -current_revision
+    cd $this_dir
+    set_global_assignment -name NUM_PARALLEL_PROCESSORS $maxThreads
+    project_close
+  } elseif {[IsSynplify]} {
+    set_option -max_parallel_jobs $maxThreads
+  }
+}
 set clock_seconds [clock seconds]
 set tt [clock format $clock_seconds -format {%d/%m/%Y at %H:%M:%S}]
 
@@ -293,12 +294,18 @@ if {[GitVersion 2.9.3]} {
 }
 
 #####  Passing Hog generic to top file
-if {[IsXilinx] || [IsSynplify]} {
+if {[IsXilinx] || [IsSynplify] || [IsDiamond]} {
   ### VIVADO
   set proj_group_and_name "$group/$proj_name"
   # set global generic variables
-  
+  if {[IsDiamond]} {
+    prj_project open $proj_dir/$proj_name.ldf
+  }
   WriteGenerics "synth" $repo_path $proj_group_and_name $date $timee $commit $version $top_hash $top_ver $hog_hash $hog_ver $cons_ver $cons_hash  $libs $vers $hashes $ext_names $ext_hashes $user_ip_repos $user_ip_vers $user_ip_hashes $flavour $xml_ver $xml_hash
+  if {[IsDiamond]} {
+    prj_project save
+    prj_project close
+  }
   set status_file [file normalize "$old_path/../versions.txt"]
 
 } elseif {[IsQuartus]} {

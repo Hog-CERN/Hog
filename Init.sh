@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#   Copyright 2018-2024 The University of Birmingham
+#   Copyright 2018-2025 The University of Birmingham
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -196,7 +196,7 @@ function init() {
     Msg Info "Creating projects for: $proj..."
     for f in $proj; do
       Msg Info "Creating Vivado project: $f..."
-      ./Hog/CreateProject.sh "${f}"
+      ./Hog/Do C "${f}"
     done
   fi
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#   Copyright 2018-2024 The University of Birmingham
+#   Copyright 2018-2025 The University of Birmingham
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -147,23 +147,25 @@ txtblu='\e[0;34m' # Blue
 txtpur='\e[0;35m' # Purple
 txtcyn='\e[0;36m' # Cyan
 txtwht='\e[0;37m' # White
+txtrst='\e[0m' # rst
+txtbln='\e[5m' # Blink
 
 vldColorSchemes=("dark" "clear")
 
 declare -A darkColorScheme
-darkColorScheme[error]="$txtred   ERROR :$txtwht"
-darkColorScheme[critical]="${txtylw}CRITICAL :$txtwht"
-darkColorScheme[warning]="$txtylw WARNING :$txtwht"
-darkColorScheme[debug]="$txtgrn   DEBUG :$txtwht"
-darkColorScheme[info]="$txtblu    INFO :$txtwht"
-darkColorScheme[vcom]="$txtblu    VCOM :$txtwht"
+darkColorScheme[error]="$txtred   ERROR :$txtrst"
+darkColorScheme[critical]="${txtylw}CRITICAL :$txtrst"
+darkColorScheme[warning]="$txtylw WARNING :$txtrst"
+darkColorScheme[debug]="$txtgrn   DEBUG :$txtrst"
+darkColorScheme[info]="$txtblu    INFO :$txtrst"
+darkColorScheme[vcom]="$txtblu    VCOM :$txtrst"
 declare -A clearColorScheme
-clearColorScheme[error]="$txtred   ERROR :$txtblk"
-clearColorScheme[critical]="${txtylw}CRITICAL :$txtblk"
-clearColorScheme[warning]="$txtylw WARNING :$txtblk"
-clearColorScheme[debug]="$txtgrn   DEBUG :$txtblk"
-clearColorScheme[info]="$txtblu    INFO :$txtblk"
-clearColorScheme[vcom]="$txtblu    VCOM :$txtblk"
+clearColorScheme[error]="$txtred   ERROR :$txtrst"
+clearColorScheme[critical]="${txtylw}CRITICAL :$txtrst"
+clearColorScheme[warning]="$txtylw WARNING :$txtrst"
+clearColorScheme[debug]="$txtgrn   DEBUG :$txtrst"
+clearColorScheme[info]="$txtblu    INFO :$txtrst"
+clearColorScheme[vcom]="$txtblu    VCOM :$txtrst"
 
 clrschselected="dark"
 
@@ -180,8 +182,8 @@ simpleColor[error]="$txtred"
 simpleColor[critical]="$txtorg"
 simpleColor[warning]="$txtcyn"
 simpleColor[debug]="$txtgrn"
-simpleColor[info]="$txtwht"
-simpleColor[vcom]="$txtwht"
+simpleColor[info]="$txtrst"
+simpleColor[vcom]="$txtrst"
 
 declare -A msgCounter
 msgCounter[error]="e"
@@ -248,13 +250,43 @@ function log_stdout(){
         # Msg Error "Error in logger"
       fi
         case "$line" in
-          *'ERROR:'* | *'Error:'* | *':Error'* | *'error:'* | *'Error '* | *'FATAL ERROR'* | *'Fatal'*) msgType="error";;
-          *'CRITICAL:'* | *'CRITICAL WARNING:'*) msgType="critical" ;;
-          *'WARNING:'* | *'Warning:'* | *'warning:'*) msgType="warning" ;;
-          *'INFO:'*) msgType="info" ;;
-          *'DEBUG:'*) msgType="debug" ;;
-          *'vcom'*) msgType="vcom" ;;
-          *) msgType="info" ;;
+          *'ERROR:'* | *'Error:'* | *':Error'* | *'error:'* | *'Error '* | *'FATAL ERROR'* | *'Fatal'*)
+            # if [[ "$line" == *'Fatal'* ]]; then
+            #   next_is_err=1
+            # fi
+            msgType="error"
+            if [[ "$line" =~ "error: unable to create directory (errc=1) (Operation not permitted)" ]]; then
+              msgType="critical"
+            fi
+            if [[ "$line" =~ [Ee]os ]]; then
+              msgType="critical"
+            fi
+            # msgType=$(msgTypeOverload "error" "$dataLine")
+          ;;
+          *'CRITICAL:'* | *'CRITICAL WARNING:'* )
+            # msgTypeOverload msgType "critical" "$dataLine"
+            msgType="critical"
+          ;;
+          *'WARNING:'* | *'Warning:'* | *'warning:'*)
+            # msgTypeOverload msgType "warning" "$dataLine"
+            msgType="warning"
+          ;;
+          *'INFO:'*)
+            # msgTypeOverload msgType "info" $dataLine
+            msgType="info"
+          ;;
+          *'DEBUG:'*)
+            # msgTypeOverload msgType "debug" "$dataLine"
+            msgType="debug"
+            ;;
+          *'vcom'*)
+            # msgTypeOverload msgType "vcom" "$dataLine"
+            msgType="vcom"
+            ;;
+          *)
+            # msgType=$(msgTypeOverload "info" "$dataLine")
+            msgType="info"
+            ;;
         esac
       # elif [ "${1}" == "stderr" ]; then
       #   stderr_line=$dataLine
@@ -386,6 +418,9 @@ function log_stdout(){
   #
   # @brief Prints a resum of the messages types
 function Hog_exit () {
+  if [[  "$HOG_COLOR_EN" -gt 0 ]]; then
+    echo -e "$txtrst"
+  fi
   echo "================ RESUME ================ "
   echo " # of Total messages: $(msg_counter r g)"
   echo " # of Info messages: $(msg_counter r i)"
@@ -394,12 +429,14 @@ function Hog_exit () {
   echo " # of critical warning messages : $(msg_counter r c)"
   echo " # of Errors messages : $(msg_counter r e)"
   echo "======================================== "
-  if [[ $(msg_counter r e) -gt 0 ]]; then
-    echo -e "$txtred *** Hog finished with errors *** $txtwht"
-    # kill -SIGINT "-$hog_pid"
+  if [[ $(msg_counter er) -gt 0 ]]; then
+    echo -e "$txtred *** Hog finished with errors *** $txtrst"
     exit 1
+  elif [[ $(msg_counter cr) -gt 0 ]]; then
+    echo -e "$txtylw *** Hog finished with Critical Warnings *** $txtrst"
+    exit 0
   else
-    echo -e "$txtgrn *** Hog finished without errors *** $txtwht"
+    echo -e "$txtgrn *** Hog finished without errors *** $txtrst"
     exit 0
   fi
 
@@ -511,10 +548,10 @@ function Msg() {
     if [[ $HOG_COLOR_EN -gt 1 ]]; then
       case "${clrschselected}" in
         "dark")
-          echo -e "${darkColorScheme[$msgType]} HOG:$1[${FUNCNAME[1]}] $text"
+          echo -e " ${darkColorScheme[$msgType]} HOG:$1[${FUNCNAME[1]}] $text"
         ;;
         "clear")
-          echo -e "${clearColorScheme[$msgType]} HOG:$1[${FUNCNAME[1]}] $text "
+          echo -e " ${clearColorScheme[$msgType]} HOG:$1[${FUNCNAME[1]}] $text "
         ;;
       esac
     elif [[ $HOG_COLOR_EN -gt 0 ]]; then
@@ -680,6 +717,33 @@ process_HogEnv_config() {
   done < $1
 }
 
+## @function print_hog_logo()
+  #
+  # @brief prints the logo
+  #
+function print_hog_logo () {
+  if [[ -v "HOG_COLOR" && "${HOG_COLOR}" =~ ^[0-9]+$ && "${HOG_COLOR}" -gt 0 ]]; then
+    if [[ "${HOG_COLOR}" =~ ^[0-9]+$ && "${HOG_COLOR}" -gt 1 ]]; then
+      logo_file=$ROOT_PROJECT_FOLDER/Hog/images/hog_logo_full_color.txt
+    else
+      logo_file=$ROOT_PROJECT_FOLDER/Hog/images/hog_logo_color.txt
+    fi
+  else
+    logo_file=$ROOT_PROJECT_FOLDER/Hog/images/hog_logo.txt
+  fi
+  if [ -f $logo_file ]; then
+    while IFS= read -r line; do
+      echo -e "$line" 
+    done < "$logo_file"
+    Msg Info "$(git describe --always)"
+    export HOG_LOGO_PRINTED=1
+  else
+    Msg Warning "Logo file $logo_file doesn't exist"
+  fi
+  
+
+}
+
 ## @function Logger_Init()
   #
   # @brief creates output files and pipelines stdout and stderr to
@@ -716,17 +780,20 @@ function Logger_Init() {
 
   # SETTING COLORS
   HOG_COLOR_EN=0
+  Msg Debug " SETTING COLORS"
   if [[ -v Hog_Usr_dict["terminal.colored"] ]]; then
+    Msg Debug "terminal.colored exists"
     if [[ ${Hog_Usr_dict["terminal.colored"]} =~ ^[0-9]$ ]]; then
       Msg Debug "The variable <terminal.colored> is a one-digit number"
       HOG_COLOR_EN=${Hog_Usr_dict["terminal.colored"]}
+      export HOG_COLOR=$HOG_COLOR_EN
     else
       Msg Warning "The variable <terminal.colored> is not a one-digit number, Defaulting to 0"
     fi
   else
-    if [[ -v HOG_COLORED ]]; then
-      if [[ $HOG_COLORED =~ ^[0-9]$ ]]; then
-        HOG_COLOR_EN=$HOG_COLORED
+    if [[ -v HOG_COLOR ]]; then
+      if [[ $HOG_COLOR =~ ^[0-9]$ ]]; then
+        HOG_COLOR_EN=$HOG_COLOR
       else
         HOG_COLOR_EN=1
       fi
@@ -768,7 +835,18 @@ function Logger_Init() {
 
 
 ############ FROM HERE WILL USE LOGGER COLORS IF ENABLED
-  Msg Debug "HOG_COLOR_EN -- $HOG_COLOR_EN"
+  print_hog_logo
+  # Msg Debug "HOG_COLOR_EN -- $HOG_COLOR_EN"
+  Msg Info "Loading Hog configuration..."
+  if test -f $hog_user_cfg; then
+    Msg Info "Hog project configuration file $hog_user_cfg exists."
+    process_toml_file $hog_user_cfg "Hog_Usr_dict"
+    for key in "${!Hog_Usr_dict[@]}"; do
+      Msg Info "Hog_Usr_dict[ $key ] = <${Hog_Usr_dict[$key]}>"
+    done
+  else
+    Msg Debug "Hog project configuration file $hog_user_cfg doesn't exists."
+  fi
   if test -f $hog_user_cfg; then
     Msg Info "Hog project configuration file $hog_user_cfg exists."
     for key in "${!Hog_Usr_dict[@]}"; do
@@ -969,6 +1047,8 @@ function Logger_Init() {
     log_stdout "stdout" "LogColorVivado : $*"
     log_stdout "stderr" "LogColorVivado : $*"
   fi
+
+  Msg Info "Hog configuration setup done!!!"
 }
 
 

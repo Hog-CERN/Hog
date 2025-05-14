@@ -1,4 +1,4 @@
-#   Copyright 2018-2024 The University of Birmingham
+#   Copyright 2018-2025 The University of Birmingham
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -21,7 +21,6 @@
 
 .vars: &vars
   GIT_STRATEGY: clone
-#   CI_DEBUG_TRACE: "true"
 
 .only-default: &only-default
   rules:
@@ -60,30 +59,34 @@ check_branch_state:
   <<: *tag-sr
   stage: check
   variables:
-    GIT_STRATEGY: clone
+    <<: *vars
   script:
     - glab auth login -t $HOG_PUSH_TOKEN -h $CI_SERVER_HOST
-    - if [[ $CI_COMMIT_MESSAGE == *RESOLVE_WIP* && $CI_MERGE_REQUEST_TITLE == Draft* ]]; then
+    - export REPO=`echo $CI_PROJECT_URL | sed -e s#https://##`
+    - git remote set-url origin https://${HOG_USER}:${HOG_PUSH_TOKEN}@$REPO
+    - git config user.email ${HOG_EMAIL}
+    - git config user.name ${HOG_USER}
+    - if [ "$(echo $CI_COMMIT_MESSAGE | grep 'RESOLVE_WIP')" ] && [ "$(echo $CI_MERGE_REQUEST_TITLE | grep '^Draft')" ]; then
         echo 'removing Draft status';
         glab mr update $CI_MERGE_REQUEST_IID --ready;
       fi;
-    - if [[ ${HOG_CHECK_YAMLREF} != 1 ]]; then
+    - if [ "${HOG_CHECK_YAMLREF}" != "1" ]; then
         echo 'Yaml consistency checker is disabled';
       else
-        tclsh ./Hog/Tcl/utils/check_yaml_ref.tcl;
+        ./Hog/Do YML;
       fi;
     # Check if this is a valid hotfix or feature branch
     - if [ -f "Top/repo.conf" ]; then
         enable_develop_branch=$(awk -F "=" '/ENABLE_DEVELOP_BRANCH/{ gsub(" |\t",""); print $2}' Top/repo.conf);
         hotfix_branch=$(awk -F "=" '/HOTFIX/ {print $2}' Top/repo.conf);
-        if [ "$hotfix_branch" == "" ]; then
+        if [ "$hotfix_branch" = "" ]; then
           hotfix_branch="hotfix/";
         fi;
       fi;
-    - if [ "$enable_develop_branch" == "1" ]; then
+    - if [ "$enable_develop_branch" = "1" ]; then
         pat="^(master|main|release.*)";
-        if [[ $CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ $pat ]] || [ "$CI_MERGE_REQUEST_TARGET_BRANCH_NAME" == "$HOG_TARGET_BRANCH" ] ; then
-          if [[ $CI_COMMIT_REF_NAME != ${hotfix_branch}* ]]; then
+        if echo "$CI_MERGE_REQUEST_TARGET_BRANCH_NAME" | grep -Eq "$pat" || [ "$CI_MERGE_REQUEST_TARGET_BRANCH_NAME" = "$HOG_TARGET_BRANCH" ]; then
+          if echo "$CI_COMMIT_REF_NAME" | grep -v "^${hotfix_branch}"; then
             echo "[Hog::ERROR] The target of this MR is $CI_MERGE_REQUEST_TARGET_BRANCH_NAME, but the source is not a hotfix branch ($CI_COMMIT_REF_NAME). Please, change the name of source branch or direct the MR to $HOG_DEVELOP_BRANCH.";
             echo "[Hog::INFO] A hotfix branch name should start with ${hotfix_branch}. You can change this setting in your Top/repo.conf file.";
             exit 1;
@@ -91,7 +94,7 @@ check_branch_state:
         fi;
       fi;
     - set +e; MERGE_STATUS=$(git merge --no-commit origin/${CI_MERGE_REQUEST_TARGET_BRANCH_NAME}); set -e;
-    - if [ "$MERGE_STATUS" == "Already up to date." ]; then
+    - if [ "$MERGE_STATUS" = "Already up to date." ]; then
         echo "Branch already up-to-date with respect to $CI_MERGE_REQUEST_TARGET_BRANCH_NAME";
       else
         echo "Branch is outdated with respect to $CI_MERGE_REQUEST_TARGET_BRANCH_NAME";
@@ -100,9 +103,9 @@ check_branch_state:
       fi;
     - git fetch origin refs/notes/*:refs/notes/*
     - "NEW_TAG=`echo \"source Hog/Tcl/hog.tcl; puts v[HexVersionToString [GetVer .]]\" | tclsh`"
-    - if [[ ! $NEW_TAG =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+    - if echo "$NEW_TAG" | grep -vq "^v[0-9]\+\.[0-9]\+\.[0-9]\+$"; then
         echo "There was a problem calculating the new tag of the repository. Hog returned the following message:";
-        echo $new_tag;
+        echo $NEW_TAG;
       fi;
     - echo "New tag is $NEW_TAG"
     - "git notes add -fm \"$CI_MERGE_REQUEST_IID $CI_COMMIT_REF_NAME $NEW_TAG\""
@@ -115,19 +118,22 @@ make_doxygen:
   stage: generation_and_simulation
   variables:
     <<: *vars
+    GIT_SUBMODULE_STRATEGY: recursive
   script:
     - tclsh ./Hog/Tcl/utils/make_doxygen.tcl
   artifacts:
     name: docs
     paths:
       - Doc
-    expire_in: 10 years
+    expire_in: 30 days
   dependencies: []
   allow_failure: true
   interruptible: true
 
 tag_official_version:
   <<: *tag-sr
+  variables:
+    <<: *vars
   stage: tag
   rules:
     - if: '$HOG_TARGET_BRANCH != null && $CI_COMMIT_REF_NAME == $HOG_TARGET_BRANCH && $CI_PIPELINE_SOURCE == "push"'
@@ -139,6 +145,10 @@ tag_official_version:
     - when: never
   script:
     - git fetch origin refs/notes/*:refs/notes/*
+    - export REPO=`echo $CI_PROJECT_URL | sed -e s#https://##`
+    - git remote set-url origin https://${HOG_USER}:${HOG_PUSH_TOKEN}@$REPO
+    - git config user.email ${HOG_EMAIL}
+    - git config user.name ${HOG_USER}
     - note=(`git notes show`) || {
         echo "No note found, probably you pushed to a branch that should protected (e.g. master, develop)";
         exit 1;
@@ -149,15 +159,15 @@ tag_official_version:
         echo "More info here https://hog.readthedocs.io/en/latest/02-User-Manual/02-Hog-CI/01-GitLab-CI/01-setup-CI.html?highlight=fast%20forward#remove-merge-commit";
         exit 1;
       fi
-    - if [[ ! $new_tag =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+    - if echo "$new_tag" | grep -vq "^v[0-9]\+\.[0-9]\+\.[0-9]\+$"; then
         echo "[ERROR] The tag number extracted from the note is not of the right format. Check the check_branch_state of merge request ${note[0]}"
         exit 1;
       fi
     - present_tag=(`git describe`)
-    - if [ $present_tag != $new_tag ]; then
+    - if [ "$present_tag" != "$new_tag" ]; then
         if [ "$(git tag --list ${new_tag}*)" != "" ]; then
           latest_tag=(`git tag -l ${new_tag}* --sort=-v:refname --merged`);
-            if [[ $latest_tag =~ .*-(.*) ]]; then
+            if echo "$latest_tag" | grep -q ".*-\(.*\)"; then
               nr="${BASH_REMATCH[1]}";
               new_tag="$new_tag-$(($nr+1))";
             else
@@ -186,7 +196,7 @@ artifacts_and_release:
     - glab auth login -t $HOG_PUSH_TOKEN -h $CI_SERVER_HOST
     - git fetch origin refs/notes/*:refs/notes/*
     - MR=( `git notes show` )
-    - if [[ -v HOG_USE_DOXYGEN ]] && [[ "$HOG_USE_DOXYGEN" == "1" ]]; then
+    - if [ "${HOG_USE_DOXYGEN}" = "1" ]; then
         doxy_var="-doxygen";
       else
         doxy_var="";
@@ -198,7 +208,7 @@ artifacts_and_release:
     - if [ "$bit_files" != "" ]; then
         project_dirs=$(echo $bit_files | xargs dirname | sort | uniq);
       fi;
-    - if [ -z ${HOG_MAX_ZIP_SIZE+x} ]; then
+    - if [ -z "${HOG_MAX_ZIP_SIZE}" ]; then
         export HOG_MAX_ZIP_SIZE=10m;
         echo "Hog-CI(info) - Maximum size of artifact zip set to $HOG_MAX_ZIP_SIZE";
       fi;
@@ -209,9 +219,9 @@ artifacts_and_release:
         zip -r -q -s $HOG_MAX_ZIP_SIZE ../zipped/$DEST_ZIP.zip $PRJ_DIR;
       done;
     - cd ..
-    - if [[ -v HOG_CREATE_OFFICIAL_RELEASE ]] && [[ $HOG_CREATE_OFFICIAL_RELEASE == "1" ]]; then
+    - if [ "${HOG_CREATE_OFFICIAL_RELEASE}" = "1" ]; then
         glab release create $CI_COMMIT_TAG -F bin/note.md -n "Official version $CI_COMMIT_TAG";
-        if [[ -v HOG_CHECK_PROJVER ]] && [[ $HOG_CHECK_PROJVER == '1' ]]; then
+        if [ "${HOG_CHECK_PROJVER}" = "1" ]; then
           tclsh ./Hog/Tcl/CI/get_binary_links.tcl $CI_COMMIT_TAG "$HOG_EXTERNAL_PATH";
         else
           tclsh ./Hog/Tcl/CI/get_binary_links.tcl -force $CI_COMMIT_TAG "$HOG_EXTERNAL_PATH";
@@ -238,24 +248,24 @@ archive_binary_files:
       artifacts: true
   stage: archive
   script:
-    - if [[ -v HOG_OFFICIAL_BIN_PATH ]]; then
+    - if [ "${HOG_OFFICIAL_BIN_PATH}" ]; then
         BIN_PATH=$HOG_OFFICIAL_BIN_PATH;
-      elif [[ -v HOG_OFFICIAL_BIN_EOS_PATH ]]; then
+      elif [ "${HOG_OFFICIAL_BIN_EOS_PATH}" ]; then
         BIN_PATH=$HOG_OFFICIAL_BIN_EOS_PATH;
         echo "From version Hog2024.1, HOG_OFFICIAL_BIN_EOS_PATH variable will be deprecated. Please use HOG_OFFICIAL_BIN_PATH to define the path where to copy the official bitfiles.";
       fi;
-    - if [[ $BIN_PATH == /eos/* ]]; then
+    - if echo "$BIN_PATH" | grep -q "^/eos/"; then
         ENABLE_EOS=1;
-        if [ -z ${EOS_PASSWORD+x} ]; then
-          if [ -z ${HOG_PASSWORD+x} ]; then
+        if [ -z "${EOS_PASSWORD}" ]; then
+          if [ -z "${HOG_PASSWORD}" ]; then
             ENABLE_EOS=0;
             echo "No EOS_PASSWORD has been defined. Artifacts cannot be uploaded to EOS...";
           else
             EOS_PASSWORD=${HOG_PASSWORD};
           fi;
         fi;
-        if [ -z ${EOS_USER+x} ]; then
-          if [ -z ${HOG_USER+x} ]; then
+        if [ -z "${EOS_USER}" ]; then
+          if [ -z "${HOG_USER}" ]; then
             ENABLE_EOS=0;
             echo "No EOS_USER has been defined. Artifacts cannot be uploaded to EOS...";
           else
@@ -263,7 +273,7 @@ archive_binary_files:
           fi;
         fi;
         if [ $ENABLE_EOS -eq 1 ]; then
-          until echo $EOS_PASSWORD | kinit $EOS_USER@CERN.CH; do
+          until echo "$EOS_PASSWORD" | kinit "$EOS_USER@CERN.CH"; do
             echo Retrying;
             sleep 2;
           done;
@@ -279,7 +289,7 @@ archive_binary_files:
         ENABLE_EOS=0;
       fi;
     - copy_error=0
-    - if [[ -v HOG_USE_DOXYGEN ]] && [[ "$HOG_USE_DOXYGEN" == "1" ]] && [[ -v BIN_PATH ]]; then
+    - if [ "${HOG_USE_DOXYGEN}" = "1" ] && [ "${BIN_PATH}" ]; then
         if [ -d Doc/html ]; then
           if [ $ENABLE_EOS -eq 1 ]; then
             eos mkdir -p ${BIN_PATH}/Doc;
@@ -293,7 +303,7 @@ archive_binary_files:
           copy_error=1;
         fi;
       fi;
-    - if [[ -v BIN_PATH ]]; then
+    - if [ "${BIN_PATH}" ]; then
         if [ -d bin ]; then
           echo "Copying binary files to ${BIN_PATH}/${CI_COMMIT_TAG}";
           if [ $ENABLE_EOS -eq 1 ]; then
@@ -308,7 +318,7 @@ archive_binary_files:
           copy_error=1;
         fi;
       fi;
-    - if [[ $copy_error -eq 1 ]]; then
+    - if [ $copy_error -eq 1 ]; then
         echo "[HOG-ERROR] Some artifacts were not copied. Please check your configuration and try again.";
         exit 1;
       fi;
@@ -326,7 +336,7 @@ create_badge:
       - $CI_COMMIT_TAG =~ /^v.*$/ && $HOG_BADGE_PROJECTS != null
   <<: *tag-sr
   variables:
-    GIT_STRATEGY: clone
+    <<: *vars
     GIT_SUBMODULE_STRATEGY: recursive
   stage: badge
   script:

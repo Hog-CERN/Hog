@@ -1,5 +1,5 @@
 #!/usr/bin/env tclsh
-#   Copyright 2018-2024 The University of Birmingham
+#   Copyright 2018-2025 The University of Birmingham
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -15,13 +15,6 @@
 
 # @file
 # Creates two custom buttons in Vivado gui with Hog logo, to update automatically list files and hog.conf
-
-#parsing command options
-set parameters {
-}
-
-set usage   "Creates two custom buttons in Vivado gui with Hog logo, to update automatically list files and hog.conf.\nUSAGE: $::argv0"
-
 
 set hog_path [file normalize "[file dirname [info script]]/../.."]
 

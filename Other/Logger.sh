@@ -421,18 +421,18 @@ function Hog_exit () {
   if [[  "$HOG_COLOR_EN" -gt 0 ]]; then
     echo -e "$txtrst"
   fi
-  echo "================ RESUME ================ "
-  echo " # of Total messages: $(msg_counter r g)"
-  echo " # of Info messages: $(msg_counter r i)"
-  echo " # of debug messages : $(msg_counter r d)"
-  echo " # of warning messages : $(msg_counter r w)"
-  echo " # of critical warning messages : $(msg_counter r c)"
-  echo " # of Errors messages : $(msg_counter r e)"
-  echo "======================================== "
-  if [[ $(msg_counter er) -gt 0 ]]; then
+  echo "  ================ RESUME ================ "
+  echo "   # of Total messages: $(msg_counter r g)"
+  echo "   # of Info messages: $(msg_counter r i)"
+  echo "   # of debug messages : $(msg_counter r d)"
+  echo "   # of warning messages : $(msg_counter r w)"
+  echo "   # of critical warning messages : $(msg_counter r c)"
+  echo "   # of Errors messages : $(msg_counter r e)"
+  echo "  ======================================== "
+  if [[ $(msg_counter r e) -gt 0 ]]; then
     echo -e "$txtred *** Hog finished with errors *** $txtrst"
     exit 1
-  elif [[ $(msg_counter cr) -gt 0 ]]; then
+  elif [[ $(msg_counter r c) -gt 0 ]]; then
     echo -e "$txtylw *** Hog finished with Critical Warnings *** $txtrst"
     exit 0
   else
@@ -446,14 +446,14 @@ function Hog_exit () {
   #
   # @brief Prints a resum of the messages types
 function Hog_exit_fwe () {
-  echo "================ RESUME ================ "
-  echo " # of Total messages: $(msg_counter r g)"
-  echo " # of Info messages: $(msg_counter r i)"
-  echo " # of debug messages : $(msg_counter r d)"
-  echo " # of warning messages : $(msg_counter r w)"
-  echo " # of critical warning messages : $(msg_counter r c)"
-  echo " # of Errors messages : $(msg_counter r e)"
-  echo "======================================== "
+  echo "  ================ RESUME ================ "
+  echo "   # of Total messages: $(msg_counter r g)"
+  echo "   # of Info messages: $(msg_counter r i)"
+  echo "   # of debug messages : $(msg_counter r d)"
+  echo "   # of warning messages : $(msg_counter r w)"
+  echo "   # of critical warning messages : $(msg_counter r c)"
+  echo "   # of Errors messages : $(msg_counter r e)"
+  echo "  ======================================== "
   if [[ $(msg_counter r e) -gt 0 ]]; then
     echo -e "$txtred *** Hog finished with errors *** $txtwht"
     kill -SIGINT "-$hog_pid"
@@ -705,7 +705,7 @@ process_HogEnv_config() {
         line=""
       fi
       if [[ ${#proc_line} -gt 0 ]]; then
-        Msg Debug "saving to dict ::: $section_name[$key] = <${proc_line}>"
+        Msg Debug "saving to dict ::: ${section_name[$key]} = <${proc_line}>"
         if [[ $arraylvl == 0 ]]; then
           toml_dict["$section_name.$key"]=$(trim "${proc_line//\"/}")
         else
@@ -840,7 +840,7 @@ function Logger_Init() {
   Msg Info "Loading Hog configuration..."
   if test -f $hog_user_cfg; then
     Msg Info "Hog project configuration file $hog_user_cfg exists."
-    process_toml_file $hog_user_cfg "Hog_Usr_dict"
+    process_HogEnv_config $hog_user_cfg "Hog_Usr_dict"
     for key in "${!Hog_Usr_dict[@]}"; do
       Msg Info "Hog_Usr_dict[ $key ] = <${Hog_Usr_dict[$key]}>"
     done

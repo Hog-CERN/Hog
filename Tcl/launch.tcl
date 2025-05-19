@@ -572,7 +572,16 @@ if {$do_bitstream == 1 && ![IsXilinx] } {
 }
 
 if {$do_simulation == 1} {
-  set simsets $options(simset)
+  # set simsets $options(simset)
+  set simsets_dict [GetSimSets $project_name $repo_path $options(simset)]
+  set simsets ""
+  foreach {simset_name simulator} [dict get $simsets_dict] {
+    if {$simulator != "ghdl"} {
+      # GHDL simulation is already handled above
+      lappend simsets $simset_name
+    }
+    set simsets $simset_name
+  }
   LaunchSimulation $project_name $lib_path $simsets $repo_path
 }
 

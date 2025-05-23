@@ -1970,6 +1970,7 @@ proc GetHogFiles args {
     {list_files.arg ""  "The file wildcard, if not specified all Hog list files will be looked for."}
     {sha_mode "Forwarded to ReadListFile, see there for info."}
     {ext_path.arg "" "Path for the external libraries forwarded to ReadListFile."}
+    {print_log "Forwarded to ReadListFile, see there for info."}
   }
   set usage "USAGE: GetHogFiles \[options\] <list path> <repository path>"
   if {[catch {array set options [cmdline::getoptions args $parameters $usage]}] ||  [llength $args] != 2 } {
@@ -1982,12 +1983,18 @@ proc GetHogFiles args {
   set list_files $options(list_files)
   set sha_mode $options(sha_mode)
   set ext_path $options(ext_path)
-
+  set print_log $options(print_log)
 
   if { $sha_mode == 1 } {
     set sha_mode_opt "-sha_mode"
   } else {
     set sha_mode_opt ""
+  }
+
+  if { $print_log == 1 } {
+    set print_log_opt "-print_log"
+  } else {
+    set print_log_opt ""
   }
 
   if { $list_files == "" } {
@@ -2001,9 +2008,9 @@ proc GetHogFiles args {
   foreach f $list_files {
     set ext [file extension $f]
     if {$ext == ".ext"} {
-      lassign [ReadListFile {*}"$sha_mode_opt  $f $ext_path"] l p fs
+      lassign [ReadListFile {*}"$sha_mode_opt $print_log_opt  $f $ext_path"] l p fs
     } else {
-      lassign [ReadListFile {*}"$sha_mode_opt  $f $repo_path"] l p fs
+      lassign [ReadListFile {*}"$sha_mode_opt $print_log_opt  $f $repo_path"] l p fs
     }
     set libraries [MergeDict $l $libraries]
     set properties [MergeDict $p $properties]
@@ -4880,6 +4887,7 @@ proc ReadListFile args {
     {lib.arg ""  "The name of the library files will be added to, if not given will be extracted from the file name."}
     {fileset.arg "" "The name of the library, from the main list file"}
     {sha_mode "If set, the list files will be added as well and the IPs will be added to the file rather than to the special IP library. The SHA mode should be used when you use the lists to calculate the git SHA, rather than to add the files to the project."}
+    {print_log "If set will print stuff."}
   }
   set usage "USAGE: ReadListFile \[options\] <list file> <path>"
   if {[catch {array set options [cmdline::getoptions args $parameters $usage]}] ||  [llength $args] != 2 } {
@@ -4891,11 +4899,18 @@ proc ReadListFile args {
   set sha_mode $options(sha_mode)
   set lib $options(lib)
   set fileset $options(fileset)
+  set print_log $options(print_log)
 
   if { $sha_mode == 1} {
     set sha_mode_opt "-sha_mode"
   } else {
     set sha_mode_opt  ""
+  }
+
+  if { $print_log == 1 } {
+    set print_log_opt "-print_log"
+  } else {
+    set print_log_opt ""
   }
 
   # if no library is given, work it out from the file name
@@ -4927,7 +4942,11 @@ proc ReadListFile args {
   #  Process data file
   set data [split $file_data "\n"]
   set n [llength $data]
+  if {$print_log == 1} { Msg Info "$n lines read from $list_file." }
   Msg Debug "$n lines read from $list_file."
+  dict set data_dict Files "$data"
+  PrintDictItems $data_dict
+  puts ""
   set cnt 0
 
   foreach line $data {
@@ -4971,8 +4990,9 @@ proc ReadListFile args {
             } else {
               set ref_path [file normalize $path/$ref_path]
             }
+	    if {$print_log == 1} { Msg Info "List file $vhdlfile found in list file, Recursively opening it." }
             Msg Debug "List file $vhdlfile found in list file, recursively opening it using path \"$ref_path\"..."
-            lassign [ReadListFile {*}"-lib $library -fileset $fileset $sha_mode_opt $vhdlfile $ref_path"] l p fs
+            lassign [ReadListFile {*}"-lib $library -fileset $fileset $sha_mode_opt $print_log_opt $vhdlfile $ref_path"] l p fs
             set libraries [MergeDict $l $libraries]
             set properties [MergeDict $p $properties]
             set filesets [MergeDict $fs $filesets]
@@ -5870,6 +5890,19 @@ proc WriteUtilizationSummary {input output project_name run} {
   close $f
   puts $o [util_m format 2string]
   close $o
+}
+
+proc PrintDictItems { {dct} {msg "Following values are in the item -"} {msg_appnd "are"}} {
+  foreach item [dict keys $dct] {
+    set val [dict get $dct $item]
+    puts ""
+    puts " $msg $item $msg_appnd:"
+      foreach lstitm $val {
+        if {![regexp {^ *$} $lstitm] & ![regexp {^ *\#} $lstitm] } {
+	  puts "$lstitm"
+	  }
+	}
+      }
 }
 
 # Check Git Version when sourcing hog.tcl

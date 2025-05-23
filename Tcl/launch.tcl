@@ -204,10 +204,10 @@ if {$cmd == -1} {
       set msg "The list files found in the category -"
       PrintDictItems $lstflst $msg
       set msg "The source files found in the list file -"
-      #PrintDictItems $lstlib $msg
+      PrintDictItems $lstlib $msg
       set msg "The Hog property of -"
       set msg_appnd "is"
-      #PrintDictItems $lstprop $msg $msg_appnd
+      PrintDictItems $lstprop $msg $msg_appnd
       Msg Info "All Done."
     exit 0
   }

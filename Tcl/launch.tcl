@@ -44,8 +44,9 @@ set usage " \[OPTIONS\] <directive> <project>\n The most common <directive> valu
 - SIMULATE or S: Simulate the project, creating it if not existing.
 - IMPLEMENT: Runs the implementation only, the project must already exist and be synthesised.
 - SYNTHESIS: Runs the synthesis only, creates the project if not existing.
-- LIST or L: Only list all the projects
-- XML or X: Copy, check or create IPbus XMLs
+- LIST or L: Only list all the projects.
+- VIEW or V: Show name of list files, the source files in each and their Hog properties, if any.
+- XML or X: Copy, check or create IPbus XMLs.
 "
 
 set tcl_path [file normalize "[file dirname [info script]]"]
@@ -68,7 +69,7 @@ append usage [GetCustomCommands $commands_path]
 append usage "\n** Options:"
 
 ######## DEFAULTS #########
-set do_implementation 0; set do_synthesis 0; set do_bitstream 0; set do_create 0; set do_compile 0; set do_simulation 0; set recreate 0; set reset 1; set do_ipbus_xml 0; set list_all 2;
+set do_implementation 0; set do_synthesis 0; set do_bitstream 0; set do_create 0; set do_compile 0; set do_simulation 0; set recreate 0; set reset 1; set do_ipbus_xml 0; set list_all 2; set list_files_parse 0;
 
 set default_commands {
 
@@ -110,6 +111,10 @@ set default_commands {
 
   \^X(ML)?$ {
     set do_ipbus_xml 1
+  }
+
+  \^V(IEW)?$ {
+    set list_files_parse 1
   }
 
 
@@ -191,8 +196,21 @@ if {$cmd == -1} {
     exit 0
   }
 
-
-
+  if {$list_files_parse == 1} {
+      set proj_dir $repo_path/Top/$project_name
+      Msg Info "The project is set to $proj_dir"
+      set proj_list_dir $repo_path/Top/$project_name/list
+      lassign [GetHogFiles -print_log -list_files {.src,.sim,.ext,.ipb,.con,.sim} "$proj_list_dir" "$repo_path"] lstlib lstprop lstflst
+      set msg "The list files found in the category -"
+      PrintDictItems $lstflst $msg
+      set msg "The source files found in the list file -"
+      #PrintDictItems $lstlib $msg
+      set msg "The Hog property of -"
+      set msg_appnd "is"
+      #PrintDictItems $lstprop $msg $msg_appnd
+      Msg Info "All Done."
+    exit 0
+  }
 
   #### END of tclsh commands ####
   Msg Info "Launching command: $cmd..."

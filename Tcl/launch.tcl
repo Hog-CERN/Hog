@@ -105,6 +105,13 @@ set default_commands {
   # OPTIONS: dst_dir.arg, generate, verbose
   }
 
+  \^V(IEW)?$ {#proj
+    set list_files_parse 1
+  # NAME: VIEW or V
+  # DESCRIPTION: Print Hog list file contents, libraries and properties.
+  # OPTIONS: verbose
+  }
+
   \^(CHECKYAML|YML)?$ {
     set min_n_of_args -1
     set max_n_of_args 1
@@ -219,7 +226,8 @@ set do_reset 1; set do_list_all 2; set do_check_syntax 0;
 # The following directives are used WITHOUT ever calling the IDE, they are run in tclsh
 # A place holder called new_directive can be followed to add new commands
 
-set do_ipbus_xml 0;
+set do_ipbus_xml 0
+set list_files_parse 0;
 set do_check_yaml_ref 0;
 set do_buttons 0;
 set do_check_list_files 0;
@@ -234,7 +242,6 @@ if { $options(all) == 1 } {
 } else {
   set do_list_all 2
 }
-
 
 if {$options(dst_dir) == "" && ($do_ipbus_xml ==1 || $do_check_list_files == 1)} {
   # Getting all the versions and SHAs of the repository

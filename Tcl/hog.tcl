@@ -2053,9 +2053,9 @@ proc GetHogFiles args {
   foreach f $list_files {
     set ext [file extension $f]
     if {$ext == ".ext"} {
-      lassign [ReadListFile {*}"$sha_mode_opt $print_log_opt  $f $ext_path"] l p fs
+      lassign [ReadListFile {*}"$sha_mode_opt $print_log_opt $f $ext_path"] l p fs
     } else {
-      lassign [ReadListFile {*}"$sha_mode_opt $print_log_opt  $f $repo_path"] l p fs
+      lassign [ReadListFile {*}"$sha_mode_opt $print_log_opt $f $repo_path"] l p fs
     }
     set libraries [MergeDict $l $libraries]
     set properties [MergeDict $p $properties]
@@ -5165,11 +5165,13 @@ proc ReadListFile {args} {
   #  Process data file
   set data [split $file_data "\n"]
   set n [llength $data]
-  if {$print_log == 1} { Msg Info "$n lines read from $list_file." }
+  if {$print_log == 1} {
+    dict set data_dict $list_file "$data"
+    Msg Info "$n lines read from $list_file."
+    PrintDictItems $data_dict
+    puts ""
+    }
   Msg Debug "$n lines read from $list_file."
-  dict set data_dict $list_file "$data"
-  PrintDictItems $data_dict
-  puts ""
   set cnt 0
 
   foreach line $data {

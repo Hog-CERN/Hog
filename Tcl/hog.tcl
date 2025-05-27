@@ -897,7 +897,6 @@ proc CheckYmlRef {repo_path allow_failure} {
   cd "$thisPath"
 }
 
-
 ## @brief Compare the contents of two dictionaries
 #
 # @param[in] proj_libs  The dictionary of libraries in the project
@@ -1874,6 +1873,52 @@ proc GetGenericsFromConf {proj_dir {sim 0}} {
   return $generics_dict
 }
 
+##
+proc GetSimSets { project_name repo_path {simsets ""}} {
+  set simsets_dict [dict create]
+  set list_dir "$repo_path/Top/$project_name/list"
+  set list_files []
+  if {$simsets != ""} {
+    foreach s $simsets {
+      set list_file "$list_dir/$s.sim"
+      if {[file exists $list_file]} {
+        lappend list_files $list_file
+      } else {
+        Msg CriticalWarning "Simulation set list file $list_file not found."
+      }
+    }
+  } else {
+    set list_files [glob -nocomplain -directory $list_dir "*.sim"]
+  }
+
+  foreach list_file $list_files {
+    set file_name [file tail $list_file]
+    set simset_name [file rootname $file_name]
+    set fp [open $list_file r]
+    set file_data [read $fp]
+    close $fp
+    set data [split $file_data "\n"]
+    set n [llength $data]
+    Msg Info "$n lines read from $simset_name.sim"
+
+    set firstline [lindex $data 0]
+    # Find simulator
+    if { [regexp {^ *\#Simulator} $firstline] } {
+      set simulator_prop [regexp -all -inline {\S+} $firstline]
+      set simulator [string tolower [lindex $simulator_prop 1]]
+    } else {
+      Msg Warning "Simulator not set in $simset_name.sim. The first line of $simset_name.sim should be #Simulator <SIMULATOR_NAME>, where <SIMULATOR_NAME> can be xsim, questa, modelsim, riviera, activehdl, ies, or vcs, e.g. #Simulator questa. Setting simulator by default as xsim."
+      set simulator "xsim"
+    }
+    if {$simulator eq "skip_simulation"} {
+      Msg Info "Skipping simulation for $simset_name"
+      continue
+    }
+    dict set simsets_dict $simset_name $simulator
+  }
+  return $simsets_dict
+}
+
 ## @brief Gets all custom <simset>:generics from sim.conf
 #
 # @param[in] proj_dir:    the top folder of the project
@@ -2060,6 +2105,11 @@ proc GetIDECommand {proj_conf} {
       set end_marker "\""
     } elseif {$ide_name eq "diamond"} {
       set command "diamondc"
+      set before_tcl_script " "
+      set after_tcl_script " "
+      set end_marker ""
+    } elseif {$ide_name eq "ghdl"} {
+      set command "ghdl"
       set before_tcl_script " "
       set after_tcl_script " "
       set end_marker ""
@@ -2585,6 +2635,7 @@ proc GetProjectFiles {{project_file ""}} {
   return [list $libraries $properties $simlibraries $constraints $srcsets $simsets $consets]
 }
 
+#"
 ## Get the Project flavour
 #
 #  @param[in]    proj_name The project name
@@ -3376,6 +3427,15 @@ proc GetVhdlGenerics {file {entity ""} } {
   return $generics
 }
 
+## @brief Runs a GHDL command and returns its output and exit state
+proc GHDL {command} {
+  set ret [catch {exec -ignorestderr ghdl {*}$command} result]
+  if {$ret != 0} {
+    Msg CriticalWarning "GHDL execution failed."
+    puts $result
+  }
+}
+
 ## @brief Handle git commands without causing an error if ret is not 0
 #
 # It can be used with lassign like this: lassign [GitRet \<git command\> \<possibly files\> ] ret result
@@ -3392,8 +3452,6 @@ proc GitRet {command {files ""}}  {
   } else {
     set ret [catch {exec -ignorestderr git {*}$command -- {*}$files} result]
   }
-
-
   return [list $ret $result]
 }
 
@@ -3619,22 +3677,85 @@ proc ImportTclLib {} {
   }
 }
 
-# @brief Initialise the Launcher and returns a list of project parameters: directive project project_name group_name repo_path old_path bin_dir top_path commands_path cmd ide
+# @brief Initialise the Launcher and returns a list of project parameters: directive project project_name group_name repo_path old_path bin_dir top_path cmd ide
 #
-# @param[in] script     The launch.tcl script
-# @param[in] tcl_path   The launch.tcl script path
-# @param[in] parameters The allowed parameters for launch.tcl
-# @param[in] usage      The usage snippet for launch.tcl
-# @param[in] argv       The input arguments passed to launch.tcl
-proc InitLauncher {script tcl_path parameters usage argv} {
+# @param[in] script      The launch.tcl script
+# @param[in] tcl_path    The launch.tcl script path
+# @param[in] parameters  The allowed parameters for launch.tcl
+# @param[in] commands    The allowed directives for launch.tcl
+# @param[in] short_usage The short usage snippet for launch.tcl
+# @param[in] usage       The usage snippet for launch.tcl
+# @param[in] argv        The input arguments passed to launch.tcl
+
+proc InitLauncher {script tcl_path parameters commands argv} {
   set repo_path [file normalize "$tcl_path/../.."]
   set old_path [pwd]
   set bin_path [file normalize "$tcl_path/../../bin"]
   set top_path [file normalize "$tcl_path/../../Top"]
-  set commands_path [file normalize "$tcl_path/../../hog-commands/"]
+
+  set cmd_lines [split $commands "\n"]
+
+  set command_options [dict create]
+  set directive_descriptions [dict create]
+  set directive_names [dict create]
+  set common_directive_names [dict create]
+
+  foreach l $cmd_lines {
+
+    #excludes direcitve with a # just after the \{
+    if { [regexp {\\(.*) \{\#} $l minc d] } {
+      lappend directives_with_projects  $d
+    }
+
+    #gets all the regexes
+    if { [regexp {\\(.*) \{} $l minc regular_expression]} {
+      lappend directive_regex $regular_expression
+    }
+
+    #gets all common directives
+    if { [regexp {\#\s*NAME(\*)?:\s*(.*)\s*} $l minc star name] } {
+      dict set directive_names $name $regular_expression
+      if {$star eq "*"} {
+	      dict set common_directive_names $name $regular_expression
+      }
+    }
+    set directive_names [dict'sort $directive_names]
+    set common_directive_names [dict'sort $common_directive_names]
+
+    #gets all the descriptions
+    if { [regexp {\#\s*DESCRIPTION:\s*(.*)\s*} $l minc x]} {
+      dict set directive_descriptions $regular_expression $x
+    }
+
+    #gets all the list of options
+    if { [regexp {\#\s*OPTIONS:\s*(.*)\s*} $l minc x]} {
+      dict set command_options $regular_expression [split [regsub -all {[ \t\n]+} $x {} ] ","]
+    }
+
+  }
+
+  set short_usage "usage: ./Hog/Do \[OPTIONS\] <directive> \[project\]\n\nMost common directives (case insensitive):"
+
+  dict for {key value} $common_directive_names {
+    set short_usage "$short_usage\n   - $key: [dict get $directive_descriptions $value]"
+  }
+
+  set short_usage "$short_usage\n\nTo see all the available directives, run:\n./Hog/Do HELP\n\nTo list available options for the chosen directive run:\n./Hog/Do <directive> HELP
+
+  "
+
+  set usage "usage: ./Hog/Do \[OPTIONS\] <directive> \[project\]\n\nDirectives (case insensitive):
+   "
+
+  dict for {key value} $directive_names {
+     set usage "$usage\n   - $key: [dict get $directive_descriptions $value]"
+   }
+
+  set usage "$usage\n\nTo list available options for the chosen directive run:\n./Hog/Do <directive> HELP
+   "
 
   if {[IsTclsh]} {
-    #Just display the logo the first time, not when the scripot is run in the IDE
+    #Just display the logo the first time, not when the script is run in the IDE
     Logo $repo_path
   }
 
@@ -3643,15 +3764,9 @@ proc InitLauncher {script tcl_path parameters usage argv} {
     source $tcl_path/utils/cmdline.tcl
   }
 
-  append usage [GetCustomCommands $commands_path]
-  append usage "\n** Options:"
+  set argv [regsub -all {(?i) HELP\y} $argv " -help"]
 
   lassign [GetOptions $argv $parameters] option_list arg_list
-
-  if { [IsInList "-help" $option_list] || [IsInList "-?" $option_list] || [IsInList "-h" $option_list] } {
-    Msg Info [cmdline::usage $parameters $usage]
-    exit 0
-  }
 
   if { [IsInList "-all" $option_list] } {
     set list_all 1
@@ -3660,32 +3775,79 @@ proc InitLauncher {script tcl_path parameters usage argv} {
   }
 
   #option_list will be emptied by the next instruction
+
+  # Argv here is modified and the options are removed
+  set directive [string toupper [lindex $arg_list 0]]
+  set min_n_of_args 0
+  set max_n_of_args 2
+  set argument_is_no_project 0
+
+  switch -regexp -- $directive "$commands"
+
+  if { [IsInList "-help" $option_list] || [IsInList "-?" $option_list] || [IsInList "-h" $option_list] } {
+    if {$directive != ""} {
+      if {[IsInList $directive $directives_with_projects 1]} {
+        puts "usage: ./Hog/Do \[OPTIONS\] $directive <project>\n"
+      } elseif {[regexp "^COMPSIM(LIB)?$" $directive]} {
+        puts "usage: ./Hog/Do \[OPTIONS\] $directive <simulator>\n"
+      } else {
+        puts "usage: ./Hog/Do \[OPTIONS\] $directive \n"
+      }
+
+      dict for {dir desc} $directive_descriptions {
+        if {[regexp $dir $directive]} {
+          puts "$desc\n"
+          break
+        }
+      }
+
+      dict for {dir opts} $command_options {
+        if {[regexp $dir $directive]} {
+          puts "Available options:"
+          foreach opt $opts {
+            foreach par $parameters {
+              if {$opt == [lindex $par 0]} {
+                if {[string first ".arg" $opt] != -1} {
+                  puts "  -[string trimright $opt ".arg"] <argument>"
+                } else {
+                  puts "  -[string trimright $opt ".arg"]"
+                }
+                puts "     [lindex $par [llength $par]-1]"
+              }
+            }
+          }
+          puts ""
+        }
+      }
+    } else {
+      puts $usage
+    }
+    # Msg Info [cmdline::usage $parameters $usage]
+    exit 0
+  }
+
   if {[catch {array set options [cmdline::getoptions option_list $parameters $usage]} err] } {
     Msg Status "\nERROR: Syntax error, probably unknown option.\n\n USAGE: $err"
     exit 1
   }
-  # Argv here is modified and the options are removed
-  set directive [string toupper [lindex $arg_list 0]]
 
-  if { [llength $arg_list] == 1 && ($directive == "L" || $directive == "LIST")} {
-
-    Msg Status "\n** The projects in this repository are:"
-    ListProjects $repo_path $list_all
-    Msg Status "\n"
-    exit 0
-
-  } elseif { [llength $arg_list] == 0 || [llength $arg_list] > 2} {
-    Msg Status "\nERROR: Wrong number of arguments: [llength $argv].\n\n"
-    Msg Status "USAGE: [cmdline::usage $parameters $usage]"
+  if { [llength $arg_list] <= $min_n_of_args || [llength $arg_list] > $max_n_of_args} {
+    Msg Status "\nERROR: Wrong number of arguments: [llength $argv]"
+    puts $short_usage
     exit 1
   }
 
   set project  [lindex $arg_list 1]
-  # Remove leading Top/ or ./Top/ if in project_name
-  regsub "^(\./)?Top/" $project "" project
-  # Remove trailing / and spaces if in project_name
-  regsub "/? *\$" $project "" project
-  set proj_conf [ProjectExists $project $repo_path]
+
+  if {$argument_is_no_project == 0 } {
+    # Remove leading Top/ or ./Top/ if in project_name
+    regsub "^(\./)?Top/" $project "" project
+    # Remove trailing / and spaces if in project_name
+    regsub "/? *\$" $project "" project
+    set proj_conf [ProjectExists $project $repo_path]
+  } else {
+    set proj_conf 0
+  }
 
   Msg Debug "Option list:"
   foreach {key value} [array get options] {
@@ -3706,9 +3868,15 @@ proc InitLauncher {script tcl_path parameters usage argv} {
       set command "$cmd $before_tcl_script$script$after_tcl_script$argv$end_marker"
 
     } else {
-      if {$project != ""} {
+      if {$argument_is_no_project == 1} {
+        set command -4
+        Msg Debug "$project will be used as first argument"
+      } elseif {$project != ""} {
         #Project not given
         set command -1
+      } elseif {$min_n_of_args < 0} {
+        #Project not needed
+        set command -3
       } else {
         #Project not found
         set command -2
@@ -3727,19 +3895,7 @@ proc InitLauncher {script tcl_path parameters usage argv} {
     set project_name "$project"
   }
 
-  if { $options(generate) == 1 } {
-    set xml_gen 1
-  } else {
-    set xml_gen 0
-  }
-
-  if { $options(xml_dir) != "" } {
-    set xml_dst $options(xml_dir)
-  } else {
-    set xml_dst ""
-  }
-
-  return [list $directive $project $project_name $project_group $repo_path $old_path $bin_path $top_path $commands_path $command $cmd [array get options]]
+  return [list $directive $project $project_name $project_group $repo_path $old_path $bin_path $top_path $usage $short_usage $command $cmd [array get options]]
 }
 
 # @brief Returns 1 if a commit is an ancestor of another, otherwise 0
@@ -3871,6 +4027,57 @@ proc IsZynq {part} {
   } else {
     return 0
   }
+}
+
+proc ImportGHDL { project_name repo_path {ext_path ""}} {
+  set list_path "$repo_path/Top/$project_name/list"
+  lassign [GetHogFiles -list_files {.src,.ext,.sim} -ext_path $ext_path $list_path $repo_path ] src_files properties filesets
+  cd $repo_path
+  # Import GHDL files
+  set workdir Projects/$project_name/ghdl
+  dict for {lib sources} $src_files {
+    set libname [file rootname $lib]
+    file mkdir $workdir/$libname
+    foreach f $sources {
+      if {[file extension $f] != ".vhd" && [file extension $f] != ".vhdl"} {
+        Msg Info "File $f is not a VHDL file, skipping..."
+        continue
+      } else {
+        set file_path [Relative $repo_path $f]
+        GHDL "-i --work=$libname --workdir=$workdir/$libname -fsynopsys --ieee=standard $file_path"
+      }
+    }
+  }
+  # Get simulation properties from conf file
+  set proj_dir [file normalize $repo_path/Top/$project_name]
+  set sim_file [file normalize $proj_dir/sim.conf]
+  if {[file exists $sim_file]} {
+    Msg Info "Parsing simulation configuration file $sim_file..."
+    SetGlobalVar SIM_PROPERTIES [ReadConf $sim_file]
+  } else {
+    SetGlobalVar SIM_PROPERTIES ""
+  }
+}
+
+proc LaunchGHDL { project_name repo_path simset {ext_path ""}} {
+
+  set top_sim ""
+  # Setting Simulation Properties
+  if {[dict exists $globalSettings::SIM_PROPERTIES $simset]} {
+    Msg Info "Setting properties for simulation set: $simset..."
+    set sim_props [dict get $globalSettings::SIM_PROPERTIES $simset]
+    dict for {prop_name prop_val} $sim_props {
+      set prop_name [string toupper $prop_name]
+      if { $prop_name == "TOP"} {
+        set top_sim $prop_val
+      }
+    }
+  }
+  set workdir $repo_path/Projects/$project_name/ghdl
+  # Analyse and elaborate the design
+  GHDL "-m --work=$simset --workdir=$workdir/$simset -fsynopsys --ieee=standard $top_sim"
+  GHDL "-r --work=$simset --workdir=$workdir/$simset -fsynopsys  --ieee=standard $top_sim --assert-level=note"
+
 }
 
 # @brief Launch the Implementation, for the current IDE and project
@@ -4027,6 +4234,15 @@ proc LaunchImplementation {reset do_create run_folder project_name {repo_path .}
       file copy -force $timing_file $dst_dir/
     } else {
       Msg Warning "No timing file found, not a problem if running locally"
+    }
+
+    #### XSA here only for Versal Segmented Configuration
+    if {[IsVersal [get_property part [current_project]]]} {
+      if {[get_property segmented_configuration [current_project]] == 1} {
+	Msg Info "Versal Segmented configuration detected: exporting XSA file..."
+	set xsa_name "$dst_dir/[file tail $project_name]\-$describe.xsa"
+	write_hw_platform -fixed -force -file $xsa_name
+      }
     }
 
   } elseif {[IsQuartus]} {
@@ -4193,17 +4409,12 @@ proc LaunchSimulation {project_name lib_path {simsets ""} {repo_path .}} {
           Msg Info "$n lines read from $s.sim"
 
           set firstline [lindex $data 0]
-          # Find simulator
           if { [regexp {^ *\#Simulator} $firstline] } {
             set simulator_prop [regexp -all -inline {\S+} $firstline]
             set simulator [string tolower [lindex $simulator_prop 1]]
           } else {
-            Msg Warning "Simulator not set in $s.sim. The first line of $s.sim should be #Simulator <SIMULATOR_NAME>, where <SIMULATOR_NAME> can be xsim, questa, modelsim, riviera, activehdl, ies, or vcs, e.g. #Simulator questa. Setting simulator by default as xsim."
+            Msg Warning "Simulator not set in $simset_name.sim. The first line of $simset_name.sim should be #Simulator <SIMULATOR_NAME>, where <SIMULATOR_NAME> can be xsim, questa, modelsim, riviera, activehdl, ies, or vcs, e.g. #Simulator questa. Setting simulator by default as xsim."
             set simulator "xsim"
-          }
-          if {$simulator eq "skip_simulation"} {
-            Msg Info "Skipping simulation for $s"
-            continue
           }
           set_property "target_simulator" $simulator [current_project]
           Msg Info "Creating simulation scripts for $s..."
@@ -4529,19 +4740,19 @@ proc ListProjects {{repo_path .} {print 1} {ret_conf 0}} {
     if {$print >= 1} {
       set description [DescriptionFromConf $c]
       if { $description eq "test"} {
-  set description " - Test project"
+        set description " - Test project"
       } elseif { $description ne ""} {
-  set description " - $description"
+        set description " - $description"
       }
 
       if {$print == 1 || $description ne " - Test project"} {
-  set old_g $g
-  set g [file dirname $p]
-  # Print a list of the projects with relative IDE and description (second line comment in hog.conf)
-  if {$g ne $old_g} {
-    Msg Status ""
-  }
-  Msg Status "$p \([GetIDEFromConf $c]\)$description"
+        set old_g $g
+        set g [file dirname $p]
+        # Print a list of the projects with relative IDE and description (second line comment in hog.conf)
+        if {$g ne $old_g} {
+          Msg Status ""
+        }
+        Msg Status "$p \([GetIDEFromConf $c]\)$description"
       }
     }
     lappend projects $p
@@ -4563,31 +4774,37 @@ proc ListProjects {{repo_path .} {print 1} {ret_conf 0}} {
 #
 # @param[in] repo_path The main path of the git repository (default .)
 proc Logo { {repo_path .} } {
-  if {[info exists ::env(HOG_COLORED)] && [string match "ENABLED" $::env(HOG_COLORED)]} {
-    set logo_file "$repo_path/Hog/images/hog_logo_color.txt"
-  } else {
-    set logo_file "$repo_path/Hog/images/hog_logo.txt"
-  }
-
-  set old_path [pwd]
-  cd $repo_path/Hog
-  set ver [Git {describe --always}]
-  cd $old_path
-
-  if {[file exists $logo_file]} {
-    set f [open $logo_file "r"]
-    set data [read $f]
-    close $f
-    set lines [split $data "\n"]
-    foreach l $lines {
-      Msg Status $l
+  # Msg Warning "HOG_LOGO_PRINTED : $HOG_LOGO_PRINTED"
+  if {![info exists ::env(HOG_LOGO_PRINTED)] || $::env(HOG_LOGO_PRINTED) eq "0"} {
+    if {[info exists ::env(HOG_COLOR)] && ([string match "ENABLED" $::env(HOG_COLOR)] || [string is integer -strict $::env(HOG_COLOR)] && $::env(HOG_COLOR) > 0 )} {
+      set logo_file "$repo_path/Hog/images/hog_logo_color.txt"
+    } else {
+      set logo_file "$repo_path/Hog/images/hog_logo.txt"
     }
 
-  } {
-    Msg CriticalWarning "Logo file: $logo_file not found"
+    set old_path [pwd]
+    cd $repo_path/Hog
+    # set ver [Git {describe --always}]
+
+    if {[file exists $logo_file]} {
+      set f [open $logo_file "r"]
+      set data [read $f]
+      close $f
+      set lines [split $data "\n"]
+      foreach l $lines {
+        Msg Status $l
+      }
+
+    } {
+      Msg CriticalWarning "Logo file: $logo_file not found"
+    }
+
+    set ver [Git {describe --always}]
+    Msg Status "Version: $ver"
+    cd $old_path
+
   }
 
-  Msg Status "Version: $ver"
 }
 
 ## @brief Evaluates the md5 sum of a file
@@ -4716,6 +4933,12 @@ proc Msg {level msg {title ""}} {
 proc MsgAndLog {msg {severity "CriticalWarning"} {outFile ""}} {
   Msg $severity $msg
   if {$outFile != ""} {
+    set directory [file dir $outFile]
+    if {![file exists $directory]} {
+      Msg Info "Creating $directory..."
+      file mkdir $directory
+    }
+
     set oF [open "$outFile" a+]
     puts $oF $msg
     close $oF
@@ -4861,7 +5084,7 @@ proc ReadExtraFileList { extra_file_name } {
   return $extra_file_dict
 }
 
-## @brief Read a list file and return a list of three dictionaries
+# @brief Read a list file and return a list of three dictionaries
 #
 # Additional information is provided with text separated from the file name with one or more spaces
 #
@@ -4873,7 +5096,7 @@ proc ReadExtraFileList { extra_file_name } {
 #                 * -sha_mode  if not set to 0, the list files will be added as well and the IPs will be added to the file rather than to the special ip library. The SHA mode should be used when you use the lists to calculate the git SHA, rather than to add the files to the project.
 #
 # @return              a list of 3 dictionaries: "libraries" has library name as keys and a list of filenames as values, "properties" has as file names as keys and a list of properties as values, "filesets" has the fileset' names as keys and the list of associated libraries as values.
-proc ReadListFile args {
+proc ReadListFile {args} {
 
   if {[IsQuartus]} {
     load_package report
@@ -4945,7 +5168,7 @@ proc ReadListFile args {
   if {$print_log == 1} { Msg Info "$n lines read from $list_file." }
   Msg Debug "$n lines read from $list_file."
   dict set data_dict $list_file "$data"
-  PrintDictItems $data_dict -msg_appnd ""
+  PrintDictItems $data_dict
   puts ""
   set cnt 0
 
@@ -5904,11 +6127,15 @@ proc PrintDictItems { {dct} {msg "Following values are in the item -"} {msg_appn
 	}
       }
 }
+proc dict'sort {dict args} {
+    set res {}
+    foreach key [lsort {*}$args [dict keys $dict]] {
+        dict set res $key [dict get $dict $key]
+    }
+    set res
+}
 
 # Check Git Version when sourcing hog.tcl
 if {[GitVersion 2.7.2] == 0 } {
   Msg Error "Found Git version older than 2.7.2. Hog will not work as expected, exiting now."
 }
-
-### Source the Create project file TODO: Do we need to source in hog.tcl?
-#source [file dirname [info script]]/create_project.tcl

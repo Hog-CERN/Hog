@@ -104,6 +104,7 @@ if {![string equal $options(project) ""]} {
 
 
 if {$options(outDir)!= ""} {
+  
   set outFile $options(outDir)/diff_list_and_conf.txt
   set outSimFile $options(outDir)/diff_sim_list_and_conf.txt
   if {[file exists $outFile]} {

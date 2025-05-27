@@ -53,18 +53,44 @@ if {[IsXilinx]} {
     # Vivado
     set work_path $old_path
     if {[IsVersal [get_property PART [current_design]]]} {
-      #In Vivado if a Versal chip is used, the main binary file is called .bif
-      set fw_file_ext "bif"
+      #In Vivado if a Versal chip is used, the main binary file is called .pdi
+      set fw_file_ext "pdi"
     }
   }
 
-  set main_file   [file normalize [lindex [glob -nocomplain "$work_path/*.$fw_file_ext"] 0]]
+  set main_files [lsort [glob -nocomplain "$work_path/*.$fw_file_ext"]]
+  if {[llength $main_files] > 1} {
+    #In case of segmented configuration on Versal there are 2 .pdi files: <top>_boot.pdi and <top>_pld.pdi
+    # Main file is the pld, so not the first
+    set main_file [file normalize [lindex $main_files 1]]
+    # Secondary file is the boot, so the first!
+    set secondary_file [file normalize [lindex $main_files 0]]
+    set main_file_suffix "_pld"
+    set secondary_file_suffix "_boot"
+    Msg Info "Found main and secondary binary file main: [file tail $main_file], secondary: [file tail $secondary_file]..."
+    # remove _pld suffix only at the end
+    set top_name  [regsub $main_file_suffix\$ [file rootname [file tail $main_file]] ""]
+    if {[llength $main_files] > 2} {
+      Msg Warning "Multiple (more than 2) binary files found: $main_files."
+    }
+  } else {
+    set main_file [file normalize [lindex $main_files 0]]
+    set main_file_suffix ""
+    set secondary_file ""
+    set secondary_file_suffix ""
+    set top_name  [file rootname [file tail $main_file]]    
+  }
+
+
+  
+
+  
   set proj_name [file tail [file normalize $work_path/../../]]
   set proj_dir [file normalize "$work_path/../.."]
 
-  set top_name  [file rootname [file tail $main_file]]
 
-  set additional_ext "bin ltx pdi"
+
+  set additional_ext ".bin .ltx .bif"
 
   set xml_dir [file normalize "$work_path/../xml"]
   set run_dir [file normalize "$work_path/.."]
@@ -157,18 +183,46 @@ set ts [clock format [clock seconds] -format {%Y-%m-%d-%H-%M}]
 
 # Vivado
 if {[IsXilinx] && [file exists $main_file]} {
-  set dst_main [file normalize "$dst_dir/$proj_name\-$describe.$fw_file_ext"]
+  set dst_main [file normalize "$dst_dir/$proj_name$main_file_suffix\-$describe.$fw_file_ext"]
   Msg Info "Copying main binary file $main_file into $dst_main..."
   file copy -force $main_file $dst_main
+  if {$secondary_file != ""} {
+    set dst_secondary [file normalize "$dst_dir/$proj_name$secondary_file_suffix\-$describe.$fw_file_ext"]    
+    Msg Info "Copying secondary binary file $secondary_file into $dst_secondary..."
+    file copy -force $secondary_file $dst_secondary    
+  }
 
-  # LTX file for ILA, needs a special treatment...
-  set ltx_file "$work_path/$top_name.ltx"
-  write_debug_probes -quiet $ltx_file
+  
+
 
   # Additional files
+  # In case of Segmented Configuration, there are 2 files per extension.
+  set ltx_files {}
+  if {$main_file_suffix != ""} {
+    foreach e $additional_ext {
+      lappend new_ext $e
+      lappend new_ext $main_file_suffix$e
+      lappend new_ext $secondary_file_suffix$e      
+      lappend ltx_files "$top_name.ltx"
+      lappend ltx_files "$top_name$main_file_suffix.ltx"
+      lappend ltx_files "$top_name$secondary_file_suffix.ltx"      
+    }
+    set additional_ext $new_ext
+  }
+
+  
+  # LTX file for ILA, needs a special treatment...
+  foreach l $ltx_files {
+    set ltx_file "$work_path/$l"
+    if {[file exists $ltx_file]} {
+      Msg Info "Writing debug probes for $ltx_file..."
+      write_debug_probes -quiet $ltx_file
+    }
+  }
+  
   foreach e $additional_ext {
-    set orig [file normalize "$work_path/$top_name.$e"]
-    set dst  [file normalize "$dst_dir/$proj_name\-$describe.$e"]
+    set orig [file normalize "$work_path/$top_name$e"]
+    set dst  [file normalize "$dst_dir/$proj_name\-$describe$e"]
     if {[file exists $orig]} {
       Msg Info "Copying $orig file into $dst..."
       file copy -force $orig $dst
@@ -346,13 +400,8 @@ if {[file exists $xml_dir]} {
 if {[IsXilinx]} {
   # Vivado
   # automatically export for zynqs (checking via regex)
-  set export_xsa false
+  set export_xsa "NONE"
   set part [get_property part [current_project]]
-
-  if { [IsZynq $part] || [IsVersal $part]} {
-    Msg Info "SoC FPGA detected (Zynq or Versal), automatically enabling XSA file creation. To disable it, add 'EXPORT_XSA = false' in the \[hog\] section of hog.conf."
-    set export_xsa true
-  }
 
   # check for explicit EXPORT_XSA flag in hog.conf
   set properties [ReadConf [lindex [GetConfFiles $repo_path/Top/$group_name/$proj_name] 0]]
@@ -360,6 +409,14 @@ if {[IsXilinx]} {
     set propDict [dict get $properties "hog"]
     if {[dict exists $propDict "EXPORT_XSA"]} {
       set export_xsa [dict get $propDict "EXPORT_XSA"]
+    }
+  }
+
+  if { $export_xsa == "NONE" } {
+    set export_xsa false
+    if {([IsZynq $part] || [IsVersal $part])} {
+      Msg Info "SoC FPGA detected (Zynq or Versal), automatically enabling XSA file creation. To disable it, add 'EXPORT_XSA = false' in the \[hog\] section of hog.conf."
+      set export_xsa true
     }
   }
 
@@ -373,6 +430,7 @@ if {[IsXilinx]} {
 
       set dst_xsa [file normalize "$dst_dir/${proj_name}\-$describe.xsa"]
       Msg Info "Generating XSA File at $dst_xsa"
+
       if { [IsVersal $part] } {
 	# Run user pre-platform file
         set user_pre_platform_file "./Top/$group_name/$proj_name/pre-platform.tcl"
@@ -380,12 +438,19 @@ if {[IsXilinx]} {
           Msg Info "Sourcing user pre-platform file $user_pre_platform_file"
           source $user_pre_platform_file
         }
-	set pdi_post_imp [file normalize "$work_path/$top_name.pdi"]
-	set_property platform.full_pdi_file $pdi_post_imp [current_project]
-	Msg Info "XSA file will be generated for Versal with this PDI: $pdi_post_imp"
-	write_hw_platform -fixed -force -file "$dst_xsa"
+
+	#We do not want to touch the full_pdi_file property if there is a _boot .pdi file
+	if {$secondary_file == ""} {
+	  set pdi_post_imp [file normalize "$work_path/$top_name.pdi"]
+	  set_property platform.full_pdi_file $pdi_post_imp [current_project]
+	  Msg Info "XSA file will be generated for Versal with this PDI: $pdi_post_imp"
+	  write_hw_platform -fixed -force -file "$dst_xsa"	  
+	}
+	Msg Warning "No XSA will be produced in post-bitream for segmented configuration mode. If you're running with the GUI, please type the following on the Tcl console: write_hw_platform -fixed -force -file $dst_xsa."
+
       } else {
-	write_hw_platform -include_bit -fixed -force -file "$dst_xsa"
+      # we leave include bit also for Versal
+      write_hw_platform -include_bit -fixed -force -file "$dst_xsa"
       }
     }
   }

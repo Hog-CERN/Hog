@@ -4944,8 +4944,8 @@ proc ReadListFile args {
   set n [llength $data]
   if {$print_log == 1} { Msg Info "$n lines read from $list_file." }
   Msg Debug "$n lines read from $list_file."
-  dict set data_dict Files "$data"
-  PrintDictItems $data_dict
+  dict set data_dict $list_file "$data"
+  PrintDictItems $data_dict -msg_appnd ""
   puts ""
   set cnt 0
 
@@ -5896,7 +5896,7 @@ proc PrintDictItems { {dct} {msg "Following values are in the item -"} {msg_appn
   foreach item [dict keys $dct] {
     set val [dict get $dct $item]
     puts ""
-    puts " $msg $item $msg_appnd:"
+    Msg Info "$msg $item $msg_appnd:"
       foreach lstitm $val {
         if {![regexp {^ *$} $lstitm] & ![regexp {^ *\#} $lstitm] } {
 	  puts "$lstitm"

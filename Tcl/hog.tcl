@@ -6117,14 +6117,17 @@ proc WriteUtilizationSummary {input output project_name run} {
   close $o
 }
 
-proc PrintDictItems { {dct} {msg "Following values are in the item -"} {msg_appnd "are"}} {
+proc PrintDictItems { {dct} {msg "Following values are in the item -"} {rmExt 0} } {
   foreach item [dict keys $dct] {
     set val [dict get $dct $item]
     puts ""
-    Msg Info "$msg $item $msg_appnd:"
+    if { "$rmExt" == 1 } {
+      set item [file rootname "$item"]
+    }
+    Msg Info "$msg $item :"
       foreach lstitm $val {
-        if {![regexp {^ *$} $lstitm] & ![regexp {^ *\#} $lstitm] } {
-	  puts "$lstitm"
+	  if {![regexp {^ *$} $lstitm] & ![regexp {^ *\#} $lstitm] } {
+	    puts "$lstitm"
 	  }
 	}
       }

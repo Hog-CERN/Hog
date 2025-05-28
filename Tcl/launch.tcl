@@ -324,8 +324,8 @@ if {$cmd == -1} {
       lassign [GetHogFiles -print_log -list_files {.src,.sim,.ext,.ipb,.con,.sim} "$proj_list_dir" "$repo_path"] lstlib lstprop lstflst
       set msg "The list files found in the category -"
       #PrintDictItems $lstflst $msg
-      set msg "The source files found in the list file -"
-      #PrintDictItems $lstlib $msg
+      set msg "The source files found in the project library -"
+      PrintDictItems $lstlib $msg 1
       set msg "The Hog property of -"
       set msg_appnd "is"
       #PrintDictItems $lstprop $msg $msg_appnd

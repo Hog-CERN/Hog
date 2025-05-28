@@ -4237,7 +4237,7 @@ proc LaunchImplementation {reset do_create run_folder project_name {repo_path .}
 	write_hw_platform -fixed -force -file $xsa_name
       }
     }
-      
+
   } elseif {[IsQuartus]} {
     set revision [get_current_revision]
 
@@ -5041,7 +5041,7 @@ proc ReadConf {file_name} {
   foreach sec [::ini::sections $f] {
     set new_sec $sec
     set key_pairs [::ini::get $f $sec]
-
+    puts $key_pairs
     #manipulate strings here:
     regsub -all {\{\"} $key_pairs "\{" key_pairs
     regsub -all {\"\}} $key_pairs "\}" key_pairs

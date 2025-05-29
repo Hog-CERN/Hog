@@ -325,7 +325,7 @@ if {$cmd == -1} {
       set msg "The list files found in the category -"
       #PrintDictItems $lstflst $msg
       set msg "The source files found in the project library -"
-      PrintDictItems $lstlib $msg 1
+      #PrintDictItems $lstlib $msg 1
       set msg "The Hog property of -"
       set msg_appnd "is"
       #PrintDictItems $lstprop $msg $msg_appnd

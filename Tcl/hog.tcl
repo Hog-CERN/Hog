@@ -2030,6 +2030,8 @@ proc GetHogFiles args {
   set ext_path $options(ext_path)
   set print_log $options(print_log)
 
+  set supress_newline_opt ""
+
   if { $sha_mode == 1 } {
     set sha_mode_opt "-sha_mode"
   } else {
@@ -2038,10 +2040,10 @@ proc GetHogFiles args {
 
   if { $print_log == 1 } {
     set print_log_opt "-print_log"
-    set supress_newline_opt ""
   } else {
     set print_log_opt ""
   }
+
 
   if { $list_files == "" } {
     set list_files {.src,.con,.sim,.ext}
@@ -5176,11 +5178,10 @@ proc ReadListFile {args} {
   set data [split $file_data "\n"]
   set n [llength $data]
   if {$print_log == 1} {
+    if {$supress_newline == 0} {puts ""}
     dict set list_tree_dict $list_file "$data"
     Msg Info "Reading list file $list_file. Its contents are :"
-    puts "supress newline is$supress_newline_opt a"
     PrintDictItems $list_tree_dict
-    if {$supress_newline_opt == ""} {puts ""}
     }
   Msg Debug "$n lines read from $list_file."
   set cnt 0
@@ -5228,7 +5229,6 @@ proc ReadListFile {args} {
             }
 	    if {$print_log == 1} {
 	      Msg Info "List file $vhdlfile found in list file, Recursively opening it."
-	      set $supress_newline_opt "-supress_newline"
 	    }
             Msg Debug "List file $vhdlfile found in list file, recursively opening it using path \"$ref_path\"..."
             lassign [ReadListFile {*}"-lib $library -fileset $fileset $sha_mode_opt $print_log_opt $supress_newline_opt $vhdlfile $ref_path"] l p fs

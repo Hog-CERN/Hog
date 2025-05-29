@@ -2038,6 +2038,7 @@ proc GetHogFiles args {
 
   if { $print_log == 1 } {
     set print_log_opt "-print_log"
+    set supress_newline_opt ""
   } else {
     set print_log_opt ""
   }
@@ -2053,9 +2054,9 @@ proc GetHogFiles args {
   foreach f $list_files {
     set ext [file extension $f]
     if {$ext == ".ext"} {
-      lassign [ReadListFile {*}"$sha_mode_opt $print_log_opt $f $ext_path"] l p fs
+      lassign [ReadListFile {*}"$sha_mode_opt $print_log_opt $supress_newline_opt $f $ext_path"] l p fs
     } else {
-      lassign [ReadListFile {*}"$sha_mode_opt $print_log_opt $f $repo_path"] l p fs
+      lassign [ReadListFile {*}"$sha_mode_opt $print_log_opt $supress_newline_opt $f $repo_path"] l p fs
     }
     set libraries [MergeDict $l $libraries]
     set properties [MergeDict $p $properties]
@@ -5111,6 +5112,7 @@ proc ReadListFile {args} {
     {fileset.arg "" "The name of the library, from the main list file"}
     {sha_mode "If set, the list files will be added as well and the IPs will be added to the file rather than to the special IP library. The SHA mode should be used when you use the lists to calculate the git SHA, rather than to add the files to the project."}
     {print_log "If set will print stuff."}
+    {supress_newline "Will supress newline when called recursively for printing lisfile log"}
   }
   set usage "USAGE: ReadListFile \[options\] <list file> <path>"
   if {[catch {array set options [cmdline::getoptions args $parameters $usage]}] ||  [llength $args] != 2 } {
@@ -5123,6 +5125,7 @@ proc ReadListFile {args} {
   set lib $options(lib)
   set fileset $options(fileset)
   set print_log $options(print_log)
+  set supress_newline $options(supress_newline)
 
   if { $sha_mode == 1} {
     set sha_mode_opt "-sha_mode"
@@ -5135,6 +5138,13 @@ proc ReadListFile {args} {
   } else {
     set print_log_opt ""
   }
+
+  if { $supress_newline == 1 } {
+    set supress_newline_opt "-supress_newline"
+  } else {
+    set supress_newline_opt ""
+  }
+
 
   # if no library is given, work it out from the file name
   if {$lib eq ""} {
@@ -5166,10 +5176,11 @@ proc ReadListFile {args} {
   set data [split $file_data "\n"]
   set n [llength $data]
   if {$print_log == 1} {
-    dict set data_dict $list_file "$data"
-    Msg Info "$n lines read from $list_file."
-    PrintDictItems $data_dict
-    puts ""
+    dict set list_tree_dict $list_file "$data"
+    Msg Info "Reading list file $list_file. Its contents are :"
+    puts "supress newline is$supress_newline_opt a"
+    PrintDictItems $list_tree_dict
+    if {$supress_newline_opt == ""} {puts ""}
     }
   Msg Debug "$n lines read from $list_file."
   set cnt 0
@@ -5215,18 +5226,24 @@ proc ReadListFile {args} {
             } else {
               set ref_path [file normalize $path/$ref_path]
             }
-	    if {$print_log == 1} { Msg Info "List file $vhdlfile found in list file, Recursively opening it." }
+	    if {$print_log == 1} {
+	      Msg Info "List file $vhdlfile found in list file, Recursively opening it."
+	      set $supress_newline_opt "-supress_newline"
+	    }
             Msg Debug "List file $vhdlfile found in list file, recursively opening it using path \"$ref_path\"..."
-            lassign [ReadListFile {*}"-lib $library -fileset $fileset $sha_mode_opt $print_log_opt $vhdlfile $ref_path"] l p fs
+            lassign [ReadListFile {*}"-lib $library -fileset $fileset $sha_mode_opt $print_log_opt $supress_newline_opt $vhdlfile $ref_path"] l p fs
             set libraries [MergeDict $l $libraries]
             set properties [MergeDict $p $properties]
             set filesets [MergeDict $fs $filesets]
           } elseif {[lsearch {.src .sim .con ReadExtraFileList} $extension] >= 0 } {
             # Not supported extensions
             Msg Error "$vhdlfile cannot be included into $list_file, $extension files must be included into $extension files."
-          } else {
+	  } elseif {$print_log == 1} {
+	    # Deal with printing list tree here
+	    # PrintDictItems $list_tree_dict
+	  } else {
             # Deal with single files
-            regsub -all " *= *" $prop "=" prop
+	    regsub -all " *= *" $prop "=" prop
             # Fill property dictionary
             foreach p $prop {
               # No need to append the lib= property
@@ -6117,10 +6134,10 @@ proc WriteUtilizationSummary {input output project_name run} {
   close $o
 }
 
-proc PrintDictItems { {dct} {msg "Following values are in the item -"} {rmExt 0} } {
+proc PrintDictItems { {dct} {msg ""} {rmExt 0} } {
   foreach item [dict keys $dct] {
     set val [dict get $dct $item]
-    puts ""
+    # puts ""
     if { "$rmExt" == 1 } {
       set item [file rootname "$item"]
     }

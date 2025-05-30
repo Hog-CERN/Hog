@@ -1904,8 +1904,8 @@ proc GetGenericsFromConf {proj_dir {sim 0}} {
 }
 
 ##
-proc GetSimSets { project_name repo_path {simsets ""}} {
-  set simsets_dict [list]
+proc GetSimSets { project_name repo_path {simsets ""} {ghdl 0}} {
+  set simsets_dict [dict create]
   set list_dir "$repo_path/Top/$project_name/list"
   set list_files []
   if {$simsets != ""} {
@@ -1928,8 +1928,6 @@ proc GetSimSets { project_name repo_path {simsets ""}} {
     set file_data [read $fp]
     close $fp
     set data [split $file_data "\n"]
-    set n [llength $data]
-    Msg Info "$n lines read from $simset_name.sim"
 
     set firstline [lindex $data 0]
     # Find simulator
@@ -1944,12 +1942,14 @@ proc GetSimSets { project_name repo_path {simsets ""}} {
       Msg Info "Skipping simulation for $simset_name"
       continue
     }
+    if {($ghdl == 1 && $simulator != "ghdl") || ($ghdl == 0 && $simulator == "ghdl")} {
+      continue
+    }
     set sim_dict [dict create]
-    dict set sim_dict "name" $simset_name
     dict set sim_dict "simulator" $simulator
     set conf_dict [ReadConf $list_file]
     set sim_dict [MergeDict $sim_dict $conf_dict]
-    lappend simsets_dict $sim_dict
+    dict set simsets_dict $simset_name $sim_dict
   }
   return $simsets_dict
 }
@@ -4380,15 +4380,17 @@ proc LaunchImplementation {reset do_create run_folder project_name {repo_path .}
 # @param[in] lib_path     The path to the simulation libraries
 # @param[in] simsets      The simulation sets to simulate
 # @param[in] repo_path    The main path of the git repository
-proc LaunchSimulation {project_name lib_path {simsets ""} {repo_path .}} {
+proc LaunchSimulation {project_name lib_path simsets {repo_path .}} {
   if {[IsVivado]} {
     ##################### SIMULATION #######################
     set project [file tail $project_name]
     set main_sim_folder [file normalize "$repo_path/Projects/$project_name/$project.sim/"]
     set simsets_todo ""
     if {$simsets != ""} {
-      set simsets_todo [split $simsets ","]
-      Msg Info "Will run only the following simsets (if they exist): $simsets_todo"
+      dict for {simset sim_dict} $simsets {
+        lappend simsets_todo $simset
+      }
+      Msg Info "Will run only the following simulation's sets (if they exist): $simsets_todo"
     }
 
     set failed []
@@ -4407,6 +4409,7 @@ proc LaunchSimulation {project_name lib_path {simsets ""} {repo_path .}} {
       SetGlobalVar SIM_PROPERTIES ""
     }
 
+    # TODO: Get Hog category also from .sim files
     # Get Hog specific simulation properties
     if {[dict exists $globalSettings::SIM_PROPERTIES hog]} {
       set hog_sim_props [dict get $globalSettings::SIM_PROPERTIES hog]
@@ -4428,87 +4431,75 @@ proc LaunchSimulation {project_name lib_path {simsets ""} {repo_path .}} {
           Msg Info "Skipping $s as it was not specified with the -simset option..."
           continue
         }
-        if {[file exists "$repo_path/Top/$project_name/list/$s.sim"]} {
-          set fp [open "$repo_path/Top/$project_name/list/$s.sim" r]
-          set file_data [read $fp]
-          close $fp
-          set data [split $file_data "\n"]
-          set n [llength $data]
-          Msg Info "$n lines read from $s.sim"
+        set sim_dict [DictGet $simsets $s]
+        set simulator [DictGet $sim_dict "simulator"]
+        set_property "target_simulator" $simulator [current_project]
 
-          set firstline [lindex $data 0]
-          if { [regexp {^ *\#Simulator} $firstline] } {
-            set simulator_prop [regexp -all -inline {\S+} $firstline]
-            set simulator [string tolower [lindex $simulator_prop 1]]
+
+        Msg Info "Creating simulation scripts for $s..."
+        if { [file exists $repo_path/Top/$project_name/pre-simulation.tcl] } {
+          Msg Info "Running $repo_path/Top/$project_name/pre-simulation.tcl"
+          source $repo_path/Top/$project_name/pre-simulation.tcl
+        }
+        if { [file exists $repo_path/Top/$project_name/pre-$s-simulation.tcl] } {
+          Msg Info "Running $repo_path/Top/$project_name/pre-$s-simulation.tcl"
+          source Running $repo_path/Top/$project_name/pre-$s-simulation.tcl
+        }
+        current_fileset -simset $s
+        set sim_dir $main_sim_folder/$s/behav
+        set sim_output_logfile $sim_dir/xsim/simulate.log
+        if { ([string tolower $simulator] eq "xsim") } {
+          set sim_name "xsim:$s"
+          if { [catch { launch_simulation -simset [get_filesets $s] } log] } {
+            # Explicitly close xsim simulation, without closing Vivado
+            close_sim
+            Msg CriticalWarning "Simulation failed for $s, error info: $::errorInfo"
+            lappend failed $sim_name
           } else {
-            Msg Warning "Simulator not set in $simset_name.sim. The first line of $simset_name.sim should be #Simulator <SIMULATOR_NAME>, where <SIMULATOR_NAME> can be xsim, questa, modelsim, riviera, activehdl, ies, or vcs, e.g. #Simulator questa. Setting simulator by default as xsim."
-            set simulator "xsim"
-          }
-          set_property "target_simulator" $simulator [current_project]
-          Msg Info "Creating simulation scripts for $s..."
-          if { [file exists $repo_path/Top/$project_name/pre-simulation.tcl] } {
-            Msg Info "Running $repo_path/Top/$project_name/pre-simulation.tcl"
-            source $repo_path/Top/$project_name/pre-simulation.tcl
-          }
-          if { [file exists $repo_path/Top/$project_name/pre-$s-simulation.tcl] } {
-            Msg Info "Running $repo_path/Top/$project_name/pre-$s-simulation.tcl"
-            source Running $repo_path/Top/$project_name/pre-$s-simulation.tcl
-          }
-          current_fileset -simset $s
-          set sim_dir $main_sim_folder/$s/behav
-          set sim_output_logfile $sim_dir/xsim/simulate.log
-          if { ([string tolower $simulator] eq "xsim") } {
-            set sim_name "xsim:$s"
-            if { [catch { launch_simulation -simset [get_filesets $s] } log] } {
-              # Explicitly close xsim simulation, without closing Vivado
-              close_sim
-              Msg CriticalWarning "Simulation failed for $s, error info: $::errorInfo"
-              lappend failed $sim_name
-            } else {
-              # Explicitly close xsim simulation, without closing Vivado
-              close_sim
-              # If we use simpass_str, search for the string and update return code from simulation if the string is not found in simulation log
-              if {$use_simpass_str == 1} {
-                # Get the simulation output log
-                # Note, xsim should always output simulation.log, hence no check for existence
-                set file_desc [open $sim_output_logfile r]
-                set log [read $file_desc]
-                close $file_desc
+            # Explicitly close xsim simulation, without closing Vivado
+            close_sim
+            # If we use simpass_str, search for the string and update return code from simulation if the string is not found in simulation log
+            if {$use_simpass_str == 1} {
+              # Get the simulation output log
+              # Note, xsim should always output simulation.log, hence no check for existence
+              set file_desc [open $sim_output_logfile r]
+              set log [read $file_desc]
+              close $file_desc
 
-                Msg Info "Searching for simulation pass string: '$simpass_str'"
-                if {[string first $simpass_str $log] == -1} {
-                  Msg CriticalWarning "Simulation failed for $s, error info: '$simpass_str' NOT found!"
-                  lappend failed $sim_name
-                } else {
-                  # HOG_SIMPASS_STR found, success
-                  lappend success $sim_name
-                }
-              } else { #Rely on simulator exit code
+              Msg Info "Searching for simulation pass string: '$simpass_str'"
+              if {[string first $simpass_str $log] == -1} {
+                Msg CriticalWarning "Simulation failed for $s, error info: '$simpass_str' NOT found!"
+                lappend failed $sim_name
+              } else {
+                # HOG_SIMPASS_STR found, success
                 lappend success $sim_name
               }
-            }
-          } else {
-            Msg Info "Simulation library path is set to $lib_path."
-            set simlib_ok 1
-            if {!([file exists $lib_path])} {
-              Msg Warning "Could not find simulation library path: $lib_path, $simulator simulation will not work."
-              set simlib_ok 0
-            }
-
-            if {$simlib_ok == 1} {
-              set_property "compxlib.${simulator}_compiled_library_dir" [file normalize $lib_path] [current_project]
-              launch_simulation -scripts_only -simset [get_filesets $s]
-              set top_name [get_property TOP $s]
-              set sim_script  [file normalize $sim_dir/$simulator/]
-              Msg Info "Adding simulation script location $sim_script for $s..."
-              lappend sim_scripts $sim_script
-              dict append sim_dic $sim_script $s
-            } else {
-              Msg Error "Cannot run $simulator simulations without a valid library path"
-              exit -1
+            } else { #Rely on simulator exit code
+              lappend success $sim_name
             }
           }
+        } else {
+          Msg Info "Simulation library path is set to $lib_path."
+          set simlib_ok 1
+          if {!([file exists $lib_path])} {
+            Msg Warning "Could not find simulation library path: $lib_path, $simulator simulation will not work."
+            set simlib_ok 0
+          }
+
+          if {$simlib_ok == 1} {
+            set_property "compxlib.${simulator}_compiled_library_dir" [file normalize $lib_path] [current_project]
+            launch_simulation -scripts_only -simset [get_filesets $s]
+            set top_name [get_property TOP $s]
+            set sim_script  [file normalize $sim_dir/$simulator/]
+            Msg Info "Adding simulation script location $sim_script for $s..."
+            lappend sim_scripts $sim_script
+            dict append sim_dic $sim_script $s
+          } else {
+            Msg Error "Cannot run $simulator simulations without a valid library path"
+            exit -1
+          }
         }
+
       }
     }
 
@@ -5501,7 +5492,7 @@ proc SetGenericsSimulation {repo_path proj_dir target} {
         set simset_generics_dict [DictGet $simsets_generics_dict $simset:generics]
         set merged_generics_dict [MergeDict $sim_generics_dict $simset_generics_dict]
       }
-      set simlist_dict [GetSimSets $proj_dir $repo_path $simset]
+      set simlist_dict [DictGet [GetSimSets $proj_dir $repo_path $simset] $simset]
       set simlist_generics [DictGet $simlist_dict "generics"]
       set merged_generics_dict [MergeDict $merged_generics_dict $simlist_generics]
       set generic_str [GenericToSimulatorString $merged_generics_dict $target]

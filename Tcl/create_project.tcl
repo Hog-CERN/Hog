@@ -504,7 +504,7 @@ proc ConfigureImplementation {} {
 ## @brief configure simulation
 #
 proc ConfigureSimulation {} {
-  set simset_dict [GetSimSets $globalSettings::$globalSettings::DESIGN $globalSettings::repo_path]
+  set simset_dict [GetSimSets $globalSettings::DESIGN $globalSettings::repo_path]
 
   if {[IsXilinx]} {
     ##############

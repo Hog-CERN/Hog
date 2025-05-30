@@ -504,7 +504,7 @@ proc ConfigureImplementation {} {
 ## @brief configure simulation
 #
 proc ConfigureSimulation {} {
-  set simset_dict [GetSimSets $globalSettings::DESIGN $globalSettings::repo_path]
+  set simsets_dict [GetSimSets "$globalSettings::group_name/$globalSettings::DESIGN" $globalSettings::repo_path]
 
   if {[IsXilinx]} {
     ##############
@@ -522,14 +522,15 @@ proc ConfigureSimulation {} {
       if {[dict exists $globalSettings::SIM_PROPERTIES $simset]} {
         set sim_props [dict get $globalSettings::SIM_PROPERTIES $simset]
       } else {
-        foreach sim_dict $simset_dict {
-          if {[DictGet $sim_dict "name"] eq $simset} {
+        dict for {sim_name sim_dict} $simsets_dict {
+          if {$sim_name eq $simset} {
             # Retrieve properties from .sim file
             set sim_props [DictGet $sim_dict "properties"]
             break
           }
         }
       }
+      puts $sim_props
 
       if {[info exists sim_props]} {
         Msg Info "Setting properties for simulation set: $simset..."

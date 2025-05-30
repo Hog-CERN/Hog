@@ -345,26 +345,22 @@ if {$cmd == -1} {
 
   set simsets ""
   if {$do_simulation == 1} {
-    # Get all simsets in the project
-    set simsets_dict [GetSimSets $project_name $repo_path $options(simset)]
+    # Get all simsets in the project that run with GHDL
+    set simsets_dict [GetSimSets $project_name $repo_path $options(simset) 1]
     set ghdl_import 0
-    dict for {simset_name simulator} $simsets_dict {
-      if {$simulator == "ghdl"} {
-        if {$ghdl_import == 0} {
-          ImportGHDL $project_name $repo_path $ext_path
-          set ghdl_import 1
-        }
-        LaunchGHDL $project_name $repo_path $simset_name $ext_path
-        dict unset simsets_dict $simset_name
-      } else {
-        lappend simsets $simset_name
+    dict for {simset_name simset_dict} $simsets_dict {
+      if {$ghdl_import == 0} {
+        ImportGHDL $project_name $repo_path $ext_path
+        set ghdl_import 1
       }
+      LaunchGHDL $project_name $repo_path $simset_name $ext_path
+        # dict unset simsets_dict $simset_name
     }
-    if {[dict size $simsets_dict] == 0} {
-      # All simulations have been run, exiting
-      Msg Info "All simulations have been run, exiting..."
-      exit 0
-    }
+    # if {[dict size $simsets_dict] == 0} {
+    #   # All simulations have been run, exiting
+    #   Msg Info "All simulations have been run, exiting..."
+    #   exit 0
+    # }
   }
 
   # if {$do_new_directive ==1 } {
@@ -573,15 +569,7 @@ if {$do_bitstream == 1 && ![IsXilinx] } {
 
 if {$do_simulation == 1} {
   # set simsets $options(simset)
-  set simsets_dict [GetSimSets $project_name $repo_path $options(simset)]
-  set simsets ""
-  foreach {simset_name simulator} [dict get $simsets_dict] {
-    if {$simulator != "ghdl"} {
-      # GHDL simulation is already handled above
-      lappend simsets $simset_name
-    }
-    set simsets $simset_name
-  }
+  set simsets [GetSimSets $project_name $repo_path $options(simset)]
   LaunchSimulation $project_name $lib_path $simsets $repo_path
 }
 

@@ -504,6 +504,8 @@ proc ConfigureImplementation {} {
 ## @brief configure simulation
 #
 proc ConfigureSimulation {} {
+  set simset_dict [GetSimSets $globalSettings::$globalSettings::DESIGN $globalSettings::repo_path]
+
   if {[IsXilinx]} {
     ##############
     # SIMULATION #
@@ -518,8 +520,19 @@ proc ConfigureSimulation {} {
       }
       # Setting Simulation Properties
       if {[dict exists $globalSettings::SIM_PROPERTIES $simset]} {
-        Msg Info "Setting properties for simulation set: $simset..."
         set sim_props [dict get $globalSettings::SIM_PROPERTIES $simset]
+      } else {
+        foreach sim_dict $simset_dict {
+          if {[DictGet $sim_dict "name"] eq $simset} {
+            # Retrieve properties from .sim file
+            set sim_props [DictGet $sim_dict "properties"]
+            break
+          }
+        }
+      }
+
+      if {[info exists sim_props]} {
+        Msg Info "Setting properties for simulation set: $simset..."
         dict for {prop_name prop_val} $sim_props {
           set prop_name [string toupper $prop_name]
           if { $prop_name == "ACTIVE" && $prop_val == 1 } {

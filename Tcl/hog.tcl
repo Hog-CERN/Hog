@@ -1362,6 +1362,36 @@ proc ExecuteRet {args}  {
   return [list $ret $result]
 }
 
+## @brief Extract the [files] section from a sim list file
+#
+#  @param[in] the content of the simulation list file to extract the [files] section from
+#  @returns a list of files in the [files] section, or all lines if no [files] section is found
+proc ExtractFilesSection {file_data} {
+  set in_files_section 0
+  set result {}
+
+  foreach line $file_data {
+    if {[regexp {^\[files\]} $line]} {
+      set in_files_section 1
+      continue
+    }
+    if {$in_files_section} {
+      if {[regexp {^\[.*\]} $line]} {
+          break
+      }
+      lappend result $line
+    }
+  }
+
+  # If [files] was not found, return all file_data
+  if {!$in_files_section} {
+    return $file_data
+  } else {
+    return $result
+  }
+}
+
+
 ## @brief Tags the repository with a new version calculated on the basis of the previous tags
 #
 # @param[in] tag  a tag in the Hog format: v$M.$m.$p or b$(mr)v$M.$m.$p-$n
@@ -1875,7 +1905,7 @@ proc GetGenericsFromConf {proj_dir {sim 0}} {
 
 ##
 proc GetSimSets { project_name repo_path {simsets ""}} {
-  set simsets_dict [dict create]
+  set simsets_dict [list]
   set list_dir "$repo_path/Top/$project_name/list"
   set list_files []
   if {$simsets != ""} {
@@ -1907,14 +1937,19 @@ proc GetSimSets { project_name repo_path {simsets ""}} {
       set simulator_prop [regexp -all -inline {\S+} $firstline]
       set simulator [string tolower [lindex $simulator_prop 1]]
     } else {
-      Msg Warning "Simulator not set in $simset_name.sim. The first line of $simset_name.sim should be #Simulator <SIMULATOR_NAME>, where <SIMULATOR_NAME> can be xsim, questa, modelsim, riviera, activehdl, ies, or vcs, e.g. #Simulator questa. Setting simulator by default as xsim."
+      Msg Warning "Simulator not set in $simset_name.sim. The first line of $simset_name.sim should be #Simulator <SIMULATOR_NAME>, where <SIMULATOR_NAME> can be xsim, questa, modelsim, ghdl, riviera, activehdl, ies, or vcs, e.g. #Simulator questa. Setting simulator by default as xsim."
       set simulator "xsim"
     }
     if {$simulator eq "skip_simulation"} {
       Msg Info "Skipping simulation for $simset_name"
       continue
     }
-    dict set simsets_dict $simset_name $simulator
+    set sim_dict [dict create]
+    dict set sim_dict "name" $simset_name
+    dict set sim_dict "simulator" $simulator
+    set conf_dict [ReadConf $list_file]
+    set sim_dict [MergeDict $sim_dict $conf_dict]
+    lappend simsets_dict $sim_dict
   }
   return $simsets_dict
 }
@@ -5040,8 +5075,10 @@ proc ReadConf {file_name} {
   set properties [dict create]
   foreach sec [::ini::sections $f] {
     set new_sec $sec
+    if {$new_sec == "files"} {
+      continue
+    }
     set key_pairs [::ini::get $f $sec]
-    puts $key_pairs
     #manipulate strings here:
     regsub -all {\{\"} $key_pairs "\{" key_pairs
     regsub -all {\"\}} $key_pairs "\}" key_pairs
@@ -5076,6 +5113,8 @@ proc ReadExtraFileList { extra_file_name } {
   }
   return $extra_file_dict
 }
+
+
 
 # @brief Read a list file and return a list of three dictionaries
 #
@@ -5149,6 +5188,7 @@ proc ReadListFile {args} {
   set properties [dict create]
   #  Process data file
   set data [split $file_data "\n"]
+  set data [ExtractFilesSection $data]
   set n [llength $data]
   Msg Debug "$n lines read from $list_file."
   set cnt 0
@@ -5445,40 +5485,28 @@ proc SearchHogProjects {dir} {
 #
 proc SetGenericsSimulation {repo_path proj_dir target} {
   set top_dir "$repo_path/Top/$proj_dir"
-  set read_aux [GetConfFiles $top_dir]
-  set sim_cfg_index [lsearch -regexp -index 0 $read_aux ".*sim.conf"]
-  set sim_cfg_index [lsearch -regexp -index 0 [GetConfFiles $top_dir] ".*sim.conf"]
   set simsets [get_filesets]
   if { $simsets != "" } {
-    if {[file exists $top_dir/sim.conf]} {
-      set sim_generics_dict [GetGenericsFromConf $proj_dir 1]
-      set simsets_generics_dict [GetSimsetGenericsFromConf $proj_dir]
+    foreach simset $simsets {
+      # Only for simulation filesets
+      if {[get_property FILESET_TYPE $simset] != "SimulationSrcs" } {
+        continue
+      }
 
-      if {[dict size $sim_generics_dict] > 0 || [dict size $simsets_generics_dict] > 0} {
-        foreach simset $simsets {
-          # Only for simulation filesets
-          if {[get_property FILESET_TYPE $simset] != "SimulationSrcs" } {
-            continue
-          }
-          # Check if any specific generics for this simset
-          if {[dict exists $simsets_generics_dict $simset:generics]} {
-            set simset_generics_dict [dict get $simsets_generics_dict $simset:generics]
-            # Merge with global sim generics (if any), specific simset generics also have priority
-            set merged_generics_dict [dict merge $sim_generics_dict $simset_generics_dict]
-            set generic_str [GenericToSimulatorString $merged_generics_dict $target]
-            set_property generic $generic_str [get_filesets $simset]
-            Msg Debug "Setting generics $generic_str for simulator $target and simulation file-set $simset..."
-          } elseif {[dict size $sim_generics_dict] > 0} {
-            set generic_str [GenericToSimulatorString $sim_generics_dict $target]
-            set_property generic $generic_str [get_filesets $simset]
-            Msg Debug "Setting generics $generic_str for simulator $target and simulation file-set $simset..."
-          }
-        }
+      set merged_generics_dict [dict create]
+      # Get generics from sim.conf file
+      if {[file exists $top_dir/sim.conf]} {
+        set sim_generics_dict [GetGenericsFromConf $proj_dir 1]
+        set simsets_generics_dict [GetSimsetGenericsFromConf $proj_dir]
+        set simset_generics_dict [DictGet $simsets_generics_dict $simset:generics]
+        set merged_generics_dict [MergeDict $sim_generics_dict $simset_generics_dict]
       }
-    } else {
-      if {[glob -nocomplain "$top_dir/list/*.sim"] ne ""} {
-        Msg CriticalWarning "Simulation sets and .sim files are present in the project but no sim.conf found in $top_dir. Please refer to Hog's manual to create one."
-      }
+      set simlist_dict [GetSimSets $proj_dir $repo_path $simset]
+      set simlist_generics [DictGet $simlist_dict "generics"]
+      set merged_generics_dict [MergeDict $merged_generics_dict $simlist_generics]
+      set generic_str [GenericToSimulatorString $merged_generics_dict $target]
+      set_property generic $generic_str [get_filesets $simset]
+      Msg Debug "Setting generics $generic_str for simulator $target and simulation file-set $simset..."
     }
   }
 }

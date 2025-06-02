@@ -320,6 +320,7 @@ if {$cmd == -1} {
   if {$list_files_parse == 1} {
       set proj_dir $repo_path/Top/$project_name
       Msg Info "The project is set to $proj_dir"
+      puts ""
       set proj_list_dir $repo_path/Top/$project_name/list
       lassign [GetHogFiles -print_log -list_files {.src,.sim,.ext,.ipb,.con,.sim} "$proj_list_dir" "$repo_path"] lstlib lstprop lstflst
       set msg "The list files found in the category -"

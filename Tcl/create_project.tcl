@@ -44,7 +44,6 @@ namespace eval globalSettings {
   variable DEVICE
 
   variable PROPERTIES
-  variable SIM_PROPERTIES
   variable HOG_EXTERNAL_PATH
   variable HOG_IP_PATH
   variable TARGET_SIMULATOR
@@ -519,20 +518,10 @@ proc ConfigureSimulation {} {
         set_property -name {xsim.elaborate.load_glbl} -value {true} -objects [get_filesets $simset]
       }
       # Setting Simulation Properties
-      if {[dict exists $globalSettings::SIM_PROPERTIES $simset]} {
-        set sim_props [dict get $globalSettings::SIM_PROPERTIES $simset]
-      } else {
-        dict for {sim_name sim_dict} $simsets_dict {
-          if {$sim_name eq $simset} {
-            # Retrieve properties from .sim file
-            set sim_props [DictGet $sim_dict "properties"]
-            break
-          }
-        }
-      }
-      puts $sim_props
+      set sim_dict [DictGet $simsets_dict $simset]
+      set sim_props [DictGet $sim_dict "properties"]
 
-      if {[info exists sim_props]} {
+      if {$sim_props != ""} {
         Msg Info "Setting properties for simulation set: $simset..."
         dict for {prop_name prop_val} $sim_props {
           set prop_name [string toupper $prop_name]
@@ -554,22 +543,7 @@ proc ConfigureSimulation {} {
           }
         }
       }
-      if {[dict exists $globalSettings::SIM_PROPERTIES sim]} {
-        Msg Info "Setting properties for simulation set: sim..."
-        set sim_props [dict get $globalSettings::SIM_PROPERTIES sim]
-        dict for {prop_name prop_val} $sim_props {
-          Msg Debug "Setting $prop_name = $prop_val"
-          set_property $prop_name $prop_val [get_filesets $simset]
-        }
-      }
     }
-
-  } elseif {[IsQuartus]} {
-    #QUARTUS only
-    #TO BE DONE
-
-  } else {
-    Msg info "Configuring simulation"
   }
 }
 
@@ -875,13 +849,6 @@ proc CreateProject args {
       }
     } else {
       Msg Error "No main section found in $conf_file, make sure it has a section called \[main\] containing the mandatory properties."
-    }
-
-    if {[file exists $sim_file] && [IsVivado]} {
-      Msg Info "Parsing simulation configuration file $sim_file..."
-      SetGlobalVar SIM_PROPERTIES [ReadConf $sim_file]
-    } else {
-      SetGlobalVar SIM_PROPERTIES ""
     }
   } else {
     Msg Error "$conf_file was not found in your project directory, please create one."

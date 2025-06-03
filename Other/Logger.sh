@@ -228,14 +228,14 @@ line_type=""
 
 function log_stdout(){
   if [ -n "${2}" ]; then
-    IN_out="${2}"
+    IN_out="${2//\\/\\\\}"
   else
     while read -r IN_out # This reads a string from stdin and stores it in a variable called IN_out
     do
       if [[ $next_is_err == 0 ]]; then
-        line="${IN_out}"
+        line="${IN_out//\\/\\\\}"
       else
-        line="ERROR:${IN_out}"
+        line="ERROR:${IN_out//\\/\\\\}"
         next_is_err=$(($next_is_err-1))
       fi
       dataLine=$line

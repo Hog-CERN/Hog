@@ -114,7 +114,7 @@ set default_commands {
   # OPTIONS: verbose
   }
 
-  \^B(UTTONS)?$ {
+  \^B(UTTONS)?$ {#
     set min_n_of_args -1
     set max_n_of_args 1
     set do_buttons 1
@@ -135,7 +135,7 @@ set default_commands {
     set argument_is_no_project 1
   # NAME: COMPSIMLIB or COMPSIM
   # DESCRIPTION: Compiles the simulation library for the chosen simulator with Vivado.
-  # OPTIONS: verbose
+  # OPTIONS: dst_dir.arg, verbose
   }
 
   \^SIG(ASI)?$ {#

@@ -1971,9 +1971,9 @@ proc GetSimSets { project_name repo_path {simsets ""} {ghdl 0}} {
     } else {
       # Retrieve properties from .sim file
       set conf_dict [ReadConf $list_file]
-      set sim_dict [MergeDict $sim_dict $conf_dict]
+      set sim_dict [MergeDict $sim_dict $conf_dict 0]
     }
-    set sim_dict [MergeDict $sim_dict $global_sim_props]
+    set sim_dict [MergeDict $sim_dict $global_sim_props 0]
     dict set simsets_dict $simset_name $sim_dict
   }
   return $simsets_dict
@@ -3860,10 +3860,11 @@ proc InitLauncher {script tcl_path parameters commands argv} {
           foreach opt $opts {
             foreach par $parameters {
               if {$opt == [lindex $par 0]} {
-                if {[string first ".arg" $opt] != -1} {
-                  puts "  -[string trimright $opt ".arg"] <argument>"
+                if {[regexp {\.arg$} $opt]} {
+                  set opt_name [regsub {\.arg$} $opt ""]
+                  puts "  -$opt_name <argument>"
                 } else {
-                  puts "  -[string trimright $opt ".arg"]"
+                  puts "  -$opt"
                 }
                 puts "     [lindex $par [llength $par]-1]"
               }
@@ -4087,23 +4088,26 @@ proc ImportGHDL { project_name repo_path simset_name simset_dict {ext_path ""}} 
   lassign [GetHogFiles -list_files {.src,.ext,.sim} -ext_path $ext_path $list_path $repo_path ] src_files properties filesets
   cd $repo_path
 
-
+  puts $simset_dict
   # Get Properties
   set properties [DictGet $simset_dict "properties"]
   set options [DictGet $properties "options"]
+  puts $options
 
   # Import GHDL files
   set workdir Projects/$project_name/ghdl
+  file delete -force $workdir
+  file mkdir $workdir
   dict for {lib sources} $src_files {
     set libname [file rootname $lib]
-    file mkdir $workdir/$libname
     foreach f $sources {
       if {[file extension $f] != ".vhd" && [file extension $f] != ".vhdl"} {
-        Msg Info "File $f is not a VHDL file, skipping..."
-        continue
+        Msg Info "File $f is not a VHDL file, copying it in workfolder..."
+        file copy -force $f $workdir
       } else {
         set file_path [Relative $repo_path $f]
-        GHDL "-i --work=$libname --workdir=$workdir/$libname -fsynopsys --ieee=standard $options $file_path"
+        puts "ghdl -i --work=$libname --workdir=$workdir -fsynopsys --ieee=standard $options $file_path"
+        GHDL "-i --work=$libname --workdir=$workdir -fsynopsys --ieee=standard $options $file_path"
       }
     }
   }
@@ -4114,6 +4118,7 @@ proc LaunchGHDL { project_name repo_path simset_name simset_dict {ext_path ""}} 
 
   set top_sim ""
   # Setting Simulation Properties
+  puts $simset_dict
   set sim_props [DictGet $simset_dict "properties"]
   set options [DictGet $sim_props "options"]
 
@@ -4124,10 +4129,13 @@ proc LaunchGHDL { project_name repo_path simset_name simset_dict {ext_path ""}} 
     }
   }
   set workdir $repo_path/Projects/$project_name/ghdl
+  cd $workdir
   # Analyse and elaborate the design
-  GHDL "-m --work=$simset_name --workdir=$workdir/$simset_name -fsynopsys --ieee=standard $options $top_sim"
-  GHDL "-r --work=$simset_name --workdir=$workdir/$simset_name -fsynopsys  --ieee=standard $options $top_sim --assert-level=note"
-
+  puts "ghdl -m --work=$simset_name -fsynopsys --ieee=standard $options $top_sim"
+  GHDL "-m --work=$simset_name  -fsynopsys --ieee=standard $options $top_sim"
+  puts "ghdl -r --work=$simset_name -fsynopsys --ieee=standard $options $top_sim"
+  GHDL "-r --work=$simset_name -fsynopsys --ieee=standard $options $top_sim"
+  cd $repo_path
 }
 
 # @brief Launch the Implementation, for the current IDE and project
@@ -4856,18 +4864,20 @@ proc Md5Sum {file_name} {
 #
 # @param[in] dict0 the name of the first dictionary
 # @param[in] dict1 the name of the second dictionary
+# @param[in] remove_duplicates if 1, removes duplicates from the merged dictionary (default 1)
 #
 # @return  the merged dictionary
 #
-proc MergeDict {dict0 dict1} {
+proc MergeDict {dict0 dict1 {remove_duplicates 1}} {
   set outdict [dict merge $dict1 $dict0]
   foreach key [dict keys $dict1 ] {
     if {[dict exists $dict0 $key]} {
       set temp_list [dict get $dict1 $key]
-      foreach vhdfile $temp_list {
+      foreach item $temp_list {
         # Avoid duplication
-        if {[IsInList $vhdfile [DictGet $outdict $key]] == 0} {
-          dict lappend outdict $key $vhdfile
+        if {[IsInList $item [DictGet $outdict $key]] == 0 || $remove_duplicates == 0} {
+          # If the key exists in both dictionaries, append the item to the list
+          dict lappend outdict $key $item
         }
       }
     }
@@ -5498,7 +5508,7 @@ proc SetGenericsSimulation {repo_path proj_dir target} {
       set simset_dict [DictGet [GetSimSets $proj_dir $repo_path $simset] $simset]
       set hog_generics [GetGenericsFromConf $proj_dir]
       set simset_generics [DictGet $simset_dict "generics"]
-      set merged_generics_dict [MergeDict $merged_generics_dict $simset_generics]
+      set merged_generics_dict [MergeDict $merged_generics_dict $simset_generics 0]
       set generic_str [GenericToSimulatorString $merged_generics_dict $target]
       set_property generic $generic_str [get_filesets $simset]
       Msg Debug "Setting generics $generic_str for simulator $target\

@@ -1998,7 +1998,7 @@ proc GetHogDescribe {sha {repo_path .}} {
 #
 # @return a list of 3 dictionaries: libraries and properties
 # - libraries has library name as keys and a list of filenames as values
-# - properties has as file names as keys and a list of properties as values
+# - properties has file names as keys and a list of properties as values
 # - filesets has the fileset name as keys and the correspondent list of libraries as values (significant only for simulations)
 proc GetHogFiles args {
 

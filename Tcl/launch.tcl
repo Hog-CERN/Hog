@@ -319,17 +319,9 @@ if {$cmd == -1} {
 
   if {$do_list_file_parse == 1} {
       set proj_dir $repo_path/Top/$project_name
-      Msg Info "The project is set to $proj_dir"
-      puts ""
       set proj_list_dir $repo_path/Top/$project_name/list
-      lassign [GetHogFiles -print_log -list_files {.src,.sim,.ext,.ipb,.con,.sim} "$proj_list_dir" "$repo_path"] lstlib lstprop lstflst
-      set msg "The list files found in the category -"
-      #PrintDictItems $lstflst $msg
-      set msg "The source files found in the project library -"
-      #PrintDictItems $lstlib $msg 1
-      set msg "The Hog property of -"
-      set msg_appnd "is"
-      #PrintDictItems $lstprop $msg $msg_appnd
+      GetHogFiles -print_log -list_files {.src,.con,.sim,.ext,.sim,.ipb}  $proj_list_dir $repo_path
+      Msg Status "  "
       Msg Info "All Done."
     exit 0
   }

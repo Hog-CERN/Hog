@@ -5168,13 +5168,14 @@ proc ReadListFile {args} {
   #  Process data file
   set data [split $file_data "\n"]
   set n [llength $data]
+  set last_printed ""
   if {$print_log == 1} {
     dict set list_tree_dict $list_file "$data"
     if {$indent eq ""} {
       set list_file_rel [file tail $list_file] 
-      Msg Status "$list_file_rel"
+      Msg Status "\n$list_file_rel"
     }
-      PrintDictItems $list_tree_dict "$indent"
+    set last_printed [PrintDictItems $list_tree_dict "$indent"]
   }
   Msg Debug "$n lines read from $list_file."
   set cnt 0
@@ -5220,10 +5221,12 @@ proc ReadListFile {args} {
             } else {
               set ref_path [file normalize $path/$ref_path]
             }
-	    #if {$print_log == 1} {
-	    #  Msg Status "$indent LIST: $vhdlfile"
-	    #}
             Msg Debug "List file $vhdlfile found in list file, recursively opening it using path \"$ref_path\"..."
+	    if {$print_log == 1} {
+	      if {[file normalize $last_printed] ne [file normalize $vhdlfile]} {
+		Msg Status "$indent Inside [file tail $vhdlfile]:"
+	      }
+	    }
             lassign [ReadListFile {*}"-indent \"   $indent\" -lib $library -fileset $fileset $sha_mode_opt $print_log_opt $vhdlfile $ref_path"] l p fs
             set libraries [MergeDict $l $libraries]
             set properties [MergeDict $p $properties]
@@ -5231,9 +5234,6 @@ proc ReadListFile {args} {
           } elseif {[lsearch {.src .sim .con ReadExtraFileList} $extension] >= 0 } {
             # Not supported extensions
             Msg Error "$vhdlfile cannot be included into $list_file, $extension files must be included into $extension files."
-	  } elseif {$print_log == 1} {
-	    # Deal with printing list tree here
-	    #PrintDictItems $list_tree_dict $indent
 	  } else {
             # Deal with single files
 	    regsub -all " *= *" $prop "=" prop
@@ -6127,18 +6127,13 @@ proc WriteUtilizationSummary {input output project_name run} {
   close $o
 }
 
-proc PrintDictItems { {dct} {msg ""} {rmExt 0} } {
-  set ext_list {.src .sim .ext .ipb .con .sim}
+proc PrintDictItems { {dct} {msg ""}  } {
+  set last_printed ""
   foreach item [dict keys $dct] {
     set val [dict get $dct $item]
-    if { "$rmExt" == 1 } {
-      set item [file rootname "$item"]
-    }
     set print_list {}
     foreach lstitm $val {
       if {![regexp {^ *$} $lstitm] & ![regexp {^ *\#} $lstitm] } {
-	set tl [file extension [lindex "$lstitm" 0]]
-	set lsr [lsearch $ext_list $tl]
 	lappend print_list "$lstitm"
       }
     }
@@ -6152,13 +6147,15 @@ proc PrintDictItems { {dct} {msg ""} {rmExt 0} } {
 	set pad "├──"
       }
       Msg Status "$msg$pad$p"
-    }
-    
-    if {"$lsr" < 0} {
-      puts ""
+      set last_printed $p
     }
   }
+  
+return $last_printed
 }
+
+
+
 proc dict'sort {dict args} {
     set res {}
     foreach key [lsort {*}$args [dict keys $dict]] {

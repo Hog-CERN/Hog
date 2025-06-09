@@ -106,7 +106,7 @@ set default_commands {
   }
 
   \^V(IEW)?$ {#proj
-    set list_files_parse 1
+    set do_list_file_parse 1
   # NAME: VIEW or V
   # DESCRIPTION: Print Hog list file contents, libraries and properties.
   # OPTIONS: verbose
@@ -227,7 +227,7 @@ set do_reset 1; set do_list_all 2; set do_check_syntax 0;
 # A place holder called new_directive can be followed to add new commands
 
 set do_ipbus_xml 0
-set list_files_parse 0;
+set do_list_file_parse 0;
 set do_check_yaml_ref 0;
 set do_buttons 0;
 set do_check_list_files 0;
@@ -317,7 +317,7 @@ if {$cmd == -1} {
     exit 0
   }
 
-  if {$list_files_parse == 1} {
+  if {$do_list_file_parse == 1} {
       set proj_dir $repo_path/Top/$project_name
       Msg Info "The project is set to $proj_dir"
       puts ""

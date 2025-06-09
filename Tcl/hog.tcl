@@ -5112,6 +5112,7 @@ proc ReadListFile {args} {
     {fileset.arg "" "The name of the library, from the main list file"}
     {sha_mode "If set, the list files will be added as well and the IPs will be added to the file rather than to the special IP library. The SHA mode should be used when you use the lists to calculate the git SHA, rather than to add the files to the project."}
     {print_log "If set will print stuff."}
+    {indent.arg "" "Used to indent files with the VIEW directive"}    
   }
   set usage "USAGE: ReadListFile \[options\] <list file> <path>"
   if {[catch {array set options [cmdline::getoptions args $parameters $usage]}] ||  [llength $args] != 2 } {
@@ -5124,6 +5125,7 @@ proc ReadListFile {args} {
   set lib $options(lib)
   set fileset $options(fileset)
   set print_log $options(print_log)
+  set indent $options(indent)
 
   if { $sha_mode == 1} {
     set sha_mode_opt "-sha_mode"
@@ -5168,8 +5170,11 @@ proc ReadListFile {args} {
   set n [llength $data]
   if {$print_log == 1} {
     dict set list_tree_dict $list_file "$data"
-    Msg Info "Reading list file $list_file. Its contents are :"
-    PrintDictItems $list_tree_dict
+    if {$indent eq ""} {
+      set list_file_rel [file tail $list_file] 
+      Msg Status "$list_file_rel"
+    }
+      PrintDictItems $list_tree_dict "$indent"
   }
   Msg Debug "$n lines read from $list_file."
   set cnt 0
@@ -5215,11 +5220,11 @@ proc ReadListFile {args} {
             } else {
               set ref_path [file normalize $path/$ref_path]
             }
-	    if {$print_log == 1} {
-	      Msg Info "List file $vhdlfile found in list file. Recursively opening it."
-	    }
+	    #if {$print_log == 1} {
+	    #  Msg Status "$indent LIST: $vhdlfile"
+	    #}
             Msg Debug "List file $vhdlfile found in list file, recursively opening it using path \"$ref_path\"..."
-            lassign [ReadListFile {*}"-lib $library -fileset $fileset $sha_mode_opt $print_log_opt $vhdlfile $ref_path"] l p fs
+            lassign [ReadListFile {*}"-indent \"   $indent\" -lib $library -fileset $fileset $sha_mode_opt $print_log_opt $vhdlfile $ref_path"] l p fs
             set libraries [MergeDict $l $libraries]
             set properties [MergeDict $p $properties]
             set filesets [MergeDict $fs $filesets]
@@ -5228,7 +5233,7 @@ proc ReadListFile {args} {
             Msg Error "$vhdlfile cannot be included into $list_file, $extension files must be included into $extension files."
 	  } elseif {$print_log == 1} {
 	    # Deal with printing list tree here
-	    # PrintDictItems $list_tree_dict
+	    #PrintDictItems $list_tree_dict $indent
 	  } else {
             # Deal with single files
 	    regsub -all " *= *" $prop "=" prop
@@ -6129,15 +6134,30 @@ proc PrintDictItems { {dct} {msg ""} {rmExt 0} } {
     if { "$rmExt" == 1 } {
       set item [file rootname "$item"]
     }
-      foreach lstitm $val {
-	  if {![regexp {^ *$} $lstitm] & ![regexp {^ *\#} $lstitm] } {
-	    set tl [file extension [lindex "$lstitm" 0]]
-	    set lsr [lsearch $ext_list $tl]
-	    puts "$lstitm"
-	  }
+    set print_list {}
+    foreach lstitm $val {
+      if {![regexp {^ *$} $lstitm] & ![regexp {^ *\#} $lstitm] } {
+	set tl [file extension [lindex "$lstitm" 0]]
+	set lsr [lsearch $ext_list $tl]
+	lappend print_list "$lstitm"
       }
-      if {"$lsr" < 0} {puts ""}
+    }
+    set i 0
+    
+    foreach p $print_list {
+      incr i
+      if {$i == [llength $print_list]} {
+	set pad "└──"
+      } else {
+	set pad "├──"
       }
+      Msg Status "$msg$pad$p"
+    }
+    
+    if {"$lsr" < 0} {
+      puts ""
+    }
+  }
 }
 proc dict'sort {dict args} {
     set res {}

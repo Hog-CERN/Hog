@@ -1365,12 +1365,12 @@ proc ExtractFilesSection {file_data} {
   set result {}
 
   foreach line $file_data {
-    if {[regexp {^\[files\]} $line]} {
+    if {[regexp {^ *\[ *files *\]} $line]} {
       set in_files_section 1
       continue
     }
     if {$in_files_section} {
-      if {[regexp {^\[.*\]} $line]} {
+      if {[regexp {^ *\[.*\]} $line]} {
           break
       }
       lappend result $line

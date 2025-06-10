@@ -1275,6 +1275,17 @@ proc DictGet {dictName keyName {default ""}} {
   }
 }
 
+## Sorts a dictionary
+#
+#  @param[in]    dict the dictionary
+proc dict'sort {dict args} {
+    set res {}
+    foreach key [lsort {*}$args [dict keys $dict]] {
+        dict set res $key [dict get $dict $key]
+    }
+    set res
+}
+
 ## @brief Checks the Doxygen version installed in this machine
 #
 # @param[in] target_version the version required by the current project
@@ -5013,6 +5024,40 @@ proc ParseJSON {JSON_FILE JSON_KEY} {
   }
 }
 
+## Print a tree-like structure of Hog list file content
+#
+#  @param[in]    data the list of lines read from a list file
+#  @param[in]    indentation a string containing a number of spaces to indent the tree
+proc PrintFileTree { {data} {indentation ""}  } {
+  set last_printed ""
+  foreach line $data {
+    if {![regexp {^ *$} $line] & ![regexp {^ *\#} $line] } {
+      lappend print_list "$line"
+    }
+  }
+  set i 0
+    
+  foreach p $print_list {
+    incr i
+    if {$i == [llength $print_list]} {
+      set pad "└──"
+    } else {
+      set pad "├──"
+    }
+    set file_name [lindex [split $p] 0]
+    if {[file exists [file normalize  [lindex [glob -nocomplain $file_name] 0]]] } {
+      set exists ""
+    } else {
+      set exists "  !!!!!   NOT FOUND   !!!!!"
+    }
+      
+    Msg Status "$indentation$pad$p$exists"
+    set last_printed $file_name 
+  }
+  
+return $last_printed
+}
+
 # @brief Check if a Hog project exists, and if it exists returns the conf file
 # if it doesnt returns 0
 #
@@ -5170,12 +5215,11 @@ proc ReadListFile {args} {
   set n [llength $data]
   set last_printed ""
   if {$print_log == 1} {
-    dict set list_tree_dict $list_file "$data"
     if {$indent eq ""} {
       set list_file_rel [file tail $list_file] 
       Msg Status "\n$list_file_rel"
     }
-    set last_printed [PrintDictItems $list_tree_dict "$indent"]
+    set last_printed [PrintFileTree $data "$indent"]
   }
   Msg Debug "$n lines read from $list_file."
   set cnt 0
@@ -6130,49 +6174,6 @@ proc WriteUtilizationSummary {input output project_name run} {
   close $o
 }
 
-proc PrintDictItems { {dct} {msg ""}  } {
-  set last_printed ""
-  foreach item [dict keys $dct] {
-    set val [dict get $dct $item]
-    set print_list {}
-    foreach lstitm $val {
-      if {![regexp {^ *$} $lstitm] & ![regexp {^ *\#} $lstitm] } {
-	lappend print_list "$lstitm"
-      }
-    }
-    set i 0
-    
-    foreach p $print_list {
-      incr i
-      if {$i == [llength $print_list]} {
-	set pad "└──"
-      } else {
-	set pad "├──"
-      }
-      set file_name [lindex [split $p] 0]
-      if {[file exists [file normalize $file_name]]} {
-	set exists ""
-      } else {
-	set exists "  !!!!!   NOT FOUND   !!!!!"
-      }
-      
-      Msg Status "$msg$pad$p$exists"
-      set last_printed $file_name 
-    }
-  }
-  
-return $last_printed
-}
-
-
-
-proc dict'sort {dict args} {
-    set res {}
-    foreach key [lsort {*}$args [dict keys $dict]] {
-        dict set res $key [dict get $dict $key]
-    }
-    set res
-}
 
 # Check Git Version when sourcing hog.tcl
 if {[GitVersion 2.7.2] == 0 } {

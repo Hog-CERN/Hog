@@ -1196,7 +1196,7 @@ proc CopyIPbusXMLs {proj_dir path dst {xml_version "0.0.0"} {xml_sha "00000000"}
       if {$v ne ""} {
         set x [file normalize ../$x]
         if {[file exists $x]} {
-          lassign [ExecuteRet gen_ipbus_addr_decode $x 2>&1]  status log
+          lassign [ExecuteRet gen_ipbus_addr_decode --no-timestamp $x 2>&1]  status log
           if {$status == 0} {
             set generated_vhdl ./ipbus_decode_[file rootname [file tail $x]].vhd
             if {$generate == 1} {
@@ -5542,7 +5542,7 @@ proc SetTopProperty {top_module fileset} {
 
 ## @brief Returns a list of Vivado properties that expect a PATH for value
 proc VIVADO_PATH_PROPERTIES {} {
-  return {"\.*\.TCL\.PRE$" "^.*\.TCL\.POST$" "^RQS_FILES$" "^INCREMENTAL\_CHECKPOINT$"}
+  return {"\.*\.TCL\.PRE$" "^.*\.TCL\.POST$" "^RQS_FILES$" "^INCREMENTAL\_CHECKPOINT$" "NOC\_SOLUTION\_FILE"}
 }
 
 ## @brief Write a property configuration file from a dictionary

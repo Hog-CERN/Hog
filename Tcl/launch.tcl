@@ -121,7 +121,7 @@ set default_commands {
   # OPTIONS: verbose
   }
 
-  \^B(UTTONS)?$ {
+  \^B(UTTONS)?$ {#
     set min_n_of_args -1
     set max_n_of_args 1
     set do_buttons 1
@@ -142,7 +142,7 @@ set default_commands {
     set argument_is_no_project 1
   # NAME: COMPSIMLIB or COMPSIM
   # DESCRIPTION: Compiles the simulation library for the chosen simulator with Vivado.
-  # OPTIONS: verbose
+  # OPTIONS: dst_dir.arg, verbose
   }
 
   \^SIG(ASI)?$ {#
@@ -359,26 +359,25 @@ if {$cmd == -1} {
 
   set simsets ""
   if {$do_simulation == 1} {
-    # Get all simsets in the project
-    set simsets_dict [GetSimSets $project_name $repo_path $options(simset)]
+    # Get all simsets in the project that run with GHDL
+    set ghdl_simsets [GetSimSets $project_name $repo_path $options(simset) 1]
     set ghdl_import 0
-    dict for {simset_name simulator} $simsets_dict {
-      if {$simulator == "ghdl"} {
-        if {$ghdl_import == 0} {
-          ImportGHDL $project_name $repo_path $ext_path
-          set ghdl_import 1
-        }
-        LaunchGHDL $project_name $repo_path $simset_name $ext_path
-        dict unset simsets_dict $simset_name
-      } else {
-        lappend simsets $simset_name
+    dict for {simset_name simset_dict} $ghdl_simsets {
+      if {$ghdl_import == 0} {
+        ImportGHDL $project_name $repo_path $simset_name $simset_dict $ext_path
+        set ghdl_import 1
       }
+      LaunchGHDL $project_name $repo_path $simset_name $simset_dict $ext_path
+        # dict unset simsets_dict $simset_name
     }
-    if {[dict size $simsets_dict] == 0} {
+    set ide_simsets [GetSimSets $project_name $repo_path $options(simset)]
+
+    if {[dict size $ide_simsets] == 0} {
       # All simulations have been run, exiting
       Msg Info "All simulations have been run, exiting..."
       exit 0
     }
+
   }
 
   # if {$do_new_directive ==1 } {
@@ -586,7 +585,8 @@ if {$do_bitstream == 1 && ![IsXilinx] } {
 }
 
 if {$do_simulation == 1} {
-  set simsets $options(simset)
+  # set simsets $options(simset)
+  set simsets [GetSimSets $project_name $repo_path $options(simset)]
   LaunchSimulation $project_name $lib_path $simsets $repo_path
 }
 

@@ -107,8 +107,8 @@ set default_commands {
 
   \^V(IEW)?$ {#proj
     set do_list_file_parse 1
-  # NAME: VIEW or V
-  # DESCRIPTION: Print Hog list file contents, libraries and properties.
+  # NAME*: VIEW or V
+  # DESCRIPTION: Print Hog list file contents in a tree-like fashon.
   # OPTIONS: verbose
   }
 

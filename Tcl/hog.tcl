@@ -5156,7 +5156,7 @@ proc ReadListFile {args} {
     {lib.arg ""  "The name of the library files will be added to, if not given will be extracted from the file name."}
     {fileset.arg "" "The name of the library, from the main list file"}
     {sha_mode "If set, the list files will be added as well and the IPs will be added to the file rather than to the special IP library. The SHA mode should be used when you use the lists to calculate the git SHA, rather than to add the files to the project."}
-    {print_log "If set will print stuff."}
+    {print_log "If set, will use PrintFileTree for the VIEW directive"}
     {indent.arg "" "Used to indent files with the VIEW directive"}    
   }
   set usage "USAGE: ReadListFile \[options\] <list file> <path>"

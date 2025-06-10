@@ -5194,7 +5194,9 @@ proc ReadListFile {args} {
         Msg Debug "Wildcard source expanded from $srcfile to $srcfiles"
       } else {
         if {![file exists $srcfile]} {
-          Msg CriticalWarning "File: $srcfile (from list file: $list_file) does not exist."
+	  if {$print_log == 0} {
+	    Msg CriticalWarning "File: $srcfile (from list file: $list_file) does not exist."
+	  }
           continue
         }
       }
@@ -5225,6 +5227,7 @@ proc ReadListFile {args} {
 	    if {$print_log == 1} {
 	      if {[file normalize $last_printed] ne [file normalize $vhdlfile]} {
 		Msg Status "$indent Inside [file tail $vhdlfile]:"
+		set last_printed ""
 	      }
 	    }
             lassign [ReadListFile {*}"-indent \"   $indent\" -lib $library -fileset $fileset $sha_mode_opt $print_log_opt $vhdlfile $ref_path"] l p fs
@@ -6146,8 +6149,15 @@ proc PrintDictItems { {dct} {msg ""}  } {
       } else {
 	set pad "├──"
       }
-      Msg Status "$msg$pad$p"
-      set last_printed $p
+      set file_name [lindex [split $p] 0]
+      if {[file exists [file normalize $file_name]]} {
+	set exists ""
+      } else {
+	set exists "  !!!!!   NOT FOUND   !!!!!"
+      }
+      
+      Msg Status "$msg$pad$p$exists"
+      set last_printed $file_name 
     }
   }
   

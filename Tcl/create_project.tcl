@@ -607,8 +607,21 @@ proc ConfigureProperties {} {
             }
             if {[IsInList [string toupper $prop_name] [VIVADO_PATH_PROPERTIES] 1]} {
               # Check that the file exists before setting these properties
-              if {[file exists $globalSettings::repo_path/$prop_val]} {
-                set_property $prop_name $globalSettings::repo_path/$prop_val $run
+	      set utility_file $globalSettings::repo_path/$prop_val
+              if {[file exists $utility_file]} {
+		lassign [GetHogFiles -ext_path $globalSettings::HOG_EXTERNAL_PATH $globalSettings::list_path $globalSettings::repo_path] lib prop dummy
+		foreach {l f} $lib {
+		  foreach ff $f {
+		    lappend hog_files $ff
+		  }
+		}
+		if {[lsearch $hog_files $utility_file] < 0} {
+		  Msg CriticalWarning "The file: $utility_file is set as a property in hog.conf but is not added to the project in any list file. Hog cannot track it."
+		} else {
+		  #Add file tu utils_1 to avoid warning
+		  AddFile $globalSettings::repo_path/$prop_val [get_filesets -quiet utils_1]
+		}
+		set_property $prop_name $utility_file $run
               } else {
                 Msg Warning "Impossible to set property $prop_name to $prop_val. File is missing"
               }

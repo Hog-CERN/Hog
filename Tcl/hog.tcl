@@ -59,7 +59,8 @@ proc AddHogFiles { libraries properties filesets } {
       if {[string equal [get_filesets -quiet $fileset] ""]} {
         # Simulation list files supported only by Vivado
         create_fileset -simset $fileset
-        # Set active when creating, by default it will be the latest simset to be created, unless is specified in the sim.conf
+        # Set active when creating, by default it will be the latest simset to be created,
+        # unless is specified in the sim.conf
         current_fileset -simset [ get_filesets $fileset ]
         set simulation [get_filesets $fileset]
         foreach simulator [GetSimulators] {
@@ -107,7 +108,9 @@ proc AddHogFiles { libraries properties filesets } {
                   if { [GetIDEVersion] >= 2023.2 } {
                     set vhdl_year "VHDL 2019"
                   } else {
-                    Msg CriticalWarning "VHDL 2019 is not supported in Vivado version older than 2023.2, using vhdl 2008, but this might not work."
+                    Msg CriticalWarning "VHDL 2019 is not supported\
+                    in Vivado version older than 2023.2.\
+                    Using VHDL 2008, but this might not work."
                     set vhdl_year "VHDL 2008"
                   }
                 } else {
@@ -129,7 +132,8 @@ proc AddHogFiles { libraries properties filesets } {
               set_property -name "file_type" -value "SystemVerilog" -objects $file_obj
               Msg Debug "Filetype is SystemVerilog for $f"
             } else {
-              Msg Warning "Xilinx PlanAhead/ISE does not support SystemVerilog. Property not set for $f"
+              Msg Warning "Xilinx PlanAhead/ISE does not support SystemVerilog.\
+              Property not set for $f"
             }
           }
 
@@ -177,47 +181,35 @@ proc AddHogFiles { libraries properties filesets } {
           # Top simulation module
           set top_sim [lindex [regexp -inline {\ytopsim\s*=\s*(.+?)\y.*} $props] 1]
           if { $top_sim != "" } {
-            Msg Warning "Setting the simulation top module from simulation list files is now deprecated. Please set this property in the sim.conf file, by adding the following line under the \[$fileset\] section.\ntop=$top_sim"
+            Msg Warning "Setting the simulation top module with the topsim property is deprecated.\
+            Please set this property in the \[properties\] section of your .sim list file,
+            or in the \[$fileset\] section of your sim.conf,\
+            by adding the following line.\ntop=$top_sim"
           }
 
           # Simulation runtime
           set sim_runtime [lindex [regexp -inline {\yruntime\s*=\s*(.+?)\y.*} $props] 1]
           if { $sim_runtime != "" } {
-            Msg Warning "Setting the simulation runtime from simulation list files is now deprecated. Please set this property in the sim.conf file, by adding the following line under the \[$fileset\] section.\n<simulator_name>.simulate.runtime=$sim_runtime"
-            # set_property -name {xsim.simulate.runtime} -value $sim_runtime -objects [get_filesets $fileset]
-            # foreach simulator [GetSimulators] {
-            #   set_property $simulator.simulate.runtime  $sim_runtime  [get_filesets $fileset]
-            # }
+            Msg Warning "Setting the simulation runtime using the runtime= property is deprecated.\
+            Please set this property in the \[properties\] section of your .sim list file,\
+            or in the \[$fileset\] section of your sim.conf,\
+            by adding the following line.\n<simulator_name>.simulate.runtime=$sim_runtime"
           }
 
           # Wave do file
           if {[lsearch -inline -regexp $props "wavefile"] >= 0} {
-            Msg Warning "Setting a wave do file from simulation list files is now deprecated. Set this property in the sim.conf file, by adding the following line under the \[$fileset\] section.\n<simulator_name>.simulate.custom_wave_do=[file tail $f]"
-
-            # Msg Debug "Setting $f as wave do file for simulation file set $fileset..."
-
-            # # check if file exists...
-            # if {[file exists $f]} {
-            #   foreach simulator [GetSimulators] {
-            #     set_property "$simulator.simulate.custom_wave_do" [file tail $f] [get_filesets $fileset]
-            #   }
-            # } else {
-            #   Msg Warning "File $f was not found."
-            # }
+            Msg Warning "Setting a wave do file using the wavefile property is deprecated.\
+            Set this property in the sim.conf file under the \[$fileset\] section,\
+            or in the \[properties\] section of the .sim list file,\
+            by adding the following line .\n<simulator_name>.simulate.custom_wave_do=[file tail $f]"
           }
 
           #Do file
           if {[lsearch -inline -regexp $props "dofile"] >= 0} {
-            Msg Warning "Setting a custom do file from simulation list files is now deprecated. Set this property in the sim.conf file, by adding the following line under the \[$fileset\] section.\n<simulator_name>.simulate.custom_do=[file tail $f]"
-            # Msg Debug "Setting $f as do file for simulation file set $fileset..."
-
-            # if {[file exists $f]} {
-            #   foreach simulator [GetSimulators] {
-            #     set_property "$simulator.simulate.custom_udo" [file tail $f] [get_filesets $fileset]
-            #   }
-            # } else {
-            #   Msg Warning "File $f was not found."
-            # }
+            Msg Warning "Setting a wave do file using the dofile property is deprecated.\
+            Set this property in the sim.conf file under the \[$fileset\] section,\
+            or in the \[properties\] section of the .sim list file,\
+            by adding the following line .\n<simulator_name>.simulate.custom_do=[file tail $f]"
           }
 
           # Lock the IP
@@ -228,7 +220,8 @@ proc AddHogFiles { libraries properties filesets } {
 
           # Generating Target for BD File
           if {[file extension $f] == ".bd"} {
-            Msg Info "Generating Target for [file tail $f], please remember to commit the (possible) changed file."
+            Msg Info "Generating Target for [file tail $f],\
+            please remember to commit the (possible) changed file."
             generate_target all [get_files $f]
           }
 
@@ -236,7 +229,8 @@ proc AddHogFiles { libraries properties filesets } {
           # Tcl
           if {[file extension $f] == ".tcl" && $ext != ".con"} {
             if { [lsearch -inline -regexp $props "source"] >= 0} {
-              Msg Info "Sourcing Tcl script $f, and setting it not used in synthesis, implementation and simulation..."
+              Msg Info "Sourcing Tcl script $f,\
+              and setting it not used in synthesis, implementation and simulation..."
               source $f
               set_property -name "used_in_synthesis" -value "false" -objects $file_obj
               set_property -name "used_in_implementation" -value "false" -objects $file_obj
@@ -1275,6 +1269,19 @@ proc DictGet {dictName keyName {default ""}} {
   }
 }
 
+## Sorts a dictionary
+#
+#  @param[in]    dict the dictionary
+#  @param[in]    args the arguments to pass to lsort, e.g. -ascii, -dictionary, -decreasing
+#  @returns a new dictionary with the keys sorted according to the arguments
+proc DictSort {dict args} {
+    set res {}
+    foreach key [lsort {*}$args [dict keys $dict]] {
+        dict set res $key [dict get $dict $key]
+    }
+    set res
+}
+
 ## @brief Checks the Doxygen version installed in this machine
 #
 # @param[in] target_version the version required by the current project
@@ -1361,6 +1368,36 @@ proc ExecuteRet {args}  {
 
   return [list $ret $result]
 }
+
+## @brief Extract the [files] section from a sim list file
+#
+#  @param[in] the content of the simulation list file to extract the [files] section from
+#  @returns a list of files in the [files] section, or all lines if no [files] section is found
+proc ExtractFilesSection {file_data} {
+  set in_files_section 0
+  set result {}
+
+  foreach line $file_data {
+    if {[regexp {^ *\[ *files *\]} $line]} {
+      set in_files_section 1
+      continue
+    }
+    if {$in_files_section} {
+      if {[regexp {^ *\[.*\]} $line]} {
+          break
+      }
+      lappend result $line
+    }
+  }
+
+  # If [files] was not found, return all file_data
+  if {!$in_files_section} {
+    return $file_data
+  } else {
+    return $result
+  }
+}
+
 
 ## @brief Tags the repository with a new version calculated on the basis of the previous tags
 #
@@ -1847,20 +1884,16 @@ proc GetFileGenerics {filename {entity ""}} {
   }
 }
 
-## @brief Gets custom generics from hog|sim.conf
+## @brief Gets custom generics from hog
 #
 # @param[in] proj_dir:    the top folder of the project
 # @return dict with generics
 #
-proc GetGenericsFromConf {proj_dir {sim 0}} {
+proc GetGenericsFromConf {proj_dir} {
   set generics_dict [dict create]
   set top_dir "Top/$proj_dir"
   set conf_file "$top_dir/hog.conf"
   set conf_index 0
-  if {$sim == 1} {
-    set conf_file "$top_dir/sim.conf"
-    set conf_index 1
-  }
 
   if {[file exists $conf_file]} {
     set properties [ReadConf [lindex [GetConfFiles $top_dir] $conf_index]]
@@ -1873,8 +1906,18 @@ proc GetGenericsFromConf {proj_dir {sim 0}} {
   return $generics_dict
 }
 
-##
-proc GetSimSets { project_name repo_path {simsets ""}} {
+## @brief Gets the simulation sets from the project
+#
+# @param[in] project_name: the name of the project
+# @param[in] repo_path:    the path to the repository
+# @param[in] simsets:      a list of simulation sets to retrieve (default: all)
+# @param[in] ghdl:         if 1, only GHDL simulation sets are returned (default: 0),
+#                          otherwise only non-GHDL simulation sets are returned
+# @param[in] no_conf:      if 1, the simulation sets are returned without reading the sim.conf file (default: 0)
+# @return a      dictionary with the simulation sets, where the keys are the simulation set names
+#                      and the values are dictionaries with the properties of each simulation set
+proc GetSimSets { project_name repo_path {simsets ""} {ghdl 0} {no_conf 0}} {
+
   set simsets_dict [dict create]
   set list_dir "$repo_path/Top/$project_name/list"
   set list_files []
@@ -1885,11 +1928,16 @@ proc GetSimSets { project_name repo_path {simsets ""}} {
         lappend list_files $list_file
       } else {
         Msg CriticalWarning "Simulation set list file $list_file not found."
+        return ""
       }
     }
   } else {
     set list_files [glob -nocomplain -directory $list_dir "*.sim"]
   }
+
+  # Get simulation properties from conf file
+  set proj_dir [file normalize $repo_path/Top/$project_name]
+  set sim_file [file normalize $proj_dir/sim.conf]
 
   foreach list_file $list_files {
     set file_name [file tail $list_file]
@@ -1898,8 +1946,6 @@ proc GetSimSets { project_name repo_path {simsets ""}} {
     set file_data [read $fp]
     close $fp
     set data [split $file_data "\n"]
-    set n [llength $data]
-    Msg Info "$n lines read from $simset_name.sim"
 
     set firstline [lindex $data 0]
     # Find simulator
@@ -1907,14 +1953,45 @@ proc GetSimSets { project_name repo_path {simsets ""}} {
       set simulator_prop [regexp -all -inline {\S+} $firstline]
       set simulator [string tolower [lindex $simulator_prop 1]]
     } else {
-      Msg Warning "Simulator not set in $simset_name.sim. The first line of $simset_name.sim should be #Simulator <SIMULATOR_NAME>, where <SIMULATOR_NAME> can be xsim, questa, modelsim, riviera, activehdl, ies, or vcs, e.g. #Simulator questa. Setting simulator by default as xsim."
+      Msg Warning "Simulator not set in $simset_name.sim. \
+      The first line of $simset_name.sim should be #Simulator <SIMULATOR_NAME>,\
+      where <SIMULATOR_NAME> can be xsim, questa, modelsim, ghdl, riviera, activehdl,\
+      ies, or vcs, e.g. #Simulator questa.\
+      Setting simulator by default to xsim."
       set simulator "xsim"
     }
     if {$simulator eq "skip_simulation"} {
       Msg Info "Skipping simulation for $simset_name"
       continue
     }
-    dict set simsets_dict $simset_name $simulator
+    if {($ghdl == 1 && $simulator != "ghdl") || ($ghdl == 0 && $simulator == "ghdl")} {
+      continue
+    }
+
+    set SIM_PROPERTIES ""
+    if {[file exists $sim_file] && $no_conf == 0} {
+      set SIM_PROPERTIES [ReadConf $sim_file]
+    }
+
+    set global_sim_props [dict create]
+    dict set global_sim_props "properties" [DictGet $SIM_PROPERTIES "sim"]
+    dict set global_sim_props "generics" [DictGet $SIM_PROPERTIES "generics"]
+    dict set global_sim_props "hog" [DictGet $SIM_PROPERTIES "hog"]
+
+
+    set sim_dict [dict create]
+    dict set sim_dict "simulator" $simulator
+    if {[dict exists $SIM_PROPERTIES $simset_name]} {
+      dict set sim_dict "properties" [DictGet $SIM_PROPERTIES $simset_name]
+      dict set sim_dict "generics" [DictGet $SIM_PROPERTIES "$simset_name:generics"]
+      dict set sim_dict "hog" [DictGet $SIM_PROPERTIES "$simset_name:hog"]
+    } elseif {$no_conf == 0} {
+      # Retrieve properties from .sim file
+      set conf_dict [ReadConf $list_file]
+      set sim_dict [MergeDict $sim_dict $conf_dict 0]
+    }
+    set sim_dict [MergeDict $sim_dict $global_sim_props 0]
+    dict set simsets_dict $simset_name $sim_dict
   }
   return $simsets_dict
 }
@@ -1998,7 +2075,7 @@ proc GetHogDescribe {sha {repo_path .}} {
 #
 # @return a list of 3 dictionaries: libraries and properties
 # - libraries has library name as keys and a list of filenames as values
-# - properties has as file names as keys and a list of properties as values
+# - properties has file names as keys and a list of properties as values
 # - filesets has the fileset name as keys and the correspondent list of libraries as values (significant only for simulations)
 proc GetHogFiles args {
 
@@ -2006,7 +2083,7 @@ proc GetHogFiles args {
     load_package report
     if { [catch {package require cmdline} ERROR] } {
       puts "$ERROR\n If you are running this script on tclsh, you can fix this by installing 'tcllib'"
-      return 1
+      return 0
     }
   }
 
@@ -2015,6 +2092,7 @@ proc GetHogFiles args {
     {list_files.arg ""  "The file wildcard, if not specified all Hog list files will be looked for."}
     {sha_mode "Forwarded to ReadListFile, see there for info."}
     {ext_path.arg "" "Path for the external libraries forwarded to ReadListFile."}
+    {print_log "Forwarded to ReadListFile, see there for info."}
   }
   set usage "USAGE: GetHogFiles \[options\] <list path> <repository path>"
   if {[catch {array set options [cmdline::getoptions args $parameters $usage]}] ||  [llength $args] != 2 } {
@@ -2027,13 +2105,20 @@ proc GetHogFiles args {
   set list_files $options(list_files)
   set sha_mode $options(sha_mode)
   set ext_path $options(ext_path)
-
+  set print_log $options(print_log)
 
   if { $sha_mode == 1 } {
     set sha_mode_opt "-sha_mode"
   } else {
     set sha_mode_opt ""
   }
+
+  if { $print_log == 1 } {
+    set print_log_opt "-print_log"
+  } else {
+    set print_log_opt ""
+  }
+
 
   if { $list_files == "" } {
     set list_files {.src,.con,.sim,.ext}
@@ -2046,9 +2131,9 @@ proc GetHogFiles args {
   foreach f $list_files {
     set ext [file extension $f]
     if {$ext == ".ext"} {
-      lassign [ReadListFile {*}"$sha_mode_opt  $f $ext_path"] l p fs
+      lassign [ReadListFile {*}"$sha_mode_opt $print_log_opt $f $ext_path"] l p fs
     } else {
-      lassign [ReadListFile {*}"$sha_mode_opt  $f $repo_path"] l p fs
+      lassign [ReadListFile {*}"$sha_mode_opt $print_log_opt $f $repo_path"] l p fs
     }
     set libraries [MergeDict $l $libraries]
     set properties [MergeDict $p $properties]
@@ -3712,8 +3797,8 @@ proc InitLauncher {script tcl_path parameters commands argv} {
 	      dict set common_directive_names $name $regular_expression
       }
     }
-    set directive_names [dict'sort $directive_names]
-    set common_directive_names [dict'sort $common_directive_names]
+    set directive_names [DictSort $directive_names]
+    set common_directive_names [DictSort $common_directive_names]
 
     #gets all the descriptions
     if { [regexp {\#\s*DESCRIPTION:\s*(.*)\s*} $l minc x]} {
@@ -3800,10 +3885,11 @@ proc InitLauncher {script tcl_path parameters commands argv} {
           foreach opt $opts {
             foreach par $parameters {
               if {$opt == [lindex $par 0]} {
-                if {[string first ".arg" $opt] != -1} {
-                  puts "  -[string trimright $opt ".arg"] <argument>"
+                if {[regexp {\.arg$} $opt]} {
+                  set opt_name [regsub {\.arg$} $opt ""]
+                  puts "  -$opt_name <argument>"
                 } else {
-                  puts "  -[string trimright $opt ".arg"]"
+                  puts "  -$opt"
                 }
                 puts "     [lindex $par [llength $par]-1]"
               }
@@ -4022,55 +4108,58 @@ proc IsZynq {part} {
   }
 }
 
-proc ImportGHDL { project_name repo_path {ext_path ""}} {
+proc ImportGHDL { project_name repo_path simset_name simset_dict {ext_path ""}} {
   set list_path "$repo_path/Top/$project_name/list"
   lassign [GetHogFiles -list_files {.src,.ext,.sim} -ext_path $ext_path $list_path $repo_path ] src_files properties filesets
   cd $repo_path
+
+
+  # Get Properties
+  set properties [DictGet $simset_dict "properties"]
+  set options [DictGet $properties "options"]
+
   # Import GHDL files
   set workdir Projects/$project_name/ghdl
+  file delete -force $workdir
+  file mkdir $workdir
   dict for {lib sources} $src_files {
     set libname [file rootname $lib]
-    file mkdir $workdir/$libname
     foreach f $sources {
       if {[file extension $f] != ".vhd" && [file extension $f] != ".vhdl"} {
-        Msg Info "File $f is not a VHDL file, skipping..."
-        continue
+        Msg Info "File $f is not a VHDL file, copying it in workfolder..."
+        file copy -force $f $workdir
       } else {
         set file_path [Relative $repo_path $f]
-        GHDL "-i --work=$libname --workdir=$workdir/$libname -fsynopsys --ieee=standard $file_path"
+        puts "ghdl -i --work=$libname --workdir=$workdir -fsynopsys --ieee=standard $options $file_path"
+        GHDL "-i --work=$libname --workdir=$workdir -fsynopsys --ieee=standard $options $file_path"
       }
     }
   }
-  # Get simulation properties from conf file
-  set proj_dir [file normalize $repo_path/Top/$project_name]
-  set sim_file [file normalize $proj_dir/sim.conf]
-  if {[file exists $sim_file]} {
-    Msg Info "Parsing simulation configuration file $sim_file..."
-    SetGlobalVar SIM_PROPERTIES [ReadConf $sim_file]
-  } else {
-    SetGlobalVar SIM_PROPERTIES ""
-  }
+
 }
 
-proc LaunchGHDL { project_name repo_path simset {ext_path ""}} {
+proc LaunchGHDL { project_name repo_path simset_name simset_dict {ext_path ""}} {
 
   set top_sim ""
   # Setting Simulation Properties
-  if {[dict exists $globalSettings::SIM_PROPERTIES $simset]} {
-    Msg Info "Setting properties for simulation set: $simset..."
-    set sim_props [dict get $globalSettings::SIM_PROPERTIES $simset]
-    dict for {prop_name prop_val} $sim_props {
-      set prop_name [string toupper $prop_name]
-      if { $prop_name == "TOP"} {
-        set top_sim $prop_val
-      }
+  set sim_props [DictGet $simset_dict "properties"]
+  set options [DictGet $sim_props "options"]
+  set runopts [DictGet $sim_props "run_options"]
+
+  dict for {prop_name prop_val} $sim_props {
+    set prop_name [string toupper $prop_name]
+    if { $prop_name == "TOP"} {
+      set top_sim $prop_val
     }
   }
   set workdir $repo_path/Projects/$project_name/ghdl
+  cd $workdir
   # Analyse and elaborate the design
-  GHDL "-m --work=$simset --workdir=$workdir/$simset -fsynopsys --ieee=standard $top_sim"
-  GHDL "-r --work=$simset --workdir=$workdir/$simset -fsynopsys  --ieee=standard $top_sim --assert-level=note"
-
+  puts "ghdl -m --work=$simset_name -fsynopsys --ieee=standard $options $top_sim"
+  GHDL "-m --work=$simset_name  -fsynopsys --ieee=standard $options $top_sim"
+  puts "ghdl -r --work=$simset_name -fsynopsys --ieee=standard $options $top_sim $runopts"
+  GHDL "-r --work=$simset_name -fsynopsys --ieee=standard $options $top_sim $runopts"
+  cd $repo_path
 }
 
 # @brief Launch the Implementation, for the current IDE and project
@@ -4237,7 +4326,7 @@ proc LaunchImplementation {reset do_create run_folder project_name {repo_path .}
 	write_hw_platform -fixed -force -file $xsa_name
       }
     }
-      
+
   } elseif {[IsQuartus]} {
     set revision [get_current_revision]
 
@@ -4345,135 +4434,112 @@ proc LaunchImplementation {reset do_create run_folder project_name {repo_path .}
 # @param[in] lib_path     The path to the simulation libraries
 # @param[in] simsets      The simulation sets to simulate
 # @param[in] repo_path    The main path of the git repository
-proc LaunchSimulation {project_name lib_path {simsets ""} {repo_path .}} {
+proc LaunchSimulation {project_name lib_path simsets {repo_path .}} {
   if {[IsVivado]} {
     ##################### SIMULATION #######################
     set project [file tail $project_name]
     set main_sim_folder [file normalize "$repo_path/Projects/$project_name/$project.sim/"]
     set simsets_todo ""
     if {$simsets != ""} {
-      set simsets_todo [split $simsets ","]
-      Msg Info "Will run only the following simsets (if they exist): $simsets_todo"
+      dict for {simset sim_dict} $simsets {
+        lappend simsets_todo $simset
+      }
+      Msg Info "Will run only the following simulation's sets (if they exist): $simsets_todo"
     }
 
     set failed []
     set success []
     set sim_dic [dict create]
-    # Default behaviour, dont use simpass string
-    set use_simpass_str 0
-
-    # Get simulation properties from conf file
-    set proj_dir [file normalize $repo_path/Top/$project_name]
-    set sim_file [file normalize $proj_dir/sim.conf]
-    if {[file exists $sim_file]} {
-      Msg Info "Parsing simulation configuration file $sim_file..."
-      SetGlobalVar SIM_PROPERTIES [ReadConf $sim_file]
-    } else {
-      SetGlobalVar SIM_PROPERTIES ""
-    }
-
-    # Get Hog specific simulation properties
-    if {[dict exists $globalSettings::SIM_PROPERTIES hog]} {
-      set hog_sim_props [dict get $globalSettings::SIM_PROPERTIES hog]
-      dict for {prop_name prop_val} $hog_sim_props {
-        # If HOG_SIMPASS_STR is set, use the HOG_SIMPASS_STR string to search for in logs, after simulation is done
-        if { $prop_name == "HOG_SIMPASS_STR" && $prop_val != "" } {
-          Msg Info "Setting simulation pass string as '$prop_val'"
-          set use_simpass_str 1
-          set simpass_str $prop_val
-        }
-      }
-    }
 
     Msg Info "Retrieving list of simulation sets..."
     foreach s [get_filesets] {
+      # Default behaviour, dont use simpass string
+      set use_simpass_str 0
+
       set type [get_property FILESET_TYPE $s]
       if {$type eq "SimulationSrcs"} {
         if {$simsets_todo != "" && $s ni $simsets_todo} {
           Msg Info "Skipping $s as it was not specified with the -simset option..."
           continue
         }
-        if {[file exists "$repo_path/Top/$project_name/list/$s.sim"]} {
-          set fp [open "$repo_path/Top/$project_name/list/$s.sim" r]
-          set file_data [read $fp]
-          close $fp
-          set data [split $file_data "\n"]
-          set n [llength $data]
-          Msg Info "$n lines read from $s.sim"
-
-          set firstline [lindex $data 0]
-          if { [regexp {^ *\#Simulator} $firstline] } {
-            set simulator_prop [regexp -all -inline {\S+} $firstline]
-            set simulator [string tolower [lindex $simulator_prop 1]]
-          } else {
-            Msg Warning "Simulator not set in $simset_name.sim. The first line of $simset_name.sim should be #Simulator <SIMULATOR_NAME>, where <SIMULATOR_NAME> can be xsim, questa, modelsim, riviera, activehdl, ies, or vcs, e.g. #Simulator questa. Setting simulator by default as xsim."
-            set simulator "xsim"
-          }
-          set_property "target_simulator" $simulator [current_project]
-          Msg Info "Creating simulation scripts for $s..."
-          if { [file exists $repo_path/Top/$project_name/pre-simulation.tcl] } {
-            Msg Info "Running $repo_path/Top/$project_name/pre-simulation.tcl"
-            source $repo_path/Top/$project_name/pre-simulation.tcl
-          }
-          if { [file exists $repo_path/Top/$project_name/pre-$s-simulation.tcl] } {
-            Msg Info "Running $repo_path/Top/$project_name/pre-$s-simulation.tcl"
-            source Running $repo_path/Top/$project_name/pre-$s-simulation.tcl
-          }
-          current_fileset -simset $s
-          set sim_dir $main_sim_folder/$s/behav
-          set sim_output_logfile $sim_dir/xsim/simulate.log
-          if { ([string tolower $simulator] eq "xsim") } {
-            set sim_name "xsim:$s"
-            if { [catch { launch_simulation -simset [get_filesets $s] } log] } {
-              # Explicitly close xsim simulation, without closing Vivado
-              close_sim
-              Msg CriticalWarning "Simulation failed for $s, error info: $::errorInfo"
-              lappend failed $sim_name
-            } else {
-              # Explicitly close xsim simulation, without closing Vivado
-              close_sim
-              # If we use simpass_str, search for the string and update return code from simulation if the string is not found in simulation log
-              if {$use_simpass_str == 1} {
-                # Get the simulation output log
-                # Note, xsim should always output simulation.log, hence no check for existence
-                set file_desc [open $sim_output_logfile r]
-                set log [read $file_desc]
-                close $file_desc
-
-                Msg Info "Searching for simulation pass string: '$simpass_str'"
-                if {[string first $simpass_str $log] == -1} {
-                  Msg CriticalWarning "Simulation failed for $s, error info: '$simpass_str' NOT found!"
-                  lappend failed $sim_name
-                } else {
-                  # HOG_SIMPASS_STR found, success
-                  lappend success $sim_name
-                }
-              } else { #Rely on simulator exit code
-                lappend success $sim_name
-              }
-            }
-          } else {
-            Msg Info "Simulation library path is set to $lib_path."
-            set simlib_ok 1
-            if {!([file exists $lib_path])} {
-              Msg Warning "Could not find simulation library path: $lib_path, $simulator simulation will not work."
-              set simlib_ok 0
-            }
-
-            if {$simlib_ok == 1} {
-              set_property "compxlib.${simulator}_compiled_library_dir" [file normalize $lib_path] [current_project]
-              launch_simulation -scripts_only -simset [get_filesets $s]
-              set top_name [get_property TOP $s]
-              set sim_script  [file normalize $sim_dir/$simulator/]
-              Msg Info "Adding simulation script location $sim_script for $s..."
-              lappend sim_scripts $sim_script
-              dict append sim_dic $sim_script $s
-            } else {
-              Msg Error "Cannot run $simulator simulations without a valid library path"
-              exit -1
-            }
+        set sim_dict [DictGet $simsets $s]
+        set simulator [DictGet $sim_dict "simulator"]
+        set_property "target_simulator" $simulator [current_project]
+        set hog_sim_props [DictGet $sim_dict "hog"]
+        dict for {prop_name prop_val} $hog_sim_props {
+        # If HOG_SIMPASS_STR is set, use the HOG_SIMPASS_STR string to search for in logs, after simulation is done
+          if { [string toupper $prop_name] == "HOG_SIMPASS_STR" && $prop_val != "" } {
+            Msg Info "Setting simulation pass string as '$prop_val'"
+            set use_simpass_str 1
+            set simpass_str $prop_val
           }
         }
+
+        Msg Info "Creating simulation scripts for $s..."
+        if { [file exists $repo_path/Top/$project_name/pre-simulation.tcl] } {
+          Msg Info "Running $repo_path/Top/$project_name/pre-simulation.tcl"
+          source $repo_path/Top/$project_name/pre-simulation.tcl
+        }
+        if { [file exists $repo_path/Top/$project_name/pre-$s-simulation.tcl] } {
+          Msg Info "Running $repo_path/Top/$project_name/pre-$s-simulation.tcl"
+          source Running $repo_path/Top/$project_name/pre-$s-simulation.tcl
+        }
+        current_fileset -simset $s
+        set sim_dir $main_sim_folder/$s/behav
+        set sim_output_logfile $sim_dir/xsim/simulate.log
+        if { ([string tolower $simulator] eq "xsim") } {
+          set sim_name "xsim:$s"
+          if { [catch { launch_simulation -simset [get_filesets $s] } log] } {
+            # Explicitly close xsim simulation, without closing Vivado
+            close_sim
+            Msg CriticalWarning "Simulation failed for $s, error info: $::errorInfo"
+            lappend failed $sim_name
+          } else {
+            # Explicitly close xsim simulation, without closing Vivado
+            close_sim
+            # If we use simpass_str, search for the string and update return code from simulation if the string is not found in simulation log
+            if {$use_simpass_str == 1} {
+              # Get the simulation output log
+              # Note, xsim should always output simulation.log, hence no check for existence
+              set file_desc [open $sim_output_logfile r]
+              set log [read $file_desc]
+              close $file_desc
+
+              Msg Info "Searching for simulation pass string: '$simpass_str'"
+              if {[string first $simpass_str $log] == -1} {
+                Msg CriticalWarning "Simulation failed for $s, error info: '$simpass_str' NOT found!"
+                lappend failed $sim_name
+              } else {
+                # HOG_SIMPASS_STR found, success
+                lappend success $sim_name
+              }
+            } else {
+              #Rely on simulator exit code
+              lappend success $sim_name
+            }
+          }
+        } else {
+          Msg Info "Simulation library path is set to $lib_path."
+          set simlib_ok 1
+          if {!([file exists $lib_path])} {
+            Msg Warning "Could not find simulation library path: $lib_path, $simulator simulation will not work."
+            set simlib_ok 0
+          }
+
+          if {$simlib_ok == 1} {
+            set_property "compxlib.${simulator}_compiled_library_dir" [file normalize $lib_path] [current_project]
+            launch_simulation -scripts_only -simset [get_filesets $s]
+            set top_name [get_property TOP $s]
+            set sim_script  [file normalize $sim_dir/$simulator/]
+            Msg Info "Adding simulation script location $sim_script for $s..."
+            lappend sim_scripts $sim_script
+            dict append sim_dic $sim_script $s
+          } else {
+            Msg Error "Cannot run $simulator simulations without a valid library path"
+            exit -1
+          }
+        }
+
       }
     }
 
@@ -4822,18 +4888,20 @@ proc Md5Sum {file_name} {
 #
 # @param[in] dict0 the name of the first dictionary
 # @param[in] dict1 the name of the second dictionary
+# @param[in] remove_duplicates if 1, removes duplicates from the merged dictionary (default 1)
 #
 # @return  the merged dictionary
 #
-proc MergeDict {dict0 dict1} {
+proc MergeDict {dict0 dict1 {remove_duplicates 1}} {
   set outdict [dict merge $dict1 $dict0]
   foreach key [dict keys $dict1 ] {
     if {[dict exists $dict0 $key]} {
       set temp_list [dict get $dict1 $key]
-      foreach vhdfile $temp_list {
+      foreach item $temp_list {
         # Avoid duplication
-        if {[IsInList $vhdfile [DictGet $outdict $key]] == 0} {
-          dict lappend outdict $key $vhdfile
+        if {[IsInList $item [DictGet $outdict $key]] == 0 || $remove_duplicates == 0} {
+          # If the key exists in both dictionaries, append the item to the list
+          dict lappend outdict $key $item
         }
       }
     }
@@ -5005,6 +5073,40 @@ proc ParseJSON {JSON_FILE JSON_KEY} {
   }
 }
 
+## Print a tree-like structure of Hog list file content
+#
+#  @param[in]    data the list of lines read from a list file
+#  @param[in]    indentation a string containing a number of spaces to indent the tree
+proc PrintFileTree { {data} {indentation ""}  } {
+  set last_printed ""
+  foreach line $data {
+    if {![regexp {^ *$} $line] & ![regexp {^ *\#} $line] } {
+      lappend print_list "$line"
+    }
+  }
+  set i 0
+
+  foreach p $print_list {
+    incr i
+    if {$i == [llength $print_list]} {
+      set pad "└──"
+    } else {
+      set pad "├──"
+    }
+    set file_name [lindex [split $p] 0]
+    if {[file exists [file normalize  [lindex [glob -nocomplain $file_name] 0]]] } {
+      set exists ""
+    } else {
+      set exists "  !!!!!   NOT FOUND   !!!!!"
+    }
+
+    Msg Status "$indentation$pad$p$exists"
+    set last_printed $file_name
+  }
+
+return $last_printed
+}
+
 # @brief Check if a Hog project exists, and if it exists returns the conf file
 # if it doesnt returns 0
 #
@@ -5030,8 +5132,9 @@ proc ProjectExists {project {repo_path .}} {
 proc ReadConf {file_name} {
 
   if { [catch {package require inifile 0.2.3} ERROR] } {
-    puts "$ERROR\n If you are running this script on tclsh, you can fix this by installing 'tcllib'"
-    return 1
+    Msg Error "Could not find inifile package version 0.2.3 or higher.\n
+    To use ghdl, libero or diamond with Hog, you need to install the tcllib package\n
+    You can install it with 'sudo apt install tcllib' on Debian/Ubuntu or 'sudo dnf install tcllib' on Fedora/RedHat/CentOs."
   }
 
 
@@ -5040,8 +5143,10 @@ proc ReadConf {file_name} {
   set properties [dict create]
   foreach sec [::ini::sections $f] {
     set new_sec $sec
+    if {$new_sec == "files"} {
+      continue
+    }
     set key_pairs [::ini::get $f $sec]
-
     #manipulate strings here:
     regsub -all {\{\"} $key_pairs "\{" key_pairs
     regsub -all {\"\}} $key_pairs "\}" key_pairs
@@ -5077,6 +5182,8 @@ proc ReadExtraFileList { extra_file_name } {
   return $extra_file_dict
 }
 
+
+
 # @brief Read a list file and return a list of three dictionaries
 #
 # Additional information is provided with text separated from the file name with one or more spaces
@@ -5103,6 +5210,8 @@ proc ReadListFile {args} {
     {lib.arg ""  "The name of the library files will be added to, if not given will be extracted from the file name."}
     {fileset.arg "" "The name of the library, from the main list file"}
     {sha_mode "If set, the list files will be added as well and the IPs will be added to the file rather than to the special IP library. The SHA mode should be used when you use the lists to calculate the git SHA, rather than to add the files to the project."}
+    {print_log "If set, will use PrintFileTree for the VIEW directive"}
+    {indent.arg "" "Used to indent files with the VIEW directive"}
   }
   set usage "USAGE: ReadListFile \[options\] <list file> <path>"
   if {[catch {array set options [cmdline::getoptions args $parameters $usage]}] ||  [llength $args] != 2 } {
@@ -5114,11 +5223,19 @@ proc ReadListFile {args} {
   set sha_mode $options(sha_mode)
   set lib $options(lib)
   set fileset $options(fileset)
+  set print_log $options(print_log)
+  set indent $options(indent)
 
   if { $sha_mode == 1} {
     set sha_mode_opt "-sha_mode"
   } else {
     set sha_mode_opt  ""
+  }
+
+  if { $print_log == 1 } {
+    set print_log_opt "-print_log"
+  } else {
+    set print_log_opt ""
   }
 
   # if no library is given, work it out from the file name
@@ -5149,7 +5266,16 @@ proc ReadListFile {args} {
   set properties [dict create]
   #  Process data file
   set data [split $file_data "\n"]
+  set data [ExtractFilesSection $data]
   set n [llength $data]
+  set last_printed ""
+  if {$print_log == 1} {
+    if {$indent eq ""} {
+      set list_file_rel [file tail $list_file]
+      Msg Status "\n$list_file_rel"
+    }
+    set last_printed [PrintFileTree $data "$indent"]
+  }
   Msg Debug "$n lines read from $list_file."
   set cnt 0
 
@@ -5167,7 +5293,9 @@ proc ReadListFile {args} {
         Msg Debug "Wildcard source expanded from $srcfile to $srcfiles"
       } else {
         if {![file exists $srcfile]} {
-          Msg CriticalWarning "File: $srcfile (from list file: $list_file) does not exist."
+	  if {$print_log == 0} {
+	    Msg CriticalWarning "File: $srcfile (from list file: $list_file) does not exist."
+	  }
           continue
         }
       }
@@ -5195,16 +5323,22 @@ proc ReadListFile {args} {
               set ref_path [file normalize $path/$ref_path]
             }
             Msg Debug "List file $vhdlfile found in list file, recursively opening it using path \"$ref_path\"..."
-            lassign [ReadListFile {*}"-lib $library -fileset $fileset $sha_mode_opt $vhdlfile $ref_path"] l p fs
+	    if {$print_log == 1} {
+	      if {[file normalize $last_printed] ne [file normalize $vhdlfile]} {
+		Msg Status "$indent Inside [file tail $vhdlfile]:"
+		set last_printed ""
+	      }
+	    }
+            lassign [ReadListFile {*}"-indent \"   $indent\" -lib $library -fileset $fileset $sha_mode_opt $print_log_opt $vhdlfile $ref_path"] l p fs
             set libraries [MergeDict $l $libraries]
             set properties [MergeDict $p $properties]
             set filesets [MergeDict $fs $filesets]
           } elseif {[lsearch {.src .sim .con ReadExtraFileList} $extension] >= 0 } {
             # Not supported extensions
             Msg Error "$vhdlfile cannot be included into $list_file, $extension files must be included into $extension files."
-          } else {
+	  } else {
             # Deal with single files
-            regsub -all " *= *" $prop "=" prop
+	    regsub -all " *= *" $prop "=" prop
             # Fill property dictionary
             foreach p $prop {
               # No need to append the lib= property
@@ -5445,40 +5579,24 @@ proc SearchHogProjects {dir} {
 #
 proc SetGenericsSimulation {repo_path proj_dir target} {
   set top_dir "$repo_path/Top/$proj_dir"
-  set read_aux [GetConfFiles $top_dir]
-  set sim_cfg_index [lsearch -regexp -index 0 $read_aux ".*sim.conf"]
-  set sim_cfg_index [lsearch -regexp -index 0 [GetConfFiles $top_dir] ".*sim.conf"]
   set simsets [get_filesets]
   if { $simsets != "" } {
-    if {[file exists $top_dir/sim.conf]} {
-      set sim_generics_dict [GetGenericsFromConf $proj_dir 1]
-      set simsets_generics_dict [GetSimsetGenericsFromConf $proj_dir]
+    foreach simset $simsets {
+      # Only for simulation filesets
+      if {[get_property FILESET_TYPE $simset] != "SimulationSrcs" } {
+        continue
+      }
 
-      if {[dict size $sim_generics_dict] > 0 || [dict size $simsets_generics_dict] > 0} {
-        foreach simset $simsets {
-          # Only for simulation filesets
-          if {[get_property FILESET_TYPE $simset] != "SimulationSrcs" } {
-            continue
-          }
-          # Check if any specific generics for this simset
-          if {[dict exists $simsets_generics_dict $simset:generics]} {
-            set simset_generics_dict [dict get $simsets_generics_dict $simset:generics]
-            # Merge with global sim generics (if any), specific simset generics also have priority
-            set merged_generics_dict [dict merge $sim_generics_dict $simset_generics_dict]
-            set generic_str [GenericToSimulatorString $merged_generics_dict $target]
-            set_property generic $generic_str [get_filesets $simset]
-            Msg Debug "Setting generics $generic_str for simulator $target and simulation file-set $simset..."
-          } elseif {[dict size $sim_generics_dict] > 0} {
-            set generic_str [GenericToSimulatorString $sim_generics_dict $target]
-            set_property generic $generic_str [get_filesets $simset]
-            Msg Debug "Setting generics $generic_str for simulator $target and simulation file-set $simset..."
-          }
-        }
-      }
-    } else {
-      if {[glob -nocomplain "$top_dir/list/*.sim"] ne ""} {
-        Msg CriticalWarning "Simulation sets and .sim files are present in the project but no sim.conf found in $top_dir. Please refer to Hog's manual to create one."
-      }
+      set merged_generics_dict [dict create]
+      # Get generics from sim.conf file
+      set simset_dict [DictGet [GetSimSets $proj_dir $repo_path $simset] $simset]
+      set hog_generics [GetGenericsFromConf $proj_dir]
+      set simset_generics [DictGet $simset_dict "generics"]
+      set merged_generics_dict [MergeDict $merged_generics_dict $simset_generics 0]
+      set generic_str [GenericToSimulatorString $merged_generics_dict $target]
+      set_property generic $generic_str [get_filesets $simset]
+      Msg Debug "Setting generics $generic_str for simulator $target\
+      and simulation file-set $simset..."
     }
   }
 }
@@ -5507,7 +5625,7 @@ proc SetTopProperty {top_module fileset} {
 
 ## @brief Returns a list of Vivado properties that expect a PATH for value
 proc VIVADO_PATH_PROPERTIES {} {
-  return {"\.*\.TCL\.PRE$" "^.*\.TCL\.POST$" "^RQS_FILES$" "^INCREMENTAL\_CHECKPOINT$"}
+  return {"\.*\.TCL\.PRE$" "^.*\.TCL\.POST$" "^RQS_FILES$" "^INCREMENTAL\_CHECKPOINT$" "NOC\_SOLUTION\_FILE"}
 }
 
 ## @brief Write a property configuration file from a dictionary
@@ -6095,16 +6213,8 @@ proc WriteUtilizationSummary {input output project_name run} {
   close $o
 }
 
-proc dict'sort {dict args} {
-    set res {}
-    foreach key [lsort {*}$args [dict keys $dict]] {
-        dict set res $key [dict get $dict $key]
-    }
-    set res
-}
 
 # Check Git Version when sourcing hog.tcl
 if {[GitVersion 2.7.2] == 0 } {
   Msg Error "Found Git version older than 2.7.2. Hog will not work as expected, exiting now."
 }
-

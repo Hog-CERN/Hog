@@ -44,7 +44,6 @@ namespace eval globalSettings {
   variable DEVICE
 
   variable PROPERTIES
-  variable SIM_PROPERTIES
   variable HOG_EXTERNAL_PATH
   variable HOG_IP_PATH
   variable TARGET_SIMULATOR
@@ -504,6 +503,8 @@ proc ConfigureImplementation {} {
 ## @brief configure simulation
 #
 proc ConfigureSimulation {} {
+  set simsets_dict [GetSimSets "$globalSettings::group_name/$globalSettings::DESIGN" $globalSettings::repo_path]
+
   if {[IsXilinx]} {
     ##############
     # SIMULATION #
@@ -517,9 +518,11 @@ proc ConfigureSimulation {} {
         set_property -name {xsim.elaborate.load_glbl} -value {true} -objects [get_filesets $simset]
       }
       # Setting Simulation Properties
-      if {[dict exists $globalSettings::SIM_PROPERTIES $simset]} {
+      set sim_dict [DictGet $simsets_dict $simset]
+      set sim_props [DictGet $sim_dict "properties"]
+
+      if {$sim_props != ""} {
         Msg Info "Setting properties for simulation set: $simset..."
-        set sim_props [dict get $globalSettings::SIM_PROPERTIES $simset]
         dict for {prop_name prop_val} $sim_props {
           set prop_name [string toupper $prop_name]
           if { $prop_name == "ACTIVE" && $prop_val == 1 } {
@@ -540,22 +543,7 @@ proc ConfigureSimulation {} {
           }
         }
       }
-      if {[dict exists $globalSettings::SIM_PROPERTIES sim]} {
-        Msg Info "Setting properties for simulation set: sim..."
-        set sim_props [dict get $globalSettings::SIM_PROPERTIES sim]
-        dict for {prop_name prop_val} $sim_props {
-          Msg Debug "Setting $prop_name = $prop_val"
-          set_property $prop_name $prop_val [get_filesets $simset]
-        }
-      }
     }
-
-  } elseif {[IsQuartus]} {
-    #QUARTUS only
-    #TO BE DONE
-
-  } else {
-    Msg info "Configuring simulation"
   }
 }
 
@@ -619,8 +607,21 @@ proc ConfigureProperties {} {
             }
             if {[IsInList [string toupper $prop_name] [VIVADO_PATH_PROPERTIES] 1]} {
               # Check that the file exists before setting these properties
-              if {[file exists $globalSettings::repo_path/$prop_val]} {
-                set_property $prop_name $globalSettings::repo_path/$prop_val $run
+	      set utility_file $globalSettings::repo_path/$prop_val
+              if {[file exists $utility_file]} {
+		lassign [GetHogFiles -ext_path $globalSettings::HOG_EXTERNAL_PATH $globalSettings::list_path $globalSettings::repo_path] lib prop dummy
+		foreach {l f} $lib {
+		  foreach ff $f {
+		    lappend hog_files $ff
+		  }
+		}
+		if {[lsearch $hog_files $utility_file] < 0} {
+		  Msg CriticalWarning "The file: $utility_file is set as a property in hog.conf but is not added to the project in any list file. Hog cannot track it."
+		} else {
+		  #Add file tu utils_1 to avoid warning
+		  AddFile $globalSettings::repo_path/$prop_val [get_filesets -quiet utils_1]
+		}
+		set_property $prop_name $utility_file $run
               } else {
                 Msg Warning "Impossible to set property $prop_name to $prop_val. File is missing"
               }
@@ -861,13 +862,6 @@ proc CreateProject args {
       }
     } else {
       Msg Error "No main section found in $conf_file, make sure it has a section called \[main\] containing the mandatory properties."
-    }
-
-    if {[file exists $sim_file] && [IsVivado]} {
-      Msg Info "Parsing simulation configuration file $sim_file..."
-      SetGlobalVar SIM_PROPERTIES [ReadConf $sim_file]
-    } else {
-      SetGlobalVar SIM_PROPERTIES ""
     }
   } else {
     Msg Error "$conf_file was not found in your project directory, please create one."

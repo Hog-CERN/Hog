@@ -1272,7 +1272,8 @@ proc DictGet {dictName keyName {default ""}} {
 ## Sorts a dictionary
 #
 #  @param[in]    dict the dictionary
-proc dict'sort {dict args} {
+#  @param[in]    args the arguments to pass to lsort, e.g. -ascii, -dictionary, -decreasing
+proc DictSort {dict args} {
     set res {}
     foreach key [lsort {*}$args [dict keys $dict]] {
         dict set res $key [dict get $dict $key]
@@ -3791,8 +3792,8 @@ proc InitLauncher {script tcl_path parameters commands argv} {
 	      dict set common_directive_names $name $regular_expression
       }
     }
-    set directive_names [dict'sort $directive_names]
-    set common_directive_names [dict'sort $common_directive_names]
+    set directive_names [DictSort $directive_names]
+    set common_directive_names [DictSort $common_directive_names]
 
     #gets all the descriptions
     if { [regexp {\#\s*DESCRIPTION:\s*(.*)\s*} $l minc x]} {
@@ -5079,7 +5080,7 @@ proc PrintFileTree { {data} {indentation ""}  } {
     }
   }
   set i 0
-    
+
   foreach p $print_list {
     incr i
     if {$i == [llength $print_list]} {
@@ -5093,11 +5094,11 @@ proc PrintFileTree { {data} {indentation ""}  } {
     } else {
       set exists "  !!!!!   NOT FOUND   !!!!!"
     }
-      
+
     Msg Status "$indentation$pad$p$exists"
-    set last_printed $file_name 
+    set last_printed $file_name
   }
-  
+
 return $last_printed
 }
 
@@ -5205,7 +5206,7 @@ proc ReadListFile {args} {
     {fileset.arg "" "The name of the library, from the main list file"}
     {sha_mode "If set, the list files will be added as well and the IPs will be added to the file rather than to the special IP library. The SHA mode should be used when you use the lists to calculate the git SHA, rather than to add the files to the project."}
     {print_log "If set, will use PrintFileTree for the VIEW directive"}
-    {indent.arg "" "Used to indent files with the VIEW directive"}    
+    {indent.arg "" "Used to indent files with the VIEW directive"}
   }
   set usage "USAGE: ReadListFile \[options\] <list file> <path>"
   if {[catch {array set options [cmdline::getoptions args $parameters $usage]}] ||  [llength $args] != 2 } {
@@ -5265,7 +5266,7 @@ proc ReadListFile {args} {
   set last_printed ""
   if {$print_log == 1} {
     if {$indent eq ""} {
-      set list_file_rel [file tail $list_file] 
+      set list_file_rel [file tail $list_file]
       Msg Status "\n$list_file_rel"
     }
     set last_printed [PrintFileTree $data "$indent"]

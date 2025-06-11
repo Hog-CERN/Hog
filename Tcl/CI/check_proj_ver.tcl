@@ -44,23 +44,19 @@ set usage "- USAGE: $::argv0 \[OPTIONS\] <project> \n. Options:"
 if { $::argc eq 0 } {
   Msg Info [cmdline::usage $parameters $usage]
   exit 1
-} elseif {[IsXilinx] && [catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] } {
-  #Vivado
-  Msg Info [cmdline::usage $parameters $usage]
-  exit 1
-  ##nagelfar ignore Unknown variable
 } elseif {[IsQuartus] && [ catch {array set options [cmdline::getoptions quartus(args) $parameters $usage] } ] || $::argc eq 0 } {
   #Quartus
   Msg Info [cmdline::usage $parameters $usage]
   exit 1
-} elseif {[IsLibero] && [catch {array set options [cmdline::getoptions ::argv $parameters $usage]}]} {
+} elseif {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] } {
   Msg Info [cmdline::usage $parameters $usage]
   exit 1
-} else {
-  set project [lindex $argv 0]
-  set sim 0
-  set ext_path ""
+  ##nagelfar ignore Unknown variable
 }
+
+set project [lindex $argv 0]
+set sim 0
+set ext_path ""
 set project_dir $repo_path/Top/$project
 
 if {$options(sim) == 1} {

@@ -124,6 +124,11 @@ function select_command_from_line() {
     COMMAND="diamondc"
     COMMAND_OPT=" "
     POST_COMMAND_OPT=" "
+  elif [[ $TCL_FIRST_LINE =~ 'ghdl' ]]; then
+    Msg Info "Recognised GHDL project"
+    COMMAND="ghdl"
+    COMMAND_OPT=""
+    POST_COMMAND_OPT=" "
   else
     Msg Warning " You should write #vivado, #quartus or #planahead as first line in your hog.conf file or project Tcl file, assuming Vivado... "
     Msg Info " Recognised Vivado project"

@@ -1937,17 +1937,8 @@ proc GetSimSets { project_name repo_path {simsets ""} {ghdl 0}} {
   set proj_dir [file normalize $repo_path/Top/$project_name]
   set sim_file [file normalize $proj_dir/sim.conf]
 
-  set SIM_PROPERTIES ""
-  if {($ghdl == 1 && $simulator == "ghdl") || ($ghdl == 0 && $simulator != "ghdl")} {
-    if {[file exists $sim_file]} {
-      set SIM_PROPERTIES [ReadConf $sim_file]
-    }
-  }
 
-  set global_sim_props [dict create]
-  dict set global_sim_props "properties" [DictGet $SIM_PROPERTIES "sim"]
-  dict set global_sim_props "generics" [DictGet $SIM_PROPERTIES "generics"]
-  dict set global_sim_props "hog" [DictGet $SIM_PROPERTIES "hog"]
+
 
   foreach list_file $list_files {
     set file_name [file tail $list_file]
@@ -1977,6 +1968,18 @@ proc GetSimSets { project_name repo_path {simsets ""} {ghdl 0}} {
     if {($ghdl == 1 && $simulator != "ghdl") || ($ghdl == 0 && $simulator == "ghdl")} {
       continue
     }
+
+    set SIM_PROPERTIES ""
+    if {[file exists $sim_file]} {
+      set SIM_PROPERTIES [ReadConf $sim_file]
+    }
+
+    set global_sim_props [dict create]
+    dict set global_sim_props "properties" [DictGet $SIM_PROPERTIES "sim"]
+    dict set global_sim_props "generics" [DictGet $SIM_PROPERTIES "generics"]
+    dict set global_sim_props "hog" [DictGet $SIM_PROPERTIES "hog"]
+
+
     set sim_dict [dict create]
     dict set sim_dict "simulator" $simulator
     if {[dict exists $SIM_PROPERTIES $simset_name]} {

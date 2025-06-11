@@ -360,7 +360,7 @@ if {$cmd == -1} {
   set simsets ""
   if {$do_simulation == 1} {
     # Get all simsets in the project that run with GHDL
-    set ghdl_simsets [GetSimSets $project_name $repo_path $options(simset) 1]
+    set ghdl_simsets [GetSimSets $project_name $repo_path "$options(simset)" 1]
     set ghdl_import 0
     dict for {simset_name simset_dict} $ghdl_simsets {
       if {$ghdl_import == 0} {
@@ -370,7 +370,7 @@ if {$cmd == -1} {
       LaunchGHDL $project_name $repo_path $simset_name $simset_dict $ext_path
         # dict unset simsets_dict $simset_name
     }
-    set ide_simsets [GetSimSets $project_name $repo_path $options(simset)]
+    set ide_simsets [GetSimSets $project_name $repo_path $options(simset) 0 1]
 
     if {[dict size $ide_simsets] == 0} {
       # All simulations have been run, exiting

@@ -1913,9 +1913,11 @@ proc GetGenericsFromConf {proj_dir} {
 # @param[in] simsets:      a list of simulation sets to retrieve (default: all)
 # @param[in] ghdl:         if 1, only GHDL simulation sets are returned (default: 0),
 #                          otherwise only non-GHDL simulation sets are returned
+# @param[in] no_conf:      if 1, the simulation sets are returned without reading the sim.conf file (default: 0)
 # @return a      dictionary with the simulation sets, where the keys are the simulation set names
 #                      and the values are dictionaries with the properties of each simulation set
-proc GetSimSets { project_name repo_path {simsets ""} {ghdl 0}} {
+proc GetSimSets { project_name repo_path {simsets ""} {ghdl 0} {no_conf 0}} {
+
   set simsets_dict [dict create]
   set list_dir "$repo_path/Top/$project_name/list"
   set list_files []
@@ -1936,9 +1938,6 @@ proc GetSimSets { project_name repo_path {simsets ""} {ghdl 0}} {
   # Get simulation properties from conf file
   set proj_dir [file normalize $repo_path/Top/$project_name]
   set sim_file [file normalize $proj_dir/sim.conf]
-
-
-
 
   foreach list_file $list_files {
     set file_name [file tail $list_file]
@@ -1970,7 +1969,7 @@ proc GetSimSets { project_name repo_path {simsets ""} {ghdl 0}} {
     }
 
     set SIM_PROPERTIES ""
-    if {[file exists $sim_file]} {
+    if {[file exists $sim_file] && $no_conf == 0} {
       set SIM_PROPERTIES [ReadConf $sim_file]
     }
 
@@ -1986,7 +1985,7 @@ proc GetSimSets { project_name repo_path {simsets ""} {ghdl 0}} {
       dict set sim_dict "properties" [DictGet $SIM_PROPERTIES $simset_name]
       dict set sim_dict "generics" [DictGet $SIM_PROPERTIES "$simset_name:generics"]
       dict set sim_dict "hog" [DictGet $SIM_PROPERTIES "$simset_name:hog"]
-    } else {
+    } elseif {$no_conf == 0} {
       # Retrieve properties from .sim file
       set conf_dict [ReadConf $list_file]
       set sim_dict [MergeDict $sim_dict $conf_dict 0]

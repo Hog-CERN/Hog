@@ -1273,6 +1273,7 @@ proc DictGet {dictName keyName {default ""}} {
 #
 #  @param[in]    dict the dictionary
 #  @param[in]    args the arguments to pass to lsort, e.g. -ascii, -dictionary, -decreasing
+#  @returns a new dictionary with the keys sorted according to the arguments
 proc DictSort {dict args} {
     set res {}
     foreach key [lsort {*}$args [dict keys $dict]] {
@@ -1935,10 +1936,12 @@ proc GetSimSets { project_name repo_path {simsets ""} {ghdl 0}} {
   # Get simulation properties from conf file
   set proj_dir [file normalize $repo_path/Top/$project_name]
   set sim_file [file normalize $proj_dir/sim.conf]
-  if {[file exists $sim_file]} {
-    set SIM_PROPERTIES [ReadConf $sim_file]
-  } else {
-    set SIM_PROPERTIES ""
+
+  set SIM_PROPERTIES ""
+  if {($ghdl == 1 && $simulator == "ghdl") || ($ghdl == 0 && $simulator != "ghdl")} {
+    if {[file exists $sim_file]} {
+      set SIM_PROPERTIES [ReadConf $sim_file]
+    }
   }
 
   set global_sim_props [dict create]
@@ -4152,7 +4155,7 @@ proc LaunchGHDL { project_name repo_path simset_name simset_dict {ext_path ""}} 
   # Analyse and elaborate the design
   puts "ghdl -m --work=$simset_name -fsynopsys --ieee=standard $options $top_sim"
   GHDL "-m --work=$simset_name  -fsynopsys --ieee=standard $options $top_sim"
-  puts "ghdl -r --work=$simset_name -fsynopsys --ieee=standard $options $top_sim"
+  puts "ghdl -r --work=$simset_name -fsynopsys --ieee=standard $options $top_sim $runopts"
   GHDL "-r --work=$simset_name -fsynopsys --ieee=standard $options $top_sim $runopts"
   cd $repo_path
 }

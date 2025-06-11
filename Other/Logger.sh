@@ -932,7 +932,7 @@ function Logger_Init() {
         if [[ -v Hog_Prj_dict["fail_when_error.delay"] ]]; then
           if [[ ${Hog_Prj_dict["fail_when_error.delay"]} =~ ^[0-9]+$ ]]; then
             fwe_delay=$((${Hog_Prj_dict["fail_when_error.delay"]}))
-            Msg Warning "The fail delay is set to $fail_when_error"
+            Msg Warning "The fail delay is set to $fwe_delay"
           else
             fwe_delay=10
             Msg Warning "The variable fail_when_error.delay is not only nunmbers delay set to 10"

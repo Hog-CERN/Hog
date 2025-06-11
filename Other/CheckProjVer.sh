@@ -168,7 +168,7 @@ function main() {
       ${HDL_COMPILER} ${COMMAND_OPT}$DIR/../Hog/Tcl/CI/check_proj_ver.tcl ${POST_COMMAND_OPT}$PROJ
     elif [ "$COMMAND" = "ghdl" ]; then
       echo "Hog-INFO: Executing: tclsh Hog/Tcl/CI/check_proj_ver.tcl $EXT_PATH $SIM $PROJ"
-      tclsh Hog/Tcl/CI/check_proj_ver.tcl $EXT_PATH $SIM $PROJ
+      tclsh $DIR/..Hog/Tcl/CI/check_proj_ver.tcl $EXT_PATH $SIM $PROJ
     else
       echo "Hog-INFO: Executing:  ${HDL_COMPILER} $COMMAND_OPT $DIR/../../Hog/Tcl/CI/check_proj_ver.tcl ${POST_COMMAND_OPT}$EXT_PATH $SIM $PROJ"
       ${HDL_COMPILER} ${COMMAND_OPT}$DIR/../Hog/Tcl/CI/check_proj_ver.tcl ${POST_COMMAND_OPT} $EXT_PATH $SIM $PROJ

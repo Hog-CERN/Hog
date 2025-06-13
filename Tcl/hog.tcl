@@ -540,6 +540,7 @@ proc AddHogFiles { libraries properties filesets } {
 proc ALLOWED_PROPS {} {
   return [dict create ".vhd" [list "93" "nosynth" "noimpl" "nosim" "1987" "1993" "2008" "2019"]\
     ".vhdl" [list "93" "nosynth" "noimpl" "nosim" "1987" "1993" "2008" "2019"]\
+    ".bd" [list "nosim"]\
     ".v" [list "SystemVerilog" "verilog_header" "nosynth" "noimpl" "nosim" "1995" "2001"]\
     ".sv" [list "verilog" "verilog_header" "nosynth" "noimpl" "nosim" "2005" "2009"]\
     ".do" [list "nosim"]\

@@ -81,6 +81,11 @@ proc InitProject {} {
       # Suppress unnecessary warnings
       set_msg_config -suppress -regexp -string {".*The IP file '.*' has been moved from its original location, as a result the outputs for this IP will now be generated in '.*'. Alternatively a copy of the IP can be imported into the project using one of the 'import_ip' or 'import_files' commands..*"}
       set_msg_config -suppress -regexp -string {".*File '.*.xci' referenced by design '.*' could not be found..*"}
+
+      # File inside .bd
+      set_msg_config -suppress -id [IP_Flow 19-3664]
+      # This is due to simulations in project with NoC
+      set_msg_config -suppress -id {Vivado 12-23660} -string {{ERROR: [Vivado 12-23660] Simulation is not supported for the target language VHDL when design contains NoC (Network-on-Chip) blocks} }
     }
     # Create project
     create_project -force [file tail $globalSettings::DESIGN] $globalSettings::build_dir -part $globalSettings::PART

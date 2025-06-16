@@ -4475,6 +4475,11 @@ proc LaunchSimulation {project_name lib_path simsets {repo_path .}} {
             set use_simpass_str 1
             set simpass_str $prop_val
           }
+          if { [string toupper $prop_name] == "HOG_SILENT_SIM" && $prop_val != "" } {
+	    set quiet_sim " -quiet"
+	  } else {
+	    set quiet_sim ""
+	  }
         }
 
         Msg Info "Creating simulation scripts for $s..."
@@ -4491,9 +4496,6 @@ proc LaunchSimulation {project_name lib_path simsets {repo_path .}} {
         set sim_output_logfile $sim_dir/xsim/simulate.log
         if { ([string tolower $simulator] eq "xsim") } {
           set sim_name "xsim:$s"
-	  if {$use_simpass_str == 1} {
-	    set quiet_sim " -quiet"
-	  }
 	  
           set simulation_command "launch_simulation $quiet_sim -simset [get_filesets $s]"
           if { [catch $simulation_command  log] } {

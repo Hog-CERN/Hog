@@ -4454,9 +4454,10 @@ proc LaunchSimulation {project_name lib_path simsets {repo_path .}} {
 
     Msg Info "Retrieving list of simulation sets..."
     foreach s [get_filesets] {
-      # Default behaviour, dont use simpass string
+      # Default behaviour, dont use simpass string and simulation is not quiet
       set use_simpass_str 0
-
+      set quiet_sim ""
+      
       set type [get_property FILESET_TYPE $s]
       if {$type eq "SimulationSrcs"} {
         if {$simsets_todo != "" && $s ni $simsets_todo} {
@@ -4490,7 +4491,11 @@ proc LaunchSimulation {project_name lib_path simsets {repo_path .}} {
         set sim_output_logfile $sim_dir/xsim/simulate.log
         if { ([string tolower $simulator] eq "xsim") } {
           set sim_name "xsim:$s"
-          if { [catch { launch_simulation -simset [get_filesets $s] } log] } {
+	  if {$use_simpass_str == 1} {
+	    set quiet_sim " -quiet"
+	  }
+	  
+          if { [catch { launch_simulation $quiet_sim -simset [get_filesets $s] } log] } {
             # Explicitly close xsim simulation, without closing Vivado
             close_sim
             Msg CriticalWarning "Simulation failed for $s, error info: $::errorInfo"
@@ -4529,7 +4534,7 @@ proc LaunchSimulation {project_name lib_path simsets {repo_path .}} {
 
           if {$simlib_ok == 1} {
             set_property "compxlib.${simulator}_compiled_library_dir" [file normalize $lib_path] [current_project]
-            launch_simulation -scripts_only -simset [get_filesets $s]
+            launch_simulation -scripts_only $quiet_sim -simset [get_filesets $s]
             set top_name [get_property TOP $s]
             set sim_script  [file normalize $sim_dir/$simulator/]
             Msg Info "Adding simulation script location $sim_script for $s..."

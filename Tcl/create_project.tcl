@@ -83,7 +83,7 @@ proc InitProject {} {
       set_msg_config -suppress -regexp -string {".*File '.*.xci' referenced by design '.*' could not be found..*"}
 
       # File inside .bd
-      set_msg_config -suppress -id [IP_Flow 19-3664]
+      set_msg_config -suppress -id {IP_Flow 19-3664}
       # This is due to simulations in project with NoC
       set_msg_config -suppress -id {Vivado 12-23660} -string {{ERROR: [Vivado 12-23660] Simulation is not supported for the target language VHDL when design contains NoC (Network-on-Chip) blocks} }
     }

@@ -36,6 +36,7 @@ set parameters {
   {log.arg "1" "Logs errors/warnings to outFile."}
   {recreate  "If set, it will create List Files from the project configuration"}
   {recreate_conf  "If set, it will create the project hog.conf file."}
+  {recreate_sim  "If set, it will create the simulation list files."}
   {force  "Force the overwriting of List Files. To be used together with \"-recreate\""}
   {pedantic  "Script fails in case of mismatch"}
   {ext_path.arg "" "Sets the absolute path for the external libraries."}
@@ -104,7 +105,7 @@ if {![string equal $options(project) ""]} {
 
 
 if {$options(outDir)!= ""} {
-  
+
   set outFile $options(outDir)/diff_list_and_conf.txt
   set outSimFile $options(outDir)/diff_sim_list_and_conf.txt
   if {[file exists $outFile]} {
@@ -132,6 +133,40 @@ if {[file exists $repo_path/Top/$group_name/$project_name] && [file isdirectory 
   set DirName Top/$group_name/$project_name
 }
 
+if { $options(recreate_sim) == 1 && [IsVivado] } {
+  Msg Info "Checking $project_name simulation list files..."
+  # Get project simulation libraries and properties from list files
+  lassign [GetHogFiles -ext_path "$ext_path" -list_files ".sim" "$repo_path/Top/$group_name/$project_name/list/" $repo_path] listSimLibraries listSimProperties listSimSets
+  # Get project libraries and properties from Vivado
+  lassign [GetProjectFiles $proj_file] prjLibraries prjProperties prjSimLibraries prjConstraints prjSrcSets prjSimSets prjConSets
+  Msg Info "Retrieved project files..."
+
+  set extrasimFiles [ReadExtraFileList "$repo_path/Projects/$group_name/$project_name/.hog/extrasim.files"]
+
+  # Removing duplicates from listSimLibraries listSimProperties prjSimLibraries
+  set listSimLibraries [RemoveDuplicates $listSimLibraries]
+  set listSimProperties [RemoveDuplicates $listSimProperties]
+  set prjSimLibraries [RemoveDuplicates $prjSimLibraries]
+
+  Msg Debug "Project Sim Libraries"
+  Msg Debug $prjSimLibraries
+  Msg Debug "Sim List Libraries"
+  Msg Debug $listSimLibraries
+  Msg Debug "Project SimSets"
+  Msg Debug $prjSimSets
+  Msg Debug "List SimSets"
+  Msg Debug $listSimSets
+  Msg Debug "Sim List File Properties"
+  Msg Debug $listSimProperties
+
+  lassign [CompareLibDicts $prjSimLibraries $listSimLibraries $prjSimSets $listSimSets $prjProperties $listSimProperties "Warning" $outSimFile $extrasimFiles] SimListErrorCnt extrasimFiles prjSimLibraries prjProperties
+
+  foreach {k v} $extrasimFiles {
+    MsgAndLog "Simulation file $k was found in .hog/extrasim.files but not in project." "Warning" $outFile
+    incr SimListErrorCnt
+  }
+}
+
 if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
   Msg Info "Checking $project_name list files..."
 
@@ -139,22 +174,19 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
   lassign [GetHogFiles -ext_path "$ext_path" -list_files ".src,.ext" "$repo_path/Top/$group_name/$project_name/list/" $repo_path] listLibraries listProperties listSrcSets
   # Get project constraints and properties from list files
   lassign [GetHogFiles -ext_path "$ext_path" -list_files ".con" "$repo_path/Top/$group_name/$project_name/list/" $repo_path] listConstraints listConProperties listConSets
-  # Get project simulation libraries and properties from list files
-  lassign [GetHogFiles -ext_path "$ext_path" -list_files ".sim" "$repo_path/Top/$group_name/$project_name/list/" $repo_path] listSimLibraries listSimProperties listSimSets
+
   # Get files generated at creation time
   set extraFiles [ReadExtraFileList "$repo_path/Projects/$group_name/$project_name/.hog/extra.files"]
-  set extraFiles_copy $extraFiles
+  set extraConstraints [ReadExtraFileList "$repo_path/Projects/$group_name/$project_name/.hog/extracon.files"]
+
   # Get project libraries and properties from Vivado
   lassign [GetProjectFiles $proj_file] prjLibraries prjProperties prjSimLibraries prjConstraints prjSrcSets prjSimSets prjConSets
   Msg Info "Retrieved project files..."
 
-  # Removing duplicates from listlibraries listProperties listSimLibraries listSimProperties
+  # Removing duplicates from listlibraries listProperties
   set listLibraries [RemoveDuplicates $listLibraries]
   set listProperties [RemoveDuplicates $listProperties]
-  set listSimLibraries [RemoveDuplicates $listSimLibraries]
-  set listSimProperties [RemoveDuplicates $listSimProperties]
   set listConstraints [RemoveDuplicates $listConstraints]
-  set prjSimLibraries [RemoveDuplicates $prjSimLibraries]
   set prjLibraries [RemoveDuplicates $prjLibraries]
   set prjConstraints [RemoveDuplicates $prjConstraints]
   set prjProperties [RemoveDuplicates $prjProperties]
@@ -174,16 +206,6 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
   Msg Debug $prjProperties
   Msg Debug "List File Properties"
   Msg Debug $listProperties
-  Msg Debug "Project Sim Libraries"
-  Msg Debug $prjSimLibraries
-  Msg Debug "Sim List Libraries"
-  Msg Debug $listSimLibraries
-  Msg Debug "Project SimSets"
-  Msg Debug $prjSimSets
-  Msg Debug "List SimSets"
-  Msg Debug $listSimSets
-  Msg Debug "Sim List File Properties"
-  Msg Debug $listSimProperties
   Msg Debug "Project Constraints"
   Msg Debug $prjConstraints
   Msg Debug "List Constraints"
@@ -196,8 +218,7 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
   Msg Debug $listConProperties
 
   lassign [CompareLibDicts $prjLibraries $listLibraries $prjSrcSets $listSrcSets $prjProperties $listProperties "CriticalWarning" $outFile $extraFiles] SrcListErrorCnt extraFiles prjLibraries prjProperties
-  lassign [CompareLibDicts $prjSimLibraries $listSimLibraries $prjSimSets $listSimSets $prjProperties $listSimProperties "Warning" $outSimFile $extraFiles] SimListErrorCnt extraFiles prjSimLibraries prjProperties
-  lassign [CompareLibDicts $prjConstraints $listConstraints $prjConSets $listConSets $prjProperties $listConProperties  "CriticalWarning" $outFile $extraFiles] ConListErrorCnt extraFiles prjConstraints prjProperties
+  lassign [CompareLibDicts $prjConstraints $listConstraints $prjConSets $listConSets $prjProperties $listConProperties  "CriticalWarning" $outFile $extraConstraints] ConListErrorCnt extraConstraints prjConstraints prjProperties
 
   # Check if any files remained in extraFiles
   foreach {k v} $extraFiles {
@@ -205,21 +226,21 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
     incr SrcListErrorCnt
   }
 
-  if {$SrcListErrorCnt == 0} {
-    Msg Info "Design List Files matches project. Nothing to do."
+  foreach {k v} $extraConstraints {
+    MsgAndLog "Constraint file $k was found in .hog/extracon.files but not in project." "CriticalWarning" $outFile
+    incr SrcListErrorCnt
   }
 
-  if {$SimListErrorCnt == 0} {
-    Msg Info "Simulation List Files matches project. Nothing to do."
+  if {$SrcListErrorCnt == 0} {
+    Msg Info "Design List Files matches project. Nothing to do."
   }
 
   if {$ConListErrorCnt == 0} {
     Msg Info "Constraint List Files matches project. Nothing to do."
   }
 
-
   # Recreating src list files
-  if {$options(recreate) == 1 && ($SrcListErrorCnt > 0 || $SimListErrorCnt > 0 || $ConListErrorCnt > 0) } {
+  if {$options(recreate) == 1 && ($SrcListErrorCnt > 0 || $ConListErrorCnt > 0) } {
     set listpath "$repo_path/$DirName/list/"
     Msg Info "Updating list files in $listpath"
     # Create the list path, if it does not exist yet
@@ -233,15 +254,7 @@ if { $options(recreate_conf) == 0 || $options(recreate) == 1 } {
       }
       WriteListFiles $prjLibraries $prjProperties $listpath $repo_path $ext_path
     }
-    if {$SimListErrorCnt > 0} {
-      # Delete existing .sim list files
-      if {$options(force) == 1} {
-        foreach F [glob -nocomplain "$listpath/*.sim"] {
-          file delete $F
-        }
-      }
-      WriteSimListFiles $prjSimLibraries $prjProperties $prjSimSets $listpath $repo_path
-    }
+
     if {$ConListErrorCnt > 0} {
       # Delete existing .con list files
       if {$options(force) == 1} {
@@ -520,11 +533,11 @@ if {[IsXilinx]} {
       WriteConf $confFile $newConfDict "vivado $version"
 
     }
-   }
+  }
 
   set sim_conf "$repo_path/Top/$group_name/$project_name/sim.conf"
   # Checking simulation settings
-  if { $options(recreate) == 0 || $options(recreate_conf) == 1 } {
+  if { $options(recreate) == 0 || $options(recreate_sim) == 1 } {
     #creating 4 dicts:
     #   - simConfDict:     sim.conf properties (if exists)
     #   - defaultConfDict: default properties
@@ -535,39 +548,21 @@ if {[IsXilinx]} {
     set projConfDict [dict create]
     set newSimConfDict  [dict create]
 
-    #filling hogConfDict
-    if {[file exists $sim_conf]} {
-      set simConfDict [ReadConf $sim_conf]
-      # convert sim.conf dict keys to uppercase
-      set simsets [dict keys $simConfDict]
-
-      foreach simset $simsets {
-        set simDict [DictGet $simConfDict $simset]
-        foreach simDictKey [dict keys $simDict ] {
-          #do not convert paths
-          if {[string first $repo_path [DictGet $simDict $simDictKey]]!= -1} {
-            continue
-          }
-          dict set simDict [string toupper $simDictKey] [DictGet $simDict $simDictKey]
-          dict unset simDict [string tolower $simDictKey]
-        }
-        dict set simConfDict $simset $simDict
-      }
-    } elseif {$options(recreate_conf)==0} {
-      Msg Warning "$repo_path/Top/$group_name/$project_name/sim.conf not found. Skipping properties check"
-    }
-
-    #filling defaultConfDict and projConfDict
-    foreach proj_simset [get_filesets] {
-      if {[get_property FILESET_TYPE $proj_simset] != "SimulationSrcs" } {
+    # Get SimSets from list files or sim.conf
+    set dict_list_simsets [GetSimSets $group_name/$project_name $repo_path]
+    set dict_proj_simsets [dict create]
+    # filling defaultConfDict and projConfDict
+    foreach simset [get_filesets] {
+      if {[get_property FILESET_TYPE $simset] != "SimulationSrcs" } {
         continue
       }
       #creating dictionary for each simset
       set projSimDict [dict create]
       set defaultSimDict [dict create]
+      set simset_error 0
       #selecting only READ/WRITE properties
       set sim_props [list]
-      foreach propReport [split "[report_property  -return_string -all [get_filesets $proj_simset]]" "\n"] {
+      foreach propReport [split "[report_property  -return_string -all [get_filesets $simset]]" "\n"] {
 
         if {[string equal "[lindex $propReport 2]" "false"]} {
           lappend sim_props [lindex $propReport 0]
@@ -581,28 +576,28 @@ if {[IsXilinx]} {
 
         #Project values
         # setting only relative paths
-        if {[string first  $repo_path [get_property $prop $proj_simset]] != -1} {
-          dict set projSimDict [string toupper $prop] [Relative $repo_path [get_property $prop $proj_simset]]
-        } elseif {[string first  $ext_path [get_property $prop $proj_simset]] != -1} {
-          dict set projSimDict [string toupper $prop]  [Relative $ext_path [get_property $prop $proj_simset]]
+        if {[string first $repo_path [get_property $prop $simset]] != -1} {
+          dict set projSimDict [string toupper $prop] [Relative $repo_path [get_property $prop $simset]]
+        } elseif {[string first  $ext_path [get_property $prop $simset]] != -1} {
+          dict set projSimDict [string toupper $prop]  [Relative $ext_path [get_property $prop $simset]]
         } else {
-          dict set projSimDict [string toupper $prop] [get_property $prop $proj_simset]
+          dict set projSimDict [string toupper $prop] [get_property $prop $simset]
         }
 
         # default values
-        dict set defaultSimDict [string toupper $prop]  [list_property_value -default $prop $proj_simset]
-        dict set projConfDict $proj_simset  $projSimDict
-        dict set defaultConfDict $proj_simset $defaultSimDict
+        dict set defaultSimDict [string toupper $prop]  [list_property_value -default $prop $simset]
+        dict set projConfDict $simset $projSimDict
+        dict set defaultConfDict $simset $defaultSimDict
       }
-    }
 
-    foreach simset [get_filesets -quiet] {
-      if {[get_property FILESET_TYPE $simset] != "SimulationSrcs" } {
-        continue
-      }
-      set hogConfSimDict [DictGet $simConfDict $simset]
-      set hogAllSimDict [DictGet $simConfDict sim]
-      set hogGenericsSimDict [DictGet $simConfDict generics]
+      set hog_simset [DictGet $dict_list_simsets $simset]
+      puts $hog_simset
+      puts $projConfDict
+      puts $defaultConfDict
+      set list_props [DictGet $hog_simset "properties"]
+      set list_generics [DictGet $hog_simset "generics"]
+      set list_hog_section [DictGet $hog_simset "hog"]
+
       set newSimDict [dict create]
       set newGenericsDict [dict create]
       set projSimDict [DictGet $projConfDict $simset]
@@ -610,8 +605,7 @@ if {[IsXilinx]} {
 
       foreach setting [dict keys $projSimDict] {
         set currset [DictGet $projSimDict $setting]
-        set hogset [DictGet $hogConfSimDict $setting]
-        set allhogset [DictGet $hogAllSimDict $setting]
+        set hogset [DictGet $list_props $setting]
         set defset [DictGet $defaultRunDict $setting]
 
         if {[string toupper $setting] == "GENERIC"} {
@@ -620,26 +614,26 @@ if {[IsXilinx]} {
             set generic_and_value [split $gen_set =]
             set generic [string toupper [lindex $generic_and_value 0]]
             set gen_value [lindex $generic_and_value 1]
-            set generichogset [DictGet $hogGenericsSimDict $generic ]
+            set generichogset [DictGet $list_generics $generic ]
 
             # Remove quotes from vivado properties
             regsub -all {\"} $gen_value "" gen_value
             dict set newGenericsDict $generic $gen_value
             if { $gen_value != $generichogset} {
               if {$options(recreate_conf) == 1} {
-                incr SimConfErrorCnt
+                incr simset_error
                 Msg Info "$simset generics setting $generic has been changed from \"$generichogset\" in sim.conf to \"$gen_value\" in project."
               } elseif {[file exists $sim_conf]} {
                 MsgAndLog "Simset $simset setting $generic value \"$gen_value\" does not match sim.conf \"$generichogset\"." "Warning" $outSimFile
-                incr SimConfErrorCnt
+                incr simset_error
               }
             }
           }
           continue
         }
 
-        if {[string toupper $currset] != [string toupper $hogset] && [string toupper $currset] != [string toupper $defset] && [string toupper $currset] != [string toupper $allhogset]} {
-          if {[string first "DEFAULT" [string toupper $currset]] != -1 && $hogset == "" && $allhogset == ""} {
+        if {[string toupper $currset] != [string toupper $hogset] && [string toupper $currset] != [string toupper $defset]} {
+          if {[string first "DEFAULT" [string toupper $currset]] != -1 && $hogset == ""} {
             continue
           }
           if {[string tolower $hogset] == "true" && $currset == 1} {
@@ -648,27 +642,20 @@ if {[IsXilinx]} {
           if {[string tolower $hogset] == "false" && $currset == 0} {
             continue
           }
-          if {[string tolower $allhogset] == "true" && $currset == 1} {
-            continue
-          }
-          if {[string tolower $allhogset] == "false" && $currset == 0} {
-            continue
-          }
+
           if {[regexp {^[^\.]*\.[^\.]*$} $setting]} {
             continue
           }
 
           dict set newSimDict $setting $currset
-          if {$options(recreate_conf) == 1} {
-            incr SimConfErrorCnt
-            Msg Info "$simset setting $setting has been changed from \"$hogset\" (\"$allhogset\") in sim.conf to \"$currset\" in project."
-          } elseif {[file exists $sim_conf]} {
-            MsgAndLog "Simset $simset setting $setting value \"$currset\" does not match sim.conf \"$hogset\" (\"$allhogset\")." "Warning" $outSimFile
-            incr SimConfErrorCnt
+          if {$options(recreate_sim) == 1} {
+            incr simset_error
+            Msg Info "Simulation property $setting of simset $simset has been changed from \"$hogset\" in sim.conf/$simset.sim to \"$currset\" in project."
+          } else {
+            MsgAndLog "Simulation property $setting value \"$currset\" does not match configuration in sim.conf/$simset.sim \"$hogset\"." "Warning" $outSimFile
+            incr simset_error
           }
         } elseif {[string toupper $currset] == [string toupper $hogset] && [string toupper $hogset] != ""} {
-          dict set newSimDict $setting $currset
-        } elseif {[string toupper $currset] == [string toupper $allhogset] && [string toupper $allhogset] != ""} {
           dict set newSimDict $setting $currset
         }
         # Check if this is the active simulation set
@@ -676,15 +663,16 @@ if {[IsXilinx]} {
           dict set newSimDict "ACTIVE" "1"
         }
       }
-      dict set newSimConfDict $simset $newSimDict
-      dict set newSimConfDict generics $newGenericsDict
+      dict set newSimConfDict "properties" $newSimDict
+      dict set newSimConfDict "generics" $newGenericsDict
+      dict set newSimConfDict "hog" $list_hog_section
 
       #if anything remains into hogConfDict it means that something is wrong
-      foreach setting [dict keys $hogConfSimDict] {
-        set hogset [DictGet $hogConfSimDict $setting]
+      foreach setting [dict keys $list_generics] {
+        set hogset [DictGet $list_generics $setting]
         if {$setting == "ACTIVE"} {
           if {$hogset == "1" && $simset != [current_fileset -simset]} {
-            incr SimConfErrorCnt
+            incr simset_error
             if {$options(recreate_conf) == 0} {
               MsgAndLog "Simulation set $simset is set as active, but the actual active one in the project is [current_fileset -simset]" "Warning" $outSimFile
             } else {
@@ -710,30 +698,42 @@ if {[IsXilinx]} {
         }
 
         if {[dict exists $projSimDict [string toupper $setting]]==0 && [dict exists $projSimDict $setting]==0} {
-          incr SimConfErrorCnt
+          incr simset_error
           if {$options(recreate_conf) == 0} {
-            MsgAndLog "sim.conf property $setting is not a valid Vivado property." "Warning" $outSimFile
+            MsgAndLog "Property $setting is not a valid Vivado property. Please check your sim.conf or $simset.sim file" "Warning" $outSimFile
           } else {
-            Msg Info "Found property $setting in old sim.conf. This is not a valid Vivado property and will be deleted."
+            Msg Info "Found property $setting in your sim.conf or $simset.sim file. This is not a valid Vivado property and will be deleted."
           }
         }
       }
-    }
+      if {$simset_error == 0} {
+        Msg Info "Simulation properties for $simset are up-to-date. Nothing to do"
+      } else {
+        Msg Warning "Simulation properties for simset $simset have been changed."
+      }
 
-    if {$SimConfErrorCnt == 0 && [file exists $sim_conf ] == 1} {
-      Msg Info "$sim_conf matches project. Nothing to do"
-    }
+      # Updating .sim files
+      if {$options(recreate_sim) == 1 && ($simset_error > 0 || $SimListErrorCnt > 0)} {
+        Msg Info "Updating configuration file $sim_conf"
+        file mkdir $repo_path/$DirName/list
+        #writing configuration file
+        set confFile $repo_path/$DirName/list/$simset.sim
+        set version [GetIDEVersion]
+        WriteConf $confFile $newSimConfDict "Simulator $list_simulator"
+      }
 
-    #recreating hog.conf
-    if {$options(recreate_conf) == 1 && $SimConfErrorCnt > 0 } {
-      Msg Info "Updating configuration file $sim_conf"
-      file mkdir  $repo_path/$DirName/list
-      #writing configuration file
-      set confFile $repo_path/$DirName/sim.conf
-      set version [GetIDEVersion]
-      WriteConf $confFile $newSimConfDict
+      set SimConfErrorCnt [expr {$SimConfErrorCnt + $simset_error}]
+    }
+    # Recreating src list files
+    if {$options(recreate_sim) == 1 && ($SimListErrorCnt > 0) } {
+      set listpath "$repo_path/$DirName/list/"
+      Msg Info "Adding \[files\] section to .sim list files in $listpath"
+      # Create the list path, if it does not exist yet
+      file mkdir $listpath
+      WriteSimListFiles $prjSimLibraries $prjProperties $prjSimSets $listpath $repo_path $options(force)
     }
   }
+
 }
 
 
@@ -756,14 +756,14 @@ if {$options(recreate_conf) == 0 && $options(recreate) == 0} {
     Msg Info "Design List files and hog.conf match project. All ok!"
   }
 
-  if { $SimListErrorCnt > 0 } {
+  if { $SimListErrorCnt > 0 || $SimListErrorCnt > 0} {
     Msg Warning "Number of mismatch in simulation list files = $SimListErrorCnt"
   } else {
     Msg Info "Simulation list files match project. All ok!"
   }
 
   if { $SimConfErrorCnt > 0 } {
-    Msg Warning "Number of mismatch in simulation conf files = $SimConfErrorCnt"
+    Msg Warning "Number of mismatch in simulation properties = $SimConfErrorCnt"
   } else {
     Msg Info "Simulation config files match project. All ok!"
   }

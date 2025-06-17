@@ -733,14 +733,16 @@ function print_hog_logo () {
   fi
   if [ -f $logo_file ]; then
     while IFS= read -r line; do
-      echo -e "$line" 
+      echo -e "$line"
     done < "$logo_file"
-    Msg Info "$(git describe --always)"
+    cd $ROOT_PROJECT_FOLDER/Hog
+    echo " Version: $(git describe --always)"
+    cd $ROOT_PROJECT_FOLDER
     export HOG_LOGO_PRINTED=1
   else
     Msg Warning "Logo file $logo_file doesn't exist"
   fi
-  
+
 
 }
 

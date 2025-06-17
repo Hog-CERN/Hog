@@ -205,7 +205,7 @@ function init() {
   ##! NOTE if the user input contains Y or y then is accepted as yes
   if [ "$(command -v vivado)" ]; then
     echo
-    read -p "  Do you want to add three buttons to the Vivado GUI to check and update the list files and the project hog.conf file automatically? " -n 1 -r
+    read -p "  Do you want to add four buttons to the Vivado GUI to check and update the list files and the project hog.conf file automatically? " -n 1 -r
     echo
     echo
     if [[ "${REPLY}" =~ ^[Yy]$ ]]; then

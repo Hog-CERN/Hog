@@ -982,12 +982,16 @@ proc CreateProject args {
   }
 
   # Check extra IPs
+    # Get project libraries and properties from list files
+  lassign [GetHogFiles -ext_path "$globalSettings::HOG_EXTERNAL_PATH" -list_files ".src,.ext" "$globalSettings::repo_path/Top/$globalSettings::group_name/$globalSettings::DESIGN/list/" $globalSettings::repo_path] listLibraries listProperties listSrcSets
+  # Get project constraints and properties from list files
+  lassign [GetHogFiles -ext_path "$globalSettings::HOG_EXTERNAL_PATH" -list_files ".con" "$globalSettings::repo_path/Top/$globalSettings::group_name/$globalSettings::DESIGN/list/" $globalSettings::repo_path] listConstraints listConProperties listConSets
 
-  lassign [GetHogFiles -ext_path "$globalSettings::HOG_EXTERNAL_PATH" "$globalSettings::repo_path/Top/$globalSettings::group_name/$globalSettings::DESIGN/list/" $globalSettings::repo_path] listLibraries listProperties listFilesets
+  lassign [GetHogFiles -ext_path "$globalSettings::HOG_EXTERNAL_PATH" -list_files ".sim" "$globalSettings::repo_path/Top/$globalSettings::group_name/$globalSettings::DESIGN/list/" $globalSettings::repo_path] listSimLibraries listSimProperties listSimSets
 
   set old_path [pwd]
   cd $globalSettings::build_dir
-  CheckExtraFiles $listLibraries
+  CheckExtraFiles $listLibraries $listConstraints $listSimLibraries
   cd $old_path
 
   if {[IsXilinx]} {

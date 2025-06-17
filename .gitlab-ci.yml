@@ -49,6 +49,7 @@ launch_github:
         git checkout auto/$CI_COMMIT_REF_NAME;
         git branch --set-upstream-to=origin/auto/$CI_COMMIT_REF_NAME auto/$CI_COMMIT_REF_NAME;
         git pull;
+        git merge origin/develop;
       else
         git checkout -b auto/$CI_COMMIT_REF_NAME;
       fi
@@ -92,6 +93,7 @@ launch_testfirmware:
         git checkout auto/$CI_COMMIT_REF_NAME;
         git branch --set-upstream-to=origin/auto/$CI_COMMIT_REF_NAME auto/$CI_COMMIT_REF_NAME;
         git pull;
+        git merge origin/develop;
       else
         git checkout -b auto/$CI_COMMIT_REF_NAME;
       fi

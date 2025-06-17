@@ -23,12 +23,26 @@
 ## @var DEBUG_VERBOSE
 #  @brief Global variable
 #
-export DEBUG_VERBOSE=""
+export DEBUG_VERBOSE=4
+export EN_SHOW_PID=1
+export ENABLE_LINE_NUMBER=1
+export ENABLE_MSG_TYPE_CNT=1
 HOG_LOG_EN=0
 HOG_COLOR_EN=0
 export clrschselected="dark"
+
+export ENABLE_FWE=0
+export hog_sh_pid=""
+export hog_pid=""
+export error_pid=""
+export tcl_pid=""
+export launch_tcl_pid=""
 export fail_when_error=0
-error_failing=0
+export fwe_failing=0
+export fwe_delay=0
+export error_fail=0
+export failing_en=0
+export fwe_fail_trig=0
 
 # export
 
@@ -36,6 +50,7 @@ if [ -v $tempfolder ]; then
   tmptimestamp=$(date +%s)
   tempfolder="/dev/shm/$USER/hog$tmptimestamp"
   if mkdir -p $tempfolder 2>/dev/null ; then
+    temp_g_cnt_file="$tempfolder/hog_g_cnt"
     temp_i_cnt_file="$tempfolder/hog_i_cnt"
     temp_d_cnt_file="$tempfolder/hog_d_cnt"
     temp_w_cnt_file="$tempfolder/hog_w_cnt"
@@ -45,6 +60,7 @@ if [ -v $tempfolder ]; then
     echo " Warning : Could not create /dev/shm/$USER/hog$tmptimestamp will try /tmp/$USER/hog$tmptimestamp "
     tempfolder="/tmp/$USER/hog$tmptimestamp"
     if mkdir -p $tempfolder; then
+      temp_g_cnt_file="$tempfolder/hog_g_cnt"
       temp_i_cnt_file="$tempfolder/hog_i_cnt"
       temp_d_cnt_file="$tempfolder/hog_d_cnt"
       temp_w_cnt_file="$tempfolder/hog_w_cnt"
@@ -58,6 +74,10 @@ if [ -v $tempfolder ]; then
 fi
 
 function update_cnt () {
+  if [[ -e "$temp_g_cnt_file" ]]; then
+    while read line ; do glob_cnt=$(($line+1)); done < "$temp_g_cnt_file"
+    echo "$glob_cnt" > "$temp_g_cnt_file"
+  fi
   if [[ -e "$1" ]]; then
     while read line ; do local_cnt=$(($line+1)); done < "$1"
     echo "$local_cnt" > "$1"
@@ -73,25 +93,39 @@ function read_tmp_cnt () {
 
 
 function msg_counter () {
+  # echo "msg_counter $1 $2"
   case "$1" in
     init)
+      echo "0" > "$temp_g_cnt_file"
       echo "0" > "$temp_i_cnt_file"
       echo "0" > "$temp_d_cnt_file"
       echo "0" > "$temp_w_cnt_file"
       echo "0" > "$temp_c_cnt_file"
       echo "0" > "$temp_e_cnt_file"
     ;;
-    iw) update_cnt $temp_i_cnt_file ;;
-    ir) read_tmp_cnt $temp_i_cnt_file ;;
-    dw) update_cnt $temp_d_cnt_file ;;
-    dr) read_tmp_cnt $temp_d_cnt_file ;;
-    ww) update_cnt $temp_w_cnt_file ;;
-    wr) read_tmp_cnt $temp_w_cnt_file ;;
-    cw) update_cnt $temp_c_cnt_file ;;
-    cr) read_tmp_cnt $temp_c_cnt_file ;;
-    ew) update_cnt $temp_e_cnt_file ;;
-    er) read_tmp_cnt $temp_e_cnt_file ;;
-    *) Msg Error "counter update doesn't exist" ;;
+    read|r)
+    case "$2" in
+      g) read_tmp_cnt $temp_g_cnt_file ;;
+      i) read_tmp_cnt $temp_i_cnt_file ;;
+      d) read_tmp_cnt $temp_d_cnt_file ;;
+      w) read_tmp_cnt $temp_w_cnt_file ;;
+      c) read_tmp_cnt $temp_c_cnt_file ;;
+      e) read_tmp_cnt $temp_e_cnt_file ;;
+      *) Msg Error "counter <$2> doesn't exist" ;;
+    esac
+    ;;
+    update|w)
+    # update_cnt $temp_g_cnt_file 
+    case "$2" in
+      i) update_cnt $temp_i_cnt_file ;;
+      d) update_cnt $temp_d_cnt_file ;;
+      w) update_cnt $temp_w_cnt_file ;;
+      c) update_cnt $temp_c_cnt_file ;;
+      e) update_cnt $temp_e_cnt_file ;;
+      *) Msg Error "counter <$2> doesn't exist" ;;
+    esac
+    ;;    
+    *) Msg Error "counter action <$1> doesn't exist" ;;
   esac
 }
 
@@ -152,12 +186,12 @@ simpleColor[info]="$txtrst"
 simpleColor[vcom]="$txtrst"
 
 declare -A msgCounter
-msgCounter[error]="ew"
-msgCounter[critical]="cw"
-msgCounter[warning]="ww"
-msgCounter[debug]="dw"
-msgCounter[info]="iw"
-msgCounter[vcom]="iw"
+msgCounter[error]="e"
+msgCounter[critical]="c"
+msgCounter[warning]="w"
+msgCounter[debug]="d"
+msgCounter[info]="i"
+msgCounter[vcom]="i"
 
 declare -A msgDbgLvl
 msgDbgLvl[error]=0
@@ -194,14 +228,14 @@ line_type=""
 
 function log_stdout(){
   if [ -n "${2}" ]; then
-    IN_out="${2}"
+    IN_out="${2//\\/\\\\}"
   else
     while read -r IN_out # This reads a string from stdin and stores it in a variable called IN_out
     do
       if [[ $next_is_err == 0 ]]; then
-        line="${IN_out}"
+        line="${IN_out//\\/\\\\}"
       else
-        line="ERROR:${IN_out}"
+        line="ERROR:${IN_out//\\/\\\\}"
         next_is_err=$(($next_is_err-1))
       fi
       dataLine=$line
@@ -317,12 +351,18 @@ function log_stdout(){
       #######################################
         # The writing will be done here
       #######################################
-      if [[ $DEBUG_VERBOSE -gt 5 ]]; then
-        printf "%d : %d :" $BASHPID "$(msg_counter ${msgCounter[$msgType]})"
-      else
-        msg_counter "${msgCounter[$msgType]}" >> /dev/null
-      fi;
       if [[ $DEBUG_VERBOSE -gt ${msgDbgLvl[$msgType]} ]]; then
+        if [[ $EN_SHOW_PID -gt 0 ]]; then
+          printf "PID:%06d : " $BASHPID
+        fi
+        if [[ $ENABLE_LINE_NUMBER -gt 0 ]]; then
+          printf "%05d : " $(msg_counter r g)
+        fi
+        if [[ $ENABLE_MSG_TYPE_CNT -gt 0 ]]; then
+          printf "%d : " $(msg_counter w ${msgCounter[$msgType]})
+        else
+          msg_counter w ${msgCounter[$msgType]} >> /dev/null
+        fi
         if [[ $HOG_COLOR_EN -gt 1 ]]; then
           case "${clrschselected}" in
             "dark")
@@ -337,6 +377,8 @@ function log_stdout(){
         else
           echo -e "${stderr_ack}$dataLine"
         fi
+      else
+        msg_counter w ${msgCounter[$msgType]} >> /dev/null
       fi
       if [[ $HOG_LOG_EN -gt 0 ]]; then
         if [[ -n $LOG_WAR_ERR_FILE ]] && [[ 3 -gt ${msgDbgLvl[$msgType]} ]]; then
@@ -346,18 +388,26 @@ function log_stdout(){
           echo "${stderr_ack}${msgHeadBW[$msgType]} ${dataLine#${msgRemove[$msgType]}} "  >> $LOG_INFO_FILE;
         fi
       fi
-      if [[ "$msgType" == "error" ]]; then
-        if (( $fail_when_error > 0 )); then
-          error_failing=$fail_when_error
-          failing_en=1
-        fi
-      fi
-      if [[ $failing_en -gt 0 ]];then
-        if [[ $error_failing -gt 1 ]]; then
-          error_failing=$(($error_failing - 1))
+      if [[ $ENABLE_FWE -eq 1 ]];then
+        if [[ $fwe_fail_trig -eq 0 ]]; then
+          if [[ "$msgType" == "error" ]]; then
+            fwe_failing=$fwe_delay
+            fwe_fail_trig=1
+            error_fail=1
+            error_pid=$BASHPID
+            Msg Warning "Process $error_pid will be killed in $fwe_failing"
+          fi
         else
-          Msg Error "exitaaaando"
-          exit 2
+          if [[ $failing_en -eq 0 ]];then
+            if [[ $fwe_failing -gt 0 ]];then
+              fwe_failing=$(($fwe_failing - 1))
+            else
+              wait "$launch_tcl_pid" 2>/dev/null
+              echo "Process $hog_pid has been terminated."
+              failing_en=-1
+              Hog_exit_fwe
+            fi
+          fi
         fi
       fi
     done
@@ -371,23 +421,49 @@ function Hog_exit () {
   if [[  "$HOG_COLOR_EN" -gt 0 ]]; then
     echo -e "$txtrst"
   fi
-  echo "================ RESUME ================ "
-  echo " # of Info messages: $(msg_counter ir)"
-  echo " # of debug messages : $(msg_counter dr)"
-  echo " # of warning messages : $(msg_counter wr)"
-  echo " # of critical warning messages : $(msg_counter cr)"
-  echo " # of Errors messages : $(msg_counter er)"
-  echo "======================================== "
-  if [[ $(msg_counter er) -gt 0 ]]; then
+  echo "  ================ RESUME ================ "
+  echo "   # of Total messages: $(msg_counter r g)"
+  echo "   # of Info messages: $(msg_counter r i)"
+  echo "   # of debug messages : $(msg_counter r d)"
+  echo "   # of warning messages : $(msg_counter r w)"
+  echo "   # of critical warning messages : $(msg_counter r c)"
+  echo "   # of Errors messages : $(msg_counter r e)"
+  echo "  ======================================== "
+  if [[ $(msg_counter r e) -gt 0 ]]; then
     echo -e "$txtred *** Hog finished with errors *** $txtrst"
     exit 1
-  elif [[ $(msg_counter cr) -gt 0 ]]; then
+  elif [[ $(msg_counter r c) -gt 0 ]]; then
     echo -e "$txtylw *** Hog finished with Critical Warnings *** $txtrst"
     exit 0
   else
     echo -e "$txtgrn *** Hog finished without errors *** $txtrst"
     exit 0
   fi
+
+}
+
+## @function Hog_exit()
+  #
+  # @brief Prints a resum of the messages types
+function Hog_exit_fwe () {
+  echo "  ================ RESUME ================ "
+  echo "   # of Total messages: $(msg_counter r g)"
+  echo "   # of Info messages: $(msg_counter r i)"
+  echo "   # of debug messages : $(msg_counter r d)"
+  echo "   # of warning messages : $(msg_counter r w)"
+  echo "   # of critical warning messages : $(msg_counter r c)"
+  echo "   # of Errors messages : $(msg_counter r e)"
+  echo "  ======================================== "
+  if [[ $(msg_counter r e) -gt 0 ]]; then
+    echo -e "$txtred *** Hog finished with errors *** $txtwht"
+    kill -SIGINT "-$hog_pid"
+    exit 1
+  else
+    echo -e "$txtgrn *** Hog finished  without errors *** $txtwht"
+    kill -SIGINT "-$hog_pid"
+    exit 0
+  fi
+
 }
 
 ## @function Log_capture()
@@ -414,6 +490,7 @@ function Log_capture(){
   # @param[in] execution line to process
 function Logger () {
   # echo "$@"
+  Msg Debug "Running: $*"
   if [[ "$HOG_LOG_EN" -gt 0 ]] || [[  "$HOG_COLOR_EN" -gt 0 ]]; then
     Log_capture "$@"
   else
@@ -455,13 +532,19 @@ function Msg() {
     *) Msg Error "messageLevel: $1 not supported! Use Info, Warning, CriticalWarning, Error" ;;
   esac
   ####### The printing
-  if [[ $DEBUG_VERBOSE -gt 5 ]]; then
-    printf "%d : %d :" $BASHPID "$(msg_counter dw)"
-  else
-    msg_counter dw >> /dev/null
-  fi;
-
   if [[ $DEBUG_VERBOSE -gt ${msgDbgLvl[$msgType]} ]]; then
+    if [[ $EN_SHOW_PID -gt 0 ]]; then
+      printf "PID:%06d : " $BASHPID
+    fi
+    if [[ $ENABLE_LINE_NUMBER -gt 0 ]]; then
+      printf "%05d : " $(msg_counter r g)
+    fi
+    if [[ $ENABLE_MSG_TYPE_CNT -gt 0 ]]; then
+      printf "%d : " $(msg_counter w ${msgCounter[$msgType]})
+    else
+      msg_counter w ${msgCounter[$msgType]} >> /dev/null
+    fi
+    
     if [[ $HOG_COLOR_EN -gt 1 ]]; then
       case "${clrschselected}" in
         "dark")
@@ -476,6 +559,8 @@ function Msg() {
     else
         echo -e " HOG:$1[${FUNCNAME[1]}] $text"
     fi
+  else
+    msg_counter w ${msgCounter[$msgType]} >> /dev/null
   fi
   if [[ $HOG_LOG_EN -gt 0 ]]; then
     if [[ -n $LOG_WAR_ERR_FILE ]] && [[ 3 -gt ${msgDbgLvl[$msgType]} ]]; then
@@ -487,6 +572,34 @@ function Msg() {
       # echo "${msgHeadBW[$msgType]} ${dataLine#${msgRemove[$msgType]}} "  >> $LOG_INFO_FILE;
     fi
   fi
+  if [[ $ENABLE_FWE -eq 1 ]];then
+        # Msg Debug "$fwe_fail_trig "
+        if [[ $fwe_fail_trig -eq 0 ]]; then
+          if [[ "$msgType" == "error" ]]; then
+            # if (( $fail_when_error > 0 )); then
+              fwe_failing=$fwe_delay
+              fwe_fail_trig=1
+              error_fail=1
+              error_pid=$BASHPID
+              Msg Warning "Process $error_pid will be killed in $fwe_failing"
+            # fi
+          fi
+        else
+          if [[ $failing_en -eq 0 ]];then
+            if [[ $fwe_failing -gt 0 ]];then
+              fwe_failing=$(($fwe_failing - 1))
+              # Msg Debug "Process $BASHPID will be killed in $fwe_failing"
+              # Msg Debug "Process $hog_pid will be killed in $fwe_failing"
+            else
+              # Msg Error "exitaaaando"
+              wait "$launch_tcl_pid" 2>/dev/null
+              echo "Process $hog_pid has been terminated."
+              failing_en=-1
+              Hog_exit_fwe
+            fi
+          fi
+        fi
+      fi
   return 0
 }
 
@@ -512,7 +625,7 @@ trim() {
   # @param[in] dictionary name where to store the data
   #
   # @return  '1' if missing arguments else '0'
-process_toml_file() {
+process_HogEnv_config() {
   local file_path=$1
   local dict_name=$2
   declare -n toml_dict=$dict_name
@@ -592,7 +705,7 @@ process_toml_file() {
         line=""
       fi
       if [[ ${#proc_line} -gt 0 ]]; then
-        Msg Debug "saving in dict ::: <${proc_line}>"
+        Msg Debug "saving to dict ::: ${section_name[$key]} = <${proc_line}>"
         if [[ $arraylvl == 0 ]]; then
           toml_dict["$section_name.$key"]=$(trim "${proc_line//\"/}")
         else
@@ -637,10 +750,12 @@ function print_hog_logo () {
   #
   # @param[in] execution line to process
 function Logger_Init() {
+  hog_sh_pid=$BASHPID
   DEBUG_VERBOSE=4
   if [[ "$*" =~ "-verbose" ]]; then
     DEBUG_VERBOSE=5
   fi
+  hog_pid=$BASHPID
 
   ROOT_PROJECT_FOLDER=$(pwd)
   LOG_INFO_FILE=$ROOT_PROJECT_FOLDER"/hog_info.log"
@@ -655,7 +770,7 @@ function Logger_Init() {
   hog_user_cfg=$(eval echo "~$USER")"/HogEnv.conf"
   if test -f $hog_user_cfg; then
     Msg Debug "Hog project configuration file $hog_user_cfg exists."
-    process_toml_file $hog_user_cfg "Hog_Usr_dict"
+    process_HogEnv_config $hog_user_cfg "Hog_Usr_dict"
     for key in "${!Hog_Usr_dict[@]}"; do
       Msg Debug "Hog_Usr_dict[ $key ] = <${Hog_Usr_dict[$key]}>"
     done
@@ -685,13 +800,47 @@ function Logger_Init() {
     fi
   fi
 
+  # SETTING Message type counter
+  ENABLE_MSG_TYPE_CNT=0
+  if [[ -v Hog_Usr_dict["verbose.msgtypeCounter"] ]]; then
+    if [[ ${Hog_Usr_dict["verbose.msgtypeCounter"]} =~ ^[01]$ ]]; then
+      ENABLE_MSG_TYPE_CNT=${Hog_Usr_dict["verbose.msgtypeCounter"]}
+      Msg Debug "The variable <verbose.msgtypeCounter> is ${Hog_Usr_dict['verbose.msgtypeCounter']}"
+    else
+      Msg Warning "The variable verbose.msgtypeCounter is not 1 or 0, Default to 0"
+    fi
+  fi
+
+  # SETTING Message number
+  ENABLE_LINE_NUMBER=0
+  if [[ -v Hog_Usr_dict["verbose.lineCounter"] ]]; then
+    if [[ ${Hog_Usr_dict["verbose.lineCounter"]} =~ ^[01]$ ]]; then
+      ENABLE_LINE_NUMBER=${Hog_Usr_dict["verbose.lineCounter"]}
+      Msg Debug "The variable <verbose.lineCounter> is ${Hog_Usr_dict['verbose.lineCounter']}"
+    else
+      Msg Warning "The variable verbose.lineCounter is not 1 or 0, Default to 0"
+    fi
+  fi
+
+  # SETTING pidshow
+  EN_SHOW_PID=0
+  if [[ -v Hog_Usr_dict["verbose.pidshow"] ]]; then
+    if [[ ${Hog_Usr_dict["verbose.pidshow"]} =~ ^[01]$ ]]; then
+      EN_SHOW_PID=${Hog_Usr_dict["verbose.pidshow"]}
+      Msg Debug "The variable <verbose.pidshow> is ${Hog_Usr_dict['verbose.pidshow']}"
+    else
+      Msg Warning "The variable verbose.pidshow is not 1 or 0, Default to 0"
+    fi
+  fi
+
+
 ############ FROM HERE WILL USE LOGGER COLORS IF ENABLED
   print_hog_logo
   # Msg Debug "HOG_COLOR_EN -- $HOG_COLOR_EN"
   Msg Info "Loading Hog configuration..."
   if test -f $hog_user_cfg; then
     Msg Info "Hog project configuration file $hog_user_cfg exists."
-    process_toml_file $hog_user_cfg "Hog_Usr_dict"
+    process_HogEnv_config $hog_user_cfg "Hog_Usr_dict"
     for key in "${!Hog_Usr_dict[@]}"; do
       Msg Info "Hog_Usr_dict[ $key ] = <${Hog_Usr_dict[$key]}>"
     done
@@ -707,21 +856,24 @@ function Logger_Init() {
     Msg Debug "Hog project configuration file $hog_user_cfg doesn't exists."
   fi
 
+  
+
   # SETTING DEBUG_VERBOSE
-  if [[ -v Hog_Usr_dict["terminal.debug"] ]]; then
-    if [[ ${Hog_Usr_dict["terminal.debug"]} =~ ^[0-9]$ ]]; then
-      Msg Debug "The variable <terminal.debug> is ${Hog_Usr_dict['terminal.debug']}"
-      DEBUG_VERBOSE=${Hog_Usr_dict["terminal.debug"]}
+  if [[ -v Hog_Usr_dict["verbose.level"] ]]; then
+    if [[ ${Hog_Usr_dict["verbose.level"]} =~ ^[0-9]$ ]]; then
+      Msg Debug "The variable <verbose.level> is ${Hog_Usr_dict['verbose.level']}"
+      DEBUG_VERBOSE=${Hog_Usr_dict["verbose.level"]}
     else
-      Msg Warning "The variable $hog_user_td is not a one-digit number, Defaulting to 0"
+      Msg Warning "The variable verbose.level is not a one-digit number, Defaulting to 0"
     fi
   fi
   if [[ "$*" =~ "-verbose" ]]; then
     if (( $DEBUG_VERBOSE < int2 )); then
-      DEBUG_VERBOSE=5
+      DEBUG_VERBOSE=4
     fi
   fi
   Msg Debug "DEBUG_VERBOSE -- $DEBUG_VERBOSE"
+
 
   # SETTING LOGGER
   HOG_LOG_EN=0
@@ -760,28 +912,54 @@ function Logger_Init() {
   hog_proj_cfg=$(pwd)"/HogEnv.conf"
   if test -f $hog_proj_cfg; then
     Msg Info "Hog project configuration file $hog_proj_cfg exists."
-    process_toml_file $hog_proj_cfg "Hog_Prj_dict"
+    process_HogEnv_config $hog_proj_cfg "Hog_Prj_dict"
     for key in "${!Hog_Prj_dict[@]}"; do
       Msg Debug "Hog_Prj_dict[ $key ] = <${Hog_Prj_dict[$key]}>"
     done
   else
     Msg Debug "Hog project configuration file $hog_proj_cfg doesn't exists."
   fi
+  # debug
 
   # error fail
-  hog_user_fwe="${current_user}_fail_when_error_enabled"
-  hog_user_dfwe="${current_user}_fail_when_error_delay"
-  if [[ -v Hog_Prj_dict["$hog_user_fwe"] ]]; then
-    if [[ -v Hog_Prj_dict["$hog_user_dfwe"] ]]; then
-      fail_when_error=$((1 + ${Hog_Prj_dict["$hog_user_dfwe"]}))
+  # hog_prj_fwe="${current_user}_fail_when_error_enabled"
+  # hog_user_dfwe="${current_user}_fail_when_error_delay"
+  if [[ -v Hog_Prj_dict["fail_when_error.enabled"] ]]; then
+    if [[ ${Hog_Prj_dict["fail_when_error.enabled"]} =~ ^[01]$ ]]; then
+      ENABLE_FWE=$((${Hog_Prj_dict["fail_when_error.enabled"]}))
+      if [[ $ENABLE_FWE -eq 1 ]]; then
+        Msg Warning "Fail when error enabled"
+        if [[ -v Hog_Prj_dict["fail_when_error.delay"] ]]; then
+          if [[ ${Hog_Prj_dict["fail_when_error.delay"]} =~ ^[0-9]+$ ]]; then
+            fwe_delay=$((${Hog_Prj_dict["fail_when_error.delay"]}))
+            Msg Warning "The fail delay is set to $fwe_delay"
+          else
+            fwe_delay=10
+            Msg Warning "The variable fail_when_error.delay is not only nunmbers delay set to 10"
+          fi
+        fi
+      fi
     else
-      fail_when_error=1
+      Msg Warning "The variable terminal.logger is not 1 or 0, Default to 0"
+      fwe_delay=0
     fi
   else
-    fail_when_error=0
+    fwe_delay=0
   fi
-  Msg Debug "fail_when_error = $fail_when_error"
-
+  Msg Debug "fail_when_error delay = $fwe_delay"
+  # hog_user_fwe="${current_user}_fail_when_error_enabled"
+  # hog_user_dfwe="${current_user}_fail_when_error_delay"
+  # if [[ -v Hog_Prj_dict["$hog_user_fwe"] ]]; then
+  #   if [[ -v Hog_Prj_dict["$hog_user_dfwe"] ]]; then
+  #     fail_when_error=$((1 + ${Hog_Prj_dict["$hog_user_dfwe"]}))
+  #   else
+  #     fail_when_error=1
+  #   fi
+  # else
+  #   fail_when_error=0
+  # fi
+  # Msg Debug "fail_when_error = $fail_when_error"
+# exit
   hog_user_eo="${current_user}_overloads"
   use_user_ol=0
   use_glob_ol=1

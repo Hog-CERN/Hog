@@ -591,12 +591,10 @@ if {[IsXilinx]} {
       }
 
       set hog_simset [DictGet $dict_list_simsets $simset]
-      puts $hog_simset
-      puts $projConfDict
-      puts $defaultConfDict
       set list_props [DictGet $hog_simset "properties"]
       set list_generics [DictGet $hog_simset "generics"]
       set list_hog_section [DictGet $hog_simset "hog"]
+      set list_simulator [DictGet $hog_simset "simulator"]
 
       set newSimDict [dict create]
       set newGenericsDict [dict create]

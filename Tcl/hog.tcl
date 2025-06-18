@@ -1972,7 +1972,7 @@ proc GetSimSets { project_name repo_path {simsets ""} {ghdl 0} {no_conf 0}} {
 
     set firstline [lindex $data 0]
     # Find simulator
-    if { [regexp {^ *\#Simulator} $firstline] } {
+    if { [regexp {^ *\# *Simulator} $firstline] } {
       set simulator_prop [regexp -all -inline {\S+} $firstline]
       set simulator [string tolower [lindex $simulator_prop 1]]
     } else {
@@ -4479,7 +4479,7 @@ proc LaunchSimulation {project_name lib_path simsets {repo_path .}} {
       # Default behaviour, dont use simpass string and simulation is not quiet
       set use_simpass_str 0
       set quiet_sim ""
-      
+
       set type [get_property FILESET_TYPE $s]
       if {$type eq "SimulationSrcs"} {
         if {$simsets_todo != "" && $s ni $simsets_todo} {
@@ -4518,7 +4518,7 @@ proc LaunchSimulation {project_name lib_path simsets {repo_path .}} {
         set sim_output_logfile $sim_dir/xsim/simulate.log
         if { ([string tolower $simulator] eq "xsim") } {
           set sim_name "xsim:$s"
-	  
+
           set simulation_command "launch_simulation $quiet_sim -simset [get_filesets $s]"
           if { [catch $simulation_command  log] } {
             # Explicitly close xsim simulation, without closing Vivado
@@ -6161,7 +6161,7 @@ proc WriteSimListFiles {libs props simsets list_path repo_path {force 0}} {
       continue
     }
 
-    set list_file [open $list_file_name a]
+    set list_file [open $list_file_name a+]
     # Write the header with the simulator
     puts $list_file "\[files\]"
     Msg Info "Writing $list_file_name..."
@@ -6173,9 +6173,10 @@ proc WriteSimListFiles {libs props simsets list_path repo_path {force 0}} {
         if {[RelativeLocal $repo_path $file] != ""} {
           set file_path [RelativeLocal $repo_path $file]
           set lib_name [file rootname $lib]
-          if {$lib_name != $simset} {
+          if {$lib_name != $simset && [file extension $file] == ".vhd" && [file extension $file] == ""} {
             lappend prop "lib=$lib_name"
           }
+          puts "$file_path $prop"
           puts $list_file "$file_path $prop"
         } else {
           # File is not relative to repo or ext_path... Write a Warning and continue
@@ -6183,6 +6184,7 @@ proc WriteSimListFiles {libs props simsets list_path repo_path {force 0}} {
         }
       }
     }
+    close $list_file
   }
 }
 

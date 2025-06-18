@@ -1,0 +1,3 @@
+export HOG_LOGGER="ENABLED"
+export HOG_COLOR=1
+

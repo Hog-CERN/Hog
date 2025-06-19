@@ -5112,7 +5112,7 @@ proc PrintFileTree { {data} {indentation ""}  } {
   set print_list {}
   set last_printed ""
   foreach line $data {
-    if {![regexp {^ *$} $line] & ![regexp {^ *\#} $line] } {
+    if {![regexp {^[\t\s]*$} $line] & ![regexp {^[\t\s]*\#} $line] } {
       lappend print_list "$line"
     }
   }
@@ -5313,7 +5313,7 @@ proc ReadListFile {args} {
 
   foreach line $data {
     # Exclude empty lines and comments
-    if {![regexp {^ *$} $line] & ![regexp {^ *\#} $line] } {
+    if {![regexp {^[\t\s]*$} $line] & ![regexp {^[\t\s]*\#} $line] } {
       set file_and_prop [regexp -all -inline {\S+} $line]
       set srcfile [lindex $file_and_prop 0]
       set srcfile "$path/$srcfile"

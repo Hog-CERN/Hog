@@ -5109,6 +5109,7 @@ proc ParseJSON {JSON_FILE JSON_KEY} {
 #  @param[in]    data the list of lines read from a list file
 #  @param[in]    indentation a string containing a number of spaces to indent the tree
 proc PrintFileTree { {data} {indentation ""}  } {
+  set print_list {}
   set last_printed ""
   foreach line $data {
     if {![regexp {^ *$} $line] & ![regexp {^ *\#} $line] } {

@@ -145,14 +145,21 @@ echo "--------------------------------"
 
 if [ "$(command -v vsim)" ]; then
     CMD=$(command -v vsim)
-    echo "Modelsim/Questasim executable found in $CMD"
+    echo "vsim executable found in $CMD"
     echo
     $CMD -version
 else
-    echo "Modelsim/Questasim executable not found."
+    echo "vsim executable not found."
 fi
-
 echo "--------------------------------"
+
+if [ "$(command -v kinit)" ]; then
+    CMD=$(command -v kinit)
+    echo "kinit executable found in $CMD"
+else
+    echo "kinit executable not found."
+fi
+echo --------------------------------
 
 if [ "$(command -v eos)" ]; then
     CMD=$(command -v eos)

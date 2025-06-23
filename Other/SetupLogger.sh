@@ -1,4 +1,4 @@
 #!/bin/bash
 export HOG_LOGGER="ENABLED"
-export HOG_COLOR=1
+export HOG_COLOR=2
 

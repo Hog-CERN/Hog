@@ -55,7 +55,7 @@ export HOG_GIT_VERSION=""
 ## @var DEBUG_VERBOSE
 #  @brief Global variable
 #
-export DEBUG_VERBOSE=""
+export DEBUG_VERBOSE=4
 
 ## @fn select_command_from_line
 #
@@ -176,7 +176,6 @@ function select_command() {
     Msg Error "Failed to select COMMAND, COMMAND_OPT and POST_COMMAND_OPT"
     return 1
   fi
-
   return 0
 }
 

@@ -24,9 +24,9 @@
 #  @brief Global variable
 #
 export DEBUG_VERBOSE=4
-export EN_SHOW_PID=1
-export ENABLE_LINE_NUMBER=1
-export ENABLE_MSG_TYPE_CNT=1
+export EN_SHOW_PID=0
+export ENABLE_LINE_NUMBER=0
+export ENABLE_MSG_TYPE_CNT=0
 HOG_LOG_EN=0
 HOG_COLOR_EN=0
 export clrschselected="dark"
@@ -115,7 +115,7 @@ function msg_counter () {
     esac
     ;;
     update|w)
-    # update_cnt $temp_g_cnt_file 
+    # update_cnt $temp_g_cnt_file
     case "$2" in
       i) update_cnt $temp_i_cnt_file ;;
       d) update_cnt $temp_d_cnt_file ;;
@@ -124,7 +124,7 @@ function msg_counter () {
       e) update_cnt $temp_e_cnt_file ;;
       *) Msg Error "counter <$2> doesn't exist" ;;
     esac
-    ;;    
+    ;;
     *) Msg Error "counter action <$1> doesn't exist" ;;
   esac
 }
@@ -544,7 +544,7 @@ function Msg() {
     else
       msg_counter w ${msgCounter[$msgType]} >> /dev/null
     fi
-    
+
     if [[ $HOG_COLOR_EN -gt 1 ]]; then
       case "${clrschselected}" in
         "dark")
@@ -555,9 +555,9 @@ function Msg() {
         ;;
       esac
     elif [[ $HOG_COLOR_EN -gt 0 ]]; then
-        echo -e "${simpleColor[$msgType]} HOG:$1[${FUNCNAME[1]}] $text $txtwht"
+      echo -e "${simpleColor[$msgType]} HOG:$1[${FUNCNAME[1]}] $text $txtwht"
     else
-        echo -e " HOG:$1[${FUNCNAME[1]}] $text"
+      echo "HOG:$1[${FUNCNAME[1]}] $text"
     fi
   else
     msg_counter w ${msgCounter[$msgType]} >> /dev/null
@@ -722,6 +722,9 @@ process_HogEnv_config() {
   # @brief prints the logo
   #
 function print_hog_logo () {
+  cd $ROOT_PROJECT_FOLDER/Hog
+  HOG_VERSION=$(git describe --always)
+  cd $ROOT_PROJECT_FOLDER
   if [[ -v "HOG_COLOR" && "${HOG_COLOR}" =~ ^[0-9]+$ && "${HOG_COLOR}" -gt 0 ]]; then
     if [[ "${HOG_COLOR}" =~ ^[0-9]+$ && "${HOG_COLOR}" -gt 1 ]]; then
       logo_file=$ROOT_PROJECT_FOLDER/Hog/images/hog_logo_full_color.txt
@@ -733,11 +736,19 @@ function print_hog_logo () {
   fi
   if [ -f $logo_file ]; then
     while IFS= read -r line; do
-      echo -e "$line"
+      if [[ "$line" == *"Version:"* ]]; then
+        version_str="Version: $HOG_VERSION"
+        version_len=${#HOG_VERSION}
+        # Replace "Version:" and the following spaces with "Version: $HOG_VERSION"
+        line=$(echo "$line" | sed -E "s/(Version:)[ ]{0,$((version_len + 1))}/\1 $HOG_VERSION/")
+        # Pad or trim to match original line length
+        echo -e "$line"
+      else
+        echo -e "$line"
+      fi
+
     done < "$logo_file"
-    cd $ROOT_PROJECT_FOLDER/Hog
-    echo " Version: $(git describe --always)"
-    cd $ROOT_PROJECT_FOLDER
+
     export HOG_LOGO_PRINTED=1
   else
     Msg Warning "Logo file $logo_file doesn't exist"
@@ -858,7 +869,7 @@ function Logger_Init() {
     Msg Debug "Hog project configuration file $hog_user_cfg doesn't exists."
   fi
 
-  
+
 
   # SETTING DEBUG_VERBOSE
   if [[ -v Hog_Usr_dict["verbose.level"] ]]; then

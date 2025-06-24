@@ -4872,9 +4872,9 @@ proc Logo { {repo_path .} } {
       set logo_file "$repo_path/Hog/images/hog_logo.txt"
     }
 
+    cd $repo_path/Hog
     set ver [Git {describe --always}]
     set old_path [pwd]
-    cd $repo_path/Hog
     # set ver [Git {describe --always}]
 
     if {[file exists $logo_file]} {
@@ -4885,6 +4885,7 @@ proc Logo { {repo_path .} } {
       foreach l $lines {
         if {[regexp {(Version:)[ ]+} $l -> prefix]} {
           set string_len [string length $l]
+
           set version_string "* Version: $ver"
           set version_len [string length $version_string]
           append version_string [string repeat " " [expr {$string_len - $version_len - 1}]] "*"

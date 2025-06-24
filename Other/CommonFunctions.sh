@@ -292,9 +292,26 @@ function print_log_hog() {
     Msg Error "Missing input! Got: $1!"
     return 1
   fi
-  cat ${ROOT_PROJECT_FOLDER}"/Hog/images/hog_logo.txt"
-  echo " Version: ${HOG_GIT_VERSION}"
-  echo
+  logo_file=$ROOT_PROJECT_FOLDER/Hog/images/hog_logo.txt
+  if [ -f $logo_file ]; then
+    while IFS= read -r line; do
+      if [[ "$line" == *"Version:"* ]]; then
+        version_str="Version: $HOG_VERSION"
+        version_len=${#HOG_VERSION}
+        # Replace "Version:" and the following spaces with "Version: $HOG_VERSION"
+        line=$(echo "$line" | sed -E "s/(Version:)[ ]{0,$((version_len + 1))}/\1 $HOG_VERSION/")
+        # Pad or trim to match original line length
+        echo -e "$line"
+      else
+        echo -e "$line"
+      fi
+
+    done < "$logo_file"
+
+    export HOG_LOGO_PRINTED=1
+  else
+    Msg Warning "Logo file $logo_file doesn't exist"
+  fi
   return 0
 }
 

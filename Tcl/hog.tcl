@@ -4872,6 +4872,7 @@ proc Logo { {repo_path .} } {
       set logo_file "$repo_path/Hog/images/hog_logo.txt"
     }
 
+    set ver [Git {describe --always}]
     set old_path [pwd]
     cd $repo_path/Hog
     # set ver [Git {describe --always}]
@@ -4882,15 +4883,20 @@ proc Logo { {repo_path .} } {
       close $f
       set lines [split $data "\n"]
       foreach l $lines {
+        if {[regexp {(Version:)[ ]+} $l -> prefix]} {
+          set string_len [string length $l]
+          set version_string "* Version: $ver"
+          set version_len [string length $version_string]
+          append version_string [string repeat " " [expr {$string_len - $version_len - 1}]] "*"
+          set l $version_string}
         Msg Status $l
       }
-
     } {
       Msg CriticalWarning "Logo file: $logo_file not found"
     }
 
-    set ver [Git {describe --always}]
-    Msg Status "Version: $ver"
+
+    # Msg Status "Version: $ver"
     cd $old_path
 
   }

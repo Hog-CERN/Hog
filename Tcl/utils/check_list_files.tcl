@@ -618,7 +618,7 @@ if {[IsXilinx]} {
             regsub -all {\"} $gen_value "" gen_value
             dict set newGenericsDict $generic $gen_value
             if { $gen_value != $generichogset} {
-              if {$options(recreate_conf) == 1} {
+              if {$options(recreate_sim) == 1} {
                 incr simset_error
                 Msg Info "$simset generics setting $generic has been changed from \"$generichogset\" in sim.conf to \"$gen_value\" in project."
               } elseif {[file exists $sim_conf]} {
@@ -666,12 +666,12 @@ if {[IsXilinx]} {
       dict set newSimConfDict "hog" $list_hog_section
 
       #if anything remains into hogConfDict it means that something is wrong
-      foreach setting [dict keys $list_generics] {
-        set hogset [DictGet $list_generics $setting]
+      foreach setting [dict keys $list_props] {
+        set hogset [DictGet $list_props $setting]
         if {$setting == "ACTIVE"} {
           if {$hogset == "1" && $simset != [current_fileset -simset]} {
             incr simset_error
-            if {$options(recreate_conf) == 0} {
+            if {$options(recreate_sim) == 0} {
               MsgAndLog "Simulation set $simset is set as active, but the actual active one in the project is [current_fileset -simset]" "Warning" $outSimFile
             } else {
               Msg Info "Simulation set $simset was set as active in old sim.conf. I will set [current_fileset -simset] as active in the file instead."
@@ -697,7 +697,7 @@ if {[IsXilinx]} {
 
         if {[dict exists $projSimDict [string toupper $setting]]==0 && [dict exists $projSimDict $setting]==0} {
           incr simset_error
-          if {$options(recreate_conf) == 0} {
+          if {$options(recreate_sim) == 0} {
             MsgAndLog "Property $setting is not a valid Vivado property. Please check your sim.conf or $simset.sim file" "Warning" $outSimFile
           } else {
             Msg Info "Found property $setting in your sim.conf or $simset.sim file. This is not a valid Vivado property and will be deleted."

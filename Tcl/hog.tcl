@@ -5114,8 +5114,9 @@ proc ParseJSON {JSON_FILE JSON_KEY} {
 ## Print a tree-like structure of Hog list file content
 #
 #  @param[in]    data the list of lines read from a list file
+#  @param[in]    repo_path the path of the repository
 #  @param[in]    indentation a string containing a number of spaces to indent the tree
-proc PrintFileTree { {data} {indentation ""}  } {
+proc PrintFileTree { {data} {repo_path} {indentation ""}  } {
   set print_list {}
   set last_printed ""
   foreach line $data {
@@ -5133,7 +5134,7 @@ proc PrintFileTree { {data} {indentation ""}  } {
       set pad "├──"
     }
     set file_name [lindex [split $p] 0]
-    if {[file exists [file normalize  [lindex [glob -nocomplain $file_name] 0]]] } {
+    if {[file exists [file normalize  [lindex [glob -nocomplain $repo_path/$file_name] 0]]] } {
       set exists ""
     } else {
       set exists "  !!!!!   NOT FOUND   !!!!!"
@@ -5313,7 +5314,7 @@ proc ReadListFile {args} {
       set list_file_rel [file tail $list_file]
       Msg Status "\n$list_file_rel"
     }
-    set last_printed [PrintFileTree $data "$indent"]
+    set last_printed [PrintFileTree $data $path "$indent"]
   }
   Msg Debug "$n lines read from $list_file."
   set cnt 0

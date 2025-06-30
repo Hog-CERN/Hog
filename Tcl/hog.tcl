@@ -1974,7 +1974,7 @@ proc GetSimSets { project_name repo_path {simsets ""} {ghdl 0} {no_conf 0}} {
     # Find simulator
     if { [regexp {^ *\# *Simulator} $firstline] } {
       set simulator_prop [regexp -all -inline {\S+} $firstline]
-      set simulator [string tolower [lindex $simulator_prop 1]]
+      set simulator [string tolower [lindex $simulator_prop end]]
     } else {
       Msg Warning "Simulator not set in $simset_name.sim. \
       The first line of $simset_name.sim should be #Simulator <SIMULATOR_NAME>,\
@@ -5686,8 +5686,6 @@ proc WriteConf {file_name config {comment ""}} {
 
   foreach sec [dict keys $config] {
     set section [dict get $config $sec]
-    puts $sec
-    puts $section
     dict for {p v} $section {
       if {[string trim $v] == ""} {
           Msg Warning "Property $p has empty value. Skipping..."
@@ -6160,41 +6158,40 @@ proc WriteListFiles {libs props list_path repo_path {ext_path ""} } {
 # @param[in] list_path  The path of the output list file
 # @param[in] repo_path  The main repository path
 # @param[in] force      If 1, it will overwrite the existing list files
-proc WriteSimListFiles {libs props simsets list_path repo_path {force 0}} {
+proc WriteSimListFile {simset libs props simsets list_path repo_path {force 0}} {
 
-  # Writing simulation list files
-  foreach simset [dict keys $simsets] {
-    set list_file_name $list_path/${simset}.sim
-    if {$force == 0 && [file exists $list_file_name]} {
-      Msg Info "List file $list_file_name already exists, skipping..."
-      continue
-    }
+  # Writing simulation list file
+  set list_file_name $list_path/${simset}.sim
+  if {$force == 0 && [file exists $list_file_name]} {
+    Msg Info "List file $list_file_name already exists, skipping..."
+    continue
+  }
 
-    set list_file [open $list_file_name a+]
-    # Write the header with the simulator
-    puts $list_file "\[files\]"
-    Msg Info "Writing $list_file_name..."
-    foreach lib [DictGet $simsets $simset] {
-      foreach file [DictGet $libs $lib] {
-        # Retrieve file properties from prop list
-        set prop [DictGet $props $file]
-        # Check if file is local to the repository or external
-        if {[RelativeLocal $repo_path $file] != ""} {
-          set file_path [RelativeLocal $repo_path $file]
-          set lib_name [file rootname $lib]
-          if {$lib_name != $simset && [file extension $file] == ".vhd" && [file extension $file] == ""} {
-            lappend prop "lib=$lib_name"
-          }
-          puts "$file_path $prop"
-          puts $list_file "$file_path $prop"
-        } else {
-          # File is not relative to repo or ext_path... Write a Warning and continue
-          Msg Warning "The path of file $file is not relative to your repository. Please check!"
+  set list_file [open $list_file_name a+]
+
+  # Write the header with the simulator
+  puts $list_file "\[files\]"
+  Msg Info "Writing $list_file_name..."
+  foreach lib [DictGet $simsets $simset] {
+    foreach file [DictGet $libs $lib] {
+      # Retrieve file properties from prop list
+      set prop [DictGet $props $file]
+      # Check if file is local to the repository or external
+      if {[RelativeLocal $repo_path $file] != ""} {
+        set file_path [RelativeLocal $repo_path $file]
+        set lib_name [file rootname $lib]
+        if {$lib_name != $simset && [file extension $file] == ".vhd" && [file extension $file] == ""} {
+          lappend prop "lib=$lib_name"
         }
+        puts $list_file "$file_path $prop"
+      } else {
+        # File is not relative to repo or ext_path... Write a Warning and continue
+        Msg Warning "The path of file $file is not relative to your repository. Please check!"
       }
     }
-    close $list_file
   }
+  close $list_file
+
 }
 
 

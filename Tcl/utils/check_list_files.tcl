@@ -352,6 +352,11 @@ if {[IsXilinx]} {
       XPM_LIBRARIES
     ]
 
+    set SIM_BAN_LIST  [ list HBS.CONFIGURE_DESIGN_FOR_HIER_ACCESS \
+                        RUNTIME \
+                        SIM_WRAPPER_TOP \
+                             ]
+    
     set HOG_GENERICS [ list GLOBAL_DATE \
       GLOBAL_TIME \
       FLAVOUR \
@@ -570,7 +575,7 @@ if {[IsXilinx]} {
       }
 
       foreach prop $sim_props {
-        if {$prop == "HBS.CONFIGURE_DESIGN_FOR_HIER_ACCESS"} {
+        if {$prop in $SIM_BAN_LIST} {
           continue
         }
 

@@ -356,7 +356,7 @@ if {[IsXilinx]} {
                         RUNTIME \
                         SIM_WRAPPER_TOP \
                              ]
-    
+
     set HOG_GENERICS [ list GLOBAL_DATE \
       GLOBAL_TIME \
       FLAVOUR \
@@ -716,19 +716,20 @@ if {[IsXilinx]} {
       }
 
       # Updating .sim files
-      if {$options(recreate_sim) == 1 && ($simset_error > 0 || $SimListErrorCnt > 0)} {
+      if {$options(recreate_sim) == 1 && ($simset_error > 0 || $SimListErrorCnt > 0 || [file exists $sim_conf])} {
         Msg Info "Updating configuration in $simset.sim"
         # Remove sim.conf if it exists
         if {[file exists $sim_conf]} {
           Msg Info "Removing old sim.conf file $sim_conf, properties will be written in $simset.sim file instead."
           file delete $sim_conf
         }
-        file mkdir $repo_path/$DirName/list
+        set listpath "$repo_path/$DirName/list/"
+        file mkdir $listpath
         #writing configuration file
         set confFile $repo_path/$DirName/list/$simset.sim
         set version [GetIDEVersion]
         WriteConf $confFile $newSimConfDict "Simulator $list_simulator"
-        Msg Info "Adding \[files\] section to $simset.sim list file in $listpath"
+        Msg Info "Adding \[files\] section to $simset.sim list file"
         WriteSimListFile $simset $prjSimLibraries $prjProperties $prjSimSets $listpath $repo_path $options(force)
       }
       set SimConfErrorCnt [expr {$SimConfErrorCnt + $simset_error}]

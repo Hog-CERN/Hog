@@ -1820,7 +1820,7 @@ proc GetCustomCommands {{directory .} {ret_commands 0}} {
   }
 
   if {$ret_commands == 0} {
-   append commands_string "\n** Custom Commands:\n"
+   append commands_string "\nCustom Commands:\n"
   }
 
   foreach file $commands_files {
@@ -1839,9 +1839,9 @@ proc GetCustomCommands {{directory .} {ret_commands 0}} {
       set first_line [gets $f]
       close $f
       if {[regexp -nocase "^#\s*$base_name:\s*(.*)" $first_line full_match script_des]} {
-        append commands_string "- $base_name: $script_des\n"
+        append commands_string "   - $base_name: $script_des\n"
       } else {
-        append commands_string "- $base_name: runs $file\n"
+        append commands_string "   - $base_name: runs $file\n"
       }
     }
   }
@@ -3784,11 +3784,10 @@ proc ImportTclLib {} {
 # @param[in] tcl_path    The launch.tcl script path
 # @param[in] parameters  The allowed parameters for launch.tcl
 # @param[in] commands    The allowed directives for launch.tcl
-# @param[in] short_usage The short usage snippet for launch.tcl
-# @param[in] usage       The usage snippet for launch.tcl
 # @param[in] argv        The input arguments passed to launch.tcl
+# @param[in] custom_commands Custom commands to be added to the list of commands
 
-proc InitLauncher {script tcl_path parameters commands argv} {
+proc InitLauncher {script tcl_path parameters commands argv {custom_commands ""}} {
   set repo_path [file normalize "$tcl_path/../.."]
   set old_path [pwd]
   set bin_path [file normalize "$tcl_path/../../bin"]
@@ -3845,15 +3844,15 @@ proc InitLauncher {script tcl_path parameters commands argv} {
 
   "
 
-  set usage "usage: ./Hog/Do \[OPTIONS\] <directive> \[project\]\n\nDirectives (case insensitive):
-   "
+  set usage "usage: ./Hog/Do \[OPTIONS\] <directive> \[project\]\n\nDirectives (case insensitive):"
 
   dict for {key value} $directive_names {
-     set usage "$usage\n   - $key: [dict get $directive_descriptions $value]"
-   }
+    set usage "$usage\n   - $key: [dict get $directive_descriptions $value]"
+  }
 
-  set usage "$usage\n\nTo list available options for the chosen directive run:\n./Hog/Do <directive> HELP
-   "
+  set usage "$usage\n$custom_commands"
+
+  set usage "$usage\n\nTo list available options for the chosen directive run:\n./Hog/Do <directive> HELP"
 
   if {[IsTclsh]} {
     #Just display the logo the first time, not when the script is run in the IDE

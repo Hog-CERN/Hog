@@ -202,10 +202,10 @@ Msg Debug "s: $::argv0 a: $argv"
 set commands_path [file normalize "$tcl_path/../../hog-commands/"]
 ### CUSTOM COMMANDS ###
 set custom_commands [GetCustomCommands $commands_path 1]
-append usage [GetCustomCommands $commands_path]
+set custom_usage [GetCustomCommands $commands_path]
 # append usage "\n** Options:"
 
-lassign [InitLauncher $::argv0 $tcl_path $parameters $default_commands $argv] directive project project_name group_name repo_path old_path bin_dir top_path usage short_usage cmd ide list_of_options
+lassign [InitLauncher $::argv0 $tcl_path $parameters $default_commands $argv $custom_usage] directive project project_name group_name repo_path old_path bin_dir top_path usage short_usage cmd ide list_of_options
 array set options $list_of_options
 Msg Debug "Returned by InitLauncher: \
 $project $project_name $group_name $repo_path $old_path $bin_dir $top_path $cmd"

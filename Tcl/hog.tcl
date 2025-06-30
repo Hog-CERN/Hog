@@ -4496,7 +4496,7 @@ proc LaunchSimulation {project_name lib_path simsets {repo_path .}} {
             set use_simpass_str 1
             set simpass_str $prop_val
           }
-          if { [string toupper $prop_name] == "HOG_SILENT_SIM" && $prop_val != "" } {
+          if { [string toupper $prop_name] == "HOG_SILENT_SIM" && $prop_val == 1 } {
             set quiet_sim " -quiet"
           } else {
             set quiet_sim ""

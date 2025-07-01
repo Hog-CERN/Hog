@@ -320,7 +320,7 @@ if {$cmd == -1} {
   if {$do_list_file_parse == 1} {
       set proj_dir $repo_path/Top/$project_name
       set proj_list_dir $repo_path/Top/$project_name/list
-      GetHogFiles -print_log -list_files {.src,.con,.sim,.ext,.sim,.ipb}  $proj_list_dir $repo_path
+      GetHogFiles -print_log -list_files {.src,.con,.sim,.ext,.ipb}  $proj_list_dir $repo_path
       Msg Status "  "
       Msg Info "All Done."
     exit 0

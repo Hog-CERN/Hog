@@ -251,7 +251,7 @@ if {$options(dst_dir) == "" && ($do_ipbus_xml ==1 || $do_check_list_files == 1) 
    user_ip_hashes user_ip_vers
 
    set describe [GetHogDescribe $commit $repo_path]
-   set dst_dir [file normalize "bin/$group_name/$project\-$describe"]
+   set dst_dir [file normalize "$repo_path/bin/$group_name/$project\-$describe"]
 }
 
 if {$cmd == -1} {

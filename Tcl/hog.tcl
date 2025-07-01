@@ -1117,7 +1117,7 @@ proc Copy {i_dirs o_dir} {
 # @param[in] generate     if set to 1, tells the function to generate the VHDL decode address files rather than check them
 proc CopyIPbusXMLs {proj_dir path dst {xml_version "0.0.0"} {xml_sha "00000000"} {use_ipbus_sw 0} {generate 0} } {
   if {$use_ipbus_sw == 1} {
-    lassign  [ExecuteRet python -c "from __future__ import print_function; from sys import path;print(':'.join(path\[1:\]))"] ret msg
+    lassign  [ExecuteRet python3 -c "from __future__ import print_function; from sys import path;print(':'.join(path\[1:\]))"] ret msg
     if {$ret == 0} {
       set ::env(PYTHONPATH) $msg
       lassign [ExecuteRet gen_ipbus_addr_decode -h] ret msg
@@ -1131,6 +1131,7 @@ proc CopyIPbusXMLs {proj_dir path dst {xml_version "0.0.0"} {xml_sha "00000000"}
       set can_generate 0
     }
     set dst [file normalize $dst]
+    file mkdir $dst
     if {$can_generate == 0} {
       if {$generate == 1} {
         Msg Error "Cannot generate IPbus address files, IPbus executable gen_ipbus_addr_decode not found or not working: $msg"
@@ -1153,14 +1154,13 @@ proc CopyIPbusXMLs {proj_dir path dst {xml_version "0.0.0"} {xml_sha "00000000"}
   set libraries [dict create]
   set vhdl_dict [dict create]
 
-  foreach ipb_file $ipb_files {
+  foreach ipb_file $ipb_files { 
     lassign [ReadListFile {*}"$ipb_file $path"] l p fs
     set libraries [MergeDict $l $libraries]
     set vhdl_dict [MergeDict $p $vhdl_dict]
   }
-
+  
   set xmlfiles [dict get $libraries "xml.ipb"]
-
 
   set xml_list_error 0
   foreach xmlfile $xmlfiles {
@@ -1172,12 +1172,11 @@ proc CopyIPbusXMLs {proj_dir path dst {xml_version "0.0.0"} {xml_sha "00000000"}
 
     if {[file exists $xmlfile]} {
       if {[dict exists $vhdl_dict $xmlfile]} {
-        set vhdl_file [file normalize [dict get $vhdl_dict $xmlfile]]
+        set vhdl_file [file normalize $path/[dict get $vhdl_dict $xmlfile]]
       } else {
         set vhdl_file ""
       }
       lappend vhdls $vhdl_file
-
       set xmlfile [file normalize $xmlfile]
       Msg Info "Copying $xmlfile to $dst and replacing place holders..."
       set in  [open $xmlfile r]
@@ -1208,7 +1207,6 @@ proc CopyIPbusXMLs {proj_dir path dst {xml_version "0.0.0"} {xml_sha "00000000"}
     cd $dst
     file mkdir "address_decode"
     cd "address_decode"
-
     foreach x $xmls  v $vhdls {
       if {$v ne ""} {
         set x [file normalize ../$x]

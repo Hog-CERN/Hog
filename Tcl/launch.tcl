@@ -243,7 +243,7 @@ if { $options(all) == 1 } {
   set do_list_all 2
 }
 
-if {$options(dst_dir) == "" && ($do_ipbus_xml ==1 || $do_check_list_files == 1)} {
+if {$options(dst_dir) == "" && ($do_ipbus_xml ==1 || $do_check_list_files == 1) && $project != ""} {
   # Getting all the versions and SHAs of the repository
    lassign [GetRepoVersions [file normalize $repo_path/Top/$group_name/$project] \
    $repo_path $ext_path] commit version hog_hash hog_ver top_hash top_ver libs hashes vers \

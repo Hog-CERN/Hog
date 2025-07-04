@@ -54,7 +54,10 @@ if {[IsXilinx]} {
 } else {
   #Tclssh
   set proj_name [file tail [file normalize $old_path/../..]]
-  Msg CriticalWarning "You seem to be running locally on tclsh, so this is a debug, the project file will be set to $proj_file and was derived from the path you launched this script from: $old_path. If you want this script to work properly in debug mode, please launch it from the top folder of one project, for example Repo/Projects/fpga1/ or Repo/Top/fpga1/"
+  Msg CriticalWarning "You seem to be running locally on tclsh, so this is a debug message. \
+  The project file will be set to $proj_file and was derived from the path you launched this script from: $old_path. \
+  If you want this script to work properly in debug mode, please launch it from the top folder of one project, \
+  for example Repo/Projects/fpga1/ or Repo/Top/fpga1/"
 }
 
 set group_name [GetGroupName $proj_dir "$tcl_path/../.."]

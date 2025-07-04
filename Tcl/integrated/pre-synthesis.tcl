@@ -83,7 +83,9 @@ if {[IsXilinx]} {
           set newMd5Sum [Md5Sum $fileEntryName]
           set oldMd5Sum [lindex $fileEntry 1]
           if {$newMd5Sum != $oldMd5Sum} {
-            Msg Warning "The checksum for file $fileEntryName not equal to the one saved in $hogQsysFileName: new checksum $newMd5Sum, old checksum $oldMd5Sum. Please check the any changes in the file are correctly propagated to git!"
+            Msg Warning "The checksum for file $fileEntryName is not equal to the one saved in $hogQsysFileName.\n\
+            New checksum $newMd5Sum, old checksum $oldMd5Sum. \
+            Please check the any changes in the file are correctly propagated to git!"
           }
         } else {
           Msg Warning "File $fileEntryName not found... Will not check Md5Sum!"
@@ -104,7 +106,10 @@ if {[IsXilinx]} {
   set proj_file $old_path/[file tail $old_path].xpr
   set proj_dir [file normalize [file dirname $proj_file]]
   set proj_name [file rootname [file tail $proj_file]]
-  Msg CriticalWarning "You seem to be running locally on tclsh, so this is a debug, the project file will be set to $proj_file and was derived from the path you launched this script from: $old_path. If you want this script to work properly in debug mode, please launch it from the top folder of one project, for example Repo/Projects/fpga1/ or Repo/Top/fpga1/"
+  Msg CriticalWarning "You seem to be running locally on tclsh, so this is a debug message. \
+  The project file will be set to $proj_file and was derived from the path you launched this script from: $old_path. \
+  If you want this script to work properly in debug mode, please launch it from the top folder of one project, \
+  for example Repo/Projects/fpga1/ or Repo/Top/fpga1/"
 }
 
 # Go to repository path
@@ -130,7 +135,12 @@ if {$flavour != ""} {
 ResetRepoFiles "./Projects/hog_reset_files"
 
 # Getting all the versions and SHAs of the repository
-lassign [GetRepoVersions [file normalize $repo_path/Top/$group/$proj_name] $repo_path $ext_path] commit version hog_hash hog_ver top_hash top_ver libs hashes vers cons_ver cons_hash ext_names ext_hashes xml_hash xml_ver user_ip_repos user_ip_hashes user_ip_vers
+lassign [GetRepoVersions [file normalize $repo_path/Top/$group/$proj_name] $repo_path $ext_path] \
+commit version hog_hash hog_ver \
+top_hash top_ver \
+libs hashes vers \
+cons_ver cons_hash ext_names ext_hashes \
+xml_hash xml_ver user_ip_repos user_ip_hashes user_ip_vers
 
 
 set describe [GetHogDescribe $commit $repo_path]
@@ -204,7 +214,8 @@ if {!$allow_fail_on_git} {
         set fp [open "$dst_dir/diff_presynthesis.txt" a+]
         set found_uncommitted 1
         puts $fp "\n[Relative $tcl_path/../../ $fileName] is not in the git repository"
-        Msg CriticalWarning "[Relative $tcl_path/../../ $fileName] is not in the git repository. Will use current SHA ($this_commit) and version will be set to 0."
+        Msg CriticalWarning "[Relative $tcl_path/../../ $fileName] is not in the git repository. \
+        Will use current SHA ($this_commit) and version will be set to 0."
         close $fp
       }
     }
@@ -298,7 +309,13 @@ if {[IsXilinx] || [IsSynplify] || [IsDiamond]} {
   if {[IsDiamond]} {
     prj_project open $proj_dir/$proj_name.ldf
   }
-  WriteGenerics "synth" $repo_path $proj_group_and_name $date $timee $commit $version $top_hash $top_ver $hog_hash $hog_ver $cons_ver $cons_hash $libs $vers $hashes $ext_names $ext_hashes $user_ip_repos $user_ip_vers $user_ip_hashes $flavour $xml_ver $xml_hash
+  WriteGenerics "synth" $repo_path $proj_group_and_name $date $timee $commit $version \
+  $top_hash $top_ver $hog_hash $hog_ver \
+  $cons_ver $cons_hash $libs $vers \
+  $hashes $ext_names $ext_hashes \
+  $user_ip_repos $user_ip_vers $user_ip_hashes \
+  $flavour $xml_ver $xml_hash
+
   if {[IsDiamond]} {
     prj_project save
     prj_project close

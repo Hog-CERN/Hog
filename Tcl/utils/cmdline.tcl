@@ -655,9 +655,7 @@ proc ::cmdline::typedGetopt {argvVar optstring optVar argVar} {
             [regexp -- "\\.(arg|$charclasses)\$" $opt dummy charclass]
             || [regexp -- {\.\(([^)]+)\)} $opt dummy charclass]
           } {
-            ##nagelfar ignore
             if {[string equal arg $charclass]} {
-              ##nagelfar ignore
               set type arg
             } elseif {[regexp -- "^($charclasses)\$" $charclass]} {
               set type class
@@ -706,7 +704,7 @@ proc ::cmdline::typedGetopt {argvVar optstring optVar argVar} {
                   set retval -2
                 }
                 set quantifier ""
-                ##nagelfar ignore
+                # tclint-disable-next-line line-length
               } elseif {($type == "arg") || (($type == "oneof") && [string first "|[lindex $argsList 0]|" "|$charclass|"] != -1) || (($type == "class") && [string is $charclass [lindex $argsList 0]])} {
                 set retval 1
                 set retvar $opt

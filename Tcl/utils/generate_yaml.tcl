@@ -29,7 +29,8 @@ if {[catch {package require cmdline} ERROR]} {
 }
 
 set parameters {
-  {runall  "If set, it will generate a gitlab-ci yml file for all projects in the Top folder, even if it has not been modified with respect to the target branch."}
+  {runall  "If set, it will generate a gitlab-ci.yml file for all projects in the Top folder, \
+  even if it has not been modified with respect to the target branch."}
   {static "Normally the content of the hog-child.yml file is added at the beginning of the generated yml file. If this flag is set, this will not be done."}
   {external_path.arg "" "Path for external files not stored in the git repository."}
 }

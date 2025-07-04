@@ -17,7 +17,8 @@
 # The post implementation script embeds the git SHA of the current commit into the binary file of the project.
 # In Vivado this is done using the USERID and USR_ACCESS variables. In Quartus this is done with the STRATIX_JTAG_USER_CODE variable.
 #
-# The USERID is always set to the commit, while the USR_ACCESS and STRATIX_JTAG_USER_CODE are set only if Hog can guarantee the reproducibility of the firmware workflow:
+# The USERID is always set to the commit, while the USR_ACCESS and STRATIX_JTAG_USER_CODE are set only
+# if Hog can guarantee the reproducibility of the firmware workflow:
 #
 # - The firmware repostory must be clean (no uncommitted modification)
 # - The Multithread option must be disabled
@@ -65,7 +66,10 @@ if {[IsXilinx]} {
 } else {
   #Tclssh
   set proj_file $old_path/[file tail $old_path].xpr
-  Msg CriticalWarning "You seem to be running locally on tclsh, so this is a debug, the project file will be set to $proj_file and was derived from the path you launched this script from: $old_path. If you want this script to work properly in debug mode, please launch it from the top folder of one project, for example Repo/Projects/fpga1/ or Repo/Top/fpga1/"
+  Msg CriticalWarning "You seem to be running locally on tclsh, so this is a debug message. \
+  The project file will be set to $proj_file and was derived from the path you launched this script from: $old_path. \
+  If you want this script to work properly in debug mode, please launch it from the top folder of one project, \
+  for example Repo/Projects/fpga1/ or Repo/Top/fpga1/"
 }
 
 set group_name [GetGroupName $proj_dir "$tcl_path/../.."]

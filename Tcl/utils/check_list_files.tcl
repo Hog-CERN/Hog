@@ -132,7 +132,9 @@ if {[file exists $repo_path/Top/$group_name/$project_name] && [file isdirectory 
 if {$options(recreate_sim) == 1 && [IsVivado]} {
   Msg Info "Checking $project_name simulation list files..."
   # Get project simulation libraries and properties from list files
-  lassign [GetHogFiles -ext_path "$ext_path" -list_files ".sim" "$repo_path/Top/$group_name/$project_name/list/" $repo_path] listSimLibraries listSimProperties listSimSets
+  lassign [GetHogFiles -ext_path "$ext_path" \
+           -list_files ".sim" "$repo_path/Top/$group_name/$project_name/list/" $repo_path]\
+          listSimLibraries listSimProperties listSimSets
   # Get project libraries and properties from Vivado
   lassign [GetProjectFiles $proj_file] prjLibraries prjProperties prjSimLibraries prjConstraints prjSrcSets prjSimSets prjConSets
   Msg Info "Retrieved project files..."
@@ -155,7 +157,9 @@ if {$options(recreate_sim) == 1 && [IsVivado]} {
   Msg Debug "Sim List File Properties"
   Msg Debug $listSimProperties
 
-  lassign [CompareLibDicts $prjSimLibraries $listSimLibraries $prjSimSets $listSimSets $prjProperties $listSimProperties "Warning" $outSimFile $extrasimFiles] SimListErrorCnt extrasimFiles prjSimLibraries prjProperties
+  lassign [CompareLibDicts $prjSimLibraries $listSimLibraries $prjSimSets $listSimSets \
+  $prjProperties $listSimProperties "Warning" $outSimFile $extrasimFiles] \
+  SimListErrorCnt extrasimFiles prjSimLibraries prjProperties
 
   foreach {k v} $extrasimFiles {
     MsgAndLog "Simulation file $k was found in .hog/extrasim.files but not in project." "Warning" $outFile
@@ -167,9 +171,13 @@ if {$options(recreate_conf) == 0 || $options(recreate) == 1} {
   Msg Info "Checking $project_name list files..."
 
   # Get project libraries and properties from list files
-  lassign [GetHogFiles -ext_path "$ext_path" -list_files ".src,.ext" "$repo_path/Top/$group_name/$project_name/list/" $repo_path] listLibraries listProperties listSrcSets
+  lassign [GetHogFiles -ext_path "$ext_path" \
+                       -list_files ".src,.ext" "$repo_path/Top/$group_name/$project_name/list/" $repo_path]\
+                        listLibraries listProperties listSrcSets
   # Get project constraints and properties from list files
-  lassign [GetHogFiles -ext_path "$ext_path" -list_files ".con" "$repo_path/Top/$group_name/$project_name/list/" $repo_path] listConstraints listConProperties listConSets
+  lassign [GetHogFiles -ext_path "$ext_path" \
+                       -list_files ".con" "$repo_path/Top/$group_name/$project_name/list/" $repo_path] \
+                       listConstraints listConProperties listConSets
 
   # Get files generated at creation time
   set extraFiles [ReadExtraFileList "$repo_path/Projects/$group_name/$project_name/.hog/extra.files"]
@@ -213,8 +221,14 @@ if {$options(recreate_conf) == 0 || $options(recreate) == 1} {
   Msg Debug "List Constraint Properties"
   Msg Debug $listConProperties
 
-  lassign [CompareLibDicts $prjLibraries $listLibraries $prjSrcSets $listSrcSets $prjProperties $listProperties "CriticalWarning" $outFile $extraFiles] SrcListErrorCnt extraFiles prjLibraries prjProperties
-  lassign [CompareLibDicts $prjConstraints $listConstraints $prjConSets $listConSets $prjProperties $listConProperties "CriticalWarning" $outFile $extraConstraints] ConListErrorCnt extraConstraints prjConstraints prjProperties
+  lassign [CompareLibDicts $prjLibraries $listLibraries \
+                           $prjSrcSets $listSrcSets \
+                           $prjProperties $listProperties "CriticalWarning" $outFile $extraFiles] \
+                           SrcListErrorCnt extraFiles prjLibraries prjProperties
+  lassign [CompareLibDicts $prjConstraints $listConstraints \
+                           $prjConSets $listConSets \
+                           $prjProperties $listConProperties "CriticalWarning" $outFile $extraConstraints] \
+                           ConListErrorCnt extraConstraints prjConstraints prjProperties
 
   # Check if any files remained in extraFiles
   foreach {k v} $extraFiles {
@@ -449,7 +463,9 @@ if {[IsXilinx]} {
       }
 
       if {$hasStrategy == 1 && $options(recreate_conf) == 0} {
-        Msg Warning "A strategy for run $proj_run has been defined inside hog.conf. This prevents Hog to compare the project properties. Please regenerate your hog.conf file using the dedicated Hog button."
+        Msg Warning "A strategy for run $proj_run has been defined inside hog.conf. \
+        This prevents Hog to compare the project properties. \
+        Please regenerate your hog.conf file using the dedicated Hog button."
       }
 
       foreach settings [dict keys $projRunDict] {
@@ -494,7 +510,8 @@ if {[IsXilinx]} {
       foreach settings [dict keys $hogConfRunDict] {
         if {[dict exists $projRunDict [string toupper $settings]] == 0} {
           if {$settings in $PROP_BAN_LIST} {
-            Msg Warning "In hog.conf section $proj_run the following property is defined: \"$settings\". This property is ignored and will not be rewritten when automatically recreating hog.conf (i.e. pressing Hog button)."
+            Msg Warning "In hog.conf section $proj_run the following property is defined: \"$settings\". \
+            This property is ignored and will not be rewritten when automatically recreating hog.conf (i.e. pressing Hog button)."
             continue
           }
           incr ConfErrorCnt
@@ -512,7 +529,8 @@ if {[IsXilinx]} {
     if {[file exists $conf_file]} {
       lassign [GetIDEFromConf $conf_file] ide conf_version
       if {$actual_version != $conf_version} {
-        MsgAndLog "The version specified in the first line of hog.conf is wrong or no version was specified. If you want to run this project with $ide $actual_version, the first line of hog.conf should be: \#$ide $actual_version" "CriticalWarning" $outFile
+        MsgAndLog "The version specified in the first line of hog.conf is wrong or no version was specified. \
+        If you want to run this project with $ide $actual_version, the first line of hog.conf should be: \#$ide $actual_version" "CriticalWarning" $outFile
         incr ConfErrorCnt
       }
     }

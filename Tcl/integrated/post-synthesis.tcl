@@ -62,7 +62,9 @@ if {[IsXilinx]} {
           set newMd5Sum [Md5Sum $fileEntryName]
           set oldMd5Sum [lindex $fileEntry 1]
           if {$newMd5Sum != $oldMd5Sum} {
-            Msg Warning "The checksum for file $fileEntryName not equal to the one saved in $hogQsysFileName: new checksum $newMd5Sum, old checksum $oldMd5Sum. Please check the any changes in the file are correctly propagated to git!"
+            Msg Warning "The checksum for file $fileEntryName is not equal to the one saved in $hogQsysFileName.\n\
+            New checksum $newMd5Sum, old checksum $oldMd5Sum. \
+            Please check the any changes in the file are correctly propagated to git!"
           }
         } else {
           Msg Warning "File $fileEntryName not found... Will not check Md5Sum!"
@@ -86,7 +88,10 @@ if {[IsXilinx]} {
   set proj_file $old_path/[file tail $old_path].xpr
   set proj_dir [file normalize [file dirname $proj_file]]
   set proj_name [file rootname [file tail $proj_file]]
-  Msg CriticalWarning "You seem to be running locally on tclsh, so this is a debug, the project file will be set to $proj_file and was derived from the path you launched this script from: $old_path. If you want this script to work properly in debug mode, please launch it from the top folder of one project, for example Repo/Projects/fpga1/ or Repo/Top/fpga1/"
+  Msg CriticalWarning "You seem to be running locally on tclsh, so this is a debug message. \
+  The project file will be set to $proj_file and was derived from the path you launched this script from: $old_path. \
+  If you want this script to work properly in debug mode, please launch it from the top folder of one project, \
+  for example Repo/Projects/fpga1/ or Repo/Top/fpga1/"
 }
 
 if {[catch {package require struct::matrix} ERROR]} {

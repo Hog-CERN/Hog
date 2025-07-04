@@ -396,7 +396,8 @@ if {[IsXilinx]} {
   if {$export_xsa == "NONE"} {
     set export_xsa false
     if {([IsZynq $part] || [IsVersal $part])} {
-      Msg Info "SoC FPGA detected (Zynq or Versal), automatically enabling XSA file creation. To disable it, add 'EXPORT_XSA = false' in the \[hog\] section of hog.conf."
+      Msg Info "SoC FPGA detected (Zynq or Versal), automatically enabling XSA file creation. \
+      To disable it, add 'EXPORT_XSA = false' in the \[hog\] section of hog.conf."
       set export_xsa true
     }
   }
@@ -426,7 +427,8 @@ if {[IsXilinx]} {
           Msg Info "XSA file will be generated for Versal with this PDI: $pdi_post_imp"
           write_hw_platform -fixed -force -file "$dst_xsa"
         }
-        Msg Warning "No XSA will be produced in post-bitream for segmented configuration mode. If you're running with the GUI, please type the following on the Tcl console: write_hw_platform -fixed -force -file $dst_xsa."
+        Msg Warning "No XSA will be produced in post-bitream for segmented configuration mode. \
+        If you're running with the GUI, please type the following on the Tcl console: write_hw_platform -fixed -force -file $dst_xsa."
       } else {
         # we leave include bit also for Versal
         write_hw_platform -include_bit -fixed -force -file "$dst_xsa"

@@ -203,6 +203,7 @@ if {[file exists utilization.txt]} {
   foreach badge_name [dict keys $new_badges] {
     set badge_found 0
     Msg Info "Uploading badge image $badge_name.svg ...."
+    # tclint-disable-next-line line-length
     lassign [ExecuteRet curl --request POST --header "PRIVATE-TOKEN: ${push_token}" --form "file=@$badge_name.svg" $api_url/projects/$project_id/uploads] ret content
     set image_url [ParseJSON $content full_path]
     set image_url $gitlab_url/$image_url
@@ -212,6 +213,7 @@ if {[file exists utilization.txt]} {
       Execute curl --header "PRIVATE-TOKEN: $push_token" "$api_url/projects/${project_id}/badges/$badge_id" --request PUT --data "image_url=$image_url"
     } else {
       Msg Info "Badge $badge_name does not exist yet. Creating it..."
+      # tclint-disable-next-line line-length
       Execute curl --header "PRIVATE-TOKEN: $push_token" --request POST --data "link_url=$project_url/-/releases&image_url=$image_url&name=$badge_name" "$api_url/projects/$project_id/badges"
     }
   }

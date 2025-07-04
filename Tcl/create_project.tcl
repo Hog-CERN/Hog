@@ -90,12 +90,12 @@ proc InitProject {} {
     # Create project
     create_project -force [file tail $globalSettings::DESIGN] $globalSettings::build_dir -part $globalSettings::PART
     file mkdir "$globalSettings::build_dir/[file tail $globalSettings::DESIGN].gen/sources_1"
-    if { [IsVersal $globalSettings::PART] } {
+    if {[IsVersal $globalSettings::PART]} {
       Msg Info "This project uses a Versal device."
     }
 
     ## Set project properties
-    set obj [get_projects [file tail $globalSettings::DESIGN] ]
+    set obj [get_projects [file tail $globalSettings::DESIGN]]
     set_property "target_language" "VHDL" $obj
 
     if {[IsVivado]} {
@@ -115,7 +115,6 @@ proc InitProject {} {
     }
 
     ConfigureProperties
-
   } elseif {[IsQuartus]} {
     package require ::quartus::project
     #QUARTUS_ONLY
@@ -130,7 +129,7 @@ proc InitProject {} {
 
       file delete {*}[glob -nocomplain $globalSettings::DESIGN.q*]
 
-      project_new -family $globalSettings::FAMILY -overwrite -part $globalSettings::PART  $globalSettings::DESIGN
+      project_new -family $globalSettings::FAMILY -overwrite -part $globalSettings::PART $globalSettings::DESIGN
       set_global_assignment -name PROJECT_OUTPUT_DIRECTORY output_files
 
       ConfigureProperties
@@ -158,11 +157,9 @@ proc InitProject {} {
     puts "  - simulator: QuestaSim"
     puts "Adding IP directory \"$globalSettings::user_ip_repo\" to the project "
   }
-
 }
 
 proc AddProjectFiles {} {
-
   if {[IsXilinx]} {
     #VIVADO_ONLY
     ## Create fileset src
@@ -204,13 +201,13 @@ proc AddProjectFiles {} {
   }
 
   # Add first .src, .sim, and .ext list files
-  AddHogFiles {*}[GetHogFiles -list_files {.src,.sim,.ext} -ext_path $globalSettings::HOG_EXTERNAL_PATH $globalSettings::list_path $globalSettings::repo_path ]
+  AddHogFiles {*}[GetHogFiles -list_files {.src,.sim,.ext} -ext_path $globalSettings::HOG_EXTERNAL_PATH $globalSettings::list_path $globalSettings::repo_path]
 
   ## Set synthesis TOP
   SetTopProperty $globalSettings::synth_top_module $sources
 
   # Libero needs the top files to be set before adding the constraints
-  AddHogFiles {*}[GetHogFiles -list_files {.con} -ext_path $globalSettings::HOG_EXTERNAL_PATH $globalSettings::list_path $globalSettings::repo_path ]
+  AddHogFiles {*}[GetHogFiles -list_files {.con} -ext_path $globalSettings::HOG_EXTERNAL_PATH $globalSettings::list_path $globalSettings::repo_path]
   ## Set simulation Properties
 
   ## Libero Properties must be set after that root has been defined
@@ -240,61 +237,60 @@ proc CreateReportStrategy {obj} {
 
       set reports [get_report_configs -of_objects $obj]
       # Create 'impl_1_place_report_utilization_0' report (if not found)
-      if { [ string equal [get_report_configs -of_objects [get_runs impl_1] impl_1_place_report_utilization_0] "" ] } {
+      if {[string equal [get_report_configs -of_objects [get_runs impl_1] impl_1_place_report_utilization_0] ""]} {
         create_report_config -report_name impl_1_place_report_utilization_0 -report_type report_utilization:1.0 -steps place_design -runs impl_1
       }
       set obj [get_report_configs -of_objects [get_runs impl_1] impl_1_place_report_utilization_0]
-      if { $obj != "" } {
+      if {$obj != ""} {
 
       }
 
       # Create 'impl_1_route_report_drc_0' report (if not found)
-      if { [ string equal [get_report_configs -of_objects [get_runs impl_1] impl_1_route_report_drc_0] "" ] } {
+      if {[string equal [get_report_configs -of_objects [get_runs impl_1] impl_1_route_report_drc_0] ""]} {
         create_report_config -report_name impl_1_route_report_drc_0 -report_type report_drc:1.0 -steps route_design -runs impl_1
       }
       set obj [get_report_configs -of_objects [get_runs impl_1] impl_1_route_report_drc_0]
-      if { $obj != "" } {
+      if {$obj != ""} {
 
       }
 
       # Create 'impl_1_route_report_power_0' report (if not found)
-      if { [ string equal [get_report_configs -of_objects [get_runs impl_1] impl_1_route_report_power_0] "" ] } {
+      if {[string equal [get_report_configs -of_objects [get_runs impl_1] impl_1_route_report_power_0] ""]} {
         create_report_config -report_name impl_1_route_report_power_0 -report_type report_power:1.0 -steps route_design -runs impl_1
       }
       set obj [get_report_configs -of_objects [get_runs impl_1] impl_1_route_report_power_0]
-      if { $obj != "" } {
+      if {$obj != ""} {
 
       }
 
       # Create 'impl_1_route_report_timing_summary' report (if not found)
-      if { [ string equal [get_report_configs -of_objects [get_runs impl_1] impl_1_route_report_timing_summary] "" ] } {
+      if {[string equal [get_report_configs -of_objects [get_runs impl_1] impl_1_route_report_timing_summary] ""]} {
         create_report_config -report_name impl_1_route_report_timing_summary -report_type report_timing_summary:1.0 -steps route_design -runs impl_1
       }
       set obj [get_report_configs -of_objects [get_runs impl_1] impl_1_route_report_timing_summary]
-      if { $obj != "" } {
+      if {$obj != ""} {
         Msg Info "Report timing created successfully"
       }
 
       # Create 'impl_1_route_report_utilization' report (if not found)
-      if { [ string equal [get_report_configs -of_objects [get_runs impl_1] impl_1_route_report_utilization] "" ] } {
+      if {[string equal [get_report_configs -of_objects [get_runs impl_1] impl_1_route_report_utilization] ""]} {
         create_report_config -report_name impl_1_route_report_utilization -report_type report_utilization:1.0 -steps route_design -runs impl_1
       }
       set obj [get_report_configs -of_objects [get_runs impl_1] impl_1_route_report_utilization]
-      if { $obj != "" } {
+      if {$obj != ""} {
         Msg Info "Report utilization created successfully"
       }
 
 
       # Create 'impl_1_post_route_phys_opt_report_timing_summary_0' report (if not found)
-      if { [ string equal [get_report_configs -of_objects [get_runs impl_1] impl_1_post_route_phys_opt_report_timing_summary_0] "" ] } {
+      if {[string equal [get_report_configs -of_objects [get_runs impl_1] impl_1_post_route_phys_opt_report_timing_summary_0] ""]} {
         create_report_config -report_name impl_1_post_route_phys_opt_report_timing_summary_0 -report_type report_timing_summary:1.0 -steps post_route_phys_opt_design -runs impl_1
       }
       set obj [get_report_configs -of_objects [get_runs impl_1] impl_1_post_route_phys_opt_report_timing_summary_0]
-      if { $obj != "" } {
+      if {$obj != ""} {
         set_property -name "options.max_paths" -value "10" -objects $obj
         set_property -name "options.warn_on_violation" -value "1" -objects $obj
       }
-
     }
   } else {
     Msg Info "Won't create any report strategy, not in Vivado"
@@ -334,7 +330,6 @@ proc ConfigureSynthesis {} {
     } elseif {[IsQuartus]} {
       #QUARTUS only
       set_global_assignment -name PRE_FLOW_SCRIPT_FILE quartus_sh:$globalSettings::pre_synth
-
     } elseif {[IsLibero]} {
       configure_tool -name {SYNTHESIZE} -params SYNPLIFY_TCL_FILE:$globalSettings::pre_synth
     } elseif {[IsDiamond]} {
@@ -357,7 +352,6 @@ proc ConfigureSynthesis {} {
     } elseif {[IsQuartus]} {
       #QUARTUS only
       set_global_assignment -name POST_MODULE_SCRIPT_FILE quartus_sh:$globalSettings::quartus_post_module
-
     } elseif {[IsDiamond]} {
       prj_impl post_script "syn" $globalSettings::post_synth
     }
@@ -374,14 +368,13 @@ proc ConfigureSynthesis {} {
     if {[string equal [get_property -quiet report_strategy $obj] ""]} {
       # No report strategy needed
       Msg Debug "No report strategy needed for synthesis"
-
     } else {
       # Report strategy needed since version 2017.3
       set_property set_report_strategy_name 1 $obj
       set_property report_strategy {Vivado Synthesis Default Reports} $obj
       set_property set_report_strategy_name 0 $obj
       # Create 'synth_1_synth_report_utilization_0' report (if not found)
-      if { [ string equal [get_report_configs -of_objects [get_runs synth_1] synth_1_synth_report_utilization_0] "" ] } {
+      if {[string equal [get_report_configs -of_objects [get_runs synth_1] synth_1_synth_report_utilization_0] ""]} {
         create_report_config -report_name synth_1_synth_report_utilization_0 -report_type report_utilization:1.0 -steps synth_design -runs synth_1
       }
       set reports [get_report_configs -of_objects [get_runs synth_1] synth_1_synth_report_utilization_0]
@@ -389,7 +382,6 @@ proc ConfigureSynthesis {} {
   } elseif {[IsQuartus]} {
     #QUARTUS only
     #TO BE DONE
-
   } elseif {[IsLibero]} {
     #TODO: LIBERO
   } elseif {[IsDiamond]} {
@@ -409,7 +401,7 @@ proc ConfigureImplementation {} {
   if {[IsXilinx]} {
     # Create 'impl_1' run (if not found)
     if {[string equal [get_runs -quiet impl_1] ""]} {
-      create_run -name impl_1 -part $globalSettings::PART  -constrset constrs_1 -parent_run synth_1
+      create_run -name impl_1 -part $globalSettings::PART -constrset constrs_1 -parent_run synth_1
     }
 
     set obj [get_runs impl_1]
@@ -417,7 +409,6 @@ proc ConfigureImplementation {} {
 
     set_property "steps.[BinaryStepName $globalSettings::PART].args.readback_file" "0" $obj
     set_property "steps.[BinaryStepName $globalSettings::PART].args.verbose" "0" $obj
-
   } elseif {[IsQuartus]} {
     #QUARTUS only
     set obj ""
@@ -516,7 +507,7 @@ proc ConfigureSimulation {} {
     ##############
     Msg Debug "Setting load_glbl parameter to true for every fileset..."
     foreach simset [get_filesets -quiet] {
-      if {[get_property FILESET_TYPE $simset] != "SimulationSrcs" } {
+      if {[get_property FILESET_TYPE $simset] != "SimulationSrcs"} {
         continue
       }
       if {[IsVivado]} {
@@ -530,9 +521,9 @@ proc ConfigureSimulation {} {
         Msg Info "Setting properties for simulation set: $simset..."
         dict for {prop_name prop_val} $sim_props {
           set prop_name [string toupper $prop_name]
-          if { $prop_name == "ACTIVE" && $prop_val == 1 } {
+          if {$prop_name == "ACTIVE" && $prop_val == 1} {
             Msg Info "Setting $simset as active simulation set..."
-            current_fileset -simset [ get_filesets $simset ]
+            current_fileset -simset [get_filesets $simset]
           } else {
             Msg Debug "Setting $prop_name = $prop_val"
             if {[IsInList [string toupper $prop_name] [VIVADO_PATH_PROPERTIES] 1]} {
@@ -565,9 +556,8 @@ proc ConfigureProperties {} {
         Msg Info "Setting project-wide properties..."
         set proj_props [dict get $globalSettings::PROPERTIES main]
         dict for {prop_name prop_val} $proj_props {
-
-          if { [ string tolower $prop_name ] != "ip_repo_paths" } {
-            if {[ string tolower $prop_name] != "part"} {
+          if {[string tolower $prop_name] != "ip_repo_paths"} {
+            if {[string tolower $prop_name] != "part"} {
               # Part is already set
               Msg Debug "Setting $prop_name = $prop_val"
               set_property $prop_name $prop_val [current_project]
@@ -578,9 +568,9 @@ proc ConfigureProperties {} {
             set user_repo "1"
             Msg Info "Setting $ip_repo_list as user IP repository..."
             if {[IsISE]} {
-              set_property  ip_repo_paths "$ip_repo_list" [current_fileset]
-            } else  {
-              set_property  ip_repo_paths "$ip_repo_list" [current_project]
+              set_property ip_repo_paths "$ip_repo_list" [current_fileset]
+            } else {
+              set_property ip_repo_paths "$ip_repo_list" [current_project]
             }
             update_ip_catalog
           }
@@ -607,26 +597,26 @@ proc ConfigureProperties {} {
           dict for {prop_name prop_val} $run_props {
             Msg Debug "Setting $prop_name = $prop_val"
             if {[string trim $prop_val] == ""} {
-                Msg Warning "Property $prop_name has empty value. Skipping..."
-                continue
+              Msg Warning "Property $prop_name has empty value. Skipping..."
+              continue
             }
             if {[IsInList [string toupper $prop_name] [VIVADO_PATH_PROPERTIES] 1]} {
               # Check that the file exists before setting these properties
-	      set utility_file $globalSettings::repo_path/$prop_val
+              set utility_file $globalSettings::repo_path/$prop_val
               if {[file exists $utility_file]} {
-		lassign [GetHogFiles -ext_path $globalSettings::HOG_EXTERNAL_PATH $globalSettings::list_path $globalSettings::repo_path] lib prop dummy
-		foreach {l f} $lib {
-		  foreach ff $f {
-		    lappend hog_files $ff
-		  }
-		}
-		if {[lsearch $hog_files $utility_file] < 0} {
-		  Msg CriticalWarning "The file: $utility_file is set as a property in hog.conf but is not added to the project in any list file. Hog cannot track it."
-		} else {
-		  #Add file tu utils_1 to avoid warning
-		  AddFile $globalSettings::repo_path/$prop_val [get_filesets -quiet utils_1]
-		}
-		set_property $prop_name $utility_file $run
+                lassign [GetHogFiles -ext_path $globalSettings::HOG_EXTERNAL_PATH $globalSettings::list_path $globalSettings::repo_path] lib prop dummy
+                foreach {l f} $lib {
+                  foreach ff $f {
+                    lappend hog_files $ff
+                  }
+                }
+                if {[lsearch $hog_files $utility_file] < 0} {
+                  Msg CriticalWarning "The file: $utility_file is set as a property in hog.conf but is not added to the project in any list file. Hog cannot track it."
+                } else {
+                  #Add file tu utils_1 to avoid warning
+                  AddFile $globalSettings::repo_path/$prop_val [get_filesets -quiet utils_1]
+                }
+                set_property $prop_name $utility_file $run
               } else {
                 Msg Warning "Impossible to set property $prop_name to $prop_val. File is missing"
               }
@@ -637,7 +627,6 @@ proc ConfigureProperties {} {
         }
       }
     }
-
   } elseif {[IsQuartus]} {
     #QUARTUS only
     #TO BE DONE
@@ -649,7 +638,7 @@ proc ConfigureProperties {} {
         Msg Info "Setting device properties..."
         set dev_props [dict get $globalSettings::PROPERTIES main]
         dict for {prop_name prop_val} $dev_props {
-          if { !([string toupper $prop_name] in $globalSettings::LIBERO_MANDATORY_VARIABLES) } {
+          if {!([string toupper $prop_name] in $globalSettings::LIBERO_MANDATORY_VARIABLES)} {
             Msg Debug "Setting $prop_name = $prop_val"
             set_device -[string tolower $prop_name] $prop_val
           }
@@ -703,7 +692,7 @@ proc ConfigureProperties {} {
         set dev_props [dict get $globalSettings::PROPERTIES main]
         dict for {prop_name prop_val} $dev_props {
           # Device is already set
-          if { [string toupper $prop_name] != "DEVICE" } {
+          if {[string toupper $prop_name] != "DEVICE"} {
             Msg Debug "Setting $prop_name = $prop_val"
             prj_project option $prop_name $prop_val
           }
@@ -745,7 +734,7 @@ proc ManageIPs {} {
     set ip_repo_path $globalSettings::HOG_IP_PATH
     Msg Info "HOG_IP_PATH is set, will pull/push synthesised IPs from/to $ip_repo_path."
     foreach ip $ips {
-      HandleIP pull  [get_property IP_FILE $ip] $ip_repo_path $globalSettings::repo_path [get_property IP_OUTPUT_DIR $ip]
+      HandleIP pull [get_property IP_FILE $ip] $ip_repo_path $globalSettings::repo_path [get_property IP_OUTPUT_DIR $ip]
     }
   } else {
     Msg Info "HOG_IP_PATH not set, will not push/pull synthesised IPs."
@@ -769,10 +758,9 @@ proc SetGlobalVar {var {default_value HOG_NONE}} {
 
 ###########################################################################################################################################################################################
 
-proc CreateProject args {
-
-#  set tcl_path [file normalize "[file dirname [info script]]"]
-#  set repo_path [file normalize $tcl_path/../..]
+proc CreateProject {args} {
+  #  set tcl_path [file normalize "[file dirname [info script]]"]
+  #  set repo_path [file normalize $tcl_path/../..]
 
   if {[catch {package require cmdline} ERROR]} {
     puts "ERROR: If you are running this script on tclsh, you can fix this by installing 'tcllib'"
@@ -785,7 +773,7 @@ proc CreateProject args {
 
   set usage "Create Vivado/ISE/Quartus/Libero/Diamond project.\nUsage: CreateProject \[OPTIONS\] <project> <repository path>\n Options:"
 
-  if {[catch {array set options [cmdline::getoptions args $parameters $usage]}] || [llength $args] < 2 ||[lindex $args 0] eq""} {
+  if {[catch {array set options [cmdline::getoptions args $parameters $usage]}] || [llength $args] < 2 || [lindex $args 0] eq ""} {
     Msg Info [cmdline::usage $parameters $usage]
     return 1
   }
@@ -799,12 +787,12 @@ proc CreateProject args {
   set globalSettings::tcl_path $globalSettings::repo_path/Hog/Tcl
 
 
-  if { $options(verbose) == 1 } {
+  if {$options(verbose) == 1} {
     variable ::DEBUG_MODE 1
   }
 
   if {[IsVivado]} {
-    if {$options(simlib_path)!= ""} {
+    if {$options(simlib_path) != ""} {
       if {[IsRelativePath $options(simlib_path)] == 0} {
         set globalSettings::simlib_path "$options(simlib_path)"
       } else {
@@ -830,17 +818,15 @@ proc CreateProject args {
     set actual_version [GetIDEVersion]
     lassign [GetIDEFromConf $conf_file] ide conf_version
     if {$conf_version != "0.0.0"} {
-
-
       set a_v [split $actual_version "."]
       set c_v [split $conf_version "."]
 
-      if { [llength $a_v] < 2} {
+      if {[llength $a_v] < 2} {
         Msg Error "Couldn't parse IDE version: $actual_version."
       } elseif {[llength $a_v] == 2} {
         lappend a_v 0
       }
-      if { [llength $c_v] < 2} {
+      if {[llength $c_v] < 2} {
         Msg Error "Wrong version format in hog.conf: $conf_version."
       } elseif {[llength $c_v] == 2} {
         lappend c_v 0
@@ -849,7 +835,7 @@ proc CreateProject args {
       set comp [CompareVersions $a_v $c_v]
       if {$comp == 0} {
         Msg Info "Project version and $ide version match: $conf_version."
-      }	elseif {$comp == 1} {
+      } elseif {$comp == 1} {
         Msg CriticalWarning "The $ide version in use is $actual_version, that is newer than $conf_version, as specified in the first line of $conf_file, if you want update this project to version $actual_version, please update the configuration file."
       } else {
         Msg Error "The $ide version in use is $actual_version, that is older than $conf_version as specified in $conf_file. The project will not be created.\nIf you absolutely want to create this project that was meant for version $conf_version with $ide version $actual_version, you can change the version from the first line of $conf_file.\nThis is HIGHLY discouraged as there could be unrecognised properties in the configuration file and IPs created with a newer $ide version cannot be downgraded."
@@ -904,29 +890,29 @@ proc CreateProject args {
   #Derived variables from now on...
 
   set build_dir_name "Projects"
-  set globalSettings::group_name                  [file dirname $globalSettings::DESIGN]
-  set globalSettings::pre_synth_file              "pre-synthesis.tcl"
-  set globalSettings::post_synth_file             "post-synthesis.tcl"
-  set globalSettings::pre_impl_file               "pre-implementation.tcl"
-  set globalSettings::post_impl_file              "post-implementation.tcl"
-  set globalSettings::pre_bit_file                "pre-bitstream.tcl"
-  set globalSettings::post_bit_file               "post-bitstream.tcl"
-  set globalSettings::quartus_post_module_file    "quartus-post-module.tcl"
-  set globalSettings::top_path                    "$globalSettings::repo_path/Top/$globalSettings::DESIGN"
-  set globalSettings::list_path                   "$globalSettings::top_path/list"
-  set globalSettings::build_dir                   "$globalSettings::repo_path/$build_dir_name/$globalSettings::DESIGN"
-  set globalSettings::DESIGN                      [file tail $globalSettings::DESIGN]
-  set globalSettings::top_name                    [file tail $globalSettings::DESIGN]
-  set globalSettings::top_name                    [file rootname $globalSettings::top_name]
-  set globalSettings::synth_top_module            "top_$globalSettings::top_name"
-  set globalSettings::user_ip_repo                ""
+  set globalSettings::group_name [file dirname $globalSettings::DESIGN]
+  set globalSettings::pre_synth_file "pre-synthesis.tcl"
+  set globalSettings::post_synth_file "post-synthesis.tcl"
+  set globalSettings::pre_impl_file "pre-implementation.tcl"
+  set globalSettings::post_impl_file "post-implementation.tcl"
+  set globalSettings::pre_bit_file "pre-bitstream.tcl"
+  set globalSettings::post_bit_file "post-bitstream.tcl"
+  set globalSettings::quartus_post_module_file "quartus-post-module.tcl"
+  set globalSettings::top_path "$globalSettings::repo_path/Top/$globalSettings::DESIGN"
+  set globalSettings::list_path "$globalSettings::top_path/list"
+  set globalSettings::build_dir "$globalSettings::repo_path/$build_dir_name/$globalSettings::DESIGN"
+  set globalSettings::DESIGN [file tail $globalSettings::DESIGN]
+  set globalSettings::top_name [file tail $globalSettings::DESIGN]
+  set globalSettings::top_name [file rootname $globalSettings::top_name]
+  set globalSettings::synth_top_module "top_$globalSettings::top_name"
+  set globalSettings::user_ip_repo ""
 
-  set globalSettings::pre_synth           [file normalize "$globalSettings::tcl_path/integrated/$globalSettings::pre_synth_file"]
-  set globalSettings::post_synth          [file normalize "$globalSettings::tcl_path/integrated/$globalSettings::post_synth_file"]
-  set globalSettings::pre_impl            [file normalize "$globalSettings::tcl_path/integrated/$globalSettings::pre_impl_file"]
-  set globalSettings::post_impl           [file normalize "$globalSettings::tcl_path/integrated/$globalSettings::post_impl_file"]
-  set globalSettings::pre_bit             [file normalize "$globalSettings::tcl_path/integrated/$globalSettings::pre_bit_file"]
-  set globalSettings::post_bit            [file normalize "$globalSettings::tcl_path/integrated/$globalSettings::post_bit_file"]
+  set globalSettings::pre_synth [file normalize "$globalSettings::tcl_path/integrated/$globalSettings::pre_synth_file"]
+  set globalSettings::post_synth [file normalize "$globalSettings::tcl_path/integrated/$globalSettings::post_synth_file"]
+  set globalSettings::pre_impl [file normalize "$globalSettings::tcl_path/integrated/$globalSettings::pre_impl_file"]
+  set globalSettings::post_impl [file normalize "$globalSettings::tcl_path/integrated/$globalSettings::post_impl_file"]
+  set globalSettings::pre_bit [file normalize "$globalSettings::tcl_path/integrated/$globalSettings::pre_bit_file"]
+  set globalSettings::post_bit [file normalize "$globalSettings::tcl_path/integrated/$globalSettings::post_bit_file"]
   set globalSettings::quartus_post_module [file normalize "$globalSettings::tcl_path/integrated/$globalSettings::quartus_post_module_file"]
   set globalSettings::LIBERO_MANDATORY_VARIABLES {"FAMILY" "PACKAGE" "DIE" }
 
@@ -960,7 +946,7 @@ proc CreateProject args {
 
   if {[IsQuartus]} {
     set fileName_old [file normalize "./hogTmp/.hogQsys.md5"]
-    set fileDir  [file normalize "$globalSettings::build_dir/.hog/"]
+    set fileDir [file normalize "$globalSettings::build_dir/.hog/"]
     file mkdir $fileDir
     set fileName_new [file normalize "$fileDir/.hogQsys.md5"]
     if {[file exists $fileName_new]} {
@@ -982,7 +968,7 @@ proc CreateProject args {
   }
 
   # Check extra IPs
-    # Get project libraries and properties from list files
+  # Get project libraries and properties from list files
   lassign [GetHogFiles -ext_path "$globalSettings::HOG_EXTERNAL_PATH" -list_files ".src,.ext" "$globalSettings::repo_path/Top/$globalSettings::group_name/$globalSettings::DESIGN/list/" $globalSettings::repo_path] listLibraries listProperties listSrcSets
   # Get project constraints and properties from list files
   lassign [GetHogFiles -ext_path "$globalSettings::HOG_EXTERNAL_PATH" -list_files ".con" "$globalSettings::repo_path/Top/$globalSettings::group_name/$globalSettings::DESIGN/list/" $globalSettings::repo_path] listConstraints listConProperties listConSets
@@ -999,11 +985,11 @@ proc CreateProject args {
     cd $globalSettings::repo_path
     set flavour [GetProjectFlavour $globalSettings::DESIGN]
     # Getting all the versions and SHAs of the repository
-    lassign [GetRepoVersions [file normalize $globalSettings::repo_path/Top/$globalSettings::group_name/$globalSettings::DESIGN] $globalSettings::repo_path $globalSettings::HOG_EXTERNAL_PATH] commit version  hog_hash hog_ver  top_hash top_ver  libs hashes vers  cons_ver cons_hash  ext_names ext_hashes  xml_hash xml_ver user_ip_repos user_ip_hashes user_ip_vers
+    lassign [GetRepoVersions [file normalize $globalSettings::repo_path/Top/$globalSettings::group_name/$globalSettings::DESIGN] $globalSettings::repo_path $globalSettings::HOG_EXTERNAL_PATH] commit version hog_hash hog_ver top_hash top_ver libs hashes vers cons_ver cons_hash ext_names ext_hashes xml_hash xml_ver user_ip_repos user_ip_hashes user_ip_vers
 
-    set this_commit  [GetSHA]
+    set this_commit [GetSHA]
 
-    if {$commit == 0 } {
+    if {$commit == 0} {
       set commit $this_commit
     }
 

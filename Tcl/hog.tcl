@@ -2083,6 +2083,7 @@ proc GetHogDescribe {sha {repo_path .}} {
     set suffix ""
   }
   puts "GetHogDescribe: sha=$new_sha, repo_path=$repo_path, pwd=[pwd]"
+  cd $repo_path
   set describe "v[HexVersionToString [GetVerFromSHA $new_sha $repo_path]]-$new_sha$suffix"
   return $describe
 }

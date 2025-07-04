@@ -348,7 +348,7 @@ proc AddHogFiles {libraries properties filesets} {
                   if {![catch {"exec $cmd -version"}] || [lindex $::errorCode 0] eq "NONE"} {
                     Msg Info "Executing: $cmd $cmd_options"
                     Msg Info "Saving logfile in: $qsysLogFile"
-                    if {[catch {exec -ignorestderr $cmd {*}[split $cmd_options] >>& $qsysLogFile} ret opt]} {
+                    if {[catch {eval exec -ignorestderr "$cmd $cmd_options >>& $qsysLogFile"} ret opt]} {
                       set makeRet [lindex [dict get $opt -errorcode] end]
                       Msg CriticalWarning "$cmd returned with $makeRet"
                     }
@@ -1576,11 +1576,8 @@ proc FindFileType {file_name} {
 proc FindNewestVersion {versions} {
   set new_ver 00000000
   foreach ver $versions {
-    set ver_int 0
-    set new_ver_int 0
-    scan $ver %x ver_int
-    scan $new_ver %x new_ver_int
-    if {$ver_int > $new_ver_int} {
+    ##nagelfar ignore
+    if {[expr 0x$ver > 0x$new_ver]} {
       set new_ver $ver
     }
   }

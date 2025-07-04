@@ -1154,12 +1154,12 @@ proc CopyIPbusXMLs {proj_dir path dst {xml_version "0.0.0"} {xml_sha "00000000"}
   set libraries [dict create]
   set vhdl_dict [dict create]
 
-  foreach ipb_file $ipb_files { 
+  foreach ipb_file $ipb_files {
     lassign [ReadListFile {*}"$ipb_file $path"] l p fs
     set libraries [MergeDict $l $libraries]
     set vhdl_dict [MergeDict $p $vhdl_dict]
   }
-  
+
   set xmlfiles [dict get $libraries "xml.ipb"]
 
   set xml_list_error 0
@@ -2073,6 +2073,7 @@ proc GetGroupName {proj_dir repo_dir} {
 #  @return            the Hog describe of the sha or the current one if the sha is 0
 #
 proc GetHogDescribe {sha {repo_path .}} {
+  puts "GetHogDescribe: sha=$sha, repo_path=$repo_path, pwd=[pwd]"
   if {$sha == 0 } {
     # in case the repo is dirty, we use the last committed sha and add a -dirty suffix
     set new_sha "[string toupper [GetSHA]]"
@@ -2081,6 +2082,7 @@ proc GetHogDescribe {sha {repo_path .}} {
     set new_sha [string toupper $sha]
     set suffix ""
   }
+  puts "GetHogDescribe: sha=$new_sha, repo_path=$repo_path, pwd=[pwd]"
   set describe "v[HexVersionToString [GetVerFromSHA $new_sha $repo_path]]-$new_sha$suffix"
   return $describe
 }

@@ -21,7 +21,7 @@ proc generate_prj_badge {prj_name ver color file} {
   set font_size 11.0
   set max_characters 20.0
   puts [string length $prj_name]
-  if {[string length $prj_name] > $max_characters}} {
+  if { [expr {[string length $prj_name] > $max_characters}] } {
     set scaling_factor [expr {$max_characters / [string length $prj_name]}]
     puts $font_size
     set font_size [expr {ceil($scaling_factor * $font_size)}]

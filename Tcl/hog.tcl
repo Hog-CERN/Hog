@@ -2073,7 +2073,6 @@ proc GetGroupName {proj_dir repo_dir} {
 #  @return            the Hog describe of the sha or the current one if the sha is 0
 #
 proc GetHogDescribe {sha {repo_path .}} {
-  puts "GetHogDescribe: sha=$sha, repo_path=$repo_path, pwd=[pwd]"
   if {$sha == 0 } {
     # in case the repo is dirty, we use the last committed sha and add a -dirty suffix
     set new_sha "[string toupper [GetSHA]]"
@@ -2082,7 +2081,6 @@ proc GetHogDescribe {sha {repo_path .}} {
     set new_sha [string toupper $sha]
     set suffix ""
   }
-  puts "GetHogDescribe: sha=$new_sha, repo_path=$repo_path, pwd=[pwd]"
   cd $repo_path
   set describe "v[HexVersionToString [GetVerFromSHA $new_sha $repo_path]]-$new_sha$suffix"
   return $describe

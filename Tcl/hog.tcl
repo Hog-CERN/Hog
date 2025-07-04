@@ -541,8 +541,18 @@ proc ALLOWED_PROPS {} {
     ".udo" [list "nosim"] \
     ".xci" [list "nosynth" "noimpl" "nosim" "locked"] \
     ".xdc" [list "nosynth" "noimpl"] \
-    ".tcl" [list "nosynth" "noimpl" "nosim" "source" "qsys" "noadd" "--block-symbol-file" "--clear-output-directory" "--example-design" "--export-qsys-script" "--family" "--greybox" "--ipxact" "--jvm-max-heap-size" "--parallel" "--part" "--search-path" "--simulation" "--synthesis" "--testbench" "--testbench-simulation" "--upgrade-ip-cores" "--upgrade-variation-file"] \
-    ".qsys" [list "nogenerate" "noadd" "--block-symbol-file" "--clear-output-directory" "--example-design" "--export-qsys-script" "--family" "--greybox" "--ipxact" "--jvm-max-heap-size" "--parallel" "--part" "--search-path" "--simulation" "--synthesis" "--testbench" "--testbench-simulation" "--upgrade-ip-cores" "--upgrade-variation-file"] \
+    ".tcl" [list "nosynth" "noimpl" "nosim" "source" "qsys" "noadd"
+        "--block-symbol-file" "--clear-output-directory" "--example-design"
+        "--export-qsys-script" "--family" "--greybox" "--ipxact"
+        "--jvm-max-heap-size" "--parallel" "--part" "--search-path"
+        "--simulation" "--synthesis" "--testbench" "--testbench-simulation"
+        "--upgrade-ip-cores" "--upgrade-variation-file"
+    ] \
+    ".qsys" [list "nogenerate" "noadd" "--block-symbol-file" "--clear-output-directory" "--example-design"
+        "--export-qsys-script" "--family" "--greybox" "--ipxact" "--jvm-max-heap-size" "--parallel"
+        "--part" "--search-path" "--simulation" "--synthesis" "--testbench" "--testbench-simulation"
+        "--upgrade-ip-cores" "--upgrade-variation-file"
+    ] \
     ".sdc" [list "notiming" "nosynth" "noplace"] \
     ".elf" [list "scoped_to_ref" "scoped_to_cells" "nosim" "noimpl"] \
     ".pdc" [list "nosynth" "noplace"] \
@@ -692,7 +702,8 @@ proc CheckExtraFiles {libraries constraints simlibraries} {
     dict for {prjLib prjFiles} $prjLibraries {
       foreach prjFile $prjFiles {
         if {[file extension $prjFile] == ".xcix"} {
-          Msg Warning "IP $prjFile is packed in a .xcix core container. This files are not suitable for version control systems. We recommend to use .xci files instead."
+          Msg Warning "IP $prjFile is packed in a .xcix core container. \
+          This files are not suitable for version control systems. We recommend to use .xci files instead."
           continue
         }
         if {[file extension $prjFile] == ".xci" && [get_property CORE_CONTAINER [get_files $prjFile]] != ""} {
@@ -828,7 +839,10 @@ proc CheckYmlRef {repo_path allow_failure} {
     } else {
       dict for {dictKey dictValue} $yamlDict {
         #looking for Hog include in .gitlab-ci.yml
-        if {"$dictKey" == "include" && ([lsearch [split $dictValue " {}"] "/hog.yml"] != "-1" || [lsearch [split $dictValue " {}"] "/hog-dynamic.yml"] != "-1")} {
+        if {"$dictKey" == "include" && (
+          [lsearch [split $dictValue " {}"] "/hog.yml"] != "-1" ||
+          [lsearch [split $dictValue " {}"] "/hog-dynamic.yml"] != "-1"
+        )} {
           set YML_REF [lindex [split $dictValue " {}"] [expr {[lsearch -dictionary [split $dictValue " {}"] "ref"] + 1}]]
           set YML_NAME [lindex [split $dictValue " {}"] [expr {[lsearch -dictionary [split $dictValue " {}"] "file"] + 1}]]
         }
@@ -946,7 +960,8 @@ proc CompareLibDicts {proj_libs list_libs proj_sets list_sets proj_props list_pr
                 set new_md5sum [Md5Sum $prjFile]
                 set old_md5sum [DictGet $extra_files $prjFile]
                 if {$new_md5sum != $old_md5sum} {
-                  MsgAndLog "$prjFile in project has been modified from creation time. Please update the script you used to create the file and regenerate the project, or save the file outside the Projects/ directory and add it to a project list file" $severity $outFile
+                  # tclint-disable-next-line line-length
+                  MsgAndLog "$prjFile in project has been modified from creation time. \Please update the script you used to create the file and regenerate the project, or save the file outside the Projects/ directory and add it to a project list file" $severity $outFile
                   incr n_diffs
                 }
                 set extra_files [dict remove $extra_files $prjFile]
@@ -1011,6 +1026,7 @@ proc CompareLibDicts {proj_libs list_libs proj_sets list_sets proj_props list_pr
               set new_md5sum [Md5Sum $prjFile]
               set old_md5sum [DictGet $extra_files $prjFile]
               if {$new_md5sum != $old_md5sum} {
+                # tclint-disable-next-line line-length
                 MsgAndLog "$prjFile in project has been modified from creation time. Please update the script you used to create the file and regenerate the project, or save the file outside the Projects/ directory and add it to a project list file" $severity $outFile
                 incr n_diffs
               }
@@ -1576,7 +1592,7 @@ proc FindFileType {file_name} {
 proc FindNewestVersion {versions} {
   set new_ver 00000000
   foreach ver $versions {
-    ##nagelfar ignore
+    # tclint-disable-next-line redundant-expr
     if {[expr 0x$ver > 0x$new_ver]} {
       set new_ver $ver
     }
@@ -1688,7 +1704,10 @@ proc GenerateQsysSystem {qsysFile commandOpts} {
       exit 1
     }
     #Add generated IPs to project
-    set qsysIPFileList [concat [glob -nocomplain -directory $qsysIPDir -types f *.ip *.qip] [glob -nocomplain -directory "$qsysIPDir/synthesis" -types f *.ip *.qip *.vhd *.vhdl]]
+    set qsysIPFileList [concat \
+      [glob -nocomplain -directory $qsysIPDir -types f *.ip *.qip] \
+      [glob -nocomplain -directory "$qsysIPDir/synthesis" -types f *.ip *.qip *.vhd *.vhdl] \
+    ]
     foreach qsysIPFile $qsysIPFileList {
       if {[file exists $qsysIPFile] != 0} {
         set qsysIPFileType [FindFileType $qsysIPFile]
@@ -2214,7 +2233,9 @@ proc GetIDEFromConf {conf_file} {
     # what shall we do with $patch? ignored for the time being
     set ret [list $ide $ver]
   } else {
-    Msg CriticalWarning "The first line of hog.conf should be \#<IDE name> <version>, where <IDE name>. is quartus, vivado, planahead and <version> the tool version, e.g. \#vivado 2020.2. Will assume vivado."
+    Msg CriticalWarning "The first line of hog.conf should be \#<IDE name> <version>, \
+    where <IDE name>. is quartus, vivado, planahead, libero, diamond or ghdl, \
+    and <version> the tool version, e.g. \#vivado 2020.2. Will assume vivado."
     set ret [list "vivado" "0.0.0"]
   }
 
@@ -2277,7 +2298,8 @@ proc GetLinkedFile {link_file} {
         set real_file $msg2
         Msg Debug "Found link file $link_file on Windows, the linked file is: $real_file"
       } else {
-        Msg CriticalWarning "[file normalize $link_file] is a soft link. Soft link are not supported on Windows and readlink.exe or cygpath.exe did not work: readlink=$ret: $msg, cygpath=$ret2: $msg2."
+        Msg CriticalWarning "[file normalize $link_file] is a soft link. \
+        Soft link are not supported on Windows and readlink.exe or cygpath.exe did not work: readlink=$ret: $msg, cygpath=$ret2: $msg2."
         set real_file $link_file
       }
     } else {
@@ -2776,7 +2798,8 @@ proc GetProjectVersion {proj_dir repo_path {ext_path ""} {sim 0}} {
 #  @param[in] ext_path: path for external libraries
 #  @param[in] sim: if enabled, check the version also for the simulation files
 #
-#  @return  a list containing all the versions: global, top (hog.conf, pre and post tcl scripts, etc.), constraints, libraries, submodules, external, ipbus xml, user ip repos
+#  @return  a list containing all the versions: global, top (hog.conf, pre and post tcl scripts, etc.), constraints,
+#           libraries, submodules, external, ipbus xml, user ip repos
 proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
   if {[catch {package require cmdline} ERROR]} {
     puts "$ERROR\n If you are running this script on tclsh, you can fix this by installing 'tcllib'"
@@ -2986,7 +3009,12 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
         if {![IsCommitAncestor $sha $global_commit]} {
           set common_child [FindCommonGitChild $global_commit $sha]
           if {$common_child == 0} {
-            Msg CriticalWarning "The commit $sha is not an ancestor of the global commit $global_commit, which is OK. But $sha and $global_commit do not have any common child, which is NOT OK. This is probably do to a REBASE that is forbidden in Hog methodology as it changes git history. Hog cannot guarantee the accuracy of the SHAs. A way to fix this is to make a commit that touches all the projects in the repositories (e.g. change the Hog version) but please do not rebase in the official branches in the future."
+            Msg CriticalWarning "The commit $sha is not an ancestor of the global commit $global_commit, which is OK. \
+            But $sha and $global_commit do not have any common child, which is NOT OK. \
+            This is probably do to a REBASE that is forbidden in Hog methodology as it changes git history. \
+            Hog cannot guarantee the accuracy of the SHAs. \
+            A way to fix this is to make a commit that touches all the projects in the repositories (e.g. change the Hog version), \
+            but please do not rebase in the official branches in the future."
           } else {
             Msg Info "The commit $sha is not an ancestor of the global commit $global_commit, adding the first common child $common_child instead..."
             lappend SHAs $common_child
@@ -3007,7 +3035,11 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
 
   set top_hash [format %+07s $top_hash]
   set cons_hash [format %+07s $cons_hash]
-  return [list $global_commit $global_version $hog_hash $hog_ver $top_hash $top_ver $libs $hashes $vers $cons_ver $cons_hash $ext_names $ext_hashes $xml_hash $xml_ver $user_ip_repos $user_ip_repo_hashes $user_ip_repo_vers]
+  return [list $global_commit $global_version \
+               $hog_hash $hog_ver $top_hash $top_ver \
+               $libs $hashes $vers $cons_ver $cons_hash \
+               $ext_names $ext_hashes $xml_hash $xml_ver \
+               $user_ip_repos $user_ip_repo_hashes $user_ip_repo_vers]
 }
 
 ## @brief Get git SHA of a subset of list file
@@ -3235,16 +3267,11 @@ proc GetVerFromSHA {SHA repo_path {force_develop 0}} {
             set version_level patch
           }
 
-          #Let's keep this for a while, more bugs may come soon
-          #Msg Info "******** $repo_path HF: $hotfix_prefix, M: $major_prefix, m: $minor_prefix, is_hotfix: $is_hotfix: VL: $version_level, BRANCH: $branch_name"
-
-
           if {$M == -1} {
             Msg CriticalWarning "Tag $tag does not contain a Hog compatible version in this repository."
             exit
             #set ver v0.0.0
           } elseif {$mr == 0} {
-            #Msg Info "No tag contains $SHA, will use most recent tag $tag. As this is an official tag, patch will be incremented to $p."
             switch $version_level {
               minor {
                 incr m
@@ -3532,7 +3559,9 @@ proc GitVersion {target_version} {
 
 ## @brief Copy IP generated files from/to a remote o local directory (possibly EOS)
 #
-# @param[in] what_to_do: can be "push", if you want to copy the local IP synth result to the remote directory or "pull" if you want to copy the files from thre remote directory to your local repository
+# @param[in] what_to_do: the action you want to perform, either
+  # "push", if you want to copy the local IP synth result to the remote directory
+  # "pull" if you want to copy the files from thre remote directory to your local repository
 # @param[in] xci_file: the .xci file of the IP you want to handle
 # @param[in] ip_path: the path of the directory you want the IP to be saved (possibly EOS)
 # @param[in] repo_path: the main path of your repository
@@ -3564,7 +3593,8 @@ proc HandleIP {what_to_do xci_file ip_path repo_path {gen_dir "."} {force 0}} {
   if {$on_eos == 1} {
     lassign [eos "ls $ip_path"] ret result
     if {$ret != 0} {
-      Msg CriticalWarning "Could not run ls for for EOS path: $ip_path (error: $result). Either the drectory does not exist or there are (temporary) problem with EOS."
+      Msg CriticalWarning "Could not run ls for for EOS path: $ip_path (error: $result). \
+      Either the drectory does not exist or there are (temporary) problem with EOS."
       cd $old_path
       return -1
     } else {
@@ -3792,8 +3822,10 @@ proc InitLauncher {script tcl_path parameters commands argv {custom_commands ""}
     set short_usage "$short_usage\n   - $key: [dict get $directive_descriptions $value]"
   }
 
-  set short_usage "$short_usage\n\nTo see all the available directives, run:\n./Hog/Do HELP\n\nTo list available options for the chosen directive run:\n./Hog/Do <directive> HELP
-
+  set short_usage "$short_usage\n\n\
+  To see all the available directives, run:\n./Hog/Do HELP\n\n\
+  To list available options for the chosen directive run:\n\
+  ./Hog/Do <directive> HELP\n
   "
 
   set usage "usage: ./Hog/Do \[OPTIONS\] <directive> \[project\]\n\nDirectives (case insensitive):"
@@ -4654,26 +4686,6 @@ proc LaunchSynthesis {reset do_create run_folder project_name {repo_path .} {ext
       foreach rptfile [glob -nocomplain -directory $xci_path *.rpt] {
         file copy $rptfile $repo_path/bin/$project_name-$describe/reports
       }
-
-      # Let's leave the following commented part
-      # We moved the Handle ip to the post-synthesis, in that case we can't use get_runs so to find out which IP was run, we loop over the directories enedind with _synth_1 in the .runs directory
-      #
-      #    ######### Copy IP to IP repository
-      #    if {[IsVivado]} {
-      #     set gen_path [get_property IP_OUTPUT_DIR $ip]
-      #     if {($ip_path != "")} {
-      #       # IP is not in the gitlab repo
-      #       set force 0
-      #       if [info exist runs] {
-      #         if {[lsearch $runs $ip\_synth_1] != -1} {
-      #           Msg Info "$ip was synthesized, will force the copy to the IP repository..."
-      #           set force 1
-      #         }
-      #       }
-      #       Msg Info "Copying synthesised IP $xci_ip_name ($xci_file) to $ip_path..."
-      #       HandleIP push $xci_file $ip_path $repo_path $gen_path $force
-      #     }
-      #    }
     }
 
     if {$prog ne "100%"} {
@@ -4808,7 +4820,9 @@ proc ListProjects {{repo_path .} {print 1} {ret_conf 0}} {
 proc Logo {{repo_path .}} {
   # Msg Warning "HOG_LOGO_PRINTED : $HOG_LOGO_PRINTED"
   if {![info exists ::env(HOG_LOGO_PRINTED)] || $::env(HOG_LOGO_PRINTED) eq "0"} {
-    if {[info exists ::env(HOG_COLOR)] && ([string match "ENABLED" $::env(HOG_COLOR)] || [string is integer -strict $::env(HOG_COLOR)] && $::env(HOG_COLOR) > 0)} {
+    if {
+    [info exists ::env(HOG_COLOR)] && ([string match "ENABLED" $::env(HOG_COLOR)] || [string is integer -strict $::env(HOG_COLOR)] && $::env(HOG_COLOR) > 0)
+    } {
       set logo_file "$repo_path/Hog/images/hog_logo_color.txt"
     } else {
       set logo_file "$repo_path/Hog/images/hog_logo.txt"
@@ -5172,9 +5186,13 @@ proc ReadExtraFileList {extra_file_name} {
 #                 * path      path the vhdl file are referred to in the list file
 # Options:
 #                 * -lib \<library\> name of the library files will be added to, if not given will be extracted from the file name
-#                 * -sha_mode  if not set to 0, the list files will be added as well and the IPs will be added to the file rather than to the special ip library. The SHA mode should be used when you use the lists to calculate the git SHA, rather than to add the files to the project.
+#                 * -sha_mode  if 1, the list files will be added as well and the IPs will be added to the file rather than to the special ip library.
+#                    The SHA mode should be used when you use the lists to calculate the git SHA, rather than to add the files to the project.
 #
-# @return              a list of 3 dictionaries: "libraries" has library name as keys and a list of filenames as values, "properties" has as file names as keys and a list of properties as values, "filesets" has the fileset' names as keys and the list of associated libraries as values.
+# @return              a list of 3 dictionaries:
+#                      "libraries" has library name as keys and a list of filenames as values,
+#                      "properties" has as file names as keys and a list of properties as values
+#                       "filesets" has the fileset' names as keys and the list of associated libraries as values.
 proc ReadListFile {args} {
   if {[IsQuartus]} {
     load_package report
@@ -5183,7 +5201,7 @@ proc ReadListFile {args} {
       return 1
     }
   }
-
+  # tclint-disable line-length
   set parameters {
     {lib.arg ""  "The name of the library files will be added to, if not given will be extracted from the file name."}
     {fileset.arg "" "The name of the library, from the main list file"}
@@ -5191,6 +5209,7 @@ proc ReadListFile {args} {
     {print_log "If set, will use PrintFileTree for the VIEW directive"}
     {indent.arg "" "Used to indent files with the VIEW directive"}
   }
+  # tclint-enable line-length
   set usage "USAGE: ReadListFile \[options\] <list file> <path>"
   if {[catch {array set options [cmdline::getoptions args $parameters $usage]}] || [llength $args] != 2} {
     Msg CriticalWarning "[cmdline::usage $parameters $usage]"
@@ -5332,7 +5351,8 @@ proc ReadListFile {args} {
                   dict lappend properties $vhdlfile $p
                   Msg Debug "Adding property $p to $vhdlfile..."
                 } elseif {$list_file_ext != ".ipb"} {
-                  Msg Warning "Setting Property $p is not supported for file $vhdlfile or it is already its default. The allowed properties for this file type are \[ [DictGet [ALLOWED_PROPS] $extension]\]"
+                  Msg Warning "Setting Property $p is not supported for file $vhdlfile or it is already its default. \
+                  The allowed properties for this file type are \[ [DictGet [ALLOWED_PROPS] $extension]\]"
                 }
               }
             }
@@ -5651,7 +5671,10 @@ proc WriteConf {file_name config {comment ""}} {
 
 #  @param[in]    list of variables to be written in the generics in the usual order
 
-proc WriteGenerics {mode repo_path design date timee commit version top_hash top_ver hog_hash hog_ver cons_ver cons_hash libs vers hashes ext_names ext_hashes user_ip_repos user_ip_vers user_ip_hashes flavour {xml_ver ""} {xml_hash ""}} {
+proc WriteGenerics {mode repo_path design date timee\
+                    commit version top_hash top_ver hog_hash hog_ver \
+                    cons_ver cons_hash libs vers hashes ext_names ext_hashes \
+                    user_ip_repos user_ip_vers user_ip_hashes flavour {xml_ver ""} {xml_hash ""}} {
   Msg Info "Passing parameters/generics to project's top module..."
   #####  Passing Hog generic to top file
   # set global generic variables
@@ -5975,7 +5998,8 @@ proc GetGenericFormatFromXci {generic_name xci_file} {
 #
 proc WriteGitLabCIYAML {proj_name {ci_conf ""}} {
   if {[catch {package require yaml 0.3.3} YAMLPACKAGE]} {
-    Msg CriticalWarning "Cannot find package YAML.\n Error message: $YAMLPACKAGE. If you are running on tclsh, you can fix this by installing package \"tcllib\""
+    Msg CriticalWarning "Cannot find package YAML.\n Error message: $YAMLPACKAGE. \
+    If you are running on tclsh, you can fix this by installing package \"tcllib\""
     return -1
   }
 

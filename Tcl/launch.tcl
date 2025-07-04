@@ -205,7 +205,9 @@ set custom_commands [GetCustomCommands $commands_path 1]
 set custom_usage [GetCustomCommands $commands_path]
 # append usage "\n** Options:"
 
-lassign [InitLauncher $::argv0 $tcl_path $parameters $default_commands $argv $custom_usage] directive project project_name group_name repo_path old_path bin_dir top_path usage short_usage cmd ide list_of_options
+lassign [InitLauncher $::argv0 $tcl_path $parameters $default_commands $argv $custom_usage] \
+directive project project_name group_name repo_path old_path bin_dir top_path usage short_usage cmd ide list_of_options
+
 array set options $list_of_options
 Msg Debug "Returned by InitLauncher: \
 $project $project_name $group_name $repo_path $old_path $bin_dir $top_path $cmd"
@@ -621,7 +623,7 @@ if {$do_sigasi} {
     }
   }
 
-
+  # tclint-disable-next-line line-length
   set source_files [get_files -filter {(FILE_TYPE == VHDL || FILE_TYPE == "VHDL 2008" || FILE_TYPE == "VHDL 2019" || FILE_TYPE == VERILOG || FILE_TYPE == SYSTEMVERILOG) && USED_IN_SIMULATION == 1 }]
   if {$options(dst_dir) == ""} {
     set dst_path "$repo_path"
@@ -647,7 +649,7 @@ if {$do_sigasi} {
   foreach ip [get_ips] {
     generate_target synthesis $ip
   }
-
+  # tclint-disable-next-line line-length
   set source_files [get_files -filter {(FILE_TYPE == VHDL || FILE_TYPE == "VHDL 2008" || FILE_TYPE == "VHDL 2019" || FILE_TYPE == VERILOG || FILE_TYPE == SYSTEMVERILOG) && USED_IN_SYNTHESIS == 1 }]
   Msg Info "Creating sigasi csv file for synthesis $dst_path/$csv_name..."
   set csv_file [open $dst_path/$csv_name w]

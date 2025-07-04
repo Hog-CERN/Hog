@@ -1,4 +1,4 @@
-ignore = ["unbraced-expr", "command-args", "line-length"]
+ignore = ["unbraced-expr", "command-args", "redundant-expr", "line-length"]
 
 [style]
 # maximum allowed line length. defaults to 100.

@@ -79,12 +79,14 @@ proc InitProject {} {
   if {[IsXilinx]} {
     if {[IsVivado]} {
       # Suppress unnecessary warnings
+      # tclint-disable-next-line line-length
       set_msg_config -suppress -regexp -string {".*The IP file '.*' has been moved from its original location, as a result the outputs for this IP will now be generated in '.*'. Alternatively a copy of the IP can be imported into the project using one of the 'import_ip' or 'import_files' commands..*"}
       set_msg_config -suppress -regexp -string {".*File '.*.xci' referenced by design '.*' could not be found..*"}
 
       # File inside .bd
       set_msg_config -suppress -id {IP_Flow 19-3664}
       # This is due to simulations in project with NoC
+      # tclint-disable-next-line line-length
       set_msg_config -suppress -id {Vivado 12-23660} -string {{ERROR: [Vivado 12-23660] Simulation is not supported for the target language VHDL when design contains NoC (Network-on-Chip) blocks} }
     }
     # Create project
@@ -138,7 +140,12 @@ proc InitProject {} {
     if {[file exists $globalSettings::build_dir]} {
       file delete -force $globalSettings::build_dir
     }
-    new_project -location $globalSettings::build_dir -name [file tail $globalSettings::DESIGN] -die $globalSettings::DIE -package $globalSettings::PACKAGE -family $globalSettings::FAMILY -hdl VHDL
+    new_project -location $globalSettings::build_dir \
+                -name [file tail $globalSettings::DESIGN] \
+                -die $globalSettings::DIE \
+                -package $globalSettings::PACKAGE \
+                -family $globalSettings::FAMILY \
+                -hdl VHDL
   } elseif {[IsDiamond]} {
     if {[file exists $globalSettings::build_dir]} {
       file delete -force $globalSettings::build_dir
@@ -284,7 +291,9 @@ proc CreateReportStrategy {obj} {
 
       # Create 'impl_1_post_route_phys_opt_report_timing_summary_0' report (if not found)
       if {[string equal [get_report_configs -of_objects [get_runs impl_1] impl_1_post_route_phys_opt_report_timing_summary_0] ""]} {
-        create_report_config -report_name impl_1_post_route_phys_opt_report_timing_summary_0 -report_type report_timing_summary:1.0 -steps post_route_phys_opt_design -runs impl_1
+        create_report_config -report_name impl_1_post_route_phys_opt_report_timing_summary_0 \
+          -report_type report_timing_summary:1.0 \
+          -steps post_route_phys_opt_design -runs impl_1
       }
       set obj [get_report_configs -of_objects [get_runs impl_1] impl_1_post_route_phys_opt_report_timing_summary_0]
       if {$obj != ""} {
@@ -589,7 +598,8 @@ proc ConfigureProperties {} {
               set prop [dict get $run_props $s]
               set_property $s $prop $run
               set run_props [dict remove $run_props $s]
-              Msg Warning "A strategy for run $run has been defined inside hog.conf. This prevents Hog to compare the project properties. Please regenerate your hog.conf file using the dedicated Hog button."
+              Msg Warning "A strategy for run $run has been defined inside hog.conf. This prevents Hog to compare the project properties. \
+              Please regenerate your hog.conf file using the dedicated Hog button."
               Msg Info "Setting $s = $prop"
             }
           }
@@ -611,7 +621,8 @@ proc ConfigureProperties {} {
                   }
                 }
                 if {[lsearch $hog_files $utility_file] < 0} {
-                  Msg CriticalWarning "The file: $utility_file is set as a property in hog.conf but is not added to the project in any list file. Hog cannot track it."
+                  Msg CriticalWarning "The file: $utility_file is set as a property in hog.conf, \
+                  but is not added to the project in any list file. Hog cannot track it."
                 } else {
                   #Add file tu utils_1 to avoid warning
                   AddFile $globalSettings::repo_path/$prop_val [get_filesets -quiet utils_1]
@@ -756,7 +767,7 @@ proc SetGlobalVar {var {default_value HOG_NONE}} {
   }
 }
 
-###########################################################################################################################################################################################
+################################################################################################################################################################
 
 proc CreateProject {args} {
   #  set tcl_path [file normalize "[file dirname [info script]]"]
@@ -836,12 +847,15 @@ proc CreateProject {args} {
       if {$comp == 0} {
         Msg Info "Project version and $ide version match: $conf_version."
       } elseif {$comp == 1} {
-        Msg CriticalWarning "The $ide version in use is $actual_version, that is newer than $conf_version, as specified in the first line of $conf_file, if you want update this project to version $actual_version, please update the configuration file."
+        Msg CriticalWarning "The $ide version in use is $actual_version, that is newer than $conf_version, as specified in the first line of $conf_file.\n\
+        If you want update this project to version $actual_version, please update the configuration file."
       } else {
+        # tclint-disable-next-line line-length
         Msg Error "The $ide version in use is $actual_version, that is older than $conf_version as specified in $conf_file. The project will not be created.\nIf you absolutely want to create this project that was meant for version $conf_version with $ide version $actual_version, you can change the version from the first line of $conf_file.\nThis is HIGHLY discouraged as there could be unrecognised properties in the configuration file and IPs created with a newer $ide version cannot be downgraded."
       }
     } else {
-      Msg CriticalWarning "No version found in the first line of $conf_file. It is HIGHLY recommended to replace the first line of $conf_file with: \#$ide $actual_version"
+      Msg CriticalWarning "No version found in the first line of $conf_file. \
+      It is HIGHLY recommended to replace the first line of $conf_file with: \#$ide $actual_version"
     }
     if {[dict exists $globalSettings::PROPERTIES main]} {
       set main [dict get $globalSettings::PROPERTIES main]
@@ -969,11 +983,26 @@ proc CreateProject {args} {
 
   # Check extra IPs
   # Get project libraries and properties from list files
-  lassign [GetHogFiles -ext_path "$globalSettings::HOG_EXTERNAL_PATH" -list_files ".src,.ext" "$globalSettings::repo_path/Top/$globalSettings::group_name/$globalSettings::DESIGN/list/" $globalSettings::repo_path] listLibraries listProperties listSrcSets
+  lassign [GetHogFiles \
+    -ext_path "$globalSettings::HOG_EXTERNAL_PATH" \
+    -list_files ".src,.ext" \
+    "$globalSettings::repo_path/Top/$globalSettings::group_name/$globalSettings::DESIGN/list/" \
+    $globalSettings::repo_path] \
+    listLibraries listProperties listSrcSets
   # Get project constraints and properties from list files
-  lassign [GetHogFiles -ext_path "$globalSettings::HOG_EXTERNAL_PATH" -list_files ".con" "$globalSettings::repo_path/Top/$globalSettings::group_name/$globalSettings::DESIGN/list/" $globalSettings::repo_path] listConstraints listConProperties listConSets
+  lassign [GetHogFiles \
+    -ext_path "$globalSettings::HOG_EXTERNAL_PATH" \
+    -list_files ".con" \
+    "$globalSettings::repo_path/Top/$globalSettings::group_name/$globalSettings::DESIGN/list/" \
+    $globalSettings::repo_path] \
+    listConstraints listConProperties listConSets
 
-  lassign [GetHogFiles -ext_path "$globalSettings::HOG_EXTERNAL_PATH" -list_files ".sim" "$globalSettings::repo_path/Top/$globalSettings::group_name/$globalSettings::DESIGN/list/" $globalSettings::repo_path] listSimLibraries listSimProperties listSimSets
+  lassign [GetHogFiles \
+    -ext_path "$globalSettings::HOG_EXTERNAL_PATH" \
+    -list_files ".sim" \
+    "$globalSettings::repo_path/Top/$globalSettings::group_name/$globalSettings::DESIGN/list/" \
+    $globalSettings::repo_path] \
+    listSimLibraries listSimProperties listSimSets
 
   set old_path [pwd]
   cd $globalSettings::build_dir
@@ -985,7 +1014,12 @@ proc CreateProject {args} {
     cd $globalSettings::repo_path
     set flavour [GetProjectFlavour $globalSettings::DESIGN]
     # Getting all the versions and SHAs of the repository
-    lassign [GetRepoVersions [file normalize $globalSettings::repo_path/Top/$globalSettings::group_name/$globalSettings::DESIGN] $globalSettings::repo_path $globalSettings::HOG_EXTERNAL_PATH] commit version hog_hash hog_ver top_hash top_ver libs hashes vers cons_ver cons_hash ext_names ext_hashes xml_hash xml_ver user_ip_repos user_ip_hashes user_ip_vers
+    lassign [GetRepoVersions \
+      [file normalize $globalSettings::repo_path/Top/$globalSettings::group_name/$globalSettings::DESIGN] \
+      $globalSettings::repo_path \
+      $globalSettings::HOG_EXTERNAL_PATH \
+    ] commit version hog_hash hog_ver top_hash top_ver libs hashes vers cons_ver cons_hash ext_names ext_hashes \
+      xml_hash xml_ver user_ip_repos user_ip_hashes user_ip_vers
 
     set this_commit [GetSHA]
 
@@ -1001,7 +1035,14 @@ proc CreateProject {args} {
 
 
     lassign [GetDateAndTime $commit] date timee
-    WriteGenerics "create" $globalSettings::repo_path $globalSettings::group_name/$globalSettings::DESIGN $date $timee $commit $version $top_hash $top_ver $hog_hash $hog_ver $cons_ver $cons_hash $libs $vers $hashes $ext_names $ext_hashes $user_ip_repos $user_ip_vers $user_ip_hashes $flavour $xml_ver $xml_hash
+    WriteGenerics "create" \
+      $globalSettings::repo_path \
+      $globalSettings::group_name/$globalSettings::DESIGN \
+      $date $timee $commit $version \
+      $top_hash $top_ver $hog_hash $hog_ver \
+      $cons_ver $cons_hash $libs $vers $hashes \
+      $ext_names $ext_hashes $user_ip_repos $user_ip_vers \
+      $user_ip_hashes $flavour $xml_ver $xml_hash
     cd $old_path
   }
 

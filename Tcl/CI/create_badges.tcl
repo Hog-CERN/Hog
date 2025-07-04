@@ -21,7 +21,7 @@ proc generate_prj_badge {prj_name ver color file} {
   set font_size 11.0
   set max_characters 20.0
   puts [string length $prj_name]
-  if {[expr {[string length $prj_name] > $max_characters}]} {
+  if {[string length $prj_name] > $max_characters}} {
     set scaling_factor [expr {$max_characters / [string length $prj_name]}]
     puts $font_size
     set font_size [expr {ceil($scaling_factor * $font_size)}]
@@ -104,7 +104,8 @@ set TclPath [file dirname [info script]]/..
 set repo_path [file normalize "$TclPath/../.."]
 source $TclPath/hog.tcl
 
-set usage "- CI script that creates GitLab badges with utilisation and timing results for a chosen Hog project \n USAGE: $::argv0 <push token> <Gitlab api url> <Gitlab project id> <Gitlab project url> <GitLab Server URL> <Hog project> <ext_path>"
+set usage "- CI script that creates GitLab badges with utilisation and timing results for a chosen Hog project.\n\
+USAGE: $::argv0 <push token> <Gitlab api url> <Gitlab project id> <Gitlab project url> <GitLab Server URL> <Hog project> <ext_path>"
 
 if {[llength $argv] < 7} {
   Msg Info [cmdline::usage $usage]

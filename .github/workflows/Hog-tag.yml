@@ -113,10 +113,19 @@ jobs:
       - uses: actions/download-artifact@v4
         name: Download Artifacts
       - name: Archive
-        env:
-          tag: ${{ needs.get_artifacts.outputs.output1 }}
         shell: bash
         run: |
+          git config --system --add safe.directory $(pwd)
+          git config --global user.email "$HOG_EMAIL"
+          git config --global user.name "$HOG_USER"
+          git fetch
+          git checkout $GITHUB_HEAD_REF
+          git fetch origin refs/notes/*:refs/notes/*
+          note=(`git notes show`) || {
+            echo "No note found, probably you pushed to a branch that should protected (e.g. master, develop)";
+            exit 1;
+          }
+          tag=${note[2]}
           if [[ "${{ inputs.HOG_OFFICIAL_BIN_PATH}}" != "" ]]; then
             BIN_PATH=${{ inputs.HOG_OFFICIAL_BIN_PATH}}
           elif [[ "${{ inputs.HOG_OFFICIAL_BIN_EOS_PATH }}" != "" ]]; then

@@ -245,13 +245,14 @@ if { $options(all) == 1 } {
 
 if {$options(dst_dir) == "" && ($do_ipbus_xml ==1 || $do_check_list_files == 1) && $project != ""} {
   # Getting all the versions and SHAs of the repository
-   lassign [GetRepoVersions [file normalize $repo_path/Top/$group_name/$project] \
-   $repo_path $ext_path] commit version hog_hash hog_ver top_hash top_ver libs hashes vers \
-   cons_ver cons_hash  ext_names ext_hashes xml_hash xml_ver user_ip_repos \
-   user_ip_hashes user_ip_vers
+  lassign [GetRepoVersions [file normalize $repo_path/Top/$group_name/$project] \
+  $repo_path $ext_path] commit version hog_hash hog_ver top_hash top_ver libs hashes vers \
+  cons_ver cons_hash  ext_names ext_hashes xml_hash xml_ver user_ip_repos \
+  user_ip_hashes user_ip_vers
+  cd $repo_path
 
-   set describe [GetHogDescribe $commit $repo_path]
-   set dst_dir [file normalize "$repo_path/bin/$group_name/$project\-$describe"]
+  set describe [GetHogDescribe $commit $repo_path]
+  set dst_dir [file normalize "$repo_path/bin/$group_name/$project\-$describe"]
 }
 
 if {$cmd == -1} {

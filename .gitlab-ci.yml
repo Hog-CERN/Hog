@@ -315,7 +315,7 @@ yamllint:
       Templates/*.yml
   interruptible: true
 
-nagelfar:
+tclint:
   stage: merge_checks
   image: gitlab-registry.cern.ch/hog/hog-docker:master
   only:
@@ -324,8 +324,7 @@ nagelfar:
   except:
     variables: [$CI_COMMIT_REF_NAME =~ /^test\/.*$/i]
   script:
-    - /scripts/nagelfar133/nagelfar.tcl -Wunusedvar -filter "*Unknown command*" -filter "*Found constant*which is also a variable*" Tcl/*.tcl
-      Tcl/*/*.tcl
+    - tclint -c .tclint Tcl/*
   interruptible: true
 
 update_mirrors:

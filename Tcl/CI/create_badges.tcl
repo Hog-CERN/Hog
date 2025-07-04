@@ -21,7 +21,7 @@ proc generate_prj_badge {prj_name ver color file} {
   set font_size 11.0
   set max_characters 20.0
   puts [string length $prj_name]
-  if {[expr {[string length $prj_name] > $max_characters}]} {
+  if {[string length $prj_name] > $max_characters} {
     set scaling_factor [expr {$max_characters / [string length $prj_name]}]
     puts $font_size
     set font_size [expr {ceil($scaling_factor * $font_size)}]
@@ -104,7 +104,8 @@ set TclPath [file dirname [info script]]/..
 set repo_path [file normalize "$TclPath/../.."]
 source $TclPath/hog.tcl
 
-set usage "- CI script that creates GitLab badges with utilisation and timing results for a chosen Hog project \n USAGE: $::argv0 <push token> <Gitlab api url> <Gitlab project id> <Gitlab project url> <GitLab Server URL> <Hog project> <ext_path>"
+set usage "- CI script that creates GitLab badges with utilisation and timing results for a chosen Hog project"
+set usage "$usage \n USAGE: $::argv0 <push token> <Gitlab api url> <Gitlab project id> <Gitlab project url> <GitLab Server URL> <Hog project> <ext_path>"
 
 if {[llength $argv] < 7} {
   Msg Info [cmdline::usage $usage]
@@ -189,9 +190,9 @@ if {[file exists utilization.txt]} {
   foreach res [dict keys $usage_dict] {
     set usage [DictGet $usage_dict $res]
     set res_value "$usage\% "
-    if {[expr {$usage < 50.0}]} {
+    if {$usage < 50.0} {
       generate_res_badge $res $res_value "#90CAF9" "$res-$prj_name.svg"
-    } elseif {[expr {$usage < 80.0}]} {
+    } elseif {$usage < 80.0} {
       generate_res_badge $res $res_value "#1565C0" "$res-$prj_name.svg"
     } else {
       generate_res_badge $res $res_value "#0D2B6B" "$res-$prj_name.svg"
@@ -202,7 +203,10 @@ if {[file exists utilization.txt]} {
   foreach badge_name [dict keys $new_badges] {
     set badge_found 0
     Msg Info "Uploading badge image $badge_name.svg ...."
-    lassign [ExecuteRet curl --request POST --header "PRIVATE-TOKEN: ${push_token}" --form "file=@$badge_name.svg" $api_url/projects/$project_id/uploads] ret content
+    lassign [ExecuteRet curl --request POST \
+      --header "PRIVATE-TOKEN: ${push_token}" \
+      --form "file=@$badge_name.svg" \
+      $api_url/projects/$project_id/uploads] ret content
     set image_url [ParseJSON $content full_path]
     set image_url $gitlab_url/$image_url
     if {[dict exists $current_badges $badge_name]} {
@@ -211,7 +215,10 @@ if {[file exists utilization.txt]} {
       Execute curl --header "PRIVATE-TOKEN: $push_token" "$api_url/projects/${project_id}/badges/$badge_id" --request PUT --data "image_url=$image_url"
     } else {
       Msg Info "Badge $badge_name does not exist yet. Creating it..."
-      Execute curl --header "PRIVATE-TOKEN: $push_token" --request POST --data "link_url=$project_url/-/releases&image_url=$image_url&name=$badge_name" "$api_url/projects/$project_id/badges"
+      Execute curl --header "PRIVATE-TOKEN: $push_token" \
+        --request POST \
+        --data "link_url=$project_url/-/releases&image_url=$image_url&name=$badge_name" \
+        "$api_url/projects/$project_id/badges"
     }
   }
 }

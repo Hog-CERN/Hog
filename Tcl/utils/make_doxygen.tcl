@@ -81,7 +81,7 @@ if {[DoxygenVersion 1.8.13]} {
 
   set doxygen_conf_out ".doxygen.conf"
   set outfile [open $doxygen_conf_out w+]
-  puts -nonewline $outfile $buf_tmp
+  puts $outfile $buf_tmp
   close $outfile
 
   Execute doxygen $doxygen_conf_out

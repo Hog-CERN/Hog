@@ -31,7 +31,8 @@ set parameters {
   {force "Forces the creation of new project links"}
 }
 
-set usage "- CI script that retrieves binary files links or creates new ones to be uploaded to a GitLab release\n USAGE: $::argv0 <tag> <ext_path> \[OPTIONS\] \n. Options:"
+set usage "- CI script that retrieves binary files links or creates new ones to be uploaded to a GitLab release\n"
+set usage "$usage USAGE: $::argv0 <tag> <ext_path> \[OPTIONS\] \n. Options:"
 
 if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] || [llength $argv] < 2} {
   Msg Info [cmdline::usage $parameters $usage]

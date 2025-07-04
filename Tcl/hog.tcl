@@ -545,7 +545,7 @@ proc ALLOWED_PROPS {} {
         "--block-symbol-file" "--clear-output-directory" "--example-design"\
         "--export-qsys-script" "--family" "--greybox" "--ipxact"\
         "--jvm-max-heap-size" "--parallel" "--part" "--search-path"\
-        "--simulation" "--synthesis" "--testbench" "--testbench-simulation"
+        "--simulation" "--synthesis" "--testbench" "--testbench-simulation"\
         "--upgrade-ip-cores" "--upgrade-variation-file"\
     ] \
     ".qsys" [list "nogenerate" "noadd" "--block-symbol-file" "--clear-output-directory" "--example-design"\

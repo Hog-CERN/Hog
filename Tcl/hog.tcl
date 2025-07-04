@@ -541,17 +541,17 @@ proc ALLOWED_PROPS {} {
     ".udo" [list "nosim"] \
     ".xci" [list "nosynth" "noimpl" "nosim" "locked"] \
     ".xdc" [list "nosynth" "noimpl"] \
-    ".tcl" [list "nosynth" "noimpl" "nosim" "source" "qsys" "noadd"
-        "--block-symbol-file" "--clear-output-directory" "--example-design"
-        "--export-qsys-script" "--family" "--greybox" "--ipxact"
-        "--jvm-max-heap-size" "--parallel" "--part" "--search-path"
+    ".tcl" [list "nosynth" "noimpl" "nosim" "source" "qsys" "noadd"\
+        "--block-symbol-file" "--clear-output-directory" "--example-design"\
+        "--export-qsys-script" "--family" "--greybox" "--ipxact"\
+        "--jvm-max-heap-size" "--parallel" "--part" "--search-path"\
         "--simulation" "--synthesis" "--testbench" "--testbench-simulation"
-        "--upgrade-ip-cores" "--upgrade-variation-file"
+        "--upgrade-ip-cores" "--upgrade-variation-file"\
     ] \
-    ".qsys" [list "nogenerate" "noadd" "--block-symbol-file" "--clear-output-directory" "--example-design"
-        "--export-qsys-script" "--family" "--greybox" "--ipxact" "--jvm-max-heap-size" "--parallel"
-        "--part" "--search-path" "--simulation" "--synthesis" "--testbench" "--testbench-simulation"
-        "--upgrade-ip-cores" "--upgrade-variation-file"
+    ".qsys" [list "nogenerate" "noadd" "--block-symbol-file" "--clear-output-directory" "--example-design"\
+        "--export-qsys-script" "--family" "--greybox" "--ipxact" "--jvm-max-heap-size" "--parallel"\
+        "--part" "--search-path" "--simulation" "--synthesis" "--testbench" "--testbench-simulation"\
+        "--upgrade-ip-cores" "--upgrade-variation-file"\
     ] \
     ".sdc" [list "notiming" "nosynth" "noplace"] \
     ".elf" [list "scoped_to_ref" "scoped_to_cells" "nosim" "noimpl"] \

@@ -112,6 +112,8 @@ jobs:
       - uses: actions/download-artifact@v4
         name: Download Artifacts
       - name: Archive
+        env:
+          tag: ${{ needs.get_artifacts.outputs.tag }}
         shell: bash
         run: |
           if [[ "${{ inputs.HOG_OFFICIAL_BIN_PATH}}" != "" ]]; then

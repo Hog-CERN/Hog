@@ -51,7 +51,7 @@ if {[IsXilinx]} {
   set proj_file [file normalize "$proj_dir/$proj_name.qpf"]
   # Test generated files
   set hogQsysFileName [file normalize "$proj_dir/.hog/.hogQsys.md5"]
-  if { [file exists $hogQsysFileName] != 0} {
+  if {[file exists $hogQsysFileName] != 0} {
     set hogQsysFile [open $hogQsysFileName r]
     set hogQsysFileLines [split [read $hogQsysFile] "\n"]
     foreach line $hogQsysFileLines {
@@ -61,7 +61,7 @@ if {[IsXilinx]} {
         if {[file exists $fileEntryName]} {
           set newMd5Sum [Md5Sum $fileEntryName]
           set oldMd5Sum [lindex $fileEntry 1]
-          if { $newMd5Sum != $oldMd5Sum } {
+          if {$newMd5Sum != $oldMd5Sum} {
             Msg Warning "The checksum for file $fileEntryName not equal to the one saved in $hogQsysFileName: new checksum $newMd5Sum, old checksum $oldMd5Sum. Please check the any changes in the file are correctly propagated to git!"
           }
         } else {
@@ -69,7 +69,6 @@ if {[IsXilinx]} {
         }
       }
     }
-
   }
 } elseif {[IsDiamond]} {
   # Import tcllib
@@ -116,10 +115,8 @@ file mkdir $dst_dir
 file mkdir $dst_dir/reports
 
 
-
 # Vivado
 if {[IsXilinx]} {
-
   # Vivado + PlanAhead
   if {[IsISE]} {
     # planAhead
@@ -137,7 +134,7 @@ if {[IsXilinx]} {
   }
   if {[file exists [lindex $reps 0]]} {
     file copy -force {*}$reps $dst_dir/reports
-    if {[file exists [glob -nocomplain "$dst_dir/reports/${top_name}_utilization_synth.rpt"] ]} {
+    if {[file exists [glob -nocomplain "$dst_dir/reports/${top_name}_utilization_synth.rpt"]]} {
       set utilization_file [file normalize $dst_dir/utilization.txt]
       set report_file [glob -nocomplain "$dst_dir/reports/${top_name}_utilization_synth.rpt"]
       if {$group_name != ""} {
@@ -159,7 +156,7 @@ if {[IsXilinx]} {
       set run_paths [glob -nocomplain "$run_dir/*"]
       set runs {}
       foreach r $run_paths {
-        if {[regexp -all {^(.+)_synth_1}  $r whole_match run]} {
+        if {[regexp -all {^(.+)_synth_1} $r whole_match run]} {
           lappend runs [file tail $run]
         }
       }
@@ -184,12 +181,10 @@ if {[IsXilinx]} {
         file copy -force {*}$dcps $dcp_dir/
       }
     }
-
-
   }
 
 
- # Log files
+  # Log files
   set logs [glob -nocomplain "$run_dir/*/runme.log"]
   foreach log $logs {
     set run_name [file tail [file dirname $log]]
@@ -231,7 +226,6 @@ if {[IsXilinx]} {
   } else {
     Msg Warning "No .twr reports found in $proj_dir/Implementation0 subfolders"
   }
-
 }
 
 # Run user post-synthesis file

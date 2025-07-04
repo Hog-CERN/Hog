@@ -24,7 +24,7 @@ if {[catch {package require cmdline} ERROR]} {
 set parameters {
 }
 
-set usage   "USAGE: $::argv0"
+set usage "USAGE: $::argv0"
 
 set tcl_path [file dirname [info script]]
 set repo_path [file normalize $tcl_path/../../..]
@@ -32,7 +32,7 @@ cd $tcl_path
 source ../hog.tcl
 cd $repo_path
 
-if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] || $::argc != 0 } {
+if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] || $::argc != 0} {
   Msg Info [cmdline::usage $parameters $usage]
   cd $repo_path
   exit 1
@@ -45,8 +45,8 @@ Msg Info "Creating doxygen documentation for tag $version"
 
 # Run doxygen
 set doxygen_conf "./doxygen/doxygen.conf"
-if {[file exists $doxygen_conf] == 0 } {
-    # Using Default hog template
+if {[file exists $doxygen_conf] == 0} {
+  # Using Default hog template
   set doxygen_conf "./Hog/Templates/doxygen.conf"
   Msg Info "Running doxygen with ./Hog/Templates/doxygen.conf..."
 } else {
@@ -65,9 +65,9 @@ if {[DoxygenVersion 1.8.13]} {
   foreach line [split $conf_read \n] {
     if {[string match "#*" [string trim $line]]} {
       append buf_tmp "\n$line"
-    } elseif  {[string first "PROJECT_NUMBER" $line] != -1} {
+    } elseif {[string first "PROJECT_NUMBER" $line] != -1} {
       set VERSION_SET True
-      append  buf_tmp "\nPROJECT_NUMBER         = $version"
+      append buf_tmp "\nPROJECT_NUMBER         = $version"
     } else {
       append buf_tmp "\n$line"
     }

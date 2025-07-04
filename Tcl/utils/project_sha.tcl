@@ -26,7 +26,7 @@ set parameters {
   {ext_path.arg "" "Path to external libraries"}
 }
 
-set usage   "Returns the git SHA of the last commit in which the specified project was modified.\nUsage: $argv0 \[-version\] <project name>"
+set usage "Returns the git SHA of the last commit in which the specified project was modified.\nUsage: $argv0 \[-version\] <project name>"
 set tcl_path [file dirname [info script]]
 set repo_path [file normalize $tcl_path/../../..]
 source $tcl_path/../hog.tcl
@@ -37,12 +37,12 @@ if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] 
   exit 1
 } else {
   set project [lindex $argv 0]
-  if { $options(version) == 1 } {
+  if {$options(version) == 1} {
     set do_ver 1
   } else {
     set do_ver 0
   }
-  if { $options(ext_path) == "" } {
+  if {$options(ext_path) == ""} {
     set ext_path ""
   } else {
     set ext_path $options(ext_path)
@@ -57,7 +57,6 @@ if {[file exists $proj_dir]} {
   } else {
     set ret $sha
   }
-
 } else {
   Msg Error "Project $project does not exist: $proj_dir not found."
   exit

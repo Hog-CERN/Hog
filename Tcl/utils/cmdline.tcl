@@ -68,7 +68,7 @@ package provide cmdline 1.3.1
 
 namespace eval ::cmdline {
   namespace export getArgv0 getopt getKnownOpt getfiles getoptions \
-	    getKnownOptions usage
+    getKnownOptions usage
 }
 
 # ::cmdline::getopt --
@@ -111,7 +111,7 @@ proc ::cmdline::getopt {argvVar optstring optVar valVar} {
   set result [getKnownOpt argsList $optstring option value]
 
   if {$result < 0} {
-        # Collapse unknown-option error into any-other-error result.
+    # Collapse unknown-option error into any-other-error result.
     set result -1
   }
   return $result
@@ -153,39 +153,38 @@ proc ::cmdline::getopt {argvVar optstring optVar valVar} {
 
 proc ::cmdline::getKnownOpt {argvVar optstring optVar valVar} {
   upvar 1 $argvVar argsList
-  upvar 1 $optVar  option
-  upvar 1 $valVar  value
+  upvar 1 $optVar option
+  upvar 1 $valVar value
 
-    # default settings for a normal return
+  # default settings for a normal return
   set value ""
   set option ""
   set result 0
 
-    # check if we're past the end of the args list
+  # check if we're past the end of the args list
   if {[llength $argsList] != 0} {
-
-	# if we got -- or an option that doesn't begin with -, return (skipping
-	# the --).  otherwise process the option arg.
+    # if we got -- or an option that doesn't begin with -, return (skipping
+    # the --).  otherwise process the option arg.
     switch -glob -- [set arg [lindex $argsList 0]] {
       "--" {
         set argsList [lrange $argsList 1 end]
       }
-      "--*" -
+      "--*" {-}
       "-*" {
         set option [string range $arg 1 end]
         if {[string equal [string range $option 0 0] "-"]} {
           set option [string range $arg 2 end]
         }
 
-		# support for format: [-]-option=value
+        # support for format: [-]-option=value
         set idx [string first "=" $option 1]
         if {$idx != -1} {
-          set _val   [string range $option [expr {$idx+1}] end]
-          set option [string range $option 0   [expr {$idx-1}]]
+          set _val [string range $option [expr {$idx + 1}] end]
+          set option [string range $option 0 [expr {$idx - 1}]]
         }
 
         if {[lsearch -exact $optstring $option] != -1} {
-		    # Booleans are set to 1 when present
+          # Booleans are set to 1 when present
           set value 1
           set result 1
           set argsList [lrange $argsList 1 end]
@@ -203,13 +202,13 @@ proc ::cmdline::getKnownOpt {argvVar optstring optVar valVar} {
             set result -2
           }
         } else {
-		    # Unknown option.
+          # Unknown option.
           set value "Illegal option \"-$option\""
           set result -1
         }
       }
       default {
-		# Skip ahead
+        # Skip ahead
       }
     }
   }
@@ -291,24 +290,26 @@ proc ::cmdline::getKnownOptions {arglistVar optlist {usage options:}} {
 
   set opts [GetOptionDefaults $optlist result]
 
-    # As we encounter them, keep the unknown options and their
-    # arguments in this list.  Before we return from this procedure,
-    # we'll prepend these args to the argList so that the application
-    # doesn't lose them.
+  # As we encounter them, keep the unknown options and their
+  # arguments in this list.  Before we return from this procedure,
+  # we'll prepend these args to the argList so that the application
+  # doesn't lose them.
 
   set unknownOptions [list]
 
   set argc [llength $argv]
   while {[set err [getKnownOpt argv $opts opt arg]]} {
     if {$err == -1} {
-            # Unknown option.
+      # Unknown option.
 
-            # Skip over any non-option items that follow it.
-            # For now, add them to the list of unknownOptions.
+      # Skip over any non-option items that follow it.
+      # For now, add them to the list of unknownOptions.
       lappend unknownOptions [lindex $argv 0]
       set argv [lrange $argv 1 end]
-      while {([llength $argv] != 0) \
-                    && ![string match "-*" [lindex $argv 0]]} {
+      while {
+        ([llength $argv] != 0)
+        && ![string match "-*" [lindex $argv 0]]
+      } {
         lappend unknownOptions [lindex $argv 0]
         set argv [lrange $argv 1 end]
       }
@@ -320,8 +321,8 @@ proc ::cmdline::getKnownOptions {arglistVar optlist {usage options:}} {
     }
   }
 
-    # Before returning, prepend the any unknown args back onto the
-    # argList so that the application doesn't lose them.
+  # Before returning, prepend the any unknown args back onto the
+  # argList so that the application doesn't lose them.
   set argv [concat $unknownOptions $argv]
 
   if {[info exists result(?)] || [info exists result(help)]} {
@@ -357,17 +358,16 @@ proc ::cmdline::GetOptionDefaults {optlist defaultArrayVar} {
   foreach opt $optlist {
     set name [lindex $opt 0]
     if {[regsub -- {\.secret$} $name {} name] == 1} {
-	    # Need to hide this from the usage display and getopt
+      # Need to hide this from the usage display and getopt
     }
     lappend opts $name
     if {[regsub -- {\.arg$} $name {} name] == 1} {
-
-	    # Set defaults for those that take values.
+      # Set defaults for those that take values.
 
       set default [lindex $opt 1]
       set result($name) $default
     } else {
-	    # The default for booleans is false
+      # The default for booleans is false
       set result($name) 0
     }
   }
@@ -389,17 +389,17 @@ proc ::cmdline::GetOptionDefaults {optlist defaultArrayVar} {
 proc ::cmdline::usage {optlist {usage {options:}}} {
   set str "[getArgv0] $usage\n"
   foreach opt [concat $optlist \
-	     {{- "Forcibly stop option processing"} {help "Print this message"} {? "Print this message"}}] {
+    {{- "Forcibly stop option processing"} {help "Print this message"} {? "Print this message"}}] {
     set name [lindex $opt 0]
     if {[regsub -- {\.secret$} $name {} name] == 1} {
-	    # Hidden option
+      # Hidden option
       continue
     }
     if {[regsub -- {\.arg$} $name {} name] == 1} {
       set default [lindex $opt 1]
       set comment [lindex $opt 2]
       append str [format " %-20s %s <%s>\n" "-$name value" \
-		    $comment $default]
+        $comment $default]
     } else {
       set comment [lindex $opt 1]
       append str [format " %-20s %s\n" "-$name" $comment]
@@ -434,7 +434,7 @@ proc ::cmdline::getfiles {patterns quiet} {
       set pat [file join $pattern]
       set files [glob -nocomplain -- $pat]
       if {$files == {}} {
-        if {! $quiet} {
+        if {!$quiet} {
           puts stdout "warning: no files match \"$pattern\""
         }
       } else {
@@ -448,13 +448,13 @@ proc ::cmdline::getfiles {patterns quiet} {
   }
   set files {}
   foreach file $result {
-	# Make file an absolute path so that we will never conflict
-	# with files that might be contained in our zip file.
+    # Make file an absolute path so that we will never conflict
+    # with files that might be contained in our zip file.
     set fullPath [file join [pwd] $file]
 
     if {[file isfile $fullPath]} {
       lappend files $fullPath
-    } elseif {! $quiet} {
+    } elseif {!$quiet} {
       puts stdout "warning: no files match \"$file\""
     }
   }
@@ -502,21 +502,21 @@ proc ::cmdline::getArgv0 {} {
 namespace eval ::cmdline {
   namespace export typedGetopt typedGetoptions typedUsage
 
-    # variable cmdline::charclasses --
-    #
-    #    Create regexp list of allowable character classes
-    #    from "string is" error message.
-    #
-    # Results:
-    #    String of character class names separated by "|" characters.
+  # variable cmdline::charclasses --
+  #
+  #    Create regexp list of allowable character classes
+  #    from "string is" error message.
+  #
+  # Results:
+  #    String of character class names separated by "|" characters.
 
   variable charclasses
   #checker exclude badKey
   ##nagelfar ignore
   catch {string is . .} charclasses
   variable dummy
-  regexp      -- {must be (.+)$} $charclasses dummy charclasses
-  regsub -all -- {, (or )?}      $charclasses {|}   charclasses
+  regexp -- {must be (.+)$} $charclasses dummy charclasses
+  regsub -all -- {, (or )?} $charclasses {|} charclasses
   unset dummy
 }
 
@@ -614,23 +614,22 @@ proc ::cmdline::typedGetopt {argvVar optstring optVar argVar} {
   upvar $optVar retvar
   upvar $argVar optarg
 
-    # default settings for a normal return
+  # default settings for a normal return
   set optarg ""
   set retvar ""
   set retval 0
 
-    # check if we're past the end of the args list
+  # check if we're past the end of the args list
   if {[llength $argsList] != 0} {
-
-        # if we got -- or an option that doesn't begin with -, return (skipping
-        # the --).  otherwise process the option arg.
+    # if we got -- or an option that doesn't begin with -, return (skipping
+    # the --).  otherwise process the option arg.
     switch -glob -- [set arg [lindex $argsList 0]] {
       "--" {
         set argsList [lrange $argsList 1 end]
       }
 
       "-*" {
-                # Create list of options without their argument extensions
+        # Create list of options without their argument extensions
 
         set optstr ""
         foreach str $optstring {
@@ -652,9 +651,10 @@ proc ::cmdline::typedGetopt {argvVar optstring optVar argVar} {
             set retval 1
             set retvar $opt
             set argsList [lrange $argsList 1 end]
-
-          } elseif {[regexp -- "\\.(arg|$charclasses)\$" $opt dummy charclass]
-          || [regexp -- {\.\(([^)]+)\)} $opt dummy charclass]} {
+          } elseif {
+            [regexp -- "\\.(arg|$charclasses)\$" $opt dummy charclass]
+            || [regexp -- {\.\(([^)]+)\)} $opt dummy charclass]
+          } {
             ##nagelfar ignore
             if {[string equal arg $charclass]} {
               ##nagelfar ignore
@@ -669,8 +669,10 @@ proc ::cmdline::typedGetopt {argvVar optstring optVar argVar} {
             set opt [file rootname $opt]
 
             while {1} {
-              if {[llength $argsList] == 0
-              || [string equal "--" [lindex $argsList 0]]} {
+              if {
+                [llength $argsList] == 0
+                || [string equal "--" [lindex $argsList 0]]
+              } {
                 if {[string equal "--" [lindex $argsList 0]]} {
                   set argsList [lrange $argsList 1 end]
                 }
@@ -729,13 +731,13 @@ proc ::cmdline::typedGetopt {argvVar optstring optVar argVar} {
                 set quantifier ""
               }
               if {![regexp -- {[+*]} $quantifier]} {
-                break;
+                break
               }
             }
           } else {
             Error \
-			    "Illegal option type specification: must be one of $charclasses" \
-			    BAD OPTION TYPE
+              "Illegal option type specification: must be one of $charclasses" \
+              BAD OPTION TYPE
           }
         } else {
           set optarg "Illegal option -- $_opt"
@@ -744,7 +746,7 @@ proc ::cmdline::typedGetopt {argvVar optstring optVar argVar} {
         }
       }
       default {
-		# Skip ahead
+        # Skip ahead
       }
     }
   }
@@ -815,18 +817,18 @@ proc ::cmdline::typedGetoptions {arglistVar optlist {usage options:}} {
   foreach opt $optlist {
     set name [lindex $opt 0]
     if {[regsub -- {\.secret$} $name {} name] == 1} {
-            # Remove this extension before passing to typedGetopt.
+      # Remove this extension before passing to typedGetopt.
     }
     if {[regsub -- {\.multi$} $name {} name] == 1} {
-            # Remove this extension before passing to typedGetopt.
+      # Remove this extension before passing to typedGetopt.
 
       regsub -- {\..*$} $name {} temp
       set multi($temp) 1
     }
     lappend opts $name
     if {[regsub -- "\\.(arg|$charclasses|\\(.+).?\$" $name {} name] == 1} {
-            # Set defaults for those that take values.
-            # Booleans are set just by being present, or not
+      # Set defaults for those that take values.
+      # Booleans are set just by being present, or not
 
       set dflt [lindex $opt 1]
       if {$dflt != {}} {
@@ -837,9 +839,11 @@ proc ::cmdline::typedGetoptions {arglistVar optlist {usage options:}} {
   set argc [llength $argv]
   while {[set err [typedGetopt argv $opts opt arg]]} {
     if {$err == 1} {
-      if {[info exists result($opt)]
-      && [info exists multi($opt)]} {
-                # Toggle boolean options or append new arguments
+      if {
+        [info exists result($opt)]
+        && [info exists multi($opt)]
+      } {
+        # Toggle boolean options or append new arguments
 
         if {$arg == ""} {
           unset result($opt)
@@ -883,18 +887,19 @@ proc ::cmdline::typedUsage {optlist {usage {options:}}} {
 
   set str "[getArgv0] $usage\n"
   foreach opt [concat $optlist \
-            {{help "Print this message"} {? "Print this message"}}] {
+    {{help "Print this message"} {? "Print this message"}}] {
     set name [lindex $opt 0]
     if {[regsub -- {\.secret$} $name {} name] == 1} {
-            # Hidden option
-
+      # Hidden option
     } else {
       if {[regsub -- {\.multi$} $name {} name] == 1} {
-                # Display something about multiple options
+        # Display something about multiple options
       }
 
-      if {[regexp -- "\\.(arg|$charclasses)\$" $name dummy charclass]
-      || [regexp -- {\.\(([^)]+)\)} $opt dummy charclass]} {
+      if {
+        [regexp -- "\\.(arg|$charclasses)\$" $name dummy charclass]
+        || [regexp -- {\.\(([^)]+)\)} $opt dummy charclass]
+      } {
         regsub -- "\\..+\$" $name {} name
         set comment [lindex $opt 2]
         set default "<[lindex $opt 1]>"
@@ -902,7 +907,7 @@ proc ::cmdline::typedUsage {optlist {usage {options:}}} {
           set default ""
         }
         append str [format " %-20s %s %s\n" "-$name $charclass" \
-                        $comment $default]
+          $comment $default]
       } else {
         set comment [lindex $opt 1]
         append str [format " %-20s %s\n" "-$name" $comment]
@@ -927,17 +932,17 @@ proc ::cmdline::typedUsage {optlist {usage {options:}}} {
 #	unique short version is found then -1 is returned.
 
 proc ::cmdline::prefixSearch {list pattern} {
-    # Check for an exact match
+  # Check for an exact match
 
   if {[set pos [::lsearch -exact $list $pattern]] > -1} {
     return $pos
   }
 
-    # Check for a unique short version
+  # Check for a unique short version
 
   set slist [lsort $list]
   if {[set pos [::lsearch -glob $slist $pattern*]] > -1} {
-        # What if there is nothing for the check variable?
+    # What if there is nothing for the check variable?
 
     set check [lindex $slist [expr {$pos + 1}]]
     if {[string first $pattern $check] != 0} {

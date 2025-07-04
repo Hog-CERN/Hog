@@ -33,7 +33,7 @@ set parameters {
 
 set usage "- CI script that retrieves binary files links or creates new ones to be uploaded to a GitLab release\n USAGE: $::argv0 <tag> <ext_path> \[OPTIONS\] \n. Options:"
 
-if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] ||  [llength $argv] < 2 } {
+if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] || [llength $argv] < 2} {
   Msg Info [cmdline::usage $parameters $usage]
   cd $OldPath
   return
@@ -50,15 +50,15 @@ foreach proj $projects_list {
   set proj_name [file tail $proj]
   set proj_dir [file dirname $proj]
   set dir $repo_path/Top/$proj
-  set ver [ GetProjectVersion $dir $repo_path $ext_path 1 ]
-  if {"$ver"=="0" || "$ver"=="$tag" || $options(force)==1} {
+  set ver [GetProjectVersion $dir $repo_path $ext_path 1]
+  if {"$ver" == "0" || "$ver" == "$tag" || $options(force) == 1} {
     # Project was modified in current version, upload the files
     Msg Info "Retrieving $proj binaries and tag $tag..."
-    if {[catch {glob -types d $repo_path/bin/$proj* } prj_dir]} {
+    if {[catch {glob -types d $repo_path/bin/$proj*} prj_dir]} {
       Msg CriticalWarning "Cannot find $proj binaries in artifacts"
       continue
     }
-    if { $proj_dir != "." } {
+    if {$proj_dir != "."} {
       set proj_zip [string map {/ _} $proj_dir]
       set files [glob -nocomplain -directory "$repo_path/zipped/" ${proj_zip}_${proj_name}-${tag}.z*]
     } else {
@@ -68,7 +68,7 @@ foreach proj $projects_list {
       set ext [file extension $f]
       Execute glab release upload $tag "$f#${proj}-${tag}$ext"
     }
-  } elseif {"$ver"=="-1"} {
+  } elseif {"$ver" == "-1"} {
     # Something went wrong...
     Msg CriticalWarning "Something went wrong when tried to retrieve version for project $proj"
     cd $OldPath

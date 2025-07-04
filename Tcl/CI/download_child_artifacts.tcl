@@ -23,7 +23,7 @@ source $TclPath/hog.tcl
 
 set usage "- CI script that downloads artifacts from child pipelines.\n USAGE: $::argv0 <project id> <commit SHA> <create_job id>."
 
-if { [llength $argv] < 3 } {
+if {[llength $argv] < 3} {
   Msg Info $usage
   cd $OldPath
   return
@@ -47,7 +47,7 @@ if {$ret != 0} {
 
   set ChildList [json::json2dict $msg]
   foreach Child $ChildList {
-    set result [catch {dict get  $Child "id"} child_job_id]
+    set result [catch {dict get $Child "id"} child_job_id]
     if {"$result" != "0" || $child_job_id < $create_job_id} {
       continue
     }
@@ -56,18 +56,18 @@ if {$ret != 0} {
       Msg Error "Error when retrieving SHA of child process $child_job_id. Error message:\n $child_sha\n Exiting"
       return -1
     }
-    if { "$child_sha" != "$commit_sha" } {
+    if {"$child_sha" != "$commit_sha"} {
       #Msg CriticalWarning "Child process $child_job_id SHA $child_sha does not correspond to current SHA $commit_sha. Ignoring child process"
       continue
     }
 
-    set result [catch {dict get $Child "name"} job_name ]
+    set result [catch {dict get $Child "name"} job_name]
     if {"$result" != "0" || "$job_name" != "collect_artifacts"} {
       continue
     }
 
     #ignoring jobs without artifacts
-    set result [catch {dict get $Child "artifacts"} artifact_list ]
+    set result [catch {dict get $Child "artifacts"} artifact_list]
     if {"$result" != "0"} {
       continue
     }

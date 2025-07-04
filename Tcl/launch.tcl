@@ -211,44 +211,44 @@ Msg Debug "Returned by InitLauncher: \
 $project $project_name $group_name $repo_path $old_path $bin_dir $top_path $cmd"
 
 set ext_path ""
-if { $options(ext_path) != ""} {
+if {$options(ext_path) != ""} {
   set ext_path $options(ext_path)
 }
 set simlib_path ""
 
 
 ######## DEFAULTS #########
-set do_implementation 0; set do_synthesis 0; set do_bitstream 0;
-set do_create 0; set do_compile 0; set do_simulation 0; set recreate 0;
-set do_reset 1; set do_list_all 2; set do_check_syntax 0;
+set do_implementation 0; set do_synthesis 0; set do_bitstream 0
+set do_create 0; set do_compile 0; set do_simulation 0; set recreate 0
+set do_reset 1; set do_list_all 2; set do_check_syntax 0
 
 ### Hog stand-alone directives ###
 # The following directives are used WITHOUT ever calling the IDE, they are run in tclsh
 # A place holder called new_directive can be followed to add new commands
 
 set do_ipbus_xml 0
-set do_list_file_parse 0;
-set do_check_yaml_ref 0;
-set do_buttons 0;
-set do_check_list_files 0;
-set do_compile_lib 0;
-set do_sigasi 0;
+set do_list_file_parse 0
+set do_check_yaml_ref 0
+set do_buttons 0
+set do_check_list_files 0
+set do_compile_lib 0
+set do_sigasi 0
 
 Msg Debug "Looking for a $directive in : $default_commands $custom_commands"
 switch -regexp -- $directive "$default_commands $custom_commands"
 
-if { $options(all) == 1 } {
+if {$options(all) == 1} {
   set do_list_all 1
 } else {
   set do_list_all 2
 }
 
-if {$options(dst_dir) == "" && ($do_ipbus_xml ==1 || $do_check_list_files == 1) && $project != ""} {
+if {$options(dst_dir) == "" && ($do_ipbus_xml == 1 || $do_check_list_files == 1) && $project != ""} {
   # Getting all the versions and SHAs of the repository
   lassign [GetRepoVersions [file normalize $repo_path/Top/$group_name/$project] \
-  $repo_path $ext_path] commit version hog_hash hog_ver top_hash top_ver libs hashes vers \
-  cons_ver cons_hash  ext_names ext_hashes xml_hash xml_ver user_ip_repos \
-  user_ip_hashes user_ip_vers
+    $repo_path $ext_path] commit version hog_hash hog_ver top_hash top_ver libs hashes vers \
+    cons_ver cons_hash ext_names ext_hashes xml_hash xml_ver user_ip_repos \
+    user_ip_hashes user_ip_vers
   cd $repo_path
 
   set describe [GetHogDescribe $commit $repo_path]
@@ -256,7 +256,7 @@ if {$options(dst_dir) == "" && ($do_ipbus_xml ==1 || $do_check_list_files == 1) 
 }
 
 if {$cmd == -1} {
-#This is if the project was not found
+  #This is if the project was not found
   Msg Status "\n\nPossible projects are:"
   ListProjects $repo_path $do_list_all
   Msg Status "\n"
@@ -268,15 +268,12 @@ if {$cmd == -1} {
   Msg Status "Possible projects are:"
   ListProjects $repo_path $do_list_all
   exit 1
-
 } elseif {$cmd == 0} {
   #This script was launched within the IDE,: Vivado, Quartus, etc
   Msg Info "$::argv0 was launched from the IDE."
-
 } else {
   # This script was launched with Tclsh, we need to check the arguments
   # and if everything is right launch the IDE on this script and return
-
 
 
   #### Directives to be handled in tclsh should be here ###
@@ -288,7 +285,7 @@ if {$cmd == -1} {
 
     set proj_dir $repo_path/Top/$project_name
 
-    if { $options(generate) == 1 } {
+    if {$options(generate) == 1} {
       set xml_gen 1
     } else {
       set xml_gen 0
@@ -298,10 +295,10 @@ if {$cmd == -1} {
     set xml_dst "$dst_dir/xml"
 
 
-    if {[llength [glob -nocomplain $proj_dir/list/*.ipb]] > 0 } {
+    if {[llength [glob -nocomplain $proj_dir/list/*.ipb]] > 0} {
       if {![file exists $xml_dst]} {
-	    Msg Info "$xml_dst directory not found, creating it..."
-	    file mkdir $xml_dst
+        Msg Info "$xml_dst directory not found, creating it..."
+        file mkdir $xml_dst
       }
     } else {
       Msg Error "No .ipb files found in $proj_dir/list/"
@@ -319,21 +316,21 @@ if {$cmd == -1} {
   }
 
   if {$do_list_file_parse == 1} {
-      set proj_dir $repo_path/Top/$project_name
-      set proj_list_dir $repo_path/Top/$project_name/list
-      GetHogFiles -print_log -list_files {.src,.con,.sim,.ext,.ipb}  $proj_list_dir $repo_path
-      Msg Status "  "
-      Msg Info "All Done."
+    set proj_dir $repo_path/Top/$project_name
+    set proj_list_dir $repo_path/Top/$project_name/list
+    GetHogFiles -print_log -list_files {.src,.con,.sim,.ext,.ipb} $proj_list_dir $repo_path
+    Msg Status "  "
+    Msg Info "All Done."
     exit 0
   }
 
-  if {$do_check_yaml_ref == 1 } {
+  if {$do_check_yaml_ref == 1} {
     Msg Info "Checking if \"ref\" in .gitlab-ci.yml actually matches the included yml file in Hog submodule"
     CheckYmlRef $repo_path false
     exit 0
   }
 
-  if {$do_buttons == 1 } {
+  if {$do_buttons == 1} {
     Msg Info "Adding Hog buttons to Vivado bar (will use the vivado currently in PATH)..."
     set ide vivado
     set cmd "vivado -mode batch -notrace -source $repo_path/Hog/Tcl/utils/add_hog_custom_button.tcl"
@@ -347,7 +344,7 @@ if {$cmd == -1} {
       set simulator $project
       Msg Info "Selecting $simulator simulator..."
     }
-    if { $options(dst_dir) != "" } {
+    if {$options(dst_dir) != ""} {
       set output_dir $options(dst_dir)
     } else {
       Msg Info "No destination directory defined. Using default: SimulationLib/"
@@ -369,7 +366,7 @@ if {$cmd == -1} {
         set ghdl_import 1
       }
       LaunchGHDL $project_name $repo_path $simset_name $simset_dict $ext_path
-        # dict unset simsets_dict $simset_name
+      # dict unset simsets_dict $simset_name
     }
     set ide_simsets [GetSimSets $project_name $repo_path $options(simset) 0 1]
 
@@ -378,7 +375,6 @@ if {$cmd == -1} {
       Msg Info "All simulations have been run, exiting..."
       exit 0
     }
-
   }
 
   # if {$do_new_directive ==1 } {
@@ -452,16 +448,16 @@ if {[IsLibero]} {
 set project_path [file normalize "$repo_path/Projects/$project_name/"]
 
 
-if { $options(no_bitstream) == 1 } {
+if {$options(no_bitstream) == 1} {
   set do_bitstream 0
   set do_compile 0
 }
 
-if { $options(recreate) == 1 } {
+if {$options(recreate) == 1} {
   set recreate 1
 }
 
-if { $options(synth_only) == 1} {
+if {$options(synth_only) == 1} {
   set do_implementation 0
   set do_synthesis 1
   set do_bitstream 0
@@ -469,7 +465,7 @@ if { $options(synth_only) == 1} {
   set do_compile 1
 }
 
-if { $options(impl_only) == 1} {
+if {$options(impl_only) == 1} {
   set do_implementation 1
   set do_synthesis 0
   set do_bitstream 0
@@ -478,18 +474,16 @@ if { $options(impl_only) == 1} {
 }
 
 
-if { $options(no_reset) == 1 } {
+if {$options(no_reset) == 1} {
   set do_reset 0
 }
 
-if { $options(check_syntax) == 1 } {
+if {$options(check_syntax) == 1} {
   set do_check_syntax 1
 }
 
 
-
-
-if {$options(lib)!= ""} {
+if {$options(lib) != ""} {
   set lib_path [file normalize $options(lib)]
 } else {
   if {[info exists env(HOG_SIMULATION_LIB_PATH)]} {
@@ -504,8 +498,7 @@ if {$options(lib)!= ""} {
 }
 
 
-
-if { $options(verbose) == 1 } {
+if {$options(verbose) == 1} {
   variable ::DEBUG_MODE 1
 }
 
@@ -522,7 +515,7 @@ if {[IsISE]} {
   cd $tcl_path
   set project_file [file normalize $repo_path/Projects/$project_name/$project.xpr]
 } elseif {[IsQuartus]} {
-  if { [catch {package require ::quartus::project} ERROR] } {
+  if {[catch {package require ::quartus::project} ERROR]} {
     Msg Error "$ERROR\n Can not find package ::quartus::project"
     cd $old_path
     return 1
@@ -566,7 +559,7 @@ if {($proj_found == 0 || $recreate == 1)} {
 
 
 ########## CHECK SYNTAX ###########
-if { $do_check_syntax == 1 } {
+if {$do_check_syntax == 1} {
   Msg Info "Checking syntax for project $project_name..."
   CheckSyntax $project_name $repo_path $project_file
 }
@@ -576,12 +569,12 @@ if {$do_synthesis == 1} {
   LaunchSynthesis $do_reset $do_create $run_folder $project_name $repo_path $ext_path $options(njobs)
 }
 
-if {$do_implementation == 1 } {
+if {$do_implementation == 1} {
   LaunchImplementation $do_reset $do_create $run_folder $project_name $repo_path $options(njobs) $do_bitstream
 }
 
 
-if {$do_bitstream == 1 && ![IsXilinx] } {
+if {$do_bitstream == 1 && ![IsXilinx]} {
   GenerateBitstream $run_folder $repo_path $options(njobs)
 }
 
@@ -595,15 +588,15 @@ if {$do_simulation == 1} {
 if {$do_check_list_files} {
   Msg Info "Running list file checker..."
 
-   #if {![file exists $dst_dir]} {
-	 #   Msg Info "$dst_dir directory not found, creating it..."
-	 #   file mkdir $dst_dir
-   # }
+  #if {![file exists $dst_dir]} {
+  #   Msg Info "$dst_dir directory not found, creating it..."
+  #   file mkdir $dst_dir
+  # }
 
 
-set argv0 check_list_files
+  set argv0 check_list_files
   if {$ext_path ne ""} {
-    set argv [list  "-ext_path" "$ext_path" "-outDir" "$dst_dir" "-pedantic"]
+    set argv [list "-ext_path" "$ext_path" "-outDir" "$dst_dir" "-pedantic"]
   } else {
     set argv [list "-outDir" "$dst_dir" "-pedantic"]
   }
@@ -621,7 +614,7 @@ if {$do_sigasi} {
   Msg Info "Generating IP targets for simulations..."
   foreach ip [get_ips] {
     set targets [list_targets [get_files [file tail [get_property IP_FILE $ip]]]]
-    if { [ lsearch -exact $targets simulation] >= 0 }  {
+    if {[lsearch -exact $targets simulation] >= 0} {
       generate_target simulation $ip
     } else {
       Msg Warning "IP $ip is not a simulation target, skipping..."
@@ -629,7 +622,7 @@ if {$do_sigasi} {
   }
 
 
-  set source_files [get_files -filter {(FILE_TYPE == VHDL || FILE_TYPE == "VHDL 2008" || FILE_TYPE == "VHDL 2019" || FILE_TYPE == VERILOG || FILE_TYPE == SYSTEMVERILOG) && USED_IN_SIMULATION == 1 } ]
+  set source_files [get_files -filter {(FILE_TYPE == VHDL || FILE_TYPE == "VHDL 2008" || FILE_TYPE == "VHDL 2019" || FILE_TYPE == VERILOG || FILE_TYPE == SYSTEMVERILOG) && USED_IN_SIMULATION == 1 }]
   if {$options(dst_dir) == ""} {
     set dst_path "$repo_path"
   } else {
@@ -644,7 +637,7 @@ if {$do_sigasi} {
   set csv_file [open $dst_path/$csv_name w]
 
   foreach source_file $source_files {
-    puts  $csv_file [ concat  [ get_property LIBRARY $source_file ] "," $source_file ]
+    puts $csv_file [concat [get_property LIBRARY $source_file] "," $source_file]
   }
   close $csv_file
 
@@ -655,14 +648,13 @@ if {$do_sigasi} {
     generate_target synthesis $ip
   }
 
-  set source_files [get_files -filter {(FILE_TYPE == VHDL || FILE_TYPE == "VHDL 2008" || FILE_TYPE == "VHDL 2019" || FILE_TYPE == VERILOG || FILE_TYPE == SYSTEMVERILOG) && USED_IN_SYNTHESIS == 1 } ]
+  set source_files [get_files -filter {(FILE_TYPE == VHDL || FILE_TYPE == "VHDL 2008" || FILE_TYPE == "VHDL 2019" || FILE_TYPE == VERILOG || FILE_TYPE == SYSTEMVERILOG) && USED_IN_SYNTHESIS == 1 }]
   Msg Info "Creating sigasi csv file for synthesis $dst_path/$csv_name..."
   set csv_file [open $dst_path/$csv_name w]
   foreach source_file $source_files {
-    puts  $csv_file [ concat  [ get_property LIBRARY $source_file ] "," $source_file ]
+    puts $csv_file [concat [get_property LIBRARY $source_file] "," $source_file]
   }
   close $csv_file
-
 }
 
 ## CLOSE Project

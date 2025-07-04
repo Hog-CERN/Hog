@@ -69,7 +69,7 @@ if {[IsXilinx]} {
     set secondary_file_suffix "_boot"
     Msg Info "Found main and secondary binary file main: [file tail $main_file], secondary: [file tail $secondary_file]..."
     # remove _pld suffix only at the end
-    set top_name  [regsub $main_file_suffix\$ [file rootname [file tail $main_file]] ""]
+    set top_name [regsub $main_file_suffix\$ [file rootname [file tail $main_file]] ""]
     if {[llength $main_files] > 2} {
       Msg Warning "Multiple (more than 2) binary files found: $main_files."
     }
@@ -78,23 +78,18 @@ if {[IsXilinx]} {
     set main_file_suffix ""
     set secondary_file ""
     set secondary_file_suffix ""
-    set top_name  [file rootname [file tail $main_file]]    
+    set top_name [file rootname [file tail $main_file]]
   }
 
 
-  
-
-  
   set proj_name [file tail [file normalize $work_path/../../]]
   set proj_dir [file normalize "$work_path/../.."]
-
 
 
   set additional_ext ".bin .ltx .bif"
 
   set xml_dir [file normalize "$work_path/../xml"]
   set run_dir [file normalize "$work_path/.."]
-
 } elseif {[IsQuartus]} {
   # Quartus
   ##nagelfar ignore Unknown variable
@@ -115,7 +110,6 @@ if {[IsXilinx]} {
   set stp_file [file normalize "$proj_dir/output_files/$proj_name.stp"]
   #source and probes file
   set spf_file [file normalize "$proj_dir/output_files/$proj_name.spf"]
-
 } elseif {[IsLibero]} {
   # Libero
   ##nagelfar ignore Unknown variable
@@ -138,21 +132,20 @@ if {[IsXilinx]} {
   set dlog_files [glob -nocomplain "$proj_dir/designer/$top_name/*.log"]
   set drpt_files [glob -nocomplain "$proj_dir/designer/$top_name/*.rpt"]
   set xml_dir [file normalize "$repo_path/xml"]
-
 } elseif {[IsDiamond]} {
   set proj_dir [file normalize "[pwd]/.."]
   set proj_name [file tail $proj_dir]
   set project $proj_name
   set xml_dir [file normalize "$repo_path/xml"]
-  set main_file [file normalize "$proj_dir/Implementation0/${proj_name}_Implementation0" ]
+  set main_file [file normalize "$proj_dir/Implementation0/${proj_name}_Implementation0"]
 } else {
   #tcl shell
   set work_path $old_path
-  set fw_file   [file normalize [lindex [glob -nocomplain "$work_path/*.bit"] 0]]
+  set fw_file [file normalize [lindex [glob -nocomplain "$work_path/*.bit"] 0]]
   set proj_name [file tail [file normalize $work_path/../../]]
   set proj_dir [file normalize "$work_path/../.."]
 
-  set top_name  [file rootname [file tail $fw_file]]
+  set top_name [file rootname [file tail $fw_file]]
 
   set main_file [file normalize "$work_path/$top_name.bit"]
   set bin_file [file normalize "$work_path/$top_name.bin"]
@@ -187,12 +180,10 @@ if {[IsXilinx] && [file exists $main_file]} {
   Msg Info "Copying main binary file $main_file into $dst_main..."
   file copy -force $main_file $dst_main
   if {$secondary_file != ""} {
-    set dst_secondary [file normalize "$dst_dir/$proj_name$secondary_file_suffix\-$describe.$fw_file_ext"]    
+    set dst_secondary [file normalize "$dst_dir/$proj_name$secondary_file_suffix\-$describe.$fw_file_ext"]
     Msg Info "Copying secondary binary file $secondary_file into $dst_secondary..."
-    file copy -force $secondary_file $dst_secondary    
+    file copy -force $secondary_file $dst_secondary
   }
-
-  
 
 
   # Additional files
@@ -202,15 +193,15 @@ if {[IsXilinx] && [file exists $main_file]} {
     foreach e $additional_ext {
       lappend new_ext $e
       lappend new_ext $main_file_suffix$e
-      lappend new_ext $secondary_file_suffix$e      
+      lappend new_ext $secondary_file_suffix$e
       lappend ltx_files "$top_name.ltx"
       lappend ltx_files "$top_name$main_file_suffix.ltx"
-      lappend ltx_files "$top_name$secondary_file_suffix.ltx"      
+      lappend ltx_files "$top_name$secondary_file_suffix.ltx"
     }
     set additional_ext $new_ext
   }
 
-  
+
   # LTX file for ILA, needs a special treatment...
   foreach l $ltx_files {
     set ltx_file "$work_path/$l"
@@ -219,23 +210,18 @@ if {[IsXilinx] && [file exists $main_file]} {
       write_debug_probes -quiet $ltx_file
     }
   }
-  
+
   foreach e $additional_ext {
     set orig [file normalize "$work_path/$top_name$e"]
-    set dst  [file normalize "$dst_dir/$proj_name\-$describe$e"]
+    set dst [file normalize "$dst_dir/$proj_name\-$describe$e"]
     if {[file exists $orig]} {
       Msg Info "Copying $orig file into $dst..."
       file copy -force $orig $dst
     } else {
       Msg Debug "File: $orig not found."
     }
-
   }
-
-
-
 } elseif {[IsQuartus]} {
-
   set dst_pof [file normalize "$dst_dir/$name\-$describe.pof"]
   set dst_sof [file normalize "$dst_dir/$name\-$describe.sof"]
   set dst_rbf [file normalize "$dst_dir/$name\-$describe.rbf"]
@@ -288,7 +274,7 @@ if {[IsXilinx] && [file exists $main_file]} {
 
 
   #rbf rpd
-  if { [file exists $rbf_file] ||  [file exists $rpd_file] } {
+  if {[file exists $rbf_file] || [file exists $rpd_file]} {
     if {[file exists $rbf_file]} {
       file copy -force $rbf_file $dst_rbf
     }
@@ -310,9 +296,7 @@ if {[IsXilinx] && [file exists $main_file]} {
   } else {
     Msg Info "No stp or spf file found: that is not a problem"
   }
-
-} elseif {[IsLibero] } {
-
+} elseif {[IsLibero]} {
   set dst_map [file normalize "$dst_dir/$project\-$describe.map"]
   set dst_sap [file normalize "$dst_dir/$project\-$describe.sap"]
   set dst_srd [file normalize "$dst_dir/$project\-$describe.srd"]
@@ -372,15 +356,12 @@ if {[IsXilinx] && [file exists $main_file]} {
   file copy -force {*}$dlog_files $dst_rpt
   Msg Info "Copying impl rpt files $drpt_files into $dst_rpt..."
   file copy -force {*}$drpt_files $dst_rpt
-
-} elseif {[IsDiamond] } {
+} elseif {[IsDiamond]} {
   set dst_main [file normalize "$dst_dir/$proj_name\-$describe.bit"]
   Msg Info "Copying main binary file $main_file.bit into $dst_main..."
   file copy -force $main_file.bit $dst_main
   Msg Info "Copying binary generation log $main_file.bgn into $dst_dir/reports..."
   file copy -force $main_file.bgn $dst_dir/reports
-
-
 } else {
   Msg CriticalWarning "Firmware binary file not found."
 }
@@ -412,7 +393,7 @@ if {[IsXilinx]} {
     }
   }
 
-  if { $export_xsa == "NONE" } {
+  if {$export_xsa == "NONE"} {
     set export_xsa false
     if {([IsZynq $part] || [IsVersal $part])} {
       Msg Info "SoC FPGA detected (Zynq or Versal), automatically enabling XSA file creation. To disable it, add 'EXPORT_XSA = false' in the \[hog\] section of hog.conf."
@@ -420,37 +401,35 @@ if {[IsXilinx]} {
     }
   }
 
-  if {[string compare [string tolower $export_xsa] "true"]==0} {
+  if {[string compare [string tolower $export_xsa] "true"] == 0} {
     # there is a bug in Vivado 2020.1, check for that version and warn
     # that we can't export XSAs
     regexp -- {Vivado v([0-9]{4}\.[0-9,A-z,_,\.]*) } [version] -> VIVADO_VERSION
-    if {[string compare "2020.1" $VIVADO_VERSION]==0} {
+    if {[string compare "2020.1" $VIVADO_VERSION] == 0} {
       Msg Warning "Vivado 2020.1, a patch must be applied to Vivado to export XSA Files, c.f. https://www.xilinx.com/support/answers/75210.html"
     } else {
-
       set dst_xsa [file normalize "$dst_dir/${proj_name}\-$describe.xsa"]
       Msg Info "Generating XSA File at $dst_xsa"
 
-      if { [IsVersal $part] } {
-	# Run user pre-platform file
+      if {[IsVersal $part]} {
+        # Run user pre-platform file
         set user_pre_platform_file "./Top/$group_name/$proj_name/pre-platform.tcl"
         if {[file exists $user_pre_platform_file]} {
           Msg Info "Sourcing user pre-platform file $user_pre_platform_file"
           source $user_pre_platform_file
         }
 
-	#We do not want to touch the full_pdi_file property if there is a _boot .pdi file
-	if {$secondary_file == ""} {
-	  set pdi_post_imp [file normalize "$work_path/$top_name.pdi"]
-	  set_property platform.full_pdi_file $pdi_post_imp [current_project]
-	  Msg Info "XSA file will be generated for Versal with this PDI: $pdi_post_imp"
-	  write_hw_platform -fixed -force -file "$dst_xsa"	  
-	}
-	Msg Warning "No XSA will be produced in post-bitream for segmented configuration mode. If you're running with the GUI, please type the following on the Tcl console: write_hw_platform -fixed -force -file $dst_xsa."
-
+        #We do not want to touch the full_pdi_file property if there is a _boot .pdi file
+        if {$secondary_file == ""} {
+          set pdi_post_imp [file normalize "$work_path/$top_name.pdi"]
+          set_property platform.full_pdi_file $pdi_post_imp [current_project]
+          Msg Info "XSA file will be generated for Versal with this PDI: $pdi_post_imp"
+          write_hw_platform -fixed -force -file "$dst_xsa"
+        }
+        Msg Warning "No XSA will be produced in post-bitream for segmented configuration mode. If you're running with the GUI, please type the following on the Tcl console: write_hw_platform -fixed -force -file $dst_xsa."
       } else {
-      # we leave include bit also for Versal
-      write_hw_platform -include_bit -fixed -force -file "$dst_xsa"
+        # we leave include bit also for Versal
+        write_hw_platform -include_bit -fixed -force -file "$dst_xsa"
       }
     }
   }

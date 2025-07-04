@@ -54,7 +54,6 @@ if {[IsXilinx]} {
   set proj_name [file rootname [file tail $proj_file]]
   set run_dir [file normalize "$work_path/.."]
   set top_name [get_property top [current_fileset]]
-
 } elseif {[IsQuartus]} {
   # Quartus
   set proj_name [lindex $quartus(args) 1]
@@ -87,7 +86,6 @@ set bin_dir [file normalize "$repo_path/bin"]
 set dst_dir [file normalize "$bin_dir/$group_name/$proj_name\-$describe"]
 
 
-
 Msg Info "Evaluating last git SHA in which $proj_name was modified..."
 set commit "0000000"
 
@@ -99,20 +97,20 @@ if {[file exists $dst_dir/diff_presynthesis.txt]} {
   close $fp
   if {$file_data != ""} {
     Msg CriticalWarning "Git working directory [pwd] not clean, git commit hash be set to 0."
-    set commit_usr  "0000000"
-    set commit   "0000000"
+    set commit_usr "0000000"
+    set commit "0000000"
   } else {
-    lassign [GetRepoVersions [file normalize ./Top/$group_name/$proj_name] $repo_path ] commit version
+    lassign [GetRepoVersions [file normalize ./Top/$group_name/$proj_name] $repo_path] commit version
   }
 } else {
-  lassign [GetRepoVersions [file normalize ./Top/$group_name/$proj_name] $repo_path ] commit version
+  lassign [GetRepoVersions [file normalize ./Top/$group_name/$proj_name] $repo_path] commit version
 }
 
 #number of threads
 set maxThreads [GetMaxThreads [file normalize ./Top/$group_name/$proj_name]]
 if {$maxThreads != 1} {
   Msg CriticalWarning "Multithreading enabled. Number of threads: $maxThreads"
-  set commit_usr   "0000000"
+  set commit_usr "0000000"
 } else {
   set commit_usr $commit
 }
@@ -124,8 +122,8 @@ if {[file exists $dst_dir/diff_list_and_conf.txt]} {
   close $fp
   if {$file_data != ""} {
     Msg CriticalWarning "List files and project properties not clean, git commit hash be set to 0."
-    set commit_usr  "0000000"
-    set commit   "0000000"
+    set commit_usr "0000000"
+    set commit "0000000"
   }
 }
 
@@ -141,9 +139,9 @@ if {[IsXilinx]} {
     set PART [get_property part [current_project]]
     # only some part families have both usr_access and userid
     if {[string first "xc5v" $PART] != -1 || [string first "xc6v" $PART] != -1 || [string first "xc7" $PART] != -1} {
-      set props  "$props -g usr_access:0x[format %08X 0x$commit] -g userid:0x[format %08X 0x$commit_usr]"
+      set props "$props -g usr_access:0x[format %08X 0x$commit] -g userid:0x[format %08X 0x$commit_usr]"
     } else {
-      set props  "$props -g userid:0x[format %08X 0x$commit_usr]"
+      set props "$props -g userid:0x[format %08X 0x$commit_usr]"
     }
     set_property -name {steps.bitgen.args.More Options} -value $props -objects [get_runs impl_1]
   } else {
@@ -192,7 +190,7 @@ set confDict [dict create]
 set full_diff_log 0
 if {[file exists "$tcl_path/../../Top/$group_name/$proj_name/hog.conf"]} {
   set confDict [ReadConf "$tcl_path/../../Top/$group_name/$proj_name/hog.conf"]
-  set full_diff_log [DictGet [DictGet $confDict "hog"] "FULL_DIFF_LOG"  0]
+  set full_diff_log [DictGet [DictGet $confDict "hog"] "FULL_DIFF_LOG" 0]
 }
 
 Msg Info "Evaluating differences with last commit..."
@@ -232,7 +230,7 @@ if {[IsXilinx]} {
 
   if {[file exists [lindex $reps 0]]} {
     file copy -force {*}$reps $dst_dir/reports
-    if {[file exists [glob -nocomplain "$dst_dir/reports/${top_name}_utilization_placed.rpt"] ]} {
+    if {[file exists [glob -nocomplain "$dst_dir/reports/${top_name}_utilization_placed.rpt"]]} {
       set utilization_file [file normalize $dst_dir/utilization.txt]
       set report_file [glob -nocomplain "$dst_dir/reports/${top_name}_utilization_placed.rpt"]
       if {$group_name != ""} {
@@ -299,7 +297,7 @@ if {[IsXilinx]} {
     Msg Warning "No .mrp reports found in $proj_dir/Implementation0 subfolders"
   }
 
-   # P&R Report Files (PAR)
+  # P&R Report Files (PAR)
   set par_reps [glob -nocomplain "$proj_dir/Implementation0/*.par"]
 
   if {[file exists [lindex $par_reps 0]]} {

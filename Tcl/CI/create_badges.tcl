@@ -18,18 +18,18 @@
 
 
 proc generate_prj_badge {prj_name ver color file} {
-    set font_size 11.0
-    set max_characters 20.0
-    puts [string length $prj_name]
-    if { [expr {[string length $prj_name] > $max_characters}] } {
-      set scaling_factor [expr { $max_characters / [string length $prj_name] } ]
-      puts $font_size
-      set font_size [expr {ceil($scaling_factor*$font_size)}]
-      puts $scaling_factor
-      puts $font_size
-    }
+  set font_size 11.0
+  set max_characters 20.0
+  puts [string length $prj_name]
+  if {[expr {[string length $prj_name] > $max_characters}]} {
+    set scaling_factor [expr {$max_characters / [string length $prj_name]}]
+    puts $font_size
+    set font_size [expr {ceil($scaling_factor * $font_size)}]
+    puts $scaling_factor
+    puts $font_size
+  }
 
-    set svg_content "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
+  set svg_content "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
 <svg xmlns=\"http://www.w3.org/2000/svg\" width=\"250\" height=\"20\">
     <linearGradient id=\"b\" x2=\"0\" y2=\"100%\">
         <stop offset=\"0\" stop-color=\"#bbb\" stop-opacity=\".1\"/>
@@ -52,17 +52,19 @@ proc generate_prj_badge {prj_name ver color file} {
     </g>
 </svg>"
 
-    if {[catch {
-        set fh [open $file w]
-        puts $fh $svg_content
-        close $fh
-    } error_msg]} {
-        error "Failed to write to file: $error_msg"
-    }
+  if {
+    [catch {
+      set fh [open $file w]
+      puts $fh $svg_content
+      close $fh
+    } error_msg]
+  } {
+    error "Failed to write to file: $error_msg"
+  }
 }
 
 proc generate_res_badge {res res_value color file} {
-    set svg_content "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
+  set svg_content "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
 <svg xmlns=\"http://www.w3.org/2000/svg\" width=\"120\" height=\"20\">
     <linearGradient id=\"b\" x2=\"0\" y2=\"100%\">
         <stop offset=\"0\" stop-color=\"#bbb\" stop-opacity=\".1\"/>
@@ -86,14 +88,15 @@ proc generate_res_badge {res res_value color file} {
     </g>
 </svg>"
 
-    if {[catch {
-        set fh [open $file w]
-        puts $fh $svg_content
-        close $fh
-    } error_msg]} {
-        error "Failed to write to file: $error_msg"
-    }
-
+  if {
+    [catch {
+      set fh [open $file w]
+      puts $fh $svg_content
+      close $fh
+    } error_msg]
+  } {
+    error "Failed to write to file: $error_msg"
+  }
 }
 
 set OldPath [pwd]
@@ -103,7 +106,7 @@ source $TclPath/hog.tcl
 
 set usage "- CI script that creates GitLab badges with utilisation and timing results for a chosen Hog project \n USAGE: $::argv0 <push token> <Gitlab api url> <Gitlab project id> <Gitlab project url> <GitLab Server URL> <Hog project> <ext_path>"
 
-if { [llength $argv] < 7 } {
+if {[llength $argv] < 7} {
   Msg Info [cmdline::usage $usage]
   cd $OldPath
   return
@@ -124,7 +127,7 @@ set project [lindex $argv 5]
 set ext_path [lindex $argv 6]
 
 set resources [dict create "LUTs" "LUTs" "Registers" "FFs" "Block" "BRAM" "URAM" "URAM" "DSPs" "DSPs"]
-set ver [ GetProjectVersion $repo_path/Top/$project $repo_path $ext_path 0 ]
+set ver [GetProjectVersion $repo_path/Top/$project $repo_path $ext_path 0]
 
 set accumulated ""
 set current_badges [dict create]
@@ -145,7 +148,7 @@ while {1} {
 }
 
 
-if {[catch {glob -types d $repo_path/bin/$project-${ver} } prj_dir]} {
+if {[catch {glob -types d $repo_path/bin/$project-${ver}} prj_dir]} {
   Msg CriticalWarning "Cannot find $project binaries in artifacts"
   return
 }
@@ -186,9 +189,9 @@ if {[file exists utilization.txt]} {
   foreach res [dict keys $usage_dict] {
     set usage [DictGet $usage_dict $res]
     set res_value "$usage\% "
-    if {[ expr {$usage < 50.0} ]} {
+    if {[expr {$usage < 50.0}]} {
       generate_res_badge $res $res_value "#90CAF9" "$res-$prj_name.svg"
-    } elseif {[ expr {$usage < 80.0} ]} {
+    } elseif {[expr {$usage < 80.0}]} {
       generate_res_badge $res $res_value "#1565C0" "$res-$prj_name.svg"
     } else {
       generate_res_badge $res $res_value "#0D2B6B" "$res-$prj_name.svg"

@@ -39,7 +39,6 @@ if {[catch {package require struct::matrix} ERROR]} {
 }
 
 
-
 if {[IsISE]} {
   # Vivado + PlanAhead
   set project [file tail $project_name]
@@ -73,7 +72,7 @@ if {[IsXilinx]} {
   set proj_file [file normalize "$proj_dir/$proj_name.qpf"]
   # Test generated files
   set hogQsysFileName [file normalize "$proj_dir/.hog/.hogQsys.md5"]
-  if { [file exists $hogQsysFileName] != 0} {
+  if {[file exists $hogQsysFileName] != 0} {
     set hogQsysFile [open $hogQsysFileName r]
     set hogQsysFileLines [split [read $hogQsysFile] "\n"]
     foreach line $hogQsysFileLines {
@@ -83,7 +82,7 @@ if {[IsXilinx]} {
         if {[file exists $fileEntryName]} {
           set newMd5Sum [Md5Sum $fileEntryName]
           set oldMd5Sum [lindex $fileEntry 1]
-          if { $newMd5Sum != $oldMd5Sum } {
+          if {$newMd5Sum != $oldMd5Sum} {
             Msg Warning "The checksum for file $fileEntryName not equal to the one saved in $hogQsysFileName: new checksum $newMd5Sum, old checksum $oldMd5Sum. Please check the any changes in the file are correctly propagated to git!"
           }
         } else {
@@ -91,10 +90,9 @@ if {[IsXilinx]} {
         }
       }
     }
-
   }
 } elseif {[IsSynplify]} {
-  set proj_dir [file normalize [file dirname "[project_data -dir]/../.."]  ]
+  set proj_dir [file normalize [file dirname "[project_data -dir]/../.."]]
   set proj_name [file tail $proj_dir]
   set project $proj_name
 } elseif {[IsDiamond]} {
@@ -124,7 +122,6 @@ if {$flavour != ""} {
     Msg Warning "Project name has a unexpected non numeric extension, flavour will be set to -1"
     set flavour -1
   }
-
 } else {
   set flavour -1
 }
@@ -133,7 +130,7 @@ if {$flavour != ""} {
 ResetRepoFiles "./Projects/hog_reset_files"
 
 # Getting all the versions and SHAs of the repository
-lassign [GetRepoVersions [file normalize $repo_path/Top/$group/$proj_name] $repo_path $ext_path] commit version  hog_hash hog_ver  top_hash top_ver  libs hashes vers  cons_ver cons_hash  ext_names ext_hashes  xml_hash xml_ver user_ip_repos user_ip_hashes user_ip_vers
+lassign [GetRepoVersions [file normalize $repo_path/Top/$group/$proj_name] $repo_path $ext_path] commit version hog_hash hog_ver top_hash top_ver libs hashes vers cons_ver cons_hash ext_names ext_hashes xml_hash xml_ver user_ip_repos user_ip_hashes user_ip_vers
 
 
 set describe [GetHogDescribe $commit $repo_path]
@@ -147,12 +144,12 @@ set confDict [dict create]
 set allow_fail_on_conf 0
 set allow_fail_on_list 0
 set allow_fail_on_git 0
-set full_diff_log     0
+set full_diff_log 0
 if {[file exists "$tcl_path/../../Top/$group/$proj_name/hog.conf"]} {
   set confDict [ReadConf "$tcl_path/../../Top/$group/$proj_name/hog.conf"]
   set allow_fail_on_check [DictGet [DictGet $confDict "hog"] "ALLOW_FAIL_ON_CHECK" 0]
-  set allow_fail_on_git  [DictGet [DictGet $confDict "hog"] "ALLOW_FAIL_ON_GIT"  0]
-  set full_diff_log      [DictGet [DictGet $confDict "hog"] "FULL_DIFF_LOG"      0]
+  set allow_fail_on_git [DictGet [DictGet $confDict "hog"] "ALLOW_FAIL_ON_GIT" 0]
+  set full_diff_log [DictGet [DictGet $confDict "hog"] "FULL_DIFF_LOG" 0]
 }
 
 
@@ -197,7 +194,7 @@ if {$diff != ""} {
   Msg CriticalWarning "Repository is not clean, will use current SHA ($this_commit) and create a dirty bitfile..."
 }
 
-lassign [GetHogFiles  -ext_path "$ext_path" "$tcl_path/../../Top/$group/$proj_name/list/" "$tcl_path/../../"] listLibraries listProperties
+lassign [GetHogFiles -ext_path "$ext_path" "$tcl_path/../../Top/$group/$proj_name/list/" "$tcl_path/../../"] listLibraries listProperties
 
 if {!$allow_fail_on_git} {
   foreach library [dict keys $listLibraries] {
@@ -222,7 +219,7 @@ if {$found_uncommitted == 0} {
 
 
 # Check if repository has v0.0.1 tag
-lassign [GitRet "tag -l v0.0.1" ] status result
+lassign [GitRet "tag -l v0.0.1"] status result
 if {$status == 1} {
   Msg CriticalWarning "Repository does not have an initial v0.0.1 tag yet. Please create it with \"git tag v0.0.1\" "
 }
@@ -230,7 +227,7 @@ if {$status == 1} {
 
 Msg Info "Git describe for $commit is: $describe"
 
-if {$commit == 0 } {
+if {$commit == 0} {
   set commit $this_commit
 } else {
   Msg Info "Found last SHA for $proj_name: $commit"
@@ -266,7 +263,7 @@ if {![IsDiamond]} {
     set_param general.maxThreads $maxThreads
   } elseif {[IsQuartus]} {
     # QUARTUS
-    if { [catch {package require ::quartus::project} ERROR] } {
+    if {[catch {package require ::quartus::project} ERROR]} {
       Msg Error "$ERROR\n Can not find package ::quartus::project"
       cd $old_path
       return 1
@@ -289,7 +286,7 @@ if {[GitVersion 2.9.3]} {
   set timee [Git "log -1 --format=%cd --date=format:00%H%M%S $commit"]
 } else {
   Msg Warning "Found Git version older than 2.9.3. Using current date and time instead of commit time."
-  set date [clock format $clock_seconds  -format {%d%m%Y}]
+  set date [clock format $clock_seconds -format {%d%m%Y}]
   set timee [clock format $clock_seconds -format {00%H%M%S}]
 }
 
@@ -301,16 +298,15 @@ if {[IsXilinx] || [IsSynplify] || [IsDiamond]} {
   if {[IsDiamond]} {
     prj_project open $proj_dir/$proj_name.ldf
   }
-  WriteGenerics "synth" $repo_path $proj_group_and_name $date $timee $commit $version $top_hash $top_ver $hog_hash $hog_ver $cons_ver $cons_hash  $libs $vers $hashes $ext_names $ext_hashes $user_ip_repos $user_ip_vers $user_ip_hashes $flavour $xml_ver $xml_hash
+  WriteGenerics "synth" $repo_path $proj_group_and_name $date $timee $commit $version $top_hash $top_ver $hog_hash $hog_ver $cons_ver $cons_hash $libs $vers $hashes $ext_names $ext_hashes $user_ip_repos $user_ip_vers $user_ip_hashes $flavour $xml_ver $xml_hash
   if {[IsDiamond]} {
     prj_project save
     prj_project close
   }
   set status_file [file normalize "$old_path/../versions.txt"]
-
 } elseif {[IsQuartus]} {
   #Quartus
-  if { [catch {package require ::quartus::project} ERROR] } {
+  if {[catch {package require ::quartus::project} ERROR]} {
     Msg Error "$ERROR\n Can not find package ::quartus::project"
     cd $old_path
     return 1
@@ -373,7 +369,6 @@ if {[IsXilinx] || [IsSynplify] || [IsDiamond]} {
 
   set status_file "$old_path/output_files/versions.txt"
   project_close
-
 } else {
   ### Tcl Shell
   puts "Hog:DEBUG GLOBAL_DATE=$date GLOBAL_TIME=$timee"
@@ -384,8 +379,7 @@ if {[IsXilinx] || [IsSynplify] || [IsDiamond]} {
   puts "Hog:DEBUG LIBS: $libs $vers $hashes"
   puts "Hog:DEBUG EXT: $ext_names $ext_hashes"
   puts "Hog:DEBUG FLAVOUR: $flavour"
-  set  status_file "$old_path/versions.txt"
-
+  set status_file "$old_path/versions.txt"
 }
 Msg Info "Opening version file $status_file..."
 set status_file [open $status_file "w+"]
@@ -407,14 +401,14 @@ if {$group != ""} {
 struct::matrix m
 m add columns 7
 
-m add row  "| \"**File set**\" | \"**Commit SHA**\" | **Version**  |"
-m add row  "| --- | --- | --- |"
+m add row "| \"**File set**\" | \"**Commit SHA**\" | **Version**  |"
+m add row "| --- | --- | --- |"
 Msg Status " Global SHA: $commit, VER: $version"
-m add row  "| Global | $commit | $version |"
+m add row "| Global | $commit | $version |"
 
 set cons_ver [HexVersionToString $cons_ver]
 Msg Status " Constraints SHA: $cons_hash, VER: $cons_ver"
-m add row  "| Constraints | $cons_hash | $cons_ver |"
+m add row "| Constraints | $cons_hash | $cons_ver |"
 
 if {$use_ipbus == 1} {
   set xml_ver [HexVersionToString $xml_ver]
@@ -437,7 +431,6 @@ foreach l $libs v $vers h $hashes {
 }
 
 if {[llength $user_ip_repos] > 0} {
-
   Msg Status " --- User IP Repositories ---"
   foreach r $user_ip_repos v $user_ip_vers h $user_ip_hashes {
     set v [HexVersionToString $v]

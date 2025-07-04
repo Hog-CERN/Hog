@@ -36,14 +36,14 @@ if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}]}
   exit 1
 }
 
-if { $options(simulator) != "" } {
+if {$options(simulator) != ""} {
   set simulator $options(simulator)
 } else {
   Msg Error "No simulator has been selected. Exiting..."
   exit 1
 }
 
-if { $options(output_dir) != "" } {
+if {$options(output_dir) != ""} {
   set output_dir $options(output_dir)
 } else {
   Msg Info "No output_dir has been defined. Using default: SimulationLib/"

@@ -20,18 +20,18 @@
 
 ##nagelfar variable quartus
 
-set tcl_path  [file normalize "[file dirname [info script]]/.."]
-if {[info procs Msg] == "" } {
+set tcl_path [file normalize "[file dirname [info script]]/.."]
+if {[info procs Msg] == ""} {
   source $tcl_path/hog.tcl
 }
 
 set stage [lindex $quartus(args) 0]
 
-if { [string compare $stage "quartus_map"] == 0 || [string compare $stage "quartus_syn"] == 0 } {
+if {[string compare $stage "quartus_map"] == 0 || [string compare $stage "quartus_syn"] == 0} {
   set script_path [file normalize "$tcl_path/integrated/post-synthesis.tcl"]
-} elseif { [string compare $stage "quartus_fit"] == 0 } {
+} elseif {[string compare $stage "quartus_fit"] == 0} {
   set script_path [file normalize "$tcl_path/integrated/post-implementation.tcl"]
-} elseif { [string compare $stage "quartus_asm"] == 0 } {
+} elseif {[string compare $stage "quartus_asm"] == 0} {
   set script_path [file normalize "$tcl_path/integrated/post-bitstream.tcl"]
 } else {
   Msg Info "Unsupported step: $stage"
@@ -41,5 +41,3 @@ if { [string compare $stage "quartus_map"] == 0 || [string compare $stage "quart
 if {[file exists $script_path]} {
   source $script_path
 }
-
-

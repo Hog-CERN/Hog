@@ -47,19 +47,19 @@ if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}]}
   exit 1
 }
 
-if { $options(runall) == 1 } {
+if {$options(runall) == 1} {
   set runall 1
 } else {
   set runall 0
 }
-if { $options(static) == 1 } {
+if {$options(static) == 1} {
   set static 1
   set runall 1
 } else {
   set static 0
 }
 
-if { $options(external_path) != "" } {
+if {$options(external_path) != ""} {
   set ext_path $options(external_path)
   Msg Info "External path set to $ext_path"
 } else {
@@ -70,12 +70,12 @@ if { $options(external_path) != "" } {
 set stage_list $CI_STAGES
 set prop_list $CI_PROPS
 
-if {$static == 1 } {
-  if { [file exists "$repo_path/.gitlab-ci.yml"] } {
-    set created_yml  "$repo_path/new_gitlab-ci.yml"
+if {$static == 1} {
+  if {[file exists "$repo_path/.gitlab-ci.yml"]} {
+    set created_yml "$repo_path/new_gitlab-ci.yml"
     Msg Warning "$repo_path/.gitlab-ci.yml, will create (and possibly repleace) $created_yml, please rename it if you want Hog-CI to work."
   } else {
-    set created_yml  "$repo_path/.gitlab-ci.yml"
+    set created_yml "$repo_path/.gitlab-ci.yml"
   }
   Msg Info "Creating new file $created_yml..."
   set fp [open $created_yml w]
@@ -88,9 +88,8 @@ if {$static == 1 } {
   #set outer [huddle create "inculde" [huddle list [huddle string "project: 'hog/Hog'" "file" "'/hog.yml'" "ref" "'$ref'" ]]]
   #puts $fp [ string trimleft [ yaml::huddle2yaml $outer ] "-" ]
   puts $fp "include:\n  - project: 'hog/Hog'\n    file: 'hog.yml'\n    ref: '$ref'\n"
-
 } else {
-  set created_yml  "$repo_path/generated-config.yml"
+  set created_yml "$repo_path/generated-config.yml"
   Msg Info "Copying $repo_path/Hog/YAML/hog-common.yml to $created_yml..."
   file copy -force $repo_path/Hog/YAML/hog-common.yml $created_yml
   set fp [open $created_yml a]
@@ -101,7 +100,7 @@ if {$static == 1 } {
   regsub -all {\-\-\-} $file_data "" file_data
   puts $fp $file_data
   puts $fp "\n"
-  if { [ file exists "$repo_path/hog-ci-users.yml" ] == 1} {
+  if {[file exists "$repo_path/hog-ci-users.yml"] == 1} {
     Msg Info "Copying $repo_path/hog-ci-users.yml to $created_yml..."
     set fp3 [open "$repo_path/hog-ci-users.yml" r]
     set file_data [read $fp3]
@@ -114,13 +113,12 @@ if {$static == 1 } {
 
 set projects_list [SearchHogProjects $repo_path/Top]
 foreach proj $projects_list {
-
   set proj_name [file tail $proj]
   set dir $repo_path/Top/$proj
-  set ver [ GetProjectVersion $dir $repo_path $ext_path 1 ]
+  set ver [GetProjectVersion $dir $repo_path $ext_path 1]
   set no_ver_check 0
 
-  if { [ file exists "$dir/ci.conf" ] == 1} {
+  if {[file exists "$dir/ci.conf"] == 1} {
     Msg Info "Foung CI configuration file $dir/ci.conf, reading configuration for $proj..."
     set ci_confs [ReadConf $dir/ci.conf]
     set f [open $dir/ci.conf "r"]
@@ -137,12 +135,12 @@ foreach proj $projects_list {
     } else {
       Msg Info "$proj is set to always run, adding it to CI..."
     }
-    if { [ file exists "$dir/ci.conf" ] == 1} {
+    if {[file exists "$dir/ci.conf"] == 1} {
       Msg Info "Found CI configuration file $dir/ci.conf, reading configuration for $proj..."
-      puts $fp [ WriteGitLabCIYAML $proj $dir/ci.conf ]
+      puts $fp [WriteGitLabCIYAML $proj $dir/ci.conf]
     } else {
       Msg Info "No CI configuration file found ($dir/ci.conf) for $proj, creating all jobs..."
-      puts $fp [ WriteGitLabCIYAML $proj ]
+      puts $fp [WriteGitLabCIYAML $proj]
     }
   } else {
     Msg Info "$proj was not modified since version: $ver, skipping."

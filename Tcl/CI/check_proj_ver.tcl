@@ -41,14 +41,14 @@ set parameters {
 
 set usage "- USAGE: $::argv0 \[OPTIONS\] <project> \n. Options:"
 
-if { $::argc eq 0 } {
+if {$::argc eq 0} {
   Msg Info [cmdline::usage $parameters $usage]
   exit 1
-} elseif {[IsQuartus] && [ catch {array set options [cmdline::getoptions quartus(args) $parameters $usage] } ] || $::argc eq 0 } {
+} elseif {[IsQuartus] && [catch {array set options [cmdline::getoptions quartus(args) $parameters $usage]}] || $::argc eq 0} {
   #Quartus
   Msg Info [cmdline::usage $parameters $usage]
   exit 1
-} elseif {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] } {
+} elseif {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}]} {
   Msg Info [cmdline::usage $parameters $usage]
   exit 1
   ##nagelfar ignore Unknown variable
@@ -64,12 +64,12 @@ if {$options(sim) == 1} {
   Msg Info "Will check also the version of the simulation files..."
 }
 
-if { $options(ext_path) != "" } {
+if {$options(ext_path) != ""} {
   set ext_path $options(ext_path)
   Msg Info "External path set to $ext_path"
 }
 
-set ver [ GetProjectVersion $project_dir $repo_path $ext_path $sim ]
+set ver [GetProjectVersion $project_dir $repo_path $ext_path $sim]
 if {$ver == 0} {
   Msg Info "$project was modified, continuing with the CI..."
 } elseif {$ver != -1} {

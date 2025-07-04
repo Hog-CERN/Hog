@@ -17,19 +17,18 @@
 # Format a .tcl file
 
 proc reformat {tclcode {pad 2}} {
-
   set lines [split $tclcode \n]
   set out ""
-  set nquot 0   ;# count of quotes
-  set ncont 0   ;# count of continued strings
+  set nquot 0 ;# count of quotes
+  set ncont 0 ;# count of continued strings
   set line [lindex $lines 0]
-  set indent [expr {([string length $line]-[string length [string trimleft $line \ \t]])/$pad}]
+  set indent [expr {([string length $line] - [string length [string trimleft $line \ \t]]) / $pad}]
   set padst [string repeat " " $pad]
   foreach orig $lines {
     incr lineindex
-    if {$lineindex>1} {append out \n}
+    if {$lineindex > 1} {append out \n}
     set newline [string trimleft $orig]
-    if {$newline==""} continue
+    if {$newline == ""} {continue}
     set is_quoted $nquot
     set is_continued $ncont
     if {[string index $orig end] eq "\\"} {
@@ -37,24 +36,24 @@ proc reformat {tclcode {pad 2}} {
     } else {
       set ncont 0
     }
-    if { [string index $newline 0]=="#" } {
-      set line $orig   ;# don't touch comments
+    if {[string index $newline 0] == "#"} {
+      set line $orig ;# don't touch comments
     } else {
       set npad [expr {$indent * $pad}]
       set line [string repeat $padst $indent]$newline
       set i [set ns [set nl [set nr [set body 0]]]]
-      for {set n [string length $newline]} {$i<$n} {incr i} {
+      for {set n [string length $newline]} {$i < $n} {incr i} {
         set ch [string index $newline $i]
-        if {$ch=="\\"} {
+        if {$ch == "\\"} {
           set ns [expr {[incr ns] % 2}]
         } elseif {!$ns} {
-          if {$ch=="\""} {
+          if {$ch == "\""} {
             set nquot [expr {[incr nquot] % 2}]
           } elseif {!$nquot} {
             switch $ch {
               "\{" {
-                if {[string range $newline $i $i+2]=="\{\"\}"} {
-                  incr i 2  ;# quote in braces - correct (though tricky)
+                if {[string range $newline $i $i+2] == "\{\"\}"} {
+                  incr i 2 ;# quote in braces - correct (though tricky)
                 } else {
                   incr nl
                   set body -1
@@ -72,16 +71,16 @@ proc reformat {tclcode {pad 2}} {
       }
       set nbbraces [expr {$nl - $nr}]
       incr totalbraces $nbbraces
-      if {$totalbraces<0} {
+      if {$totalbraces < 0} {
         error "Line $lineindex: unbalanced braces!"
       }
       incr indent $nbbraces
-      if {$nbbraces==0} { set nbbraces $body }
+      if {$nbbraces == 0} {set nbbraces $body}
       if {$is_quoted || $is_continued} {
-        set line $orig     ;# don't touch quoted and continued strings
+        set line $orig ;# don't touch quoted and continued strings
       } else {
-        set np [expr {- $nbbraces * $pad}]
-        if {$np>$npad} {   ;# for safety too
+        set np [expr {-$nbbraces * $pad}]
+        if {$np > $npad} { # for safety too
           set np $npad
         }
         set line [string range $line $np end]
@@ -103,7 +102,7 @@ proc eol {} {
 
 proc count {string char} {
   set count 0
-  while {[set idx [string first $char $string]]>=0} {
+  while {[set idx [string first $char $string]] >= 0} {
     set backslashes 0
     set nidx $idx
     while {[string equal [string index $string [incr nidx -1]] \\]} {
@@ -132,7 +131,7 @@ set old_path [pwd]
 set path [file normalize "[file dirname [info script]]/.."]
 source $path/hog.tcl
 
-if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] ||  [llength $argv] < 1 } {
+if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] || [llength $argv] < 1} {
   Msg Info [cmdline::usage $parameters $usage]
   exit 1
 } else {
@@ -143,11 +142,11 @@ if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] 
   set permissions [file attributes $argv -permissions]
 
   set filename "$argv.tmp"
-  set f [open $filename  w]
+  set f [open $filename w]
 
   puts -nonewline $f [reformat [string map [list [eol] \n] $data] $indent]
   close $f
-  file copy -force $filename  $argv
+  file copy -force $filename $argv
   file delete -force $filename
   file attributes $argv -permissions $permissions
 }

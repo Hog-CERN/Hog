@@ -94,6 +94,7 @@
     name: simulation_files
     paths:
       - Projects/$PROJECT_NAME/*.sim
+      - Projects/$PROJECT_NAME/ghdl
       - SkippedProjects/$PROJECT_NAME
     expire_in: 30 day
   allow_failure: true

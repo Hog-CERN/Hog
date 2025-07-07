@@ -3515,12 +3515,13 @@ proc GetVhdlGenerics {file {entity ""}} {
 }
 
 ## @brief Runs a GHDL command and returns its output and exit state
-proc GHDL {command} {
-  set ret [catch {exec -ignorestderr ghdl {*}$command} result]
-  if {$ret != 0} {
-    Msg CriticalWarning "GHDL execution failed."
-    puts $result
-  }
+proc GHDL {command logfile} {
+  set ret [catch {exec -ignorestderr ghdl {*}$command >>& $logfile} result options]
+  # puts "ret: $ret"
+  # puts "result: $result\n"
+  # puts "options: $options"
+  # puts "*********"
+  return [list $ret $result]
 }
 
 ## @brief Handle git commands without causing an error if ret is not 0
@@ -4127,6 +4128,7 @@ proc ImportGHDL {project_name repo_path simset_name simset_dict {ext_path ""}} {
   set workdir Projects/$project_name/ghdl
   file delete -force $workdir
   file mkdir $workdir
+  set import_log "$workdir/ghdl-import-${simset_name}.log"
   dict for {lib sources} $src_files {
     set libname [file rootname $lib]
     foreach f $sources {
@@ -4135,11 +4137,19 @@ proc ImportGHDL {project_name repo_path simset_name simset_dict {ext_path ""}} {
         file copy -force $f $workdir
       } else {
         set file_path [Relative $repo_path $f]
+        set import_log_file [open $import_log "a"]
         puts "ghdl -i --work=$libname --workdir=$workdir -fsynopsys --ieee=standard $options $file_path"
-        GHDL "-i --work=$libname --workdir=$workdir -fsynopsys --ieee=standard $options $file_path"
+        puts $import_log_file "ghdl -i --work=$libname --workdir=$workdir -fsynopsys --ieee=standard $options $file_path"
+        close $import_log_file
+        lassign [GHDL "-i --work=$libname --workdir=$workdir -fsynopsys --ieee=standard $options $file_path" $import_log] ret result
+        if {$ret != 0} {
+          Msg CriticalWarning "GHDL import failed for file $f: $result"
+        }
       }
     }
   }
+  PrintFileContent $import_log
+
 }
 
 proc LaunchGHDL {project_name repo_path simset_name simset_dict {ext_path ""}} {
@@ -4156,12 +4166,36 @@ proc LaunchGHDL {project_name repo_path simset_name simset_dict {ext_path ""}} {
     }
   }
   set workdir $repo_path/Projects/$project_name/ghdl
+  set make_log "$workdir/ghdl-make-${simset_name}.log"
+  set run_log "$workdir/ghdl-run-${simset_name}.log"
   cd $workdir
   # Analyse and elaborate the design
+  set make_log_file [open $make_log "w"]
+
   puts "ghdl -m --work=$simset_name -fsynopsys --ieee=standard $options $top_sim"
-  GHDL "-m --work=$simset_name  -fsynopsys --ieee=standard $options $top_sim"
+  puts $make_log_file "ghdl -m --work=$simset_name -fsynopsys --ieee=standard $options $top_sim"
+  close $make_log_file
+
+  lassign [GHDL "-m --work=$simset_name  -fsynopsys --ieee=standard $options $top_sim" $make_log] ret result
+  PrintFileContent $make_log
+  if {$ret != 0} {
+    Msg Error "GHDL make failed for $top_sim: $result"
+    return
+  }
+
+  set run_log_file [open $run_log "w"]
   puts "ghdl -r --work=$simset_name -fsynopsys --ieee=standard $options $top_sim $runopts"
-  GHDL "-r --work=$simset_name -fsynopsys --ieee=standard $options $top_sim $runopts"
+  puts $run_log_file "ghdl -r --work=$simset_name -fsynopsys --ieee=standard $options $top_sim $runopts"
+  close $run_log_file
+
+  lassign [GHDL "-r --work=$simset_name -fsynopsys --ieee=standard $options $top_sim $runopts" $run_log] ret result
+  PrintFileContent $run_log
+
+  if {$ret != 0} {
+    Msg Error "GHDL run failed for $top_sim: $result"
+    return
+  }
+
   cd $repo_path
 }
 
@@ -5065,6 +5099,27 @@ proc ParseJSON {JSON_FILE JSON_KEY} {
     return $RETURNVALUE
   }
 }
+
+# Define the procedure to print the content of a file
+#
+# @param[in] filename The name of the file to read and print
+#
+# @brief This procedure opens the file, reads its content, and prints it to the console.
+proc PrintFileContent {filename} {
+    # Open the file for reading
+    set file [open $filename r]
+
+    # Read the content of the file
+    set content [read $file]
+
+    # Close the file
+    close $file
+
+    # Print the content of the file
+    puts $content
+}
+
+
 
 ## Print a tree-like structure of Hog list file content
 #

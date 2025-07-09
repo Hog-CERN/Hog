@@ -2035,7 +2035,12 @@ proc GetIDECommand {proj_conf} {
   # GetConfFiles returns a list, the first element is hog.conf
   if {[file exists $proj_conf]} {
     set ide_name_and_ver [string tolower [GetIDEFromConf $proj_conf]]
-    set ide_name [lindex [regexp -all -inline {\S+} $ide_name_and_ver ] 0]
+    regexp -all {^(\w*) *(\w*)} $ide_name_and_ver dummy ide_name vitis_name
+    
+    # For debugging, to be removed
+    puts "ide_name_and_ver = $ide_name_and_ver"
+    puts "ide_name = $ide_name"
+    puts "vitis_name = $vitis_name"
 
     if {$ide_name eq "vivado"} {
       set command "vivado"
@@ -2087,7 +2092,7 @@ proc GetIDECommand {proj_conf} {
   return [list $command $before_tcl_script $after_tcl_script $end_marker]
 }
 
-## Get the IDE (Vivado,Quartus,PlanAhead,Libero) version from the conf file she-bang
+## Get the IDE (Vivado,Vitis,Quartus,PlanAhead,Libero) version from the conf file she-bang
 #
 #  @param[in]    conf_file The hog.conf file
 proc GetIDEFromConf {conf_file} {
@@ -2101,7 +2106,11 @@ proc GetIDEFromConf {conf_file} {
       set ver 0.0.0
     }
     # what shall we do with $patch? ignored for the time being
-    set ret [list $ide $ver]
+    if {$vitis != ""} {
+      set ret [list $ide $vitis $ver]
+    } else {
+      set ret [list $ide $ver]
+    }
   } else {
     Msg CriticalWarning "The first line of hog.conf should be \#<IDE name> <version>, where <IDE name>. is quartus, vivado, planahead and <version> the tool version, e.g. \#vivado 2020.2. Will assume vivado."
     set ret [list "vivado" "0.0.0"]

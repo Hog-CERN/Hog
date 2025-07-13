@@ -75,6 +75,19 @@ proc AddHogFiles {libraries properties filesets} {
       set libs_in_fileset [MoveElementToEnd $libs_in_fileset "ips.src"]
     }
 
+
+    if {[IsVitisClassic]} {
+        if {[catch {set ws_apps [app list -dict]}]} { set ws_apps "" }
+        Msg Info "libs in fileset: $libs_in_fileset"
+        dict for {app_name app_config} $ws_apps {
+            set app_lib [string tolower "app_$app_name\.src"]
+            if {![IsInList $app_lib $libs_in_fileset 0 1]} {
+                Msg Warning "App '$app_name' exists in workspace but no corresponding sourcefile '$app_lib' found. \
+                  Make sure you have a list file with the correct naming convention: \[app_<app_name>\.src\]"
+            }
+        }
+    }
+
     # Loop over libraries in fileset
     foreach lib $libs_in_fileset {
       Msg Debug "lib: $lib \n"
@@ -504,12 +517,17 @@ proc AddHogFiles {libraries properties filesets} {
 
 
       } elseif {[IsVitisClassic]} {
-        #Here's where having a predefined app name pattern would help
+
+        #Get the workspace apps
         if {[catch {set ws_apps [app list -dict]}]} { set ws_apps "" }
+
         foreach app_name [dict keys $ws_apps] {
           foreach f $lib_files {
-            Msg Debug "Adding source file $f from lib: $lib to vitis app \[$app_name\]..."
+            if {[string tolower $rootlib] != [string tolower "app_$app_name"]} {
+              continue
+            }
 
+            Msg Info "Adding source file $f from lib: $lib to vitis app \[$app_name\]..."
             set proj_f_path [regsub "^$globalSettings::repo_path" $f ""]
             set proj_f_path [regsub  "[file tail $f]$" $proj_f_path ""]
             Msg Debug "Project_f_path is $proj_f_path"
@@ -2188,7 +2206,7 @@ proc GetIDECommand {proj_conf} {
     set ide_name_and_ver [string tolower [GetIDEFromConf $proj_conf]]
     set ide_name [lindex [regexp -all -inline {\S+} $ide_name_and_ver] 0]
 
-    if {$ide_name eq "vivado"} {
+    if {$ide_name eq "vivado" || $ide_name eq "vivado_vitis_classic"} {
       set command "vivado"
       # A space ater the before_tcl_script is important
       set before_tcl_script " -nojournal -nolog -mode batch -notrace -source "
@@ -2246,7 +2264,11 @@ proc GetIDEFromConf {conf_file} {
   set f [open $conf_file "r"]
   set line [gets $f]
   close $f
-  if {[regexp -all {^\# *(\w*) *(\d+\.\d+(?:\.\d+)?(?:\.\d+)?)?(_.*)? *$} $line dummy ide version patch]} {
+  if {[regexp -all {^\# *(\w*) *(vitis_classic)? *(\d+\.\d+(?:\.\d+)?(?:\.\d+)?)?(_.*)? *$} $line dummy ide vitisflag version patch]} {
+    if {[info exists vitisflag] && $vitisflag != ""} {
+      set ide "${ide}_${vitisflag}"
+    }
+
     if {[info exists version] && $version != ""} {
       set ver $version
     } else {
@@ -4034,12 +4056,29 @@ proc IsLibero {} {
 # @param[in] element The element to search
 # @param[in] list    The list to search into
 # @param[in] regex   An optional regex to match. If 0, the element should match exactly an object in the list
-proc IsInList {element list {regex 0}} {
+# @param[in] nocase  If 1, perform case-insensitive comparison
+proc IsInList {element list {regex 0} {nocase 0}} {
   foreach x $list {
-    if {$regex == 1 && [regexp $x $element]} {
-      return 1
-    } elseif {$regex == 0 && $x eq $element} {
-      return 1
+    if {$regex == 1} {
+      if {$nocase == 1} {
+        if {[regexp -nocase $x $element]} {
+          return 1
+        }
+      } else {
+        if {[regexp $x $element]} {
+          return 1
+        }
+      }
+    } elseif {$regex == 0} {
+      if {$nocase == 1} {
+        if {[string tolower $x] eq [string tolower $element]} {
+          return 1
+        }
+      } else {
+        if {$x eq $element} {
+          return 1
+        }
+      }
     }
   }
   return 0
@@ -4116,6 +4155,8 @@ proc IsXilinx {} {
     set current_version [version]
     if {[string first PlanAhead $current_version] == 0 || [string first Vivado $current_version] == 0} {
       return 1
+    } elseif {[string first xsct $current_version] == 0} {
+      return 0
     } else {
       Msg Warning "This IDE has the version command but it is not PlanAhead or Vivado: $current_version"
       return 0
@@ -5572,7 +5613,7 @@ proc ReadListFile {args} {
               set lib_name "sources.con"
             } elseif {$list_file_ext == ".ipb"} {
               set lib_name "xml.ipb"
-            } elseif { [IsVitisClassic] && [IsInList $list_file_ext {.src .header}] && [IsInList $extension {.c .cpp .h .hpp}] } {
+            } elseif { [IsVitisClassic] && [IsInList $list_file_ext {.src }] && [IsInList $extension {.c .cpp .h .hpp}] } {
               set lib_name "$library$list_file_ext"
             } else {
               # Other files are stored in the OTHER dictionary from vivado (no library assignment)

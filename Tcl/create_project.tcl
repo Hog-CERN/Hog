@@ -65,6 +65,7 @@ namespace eval globalSettings {
   variable synth_top_module
   variable user_ip_repo
 
+  variable vitis_classic
   variable pre_synth
   variable post_synth
   variable pre_impl
@@ -157,7 +158,7 @@ proc InitProject {} {
     cd $old_dir
     ConfigureProperties
   } elseif {[IsVitisClassic]} {
-    setws $globalSettings::build_dir
+    setws $globalSettings::build_dir/vitis-classic/
   } else {
     puts "Creating project for $globalSettings::DESIGN part $globalSettings::PART"
     puts "Configuring project settings:"
@@ -729,44 +730,51 @@ proc ConfigureProperties {} {
 }
 
 
-proc ConfigurePlatform {} {
+proc ConfigurePlatforms {} {
+  set platforms [dict filter $globalSettings::PROPERTIES key {platform:*}]
 
+  if {[dict size $platforms] == 0} {
+    Msg Info "No platforms found in the configuration file"
+    return
+  }
+
+  dict for {platform_key platform_config} $platforms {
+    Msg Info "Found platform with key: $platform_key with configuration: $platform_config"
+    if {[regexp {^platform:(.+)$} $platform_key -> platform_name]} {
+      set platform_name [string trim $platform_name]
+      Msg Info "Configuring platform: $platform_name"
+      CreatePlatform $platform_name $platform_config
+    } else {
+      Msg Warning "Invalid platform key format: $platform_key. Expected format: platform:<name>"
+    }
+  }
+}
+
+proc CreatePlatform {platform_name platform_conf} {
+
+  #TODO: ignore name
   set platform_create_options {
     "desc" "hw" "out" "prebuilt" "proc" "arch"
     "samples" "os" "xpfm" "no-boot-bsp" "rp" "name"
   }
+  
+  Msg Info "Creating platform configuration..."
+  append platform_options " -name $platform_name"
 
-  if {[dict exists $globalSettings::PROPERTIES platform]} {
-      set platform [dict get $globalSettings::PROPERTIES platform]
-  } else {
-      Msg Info "No platform found in the configuration file"
-      return
-  }
-
-  Msg Info "Configuring platform..."
-  set platform_options ""
-
-  ## Check if the platform has a name
-  if {[dict exists $platform name]} {
-    set plat_name "[dict get $platform name]"
-  } else {
-    Msg Warning "No platform name found in config"
-    set plat_name "$globalSettings::DESIGN\_platform"
-    append platform_options " -name $plat_name"
-  }
-
+  # Remove existing platform if it exists
   if {[catch {set ws_platforms [platform list -dict]}]} { set ws_platforms "" }
-  if {[lsearch -exact $ws_platforms $plat_name] != -1} {
-    Msg Info "Platform $plat_name already exists, removing it..."
-    platform remove $plat_name
+  if {[lsearch -exact $ws_platforms $platform_name] != -1} {
+    Msg Info "Platform $platform_name already exists, removing it..."
+    platform remove $platform_name
   }
 
-  dict for {p v} $platform {
+  dict for {p v} $platform_conf {
     if {[IsInList [string toupper $p] [VITIS_PATH_PROPERTIES] 1]} {
       if {[file exists $globalSettings::repo_path/$v]} {
         set v $globalSettings::repo_path/$v
       } else {
         Msg Warning "Impossible to set property $p to $v. File is missing"
+        continue;
       }
     }
 
@@ -779,16 +787,41 @@ proc ConfigurePlatform {} {
     }
   }
 
+  #if hw is not in platform conf, use vivado presynth xsa
+  if {![dict exists $platform_conf hw]} {
+    Msg Info "No hardware file specified for platform $platform_name, using presynth xsa"
+    set platform_options "$platform_options -hw $globalSettings::build_dir/$globalSettings::DESIGN-presynth.xsa"
+  }
 
-  Msg Info "Creating platform \[$plat_name\] with options: \{$platform_options\}"
+  Msg Info "Creating platform \[$platform_name\] with options: \{$platform_options\}"
   set plat_create "platform create $platform_options"
   eval $plat_create
-  platform active $plat_name
+  platform active $platform_name
   platform generate
-
 }
 
-proc ConfigureApp {} {
+
+proc ConfigureApps {} {
+  set apps [dict filter $globalSettings::PROPERTIES key {app:*}]
+
+  if {[dict size $apps] == 0} {
+    Msg Info "No apps found in the configuration file"
+    return
+  }
+
+  dict for {app_key app_config} $apps {
+    Msg Info "Found app with key: $app_key with configuration: $app_config"
+    if {[regexp {^app:(.+)$} $app_key -> app_name]} {
+      set app_name [string trim $app_name]
+      Msg Info "Configuring app: $app_name"
+      ConfigureApp $app_name $app_config
+    } else {
+      Msg Warning "Invalid app key format: $app_key. Expected format: app:<name>"
+    }
+  }
+}
+
+proc ConfigureApp {app_name app_conf} {
 
   set create_options {
     "platform" "domain" "sysproj" "hw"
@@ -801,31 +834,13 @@ proc ConfigureApp {} {
     "linker-misc" "linker-script" "undef-compiler-symbols"
   }
 
-  if {[dict exists $globalSettings::PROPERTIES app]} {
-      set app [dict get $globalSettings::PROPERTIES app]
-  } else {
-      Msg Error "No app found in the configuration file"
-  }
-
   Msg Info "Configuring app..."
-  set app_options ""
-
-  # Check if the app has a name
-  # Should we even let the user define the app name?
-  # having a predefined name pattern would make it easier
-  # remove old sysproj and app,
-  # and to find the app when applying generics and adding files to it
-  if {[dict exists $app name]} {
-    set app_name "[dict get $app name]"
-  } else {
-    set app_name "$globalSettings::DESIGN\_app"
-    append app_options " -name $app_name"
-  }
+  append app_options " -name $app_name"
 
   #A sysproj may have been created before, we must remove it
   if {[catch {set sys_projs [sysproj list -dict]}]} { set sys_projs "" }
-  if {[dict exists $app sysproj]} {
-    set sys_proj_name [dict get $app sysproj]
+  if {[dict exists $app_name sysproj]} {
+    set sys_proj_name [dict get $app_name sysproj]
     if {[lsearch -exact $sys_projs "Name $sys_proj_name"] != -1} {
       Msg Info "Removing $sys_proj_name..."
       sysproj remove $sys_proj_name
@@ -849,7 +864,7 @@ proc ConfigureApp {} {
   set app_conf_options [dict create]
 
 
-  dict for {p v} $app {
+  dict for {p v} $app_conf {
     set p_lower [string tolower $p]
 
     if {[IsInList [string toupper $p] [VITIS_PATH_PROPERTIES] 1]} {
@@ -881,7 +896,7 @@ proc ConfigureApp {} {
     append app_options " -$p $v"
   }
 
-  if {![dict exists $app template]} {
+  if {![dict exists $app_name template]} {
     append app_options " -template \{Empty Application\}"
   }
 
@@ -1004,6 +1019,13 @@ proc CreateProject {args} {
     #Checking Vivado/Quartus/ISE/Libero version
     set actual_version [GetIDEVersion]
     lassign [GetIDEFromConf $conf_file] ide conf_version
+    if {[string tolower $ide] eq "vivado_vitis_classic"} {
+      puts "Vitis classic detected, setting globalSettings::vitis_classic to 1"
+      set globalSettings::vitis_classic 1
+    } else {
+      set globalSettings::vitis_classic 0
+    }
+
     if {$conf_version != "0.0.0"} {
       set a_v [split $actual_version "."]
       set c_v [split $conf_version "."]
@@ -1034,7 +1056,7 @@ proc CreateProject {args} {
       It is HIGHLY recommended to replace the first line of $conf_file with: \#$ide $actual_version"
     }
 
-    if {[IsVitisClassic]} {
+    if {$globalSettings::vitis_classic == 1} {
       if {[CompareVersions $a_v "2020 2 0"] == -1 || [CompareVersions $c_v "2020 2 0"] == -1} {
         Msg Error "Vitis flow is not supported for versions < 2020.2. Please use Vitis 2020.2 or newer." }
     }
@@ -1140,9 +1162,10 @@ proc CreateProject {args} {
   }
 
   if {[IsVitisClassic]} {
-    ConfigurePlatform
-    ConfigureApp
+    ConfigurePlatforms
+    ConfigureApps
     AddAppFiles
+    return
   }
 
   if {[IsVivado]} {
@@ -1244,6 +1267,11 @@ proc CreateProject {args} {
 
   if {[IsDiamond]} {
     prj_project save
+  }
+
+  if {$globalSettings::vitis_classic == 1} {
+    # Presynth hw platform, let's keep it in the build directory
+    write_hw_platform -fixed -force -file [file normalize "$globalSettings::build_dir/$globalSettings::DESIGN-presynth.xsa"]
   }
 
   Msg Info "Project $globalSettings::DESIGN created successfully in [Relative $globalSettings::repo_path $globalSettings::build_dir]."

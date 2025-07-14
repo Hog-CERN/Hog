@@ -78,7 +78,7 @@ set default_commands {
     set do_vitis_build 1
   # NAME*: WORKFLOW or W
   # DESCRIPTION: Runs the full workflow, creates the project if not existing.
-  # OPTIONS: check_syntax, ext_path.arg, impl_only, njobs.arg, no_bitstream, recreate, synth_only, verbose
+  # OPTIONS: check_syntax, ext_path.arg, impl_only, njobs.arg, no_bitstream, recreate, synth_only, vitis_only, xsa.arg verbose
   }
 
   \^(CREATEWORKFLOW|CW)?$ {#
@@ -90,7 +90,7 @@ set default_commands {
     set do_vitis_build 1
   # NAME: CREATEWORKFLOW or CW
   # DESCRIPTION: Creates the project -even if existing- and launches the complete workflow.
-  # OPTIONS: check_syntax, ext_path.arg, njobs.arg, no_bitstream, synth_only, vivado_only, vitis_only, verbose
+  # OPTIONS: check_syntax, ext_path.arg, njobs.arg, no_bitstream, synth_only, vivado_only, vitis_only, xsa.arg verbose
   }
 
   \^(CHECKSYNTAX|CS)?$ {#proj
@@ -185,6 +185,7 @@ set parameters {
   {impl_only       "If set, only the implementation will be performed. This assumes synthesis should was already done."}
   {vivado_only     "If set, and project is vivado-vitis_classic, vitis project will not be created."}
   {vitis_only      "If set, project is vivado-vitis_classic, and a xsa has been generated, create vitis project."}
+  {xsa.arg      "" "If set, and project is vivado-vitis_classic, use this xsa for creating platforms without a defined hw."}
   {simset.arg   "" "Simulation sets, separated by commas, to be run."}
   {all             "List all projects, including test projects. Test projects have #test on the second line of hog.conf."}
   {generate        "For IPbus XMLs, it will re create the VHDL address decode files."}
@@ -567,7 +568,7 @@ if {($proj_found == 0 || $recreate == 1)} {
 
   if {[file exists $conf]} {
     #Still not sure of the difference between project and project_name
-    CreateProject -simlib_path $lib_path $project_name $repo_path
+    CreateProject -simlib_path $lib_path -xsa $options(xsa) $project_name $repo_path 
     Msg Info "Done creating project $project_name."
   } else {
     Msg Error "Project $project_name is incomplete: no hog.conf file found, please create one..."

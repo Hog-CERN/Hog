@@ -4998,6 +4998,97 @@ proc LaunchVitisBuild {project_name {repo_path .} {stage "presynth"}} {
 
 }
 
+
+proc GetAppNames {props {list_names 0}} {
+  set prop_apps [dict filter $props key {app:*}]
+  set apps [dict create]
+  set app_names [list]
+
+  dict for {app_key app_value} $prop_apps {
+    if {[regexp {^app:(.+)$} $app_key -> app_name]} {
+      set app_name [string trim [string tolower $app_name]]
+      dict set apps $app_name $app_value
+      lappend app_names $app_name
+    }
+  }
+  if {$list_names eq 1} {
+    return $app_names
+  }
+  return apps
+}
+
+proc GetPlatforms {props {list_names 0}} {
+  set platforms [dict create]
+  set platform_names [list]
+  set prop_platforms [dict filter $props key {platform:*}]
+
+  dict for {platform_key platform_value} $prop_platforms {
+    if {[regexp {^platform:(.+)$} $platform_key -> platform_name]} {
+      set platform_name [string trim [string tolower $platform_name]]
+      dict set platforms $platform_name $platform_value
+      lappend platform_names $platform_name
+    }
+  }
+
+  if {$list_names eq 1} {
+    return $platform_names
+  }
+
+  return $platforms
+}
+
+
+proc UpdateBinMem {proj_dir elf_dir proj_name describe bitfile mmi_file} {
+
+  set elf_files_describe [glob -nocomplain "$elf_dir/*.elf"]
+  set apps [GetAppNames [GetProjectProperties $proj_dir]]
+  set platforms [GetPlatforms [GetProjectProperties $proj_dir] 1]
+
+  if {[llength $elf_files_describe] == 0} {
+    Msg Warning "No ELF files found in $elf_dir, skipping memory update."
+    return
+  }
+
+  if {![file exists $bitfile]} {
+    Msg Warning "Bitfile $bitfile does not exist, skipping memory update."
+    return 
+  }
+
+  foreach elf_file $elf_files_describe {
+    set elf_app [string map {"-$describe.elf" ""} [file rootname [file tail $elf_file]]]
+    set app_conf [dict get $apps $elf_app]
+    set plat [dict get $app_conf "platform"]
+    set app_proc [dict get $app_conf "proc"]
+    set proc_map_file "$proj_dir/Projects/$proj_name/vitis-classic/$plat.PROC_MAP"
+    if {![file exists $proc_map_file]} {
+      Msg Warning "No Processor map file: $proc_map_file"
+      continue;
+    }
+
+    set proc_map [ReadProcMap $proc_map_file]
+    set proc_cell [lindex [split [dict get $proc_map $app_proc] ":"] 0]
+
+    Msg Info "Updating memory for $elf_app with processor $app_proc in $proc_cell"
+    exec updatemem -meminfo $mmi_file -data $elf_file -bit $bitfile  -proc $proc_cell -out $bitfile
+
+  }
+}
+
+proc ReadProcMap {proc_map_file} {
+  set proc_map [dict create]
+  if {[file exists $proc_map_file]} {
+    set f [open $proc_map_file "r"]
+    while {[gets $f line] >= 0} {
+      if {[regexp {^(\w+)\s*=\s*(.+)$} $line -> key value]} {
+        dict set proc_map $key $value
+      }
+    }
+    close $f
+  }  
+  return $proc_map
+}
+
+
 # Returns the list of all the Hog Projects in the repository
 #
 # @param[in] repo_path  The main path of the git repository

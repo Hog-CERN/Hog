@@ -86,7 +86,7 @@ if {[IsXilinx]} {
   set proj_dir [file normalize "$work_path/../.."]
 
 
-  set additional_ext ".bin .ltx .bif"
+  set additional_ext ".bin .ltx .bif .mmi"
 
   set xml_dir [file normalize "$work_path/../xml"]
   set run_dir [file normalize "$work_path/.."]
@@ -441,13 +441,18 @@ if {[IsXilinx]} {
 
     if {$wrote_xsa == 1} {
       Msg Info "XSA file written to $dst_xsa"
-      set xsct_cmd "xsct $tcl_path/launch.tcl CW -vitis_only $proj_name
+      set xsct_cmd "xsct $tcl_path/launch.tcl CW -xsa $dst_xsa -vitis_only $proj_name"
       Msg Info "in here Running Vitis Classic project creation script with command: $xsct_cmd"
       set ret [catch {exec -ignorestderr {*}$xsct_cmd >@ stdout} result]
       if {$ret != 0} {
         Msg Error "xsct (vitis classic) returned an error state."
       }
+
+      # Process ELF files and update bitstream with memory content
+      set mmi_file [file normalize "$dst_dir/${proj_name}\-$describe.mmi"]
+      UpdateBinMem $proj_dir $dst_dir $proj_name $describe $dst_main $mmi_file
     }
+
   }
 }
 

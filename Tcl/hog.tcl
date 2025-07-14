@@ -4873,7 +4873,12 @@ proc LaunchSynthesis {reset do_create run_folder project_name {repo_path .} {ext
 }
 
 
-proc LaunchVitisBuild {project_name {repo_path .}} {
+# @brief Launch the Vitis build
+#
+# @param[in] project_name The name of the project
+# @param[in] repo_path    The main path of the git repository (Default .)
+# @param[in] stage        The stage of the build (Default "presynth")
+proc LaunchVitisBuild {project_name {repo_path .} {stage "presynth"}} {
   set proj_name [file tail $project_name]
   set bin_dir [file normalize "$repo_path/bin"]
   set group_name [GetGroupName $proj_name $repo_path]
@@ -4890,10 +4895,16 @@ proc LaunchVitisBuild {project_name {repo_path .}} {
 
   foreach app_name [dict keys $ws_apps] {
     app config -name $app_name -set build-config Release
-
   }
+
   WriteGenerics "vitisbuild" $repo_path $proj_name $date $timee $commit $version $top_hash $top_ver $hog_hash $hog_ver $cons_ver $cons_hash  $libs $vers $hashes $ext_names $ext_hashes $user_ip_repos $user_ip_vers $user_ip_hashes $flavour $xml_ver $xml_hash
   foreach app_name [dict keys $ws_apps] { app build -name $app_name }
+
+
+  if {$stage == "presynth"} {
+    Msg Info "Done building apps for $proj_name..."
+    #return
+  }
 
   Msg Info "Evaluating Git sha for $proj_name..."
   lassign [GetRepoVersions [file normalize ./Top/$group_name/$proj_name] $repo_path] sha
@@ -4904,21 +4915,18 @@ proc LaunchVitisBuild {project_name {repo_path .}} {
   Msg Info "Creating $dst_dir..."
   file mkdir $dst_dir
 
-  if {[dict exists $globalSettings::PROPERTIES app]} {
-      set app [dict get $globalSettings::PROPERTIES app]
-      if {[dict exists $app name]} {
-        set app_name "[dict get $app name]"
-      } else {
-        set app_name "$globalSettings::DESIGN\_app"
-      }
-  } else {
-    return
-  }
+  foreach app_name [dict keys $ws_apps] {
+    set main_file "$repo_path/Projects/$proj_name/vitis-classic/$app_name/Release/$app_name.elf"
+    set dst_main [file normalize "$dst_dir/$app_name\-$describe.elf"]
 
-  set main_file "$repo_path/Projects/$proj_name/$app_name/Release/$app_name.elf"
-  set dst_main [file normalize "$dst_dir/$proj_name\-$describe.elf"]
-  Msg Info "Copying main binary file $main_file into $dst_main..."
-  file copy -force $main_file $dst_main
+    if {![file exists $main_file]} {
+      Msg Warning "No Vitis elf file found. Perhaps there was an issue building it?."
+      continue
+    }
+
+    Msg Info "Copying main binary file $main_file into $dst_main..."
+    file copy -force $main_file $dst_main
+  }
 
   #Create versions.txt file
   set version_file [file normalize "$dst_dir/versions.txt"]

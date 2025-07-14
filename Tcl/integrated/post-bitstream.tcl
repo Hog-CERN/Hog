@@ -403,6 +403,8 @@ if {[IsXilinx]} {
   }
 
   if {[string compare [string tolower $export_xsa] "true"] == 0} {
+    set wrote_xsa 0
+
     # there is a bug in Vivado 2020.1, check for that version and warn
     # that we can't export XSAs
     regexp -- {Vivado v([0-9]{4}\.[0-9,A-z,_,\.]*) } [version] -> VIVADO_VERSION
@@ -426,12 +428,24 @@ if {[IsXilinx]} {
           set_property platform.full_pdi_file $pdi_post_imp [current_project]
           Msg Info "XSA file will be generated for Versal with this PDI: $pdi_post_imp"
           write_hw_platform -fixed -force -file "$dst_xsa"
+          set wrote_xsa 1
         }
         Msg Warning "No XSA will be produced in post-bitream for segmented configuration mode. \
         If you're running with the GUI, please type the following on the Tcl console: write_hw_platform -fixed -force -file $dst_xsa."
       } else {
         # we leave include bit also for Versal
         write_hw_platform -include_bit -fixed -force -file "$dst_xsa"
+        set wrote_xsa 1
+      }
+    }
+
+    if {$wrote_xsa == 1} {
+      Msg Info "XSA file written to $dst_xsa"
+      set xsct_cmd "xsct $tcl_path/launch.tcl CW -vitis_only $proj_name
+      Msg Info "in here Running Vitis Classic project creation script with command: $xsct_cmd"
+      set ret [catch {exec -ignorestderr {*}$xsct_cmd >@ stdout} result]
+      if {$ret != 0} {
+        Msg Error "xsct (vitis classic) returned an error state."
       }
     }
   }

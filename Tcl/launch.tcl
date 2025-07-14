@@ -90,7 +90,7 @@ set default_commands {
     set do_vitis_build 1
   # NAME: CREATEWORKFLOW or CW
   # DESCRIPTION: Creates the project -even if existing- and launches the complete workflow.
-  # OPTIONS: check_syntax, ext_path.arg, njobs.arg, no_bitstream, synth_only, vivado_only, verbose
+  # OPTIONS: check_syntax, ext_path.arg, njobs.arg, no_bitstream, synth_only, vivado_only, vitis_only, verbose
   }
 
   \^(CHECKSYNTAX|CS)?$ {#proj
@@ -415,22 +415,6 @@ if {$cmd == -1} {
   if {$ret != 0} {
     Msg Error "IDE returned an error state."
   } else {
-    #Vitis Classic PreSynth Project
-    if {$options(vivado_only) == 0} {
-      lassign [GetConfFiles $repo_path/Top/$project_name] conf sim pre post
-      if {[file exists $conf]} {
-        lassign [GetIDEFromConf $conf] ide conf_version
-        if {[string tolower $ide] eq "vivado_vitis_classic"} {
-          set xsct_cmd "xsct $tcl_path/launch.tcl C -vitis_only $project_name"
-          Msg Info "Running Vitis Classic project creation script with command: $xsct_cmd"
-          set ret [catch {exec -ignorestderr {*}$xsct_cmd >@ stdout} result]
-          if {$ret != 0} {
-            Msg Error "IDE returned an error state."
-          }
-        }
-      }
-    }
-
     Msg Info "All done."
     exit 0
   }
@@ -495,6 +479,18 @@ if {$options(impl_only) == 1} {
   set do_compile 1
 }
 
+if {$options(vitis_only) == 1} {
+  set do_vitis_build 1
+  set do_implementation 0
+  set do_synthesis 0
+  set do_bitstream 0
+  set do_create 0
+  set do_compile 0
+}
+
+if {$options(vivado_only) == 1} {
+  set do_vitis_build 0
+}
 
 if {$options(no_reset) == 1} {
   set do_reset 0
@@ -599,8 +595,16 @@ if {$do_check_syntax == 1} {
   CheckSyntax $project_name $repo_path $project_file
 }
 
-if {[IsVitisClassic] && $do_vitis_build == 1} {
-  LaunchVitisBuild $project_name $repo_path
+if {$do_vitis_build == 1} {
+  if {[IsVitisClassic]} {
+    LaunchVitisBuild $project_name $repo_path
+  } else {
+    set xsct_cmd "xsct $tcl_path/launch.tcl W -vitis_only $project_name"
+    set ret [catch {exec -ignorestderr {*}$xsct_cmd >@ stdout} result]
+    if {$ret != 0} {
+      Msg Error "xsct (vitis classic) returned an error state."
+    }
+  }
 }
 
 ######### LaunchSynthesis ########

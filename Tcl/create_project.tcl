@@ -730,8 +730,15 @@ proc ConfigureProperties {} {
 }
 
 
-proc ConfigurePlatforms {} {
+proc ConfigurePlatforms {{xsa ""}} {
   set platforms [dict filter $globalSettings::PROPERTIES key {platform:*}]
+
+  set platforms2 [GetPlatforms $globalSettings::PROPERTIES]
+  Msg Info "Platform Names: [GetPlatforms $globalSettings::PROPERTIES 1]"
+
+  dict for {key value} $platforms2 {
+    Msg Info "Key: $key, Value: $value"
+  }
 
   if {[dict size $platforms] == 0} {
     Msg Info "No platforms found in the configuration file"
@@ -743,14 +750,14 @@ proc ConfigurePlatforms {} {
     if {[regexp {^platform:(.+)$} $platform_key -> platform_name]} {
       set platform_name [string trim $platform_name]
       Msg Info "Configuring platform: $platform_name"
-      CreatePlatform $platform_name $platform_config
+      CreatePlatform $platform_name $platform_config $xsa
     } else {
       Msg Warning "Invalid platform key format: $platform_key. Expected format: platform:<name>"
     }
   }
 }
 
-proc CreatePlatform {platform_name platform_conf} {
+proc CreatePlatform {platform_name platform_conf {xsa ""}} {
 
   #TODO: ignore name
   set platform_create_options {
@@ -789,9 +796,35 @@ proc CreatePlatform {platform_name platform_conf} {
 
   #if hw is not in platform conf, use vivado presynth xsa
   if {![dict exists $platform_conf hw]} {
-    Msg Info "No hardware file specified for platform $platform_name, using presynth xsa"
-    set platform_options "$platform_options -hw $globalSettings::build_dir/$globalSettings::DESIGN-presynth.xsa"
+    if {$xsa eq ""} {
+      set xsa "$globalSettings::build_dir/$globalSettings::DESIGN-presynth.xsa"
+    }
+    set platform_options "$platform_options -hw $xsa"
   }
+
+  #save mapping from proc to cell to be used later when updating mem
+  Msg Info "Opening hardware design to extract processor cells..."
+  hsi::open_hw_design $xsa
+  set proc_cells [hsi::get_cells -filter { IP_TYPE == "PROCESSOR" }]
+
+  set proc_map_file [open "$globalSettings::build_dir/vitis-classic/$platform_name.PROC_MAP" "w"]
+
+  foreach proc $proc_cells {
+    set proc_hier_name [hsi::get_property HIER_NAME $proc]
+    set proc_address_tag [hsi::get_property ADDRESS_TAG $proc]
+
+    if {$proc_address_tag eq ""} {
+      Msg Warning "Processor $proc_name ($proc_hier_name) does not have an ADDRESS_TAG property set. \
+      This may cause issues when configuring the platform."
+    } else {
+      set proc_map_entry "$proc_hier_name $proc_address_tag"
+      puts $proc_map_file "$proc_map_entry\n"
+    }
+  }
+
+  hsi::close_hw_design [hsi::current_hw_design]
+  close $proc_map_file
+
 
   Msg Info "Creating platform \[$platform_name\] with options: \{$platform_options\}"
   set plat_create "platform create $platform_options"
@@ -969,8 +1002,9 @@ proc CreateProject {args} {
     return
   }
   set parameters {
-    {simlib_path.arg  "" "Path of simulation libs"}
-    {verbose "If set, launch the script in verbose mode."}
+    {simlib_path.arg   "" "Path of simulation libs"}
+    {verbose              "If set, launch the script in verbose mode."}
+    {xsa.arg           "" "xsa for creating platforms without a defined hw."}
   }
 
   set usage "Create Vivado/Vitis/ISE/Quartus/Libero/Diamond project.\nUsage: CreateProject \[OPTIONS\] <project> <repository path>\n Options:"
@@ -1162,7 +1196,8 @@ proc CreateProject {args} {
   }
 
   if {[IsVitisClassic]} {
-    ConfigurePlatforms
+    Msg Info "Configuring platforms with xsa: $options(xsa)"
+    ConfigurePlatforms "$options(xsa)"
     ConfigureApps
     AddAppFiles
     return
@@ -1275,7 +1310,17 @@ proc CreateProject {args} {
     write_hw_platform -fixed -force -file [file normalize "$globalSettings::build_dir/$globalSettings::DESIGN-presynth.xsa"]
 
     # Launch xsct to build the project
-    set xsct_cmd "xsct $globalSettings::tcl_path/launch.tcl C -vitis_only $globalSettings::DESIGN"
+    if {$options(xsa) == ""} {
+      set xsa_opt ""
+    } else {
+      if {[IsRelativePath $options(xsa)] == 0} {
+        set xsa_opt "-xsa $options(xsa)"
+      } else {
+        set xsa_opt "-xsa $globalSettings::repo_path/$options(xsa)"
+      }
+    }
+
+    set xsct_cmd "xsct $globalSettings::tcl_path/launch.tcl C $xsa_opt -vitis_only $globalSettings::DESIGN"
     Msg Info "in here Running Vitis Classic project creation script with command: $xsct_cmd"
     set ret [catch {exec -ignorestderr {*}$xsct_cmd >@ stdout} result]
     if {$ret != 0} {

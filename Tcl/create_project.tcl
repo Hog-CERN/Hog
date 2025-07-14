@@ -1269,10 +1269,20 @@ proc CreateProject {args} {
     prj_project save
   }
 
+
   if {$globalSettings::vitis_classic == 1} {
     # Presynth hw platform, let's keep it in the build directory
     write_hw_platform -fixed -force -file [file normalize "$globalSettings::build_dir/$globalSettings::DESIGN-presynth.xsa"]
+
+    # Launch xsct to build the project
+    set xsct_cmd "xsct $globalSettings::tcl_path/launch.tcl C -vitis_only $globalSettings::DESIGN"
+    Msg Info "in here Running Vitis Classic project creation script with command: $xsct_cmd"
+    set ret [catch {exec -ignorestderr {*}$xsct_cmd >@ stdout} result]
+    if {$ret != 0} {
+      Msg Error "xsct (vitis classic) returned an error state."
+    }
   }
+
 
   Msg Info "Project $globalSettings::DESIGN created successfully in [Relative $globalSettings::repo_path $globalSettings::build_dir]."
 }

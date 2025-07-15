@@ -777,7 +777,12 @@ proc CreatePlatform {platform_name platform_conf {xsa ""}} {
 
   dict for {p v} $platform_conf {
     if {[IsInList [string toupper $p] [VITIS_PATH_PROPERTIES] 1]} {
-      if {[file exists $globalSettings::repo_path/$v]} {
+
+      if {[IsRelativePath $v] == 1} {
+        set v "$globalSettings::repo_path/$v"
+      }
+
+      if {[file exists $v]} {
         set v $globalSettings::repo_path/$v
       } else {
         Msg Warning "Impossible to set property $p to $v. File is missing"
@@ -799,8 +804,11 @@ proc CreatePlatform {platform_name platform_conf {xsa ""}} {
     if {$xsa eq ""} {
       set xsa "$globalSettings::build_dir/$globalSettings::DESIGN-presynth.xsa"
     }
-    set platform_options "$platform_options -hw $xsa"
+  } else {
+    set xsa [dict get $platform_conf hw]
   }
+
+  set platform_options "$platform_options -hw $xsa"
 
   #save mapping from proc to cell to be used later when updating mem
   Msg Info "Opening hardware design to extract processor cells..."
@@ -901,7 +909,10 @@ proc ConfigureApp {app_name app_conf} {
     set p_lower [string tolower $p]
 
     if {[IsInList [string toupper $p] [VITIS_PATH_PROPERTIES] 1]} {
-      if {[file exists $globalSettings::repo_path/$v]} {
+      if {[IsRelativePath $v] == 1} {
+        set v "$globalSettings::repo_path/$v"
+      }
+      if {[file exists $v]} {
         set v $globalSettings::repo_path/$v
       } else {
         Msg Warning "Impossible to set property $p to $v. File is missing"

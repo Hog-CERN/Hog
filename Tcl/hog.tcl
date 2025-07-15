@@ -4999,7 +4999,7 @@ proc LaunchVitisBuild {project_name {repo_path .} {stage "presynth"}} {
 }
 
 
-proc GetAppNames {props {list_names 0}} {
+proc GetAppsFromProps {props {list_names 0}} {
   set prop_apps [dict filter $props key {app:*}]
   set apps [dict create]
   set app_names [list]
@@ -5014,10 +5014,10 @@ proc GetAppNames {props {list_names 0}} {
   if {$list_names eq 1} {
     return $app_names
   }
-  return apps
+  return $apps
 }
 
-proc GetPlatforms {props {list_names 0}} {
+proc GetPlatformsFromProps {props {list_names 0}} {
   set platforms [dict create]
   set platform_names [list]
   set prop_platforms [dict filter $props key {platform:*}]
@@ -5038,11 +5038,11 @@ proc GetPlatforms {props {list_names 0}} {
 }
 
 
-proc UpdateBinMem {proj_dir elf_dir proj_name describe bitfile mmi_file} {
+proc UpdateBinMem {properties proj_dir elf_dir proj_name describe bitfile mmi_file} {
 
   set elf_files_describe [glob -nocomplain "$elf_dir/*.elf"]
-  set apps [GetAppNames [GetProjectProperties $proj_dir]]
-  set platforms [GetPlatforms [GetProjectProperties $proj_dir] 1]
+  set apps [GetAppsFromProps $properties 0]
+  set platforms [GetPlatformsFromProps $properties 1]
 
   if {[llength $elf_files_describe] == 0} {
     Msg Warning "No ELF files found in $elf_dir, skipping memory update."
@@ -5055,21 +5055,50 @@ proc UpdateBinMem {proj_dir elf_dir proj_name describe bitfile mmi_file} {
   }
 
   foreach elf_file $elf_files_describe {
-    set elf_app [string map {"-$describe.elf" ""} [file rootname [file tail $elf_file]]]
+    Msg Info "For elf file: $elf_file..."
+    set elf_name [file rootname [file tail $elf_file]]
+    Msg Info "Found elf name: $elf_name"
+    Msg Info "Removing $describe from elf"
+
+    if {[regexp "^(.+)-$describe\$" $elf_name -> elf_app]} {
+      Msg Info "Found elf_app: $elf_app"
+    } else {
+      Msg Warning "Could not extract app name from elf file: $elf_name"
+      continue
+    }
+
+    Msg Info "apps: $apps"
+    Msg Info "platforms: $platforms"
     set app_conf [dict get $apps $elf_app]
+    Msg Info "Found app_conf: $app_conf"
+
     set plat [dict get $app_conf "platform"]
+    Msg Info "Found platform: $plat"
+
     set app_proc [dict get $app_conf "proc"]
-    set proc_map_file "$proj_dir/Projects/$proj_name/vitis-classic/$plat.PROC_MAP"
+    Msg Info "Found processor: $app_proc"
+
+    set proc_map_file "$proj_dir/vitis-classic/$plat.PROC_MAP"
+    Msg Info "Found Processor map file: $proc_map_file"
     if {![file exists $proc_map_file]} {
       Msg Warning "No Processor map file: $proc_map_file"
       continue;
     }
 
     set proc_map [ReadProcMap $proc_map_file]
-    set proc_cell [lindex [split [dict get $proc_map $app_proc] ":"] 0]
+    Msg Info "Processor map: $proc_map"
+
+    set proc_cell [lindex [split [dict get $proc_map $app_proc] ":"] 1]
 
     Msg Info "Updating memory for $elf_app with processor $app_proc in $proc_cell"
-    exec updatemem -meminfo $mmi_file -data $elf_file -bit $bitfile  -proc $proc_cell -out $bitfile
+    set update_mem_cmd "updatemem -force -meminfo $mmi_file -data $elf_file -bit $bitfile  -proc $proc_cell -out $bitfile"
+    set ret [catch {exec -ignorestderr {*}$update_mem_cmd >@ stdout} result]
+    if {$ret != 0} {
+      Msg Error "Error updating memory for $elf_app: $result"
+    }
+
+    Msg Info "Done updating memory for $elf_app"
+
 
   }
 }
@@ -5079,7 +5108,9 @@ proc ReadProcMap {proc_map_file} {
   if {[file exists $proc_map_file]} {
     set f [open $proc_map_file "r"]
     while {[gets $f line] >= 0} {
-      if {[regexp {^(\w+)\s*=\s*(.+)$} $line -> key value]} {
+      Msg Debug "Line: $line"
+      if {[regexp {^(\S+)\s+(.+)$} $line -> key value]} {
+        Msg Debug "Found key: $key, value: $value in proc map file"
         dict set proc_map $key $value
       }
     }

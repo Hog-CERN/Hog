@@ -1188,13 +1188,6 @@ proc CreateProject {args} {
 
   InitProject
 
-  if {![IsVitisClassic]} {
-    AddProjectFiles
-    ConfigureSynthesis
-    ConfigureImplementation
-    ConfigureSimulation
-  }
-
   if {[IsVitisClassic]} {
     Msg Info "Configuring platforms with xsa: $options(xsa)"
     ConfigurePlatforms "$options(xsa)"
@@ -1202,6 +1195,12 @@ proc CreateProject {args} {
     AddAppFiles
     return
   }
+
+  AddProjectFiles
+  ConfigureSynthesis
+  ConfigureImplementation
+  ConfigureSimulation
+
 
   if {[IsVivado]} {
     # Use HandleIP to pull IPs from HOG_IP_PATH if specified

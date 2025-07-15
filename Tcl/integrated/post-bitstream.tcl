@@ -427,14 +427,14 @@ if {[IsXilinx]} {
           set pdi_post_imp [file normalize "$work_path/$top_name.pdi"]
           set_property platform.full_pdi_file $pdi_post_imp [current_project]
           Msg Info "XSA file will be generated for Versal with this PDI: $pdi_post_imp"
-          write_hw_platform -fixed -force -file "$dst_xsa"
+         # write_hw_platform -fixed -force -file "$dst_xsa"
           set wrote_xsa 1
         }
         Msg Warning "No XSA will be produced in post-bitream for segmented configuration mode. \
         If you're running with the GUI, please type the following on the Tcl console: write_hw_platform -fixed -force -file $dst_xsa."
       } else {
         # we leave include bit also for Versal
-        write_hw_platform -include_bit -fixed -force -file "$dst_xsa"
+        #write_hw_platform -include_bit -fixed -force -file "$dst_xsa"
         set wrote_xsa 1
       }
     }
@@ -442,7 +442,7 @@ if {[IsXilinx]} {
     if {$wrote_xsa == 1} {
       Msg Info "XSA file written to $dst_xsa"
       set xsct_cmd "xsct $tcl_path/launch.tcl CW -xsa $dst_xsa -vitis_only $proj_name"
-      Msg Info "in here Running Vitis Classic project creation script with command: $xsct_cmd"
+      Msg Info "Running Vitis Classic to create elf file with cmd: $xsct_cmd"
       set ret [catch {exec -ignorestderr {*}$xsct_cmd >@ stdout} result]
       if {$ret != 0} {
         Msg Error "xsct (vitis classic) returned an error state."
@@ -450,7 +450,7 @@ if {[IsXilinx]} {
 
       # Process ELF files and update bitstream with memory content
       set mmi_file [file normalize "$dst_dir/${proj_name}\-$describe.mmi"]
-      UpdateBinMem $proj_dir $dst_dir $proj_name $describe $dst_main $mmi_file
+      UpdateBinMem $properties $proj_dir $dst_dir $proj_name $describe $dst_main $mmi_file
     }
 
   }

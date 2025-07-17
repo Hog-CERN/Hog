@@ -75,6 +75,19 @@ proc AddHogFiles {libraries properties filesets} {
       set libs_in_fileset [MoveElementToEnd $libs_in_fileset "ips.src"]
     }
 
+    # Vitis: Check if defined apps have a corresponding source file
+    if {[IsVitisClassic]} {
+        if {[catch {set ws_apps [app list -dict]}]} { set ws_apps "" }
+        Msg Info "Libs in fileset: $libs_in_fileset"
+        dict for {app_name app_config} $ws_apps {
+            set app_lib [string tolower "app_$app_name\.src"]
+            if {![IsInList $app_lib $libs_in_fileset 0 1]} {
+                Msg Error "App '$app_name' exists in workspace but no corresponding sourcefile '$app_lib' found. \
+                  Make sure you have a list file with the correct naming convention: \[app_<app_name>\.src\]"
+            }
+        }
+    }
+
     # Loop over libraries in fileset
     foreach lib $libs_in_fileset {
       Msg Debug "lib: $lib \n"
@@ -499,6 +512,27 @@ proc AddHogFiles {libraries properties filesets} {
           foreach f $lib_files {
             Msg Debug "Diamond Adding simulation file $f to library $rootlib..."
             prj_src add -work $rootlib -simulate_only $f
+          }
+        }
+
+
+      } elseif {[IsVitisClassic]} {
+
+        #Get the workspace apps
+        if {[catch {set ws_apps [app list -dict]}]} { set ws_apps "" }
+
+        foreach app_name [dict keys $ws_apps] {
+          foreach f $lib_files {
+            if {[string tolower $rootlib] != [string tolower "app_$app_name"]} {
+              continue
+            }
+
+            Msg Info "Adding source file $f from lib: $lib to vitis app \[$app_name\]..."
+            set proj_f_path [regsub "^$globalSettings::repo_path" $f ""]
+            set proj_f_path [regsub  "[file tail $f]$" $proj_f_path ""]
+            Msg Debug "Project_f_path is $proj_f_path"
+
+            importsources -name $app_name -soft-link -path $f -target $proj_f_path
           }
         }
       }
@@ -2172,7 +2206,7 @@ proc GetIDECommand {proj_conf} {
     set ide_name_and_ver [string tolower [GetIDEFromConf $proj_conf]]
     set ide_name [lindex [regexp -all -inline {\S+} $ide_name_and_ver] 0]
 
-    if {$ide_name eq "vivado"} {
+    if {$ide_name eq "vivado" || $ide_name eq "vivado_vitis_classic"} {
       set command "vivado"
       # A space ater the before_tcl_script is important
       set before_tcl_script " -nojournal -nolog -mode batch -notrace -source "
@@ -2202,6 +2236,12 @@ proc GetIDECommand {proj_conf} {
       set before_tcl_script " "
       set after_tcl_script " "
       set end_marker ""
+    } elseif {$ide_name eq "vitis_classic"} {
+      set command "xsct"
+      # A space after the before_tcl_script is important
+      set before_tcl_script ""
+      set after_tcl_script " "
+      set end_marker ""
     } elseif {$ide_name eq "ghdl"} {
       set command "ghdl"
       set before_tcl_script " "
@@ -2224,7 +2264,11 @@ proc GetIDEFromConf {conf_file} {
   set f [open $conf_file "r"]
   set line [gets $f]
   close $f
-  if {[regexp -all {^\# *(\w*) *(\d+\.\d+(?:\.\d+)?(?:\.\d+)?)?(_.*)? *$} $line dummy ide version patch]} {
+  if {[regexp -all {^\# *(\w*) *(vitis_classic)? *(\d+\.\d+(?:\.\d+)?(?:\.\d+)?)?(_.*)? *$} $line dummy ide vitisflag version patch]} {
+    if {[info exists vitisflag] && $vitisflag != ""} {
+      set ide "${ide}_${vitisflag}"
+    }
+
     if {[info exists version] && $version != ""} {
       set ver $version
     } else {
@@ -2277,6 +2321,8 @@ proc GetIDEVersion {} {
     set ver [get_libero_version]
   } elseif {[IsDiamond]} {
     regexp {\d+\.\d+(\.\d+)?} [sys_install version] ver
+  } elseif {[IsVitisClassic]} {
+    regexp {\d+\.\d+(\.\d+)?} [version] ver
   }
   return $ver
 }
@@ -4010,12 +4056,29 @@ proc IsLibero {} {
 # @param[in] element The element to search
 # @param[in] list    The list to search into
 # @param[in] regex   An optional regex to match. If 0, the element should match exactly an object in the list
-proc IsInList {element list {regex 0}} {
+# @param[in] nocase  If 1, perform case-insensitive comparison
+proc IsInList {element list {regex 0} {nocase 0}} {
   foreach x $list {
-    if {$regex == 1 && [regexp $x $element]} {
-      return 1
-    } elseif {$regex == 0 && $x eq $element} {
-      return 1
+    if {$regex == 1} {
+      if {$nocase == 1} {
+        if {[regexp -nocase $x $element]} {
+          return 1
+        }
+      } else {
+        if {[regexp $x $element]} {
+          return 1
+        }
+      }
+    } elseif {$regex == 0} {
+      if {$nocase == 1} {
+        if {[string tolower $x] eq [string tolower $element]} {
+          return 1
+        }
+      } else {
+        if {$x eq $element} {
+          return 1
+        }
+      }
     }
   }
   return 0
@@ -4061,7 +4124,7 @@ proc IsSynplify {} {
 
 ## @brief Returns true, if we are in tclsh
 proc IsTclsh {} {
-  return [expr {![IsQuartus] && ![IsXilinx] && ![IsLibero] && ![IsSynplify] && ![IsDiamond]}]
+  return [expr {![IsQuartus] && ![IsXilinx] && ![IsVitisClassic] && ![IsLibero] && ![IsSynplify] && ![IsDiamond]}]
 }
 
 ## @brief Find out if the given Xilinx part is a Vesal chip
@@ -4092,6 +4155,8 @@ proc IsXilinx {} {
     set current_version [version]
     if {[string first PlanAhead $current_version] == 0 || [string first Vivado $current_version] == 0} {
       return 1
+    } elseif {[string first xsct $current_version] == 0} {
+      return 0
     } else {
       Msg Warning "This IDE has the version command but it is not PlanAhead or Vivado: $current_version"
       return 0
@@ -4099,6 +4164,11 @@ proc IsXilinx {} {
   } else {
     return 0
   }
+}
+
+## @brief Returns true, if the IDE is vitis_classic
+proc IsVitisClassic {} {
+  return [expr {[info commands platform] != ""}]
 }
 
 ## @brief Find out if the given Xilinx part is a Vesal chip
@@ -4802,6 +4872,182 @@ proc LaunchSynthesis {reset do_create run_folder project_name {repo_path .} {ext
   }
 }
 
+
+# @brief Launch the Vitis build
+#
+# @param[in] project_name The name of the project
+# @param[in] repo_path    The main path of the git repository (Default ".")
+# @param[in] stage        The stage of the build (Default "presynth")
+proc LaunchVitisBuild {project_name {repo_path .} {stage "presynth"}} {
+  set proj_name [file tail $project_name]
+  set bin_dir [file normalize "$repo_path/bin"]
+
+  cd $repo_path
+
+  if {[catch {set ws_apps [app list -dict]}]} { set ws_apps "" }
+  lassign [GetRepoVersions [file normalize $repo_path/Top/$proj_name] $repo_path ] commit version  hog_hash hog_ver  top_hash top_ver  libs hashes vers  cons_ver cons_hash  ext_names ext_hashes  xml_hash xml_ver user_ip_repos user_ip_hashes user_ip_vers
+  set this_commit [GetSHA]
+  if {$commit == 0 } { set commit $this_commit }
+  set flavour [GetProjectFlavour $project_name]
+  lassign [GetDateAndTime $commit] date timee
+
+  foreach app_name [dict keys $ws_apps] {
+    app config -name $app_name -set build-config Release
+  }
+
+  WriteGenerics "vitisbuild" $repo_path $proj_name $date $timee $commit $version $top_hash $top_ver $hog_hash $hog_ver $cons_ver $cons_hash  $libs $vers $hashes $ext_names $ext_hashes $user_ip_repos $user_ip_vers $user_ip_hashes $flavour $xml_ver $xml_hash
+  foreach app_name [dict keys $ws_apps] { app build -name $app_name }
+
+  if {$stage == "presynth"} {
+    Msg Info "Done building apps for $proj_name..."
+    # return
+  }
+
+  Msg Info "Evaluating Git sha for $proj_name..."
+  lassign [GetRepoVersions [file normalize ./Top/$proj_name] $repo_path] sha
+
+  set describe [GetHogDescribe $sha $repo_path]
+  Msg Info "Hog describe set to: $describe"
+  set dst_dir [file normalize "$bin_dir/$proj_name\-$describe"]
+  if {![file exists $dst_dir]} {
+    Msg Info "Creating $dst_dir..."
+    file mkdir $dst_dir
+  }
+
+  foreach app_name [dict keys $ws_apps] {
+    set main_file "$repo_path/Projects/$proj_name/vitis_classic/$app_name/Release/$app_name.elf"
+    set dst_main [file normalize "$dst_dir/$proj_name\-$app_name\-$describe.elf"]
+
+    if {![file exists $main_file]} {
+      Msg Error "No Vitis .elf file found. Perhaps there was an issue building it?"
+      continue
+    }
+
+    Msg Info "Copying main binary file $main_file into $dst_main..."
+    file copy -force $main_file $dst_main
+  }
+}
+
+
+proc GetAppsFromProps {props {list_names 0}} {
+  set prop_apps [dict filter $props key {app:*}]
+  set apps [dict create]
+  set app_names [list]
+
+  dict for {app_key app_value} $prop_apps {
+    if {[regexp {^app:(.+)$} $app_key -> app_name]} {
+      set app_name [string trim [string tolower $app_name]]
+      dict set apps $app_name $app_value
+      lappend app_names $app_name
+    }
+  }
+  if {$list_names eq 1} {
+    return $app_names
+  }
+  return $apps
+}
+
+proc GetPlatformsFromProps {props {list_names 0}} {
+  set platforms [dict create]
+  set platform_names [list]
+  set prop_platforms [dict filter $props key {platform:*}]
+
+  dict for {platform_key platform_value} $prop_platforms {
+    if {[regexp {^platform:(.+)$} $platform_key -> platform_name]} {
+      set platform_name [string trim [string tolower $platform_name]]
+      dict set platforms $platform_name $platform_value
+      lappend platform_names $platform_name
+    }
+  }
+
+  if {$list_names eq 1} {
+    return $platform_names
+  }
+
+  return $platforms
+}
+
+
+proc UpdateBinMem {properties proj_dir elf_dir proj_name describe bitfile mmi_file} {
+  set elf_files_describe [glob -nocomplain "$elf_dir/*.elf"]
+  set apps [GetAppsFromProps $properties 0]
+  set platforms [GetPlatformsFromProps $properties 1]
+
+  if {[llength $elf_files_describe] == 0} {
+    Msg Warning "No ELF files found in $elf_dir, skipping memory update."
+    return
+  }
+
+  if {![file exists $bitfile]} {
+    Msg Warning "Bitfile $bitfile does not exist, skipping memory update."
+    return
+  }
+
+  foreach elf_file $elf_files_describe {
+    Msg Info "For elf file: $elf_file..."
+    set elf_name [file rootname [file tail $elf_file]]
+    Msg Info "Found elf name: $elf_name"
+    Msg Info "Removing $describe from elf"
+
+    if {[regexp "^(.+)-$describe\$" $elf_name -> elf_app]} {
+      Msg Info "Found elf_app: $elf_app"
+    } else {
+      Msg Warning "Could not extract app name from elf file: $elf_name"
+      continue
+    }
+
+    Msg Info "apps: $apps"
+    Msg Info "platforms: $platforms"
+    set app_conf [dict get $apps $elf_app]
+    Msg Info "Found app_conf: $app_conf"
+
+    set plat [dict get $app_conf "platform"]
+    Msg Info "Found platform: $plat"
+
+    set app_proc [dict get $app_conf "proc"]
+    Msg Info "Found processor: $app_proc"
+
+    set proc_map_file "$proj_dir/vitis_classic/$plat.PROC_MAP"
+    Msg Info "Found Processor map file: $proc_map_file"
+    if {![file exists $proc_map_file]} {
+      Msg Warning "No Processor map file: $proc_map_file"
+      continue;
+    }
+
+    set proc_map [ReadProcMap $proc_map_file]
+    Msg Info "Processor map: $proc_map"
+
+    set proc_cell [lindex [split [dict get $proc_map $app_proc] ":"] 1]
+
+    Msg Info "Updating memory for $elf_app with processor $app_proc in $proc_cell"
+    set update_mem_cmd "updatemem -force -meminfo $mmi_file -data $elf_file -bit $bitfile -proc $proc_cell -out $bitfile"
+    set ret [catch {exec -ignorestderr {*}$update_mem_cmd >@ stdout} result]
+    if {$ret != 0} {
+      Msg Error "Error updating memory for $elf_app: $result"
+    }
+
+    Msg Info "Done updating memory for $elf_app"
+
+  }
+}
+
+proc ReadProcMap {proc_map_file} {
+  set proc_map [dict create]
+  if {[file exists $proc_map_file]} {
+    set f [open $proc_map_file "r"]
+    while {[gets $f line] >= 0} {
+      Msg Debug "Line: $line"
+      if {[regexp {^(\S+)\s+(.+)$} $line -> key value]} {
+        Msg Debug "Found key: $key, value: $value in proc map file"
+        dict set proc_map $key $value
+      }
+    }
+    close $f
+  }
+  return $proc_map
+}
+
+
 # Returns the list of all the Hog Projects in the repository
 #
 # @param[in] repo_path  The main path of the git repository
@@ -5425,6 +5671,8 @@ proc ReadListFile {args} {
               set lib_name "sources.con"
             } elseif {$list_file_ext == ".ipb"} {
               set lib_name "xml.ipb"
+            } elseif { [IsVitisClassic] && [IsInList $list_file_ext {.src}] && [IsInList $extension {.c .cpp .h .hpp}] } {
+              set lib_name "$library$list_file_ext"
             } else {
               # Other files are stored in the OTHER dictionary from vivado (no library assignment)
               set lib_name "others.src"
@@ -5680,6 +5928,11 @@ proc VIVADO_PATH_PROPERTIES {} {
   return {"\.*\.TCL\.PRE$" "^.*\.TCL\.POST$" "^RQS_FILES$" "^INCREMENTAL\_CHECKPOINT$" "NOC\_SOLUTION\_FILE"}
 }
 
+## @brief Returns a list of Vitis properties that expect a PATH for value
+proc VITIS_PATH_PROPERTIES {} {
+  return {"^HW$" "^XPFM$" "^LINKER-SCRIPT$" "^LIBRARIES$" "^LIBRARY-SEARCH-PATH$"}
+}
+
 ## @brief Write a property configuration file from a dictionary
 #
 #  @param[in]    file_name the configuration file
@@ -5774,7 +6027,7 @@ proc WriteGenerics {mode repo_path design date timee\
   }
 
   # Dealing with project generics in Vivado
-  if {[IsVivado]} {
+  if {[IsVivado] || [IsVitisClassic]} {
     set prj_generics [GenericToSimulatorString [GetGenericsFromConf $design] "Vivado"]
     set generic_string "$prj_generics $generic_string"
   }
@@ -5832,6 +6085,29 @@ proc WriteGenerics {mode repo_path design date timee\
   } elseif {[IsDiamond]} {
     Msg Info "Setting Diamond parameters/generics one by one..."
     prj_impl option -impl Implementation0 HDL_PARAM "$generic_string"
+  } elseif {[IsVitisClassic]} {
+    if {[catch {set ws_apps [app list -dict]}]} { set ws_apps "" }
+
+    foreach app_name [dict keys $ws_apps] {
+      set defined_symbols [app config -name $app_name -get define-compiler-symbols]
+      foreach generic_to_set [split [string trim $generic_string]] {
+        set key [lindex [split $generic_to_set "="] 0]
+        set value [lindex [split $generic_to_set "="] 1]
+        if {[string match "32'h*" $value]} {
+            set value [string map {"32'h" "0x"} $value]
+        }
+
+        foreach symbol [split $defined_symbols ";"] {
+          if {[string match "$key=*" $symbol]} {
+            Msg Debug "Generic $key found in $app_name, removing it..."
+            app config -name $app_name -remove define-compiler-symbols "$symbol"
+          }
+        }
+
+        Msg Info "Setting Vitis parameters/generics for app $app_name: $key=$value"
+        app config -name $app_name define-compiler-symbols "$key=$value"
+      }
+    }
   }
 }
 

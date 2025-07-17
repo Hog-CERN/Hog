@@ -405,7 +405,7 @@ if {[IsXilinx]} {
   if {[string compare [string tolower $export_xsa] "true"] == 0} {
     set wrote_xsa 0
 
-    # there is a bug in Vivado 2020.1, check for that version and warn
+    # There is a bug in Vivado 2020.1, check for that version and warn
     # that we can't export XSAs
     regexp -- {Vivado v([0-9]{4}\.[0-9,A-z,_,\.]*) } [version] -> VIVADO_VERSION
     if {[string compare "2020.1" $VIVADO_VERSION] == 0} {
@@ -422,19 +422,19 @@ if {[IsXilinx]} {
           source $user_pre_platform_file
         }
 
-        #We do not want to touch the full_pdi_file property if there is a _boot .pdi file
+        # We do not want to touch the full_pdi_file property if there is a _boot .pdi file
         if {$secondary_file == ""} {
           set pdi_post_imp [file normalize "$work_path/$top_name.pdi"]
           set_property platform.full_pdi_file $pdi_post_imp [current_project]
           Msg Info "XSA file will be generated for Versal with this PDI: $pdi_post_imp"
-         # write_hw_platform -fixed -force -file "$dst_xsa"
+          write_hw_platform -fixed -force -file "$dst_xsa"
           set wrote_xsa 1
         }
         Msg Warning "No XSA will be produced in post-bitream for segmented configuration mode. \
         If you're running with the GUI, please type the following on the Tcl console: write_hw_platform -fixed -force -file $dst_xsa."
       } else {
-        # we leave include bit also for Versal
-        #write_hw_platform -include_bit -fixed -force -file "$dst_xsa"
+        # We leave include bit also for Versal
+        write_hw_platform -include_bit -fixed -force -file "$dst_xsa"
         set wrote_xsa 1
       }
     }

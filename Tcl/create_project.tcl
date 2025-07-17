@@ -158,7 +158,7 @@ proc InitProject {} {
     cd $old_dir
     ConfigureProperties
   } elseif {[IsVitisClassic]} {
-    setws $globalSettings::build_dir/vitis-classic/
+    setws $globalSettings::build_dir/vitis_classic/
   } else {
     puts "Creating project for $globalSettings::DESIGN part $globalSettings::PART"
     puts "Configuring project settings:"
@@ -783,7 +783,9 @@ proc CreatePlatform {platform_name platform_conf {xsa ""}} {
       }
 
       if {[file exists $v]} {
-        set v $globalSettings::repo_path/$v
+        if {$p == "hw"} {
+          set xsa $v
+        }
       } else {
         Msg Warning "Impossible to set property $p to $v. File is missing"
         continue;
@@ -799,30 +801,30 @@ proc CreatePlatform {platform_name platform_conf {xsa ""}} {
     }
   }
 
-  #if hw is not in platform conf, use vivado presynth xsa
+  # If hw is not in platform conf, use vivado presynth xsa
   if {![dict exists $platform_conf hw]} {
-    if {$xsa eq ""} {
-      set xsa "$globalSettings::build_dir/$globalSettings::DESIGN-presynth.xsa"
-    }
+    set xsa "$globalSettings::build_dir/$globalSettings::DESIGN-presynth.xsa"
+    set platform_options "$platform_options -hw $xsa"
   } else {
-    set xsa [dict get $platform_conf hw]
+    set platform_options "$platform_options"
   }
 
-  set platform_options "$platform_options -hw $xsa"
 
-  #save mapping from proc to cell to be used later when updating mem
+  # Save mapping from proc to cell to be used later when updating mem
   Msg Info "Opening hardware design to extract processor cells..."
   hsi::open_hw_design $xsa
+
   set proc_cells [hsi::get_cells -filter { IP_TYPE == "PROCESSOR" }]
 
-  set proc_map_file [open "$globalSettings::build_dir/vitis-classic/$platform_name.PROC_MAP" "w"]
+  set proc_map_file [open "$globalSettings::build_dir/vitis_classic/$platform_name.PROC_MAP" "w"]
 
   foreach proc $proc_cells {
+    # hsi::report_property $proc
     set proc_hier_name [hsi::get_property HIER_NAME $proc]
     set proc_address_tag [hsi::get_property ADDRESS_TAG $proc]
 
     if {$proc_address_tag eq ""} {
-      Msg Warning "Processor $proc_name ($proc_hier_name) does not have an ADDRESS_TAG property set. \
+      Msg Warning "Processor $proc ($proc_hier_name) does not have an ADDRESS_TAG property set. \
       This may cause issues when configuring the platform."
     } else {
       set proc_map_entry "$proc_hier_name $proc_address_tag"
@@ -1200,8 +1202,12 @@ proc CreateProject {args} {
   InitProject
 
   if {[IsVitisClassic]} {
-    Msg Info "Configuring platforms with xsa: $options(xsa)"
-    ConfigurePlatforms "$options(xsa)"
+    if {$options(xsa) != ""} {
+      Msg Info "Configuring platforms with xsa: $options(xsa)"
+      ConfigurePlatforms "$options(xsa)"
+    } else {
+      ConfigurePlatforms
+    }
     ConfigureApps
     AddAppFiles
     return

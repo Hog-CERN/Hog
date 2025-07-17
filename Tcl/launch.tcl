@@ -465,9 +465,13 @@ if {[IsLibero]} {
   set run_folder [file normalize "$repo_path/Projects/$project_name/"]
 }
 
-#Only for quartus, not used otherwise
+# Only for quartus, not used otherwise
 set project_path [file normalize "$repo_path/Projects/$project_name/"]
 
+# Get IDE name from project config file
+set proj_conf [ProjectExists $project $repo_path]
+set ide_name_and_ver [string tolower [GetIDEFromConf $proj_conf]]
+set ide_name [lindex [regexp -all -inline {\S+} $ide_name_and_ver] 0]
 
 if {$options(no_bitstream) == 1} {
   set do_bitstream 0
@@ -494,7 +498,7 @@ if {$options(impl_only) == 1} {
   set do_compile 1
 }
 
-if {$options(vitis_only) == 1} {
+if {$options(vitis_only) == 1 || $ide_name eq "vitis_classic"} {
   set do_vitis_build 1
   set do_implementation 0
   set do_synthesis 0
@@ -545,7 +549,7 @@ if {[IsISE]} {
   set project_file [file normalize $repo_path/Projects/$project_name/$project.xpr]
 } elseif {[IsVitisClassic]} {
   cd $tcl_path
-  set project_file [file normalize $repo_path/Projects/$project_name/vitis-classic/.metadata/]
+  set project_file [file normalize $repo_path/Projects/$project_name/vitis_classic/.metadata/]
   Msg Info "Setting project file for Vitis Classic project $project_name to $project_file"
 } elseif {[IsQuartus]} {
   if {[catch {package require ::quartus::project} ERROR]} {
@@ -590,7 +594,7 @@ if {($proj_found == 0 || $recreate == 1)} {
   }
 
   if {[IsVitisClassic]} {
-    set vitis_workspace [file normalize $repo_path/Projects/$project_name/vitis-classic/]
+    set vitis_workspace [file normalize $repo_path/Projects/$project_name/vitis_classic/]
     Msg Info "Setting workspace to $vitis_workspace"
     setws $vitis_workspace
 

@@ -4899,19 +4899,17 @@ proc LaunchSynthesis {reset do_create run_folder project_name {repo_path .} {ext
 # @brief Launch the Vitis build
 #
 # @param[in] project_name The name of the project
-# @param[in] repo_path    The main path of the git repository (Default .)
+# @param[in] repo_path    The main path of the git repository (Default ".")
 # @param[in] stage        The stage of the build (Default "presynth")
 proc LaunchVitisBuild {project_name {repo_path .} {stage "presynth"}} {
   set proj_name [file tail $project_name]
   set bin_dir [file normalize "$repo_path/bin"]
-  set group_name [GetGroupName $proj_name $repo_path]
-
 
   cd $repo_path
 
   if {[catch {set ws_apps [app list -dict]}]} { set ws_apps "" }
   lassign [GetRepoVersions [file normalize $repo_path/Top/$proj_name] $repo_path ] commit version  hog_hash hog_ver  top_hash top_ver  libs hashes vers  cons_ver cons_hash  ext_names ext_hashes  xml_hash xml_ver user_ip_repos user_ip_hashes user_ip_vers
-  set this_commit  [GetSHA]
+  set this_commit [GetSHA]
   if {$commit == 0 } { set commit $this_commit }
   set flavour [GetProjectFlavour $project_name]
   lassign [GetDateAndTime $commit] date timee
@@ -4923,34 +4921,34 @@ proc LaunchVitisBuild {project_name {repo_path .} {stage "presynth"}} {
   WriteGenerics "vitisbuild" $repo_path $proj_name $date $timee $commit $version $top_hash $top_ver $hog_hash $hog_ver $cons_ver $cons_hash  $libs $vers $hashes $ext_names $ext_hashes $user_ip_repos $user_ip_vers $user_ip_hashes $flavour $xml_ver $xml_hash
   foreach app_name [dict keys $ws_apps] { app build -name $app_name }
 
-
   if {$stage == "presynth"} {
     Msg Info "Done building apps for $proj_name..."
-    #return
+    # return
   }
 
   Msg Info "Evaluating Git sha for $proj_name..."
-  lassign [GetRepoVersions [file normalize ./Top/$group_name/$proj_name] $repo_path] sha
+  lassign [GetRepoVersions [file normalize ./Top/$proj_name] $repo_path] sha
 
   set describe [GetHogDescribe $sha $repo_path]
   Msg Info "Hog describe set to: $describe"
-  set dst_dir [file normalize "$bin_dir/$group_name/$proj_name\-$describe"]
-  Msg Info "Creating $dst_dir..."
-  file mkdir $dst_dir
+  set dst_dir [file normalize "$bin_dir/$proj_name\-$describe"]
+  if {![file exists $dst_dir]} {
+    Msg Info "Creating $dst_dir..."
+    file mkdir $dst_dir
+  }
 
   foreach app_name [dict keys $ws_apps] {
-    set main_file "$repo_path/Projects/$proj_name/vitis-classic/$app_name/Release/$app_name.elf"
-    set dst_main [file normalize "$dst_dir/$app_name\-$describe.elf"]
+    set main_file "$repo_path/Projects/$proj_name/vitis_classic/$app_name/Release/$app_name.elf"
+    set dst_main [file normalize "$dst_dir/$proj_name\-$app_name\-$describe.elf"]
 
     if {![file exists $main_file]} {
-      Msg Warning "No Vitis elf file found. Perhaps there was an issue building it?."
+      Msg Error "No Vitis .elf file found. Perhaps there was an issue building it?"
       continue
     }
 
     Msg Info "Copying main binary file $main_file into $dst_main..."
     file copy -force $main_file $dst_main
   }
-
 }
 
 
@@ -4994,7 +4992,6 @@ proc GetPlatformsFromProps {props {list_names 0}} {
 
 
 proc UpdateBinMem {properties proj_dir elf_dir proj_name describe bitfile mmi_file} {
-
   set elf_files_describe [glob -nocomplain "$elf_dir/*.elf"]
   set apps [GetAppsFromProps $properties 0]
   set platforms [GetPlatformsFromProps $properties 1]
@@ -5006,7 +5003,7 @@ proc UpdateBinMem {properties proj_dir elf_dir proj_name describe bitfile mmi_fi
 
   if {![file exists $bitfile]} {
     Msg Warning "Bitfile $bitfile does not exist, skipping memory update."
-    return 
+    return
   }
 
   foreach elf_file $elf_files_describe {
@@ -5033,7 +5030,7 @@ proc UpdateBinMem {properties proj_dir elf_dir proj_name describe bitfile mmi_fi
     set app_proc [dict get $app_conf "proc"]
     Msg Info "Found processor: $app_proc"
 
-    set proc_map_file "$proj_dir/vitis-classic/$plat.PROC_MAP"
+    set proc_map_file "$proj_dir/vitis_classic/$plat.PROC_MAP"
     Msg Info "Found Processor map file: $proc_map_file"
     if {![file exists $proc_map_file]} {
       Msg Warning "No Processor map file: $proc_map_file"
@@ -5046,14 +5043,13 @@ proc UpdateBinMem {properties proj_dir elf_dir proj_name describe bitfile mmi_fi
     set proc_cell [lindex [split [dict get $proc_map $app_proc] ":"] 1]
 
     Msg Info "Updating memory for $elf_app with processor $app_proc in $proc_cell"
-    set update_mem_cmd "updatemem -force -meminfo $mmi_file -data $elf_file -bit $bitfile  -proc $proc_cell -out $bitfile"
+    set update_mem_cmd "updatemem -force -meminfo $mmi_file -data $elf_file -bit $bitfile -proc $proc_cell -out $bitfile"
     set ret [catch {exec -ignorestderr {*}$update_mem_cmd >@ stdout} result]
     if {$ret != 0} {
       Msg Error "Error updating memory for $elf_app: $result"
     }
 
     Msg Info "Done updating memory for $elf_app"
-
 
   }
 }
@@ -5070,7 +5066,7 @@ proc ReadProcMap {proc_map_file} {
       }
     }
     close $f
-  }  
+  }
   return $proc_map
 }
 
@@ -5512,7 +5508,7 @@ proc ReadListFile {args} {
               set lib_name "sources.con"
             } elseif {$list_file_ext == ".ipb"} {
               set lib_name "xml.ipb"
-            } elseif { [IsVitisClassic] && [IsInList $list_file_ext {.src }] && [IsInList $extension {.c .cpp .h .hpp}] } {
+            } elseif { [IsVitisClassic] && [IsInList $list_file_ext {.src}] && [IsInList $extension {.c .cpp .h .hpp}] } {
               set lib_name "$library$list_file_ext"
             } else {
               # Other files are stored in the OTHER dictionary from vivado (no library assignment)

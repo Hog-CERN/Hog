@@ -4959,19 +4959,35 @@ proc GetPlatformsFromProps {props {list_names 0}} {
       lappend platform_names $platform_name
     }
   }
-
   if {$list_names eq 1} {
     return $platform_names
   }
-
   return $platforms
 }
 
+proc GetProcFromProps {props {list_names 0}} {
+  set procs [dict create]
+  set proc_names [list]
+  set prop_platforms [dict filter $props key {platform:*}]
+
+  dict for {platform_key platform_value} $prop_platforms {
+    if {[regexp {^proc (\S+)} $platform_value -> proc_name]} {
+      set proc_name [string trim [string tolower $proc_name]]
+      dict set procs $proc_name $platform_value
+      lappend proc_names $proc_name
+    }
+  }
+  if {$list_names eq 1} {
+    return $proc_names
+  }
+  return $procs
+}
 
 proc UpdateBinMem {properties proj_dir elf_dir proj_name describe bitfile mmi_file} {
   set elf_files_describe [glob -nocomplain "$elf_dir/*.elf"]
   set apps [GetAppsFromProps $properties 0]
   set platforms [GetPlatformsFromProps $properties 1]
+  set procs [GetProcFromProps $properties 1]
 
   if {[llength $elf_files_describe] == 0} {
     Msg Warning "No ELF files found in $elf_dir, skipping memory update."
@@ -4987,15 +5003,16 @@ proc UpdateBinMem {properties proj_dir elf_dir proj_name describe bitfile mmi_fi
     Msg Info "For elf file: $elf_file..."
     set elf_name [file rootname [file tail $elf_file]]
     Msg Info "Found elf name: $elf_name"
-    Msg Info "Removing $describe from elf"
 
-    if {[regexp "^(.+)-$describe\$" $elf_name -> elf_app]} {
+    if {[regexp "^(.+)-(.+)-$describe\$" $elf_name -> project_name elf_app]} {
+      set elf_app [string trim [string tolower $elf_app]]
       Msg Info "Found elf_app: $elf_app"
     } else {
-      Msg Warning "Could not extract app name from elf file: $elf_name"
+      Msg Error "Could not extract app name from elf file: $elf_name"
       continue
     }
 
+    Msg Info "Removing project name ($project_name) and $describe from elf"
     Msg Info "apps: $apps"
     Msg Info "platforms: $platforms"
     set app_conf [dict get $apps $elf_app]
@@ -5004,8 +5021,8 @@ proc UpdateBinMem {properties proj_dir elf_dir proj_name describe bitfile mmi_fi
     set plat [dict get $app_conf "platform"]
     Msg Info "Found platform: $plat"
 
-    set app_proc [dict get $app_conf "proc"]
-    Msg Info "Found processor: $app_proc"
+    set app_proc $procs
+    Msg Info "Found processor: $procs"
 
     set proc_map_file "$proj_dir/vitis_classic/$plat.PROC_MAP"
     Msg Info "Found Processor map file: $proc_map_file"

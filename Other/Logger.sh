@@ -171,7 +171,7 @@ clrschselected="dark"
 
 declare -A msgHeadBW
 msgHeadBW[error]="   ERROR :"
-msgHeadBW[critical]=" :"
+msgHeadBW[critical]="CRITICAL :"
 msgHeadBW[warning]=" WARNING :"
 msgHeadBW[debug]="   DEBUG :"
 msgHeadBW[info]="    INFO :"
@@ -746,15 +746,11 @@ function print_hog_logo () {
       else
         echo -e "$line"
       fi
-
     done < "$logo_file"
-
     export HOG_LOGO_PRINTED=1
   else
     Msg Warning "Logo file $logo_file doesn't exist"
   fi
-
-
 }
 
 ## @function Logger_Init()

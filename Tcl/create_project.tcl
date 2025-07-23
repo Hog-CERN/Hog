@@ -158,7 +158,10 @@ proc InitProject {} {
     cd $old_dir
     ConfigureProperties
   } elseif {[IsVitisClassic]} {
-    setws $globalSettings::build_dir/vitis_classic/
+    if {[file exists $globalSettings::build_dir/vitis_classic]} {
+      file delete -force $globalSettings::build_dir/vitis_classic
+    }
+    setws $globalSettings::build_dir/vitis_classic
   } else {
     puts "Creating project for $globalSettings::DESIGN part $globalSettings::PART"
     puts "Configuring project settings:"
@@ -731,7 +734,13 @@ proc ConfigureProperties {} {
 
 
 proc ConfigurePlatforms {{xsa ""}} {
-  set platforms [dict filter $globalSettings::PROPERTIES key {platform:*}]
+  dict for {key value} [dict filter $globalSettings::PROPERTIES key {platform:*}] {
+    set value_lower [dict create]
+    dict for {vkey vvalue} $value {
+      dict set value_lower [string tolower $vkey] $vvalue
+    }
+    dict set platforms $key $value_lower
+  }
 
   set platforms2 [GetPlatforms $globalSettings::PROPERTIES]
   Msg Info "Platform Names: [GetPlatforms $globalSettings::PROPERTIES 1]"
@@ -759,12 +768,11 @@ proc ConfigurePlatforms {{xsa ""}} {
 
 proc CreatePlatform {platform_name platform_conf {xsa ""}} {
 
-  #TODO: ignore name
   set platform_create_options {
     "desc" "hw" "out" "prebuilt" "proc" "arch"
-    "samples" "os" "xpfm" "no-boot-bsp" "rp" "name"
+    "samples" "os" "xpfm" "no-boot-bsp" "rp"
   }
-  
+
   Msg Info "Creating platform configuration..."
   append platform_options " -name $platform_name"
 
@@ -796,10 +804,13 @@ proc CreatePlatform {platform_name platform_conf {xsa ""}} {
     if {[IsInList $p_lower $platform_create_options]} {
       append platform_options " -$p_lower $v"
     } else {
-      Msg Warning "Attempting to use unknown platform option: $p_lower"
-      append platform_options " -$p_lower $v"
+      if {$p_lower ne "bif"} {
+        Msg Warning "Attempting to use unknown platform option: $p_lower"
+        append platform_options " -$p_lower $v"
+      }
     }
   }
+
 
   # If hw is not in platform conf, use vivado presynth xsa
   if {![dict exists $platform_conf hw]} {
@@ -815,7 +826,6 @@ proc CreatePlatform {platform_name platform_conf {xsa ""}} {
   hsi::open_hw_design $xsa
 
   set proc_cells [hsi::get_cells -filter { IP_TYPE == "PROCESSOR" }]
-
   set proc_map_file [open "$globalSettings::build_dir/vitis_classic/$platform_name.PROC_MAP" "w"]
 
   foreach proc $proc_cells {
@@ -1018,6 +1028,7 @@ proc CreateProject {args} {
     {simlib_path.arg   "" "Path of simulation libs"}
     {verbose              "If set, launch the script in verbose mode."}
     {xsa.arg           "" "xsa for creating platforms without a defined hw."}
+    {vivado_only          "If set, and project is vivado-vitis_classic, vitis project will not be created."}
   }
 
   set usage "Create Vivado/Vitis/ISE/Quartus/Libero/Diamond project.\nUsage: CreateProject \[OPTIONS\] <project> <repository path>\n Options:"
@@ -1063,10 +1074,10 @@ proc CreateProject {args} {
     Msg Info "Parsing configuration file $conf_file..."
     SetGlobalVar PROPERTIES [ReadConf $conf_file]
 
-    #Checking Vivado/Quartus/ISE/Libero version
+    # Checking Vivado/Vitis/Quartus/ISE/Libero version
     set actual_version [GetIDEVersion]
     lassign [GetIDEFromConf $conf_file] ide conf_version
-    if {[string tolower $ide] eq "vivado_vitis_classic"} {
+    if {([string tolower $ide] eq "vivado_vitis_classic") && ($options(vivado_only) != 1)} {
       puts "Vitis classic detected, setting globalSettings::vitis_classic to 1"
       set globalSettings::vitis_classic 1
     } else {
@@ -1321,7 +1332,7 @@ proc CreateProject {args} {
   }
 
 
-  if {$globalSettings::vitis_classic == 1} {
+  if {($globalSettings::vitis_classic == 1)} {
     # Presynth hw platform, let's keep it in the build directory
     write_hw_platform -fixed -force -file [file normalize "$globalSettings::build_dir/$globalSettings::DESIGN-presynth.xsa"]
 

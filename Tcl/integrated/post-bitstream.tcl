@@ -450,7 +450,7 @@ if {[IsXilinx]} {
 
       # Process ELF files and update bitstream with memory content
       set mmi_file [file normalize "$dst_dir/${proj_name}\-$describe.mmi"]
-      UpdateBinMem $properties $proj_dir $dst_dir $proj_name $describe $dst_main $mmi_file
+      GenerateBootArtifacts $properties $repo_path $proj_dir $dst_dir $proj_name $describe $dst_main $mmi_file
     }
 
   }

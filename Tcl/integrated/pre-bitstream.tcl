@@ -36,9 +36,8 @@ if {[IsQuartus]} {
 
 if {[IsXilinx]} {
   # Vivado + PlanAhead
-  # Vivado + PlanAhead
   if {[IsISE]} {
-    # planAhead
+    # PlanAhead
     set work_path [get_property DIRECTORY [get_runs impl_1]]
   } else {
     # Vivado

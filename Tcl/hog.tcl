@@ -78,11 +78,11 @@ proc AddHogFiles {libraries properties filesets} {
     # Vitis: Check if defined apps have a corresponding source file
     if {[IsVitisClassic]} {
         if {[catch {set ws_apps [app list -dict]}]} { set ws_apps "" }
-        Msg Info "Libs in fileset: $libs_in_fileset"
+        Msg Info "libs in fileset: $libs_in_fileset"
         dict for {app_name app_config} $ws_apps {
             set app_lib [string tolower "app_$app_name\.src"]
             if {![IsInList $app_lib $libs_in_fileset 0 1]} {
-                Msg Error "App '$app_name' exists in workspace but no corresponding sourcefile '$app_lib' found. \
+                Msg Warning "App '$app_name' exists in workspace but no corresponding sourcefile '$app_lib' found. \
                   Make sure you have a list file with the correct naming convention: \[app_<app_name>\.src\]"
             }
         }
@@ -98,6 +98,10 @@ proc AddHogFiles {libraries properties filesets} {
       Msg Debug "lib: $lib ext: $ext fileset: $fileset"
       # ADD NOW LISTS TO VIVADO PROJECT
       if {[IsXilinx]} {
+        # Skip Vitis libraries
+        if {[string match "app_*" [string tolower $lib]]} {
+          continue
+        }
         Msg Debug "Adding $lib to $fileset"
         add_files -norecurse -fileset $fileset $lib_files
         # Add Properties
@@ -217,7 +221,7 @@ proc AddHogFiles {libraries properties filesets} {
             by adding the following line .\n<simulator_name>.simulate.custom_wave_do=[file tail $f]"
           }
 
-          #Do file
+          # Do file
           if {[lsearch -inline -regexp $props "dofile"] >= 0} {
             Msg Warning "Setting a wave do file using the dofile property is deprecated.\
             Set this property in the sim.conf file under the \[$fileset\] section,\
@@ -478,7 +482,7 @@ proc AddHogFiles {libraries properties filesets} {
         foreach cur_file $lib_files {
           set file_type [FindFileType $cur_file]
 
-          #ADDING FILE PROPERTIES
+          # ADDING FILE PROPERTIES
           set props [DictGet $properties $cur_file]
 
           # Top synthesis module
@@ -518,7 +522,7 @@ proc AddHogFiles {libraries properties filesets} {
 
       } elseif {[IsVitisClassic]} {
 
-        #Get the workspace apps
+        # Get the workspace apps
         if {[catch {set ws_apps [app list -dict]}]} { set ws_apps "" }
 
         foreach app_name [dict keys $ws_apps] {
@@ -2142,10 +2146,10 @@ proc GetHogFiles {args} {
 
 
   set parameters {
-    {list_files.arg ""  "The file wildcard, if not specified all Hog list files will be looked for."}
-    {sha_mode "Forwarded to ReadListFile, see there for info."}
-    {ext_path.arg "" "Path for the external libraries forwarded to ReadListFile."}
-    {print_log "Forwarded to ReadListFile, see there for info."}
+    {list_files.arg "" "The file wildcard, if not specified all Hog list files will be looked for."}
+    {sha_mode          "Forwarded to ReadListFile, see there for info."}
+    {ext_path.arg   "" "Path for the external libraries forwarded to ReadListFile."}
+    {print_log         "Forwarded to ReadListFile, see there for info."}
   }
   set usage "USAGE: GetHogFiles \[options\] <list path> <repository path>"
   if {[catch {array set options [cmdline::getoptions args $parameters $usage]}] || [llength $args] != 2} {
@@ -4533,6 +4537,29 @@ proc LaunchImplementation {reset do_create run_folder project_name {repo_path .}
   }
 }
 
+# @brief Re-generate the bitstream, for the current IDE and project (Vivado only for the moment). \
+# Useful for a Vivado-Vitis project to update the bitstream with a new ELF or to generate a new \
+# bootimage (ZYNQ) without running the full workflow.
+#
+# @param[in] project_name The name of the project
+# @param[in] repo_path    The main path of the git repository (Default .)
+proc GenerateBitstreamOnly {project_name {repo_path .}} {
+  cd $repo_path
+  lassign [GetRepoVersions [file normalize ./Top/$project_name] $repo_path] sha
+  set describe [GetHogDescribe $sha $repo_path]
+  set dst_dir [file normalize "$repo_path/bin/$project_name\-$describe"]
+
+  cd Projects/$project_name/$project_name.runs/impl_1
+  Msg Info "Running pre-bitstream..."
+  source $repo_path/Hog/Tcl/integrated/pre-bitstream.tcl
+
+  Msg Info "Writing bitstream for $project_name..."
+  open_run impl_1
+  write_bitstream -force $dst_dir/$project_name-$describe.bit
+
+  Msg Info "Running post-bitstream..."
+  source $repo_path/Hog/Tcl/integrated/post-bitstream.tcl
+}
 
 # @brief Launch the simulation (Vivado only for the moment)
 #
@@ -4928,7 +4955,59 @@ proc LaunchVitisBuild {project_name {repo_path .} {stage "presynth"}} {
   }
 }
 
+# @brief Returns the BIF file path from the properties
+#
+# @param[in] props     A dictionary with the properties defined in Hog.conf
+# @param[in] platform  The platform name
+# @return              The path of the BIF file or empty string if not found
+proc GetBifFromProps {repo_path props platform} {
+  if {[dict exists $props "platform:$platform" "BIF"]} {
+    set bif_file [dict get $props "platform:$platform" "BIF"]
+    if {[IsRelativePath $bif_file] == 1} {
+      set bif_file "$repo_path/$bif_file"
+    }
+    return $bif_file
+  } else {
+    Msg CriticalWarning "BIF file not found in platform ($platform) properties, skipping bootable image (.bin) generation"
+    return ""
+  }
+}
 
+# @brief Returns the part number from the properties
+#
+# @param[in] props  A dictionary with the properties defined in Hog.conf
+# @return           The part number
+proc GetPartFromProps {props} {
+  if {[dict exists $props "main" "PART"]} {
+    return [string tolower [dict get $props "main" "PART"]]
+  } else {
+    Msg Error "Part number not found in properties"
+    return ""
+  }
+}
+
+# @brief Determines the architecture from the part number
+#
+# @param[in] part  The FPGA part number (e.g., xczu4cg-fbvb900-1-e)
+# @return          String with the architecture (zynqmp, zynq, versal, or unknown)
+proc GetArchFromPart {part} {
+  # Determine architecture based on part prefix
+  if {[string match "xczu*" $part]} {
+    return "zynqmp"
+  } elseif {[string match "xc7z*" $part]} {
+    return "zynq"
+  } elseif {[string match "xck26*" $part]} {
+    return "versal"
+  } else {
+    Msg CriticalWarning "Unknown part number: $part"
+    return "unknown"
+  }
+}
+
+# @brief Returns a list of application names from the properties
+#
+# @param[in] props       A dictionary with the applications properties defined in Hog.conf
+# @param[in] list_names  If 1, returns a list of application names rather than a dictionary of applications
 proc GetAppsFromProps {props {list_names 0}} {
   set prop_apps [dict filter $props key {app:*}]
   set apps [dict create]
@@ -4937,7 +5016,12 @@ proc GetAppsFromProps {props {list_names 0}} {
   dict for {app_key app_value} $prop_apps {
     if {[regexp {^app:(.+)$} $app_key -> app_name]} {
       set app_name [string trim [string tolower $app_name]]
-      dict set apps $app_name $app_value
+      # Convert only the keys of the inner dictionary to lowercase
+      set app_value_lower [dict create]
+      dict for {key value} $app_value {
+          dict set app_value_lower [string tolower $key] $value
+      }
+      dict set apps $app_name $app_value_lower
       lappend app_names $app_name
     }
   }
@@ -4947,6 +5031,10 @@ proc GetAppsFromProps {props {list_names 0}} {
   return $apps
 }
 
+# @brief Returns a list of platform names from the properties
+#
+# @param[in] props       A dictionary with the platforms properties
+# @param[in] list_names  If 1, returns a list of platform names rather than a dictionary of platforms
 proc GetPlatformsFromProps {props {list_names 0}} {
   set platforms [dict create]
   set platform_names [list]
@@ -4955,7 +5043,7 @@ proc GetPlatformsFromProps {props {list_names 0}} {
   dict for {platform_key platform_value} $prop_platforms {
     if {[regexp {^platform:(.+)$} $platform_key -> platform_name]} {
       set platform_name [string trim [string tolower $platform_name]]
-      dict set platforms $platform_name $platform_value
+      dict set platforms [string tolower $platform_name] [string tolower $platform_value]
       lappend platform_names $platform_name
     }
   }
@@ -4965,45 +5053,74 @@ proc GetPlatformsFromProps {props {list_names 0}} {
   return $platforms
 }
 
-proc GetProcFromProps {props {list_names 0}} {
-  set procs [dict create]
-  set proc_names [list]
-  set prop_platforms [dict filter $props key {platform:*}]
-
-  dict for {platform_key platform_value} $prop_platforms {
-    if {[regexp {^proc (\S+)} $platform_value -> proc_name]} {
-      set proc_name [string trim [string tolower $proc_name]]
-      dict set procs $proc_name $platform_value
-      lappend proc_names $proc_name
+# @brief Returns a reordered list of the elf apps where microblaze and riscv applications are positioned
+# before the hard processor apps
+#
+# @param[in] elf_dict  A dictionary with the path to the elf files
+# @param[in] apps      A dictionary with the applications
+# @return              A reordered elf_app list
+proc ReorderElfDict {elf_dict apps describe} {
+  set match_list {}
+  set rest_list {}
+  foreach elf_file $elf_dict {
+    set elf_name [file rootname [file tail $elf_file]]
+    # Remove project name and describe from elf file name
+    if {[regexp "^(.+)-(.+)-$describe\$" $elf_name -> project_name elf_app]} {
+      set elf_app [string trim [string tolower $elf_app]]
+    } else {
+      continue
+    }
+    set app_conf [dict get $apps $elf_app]
+    set app_proc [dict get $app_conf "proc"]
+    if {[regexp -nocase {microblaze|riscv} $app_proc]} {
+      lappend match_list $elf_file
+    } else {
+      lappend rest_list $elf_file
     }
   }
-  if {$list_names eq 1} {
-    return $proc_names
-  }
-  return $procs
+  return [concat $match_list $rest_list]
 }
 
-proc UpdateBinMem {properties proj_dir elf_dir proj_name describe bitfile mmi_file} {
-  set elf_files_describe [glob -nocomplain "$elf_dir/*.elf"]
+# @brief Generates boot artifacts for the application. If the application targets a soft \
+# processor (e.g. microblaze, riscv), the bitstream (.bit) memory is updated to include the ELF file. Otherwise, for \
+# applications targeting a hard processor (e.g. zynq, versal), a bootable binary image (.bin) is generated.
+#
+# @param[in] properties  A dictionary with the properties defined in Hog.conf
+# @param[in] repo_path   The main path of the git repository
+# @param[in] proj_dir    The directory of the project
+# @param[in] bin_dir     The directory of the generated binary files
+# @param[in] bitfile     The bitfile to update
+# @param[in] mmi_file    The MMI file to update
+proc GenerateBootArtifacts {properties repo_path proj_dir bin_dir proj_name describe bitfile mmi_file} {
+  set elf_list [glob -nocomplain "$bin_dir/*.elf"]
   set apps [GetAppsFromProps $properties 0]
   set platforms [GetPlatformsFromProps $properties 1]
-  set procs [GetProcFromProps $properties 1]
 
-  if {[llength $elf_files_describe] == 0} {
-    Msg Warning "No ELF files found in $elf_dir, skipping memory update."
+  if {[llength $elf_list] == 0} {
+    Msg Warning "No ELF files found in $bin_dir, skipping generation of boot artifacts"
     return
   }
 
   if {![file exists $bitfile]} {
-    Msg Warning "Bitfile $bitfile does not exist, skipping memory update."
+    Msg Warning "Bitfile $bitfile does not exist, skipping generation of boot artifacts"
     return
   }
 
-  foreach elf_file $elf_files_describe {
-    Msg Info "For elf file: $elf_file..."
+  Msg Info "Generating boot artifacts for $proj_name..."
+  Msg Info "Found apps: $apps"
+  Msg Info "Found platforms: $platforms"
+
+  # Updating the order of the ELF dictionary to process first the soft processors and then the hard processors.
+  # This is needed in the case of targeting a SoC FPGA with hard processors (e.g. zynq, versal), so that the bitstream
+  # is updated with the ELF file for the soft processors before generating the bootable binary image for the hard processors.
+  set reordered_elf_list [ReorderElfDict $elf_list $apps $describe]
+
+  foreach elf_file $reordered_elf_list {
     set elf_name [file rootname [file tail $elf_file]]
     Msg Info "Found elf name: $elf_name"
+    Msg Info "Removing $describe from elf"
 
+    # Extract the application name from the elf file name
     if {[regexp "^(.+)-(.+)-$describe\$" $elf_name -> project_name elf_app]} {
       set elf_app [string trim [string tolower $elf_app]]
       Msg Info "Found elf_app: $elf_app"
@@ -5011,43 +5128,63 @@ proc UpdateBinMem {properties proj_dir elf_dir proj_name describe bitfile mmi_fi
       Msg Error "Could not extract app name from elf file: $elf_name"
       continue
     }
+    Msg Info "Removed project name ($project_name) and $describe from elf"
 
-    Msg Info "Removing project name ($project_name) and $describe from elf"
-    Msg Info "apps: $apps"
-    Msg Info "platforms: $platforms"
     set app_conf [dict get $apps $elf_app]
-    Msg Info "Found app_conf: $app_conf"
-
     set plat [dict get $app_conf "platform"]
-    Msg Info "Found platform: $plat"
+    set app_proc [dict get $app_conf "proc"]
 
-    set app_proc $procs
-    Msg Info "Found processor: $procs"
+    # If the application targets a soft processor, integrate the ELF file in the bitstream.
+    # Otherwise, generate a bootable binary image (.bin) for the application.
+    if {[regexp -nocase {microblaze|risc} $app_proc]} {
+      Msg Info "Detected soft processor ($app_proc) for $elf_app, updating bitstream memory with ELF file..."
 
-    set proc_map_file "$proj_dir/vitis_classic/$plat.PROC_MAP"
-    Msg Info "Found Processor map file: $proc_map_file"
-    if {![file exists $proc_map_file]} {
-      Msg Warning "No Processor map file: $proc_map_file"
-      continue;
+      set proc_map_file "$proj_dir/vitis_classic/$plat.PROC_MAP"
+      Msg Info "Found Processor map file: $proc_map_file"
+      if {![file exists $proc_map_file]} {
+        Msg Error "No Processor map file: $proc_map_file"
+        continue
+      }
+
+      set proc_map [ReadProcMap $proc_map_file]
+      if {[dict size $proc_map] == 0} {
+        Msg Error "Failed to read map from $proc_map_file"
+        continue
+      }
+      Msg Info "Found processor map: $proc_map"
+
+      set proc_cell [lindex [split [dict get $proc_map $app_proc] ":"] 1]
+
+      Msg Info "Updating memory at processor cell: $proc_cell"
+      set update_mem_cmd "updatemem -force -meminfo $mmi_file -data $elf_file -bit $bitfile -proc $proc_cell -out $bitfile"
+      set ret [catch {exec -ignorestderr {*}$update_mem_cmd >@ stdout} result]
+      if {$ret != 0} {
+        Msg Error "Error updating memory for $elf_app: $result"
+      }
+
+      Msg Info "Done updating memory for $elf_app"
+
+    } else {
+      Msg Info "Detected hard processor ($app_proc) for $elf_app, generating bootable binary image..."
+      set arch [GetArchFromPart [GetPartFromProps $properties]]
+      Msg Info "Architecture: $arch"
+
+      set bif_file [GetBifFromProps $repo_path $properties $plat]
+      if {$bif_file != ""} {
+        Msg Info "BIF file: $bif_file"
+        Msg Info "Generating bootable binary image (.bin) for $elf_app"
+        exec bootgen -arch $arch -image "$bif_file" -o i "$bin_dir/$proj_name-$describe.bin -w on"
+        Msg Info "Done generating bootable binary image (.bin) for $elf_app"
+      }
     }
-
-    set proc_map [ReadProcMap $proc_map_file]
-    Msg Info "Processor map: $proc_map"
-
-    set proc_cell [lindex [split [dict get $proc_map $app_proc] ":"] 1]
-
-    Msg Info "Updating memory for $elf_app with processor $app_proc in $proc_cell"
-    set update_mem_cmd "updatemem -force -meminfo $mmi_file -data $elf_file -bit $bitfile -proc $proc_cell -out $bitfile"
-    set ret [catch {exec -ignorestderr {*}$update_mem_cmd >@ stdout} result]
-    if {$ret != 0} {
-      Msg Error "Error updating memory for $elf_app: $result"
-    }
-
-    Msg Info "Done updating memory for $elf_app"
 
   }
 }
 
+# @brief Reads the processor map file
+#
+# @param[in] proc_map_file The path to the processor map file
+# @return A dictionary with the processor map
 proc ReadProcMap {proc_map_file} {
   set proc_map [dict create]
   if {[file exists $proc_map_file]} {
@@ -5070,7 +5207,6 @@ proc ReadProcMap {proc_map_file} {
 # @param[in] repo_path  The main path of the git repository
 # @param[in] print      if 1 print the list of projects in the repository, if 2 does not print test projects
 # @param[in] ret_conf   if 1 returns conf file rather than list of project names
-
 proc ListProjects {{repo_path .} {print 1} {ret_conf 0}} {
   set top_path [file normalize $repo_path/Top]
   set confs [findFiles [file normalize $top_path] hog.conf]
@@ -5507,10 +5643,10 @@ proc ReadExtraFileList {extra_file_name} {
 #                 * -sha_mode  if 1, the list files will be added as well and the IPs will be added to the file rather than to the special ip library.
 #                    The SHA mode should be used when you use the lists to calculate the git SHA, rather than to add the files to the project.
 #
-# @return              a list of 3 dictionaries:
-#                      "libraries" has library name as keys and a list of filenames as values,
-#                      "properties" has as file names as keys and a list of properties as values
-#                       "filesets" has the fileset' names as keys and the list of associated libraries as values.
+# @return         a list of 3 dictionaries:
+#                   "libraries" has library name as keys and a list of filenames as values,
+#                   "properties" has as file names as keys and a list of properties as values
+#                   "filesets" has the fileset' names as keys and the list of associated libraries as values.
 proc ReadListFile {args} {
   if {[IsQuartus]} {
     load_package report
@@ -5521,11 +5657,11 @@ proc ReadListFile {args} {
   }
   # tclint-disable line-length
   set parameters {
-    {lib.arg ""  "The name of the library files will be added to, if not given will be extracted from the file name."}
+    {lib.arg     "" "The name of the library files will be added to, if not given will be extracted from the file name."}
     {fileset.arg "" "The name of the library, from the main list file"}
-    {sha_mode "If set, the list files will be added as well and the IPs will be added to the file rather than to the special IP library. The SHA mode should be used when you use the lists to calculate the git SHA, rather than to add the files to the project."}
-    {print_log "If set, will use PrintFileTree for the VIEW directive"}
-    {indent.arg "" "Used to indent files with the VIEW directive"}
+    {sha_mode       "If set, the list files will be added as well and the IPs will be added to the file rather than to the special IP library. The SHA mode should be used when you use the lists to calculate the git SHA, rather than to add the files to the project."}
+    {print_log      "If set, will use PrintFileTree for the VIEW directive"}
+    {indent.arg  "" "Used to indent files with the VIEW directive"}
   }
   # tclint-enable line-length
   set usage "USAGE: ReadListFile \[options\] <list file> <path>"
@@ -5533,6 +5669,8 @@ proc ReadListFile {args} {
     Msg CriticalWarning "[cmdline::usage $parameters $usage]"
     return
   }
+
+
   set list_file [lindex $args 0]
   set path [lindex $args 1]
   set sha_mode $options(sha_mode)
@@ -5688,7 +5826,8 @@ proc ReadListFile {args} {
               set lib_name "sources.con"
             } elseif {$list_file_ext == ".ipb"} {
               set lib_name "xml.ipb"
-            } elseif { [IsVitisClassic] && [IsInList $list_file_ext {.src}] && [IsInList $extension {.c .cpp .h .hpp}] } {
+            } elseif { [IsInList $list_file_ext {.src}] && [IsInList $extension {.c .cpp .h .hpp}] } {
+              # Adding Vitis library
               set lib_name "$library$list_file_ext"
             } else {
               # Other files are stored in the OTHER dictionary from vivado (no library assignment)

@@ -75,10 +75,10 @@ set default_commands {
     set do_synthesis 1
     set do_bitstream 1
     set do_compile 1
-    set do_vitis_build 1
+    set do_vitis_build 0
   # NAME*: WORKFLOW or W
   # DESCRIPTION: Runs the full workflow, creates the project if not existing.
-  # OPTIONS: check_syntax, ext_path.arg, impl_only, njobs.arg, no_bitstream, recreate, synth_only, vitis_only, xsa.arg verbose
+  # OPTIONS: check_syntax, ext_path.arg, impl_only, bitstream_only, njobs.arg, no_bitstream, recreate, synth_only, vitis_only, xsa.arg verbose
   }
 
   \^(CREATEWORKFLOW|CW)?$ {#
@@ -182,7 +182,8 @@ set parameters {
   {ext_path.arg "" "Sets the absolute path for the external libraries."}
   {lib.arg      "" "Simulation library path, compiled or to be compiled"}
   {synth_only      "If set, only the synthesis will be performed."}
-  {impl_only       "If set, only the implementation will be performed. This assumes synthesis should was already done."}
+  {impl_only       "If set, only the implementation will be performed. This assumes synthesis was already done."}
+  {bitstream_only  "If set, only the bitstream will be produced. This assumes implementation was already done. For a Vivado-Vitis project this command can be used to generate the boot artifacts including the ELF file(s) without running the full Vivado workflow."}
   {vivado_only     "If set, and project is vivado-vitis_classic, vitis project will not be created."}
   {vitis_only      "If set, project is vivado-vitis_classic, and a xsa has been generated, create vitis project."}
   {xsa.arg      "" "If set, and project is vivado-vitis_classic, use this xsa for creating platforms without a defined hw."}
@@ -484,6 +485,7 @@ if {$options(impl_only) == 1} {
   set do_compile 1
 }
 
+
 if {$options(vitis_only) == 1 || $ide_name eq "vitis_classic"} {
   set do_vitis_build 1
   set do_implementation 0
@@ -491,6 +493,17 @@ if {$options(vitis_only) == 1 || $ide_name eq "vitis_classic"} {
   set do_bitstream 0
   set do_create 0
   set do_compile 0
+}
+
+if {$options(bitstream_only) == 1} {
+  set do_bitstream_only 1
+  set do_bitstream 0
+  set do_implementation 0
+  set do_synthesis 0
+  set do_create 0
+  set do_compile 0
+} else {
+  set do_bitstream_only 0
 }
 
 if {$options(vivado_only) == 1} {
@@ -571,8 +584,12 @@ if {($proj_found == 0 || $recreate == 1)} {
   lassign [GetConfFiles $repo_path/Top/$project_name] conf sim pre post
 
   if {[file exists $conf]} {
-    #Still not sure of the difference between project and project_name
-    CreateProject -simlib_path $lib_path -xsa $options(xsa) $project_name $repo_path 
+    # Still not sure of the difference between project and project_name
+    if {$options(vivado_only) == 1} {
+      CreateProject -simlib_path $lib_path -xsa $options(xsa) -vivado_only $project_name $repo_path
+    } else {
+      CreateProject -simlib_path $lib_path -xsa $options(xsa) $project_name $repo_path
+    }
     Msg Info "Done creating project $project_name."
   } else {
     Msg Error "Project $project_name is incomplete: no hog.conf file found, please create one..."
@@ -621,6 +638,11 @@ if {$do_implementation == 1} {
   LaunchImplementation $do_reset $do_create $run_folder $project_name $repo_path $options(njobs) $do_bitstream
 }
 
+if {$do_bitstream_only == 1 && [IsXilinx]} {
+  GenerateBitstreamOnly $project_name $repo_path
+} elseif {$do_bitstream_only == 1 && ![IsXilinx]} {
+  Msg Error "Bitstream only option is not supported for this IDE."
+}
 
 if {$do_bitstream == 1 && ![IsXilinx]} {
   GenerateBitstream $run_folder $repo_path $options(njobs)

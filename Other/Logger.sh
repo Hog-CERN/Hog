@@ -229,9 +229,11 @@ line_type=""
 function log_stdout(){
   if [ -n "${2}" ]; then
     IN_out="${2//\\/\\\\}"
+    # temp=1
   else
     while read -r IN_out # This reads a string from stdin and stores it in a variable called IN_out
     do
+      # echo $IN_out
       if [[ $next_is_err == 0 ]]; then
         line="${IN_out//\\/\\\\}"
       else
@@ -763,6 +765,7 @@ function Logger_Init() {
   DEBUG_VERBOSE=4
   if [[ "$*" =~ "-verbose" ]]; then
     DEBUG_VERBOSE=5
+    export HOG_DEBUG_MODE=1
   fi
   hog_pid=$BASHPID
 

@@ -4912,7 +4912,8 @@ proc LaunchVitisBuild {project_name {repo_path .} {stage "presynth"}} {
   cd $repo_path
 
   if {[catch {set ws_apps [app list -dict]}]} { set ws_apps "" }
-  lassign [GetRepoVersions [file normalize $repo_path/Top/$proj_name] $repo_path ] commit version  hog_hash hog_ver  top_hash top_ver  libs hashes vers  cons_ver cons_hash  ext_names ext_hashes  xml_hash xml_ver user_ip_repos user_ip_hashes user_ip_vers
+  lassign [GetRepoVersions [file normalize $repo_path/Top/$proj_name] $repo_path ] commit version  hog_hash hog_ver  top_hash top_ver \
+           libs hashes vers  cons_ver cons_hash  ext_names ext_hashes  xml_hash xml_ver user_ip_repos user_ip_hashes user_ip_vers
   set this_commit [GetSHA]
   if {$commit == 0 } { set commit $this_commit }
   set flavour [GetProjectFlavour $project_name]
@@ -4922,7 +4923,8 @@ proc LaunchVitisBuild {project_name {repo_path .} {stage "presynth"}} {
     app config -name $app_name -set build-config Release
   }
 
-  WriteGenerics "vitisbuild" $repo_path $proj_name $date $timee $commit $version $top_hash $top_ver $hog_hash $hog_ver $cons_ver $cons_hash  $libs $vers $hashes $ext_names $ext_hashes $user_ip_repos $user_ip_vers $user_ip_hashes $flavour $xml_ver $xml_hash
+  WriteGenerics "vitisbuild" $repo_path $proj_name $date $timee $commit $version $top_hash $top_ver $hog_hash $hog_ver $cons_ver $cons_hash $libs \
+                             $vers $hashes $ext_names $ext_hashes $user_ip_repos $user_ip_vers $user_ip_hashes $flavour $xml_ver $xml_hash
   foreach app_name [dict keys $ws_apps] { app build -name $app_name }
 
   if {$stage == "presynth"} {

@@ -183,7 +183,9 @@ set parameters {
   {lib.arg      "" "Simulation library path, compiled or to be compiled"}
   {synth_only      "If set, only the synthesis will be performed."}
   {impl_only       "If set, only the implementation will be performed. This assumes synthesis was already done."}
-  {bitstream_only  "If set, only the bitstream will be produced. This assumes implementation was already done. For a Vivado-Vitis project this command can be used to generate the boot artifacts including the ELF file(s) without running the full Vivado workflow."}
+  {bitstream_only  "If set, only the bitstream will be produced. This assumes implementation was already done. For a Vivado-Vitis\
+                    project this command can be used to generate the boot artifacts including the ELF file(s) without running the\
+                    full Vivado workflow."}
   {vivado_only     "If set, and project is vivado-vitis_classic, vitis project will not be created."}
   {vitis_only      "If set, project is vivado-vitis_classic, and a xsa has been generated, create vitis project."}
   {xsa.arg      "" "If set, and project is vivado-vitis_classic, use this xsa for creating platforms without a defined hw."}

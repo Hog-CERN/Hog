@@ -5163,7 +5163,6 @@ proc GenerateBootArtifacts {properties repo_path proj_dir bin_dir proj_name desc
       if {$ret != 0} {
         Msg Error "Error updating memory for $elf_app: $result"
       }
-
       Msg Info "Done updating memory for $elf_app"
 
     } else {
@@ -5175,11 +5174,14 @@ proc GenerateBootArtifacts {properties repo_path proj_dir bin_dir proj_name desc
       if {$bif_file != ""} {
         Msg Info "BIF file: $bif_file"
         Msg Info "Generating bootable binary image (.bin) for $elf_app"
-        exec bootgen -arch $arch -image "$bif_file" -o i "$bin_dir/$proj_name-$describe.bin -w on"
+        set bootgen_cmd "bootgen -arch $arch -image $bif_file -o i $bin_dir/$proj_name-$plat-$describe.bin -w on"
+        set ret [catch {exec -ignorestderr {*}$bootgen_cmd >@ stdout} result]
+        if {$ret != 0} {
+          Msg Error "Error generating bootable binary image (.bin) for $elf_app: $result"
+        }
         Msg Info "Done generating bootable binary image (.bin) for $elf_app"
       }
     }
-
   }
 }
 

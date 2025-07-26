@@ -1,0 +1,8 @@
+//arch = zynqmp; split = false; format = BIN
+the_ROM_image:
+{
+	[bootloader, destination_cpu = a53-0]Projects/vivado_vitis_zynqmp/vitis_classic/TestPlatform1/export/TestPlatform1/sw/TestPlatform1/boot/fsbl.elf
+	[pmufw_image]Projects/vivado_vitis_zynqmp/vitis_classic/TestPlatform1/export/TestPlatform1/sw/TestPlatform1/boot/pmufw.elf
+	[destination_cpu = a53-0]Projects/vivado_vitis_zynqmp/vitis_classic/TestApp1/Release/TestApp1.elf
+	[destination_device = pl]Projects/vivado_vitis_zynqmp/vivado_vitis_zynqmp.runs/impl_1/vivado_vitis_zynqmp_top.bit
+}

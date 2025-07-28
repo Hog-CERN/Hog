@@ -91,6 +91,24 @@ function select_command_from_line() {
       Msg Info " Recognised VivadoHLS project"
       COMMAND="vivado_hls"
       COMMAND_OPT="-f"
+    elif [[ $TCL_FIRST_LINE =~ 'vivado' ]] && [[ $TCL_FIRST_LINE =~ 'vitis' ]]; then
+      Msg Info " Recognised Vivado-Vitis project"
+      COMMAND="vivado"
+      COMMAND_OPT="-nojournal -nolog -mode batch -notrace -source "
+      POST_COMMAND_OPT="-tclargs "
+      if [ -n "$HOG_VITIS_PATH" ]; then
+        if [ ! -f "$HOG_VITIS_PATH/settings64.sh" ]; then
+          Msg Error "Variable HOG_VITIS_PATH set to $HOG_VITIS_PATH but settings64.sh not found";
+          return 1;
+        else
+          Msg Info " Sourcing Vitis settings from $HOG_VITIS_PATH";
+          source "$HOG_VITIS_PATH/settings64.sh";
+          if ! command -v vitis >/dev/null 2>&1; then
+            Msg Error "Vitis command not found in PATH";
+            return 1
+          fi;
+        fi;
+      fi;
     else
       Msg Info " Recognised Vivado project"
       COMMAND="vivado"

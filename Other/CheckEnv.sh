@@ -451,6 +451,14 @@ else
 fi
 echo --------------------------------
 
+echo -n "Variable: HOG_VITIS_PATH is "
+if [ -z "$HOG_VITIS_PATH" ]; then
+    echo "NOT defined. Hog might work as long as Vitis executables are in the PATH variable."
+else
+    echo "defined."
+fi
+echo --------------------------------
+
 echo
 
 if [ -z ${FAIL+x} ]; then

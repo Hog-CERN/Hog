@@ -4960,6 +4960,24 @@ proc LaunchVitisBuild {project_name {repo_path .} {stage "presynth"}} {
 # @brief Returns the BIF file path from the properties
 #
 # @param[in] props     A dictionary with the properties defined in Hog.conf
+# @param[in] app       The application name
+# @return              The path of the BIF file or empty string if not found
+proc GetProcFromProps {repo_path props platform} {
+  if {[dict exists $props "platform:$platform" "BIF"]} {
+    set bif_file [dict get $props "platform:$platform" "BIF"]
+    if {[IsRelativePath $bif_file] == 1} {
+      set bif_file "$repo_path/$bif_file"
+    }
+    return $bif_file
+  } else {
+    Msg CriticalWarning "BIF file not found in platform ($platform) properties, skipping bootable image (.bin) generation"
+    return ""
+  }
+}
+
+# @brief Returns the BIF file path from the properties
+#
+# @param[in] props     A dictionary with the properties defined in Hog.conf
 # @param[in] platform  The platform name
 # @return              The path of the BIF file or empty string if not found
 proc GetBifFromProps {repo_path props platform} {
@@ -5037,15 +5055,20 @@ proc GetAppsFromProps {props {list_names 0}} {
 #
 # @param[in] props       A dictionary with the platforms properties
 # @param[in] list_names  If 1, returns a list of platform names rather than a dictionary of platforms
-proc GetPlatformsFromProps {props {list_names 0}} {
+# @param[in] lower_case  If 1, returns the platform names in lowercase
+proc GetPlatformsFromProps {props {list_names 0} {lower_case 0}} {
   set platforms [dict create]
   set platform_names [list]
   set prop_platforms [dict filter $props key {platform:*}]
 
   dict for {platform_key platform_value} $prop_platforms {
     if {[regexp {^platform:(.+)$} $platform_key -> platform_name]} {
-      set platform_name [string trim [string tolower $platform_name]]
-      dict set platforms [string tolower $platform_name] [string tolower $platform_value]
+      if {$lower_case == 1} {
+        set platform_name [string trim [string tolower $platform_name]]
+      } else {
+        set platform_name [string trim $platform_name]
+      }
+      dict set platforms $platform_name $platform_value
       lappend platform_names $platform_name
     }
   }
@@ -5053,34 +5076,6 @@ proc GetPlatformsFromProps {props {list_names 0}} {
     return $platform_names
   }
   return $platforms
-}
-
-# @brief Returns a reordered list of the elf apps where microblaze and riscv applications are positioned
-# before the hard processor apps
-#
-# @param[in] elf_dict  A dictionary with the path to the elf files
-# @param[in] apps      A dictionary with the applications
-# @return              A reordered elf_app list
-proc ReorderElfDict {elf_dict apps describe} {
-  set match_list {}
-  set rest_list {}
-  foreach elf_file $elf_dict {
-    set elf_name [file rootname [file tail $elf_file]]
-    # Remove project name and describe from elf file name
-    if {[regexp "^(.+)-(.+)-$describe\$" $elf_name -> project_name elf_app]} {
-      set elf_app [string trim [string tolower $elf_app]]
-    } else {
-      continue
-    }
-    set app_conf [dict get $apps $elf_app]
-    set app_proc [dict get $app_conf "proc"]
-    if {[regexp -nocase {microblaze|riscv} $app_proc]} {
-      lappend match_list $elf_file
-    } else {
-      lappend rest_list $elf_file
-    }
-  }
-  return [concat $match_list $rest_list]
 }
 
 # @brief Generates boot artifacts for the application. If the application targets a soft \
@@ -5112,17 +5107,14 @@ proc GenerateBootArtifacts {properties repo_path proj_dir bin_dir proj_name desc
   Msg Info "Found apps: $apps"
   Msg Info "Found platforms: $platforms"
 
-  # Updating the order of the ELF dictionary to process first the soft processors and then the hard processors.
-  # This is needed in the case of targeting a SoC FPGA with hard processors (e.g. zynq, versal), so that the bitstream
-  # is updated with the ELF file for the soft processors before generating the bootable binary image for the hard processors.
-  set reordered_elf_list [ReorderElfDict $elf_list $apps $describe]
 
-  foreach elf_file $reordered_elf_list {
+  # Update bitstream with ELF files for the applications targeting a soft processor (e.g. microblaze, riscv)
+  foreach elf_file $elf_list {
     set elf_name [file rootname [file tail $elf_file]]
     Msg Info "Found elf name: $elf_name"
     Msg Info "Removing $describe from elf"
 
-    # Extract the application name from the elf file name
+    # Extract application name from ELF file name
     if {[regexp "^(.+)-(.+)-$describe\$" $elf_name -> project_name elf_app]} {
       set elf_app [string trim [string tolower $elf_app]]
       Msg Info "Found elf_app: $elf_app"
@@ -5136,17 +5128,9 @@ proc GenerateBootArtifacts {properties repo_path proj_dir bin_dir proj_name desc
     set plat [dict get $app_conf "platform"]
     set app_proc [dict get $app_conf "proc"]
 
-    # If the application targets a soft processor, integrate the ELF file in the bitstream.
-    # Otherwise, generate a bootable binary image (.bin) for the application.
+    # If the application targets a soft processor, update bitstream memory with ELF file
     if {[regexp -nocase {microblaze|risc} $app_proc]} {
       Msg Info "Detected soft processor ($app_proc) for $elf_app, updating bitstream memory with ELF file..."
-
-      set proc_map_file "$proj_dir/vitis_classic/$plat.PROC_MAP"
-      Msg Info "Found Processor map file: $proc_map_file"
-      if {![file exists $proc_map_file]} {
-        Msg Error "No Processor map file: $proc_map_file"
-        continue
-      }
 
       set proc_map [ReadProcMap $proc_map_file]
       if {[dict size $proc_map] == 0} {
@@ -5156,8 +5140,8 @@ proc GenerateBootArtifacts {properties repo_path proj_dir bin_dir proj_name desc
       Msg Info "Found processor map: $proc_map"
 
       set proc_cell [lindex [split [dict get $proc_map $app_proc] ":"] 1]
-
       Msg Info "Updating memory at processor cell: $proc_cell"
+
       set update_mem_cmd "updatemem -force -meminfo $mmi_file -data $elf_file -bit $bitfile -proc $proc_cell -out $bitfile"
       set ret [catch {exec -ignorestderr {*}$update_mem_cmd >@ stdout} result]
       if {$ret != 0} {
@@ -5166,21 +5150,26 @@ proc GenerateBootArtifacts {properties repo_path proj_dir bin_dir proj_name desc
       Msg Info "Done updating memory for $elf_app"
 
     } else {
-      Msg Info "Detected hard processor ($app_proc) for $elf_app, generating bootable binary image..."
+      Msg Info "Detected hard processor ($app_proc) for $elf_app. Make sure the .elf file is defined in the platform ($plat)\
+                .bif file to be included in the bootable binary image (.bin) generation."
+    }
+  }
+
+
+  # Generate a bootable binary image for platforms that have a .bif file defined
+  foreach plat $platforms {
+    set bif_file [GetBifFromProps $repo_path $properties $plat]
+    if {$bif_file != ""} {
+      Msg Info "Generating bootable binary image (.bin) for $plat"
       set arch [GetArchFromPart [GetPartFromProps $properties]]
       Msg Info "Architecture: $arch"
-
-      set bif_file [GetBifFromProps $repo_path $properties $plat]
-      if {$bif_file != ""} {
-        Msg Info "BIF file: $bif_file"
-        Msg Info "Generating bootable binary image (.bin) for $elf_app"
-        set bootgen_cmd "bootgen -arch $arch -image $bif_file -o i $bin_dir/$proj_name-$plat-$describe.bin -w on"
-        set ret [catch {exec -ignorestderr {*}$bootgen_cmd >@ stdout} result]
-        if {$ret != 0} {
-          Msg Error "Error generating bootable binary image (.bin) for $elf_app: $result"
-        }
-        Msg Info "Done generating bootable binary image (.bin) for $elf_app"
+      Msg Info "BIF file: $bif_file"
+      set bootgen_cmd "bootgen -arch $arch -image $bif_file -o i $bin_dir/$proj_name-$plat-$describe.bin -w on"
+      set ret [catch {exec -ignorestderr {*}$bootgen_cmd >@ stdout} result]
+      if {$ret != 0} {
+        Msg Error "Error generating bootable binary image (.bin) for $elf_app: $result"
       }
+      Msg Info "Done generating bootable binary image (.bin) for $plat"
     }
   }
 }

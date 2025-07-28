@@ -742,8 +742,8 @@ proc ConfigurePlatforms {{xsa ""}} {
     dict set platforms $key $value_lower
   }
 
-  set platforms2 [GetPlatforms $globalSettings::PROPERTIES]
-  Msg Info "Platform Names: [GetPlatforms $globalSettings::PROPERTIES 1]"
+  set platforms2 [GetPlatformsFromProps $globalSettings::PROPERTIES 0 1]
+  Msg Info "Platform Names: [GetPlatformsFromProps $globalSettings::PROPERTIES 1 1]"
 
   dict for {key value} $platforms2 {
     Msg Info "Key: $key, Value: $value"
@@ -821,24 +821,27 @@ proc CreatePlatform {platform_name platform_conf {xsa ""}} {
   }
 
 
-  # Save mapping from proc to cell to be used later when updating mem
-  Msg Info "Opening hardware design to extract processor cells..."
+  Msg Info "Opening hardware design to check if proc to cell mapping needs to be extracted for soft processors..."
   hsi::open_hw_design $xsa
 
   set proc_cells [hsi::get_cells -filter { IP_TYPE == "PROCESSOR" }]
   set proc_map_file [open "$globalSettings::build_dir/vitis_classic/$platform_name.PROC_MAP" "w"]
 
   foreach proc $proc_cells {
-    # hsi::report_property $proc
-    set proc_hier_name [hsi::get_property HIER_NAME $proc]
-    set proc_address_tag [hsi::get_property ADDRESS_TAG $proc]
+    # If soft processor, save mapping from proc to cell to be used later when updating mem
+    Msg Debug "Processor found in xsa: $proc"
+    if {[regexp -nocase {microblaze|risc} $proc]} {
+      Msg Info "Extracting processor cells for soft processor: $proc"
+      set proc_hier_name [hsi::get_property HIER_NAME $proc]
+      set proc_address_tag [hsi::get_property ADDRESS_TAG $proc]
 
-    if {$proc_address_tag eq ""} {
-      Msg Warning "Processor $proc ($proc_hier_name) does not have an ADDRESS_TAG property set. \
-      This may cause issues when configuring the platform."
-    } else {
-      set proc_map_entry "$proc_hier_name $proc_address_tag"
-      puts $proc_map_file "$proc_map_entry\n"
+      if {$proc_address_tag eq ""} {
+        Msg Warning "Processor $proc ($proc_hier_name) does not have an ADDRESS_TAG property set. \
+        This may cause issues when configuring the platform."
+      } else {
+        set proc_map_entry "$proc_hier_name $proc_address_tag"
+        puts $proc_map_file "$proc_map_entry\n"
+      }
     }
   }
 

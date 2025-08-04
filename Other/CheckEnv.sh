@@ -99,12 +99,12 @@ if [ ! "$APPTAINER_IMAGE" == "none" ]; then
             apptainer exec -H "$(realpath "$THIS_DIR"/../..)" "$APPTAINER_IMAGE" /bin/bash -c "${THIS_DIR}/CheckEnv.sh $PROJ";
             exit $?
         else
-            echo "Hog-Warning: apptainer executable not found."
+            echo "Hog-Warning: Apptainer executable not found."
         fi
     else
         echo "Hog-Warning: Apptainer image could not be found in this machine"
     fi
-    echo "Hog-INFO: unsetting Apptainer image, trying to run without it"
+    echo "Hog-INFO: Unsetting Apptainer image, trying to run without it"
     echo
     "${THIS_DIR}"/CheckEnv.sh "$PROJ"
     exit $?
@@ -125,20 +125,22 @@ if [ -d "$PROJ_DIR" ]; then
         exit 1
     fi
 
-    #select full path to executable and place it in HDL_COMPILER global variable
+    #select full path to executable and place it in TOOL_EXECUTABLE global variable
 
-    if ! select_compiler_executable "$COMMAND" ; then
-        Msg Error "Failed to get HDL compiler executable for $COMMAND"
-        exit 1
-    fi
+    for ((i=0; i<${#CMD_ARRAY[@]}; i++)); do
+        if ! select_compiler_executable "${CMD_ARRAY[$i]}" ; then
+            Msg Error "Failed to get ${CMD_ARRAY[$i]} executable"
+            exit 1
+        fi
 
-    if [ ! -f "${HDL_COMPILER}" ]; then
-        Msg Error "HDL compiler executable $HDL_COMPILER not found"
-        cd "${OLD_DIR}" || exit
-        exit 1
-    else
-        Msg Info "Using executable: $HDL_COMPILER"
-    fi
+        if [ ! -f "${TOOL_EXECUTABLE}" ]; then
+            Msg Error "Tool executable $TOOL_EXECUTABLE not found"
+            cd "${OLD_DIR}" || exit
+            exit 1
+        else
+            Msg Info "Using executable: $TOOL_EXECUTABLE"
+        fi
+    done
 fi
 
 echo "--------------------------------"
@@ -448,14 +450,6 @@ else
     if [ -n "$HOG_APPTAINER_EXTRA_PATH" ]; then
         echo -n "Variable: HOG_APPTAINER_EXTRA_PATH is defined. Folder $HOG_APPTAINER_EXTRA_PATH will be passed to the Apptainer container."
     fi
-fi
-echo --------------------------------
-
-echo -n "Variable: HOG_VITIS_PATH is "
-if [ -z "$HOG_VITIS_PATH" ]; then
-    echo "NOT defined. Hog might work as long as Vitis executables are in the PATH variable."
-else
-    echo "defined."
 fi
 echo --------------------------------
 

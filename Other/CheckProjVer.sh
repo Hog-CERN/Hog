@@ -144,35 +144,38 @@ function main() {
       exit 1
     fi
 
-    #select full path to executable and place it in HDL_COMPILER global variable
-    if ! select_compiler_executable "$COMMAND"; then
-      echo "Hog-ERROR: failed to get HDL compiler executable for $COMMAND"
-      exit 1
-    fi
+    #select full path to executable and place it in TOOL_EXECUTABLE global variable
 
-    if [ ! -f "${HDL_COMPILER}" ]; then
-      echo "Hog-ERROR: HDL compiler executable $HDL_COMPILER not found"
-      cd "${OLD_DIR}" || exit
-      exit 1
-    else
-      echo "Hog-INFO: using executable: $HDL_COMPILER"
-    fi
+    for ((i=0; i<${#CMD_ARRAY[@]}; i++)); do
+      if ! select_compiler_executable "${CMD_ARRAY[$i]}"; then
+        echo "Hog-ERROR: Failed to get ${CMD_ARRAY[$i]} executable"
+        exit 1
+      fi
 
-    if [ "$COMMAND" = "quartus_sh" ]; then
-      echo "Hog-INFO: Executing:  ${HDL_COMPILER} $COMMAND_OPT $DIR/../../Hog/Tcl/CI/check_proj_ver.tcl $EXT_PATH $SIM $PROJ"
-      ${HDL_COMPILER} $COMMAND_OPT $DIR/../Hog/Tcl/CI/check_proj_ver.tcl $EXT_PATH $SIM $PROJ
-    elif [ "$COMMAND" = "vivado_hls" ]; then
-      echo "Hog-ERROR: Vivado HLS is not yet supported by this script!"
-    elif [ "$COMMAND" = "libero" ]; then
-      echo "Hog-INFO: Executing:  ${HDL_COMPILER} $COMMAND_OPT $DIR/../../Hog/Tcl/CI/check_proj_ver.tcl ${POST_COMMAND_OPT}$EXT_PATH $SIM $PROJ"
-      ${HDL_COMPILER} ${COMMAND_OPT}$DIR/../Hog/Tcl/CI/check_proj_ver.tcl ${POST_COMMAND_OPT}$PROJ
-    elif [ "$COMMAND" = "ghdl" ]; then
-      echo "Hog-INFO: Executing: tclsh Hog/Tcl/CI/check_proj_ver.tcl $EXT_PATH $SIM $PROJ"
-      tclsh $DIR/../Hog/Tcl/CI/check_proj_ver.tcl $EXT_PATH $SIM $PROJ
-    else
-      echo "Hog-INFO: Executing:  ${HDL_COMPILER} $COMMAND_OPT $DIR/../../Hog/Tcl/CI/check_proj_ver.tcl ${POST_COMMAND_OPT}$EXT_PATH $SIM $PROJ"
-      ${HDL_COMPILER} ${COMMAND_OPT}$DIR/../Hog/Tcl/CI/check_proj_ver.tcl ${POST_COMMAND_OPT} $EXT_PATH $SIM $PROJ
-    fi
+      if [ ! -f "${TOOL_EXECUTABLE}" ]; then
+        echo "Hog-ERROR: Failed to find $TOOL_EXECUTABLE executable"
+        cd "${OLD_DIR}" || exit
+        exit 1
+      else
+        echo "Hog-INFO: Using executable: $TOOL_EXECUTABLE"
+      fi
+
+      if [ "${CMD_ARRAY[$i]}" = "quartus_sh" ]; then
+        echo "Hog-INFO: Executing:  ${TOOL_EXECUTABLE} $CMD_OPT_ARRAY[$i] $DIR/../../Hog/Tcl/CI/check_proj_ver.tcl $EXT_PATH $SIM $PROJ"
+        ${TOOL_EXECUTABLE} $CMD_OPT_ARRAY[$i] $DIR/../Hog/Tcl/CI/check_proj_ver.tcl $EXT_PATH $SIM $PROJ
+      elif [ "${CMD_ARRAY[$i]}" = "vivado_hls" ]; then
+        echo "Hog-ERROR: Vivado HLS is not yet supported by this script!"
+      elif [ "${CMD_ARRAY[$i]}" = "libero" ]; then
+        echo "Hog-INFO: Executing:  ${TOOL_EXECUTABLE} $CMD_OPT_ARRAY[$i] $DIR/../../Hog/Tcl/CI/check_proj_ver.tcl ${POST_CMD_OPT_ARRAY[$i]}$EXT_PATH $SIM $PROJ"
+        ${TOOL_EXECUTABLE} ${CMD_OPT_ARRAY[$i]}$DIR/../Hog/Tcl/CI/check_proj_ver.tcl ${POST_CMD_OPT_ARRAY[$i]}$PROJ
+      elif [ "${CMD_ARRAY[$i]}" = "ghdl" ]; then
+        echo "Hog-INFO: Executing: tclsh Hog/Tcl/CI/check_proj_ver.tcl $EXT_PATH $SIM $PROJ"
+        tclsh $DIR/../Hog/Tcl/CI/check_proj_ver.tcl $EXT_PATH $SIM $PROJ
+      else
+        echo "Hog-INFO: Executing:  ${TOOL_EXECUTABLE} $CMD_OPT_ARRAY[$i] $DIR/../../Hog/Tcl/CI/check_proj_ver.tcl ${POST_CMD_OPT_ARRAY[$i]}$EXT_PATH $SIM $PROJ"
+        ${TOOL_EXECUTABLE} ${CMD_OPT_ARRAY[$i]}$DIR/../Hog/Tcl/CI/check_proj_ver.tcl ${POST_CMD_OPT_ARRAY[$i]} $EXT_PATH $SIM $PROJ
+      fi
+    done
   fi
 }
 

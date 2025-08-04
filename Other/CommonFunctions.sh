@@ -27,25 +27,25 @@ source ${script_dir}/HogPrint.sh
 #
 export FILE_TYPE=""
 
-## @var COMMAND
-#  @brief Global variable used to contain the command to be used
+## @var CMD_ARRAY
+#  @brief Global array variable used to contain the command(s) to be used
 #
-export COMMAND=""
+export CMD_ARRAY=()
 
-## @var COMMAND_OPT
-#  @brief Global variable used to contain the options associated to the command to be used
+## @var CMD_OPT_ARRAY
+#  @brief Global array variable used to contain the options associated to the command(s) to be used
 #
-export COMMAND_OPT=""
+export CMD_OPT_ARRAY=()
 
-## @var POST_COMMAND_OPT
-#  @brief Global variable used to contain the post command options to be used (e.g. -tclargs)
+## @var POST_CMD_OPT_ARRAY
+#  @brief Global array variable used to contain the post command(s) options to be used (e.g. -tclargs)
 #
-export POST_COMMAND_OPT=""
+export POST_CMD_OPT_ARRAY=()
 
-## @var HDL_COMPILER
-#  @brief Global variable containing the full path to the HDL compiler to be used
+## @var TOOL_EXECUTABLE
+#  @brief Global variable containing the full path to the FPGA/SoC development tool executable to be used
 #
-export HDL_COMPILER=""
+export TOOL_EXECUTABLE=""
 
 ## @var HOG_GIT_VERSION
 #  @brief Global variable containing the full path of the root project folder
@@ -62,19 +62,23 @@ export DEBUG_VERBOSE=4
 # @brief Selects which command has to be used based on the first line of the tcl
 #
 # This function:
-# - checks if the line CONTAINS:
+# - Checks if the line CONTAINS:
 #   * vivado
 #     + vivadoHLS
+#     + vitis
+#   * vitis
 #   * quartus
 #     + quartusHLS
 #   * intelHLS
 #   * planahead
 #   * libero
+#   * diamond
+#   * ghdl
 #
 # @param[in]    $1 the first line of the tcl file or a suitable string
-# @param[out]   COMMAND  global variable: the selected command
-# @param[out]   COMMAND_OPT global variable: the selected command options
-# @param[out]   POST_COMMAND_OPT global variable: the post command options
+# @param[out]   CMD_ARRAY global array variable: the selected command(s)
+# @param[out]   CMD_OPT_ARRAY global array variable: the selected command(s) options
+# @param[out]   POST_CMD_OPT_ARRAY global array variable: the post command(s) options
 #
 # @returns  0 if success, 1 if failure
 #
@@ -89,70 +93,62 @@ function select_command_from_line() {
   if [[ $TCL_FIRST_LINE =~ 'vivado' ]]; then
     if [[ $TCL_FIRST_LINE =~ 'vivadoHLS' ]]; then
       Msg Info " Recognised VivadoHLS project"
-      COMMAND="vivado_hls"
-      COMMAND_OPT="-f"
-    elif [[ $TCL_FIRST_LINE =~ 'vivado' ]] && [[ $TCL_FIRST_LINE =~ 'vitis' ]]; then
+      CMD_ARRAY=("vivado_hls")
+      CMD_OPT_ARRAY=("-f")
+    elif [[ $TCL_FIRST_LINE =~ 'vitis' ]]; then
       Msg Info " Recognised Vivado-Vitis project"
-      COMMAND="vivado"
-      COMMAND_OPT="-nojournal -nolog -mode batch -notrace -source "
-      POST_COMMAND_OPT="-tclargs "
-      if [ -n "$HOG_VITIS_PATH" ]; then
-        if [ ! -f "$HOG_VITIS_PATH/settings64.sh" ]; then
-          Msg Error "Variable HOG_VITIS_PATH set to $HOG_VITIS_PATH but settings64.sh not found";
-          return 1;
-        else
-          Msg Info " Sourcing Vitis settings from $HOG_VITIS_PATH";
-          source "$HOG_VITIS_PATH/settings64.sh";
-          if ! command -v vitis >/dev/null 2>&1; then
-            Msg Error "Vitis command not found in PATH";
-            return 1
-          fi;
-        fi;
-      fi;
+      CMD_ARRAY=("vivado" "xsct")
+      CMD_OPT_ARRAY=("-nojournal -nolog -mode batch -notrace -source " "")
+      POST_CMD_OPT_ARRAY=("-tclargs ," "")
     else
       Msg Info " Recognised Vivado project"
-      COMMAND="vivado"
-      COMMAND_OPT="-nojournal -nolog -mode batch -notrace -source "
-      POST_COMMAND_OPT="-tclargs "
+      CMD_ARRAY=("vivado")
+      CMD_OPT_ARRAY=("-nojournal -nolog -mode batch -notrace -source ")
+      POST_CMD_OPT_ARRAY=("-tclargs ")
     fi
+  elif [[ $TCL_FIRST_LINE =~ 'vitis' ]]; then
+    Msg Info " Recognised Vitis project"
+    CMD_ARRAY=("xsct")
+    CMD_OPT_ARRAY=("")
+    POST_CMD_OPT_ARRAY=("")
   elif [[ $TCL_FIRST_LINE =~ 'quartus' ]]; then
     if [[ $TCL_FIRST_LINE =~ 'quartusHLS' ]]; then
       Msg Error " Intel HLS compiler is not supported!"
       return 1
     else
       Msg Info " Recognised QuartusPrime project"
-      COMMAND="quartus_sh"
-      COMMAND_OPT="-t "
+      CMD_ARRAY=("quartus_sh")
+      CMD_OPT_ARRAY=("-t ")
     fi
   elif [[ $TCL_FIRST_LINE =~ 'intelHLS' ]]; then
     Msg Error "Intel HLS compiler is not supported!"
     return 1
   elif [[ $TCL_FIRST_LINE =~ 'planahead' ]]; then
     Msg Info " Recognised planAhead project"
-    COMMAND="planAhead"
-    COMMAND_OPT="-nojournal -nolog -mode batch -notrace -source "
-    POST_COMMAND_OPT="-tclargs"
+    CMD_ARRAY=("planAhead")
+    CMD_OPT_ARRAY=("-nojournal -nolog -mode batch -notrace -source ")
+    POST_CMD_OPT_ARRAY=("-tclargs")
   elif [[ $TCL_FIRST_LINE =~ 'libero' ]]; then
     Msg Info "Recognised Libero SoC project"
-    COMMAND="libero"
-    COMMAND_OPT="SCRIPT:"
-    POST_COMMAND_OPT="SCRIPT_ARGS:"
+    CMD_ARRAY=("libero")
+    CMD_OPT_ARRAY=("SCRIPT:")
+    POST_CMD_OPT_ARRAY=("SCRIPT_ARGS:")
   elif [[ $TCL_FIRST_LINE =~ 'diamond' ]]; then
     Msg Info "Recognised Lattice Diamond project"
-    COMMAND="diamondc"
-    COMMAND_OPT=" "
-    POST_COMMAND_OPT=" "
+    CMD_ARRAY=("diamondc")
+    CMD_OPT_ARRAY=(" ")
+    POST_CMD_OPT_ARRAY=(" ")
   elif [[ $TCL_FIRST_LINE =~ 'ghdl' ]]; then
     Msg Info "Recognised GHDL project"
-    COMMAND="ghdl"
-    COMMAND_OPT=""
-    POST_COMMAND_OPT=" "
+    CMD_ARRAY=("ghdl")
+    CMD_OPT_ARRAY=("")
+    POST_CMD_OPT_ARRAY=(" ")
   else
     Msg Warning " You should write #vivado, #quartus or #planahead as first line in your hog.conf file or project Tcl file, assuming Vivado... "
     Msg Info " Recognised Vivado project"
-    COMMAND="vivado"
-    COMMAND_OPT="-mode batch -notrace -source"
-    POST_COMMAND_OPT="-tclargs"
+    CMD_ARRAY=("vivado")
+    CMD_OPT_ARRAY=("-mode batch -notrace -source")
+    POST_CMD_OPT_ARRAY=("-tclargs")
   fi
 
   return 0
@@ -168,8 +164,8 @@ function select_command_from_line() {
 # - calls select_command_from_line()
 #
 # @param[in]    $1 full path to the tcl/conf file
-# @param[out]   COMMAND  global variable: the selected command
-# @param[out]   COMMAND_OPT global variable: the selected command options
+# @param[out]   CMD_ARRAY  global array variable: the selected command(s)
+# @param[out]   CMD_OPT_ARRAY global array variable: the selected command(s) options
 #
 # @returns  0 for ok, 1 for error
 #
@@ -191,7 +187,7 @@ function select_command() {
 
 
   if ! select_command_from_line "$(head -1 "$file")"; then
-    Msg Error "Failed to select COMMAND, COMMAND_OPT and POST_COMMAND_OPT"
+    Msg Error "Failed to select CMD_ARRAY, CMD_OPT_ARRAY and POST_CMD_OPT_ARRAY"
     return 1
   fi
   return 0
@@ -199,28 +195,28 @@ function select_command() {
 
 ## @fn select_compiler_executable
 #
-# @brief selects the path to the executable to be used for invoking the HDL compiler
+# @brief selects the path to the executable to be used for invoking the FPGA/SoC development tool
 #
 # This function:
 # - checks at least 1 argument is passed
 # - uses command -v to select the executable
 #   * if no executable is found and the command is vivado it uses XILINX_VIVADO
 #   *
-# - stores the result in a global variable called HDL_COMPILER
+# - stores the result in a global variable called TOOL_EXECUTABLE
 #
 # @param[in]    $1 The command to be invoked
-# @param[out]   HDL_COMPILER global variable: the full path to the HDL compiler executable
+# @param[out]   TOOL_EXECUTABLE global variable: the full path to the FPGA/SoC development tool executable (e.g. vivado, xsct, quartus_sh, libero, etc.)
 #
 # @returns  0 if success, 1 if failure
 #
 function select_compiler_executable() {
   if [ "a$1" == "a" ]; then
-    Msg Error "select_compiler_executable(): Variable COMMAND is not set!"
+    Msg Error "select_compiler_executable(): Variable CMD_ARRAY is not set!"
     return 1
   fi
 
   if [ "$(command -v "$1")" ]; then
-    HDL_COMPILER=$(command -v "$1")
+    TOOL_EXECUTABLE=$(command -v "$1")
   else
     if [ "$1" == "vivado" ]; then
       if [ -z ${XILINX_VIVADO+x} ]; then
@@ -229,9 +225,21 @@ function select_compiler_executable() {
         return 1
       elif [ -d "$XILINX_VIVADO" ]; then
         Msg Info "XILINX_VIVADO is set to '$ XILINX_VIVADO'"
-        HDL_COMPILER="$XILINX_VIVADO/bin/$1"
+        TOOL_EXECUTABLE="$XILINX_VIVADO/bin/$1"
       else
         Msg Error "Failed locate '$1' executable from XILINX_VIVADO: $XILINX_VIVADO"
+        return 1
+      fi
+    elif [ "$1" == "vitis" ]; then
+      if [ -z ${XILINX_VITIS+x} ]; then
+        Msg Error "No vitis executable found and no variable XILINX_VITIS set\n"
+        cd "${OLD_DIR}" || exit
+        return 1
+      elif [ -d "$XILINX_VITIS" ]; then
+        Msg Info "XILINX_VITIS is set to '$ XILINX_VITIS'"
+        TOOL_EXECUTABLE="$XILINX_VITIS/bin/$1"
+      else
+        Msg Error "Failed locate '$1' executable from XILINX_VITIS: $XILINX_VITIS"
         return 1
       fi
     elif [ "$1" == "quartus_sh" ]; then
@@ -244,9 +252,9 @@ function select_compiler_executable() {
         #Decide if you are to use bin or bin 64
         #Note things like $PROCESSOR_ARCHITECTURE==x86 won't work in Windows because this will return the version of the git bash
         if [ -d "$QUARTUS_ROOTDIR/bin64" ]; then
-          HDL_COMPILER="$QUARTUS_ROOTDIR/bin64/$1"
+          TOOL_EXECUTABLE="$QUARTUS_ROOTDIR/bin64/$1"
         elif [ -d "$QUARTUS_ROOTDIR/bin" ]; then
-          HDL_COMPILER="$QUARTUS_ROOTDIR/bin/$1"
+          TOOL_EXECUTABLE="$QUARTUS_ROOTDIR/bin/$1"
         else
           Msg Error "Failed locate '$1' executable from QUARTUS_ROOTDIR: $QUARTUS_ROOTDIR"
           return 1
@@ -273,10 +281,10 @@ function select_compiler_executable() {
 # @brief Selects which compiler executable has to be used based on the first line of the conf or tcl file
 #
 # @param[in]    $1 full path to the project dir
-# @param[out]   COMMAND  global variable: the selected command
-# @param[out]   COMMAND_OPT global variable: the selected command options
-# @param[out]   POST_COMMAND_OPT global variable: the post command options
-# @param[out]   HDL_COMPILER global variable: the full path to the HDL compiler executable
+# @param[out]   CMD_ARRAY  global array variable: the selected command(s)
+# @param[out]   CMD_OPT_ARRAY global array variable: the selected command(s) options
+# @param[out]   POST_CMD_OPT_ARRAY global variable: the post command(s) options
+# @param[out]   TOOL_EXECUTABLE global variable: the full path to the FPGA/SoC development tool executable
 #
 # @returns  0 if success, 1 if failure
 #
@@ -291,10 +299,10 @@ function select_executable_from_project_dir() {
     return 1
   fi
 
-  #select full path to executable and place it in HDL_COMPILER global variable
+  #select full path to executable and place it in TOOL_EXECUTABLE global variable
 
-  if ! select_compiler_executable $COMMAND; then
-    Msg Error "Failed to get HDL compiler executable for $COMMAND"
+  if ! select_compiler_executable $CMD_ARRAY; then
+    Msg Error "Failed to get $CMD_ARRAY executable"
     return 1
   fi
 

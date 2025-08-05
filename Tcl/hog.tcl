@@ -5003,8 +5003,8 @@ proc Msg {level msg {title ""}} {
     if {$vlevel != "STATUS"} {
       puts "$vlevel: \[Hog:$title\] $msg"
     } else {
-      # puts "|${msg}"
-      puts ".$msg"
+      # temporary solution to avoid removing of leading spaces
+      puts ".$msg" 
     }
 
     if {$qlevel == "error"} {
@@ -5158,36 +5158,6 @@ proc PrintFileTree {{data} {repo_path} {indentation ""}} {
 
   return $last_printed
 }
-# proc PrintFileTree {{data} {repo_path} {indentation ""}} {
-#   set print_list {}
-#   set last_printed ""
-#   foreach line $data {
-#     if {![regexp {^[\t\s]*$} $line] & ![regexp {^[\t\s]*\#} $line]} {
-#       lappend print_list "$line"
-#     }
-#   }
-#   set i 0
-
-#   foreach p $print_list {
-#     incr i
-#     if {$i == [llength $print_list]} {
-#       set pad "└──"
-#     } else {
-#       set pad "├──"
-#     }
-#     set file_name [lindex [split $p] 0]
-#     if {[file exists [file normalize [lindex [glob -nocomplain $repo_path/$file_name] 0]]]} {
-#       set exists ""
-#     } else {
-#       set exists "  !!!!!   NOT FOUND   !!!!!"
-#     }
-
-#     Msg Status "$indentation$pad$p$exists"
-#     set last_printed $file_name
-#   }
-
-#   return $last_printed
-# }
 
 # @brief Check if a Hog project exists, and if it exists returns the conf file
 # if it doesnt returns 0

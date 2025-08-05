@@ -5004,7 +5004,7 @@ proc Msg {level msg {title ""}} {
       puts "$vlevel: \[Hog:$title\] $msg"
     } else {
       # temporary solution to avoid removing of leading spaces
-      puts ".$msg" 
+      puts ".$msg"
     }
 
     if {$qlevel == "error"} {

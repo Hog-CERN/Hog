@@ -49,7 +49,7 @@ export LOG_WAR_ERR_FILE=""
 export TEMP_LOG_INFO_FILE=""
 export TEMP_LOG_WAR_ERR_FILE=""
 
-if [ -n $tempfolder ]; then
+if [ -n "$tempfolder" ]; then
   tmptimestamp=$(date +%s)
   tempfolder="/dev/shm/$USER/hog$tmptimestamp"
   if mkdir -p $tempfolder 2>/dev/null ; then

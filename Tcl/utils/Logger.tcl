@@ -44,22 +44,18 @@ namespace eval Hog::LoggerLib {
           Msg Error "TOML file $toml_file does not exist"
           return -1
       }
-      
       if {[catch {open $toml_file r} file_handle]} {
           Msg Error "Cannot open TOML file $toml_file: $file_handle"
           return -1
       }
-      
       # set toml_dict [dict create]
       set current_section ""
       set line_number 0
       set in_multiline_string 0
       set multiline_buffer ""
       set multiline_key ""
-      
       while {[gets $file_handle line] >= 0} {
           incr line_number
-          
           # Handle multiline strings
           if {$in_multiline_string} {
               if {[string match "*\"\"\"*" $line]} {
@@ -79,7 +75,6 @@ namespace eval Hog::LoggerLib {
               }
               continue
           }
-          
           # Remove comments (but preserve # inside strings)
           set clean_line ""
           set in_quotes 0
@@ -100,14 +95,11 @@ namespace eval Hog::LoggerLib {
                   append clean_line $char
               }
           }
-          
           set line [string trim $clean_line]
-          
           # Skip empty lines
           if {$line eq ""} {
               continue
           }
-          
           # Handle section headers [section] or [section.subsection]
           if {[regexp {^\[([^\]]+)\]$} $line match section_name]} {
               set current_section $section_name
@@ -117,7 +109,6 @@ namespace eval Hog::LoggerLib {
               }
               continue
           }
-          
           # Handle key-value pairs
           if {[regexp {^([^=]+)=(.*)$} $line match raw_key raw_value]} {
               set key [string trim $raw_key]
@@ -132,10 +123,8 @@ namespace eval Hog::LoggerLib {
                   set in_multiline_string 1
                   continue
               }
-              
               # Parse the value
               set parsed_value [ParseTOMLValue $value]
-              
               # Handle arrays and nested keys
               if {[string match "*.*" $key]} {
                   set key_parts [split $key "."]
@@ -143,7 +132,6 @@ namespace eval Hog::LoggerLib {
                   if {$current_section ne ""} {
                       lappend dict_ref $current_section
                   }
-                  
                   for {set i 0} {$i < [expr [llength $key_parts] - 1]} {incr i} {
                       set part [lindex $key_parts $i]
                       lappend dict_ref $part
@@ -151,7 +139,6 @@ namespace eval Hog::LoggerLib {
                           dict set {*}$dict_ref [dict create]
                       }
                   }
-                  
                   set final_key [lindex $key_parts end]
                   lappend dict_ref $final_key
                   dict set {*}$dict_ref $parsed_value
@@ -165,7 +152,6 @@ namespace eval Hog::LoggerLib {
               }
           }
       }
-      
       close $file_handle
       return $toml_dict
   }
@@ -185,7 +171,6 @@ namespace eval Hog::LoggerLib {
       } elseif {$value eq "false"} {
           return 0
       }
-      
       # Handle strings (quoted)
       if {[regexp {^"(.*)"$} $value match string_content]} {
           # Handle escape sequences
@@ -195,7 +180,6 @@ namespace eval Hog::LoggerLib {
           # Single quoted strings (literal)
           return $string_content
       }
-      
       # Handle arrays
       if {[string match {\[*\]} $value]} {
           set array_content [string range $value 1 end-1]
@@ -204,13 +188,11 @@ namespace eval Hog::LoggerLib {
           if {$array_content eq ""} {
               return [list]
           }
-          
           set elements [list]
           set current_element ""
           set bracket_depth 0
           set in_quotes 0
           set quote_char ""
-          
           for {set i 0} {$i < [string length $array_content]} {incr i} {
               set char [string index $array_content $i]
               
@@ -235,26 +217,21 @@ namespace eval Hog::LoggerLib {
                   append current_element $char
               }
           }
-          
           if {$current_element ne ""} {
               lappend elements [ParseTOMLValue [string trim $current_element]]
           }
-          
           return $elements
       }
-      
       # Handle numbers (integers and floats)
       if {[string is integer $value]} {
           return [expr {int($value)}]
       } elseif {[string is double $value]} {
           return [expr {double($value)}]
       }
-      
       # Handle dates/times as strings for now
       if {[regexp {^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}} $value]} {
           return $value
       }
-      
       # Return as string if nothing else matches
       return $value
   }
@@ -269,7 +246,6 @@ namespace eval Hog::LoggerLib {
   proc GetTOMLValue {toml_dict key_path} {
       set key_parts [split $key_path "."]
       set current_dict $toml_dict
-      
       foreach part $key_parts {
           if {[dict exists $current_dict $part]} {
               set current_dict [dict get $current_dict $part]
@@ -277,7 +253,6 @@ namespace eval Hog::LoggerLib {
               return ""
           }
       }
-      
       return $current_dict
   }
 
@@ -288,7 +263,6 @@ namespace eval Hog::LoggerLib {
   #
   proc PrintTOMLDict {toml_dict {indent 0}} {
       set indent_str [string repeat "  " $indent]
-      
       dict for {key value} $toml_dict {
           if {[string is list $value] && [llength $value] > 1 && [string is list [lindex $value 0]]} {
               # This is likely a nested dictionary

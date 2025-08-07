@@ -227,6 +227,7 @@ line_type=""
 
 
 function log_stdout(){
+  
   if [ -n "${2}" ]; then
     IN_out="${2//\\/\\\\}"
     # temp=1
@@ -234,6 +235,10 @@ function log_stdout(){
     while read -r IN_out # This reads a string from stdin and stores it in a variable called IN_out
     do
       # echo $IN_out
+      #if In_out starts with "LogHelp:" remove it
+      if [[ "$IN_out" == LogHelp:* ]]; then
+        IN_out="${IN_out#LogHelp:}"
+      fi
       if [[ $next_is_err == 0 ]]; then
         line="${IN_out//\\/\\\\}"
       else

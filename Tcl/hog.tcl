@@ -18,6 +18,7 @@
 set CI_STAGES {"generate_project" "simulate_project"}
 set CI_PROPS {"-synth_only"}
 
+# set HogEnvDict [LoggerLib::GetTOMLDict]
 #### FUNCTIONS
 
 ## @brief Add a new file to a fileset in Vivado
@@ -4949,6 +4950,7 @@ proc MoveElementToEnd {inputList element} {
   return $inputList
 }
 
+
 ## @brief The Hog Printout Msg function
 #
 # @param[in] level The severity level (status, info, warning, critical, error, debug)
@@ -5003,8 +5005,26 @@ proc Msg {level msg {title ""}} {
     if {$vlevel != "STATUS"} {
       puts "$vlevel: \[Hog:$title\] $msg"
     } else {
-      # temporary solution to avoid removing of leading spaces
-      puts ".$msg"
+      # temporary solution to avoid removing of leading
+      # puts "|${msg}"
+      set HogEnvDict [Hog::LoggerLib::GetTOMLDict]
+      # puts $HogEnvDict
+      # puts "$::env(HOG_COLOR) $::env(HOG_LOGGER)"
+      # puts "HogEnvDict: [dict get $HogEnvDict terminal colored] :: [dict get $HogEnvDict terminal logger]"
+      if {
+        ([info exists ::env(HOG_COLOR)] && ([string match "ENABLED" $::env(HOG_COLOR)]) || [string is integer -strict $::env(HOG_COLOR)] && $::env(HOG_COLOR) > 0) || 
+        ([info exists ::env(HOG_LOGGER)] && (
+            [string match "ENABLED" $::env(HOG_LOGGER)] ||
+            [dict get $HogEnvDict terminal logger] > 0 ||
+            [dict get $HogEnvDict terminal colored] > 0
+          )
+        )
+      } {
+        puts "LogHelp:$msg"
+      } else {
+        puts $msg
+      }
+      # puts ".$msg" 
     }
 
     if {$qlevel == "error"} {

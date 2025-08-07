@@ -5014,7 +5014,11 @@ proc Msg {level msg {title ""}} {
       # puts "$::env(HOG_COLOR) $::env(HOG_LOGGER)"
       # puts "HogEnvDict: [dict get $HogEnvDict terminal colored] :: [dict get $HogEnvDict terminal logger]"
       if {
-        ([info exists ::env(HOG_COLOR)] && ([string match "ENABLED" $::env(HOG_COLOR)]) || [string is integer -strict $::env(HOG_COLOR)] && $::env(HOG_COLOR) > 0) || 
+        ([info exists ::env(HOG_COLOR)] && 
+          ([string match "ENABLED" $::env(HOG_COLOR)] || 
+            ([string is integer -strict $::env(HOG_COLOR)] && $::env(HOG_COLOR) > 0) 
+          )
+        )|| 
         ([info exists ::env(HOG_LOGGER)] && ([string match "ENABLED" $::env(HOG_LOGGER)]) &&
           (
             [dict get $HogEnvDict terminal logger] > 0 ||
@@ -5026,9 +5030,7 @@ proc Msg {level msg {title ""}} {
       } else {
         puts $msg
       }
-      # puts ".$msg" 
     }
-
     if {$qlevel == "error"} {
       exit 1
     }

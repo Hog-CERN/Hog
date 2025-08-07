@@ -113,7 +113,6 @@ namespace eval Hog::LoggerLib {
       if {[regexp {^([^=]+)=(.*)$} $line match raw_key raw_value]} {
         set key [string trim $raw_key]
         set value [string trim $raw_value]
-        
         # Handle multiline strings
         if {[string match "*\"\"\"*" $value] && ![string match "*\"\"\"*\"\"\"*" $value]} {
           set start_pos [string first "\"\"\"" $value]

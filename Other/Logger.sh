@@ -44,9 +44,12 @@ export error_fail=0
 export failing_en=0
 export fwe_fail_trig=0
 
-# export
+export LOG_INFO_FILE=""
+export LOG_WAR_ERR_FILE=""
+export TEMP_LOG_INFO_FILE=""
+export TEMP_LOG_WAR_ERR_FILE=""
 
-if [ -v $tempfolder ]; then
+if [ -n $tempfolder ]; then
   tmptimestamp=$(date +%s)
   tempfolder="/dev/shm/$USER/hog$tmptimestamp"
   if mkdir -p $tempfolder 2>/dev/null ; then
@@ -56,6 +59,10 @@ if [ -v $tempfolder ]; then
     temp_w_cnt_file="$tempfolder/hog_w_cnt"
     temp_c_cnt_file="$tempfolder/hog_c_cnt"
     temp_e_cnt_file="$tempfolder/hog_e_cnt"
+    TEMP_LOG_INFO_FILE="$tempfolder/hog_log_info"
+    TEMP_LOG_WAR_ERR_FILE="$tempfolder/hog_log_war_err"
+    touch $TEMP_LOG_INFO_FILE
+    touch $TEMP_LOG_WAR_ERR_FILE
   else
     echo " Warning : Could not create /dev/shm/$USER/hog$tmptimestamp will try /tmp/$USER/hog$tmptimestamp "
     tempfolder="/tmp/$USER/hog$tmptimestamp"
@@ -66,6 +73,10 @@ if [ -v $tempfolder ]; then
       temp_w_cnt_file="$tempfolder/hog_w_cnt"
       temp_c_cnt_file="$tempfolder/hog_c_cnt"
       temp_e_cnt_file="$tempfolder/hog_e_cnt"
+      TEMP_LOG_INFO_FILE="$tempfolder/hog_log_info"
+      TEMP_LOG_WAR_ERR_FILE="$tempfolder/hog_log_war_err"
+      touch $TEMP_LOG_INFO_FILE
+      touch $TEMP_LOG_WAR_ERR_FILE
     else
       echo " *** ERROR Could not create /tmp/$USER/hog$tmptimestamp"
       exit 0
@@ -133,8 +144,10 @@ echo_info=1
 echo_warnings=1
 echo_errors=1
 
-export LOG_INFO_FILE=""
-export LOG_WAR_ERR_FILE=""
+# export LOG_INFO_FILE=""
+# export LOG_WAR_ERR_FILE=""
+# export TEMP_LOG_INFO_FILE=""
+# export TEMPLOG_WAR_ERR_FILE=""
 
 #Define colours
 # declare -A colorsDark
@@ -394,6 +407,14 @@ function log_stdout(){
         if [[ -n $LOG_INFO_FILE ]]; then
           echo "${stderr_ack}${msgHeadBW[$msgType]} ${dataLine#${msgRemove[$msgType]}} "  >> $LOG_INFO_FILE;
         fi
+      else
+        # store in a temporary file
+        if [[ -n $LOG_WAR_ERR_FILE ]] && [[ 3 -gt ${msgDbgLvl[$msgType]} ]]; then
+          echo "${stderr_ack}${msgHeadBW[$msgType]} ${dataLine#${msgRemove[$msgType]}} "  >> $TEMP_LOG_WAR_ERR_FILE
+        fi
+        if [[ -n $LOG_INFO_FILE ]]; then
+          echo "${stderr_ack}${msgHeadBW[$msgType]} ${dataLine#${msgRemove[$msgType]}} "  >> $TEMP_LOG_INFO_FILE;
+        fi
       fi
       if [[ $ENABLE_FWE -eq 1 ]];then
         if [[ $fwe_fail_trig -eq 0 ]]; then
@@ -571,12 +592,20 @@ function Msg() {
   fi
   if [[ $HOG_LOG_EN -gt 0 ]]; then
     if [[ -n $LOG_WAR_ERR_FILE ]] && [[ 3 -gt ${msgDbgLvl[$msgType]} ]]; then
-      echo "${msgHeadBW[$msgType]} HOG [${FUNCNAME[1]}] : $text " >> $LOG_INFO_FILE;
+      echo "${msgHeadBW[$msgType]} HOG [${FUNCNAME[1]}] : $text " >> $LOG_WAR_ERR_FILE;
       # echo "${msgHeadBW[$msgType]} ${dataLine#${msgRemove[$msgType]}} "  >> $LOG_WAR_ERR_FILE
     fi
     if [[ -n $LOG_INFO_FILE ]]; then
       echo "${msgHeadBW[$msgType]} HOG [${FUNCNAME[1]}] : $text " >> $LOG_INFO_FILE;
       # echo "${msgHeadBW[$msgType]} ${dataLine#${msgRemove[$msgType]}} "  >> $LOG_INFO_FILE;
+    fi
+  else
+    # store in a temporary file
+    if [[ -n $LOG_WAR_ERR_FILE ]] && [[ 3 -gt ${msgDbgLvl[$msgType]} ]]; then
+      echo "${msgHeadBW[$msgType]} HOG [${FUNCNAME[1]}] : $text " >> $TEMP_LOG_WAR_ERR_FILE;
+    fi
+    if [[ -n $LOG_INFO_FILE ]]; then
+      echo "${msgHeadBW[$msgType]} HOG [${FUNCNAME[1]}] : $text " >> $TEMP_LOG_INFO_FILE;
     fi
   fi
   if [[ $ENABLE_FWE -eq 1 ]];then
@@ -1047,18 +1076,31 @@ function Logger_Init() {
   if [ "$HOG_LOG_EN" -eq 1 ]; then
     {
       echo "-----------------------------------------------"
-      echo " HOG INFO LOG "
-      echo " CMD : ${1} "
-      echo " Timestamp: $custom_timestamp"
+      echo "  HOG INFO LOG "
+      echo "  CMD : ${1} "
+      echo "  Timestamp: $custom_timestamp"
       echo "-----------------------------------------------"
     } > $LOG_INFO_FILE
+    while IFS= read -r -t 0.5 line; do
+      # if [[ -n $line ]]; then
+        echo "$line" >> $LOG_INFO_FILE
+      # fi
+    done < $TEMP_LOG_INFO_FILE
+    rm -f $TEMP_LOG_INFO_FILE
     {
       echo "-----------------------------------------------"
-      echo " HOG WARNINGS AND ERRORS"
-      echo " CMD : ${1} "
-      echo " Timestamp: $custom_timestamp"
+      echo "  HOG WARNINGS AND ERRORS"
+      echo "  CMD : ${1} "
+      echo "  Timestamp: $custom_timestamp"
       echo "-----------------------------------------------"
     } > $LOG_WAR_ERR_FILE
+    # timeout 0.5s cat $TEMP_LOG_WAR_ERR_FILE >> $LOG_WAR_ERR_FILE
+    while IFS= read -r -t 0.5 line; do
+      # if [[ -n $line ]]; then
+        echo "$line" >> $LOG_WAR_ERR_FILE
+      # fi
+    done < $TEMP_LOG_WAR_ERR_FILE
+    rm -f $TEMP_LOG_WAR_ERR_FILE
 
     Msg Debug "LogColorVivado : $*"
     log_stdout "stdout" "LogColorVivado : $*"

@@ -194,7 +194,7 @@ source $tcl_path/create_project.tcl
 
 source "Hog/Tcl/utils/Logger.tcl"
 set loggerdict [Hog::LoggerLib::ParseTOML [Hog::LoggerLib::GetUserFilePath "HogEnv.conf" ]]
-Hog::LoggerLib::PrintTOMLDict $loggerdict
+# Hog::LoggerLib::PrintTOMLDict $loggerdict
 
 # Quartus needs extra packages and treats the argv in a different way
 if {[IsQuartus]} {

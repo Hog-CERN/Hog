@@ -5016,7 +5016,7 @@ proc Msg {level msg {title ""}} {
       if {
         ([info exists ::env(HOG_COLOR)] &&
           ([string match "ENABLED" $::env(HOG_COLOR)] ||
-            ([string is integer -strict $::env(HOG_COLOR)] && $::env(HOG_COLOR) > 0) 
+            ([string is integer -strict $::env(HOG_COLOR)] && $::env(HOG_COLOR) > 0)
           )
         )||
         ([info exists ::env(HOG_LOGGER)] && ([string match "ENABLED" $::env(HOG_LOGGER)]) &&

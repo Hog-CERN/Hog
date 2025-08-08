@@ -5137,63 +5137,63 @@ proc ParseJSON {JSON_FILE JSON_KEY} {
   }
 }
 
-# Define the procedure to print the content of a file
-#
-# @param[in] filename The name of the file to read and print
-#
-# @brief This procedure opens the file, reads its content, and prints it to the console.
-proc PrintFileContent {filename} {
-    # Open the file for reading
-    set file [open $filename r]
+# # Define the procedure to print the content of a file
+# #
+# # @param[in] filename The name of the file to read and print
+# #
+# # @brief This procedure opens the file, reads its content, and prints it to the console.
+# proc PrintFileContent {filename} {
+#     # Open the file for reading
+#     set file [open $filename r]
 
-    # Read the content of the file
-    set content [read $file]
+#     # Read the content of the file
+#     set content [read $file]
 
-    # Close the file
-    close $file
+#     # Close the file
+#     close $file
 
-    # Print the content of the file
-    puts $content
-}
+#     # Print the content of the file
+#     puts $content
+# }
 
 
 
-## Print a tree-like structure of Hog list file content
-#
-#  @param[in]    data the list of lines read from a list file
-#  @param[in]    repo_path the path of the repository
-#  @param[in]    indentation a string containing a number of spaces to indent the tree
-proc PrintFileTree {{data} {repo_path} {indentation ""}} {
-  # Msg Debug "PrintFileTree called with data: $data, repo_path: $repo_path, indentation: $indentation"
-  set print_list {}
-  set last_printed ""
-  foreach line $data {
-    if {![regexp {^[\t\s]*$} $line] & ![regexp {^[\t\s]*\#} $line]} {
-      lappend print_list "$line"
-    }
-  }
-  set i 0
+# ## Print a tree-like structure of Hog list file content
+# #
+# #  @param[in]    data the list of lines read from a list file
+# #  @param[in]    repo_path the path of the repository
+# #  @param[in]    indentation a string containing a number of spaces to indent the tree
+# proc PrintFileTree {{data} {repo_path} {indentation ""}} {
+#   # Msg Debug "PrintFileTree called with data: $data, repo_path: $repo_path, indentation: $indentation"
+#   set print_list {}
+#   set last_printed ""
+#   foreach line $data {
+#     if {![regexp {^[\t\s]*$} $line] & ![regexp {^[\t\s]*\#} $line]} {
+#       lappend print_list "$line"
+#     }
+#   }
+#   set i 0
 
-  foreach p $print_list {
-    incr i
-    if {$i == [llength $print_list]} {
-      set pad "└──"
-    } else {
-      set pad "├──"
-    }
-    set file_name [lindex [split $p] 0]
-    if {[file exists [file normalize [lindex [glob -nocomplain $repo_path/$file_name] 0]]]} {
-      set exists ""
-    } else {
-      set exists "  !!!!!   NOT FOUND   !!!!!"
-    }
+#   foreach p $print_list {
+#     incr i
+#     if {$i == [llength $print_list]} {
+#       set pad "└──"
+#     } else {
+#       set pad "├──"
+#     }
+#     set file_name [lindex [split $p] 0]
+#     if {[file exists [file normalize [lindex [glob -nocomplain $repo_path/$file_name] 0]]]} {
+#       set exists ""
+#     } else {
+#       set exists "  !!!!!   NOT FOUND   !!!!!"
+#     }
 
-    Msg Status "$indentation$pad$p$exists"
-    set last_printed $file_name
-  }
+#     Msg Status "$indentation$pad$p$exists"
+#     set last_printed $file_name
+#   }
 
-  return $last_printed
-}
+#   return $last_printed
+# }
 
 # @brief Check if a Hog project exists, and if it exists returns the conf file
 # if it doesnt returns 0

@@ -12,6 +12,166 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+# @file Logger.tcl
+# Logger functions for the Hog project
+
+
+## @brief The Hog Printout Msg function
+#
+# @param[in] level The severity level (status, info, warning, critical, error, debug)
+# @param[in] msg   The message to print
+# @param[in] title The title string to be included in the header of the message [Hog:$title] (default "")
+proc Msg {level msg {title ""}} {
+  set level [string tolower $level]
+  if {$title == ""} {set title [lindex [info level [expr {[info level] - 1}]] 0]}
+  if {$level == 0 || $level == "status" || $level == "extra_info"} {
+    set vlevel {STATUS}
+    set qlevel info
+  } elseif {$level == 1 || $level == "info"} {
+    set vlevel {INFO}
+    set qlevel info
+  } elseif {$level == 2 || $level == "warning"} {
+    set vlevel {WARNING}
+    set qlevel warning
+  } elseif {$level == 3 || [string first "critical" $level] != -1} {
+    set vlevel {CRITICAL WARNING}
+    set qlevel critical_warning
+  } elseif {$level == 4 || $level == "error"} {
+    set vlevel {ERROR}
+    set qlevel error
+  } elseif {$level == 5 || $level == "debug"} {
+    if {([info exists ::DEBUG_MODE] && $::DEBUG_MODE == 1) || (
+      [info exists ::env(HOG_DEBUG_MODE)] && $::env(HOG_DEBUG_MODE) == 1
+    )} {
+      set vlevel {STATUS}
+      set qlevel extra_info
+      set msg "DEBUG: \[Hog:$title\] $msg"
+    } else {
+      return
+    }
+  } else {
+    puts "Hog Error: level $level not defined"
+    exit -1
+  }
+
+
+  if {[IsXilinx]} {
+    # Vivado
+    set status [catch {send_msg_id Hog:$title-0 $vlevel $msg}]
+    if {$status != 0} {
+      exit $status
+    }
+  } elseif {[IsQuartus]} {
+    # Quartus
+    post_message -type $qlevel "Hog:$title $msg"
+    if {$qlevel == "error"} {
+      exit 1
+    }
+  } else {
+    # Tcl Shell / Libero
+    if {$vlevel != "STATUS"} {
+      puts "$vlevel: \[Hog:$title\] $msg"
+    } else {
+      # temporary solution to avoid removing of leading
+      # puts "|${msg}"
+      set HogEnvDict [Hog::LoggerLib::GetTOMLDict]
+      # Hog::LoggerLib::PrintTOMLDict $Hog::LoggerLib::toml_dict
+
+      # puts $HogEnvDict
+      # puts "$::env(HOG_COLOR) $::env(HOG_LOGGER)"
+      # puts "HogEnvDict: [dict get $HogEnvDict terminal colored] :: [dict get $HogEnvDict terminal logger]"
+      if {
+        ([info exists ::env(HOG_COLOR)] &&
+          ([string match "ENABLED" $::env(HOG_COLOR)] ||
+            ([string is integer -strict $::env(HOG_COLOR)] && $::env(HOG_COLOR) > 0)
+          )
+        )||
+        ([info exists ::env(HOG_LOGGER)] && ([string match "ENABLED" $::env(HOG_LOGGER)]) &&
+          (
+            [dict get $HogEnvDict terminal logger] > 0 ||
+            [dict get $HogEnvDict terminal colored] > 0
+          )
+        )
+      } {
+        puts "LogHelp:$msg"
+      } else {
+        puts $msg
+      }
+    }
+    if {$qlevel == "error"} {
+      exit 1
+    }
+  }
+}
+
+## @brief Prints a message with selected severity and optionally write into a log file
+#
+# @param[in] msg        The message to print
+# @param[in] severity   The severity of the message
+# @param[in] outFile    The path of the output logfile
+#
+proc MsgAndLog {msg {severity "CriticalWarning"} {outFile ""}} {
+  Msg $severity $msg
+  if {$outFile != ""} {
+    set directory [file dir $outFile]
+    if {![file exists $directory]} {
+      Msg Info "Creating $directory..."
+      file mkdir $directory
+    }
+
+    set oF [open "$outFile" a+]
+    puts $oF $msg
+    close $oF
+  }
+}
+
+
+# @brief Print the Hog Logo
+#
+# @param[in] repo_path The main path of the git repository (default .)
+proc Logo {{repo_path .}} {
+  # Msg Warning "HOG_LOGO_PRINTED : $HOG_LOGO_PRINTED"
+  if {![info exists ::env(HOG_LOGO_PRINTED)] || $::env(HOG_LOGO_PRINTED) eq "0"} {
+    if {
+    [info exists ::env(HOG_COLOR)] && ([string match "ENABLED" $::env(HOG_COLOR)] || [string is integer -strict $::env(HOG_COLOR)] && $::env(HOG_COLOR) > 0)
+    } {
+      set logo_file "$repo_path/Hog/images/hog_logo_color.txt"
+    } else {
+      set logo_file "$repo_path/Hog/images/hog_logo.txt"
+    }
+
+    cd $repo_path/Hog
+    set ver [Git {describe --always}]
+    set old_path [pwd]
+    # set ver [Git {describe --always}]
+
+    if {[file exists $logo_file]} {
+      set f [open $logo_file "r"]
+      set data [read $f]
+      close $f
+      set lines [split $data "\n"]
+      foreach l $lines {
+        if {[regexp {(Version:)[ ]+} $l -> prefix]} {
+          set string_len [string length $l]
+
+          set version_string "* Version: $ver"
+          set version_len [string length $version_string]
+          append version_string [string repeat " " [expr {$string_len - $version_len - 1}]] "*"
+          set l $version_string
+        }
+        Msg Status $l
+      }
+    } {
+      Msg CriticalWarning "Logo file: $logo_file not found"
+    }
+
+
+    # Msg Status "Version: $ver"
+    cd $old_path
+  }
+}
+
+
 
 
 namespace eval Hog::LoggerLib {
@@ -40,8 +200,13 @@ namespace eval Hog::LoggerLib {
   #
   proc ParseTOML {toml_file} {
   variable toml_dict
+
+  set toml_dict [dict create \
+    terminal [dict create logger 0 colored 0] \
+    verbose [dict create level 4 pidshow 0 linecounter 0 msgtypeCounter 0] \
+  ]
     if {![file exists $toml_file]} {
-      Msg Error "TOML file $toml_file does not exist"
+      Msg Warning "TOML file $toml_file does not exist"
       return -1
     }
     if {[catch {open $toml_file r} file_handle]} {
@@ -285,12 +450,16 @@ namespace eval Hog::LoggerLib {
   #
   # @returns  The dictionary containing the parsed TOML data
   proc GetTOMLDict {} {
-  variable toml_dict
-  if {[info exists toml_dict]} {
-    return $toml_dict
-  }
+    variable toml_dict
+    if {[info exists toml_dict]} {
+      return $toml_dict
+    }
   }
 
 
 
 }
+
+
+
+# puts "Hog::LoggerLib::GetTOMLDict called"

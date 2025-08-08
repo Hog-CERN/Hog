@@ -18,7 +18,13 @@
 set CI_STAGES {"generate_project" "simulate_project"}
 set CI_PROPS {"-synth_only"}
 
+
 # set HogEnvDict [LoggerLib::GetTOMLDict]
+      # set HogEnvDict [Hog::LoggerLib::GetTOMLDict]
+      # Hog::LoggerLib::PrintTOMLDict $HogEnvDict
+
+
+
 #### FUNCTIONS
 
 ## @brief Add a new file to a fileset in Vivado
@@ -3845,6 +3851,10 @@ proc InitLauncher {script tcl_path parameters commands argv {custom_commands ""}
     Logo $repo_path
   }
 
+  set loggerdict [Hog::LoggerLib::ParseTOML [Hog::LoggerLib::GetUserFilePath "HogEnv.conf" ]]
+  set HogEnvDict [Hog::LoggerLib::GetTOMLDict]
+  Hog::LoggerLib::PrintTOMLDict $HogEnvDict
+
   if {[catch {package require cmdline} ERROR]} {
     Msg Debug "The cmdline Tcl package was not found, sourcing it from Hog..."
     source $tcl_path/utils/cmdline.tcl
@@ -4849,50 +4859,50 @@ proc ListProjects {{repo_path .} {print 1} {ret_conf 0}} {
 }
 
 
-# @brief Print the Hog Logo
-#
-# @param[in] repo_path The main path of the git repository (default .)
-proc Logo {{repo_path .}} {
-  # Msg Warning "HOG_LOGO_PRINTED : $HOG_LOGO_PRINTED"
-  if {![info exists ::env(HOG_LOGO_PRINTED)] || $::env(HOG_LOGO_PRINTED) eq "0"} {
-    if {
-    [info exists ::env(HOG_COLOR)] && ([string match "ENABLED" $::env(HOG_COLOR)] || [string is integer -strict $::env(HOG_COLOR)] && $::env(HOG_COLOR) > 0)
-    } {
-      set logo_file "$repo_path/Hog/images/hog_logo_color.txt"
-    } else {
-      set logo_file "$repo_path/Hog/images/hog_logo.txt"
-    }
+# # @brief Print the Hog Logo
+# #
+# # @param[in] repo_path The main path of the git repository (default .)
+# proc Logo {{repo_path .}} {
+#   # Msg Warning "HOG_LOGO_PRINTED : $HOG_LOGO_PRINTED"
+#   if {![info exists ::env(HOG_LOGO_PRINTED)] || $::env(HOG_LOGO_PRINTED) eq "0"} {
+#     if {
+#     [info exists ::env(HOG_COLOR)] && ([string match "ENABLED" $::env(HOG_COLOR)] || [string is integer -strict $::env(HOG_COLOR)] && $::env(HOG_COLOR) > 0)
+#     } {
+#       set logo_file "$repo_path/Hog/images/hog_logo_color.txt"
+#     } else {
+#       set logo_file "$repo_path/Hog/images/hog_logo.txt"
+#     }
 
-    cd $repo_path/Hog
-    set ver [Git {describe --always}]
-    set old_path [pwd]
-    # set ver [Git {describe --always}]
+#     cd $repo_path/Hog
+#     set ver [Git {describe --always}]
+#     set old_path [pwd]
+#     # set ver [Git {describe --always}]
 
-    if {[file exists $logo_file]} {
-      set f [open $logo_file "r"]
-      set data [read $f]
-      close $f
-      set lines [split $data "\n"]
-      foreach l $lines {
-        if {[regexp {(Version:)[ ]+} $l -> prefix]} {
-          set string_len [string length $l]
+#     if {[file exists $logo_file]} {
+#       set f [open $logo_file "r"]
+#       set data [read $f]
+#       close $f
+#       set lines [split $data "\n"]
+#       foreach l $lines {
+#         if {[regexp {(Version:)[ ]+} $l -> prefix]} {
+#           set string_len [string length $l]
 
-          set version_string "* Version: $ver"
-          set version_len [string length $version_string]
-          append version_string [string repeat " " [expr {$string_len - $version_len - 1}]] "*"
-          set l $version_string
-        }
-        Msg Status $l
-      }
-    } {
-      Msg CriticalWarning "Logo file: $logo_file not found"
-    }
+#           set version_string "* Version: $ver"
+#           set version_len [string length $version_string]
+#           append version_string [string repeat " " [expr {$string_len - $version_len - 1}]] "*"
+#           set l $version_string
+#         }
+#         Msg Status $l
+#       }
+#     } {
+#       Msg CriticalWarning "Logo file: $logo_file not found"
+#     }
 
 
-    # Msg Status "Version: $ver"
-    cd $old_path
-  }
-}
+#     # Msg Status "Version: $ver"
+#     cd $old_path
+#   }
+# }
 
 ## @brief Evaluates the md5 sum of a file
 #
@@ -5010,6 +5020,8 @@ proc Msg {level msg {title ""}} {
       # temporary solution to avoid removing of leading
       # puts "|${msg}"
       set HogEnvDict [Hog::LoggerLib::GetTOMLDict]
+      Hog::LoggerLib::PrintTOMLDict $loggerdict
+
       # puts $HogEnvDict
       # puts "$::env(HOG_COLOR) $::env(HOG_LOGGER)"
       # puts "HogEnvDict: [dict get $HogEnvDict terminal colored] :: [dict get $HogEnvDict terminal logger]"
@@ -6301,6 +6313,12 @@ proc WriteUtilizationSummary {input output project_name run} {
   puts $o [util_m format 2string]
   close $o
 }
+
+# puts "$tcl_path/hog.tcl sourced successfully."
+source "$tcl_path/utils/Logger.tcl"
+# set loggerdict [Hog::LoggerLib::ParseTOML [Hog::LoggerLib::GetUserFilePath "HogEnv.conf" ]]
+# set HogEnvDict [Hog::LoggerLib::GetTOMLDict]
+# Hog::LoggerLib::PrintTOMLDict $HogEnvDict
 
 
 # Check Git Version when sourcing hog.tcl

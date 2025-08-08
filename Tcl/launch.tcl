@@ -17,6 +17,8 @@
 
 # Launch Xilinx Vivado or ISE implementation and possibly write bitstream in text mode
 
+
+
 set default_commands {
 
   \^L(IST)?$ {
@@ -189,12 +191,14 @@ set parameters {
 }
 
 set tcl_path [file normalize "[file dirname [info script]]"]
+# source "$tcl_path/utils/Logger.tcl"
+# set loggerdict [Hog::LoggerLib::ParseTOML [Hog::LoggerLib::GetUserFilePath "HogEnv.conf" ]]
+# Hog::LoggerLib::PrintTOMLDict $loggerdict
 source $tcl_path/hog.tcl
 source $tcl_path/create_project.tcl
 
-source "Hog/Tcl/utils/Logger.tcl"
-set loggerdict [Hog::LoggerLib::ParseTOML [Hog::LoggerLib::GetUserFilePath "HogEnv.conf" ]]
-# Hog::LoggerLib::PrintTOMLDict $loggerdict
+
+
 
 # Quartus needs extra packages and treats the argv in a different way
 if {[IsQuartus]} {

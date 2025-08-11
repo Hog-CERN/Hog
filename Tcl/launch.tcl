@@ -206,7 +206,7 @@ if {[IsQuartus]} {
   set argv $quartus(args)
 }
 
-Msg Debug "s: $::argv0 a: $argv"
+# Msg Debug "s: $::argv0 a: $argv"
 
 set commands_path [file normalize "$tcl_path/../../hog-commands/"]
 ### CUSTOM COMMANDS ###

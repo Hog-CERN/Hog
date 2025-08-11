@@ -15,6 +15,17 @@
 # @file Logger.tcl
 # Logger functions for the Hog project
 
+## @brief Safely get a value from a dictionary
+#
+# @param[in] d    The dictionary to search
+# @param[in] args The keys to look for
+proc dictSafeGet {d args} {
+  if {[dict exists $d {*}$args]} {
+    return [dict get $d {*}$args]
+  } else {
+    return ""
+  }
+}
 
 ## @brief The Hog Printout Msg function
 #
@@ -81,17 +92,14 @@ proc Msg {level msg {title ""}} {
       # puts "$::env(HOG_COLOR) $::env(HOG_LOGGER)"
       # puts "HogEnvDict: [dict get $HogEnvDict terminal colored] :: [dict get $HogEnvDict terminal logger]"
       if {
+        ([dictSafeGet $HogEnvDict terminal colored] > 0) ||
         ([info exists ::env(HOG_COLOR)] &&
           ([string match "ENABLED" $::env(HOG_COLOR)] ||
             ([string is integer -strict $::env(HOG_COLOR)] && $::env(HOG_COLOR) > 0)
           )
         )||
-        ([info exists ::env(HOG_LOGGER)] && ([string match "ENABLED" $::env(HOG_LOGGER)]) &&
-          (
-            [dict get $HogEnvDict terminal logger] > 0 ||
-            [dict get $HogEnvDict terminal colored] > 0
-          )
-        )
+        ([dictSafeGet $HogEnvDict terminal logger] > 0) ||
+        ([info exists ::env(HOG_LOGGER)] && ([string match "ENABLED" $::env(HOG_LOGGER)]))
       } {
         puts "LogHelp:$msg"
       } else {
@@ -241,12 +249,16 @@ namespace eval Hog::LoggerLib {
   #
   # @param[in] filename  The name of the file to get the path for
   #
-  # @returns  The full path to the file in the user's home directory
+  # @returns  The full path to the file in the user's home directory, or 0 if file doesn't exist
   #
   proc GetUserFilePath {filename} {
-  set homeDir [file normalize ~]
-  set fullPath [file join $homeDir $filename]
-  return $fullPath
+    set homeDir [file normalize ~]
+    set fullPath [file join $homeDir $filename]
+    if {[file exists $fullPath]} {
+      return $fullPath
+    } else {
+      return 0
+    }
   }
 
 

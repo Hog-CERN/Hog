@@ -4966,109 +4966,109 @@ proc MoveElementToEnd {inputList element} {
 # @param[in] level The severity level (status, info, warning, critical, error, debug)
 # @param[in] msg   The message to print
 # @param[in] title The title string to be included in the header of the message [Hog:$title] (default "")
-proc Msg {level msg {title ""}} {
-  set level [string tolower $level]
-  if {$title == ""} {set title [lindex [info level [expr {[info level] - 1}]] 0]}
-  if {$level == 0 || $level == "status" || $level == "extra_info"} {
-    set vlevel {STATUS}
-    set qlevel info
-  } elseif {$level == 1 || $level == "info"} {
-    set vlevel {INFO}
-    set qlevel info
-  } elseif {$level == 2 || $level == "warning"} {
-    set vlevel {WARNING}
-    set qlevel warning
-  } elseif {$level == 3 || [string first "critical" $level] != -1} {
-    set vlevel {CRITICAL WARNING}
-    set qlevel critical_warning
-  } elseif {$level == 4 || $level == "error"} {
-    set vlevel {ERROR}
-    set qlevel error
-  } elseif {$level == 5 || $level == "debug"} {
-    if {([info exists ::DEBUG_MODE] && $::DEBUG_MODE == 1) || (
-      [info exists ::env(HOG_DEBUG_MODE)] && $::env(HOG_DEBUG_MODE) == 1
-    )} {
-      set vlevel {STATUS}
-      set qlevel extra_info
-      set msg "DEBUG: \[Hog:$title\] $msg"
-    } else {
-      return
-    }
-  } else {
-    puts "Hog Error: level $level not defined"
-    exit -1
-  }
+# proc Msg {level msg {title ""}} {
+#   set level [string tolower $level]
+#   if {$title == ""} {set title [lindex [info level [expr {[info level] - 1}]] 0]}
+#   if {$level == 0 || $level == "status" || $level == "extra_info"} {
+#     set vlevel {STATUS}
+#     set qlevel info
+#   } elseif {$level == 1 || $level == "info"} {
+#     set vlevel {INFO}
+#     set qlevel info
+#   } elseif {$level == 2 || $level == "warning"} {
+#     set vlevel {WARNING}
+#     set qlevel warning
+#   } elseif {$level == 3 || [string first "critical" $level] != -1} {
+#     set vlevel {CRITICAL WARNING}
+#     set qlevel critical_warning
+#   } elseif {$level == 4 || $level == "error"} {
+#     set vlevel {ERROR}
+#     set qlevel error
+#   } elseif {$level == 5 || $level == "debug"} {
+#     if {([info exists ::DEBUG_MODE] && $::DEBUG_MODE == 1) || (
+#       [info exists ::env(HOG_DEBUG_MODE)] && $::env(HOG_DEBUG_MODE) == 1
+#     )} {
+#       set vlevel {STATUS}
+#       set qlevel extra_info
+#       set msg "DEBUG: \[Hog:$title\] $msg"
+#     } else {
+#       return
+#     }
+#   } else {
+#     puts "Hog Error: level $level not defined"
+#     exit -1
+#   }
 
 
-  if {[IsXilinx]} {
-    # Vivado
-    set status [catch {send_msg_id Hog:$title-0 $vlevel $msg}]
-    if {$status != 0} {
-      exit $status
-    }
-  } elseif {[IsQuartus]} {
-    # Quartus
-    post_message -type $qlevel "Hog:$title $msg"
-    if {$qlevel == "error"} {
-      exit 1
-    }
-  } else {
-    # Tcl Shell / Libero
-    if {$vlevel != "STATUS"} {
-      puts "$vlevel: \[Hog:$title\] $msg"
-    } else {
-      # temporary solution to avoid removing of leading
-      # puts "|${msg}"
-      set HogEnvDict [Hog::LoggerLib::GetTOMLDict]
-      Hog::LoggerLib::PrintTOMLDict $loggerdict
+#   if {[IsXilinx]} {
+#     # Vivado
+#     set status [catch {send_msg_id Hog:$title-0 $vlevel $msg}]
+#     if {$status != 0} {
+#       exit $status
+#     }
+#   } elseif {[IsQuartus]} {
+#     # Quartus
+#     post_message -type $qlevel "Hog:$title $msg"
+#     if {$qlevel == "error"} {
+#       exit 1
+#     }
+#   } else {
+#     # Tcl Shell / Libero
+#     if {$vlevel != "STATUS"} {
+#       puts "$vlevel: \[Hog:$title\] $msg"
+#     } else {
+#       # temporary solution to avoid removing of leading
+#       # puts "|${msg}"
+#       set HogEnvDict [Hog::LoggerLib::GetTOMLDict]
+#       Hog::LoggerLib::PrintTOMLDict $loggerdict
 
-      # puts $HogEnvDict
-      # puts "$::env(HOG_COLOR) $::env(HOG_LOGGER)"
-      # puts "HogEnvDict: [dict get $HogEnvDict terminal colored] :: [dict get $HogEnvDict terminal logger]"
-      if {
-        ([info exists ::env(HOG_COLOR)] &&
-          ([string match "ENABLED" $::env(HOG_COLOR)] ||
-            ([string is integer -strict $::env(HOG_COLOR)] && $::env(HOG_COLOR) > 0)
-          )
-        )||
-        ([info exists ::env(HOG_LOGGER)] && ([string match "ENABLED" $::env(HOG_LOGGER)]) &&
-          (
-            [dict get $HogEnvDict terminal logger] > 0 ||
-            [dict get $HogEnvDict terminal colored] > 0
-          )
-        )
-      } {
-        puts "LogHelp:$msg"
-      } else {
-        puts $msg
-      }
-    }
-    if {$qlevel == "error"} {
-      exit 1
-    }
-  }
-}
+#       # puts $HogEnvDict
+#       # puts "$::env(HOG_COLOR) $::env(HOG_LOGGER)"
+#       # puts "HogEnvDict: [dict get $HogEnvDict terminal colored] :: [dict get $HogEnvDict terminal logger]"
+#       if {
+#         ([info exists ::env(HOG_COLOR)] &&
+#           ([string match "ENABLED" $::env(HOG_COLOR)] ||
+#             ([string is integer -strict $::env(HOG_COLOR)] && $::env(HOG_COLOR) > 0)
+#           )
+#         )||
+#         ([info exists ::env(HOG_LOGGER)] && ([string match "ENABLED" $::env(HOG_LOGGER)]) &&
+#           (
+#             [dict get $HogEnvDict terminal logger] > 0 ||
+#             [dict get $HogEnvDict terminal colored] > 0
+#           )
+#         )
+#       } {
+#         puts "LogHelp:$msg"
+#       } else {
+#         puts $msg
+#       }
+#     }
+#     if {$qlevel == "error"} {
+#       exit 1
+#     }
+#   }
+# }
 
-## @brief Prints a message with selected severity and optionally write into a log file
-#
-# @param[in] msg        The message to print
-# @param[in] severity   The severity of the message
-# @param[in] outFile    The path of the output logfile
-#
-proc MsgAndLog {msg {severity "CriticalWarning"} {outFile ""}} {
-  Msg $severity $msg
-  if {$outFile != ""} {
-    set directory [file dir $outFile]
-    if {![file exists $directory]} {
-      Msg Info "Creating $directory..."
-      file mkdir $directory
-    }
+# ## @brief Prints a message with selected severity and optionally write into a log file
+# #
+# # @param[in] msg        The message to print
+# # @param[in] severity   The severity of the message
+# # @param[in] outFile    The path of the output logfile
+# #
+# proc MsgAndLog {msg {severity "CriticalWarning"} {outFile ""}} {
+#   Msg $severity $msg
+#   if {$outFile != ""} {
+#     set directory [file dir $outFile]
+#     if {![file exists $directory]} {
+#       Msg Info "Creating $directory..."
+#       file mkdir $directory
+#     }
 
-    set oF [open "$outFile" a+]
-    puts $oF $msg
-    close $oF
-  }
-}
+#     set oF [open "$outFile" a+]
+#     puts $oF $msg
+#     close $oF
+#   }
+# }
 
 # @brief Open the project with the corresponding IDE
 #

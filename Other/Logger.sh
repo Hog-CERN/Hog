@@ -819,7 +819,6 @@ function getConfigValue() {
   if [[ -v ${section}["$key"] ]]; then
     echo "${section}["$key"]"
   else
-    # Msg CriticalWarning "Configuration key '$key' not found in section '$section'"
     echo 0
   fi
 }
@@ -859,142 +858,149 @@ function Logger_Init() {
     if [[ $HOG_COLOR =~ ^[0-9]$ ]]; then
       HOG_COLOR_EN=$HOG_COLOR
     else
-      HOG_COLOR_EN=1
+      HOG_COLOR_EN=0
     fi
   fi
+
+  if [[ -v HOG_LOGGER && $HOG_LOGGER == ENABLED ]]; then
+    HOG_LOG_EN=1
+  else
+    HOG_LOG_EN=0
+  fi
+
 
 
   
-  ############ FROM HERE WILL USE LOGGER COLORS IF ENABLED
-  if [[ -v HOG_LOGGER && $HOG_LOGGER == ENABLED ]]; then
-    if [[ $hog_user_cfg_exists -eq 0 ]]; then
-      print_hog_logo
-      Msg Warning "Hog project configuration file $hog_user_cfg doesn't exists."
-      HOG_LOG_EN=1
-    else
-      Msg Debug " SETTING COLORS"
-      if [[ -v Hog_Usr_dict["terminal.colored"] ]]; then
-        Msg Debug "terminal.colored exists"
-        if [[ ${Hog_Usr_dict["terminal.colored"]} =~ ^[0-9]$ ]]; then
-          Msg Debug "The variable <terminal.colored> is a one-digit number"
-          HOG_COLOR_EN=${Hog_Usr_dict["terminal.colored"]}
-          export HOG_COLOR=$HOG_COLOR_EN
-        else
-          Msg Warning "The variable <terminal.colored> is not a one-digit number, Defaulting to 0"
-        fi
-      fi
-      print_hog_logo
-
-      Msg Debug "SETTING Message type counter"
-      if [[ -v Hog_Usr_dict["verbose.msgtypeCounter"] ]]; then
-        if [[ ${Hog_Usr_dict["verbose.msgtypeCounter"]} =~ ^[01]$ ]]; then
-          ENABLE_MSG_TYPE_CNT=${Hog_Usr_dict["verbose.msgtypeCounter"]}
-          Msg Debug "The variable <verbose.msgtypeCounter> is ${Hog_Usr_dict['verbose.msgtypeCounter']}"
-        else
-          Msg Warning "The variable verbose.msgtypeCounter is not 1 or 0, Default to 0"
-        fi
-      fi
-
-      Msg Debug "SETTING Message number"
-      if [[ -v Hog_Usr_dict["verbose.lineCounter"] ]]; then
-        if [[ ${Hog_Usr_dict["verbose.lineCounter"]} =~ ^[01]$ ]]; then
-          ENABLE_LINE_NUMBER=${Hog_Usr_dict["verbose.lineCounter"]}
-          Msg Debug "The variable <verbose.lineCounter> is ${Hog_Usr_dict['verbose.lineCounter']}"
-        else
-          Msg Warning "The variable verbose.lineCounter is not 1 or 0, Default to 0"
-        fi
-      fi
-
-      Msg Debug "SETTING pidshow"
-      if [[ -v Hog_Usr_dict["verbose.pidshow"] ]]; then
-        if [[ ${Hog_Usr_dict["verbose.pidshow"]} =~ ^[01]$ ]]; then
-          EN_SHOW_PID=${Hog_Usr_dict["verbose.pidshow"]}
-          Msg Debug "The variable <verbose.pidshow> is ${Hog_Usr_dict['verbose.pidshow']}"
-        else
-          Msg Warning "The variable verbose.pidshow is not 1 or 0, Default to 0"
-        fi
-      fi
-
-      Msg Info "Loading Hog configuration..."
-      if test -f $hog_user_cfg; then
-        Msg Info "Hog project configuration file $hog_user_cfg exists."
-        process_HogEnv_config $hog_user_cfg "Hog_Usr_dict"
-        for key in "${!Hog_Usr_dict[@]}"; do
-          Msg Info "Hog_Usr_dict[ $key ] = <${Hog_Usr_dict[$key]}>"
-        done
+  if [[ $hog_user_cfg_exists -eq 0 ]]; then
+    # print_hog_logo
+    Msg Warning "Hog project configuration file $hog_user_cfg doesn't exists."
+    # HOG_LOG_EN=1
+  else
+    Msg Debug " SETTING COLORS"
+    if [[ -v Hog_Usr_dict["terminal.colored"] ]]; then
+      Msg Debug "terminal.colored exists"
+      if [[ ${Hog_Usr_dict["terminal.colored"]} =~ ^[0-9]$ ]]; then
+        Msg Debug "The variable <terminal.colored> is a one-digit number"
+        HOG_COLOR_EN=${Hog_Usr_dict["terminal.colored"]}
+        export HOG_COLOR=$HOG_COLOR_EN
       else
-        Msg Debug "Hog project configuration file $hog_user_cfg doesn't exists."
+        Msg Warning "The variable <terminal.colored> is not a one-digit number, Defaulting to 0"
       fi
-
-      # if test -f $hog_user_cfg; then
-      #   Msg Info "Hog project configuration file $hog_user_cfg exists."
-      #   for key in "${!Hog_Usr_dict[@]}"; do
-      #     Msg Info "Hog_Usr_dict[ $key ] = <${Hog_Usr_dict[$key]}>"
-      #   done
-      # else
-      #   Msg Debug "Hog project configuration file $hog_user_cfg doesn't exists."
-      # fi
-
-      # SETTING LOGGER_LEVEL
-      if [[ -v Hog_Usr_dict["verbose.log_level"] ]]; then
-        if [[ ${Hog_Usr_dict["verbose.log_level"]} =~ ^[0-9]$ ]]; then
-          Msg Debug "The variable <verbose.log_level> is ${Hog_Usr_dict['verbose.log_level']}"
-          LOGGER_LEVEL=${Hog_Usr_dict["verbose.log_level"]}
-        else
-          Msg Warning "The variable verbose.log_level is not a one-digit number, Defaulting to 0"
-        fi
-      fi
-      if [[ "$*" =~ "-verbose" ]]; then
-        if (( $LOGGER_LEVEL < $force_verbose )); then
-          LOGGER_LEVEL=$force_verbose
-        fi
-      fi
-      Msg Debug "LOGGER_LEVEL -- $LOGGER_LEVEL"
-
-
-      # SETTING VERBOSE_LEVEL
-      if [[ -v Hog_Usr_dict["verbose.level"] ]]; then
-        if [[ ${Hog_Usr_dict["verbose.level"]} =~ ^[0-9]$ ]]; then
-          Msg Debug "The variable <verbose.level> is ${Hog_Usr_dict['verbose.level']}"
-          VERBOSE_LEVEL=${Hog_Usr_dict["verbose.level"]}
-        else
-          Msg Warning "The variable verbose.level is not a one-digit number, Defaulting to 0"
-        fi
-      fi
-      if [[ "$*" =~ "-verbose" ]]; then
-        if (( $VERBOSE_LEVEL < $force_verbose )); then
-          VERBOSE_LEVEL=$force_verbose
-        fi
-      fi
-      Msg Debug "VERBOSE_LEVEL -- $VERBOSE_LEVEL"
-
-
-      # SETTING LOGGER
-      # HOG_LOG_EN=0
-      if [[ -v Hog_Usr_dict["terminal.logger"] ]]; then
-        if [[ ${Hog_Usr_dict["terminal.logger"]} =~ ^[01]$ ]]; then
-          Msg Debug "The variable <terminal.logger> is ${Hog_Usr_dict['terminal.logger']}"
-          HOG_LOG_EN=${Hog_Usr_dict["terminal.logger"]}
-        else
-          Msg Warning "The variable terminal.logger is not 1 or 0, Default to 0"
-        fi
-      fi
-      Msg Debug "HOG_LOG_EN -- $HOG_LOG_EN"
-
-      if [[ -v Hog_Usr_dict["terminal.colorscheme"] ]]; then
-        clrschselected=${Hog_Usr_dict["terminal.colorscheme"]}
-      else
-        clrschselected="dark"
-      fi
-      if [[ " ${vldColorSchemes[*]} " =~ " $clrschselected " ]]; then
-        Msg Info "Color Scheme set to $clrschselected"
-      else
-        Msg Warning "Invalid color scheme $clrschselected ; Color scheme set to dark"
-        clrschselected="dark"
-      fi
-      Msg Debug "color terminal = $clrschselected"
     fi
+
+    Msg Debug "SETTING Message type counter"
+    if [[ -v Hog_Usr_dict["verbose.msgtypeCounter"] ]]; then
+      if [[ ${Hog_Usr_dict["verbose.msgtypeCounter"]} =~ ^[01]$ ]]; then
+        ENABLE_MSG_TYPE_CNT=${Hog_Usr_dict["verbose.msgtypeCounter"]}
+        Msg Debug "The variable <verbose.msgtypeCounter> is ${Hog_Usr_dict['verbose.msgtypeCounter']}"
+      else
+        Msg Warning "The variable verbose.msgtypeCounter is not 1 or 0, Default to 0"
+      fi
+    fi
+
+    Msg Debug "SETTING Message number"
+    if [[ -v Hog_Usr_dict["verbose.lineCounter"] ]]; then
+      if [[ ${Hog_Usr_dict["verbose.lineCounter"]} =~ ^[01]$ ]]; then
+        ENABLE_LINE_NUMBER=${Hog_Usr_dict["verbose.lineCounter"]}
+        Msg Debug "The variable <verbose.lineCounter> is ${Hog_Usr_dict['verbose.lineCounter']}"
+      else
+        Msg Warning "The variable verbose.lineCounter is not 1 or 0, Default to 0"
+      fi
+    fi
+
+    Msg Debug "SETTING pidshow"
+    if [[ -v Hog_Usr_dict["verbose.pidshow"] ]]; then
+      if [[ ${Hog_Usr_dict["verbose.pidshow"]} =~ ^[01]$ ]]; then
+        EN_SHOW_PID=${Hog_Usr_dict["verbose.pidshow"]}
+        Msg Debug "The variable <verbose.pidshow> is ${Hog_Usr_dict['verbose.pidshow']}"
+      else
+        Msg Warning "The variable verbose.pidshow is not 1 or 0, Default to 0"
+      fi
+    fi
+
+    # Msg Info "Loading Hog configuration..."
+    # if test -f $hog_user_cfg; then
+    #   Msg Info "Hog project configuration file $hog_user_cfg exists."
+    #   process_HogEnv_config $hog_user_cfg "Hog_Usr_dict"
+    #   for key in "${!Hog_Usr_dict[@]}"; do
+    #     Msg Info "Hog_Usr_dict[ $key ] = <${Hog_Usr_dict[$key]}>"
+    #   done
+    # else
+    #   Msg Debug "Hog project configuration file $hog_user_cfg doesn't exists."
+    # fi
+
+    # if test -f $hog_user_cfg; then
+    #   Msg Info "Hog project configuration file $hog_user_cfg exists."
+    #   for key in "${!Hog_Usr_dict[@]}"; do
+    #     Msg Info "Hog_Usr_dict[ $key ] = <${Hog_Usr_dict[$key]}>"
+    #   done
+    # else
+    #   Msg Debug "Hog project configuration file $hog_user_cfg doesn't exists."
+    # fi
+
+    # SETTING LOGGER_LEVEL
+    if [[ -v Hog_Usr_dict["verbose.log_level"] ]]; then
+      if [[ ${Hog_Usr_dict["verbose.log_level"]} =~ ^[0-9]$ ]]; then
+        Msg Debug "The variable <verbose.log_level> is ${Hog_Usr_dict['verbose.log_level']}"
+        LOGGER_LEVEL=${Hog_Usr_dict["verbose.log_level"]}
+      else
+        Msg Warning "The variable verbose.log_level is not a one-digit number, Defaulting to 0"
+      fi
+    fi
+    if [[ "$*" =~ "-verbose" ]]; then
+      if (( $LOGGER_LEVEL < $force_verbose )); then
+        LOGGER_LEVEL=$force_verbose
+      fi
+    fi
+    Msg Debug "LOGGER_LEVEL -- $LOGGER_LEVEL"
+
+
+    # SETTING VERBOSE_LEVEL
+    if [[ -v Hog_Usr_dict["verbose.level"] ]]; then
+      if [[ ${Hog_Usr_dict["verbose.level"]} =~ ^[0-9]$ ]]; then
+        Msg Debug "The variable <verbose.level> is ${Hog_Usr_dict['verbose.level']}"
+        VERBOSE_LEVEL=${Hog_Usr_dict["verbose.level"]}
+      else
+        Msg Warning "The variable verbose.level is not a one-digit number, Defaulting to 0"
+      fi
+    fi
+    if [[ "$*" =~ "-verbose" ]]; then
+      if (( $VERBOSE_LEVEL < $force_verbose )); then
+        VERBOSE_LEVEL=$force_verbose
+      fi
+    fi
+    Msg Debug "VERBOSE_LEVEL -- $VERBOSE_LEVEL"
+
+
+    # SETTING LOGGER
+    # HOG_LOG_EN=0
+    if [[ -v Hog_Usr_dict["terminal.logger"] ]]; then
+      if [[ ${Hog_Usr_dict["terminal.logger"]} =~ ^[01]$ ]]; then
+        Msg Debug "The variable <terminal.logger> is ${Hog_Usr_dict['terminal.logger']}"
+        HOG_LOG_EN=${Hog_Usr_dict["terminal.logger"]}
+      else
+        Msg Warning "The variable terminal.logger is not 1 or 0, Default to 0"
+      fi
+    fi
+    Msg Debug "HOG_LOG_EN -- $HOG_LOG_EN"
+
+    if [[ -v Hog_Usr_dict["terminal.colorscheme"] ]]; then
+      clrschselected=${Hog_Usr_dict["terminal.colorscheme"]}
+    else
+      clrschselected="dark"
+    fi
+    if [[ " ${vldColorSchemes[*]} " =~ " $clrschselected " ]]; then
+      Msg Info "Color Scheme set to $clrschselected"
+    else
+      Msg Warning "Invalid color scheme $clrschselected ; Color scheme set to dark"
+      clrschselected="dark"
+    fi
+    Msg Debug "color terminal = $clrschselected"
   fi
+  # fi
+
+  ############ FROM HERE WILL USE LOGGER COLORS IF ENABLED
+  print_hog_logo
 
 
 

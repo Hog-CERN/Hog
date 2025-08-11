@@ -55,10 +55,10 @@ normalise_path() {
 
     #an alternative could be realpath -m
 }
-if [[ "$HOG_LOGGER" == "ENABLED" ]]; then
+# if [[ "$HOG_LOGGER" == "ENABLED" ]]; then
     source ${script_dir}/Other/Logger.sh
-    Logger_Init "$*"
-fi
+    # Logger_Init "$*"
+# fi
 
 hog_dir="$(cd "$(dirname "$0")" && pwd)"
 
@@ -114,8 +114,10 @@ if [ "$found" == 1 ]; then
       #This is where init.tcl is located to avoid the initial warning when running tclsh
       export TCL_LIBRARY=$tcl_library
   fi
+  
 
-if [[ "$HOG_LOGGER" == "ENABLED" ]] && { [[ $(getConfigValue terminal logger) -gt 0 ]] || [[ $(getConfigValue terminal colored) -gt 0 ]]; }; then
+if { [[ "$HOG_LOGGER" == "ENABLED" ]] || [[ "$HOG_COLOR" -gt 0 ]]; } || { [[ $(getConfigValue terminal logger) -gt 0 ]] || [[ $(getConfigValue terminal colored) -gt 0 ]]; }; then
+    Logger_Init "$*"
     Logger $executable_path $hog_dir/Tcl/launch.tcl "$@"
     Hog_exit
   else

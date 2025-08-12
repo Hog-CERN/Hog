@@ -5003,8 +5003,7 @@ proc Msg {level msg {title ""}} {
     if {$vlevel != "STATUS"} {
       puts "$vlevel: \[Hog:$title\] $msg"
     } else {
-      # temporary solution to avoid removing of leading spaces
-      puts ".$msg"
+      puts "$msg"
     }
 
     if {$qlevel == "error"} {
@@ -5128,7 +5127,6 @@ proc PrintFileContent {filename} {
 #  @param[in]    repo_path the path of the repository
 #  @param[in]    indentation a string containing a number of spaces to indent the tree
 proc PrintFileTree {{data} {repo_path} {indentation ""}} {
-  # Msg Debug "PrintFileTree called with data: $data, repo_path: $repo_path, indentation: $indentation"
   set print_list {}
   set last_printed ""
   foreach line $data {

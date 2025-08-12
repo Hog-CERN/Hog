@@ -5003,7 +5003,7 @@ proc Msg {level msg {title ""}} {
     if {$vlevel != "STATUS"} {
       puts "$vlevel: \[Hog:$title\] $msg"
     } else {
-      puts "$msg"
+      puts $msg
     }
 
     if {$qlevel == "error"} {

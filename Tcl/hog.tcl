@@ -6314,6 +6314,12 @@ proc WriteUtilizationSummary {input output project_name run} {
   close $o
 }
 
+
+#if tcl_path is not set set it
+if {![info exists tcl_path]} {
+  set tcl_path [file normalize "[file dirname [info script]]"]
+}
+
 # puts "$tcl_path/hog.tcl sourced successfully."
 source "$tcl_path/utils/Logger.tcl"
 # set loggerdict [Hog::LoggerLib::ParseTOML [Hog::LoggerLib::GetUserFilePath "HogEnv.conf" ]]

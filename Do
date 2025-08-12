@@ -129,4 +129,3 @@ else
   echo "Error: No IDE executable found in PATH. You need an IDE in your PATH to use Hog." >&2
   exit 1
 fi
-

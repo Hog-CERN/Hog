@@ -526,14 +526,17 @@ function Logger () {
   Msg Debug "Running: $*"
   if [[ "$HOG_LOG_EN" -gt 0 ]] || [[  "$HOG_COLOR_EN" -gt 0 ]]; then
     Log_capture "$@"
-  else
-    "$@"
-  fi
-  if [[ "$HOG_COLOR_EN" -gt 0 ]]; then
     Hog_exit
   else
+    "$@"
     exit $?
   fi
+  # if [[ "$HOG_COLOR_EN" -gt 0 ]]; then
+  #   Hog_exit
+  # else
+  #   Msg Info "Logger args : $*"
+  #   exit $?
+  # fi
 }
 
 # @function Msg

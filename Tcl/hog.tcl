@@ -6326,7 +6326,6 @@ source "$tcl_path/utils/Logger.tcl"
 # set HogEnvDict [Hog::LoggerLib::GetTOMLDict]
 # Hog::LoggerLib::PrintTOMLDict $HogEnvDict
 
-
 # Check Git Version when sourcing hog.tcl
 if {[GitVersion 2.7.2] == 0} {
   Msg Error "Found Git version older than 2.7.2. Hog will not work as expected, exiting now."

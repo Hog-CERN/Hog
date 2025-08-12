@@ -275,6 +275,10 @@ function log_stdout(){
         # Msg Error "Error in logger"
       fi
         case "$line" in
+          *'DEBUG:'*)
+            # msgTypeOverload msgType "debug" "$dataLine"
+            msgType="debug"
+          ;;
           *'ERROR:'* | *'Error:'* | *':Error'* | *'error:'* | *'Error '* | *'FATAL ERROR'* | *'Fatal'*)
             # if [[ "$line" == *'Fatal'* ]]; then
             #   next_is_err=1
@@ -300,10 +304,6 @@ function log_stdout(){
             # msgTypeOverload msgType "info" $dataLine
             msgType="info"
           ;;
-          *'DEBUG:'*)
-            # msgTypeOverload msgType "debug" "$dataLine"
-            msgType="debug"
-            ;;
           *'vcom'*)
             # msgTypeOverload msgType "vcom" "$dataLine"
             msgType="vcom"
@@ -529,7 +529,7 @@ function Logger () {
   else
     "$@"
   fi
-  if [[ "$HOG_LOG_EN" -gt 0 ]]; then
+  if [[ "$HOG_COLOR_EN" -gt 0 ]]; then
     Hog_exit
   else
     exit $?
@@ -860,20 +860,14 @@ function Logger_Init() {
       HOG_COLOR_EN=0
     fi
   fi
-
   if [[ -v HOG_LOGGER && $HOG_LOGGER == ENABLED ]]; then
     HOG_LOG_EN=1
   else
     HOG_LOG_EN=0
   fi
 
-
-
-  
   if [[ $hog_user_cfg_exists -eq 0 ]]; then
-    # print_hog_logo
     Msg Warning "Hog project configuration file $hog_user_cfg doesn't exists."
-    # HOG_LOG_EN=1
   else
     Msg Debug " SETTING COLORS"
     if [[ -v Hog_Usr_dict["terminal.colored"] ]]; then
@@ -951,9 +945,6 @@ function Logger_Init() {
         LOGGER_LEVEL=$force_verbose
       fi
     fi
-    Msg Debug "LOGGER_LEVEL -- $LOGGER_LEVEL"
-
-
     # SETTING VERBOSE_LEVEL
     if [[ -v Hog_Usr_dict["verbose.level"] ]]; then
       if [[ ${Hog_Usr_dict["verbose.level"]} =~ ^[0-9]$ ]]; then
@@ -968,11 +959,7 @@ function Logger_Init() {
         VERBOSE_LEVEL=$force_verbose
       fi
     fi
-    Msg Debug "VERBOSE_LEVEL -- $VERBOSE_LEVEL"
-
-
     # SETTING LOGGER
-    # HOG_LOG_EN=0
     if [[ -v Hog_Usr_dict["terminal.logger"] ]]; then
       if [[ ${Hog_Usr_dict["terminal.logger"]} =~ ^[01]$ ]]; then
         Msg Debug "The variable <terminal.logger> is ${Hog_Usr_dict['terminal.logger']}"
@@ -981,8 +968,6 @@ function Logger_Init() {
         Msg Warning "The variable terminal.logger is not 1 or 0, Default to 0"
       fi
     fi
-    Msg Debug "HOG_LOG_EN -- $HOG_LOG_EN"
-
     if [[ -v Hog_Usr_dict["terminal.colorscheme"] ]]; then
       clrschselected=${Hog_Usr_dict["terminal.colorscheme"]}
     else
@@ -994,13 +979,19 @@ function Logger_Init() {
       Msg Warning "Invalid color scheme $clrschselected ; Color scheme set to dark"
       clrschselected="dark"
     fi
-    Msg Debug "color terminal = $clrschselected"
   fi
-  # fi
 
   ############ FROM HERE WILL USE LOGGER COLORS IF ENABLED
   print_hog_logo
 
+  Msg Debug "HOG_LOG_EN -- $HOG_LOG_EN"
+  Msg Debug "HOG_COLOR_EN -- $HOG_COLOR_EN"
+  Msg Debug "ENABLE_LINE_NUMBER -- $ENABLE_LINE_NUMBER"
+  Msg Debug "ENABLE_MSG_TYPE_CNT -- $ENABLE_MSG_TYPE_CNT"
+  Msg Debug "EN_SHOW_PID -- $EN_SHOW_PID"
+  Msg Debug "LOGGER_LEVEL -- $LOGGER_LEVEL"
+  Msg Debug "VERBOSE_LEVEL -- $VERBOSE_LEVEL"
+  Msg Debug "color terminal = $clrschselected"
 
 
 

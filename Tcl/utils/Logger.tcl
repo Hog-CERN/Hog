@@ -32,82 +32,81 @@ proc dictSafeGet {d args} {
 # @param[in] level The severity level (status, info, warning, critical, error, debug)
 # @param[in] msg   The message to print
 # @param[in] title The title string to be included in the header of the message [Hog:$title] (default "")
-proc Msg {level msg {title ""}} {
-  set level [string tolower $level]
-  if {$title == ""} {set title [lindex [info level [expr {[info level] - 1}]] 0]}
-  if {$level == 0 || $level == "status" || $level == "extra_info"} {
-    set vlevel {STATUS}
-    set qlevel info
-  } elseif {$level == 1 || $level == "info"} {
-    set vlevel {INFO}
-    set qlevel info
-  } elseif {$level == 2 || $level == "warning"} {
-    set vlevel {WARNING}
-    set qlevel warning
-  } elseif {$level == 3 || [string first "critical" $level] != -1} {
-    set vlevel {CRITICAL WARNING}
-    set qlevel critical_warning
-  } elseif {$level == 4 || $level == "error"} {
-    set vlevel {ERROR}
-    set qlevel error
-  } elseif {$level == 5 || $level == "debug"} {
-    if {([info exists ::DEBUG_MODE] && $::DEBUG_MODE == 1) || (
-      [info exists ::env(HOG_DEBUG_MODE)] && $::env(HOG_DEBUG_MODE) == 1
-    )} {
+proc Msg {level fmsg {title ""}} {
+  foreach msg [split $fmsg "\n"] {
+    set level [string tolower $level]
+    if {$title == ""} {set title [lindex [info level [expr {[info level] - 1}]] 0]}
+    if {$level == 0 || $level == "status" || $level == "extra_info"} {
       set vlevel {STATUS}
-      set qlevel extra_info
-      set msg "DEBUG: \[Hog:$title\] $msg"
-    } else {
-      return
-    }
-  } else {
-    puts "Hog Error: level $level not defined"
-    exit -1
-  }
-
-
-  if {[IsXilinx]} {
-    # Vivado
-    set status [catch {send_msg_id Hog:$title-0 $vlevel $msg}]
-    if {$status != 0} {
-      exit $status
-    }
-  } elseif {[IsQuartus]} {
-    # Quartus
-    post_message -type $qlevel "Hog:$title $msg"
-    if {$qlevel == "error"} {
-      exit 1
-    }
-  } else {
-    # Tcl Shell / Libero
-    if {$vlevel != "STATUS"} {
-      puts "$vlevel: \[Hog:$title\] $msg"
-    } else {
-      # temporary solution to avoid removing of leading
-      # puts "|${msg}"
-      set HogEnvDict [Hog::LoggerLib::GetTOMLDict]
-      # Hog::LoggerLib::PrintTOMLDict $Hog::LoggerLib::toml_dict
-
-      # puts $HogEnvDict
-      # puts "$::env(HOG_COLOR) $::env(HOG_LOGGER)"
-      # puts "HogEnvDict: [dict get $HogEnvDict terminal colored] :: [dict get $HogEnvDict terminal logger]"
-      if {
-        ([dictSafeGet $HogEnvDict terminal colored] > 0) ||
-        ([info exists ::env(HOG_COLOR)] &&
-          ([string match "ENABLED" $::env(HOG_COLOR)] ||
-            ([string is integer -strict $::env(HOG_COLOR)] && $::env(HOG_COLOR) > 0)
-          )
-        )||
-        ([dictSafeGet $HogEnvDict terminal logger] > 0) ||
-        ([info exists ::env(HOG_LOGGER)] && ([string match "ENABLED" $::env(HOG_LOGGER)]))
-      } {
-        puts "LogHelp:$msg"
+      set qlevel info
+    } elseif {$level == 1 || $level == "info"} {
+      set vlevel {INFO}
+      set qlevel info
+    } elseif {$level == 2 || $level == "warning"} {
+      set vlevel {WARNING}
+      set qlevel warning
+    } elseif {$level == 3 || [string first "critical" $level] != -1} {
+      set vlevel {CRITICAL WARNING}
+      set qlevel critical_warning
+    } elseif {$level == 4 || $level == "error"} {
+      set vlevel {ERROR}
+      set qlevel error
+    } elseif {$level == 5 || $level == "debug"} {
+      if {([info exists ::DEBUG_MODE] && $::DEBUG_MODE == 1) || (
+        [info exists ::env(HOG_DEBUG_MODE)] && $::env(HOG_DEBUG_MODE) == 1
+      )} {
+        set vlevel {STATUS}
+        set qlevel extra_info
+        set msg "DEBUG: \[Hog:$title\] $msg"
       } else {
-        puts $msg
+        return
       }
+    } else {
+      puts "Hog Error: level $level not defined"
+      exit -1
     }
-    if {$qlevel == "error"} {
-      exit 1
+    if {[IsXilinx]} {
+      # Vivado
+      set status [catch {send_msg_id Hog:$title-0 $vlevel $msg}]
+      if {$status != 0} {
+        exit $status
+      }
+    } elseif {[IsQuartus]} {
+      # Quartus
+      post_message -type $qlevel "Hog:$title $msg"
+      if {$qlevel == "error"} {
+        exit 1
+      }
+    } else {
+      # Tcl Shell / Libero
+      if {$vlevel != "STATUS"} {
+        puts "$vlevel: \[Hog:$title\] $msg"
+      } else {
+        # temporary solution to avoid removing of leading
+        # puts "|${msg}"
+        set HogEnvDict [Hog::LoggerLib::GetTOMLDict]
+        # Hog::LoggerLib::PrintTOMLDict $Hog::LoggerLib::toml_dict
+        # puts $HogEnvDict
+        # puts "$::env(HOG_COLOR) $::env(HOG_LOGGER)"
+        # puts "HogEnvDict: [dict get $HogEnvDict terminal colored] :: [dict get $HogEnvDict terminal logger]"
+        if {
+          ([dictSafeGet $HogEnvDict terminal colored] > 0) ||
+          ([info exists ::env(HOG_COLOR)] &&
+            ([string match "ENABLED" $::env(HOG_COLOR)] ||
+              ([string is integer -strict $::env(HOG_COLOR)] && $::env(HOG_COLOR) > 0)
+            )
+          )||
+          ([dictSafeGet $HogEnvDict terminal logger] > 0) ||
+          ([info exists ::env(HOG_LOGGER)] && ([string match "ENABLED" $::env(HOG_LOGGER)]))
+        } {
+          puts "LogHelp:$msg"
+        } else {
+          puts $msg
+        }
+      }
+      if {$qlevel == "error"} {
+        exit 1
+      }
     }
   }
 }
@@ -271,10 +270,10 @@ namespace eval Hog::LoggerLib {
   proc ParseTOML {toml_file} {
   variable toml_dict
 
-  set toml_dict [dict create \
-    terminal [dict create logger 0 colored 0] \
-    verbose [dict create level 4 pidshow 0 linecounter 0 msgtypeCounter 0] \
-  ]
+  # set toml_dict [dict create \
+  #   terminal [dict create logger 0 colored 0] \
+  #   verbose [dict create level 4 pidshow 0 linecounter 0 msgtypeCounter 0] \
+  # ]
     if {![file exists $toml_file]} {
       Msg Warning "TOML file $toml_file does not exist"
       return -1
@@ -497,21 +496,21 @@ namespace eval Hog::LoggerLib {
     dict for {key value} $toml_dict {
       if {[string is list $value] && [llength $value] > 1 && [string is list [lindex $value 0]]} {
         # This is likely a nested dictionary
-        puts "${indent_str}${key}:"
+        Msg Debug "${indent_str}${key}:"
         if {[catch {dict for {subkey subvalue} $value {}} result]} {
           # Not a dictionary, print as value
-          puts "${indent_str}  $value"
+          Msg Debug "${indent_str}  $value"
         } else {
           PrintTOMLDict $value [expr {$indent + 1}]
         }
       } elseif {[string is list $value] && [llength $value] > 0} {
         # This is an array
-        puts "${indent_str}${key}: \[list of [llength $value] items\]"
+        Msg Debug "${indent_str}${key}: \[list of [llength $value] items\]"
         foreach item $value {
-          puts "${indent_str}  - $item"
+          Msg Debug "${indent_str}  - $item"
         }
       } else {
-        puts "${indent_str}${key}: $value"
+        Msg Debug "${indent_str}${key}: $value"
       }
     }
   }

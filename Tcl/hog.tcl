@@ -3851,9 +3851,15 @@ proc InitLauncher {script tcl_path parameters commands argv {custom_commands ""}
     Logo $repo_path
   }
 
-  set loggerdict [Hog::LoggerLib::ParseTOML [Hog::LoggerLib::GetUserFilePath "HogEnv.conf" ]]
-  set HogEnvDict [Hog::LoggerLib::GetTOMLDict]
-  Hog::LoggerLib::PrintTOMLDict $HogEnvDict
+  # Check if HogEnv.conf exists and parse it
+  if {![file exists [Hog::LoggerLib::GetUserFilePath "HogEnv.conf"]] } {
+    Msg Debug "HogEnv.conf not found"
+    set loggerdict [Hog::LoggerLib::ParseTOML [Hog::LoggerLib::GetUserFilePath "HogEnv.conf" ]]
+    set HogEnvDict [Hog::LoggerLib::GetTOMLDict]
+    Hog::LoggerLib::PrintTOMLDict $HogEnvDict
+  }
+
+
 
   if {[catch {package require cmdline} ERROR]} {
     Msg Debug "The cmdline Tcl package was not found, sourcing it from Hog..."

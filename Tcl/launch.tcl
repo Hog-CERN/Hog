@@ -245,7 +245,7 @@ set do_check_list_files 0
 set do_compile_lib 0
 set do_sigasi 0
 
-# Msg Debug "Looking for a $directive in : $default_commands $custom_commands"
+Msg Debug "Looking for a $directive in : $default_commands $custom_commands"
 switch -regexp -- $directive "$default_commands $custom_commands"
 
 if {$options(all) == 1} {

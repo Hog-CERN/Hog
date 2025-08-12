@@ -204,7 +204,7 @@ changelog:
   script:
     - glab auth login -t $HOG_PUSH_TOKEN -h $CI_SERVER_HOST
     - if [[ $CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ "master" ]] ; then
-        if [[ $CI_COMMIT_REF_NAME != hotfix* ]]; then
+        if [[ $CI_COMMIT_REF_NAME != hotfix/* ]]; then
           echo "[ERROR] The target of this MR is $CI_MERGE_REQUEST_TARGET_BRANCH_NAME, but the source is not a hotfix branch ($CI_COMMIT_REF_NAME). Please, change the name of source branch or direct the MR to develop.";
           echo "[Hog::INFO] A hotfix branch name should start with hotfix/.";
           exit 1;

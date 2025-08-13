@@ -280,10 +280,10 @@ function log_stdout(){
       fi
       dataLine=$line
       if $buffered; then
-        stderr_ack="b"
+        stderr_ack=""
       else
         if [ "${1}" == "stdout" ]; then
-          stderr_ack=" "
+          stderr_ack=""
         elif [ "${1}" == "stderr" ]; then
           # dataLine=$line
           stderr_ack="*"
@@ -638,10 +638,10 @@ function Msg() {
       if [[ $HOG_COLOR_EN -gt 1 ]]; then
         case "${clrschselected}" in
           "dark")
-            echo -e " ${darkColorScheme[$msgType]} HOG:$1[${FUNCNAME[1]}] $text"
+            echo -e "${darkColorScheme[$msgType]} HOG:$1[${FUNCNAME[1]}] $text"
           ;;
           "clear")
-            echo -e " ${clearColorScheme[$msgType]} HOG:$1[${FUNCNAME[1]}] $text "
+            echo -e "${clearColorScheme[$msgType]} HOG:$1[${FUNCNAME[1]}] $text"
           ;;
         esac
       elif [[ $HOG_COLOR_EN -gt 0 ]]; then

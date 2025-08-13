@@ -248,12 +248,14 @@ shopt -s extglob
 
 line_type=""
 
-
+## @function log_stdout()
+#
+# @brief parsers the output of the Hog Tcl scripts
+#
+# @param[in] execution line to process
+#
 function log_stdout(){
-  # echo "========================"
-  # echo "log_stdout : ${1} : ${2}"
   if [[ "${1}" == LogBuff:* ]]; then
-    # IN_out="${IN_out#LogBuff:}"
     buffered=true
   else
     buffered=false
@@ -261,17 +263,13 @@ function log_stdout(){
 
   if [ -n "${2}" ]; then
     IN_out="${2//\\/\\\\}"
-    # echo "----"
   else
     while read -r IN_out # This reads a string from stdin and stores it in a variable called IN_out
     do
-      # echo $IN_out
       #if In_out starts with "LogHelp:" remove it
       if [[ "$IN_out" == LogHelp:* ]]; then
         IN_out="${IN_out#LogHelp:}"
       fi
-      # if IN_out starts with "LogBuff:" remove it
-      
       if [[ $next_is_err == 0 ]]; then
         line="${IN_out//\\/\\\\}"
       else
@@ -285,18 +283,13 @@ function log_stdout(){
         if [ "${1}" == "stdout" ]; then
           stderr_ack=""
         elif [ "${1}" == "stderr" ]; then
-          # dataLine=$line
           stderr_ack="*"
-          # echo $line
         else
           stderr_ack="E"
-          # Msg Error "Error in logger"
         fi
       fi
-      # echo "b:$buffered - $dataline"
         case "$line" in
           *'DEBUG:'* | *'Debug['* | *'debug:'*)
-            # msgTypeOverload msgType "debug" "$dataLine"
             msgType="debug"
           ;;
           *'ERROR:'* | *'Error:'* | *':Error'* | *'error:'* | *'Error '* | *'FATAL ERROR'* | *'Fatal'*)
@@ -310,26 +303,20 @@ function log_stdout(){
             if [[ "$line" =~ [Ee]os ]]; then
               msgType="critical"
             fi
-            # msgType=$(msgTypeOverload "error" "$dataLine")
           ;;
           *'CRITICAL:'* | *'CRITICAL WARNING:'* )
-            # msgTypeOverload msgType "critical" "$dataLine"
             msgType="critical"
           ;;
           *'WARNING:'* | *'Warning:'* | *'warning:'*)
-            # msgTypeOverload msgType "warning" "$dataLine"
             msgType="warning"
           ;;
           *'INFO:'*)
-            # msgTypeOverload msgType "info" $dataLine
             msgType="info"
           ;;
           *'vcom'*)
-            # msgTypeOverload msgType "vcom" "$dataLine"
             msgType="vcom"
             ;;
           *)
-            # msgType=$(msgTypeOverload "info" "$dataLine")
             msgType="info"
             ;;
         esac
@@ -422,8 +409,8 @@ function log_stdout(){
         else
           echo -e "${stderr_ack}$dataLine"
         fi
-      else
-        msg_counter w ${msgCounter[$msgType]} >> /dev/null
+      # else
+        # msg_counter w ${msgCounter[$msgType]} >> /dev/null
       fi
       if [[ $HOG_LOG_EN -gt 0 ]]; then
         if [[ -n $LOG_WAR_ERR_FILE ]] && [[ 3 -gt ${msgDbgLvl[$msgType]} ]]; then
@@ -617,8 +604,8 @@ function Msg() {
         # else
           echo "HOG:$1[${FUNCNAME[1]}] $text"
         # fi
-      else
-        msg_counter w ${msgCounter[$msgType]} >> /dev/null
+      # else
+        # msg_counter w ${msgCounter[$msgType]} >> /dev/null
       fi
     } >> "$BUFFER_FILE"
   else
@@ -649,8 +636,8 @@ function Msg() {
       else
         echo "HOG:$1[${FUNCNAME[1]}] $text"
       fi
-    else
-      msg_counter w ${msgCounter[$msgType]} >> /dev/null
+    # else
+      # msg_counter w ${msgCounter[$msgType]} >> /dev/null
     fi
   fi
 

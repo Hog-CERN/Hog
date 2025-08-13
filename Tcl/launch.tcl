@@ -228,6 +228,16 @@ if {$options(ext_path) != ""} {
 set simlib_path ""
 
 
+if {$options(verbose) == 1} {
+  setDebugMode 1
+  # variable ::DEBUG_MODE 1
+}
+  printDebugMode
+# puts "kkkkkkk"
+# Msg Info "Number of jobs set to $options(njobs)."
+
+
+
 ######## DEFAULTS #########
 set do_implementation 0; set do_synthesis 0; set do_bitstream 0
 set do_create 0; set do_compile 0; set do_simulation 0; set recreate 0
@@ -285,6 +295,8 @@ if {$cmd == -1} {
 } else {
   # This script was launched with Tclsh, we need to check the arguments
   # and if everything is right launch the IDE on this script and return
+
+
 
 
   #### Directives to be handled in tclsh should be here ###
@@ -434,6 +446,7 @@ if {$cmd == -1} {
 #After this line, we are in the IDE
 ##################################################################################
 
+
 # We need to Import tcllib if we are using Libero
 if {[IsLibero] || [IsDiamond]} {
   if {[info exists env(HOG_TCLLIB_PATH)]} {
@@ -509,11 +522,13 @@ if {$options(lib) != ""} {
 }
 
 
-if {$options(verbose) == 1} {
-  variable ::DEBUG_MODE 1
-}
-
-# Msg Info "Number of jobs set to $options(njobs)."
+# if {$options(verbose) == 1} {
+#   setDebugMode 1
+#   # variable ::DEBUG_MODE 1
+# }
+#   printDebugMode
+# puts "kkkkkkk"
+# # Msg Info "Number of jobs set to $options(njobs)."
 
 ############## Quartus ########################
 set argv ""

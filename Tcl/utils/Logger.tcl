@@ -15,6 +15,28 @@
 # @file Logger.tcl
 # Logger functions for the Hog project
 
+
+set DEBUG_MODE 0
+
+proc setDebugMode {mode} {
+  global DEBUG_MODE
+  set DEBUG_MODE $mode
+}
+
+proc getDebugMode {} {
+  global DEBUG_MODE
+  return $DEBUG_MODE
+}
+
+proc printDebugMode {} {
+  global DEBUG_MODE
+  if {$DEBUG_MODE} {
+    puts "DEBUG_MODE is set to $DEBUG_MODE"
+  } else {
+    puts "DEBUG_MODE is not set or is 0"
+  }
+}
+
 ## @brief Safely get a value from a dictionary
 #
 # @param[in] d    The dictionary to search

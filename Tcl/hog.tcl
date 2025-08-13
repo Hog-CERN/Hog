@@ -14,6 +14,9 @@
 
 ## @file hog.tcl
 
+source "$tcl_path/utils/Logger.tcl"
+
+
 #### GLOBAL CONSTANTS
 set CI_STAGES {"generate_project" "simulate_project"}
 set CI_PROPS {"-synth_only"}
@@ -6327,7 +6330,7 @@ if {![info exists tcl_path]} {
 }
 
 # puts "$tcl_path/hog.tcl sourced successfully."
-source "$tcl_path/utils/Logger.tcl"
+# source "$tcl_path/utils/Logger.tcl"
 # set loggerdict [Hog::LoggerLib::ParseTOML [Hog::LoggerLib::GetUserFilePath "HogEnv.conf" ]]
 # set HogEnvDict [Hog::LoggerLib::GetTOMLDict]
 # Hog::LoggerLib::PrintTOMLDict $HogEnvDict

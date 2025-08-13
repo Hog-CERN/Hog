@@ -116,6 +116,8 @@ if [ "$found" == 1 ]; then
   fi
 fi
 
+loadUserConf
+
 if { [[ "$HOG_LOGGER" == "ENABLED" ]] || [[ "$HOG_COLOR" -gt 0 ]]; } || { [[ $(getConfigValue terminal logger) -gt 0 ]] || [[ $(getConfigValue terminal colored) -gt 0 ]]; }; then
     Logger_Init "$*"
     Logger $executable_path $hog_dir/Tcl/launch.tcl "$@"

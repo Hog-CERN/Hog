@@ -797,13 +797,15 @@ function print_hog_logo () {
   fi
 }
 
+
+
 ## @function loadUserConf
 function loadUserConf() {
-
+  Msg Info "Loading user configuration"
   current_user=$(whoami)
   hog_user_cfg=$(eval echo "~$USER")"/HogEnv.conf"
   if test -f $hog_user_cfg; then
-    Msg Debug "Hog project configuration file $hog_user_cfg exists."
+    Msg Info "Hog project configuration file $hog_user_cfg exists."
     process_HogEnv_config $hog_user_cfg "Hog_Usr_dict"
     hog_user_cfg_exists=1
     for key in "${!Hog_Usr_dict[@]}"; do
@@ -854,7 +856,7 @@ function Logger_Init() {
   #    USER CONFIGURATIONS
   ############################################
 
-  loadUserConf
+  # loadUserConf
 
   if [[ -v HOG_COLOR ]]; then
     if [[ $HOG_COLOR =~ ^[0-9]$ ]]; then

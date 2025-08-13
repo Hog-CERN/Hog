@@ -31,9 +31,9 @@ proc getDebugMode {} {
 proc printDebugMode {} {
   global DEBUG_MODE
   if {$DEBUG_MODE} {
-    puts "DEBUG_MODE is set to $DEBUG_MODE"
+    Msg Info "DEBUG_MODE is set to $DEBUG_MODE"
   } else {
-    puts "DEBUG_MODE is not set or is 0"
+    Msg Info "DEBUG_MODE is not set or is 0"
   }
 }
 

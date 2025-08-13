@@ -23,35 +23,43 @@
 ## @var VERBOSE_LEVEL
 #  @brief Global variable
 
-export hog_user_cfg_exists=0
-export hog_prj_cfg_exists=0
+hog_user_cfg_exists=0
+hog_prj_cfg_exists=0
 
-export VERBOSE_LEVEL=4
-export EN_SHOW_PID=0
-export ENABLE_LINE_NUMBER=0
-export ENABLE_MSG_TYPE_CNT=0
-export HOG_LOG_EN=0
-export HOG_COLOR_EN=0
+VERBOSE_LEVEL=4
+EN_SHOW_PID=0
+ENABLE_LINE_NUMBER=0
+ENABLE_MSG_TYPE_CNT=0
+HOG_LOG_EN=0
+HOG_COLOR_EN=0
+LOGGER_LEVEL=4
 
-export clrschselected="dark"
+BUFFERING=true
+BUFFER_FILE=$(mktemp)
 
-export ENABLE_FWE=0
-export hog_sh_pid=""
-export hog_pid=""
-export error_pid=""
-export tcl_pid=""
-export launch_tcl_pid=""
-export fail_when_error=0
-export fwe_failing=0
-export fwe_delay=0
-export error_fail=0
-export failing_en=0
-export fwe_fail_trig=0
+clrschselected="dark"
 
-export LOG_INFO_FILE=""
-export LOG_WAR_ERR_FILE=""
-export TEMP_LOG_INFO_FILE=""
-export TEMP_LOG_WAR_ERR_FILE=""
+ENABLE_FWE=0
+hog_sh_pid=""
+hog_pid=""
+error_pid=""
+tcl_pid=""
+launch_tcl_pid=""
+fail_when_error=0
+fwe_failing=0
+fwe_delay=0
+error_fail=0
+failing_en=0
+fwe_fail_trig=0
+
+HOG_DEBUG_MODE=0
+LOG_INFO_FILE=""
+LOG_WAR_ERR_FILE=""
+TEMP_LOG_INFO_FILE=""
+TEMP_LOG_WAR_ERR_FILE=""
+
+declare -A Hog_Prj_dict
+declare -A Hog_Usr_dict
 
 tempfolder=""
 
@@ -150,10 +158,6 @@ echo_info=1
 echo_warnings=1
 echo_errors=1
 
-# export LOG_INFO_FILE=""
-# export LOG_WAR_ERR_FILE=""
-# export TEMP_LOG_INFO_FILE=""
-# export TEMPLOG_WAR_ERR_FILE=""
 
 #Define colours
 # declare -A colorsDark
@@ -246,9 +250,18 @@ line_type=""
 
 
 function log_stdout(){
-  
+  # echo "========================"
+  # echo "log_stdout : ${1} : ${2}"
+  if [[ "${1}" == LogBuff:* ]]; then
+    # IN_out="${IN_out#LogBuff:}"
+    buffered=true
+  else
+    buffered=false
+  fi
+
   if [ -n "${2}" ]; then
     IN_out="${2//\\/\\\\}"
+    # echo "----"
   else
     while read -r IN_out # This reads a string from stdin and stores it in a variable called IN_out
     do
@@ -257,6 +270,8 @@ function log_stdout(){
       if [[ "$IN_out" == LogHelp:* ]]; then
         IN_out="${IN_out#LogHelp:}"
       fi
+      # if IN_out starts with "LogBuff:" remove it
+      
       if [[ $next_is_err == 0 ]]; then
         line="${IN_out//\\/\\\\}"
       else
@@ -264,18 +279,23 @@ function log_stdout(){
         next_is_err=$(($next_is_err-1))
       fi
       dataLine=$line
-      if [ "${1}" == "stdout" ]; then
-        stderr_ack=" "
-      elif [ "${1}" == "stderr" ]; then
-        # dataLine=$line
-        stderr_ack="*"
-        # echo $line
+      if $buffered; then
+        stderr_ack="b"
       else
-        stderr_ack="E"
-        # Msg Error "Error in logger"
+        if [ "${1}" == "stdout" ]; then
+          stderr_ack=" "
+        elif [ "${1}" == "stderr" ]; then
+          # dataLine=$line
+          stderr_ack="*"
+          # echo $line
+        else
+          stderr_ack="E"
+          # Msg Error "Error in logger"
+        fi
       fi
+      # echo "b:$buffered - $dataline"
         case "$line" in
-          *'DEBUG:'*)
+          *'DEBUG:'* | *'Debug['* | *'debug:'*)
             # msgTypeOverload msgType "debug" "$dataLine"
             msgType="debug"
           ;;
@@ -568,36 +588,72 @@ function Msg() {
     *) Msg Error "messageLevel: $1 not supported! Use Info, Warning, CriticalWarning, Error" ;;
   esac
   ####### The printing
-  if [[ $VERBOSE_LEVEL -gt ${msgDbgLvl[$msgType]} ]]; then
-    if [[ $EN_SHOW_PID -gt 0 ]]; then
-      printf "PID:%06d : " $BASHPID
-    fi
-    if [[ $ENABLE_LINE_NUMBER -gt 0 ]]; then
-      printf "%05d : " $(msg_counter r g)
-    fi
-    if [[ $ENABLE_MSG_TYPE_CNT -gt 0 ]]; then
-      printf "%d : " $(msg_counter w ${msgCounter[$msgType]})
+  if  $BUFFERING; then
+    {
+      if [[ $VERBOSE_LEVEL -gt ${msgDbgLvl[$msgType]} ]]; then
+        if [[ $EN_SHOW_PID -gt 0 ]]; then
+          printf "PID:%06d : " $BASHPID
+        fi
+        if [[ $ENABLE_LINE_NUMBER -gt 0 ]]; then
+          printf "%05d : " $(msg_counter r g)
+        fi
+        if [[ $ENABLE_MSG_TYPE_CNT -gt 0 ]]; then
+          printf "%d : " $(msg_counter w ${msgCounter[$msgType]})
+        else
+          msg_counter w ${msgCounter[$msgType]} >> /dev/null
+        fi
+
+        # if [[ $HOG_COLOR_EN -gt 1 ]]; then
+        #   case "${clrschselected}" in
+        #     "dark")
+        #       echo -e " ${darkColorScheme[$msgType]} HOG:$1[${FUNCNAME[1]}] $text"
+        #     ;;
+        #     "clear")
+        #       echo -e " ${clearColorScheme[$msgType]} HOG:$1[${FUNCNAME[1]}] $text "
+        #     ;;
+        #   esac
+        # elif [[ $HOG_COLOR_EN -gt 0 ]]; then
+        #   echo -e "${simpleColor[$msgType]} HOG:$1[${FUNCNAME[1]}] $text $txtwht"
+        # else
+          echo "HOG:$1[${FUNCNAME[1]}] $text"
+        # fi
+      else
+        msg_counter w ${msgCounter[$msgType]} >> /dev/null
+      fi
+    } >> "$BUFFER_FILE"
+  else
+    if [[ $VERBOSE_LEVEL -gt ${msgDbgLvl[$msgType]} ]]; then
+      if [[ $EN_SHOW_PID -gt 0 ]]; then
+        printf "PID:%06d : " $BASHPID
+      fi
+      if [[ $ENABLE_LINE_NUMBER -gt 0 ]]; then
+        printf "%05d : " $(msg_counter r g)
+      fi
+      if [[ $ENABLE_MSG_TYPE_CNT -gt 0 ]]; then
+        printf "%d : " $(msg_counter w ${msgCounter[$msgType]})
+      else
+        msg_counter w ${msgCounter[$msgType]} >> /dev/null
+      fi
+
+      if [[ $HOG_COLOR_EN -gt 1 ]]; then
+        case "${clrschselected}" in
+          "dark")
+            echo -e " ${darkColorScheme[$msgType]} HOG:$1[${FUNCNAME[1]}] $text"
+          ;;
+          "clear")
+            echo -e " ${clearColorScheme[$msgType]} HOG:$1[${FUNCNAME[1]}] $text "
+          ;;
+        esac
+      elif [[ $HOG_COLOR_EN -gt 0 ]]; then
+        echo -e "${simpleColor[$msgType]} HOG:$1[${FUNCNAME[1]}] $text $txtwht"
+      else
+        echo "HOG:$1[${FUNCNAME[1]}] $text"
+      fi
     else
       msg_counter w ${msgCounter[$msgType]} >> /dev/null
     fi
-
-    if [[ $HOG_COLOR_EN -gt 1 ]]; then
-      case "${clrschselected}" in
-        "dark")
-          echo -e " ${darkColorScheme[$msgType]} HOG:$1[${FUNCNAME[1]}] $text"
-        ;;
-        "clear")
-          echo -e " ${clearColorScheme[$msgType]} HOG:$1[${FUNCNAME[1]}] $text "
-        ;;
-      esac
-    elif [[ $HOG_COLOR_EN -gt 0 ]]; then
-      echo -e "${simpleColor[$msgType]} HOG:$1[${FUNCNAME[1]}] $text $txtwht"
-    else
-      echo "HOG:$1[${FUNCNAME[1]}] $text"
-    fi
-  else
-    msg_counter w ${msgCounter[$msgType]} >> /dev/null
   fi
+
   if [[ $HOG_LOG_EN -gt 0 ]]; then
     if [[ -n $LOG_WAR_ERR_FILE ]] && [[ 3 -gt ${msgDbgLvl[$msgType]} ]]; then
       echo "${msgHeadBW[$msgType]} HOG [${FUNCNAME[1]}] : $text " >> $LOG_WAR_ERR_FILE;
@@ -647,8 +703,7 @@ function Msg() {
   return 0
 }
 
-declare -A Hog_Prj_dict
-declare -A Hog_Usr_dict
+
 
 # @function trim
   #
@@ -670,6 +725,7 @@ trim() {
   #
   # @return  '1' if missing arguments else '0'
 process_HogEnv_config() {
+  # echo "Processing HogEnv config from $1 into $2"
   local file_path=$1
   local dict_name=$2
   declare -n toml_dict=$dict_name
@@ -817,11 +873,19 @@ function loadUserConf() {
 
 }
 
+function printDict() {
+  local -n dict=$1
+  for key in "${!dict[@]}"; do
+    echo "$key = ${dict[$key]}"
+  done
+}
+
 function getConfigValue() {
-  local section=$1
-  local key=$2
-  if [[ -v ${section}["$key"] ]]; then
-    echo "${section}["$key"]"
+  local -n dict=$1
+  local section=$2
+  local key=$3
+  if [[ -v dict["$section.$key"] ]]; then
+    echo "${dict["$section.$key"]}"
   else
     echo 0
   fi
@@ -837,7 +901,7 @@ function Logger_Init() {
   VERBOSE_LEVEL=4
   if [[ "$*" =~ "-verbose" ]]; then
     VERBOSE_LEVEL=5
-    export HOG_DEBUG_MODE=1
+    HOG_DEBUG_MODE=1
   fi
   force_verbose=$VERBOSE_LEVEL
   hog_pid=$BASHPID
@@ -880,7 +944,7 @@ function Logger_Init() {
       if [[ ${Hog_Usr_dict["terminal.colored"]} =~ ^[0-9]$ ]]; then
         Msg Debug "The variable <terminal.colored> is a one-digit number"
         HOG_COLOR_EN=${Hog_Usr_dict["terminal.colored"]}
-        export HOG_COLOR=$HOG_COLOR_EN
+        HOG_COLOR=$HOG_COLOR_EN
       else
         Msg Warning "The variable <terminal.colored> is not a one-digit number, Defaulting to 0"
       fi
@@ -988,6 +1052,14 @@ function Logger_Init() {
 
   ############ FROM HERE WILL USE LOGGER COLORS IF ENABLED
   print_hog_logo
+
+  BUFFERING=false
+  # log_stdout "$BUFFER_FILE"
+  while IFS= read -r line; do
+    log_stdout "LogBuff:$line"
+  done < "$BUFFER_FILE"
+  # echo "$BUFFER_FILE"
+  rm -f "$BUFFER_FILE"
 
   Msg Debug "HOG_LOG_EN -- $HOG_LOG_EN"
   Msg Debug "HOG_COLOR_EN -- $HOG_COLOR_EN"

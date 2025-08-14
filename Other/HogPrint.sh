@@ -40,10 +40,10 @@ function print_hog() {
   if [ -f $logo_file ]; then
     while IFS= read -r line; do
       if [[ "$line" == *"Version:"* ]]; then
-        version_str="Version: $HOG_VERSION"
-        version_len=${#HOG_VERSION}
-        # Replace "Version:" and the following spaces with "Version: $HOG_VERSION"
-        line=$(echo "$line" | sed -E "s/(Version:)[ ]{0,$((version_len + 1))}/\1 $HOG_VERSION/")
+        version_str="Version: $HOG_GIT_VERSION"
+        version_len=${#HOG_GIT_VERSION}
+        # Replace "Version:" and the following spaces with "Version: $HOG_GIT_VERSION"
+        line=$(echo "$line" | sed -E "s/(Version:)[ ]{0,$((version_len + 1))}/\1 $HOG_GIT_VERSION/")
         # Pad or trim to match original line length
         echo -e "$line"
       else

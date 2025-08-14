@@ -191,14 +191,8 @@ set parameters {
 }
 
 set tcl_path [file normalize "[file dirname [info script]]"]
-# source "$tcl_path/utils/Logger.tcl"
-# set loggerdict [Hog::LoggerLib::ParseTOML [Hog::LoggerLib::GetUserFilePath "HogEnv.conf" ]]
-# Hog::LoggerLib::PrintTOMLDict $loggerdict
 source $tcl_path/hog.tcl
 source $tcl_path/create_project.tcl
-
-
-
 
 # Quartus needs extra packages and treats the argv in a different way
 if {[IsQuartus]} {
@@ -230,10 +224,8 @@ set simlib_path ""
 
 if {$options(verbose) == 1} {
   setDebugMode 1
-  # variable ::DEBUG_MODE 1
 }
-  printDebugMode
-# puts "kkkkkkk"
+# printDebugMode
 # Msg Info "Number of jobs set to $options(njobs)."
 
 
@@ -522,13 +514,7 @@ if {$options(lib) != ""} {
 }
 
 
-# if {$options(verbose) == 1} {
-#   setDebugMode 1
-#   # variable ::DEBUG_MODE 1
-# }
-#   printDebugMode
-# puts "kkkkkkk"
-# # Msg Info "Number of jobs set to $options(njobs)."
+Msg Info "Number of jobs set to $options(njobs)."
 
 ############## Quartus ########################
 set argv ""

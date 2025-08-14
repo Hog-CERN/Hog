@@ -105,12 +105,7 @@ proc Msg {level fmsg {title ""}} {
         puts "$vlevel: \[Hog:$title\] $msg"
       } else {
         # temporary solution to avoid removing of leading
-        # puts "|${msg}"
         set HogEnvDict [Hog::LoggerLib::GetTOMLDict]
-        # Hog::LoggerLib::PrintTOMLDict $Hog::LoggerLib::toml_dict
-        # puts $HogEnvDict
-        # puts "$::env(HOG_COLOR) $::env(HOG_LOGGER)"
-        # puts "HogEnvDict: [dict get $HogEnvDict terminal colored] :: [dict get $HogEnvDict terminal logger]"
         if {
           ([dictSafeGet $HogEnvDict terminal colored] > 0) ||
           ([info exists ::env(HOG_COLOR)] &&
@@ -552,5 +547,3 @@ namespace eval Hog::LoggerLib {
 }
 
 
-
-# puts "Hog::LoggerLib::GetTOMLDict called"

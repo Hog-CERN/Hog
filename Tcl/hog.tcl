@@ -24,13 +24,6 @@ source "$tcl_path/utils/Logger.tcl"
 set CI_STAGES {"generate_project" "simulate_project"}
 set CI_PROPS {"-synth_only"}
 
-
-# set HogEnvDict [LoggerLib::GetTOMLDict]
-      # set HogEnvDict [Hog::LoggerLib::GetTOMLDict]
-      # Hog::LoggerLib::PrintTOMLDict $HogEnvDict
-
-
-
 #### FUNCTIONS
 
 ## @brief Add a new file to a fileset in Vivado
@@ -4870,52 +4863,6 @@ proc ListProjects {{repo_path .} {print 1} {ret_conf 0}} {
   }
 }
 
-
-# # @brief Print the Hog Logo
-# #
-# # @param[in] repo_path The main path of the git repository (default .)
-# proc Logo {{repo_path .}} {
-#   # Msg Warning "HOG_LOGO_PRINTED : $HOG_LOGO_PRINTED"
-#   if {![info exists ::env(HOG_LOGO_PRINTED)] || $::env(HOG_LOGO_PRINTED) eq "0"} {
-#     if {
-#     [info exists ::env(HOG_COLOR)] && ([string match "ENABLED" $::env(HOG_COLOR)] || [string is integer -strict $::env(HOG_COLOR)] && $::env(HOG_COLOR) > 0)
-#     } {
-#       set logo_file "$repo_path/Hog/images/hog_logo_color.txt"
-#     } else {
-#       set logo_file "$repo_path/Hog/images/hog_logo.txt"
-#     }
-
-#     cd $repo_path/Hog
-#     set ver [Git {describe --always}]
-#     set old_path [pwd]
-#     # set ver [Git {describe --always}]
-
-#     if {[file exists $logo_file]} {
-#       set f [open $logo_file "r"]
-#       set data [read $f]
-#       close $f
-#       set lines [split $data "\n"]
-#       foreach l $lines {
-#         if {[regexp {(Version:)[ ]+} $l -> prefix]} {
-#           set string_len [string length $l]
-
-#           set version_string "* Version: $ver"
-#           set version_len [string length $version_string]
-#           append version_string [string repeat " " [expr {$string_len - $version_len - 1}]] "*"
-#           set l $version_string
-#         }
-#         Msg Status $l
-#       }
-#     } {
-#       Msg CriticalWarning "Logo file: $logo_file not found"
-#     }
-
-
-#     # Msg Status "Version: $ver"
-#     cd $old_path
-#   }
-# }
-
 ## @brief Evaluates the md5 sum of a file
 #
 #  @param[in] file_name: the name of the file of which you want to evaluate the md5 checksum
@@ -4971,116 +4918,6 @@ proc MoveElementToEnd {inputList element} {
   }
   return $inputList
 }
-
-
-## @brief The Hog Printout Msg function
-#
-# @param[in] level The severity level (status, info, warning, critical, error, debug)
-# @param[in] msg   The message to print
-# @param[in] title The title string to be included in the header of the message [Hog:$title] (default "")
-# proc Msg {level msg {title ""}} {
-#   set level [string tolower $level]
-#   if {$title == ""} {set title [lindex [info level [expr {[info level] - 1}]] 0]}
-#   if {$level == 0 || $level == "status" || $level == "extra_info"} {
-#     set vlevel {STATUS}
-#     set qlevel info
-#   } elseif {$level == 1 || $level == "info"} {
-#     set vlevel {INFO}
-#     set qlevel info
-#   } elseif {$level == 2 || $level == "warning"} {
-#     set vlevel {WARNING}
-#     set qlevel warning
-#   } elseif {$level == 3 || [string first "critical" $level] != -1} {
-#     set vlevel {CRITICAL WARNING}
-#     set qlevel critical_warning
-#   } elseif {$level == 4 || $level == "error"} {
-#     set vlevel {ERROR}
-#     set qlevel error
-#   } elseif {$level == 5 || $level == "debug"} {
-#     if {([info exists ::DEBUG_MODE] && $::DEBUG_MODE == 1) || (
-#       [info exists ::env(HOG_DEBUG_MODE)] && $::env(HOG_DEBUG_MODE) == 1
-#     )} {
-#       set vlevel {STATUS}
-#       set qlevel extra_info
-#       set msg "DEBUG: \[Hog:$title\] $msg"
-#     } else {
-#       return
-#     }
-#   } else {
-#     puts "Hog Error: level $level not defined"
-#     exit -1
-#   }
-
-
-#   if {[IsXilinx]} {
-#     # Vivado
-#     set status [catch {send_msg_id Hog:$title-0 $vlevel $msg}]
-#     if {$status != 0} {
-#       exit $status
-#     }
-#   } elseif {[IsQuartus]} {
-#     # Quartus
-#     post_message -type $qlevel "Hog:$title $msg"
-#     if {$qlevel == "error"} {
-#       exit 1
-#     }
-#   } else {
-#     # Tcl Shell / Libero
-#     if {$vlevel != "STATUS"} {
-#       puts "$vlevel: \[Hog:$title\] $msg"
-#     } else {
-#       # temporary solution to avoid removing of leading
-#       # puts "|${msg}"
-#       set HogEnvDict [Hog::LoggerLib::GetTOMLDict]
-#       Hog::LoggerLib::PrintTOMLDict $loggerdict
-
-#       # puts $HogEnvDict
-#       # puts "$::env(HOG_COLOR) $::env(HOG_LOGGER)"
-#       # puts "HogEnvDict: [dict get $HogEnvDict terminal colored] :: [dict get $HogEnvDict terminal logger]"
-#       if {
-#         ([info exists ::env(HOG_COLOR)] &&
-#           ([string match "ENABLED" $::env(HOG_COLOR)] ||
-#             ([string is integer -strict $::env(HOG_COLOR)] && $::env(HOG_COLOR) > 0)
-#           )
-#         )||
-#         ([info exists ::env(HOG_LOGGER)] && ([string match "ENABLED" $::env(HOG_LOGGER)]) &&
-#           (
-#             [dict get $HogEnvDict terminal logger] > 0 ||
-#             [dict get $HogEnvDict terminal colored] > 0
-#           )
-#         )
-#       } {
-#         puts "LogHelp:$msg"
-#       } else {
-#         puts $msg
-#       }
-#     }
-#     if {$qlevel == "error"} {
-#       exit 1
-#     }
-#   }
-# }
-
-# ## @brief Prints a message with selected severity and optionally write into a log file
-# #
-# # @param[in] msg        The message to print
-# # @param[in] severity   The severity of the message
-# # @param[in] outFile    The path of the output logfile
-# #
-# proc MsgAndLog {msg {severity "CriticalWarning"} {outFile ""}} {
-#   Msg $severity $msg
-#   if {$outFile != ""} {
-#     set directory [file dir $outFile]
-#     if {![file exists $directory]} {
-#       Msg Info "Creating $directory..."
-#       file mkdir $directory
-#     }
-
-#     set oF [open "$outFile" a+]
-#     puts $oF $msg
-#     close $oF
-#   }
-# }
 
 # @brief Open the project with the corresponding IDE
 #
@@ -5149,63 +4986,6 @@ proc ParseJSON {JSON_FILE JSON_KEY} {
   }
 }
 
-# # Define the procedure to print the content of a file
-# #
-# # @param[in] filename The name of the file to read and print
-# #
-# # @brief This procedure opens the file, reads its content, and prints it to the console.
-# proc PrintFileContent {filename} {
-#     # Open the file for reading
-#     set file [open $filename r]
-
-#     # Read the content of the file
-#     set content [read $file]
-
-#     # Close the file
-#     close $file
-
-#     # Print the content of the file
-#     puts $content
-# }
-
-
-
-# ## Print a tree-like structure of Hog list file content
-# #
-# #  @param[in]    data the list of lines read from a list file
-# #  @param[in]    repo_path the path of the repository
-# #  @param[in]    indentation a string containing a number of spaces to indent the tree
-# proc PrintFileTree {{data} {repo_path} {indentation ""}} {
-#   # Msg Debug "PrintFileTree called with data: $data, repo_path: $repo_path, indentation: $indentation"
-#   set print_list {}
-#   set last_printed ""
-#   foreach line $data {
-#     if {![regexp {^[\t\s]*$} $line] & ![regexp {^[\t\s]*\#} $line]} {
-#       lappend print_list "$line"
-#     }
-#   }
-#   set i 0
-
-#   foreach p $print_list {
-#     incr i
-#     if {$i == [llength $print_list]} {
-#       set pad "└──"
-#     } else {
-#       set pad "├──"
-#     }
-#     set file_name [lindex [split $p] 0]
-#     if {[file exists [file normalize [lindex [glob -nocomplain $repo_path/$file_name] 0]]]} {
-#       set exists ""
-#     } else {
-#       set exists "  !!!!!   NOT FOUND   !!!!!"
-#     }
-
-#     Msg Status "$indentation$pad$p$exists"
-#     set last_printed $file_name
-#   }
-
-#   return $last_printed
-# }
 
 # @brief Check if a Hog project exists, and if it exists returns the conf file
 # if it doesnt returns 0
@@ -6325,18 +6105,6 @@ proc WriteUtilizationSummary {input output project_name run} {
   puts $o [util_m format 2string]
   close $o
 }
-
-
-#if tcl_path is not set set it
-# if {![info exists tcl_path]} {
-#   set tcl_path [file normalize "[file dirname [info script]]"]
-# }
-
-# puts "$tcl_path/hog.tcl sourced successfully."
-# source "$tcl_path/utils/Logger.tcl"
-# set loggerdict [Hog::LoggerLib::ParseTOML [Hog::LoggerLib::GetUserFilePath "HogEnv.conf" ]]
-# set HogEnvDict [Hog::LoggerLib::GetTOMLDict]
-# Hog::LoggerLib::PrintTOMLDict $HogEnvDict
 
 # Check Git Version when sourcing hog.tcl
 if {[GitVersion 2.7.2] == 0} {

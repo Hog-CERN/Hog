@@ -288,45 +288,38 @@ function log_stdout(){
           stderr_ack="E"
         fi
       fi
-        case "$line" in
-          *'DEBUG:'* | *'Debug['* | *'debug:'*)
-            msgType="debug"
-          ;;
-          *'ERROR:'* | *'Error:'* | *':Error'* | *'error:'* | *'Error '* | *'FATAL ERROR'* | *'Fatal'*)
-            # if [[ "$line" == *'Fatal'* ]]; then
-            #   next_is_err=1
-            # fi
-            msgType="error"
-            if [[ "$line" =~ "error: unable to create directory (errc=1) (Operation not permitted)" ]]; then
-              msgType="critical"
-            fi
-            if [[ "$line" =~ [Ee]os ]]; then
-              msgType="critical"
-            fi
-          ;;
-          *'CRITICAL:'* | *'CRITICAL WARNING:'* )
+      case "$line" in
+        *'DEBUG:'* | *'Debug['* | *'debug:'*)
+          msgType="debug"
+        ;;
+        *'ERROR:'* | *'Error:'* | *':Error'* | *'error:'* | *'Error '* | *'FATAL ERROR'* | *'Fatal'*)
+          # if [[ "$line" == *'Fatal'* ]]; then
+          #   next_is_err=1
+          # fi
+          msgType="error"
+          if [[ "$line" =~ "error: unable to create directory (errc=1) (Operation not permitted)" ]]; then
             msgType="critical"
+          fi
+          if [[ "$line" =~ [Ee]os ]]; then
+            msgType="critical"
+          fi
+        ;;
+        *'CRITICAL:'* | *'CRITICAL WARNING:'* )
+          msgType="critical"
+        ;;
+        *'WARNING:'* | *'Warning:'* | *'warning:'*)
+          msgType="warning"
+        ;;
+        *'INFO:'*)
+          msgType="info"
+        ;;
+        *'vcom'*)
+          msgType="vcom"
           ;;
-          *'WARNING:'* | *'Warning:'* | *'warning:'*)
-            msgType="warning"
+        *)
+          msgType="info"
           ;;
-          *'INFO:'*)
-            msgType="info"
-          ;;
-          *'vcom'*)
-            msgType="vcom"
-            ;;
-          *)
-            msgType="info"
-            ;;
-        esac
-      # elif [ "${1}" == "stderr" ]; then
-      #   stderr_line=$dataLine
-      #   msgType="error"
-      #   echo $line
-      # else
-      #   Msg Error "Error in logger"
-      # fi
+      esac
       #######################################
       # Overwriting
       #######################################
@@ -542,12 +535,6 @@ function Logger () {
     "$@"
     exit $?
   fi
-  # if [[ "$HOG_COLOR_EN" -gt 0 ]]; then
-  #   Hog_exit
-  # else
-  #   Msg Info "Logger args : $*"
-  #   exit $?
-  # fi
 }
 
 # @function Msg
@@ -582,34 +569,7 @@ function Msg() {
   if  $BUFFERING; then
     {
       if [[ $VERBOSE_LEVEL -gt ${msgDbgLvl[$msgType]} ]]; then
-        # if [[ $EN_SHOW_PID -gt 0 ]]; then
-        #   printf "PID:%06d : " $BASHPID
-        # fi
-        # if [[ $ENABLE_LINE_NUMBER -gt 0 ]]; then
-        #   printf "%05d : " $(msg_counter r g)
-        # fi
-        # if [[ $ENABLE_MSG_TYPE_CNT -gt 0 ]]; then
-        #   printf "%d : " $(msg_counter w ${msgCounter[$msgType]})
-        # else
-        #   msg_counter w ${msgCounter[$msgType]} >> /dev/null
-        # fi
-
-        # if [[ $HOG_COLOR_EN -gt 1 ]]; then
-        #   case "${clrschselected}" in
-        #     "dark")
-        #       echo -e " ${darkColorScheme[$msgType]} HOG:$1[${FUNCNAME[1]}] $text"
-        #     ;;
-        #     "clear")
-        #       echo -e " ${clearColorScheme[$msgType]} HOG:$1[${FUNCNAME[1]}] $text "
-        #     ;;
-        #   esac
-        # elif [[ $HOG_COLOR_EN -gt 0 ]]; then
-        #   echo -e "${simpleColor[$msgType]} HOG:$1[${FUNCNAME[1]}] $text $txtwht"
-        # else
-          echo "$1[Hog:${FUNCNAME[1]}] $text"
-        # fi
-      # else
-        # msg_counter w ${msgCounter[$msgType]} >> /dev/null
+        echo "$1[Hog:${FUNCNAME[1]}] $text"
       fi
     } >> "$BUFFER_FILE"
   else
@@ -640,19 +600,15 @@ function Msg() {
       else
         echo "$1[Hog:${FUNCNAME[1]}] $text"
       fi
-    # else
-      # msg_counter w ${msgCounter[$msgType]} >> /dev/null
     fi
   fi
 
   if [[ $HOG_LOG_EN -gt 0 ]]; then
     if [[ -n $LOG_WAR_ERR_FILE ]] && [[ 3 -gt ${msgDbgLvl[$msgType]} ]]; then
       echo "${msgHeadBW[$msgType]} HOG [${FUNCNAME[1]}] : $text " >> $LOG_WAR_ERR_FILE;
-      # echo "${msgHeadBW[$msgType]} ${dataLine#${msgRemove[$msgType]}} "  >> $LOG_WAR_ERR_FILE
     fi
     if [[ -n $LOG_INFO_FILE ]]; then
       echo "${msgHeadBW[$msgType]} HOG [${FUNCNAME[1]}] : $text " >> $LOG_INFO_FILE;
-      # echo "${msgHeadBW[$msgType]} ${dataLine#${msgRemove[$msgType]}} "  >> $LOG_INFO_FILE;
     fi
   else
     # store in a temporary file
@@ -971,26 +927,6 @@ function Logger_Init() {
       fi
     fi
 
-    # Msg Info "Loading Hog configuration..."
-    # if test -f $hog_user_cfg; then
-    #   Msg Info "Hog project configuration file $hog_user_cfg exists."
-    #   process_HogEnv_config $hog_user_cfg "Hog_Usr_dict"
-    #   for key in "${!Hog_Usr_dict[@]}"; do
-    #     Msg Info "Hog_Usr_dict[ $key ] = <${Hog_Usr_dict[$key]}>"
-    #   done
-    # else
-    #   Msg Debug "Hog project configuration file $hog_user_cfg doesn't exists."
-    # fi
-
-    # if test -f $hog_user_cfg; then
-    #   Msg Info "Hog project configuration file $hog_user_cfg exists."
-    #   for key in "${!Hog_Usr_dict[@]}"; do
-    #     Msg Info "Hog_Usr_dict[ $key ] = <${Hog_Usr_dict[$key]}>"
-    #   done
-    # else
-    #   Msg Debug "Hog project configuration file $hog_user_cfg doesn't exists."
-    # fi
-
     # SETTING LOGGER_LEVEL
     if [[ -v Hog_Usr_dict["verbose.log_level"] ]]; then
       if [[ ${Hog_Usr_dict["verbose.log_level"]} =~ ^[0-9]$ ]]; then
@@ -1045,12 +981,9 @@ function Logger_Init() {
   print_hog_logo
 
   BUFFERING=false
-  # log_stdout "$BUFFER_FILE"
   while IFS= read -r line; do
     log_stdout "LogBuff:$line"
   done < "$BUFFER_FILE"
-  # echo "$BUFFER_FILE"
-  # cat $BUFFER_FILE
   rm -f "$BUFFER_FILE"
 
   Msg Debug "HOG_LOG_EN -- $HOG_LOG_EN"

@@ -120,16 +120,13 @@ loadUserConf
 # printDict Hog_Usr_dict
 
 if { [[ "$HOG_LOGGER" == "ENABLED" ]] || [[ "$HOG_COLOR" -gt 0 ]]; } || { [[ $(getConfigValue Hog_Usr_dict terminal logger) -gt 0 ]] || [[ $(getConfigValue Hog_Usr_dict terminal colored) -gt 0 ]]; }; then
-    # echo "Running logger"
     Logger_Init "$*"
     Logger $executable_path $hog_dir/Tcl/launch.tcl "$@"
     Hog_exit
   else
-    # echo "Running $executable_path $hog_dir/Tcl/launch.tcl \"$@\""
     $executable_path $hog_dir/Tcl/launch.tcl "$@"
     exit $?
   fi
-  # Hog_exit
 else
   echo "Error: No IDE executable found in PATH. You need an IDE in your PATH to use Hog." >&2
   exit 1

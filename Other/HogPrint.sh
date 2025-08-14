@@ -27,10 +27,37 @@ function print_hog() {
   cd "$1" || exit
   ver=$(git describe --always)
   HOG_GIT_VERSION=$(git describe --always)
-  echo
-  cat ./images/hog_logo.txt
-  echo " Version: ${ver}"
-  echo
+
+  if [[ -v "HOG_COLOR" && "${HOG_COLOR}" =~ ^[0-9]+$ && "${HOG_COLOR}" -gt 0 ]]; then
+    if [[ "${HOG_COLOR}" =~ ^[0-9]+$ && "${HOG_COLOR}" -gt 1 ]]; then
+      logo_file=./images/hog_logo_full_color.txt
+    else
+      logo_file=./images/hog_logo_color.txt
+    fi
+  else
+    logo_file=./images/hog_logo.txt
+  fi
+  if [ -f $logo_file ]; then
+    while IFS= read -r line; do
+      if [[ "$line" == *"Version:"* ]]; then
+        version_str="Version: $HOG_VERSION"
+        version_len=${#HOG_VERSION}
+        # Replace "Version:" and the following spaces with "Version: $HOG_VERSION"
+        line=$(echo "$line" | sed -E "s/(Version:)[ ]{0,$((version_len + 1))}/\1 $HOG_VERSION/")
+        # Pad or trim to match original line length
+        echo -e "$line"
+      else
+        echo -e "$line"
+      fi
+    done < "$logo_file"
+    # export HOG_LOGO_PRINTED=1
+  # else
+  #   Msg Warning "Logo file $logo_file doesn't exist"
+  fi
+  # echo
+  # cat ./images/hog_logo.txt
+  # echo " Version: ${ver}"
+  # echo
   cd "${OLDPWD}" || exit >> /dev/null
   HogVer "$1"
 

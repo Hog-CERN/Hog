@@ -13,6 +13,9 @@
 #   limitations under the License.
 
 ---
+variables:
+  HOG_LOGGER: "ENABLED"
+  HOG_COLOR: 2
 default:
   before_script:
     - export REPO=`echo $CI_PROJECT_URL | sed -e s#https://##`

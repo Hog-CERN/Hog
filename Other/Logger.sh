@@ -228,8 +228,8 @@ declare -A msgRemove
 msgRemove[error]="*@(ERROR:|Error:)"
 msgRemove[critical]="*@(WARNING: |Warning: |warning: )"
 msgRemove[warning]="*@(WARNING: |Warning: |warning: )"
-msgRemove[debug]="DEBUG: "
-msgRemove[info]="INFO: "
+msgRemove[debug]="*@(DEBUG: |Debug)"
+msgRemove[info]="*@(INFO: |Info)"
 msgRemove[vcom]="INFO: "
 
 declare -A errorOverload
@@ -391,7 +391,7 @@ function log_stdout(){
           printf "%05d : " $(msg_counter r g)
         fi
         if [[ $ENABLE_MSG_TYPE_CNT -gt 0 ]]; then
-          printf "%d : " $(msg_counter w ${msgCounter[$msgType]})
+          printf "%05d : " $(msg_counter w ${msgCounter[$msgType]})
         else
           msg_counter w ${msgCounter[$msgType]} >> /dev/null
         fi
@@ -464,7 +464,9 @@ function Hog_exit () {
   echo "  ================ RESUME ================ "
   echo "   # of Total messages: $(msg_counter r g)"
   echo "   # of Info messages: $(msg_counter r i)"
-  echo "   # of debug messages : $(msg_counter r d)"
+  if [[ $VERBOSE_LEVEL -gt 4 ]]; then
+    echo "   # of debug messages : $(msg_counter r d)"
+  fi
   echo "   # of warning messages : $(msg_counter r w)"
   echo "   # of critical warning messages : $(msg_counter r c)"
   echo "   # of Errors messages : $(msg_counter r e)"
@@ -489,7 +491,9 @@ function Hog_exit_fwe () {
   echo "  ================ RESUME ================ "
   echo "   # of Total messages: $(msg_counter r g)"
   echo "   # of Info messages: $(msg_counter r i)"
-  echo "   # of debug messages : $(msg_counter r d)"
+  if [[ $VERBOSE_LEVEL -gt 4 ]]; then
+    echo "   # of debug messages : $(msg_counter r d)"
+  fi
   echo "   # of warning messages : $(msg_counter r w)"
   echo "   # of critical warning messages : $(msg_counter r c)"
   echo "   # of Errors messages : $(msg_counter r e)"
@@ -578,17 +582,17 @@ function Msg() {
   if  $BUFFERING; then
     {
       if [[ $VERBOSE_LEVEL -gt ${msgDbgLvl[$msgType]} ]]; then
-        if [[ $EN_SHOW_PID -gt 0 ]]; then
-          printf "PID:%06d : " $BASHPID
-        fi
-        if [[ $ENABLE_LINE_NUMBER -gt 0 ]]; then
-          printf "%05d : " $(msg_counter r g)
-        fi
-        if [[ $ENABLE_MSG_TYPE_CNT -gt 0 ]]; then
-          printf "%d : " $(msg_counter w ${msgCounter[$msgType]})
-        else
-          msg_counter w ${msgCounter[$msgType]} >> /dev/null
-        fi
+        # if [[ $EN_SHOW_PID -gt 0 ]]; then
+        #   printf "PID:%06d : " $BASHPID
+        # fi
+        # if [[ $ENABLE_LINE_NUMBER -gt 0 ]]; then
+        #   printf "%05d : " $(msg_counter r g)
+        # fi
+        # if [[ $ENABLE_MSG_TYPE_CNT -gt 0 ]]; then
+        #   printf "%d : " $(msg_counter w ${msgCounter[$msgType]})
+        # else
+        #   msg_counter w ${msgCounter[$msgType]} >> /dev/null
+        # fi
 
         # if [[ $HOG_COLOR_EN -gt 1 ]]; then
         #   case "${clrschselected}" in
@@ -602,7 +606,7 @@ function Msg() {
         # elif [[ $HOG_COLOR_EN -gt 0 ]]; then
         #   echo -e "${simpleColor[$msgType]} HOG:$1[${FUNCNAME[1]}] $text $txtwht"
         # else
-          echo "HOG:$1[${FUNCNAME[1]}] $text"
+          echo "$1[Hog:${FUNCNAME[1]}] $text"
         # fi
       # else
         # msg_counter w ${msgCounter[$msgType]} >> /dev/null
@@ -617,7 +621,7 @@ function Msg() {
         printf "%05d : " $(msg_counter r g)
       fi
       if [[ $ENABLE_MSG_TYPE_CNT -gt 0 ]]; then
-        printf "%d : " $(msg_counter w ${msgCounter[$msgType]})
+        printf "%05d : " $(msg_counter w ${msgCounter[$msgType]})
       else
         msg_counter w ${msgCounter[$msgType]} >> /dev/null
       fi
@@ -625,16 +629,16 @@ function Msg() {
       if [[ $HOG_COLOR_EN -gt 1 ]]; then
         case "${clrschselected}" in
           "dark")
-            echo -e "${darkColorScheme[$msgType]} HOG:$1[${FUNCNAME[1]}] $text"
+            echo -e "${darkColorScheme[$msgType]} [Hog:${FUNCNAME[1]}] $text"
           ;;
           "clear")
-            echo -e "${clearColorScheme[$msgType]} HOG:$1[${FUNCNAME[1]}] $text"
+            echo -e "${clearColorScheme[$msgType]} [Hog:${FUNCNAME[1]}] $text"
           ;;
         esac
       elif [[ $HOG_COLOR_EN -gt 0 ]]; then
-        echo -e "${simpleColor[$msgType]} HOG:$1[${FUNCNAME[1]}] $text $txtwht"
+        echo -e "${simpleColor[$msgType]} [Hog:${FUNCNAME[1]}] $text $txtwht"
       else
-        echo "HOG:$1[${FUNCNAME[1]}] $text"
+        echo "$1[Hog:${FUNCNAME[1]}] $text"
       fi
     # else
       # msg_counter w ${msgCounter[$msgType]} >> /dev/null
@@ -1046,6 +1050,7 @@ function Logger_Init() {
     log_stdout "LogBuff:$line"
   done < "$BUFFER_FILE"
   # echo "$BUFFER_FILE"
+  # cat $BUFFER_FILE
   rm -f "$BUFFER_FILE"
 
   Msg Debug "HOG_LOG_EN -- $HOG_LOG_EN"

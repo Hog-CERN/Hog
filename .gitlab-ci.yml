@@ -44,18 +44,15 @@ launch_github:
     - gh auth status
     - git clone https://hog-user:${GITHUB_TOKEN}@github.com/hog-CERN/TestFirmware.git
     - cd TestFirmware/
-    # Let's wait 60s for the mirror to update
-    - sleep 60
+    # Let's wait 3m for the mirror to update
+    - sleep 180
     - git submodule init Hog
     - git submodule update Hog
-    - if git branch -a | grep -q "auto/$CI_COMMIT_REF_NAME"; then
-        git checkout auto/$CI_COMMIT_REF_NAME;
-        git branch --set-upstream-to=origin/auto/$CI_COMMIT_REF_NAME auto/$CI_COMMIT_REF_NAME;
-        git pull;
-        git merge origin/develop;
-      else
-        git checkout -b auto/$CI_COMMIT_REF_NAME;
-      fi
+    - git fetch -p
+    - if git branch -r | grep -q "auto/$CI_COMMIT_REF_NAME"; then
+        git push origin --delete auto/$CI_COMMIT_REF_NAME;
+      fi;
+    - git checkout -b auto/$CI_COMMIT_REF_NAME;
     - cd Hog
     - git checkout $CI_COMMIT_SHA
     - cd ..
@@ -91,15 +88,12 @@ launch_testfirmware:
     # Clone TestFirmware
     - git clone --recursive https://hog_user:${HOG_PUSH_TOKEN}@gitlab.com/hog-cern/test/TestFirmware.git
     - cd TestFirmware/
+    - git fetch -p
     # Check if auto-generated Hog branch exists
-    - if git branch -a | grep -q "auto/$CI_COMMIT_REF_NAME"; then
-        git checkout auto/$CI_COMMIT_REF_NAME;
-        git branch --set-upstream-to=origin/auto/$CI_COMMIT_REF_NAME auto/$CI_COMMIT_REF_NAME;
-        git pull;
-        git merge origin/develop;
-      else
-        git checkout -b auto/$CI_COMMIT_REF_NAME;
+    - if git branch -r | grep -q "auto/$CI_COMMIT_REF_NAME"; then
+        git push origin --delete auto/$CI_COMMIT_REF_NAME;
       fi
+    - git checkout -b auto/$CI_COMMIT_REF_NAME;
     - cd Hog
     - git checkout $CI_COMMIT_SHA
     - cd ..

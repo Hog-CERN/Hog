@@ -30,7 +30,6 @@ source ./Hog/Tcl/hog.tcl
 set tcl_path [file dirname [info script]]
 set repo_path [file normalize $tcl_path/../../..]
 cd $tcl_path
-# source ../hog.tcl
 cd $repo_path
 
 if {[catch {array set options [cmdline::getoptions ::argv $parameters $usage]}] || $::argc != 0} {

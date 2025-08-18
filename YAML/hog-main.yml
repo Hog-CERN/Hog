@@ -61,7 +61,7 @@ check_branch_state:
   variables:
     <<: *vars
   script:
-    - glab auth login -t $HOG_PUSH_TOKEN -h $CI_SERVER_HOST
+    - glab auth login -t $HOG_PUSH_TOKEN --hostname $CI_SERVER_HOST
     - export REPO=`echo $CI_PROJECT_URL | sed -e s#https://##`
     - git remote set-url origin https://${HOG_USER}:${HOG_PUSH_TOKEN}@$REPO
     - git config user.email ${HOG_EMAIL}
@@ -193,7 +193,7 @@ artifacts_and_release:
     GIT_SUBMODULE_STRATEGY: recursive
   stage: release
   script:
-    - glab auth login -t $HOG_PUSH_TOKEN -h $CI_SERVER_HOST
+    - glab auth login -t $HOG_PUSH_TOKEN --hostname $CI_SERVER_HOST
     - git fetch origin refs/notes/*:refs/notes/*
     - MR=( `git notes show` )
     - if [ "${HOG_USE_DOXYGEN}" = "1" ]; then

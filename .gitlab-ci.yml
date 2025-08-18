@@ -201,7 +201,7 @@ check_docker:
   script:
     - if grep -Rq "gitlab-registry.cern.ch/hog/hog-docker:develop" .; then
         echo "ERROR. The Docker image 'gitlab-registry.cern.ch/hog/hog-docker:develop' is used in the codebase. Please, change it to 'gitlab-registry.cern.ch/hog/hog-docker:master' before merging into Hog master. This is necessary to ensure that the master branch is always built with the latest stable Docker image. ";
-        echo "You might also need to update the Dockerfile in the hog-docker repository. https://gitlab.cern.ch/hog/hog-docker/"
+        echo "You might also need to update the Dockerfile in the hog-docker repository. https://gitlab.cern.ch/hog/hog-docker/";
         exit 1;
       fi
   interruptible: true

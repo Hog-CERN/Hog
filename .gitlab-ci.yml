@@ -33,7 +33,7 @@ stages: [mirrors, merge_checks, tag, build_doc]
 
 launch_github:
   stage: merge_checks
-  image: gitlab-registry.cern.ch/hog/hog-docker:master
+  image: gitlab-registry.cern.ch/hog/hog-docker:develop
   only:
     refs: [merge_requests]
     variables: [$CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /^(master|develop)$/]
@@ -77,7 +77,7 @@ launch_github:
 
 launch_testfirmware:
   stage: merge_checks
-  image: gitlab-registry.cern.ch/hog/hog-docker:master
+  image: gitlab-registry.cern.ch/hog/hog-docker:develop
   only:
     refs: [merge_requests]
     variables: [$CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /^(master|develop)$/]
@@ -146,7 +146,7 @@ launch_testfirmware:
 
 build-doxygen-test:
   stage: merge_checks
-  image: gitlab-registry.cern.ch/hog/hog-docker:master
+  image: gitlab-registry.cern.ch/hog/hog-docker:develop
   only:
     refs: [merge_requests]
     variables: [$CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /^(master|develop)$/]
@@ -166,7 +166,7 @@ build-doxygen-test:
 
 build-doxygen-develop:
   stage: build_doc
-  image: gitlab-registry.cern.ch/hog/hog-docker:master
+  image: gitlab-registry.cern.ch/hog/hog-docker:develop
   only:
     refs: [tags]
     variables: [$CI_COMMIT_TAG =~ /^(v.*)$/]
@@ -179,7 +179,7 @@ build-doxygen-develop:
 
 build-doxygen-official:
   stage: build_doc
-  image: gitlab-registry.cern.ch/hog/hog-docker:master
+  image: gitlab-registry.cern.ch/hog/hog-docker:develop
   only:
     refs: [tags]
     variables: [$CI_COMMIT_TAG =~ /^(Hog.*)$/]
@@ -190,9 +190,22 @@ build-doxygen-official:
     - chmod +x ./doxygen/scripts/build-and-deploy.sh
     - ./doxygen/scripts/build-and-deploy.sh /eos/user/h/hog/www/doxy-master
 
+check_docker:
+  stage: merge_checks
+  rules:
+    - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "master" && $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME == "develop"'
+      when: on_success
+  script:
+    - if grep -Rq "gitlab-registry.cern.ch/hog/hog-docker:develop" .; then
+        echo "ERROR. The Docker image 'gitlab-registry.cern.ch/hog/hog-docker:develop' is used in the codebase. Please, change it to 'gitlab-registry.cern.ch/hog/hog-docker:master' before merging into Hog master. This is necessary to ensure that the master branch is always built with the latest stable Docker image. ";
+        echo "You might also need to update the Dockerfile in the hog-docker repository. https://gitlab.cern.ch/hog/hog-docker/"
+        exit 1;
+      fi
+  interruptible: true
+
 changelog:
   stage: merge_checks
-  image: gitlab-registry.cern.ch/hog/hog-docker:master
+  image: gitlab-registry.cern.ch/hog/hog-docker:develop
   rules:
     - if: $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "master" && $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME != "develop"
       when: on_success
@@ -223,7 +236,7 @@ changelog:
 
 tagging:
   stage: tag
-  image: gitlab-registry.cern.ch/hog/hog-docker:master
+  image: gitlab-registry.cern.ch/hog/hog-docker:develop
   rules:
     - if: '$CI_COMMIT_REF_NAME == "master"  && $CI_PIPELINE_SOURCE == "push"'
       when: always
@@ -289,7 +302,7 @@ tagging:
 
 shellcheck:
   stage: merge_checks
-  image: gitlab-registry.cern.ch/hog/hog-docker:master
+  image: gitlab-registry.cern.ch/hog/hog-docker:develop
   only:
     refs: [merge_requests]
     variables: [$CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /^(master|develop)$/]
@@ -301,7 +314,7 @@ shellcheck:
 
 yamllint:
   stage: merge_checks
-  image: gitlab-registry.cern.ch/hog/hog-docker:master
+  image: gitlab-registry.cern.ch/hog/hog-docker:develop
   only:
     refs: [merge_requests]
     variables: [$CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /^(master|develop)$/]
@@ -314,7 +327,7 @@ yamllint:
 
 tclint:
   stage: merge_checks
-  image: gitlab-registry.cern.ch/hog/hog-docker:master
+  image: gitlab-registry.cern.ch/hog/hog-docker:develop
   only:
     refs: [merge_requests]
     variables: [$CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /^(master|develop)$/]
@@ -326,7 +339,7 @@ tclint:
 
 update_mirrors:
   stage: mirrors
-  image: gitlab-registry.cern.ch/hog/hog-docker:master
+  image: gitlab-registry.cern.ch/hog/hog-docker:develop
   script:
     - glab auth login -t $HOG_PUSH_TOKEN --hostname $CI_SERVER_HOST
     # Update Mirror
@@ -336,7 +349,7 @@ update_mirrors:
 
 create_release_note:
   stage: tag
-  image: gitlab-registry.cern.ch/hog/hog-docker:master
+  image: gitlab-registry.cern.ch/hog/hog-docker:develop
   only:
     refs: [tags]
     variables: [$CI_COMMIT_TAG =~ /^(v.*)|(Hog.*)$/]
@@ -354,7 +367,7 @@ create_release_note:
       fi
 
 # launch_validation:
-#   image: gitlab-registry.cern.ch/hog/hog-docker:master
+#   image: gitlab-registry.cern.ch/hog/hog-docker:develop
 #   only: [develop]
 #   script:
 #     - 'if [[ $CI_COMMIT_REF_NAME == "develop" ]]; then curl --request POST --header

@@ -58,7 +58,7 @@ env:
 jobs:
   get_artifacts:
     runs-on: ubuntu-latest
-    container: gitlab-registry.cern.ch/hog/hog-docker:master
+    container: gitlab-registry.cern.ch/hog/hog-docker:develop
     outputs:
       TAG: ${{ steps.artifacts.outputs.tag }}
     steps:

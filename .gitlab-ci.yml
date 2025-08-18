@@ -45,7 +45,6 @@ launch_github:
     - git clone https://hog-user:${GITHUB_TOKEN}@github.com/hog-CERN/TestFirmware.git
     - cd TestFirmware/
     # Let's wait 3m for the mirror to update
-    - sleep 180
     - git submodule init Hog
     - git submodule update Hog
     - git fetch -p
@@ -54,6 +53,10 @@ launch_github:
       fi;
     - git checkout -b auto/$CI_COMMIT_REF_NAME;
     - cd Hog
+    - while ! git rev-parse --verify $CI_COMMIT_SHA >/dev/null 2>&1; do
+      git pull;
+      sleep 5;
+      done
     - git checkout $CI_COMMIT_SHA
     - cd ..
     - perl -pi -e 's/^\s*uses:.*$/    uses:\ hog-CERN\/Hog\/.github\/workflows\/Hog-main.yml\@'"$CI_COMMIT_SHA"'/' .github/workflows/main.yml

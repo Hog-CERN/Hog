@@ -37,7 +37,7 @@ launch_github:
   except:
     variables: [$CI_COMMIT_REF_NAME =~ /^test\/.*$/i]
   script:
-    - glab auth login -t $HOG_PUSH_TOKEN -h $CI_SERVER_HOST
+    - glab auth login -t $HOG_PUSH_TOKEN --hostname $CI_SERVER_HOST
     - gh auth status
     - git clone https://hog-user:${GITHUB_TOKEN}@github.com/hog-CERN/TestFirmware.git
     - cd TestFirmware/
@@ -84,7 +84,7 @@ launch_testfirmware:
   except:
     variables: [$CI_COMMIT_REF_NAME =~ /^test\/.*$/i]
   script:
-    - glab auth login -t $HOG_PUSH_TOKEN -h $CI_SERVER_HOST
+    - glab auth login -t $HOG_PUSH_TOKEN --hostname $CI_SERVER_HOST
     # Clone TestFirmware
     - git clone --recursive https://hog_user:${HOG_PUSH_TOKEN}@gitlab.com/hog-cern/test/TestFirmware.git
     - cd TestFirmware/
@@ -202,7 +202,7 @@ changelog:
     - if: $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "develop"
       when: on_success
   script:
-    - glab auth login -t $HOG_PUSH_TOKEN -h $CI_SERVER_HOST
+    - glab auth login -t $HOG_PUSH_TOKEN --hostname $CI_SERVER_HOST
     - if [[ $CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ "master" ]] ; then
         if [[ $CI_COMMIT_REF_NAME != hotfix/* ]]; then
           echo "[ERROR] The target of this MR is $CI_MERGE_REQUEST_TARGET_BRANCH_NAME, but the source is not a hotfix branch ($CI_COMMIT_REF_NAME). Please, change the name of source branch or direct the MR to develop.";
@@ -234,7 +234,7 @@ tagging:
       when: always
     - when: never
   script:
-    - glab auth login -t $HOG_PUSH_TOKEN -h $CI_SERVER_HOST
+    - glab auth login -t $HOG_PUSH_TOKEN --hostname $CI_SERVER_HOST
     - git fetch origin refs/notes/*:refs/notes/*
     - note=(`git notes show`) || {
         echo "No note found, probably you pushed to a branch that should protected (e.g. master, develop)";
@@ -331,7 +331,7 @@ update_mirrors:
   stage: mirrors
   image: gitlab-registry.cern.ch/hog/hog-docker:master
   script:
-    - glab auth login -t $HOG_PUSH_TOKEN -h $CI_SERVER_HOST
+    - glab auth login -t $HOG_PUSH_TOKEN --hostname $CI_SERVER_HOST
     # Update Mirror
     - glab api /projects/37942198/remote_mirrors/517789/sync --method POST
     - glab api /projects/37942198/remote_mirrors/2811150/sync --method POST
@@ -344,7 +344,7 @@ create_release_note:
     refs: [tags]
     variables: [$CI_COMMIT_TAG =~ /^(v.*)|(Hog.*)$/]
   script:
-    - glab auth login -t $HOG_PUSH_TOKEN -h $CI_SERVER_HOST
+    - glab auth login -t $HOG_PUSH_TOKEN --hostname $CI_SERVER_HOST
     - git fetch origin refs/notes/*:refs/notes/*
     - MR=( `git notes show` )
     - ref=refs/merge-requests%2F$MR%2Fhead

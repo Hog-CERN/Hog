@@ -105,7 +105,8 @@ if {$ver == 0} {
               set job_name [DictGet $job name]
               set job_id [DictGet $job id]
               set artifacts [DictGet $job artifacts_file]
-              if {[string first $project $job_name] != -1 && [IsInList "implementation_and_bitfiles.zip" $artifacts] } {
+              set status [DictGet $job status]
+              if {[string first $project $job_name] != -1 && [IsInList "implementation_and_bitfiles.zip" $artifacts] && $status == "success"} {
                 lassign [ExecuteRet curl --location --output artifacts.zip --header "PRIVATE-TOKEN: $token" --url "$api_url/projects/$project_id/jobs/$job_id/artifacts"] ret3 content3
                 if {$ret3 != 0} {
                   Msg CriticalWarning "Cannot download artifacts for job $job_name with id $job_id"
@@ -118,8 +119,6 @@ if {$ver == 0} {
               }
             }
           }
-
-          break
         }
       }
     }

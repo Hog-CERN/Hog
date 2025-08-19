@@ -72,7 +72,7 @@ if {$options(ext_path) != ""} {
 }
 
 set ci_run 0
-if {[info exists env(HOG_PUSH_TOKEN) && [info exist env(CI_PROJECT_ID)] && [info exist env(CI_API_V4_URL)]] } {
+if {[info exists env(HOG_PUSH_TOKEN)] && [info exist env(CI_PROJECT_ID)] && [info exist env(CI_API_V4_URL)] } {
   set token $env(HOG_PUSH_TOKEN)
   set api_url $env(CI_API_V4_URL)
   set project_id $env(CI_PROJECT_ID)

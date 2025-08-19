@@ -106,7 +106,8 @@ if {$ver == 0} {
               set job_id [DictGet $job id]
               set artifacts [DictGet $job artifacts_file]
               set status [DictGet $job status]
-              if {[string first $project $job_name] != -1 && [IsInList "implementation_and_bitfiles.zip" $artifacts] && $status == "success"} {
+              set current_job_name $env(CI_JOB_NAME)
+              if {$current_job_name == $job_name && $status == "success"} {
                 # tclint-disable-next-line line-length
                 lassign [ExecuteRet curl --location --output artifacts.zip --header "PRIVATE-TOKEN: $token" --url "$api_url/projects/$project_id/jobs/$job_id/artifacts"] ret3 content3
                 if {$ret3 != 0} {

@@ -82,7 +82,7 @@ if {[info exists env(HOG_PUSH_TOKEN)] && [info exist env(CI_PROJECT_ID)] && [inf
 set ver [GetProjectVersion $project_dir $repo_path $ext_path $sim]
 if {$ver == 0} {
   Msg Info "$project was modified, continuing with the CI..."
-  if {$ci_run == 1} {
+  if {$ci_run == 1 && ![IsQuartus]} {
     Msg Info "Checking if the project has been already built in a previous CI run..."
     lassign [GetRepoVersions $project_dir $repo_path] sha
     set result [catch {package require json} JsonFound]

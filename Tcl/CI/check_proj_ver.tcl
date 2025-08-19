@@ -85,6 +85,7 @@ if {$ver == 0} {
   if {$ci_run == 1 && ![IsQuartus] && ![IsISE]} {
     Msg Info "Checking if the project has been already built in a previous CI run..."
     lassign [GetRepoVersions $project_dir $repo_path] sha
+    Msg Info "Checking if project $project has been build in a previous CI run with sha $sha..."
     set result [catch {package require json} JsonFound]
     if {"$result" != "0"} {
       Msg CriticalWarning "Cannot find JSON package equal or higher than 1.0.\n $JsonFound\n Exiting"
@@ -94,11 +95,15 @@ if {$ver == 0} {
     set pipeline_dict [json::json2dict $content]
     if {[llength $pipeline_dict] > 0} {
       foreach pip $pipeline_dict {
+        # puts $pip
         set pip_sha [DictGet $pip sha]
         set source [DictGet $pip source]
         if {$source == "merge_request_event" && [string first $sha $pip_sha] != -1} {
+          Msg Info "Found pipeline with sha $pip_sha for project $project"
+          puts $pip
           set pipeline_id [DictGet $pip id]
-          lassign [ExecuteRet curl --header "PRIVATE-TOKEN: $token" "$api_url/projects/${project_id}/pipelines/${pipeline_id}/jobs"] ret2 content2
+          # tclint-disable-next-line line-length
+          lassign [ExecuteRet curl --header "PRIVATE-TOKEN: $token" "$api_url/projects/${project_id}/pipelines/${pipeline_id}/jobs?pagination=keyset&per_page=100"] ret2 content2
           set jobs_dict [json::json2dict $content2]
           if {[llength $jobs_dict] > 0} {
             foreach job $jobs_dict {
@@ -114,7 +119,7 @@ if {$ver == 0} {
                   Msg CriticalWarning "Cannot download artifacts for job $job_name with id $job_id"
                   return
                 } else {
-                  Execute "unzip artifacts.zip"
+                  Execute unzip -o $repo_path/artifacts.zip
                   Msg Info "Artifacts for job $job_name with id $job_id downloaded and unzipped."
                   exit 0
                 }

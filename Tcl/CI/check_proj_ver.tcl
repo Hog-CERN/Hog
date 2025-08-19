@@ -98,7 +98,7 @@ if {$ver == 0} {
         set source [DictGet $pip source]
         if {$source == "merge_request_event" && [string first $sha $pip_sha] != -1} {
           set pipeline_id [DictGet $pip id]
-          lassign [ExecuteRet curl --header "PRIVATE-TOKEN: $token" "$api_url/projects/${project_id}/pipelines/${pipeline_id}/jobs"] ret_2 content_2
+          lassign [ExecuteRet curl --header "PRIVATE-TOKEN: $token" "$api_url/projects/${project_id}/pipelines/${pipeline_id}/jobs"] ret2 content2
           set jobs_dict [json::json2dict $content2]
           if {[llength $jobs_dict] > 0} {
             foreach job $jobs_dict {

@@ -113,7 +113,7 @@ if {$ver == 0} {
                   Msg CriticalWarning "Cannot download artifacts for job $job_name with id $job_id"
                   return
                 } else {
-                  Exec "unzip artifacts.zip"
+                  Execute "unzip artifacts.zip"
                   Msg Info "Artifacts for job $job_name with id $job_id downloaded and unzipped."
                   exit 0
                 }

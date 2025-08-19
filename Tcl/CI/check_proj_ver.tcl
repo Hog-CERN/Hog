@@ -34,6 +34,8 @@ if {[catch {package require cmdline} ERROR] || [catch {package require struct::m
   return
 }
 
+
+
 set parameters {
   {sim    "If set, checks also the version of the simulation files."}
   {ext_path.arg "" "Sets the absolute path for the external libraries."}
@@ -69,9 +71,59 @@ if {$options(ext_path) != ""} {
   Msg Info "External path set to $ext_path"
 }
 
+set ci_run 0
+if {[info exists env(HOG_PUSH_TOKEN) && [info exist env(CI_PROJECT_ID)] && [info exist env(CI_API_V4_URL)]] } {
+  set token $env(HOG_PUSH_TOKEN)
+  set api_url $env(CI_API_V4_URL)
+  set project_id $env(CI_PROJECT_ID)
+  set ci_run 1
+}
+
 set ver [GetProjectVersion $project_dir $repo_path $ext_path $sim]
 if {$ver == 0} {
   Msg Info "$project was modified, continuing with the CI..."
+  if {$ci_run == 1} {
+    Msg Info "Checking if the project has been already built in a previous CI run..."
+    lassign [GetRepoVersions $project_dir $repo_path] sha
+    set result [catch {package require json} JsonFound]
+    if {"$result" != "0"} {
+      Msg CriticalWarning "Cannot find JSON package equal or higher than 1.0.\n $JsonFound\n Exiting"
+      return
+    }
+    lassign [ExecuteRet curl --header "PRIVATE-TOKEN: $token" "$api_url/projects/$project_id/pipelines"] ret content
+    set pipeline_dict [json::json2dict $content]
+    if {[llength $pipeline_dict] > 0} {
+      foreach pip $pipeline_dict {
+        set pip_sha [DictGet $pip sha]
+        set source [DictGet $pip source]
+        if {$source == "merge_request_event" && [string first $sha $pip_sha] != -1} {
+          set pipeline_id [DictGet $pip id]
+          lassign [ExecuteRet curl --header "PRIVATE-TOKEN: $token" "$api_url/projects/${project_id}/pipelines/${pipeline_id}/jobs"] ret_2 content_2
+          set jobs_dict [json::json2dict $content2]
+          if {[llength $jobs_dict] > 0} {
+            foreach job $jobs_dict {
+              set job_name [DictGet $job name]
+              set job_id [DictGet $job id]
+              set artifacts [DictGet $job artifacts_file]
+              if {[string first $project $job_name] != -1 && [IsInList "implementation_and_bitfiles.zip" $artifacts] } {
+                lassign [ExecuteRet curl --location --output artifacts.zip --header "PRIVATE-TOKEN: $token" --url "$api_url/projects/$project_id/jobs/$job_id/artifacts"] ret3 content3
+                if {$ret3 != 0} {
+                  Msg CriticalWarning "Cannot download artifacts for job $job_name with id $job_id"
+                  return
+                } else {
+                  Exec "unzip artifacts.zip"
+                  Msg Info "Artifacts for job $job_name with id $job_id downloaded and unzipped."
+                  exit 0
+                }
+              }
+            }
+          }
+
+          break
+        }
+      }
+    }
+  }
 } elseif {$ver != -1} {
   Msg Info "$project was not modified since version: $ver, disabling the CI..."
   file mkdir $repo_path/Projects/$project

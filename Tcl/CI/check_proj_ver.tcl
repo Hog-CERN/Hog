@@ -82,7 +82,7 @@ if {[info exists env(HOG_PUSH_TOKEN)] && [info exist env(CI_PROJECT_ID)] && [inf
 set ver [GetProjectVersion $project_dir $repo_path $ext_path $sim]
 if {$ver == 0} {
   Msg Info "$project was modified, continuing with the CI..."
-  if {$ci_run == 1 && ![IsQuartus]} {
+  if {$ci_run == 1 && ![IsQuartus] && ![IsIse]} {
     Msg Info "Checking if the project has been already built in a previous CI run..."
     lassign [GetRepoVersions $project_dir $repo_path] sha
     set result [catch {package require json} JsonFound]
@@ -107,6 +107,7 @@ if {$ver == 0} {
               set artifacts [DictGet $job artifacts_file]
               set status [DictGet $job status]
               if {[string first $project $job_name] != -1 && [IsInList "implementation_and_bitfiles.zip" $artifacts] && $status == "success"} {
+                # tclint-disable-next-line line-length
                 lassign [ExecuteRet curl --location --output artifacts.zip --header "PRIVATE-TOKEN: $token" --url "$api_url/projects/$project_id/jobs/$job_id/artifacts"] ret3 content3
                 if {$ret3 != 0} {
                   Msg CriticalWarning "Cannot download artifacts for job $job_name with id $job_id"

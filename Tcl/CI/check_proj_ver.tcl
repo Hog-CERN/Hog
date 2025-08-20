@@ -97,12 +97,10 @@ if {$ver == 0} {
     set pipeline_dict [json::json2dict $content]
     if {[llength $pipeline_dict] > 0} {
       foreach pip $pipeline_dict {
-        # puts $pip
         set pip_sha [DictGet $pip sha]
         set source [DictGet $pip source]
         if {$source == "merge_request_event" && [string first $sha $pip_sha] != -1} {
           Msg Info "Found pipeline with sha $pip_sha for project $project"
-          puts $pip
           set pipeline_id [DictGet $pip id]
           # tclint-disable-next-line line-length
           lassign [ExecuteRet curl --header "PRIVATE-TOKEN: $token" "$api_url/projects/${project_id}/pipelines/${pipeline_id}/jobs?pagination=keyset&per_page=100"] ret2 content2
@@ -126,12 +124,9 @@ if {$ver == 0} {
 
                   } else {
                     Msg Info "Artifacts for job $job_name with id $job_id downloaded and unzipped."
-<<<<<<< HEAD
                     file mkdir $repo_path/Projects/$project
                     set fp [open "$repo_path/Projects/$project/skip.me" w+]
                     close $fp
-=======
->>>>>>> 11fc615f3d0846bec360bdb90992396ab35edda9
                     exit 0
                   }
                 }
@@ -144,14 +139,8 @@ if {$ver == 0} {
   }
 } elseif {$ver != -1} {
   Msg Info "$project was not modified since version: $ver, disabling the CI..."
-<<<<<<< HEAD
   file mkdir $repo_path/Projects/$project
   set fp [open "$repo_path/Projects/$project/skip.me" w+]
   close $fp
-=======
-  # file mkdir $repo_path/Projects/$project
-  # set fp [open "$repo_path/Projects/$project/skip.me" w+]
-  # close $fp
->>>>>>> 11fc615f3d0846bec360bdb90992396ab35edda9
   exit 0
 }

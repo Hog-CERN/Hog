@@ -53,9 +53,16 @@ launch_github:
       fi;
     - git checkout -b auto/$CI_COMMIT_REF_NAME;
     - cd Hog
-    - while ! git rev-parse --verify $CI_COMMIT_SHA >/dev/null 2>&1; do
-      git pull;
-      sleep 5;
+    - while true; do
+        git fetch -p;
+        commit=$(git rev-parse --quiet --verify $CI_COMMIT_SHA);
+        if [ -z "$commit" ]; then
+          echo "Commit $CI_COMMIT_SHA not found, waiting for the mirror to update...";
+          sleep 5;
+        else
+          echo "Commit $CI_COMMIT_SHA found, proceeding...";
+          break;
+        fi;
       done
     - git checkout $CI_COMMIT_SHA
     - cd ..

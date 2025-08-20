@@ -87,7 +87,7 @@ if {$ver == 0} {
   if {$ci_run == 1 && ![IsQuartus] && ![IsISE]} {
     Msg Info "Checking if the project has been already built in a previous CI run..."
     lassign [GetRepoVersions $project_dir $repo_path] sha
-    Msg Info "Checking if project $project has been build in a previous CI run with sha $sha..."
+    Msg Info "Checking if project $project has been built in a previous CI run with sha $sha..."
     set result [catch {package require json} JsonFound]
     if {"$result" != "0"} {
       Msg CriticalWarning "Cannot find JSON package equal or higher than 1.0.\n $JsonFound\n Exiting"

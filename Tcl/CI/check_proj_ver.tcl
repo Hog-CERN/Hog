@@ -126,9 +126,12 @@ if {$ver == 0} {
 
                   } else {
                     Msg Info "Artifacts for job $job_name with id $job_id downloaded and unzipped."
+<<<<<<< HEAD
                     file mkdir $repo_path/Projects/$project
                     set fp [open "$repo_path/Projects/$project/skip.me" w+]
                     close $fp
+=======
+>>>>>>> 11fc615f3d0846bec360bdb90992396ab35edda9
                     exit 0
                   }
                 }
@@ -141,8 +144,14 @@ if {$ver == 0} {
   }
 } elseif {$ver != -1} {
   Msg Info "$project was not modified since version: $ver, disabling the CI..."
+<<<<<<< HEAD
   file mkdir $repo_path/Projects/$project
   set fp [open "$repo_path/Projects/$project/skip.me" w+]
   close $fp
+=======
+  # file mkdir $repo_path/Projects/$project
+  # set fp [open "$repo_path/Projects/$project/skip.me" w+]
+  # close $fp
+>>>>>>> 11fc615f3d0846bec360bdb90992396ab35edda9
   exit 0
 }

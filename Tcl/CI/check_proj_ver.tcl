@@ -79,6 +79,8 @@ if {[info exists env(HOG_PUSH_TOKEN)] && [info exist env(CI_PROJECT_ID)] && [inf
   set ci_run 1
 }
 
+cd $repo_path
+
 set ver [GetProjectVersion $project_dir $repo_path $ext_path $sim]
 if {$ver == 0} {
   Msg Info "$project was modified, continuing with the CI..."
@@ -119,9 +121,13 @@ if {$ver == 0} {
                   Msg CriticalWarning "Cannot download artifacts for job $job_name with id $job_id"
                   return
                 } else {
-                  Execute unzip -o $repo_path/artifacts.zip
-                  Msg Info "Artifacts for job $job_name with id $job_id downloaded and unzipped."
-                  exit 0
+                  lassign [ExecuteRet unzip -o $repo_path/artifacts.zip] ret_zip
+                  if {$ret_zip != 0} {
+
+                  } else {
+                    Msg Info "Artifacts for job $job_name with id $job_id downloaded and unzipped."
+                    exit 0
+                  }
                 }
               }
             }
@@ -132,7 +138,8 @@ if {$ver == 0} {
   }
 } elseif {$ver != -1} {
   Msg Info "$project was not modified since version: $ver, disabling the CI..."
-  file mkdir $repo_path/Projects/$project
-  set fp [open "$repo_path/Projects/$project/skip.me" w+]
-  close $fp
+  # file mkdir $repo_path/Projects/$project
+  # set fp [open "$repo_path/Projects/$project/skip.me" w+]
+  # close $fp
+  exit 0
 }

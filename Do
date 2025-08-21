@@ -117,7 +117,7 @@ fi
 
 # printDict Hog_Usr_dict
 
-if { [[ "$HOG_LOGGER" == "ENABLED" ]] }; then
+if [[ "$HOG_LOGGER" == "ENABLED" ]]; then
     source ${script_dir}/Other/Logger.sh
     loadUserConf
     Logger_Init "$*"

@@ -3851,7 +3851,7 @@ proc InitLauncher {script tcl_path parameters commands argv {custom_commands ""}
   }
 
   # Check if HogEnv.conf exists and parse it
-  if {![file exists [Hog::LoggerLib::GetUserFilePath "HogEnv.conf"]] } {
+  if {[file exists [Hog::LoggerLib::GetUserFilePath "HogEnv.conf"]] } {
     Msg Debug "HogEnv.conf not found"
     set loggerdict [Hog::LoggerLib::ParseTOML [Hog::LoggerLib::GetUserFilePath "HogEnv.conf" ]]
     set HogEnvDict [Hog::LoggerLib::GetTOMLDict]

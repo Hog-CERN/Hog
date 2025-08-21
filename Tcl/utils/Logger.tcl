@@ -55,7 +55,8 @@ proc dictSafeGet {d args} {
 # @param[in] msg   The message to print
 # @param[in] title The title string to be included in the header of the message [Hog:$title] (default "")
 proc Msg {level fmsg {title ""}} {
-  foreach msg [split $fmsg "\n"] {
+  # foreach msg [split $fmsg "\n"] {
+    set msg $fmsg
     set level [string tolower $level]
     if {$title == ""} {set title [lindex [info level [expr {[info level] - 1}]] 0]}
     if {$level == 0 || $level == "status" || $level == "extra_info"} {
@@ -89,7 +90,10 @@ proc Msg {level fmsg {title ""}} {
     }
     if {[IsXilinx]} {
       # Vivado
-      set status [catch {send_msg_id Hog:$title-0 $vlevel $msg}]
+      if {[string match "-*" $msg]} {
+        set msg " $msg"
+      }
+      set status [catch {send_msg_id Hog:$title-0 $vlevel "$msg"}]
       if {$status != 0} {
         exit $status
       }
@@ -125,7 +129,7 @@ proc Msg {level fmsg {title ""}} {
         exit 1
       }
     }
-  }
+  # }
 }
 
 ## @brief Prints a message with selected severity and optionally write into a log file

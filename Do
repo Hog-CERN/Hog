@@ -56,7 +56,6 @@ normalise_path() {
     #an alternative could be realpath -m
 }
 # if [[ "$HOG_LOGGER" == "ENABLED" ]]; then
-    source ${script_dir}/Other/Logger.sh
     # Logger_Init "$*"
 # fi
 
@@ -116,10 +115,11 @@ if [ "$found" == 1 ]; then
   fi
 fi
 
-loadUserConf
 # printDict Hog_Usr_dict
 
-if { [[ "$HOG_LOGGER" == "ENABLED" ]] || [[ "$HOG_COLOR" -gt 0 ]]; } || { [[ $(getConfigValue Hog_Usr_dict terminal logger) -gt 0 ]] || [[ $(getConfigValue Hog_Usr_dict terminal colored) -gt 0 ]]; }; then
+if { [[ "$HOG_LOGGER" == "ENABLED" ]] }; then
+    source ${script_dir}/Other/Logger.sh
+    loadUserConf
     Logger_Init "$*"
     Logger $executable_path $hog_dir/Tcl/launch.tcl "$@"
     Hog_exit

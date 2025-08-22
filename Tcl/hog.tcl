@@ -2980,7 +2980,14 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
       dict for {p v} $main {
         if {[string tolower $p] == "ip_repo_paths"} {
           foreach repo $v {
-            lappend user_ip_repos "$repo_path/$repo"
+            if {[file isdirectory "$repo_path/$repo"]} {
+              set repo_file_list [glob -nocomplain "$repo_path/$repo/*"]
+              if {[llength $repo_file_list] == 0} {
+                Msg Warning "IP_REPO_PATHS property set to $repo in hog.conf but directory is empty."
+              } else {
+                lappend user_ip_repos "$repo_path/$repo"
+              }
+            }
           }
         }
       }
@@ -4236,7 +4243,7 @@ proc LaunchImplementation {reset do_create run_folder project_name {repo_path .}
     }
 
     if {$do_bitstream == 1} {
-      launch_runs impl_1 -to_step [BinaryStepName [get_property PART [current_project]]] $njobs -dir $run_folder
+      launch_runs impl_1 -to_step [BinaryStepName [get_property PART [current_project]]] -jobs $njobs -dir $run_folder
     } else {
       launch_runs impl_1 -jobs $njobs -dir $run_folder
     }

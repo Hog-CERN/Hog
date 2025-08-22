@@ -2974,7 +2974,14 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
       dict for {p v} $main {
         if {[string tolower $p] == "ip_repo_paths"} {
           foreach repo $v {
-            lappend user_ip_repos "$repo_path/$repo"
+            if {[file isdirectory "$repo_path/$repo"]} {
+              set repo_file_list [glob -nocomplain "$repo_path/$repo/*"]
+              if {[llength $repo_file_list] == 0} {
+                Msg Warning "IP_REPO_PATHS property set to $repo in hog.conf but directory is empty."
+              } else {
+                lappend user_ip_repos "$repo_path/$repo"
+              }
+            }
           }
         }
       }

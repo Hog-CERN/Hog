@@ -4220,7 +4220,7 @@ proc LaunchImplementation {reset do_create run_folder project_name {repo_path .}
     }
 
     if {$do_bitstream == 1} {
-      launch_runs impl_1 -to_step [BinaryStepName [get_property PART [current_project]]] $njobs -dir $run_folder
+      launch_runs impl_1 -to_step [BinaryStepName [get_property PART [current_project]]] -jobs $njobs -dir $run_folder
     } else {
       launch_runs impl_1 -jobs $njobs -dir $run_folder
     }

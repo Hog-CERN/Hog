@@ -61,6 +61,7 @@ launch_github:
           sleep 5;
         else
           echo "Commit $CI_COMMIT_SHA found, proceeding...";
+          sleep 10;
           break;
         fi;
       done

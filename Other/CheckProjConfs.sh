@@ -169,8 +169,8 @@ function CheckProjConfs() {
       fi
 
       if [ "${CMD_ARRAY[$i]}" = "vivado" ]; then
-        echo "Hog-INFO: Executing:  ${TOOL_EXECUTABLE} $CMD_OPT_ARRAY[$i] $DIR/../../Hog/Tcl/utils/check_list_files.tcl ${POST_CMD_OPT_ARRAY[$i]} $EXT_PATH $RECREATE_CONF $RECREATE $FORCE -proj $PROJ"
-        ${TOOL_EXECUTABLE} $CMD_OPT_ARRAY[$i] $DIR/../Hog/Tcl/utils/check_list_files.tcl ${POST_CMD_OPT_ARRAY[$i]} $EXT_PATH $RECREATE_CONF $RECREATE $FORCE -project $PROJ
+        echo "Hog-INFO: Executing:  ${TOOL_EXECUTABLE} ${CMD_OPT_ARRAY[$i]} $DIR/../../Hog/Tcl/utils/check_list_files.tcl ${POST_CMD_OPT_ARRAY[$i]} $EXT_PATH $RECREATE_CONF $RECREATE $FORCE -proj $PROJ"
+        ${TOOL_EXECUTABLE} ${CMD_OPT_ARRAY[$i]} $DIR/../Hog/Tcl/utils/check_list_files.tcl ${POST_CMD_OPT_ARRAY[$i]} $EXT_PATH $RECREATE_CONF $RECREATE $FORCE -project $PROJ
       else
         echo "This script is supported only by Xilinx Vivado for the moment, exiting..."
       fi

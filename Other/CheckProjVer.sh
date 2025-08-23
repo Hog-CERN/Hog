@@ -161,18 +161,18 @@ function main() {
       fi
 
       if [ "${CMD_ARRAY[$i]}" = "quartus_sh" ]; then
-        echo "Hog-INFO: Executing:  ${TOOL_EXECUTABLE} $CMD_OPT_ARRAY[$i] $DIR/../../Hog/Tcl/CI/check_proj_ver.tcl $EXT_PATH $SIM $PROJ"
-        ${TOOL_EXECUTABLE} $CMD_OPT_ARRAY[$i] $DIR/../Hog/Tcl/CI/check_proj_ver.tcl $EXT_PATH $SIM $PROJ
+        echo "Hog-INFO: Executing:  ${TOOL_EXECUTABLE} ${CMD_OPT_ARRAY[$i]} $DIR/../../Hog/Tcl/CI/check_proj_ver.tcl $EXT_PATH $SIM $PROJ"
+        ${TOOL_EXECUTABLE} ${CMD_OPT_ARRAY[$i]} $DIR/../Hog/Tcl/CI/check_proj_ver.tcl $EXT_PATH $SIM $PROJ
       elif [ "${CMD_ARRAY[$i]}" = "vivado_hls" ]; then
         echo "Hog-ERROR: Vivado HLS is not yet supported by this script!"
       elif [ "${CMD_ARRAY[$i]}" = "libero" ]; then
-        echo "Hog-INFO: Executing:  ${TOOL_EXECUTABLE} $CMD_OPT_ARRAY[$i] $DIR/../../Hog/Tcl/CI/check_proj_ver.tcl ${POST_CMD_OPT_ARRAY[$i]}$EXT_PATH $SIM $PROJ"
+        echo "Hog-INFO: Executing:  ${TOOL_EXECUTABLE} ${CMD_OPT_ARRAY[$i]} $DIR/../../Hog/Tcl/CI/check_proj_ver.tcl ${POST_CMD_OPT_ARRAY[$i]}$EXT_PATH $SIM $PROJ"
         ${TOOL_EXECUTABLE} ${CMD_OPT_ARRAY[$i]}$DIR/../Hog/Tcl/CI/check_proj_ver.tcl ${POST_CMD_OPT_ARRAY[$i]}$PROJ
       elif [ "${CMD_ARRAY[$i]}" = "ghdl" ]; then
         echo "Hog-INFO: Executing: tclsh Hog/Tcl/CI/check_proj_ver.tcl $EXT_PATH $SIM $PROJ"
         tclsh $DIR/../Hog/Tcl/CI/check_proj_ver.tcl $EXT_PATH $SIM $PROJ
       else
-        echo "Hog-INFO: Executing:  ${TOOL_EXECUTABLE} $CMD_OPT_ARRAY[$i] $DIR/../../Hog/Tcl/CI/check_proj_ver.tcl ${POST_CMD_OPT_ARRAY[$i]}$EXT_PATH $SIM $PROJ"
+        echo "Hog-INFO: Executing:  ${TOOL_EXECUTABLE} ${CMD_OPT_ARRAY[$i]} $DIR/../../Hog/Tcl/CI/check_proj_ver.tcl ${POST_CMD_OPT_ARRAY[$i]}$EXT_PATH $SIM $PROJ"
         ${TOOL_EXECUTABLE} ${CMD_OPT_ARRAY[$i]}$DIR/../Hog/Tcl/CI/check_proj_ver.tcl ${POST_CMD_OPT_ARRAY[$i]} $EXT_PATH $SIM $PROJ
       fi
     done

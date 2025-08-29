@@ -188,13 +188,15 @@ if {[IsXilinx] && [file exists $main_file]} {
 
   # Additional files
   # In case of Segmented Configuration, there are 2 files per extension.
+
   set ltx_files {}
+  lappend ltx_files "$top_name.ltx"
+
   if {$main_file_suffix != ""} {
     foreach e $additional_ext {
       lappend new_ext $e
       lappend new_ext $main_file_suffix$e
       lappend new_ext $secondary_file_suffix$e
-      lappend ltx_files "$top_name.ltx"
       lappend ltx_files "$top_name$main_file_suffix.ltx"
       lappend ltx_files "$top_name$secondary_file_suffix.ltx"
     }
@@ -205,16 +207,14 @@ if {[IsXilinx] && [file exists $main_file]} {
   # LTX file for ILA, needs a special treatment...
   foreach l $ltx_files {
     set ltx_file "$work_path/$l"
-    if {[file exists $ltx_file]} {
-      Msg Info "Writing debug probes for $ltx_file..."
-      write_debug_probes -quiet $ltx_file
-    }
+    Msg Info "Writing debug probes for $ltx_file..."
+    write_debug_probes -quiet $ltx_file
   }
 
   foreach e $additional_ext {
     set orig [file normalize "$work_path/$top_name$e"]
     set dst [file normalize "$dst_dir/$proj_name\-$describe$e"]
-    if {[file exists $orig]} {
+    if {[file exists $work_path/$top_name$e] == 1} {
       Msg Info "Copying $orig file into $dst..."
       file copy -force $orig $dst
     } else {

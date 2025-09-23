@@ -147,6 +147,14 @@ set default_commands {
   # OPTIONS: dst_dir.arg, verbose
   }
 
+  \^RTL(ANALYSIS)?$ {
+    set do_rtl 1
+  # set argument_is_no_project 1
+  # NAME: RTL or RTLANALYSIS
+  # DESCRIPTION: Elaborate the RTL analysis report for the chosen project.
+  # OPTIONS: check_syntax, recreate, verbose
+  }
+
   \^SIG(ASI)?$ {#
     set do_sigasi 1
   # NAME: SIGASI or SIG
@@ -231,6 +239,7 @@ if {$options(verbose) == 1} {
 
 
 ######## DEFAULTS #########
+set do_rtl 0
 set do_implementation 0; set do_synthesis 0; set do_bitstream 0
 set do_create 0; set do_compile 0; set do_simulation 0; set recreate 0
 set do_reset 1; set do_list_all 2; set do_check_syntax 0
@@ -574,6 +583,11 @@ if {($proj_found == 0 || $recreate == 1)} {
 if {$do_check_syntax == 1} {
   Msg Info "Checking syntax for project $project_name..."
   CheckSyntax $project_name $repo_path $project_file
+}
+
+######### RTL ANALYSIS ########
+if {$do_rtl == 1} {
+  LaunchRTLAnalysis $run_folder $project_name $repo_path $do_check_syntax $options(njobs)
 }
 
 ######### LaunchSynthesis ########

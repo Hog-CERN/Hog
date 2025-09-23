@@ -4702,6 +4702,20 @@ proc LaunchSimulation {project_name lib_path simsets {repo_path .}} {
   }
 }
 
+# @brief Launch the RTL Analysis, for the current IDE and project
+#
+# @param[in] run_folder   The folder where to store the run results
+# @param[in] project_name The name of the project
+# @param[in] repo_path    The main path of the git repository (Default .)
+# @param[in] ext_path     The path of source files external to the git repo (Default "")
+# @param[in] njobs        The number of parallel CPU jobs for the synthesis (Default 4)
+proc LaunchRTLAnalysis {run_folder project_name {repo_path .} {ext_path ""} {njobs 4}} {
+  if {[IsXilinx]} {
+    Msg Info "Starting RTL Analysis..."
+    synth_design -rtl -name rtl_1
+  }
+}
+
 # @brief Launch the synthesis, for the current IDE and project
 #
 # @param[in] reset        Reset the Synthesis run

@@ -40,7 +40,7 @@
   image: hogcern/hog:stable
 
 .vars: &vars
-  GIT_STRATEGY: clone
+  GIT_STRATEGY: fetch
   GIT_SUBMODULE_STRATEGY: recursive
 # CI_DEBUG_TRACE: "true"
 

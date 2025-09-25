@@ -354,7 +354,6 @@ update_mirrors:
     - glab auth login -t $HOG_PUSH_TOKEN --hostname $CI_SERVER_HOST
     # Update Mirror
     - glab api /projects/37942198/remote_mirrors/517789/sync --method POST
-    - glab api /projects/37942198/remote_mirrors/2811150/sync --method POST
   interruptible: true
 
 create_release_note:

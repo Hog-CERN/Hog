@@ -20,7 +20,7 @@
   image: hogcern/hog:develop
 
 .vars: &vars
-  GIT_STRATEGY: clone
+  GIT_STRATEGY: fetch
 
 .only-default: &only-default
   rules:

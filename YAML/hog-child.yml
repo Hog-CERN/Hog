@@ -37,7 +37,7 @@
     - hog
 
 .tag-sr: &tag-sr
-  image: gitlab-registry.cern.ch/hog/hog-docker:develop
+  image: hogcern/hog:develop
 
 .vars: &vars
   GIT_STRATEGY: fetch

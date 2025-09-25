@@ -33,7 +33,7 @@ env:
 jobs:
   tag_official_version:
     runs-on: ubuntu-latest
-    container: gitlab-registry.cern.ch/hog/hog-docker:develop
+    container: hogcern/hog:develop
     steps:
       - uses: actions/checkout@v4
         name: Checkout Repository

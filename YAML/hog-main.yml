@@ -114,7 +114,7 @@ check_branch_state:
 
 make_doxygen:
   <<: *only-default-doxygen
-  image: hogcern/hog:stable
+  image: hogcern/hog:develop
   stage: generation_and_simulation
   variables:
     <<: *vars

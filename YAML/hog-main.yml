@@ -114,7 +114,11 @@ check_branch_state:
 
 make_doxygen:
   <<: *only-default-doxygen
+<<<<<<< HEAD
   image: hogcern/hog:develop
+=======
+  image: hogcern/hog:doxygen
+>>>>>>> origin/hotfix/dockerhub
   stage: generation_and_simulation
   variables:
     <<: *vars

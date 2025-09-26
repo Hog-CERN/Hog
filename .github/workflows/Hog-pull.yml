@@ -176,7 +176,7 @@ jobs:
           git push origin refs/notes/*
   make_doxygen:
     runs-on: ubuntu-latest
-    container: hogcern/hog:develop
+    container: hogcern/hog:doxygen
     needs: check
     concurrency:
       group: doxygen-${{ github.ref }}

@@ -439,7 +439,7 @@ if {[IsXilinx]} {
       }
     }
 
-    if {$wrote_xsa == 1} {
+    if {[IsVitisClassic] && $wrote_xsa == 1} {
       Msg Info "XSA file written to $dst_xsa"
       set xsct_cmd "xsct $tcl_path/launch.tcl CW -xsa $dst_xsa -vitis_only $proj_name"
       Msg Info "Running Vitis Classic to create elf file with cmd: $xsct_cmd"

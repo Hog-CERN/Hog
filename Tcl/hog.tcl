@@ -84,7 +84,6 @@ proc AddHogFiles {libraries properties filesets} {
 
     if {[IsVitisClassic]} {
         if {[catch {set ws_apps [app list -dict]}]} { set ws_apps "" }
-        Msg Info "libs in fileset: $libs_in_fileset"
         dict for {app_name app_config} $ws_apps {
             set app_lib [string tolower "app_$app_name\.src"]
             if {![IsInList $app_lib $libs_in_fileset 0 1]} {

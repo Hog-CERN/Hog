@@ -221,6 +221,21 @@ if {[IsXilinx] && [file exists $main_file]} {
       Msg Debug "File: $orig not found."
     }
   }
+
+  # DCP files
+  if {[info exists env(HOG_SAVE_DCP)] && ($env(HOG_SAVE_DCP) == 1 || $env(HOG_SAVE_DCP) == 4)} {
+    set dcp_dir [file normalize "$repo_path/DCPs/$group_name/$proj_name/route_dcp"]
+    file mkdir $dcp_dir
+    set dcps [glob -nocomplain "$run_dir/impl*/*.dcp"]
+    if {[file exists [lindex $dcps 0]]} {
+      file copy -force {*}$dcps $dcp_dir
+    }
+  }
+
+
+
+
+  
 } elseif {[IsQuartus]} {
   set dst_pof [file normalize "$dst_dir/$name\-$describe.pof"]
   set dst_sof [file normalize "$dst_dir/$name\-$describe.sof"]

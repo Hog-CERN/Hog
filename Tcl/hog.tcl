@@ -5514,7 +5514,7 @@ proc SetTopProperty {top_module fileset} {
 
 ## @brief Returns a list of Vivado properties that expect a PATH for value
 proc VIVADO_PATH_PROPERTIES {} {
-  return {"\.*\.TCL\.PRE$" "^.*\.TCL\.POST$" "^RQS_FILES$" "^INCREMENTAL\_CHECKPOINT$" "NOC\_SOLUTION\_FILE"}
+  return {"\.*\.TCL\.PRE$" "^.*\.TCL\.POST$" "^RQS_FILES$" "^INCREMENTAL\_CHECKPOINT$" "NOC\_SOLUTION\_FILE" "^.*\.SIMULATE\.CUSTOM\_.*"}
 }
 
 ## @brief Write a property configuration file from a dictionary

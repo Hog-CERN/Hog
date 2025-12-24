@@ -67,17 +67,21 @@ test_launch_commands:
     - ./Hog/Do HIERARCHY example_2022.2
     - ./Hog/Do HIERARCHY example_2022.2 -verbose
     - ./Hog/Do HIERARCHY example_2022.2 -output hierarchy.txt
+    - ./Hog/Do HIERARCHY example_2022.2 -compile_order
     - ./Hog/Do SIGASI example_2022.2
     - ./Hog/Do SIGASI example_2022.2 -verbose
     - ./Hog/Do XML example_2022.2
     - ./Hog/Do XML example_2022.2 -generate
     - ./Hog/Do XML example_2022.2 -verbose
     - ./Hog/Do XML example_2022.2 -dst_dir ./xml_output
+    - ./Hog/Do QUESTASIM ghdl
   artifacts:
     paths:
       - TestFirmware/hierarchy.txt
       - TestFirmware/xml_output/
       - TestFirmware/Top/example_vivado_vitis_zynqmp/*.csv
+      - TestFirmware/questasim_compile.do
+      - TestFirmware/compile_order.txt
     expire_in: 1 week
   interruptible: true
   allow_failure: false

@@ -711,12 +711,12 @@ if {$options(impl_only) == 1} {
   set do_compile 1
 }
 
-if {$options(vitis_only) == 1 || $ide_name eq "vitis_classic"} {
+if {$options(vitis_only) == 1 || $ide_name eq "vitis_classic" || $ide_name eq "vitis_unified"} {
   set do_vitis_build 1
   set do_implementation 0
   set do_synthesis 0
   set do_bitstream 0
-  set do_create 0
+  set do_create 1
   set do_compile 0
 }
 
@@ -774,7 +774,11 @@ Msg Info "Number of jobs set to $options(njobs)."
 set argv ""
 
 ############# CREATE or OPEN project ############
-if {[IsISE]} {
+if {$options(vitis_only) == 1 && ($ide_name eq "vitis_unified" || $ide_name eq "vivado_vitis_unified")} {
+  cd $tcl_path
+  set project_file [file normalize $repo_path/Projects/$project_name/vitis_unified/_ide/settings.json]
+  Msg Info "Setting project file for Vitis Unified project $project_name to $project_file"
+} elseif {[IsISE]} {
   cd $tcl_path
   set project_file [file normalize $repo_path/Projects/$project_name/$project.ppr]
 } elseif {[IsVivado]} {
@@ -784,6 +788,10 @@ if {[IsISE]} {
   cd $tcl_path
   set project_file [file normalize $repo_path/Projects/$project_name/vitis_classic/.metadata/]
   Msg Info "Setting project file for Vitis Classic project $project_name to $project_file"
+} elseif {[IsVitisUnified]} {
+  cd $tcl_path
+  set project_file [file normalize $repo_path/Projects/$project_name/vitis_unified/_ide/settings.json]
+  Msg Info "Setting project file for Vitis Unified project $project_name to $project_file"
 } elseif {[IsQuartus]} {
   if {[catch {package require ::quartus::project} ERROR]} {
     Msg Error "$ERROR\n Can not find package ::quartus::project"
@@ -809,7 +817,7 @@ if {[file exists $project_file]} {
   set proj_found 0
 }
 
-if {($proj_found == 0 || $recreate == 1)} {
+if {($proj_found == 0 || $recreate == 1) && $do_create == 1} {
   Msg Info "Creating (possibly replacing) the project $project_name..."
   Msg Debug "launch.tcl: calling GetConfFiles with $repo_path/Top/$project_name"
   lassign [GetConfFiles $repo_path/Top/$project_name] conf sim pre post pre_rtl post_rtl
@@ -827,15 +835,20 @@ if {($proj_found == 0 || $recreate == 1)} {
   }
 } else {
   Msg Info "Opening existing project file $project_file..."
-  if {[IsXilinx]} {
+  if {$options(vitis_only) == 1 && ($ide_name eq "vitis_unified" || $ide_name eq "vivado_vitis_unified")} {
+    set vitis_workspace [file normalize $repo_path/Projects/$project_name/vitis_unified/]
+    Msg Info "Setting Vitis Unified workspace to $vitis_workspace"
+    # setws $vitis_workspace
+  } elseif {[IsXilinx]} {
     file mkdir "$repo_path/Projects/$project_name/$project.gen/sources_1"
-  }
-
-  if {[IsVitisClassic]} {
+  } elseif {[IsVitisClassic]} {
     set vitis_workspace [file normalize $repo_path/Projects/$project_name/vitis_classic/]
     Msg Info "Setting workspace to $vitis_workspace"
     setws $vitis_workspace
-
+  } elseif {[IsVitisUnified]} {
+    set vitis_workspace [file normalize $repo_path/Projects/$project_name/vitis_unified/]
+    Msg Info "Setting workspace to $vitis_workspace"
+    # setws $vitis_workspace
   } else {
     OpenProject $project_file $repo_path
   }
@@ -854,14 +867,15 @@ if {$do_rtl == 1} {
 }
 
 if {$do_vitis_build == 1} {
-  if {[IsVitisClassic]} {
+  if {[IsVitisClassic] || [IsVitisUnified]} {
+    puts ">>>>>>>>>Launching Vitis build"
     LaunchVitisBuild $project_name $repo_path
-  } else {
-    set xsct_cmd "xsct $tcl_path/launch.tcl W -vitis_only $project_name"
-    set ret [catch {exec -ignorestderr {*}$xsct_cmd >@ stdout} result]
-    if {$ret != 0} {
-      Msg Error "xsct (vitis classic) returned an error state."
-    }
+  # } else {
+  #   set xsct_cmd "xsct $tcl_path/launch.tcl W -vitis_only $project_name"
+  #   set ret [catch {exec -ignorestderr {*}$xsct_cmd >@ stdout} result]
+  #   if {$ret != 0} {
+  #     Msg Error "xsct (vitis classic) returned an error state."
+  #   }
   }
 }
 

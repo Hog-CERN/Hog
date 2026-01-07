@@ -467,6 +467,20 @@ if {[IsXilinx]} {
       }
     }
 
+    if {[IsVitisUnified] && $wrote_xsa == 1} {
+      Msg Info "XSA file written to $dst_xsa"
+      set cmd "$tcl_path/launch.tcl CW -xsa $dst_xsa -vitis_only $proj_name"
+      Msg Info "Running Vitis Unified to create elf file with cmd: $cmd"
+      set ret [catch {exec -ignorestderr {*}$cmd >@ stdout} result]
+      if {$ret != 0} {
+        Msg Error "vivado (for vitis unified) returned an error state."
+      }
+
+      # Process ELF files and update bitstream with memory content
+      set mmi_file [file normalize "$dst_dir/${proj_name}\-$describe.mmi"]
+      GenerateBootArtifacts $properties $repo_path $proj_dir $dst_dir $proj_name $describe $dst_main $mmi_file
+    }
+
   }
 }
 

@@ -66,6 +66,7 @@ namespace eval globalSettings {
   variable user_ip_repo
 
   variable vitis_classic
+  variable vitis_unified
   variable pre_synth
   variable post_synth
   variable pre_impl
@@ -162,6 +163,10 @@ proc InitProject {} {
       file delete -force $globalSettings::build_dir/vitis_classic
     }
     setws $globalSettings::build_dir/vitis_classic
+  } elseif {[IsVitisUnified]} {
+    if {[file exists $globalSettings::build_dir/vitis_unified]} {
+      file delete -force $globalSettings::build_dir/vitis_unified
+    }
   } else {
     puts "Creating project for $globalSettings::DESIGN part $globalSettings::PART"
     puts "Configuring project settings:"
@@ -813,7 +818,9 @@ proc CreatePlatform {platform_name platform_conf {xsa ""}} {
 
 
   # If hw is not in platform conf, use vivado presynth xsa
-  if {![dict exists $platform_conf hw]} {
+  if {$xsa != ""} {
+    set platform_options "$platform_options -hw $xsa"
+  } elseif {![dict exists $platform_conf hw]} {
     set xsa "$globalSettings::build_dir/$globalSettings::DESIGN-presynth.xsa"
     set platform_options "$platform_options -hw $xsa"
   } else {
@@ -822,38 +829,110 @@ proc CreatePlatform {platform_name platform_conf {xsa ""}} {
 
 
   Msg Info "Opening hardware design to check if proc to cell mapping needs to be extracted for soft processors..."
-  hsi::open_hw_design $xsa
+  if {[IsVitisClassic]} {
+    # Use HSI commands for Vitis Classic
+    hsi::open_hw_design $xsa
+    set proc_cells [hsi::get_cells -filter { IP_TYPE == "PROCESSOR" }]
+    set proc_map_file [open "$globalSettings::build_dir/vitis_classic/$platform_name.PROC_MAP" "w"]
 
-  set proc_cells [hsi::get_cells -filter { IP_TYPE == "PROCESSOR" }]
-  set proc_map_file [open "$globalSettings::build_dir/vitis_classic/$platform_name.PROC_MAP" "w"]
+    foreach proc $proc_cells {
+      # If soft processor, save mapping from proc to cell to be used later when updating mem
+      Msg Debug "Processor found in xsa: $proc"
+      if {[regexp -nocase {microblaze|risc} $proc]} {
+        Msg Info "Extracting processor cells for soft processor: $proc"
+        set proc_hier_name [hsi::get_property HIER_NAME $proc]
+        set proc_address_tag [hsi::get_property ADDRESS_TAG $proc]
 
-  foreach proc $proc_cells {
-    # If soft processor, save mapping from proc to cell to be used later when updating mem
-    Msg Debug "Processor found in xsa: $proc"
-    if {[regexp -nocase {microblaze|risc} $proc]} {
-      Msg Info "Extracting processor cells for soft processor: $proc"
-      set proc_hier_name [hsi::get_property HIER_NAME $proc]
-      set proc_address_tag [hsi::get_property ADDRESS_TAG $proc]
+        if {$proc_address_tag eq ""} {
+          Msg Warning "Processor $proc ($proc_hier_name) does not have an ADDRESS_TAG property set. \
+          This may cause issues when configuring the platform."
+        } else {
+          set proc_map_entry "$proc_hier_name $proc_address_tag"
+          puts $proc_map_file "$proc_map_entry\n"
+        }
+      }
+    }
 
-      if {$proc_address_tag eq ""} {
-        Msg Warning "Processor $proc ($proc_hier_name) does not have an ADDRESS_TAG property set. \
-        This may cause issues when configuring the platform."
+    hsi::close_hw_design [hsi::current_hw_design]
+    close $proc_map_file
+
+  } elseif {[IsVitisUnified]} {
+    set python_script "$globalSettings::repo_path/Hog/Other/Python/VitisUnified/BaseCommands.py"
+    set proc_map_file "$globalSettings::build_dir/vitis_unified/$platform_name.PROC_MAP"
+
+    file mkdir "$globalSettings::build_dir/vitis_unified"
+
+    # Call Python script to extract processors
+    if {[catch {set all_output [exec vitis -s $python_script "extract_soft_procs" $xsa $proc_map_file 2>@1]} err]} {
+      Msg Warning "Failed to extract processor information from XSA using Python: $err"
+      Msg Info "Skipping processor extraction for Vitis Unified"
+      set f [open $proc_map_file "w"]
+      close $f
+    } else {
+      set json_output ""
+      if {[regexp -lineanchor {\{.*\}} $all_output json_output]} {
+        if {[catch {package require json}] == 0} {
+          if {[catch {set proc_data [json::json2dict $json_output]} parse_err]} {
+            Msg Debug "Could not parse JSON output (this is OK): $parse_err"
+          } else {
+            if {[dict exists $proc_data processors]} {
+              set proc_count [llength [dict get $proc_data processors]]
+              if {$proc_count > 0} {
+                Msg Info "Soft processor information extracted to $proc_map_file"
+              } else {
+                Msg Info "No soft processors found in XSA (this is normal for hard processors like ARM)"
+              }
+            }
+          }
+        }
       } else {
-        set proc_map_entry "$proc_hier_name $proc_address_tag"
-        puts $proc_map_file "$proc_map_entry\n"
+        Msg Info "Soft processor information extracted to $proc_map_file"
       }
     }
   }
 
-  hsi::close_hw_design [hsi::current_hw_design]
-  close $proc_map_file
-
 
   Msg Info "Creating platform \[$platform_name\] with options: \{$platform_options\}"
-  set plat_create "platform create $platform_options"
-  eval $plat_create
-  platform active $platform_name
-  platform generate
+  if {[IsVitisClassic]} {
+    set plat_create "platform create $platform_options"
+    eval $plat_create
+    platform active $platform_name
+    platform generate
+  } elseif {[IsVitisUnified]} {
+    # Use Python script to create the platform with new Vitis Unified Python command-line tool
+    set python_script "$globalSettings::repo_path/Hog/Other/Python/VitisUnified/CreatePlatform.py"
+    Msg Info "Running Vitis Unified platform creation script..."
+    Msg Info "Command: vitis -s $python_script \"{ $platform_options }\" $globalSettings::build_dir/vitis_unified"
+
+    # Set PYTHONUNBUFFERED environment variable for real-time output
+    set env(PYTHONUNBUFFERED) "1"
+
+    set cmd "vitis -s $python_script \"{ $platform_options }\" $globalSettings::build_dir/vitis_unified 2>&1"
+    set pipe [open "|$cmd" "r"]
+    fconfigure $pipe -buffering line
+    set script_output ""
+
+    # Read and display output line by line
+    while {[gets $pipe line] >= 0} {
+      if {$line ne ""} {
+        puts "INFO: $line"
+        append script_output "$line\n"
+      }
+    }
+
+    # Close pipe and check exit code
+    if {[catch {close $pipe} err]} {
+      if {[regexp {exit (\d+)} $err -> exit_code]} {
+        if {$exit_code != 0} {
+          Msg Error "Failed to create platform $platform_name (exit code: $exit_code)"
+          return
+        }
+      } else {
+        Msg Error "Failed to create platform $platform_name: $err"
+        return
+      }
+    }
+  }
 }
 
 
@@ -1131,6 +1210,12 @@ proc CreateProject {args} {
     } else {
       set globalSettings::vitis_classic 0
     }
+    if {([string tolower $ide] eq "vitis_unified") && ($options(vivado_only) != 1)} {
+      puts "Vitis unified detected, setting globalSettings::vitis_unified to 1"
+      set globalSettings::vitis_unified 1
+    } else {
+      set globalSettings::vitis_unified 0
+    }
 
     if {$conf_version != "0.0.0"} {
       set globalSettings::a_v [split $actual_version "."]
@@ -1164,9 +1249,12 @@ proc CreateProject {args} {
 
     if {$globalSettings::vitis_classic == 1} {
       if {[CompareVersions $globalSettings::a_v "2020 2 0"] == -1 || [CompareVersions $globalSettings::c_v "2020 2 0"] == -1} {
-        Msg Error "Vitis flow is not supported for versions < 2020.2. Please use Vitis 2020.2 or newer." }
+        Msg Error "Vitis Classic flow is not supported for versions < 2020.2. Please use Vitis 2020.2 or newer." }
     }
-
+    if {$globalSettings::vitis_unified == 1} {
+      if {[CompareVersions $globalSettings::a_v "2019 2 0"] == -1 || [CompareVersions $globalSettings::c_v "2019 2 0"] == -1} {
+        Msg Error "Vitis Unified flow is not supported for versions < 2019.2. Please use Vitis 2019.2 or newer." }
+    }
 
     if {[dict exists $globalSettings::PROPERTIES main]} {
       set main [dict get $globalSettings::PROPERTIES main]
@@ -1231,7 +1319,7 @@ proc CreateProject {args} {
 
   InitProject
 
-  if {[IsVitisClassic]} {
+  if {[IsVitisClassic] || [IsVitisUnified]} {
     if {$options(xsa) != ""} {
       Msg Info "Configuring platforms with xsa: $options(xsa)"
       ConfigurePlatforms "$options(xsa)"
@@ -1240,6 +1328,15 @@ proc CreateProject {args} {
     }
     ConfigureApps
     AddAppFiles
+    return
+  }
+
+  # If the project is a vitis-only project, skip creating the Vivado project
+  if {([string tolower $ide] eq "vitis_classic" || [string tolower $ide] eq "vitis_unified") && $options(vitis_only) == 1} {
+    if {$options(xsa) == ""} {
+      Msg Error "This is a $ide only project, an XSA file must be provided via -xsa option."
+      return 1
+    }
     return
   }
 
@@ -1351,11 +1448,10 @@ proc CreateProject {args} {
   }
 
 
-  if {($globalSettings::vitis_classic == 1)} {
+  if {($globalSettings::vitis_classic == 1 || $globalSettings::vitis_unified == 1)} {
     # Presynth hw platform, let's keep it in the build directory
     write_hw_platform -fixed -force -file [file normalize "$globalSettings::build_dir/$globalSettings::DESIGN-presynth.xsa"]
 
-    # Launch xsct to build the project
     if {$options(xsa) == ""} {
       set xsa_opt ""
     } else {
@@ -1366,11 +1462,22 @@ proc CreateProject {args} {
       }
     }
 
-    set xsct_cmd "xsct $globalSettings::tcl_path/launch.tcl C $xsa_opt -vitis_only $globalSettings::project_name"
-    Msg Info "Running Vitis Classic project creation script with command: $xsct_cmd"
-    set ret [catch {exec -ignorestderr {*}$xsct_cmd >@ stdout} result]
-    if {$ret != 0} {
-      Msg Error "xsct (vitis classic) returned an error state."
+    if {$globalSettings::vitis_classic == 1} {
+      # Launch xsct to build the project
+      set xsct_cmd "xsct $globalSettings::tcl_path/launch.tcl C $xsa_opt -vitis_only $globalSettings::project_name"
+      Msg Info "Running Vitis Classic project creation script with command: $xsct_cmd"
+      set ret [catch {exec -ignorestderr {*}$xsct_cmd >@ stdout} result]
+      if {$ret != 0} {
+        Msg Error "xsct (vitis classic) returned an error state."
+      }
+    } elseif {$globalSettings::vitis_unified == 1} {
+      # Launch vivado in batch mode to build the project
+      set vivado_cmd "vivado -mode batch -source $globalSettings::tcl_path/launch.tcl -tclargs C $xsa_opt -vitis_only $globalSettings::project_name"
+      Msg Info "Running Vitis Unified project creation script with command: $vivado_cmd"
+      set ret [catch {exec -ignorestderr {*}$vivado_cmd >@ stdout} result]
+      if {$ret != 0} {
+        Msg Error "vivado (vitis unified) returned an error state."
+      }
     }
   }
 

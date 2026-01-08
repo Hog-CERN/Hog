@@ -13,10 +13,7 @@
 #   limitations under the License.
 
 import vitis
-import os
-import re
 import sys
-import json
 
 
 def parse_app_options(app_options_str):
@@ -27,13 +24,9 @@ def parse_app_options(app_options_str):
   Returns:
     Dictionary with extracted options
   """
-  # Remove braces if present
   options_str = app_options_str.strip("{}").strip()
-  
-  # Split by whitespace, but handle quoted values
-  # Simple approach: split on whitespace and pair up
   tokens = options_str.split()
-  
+
   opt_dict = {}
   i = 0
   while i < len(tokens):
@@ -46,7 +39,7 @@ def parse_app_options(app_options_str):
       i += 2
     else:
       i += 1
-  
+
   return opt_dict
 
 
@@ -69,24 +62,24 @@ def configure_app(app_name, app_conf, ws_dir):
     else:
       print("Error: app_conf must be a string or dictionary")
       return False
-    
+
     # Define create and config options
     create_options = {
       "platform", "domain", "sysproj", "hw", "proc", 
       "template", "os", "lang", "arch", "name"
     }
-    
+
     conf_options = {
       "assembler-flags", "build-config", "compiler-misc", 
       "compiler-optimization", "define-compiler-symbols", 
       "include-path", "libraries", "library-search-path",
       "linker-misc", "linker-script", "undef-compiler-symbols"
     }
-    
+
     # Separate create and config options
     app_create_options = {}
     app_conf_options = {}
-    
+
     for key, value in app_options.items():
       key_lower = key.lower()
       if key_lower in create_options:
@@ -94,176 +87,149 @@ def configure_app(app_name, app_conf, ws_dir):
       elif key_lower in conf_options:
         app_conf_options[key_lower] = value
       else:
-        print(f"Warning: Unknown app option: {key_lower}")
-    
+        print("Warning: Unknown app option: %s" % key_lower)
+
+    # Use client-based approach (like CreatePlatform.py)
     client = vitis.create_client()
-    
-    # Set workspace - initialize if it doesn't exist
+
+    # Set workspace
     try:
       client.set_workspace(path=ws_dir)
     except Exception as e:
-      error_msg = str(e)
-      if "cannot recognize the workspace version" in error_msg or "update_workspace" in error_msg:
-        try:
-          client.update_workspace(path=ws_dir)
-          try:
-            client.set_workspace(path=ws_dir)
-          except Exception as e2:
-            print(f"Error: Failed to set workspace after initialization: {e2}")
-            vitis.dispose()
-            return False
-        except Exception as init_err:
-          print(f"Error: Failed to initialize workspace '{ws_dir}': {init_err}")
-          vitis.dispose()
-          return False
-      else:
-        print(f"Error: Failed to set workspace '{ws_dir}': {e}")
-        vitis.dispose()
-        return False
-    
-    workspace = client.get_workspace()
-    
-    # Remove existing sysproj if it exists
-    sysproj_name = app_options.get("sysproj") or f"{app_name}_system"
+      print("Error: Failed to set workspace '%s': %s" % (ws_dir, e))
+      vitis.dispose()
+      return False
+
+    # Remove existing app if it exists - use client
     try:
       sysprojs = workspace.get_sysprojs()
       for sysproj in sysprojs:
         if sysproj.name == sysproj_name:
-          print(f"Removing existing sysproj '{sysproj_name}'...")
+          print("Removing existing sysproj '%s'..." % sysproj_name)
           sysproj.delete()
     except Exception as e:
       # Sysproj might not exist, which is fine
       pass
-    
+
     # Remove existing app if it exists
     try:
       apps = workspace.get_apps()
       for app in apps:
         if app.name == app_name:
-          print(f"Removing existing app '{app_name}'...")
+          print("Removing existing app '%s'..." % app_name)
           app.delete()
     except Exception as e:
       # App might not exist, which is fine
       pass
-    
-    # Get platform if specified
-    platform = None
+
+    # Get platform path if specified
+    platform_path = None
     if "platform" in app_create_options:
       platform_name = app_create_options["platform"]
-      try:
-        platform = workspace.get_component(name=platform_name)
-        print(f"Setting app platform to '{platform_name}'")
-      except Exception as e:
-        print(f"Warning: Could not find platform '{platform_name}': {e}")
-    
+      # Construct platform path: {platform_name}/export/{platform_name}/{platform_name}.xpfm
+      platform_path = f"{platform_name}/export/{platform_name}/{platform_name}.xpfm"
+      print("Setting app platform to '%s'" % platform_path)
+
     # Prepare app creation parameters
     app_kwargs = {
       "name": app_name
     }
-    
+
     # Add optional creation parameters
-    if platform:
-      app_kwargs["platform"] = platform
-    
+    if platform_path:
+      app_kwargs["platform"] = platform_path
+
     if "domain" in app_create_options:
       app_kwargs["domain"] = app_create_options["domain"]
-    
+
+    # Use 'cpu' parameter (not 'proc') for create_app_component
     if "proc" in app_create_options:
-      app_kwargs["proc"] = app_create_options["proc"]
-    
+      app_kwargs["cpu"] = app_create_options["proc"]
+    elif "cpu" in app_create_options:
+      app_kwargs["cpu"] = app_create_options["cpu"]
+
     if "os" in app_create_options:
       app_kwargs["os"] = app_create_options["os"]
-    
+
     if "template" in app_create_options:
       app_kwargs["template"] = app_create_options["template"]
-    else:
-      # Default template based on lang
-      if "lang" in app_create_options:
-        lang = app_create_options["lang"].lower()
-        if lang in ["c++", "cpp"]:
-          app_kwargs["template"] = "Empty Application (C++)"
-        else:
-          app_kwargs["template"] = "Empty Application(C)"
-      else:
-        app_kwargs["template"] = "Empty Application"
-    
+
     if "hw" in app_create_options:
       app_kwargs["hw"] = app_create_options["hw"]
-    
+
     if "arch" in app_create_options:
       app_kwargs["arch"] = app_create_options["arch"]
-    
+
     # Create the app
     try:
-      print(f"Creating application '{app_name}' with options: {app_kwargs}")
-      app = workspace.create_app(**app_kwargs)
-      print(f"Application '{app_name}' created successfully")
+      print("Creating application '%s' with options: %s" % (app_name, app_kwargs))
+      app = client.create_app_component(**app_kwargs)
+      print("Application '%s' created successfully" % app_name)
     except Exception as e:
-      print(f"Error: Failed to create application: {e}")
+      print("Error: Failed to create application: %s" % e)
       vitis.dispose()
       return False
-    
+
     # Get the app again to configure it
     try:
-      app = workspace.get_app(app_name)
+      app = client.get_component(name=app_name)
     except Exception as e:
-      print(f"Error: Failed to get application '{app_name}': {e}")
+      print("Error: Failed to get application '%s': %s" % (app_name, e))
       vitis.dispose()
       return False
-    
-    # Set build-config to Release by default
-    try:
-      app.set_build_config("Release")
-      print(f"Set build-config to Release")
-    except Exception as e:
-      print(f"Warning: Could not set build-config: {e}")
-    
-    # Configure app options
+
+    # @nordin (2026-01-08): Pending to be validated...
+    # Configure app options using set_app_config API
+    key_mapping = {
+      "build-config": "BUILD_CONFIG",
+      "compiler-optimization": "USER_COMPILE_OPTIMIZATION_LEVEL",
+      "define-compiler-symbols": "USER_COMPILE_DEFINITIONS",
+      "undef-compiler-symbols": "USER_UNDEFINE_SYMBOLS",
+      "include-path": "USER_INCLUDE_DIRECTORIES",
+      "library-search-path": "USER_LINK_DIRECTORIES",  # May need verification
+      "libraries": "USER_LINK_LIBRARIES",
+      "linker-script": "USER_LINKER_SCRIPT",  # May need verification
+      "assembler-flags": "USER_ASSEMBLER_FLAGS",  # May need verification
+      "compiler-misc": "USER_COMPILE_MISC",  # May need verification
+      "linker-misc": "USER_LINK_MISC"  # May need verification
+    }
+
     for key, value in app_conf_options.items():
       try:
-        print(f"Configuring app option '{key}' to '{value}'")
-        # Map configuration keys to app methods
-        if key == "build-config":
-          app.set_build_config(value)
-        elif key == "compiler-optimization":
-          app.set_compiler_optimization(value)
-        elif key == "define-compiler-symbols":
-          # This might need special handling for multiple symbols
-          app.set_define_compiler_symbols(value)
-        elif key == "undef-compiler-symbols":
-          app.set_undef_compiler_symbols(value)
-        elif key == "include-path":
-          app.set_include_path(value)
-        elif key == "library-search-path":
-          app.set_library_search_path(value)
-        elif key == "libraries":
-          app.set_libraries(value)
-        elif key == "linker-script":
-          app.set_linker_script(value)
-        elif key == "assembler-flags":
-          app.set_assembler_flags(value)
-        elif key == "compiler-misc":
-          app.set_compiler_misc(value)
-        elif key == "linker-misc":
-          app.set_linker_misc(value)
+        print("Configuring app option '%s' to '%s'" % (key, value))
+
+        # Map TCL key to API key
+        api_key = key_mapping.get(key)
+        if not api_key:
+          print("Warning: Configuration option '%s' not mapped to API key" % key)
+          continue
+
+        # Convert value to list if it's a string (API expects list)
+        if isinstance(value, str):
+          if key in ["define-compiler-symbols", "undef-compiler-symbols", "include-path", "libraries"]:
+            if ";" in value:
+              values_list = [v.strip() for v in value.split(";") if v.strip()]
+            else:
+              values_list = [value]
+          else:
+            values_list = [value]
+        elif isinstance(value, list):
+          values_list = value
         else:
-          print(f"Warning: Configuration option '{key}' not yet implemented in Python API")
+          values_list = [str(value)]
+
+        # Use set_app_config with the mapped key
+        app.set_app_config(key=api_key, values=values_list)
+        print("Successfully set %s to %s" % (api_key, values_list))
       except Exception as e:
-        print(f"Warning: Could not set app option '{key}': {e}")
-    
-    # Save the app
-    try:
-      app.save()
-      print(f"Application '{app_name}' configured and saved successfully")
-    except Exception as e:
-      print(f"Warning: Could not save application: {e}")
-    
-    # Closes all client connections and terminates the connection to the server
-    vitis.dispose()
-    return True
-    
+        print("Warning: Could not set app option '%s': %s" % (key, e))
+        import traceback
+        traceback.print_exc()
+
+    print("Application '%s' configured successfully" % app_name)
+
   except Exception as e:
-    print(f"Error: Unexpected error in configure_app: {e}")
+    print("Error: Unexpected error in configure_app: %s" % e)
     import traceback
     traceback.print_exc()
     try:
@@ -278,15 +244,15 @@ if __name__ == "__main__":
     print("Error: App name, app configuration, and workspace directory are required")
     print("Usage: vitis -s ConfigureApp.py <app_name> '{ <app_options> }' <workspace_directory_path>")
     print("\nExample:")
-    print("  vitis -s ConfigureApp.py TestApp1 '{ PLATFORM TestPlatform1 PROC psu_cortexa53_0 OS standalone }' my_project_workspace")
+    print("  vitis -s ConfigureApp.py TestApp1 '{ PLATFORM TestPlatform1 PROC psu_cortexa53_0 OS standalone }' my_workspace_directory_path")
     sys.exit(1)
-  
+
   app_name = sys.argv[1]
   app_conf = sys.argv[2]
   ws_dir = sys.argv[3]
-  
+
   # Configure app
   result = configure_app(app_name=app_name, app_conf=app_conf, ws_dir=ws_dir)
-  
+
   # Exit with appropriate code
   sys.exit(0 if result else 1)

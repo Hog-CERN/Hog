@@ -83,7 +83,7 @@ def parse_advanced_options(value):
     try:
       return json.loads(value)
     except json.JSONDecodeError:
-      print(f"Warning: Could not parse advanced_options as JSON: {value}")
+      print("Warning: Could not parse advanced_options as JSON: %s" % value)
       return None
   return None
 
@@ -131,7 +131,7 @@ def create_platform(platform_options=None, ws_dir=None):
     # Validate required options
     is_valid, error_msg = validate_required_options(options)
     if not is_valid:
-      print(f"Error: {error_msg}")
+      print("Error: %s" % error_msg)
       return False
 
     # Extract options - map input keys to API parameter names
@@ -209,56 +209,56 @@ def create_platform(platform_options=None, ws_dir=None):
           try:
             client.set_workspace(path=ws_dir)
           except Exception as e2:
-            print(f"Error: Failed to set workspace after initialization: {e2}")
+            print("Error: Failed to set workspace after initialization: %s" % e2)
             vitis.dispose()
             return False
         except Exception as init_err:
-          print(f"Error: Failed to initialize workspace '{ws_dir}': {init_err}")
+          print("Error: Failed to initialize workspace '%s': %s" % (ws_dir, init_err))
           vitis.dispose()
           return False
       else:
-        print(f"Error: Failed to set workspace '{ws_dir}': {e}")
+        print("Error: Failed to set workspace '%s': %s" % (ws_dir, e))
         vitis.dispose()
         return False
 
     # Create platform component
     try:
-      print(f"Creating platform '{name}'...")
-      print(f"  Options: {', '.join([f'{k}={v}' for k, v in platform_kwargs.items() if v])}")
+      print("Creating platform '%s'..." % name)
+      print("  Options: %s" % ', '.join(['%s=%s' % (k, v) for k, v in platform_kwargs.items() if v]))
       platform = client.create_platform_component(**platform_kwargs)
-      print(f"Platform component '{name}' created successfully")
+      print("Platform component '%s' created successfully" % name)
     except Exception as e:
-      print(f"Error: Failed to create platform component: {e}")
+      print("Error: Failed to create platform component: %s" % e)
       vitis.dispose()
       return False
 
-    # Get platform component
-    try:
-      platform = client.get_component(name=name)
-    except Exception as e:
-      print(f"Error: Failed to get platform component '{name}': {e}")
-      vitis.dispose()
-      return False
+    # # Get platform component
+    # try:
+    #   platform = client.get_component(name=name)
+    # except Exception as e:
+    #   print("Error: Failed to get platform component '%s': %s" % (name, e))
+    #   vitis.dispose()
+    #   return False
 
-    # Build platform
-    try:
-      print(f"Building platform '{name}'...")
-      status = platform.build()
-      if status:
-        print(f"Warning: Platform build returned status: {status}")
-      else:
-        print(f"Platform '{name}' built successfully")
-    except Exception as e:
-      print(f"Error: Failed to build platform: {e}")
-      vitis.dispose()
-      return False
+    # # Build platform
+    # try:
+    #   print("Building platform '%s'..." % name)
+    #   status = platform.build()
+    #   if status:
+    #     print("Warning: Platform build returned status: %s" % status)
+    #   else:
+    #     print("Platform '%s' built successfully" % name)
+    # except Exception as e:
+    #   print("Error: Failed to build platform: %s" % e)
+    #   vitis.dispose()
+    #   return False
 
     # Closes all client connections and terminates the connection to the server
     vitis.dispose()
     return True
 
   except Exception as e:
-    print(f"Error: Unexpected error in create_platform: {e}")
+    print("Error: Unexpected error in create_platform: %s" % e)
     try:
       vitis.dispose()
     except:

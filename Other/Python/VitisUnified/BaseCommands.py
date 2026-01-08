@@ -121,14 +121,14 @@ def extract_soft_procs_from_xsa(xsa_path, output_file):
                     if proc['address_tag']:
                         f.write(f"{proc['hier_name']} {proc['address_tag']}\n")
                     else:
-                        print(f"Warning: Processor {proc['name']} has no address tag", file=sys.stderr)
+                        print("Warning: Processor %s has no address tag" % proc['name'], file=sys.stderr)
         return {'processors': processors}
 
     except zipfile.BadZipFile:
-        print(f"ERROR: {xsa_path} is not a valid ZIP file (XSA format)", file=sys.stderr)
+        print("ERROR: %s is not a valid ZIP file (XSA format)" % xsa_path, file=sys.stderr)
         return {'processors': [], 'error': 'Invalid XSA file format'}
     except Exception as e:
-        print(f"ERROR: Failed to extract soft processors from XSA: {str(e)}", file=sys.stderr)
+        print("ERROR: Failed to extract soft processors from XSA: %s" % str(e), file=sys.stderr)
         import traceback
         traceback.print_exc(file=sys.stderr)
         return {'processors': [], 'error': str(e)}
@@ -156,5 +156,5 @@ if __name__ == "__main__":
         result = extract_soft_procs_from_xsa(xsa_path, output_file)
         print(json.dumps(result))
     else:
-        print(f"ERROR: Unknown command: {command}", file=sys.stderr)
+        print("ERROR: Unknown command: %s" % command, file=sys.stderr)
         sys.exit(1)

@@ -949,7 +949,20 @@ proc ConfigureApps {} {
     if {[regexp {^app:(.+)$} $app_key -> app_name]} {
       set app_name [string trim $app_name]
       Msg Info "Configuring app: $app_name"
-      ConfigureApp $app_name $app_config
+      if {[IsVitisUnified]} {
+        set python_script "$globalSettings::repo_path/Hog/Other/Python/VitisUnified/ConfigureApp.py"
+        Msg Info "Running Vitis Unified app configuration script..."
+        Msg Info "Command: vitis -s $python_script \"{ $app_name }\" \"{ $app_config }\" $globalSettings::build_dir/vitis_unified"
+        set cmd "vitis -s $python_script \"{ $app_name }\" \"{ $app_config }\" $globalSettings::build_dir/vitis_unified 2>&1"
+        set pipe [open "|$cmd" "r"]
+        fconfigure $pipe -buffering line
+        set script_output ""
+      } elseif {[IsVitisClassic]} {
+        ConfigureApp $app_name $app_config
+      } else {
+        Msg Error "Impossible condition. You need to run this in a Vitis Unified or Vitis Classic IDE."
+        exit 1
+      }
     } else {
       Msg Warning "Invalid app key format: $app_key. Expected format: app:<name>"
     }

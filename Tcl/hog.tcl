@@ -5623,7 +5623,7 @@ proc LaunchVitisBuild {project_name {repo_path .} {stage "presynth"}} {
   # Get app list
   if {[IsVitisUnified]} {
     set vitis_workspace [file normalize "$repo_path/Projects/$project_name/vitis_unified"]
-    set python_script [file normalize "$repo_path/Hog/Other/Python/VitisUnified/BaseCommands.py"]
+    set python_script [file normalize "$repo_path/Hog/Other/Python/VitisUnified/AppCommands.py"]
     if {[catch {set json_output [exec vitis -s $python_script "app_list" $vitis_workspace]} err]} {
       Msg Error "Failed to get app list from Vitis Unified: $err"
       set ws_apps ""
@@ -5632,7 +5632,12 @@ proc LaunchVitisBuild {project_name {repo_path .} {stage "presynth"}} {
         Msg Error "JSON package not available for parsing Vitis Unified app list"
         set ws_apps ""
       } else {
-        set ws_apps [json::json2dict $json_output]
+        set json_output_filtered ""
+        if {[regexp -lineanchor {\{.*\}} $json_output json_output_filtered]} {
+          set ws_apps [json::json2dict $json_output_filtered]
+        } else {
+          set ws_apps [json::json2dict $json_output]
+        }
       }
     }
   } elseif {[IsVitisClassic]} {

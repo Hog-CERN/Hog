@@ -15,6 +15,23 @@
 import vitis
 import sys
 
+def app_list_dict(workspace_path):
+    """Get list of apps as dictionary
+    Args:
+        workspace_path: Path to the workspace
+    Returns:
+        Dictionary with app names as keys and app configurations as values
+    """
+    workspace = vitis.Workspace(workspace_path)
+    apps = workspace.get_apps()
+    app_dict = {}
+    for app in apps:
+        app_dict[app.name] = {
+            'name': app.name,
+            'platform': app.platform.name if app.platform else '',
+            'proc': app.proc if hasattr(app, 'proc') else ''
+        }
+    return app_dict
 
 def parse_app_options(app_options_str):
   """
@@ -41,7 +58,6 @@ def parse_app_options(app_options_str):
       i += 1
 
   return opt_dict
-
 
 def configure_app(app_name, app_conf, ws_dir):
   """

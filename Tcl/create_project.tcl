@@ -855,40 +855,6 @@ proc CreatePlatform {platform_name platform_conf {xsa ""}} {
 
     hsi::close_hw_design [hsi::current_hw_design]
     close $proc_map_file
-
-  } elseif {[IsVitisUnified]} {
-    set python_script "$globalSettings::repo_path/Hog/Other/Python/VitisUnified/BaseCommands.py"
-    set proc_map_file "$globalSettings::build_dir/vitis_unified/$platform_name.PROC_MAP"
-
-    file mkdir "$globalSettings::build_dir/vitis_unified"
-
-    # Call Python script to extract processors
-    if {[catch {set all_output [exec vitis -s $python_script "extract_soft_procs" $xsa $proc_map_file 2>@1]} err]} {
-      Msg Warning "Failed to extract processor information from XSA using Python: $err"
-      Msg Info "Skipping processor extraction for Vitis Unified"
-      set f [open $proc_map_file "w"]
-      close $f
-    } else {
-      set json_output ""
-      if {[regexp -lineanchor {\{.*\}} $all_output json_output]} {
-        if {[catch {package require json}] == 0} {
-          if {[catch {set proc_data [json::json2dict $json_output]} parse_err]} {
-            Msg Debug "Could not parse JSON output (this is OK): $parse_err"
-          } else {
-            if {[dict exists $proc_data processors]} {
-              set proc_count [llength [dict get $proc_data processors]]
-              if {$proc_count > 0} {
-                Msg Info "Soft processor information extracted to $proc_map_file"
-              } else {
-                Msg Info "No soft processors found in XSA (this is normal for hard processors like ARM)"
-              }
-            }
-          }
-        }
-      } else {
-        Msg Info "Soft processor information extracted to $proc_map_file"
-      }
-    }
   }
 
 
@@ -900,14 +866,14 @@ proc CreatePlatform {platform_name platform_conf {xsa ""}} {
     platform generate
   } elseif {[IsVitisUnified]} {
     # Use Python script to create the platform with new Vitis Unified Python command-line tool
-    set python_script "$globalSettings::repo_path/Hog/Other/Python/VitisUnified/CreatePlatform.py"
+    set python_script "$globalSettings::repo_path/Hog/Other/Python/VitisUnified/PlatformCommands.py"
     Msg Info "Running Vitis Unified platform creation script..."
-    Msg Info "Command: vitis -s $python_script \"{ $platform_options }\" $globalSettings::build_dir/vitis_unified"
+    Msg Info "Command: vitis -s $python_script create_platform \"{ $platform_options }\" $globalSettings::build_dir/vitis_unified"
 
     # Set PYTHONUNBUFFERED environment variable for real-time output
     set env(PYTHONUNBUFFERED) "1"
 
-    set cmd "vitis -s $python_script \"{ $platform_options }\" $globalSettings::build_dir/vitis_unified 2>&1"
+    set cmd "vitis -s $python_script create_platform \"{ $platform_options }\" $globalSettings::build_dir/vitis_unified 2>&1"
     set pipe [open "|$cmd" "r"]
     fconfigure $pipe -buffering line
     set script_output ""
@@ -949,19 +915,43 @@ proc ConfigureApps {} {
     if {[regexp {^app:(.+)$} $app_key -> app_name]} {
       set app_name [string trim $app_name]
       Msg Info "Configuring app: $app_name"
-      if {[IsVitisUnified]} {
-        set python_script "$globalSettings::repo_path/Hog/Other/Python/VitisUnified/ConfigureApp.py"
+      if {[IsVitisClassic]} {
+        ConfigureApp $app_name $app_config
+      } elseif {[IsVitisUnified]} {
+        set python_script "$globalSettings::repo_path/Hog/Other/Python/VitisUnified/AppCommands.py"
         Msg Info "Running Vitis Unified app configuration script..."
-        Msg Info "Command: vitis -s $python_script \"{ $app_name }\" \"{ $app_config }\" $globalSettings::build_dir/vitis_unified"
-        set cmd "vitis -s $python_script \"{ $app_name }\" \"{ $app_config }\" $globalSettings::build_dir/vitis_unified 2>&1"
+        # Build app config string from app_config dict
+        set app_config_str "{"
+        dict for {p v} $app_config {
+          append app_config_str " [string toupper $p] $v"
+        }
+        append app_config_str " }"
+        Msg Info "Command: vitis -s $python_script configure_app $app_name \"$app_config_str\" $globalSettings::build_dir/vitis_unified"
+        set cmd "vitis -s $python_script configure_app $app_name \"$app_config_str\" $globalSettings::build_dir/vitis_unified 2>&1"
         set pipe [open "|$cmd" "r"]
         fconfigure $pipe -buffering line
         set script_output ""
-      } elseif {[IsVitisClassic]} {
-        ConfigureApp $app_name $app_config
-      } else {
-        Msg Error "Impossible condition. You need to run this in a Vitis Unified or Vitis Classic IDE."
-        exit 1
+
+        # Read and display output line by line
+        while {[gets $pipe line] >= 0} {
+          if {$line ne ""} {
+            puts "INFO: $line"
+            append script_output "$line\n"
+          }
+        }
+
+        # Close pipe and check exit code
+        if {[catch {close $pipe} err]} {
+          if {[regexp {exit (\d+)} $err -> exit_code]} {
+            if {$exit_code != 0} {
+              Msg Error "Failed to configure app $app_name (exit code: $exit_code)"
+              continue
+            }
+          } else {
+            Msg Error "Failed to configure app $app_name: $err"
+            continue
+          }
+        }
       }
     } else {
       Msg Warning "Invalid app key format: $app_key. Expected format: app:<name>"

@@ -4884,6 +4884,7 @@ proc ExecuteVitisUnifiedCommand {python_script command args {error_prefix "Faile
 
   fconfigure $pipe -buffering line
   set script_output ""
+  set vitis_version ""
 
   # Patterns to identify Vitis banner messages, these will be filtered out
   set vitis_banner_patterns {
@@ -4898,6 +4899,13 @@ proc ExecuteVitisUnifiedCommand {python_script command args {error_prefix "Faile
   # Read and display output line by line
   while {[gets $pipe line] >= 0} {
     if {$line ne ""} {
+      if {[string match "*Vitis v*" $line]} {
+        if {[regexp {Vitis\s+v([0-9]+)\.([0-9]+)(?:\.[0-9]+)?} $line -> major minor]} {
+          set year_last_two [string range $major end-1 end]
+          set vitis_version "$year_last_two.$minor"
+        }
+      }
+
       # Filter out Vitis banner messages
       set is_banner 0
       foreach pattern $vitis_banner_patterns {
@@ -4907,6 +4915,13 @@ proc ExecuteVitisUnifiedCommand {python_script command args {error_prefix "Faile
         }
       }
       if {!$is_banner} {
+        if {![string match "INFO:*" $line] && ![string match "WARNING:*" $line] && ![string match "ERROR:*" $line]} {
+          if {$vitis_version ne ""} {
+            set line "INFO: \[Vitis_v$vitis_version\] $line"
+          } else {
+            set line "INFO: $line"
+          }
+        }
         puts "$line"
         append script_output "$line\n"
       }

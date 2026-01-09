@@ -15,26 +15,44 @@
 import vitis
 import sys
 import json
+import os
 
-def app_list_dict(workspace_path):
-    """Get list of apps as dictionary
-    Args:
-        workspace_path: Path to the workspace
-    Returns:
-        Dictionary with app names as keys and app configurations as values
-    """
-    workspace = vitis.Workspace(workspace_path)
-    apps = workspace.get_apps()
-    app_dict = {}
-    for app in apps:
-        app_dict[app.name] = {
-            'name': app.name,
-            'platform': app.platform.name if app.platform else '',
-            'proc': app.proc if hasattr(app, 'proc') else ''
-        }
-    return app_dict
+# Import logging functions from SharedCommands
+# Get the directory of this file to find SharedCommands.py
+_shared_commands_path = os.path.join(os.path.dirname(__file__), "SharedCommands.py")
+if os.path.exists(_shared_commands_path):
+  import importlib.util
+  spec = importlib.util.spec_from_file_location("shared_commands", _shared_commands_path)
+  shared_commands = importlib.util.module_from_spec(spec)
+  spec.loader.exec_module(shared_commands)
+  PrintInfo = shared_commands.PrintInfo
+  PrintError = shared_commands.PrintError
+  PrintWarning = shared_commands.PrintWarning
+else:
+  # Fallback if SharedCommands.py is not found
+  def PrintInfo(msg): print("INFO: [Hog:Python:unknown] %s" % msg, flush=True)
+  def PrintError(msg): print("ERROR: [Hog:Python:unknown] %s" % msg, flush=True)
+  def PrintWarning(msg): print("WARNING: [Hog:Python:unknown] %s" % msg, flush=True)
 
-def parse_app_options(app_options_str):
+def AppListDict(workspace_path):
+  """Get list of apps as dictionary
+  Args:
+    workspace_path: Path to the workspace
+  Returns:
+    Dictionary with app names as keys and app configurations as values
+  """
+  workspace = vitis.Workspace(workspace_path)
+  apps = workspace.get_apps()
+  app_dict = {}
+  for app in apps:
+    app_dict[app.name] = {
+      'name': app.name,
+      'platform': app.platform.name if app.platform else '',
+      'proc': app.proc if hasattr(app, 'proc') else ''
+    }
+  return app_dict
+
+def ParseAppOptions(app_options_str):
   """
   Parse app options string into dictionary
   Args:
@@ -60,7 +78,7 @@ def parse_app_options(app_options_str):
 
   return opt_dict
 
-def configure_app(app_name, app_conf, ws_dir):
+def ConfigureApp(app_name, app_conf, ws_dir):
   """
   Configure a Vitis Unified application
   Args:
@@ -73,11 +91,11 @@ def configure_app(app_name, app_conf, ws_dir):
   try:
     # Parse app configuration
     if isinstance(app_conf, str):
-      app_options = parse_app_options(app_conf)
+      app_options = ParseAppOptions(app_conf)
     elif isinstance(app_conf, dict):
       app_options = app_conf
     else:
-      print("Error: app_conf must be a string or dictionary", flush=True)
+      PrintError("app_conf must be a string or dictionary")
       return False
 
     # Define create and config options
@@ -104,7 +122,7 @@ def configure_app(app_name, app_conf, ws_dir):
       elif key_lower in conf_options:
         app_conf_options[key_lower] = value
       else:
-        print("Warning: Unknown app option: %s" % key_lower, flush=True)
+        PrintWarning("Unknown app option: %s" % key_lower)
 
     # Use client-based approach (like CreatePlatform.py)
     client = vitis.create_client()
@@ -113,7 +131,7 @@ def configure_app(app_name, app_conf, ws_dir):
     try:
       client.set_workspace(path=ws_dir)
     except Exception as e:
-      print("Error: Failed to set workspace '%s': %s" % (ws_dir, e), flush=True)
+      PrintError("Failed to set workspace '%s': %s" % (ws_dir, e))
       vitis.dispose()
       return False
 
@@ -122,7 +140,7 @@ def configure_app(app_name, app_conf, ws_dir):
     if "platform" in app_create_options:
       platform_name = app_create_options["platform"]
       platform_path = "%s/%s/export/%s/%s.xpfm" % (ws_dir, platform_name, platform_name, platform_name)
-      print("Setting app platform to '%s'" % platform_path, flush=True)
+      PrintInfo("Setting app platform to '%s'" % platform_path)
 
     # Prepare app creation parameters
     app_kwargs = {
@@ -156,11 +174,11 @@ def configure_app(app_name, app_conf, ws_dir):
 
     # Create the app
     try:
-      print("Creating application '%s' with options: %s" % (app_name, app_kwargs), flush=True)
+      PrintInfo("Creating application '%s' with options: %s" % (app_name, app_kwargs))
       app = client.create_app_component(**app_kwargs)
-      print("Application '%s' created successfully" % app_name, flush=True)
+      PrintInfo("Application '%s' created successfully" % app_name)
     except Exception as e:
-      print("Error: Failed to create application: %s" % e, flush=True)
+      PrintError("Failed to create application: %s" % e)
       vitis.dispose()
       return False
 
@@ -168,7 +186,7 @@ def configure_app(app_name, app_conf, ws_dir):
     try:
       app = client.get_component(name=app_name)
     except Exception as e:
-      print("Error: Failed to get application '%s': %s" % (app_name, e), flush=True)
+      PrintError("Failed to get application '%s': %s" % (app_name, e))
       vitis.dispose()
       return False
 
@@ -190,12 +208,12 @@ def configure_app(app_name, app_conf, ws_dir):
 
     for key, value in app_conf_options.items():
       try:
-        print("Configuring app option '%s' to '%s'" % (key, value), flush=True)
+        PrintInfo("Configuring app option '%s' to '%s'" % (key, value))
 
         # Map TCL key to API key
         api_key = key_mapping.get(key)
         if not api_key:
-          print("Warning: Configuration option '%s' not mapped to API key" % key, flush=True)
+          PrintWarning("Configuration option '%s' not mapped to API key" % key)
           continue
 
         # Convert value to list if it's a string (API expects list)
@@ -214,21 +232,21 @@ def configure_app(app_name, app_conf, ws_dir):
 
         # Use set_app_config with the mapped key
         app.set_app_config(key=api_key, values=values_list)
-        print("Successfully set %s to %s" % (api_key, values_list), flush=True)
+        PrintInfo("Successfully set %s to %s" % (api_key, values_list))
       except Exception as e:
-        print("Warning: Could not set app option '%s': %s" % (key, e), flush=True)
+        PrintWarning("Could not set app option '%s': %s" % (key, e))
         import traceback
         traceback.print_exc()
         sys.stdout.flush()
 
-    print("Application '%s' configured successfully" % app_name, flush=True)
+    PrintInfo("Application '%s' configured successfully" % app_name)
 
     # Closes all client connections and terminates the connection to the server
     vitis.dispose()
     return True
 
   except Exception as e:
-    print("Error: Unexpected error in configure_app: %s" % e, flush=True)
+    PrintError("Unexpected error in configure_app: %s" % e)
     import traceback
     traceback.print_exc()
     sys.stdout.flush()
@@ -240,7 +258,7 @@ def configure_app(app_name, app_conf, ws_dir):
 
 if __name__ == "__main__":
   if len(sys.argv) < 2:
-    print("Error: Command is required", flush=True)
+    PrintError("Command is required")
     print("Usage: vitis -s AppCommands.py <command> [arguments...]", flush=True)
     print("\nAvailable commands:", flush=True)
     print("  configure_app <app_name> <app_config> <workspace_path>", flush=True)
@@ -254,7 +272,7 @@ if __name__ == "__main__":
 
   if command == "configure_app":
     if len(sys.argv) < 5:
-      print("Error: App name, app configuration, and workspace directory are required for configure_app", flush=True)
+      PrintError("App name, app configuration, and workspace directory are required for configure_app")
       print("Usage: vitis -s AppCommands.py configure_app <app_name> '{ <app_options> }' <workspace_directory_path>", flush=True)
       print("\nExample:", flush=True)
       print("  vitis -s AppCommands.py configure_app TestApp1 '{ PLATFORM TestPlatform1 PROC psu_cortexa53_0 OS standalone }' my_workspace_path", flush=True)
@@ -262,19 +280,19 @@ if __name__ == "__main__":
     app_name = sys.argv[2]
     app_conf = sys.argv[3]
     ws_dir = sys.argv[4]
-    result = configure_app(app_name=app_name, app_conf=app_conf, ws_dir=ws_dir)
+    result = ConfigureApp(app_name=app_name, app_conf=app_conf, ws_dir=ws_dir)
     sys.exit(0 if result else 1)
 
   elif command == "app_list":
     if len(sys.argv) < 3:
-      print("Error: Workspace path is required for app_list", flush=True)
+      PrintError("Workspace path is required for app_list")
       print("Usage: vitis -s AppCommands.py app_list <workspace_path>", flush=True)
       sys.exit(1)
     workspace_path = sys.argv[2]
-    apps = app_list_dict(workspace_path)
+    apps = AppListDict(workspace_path)
     print(json.dumps(apps), flush=True)
 
   else:
-    print("ERROR: Unknown command: %s" % command, file=sys.stderr, flush=True)
+    PrintError("Unknown command: %s" % command)
     print("Available commands: configure_app, app_list", file=sys.stderr, flush=True)
     sys.exit(1)

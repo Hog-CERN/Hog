@@ -868,35 +868,9 @@ proc CreatePlatform {platform_name platform_conf {xsa ""}} {
     # Use Python script to create the platform with new Vitis Unified Python command-line tool
     set python_script "$globalSettings::repo_path/Hog/Other/Python/VitisUnified/PlatformCommands.py"
     Msg Info "Running Vitis Unified platform creation script..."
-    Msg Info "Command: vitis -s $python_script create_platform \"{ $platform_options }\" $globalSettings::build_dir/vitis_unified"
-
-    # Set PYTHONUNBUFFERED environment variable for real-time output
-    set env(PYTHONUNBUFFERED) "1"
-
-    set cmd "vitis -s $python_script create_platform \"{ $platform_options }\" $globalSettings::build_dir/vitis_unified 2>&1"
-    set pipe [open "|$cmd" "r"]
-    fconfigure $pipe -buffering line
-    set script_output ""
-
-    # Read and display output line by line
-    while {[gets $pipe line] >= 0} {
-      if {$line ne ""} {
-        puts "INFO: $line"
-        append script_output "$line\n"
-      }
-    }
-
-    # Close pipe and check exit code
-    if {[catch {close $pipe} err]} {
-      if {[regexp {exit (\d+)} $err -> exit_code]} {
-        if {$exit_code != 0} {
-          Msg Error "Failed to create platform $platform_name (exit code: $exit_code)"
-          return
-        }
-      } else {
-        Msg Error "Failed to create platform $platform_name: $err"
-        return
-      }
+    set platform_options_str "{ $platform_options }"
+    if {![ExecuteVitisUnifiedCommand $python_script "create_platform" [list $platform_options_str "$globalSettings::build_dir/vitis_unified"] "Failed to create platform $platform_name"]} {
+      return
     }
   }
 }
@@ -926,31 +900,8 @@ proc ConfigureApps {} {
           append app_config_str " [string toupper $p] $v"
         }
         append app_config_str " }"
-        Msg Info "Command: vitis -s $python_script configure_app $app_name \"$app_config_str\" $globalSettings::build_dir/vitis_unified"
-        set cmd "vitis -s $python_script configure_app $app_name \"$app_config_str\" $globalSettings::build_dir/vitis_unified 2>&1"
-        set pipe [open "|$cmd" "r"]
-        fconfigure $pipe -buffering line
-        set script_output ""
-
-        # Read and display output line by line
-        while {[gets $pipe line] >= 0} {
-          if {$line ne ""} {
-            puts "INFO: $line"
-            append script_output "$line\n"
-          }
-        }
-
-        # Close pipe and check exit code
-        if {[catch {close $pipe} err]} {
-          if {[regexp {exit (\d+)} $err -> exit_code]} {
-            if {$exit_code != 0} {
-              Msg Error "Failed to configure app $app_name (exit code: $exit_code)"
-              continue
-            }
-          } else {
-            Msg Error "Failed to configure app $app_name: $err"
-            continue
-          }
+        if {![ExecuteVitisUnifiedCommand $python_script "configure_app" [list $app_name $app_config_str "$globalSettings::build_dir/vitis_unified"] "Failed to configure app $app_name"]} {
+          continue
         }
       }
     } else {

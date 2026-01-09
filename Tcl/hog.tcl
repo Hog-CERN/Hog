@@ -4808,6 +4808,67 @@ proc IsVitisUnified {} {
   return [expr {$result == 0}]
 }
 
+## @brief Execute a Python command via vitis -s and display output in real-time
+#
+# This proc executes a Python script command using vitis -s, reads the output
+# line by line, displays it in real-time, and handles errors appropriately.
+#
+# @param[in] python_script Full path to the Python script (e.g., PlatformCommands.py or AppCommands.py)
+# @param[in] command The command to execute (e.g., "create_platform", "configure_app", "app_list")
+# @param[in] args List of arguments to pass to the command
+# @param[in] error_prefix Prefix for error messages (e.g., "Failed to create platform" or "Failed to configure app")
+# @return 1 on success, 0 on failure
+proc ExecuteVitisUnifiedCommand {python_script command args {error_prefix "Failed to execute command"}} {
+  # Build the command string
+  set cmd "vitis -s $python_script $command"
+  foreach arg $args {
+    # Quote arguments that contain spaces or special characters
+    if {[string match "* *" $arg] || [string match "*\{*" $arg] || [string match "*\}*" $arg]} {
+      append cmd " \"$arg\""
+    } else {
+      append cmd " $arg"
+    }
+  }
+  append cmd " 2>&1"
+  
+  Msg Debug "Executing: $cmd"
+  
+  # Set PYTHONUNBUFFERED environment variable for real-time output
+  set env(PYTHONUNBUFFERED) "1"
+  
+  # Open pipe and configure for line buffering
+  if {[catch {set pipe [open "|$cmd" "r"]} err]} {
+    Msg Error "$error_prefix: Failed to open pipe: $err"
+    return 0
+  }
+  
+  fconfigure $pipe -buffering line
+  set script_output ""
+  
+  # Read and display output line by line
+  while {[gets $pipe line] >= 0} {
+    if {$line ne ""} {
+      puts "INFO: $line"
+      append script_output "$line\n"
+    }
+  }
+  
+  # Close pipe and check exit code
+  if {[catch {close $pipe} err]} {
+    if {[regexp {exit (\d+)} $err -> exit_code]} {
+      if {$exit_code != 0} {
+        Msg Error "$error_prefix (exit code: $exit_code)"
+        return 0
+      }
+    } else {
+      Msg Error "$error_prefix: $err"
+      return 0
+    }
+  }
+  
+  return 1
+}
+
 ## @brief Find out if the given Xilinx part is a Versal chip
 #
 # @param[out] 1 if it's Zynq 0 if it's not

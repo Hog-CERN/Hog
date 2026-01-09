@@ -4808,18 +4808,15 @@ proc IsVitisUnified {} {
   return [expr {$result == 0}]
 }
 
-## @brief Execute a Python command via vitis -s and display output in real-time
-#
-# This proc executes a Python script command using vitis -s, reads the output
-# line by line, displays it in real-time, and handles errors appropriately.
+## @brief Execute a Python command via Vitis Unified command-line tool and display output in real-time
 #
 # @param[in] python_script Full path to the Python script (e.g., PlatformCommands.py or AppCommands.py)
 # @param[in] command The command to execute (e.g., "create_platform", "configure_app", "app_list")
 # @param[in] args List of arguments to pass to the command
 # @param[in] error_prefix Prefix for error messages (e.g., "Failed to create platform" or "Failed to configure app")
-# @return 1 on success, 0 on failure
+# @param[out] 1 on success, 0 on failure
+#
 proc ExecuteVitisUnifiedCommand {python_script command args {error_prefix "Failed to execute command"}} {
-  # Build the command string
   set cmd "vitis -s $python_script $command"
   foreach arg $args {
     # Quote arguments that contain spaces or special characters
@@ -4830,29 +4827,49 @@ proc ExecuteVitisUnifiedCommand {python_script command args {error_prefix "Faile
     }
   }
   append cmd " 2>&1"
-  
+
   Msg Debug "Executing: $cmd"
-  
+
   # Set PYTHONUNBUFFERED environment variable for real-time output
   set env(PYTHONUNBUFFERED) "1"
-  
+
   # Open pipe and configure for line buffering
   if {[catch {set pipe [open "|$cmd" "r"]} err]} {
     Msg Error "$error_prefix: Failed to open pipe: $err"
     return 0
   }
-  
+
   fconfigure $pipe -buffering line
   set script_output ""
-  
+
+  # Patterns to identify Vitis banner messages, these will be filtered out
+  set vitis_banner_patterns {
+    "*Vitis Development Environment*"
+    "*Vitis v*"
+    "*SW Build*"
+    "*Copyright*Xilinx*"
+    "*Copyright*Advanced Micro Devices*"
+    "*All Rights Reserved*"
+  }
+
   # Read and display output line by line
   while {[gets $pipe line] >= 0} {
     if {$line ne ""} {
-      puts "INFO: $line"
-      append script_output "$line\n"
+      # Filter out Vitis banner messages
+      set is_banner 0
+      foreach pattern $vitis_banner_patterns {
+        if {[string match $pattern $line]} {
+          set is_banner 1
+          break
+        }
+      }
+      if {!$is_banner} {
+        puts "$line"
+        append script_output "$line\n"
+      }
     }
   }
-  
+
   # Close pipe and check exit code
   if {[catch {close $pipe} err]} {
     if {[regexp {exit (\d+)} $err -> exit_code]} {
@@ -4865,7 +4882,7 @@ proc ExecuteVitisUnifiedCommand {python_script command args {error_prefix "Faile
       return 0
     }
   }
-  
+
   return 1
 }
 

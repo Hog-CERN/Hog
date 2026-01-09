@@ -85,7 +85,7 @@ def parse_advanced_options(value):
     try:
       return json.loads(value)
     except json.JSONDecodeError:
-      print("Warning: Could not parse advanced_options as JSON: %s" % value)
+      print("Warning: Could not parse advanced_options as JSON: %s" % value, flush=True)
       return None
   return None
 
@@ -161,7 +161,7 @@ def extract_soft_procs_from_xsa(xsa_path, output_file):
                   continue
 
       if len(processors) == 0:
-        print("Note: No soft processors found via XSA XML parsing", file=sys.stderr)
+        print("Note: No soft processors found via XSA XML parsing", file=sys.stderr, flush=True)
 
       # Write to output file
       if output_file:
@@ -170,16 +170,17 @@ def extract_soft_procs_from_xsa(xsa_path, output_file):
                   if proc['address_tag']:
                       f.write("%s %s\n" % (proc['hier_name'], proc['address_tag']))
                   else:
-                      print("Warning: Processor %s has no address tag" % proc['name'], file=sys.stderr)
+                      print("Warning: Processor %s has no address tag" % proc['name'], file=sys.stderr, flush=True)
       return {'processors': processors}
 
   except zipfile.BadZipFile:
-      print("ERROR: %s is not a valid ZIP file (XSA format)" % xsa_path, file=sys.stderr)
+      print("ERROR: %s is not a valid ZIP file (XSA format)" % xsa_path, file=sys.stderr, flush=True)
       return {'processors': [], 'error': 'Invalid XSA file format'}
   except Exception as e:
-      print("ERROR: Failed to extract soft processors from XSA: %s" % str(e), file=sys.stderr)
+      print("ERROR: Failed to extract soft processors from XSA: %s" % str(e), file=sys.stderr, flush=True)
       import traceback
       traceback.print_exc(file=sys.stderr)
+      sys.stderr.flush()
       return {'processors': [], 'error': str(e)}
 
 def create_platform(platform_options=None, ws_dir=None):
@@ -198,13 +199,13 @@ def create_platform(platform_options=None, ws_dir=None):
     elif isinstance(platform_options, dict):
       options = platform_options
     else:
-      print("Error: platform_options must be a string or dictionary")
+      print("Error: platform_options must be a string or dictionary", flush=True)
       return False
 
     # Validate required options
     is_valid, error_msg = validate_required_options(options)
     if not is_valid:
-      print("Error: %s" % error_msg)
+      print("Error: %s" % error_msg, flush=True)
       return False
 
     # Required arguments
@@ -214,7 +215,7 @@ def create_platform(platform_options=None, ws_dir=None):
     platform_xpfm_path = options.get("platform_xpfm_path") or ''
 
     # Determine XSA path for processor extraction
-    # If hw_design is not provided, we can't extract processors
+    # If hw_design is not provided, we can't extract soft processors
     xsa_path = hw_design if hw_design else None
 
     # Optional arguments (only include if explicitly provided)
@@ -274,23 +275,25 @@ def create_platform(platform_options=None, ws_dir=None):
 
     # Extract processor information from XSA if available
     if xsa_path and os.path.exists(xsa_path):
-      print("Opening hardware design to check if proc to cell mapping needs to be extracted for soft processors...")
+      print("Opening hardware design to check if proc to cell mapping needs to be extracted for soft processors...", flush=True)
       proc_map_file = os.path.join(ws_dir, "%s.PROC_MAP" % name)
       try:
         result = extract_soft_procs_from_xsa(xsa_path, proc_map_file)
         processors = result.get('processors', [])
         if len(processors) == 0:
-          print("No soft processors found in XSA (this is normal for hard processors like ARM)")
+          print("No soft processors found in XSA (this is normal for hard processors like ARM)", flush=True)
         else:
-          print("Extracted processor information for %d soft processor(s) to %s" % (len(processors), proc_map_file))
+          print("Extracted processor information for %d soft processor(s) to %s" % (len(processors), proc_map_file), flush=True)
       except Exception as e:
-        print("Error: Failed to extract processor information from XSA: %s" % str(e))
+        print("Error: Failed to extract processor information from XSA: %s" % str(e), flush=True)
         vitis.dispose()
         return False
 
+    print("Creating client...", flush=True)
     client = vitis.create_client()
 
     # Set workspace and initialize if it doesn't exist
+    print("Setting workspace...", flush=True)
     try:
       client.set_workspace(path=ws_dir)
     except Exception as e:
@@ -301,56 +304,59 @@ def create_platform(platform_options=None, ws_dir=None):
           try:
             client.set_workspace(path=ws_dir)
           except Exception as e2:
-            print("Error: Failed to set workspace after initialization: %s" % e2)
+            print("Error: Failed to set workspace after initialization: %s" % e2, flush=True)
             vitis.dispose()
             return False
         except Exception as init_err:
-          print("Error: Failed to initialize workspace '%s': %s" % (ws_dir, init_err))
+          print("Error: Failed to initialize workspace '%s': %s" % (ws_dir, init_err), flush=True)
           vitis.dispose()
           return False
       else:
-        print("Error: Failed to set workspace '%s': %s" % (ws_dir, e))
+        print("Error: Failed to set workspace '%s': %s" % (ws_dir, e), flush=True)
         vitis.dispose()
         return False
 
     # Create platform component
     try:
-      print("Creating platform '%s'..." % name)
-      print("  Options: %s" % ', '.join(['%s=%s' % (k, v) for k, v in platform_kwargs.items() if v]))
+      print("Creating platform component '%s'..." % name, flush=True)
+      print("  Options: %s" % ', '.join(['%s=%s' % (k, v) for k, v in platform_kwargs.items() if v]), flush=True)
       platform = client.create_platform_component(**platform_kwargs)
-      print("Platform component '%s' created successfully" % name)
+      print("Platform component '%s' created successfully" % name, flush=True)
     except Exception as e:
-      print("Error: Failed to create platform component: %s" % e)
+      print("Error: Failed to create platform component: %s" % e, flush=True)
       vitis.dispose()
       return False
 
-    # Get platform component
-    try:
-      platform = client.get_component(name=name)
-    except Exception as e:
-      print("Error: Failed to get platform component '%s': %s" % (name, e))
-      vitis.dispose()
-      return False
+    # # Get platform component
+    # try:
+    #   platform = client.get_component(name=name)
+    # except Exception as e:
+    #   print("Error: Failed to get platform component '%s': %s" % (name, e), flush=True)
+    #   vitis.dispose()
+    #   return False
 
-    # Build platform
-    try:
-      print("Building platform '%s'..." % name)
-      status = platform.build()
-      if status:
-        print("Warning: Platform build returned status: %s" % status)
-      else:
-        print("Platform '%s' built successfully" % name)
-    except Exception as e:
-      print("Error: Failed to build platform: %s" % e)
-      vitis.dispose()
-      return False
+    # # Build platform
+    # try:
+    #   print("Building platform '%s'..." % name, flush=True)
+    #   status = platform.build()
+    #   if status:
+    #     print("Warning: Platform build returned status: %s" % status, flush=True)
+    #   else:
+    #     print("Platform '%s' built successfully" % name, flush=True)
+    # except Exception as e:
+    #   print("Error: Failed to build platform: %s" % e, flush=True)
+    #   vitis.dispose()
+    #   return False
 
     # Closes all client connections and terminates the connection to the server
     vitis.dispose()
     return True
 
   except Exception as e:
-    print("Error: Unexpected error in create_platform: %s" % e)
+    print("Error: Unexpected error in create_platform: %s" % e, flush=True)
+    import traceback
+    traceback.print_exc()
+    sys.stdout.flush()
     try:
       vitis.dispose()
     except:
@@ -360,16 +366,16 @@ def create_platform(platform_options=None, ws_dir=None):
 
 if __name__ == "__main__":
     if len(sys.argv) < 4:
-        print("Error: Both platform options and workspace path are required")
-        print("Usage: vitis -s PlatformCommands.py create_platform '{ -name <platform_name> -hw_design <xsa_file_path> -os <os_type> -cpu <cpu_type> }' <workspace_path>")
-        print("\nExample:")
-        print("  vitis -s PlatformCommands.py create_platform '{ -name TestPlatform1 -hw_design my_project.xsa -cpu psu_cortexa53_0 -os standalone -domain_name standalone_a53 }' my_workspace_path")
+        print("Error: Both platform options and workspace path are required", flush=True)
+        print("Usage: vitis -s PlatformCommands.py create_platform '{ -name <platform_name> -hw_design <xsa_file_path> -os <os_type> -cpu <cpu_type> }' <workspace_path>", flush=True)
+        print("\nExample:", flush=True)
+        print("  vitis -s PlatformCommands.py create_platform '{ -name TestPlatform1 -hw_design my_project.xsa -cpu psu_cortexa53_0 -os standalone -domain_name standalone_a53 }' my_workspace_path", flush=True)
         sys.exit(1)
 
     command = sys.argv[1]
     if command != "create_platform":
-        print("ERROR: Unknown command: %s" % command, file=sys.stderr)
-        print("Available command: create_platform", file=sys.stderr)
+        print("ERROR: Unknown command: %s" % command, file=sys.stderr, flush=True)
+        print("Available command: create_platform", file=sys.stderr, flush=True)
         sys.exit(1)
 
     platform_options = sys.argv[2]

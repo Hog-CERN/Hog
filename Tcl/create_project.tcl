@@ -828,8 +828,8 @@ proc CreatePlatform {platform_name platform_conf {xsa ""}} {
   }
 
 
-  Msg Info "Opening hardware design to check if proc to cell mapping needs to be extracted for soft processors..."
   if {[IsVitisClassic]} {
+    Msg Info "Opening hardware design to check if proc to cell mapping needs to be extracted for soft processors..."
     # Use HSI commands for Vitis Classic
     hsi::open_hw_design $xsa
     set proc_cells [hsi::get_cells -filter { IP_TYPE == "PROCESSOR" }]

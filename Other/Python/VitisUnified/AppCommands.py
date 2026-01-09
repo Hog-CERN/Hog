@@ -77,7 +77,7 @@ def configure_app(app_name, app_conf, ws_dir):
     elif isinstance(app_conf, dict):
       app_options = app_conf
     else:
-      print("Error: app_conf must be a string or dictionary")
+      print("Error: app_conf must be a string or dictionary", flush=True)
       return False
 
     # Define create and config options
@@ -104,7 +104,7 @@ def configure_app(app_name, app_conf, ws_dir):
       elif key_lower in conf_options:
         app_conf_options[key_lower] = value
       else:
-        print("Warning: Unknown app option: %s" % key_lower)
+        print("Warning: Unknown app option: %s" % key_lower, flush=True)
 
     # Use client-based approach (like CreatePlatform.py)
     client = vitis.create_client()
@@ -113,7 +113,7 @@ def configure_app(app_name, app_conf, ws_dir):
     try:
       client.set_workspace(path=ws_dir)
     except Exception as e:
-      print("Error: Failed to set workspace '%s': %s" % (ws_dir, e))
+      print("Error: Failed to set workspace '%s': %s" % (ws_dir, e), flush=True)
       vitis.dispose()
       return False
 
@@ -122,7 +122,7 @@ def configure_app(app_name, app_conf, ws_dir):
     if "platform" in app_create_options:
       platform_name = app_create_options["platform"]
       platform_path = "%s/%s/export/%s/%s.xpfm" % (ws_dir, platform_name, platform_name, platform_name)
-      print("Setting app platform to '%s'" % platform_path)
+      print("Setting app platform to '%s'" % platform_path, flush=True)
 
     # Prepare app creation parameters
     app_kwargs = {
@@ -156,11 +156,11 @@ def configure_app(app_name, app_conf, ws_dir):
 
     # Create the app
     try:
-      print("Creating application '%s' with options: %s" % (app_name, app_kwargs))
+      print("Creating application '%s' with options: %s" % (app_name, app_kwargs), flush=True)
       app = client.create_app_component(**app_kwargs)
-      print("Application '%s' created successfully" % app_name)
+      print("Application '%s' created successfully" % app_name, flush=True)
     except Exception as e:
-      print("Error: Failed to create application: %s" % e)
+      print("Error: Failed to create application: %s" % e, flush=True)
       vitis.dispose()
       return False
 
@@ -168,7 +168,7 @@ def configure_app(app_name, app_conf, ws_dir):
     try:
       app = client.get_component(name=app_name)
     except Exception as e:
-      print("Error: Failed to get application '%s': %s" % (app_name, e))
+      print("Error: Failed to get application '%s': %s" % (app_name, e), flush=True)
       vitis.dispose()
       return False
 
@@ -190,12 +190,12 @@ def configure_app(app_name, app_conf, ws_dir):
 
     for key, value in app_conf_options.items():
       try:
-        print("Configuring app option '%s' to '%s'" % (key, value))
+        print("Configuring app option '%s' to '%s'" % (key, value), flush=True)
 
         # Map TCL key to API key
         api_key = key_mapping.get(key)
         if not api_key:
-          print("Warning: Configuration option '%s' not mapped to API key" % key)
+          print("Warning: Configuration option '%s' not mapped to API key" % key, flush=True)
           continue
 
         # Convert value to list if it's a string (API expects list)
@@ -214,22 +214,24 @@ def configure_app(app_name, app_conf, ws_dir):
 
         # Use set_app_config with the mapped key
         app.set_app_config(key=api_key, values=values_list)
-        print("Successfully set %s to %s" % (api_key, values_list))
+        print("Successfully set %s to %s" % (api_key, values_list), flush=True)
       except Exception as e:
-        print("Warning: Could not set app option '%s': %s" % (key, e))
+        print("Warning: Could not set app option '%s': %s" % (key, e), flush=True)
         import traceback
         traceback.print_exc()
+        sys.stdout.flush()
 
-    print("Application '%s' configured successfully" % app_name)
+    print("Application '%s' configured successfully" % app_name, flush=True)
 
     # Closes all client connections and terminates the connection to the server
     vitis.dispose()
     return True
 
   except Exception as e:
-    print("Error: Unexpected error in configure_app: %s" % e)
+    print("Error: Unexpected error in configure_app: %s" % e, flush=True)
     import traceback
     traceback.print_exc()
+    sys.stdout.flush()
     try:
       vitis.dispose()
     except:
@@ -237,42 +239,42 @@ def configure_app(app_name, app_conf, ws_dir):
     return False
 
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print("Error: Command is required")
-        print("Usage: vitis -s AppCommands.py <command> [arguments...]")
-        print("\nAvailable commands:")
-        print("  configure_app <app_name> <app_config> <workspace_path>")
-        print("  app_list <workspace_path>")
-        print("\nExamples:")
-        print("  vitis -s AppCommands.py configure_app TestApp1 '{ PLATFORM TestPlatform1 PROC psu_cortexa53_0 OS standalone }' my_workspace_path")
-        print("  vitis -s AppCommands.py app_list my_workspace_path")
-        sys.exit(1)
+  if len(sys.argv) < 2:
+    print("Error: Command is required", flush=True)
+    print("Usage: vitis -s AppCommands.py <command> [arguments...]", flush=True)
+    print("\nAvailable commands:", flush=True)
+    print("  configure_app <app_name> <app_config> <workspace_path>", flush=True)
+    print("  app_list <workspace_path>", flush=True)
+    print("\nExamples:", flush=True)
+    print("  vitis -s AppCommands.py configure_app TestApp1 '{ PLATFORM TestPlatform1 PROC psu_cortexa53_0 OS standalone }' my_workspace_path", flush=True)
+    print("  vitis -s AppCommands.py app_list my_workspace_path", flush=True)
+    sys.exit(1)
 
-    command = sys.argv[1]
+  command = sys.argv[1]
 
-    if command == "configure_app":
-        if len(sys.argv) < 5:
-            print("Error: App name, app configuration, and workspace directory are required for configure_app")
-            print("Usage: vitis -s AppCommands.py configure_app <app_name> '{ <app_options> }' <workspace_directory_path>")
-            print("\nExample:")
-            print("  vitis -s AppCommands.py configure_app TestApp1 '{ PLATFORM TestPlatform1 PROC psu_cortexa53_0 OS standalone }' my_workspace_path")
-            sys.exit(1)
-        app_name = sys.argv[2]
-        app_conf = sys.argv[3]
-        ws_dir = sys.argv[4]
-        result = configure_app(app_name=app_name, app_conf=app_conf, ws_dir=ws_dir)
-        sys.exit(0 if result else 1)
+  if command == "configure_app":
+    if len(sys.argv) < 5:
+      print("Error: App name, app configuration, and workspace directory are required for configure_app", flush=True)
+      print("Usage: vitis -s AppCommands.py configure_app <app_name> '{ <app_options> }' <workspace_directory_path>", flush=True)
+      print("\nExample:", flush=True)
+      print("  vitis -s AppCommands.py configure_app TestApp1 '{ PLATFORM TestPlatform1 PROC psu_cortexa53_0 OS standalone }' my_workspace_path", flush=True)
+      sys.exit(1)
+    app_name = sys.argv[2]
+    app_conf = sys.argv[3]
+    ws_dir = sys.argv[4]
+    result = configure_app(app_name=app_name, app_conf=app_conf, ws_dir=ws_dir)
+    sys.exit(0 if result else 1)
 
-    elif command == "app_list":
-        if len(sys.argv) < 3:
-            print("Error: Workspace path is required for app_list")
-            print("Usage: vitis -s AppCommands.py app_list <workspace_path>")
-            sys.exit(1)
-        workspace_path = sys.argv[2]
-        apps = app_list_dict(workspace_path)
-        print(json.dumps(apps))
+  elif command == "app_list":
+    if len(sys.argv) < 3:
+      print("Error: Workspace path is required for app_list", flush=True)
+      print("Usage: vitis -s AppCommands.py app_list <workspace_path>", flush=True)
+      sys.exit(1)
+    workspace_path = sys.argv[2]
+    apps = app_list_dict(workspace_path)
+    print(json.dumps(apps), flush=True)
 
-    else:
-        print("ERROR: Unknown command: %s" % command, file=sys.stderr)
-        print("Available commands: configure_app, app_list", file=sys.stderr)
-        sys.exit(1)
+  else:
+    print("ERROR: Unknown command: %s" % command, file=sys.stderr, flush=True)
+    print("Available commands: configure_app, app_list", file=sys.stderr, flush=True)
+    sys.exit(1)

@@ -20,8 +20,25 @@ import json
 import zipfile
 import xml.etree.ElementTree as ET
 
+# Import logging functions from SharedCommands
+# Get the directory of this file to find SharedCommands.py
+_shared_commands_path = os.path.join(os.path.dirname(__file__), "SharedCommands.py")
+if os.path.exists(_shared_commands_path):
+  import importlib.util
+  spec = importlib.util.spec_from_file_location("shared_commands", _shared_commands_path)
+  shared_commands = importlib.util.module_from_spec(spec)
+  spec.loader.exec_module(shared_commands)
+  PrintInfo = shared_commands.PrintInfo
+  PrintError = shared_commands.PrintError
+  PrintWarning = shared_commands.PrintWarning
+else:
+  # Fallback if SharedCommands.py is not found
+  def PrintInfo(msg): print("INFO: [Hog:Python:unknown] %s" % msg, flush=True)
+  def PrintError(msg): print("ERROR: [Hog:Python:unknown] %s" % msg, flush=True)
+  def PrintWarning(msg): print("WARNING: [Hog:Python:unknown] %s" % msg, flush=True)
 
-def parse_platform_options(platform_options_str):
+
+def ParsePlatformOptions(platform_options_str):
   """
   Parse platform options string into dictionary
   Args:
@@ -53,7 +70,7 @@ def parse_platform_options(platform_options_str):
 
   return opt_dict
 
-def str_to_bool(value):
+def StrToBool(value):
   """
   Convert string to boolean
   Args:
@@ -69,7 +86,7 @@ def str_to_bool(value):
     return value.lower() in ('true', '1', 'yes', 'on')
   return False
 
-def parse_advanced_options(value):
+def ParseAdvancedOptions(value):
   """
   Parse advanced_options from string to dictionary
   Args:
@@ -85,11 +102,11 @@ def parse_advanced_options(value):
     try:
       return json.loads(value)
     except json.JSONDecodeError:
-      print("Warning: Could not parse advanced_options as JSON: %s" % value, flush=True)
+      PrintWarning("Could not parse advanced_options as JSON: %s" % value)
       return None
   return None
 
-def validate_required_options(options):
+def ValidateRequiredOptions(options):
   """
   Validate that required options are present
   Args:
@@ -111,8 +128,8 @@ def validate_required_options(options):
 
   return True, None
 
-# @nordin (2026-01-08): Pending to be validated...
-def extract_soft_procs_from_xsa(xsa_path, output_file):
+# @nordin (2026-01-08): Pending to be validated with a soft processor...
+def ExtractProcsFromXsa(xsa_path, output_file):
   """Extract soft processors information from XSA file
   Args:
     xsa_path: Path to the XSA file
@@ -122,68 +139,66 @@ def extract_soft_procs_from_xsa(xsa_path, output_file):
   """
   processors = []
   try:
-      # XSA files are ZIP archives
-      with zipfile.ZipFile(xsa_path, 'r') as xsa_zip:
-          xml_files = [f for f in xsa_zip.namelist() if f.endswith('.xml')]
-          for xml_file in xml_files:
-              try:
-                  xml_content = xsa_zip.read(xsa_zip.getinfo(xml_file))
-                  root = ET.fromstring(xml_content)
-                  for proc_elem in root.iter():
-                      tag_lower = proc_elem.tag.lower()
-                      if 'processor' in tag_lower or 'cpu' in tag_lower:
-                          proc_name = proc_elem.get('name', '')
-                          if not proc_name:
-                              proc_name = proc_elem.text if proc_elem.text else ''
-                          # Check if it's a soft processor
-                          if re.search(r'microblaze|risc', proc_name, re.IGNORECASE):
-                              proc_info = {
-                                  'name': proc_name,
-                                  'hier_name': proc_name,
-                                  'address_tag': ''
-                              }
-                              # Try to get hierarchical name
-                              hier_name = proc_elem.get('hier_name', '')
-                              if not hier_name:
-                                  hier_name = proc_elem.get('hierName', '')
-                              if hier_name:
-                                  proc_info['hier_name'] = hier_name
-                              # Try to get address tag
-                              addr_tag = proc_elem.get('address_tag', '')
-                              if not addr_tag:
-                                  addr_tag = proc_elem.get('addressTag', '')
-                              if not addr_tag:
-                                  addr_tag = proc_elem.get('addr_tag', '')
-                              if addr_tag:
-                                  proc_info['address_tag'] = addr_tag
-                              processors.append(proc_info)
-              except Exception as e:
-                  continue
+    # XSA files are ZIP archives
+    with zipfile.ZipFile(xsa_path, 'r') as xsa_zip:
+      xml_files = [f for f in xsa_zip.namelist() if f.endswith('.xml')]
+      for xml_file in xml_files:
+        try:
+          xml_content = xsa_zip.read(xsa_zip.getinfo(xml_file))
+          root = ET.fromstring(xml_content)
+          for proc_elem in root.iter():
+            tag_lower = proc_elem.tag.lower()
+            if 'processor' in tag_lower or 'cpu' in tag_lower:
+              proc_name = proc_elem.get('name', '')
+              if not proc_name:
+                proc_name = proc_elem.text if proc_elem.text else ''
+              # Check if it's a soft processor
+              if re.search(r'microblaze|risc', proc_name, re.IGNORECASE):
+                proc_info = {
+                  'name': proc_name,
+                  'hier_name': proc_name,
+                  'address_tag': ''
+                }
+                # Try to get hierarchical name
+                hier_name = proc_elem.get('hier_name', '')
+                if not hier_name:
+                  hier_name = proc_elem.get('hierName', '')
+                if hier_name:
+                  proc_info['hier_name'] = hier_name
+                # Try to get address tag
+                addr_tag = proc_elem.get('address_tag', '')
+                if not addr_tag:
+                  addr_tag = proc_elem.get('addressTag', '')
+                if not addr_tag:
+                  addr_tag = proc_elem.get('addr_tag', '')
+                if addr_tag:
+                  proc_info['address_tag'] = addr_tag
+                processors.append(proc_info)
+        except Exception as e:
+          continue
 
-      if len(processors) == 0:
-        print("Note: No soft processors found via XSA XML parsing", file=sys.stderr, flush=True)
-
-      # Write to output file
-      if output_file:
-          with open(output_file, 'w') as f:
-              for proc in processors:
-                  if proc['address_tag']:
-                      f.write("%s %s\n" % (proc['hier_name'], proc['address_tag']))
-                  else:
-                      print("Warning: Processor %s has no address tag" % proc['name'], file=sys.stderr, flush=True)
-      return {'processors': processors}
+    if output_file:
+      processors_with_tags = [proc for proc in processors if proc.get('address_tag')]
+      if processors_with_tags:
+        output_dir = os.path.dirname(output_file)
+        if output_dir and not os.path.exists(output_dir):
+          os.makedirs(output_dir, exist_ok=True)
+        with open(output_file, 'w') as f:
+          for proc in processors_with_tags:
+            f.write("%s %s\n" % (proc['hier_name'], proc['address_tag']))
+    return {'processors': processors}
 
   except zipfile.BadZipFile:
-      print("ERROR: %s is not a valid ZIP file (XSA format)" % xsa_path, file=sys.stderr, flush=True)
-      return {'processors': [], 'error': 'Invalid XSA file format'}
+    PrintError("%s is not a valid ZIP file (XSA format)" % xsa_path)
+    return {'processors': [], 'error': 'Invalid XSA file format'}
   except Exception as e:
-      print("ERROR: Failed to extract soft processors from XSA: %s" % str(e), file=sys.stderr, flush=True)
-      import traceback
-      traceback.print_exc(file=sys.stderr)
-      sys.stderr.flush()
-      return {'processors': [], 'error': str(e)}
+    PrintError("Failed to extract soft processors from XSA: %s" % str(e))
+    import traceback
+    traceback.print_exc(file=sys.stderr)
+    sys.stderr.flush()
+    return {'processors': [], 'error': str(e)}
 
-def create_platform(platform_options=None, ws_dir=None):
+def CreatePlatform(platform_options=None, ws_dir=None):
   """
   Create a Vitis Unified platform component
   Args:
@@ -195,17 +210,17 @@ def create_platform(platform_options=None, ws_dir=None):
   try:
     # Parse platform options
     if isinstance(platform_options, str):
-      options = parse_platform_options(platform_options)
+      options = ParsePlatformOptions(platform_options)
     elif isinstance(platform_options, dict):
       options = platform_options
     else:
-      print("Error: platform_options must be a string or dictionary", flush=True)
+      PrintError("platform_options must be a string or dictionary")
       return False
 
     # Validate required options
-    is_valid, error_msg = validate_required_options(options)
+    is_valid, error_msg = ValidateRequiredOptions(options)
     if not is_valid:
-      print("Error: %s" % error_msg, flush=True)
+      PrintError(error_msg)
       return False
 
     # Required arguments
@@ -226,9 +241,9 @@ def create_platform(platform_options=None, ws_dir=None):
     template = options.get("template")
 
     # Boolean options - convert from string if provided
-    no_boot_bsp = str_to_bool(options.get("no_boot_bsp")) if "no_boot_bsp" in options else None
-    is_pmufw_req = str_to_bool(options.get("is_pmufw_req")) if "is_pmufw_req" in options else None
-    generate_dtb = str_to_bool(options.get("generate_dtb")) if "generate_dtb" in options else None
+    no_boot_bsp = StrToBool(options.get("no_boot_bsp")) if "no_boot_bsp" in options else None
+    is_pmufw_req = StrToBool(options.get("is_pmufw_req")) if "is_pmufw_req" in options else None
+    generate_dtb = StrToBool(options.get("generate_dtb")) if "generate_dtb" in options else None
 
     # Path options
     fsbl_target = options.get("fsbl_target")
@@ -236,7 +251,7 @@ def create_platform(platform_options=None, ws_dir=None):
     pmufw_Elf = options.get("pmufw_Elf")
 
     # Advanced options, parse from string if needed
-    advanced_options = parse_advanced_options(options.get("advanced_options"))
+    advanced_options = ParseAdvancedOptions(options.get("advanced_options"))
 
     # Build kwargs dictionary for create_platform_component
     # Include all arguments, using API defaults for optional ones not provided
@@ -275,25 +290,25 @@ def create_platform(platform_options=None, ws_dir=None):
 
     # Extract processor information from XSA if available
     if xsa_path and os.path.exists(xsa_path):
-      print("Opening hardware design to check if proc to cell mapping needs to be extracted for soft processors...", flush=True)
+      PrintInfo("Opening hardware design to check if proc to cell mapping needs to be extracted for soft processors...")
       proc_map_file = os.path.join(ws_dir, "%s.PROC_MAP" % name)
       try:
-        result = extract_soft_procs_from_xsa(xsa_path, proc_map_file)
+        result = ExtractProcsFromXsa(xsa_path, proc_map_file)
         processors = result.get('processors', [])
         if len(processors) == 0:
-          print("No soft processors found in XSA (this is normal for hard processors like ARM)", flush=True)
+          PrintInfo("No soft processors found in XSA (this is normal for hard processors like ARM)")
         else:
-          print("Extracted processor information for %d soft processor(s) to %s" % (len(processors), proc_map_file), flush=True)
+          PrintInfo("Extracted processor information for %d soft processor(s) to %s" % (len(processors), proc_map_file))
       except Exception as e:
-        print("Error: Failed to extract processor information from XSA: %s" % str(e), flush=True)
+        PrintError("Failed to extract processor information from XSA: %s" % str(e))
         vitis.dispose()
         return False
 
-    print("Creating client...", flush=True)
+    PrintInfo("Creating client...")
     client = vitis.create_client()
 
     # Set workspace and initialize if it doesn't exist
-    print("Setting workspace...", flush=True)
+    PrintInfo("Setting workspace...")
     try:
       client.set_workspace(path=ws_dir)
     except Exception as e:
@@ -304,26 +319,26 @@ def create_platform(platform_options=None, ws_dir=None):
           try:
             client.set_workspace(path=ws_dir)
           except Exception as e2:
-            print("Error: Failed to set workspace after initialization: %s" % e2, flush=True)
+            PrintError("Failed to set workspace after initialization: %s" % e2)
             vitis.dispose()
             return False
         except Exception as init_err:
-          print("Error: Failed to initialize workspace '%s': %s" % (ws_dir, init_err), flush=True)
+          PrintError("Failed to initialize workspace '%s': %s" % (ws_dir, init_err))
           vitis.dispose()
           return False
       else:
-        print("Error: Failed to set workspace '%s': %s" % (ws_dir, e), flush=True)
+        PrintError("Failed to set workspace '%s': %s" % (ws_dir, e))
         vitis.dispose()
         return False
 
     # Create platform component
     try:
-      print("Creating platform component '%s'..." % name, flush=True)
-      print("  Options: %s" % ', '.join(['%s=%s' % (k, v) for k, v in platform_kwargs.items() if v]), flush=True)
+      PrintInfo("Creating platform component '%s'..." % name)
+      PrintInfo("  Options: %s" % ', '.join(['%s=%s' % (k, v) for k, v in platform_kwargs.items() if v]))
       platform = client.create_platform_component(**platform_kwargs)
-      print("Platform component '%s' created successfully" % name, flush=True)
+      PrintInfo("Platform component '%s' created successfully" % name)
     except Exception as e:
-      print("Error: Failed to create platform component: %s" % e, flush=True)
+      PrintError("Failed to create platform component: %s" % e)
       vitis.dispose()
       return False
 
@@ -353,7 +368,7 @@ def create_platform(platform_options=None, ws_dir=None):
     return True
 
   except Exception as e:
-    print("Error: Unexpected error in create_platform: %s" % e, flush=True)
+    PrintError("Unexpected error in create_platform: %s" % e)
     import traceback
     traceback.print_exc()
     sys.stdout.flush()
@@ -365,20 +380,20 @@ def create_platform(platform_options=None, ws_dir=None):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) < 4:
-        print("Error: Both platform options and workspace path are required", flush=True)
-        print("Usage: vitis -s PlatformCommands.py create_platform '{ -name <platform_name> -hw_design <xsa_file_path> -os <os_type> -cpu <cpu_type> }' <workspace_path>", flush=True)
-        print("\nExample:", flush=True)
-        print("  vitis -s PlatformCommands.py create_platform '{ -name TestPlatform1 -hw_design my_project.xsa -cpu psu_cortexa53_0 -os standalone -domain_name standalone_a53 }' my_workspace_path", flush=True)
-        sys.exit(1)
+  if len(sys.argv) < 4:
+    PrintError("Both platform options and workspace path are required")
+    print("Usage: vitis -s PlatformCommands.py create_platform '{ -name <platform_name> -hw_design <xsa_file_path> -os <os_type> -cpu <cpu_type> }' <workspace_path>", flush=True)
+    print("\nExample:", flush=True)
+    print("  vitis -s PlatformCommands.py create_platform '{ -name TestPlatform1 -hw_design my_project.xsa -cpu psu_cortexa53_0 -os standalone -domain_name standalone_a53 }' my_workspace_path", flush=True)
+    sys.exit(1)
 
-    command = sys.argv[1]
-    if command != "create_platform":
-        print("ERROR: Unknown command: %s" % command, file=sys.stderr, flush=True)
-        print("Available command: create_platform", file=sys.stderr, flush=True)
-        sys.exit(1)
+  command = sys.argv[1]
+  if command != "create_platform":
+    PrintError("Unknown command: %s" % command)
+    print("Available command: create_platform", file=sys.stderr, flush=True)
+    sys.exit(1)
 
-    platform_options = sys.argv[2]
-    ws_dir = sys.argv[3]
-    result = create_platform(platform_options=platform_options, ws_dir=ws_dir)
-    sys.exit(0 if result else 1)
+  platform_options = sys.argv[2]
+  ws_dir = sys.argv[3]
+  result = CreatePlatform(platform_options=platform_options, ws_dir=ws_dir)
+  sys.exit(0 if result else 1)

@@ -651,6 +651,35 @@ set proj_conf [ProjectExists $project_name $repo_path]
 set ide_name_and_ver [string tolower [GetIDEFromConf $proj_conf]]
 set ide_name [lindex [regexp -all -inline {\S+} $ide_name_and_ver] 0]
 
+# If Vitis Classic only project, launch xsct
+if {([string tolower $ide_name] eq "vitis_classic") || ([string tolower $ide_name] eq "vivado_vitis_classic" && $options(vitis_only) == 1)} {
+  if {![IsVitisClassic]} {
+    set xsct_cmd "xsct $tcl_path/launch.tcl"
+    Msg Info "Launching xsct with command: $xsct_cmd"
+    foreach arg $argv {
+      append xsct_cmd " [list $arg]"
+    }
+    set ret [catch {exec -ignorestderr {*}$xsct_cmd >@ stdout <@ stdin} result]
+    if {$ret != 0} {
+      Msg Error "xsct returned an error state: $result"
+      exit $ret
+    }
+    exit 0
+  }
+}
+
+# Vitis IDE detection
+if {([string tolower $ide_name] eq "vivado_vitis_classic" || [string tolower $ide_name] eq "vitis_classic") && ($options(vivado_only) != 1)} {
+  set globalSettings::vitis_classic 1
+  set globalSettings::vitis_unified 0
+} elseif {([string tolower $ide_name] eq "vivado_vitis_unified" || [string tolower $ide_name] eq "vitis_unified") && ($options(vivado_only) != 1)} {
+  set globalSettings::vitis_classic 0
+  set globalSettings::vitis_unified 1
+} else {
+  set globalSettings::vitis_classic 0
+  set globalSettings::vitis_unified 0
+}
+
 if {$options(no_bitstream) == 1} {
   set do_bitstream 0
   set do_compile 0
@@ -740,10 +769,24 @@ Msg Info "Number of jobs set to $options(njobs)."
 set argv ""
 
 ############# CREATE or OPEN project ############
+puts ">>>>>>>> IsVitisClassic: [IsVitisClassic]"
+puts ">>>>>>>> IsVitisUnified: [IsVitisUnified]"
+puts ">>>>>>>> IsVivado: [IsVivado]"
+puts ">>>>>>>> IsISE: [IsISE]"
+puts ">>>>>>>> IsQuartus: [IsQuartus]"
+puts ">>>>>>>> IsLibero: [IsLibero]"
+puts ">>>>>>>> IsDiamond: [IsDiamond]"
+puts ">>>>>>>> ide_name: $ide_name"
+puts ">>>>>>>> options(vitis_only): $options(vitis_only)"
+
 if {$options(vitis_only) == 1 && ($ide_name eq "vitis_unified" || $ide_name eq "vivado_vitis_unified")} {
   cd $tcl_path
   set project_file [file normalize $repo_path/Projects/$project_name/vitis_unified/_ide/settings.json]
   Msg Info "Setting project file for Vitis Unified project $project_name to $project_file"
+} elseif {$options(vitis_only) == 1 && ($ide_name eq "vitis_classic" || $ide_name eq "vivado_vitis_classic")} {
+  cd $tcl_path
+  set project_file [file normalize $repo_path/Projects/$project_name/vitis_classic/.metadata/]
+  Msg Info "Setting project file for Vitis Classic project $project_name to $project_file"
 } elseif {[IsISE]} {
   cd $tcl_path
   set project_file [file normalize $repo_path/Projects/$project_name/$project.ppr]
@@ -804,17 +847,14 @@ if {($proj_found == 0 || $recreate == 1) && $do_create == 1} {
   if {$options(vitis_only) == 1 && ($ide_name eq "vitis_unified" || $ide_name eq "vivado_vitis_unified")} {
     set vitis_workspace [file normalize $repo_path/Projects/$project_name/vitis_unified/]
     Msg Info "Setting Vitis Unified workspace to $vitis_workspace"
-    # setws $vitis_workspace
   } elseif {[IsXilinx]} {
     file mkdir "$repo_path/Projects/$project_name/$project.gen/sources_1"
   } elseif {[IsVitisClassic]} {
     set vitis_workspace [file normalize $repo_path/Projects/$project_name/vitis_classic/]
     Msg Info "Setting workspace to $vitis_workspace"
-    setws $vitis_workspace
   } elseif {[IsVitisUnified]} {
     set vitis_workspace [file normalize $repo_path/Projects/$project_name/vitis_unified/]
     Msg Info "Setting workspace to $vitis_workspace"
-    # setws $vitis_workspace
   } else {
     OpenProject $project_file $repo_path
   }

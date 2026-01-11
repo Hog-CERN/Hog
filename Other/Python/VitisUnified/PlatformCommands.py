@@ -124,7 +124,7 @@ def ValidateRequiredOptions(options):
 
   return True, None
 
-# @nordin (2026-01-08): Pending to be validated with a soft processor...
+# TODO: Pending to be validated for an XSA with embedded soft processors...
 def ExtractProcsFromXsa(xsa_path, output_file):
   """Extract soft processors information from XSA file
   Args:

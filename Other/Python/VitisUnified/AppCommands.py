@@ -70,9 +70,8 @@ def AppListDict(workspace_path):
     app_dict = {}
     if components:
       for comp in components:
-        # Get component name first
         comp_name = None
-        
+
         # Check if component is a dictionary or an object
         if isinstance(comp, dict):
           comp_name = comp.get('component_name', comp.get('name', ''))
@@ -81,42 +80,38 @@ def AppListDict(workspace_path):
           comp_name = getattr(comp, 'component_name', None)
           if comp_name is None:
             comp_name = getattr(comp, 'name', None)
-        
+
         if not comp_name:
           PrintDebug("Skipping component with no name: %s" % str(comp))
           continue
-        
+
         PrintDebug("Checking component: name='%s'" % comp_name)
-        
+
         # Try to get the component object to check its type
         try:
           comp_obj = client.get_component(name=comp_name)
-          
+
           # Check if it's an application by checking the component type
           comp_type = None
           if hasattr(comp_obj, 'component_type'):
             comp_type = comp_obj.component_type
           elif hasattr(comp_obj, 'type'):
             comp_type = comp_obj.type
-          
+
           comp_type_str = str(comp_type).upper() if comp_type else ""
           PrintDebug("Component '%s' has type: '%s'" % (comp_name, comp_type_str))
-          
+
           # Check if this is an application component
           # component_type can be "APPLICATION" or "HOST" (which maps to APPLICATION)
           if comp_type_str == "APPLICATION" or comp_type_str == "HOST":
-            # Add app name to dictionary (empty dict as value to match expected format)
             app_dict[comp_name] = {}
             PrintInfo("Added app '%s' to list" % comp_name)
           else:
             PrintDebug("Skipping non-application component '%s' (type='%s')" % (comp_name, comp_type_str))
         except Exception as e:
-          # If we can't get the component, it might not exist or might be a different type
-          # Try to determine if it's an application by checking if we can access it as an app
           PrintDebug("Could not get component '%s' as object: %s" % (comp_name, e))
-          # Skip components we can't retrieve
           continue
-    
+
     PrintInfo("Total apps found: %d" % len(app_dict))
 
     # Closes all client connections and terminates the connection to the server
@@ -272,7 +267,7 @@ def ConfigureApp(app_name, app_conf, ws_dir):
       vitis.dispose()
       return False
 
-    # @nordin (2026-01-08): Pending to be validated...
+    # TODO: Pending to be validated...
     # Configure app options using set_app_config API
     key_mapping = {
       "build-config": "BUILD_CONFIG",
@@ -338,18 +333,28 @@ def ConfigureApp(app_name, app_conf, ws_dir):
       pass
     return False
 
-def AddAppFiles(app_name, file_paths, ws_dir, target_path=None):
+def AddAppFiles(app_name, file_paths, ws_dir, target_path=None, vitis_version=None):
   """
   Add source files to a Vitis Unified application
+  For Vitis < 2025.2: Uses symbolic links to reference original files (no copying)
+  For Vitis >= 2025.2: Uses is_skip_copy_sources parameter when calling import_files function from Vitis API
   Args:
     app_name: Name of the application
     file_paths: List of file paths to add (can be JSON string or list)
     ws_dir: Workspace directory path
     target_path: Optional target path within the app (relative to app directory)
+    vitis_version: Optional Vitis version string (e.g., "2024.2", "2025.2")
+                    If not provided, will be read from HOG_VITIS_VER environment variable
   Returns:
     bool: True if successful, False otherwise
   """
   try:
+    # Get Vitis version from parameter or environment variable
+    if vitis_version is None:
+      vitis_version = os.environ.get('HOG_VITIS_VER')
+      if vitis_version:
+        PrintDebug("Vitis version read from HOG_VITIS_VER environment variable: %s" % vitis_version)
+
     PrintInfo("Adding files to app '%s'" % app_name)
     # Parse file_paths if it's a JSON string
     if isinstance(file_paths, str):
@@ -410,21 +415,115 @@ def AddAppFiles(app_name, file_paths, ws_dir, target_path=None):
       vitis.dispose()
       return True
 
-    # Add files to the app using the correct API
-    # Group by directory and import all files from each directory at once
+    # Determine which method to use based on Vitis version
+    # Simple inline version comparison: parse "2025.2" -> (2025, 2) and compare
+    use_skip_copy = False
+    if vitis_version:
+      try:
+        v_parts = [int(x) for x in vitis_version.split('.')]
+        if len(v_parts) >= 2 and (v_parts[0] > 2025 or (v_parts[0] == 2025 and v_parts[1] >= 2)):
+          use_skip_copy = True
+          PrintInfo("Using is_skip_copy_sources when calling import_files function from Vitis API (Vitis >= 2025.2)")
+        else:
+          PrintInfo("Using import-then-replace-with-symlinks approach (Vitis < 2025.2)")
+      except (ValueError, AttributeError):
+        PrintWarning("Could not parse version '%s', defaulting to import-then-replace approach" % vitis_version)
+    else:
+      PrintWarning("Vitis version not provided (HOG_VITIS_VER not set), defaulting to import-then-replace approach")
+
+    # Add files to the app using the appropriate method
     try:
       total_imported = 0
       for from_dir, file_names in files_by_dir.items():
-        PrintInfo("Importing %d file(s) from '%s' to app '%s'" % (len(file_names), from_dir, app_name))
+        if use_skip_copy:
+          # Method 1: Use is_skip_copy_sources parameter (Vitis >= 2025.2)
+          PrintInfo("Adding %d file(s) from '%s' to app '%s' (using is_skip_copy_sources=True)" % (len(file_names), from_dir, app_name))
+          try:
+            app.import_files(from_loc=from_dir, files=file_names, dest_dir_in_cmp=target_path, is_skip_copy_sources=True)
+            total_imported += len(file_names)
+          except TypeError as e:
+            # If is_skip_copy_sources parameter doesn't exist, fall back to import-then-replace
+            PrintWarning("is_skip_copy_sources parameter not available, falling back to import-then-replace: %s" % e)
+            use_skip_copy = False
+            # Fall through to import-then-replace method below
 
-        # Use Component.import_files API
-        # from_loc: source directory
-        # files: list of filenames within that directory
-        # dest_dir_in_cmp: destination directory within the component (optional)
-        app.import_files(from_loc=from_dir, files=file_names, dest_dir_in_cmp=target_path)
-        total_imported += len(file_names)
+        if not use_skip_copy:
+          # Method 2: Import files first (they get copied), then replace with symbolic links (Vitis < 2025.2 or fallback)
+          PrintInfo("Importing %d file(s) from '%s' to app '%s' (will replace with symbolic links)" % (len(file_names), from_dir, app_name))
 
-      PrintInfo("Successfully added %d file(s) to app '%s'" % (total_imported, app_name))
+          # Step 1: Import files normally (they get copied to the correct location)
+          app.import_files(from_loc=from_dir, files=file_names, dest_dir_in_cmp=target_path)
+
+          # Step 2: Find where Vitis placed the files and replace them with symbolic links
+          component_location = app.component_location
+          if not component_location:
+            PrintError("Component location not found for app '%s'" % app_name)
+            vitis.dispose()
+            return False
+
+          # Determine where Vitis placed the files
+          if target_path:
+            imported_files_dir = os.path.join(component_location, target_path)
+          else:
+            imported_files_dir = component_location
+
+          # Step 3: Replace each copied file with a symbolic link to the original
+          replaced_count = 0
+          for file_name in file_names:
+            source_file = os.path.join(from_dir, file_name)
+            if not os.path.exists(source_file):
+              PrintWarning("Source file '%s' does not exist, skipping" % source_file)
+              continue
+
+            source_file_abs = os.path.abspath(source_file)
+            copied_file_path = os.path.join(imported_files_dir, file_name)
+
+            if not os.path.exists(copied_file_path):
+              PrintWarning("Imported file '%s' not found at expected location '%s', skipping replacement" % (file_name, copied_file_path))
+              continue
+
+            # Remove the copied file
+            try:
+              if os.path.islink(copied_file_path):
+                os.remove(copied_file_path)
+              elif os.path.isfile(copied_file_path):
+                os.remove(copied_file_path)
+              else:
+                PrintWarning("'%s' is not a regular file or link, skipping" % copied_file_path)
+                continue
+            except Exception as e:
+              PrintError("Failed to remove copied file '%s': %s" % (copied_file_path, e))
+              vitis.dispose()
+              return False
+
+            # Create symbolic link pointing to the original file
+            try:
+              try:
+                rel_path = os.path.relpath(source_file_abs, imported_files_dir)
+                os.symlink(rel_path, copied_file_path)
+                PrintDebug("Replaced copied file '%s' with symbolic link -> '%s' (relative)" % (copied_file_path, rel_path))
+              except (ValueError, OSError):
+                # If relative path fails (different drives on Windows), use absolute path
+                os.symlink(source_file_abs, copied_file_path)
+                PrintDebug("Replaced copied file '%s' with symbolic link -> '%s' (absolute)" % (copied_file_path, source_file_abs))
+              replaced_count += 1
+            except OSError as e:
+              PrintError("Failed to create symbolic link for '%s': %s" % (source_file_abs, e))
+              if sys.platform == 'win32':
+                PrintError("On Windows, symbolic link creation may require:")
+                PrintError("  1. Administrator privileges, OR")
+                PrintError("  2. Developer Mode enabled (Settings > Update & Security > For developers)")
+              vitis.dispose()
+              return False
+
+          total_imported += len(file_names)
+          PrintInfo("Replaced %d copied file(s) with symbolic links pointing to original files" % replaced_count)
+
+      if use_skip_copy:
+        PrintInfo("Successfully added %d file(s) to app '%s' using relative paths (no copying)" % (total_imported, app_name))
+      else:
+        PrintInfo("Successfully added %d file(s) to app '%s' using symbolic links" % (total_imported, app_name))
+        PrintInfo("Files are referenced via symbolic links - original files are not copied")
     except Exception as e:
       PrintError("Failed to add files to app '%s': %s" % (app_name, e))
       import traceback
@@ -447,6 +546,7 @@ def AddAppFiles(app_name, file_paths, ws_dir, target_path=None):
     except:
       pass
     return False
+
 
 if __name__ == "__main__":
   if len(sys.argv) < 2:
@@ -490,7 +590,9 @@ if __name__ == "__main__":
     if len(sys.argv) < 5:
       PrintError("App name, file paths, and workspace directory are required for add_app_files")
       print("Usage: vitis -s AppCommands.py add_app_files <app_name> '<file_paths_json>' <workspace_path> [target_path]", flush=True)
+      print("Note: Vitis version is read from HOG_VITIS_VER environment variable (set by Tcl script)", flush=True)
       print("\nExample:", flush=True)
+      print("  export HOG_VITIS_VER=2025.2", flush=True)
       print("  vitis -s AppCommands.py add_app_files TestApp1 '[\"/path/to/file1.c\", \"/path/to/file2.c\"]' my_workspace_path src", flush=True)
       sys.exit(1)
     app_name = sys.argv[2]

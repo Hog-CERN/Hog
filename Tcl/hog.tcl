@@ -113,8 +113,6 @@ proc AddHogFiles {libraries properties filesets} {
         }
       }
 
-      puts ">>>>>>>> ws_apps: $ws_apps"
-
       # Check if each app has a corresponding source file
       if {$ws_apps ne ""} {
         dict for {app_name app_config} $ws_apps {
@@ -623,6 +621,11 @@ proc AddHogFiles {libraries properties filesets} {
     if {[IsVitisUnified] && [dict size $app_files_dict] > 0} {
       set python_script "$globalSettings::repo_path/Hog/Other/Python/VitisUnified/AppCommands.py"
       set vitis_workspace "$globalSettings::build_dir/vitis_unified"
+      
+      # Get Vitis version and set as environment variable for Python script
+      set vitis_version [GetIDEVersion]
+      set env(HOG_VITIS_VER) $vitis_version
+      Msg Debug "Vitis version: $vitis_version (set in HOG_VITIS_VER environment variable)"
 
       dict for {app_name app_data} $app_files_dict {
         set files_list [dict get $app_data files]

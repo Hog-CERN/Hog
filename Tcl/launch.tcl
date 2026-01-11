@@ -907,14 +907,10 @@ if {$do_rtl == 1} {
 
 if {$do_vitis_build == 1} {
   if {[IsVitisClassic] || [IsVitisUnified]} {
-    puts ">>>>>>>>>Launching Vitis build"
     LaunchVitisBuild $project_name $repo_path
-  # } else {
-  #   set xsct_cmd "xsct $tcl_path/launch.tcl W -vitis_only $project_name"
-  #   set ret [catch {exec -ignorestderr {*}$xsct_cmd >@ stdout} result]
-  #   if {$ret != 0} {
-  #     Msg Error "xsct (vitis classic) returned an error state."
-  #   }
+  } else {
+    Msg Error "Vitis build is not supported for $ide_name (only Vitis Classic and Vitis Unified are supported)"
+    exit 1
   }
 }
 

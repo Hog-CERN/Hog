@@ -338,26 +338,26 @@ def CreatePlatform(platform_options=None, ws_dir=None):
       vitis.dispose()
       return False
 
-    # # Get platform component
-    # try:
-    #   platform = client.get_component(name=name)
-    # except Exception as e:
-    #   print("Error: Failed to get platform component '%s': %s" % (name, e), flush=True)
-    #   vitis.dispose()
-    #   return False
+    # Get platform component
+    try:
+      platform = client.get_component(name=name)
+    except Exception as e:
+      print("Error: Failed to get platform component '%s': %s" % (name, e), flush=True)
+      vitis.dispose()
+      return False
 
-    # # Build platform
-    # try:
-    #   print("Building platform '%s'..." % name, flush=True)
-    #   status = platform.build()
-    #   if status:
-    #     print("Warning: Platform build returned status: %s" % status, flush=True)
-    #   else:
-    #     print("Platform '%s' built successfully" % name, flush=True)
-    # except Exception as e:
-    #   print("Error: Failed to build platform: %s" % e, flush=True)
-    #   vitis.dispose()
-    #   return False
+    # Build platform
+    try:
+      print("Building platform '%s'..." % name, flush=True)
+      status = platform.build()
+      if status:
+        print("Warning: Platform build returned status: %s" % status, flush=True)
+      else:
+        print("Platform '%s' built successfully" % name, flush=True)
+    except Exception as e:
+      print("Error: Failed to build platform: %s" % e, flush=True)
+      vitis.dispose()
+      return False
 
     # Closes all client connections and terminates the connection to the server
     vitis.dispose()

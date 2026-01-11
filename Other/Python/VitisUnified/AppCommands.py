@@ -270,7 +270,6 @@ def ConfigureApp(app_name, app_conf, ws_dir):
     # TODO: Pending to be validated...
     # Configure app options using set_app_config API
     key_mapping = {
-      "build-config": "BUILD_CONFIG",
       "compiler-optimization": "USER_COMPILE_OPTIMIZATION_LEVEL",
       "define-compiler-symbols": "USER_COMPILE_DEFINITIONS",
       "undef-compiler-symbols": "USER_UNDEFINE_SYMBOLS",
@@ -547,6 +546,92 @@ def AddAppFiles(app_name, file_paths, ws_dir, target_path=None, vitis_version=No
       pass
     return False
 
+def BuildApp(app_name, ws_dir, target=None):
+  """
+  Build a Vitis Unified application
+  Args:
+    app_name: Name of the application
+    ws_dir: Workspace directory path
+    target: Optional build target (None, "hw", or "x86sim"). Defaults to None.
+  Returns:
+    bool: True if successful, False otherwise
+  """
+  try:
+    PrintInfo("Building app '%s' in workspace: %s" % (app_name, ws_dir))
+    if target:
+      PrintInfo("Build target: %s" % target)
+
+    # Use client-based approach
+    client = vitis.create_client()
+
+    # Set workspace
+    try:
+      client.set_workspace(path=ws_dir)
+    except Exception as e:
+      PrintError("Failed to set workspace '%s': %s" % (ws_dir, e))
+      vitis.dispose()
+      return False
+
+    # Get the app component
+    try:
+      app = client.get_component(name=app_name)
+    except Exception as e:
+      PrintError("Failed to get application '%s': %s" % (app_name, e))
+      vitis.dispose()
+      return False
+
+    # Build the app
+    try:
+      PrintInfo("Starting build for application '%s'..." % app_name)
+      build_status = app.build(target=target)
+
+      # Check build status
+      # The build method returns a status object or string
+      # According to API docs, it returns "SUCCESS" or "FAILURE"
+      # Check if it's an object with a status attribute, or a string
+      status_str = ""
+      if build_status is None:
+        PrintInfo("Build completed for application '%s' (status: None)" % app_name)
+        vitis.dispose()
+        return True
+      elif hasattr(build_status, 'status'):
+        status_str = str(build_status.status).upper()
+      else:
+        status_str = str(build_status).upper()
+
+      # Check the status string
+      if "FAILURE" in status_str:
+        PrintError("Build failed for application '%s' with status: %s" % (app_name, build_status))
+        vitis.dispose()
+        return False
+      elif "SUCCESS" in status_str:
+        PrintInfo("Build completed successfully for application '%s'" % app_name)
+        vitis.dispose()
+        return True
+      else:
+        # Unknown status, but not explicitly FAILURE, so assume success
+        PrintInfo("Build completed for application '%s' with status: %s" % (app_name, build_status))
+        vitis.dispose()
+        return True
+    except Exception as e:
+      PrintError("Failed to build application '%s': %s" % (app_name, e))
+      import traceback
+      traceback.print_exc()
+      sys.stdout.flush()
+      vitis.dispose()
+      return False
+
+  except Exception as e:
+    PrintError("Unexpected error in BuildApp: %s" % e)
+    import traceback
+    traceback.print_exc()
+    sys.stdout.flush()
+    try:
+      vitis.dispose()
+    except:
+      pass
+    return False
+
 
 if __name__ == "__main__":
   if len(sys.argv) < 2:
@@ -556,10 +641,12 @@ if __name__ == "__main__":
     print("  configure_app <app_name> <app_config> <workspace_path>", flush=True)
     print("  app_list <workspace_path>", flush=True)
     print("  add_app_files <app_name> <file_paths_json> <workspace_path> [target_path]", flush=True)
+    print("  build_app <app_name> <workspace_path> [target]", flush=True)
     print("\nExamples:", flush=True)
     print("  vitis -s AppCommands.py configure_app TestApp1 '{ PLATFORM TestPlatform1 PROC psu_cortexa53_0 OS standalone }' my_workspace_path", flush=True)
     print("  vitis -s AppCommands.py app_list my_workspace_path", flush=True)
     print("  vitis -s AppCommands.py add_app_files TestApp1 '[\"/path/to/file1.c\", \"/path/to/file2.c\"]' my_workspace_path src", flush=True)
+    print("  vitis -s AppCommands.py build_app TestApp1 my_workspace_path [hw|x86sim]", flush=True)
     sys.exit(1)
 
   command = sys.argv[1]
@@ -602,7 +689,21 @@ if __name__ == "__main__":
     result = AddAppFiles(app_name=app_name, file_paths=file_paths_json, ws_dir=ws_dir, target_path=target_path)
     sys.exit(0 if result else 1)
 
+  elif command == "build_app":
+    if len(sys.argv) < 4:
+      PrintError("App name and workspace directory are required for build_app")
+      print("Usage: vitis -s AppCommands.py build_app <app_name> <workspace_path> [target]", flush=True)
+      print("  target: Optional build target - 'hw' or 'x86sim' (default: None)", flush=True)
+      print("\nExample:", flush=True)
+      print("  vitis -s AppCommands.py build_app TestApp1 my_workspace_path hw", flush=True)
+      sys.exit(1)
+    app_name = sys.argv[2]
+    ws_dir = sys.argv[3]
+    target = sys.argv[4] if len(sys.argv) > 4 else None
+    result = BuildApp(app_name=app_name, ws_dir=ws_dir, target=target)
+    sys.exit(0 if result else 1)
+
   else:
     PrintError("Unknown command: %s" % command)
-    print("Available commands: configure_app, app_list, add_app_files", file=sys.stderr, flush=True)
+    print("Available commands: configure_app, app_list, add_app_files, build_app", file=sys.stderr, flush=True)
     sys.exit(1)

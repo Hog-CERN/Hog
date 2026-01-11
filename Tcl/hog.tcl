@@ -5791,7 +5791,6 @@ proc LaunchSynthesis {reset do_create run_folder project_name {repo_path .} {ext
 # @param[in] repo_path    The main path of the git repository (Default ".")
 # @param[in] stage        The stage of the build (Default "presynth")
 proc LaunchVitisBuild {project_name {repo_path .} {stage "presynth"}} {
-  puts ">>>>>>>>>LaunchVitisBuild: $project_name $repo_path $stage"
   set proj_name $project_name
   set bin_dir [file normalize "$repo_path/bin"]
 
@@ -5825,8 +5824,6 @@ proc LaunchVitisBuild {project_name {repo_path .} {stage "presynth"}} {
     exit 1
   }
 
-  puts ">>>>>>>>>LaunchVitisBuild: ws_apps $ws_apps"
-
   # Get repository versions
   lassign [GetRepoVersions [file normalize $repo_path/Top/$proj_name] $repo_path ] commit version  hog_hash hog_ver  top_hash top_ver \
            libs hashes vers  cons_ver cons_hash  ext_names ext_hashes  xml_hash xml_ver user_ip_repos user_ip_hashes user_ip_vers
@@ -5835,18 +5832,11 @@ proc LaunchVitisBuild {project_name {repo_path .} {stage "presynth"}} {
   set flavour [GetProjectFlavour $project_name]
   lassign [GetDateAndTime $commit] date timee
 
-  # Configure apps
-  foreach app_name [dict keys $ws_apps] {
-    if {[IsVitisUnified]} {
-      set config_json "{\"build-config\": \"Release\"}"
-      if {[catch {exec vitis -s $python_script "app_config" $vitis_workspace $app_name $config_json} err]} {
-        Msg Error "Failed to configure app $app_name in Vitis Unified: $err"
-      } else {
-        puts ">>>>>>>>>LaunchVitisBuild: app config -name $app_name -set build-config Release (via Python)"
-      }
-    } elseif {[IsVitisClassic]} {
+  # Configure apps only for Vitis Classic, build-config is not supported in Vitis Unified
+  # build directory seems to be the default
+  if {[IsVitisClassic]} {
+    foreach app_name [dict keys $ws_apps] {
       app config -name $app_name -set build-config Release
-      puts ">>>>>>>>>LaunchVitisBuild: app config -name $app_name -set build-config Release"
     }
   }
 
@@ -5856,10 +5846,10 @@ proc LaunchVitisBuild {project_name {repo_path .} {stage "presynth"}} {
   # Build apps
   foreach app_name [dict keys $ws_apps] {
     if {[IsVitisUnified]} {
-      if {[catch {exec vitis -s $python_script "app_build" $vitis_workspace $app_name} err]} {
-        Msg Error "Failed to build app $app_name in Vitis Unified: $err"
-      } else {
-        Msg Info "Built app $app_name using Vitis Unified Python CLI"
+      # Build vitis unified app
+      if {![ExecuteVitisUnifiedCommand $python_script "build_app" [list $app_name $vitis_workspace] "Failed to build app $app_name"]} {
+        Msg Error "Failed to build app $app_name"
+        continue
       }
     } elseif {[IsVitisClassic]} {
       app build -name $app_name
@@ -5884,7 +5874,7 @@ proc LaunchVitisBuild {project_name {repo_path .} {stage "presynth"}} {
 
   foreach app_name [dict keys $ws_apps] {
     if {[IsVitisUnified]} {
-      set main_file "$repo_path/Projects/$project_name/vitis_unified/$app_name/Release/$app_name.elf"
+      set main_file "$repo_path/Projects/$project_name/vitis_unified/$app_name/build/$app_name.elf"
     } elseif {[IsVitisClassic]} {
       set main_file "$repo_path/Projects/$project_name/vitis_classic/$app_name/Release/$app_name.elf"
     }

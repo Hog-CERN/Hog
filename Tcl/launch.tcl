@@ -291,7 +291,15 @@ if {$options(ext_path) != ""} {
 set simlib_path ""
 
 
+<<<<<<< HEAD
 
+=======
+if {$options(verbose) == 1} {
+  setDebugMode 1
+  # Set environment variable for Vitis Unified Python scripts to enable debug output
+  set env(HOG_DEBUG_MODE) "1"
+}
+>>>>>>> vitis app add files working
 # printDebugMode
 # Msg Info "Number of jobs set to $options(njobs)."
 set output_path ""
@@ -803,15 +811,6 @@ Msg Info "Number of jobs set to $options(njobs)."
 set argv ""
 
 ############# CREATE or OPEN project ############
-puts ">>>>>>>> IsVitisClassic: [IsVitisClassic]"
-puts ">>>>>>>> IsVitisUnified: [IsVitisUnified]"
-puts ">>>>>>>> IsVivado: [IsVivado]"
-puts ">>>>>>>> IsISE: [IsISE]"
-puts ">>>>>>>> IsQuartus: [IsQuartus]"
-puts ">>>>>>>> IsLibero: [IsLibero]"
-puts ">>>>>>>> IsDiamond: [IsDiamond]"
-puts ">>>>>>>> ide_name: $ide_name"
-puts ">>>>>>>> options(vitis_only): $options(vitis_only)"
 
 if {$options(vitis_only) == 1 && ($ide_name eq "vitis_unified" || $ide_name eq "vivado_vitis_unified")} {
   cd $tcl_path

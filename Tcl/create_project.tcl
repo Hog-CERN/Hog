@@ -1158,18 +1158,6 @@ proc CreateProject {args} {
     # Checking Vivado/Vitis/Quartus/ISE/Libero version
     set actual_version [GetIDEVersion]
     lassign [GetIDEFromConf $conf_file] ide conf_version
-    if {([string tolower $ide] eq "vivado_vitis_classic") && ($options(vivado_only) != 1)} {
-      puts "Vitis classic detected, setting globalSettings::vitis_classic to 1"
-      set globalSettings::vitis_classic 1
-    } else {
-      set globalSettings::vitis_classic 0
-    }
-    if {([string tolower $ide] eq "vitis_unified") && ($options(vivado_only) != 1)} {
-      puts "Vitis unified detected, setting globalSettings::vitis_unified to 1"
-      set globalSettings::vitis_unified 1
-    } else {
-      set globalSettings::vitis_unified 0
-    }
 
     if {$conf_version != "0.0.0"} {
       set globalSettings::a_v [split $actual_version "."]

@@ -15,6 +15,8 @@
 import vitis
 import sys
 import inspect
+import os
+
 
 def PrintInfo(message):
   """
@@ -67,6 +69,29 @@ def PrintWarning(message):
     del frame
   print("WARNING: [Hog:Python:%s] %s" % (function_name, message), flush=True)
 
+def PrintDebug(message):
+  """
+  Print a DEBUG message with function name prefix
+  Only prints if HOG_DEBUG_MODE environment variable is set to 1
+  Args:
+    message: The message to print
+  """
+  # Check if debug mode is enabled via environment variable
+  debug_mode = os.environ.get('HOG_DEBUG_MODE', '0')
+  if debug_mode != '1':
+    return 
+
+  # Get the calling function name (skip this function and its caller)
+  frame = inspect.currentframe()
+  try:
+    caller_frame = frame.f_back
+    function_name = caller_frame.f_code.co_name
+  except:
+    function_name = "unknown"
+  finally:
+    del frame
+  print("DEBUG: [Hog:Python:%s] %s" % (function_name, message), flush=True)
+
 
 if __name__ == "__main__":
   # This is a library module providing logging functions
@@ -75,5 +100,6 @@ if __name__ == "__main__":
   print("  - PrintInfo(message)", flush=True)
   print("  - PrintError(message)", flush=True)
   print("  - PrintWarning(message)", flush=True)
+  print("  - PrintDebug(message)", flush=True)
   print("\nThis module is typically imported by PlatformCommands.py and AppCommands.py", flush=True)
   sys.exit(0)

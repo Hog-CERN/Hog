@@ -20,8 +20,7 @@ import json
 import zipfile
 import xml.etree.ElementTree as ET
 
-# Import logging functions from SharedCommands
-# Get the directory of this file to find SharedCommands.py
+# Import functions from SharedCommands
 _shared_commands_path = os.path.join(os.path.dirname(__file__), "SharedCommands.py")
 if os.path.exists(_shared_commands_path):
   import importlib.util
@@ -32,10 +31,7 @@ if os.path.exists(_shared_commands_path):
   PrintError = shared_commands.PrintError
   PrintWarning = shared_commands.PrintWarning
 else:
-  # Fallback if SharedCommands.py is not found
-  def PrintInfo(msg): print("INFO: [Hog:Python:unknown] %s" % msg, flush=True)
-  def PrintError(msg): print("ERROR: [Hog:Python:unknown] %s" % msg, flush=True)
-  def PrintWarning(msg): print("WARNING: [Hog:Python:unknown] %s" % msg, flush=True)
+  print("ERROR: [Hog:Python:PlatformCommands.py] Failed to import SharedCommands, file not found: %s" % _shared_commands_path)
 
 
 def ParsePlatformOptions(platform_options_str):

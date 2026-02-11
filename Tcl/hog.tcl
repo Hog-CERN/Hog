@@ -3822,15 +3822,23 @@ proc HandleIP {what_to_do xci_file ip_path repo_path {gen_dir "."} {force 0}} {
 
   cd $repo_path
 
-
-  if {[string first "/eos/" $ip_path] == 0} {
+  set on_eos 0
+  set on_rclone 0
+    
+  if {[regexp {^[^/]+:} $ip_path]} {
+    # Rclone path (e.g., dropbox:Project/IPs or eos:user/d/dcieri/...)
+    set on_rclone 1
+    # Check if rclone is available
+    if {[catch {exec -ignorestderr rclone --version} rclone_ver]} {
+      Msg CriticalWarning "Rclone path specified but rclone not found or failed: $rclone_ver"
+      cd $old_path
+      return -1
+    } else {
+      Msg Info "IP remote directory path, on Rclone, is set to: $ip_path"
+    }
+  } elseif {[string first "/eos/" $ip_path] == 0} {
     # IP Path is on EOS
     set on_eos 1
-  } else {
-    set on_eos 0
-  }
-
-  if {$on_eos == 1} {
     lassign [eos "ls $ip_path"] ret result
     if {$ret != 0} {
       Msg CriticalWarning "Could not run ls for for EOS path: $ip_path (error: $result). \
@@ -3865,7 +3873,20 @@ proc HandleIP {what_to_do xci_file ip_path repo_path {gen_dir "."} {force 0}} {
   if {$what_to_do eq "push"} {
     set will_copy 0
     set will_remove 0
-    if {$on_eos == 1} {
+    if {$on_rclone == 1} {
+      set ret [catch {exec -ignorestderr rclone ls $ip_path/$file_name.tar} result]
+      if {$ret != 0} {
+        set will_copy 1
+      } else {
+        if {$force == 0} {
+          Msg Info "IP already in the Rclone repository, will not copy..."
+        } else {
+          Msg Info "IP already in the Rclone repository, will forcefully replace..."
+          set will_copy 1
+          set will_remove 1
+        }
+      }
+    } elseif {$on_eos == 1} {
       lassign [eos "ls $ip_path/$file_name.tar"] ret result
       if {$ret != 0} {
         set will_copy 1
@@ -3903,7 +3924,11 @@ proc HandleIP {what_to_do xci_file ip_path repo_path {gen_dir "."} {force 0}} {
         Msg Info "Found some IP synthesised files matching $xci_ip_name"
         if {$will_remove == 1} {
           Msg Info "Removing old synthesised directory $ip_path/$file_name.tar..."
-          if {$on_eos == 1} {
+          if {$on_rclone == 1} {
+            if {[catch {exec -ignorestderr rclone delete $ip_path/$file_name.tar} result]} {
+               Msg CriticalWarning "Could not delete file from Rclone: $result"
+            }
+          } elseif {$on_eos == 1} {
             eos "rm -rf $ip_path/$file_name.tar" 5
           } else {
             file delete -force "$ip_path/$file_name.tar"
@@ -3920,7 +3945,11 @@ proc HandleIP {what_to_do xci_file ip_path repo_path {gen_dir "."} {force 0}} {
         ::tar::create $file_name.tar $tar_files
 
         Msg Info "Copying IP generated files for $xci_name..."
-        if {$on_eos == 1} {
+        if {$on_rclone == 1} {
+          if {[catch {exec -ignorestderr rclone copyto $file_name.tar $ip_path/$file_name.tar} result]} {
+            Msg CriticalWarning "Something went wrong when copying the IP files to Rclone. Error message: $result"
+          }
+        } elseif {$on_eos == 1} {
           lassign [ExecuteRet xrdcp -f -s $file_name.tar $::env(EOS_MGM_URL)//$ip_path/] ret msg
           if {$ret != 0} {
             Msg CriticalWarning "Something went wrong when copying the IP files to EOS. Error message: $msg"
@@ -3935,7 +3964,19 @@ proc HandleIP {what_to_do xci_file ip_path repo_path {gen_dir "."} {force 0}} {
       }
     }
   } elseif {$what_to_do eq "pull"} {
-    if {$on_eos == 1} {
+    if {$on_rclone == 1} {
+       set ret [catch {exec -ignorestderr rclone ls $ip_path/$file_name.tar} result]
+      if {$ret != 0} {
+        Msg Info "Nothing for $xci_name was found in the Rclone repository, cannot pull."
+        cd $old_path
+        return -1
+      } else {
+        Msg Info "IP $xci_name found in the Rclone repository $ip_path, copying it locally to $repo_path..."
+        if {[catch {exec -ignorestderr rclone copyto $ip_path/$file_name.tar $repo_path/$file_name.tar} result]} {
+           Msg CriticalWarning "Something went wrong when copying the IP files from Rclone. Error message: $result"
+        }
+      }   
+    } elseif {$on_eos == 1} {
       lassign [eos "ls $ip_path/$file_name.tar"] ret result
       if {$ret != 0} {
         Msg Info "Nothing for $xci_name was found in the EOS repository, cannot pull."

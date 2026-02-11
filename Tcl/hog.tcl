@@ -3824,7 +3824,7 @@ proc HandleIP {what_to_do xci_file ip_path repo_path {gen_dir "."} {force 0}} {
 
   set on_eos 0
   set on_rclone 0
-    
+
   if {[regexp {^[^/]+:} $ip_path]} {
     # Rclone path (e.g., dropbox:Project/IPs or eos:user/d/dcieri/...)
     set on_rclone 1
@@ -3835,6 +3835,19 @@ proc HandleIP {what_to_do xci_file ip_path repo_path {gen_dir "."} {force 0}} {
       return -1
     } else {
       Msg Info "IP remote directory path, on Rclone, is set to: $ip_path"
+      set remote_name "[lindex [split $ip_path ":"] 0]:"
+      lassign [exec -ignorestderr rclone listremotes] ret remotes
+      if {$ret != 0} {
+        Msg CriticalWarning "Could not list rclone remotes: $remotes"
+        cd $old_path
+        return -1
+      } else {
+        if {![IsInList $remote_name $remotes]} {
+          Msg CriticalWarning "Rclone remote $remote_name not found among available remotes: $remotes"
+          cd $old_path
+          return -1
+        }
+      }
     }
   } elseif {[string first "/eos/" $ip_path] == 0} {
     # IP Path is on EOS
@@ -3975,7 +3988,7 @@ proc HandleIP {what_to_do xci_file ip_path repo_path {gen_dir "."} {force 0}} {
         if {[catch {exec -ignorestderr rclone copyto $ip_path/$file_name.tar $repo_path/$file_name.tar} result]} {
            Msg CriticalWarning "Something went wrong when copying the IP files from Rclone. Error message: $result"
         }
-      }   
+      }
     } elseif {$on_eos == 1} {
       lassign [eos "ls $ip_path/$file_name.tar"] ret result
       if {$ret != 0} {

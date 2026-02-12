@@ -3978,7 +3978,7 @@ proc HandleIP {what_to_do xci_file ip_path repo_path {gen_dir "."} {force 0}} {
     }
   } elseif {$what_to_do eq "pull"} {
     if {$on_rclone == 1} {
-       set ret [catch {exec -ignorestderr rclone ls $ip_path/$file_name.tar} result]
+        set ret [catch {exec -ignorestderr rclone ls $ip_path/$file_name.tar} result]
       if {$ret != 0} {
         Msg Info "Nothing for $xci_name was found in the Rclone repository, cannot pull."
         cd $old_path
@@ -3986,7 +3986,7 @@ proc HandleIP {what_to_do xci_file ip_path repo_path {gen_dir "."} {force 0}} {
       } else {
         Msg Info "IP $xci_name found in the Rclone repository $ip_path, copying it locally to $repo_path..."
         if {[catch {exec -ignorestderr rclone copyto $ip_path/$file_name.tar $repo_path/$file_name.tar} result]} {
-           Msg CriticalWarning "Something went wrong when copying the IP files from Rclone. Error message: $result"
+          Msg CriticalWarning "Something went wrong when copying the IP files from Rclone. Error message: $result"
         }
       }
     } elseif {$on_eos == 1} {

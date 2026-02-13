@@ -1036,6 +1036,7 @@ proc SetGlobalVar {var {default_value HOG_NONE}} {
 ################################################################################################################################################################
 
 proc CreateProject {args} {
+  global env
   #  set tcl_path [file normalize "[file dirname [info script]]"]
   #  set repo_path [file normalize $tcl_path/../..]
 

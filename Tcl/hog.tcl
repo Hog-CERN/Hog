@@ -3831,7 +3831,7 @@ proc HandleIP {what_to_do xci_file ip_path repo_path {gen_dir "."} {force 0}} {
     # Rclone path (e.g., dropbox:Project/IPs or eos:user/d/dcieri/...)
     set on_rclone 1
     # Check if rclone is available
-    lassign [ExecuteRet "rclone --version"] rclone_ret rclone_ver
+    lassign [ExecuteRet rclone --version] rclone_ret rclone_ver
     if {$rclone_ret != 0} {
       Msg CriticalWarning "Rclone path specified but rclone not found or failed: $rclone_ver"
       cd $old_path
@@ -3839,8 +3839,7 @@ proc HandleIP {what_to_do xci_file ip_path repo_path {gen_dir "."} {force 0}} {
     } else {
       Msg Info "IP remote directory path, on Rclone, is set to: $ip_path"
       set remote_name "[lindex [split $ip_path ":"] 0]:"
-      puts "RCLONE_CONFIG_EOS_USER= $env(RCLONE_CONFIG_EOS_USER)"
-      lassign [ExecuteRet "rclone listremotes"] rclone_list_ret remotes
+      lassign [ExecuteRet rclone listremotes] rclone_list_ret remotes
       if {$rclone_list_ret != 0} {
         Msg CriticalWarning "Could not list rclone remotes: $remotes"
         cd $old_path
@@ -3891,7 +3890,7 @@ proc HandleIP {what_to_do xci_file ip_path repo_path {gen_dir "."} {force 0}} {
     set will_copy 0
     set will_remove 0
     if {$on_rclone == 1} {
-      lassign [ExecuteRet "rclone ls $ip_path/$file_name.tar"] ret result
+      lassign [ExecuteRet rclone ls $ip_path/$file_name.tar] ret result
       if {$ret != 0} {
         set will_copy 1
       } else {
@@ -3942,7 +3941,7 @@ proc HandleIP {what_to_do xci_file ip_path repo_path {gen_dir "."} {force 0}} {
         if {$will_remove == 1} {
           Msg Info "Removing old synthesised directory $ip_path/$file_name.tar..."
           if {$on_rclone == 1} {
-            lassign [ExecuteRet "rclone delete $ip_path/$file_name.tar"] ret result
+            lassign [ExecuteRet rclone delete $ip_path/$file_name.tar] ret result
             if {$ret != 0} {
               Msg CriticalWarning "Could not delete file from Rclone: $result"
             }
@@ -3984,7 +3983,7 @@ proc HandleIP {what_to_do xci_file ip_path repo_path {gen_dir "."} {force 0}} {
     }
   } elseif {$what_to_do eq "pull"} {
     if {$on_rclone == 1} {
-      lassign [ExecuteRet "rclone ls $ip_path/$file_name.tar"] ret result
+      lassign [ExecuteRet rclone ls $ip_path/$file_name.tar] ret result
       if {$ret != 0} {
         Msg Info "Nothing for $xci_name was found in the Rclone repository, cannot pull."
         cd $old_path

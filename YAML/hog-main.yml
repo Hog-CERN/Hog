@@ -308,10 +308,10 @@ archive_binary_files:
           if [ $ON_EOS -eq 1 ] && [ $ENABLE_EOS -eq 1 ]; then
             eos mkdir -p ${BIN_PATH}/Doc;
             xrdcp -rsf Doc/html/* ${EOS_MGM_URL}//${BIN_PATH}/Doc;
-          elsif [ $ON_RCLONE -eq 1 ] && [ $ENABLE_RCLONE -eq 1 ]; then
+          elif [ $ON_RCLONE -eq 1 ] && [ $ENABLE_RCLONE -eq 1 ]; then
             rclone mkdir ${BIN_PATH}/Doc;
             rclone copy Doc/html ${BIN_PATH}/Doc;
-          elsif [ $ON_RCLONE -eq 0 ] && [ $ON_EOS -eq 0 ]; then
+          elif [ $ON_RCLONE -eq 0 ] && [ $ON_EOS -eq 0 ]; then
             mkdir -p ${BIN_PATH}/Doc;
             cp -r Doc/html/* ${BIN_PATH}/Doc;
           fi;
@@ -326,10 +326,10 @@ archive_binary_files:
           if [ $ENABLE_EOS -eq 1 ] && [ $ON_EOS -eq 1 ]; then
             eos mkdir $BIN_PATH/$CI_COMMIT_TAG;
             xrdcp -rfs bin/* ${EOS_MGM_URL}//${BIN_PATH}/${CI_COMMIT_TAG};
-          elsif [ $ON_RCLONE -eq 1 ] && [ $ENABLE_RCLONE -eq 1 ]; then
+          elif [ $ON_RCLONE -eq 1 ] && [ $ENABLE_RCLONE -eq 1 ]; then
             rclone mkdir ${BIN_PATH}/${CI_COMMIT_TAG};
             rclone copy bin ${BIN_PATH}/${CI_COMMIT_TAG};
-          elsif [ $ON_RCLONE -eq 0 ] && [ $ON_EOS -eq 0 ]; then
+          elif [ $ON_RCLONE -eq 0 ] && [ $ON_EOS -eq 0 ]; then
             mkdir $BIN_PATH/$CI_COMMIT_TAG;
             cp -r bin/* ${BIN_PATH}/${CI_COMMIT_TAG};
           fi;

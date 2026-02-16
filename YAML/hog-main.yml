@@ -202,29 +202,34 @@ artifacts_and_release:
         doxy_var="";
       fi;
     - ./Hog/Other/GetArtifactsAndRename.sh -mr $MR $doxy_var
-    - mkdir zipped
     - cd bin
     - bit_files=$(find . -name "*.bit" -o -name "*.pof" -o -name "*.bif" -o -name "*.bin")
     - if [ "$bit_files" != "" ]; then
         project_dirs=$(echo $bit_files | xargs dirname | sort | uniq);
       fi;
-    - if [ -z "${HOG_MAX_ZIP_SIZE}" ]; then
-        export HOG_MAX_ZIP_SIZE=10m;
-        echo "Hog-CI(info) - Maximum size of artifact zip set to $HOG_MAX_ZIP_SIZE";
-      fi;
-    - for PRJ_DIR in $project_dirs; do
-        PRJ_DIR=$(echo "$PRJ_DIR" | sed -r 's#\./##g');
-        DEST_ZIP=$(echo "$PRJ_DIR" | sed -r 's#/#_#g');
-        echo "Archiving $PRJ_DIR into ../zipped/$DEST_ZIP.zip";
-        zip -r -q -s $HOG_MAX_ZIP_SIZE ../zipped/$DEST_ZIP.zip $PRJ_DIR;
-      done;
     - cd ..
     - if [ "${HOG_CREATE_OFFICIAL_RELEASE}" = "1" ]; then
         glab release create $CI_COMMIT_TAG -F bin/note.md -n "Official version $CI_COMMIT_TAG";
-        if [ "${HOG_CHECK_PROJVER}" = "1" ]; then
-          tclsh ./Hog/Tcl/CI/get_binary_links.tcl $CI_COMMIT_TAG "$HOG_EXTERNAL_PATH";
+        if [ -z "${HOG_NO_ZIP}" ]; then
+          mkdir zipped
+          cd bin
+          if [ -z "${HOG_MAX_ZIP_SIZE}" ]; then
+            export HOG_MAX_ZIP_SIZE=10m;
+            echo "Hog-CI(info) - Maximum size of artifact zip set to $HOG_MAX_ZIP_SIZE";
+          fi;
+          for PRJ_DIR in $project_dirs; do
+            PRJ_DIR=$(echo "$PRJ_DIR" | sed -r 's#\./##g');
+            DEST_ZIP=$(echo "$PRJ_DIR" | sed -r 's#/#_#g');
+            echo "Archiving $PRJ_DIR into ../zipped/$DEST_ZIP.zip";
+            zip -r -q -s $HOG_MAX_ZIP_SIZE ../zipped/$DEST_ZIP.zip $PRJ_DIR;
+          done;
+          if [ "${HOG_CHECK_PROJVER}" = "1" ]; then
+            tclsh ./Hog/Tcl/CI/get_binary_links.tcl $CI_COMMIT_TAG "$HOG_EXTERNAL_PATH";
+          else
+            tclsh ./Hog/Tcl/CI/get_binary_links.tcl -force $CI_COMMIT_TAG "$HOG_EXTERNAL_PATH";
+          fi;
         else
-          tclsh ./Hog/Tcl/CI/get_binary_links.tcl -force $CI_COMMIT_TAG "$HOG_EXTERNAL_PATH";
+          echo "Will not upload zip file to the release page..."
         fi;
       fi;
   allow_failure: true

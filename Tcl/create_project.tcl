@@ -78,7 +78,16 @@ namespace eval globalSettings {
 
 ################# FUNCTIONS ################################
 proc InitProject {} {
-  if {[IsXilinx]} {
+  if {[IsVitisClassic]} {
+    if {[file exists $globalSettings::build_dir/vitis_classic]} {
+      file delete -force $globalSettings::build_dir/vitis_classic
+    }
+    setws $globalSettings::build_dir/vitis_classic
+  } elseif {[IsVitisUnified]} {
+    if {[file exists $globalSettings::build_dir/vitis_unified]} {
+      file delete -force $globalSettings::build_dir/vitis_unified
+    }
+  } elseif {[IsXilinx]} {
     if {[IsVivado]} {
       # Suppress unnecessary warnings
       # tclint-disable-next-line line-length
@@ -158,15 +167,6 @@ proc InitProject {} {
     prj_project new -name [file tail $globalSettings::DESIGN] -dev $globalSettings::DEVICE -synthesis $globalSettings::SYNTHESIS_TOOL
     cd $old_dir
     ConfigureProperties
-  } elseif {[IsVitisClassic]} {
-    if {[file exists $globalSettings::build_dir/vitis_classic]} {
-      file delete -force $globalSettings::build_dir/vitis_classic
-    }
-    setws $globalSettings::build_dir/vitis_classic
-  } elseif {[IsVitisUnified]} {
-    if {[file exists $globalSettings::build_dir/vitis_unified]} {
-      file delete -force $globalSettings::build_dir/vitis_unified
-    }
   } else {
     puts "Creating project for $globalSettings::DESIGN part $globalSettings::PART"
     puts "Configuring project settings:"
@@ -869,7 +869,10 @@ proc CreatePlatform {platform_name platform_conf {xsa ""}} {
     set python_script "$globalSettings::repo_path/Hog/Other/Python/VitisUnified/PlatformCommands.py"
     Msg Info "Running Vitis Unified platform creation script..."
     set platform_options_str "{ $platform_options }"
-    if {![ExecuteVitisUnifiedCommand $python_script "create_platform" [list $platform_options_str "$globalSettings::build_dir/vitis_unified"] "Failed to create platform $platform_name"]} {
+    set error_msg "Failed to create platform $platform_name"
+    if {![ExecuteVitisUnifiedCommand $python_script "create_platform" \
+        [list $platform_options_str "$globalSettings::build_dir/vitis_unified"] \
+        $error_msg]} {
       return
     }
   }
@@ -900,7 +903,10 @@ proc ConfigureApps {} {
           append app_config_str " [string toupper $p] $v"
         }
         append app_config_str " }"
-        if {![ExecuteVitisUnifiedCommand $python_script "configure_app" [list $app_name $app_config_str "$globalSettings::build_dir/vitis_unified"] "Failed to configure app $app_name"]} {
+        set error_msg "Failed to configure app $app_name"
+        if {![ExecuteVitisUnifiedCommand $python_script "configure_app" \
+            [list $app_name $app_config_str "$globalSettings::build_dir/vitis_unified"] \
+            $error_msg]} {
           continue
         }
       }

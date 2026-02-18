@@ -64,10 +64,11 @@ set default_commands {
 
   \^C(REATE)?$ {#
     set do_create 1
+    # set do_vitis_create 1
     set recreate 1
   # NAME*: CREATE or C
   # DESCRIPTION: Create the project, replace it if already existing.
-  # OPTIONS: ext_path.arg, lib.arg, vivado_only, verbose
+  # OPTIONS: ext_path.arg, lib.arg, vivado_only, vitis_only, verbose
   }
 
   \^I(MPL(EMENT(ATION)?)?)?$ {#
@@ -100,7 +101,7 @@ set default_commands {
     set do_synthesis 1
     set do_bitstream 1
     set do_compile 1
-    set do_vitis_build 0
+    set do_vitis_build 1
   # NAME*: WORKFLOW or W
   # DESCRIPTION: Runs the full workflow, creates the project if not existing.
   # OPTIONS: bitstream_only, check_syntax, ext_path.arg, impl_only, njobs.arg, no_bitstream, recreate, synth_only, verbose, vitis_only, xsa.arg
@@ -112,7 +113,7 @@ set default_commands {
     set do_bitstream 1
     set do_compile 1
     set recreate 1
-    set do_vitis_build 0
+    set do_vitis_build 1
   # NAME: CREATEWORKFLOW or CW
   # DESCRIPTION: Creates the project -even if existing- and launches the complete workflow.
   # OPTIONS: check_syntax, ext_path.arg, njobs.arg, no_bitstream, synth_only, verbose, vivado_only, vitis_only, xsa.arg
@@ -247,6 +248,10 @@ set tcl_path [file normalize "[file dirname [info script]]"]
 source $tcl_path/hog.tcl
 source $tcl_path/create_project.tcl
 
+# Initialize Vitis flags before InitLauncher so IsTclsh correctly returns 1
+set globalSettings::vitis_unified 0
+set globalSettings::vitis_classic 0
+
 # Quartus needs extra packages and treats the argv in a different way
 if {[IsQuartus]} {
   load_package report
@@ -314,10 +319,10 @@ set do_implementation 0; set do_synthesis 0; set do_bitstream 0
 set do_create 0; set do_compile 0; set do_simulation 0; set recreate 0
 set do_reset 1; set do_list_all 2; set do_check_syntax 0; set do_vitis_build 0;
 set scripts_only 0; set compile_only 0
+
 ### Hog stand-alone directives ###
 # The following directives are used WITHOUT ever calling the IDE, they are run in tclsh
 # A place holder called new_directive can be followed to add new commands
-
 set do_ipbus_xml 0
 set do_list_file_parse 0
 set do_check_yaml_ref 0
@@ -683,10 +688,14 @@ if {([string tolower $ide_name] eq "vivado_vitis_classic" || [string tolower $id
 } elseif {([string tolower $ide_name] eq "vivado_vitis_unified" || [string tolower $ide_name] eq "vitis_unified") && ($options(vivado_only) != 1)} {
   set globalSettings::vitis_classic 0
   set globalSettings::vitis_unified 1
+  if {[auto_execok vitis] eq ""} {
+    Msg Error "Vitis Unified IDE is required for project $project_name but 'vitis' was not found in PATH. Please source Vitis settings first."
+  }
 } else {
   set globalSettings::vitis_classic 0
   set globalSettings::vitis_unified 0
 }
+
 
 if {$options(no_bitstream) == 1} {
   set do_bitstream 0
@@ -713,13 +722,52 @@ if {$options(impl_only) == 1} {
   set do_compile 1
 }
 
+# if {$do_vitis_create == 1} {
+#   if {$options(vitis_only) == 1 && ($ide_name eq "vitis_classic" || $ide_name eq "vitis_unified")} {
+#     set do_implementation 0
+#     set do_synthesis 0
+#     set do_bitstream 0
+#     set do_create 1
+#     set do_compile 0
+#   } elseif {$ide_name eq "vitis_classic" || $ide_name eq "vitis_unified"} {
+#     set do_implementation 0
+#     set do_synthesis 0
+#     set do_bitstream 0
+#     set do_create 1
+#     set do_compile 0
+#   } elseif {$ide_name eq "vivado_vitis_classic" || $ide_name eq "vivado_vitis_unified"} {
+#     # nothing to do
+#   } else {
+#     set do_vitis_create 0
+#   }
+# }
+
+# if {$do_vitis_build == 1} {
+#   if {$options(vitis_only) == 1 && ($ide_name eq "vitis_classic" || $ide_name eq "vitis_unified")} {
+#     set do_implementation 0
+#     set do_synthesis 0
+#     set do_bitstream 0
+#     set do_create 0
+#     set do_compile 0
+#   } elseif {$ide_name eq "vitis_classic" || $ide_name eq "vitis_unified"} {
+#     set do_implementation 0
+#     set do_synthesis 0
+#     set do_bitstream 0
+#     set do_create 0
+#     set do_compile 0
+#   } elseif {$ide_name eq "vivado_vitis_classic" || $ide_name eq "vivado_vitis_unified"} {
+#     # nothing to do
+#   } else {
+#     set do_vivado_build 0
+#   }
+# }
 
 if {$options(vitis_only) == 1 || $ide_name eq "vitis_classic" || $ide_name eq "vitis_unified"} {
-  set do_vitis_build 1
+  # set do_vitis_build 1
   set do_implementation 0
   set do_synthesis 0
   set do_bitstream 0
-  set do_create 1
+  # set do_create 1
   set do_compile 0
 }
 
@@ -736,6 +784,7 @@ if {$options(bitstream_only) == 1} {
 
 if {$options(vivado_only) == 1} {
   set do_vitis_build 0
+  # set do_vitis_create 0
 }
 
 if {$options(no_reset) == 1} {
@@ -841,6 +890,9 @@ if {($proj_found == 0 || $recreate == 1) && $do_create == 1} {
   } else {
     Msg Error "Project $project_name is incomplete: no hog.conf file found, please create one..."
   }
+} elseif {$proj_found == 0} {
+  Msg Error "Project $project_name not found. Please create it first using the 'CREATE' or 'C' directive."
+  exit 1
 } else {
   Msg Info "Opening existing project file $project_file..."
   if {$options(vitis_only) == 1 && ($ide_name eq "vitis_unified" || $ide_name eq "vivado_vitis_unified")} {

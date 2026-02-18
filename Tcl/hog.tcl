@@ -140,7 +140,7 @@ proc AddHogFiles {libraries properties filesets} {
       set ext [file extension $lib]
       Msg Debug "lib: $lib ext: $ext fileset: $fileset"
       # ADD NOW LISTS TO VIVADO PROJECT
-      if {[IsXilinx]} {
+      if {[IsXilinx] && ![IsVitisUnified]} {
         # Skip Vitis libraries
         if {[string match "app_*" [string tolower $lib]]} {
           continue
@@ -652,7 +652,10 @@ proc AddHogFiles {libraries properties filesets} {
 
           Msg Debug "JSON string: $files_json"
 
-          if {![ExecuteVitisUnifiedCommand $python_script "add_app_files" [list $app_name $files_json $vitis_workspace $target_path] "Failed to add files to app $app_name"]} {
+          set error_msg "Failed to add files to app $app_name"
+          if {![ExecuteVitisUnifiedCommand $python_script "add_app_files" \
+              [list $app_name $files_json $vitis_workspace $target_path] \
+              $error_msg]} {
             Msg Error "Failed to add files to Vitis Unified app '$app_name'"
             exit 1
           }
@@ -4962,8 +4965,7 @@ proc IsVitisUnified {} {
   if {[info exists globalSettings::vitis_unified]} {
     return $globalSettings::vitis_unified
   }
-  set result [catch {exec vitis --version} output]
-  return [expr {$result == 0}]
+  return 0
 }
 
 ## @brief Execute a Python command via Vitis Unified command-line tool and display output in real-time

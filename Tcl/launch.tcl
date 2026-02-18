@@ -40,6 +40,28 @@ set default_commands {
   # OPTIONS:
   }
 
+  \^(CHECKCI|CIE)?$ {
+    set do_check_ci_env 1
+    # NAME: CHECKCIENV or CIE
+    # DESCRIPTION: Check that the common environment variables needed for Hog-CI are set
+    # OPTIONS: verbose
+  }
+
+  \^(CHECKPROJENV|CPE)?$ {#
+    set do_checkproj_env 1
+  # NAME: CHECKPROJENV or CPE
+  # DESCRIPTION: Check that the environment variables needed for Hog-CI to run the chosen project are set and point to valid paths
+  # OPTIONS: verbose
+  }
+
+  \^(CHECKPROJVER|CPV)?$ {#
+    set do_checkproj_ver 1
+  # NAME: CHECKPROJVER or CPV
+  # DESCRIPTION: Check the project version just before creating the HDL project in Create_Project stage. \
+  The CI job will SKIP the project pipeline, if it the project has not been modified with respect to the target branch.
+  # OPTIONS: ext_path.arg, simcheck, verbose
+  }
+
   \^C(REATE)?$ {#
     set do_create 1
     set recreate 1
@@ -216,8 +238,9 @@ set parameters {
   {include_ieee "" "For tree hierarchy mode, include IEEE/STD libraries in the printed hierarchy. (Default 0)"}
   {include_gen_prods "" "For tree hierarchy mode, include IP generated products in the printed hierarchy. (Default 0)"}
   {compile_order "" "For tree hierarchy mode, prints compile order instead of hierarchy."}
-  {verbose         "If set, launch the script in verbose mode"}
-  {light         "For tree hierarchy mode, print a light version of the hierarchy (without file paths)."}
+  {verbose          "If set, launch the script in verbose mode"}
+  {light            "For tree hierarchy mode, print a light version of the hierarchy (without file paths)."}
+  {simcheck         "If set, checks also the version of the simulation files."}
 }
 
 set tcl_path [file normalize "[file dirname [info script]]"]
@@ -278,6 +301,7 @@ set include_gen_prods $options(include_gen_prods)
 
 ######## DEFAULTS #########
 set do_rtl 0
+set do_checkproj_env 0; set do_check_ci_env 0; set do_checkproj_ver 0;
 set do_implementation 0; set do_synthesis 0; set do_bitstream 0
 set do_create 0; set do_compile 0; set do_simulation 0; set recreate 0
 set do_reset 1; set do_list_all 2; set do_check_syntax 0; set do_vitis_build 0;
@@ -395,13 +419,19 @@ if {$cmd == -1} {
 } else {
   # This script was launched with Tclsh, we need to check the arguments
   # and if everything is right launch the IDE on this script and return
-
-
-
-
   #### Directives to be handled in tclsh should be here ###
   ### IMPORTANT: Each if block should either end with "exit 0" or
   ### set both $ide and $cmd to be executed when this script is run again
+  if {$do_checkproj_env == 1} {
+    CheckEnv $project_name $ide
+    exit 0
+  }
+
+  if {$do_check_ci_env == 1} {
+    CheckCIEnv
+    exit 0
+  }
+
 
   if {$do_ipbus_xml == 1} {
     Msg Info "Handling IPbus XMLs for $project_name..."
@@ -602,6 +632,12 @@ if {[catch {package require cmdline} ERROR] || [catch {package require struct::m
   exit 1
 }
 
+## CHECK PROJECT VERSION
+if {$do_checkproj_ver == 1} {
+  CheckProjVer $repo_path $project_name $options(simcheck) $options(ext_path)
+  exit 0
+}
+
 set run_folder [file normalize "$repo_path/Projects/$project_name/$project.runs/"]
 if {[IsLibero]} {
   set run_folder [file normalize "$repo_path/Projects/$project_name/"]
@@ -639,7 +675,6 @@ if {$options(impl_only) == 1} {
   set do_create 0
   set do_compile 1
 }
-
 
 if {$options(vitis_only) == 1 || $ide_name eq "vitis_classic"} {
   set do_vitis_build 1
@@ -771,17 +806,15 @@ if {($proj_found == 0 || $recreate == 1)} {
   }
 }
 
-
 ########## CHECK SYNTAX ###########
 if {$do_check_syntax == 1} {
   Msg Info "Checking syntax for project $project_name..."
   CheckSyntax $project_name $repo_path $project_file
 }
 
-
 ######### RTL ANALYSIS ########
 if {$do_rtl == 1} {
-  LaunchRTLAnalysis
+  LaunchRTLAnalysis $repo_path
 }
 
 if {$do_vitis_build == 1} {

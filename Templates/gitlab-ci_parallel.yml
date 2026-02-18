@@ -16,7 +16,7 @@
 include:
   - project: 'hog-cern/Hog' # Use hog/Hog at gitlab.cern.ch
     file: '/hog.yml'
-    ref: 'Hog2024.2'
+    ref: 'Hog2026.1-2'
 
 #################### example ###########################
 # The PROVIDER variable is used to steer your job to a particular GitLab runner, identified with its tag. If no provider is specified, the default `hog` runner will be used

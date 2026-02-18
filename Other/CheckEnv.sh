@@ -144,7 +144,6 @@ if [ -d "$PROJ_DIR" ]; then
 fi
 
 echo "--------------------------------"
-
 if [ "$(command -v vsim)" ]; then
     CMD=$(command -v vsim)
     echo "vsim executable found in $CMD"
@@ -322,7 +321,7 @@ if [ -z "$HOG_OFFICIAL_BIN_PATH" ]; then
     if [ -z "$HOG_OFFICIAL_BIN_EOS_PATH" ]; then
         echo "Hog-CI will not be able to copy official bitfile to EOS."
     else
-        echo "Variable: HOG_OFFICIAL_BIN_EOS_PATH is defined. From Hog2024.1 this variable will be deprecated. Please, use HOG_OFFICIAL_BIN_PATH instead."
+        echo "Variable: HOG_OFFICIAL_BIN_EOS_PATH is defined. From Hog2026.2 this variable will be deprecated. Please, use HOG_OFFICIAL_BIN_PATH instead."
     fi
 else
     echo "defined. Hog-CI will copy the official bitfiles to $HOG_OFFICIAL_BIN_PATH"

@@ -52,23 +52,24 @@
   variables:
     <<: *vars
   script:
-    - ./Hog/Other/CheckEnv.sh $PROJECT_NAME -a $HOG_APPTAINER_IMAGE;
+    - if [[ -v HOG_EXTERNAL_PATH ]]; then
+        EXT_CMD="-ext_path \"$HOG_EXTERNAL_PATH\"";
+      else
+        EXT_CMD="";
+      fi;
+    - if [[ -f $HOG_APPTAINER_IMAGE ]]; then
+        echo "[INFO] Hog-CI will run inside Apptainer container $HOG_APPTAINER_IMAGE...";
+        if [[ -n $HOG_APPTAINER_EXTRA_PATH ]]; then
+          EXTRA_PATH="-B $HOG_APPTAINER_EXTRA_PATH";
+        fi;
+        APP_CMD="apptainer exec -H $PWD $EXTRA_PATH $HOG_APPTAINER_IMAGE ";
+      else
+        APP_CMD="";
+      fi;
+    - eval "$APP_CMD ./Hog/Do CPE $PROJECT_NAME"
     - if [[ -v HOG_CHECK_PROJVER ]] && [[ $HOG_CHECK_PROJVER == '1' ]]; then
-        if [[ -v HOG_EXTERNAL_PATH ]]; then
-          CHK_CMD="./Hog/Other/CheckProjVer.sh -ext_path \"$HOG_EXTERNAL_PATH\" -sim $PROJECT_NAME";
-        else
-          CHK_CMD="./Hog/Other/CheckProjVer.sh -sim $PROJECT_NAME";
-        fi;
-        if [[ -f $HOG_APPTAINER_IMAGE ]]; then
-          echo "apptainer exec -H $PWD $HOG_APPTAINER_IMAGE $CHK_CMD";
-          if [[ -n $HOG_APPTAINER_EXTRA_PATH ]]; then
-            EXTRA_PATH="-B $HOG_APPTAINER_EXTRA_PATH";
-          fi;
-          apptainer exec -H $PWD $EXTRA_PATH $HOG_APPTAINER_IMAGE /bin/bash -c "export PATH=${HOG_PATH}:\$PATH; $CHK_CMD";
-        else
-          echo $CHK_CMD;
-          eval $CHK_CMD;
-        fi;
+        CHK_CMD="./Hog/Other/CheckProjVer.sh $EXT_CMD -sim $PROJECT_NAME";
+        eval "$APP_CMD ./Hog/Do CPV $EXT_CMD -simcheck $PROJECT_NAME";
       else
         echo "Project version checker is disabled.";
       fi;
@@ -89,17 +90,9 @@
         else
           export SIMSETS="";
         fi;
-        SIM_CMD="./Hog/Do SIMULATE $PROJECT_NAME $SIM_ONLY $COMPILE_ONLY $SIMSETS";
-        if [[ -f $HOG_APPTAINER_IMAGE ]]; then
-          echo "apptainer exec -H $PWD $HOG_APPTAINER_IMAGE $SIM_CMD";
-          if [[ -n $HOG_APPTAINER_EXTRA_PATH ]]; then
-            EXTRA_PATH="-B $HOG_APPTAINER_EXTRA_PATH";
-          fi;
-          apptainer exec -H $PWD $EXTRA_PATH $HOG_APPTAINER_IMAGE /bin/bash -c "export PATH=${HOG_PATH}:\$PATH; $SIM_CMD";
-        else
-          echo $SIM_CMD;
-          $(echo $SIM_CMD);
-        fi;
+        SIM_CMD="$APP_CMD ./Hog/Do SIMULATE $PROJECT_NAME $SIM_ONLY $COMPILE_ONLY $SIMSETS";
+        echo $SIM_CMD;
+        $(echo $SIM_CMD);
       fi;
   artifacts:
     name: simulation_files
@@ -118,29 +111,28 @@
   variables:
     <<: *vars
   script:
-    - ./Hog/Other/CheckEnv.sh $PROJECT_NAME -a $HOG_APPTAINER_IMAGE;
-    - source ./Hog/Other/CommonFunctions.sh
-    - select_command Top/$PROJECT_NAME;
-    - if [ "$COMMAND" = "libero" ]; then
+    - if [[ -v HOG_EXTERNAL_PATH ]]; then
+        EXT_CMD="-ext_path \"$HOG_EXTERNAL_PATH\"";
+      else
+        EXT_CMD="";
+      fi;
+    - if [[ -f "$HOG_APPTAINER_IMAGE" ]]; then
+        echo "[INFO] Hog-CI will run inside Apptainer container $HOG_APPTAINER_IMAGE...";
+        if [[ -n $HOG_APPTAINER_EXTRA_PATH ]]; then
+          EXTRA_PATH="-B $HOG_APPTAINER_EXTRA_PATH";
+        fi;
+        APP_CMD="apptainer exec -H $PWD $EXTRA_PATH $HOG_APPTAINER_IMAGE ";
+      else
+        APP_CMD="";
+      fi;
+    - eval "$APP_CMD ./Hog/Do CPE $PROJECT_NAME"
+    - if grep -q "^libero" Top/$PROJECT_NAME/hog.conf; then
         Xvfb :99 &
         export DISPLAY=:99;
-      fi;
-    - if [ -n "${HOG_CHECK_PROJVER}" ] && [ "$HOG_CHECK_PROJVER" = '1' ]; then
-        if [ -n "${HOG_EXTERNAL_PATH}" ]; then
-          CHK_CMD="./Hog/Other/CheckProjVer.sh -ext_path \"$HOG_EXTERNAL_PATH\" $PROJECT_NAME";
-        else
-          CHK_CMD="./Hog/Other/CheckProjVer.sh $PROJECT_NAME";
-        fi;
-        if [ -f "$HOG_APPTAINER_IMAGE" ]; then
-          echo "apptainer exec -H $PWD $HOG_APPTAINER_IMAGE $CHK_CMD";
-          if [ -n "$HOG_APPTAINER_EXTRA_PATH" ]; then
-            EXTRA_PATH="-B $HOG_APPTAINER_EXTRA_PATH";
-          fi;
-          apptainer exec -H $PWD $EXTRA_PATH $HOG_APPTAINER_IMAGE /bin/bash -c "export PATH=${HOG_PATH}:\$PATH; $CHK_CMD";
-        else
-          echo $CHK_CMD;
-          eval $CHK_CMD;
-        fi;
+      fi
+    - if [[ -v HOG_CHECK_PROJVER ]] && [[ $HOG_CHECK_PROJVER == '1' ]]; then
+        CHK_CMD="./Hog/Other/CheckProjVer.sh $EXT_CMD -sim $PROJECT_NAME";
+        eval "$APP_CMD ./Hog/Do CPV $EXT_CMD $PROJECT_NAME";
       else
         echo "Project version checker is disabled.";
       fi;
@@ -168,7 +160,7 @@
         fi;
       fi;
     - if [ ! -f "./Projects/$PROJECT_NAME/skip.me" ]; then
-       if [ -n "${HOG_DEBUG_MODE}" ] && [ "${HOG_DEBUG_MODE}" = '1' ]; then
+        if [ -n "${HOG_DEBUG_MODE}" ] && [ "${HOG_DEBUG_MODE}" = '1' ]; then
           echo "Hog-CI(info) - The workflow will be run in verbose mode.";
         fi;
         if [ -z "${HOG_IP_PATH}" ]; then
@@ -232,24 +224,21 @@
       fi;
     - if [ ! -f "./Projects/$PROJECT_NAME/skip.me" ]; then
         if [ "$ONLY_SYNTH" = '1' ]; then
-            EXEC_CMD="./Hog/Do -njobs $HOG_NJOBS $NO_BITSTREAM $CHECK_SYNTAX SYNTH $PROJECT_NAME";
+          EXEC_CMD="./Hog/Do -njobs $HOG_NJOBS $NO_BITSTREAM $CHECK_SYNTAX SYNTH $PROJECT_NAME";
         else
-            EXEC_CMD="./Hog/Do -njobs $HOG_NJOBS $NO_BITSTREAM $CHECK_SYNTAX WORKFLOW $PROJECT_NAME";
+          EXEC_CMD="./Hog/Do -njobs $HOG_NJOBS $NO_BITSTREAM $CHECK_SYNTAX WORKFLOW $PROJECT_NAME";
         fi;
         if [ -f "$HOG_APPTAINER_IMAGE" ]; then
-            echo "singularity exec -H $PWD $HOG_APPTAINER_IMAGE $EXEC_CMD";
-            if [ -n "$HOG_APPTAINER_EXTRA_PATH" ]; then
-              EXTRA_PATH="-B $HOG_APPTAINER_EXTRA_PATH";
-            fi;
-            if [ "$ENABLE_EOS" = "1" ]; then
-              KINIT_CMD="(kinit $EOS_USER@CERN.CH <<< $EOS_PASSWORD) || echo 'Kinit failed with exit code \$?, but continuing anyway...'";
-            else
-              KINIT_CMD="echo 'Skipping EOS'";
-            fi;
-            apptainer exec -H $PWD $EXTRA_PATH $HOG_APPTAINER_IMAGE /bin/bash -c "PATH=${HOG_PATH}:\$PATH; $KINIT_CMD && $EXEC_CMD";
+          if [ "$ENABLE_EOS" = "1" ]; then
+            FULL_CMD="echo \"$EOS_PASSWORD\" | kinit $EOS_USER@CERN.CH || echo \"Kinit failed with exit code \$?, but continuing anyway...\"; $EXEC_CMD";
+          else
+            FULL_CMD="$EXEC_CMD";
+          fi;
+          echo "$APP_CMD bash -c '${FULL_CMD}'";
+          eval "$APP_CMD bash -c '${FULL_CMD}'";
         else
-            echo "$EXEC_CMD";
-            eval "$EXEC_CMD";
+          echo "$EXEC_CMD";
+          eval "$EXEC_CMD";
         fi;
       fi;
     - if [ ! -f "./Projects/$PROJECT_NAME/skip.me" ]; then

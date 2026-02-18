@@ -17,7 +17,7 @@
     - hog
 
 .tag-sr: &tag-sr
-  image: hogcern/hog:2026.1
+  image: hogcern/hog:develop
 
 .vars: &vars
   GIT_STRATEGY: fetch

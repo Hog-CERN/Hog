@@ -573,7 +573,7 @@ proc Hierarchy {listProperties listLibraries repo_path {output_path ""} \
 
   set t_parse [time {
     dict for {file file_info} [dict get $hier_meta proj_files] {
-      _hier_parse_file hier_meta $file_info
+      _hier_parse_file hier_meta $file_info $include_gen_prods
     }
   } 1]
   set parse_us [lindex $t_parse 0]

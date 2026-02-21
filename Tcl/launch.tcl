@@ -621,12 +621,22 @@ if {$cmd == -1} {
   #}
 
   #### END of tclsh commands ####
+
+  # Get IDE name from project config file
+  set proj_conf [ProjectExists $project_name $repo_path]
+  set ide_name_and_ver [string tolower [GetIDEFromConf $proj_conf]]
+  set ide_name [lindex [regexp -all -inline {\S+} $ide_name_and_ver] 0]
+
   Msg Info "Launching command: $cmd..."
 
   # Check if the IDE is actually in the path...
   set ret [catch {exec which $ide}]
   if {$ret != 0} {
-    Msg Error "$ide not found in your system. Make sure to add $ide to your PATH enviromental variable."
+    if {[string match "*vitis_unified*" $ide_name]} {
+      Msg Error "This is a '$ide_name' project: make sure to add both Vivado and Vitis to your PATH environment variable."
+    } else {
+      Msg Error "$ide not found in your system. Make sure to add $ide to your PATH environment variable."
+    }
     exit $ret
   }
 
@@ -659,6 +669,10 @@ if {$cmd == -1} {
 #After this line, we are in the IDE
 ##################################################################################
 
+# Get IDE name from project config file (needed for Vitis detection, xsct launch, etc.)
+set proj_conf [ProjectExists $project_name $repo_path]
+set ide_name_and_ver [string tolower [GetIDEFromConf $proj_conf]]
+set ide_name [lindex [regexp -all -inline {\S+} $ide_name_and_ver] 0]
 
 # We need to Import tcllib if we are using Libero
 if {[IsLibero] || [IsDiamond]} {
@@ -689,11 +703,6 @@ if {[IsLibero]} {
 
 # Only for quartus, not used otherwise
 set project_path [file normalize "$repo_path/Projects/$project_name/"]
-
-# Get IDE name from project config file
-set proj_conf [ProjectExists $project_name $repo_path]
-set ide_name_and_ver [string tolower [GetIDEFromConf $proj_conf]]
-set ide_name [lindex [regexp -all -inline {\S+} $ide_name_and_ver] 0]
 
 # If Vitis Classic only project, launch xsct
 if {([string tolower $ide_name] eq "vitis_classic") || ([string tolower $ide_name] eq "vivado_vitis_classic" && $options(vitis_only) == 1)} {

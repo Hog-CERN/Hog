@@ -1,4 +1,4 @@
-#   Copyright 2018-2025 The University of Birmingham
+#   Copyright 2018-2026 The University of Birmingham
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -42,11 +42,9 @@ def ParsePlatformOptions(platform_options_str):
   Returns:
     Dictionary with extracted options
   """
-  # Remove braces
   options_str = platform_options_str.strip("{}").strip()
 
   # Find all -key patterns and their values
-  # Match: -key followed by whitespace, then capture everything until next -key or end
   pattern = r'-(\w+)\s+'
   matches = list(re.finditer(pattern, options_str))
 

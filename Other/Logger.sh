@@ -412,11 +412,7 @@ function log_stdout(){
         elif [[ $HOG_COLOR_EN -gt 0 ]]; then
           echo -e "${stderr_ack}${simpleColor[$msgType]} $dataLine $txtwht"
         else
-          if [[ "${stderr_ack}" == "E" && "${msgType}" == "error" ]]; then
-            echo -e " $dataLine"
-          else
-            echo -e "${stderr_ack}$dataLine"
-          fi
+          echo -e "${stderr_ack}$dataLine"
         fi
       # else
         # msg_counter w ${msgCounter[$msgType]} >> /dev/null

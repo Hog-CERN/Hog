@@ -1,4 +1,4 @@
-#   Copyright 2018-2025 The University of Birmingham
+#   Copyright 2018-2026 The University of Birmingham
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -24,7 +24,6 @@ def PrintInfo(message):
   Args:
     message: The message to print
   """
-  # Get the calling function name (skip this function and its caller)
   frame = inspect.currentframe()
   try:
     caller_frame = frame.f_back
@@ -41,7 +40,6 @@ def PrintError(message):
   Args:
     message: The message to print
   """
-  # Get the calling function name (skip this function and its caller)
   frame = inspect.currentframe()
   try:
     caller_frame = frame.f_back
@@ -58,7 +56,6 @@ def PrintWarning(message):
   Args:
     message: The message to print
   """
-  # Get the calling function name (skip this function and its caller)
   frame = inspect.currentframe()
   try:
     caller_frame = frame.f_back
@@ -76,12 +73,10 @@ def PrintDebug(message):
   Args:
     message: The message to print
   """
-  # Check if debug mode is enabled via environment variable
   debug_mode = os.environ.get('HOG_DEBUG_MODE', '0')
   if debug_mode != '1':
     return 
 
-  # Get the calling function name (skip this function and its caller)
   frame = inspect.currentframe()
   try:
     caller_frame = frame.f_back
@@ -94,8 +89,6 @@ def PrintDebug(message):
 
 
 if __name__ == "__main__":
-  # This is a library module providing logging functions
-  # It is typically imported by other Vitis Unified command modules
   print("SharedCommands.py is a library module providing logging functions:", flush=True)
   print("  - PrintInfo(message)", flush=True)
   print("  - PrintError(message)", flush=True)

@@ -140,7 +140,7 @@ proc AddHogFiles {libraries properties filesets} {
       set ext [file extension $lib]
       Msg Debug "lib: $lib ext: $ext fileset: $fileset"
       # ADD NOW LISTS TO VIVADO PROJECT
-      if {[IsXilinx] && ![IsVitisUnified]} {
+      if {[IsXilinx] && !([info exists globalSettings::vitis_only_pass] && $globalSettings::vitis_only_pass == 1)} {
         # Skip Vitis libraries
         if {[string match "app_*" [string tolower $lib]]} {
           continue
@@ -2818,8 +2818,6 @@ proc GetIDEFromConf {conf_file} {
   if {[regexp -all {^\# *(\w*) *(vitis_(?:classic|unified))? *(\d+\.\d+(?:\.\d+)?(?:\.\d+)?)?(_.*)? *$} $line dummy ide vitisflag version patch]} {
     if {[info exists vitisflag] && $vitisflag != ""} {
       set ide "${ide}_${vitisflag}"
-      # DEBUG, remove when done
-      puts "Vitis flag detected, setting ide to ${ide}"
     }
 
     if {[info exists version] && $version != ""} {

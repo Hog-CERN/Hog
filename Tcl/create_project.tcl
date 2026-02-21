@@ -77,13 +77,13 @@ namespace eval globalSettings {
 }
 
 ################# FUNCTIONS ################################
-proc InitProject {} {
-  if {[IsVitisClassic]} {
+proc InitProject {{vitis_only 0}} {
+  if {$vitis_only == 1 && [IsVitisClassic]} {
     if {[file exists $globalSettings::build_dir/vitis_classic]} {
       file delete -force $globalSettings::build_dir/vitis_classic
     }
     setws $globalSettings::build_dir/vitis_classic
-  } elseif {[IsVitisUnified]} {
+  } elseif {$vitis_only == 1 && [IsVitisUnified]} {
     if {[file exists $globalSettings::build_dir/vitis_unified]} {
       file delete -force $globalSettings::build_dir/vitis_unified
     }
@@ -1086,6 +1086,7 @@ proc CreateProject {args} {
     {verbose              "If set, launch the script in verbose mode."}
     {xsa.arg           "" "xsa for creating platforms without a defined hw."}
     {vivado_only          "If set, and project is vivado-vitis, vitis project will not be created."}
+    {vitis_only           "If set, and project is vivado-vitis, only vitis project will be created."}
   }
 
   set usage "Create Vivado/Vitis/ISE/Quartus/Libero/Diamond project.\nUsage: CreateProject \[OPTIONS\] <project> <repository path>\n Options:"
@@ -1265,15 +1266,35 @@ proc CreateProject {args} {
     set globalSettings::HOG_IP_PATH ""
   }
 
-  InitProject
+  InitProject $options(vitis_only)
 
-  if {[IsVitisClassic] || [IsVitisUnified]} {
-    if {$options(xsa) != ""} {
-      Msg Info "Configuring platforms with xsa: $options(xsa)"
-      ConfigurePlatforms "$options(xsa)"
-    } else {
-      ConfigurePlatforms
+  if {([IsVitisClassic] || [IsVitisUnified]) && $options(vitis_only) == 1} {
+    set xsa_path $options(xsa)
+
+    if {$xsa_path == ""} {
+      if {[string match "vivado_*" [string tolower $ide]]} {
+        # vivado_vitis project: generate pre-synth XSA from existing Vivado project
+        set xpr_file [file normalize "$globalSettings::build_dir/[file tail $globalSettings::DESIGN].xpr"]
+        if {[file exists $xpr_file]} {
+          Msg Info "Opening existing Vivado project to generate pre-synth XSA..."
+          open_project $xpr_file
+          set xsa_path [file normalize "$globalSettings::build_dir/$globalSettings::DESIGN-presynth.xsa"]
+          write_hw_platform -fixed -force -file $xsa_path
+          Msg Info "Pre-synth XSA generated: $xsa_path"
+          close_project
+        } else {
+          Msg Error "Vivado project not found at $xpr_file. Please run CREATE without -vitis_only first to create the Vivado project or provide an XSA file via the -xsa option."
+          return 1
+        }
+      } else {
+        # Standalone vitis project: XSA is mandatory
+        Msg Error "This is a $ide only project, an XSA file must be provided via the -xsa option."
+        return 1
+      }
     }
+
+    Msg Info "Configuring platforms with XSA: $xsa_path"
+    ConfigurePlatforms "$xsa_path"
     ConfigureApps
     AddAppFiles
     return
@@ -1401,7 +1422,8 @@ proc CreateProject {args} {
     write_hw_platform -fixed -force -file [file normalize "$globalSettings::build_dir/$globalSettings::DESIGN-presynth.xsa"]
 
     if {$options(xsa) == ""} {
-      set xsa_opt ""
+      set presynth_xsa [file normalize "$globalSettings::build_dir/$globalSettings::DESIGN-presynth.xsa"]
+      set xsa_opt "-xsa $presynth_xsa"
     } else {
       if {[IsRelativePath $options(xsa)] == 0} {
         set xsa_opt "-xsa $options(xsa)"
@@ -1420,7 +1442,7 @@ proc CreateProject {args} {
       }
     } elseif {$globalSettings::vitis_unified == 1} {
       # Launch vivado in batch mode to build the project
-      set vivado_cmd "vivado -mode batch -source $globalSettings::tcl_path/launch.tcl -tclargs C $xsa_opt -vitis_only $globalSettings::project_name"
+      set vivado_cmd "vivado -nojournal -nolog -mode batch -notrace -source $globalSettings::tcl_path/launch.tcl -tclargs C $xsa_opt -vitis_only $globalSettings::project_name"
       Msg Info "Running Vitis Unified project creation script with command: $vivado_cmd"
       set ret [catch {exec -ignorestderr {*}$vivado_cmd >@ stdout} result]
       if {$ret != 0} {

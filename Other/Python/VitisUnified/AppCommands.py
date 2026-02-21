@@ -1,4 +1,4 @@
-#   Copyright 2018-2025 The University of Birmingham
+#   Copyright 2018-2026 The University of Birmingham
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -41,7 +41,6 @@ def AppListDict(workspace_path):
   """
   try:
     PrintInfo("Getting app list from workspace: %s" % workspace_path)
-    # Use client-based approach
     client = vitis.create_client()
 
     # Set workspace
@@ -146,7 +145,6 @@ def ParseAppOptions(app_options_str):
     key = tokens[i].upper()
     if i + 1 < len(tokens):
       value = tokens[i + 1]
-      # Remove quotes if present
       value = value.strip('"\'')
       opt_dict[key] = value
       i += 2
@@ -166,7 +164,6 @@ def ConfigureApp(app_name, app_conf, ws_dir):
     bool: True if successful, False otherwise
   """
   try:
-    # Parse app configuration
     if isinstance(app_conf, str):
       app_options = ParseAppOptions(app_conf)
     elif isinstance(app_conf, dict):
@@ -175,7 +172,6 @@ def ConfigureApp(app_name, app_conf, ws_dir):
       PrintError("app_conf must be a string or dictionary")
       return False
 
-    # Define create and config options
     create_options = {
       "platform", "domain", "sysproj", "hw", "proc", 
       "template", "os", "lang", "arch", "name"
@@ -188,7 +184,6 @@ def ConfigureApp(app_name, app_conf, ws_dir):
       "linker-misc", "linker-script", "undef-compiler-symbols"
     }
 
-    # Separate create and config options
     app_create_options = {}
     app_conf_options = {}
 
@@ -201,7 +196,6 @@ def ConfigureApp(app_name, app_conf, ws_dir):
       else:
         PrintWarning("Unknown app option: %s" % key_lower)
 
-    # Use client-based approach (like CreatePlatform.py)
     client = vitis.create_client()
 
     # Set workspace
@@ -267,7 +261,6 @@ def ConfigureApp(app_name, app_conf, ws_dir):
       vitis.dispose()
       return False
 
-    # TODO: Pending to be validated...
     # Configure app options using set_app_config API
     key_mapping = {
       "compiler-optimization": "USER_COMPILE_OPTIMIZATION_LEVEL",
@@ -441,10 +434,8 @@ def AddAppFiles(app_name, file_paths, ws_dir, target_path=None, vitis_version=No
             app.import_files(from_loc=from_dir, files=file_names, dest_dir_in_cmp=target_path, is_skip_copy_sources=True)
             total_imported += len(file_names)
           except TypeError as e:
-            # If is_skip_copy_sources parameter doesn't exist, fall back to import-then-replace
             PrintWarning("is_skip_copy_sources parameter not available, falling back to import-then-replace: %s" % e)
             use_skip_copy = False
-            # Fall through to import-then-replace method below
 
         if not use_skip_copy:
           # Method 2: Import files first (they get copied), then replace with symbolic links (Vitis < 2025.2 or fallback)
@@ -561,7 +552,6 @@ def BuildApp(app_name, ws_dir, target=None):
     if target:
       PrintInfo("Build target: %s" % target)
 
-    # Use client-based approach
     client = vitis.create_client()
 
     # Set workspace

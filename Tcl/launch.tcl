@@ -64,7 +64,6 @@ set default_commands {
 
   \^C(REATE)?$ {#
     set do_create 1
-    # set do_vitis_create 1
     set recreate 1
   # NAME*: CREATE or C
   # DESCRIPTION: Create the project, replace it if already existing.
@@ -112,6 +111,7 @@ set default_commands {
     set do_synthesis 1
     set do_bitstream 1
     set do_compile 1
+    set do_create 1
     set recreate 1
     set do_vitis_build 1
   # NAME: CREATEWORKFLOW or CW
@@ -289,15 +289,11 @@ if {$options(ext_path) != ""} {
 set simlib_path ""
 
 
-<<<<<<< HEAD
-
-=======
 if {$options(verbose) == 1} {
   setDebugMode 1
   # Set environment variable for Vitis Unified Python scripts to enable debug output
   set env(HOG_DEBUG_MODE) "1"
 }
->>>>>>> vitis app add files working
 # printDebugMode
 # Msg Info "Number of jobs set to $options(njobs)."
 set output_path ""
@@ -319,10 +315,10 @@ set do_implementation 0; set do_synthesis 0; set do_bitstream 0
 set do_create 0; set do_compile 0; set do_simulation 0; set recreate 0
 set do_reset 1; set do_list_all 2; set do_check_syntax 0; set do_vitis_build 0;
 set scripts_only 0; set compile_only 0
-
 ### Hog stand-alone directives ###
 # The following directives are used WITHOUT ever calling the IDE, they are run in tclsh
 # A place holder called new_directive can be followed to add new commands
+
 set do_ipbus_xml 0
 set do_list_file_parse 0
 set do_check_yaml_ref 0
@@ -763,11 +759,9 @@ if {$options(impl_only) == 1} {
 # }
 
 if {$options(vitis_only) == 1 || $ide_name eq "vitis_classic" || $ide_name eq "vitis_unified"} {
-  # set do_vitis_build 1
   set do_implementation 0
   set do_synthesis 0
   set do_bitstream 0
-  # set do_create 1
   set do_compile 0
 }
 
@@ -784,7 +778,6 @@ if {$options(bitstream_only) == 1} {
 
 if {$options(vivado_only) == 1} {
   set do_vitis_build 0
-  # set do_vitis_create 0
 }
 
 if {$options(no_reset) == 1} {
@@ -880,9 +873,11 @@ if {($proj_found == 0 || $recreate == 1) && $do_create == 1} {
   lassign [GetConfFiles $repo_path/Top/$project_name] conf sim pre post
 
   if {[file exists $conf]} {
-    # Still not sure of the difference between project and project_name
+    set globalSettings::vitis_only_pass $options(vitis_only)
     if {$options(vivado_only) == 1} {
       CreateProject -simlib_path $lib_path -xsa $options(xsa) -vivado_only $project_name $repo_path
+    } elseif {$options(vitis_only) == 1} {
+      CreateProject -simlib_path $lib_path -xsa $options(xsa) -vitis_only $project_name $repo_path
     } else {
       CreateProject -simlib_path $lib_path -xsa $options(xsa) $project_name $repo_path
     }

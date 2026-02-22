@@ -621,7 +621,7 @@ proc AddHogFiles {libraries properties filesets} {
     if {[IsVitisUnified] && [dict size $app_files_dict] > 0} {
       set python_script "$globalSettings::repo_path/Hog/Other/Python/VitisUnified/AppCommands.py"
       set vitis_workspace "$globalSettings::build_dir/vitis_unified"
-      
+
       # Get Vitis version and set as environment variable for Python script
       set vitis_version [GetIDEVersion]
       set env(HOG_VITIS_VER) $vitis_version
@@ -701,7 +701,7 @@ proc ALLOWED_PROPS {} {
     ".udo" [list "nosim"] \
     ".xci" [list "nosynth" "noimpl" "nosim" "locked"] \
     ".xdc" [list "nosynth" "noimpl" "scoped_to_ref" "scoped_to_cells"] \
-    ".tcl" [list "nosynth" "noimpl" "nosim" "scoped_to_ref" "scoped_to_cells" "source" "qsys" "noadd"\
+    ".tcl" [list "nosynth" "noimpl" "nosim" "source" "qsys" "noadd"\
         "--block-symbol-file" "--clear-output-directory" "--example-design"\
         "--export-qsys-script" "--family" "--greybox" "--ipxact"\
         "--jvm-max-heap-size" "--parallel" "--part" "--search-path"\
@@ -734,262 +734,6 @@ proc BinaryStepName {part} {
     return "Bitgen"
   } else {
     return "WRITE_BITSTREAM"
-  }
-}
-
-## @brief Check common environmentatl variables to run the Hog-CI
-proc CheckCIEnv {} {
-  global env
-  set essential_vars [dict create \
-    "HOG_USER" "NOT defined. This variable is essential for git to work properly. \
-    It should be set to the username for your service account (a valid git account)." \
-    "HOG_EMAIL" "NOT defined. This variable is essential for git to work properly. It should be set to your service's account email."\
-    "HOG_PUSH_TOKEN" "NOT defined. This variable is essential for git to work properly. It should be set to a Gitlab/GitHub API token for your service account."
-  ]
-
-  set missing_vars 0
-  dict for {var msg} $essential_vars {
-    if {![info exists env($var)]} {
-      Msg CriticalWarning "Essential environment variable $var is $msg"
-      set missing_vars 1
-    } else {
-      Msg Info "Found environment variable $var."
-    }
-  }
-
-  set additional_vars [dict create \
-    "HOG_CHECK_YAMLREF" "NOT defined. Set this variable to '1' to make CI fail if there is not coherence between the ref and the Hog." \
-    "HOG_TARGET_BRANCH" "NOT defined. Default branch for merge is \"master\""\
-    "HOG_CREATE_OFFICIAL_RELEASE" "NOT defined. \
-    Set this variable to '1' to make Hog create an official release in GitHub/Gitlab with the binaries generated in the CI."\
-    "HOG_USE_DOXYGEN" "NOT defined. \
-    Set this variable to 1 to make Hog-CI run Doxygen and copy the official documentation over when you merge to the official branch."
-  ]
-
-  if {([info exists env(HOG_OFFICIAL_BIN_EOS_PATH)] && $env(HOG_OFFICIAL_BIN_EOS_PATH) ne "") || \
-  ([info exists env(HOG_OFFICIAL_BIN_PATH)] && [string match "/eos/*" $env(HOG_OFFICIAL_BIN_PATH)])} {
-    Msg Info "Official binary path points to EOS. Checking EOS environment variables for uploads..."
-    if {[info exists env(HOG_OFFICIAL_BIN_PATH)]} {
-      Msg CriticalWarning "Variable HOG_OFFICIAL_BIN_EOS_PATH is defined. \
-      From Hog2026.2 this variable will be deprecated. Please, use HOG_OFFICIAL_BIN_PATH instead."
-    }
-    if {![info exists env(EOS_PASSWORD)]} {
-      if {![info exists env(HOG_PASSWORD)]} {
-        Msg Warning "Neither EOS_PASSWORD nor HOG_PASSWORD environment variable is defined. \
-        This variable is essential for Hog to be able to upload files to EOS. Please set one of them to the password for your EOS account."
-      } else {
-        Msg Info "HOG_PASSWORD environment variable is defined and will be used as password for EOS uploads. \
-        If you want to use a different password for EOS uploads, please set the EOS_PASSWORD environment variable."
-      }
-    } else {
-      Msg Info "EOS_PASSWORD environment variable is defined and will be used as password for EOS uploads."
-    }
-
-    if {![info exists env(EOS_USER)]} {
-      Msg Info "EOS_USER environment variable is not defined. Assuming EOS username is the same as HOG_USER."
-    } else {
-      Msg Info "EOS_USER environment variable is defined and will be used as username for EOS uploads."
-    }
-
-    if {![info exists env(EOS_MGM_URL)]} {
-      Msg Info "EOS_MGM_URL environment variable is not defined. Assuming default value of root://eosuser.cern.ch."
-    } else {
-      Msg Info "EOS_MGM_URL environment variable is defined and will be used as MGM URL for EOS uploads."
-    }
-  } elseif {[info exists env(HOG_OFFICIAL_BIN_PATH)] } {
-    Msg Info "Variable HOG_OFFICIAL_BIN_PATH is defined. Hog will copy the official binary files to the path defined in this variable. \
-    Please make sure this path is correct and has enough space to store the binaries."
-  } else {
-    Msg Info "No official binary path defined. Hog will not be able to upload binaries."
-  }
-
-
-
-  if {$missing_vars} {
-    Msg Error "One or more essential environment variables are missing. Hog-CI cannot run!"
-    exit 1
-  }
-}
-
-## brief Check environment to execute chosen project
-# @param[in] project_name The name of the project
-# @param[in] ide The IDE to build the chosen project
-proc CheckEnv {project_name ide} {
-  global env
-  set has_error 0
-  set essential_commands [dict create "git" "--version" "$ide" "-version"]
-  set additional_commands [dict create \
-    "vsim" "-version"\
-    "eos" ""\
-    "kinit" ""\
-    "rclone" "--version"
-  ]
-
-  set additional_vars [dict create \
-    "HOG_PATH" "NOT defined. Hog might work as long as all the necessary executable are in the PATH variable."\
-    "HOG_XIL_LICENSE" "NOT defined. If this variable is not set to the license servers separated by comas, \
-    you need some alternative way of getting your Xilinx license (for example a license file on the machine)."\
-    "LM_LICENSE_FILE" "NOT defined. This variable should be set the Quartus/Libero license servers separated by semicolon. \
-    If not, you need an alternative way of getting your Quartus/Libero license."\
-    "HOG_LD_LIBRARY_PATH" "NOT defined. Hog might work as long as all the necessary library are found."\
-    "HOG_SIMULATION_LIB_PATH" "NOT defined. Hog-CI will not be able to run simulations using third-party simulators."\
-    "HOG_CHECK_PROJVER" "NOT defined. Hog will NOT check the CI project version. \
-    Set this variable to '1' if you want Hog to check the CI project version before creating the HDL project in Create_Project stage. \
-    If the project has not been changed with respect to the target branch, the CI will skip this project" \
-    "HOG_CHECK_SYNTAX" "NOT defined. Hog will NOT check the syntax. \
-    Set this variable to '1' if you want Hog to check the syntax after creating the HDL project in Create_Project stage." \
-    "HOG_NO_BITSTREAM" "NOT defined. Hog-CI will run the implementation up to the write_bitstream stage and create bit files." \
-    "HOG_NO_RESET_BD" "NOT defined or not equal to 1. Hog will reset .bd files (if any) before starting synthesis."\
-    "HOG_IP_PATH" "NOT defined. Hog-CI will NOT use an EOS/LOCAL IP repository to speed up the IP synthesis." \
-    "HOG_RESET_FILES" "NOT defined. Hog-CI will NOT reset any files."\
-    "HOG_NJOBS" "NOT defined. Hog-CI will build IPs with default number of jobs (4)."\
-    "HOG_SAVE_DCP" "NOT defined. Set this variable to 1, 2 or 3 to make Hog-CI save the run checkpoint DCP files (Vivado only) in the artifacts.\nCheck the official documentation for more details. https://cern.ch/hog"\
-  ]
-  Msg Info "Checking environment to run Hog-CI for project $project_name with IDE $ide..."
-
-  Msg Info "Checking essential commands..."
-  dict for {cmd ver} $essential_commands {
-    if {[catch {exec which $cmd}]} {
-      Msg CriticalWarning "$cmd executable not found. Hog-CI cannot run!"
-      set has_error 1
-    } else {
-      Msg Info "Found executable $cmd."
-      if {$cmd == "ghdl"} {
-        Msg Info [exec $cmd --version]
-      } elseif {$cmd != "diamond"} {
-        Msg Info [exec $cmd $ver]
-      }
-    }
-  }
-
-  Msg Info "Checking additional commands..."
-  dict for {cmd ver} $additional_commands {
-    if {[catch {exec which $cmd}]} {
-      Msg Warning "$cmd executable not found."
-    } else {
-      Msg Info "Found executable $cmd."
-      if {$ver != ""} {
-        Msg Info [exec $cmd $ver]
-      }
-    }
-  }
-
-  if {$ide == "libero"} {
-    Msg Info "Checking essential environment variables..."
-    # Check if HOG_TCLLIB_PATH is defined
-    if {![info exists env(HOG_TCLLIB_PATH)]} {
-      Msg Error "Environmnental variable HOG_TCLLIB_PATH is NOT defined. This variable is essential to run Hog with Tcllib and Libero. Please, refer to https://hog.readthedocs.io/en/latest/02-User-Manual/01-Hog-local/13-Libero.html."
-      set has_error 1
-    } else {
-      Msg Info "HOG_TCLLIB_PATH is set. Hog-CI can run with Libero."
-    }
-  }
-
-  Msg Info "Checking additional environment variables..."
-  dict for {var msg} $additional_vars {
-    if {![info exists env($var)]} {
-      Msg Info "Environment variable $var is $msg"
-    } else {
-      Msg Info "Found environment variable $var."
-    }
-  }
-
-  if {$has_error} {
-    Msg Error "One or more essential environment variables are missing. Hog-CI cannot run!"
-    exit 1
-  }
-
-
-}
-
-
-proc CheckProjVer {repo_path project {sim 0} {ext_path ""}} {
-  global env
-  set curl_cmd [GetCurl]
-
-  if {$sim == 1} {
-    Msg Info "Will check also the version of the simulation files..."
-  }
-
-  set ci_run 0
-  if {[info exists env(HOG_PUSH_TOKEN)] && [info exist env(CI_PROJECT_ID)] && [info exist env(CI_API_V4_URL)] } {
-    set token $env(HOG_PUSH_TOKEN)
-    set api_url $env(CI_API_V4_URL)
-    set project_id $env(CI_PROJECT_ID)
-    set ci_run 1
-  }
-
-  cd $repo_path
-  set project_dir $repo_path/Top/$project
-  set ver [GetProjectVersion $project_dir $repo_path $ext_path $sim]
-  if {$ver == 0} {
-    Msg Info "$project was modified, continuing with the CI..."
-    if {$ci_run == 1 && ![IsQuartus] && ![IsISE]} {
-      Msg Info "Checking if the project has been already built in a previous CI run..."
-      lassign [GetRepoVersions $project_dir $repo_path] sha
-      if {$sha == [GetSHA $repo_path]} {
-        Msg Info "Project was modified in the current commit, Hog will proceed with the build workflow."
-        return
-      }
-      Msg Info "Checking if project $project has been built in a previous CI run with sha $sha..."
-      set result [catch {package require json} JsonFound]
-      if {"$result" != "0"} {
-        Msg CriticalWarning "Cannot find JSON package equal or higher than 1.0.\n $JsonFound\n Exiting"
-        return
-      }
-      lassign [ExecuteRet {*}$curl_cmd --header "PRIVATE-TOKEN: $token" "$api_url/projects/$project_id/pipelines"] ret content
-      set pipeline_dict [json::json2dict $content]
-      if {[llength $pipeline_dict] > 0} {
-        foreach pip $pipeline_dict {
-          set pip_sha [DictGet $pip sha]
-          set source [DictGet $pip source]
-          if {$source == "merge_request_event" && [string first $sha $pip_sha] != -1} {
-            Msg Info "Found pipeline with sha $pip_sha for project $project"
-            set pipeline_id [DictGet $pip id]
-            # tclint-disable-next-line line-length
-            lassign [ExecuteRet {*}$curl_cmd --header "PRIVATE-TOKEN: $token" "$api_url/projects/${project_id}/pipelines/${pipeline_id}/jobs?pagination=keyset&per_page=100"] ret2 content2
-            set jobs_dict [json::json2dict $content2]
-            if {[llength $jobs_dict] > 0} {
-              foreach job $jobs_dict {
-                set job_name [DictGet $job name]
-                set job_id [DictGet $job id]
-                set artifacts [DictGet $job artifacts_file]
-                set status [DictGet $job status]
-                set current_job_name $env(CI_JOB_NAME)
-                if {$current_job_name == $job_name && $status == "success"} {
-                  # tclint-disable-next-line line-length
-                  lassign [ExecuteRet {*}$curl_cmd --location --output artifacts.zip --header "PRIVATE-TOKEN: $token" --url "$api_url/projects/$project_id/jobs/$job_id/artifacts"] ret3 content3
-                  if {$ret3 != 0} {
-                    Msg CriticalWarning "Cannot download artifacts for job $job_name with id $job_id"
-                    return
-                  } else {
-                    lassign [ExecuteRet unzip -o $repo_path/artifacts.zip] ret_zip
-                    if {$ret_zip != 0} {
-
-                    } else {
-                      Msg Info "Artifacts for job $job_name with id $job_id downloaded and unzipped."
-                      file mkdir $repo_path/Projects/$project
-                      set fp [open "$repo_path/Projects/$project/skip.me" w+]
-                      close $fp
-                      exit 0
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-  } elseif {$ver != -1} {
-    Msg Info "$project was not modified since version: $ver, disabling the CI..."
-    file mkdir $repo_path/Projects/$project
-    set fp [open "$repo_path/Projects/$project/skip.me" w+]
-    close $fp
-    exit 0
-  } else {
-    Msg Error "Impossible to check the project version. Most likely the repository is not clean. Please, commit your changes before running this command."
-    exit 1
   }
 }
 
@@ -2089,7 +1833,6 @@ proc GenerateBitstream {{run_folder ""} {repo_path .} {njobs 1}} {
 #  @param[in] commandOpts the command options to be used during system generation as they are in qsys-generate options
 #
 proc GenerateQsysSystem {qsysFile commandOpts} {
-  global env
   if {[file exists $qsysFile] != 0} {
     set qsysPath [file dirname $qsysFile]
     set qsysName [file rootname [file tail $qsysFile]]
@@ -4227,7 +3970,6 @@ proc GitVersion {target_version} {
 # @param[in] force: if not set to 0, will copy the IP to the remote directory even if it is already present
 #
 proc HandleIP {what_to_do xci_file ip_path repo_path {gen_dir "."} {force 0}} {
-  global env
   if {!($what_to_do eq "push") && !($what_to_do eq "pull")} {
     Msg Error "You must specify push or pull as first argument."
   }
@@ -4241,46 +3983,15 @@ proc HandleIP {what_to_do xci_file ip_path repo_path {gen_dir "."} {force 0}} {
 
   cd $repo_path
 
-  set on_eos 0
-  set on_rclone 0
 
-  if {[regexp {^[^/]+:} $ip_path]} {
-    # Rclone path (e.g., dropbox:Project/IPs or eos:user/d/dcieri/...)
-    set on_rclone 1
-    # Check if rclone is available
-    lassign [ExecuteRet rclone --version] rclone_ret rclone_ver
-    if {$rclone_ret != 0} {
-      Msg CriticalWarning "Rclone path specified but rclone not found or failed: $rclone_ver"
-      cd $old_path
-      return -1
-    } else {
-      Msg Info "IP remote directory path, on Rclone, is set to: $ip_path"
-      # Check if RCLONE_CONFIG environment variable is set, if not set it to the default path
-      if {[info exists env(HOG_RCLONE_CONFIG)]} {
-        Msg Info "Using rclone config from environment variable HOG_RCLONE_CONFIG: $env(HOG_RCLONE_CONFIG)"
-        set config_path $env(HOG_RCLONE_CONFIG)
-      } else {
-        set config_path "/dev/null"
-        Msg Info "Environment variable HOG_RCLONE_CONFIG not set, using rclone environmental variables..."
-      }
-
-      set remote_name "[lindex [split $ip_path ":"] 0]:"
-      lassign [ExecuteRet rclone listremotes --config $config_path] rclone_list_ret remotes
-      if {$rclone_list_ret != 0} {
-        Msg CriticalWarning "Could not list rclone remotes: $remotes"
-        cd $old_path
-        return -1
-      } else {
-        if {![IsInList $remote_name $remotes]} {
-          Msg CriticalWarning "Rclone remote $remote_name not found among available remotes: $remotes"
-          cd $old_path
-          return -1
-        }
-      }
-    }
-  } elseif {[string first "/eos/" $ip_path] == 0} {
+  if {[string first "/eos/" $ip_path] == 0} {
     # IP Path is on EOS
     set on_eos 1
+  } else {
+    set on_eos 0
+  }
+
+  if {$on_eos == 1} {
     lassign [eos "ls $ip_path"] ret result
     if {$ret != 0} {
       Msg CriticalWarning "Could not run ls for for EOS path: $ip_path (error: $result). \
@@ -4315,20 +4026,7 @@ proc HandleIP {what_to_do xci_file ip_path repo_path {gen_dir "."} {force 0}} {
   if {$what_to_do eq "push"} {
     set will_copy 0
     set will_remove 0
-    if {$on_rclone == 1} {
-      lassign [ExecuteRet rclone ls $ip_path/$file_name.tar --config $config_path] ret result
-      if {$ret != 0} {
-        set will_copy 1
-      } else {
-        if {$force == 0} {
-          Msg Info "IP already in the Rclone repository, will not copy..."
-        } else {
-          Msg Info "IP already in the Rclone repository, will forcefully replace..."
-          set will_copy 1
-          set will_remove 1
-        }
-      }
-    } elseif {$on_eos == 1} {
+    if {$on_eos == 1} {
       lassign [eos "ls $ip_path/$file_name.tar"] ret result
       if {$ret != 0} {
         set will_copy 1
@@ -4366,12 +4064,7 @@ proc HandleIP {what_to_do xci_file ip_path repo_path {gen_dir "."} {force 0}} {
         Msg Info "Found some IP synthesised files matching $xci_ip_name"
         if {$will_remove == 1} {
           Msg Info "Removing old synthesised directory $ip_path/$file_name.tar..."
-          if {$on_rclone == 1} {
-            lassign [ExecuteRet rclone delete $ip_path/$file_name.tar --config $config_path] ret result
-            if {$ret != 0} {
-              Msg CriticalWarning "Could not delete file from Rclone: $result"
-            }
-          } elseif {$on_eos == 1} {
+          if {$on_eos == 1} {
             eos "rm -rf $ip_path/$file_name.tar" 5
           } else {
             file delete -force "$ip_path/$file_name.tar"
@@ -4388,12 +4081,7 @@ proc HandleIP {what_to_do xci_file ip_path repo_path {gen_dir "."} {force 0}} {
         ::tar::create $file_name.tar $tar_files
 
         Msg Info "Copying IP generated files for $xci_name..."
-        if {$on_rclone == 1} {
-          lassign [ExecuteRet rclone copyto $file_name.tar $ip_path/$file_name.tar --config $config_path] ret result
-          if {$ret != 0} {
-            Msg CriticalWarning "Something went wrong when copying the IP files to Rclone. Error message: $result"
-          }
-        } elseif {$on_eos == 1} {
+        if {$on_eos == 1} {
           lassign [ExecuteRet xrdcp -f -s $file_name.tar $::env(EOS_MGM_URL)//$ip_path/] ret msg
           if {$ret != 0} {
             Msg CriticalWarning "Something went wrong when copying the IP files to EOS. Error message: $msg"
@@ -4408,20 +4096,7 @@ proc HandleIP {what_to_do xci_file ip_path repo_path {gen_dir "."} {force 0}} {
       }
     }
   } elseif {$what_to_do eq "pull"} {
-    if {$on_rclone == 1} {
-      lassign [ExecuteRet rclone ls $ip_path/$file_name.tar --config $config_path] ret result
-      if {$ret != 0} {
-        Msg Info "Nothing for $xci_name was found in the Rclone repository, cannot pull."
-        cd $old_path
-        return -1
-      } else {
-        Msg Info "IP $xci_name found in the Rclone repository $ip_path, copying it locally to $repo_path..."
-        lassign [ExecuteRet rclone copyto $ip_path/$file_name.tar $file_name.tar --config $config_path] ret_copy result_copy
-        if {$ret_copy != 0} {
-          Msg CriticalWarning "Something went wrong when copying the IP files from Rclone. Error message: $result_copy"
-        }
-      }
-    } elseif {$on_eos == 1} {
+    if {$on_eos == 1} {
       lassign [eos "ls $ip_path/$file_name.tar"] ret result
       if {$ret != 0} {
         Msg Info "Nothing for $xci_name was found in the EOS repository, cannot pull."
@@ -4475,7 +4150,6 @@ proc HexVersionToString {version} {
 
 # @brief Import TCL Lib from an external installation for Libero, Synplify and Diamond
 proc ImportTclLib {} {
-  global env
   if {[IsLibero] || [IsDiamond] || [IsSynplify]} {
     if {[info exists env(HOG_TCLLIB_PATH)]} {
       lappend auto_path $env(HOG_TCLLIB_PATH)
@@ -4548,7 +4222,6 @@ proc InitLauncher {script tcl_path parameters commands argv {custom_commands ""}
   dict for {key value} $common_directive_names {
     set short_usage "$short_usage\n   - $key: [dict get $directive_descriptions $value]"
   }
-  # VSCODE COMMENT"
 
   if {[string length $custom_commands] > 0} {
     Msg Debug "Found custom commands to add to short short_usage."
@@ -4573,7 +4246,7 @@ proc InitLauncher {script tcl_path parameters commands argv {custom_commands ""}
     set usage "$usage\n   - $key: [dict get $directive_descriptions $value]"
   }
 
-  # if length of custom commands is greater than 0, add them to the short usage"
+ #if length of custom commands is greater than 0, add them to the short usage
   if {[string length $custom_commands] > 0} {
     Msg Debug "Found custom commands to add to short usage."
     set usage "$usage\n\nCustom commands:"
@@ -5449,6 +5122,23 @@ proc LaunchImplementation {reset do_create run_folder project_name {repo_path .}
 # @param[in] repo_path    The main path of the git repository (Default .)
 proc GenerateBitstreamOnly {project_name {repo_path .}} {
   cd $repo_path
+
+  # Open the project first
+  set project_file [file normalize "$repo_path/Projects/$project_name/$project_name.xpr"]
+  if {![file exists $project_file]} {
+    Msg Error "Project file not found: $project_file. Please create the project first."
+    return
+  }
+
+  OpenProject $project_file $repo_path
+
+  # Check if impl_1 run exists
+  set impl_runs [get_runs -quiet impl_1]
+  if {[llength $impl_runs] == 0} {
+    Msg Error "Implementation run 'impl_1' does not exist. Please run implementation first."
+    return
+  }
+
   lassign [GetRepoVersions [file normalize ./Top/$project_name] $repo_path] sha
   set describe [GetHogDescribe $sha $repo_path]
   set dst_dir [file normalize "$repo_path/bin/$project_name\-$describe"]
@@ -5690,9 +5380,10 @@ proc LaunchSimulation {project_name lib_path simsets {repo_path .} {scripts_only
   }
 }
 
-#'"
 # @brief Launch the RTL Analysis, for the current IDE and project
 #
+# @param[in] run_folder   The folder where to store the run results
+# @param[in] project_name The name of the project
 # @param[in] repo_path    The main path of the git repository (Default .)
 proc LaunchRTLAnalysis {repo_path {pre_rtl_file ""} {post_rtl_file ""}} {
   if {[IsVivado]} {
@@ -5701,7 +5392,6 @@ proc LaunchRTLAnalysis {repo_path {pre_rtl_file ""} {post_rtl_file ""}} {
       source $pre_rtl_file
     }
     Msg Info "Starting RTL Analysis..."
-    cd $repo_path
     synth_design -rtl -name rtl_1
     if {[file exists $post_rtl_file]} {
       Msg Info "Found post-rtl Tcl script $post_rtl_file, executing it..."
@@ -7520,26 +7210,4 @@ proc WriteUtilizationSummary {input output project_name run} {
 # Check Git Version when sourcing hog.tcl
 if {[GitVersion 2.7.2] == 0} {
   Msg Error "Found Git version older than 2.7.2. Hog will not work as expected, exiting now."
-}
-
-## @brief Tries to find the coorrect command to be launched for curl
-#
-# @details If running in vivado shell you may need to unsed LD_LIBRARY_PATH befor running curl to avoid conflicts with vivado libraries.
-# This procedure tests curl if execution is correct returns "curl"
-# If execution fails tries to run env -u LD_LIBRARY_PATH curl --silent --show-error, and returns "env -u LD_LIBRARY_PATH curl --silent --show-error" on success.
-# If both fail returns "curl", this will most probably generate failures later
-proc GetCurl {} {
-    if {![catch {exec curl --silent --show-error --version}]} {
-        if {![catch {exec curl --silent --show-error -I https://gitlab.com}]} {
-            return [list curl --silent --show-error]
-        }
-    }
-
-    if {![catch {exec env -u LD_LIBRARY_PATH curl --silent --show-error --version}]} {
-        if {![catch {exec env -u LD_LIBRARY_PATH curl --silent --show-error -I https://gitlab.com}]} {
-            return [list env -u LD_LIBRARY_PATH curl --silent --show-error]
-        }
-    }
-
-    error "Cannot find a working curl invocation"
 }

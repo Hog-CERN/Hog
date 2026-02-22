@@ -239,6 +239,25 @@ def CreatePlatform(platform_options=None, ws_dir=None):
     is_pmufw_req = StrToBool(options.get("is_pmufw_req")) if "is_pmufw_req" in options else None
     generate_dtb = StrToBool(options.get("generate_dtb")) if "generate_dtb" in options else None
 
+    # For ZynqMP platforms, ensure is_pmufw_req is True to create boot directory structure
+    # Detect ZynqMP by checking CPU name (psu_cortexa53, psu_cortexr5) or XSA path
+    is_zynqmp = False
+    if cpu:
+      cpu_lower = cpu.lower()
+      if "psu_cortexa53" in cpu_lower or "psu_cortexr5" in cpu_lower:
+        is_zynqmp = True
+    elif hw_design and ("zynqmp" in hw_design.lower() or "zu" in hw_design.lower()):
+      is_zynqmp = True
+
+    if is_zynqmp and is_pmufw_req is None:
+      is_pmufw_req = True
+      PrintInfo("Detected ZynqMP platform, setting is_pmufw_req=True to create boot directory structure")
+
+    # Create export directory with all binaries for a given platform
+    if is_zynqmp and domain_name is None:
+      domain_name = name
+      PrintInfo("Detected ZynqMP platform, setting domain_name=%s to match platform name" % name)
+
     # Path options
     fsbl_target = options.get("fsbl_target")
     fsbl_path = options.get("fsbl_path")

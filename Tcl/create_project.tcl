@@ -1283,6 +1283,7 @@ proc CreateProject {args} {
           Msg Info "Pre-synth XSA generated: $xsa_path"
           close_project
         } else {
+          # tclint-disable-next-line line-length
           Msg Error "Vivado project not found at $xpr_file. Please run CREATE without -vitis_only first to create the Vivado project or provide an XSA file via the -xsa option."
           return 1
         }
@@ -1442,7 +1443,9 @@ proc CreateProject {args} {
       }
     } elseif {$globalSettings::vitis_unified == 1} {
       # Launch vivado in batch mode to build the project
-      set vivado_cmd "vivado -nojournal -nolog -mode batch -notrace -source $globalSettings::tcl_path/launch.tcl -tclargs C $xsa_opt -vitis_only $globalSettings::project_name"
+      set vivado_cmd "vivado -nojournal -nolog -mode batch -notrace \
+        -source $globalSettings::tcl_path/launch.tcl \
+        -tclargs C $xsa_opt -vitis_only $globalSettings::project_name"
       Msg Info "Running Vitis Unified project creation script with command: $vivado_cmd"
       set ret [catch {exec -ignorestderr {*}$vivado_cmd >@ stdout} result]
       if {$ret != 0} {

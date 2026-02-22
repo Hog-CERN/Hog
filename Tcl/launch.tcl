@@ -248,9 +248,37 @@ set tcl_path [file normalize "[file dirname [info script]]"]
 source $tcl_path/hog.tcl
 source $tcl_path/create_project.tcl
 
+# Find repo root by walking up from a start dir until we see Top/ and Projects/.
+# For absolute paths we do not normalize, so the path form is preserved and [file exists]
+# sees the same view as the script was loaded from.
+proc FindRepoRoot {start_dir} {
+  if {[file pathtype $start_dir] eq "relative"} {
+    set dir [file normalize [file join [pwd] $start_dir]]
+  } else {
+    set dir $start_dir
+  }
+  while {1} {
+    if {[file exists [file join $dir Top]] && [file exists [file join $dir Projects]]} {
+      return $dir
+    }
+    set parent [file dirname $dir]
+    if {$parent eq $dir} {
+      return ""
+    }
+    set dir $parent
+  }
+}
+
 # Initialize Vitis flags before InitLauncher so IsTclsh correctly returns 1
 set globalSettings::vitis_unified 0
 set globalSettings::vitis_classic 0
+
+# Check if we're already running in xsct (Vitis Classic)
+# This must be done early, before InitLauncher, to prevent launching Vivado
+if {[info commands platform] != ""} {
+  set globalSettings::vitis_classic 1
+  set globalSettings::vitis_unified 0
+}
 
 # Quartus needs extra packages and treats the argv in a different way
 if {[IsQuartus]} {
@@ -331,6 +359,11 @@ set do_hierarchy 0
 set NO_DIRECTIVE_FOUND 0
 Msg Debug "Looking for a $directive in : $default_commands"
 switch -regexp -- $directive $default_commands
+
+# Get IDE name from project config file
+set proj_conf [ProjectExists $project_name $repo_path]
+set ide_name_and_ver [string tolower [GetIDEFromConf $proj_conf]]
+set ide_name [lindex [regexp -all -inline {\S+} $ide_name_and_ver] 0]
 
 if {$NO_DIRECTIVE_FOUND == 1} {
   Msg Debug "No directive found in default commands, looking in custom commands..."
@@ -587,11 +620,6 @@ if {$cmd == -1} {
 
   #### END of tclsh commands ####
 
-  # Get IDE name from project config file
-  set proj_conf [ProjectExists $project_name $repo_path]
-  set ide_name_and_ver [string tolower [GetIDEFromConf $proj_conf]]
-  set ide_name [lindex [regexp -all -inline {\S+} $ide_name_and_ver] 0]
-
   Msg Info "Launching command: $cmd..."
 
   # Check if the IDE is actually in the path...
@@ -634,11 +662,6 @@ if {$cmd == -1} {
 #After this line, we are in the IDE
 ##################################################################################
 
-# Get IDE name from project config file (needed for Vitis detection, xsct launch, etc.)
-set proj_conf [ProjectExists $project_name $repo_path]
-set ide_name_and_ver [string tolower [GetIDEFromConf $proj_conf]]
-set ide_name [lindex [regexp -all -inline {\S+} $ide_name_and_ver] 0]
-
 # We need to Import tcllib if we are using Libero
 if {[IsLibero] || [IsDiamond]} {
   if {[info exists env(HOG_TCLLIB_PATH)]} {
@@ -668,23 +691,6 @@ if {[IsLibero]} {
 
 # Only for quartus, not used otherwise
 set project_path [file normalize "$repo_path/Projects/$project_name/"]
-
-# If Vitis Classic only project, launch xsct
-if {([string tolower $ide_name] eq "vitis_classic") || ([string tolower $ide_name] eq "vivado_vitis_classic" && $options(vitis_only) == 1)} {
-  if {![IsVitisClassic]} {
-    set xsct_cmd "xsct $tcl_path/launch.tcl"
-    Msg Info "Launching xsct with command: $xsct_cmd"
-    foreach arg $argv {
-      append xsct_cmd " [list $arg]"
-    }
-    set ret [catch {exec -ignorestderr {*}$xsct_cmd >@ stdout <@ stdin} result]
-    if {$ret != 0} {
-      Msg Error "xsct returned an error state: $result"
-      exit $ret
-    }
-    exit 0
-  }
-}
 
 # Vitis IDE detection
 if {([string tolower $ide_name] eq "vivado_vitis_classic" || [string tolower $ide_name] eq "vitis_classic") && ($options(vivado_only) != 1)} {
@@ -727,46 +733,6 @@ if {$options(impl_only) == 1} {
   set do_compile 1
 }
 
-# if {$do_vitis_create == 1} {
-#   if {$options(vitis_only) == 1 && ($ide_name eq "vitis_classic" || $ide_name eq "vitis_unified")} {
-#     set do_implementation 0
-#     set do_synthesis 0
-#     set do_bitstream 0
-#     set do_create 1
-#     set do_compile 0
-#   } elseif {$ide_name eq "vitis_classic" || $ide_name eq "vitis_unified"} {
-#     set do_implementation 0
-#     set do_synthesis 0
-#     set do_bitstream 0
-#     set do_create 1
-#     set do_compile 0
-#   } elseif {$ide_name eq "vivado_vitis_classic" || $ide_name eq "vivado_vitis_unified"} {
-#     # nothing to do
-#   } else {
-#     set do_vitis_create 0
-#   }
-# }
-
-# if {$do_vitis_build == 1} {
-#   if {$options(vitis_only) == 1 && ($ide_name eq "vitis_classic" || $ide_name eq "vitis_unified")} {
-#     set do_implementation 0
-#     set do_synthesis 0
-#     set do_bitstream 0
-#     set do_create 0
-#     set do_compile 0
-#   } elseif {$ide_name eq "vitis_classic" || $ide_name eq "vitis_unified"} {
-#     set do_implementation 0
-#     set do_synthesis 0
-#     set do_bitstream 0
-#     set do_create 0
-#     set do_compile 0
-#   } elseif {$ide_name eq "vivado_vitis_classic" || $ide_name eq "vivado_vitis_unified"} {
-#     # nothing to do
-#   } else {
-#     set do_vivado_build 0
-#   }
-# }
-
 if {$options(vitis_only) == 1 || $ide_name eq "vitis_classic" || $ide_name eq "vitis_unified"} {
   set do_implementation 0
   set do_synthesis 0
@@ -804,8 +770,6 @@ if {$options(scripts_only) == 1} {
 if {$options(compile_only) == 1} {
   set compile_only 1
 }
-
-
 
 if {$options(lib) != ""} {
   set lib_path [file normalize $options(lib)]
@@ -872,8 +836,42 @@ if {[file exists $project_file]} {
   Msg Info "Found project file $project_file for $project_name."
   set proj_found 1
 } else {
-  Msg Info "Project file not found for $project_name."
+  # Path from InitLauncher may resolve to a different mount for the same repo.
+  # Discover repo root and use first path where project exists (file or, for Vitis Unified, project dir).
+  set repo_norm [file normalize $repo_path]
+  set rel [string trimleft [string range $project_file [string length $repo_norm] end] "/"]
   set proj_found 0
+  foreach start_dir [list [file dirname [info script]] [pwd]] {
+    set repo_candidate [FindRepoRoot $start_dir]
+    Msg Debug "FindRepoRoot([list $start_dir]) => [list $repo_candidate]"
+    if {$repo_candidate ne ""} {
+      set project_file_alt [file join $repo_candidate $rel]
+      set found 0
+      if {[file exists $project_file_alt]} {
+        set found 1
+      } elseif {$options(vitis_only) == 1 && [string match "*vitis_unified*" $rel]} {
+        set ide_dir [file join $repo_candidate Projects $project_name vitis_unified _ide]
+        if {[file exists $ide_dir]} {
+          set found 1
+        }
+      }
+      if {$options(vitis_only) == 1 && [string match "*vitis_unified*" $rel]} {
+        Msg Debug "Checking file [list $project_file_alt] exists=[file exists $project_file_alt]; _ide dir [list $ide_dir] exists=[file exists $ide_dir]"
+      } else {
+        Msg Debug "Checking [list $project_file_alt] exists=[file exists $project_file_alt]"
+      }
+      if {$found} {
+        set project_file $project_file_alt
+        set repo_path $repo_candidate
+        Msg Info "Found project file $project_file for $project_name."
+        set proj_found 1
+        break
+      }
+    }
+  }
+  if {!$proj_found} {
+    Msg Info "Project file not found for $project_name."
+  }
 }
 
 if {($proj_found == 0 || $recreate == 1) && $do_create == 1} {
@@ -891,6 +889,9 @@ if {($proj_found == 0 || $recreate == 1) && $do_create == 1} {
       CreateProject -simlib_path $lib_path -xsa $options(xsa) $project_name $repo_path
     }
     Msg Info "Done creating project $project_name."
+    if {$options(vitis_only) == 1 && ($ide_name eq "vitis_unified" || $ide_name eq "vivado_vitis_unified")} {
+      set project_file [file join $repo_path Projects $project_name vitis_unified _ide settings.json]
+    }
   } else {
     Msg Error "Project $project_name is incomplete: no hog.conf file found, please create one..."
   }

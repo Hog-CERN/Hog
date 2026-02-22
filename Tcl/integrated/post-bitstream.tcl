@@ -439,32 +439,49 @@ if {[IsXilinx]} {
       }
     }
 
-    if {[IsVitisClassic] && $wrote_xsa == 1} {
-      Msg Info "XSA file written to $dst_xsa"
-      set xsct_cmd "xsct $tcl_path/launch.tcl CW -xsa $dst_xsa -vitis_only $proj_name"
-      Msg Info "Running Vitis Classic to create elf file with cmd: $xsct_cmd"
-      set ret [catch {exec -ignorestderr {*}$xsct_cmd >@ stdout} result]
-      if {$ret != 0} {
-        Msg Error "xsct (vitis classic) returned an error state."
+    if {$wrote_xsa == 1} {
+      # Determine project type from configuration file
+      set conf_file [lindex [GetConfFiles $repo_path/Top/$group_name/$proj_name] 0]
+      set is_vitis_classic 0
+      set is_vitis_unified 0
+
+      if {[file exists $conf_file]} {
+        set ide_name_and_ver [GetIDEFromConf $conf_file]
+        set ide_name [string tolower [lindex $ide_name_and_ver 0]]
+        if {[string match "*vitis_classic*" $ide_name] || [string match "*vivado_vitis_classic*" $ide_name]} {
+          set is_vitis_classic 1
+        } elseif {[string match "*vitis_unified*" $ide_name] || [string match "*vivado_vitis_unified*" $ide_name]} {
+          set is_vitis_unified 1
+        }
       }
 
-      # Process ELF files and update bitstream with memory content
-      set mmi_file [file normalize "$dst_dir/${proj_name}\-$describe.mmi"]
-      GenerateBootArtifacts $properties $repo_path $proj_dir $dst_dir $proj_name $describe $dst_main $mmi_file
-    }
+      if {$is_vitis_classic || $is_vitis_unified} {
+        Msg Info "XSA file written to $dst_xsa"
 
-    if {[IsVitisUnified] && $wrote_xsa == 1} {
-      Msg Info "XSA file written to $dst_xsa"
-      set cmd "$tcl_path/launch.tcl CW -xsa $dst_xsa -vitis_only $proj_name"
-      Msg Info "Running Vitis Unified to create elf file with cmd: $cmd"
-      set ret [catch {exec -ignorestderr {*}$cmd >@ stdout} result]
-      if {$ret != 0} {
-        Msg Error "vivado (for vitis unified) returned an error state."
+        # Determine command based on project type
+        if {$is_vitis_classic} {
+          set vitis_cmd "xsct $tcl_path/launch.tcl CW -xsa $dst_xsa -vitis_only $proj_name"
+          set vitis_type "Vitis Classic"
+          set error_prefix "xsct (vitis classic)"
+        } elseif {$is_vitis_unified} {
+          set vitis_cmd "$tcl_path/launch.tcl CW -xsa $dst_xsa -vitis_only $proj_name"
+          set vitis_type "Vitis Unified"
+          set error_prefix "vivado (for vitis unified)"
+        } else {
+          Msg Error "No Vitis project type found."
+          return
+        }
+
+        Msg Info "Running $vitis_type to create elf file with cmd: $vitis_cmd"
+        set ret [catch {exec -ignorestderr {*}$vitis_cmd >@ stdout} result]
+        if {$ret != 0} {
+          Msg Error "$error_prefix returned an error state."
+        }
+
+        # Process ELF files and update bitstream with memory content
+        set mmi_file [file normalize "$dst_dir/${proj_name}\-$describe.mmi"]
+        GenerateBootArtifacts $properties $repo_path $proj_dir $dst_dir $proj_name $describe $dst_main $mmi_file
       }
-
-      # Process ELF files and update bitstream with memory content
-      set mmi_file [file normalize "$dst_dir/${proj_name}\-$describe.mmi"]
-      GenerateBootArtifacts $properties $repo_path $proj_dir $dst_dir $proj_name $describe $dst_main $mmi_file
     }
 
   }

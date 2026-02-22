@@ -621,7 +621,7 @@ proc AddHogFiles {libraries properties filesets} {
     if {[IsVitisUnified] && [dict size $app_files_dict] > 0} {
       set python_script "$globalSettings::repo_path/Hog/Other/Python/VitisUnified/AppCommands.py"
       set vitis_workspace "$globalSettings::build_dir/vitis_unified"
-      
+
       # Get Vitis version and set as environment variable for Python script
       set vitis_version [GetIDEVersion]
       set env(HOG_VITIS_VER) $vitis_version
@@ -5406,6 +5406,23 @@ proc LaunchImplementation {reset do_create run_folder project_name {repo_path .}
 # @param[in] repo_path    The main path of the git repository (Default .)
 proc GenerateBitstreamOnly {project_name {repo_path .}} {
   cd $repo_path
+
+  # Open the project first
+  set project_file [file normalize "$repo_path/Projects/$project_name/$project_name.xpr"]
+  if {![file exists $project_file]} {
+    Msg Error "Project file not found: $project_file. Please create the project first."
+    return
+  }
+
+  OpenProject $project_file $repo_path
+
+  # Check if impl_1 run exists
+  set impl_runs [get_runs -quiet impl_1]
+  if {[llength $impl_runs] == 0} {
+    Msg Error "Implementation run 'impl_1' does not exist. Please run implementation first."
+    return
+  }
+
   lassign [GetRepoVersions [file normalize ./Top/$project_name] $repo_path] sha
   set describe [GetHogDescribe $sha $repo_path]
   set dst_dir [file normalize "$repo_path/bin/$project_name\-$describe"]

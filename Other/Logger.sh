@@ -323,6 +323,12 @@ function log_stdout(){
           msgType="info"
           ;;
       esac
+      # If stderr line already has a severity (error/warning/critical), don't add the stderr "E" prefix
+      if [ "${1}" == "stderr" ] && [ "$stderr_ack" == "E" ]; then
+        case "$msgType" in
+          error|critical|warning) stderr_ack=" " ;;
+        esac
+      fi
       #######################################
       # Overwriting
       #######################################

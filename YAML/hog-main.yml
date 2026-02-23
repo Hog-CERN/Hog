@@ -212,8 +212,8 @@ artifacts_and_release:
     - if [ "${HOG_CREATE_OFFICIAL_RELEASE}" = "1" ]; then
         glab release create $CI_COMMIT_TAG -F bin/note.md -n "Official version $CI_COMMIT_TAG";
         if [ -z "${HOG_NO_ZIP}" ]; then
-          mkdir zipped
-          cd bin
+          mkdir zipped;
+          cd bin;
           if [ -z "${HOG_MAX_ZIP_SIZE}" ]; then
             export HOG_MAX_ZIP_SIZE=10m;
             echo "Hog-CI(info) - Maximum size of artifact zip set to $HOG_MAX_ZIP_SIZE";

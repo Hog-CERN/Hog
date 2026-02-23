@@ -654,16 +654,17 @@ proc parse_hdl_file {filename} {
   }
 
   set fp [open $filename r]
-  set sof [read $fp 256]
-
-  if {[string first "pragma protect begin_protected" $sof] != -1 || [string first "protect begin_protected" $sof] != -1} {
-    close $fp
-    return {}
-  }
-
-  seek $fp 0 start
   set code [read $fp]
   close $fp
+
+
+  # skip protected files
+  set first_line [lindex [split $code "\n"] 0]
+  set first_line_trimmed [string trim $first_line]
+  if {$first_line_trimmed eq "`pragma protect begin_protected" ||
+      $first_line_trimmed eq "`protect begin_protected"} {
+    return {}
+  }
 
   set extension [string tolower [file extension $filename]]
 

@@ -25,7 +25,7 @@ on:
 jobs:
   hog-workflow:
     # Here you can change the hog version
-    uses: hog-CERN/Hog/.github/workflows/Hog-pull.yml@Hog2024.2
+    uses: hog-CERN/Hog/.github/workflows/Hog-pull.yml@Hog2026.1-2
     secrets:
       HOG_PUSH_TOKEN: ${{ secrets.HOG_PUSH_TOKEN }}
       HOG_EMAIL: ${{ secrets.HOG_EMAIL}}

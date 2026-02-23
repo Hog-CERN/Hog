@@ -61,6 +61,7 @@ check_branch_state:
   variables:
     <<: *vars
   script:
+    - ./Hog/Do CIE
     - glab auth login -t $HOG_PUSH_TOKEN --hostname $CI_SERVER_HOST
     - export REPO=`echo $CI_PROJECT_URL | sed -e s#https://##`
     - git remote set-url origin https://${HOG_USER}:${HOG_PUSH_TOKEN}@$REPO
@@ -257,7 +258,7 @@ archive_binary_files:
         BIN_PATH=$HOG_OFFICIAL_BIN_PATH;
       elif [ "${HOG_OFFICIAL_BIN_EOS_PATH}" ]; then
         BIN_PATH=$HOG_OFFICIAL_BIN_EOS_PATH;
-        echo "From version Hog2024.1, HOG_OFFICIAL_BIN_EOS_PATH variable will be deprecated. Please use HOG_OFFICIAL_BIN_PATH to define the path where to copy the official bitfiles.";
+        echo "From version Hog2026.2, HOG_OFFICIAL_BIN_EOS_PATH variable will be deprecated. Please use HOG_OFFICIAL_BIN_PATH to define the path where to copy the official bitfiles.";
       fi;
     - if echo "$BIN_PATH" | grep -q "^/eos/"; then
         ENABLE_EOS=1;
@@ -312,10 +313,10 @@ archive_binary_files:
         if [ -d bin ]; then
           echo "Copying binary files to ${BIN_PATH}/${CI_COMMIT_TAG}";
           if [ $ENABLE_EOS -eq 1 ]; then
-            eos mkdir $BIN_PATH/$CI_COMMIT_TAG;
+            eos mkdir -p $BIN_PATH/$CI_COMMIT_TAG;
             xrdcp -rfs bin/* ${EOS_MGM_URL}//${BIN_PATH}/${CI_COMMIT_TAG};
           else
-            mkdir $BIN_PATH/$CI_COMMIT_TAG;
+            mkdir -p $BIN_PATH/$CI_COMMIT_TAG;
             cp -r bin/* ${BIN_PATH}/${CI_COMMIT_TAG};
           fi;
         else

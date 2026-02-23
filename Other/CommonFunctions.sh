@@ -181,13 +181,13 @@ function select_command() {
     file="$tcl"
     FILE_TYPE=TCL
   else
-    Msg Error "No suitable file found in $1!"
+    echo "ERROR: No suitable file found in $1!"
     return 1
   fi
 
 
   if ! select_command_from_line "$(head -1 "$file")"; then
-    Msg Error "Failed to select CMD_ARRAY, CMD_OPT_ARRAY and POST_CMD_OPT_ARRAY"
+    echo Error "ERROR: Failed to select CMD_ARRAY, CMD_OPT_ARRAY and POST_CMD_OPT_ARRAY"
     return 1
   fi
   return 0

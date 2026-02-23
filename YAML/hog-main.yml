@@ -230,7 +230,7 @@ artifacts_and_release:
             tclsh ./Hog/Tcl/CI/get_binary_links.tcl -force $CI_COMMIT_TAG "$HOG_EXTERNAL_PATH";
           fi;
         else
-          echo "Will not upload zip file to the release page..."
+          echo "Will not upload zip file to the release page...";
         fi;
       fi;
   allow_failure: true

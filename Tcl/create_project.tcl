@@ -1003,7 +1003,7 @@ proc ManageIPs {} {
 
   Msg Info "Running report_ip_status, before upgrading and handling IPs..."
   report_ip_status
-  set_msg_config -id {Hog:HandleIP-0} -limit 1500
+  set_msg_config -id {HandleIP} -limit 1500
   #Pull ips from repo
   if {$globalSettings::HOG_IP_PATH != ""} {
     set ip_repo_path $globalSettings::HOG_IP_PATH

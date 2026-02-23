@@ -3748,6 +3748,42 @@ proc GetVerFromSHA {SHA repo_path {force_develop 0}} {
             }
           }
 
+          Msg Status "On branch $branch_name"
+          if {[string match "HEAD" $branch_name]} {
+            Msg Warning "Detached HEAD detected - attempting to find branch name"
+            # if the branch_name is HEAD (not a legal branch name btw)
+            # then the branch has been checked out in a detached head state
+            # this is a fallback condition to enable finding the branch name that the commit is linked too
+            set log_refs [Git {show -s --pretty=%D HEAD}]
+            set branch_list [split $log_refs ","]
+            Msg Status "list of possible branch refs $log_refs"
+
+            # iterate over all possible refs and match against all prefix types
+            # set branch name as matched prefix if and only if one match is found
+
+            set match_count 0
+            set match_prefixes [list $hotfix_prefix $minor_prefix $major_prefix]
+            set prev_branch_name $branch_name
+
+            foreach br $branch_list {
+              foreach pr $match_prefixes {
+                # Msg Status "Debug pointer $br $pr"
+                if {[string match "$pr*" [string trim $br]]} {
+                  # Msg Status "Match found $br"
+                  set branch_name [string trim $br]
+                  incr match_count 1
+                }
+              }
+            }
+
+            if {!$match_count == 1} {
+              set branch_name $prev_branch_name
+              Msg Warning "Branch name not found. Using $branch_name"
+            } else {
+              Msg Status "Branch name found: $branch_name"
+            }
+          }
+
           if {$enable_develop_branch == 1} {
             if {[string match "$hotfix_prefix*" $branch_name]} {
               set is_hotfix 1

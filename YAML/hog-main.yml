@@ -17,7 +17,7 @@
     - hog
 
 .tag-sr: &tag-sr
-  image: hogcern/hog:2026.1
+  image: hogcern/hog:develop
 
 .vars: &vars
   GIT_STRATEGY: fetch
@@ -260,7 +260,12 @@ archive_binary_files:
         BIN_PATH=$HOG_OFFICIAL_BIN_EOS_PATH;
         echo "From version Hog2026.2, HOG_OFFICIAL_BIN_EOS_PATH variable will be deprecated. Please use HOG_OFFICIAL_BIN_PATH to define the path where to copy the official bitfiles.";
       fi;
+    - ON_EOS=0;
+      ON_RCLONE=0;
+      ENABLE_EOS=0;
+      ENABLE_RCLONE=0;
     - if echo "$BIN_PATH" | grep -q "^/eos/"; then
+        ON_EOS=1;
         ENABLE_EOS=1;
         if [ -z "${EOS_PASSWORD}" ]; then
           if [ -z "${HOG_PASSWORD}" ]; then
@@ -292,15 +297,34 @@ archive_binary_files:
           fi;
         fi;
       else
-        ENABLE_EOS=0;
+        if echo "$BIN_PATH" | grep -q "^[^/]*:"; then
+          echo "BIN_PATH uses an rclone protocol";
+          ON_RCLONE=1;
+          if command -v rclone &> /dev/null; then
+            ENABLE_RCLONE=1;
+            if [ -n "${HOG_RCLONE_CONFIG}" ] && [ -f "${HOG_RCLONE_CONFIG}" ]; then
+              echo "Using custom rclone config from HOG_RCLONE_CONFIG variable";
+              export RCLONE_CONFIG=${HOG_RCLONE_CONFIG};
+            else
+              echo "No custom rclone config provided. Assuming rclone is already configured properly in this environment.";
+              export RCLONE_CONFIG=/dev/null;
+            fi;
+          else
+            echo "[HOG-ERROR] rclone is not available. Please install rclone to use this feature.";
+            ENABLE_RCLONE=0;
+          fi;
+        fi;
       fi;
     - copy_error=0
     - if [ "${HOG_USE_DOXYGEN}" = "1" ] && [ "${BIN_PATH}" ]; then
         if [ -d Doc/html ]; then
-          if [ $ENABLE_EOS -eq 1 ]; then
+          if [ $ON_EOS -eq 1 ] && [ $ENABLE_EOS -eq 1 ]; then
             eos mkdir -p ${BIN_PATH}/Doc;
             xrdcp -rsf Doc/html/* ${EOS_MGM_URL}//${BIN_PATH}/Doc;
-          else
+          elif [ $ON_RCLONE -eq 1 ] && [ $ENABLE_RCLONE -eq 1 ]; then
+            rclone mkdir ${BIN_PATH}/Doc --config $RCLONE_CONFIG;
+            rclone copy Doc/html ${BIN_PATH}/Doc --config $RCLONE_CONFIG;
+          elif [ $ON_RCLONE -eq 0 ] && [ $ON_EOS -eq 0 ]; then
             mkdir -p ${BIN_PATH}/Doc;
             cp -r Doc/html/* ${BIN_PATH}/Doc;
           fi;
@@ -312,10 +336,13 @@ archive_binary_files:
     - if [ "${BIN_PATH}" ]; then
         if [ -d bin ]; then
           echo "Copying binary files to ${BIN_PATH}/${CI_COMMIT_TAG}";
-          if [ $ENABLE_EOS -eq 1 ]; then
+          if [ $ENABLE_EOS -eq 1 ] && [ $ON_EOS -eq 1 ]; then
             eos mkdir -p $BIN_PATH/$CI_COMMIT_TAG;
             xrdcp -rfs bin/* ${EOS_MGM_URL}//${BIN_PATH}/${CI_COMMIT_TAG};
-          else
+          elif [ $ON_RCLONE -eq 1 ] && [ $ENABLE_RCLONE -eq 1 ]; then
+            rclone mkdir ${BIN_PATH}/${CI_COMMIT_TAG} --config $RCLONE_CONFIG;
+            rclone copy bin ${BIN_PATH}/${CI_COMMIT_TAG} --config $RCLONE_CONFIG;
+          elif [ $ON_RCLONE -eq 0 ] && [ $ON_EOS -eq 0 ]; then
             mkdir -p $BIN_PATH/$CI_COMMIT_TAG;
             cp -r bin/* ${BIN_PATH}/${CI_COMMIT_TAG};
           fi;

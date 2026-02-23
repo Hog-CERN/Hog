@@ -58,7 +58,7 @@ env:
 jobs:
   get_artifacts:
     runs-on: ubuntu-latest
-    container: hogcern/hog:2026.1
+    container: hogcern/hog:develop
     outputs:
       TAG: ${{ steps.artifacts.outputs.tag }}
     steps:

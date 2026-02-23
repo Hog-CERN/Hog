@@ -33,7 +33,7 @@ env:
 jobs:
   tag_official_version:
     runs-on: ubuntu-latest
-    container: hogcern/hog:2026.1
+    container: hogcern/hog:develop
     steps:
       - uses: actions/checkout@v4
         name: Checkout Repository

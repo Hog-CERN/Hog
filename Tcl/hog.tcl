@@ -4649,28 +4649,19 @@ proc IsVitisUnified {} {
 # @param[out] 1 on success, 0 on failure
 #
 proc ExecuteVitisUnifiedCommand {python_script command args {error_prefix "Failed to execute command"} {output_var ""}} {
-  set cmd "vitis -s $python_script $command"
+  set cmdlist [list vitis -s $python_script $command]
   foreach arg $args {
-    # Quote arguments that contain spaces or special characters
-    # Check for spaces, braces, brackets, quotes, or other special characters
-    if {[string match "* *" $arg] || [string match "*\{*" $arg] || [string match "*\}*" $arg] || \
-        [string match "*\[*" $arg] || [string match "*\]*" $arg] || [string match "*\"*" $arg]} {
-      # Escape quotes in the argument and wrap in quotes
-      set escaped_arg [string map {\" \\\" \\ \\\\} $arg]
-      append cmd " \"$escaped_arg\""
-    } else {
-      append cmd " $arg"
-    }
+    lappend cmdlist $arg
   }
-  append cmd " 2>&1"
+  lappend cmdlist 2>@1
 
-  Msg Debug "Executing: $cmd"
+  Msg Debug "Executing: vitis -s $python_script $command $args"
 
   # Set PYTHONUNBUFFERED environment variable for real-time output
   set env(PYTHONUNBUFFERED) "1"
 
   # Open pipe and configure for line buffering
-  if {[catch {set pipe [open "|$cmd" "r"]} err]} {
+  if {[catch {set pipe [open "|$cmdlist" "r"]} err]} {
     Msg Error "$error_prefix: Failed to open pipe: $err"
     return 0
   }

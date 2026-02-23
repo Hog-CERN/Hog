@@ -926,6 +926,7 @@ proc ConfigureApp {app_name app_conf} {
     if {[IsInList [string toupper $p] [VITIS_PATH_PROPERTIES] 1]} {
       if {[IsRelativePath $v] == 1} {
         set v "$globalSettings::repo_path/$v"
+        #"
       }
       if {![file exists $v]} {
         Msg Warning "Impossible to set property $p to $v. File is missing"
@@ -1003,8 +1004,7 @@ proc ManageIPs {} {
 
   Msg Info "Running report_ip_status, before upgrading and handling IPs..."
   report_ip_status
-
-  #Pull ips from repo
+  # Pull ips from repo
   if {$globalSettings::HOG_IP_PATH != ""} {
     set ip_repo_path $globalSettings::HOG_IP_PATH
     Msg Info "HOG_IP_PATH is set, will pull/push synthesised IPs from/to $ip_repo_path."

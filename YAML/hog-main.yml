@@ -221,7 +221,7 @@ artifacts_and_release:
           for PRJ_DIR in $project_dirs; do
             PRJ_DIR=$(echo "$PRJ_DIR" | sed -r 's#\./##g');
             DEST_ZIP=$(echo "$PRJ_DIR" | sed -r 's#/#_#g');
-            echo "Archiving $PRJ_DIR into ../zipped/$DEST_ZIP.zip";
+            echo "Hog-CI(info) - Archiving $PRJ_DIR into ../zipped/$DEST_ZIP.zip...";
             zip -r -q -s $HOG_MAX_ZIP_SIZE ../zipped/$DEST_ZIP.zip $PRJ_DIR;
           done;
 	  cd ..;
@@ -231,7 +231,7 @@ artifacts_and_release:
             tclsh ./Hog/Tcl/CI/get_binary_links.tcl -force $CI_COMMIT_TAG "$HOG_EXTERNAL_PATH";
           fi;
         else
-          echo "Will not upload zip file to the release page...";
+          echo "Hog-CI(info) -  Will not upload zip file to the release page...";
         fi;
       fi;
   allow_failure: true

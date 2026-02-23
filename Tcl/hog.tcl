@@ -4094,8 +4094,17 @@ proc HandleIP {what_to_do xci_file ip_path repo_path {gen_dir "."} {force 0}} {
       return -1
     } else {
       Msg Info "IP remote directory path, on Rclone, is set to: $ip_path"
+      # Check if RCLONE_CONFIG environment variable is set, if not set it to the default path
+      if {[info exists env(HOG_RCLONE_CONFIG)]} {
+        Msg Info "Using rclone config from environment variable HOG_RCLONE_CONFIG: $env(HOG_RCLONE_CONFIG)"
+        set config_path $env(HOG_RCLONE_CONFIG)
+      } else {
+        set config_path "/dev/null"
+        Msg Info "Environment variable HOG_RCLONE_CONFIG not set, using rclone environmental variables..."
+      }
+
       set remote_name "[lindex [split $ip_path ":"] 0]:"
-      lassign [ExecuteRet rclone listremotes] rclone_list_ret remotes
+      lassign [ExecuteRet rclone listremotes --config $config_path] rclone_list_ret remotes
       if {$rclone_list_ret != 0} {
         Msg CriticalWarning "Could not list rclone remotes: $remotes"
         cd $old_path
@@ -4146,7 +4155,7 @@ proc HandleIP {what_to_do xci_file ip_path repo_path {gen_dir "."} {force 0}} {
     set will_copy 0
     set will_remove 0
     if {$on_rclone == 1} {
-      lassign [ExecuteRet rclone ls $ip_path/$file_name.tar] ret result
+      lassign [ExecuteRet rclone ls $ip_path/$file_name.tar --config $config_path] ret result
       if {$ret != 0} {
         set will_copy 1
       } else {
@@ -4197,7 +4206,7 @@ proc HandleIP {what_to_do xci_file ip_path repo_path {gen_dir "."} {force 0}} {
         if {$will_remove == 1} {
           Msg Info "Removing old synthesised directory $ip_path/$file_name.tar..."
           if {$on_rclone == 1} {
-            lassign [ExecuteRet rclone delete $ip_path/$file_name.tar] ret result
+            lassign [ExecuteRet rclone delete $ip_path/$file_name.tar --config $config_path] ret result
             if {$ret != 0} {
               Msg CriticalWarning "Could not delete file from Rclone: $result"
             }
@@ -4219,7 +4228,7 @@ proc HandleIP {what_to_do xci_file ip_path repo_path {gen_dir "."} {force 0}} {
 
         Msg Info "Copying IP generated files for $xci_name..."
         if {$on_rclone == 1} {
-          lassign [ExecuteRet rclone copyto $file_name.tar $ip_path/$file_name.tar] ret result
+          lassign [ExecuteRet rclone copyto $file_name.tar $ip_path/$file_name.tar --config $config_path] ret result
           if {$ret != 0} {
             Msg CriticalWarning "Something went wrong when copying the IP files to Rclone. Error message: $result"
           }
@@ -4239,14 +4248,14 @@ proc HandleIP {what_to_do xci_file ip_path repo_path {gen_dir "."} {force 0}} {
     }
   } elseif {$what_to_do eq "pull"} {
     if {$on_rclone == 1} {
-      lassign [ExecuteRet rclone ls $ip_path/$file_name.tar] ret result
+      lassign [ExecuteRet rclone ls $ip_path/$file_name.tar --config $config_path] ret result
       if {$ret != 0} {
         Msg Info "Nothing for $xci_name was found in the Rclone repository, cannot pull."
         cd $old_path
         return -1
       } else {
         Msg Info "IP $xci_name found in the Rclone repository $ip_path, copying it locally to $repo_path..."
-        lassign [ExecuteRet rclone copyto $ip_path/$file_name.tar $file_name.tar] ret_copy result_copy
+        lassign [ExecuteRet rclone copyto $ip_path/$file_name.tar $file_name.tar --config $config_path] ret_copy result_copy
         if {$ret_copy != 0} {
           Msg CriticalWarning "Something went wrong when copying the IP files from Rclone. Error message: $result_copy"
         }

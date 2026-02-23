@@ -297,6 +297,13 @@ archive_binary_files:
           ON_RCLONE=1;
           if command -v rclone &> /dev/null; then
             ENABLE_RCLONE=1;
+            if [ -n "${HOG_RCLONE_CONFIG}"]; then
+              echo "Using custom rclone config from HOG_RCLONE_CONFIG variable";
+              export RCLONE_CONFIG=${HOG_RCLONE_CONFIG};
+            else
+              echo "No custom rclone config provided. Assuming rclone is already configured properly in this environment.";
+              export RCLONE_CONFIG=/dev/null;
+            fi;
           else
             echo "[HOG-ERROR] rclone is not available. Please install rclone to use this feature.";
             ENABLE_RCLONE=0;
@@ -310,8 +317,8 @@ archive_binary_files:
             eos mkdir -p ${BIN_PATH}/Doc;
             xrdcp -rsf Doc/html/* ${EOS_MGM_URL}//${BIN_PATH}/Doc;
           elif [ $ON_RCLONE -eq 1 ] && [ $ENABLE_RCLONE -eq 1 ]; then
-            rclone mkdir ${BIN_PATH}/Doc;
-            rclone copy Doc/html ${BIN_PATH}/Doc;
+            rclone mkdir ${BIN_PATH}/Doc --config $RCLONE_CONFIG;
+            rclone copy Doc/html ${BIN_PATH}/Doc --config $RCLONE_CONFIG;
           elif [ $ON_RCLONE -eq 0 ] && [ $ON_EOS -eq 0 ]; then
             mkdir -p ${BIN_PATH}/Doc;
             cp -r Doc/html/* ${BIN_PATH}/Doc;
@@ -328,8 +335,8 @@ archive_binary_files:
             eos mkdir -p $BIN_PATH/$CI_COMMIT_TAG;
             xrdcp -rfs bin/* ${EOS_MGM_URL}//${BIN_PATH}/${CI_COMMIT_TAG};
           elif [ $ON_RCLONE -eq 1 ] && [ $ENABLE_RCLONE -eq 1 ]; then
-            rclone mkdir ${BIN_PATH}/${CI_COMMIT_TAG};
-            rclone copy bin ${BIN_PATH}/${CI_COMMIT_TAG};
+            rclone mkdir ${BIN_PATH}/${CI_COMMIT_TAG} --config $RCLONE_CONFIG;
+            rclone copy bin ${BIN_PATH}/${CI_COMMIT_TAG} --config $RCLONE_CONFIG;
           elif [ $ON_RCLONE -eq 0 ] && [ $ON_EOS -eq 0 ]; then
             mkdir -p $BIN_PATH/$CI_COMMIT_TAG;
             cp -r bin/* ${BIN_PATH}/${CI_COMMIT_TAG};

@@ -297,7 +297,7 @@ archive_binary_files:
           ON_RCLONE=1;
           if command -v rclone &> /dev/null; then
             ENABLE_RCLONE=1;
-            if [ -n "${HOG_RCLONE_CONFIG}"]; then
+            if [ -n "${HOG_RCLONE_CONFIG}" ] && [ -f "${HOG_RCLONE_CONFIG}" ]; then
               echo "Using custom rclone config from HOG_RCLONE_CONFIG variable";
               export RCLONE_CONFIG=${HOG_RCLONE_CONFIG};
             else

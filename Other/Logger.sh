@@ -52,6 +52,9 @@ error_fail=0
 failing_en=0
 fwe_fail_trig=0
 
+PROJECT_FOLDER=""
+
+
 HOG_DEBUG_MODE=0
 LOG_INFO_FILE=""
 LOG_WAR_ERR_FILE=""
@@ -799,17 +802,17 @@ process_HogEnv_config() {
   # @brief prints the logo
   #
 function print_hog_logo () {
-  cd $ROOT_PROJECT_FOLDER/Hog
+  cd $ROOT_REPO_FOLDER/Hog
   HOG_VERSION=$(git describe --always)
-  cd $ROOT_PROJECT_FOLDER
+  cd $ROOT_REPO_FOLDER
   if [[ -v "HOG_COLOR" && "${HOG_COLOR}" =~ ^[0-9]+$ && "${HOG_COLOR}" -gt 0 ]]; then
     if [[ "${HOG_COLOR}" =~ ^[0-9]+$ && "${HOG_COLOR}" -gt 1 ]]; then
-      logo_file=$ROOT_PROJECT_FOLDER/Hog/images/hog_logo_full_color.txt
+      logo_file=$ROOT_REPO_FOLDER/Hog/images/hog_logo_full_color.txt
     else
-      logo_file=$ROOT_PROJECT_FOLDER/Hog/images/hog_logo_color.txt
+      logo_file=$ROOT_REPO_FOLDER/Hog/images/hog_logo_color.txt
     fi
   else
-    logo_file=$ROOT_PROJECT_FOLDER/Hog/images/hog_logo.txt
+    logo_file=$ROOT_REPO_FOLDER/Hog/images/hog_logo.txt
   fi
   if [ -f $logo_file ]; then
     while IFS= read -r line; do
@@ -883,15 +886,30 @@ function Logger_Init() {
   force_verbose=$VERBOSE_LEVEL
   hog_pid=$BASHPID
 
-  ROOT_PROJECT_FOLDER=$(pwd)
-  LOG_INFO_FILE=$ROOT_PROJECT_FOLDER"/hog_info.log"
-  LOG_WAR_ERR_FILE=$ROOT_PROJECT_FOLDER"/hog_warning_errors.log"
+  ROOT_REPO_FOLDER=$(pwd)
+
+  # search for a string with the word Top in the multiple arguments passed to the function
+  PROJECT_FOLDER=""
+  for arg in $*; do
+    if [[ "$arg" == Top/* ]]; then
+      PROJECT_FOLDER="${arg#Top/}"
+      # Remove trailing slash if present
+      PROJECT_FOLDER="${PROJECT_FOLDER%/}"
+      break
+    fi
+  done
+
+
+  # LOG_INFO_FILE=$ROOT_REPO_FOLDER"/hog_info.log"
+  # LOG_WAR_ERR_FILE=$ROOT_REPO_FOLDER"/hog_warning_errors.log"
   TEMP_LOG_INFO_FILE="$tempfolder/hog_log_info"
   TEMP_LOG_WAR_ERR_FILE="$tempfolder/hog_log_war_err"
   touch $TEMP_LOG_INFO_FILE
   touch $TEMP_LOG_WAR_ERR_FILE
 
   msg_counter init
+
+  Msg Info "PROJECT_FOLDER $PROJECT_FOLDER"
 
   ############################################
   #    USER CONFIGURATIONS
@@ -1042,6 +1060,47 @@ function Logger_Init() {
     Msg Debug "Hog project configuration file $hog_proj_cfg doesn't exists."
   fi
   # debug
+
+  log_prefix=""
+  if [[ -v Hog_Prj_dict["options.name_prefix"] ]]; then
+    if [[ ${Hog_Prj_dict["options.name_prefix"]} == "*project_name*" ]]; then
+      log_prefix="$(basename "$PROJECT_FOLDER")_"
+    else
+      log_prefix="${Hog_Prj_dict["options.name_prefix"]}_"
+    fi
+  fi
+  log_suffix=""
+  if [[ -v Hog_Prj_dict["options.name_suffix"] ]]; then
+    if [[ ${Hog_Prj_dict["options.name_suffix"]} == "*project_name*" ]]; then
+      log_suffix="_$(basename "$PROJECT_FOLDER")"
+    else
+      log_suffix="_${Hog_Prj_dict["options.name_suffix"]}"
+    fi
+  fi
+  if [[ -v Hog_Prj_dict["options.out_folder"] ]]; then
+    # check if the string "*project_folder*" exists and substitute it with the project name
+    if [[ ${Hog_Prj_dict["options.out_folder"]} == *"*project_folder"* ]]; then
+      # project_name=$(basename "$PROJECT_FOLDER")
+      output_folder=${Hog_Prj_dict["options.out_folder"]//\*project_folder\*/$PROJECT_FOLDER}
+    else
+      output_folder=${Hog_Prj_dict["options.out_folder"]}
+    fi
+    # check if the folder exists, if not create it
+    if [[ ! -d $output_folder ]]; then
+      mkdir -p $output_folder
+      Msg Info "Output folder $output_folder created."
+    else
+      Msg Info "Output folder $output_folder already exists."
+    fi
+    LOG_INFO_FILE=$output_folder"/"$log_prefix"hog_info"$log_suffix".log"
+    LOG_WAR_ERR_FILE=$output_folder"/"$log_prefix"hog_warning_errors"$log_suffix".log"
+  else
+    LOG_INFO_FILE=$ROOT_REPO_FOLDER"/"$log_prefix"hog_info"$log_suffix".log"
+    LOG_WAR_ERR_FILE=$ROOT_REPO_FOLDER"/"$log_prefix"hog_warning_errors"$log_suffix".log"
+  fi
+
+  Msg Info "LOG_INFO_FILE $LOG_INFO_FILE"
+  Msg Info "LOG_WAR_ERR_FILE $LOG_WAR_ERR_FILE"
 
   # error fail
   # hog_prj_fwe="${current_user}_fail_when_error_enabled"

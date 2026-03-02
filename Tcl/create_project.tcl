@@ -558,6 +558,37 @@ proc ConfigureSimulation {} {
   }
 }
 
+## @brief Call this function only after simulations have been configured to add additional generics to the simulation
+#
+#  @param[in] key_value the generic to append. Is of format key=value
+proc AppendSimulationGenerics {key_value} {
+  set simsets_dict [GetSimSets "$globalSettings::group_name/$globalSettings::DESIGN" $globalSettings::repo_path]
+  set key [split $key_value =]
+
+  # for each simset cycle through the simulators and append set generic options to the properties already present.
+  if {[IsXilinx]} {
+    foreach simset [get_filesets -quiet] {
+      if {[get_property FILESET_TYPE $simset] != "SimulationSrcs"} {
+        continue
+      }
+      set questa_props [list "QUESTA.SIMULATE.VSIM.MORE_OPTIONS" "QUESTA.ELABORATE.VOPT.MORE_OPTIONS"]
+      foreach name $questa_props {
+        set questa_property [get_property -name $name -object [get_filesets $simset]]
+        # Note: vopt option required as questa will otherwise remove ability to set.
+        # vopt has limitation where 32'h0 is turned into 32h0 if additional quotes not used.
+        set_property -name $name -value "$questa_property -G[lindex $key 0]=\"[lindex $key 1]\"" -objects [get_filesets $simset]
+        set new_questa_property [get_property -name $name -object [get_filesets $simset]]
+        Msg Debug "$questa_property value now $new_questa_property"
+      }
+
+      set vivado_name "XSIM.ELABORATE.XELAB.MORE_OPTIONS"
+      set current_property [get_property -name $vivado_name -object [get_filesets $simset]]
+      set_property -name $vivado_name -value "$current_property -generic_top \"[lindex $key 0]=[lindex $key 1]\"" -objects [get_filesets $simset]
+    }
+
+  }
+}
+
 ## @brief uses the content of globalSettings::PROPERTIES to set additional project properties
 #
 proc ConfigureProperties {} {

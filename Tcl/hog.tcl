@@ -6420,29 +6420,29 @@ proc SearchHogProjects {dir} {
 # @param[in] proj_dir:    the top folder of the project
 # @param[in] target:      software target(vivado, questa)
 #
-proc SetGenericsSimulation {repo_path proj_dir target} {
-  set top_dir "$repo_path/Top/$proj_dir"
-  set simsets [get_filesets]
-  if {$simsets != ""} {
-    foreach simset $simsets {
-      # Only for simulation filesets
-      if {[get_property FILESET_TYPE $simset] != "SimulationSrcs"} {
-        continue
-      }
-
-      set merged_generics_dict [dict create]
-      # Get generics from sim.conf file
-      set simset_dict [DictGet [GetSimSets $proj_dir $repo_path $simset] $simset]
-      set hog_generics [GetGenericsFromConf $proj_dir]
-      set simset_generics [DictGet $simset_dict "generics"]
-      set merged_generics_dict [MergeDict $merged_generics_dict $simset_generics 0]
-      set generic_str [GenericToSimulatorString $merged_generics_dict $target]
-      set_property generic $generic_str [get_filesets $simset]
-      Msg Debug "Setting generics $generic_str for simulator $target\
-      and simulation file-set $simset..."
-    }
-  }
-}
+# proc SetGenericsSimulation {repo_path proj_dir target} {
+#   set top_dir "$repo_path/Top/$proj_dir"
+#   set simsets [get_filesets]
+#   if {$simsets != ""} {
+#     foreach simset $simsets {
+#       # Only for simulation filesets
+#       if {[get_property FILESET_TYPE $simset] != "SimulationSrcs"} {
+#         continue
+#       }
+#
+#       set merged_generics_dict [dict create]
+#       # Get generics from sim.conf file
+#       set simset_dict [DictGet [GetSimSets $proj_dir $repo_path $simset] $simset]
+#       set hog_generics [GetGenericsFromConf $proj_dir]
+#       set simset_generics [DictGet $simset_dict "generics"]
+#       set merged_generics_dict [MergeDict $merged_generics_dict $simset_generics 0]
+#       set generic_str [GenericToSimulatorString $merged_generics_dict $target]
+#       set_property generic $generic_str [get_filesets $simset]
+#       Msg Debug "Setting generics $generic_str for simulator $target\
+#       and simulation file-set $simset..."
+#     }
+#   }
+# }
 
 ## @brief set the top module as top module in the chosen fileset
 #
@@ -6613,7 +6613,7 @@ proc WriteGenerics {mode repo_path design date timee\
     }
 
     set_property generic $generic_string [current_fileset]
-    Msg Info "Setting parameters/generics..."
+    Msg Info "Setting parameters/generics: $filtered_generic_string"
     Msg Debug "Detailed parameters/generics: $generic_string"
 
 
@@ -6621,7 +6621,10 @@ proc WriteGenerics {mode repo_path design date timee\
       # Dealing with project generics in Simulators
       set simulator [get_property target_simulator [current_project]]
       if {$mode == "create"} {
-        SetGenericsSimulation $repo_path $design $simulator
+        foreach generic $filtered_generic_string {
+            AppendSimulationGenerics "$generic"
+        }
+        # SetGenericsSimulation $repo_path $design $simulator
       }
 
       WriteGenericsToBdIPs $mode $repo_path $design $generic_string

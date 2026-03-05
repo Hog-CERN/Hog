@@ -17,8 +17,8 @@ import os
 import re
 import sys
 import json
-import zipfile
-import xml.etree.ElementTree as ET
+from hsi import *
+from xsdb import *
 
 # Import functions from SharedCommands
 _shared_commands_path = os.path.join(os.path.dirname(__file__), "SharedCommands.py")
@@ -131,66 +131,29 @@ def ExtractProcsFromXsa(xsa_path, output_file):
   Returns:
     Dictionary with soft processors information
   """
+  HwDesign = HwManager.open_hw_design(xsa_path)
   processors = []
-  try:
-    # XSA files are ZIP archives
-    with zipfile.ZipFile(xsa_path, 'r') as xsa_zip:
-      xml_files = [f for f in xsa_zip.namelist() if f.endswith('.xml')]
-      for xml_file in xml_files:
-        try:
-          xml_content = xsa_zip.read(xsa_zip.getinfo(xml_file))
-          root = ET.fromstring(xml_content)
-          for proc_elem in root.iter():
-            tag_lower = proc_elem.tag.lower()
-            if 'processor' in tag_lower or 'cpu' in tag_lower:
-              proc_name = proc_elem.get('name', '')
-              if not proc_name:
-                proc_name = proc_elem.text if proc_elem.text else ''
-              # Check if it's a soft processor
-              if re.search(r'microblaze|risc', proc_name, re.IGNORECASE):
-                proc_info = {
-                  'name': proc_name,
-                  'hier_name': proc_name,
-                  'address_tag': ''
-                }
-                # Try to get hierarchical name
-                hier_name = proc_elem.get('hier_name', '')
-                if not hier_name:
-                  hier_name = proc_elem.get('hierName', '')
-                if hier_name:
-                  proc_info['hier_name'] = hier_name
-                # Try to get address tag
-                addr_tag = proc_elem.get('address_tag', '')
-                if not addr_tag:
-                  addr_tag = proc_elem.get('addressTag', '')
-                if not addr_tag:
-                  addr_tag = proc_elem.get('addr_tag', '')
-                if addr_tag:
-                  proc_info['address_tag'] = addr_tag
-                processors.append(proc_info)
-        except Exception as e:
-          continue
 
-    if output_file:
-      processors_with_tags = [proc for proc in processors if proc.get('address_tag')]
-      if processors_with_tags:
-        output_dir = os.path.dirname(output_file)
-        if output_dir and not os.path.exists(output_dir):
-          os.makedirs(output_dir, exist_ok=True)
-        with open(output_file, 'w') as f:
-          for proc in processors_with_tags:
-            f.write("%s %s\n" % (proc['hier_name'], proc['address_tag']))
-    return {'processors': processors}
+  for proc in HwDesign.get_cells(hierarchical='true', filter ='IP_TYPE==PROCESSOR'):
+    PrintInfo("Found processor in XSA: name=%s, address_tag=%s" % (proc.hier_name, proc.address_tag))
+    proc_info = {
+      'name': proc,
+      'hier_name': proc.hier_name,
+      'address_tag': proc.address_tag
+    }
+    processors.append(proc_info)
 
-  except zipfile.BadZipFile:
-    PrintError("%s is not a valid ZIP file (XSA format)" % xsa_path)
-    return {'processors': [], 'error': 'Invalid XSA file format'}
-  except Exception as e:
-    PrintError("Failed to extract soft processors from XSA: %s" % str(e))
-    import traceback
-    traceback.print_exc(file=sys.stderr)
-    sys.stderr.flush()
-    return {'processors': [], 'error': str(e)}
+  if output_file and processors:
+    output_dir = os.path.dirname(output_file)
+    if output_dir and not os.path.exists(output_dir):
+      os.makedirs(output_dir, exist_ok=True)
+    with open(output_file, 'w') as f:
+      for proc_info in processors:
+        f.write("%s %s\n" % (proc_info['hier_name'], proc_info['address_tag']))
+
+  return {'processors': processors}
+
+
 
 def CreatePlatform(platform_options=None, ws_dir=None):
   """
@@ -301,21 +264,6 @@ def CreatePlatform(platform_options=None, ws_dir=None):
     if advanced_options is not None:
       platform_kwargs["advanced_options"] = advanced_options
 
-    # Extract processor information from XSA if available
-    if xsa_path and os.path.exists(xsa_path):
-      PrintInfo("Opening hardware design to check if proc to cell mapping needs to be extracted for soft processors...")
-      proc_map_file = os.path.join(ws_dir, "%s.PROC_MAP" % name)
-      try:
-        result = ExtractProcsFromXsa(xsa_path, proc_map_file)
-        processors = result.get('processors', [])
-        if len(processors) == 0:
-          PrintInfo("No soft processors found in XSA (this is normal for hard processors like ARM)")
-        else:
-          PrintInfo("Extracted processor information for %d soft processor(s) to %s" % (len(processors), proc_map_file))
-      except Exception as e:
-        PrintError("Failed to extract processor information from XSA: %s" % str(e))
-        vitis.dispose()
-        return False
 
     PrintInfo("Creating client...")
     client = vitis.create_client()
@@ -341,6 +289,22 @@ def CreatePlatform(platform_options=None, ws_dir=None):
           return False
       else:
         PrintError("Failed to set workspace '%s': %s" % (ws_dir, e))
+        vitis.dispose()
+        return False
+
+    # Extract processor information from XSA if available
+    if xsa_path and os.path.exists(xsa_path):
+      PrintInfo("Opening hardware design to check if proc to cell mapping needs to be extracted for soft processors...")
+      proc_map_file = os.path.join(ws_dir, "%s.PROC_MAP" % name)
+      try:
+        result = ExtractProcsFromXsa(xsa_path, proc_map_file)
+        processors = result.get('processors', [])
+        if len(processors) == 0:
+          PrintInfo("No soft processors found in XSA (this is normal for hard processors like ARM)")
+        else:
+          PrintInfo("Extracted processor information for %d soft processor(s) to %s" % (len(processors), proc_map_file))
+      except Exception as e:
+        PrintError("Failed to extract processor information from XSA: %s" % str(e))
         vitis.dispose()
         return False
 

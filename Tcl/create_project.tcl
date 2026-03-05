@@ -900,7 +900,7 @@ proc ConfigureApps {} {
         # Build app config string from app_config dict
         set app_config_str "{"
         dict for {p v} $app_config {
-          append app_config_str " [string toupper $p] $v"
+          append app_config_str " -[string toupper $p] \{$v\}"
         }
         append app_config_str " }"
         set error_msg "Failed to configure app $app_name"

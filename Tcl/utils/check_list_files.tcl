@@ -365,6 +365,10 @@ if {[IsXilinx]} {
       RUNTIME \
       SIM_WRAPPER_TOP]
 
+    # These are the hog set simulator properties that pass hog generics to the simulator
+    set SIM_NO_UPDATE_LIST [list QUESTA.ELABORATE.VOPT.MORE_OPTIONS \
+      XSIM.ELABORATE.XELAB.MORE_OPTIONS]
+
     set HOG_GENERICS [list GLOBAL_DATE \
       GLOBAL_TIME \
       FLAVOUR]
@@ -645,6 +649,7 @@ if {[IsXilinx]} {
         }
 
         if {[string toupper $currset] != [string toupper $hogset] && [string toupper $currset] != [string toupper $defset]} {
+          # properties do not match
           if {[string first "DEFAULT" [string toupper $currset]] != -1 && $hogset == ""} {
             continue
           }
@@ -659,15 +664,22 @@ if {[IsXilinx]} {
             continue
           }
 
-          dict set newSimDict $setting $currset
-          if {$options(recreate_sim) == 1} {
-            incr simset_error
-            Msg Info "Simulation property $setting of simset $simset has been changed from \"$hogset\" in sim.conf/$simset.sim to \"$currset\" in project."
+          if {$setting in $SIM_NO_UPDATE_LIST} {
+            Msg Warning "Simulation property $setting has to be manually updated in sim.conf when changed: \"$hogset\" in sim.conf/$simset.sim : \"$currset\" in project."
+            Msg Info "Do not add Hog set generics to sim.conf."
+            dict set newSimDict $setting $hogset
           } else {
-            MsgAndLog "Simulation property $setting value \"$currset\" does not match configuration in sim.conf/$simset.sim \"$hogset\"." "Warning" $outSimFile
+            dict set newSimDict $setting $currset
             incr simset_error
+            if {$options(recreate_sim) == 1} {
+                Msg Info "Simulation property $setting of simset $simset has been changed from \"$hogset\" in sim.conf/$simset.sim to \"$currset\" in project."
+            } else {
+                MsgAndLog "Simulation property $setting value \"$currset\" does not match configuration in sim.conf/$simset.sim \"$hogset\"." "Warning" $outSimFile
+            }
           }
+
         } elseif {[string toupper $currset] == [string toupper $hogset] && [string toupper $hogset] != ""} {
+          # properties match
           dict set newSimDict $setting $currset
         }
         # Check if this is the active simulation set

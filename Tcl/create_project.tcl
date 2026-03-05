@@ -571,7 +571,7 @@ proc AppendSimulationGenerics {key_value} {
       if {[get_property FILESET_TYPE $simset] != "SimulationSrcs"} {
         continue
       }
-      set questa_props [list "QUESTA.SIMULATE.VSIM.MORE_OPTIONS" "QUESTA.ELABORATE.VOPT.MORE_OPTIONS"]
+      set questa_props [list "QUESTA.ELABORATE.VOPT.MORE_OPTIONS"]
       foreach name $questa_props {
         set questa_property [get_property -name $name -object [get_filesets $simset]]
         # Note: vopt option required as questa will otherwise remove ability to set.

@@ -401,19 +401,21 @@ if {$options(dst_dir) == "" && ($do_ipbus_xml == 1 || $do_check_list_files == 1)
 }
 
 if {$cmd == -1} {
-  #This is if the project was not found
+  #This is if the project was not foundP
   Msg Status "\n\nPossible projects are:"
   ListProjects $repo_path $do_list_all
   Msg Status "\n"
   exit 1
-} elseif {$cmd == -2} {
+}
+if {$cmd == -2} {
   # Project not given but needed
   Msg Status "ERROR: You must specify a project with directive $directive."
   # \n\n[cmdline::usage $parameters $usage]"
   Msg Status "Possible projects are:"
   ListProjects $repo_path $do_list_all
   exit 1
-} elseif {$cmd == 0} {
+}
+if {$cmd == 0} {
   #This script was launched within the IDE,: Vivado, Quartus, etc
   Msg Info "$::argv0 was launched from the IDE."
 } else {
@@ -491,29 +493,31 @@ if {$cmd == -1} {
     exit 0
   }
   if {$do_sigasi == 1} {
-    cd $repo_path
-    Msg Info "Creating Sigasi CSV files for project $project_name..."
-    set proj_dir $repo_path/Top/$project_name
-    set proj_list_dir $repo_path/Top/$project_name/list
-    set project [file tail $project_name]
-    lassign [GetHogFiles -list_files {.src} $proj_list_dir $repo_path] libraries
-    set csv_file [open "sigasi_$project.csv" w]
-    foreach lib $libraries {
-      set source_files [DictGet $libraries $lib]
-      foreach source_file $source_files {
-        if {[file extension $source_file] == ".vhd" ||
-            [file extension $source_file] == ".vhdl" ||
-            [file extension $source_file] == ".sv" ||
-            [file extension $source_file] == ".v" } {
-          puts $csv_file [ concat  [file rootname $lib] "," $source_file ]
-        }
-      }
-    }
-    close $csv_file
-    Msg Info "Sigasi CSV file created: sigasi_$project.csv"
-    Msg Info "You can use the python script provided by Sigasi to convert the generated csv file into a Sigasi project."
-    Msg Info "More info at: https://www.sigasi.com/knowledge/how_tos/generating-sigasi-project-vivado-project/#2-generate-the-sigasi-project-files-from-the-csv-file"
-    exit 0
+    source $tcl_path/utils/sigasi.tcl
+    Create_sigasi_CSV $project_name $repo_path $ext_path $IsQuartus $IsVivado $recreate
+  #   cd $repo_path
+  #   Msg Info "Creating Sigasi CSV files for project $project_name..."
+  #   set proj_dir $repo_path/Top/$project_name
+  #   set proj_list_dir $repo_path/Top/$project_name/list
+  #   set project [file tail $project_name]
+  #   lassign [GetHogFiles -list_files {.src} $proj_list_dir $repo_path] libraries
+  #   set csv_file [open "sigasi_$project.csv" w]
+  #   foreach lib $libraries {
+  #     set source_files [DictGet $libraries $lib]
+  #     foreach source_file $source_files {
+  #       if {[file extension $source_file] == ".vhd" ||
+  #           [file extension $source_file] == ".vhdl" ||
+  #           [file extension $source_file] == ".sv" ||
+  #           [file extension $source_file] == ".v" } {
+  #         puts $csv_file [ concat  [file rootname $lib] "," $source_file ]
+  #       }
+  #     }
+  #   }
+  #   close $csv_file
+  #   Msg Info "Sigasi CSV file created: sigasi_$project.csv"
+  #   Msg Info "You can use the python script provided by Sigasi to convert the generated csv file into a Sigasi project."
+  #   Msg Info "More info at: https://www.sigasi.com/knowledge/how_tos/generating-sigasi-project-vivado-project/#2-generate-the-sigasi-project-files-from-the-csv-file"
+  #   exit 0
   }
 
   if {$do_check_yaml_ref == 1} {

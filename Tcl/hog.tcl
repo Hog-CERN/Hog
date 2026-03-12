@@ -6444,6 +6444,42 @@ proc SearchHogProjects {dir} {
 #   }
 # }
 
+## @brief Call this function only after simulations have been configured to add additional generics to the simulation
+#
+#  @param[in] key_value the generic to append. Is of format key=value
+#
+#  @param[in] simulator: the simulator being configured
+proc AppendSimulationGenerics {key_value simulator} {
+  set simsets_dict [GetSimSets "$globalSettings::group_name/$globalSettings::DESIGN" $globalSettings::repo_path]
+  set key [split $key_value =]
+
+  # for each simset cycle through the simulators and append set generic options to the properties already present.
+  if {[IsXilinx]} {
+    foreach simset [get_filesets -quiet] {
+      if {[get_property FILESET_TYPE $simset] != "SimulationSrcs"} {
+        continue
+      }
+
+      if {[string tolower $simulator] == "xsim"} {
+        set vivado_name "XSIM.ELABORATE.XELAB.MORE_OPTIONS"
+        set current_property [get_property -name $vivado_name -object [get_filesets $simset]]
+        set_property -name $vivado_name -value "$current_property -generic_top \"[lindex $key 0]=[lindex $key 1]\"" -objects [get_filesets $simset]
+      } elseif {[string tolower $simulator] == "questa"} {
+        set questa_props [list "QUESTA.ELABORATE.VOPT.MORE_OPTIONS"]
+        foreach name $questa_props {
+            set questa_property [get_property -name $name -object [get_filesets $simset]]
+            # vopt has limitation where 32'h0 is turned into 32h0 if additional quotes not used.
+            set_property -name $name -value "$questa_property -G[lindex $key 0]=\"[lindex $key 1]\"" -objects [get_filesets $simset]
+            set new_questa_property [get_property -name $name -object [get_filesets $simset]]
+            Msg Debug "$questa_property value now $new_questa_property"
+        }
+      } else {
+        Msg Warning "AppendSimulationGenerics - generic $key not added"
+      }
+    }
+  }
+}
+
 ## @brief set the top module as top module in the chosen fileset
 #
 # It automatically recognises the IDE
@@ -6622,7 +6658,7 @@ proc WriteGenerics {mode repo_path design date timee\
       set simulator [get_property target_simulator [current_project]]
       if {$mode == "create"} {
         foreach generic $filtered_generic_string {
-            AppendSimulationGenerics "$generic"
+            AppendSimulationGenerics "$generic" $simulator
         }
         # SetGenericsSimulation $repo_path $design $simulator
       }

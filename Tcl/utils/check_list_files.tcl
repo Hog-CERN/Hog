@@ -665,8 +665,9 @@ if {[IsXilinx]} {
           }
 
           if {$setting in $SIM_NO_UPDATE_LIST} {
+            # These are the simulation properties which hold the hog generics such as GLOBAL_VER, GLOBAL_SHA, as well as any user set optimization options
+            # If we just write contents back to sim.conf we will be writing stale information
             Msg Warning "Simulation property $setting has to be manually updated in sim.conf when changed: \"$hogset\" in sim.conf/$simset.sim : \"$currset\" in project."
-            Msg Info "Do not add Hog set generics to sim.conf."
             dict set newSimDict $setting $hogset
           } else {
             dict set newSimDict $setting $currset

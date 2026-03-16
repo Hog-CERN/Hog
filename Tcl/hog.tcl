@@ -6620,6 +6620,7 @@ proc WriteGenerics {mode repo_path design date timee\
 
   # Extract the generics from the top level source file
   if {[IsXilinx]} {
+    set filtered_generic_string ""
     # Top File can be retrieved only at creation time or in ISE
     if {$mode == "create" || [IsISE]} {
       set top_file [GetTopFile]
@@ -6628,8 +6629,6 @@ proc WriteGenerics {mode repo_path design date timee\
         set generics [GetFileGenerics $top_file $top_name]
 
         Msg Debug "Found top level generics $generics in $top_file"
-
-        set filtered_generic_string ""
 
         foreach generic_to_set [split [string trim $generic_string]] {
           set key [lindex [split $generic_to_set "="] 0]

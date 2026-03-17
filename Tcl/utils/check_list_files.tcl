@@ -667,7 +667,8 @@ if {[IsXilinx]} {
           if {$setting in $SIM_NO_UPDATE_LIST} {
             # These are the simulation properties which hold the hog generics such as GLOBAL_VER, GLOBAL_SHA, as well as any user set optimization options
             # If we just write contents back to sim.conf we will be writing stale information
-            Msg Warning "Simulation property $setting has to be manually updated in sim.conf when changed: \"$hogset\" in sim.conf/$simset.sim : \"$currset\" in project."
+            Msg Warning "Simulation property $setting has to be manually updated in sim.conf when \
+            changed: \"$hogset\" in sim.conf/$simset.sim : \"$currset\" in project."
             dict set newSimDict $setting $hogset
           } else {
             dict set newSimDict $setting $currset
@@ -675,7 +676,8 @@ if {[IsXilinx]} {
             if {$options(recreate_sim) == 1} {
                 Msg Info "Simulation property $setting of simset $simset has been changed from \"$hogset\" in sim.conf/$simset.sim to \"$currset\" in project."
             } else {
-                MsgAndLog "Simulation property $setting value \"$currset\" does not match configuration in sim.conf/$simset.sim \"$hogset\"." "Warning" $outSimFile
+                MsgAndLog "Simulation property $setting value \"$currset\" does not match configuration \
+                in sim.conf/$simset.sim \"$hogset\"." "Warning" $outSimFile
             }
           }
 

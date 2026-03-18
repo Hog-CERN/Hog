@@ -588,7 +588,7 @@ proc ALLOWED_PROPS {} {
     ".udo" [list "nosim"] \
     ".xci" [list "nosynth" "noimpl" "nosim" "locked"] \
     ".xdc" [list "nosynth" "noimpl" "scoped_to_ref" "scoped_to_cells"] \
-    ".tcl" [list "nosynth" "noimpl" "nosim" "scoped_to_ref" "source" "qsys" "noadd"\
+    ".tcl" [list "nosynth" "noimpl" "nosim" "scoped_to_ref" "scoped_to_cells" "source" "qsys" "noadd"\
         "--block-symbol-file" "--clear-output-directory" "--example-design"\
         "--export-qsys-script" "--family" "--greybox" "--ipxact"\
         "--jvm-max-heap-size" "--parallel" "--part" "--search-path"\

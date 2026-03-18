@@ -28,6 +28,7 @@ proc generate_prj_badge {prj_name ver color file} {
     puts $scaling_factor
     puts $font_size
   }
+  set curl_cmd [GetCurl]
 
   set svg_content "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
 <svg xmlns=\"http://www.w3.org/2000/svg\" width=\"250\" height=\"20\">
@@ -136,7 +137,7 @@ set page 0
 
 Msg Info "Retrieving current badges..."
 while {1} {
-  lassign [ExecuteRet env -u LD_LIBRARY_PATH curl --silent --show-error --header "PRIVATE-TOKEN: $push_token" "$api_url/projects/${project_id}/badges?page=$page" --request GET] ret content
+  lassign [ExecuteRet {*}$curl_cmd --header "PRIVATE-TOKEN: $push_token" "$api_url/projects/${project_id}/badges?page=$page" --request GET] ret content
   set content_dict [json::json2dict $content]
   if {[llength $content_dict] > 0} {
     foreach it $content_dict {
@@ -204,7 +205,7 @@ if {[file exists utilization.txt]} {
     set badge_found 0
     Msg Info "Uploading badge image $badge_name.svg ...."
     # tclint-disable-next-line line-length
-    lassign [ExecuteRet env -u LD_LIBRARY_PATH curl --silent --show-error --request POST --header "PRIVATE-TOKEN: ${push_token}" --form "file=@$badge_name.svg" $api_url/projects/$project_id/uploads] ret content
+    lassign [ExecuteRet {*}$curl_cmd --request POST --header "PRIVATE-TOKEN: ${push_token}" --form "file=@$badge_name.svg" $api_url/projects/$project_id/uploads] ret content
     set image_url [ParseJSON $content full_path]
     set image_url $gitlab_url/$image_url
     if {[dict exists $current_badges $badge_name]} {

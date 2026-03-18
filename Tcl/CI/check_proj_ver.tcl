@@ -94,7 +94,7 @@ if {$ver == 0} {
       Msg CriticalWarning "Cannot find JSON package equal or higher than 1.0.\n $JsonFound\n Exiting"
       return
     }
-    lassign [ExecuteRet curl --header "PRIVATE-TOKEN: $token" "$api_url/projects/$project_id/pipelines"] ret content
+    lassign [ExecuteRet env -u LD_LIBRARY_PATH curl --silent --show-error --header "PRIVATE-TOKEN: $token" "$api_url/projects/$project_id/pipelines"] ret content
     set pipeline_dict [json::json2dict $content]
     if {[llength $pipeline_dict] > 0} {
       foreach pip $pipeline_dict {
@@ -104,7 +104,7 @@ if {$ver == 0} {
           Msg Info "Found pipeline with sha $pip_sha for project $project"
           set pipeline_id [DictGet $pip id]
           # tclint-disable-next-line line-length
-          lassign [ExecuteRet curl --header "PRIVATE-TOKEN: $token" "$api_url/projects/${project_id}/pipelines/${pipeline_id}/jobs?pagination=keyset&per_page=100"] ret2 content2
+          lassign [ExecuteRet env -u LD_LIBRARY_PATH curl --silent --show-error --header "PRIVATE-TOKEN: $token" "$api_url/projects/${project_id}/pipelines/${pipeline_id}/jobs?pagination=keyset&per_page=100"] ret2 content2
           set jobs_dict [json::json2dict $content2]
           if {[llength $jobs_dict] > 0} {
             foreach job $jobs_dict {
@@ -115,7 +115,7 @@ if {$ver == 0} {
               set current_job_name $env(CI_JOB_NAME)
               if {$current_job_name == $job_name && $status == "success"} {
                 # tclint-disable-next-line line-length
-                lassign [ExecuteRet curl --location --output artifacts.zip --header "PRIVATE-TOKEN: $token" --url "$api_url/projects/$project_id/jobs/$job_id/artifacts"] ret3 content3
+                lassign [ExecuteRet env -u LD_LIBRARY_PATH curl --silent --show-error --location --output artifacts.zip --header "PRIVATE-TOKEN: $token" --url "$api_url/projects/$project_id/jobs/$job_id/artifacts"] ret3 content3
                 if {$ret3 != 0} {
                   Msg CriticalWarning "Cannot download artifacts for job $job_name with id $job_id"
                   return

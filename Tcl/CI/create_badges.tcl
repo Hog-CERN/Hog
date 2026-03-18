@@ -136,7 +136,7 @@ set page 0
 
 Msg Info "Retrieving current badges..."
 while {1} {
-  lassign [ExecuteRet curl --header "PRIVATE-TOKEN: $push_token" "$api_url/projects/${project_id}/badges?page=$page" --request GET] ret content
+  lassign [ExecuteRet env -u LD_LIBRARY_PATH curl --silent --show-error --header "PRIVATE-TOKEN: $push_token" "$api_url/projects/${project_id}/badges?page=$page" --request GET] ret content
   set content_dict [json::json2dict $content]
   if {[llength $content_dict] > 0} {
     foreach it $content_dict {
@@ -204,7 +204,7 @@ if {[file exists utilization.txt]} {
     set badge_found 0
     Msg Info "Uploading badge image $badge_name.svg ...."
     # tclint-disable-next-line line-length
-    lassign [ExecuteRet curl --request POST --header "PRIVATE-TOKEN: ${push_token}" --form "file=@$badge_name.svg" $api_url/projects/$project_id/uploads] ret content
+    lassign [ExecuteRet env -u LD_LIBRARY_PATH curl --silent --show-error --request POST --header "PRIVATE-TOKEN: ${push_token}" --form "file=@$badge_name.svg" $api_url/projects/$project_id/uploads] ret content
     set image_url [ParseJSON $content full_path]
     set image_url $gitlab_url/$image_url
     if {[dict exists $current_badges $badge_name]} {

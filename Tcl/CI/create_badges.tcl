@@ -28,7 +28,6 @@ proc generate_prj_badge {prj_name ver color file} {
     puts $scaling_factor
     puts $font_size
   }
-  set curl_cmd [GetCurl]
 
   set svg_content "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
 <svg xmlns=\"http://www.w3.org/2000/svg\" width=\"250\" height=\"20\">
@@ -104,6 +103,7 @@ set OldPath [pwd]
 set TclPath [file dirname [info script]]/..
 set repo_path [file normalize "$TclPath/../.."]
 source $TclPath/hog.tcl
+set curl_cmd [GetCurl]
 
 set usage "- CI script that creates GitLab badges with utilisation and timing results for a chosen Hog project.\n\
 USAGE: $::argv0 <push token> <Gitlab api url> <Gitlab project id> <Gitlab project url> <GitLab Server URL> <Hog project> <ext_path>"

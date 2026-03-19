@@ -1268,14 +1268,14 @@ proc CreateProject {args} {
     }
   }
 
-  if {[file exists $post_file]} {
-    Msg Info "Found post-creation Tcl script $post_file, executing it..."
-    source $post_file
-    if {[IsLibero]} {
-      # Regenerate the hierarchy in case a new file has been added
-      build_design_hierarchy
-    }
-  }
+  # if {[file exists $post_file]} {
+  #   Msg Info "Found post-creation Tcl script $post_file, executing it..."
+  #   source $post_file
+  #   if {[IsLibero]} {
+  #     # Regenerate the hierarchy in case a new file has been added
+  #     build_design_hierarchy
+  #   }
+  # }
 
   # Check extra IPs
   # Get project libraries and properties from list files
@@ -1340,6 +1340,15 @@ proc CreateProject {args} {
       $ext_names $ext_hashes $user_ip_repos $user_ip_vers \
       $user_ip_hashes $flavour $xml_ver $xml_hash
     cd $old_path
+  }
+
+  if {[file exists $post_file]} {
+    Msg Info "Found post-creation Tcl script $post_file, executing it..."
+    source $post_file
+    if {[IsLibero]} {
+      # Regenerate the hierarchy in case a new file has been added
+      build_design_hierarchy
+    }
   }
 
   if {[IsLibero]} {

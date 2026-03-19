@@ -2108,8 +2108,9 @@ proc GetConfFiles {proj_dir} {
   set sim_file [file normalize $proj_dir/sim.conf]
   set pre_tcl [file normalize $proj_dir/pre-creation.tcl]
   set post_tcl [file normalize $proj_dir/post-creation.tcl]
+  set gen_tcl [file normalize $proj_dir/post-creation-generics.tcl]
 
-  return [list $conf_file $sim_file $pre_tcl $post_tcl]
+  return [list $conf_file $sim_file $pre_tcl $post_tcl $gen_tcl]
 }
 
 

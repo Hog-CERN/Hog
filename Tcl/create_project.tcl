@@ -1074,20 +1074,20 @@ proc CreateProject {args} {
       if {[IsRelativePath $options(simlib_path)] == 0} {
         set globalSettings::simlib_path "$options(simlib_path)"
       } else {
-        set globalSettings::simlib_path "$globalSettings::repo_path/$options(simlib_path)"
+        set globalSettings::simlib_path "${globalSettings::repo_path}/$options(simlib_path)"
       }
       Msg Info "Simulation library path set to $options(simlib_path)"
     } else {
-      set globalSettings::simlib_path "$globalSettings::repo_path/SimulationLib"
-      Msg Info "Simulation library path set to default $globalSettings::repo_path/SimulationLib"
+      set globalSettings::simlib_path "${globalSettings::repo_path}/SimulationLib"
+      Msg Info "Simulation library path set to default ${globalSettings::repo_path}/SimulationLib"
     }
   }
 
   # Derived variables from now on...
 
   set build_dir_name "Projects"
-  set globalSettings::group_name [file dirname $globalSettings::DESIGN]
-  set globalSettings::project_name $globalSettings::DESIGN
+  set globalSettings::group_name [file dirname ${globalSettings::DESIGN}]
+  set globalSettings::project_name ${globalSettings::DESIGN}
   set globalSettings::pre_synth_file "pre-synthesis.tcl"
   set globalSettings::post_synth_file "post-synthesis.tcl"
   set globalSettings::pre_impl_file "pre-implementation.tcl"
@@ -1095,27 +1095,27 @@ proc CreateProject {args} {
   set globalSettings::pre_bit_file "pre-bitstream.tcl"
   set globalSettings::post_bit_file "post-bitstream.tcl"
   set globalSettings::quartus_post_module_file "quartus-post-module.tcl"
-  set globalSettings::top_path "$globalSettings::repo_path/Top/$globalSettings::DESIGN"
-  set globalSettings::list_path "$globalSettings::top_path/list"
-  set globalSettings::build_dir "$globalSettings::repo_path/$build_dir_name/$globalSettings::DESIGN"
-  set globalSettings::DESIGN [file tail $globalSettings::DESIGN]
-  set globalSettings::top_name [file tail $globalSettings::DESIGN]
-  set globalSettings::top_name [file rootname $globalSettings::top_name]
-  set globalSettings::synth_top_module "top_$globalSettings::top_name"
+  set globalSettings::top_path "${globalSettings::repo_path}/Top/${globalSettings::DESIGN}"
+  set globalSettings::list_path "${globalSettings::top_path}/list"
+  set globalSettings::build_dir "${globalSettings::repo_path}/${build_dir_name}/${globalSettings::DESIGN}"
+  set globalSettings::DESIGN [file tail ${globalSettings::DESIGN}]
+  set globalSettings::top_name [file tail ${globalSettings::DESIGN}]
+  set globalSettings::top_name [file rootname ${globalSettings::top_name}]
+  set globalSettings::synth_top_module "top_${globalSettings::top_name}"
   set globalSettings::user_ip_repo ""
 
-  set globalSettings::pre_synth [file normalize "$globalSettings::tcl_path/integrated/$globalSettings::pre_synth_file"]
-  set globalSettings::post_synth [file normalize "$globalSettings::tcl_path/integrated/$globalSettings::post_synth_file"]
-  set globalSettings::pre_impl [file normalize "$globalSettings::tcl_path/integrated/$globalSettings::pre_impl_file"]
-  set globalSettings::post_impl [file normalize "$globalSettings::tcl_path/integrated/$globalSettings::post_impl_file"]
-  set globalSettings::pre_bit [file normalize "$globalSettings::tcl_path/integrated/$globalSettings::pre_bit_file"]
-  set globalSettings::post_bit [file normalize "$globalSettings::tcl_path/integrated/$globalSettings::post_bit_file"]
-  set globalSettings::quartus_post_module [file normalize "$globalSettings::tcl_path/integrated/$globalSettings::quartus_post_module_file"]
+  set globalSettings::pre_synth [file normalize "${globalSettings::tcl_path}/integrated/${globalSettings::pre_synth_file}"]
+  set globalSettings::post_synth [file normalize "${globalSettings::tcl_path}/integrated/${globalSettings::post_synth_file}"]
+  set globalSettings::pre_impl [file normalize "${globalSettings::tcl_path}/integrated/${globalSettings::pre_impl_file}"]
+  set globalSettings::post_impl [file normalize "${globalSettings::tcl_path}/integrated/${globalSettings::post_impl_file}"]
+  set globalSettings::pre_bit [file normalize "${globalSettings::tcl_path}/integrated/${globalSettings::pre_bit_file}"]
+  set globalSettings::post_bit [file normalize "${globalSettings::tcl_path}/integrated/${globalSettings::post_bit_file}"]
+  set globalSettings::quartus_post_module [file normalize "${globalSettings::tcl_path}/integrated/${globalSettings::quartus_post_module_file}"]
   set globalSettings::LIBERO_MANDATORY_VARIABLES {"FAMILY" "PACKAGE" "DIE" }
 
-  set proj_dir [file normalize $globalSettings::repo_path/Top/$globalSettings::project_name]
-  Msg Debug "Calling GetConfFiles with proj_dir=$proj_dir (project_name=$globalSettings::project_name)"
-  lassign [GetConfFiles $proj_dir] conf_file sim_file pre_file post_file
+  set proj_dir [file normalize "${globalSettings::repo_path}/Top/${globalSettings::project_name}"]
+  Msg Debug "Calling GetConfFiles with proj_dir=$proj_dir (project_name=${globalSettings::project_name})"
+  lassign [GetConfFiles $proj_dir] conf_file sim_file pre_file post_file gen_file
 
   set user_repo 0
   if {[file exists $conf_file]} {
@@ -1268,14 +1268,14 @@ proc CreateProject {args} {
     }
   }
 
-  # if {[file exists $post_file]} {
-  #   Msg Info "Found post-creation Tcl script $post_file, executing it..."
-  #   source $post_file
-  #   if {[IsLibero]} {
-  #     # Regenerate the hierarchy in case a new file has been added
-  #     build_design_hierarchy
-  #   }
-  # }
+  if {[file exists $post_file]} {
+    Msg Info "Found post-creation Tcl script $post_file, executing it..."
+    source $post_file
+    if {[IsLibero]} {
+      # Regenerate the hierarchy in case a new file has been added
+      build_design_hierarchy
+    }
+  }
 
   # Check extra IPs
   # Get project libraries and properties from list files
@@ -1342,13 +1342,9 @@ proc CreateProject {args} {
     cd $old_path
   }
 
-  if {[file exists $post_file]} {
-    Msg Info "Found post-creation Tcl script $post_file, executing it..."
-    source $post_file
-    if {[IsLibero]} {
-      # Regenerate the hierarchy in case a new file has been added
-      build_design_hierarchy
-    }
+  if {[file exists $gen_file]} {
+    Msg Info "Found post-creation-generics Tcl script $gen_file, executing it..."
+    source $gen_file
   }
 
   if {[IsLibero]} {

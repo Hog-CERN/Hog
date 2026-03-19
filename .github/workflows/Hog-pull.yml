@@ -138,7 +138,7 @@ jobs:
       cancel-in-progress: true
     container: hogcern/hog:develop
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         name: Checkout Repository
         with:
           fetch-depth: 0
@@ -210,7 +210,7 @@ jobs:
       cancel-in-progress: true
     if: ${{ inputs.HOG_USE_DOXYGEN }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         name: Checkout Repository
         with:
           fetch-depth: 0
@@ -228,7 +228,7 @@ jobs:
         run: |
           tclsh ./Hog/Tcl/utils/make_doxygen.tcl
       - name: Archive Doxygen artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: Doxygen-Artifacts
           path: |
@@ -246,7 +246,7 @@ jobs:
     steps:
       - uses: ATOS-Actions/clean-self-hosted-runner@v1
         name: Cleaning
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         name: Checkout Repository
         with:
           fetch-depth: 0
@@ -427,7 +427,7 @@ jobs:
               fi;
               echo "Hog-CI(info) - All done.";
       - name: Archive Generate Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: Build-Artifacts
           path: |
@@ -445,7 +445,7 @@ jobs:
     steps:
       - uses: ATOS-Actions/clean-self-hosted-runner@v1
         name: Cleaning
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         name: Checkout Repository
         with:
           fetch-depth: 0
@@ -507,7 +507,7 @@ jobs:
                 $(echo $SIM_CMD);
               fi
       - name: Archive Simulation Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: Simulation-Artifacts
           path: |
@@ -521,7 +521,7 @@ jobs:
       group: collect-${{ github.ref }}
       cancel-in-progress: true
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         name: Checkout Repository
         with:
           fetch-depth: 0
@@ -534,7 +534,7 @@ jobs:
           git config --global --add safe.directory $(pwd)
           git config --global user.email "$HOG_EMAIL"
           git config --global user.name "$HOG_USER"
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         name: Download Artifacts
       - name: Collect
         continue-on-error: true
@@ -590,7 +590,7 @@ jobs:
                 gh pr comment $PR_NUMBER -F pr_note.md
               fi;
       - name: Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: Collect-Artifacts
           path: |
@@ -604,13 +604,13 @@ jobs:
       group: time-${{ github.ref }}
       cancel-in-progress: true
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         name: Checkout Repository
         with:
           fetch-depth: 0
           token: ${{secrets.HOG_PUSH_TOKEN}}
           submodules: 'true'
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         name: Download Artifacts
       - name: Check Timing
         continue-on-error: true

@@ -78,8 +78,12 @@ jobs:
           fetch-depth: 0
           token: ${{secrets.HOG_PUSH_TOKEN}}
           submodules: 'true'
-      - uses: ./.github/actions/hog-setup
-        name: Hog Git Setup
+      - name: Hog Git Setup
+        shell: bash
+        run: |
+          git config --global --add safe.directory $(pwd)
+          git config --global user.email "$HOG_EMAIL"
+          git config --global user.name "$HOG_USER"
       - name: Get Artifacts and Release
         id: artifacts
         shell: bash

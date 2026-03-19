@@ -145,8 +145,12 @@ jobs:
           token: ${{secrets.HOG_PUSH_TOKEN}}
           submodules: 'true'
           ref: ${{ github.head_ref }}
-      - uses: ./.github/actions/hog-setup
-        name: Hog Git Setup
+      - name: Hog Git Setup
+        shell: bash
+        run: |
+          git config --global --add safe.directory $(pwd)
+          git config --global user.email "$HOG_EMAIL"
+          git config --global user.name "$HOG_USER"
       - name: Check Branch State
         shell: bash
         run: |
@@ -213,8 +217,12 @@ jobs:
           token: ${{secrets.HOG_PUSH_TOKEN}}
           submodules: 'true'
           ref: ${{ github.head_ref }}
-      - uses: ./.github/actions/hog-setup
-        name: Hog Git Setup
+      - name: Hog Git Setup
+        shell: bash
+        run: |
+          git config --global --add safe.directory $(pwd)
+          git config --global user.email "$HOG_EMAIL"
+          git config --global user.name "$HOG_USER"
       - name: Doxygen
         shell: bash
         run: |
@@ -245,8 +253,12 @@ jobs:
           token: ${{secrets.HOG_PUSH_TOKEN}}
           submodules: 'true'
           ref: ${{ github.head_ref }}
-      - uses: ./.github/actions/hog-setup
-        name: Hog Git Setup
+      - name: Hog Git Setup
+        shell: bash
+        run: |
+          git config --global --add safe.directory $(pwd)
+          git config --global user.email "$HOG_EMAIL"
+          git config --global user.name "$HOG_USER"
       - name: Build
         shell: bash
         run: |
@@ -440,8 +452,12 @@ jobs:
           token: ${{secrets.HOG_PUSH_TOKEN}}
           submodules: 'true'
           ref: ${{ github.head_ref }}
-      - uses: ./.github/actions/hog-setup
-        name: Hog Git Setup
+      - name: Hog Git Setup
+        shell: bash
+        run: |
+          git config --global --add safe.directory $(pwd)
+          git config --global user.email "$HOG_EMAIL"
+          git config --global user.name "$HOG_USER"
       - name: Simulate
         shell: bash
         run: |
@@ -512,8 +528,12 @@ jobs:
           token: ${{secrets.HOG_PUSH_TOKEN}}
           submodules: 'true'
           ref: ${{ github.head_ref }}
-      - uses: ./.github/actions/hog-setup
-        name: Hog Git Setup
+      - name: Hog Git Setup
+        shell: bash
+        run: |
+          git config --global --add safe.directory $(pwd)
+          git config --global user.email "$HOG_EMAIL"
+          git config --global user.name "$HOG_USER"
       - uses: actions/download-artifact@v4
         name: Download Artifacts
       - name: Collect

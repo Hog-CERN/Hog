@@ -125,6 +125,10 @@ env:
   HOG_TCLLIB_PATH: ${{ secrets.HOG_TCLLIB_PATH }}
   HOG_APPTAINER_IMAGE: ${{ secrets.HOG_APPTAINER_IMAGE }}
   HOG_APPTAINER_EXTRA_PATH: ${{ secrets.HOG_APPTAINER_EXTRA_PATH }}
+  HOG_CHECK_PROJVER: ${{ inputs.HOG_CHECK_PROJVER == true && '1' || '' }}
+  HOG_CHECK_SYNTAX:  ${{ inputs.HOG_CHECK_SYNTAX  == true && '1' || '' }}
+  HOG_NO_BITSTREAM:  ${{ inputs.HOG_NO_BITSTREAM  == true && '1' || '' }}
+  HOG_SAVE_DCP:      ${{ inputs.HOG_SAVE_DCP      == true && '1' || '' }}
 
 jobs:
   check:
@@ -140,17 +144,24 @@ jobs:
           fetch-depth: 0
           token: ${{secrets.HOG_PUSH_TOKEN}}
           submodules: 'true'
+          ref: ${{ github.head_ref }}
+      - uses: ./.github/actions/hog-setup
+        name: Hog Git Setup
       - name: Check Branch State
         shell: bash
         run: |
-          git config --system --add safe.directory $(pwd)
-          git config --global user.email "$HOG_EMAIL"
-          git config --global user.name "$HOG_USER"
-          git fetch
-          git checkout $GITHUB_HEAD_REF
-          git pull
-          git submodule init
-          git submodule update
+          ./Hog/Do CIE
+          PR_TITLE=$(gh pr view $PR_NUMBER --json title -q .title)
+          if echo "$COMMIT_MESSAGE" | grep -q 'RESOLVE_WIP' && echo "$PR_TITLE" | grep -q '^Draft:'; then
+            echo 'removing Draft status'
+            gh pr ready $PR_NUMBER
+          fi
+          # TODO: Add CheckYAML also for GitHub
+          # if [ "${{ inputs.HOG_CHECK_YAMLREF }}" != "true" ]; then
+          #   echo 'Yaml consistency checker is disabled'
+          # else
+          #   ./Hog/Do YML
+          # fi
           # Check if this is a valid hotfix or feature branch
           if [[ -f "Top/repo.conf" ]]; then
             enable_develop_branch=$(awk -F "=" '/ENABLE_DEVELOP_BRANCH/{ gsub(" |\t",""); print $2}' Top/repo.conf)
@@ -201,17 +212,12 @@ jobs:
           fetch-depth: 0
           token: ${{secrets.HOG_PUSH_TOKEN}}
           submodules: 'true'
+          ref: ${{ github.head_ref }}
+      - uses: ./.github/actions/hog-setup
+        name: Hog Git Setup
       - name: Doxygen
         shell: bash
         run: |
-          git config --system --add safe.directory $(pwd)
-          git config --global user.email "$HOG_EMAIL"
-          git config --global user.name "$HOG_USER"
-          git fetch
-          git checkout $GITHUB_HEAD_REF
-          git pull
-          git submodule init
-          git submodule update
           tclsh ./Hog/Tcl/utils/make_doxygen.tcl
       - name: Archive Doxygen artifacts
         uses: actions/upload-artifact@v4
@@ -238,6 +244,9 @@ jobs:
           fetch-depth: 0
           token: ${{secrets.HOG_PUSH_TOKEN}}
           submodules: 'true'
+          ref: ${{ github.head_ref }}
+      - uses: ./.github/actions/hog-setup
+        name: Hog Git Setup
       - name: Build
         shell: bash
         run: |
@@ -246,55 +255,30 @@ jobs:
                 echo "Hog-CI(info): No projects will be built. Exiting..."
                 exit 0;
               fi;
-              git config --global user.email "$HOG_EMAIL"
-              git config --global user.name "$HOG_USER"
-              echo "Initialising the Hog submodule..."
-              git submodule init
-              echo "Updating the Hog submodule..."
-              git submodule update
               export XILINXD_LICENSE_FILE=${HOG_XIL_LICENSE}
               export PATH=${HOG_PATH}:$PATH
               export LD_LIBRARY_PATH=${HOG_LD_LIBRARY_PATH}:$LD_LIBRARY_PATH
-              export PATH=${HOG_PATH}:$PATH
-              if [ ${{inputs.HOG_CHECK_PROJVER}} ]; then
-                export HOG_CHECK_PROJVER=1
+              if [[ -n "$HOG_EXTERNAL_PATH" ]]; then
+                EXT_CMD="-ext_path \"$HOG_EXTERNAL_PATH\"";
+              else
+                EXT_CMD="";
               fi;
-              if [ ${{inputs.HOG_CHECK_SYNTAX}} ]; then
-                export HOG_CHECK_SYNTAX=1
-              fi;
-              if [ ${{inputs.HOG_USE_DOXYGEN}} ]; then
-                export HOG_USE_DOXYGEN=1
-              fi;
-              if [ ${{ inputs.HOG_NO_BITSTREAM}} ]; then
-                export HOG_NO_BITSTREAM=1
-              fi
-              source Hog/Other/CommonFunctions.sh
-              select_command Top/$PROJECT_NAME
-              if [ $COMMAND == "libero"]; then
-                # Libero requires a virtual X session to work
-                Xvfb :99 &
-                export DISPLAY=:99
-              fi;
-              ./Hog/Other/CheckEnv.sh $PROJECT_NAME -a $HOG_APPTAINER_IMAGE
-              if [ -v "${{ secrets.EOS_MGM_URL}} "]; then
-                export EOS_MGM_URL=${{ secrets.EOS_MGM_URL }}
-              fi;
-              if [ ${{inputs.HOG_CHECK_PROJVER }} ]; then
-                if [[ -z "$HOG_EXTERNAL_PATH" ]]; then
-                  CHK_CMD="./Hog/Other/CheckProjVer.sh $PROJECT_NAME"
-                else
-                  CHK_CMD="./Hog/Other/CheckProjVer.sh -ext_path $HOG_EXTERNAL_PATH $PROJECT_NAME"
+              if [[ -f "$HOG_APPTAINER_IMAGE" ]]; then
+                echo "[INFO] Hog-CI will run inside Apptainer container $HOG_APPTAINER_IMAGE...";
+                if [[ -n $HOG_APPTAINER_EXTRA_PATH ]]; then
+                  EXTRA_PATH="-B $HOG_APPTAINER_EXTRA_PATH";
                 fi;
-                if [ -z "$HOG_APPTAINER_IMAGE" ]; then
-                  echo $CHK_CMD;
-                  $(echo $CHK_CMD);
-                else
-                  echo "singularity exec -H $PWD $HOG_APPTAINER_IMAGE $CHK_CMD";
-                  if [ "$HOG_APPTAINER_EXTRA_PATH" != "" ]; then
-                    EXTRA_PATH="-B $HOG_APPTAINER_EXTRA_PATH";
-                  fi;
-                  apptainer exec -H $PWD $EXTRA_PATH $HOG_APPTAINER_IMAGE /bin/bash -c "PATH=${HOG_PATH}:\$PATH; $CHK_CMD";
-                fi
+                APP_CMD="apptainer exec -H $PWD $EXTRA_PATH $HOG_APPTAINER_IMAGE ";
+              else
+                APP_CMD="";
+              fi;
+              eval "$APP_CMD ./Hog/Do CPE $PROJECT_NAME"
+              if grep -q "^libero" Top/$PROJECT_NAME/hog.conf; then
+                Xvfb :99 &
+                export DISPLAY=:99;
+              fi
+              if [ ${{inputs.HOG_CHECK_PROJVER}} ]; then
+                eval "$APP_CMD ./Hog/Do CPV $EXT_CMD $PROJECT_NAME";
               else
                 echo "Project version checker is disabled.";
               fi;
@@ -365,15 +349,32 @@ jobs:
                 else
                   EXEC_CMD="./Hog/Do -njobs $HOG_NJOBS $NO_BITSTREAM $CHECK_SYNTAX WORKFLOW $PROJECT_NAME";
                 fi;
-                if [ -z "$HOG_APPTAINER_IMAGE" ]; then
-                  echo $EXEC_CMD;
-                  $(echo $EXEC_CMD);
-                else
-                  echo "singularity exec -H $PWD $HOG_APPTAINER_IMAGE $EXEC_CMD";
-                  if [ "$HOG_APPTAINER_EXTRA_PATH" != "" ]; then
-                    EXTRA_PATH="-B $HOG_APPTAINER_EXTRA_PATH";
+                if [ -f "$HOG_APPTAINER_IMAGE" ]; then
+                  ENABLE_EOS=1;
+                  if [ -z "${EOS_PASSWORD}" ]; then
+                    if [ -z "${HOG_PASSWORD}" ]; then
+                      ENABLE_EOS=0;
+                    else
+                      EOS_PASSWORD=${HOG_PASSWORD};
+                    fi;
                   fi;
-                  apptainer exec -H $PWD $EXTRA_PATH $HOG_APPTAINER_IMAGE /bin/bash -c "PATH=${HOG_PATH}:\$PATH; $EXEC_CMD";
+                  if [ -z "${EOS_USER}" ]; then
+                    if [ -z "${HOG_USER_LOGIN}" ]; then
+                      ENABLE_EOS=0;
+                    else
+                      EOS_USER=${HOG_USER_LOGIN};
+                    fi;
+                  fi;
+                  if [ "$ENABLE_EOS" = "1" ]; then
+                    FULL_CMD="echo \"$EOS_PASSWORD\" | kinit $EOS_USER@CERN.CH || echo \"Kinit failed with exit code \$?, but continuing anyway...\"; $EXEC_CMD";
+                  else
+                    FULL_CMD="$EXEC_CMD";
+                  fi;
+                  echo "$APP_CMD bash -c '${FULL_CMD}'";
+                  eval "$APP_CMD bash -c '${FULL_CMD}'";
+                else
+                  echo "$EXEC_CMD";
+                  eval "$EXEC_CMD";
                 fi;
               fi;
               if [[ -n "$HOG_ONLY_SYNTH" ]] && [[ $HOG_ONLY_SYNTH == '1' ]]; then
@@ -438,37 +439,33 @@ jobs:
           fetch-depth: 0
           token: ${{secrets.HOG_PUSH_TOKEN}}
           submodules: 'true'
+          ref: ${{ github.head_ref }}
+      - uses: ./.github/actions/hog-setup
+        name: Hog Git Setup
       - name: Simulate
         shell: bash
         run: |
-              git config --global user.email "$HOG_EMAIL"
-              git config --global user.name "$HOG_USER"
-              echo "Initialising the Hog submodule..."
-              git submodule init
-              echo "Updating the Hog submodule..."
-              git submodule update
               export XILINXD_LICENSE_FILE=${HOG_XIL_LICENSE}
               export PATH=${HOG_PATH}:$PATH
               export LD_LIBRARY_PATH=${HOG_LD_LIBRARY_PATH}:$LD_LIBRARY_PATH
-              export PATH=${HOG_PATH}:$PATH
               PROJECT_NAME=${{ matrix.PROJECT_NAME }}
-              ./Hog/Other/CheckEnv.sh $PROJECT_NAME -a $HOG_APPTAINER_IMAGE
-              if [ ${{inputs.HOG_CHECK_PROJVER }} ]; then
-                if [[ -z "$HOG_EXTERNAL_PATH" ]]; then
-                  CHK_CMD="./Hog/Other/CheckProjVer.sh $PROJECT_NAME -sim"
-                else
-                  CHK_CMD="./Hog/Other/CheckProjVer.sh -ext_path $HOG_EXTERNAL_PATH $PROJECT_NAME -sim"
+              if [[ -n "$HOG_EXTERNAL_PATH" ]]; then
+                EXT_CMD="-ext_path \"$HOG_EXTERNAL_PATH\"";
+              else
+                EXT_CMD="";
+              fi;
+              if [[ -f $HOG_APPTAINER_IMAGE ]]; then
+                echo "[INFO] Hog-CI will run inside Apptainer container $HOG_APPTAINER_IMAGE...";
+                if [[ -n $HOG_APPTAINER_EXTRA_PATH ]]; then
+                  EXTRA_PATH="-B $HOG_APPTAINER_EXTRA_PATH";
                 fi;
-                if [ -z "$HOG_APPTAINER_IMAGE" ]; then
-                  echo $CHK_CMD;
-                  $(echo $CHK_CMD);
-                else
-                  echo "singularity exec -H $PWD $HOG_APPTAINER_IMAGE $CHK_CMD";
-                  if [ "$HOG_APPTAINER_EXTRA_PATH" != "" ]; then
-                    EXTRA_PATH="-B $HOG_APPTAINER_EXTRA_PATH";
-                  fi;
-                  apptainer exec -H $PWD $EXTRA_PATH $HOG_APPTAINER_IMAGE /bin/bash -c "PATH=${HOG_PATH}:\$PATH; $CHK_CMD";
-                fi
+                APP_CMD="apptainer exec -H $PWD $EXTRA_PATH $HOG_APPTAINER_IMAGE ";
+              else
+                APP_CMD="";
+              fi;
+              eval "$APP_CMD ./Hog/Do CPE $PROJECT_NAME"
+              if [ ${{inputs.HOG_CHECK_PROJVER }} ]; then
+                eval "$APP_CMD ./Hog/Do CPV $EXT_CMD -simcheck $PROJECT_NAME";
               else
                 echo "Project version checker is disabled.";
               fi;
@@ -489,17 +486,9 @@ jobs:
                 else
                   export SIMSETS="";
                 fi;
-                SIM_CMD="./Hog/Do SIMULATE $PROJECT_NAME $SIM_ONLY $COMPILE_ONLY $SIMSETS";
-                if [ -z "$HOG_APPTAINER_IMAGE" ]; then
-                  echo $SIM_CMD;
-                  $(echo $SIM_CMD);
-                else
-                  echo "apptainer exec -H $PWD $HOG_APPTAINER_IMAGE  $SIM_CMD";
-                  if [ "$HOG_APPTAINER_EXTRA_PATH" != "" ]; then
-                    EXTRA_PATH="-B $HOG_APPTAINER_EXTRA_PATH";
-                  fi;
-                  apptainer exec -H $PWD $EXTRA_PATH $HOG_APPTAINER_IMAGE /bin/bash -c "PATH=${HOG_PATH}:\$PATH; $SIM_CMD";
-                fi
+                SIM_CMD="$APP_CMD ./Hog/Do SIMULATE $PROJECT_NAME $SIM_ONLY $COMPILE_ONLY $SIMSETS";
+                echo $SIM_CMD;
+                $(echo $SIM_CMD);
               fi
       - name: Archive Simulation Artifacts
         uses: actions/upload-artifact@v4
@@ -522,20 +511,15 @@ jobs:
           fetch-depth: 0
           token: ${{secrets.HOG_PUSH_TOKEN}}
           submodules: 'true'
+          ref: ${{ github.head_ref }}
+      - uses: ./.github/actions/hog-setup
+        name: Hog Git Setup
       - uses: actions/download-artifact@v4
         name: Download Artifacts
       - name: Collect
         continue-on-error: true
         shell: bash
         run: |
-              git config --system --add safe.directory $(pwd)
-              git config --global user.email "$HOG_EMAIL"
-              git config --global user.name "$HOG_USER"
-              git fetch
-              git checkout $GITHUB_HEAD_REF
-              git pull
-              git submodule init
-              git submodule update
               old_dir=$(pwd)
               mkdir -p Build-Artifacts
               mv Build-Artifacts bin
@@ -626,6 +610,8 @@ jobs:
             done;
             if [ "$FAILED_PRJS" != "" ]; then
               echo "The following projects have failed timing:$FAILED_PRJS";
+              mr_msg="The following projects have failed timing:$FAILED_PRJS";
+              gh pr comment $PR_NUMBER -b "$mr_msg" || true;
               exit 1;
             else
               echo "All projects met timing. All good!";

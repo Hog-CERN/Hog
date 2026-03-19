@@ -126,9 +126,9 @@ env:
   HOG_APPTAINER_IMAGE: ${{ secrets.HOG_APPTAINER_IMAGE }}
   HOG_APPTAINER_EXTRA_PATH: ${{ secrets.HOG_APPTAINER_EXTRA_PATH }}
   HOG_CHECK_PROJVER: ${{ inputs.HOG_CHECK_PROJVER == true && '1' || '' }}
-  HOG_CHECK_SYNTAX:  ${{ inputs.HOG_CHECK_SYNTAX  == true && '1' || '' }}
-  HOG_NO_BITSTREAM:  ${{ inputs.HOG_NO_BITSTREAM  == true && '1' || '' }}
-  HOG_SAVE_DCP:      ${{ inputs.HOG_SAVE_DCP      == true && '1' || '' }}
+  HOG_CHECK_SYNTAX: ${{ inputs.HOG_CHECK_SYNTAX == true && '1' || '' }}
+  HOG_NO_BITSTREAM: ${{ inputs.HOG_NO_BITSTREAM == true && '1' || '' }}
+  HOG_SAVE_DCP: ${{ inputs.HOG_SAVE_DCP == true && '1' || '' }}
 
 jobs:
   check:

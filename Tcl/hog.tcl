@@ -2105,9 +2105,9 @@ proc GetConfFiles {proj_dir} {
   set sim_file [file normalize $proj_dir/sim.conf]
   set pre_tcl [file normalize $proj_dir/pre-creation.tcl]
   set post_tcl [file normalize $proj_dir/post-creation.tcl]
-  set gen_tcl [file normalize $proj_dir/post-creation-generics.tcl]
+  set pre_rtl [file normalize $proj_dir/pre-rtl.tcl]
 
-  return [list $conf_file $sim_file $pre_tcl $post_tcl $gen_tcl]
+  return [list $conf_file $sim_file $pre_tcl $post_tcl $pre_rtl]
 }
 
 
@@ -5410,8 +5410,12 @@ proc LaunchSimulation {project_name lib_path simsets {repo_path .} {scripts_only
 # @brief Launch the RTL Analysis, for the current IDE and project
 #
 # @param[in] repo_path    The main path of the git repository (Default .)
-proc LaunchRTLAnalysis {repo_path} {
+proc LaunchRTLAnalysis {repo_path {pre_rtl_file ""}} {
   if {[IsVivado]} {
+    if {[file exists $pre_rtl_file]} {
+      Msg Info "Found pre-rtl Tcl script $pre_rtl_file, executing it..."
+      source $pre_rtl_file
+    }
     Msg Info "Starting RTL Analysis..."
     cd $repo_path
     synth_design -rtl -name rtl_1

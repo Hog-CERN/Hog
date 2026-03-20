@@ -777,7 +777,7 @@ if {[file exists $project_file]} {
 if {($proj_found == 0 || $recreate == 1)} {
   Msg Info "Creating (possibly replacing) the project $project_name..."
   Msg Debug "launch.tcl: calling GetConfFiles with $repo_path/Top/$project_name"
-  lassign [GetConfFiles $repo_path/Top/$project_name] conf sim pre post post-gen
+  lassign [GetConfFiles $repo_path/Top/$project_name] conf sim pre post pre_rtl
 
   if {[file exists $conf]} {
     # Still not sure of the difference between project and project_name
@@ -814,7 +814,7 @@ if {$do_check_syntax == 1} {
 
 ######### RTL ANALYSIS ########
 if {$do_rtl == 1} {
-  LaunchRTLAnalysis $repo_path
+  LaunchRTLAnalysis $repo_path $pre_rtl
 }
 
 if {$do_vitis_build == 1} {

@@ -1115,7 +1115,7 @@ proc CreateProject {args} {
 
   set proj_dir [file normalize "${globalSettings::repo_path}/Top/${globalSettings::project_name}"]
   Msg Debug "Calling GetConfFiles with proj_dir=$proj_dir (project_name=${globalSettings::project_name})"
-  lassign [GetConfFiles $proj_dir] conf_file sim_file pre_file post_file gen_file
+  lassign [GetConfFiles $proj_dir] conf_file sim_file pre_file post_file pre_rtl_file
 
   set user_repo 0
   if {[file exists $conf_file]} {
@@ -1342,10 +1342,10 @@ proc CreateProject {args} {
     cd $old_path
   }
 
-  if {[file exists $gen_file]} {
-    Msg Info "Found post-creation-generics Tcl script $gen_file, executing it..."
-    source $gen_file
-  }
+  # if {[file exists $pre_rtl_file]} {
+  #   Msg Info "Found post-creation-generics Tcl script $pre_rtl_file, executing it..."
+  #   source $pre_rtl_file
+  # }
 
   if {[IsLibero]} {
     save_project

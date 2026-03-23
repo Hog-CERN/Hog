@@ -121,10 +121,18 @@ if [ "$found" == 1 ]; then
     loadUserConf
     if { [[ "$HOG_LOGGER" == "ENABLED" ]] || [[ "$HOG_COLOR" -gt 0 ]]; } || { [[ $(getConfigValue Hog_Usr_dict terminal logger) -gt 0 ]] || [[ $(getConfigValue Hog_Usr_dict terminal colored) -gt 0 ]]; }; then
 	Logger_Init "$*"
-	Logger $executable_path $hog_dir/Tcl/launch.tcl "$@"
+    if [ "$USE_EXPERIMENTAL" == 1 ]; then
+        Logger $executable_path $hog_dir/Tcl/core/launch.tcl "$@"
+    else
+    	Logger $executable_path $hog_dir/Tcl/launch.tcl "$@"
+    fi
 	Hog_exit
     else
-        $executable_path $hog_dir/Tcl/launch.tcl "$@"
+        if [ "$USE_EXPERIMENTAL" == 1 ]; then
+            $executable_path $hog_dir/Tcl/core/launch.tcl "$@"
+        else
+            $executable_path $hog_dir/Tcl/launch.tcl "$@"
+        fi
         exit $?
     fi
 else

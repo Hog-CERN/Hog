@@ -814,7 +814,8 @@ if {$do_check_syntax == 1} {
 
 ######### RTL ANALYSIS ########
 if {$do_rtl == 1} {
-  LaunchRTLAnalysis $repo_path $pre_rtl
+  lassign [GetConfFiles $repo_path/Top/$project_name] conf sim pre post pre_rtl post_rtl
+  LaunchRTLAnalysis $repo_path $pre_rtl $post_rtl
 }
 
 if {$do_vitis_build == 1} {

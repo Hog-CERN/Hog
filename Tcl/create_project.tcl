@@ -1212,7 +1212,7 @@ proc CreateProject {args} {
     set globalSettings::HOG_EXTERNAL_PATH ""
   }
 
-  set user_hog_file "$globalSettings::repo_path/Top/hog.tcl"
+  set user_hog_file "${globalSettings::repo_path}/Top/hog.tcl"
   if {[file exists $user_hog_file]} {
     Msg Info "Sourcing user hog.tcl file..."
     source $user_hog_file
@@ -1233,8 +1233,8 @@ proc CreateProject {args} {
 
   if {[IsVitisClassic]} {
     if {$options(xsa) != ""} {
-      Msg Info "Configuring platforms with xsa: $options(xsa)"
-      ConfigurePlatforms "$options(xsa)"
+      Msg Info "Configuring platforms with xsa: ${options(xsa)}"
+      ConfigurePlatforms "${options(xsa)}"
     } else {
       ConfigurePlatforms
     }
@@ -1256,7 +1256,7 @@ proc CreateProject {args} {
 
   if {[IsQuartus]} {
     set fileName_old [file normalize "./hogTmp/.hogQsys.md5"]
-    set fileDir [file normalize "$globalSettings::build_dir/.hog/"]
+    set fileDir [file normalize "${globalSettings::build_dir}/.hog/"]
     file mkdir $fileDir
     set fileName_new [file normalize "$fileDir/.hogQsys.md5"]
     if {[file exists $fileName_new]} {
@@ -1341,11 +1341,6 @@ proc CreateProject {args} {
       $user_ip_hashes $flavour $xml_ver $xml_hash
     cd $old_path
   }
-
-  # if {[file exists $pre_rtl_file]} {
-  #   Msg Info "Found post-creation-generics Tcl script $pre_rtl_file, executing it..."
-  #   source $pre_rtl_file
-  # }
 
   if {[IsLibero]} {
     save_project

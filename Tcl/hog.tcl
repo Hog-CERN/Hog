@@ -2094,7 +2094,7 @@ proc GenericToSimulatorString {prop_dict target} {
 #
 #  @param[in] proj_dir: The project directory containing the conf file or the the tcl file
 #
-#  @return[in] a list containing the full path of the hog.conf, sim.conf, pre-creation.tcl, post-creation.tcl and proj.tcl files
+#  @return[in] a list containing the full path of the hog.conf, sim.conf, pre-creation.tcl, post-creation.tcl, pre-rtl.tcl, and post-rtl.tcl files
 proc GetConfFiles {proj_dir} {
   Msg Debug "GetConfFiles called with proj_dir=$proj_dir"
   if {![file isdirectory $proj_dir]} {
@@ -2106,8 +2106,9 @@ proc GetConfFiles {proj_dir} {
   set pre_tcl [file normalize $proj_dir/pre-creation.tcl]
   set post_tcl [file normalize $proj_dir/post-creation.tcl]
   set pre_rtl [file normalize $proj_dir/pre-rtl.tcl]
+  set post_rtl [file normalize $proj_dir/post-rtl.tcl]
 
-  return [list $conf_file $sim_file $pre_tcl $post_tcl $pre_rtl]
+  return [list $conf_file $sim_file $pre_tcl $post_tcl $pre_rtl $post_rtl]
 }
 
 
@@ -5410,7 +5411,7 @@ proc LaunchSimulation {project_name lib_path simsets {repo_path .} {scripts_only
 # @brief Launch the RTL Analysis, for the current IDE and project
 #
 # @param[in] repo_path    The main path of the git repository (Default .)
-proc LaunchRTLAnalysis {repo_path {pre_rtl_file ""}} {
+proc LaunchRTLAnalysis {repo_path {pre_rtl_file ""} {post_rtl_file ""}} {
   if {[IsVivado]} {
     if {[file exists $pre_rtl_file]} {
       Msg Info "Found pre-rtl Tcl script $pre_rtl_file, executing it..."
@@ -5419,6 +5420,10 @@ proc LaunchRTLAnalysis {repo_path {pre_rtl_file ""}} {
     Msg Info "Starting RTL Analysis..."
     cd $repo_path
     synth_design -rtl -name rtl_1
+    if {[file exists $post_rtl_file]} {
+      Msg Info "Found post-rtl Tcl script $post_rtl_file, executing it..."
+      source $post_rtl_file
+    }
   } else {
     Msg Warning "RTL Analysis is not yet supported for [GetIDEName]."
   }

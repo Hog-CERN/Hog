@@ -439,7 +439,9 @@ if {[IsXilinx]} {
       }
     }
 
-    if {[IsVitisClassic] && $wrote_xsa == 1} {
+    set ide_name_and_ver [string tolower [[GetIDEFromConf $repo_path/Top/$group_name/$proj_name] 0]]
+    set ide_name [lindex [regexp -all -inline {\S+} $ide_name_and_ver] 0]
+    if {$ide_name eq "vitis_classic" & $wrote_xsa == 1} {
       Msg Info "XSA file written to $dst_xsa"
       set xsct_cmd "xsct $tcl_path/launch.tcl CW -xsa $dst_xsa -vitis_only $proj_name"
       Msg Info "Running Vitis Classic to create elf file with cmd: $xsct_cmd"

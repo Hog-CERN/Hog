@@ -115,18 +115,19 @@ if [ "$found" == 1 ]; then
         #This is where init.tcl is located to avoid the initial warning when running tclsh
         export TCL_LIBRARY=$tcl_library
     fi
+fi
 
-    # printDict Hog_Usr_dict
+# printDict Hog_Usr_dict
 
-    loadUserConf
-    if { [[ "$HOG_LOGGER" == "ENABLED" ]] || [[ "$HOG_COLOR" -gt 0 ]]; } || { [[ $(getConfigValue Hog_Usr_dict terminal logger) -gt 0 ]] || [[ $(getConfigValue Hog_Usr_dict terminal colored) -gt 0 ]]; }; then
-	Logger_Init "$*"
+loadUserConf
+if { [[ "$HOG_LOGGER" == "ENABLED" ]] || [[ "$HOG_COLOR" -gt 0 ]]; } || { [[ $(getConfigValue Hog_Usr_dict terminal logger) -gt 0 ]] || [[ $(getConfigValue Hog_Usr_dict terminal colored) -gt 0 ]]; }; then
+    Logger_Init "$*"
     if [ "$USE_EXPERIMENTAL" == 1 ]; then
         Logger $executable_path $hog_dir/Tcl/core/launch.tcl "$@"
     else
-    	Logger $executable_path $hog_dir/Tcl/launch.tcl "$@"
+        Logger $executable_path $hog_dir/Tcl/launch.tcl "$@"
     fi
-	Hog_exit
+    Hog_exit
     else
         if [ "$USE_EXPERIMENTAL" == 1 ]; then
             $executable_path $hog_dir/Tcl/core/launch.tcl "$@"

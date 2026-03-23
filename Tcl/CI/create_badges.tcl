@@ -103,6 +103,7 @@ set OldPath [pwd]
 set TclPath [file dirname [info script]]/..
 set repo_path [file normalize "$TclPath/../.."]
 source $TclPath/hog.tcl
+set curl_cmd [GetCurl]
 
 set usage "- CI script that creates GitLab badges with utilisation and timing results for a chosen Hog project.\n\
 USAGE: $::argv0 <push token> <Gitlab api url> <Gitlab project id> <Gitlab project url> <GitLab Server URL> <Hog project> <ext_path>"
@@ -136,7 +137,7 @@ set page 0
 
 Msg Info "Retrieving current badges..."
 while {1} {
-  lassign [ExecuteRet curl --header "PRIVATE-TOKEN: $push_token" "$api_url/projects/${project_id}/badges?page=$page" --request GET] ret content
+  lassign [ExecuteRet {*}$curl_cmd --header "PRIVATE-TOKEN: $push_token" "$api_url/projects/${project_id}/badges?page=$page" --request GET] ret content
   set content_dict [json::json2dict $content]
   if {[llength $content_dict] > 0} {
     foreach it $content_dict {
@@ -204,7 +205,7 @@ if {[file exists utilization.txt]} {
     set badge_found 0
     Msg Info "Uploading badge image $badge_name.svg ...."
     # tclint-disable-next-line line-length
-    lassign [ExecuteRet curl --request POST --header "PRIVATE-TOKEN: ${push_token}" --form "file=@$badge_name.svg" $api_url/projects/$project_id/uploads] ret content
+    lassign [ExecuteRet {*}$curl_cmd --request POST --header "PRIVATE-TOKEN: ${push_token}" --form "file=@$badge_name.svg" $api_url/projects/$project_id/uploads] ret content
     set image_url [ParseJSON $content full_path]
     set image_url $gitlab_url/$image_url
     if {[dict exists $current_badges $badge_name]} {

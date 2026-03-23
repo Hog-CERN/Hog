@@ -30,6 +30,12 @@ on:
       HOG_USE_DOXYGEN:
         required: false
         type: boolean
+      HOG_BADGE_PROJECTS:
+        type: string
+        required: false
+      HOG_CHECK_PROJVER:
+        required: false
+        type: boolean
     secrets:
       HOG_PUSH_TOKEN:
         required: true
@@ -43,6 +49,8 @@ on:
         required: false
       EOS_MGM_URL:
         required: false
+      HOG_EXTERNAL_PATH:
+        required: false
 
 env:
   PR_NUMBER: ${{ github.event.number }}
@@ -54,6 +62,8 @@ env:
   EOS_USER: ${{ secrets.EOS_USER }}
   EOS_PASSWORD: ${{ secrets.EOS_PASSWORD }}
   GH_TOKEN: ${{ secrets.HOG_PUSH_TOKEN }}
+  HOG_EXTERNAL_PATH: ${{ secrets.HOG_EXTERNAL_PATH }}
+  HOG_BADGE_PROJECTS: ${{ inputs.HOG_BADGE_PROJECTS }}
 
 jobs:
   get_artifacts:
@@ -62,23 +72,22 @@ jobs:
     outputs:
       TAG: ${{ steps.artifacts.outputs.tag }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         name: Checkout Repository
         with:
           fetch-depth: 0
           token: ${{secrets.HOG_PUSH_TOKEN}}
           submodules: 'true'
+      - name: Hog Git Setup
+        shell: bash
+        run: |
+          git config --global --add safe.directory $(pwd)
+          git config --global user.email "$HOG_EMAIL"
+          git config --global user.name "$HOG_USER"
       - name: Get Artifacts and Release
         id: artifacts
         shell: bash
         run: |
-          git config --system --add safe.directory $(pwd)
-          git config --global user.email "$HOG_EMAIL"
-          git config --global user.name "$HOG_USER"
-          git fetch
-          git checkout $GITHUB_HEAD_REF
-          git submodule init
-          git submodule update
           source ./Hog/Other/CommonFunctions.sh
           git fetch origin refs/notes/*:refs/notes/*
           note=(`git notes show`) || {
@@ -92,14 +101,36 @@ jobs:
             dox_var="-doxygen"
           fi
           ./Hog/Other/GetArtifactsAndRename.sh -mr ${runid} -github ${dox_var}
+          mkdir zipped
+          cd bin
+          bit_files=$(find . -name "*.bit" -o -name "*.pof" -o -name "*.bif" -o -name "*.bin")
+          if [ "$bit_files" != "" ]; then
+            project_dirs=$(echo $bit_files | xargs dirname | sort | uniq)
+          fi
+          if [ -z "${HOG_MAX_ZIP_SIZE}" ]; then
+            export HOG_MAX_ZIP_SIZE=10m
+            echo "Hog-CI(info) - Maximum size of artifact zip set to $HOG_MAX_ZIP_SIZE"
+          fi
+          for PRJ_DIR in $project_dirs; do
+            PRJ_DIR=$(echo "$PRJ_DIR" | sed -r 's#\./##g')
+            DEST_ZIP=$(echo "$PRJ_DIR" | sed -r 's#/#_#g')
+            echo "Archiving $PRJ_DIR into ../zipped/$DEST_ZIP.zip"
+            zip -r -q -s $HOG_MAX_ZIP_SIZE ../zipped/$DEST_ZIP.zip $PRJ_DIR
+          done
+          cd ..
           tar -czvf binaries.tar.gz bin
           if [[ ${{ inputs.HOG_CREATE_OFFICIAL_RELEASE }} ]]; then
             echo "Creating release ${{ github.ref_name }}"
             gh release create ${{ github.ref_name }} binaries.tar.gz -F bin/note.md -t "Release ${{ github.ref_name }}"
+            if [[ "${{ inputs.HOG_CHECK_PROJVER }}" == "true" ]]; then
+              tclsh ./Hog/Tcl/CI/get_binary_links.tcl ${{ github.ref_name }} "$HOG_EXTERNAL_PATH"
+            else
+              tclsh ./Hog/Tcl/CI/get_binary_links.tcl -force ${{ github.ref_name }} "$HOG_EXTERNAL_PATH"
+            fi
           fi
           echo "TAG=${tag}" >> $GITHUB_OUTPUT
       - name: Archive Simulation Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: Archive-Artifacts
           path: |
@@ -109,8 +140,9 @@ jobs:
     runs-on: self-hosted
     if: ${{ inputs.HOG_OFFICIAL_BIN_EOS_PATH != '' || inputs.HOG_OFFICIAL_BIN_PATH != '' }}
     needs: get_artifacts
+    continue-on-error: true
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         name: Download Artifacts
       - name: Archive
         shell: bash

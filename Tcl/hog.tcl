@@ -588,7 +588,7 @@ proc ALLOWED_PROPS {} {
     ".udo" [list "nosim"] \
     ".xci" [list "nosynth" "noimpl" "nosim" "locked"] \
     ".xdc" [list "nosynth" "noimpl" "scoped_to_ref" "scoped_to_cells"] \
-    ".tcl" [list "nosynth" "noimpl" "nosim" "source" "qsys" "noadd"\
+    ".tcl" [list "nosynth" "noimpl" "nosim" "scoped_to_ref" "scoped_to_cells" "source" "qsys" "noadd"\
         "--block-symbol-file" "--clear-output-directory" "--example-design"\
         "--export-qsys-script" "--family" "--greybox" "--ipxact"\
         "--jvm-max-heap-size" "--parallel" "--part" "--search-path"\
@@ -792,6 +792,8 @@ proc CheckEnv {project_name ide} {
 
 proc CheckProjVer {repo_path project {sim 0} {ext_path ""}} {
   global env
+  set curl_cmd [GetCurl]
+
   if {$sim == 1} {
     Msg Info "Will check also the version of the simulation files..."
   }
@@ -822,7 +824,7 @@ proc CheckProjVer {repo_path project {sim 0} {ext_path ""}} {
         Msg CriticalWarning "Cannot find JSON package equal or higher than 1.0.\n $JsonFound\n Exiting"
         return
       }
-      lassign [ExecuteRet curl --header "PRIVATE-TOKEN: $token" "$api_url/projects/$project_id/pipelines"] ret content
+      lassign [ExecuteRet {*}$curl_cmd --header "PRIVATE-TOKEN: $token" "$api_url/projects/$project_id/pipelines"] ret content
       set pipeline_dict [json::json2dict $content]
       if {[llength $pipeline_dict] > 0} {
         foreach pip $pipeline_dict {
@@ -832,7 +834,7 @@ proc CheckProjVer {repo_path project {sim 0} {ext_path ""}} {
             Msg Info "Found pipeline with sha $pip_sha for project $project"
             set pipeline_id [DictGet $pip id]
             # tclint-disable-next-line line-length
-            lassign [ExecuteRet curl --header "PRIVATE-TOKEN: $token" "$api_url/projects/${project_id}/pipelines/${pipeline_id}/jobs?pagination=keyset&per_page=100"] ret2 content2
+            lassign [ExecuteRet {*}$curl_cmd --header "PRIVATE-TOKEN: $token" "$api_url/projects/${project_id}/pipelines/${pipeline_id}/jobs?pagination=keyset&per_page=100"] ret2 content2
             set jobs_dict [json::json2dict $content2]
             if {[llength $jobs_dict] > 0} {
               foreach job $jobs_dict {
@@ -843,7 +845,7 @@ proc CheckProjVer {repo_path project {sim 0} {ext_path ""}} {
                 set current_job_name $env(CI_JOB_NAME)
                 if {$current_job_name == $job_name && $status == "success"} {
                   # tclint-disable-next-line line-length
-                  lassign [ExecuteRet curl --location --output artifacts.zip --header "PRIVATE-TOKEN: $token" --url "$api_url/projects/$project_id/jobs/$job_id/artifacts"] ret3 content3
+                  lassign [ExecuteRet {*}$curl_cmd --location --output artifacts.zip --header "PRIVATE-TOKEN: $token" --url "$api_url/projects/$project_id/jobs/$job_id/artifacts"] ret3 content3
                   if {$ret3 != 0} {
                     Msg CriticalWarning "Cannot download artifacts for job $job_name with id $job_id"
                     return
@@ -3745,6 +3747,42 @@ proc GetVerFromSHA {SHA repo_path {force_develop 0}} {
                 set major_prefix [dict get $prefixDict MAJOR_VERSION]
               }
               # More properties in [prefixes] here ...
+            }
+          }
+
+          Msg Status "On branch $branch_name"
+          if {[string match "HEAD" $branch_name]} {
+            Msg Warning "Detached HEAD detected - attempting to find branch name"
+            # if the branch_name is HEAD (not a legal branch name btw)
+            # then the branch has been checked out in a detached head state
+            # this is a fallback condition to enable finding the branch name that the commit is linked too
+            set log_refs [Git {show -s --pretty=%D HEAD}]
+            set branch_list [split $log_refs ","]
+            Msg Status "list of possible branch refs $log_refs"
+
+            # iterate over all possible refs and match against all prefix types
+            # set branch name as matched prefix if and only if one match is found
+
+            set match_count 0
+            set match_prefixes [list $hotfix_prefix $minor_prefix $major_prefix]
+            set prev_branch_name $branch_name
+
+            foreach br $branch_list {
+              foreach pr $match_prefixes {
+                # Msg Status "Debug pointer $br $pr"
+                if {[string match "$pr*" [string trim $br]]} {
+                  # Msg Status "Match found $br"
+                  set branch_name [string trim $br]
+                  incr match_count 1
+                }
+              }
+            }
+
+            if {!$match_count == 1} {
+              set branch_name $prev_branch_name
+              Msg Warning "Branch name not found. Using $branch_name"
+            } else {
+              Msg Status "Branch name found: $branch_name"
             }
           }
 
@@ -7182,4 +7220,26 @@ proc WriteUtilizationSummary {input output project_name run} {
 # Check Git Version when sourcing hog.tcl
 if {[GitVersion 2.7.2] == 0} {
   Msg Error "Found Git version older than 2.7.2. Hog will not work as expected, exiting now."
+}
+
+## @brief Tries to find the coorrect command to be launched for curl
+#
+# @details If running in vivado shell you may need to unsed LD_LIBRARY_PATH befor running curl to avoid conflicts with vivado libraries.
+# This procedure tests curl if execution is correct returns "curl"
+# If execution fails tries to run env -u LD_LIBRARY_PATH curl --silent --show-error, and returns "env -u LD_LIBRARY_PATH curl --silent --show-error" on success.
+# If both fail returns "curl", this will most probably generate failures later
+proc GetCurl {} {
+    if {![catch {exec curl --silent --show-error --version}]} {
+        if {![catch {exec curl --silent --show-error -I https://gitlab.com}]} {
+            return [list curl --silent --show-error]
+        }
+    }
+
+    if {![catch {exec env -u LD_LIBRARY_PATH curl --silent --show-error --version}]} {
+        if {![catch {exec env -u LD_LIBRARY_PATH curl --silent --show-error -I https://gitlab.com}]} {
+            return [list env -u LD_LIBRARY_PATH curl --silent --show-error]
+        }
+    }
+
+    error "Cannot find a working curl invocation"
 }

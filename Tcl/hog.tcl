@@ -3751,7 +3751,6 @@ proc GetVerFromSHA {SHA repo_path {force_develop 0}} {
             }
           }
 
-          Msg Status "On branch $branch_name"
           if {[string match "HEAD" $branch_name]} {
             Msg Warning "Detached HEAD detected - attempting to find branch name"
             # if the branch_name is HEAD (not a legal branch name btw)

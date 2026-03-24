@@ -6646,7 +6646,6 @@ proc WriteGenerics {mode repo_path design date timee\
                     cons_ver cons_hash libs vers hashes ext_names ext_hashes \
                     user_ip_repos user_ip_vers user_ip_hashes flavour {xml_ver ""} {xml_hash ""}} {
   Msg Info "Passing parameters/generics to project's top module..."
-  Msg Info "Repository path: $repo_path"
   #####  Passing Hog generic to top file
   # set global generic variables
   set generic_string [concat \

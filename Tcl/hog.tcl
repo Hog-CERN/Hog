@@ -6649,7 +6649,7 @@ proc WriteGenerics {mode repo_path design date timee\
   #####  Passing Hog generic to top file
   # set global generic variables
   set generic_string [concat \
-    "\"REPO_PATH=$repo_path/\"" \
+    "\"ROOT_REPO_PATH=$repo_path/\"" \
     "GLOBAL_DATE=[FormatGeneric $date]" \
     "GLOBAL_TIME=[FormatGeneric $timee]" \
     "GLOBAL_VER=[FormatGeneric $version]" \
@@ -6661,7 +6661,7 @@ proc WriteGenerics {mode repo_path design date timee\
     "CON_VER=[FormatGeneric $cons_ver]" \
     "CON_SHA=[FormatGeneric $cons_hash]"
   ]
-  #" 
+  #"
   # xml hash
   if {$xml_hash != "" && $xml_ver != ""} {
     lappend generic_string \

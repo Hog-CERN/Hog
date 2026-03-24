@@ -6553,8 +6553,8 @@ proc SetGenericsSimulation {repo_path proj_dir target} {
       set merged_generics_dict [MergeDict $merged_generics_dict $simset_generics 0]
       set generic_str [GenericToSimulatorString $merged_generics_dict $target]
 
-      Msg Info "TOP      = [get_property top [get_filesets sources_1]]"
-      Msg Info "GENERICS  = [get_property generic [get_filesets sources_1]]"
+      Msg Debug "TOP      = [get_property top [get_filesets sources_1]]"
+      Msg Debug "GENERICS  = [get_property generic [get_filesets sources_1]]"
 
       set_property generic $generic_str [get_filesets $simset]
       Msg Info "Setting generics $generic_str for simulator $target\

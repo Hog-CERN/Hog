@@ -6097,7 +6097,7 @@ proc ReadConf {file_name} {
     #manipulate strings here:
     regsub -all {\{\"} $key_pairs "\{" key_pairs
     regsub -all {\"\}} $key_pairs "\}" key_pairs
-
+    #"
     dict set properties $new_sec [dict create {*}$key_pairs]
   }
 
@@ -6552,8 +6552,12 @@ proc SetGenericsSimulation {repo_path proj_dir target} {
       set simset_generics [DictGet $simset_dict "generics"]
       set merged_generics_dict [MergeDict $merged_generics_dict $simset_generics 0]
       set generic_str [GenericToSimulatorString $merged_generics_dict $target]
+
+      Msg Info "TOP      = [get_property top [get_filesets sources_1]]"
+      Msg Info "GENERICS  = [get_property generic [get_filesets sources_1]]"
+
       set_property generic $generic_str [get_filesets $simset]
-      Msg Debug "Setting generics $generic_str for simulator $target\
+      Msg Info "Setting generics $generic_str for simulator $target\
       and simulation file-set $simset..."
     }
   }
@@ -6642,9 +6646,11 @@ proc WriteGenerics {mode repo_path design date timee\
                     cons_ver cons_hash libs vers hashes ext_names ext_hashes \
                     user_ip_repos user_ip_vers user_ip_hashes flavour {xml_ver ""} {xml_hash ""}} {
   Msg Info "Passing parameters/generics to project's top module..."
+  Msg Info "Repository path: $repo_path"
   #####  Passing Hog generic to top file
   # set global generic variables
   set generic_string [concat \
+    "\"REPO_PATH=$repo_path/\"" \
     "GLOBAL_DATE=[FormatGeneric $date]" \
     "GLOBAL_TIME=[FormatGeneric $timee]" \
     "GLOBAL_VER=[FormatGeneric $version]" \
@@ -6654,13 +6660,16 @@ proc WriteGenerics {mode repo_path design date timee\
     "HOG_SHA=[FormatGeneric $hog_hash]" \
     "HOG_VER=[FormatGeneric $hog_ver]" \
     "CON_VER=[FormatGeneric $cons_ver]" \
-    "CON_SHA=[FormatGeneric $cons_hash]"]
+    "CON_SHA=[FormatGeneric $cons_hash]"
+  ]
+  #" 
   # xml hash
   if {$xml_hash != "" && $xml_ver != ""} {
     lappend generic_string \
       "XML_VER=[FormatGeneric $xml_ver]" \
       "XML_SHA=[FormatGeneric $xml_hash]"
   }
+  #"
   #set project specific lists
   foreach l $libs v $vers h $hashes {
     set ver "[string toupper $l]_VER=[FormatGeneric $v]"

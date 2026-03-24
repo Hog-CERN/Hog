@@ -3778,13 +3778,13 @@ proc GetVerFromSHA {SHA repo_path {force_develop 0}} {
           #     }
           #   }
 
-            if {!$match_count == 1} {
-              set branch_name $prev_branch_name
-              Msg Warning "Branch name not found. Using $branch_name"
-            } else {
-              Msg Status "Branch name found: $branch_name"
-            }
-          }
+          #   if {!$match_count == 1} {
+          #     set branch_name $prev_branch_name
+          #     Msg Warning "Branch name not found. Using $branch_name"
+          #   } else {
+          #     Msg Status "Branch name found: $branch_name"
+          #   }
+          # }
 
           if {$enable_develop_branch == 1} {
             if {[string match "$hotfix_prefix*" $branch_name]} {

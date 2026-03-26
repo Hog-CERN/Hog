@@ -584,6 +584,7 @@ proc ALLOWED_PROPS {} {
     ".bd" [list "nosim"] \
     ".v" [list "SystemVerilog" "verilog_header" "nosynth" "noimpl" "nosim" "1995" "2001"] \
     ".sv" [list "verilog" "verilog_header" "nosynth" "noimpl" "nosim" "2005" "2009"] \
+    ".svp" [list "verilog" "verilog_header" "nosynth" "noimpl" "nosim" "2005" "2009"] \
     ".do" [list "nosim"] \
     ".udo" [list "nosim"] \
     ".xci" [list "nosynth" "noimpl" "nosim" "locked"] \
@@ -2994,7 +2995,7 @@ proc GetProjectFiles {{project_file ""}} {
           } elseif {[string equal [lindex $type 0] "Block"] && [string equal [lindex $type 1] "Designs"]} {
             set type "IP"
             set prop ""
-          } elseif {[string equal $type "SystemVerilog"] && [file extension $f] != ".sv"} {
+          } elseif {[string equal $type "SystemVerilog"] && [file extension $f] != ".sv" && [file extension $f] != ".svp"} {
             set prop "SystemVerilog"
           } elseif {[string equal [lindex $type 0] "XDC"] && [file extension $f] != ".xdc"} {
             set prop "XDC"

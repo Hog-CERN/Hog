@@ -8,6 +8,7 @@ set repo_path [file normalize [file join $tcl_path .. ..]]
 source [file join $tcl_path core context.tcl]
 source [file join $tcl_path core tools.tcl]
 source [file join $tcl_path hog.tcl]
+source [file join $tcl_path core hog.tcl]
 
 
 ################################################################################
@@ -257,11 +258,11 @@ if {[ActiveTool::CurrentTool] == "tlcsh"} {
   Context::Set repo_path $repo_path
 
   puts "========================================="
-  puts "Launcher: [Context::Get launcher Name]"
-  puts " Version: [Context::Get launcher Version]"
+  puts "Launcher: [Context::GetValue launcher Name]"
+  puts " Version: [Context::GetValue launcher Version]"
   puts "========================================="
-  puts "tcl_path: [Context::Get tcl_path]"
-  puts "repo_path: [Context::Get repo_path]"
+  puts "tcl_path: [Context::GetValue tcl_path]"
+  puts "repo_path: [Context::GetValue repo_path]"
 
 
   ### CUSTOM COMMANDS ###
@@ -288,8 +289,8 @@ if {[ActiveTool::CurrentTool] == "tlcsh"} {
 
   Msg Debug "========================================="
   Msg Debug "Launch Settings:"
-  dict for {key value} [Context::Get LaunchSettings] {
-    Msg Debug "  $key: $value"
+  dict for {key value} [Context::GetValue LaunchSettings] {
+    Msg Debug "  $key: [tobj value $value]"
   }
   Msg Debug "========================================="
 
@@ -298,10 +299,10 @@ if {[ActiveTool::CurrentTool] == "tlcsh"} {
 
 
 
-  Tools::PrintTools
+  #Tools::PrintTools
 
 
-  Tools::Launch [Context::Get LaunchSettings ide]
+  Tools::Launch [tobj value [Context::Get LaunchSettings ide]]
   return
 }
 
@@ -363,5 +364,20 @@ foreach step $flow {
 }
 
 
+puts "========================================="
+puts "[Context::ToJson -pretty]"
+puts "========================================="
 
+Context::SetStr Random Path to a String "Hello World"
+Context::SetNum Random Path to a Number 42
+Context::SetObj Random Path to a List [tlist create [tstr "Hello"] [tstr "World"] [tnum 123]]
+Context::Lappend Random Path to a List [tstr "Appended"]
+
+set loo [tlist create]
+dict for {opt val} [Context::GetValue LaunchSettings list_of_options] {
+  tlist add loo [tdict create $opt [tinf $val]]
+}
+Context::SetObj LaunchSettings list_of_options $loo
+puts "[Context::ToJson -pretty]"
+puts "========================================="
 

@@ -1,211 +1,169 @@
 
-# This will be used to maintain project context throughout the flow
-# Tools can query this instead of having to pass around variabls
-# basically just a wrapper around a dict, but will be used to 
-# store and retrieve values in a more structured way.
-#
-# if we wanted to play nice with non tcl tools, maybe we implement faux "typing" 
-# by requiring types when adding elements to the context
-# for example: 
-# Context::Set String LaunchSettings project_name "MyProject"
-# Context::Set List   LaunchSettings sources [list "file1.v" "file2.v"]
-#
-# {
-#  Launch Settings {
-#   type { dict }
-#   value {
-#     project_name {type {String} value {"MyProject"}}
-#     sources {type {list} value {{file1.v} {file2.v}}}
-#   }
-#  }
-# }
-#
-# this would let us 'easily' export/import json for communication with other tools 
-
-
+source [file join [file dirname [info script]] tobj.tcl]
 namespace eval Context {
   variable _ctx
-  if {![info exists _ctx]} { set _ctx [dict create] }
+  if {![info exists _ctx]} { set _ctx [tdict create] }
 
   proc Clear {} {
     variable _ctx
-    set _ctx [dict create]
-    return $_ctx
-  }
-
-  proc Load {inputDict} {
-    if {![_isDict $inputDict]} { error "ERR_INVALID_DICT" "" ERR_INVALID_DICT }
-    variable _ctx
-    set _ctx $inputDict
-    return $_ctx
+    set _ctx [tdict create]
   }
 
   proc GetFullContext {} {
-    _validate {} 0
     variable _ctx
     return $_ctx
+  }
+
+  proc Load {tDictNode} {
+    if {![tobj isobj $tDictNode] || [tobj type $tDictNode] ne "Dict"} {
+      error "Context::Load: expected Dict tobj" "" {CTX_INVALID_ARGS}
+    }
+    variable _ctx
+    set _ctx $tDictNode
+  }
+
+  proc SetStr {args} {
+    if {[llength $args] < 2} { error "Context::SetStr: too few args" "" {CTX_INVALID_ARGS} }
+    variable _ctx
+    tdict set _ctx {*}[lrange $args 0 end-1] [tobj String [lindex $args end]]
+  }
+
+  proc SetNum {args} {
+    if {[llength $args] < 2} { error "Context::SetNum: too few args" "" {CTX_INVALID_ARGS} }
+    variable _ctx
+    tdict set _ctx {*}[lrange $args 0 end-1] [tobj Number [lindex $args end]]
+  }
+
+  proc SetBool {args} {
+    if {[llength $args] < 2} { error "Context::SetBool: too few args" "" {CTX_INVALID_ARGS} }
+    variable _ctx
+    tdict set _ctx {*}[lrange $args 0 end-1] [tobj Bool [lindex $args end]]
+  }
+
+  proc SetNull {args} {
+    if {[llength $args] < 1} { error "Context::SetNull: too few args" "" {CTX_INVALID_ARGS} }
+    variable _ctx
+    tdict set _ctx {*}$args [tobj Null]
+  }
+
+  proc SetObj {args} {
+    if {[llength $args] < 2} { error "Context::SetObj: too few args" "" {CTX_INVALID_ARGS} }
+    variable _ctx
+    tdict set _ctx {*}[lrange $args 0 end-1] [lindex $args end]
   }
 
   proc Set {args} {
-    _validate $args 2
-
+    if {[llength $args] < 2} { error "Context::Set: too few args" "" {CTX_INVALID_ARGS} }
     variable _ctx
-    set value [lindex $args end]
-    set keyPath [lrange $args 0 end-1]
-
-    if {[catch {dict set _ctx {*}$keyPath $value}]} { error "ERR_TYPE_CONFLICT" "" ERR_TYPE_CONFLICT }
-    return $value
+    tdict set _ctx {*}[lrange $args 0 end-1] [tinf [lindex $args end]]
   }
+  
+  proc Lappend {args} {
+    if {[llength $args] < 2} { error "Context::Lappend: too few args" "" {CTX_INVALID_ARGS} }
+    variable _ctx
+    set tl [tdict get _ctx {*}[lrange $args 0 end-1]]
+    if {![tobj isobj $tl] || [tobj type $tl] ne "List"} {
+      error "Context::Lappend: not a List node at path" "" {CTX_NOT_A_LIST}
+    }
+
+    if {![tobj isobj [lindex $args end]]} {
+      error "Context::Lappend: expected tobj for value" "" {CTX_INVALID_ARGS}
+    }
+
+    tlist add tl [lindex $args end]
+    tdict set _ctx {*}[lrange $args 0 end-1] $tl
+  }
+
+
 
   proc Get {args} {
-    _validate $args 1
-
+    if {[llength $args] < 1} { error "Context::Get: too few args" "" {CTX_INVALID_ARGS} }
     variable _ctx
-    if {![dict exists $_ctx {*}$args]} { error "ERR_NOT_FOUND" "" ERR_NOT_FOUND }
-    return [dict get $_ctx {*}$args]
+    if {![tdict exists _ctx {*}$args]} { error "Context::Get: key not found" "" {CTX_NOT_FOUND} }
+    return [tdict get _ctx {*}$args]
   }
 
-  proc GetOr {defaultValue args} {
-    _validate $args 1
-
+  proc GetOr {defaultObj args} {
     variable _ctx
-    if {[dict exists $_ctx {*}$args]} { return [dict get $_ctx {*}$args] }
-    return $defaultValue
+    if {[llength $args] >= 1 && [tdict exists _ctx {*}$args]} {
+      return [tdict get _ctx {*}$args]
+    }
+    return $defaultObj
+  }
+
+  proc GetValue {args} {
+    if {[llength $args] < 1} { error "Context::GetValue: too few args" "" {CTX_INVALID_ARGS} }
+    variable _ctx
+    if {![tdict exists _ctx {*}$args]} { error "Context::GetValue: key not found" "" {CTX_NOT_FOUND} }
+    return [tobj value [tdict get _ctx {*}$args]]
+  }
+
+  proc GetValueOr {defaultObj args} {
+    variable _ctx
+    if {[llength $args] >= 1 && [tdict exists _ctx {*}$args]} {
+      return [tobj value [tdict get _ctx {*}$args]]
+    }
+    return $defaultObj
   }
 
   proc Has {args} {
-    _validate $args 1
-
+    if {[llength $args] < 1} { error "Context::Has: too few args" "" {CTX_INVALID_ARGS} }
     variable _ctx
-    return [dict exists $_ctx {*}$args]
+    return [tdict exists _ctx {*}$args]
   }
 
   proc Remove {args} {
-    _validate $args 1
-
+    if {[llength $args] < 1} { error "Context::Remove: too few args" "" {CTX_INVALID_ARGS} }
     variable _ctx
-    if {[dict exists $_ctx {*}$args]} {
-      dict unset _ctx {*}$args
-      return 1
-    }
-
-    return 0
-  }
-
-  proc Append {args} {
-    _validate $args 2
-
-    variable _ctx
-    set suffix [lindex $args end]
-    set keyPath [lrange $args 0 end-1]
-
-    if {[dict exists $_ctx {*}$keyPath]} {
-      set current [dict get $_ctx {*}$keyPath]
-    } else {
-      set current ""
-    }
-
-    set updated "$current$suffix"
-    if {[catch {dict set _ctx {*}$keyPath $updated}]} {
-      error "ERR_TYPE_CONFLICT" "" ERR_TYPE_CONFLICT
-    }
-    return $updated
-  }
-
-  proc Lappend {args} {
-    _validate $args 2
-
-    variable _ctx
-    set item [lindex $args end]
-    set keyPath [lrange $args 0 end-1]
-
-    if {[dict exists $_ctx {*}$keyPath]} {
-      set current [dict get $_ctx {*}$keyPath]
-    } else {
-      set current [list]
-    }
-
-    set updated [concat $current [list $item]]
-    if {[catch {dict set _ctx {*}$keyPath $updated}]} {
-      error "ERR_TYPE_CONFLICT" "" ERR_TYPE_CONFLICT
-    }
-    return $updated
-  }
-
-  proc Merge {inputDict} {
-    if {![_isDict $inputDict]} { error "ERR_INVALID_DICT" "" ERR_INVALID_DICT }
-    _validate {} 0
-
-    variable _ctx
-    set _ctx [dict merge $_ctx $inputDict]
-    return $_ctx
+    if {![tdict exists _ctx {*}$args]} { return 0 }
+    tdict remove _ctx {*}$args
+    return 1
   }
 
   proc Size {} {
-    _validate {} 0
-
     variable _ctx
-    return [dict size $_ctx]
+    return [tdict size _ctx]
   }
 
   proc Keys {args} {
-    _validate {} 0
-
     variable _ctx
-
-    if {[llength $args] == 0} { return [dict keys $_ctx] }
-
-    if {![dict exists $_ctx {*}$args]} { return [list] }
-
-    set value [dict get $_ctx {*}$args]
-    if {[catch {dict keys $value} keys]} { error "ERR_NOT_A_DICT" "" ERR_NOT_A_DICT }
-
-    return $keys
-  }
-  
-  proc SaveToFile {filename {overwrite false}} {
-    variable _ctx
-
-    # check if file exists
-
-    if {![file exists $filename]} {
-      set fileId [open $filename "w"]
-    } elseif {$overwrite} {
-      set fileId [open $filename "w"]
-    } else {
-      error "ERR_FILE_EXISTS" "" ERR_FILE_EXISTS
+    if {[llength $args] == 0} { return [tdict keys _ctx] }
+    if {![tdict exists _ctx {*}$args]} { return {} }
+    set sub [tdict get _ctx {*}$args]
+    if {![tobj isobj $sub] || [tobj type $sub] ne "Dict"} {
+      error "Context::Keys: not a Dict node at path" "" {CTX_NOT_A_DICT}
     }
+    return [dict keys [tobj value $sub]]
+  }
 
-    puts $fileId "$_ctx"
-    close $fileId
+  proc ToJson {{flag {}}} {
+    variable _ctx
+    if {$flag eq "-pretty"} { return [tobj tojson $_ctx -pretty] }
+    return [tobj tojson $_ctx]
+  }
+
+  proc SaveToFile {filename {overwrite 0}} {
+    variable _ctx
+    if {[file exists $filename] && !$overwrite} {
+      error "Context::SaveToFile: file exists" "" {CTX_FILE_EXISTS}
+    }
+    set fh [open $filename w]
+    puts $fh $_ctx
+    close $fh
   }
 
   proc LoadFromFile {filename} {
-    if {![file exists $filename]} { error "ERR_FILE_NOT_FOUND" "" ERR_FILE_NOT_FOUND }
-
-    set fileId [open $filename "r"]
-    set fileContent [read $fileId]
-    close $fileId
-
-    if {![_isDict $fileContent]} { error "ERR_INVALID_DICT" "" ERR_INVALID_DICT }
-
+    if {![file exists $filename]} {
+      error "Context::LoadFromFile: file not found" "" {CTX_FILE_NOT_FOUND}
+    }
+    set fh [open $filename r]
+    set data [string trim [read $fh]]
+    close $fh
+    if {![tobj isobj $data] || [tobj type $data] ne "Dict"} {
+      error "Context::LoadFromFile: invalid context data" "" {CTX_INVALID_DATA}
+    }
+    #TODO: import json
     variable _ctx
-    set _ctx $fileContent
-    return $_ctx
-  }
-
-
-  proc _isDict {value} { 
-    return [expr {![catch {dict size $value}]}] 
-  }
-
-  proc _ctxValid {} {
-    variable _ctx
-    return [_isDict $_ctx]
-  }
-
-  proc _validate {args {minArgs 0} {checkCtx 1}} {
-    if {[llength $args] < $minArgs} { error "not enough arguments" "" ERR_INVALID_ARGS }
-    if {$checkCtx && ![_ctxValid]} { error "invalid context" "" ERR_INVALID_CONTEXT }
+    set _ctx $data
   }
 }

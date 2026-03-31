@@ -103,25 +103,29 @@ proc tinf {value} {
   return [tobj String $value]
 }
 
+proc tlinf {args} {
+  set result {}
+  ::foreach arg $args {
+    lappend result [tinf $arg]
+  }
+  return $result
+}
+ 
 namespace eval tlist {
 
   proc create {args} {
-    ::foreach node $args {
-      if {![tobj isobj $node]} { error "tlist create: not a tobj" "" {INVALID_TOBJ} }
-    }
-    return [tobj create List $args]
+    ::set nodes {}
+    ::foreach node $args { ::lappend nodes [expr {[tobj isobj $node] ? $node : [tinf $node]}] }
+    return [tobj create List $nodes]
   }
 
-  proc add {listVar args} {
+  proc append {listVar args} {
     upvar 1 $listVar lst
-    if {![tobj isobj $lst]}         { error "tlist add: not a tobj"      "" {INVALID_TOBJ}      }
-    if {[tobj type $lst] ne "List"} { error "tlist add: not a List node" "" {INVALID_TOBJ_LIST} }
-    if {[llength $args] == 0}       { error "tlist add: no nodes given"  "" {INVALID_ARGS}      }
-    ::foreach node $args {
-      if {![tobj isobj $node]} { error "tlist add: not a tobj" "" {INVALID_TOBJ} }
-    }
+    if {![tobj isobj $lst]}         { error "tlist append: not a tobj"      "" {INVALID_TOBJ}      }
+    if {[tobj type $lst] ne "List"} { error "tlist append: not a List node" "" {INVALID_TOBJ_LIST} }
+    if {[llength $args] == 0}       { error "tlist append: no nodes given"  "" {INVALID_ARGS}      }
     set current [tobj value $lst]
-    ::foreach node $args { lappend current $node }
+    ::foreach node $args { ::lappend current [expr {[tobj isobj $node] ? $node : [tinf $node]}] }
     set lst [tobj create List $current]
   }
 
@@ -167,7 +171,7 @@ namespace eval tlist {
     }
   }
 
-  namespace export create add get length remove pop foreach
+  namespace export create append get length remove pop foreach
   namespace ensemble create
 }
 
@@ -180,8 +184,7 @@ namespace eval tdict {
     }
     ::set d [tobj create Dict {}]
     ::foreach {key obj} $args {
-      if {![tobj isobj $obj]} { error "tdict create: value for '$key' is not a tobj" "" {INVALID_TOBJ} }
-      _setPath d [list $key] $obj
+      _setPath d [list $key] [expr {[tobj isobj $obj] ? $obj : [tinf $obj]}]
     }
     return $d
   }
@@ -195,9 +198,8 @@ namespace eval tdict {
     if {![tobj isobj $d]}         { error "tdict set: not a tobj"      "" {INVALID_TOBJ}      }
     if {[tobj type $d] ne "Dict"} { error "tdict set: not a Dict node" "" {INVALID_TOBJ_DICT} }
     ::set keyPath [lrange $args 0 end-1]
-    ::set obj     [lindex $args end]
-    if {![tobj isobj $obj]} { error "tdict set: value is not a tobj" "" {INVALID_TOBJ} }
-    _setPath d $keyPath $obj
+    ::set obj [lindex $args end]
+    _setPath d $keyPath [expr {[tobj isobj $obj] ? $obj : [tinf $obj]}]
   }
 
   proc _setPath {dictVar keyPath obj} {
@@ -283,6 +285,31 @@ namespace eval tdict {
     }
   }
 
+  # tdict lappend dictVar key ?key ...? tobjNode
+  proc lappend {dictVar args} {
+    if {[llength $args] < 2} {
+      error "tdict lappend: usage: tdict lappend dictVar key ?key ...? tobjNode" "" {INVALID_ARGS}
+    }
+    upvar 1 $dictVar d
+    if {![tobj isobj $d]}         { error "tdict lappend: not a tobj"      "" {INVALID_TOBJ}      }
+    if {[tobj type $d] ne "Dict"} { error "tdict lappend: not a Dict node" "" {INVALID_TOBJ_DICT} }
+
+    ::set keyPath [lrange $args 0 end-1]
+    ::set obj     [lindex $args end]
+    ::set obj     [expr {[tobj isobj $obj] ? $obj : [tinf $obj]}]
+    if {[exists d {*}$keyPath]} {
+      ::set node [_getPath $d $keyPath]
+      if {![tobj isobj $node] || [tobj type $node] ne "List"} {
+        error "tdict lappend: existing value is not a List node" "" {INVALID_TOBJ_LIST}
+      }
+      ::set lst [tobj value $node]
+    } else {
+      ::set lst {}
+    }
+    ::lappend lst $obj
+    _setPath d $keyPath [tobj create List $lst]
+  }
+
   # tdict remove dictVar key ?key ...?
   proc remove {dictVar args} {
     if {[llength $args] < 1} {
@@ -315,6 +342,6 @@ namespace eval tdict {
     ::set d [tobj create Dict $current]
   }
 
-  namespace export create set get exists keys size for remove
+  namespace export create set lappend get exists keys size for remove
   namespace ensemble create
 }

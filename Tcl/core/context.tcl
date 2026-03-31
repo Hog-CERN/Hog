@@ -70,7 +70,7 @@ namespace eval Context {
       error "Context::Lappend: expected tobj for value" "" {CTX_INVALID_ARGS}
     }
 
-    tlist add tl [lindex $args end]
+    tlist append tl [lindex $args end]
     tdict set _ctx {*}[lrange $args 0 end-1] $tl
   }
 

@@ -272,7 +272,7 @@ proc AddHogFiles {libraries properties filesets} {
               set_property SCOPED_TO_REF $ref $file_obj
             }
             if {$cell != ""} {
-              set_property SCOPED_TO_CELLS {[split $cell ","]} $file_obj
+              set_property SCOPED_TO_CELLS [split $cell ","] $file_obj
             }
           }
         }

@@ -940,6 +940,7 @@ if {($proj_found == 0 || $recreate == 1) && $do_create == 1} {
     Msg Info "Setting Vitis Unified workspace to $vitis_workspace"
   } elseif {[IsXilinx]} {
     file mkdir "$repo_path/Projects/$project_name/$project.gen/sources_1"
+    OpenProject $project_file $repo_path
   } elseif {[IsVitisClassic]} {
     set vitis_workspace [file normalize $repo_path/Projects/$project_name/vitis_classic/]
     Msg Info "Setting workspace to $vitis_workspace"

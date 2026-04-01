@@ -1246,4 +1246,3 @@ function Logger_Init() {
 }
 
 
-

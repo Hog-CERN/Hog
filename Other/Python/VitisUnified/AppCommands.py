@@ -16,6 +16,7 @@ import vitis
 import sys
 import json
 import os
+import re
 
 # Import functions from SharedCommands
 _shared_commands_path = os.path.join(os.path.dirname(__file__), "SharedCommands.py")
@@ -132,26 +133,21 @@ def ParseAppOptions(app_options_str):
   """
   Parse app options string into dictionary
   Args:
-    app_options_str: String like "{ PLATFORM TestPlatform1 PROC psu_cortexa53_0 OS standalone }"
+    app_options_str: String like "{ -key {value} -key2 {value with spaces} }"
   Returns:
     Dictionary with extracted options
   """
-  options_str = app_options_str.strip("{}").strip()
-  tokens = options_str.split()
+  options_str = app_options_str.strip()
+  options_str = options_str[1:-1].strip()
 
-  opt_dict = {}
-  i = 0
-  while i < len(tokens):
-    key = tokens[i].upper()
-    if i + 1 < len(tokens):
-      value = tokens[i + 1]
-      value = value.strip('"\'')
-      opt_dict[key] = value
-      i += 2
-    else:
-      i += 1
+  pattern = r'-([\w-]+)\s+{([^}]*)}'
+  parsed_options = {}
+  for match in re.finditer(pattern, options_str):
+    key = match.group(1).upper()
+    value = match.group(2)
+    parsed_options[key] = value
 
-  return opt_dict
+  return parsed_options
 
 def ConfigureApp(app_name, app_conf, ws_dir):
   """
@@ -166,6 +162,7 @@ def ConfigureApp(app_name, app_conf, ws_dir):
   try:
     if isinstance(app_conf, str):
       app_options = ParseAppOptions(app_conf)
+      PrintInfo("Parsed app options: %s" % str(app_options))
     elif isinstance(app_conf, dict):
       app_options = app_conf
     else:
@@ -325,7 +322,7 @@ def ConfigureApp(app_name, app_conf, ws_dir):
       pass
     return False
 
-def AddAppFiles(app_name, file_paths, ws_dir, target_path=None, vitis_version=None):
+def AddAppFiles(app_name, file_paths, ws_dir, target_path=None):
   """
   Add source files to a Vitis Unified application
   For Vitis < 2025.2: Uses symbolic links to reference original files (no copying)
@@ -341,13 +338,9 @@ def AddAppFiles(app_name, file_paths, ws_dir, target_path=None, vitis_version=No
     bool: True if successful, False otherwise
   """
   try:
-    # Get Vitis version from parameter or environment variable
-    if vitis_version is None:
-      vitis_version = os.environ.get('HOG_VITIS_VER')
-      if vitis_version:
-        PrintDebug("Vitis version read from HOG_VITIS_VER environment variable: %s" % vitis_version)
 
     PrintInfo("Adding files to app '%s'" % app_name)
+    PrintInfo('Target Path: %s' % target_path)
     # Parse file_paths if it's a JSON string
     if isinstance(file_paths, str):
       try:
@@ -407,21 +400,16 @@ def AddAppFiles(app_name, file_paths, ws_dir, target_path=None, vitis_version=No
       vitis.dispose()
       return True
 
-    # Determine which method to use based on Vitis version
-    # Simple inline version comparison: parse "2025.2" -> (2025, 2) and compare
+    # check if vitis supports symlinking
+    import inspect
     use_skip_copy = False
-    if vitis_version:
-      try:
-        v_parts = [int(x) for x in vitis_version.split('.')]
-        if len(v_parts) >= 2 and (v_parts[0] > 2025 or (v_parts[0] == 2025 and v_parts[1] >= 2)):
-          use_skip_copy = True
-          PrintInfo("Using is_skip_copy_sources when calling import_files function from Vitis API (Vitis >= 2025.2)")
-        else:
-          PrintInfo("Using import-then-replace-with-symlinks approach (Vitis < 2025.2)")
-      except (ValueError, AttributeError):
-        PrintWarning("Could not parse version '%s', defaulting to import-then-replace approach" % vitis_version)
-    else:
-      PrintWarning("Vitis version not provided (HOG_VITIS_VER not set), defaulting to import-then-replace approach")
+    try:
+      sig = inspect.signature(app.import_files)
+      if 'is_skip_copy_sources' in sig.parameters:
+        use_skip_copy = True
+        PrintInfo("import_files supports 'is_skip_copy_sources' parameter, will use it to avoid copying")
+    except (ValueError, TypeError) as e:
+      PrintInfo("import_files does not support 'is_skip_copy_sources', will use import-then-replace-with-symlinks approach")
 
     # Add files to the app using the appropriate method
     try:

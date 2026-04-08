@@ -81,6 +81,8 @@ test_launch_commands:
     - ./Hog/Do TREE vivado/bd_design -output bd_hierarchy.txt
     - ./Hog/Do SIGASI vivado/fifo
     - ./Hog/Do SIGASI vivado/fifo -verbose
+    - ./Hog/Do VHDL vivado/fifo
+    - ./Hog/Do VHDLLS vivado/fifo
     - ./Hog/Do IPBUS vivado/fifo
     - ./Hog/Do IPBUS vivado/fifo -generate
     - ./Hog/Do IPBUS vivado/fifo -verbose

@@ -193,6 +193,13 @@ set default_commands {
   # OPTIONS: compile_order, ext_path.arg, ignore.arg, include_gen_prods, include_ieee, light, output.arg, top.arg, verbose
   }
 
+  \^VHDL(LS)?$ {#
+    set do_vhdl_ls 1
+  # NAME: VHDL-LS or VHDL
+  # DESCRIPTION: Create a VHDL-LS configuration file for the chosen project.
+  # OPTIONS: verbose
+  }
+
   default {
     if {$directive != ""} {
       set NO_DIRECTIVE_FOUND 1
@@ -317,6 +324,7 @@ set do_buttons 0
 set do_check_list_files 0
 set do_compile_lib 0
 set do_sigasi 0
+set do_vhdl_ls 0
 set do_hierarchy 0
 
 set NO_DIRECTIVE_FOUND 0
@@ -513,6 +521,33 @@ if {$cmd == -1} {
     Msg Info "Sigasi CSV file created: sigasi_$project.csv"
     Msg Info "You can use the python script provided by Sigasi to convert the generated csv file into a Sigasi project."
     Msg Info "More info at: https://www.sigasi.com/knowledge/how_tos/generating-sigasi-project-vivado-project/#2-generate-the-sigasi-project-files-from-the-csv-file"
+    exit 0
+  }
+
+  if {$do_vhdl_ls == 1} {
+    cd $repo_path
+    Msg Info "Creating VHDL-LS configuration file for project $project_name..."
+    set proj_dir $repo_path/Top/$project_name
+    set proj_list_dir $repo_path/Top/$project_name/list
+    set project [file tail $project_name]
+    lassign [GetHogFiles -list_files {.src} $proj_list_dir $repo_path] libraries
+    set toml_file [open "vhdl_ls_$project.toml" w]
+    puts $toml_file "\[libraries\]"
+    dict for {lib source_files} $libraries {
+      puts $toml_file "[file rootname $lib].files = \["
+      foreach source_file $source_files {
+        if {[file extension $source_file] == ".vhd" ||
+            [file extension $source_file] == ".vhdl"
+            } {
+                # puts [Relative $repo_path $source_file ]
+                puts $toml_file "\'[Relative $repo_path $source_file ]\',"
+            }
+        }
+      puts $toml_file "\]\n"
+    }
+    close $toml_file
+    Msg Info "VHDL-LS TOML File created: vhdl_ls_$project.toml"
+    Msg Info "You can copy the content of this file into your VHDL-LS configuration vhdl_ls.toml, to import all Hog libraries."
     exit 0
   }
 

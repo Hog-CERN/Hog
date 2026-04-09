@@ -439,18 +439,32 @@ if {[IsXilinx]} {
       }
     }
 
-    if {[IsVitisClassic] && $wrote_xsa == 1} {
-      Msg Info "XSA file written to $dst_xsa"
-      set xsct_cmd "xsct $tcl_path/launch.tcl CW -xsa $dst_xsa -vitis_only $proj_name"
-      Msg Info "Running Vitis Classic to create elf file with cmd: $xsct_cmd"
-      set ret [catch {exec -ignorestderr {*}$xsct_cmd >@ stdout} result]
-      if {$ret != 0} {
-        Msg Error "xsct (vitis classic) returned an error state."
+    if {$wrote_xsa == 1} {
+      # Determine project type from configuration file
+      set conf_file [lindex [GetConfFiles $repo_path/Top/$group_name/$proj_name] 0]
+      set is_vitis_classic 0
+
+      if {[file exists $conf_file]} {
+        set ide_name_and_ver [GetIDEFromConf $conf_file]
+        set ide_name [string tolower [lindex $ide_name_and_ver 0]]
+        if {[string match "*vitis_classic*" $ide_name] || [string match "*vivado_vitis_classic*" $ide_name]} {
+          set is_vitis_classic 1
+        }
       }
 
-      # Process ELF files and update bitstream with memory content
-      set mmi_file [file normalize "$dst_dir/${proj_name}\-$describe.mmi"]
-      GenerateBootArtifacts $properties $repo_path $proj_dir $dst_dir $proj_name $describe $dst_main $mmi_file
+      if {$is_vitis_classic} {
+        Msg Info "XSA file written to $dst_xsa"
+        set xsct_cmd "xsct $tcl_path/launch.tcl CW -xsa $dst_xsa -vitis_only $proj_name"
+        Msg Info "Running Vitis Classic to create elf file with cmd: $xsct_cmd"
+        set ret [catch {exec -ignorestderr {*}$xsct_cmd >@ stdout} result]
+        if {$ret != 0} {
+          Msg Error "xsct (vitis classic) returned an error state."
+        }
+
+        # Process ELF files and update bitstream with memory content
+        set mmi_file [file normalize "$dst_dir/${proj_name}\-$describe.mmi"]
+        GenerateBootArtifacts $properties $repo_path $proj_dir $dst_dir $proj_name $describe $dst_main $mmi_file
+      }
     }
 
   }

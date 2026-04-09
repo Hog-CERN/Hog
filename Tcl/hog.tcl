@@ -265,14 +265,14 @@ proc AddHogFiles {libraries properties filesets} {
           }
 
           # Constraint Properties
-          set ref [lindex [regexp -inline {\yscoped_to_ref\s*=\s*(.+?)\y.*} $props] 1]
-          set cell [lindex [regexp -inline {\yscoped_to_cells\s*=\s*(.+?)\y.*} $props] 1]
-          if {([file extension $f] == ".tcl" || [file extension $f] == ".xdc") && $ext == ".con"} {
+          set ref [lindex [regexp -inline {\yscoped_to_ref\s*=\s*([^ ]+)} $props] 1]
+          set cell [lindex [regexp -inline {\yscoped_to_cells\s*=\s*([^ ]+)} $props] 1]
+          if {[file extension $f] == ".elf" || (([file extension $f] == ".tcl" || [file extension $f] == ".xdc") && $ext == ".con")} {
             if {$ref != ""} {
               set_property SCOPED_TO_REF $ref $file_obj
             }
             if {$cell != ""} {
-              set_property SCOPED_TO_CELLS $cell $file_obj
+              set_property SCOPED_TO_CELLS [split $cell ","] $file_obj
             }
           }
         }
@@ -584,6 +584,7 @@ proc ALLOWED_PROPS {} {
     ".bd" [list "nosim"] \
     ".v" [list "SystemVerilog" "verilog_header" "nosynth" "noimpl" "nosim" "1995" "2001"] \
     ".sv" [list "verilog" "verilog_header" "nosynth" "noimpl" "nosim" "2005" "2009"] \
+    ".svp" [list "verilog" "verilog_header" "nosynth" "noimpl" "nosim" "2005" "2009"] \
     ".do" [list "nosim"] \
     ".udo" [list "nosim"] \
     ".xci" [list "nosynth" "noimpl" "nosim" "locked"] \
@@ -2966,7 +2967,7 @@ proc GetProjectFiles {{project_file ""}} {
 
         if {[IsInList "SCOPED_TO_CELLS" [list_property [GetFile $f $fs]]]} {
           if {[get_property SCOPED_TO_CELLS [GetFile $f $fs]] != ""} {
-            dict lappend properties $f "scoped_to_cells=[get_property SCOPED_TO_CELLS [GetFile $f $fs]]"
+            dict lappend properties $f "scoped_to_cells=[regsub " " [get_property SCOPED_TO_CELLS [GetFile $f $fs]] ","]"
           }
         }
 
@@ -2996,7 +2997,7 @@ proc GetProjectFiles {{project_file ""}} {
           } elseif {[string equal [lindex $type 0] "Block"] && [string equal [lindex $type 1] "Designs"]} {
             set type "IP"
             set prop ""
-          } elseif {[string equal $type "SystemVerilog"] && [file extension $f] != ".sv"} {
+          } elseif {[string equal $type "SystemVerilog"] && [file extension $f] != ".sv" && [file extension $f] != ".svp"} {
             set prop "SystemVerilog"
           } elseif {[string equal [lindex $type 0] "XDC"] && [file extension $f] != ".xdc"} {
             set prop "XDC"

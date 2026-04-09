@@ -100,7 +100,6 @@ set default_commands {
     set do_synthesis 1
     set do_bitstream 1
     set do_compile 1
-    set do_vitis_build 1
   # NAME*: WORKFLOW or W
   # DESCRIPTION: Runs the full workflow, creates the project if not existing.
   # OPTIONS: bitstream_only, check_syntax, ext_path.arg, impl_only, njobs.arg, no_bitstream, recreate, synth_only, verbose, vitis_only, xsa.arg
@@ -113,7 +112,6 @@ set default_commands {
     set do_compile 1
     set do_create 1
     set recreate 1
-    set do_vitis_build 1
   # NAME: CREATEWORKFLOW or CW
   # DESCRIPTION: Creates the project -even if existing- and launches the complete workflow.
   # OPTIONS: check_syntax, ext_path.arg, njobs.arg, no_bitstream, synth_only, verbose, vivado_only, vitis_only, xsa.arg
@@ -742,6 +740,9 @@ if {([string tolower $ide_name] eq "vivado_vitis_classic" || [string tolower $id
   set globalSettings::vitis_unified 0
 }
 
+if {($globalSettings::vitis_classic == 1 || $globalSettings::vitis_unified == 1) && $options(vitis_only) != 1} {
+  set do_vitis_build 1
+}
 
 if {$options(no_bitstream) == 1} {
   set do_bitstream 0
@@ -786,9 +787,7 @@ if {$options(bitstream_only) == 1} {
   set do_bitstream_only 0
 }
 
-if {$options(vivado_only) == 1} {
-  set do_vitis_build 0
-}
+
 
 if {$options(no_reset) == 1} {
   set do_reset 0

@@ -110,20 +110,7 @@ proc Msg {level fmsg {title ""}} {
       } else {
         # temporary solution to avoid removing of leading
         set HogEnvDict [Hog::LoggerLib::GetTOMLDict]
-        if {
-          ([dictSafeGet $HogEnvDict terminal colored] > 0) ||
-          ([info exists ::env(HOG_COLOR)] &&
-            ([string match "ENABLED" $::env(HOG_COLOR)] ||
-              ([string is integer -strict $::env(HOG_COLOR)] && $::env(HOG_COLOR) > 0)
-            )
-          )||
-          ([dictSafeGet $HogEnvDict terminal logger] > 0) ||
-          ([info exists ::env(HOG_LOGGER)] && ([string match "ENABLED" $::env(HOG_LOGGER)]))
-        } {
-          puts "LogHelp:$msg"
-        } else {
-          puts $msg
-        }
+        puts "$msg"
       }
       if {$qlevel == "error"} {
         exit 1

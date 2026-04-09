@@ -368,11 +368,6 @@ set NO_DIRECTIVE_FOUND 0
 Msg Debug "Looking for a $directive in : $default_commands"
 switch -regexp -- $directive $default_commands
 
-# Get IDE name from project config file
-set proj_conf [ProjectExists $project_name $repo_path]
-set ide_name_and_ver [string tolower [GetIDEFromConf $proj_conf]]
-set ide_name [lindex [regexp -all -inline {\S+} $ide_name_and_ver] 0]
-
 if {$NO_DIRECTIVE_FOUND == 1} {
   Msg Debug "No directive found in default commands, looking in custom commands..."
   if {[string length $custom_commands] > 0 && [dict exists $custom_commands $directive]} {
@@ -726,6 +721,11 @@ if {[IsLibero]} {
 
 # Only for quartus, not used otherwise
 set project_path [file normalize "$repo_path/Projects/$project_name/"]
+
+# Get IDE name from project config file
+set proj_conf [ProjectExists $project_name $repo_path]
+set ide_name_and_ver [string tolower [GetIDEFromConf $proj_conf]]
+set ide_name [lindex [regexp -all -inline {\S+} $ide_name_and_ver] 0]
 
 # Vitis IDE detection
 if {([string tolower $ide_name] eq "vivado_vitis_classic" || [string tolower $ide_name] eq "vitis_classic") && ($options(vivado_only) != 1)} {

@@ -297,14 +297,14 @@ proc AddHogFiles {libraries properties filesets} {
           }
 
           # Constraint Properties
-          set ref [lindex [regexp -inline {\yscoped_to_ref\s*=\s*(.+?)\y.*} $props] 1]
-          set cell [lindex [regexp -inline {\yscoped_to_cells\s*=\s*(.+?)\y.*} $props] 1]
-          if {([file extension $f] == ".tcl" || [file extension $f] == ".xdc") && $ext == ".con"} {
+          set ref [lindex [regexp -inline {\yscoped_to_ref\s*=\s*([^ ]+)} $props] 1]
+          set cell [lindex [regexp -inline {\yscoped_to_cells\s*=\s*([^ ]+)} $props] 1]
+          if {[file extension $f] == ".elf" || (([file extension $f] == ".tcl" || [file extension $f] == ".xdc") && $ext == ".con")} {
             if {$ref != ""} {
               set_property SCOPED_TO_REF $ref $file_obj
             }
             if {$cell != ""} {
-              set_property SCOPED_TO_CELLS $cell $file_obj
+              set_property SCOPED_TO_CELLS [split $cell ","] $file_obj
             }
           }
         }
@@ -696,11 +696,12 @@ proc ALLOWED_PROPS {} {
     ".bd" [list "nosim"] \
     ".v" [list "SystemVerilog" "verilog_header" "nosynth" "noimpl" "nosim" "1995" "2001"] \
     ".sv" [list "verilog" "verilog_header" "nosynth" "noimpl" "nosim" "2005" "2009"] \
+    ".svp" [list "verilog" "verilog_header" "nosynth" "noimpl" "nosim" "2005" "2009"] \
     ".do" [list "nosim"] \
     ".udo" [list "nosim"] \
     ".xci" [list "nosynth" "noimpl" "nosim" "locked"] \
     ".xdc" [list "nosynth" "noimpl" "scoped_to_ref" "scoped_to_cells"] \
-    ".tcl" [list "nosynth" "noimpl" "nosim" "source" "qsys" "noadd"\
+    ".tcl" [list "nosynth" "noimpl" "nosim" "scoped_to_ref" "scoped_to_cells" "source" "qsys" "noadd"\
         "--block-symbol-file" "--clear-output-directory" "--example-design"\
         "--export-qsys-script" "--family" "--greybox" "--ipxact"\
         "--jvm-max-heap-size" "--parallel" "--part" "--search-path"\
@@ -904,6 +905,8 @@ proc CheckEnv {project_name ide} {
 
 proc CheckProjVer {repo_path project {sim 0} {ext_path ""}} {
   global env
+  set curl_cmd [GetCurl]
+
   if {$sim == 1} {
     Msg Info "Will check also the version of the simulation files..."
   }
@@ -934,7 +937,7 @@ proc CheckProjVer {repo_path project {sim 0} {ext_path ""}} {
         Msg CriticalWarning "Cannot find JSON package equal or higher than 1.0.\n $JsonFound\n Exiting"
         return
       }
-      lassign [ExecuteRet curl --header "PRIVATE-TOKEN: $token" "$api_url/projects/$project_id/pipelines"] ret content
+      lassign [ExecuteRet {*}$curl_cmd --header "PRIVATE-TOKEN: $token" "$api_url/projects/$project_id/pipelines"] ret content
       set pipeline_dict [json::json2dict $content]
       if {[llength $pipeline_dict] > 0} {
         foreach pip $pipeline_dict {
@@ -944,7 +947,7 @@ proc CheckProjVer {repo_path project {sim 0} {ext_path ""}} {
             Msg Info "Found pipeline with sha $pip_sha for project $project"
             set pipeline_id [DictGet $pip id]
             # tclint-disable-next-line line-length
-            lassign [ExecuteRet curl --header "PRIVATE-TOKEN: $token" "$api_url/projects/${project_id}/pipelines/${pipeline_id}/jobs?pagination=keyset&per_page=100"] ret2 content2
+            lassign [ExecuteRet {*}$curl_cmd --header "PRIVATE-TOKEN: $token" "$api_url/projects/${project_id}/pipelines/${pipeline_id}/jobs?pagination=keyset&per_page=100"] ret2 content2
             set jobs_dict [json::json2dict $content2]
             if {[llength $jobs_dict] > 0} {
               foreach job $jobs_dict {
@@ -955,7 +958,7 @@ proc CheckProjVer {repo_path project {sim 0} {ext_path ""}} {
                 set current_job_name $env(CI_JOB_NAME)
                 if {$current_job_name == $job_name && $status == "success"} {
                   # tclint-disable-next-line line-length
-                  lassign [ExecuteRet curl --location --output artifacts.zip --header "PRIVATE-TOKEN: $token" --url "$api_url/projects/$project_id/jobs/$job_id/artifacts"] ret3 content3
+                  lassign [ExecuteRet {*}$curl_cmd --location --output artifacts.zip --header "PRIVATE-TOKEN: $token" --url "$api_url/projects/$project_id/jobs/$job_id/artifacts"] ret3 content3
                   if {$ret3 != 0} {
                     Msg CriticalWarning "Cannot download artifacts for job $job_name with id $job_id"
                     return
@@ -2206,7 +2209,7 @@ proc GenericToSimulatorString {prop_dict target} {
 #
 #  @param[in] proj_dir: The project directory containing the conf file or the the tcl file
 #
-#  @return[in] a list containing the full path of the hog.conf, sim.conf, pre-creation.tcl, post-creation.tcl and proj.tcl files
+#  @return[in] a list containing the full path of the hog.conf, sim.conf, pre-creation.tcl, post-creation.tcl, pre-rtl.tcl, and post-rtl.tcl files
 proc GetConfFiles {proj_dir} {
   Msg Debug "GetConfFiles called with proj_dir=$proj_dir"
   if {![file isdirectory $proj_dir]} {
@@ -2217,8 +2220,10 @@ proc GetConfFiles {proj_dir} {
   set sim_file [file normalize $proj_dir/sim.conf]
   set pre_tcl [file normalize $proj_dir/pre-creation.tcl]
   set post_tcl [file normalize $proj_dir/post-creation.tcl]
+  set pre_rtl [file normalize $proj_dir/pre-rtl.tcl]
+  set post_rtl [file normalize $proj_dir/post-rtl.tcl]
 
-  return [list $conf_file $sim_file $pre_tcl $post_tcl]
+  return [list $conf_file $sim_file $pre_tcl $post_tcl $pre_rtl $post_rtl]
 }
 
 
@@ -3082,7 +3087,7 @@ proc GetProjectFiles {{project_file ""}} {
 
         if {[IsInList "SCOPED_TO_CELLS" [list_property [GetFile $f $fs]]]} {
           if {[get_property SCOPED_TO_CELLS [GetFile $f $fs]] != ""} {
-            dict lappend properties $f "scoped_to_cells=[get_property SCOPED_TO_CELLS [GetFile $f $fs]]"
+            dict lappend properties $f "scoped_to_cells=[regsub " " [get_property SCOPED_TO_CELLS [GetFile $f $fs]] ","]"
           }
         }
 
@@ -3112,7 +3117,7 @@ proc GetProjectFiles {{project_file ""}} {
           } elseif {[string equal [lindex $type 0] "Block"] && [string equal [lindex $type 1] "Designs"]} {
             set type "IP"
             set prop ""
-          } elseif {[string equal $type "SystemVerilog"] && [file extension $f] != ".sv"} {
+          } elseif {[string equal $type "SystemVerilog"] && [file extension $f] != ".sv" && [file extension $f] != ".svp"} {
             set prop "SystemVerilog"
           } elseif {[string equal [lindex $type 0] "XDC"] && [file extension $f] != ".xdc"} {
             set prop "XDC"
@@ -3755,7 +3760,7 @@ proc GetTopModule {} {
 #
 # @return  a list: the git SHA, the version in hex format
 #
-proc GetVer {path {force_develop 0}} {
+proc GetVer {path {force_develop 0} {verbose 1}} {
   set SHA [GetSHA $path]
   #oldest tag containing SHA
   if {$SHA eq ""} {
@@ -3771,7 +3776,7 @@ proc GetVer {path {force_develop 0}} {
   set repo_path [Git {rev-parse --show-toplevel}]
   cd $old_path
 
-  return [list [GetVerFromSHA $SHA $repo_path $force_develop] $SHA]
+  return [list [GetVerFromSHA $SHA $repo_path $force_develop $verbose] $SHA]
 }
 
 ## @brief Get git version and commit hash of a specific commit give the SHA
@@ -3779,10 +3784,11 @@ proc GetVer {path {force_develop 0}} {
 # @param[in] SHA the git SHA of the commit
 # @param[in] repo_path the path of the repository, this is used to open the Top/repo.conf file
 # @param[in] force_develop Force a tag for the develop branch (increase m)
+# @param[in] verbose Print extra information
 #
 # @return  a list: the git SHA, the version in hex format
 #
-proc GetVerFromSHA {SHA repo_path {force_develop 0}} {
+proc GetVerFromSHA {SHA repo_path {force_develop 0} {verbose 1}} {
   if {$SHA eq ""} {
     Msg CriticalWarning "Empty SHA found"
     set ver "v0.0.0"
@@ -3861,6 +3867,45 @@ proc GetVerFromSHA {SHA repo_path {force_develop 0}} {
                 set major_prefix [dict get $prefixDict MAJOR_VERSION]
               }
               # More properties in [prefixes] here ...
+            }
+          }
+
+          if {[string match "HEAD" $branch_name]} {
+            if {$verbose == 1} {
+              Msg Warning "Detached HEAD detected - attempting to find branch name"
+            }
+            # if the branch_name is HEAD (not a legal branch name btw)
+            # then the branch has been checked out in a detached head state
+            # this is a fallback condition to enable finding the branch name that the commit is linked too
+            set log_refs [Git {show -s --pretty=%D HEAD}]
+            set branch_list [split $log_refs ","]
+            Msg Debug "list of possible branch refs $log_refs"
+
+            # iterate over all possible refs and match against all prefix types
+            # set branch name as matched prefix if and only if one match is found
+
+            set match_count 0
+            set match_prefixes [list $hotfix_prefix $minor_prefix $major_prefix]
+            set prev_branch_name $branch_name
+
+            foreach br $branch_list {
+              foreach pr $match_prefixes {
+                if {[string match "$pr*" [string trim $br]]} {
+                  set branch_name [string trim $br]
+                  incr match_count 1
+                }
+              }
+            }
+
+            if {!$match_count == 1} {
+              set branch_name $prev_branch_name
+              if {$verbose == 1} {
+                Msg Warning "Branch name not found. Using $branch_name"
+              }
+            } else {
+              if {$verbose == 1} {
+                Msg Info "Branch name found: $branch_name"
+              }
             }
           }
 
@@ -5657,11 +5702,19 @@ proc LaunchSimulation {project_name lib_path simsets {repo_path .} {scripts_only
 # @brief Launch the RTL Analysis, for the current IDE and project
 #
 # @param[in] repo_path    The main path of the git repository (Default .)
-proc LaunchRTLAnalysis {repo_path} {
+proc LaunchRTLAnalysis {repo_path {pre_rtl_file ""} {post_rtl_file ""}} {
   if {[IsVivado]} {
+    if {[file exists $pre_rtl_file]} {
+      Msg Info "Found pre-rtl Tcl script $pre_rtl_file, executing it..."
+      source $pre_rtl_file
+    }
     Msg Info "Starting RTL Analysis..."
     cd $repo_path
     synth_design -rtl -name rtl_1
+    if {[file exists $post_rtl_file]} {
+      Msg Info "Found post-rtl Tcl script $post_rtl_file, executing it..."
+      source $post_rtl_file
+    }
   } else {
     Msg Warning "RTL Analysis is not yet supported for [GetIDEName]."
   }
@@ -6800,8 +6853,12 @@ proc SetGenericsSimulation {repo_path proj_dir target} {
       set simset_generics [DictGet $simset_dict "generics"]
       set merged_generics_dict [MergeDict $merged_generics_dict $simset_generics 0]
       set generic_str [GenericToSimulatorString $merged_generics_dict $target]
+
+      Msg Debug "TOP      = [get_property top [get_filesets sources_1]]"
+      Msg Debug "GENERICS  = [get_property generic [get_filesets sources_1]]"
+
       set_property generic $generic_str [get_filesets $simset]
-      Msg Debug "Setting generics $generic_str for simulator $target\
+      Msg Info "Setting generics $generic_str for simulator $target\
       and simulation file-set $simset..."
     }
   }
@@ -6902,7 +6959,8 @@ proc WriteGenerics {mode repo_path design date timee\
     "HOG_SHA=[FormatGeneric $hog_hash]" \
     "HOG_VER=[FormatGeneric $hog_ver]" \
     "CON_VER=[FormatGeneric $cons_ver]" \
-    "CON_SHA=[FormatGeneric $cons_hash]"]
+    "CON_SHA=[FormatGeneric $cons_hash]"
+  ]
   # xml hash
   if {$xml_hash != "" && $xml_ver != ""} {
     lappend generic_string \
@@ -7468,4 +7526,26 @@ proc WriteUtilizationSummary {input output project_name run} {
 # Check Git Version when sourcing hog.tcl
 if {[GitVersion 2.7.2] == 0} {
   Msg Error "Found Git version older than 2.7.2. Hog will not work as expected, exiting now."
+}
+
+## @brief Tries to find the coorrect command to be launched for curl
+#
+# @details If running in vivado shell you may need to unsed LD_LIBRARY_PATH befor running curl to avoid conflicts with vivado libraries.
+# This procedure tests curl if execution is correct returns "curl"
+# If execution fails tries to run env -u LD_LIBRARY_PATH curl --silent --show-error, and returns "env -u LD_LIBRARY_PATH curl --silent --show-error" on success.
+# If both fail returns "curl", this will most probably generate failures later
+proc GetCurl {} {
+    if {![catch {exec curl --silent --show-error --version}]} {
+        if {![catch {exec curl --silent --show-error -I https://gitlab.com}]} {
+            return [list curl --silent --show-error]
+        }
+    }
+
+    if {![catch {exec env -u LD_LIBRARY_PATH curl --silent --show-error --version}]} {
+        if {![catch {exec env -u LD_LIBRARY_PATH curl --silent --show-error -I https://gitlab.com}]} {
+            return [list env -u LD_LIBRARY_PATH curl --silent --show-error]
+        }
+    }
+
+    error "Cannot find a working curl invocation"
 }

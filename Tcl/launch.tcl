@@ -909,6 +909,7 @@ if {[file exists $project_file]} {
 }
 
 if {($proj_found == 0 || $recreate == 1)} {
+  set do_create 1
   Msg Info "Creating (possibly replacing) the project $project_name..."
   Msg Debug "launch.tcl: calling GetConfFiles with $repo_path/Top/$project_name"
   lassign [GetConfFiles $repo_path/Top/$project_name] conf sim pre post pre_rtl post_rtl

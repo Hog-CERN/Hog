@@ -42,6 +42,7 @@
 .vars: &vars
   GIT_STRATEGY: fetch
   GIT_SUBMODULE_STRATEGY: recursive
+  # GIT_SUBMODULE_UPDATE_FLAGS: --jobs 4
 # CI_DEBUG_TRACE: "true"
 
 

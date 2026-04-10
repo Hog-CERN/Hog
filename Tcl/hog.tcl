@@ -3763,12 +3763,12 @@ proc GetVerFromSHA {SHA repo_path {force_develop 0} {verbose 1}} {
             set branch_list [split $log_refs ","]
             Msg Debug "list of possible branch refs $log_refs"
 
-            # iterate over all possible refs and match against all prefix types
-            # set branch name as matched prefix if and only if one match is found
+          #   # iterate over all possible refs and match against all prefix types
+          #   # set branch name as matched prefix if and only if one match is found
 
-            set match_count 0
-            set match_prefixes [list $hotfix_prefix $minor_prefix $major_prefix]
-            set prev_branch_name $branch_name
+          #   set match_count 0
+          #   set match_prefixes [list $hotfix_prefix $minor_prefix $major_prefix]
+          #   set prev_branch_name $branch_name
 
             foreach br $branch_list {
               foreach pr $match_prefixes {

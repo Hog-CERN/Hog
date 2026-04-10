@@ -365,8 +365,7 @@ if {[IsXilinx]} {
       RUNTIME \
       SIM_WRAPPER_TOP]
 
-    set HOG_GENERICS [list ROOT_REPO_PATH \
-      GLOBAL_DATE \
+    set HOG_GENERICS [list GLOBAL_DATE \
       GLOBAL_TIME \
       FLAVOUR]
 

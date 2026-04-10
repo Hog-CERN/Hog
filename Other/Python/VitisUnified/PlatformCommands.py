@@ -262,6 +262,30 @@ def CreatePlatform(platform_options=None, ws_dir=None):
     if advanced_options is not None:
       platform_kwargs["advanced_options"] = advanced_options
 
+    # Extract processor information from XSA before starting the Vitis client,
+    # so HSI does not interfere with the Vitis server session
+    if xsa_path and os.path.exists(xsa_path):
+      PrintInfo("Opening hardware design to check if proc to cell mapping needs to be extracted for soft processors...")
+      proc_map_file = os.path.join(ws_dir, "%s.PROC_MAP" % name)
+      try:
+        result = ExtractProcsFromXsa(xsa_path, proc_map_file)
+        processors = result.get('processors', [])
+        if len(processors) == 0:
+          PrintInfo("No soft processors found in XSA (this is normal for hard processors like ARM)")
+        else:
+          PrintInfo("Extracted processor information for %d soft processor(s) to %s" % (len(processors), proc_map_file))
+      except Exception as e:
+        PrintError("Failed to extract processor information from XSA: %s" % str(e))
+        return False
+
+    # Remove stale platform directory if it already exists from a previous run,
+    # otherwise Vitis may fail to re-create the platform component cleanly
+    import shutil
+    platform_dir = os.path.join(ws_dir, name)
+    if os.path.isdir(platform_dir):
+      PrintInfo("Removing existing platform directory '%s' before re-creation..." % platform_dir)
+      shutil.rmtree(platform_dir, ignore_errors=True)
+
     PrintInfo("Creating client...")
     client = vitis.create_client()
 
@@ -286,22 +310,6 @@ def CreatePlatform(platform_options=None, ws_dir=None):
           return False
       else:
         PrintError("Failed to set workspace '%s': %s" % (ws_dir, e))
-        vitis.dispose()
-        return False
-
-    # Extract processor information from XSA if available
-    if xsa_path and os.path.exists(xsa_path):
-      PrintInfo("Opening hardware design to check if proc to cell mapping needs to be extracted for soft processors...")
-      proc_map_file = os.path.join(ws_dir, "%s.PROC_MAP" % name)
-      try:
-        result = ExtractProcsFromXsa(xsa_path, proc_map_file)
-        processors = result.get('processors', [])
-        if len(processors) == 0:
-          PrintInfo("No soft processors found in XSA (this is normal for hard processors like ARM)")
-        else:
-          PrintInfo("Extracted processor information for %d soft processor(s) to %s" % (len(processors), proc_map_file))
-      except Exception as e:
-        PrintError("Failed to extract processor information from XSA: %s" % str(e))
         vitis.dispose()
         return False
 

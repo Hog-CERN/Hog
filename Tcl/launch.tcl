@@ -740,7 +740,7 @@ if {([string tolower $ide_name] eq "vivado_vitis_classic" || [string tolower $id
   set globalSettings::vitis_unified 0
 }
 
-if {($globalSettings::vitis_classic == 1 || $globalSettings::vitis_unified == 1) && $options(vitis_only) != 1} {
+if {$globalSettings::vitis_classic == 1 || $globalSettings::vitis_unified == 1} {
   set do_vitis_build 1
 }
 

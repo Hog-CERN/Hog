@@ -5180,7 +5180,7 @@ proc LaunchGHDL {project_name repo_path simset_name simset_dict {ext_path ""}} {
 proc LaunchImplementation {reset do_create run_folder project_name {repo_path .} {njobs 4} {do_bitstream 0}} {
   Msg Info "Starting implementation flow..."
   if {[IsXilinx]} {
-    if {$reset == 1 && $do_create == 0} {
+    if {$reset == 1} {
       Msg Info "Resetting run before launching implementation..."
       reset_run impl_1
     }
@@ -5731,7 +5731,7 @@ proc LaunchRTLAnalysis {repo_path {pre_rtl_file ""} {post_rtl_file ""}} {
 # @param[in] njobs        The number of parallel CPU jobs for the synthesis (Default 4)
 proc LaunchSynthesis {reset do_create run_folder project_name {repo_path .} {ext_path ""} {njobs 4}} {
   if {[IsXilinx]} {
-    if {$reset == 1 && $do_create == 0} {
+    if {$reset == 1} {
       Msg Info "Resetting run before launching synthesis..."
       reset_run synth_1
     }

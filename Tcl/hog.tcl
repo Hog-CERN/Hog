@@ -5917,7 +5917,11 @@ proc LaunchVitisBuild {project_name {repo_path .} {stage "presynth"}} {
 
   if {$stage == "presynth"} {
     Msg Info "Done building apps for $project_name..."
-    # return
+  }
+
+  if {[info exists ::globalSettings::vitis_only_pass] && $::globalSettings::vitis_only_pass == 1} {
+    Msg Info "Skipping bin directory creation in vitis_only mode (post-bitstream.tcl handles artifacts)."
+    return
   }
 
   Msg Info "Evaluating Git sha for $project_name..."

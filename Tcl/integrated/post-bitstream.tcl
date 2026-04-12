@@ -159,10 +159,8 @@ set group_name [GetGroupName $proj_dir "$tcl_path/../.."]
 # Go to repository path
 cd $repo_path
 
-Msg Info "Evaluating Git sha for $proj_name..."
-lassign [GetRepoVersions [file normalize ./Top/$group_name/$proj_name] $repo_path] sha
-
-set describe [GetHogDescribe $sha $repo_path]
+Msg Info "Evaluating Git describe for $proj_name..."
+set describe [GetHogDescribe [file normalize ./Top/$group_name/$proj_name] $repo_path]
 Msg Info "Hog describe set to: $describe"
 
 set dst_dir [file normalize "$bin_dir/$group_name/$proj_name\-$describe"]

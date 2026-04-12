@@ -413,7 +413,7 @@ if {$options(dst_dir) == "" && ($do_ipbus_xml == 1 || $do_check_list_files == 1)
     user_ip_hashes user_ip_vers
   cd $repo_path
 
-  set describe [GetHogDescribe $commit $repo_path]
+  set describe [GetHogDescribe [file normalize $repo_path/Top/$group_name/$project] $repo_path]
   set dst_dir [file normalize "$repo_path/bin/$group_name/$project\-$describe"]
 }
 
@@ -618,7 +618,7 @@ if {$cmd == -1} {
     set proj_dir $repo_path/Top/$project_name
     lassign [GetRepoVersions $proj_dir $repo_path $ext_path] sha ver
     if {$options(describe) == 1} {
-      puts [GetHogDescribe $sha $repo_path]
+      puts [GetHogDescribe $proj_dir $repo_path]
     } else {
       puts "v[HexVersionToString $ver]"
     }

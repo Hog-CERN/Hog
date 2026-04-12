@@ -2539,23 +2539,24 @@ proc GetGroupName {proj_dir repo_dir} {
   return $group
 }
 
-## Get custom Hog describe of a specific SHA
+## Get custom Hog describe for the project under investigation
 #
-#  @param[in] sha         the git sha of the commit you want to calculate the describe of
+#  @param[in] proj_dir    the top directory of the project (e.g. repo_path/Top/group/project)
 #  @param[in] repo_path   the main path of the repository
 #
-#  @return            the Hog describe of the sha or the current one if the sha is 0
+#  @return            the Hog describe of the project, with a "-dirty" suffix if the project files are not clean
 #
-proc GetHogDescribe {sha {repo_path .}} {
-  if {$sha == 0} {
+proc GetHogDescribe {proj_dir {repo_path .}} {
+  lassign [GetRepoVersions $proj_dir $repo_path] global_commit global_version
+  if {$global_commit == 0} {
     # in case the repo is dirty, we use the last committed sha and add a -dirty suffix
     set new_sha "[string toupper [GetSHA]]"
     set suffix "-dirty"
   } else {
-    set new_sha [string toupper $sha]
+    set new_sha [string toupper $global_commit]
     set suffix ""
   }
-  set describe "v[HexVersionToString [GetVerFromSHA $new_sha $repo_path]]-$new_sha$suffix"
+  set describe "v[HexVersionToString $global_version]-$new_sha$suffix"
   return $describe
 }
 
@@ -3326,13 +3327,9 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
 
   cd $proj_dir
 
-  if {[Git {status --untracked-files=no  --porcelain}] eq ""} {
-    Msg Info "Git working directory [pwd] clean."
-    set clean 1
-  } else {
-    Msg CriticalWarning "Git working directory [pwd] not clean, commit hash, and version will be set to 0."
-    set clean 0
-  }
+  # Collect all project-relevant files; the clean check will be deferred until all files are known
+  set project_files $conf_files
+  lappend project_files $repo_path/Hog
 
   # Top project directory
   lassign [GetVer [join $conf_files]] top_ver top_hash
@@ -3358,6 +3355,7 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
     lappend vers $ver
     lappend hashes $hash
     lappend SHAs $hash
+    lappend project_files $f {*}$files
   }
 
   # Read constraint list files
@@ -3375,6 +3373,7 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
     lappend cons_hashes $hash
     lappend SHAs $hash
     lappend versions $ver
+    lappend project_files $f {*}$files
   }
 
   # Read simulation list files
@@ -3390,6 +3389,7 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
       lappend sim_hashes $hash
       lappend SHAs $hash
       lappend versions $ver
+      lappend project_files $f {*}$files
     }
   }
 
@@ -3419,6 +3419,7 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
     lappend SHAs $hash
     set ext_ver [GetVerFromSHA $hash $repo_path]
     lappend versions $ext_ver
+    lappend project_files $f
 
     set fp [open $f r]
     set file_data [read $fp]
@@ -3446,9 +3447,11 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
   if {[llength [glob -nocomplain ./list/*.ipb]] > 0} {
     #Msg Info "Found IPbus XML list file, evaluating version and SHA of listed files..."
     lassign [GetHogFiles -list_files "*.ipb" -sha_mode "./list/" $repo_path] xml_files dummy
-    lassign [GetVer [dict get $xml_files "xml.ipb"]] xml_ver xml_hash
+    set xml_source_files [dict get $xml_files "xml.ipb"]
+    lassign [GetVer $xml_source_files] xml_ver xml_hash
     lappend SHAs $xml_hash
     lappend versions $xml_ver
+    lappend project_files {*}[glob ./list/*.ipb] {*}$xml_source_files
 
     #Msg Info "Found IPbus XML SHA: $xml_hash and version: $xml_ver."
   } else {
@@ -3490,6 +3493,7 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
           lappend user_ip_repo_hashes $sha
           lappend user_ip_repo_vers $ver
           lappend versions $ver
+          lappend project_files $repo
         } else {
           Msg Warning "IP_REPO_PATHS property set to $repo in hog.conf but directory is empty."
         }
@@ -3499,6 +3503,15 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
     }
   }
 
+
+  # Check cleanliness only for the files that belong to this project
+  if {[Git "status --untracked-files=no --porcelain" $project_files] eq ""} {
+    Msg Info "Project-relevant files are clean."
+    set clean 1
+  } else {
+    Msg CriticalWarning "Project-relevant files not clean, commit hash and version will be set to 0."
+    set clean 0
+  }
 
   #The global SHA and ver is the most recent among everything
   if {$clean == 1} {
@@ -5069,8 +5082,7 @@ proc LaunchImplementation {reset do_create run_folder project_name {repo_path .}
 
     #Go to repository path
     cd $repo_path
-    lassign [GetRepoVersions [file normalize ./Top/$project_name] $repo_path] sha
-    set describe [GetHogDescribe $sha $repo_path]
+    set describe [GetHogDescribe [file normalize ./Top/$project_name] $repo_path]
     Msg Info "Git describe set to $describe"
 
     set dst_dir [file normalize "$repo_path/bin/$project_name\-$describe"]
@@ -5150,8 +5162,7 @@ proc LaunchImplementation {reset do_create run_folder project_name {repo_path .}
     #Go to repository path
     cd $repo_path
 
-    lassign [GetRepoVersions [file normalize ./Top/$project_name] $repo_path] sha
-    set describe [GetHogDescribe $sha $repo_path]
+    set describe [GetHogDescribe [file normalize ./Top/$project_name] $repo_path]
     Msg Info "Git describe set to $describe"
 
     set dst_dir [file normalize "$repo_path/bin/$project_name\-$describe"]
@@ -5209,8 +5220,7 @@ proc LaunchImplementation {reset do_create run_folder project_name {repo_path .}
 # @param[in] repo_path    The main path of the git repository (Default .)
 proc GenerateBitstreamOnly {project_name {repo_path .}} {
   cd $repo_path
-  lassign [GetRepoVersions [file normalize ./Top/$project_name] $repo_path] sha
-  set describe [GetHogDescribe $sha $repo_path]
+  set describe [GetHogDescribe [file normalize ./Top/$project_name] $repo_path]
   set dst_dir [file normalize "$repo_path/bin/$project_name\-$describe"]
 
   cd Projects/$project_name/$project_name.runs/impl_1
@@ -5501,8 +5511,7 @@ proc LaunchSynthesis {reset do_create run_folder project_name {repo_path .} {ext
     #go to repository path
     cd $repo_path
 
-    lassign [GetRepoVersions [file normalize ./Top/$project_name] $repo_path $ext_path] sha
-    set describe [GetHogDescribe $sha $repo_path]
+    set describe [GetHogDescribe [file normalize ./Top/$project_name] $repo_path]
     Msg Info "Git describe set to $describe"
 
     foreach ip $ips {
@@ -5527,8 +5536,7 @@ proc LaunchSynthesis {reset do_create run_folder project_name {repo_path .} {ext
 
 
     # keep track of the current revision and of the top level entity name
-    lassign [GetRepoVersions [file normalize $repo_path/Top/$project_name] $repo_path] sha
-    set describe [GetHogDescribe $sha $repo_path]
+    set describe [GetHogDescribe [file normalize $repo_path/Top/$project_name] $repo_path]
     #set top_level_name [ get_global_assignment -name TOP_LEVEL_ENTITY ]
     set revision [get_current_revision]
 
@@ -5628,10 +5636,8 @@ proc LaunchVitisBuild {project_name {repo_path .} {stage "presynth"}} {
     # return
   }
 
-  Msg Info "Evaluating Git sha for $project_name..."
-  lassign [GetRepoVersions [file normalize ./Top/$project_name] $repo_path] sha
-
-  set describe [GetHogDescribe $sha $repo_path]
+  Msg Info "Evaluating Git describe for $project_name..."
+  set describe [GetHogDescribe [file normalize ./Top/$project_name] $repo_path]
   Msg Info "Hog describe set to: $describe"
   set dst_dir [file normalize "$bin_dir/$proj_name\-$describe"]
   if {![file exists $dst_dir]} {

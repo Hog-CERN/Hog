@@ -65,6 +65,10 @@ test_launch_commands:
     - ./Hog/Do CHECKPROJVER vivado/fifo
     - ./Hog/Do CHECKLIST vivado/fifo
     - ./Hog/Do CHECKLIST vivado/fifo -verbose
+    - ./Hog/Do VERSION vivado/fifo
+    - ./Hog/Do VERSION vivado/fifo -describe
+    - ./Hog/Do VERSION vivado/fifo -verbose
+    - ./Hog/Do VER vivado/fifo
     # - ./Hog/Do CHECKYAML
     # - ./Hog/Do CHECKYAML -verbose
     - ./Hog/Do VIEW vivado/fifo

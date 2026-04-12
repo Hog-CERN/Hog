@@ -200,6 +200,13 @@ set default_commands {
   # OPTIONS: verbose
   }
 
+  \^VER(SION)?$ {#
+    set do_version 1
+  # NAME*: VERSION or VER
+  # DESCRIPTION: Print the version of the chosen Hog project. With -describe, prints the Hog describe string instead.
+  # OPTIONS: describe, verbose
+  }
+
   default {
     if {$directive != ""} {
       set NO_DIRECTIVE_FOUND 1
@@ -246,6 +253,7 @@ set parameters {
   {include_gen_prods "" "For tree hierarchy mode, include IP generated products in the printed hierarchy. (Default 0)"}
   {compile_order "" "For tree hierarchy mode, prints compile order instead of hierarchy."}
   {verbose          "If set, launch the script in verbose mode"}
+  {describe         "If set, the Hog describe string is returned instead of the version."}
   {light            "For tree hierarchy mode, print a light version of the hierarchy (without file paths)."}
   {simcheck         "If set, checks also the version of the simulation files."}
 }
@@ -326,6 +334,7 @@ set do_compile_lib 0
 set do_sigasi 0
 set do_vhdl_ls 0
 set do_hierarchy 0
+set do_version 0
 
 set NO_DIRECTIVE_FOUND 0
 Msg Debug "Looking for a $directive in : $default_commands"
@@ -602,6 +611,18 @@ if {$cmd == -1} {
       Msg Info "All simulations have been run, exiting..."
       exit 0
     }
+  }
+
+  if {$do_version == 1} {
+    cd $repo_path
+    set proj_dir $repo_path/Top/$project_name
+    lassign [GetRepoVersions $proj_dir $repo_path $ext_path] sha ver
+    if {$options(describe) == 1} {
+      puts [GetHogDescribe $sha $repo_path]
+    } else {
+      puts "v[HexVersionToString $ver]"
+    }
+    exit 0
   }
 
   # if {$do_new_directive ==1 } {

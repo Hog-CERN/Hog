@@ -85,16 +85,50 @@ proc AddHogFiles {libraries properties filesets} {
     }
 
     # Vitis: Check if defined apps have a corresponding source file
-    if {[IsVitisClassic]} {
-      # TODO: "app list -dict" return wrong configuration parameters for Vitis Classic versions older than 2022.1
-      if {[catch {set ws_apps [app list -dict]}]} { set ws_apps "" }
-      dict for {app_name app_config} $ws_apps {
-        set app_lib [string tolower "app_$app_name\.src"]
-        if {![IsInList $app_lib $libs_in_fileset 0 1]} {
-            Msg Warning "App '$app_name' exists in workspace but no corresponding sourcefile '$app_lib' found. \
-              Make sure you have a list file with the correct naming convention: \[app_<app_name>\.src\]"
+    if {[IsVitisClassic] || [IsVitisUnified]} {
+      # Get the workspace apps
+      if {[IsVitisClassic]} {
+        # TODO: "app list -dict" return wrong configuration parameters for Vitis Classic versions older than 2022.1
+        if {[catch {set ws_apps [app list -dict]}]} { set ws_apps "" }
+      } elseif {[IsVitisUnified]} {
+        # Get app list from Vitis Unified workspace using Python script
+        set vitis_workspace "$globalSettings::build_dir/vitis_unified"
+        set python_script "$globalSettings::repo_path/Hog/Other/Python/VitisUnified/AppCommands.py"
+        set json_output ""
+        if {![ExecuteVitisUnifiedCommand $python_script "app_list" [list $vitis_workspace] "Failed to get app list from Vitis Unified" json_output]} {
+          Msg Warning "Failed to get app list from Vitis Unified"
+          set ws_apps ""
+        } else {
+          if {[catch {package require json}]} {
+            Msg Warning "JSON package not available for parsing Vitis Unified app list"
+            set ws_apps ""
+          } else {
+            set json_output_filtered ""
+            if {[regexp -lineanchor {\{.*\}} $json_output json_output_filtered]} {
+              set ws_apps [json::json2dict $json_output_filtered]
+            } else {
+              set ws_apps [json::json2dict $json_output]
+            }
+          }
         }
       }
+
+      # Check if each app has a corresponding source file
+      if {$ws_apps ne ""} {
+        dict for {app_name app_config} $ws_apps {
+          set app_lib [string tolower "app_$app_name\.src"]
+          if {![IsInList $app_lib $libs_in_fileset 0 1]} {
+            Msg Warning "App '$app_name' exists in workspace but no corresponding sourcefile '$app_lib' found. \
+              Make sure you have a list file with the correct naming convention: \[app_<app_name>\.src\]"
+          }
+        }
+      }
+    }
+
+    # For Vitis Unified, create app_files_dict once before processing libraries
+    # This allows us to collect files from all libraries before importing
+    if {[IsVitisUnified]} {
+      set app_files_dict [dict create]
     }
 
     # Loop over libraries in fileset
@@ -106,7 +140,7 @@ proc AddHogFiles {libraries properties filesets} {
       set ext [file extension $lib]
       Msg Debug "lib: $lib ext: $ext fileset: $fileset"
       # ADD NOW LISTS TO VIVADO PROJECT
-      if {[IsXilinx]} {
+      if {[IsXilinx] && !([info exists globalSettings::vitis_only_pass] && $globalSettings::vitis_only_pass == 1)} {
         # Skip Vitis libraries
         if {[string match "app_*" [string tolower $lib]]} {
           continue
@@ -169,7 +203,6 @@ proc AddHogFiles {libraries properties filesets} {
             Msg Info "Setting $top as top module for file set $fileset..."
             set globalSettings::synth_top_module $top
           }
-
 
           # Verilog headers
           if {[lsearch -inline -regexp $props "verilog_header"] >= 0} {
@@ -250,7 +283,6 @@ proc AddHogFiles {libraries properties filesets} {
             please remember to commit the (possible) changed file."
             generate_target all [get_files $f]
           }
-
 
           # Tcl
           if {[file extension $f] == ".tcl" && $ext != ".con"} {
@@ -528,30 +560,110 @@ proc AddHogFiles {libraries properties filesets} {
           }
         }
 
+      } elseif {[IsVitisClassic] || [IsVitisUnified]} {
+        if {[IsVitisClassic]} {
+          # Vitis Classic: import files one by one
+          foreach app_name [dict keys $ws_apps] {
+            foreach f $lib_files {
+              if {[string tolower $rootlib] != [string tolower "app_$app_name"]} {
+                continue
+              }
 
-      } elseif {[IsVitisClassic]} {
+              Msg Info "Adding source file $f from lib: $lib to vitis app \[$app_name\]..."
+              set proj_f_path [regsub "^$globalSettings::repo_path" $f ""]
+              set proj_f_path [regsub  "[file tail $f]$" $proj_f_path ""]
+              Msg Debug "Project_f_path is $proj_f_path"
 
-        # Get the workspace apps
-        if {[catch {set ws_apps [app list -dict]}]} { set ws_apps "" }
-
-        foreach app_name [dict keys $ws_apps] {
-          foreach f $lib_files {
-            if {[string tolower $rootlib] != [string tolower "app_$app_name"]} {
-              continue
+              importsources -name $app_name -soft-link -path $f -target $proj_f_path
             }
+          }
+        } elseif {[IsVitisUnified]} {
+          Msg Debug "Vitis Unified: Collecting files for apps from library $rootlib..."
+          # For Vitis Unified, collect files per app from all libraries
+          # Files will be imported after all libraries are processed
 
-            Msg Info "Adding source file $f from lib: $lib to vitis app \[$app_name\]..."
-            set proj_f_path [regsub "^$globalSettings::repo_path" $f ""]
-            set proj_f_path [regsub  "[file tail $f]$" $proj_f_path ""]
-            Msg Debug "Project_f_path is $proj_f_path"
-
-            importsources -name $app_name -soft-link -path $f -target $proj_f_path
+          if {[dict size $ws_apps] == 0} {
+            Msg Debug "No apps found in workspace, skipping file collection"
+          } else {
+            Msg Debug "Found [dict size $ws_apps] app(s) in workspace"
+            Msg Debug "Processing library: $rootlib with [llength $lib_files] file(s)"
+            foreach app_name [dict keys $ws_apps] {
+              set expected_lib [string tolower "app_$app_name"]
+              Msg Debug "Checking files for app: $app_name (looking for lib: $expected_lib, current lib: [string tolower $rootlib])"
+              foreach f $lib_files {
+                if {[string tolower $rootlib] != $expected_lib} {
+                  continue
+                }
+                Msg Debug "File $f matches app $app_name"
+                set proj_f_path [regsub "^$globalSettings::repo_path" $f ""]
+                set proj_f_path [regsub  "[file tail $f]$" $proj_f_path ""]
+                set proj_f_path [string trimleft $proj_f_path "/"]
+                # Store file info for this app
+                if {![dict exists $app_files_dict $app_name]} {
+                  dict set app_files_dict $app_name files [list]
+                  dict set app_files_dict $app_name target $proj_f_path
+                  Msg Debug "Initialized app_files_dict for $app_name with target: $proj_f_path"
+                }
+                # Get current files list, append new file, and set it back
+                set current_files [dict get $app_files_dict $app_name files]
+                lappend current_files $f
+                dict set app_files_dict $app_name files $current_files
+                set current_count [llength [dict get $app_files_dict $app_name files]]
+                Msg Debug "Added file $f to app_files_dict for $app_name, current count: $current_count"
+              }
+            }
           }
         }
       }
-      # Closing library loop
     }
-    # Closing fileset loop
+
+    # For Vitis Unified, import all collected files after processing all libraries
+    if {[IsVitisUnified] && [dict size $app_files_dict] > 0} {
+      set python_script "$globalSettings::repo_path/Hog/Other/Python/VitisUnified/AppCommands.py"
+      set vitis_workspace "$globalSettings::build_dir/vitis_unified"
+
+      # Get Vitis version and set as environment variable for Python script
+      set vitis_version [GetIDEVersion]
+      set env(HOG_VITIS_VER) $vitis_version
+      Msg Debug "Vitis version: $vitis_version (set in HOG_VITIS_VER environment variable)"
+
+      dict for {app_name app_data} $app_files_dict {
+        set files_list [dict get $app_data files]
+        set target_path [dict get $app_data target]
+
+        if {[llength $files_list] > 0} {
+          Msg Info "Adding [llength $files_list] source file(s) to vitis app \[$app_name\]..."
+          Msg Debug "Files: $files_list"
+          Msg Debug "Target path: $target_path"
+
+          # Convert Tcl list to JSON array for Python
+          set files_json "\["
+          set first 1
+          foreach f $files_list {
+            if {!$first} {
+              append files_json ", "
+            }
+            # Escape backslashes and quotes in file paths
+            set escaped_f [string map {\\ \\\\ \" \\\"} $f]
+            append files_json "\"$escaped_f\""
+            set first 0
+          }
+          append files_json "\]"
+
+          Msg Debug "JSON string: $files_json"
+
+          set error_msg "Failed to add files to app $app_name"
+          if {![ExecuteVitisUnifiedCommand $python_script "add_app_files" \
+              [list $app_name $files_json $vitis_workspace $target_path] \
+              $error_msg]} {
+            Msg Error "Failed to add files to Vitis Unified app '$app_name'"
+            exit 1
+          }
+        } else {
+          Msg Warning "No files to add for app '$app_name'"
+        }
+      }
+    }
   }
 
   if {[IsVivado]} {
@@ -2654,9 +2766,9 @@ proc GetIDECommand {proj_conf {custom_ver ""}} {
 
   set ide_name [lindex [regexp -all -inline {\S+} $ide_name_and_ver] 0]
 
-  if {$ide_name eq "vivado" || $ide_name eq "vivado_vitis_classic"} {
+  if {$ide_name eq "vivado" || $ide_name eq "vivado_vitis_classic" || $ide_name eq "vivado_vitis_unified" || $ide_name eq "vitis_unified"} {
     set command "vivado"
-    # A space ater the before_tcl_script is important
+    # A space after the before_tcl_script is important
     set before_tcl_script " -nojournal -nolog -mode batch -notrace -source "
     set after_tcl_script " -tclargs "
     set end_marker ""
@@ -2709,7 +2821,7 @@ proc GetIDEFromConf {conf_file} {
   set f [open $conf_file "r"]
   set line [gets $f]
   close $f
-  if {[regexp -all {^\# *(\w*) *(vitis_classic)? *(\d+\.\d+(?:\.\d+)?(?:\.\d+)?)?(_.*)? *$} $line dummy ide vitisflag version patch]} {
+  if {[regexp -all {^\# *(\w*) *(vitis_(?:classic|unified))? *(\d+\.\d+(?:\.\d+)?(?:\.\d+)?)?(_.*)? *$} $line dummy ide vitisflag version patch]} {
     if {[info exists vitisflag] && $vitisflag != ""} {
       set ide "${ide}_${vitisflag}"
     }
@@ -2754,7 +2866,7 @@ proc GetIDEName {} {
 #
 proc GetIDEVersion {} {
   if {[IsXilinx]} {
-    #Vivado or planAhead
+    # Vivado or planAhead
     regexp {\d+\.\d+(\.\d+)?} [version -short] ver
     # This regex will cut away anything after the numbers, useful for patched version 2020.1_AR75210
   } elseif {[IsQuartus]} {
@@ -2765,9 +2877,15 @@ proc GetIDEVersion {} {
     # Libero
     set ver [get_libero_version]
   } elseif {[IsDiamond]} {
+    # Diamond
     regexp {\d+\.\d+(\.\d+)?} [sys_install version] ver
   } elseif {[IsVitisClassic]} {
+    # Vitis Classic
     regexp {\d+\.\d+(\.\d+)?} [version] ver
+  } elseif {[IsVitisUnified]} {
+    # Vitis Unified
+    set vitis_output [exec vitis --version 2>@1]
+    regexp {[Vv]itis\s+v?(\d+\.\d+(?:\.\d+)?)} $vitis_output -> ver
   } else {
     set ver "0.0.0"
   }
@@ -4445,7 +4563,6 @@ proc InitLauncher {script tcl_path parameters commands argv {custom_commands ""}
   dict for {key value} $common_directive_names {
     set short_usage "$short_usage\n   - $key: [dict get $directive_descriptions $value]"
   }
-  # VSCODE COMMENT"
 
   if {[string length $custom_commands] > 0} {
     Msg Debug "Found custom commands to add to short short_usage."
@@ -4792,7 +4909,7 @@ proc IsSynplify {} {
 
 ## @brief Returns true, if we are in tclsh
 proc IsTclsh {} {
-  return [expr {![IsQuartus] && ![IsXilinx] && ![IsVitisClassic] && ![IsLibero] && ![IsSynplify] && ![IsDiamond]}]
+  return [expr {![IsQuartus] && ![IsXilinx] && ![IsVitisClassic] && ![IsVitisUnified] && ![IsLibero] && ![IsSynplify] && ![IsDiamond]}]
 }
 
 # @brief Find out if the given file is a Verilog or SystemVerilog file
@@ -4808,7 +4925,7 @@ proc IsVerilog {file} {
   }
 }
 
-## @brief Find out if the given Xilinx part is a Vesal chip
+## @brief Find out if the given Xilinx part is a Versal chip
 #
 # @param[out] 1 if it's Versal 0 if it's not
 # @param[in]  part  The FPGA part
@@ -4849,10 +4966,125 @@ proc IsXilinx {} {
 
 ## @brief Returns true, if the IDE is vitis_classic
 proc IsVitisClassic {} {
+  if {[info exists globalSettings::vitis_classic]} {
+    return $globalSettings::vitis_classic
+  }
   return [expr {[info commands platform] != ""}]
 }
 
-## @brief Find out if the given Xilinx part is a Vesal chip
+## @brief Returns true, if the IDE is vitis_unified
+proc IsVitisUnified {} {
+  if {[info exists globalSettings::vitis_unified]} {
+    return $globalSettings::vitis_unified
+  }
+  return 0
+}
+
+## @brief Execute a Python command via Vitis Unified command-line tool and display output in real-time
+#
+# @param[in] python_script Full path to the Python script (e.g., PlatformCommands.py or AppCommands.py)
+# @param[in] command The command to execute (e.g., "create_platform", "configure_app", "app_list")
+# @param[in] args List of arguments to pass to the command
+# @param[in] error_prefix Prefix for error messages (e.g., "Failed to create platform" or "Failed to configure app")
+# @param[in] output_var Optional variable name to store the output (if not provided, output is only printed)
+# @param[out] 1 on success, 0 on failure
+#
+proc ExecuteVitisUnifiedCommand {python_script command args {error_prefix "Failed to execute command"} {output_var ""}} {
+  set cmdlist [list vitis -s $python_script $command]
+  foreach arg $args {
+    lappend cmdlist $arg
+  }
+  lappend cmdlist 2>@1
+
+  Msg Debug "Executing: vitis -s $python_script $command $args"
+
+  # Set PYTHONUNBUFFERED environment variable for real-time output
+  set env(PYTHONUNBUFFERED) "1"
+
+  # Open pipe and configure for line buffering
+  if {[catch {set pipe [open "|$cmdlist" "r"]} err]} {
+    Msg Error "$error_prefix: Failed to open pipe: $err"
+    return 0
+  }
+
+  fconfigure $pipe -buffering line
+  set script_output ""
+  set vitis_version ""
+
+  # Patterns to identify Vitis banner messages, these will be filtered out
+  set vitis_banner_patterns {
+    "*Vitis Development Environment*"
+    "*Vitis v*"
+    "*SW Build*"
+    "*Copyright*Xilinx*"
+    "*Copyright*Advanced Micro Devices*"
+    "*All Rights Reserved*"
+  }
+
+  # Read and display output line by line
+  while {[gets $pipe line] >= 0} {
+    if {$line ne ""} {
+      if {[string match "*Vitis v*" $line]} {
+        if {[regexp {Vitis\s+v([0-9]+)\.([0-9]+)(?:\.[0-9]+)?} $line -> major minor]} {
+          set year_last_two [string range $major end-1 end]
+          set vitis_version "$year_last_two.$minor"
+        }
+      }
+
+      # Filter out Vitis banner messages
+      set is_banner 0
+      foreach pattern $vitis_banner_patterns {
+        if {[string match $pattern $line]} {
+          set is_banner 1
+          break
+        }
+      }
+      if {!$is_banner} {
+        if {![string match "INFO:*" $line] && ![string match "WARNING:*" $line] && ![string match "ERROR:*" $line] && ![string match "DEBUG:*" $line]} {
+          if {$vitis_version ne ""} {
+            set line "INFO: \[Vitis_v$vitis_version\] $line"
+          } else {
+            set line "INFO: $line"
+          }
+        }
+        puts "$line"
+        append script_output "$line\n"
+      }
+    }
+  }
+
+  # Close pipe and check exit code
+  set exit_code 0
+  if {[catch {close $pipe} err]} {
+    if {[regexp {exit (\d+)} $err -> exit_code]} {
+      if {$exit_code != 0} {
+        Msg Error "$error_prefix (exit code: $exit_code)"
+        if {$output_var ne ""} {
+          upvar $output_var output
+          set output $script_output
+        }
+        return 0
+      }
+    } else {
+      Msg Error "$error_prefix: $err"
+      if {$output_var ne ""} {
+        upvar $output_var output
+        set output $script_output
+      }
+      return 0
+    }
+  }
+
+  # Return output if requested
+  if {$output_var ne ""} {
+    upvar $output_var output
+    set output $script_output
+  }
+
+  return 1
+}
+
+## @brief Find out if the given Xilinx part is a Versal chip
 #
 # @param[out] 1 if it's Zynq 0 if it's not
 # @param[in]  part  The FPGA part
@@ -4961,7 +5193,7 @@ proc LaunchGHDL {project_name repo_path simset_name simset_dict {ext_path ""}} {
 proc LaunchImplementation {reset do_create run_folder project_name {repo_path .} {njobs 4} {do_bitstream 0}} {
   Msg Info "Starting implementation flow..."
   if {[IsXilinx]} {
-    if {$reset == 1 && $do_create == 0} {
+    if {$reset == 1} {
       Msg Info "Resetting run before launching implementation..."
       reset_run impl_1
     }
@@ -5220,6 +5452,23 @@ proc LaunchImplementation {reset do_create run_folder project_name {repo_path .}
 # @param[in] repo_path    The main path of the git repository (Default .)
 proc GenerateBitstreamOnly {project_name {repo_path .}} {
   cd $repo_path
+
+  # Open the project first
+  set project_file [file normalize "$repo_path/Projects/$project_name/$project_name.xpr"]
+  if {![file exists $project_file]} {
+    Msg Error "Project file not found: $project_file. Please create the project first."
+    return
+  }
+
+  OpenProject $project_file $repo_path
+
+  # Check if impl_1 run exists
+  set impl_runs [get_runs -quiet impl_1]
+  if {[llength $impl_runs] == 0} {
+    Msg Error "Implementation run 'impl_1' does not exist. Please run implementation first."
+    return
+  }
+
   set describe [GetHogDescribe [file normalize ./Top/$project_name] $repo_path]
   set dst_dir [file normalize "$repo_path/bin/$project_name\-$describe"]
 
@@ -5460,7 +5709,6 @@ proc LaunchSimulation {project_name lib_path simsets {repo_path .} {scripts_only
   }
 }
 
-#'"
 # @brief Launch the RTL Analysis, for the current IDE and project
 #
 # @param[in] repo_path    The main path of the git repository (Default .)
@@ -5493,7 +5741,7 @@ proc LaunchRTLAnalysis {repo_path {pre_rtl_file ""} {post_rtl_file ""}} {
 # @param[in] njobs        The number of parallel CPU jobs for the synthesis (Default 4)
 proc LaunchSynthesis {reset do_create run_folder project_name {repo_path .} {ext_path ""} {njobs 4}} {
   if {[IsXilinx]} {
-    if {$reset == 1 && $do_create == 0} {
+    if {$reset == 1} {
       Msg Info "Resetting run before launching synthesis..."
       reset_run synth_1
     }
@@ -5615,7 +5863,35 @@ proc LaunchVitisBuild {project_name {repo_path .} {stage "presynth"}} {
 
   cd $repo_path
 
-  if {[catch {set ws_apps [app list -dict]}]} { set ws_apps "" }
+  # Get app list
+  if {[IsVitisUnified]} {
+    set vitis_workspace [file normalize "$repo_path/Projects/$project_name/vitis_unified"]
+    set python_script [file normalize "$repo_path/Hog/Other/Python/VitisUnified/AppCommands.py"]
+    set json_output ""
+    if {![ExecuteVitisUnifiedCommand $python_script "app_list" [list $vitis_workspace] "Failed to get app list from Vitis Unified" json_output]} {
+      Msg Error "Failed to get app list from Vitis Unified"
+      set ws_apps ""
+    } else {
+      if {[catch {package require json}]} {
+        Msg Error "JSON package not available for parsing Vitis Unified app list"
+        set ws_apps ""
+      } else {
+        set json_output_filtered ""
+        if {[regexp -lineanchor {\{.*\}} $json_output json_output_filtered]} {
+          set ws_apps [json::json2dict $json_output_filtered]
+        } else {
+          set ws_apps [json::json2dict $json_output]
+        }
+      }
+    }
+  } elseif {[IsVitisClassic]} {
+    if {[catch {set ws_apps [app list -dict]}]} { set ws_apps "" }
+  } else {
+    Msg Error "Impossible condition. You need to run this in a Vitis Unified or Vitis Classic IDE."
+    exit 1
+  }
+
+  # Get repository versions
   lassign [GetRepoVersions [file normalize $repo_path/Top/$proj_name] $repo_path ] commit version  hog_hash hog_ver  top_hash top_ver \
            libs hashes vers  cons_ver cons_hash  ext_names ext_hashes  xml_hash xml_ver user_ip_repos user_ip_hashes user_ip_vers
   set this_commit [GetSHA]
@@ -5623,17 +5899,37 @@ proc LaunchVitisBuild {project_name {repo_path .} {stage "presynth"}} {
   set flavour [GetProjectFlavour $project_name]
   lassign [GetDateAndTime $commit] date timee
 
-  foreach app_name [dict keys $ws_apps] {
-    app config -name $app_name -set build-config Release
+  # Configure apps only for Vitis Classic, build-config is not supported in Vitis Unified
+  # build directory seems to be the default
+  if {[IsVitisClassic]} {
+    foreach app_name [dict keys $ws_apps] {
+      app config -name $app_name -set build-config Release
+    }
   }
 
   WriteGenerics "vitisbuild" $repo_path $proj_name $date $timee $commit $version $top_hash $top_ver $hog_hash $hog_ver $cons_ver $cons_hash $libs \
                              $vers $hashes $ext_names $ext_hashes $user_ip_repos $user_ip_vers $user_ip_hashes $flavour $xml_ver $xml_hash
-  foreach app_name [dict keys $ws_apps] { app build -name $app_name }
+
+  # Build apps
+  foreach app_name [dict keys $ws_apps] {
+    if {[IsVitisUnified]} {
+      # Build vitis unified app
+      if {![ExecuteVitisUnifiedCommand $python_script "build_app" [list $app_name $vitis_workspace] "Failed to build app $app_name"]} {
+        Msg Error "Failed to build app $app_name"
+        continue
+      }
+    } elseif {[IsVitisClassic]} {
+      app build -name $app_name
+    }
+  }
 
   if {$stage == "presynth"} {
     Msg Info "Done building apps for $project_name..."
-    # return
+  }
+
+  if {[info exists ::globalSettings::vitis_only_pass] && $::globalSettings::vitis_only_pass == 1} {
+    Msg Info "Skipping bin directory creation in vitis_only mode (post-bitstream.tcl handles artifacts)."
+    return
   }
 
   Msg Info "Evaluating Git describe for $project_name..."
@@ -5646,7 +5942,11 @@ proc LaunchVitisBuild {project_name {repo_path .} {stage "presynth"}} {
   }
 
   foreach app_name [dict keys $ws_apps] {
-    set main_file "$repo_path/Projects/$project_name/vitis_classic/$app_name/Release/$app_name.elf"
+    if {[IsVitisUnified]} {
+      set main_file "$repo_path/Projects/$project_name/vitis_unified/$app_name/build/$app_name.elf"
+    } elseif {[IsVitisClassic]} {
+      set main_file "$repo_path/Projects/$project_name/vitis_classic/$app_name/Release/$app_name.elf"
+    }
     set dst_main [file normalize "$dst_dir/[file tail $proj_name]\-$app_name\-$describe.elf"]
 
     if {![file exists $main_file]} {
@@ -6108,7 +6408,7 @@ proc ReadConf {file_name} {
     #manipulate strings here:
     regsub -all {\{\"} $key_pairs "\{" key_pairs
     regsub -all {\"\}} $key_pairs "\}" key_pairs
-    #"
+
     dict set properties $new_sec [dict create {*}$key_pairs]
   }
 
@@ -6671,14 +6971,12 @@ proc WriteGenerics {mode repo_path design date timee\
     "CON_VER=[FormatGeneric $cons_ver]" \
     "CON_SHA=[FormatGeneric $cons_hash]"
   ]
-  #"
   # xml hash
   if {$xml_hash != "" && $xml_ver != ""} {
     lappend generic_string \
       "XML_VER=[FormatGeneric $xml_ver]" \
       "XML_SHA=[FormatGeneric $xml_hash]"
   }
-  #"
   #set project specific lists
   foreach l $libs v $vers h $hashes {
     set ver "[string toupper $l]_VER=[FormatGeneric $v]"
@@ -6710,7 +7008,7 @@ proc WriteGenerics {mode repo_path design date timee\
   }
 
   # Dealing with project generics in Vivado
-  if {[IsVivado] || [IsVitisClassic]} {
+  if {[IsVivado] || [IsVitisClassic] || [IsVitisUnified]} {
     set prj_generics [GenericToSimulatorString [GetGenericsFromConf $design] "Vivado"]
     set generic_string "$prj_generics $generic_string"
   }
@@ -6768,7 +7066,7 @@ proc WriteGenerics {mode repo_path design date timee\
   } elseif {[IsDiamond]} {
     Msg Info "Setting Diamond parameters/generics one by one..."
     prj_impl option -impl Implementation0 HDL_PARAM "$generic_string"
-  } elseif {[IsVitisClassic]} {
+  } elseif {[IsVitisClassic] || [IsVitisUnified]} {
     if {[catch {set ws_apps [app list -dict]}]} { set ws_apps "" }
 
     foreach app_name [dict keys $ws_apps] {

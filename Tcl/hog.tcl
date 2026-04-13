@@ -5932,7 +5932,7 @@ proc LaunchVitisBuild {project_name {repo_path .} {stage "presynth"}} {
     return
   }
 
-  Msg Info "Evaluating Git describe for $project_name..."
+  Msg Info "Evaluating Hog describe for $project_name..."
   set describe [GetHogDescribe [file normalize ./Top/$project_name] $repo_path]
   Msg Info "Hog describe set to: $describe"
   set dst_dir [file normalize "$bin_dir/$proj_name\-$describe"]

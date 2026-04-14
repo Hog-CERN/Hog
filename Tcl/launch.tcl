@@ -100,7 +100,6 @@ set default_commands {
     set do_synthesis 1
     set do_bitstream 1
     set do_compile 1
-    set do_vitis_build 0
   # NAME*: WORKFLOW or W
   # DESCRIPTION: Runs the full workflow, creates the project if not existing.
   # OPTIONS: bitstream_only, check_syntax, ext_path.arg, impl_only, njobs.arg, no_bitstream, recreate, synth_only, verbose, vitis_only, xsa.arg
@@ -111,8 +110,8 @@ set default_commands {
     set do_synthesis 1
     set do_bitstream 1
     set do_compile 1
+    set do_create 1
     set recreate 1
-    set do_vitis_build 0
   # NAME: CREATEWORKFLOW or CW
   # DESCRIPTION: Creates the project -even if existing- and launches the complete workflow.
   # OPTIONS: check_syntax, ext_path.arg, njobs.arg, no_bitstream, synth_only, verbose, vivado_only, vitis_only, xsa.arg
@@ -316,7 +315,11 @@ if {$options(ext_path) != ""} {
 }
 set simlib_path ""
 
-
+if {$options(verbose) == 1} {
+  setDebugMode 1
+  # Set environment variable for Vitis Unified Python scripts to enable debug output
+  set env(HOG_DEBUG_MODE) "1"
+}
 
 # printDebugMode
 # Msg Info "Number of jobs set to $options(njobs)."
@@ -353,6 +356,7 @@ set do_sigasi 0
 set do_vhdl_ls 0
 set do_cocotb 0
 set do_hierarchy 0
+set do_version 0
 
 set NO_DIRECTIVE_FOUND 0
 Msg Debug "Looking for a $directive in : $default_commands"
@@ -431,7 +435,7 @@ if {$options(dst_dir) == "" && ($do_ipbus_xml == 1 || $do_check_list_files == 1)
     user_ip_hashes user_ip_vers
   cd $repo_path
 
-  set describe [GetHogDescribe $commit $repo_path]
+  set describe [GetHogDescribe [file normalize $repo_path/Top/$group_name/$project] $repo_path]
   set dst_dir [file normalize "$repo_path/bin/$group_name/$project\-$describe"]
 }
 
@@ -725,6 +729,17 @@ if {$cmd == -1} {
     }
   }
 
+  if {$do_version == 1} {
+      cd $repo_path
+      set proj_dir $repo_path/Top/$project_name
+      lassign [GetRepoVersions $proj_dir $repo_path $ext_path] sha ver
+      if {$options(describe) == 1} {
+        puts [GetHogDescribe $proj_dir $repo_path]
+      } else {
+        puts "v[HexVersionToString $ver]"
+      }
+      exit 0
+    }
   # if {$do_new_directive ==1 } {
   #
   # # Do things here
@@ -738,7 +753,11 @@ if {$cmd == -1} {
   # Check if the IDE is actually in the path...
   set ret [catch {exec which $ide}]
   if {$ret != 0} {
-    Msg Error "$ide not found in your system. Make sure to add $ide to your PATH enviromental variable."
+      if {[string match "*vitis_unified*" $ide_name]} {
+        Msg Error "This is a '$ide_name' project: make sure to add both Vivado and Vitis to your PATH environment variable."
+        } else {
+        Msg Error "$ide not found in your system. Make sure to add $ide to your PATH environment variable."
+        }
     exit $ret
   }
 
@@ -807,6 +826,26 @@ set proj_conf [ProjectExists $project_name $repo_path]
 set ide_name_and_ver [string tolower [GetIDEFromConf $proj_conf]]
 set ide_name [lindex [regexp -all -inline {\S+} $ide_name_and_ver] 0]
 
+# Vitis IDE detection
+if {([string tolower $ide_name] eq "vivado_vitis_classic" || [string tolower $ide_name] eq "vitis_classic") && ($options(vivado_only) != 1)} {
+  set globalSettings::vitis_classic 1
+  set globalSettings::vitis_unified 0
+} elseif {([string tolower $ide_name] eq "vivado_vitis_unified" || [string tolower $ide_name] eq "vitis_unified") && ($options(vivado_only) != 1)} {
+  set globalSettings::vitis_classic 0
+  set globalSettings::vitis_unified 1
+  if {[auto_execok vitis] eq ""} {
+    Msg Error "Vitis Unified IDE is required for project $project_name but 'vitis' was not found in PATH. Please source Vitis settings first."
+  }
+} else {
+  set globalSettings::vitis_classic 0
+  set globalSettings::vitis_unified 0
+}
+
+if {($globalSettings::vitis_classic == 1 || $globalSettings::vitis_unified == 1) && $options(vitis_only) == 1} {
+  set do_vitis_build 1
+}
+
+
 if {$options(no_bitstream) == 1} {
   set do_bitstream 0
   set do_compile 0
@@ -832,12 +871,10 @@ if {$options(impl_only) == 1} {
   set do_compile 1
 }
 
-if {$options(vitis_only) == 1 || $ide_name eq "vitis_classic"} {
-  set do_vitis_build 1
+if {$options(vitis_only) == 1 || $ide_name eq "vitis_classic" || $ide_name eq "vitis_unified"} {
   set do_implementation 0
   set do_synthesis 0
   set do_bitstream 0
-  set do_create 0
   set do_compile 0
 }
 
@@ -850,10 +887,6 @@ if {$options(bitstream_only) == 1} {
   set do_compile 0
 } else {
   set do_bitstream_only 0
-}
-
-if {$options(vivado_only) == 1} {
-  set do_vitis_build 0
 }
 
 if {$options(no_reset) == 1} {
@@ -984,42 +1017,43 @@ if {($proj_found == 0 || $recreate == 1)} {
 
   if {[file exists $conf]} {
     set globalSettings::vitis_only_pass $options(vitis_only)
-    # Still not sure of the difference between project and project_name
     if {$options(vivado_only) == 1} {
-        CreateProject -simlib_path $lib_path -xsa $options(xsa) -vivado_only $project_name $repo_path
+      CreateProject -simlib_path $lib_path -xsa $options(xsa) -vivado_only $project_name $repo_path
     } elseif {$options(vitis_only) == 1} {
-        CreateProject -simlib_path $lib_path -xsa $options(xsa) -vitis_only $project_name $repo_path
+      CreateProject -simlib_path $lib_path -xsa $options(xsa) -vitis_only $project_name $repo_path
     } else {
-        CreateProject -simlib_path $lib_path -xsa $options(xsa) $project_name $repo_path
+      CreateProject -simlib_path $lib_path -xsa $options(xsa) $project_name $repo_path
     }
     Msg Info "Done creating project $project_name."
     if {$options(vitis_only) == 1 && ($ide_name eq "vitis_unified" || $ide_name eq "vivado_vitis_unified")} {
-        set project_file [file join $repo_path Projects $project_name vitis_unified _ide settings.json]
+      set project_file [file join $repo_path Projects $project_name vitis_unified _ide settings.json]
     }
-  } elseif {$proj_found == 0} {
-    Msg Error "Project $project_name not found. Please create it first using the 'CREATE' or 'C' directive."
-    exit 1
   } else {
     Msg Error "Project $project_name is incomplete: no hog.conf file found, please create one..."
   }
+} elseif {$proj_found == 0} {
+  Msg Error "Project $project_name not found. Please create it first using the 'CREATE' or 'C' directive."
+  exit 1
 } else {
-    Msg Info "Opening existing project file $project_file..."
-    if {$options(vitis_only) == 1 && ($ide_name eq "vitis_unified" || $ide_name eq "vivado_vitis_unified")} {
-        set vitis_workspace [file normalize $repo_path/Projects/$project_name/vitis_unified/]
-        Msg Info "Setting Vitis Unified workspace to $vitis_workspace"
-    } elseif {[IsXilinx]} {
-        file mkdir "$repo_path/Projects/$project_name/$project.gen/sources_1"
-        OpenProject $project_file $repo_path
-    } elseif {[IsVitisClassic]} {
-        set vitis_workspace [file normalize $repo_path/Projects/$project_name/vitis_classic/]
-        Msg Info "Setting workspace to $vitis_workspace"
-    } elseif {[IsVitisUnified]} {
-        set vitis_workspace [file normalize $repo_path/Projects/$project_name/vitis_unified/]
-        Msg Info "Setting workspace to $vitis_workspace"
-    } else {
-        OpenProject $project_file $repo_path
-    }
+  Msg Info "Opening existing project file $project_file..."
+  if {$options(vitis_only) == 1 && ($ide_name eq "vitis_unified" || $ide_name eq "vivado_vitis_unified")} {
+    set vitis_workspace [file normalize $repo_path/Projects/$project_name/vitis_unified/]
+    Msg Info "Setting Vitis Unified workspace to $vitis_workspace"
+  } elseif {[IsXilinx]} {
+    file mkdir "$repo_path/Projects/$project_name/$project.gen/sources_1"
+    OpenProject $project_file $repo_path
+  } elseif {[IsVitisClassic]} {
+    set vitis_workspace [file normalize $repo_path/Projects/$project_name/vitis_classic/]
+    Msg Info "Setting workspace to $vitis_workspace"
+  } elseif {[IsVitisUnified]} {
+    set vitis_workspace [file normalize $repo_path/Projects/$project_name/vitis_unified/]
+    Msg Info "Setting workspace to $vitis_workspace"
+  } else {
+    OpenProject $project_file $repo_path
+  }
 }
+
+
 
 ########## CHECK SYNTAX ###########
 if {$do_check_syntax == 1} {

@@ -562,7 +562,7 @@ if {$ide_name eq "vitis_unified" || $ide_name eq "vitis_classic"} {
   set options(vitis_only) 1
 }
 
-if {($globalSettings::vitis_classic == 1 || $globalSettings::vitis_unified == 1) && $options(vitis_only) == 1} {
+if {($globalSettings::vitis_classic == 1 || $globalSettings::vitis_unified == 1) && $options(vitis_only) == 1 && ($do_synthesis == 1 || $do_implementation == 1 || $do_compile == 1)} {
   set do_vitis_build 1
 }
 

@@ -557,6 +557,11 @@ if {([string tolower $ide_name] eq "vivado_vitis_classic" || [string tolower $id
   set globalSettings::vitis_unified 0
 }
 
+# Standalone vitis_unified / vitis_classic projects are implicitly vitis-only
+if {$ide_name eq "vitis_unified" || $ide_name eq "vitis_classic"} {
+  set options(vitis_only) 1
+}
+
 if {($globalSettings::vitis_classic == 1 || $globalSettings::vitis_unified == 1) && $options(vitis_only) == 1} {
   set do_vitis_build 1
 }

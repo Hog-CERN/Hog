@@ -67,7 +67,7 @@ set default_commands {
     set recreate 1
   # NAME*: CREATE or C
   # DESCRIPTION: Create the project, replace it if already existing.
-  # OPTIONS: ext_path.arg, lib.arg, vivado_only, verbose
+  # OPTIONS: ext_path.arg, lib.arg, vivado_only, vitis_only, verbose
   }
 
   \^I(MPL(EMENT(ATION)?)?)?$ {#
@@ -207,6 +207,13 @@ set default_commands {
   # OPTIONS: verbose
   }
 
+  \^VER(SION)?$ {#
+    set do_version 1
+  # NAME*: VERSION or VER
+  # DESCRIPTION: Print the version of the chosen Hog project. With -describe, prints the Hog describe string instead.
+  # OPTIONS: describe, verbose
+  }
+
   default {
     if {$directive != ""} {
       set NO_DIRECTIVE_FOUND 1
@@ -253,6 +260,7 @@ set parameters {
   {include_gen_prods "" "For tree hierarchy mode, include IP generated products in the printed hierarchy. (Default 0)"}
   {compile_order "" "For tree hierarchy mode, prints compile order instead of hierarchy."}
   {verbose          "If set, launch the script in verbose mode"}
+  {describe         "If set, the Hog describe string is returned instead of the version."}
   {light            "For tree hierarchy mode, print a light version of the hierarchy (without file paths)."}
   {simcheck         "If set, checks also the version of the simulation files."}
 }
@@ -260,6 +268,17 @@ set parameters {
 set tcl_path [file normalize "[file dirname [info script]]"]
 source $tcl_path/hog.tcl
 source $tcl_path/create_project.tcl
+
+# Initialize Vitis flags before InitLauncher so IsTclsh correctly returns 1
+set globalSettings::vitis_unified 0
+set globalSettings::vitis_classic 0
+
+# Check if we're already running in xsct (Vitis Classic)
+# This must be done early, before InitLauncher, to prevent launching Vivado
+if {[info commands platform] != ""} {
+  set globalSettings::vitis_classic 1
+  set globalSettings::vitis_unified 0
+}
 
 # Quartus needs extra packages and treats the argv in a different way
 if {[IsQuartus]} {
@@ -876,7 +895,15 @@ Msg Info "Number of jobs set to $options(njobs)."
 set argv ""
 
 ############# CREATE or OPEN project ############
-if {[IsISE]} {
+if {$options(vitis_only) == 1 && ($ide_name eq "vitis_unified" || $ide_name eq "vivado_vitis_unified")} {
+  cd $tcl_path
+  set project_file [file normalize $repo_path/Projects/$project_name/vitis_unified/_ide/settings.json]
+  Msg Info "Setting project file for Vitis Unified project $project_name to $project_file"
+} elseif {$options(vitis_only) == 1 && ($ide_name eq "vitis_classic" || $ide_name eq "vivado_vitis_classic")} {
+  cd $tcl_path
+  set project_file [file normalize $repo_path/Projects/$project_name/vitis_classic/.metadata/]
+  Msg Info "Setting project file for Vitis Classic project $project_name to $project_file"
+} elseif {[IsISE]} {
   cd $tcl_path
   set project_file [file normalize $repo_path/Projects/$project_name/$project.ppr]
 } elseif {[IsVivado]} {
@@ -886,6 +913,10 @@ if {[IsISE]} {
   cd $tcl_path
   set project_file [file normalize $repo_path/Projects/$project_name/vitis_classic/.metadata/]
   Msg Info "Setting project file for Vitis Classic project $project_name to $project_file"
+} elseif {[IsVitisUnified]} {
+  cd $tcl_path
+  set project_file [file normalize $repo_path/Projects/$project_name/vitis_unified/_ide/settings.json]
+  Msg Info "Setting project file for Vitis Unified project $project_name to $project_file"
 } elseif {[IsQuartus]} {
   if {[catch {package require ::quartus::project} ERROR]} {
     Msg Error "$ERROR\n Can not find package ::quartus::project"
@@ -907,40 +938,87 @@ if {[file exists $project_file]} {
   Msg Info "Found project file $project_file for $project_name."
   set proj_found 1
 } else {
-  Msg Info "Project file not found for $project_name."
+  # Path from InitLauncher may resolve to a different mount for the same repo.
+  # Discover repo root and use first path where project exists (file or, for Vitis Unified, project dir).
+  set repo_norm [file normalize $repo_path]
+  set rel [string trimleft [string range $project_file [string length $repo_norm] end] "/"]
   set proj_found 0
+  foreach start_dir [list [file dirname [info script]] [pwd]] {
+    set repo_candidate [FindRepoRoot $start_dir]
+    Msg Debug "FindRepoRoot([list $start_dir]) => [list $repo_candidate]"
+    if {$repo_candidate ne ""} {
+      set project_file_alt [file join $repo_candidate $rel]
+      set found 0
+      if {[file exists $project_file_alt]} {
+        set found 1
+      } elseif {$options(vitis_only) == 1 && [string match "*vitis_unified*" $rel]} {
+        set ide_dir [file join $repo_candidate Projects $project_name vitis_unified _ide]
+        if {[file exists $ide_dir]} {
+          set found 1
+        }
+      }
+      if {$options(vitis_only) == 1 && [string match "*vitis_unified*" $rel]} {
+        Msg Debug "Checking file [list $project_file_alt] exists=[file exists $project_file_alt]; _ide dir [list $ide_dir] exists=[file exists $ide_dir]"
+      } else {
+        Msg Debug "Checking [list $project_file_alt] exists=[file exists $project_file_alt]"
+      }
+      if {$found} {
+        set project_file $project_file_alt
+        set repo_path $repo_candidate
+        Msg Info "Found project file $project_file for $project_name."
+        set proj_found 1
+        break
+      }
+    }
+  }
+  if {!$proj_found} {
+      Msg Info "Project file not found for $project_name."
+  }
 }
 
 if {($proj_found == 0 || $recreate == 1)} {
+  set do_create 1
   Msg Info "Creating (possibly replacing) the project $project_name..."
   Msg Debug "launch.tcl: calling GetConfFiles with $repo_path/Top/$project_name"
   lassign [GetConfFiles $repo_path/Top/$project_name] conf sim pre post pre_rtl post_rtl
 
   if {[file exists $conf]} {
+    set globalSettings::vitis_only_pass $options(vitis_only)
     # Still not sure of the difference between project and project_name
     if {$options(vivado_only) == 1} {
-      CreateProject -simlib_path $lib_path -xsa $options(xsa) -vivado_only $project_name $repo_path
+        CreateProject -simlib_path $lib_path -xsa $options(xsa) -vivado_only $project_name $repo_path
+    } elseif {$options(vitis_only) == 1} {
+        CreateProject -simlib_path $lib_path -xsa $options(xsa) -vitis_only $project_name $repo_path
     } else {
-      CreateProject -simlib_path $lib_path -xsa $options(xsa) $project_name $repo_path
+        CreateProject -simlib_path $lib_path -xsa $options(xsa) $project_name $repo_path
     }
     Msg Info "Done creating project $project_name."
+    if {$options(vitis_only) == 1 && ($ide_name eq "vitis_unified" || $ide_name eq "vivado_vitis_unified")} {
+        set project_file [file join $repo_path Projects $project_name vitis_unified _ide settings.json]
+    }
+  } elseif {$proj_found == 0} {
+    Msg Error "Project $project_name not found. Please create it first using the 'CREATE' or 'C' directive."
+    exit 1
   } else {
     Msg Error "Project $project_name is incomplete: no hog.conf file found, please create one..."
   }
 } else {
-  Msg Info "Opening existing project file $project_file..."
-  if {[IsXilinx]} {
-    file mkdir "$repo_path/Projects/$project_name/$project.gen/sources_1"
-  }
-
-  if {[IsVitisClassic]} {
-    set vitis_workspace [file normalize $repo_path/Projects/$project_name/vitis_classic/]
-    Msg Info "Setting workspace to $vitis_workspace"
-    setws $vitis_workspace
-
-  } else {
-    OpenProject $project_file $repo_path
-  }
+    Msg Info "Opening existing project file $project_file..."
+    if {$options(vitis_only) == 1 && ($ide_name eq "vitis_unified" || $ide_name eq "vivado_vitis_unified")} {
+        set vitis_workspace [file normalize $repo_path/Projects/$project_name/vitis_unified/]
+        Msg Info "Setting Vitis Unified workspace to $vitis_workspace"
+    } elseif {[IsXilinx]} {
+        file mkdir "$repo_path/Projects/$project_name/$project.gen/sources_1"
+        OpenProject $project_file $repo_path
+    } elseif {[IsVitisClassic]} {
+        set vitis_workspace [file normalize $repo_path/Projects/$project_name/vitis_classic/]
+        Msg Info "Setting workspace to $vitis_workspace"
+    } elseif {[IsVitisUnified]} {
+        set vitis_workspace [file normalize $repo_path/Projects/$project_name/vitis_unified/]
+        Msg Info "Setting workspace to $vitis_workspace"
+    } else {
+        OpenProject $project_file $repo_path
+    }
 }
 
 ########## CHECK SYNTAX ###########
@@ -956,14 +1034,11 @@ if {$do_rtl == 1} {
 }
 
 if {$do_vitis_build == 1} {
-  if {[IsVitisClassic]} {
+    if {[IsVitisClassic] || [IsVitisUnified]} {
     LaunchVitisBuild $project_name $repo_path
   } else {
-    set xsct_cmd "xsct $tcl_path/launch.tcl W -vitis_only $project_name"
-    set ret [catch {exec -ignorestderr {*}$xsct_cmd >@ stdout} result]
-    if {$ret != 0} {
-      Msg Error "xsct (vitis classic) returned an error state."
-    }
+    Msg Error "Vitis build is not supported for $ide_name (only Vitis Classic and Vitis Unified are supported)"
+    exit 1
   }
 }
 

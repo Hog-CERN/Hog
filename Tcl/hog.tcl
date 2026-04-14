@@ -2017,6 +2017,27 @@ proc FindNewestVersion {versions} {
   return $new_ver
 }
 
+# Find repo root by walking up from a start dir until we see Top/ and Projects/.
+# For absolute paths we do not normalize, so the path form is preserved and [file exists]
+# sees the same view as the script was loaded from.
+proc FindRepoRoot {start_dir} {
+  if {[file pathtype $start_dir] eq "relative"} {
+    set dir [file normalize [file join [pwd] $start_dir]]
+  } else {
+    set dir $start_dir
+  }
+  while {1} {
+    if {[file exists [file join $dir Top]] && [file exists [file join $dir Projects]]} {
+      return $dir
+    }
+    set parent [file dirname $dir]
+    if {$parent eq $dir} {
+      return ""
+    }
+    set dir $parent
+  }
+}
+
 ## @brief Set VHDL version to 2008 for *.vhd files
 #
 # @param[in] file_name the name of the HDL file

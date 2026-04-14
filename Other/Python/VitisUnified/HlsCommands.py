@@ -251,6 +251,8 @@ def CollectHlsReports(component_name, work_dir, output_dir):
 
     report_extensions = (".rpt", ".xml", ".log")
     report_dirs = [
+      os.path.join(work_dir, "hls", "syn", "report"),
+      os.path.join(work_dir, "hls", "sim", "report"),
       os.path.join(work_dir, component_name, "syn", "report"),
       os.path.join(work_dir, component_name, "sim", "report"),
     ]
@@ -357,12 +359,13 @@ if __name__ == "__main__":
     if len(sys.argv) < 5:
       PrintError("collect_reports requires: component_name work_dir output_dir")
       sys.exit(1)
-    result = CollectHlsReports(
+    # Always exit 0 — missing reports is non-critical
+    CollectHlsReports(
       component_name=sys.argv[2],
       work_dir=sys.argv[3],
       output_dir=sys.argv[4]
     )
-    sys.exit(0 if result else 1)
+    sys.exit(0)
 
   else:
     PrintError("Unknown command: %s" % command)

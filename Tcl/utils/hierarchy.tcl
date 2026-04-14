@@ -606,7 +606,11 @@ proc Hierarchy {listProperties listLibraries repo_path {output_path ""} \
   #Msg Debug "[_debug_string_hier_meta hier_meta]"
   set p [dict create]
   if {$compile_order} {
-    print_compile_order hier_meta [dict get $sorted_modules sorted] $output_file
+    set compile_order_dict [print_compile_order hier_meta [dict get $sorted_modules sorted] $output_file]
+    if {$output_path != ""} {
+      close $output_file
+    }
+    return $compile_order_dict
   } else {
     set p [print_hierarchy hier_meta $top_module $output_file $ignore_list $bad_nodes $light]
     PrintOrWrite $output_file "\n\n=====Packages in project:====="
@@ -629,37 +633,26 @@ proc Hierarchy {listProperties listLibraries repo_path {output_path ""} \
 proc print_compile_order {hier_meta_ref sorted_list {output_file ""}} {
   upvar 1 $hier_meta_ref hier_meta
 
-  set groups [list]
-  set curr_file_type ""
-  set curr_files [list]
+  # Build an ordered dict {file_path -> library}, deduplicating by file.
+  # First occurrence in DFS-sorted order (dependency-first) is kept.
+  set result [dict create]
 
   foreach mod_key $sorted_list {
     set mod [dict get $hier_meta all_modules $mod_key]
     set file_path [dict get $mod file_path]
-    set props [dict get $mod properties]
-    set file_type [dict get $props filetype]
+    set library   [dict get $mod library]
 
-    if {$file_type ne $curr_file_type} {
-      if {$curr_file_type ne ""} {
-        lappend groups [list $curr_file_type $curr_files]
-      }
-      set curr_file_type $file_type
-      set curr_files [list $file_path]
-    } else {
-      lappend curr_files $file_path
+    if {$file_path eq "" || [dict exists $result $file_path]} {
+      continue
     }
+    dict set result $file_path $library
   }
 
-  if {$curr_file_type ne ""} {
-    lappend groups [list $curr_file_type $curr_files]
+  dict for {file lib} $result {
+    PrintOrWrite $output_file "$file $lib"
   }
 
-  foreach group $groups {
-    set type [lindex $group 0]
-    set files [lsort -unique [lindex $group 1]]
-    set output_line "$type \{$files\}"
-    PrintOrWrite $output_file $output_line
-  }
+  return $result
 }
 
 proc print_hierarchy {hier_meta_ref module {output_file ""} {ignore_list ""} \

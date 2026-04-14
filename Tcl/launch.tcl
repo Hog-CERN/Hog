@@ -67,7 +67,7 @@ set default_commands {
     set recreate 1
   # NAME*: CREATE or C
   # DESCRIPTION: Create the project, replace it if already existing.
-  # OPTIONS: ext_path.arg, lib.arg, vivado_only, vitis_only, verbose
+  # OPTIONS: ext_path.arg, lib.arg, vivado_only, verbose
   }
 
   \^I(MPL(EMENT(ATION)?)?)?$ {#
@@ -100,6 +100,7 @@ set default_commands {
     set do_synthesis 1
     set do_bitstream 1
     set do_compile 1
+    set do_vitis_build 0
   # NAME*: WORKFLOW or W
   # DESCRIPTION: Runs the full workflow, creates the project if not existing.
   # OPTIONS: bitstream_only, check_syntax, ext_path.arg, impl_only, njobs.arg, no_bitstream, recreate, synth_only, verbose, vitis_only, xsa.arg
@@ -110,8 +111,8 @@ set default_commands {
     set do_synthesis 1
     set do_bitstream 1
     set do_compile 1
-    set do_create 1
     set recreate 1
+    set do_vitis_build 0
   # NAME: CREATEWORKFLOW or CW
   # DESCRIPTION: Creates the project -even if existing- and launches the complete workflow.
   # OPTIONS: check_syntax, ext_path.arg, njobs.arg, no_bitstream, synth_only, verbose, vivado_only, vitis_only, xsa.arg
@@ -199,11 +200,11 @@ set default_commands {
   # OPTIONS: verbose
   }
 
-  \^VER(SION)?$ {#
-    set do_version 1
-  # NAME*: VERSION or VER
-  # DESCRIPTION: Print the version of the chosen Hog project. With -describe, prints the Hog describe string instead.
-  # OPTIONS: describe, verbose
+  \^COCOTB$ {#
+    set do_cocotb 1
+  # NAME: COCOTB
+  # DESCRIPTION: Create a cocotb Python script to build VHDL/Verilog libraries using runner.build().
+  # OPTIONS: verbose
   }
 
   default {
@@ -252,7 +253,6 @@ set parameters {
   {include_gen_prods "" "For tree hierarchy mode, include IP generated products in the printed hierarchy. (Default 0)"}
   {compile_order "" "For tree hierarchy mode, prints compile order instead of hierarchy."}
   {verbose          "If set, launch the script in verbose mode"}
-  {describe         "If set, the Hog describe string is returned instead of the version."}
   {light            "For tree hierarchy mode, print a light version of the hierarchy (without file paths)."}
   {simcheck         "If set, checks also the version of the simulation files."}
 }
@@ -260,38 +260,6 @@ set parameters {
 set tcl_path [file normalize "[file dirname [info script]]"]
 source $tcl_path/hog.tcl
 source $tcl_path/create_project.tcl
-
-# Find repo root by walking up from a start dir until we see Top/ and Projects/.
-# For absolute paths we do not normalize, so the path form is preserved and [file exists]
-# sees the same view as the script was loaded from.
-proc FindRepoRoot {start_dir} {
-  if {[file pathtype $start_dir] eq "relative"} {
-    set dir [file normalize [file join [pwd] $start_dir]]
-  } else {
-    set dir $start_dir
-  }
-  while {1} {
-    if {[file exists [file join $dir Top]] && [file exists [file join $dir Projects]]} {
-      return $dir
-    }
-    set parent [file dirname $dir]
-    if {$parent eq $dir} {
-      return ""
-    }
-    set dir $parent
-  }
-}
-
-# Initialize Vitis flags before InitLauncher so IsTclsh correctly returns 1
-set globalSettings::vitis_unified 0
-set globalSettings::vitis_classic 0
-
-# Check if we're already running in xsct (Vitis Classic)
-# This must be done early, before InitLauncher, to prevent launching Vivado
-if {[info commands platform] != ""} {
-  set globalSettings::vitis_classic 1
-  set globalSettings::vitis_unified 0
-}
 
 # Quartus needs extra packages and treats the argv in a different way
 if {[IsQuartus]} {
@@ -330,11 +298,7 @@ if {$options(ext_path) != ""} {
 set simlib_path ""
 
 
-if {$options(verbose) == 1} {
-  setDebugMode 1
-  # Set environment variable for Vitis Unified Python scripts to enable debug output
-  set env(HOG_DEBUG_MODE) "1"
-}
+
 # printDebugMode
 # Msg Info "Number of jobs set to $options(njobs)."
 set output_path ""
@@ -368,8 +332,8 @@ set do_check_list_files 0
 set do_compile_lib 0
 set do_sigasi 0
 set do_vhdl_ls 0
+set do_cocotb 0
 set do_hierarchy 0
-set do_version 0
 
 set NO_DIRECTIVE_FOUND 0
 Msg Debug "Looking for a $directive in : $default_commands"
@@ -448,7 +412,7 @@ if {$options(dst_dir) == "" && ($do_ipbus_xml == 1 || $do_check_list_files == 1)
     user_ip_hashes user_ip_vers
   cd $repo_path
 
-  set describe [GetHogDescribe [file normalize $repo_path/Top/$group_name/$project] $repo_path]
+  set describe [GetHogDescribe $commit $repo_path]
   set dst_dir [file normalize "$repo_path/bin/$group_name/$project\-$describe"]
 }
 
@@ -538,8 +502,9 @@ if {$cmd == -1} {
     lassign [GetHogFiles -ext_path $ext_path \
         -list_files ".src,.ext" $proj_list_dir $repo_path]\
         listLibraries listProperties listSrcSets
-    Hierarchy $listProperties $listLibraries $repo_path $output_path $compile_order \
-    $light_hierarchy $top_module $ignored_hierarchy $include_ieee $include_gen_prods
+    set hierarchy_result [Hierarchy $listProperties $listLibraries $repo_path $output_path $compile_order \
+    $light_hierarchy $top_module $ignored_hierarchy $include_ieee $include_gen_prods]
+    # puts $hierarchy_result
     exit 0
   }
   if {$do_sigasi == 1} {
@@ -592,6 +557,99 @@ if {$cmd == -1} {
     close $toml_file
     Msg Info "VHDL-LS TOML File created: vhdl_ls_$project.toml"
     Msg Info "You can copy the content of this file into your VHDL-LS configuration vhdl_ls.toml, to import all Hog libraries."
+    exit 0
+  }
+
+  if {$do_cocotb == 1} {
+    cd $repo_path
+    Msg Info "Creating cocotb library build script for project $project_name..."
+    set proj_list_dir $repo_path/Top/$project_name/list
+    set project [file tail $project_name]
+    lassign [GetHogFiles -list_files {.src} $proj_list_dir $repo_path] libraries
+    set py_file [open "cocotb_$project.py" w]
+
+    puts $py_file "#!/usr/bin/env python3"
+    puts $py_file "\"\"\"Auto-generated by Hog COCOTB command for project $project.\"\"\""
+    puts $py_file ""
+    puts $py_file "import argparse"
+    puts $py_file "from pathlib import Path"
+    puts $py_file "import cocotb"
+    puts $py_file "from cocotb_tools.runner import get_runner"
+    puts $py_file ""
+    puts $py_file "REPO_ROOT = Path(__file__).resolve().parent"
+    puts $py_file ""
+    puts $py_file ""
+    puts $py_file "@cocotb.test()"
+    puts $py_file "async def test_placeholder(dut):"
+    puts $py_file "    \"\"\"Placeholder test -- replace with actual test logic.\"\"\""
+    puts $py_file "    pass"
+    puts $py_file ""
+    puts $py_file ""
+    puts $py_file "def build_libs(sim: str, build_dir: str) -> None:"
+    puts $py_file "    runner = get_runner(sim)"
+    puts $py_file "    build_path = Path(build_dir)"
+    puts $py_file ""
+
+    dict for {lib source_files} $libraries {
+      set lib_name [file rootname $lib]
+      set vhdl_sources {}
+      set verilog_sources {}
+      foreach source_file $source_files {
+        set ext [file extension $source_file]
+        set rel [Relative $repo_path $source_file]
+        if {$ext eq ".vhd" || $ext eq ".vhdl"} {
+          lappend vhdl_sources $rel
+        } elseif {$ext eq ".v" || $ext eq ".sv"} {
+          lappend verilog_sources $rel
+        }
+      }
+      if {[llength $vhdl_sources] == 0 && [llength $verilog_sources] == 0} {
+        continue
+      }
+      puts $py_file "    runner.build("
+      puts $py_file "        hdl_library=\"$lib_name\","
+      if {[llength $vhdl_sources] > 0} {
+        puts $py_file "        vhdl_sources=\["
+        foreach f $vhdl_sources {
+          puts $py_file "            REPO_ROOT / \"$f\","
+        }
+        puts $py_file "        \],"
+      }
+      if {[llength $verilog_sources] > 0} {
+        puts $py_file "        verilog_sources=\["
+        foreach f $verilog_sources {
+          puts $py_file "            REPO_ROOT / \"$f\","
+        }
+        puts $py_file "        \],"
+      }
+      puts $py_file "        build_dir=build_path,"
+      puts $py_file "        always=True,"
+      puts $py_file "    )"
+      puts $py_file ""
+    }
+
+    puts $py_file ""
+    puts $py_file "def run_test(sim: str, build_dir: str, toplevel: str) -> None:"
+    puts $py_file "    runner = get_runner(sim)"
+    puts $py_file "    runner.test("
+    puts $py_file "        hdl_toplevel=toplevel,"
+    puts $py_file "        test_module=Path(__file__).stem,"
+    puts $py_file "        build_dir=build_dir,"
+    puts $py_file "    )"
+    puts $py_file ""
+    puts $py_file ""
+    puts $py_file "if __name__ == \"__main__\":"
+    puts $py_file "    parser = argparse.ArgumentParser()"
+    puts $py_file "    parser.add_argument(\"--sim\", default=\"questa\")"
+    puts $py_file "    parser.add_argument(\"--build-dir\", default=\"sim_build\")"
+    puts $py_file "    parser.add_argument(\"--toplevel\", default=\"<toplevel>\")"
+    puts $py_file "    args = parser.parse_args()"
+    puts $py_file "    build_libs(args.sim, args.build_dir)"
+    puts $py_file "    run_test(args.sim, args.build_dir, args.toplevel)"
+
+    close $py_file
+    Msg Info "cocotb Python script created: cocotb_$project.py"
+    Msg Info "Run it with: python cocotb_$project.py --sim questa --toplevel <your_toplevel>"
     exit 0
   }
 
@@ -648,18 +706,6 @@ if {$cmd == -1} {
     }
   }
 
-  if {$do_version == 1} {
-    cd $repo_path
-    set proj_dir $repo_path/Top/$project_name
-    lassign [GetRepoVersions $proj_dir $repo_path $ext_path] sha ver
-    if {$options(describe) == 1} {
-      puts [GetHogDescribe $proj_dir $repo_path]
-    } else {
-      puts "v[HexVersionToString $ver]"
-    }
-    exit 0
-  }
-
   # if {$do_new_directive ==1 } {
   #
   # # Do things here
@@ -668,17 +714,12 @@ if {$cmd == -1} {
   #}
 
   #### END of tclsh commands ####
-
   Msg Info "Launching command: $cmd..."
 
   # Check if the IDE is actually in the path...
   set ret [catch {exec which $ide}]
   if {$ret != 0} {
-    if {[string match "*vitis_unified*" $ide_name]} {
-      Msg Error "This is a '$ide_name' project: make sure to add both Vivado and Vitis to your PATH environment variable."
-    } else {
-      Msg Error "$ide not found in your system. Make sure to add $ide to your PATH environment variable."
-    }
+    Msg Error "$ide not found in your system. Make sure to add $ide to your PATH enviromental variable."
     exit $ret
   }
 
@@ -710,6 +751,7 @@ if {$cmd == -1} {
 
 #After this line, we are in the IDE
 ##################################################################################
+
 
 # We need to Import tcllib if we are using Libero
 if {[IsLibero] || [IsDiamond]} {
@@ -746,25 +788,6 @@ set proj_conf [ProjectExists $project_name $repo_path]
 set ide_name_and_ver [string tolower [GetIDEFromConf $proj_conf]]
 set ide_name [lindex [regexp -all -inline {\S+} $ide_name_and_ver] 0]
 
-# Vitis IDE detection
-if {([string tolower $ide_name] eq "vivado_vitis_classic" || [string tolower $ide_name] eq "vitis_classic") && ($options(vivado_only) != 1)} {
-  set globalSettings::vitis_classic 1
-  set globalSettings::vitis_unified 0
-} elseif {([string tolower $ide_name] eq "vivado_vitis_unified" || [string tolower $ide_name] eq "vitis_unified") && ($options(vivado_only) != 1)} {
-  set globalSettings::vitis_classic 0
-  set globalSettings::vitis_unified 1
-  if {[auto_execok vitis] eq ""} {
-    Msg Error "Vitis Unified IDE is required for project $project_name but 'vitis' was not found in PATH. Please source Vitis settings first."
-  }
-} else {
-  set globalSettings::vitis_classic 0
-  set globalSettings::vitis_unified 0
-}
-
-if {($globalSettings::vitis_classic == 1 || $globalSettings::vitis_unified == 1) && $options(vitis_only) == 1} {
-  set do_vitis_build 1
-}
-
 if {$options(no_bitstream) == 1} {
   set do_bitstream 0
   set do_compile 0
@@ -790,10 +813,12 @@ if {$options(impl_only) == 1} {
   set do_compile 1
 }
 
-if {$options(vitis_only) == 1 || $ide_name eq "vitis_classic" || $ide_name eq "vitis_unified"} {
+if {$options(vitis_only) == 1 || $ide_name eq "vitis_classic"} {
+  set do_vitis_build 1
   set do_implementation 0
   set do_synthesis 0
   set do_bitstream 0
+  set do_create 0
   set do_compile 0
 }
 
@@ -808,7 +833,9 @@ if {$options(bitstream_only) == 1} {
   set do_bitstream_only 0
 }
 
-
+if {$options(vivado_only) == 1} {
+  set do_vitis_build 0
+}
 
 if {$options(no_reset) == 1} {
   set do_reset 0
@@ -825,6 +852,8 @@ if {$options(scripts_only) == 1} {
 if {$options(compile_only) == 1} {
   set compile_only 1
 }
+
+
 
 if {$options(lib) != ""} {
   set lib_path [file normalize $options(lib)]
@@ -847,16 +876,7 @@ Msg Info "Number of jobs set to $options(njobs)."
 set argv ""
 
 ############# CREATE or OPEN project ############
-
-if {$options(vitis_only) == 1 && ($ide_name eq "vitis_unified" || $ide_name eq "vivado_vitis_unified")} {
-  cd $tcl_path
-  set project_file [file normalize $repo_path/Projects/$project_name/vitis_unified/_ide/settings.json]
-  Msg Info "Setting project file for Vitis Unified project $project_name to $project_file"
-} elseif {$options(vitis_only) == 1 && ($ide_name eq "vitis_classic" || $ide_name eq "vivado_vitis_classic")} {
-  cd $tcl_path
-  set project_file [file normalize $repo_path/Projects/$project_name/vitis_classic/.metadata/]
-  Msg Info "Setting project file for Vitis Classic project $project_name to $project_file"
-} elseif {[IsISE]} {
+if {[IsISE]} {
   cd $tcl_path
   set project_file [file normalize $repo_path/Projects/$project_name/$project.ppr]
 } elseif {[IsVivado]} {
@@ -866,10 +886,6 @@ if {$options(vitis_only) == 1 && ($ide_name eq "vitis_unified" || $ide_name eq "
   cd $tcl_path
   set project_file [file normalize $repo_path/Projects/$project_name/vitis_classic/.metadata/]
   Msg Info "Setting project file for Vitis Classic project $project_name to $project_file"
-} elseif {[IsVitisUnified]} {
-  cd $tcl_path
-  set project_file [file normalize $repo_path/Projects/$project_name/vitis_unified/_ide/settings.json]
-  Msg Info "Setting project file for Vitis Unified project $project_name to $project_file"
 } elseif {[IsQuartus]} {
   if {[catch {package require ::quartus::project} ERROR]} {
     Msg Error "$ERROR\n Can not find package ::quartus::project"
@@ -891,83 +907,37 @@ if {[file exists $project_file]} {
   Msg Info "Found project file $project_file for $project_name."
   set proj_found 1
 } else {
-  # Path from InitLauncher may resolve to a different mount for the same repo.
-  # Discover repo root and use first path where project exists (file or, for Vitis Unified, project dir).
-  set repo_norm [file normalize $repo_path]
-  set rel [string trimleft [string range $project_file [string length $repo_norm] end] "/"]
+  Msg Info "Project file not found for $project_name."
   set proj_found 0
-  foreach start_dir [list [file dirname [info script]] [pwd]] {
-    set repo_candidate [FindRepoRoot $start_dir]
-    Msg Debug "FindRepoRoot([list $start_dir]) => [list $repo_candidate]"
-    if {$repo_candidate ne ""} {
-      set project_file_alt [file join $repo_candidate $rel]
-      set found 0
-      if {[file exists $project_file_alt]} {
-        set found 1
-      } elseif {$options(vitis_only) == 1 && [string match "*vitis_unified*" $rel]} {
-        set ide_dir [file join $repo_candidate Projects $project_name vitis_unified _ide]
-        if {[file exists $ide_dir]} {
-          set found 1
-        }
-      }
-      if {$options(vitis_only) == 1 && [string match "*vitis_unified*" $rel]} {
-        Msg Debug "Checking file [list $project_file_alt] exists=[file exists $project_file_alt]; _ide dir [list $ide_dir] exists=[file exists $ide_dir]"
-      } else {
-        Msg Debug "Checking [list $project_file_alt] exists=[file exists $project_file_alt]"
-      }
-      if {$found} {
-        set project_file $project_file_alt
-        set repo_path $repo_candidate
-        Msg Info "Found project file $project_file for $project_name."
-        set proj_found 1
-        break
-      }
-    }
-  }
-  if {!$proj_found} {
-    Msg Info "Project file not found for $project_name."
-  }
 }
 
 if {($proj_found == 0 || $recreate == 1)} {
-  set do_create 1
   Msg Info "Creating (possibly replacing) the project $project_name..."
   Msg Debug "launch.tcl: calling GetConfFiles with $repo_path/Top/$project_name"
   lassign [GetConfFiles $repo_path/Top/$project_name] conf sim pre post pre_rtl post_rtl
 
   if {[file exists $conf]} {
-    set globalSettings::vitis_only_pass $options(vitis_only)
+    # Still not sure of the difference between project and project_name
     if {$options(vivado_only) == 1} {
       CreateProject -simlib_path $lib_path -xsa $options(xsa) -vivado_only $project_name $repo_path
-    } elseif {$options(vitis_only) == 1} {
-      CreateProject -simlib_path $lib_path -xsa $options(xsa) -vitis_only $project_name $repo_path
     } else {
       CreateProject -simlib_path $lib_path -xsa $options(xsa) $project_name $repo_path
     }
     Msg Info "Done creating project $project_name."
-    if {$options(vitis_only) == 1 && ($ide_name eq "vitis_unified" || $ide_name eq "vivado_vitis_unified")} {
-      set project_file [file join $repo_path Projects $project_name vitis_unified _ide settings.json]
-    }
   } else {
     Msg Error "Project $project_name is incomplete: no hog.conf file found, please create one..."
   }
-} elseif {$proj_found == 0} {
-  Msg Error "Project $project_name not found. Please create it first using the 'CREATE' or 'C' directive."
-  exit 1
 } else {
   Msg Info "Opening existing project file $project_file..."
-  if {$options(vitis_only) == 1 && ($ide_name eq "vitis_unified" || $ide_name eq "vivado_vitis_unified")} {
-    set vitis_workspace [file normalize $repo_path/Projects/$project_name/vitis_unified/]
-    Msg Info "Setting Vitis Unified workspace to $vitis_workspace"
-  } elseif {[IsXilinx]} {
+  if {[IsXilinx]} {
     file mkdir "$repo_path/Projects/$project_name/$project.gen/sources_1"
-    OpenProject $project_file $repo_path
-  } elseif {[IsVitisClassic]} {
+  }
+
+  if {[IsVitisClassic]} {
     set vitis_workspace [file normalize $repo_path/Projects/$project_name/vitis_classic/]
     Msg Info "Setting workspace to $vitis_workspace"
-  } elseif {[IsVitisUnified]} {
-    set vitis_workspace [file normalize $repo_path/Projects/$project_name/vitis_unified/]
-    Msg Info "Setting workspace to $vitis_workspace"
+    setws $vitis_workspace
+
   } else {
     OpenProject $project_file $repo_path
   }
@@ -986,11 +956,14 @@ if {$do_rtl == 1} {
 }
 
 if {$do_vitis_build == 1} {
-  if {[IsVitisClassic] || [IsVitisUnified]} {
+  if {[IsVitisClassic]} {
     LaunchVitisBuild $project_name $repo_path
   } else {
-    Msg Error "Vitis build is not supported for $ide_name (only Vitis Classic and Vitis Unified are supported)"
-    exit 1
+    set xsct_cmd "xsct $tcl_path/launch.tcl W -vitis_only $project_name"
+    set ret [catch {exec -ignorestderr {*}$xsct_cmd >@ stdout} result]
+    if {$ret != 0} {
+      Msg Error "xsct (vitis classic) returned an error state."
+    }
   }
 }
 

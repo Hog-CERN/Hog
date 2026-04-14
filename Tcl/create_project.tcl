@@ -87,6 +87,7 @@ proc InitProject {{vitis_only 0}} {
     if {[file exists $globalSettings::build_dir/vitis_unified]} {
       file delete -force $globalSettings::build_dir/vitis_unified
     }
+    file mkdir $globalSettings::build_dir/vitis_unified
   } elseif {[IsXilinx]} {
     if {[IsVivado]} {
       # Suppress unnecessary warnings

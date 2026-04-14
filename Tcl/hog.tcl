@@ -141,8 +141,8 @@ proc AddHogFiles {libraries properties filesets} {
       Msg Debug "lib: $lib ext: $ext fileset: $fileset"
       # ADD NOW LISTS TO VIVADO PROJECT
       if {[IsXilinx] && !([info exists globalSettings::vitis_only_pass] && $globalSettings::vitis_only_pass == 1)} {
-        # Skip Vitis and HLS libraries
-        if {[string match "app_*" [string tolower $lib]] || [string match "hls_*" [string tolower $lib]]} {
+        # Skip Vitis application libraries
+        if {[string match "app_*" [string tolower $lib]]} {
           continue
         }
         Msg Debug "Adding $lib to $fileset"
@@ -5982,10 +5982,11 @@ proc LaunchVitisBuild {project_name {repo_path .} {stage "presynth"}} {
 
 # @brief Launch the HLS build for all [hls:*] components in the project
 #
-# For each HLS component, this proc runs:
-# 1. C simulation (csim) if configured
-# 2. C synthesis (csynth)
-# 3. Export of the synthesized IP
+# For each HLS component, this proc:
+# 1. Reads HLS_CONFIG path from hog.conf (the committed, single source of truth)
+# 2. Runs C simulation (csim) if [hls_csim:<name>] is present
+# 3. Runs C synthesis
+# 4. Collects synthesis reports (.rpt, .xml) into bin/ for CI and release notes
 #
 # @param[in] project_name The name of the project
 # @param[in] repo_path    The main path of the git repository (Default ".")
@@ -5995,7 +5996,6 @@ proc LaunchHlsBuild {project_name {repo_path .}} {
 
   cd $repo_path
 
-  # Read project properties to find HLS components
   set conf_file [file normalize "$repo_path/Top/$project_name/hog.conf"]
   if {![file exists $conf_file]} {
     Msg Error "Configuration file not found: $conf_file"
@@ -6018,13 +6018,26 @@ proc LaunchHlsBuild {project_name {repo_path .}} {
     set component_name [string trim $component_name]
     Msg Info "Building HLS component: $component_name"
 
-    set hls_build_dir [file normalize "$repo_path/Projects/$project_name/hls_$component_name"]
-    set cfg_file [file normalize "$hls_build_dir/hls_config.cfg"]
-
-    if {![file exists $cfg_file]} {
-      Msg Error "HLS config file not found: $cfg_file. Did you run CREATE first?"
+    # Read HLS_CONFIG path from hog.conf
+    set hls_cfg_rel ""
+    if {[dict exists $hls_config hls_config]} {
+      set hls_cfg_rel [dict get $hls_config hls_config]
+    } elseif {[dict exists $hls_config HLS_CONFIG]} {
+      set hls_cfg_rel [dict get $hls_config HLS_CONFIG]
+    }
+    if {$hls_cfg_rel eq ""} {
+      Msg Error "HLS component '$component_name' missing HLS_CONFIG in hog.conf"
       continue
     }
+
+    set cfg_file [file normalize "$repo_path/$hls_cfg_rel"]
+    if {![file exists $cfg_file]} {
+      Msg Error "HLS config file not found: $cfg_file (from HLS_CONFIG=$hls_cfg_rel)"
+      continue
+    }
+
+    set hls_work_dir [file normalize "$repo_path/Projects/$project_name/hls_$component_name"]
+    file mkdir $hls_work_dir
 
     # Check if csim should be run
     set hls_csim_key "hls_csim:$component_name"
@@ -6033,7 +6046,7 @@ proc LaunchHlsBuild {project_name {repo_path .}} {
     if {$run_csim} {
       Msg Info "Running C simulation for HLS component '$component_name'..."
       if {![ExecuteVitisUnifiedCommand $python_script "csim" \
-          [list $component_name $cfg_file $hls_build_dir] \
+          [list $component_name $cfg_file $hls_work_dir] \
           "Failed to run C simulation for $component_name"]} {
         Msg Error "C simulation failed for HLS component '$component_name'"
         continue
@@ -6043,13 +6056,13 @@ proc LaunchHlsBuild {project_name {repo_path .}} {
     # Run C synthesis
     Msg Info "Running C synthesis for HLS component '$component_name'..."
     if {![ExecuteVitisUnifiedCommand $python_script "synthesis" \
-        [list $component_name $cfg_file $hls_build_dir] \
+        [list $component_name $cfg_file $hls_work_dir] \
         "Failed to run C synthesis for $component_name"]} {
       Msg Error "C synthesis failed for HLS component '$component_name'"
       continue
     }
 
-    # Export design artifacts
+    # Collect synthesis reports into bin/ for CI and release notes
     Msg Info "Evaluating Hog describe for $project_name..."
     set describe [GetHogDescribe [file normalize ./Top/$project_name] $repo_path]
     Msg Info "Hog describe set to: $describe"
@@ -6059,11 +6072,11 @@ proc LaunchHlsBuild {project_name {repo_path .}} {
       file mkdir $dst_dir
     }
 
-    Msg Info "Exporting HLS design for component '$component_name'..."
-    if {![ExecuteVitisUnifiedCommand $python_script "export" \
-        [list $component_name $hls_build_dir $dst_dir] \
-        "Failed to export HLS design for $component_name"]} {
-      Msg Warning "Export failed for HLS component '$component_name', but synthesis was successful"
+    Msg Info "Collecting HLS reports for component '$component_name'..."
+    if {![ExecuteVitisUnifiedCommand $python_script "collect_reports" \
+        [list $component_name $hls_work_dir $dst_dir] \
+        "Failed to collect HLS reports for $component_name"]} {
+      Msg Warning "No reports found for HLS component '$component_name'"
     }
 
     Msg Info "HLS component '$component_name' built successfully"

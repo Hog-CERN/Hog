@@ -1328,7 +1328,8 @@ proc CreateProject {args} {
 
   InitProject $options(vitis_only)
 
-  if {([IsVitisClassic] || [IsVitisUnified]) && $options(vitis_only) == 1} {
+  set is_vitis_only_ide [expr {[string tolower $ide] eq "vitis_unified" || [string tolower $ide] eq "vitis_classic"}]
+  if {([IsVitisClassic] || [IsVitisUnified]) && ($options(vitis_only) == 1 || $is_vitis_only_ide)} {
     # Check if this project has HLS components
     set has_hls [expr {[dict size [dict filter $globalSettings::PROPERTIES key {hls:*}]] > 0}]
     set has_platforms [expr {[dict size [dict filter $globalSettings::PROPERTIES key {platform:*}]] > 0}]
@@ -1337,6 +1338,11 @@ proc CreateProject {args} {
     if {$has_hls} {
       Msg Info "Found HLS component(s) in configuration, configuring HLS..."
       ConfigureHlsComponents
+    }
+
+    if {!$has_platforms && !$has_apps} {
+      Msg Info "vitis unified HLS-only project, skipping Vivado project setup."
+      return
     }
 
     if {$has_platforms || $has_apps} {

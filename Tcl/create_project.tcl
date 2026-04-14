@@ -1326,10 +1326,11 @@ proc CreateProject {args} {
     set globalSettings::HOG_IP_PATH ""
   }
 
-  InitProject $options(vitis_only)
-
   set is_vitis_only_ide [expr {[string tolower $ide] eq "vitis_unified" || [string tolower $ide] eq "vitis_classic"}]
-  if {([IsVitisClassic] || [IsVitisUnified]) && ($options(vitis_only) == 1 || $is_vitis_only_ide)} {
+  set effective_vitis_only [expr {$options(vitis_only) == 1 || $is_vitis_only_ide}]
+  InitProject $effective_vitis_only
+
+  if {([IsVitisClassic] || [IsVitisUnified]) && $effective_vitis_only} {
     # Check if this project has HLS components
     set has_hls [expr {[dict size [dict filter $globalSettings::PROPERTIES key {hls:*}]] > 0}]
     set has_platforms [expr {[dict size [dict filter $globalSettings::PROPERTIES key {platform:*}]] > 0}]

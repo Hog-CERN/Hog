@@ -771,8 +771,24 @@ if {$do_rtl == 1} {
 }
 
 if {$do_vitis_build == 1} {
-    if {[IsVitisClassic] || [IsVitisUnified]} {
-    LaunchVitisBuild $project_name $repo_path
+  if {[IsVitisClassic] || [IsVitisUnified]} {
+    # Check for HLS components and build them
+    set conf_file_path [file normalize "$repo_path/Top/$project_name/hog.conf"]
+    if {[file exists $conf_file_path]} {
+      set proj_properties [ReadConf $conf_file_path]
+      set hls_components [dict filter $proj_properties key {hls:*}]
+      if {[dict size $hls_components] > 0} {
+        Msg Info "Found [dict size $hls_components] HLS component(s), launching HLS build..."
+        LaunchHlsBuild $project_name $repo_path
+      }
+      # Build apps/platforms if any exist
+      set has_apps [expr {[dict size [dict filter $proj_properties key {app:*}]] > 0}]
+      if {$has_apps} {
+        LaunchVitisBuild $project_name $repo_path
+      }
+    } else {
+      LaunchVitisBuild $project_name $repo_path
+    }
   } else {
     Msg Error "Vitis build is not supported for $ide_name (only Vitis Classic and Vitis Unified are supported)"
     exit 1

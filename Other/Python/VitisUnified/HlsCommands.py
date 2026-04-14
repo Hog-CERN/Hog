@@ -222,69 +222,59 @@ def RunHlsCosim(component_name, cfg_file, work_dir):
     return False
 
 
-def ExportHlsDesign(component_name, work_dir, output_dir=None):
-  """Export the synthesized HLS design (IP or XO).
+def CollectHlsReports(component_name, work_dir, output_dir):
+  """Collect HLS synthesis and simulation reports into output_dir.
 
-  After synthesis, the exported IP is typically located under
-  work_dir/<component>/impl/ or work_dir/<component>/syn/.
-  This function copies the export artifacts to the specified output directory.
+  After synthesis, reports are typically located under
+  work_dir/<component>/syn/report/ (.rpt, .xml).
+  After co-simulation, reports may also be under
+  work_dir/<component>/sim/report/.
+
+  RTL and IP outputs are NOT collected here — their location is
+  controlled by hls_config.cfg and they are version-controlled in place.
 
   Args:
     component_name: Name of the HLS component
     work_dir: Working directory where the build was done
-    output_dir: Directory where the exported IP should be copied
+    output_dir: Directory where reports should be copied (typically bin/)
   Returns:
-    bool: True if successful, False otherwise
+    bool: True if any reports were found, False otherwise
   """
   try:
-    PrintInfo("Exporting HLS design for component '%s'" % component_name)
+    PrintInfo("Collecting HLS reports for component '%s'" % component_name)
 
-    impl_dir = os.path.join(work_dir, component_name, "impl")
-    export_dir_ip = os.path.join(impl_dir, "ip")
-    export_dir_xo = os.path.join(impl_dir, "export.xo")
+    report_extensions = (".rpt", ".xml", ".log")
+    report_dirs = [
+      os.path.join(work_dir, component_name, "syn", "report"),
+      os.path.join(work_dir, component_name, "sim", "report"),
+    ]
 
-    found_artifacts = []
+    found_reports = []
+    for report_dir in report_dirs:
+      if not os.path.isdir(report_dir):
+        continue
+      for root, dirs, files in os.walk(report_dir):
+        for f in files:
+          if any(f.endswith(ext) for ext in report_extensions):
+            found_reports.append(os.path.join(root, f))
 
-    if os.path.isdir(export_dir_ip):
-      for f in os.listdir(export_dir_ip):
-        if f.endswith(".zip"):
-          found_artifacts.append(os.path.join(export_dir_ip, f))
-
-    if os.path.exists(export_dir_xo):
-      found_artifacts.append(export_dir_xo)
-
-    syn_verilog = os.path.join(work_dir, component_name, "syn", "verilog")
-    syn_vhdl = os.path.join(work_dir, component_name, "syn", "vhdl")
-    if os.path.isdir(syn_verilog):
-      found_artifacts.append(syn_verilog)
-    if os.path.isdir(syn_vhdl):
-      found_artifacts.append(syn_vhdl)
-
-    if not found_artifacts:
-      PrintWarning("No export artifacts found for '%s' in %s" % (component_name, work_dir))
-      if os.path.isdir(impl_dir):
-        for root, dirs, files in os.walk(impl_dir):
-          for f in files:
-            PrintInfo("  Found: %s" % os.path.join(root, f))
+    if not found_reports:
+      PrintWarning("No reports found for '%s' in %s" % (component_name, work_dir))
       return False
 
-    if output_dir:
-      os.makedirs(output_dir, exist_ok=True)
-      for artifact in found_artifacts:
-        dst = os.path.join(output_dir, os.path.basename(artifact))
-        PrintInfo("Copying artifact: %s -> %s" % (artifact, dst))
-        if os.path.isdir(artifact):
-          if os.path.exists(dst):
-            shutil.rmtree(dst)
-          shutil.copytree(artifact, dst)
-        else:
-          shutil.copy2(artifact, dst)
+    hls_report_dir = os.path.join(output_dir, "hls_%s_reports" % component_name)
+    os.makedirs(hls_report_dir, exist_ok=True)
 
-    PrintInfo("Export completed for '%s'. Artifacts: %s" % (component_name, [os.path.basename(a) for a in found_artifacts]))
+    for report in found_reports:
+      dst = os.path.join(hls_report_dir, os.path.basename(report))
+      PrintInfo("Copying report: %s -> %s" % (report, dst))
+      shutil.copy2(report, dst)
+
+    PrintInfo("Collected %d report(s) for '%s'" % (len(found_reports), component_name))
     return True
 
   except Exception as e:
-    PrintError("Failed to export HLS design: %s" % e)
+    PrintError("Failed to collect HLS reports: %s" % e)
     import traceback
     traceback.print_exc()
     sys.stdout.flush()
@@ -301,7 +291,7 @@ if __name__ == "__main__":
     print("  csim <component_name> <cfg_file> <work_dir>", flush=True)
     print("  synthesis <component_name> <cfg_file> <work_dir>", flush=True)
     print("  cosim <component_name> <cfg_file> <work_dir>", flush=True)
-    print("  export <component_name> <work_dir> [output_dir]", flush=True)
+    print("  collect_reports <component_name> <work_dir> <output_dir>", flush=True)
     sys.exit(1)
 
   command = sys.argv[1]
@@ -357,19 +347,18 @@ if __name__ == "__main__":
     )
     sys.exit(0 if result else 1)
 
-  elif command == "export":
-    if len(sys.argv) < 4:
-      PrintError("export requires: component_name work_dir [output_dir]")
+  elif command == "collect_reports":
+    if len(sys.argv) < 5:
+      PrintError("collect_reports requires: component_name work_dir output_dir")
       sys.exit(1)
-    output_dir = sys.argv[4] if len(sys.argv) > 4 else None
-    result = ExportHlsDesign(
+    result = CollectHlsReports(
       component_name=sys.argv[2],
       work_dir=sys.argv[3],
-      output_dir=output_dir
+      output_dir=sys.argv[4]
     )
     sys.exit(0 if result else 1)
 
   else:
     PrintError("Unknown command: %s" % command)
-    print("Available commands: validate, generate_minimal, csim, synthesis, cosim, export", file=sys.stderr, flush=True)
+    print("Available commands: validate, generate_minimal, csim, synthesis, cosim, collect_reports", file=sys.stderr, flush=True)
     sys.exit(1)

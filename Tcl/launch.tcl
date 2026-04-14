@@ -15,219 +15,6 @@
 #   limitations under the License.
 
 
-# Launch Xilinx Vivado or ISE implementation and possibly write bitstream in text mode
-
-# Developers Tip for new commands
-# Add a hashtag sign # after the curly brake (e.g. \^C(REATE)?$ {# ...}) if the command requires a project name as an argument
-
-set default_commands {
-
-  \^L(IST)?$ {
-    Msg Status "\n** The projects in this repository are:"
-    ListProjects $repo_path $list_all
-    Msg Status "\n"
-    exit 0
-  # NAME*: LIST or L
-  # DESCRIPTION: List the projects in the repository. To show hidden projects use the -all option
-  # OPTIONS: all, verbose
-  }
-
-  \^H(ELP)?$ {
-    puts "$usage"
-    exit 0
-  # NAME: HELP or H
-  # DESCRIPTION: Display this help message or specific help for each directive
-  # OPTIONS:
-  }
-
-  \^(CHECKCI|CIE)?$ {
-    set do_check_ci_env 1
-    # NAME: CHECKCIENV or CIE
-    # DESCRIPTION: Check that the common environment variables needed for Hog-CI are set
-    # OPTIONS: verbose
-  }
-
-  \^(CHECKPROJENV|CPE)?$ {#
-    set do_checkproj_env 1
-  # NAME: CHECKPROJENV or CPE
-  # DESCRIPTION: Check that the environment variables needed for Hog-CI to run the chosen project are set and point to valid paths
-  # OPTIONS: verbose
-  }
-
-  \^(CHECKPROJVER|CPV)?$ {#
-    set do_checkproj_ver 1
-  # NAME: CHECKPROJVER or CPV
-  # DESCRIPTION: Check the project version just before creating the HDL project in Create_Project stage. \
-  The CI job will SKIP the project pipeline, if it the project has not been modified with respect to the target branch.
-  # OPTIONS: ext_path.arg, simcheck, verbose
-  }
-
-  \^C(REATE)?$ {#
-    set do_create 1
-    set recreate 1
-  # NAME*: CREATE or C
-  # DESCRIPTION: Create the project, replace it if already existing.
-  # OPTIONS: ext_path.arg, lib.arg, vivado_only, vitis_only, verbose
-  }
-
-  \^I(MPL(EMENT(ATION)?)?)?$ {#
-    set do_implementation 1
-    set do_bitstream 1
-    set do_compile 1
-  # NAME: IMPLEMENTATION or I
-  # DESCRIPTION: Runs only the implementation, the project must already exist and be synthesised.
-  # OPTIONS: check_syntax, ext_path.arg, njobs.arg, no_bitstream, no_reset, recreate, verbose
-  }
-
-  \^SYNT(H(ESIS(E)?)?)? {#
-    set do_synthesis 1
-    set do_compile 1
-  # NAME: SYNTH
-  # DESCRIPTION: Run synthesis only, create the project if not existing.
-  # OPTIONS: check_syntax, ext_path.arg, njobs.arg, recreate, verbose
-  }
-
-  \^S(IM(ULAT(ION|E)?)?)?$ {#
-    set do_simulation 1
-    set do_create 1
-  # NAME*: SIMULATION or S
-  # DESCRIPTION: Simulate the project, creating it if not existing, unless it is a GHDL simulation.
-  # OPTIONS: check_syntax, compile_only, ext_path.arg, lib.arg, recreate, scripts_only, simset.arg, verbose
-  }
-
-  \^W(ORK(FLOW)?)?$ {#
-    set do_implementation 1
-    set do_synthesis 1
-    set do_bitstream 1
-    set do_compile 1
-  # NAME*: WORKFLOW or W
-  # DESCRIPTION: Runs the full workflow, creates the project if not existing.
-  # OPTIONS: bitstream_only, check_syntax, ext_path.arg, impl_only, njobs.arg, no_bitstream, recreate, synth_only, verbose, vitis_only, xsa.arg
-  }
-
-  \^(CREATEWORKFLOW|CW)?$ {#
-    set do_implementation 1
-    set do_synthesis 1
-    set do_bitstream 1
-    set do_compile 1
-    set do_create 1
-    set recreate 1
-  # NAME: CREATEWORKFLOW or CW
-  # DESCRIPTION: Creates the project -even if existing- and launches the complete workflow.
-  # OPTIONS: check_syntax, ext_path.arg, njobs.arg, no_bitstream, synth_only, verbose, vivado_only, vitis_only, xsa.arg
-  }
-
-  \^(CHECKSYNTAX|CS)?$ {#proj
-    set do_check_syntax 1
-  # NAME: CHECKSYNTAX or CS
-  # DESCRIPTION: Check the syntax of the project. Only for Vivado, Quartus and Libero projects.
-  # OPTIONS: ext_path.arg, recreate, verbose
-  }
-
-  ^(IPB(US)?)|(X(ML)?)$ {#proj
-    set do_ipbus_xml 1
-  # NAME: IPBUS or IPB
-  # DESCRIPTION: Copy, check or create the IPbus XMLs for the project.
-  # OPTIONS: dst_dir.arg, generate, verbose
-  }
-
-  \^V(IEW)?$ {#proj
-    set do_list_file_parse 1
-  # NAME*: VIEW or V
-  # DESCRIPTION: Print Hog list file contents in a tree-like fashon.
-  # OPTIONS: verbose
-  }
-
-  \^(CHECKYAML|YML)?$ {
-    set min_n_of_args -1
-    set max_n_of_args 1
-    set do_check_yaml_ref 1
-  # NAME: CHECKYML or YML
-  # DESCRIPTION: Check that the ref to Hog repository in the .gitlab-ci.yml file, matches the one in Hog submodule.
-  # OPTIONS: verbose
-  }
-
-  \^B(UTTONS)?$ {
-    set min_n_of_args -1
-    set max_n_of_args 1
-    set do_buttons 1
-  # NAME: BUTTONS or B
-  # DESCRIPTION: Add Hog buttons to the Vivado GUI, to check and recreate Hog list and configuration files.
-  # OPTIONS: verbose
-  }
-
-  \^(CHECKLIST|CL)?$ {#proj
-    set do_check_list_files 1
-  # NAME: CHECKLIST or CL
-  # DESCRIPTION: Check that list and configuration files on disk match what is on the project.
-  # OPTIONS: ext_path.arg, verbose
-  }
-
-  \^COMPSIM(LIB)?$ {
-    set do_compile_lib 1
-    set argument_is_no_project 1
-  # NAME: COMPSIMLIB or COMPSIM
-  # DESCRIPTION: Compiles the simulation library for the chosen simulator with Vivado.
-  # OPTIONS: dst_dir.arg, verbose
-  }
-
-  \^RTL(ANALYSIS)?$ {#
-    set do_rtl 1
-  # NAME: RTL or RTLANALYSIS
-  # DESCRIPTION: Elaborate the RTL analysis report for the chosen project.
-  # OPTIONS: check_syntax, recreate, verbose
-  }
-
-  \^SIG(ASI)?$ {#
-    set do_sigasi 1
-  # NAME: SIGASI or SIG
-  # DESCRIPTION: Create a .csv file to be used in Sigasi.
-  # OPTIONS: verbose
-  }
-
-  \^T(REE)?$ {#
-    set do_hierarchy 1
-  # NAME: TREE or T
-  # DESCRIPTION: Print the design hierarchy for the chosen project.
-  # OPTIONS: compile_order, ext_path.arg, ignore.arg, include_gen_prods, include_ieee, light, output.arg, top.arg, verbose
-  }
-
-  \^VHDL(LS)?$ {#
-    set do_vhdl_ls 1
-  # NAME: VHDL-LS or VHDL
-  # DESCRIPTION: Create a VHDL-LS configuration file for the chosen project.
-  # OPTIONS: verbose
-  }
-
-  \^COCOTB$ {#
-    set do_cocotb 1
-  # NAME: COCOTB
-  # DESCRIPTION: Create a cocotb Python script to build VHDL/Verilog libraries using runner.build().
-  # OPTIONS: verbose
-  }
-
-  \^VER(SION)?$ {#
-    set do_version 1
-  # NAME*: VERSION or VER
-  # DESCRIPTION: Print the version of the chosen Hog project. With -describe, prints the Hog describe string instead.
-  # OPTIONS: describe, verbose
-  }
-
-  default {
-    if {$directive != ""} {
-      set NO_DIRECTIVE_FOUND 1
-    } else {
-      puts "$usage"
-      exit 0
-    }
-  }
-}
-
-# Add this bit above!
-#  \^NEW_DIRECTIVE?$ {
-#    set do_new_directive 1
-#  }
-
 
 #parsing command options
 set parameters {
@@ -267,6 +54,7 @@ set parameters {
 set tcl_path [file normalize "[file dirname [info script]]"]
 source $tcl_path/hog.tcl
 source $tcl_path/create_project.tcl
+source $tcl_path/commands.tcl
 
 # Initialize Vitis flags before InitLauncher so IsTclsh correctly returns 1
 set globalSettings::vitis_unified 0
@@ -440,7 +228,7 @@ if {$options(dst_dir) == "" && ($do_ipbus_xml == 1 || $do_check_list_files == 1)
 }
 
 if {$cmd == -1} {
-  #This is if the project was not found
+  # This is if the project was not found
   Msg Status "\n\nPossible projects are:"
   ListProjects $repo_path $do_list_all
   Msg Status "\n"
@@ -527,7 +315,7 @@ if {$cmd == -1} {
         listLibraries listProperties listSrcSets
     set hierarchy_result [Hierarchy $listProperties $listLibraries $repo_path $output_path $compile_order \
     $light_hierarchy $top_module $ignored_hierarchy $include_ieee $include_gen_prods]
-    # puts $hierarchy_result
+    puts $hierarchy_result
     exit 0
   }
   if {$do_sigasi == 1} {
@@ -588,7 +376,12 @@ if {$cmd == -1} {
     Msg Info "Creating cocotb library build script for project $project_name..."
     set proj_list_dir $repo_path/Top/$project_name/list
     set project [file tail $project_name]
-    lassign [GetHogFiles -list_files {.src} $proj_list_dir $repo_path] libraries
+    source $tcl_path/utils/hierarchy.tcl
+    lassign [GetHogFiles -ext_path $ext_path \
+        -list_files ".src,.ext" $proj_list_dir $repo_path]\
+        listLibraries listProperties listSrcSets
+    set compile_order [Hierarchy $listProperties $listLibraries $repo_path "" 1 "" "" "" 0 0 1]
+
     set py_file [open "cocotb_$project.py" w]
 
     puts $py_file "#!/usr/bin/env python3"
@@ -613,39 +406,23 @@ if {$cmd == -1} {
     puts $py_file "    build_path = Path(build_dir)"
     puts $py_file ""
 
-    dict for {lib source_files} $libraries {
-      set lib_name [file rootname $lib]
-      set vhdl_sources {}
-      set verilog_sources {}
-      foreach source_file $source_files {
-        set ext [file extension $source_file]
-        set rel [Relative $repo_path $source_file]
-        if {$ext eq ".vhd" || $ext eq ".vhdl"} {
-          lappend vhdl_sources $rel
-        } elseif {$ext eq ".v" || $ext eq ".sv"} {
-          lappend verilog_sources $rel
-        }
-      }
-      if {[llength $vhdl_sources] == 0 && [llength $verilog_sources] == 0} {
+    dict for {f l} $compile_order {
+      set lib_name $l
+      set ext [file extension $f]
+      set rel [Relative $repo_path $f]
+      if {$ext != ".vhd" && $ext != ".vhdl" && $ext != ".v" && $ext != ".sv"} {
         continue
       }
+
       puts $py_file "    runner.build("
       puts $py_file "        hdl_library=\"$lib_name\","
-      if {[llength $vhdl_sources] > 0} {
-        puts $py_file "        vhdl_sources=\["
-        foreach f $vhdl_sources {
-          puts $py_file "            REPO_ROOT / \"$f\","
-        }
-        puts $py_file "        \],"
-      }
-      if {[llength $verilog_sources] > 0} {
-        puts $py_file "        verilog_sources=\["
-        foreach f $verilog_sources {
-          puts $py_file "            REPO_ROOT / \"$f\","
-        }
-        puts $py_file "        \],"
-      }
+      puts $py_file "        sources=\["
+      puts $py_file "            REPO_ROOT / \"$rel\","
+      puts $py_file "        \],"
       puts $py_file "        build_dir=build_path,"
+      if {$ext == ".vhd" || $ext == ".vhdl"} {
+        puts $py_file "        build_args = \[ \"-2008\"\],"
+      }
       puts $py_file "        always=True,"
       puts $py_file "    )"
       puts $py_file ""

@@ -511,7 +511,7 @@ proc _debug_string_hier_meta {hier_meta_ref {indent 0}} {
 
 
 proc Hierarchy {listProperties listLibraries repo_path {output_path ""} \
-{compile_order 0} {light ""} {top_module_override ""} {ignore_opt_list ""} {include_ieee 0} {include_gen_prods 0}} {
+{compile_order 0} {light ""} {top_module_override ""} {ignore_opt_list ""} {include_ieee 0} {include_gen_prods 0} {quiet 0}} {
   set hier_meta [_create_hier_meta]
 
   set top_module ""
@@ -630,7 +630,7 @@ proc Hierarchy {listProperties listLibraries repo_path {output_path ""} \
   }
 }
 
-proc print_compile_order {hier_meta_ref sorted_list {output_file ""}} {
+proc print_compile_order {hier_meta_ref sorted_list {output_file ""} {quiet 0}} {
   upvar 1 $hier_meta_ref hier_meta
 
   # Build an ordered dict {file_path -> library}, deduplicating by file.
@@ -648,8 +648,10 @@ proc print_compile_order {hier_meta_ref sorted_list {output_file ""}} {
     dict set result $file_path $library
   }
 
-  dict for {file lib} $result {
-    PrintOrWrite $output_file "$file $lib"
+  if {$quiet == 0} {
+    dict for {file lib} $result {
+      PrintOrWrite $output_file "$file $lib"
+    }
   }
 
   return $result

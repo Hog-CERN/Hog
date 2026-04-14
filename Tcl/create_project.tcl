@@ -1036,6 +1036,7 @@ proc AddAppFiles {} {
 # For each [hls:<component_name>] section, this proc:
 # 1. Reads the HLS_CONFIG path from hog.conf (mandatory, repo-relative)
 # 2. Validates that the hls_config.cfg file exists and is well-formed
+# 3. Creates a Vitis-compatible workspace so the project can be opened in the GUI
 #
 # The hls_config.cfg is the single source of truth for HLS settings.
 # It is committed to the repo and directly used/edited by Vitis.
@@ -1049,6 +1050,7 @@ proc ConfigureHlsComponents {} {
   }
 
   set python_script "$globalSettings::repo_path/Hog/Other/Python/VitisUnified/HlsCommands.py"
+  set ws_dir [file normalize "$globalSettings::build_dir/vitis_unified"]
 
   dict for {hls_key hls_config} $hls_components {
     if {[regexp {^hls:(.+)$} $hls_key -> component_name]} {
@@ -1082,6 +1084,15 @@ proc ConfigureHlsComponents {} {
           $error_msg]} {
         Msg Error $error_msg
         continue
+      }
+
+      # Create Vitis workspace with HLS component for GUI compatibility
+      set hls_work_dir [file normalize "$ws_dir/hls_$component_name"]
+      Msg Info "Creating Vitis HLS workspace component '$component_name' in $ws_dir ..."
+      if {![ExecuteVitisUnifiedCommand $python_script "create_workspace" \
+          [list $ws_dir $component_name $hls_cfg_file $hls_work_dir] \
+          "Failed to create HLS workspace for $component_name"]} {
+        Msg Warning "Could not create Vitis workspace for HLS component '$component_name'"
       }
 
       Msg Info "HLS component '$component_name' configured successfully"

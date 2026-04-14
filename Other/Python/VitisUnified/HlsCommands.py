@@ -16,6 +16,7 @@ import sys
 import os
 import subprocess
 import shutil
+import json
 
 # Import functions from SharedCommands
 _shared_commands_path = os.path.join(os.path.dirname(__file__), "SharedCommands.py")
@@ -289,6 +290,72 @@ def CollectHlsReports(component_name, work_dir, output_dir):
     return False
 
 
+def CreateHlsWorkspace(workspace_path, component_name, cfg_file, work_dir):
+  """Create a Vitis-compatible HLS workspace so the project can be opened in the GUI.
+
+  The workspace is a directory containing one subdirectory per HLS component.
+  Each component directory holds a vitis-comp.json descriptor and a link
+  (or copy) of the committed hls_config.cfg.
+
+  Args:
+    workspace_path: Path to the Vitis workspace (e.g. Projects/<proj>/vitis_unified/)
+    component_name: Name of the HLS component
+    cfg_file:       Absolute path to the committed hls_config.cfg in the source tree
+    work_dir:       Absolute path to the HLS build work directory
+  Returns:
+    bool: True if successful, False otherwise
+  """
+  try:
+    comp_dir = os.path.join(workspace_path, component_name)
+    os.makedirs(comp_dir, exist_ok=True)
+
+    ws_cfg = os.path.join(comp_dir, "hls_config.cfg")
+    cfg_file = os.path.abspath(cfg_file)
+
+    if os.path.exists(ws_cfg) or os.path.islink(ws_cfg):
+      os.remove(ws_cfg)
+
+    linked = False
+    try:
+      os.symlink(cfg_file, ws_cfg)
+      linked = True
+      PrintInfo("Symlinked hls_config.cfg -> %s" % cfg_file)
+    except (OSError, NotImplementedError):
+      shutil.copy2(cfg_file, ws_cfg)
+      PrintWarning("Symlink not supported, copied hls_config.cfg to workspace. "
+                    "GUI edits will NOT propagate back to the source tree.")
+
+    rel_work_dir = os.path.relpath(os.path.abspath(work_dir), comp_dir)
+    vitis_comp = {
+      "name": component_name,
+      "type": "HLS",
+      "configuration": {
+        "componentType": "HLS",
+        "configFiles": ["hls_config.cfg"],
+        "work_dir": rel_work_dir
+      },
+      "template": "empty_hls_component"
+    }
+
+    vitis_comp_path = os.path.join(comp_dir, "vitis-comp.json")
+    with open(vitis_comp_path, 'w') as f:
+      json.dump(vitis_comp, f, indent=2)
+      f.write("\n")
+
+    PrintInfo("Created Vitis workspace component: %s" % comp_dir)
+    PrintInfo("  vitis-comp.json -> work_dir=%s" % rel_work_dir)
+    if linked:
+      PrintInfo("  hls_config.cfg is a symlink to the source tree (single source of truth)")
+    return True
+
+  except Exception as e:
+    PrintError("Failed to create HLS workspace: %s" % e)
+    import traceback
+    traceback.print_exc()
+    sys.stdout.flush()
+    return False
+
+
 if __name__ == "__main__":
   if len(sys.argv) < 2:
     PrintError("Command is required")
@@ -300,6 +367,7 @@ if __name__ == "__main__":
     print("  synthesis <component_name> <cfg_file> <work_dir>", flush=True)
     print("  cosim <component_name> <cfg_file> <work_dir>", flush=True)
     print("  collect_reports <component_name> <work_dir> <output_dir>", flush=True)
+    print("  create_workspace <workspace_path> <component_name> <cfg_file> <work_dir>", flush=True)
     sys.exit(1)
 
   command = sys.argv[1]
@@ -367,7 +435,19 @@ if __name__ == "__main__":
     )
     sys.exit(0)
 
+  elif command == "create_workspace":
+    if len(sys.argv) < 6:
+      PrintError("create_workspace requires: workspace_path component_name cfg_file work_dir")
+      sys.exit(1)
+    result = CreateHlsWorkspace(
+      workspace_path=sys.argv[2],
+      component_name=sys.argv[3],
+      cfg_file=sys.argv[4],
+      work_dir=sys.argv[5]
+    )
+    sys.exit(0 if result else 1)
+
   else:
     PrintError("Unknown command: %s" % command)
-    print("Available commands: validate, generate_minimal, csim, synthesis, cosim, collect_reports", file=sys.stderr, flush=True)
+    print("Available commands: validate, generate_minimal, csim, synthesis, cosim, collect_reports, create_workspace", file=sys.stderr, flush=True)
     sys.exit(1)

@@ -123,12 +123,14 @@ def RunHlsCsim(component_name, cfg_file, work_dir):
   """
   try:
     PrintInfo("Running C simulation for HLS component '%s'" % component_name)
+    cfg_dir = os.path.dirname(os.path.abspath(cfg_file))
     cmd = ["vitis-run", "--mode", "hls", "--csim",
            "--config", os.path.abspath(cfg_file),
            "--work_dir", os.path.abspath(work_dir)]
 
     PrintInfo("Command: %s" % " ".join(cmd))
-    result = subprocess.run(cmd, capture_output=False)
+    PrintInfo("Running from directory: %s" % cfg_dir)
+    result = subprocess.run(cmd, capture_output=False, cwd=cfg_dir)
 
     if result.returncode != 0:
       PrintError("C simulation failed for '%s' (exit code: %d)" % (component_name, result.returncode))
@@ -160,12 +162,14 @@ def RunHlsSynthesis(component_name, cfg_file, work_dir):
   """
   try:
     PrintInfo("Running C synthesis for HLS component '%s'" % component_name)
+    cfg_dir = os.path.dirname(os.path.abspath(cfg_file))
     cmd = ["v++", "--compile", "--mode", "hls",
            "--config", os.path.abspath(cfg_file),
            "--work_dir", os.path.abspath(work_dir)]
 
     PrintInfo("Command: %s" % " ".join(cmd))
-    result = subprocess.run(cmd, capture_output=False)
+    PrintInfo("Running from directory: %s" % cfg_dir)
+    result = subprocess.run(cmd, capture_output=False, cwd=cfg_dir)
 
     if result.returncode != 0:
       PrintError("C synthesis failed for '%s' (exit code: %d)" % (component_name, result.returncode))
@@ -197,12 +201,14 @@ def RunHlsCosim(component_name, cfg_file, work_dir):
   """
   try:
     PrintInfo("Running co-simulation for HLS component '%s'" % component_name)
+    cfg_dir = os.path.dirname(os.path.abspath(cfg_file))
     cmd = ["vitis-run", "--mode", "hls", "--cosim",
            "--config", os.path.abspath(cfg_file),
            "--work_dir", os.path.abspath(work_dir)]
 
     PrintInfo("Command: %s" % " ".join(cmd))
-    result = subprocess.run(cmd, capture_output=False)
+    PrintInfo("Running from directory: %s" % cfg_dir)
+    result = subprocess.run(cmd, capture_output=False, cwd=cfg_dir)
 
     if result.returncode != 0:
       PrintError("Co-simulation failed for '%s' (exit code: %d)" % (component_name, result.returncode))

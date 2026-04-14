@@ -1030,6 +1030,66 @@ proc AddAppFiles {} {
   AddHogFiles {*}[GetHogFiles -list_files {.src,.header} -ext_path $globalSettings::HOG_EXTERNAL_PATH $globalSettings::list_path $globalSettings::repo_path ]
 }
 
+## @brief Configure HLS components defined in hog.conf [hls:*] sections
+#
+# For each [hls:<component_name>] section, this proc:
+# 1. Reads the HLS_CONFIG path from hog.conf (mandatory, repo-relative)
+# 2. Validates that the hls_config.cfg file exists and is well-formed
+#
+# The hls_config.cfg is the single source of truth for HLS settings.
+# It is committed to the repo and directly used/edited by Vitis.
+#
+proc ConfigureHlsComponents {} {
+  set hls_components [dict filter $globalSettings::PROPERTIES key {hls:*}]
+
+  if {[dict size $hls_components] == 0} {
+    Msg Info "No HLS components found in the configuration file"
+    return
+  }
+
+  set python_script "$globalSettings::repo_path/Hog/Other/Python/VitisUnified/HlsCommands.py"
+
+  dict for {hls_key hls_config} $hls_components {
+    if {[regexp {^hls:(.+)$} $hls_key -> component_name]} {
+      set component_name [string trim $component_name]
+      Msg Info "Configuring HLS component: $component_name"
+
+      # Get HLS_CONFIG path from hog.conf (mandatory)
+      set hls_cfg_rel ""
+      if {[dict exists $hls_config hls_config]} {
+        set hls_cfg_rel [dict get $hls_config hls_config]
+      } elseif {[dict exists $hls_config HLS_CONFIG]} {
+        set hls_cfg_rel [dict get $hls_config HLS_CONFIG]
+      }
+      if {$hls_cfg_rel eq ""} {
+        Msg Error "HLS component '$component_name' missing HLS_CONFIG in hog.conf \[hls:$component_name\] section"
+        continue
+      }
+
+      set hls_cfg_file [file normalize "$globalSettings::repo_path/$hls_cfg_rel"]
+      if {![file exists $hls_cfg_file]} {
+        Msg Error "HLS config file not found: $hls_cfg_file (from HLS_CONFIG=$hls_cfg_rel)"
+        continue
+      }
+
+      Msg Info "  HLS config: $hls_cfg_file"
+
+      # Validate the config file
+      set error_msg "Failed to validate HLS config for $component_name"
+      if {![ExecuteVitisUnifiedCommand $python_script "validate" \
+          [list $hls_cfg_file] \
+          $error_msg]} {
+        Msg Error $error_msg
+        continue
+      }
+
+      Msg Info "HLS component '$component_name' configured successfully"
+    } else {
+      Msg Warning "Invalid HLS key format: $hls_key. Expected format: hls:<name>"
+    }
+  }
+}
+
 ## @brief upgrade IPs in the project and copy them from HOG_IP_PATH if defined
 #
 proc ManageIPs {} {
@@ -1269,35 +1329,48 @@ proc CreateProject {args} {
   InitProject $options(vitis_only)
 
   if {([IsVitisClassic] || [IsVitisUnified]) && $options(vitis_only) == 1} {
-    set xsa_path $options(xsa)
+    # Check if this project has HLS components
+    set has_hls [expr {[dict size [dict filter $globalSettings::PROPERTIES key {hls:*}]] > 0}]
+    set has_platforms [expr {[dict size [dict filter $globalSettings::PROPERTIES key {platform:*}]] > 0}]
+    set has_apps [expr {[dict size [dict filter $globalSettings::PROPERTIES key {app:*}]] > 0}]
 
-    if {$xsa_path == ""} {
-      if {[string match "vivado_*" [string tolower $ide]]} {
-        # vivado_vitis project: generate pre-synth XSA from existing Vivado project
-        set xpr_file [file normalize "$globalSettings::build_dir/[file tail $globalSettings::DESIGN].xpr"]
-        if {[file exists $xpr_file]} {
-          Msg Info "Opening existing Vivado project to generate pre-synth XSA..."
-          open_project $xpr_file
-          set xsa_path [file normalize "$globalSettings::build_dir/$globalSettings::DESIGN-presynth.xsa"]
-          write_hw_platform -fixed -force -file $xsa_path
-          Msg Info "Pre-synth XSA generated: $xsa_path"
-          close_project
-        } else {
-          # tclint-disable-next-line line-length
-          Msg Error "Vivado project not found at $xpr_file. Please run CREATE without -vitis_only first to create the Vivado project or provide an XSA file via the -xsa option."
-          return 1
-        }
-      } else {
-        # Standalone vitis project: XSA is mandatory
-        Msg Error "This is a $ide only project, an XSA file must be provided via the -xsa option."
-        return 1
-      }
+    if {$has_hls} {
+      Msg Info "Found HLS component(s) in configuration, configuring HLS..."
+      ConfigureHlsComponents
     }
 
-    Msg Info "Configuring platforms with XSA: $xsa_path"
-    ConfigurePlatforms "$xsa_path"
-    ConfigureApps
-    AddAppFiles
+    if {$has_platforms || $has_apps} {
+      set xsa_path $options(xsa)
+
+      if {$xsa_path == ""} {
+        if {[string match "vivado_*" [string tolower $ide]]} {
+          # vivado_vitis project: generate pre-synth XSA from existing Vivado project
+          set xpr_file [file normalize "$globalSettings::build_dir/[file tail $globalSettings::DESIGN].xpr"]
+          if {[file exists $xpr_file]} {
+            Msg Info "Opening existing Vivado project to generate pre-synth XSA..."
+            open_project $xpr_file
+            set xsa_path [file normalize "$globalSettings::build_dir/$globalSettings::DESIGN-presynth.xsa"]
+            write_hw_platform -fixed -force -file $xsa_path
+            Msg Info "Pre-synth XSA generated: $xsa_path"
+            close_project
+          } else {
+            # tclint-disable-next-line line-length
+            Msg Error "Vivado project not found at $xpr_file. Please run CREATE without -vitis_only first to create the Vivado project or provide an XSA file via the -xsa option."
+            return 1
+          }
+        } else {
+          # Standalone vitis project: XSA is mandatory for platform/app
+          Msg Error "This is a $ide only project with platform/app sections, an XSA file must be provided via the -xsa option."
+          return 1
+        }
+      }
+
+      Msg Info "Configuring platforms with XSA: $xsa_path"
+      ConfigurePlatforms "$xsa_path"
+      ConfigureApps
+      AddAppFiles
+    }
+
     return
   }
 

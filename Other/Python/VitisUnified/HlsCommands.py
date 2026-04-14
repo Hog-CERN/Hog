@@ -294,8 +294,9 @@ def CreateHlsWorkspace(workspace_path, component_name, cfg_file, work_dir):
   """Create a Vitis-compatible HLS workspace so the project can be opened in the GUI.
 
   The workspace is a directory containing one subdirectory per HLS component.
-  Each component directory holds a vitis-comp.json descriptor and a link
-  (or copy) of the committed hls_config.cfg.
+  Each component directory holds a vitis-comp.json descriptor that points
+  directly to the committed hls_config.cfg in the source tree (no copy or
+  symlink needed).
 
   Args:
     workspace_path: Path to the Vitis workspace (e.g. Projects/<proj>/vitis_unified/)
@@ -309,30 +310,17 @@ def CreateHlsWorkspace(workspace_path, component_name, cfg_file, work_dir):
     comp_dir = os.path.join(workspace_path, component_name)
     os.makedirs(comp_dir, exist_ok=True)
 
-    ws_cfg = os.path.join(comp_dir, "hls_config.cfg")
     cfg_file = os.path.abspath(cfg_file)
-
-    if os.path.exists(ws_cfg) or os.path.islink(ws_cfg):
-      os.remove(ws_cfg)
-
-    linked = False
-    try:
-      os.symlink(cfg_file, ws_cfg)
-      linked = True
-      PrintInfo("Symlinked hls_config.cfg -> %s" % cfg_file)
-    except (OSError, NotImplementedError):
-      shutil.copy2(cfg_file, ws_cfg)
-      PrintWarning("Symlink not supported, copied hls_config.cfg to workspace. "
-                    "GUI edits will NOT propagate back to the source tree.")
-
+    rel_cfg = os.path.relpath(cfg_file, comp_dir)
     rel_work_dir = os.path.relpath(os.path.abspath(work_dir), comp_dir)
+
     vitis_comp = {
       "name": component_name,
       "type": "HLS",
       "configuration": {
         "componentType": "HLS",
-        "configFiles": ["hls_config.cfg"],
-        "work_dir": rel_work_dir
+        "configFiles": [rel_cfg.replace("\\", "/")],
+        "work_dir": rel_work_dir.replace("\\", "/")
       },
       "template": "empty_hls_component"
     }
@@ -343,9 +331,8 @@ def CreateHlsWorkspace(workspace_path, component_name, cfg_file, work_dir):
       f.write("\n")
 
     PrintInfo("Created Vitis workspace component: %s" % comp_dir)
-    PrintInfo("  vitis-comp.json -> work_dir=%s" % rel_work_dir)
-    if linked:
-      PrintInfo("  hls_config.cfg is a symlink to the source tree (single source of truth)")
+    PrintInfo("  configFiles -> %s" % rel_cfg)
+    PrintInfo("  work_dir    -> %s" % rel_work_dir)
     return True
 
   except Exception as e:

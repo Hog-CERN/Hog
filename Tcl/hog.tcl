@@ -6036,7 +6036,7 @@ proc LaunchHlsBuild {project_name {repo_path .}} {
       continue
     }
 
-    set hls_work_dir [file normalize "$repo_path/Projects/$project_name/hls_$component_name"]
+    set hls_work_dir [file normalize "$repo_path/Projects/$project_name/vitis_unified/$component_name"]
     file mkdir $hls_work_dir
 
     # Check if csim should be run

@@ -322,13 +322,12 @@ def CreateHlsWorkspace(workspace_path, component_name, cfg_file, work_dir):
     rel_cfg = os.path.relpath(cfg_file, comp_dir)
     rel_work_dir = os.path.relpath(os.path.abspath(work_dir), comp_dir)
 
-    # Try the Vitis Python API to create the HLS component
+    # create_hls_component(name, platform=None, part=None, cfg_file=None, template=None)
     api_created = False
     try:
-      hls_comp = client.create_hls_component(
+      client.create_hls_component(
         name=component_name,
-        cfg_file=cfg_file,
-        work_dir=os.path.abspath(work_dir)
+        cfg_file=cfg_file
       )
       PrintInfo("HLS component '%s' created via Vitis API" % component_name)
       api_created = True

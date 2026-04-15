@@ -29,6 +29,7 @@ if os.path.exists(_shared_commands_path):
   PrintError = shared_commands.PrintError
   PrintWarning = shared_commands.PrintWarning
   PrintDebug = shared_commands.PrintDebug
+  InitVitisWorkspace = shared_commands.InitVitisWorkspace
 else:
   print("ERROR: [Hog:Python:HlsCommands.py] Failed to import SharedCommands, file not found: %s" % _shared_commands_path)
 
@@ -293,10 +294,10 @@ def CollectHlsReports(component_name, work_dir, output_dir):
 def CreateHlsWorkspace(workspace_path, component_name, cfg_file, work_dir):
   """Create a Vitis-compatible HLS workspace so the project can be opened in the GUI.
 
-  The workspace is a directory containing one subdirectory per HLS component.
-  Each component directory holds a vitis-comp.json descriptor that points
-  directly to the committed hls_config.cfg in the source tree (no copy or
-  symlink needed).
+  Uses InitVitisWorkspace (SharedCommands) to properly initialize the
+  workspace metadata (_ide folder), then creates a component directory
+  with a vitis-comp.json descriptor that points directly to the committed
+  hls_config.cfg in the source tree.
 
   Args:
     workspace_path: Path to the Vitis workspace (e.g. Projects/<proj>/vitis_unified/)
@@ -307,28 +308,55 @@ def CreateHlsWorkspace(workspace_path, component_name, cfg_file, work_dir):
     bool: True if successful, False otherwise
   """
   try:
-    comp_dir = os.path.join(workspace_path, component_name)
-    os.makedirs(comp_dir, exist_ok=True)
+    import vitis
 
+    os.makedirs(workspace_path, exist_ok=True)
+
+    client = InitVitisWorkspace(workspace_path)
+    if client is None:
+      PrintError("Could not initialize Vitis workspace")
+      return False
+
+    comp_dir = os.path.join(workspace_path, component_name)
     cfg_file = os.path.abspath(cfg_file)
     rel_cfg = os.path.relpath(cfg_file, comp_dir)
     rel_work_dir = os.path.relpath(os.path.abspath(work_dir), comp_dir)
 
-    vitis_comp = {
-      "name": component_name,
-      "type": "HLS",
-      "configuration": {
-        "componentType": "HLS",
-        "configFiles": [rel_cfg.replace("\\", "/")],
-        "work_dir": rel_work_dir.replace("\\", "/")
-      },
-      "template": "empty_hls_component"
-    }
+    # Try the Vitis Python API to create the HLS component
+    api_created = False
+    try:
+      hls_comp = client.create_hls_component(
+        name=component_name,
+        cfg_file=cfg_file,
+        work_dir=os.path.abspath(work_dir)
+      )
+      PrintInfo("HLS component '%s' created via Vitis API" % component_name)
+      api_created = True
+    except AttributeError:
+      PrintInfo("client.create_hls_component() not available, generating vitis-comp.json manually")
+    except Exception as e:
+      PrintWarning("Vitis API create_hls_component failed: %s. Falling back to manual generation." % e)
 
-    vitis_comp_path = os.path.join(comp_dir, "vitis-comp.json")
-    with open(vitis_comp_path, 'w') as f:
-      json.dump(vitis_comp, f, indent=2)
-      f.write("\n")
+    if not api_created:
+      os.makedirs(comp_dir, exist_ok=True)
+
+      vitis_comp = {
+        "name": component_name,
+        "type": "HLS",
+        "configuration": {
+          "componentType": "HLS",
+          "configFiles": [rel_cfg.replace("\\", "/")],
+          "work_dir": rel_work_dir.replace("\\", "/")
+        },
+        "template": "empty_hls_component"
+      }
+
+      vitis_comp_path = os.path.join(comp_dir, "vitis-comp.json")
+      with open(vitis_comp_path, 'w') as f:
+        json.dump(vitis_comp, f, indent=2)
+        f.write("\n")
+
+    vitis.dispose()
 
     PrintInfo("Created Vitis workspace component: %s" % comp_dir)
     PrintInfo("  configFiles -> %s" % rel_cfg)
@@ -340,6 +368,11 @@ def CreateHlsWorkspace(workspace_path, component_name, cfg_file, work_dir):
     import traceback
     traceback.print_exc()
     sys.stdout.flush()
+    try:
+      import vitis
+      vitis.dispose()
+    except:
+      pass
     return False
 
 

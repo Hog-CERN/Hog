@@ -30,6 +30,7 @@ if os.path.exists(_shared_commands_path):
   PrintInfo = shared_commands.PrintInfo
   PrintError = shared_commands.PrintError
   PrintWarning = shared_commands.PrintWarning
+  InitVitisWorkspace = shared_commands.InitVitisWorkspace
 else:
   print("ERROR: [Hog:Python:PlatformCommands.py] Failed to import SharedCommands, file not found: %s" % _shared_commands_path)
 
@@ -286,32 +287,9 @@ def CreatePlatform(platform_options=None, ws_dir=None):
       PrintInfo("Removing existing platform directory '%s' before re-creation..." % platform_dir)
       shutil.rmtree(platform_dir, ignore_errors=True)
 
-    PrintInfo("Creating client...")
-    client = vitis.create_client()
-
-    # Set workspace and initialize if it doesn't exist
-    PrintInfo("Setting workspace...")
-    try:
-      client.set_workspace(path=ws_dir)
-    except Exception as e:
-      error_msg = str(e)
-      if "cannot recognize the workspace version" in error_msg or "update_workspace" in error_msg:
-        try:
-          client.update_workspace(path=ws_dir)
-          try:
-            client.set_workspace(path=ws_dir)
-          except Exception as e2:
-            PrintError("Failed to set workspace after initialization: %s" % e2)
-            vitis.dispose()
-            return False
-        except Exception as init_err:
-          PrintError("Failed to initialize workspace '%s': %s" % (ws_dir, init_err))
-          vitis.dispose()
-          return False
-      else:
-        PrintError("Failed to set workspace '%s': %s" % (ws_dir, e))
-        vitis.dispose()
-        return False
+    client = InitVitisWorkspace(ws_dir)
+    if client is None:
+      return False
 
     # Create platform component
     try:

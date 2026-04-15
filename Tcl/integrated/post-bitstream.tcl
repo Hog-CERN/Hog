@@ -479,7 +479,14 @@ if {[IsXilinx]} {
         }
 
         # Copy ELF files from Vitis build output into bin directory
-        set app_names [GetAppsFromProps $properties 1]
+        # Extract app names preserving original case from hog.conf,
+        # since Vitis creates directories matching the original case
+        set app_names [list]
+        foreach prop_key [dict keys $properties] {
+          if {[regexp {^app:(.+)$} $prop_key -> raw_app_name]} {
+            lappend app_names [string trim $raw_app_name]
+          }
+        }
         foreach app_name $app_names {
           if {$is_vitis_unified} {
             set elf_src [file normalize "$repo_path/Projects/$full_proj_name/vitis_unified/$app_name/build/$app_name.elf"]

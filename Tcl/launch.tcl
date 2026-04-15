@@ -630,47 +630,44 @@ if {$cmd == -1} {
   }
 
   set simsets ""
-  set hls_simsets_requested [list]
-  set hdl_simsets_requested ""
   if {$do_simulation == 1} {
-    # Separate HLS simsets (csim:*/cosim:*) from HDL simsets
+    # Filter out HLS simsets (csim:*/cosim:*) -- GHDL only needs HDL simsets
+    set hdl_simsets_pre [list]
     if {$options(simset) ne ""} {
       foreach s $options(simset) {
-        if {[regexp {^(csim|cosim):} $s]} {
-          lappend hls_simsets_requested $s
-        } else {
-          lappend hdl_simsets_requested $s
+        if {![regexp {^(csim|cosim):} $s]} {
+          lappend hdl_simsets_pre $s
         }
       }
     }
 
-    set has_hdl_simsets [expr {$hdl_simsets_requested ne "" || $options(simset) eq ""}]
-    set has_hls_simsets [expr {[llength $hls_simsets_requested] > 0 || $options(simset) eq ""}]
-
-    if {$has_hdl_simsets} {
-      # Get all simsets in the project that run with GHDL
-      set ghdl_simsets [GetSimSets $project_name $repo_path "$hdl_simsets_requested" 1]
-      set ghdl_import 0
-      dict for {simset_name simset_dict} $ghdl_simsets {
-        if {$ghdl_import == 0} {
-          ImportGHDL $project_name $repo_path $simset_name $simset_dict $ext_path
-          set ghdl_import 1
-        }
-        LaunchGHDL $project_name $repo_path $simset_name $simset_dict $ext_path
+    # Get all simsets in the project that run with GHDL
+    set ghdl_simsets [GetSimSets $project_name $repo_path "$hdl_simsets_pre" 1]
+    set ghdl_import 0
+    dict for {simset_name simset_dict} $ghdl_simsets {
+      if {$ghdl_import == 0} {
+        ImportGHDL $project_name $repo_path $simset_name $simset_dict $ext_path
+        set ghdl_import 1
       }
-      set ide_simsets [GetSimSets $project_name $repo_path $hdl_simsets_requested 0 1]
-    } else {
-      set ide_simsets [dict create]
+      LaunchGHDL $project_name $repo_path $simset_name $simset_dict $ext_path
     }
+    set ide_simsets [GetSimSets $project_name $repo_path $hdl_simsets_pre 0 1]
 
-    # If no HDL simsets remain and only HLS was requested, skip IDE launch for simulation
-    if {[dict size $ide_simsets] == 0 && !$has_hls_simsets} {
-      Msg Info "All simulations have been run, exiting..."
-      exit 0
-    }
-    if {[dict size $ide_simsets] == 0 && $has_hls_simsets && !$has_hdl_simsets} {
-      # Only HLS simulations requested, no need to open the IDE for HDL sims
-      Msg Info "No HDL simulations to run, will run HLS simulations only."
+    if {[dict size $ide_simsets] == 0} {
+      # Check if there are HLS simsets to run before exiting
+      set has_hls [expr {$options(simset) eq ""}]
+      if {!$has_hls} {
+        foreach s $options(simset) {
+          if {[regexp {^(csim|cosim):} $s]} {
+            set has_hls 1
+            break
+          }
+        }
+      }
+      if {!$has_hls} {
+        Msg Info "All simulations have been run, exiting..."
+        exit 0
+      }
     }
   }
 
@@ -1049,15 +1046,32 @@ if {$do_bitstream == 1 && ![IsXilinx]} {
 }
 
 if {$do_simulation == 1} {
-  # Run HDL simulations (if any HDL simsets are to be run)
-  if {$hdl_simsets_requested ne "" || ($options(simset) eq "" && [dict size $ide_simsets] > 0)} {
-    set simsets [GetSimSets $project_name $repo_path $hdl_simsets_requested]
-    LaunchSimulation $project_name $lib_path $simsets $repo_path $scripts_only $compile_only
+  # Separate HLS simsets (csim:*/cosim:*) from HDL simsets
+  set hdl_simsets [list]
+  set hls_simsets [list]
+  if {$options(simset) ne ""} {
+    foreach s $options(simset) {
+      if {[regexp {^(csim|cosim):} $s]} {
+        lappend hls_simsets $s
+      } else {
+        lappend hdl_simsets $s
+      }
+    }
+  }
+  set run_hdl [expr {[llength $hdl_simsets] > 0 || $options(simset) eq ""}]
+  set run_hls [expr {[llength $hls_simsets] > 0 || $options(simset) eq ""}]
+
+  # Run HDL simulations
+  if {$run_hdl} {
+    set simsets [GetSimSets $project_name $repo_path $hdl_simsets]
+    if {[dict size $simsets] > 0} {
+      LaunchSimulation $project_name $lib_path $simsets $repo_path $scripts_only $compile_only
+    }
   }
 
   # Run HLS simulations (csim/cosim)
-  if {$has_hls_simsets} {
-    LaunchHlsSimulation $project_name $repo_path $hls_simsets_requested
+  if {$run_hls} {
+    LaunchHlsSimulation $project_name $repo_path $hls_simsets
   }
 }
 

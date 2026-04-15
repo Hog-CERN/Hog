@@ -478,6 +478,23 @@ if {[IsXilinx]} {
           Msg Error "$error_prefix returned an error state."
         }
 
+        # Copy ELF files from Vitis build output into bin directory
+        set app_names [GetAppsFromProps $properties 1]
+        foreach app_name $app_names {
+          if {$is_vitis_unified} {
+            set elf_src [file normalize "$repo_path/Projects/$full_proj_name/vitis_unified/$app_name/build/$app_name.elf"]
+          } else {
+            set elf_src [file normalize "$repo_path/Projects/$full_proj_name/vitis_classic/$app_name/Release/$app_name.elf"]
+          }
+          set elf_dst [file normalize "$dst_dir/${proj_name}\-${app_name}\-$describe.elf"]
+          if {[file exists $elf_src]} {
+            Msg Info "Copying ELF $elf_src into $elf_dst..."
+            file copy -force $elf_src $elf_dst
+          } else {
+            Msg Warning "ELF file not found: $elf_src"
+          }
+        }
+
         # Process ELF files and update bitstream with memory content
         set mmi_file [file normalize "$dst_dir/${proj_name}\-$describe.mmi"]
         GenerateBootArtifacts $properties $repo_path $proj_dir $dst_dir $proj_name $describe $dst_main $mmi_file

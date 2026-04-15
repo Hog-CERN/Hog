@@ -456,13 +456,15 @@ if {[IsXilinx]} {
       if {$is_vitis_classic || $is_vitis_unified} {
         Msg Info "XSA file written to $dst_xsa"
 
+        set full_proj_name [file join $group_name $proj_name]
+
         # Determine command based on project type
         if {$is_vitis_classic} {
-          set vitis_cmd "xsct $tcl_path/launch.tcl CW -xsa $dst_xsa -vitis_only $proj_name"
+          set vitis_cmd "xsct $tcl_path/launch.tcl CW -xsa $dst_xsa -vitis_only $full_proj_name"
           set vitis_type "Vitis Classic"
           set error_prefix "xsct (vitis classic)"
         } elseif {$is_vitis_unified} {
-          set vitis_cmd "$tcl_path/launch.tcl CW -xsa $dst_xsa -vitis_only $proj_name"
+          set vitis_cmd "$tcl_path/launch.tcl CW -xsa $dst_xsa -vitis_only $full_proj_name"
           set vitis_type "Vitis Unified"
           set error_prefix "vivado (for vitis unified)"
         } else {

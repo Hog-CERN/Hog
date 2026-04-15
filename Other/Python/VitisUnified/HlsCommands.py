@@ -230,6 +230,45 @@ def RunHlsCosim(component_name, cfg_file, work_dir):
     return False
 
 
+def RunHlsImpl(component_name, cfg_file, work_dir):
+  """Run implementation (place & route) for an HLS component.
+
+  Args:
+    component_name: Name of the HLS component
+    cfg_file: Absolute path to the hls_config.cfg file
+    work_dir: Working directory for the build
+  Returns:
+    bool: True if successful, False otherwise
+  """
+  try:
+    PrintInfo("Running implementation for HLS component '%s'" % component_name)
+    cfg_dir = os.path.dirname(os.path.abspath(cfg_file))
+    cmd = ["vitis-run", "--mode", "hls", "--impl",
+           "--config", os.path.abspath(cfg_file),
+           "--work_dir", os.path.abspath(work_dir)]
+
+    PrintInfo("Command: %s" % " ".join(cmd))
+    PrintInfo("Running from directory: %s" % cfg_dir)
+    result = subprocess.run(cmd, capture_output=False, cwd=cfg_dir)
+
+    if result.returncode != 0:
+      PrintError("Implementation failed for '%s' (exit code: %d)" % (component_name, result.returncode))
+      return False
+
+    PrintInfo("Implementation completed successfully for '%s'" % component_name)
+    return True
+
+  except FileNotFoundError:
+    PrintError("'vitis-run' not found in PATH. Please source Vitis settings first.")
+    return False
+  except Exception as e:
+    PrintError("Failed to run implementation: %s" % e)
+    import traceback
+    traceback.print_exc()
+    sys.stdout.flush()
+    return False
+
+
 def CollectHlsReports(component_name, work_dir, output_dir):
   """Collect HLS synthesis and simulation reports into output_dir.
 
@@ -442,6 +481,17 @@ if __name__ == "__main__":
     )
     sys.exit(0 if result else 1)
 
+  elif command == "impl":
+    if len(sys.argv) < 5:
+      PrintError("impl requires: component_name cfg_file work_dir")
+      sys.exit(1)
+    result = RunHlsImpl(
+      component_name=sys.argv[2],
+      cfg_file=sys.argv[3],
+      work_dir=sys.argv[4]
+    )
+    sys.exit(0 if result else 1)
+
   elif command == "collect_reports":
     if len(sys.argv) < 5:
       PrintError("collect_reports requires: component_name work_dir output_dir")
@@ -468,5 +518,5 @@ if __name__ == "__main__":
 
   else:
     PrintError("Unknown command: %s" % command)
-    print("Available commands: validate, generate_minimal, csim, synthesis, cosim, collect_reports, create_workspace", file=sys.stderr, flush=True)
+    print("Available commands: validate, generate_minimal, csim, synthesis, cosim, impl, collect_reports, create_workspace", file=sys.stderr, flush=True)
     sys.exit(1)

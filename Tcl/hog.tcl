@@ -5982,11 +5982,13 @@ proc LaunchVitisBuild {project_name {repo_path .} {stage "presynth"}} {
 
 # @brief Launch the HLS build for all [hls:*] components in the project
 #
-# For each HLS component, this proc:
-# 1. Reads HLS_CONFIG path from hog.conf (the committed, single source of truth)
-# 2. Runs C simulation (csim) if [hls_csim:<name>] is present
-# 3. Runs C synthesis
-# 4. Collects synthesis reports (.rpt, .xml) into bin/ for CI and release notes
+# For each HLS component defined in hog.conf, this proc runs:
+#   - C simulation       (only if CSIM=true in [hls:<name>])
+#   - C synthesis         (always)
+#   - C/RTL co-simulation (only if COSIM=true in [hls:<name>])
+#   - Implementation      (always)
+#   - Packaging is controlled by hls_config.cfg (package.output.format, etc.)
+# Finally, it collects reports (.rpt, .xml, .log) into bin/ for CI.
 #
 # @param[in] project_name The name of the project
 # @param[in] repo_path    The main path of the git repository (Default ".")
@@ -6011,7 +6013,7 @@ proc LaunchHlsBuild {project_name {repo_path .}} {
 
   set python_script [file normalize "$repo_path/Hog/Other/Python/VitisUnified/HlsCommands.py"]
 
-  dict for {hls_key hls_config} $hls_components {
+  dict for {hls_key hls_props} $hls_components {
     if {![regexp {^hls:(.+)$} $hls_key -> component_name]} {
       continue
     }
@@ -6020,10 +6022,10 @@ proc LaunchHlsBuild {project_name {repo_path .}} {
 
     # Read HLS_CONFIG path from hog.conf
     set hls_cfg_rel ""
-    if {[dict exists $hls_config hls_config]} {
-      set hls_cfg_rel [dict get $hls_config hls_config]
-    } elseif {[dict exists $hls_config HLS_CONFIG]} {
-      set hls_cfg_rel [dict get $hls_config HLS_CONFIG]
+    if {[dict exists $hls_props hls_config]} {
+      set hls_cfg_rel [dict get $hls_props hls_config]
+    } elseif {[dict exists $hls_props HLS_CONFIG]} {
+      set hls_cfg_rel [dict get $hls_props HLS_CONFIG]
     }
     if {$hls_cfg_rel eq ""} {
       Msg Error "HLS component '$component_name' missing HLS_CONFIG in hog.conf"
@@ -6039,10 +6041,22 @@ proc LaunchHlsBuild {project_name {repo_path .}} {
     set hls_work_dir [file normalize "$repo_path/Projects/$project_name/vitis_unified/$component_name"]
     file mkdir $hls_work_dir
 
-    # Check if csim should be run
-    set hls_csim_key "hls_csim:$component_name"
-    set run_csim [dict exists $properties $hls_csim_key]
+    # Read optional flow-control flags (default: disabled)
+    set run_csim 0
+    set run_cosim 0
+    foreach {key_lower key_upper} {csim CSIM cosim COSIM} {
+      set val ""
+      if {[dict exists $hls_props $key_lower]} {
+        set val [dict get $hls_props $key_lower]
+      } elseif {[dict exists $hls_props $key_upper]} {
+        set val [dict get $hls_props $key_upper]
+      }
+      if {[string tolower $val] eq "true" || $val eq "1"} {
+        set run_$key_lower 1
+      }
+    }
 
+    # ── Optional: C simulation ──
     if {$run_csim} {
       Msg Info "Running C simulation for HLS component '$component_name'..."
       if {![ExecuteVitisUnifiedCommand $python_script "csim" \
@@ -6051,9 +6065,11 @@ proc LaunchHlsBuild {project_name {repo_path .}} {
         Msg Error "C simulation failed for HLS component '$component_name'"
         continue
       }
+    } else {
+      Msg Info "Skipping C simulation for '$component_name' (CSIM not enabled in hog.conf)"
     }
 
-    # Run C synthesis
+    # ── Always: C synthesis ──
     Msg Info "Running C synthesis for HLS component '$component_name'..."
     if {![ExecuteVitisUnifiedCommand $python_script "synthesis" \
         [list $component_name $cfg_file $hls_work_dir] \
@@ -6062,7 +6078,29 @@ proc LaunchHlsBuild {project_name {repo_path .}} {
       continue
     }
 
-    # Collect synthesis reports into bin/ for CI and release notes
+    # ── Optional: C/RTL co-simulation ──
+    if {$run_cosim} {
+      Msg Info "Running C/RTL co-simulation for HLS component '$component_name'..."
+      if {![ExecuteVitisUnifiedCommand $python_script "cosim" \
+          [list $component_name $cfg_file $hls_work_dir] \
+          "Failed to run co-simulation for $component_name"]} {
+        Msg Error "C/RTL co-simulation failed for HLS component '$component_name'"
+        continue
+      }
+    } else {
+      Msg Info "Skipping C/RTL co-simulation for '$component_name' (COSIM not enabled in hog.conf)"
+    }
+
+    # ── Always: Implementation ──
+    Msg Info "Running implementation for HLS component '$component_name'..."
+    if {![ExecuteVitisUnifiedCommand $python_script "impl" \
+        [list $component_name $cfg_file $hls_work_dir] \
+        "Failed to run implementation for $component_name"]} {
+      Msg Error "Implementation failed for HLS component '$component_name'"
+      continue
+    }
+
+    # ── Collect reports into bin/ for CI and release notes ──
     Msg Info "Evaluating Hog describe for $project_name..."
     set describe [GetHogDescribe [file normalize ./Top/$project_name] $repo_path]
     Msg Info "Hog describe set to: $describe"

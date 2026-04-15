@@ -136,6 +136,9 @@ def RunHlsCsim(component_name, cfg_file, work_dir):
 
     if result.returncode != 0:
       PrintError("C simulation failed for '%s' (exit code: %d)" % (component_name, result.returncode))
+      PrintError("Check the log above for details. Common causes:")
+      PrintError("  - Missing include paths: add 'tb.cflags=-I <dir>' and/or 'syn.cflags=-I <dir>' to hls_config.cfg")
+      PrintError("  - Source files not found: verify syn.file/tb.file paths in hls_config.cfg are relative to the cfg file location")
       return False
 
     PrintInfo("C simulation completed successfully for '%s'" % component_name)
@@ -175,6 +178,10 @@ def RunHlsSynthesis(component_name, cfg_file, work_dir):
 
     if result.returncode != 0:
       PrintError("C synthesis failed for '%s' (exit code: %d)" % (component_name, result.returncode))
+      PrintError("Check the log above for details. Common causes:")
+      PrintError("  - Missing include paths: add 'syn.cflags=-I <dir>' to hls_config.cfg")
+      PrintError("  - Source files not found: verify syn.file paths in hls_config.cfg are relative to the cfg file location")
+      PrintError("  - Wrong top function: verify 'syn.top' in hls_config.cfg matches your C/C++ function name")
       return False
 
     PrintInfo("C synthesis completed successfully for '%s'" % component_name)
@@ -213,7 +220,11 @@ def RunHlsCosim(component_name, cfg_file, work_dir):
     result = subprocess.run(cmd, capture_output=False, cwd=cfg_dir)
 
     if result.returncode != 0:
-      PrintError("Co-simulation failed for '%s' (exit code: %d)" % (component_name, result.returncode))
+      PrintError("C/RTL co-simulation failed for '%s' (exit code: %d)" % (component_name, result.returncode))
+      PrintError("Check the log above for details. Common causes:")
+      PrintError("  - C synthesis must complete successfully before co-simulation")
+      PrintError("  - Missing include paths: add 'tb.cflags=-I <dir>' to hls_config.cfg")
+      PrintError("  - Testbench not specified: verify tb.file paths in hls_config.cfg")
       return False
 
     PrintInfo("Co-simulation completed successfully for '%s'" % component_name)
@@ -253,6 +264,9 @@ def RunHlsImpl(component_name, cfg_file, work_dir):
 
     if result.returncode != 0:
       PrintError("Implementation failed for '%s' (exit code: %d)" % (component_name, result.returncode))
+      PrintError("Check the log above for details. Common causes:")
+      PrintError("  - C synthesis must complete successfully before implementation")
+      PrintError("  - Timing constraints not met: review clock period in hls_config.cfg")
       return False
 
     PrintInfo("Implementation completed successfully for '%s'" % component_name)

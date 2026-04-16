@@ -95,11 +95,13 @@
         $(echo $SIM_CMD);
       fi;
   artifacts:
+    when: always
     name: simulation_files
     paths:
       - Projects/$PROJECT_NAME/*.sim
       - Projects/$PROJECT_NAME/ghdl
       - SkippedProjects/$PROJECT_NAME
+      - DebugProjects
     expire_in: 30 day
   allow_failure: true
   interruptible: true

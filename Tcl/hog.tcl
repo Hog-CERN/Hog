@@ -6092,6 +6092,23 @@ proc LaunchHlsBuild {project_name {repo_path .}} {
       }
     }
 
+    # Export IP catalog ZIP to source tree if IP_OUTPUT is set
+    set ip_output ""
+    if {[dict exists $hls_props ip_output]} {
+      set ip_output [dict get $hls_props ip_output]
+    } elseif {[dict exists $hls_props IP_OUTPUT]} {
+      set ip_output [dict get $hls_props IP_OUTPUT]
+    }
+    if {$ip_output ne ""} {
+      set ip_output_dir [file normalize "$repo_path/$ip_output"]
+      Msg Info "Exporting IP catalog for '$component_name' to $ip_output_dir..."
+      if {![ExecuteVitisUnifiedCommand $python_script "export_ip" \
+          [list $component_name $hls_work_dir $ip_output_dir] \
+          "Failed to export IP for $component_name"]} {
+        Msg Error "Could not export IP for HLS component '$component_name'. Make sure package.output.format=ip_catalog is set in hls_config.cfg."
+      }
+    }
+
     # Collect reports into bin/ for CI and release notes
     Msg Info "Evaluating Hog describe for $project_name..."
     set describe [GetHogDescribe [file normalize ./Top/$project_name] $repo_path]

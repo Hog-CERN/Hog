@@ -347,6 +347,61 @@ def ExportHlsRtl(component_name, work_dir, output_dir, language):
     return False
 
 
+def ExportHlsIp(component_name, work_dir, output_dir):
+  """Copy the IP catalog ZIP from the HLS build to a source-tree directory.
+
+  Requires package.output.format=ip_catalog in hls_config.cfg.
+  The ZIP file is generated during C synthesis and contains the packaged IP
+  (component.xml, RTL sources, synthesis scripts) ready for Vivado IP catalog.
+
+  Args:
+    component_name: Name of the HLS component
+    work_dir: HLS build working directory
+    output_dir: Destination directory for the IP ZIP
+  Returns:
+    bool: True if IP was exported, False otherwise
+  """
+  try:
+    PrintInfo("Exporting IP catalog for HLS component '%s' to %s" % (component_name, output_dir))
+
+    search_dirs = [
+      work_dir,
+      os.path.join(work_dir, "hls"),
+      os.path.join(work_dir, "hls", "syn"),
+      os.path.join(work_dir, component_name),
+    ]
+
+    found_files = []
+    for search_dir in search_dirs:
+      if not os.path.isdir(search_dir):
+        continue
+      for f in os.listdir(search_dir):
+        if f.endswith(".zip"):
+          found_files.append(os.path.join(search_dir, f))
+
+    if not found_files:
+      PrintError("No IP catalog ZIP found for '%s'. Make sure package.output.format=ip_catalog is set in hls_config.cfg." % component_name)
+      PrintError("Searched: %s" % ", ".join(search_dirs))
+      return False
+
+    os.makedirs(output_dir, exist_ok=True)
+
+    for src_file in found_files:
+      dst = os.path.join(output_dir, os.path.basename(src_file))
+      PrintInfo("Exporting: %s -> %s" % (os.path.basename(src_file), dst))
+      shutil.copy2(src_file, dst)
+
+    PrintInfo("Exported %d IP file(s) for '%s'" % (len(found_files), component_name))
+    return True
+
+  except Exception as e:
+    PrintError("Failed to export IP: %s" % e)
+    import traceback
+    traceback.print_exc()
+    sys.stdout.flush()
+    return False
+
+
 def CollectHlsReports(component_name, work_dir, output_dir):
   """Collect HLS synthesis and simulation reports into output_dir.
 
@@ -715,6 +770,17 @@ if __name__ == "__main__":
     )
     sys.exit(0 if result else 1)
 
+  elif command == "export_ip":
+    if len(sys.argv) < 5:
+      PrintError("export_ip requires: component_name work_dir output_dir")
+      sys.exit(1)
+    result = ExportHlsIp(
+      component_name=sys.argv[2],
+      work_dir=sys.argv[3],
+      output_dir=sys.argv[4]
+    )
+    sys.exit(0 if result else 1)
+
   elif command == "collect_reports":
     if len(sys.argv) < 5:
       PrintError("collect_reports requires: component_name work_dir output_dir")
@@ -741,5 +807,5 @@ if __name__ == "__main__":
 
   else:
     PrintError("Unknown command: %s" % command)
-    print("Available commands: validate, generate_minimal, csim, synthesis, cosim, impl, export_rtl, collect_reports, create_workspace", file=sys.stderr, flush=True)
+    print("Available commands: validate, generate_minimal, csim, synthesis, cosim, impl, export_rtl, export_ip, collect_reports, create_workspace", file=sys.stderr, flush=True)
     sys.exit(1)

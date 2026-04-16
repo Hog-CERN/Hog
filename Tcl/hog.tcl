@@ -6126,6 +6126,17 @@ proc LaunchHlsBuild {project_name {repo_path .}} {
       Msg Warning "No reports found for HLS component '$component_name'"
     }
 
+    # Generate markdown summary files (utilization.txt, timing_ok.txt / timing_error.txt)
+    # inside bin/<proj>-<describe>/<component>/. File names mirror the Vivado convention
+    # so the existing CI logic (release notes assembly and timing-failure detection)
+    # works for HLS components too.
+    Msg Info "Generating HLS release-notes summary for component '$component_name'..."
+    if {![ExecuteVitisUnifiedCommand $python_script "generate_summary" \
+        [list $component_name $hls_work_dir $dst_dir] \
+        "Failed to generate HLS summary for $component_name"]} {
+      Msg Warning "Could not generate HLS summary for component '$component_name'"
+    }
+
     Msg Info "HLS component '$component_name' built successfully"
   }
 

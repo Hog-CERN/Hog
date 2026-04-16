@@ -163,10 +163,12 @@ if {[file exists utilization.txt]} {
   set new_badges [dict create]
   set prj_name [string map {/ _} $project]
 
-  # Timing Badge
-  if {[file exists timing_error.txt]} {
+  # Timing Badge — check project root and any HLS component subfolders
+  set timing_error_files [concat [glob -nocomplain timing_error.txt] [glob -nocomplain */timing_error.txt]]
+  set timing_ok_files [concat [glob -nocomplain timing_ok.txt] [glob -nocomplain */timing_ok.txt]]
+  if {[llength $timing_error_files] > 0} {
     generate_prj_badge $prj_name $ver "#E05D44" "timing-$prj_name.svg"
-  } elseif {[file exists timing_ok.txt]} {
+  } elseif {[llength $timing_ok_files] > 0} {
     generate_prj_badge $prj_name $ver "#006400" "timing-$prj_name.svg"
   } else {
     generate_prj_badge $prj_name $ver "#696969" "timing-$prj_name.svg"

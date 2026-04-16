@@ -446,7 +446,7 @@ def CollectHlsReports(component_name, work_dir, output_dir):
       PrintWarning("No reports found for '%s' in %s" % (component_name, work_dir))
       return False
 
-    hls_report_dir = os.path.join(output_dir, "hls_%s_reports" % component_name)
+    hls_report_dir = os.path.join(output_dir, component_name, "reports")
     os.makedirs(hls_report_dir, exist_ok=True)
 
     for report in found_reports:
@@ -459,6 +459,311 @@ def CollectHlsReports(component_name, work_dir, output_dir):
 
   except Exception as e:
     PrintError("Failed to collect HLS reports: %s" % e)
+    import traceback
+    traceback.print_exc()
+    sys.stdout.flush()
+    return False
+
+
+def _find_first_file(roots, filename):
+  """Search each root (recursively) for the given filename, return the first match."""
+  for root in roots:
+    if not os.path.isdir(root):
+      continue
+    for dirpath, _, files in os.walk(root):
+      if filename in files:
+        return os.path.join(dirpath, filename)
+  return None
+
+
+def _fmt_util_pct(used, avail):
+  """Format a utilisation percentage as 'XX.XX' or '-' when unknown."""
+  try:
+    used_i = int(used)
+    avail_i = int(avail)
+    if avail_i <= 0:
+      return "-"
+    return "{:.2f}".format(100.0 * used_i / avail_i)
+  except (ValueError, TypeError):
+    return "-"
+
+
+def _write_hls_util_section(f, component_name, stage, rows):
+  """Write one utilisation section (markdown table) to file handle f.
+
+  rows is a list of tuples (site_type, used, available).
+  """
+  f.write("## %s HLS %s Utilization report\n\n\n" % (component_name, stage))
+  f.write("| **Site Type** | **Used** | **Available** | **Util%** |\n")
+  f.write("| --- | --- | --- | --- |\n")
+  for site, used, avail in rows:
+    pct = _fmt_util_pct(used, avail)
+    used_s = used if used not in (None, "") else "-"
+    avail_s = avail if avail not in (None, "") else "-"
+    f.write("| %s | %s | %s | %s |\n" % (site, used_s, avail_s, pct))
+  f.write("\n\n")
+
+
+def _write_hls_timing_section(f, component_name, stage, rows, met):
+  """Write one timing section (markdown table) to file handle f.
+
+  rows is a list of tuples (parameter, value_str).
+  met is True/False/None.
+  """
+  f.write("## %s HLS %s Timing summary\n\n" % (component_name, stage))
+  f.write("| **Parameter** | **value (ns)** |\n")
+  f.write("| --- | --- |\n")
+  for name, value in rows:
+    f.write("| %s | %s |\n" % (name, value))
+  f.write("\n")
+  if met is True:
+    f.write("Time requirements are met.\n")
+  elif met is False:
+    f.write("Time requirements are **NOT** met.\n")
+  f.write("\n\n")
+
+
+def _parse_hls_syn_xml(xml_path):
+  """Parse an HLS C-synthesis csynth.xml file.
+
+  Returns a dict with keys: target_clk, estimated_clk, clock_uncertainty,
+  lut, ff, dsp, bram, uram, avail_lut, avail_ff, avail_dsp, avail_bram, avail_uram.
+  Missing fields are None.
+  """
+  import xml.etree.ElementTree as ET
+  data = {
+    "target_clk": None, "estimated_clk": None, "clock_uncertainty": None,
+    "lut": None, "ff": None, "dsp": None, "bram": None, "uram": None,
+    "avail_lut": None, "avail_ff": None, "avail_dsp": None,
+    "avail_bram": None, "avail_uram": None,
+  }
+  tree = ET.parse(xml_path)
+  root = tree.getroot()
+
+  ua = root.find("UserAssignments")
+  if ua is not None:
+    t = ua.findtext("TargetClockPeriod")
+    if t is not None:
+      data["target_clk"] = t.strip()
+    u = ua.findtext("ClockUncertainty")
+    if u is not None:
+      data["clock_uncertainty"] = u.strip()
+
+  perf = root.find("PerformanceEstimates/SummaryOfTimingAnalysis")
+  if perf is not None:
+    e = perf.findtext("EstimatedClockPeriod")
+    if e is not None:
+      data["estimated_clk"] = e.strip()
+
+  area = root.find("AreaEstimates")
+  if area is not None:
+    res = area.find("Resources")
+    if res is not None:
+      data["lut"] = (res.findtext("LUT") or "").strip() or None
+      data["ff"] = (res.findtext("FF") or "").strip() or None
+      data["dsp"] = (res.findtext("DSP") or "").strip() or None
+      data["bram"] = (res.findtext("BRAM_18K") or "").strip() or None
+      data["uram"] = (res.findtext("URAM") or "").strip() or None
+    avail = area.find("AvailableResources")
+    if avail is not None:
+      data["avail_lut"] = (avail.findtext("LUT") or "").strip() or None
+      data["avail_ff"] = (avail.findtext("FF") or "").strip() or None
+      data["avail_dsp"] = (avail.findtext("DSP") or "").strip() or None
+      data["avail_bram"] = (avail.findtext("BRAM_18K") or "").strip() or None
+      data["avail_uram"] = (avail.findtext("URAM") or "").strip() or None
+
+  return data
+
+
+def _parse_hls_impl_xml(xml_path):
+  """Parse an HLS implementation export_impl.xml file.
+
+  Returns a dict with keys: target_clk, achieved_clk, wns, tns, timing_met,
+  lut, ff, dsp, bram, uram, clb, srl,
+  avail_lut, avail_ff, avail_dsp, avail_bram, avail_uram, avail_clb.
+  Missing fields are None. timing_met is True/False/None.
+  """
+  import xml.etree.ElementTree as ET
+  data = {
+    "target_clk": None, "achieved_clk": None, "wns": None, "tns": None,
+    "timing_met": None,
+    "lut": None, "ff": None, "dsp": None, "bram": None, "uram": None,
+    "clb": None, "srl": None,
+    "avail_lut": None, "avail_ff": None, "avail_dsp": None,
+    "avail_bram": None, "avail_uram": None, "avail_clb": None,
+  }
+  tree = ET.parse(xml_path)
+  root = tree.getroot()
+
+  tr = root.find("TimingReport")
+  if tr is not None:
+    data["target_clk"] = (tr.findtext("TargetClockPeriod") or "").strip() or None
+    data["achieved_clk"] = (tr.findtext("AchievedClockPeriod") or "").strip() or None
+    data["wns"] = (tr.findtext("WNS_FINAL") or "").strip() or None
+    data["tns"] = (tr.findtext("TNS_FINAL") or "").strip() or None
+    met = (tr.findtext("TIMING_MET") or "").strip().upper()
+    if met == "TRUE":
+      data["timing_met"] = True
+    elif met == "FALSE":
+      data["timing_met"] = False
+
+  ar = root.find("AreaReport")
+  if ar is not None:
+    res = ar.find("Resources")
+    if res is not None:
+      data["lut"] = (res.findtext("LUT") or "").strip() or None
+      data["ff"] = (res.findtext("FF") or "").strip() or None
+      data["dsp"] = (res.findtext("DSP") or "").strip() or None
+      data["bram"] = (res.findtext("BRAM") or "").strip() or None
+      data["uram"] = (res.findtext("URAM") or "").strip() or None
+      data["clb"] = (res.findtext("CLB") or "").strip() or None
+      data["srl"] = (res.findtext("SRL") or "").strip() or None
+    avail = ar.find("AvailableResources")
+    if avail is not None:
+      data["avail_lut"] = (avail.findtext("LUT") or "").strip() or None
+      data["avail_ff"] = (avail.findtext("FF") or "").strip() or None
+      data["avail_dsp"] = (avail.findtext("DSP") or "").strip() or None
+      data["avail_bram"] = (avail.findtext("BRAM") or "").strip() or None
+      data["avail_uram"] = (avail.findtext("URAM") or "").strip() or None
+      data["avail_clb"] = (avail.findtext("CLB") or "").strip() or None
+
+  return data
+
+
+def GenerateHlsSummary(component_name, work_dir, output_dir):
+  """Generate markdown summary files for an HLS component.
+
+  Parses C-synthesis (csynth.xml) and implementation (export_impl.xml) reports
+  and writes two files into output_dir/<component_name>/:
+    - utilization.txt
+    - timing_ok.txt        (if timing is met)
+    - timing_error.txt     (if timing is NOT met)
+
+  File names mirror the Vivado convention so the existing CI logic (release
+  notes assembly and timing_error.txt failure detection) works for HLS too.
+
+  Args:
+    component_name: Name of the HLS component
+    work_dir: HLS build working directory (contains hls/syn/, hls/impl/)
+    output_dir: Project-level bin directory (typically bin/<project>-<describe>/).
+                Summary files are written to output_dir/<component_name>/.
+  Returns:
+    bool: True if at least one summary was generated, False otherwise
+  """
+  try:
+    syn_roots = [
+      os.path.join(work_dir, "hls", "syn", "report"),
+      os.path.join(work_dir, component_name, "syn", "report"),
+    ]
+    impl_roots = [
+      os.path.join(work_dir, "hls", "impl", "report"),
+      os.path.join(work_dir, component_name, "impl", "report"),
+    ]
+
+    syn_xml = _find_first_file(syn_roots, "csynth.xml")
+    impl_xml = _find_first_file(impl_roots, "export_impl.xml")
+
+    if syn_xml is None and impl_xml is None:
+      PrintWarning("No HLS XML reports found for '%s'; skipping summary generation." % component_name)
+      return False
+
+    comp_out_dir = os.path.join(output_dir, component_name)
+    os.makedirs(comp_out_dir, exist_ok=True)
+
+    # Parse what is available
+    syn = _parse_hls_syn_xml(syn_xml) if syn_xml else None
+    impl = _parse_hls_impl_xml(impl_xml) if impl_xml else None
+
+    # Utilization file
+    util_path = os.path.join(comp_out_dir, "utilization.txt")
+    with open(util_path, "w") as f:
+      if syn is not None:
+        rows = [
+          ("LUT",      syn["lut"],  syn["avail_lut"]),
+          ("FF",       syn["ff"],   syn["avail_ff"]),
+          ("DSP",      syn["dsp"],  syn["avail_dsp"]),
+          ("BRAM_18K", syn["bram"], syn["avail_bram"]),
+          ("URAM",     syn["uram"], syn["avail_uram"]),
+        ]
+        _write_hls_util_section(f, component_name, "Synthesis", rows)
+      if impl is not None:
+        rows = [
+          ("LUT",  impl["lut"],  impl["avail_lut"]),
+          ("FF",   impl["ff"],   impl["avail_ff"]),
+          ("DSP",  impl["dsp"],  impl["avail_dsp"]),
+          ("BRAM", impl["bram"], impl["avail_bram"]),
+          ("URAM", impl["uram"], impl["avail_uram"]),
+          ("CLB",  impl["clb"],  impl["avail_clb"]),
+          ("SRL",  impl["srl"],  None),
+        ]
+        _write_hls_util_section(f, component_name, "Implementation", rows)
+
+    # Timing summary — compute section data + per-stage met status
+    syn_rows = []
+    syn_met = None
+    if syn is not None:
+      if syn["target_clk"] is not None:
+        syn_rows.append(("Target Clock Period", syn["target_clk"]))
+      if syn["estimated_clk"] is not None:
+        syn_rows.append(("Estimated Clock Period", syn["estimated_clk"]))
+      if syn["clock_uncertainty"] is not None:
+        syn_rows.append(("Clock Uncertainty", syn["clock_uncertainty"]))
+      try:
+        if syn["estimated_clk"] and syn["target_clk"]:
+          t = float(syn["target_clk"])
+          u = float(syn["clock_uncertainty"]) if syn["clock_uncertainty"] else 0.0
+          e = float(syn["estimated_clk"])
+          syn_met = e <= (t - u)
+      except ValueError:
+        syn_met = None
+
+    impl_rows = []
+    impl_met = None
+    if impl is not None:
+      if impl["target_clk"] is not None:
+        impl_rows.append(("Target Clock Period", impl["target_clk"]))
+      if impl["achieved_clk"] is not None:
+        impl_rows.append(("Achieved Clock Period", impl["achieved_clk"]))
+      if impl["wns"] is not None:
+        impl_rows.append(("WNS", impl["wns"]))
+      if impl["tns"] is not None:
+        impl_rows.append(("TNS", impl["tns"]))
+      impl_met = impl["timing_met"]
+
+    # Overall timing status — prefer implementation; fall back to synthesis
+    if impl_met is not None:
+      overall_met = impl_met
+    else:
+      overall_met = syn_met
+
+    # Remove any stale timing_ok.txt / timing_error.txt from previous runs,
+    # so the surviving file unambiguously reflects the current status.
+    for stale in ("timing_ok.txt", "timing_error.txt"):
+      stale_path = os.path.join(comp_out_dir, stale)
+      if os.path.exists(stale_path):
+        try:
+          os.remove(stale_path)
+        except OSError:
+          pass
+
+    if overall_met is False:
+      timing_name = "timing_error.txt"
+    else:
+      timing_name = "timing_ok.txt"
+    timing_path = os.path.join(comp_out_dir, timing_name)
+
+    with open(timing_path, "w") as f:
+      if syn is not None:
+        _write_hls_timing_section(f, component_name, "Synthesis", syn_rows, syn_met)
+      if impl is not None:
+        _write_hls_timing_section(f, component_name, "Implementation", impl_rows, impl_met)
+
+    PrintInfo("Generated HLS utilization summary: %s" % util_path)
+    PrintInfo("Generated HLS timing summary:      %s" % timing_path)
+    return True
+
+  except Exception as e:
+    PrintError("Failed to generate HLS summary for '%s': %s" % (component_name, e))
     import traceback
     traceback.print_exc()
     sys.stdout.flush()
@@ -693,6 +998,7 @@ if __name__ == "__main__":
     print("  synthesis <component_name> <cfg_file> <work_dir>", flush=True)
     print("  cosim <component_name> <cfg_file> <work_dir>", flush=True)
     print("  collect_reports <component_name> <work_dir> <output_dir>", flush=True)
+    print("  generate_summary <component_name> <work_dir> <output_dir>", flush=True)
     print("  create_workspace <workspace_path> <component_name> <cfg_file> <work_dir>", flush=True)
     sys.exit(1)
 
@@ -795,6 +1101,18 @@ if __name__ == "__main__":
     )
     sys.exit(0)
 
+  elif command == "generate_summary":
+    if len(sys.argv) < 5:
+      PrintError("generate_summary requires: component_name work_dir output_dir")
+      sys.exit(1)
+    # Non-critical if it fails — do not block the build
+    GenerateHlsSummary(
+      component_name=sys.argv[2],
+      work_dir=sys.argv[3],
+      output_dir=sys.argv[4]
+    )
+    sys.exit(0)
+
   elif command == "create_workspace":
     if len(sys.argv) < 6:
       PrintError("create_workspace requires: workspace_path component_name cfg_file work_dir")
@@ -809,5 +1127,5 @@ if __name__ == "__main__":
 
   else:
     PrintError("Unknown command: %s" % command)
-    print("Available commands: validate, generate_minimal, csim, synthesis, cosim, impl, export_rtl, export_ip, collect_reports, create_workspace", file=sys.stderr, flush=True)
+    print("Available commands: validate, generate_minimal, csim, synthesis, cosim, impl, export_rtl, export_ip, collect_reports, generate_summary, create_workspace", file=sys.stderr, flush=True)
     sys.exit(1)

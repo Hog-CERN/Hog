@@ -283,6 +283,70 @@ def RunHlsImpl(component_name, cfg_file, work_dir):
     return False
 
 
+def ExportHlsRtl(component_name, work_dir, output_dir, language):
+  """Copy generated VHDL or Verilog files from the HLS build to a source-tree directory.
+
+  After C synthesis, generated RTL files reside under work_dir/hls/syn/vhdl/
+  and work_dir/hls/syn/verilog/. This function copies the requested language
+  to output_dir so they can be version-controlled and instantiated in other designs.
+
+  Args:
+    component_name: Name of the HLS component
+    work_dir: HLS build working directory (contains hls/syn/)
+    output_dir: Destination directory (e.g. example_hls/outputs/)
+    language: "vhdl" or "verilog"
+  Returns:
+    bool: True if files were exported, False otherwise
+  """
+  try:
+    lang = language.lower()
+    if lang not in ("vhdl", "verilog"):
+      PrintError("Invalid language '%s'. Must be 'vhdl' or 'verilog'." % language)
+      return False
+
+    PrintInfo("Exporting %s for HLS component '%s' to %s" % (lang.upper(), component_name, output_dir))
+
+    if lang == "vhdl":
+      extensions = (".vhd", ".vhdl")
+    else:
+      extensions = (".v", ".sv")
+
+    search_dirs = [
+      os.path.join(work_dir, "hls", "syn", lang),
+      os.path.join(work_dir, component_name, "syn", lang),
+    ]
+
+    found_files = []
+    for rtl_dir in search_dirs:
+      if not os.path.isdir(rtl_dir):
+        continue
+      for f in os.listdir(rtl_dir):
+        if any(f.endswith(ext) for ext in extensions):
+          found_files.append(os.path.join(rtl_dir, f))
+
+    if not found_files:
+      PrintWarning("No %s files found for '%s'. Run C synthesis first." % (lang.upper(), component_name))
+      PrintWarning("Searched: %s" % ", ".join(search_dirs))
+      return False
+
+    os.makedirs(output_dir, exist_ok=True)
+
+    for src_file in found_files:
+      dst = os.path.join(output_dir, os.path.basename(src_file))
+      PrintInfo("Exporting: %s -> %s" % (os.path.basename(src_file), dst))
+      shutil.copy2(src_file, dst)
+
+    PrintInfo("Exported %d %s file(s) for '%s'" % (len(found_files), lang.upper(), component_name))
+    return True
+
+  except Exception as e:
+    PrintError("Failed to export RTL: %s" % e)
+    import traceback
+    traceback.print_exc()
+    sys.stdout.flush()
+    return False
+
+
 def CollectHlsReports(component_name, work_dir, output_dir):
   """Collect HLS synthesis and simulation reports into output_dir.
 
@@ -639,6 +703,18 @@ if __name__ == "__main__":
     )
     sys.exit(0 if result else 1)
 
+  elif command == "export_rtl":
+    if len(sys.argv) < 6:
+      PrintError("export_rtl requires: component_name work_dir output_dir language")
+      sys.exit(1)
+    result = ExportHlsRtl(
+      component_name=sys.argv[2],
+      work_dir=sys.argv[3],
+      output_dir=sys.argv[4],
+      language=sys.argv[5]
+    )
+    sys.exit(0 if result else 1)
+
   elif command == "collect_reports":
     if len(sys.argv) < 5:
       PrintError("collect_reports requires: component_name work_dir output_dir")
@@ -665,5 +741,5 @@ if __name__ == "__main__":
 
   else:
     PrintError("Unknown command: %s" % command)
-    print("Available commands: validate, generate_minimal, csim, synthesis, cosim, impl, collect_reports, create_workspace", file=sys.stderr, flush=True)
+    print("Available commands: validate, generate_minimal, csim, synthesis, cosim, impl, export_rtl, collect_reports, create_workspace", file=sys.stderr, flush=True)
     sys.exit(1)

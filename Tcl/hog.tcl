@@ -6058,6 +6058,40 @@ proc LaunchHlsBuild {project_name {repo_path .}} {
       continue
     }
 
+    # Export VHDL to source tree if VHDL_OUTPUT is set
+    set vhdl_output ""
+    if {[dict exists $hls_props vhdl_output]} {
+      set vhdl_output [dict get $hls_props vhdl_output]
+    } elseif {[dict exists $hls_props VHDL_OUTPUT]} {
+      set vhdl_output [dict get $hls_props VHDL_OUTPUT]
+    }
+    if {$vhdl_output ne ""} {
+      set vhdl_output_dir [file normalize "$repo_path/$vhdl_output"]
+      Msg Info "Exporting VHDL for '$component_name' to $vhdl_output_dir..."
+      if {![ExecuteVitisUnifiedCommand $python_script "export_rtl" \
+          [list $component_name $hls_work_dir $vhdl_output_dir vhdl] \
+          "Failed to export VHDL for $component_name"]} {
+        Msg Warning "Could not export VHDL for HLS component '$component_name'"
+      }
+    }
+
+    # Export Verilog to source tree if VERILOG_OUTPUT is set
+    set verilog_output ""
+    if {[dict exists $hls_props verilog_output]} {
+      set verilog_output [dict get $hls_props verilog_output]
+    } elseif {[dict exists $hls_props VERILOG_OUTPUT]} {
+      set verilog_output [dict get $hls_props VERILOG_OUTPUT]
+    }
+    if {$verilog_output ne ""} {
+      set verilog_output_dir [file normalize "$repo_path/$verilog_output"]
+      Msg Info "Exporting Verilog for '$component_name' to $verilog_output_dir..."
+      if {![ExecuteVitisUnifiedCommand $python_script "export_rtl" \
+          [list $component_name $hls_work_dir $verilog_output_dir verilog] \
+          "Failed to export Verilog for $component_name"]} {
+        Msg Warning "Could not export Verilog for HLS component '$component_name'"
+      }
+    }
+
     # Collect reports into bin/ for CI and release notes
     Msg Info "Evaluating Hog describe for $project_name..."
     set describe [GetHogDescribe [file normalize ./Top/$project_name] $repo_path]

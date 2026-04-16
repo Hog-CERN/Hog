@@ -261,8 +261,9 @@
           if [ -f "$CI_PROJECT_DIR/Projects/$PROJECT_NAME/versions.txt" ]; then
             cp $CI_PROJECT_DIR/Projects/$PROJECT_NAME/versions.txt $CI_PROJECT_DIR/bin/$PROJECT_NAME*/;
           fi;
-          # Detect both Vivado (top-level) and HLS (vitis_hls/<component>/) timing failures
-          if ls $CI_PROJECT_DIR/bin/$PROJECT_NAME*/timing_error.txt $CI_PROJECT_DIR/bin/$PROJECT_NAME*/vitis_hls/*/timing_error.txt >/dev/null 2>&1; then
+          # Detect Vivado (top-level), mixed-project HLS (vitis_hls/<comp>/)
+          # and pure-HLS (<comp>/) timing failures.
+          if ls $CI_PROJECT_DIR/bin/$PROJECT_NAME*/timing_error.txt $CI_PROJECT_DIR/bin/$PROJECT_NAME*/vitis_hls/*/timing_error.txt $CI_PROJECT_DIR/bin/$PROJECT_NAME*/*/timing_error.txt >/dev/null 2>&1; then
             echo "Hog-CI(info) - Renaming the Projects/ folder into DebugProjects/. This folder is added to job's artifacts for debugging purposes...";
             if [ -e DebugProjects ]; then
               echo "Hog-CI(warning) - Directory DebugProjects/ exists in your project, this is not recommended. Projects won't be added to the artifacts.";
@@ -376,8 +377,9 @@ check-timing:
         PRJ_NAME="${PRJ_DIR%.*}";
         PRJ_NAME="${PRJ_NAME%-*}";
         PRJ_NAME_BASE=$(basename $PRJ_NAME);
-        # Detect both Vivado (top-level) and HLS (vitis_hls/<component>/) timing failures
-        if [ -f "$PRJ_DIR/timing_error.txt" ] || ls "$PRJ_DIR"/vitis_hls/*/timing_error.txt >/dev/null 2>&1; then
+        # Detect Vivado (top-level), mixed-project HLS (vitis_hls/<comp>/)
+        # and pure-HLS (<comp>/) timing failures.
+        if [ -f "$PRJ_DIR/timing_error.txt" ] || ls "$PRJ_DIR"/vitis_hls/*/timing_error.txt "$PRJ_DIR"/*/timing_error.txt >/dev/null 2>&1; then
           FAILED_PRJS="$FAILED_PRJS $PRJ_NAME_BASE";
         fi;
       done;

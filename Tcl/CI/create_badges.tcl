@@ -274,15 +274,29 @@ if {[file exists utilization.txt]} {
   emit_badges "." $prj_name $prj_name 0 $vivado_util $ver new_badges
 }
 
-# -------- HLS components (each vitis_hls/<component>/utilization.txt) --------
-foreach hls_util [glob -nocomplain vitis_hls/*/utilization.txt] {
+# -------- HLS components --------
+# Mixed (vivado_vitis_unified) projects group HLS under vitis_hls/<component>/;
+# pure vitis_unified projects place them directly under <component>/.
+# The glob order also determines upload order — Vivado (already handled above)
+# comes first, then mixed-project HLS components, then pure-HLS components.
+set hls_util_files [concat \
+  [glob -nocomplain vitis_hls/*/utilization.txt] \
+  [glob -nocomplain */utilization.txt]]
+foreach hls_util $hls_util_files {
   set comp_dir [file dirname $hls_util]
+  # Skip Vivado utilization.txt at the project root (already processed above).
+  if {$comp_dir eq "." || $comp_dir eq ""} { continue }
   set comp_name [file tail $comp_dir]
+  # Skip the 'vitis_hls' wrapper itself (we iterate its children separately).
+  if {$comp_name eq "vitis_hls"} { continue }
   set fp [open $hls_util]
   set hls_lines [split [read $fp] "\n"]
   close $fp
   set hls_util_dict [parse_hls_util $hls_lines]
   set badge_suffix "$prj_name-$comp_name"
+  # Avoid emitting duplicate badges if a component name collides between the
+  # two globs (shouldn't happen in practice, but defensive).
+  if {[dict exists $new_badges "timing-$badge_suffix"]} { continue }
   emit_badges $comp_dir $badge_suffix $comp_name 1 $hls_util_dict $ver new_badges
 }
 

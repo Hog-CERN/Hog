@@ -6012,6 +6012,19 @@ proc LaunchHlsBuild {project_name {repo_path .}} {
 
   set python_script [file normalize "$repo_path/Hog/Other/Python/VitisUnified/HlsCommands.py"]
 
+  # Determine whether this is a mixed Vivado+Vitis project. In that case HLS
+  # component outputs are grouped under bin/<proj>/vitis_hls/ to keep them
+  # visually separate from Vivado's top-level utilization.txt / timing_*.txt.
+  # For pure vitis_unified projects (no Vivado) HLS outputs sit directly under
+  # bin/<proj>/<component>/ since there's nothing else to collide with.
+  set ide_info [GetIDEFromConf $conf_file]
+  set ide_name [string tolower [lindex $ide_info 0]]
+  if {$ide_name eq "vivado_vitis_unified"} {
+    set is_mixed_project 1
+  } else {
+    set is_mixed_project 0
+  }
+
   dict for {hls_key hls_props} $hls_components {
     if {![regexp {^hls:(.+)$} $hls_key -> component_name]} {
       continue
@@ -6119,21 +6132,28 @@ proc LaunchHlsBuild {project_name {repo_path .}} {
       file mkdir $dst_dir
     }
 
+    # Mixed projects group HLS components under bin/<proj>/vitis_hls/; pure
+    # vitis_unified projects place them directly under bin/<proj>/.
+    if {$is_mixed_project} {
+      set hls_out_dir [file normalize "$dst_dir/vitis_hls"]
+    } else {
+      set hls_out_dir $dst_dir
+    }
+
     Msg Info "Collecting HLS reports for component '$component_name'..."
     if {![ExecuteVitisUnifiedCommand $python_script "collect_reports" \
-        [list $component_name $hls_work_dir $dst_dir] \
+        [list $component_name $hls_work_dir $hls_out_dir] \
         "Failed to collect HLS reports for $component_name"]} {
       Msg Warning "No reports found for HLS component '$component_name'"
     }
 
-    # Generate markdown summary files (utilization.txt, timing_ok.txt / timing_error.txt)
-    # inside bin/<proj>-<describe>/vitis_hls/<component>/. File names mirror the Vivado
-    # convention so the existing CI logic (release notes assembly and timing-failure
-    # detection) works for HLS components too, while the vitis_hls/ wrapper keeps them
-    # visually separated from Vivado's top-level outputs.
+    # Generate markdown summary files (utilization.txt, timing_ok.txt /
+    # timing_error.txt) under <hls_out_dir>/<component>/. File names mirror the
+    # Vivado convention so the existing CI logic (release notes assembly and
+    # timing-failure detection) works for HLS components too.
     Msg Info "Generating HLS release-notes summary for component '$component_name'..."
     if {![ExecuteVitisUnifiedCommand $python_script "generate_summary" \
-        [list $component_name $hls_work_dir $dst_dir] \
+        [list $component_name $hls_work_dir $hls_out_dir] \
         "Failed to generate HLS summary for $component_name"]} {
       Msg Warning "Could not generate HLS summary for component '$component_name'"
     }

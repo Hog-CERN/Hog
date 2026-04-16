@@ -768,6 +768,17 @@ set proj_conf [ProjectExists $project_name $repo_path]
 set ide_name_and_ver [string tolower [GetIDEFromConf $proj_conf]]
 set ide_name [lindex [regexp -all -inline {\S+} $ide_name_and_ver] 0]
 
+# Validate IDE name
+set supported_ides [list vivado vivado_vitis_classic vivado_vitis_unified vitis_classic vitis_unified quartus planahead libero diamond ghdl]
+if {$ide_name ni $supported_ides} {
+  if {$ide_name eq "vitis"} {
+    Msg Error "The IDE set in hog.conf ('vitis') is not supported. Did you mean 'vitis_unified' or 'vitis_classic'? Supported IDEs: [join $supported_ides {, }]"
+  } else {
+    Msg Error "The IDE set in hog.conf ('$ide_name') is not supported. Supported IDEs: [join $supported_ides {, }]"
+  }
+  exit 1
+}
+
 # Vitis IDE detection
 if {([string tolower $ide_name] eq "vivado_vitis_classic" || [string tolower $ide_name] eq "vitis_classic") && ($options(vivado_only) != 1)} {
   set globalSettings::vitis_classic 1

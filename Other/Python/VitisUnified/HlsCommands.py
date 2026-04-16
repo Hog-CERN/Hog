@@ -344,6 +344,137 @@ def CollectHlsReports(component_name, work_dir, output_dir):
     return False
 
 
+def _resolve_cflags(raw_flags, cfg_dir):
+  """Resolve a list of raw cflags tokens, making -I paths absolute relative to cfg_dir.
+
+  Handles both '-Ipath' (merged) and '-I path' (space-separated) forms.
+  Non-absolute -I paths are resolved relative to cfg_dir.
+
+  Returns:
+    list of resolved flag strings
+  """
+  resolved = []
+  i = 0
+  while i < len(raw_flags):
+    flag = raw_flags[i]
+    if flag == "-I" and i + 1 < len(raw_flags):
+      inc_dir = raw_flags[i + 1]
+      if not os.path.isabs(inc_dir):
+        inc_dir = os.path.normpath(os.path.join(cfg_dir, inc_dir))
+      resolved.append("-I%s" % inc_dir)
+      i += 2
+    elif flag.startswith("-I") and len(flag) > 2:
+      inc_dir = flag[2:]
+      if not os.path.isabs(inc_dir):
+        inc_dir = os.path.normpath(os.path.join(cfg_dir, inc_dir))
+      resolved.append("-I%s" % inc_dir)
+      i += 1
+    else:
+      resolved.append(flag)
+      i += 1
+  return resolved
+
+
+def GenerateCompileCommands(cfg_file, comp_dir):
+  """Generate compile_commands.json for IDE linting support.
+
+  Parses hls_config.cfg to extract source files, include flags, and top function,
+  then writes a compile_commands.json that the Vitis IDE clang linter can use.
+
+  Args:
+    cfg_file: Absolute path to hls_config.cfg
+    comp_dir: Directory where compile_commands.json will be written
+  """
+  try:
+    cfg_dir = os.path.dirname(os.path.realpath(cfg_file))
+
+    syn_files = []
+    tb_files = []
+    syn_top = ""
+    syn_cflags = []
+    tb_cflags = []
+
+    with open(cfg_file, 'r') as f:
+      for line in f:
+        line = line.strip()
+        if line.startswith('#') or '=' not in line:
+          continue
+        key, _, value = line.partition('=')
+        key = key.strip()
+        value = value.strip()
+
+        if key == 'syn.file':
+          abs_path = os.path.normpath(os.path.join(cfg_dir, value))
+          if abs_path.endswith(('.c', '.cpp', '.cc', '.cxx')):
+            syn_files.append(abs_path)
+        elif key == 'tb.file':
+          abs_path = os.path.normpath(os.path.join(cfg_dir, value))
+          if abs_path.endswith(('.c', '.cpp', '.cc', '.cxx')):
+            tb_files.append(abs_path)
+        elif key == 'syn.top':
+          syn_top = value
+        elif key == 'syn.cflags':
+          syn_cflags = value.split()
+        elif key == 'tb.cflags':
+          tb_cflags = value.split()
+
+    vitis_path = ""
+    vpp = shutil.which("v++")
+    if vpp:
+      vitis_path = os.path.normpath(os.path.join(os.path.dirname(os.path.realpath(vpp)), ".."))
+
+    syn_headers = os.path.join(vitis_path, "common", "technology", "autopilot") if vitis_path else ""
+    sim_headers = os.path.join(vitis_path, "include") if vitis_path else ""
+    clang_path = os.path.join(vitis_path, "vcxx", "libexec", "clang++") if vitis_path else "clang++"
+    gcc_toolchain = os.path.join(vitis_path, "tps", "lnx64", "gcc-8.3.0") if vitis_path else ""
+
+    resolved_syn_cflags = _resolve_cflags(syn_cflags, cfg_dir)
+    resolved_tb_cflags = _resolve_cflags(tb_cflags, cfg_dir)
+
+    entries = []
+    for src in syn_files:
+      args = [clang_path]
+      if gcc_toolchain:
+        args.append("--gcc-toolchain=%s" % gcc_toolchain)
+      args.append("-fhls")
+      if syn_headers:
+        args.append("-hls-syn-headers-dir=%s" % syn_headers)
+      if syn_top:
+        args.append("-fhlstoplevel=%s" % syn_top)
+      args.extend(resolved_syn_cflags)
+      args.extend(["-c", src])
+      entries.append({
+        "directory": cfg_dir,
+        "arguments": args,
+        "file": src
+      })
+
+    for src in tb_files:
+      args = [clang_path]
+      if gcc_toolchain:
+        args.append("--gcc-toolchain=%s" % gcc_toolchain)
+      args.append("-fhls-tb")
+      if sim_headers:
+        args.append("-hls-sim-headers-dir=%s" % sim_headers)
+      args.extend(resolved_tb_cflags)
+      args.extend(["-c", src])
+      entries.append({
+        "directory": cfg_dir,
+        "arguments": args,
+        "file": src
+      })
+
+    if entries:
+      cc_path = os.path.join(comp_dir, "compile_commands.json")
+      with open(cc_path, 'w') as f:
+        json.dump(entries, f, indent=2)
+        f.write("\n")
+      PrintInfo("Generated compile_commands.json with %d entries at %s" % (len(entries), cc_path))
+
+  except Exception as e:
+    PrintWarning("Could not generate compile_commands.json: %s" % e)
+
+
 def CreateHlsWorkspace(workspace_path, component_name, cfg_file, work_dir):
   """Create a Vitis-compatible HLS workspace so the project can be opened in the GUI.
 
@@ -409,6 +540,8 @@ def CreateHlsWorkspace(workspace_path, component_name, cfg_file, work_dir):
         f.write("\n")
 
     vitis.dispose()
+
+    GenerateCompileCommands(cfg_file, comp_dir)
 
     PrintInfo("Created Vitis workspace component: %s" % comp_dir)
     PrintInfo("  configFiles -> %s" % rel_cfg)

@@ -6127,9 +6127,10 @@ proc LaunchHlsBuild {project_name {repo_path .}} {
     }
 
     # Generate markdown summary files (utilization.txt, timing_ok.txt / timing_error.txt)
-    # inside bin/<proj>-<describe>/<component>/. File names mirror the Vivado convention
-    # so the existing CI logic (release notes assembly and timing-failure detection)
-    # works for HLS components too.
+    # inside bin/<proj>-<describe>/vitis_hls/<component>/. File names mirror the Vivado
+    # convention so the existing CI logic (release notes assembly and timing-failure
+    # detection) works for HLS components too, while the vitis_hls/ wrapper keeps them
+    # visually separated from Vivado's top-level outputs.
     Msg Info "Generating HLS release-notes summary for component '$component_name'..."
     if {![ExecuteVitisUnifiedCommand $python_script "generate_summary" \
         [list $component_name $hls_work_dir $dst_dir] \

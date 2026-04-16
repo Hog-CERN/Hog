@@ -274,8 +274,8 @@ if {[file exists utilization.txt]} {
   emit_badges "." $prj_name $prj_name 0 $vivado_util $ver new_badges
 }
 
-# -------- HLS components (each <component>/utilization.txt) --------
-foreach hls_util [glob -nocomplain */utilization.txt] {
+# -------- HLS components (each vitis_hls/<component>/utilization.txt) --------
+foreach hls_util [glob -nocomplain vitis_hls/*/utilization.txt] {
   set comp_dir [file dirname $hls_util]
   set comp_name [file tail $comp_dir]
   set fp [open $hls_util]

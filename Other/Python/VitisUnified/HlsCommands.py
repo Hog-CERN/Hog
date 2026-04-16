@@ -446,7 +446,7 @@ def CollectHlsReports(component_name, work_dir, output_dir):
       PrintWarning("No reports found for '%s' in %s" % (component_name, work_dir))
       return False
 
-    hls_report_dir = os.path.join(output_dir, component_name, "reports")
+    hls_report_dir = os.path.join(output_dir, "vitis_hls", component_name, "reports")
     os.makedirs(hls_report_dir, exist_ok=True)
 
     for report in found_reports:
@@ -634,19 +634,21 @@ def GenerateHlsSummary(component_name, work_dir, output_dir):
   """Generate markdown summary files for an HLS component.
 
   Parses C-synthesis (csynth.xml) and implementation (export_impl.xml) reports
-  and writes two files into output_dir/<component_name>/:
+  and writes two files into output_dir/vitis_hls/<component_name>/:
     - utilization.txt
     - timing_ok.txt        (if timing is met)
     - timing_error.txt     (if timing is NOT met)
 
   File names mirror the Vivado convention so the existing CI logic (release
   notes assembly and timing_error.txt failure detection) works for HLS too.
+  HLS components are grouped under a vitis_hls/ folder to keep them visually
+  separate from Vivado's top-level outputs.
 
   Args:
     component_name: Name of the HLS component
     work_dir: HLS build working directory (contains hls/syn/, hls/impl/)
     output_dir: Project-level bin directory (typically bin/<project>-<describe>/).
-                Summary files are written to output_dir/<component_name>/.
+                Summary files are written to output_dir/vitis_hls/<component_name>/.
   Returns:
     bool: True if at least one summary was generated, False otherwise
   """
@@ -667,7 +669,7 @@ def GenerateHlsSummary(component_name, work_dir, output_dir):
       PrintWarning("No HLS XML reports found for '%s'; skipping summary generation." % component_name)
       return False
 
-    comp_out_dir = os.path.join(output_dir, component_name)
+    comp_out_dir = os.path.join(output_dir, "vitis_hls", component_name)
     os.makedirs(comp_out_dir, exist_ok=True)
 
     # Parse what is available

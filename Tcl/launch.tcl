@@ -101,7 +101,21 @@ set ext_path ""
 if {$options(ext_path) != ""} {
   set ext_path $options(ext_path)
 }
-set simlib_path ""
+set lib_path ""
+if {$options(lib) != ""} {
+  set lib_path [file normalize $options(lib)]
+} else {
+  if {[info exists env(HOG_SIMULATION_LIB_PATH)]} {
+    set lib_path $env(HOG_SIMULATION_LIB_PATH)
+  } else {
+    if {[file exists "$repo_path/SimulationLib"]} {
+      set lib_path [file normalize "$repo_path/SimulationLib"]
+    } else {
+      set lib_path ""
+    }
+  }
+}
+
 
 if {$options(verbose) == 1} {
   setDebugMode 1
@@ -421,7 +435,10 @@ if {$cmd == -1} {
       puts $py_file "        \],"
       puts $py_file "        build_dir=build_path,"
       if {$ext == ".vhd" || $ext == ".vhdl"} {
-        puts $py_file "        build_args = \[ \"-2008\"\],"
+        puts $py_file "        build_args = \[ \"-2008\","
+        if {$lib_path != ""} {
+          puts $py_file "\"-modelsimini\", \"$lib_path/modelsim.ini\""        }
+        puts $py_file "\],"
       }
       puts $py_file "        always=True,"
       puts $py_file "    )"
@@ -684,19 +701,6 @@ if {$options(compile_only) == 1} {
 
 
 
-if {$options(lib) != ""} {
-  set lib_path [file normalize $options(lib)]
-} else {
-  if {[info exists env(HOG_SIMULATION_LIB_PATH)]} {
-    set lib_path $env(HOG_SIMULATION_LIB_PATH)
-  } else {
-    if {[file exists "$repo_path/SimulationLib"]} {
-      set lib_path [file normalize "$repo_path/SimulationLib"]
-    } else {
-      set lib_path ""
-    }
-  }
-}
 
 
 Msg Info "Number of jobs set to $options(njobs)."

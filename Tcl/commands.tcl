@@ -204,7 +204,7 @@ set default_commands {
     set do_cocotb 1
   # NAME: COCOTB
   # DESCRIPTION: Create a cocotb Python script to build VHDL/Verilog libraries using runner.build().
-  # OPTIONS: verbose
+  # OPTIONS: verbose, lib.arg
   }
 
   \^VER(SION)?$ {#

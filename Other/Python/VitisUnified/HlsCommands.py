@@ -403,12 +403,12 @@ def ExportHlsIp(component_name, work_dir, output_dir):
 
 
 def CollectHlsReports(component_name, work_dir, output_dir):
-  """Collect HLS synthesis and simulation reports into output_dir.
+  """Collect HLS synthesis, implementation and simulation reports into output_dir.
 
-  After synthesis, reports are typically located under
-  work_dir/<component>/syn/report/ (.rpt, .xml).
-  After co-simulation, reports may also be under
-  work_dir/<component>/sim/report/.
+  Reports are typically located under:
+    - work_dir/hls/syn/report/  (C synthesis: timing, resource estimates)
+    - work_dir/hls/impl/report/ (implementation: RTL synthesis, place & route, final timing)
+    - work_dir/hls/sim/report/  (co-simulation)
 
   RTL and IP outputs are NOT collected here — their location is
   controlled by hls_config.cfg and they are version-controlled in place.
@@ -424,15 +424,17 @@ def CollectHlsReports(component_name, work_dir, output_dir):
     PrintInfo("Collecting HLS reports for component '%s'" % component_name)
 
     report_extensions = (".rpt", ".xml", ".log")
-    report_dirs = [
+    report_roots = [
       os.path.join(work_dir, "hls", "syn", "report"),
+      os.path.join(work_dir, "hls", "impl", "report"),
       os.path.join(work_dir, "hls", "sim", "report"),
       os.path.join(work_dir, component_name, "syn", "report"),
+      os.path.join(work_dir, component_name, "impl", "report"),
       os.path.join(work_dir, component_name, "sim", "report"),
     ]
 
     found_reports = []
-    for report_dir in report_dirs:
+    for report_dir in report_roots:
       if not os.path.isdir(report_dir):
         continue
       for root, dirs, files in os.walk(report_dir):

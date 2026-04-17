@@ -22,6 +22,9 @@
 #    }
 #  }
 
+# if {![info exists tcl_path]} {
+#   set tcl_path [file normalize "[file dirname [info script]]/.."]
+# }
 
 source $tcl_path/utils/hdl_parser.tcl
 
@@ -37,7 +40,7 @@ proc _create_hier_meta {} {
   set hier_meta [dict create]
   dict set hier_meta all_modules {}
   dict set hier_meta proj_files {}
-  dict set heir_meta parsed_files_cache {}
+  dict set hier_meta parsed_files_cache {}
   return $hier_meta
 }
 
@@ -125,7 +128,6 @@ proc _hier_parse_hdl {hier_meta_ref file_info} {
 
   Msg Debug "Parsing $f"
   set discovered_modules [list]
-
   set hdl_constructs [parse_hdl_file $f]
   foreach node $hdl_constructs {
     Msg Debug "[hdl_node_string $node]"
@@ -137,6 +139,7 @@ proc _hier_parse_hdl {hier_meta_ref file_info} {
     set node_name [dict get $node name]
 
     set references [list]
+    set sv_include_files [list]
     foreach component [dict get $node components_declared] {
       lappend references "unknown.component.[dict get $component name]"
     }
@@ -147,6 +150,13 @@ proc _hier_parse_hdl {hier_meta_ref file_info} {
       } elseif { [dict get $inst type] == "entity_inst"} {
         set split_name [split [dict get $inst mod_name] "."]
         lappend references "[lindex $split_name 0].component.[lindex $split_name 1]"
+      } elseif { [dict get $inst type] == "sv_import"} {
+        lappend references "unknown.sv_package.[dict get $inst mod_name]"
+      } elseif { [dict get $inst type] == "sv_include"} {
+        lappend sv_include_files [dict get $inst mod_name]
+      } elseif { [dict get $inst type] == "vhdl_pkg_inst"} {
+        set split_name [split [dict get $inst mod_name] "."]
+        lappend references "[lindex $split_name 0].vhdl_package.[lindex $split_name 1]"
       }
     }
 
@@ -159,10 +169,13 @@ proc _hier_parse_hdl {hier_meta_ref file_info} {
 
     set references [lsort -unique $references]
     dict set node references $references
+    dict set node sv_includes $sv_include_files
 
     set mod_properties [dict create]
-    if {$ext eq ".v" || $ext eq ".sv" || [lsearch -exact $file_properties "SystemVerilog"] != -1} {
-        if {$ext eq ".sv" || [lsearch -exact $file_properties "SystemVerilog"] != -1} {
+    if {$ext eq ".v" || $ext eq ".vh" || $ext eq ".sv" || $ext eq ".svh" ||
+        [lsearch -exact $file_properties "SystemVerilog"] != -1} {
+        if {$ext eq ".sv" || $ext eq ".svh" ||
+            [lsearch -exact $file_properties "SystemVerilog"] != -1} {
             dict set mod_properties filetype "SystemVerilog"
         } else {
             dict set mod_properties filetype "Verilog"
@@ -302,7 +315,8 @@ proc _hier_parse_file {hier_meta_ref file_info {include_gen_prods 0}} {
   upvar 1 $hier_meta_ref hier_meta
 
   set ext [string tolower [file_info_ext $file_info]]
-  if {$ext eq ".vhd" || $ext eq ".vhdl" || $ext eq ".v" || $ext eq ".sv"} {
+  if {$ext eq ".vhd" || $ext eq ".vhdl" || $ext eq ".v" || $ext eq ".sv" ||
+      $ext eq ".vh" || $ext eq ".svh"} {
     _hier_parse_hdl hier_meta $file_info
   } elseif {$ext eq ".xci"} {
     _hier_parse_ip hier_meta $file_info $include_gen_prods
@@ -384,6 +398,23 @@ proc _reference_resolver {hier_meta_ref} {
       set found 0
       set resolved_mod_name ""
 
+      if {$library == "unknown" && $type == "sv_package"} {
+        set pattern ".*\\.sv_package\\.$name\$"
+        set matches [dict filter [dict get $hier_meta all_modules] \
+            script {k v} {expr {[regexp $pattern $k]}}]
+        if {[dict size $matches] == 0} {
+          lappend new_references $ref
+          Msg Debug "No sv_package match found for $ref in $mod_key"
+        } else {
+          dict for {k v} $matches {
+            lappend new_references $k
+            Msg Debug "Mod: $mod_key resolved $ref to $k"
+            incr total_resolved
+          }
+        }
+        continue
+      }
+
       if { ($library != "unknown" && $library != "work" && $type != "component") || ($library == "unknown" && $type != "component") } {
         # puts "Keeping reference as-is: $ref"
         lappend new_references $ref
@@ -398,24 +429,24 @@ proc _reference_resolver {hier_meta_ref} {
       }
 
 
-      set pattern "${library}\.\[vhdl_entity|verilog_module\]\\.$name\$"
-      set matches [ dict filter [dict get $hier_meta all_modules] script {k v} {expr {[regexp $pattern $k]}}]
-      if {[dict size $matches] == "0"}  {
-        set pattern ".*\.\[vhdl_entity|verilog_module\]\\.$name\$"
-        set matches [ dict filter [dict get $hier_meta all_modules] script {k v} {expr {[regexp $pattern $k]}}]
+      set pattern "${ref_lib}\\.(vhdl_entity|verilog_module)\\.$name\$"
+      set matches [dict filter [dict get $hier_meta all_modules] script {k v} {expr {[regexp $pattern $k]}}]
+      if {[dict size $matches] == 0} {
+        set pattern ".*\\.(vhdl_entity|verilog_module)\\.$name\$"
+        set matches [dict filter [dict get $hier_meta all_modules] script {k v} {expr {[regexp $pattern $k]}}]
+        if {[dict size $matches] > 1} {
+          Msg Warning "Ambiguous component reference '$name' in '$mod_key': multiple libraries match, picking first found"
+        }
       }
 
-      if {[dict size $matches] == "0"}  {
+      if {[dict size $matches] == 0} {
         lappend new_references $ref
-        Msg Debug "No match found"
-        # puts "Debug: No match found for ref: $ref in mod: $mod_key"
+        Msg Debug "No match found for $ref in $mod_key"
       } else {
         dict for {k v} $matches {
           lappend new_references $k
           Msg Debug "Mod: $mod_key resolved $ref to $k"
-          # puts "Debug: Mod: $mod_key resolved $ref to $k"
           incr total_resolved
-          break
         }
       }
     }
@@ -423,6 +454,30 @@ proc _reference_resolver {hier_meta_ref} {
     dict set hier_meta all_modules $mod_key references $new_references
   }
 
+  # Second pass: resolve `include file dependencies.
+  # For each module that recorded sv_includes, find the project file matching
+  # each included basename and add all modules defined in that file as references.
+  dict for {mod_key mod} [dict get $hier_meta all_modules] {
+    if {![dict exists $mod sv_includes]} { continue }
+    set sv_includes [dict get $mod sv_includes]
+    if {[llength $sv_includes] == 0} { continue }
+
+    set new_refs [dict get $mod references]
+    foreach include_file $sv_includes {
+      dict for {proj_file _} [dict get $hier_meta proj_files] {
+        if {[file tail $proj_file] ne $include_file} { continue }
+        dict for {k m} [dict get $hier_meta all_modules] {
+          if {[dict get $m file_path] eq $proj_file &&
+              [lsearch -exact $new_refs $k] == -1} {
+            lappend new_refs $k
+            incr total_resolved
+            Msg Debug "Mod: $mod_key include-depends on $k (via $include_file)"
+          }
+        }
+      }
+    }
+    dict set hier_meta all_modules $mod_key references $new_refs
+  }
 
   return [dict create total $total_resolved resolutions $resolution_list]
 }
@@ -606,7 +661,7 @@ proc Hierarchy {listProperties listLibraries repo_path {output_path ""} \
   #Msg Debug "[_debug_string_hier_meta hier_meta]"
   set p [dict create]
   if {$compile_order} {
-    set compile_order_dict [print_compile_order hier_meta [dict get $sorted_modules sorted] $output_file]
+    set compile_order_dict [print_compile_order hier_meta [dict get $sorted_modules sorted] $output_file $quiet]
     if {$output_path != ""} {
       close $output_file
     }
@@ -633,23 +688,41 @@ proc Hierarchy {listProperties listLibraries repo_path {output_path ""} \
 proc print_compile_order {hier_meta_ref sorted_list {output_file ""} {quiet 0}} {
   upvar 1 $hier_meta_ref hier_meta
 
-  # Build an ordered dict {file_path -> library}, deduplicating by file.
-  # First occurrence in DFS-sorted order (dependency-first) is kept.
-  set result [dict create]
+  # Build an ordered flat list {file_path library ...}, deduplicating by
+  # {file_path, library} pair so the same file compiled into two libraries
+  # both appear.
+  # Pass 1: DFS-reachable modules in topological (dependency-first) order.
+  # Pass 2: remaining project files not reachable from the top module (e.g.
+  #         packages, header files, orphaned modules) so every listed file
+  #         gets compiled.
+  set result [list]
+  set seen [dict create]
 
   foreach mod_key $sorted_list {
     set mod [dict get $hier_meta all_modules $mod_key]
     set file_path [dict get $mod file_path]
     set library   [dict get $mod library]
+    set pair "${file_path}\t${library}"
 
-    if {$file_path eq "" || [dict exists $result $file_path]} {
+    if {$file_path eq "" || [dict exists $seen $pair]} {
       continue
     }
-    dict set result $file_path $library
+    dict set seen $pair 1
+    lappend result $file_path $library
+  }
+
+  dict for {file file_info} [dict get $hier_meta proj_files] {
+    set library [file_info_library $file_info]
+    set pair "${file}\t${library}"
+    if {[dict exists $seen $pair]} {
+      continue
+    }
+    dict set seen $pair 1
+    lappend result $file $library
   }
 
   if {$quiet == 0} {
-    dict for {file lib} $result {
+    foreach {file lib} $result {
       PrintOrWrite $output_file "$file $lib"
     }
   }

@@ -6133,7 +6133,7 @@ proc LaunchHlsBuild {project_name {repo_path .}} {
     }
 
     # Mixed projects group HLS components under bin/<proj>/vitis_hls/; pure
-    # vitis_unified projects place them directly under bin/<proj>/.
+    # vitis_unified projects place them directly under bin/<proj>/
     if {$is_mixed_project} {
       set hls_out_dir [file normalize "$dst_dir/vitis_hls"]
     } else {
@@ -6150,7 +6150,7 @@ proc LaunchHlsBuild {project_name {repo_path .}} {
     # Generate markdown summary files (utilization.txt, timing_ok.txt /
     # timing_error.txt) under <hls_out_dir>/<component>/. File names mirror the
     # Vivado convention so the existing CI logic (release notes assembly and
-    # timing-failure detection) works for HLS components too.
+    # timing-failure detection) works for HLS components too
     Msg Info "Generating HLS release-notes summary for component '$component_name'..."
     if {![ExecuteVitisUnifiedCommand $python_script "release_notes" \
         [list $component_name $hls_work_dir $hls_out_dir] \
@@ -6159,6 +6159,39 @@ proc LaunchHlsBuild {project_name {repo_path .}} {
     }
 
     Msg Info "HLS component '$component_name' built successfully"
+  }
+
+  # For pure vitis_unified (HLS-only) projects, emit a top-level versions.txt
+  # at the bin project root
+  if {!$is_mixed_project && [info exists dst_dir] && [file isdirectory $dst_dir]} {
+    set versions_file [file normalize "$dst_dir/versions.txt"]
+    Msg Info "Generating top-level versions.txt for pure-HLS project at $versions_file"
+    if {[catch {
+      lassign [GetRepoVersions [file normalize $repo_path/Top/$project_name] $repo_path] \
+        commit version hog_hash hog_ver top_hash top_ver \
+        libs hashes vers cons_ver cons_hash \
+        ext_names ext_hashes xml_hash xml_ver \
+        user_ip_repos user_ip_hashes user_ip_vers
+      if {$commit == 0} { set commit [GetSHA] }
+      set version_str [HexVersionToString $version]
+      set hog_ver_str [HexVersionToString $hog_ver]
+      set top_ver_str [HexVersionToString $top_ver]
+      set fh [open $versions_file "w"]
+      puts $fh "## $proj_name Version Table\n"
+      puts $fh "| **File set** | **Commit SHA** | **Version** |"
+      puts $fh "| --- | --- | --- |"
+      puts $fh "| Global | $commit | $version_str |"
+      puts $fh "| Top Directory | $top_hash | $top_ver_str |"
+      puts $fh "| Hog | $hog_hash | $hog_ver_str |"
+      foreach l $libs v $vers h $hashes {
+        set v_str [HexVersionToString $v]
+        puts $fh "| **Lib:** $l | $h | $v_str |"
+      }
+      puts $fh "\n"
+      close $fh
+    } err]} {
+      Msg Warning "Could not generate top-level versions.txt for pure-HLS project: $err"
+    }
   }
 
   Msg Info "Done building HLS components for $project_name"

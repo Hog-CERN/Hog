@@ -231,9 +231,20 @@ if {$is_hls_badge} {
   set ver [extract_ver_from_dir [file tail $parent]]
   if {$ver eq ""} { set ver "unknown" }
 } else {
-  if {[catch {glob -types d $repo_path/bin/$project-${ver}} prj_dir]} {
+  # Accept both renamed (bin/<proj>-<ver>) and unrenamed (bin/<proj>-<ver>-<sha>)
+  # layouts so badges still work when GetArtifactsAndRename.sh doesn't strip the
+  # SHA suffix (e.g. for projects that don't emit a .bit/.pof/.bif file).
+  set prj_matches [glob -nocomplain -types d \
+      $repo_path/bin/$project-${ver} \
+      $repo_path/bin/$project-${ver}-*]
+  if {[llength $prj_matches] == 0} {
     Msg CriticalWarning "Cannot find $project binaries in artifacts"
     return
+  }
+  # Prefer the exact (renamed) match if present, otherwise take the first.
+  set prj_dir [lindex $prj_matches 0]
+  foreach m $prj_matches {
+    if {[file tail $m] eq "$project-${ver}"} { set prj_dir $m; break }
   }
 }
 

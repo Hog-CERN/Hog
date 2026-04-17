@@ -136,7 +136,7 @@ set usage "- CI script that creates GitLab badges with utilisation and timing re
 USAGE: $::argv0 <push token> <Gitlab api url> <Gitlab project id> <Gitlab project url> <GitLab Server URL> <Hog project|hls:component> <ext_path>\n\
 \n\
     <Hog project>       Name of a Vivado project in Top/ — produces Vivado badges from bin/<project>-<ver>/utilization.txt\n\
-    hls:<component>     Produces HLS badges for a single HLS component located at bin/*/[vitis_hls/]<component>/utilization.txt"
+    hls:<component>     Produces HLS badges for a single HLS component located at bin/*/\[vitis_hls/\]<component>/utilization.txt"
 
 if {[llength $argv] < 7} {
   Msg Info [cmdline::usage $usage]

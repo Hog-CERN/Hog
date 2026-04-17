@@ -6297,8 +6297,12 @@ proc LaunchHlsSimulation {project_name {repo_path .} {hls_simsets {}}} {
         }
         set is_enabled [expr {[string tolower $flag_val] eq "true" || $flag_val eq "1"}]
         if {!$is_enabled} {
-          Msg Warning "HLS simulation '$st' requested for '$component_name' but [string toupper $st] is not enabled in \[hls:$component_name\] section of hog.conf. Running it anyway."
-          Msg Info "To enable it permanently, add '[string toupper $st]=true' under \[hls:$component_name\] in Top/$project_name/hog.conf"
+          set upper_st [string toupper $st]
+          Msg Warning "HLS simulation '$st' requested for '$component_name' but\
+            $upper_st is not enabled in \[hls:$component_name\] section of\
+            hog.conf. Running it anyway."
+          Msg Info "To enable it permanently, add '$upper_st=true' under\
+            \[hls:$component_name\] in Top/$project_name/hog.conf"
         }
       }
     } else {

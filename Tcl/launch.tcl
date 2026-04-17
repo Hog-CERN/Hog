@@ -241,7 +241,10 @@ set parameters {
   {vivado_only     "If set, and project is vivado-vitis, vitis project will not be created."}
   {vitis_only      "If set, and project is vivado-vitis create only vitis project. If an xsa is not given, a pre-synth xsa will be created."}
   {xsa.arg      "" "If set, and project is vivado-vitis, use this xsa for creating platforms without a defined hw."}
-  {simset.arg   "" "Simulation sets to run. HDL sets by name (e.g. sim_1), HLS (Vitis Unified) sets as csim:<component> or cosim:<component>. If empty, all enabled simulations are run."}
+  {simset.arg   "" "Simulation sets to run. HDL sets by name (e.g. sim_1), HLS\
+                    (Vitis Unified) sets as csim:<component> or\
+                    cosim:<component>. If empty, all enabled simulations are\
+                    run."}
   {all             "List all projects, including test projects. Test projects have #test on the second line of hog.conf."}
   {generate        "For IPbus XMLs, it will re create the VHDL address decode files."}
   {dst_dir.arg  "" "For reports, IPbus XMLs, set the destination folder (default is in the ./bin folder)."}
@@ -799,7 +802,9 @@ if {$ide_name eq "vitis_unified" || $ide_name eq "vitis_classic"} {
   set options(vitis_only) 1
 }
 
-if {($globalSettings::vitis_classic == 1 || $globalSettings::vitis_unified == 1) && $options(vitis_only) == 1 && ($do_synthesis == 1 || $do_implementation == 1 || $do_compile == 1)} {
+set is_vitis_ide [expr {$globalSettings::vitis_classic == 1 || $globalSettings::vitis_unified == 1}]
+set is_build_step [expr {$do_synthesis == 1 || $do_implementation == 1 || $do_compile == 1}]
+if {$is_vitis_ide && $options(vitis_only) == 1 && $is_build_step} {
   set do_vitis_build 1
 }
 

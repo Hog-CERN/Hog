@@ -136,9 +136,11 @@ def RunHlsCsim(component_name, cfg_file, work_dir):
 
     if result.returncode != 0:
       PrintError("C simulation failed for '%s' (exit code: %d)" % (component_name, result.returncode))
-      PrintError("Check the log above for details. Common causes:")
-      PrintError("  - Missing include paths: add 'tb.cflags=-I <dir>' and/or 'syn.cflags=-I <dir>' to hls_config.cfg")
-      PrintError("  - Source files not found: verify syn.file/tb.file paths in hls_config.cfg are relative to the cfg file location")
+      issues = _check_config_issues(cfg_file)
+      if issues:
+        PrintError("Possible configuration issues detected:")
+        for issue in issues:
+          PrintError("  - %s" % issue)
       return False
 
     PrintInfo("C simulation completed successfully for '%s'" % component_name)
@@ -178,10 +180,11 @@ def RunHlsSynthesis(component_name, cfg_file, work_dir):
 
     if result.returncode != 0:
       PrintError("C synthesis failed for '%s' (exit code: %d)" % (component_name, result.returncode))
-      PrintError("Check the log above for details. Common causes:")
-      PrintError("  - Missing include paths: add 'syn.cflags=-I <dir>' to hls_config.cfg")
-      PrintError("  - Source files not found: verify syn.file paths in hls_config.cfg are relative to the cfg file location")
-      PrintError("  - Wrong top function: verify 'syn.top' in hls_config.cfg matches your C/C++ function name")
+      issues = _check_config_issues(cfg_file, check_syn=True, check_tb=False)
+      if issues:
+        PrintError("Possible configuration issues detected:")
+        for issue in issues:
+          PrintError("  - %s" % issue)
       return False
 
     PrintInfo("C synthesis completed successfully for '%s'" % component_name)
@@ -221,10 +224,14 @@ def RunHlsCosim(component_name, cfg_file, work_dir):
 
     if result.returncode != 0:
       PrintError("C/RTL co-simulation failed for '%s' (exit code: %d)" % (component_name, result.returncode))
-      PrintError("Check the log above for details. Common causes:")
-      PrintError("  - C synthesis must complete successfully before co-simulation")
-      PrintError("  - Missing include paths: add 'tb.cflags=-I <dir>' to hls_config.cfg")
-      PrintError("  - Testbench not specified: verify tb.file paths in hls_config.cfg")
+      issues = _check_config_issues(cfg_file)
+      syn_dir = os.path.join(os.path.abspath(work_dir), "hls", "syn")
+      if not os.path.isdir(syn_dir):
+        issues.append("C synthesis output not found at %s — synthesis must complete successfully before co-simulation" % syn_dir)
+      if issues:
+        PrintError("Possible configuration issues detected:")
+        for issue in issues:
+          PrintError("  - %s" % issue)
       return False
 
     PrintInfo("Co-simulation completed successfully for '%s'" % component_name)
@@ -463,6 +470,72 @@ def CollectHlsReports(component_name, work_dir, output_dir):
     traceback.print_exc()
     sys.stdout.flush()
     return False
+
+
+def _check_config_issues(cfg_file, check_syn=True, check_tb=True):
+  """Parse hls_config.cfg and return a list of detected configuration issues.
+
+  Checks whether syn.file / tb.file paths and -I include directories
+  referenced in syn.cflags / tb.cflags actually exist on disk.
+
+  Args:
+    cfg_file: Absolute path to the hls_config.cfg file
+    check_syn: If True, check syn.file and syn.cflags entries
+    check_tb:  If True, check tb.file and tb.cflags entries
+  Returns:
+    list of str: human-readable issue descriptions (empty if everything looks fine)
+  """
+  issues = []
+  cfg_dir = os.path.dirname(os.path.abspath(cfg_file))
+
+  syn_files = []
+  tb_files = []
+  syn_cflags_raw = []
+  tb_cflags_raw = []
+
+  try:
+    with open(cfg_file, 'r') as f:
+      for line in f:
+        line = line.strip()
+        if line.startswith('#') or '=' not in line:
+          continue
+        key, _, value = line.partition('=')
+        key = key.strip()
+        value = value.strip()
+        if key == 'syn.file':
+          syn_files.append(value)
+        elif key == 'tb.file':
+          tb_files.append(value)
+        elif key == 'syn.cflags':
+          syn_cflags_raw = value.split()
+        elif key == 'tb.cflags':
+          tb_cflags_raw = value.split()
+  except Exception:
+    return issues
+
+  if check_syn:
+    for rel in syn_files:
+      abs_path = os.path.normpath(os.path.join(cfg_dir, rel))
+      if not os.path.exists(abs_path):
+        issues.append("Source file not found: %s (resolved to %s)" % (rel, abs_path))
+    for flag in _resolve_cflags(syn_cflags_raw, cfg_dir):
+      if flag.startswith("-I"):
+        inc_dir = flag[2:]
+        if not os.path.isdir(inc_dir):
+          issues.append("syn.cflags include directory not found: %s" % inc_dir)
+
+  if check_tb:
+    for rel in tb_files:
+      abs_path = os.path.normpath(os.path.join(cfg_dir, rel))
+      if not os.path.exists(abs_path):
+        issues.append("Testbench file not found: %s (resolved to %s)" % (rel, abs_path))
+    for flag in _resolve_cflags(tb_cflags_raw, cfg_dir):
+      if flag.startswith("-I"):
+        inc_dir = flag[2:]
+        if not os.path.isdir(inc_dir):
+          issues.append("tb.cflags include directory not found: %s" % inc_dir)
+
+  return issues
 
 
 def _find_first_file(roots, filename):

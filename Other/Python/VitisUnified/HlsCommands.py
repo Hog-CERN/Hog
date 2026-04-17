@@ -1002,7 +1002,7 @@ if __name__ == "__main__":
     print("  synthesis <component_name> <cfg_file> <work_dir>", flush=True)
     print("  cosim <component_name> <cfg_file> <work_dir>", flush=True)
     print("  collect_reports <component_name> <work_dir> <output_dir>", flush=True)
-    print("  generate_summary <component_name> <work_dir> <output_dir>", flush=True)
+    print("  hls_summary <component_name> <work_dir> <output_dir>", flush=True)
     print("  create_workspace <workspace_path> <component_name> <cfg_file> <work_dir>", flush=True)
     sys.exit(1)
 
@@ -1105,9 +1105,9 @@ if __name__ == "__main__":
     )
     sys.exit(0)
 
-  elif command == "generate_summary":
+  elif command == "hls_summary":
     if len(sys.argv) < 5:
-      PrintError("generate_summary requires: component_name work_dir output_dir")
+      PrintError("hls_summary requires: component_name work_dir output_dir")
       sys.exit(1)
     # Non-critical if it fails — do not block the build
     GenerateHlsSummary(
@@ -1131,5 +1131,5 @@ if __name__ == "__main__":
 
   else:
     PrintError("Unknown command: %s" % command)
-    print("Available commands: validate, generate_minimal, csim, synthesis, cosim, impl, export_rtl, export_ip, collect_reports, generate_summary, create_workspace", file=sys.stderr, flush=True)
+    print("Available commands: validate, generate_minimal, csim, synthesis, cosim, impl, export_rtl, export_ip, collect_reports, hls_summary, create_workspace", file=sys.stderr, flush=True)
     sys.exit(1)

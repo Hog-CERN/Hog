@@ -6152,7 +6152,7 @@ proc LaunchHlsBuild {project_name {repo_path .}} {
     # Vivado convention so the existing CI logic (release notes assembly and
     # timing-failure detection) works for HLS components too.
     Msg Info "Generating HLS release-notes summary for component '$component_name'..."
-    if {![ExecuteVitisUnifiedCommand $python_script "generate_summary" \
+    if {![ExecuteVitisUnifiedCommand $python_script "hls_summary" \
         [list $component_name $hls_work_dir $hls_out_dir] \
         "Failed to generate HLS summary for $component_name"]} {
       Msg Warning "Could not generate HLS summary for component '$component_name'"

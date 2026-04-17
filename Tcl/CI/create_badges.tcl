@@ -133,7 +133,10 @@ source $TclPath/hog.tcl
 set curl_cmd [GetCurl]
 
 set usage "- CI script that creates GitLab badges with utilisation and timing results for a chosen Hog project.\n\
-USAGE: $::argv0 <push token> <Gitlab api url> <Gitlab project id> <Gitlab project url> <GitLab Server URL> <Hog project> <ext_path>"
+USAGE: $::argv0 <push token> <Gitlab api url> <Gitlab project id> <Gitlab project url> <GitLab Server URL> <Hog project|hls:component> <ext_path>\n\
+\n\
+    <Hog project>       Name of a Vivado project in Top/ — produces Vivado badges from bin/<project>-<ver>/utilization.txt\n\
+    hls:<component>     Produces HLS badges for a single HLS component located at bin/*/[vitis_hls/]<component>/utilization.txt"
 
 if {[llength $argv] < 7} {
   Msg Info [cmdline::usage $usage]
@@ -156,7 +159,21 @@ set project [lindex $argv 5]
 set ext_path [lindex $argv 6]
 
 set resources [dict create "LUTs" "LUTs" "Registers" "FFs" "Block" "BRAM" "URAM" "URAM" "DSPs" "DSPs"]
-set ver [GetProjectVersion $repo_path/Top/$project $repo_path $ext_path 0]
+
+# An entry of the form "hls:<component>" in HOG_BADGE_PROJECTS requests badges
+# for a single HLS component rather than a Vivado project. HLS badge generation
+# is strictly opt-in: components are only badged when the user lists them with
+# the "hls:" prefix.
+set is_hls_badge 0
+set hls_component ""
+if {[string match "hls:*" $project]} {
+  set is_hls_badge 1
+  set hls_component [string range $project 4 end]
+}
+
+if {!$is_hls_badge} {
+  set ver [GetProjectVersion $repo_path/Top/$project $repo_path $ext_path 0]
+}
 
 set accumulated ""
 set current_badges [dict create]
@@ -177,9 +194,47 @@ while {1} {
 }
 
 
-if {[catch {glob -types d $repo_path/bin/$project-${ver}} prj_dir]} {
-  Msg CriticalWarning "Cannot find $project binaries in artifacts"
-  return
+# Extract a "vX.Y.Z" version string from a bin-directory name of the form
+# "<project>-vX.Y.Z" or "<project>-vX.Y.Z-<sha>". Returns "" on no match.
+proc extract_ver_from_dir {dir_name} {
+  if {[regexp {-(v[0-9]+\.[0-9]+\.[0-9]+)(?:-[0-9a-fA-F]+)?$} $dir_name -> v]} {
+    return $v
+  }
+  return ""
+}
+
+if {$is_hls_badge} {
+  # HLS mode: locate the component's utilization.txt in bin/. Works for both
+  # mixed projects (bin/<proj>-<ver>/vitis_hls/<comp>/) and pure-HLS projects
+  # (bin/<proj>-<ver>[-<sha>]/<comp>/). Tolerates a trailing "-<sha>" suffix
+  # on the project dir that GetArtifactsAndRename.sh may not have stripped.
+  set hls_matches [concat \
+    [glob -nocomplain $repo_path/bin/*/vitis_hls/$hls_component/utilization.txt] \
+    [glob -nocomplain $repo_path/bin/*/$hls_component/utilization.txt]]
+  if {[llength $hls_matches] == 0} {
+    Msg CriticalWarning "Cannot find HLS component '$hls_component' binaries in artifacts"
+    return
+  }
+  # A component name should be unique across the repository. If multiple
+  # matches appear we take the first one and warn.
+  if {[llength $hls_matches] > 1} {
+    Msg Warning "Multiple bin dirs contain HLS component '$hls_component'; using [lindex $hls_matches 0]"
+  }
+  set prj_dir [file dirname [lindex $hls_matches 0]]
+  # Derive the version from the enclosing "<project>-<ver>[-<sha>]" dir name.
+  set parent $prj_dir
+  if {[file tail [file dirname $parent]] eq "vitis_hls"} {
+    set parent [file dirname [file dirname $parent]]
+  } else {
+    set parent [file dirname $parent]
+  }
+  set ver [extract_ver_from_dir [file tail $parent]]
+  if {$ver eq ""} { set ver "unknown" }
+} else {
+  if {[catch {glob -types d $repo_path/bin/$project-${ver}} prj_dir]} {
+    Msg CriticalWarning "Cannot find $project binaries in artifacts"
+    return
+  }
 }
 
 # Parse a Vivado utilization.txt into a dict { "LUTs" -> percentage, ... }.
@@ -263,41 +318,29 @@ proc emit_badges {util_dir badge_suffix label_left is_hls util_dict ver new_badg
 cd $prj_dir
 
 set new_badges [dict create]
-set prj_name [string map {/ _} $project]
 
-# -------- Vivado (top-level utilization.txt) --------
-if {[file exists utilization.txt]} {
+if {$is_hls_badge} {
+  # -------- Single HLS component (opt-in via "hls:<component>") --------
+  # cwd is already the component directory. Badge filename/label uses the
+  # component name alone (component names are expected to be globally
+  # unique across the repo's HLS components).
   set fp [open utilization.txt]
-  set vivado_lines [split [read $fp] "\n"]
-  close $fp
-  set vivado_util [parse_vivado_util $vivado_lines $resources]
-  emit_badges "." $prj_name $prj_name 0 $vivado_util $ver new_badges
-}
-
-# -------- HLS components --------
-# Mixed (vivado_vitis_unified) projects group HLS under vitis_hls/<component>/;
-# pure vitis_unified projects place them directly under <component>/.
-# The glob order also determines upload order — Vivado (already handled above)
-# comes first, then mixed-project HLS components, then pure-HLS components.
-set hls_util_files [concat \
-  [glob -nocomplain vitis_hls/*/utilization.txt] \
-  [glob -nocomplain */utilization.txt]]
-foreach hls_util $hls_util_files {
-  set comp_dir [file dirname $hls_util]
-  # Skip Vivado utilization.txt at the project root (already processed above).
-  if {$comp_dir eq "." || $comp_dir eq ""} { continue }
-  set comp_name [file tail $comp_dir]
-  # Skip the 'vitis_hls' wrapper itself (we iterate its children separately).
-  if {$comp_name eq "vitis_hls"} { continue }
-  set fp [open $hls_util]
   set hls_lines [split [read $fp] "\n"]
   close $fp
   set hls_util_dict [parse_hls_util $hls_lines]
-  set badge_suffix "$prj_name-$comp_name"
-  # Avoid emitting duplicate badges if a component name collides between the
-  # two globs (shouldn't happen in practice, but defensive).
-  if {[dict exists $new_badges "timing-$badge_suffix"]} { continue }
-  emit_badges $comp_dir $badge_suffix $comp_name 1 $hls_util_dict $ver new_badges
+  emit_badges "." $hls_component $hls_component 1 $hls_util_dict $ver new_badges
+} else {
+  # -------- Vivado (top-level utilization.txt) --------
+  # HLS components inside Vivado bin dirs are NOT auto-discovered anymore;
+  # list them explicitly with "hls:<component>" in HOG_BADGE_PROJECTS.
+  set prj_name [string map {/ _} $project]
+  if {[file exists utilization.txt]} {
+    set fp [open utilization.txt]
+    set vivado_lines [split [read $fp] "\n"]
+    close $fp
+    set vivado_util [parse_vivado_util $vivado_lines $resources]
+    emit_badges "." $prj_name $prj_name 0 $vivado_util $ver new_badges
+  }
 }
 
 # -------- Upload all generated badges --------

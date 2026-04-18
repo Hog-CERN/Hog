@@ -76,12 +76,11 @@ proc generate_prj_badge {prj_name ver color file {is_hls 0}} {
 }
 
 proc generate_res_badge {res res_value color file {is_hls 0}} {
-  # Right-panel text: for HLS badges prepend "HLS " as a subtle marker.
-  if {$is_hls} {
-    set value_text "HLS $res_value"
-  } else {
-    set value_text $res_value
-  }
+  # Resource badges show only the percentage on the right panel — no "HLS"
+  # prefix here. The HLS marker is already conveyed by the timing/project
+  # badge (generate_prj_badge) for the same component, and repeating it on
+  # every resource badge eats the limited 60-px panel width.
+  set value_text $res_value
 
   # Right-panel font auto-shrink (60-px panel).
   set value_font_size 11.0

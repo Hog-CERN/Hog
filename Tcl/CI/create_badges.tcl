@@ -197,7 +197,9 @@ while {1} {
 # Extract a "vX.Y.Z" version string from a bin-directory name of the form
 # "<project>-vX.Y.Z" or "<project>-vX.Y.Z-<sha>". Returns "" on no match.
 proc extract_ver_from_dir {dir_name} {
-  if {[regexp {-(v[0-9]+\.[0-9]+\.[0-9]+)(?:-[0-9a-fA-F]+)?$} $dir_name -> v]} {
+  # The "--" separator stops regexp from interpreting the leading "-" of the
+  # pattern as an option flag.
+  if {[regexp -- {-(v[0-9]+\.[0-9]+\.[0-9]+)(?:-[0-9a-fA-F]+)?$} $dir_name -> v]} {
     return $v
   }
   return ""

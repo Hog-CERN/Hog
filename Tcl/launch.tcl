@@ -1007,8 +1007,12 @@ if {($proj_found == 0 || $recreate == 1)} {
 
 ########## CHECK SYNTAX ###########
 if {$do_check_syntax == 1} {
-  Msg Info "Checking syntax for project $project_name..."
-  CheckSyntax $project_name $repo_path $project_file
+  if {$ide_name eq "vitis_unified" || $ide_name eq "vitis_classic"} {
+    Msg Info "Skipping syntax check for $project_name: pure Vitis project has no HDL syntax to check"
+  } else {
+    Msg Info "Checking syntax for project $project_name..."
+    CheckSyntax $project_name $repo_path $project_file
+  }
 }
 
 ######### RTL ANALYSIS ########

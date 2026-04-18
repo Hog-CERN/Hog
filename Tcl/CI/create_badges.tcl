@@ -284,7 +284,7 @@ proc parse_hls_util {lines} {
   set usage_dict [dict create]
   set hls_res_map [dict create LUT "LUTs" FF "FFs" BRAM "BRAM" BRAM_18K "BRAM" URAM "URAM" DSP "DSPs"]
   foreach line $lines {
-    if {![regexp {^\s*\|\s*([A-Za-z_0-9]+)\s*\|\s*\S+\s*\|\s*\S+\s*\|\s*(\S+)\s*\|} $line -> site pct]} {
+    if {![regexp -- {^\s*\|\s*([A-Za-z_0-9]+)\s*\|\s*\S+\s*\|\s*\S+\s*\|\s*(\S+)\s*\|} $line -> site pct]} {
       continue
     }
     if {[dict exists $hls_res_map $site]} {
@@ -294,7 +294,14 @@ proc parse_hls_util {lines} {
       }
     }
   }
-  return $usage_dict
+  # Re-emit entries in the canonical Vivado order (LUTs, FFs, BRAM, URAM, DSPs)
+  set ordered [dict create]
+  foreach res_name {LUTs FFs BRAM URAM DSPs} {
+    if {[dict exists $usage_dict $res_name]} {
+      dict set ordered $res_name [dict get $usage_dict $res_name]
+    }
+  }
+  return $ordered
 }
 
 # Emit one timing badge + one set of resource badges for a given "source"

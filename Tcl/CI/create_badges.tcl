@@ -18,7 +18,7 @@
 
 
 proc generate_prj_badge {prj_name ver color file {is_hls 0}} {
-  # Left-panel font auto-shrink (existing behaviour).
+  # Left-panel font auto-shrink (existing behaviour)
   set font_size 11.0
   set max_characters 20.0
   if { [expr {[string length $prj_name] > $max_characters}] } {
@@ -26,14 +26,22 @@ proc generate_prj_badge {prj_name ver color file {is_hls 0}} {
     set font_size [expr {ceil($scaling_factor * $font_size)}]
   }
 
-  # Right-panel text: for HLS badges prepend "HLS " as a subtle marker.
+  # Right-panel text: for HLS badges prepend "HLS " as a subtle marker
   if {$is_hls} {
     set ver_text "HLS $ver"
   } else {
     set ver_text $ver
   }
 
-  # Right-panel font auto-shrink, proportional to the narrower 90-px panel.
+  # Right-panel background colour. HLS badges get an indigo panel so they
+  # stand out from Vivado badges
+  if {$is_hls} {
+    set right_color "#4527A0"
+  } else {
+    set right_color "#262626"
+  }
+
+  # Right-panel font auto-shrink, proportional to the narrower 90-px panel
   set ver_font_size 11.0
   set ver_max_characters 12.0
   if { [expr {[string length $ver_text] > $ver_max_characters}] } {
@@ -52,8 +60,8 @@ proc generate_prj_badge {prj_name ver color file {is_hls 0}} {
     </mask>
     <g mask=\"url(#hog_prj_badge)\">
         <path fill=\"$color\" d=\"M0 0h250v20H0z\"/>
-        <path fill=\"#262626\" d=\"M160 0h90v20H160z\"/>
-        <path fill=\"#262626\" d=\"M250,20 a1,1 0 0,0 0,-16\"/>
+        <path fill=\"$right_color\" d=\"M160 0h90v20H160z\"/>
+        <path fill=\"$right_color\" d=\"M250,20 a1,1 0 0,0 0,-16\"/>
         <path fill=\"url(#b)\" d=\"M0 0h250v20H0z\"/>
     </g>
     <g fill=\"#fff\" text-anchor=\"middle\" font-family=\"DejaVu Sans,Verdana,Geneva,sans-serif\" font-size=\"$font_size\">
@@ -79,10 +87,10 @@ proc generate_res_badge {res res_value color file {is_hls 0}} {
   # Resource badges show only the percentage on the right panel — no "HLS"
   # prefix here. The HLS marker is already conveyed by the timing/project
   # badge (generate_prj_badge) for the same component, and repeating it on
-  # every resource badge eats the limited 60-px panel width.
+  # every resource badge eats the limited 60-px panel width
   set value_text $res_value
 
-  # Right-panel font auto-shrink (60-px panel).
+  # Right-panel font auto-shrink (60-px panel)
   set value_font_size 11.0
   set value_max_characters 9.0
   if { [expr {[string length $value_text] > $value_max_characters}] } {
@@ -162,7 +170,7 @@ set resources [dict create "LUTs" "LUTs" "Registers" "FFs" "Block" "BRAM" "URAM"
 # An entry of the form "hls:<component>" in HOG_BADGE_PROJECTS requests badges
 # for a single HLS component rather than a Vivado project. HLS badge generation
 # is strictly opt-in: components are only badged when the user lists them with
-# the "hls:" prefix.
+# the "hls:" prefix
 set is_hls_badge 0
 set hls_component ""
 if {[string match "hls:*" $project]} {
@@ -194,7 +202,7 @@ while {1} {
 
 
 # Extract a "vX.Y.Z" version string from a bin-directory name of the form
-# "<project>-vX.Y.Z" or "<project>-vX.Y.Z-<sha>". Returns "" on no match.
+# "<project>-vX.Y.Z" or "<project>-vX.Y.Z-<sha>". Returns "" on no match
 proc extract_ver_from_dir {dir_name} {
   # The "--" separator stops regexp from interpreting the leading "-" of the
   # pattern as an option flag.
@@ -208,7 +216,7 @@ if {$is_hls_badge} {
   # HLS mode: locate the component's utilization.txt in bin/. Works for both
   # mixed projects (bin/<proj>-<ver>/vitis_hls/<comp>/) and pure-HLS projects
   # (bin/<proj>-<ver>[-<sha>]/<comp>/). Tolerates a trailing "-<sha>" suffix
-  # on the project dir that GetArtifactsAndRename.sh may not have stripped.
+  # on the project dir that GetArtifactsAndRename.sh may not have stripped
   set hls_matches [concat \
     [glob -nocomplain $repo_path/bin/*/vitis_hls/$hls_component/utilization.txt] \
     [glob -nocomplain $repo_path/bin/*/$hls_component/utilization.txt]]
@@ -217,12 +225,12 @@ if {$is_hls_badge} {
     return
   }
   # A component name should be unique across the repository. If multiple
-  # matches appear we take the first one and warn.
+  # matches appear we take the first one and warn
   if {[llength $hls_matches] > 1} {
     Msg Warning "Multiple bin dirs contain HLS component '$hls_component'; using [lindex $hls_matches 0]"
   }
   set prj_dir [file dirname [lindex $hls_matches 0]]
-  # Derive the version from the enclosing "<project>-<ver>[-<sha>]" dir name.
+  # Derive the version from the enclosing "<project>-<ver>[-<sha>]" dir name
   set parent $prj_dir
   if {[file tail [file dirname $parent]] eq "vitis_hls"} {
     set parent [file dirname [file dirname $parent]]
@@ -234,7 +242,7 @@ if {$is_hls_badge} {
 } else {
   # Accept both renamed (bin/<proj>-<ver>) and unrenamed (bin/<proj>-<ver>-<sha>)
   # layouts so badges still work when GetArtifactsAndRename.sh doesn't strip the
-  # SHA suffix (e.g. for projects that don't emit a .bit/.pof/.bif file).
+  # SHA suffix (e.g. for projects that don't emit a .bit/.pof/.bif file)
   set prj_matches [glob -nocomplain -types d \
       $repo_path/bin/$project-${ver} \
       $repo_path/bin/$project-${ver}-*]
@@ -242,7 +250,7 @@ if {$is_hls_badge} {
     Msg CriticalWarning "Cannot find $project binaries in artifacts"
     return
   }
-  # Prefer the exact (renamed) match if present, otherwise take the first.
+  # Prefer the exact (renamed) match if present, otherwise take the first
   set prj_dir [lindex $prj_matches 0]
   foreach m $prj_matches {
     if {[file tail $m] eq "$project-${ver}"} { set prj_dir $m; break }
@@ -251,7 +259,7 @@ if {$is_hls_badge} {
 
 # Parse a Vivado utilization.txt into a dict { "LUTs" -> percentage, ... }.
 # The existing Vivado format uses substring matching on the `resources` dict
-# (keys: "LUTs", "Registers", "Block", "URAM", "DSPs").
+# (keys: "LUTs", "Registers", "Block", "URAM", "DSPs")
 proc parse_vivado_util {lines resources} {
   set usage_dict [dict create]
   foreach line $lines {
@@ -271,7 +279,7 @@ proc parse_vivado_util {lines resources} {
 
 # Parse an HLS utilization.txt (markdown) into a dict { "LUTs" -> percentage, ... }.
 # Rows look like "| LUT | 1234 | 230400 | 0.54 |". Implementation tables appear
-# after Synthesis ones, so the dict naturally ends up with post-P&R numbers.
+# after Synthesis ones, so the dict naturally ends up with post-P&R numbers
 proc parse_hls_util {lines} {
   set usage_dict [dict create]
   set hls_res_map [dict create LUT "LUTs" FF "FFs" BRAM "BRAM" BRAM_18K "BRAM" URAM "URAM" DSP "DSPs"]
@@ -335,7 +343,7 @@ if {$is_hls_badge} {
   # -------- Single HLS component (opt-in via "hls:<component>") --------
   # cwd is already the component directory. Badge filename/label uses the
   # component name alone (component names are expected to be globally
-  # unique across the repo's HLS components).
+  # unique across the repo's HLS components)
   set fp [open utilization.txt]
   set hls_lines [split [read $fp] "\n"]
   close $fp
@@ -344,7 +352,7 @@ if {$is_hls_badge} {
 } else {
   # -------- Vivado (top-level utilization.txt) --------
   # HLS components inside Vivado bin dirs are NOT auto-discovered anymore;
-  # list them explicitly with "hls:<component>" in HOG_BADGE_PROJECTS.
+  # list them explicitly with "hls:<component>" in HOG_BADGE_PROJECTS
   set prj_name [string map {/ _} $project]
   if {[file exists utilization.txt]} {
     set fp [open utilization.txt]

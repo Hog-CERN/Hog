@@ -456,13 +456,15 @@ if {[IsXilinx]} {
       if {$is_vitis_classic || $is_vitis_unified} {
         Msg Info "XSA file written to $dst_xsa"
 
+        set full_proj_name [file join $group_name $proj_name]
+
         # Determine command based on project type
         if {$is_vitis_classic} {
-          set vitis_cmd "xsct $tcl_path/launch.tcl CW -xsa $dst_xsa -vitis_only $proj_name"
+          set vitis_cmd "xsct $tcl_path/launch.tcl CW -xsa $dst_xsa -vitis_only $full_proj_name"
           set vitis_type "Vitis Classic"
           set error_prefix "xsct (vitis classic)"
         } elseif {$is_vitis_unified} {
-          set vitis_cmd "$tcl_path/launch.tcl CW -xsa $dst_xsa -vitis_only $proj_name"
+          set vitis_cmd "$tcl_path/launch.tcl CW -xsa $dst_xsa -vitis_only $full_proj_name"
           set vitis_type "Vitis Unified"
           set error_prefix "vivado (for vitis unified)"
         } else {
@@ -474,6 +476,30 @@ if {[IsXilinx]} {
         set ret [catch {exec -ignorestderr {*}$vitis_cmd >@ stdout} result]
         if {$ret != 0} {
           Msg Error "$error_prefix returned an error state."
+        }
+
+        # Copy ELF files from Vitis build output into bin directory
+        # Extract app names preserving original case from hog.conf,
+        # since Vitis creates directories matching the original case
+        set app_names [list]
+        foreach prop_key [dict keys $properties] {
+          if {[regexp {^app:(.+)$} $prop_key -> raw_app_name]} {
+            lappend app_names [string trim $raw_app_name]
+          }
+        }
+        foreach app_name $app_names {
+          if {$is_vitis_unified} {
+            set elf_src [file normalize "$repo_path/Projects/$full_proj_name/vitis_unified/$app_name/build/$app_name.elf"]
+          } else {
+            set elf_src [file normalize "$repo_path/Projects/$full_proj_name/vitis_classic/$app_name/Release/$app_name.elf"]
+          }
+          set elf_dst [file normalize "$dst_dir/${proj_name}\-${app_name}\-$describe.elf"]
+          if {[file exists $elf_src]} {
+            Msg Info "Copying ELF $elf_src into $elf_dst..."
+            file copy -force $elf_src $elf_dst
+          } else {
+            Msg Warning "ELF file not found: $elf_src"
+          }
         }
 
         # Process ELF files and update bitstream with memory content

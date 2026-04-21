@@ -2774,7 +2774,7 @@ proc GetHogFiles {args} {
   # The list_path argument is conventionally <proj_dir>/list/, so hog.conf sits
   # one level up. For each [hls:<comp>] section with HLS_CONFIG=<path>, add the
   # cfg + everything it references to a synthesized "<comp>" library, and -- if
-  # print_log is on -- show the file tree exactly like a .src would.
+  # print_log is on -- show the file tree exactly like a .src would
   set proj_conf [file normalize [file join [file dirname $list_path] hog.conf]]
   if {[file exists $proj_conf]} {
     set hls_configs [GetHlsConfigsFromProjConf $proj_conf $repo_path]

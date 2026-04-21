@@ -58,8 +58,9 @@ namespace eval Tools {
         continue
       }
     }
+  }
 
-
+  proc Init {} {
     set _required_procs {IsActive Launch Initialize}
     foreach ns [namespace children ::Tools] {
       if {[catch {set m [namespace eval $ns {variable Manifest; set Manifest}]} err]} {
@@ -87,9 +88,7 @@ namespace eval Tools {
         Flow::RegisterFlowDict $ns [dict get $m Flows]
       }
     }
-  }
 
-  proc Init {} {
     set active [detectActiveTool]
     if {$active ne ""} {
       ::ActiveTool::Set $active

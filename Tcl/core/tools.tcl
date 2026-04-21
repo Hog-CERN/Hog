@@ -29,28 +29,33 @@ namespace eval Tools {
 
 
   proc Launch {tool} {
-    set tools [namespace children ::Tools]
-    set tool_ns ""
-    foreach ns $tools {
-      if {[string tolower [namespace tail $ns]] eq [string tolower $tool]} {
-        set tool_ns $ns
-        break
+    if {[string first "::" $tool] >= 0} {
+      set tool_ns $tool
+    } else {
+      set tool_ns ""
+      foreach ns [namespace children ::Tools] {
+        if {[string tolower [namespace tail $ns]] eq [string tolower $tool]} {
+          set tool_ns $ns
+          break
+        }
       }
+    }
+    if {$tool_ns eq "" || [info commands ${tool_ns}::Launch] eq ""} {
+      Msg Error "Tool '$tool' not found or has no Launch proc"
+      return
     }
     if {[catch {${tool_ns}::Launch} err]} {
       Msg Error "Failed to launch tool '$tool': $err"
     }
   }
 
-  proc Init {tools_dirs} {
-    foreach dir $tools_dirs {
-      Msg Debug "Loading tools from $dir"
-      if {![file isdirectory $dir]} { continue }
-      foreach f [lsort [glob -nocomplain -directory $dir *.tcl]] {
-        if {[catch {namespace eval :: [list source $f]} err]} {
-          Msg Warning "failed to source [file tail $f]: $err"
-          continue
-        }
+  proc RegisterFromDir {dir} {
+    Msg Debug "Loading tools from $dir"
+    if {![file isdirectory $dir]} { return }
+    foreach f [lsort [glob -nocomplain -directory $dir *.tcl]] {
+      if {[catch {namespace eval :: [list source $f]} err]} {
+        Msg Warning "failed to source [file tail $f]: $err"
+        continue
       }
     }
 
@@ -77,12 +82,39 @@ namespace eval Tools {
       }
 
       InjectCommonProcs $ns
-    }
 
+      if {[dict exists $m Flows]} {
+        Flow::RegisterFlowDict $ns [dict get $m Flows]
+      }
+    }
+  }
+
+  proc Init {} {
     set active [detectActiveTool]
     if {$active ne ""} {
       ::ActiveTool::Set $active
     }
+  }
+
+  proc GetToolForProject {project top_path} {
+    set conf [file join $top_path $project hog.conf]
+    if {![file exists $conf]} {
+      Msg Error "hog.conf not found for project '$project' at $conf"
+      return ""
+    }
+    set ide_name_and_ver [string tolower [GetIDEFromConf $conf]]
+    set ide_name [lindex [regexp -all -inline {\S+} $ide_name_and_ver] 0]
+    foreach ns [namespace children ::Tools] {
+      if {[catch {set m [${ns}::GetManifest]} err]} { continue }
+      if {![dict exists $m ref_names]} { continue }
+      foreach iname [dict get $m ref_names] {
+        if {[string tolower $iname] eq $ide_name} {
+          return $ns
+        }
+      }
+    }
+    Msg Error "No loaded tool matches IDE '$ide_name' (from $conf)"
+    return ""
   }
 
   # we can inject procs into each tool's namespace to provide some common functionality
@@ -134,14 +166,19 @@ namespace eval Tools {
 # Namespace wrapper around the current tool, should use this instead 
 # of tool specific calls in most cases:
 namespace eval ActiveTool {
-  variable tool "tlcsh"
-  variable _fixed_procs {Set CurrentTool}
+  variable tool "tclsh"
+  variable _fixed_procs {Set CurrentTool Refresh}
   variable _skip_procs {}
 
 
   proc CurrentTool {} {
     variable tool
     return $tool
+  }
+
+  proc Refresh {} {
+    variable tool
+    Set $tool
   }
 
   proc Set {tool_ns} {
@@ -175,7 +212,7 @@ namespace eval ActiveTool {
         Msg Debug "Calling @_TOOL::@_PROC_NAME with args: $args"
         set result [@_TOOL::@_PROC_NAME {*}$args]
         Msg Debug "Result from @_TOOL::@_PROC_NAME $result"
-        return \$result
+        return $result
       }]
 
       proc ::ActiveTool::$name {args} $proc_body

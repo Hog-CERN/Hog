@@ -171,7 +171,17 @@ namespace eval tlist {
     }
   }
 
-  namespace export create append get length remove pop foreach
+  proc foreachval {itemVar lst body} {
+    if {![tobj isobj $lst]}         { error "tlist foreachval: not a tobj"      "" {INVALID_TOBJ}      }
+    if {[tobj type $lst] ne "List"} { error "tlist foreachval: not a List node" "" {INVALID_TOBJ_LIST} }
+    ::foreach item [tobj value $lst] {
+      set _t [tobj type $item]
+      uplevel 1 [list set $itemVar [expr {$_t eq "Dict" || $_t eq "List" ? $item : [tobj value $item]}]]
+      uplevel 1 $body
+    }
+  }
+
+  namespace export create append get length remove pop foreach foreachval
   namespace ensemble create
 }
 
@@ -224,15 +234,21 @@ namespace eval tdict {
     ::set d [tobj create Dict $current]
   }
 
-  # tdict get dictVar key ?key ...?
-  proc get {dictVar args} {
+  # tdict get dict key ?key ...?
+  proc get {d args} {
     if {[llength $args] < 1} {
-      error "tdict get: usage: tdict get dictVar key ?key ...?" "" {INVALID_ARGS}
+      error "tdict get: usage: tdict get dict key ?key ...?" "" {INVALID_ARGS}
     }
-    upvar 1 $dictVar d
     if {![tobj isobj $d]}         { error "tdict get: not a tobj"      "" {INVALID_TOBJ}      }
     if {[tobj type $d] ne "Dict"} { error "tdict get: not a Dict node" "" {INVALID_TOBJ_DICT} }
     return [_getPath $d $args]
+  }
+
+  proc getval {d args} {
+    ::set obj [get $d {*}$args]
+    ::set t [tobj type $obj]
+    if {$t eq "Dict" || $t eq "List"} { return $obj }
+    return [tobj value $obj]
   }
 
   proc _getPath {d keyPath} {
@@ -250,15 +266,13 @@ namespace eval tdict {
     return [_getPath $node $rest]
   }
 
-  proc exists {dictVar args} {
+  proc exists {d args} {
     if {[llength $args] < 1} { return 0 }
-    upvar 1 $dictVar d
     if {![tobj isobj $d] || [tobj type $d] ne "Dict"} { return 0 }
     return [expr {![catch {_getPath $d $args}]}]
   }
 
-  proc keys {dictVar args} {
-    upvar 1 $dictVar d
+  proc keys {d args} {
     if {![tobj isobj $d]}         { error "tdict keys: not a tobj"      "" {INVALID_TOBJ}      }
     if {[tobj type $d] ne "Dict"} { error "tdict keys: not a Dict node" "" {INVALID_TOBJ_DICT} }
     if {[llength $args] > 0} {
@@ -274,10 +288,10 @@ namespace eval tdict {
     return [dict size [tobj value $d]]
   }
 
-  proc for {dictVar keyVar valVar body} {
-    upvar 1 $dictVar d
+  proc for {kvPair d body} {
     if {![tobj isobj $d]}         { error "tdict for: not a tobj"      "" {INVALID_TOBJ}      }
     if {[tobj type $d] ne "Dict"} { error "tdict for: not a Dict node" "" {INVALID_TOBJ_DICT} }
+    lassign $kvPair keyVar valVar
     dict for {_k _v} [tobj value $d] {
       uplevel 1 [list set $keyVar $_k]
       uplevel 1 [list set $valVar $_v]
@@ -297,7 +311,7 @@ namespace eval tdict {
     ::set keyPath [lrange $args 0 end-1]
     ::set obj     [lindex $args end]
     ::set obj     [expr {[tobj isobj $obj] ? $obj : [tinf $obj]}]
-    if {[exists d {*}$keyPath]} {
+    if {[exists $d {*}$keyPath]} {
       ::set node [_getPath $d $keyPath]
       if {![tobj isobj $node] || [tobj type $node] ne "List"} {
         error "tdict lappend: existing value is not a List node" "" {INVALID_TOBJ_LIST}
@@ -342,6 +356,6 @@ namespace eval tdict {
     ::set d [tobj create Dict $current]
   }
 
-  namespace export create set lappend get exists keys size for remove
+  namespace export create set lappend get getval exists keys size for remove
   namespace ensemble create
 }

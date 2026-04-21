@@ -67,11 +67,23 @@ namespace eval Tools::Vivado {
 
   proc Synthesize {} {
     Msg Info "Running synthesis..."
-    return "Done"
+
+    if {![FlowControl::Has PRE_SYNTH_SIM]} {
+      FlowControl::InsertStages {Simulate Synthesize}
+      return
+    }
+
+    FlowControl::Produce SYNTH
+    FlowControl::InsertStages {Simulate}
   }
 
   proc Implement {} {
+    FlowControl::Require SYNTH
+
     Msg Info "Running implementation..."
+
+    FlowControl::Produce "IMPL"
+    FlowControl::InsertStages {Simulate}
   }
 
   proc GenerateBitstream {} {
@@ -79,7 +91,16 @@ namespace eval Tools::Vivado {
   }
 
   proc Simulate {} {
-    Msg Info "Running simulation..."
+
+    if {[FlowControl::Has SYNTH] && ![FlowControl::Has IMPL]} {
+      Msg Info "Running post-synthesis simulation..."
+    } elseif {[FlowControl::Has IMPL]} {
+      Msg Info "Running post-implementation simulation..."
+    } else {
+      Msg Info "Running RTL simulation..."
+      FlowControl::Produce PRE_SYNTH_SIM
+    }
+
   }
 
   proc CheckSyntax {} {

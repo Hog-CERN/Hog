@@ -3497,6 +3497,42 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
     lappend project_files $f {*}$files
   }
 
+  # Auto-discover HLS components from hog.conf: every [hls:<comp>] section with
+  # an HLS_CONFIG=<path> entry contributes its hls_config.cfg AND every file the
+  # cfg references (via ExpandHlsConfigFiles) to the SHA. This makes .src files
+  # OPTIONAL for HLS components -- the cfg listed in hog.conf is the single
+  # source of truth. If a cfg was already pulled in via a .src, we silently skip
+  # it here to avoid double-hashing
+  set tracked_paths [dict create]
+  foreach pf $project_files {
+    if {[catch {set norm [file normalize $pf]}] == 0} {
+      dict set tracked_paths $norm 1
+    }
+  }
+  set hls_configs [GetHlsConfigsFromProjConf [file normalize ./hog.conf] $repo_path]
+  dict for {comp_name cfg_abs} $hls_configs {
+    if {[dict exists $tracked_paths $cfg_abs]} {
+      Msg Debug "HLS component '$comp_name': cfg $cfg_abs already tracked via a .src file, skipping conf-based discovery."
+      continue
+    }
+    set hls_files [list $cfg_abs]
+    foreach extra [ExpandHlsConfigFiles $cfg_abs] {
+      if {![dict exists $tracked_paths $extra]} {
+        lappend hls_files $extra
+        dict set tracked_paths $extra 1
+      }
+    }
+    dict set tracked_paths $cfg_abs 1
+    lassign [GetVer $hls_files] ver hash
+    Msg Debug "HLS component '$comp_name' (from hog.conf): [llength $hls_files] file(s) tracked, ver=$ver hash=$hash"
+    lappend libs $comp_name
+    lappend versions $ver
+    lappend vers $ver
+    lappend hashes $hash
+    lappend SHAs $hash
+    lappend project_files {*}$hls_files
+  }
+
   # Read constraint list files
   set cons_hashes ""
   # Specify sha_mode 1 for GetHogFiles to get all the files, including the list-files themselves
@@ -6850,6 +6886,95 @@ proc ReadExtraFileList {extra_file_name} {
 }
 
 
+# @brief Expand a Vitis HLS configuration file (hls_config.cfg) into the list of
+#        repository files it references, so Hog can hash them for dirty/SHA
+#        detection without forcing the user to duplicate the list in a .src
+#
+# @param[in] cfg_file  Absolute or relative path to the hls_config.cfg file.
+# @return    A de-duplicated list of normalized absolute file paths.
+#
+proc ExpandHlsConfigFiles {cfg_file} {
+  set out [list]
+  if {![file exists $cfg_file] || ![file isfile $cfg_file]} {
+    return $out
+  }
+  set cfg_dir [file normalize [file dirname $cfg_file]]
+
+  if {[catch {set fp [open $cfg_file r]} err]} {
+    Msg Warning "ExpandHlsConfigFiles: cannot open $cfg_file: $err"
+    return $out
+  }
+  set lines [split [read $fp] "\n"]
+  close $fp
+
+  foreach line $lines {
+    if {[regexp {^[\t\s]*$} $line]} { continue }
+    if {[regexp {^[\t\s]*\#} $line]} { continue }
+    if {[regexp {^\s*\[.*\]\s*$} $line]} { continue }
+    if {![regexp {^\s*[^=\s]+\s*=\s*(.+?)\s*$} $line -> value]} { continue }
+
+    foreach tok [regexp -all -inline {\S+} $value] {
+      if {[file pathtype $tok] eq "absolute"} {
+        set candidate [file normalize $tok]
+      } else {
+        set candidate [file normalize [file join $cfg_dir $tok]]
+      }
+      if {[file isfile $candidate]} {
+        lappend out $candidate
+      } elseif {[file isdirectory $candidate]} {
+        set stack [list $candidate]
+        while {[llength $stack] > 0} {
+          set d [lindex $stack 0]
+          set stack [lrange $stack 1 end]
+          foreach f [glob -nocomplain -directory $d -types f *] {
+            lappend out [file normalize $f]
+          }
+          foreach sub [glob -nocomplain -directory $d -types d *] {
+            lappend stack $sub
+          }
+        }
+      }
+    }
+  }
+  return [lsort -unique $out]
+}
+
+
+# @brief Discover HLS components declared in a project's hog.conf and return
+#        the absolute path of each component's hls_config.cfg
+#
+# @param[in] conf_file  Absolute path of the project's hog.conf
+# @param[in] repo_path  Repository root (paths in HLS_CONFIG are relative to it)
+# @return    A dict { component_name -> absolute_cfg_path }. Empty if no HLS
+proc GetHlsConfigsFromProjConf {conf_file repo_path} {
+  set out [dict create]
+  if {![file exists $conf_file]} { return $out }
+  if {[catch {set properties [ReadConf $conf_file]} err]} {
+    Msg Debug "GetHlsConfigsFromProjConf: cannot parse $conf_file: $err"
+    return $out
+  }
+  set hls_components [dict filter $properties key {hls:*}]
+  dict for {hls_key hls_props} $hls_components {
+    if {![regexp {^hls:(.+)$} $hls_key -> component_name]} { continue }
+    set component_name [string trim $component_name]
+    set cfg_rel ""
+    if {[dict exists $hls_props hls_config]} {
+      set cfg_rel [dict get $hls_props hls_config]
+    } elseif {[dict exists $hls_props HLS_CONFIG]} {
+      set cfg_rel [dict get $hls_props HLS_CONFIG]
+    }
+    if {$cfg_rel eq ""} { continue }
+    set cfg_abs [file normalize "$repo_path/$cfg_rel"]
+    if {![file exists $cfg_abs]} {
+      Msg CriticalWarning "HLS component '$component_name': HLS_CONFIG=$cfg_rel does not exist on disk."
+      continue
+    }
+    dict set out $component_name $cfg_abs
+  }
+  return $out
+}
+
+
 # @brief Read a list file and return a list of three dictionaries
 #
 # Additional information is provided with text separated from the file name with one or more spaces
@@ -7060,6 +7185,24 @@ proc ReadListFile {args} {
               set real_file [GetLinkedFile $vhdlfile]
               dict lappend libraries $lib_name $real_file
               Msg Debug "File $vhdlfile is a soft link, also adding the real file: $real_file"
+            }
+
+            # Auto-expand HLS config files: when a .cfg is referenced from a .src
+            # we treat it as a Vitis HLS hls_config.cfg and add every existing
+            # file/dir it references (syn.file, tb.file, -I include dirs, ...)
+            # to the same library. This avoids forcing the user to duplicate the
+            # HLS file list in both hls_config.cfg and the .src.
+            if {$list_file_ext eq ".src" && $extension eq ".cfg"} {
+              foreach hls_extra [ExpandHlsConfigFiles $vhdlfile] {
+                if {$hls_extra eq $vhdlfile} { continue }
+                Msg Debug "HLS cfg expansion: adding $hls_extra (from $vhdlfile) to $lib_name"
+                dict lappend libraries $lib_name $hls_extra
+                if {$sha_mode != 0 && [file type $hls_extra] eq "link"} {
+                  set real_extra [GetLinkedFile $hls_extra]
+                  dict lappend libraries $lib_name $real_extra
+                  Msg Debug "HLS expanded file $hls_extra is a soft link, also adding $real_extra"
+                }
+              }
             }
 
 

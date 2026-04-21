@@ -2769,6 +2769,56 @@ proc GetHogFiles {args} {
     set filesets [MergeDict $fs $filesets]
     Msg Debug "Merged filesets $filesets"
   }
+
+  # Auto-discover HLS components from the project's hog.conf (no .src needed).
+  # The list_path argument is conventionally <proj_dir>/list/, so hog.conf sits
+  # one level up. For each [hls:<comp>] section with HLS_CONFIG=<path>, add the
+  # cfg + everything it references to a synthesized "<comp>" library, and -- if
+  # print_log is on -- show the file tree exactly like a .src would.
+  set proj_conf [file normalize [file join [file dirname $list_path] hog.conf]]
+  if {[file exists $proj_conf]} {
+    set hls_configs [GetHlsConfigsFromProjConf $proj_conf $repo_path]
+    set already_tracked [dict create]
+    dict for {libname libfiles} $libraries {
+      foreach lf $libfiles { dict set already_tracked [file normalize $lf] 1 }
+    }
+    dict for {comp_name cfg_abs} $hls_configs {
+      if {[dict exists $already_tracked $cfg_abs]} {
+        Msg Debug "HLS component '$comp_name': cfg $cfg_abs already tracked via a .src, skipping conf-based GetHogFiles discovery."
+        continue
+      }
+      set lib_name "${comp_name}.src"
+      dict lappend libraries $lib_name $cfg_abs
+      dict set already_tracked $cfg_abs 1
+      set hls_extras [ExpandHlsConfigFiles $cfg_abs]
+      if {$print_log == 1} {
+        Msg Status "\nhog.conf \[hls:$comp_name\] (auto-discovered)"
+        set rel_cfg [Relative $repo_path $cfg_abs 1]
+        if {$rel_cfg eq ""} { set rel_cfg $cfg_abs }
+        if {[llength $hls_extras] == 0} {
+          Msg Status "└── $rel_cfg"
+        } else {
+          Msg Status "├── $rel_cfg"
+          Msg Status "    Inside [file tail $cfg_abs] (HLS auto-expand):"
+        }
+      }
+      set n_extras [llength $hls_extras]
+      set i 0
+      foreach hls_extra $hls_extras {
+        incr i
+        if {[dict exists $already_tracked $hls_extra]} { continue }
+        dict lappend libraries $lib_name $hls_extra
+        dict set already_tracked $hls_extra 1
+        if {$print_log == 1} {
+          if {$i == $n_extras} { set pad "└──" } else { set pad "├──" }
+          set rel_extra [Relative [file dirname $cfg_abs] $hls_extra 1]
+          if {$rel_extra eq ""} { set rel_extra $hls_extra }
+          Msg Status "      $pad $rel_extra"
+        }
+      }
+    }
+  }
+
   return [list $libraries $properties $filesets]
 }
 
@@ -3524,7 +3574,10 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
     }
     dict set tracked_paths $cfg_abs 1
     lassign [GetVer $hls_files] ver hash
-    Msg Debug "HLS component '$comp_name' (from hog.conf): [llength $hls_files] file(s) tracked, ver=$ver hash=$hash"
+    Msg Info "HLS component '$comp_name' (from hog.conf): [llength $hls_files] file(s) tracked, ver=$ver hash=$hash"
+    foreach hf $hls_files {
+      Msg Debug "  HLS-tracked: $hf"
+    }
     lappend libs $comp_name
     lappend versions $ver
     lappend vers $ver
@@ -7193,9 +7246,21 @@ proc ReadListFile {args} {
             # to the same library. This avoids forcing the user to duplicate the
             # HLS file list in both hls_config.cfg and the .src.
             if {$list_file_ext eq ".src" && $extension eq ".cfg"} {
-              foreach hls_extra [ExpandHlsConfigFiles $vhdlfile] {
+              set hls_extras [ExpandHlsConfigFiles $vhdlfile]
+              if {$print_log == 1 && [llength $hls_extras] > 0} {
+                Msg Status "$indent   Inside [file tail $vhdlfile] (HLS auto-expand):"
+              }
+              set n_extras [llength $hls_extras]
+              set i 0
+              foreach hls_extra $hls_extras {
+                incr i
                 if {$hls_extra eq $vhdlfile} { continue }
                 Msg Debug "HLS cfg expansion: adding $hls_extra (from $vhdlfile) to $lib_name"
+                if {$print_log == 1} {
+                  if {$i == $n_extras} { set pad "└──" } else { set pad "├──" }
+                  set rel [Relative [file dirname $vhdlfile] $hls_extra]
+                  Msg Status "$indent     $pad $rel"
+                }
                 dict lappend libraries $lib_name $hls_extra
                 if {$sha_mode != 0 && [file type $hls_extra] eq "link"} {
                   set real_extra [GetLinkedFile $hls_extra]

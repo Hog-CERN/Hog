@@ -5289,7 +5289,7 @@ proc LaunchImplementation {reset do_create run_folder project_name {repo_path .}
     if { [file exist "$run_folder/timing_error.txt"] } {
       file delete "$run_folder/timing_error.txt"
     }
-    
+
     if {[IsISE]} {
       source $repo_path/Hog/Tcl/integrated/pre-implementation.tcl
     }

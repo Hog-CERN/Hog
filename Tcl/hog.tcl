@@ -2791,6 +2791,7 @@ proc GetHogFiles {args} {
       dict lappend libraries $lib_name $cfg_abs
       dict set already_tracked $cfg_abs 1
       set hls_extras [ExpandHlsConfigFiles $cfg_abs]
+      Msg Info "HLS component '$comp_name' (from hog.conf): tracking [expr {1 + [llength $hls_extras]}] file(s) via $cfg_abs"
       if {$print_log == 1} {
         Msg Status "\nhog.conf \[hls:$comp_name\] (auto-discovered)"
         set rel_cfg [Relative $repo_path $cfg_abs 1]
@@ -3545,46 +3546,6 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
     lappend hashes $hash
     lappend SHAs $hash
     lappend project_files $f {*}$files
-  }
-
-  # Auto-discover HLS components from hog.conf: every [hls:<comp>] section with
-  # an HLS_CONFIG=<path> entry contributes its hls_config.cfg AND every file the
-  # cfg references (via ExpandHlsConfigFiles) to the SHA. This makes .src files
-  # OPTIONAL for HLS components -- the cfg listed in hog.conf is the single
-  # source of truth. If a cfg was already pulled in via a .src, we silently skip
-  # it here to avoid double-hashing
-  set tracked_paths [dict create]
-  foreach pf $project_files {
-    if {[catch {set norm [file normalize $pf]}] == 0} {
-      dict set tracked_paths $norm 1
-    }
-  }
-  set hls_configs [GetHlsConfigsFromProjConf [file normalize ./hog.conf] $repo_path]
-  Msg Info "HLS auto-discovery: scanning [file normalize ./hog.conf] -> [dict size $hls_configs] component(s) found"
-  dict for {comp_name cfg_abs} $hls_configs {
-    if {[dict exists $tracked_paths $cfg_abs]} {
-      Msg Info "HLS component '$comp_name': cfg already tracked via a .src file, skipping conf-based discovery ($cfg_abs)"
-      continue
-    }
-    set hls_files [list $cfg_abs]
-    foreach extra [ExpandHlsConfigFiles $cfg_abs] {
-      if {![dict exists $tracked_paths $extra]} {
-        lappend hls_files $extra
-        dict set tracked_paths $extra 1
-      }
-    }
-    dict set tracked_paths $cfg_abs 1
-    lassign [GetVer $hls_files] ver hash
-    Msg Info "HLS component '$comp_name' (from hog.conf): [llength $hls_files] file(s) tracked, ver=$ver hash=$hash"
-    foreach hf $hls_files {
-      Msg Debug "  HLS-tracked: $hf"
-    }
-    lappend libs $comp_name
-    lappend versions $ver
-    lappend vers $ver
-    lappend hashes $hash
-    lappend SHAs $hash
-    lappend project_files {*}$hls_files
   }
 
   # Read constraint list files

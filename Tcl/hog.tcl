@@ -3560,9 +3560,10 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
     }
   }
   set hls_configs [GetHlsConfigsFromProjConf [file normalize ./hog.conf] $repo_path]
+  Msg Info "HLS auto-discovery: scanning [file normalize ./hog.conf] -> [dict size $hls_configs] component(s) found"
   dict for {comp_name cfg_abs} $hls_configs {
     if {[dict exists $tracked_paths $cfg_abs]} {
-      Msg Debug "HLS component '$comp_name': cfg $cfg_abs already tracked via a .src file, skipping conf-based discovery."
+      Msg Info "HLS component '$comp_name': cfg already tracked via a .src file, skipping conf-based discovery ($cfg_abs)"
       continue
     }
     set hls_files [list $cfg_abs]

@@ -5282,6 +5282,14 @@ proc LaunchImplementation {reset do_create run_folder project_name {repo_path .}
       reset_run impl_1
     }
 
+    # check for and remove any previous timing results in the folder
+    if { [file exist "$run_folder/timing_ok.txt"] } {
+      file delete "$run_folder/timing_ok.txt"
+    }
+    if { [file exist "$run_folder/timing_error.txt"] } {
+      file delete "$run_folder/timing_error.txt"
+    }
+    
     if {[IsISE]} {
       source $repo_path/Hog/Tcl/integrated/pre-implementation.tcl
     }

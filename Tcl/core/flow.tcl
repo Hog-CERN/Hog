@@ -262,21 +262,10 @@ namespace eval Flow {
 
 
   proc Run {flow} {
-    variable _registry
     set tool [ActiveTool::CurrentTool]
+    set _flow_name [tdict getval [GetFlow $tool $flow] name]
 
-    puts "Stages: [GetFlowStages $tool $flow]"
-    foreach stage [GetFlowStages $tool $flow] {
-      if {[string match "::*" $stage]} {
-        #TODO: add pre/post to this
-        $stage
-      } else {
-        if {[ActiveTool::Has @PRE_$stage]} { ActiveTool::@PRE_$stage }
-        ActiveTool::$stage
-        #TODO add flow control
-        if {[ActiveTool::Has @POST_$stage]} { ActiveTool::@POST_$stage }
-      }
-    }
+    FlowControl::Run [GetFlowStages $tool $flow] $_flow_name
   }
 
 
@@ -303,4 +292,193 @@ namespace eval Flow {
 
   trace add variable  ::Flow::_registry  write ::Flow::_on_registry_write
   #trace add execution ::Context::Load    leave ::Flow::_on_context_load
+}
+
+
+namespace eval FlowControl {
+  variable _state
+  if {![info exists _state]} {
+    set _state [tdict create \
+      stages [tlist create]  \
+      status [tstr continue] \
+      reason [tstr ""]       \
+      tokens [tlist create]  \
+      stage  [tstr ""]       \
+    ]
+  }
+  variable _i 0
+
+  proc _stages {} {
+    variable _state
+    set r {}
+    tlist foreachval s [tdict get $_state stages] { lappend r $s }
+    return $r
+  }
+  proc _set_stages {lst} {
+    variable _state
+    tdict set _state stages [tlist create {*}$lst]
+  }
+  proc _tokens {} {
+    variable _state
+    set r {}
+    tlist foreachval t [tdict get $_state tokens] { lappend r $t }
+    return $r
+  }
+
+
+  ################################################################################ 
+  # Stage Dependency Management
+  ################################################################################ 
+
+  proc Produce {args} {
+    variable _state
+    set tok [_tokens]
+    foreach token $args {
+      if {$token ni $tok} { lappend tok $token }
+    }
+    tdict set _state tokens [tlist create {*}$tok]
+  }
+
+  proc Require {args} {
+    variable _state
+    set tok [_tokens]
+    set stg [tdict getval $_state stage]
+    foreach token $args {
+      if {$token ni $tok} {
+        Msg Warning "FlowControl: '$stg' requires '$token' which was never produced"
+        tdict set _state status abort
+        tdict set _state reason "Required token '$token' not produced for stage '$stg'"
+
+        return -level 2
+      }
+    }
+  }
+
+  proc Has {args} {
+    set tok [_tokens]
+    foreach token $args {
+      if {$token ni $tok} { return 0 }
+    }
+    return 1
+  }
+
+  proc ClearTokens {} {
+    variable _state
+    tdict set _state tokens [tlist create]
+  }
+
+  ################################################################################ 
+  # Flow Control Management
+  ################################################################################ 
+
+  proc AppendStages {new} {
+    set stages [_stages]
+    lappend stages {*}$new
+    _set_stages $stages
+  }
+
+  proc InsertStagesAfter {anchor new} {
+    set stages [_stages]
+    set idx [lsearch -exact $stages $anchor]
+    if {$idx >= 0} {
+      set stages [linsert $stages [expr {$idx + 1}] {*}$new]
+    } else {
+      Msg Warning "FlowControl InsertStagesAfter: '$anchor' not found... skipping..."
+    }
+    _set_stages $stages
+  }
+
+  proc InsertStagesBefore {anchor new} {
+    set stages [_stages]
+    set idx [lsearch -exact $stages $anchor]
+    if {$idx >= 0} {
+      set stages [linsert $stages $idx {*}$new]
+    } else {
+      Msg Warning "FlowControl InsertStagesBefore: '$anchor' not found... skipping..."
+    }
+    _set_stages $stages
+  }
+
+  proc InsertStages {new} {
+    variable _i
+    set stages [_stages]
+    _set_stages [linsert $stages [expr {$_i + 1}] {*}$new]
+  }
+
+  proc RemoveStages {to_remove} {
+    set stages [_stages]
+    foreach s $to_remove {
+      set idx [lsearch -exact $stages $s]
+      while {$idx >= 0} {
+        set stages [lreplace $stages $idx $idx]
+        set idx [lsearch -exact $stages $s]
+      }
+    }
+    _set_stages $stages
+  }
+
+  proc ReplaceStage {old new_stages} {
+    set stages [_stages]
+    set idx [lsearch -exact $stages $old]
+    if {$idx >= 0} {
+      _set_stages [lreplace $stages $idx $idx {*}$new_stages]
+    } else {
+      Msg Warning "FlowControl ReplaceStage: '$old' not found"
+    }
+  }
+
+  proc ClearRemaining {} {
+    variable _i
+    _set_stages [lrange [_stages] 0 $_i]
+  }
+
+  proc ExitFlow {{reason ""}} {
+    variable _state
+    tdict set _state status [tstr exit]
+    tdict set _state reason [tstr $reason]
+  }
+
+  proc Run {stages flow} {
+    variable _state
+    variable _i
+    tdict set _state stages [tlist create {*}$stages]
+    tdict set _state status [tstr continue]
+    tdict set _state reason [tstr ""]
+    set _i 0
+
+    Msg Info "Running flow $flow: $stages"
+
+    while {$_i < [llength [_stages]]} {
+      set stage [lindex [_stages] $_i]
+      tdict set _state stage [tstr $stage]
+      set prev [_stages]
+
+      if {[string match "::*" $stage]} {
+        $stage
+      } else {
+        if {[ActiveTool::Has @PRE_$stage]}  { ActiveTool::@PRE_$stage  }
+        ActiveTool::$stage
+        if {[ActiveTool::Has @POST_$stage]} { ActiveTool::@POST_$stage }
+      }
+
+      if {[_stages] ne $prev} {
+        Msg Info "Flow $flow updated: [_stages]"
+      }
+
+      set status [tdict getval $_state status]
+      set reason [tdict getval $_state reason]
+      switch $status {
+        abort {
+          Msg Error "Flow $flow aborted at '$stage': $reason"
+          return -code error $reason
+        }
+        exit {
+          if {$reason ne ""} { Msg Info "Flow $flow exiting after '$stage': $reason" }
+          return
+        }
+      }
+
+      incr _i
+    }
+  }
 }

@@ -61,7 +61,7 @@ namespace eval Context {
   proc Lappend {args} {
     if {[llength $args] < 2} { error "Context::Lappend: too few args" "" {CTX_INVALID_ARGS} }
     variable _ctx
-    set tl [tdict get _ctx {*}[lrange $args 0 end-1]]
+    set tl [tdict get $_ctx {*}[lrange $args 0 end-1]]
     if {![tobj isobj $tl] || [tobj type $tl] ne "List"} {
       error "Context::Lappend: not a List node at path" "" {CTX_NOT_A_LIST}
     }
@@ -76,32 +76,32 @@ namespace eval Context {
 
 
 
-  proc Get {args} {
-    if {[llength $args] < 1} { error "Context::Get: too few args" "" {CTX_INVALID_ARGS} }
+  proc GetObj {args} {
+    if {[llength $args] < 1} { error "Context::GetObj: too few args" "" {CTX_INVALID_ARGS} }
     variable _ctx
-    if {![tdict exists _ctx {*}$args]} { error "Context::Get: key not found" "" {CTX_NOT_FOUND} }
-    return [tdict get _ctx {*}$args]
+    if {![tdict exists $_ctx {*}$args]} { error "Context::GetObj: key not found" "" {CTX_NOT_FOUND} }
+    return [tdict get $_ctx {*}$args]
   }
 
-  proc GetOr {defaultObj args} {
+  proc GetObjOr {defaultObj args} {
     variable _ctx
-    if {[llength $args] >= 1 && [tdict exists _ctx {*}$args]} {
-      return [tdict get _ctx {*}$args]
+    if {[llength $args] >= 1 && [tdict exists $_ctx {*}$args]} {
+      return [tdict get $_ctx {*}$args]
     }
     return $defaultObj
   }
 
-  proc GetValue {args} {
-    if {[llength $args] < 1} { error "Context::GetValue: too few args" "" {CTX_INVALID_ARGS} }
+  proc Get {args} {
+    if {[llength $args] < 1} { error "Context::Get: too few args" "" {CTX_INVALID_ARGS} }
     variable _ctx
-    if {![tdict exists _ctx {*}$args]} { error "Context::GetValue: key not found" "" {CTX_NOT_FOUND} }
-    return [tobj value [tdict get _ctx {*}$args]]
+    if {![tdict exists $_ctx {*}$args]} { error "Context::Get: key not found" "" {CTX_NOT_FOUND} }
+    return [tobj value [tdict get $_ctx {*}$args]]
   }
 
-  proc GetValueOr {defaultObj args} {
+  proc GetOr {defaultObj args} {
     variable _ctx
-    if {[llength $args] >= 1 && [tdict exists _ctx {*}$args]} {
-      return [tobj value [tdict get _ctx {*}$args]]
+    if {[llength $args] >= 1 && [tdict exists $_ctx {*}$args]} {
+      return [tobj value [tdict get $_ctx {*}$args]]
     }
     return $defaultObj
   }
@@ -109,13 +109,13 @@ namespace eval Context {
   proc Has {args} {
     if {[llength $args] < 1} { error "Context::Has: too few args" "" {CTX_INVALID_ARGS} }
     variable _ctx
-    return [tdict exists _ctx {*}$args]
+    return [tdict exists $_ctx {*}$args]
   }
 
   proc Remove {args} {
     if {[llength $args] < 1} { error "Context::Remove: too few args" "" {CTX_INVALID_ARGS} }
     variable _ctx
-    if {![tdict exists _ctx {*}$args]} { return 0 }
+    if {![tdict exists $_ctx {*}$args]} { return 0 }
     tdict remove _ctx {*}$args
     return 1
   }
@@ -127,9 +127,9 @@ namespace eval Context {
 
   proc Keys {args} {
     variable _ctx
-    if {[llength $args] == 0} { return [tdict keys _ctx] }
-    if {![tdict exists _ctx {*}$args]} { return {} }
-    set sub [tdict get _ctx {*}$args]
+    if {[llength $args] == 0} { return [tdict keys $_ctx] }
+    if {![tdict exists $_ctx {*}$args]} { return {} }
+    set sub [tdict get $_ctx {*}$args]
     if {![tobj isobj $sub] || [tobj type $sub] ne "Dict"} {
       error "Context::Keys: not a Dict node at path" "" {CTX_NOT_A_DICT}
     }
@@ -140,6 +140,17 @@ namespace eval Context {
     variable _ctx
     if {$flag eq "-pretty"} { return [tobj tojson $_ctx -pretty] }
     return [tobj tojson $_ctx]
+  }
+
+  proc SaveJsonToFile {filename {overwrite 0}} {
+    variable _ctx
+    set json [ToJson -pretty]
+     if {[file exists $filename] && !$overwrite} {
+      error "Context::SaveJsonToFile: file exists" "" {CTX_FILE_EXISTS}
+    }
+    set fh [open $filename w]
+    puts $fh $json
+    close $fh
   }
 
   proc SaveToFile {filename {overwrite 0}} {

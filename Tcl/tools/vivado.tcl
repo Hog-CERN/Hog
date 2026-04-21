@@ -1,24 +1,24 @@
 namespace eval Tools::Vivado {
 
   variable Manifest {
-    name    "Vivado"
-    vendor  "AMD/Xilinx"
+    name      "Vivado"
+    vendor    "AMD/Xilinx"
+    ref_names {vivado vivado_vitis_classic planahead}
     Flows {
-      @CREATE         {CreateProject}
-      @SYNTH          {@CREATE  Synthesize}
-      @IMPL           {@SYNTH   Implement}
-      @WORKFLOW       {@IMPL    GenerateBitstream}
-      @SIMULATE       {@CREATE  Simulate}
-      @CHECKSYNTAX    {@CREATE  CheckSyntax}
-      @RTL            {@CREATE  RtlAnalysis}
-    }
-
-    Supports {
-      Synthesis       1
-      Implementation  1
-      Bitstream       1
-      Simulation      1
-      CheckSyntax     1
+      CREATE {
+        aliases {create_project c}
+        stages  {CreateProject}
+      }
+      SYNTH {
+        aliases {s synthesize}
+        stages  {@CREATE Synthesize}
+        options {{no_bitstream "Skip bitstream generation"}}
+      }
+      IMPL {
+        aliases {i}
+        stages  {@SYNTH Implement}
+        options {{no_bitstream "Skip bitstream generation"}}
+      }
     }
   }
 
@@ -51,7 +51,6 @@ namespace eval Tools::Vivado {
     } else {
       if {[lindex $args 0] eq "-context"} {
         set context_dict [lindex $args 1]
-        puts "Context: $context_dict"
         Context::Load $context_dict
       } else {
         puts "Vivado::InitializeTool requires -context argument"
@@ -61,8 +60,8 @@ namespace eval Tools::Vivado {
   }
 
   proc CreateProject {} {
-    set project_name [Context::Get LaunchSettings project_name]
-    set top_path     [Context::Get LaunchSettings top_path]
+    set project_name [Context::Get launch_settings project_name]
+    set top_path     [Context::Get launch_settings top_path]
     Msg Info "Creating Vivado project \"$project_name\" from $top_path"
   }
 

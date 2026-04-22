@@ -1240,6 +1240,10 @@ proc CreateProject {args} {
     }
     ConfigureApps
     AddAppFiles
+    if {[file exists $post_file]} {
+      Msg Info "Found post-creation Tcl script $post_file, executing it..."
+      source $post_file
+    }
     return
   }
 

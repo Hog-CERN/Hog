@@ -345,11 +345,22 @@ namespace eval FlowControl {
     set stg [tdict getval $_state stage]
     foreach token $args {
       if {$token ni $tok} {
-        Msg Warning "FlowControl: '$stg' requires '$token' which was never produced"
         tdict set _state status abort
-        tdict set _state reason "Required token '$token' not produced for stage '$stg'"
+        tdict set _state reason "Required token '$token' not found while executing proc [lindex [info level -1] 0]. "
 
-        return -level 2
+        set _flow_run_level -1
+        for {set i 1} {$i < [info level]} {incr i} {
+          if {[lindex [info level $i] 0] eq "FlowControl::Run"} {
+            set _flow_run_level $i
+            break
+          }
+        }
+
+        if {$_flow_run_level < 0} {
+          Msg Warning "Require called outside of FlowControl::Run. Don't know what to do... returning..."
+          return
+        }
+        return -level [expr {[info level] - $_flow_run_level}]
       }
     }
   }

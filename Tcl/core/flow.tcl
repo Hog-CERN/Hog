@@ -365,6 +365,15 @@ namespace eval FlowControl {
     }
   }
 
+  proc RequireOr {token script} {
+    variable _state
+    set tok [_tokens]
+    set stg [tdict getval $_state stage]
+    if {$token ni $tok} {
+      uplevel 1 "${script}\nFlowControl::Require $token"
+    } 
+  }
+
   proc Has {args} {
     set tok [_tokens]
     foreach token $args {
@@ -492,4 +501,28 @@ namespace eval FlowControl {
       incr _i
     }
   }
+
+  ################################################################################
+  ## Syncing with Context
+  ################################################################################
+  variable _loading 0
+
+  proc _on_registry_write {varname index op} {
+    variable _loading
+    if {$_loading} return
+    if {[llength [info commands ::Context::SetObj]] == 0} return
+    ::Context::SetObj FlowControl $::FlowControl::_state
+  }
+
+  proc _on_context_load {args} { 
+    variable _state
+    variable _loading
+    if {[catch {::Context::GetObj FlowControl} reg]} { return }
+    set _loading 1
+    set _state $reg
+    set _loading 0
+  }
+
+  trace add variable  ::FlowControl::_state  write ::FlowControl::_on_registry_write
+  trace add execution ::Context::Load        leave ::FlowControl::_on_context_load
 }

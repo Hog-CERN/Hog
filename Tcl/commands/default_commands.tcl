@@ -8,10 +8,14 @@ set ::hog_commands {
     }
     script {
         Msg Status "\n** The projects in this repository are:"
-        ListProjects $repo_path 1
+        if {[Context::Get launcher options all]} {
+            ListProjects [Context::Get launcher settings repo_path] 1
+        } else {
+            ListProjects [Context::Get launcher settings repo_path] 0 1
+        }
         Msg Status "\n"
+        puts "[tobj tojson [Context::GetObj settings] -pretty]"
         exit 0
     }
-    requires_proj true
   }
 }

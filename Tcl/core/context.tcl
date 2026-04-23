@@ -79,7 +79,7 @@ namespace eval Context {
   proc GetObj {args} {
     if {[llength $args] < 1} { error "Context::GetObj: too few args" "" {CTX_INVALID_ARGS} }
     variable _ctx
-    if {![tdict exists $_ctx {*}$args]} { error "Context::GetObj: key not found" "" {CTX_NOT_FOUND} }
+    if {![tdict exists $_ctx {*}$args]} { error "Context::GetObj: key not found: $args" "" {CTX_NOT_FOUND} }
     return [tdict get $_ctx {*}$args]
   }
 
@@ -94,7 +94,7 @@ namespace eval Context {
   proc Get {args} {
     if {[llength $args] < 1} { error "Context::Get: too few args" "" {CTX_INVALID_ARGS} }
     variable _ctx
-    if {![tdict exists $_ctx {*}$args]} { error "Context::Get: key not found" "" {CTX_NOT_FOUND} }
+    if {![tdict exists $_ctx {*}$args]} { error "Context::Get: key not found: $args" "" {CTX_NOT_FOUND} }
     return [tobj value [tdict get $_ctx {*}$args]]
   }
 
@@ -106,8 +106,8 @@ namespace eval Context {
     return $defaultObj
   }
 
-  proc Has {args} {
-    if {[llength $args] < 1} { error "Context::Has: too few args" "" {CTX_INVALID_ARGS} }
+  proc Exists {args} {
+    if {[llength $args] < 1} { error "Context::Exists: too few args" "" {CTX_INVALID_ARGS} }
     variable _ctx
     return [tdict exists $_ctx {*}$args]
   }

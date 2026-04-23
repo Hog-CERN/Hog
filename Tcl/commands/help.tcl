@@ -20,27 +20,22 @@ set ::hog_commands {
 
       # expects a tlist of options
       # returns a plain string
-      proc _options_string {obj {indent 0}} {
+      proc _options_string {obj_list {indent 0}} {
         set pad [string repeat " " $indent]
         set out ""
 
-        tlist foreachval _option $obj {
+        foreach _option $obj_list {
           set n [llength $_option]
           if {$n == 2} {
             lassign $_option opt help
-            append out "${pad}-$opt      $help"
+            append out [format "%s%-20s  %s\n" $pad "-$opt" $help]
           } elseif {$n == 3} {
             lassign $_option opt def help
-            append out "${pad}-$opt <arg>"
-            if {$def ne ""} {
-              append out "    $help (default: $def)"
-            } else {
-              append out "    $help"
-            }
+            set suffix [expr {$def ne "" ? " (default: $def)" : ""}]
+            append out [format "%s%-20s  %s%s\n" $pad "-$opt <arg>" $help $suffix]
           } else {
-            Msg Warning "Custom option spec has invalid arity (expected 2 or 3): $custom_option"
+            Msg Warning "Custom option spec has invalid arity (expected 2 or 3): $_option"
           }
-          append out "\n"
         }
         return $out
       }
@@ -105,13 +100,15 @@ set ::hog_commands {
           if {[string tolower [namespace tail $ns]] eq [string tolower $_arg2]} { set _tool_ns $ns; break }
         }
         if {$_tool_ns eq ""} {
-          set _avail [join [lmap ns [lsort [namespace children ::Tools]] { string tolower [namespace tail $ns] }] {, }]
+          set _avail_list {}
+          foreach ns [lsort [namespace children ::Tools]] { lappend _avail_list [string tolower [namespace tail $ns]] }
+          set _avail [join $_avail_list {, }]
           puts [expr {$_arg2 eq "" ? "Usage: ./Hog/Do HELP FLOWS <tool>\nAvailable tools: $_avail"
                                    : "Unknown tool '$_arg2'. Available tools: $_avail"}]
         } else {
           puts "\nFlows for [namespace tail $_tool_ns]:"
           tdict for {_fn _fo} [Flow::GetToolFlows $_tool_ns] {
-            puts [format "  %-12s  %s" $_fn [tdict getval $_fo description]]
+            puts [format "  %-20s  %s" $_fn [tdict getval $_fo description]]
           }
           puts ""
         }
@@ -127,7 +124,9 @@ set ::hog_commands {
           puts "[tdict getval $_cmd name] [_aliases [tdict get $_cmd aliases] [tdict get $_cmd name] ]:"
           puts " [tdict getval $_cmd description]"
           puts "\n Options:"
-          puts "[_options_string [tdict get $_cmd options] 3]"
+          set _opt_list [list]
+          tlist foreachval _option [tdict get $_cmd options] { lappend _opt_list $_option}
+          puts "[_options_string $_opt_list 3]"
         
         } elseif {[tdict exists $::Flow::_registry aliases $_sub]} {
 
@@ -139,11 +138,11 @@ set ::hog_commands {
             }
             puts "   Stages:"
             set _stages [list]
-            tlist foreachval _stage [tdict getval $_flow stages] {lappend _stages $_stage}
+            set _stages [Flow::GetFlowStages [tdict getval $_flow tool] [tdict getval $_flow name]]
             puts "     [string map {" " " -> "} $_stages]"
 
             puts "\n   Options:"
-            puts "[_options_string [tdict get $_flow options] 5]"
+            puts "[_options_string [Flow::GetFlowOptions [tdict getval $_flow tool] [tdict getval $_flow name]] 5]"
 
           }
 

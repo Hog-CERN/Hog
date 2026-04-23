@@ -356,6 +356,7 @@ set do_implementation 0; set do_synthesis 0; set do_bitstream 0
 set do_create 0; set do_compile 0; set do_simulation 0; set recreate 0
 set do_reset 1; set do_list_all 2; set do_check_syntax 0; set do_vitis_build 0;
 set scripts_only 0; set compile_only 0
+set ide_name ""
 ### Hog stand-alone directives ###
 # The following directives are used WITHOUT ever calling the IDE, they are run in tclsh
 # A place holder called new_directive can be followed to add new commands

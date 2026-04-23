@@ -229,10 +229,10 @@ msgDbgLvl[vcom]=3
 
 declare -A msgRemove
 msgRemove[error]="*@(ERROR:|Error:)"
-msgRemove[critical]="*@(WARNING: |Warning: |warning: )"
-msgRemove[warning]="*@(WARNING: |Warning: |warning: )"
-msgRemove[debug]="*@(DEBUG: |Debug)"
-msgRemove[info]="*@(INFO: |Info)"
+msgRemove[critical]="*@(WARNING:|Warning:|warning:)"
+msgRemove[warning]="*@(WARNING:|Warning:|warning:)"
+msgRemove[debug]="*@(DEBUG:|Debug)"
+msgRemove[info]="*@(INFO:|Info:)"
 msgRemove[vcom]="INFO: "
 
 declare -A errorOverload
@@ -288,7 +288,7 @@ function log_stdout(){
         elif [ "${1}" == "stderr" ]; then
           stderr_ack="E"
         else
-          stderr_ack="*"
+          stderr_ack="${1}"
         fi
       fi
       case "$line" in
@@ -400,17 +400,19 @@ function log_stdout(){
         else
           msg_counter w ${msgCounter[$msgType]} >> /dev/null
         fi
+        dataLine=${dataLine#${msgRemove[$msgType]}}
+        dataLine=$(echo -e "$dataLine" | sed -E 's/^[[:space:]]+//;s/[[:space:]]+$//')
         if [[ $HOG_COLOR_EN -gt 1 ]]; then
           case "${clrschselected}" in
             "dark")
-              echo -e "${stderr_ack}${darkColorScheme[$msgType]} ${dataLine#${msgRemove[$msgType]}} "
+              echo -e "${stderr_ack}${darkColorScheme[$msgType]} ${dataLine}"
             ;;
             "clear")
-              echo -e "${stderr_ack}${clearColorScheme[$msgType]} ${dataLine#${msgRemove[$msgType]}} "
+              echo -e "${stderr_ack}${clearColorScheme[$msgType]} ${dataLine} "
             ;;
           esac
         elif [[ $HOG_COLOR_EN -gt 0 ]]; then
-          echo -e "${stderr_ack}${simpleColor[$msgType]} $dataLine $txtwht"
+          echo -e "${stderr_ack}${simpleColor[$msgType]} ${dataLine} $txtwht"
         else
           echo -e "${stderr_ack}$dataLine"
         fi
@@ -539,20 +541,6 @@ function Log_capture(){
   sleep 1
 }
 
-# function Log_capture(){
-
-#   Msg Debug "Logger args : $*"
-#   $* > >(log_stdout "stdout") 2> >(log_stdout "stderr" >&2) &
-#   # $* > >(test1 "stdout") 2> >(test2 "stderr") &
-#   tcl_pid=$!
-#   Msg Debug "pid = $tcl_pid"
-#   while kill -0 $tcl_pid 2>/dev/null; do
-#     sleep 1
-#   done
-#   wait
-#   sleep 1
-# }
-
 ## @function Log_capture()
   #
   # @brief creates output files and pipelines stdout and stderr to
@@ -602,7 +590,7 @@ function Msg() {
   if  $BUFFERING; then
     {
       if [[ $VERBOSE_LEVEL -gt ${msgDbgLvl[$msgType]} ]]; then
-        echo " $1[Hog:${FUNCNAME[1]}] $text"
+        echo " $1:[Hog:${FUNCNAME[1]}] $text"
       fi
     } >> "$BUFFER_FILE"
   else
@@ -891,7 +879,19 @@ function Logger_Init() {
   # search for a string with the word Top in the multiple arguments passed to the function
   PROJECT_FOLDER=""
   for arg in $*; do
+    Msg Warning "Checking argument: $arg"
+    # add Top// to the beginning of the argument if it doesn't have it
+    if [[ "$arg" != Top/* ]]; then
+      arg="Top/$arg"
+    fi
     if [[ "$arg" == Top/* ]]; then
+      # Check if folder exists and has hog.conf file
+      if [[ -d "$ROOT_REPO_FOLDER/$arg" ]] && [[ -f "$ROOT_REPO_FOLDER/$arg/hog.conf" ]]; then
+        Msg Warning "Found project folder: $ROOT_REPO_FOLDER/$arg"
+      else
+        Msg Warning "Folder $ROOT_REPO_FOLDER/$arg doesn't exist or doesn't contain hog.conf file. Ignoring this argument."
+        continue
+      fi
       PROJECT_FOLDER="${arg#Top/}"
       # Remove trailing slash if present
       PROJECT_FOLDER="${PROJECT_FOLDER%/}"

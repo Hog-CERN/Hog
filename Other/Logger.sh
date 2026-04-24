@@ -879,7 +879,7 @@ function Logger_Init() {
   # search for a string with the word Top in the multiple arguments passed to the function
   PROJECT_FOLDER=""
   for arg in $*; do
-    Msg Warning "Checking argument: $arg"
+    Msg Debug "Checking argument: $arg"
     # add Top// to the beginning of the argument if it doesn't have it
     if [[ "$arg" != Top/* ]]; then
       arg="Top/$arg"
@@ -887,9 +887,9 @@ function Logger_Init() {
     if [[ "$arg" == Top/* ]]; then
       # Check if folder exists and has hog.conf file
       if [[ -d "$ROOT_REPO_FOLDER/$arg" ]] && [[ -f "$ROOT_REPO_FOLDER/$arg/hog.conf" ]]; then
-        Msg Warning "Found project folder: $ROOT_REPO_FOLDER/$arg"
+        Msg Debug "Found project folder: $ROOT_REPO_FOLDER/$arg"
       else
-        Msg Warning "Folder $ROOT_REPO_FOLDER/$arg doesn't exist or doesn't contain hog.conf file. Ignoring this argument."
+        Msg Debug "Folder $ROOT_REPO_FOLDER/$arg doesn't exist or doesn't contain hog.conf file. Ignoring this argument."
         continue
       fi
       PROJECT_FOLDER="${arg#Top/}"

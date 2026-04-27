@@ -58,15 +58,12 @@ PROJECT_FOLDER=""
 HOG_DEBUG_MODE=0
 LOG_INFO_FILE=""
 LOG_WAR_ERR_FILE=""
-# TEMP_LOG_INFO_FILE=""
-# TEMP_LOG_WAR_ERR_FILE=""
 
 declare -A Hog_Prj_dict
 declare -A Hog_Usr_dict
 
 tempfolder=""
 
-# if [ -n "$tempfolder" ]; then
 tmptimestamp=$(date +%s)
 tempfolder="/dev/shm/$USER/hog$tmptimestamp"
 if mkdir -p $tempfolder 2>/dev/null ; then
@@ -76,14 +73,8 @@ if mkdir -p $tempfolder 2>/dev/null ; then
   temp_w_cnt_file="$tempfolder/hog_w_cnt"
   temp_c_cnt_file="$tempfolder/hog_c_cnt"
   temp_e_cnt_file="$tempfolder/hog_e_cnt"
-  # TEMP_LOG_INFO_FILE="$tempfolder/hog_log_info"
-  # TEMP_LOG_WAR_ERR_FILE="$tempfolder/hog_log_war_err"
-  # touch $TEMP_LOG_INFO_FILE
-  # touch $TEMP_LOG_WAR_ERR_FILE
   TEMP_LOG_INFO_FILE="$tempfolder/hog_log_info"
   TEMP_LOG_WAR_ERR_FILE="$tempfolder/hog_log_war_err"
-  # touch $TEMP_LOG_INFO_FILE
-  # touch $TEMP_LOG_WAR_ERR_FILE
 else
   echo " Warning : Could not create /dev/shm/$USER/hog$tmptimestamp will try /tmp/$USER/hog$tmptimestamp "
   tempfolder="/tmp/$USER/hog$tmptimestamp"
@@ -94,22 +85,13 @@ else
     temp_w_cnt_file="$tempfolder/hog_w_cnt"
     temp_c_cnt_file="$tempfolder/hog_c_cnt"
     temp_e_cnt_file="$tempfolder/hog_e_cnt"
-    # TEMP_LOG_INFO_FILE="$tempfolder/hog_log_info"
-    # TEMP_LOG_WAR_ERR_FILE="$tempfolder/hog_log_war_err"
-    # touch $TEMP_LOG_INFO_FILE
-    # touch $TEMP_LOG_WAR_ERR_FILE
     TEMP_LOG_INFO_FILE="$tempfolder/hog_log_info"
     TEMP_LOG_WAR_ERR_FILE="$tempfolder/hog_log_war_err"
-    # touch $TEMP_LOG_INFO_FILE
-    # touch $TEMP_LOG_WAR_ERR_FILE
   else
     echo " *** ERROR Could not create /tmp/$USER/hog$tmptimestamp"
     exit 0
   fi
 fi
-# fi
-# " " > $TEMP_LOG_INFO_FILE
-# " " > $TEMP_LOG_WAR_ERR_FILE
 
 function update_cnt () {
   if [[ -e "$temp_g_cnt_file" ]]; then

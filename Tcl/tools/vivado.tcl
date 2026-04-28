@@ -42,7 +42,7 @@ namespace eval Tools::Vivado {
       }
 
       WORKFLOW {
-        aliases {w work flow}
+        aliases {w work flow cw}
         description "Runs the full workflow, creates the project if not existing."
         options {
           {bitstream_only  "If set, only the bitstream will be produced. This assumes implementation was already done. For a Vivado-Vitis\
@@ -71,9 +71,8 @@ namespace eval Tools::Vivado {
     # something like vitis_unified will probably need to manpulate it to
     # pass to python env. 
 
-    set script [Context::Get launcher script]
-    set before_tcl_script " -nojournal -nolog -mode batch -notrace -source "
-    exec -ignorestderr vivado -nojournal -nolog -mode batch -notrace -source $script -tclargs "-context"  "[Context::GetFullContext]" >@ stdout
+    set script [Launcher::Get script]
+    exec -ignorestderr vivado -nojournal -nolog -mode batch -notrace -source $script -tclargs "-context" [DataStore::Serialize] >@ stdout
   }
 
   proc Initialize {args} {
@@ -83,17 +82,17 @@ namespace eval Tools::Vivado {
       return
     } 
     if {[lindex $args 0] eq "-context"} {
-      set context_dict [lindex $args 1]
-      Context::Load $context_dict
+      DataStore::Deserialize [lindex $args 1]
     } else {
       puts "Vivado::InitializeTool requires -context argument"
       return
     }
 
-    set project_name [Context::Get settings project_name]
-    set repo_path    [Context::Get settings repo_path]
-    set top_path     [Context::Get settings top_path]
-    Msg Info "Creating Vivado project \"$project_name\" from $top_path"
+    set project_name [HogProject::Get project_name]
+    set repo_path    [Repo::Get repo_path]
+    set top_path     [Repo::Get top_path]
+
+    HogProject::Set project_file [file normalize [file join [HogProject::Get build_dir] [HogProject::Get project].xpr]]
 
     set_msg_config -suppress -regexp -string {".*The IP file '.*' has been moved from its original location, as a result the outputs for this IP will now be generated in '.*'. Alternatively a copy of the IP can be imported into the project using one of the 'import_ip' or 'import_files' commands..*"}
     set_msg_config -suppress -regexp -string {".*File '.*.xci' referenced by design '.*' could not be found..*"}
@@ -106,13 +105,13 @@ namespace eval Tools::Vivado {
 
 
     if {[info exists env(HOG_EXTERNAL_PATH)]} {
-      Context::Set settings HOG_EXTERNAL_PATH $env(HOG_EXTERNAL_PATH)
+      HogProject::Set HOG_EXTERNAL_PATH $env(HOG_EXTERNAL_PATH)
     } else {
-      Context::Set settings HOG_EXTERNAL_PATH ""
+      HogProject::Set HOG_EXTERNAL_PATH ""
     }
 
 
-    Context::Set settings LIBERO_MANDATORY_VARIABLES {"FAMILY" "PACKAGE" "DIE" }
+    HogProject::Set LIBERO_MANDATORY_VARIABLES {"FAMILY" "PACKAGE" "DIE" }
     set proj_dir [file normalize "${repo_path}/Top/${project_name}"]
 
 
@@ -120,46 +119,54 @@ namespace eval Tools::Vivado {
     set user_repo 0
     if {[file exists $conf_file]} {
       Msg Info "Parsing configuration file $conf_file..."
-      Context::Set settings PROPERTIES [ReadConf $conf_file]
+      set PROPERTIES [ReadConf $conf_file]
     }
 
-    if {[Context::Get launcher options lib] != ""} {
-      if {[IsRelativePath [Context::Get launcher options lib]] == 0} {
-        Context::Set settings simlib_path "[Context::Get launcher options lib]"
+    if {[Launcher::Get options lib] != ""} {
+      if {[IsRelativePath [Launcher::Get options lib]] == 0} {
+        HogProject::Set simlib_path "[Launcher::Get options lib]"
       } else {
-        Context::Set settings simlib_path "${repo_path}/[Context::Get launcher options lib]"
+        HogProject::Set simlib_path "${repo_path}/[Launcher::Get options lib]"
       }
-      Msg Info "Simulation library path set to [Context::Get settings simlib_path]"
+      Msg Info "Simulation library path set to [HogProject::Get simlib_path]"
     } else {
-      Context::Set settings simlib_path "${repo_path}/SimulationLib"
-      Msg Info "Simulation library path set to default [Context::Get settings simlib_path]"
+      HogProject::Set simlib_path "${repo_path}/SimulationLib"
+      Msg Info "Simulation library path set to default [HogProject::Get simlib_path]"
     }
 
-    set build_dir_name "Projects"
-
-    SetGlobalVar PROPERTIES [ReadConf $conf_file]
-    if {[dict exists [Context::Get settings PROPERTIES] main]} {
-      set main [dict get [Context::Get settings PROPERTIES] main]
-      dict for {p v} $main {
-        # notice the dollar in front of p: creates new variables and fill them with the value
-        Msg Info "Main property $p set to $v"
-        ##nagelfar ignore
-        Context::Set settings $p $v
+    HogProject::Set config ""
+    if {[dict exists $PROPERTIES main]} {
+      dict for {section content} $PROPERTIES {
+        dict for {p v} $content {
+          Msg Debug "Setting property $p to $v for section $section"
+          HogProject::Set config $section $p $v
+        }
       }
     }
+
 
     FlowControl::Produce VIVADO_INITIALIZED
   }
 
   proc CreateProject {} {
 
-    puts "[tobj tojson [Context::GetObj settings] -pretty]"
-    puts "[tobj tojson $FlowControl::_state -pretty]"
-    Context::SaveJsonToFile [Context::Get settings repo_path]/last_run.json 1
+    FlowControl::Require VIVADO_INITIALIZED
+
+    HogProject::SaveJsonToFile [Repo::Get repo_path]/last_run.json 1
+
+    if {[file exists [HogProject::Get project_file]] && [Launcher::Get options recreate] == 0} {
+      Msg Info "Project file found at [HogProject::Get project_file], opening project..."
+      #file mkdir "[HogProject::Get project_file]/[HogProject::Get project_name].gen/sources_1"
+      OpenProject [HogProject::Get project_file] [Repo::Get repo_path]
+      FlowControl::Produce PROJECT_CREATED
+      return
+    }
+
 
     if {[catch {
-    create_project -force [file tail [Context::Get settings DESIGN]] [Context::Get settings build_dir] -part [Context::Get settings PART]
+    create_project -force [file tail [HogProject::Get DESIGN]] [HogProject::Get build_dir] -part [HogProject::Get config main PART]
     } _err _opts ]} {
+      Msg Error "Failed to create project: $_err with options: $_opts"
       Msg Warning "Failed to Create Project"
     } else {
       FlowControl::Produce PROJECT_CREATED
@@ -197,23 +204,23 @@ namespace eval Tools::Vivado {
     # READ FILES #
     ##############
 
-    if {[file isdirectory [Context::Get settings list_path]]} {
-      set list_files [glob -directory [Context::Get settings list_path] "*"]
+    if {[file isdirectory [HogProject::Get list_path]]} {
+      set list_files [glob -directory [HogProject::Get list_path] "*"]
     } else {
-      Msg Error "No list directory found at  [Context::Get settings list_path]"
+      Msg Error "No list directory found at  [HogProject::Get list_path]"
     }
 
     if {[IsISE]} {
-      source [Context::Get settings tcl_path]/utils/cmdline.tcl
+      source [HogProject::Get config tcl_path]/utils/cmdline.tcl
     }
 
     # Add first .src, .sim, and .ext list files
-    AddHogFiles {*}[GetHogFiles -list_files {.src,.sim,.ext} -ext_path [Context::Get settings HOG_EXTERNAL_PATH] [Context::Get settings list_path] [Context::Get settings repo_path]]
+    AddHogFiles {*}[GetHogFiles -list_files {.src,.sim,.ext} -ext_path [HogProject::Get HOG_EXTERNAL_PATH] [HogProject::Get list_path] [Repo::Get repo_path]]
 
     ## Set synthesis TOP
-    SetTopProperty [Context::Get settings synth_top_module] $sources
+    SetTopProperty [HogProject::Get synth_top_module] $sources
 
-    AddHogFiles {*}[GetHogFiles -list_files {.con} -ext_path [Context::Get settings HOG_EXTERNAL_PATH] [Context::Get settings list_path] [Context::Get settings repo_path]]
+    AddHogFiles {*}[GetHogFiles -list_files {.con} -ext_path [HogProject::Get HOG_EXTERNAL_PATH] [HogProject::Get list_path] [Repo::Get repo_path]]
 
   }
   
@@ -225,33 +232,33 @@ namespace eval Tools::Vivado {
   proc ConfigureSynthesis {} {
     ## Create 'synthesis ' run (if not found)
     if {[string equal [get_runs -quiet synth_1] ""]} {
-      puts "create_run -name synth_1 -part [Context::Get settings PART] -constrset constrs_1"
-      create_run -name synth_1 -part [Context::Get settings PART] -constrset constrs_1
+      puts "create_run -name synth_1 -part [HogProject::Get config main PART] -constrset constrs_1"
+      create_run -name synth_1 -part [HogProject::Get config main PART] -constrset constrs_1
     } 
 
     set obj [get_runs synth_1]
-    set_property "part" [Context::Get settings PART] $obj
+    set_property "part" [HogProject::Get config main PART] $obj
 
     ## set pre synthesis script
-    if {[Context::Get settings pre_synth_file] ne ""} {
+    if {[Repo::Get pre_synth] ne ""} {
       if {[IsVivado]} {
         if {[get_filesets -quiet utils_1] != ""} {
-          AddFile [Context::Get settings pre_synth] [get_filesets -quiet utils_1]
+          AddFile [ Repo::Get pre_synth] [get_filesets -quiet utils_1]
         }
-        set_property STEPS.SYNTH_DESIGN.TCL.PRE [Context::Get settings pre_synth] $obj
+        set_property STEPS.SYNTH_DESIGN.TCL.PRE [ Repo::Get pre_synth] $obj
       }
-      Msg Debug "Setting [Context::Get settings pre_synth] to be run before synthesis"
+      Msg Debug "Setting [ Repo::Get pre_synth] to be run before synthesis"
     }
 
     ## set post synthesis script
-    if {[Context::Get settings post_synth_file] ne ""} {
+    if {[Repo::Get post_synth] ne ""} {
       if {[IsVivado]} {
         if {[get_filesets -quiet utils_1] != ""} {
-          AddFile [Context::Get settings post_synth] [get_filesets -quiet utils_1]
+          AddFile [ Repo::Get post_synth] [get_filesets -quiet utils_1]
         }
-        set_property STEPS.SYNTH_DESIGN.TCL.POST [Context::Get settings post_synth] $obj
+        set_property STEPS.SYNTH_DESIGN.TCL.POST [ Repo::Get post_synth] $obj
       }
-      Msg Debug "Setting [Context::Get settings post_synth] to be run after synthesis"
+      Msg Debug "Setting [ Repo::Get post_synth] to be run after synthesis"
     }
 
 
@@ -284,61 +291,61 @@ namespace eval Tools::Vivado {
   proc ConfigureImplementation {} {
     set obj ""
     if {[string equal [get_runs -quiet impl_1] ""]} {
-      puts "create_run -name impl_1 -part [Context::Get settings PART] -constrset constrs_1 -parent_run synth_1"
-      create_run -name impl_1 -part [Context::Get settings PART] -constrset constrs_1 -parent_run synth_1
+      puts "create_run -name impl_1 -part [ HogProject::Get config main PART] -constrset constrs_1 -parent_run synth_1"
+      create_run -name impl_1 -part [ HogProject::Get config main PART] -constrset constrs_1 -parent_run synth_1
     }
 
     set obj [get_runs impl_1]
-    set_property "part" [Context::Get settings PART] $obj
+    set_property "part" [ HogProject::Get config main PART] $obj
 
-    set_property "steps.[BinaryStepName [Context::Get settings PART]].args.readback_file" "0" $obj
-    set_property "steps.[BinaryStepName [Context::Get settings PART]].args.verbose" "0" $obj
+    set_property "steps.[BinaryStepName [ HogProject::Get config main PART]].args.readback_file" "0" $obj
+    set_property "steps.[BinaryStepName [ HogProject::Get config main PART]].args.verbose" "0" $obj
 
     ## set pre implementation script
-    if {[Context::Get settings pre_impl_file] ne ""} {
+    if {[ Repo::Get pre_impl] ne ""} {
       if {[IsVivado]} {
         if {[get_filesets -quiet utils_1] != ""} {
-          AddFile [Context::Get settings pre_impl] [get_filesets -quiet utils_1]
+          AddFile [ Repo::Get pre_impl] [get_filesets -quiet utils_1]
         }
-        set_property STEPS.INIT_DESIGN.TCL.POST [Context::Get settings pre_impl] $obj
+        set_property STEPS.INIT_DESIGN.TCL.POST [ Repo::Get pre_impl] $obj
       }
-      Msg Debug "Setting [Context::Get settings pre_impl] to be run after implementation"
+      Msg Debug "Setting [ Repo::Get pre_impl] to be run after implementation"
     }
 
 
     ## set post routing script
-    if {[Context::Get settings post_impl_file] ne ""} {
+    if {[ Repo::Get post_impl] ne ""} {
       #Vivado Only
       if {[IsVivado]} {
         if {[get_filesets -quiet utils_1] != ""} {
-          AddFile [Context::Get settings post_impl] [get_filesets -quiet utils_1]
+          AddFile [ Repo::Get post_impl] [get_filesets -quiet utils_1]
         }
-        set_property STEPS.ROUTE_DESIGN.TCL.POST [Context::Get settings post_impl] $obj
+        set_property STEPS.ROUTE_DESIGN.TCL.POST [ Repo::Get post_impl] $obj
       }
-      Msg Debug "Setting [Context::Get settings post_impl] to be run after implementation"
+      Msg Debug "Setting [ Repo::Get post_impl] to be run after implementation"
     }
 
     ## set pre write bitstream script
-    if {[Context::Get settings pre_bit_file] ne ""} {
+    if {[ Repo::Get pre_bit] ne ""} {
       #Vivado Only
       if {[IsVivado]} {
         if {[get_filesets -quiet utils_1] != ""} {
-          AddFile [Context::Get settings pre_bit] [get_filesets -quiet utils_1]
+          AddFile [ Repo::Get pre_bit] [get_filesets -quiet utils_1]
         }
-        set_property STEPS.[BinaryStepName [Context::Get settings PART]].TCL.PRE [Context::Get settings pre_bit] $obj
+        set_property STEPS.[BinaryStepName [ HogProject::Get config main PART]].TCL.PRE [ Repo::Get pre_bit] $obj
       }
-      Msg Debug "Setting [Context::Get settings pre_bit] to be run after bitfile generation"
+      Msg Debug "Setting [ Repo::Get pre_bit] to be run before bitfile generation"
     }
 
     ## set post write bitstream script
-    if {[Context::Get settings post_bit_file] ne ""} {
+    if {[ Repo::Get post_bit] ne ""} {
       if {[IsVivado]} {
         if {[get_filesets -quiet utils_1] != ""} {
-          AddFile [Context::Get settings post_bit] [get_filesets -quiet utils_1]
+          AddFile [ Repo::Get post_bit] [get_filesets -quiet utils_1]
         }
-        set_property STEPS.[BinaryStepName [Context::Get settings PART]].TCL.POST [Context::Get settings post_bit] $obj
+        set_property STEPS.[BinaryStepName [ HogProject::Get config main PART]].TCL.POST [ Repo::Get post_bit] $obj
       }
-      Msg Debug "Setting [Context::Get settings post_bit] to be run after bitfile generation"
+      Msg Debug "Setting [ Repo::Get post_bit] to be run after bitfile generation"
     }
     CreateReportStrategy $obj
   }
@@ -347,7 +354,7 @@ namespace eval Tools::Vivado {
   ## @brief configure simulation
   #
   proc ConfigureSimulation {} {
-    set simsets_dict [GetSimSets "[Context::Get settings group_name]/[Context::Get settings DESIGN]" [Context::Get settings repo_path]]
+    set simsets_dict [GetSimSets "[HogProject::Get group_name]/[HogProject::Get DESIGN]" [Repo::Get repo_path]]
     
     ##############
     # SIMULATION #
@@ -375,8 +382,8 @@ namespace eval Tools::Vivado {
             Msg Debug "Setting $prop_name = $prop_val"
             if {[IsInList [string toupper $prop_name] [VIVADO_PATH_PROPERTIES] 1]} {
               # Check that the file exists before setting these properties
-              if {[file exists [Context::Get settings repo_path]/$prop_val]} {
-                set_property -name $prop_name -value [Context::Get settings repo_path]/$prop_val -objects [get_filesets $simset]
+              if {[file exists [Repo::Get repo_path]/$prop_val]} {
+                set_property -name $prop_name -value [Repo::Get repo_path]/$prop_val -objects [get_filesets $simset]
               } else {
                 Msg Warning "Impossible to set property $prop_name to $prop_val. File is missing"
               }
@@ -393,13 +400,13 @@ namespace eval Tools::Vivado {
   #
   proc ConfigureProperties {} {
     set cur_dir [pwd]
-    cd [Context::Get settings repo_path]
+    cd [Repo::Get repo_path]
     set user_repo "0"
     # Setting Main Properties
-    if {[Context::Exists settings PROPERTIES]} {
-      if {[dict exists [Context::Get settings PROPERTIES] main]} {
+    if {[HogProject::Exists PROPERTIES]} {
+      if {[dict exists [ HogProject::Get PROPERTIES] main]} {
         Msg Info "Setting project-wide properties..."
-        set proj_props [dict get [Context::Get settings PROPERTIES] main]
+        set proj_props [dict get [ HogProject::Get PROPERTIES] main]
         dict for {prop_name prop_val} $proj_props {
           if {[string tolower $prop_name] != "ip_repo_paths"} {
             if {[string tolower $prop_name] != "part"} {
@@ -408,8 +415,8 @@ namespace eval Tools::Vivado {
               set_property -name $prop_name -value $prop_val -objects [current_project]
             }
           } else {
-            set ip_repo_list [regsub -all {\s+} $prop_val " [Context::Get settings repo_path]/"]
-            set ip_repo_list [Context::Get settings repo_path]/$ip_repo_list
+            set ip_repo_list [regsub -all {\s+} $prop_val " [Repo::Get repo_path]/"]
+            set ip_repo_list [Repo::Get repo_path]/$ip_repo_list
             set user_repo "1"
             Msg Info "Setting $ip_repo_list as user IP repository..."
             if {[IsISE]} {
@@ -423,9 +430,9 @@ namespace eval Tools::Vivado {
       }
       # Setting Run Properties
       foreach run [get_runs -quiet] {
-        if {[Context::Exists settings PROPERTIES $run]} {
+        if {[HogProject::Exists config $run]} {
           Msg Info "Setting properties for run: $run..."
-          set run_props [dict get [Context::Get settings PROPERTIES] $run]
+          set run_props [dict get [ HogProject::Get config] $run]
           #set_property -dict $run_props $run
           set stragety_str "STRATEGY strategy Strategy"
           Msg Debug "Setting Strategy and Flow for run $run (if specified in hog.conf)"
@@ -448,9 +455,9 @@ namespace eval Tools::Vivado {
             }
             if {[IsInList [string toupper $prop_name] [VIVADO_PATH_PROPERTIES] 1]} {
               # Check that the file exists before setting these properties
-              set utility_file [Context::Get settings repo_path]/$prop_val
+              set utility_file [Repo::Get repo_path]/$prop_val
               if {[file exists $utility_file]} {
-                lassign [GetHogFiles -ext_path [Context::Get settings HOG_EXTERNAL_PATH] [Context::Get settings list_path] [Context::Get settings repo_path]] lib prop dummy
+                lassign [GetHogFiles -ext_path [HogProject::Get config HOG_EXTERNAL_PATH] [Repo::Get list_path] [Repo::Get repo_path]] lib prop dummy
                 foreach {l f} $lib {
                   foreach ff $f {
                     lappend hog_files $ff
@@ -461,7 +468,7 @@ namespace eval Tools::Vivado {
                   but is not added to the project in any list file. Hog cannot track it."
                 } else {
                   #Add file tu utils_1 to avoid warning
-                  AddFile [Context::Get settings repo_path]/$prop_val [get_filesets -quiet utils_1]
+                  AddFile [Repo::Get repo_path]/$prop_val [get_filesets -quiet utils_1]
                 }
                 set_property -name $prop_name -value $utility_file -objects $run
               } else {
@@ -480,13 +487,13 @@ namespace eval Tools::Vivado {
 
 
   proc Synthesize {} {
-    set no_reset     [Context::Get launcher options no_reset    ]
-    set do_create    [Context::Get launcher options recreate    ]
-    set njobs        [Context::Get launcher options njobs       ]
-    set project      [Context::Get settings project             ]
-    set project_name [Context::Get settings project_name        ]
-    set repo_path    [Context::Get settings repo_path           ]
-    set build_dir    [Context::Get settings build_dir           ]
+    set no_reset     [Launcher::Get options no_reset    ]
+    set do_create    [Launcher::Get options recreate    ]
+    set njobs        [Launcher::Get options njobs       ]
+    set project      [HogProject::Get project           ]
+    set project_name [HogProject::Get project_name      ]
+    set repo_path    [Repo::Get repo_path               ]
+    set build_dir    [HogProject::Get build_dir               ]
     set run_folder   "$build_dir/$project.runs/"
 
     if {$no_reset == 0} {
@@ -494,8 +501,17 @@ namespace eval Tools::Vivado {
       reset_run synth_1
     }
 
+    set prog [get_property PROGRESS [get_runs synth_1]]
+    set status [get_property STATUS [get_runs synth_1]]
+    if {$prog eq "100%"} {
+      Msg Info "Run: synth_1 progress: $prog, status : $status"
+      Msg Info "Synthesis already completed, skipping synthesis step..."
+      FlowControl::Produce SYNTHESIS_DONE
+      return
+    }
+
     if {[IsISE]} {
-      source [Context::Get settings pre_synth]
+      source [HogProject::Get config pre_synth]
     }
 
     launch_runs synth_1 -jobs $njobs -dir $run_folder
@@ -525,19 +541,22 @@ namespace eval Tools::Vivado {
     if {$prog ne "100%"} {
       Msg Error "Synthesis error, status is: $status"
     }
+    FlowControl::Produce SYNTHESIS_DONE
 
   }
 
   proc Implement {} {
+    FlowControl::Require SYNTHESIS_DONE PROJECT_CREATED
     Msg Info "Starting implementation flow..."
-    set no_reset     [Context::Get launcher options no_reset     ]
-    set do_create    [Context::Get launcher options recreate     ]
-    set njobs        [Context::Get launcher options njobs        ]
-    set no_bitstream [Context::Get launcher options no_bitstream ]
-    set project      [Context::Get settings project              ]
-    set project_name [Context::Get settings project_name         ]
-    set repo_path    [Context::Get settings repo_path            ]
-    set build_dir    [Context::Get settings build_dir            ]
+
+    set no_reset     [Launcher::Get options no_reset     ]
+    set do_create    [Launcher::Get options recreate     ]
+    set njobs        [Launcher::Get options njobs        ]
+    set no_bitstream [Launcher::Get options no_bitstream ]
+    set project      [HogProject::Get project        ]
+    set project_name [HogProject::Get project_name   ]
+    set repo_path    [Repo::Get repo_path            ]
+    set build_dir    [HogProject::Get build_dir      ]
     set run_folder   "$build_dir/$project.runs/"
 
 
@@ -546,6 +565,16 @@ namespace eval Tools::Vivado {
       Msg Info "Resetting run before launching implementation..."
       reset_run impl_1
     }
+
+    set prog [get_property PROGRESS [get_runs impl_1]]
+    set status [get_property STATUS [get_runs impl_1]]
+    if {$prog eq "100%" } {
+      Msg Info "Run: impl_1 progress: $prog, status : $status"
+      Msg Info "Implementation already completed, skipping implementation step..."
+      FlowControl::Produce IMPLEMENTATION_DONE
+      return
+    }
+
 
     if {[IsISE]} {
       source $repo_path/Hog/Tcl/integrated/pre-implementation.tcl
@@ -694,10 +723,16 @@ namespace eval Tools::Vivado {
         write_hw_platform -fixed -force -file $xsa_name
       }
     }
+    FlowControl::Produce IMPLEMENTATION_DONE
   }
 
   proc GenerateBitstream {} {
     Msg Info "Generating bitstream..."
+
+    puts "Current Flow state:"
+    puts "[tobj tojson $FlowControl::_state -pretty]"
+    puts "Datastores:"
+    puts "[tobj tojson [DataStore::Serialize] -pretty]"
   }
 
   proc Simulate {} {

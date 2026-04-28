@@ -112,7 +112,7 @@ namespace eval Tools {
         }
       }
     }
-    Msg Error "No loaded tool matches IDE '$ide_name' (from $conf)"
+    Msg Warning "No loaded tool matches IDE '$ide_name' (from $conf)"
     return ""
   }
 

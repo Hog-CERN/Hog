@@ -190,29 +190,4 @@ namespace eval Commands {
     return [tdict get $_registry cmds]
   }
 
-  
-
-  ################################################################################
-  ## Syncing with Context
-  ################################################################################
-  variable _loading 0
-
-  proc _on_registry_write {varname index op} {
-    variable _loading
-    if {$_loading} return
-    if {[llength [info commands ::Context::SetObj]] == 0} return
-    ::Context::SetObj cmd_registry $::Commands::_registry
-  }
-
-  proc _on_context_load {args} { 
-    variable _registry
-    variable _loading
-    if {[catch {::Context::GetObj cmd_registry} reg]} { return }
-    set _loading 1
-    set _registry $reg
-    set _loading 0
-  }
-
-  trace add variable  ::Commands::_registry write ::Commands::_on_registry_write
-  #trace add execution ::Context::Load       leave ::Commands::_on_context_load
 }

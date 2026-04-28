@@ -268,30 +268,6 @@ namespace eval Flow {
     FlowControl::Run [GetFlowStages $tool $flow] $_flow_name
   }
 
-
-  ################################################################################
-  ## Syncing with Context
-  ################################################################################
-  variable _loading 0
-
-  proc _on_registry_write {varname index op} {
-    variable _loading
-    if {$_loading} return
-    if {[llength [info commands ::Context::SetObj]] == 0} return
-    ::Context::SetObj flow_registry $::Flow::_registry
-  }
-
-  proc _on_context_load {args} { 
-    variable _registry
-    variable _loading
-    if {[catch {::Context::GetObj flow_registry} reg]} { return }
-    set _loading 1
-    set _registry $reg
-    set _loading 0
-  }
-
-  trace add variable  ::Flow::_registry  write ::Flow::_on_registry_write
-  #trace add execution ::Context::Load    leave ::Flow::_on_context_load
 }
 
 
@@ -502,27 +478,4 @@ namespace eval FlowControl {
     }
   }
 
-  ################################################################################
-  ## Syncing with Context
-  ################################################################################
-  variable _loading 0
-
-  proc _on_registry_write {varname index op} {
-    variable _loading
-    if {$_loading} return
-    if {[llength [info commands ::Context::SetObj]] == 0} return
-    ::Context::SetObj FlowControl $::FlowControl::_state
-  }
-
-  proc _on_context_load {args} { 
-    variable _state
-    variable _loading
-    if {[catch {::Context::GetObj FlowControl} reg]} { return }
-    set _loading 1
-    set _state $reg
-    set _loading 0
-  }
-
-  trace add variable  ::FlowControl::_state  write ::FlowControl::_on_registry_write
-  trace add execution ::Context::Load        leave ::FlowControl::_on_context_load
 }

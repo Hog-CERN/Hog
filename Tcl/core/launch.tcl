@@ -8,15 +8,15 @@ set repo_path [file normalize [file join $tcl_path .. ..]]
 set top_path [file join $repo_path Top]
 
 source [file join $tcl_path hog.tcl]
-source [file join $tcl_path create_project.tcl]
-source [file join $tcl_path core tobj.tcl]
 source [file join $tcl_path core context.tcl]
+source [file join $tcl_path create_project.tcl]
+source [file join $tcl_path core hog.tcl]
+source [file join $tcl_path core tobj.tcl]
 source [file join $tcl_path core commands.tcl]
 source [file join $tcl_path core tools.tcl]
 source [file join $tcl_path core flow.tcl]
 
 
-Logo $repo_path
 ################################################################################
 ## Tool Discovery
 ################################################################################
@@ -46,6 +46,7 @@ Commands::RegisterCommandsDir [file join $repo_path hog-commands]
 Msg Debug  "[ActiveTool::CurrentTool] launched with arguments: $::argv"
 
 if {[ActiveTool::CurrentTool] eq "tclsh"} {
+  Logo $repo_path
 
   if {[catch {package require cmdline} ERROR]} {
     Msg Debug "The cmdline Tcl package was not found, sourcing it from Hog..."
@@ -83,48 +84,64 @@ if {[ActiveTool::CurrentTool] eq "tclsh"} {
   set DESIGN $project_name
   Msg Debug "InitLauncher: project_group=$project_group, project_name=$project_name, project=$project"
 
-  Context::Set launcher Name "Experimental"
-  Context::Set launcher Version "0.1.0"
-  Context::Set launcher time [clock format [clock seconds] -format "%Y-%m-%d %H:%M:%S"]
-  Context::Set launcher script [file normalize [info script]]
-
-  Context::Set launcher settings tcl_path     $tcl_path
-  Context::Set launcher settings repo_path    $repo_path
-  Context::Set launcher settings project      $project
-  Context::Set launcher settings project_name $project_name
-  Context::Set launcher settings group_name   $project_group
-  Context::Set launcher settings top_path     $top_path
-
-  Context::Set settings repo_path    $repo_path
-  Context::Set settings design       $project_name
-  Context::Set settings project_name $project_name
-  Context::Set settings project      $project
-  Context::Set settings group_name   [file dirname $DESIGN]
-
-  Context::Set settings user_ip_repo ""
-  Context::Set settings pre_synth_file           "pre-synthesis.tcl"
-  Context::Set settings post_synth_file          "post-synthesis.tcl"
-  Context::Set settings pre_impl_file            "pre-implementation.tcl"
-  Context::Set settings post_impl_file           "post-implementation.tcl"
-  Context::Set settings pre_bit_file             "pre-bitstream.tcl"
-  Context::Set settings post_bit_file            "post-bitstream.tcl"
-  Context::Set settings quartus_post_module_file "quartus-post-module.tcl"
-  Context::Set settings pre_synth                [file normalize "${tcl_path}/integrated/[Context::Get settings pre_synth_file]"]
-  Context::Set settings post_synth               [file normalize "${tcl_path}/integrated/[Context::Get settings post_synth_file]"]
-  Context::Set settings pre_impl                 [file normalize "${tcl_path}/integrated/[Context::Get settings pre_impl_file]"]
-  Context::Set settings post_impl                [file normalize "${tcl_path}/integrated/[Context::Get settings post_impl_file]"]
-  Context::Set settings pre_bit                  [file normalize "${tcl_path}/integrated/[Context::Get settings pre_bit_file]"]
-  Context::Set settings post_bit                 [file normalize "${tcl_path}/integrated/[Context::Get settings post_bit_file]"]
-  Context::Set settings quartus_post_module      [file normalize "${tcl_path}/integrated/[Context::Get settings quartus_post_module_file]"]
+  DataStore::create Repo
+  DataStore::create Launcher
+  DataStore::create HogProject
 
 
-  Context::Set settings DESIGN [file tail ${DESIGN}]
-  Context::Set settings top_path "${repo_path}/Top/${DESIGN}"
-  Context::Set settings list_path "${repo_path}/Top/${DESIGN}/list"
-  Context::Set settings build_dir "${repo_path}/Projects/${DESIGN}"
-  Context::Set settings top_name [file rootname [file tail $DESIGN]]
-  Context::Set settings synth_top_module "top_[Context::Get settings top_name]"
-  Context::Set settings user_ip_repo ""
+  Launcher::Set Name "Experimental"
+  Launcher::Set Version "0.1.0"
+  Launcher::Set time [clock format [clock seconds] -format "%Y-%m-%d %H:%M:%S"]
+  Launcher::Set script [file normalize [info script]]
+  Launcher::Set Git  [lindex [Git --version] 2]
+  Launcher::Set HogTag [Git describe]
+
+  
+  set old_dir [pwd]
+  cd $repo_path
+  Repo::Set Tag [Git describe]
+  cd $old_dir
+
+  Repo::Set repo_path    $repo_path
+  Repo::Set tcl_path     $tcl_path
+  Repo::Set top_path     $top_path
+  Repo::Set  pre_synth                [file normalize "${tcl_path}/integrated/pre-synthesis.tcl"]
+  Repo::Set  post_synth               [file normalize "${tcl_path}/integrated/post-synthesis.tcl"]
+  Repo::Set  pre_impl                 [file normalize "${tcl_path}/integrated/pre-implementation.tcl"]
+  Repo::Set  post_impl                [file normalize "${tcl_path}/integrated/post-implementation.tcl"]
+  Repo::Set  pre_bit                  [file normalize "${tcl_path}/integrated/pre-bitstream.tcl"]
+  Repo::Set  post_bit                 [file normalize "${tcl_path}/integrated/post-bitstream.tcl"]
+  Repo::Set  quartus_post_module      [file normalize "${tcl_path}/integrated/quartus-post-module.tcl"]
+
+  Repo::Set projects_dir [file join $repo_path Projects]
+  Repo::SetObj projects  [tdict create]
+  dict for {proj conf} [GetProjectsConf $repo_path] {
+    if {[file exists $conf]} {
+      set PROPERTIES [ReadConf $conf]
+      Repo::Set projects $proj conf_file $conf
+      Repo::Set projects $proj tool [Tools::GetToolForProject $proj $top_path]
+      dict for {section content} $PROPERTIES {
+        dict for {p v} $content {
+          Msg Debug "Setting property $p to $v for section $section"
+          Repo::Set projects $proj $section $p $v
+        }
+      }
+    }
+  }
+
+  HogProject::Set design       $project_name
+  HogProject::Set project_name $project_name
+  HogProject::Set project      $project
+  HogProject::Set group_name   [file dirname $DESIGN]
+
+
+  HogProject::Set list_path    [file join $repo_path Top $DESIGN list]
+  HogProject::Set build_dir    [file join $repo_path Projects $DESIGN]
+
+
+  HogProject::Set DESIGN [file tail ${DESIGN}]
+  HogProject::Set top_name [file rootname [file tail $DESIGN]]
+  HogProject::Set synth_top_module "top_[HogProject::Get top_name]"
 
 
   # Check if HogEnv.conf exists and parse it
@@ -159,7 +176,7 @@ if {[ActiveTool::CurrentTool] eq "tclsh"} {
     foreach k [array names _parsed] {
       tdict set _opts_tdict $k [tinf $_parsed($k)]
     }
-    Context::SetObj launcher options $_opts_tdict
+    Launcher::SetObj options $_opts_tdict
     Commands::Run $directive
     return
   }
@@ -175,11 +192,11 @@ if {[ActiveTool::CurrentTool] eq "tclsh"} {
     exit 1
   }
 
-
-
-
-
-  Context::Set launcher settings ide $tool
+  ################################################################################
+  # Project Flows and Commands
+  ################################################################################
+  Launcher::Set ide $tool
+  HogProject::Set ide $tool
   if {[Flow::AliasExistsForTool $directive $tool]} {
     set flow_opts [Flow::GetFlowOptions $tool $directive]
     if {[catch {array set _parsed [cmdline::getoptions _options $flow_opts ""]} err]} {
@@ -190,8 +207,8 @@ if {[ActiveTool::CurrentTool] eq "tclsh"} {
     foreach k [array names _parsed] {
       tdict set _opts_tdict $k [tinf $_parsed($k)]
     }
-    Context::SetObj launcher options $_opts_tdict
-    Context::Set launcher settings directive $directive
+    Launcher::SetObj options $_opts_tdict
+    Launcher::Set directive $directive
 
     Tools::Launch $tool
     return
@@ -207,16 +224,16 @@ if {[ActiveTool::CurrentTool] eq "tclsh"} {
 
   if {[catch {
     ActiveTool::Initialize {*}$::argv
-    Flow::Run [Context::Get launcher settings directive]
+    Flow::Run [Launcher::Get directive]
   } _tool_err _tool_opts]} {
     # This catches errors inside the tool, otherwise we would only catch errors about launching the tool
     # this doesn't catch Msg Error errors tho...
 
     puts "Error: $_tool_err"
-    Context::Set ERROR MESSAGE  "Failed to run tool '[ActiveTool::CurrentTool]': $_tool_err"
-    Context::Set ERROR TRACE    [dict get $_tool_opts -errorinfo]
-    Context::Set ERROR CODE     [dict get $_tool_opts -errorcode]
-    Context::SaveJsonToFile [file join [Context::Get launcher settings repo_path] hog_[ActiveTool::CurrentTool]_error.json] 1
+    #Launcher::Set ERROR MESSAGE  "Failed to run tool '[ActiveTool::CurrentTool]': $_tool_err"
+    #Launcher::Set ERROR TRACE    [dict get $_tool_opts -errorinfo]
+    #Launcher::Set ERROR CODE     [dict get $_tool_opts -errorcode]
+    #Launcher::SaveJsonToFile [file join [Launcher::Get repo_path] hog_[ActiveTool::CurrentTool]_error.json] 1
     Msg Error "Failed to run tool '[ActiveTool::CurrentTool]': $_tool_err"
   }
 }

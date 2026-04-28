@@ -88,11 +88,51 @@ def PrintDebug(message):
   print("DEBUG: [Hog:Python:%s] %s" % (function_name, message), flush=True)
 
 
+def InitVitisWorkspace(workspace_path):
+  """Initialize a Vitis workspace and return the client.
+
+  Creates a Vitis client, sets the workspace (which creates the _ide
+  metadata directory), and handles the common "cannot recognize the
+  workspace version" error by calling update_workspace first.
+
+  Args:
+    workspace_path: Absolute path to the workspace directory
+  Returns:
+    vitis client object on success, None on failure.
+    Caller is responsible for calling vitis.dispose() when done.
+  """
+  PrintInfo("Setting Vitis workspace: %s" % workspace_path)
+  client = vitis.create_client()
+
+  try:
+    client.set_workspace(path=workspace_path)
+    return client
+  except Exception as e:
+    error_msg = str(e)
+    if "cannot recognize the workspace version" in error_msg or "update_workspace" in error_msg:
+      try:
+        client.update_workspace(path=workspace_path)
+        client.set_workspace(path=workspace_path)
+        PrintInfo("Vitis workspace initialized after update")
+        return client
+      except Exception as e2:
+        PrintError("Failed to set workspace after update: %s" % e2)
+    else:
+      PrintError("Failed to set workspace '%s': %s" % (workspace_path, e))
+
+  try:
+    vitis.dispose()
+  except:
+    pass
+  return None
+
+
 if __name__ == "__main__":
-  print("SharedCommands.py is a library module providing logging functions:", flush=True)
+  print("SharedCommands.py is a library module providing shared functions:", flush=True)
   print("  - PrintInfo(message)", flush=True)
   print("  - PrintError(message)", flush=True)
   print("  - PrintWarning(message)", flush=True)
   print("  - PrintDebug(message)", flush=True)
-  print("\nThis module is typically imported by PlatformCommands.py and AppCommands.py", flush=True)
+  print("  - InitVitisWorkspace(workspace_path)", flush=True)
+  print("\nThis module is imported by PlatformCommands.py, AppCommands.py, and HlsCommands.py", flush=True)
   sys.exit(0)

@@ -141,7 +141,7 @@ proc AddHogFiles {libraries properties filesets} {
       Msg Debug "lib: $lib ext: $ext fileset: $fileset"
       # ADD NOW LISTS TO VIVADO PROJECT
       if {[IsXilinx] && !([info exists globalSettings::vitis_only_pass] && $globalSettings::vitis_only_pass == 1)} {
-        # Skip Vitis libraries
+        # Skip Vitis application libraries
         if {[string match "app_*" [string tolower $lib]]} {
           continue
         }
@@ -2017,6 +2017,27 @@ proc FindNewestVersion {versions} {
   return $new_ver
 }
 
+# Find repo root by walking up from a start dir until we see Top/ and Projects/.
+# For absolute paths we do not normalize, so the path form is preserved and [file exists]
+# sees the same view as the script was loaded from.
+proc FindRepoRoot {start_dir} {
+  if {[file pathtype $start_dir] eq "relative"} {
+    set dir [file normalize [file join [pwd] $start_dir]]
+  } else {
+    set dir $start_dir
+  }
+  while {1} {
+    if {[file exists [file join $dir Top]] && [file exists [file join $dir Projects]]} {
+      return $dir
+    }
+    set parent [file dirname $dir]
+    if {$parent eq $dir} {
+      return ""
+    }
+    set dir $parent
+  }
+}
+
 ## @brief Set VHDL version to 2008 for *.vhd files
 #
 # @param[in] file_name the name of the HDL file
@@ -2748,6 +2769,57 @@ proc GetHogFiles {args} {
     set filesets [MergeDict $fs $filesets]
     Msg Debug "Merged filesets $filesets"
   }
+
+  # Auto-discover HLS components from the project's hog.conf (no .src needed).
+  # The list_path argument is conventionally <proj_dir>/list/, so hog.conf sits
+  # one level up. For each [hls:<comp>] section with HLS_CONFIG=<path>, add the
+  # cfg + everything it references to a synthesized "<comp>" library, and -- if
+  # print_log is on -- show the file tree exactly like a .src would
+  set proj_conf [file normalize [file join [file dirname $list_path] hog.conf]]
+  if {[file exists $proj_conf]} {
+    set hls_configs [GetHlsConfigsFromProjConf $proj_conf $repo_path]
+    set already_tracked [dict create]
+    dict for {libname libfiles} $libraries {
+      foreach lf $libfiles { dict set already_tracked [file normalize $lf] 1 }
+    }
+    dict for {comp_name cfg_abs} $hls_configs {
+      if {[dict exists $already_tracked $cfg_abs]} {
+        Msg Debug "HLS component '$comp_name': cfg $cfg_abs already tracked via a .src, skipping conf-based GetHogFiles discovery."
+        continue
+      }
+      set lib_name "${comp_name}.src"
+      dict lappend libraries $lib_name $cfg_abs
+      dict set already_tracked $cfg_abs 1
+      set hls_extras [ExpandHlsConfigFiles $cfg_abs]
+      Msg Info "HLS component '$comp_name' (from hog.conf): tracking [expr {1 + [llength $hls_extras]}] file(s) via $cfg_abs"
+      if {$print_log == 1} {
+        Msg Status "\nhog.conf \[hls:$comp_name\] (auto-discovered)"
+        set rel_cfg [Relative $repo_path $cfg_abs 1]
+        if {$rel_cfg eq ""} { set rel_cfg $cfg_abs }
+        if {[llength $hls_extras] == 0} {
+          Msg Status "└── $rel_cfg"
+        } else {
+          Msg Status "├── $rel_cfg"
+          Msg Status "    Inside [file tail $cfg_abs] (HLS auto-expand):"
+        }
+      }
+      set n_extras [llength $hls_extras]
+      set i 0
+      foreach hls_extra $hls_extras {
+        incr i
+        if {[dict exists $already_tracked $hls_extra]} { continue }
+        dict lappend libraries $lib_name $hls_extra
+        dict set already_tracked $hls_extra 1
+        if {$print_log == 1} {
+          if {$i == $n_extras} { set pad "└──" } else { set pad "├──" }
+          set rel_extra [Relative [file dirname $cfg_abs] $hls_extra 1]
+          if {$rel_extra eq ""} { set rel_extra $hls_extra }
+          Msg Status "      $pad $rel_extra"
+        }
+      }
+    }
+  }
+
   return [list $libraries $properties $filesets]
 }
 
@@ -5959,6 +6031,394 @@ proc LaunchVitisBuild {project_name {repo_path .} {stage "presynth"}} {
   }
 }
 
+# @brief Launch the HLS build for all [hls:*] components in the project
+#
+# For each HLS component defined in hog.conf, this proc runs:
+#   - C synthesis
+#   - Implementation
+#   - Collects reports (.rpt, .xml, .log) into bin/ for CI
+# Packaging is controlled by hls_config.cfg (package.output.format, etc.)
+# Simulations (CSIM/COSIM) are handled by LaunchHlsSimulation via the S command.
+#
+# @param[in] project_name The name of the project
+# @param[in] repo_path    The main path of the git repository (Default ".")
+proc LaunchHlsBuild {project_name {repo_path .}} {
+  set proj_name $project_name
+  set bin_dir [file normalize "$repo_path/bin"]
+
+  cd $repo_path
+
+  set conf_file [file normalize "$repo_path/Top/$project_name/hog.conf"]
+  if {![file exists $conf_file]} {
+    Msg Error "Configuration file not found: $conf_file"
+    return
+  }
+  set properties [ReadConf $conf_file]
+  set hls_components [dict filter $properties key {hls:*}]
+
+  if {[dict size $hls_components] == 0} {
+    Msg Info "No HLS components found for project $project_name"
+    return
+  }
+
+  set python_script [file normalize "$repo_path/Hog/Other/Python/VitisUnified/HlsCommands.py"]
+
+  # Determine whether this is a mixed Vivado+Vitis project. In that case HLS
+  # component outputs are grouped under bin/<proj>/vitis_hls/ to keep them
+  # visually separate from Vivado's top-level utilization.txt / timing_*.txt.
+  # For pure vitis_unified projects (no Vivado) HLS outputs sit directly under
+  # bin/<proj>/<component>/ since there's nothing else to collide with.
+  set ide_info [GetIDEFromConf $conf_file]
+  set ide_name [string tolower [lindex $ide_info 0]]
+  if {$ide_name eq "vivado_vitis_unified"} {
+    set is_mixed_project 1
+  } else {
+    set is_mixed_project 0
+  }
+
+  dict for {hls_key hls_props} $hls_components {
+    if {![regexp {^hls:(.+)$} $hls_key -> component_name]} {
+      continue
+    }
+    set component_name [string trim $component_name]
+    Msg Info "Building HLS component: $component_name"
+
+    # Read HLS_CONFIG path from hog.conf (mandatory)
+    set hls_cfg_rel ""
+    if {[dict exists $hls_props hls_config]} {
+      set hls_cfg_rel [dict get $hls_props hls_config]
+    } elseif {[dict exists $hls_props HLS_CONFIG]} {
+      set hls_cfg_rel [dict get $hls_props HLS_CONFIG]
+    }
+    if {$hls_cfg_rel eq ""} {
+      Msg Error "HLS component '$component_name' missing HLS_CONFIG in hog.conf"
+      continue
+    }
+
+    set cfg_file [file normalize "$repo_path/$hls_cfg_rel"]
+    if {![file exists $cfg_file]} {
+      Msg Error "HLS config file not found: $cfg_file (from HLS_CONFIG=$hls_cfg_rel)"
+      continue
+    }
+
+    set hls_work_dir [file normalize "$repo_path/Projects/$project_name/vitis_unified/$component_name"]
+    file mkdir $hls_work_dir
+
+    # C synthesis
+    Msg Info "Running C synthesis for HLS component '$component_name'..."
+    if {![ExecuteVitisUnifiedCommand $python_script "synthesis" \
+        [list $component_name $cfg_file $hls_work_dir] \
+        "Failed to run C synthesis for $component_name"]} {
+      Msg Error "C synthesis failed for HLS component '$component_name'"
+      continue
+    }
+
+    # Implementation
+    Msg Info "Running implementation for HLS component '$component_name'..."
+    if {![ExecuteVitisUnifiedCommand $python_script "impl" \
+        [list $component_name $cfg_file $hls_work_dir] \
+        "Failed to run implementation for $component_name"]} {
+      Msg Error "Implementation failed for HLS component '$component_name'"
+      continue
+    }
+
+    # Export VHDL to source tree if VHDL_OUTPUT is set
+    set vhdl_output ""
+    if {[dict exists $hls_props vhdl_output]} {
+      set vhdl_output [dict get $hls_props vhdl_output]
+    } elseif {[dict exists $hls_props VHDL_OUTPUT]} {
+      set vhdl_output [dict get $hls_props VHDL_OUTPUT]
+    }
+    if {$vhdl_output ne ""} {
+      set vhdl_output_dir [file normalize "$repo_path/$vhdl_output"]
+      Msg Info "Exporting VHDL for '$component_name' to $vhdl_output_dir..."
+      if {![ExecuteVitisUnifiedCommand $python_script "export_rtl" \
+          [list $component_name $hls_work_dir $vhdl_output_dir vhdl] \
+          "Failed to export VHDL for $component_name"]} {
+        Msg Warning "Could not export VHDL for HLS component '$component_name'"
+      }
+    }
+
+    # Export Verilog to source tree if VERILOG_OUTPUT is set
+    set verilog_output ""
+    if {[dict exists $hls_props verilog_output]} {
+      set verilog_output [dict get $hls_props verilog_output]
+    } elseif {[dict exists $hls_props VERILOG_OUTPUT]} {
+      set verilog_output [dict get $hls_props VERILOG_OUTPUT]
+    }
+    if {$verilog_output ne ""} {
+      set verilog_output_dir [file normalize "$repo_path/$verilog_output"]
+      Msg Info "Exporting Verilog for '$component_name' to $verilog_output_dir..."
+      if {![ExecuteVitisUnifiedCommand $python_script "export_rtl" \
+          [list $component_name $hls_work_dir $verilog_output_dir verilog] \
+          "Failed to export Verilog for $component_name"]} {
+        Msg Warning "Could not export Verilog for HLS component '$component_name'"
+      }
+    }
+
+    # Export IP catalog ZIP to source tree if IP_OUTPUT is set
+    set ip_output ""
+    if {[dict exists $hls_props ip_output]} {
+      set ip_output [dict get $hls_props ip_output]
+    } elseif {[dict exists $hls_props IP_OUTPUT]} {
+      set ip_output [dict get $hls_props IP_OUTPUT]
+    }
+    if {$ip_output ne ""} {
+      set ip_output_dir [file normalize "$repo_path/$ip_output"]
+      Msg Info "Exporting IP catalog for '$component_name' to $ip_output_dir..."
+      if {![ExecuteVitisUnifiedCommand $python_script "export_ip" \
+          [list $component_name $hls_work_dir $ip_output_dir] \
+          "Failed to export IP for $component_name"]} {
+        Msg Error "Could not export IP for HLS component '$component_name'. Make sure package.output.format=ip_catalog is set in hls_config.cfg."
+      }
+    }
+
+    # Collect reports into bin/ for CI and release notes
+    Msg Info "Evaluating Hog describe for $project_name..."
+    set describe [GetHogDescribe [file normalize ./Top/$project_name] $repo_path]
+    Msg Info "Hog describe set to: $describe"
+    set dst_dir [file normalize "$bin_dir/$proj_name\-$describe"]
+    if {![file exists $dst_dir]} {
+      Msg Info "Creating $dst_dir..."
+      file mkdir $dst_dir
+    }
+
+    # Mixed projects group HLS components under bin/<proj>/vitis_hls/; pure
+    # vitis_unified projects place them directly under bin/<proj>/
+    if {$is_mixed_project} {
+      set hls_out_dir [file normalize "$dst_dir/vitis_hls"]
+    } else {
+      set hls_out_dir $dst_dir
+    }
+
+    Msg Info "Collecting HLS reports for component '$component_name'..."
+    if {![ExecuteVitisUnifiedCommand $python_script "collect_reports" \
+        [list $component_name $hls_work_dir $hls_out_dir] \
+        "Failed to collect HLS reports for $component_name"]} {
+      Msg Warning "No reports found for HLS component '$component_name'"
+    }
+
+    # Generate markdown summary files (utilization.txt, timing_ok.txt /
+    # timing_error.txt) under <hls_out_dir>/<component>/. File names mirror the
+    # Vivado convention so the existing CI logic (release notes assembly and
+    # timing-failure detection) works for HLS components too
+    Msg Info "Generating HLS release-notes summary for component '$component_name'..."
+    if {![ExecuteVitisUnifiedCommand $python_script "release_notes" \
+        [list $component_name $hls_work_dir $hls_out_dir] \
+        "Failed to generate HLS summary for $component_name"]} {
+      Msg Warning "Could not generate HLS summary for component '$component_name'"
+    }
+
+    Msg Info "HLS component '$component_name' built successfully"
+  }
+
+  # For pure vitis_unified (HLS-only) projects, emit a top-level versions.txt
+  # at the bin project root
+  if {!$is_mixed_project && [info exists dst_dir] && [file isdirectory $dst_dir]} {
+    set versions_file [file normalize "$dst_dir/versions.txt"]
+    Msg Info "Generating top-level versions.txt for pure-HLS project at $versions_file"
+    if {[catch {
+      lassign [GetRepoVersions [file normalize $repo_path/Top/$project_name] $repo_path] \
+        commit version hog_hash hog_ver top_hash top_ver \
+        libs hashes vers cons_ver cons_hash \
+        ext_names ext_hashes xml_hash xml_ver \
+        user_ip_repos user_ip_hashes user_ip_vers
+      if {$commit == 0} { set commit [GetSHA] }
+      set version_str [HexVersionToString $version]
+      set hog_ver_str [HexVersionToString $hog_ver]
+      set top_ver_str [HexVersionToString $top_ver]
+      set fh [open $versions_file "w"]
+      puts $fh "## $proj_name Version Table\n"
+      puts $fh "| **File set** | **Commit SHA** | **Version** |"
+      puts $fh "| --- | --- | --- |"
+      puts $fh "| Global | $commit | $version_str |"
+      puts $fh "| Top Directory | $top_hash | $top_ver_str |"
+      puts $fh "| Hog | $hog_hash | $hog_ver_str |"
+      foreach l $libs v $vers h $hashes {
+        set v_str [HexVersionToString $v]
+        puts $fh "| **Lib:** $l | $h | $v_str |"
+      }
+      puts $fh "\n"
+      close $fh
+    } err]} {
+      Msg Warning "Could not generate top-level versions.txt for pure-HLS project: $err"
+    }
+  }
+
+  Msg Info "Done building HLS components for $project_name"
+}
+
+
+# @brief Launch HLS simulations for [hls:*] components in the project
+#
+# When called without hls_simsets (or with an empty list), runs all enabled
+# HLS simulations (CSIM if CSIM=true, COSIM if COSIM=true in hog.conf).
+# When called with specific targets (e.g. "csim:iir_lp_filter cosim:iir_lp_filter"),
+# runs only the requested simulations.
+# COSIM automatically triggers C synthesis first if not already done.
+# Triggered by the S (SIMULATE) command.
+#
+# @param[in] project_name The name of the project
+# @param[in] repo_path    The main path of the git repository (Default ".")
+# @param[in] hls_simsets   Optional list of specific HLS simsets to run (e.g. "csim:name" "cosim:name")
+proc LaunchHlsSimulation {project_name {repo_path .} {hls_simsets {}}} {
+  cd $repo_path
+
+  set conf_file [file normalize "$repo_path/Top/$project_name/hog.conf"]
+  if {![file exists $conf_file]} {
+    Msg Error "Configuration file not found: $conf_file"
+    return
+  }
+  set properties [ReadConf $conf_file]
+  set hls_components [dict filter $properties key {hls:*}]
+
+  if {[dict size $hls_components] == 0} {
+    Msg Info "No HLS components found for project $project_name"
+    return
+  }
+
+  # Build a lookup of requested targets: component_name -> list of sim types
+  # If hls_simsets is empty, we'll use hog.conf flags for all components
+  set targeted_mode [expr {[llength $hls_simsets] > 0}]
+  set targets [dict create]
+  foreach entry $hls_simsets {
+    if {[regexp {^(csim|cosim):(.+)$} $entry -> sim_type comp_name]} {
+      dict lappend targets $comp_name $sim_type
+    } else {
+      Msg Error "Invalid HLS simset format '$entry'. Expected 'csim:<component>' or 'cosim:<component>'."
+      Msg Info "Available HLS components in hog.conf:"
+      dict for {hls_key hls_props} $hls_components {
+        if {[regexp {^hls:(.+)$} $hls_key -> cname]} {
+          Msg Info "  - csim:[string trim $cname]"
+          Msg Info "  - cosim:[string trim $cname]"
+        }
+      }
+      return
+    }
+  }
+
+  set python_script [file normalize "$repo_path/Hog/Other/Python/VitisUnified/HlsCommands.py"]
+
+  dict for {hls_key hls_props} $hls_components {
+    if {![regexp {^hls:(.+)$} $hls_key -> component_name]} {
+      continue
+    }
+    set component_name [string trim $component_name]
+
+    # In targeted mode, skip components not in the request
+    if {$targeted_mode && ![dict exists $targets $component_name]} {
+      continue
+    }
+
+    # Read HLS_CONFIG path from hog.conf (mandatory)
+    set hls_cfg_rel ""
+    if {[dict exists $hls_props hls_config]} {
+      set hls_cfg_rel [dict get $hls_props hls_config]
+    } elseif {[dict exists $hls_props HLS_CONFIG]} {
+      set hls_cfg_rel [dict get $hls_props HLS_CONFIG]
+    }
+    if {$hls_cfg_rel eq ""} {
+      Msg Error "HLS component '$component_name' missing HLS_CONFIG in hog.conf"
+      continue
+    }
+
+    set cfg_file [file normalize "$repo_path/$hls_cfg_rel"]
+    if {![file exists $cfg_file]} {
+      Msg Error "HLS config file not found: $cfg_file (from HLS_CONFIG=$hls_cfg_rel)"
+      continue
+    }
+
+    set hls_work_dir [file normalize "$repo_path/Projects/$project_name/vitis_unified/$component_name"]
+    file mkdir $hls_work_dir
+
+    # Determine which simulations to run
+    if {$targeted_mode} {
+      # User explicitly requested these sim types via -simset
+      set sim_types [dict get $targets $component_name]
+      set run_csim  [expr {"csim" in $sim_types}]
+      set run_cosim [expr {"cosim" in $sim_types}]
+
+      # Validate: check if the requested sim is enabled in hog.conf
+      foreach st $sim_types {
+        set flag_val ""
+        if {[dict exists $hls_props $st]} {
+          set flag_val [dict get $hls_props $st]
+        } elseif {[dict exists $hls_props [string toupper $st]]} {
+          set flag_val [dict get $hls_props [string toupper $st]]
+        }
+        set is_enabled [expr {[string tolower $flag_val] eq "true" || $flag_val eq "1"}]
+        if {!$is_enabled} {
+          set upper_st [string toupper $st]
+          Msg Warning "HLS simulation '$st' requested for '$component_name' but\
+            $upper_st is not enabled in \[hls:$component_name\] section of\
+            hog.conf. Running it anyway."
+          Msg Info "To enable it permanently, add '$upper_st=true' under\
+            \[hls:$component_name\] in Top/$project_name/hog.conf"
+        }
+      }
+    } else {
+      # Default mode: read flags from hog.conf
+      set run_csim 0
+      set run_cosim 0
+      foreach {key_lower key_upper} {csim CSIM cosim COSIM} {
+        set val ""
+        if {[dict exists $hls_props $key_lower]} {
+          set val [dict get $hls_props $key_lower]
+        } elseif {[dict exists $hls_props $key_upper]} {
+          set val [dict get $hls_props $key_upper]
+        }
+        if {[string tolower $val] eq "true" || $val eq "1"} {
+          set run_$key_lower 1
+        }
+      }
+
+      if {!$run_csim && !$run_cosim} {
+        Msg Info "No HLS simulations enabled for '$component_name' (set CSIM=true and/or COSIM=true in \[hls:$component_name\] in hog.conf)"
+        continue
+      }
+    }
+
+    Msg Info "Running HLS simulations for component: $component_name"
+
+    # CSIM
+    if {$run_csim} {
+      Msg Info "Running C simulation for HLS component '$component_name'..."
+      if {![ExecuteVitisUnifiedCommand $python_script "csim" \
+          [list $component_name $cfg_file $hls_work_dir] \
+          "Failed to run C simulation for $component_name"]} {
+        Msg Error "C simulation failed for HLS component '$component_name'"
+        continue
+      }
+    }
+
+    # COSIM (auto-run synthesis if needed)
+    if {$run_cosim} {
+      set syn_done_marker [file normalize "$hls_work_dir/hls/syn"]
+      if {![file exists $syn_done_marker]} {
+        Msg Info "C synthesis output not found for '$component_name', running synthesis automatically before co-simulation..."
+        if {![ExecuteVitisUnifiedCommand $python_script "synthesis" \
+            [list $component_name $cfg_file $hls_work_dir] \
+            "Failed to run C synthesis for $component_name"]} {
+          Msg Error "C synthesis failed for HLS component '$component_name', cannot proceed with co-simulation"
+          continue
+        }
+      }
+
+      Msg Info "Running C/RTL co-simulation for HLS component '$component_name'..."
+      if {![ExecuteVitisUnifiedCommand $python_script "cosim" \
+          [list $component_name $cfg_file $hls_work_dir] \
+          "Failed to run co-simulation for $component_name"]} {
+        Msg Error "C/RTL co-simulation failed for HLS component '$component_name'"
+        continue
+      }
+    }
+
+    Msg Info "HLS simulations completed for '$component_name'"
+  }
+
+  Msg Info "Done with HLS simulations for $project_name"
+}
+
 # @brief Returns the BIF file path from the properties
 #
 # @param[in] props     A dictionary with the properties defined in Hog.conf
@@ -6441,6 +6901,95 @@ proc ReadExtraFileList {extra_file_name} {
 }
 
 
+# @brief Expand a Vitis HLS configuration file (hls_config.cfg) into the list of
+#        repository files it references, so Hog can hash them for dirty/SHA
+#        detection without forcing the user to duplicate the list in a .src
+#
+# @param[in] cfg_file  Absolute or relative path to the hls_config.cfg file.
+# @return    A de-duplicated list of normalized absolute file paths.
+#
+proc ExpandHlsConfigFiles {cfg_file} {
+  set out [list]
+  if {![file exists $cfg_file] || ![file isfile $cfg_file]} {
+    return $out
+  }
+  set cfg_dir [file normalize [file dirname $cfg_file]]
+
+  if {[catch {set fp [open $cfg_file r]} err]} {
+    Msg Warning "ExpandHlsConfigFiles: cannot open $cfg_file: $err"
+    return $out
+  }
+  set lines [split [read $fp] "\n"]
+  close $fp
+
+  foreach line $lines {
+    if {[regexp {^[\t\s]*$} $line]} { continue }
+    if {[regexp {^[\t\s]*\#} $line]} { continue }
+    if {[regexp {^\s*\[.*\]\s*$} $line]} { continue }
+    if {![regexp {^\s*[^=\s]+\s*=\s*(.+?)\s*$} $line -> value]} { continue }
+
+    foreach tok [regexp -all -inline {\S+} $value] {
+      if {[file pathtype $tok] eq "absolute"} {
+        set candidate [file normalize $tok]
+      } else {
+        set candidate [file normalize [file join $cfg_dir $tok]]
+      }
+      if {[file isfile $candidate]} {
+        lappend out $candidate
+      } elseif {[file isdirectory $candidate]} {
+        set stack [list $candidate]
+        while {[llength $stack] > 0} {
+          set d [lindex $stack 0]
+          set stack [lrange $stack 1 end]
+          foreach f [glob -nocomplain -directory $d -types f *] {
+            lappend out [file normalize $f]
+          }
+          foreach sub [glob -nocomplain -directory $d -types d *] {
+            lappend stack $sub
+          }
+        }
+      }
+    }
+  }
+  return [lsort -unique $out]
+}
+
+
+# @brief Discover HLS components declared in a project's hog.conf and return
+#        the absolute path of each component's hls_config.cfg
+#
+# @param[in] conf_file  Absolute path of the project's hog.conf
+# @param[in] repo_path  Repository root (paths in HLS_CONFIG are relative to it)
+# @return    A dict { component_name -> absolute_cfg_path }. Empty if no HLS
+proc GetHlsConfigsFromProjConf {conf_file repo_path} {
+  set out [dict create]
+  if {![file exists $conf_file]} { return $out }
+  if {[catch {set properties [ReadConf $conf_file]} err]} {
+    Msg Debug "GetHlsConfigsFromProjConf: cannot parse $conf_file: $err"
+    return $out
+  }
+  set hls_components [dict filter $properties key {hls:*}]
+  dict for {hls_key hls_props} $hls_components {
+    if {![regexp {^hls:(.+)$} $hls_key -> component_name]} { continue }
+    set component_name [string trim $component_name]
+    set cfg_rel ""
+    if {[dict exists $hls_props hls_config]} {
+      set cfg_rel [dict get $hls_props hls_config]
+    } elseif {[dict exists $hls_props HLS_CONFIG]} {
+      set cfg_rel [dict get $hls_props HLS_CONFIG]
+    }
+    if {$cfg_rel eq ""} { continue }
+    set cfg_abs [file normalize "$repo_path/$cfg_rel"]
+    if {![file exists $cfg_abs]} {
+      Msg CriticalWarning "HLS component '$component_name': HLS_CONFIG=$cfg_rel does not exist on disk."
+      continue
+    }
+    dict set out $component_name $cfg_abs
+  }
+  return $out
+}
+
+
 # @brief Read a list file and return a list of three dictionaries
 #
 # Additional information is provided with text separated from the file name with one or more spaces
@@ -6651,6 +7200,36 @@ proc ReadListFile {args} {
               set real_file [GetLinkedFile $vhdlfile]
               dict lappend libraries $lib_name $real_file
               Msg Debug "File $vhdlfile is a soft link, also adding the real file: $real_file"
+            }
+
+            # Auto-expand HLS config files: when a .cfg is referenced from a .src
+            # we treat it as a Vitis HLS hls_config.cfg and add every existing
+            # file/dir it references (syn.file, tb.file, -I include dirs, ...)
+            # to the same library. This avoids forcing the user to duplicate the
+            # HLS file list in both hls_config.cfg and the .src.
+            if {$list_file_ext eq ".src" && $extension eq ".cfg"} {
+              set hls_extras [ExpandHlsConfigFiles $vhdlfile]
+              if {$print_log == 1 && [llength $hls_extras] > 0} {
+                Msg Status "$indent   Inside [file tail $vhdlfile] (HLS auto-expand):"
+              }
+              set n_extras [llength $hls_extras]
+              set i 0
+              foreach hls_extra $hls_extras {
+                incr i
+                if {$hls_extra eq $vhdlfile} { continue }
+                Msg Debug "HLS cfg expansion: adding $hls_extra (from $vhdlfile) to $lib_name"
+                if {$print_log == 1} {
+                  if {$i == $n_extras} { set pad "└──" } else { set pad "├──" }
+                  set rel [Relative [file dirname $vhdlfile] $hls_extra]
+                  Msg Status "$indent     $pad $rel"
+                }
+                dict lappend libraries $lib_name $hls_extra
+                if {$sha_mode != 0 && [file type $hls_extra] eq "link"} {
+                  set real_extra [GetLinkedFile $hls_extra]
+                  dict lappend libraries $lib_name $real_extra
+                  Msg Debug "HLS expanded file $hls_extra is a soft link, also adding $real_extra"
+                }
+              }
             }
 
 

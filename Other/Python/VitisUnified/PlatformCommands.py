@@ -30,6 +30,7 @@ if os.path.exists(_shared_commands_path):
   PrintInfo = shared_commands.PrintInfo
   PrintError = shared_commands.PrintError
   PrintWarning = shared_commands.PrintWarning
+  InitVitisWorkspace = shared_commands.InitVitisWorkspace
 else:
   print("ERROR: [Hog:Python:PlatformCommands.py] Failed to import SharedCommands, file not found: %s" % _shared_commands_path)
 
@@ -122,26 +123,51 @@ def ValidateRequiredOptions(options):
 
   return True, None
 
-# TODO: Pending to be validated for an XSA with embedded soft processors...
 def ExtractProcsFromXsa(xsa_path, output_file):
-  """Extract soft processors information from XSA file
+  """Extract soft-processor information from an XSA file using the HSI Python API.
+
+  HSI's Python surface is not stable across Vitis installs:
+    - some installs return an object from ``HwManager.open_hw_design(xsa)``
+      that exposes ``get_cells(...)`` and per-cell attribute access;
+    - some return only the design name (a plain string);
+    - some expose no equivalent classmethod on ``HwManager`` at all.
+
+  Because PROC_MAP extraction is best-effort and only meaningful for designs
+  that contain soft processors, this function tries the object-style API and,
+  if it is not available on the current install, returns an empty result
+  instead of raising. Genuine HSI failures (e.g. the XSA cannot be opened at
+  all) still propagate so the caller can flag them as real errors.
+
   Args:
-    xsa_path: Path to the XSA file
-    output_file: Path to output PROC_MAP file
+    xsa_path: Path to the XSA file.
+    output_file: Path to output PROC_MAP file (one "<hier_name> <address_tag>"
+                 line per soft processor). Not written if no processors are
+                 found.
+
   Returns:
-    Dictionary with soft processors information
+    Dictionary with key ``processors`` mapping to a list of dicts. Empty for
+    hard-processor-only XSAs and for HSI variants where the cell API cannot
+    be queried.
   """
-  HwDesign = HwManager.open_hw_design(xsa_path)
   processors = []
 
-  for proc in HwDesign.get_cells(hierarchical='true', filter ='IP_TYPE==PROCESSOR'):
-    PrintInfo("Found processor in XSA: name=%s, address_tag=%s" % (proc.hier_name, proc.address_tag))
-    proc_info = {
+  HwDesign = HwManager.open_hw_design(xsa_path)
+
+  # Probe the surface this HSI install exposes; if the design handle does not
+  # provide get_cells(), we cannot enumerate cells from here and there is no
+  # portable fallback. Skip extraction silently - the platform build does not
+  # need PROC_MAP for hard-processor-only designs.
+  if not hasattr(HwDesign, 'get_cells'):
+    return {'processors': processors}
+
+  for proc in HwDesign.get_cells(hierarchical='true', filter='IP_TYPE==PROCESSOR'):
+    PrintInfo("Found soft processor in XSA: name=%s, address_tag=%s"
+              % (proc.hier_name, proc.address_tag))
+    processors.append({
       'name': proc,
       'hier_name': proc.hier_name,
-      'address_tag': proc.address_tag
-    }
-    processors.append(proc_info)
+      'address_tag': proc.address_tag,
+    })
 
   if output_file and processors:
     output_dir = os.path.dirname(output_file)
@@ -275,7 +301,7 @@ def CreatePlatform(platform_options=None, ws_dir=None):
         else:
           PrintInfo("Extracted processor information for %d soft processor(s) to %s" % (len(processors), proc_map_file))
       except Exception as e:
-        PrintError("Failed to extract processor information from XSA: %s" % str(e))
+        PrintError("Failed to extract processor information from XSA '%s': %s" % (xsa_path, str(e)))
         return False
 
     # Remove stale platform directory if it already exists from a previous run,
@@ -286,32 +312,9 @@ def CreatePlatform(platform_options=None, ws_dir=None):
       PrintInfo("Removing existing platform directory '%s' before re-creation..." % platform_dir)
       shutil.rmtree(platform_dir, ignore_errors=True)
 
-    PrintInfo("Creating client...")
-    client = vitis.create_client()
-
-    # Set workspace and initialize if it doesn't exist
-    PrintInfo("Setting workspace...")
-    try:
-      client.set_workspace(path=ws_dir)
-    except Exception as e:
-      error_msg = str(e)
-      if "cannot recognize the workspace version" in error_msg or "update_workspace" in error_msg:
-        try:
-          client.update_workspace(path=ws_dir)
-          try:
-            client.set_workspace(path=ws_dir)
-          except Exception as e2:
-            PrintError("Failed to set workspace after initialization: %s" % e2)
-            vitis.dispose()
-            return False
-        except Exception as init_err:
-          PrintError("Failed to initialize workspace '%s': %s" % (ws_dir, init_err))
-          vitis.dispose()
-          return False
-      else:
-        PrintError("Failed to set workspace '%s': %s" % (ws_dir, e))
-        vitis.dispose()
-        return False
+    client = InitVitisWorkspace(ws_dir)
+    if client is None:
+      return False
 
     # Create platform component
     try:

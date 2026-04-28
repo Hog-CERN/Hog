@@ -29,6 +29,7 @@ if os.path.exists(_shared_commands_path):
   PrintError = shared_commands.PrintError
   PrintWarning = shared_commands.PrintWarning
   PrintDebug = shared_commands.PrintDebug
+  InitVitisWorkspace = shared_commands.InitVitisWorkspace
 else:
   print("ERROR: [Hog:Python:AppCommands.py] Failed to import SharedCommands, file not found: %s" % _shared_commands_path)
 
@@ -42,14 +43,8 @@ def AppListDict(workspace_path):
   """
   try:
     PrintInfo("Getting app list from workspace: %s" % workspace_path)
-    client = vitis.create_client()
-
-    # Set workspace
-    try:
-      client.set_workspace(path=workspace_path)
-    except Exception as e:
-      PrintError("Failed to set workspace '%s': %s" % (workspace_path, e))
-      vitis.dispose()
+    client = InitVitisWorkspace(workspace_path)
+    if client is None:
       return {}
 
     # Get all components from the workspace
@@ -193,14 +188,8 @@ def ConfigureApp(app_name, app_conf, ws_dir):
       else:
         PrintWarning("Unknown app option: %s" % key_lower)
 
-    client = vitis.create_client()
-
-    # Set workspace
-    try:
-      client.set_workspace(path=ws_dir)
-    except Exception as e:
-      PrintError("Failed to set workspace '%s': %s" % (ws_dir, e))
-      vitis.dispose()
+    client = InitVitisWorkspace(ws_dir)
+    if client is None:
       return False
 
     # Get platform path if specified
@@ -359,14 +348,8 @@ def AddAppFiles(app_name, file_paths, ws_dir, target_path=None):
       return True
 
     # Use client-based approach
-    client = vitis.create_client()
-
-    # Set workspace
-    try:
-      client.set_workspace(path=ws_dir)
-    except Exception as e:
-      PrintError("Failed to set workspace '%s': %s" % (ws_dir, e))
-      vitis.dispose()
+    client = InitVitisWorkspace(ws_dir)
+    if client is None:
       return False
 
     # Get the app component
@@ -540,14 +523,8 @@ def BuildApp(app_name, ws_dir, target=None):
     if target:
       PrintInfo("Build target: %s" % target)
 
-    client = vitis.create_client()
-
-    # Set workspace
-    try:
-      client.set_workspace(path=ws_dir)
-    except Exception as e:
-      PrintError("Failed to set workspace '%s': %s" % (ws_dir, e))
-      vitis.dispose()
+    client = InitVitisWorkspace(ws_dir)
+    if client is None:
       return False
 
     # Get the app component

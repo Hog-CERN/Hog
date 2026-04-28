@@ -91,7 +91,7 @@ set default_commands {
     set do_simulation 1
     set do_create 1
   # NAME*: SIMULATION or S
-  # DESCRIPTION: Simulate the project, creating it if not existing, unless it is a GHDL simulation.
+  # DESCRIPTION: Simulate the project (HDL and/or HLS). Use -simset to select specific sets (e.g. sim_1, csim:mykernel, cosim:mykernel).
   # OPTIONS: check_syntax, compile_only, ext_path.arg, lib.arg, recreate, scripts_only, simset.arg, verbose
   }
 
@@ -241,7 +241,10 @@ set parameters {
   {vivado_only     "If set, and project is vivado-vitis, vitis project will not be created."}
   {vitis_only      "If set, and project is vivado-vitis create only vitis project. If an xsa is not given, a pre-synth xsa will be created."}
   {xsa.arg      "" "If set, and project is vivado-vitis, use this xsa for creating platforms without a defined hw."}
-  {simset.arg   "" "Simulation sets, separated by commas, to be run."}
+  {simset.arg   "" "Simulation sets to run. HDL sets by name (e.g. sim_1), HLS\
+                    (Vitis Unified) sets as csim:<component> or\
+                    cosim:<component>. If empty, all enabled simulations are\
+                    run."}
   {all             "List all projects, including test projects. Test projects have #test on the second line of hog.conf."}
   {generate        "For IPbus XMLs, it will re create the VHDL address decode files."}
   {dst_dir.arg  "" "For reports, IPbus XMLs, set the destination folder (default is in the ./bin folder)."}
@@ -260,27 +263,7 @@ set parameters {
 set tcl_path [file normalize "[file dirname [info script]]"]
 source $tcl_path/hog.tcl
 source $tcl_path/create_project.tcl
-
-# Find repo root by walking up from a start dir until we see Top/ and Projects/.
-# For absolute paths we do not normalize, so the path form is preserved and [file exists]
-# sees the same view as the script was loaded from.
-proc FindRepoRoot {start_dir} {
-  if {[file pathtype $start_dir] eq "relative"} {
-    set dir [file normalize [file join [pwd] $start_dir]]
-  } else {
-    set dir $start_dir
-  }
-  while {1} {
-    if {[file exists [file join $dir Top]] && [file exists [file join $dir Projects]]} {
-      return $dir
-    }
-    set parent [file dirname $dir]
-    if {$parent eq $dir} {
-      return ""
-    }
-    set dir $parent
-  }
-}
+source $tcl_path/commands.tcl
 
 # Initialize Vitis flags before InitLauncher so IsTclsh correctly returns 1
 set globalSettings::vitis_unified 0
@@ -327,7 +310,20 @@ set ext_path ""
 if {$options(ext_path) != ""} {
   set ext_path $options(ext_path)
 }
-set simlib_path ""
+set lib_path ""
+if {$options(lib) != ""} {
+  set lib_path [file normalize $options(lib)]
+} else {
+  if {[info exists env(HOG_SIMULATION_LIB_PATH)]} {
+    set lib_path $env(HOG_SIMULATION_LIB_PATH)
+  } else {
+    if {[file exists "$repo_path/SimulationLib"]} {
+      set lib_path [file normalize "$repo_path/SimulationLib"]
+    } else {
+      set lib_path ""
+    }
+  }
+}
 
 
 if {$options(verbose) == 1} {
@@ -335,6 +331,7 @@ if {$options(verbose) == 1} {
   # Set environment variable for Vitis Unified Python scripts to enable debug output
   set env(HOG_DEBUG_MODE) "1"
 }
+
 # printDebugMode
 # Msg Info "Number of jobs set to $options(njobs)."
 set output_path ""
@@ -369,6 +366,7 @@ set do_check_list_files 0
 set do_compile_lib 0
 set do_sigasi 0
 set do_vhdl_ls 0
+set do_cocotb 0
 set do_hierarchy 0
 set do_version 0
 
@@ -454,7 +452,7 @@ if {$options(dst_dir) == "" && ($do_ipbus_xml == 1 || $do_check_list_files == 1)
 }
 
 if {$cmd == -1} {
-  #This is if the project was not found
+  # This is if the project was not found
   Msg Status "\n\nPossible projects are:"
   ListProjects $repo_path $do_list_all
   Msg Status "\n"
@@ -539,8 +537,9 @@ if {$cmd == -1} {
     lassign [GetHogFiles -ext_path $ext_path \
         -list_files ".src,.ext" $proj_list_dir $repo_path]\
         listLibraries listProperties listSrcSets
-    Hierarchy $listProperties $listLibraries $repo_path $output_path $compile_order \
-    $light_hierarchy $top_module $ignored_hierarchy $include_ieee $include_gen_prods
+    set hierarchy_result [Hierarchy $listProperties $listLibraries $repo_path $output_path $compile_order \
+    $light_hierarchy $top_module $ignored_hierarchy $include_ieee $include_gen_prods]
+    puts $hierarchy_result
     exit 0
   }
   if {$do_sigasi == 1} {
@@ -596,6 +595,13 @@ if {$cmd == -1} {
     exit 0
   }
 
+  if {$do_cocotb == 1} {
+    source $tcl_path/utils/cocotb.tcl
+    source $tcl_path/utils/hierarchy.tcl
+    WriteCocoTbTemplate $project_name $repo_path $lib_path $ext_path
+    exit 0
+  }
+
   if {$do_check_yaml_ref == 1} {
     Msg Info "Checking if \"ref\" in .gitlab-ci.yml actually matches the included yml file in Hog submodule"
     CheckYmlRef $repo_path false
@@ -629,8 +635,18 @@ if {$cmd == -1} {
 
   set simsets ""
   if {$do_simulation == 1} {
+    # Filter out HLS simsets (csim:*/cosim:*) -- GHDL only needs HDL simsets
+    set hdl_simsets_pre [list]
+    if {$options(simset) ne ""} {
+      foreach s $options(simset) {
+        if {![regexp {^(csim|cosim):} $s]} {
+          lappend hdl_simsets_pre $s
+        }
+      }
+    }
+
     # Get all simsets in the project that run with GHDL
-    set ghdl_simsets [GetSimSets $project_name $repo_path "$options(simset)" 1]
+    set ghdl_simsets [GetSimSets $project_name $repo_path "$hdl_simsets_pre" 1]
     set ghdl_import 0
     dict for {simset_name simset_dict} $ghdl_simsets {
       if {$ghdl_import == 0} {
@@ -638,29 +654,38 @@ if {$cmd == -1} {
         set ghdl_import 1
       }
       LaunchGHDL $project_name $repo_path $simset_name $simset_dict $ext_path
-      # dict unset simsets_dict $simset_name
     }
-    set ide_simsets [GetSimSets $project_name $repo_path $options(simset) 0 1]
+    set ide_simsets [GetSimSets $project_name $repo_path $hdl_simsets_pre 0 1]
 
     if {[dict size $ide_simsets] == 0} {
-      # All simulations have been run, exiting
-      Msg Info "All simulations have been run, exiting..."
-      exit 0
+      # Check if there are HLS simsets to run before exiting
+      set has_hls [expr {$options(simset) eq ""}]
+      if {!$has_hls} {
+        foreach s $options(simset) {
+          if {[regexp {^(csim|cosim):} $s]} {
+            set has_hls 1
+            break
+          }
+        }
+      }
+      if {!$has_hls} {
+        Msg Info "All simulations have been run, exiting..."
+        exit 0
+      }
     }
   }
 
   if {$do_version == 1} {
-    cd $repo_path
-    set proj_dir $repo_path/Top/$project_name
-    lassign [GetRepoVersions $proj_dir $repo_path $ext_path] sha ver
-    if {$options(describe) == 1} {
-      puts [GetHogDescribe $proj_dir $repo_path]
-    } else {
-      puts "v[HexVersionToString $ver]"
+      cd $repo_path
+      set proj_dir $repo_path/Top/$project_name
+      lassign [GetRepoVersions $proj_dir $repo_path $ext_path] sha ver
+      if {$options(describe) == 1} {
+        puts [GetHogDescribe $proj_dir $repo_path]
+      } else {
+        puts "v[HexVersionToString $ver]"
+      }
+      exit 0
     }
-    exit 0
-  }
-
   # if {$do_new_directive ==1 } {
   #
   # # Do things here
@@ -669,17 +694,16 @@ if {$cmd == -1} {
   #}
 
   #### END of tclsh commands ####
-
   Msg Info "Launching command: $cmd..."
 
   # Check if the IDE is actually in the path...
   set ret [catch {exec which $ide}]
   if {$ret != 0} {
-    if {[string match "*vitis_unified*" $ide_name]} {
-      Msg Error "This is a '$ide_name' project: make sure to add both Vivado and Vitis to your PATH environment variable."
-    } else {
-      Msg Error "$ide not found in your system. Make sure to add $ide to your PATH environment variable."
-    }
+      if {[string match "*vitis_unified*" $ide_name]} {
+        Msg Error "This is a '$ide_name' project: make sure to add both Vivado and Vitis to your PATH environment variable."
+        } else {
+        Msg Error "$ide not found in your system. Make sure to add $ide to your PATH environment variable."
+        }
     exit $ret
   }
 
@@ -711,6 +735,7 @@ if {$cmd == -1} {
 
 #After this line, we are in the IDE
 ##################################################################################
+
 
 # We need to Import tcllib if we are using Libero
 if {[IsLibero] || [IsDiamond]} {
@@ -747,6 +772,17 @@ set proj_conf [ProjectExists $project_name $repo_path]
 set ide_name_and_ver [string tolower [GetIDEFromConf $proj_conf]]
 set ide_name [lindex [regexp -all -inline {\S+} $ide_name_and_ver] 0]
 
+# Validate IDE name
+set supported_ides [list vivado vivado_vitis_classic vivado_vitis_unified vitis_classic vitis_unified quartus planahead libero diamond ghdl]
+if {$ide_name ni $supported_ides} {
+  if {$ide_name eq "vitis"} {
+    Msg Error "The IDE set in hog.conf ('vitis') is not supported. Did you mean 'vitis_unified' or 'vitis_classic'? Supported IDEs: [join $supported_ides {, }]"
+  } else {
+    Msg Error "The IDE set in hog.conf ('$ide_name') is not supported. Supported IDEs: [join $supported_ides {, }]"
+  }
+  exit 1
+}
+
 # Vitis IDE detection
 if {([string tolower $ide_name] eq "vivado_vitis_classic" || [string tolower $ide_name] eq "vitis_classic") && ($options(vivado_only) != 1)} {
   set globalSettings::vitis_classic 1
@@ -762,9 +798,17 @@ if {([string tolower $ide_name] eq "vivado_vitis_classic" || [string tolower $id
   set globalSettings::vitis_unified 0
 }
 
-if {($globalSettings::vitis_classic == 1 || $globalSettings::vitis_unified == 1) && $options(vitis_only) == 1} {
+# Standalone vitis_unified / vitis_classic projects are implicitly vitis-only
+if {$ide_name eq "vitis_unified" || $ide_name eq "vitis_classic"} {
+  set options(vitis_only) 1
+}
+
+set is_vitis_ide [expr {$globalSettings::vitis_classic == 1 || $globalSettings::vitis_unified == 1}]
+set is_build_step [expr {$do_synthesis == 1 || $do_implementation == 1 || $do_compile == 1}]
+if {$is_vitis_ide && $options(vitis_only) == 1 && $is_build_step} {
   set do_vitis_build 1
 }
+
 
 if {$options(no_bitstream) == 1} {
   set do_bitstream 0
@@ -809,8 +853,6 @@ if {$options(bitstream_only) == 1} {
   set do_bitstream_only 0
 }
 
-
-
 if {$options(no_reset) == 1} {
   set do_reset 0
 }
@@ -827,19 +869,8 @@ if {$options(compile_only) == 1} {
   set compile_only 1
 }
 
-if {$options(lib) != ""} {
-  set lib_path [file normalize $options(lib)]
-} else {
-  if {[info exists env(HOG_SIMULATION_LIB_PATH)]} {
-    set lib_path $env(HOG_SIMULATION_LIB_PATH)
-  } else {
-    if {[file exists "$repo_path/SimulationLib"]} {
-      set lib_path [file normalize "$repo_path/SimulationLib"]
-    } else {
-      set lib_path ""
-    }
-  }
-}
+
+
 
 
 Msg Info "Number of jobs set to $options(njobs)."
@@ -848,7 +879,6 @@ Msg Info "Number of jobs set to $options(njobs)."
 set argv ""
 
 ############# CREATE or OPEN project ############
-
 if {$options(vitis_only) == 1 && ($ide_name eq "vitis_unified" || $ide_name eq "vivado_vitis_unified")} {
   cd $tcl_path
   set project_file [file normalize $repo_path/Projects/$project_name/vitis_unified/_ide/settings.json]
@@ -926,7 +956,7 @@ if {[file exists $project_file]} {
     }
   }
   if {!$proj_found} {
-    Msg Info "Project file not found for $project_name."
+      Msg Info "Project file not found for $project_name."
   }
 }
 
@@ -974,10 +1004,16 @@ if {($proj_found == 0 || $recreate == 1)} {
   }
 }
 
+
+
 ########## CHECK SYNTAX ###########
 if {$do_check_syntax == 1} {
-  Msg Info "Checking syntax for project $project_name..."
-  CheckSyntax $project_name $repo_path $project_file
+  if {$ide_name eq "vitis_unified" || $ide_name eq "vitis_classic"} {
+    Msg Info "Skipping syntax check for $project_name: pure Vitis project has no HDL syntax to check"
+  } else {
+    Msg Info "Checking syntax for project $project_name..."
+    CheckSyntax $project_name $repo_path $project_file
+  }
 }
 
 ######### RTL ANALYSIS ########
@@ -988,7 +1024,23 @@ if {$do_rtl == 1} {
 
 if {$do_vitis_build == 1} {
   if {[IsVitisClassic] || [IsVitisUnified]} {
-    LaunchVitisBuild $project_name $repo_path
+    # Check for HLS components and build them
+    set conf_file_path [file normalize "$repo_path/Top/$project_name/hog.conf"]
+    if {[file exists $conf_file_path]} {
+      set proj_properties [ReadConf $conf_file_path]
+      set hls_components [dict filter $proj_properties key {hls:*}]
+      if {[dict size $hls_components] > 0} {
+        Msg Info "Found [dict size $hls_components] HLS component(s), launching HLS build..."
+        LaunchHlsBuild $project_name $repo_path
+      }
+      # Build apps/platforms if any exist
+      set has_apps [expr {[dict size [dict filter $proj_properties key {app:*}]] > 0}]
+      if {$has_apps} {
+        LaunchVitisBuild $project_name $repo_path
+      }
+    } else {
+      LaunchVitisBuild $project_name $repo_path
+    }
   } else {
     Msg Error "Vitis build is not supported for $ide_name (only Vitis Classic and Vitis Unified are supported)"
     exit 1
@@ -1015,9 +1067,33 @@ if {$do_bitstream == 1 && ![IsXilinx]} {
 }
 
 if {$do_simulation == 1} {
-  # set simsets $options(simset)
-  set simsets [GetSimSets $project_name $repo_path $options(simset)]
-  LaunchSimulation $project_name $lib_path $simsets $repo_path $scripts_only $compile_only
+  # Separate HLS simsets (csim:*/cosim:*) from HDL simsets
+  set hdl_simsets [list]
+  set hls_simsets [list]
+  if {$options(simset) ne ""} {
+    foreach s $options(simset) {
+      if {[regexp {^(csim|cosim):} $s]} {
+        lappend hls_simsets $s
+      } else {
+        lappend hdl_simsets $s
+      }
+    }
+  }
+  set run_hdl [expr {[llength $hdl_simsets] > 0 || $options(simset) eq ""}]
+  set run_hls [expr {[llength $hls_simsets] > 0 || $options(simset) eq ""}]
+
+  # Run HDL simulations
+  if {$run_hdl} {
+    set simsets [GetSimSets $project_name $repo_path $hdl_simsets]
+    if {[dict size $simsets] > 0} {
+      LaunchSimulation $project_name $lib_path $simsets $repo_path $scripts_only $compile_only
+    }
+  }
+
+  # Run HLS simulations (csim/cosim)
+  if {$run_hls} {
+    LaunchHlsSimulation $project_name $repo_path $hls_simsets
+  }
 }
 
 

@@ -410,7 +410,10 @@ jobs:
                   if [[ -f bin/$PROJECT_NAME*/timing_* ]]; then
                     cat bin/$PROJECT_NAME*/timing_* >> note.md;
                   fi;
-                  if ls bin/$PROJECT_NAME*/timing_error.txt >/dev/null 2>&1; then
+                  if ls bin/$PROJECT_NAME*/vitis_hls/*/timing_* bin/$PROJECT_NAME*/*/timing_* >/dev/null 2>&1; then
+                    cat bin/$PROJECT_NAME*/vitis_hls/*/timing_* bin/$PROJECT_NAME*/*/timing_* 2>/dev/null >> note.md;
+                  fi;
+                  if ls bin/$PROJECT_NAME*/timing_error.txt bin/$PROJECT_NAME*/vitis_hls/*/timing_error.txt bin/$PROJECT_NAME*/*/timing_error.txt >/dev/null 2>&1; then
                     echo "Copying the Project folder for debugging purposes inside bin/";
                     cp -r Projects/ bin/Projects;
                     if [ ${{ inputs.HOG_FAIL_TIMING}} ]; then
@@ -424,6 +427,9 @@ jobs:
               fi;
               if [[ -f "bin/$PROJECT_NAME*/utilization.txt" ]]; then
                 cat bin/$PROJECT_NAME*/utilization.txt >> note.md;
+              fi;
+              if ls bin/$PROJECT_NAME*/vitis_hls/*/utilization.txt bin/$PROJECT_NAME*/*/utilization.txt >/dev/null 2>&1; then
+                cat bin/$PROJECT_NAME*/vitis_hls/*/utilization.txt bin/$PROJECT_NAME*/*/utilization.txt 2>/dev/null >> note.md;
               fi;
               echo "Hog-CI(info) - All done.";
       - name: Archive Generate Artifacts
@@ -624,7 +630,7 @@ jobs:
               PRJ_NAME="${PRJ_DIR%.*}";
               PRJ_NAME="${PRJ_NAME%-*}";
               PRJ_NAME_BASE=$(basename $PRJ_NAME);
-              if [ -f "$PRJ_DIR/timing_error.txt" ]; then
+              if [ -f "$PRJ_DIR/timing_error.txt" ] || ls "$PRJ_DIR"/vitis_hls/*/timing_error.txt "$PRJ_DIR"/*/timing_error.txt >/dev/null 2>&1; then
                 FAILED_PRJS="$FAILED_PRJS $PRJ_NAME_BASE";
               fi;
             done;

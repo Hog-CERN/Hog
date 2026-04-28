@@ -65,6 +65,9 @@ VivadoProject
 SimulationLib
 profpga
 
+## Vitis
+**.zip
+
 ## Intel Quartus Prime
 Projects
 SimulationLib_quartus

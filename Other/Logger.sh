@@ -273,12 +273,12 @@ function log_stdout(){
       fi
       dataLine=$line
       if $buffered; then
-        stderr_ack=" "
+        stderr_ack="*"
       else
         if [ "${1}" == "stdout" ]; then
-          stderr_ack=" "
+          stderr_ack="-"
         elif [ "${1}" == "stderr" ]; then
-          stderr_ack="E"
+          stderr_ack="·"
         else
           stderr_ack="${1}"
         fi

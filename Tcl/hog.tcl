@@ -132,6 +132,7 @@ proc AddHogFiles {libraries properties filesets} {
     }
 
     # Loop over libraries in fileset
+    set reapply_targets [dict create]
     foreach lib $libs_in_fileset {
       Msg Debug "lib: $lib \n"
       set lib_files [DictGet $libraries $lib]
@@ -282,6 +283,15 @@ proc AddHogFiles {libraries properties filesets} {
             Msg Info "Generating Target for [file tail $f],\
             please remember to commit the (possible) changed file."
             generate_target all [get_files $f]
+
+            # If elf is saved in the bd, vivado appends to the props instead of setting
+            dict for {fo pd} $reapply_targets {
+              set ref [dict get $pd ref]
+              set cell [dict get $pd cell]
+              Msg Debug "Reapplying ref: $ref and cell:$cell to $fo"
+              set_property SCOPED_TO_REF $ref $fo
+              set_property SCOPED_TO_CELLS [split $cell ","] $fo
+            }
           }
 
           # Tcl
@@ -300,6 +310,7 @@ proc AddHogFiles {libraries properties filesets} {
           set ref [lindex [regexp -inline {\yscoped_to_ref\s*=\s*([^ ]+)} $props] 1]
           set cell [lindex [regexp -inline {\yscoped_to_cells\s*=\s*([^ ]+)} $props] 1]
           if {[file extension $f] == ".elf" || (([file extension $f] == ".tcl" || [file extension $f] == ".xdc") && $ext == ".con")} {
+            if {[file extension $f] == ".elf" } { dict set reapply_targets $file_obj [dict create ref $ref cell $cell] }
             if {$ref != ""} {
               set_property SCOPED_TO_REF $ref $file_obj
             }

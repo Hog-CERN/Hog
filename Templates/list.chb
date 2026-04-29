@@ -1,0 +1,65 @@
+# Hog Cheby register-map list file (.chb)
+#
+# Each non-comment line in this file describes one invocation of the `cheby`
+# register-map generator and the artefacts it is expected to produce. The
+# format is whitespace-separated and parsed left-to-right:
+#
+#   <input.cheby>  <output1> [<output2> ...]  [key=value ...]
+#
+#   - <input.cheby>  : path to the cheby description file, relative to the
+#                      repository root.
+#   - <outputN>      : one or more expected output artefacts (HDL, headers,
+#                      docs, ...). Their order matches the comma-separated
+#                      list given via `gen=<...>`. When `gen=` is omitted,
+#                      a single generator is inferred from the file extension
+#                      of the (single) declared output.
+#   - key=value      : optional Cheby properties / flags. Recognised keys
+#                      (and the cheby flag they map to) include:
+#                        gen=hdl,consts,c,doc,memmap,...   (--gen-<gen>)
+#                        profile=hdl|sw|doc|all            (Hog-only filter)
+#                        hdl=vhdl|verilog|systemverilog    (--hdl)
+#                        header=commit|none                (--header)
+#                        c_style=arm|...                   (--c-style)
+#                        consts_style=verilog|...          (--consts-style)
+#                        doc=html|md|rst|tex               (--doc)
+#                        address_space=<name>              (--address-space)
+#                        out_prefix=<str>                  (--out-prefix)
+#                        word_endian=little|big            (--word-endian)
+#                        ff_reset=<value>                  (--ff-reset)
+#                        wb_lib_name=<name>                (--wb-lib-name)
+#                        axil_lib_name=<name>              (--axil-lib-name)
+#                        rest_headers=<file>               (--rest-headers)
+#                        custom=<args>                     (--custom)
+#                      Boolean toggles (key=1) include:
+#                        hdl_preload, doc_hide_comments, doc_no_reg_drawing,
+#                        doc_include_js_dep, gena_common_visual,
+#                        gen_c_bit_struct, gen_gena_dsp.
+#                      Any key starting with `--` is passed through verbatim.
+#
+# Supported short generator aliases (the `gen=` value is comma-separated):
+#   hdl, consts, c, c_check, doc, memmap, memmap_v, pretty, devicetree,
+#   edge, silecs, wbgen, custom, install, gena_memmap, gena_regctrl
+#
+# Lines beginning with `#` and blank lines are ignored.
+#
+# Hog tracks all `.cheby` source files referenced from any `.chb` list file
+# of a project under the `cheby.chb` library, and exposes the corresponding
+# Git SHA / version through the `CHEBY_SHA` / `CHEBY_VER` generics
+# (or Quartus parameters), in addition to listing them in `versions.txt`.
+#
+# Use `Hog/Do cheby <project>` to verify that the on-disk artefacts match
+# what cheby would generate, and `Hog/Do cheby <project> -generate` to
+# regenerate them in place. Pass `-strict` in CI to upgrade any mismatch
+# to an error, `-profile <name>` to restrict the action to a subset of
+# lines, and `-tool <path>` to use a specific cheby executable.
+#
+# Examples (delete or adapt as needed):
+
+# HDL artefacts (VHDL package + constants), generated together
+# regs/top.cheby   out/regs_pkg.vhd  out/regs_consts.vhd  profile=hdl  hdl=vhdl  header=commit  gen=hdl,consts
+
+# Software header for ARM cores
+# regs/top.cheby   sw/regs.h        profile=sw   gen=c    c_style=arm
+
+# Auto-generated documentation
+# regs/top.cheby   doc/regs.html    profile=doc  gen=doc  doc=html

@@ -134,6 +134,13 @@ set default_commands {
   # OPTIONS: dst_dir.arg, generate, verbose
   }
 
+  \^CH(B|EBY)$ {#proj
+    set do_cheby 1
+  # NAME: CHEBY or CHB
+  # DESCRIPTION: Copy, check or generate the Cheby register-map outputs for the project.
+  # OPTIONS: dst_dir.arg, generate, profile.arg, strict, tool.arg, verbose
+  }
+
   \^V(IEW)?$ {#proj
     set do_list_file_parse 1
   # NAME*: VIEW or V
@@ -250,8 +257,11 @@ set parameters {
                     cosim:<component>. If empty, all enabled simulations are\
                     run."}
   {all             "List all projects, including test projects. Test projects have #test on the second line of hog.conf."}
-  {generate        "For IPbus XMLs, it will re create the VHDL address decode files."}
-  {dst_dir.arg  "" "For reports, IPbus XMLs, set the destination folder (default is in the ./bin folder)."}
+  {generate        "For IPbus XMLs and Cheby register maps, it will re-create the generated artefacts."}
+  {dst_dir.arg  "" "For reports, IPbus XMLs and Cheby outputs, set the destination folder (default is in the ./bin folder)."}
+  {profile.arg "all" "For Cheby, only process .chb lines whose profile= property matches (e.g. hdl, sw, doc, all)."}
+  {tool.arg     "" "For Cheby, explicit path to the cheby executable (default: cheby from PATH)."}
+  {strict          "For Cheby, fail on any warning-worthy mismatch or missing output."}
   {output.arg   "" "For tree hierarchy mode, set the output file (default is console)."}
   {top.arg      "" "For tree hierarchy mode, set the top module (default is the top module defined in hog.conf)."}
   {ignore.arg   "" "For tree hierarchy mode, filter's the printed hierarchy to exclude modules that match the given string."}

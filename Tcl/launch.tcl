@@ -80,11 +80,6 @@ if {$options(lib) ne ""} {
 }
 
 
-if {$options(verbose) == 1} {
-  setDebugMode 1
-  # Set environment variable for Vitis Unified Python scripts to enable debug output
-  set env(HOG_DEBUG_MODE) "1"
-}
 
 # printDebugMode
 # Msg Info "Number of jobs set to $options(njobs)."
@@ -120,21 +115,18 @@ set scripts_only 0
 set compile_only 0
 set ide_name ""
 set allow_empty_proj 0
-
 ### Hog stand-alone directives ###
 # The following directives are used WITHOUT ever calling the IDE, they are run in tclsh
 # A place holder called new_directive can be followed to add new commands
 set do_ipbus_xml 0
+set do_cheby 0
 set do_list_file_parse 0
 set do_check_yaml_ref 0
 set do_buttons 0
 set do_check_list_files 0
 set do_compile_lib 0
 set do_sigasi 0
-set do_vhdl_ls 0
-set do_cocotb 0
 set do_hierarchy 0
-set do_version 0
 
 set NO_DIRECTIVE_FOUND 0
 Msg Debug "Looking for a $directive in : $default_commands"
@@ -210,19 +202,19 @@ if {$options(ci_run) == 1} {
   set ci_run 1
 }
 
-if {$options(dst_dir) == "" && ($do_ipbus_xml == 1 || $do_check_list_files == 1) && $project != ""} {
+if {$options(dst_dir) == "" && ($do_ipbus_xml == 1 || $do_cheby == 1 || $do_check_list_files == 1) && $project != ""} {
   # Getting all the versions and SHAs of the repository
   lassign [GetRepoVersions [file normalize $repo_path/Top/$group_name/$project] $repo_path $ext_path] commit version \
     hog_hash hog_ver top_hash top_ver libs hashes vers cons_ver cons_hash ext_names ext_hashes xml_hash xml_ver \
-    user_ip_repos user_ip_hashes user_ip_vers
+    user_ip_repos user_ip_hashes user_ip_vers cheby_hash cheby_ver
   cd $repo_path
 
-  set describe [GetHogDescribe [file normalize $repo_path/Top/$group_name/$project] $repo_path]
+  set describe [GetHogDescribe $commit $repo_path]
   set dst_dir [file normalize "$repo_path/bin/$group_name/$project\-$describe"]
 }
 
 if {$cmd == -1} {
-  # This is if the project was not found
+  #This is if the project was not found
   Msg Status "\n\nPossible projects are:"
   ListProjects $repo_path $do_list_all
   Msg Status "\n"
@@ -365,10 +357,66 @@ if {$cmd == -1} {
     exit 0
   }
 
+  if {$do_cheby == 1} {
+    Msg Info "Handling Cheby register-map outputs for $project_name..."
+
+    set proj_dir $repo_path/Top/$project_name
+
+    if {$options(generate) == 1} {
+      set cheby_gen 1
+    } else {
+      set cheby_gen 0
+    }
+
+    if {$options(dst_dir) != ""} {
+      set dst_dir $options(dst_dir)
+    }
+    set cheby_dst "$dst_dir/cheby"
+
+    if {[llength [glob -nocomplain $proj_dir/list/*.chb]] > 0} {
+      if {![file exists $cheby_dst]} {
+        Msg Info "$cheby_dst directory not found, creating it..."
+        file mkdir $cheby_dst
+      }
+    } else {
+      Msg Error "No .chb files found in $proj_dir/list/"
+      exit
+    }
+
+    set cheby_tool $options(tool)
+    if {$cheby_tool eq ""} {
+      if {[info exists env(HOG_CHEBY_TOOL)]} {
+        set cheby_tool $env(HOG_CHEBY_TOOL)
+      } else {
+        set cheby_tool "cheby"
+      }
+    }
+
+    set cheby_profile $options(profile)
+    if {$cheby_profile eq ""} {
+      set cheby_profile "all"
+    }
+
+    set ret [GetRepoVersions $proj_dir $repo_path ""]
+    set sha     [lindex $ret 18]
+    set hex_ver [lindex $ret 19]
+    set ver [HexVersionToString $hex_ver]
+
+    set n_errors [CopyChebyFiles $proj_dir $repo_path $cheby_dst \
+                  $ver $sha $cheby_gen $cheby_profile $cheby_tool \
+                  $options(strict) $options(verbose)]
+
+    if {$n_errors > 0} {
+      Msg CriticalWarning "Cheby step finished with $n_errors error(s)."
+      exit 1
+    }
+    exit 0
+  }
+
   if {$do_list_file_parse == 1} {
     set proj_dir $repo_path/Top/$project_name
     set proj_list_dir $repo_path/Top/$project_name/list
-    GetHogFiles -print_log -list_files {.src,.con,.sim,.ext,.ipb} $proj_list_dir $repo_path
+    GetHogFiles -print_log -list_files {.src,.con,.sim,.ext,.ipb,.chb} $proj_list_dir $repo_path
     Msg Status "  "
     Msg Info "All Done."
     exit 0
@@ -502,18 +550,8 @@ if {$cmd == -1} {
 
   set simsets ""
   if {$do_simulation == 1} {
-    # Filter out HLS simsets (csim:*/cosim:*) -- GHDL only needs HDL simsets
-    set hdl_simsets_pre [list]
-    if {$options(simset) ne ""} {
-      foreach s $options(simset) {
-        if {![regexp {^(csim|cosim):} $s]} {
-          lappend hdl_simsets_pre $s
-        }
-      }
-    }
-
     # Get all simsets in the project that run with GHDL
-    set ghdl_simsets [GetSimSets $project_name $repo_path "$hdl_simsets_pre" 1]
+    set ghdl_simsets [GetSimSets $project_name $repo_path "$options(simset)" 1]
     set ghdl_import 0
     dict for {simset_name simset_dict} $ghdl_simsets {
       if {$ghdl_import == 0} {
@@ -521,24 +559,14 @@ if {$cmd == -1} {
         set ghdl_import 1
       }
       LaunchGHDL $project_name $repo_path $simset_name $simset_dict $ext_path
+      # dict unset simsets_dict $simset_name
     }
-    set ide_simsets [GetSimSets $project_name $repo_path $hdl_simsets_pre 0 1]
+    set ide_simsets [GetSimSets $project_name $repo_path $options(simset) 0 1]
 
     if {[dict size $ide_simsets] == 0} {
-      # Check if there are HLS simsets to run before exiting
-      set has_hls [expr {$options(simset) eq ""}]
-      if {!$has_hls} {
-        foreach s $options(simset) {
-          if {[regexp {^(csim|cosim):} $s]} {
-            set has_hls 1
-            break
-          }
-        }
-      }
-      if {!$has_hls} {
-        Msg Info "All simulations have been run, exiting..."
-        exit 0
-      }
+      # All simulations have been run, exiting
+      Msg Info "All simulations have been run, exiting..."
+      exit 0
     }
   }
 
@@ -714,10 +742,12 @@ if {$options(impl_only) == 1} {
   set do_compile 1
 }
 
-if {$options(vitis_only) == 1 || $ide_name eq "vitis_classic" || $ide_name eq "vitis_unified"} {
+if {$options(vitis_only) == 1 || $ide_name eq "vitis_classic"} {
+  set do_vitis_build 1
   set do_implementation 0
   set do_synthesis 0
   set do_bitstream 0
+  set do_create 0
   set do_compile 0
 }
 
@@ -730,6 +760,10 @@ if {$options(bitstream_only) == 1} {
   set do_compile 0
 } else {
   set do_bitstream_only 0
+}
+
+if {$options(vivado_only) == 1} {
+  set do_vitis_build 0
 }
 
 if {$options(no_reset) == 1} {
@@ -755,15 +789,7 @@ Msg Info "Number of jobs set to $options(njobs)."
 set argv ""
 
 ############# CREATE or OPEN project ############
-if {$options(vitis_only) == 1 && ($ide_name eq "vitis_unified" || $ide_name eq "vivado_vitis_unified")} {
-  cd $tcl_path
-  set project_file [file normalize $repo_path/Projects/$project_name/vitis_unified/_ide/settings.json]
-  Msg Info "Setting project file for Vitis Unified project $project_name to $project_file"
-} elseif {$options(vitis_only) == 1 && ($ide_name eq "vitis_classic" || $ide_name eq "vivado_vitis_classic")} {
-  cd $tcl_path
-  set project_file [file normalize $repo_path/Projects/$project_name/vitis_classic/.metadata/]
-  Msg Info "Setting project file for Vitis Classic project $project_name to $project_file"
-} elseif {[IsISE]} {
+if {[IsISE]} {
   cd $tcl_path
   set project_file [file normalize $repo_path/Projects/$project_name/$project.ppr]
 } elseif {[IsVivado]} {
@@ -773,10 +799,6 @@ if {$options(vitis_only) == 1 && ($ide_name eq "vitis_unified" || $ide_name eq "
   cd $tcl_path
   set project_file [file normalize $repo_path/Projects/$project_name/vitis_classic/.metadata/]
   Msg Info "Setting project file for Vitis Classic project $project_name to $project_file"
-} elseif {[IsVitisUnified]} {
-  cd $tcl_path
-  set project_file [file normalize $repo_path/Projects/$project_name/vitis_unified/_ide/settings.json]
-  Msg Info "Setting project file for Vitis Unified project $project_name to $project_file"
 } elseif {[IsQuartus]} {
   if {[catch {package require ::quartus::project} ERROR]} {
     Msg Error "$ERROR\n Can not find package ::quartus::project"
@@ -801,10 +823,7 @@ if {[file exists $project_file]} {
   Msg Info "Found project file $project_file for $project_name."
   set proj_found 1
 } else {
-  # Path from InitLauncher may resolve to a different mount for the same repo.
-  # Discover repo root and use first path where project exists (file or, for Vitis Unified, project dir).
-  set repo_norm [file normalize $repo_path]
-  set rel [string trimleft [string range $project_file [string length $repo_norm] end] "/"]
+  Msg Info "Project file not found for $project_name."
   set proj_found 0
   foreach start_dir [list [file dirname [info script]] [pwd]] {
     set repo_candidate [FindRepoRoot $start_dir]
@@ -842,88 +861,57 @@ if {[file exists $project_file]} {
 }
 
 if {($proj_found == 0 || $recreate == 1)} {
-  set do_create 1
   Msg Info "Creating (possibly replacing) the project $project_name..."
   Msg Debug "launch.tcl: calling GetConfFiles with $repo_path/Top/$project_name"
-  lassign [GetConfFiles $repo_path/Top/$project_name] conf sim pre post pre_rtl post_rtl
+  lassign [GetConfFiles $repo_path/Top/$project_name] conf sim pre post
 
   if {[file exists $conf]} {
-    set globalSettings::vitis_only_pass $options(vitis_only)
+    # Still not sure of the difference between project and project_name
     if {$options(vivado_only) == 1} {
       CreateProject -simlib_path $lib_path -xsa $options(xsa) -vivado_only $project_name $repo_path
-    } elseif {$options(vitis_only) == 1} {
-      CreateProject -simlib_path $lib_path -xsa $options(xsa) -vitis_only $project_name $repo_path
     } else {
       CreateProject -simlib_path $lib_path -xsa $options(xsa) $project_name $repo_path
     }
     Msg Info "Done creating project $project_name."
-    if {$options(vitis_only) == 1 && ($ide_name eq "vitis_unified" || $ide_name eq "vivado_vitis_unified")} {
-      set project_file [file join $repo_path Projects $project_name vitis_unified _ide settings.json]
-    }
   } else {
     Msg Error "Project $project_name is incomplete: no hog.conf file found, please create one..."
   }
-} elseif {$proj_found == 0} {
-  Msg Error "Project $project_name not found. Please create it first using the 'CREATE' or 'C' directive."
-  exit 1
 } else {
   Msg Info "Opening existing project file $project_file..."
-  if {$options(vitis_only) == 1 && ($ide_name eq "vitis_unified" || $ide_name eq "vivado_vitis_unified")} {
-    set vitis_workspace [file normalize $repo_path/Projects/$project_name/vitis_unified/]
-    Msg Info "Setting Vitis Unified workspace to $vitis_workspace"
-  } elseif {[IsXilinx]} {
+  if {[IsXilinx]} {
     file mkdir "$repo_path/Projects/$project_name/$project.gen/sources_1"
-    OpenProject $project_file $repo_path
-  } elseif {[IsVitisClassic]} {
+  }
+
+  if {[IsVitisClassic]} {
     set vitis_workspace [file normalize $repo_path/Projects/$project_name/vitis_classic/]
     Msg Info "Setting workspace to $vitis_workspace"
-  } elseif {[IsVitisUnified]} {
-    set vitis_workspace [file normalize $repo_path/Projects/$project_name/vitis_unified/]
-    Msg Info "Setting workspace to $vitis_workspace"
+    setws $vitis_workspace
+
   } else {
     OpenProject $project_file $repo_path
   }
 }
 
-
 ########## CHECK SYNTAX ###########
 if {$do_check_syntax == 1} {
-  if {$ide_name eq "vitis_unified" || $ide_name eq "vitis_classic"} {
-    Msg Info "Skipping syntax check for $project_name: pure Vitis project has no HDL syntax to check"
-  } else {
-    Msg Info "Checking syntax for project $project_name..."
-    CheckSyntax $project_name $repo_path $project_file
-  }
+  Msg Info "Checking syntax for project $project_name..."
+  CheckSyntax $project_name $repo_path $project_file
 }
 
 ######### RTL ANALYSIS ########
 if {$do_rtl == 1} {
-  lassign [GetConfFiles $repo_path/Top/$project_name] conf sim pre post pre_rtl post_rtl
-  LaunchRTLAnalysis $repo_path $pre_rtl $post_rtl
+  LaunchRTLAnalysis $repo_path
 }
 
 if {$do_vitis_build == 1} {
-  if {[IsVitisClassic] || [IsVitisUnified]} {
-    # Check for HLS components and build them
-    set conf_file_path [file normalize "$repo_path/Top/$project_name/hog.conf"]
-    if {[file exists $conf_file_path]} {
-      set proj_properties [ReadConf $conf_file_path]
-      set hls_components [dict filter $proj_properties key {hls:*}]
-      if {[dict size $hls_components] > 0} {
-        Msg Info "Found [dict size $hls_components] HLS component(s), launching HLS build..."
-        LaunchHlsBuild $project_name $repo_path
-      }
-      # Build apps/platforms if any exist
-      set has_apps [expr {[dict size [dict filter $proj_properties key {app:*}]] > 0}]
-      if {$has_apps} {
-        LaunchVitisBuild $project_name $repo_path
-      }
-    } else {
-      LaunchVitisBuild $project_name $repo_path
-    }
+  if {[IsVitisClassic]} {
+    LaunchVitisBuild $project_name $repo_path
   } else {
-    Msg Error "Vitis build is not supported for $ide_name (only Vitis Classic and Vitis Unified are supported)"
-    exit 1
+    set xsct_cmd "xsct $tcl_path/launch.tcl W -vitis_only $project_name"
+    set ret [catch {exec -ignorestderr {*}$xsct_cmd >@ stdout} result]
+    if {$ret != 0} {
+      Msg Error "xsct (vitis classic) returned an error state."
+    }
   }
 }
 
@@ -947,33 +935,9 @@ if {$do_bitstream == 1 && ![IsXilinx]} {
 }
 
 if {$do_simulation == 1} {
-  # Separate HLS simsets (csim:*/cosim:*) from HDL simsets
-  set hdl_simsets [list]
-  set hls_simsets [list]
-  if {$options(simset) ne ""} {
-    foreach s $options(simset) {
-      if {[regexp {^(csim|cosim):} $s]} {
-        lappend hls_simsets $s
-      } else {
-        lappend hdl_simsets $s
-      }
-    }
-  }
-  set run_hdl [expr {[llength $hdl_simsets] > 0 || $options(simset) eq ""}]
-  set run_hls [expr {[llength $hls_simsets] > 0 || $options(simset) eq ""}]
-
-  # Run HDL simulations
-  if {$run_hdl} {
-    set simsets [GetSimSets $project_name $repo_path $hdl_simsets]
-    if {[dict size $simsets] > 0} {
-      LaunchSimulation $project_name $lib_path $simsets $repo_path $scripts_only $compile_only
-    }
-  }
-
-  # Run HLS simulations (csim/cosim)
-  if {$run_hls} {
-    LaunchHlsSimulation $project_name $repo_path $hls_simsets
-  }
+  # set simsets $options(simset)
+  set simsets [GetSimSets $project_name $repo_path $options(simset)]
+  LaunchSimulation $project_name $lib_path $simsets $repo_path $scripts_only $compile_only
 }
 
 

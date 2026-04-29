@@ -141,10 +141,11 @@ commit version hog_hash hog_ver \
 top_hash top_ver \
 libs hashes vers \
 cons_ver cons_hash ext_names ext_hashes \
-xml_hash xml_ver user_ip_repos user_ip_hashes user_ip_vers
+xml_hash xml_ver user_ip_repos user_ip_hashes user_ip_vers \
+cheby_hash cheby_ver
 
 
-set describe [GetHogDescribe [file normalize $repo_path/Top/$group/$proj_name] $repo_path]
+set describe [GetHogDescribe $commit $repo_path]
 set dst_dir [file normalize "bin/$group/$proj_name\-$describe"]
 Msg Info "Creating $dst_dir..."
 file mkdir $dst_dir/reports
@@ -260,6 +261,22 @@ if {$xml_hash != ""} {
   set use_ipbus 0
 }
 
+if {$cheby_hash != ""} {
+  set cheby_dst [file normalize $old_path/../cheby]
+  Msg Info "Creating Cheby directory $cheby_dst..."
+  file mkdir $cheby_dst
+  Msg Info "Verifying Cheby outputs against the .chb list files..."
+  set cheby_tool "cheby"
+  if {[info exists env(HOG_CHEBY_TOOL)]} {
+    set cheby_tool $env(HOG_CHEBY_TOOL)
+  }
+  CopyChebyFiles ./Top/$group/$proj_name/ $repo_path $cheby_dst \
+    [HexVersionToString $cheby_ver] $cheby_hash 0 "all" $cheby_tool 0 0
+  set use_cheby 1
+} else {
+  set use_cheby 0
+}
+
 #number of threads
 if {![IsDiamond]} {
   set maxThreads [GetMaxThreads [file normalize ./Top/$group/$proj_name/]]
@@ -315,7 +332,7 @@ if {[IsXilinx] || [IsSynplify] || [IsDiamond]} {
   $cons_ver $cons_hash $libs $vers \
   $hashes $ext_names $ext_hashes \
   $user_ip_repos $user_ip_vers $user_ip_hashes \
-  $flavour $xml_ver $xml_hash
+  $flavour $xml_ver $xml_hash $cheby_ver $cheby_hash
 
   if {[IsDiamond]} {
     prj_project save
@@ -364,6 +381,13 @@ if {[IsXilinx] || [IsSynplify] || [IsDiamond]} {
     set_parameter -name XML_SHA $bits
   }
 
+  if {$use_cheby == 1} {
+    binary scan [binary format H* [string map {{'} {}} $cheby_ver]] B32 bits
+    set_parameter -name CHEBY_VER $bits
+    binary scan [binary format H* [string map {{'} {}} $cheby_hash]] B32 bits
+    set_parameter -name CHEBY_SHA $bits
+  }
+
   #set project specific lists
   foreach l $libs v $vers h $hashes {
     binary scan [binary format H* [string map {{'} {}} $v]] B32 bits
@@ -394,6 +418,7 @@ if {[IsXilinx] || [IsSynplify] || [IsDiamond]} {
   puts "Hog:DEBUG CON_VER=$cons_ver CON_SHA=$cons_hash"
   puts "Hog:DEBUG XML_SHA=$xml_hash GLOBAL_VER=$version TOP_VER=$top_ver"
   puts "Hog:DEBUG XML_VER=$xml_ver HOG_SHA=$hog_hash HOG_VER=$hog_ver"
+  puts "Hog:DEBUG CHEBY_SHA=$cheby_hash CHEBY_VER=$cheby_ver"
   puts "Hog:DEBUG LIBS: $libs $vers $hashes"
   puts "Hog:DEBUG EXT: $ext_names $ext_hashes"
   puts "Hog:DEBUG FLAVOUR: $flavour"
@@ -432,6 +457,11 @@ if {$use_ipbus == 1} {
   set xml_ver [HexVersionToString $xml_ver]
   Msg Status " IPbus XML SHA: $xml_hash, VER: $xml_ver"
   m add row "| \"IPbus XML\" | $xml_hash | $xml_ver |"
+}
+if {$use_cheby == 1} {
+  set cheby_ver [HexVersionToString $cheby_ver]
+  Msg Status " Cheby SHA: $cheby_hash, VER: $cheby_ver"
+  m add row "| \"Cheby\" | $cheby_hash | $cheby_ver |"
 }
 set top_ver [HexVersionToString $top_ver]
 Msg Status " Top SHA: $top_hash, VER: $top_ver"

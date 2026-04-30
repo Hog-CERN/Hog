@@ -389,7 +389,7 @@ function log_stdout(){
           printf "%05d : " $(msg_counter r g)
         fi
         if [[ $ENABLE_MSG_TYPE_CNT -gt 0 ]]; then
-          printf "%05d : " $(msg_counter w ${msgCounter[$msgTypeOrig]})
+          printf "%05d : " $(msg_counter w ${msgCounter[$msgType]})
         else
           msg_counter w ${msgCounter[$msgType]} >> /dev/null
         fi

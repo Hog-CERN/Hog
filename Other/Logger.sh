@@ -321,6 +321,7 @@ function log_stdout(){
       #######################################
       # Overwriting
       #######################################
+      msgTypeOrig=$msgType
       case "$msgType" in
         "error")
           for key in "${!errorOverload[@]}"; do
@@ -388,11 +389,11 @@ function log_stdout(){
           printf "%05d : " $(msg_counter r g)
         fi
         if [[ $ENABLE_MSG_TYPE_CNT -gt 0 ]]; then
-          printf "%05d : " $(msg_counter w ${msgCounter[$msgType]})
+          printf "%05d : " $(msg_counter w ${msgCounter[$msgTypeOrig]})
         else
           msg_counter w ${msgCounter[$msgType]} >> /dev/null
         fi
-        dataLine=${dataLine#${msgRemove[$msgType]}}
+        dataLine=${dataLine#${msgRemove[$msgTypeOrig]}}
         dataLine=$(echo -e "$dataLine" | sed -E 's/^[[:space:]]+//;s/[[:space:]]+$//')
         if [[ $HOG_COLOR_EN -gt 1 ]]; then
           case "${clrschselected}" in

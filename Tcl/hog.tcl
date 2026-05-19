@@ -1590,7 +1590,7 @@ proc CopyIPbusXMLs {proj_dir path dst {xml_version "0.0.0"} {xml_sha "00000000"}
 
     if {[file exists $xmlfile]} {
       if {[dict exists $vhdl_dict $xmlfile]} {
-        set vhdl_file [file normalize $path/[dict get $vhdl_dict $xmlfile]]
+        set vhdl_file [file normalize [dict get $vhdl_dict $xmlfile]]
       } else {
         set vhdl_file ""
       }
@@ -7163,7 +7163,11 @@ proc ReadListFile {args} {
                   set prop_name [string range $p 0 [expr {$pos - 1}]]
                 }
                 if {[IsInList $prop_name [DictGet [ALLOWED_PROPS] $extension]] || [string first "top" $p] == 0 || $list_file_ext eq ".ipb"} {
-                  dict lappend properties $vhdlfile $p
+		  if {$list_file_ext eq ".ipb"} {
+		    dict lappend properties $vhdlfile $path/$p
+		  } else {
+		    dict lappend properties $vhdlfile $p
+		  }
                   Msg Debug "Adding property $p to $vhdlfile..."
                 } elseif {$list_file_ext != ".ipb"} {
                   Msg Warning "Setting Property $p is not supported for file $vhdlfile or it is already its default. \

@@ -485,6 +485,10 @@ if {$cmd == -1} {
 
 
   if {$do_ipbus_xml == 1} {
+    if {[llength $project_name]  == 0} {
+      Msg Error "XML option needs a project name."
+      exit
+    }
     Msg Info "Handling IPbus XMLs for $project_name..."
 
     set proj_dir $repo_path/Top/$project_name
@@ -497,6 +501,11 @@ if {$cmd == -1} {
 
     if {$options(dst_dir) != ""} {
       set dst_dir $options(dst_dir)
+    } else {
+      if {![info exists dst_dir]} {
+	set dst_dir ""
+      }
+
     }
     set xml_dst "$dst_dir/xml"
 

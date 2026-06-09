@@ -924,7 +924,7 @@ proc CheckProjVer {repo_path project {sim 0} {ext_path ""}} {
   set ver [GetProjectVersion $project_dir $repo_path $ext_path $sim]
   if {$ver == 0} {
     Msg Info "$project was modified, continuing with the CI..."
-    if {$ci_run == 1 && ![IsQuartus] && ![IsISE]} {
+    if {$ci_run == 1 && $curl_cmd != 0 && ![IsQuartus] && ![IsISE]} {
       Msg Info "Checking if the project has been already built in a previous CI run..."
       lassign [GetRepoVersions $project_dir $repo_path] sha
       if {$sha == [GetSHA $repo_path]} {
@@ -8140,5 +8140,6 @@ proc GetCurl {} {
         }
     }
 
-    error "Cannot find a working curl invocation"
+    Msg Warning "Cannot find a working curl invocation"
+    return 0
 }

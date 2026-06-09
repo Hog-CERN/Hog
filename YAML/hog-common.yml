@@ -45,6 +45,7 @@ before_script:
   - export LD_LIBRARY_PATH=${HOG_LD_LIBRARY_PATH}:$LD_LIBRARY_PATH
   - git config --global --add safe.directory . || ':'
   - git config --global --add safe.directory ./Hog || ':'
+  - git checkout $CI_COMMIT_REF_NAME || ':'
   - git submodule update --init Hog || ':'
   - source Hog/Other/HogPrint.sh || ':'
   - print_hog Hog/ || ':'

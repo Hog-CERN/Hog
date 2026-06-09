@@ -132,6 +132,7 @@ proc AddHogFiles {libraries properties filesets} {
     }
 
     # Loop over libraries in fileset
+    set reapply_targets [dict create]
     foreach lib $libs_in_fileset {
       Msg Debug "lib: $lib \n"
       set lib_files [DictGet $libraries $lib]
@@ -282,6 +283,15 @@ proc AddHogFiles {libraries properties filesets} {
             Msg Info "Generating Target for [file tail $f],\
             please remember to commit the (possible) changed file."
             generate_target all [get_files $f]
+
+            # If elf is saved in the bd, vivado appends to the props instead of setting
+            dict for {fo pd} $reapply_targets {
+              set ref [dict get $pd ref]
+              set cell [dict get $pd cell]
+              Msg Debug "Reapplying ref: $ref and cell:$cell to $fo"
+              set_property SCOPED_TO_REF $ref $fo
+              set_property SCOPED_TO_CELLS [split $cell ","] $fo
+            }
           }
 
           # Tcl
@@ -300,6 +310,7 @@ proc AddHogFiles {libraries properties filesets} {
           set ref [lindex [regexp -inline {\yscoped_to_ref\s*=\s*([^ ]+)} $props] 1]
           set cell [lindex [regexp -inline {\yscoped_to_cells\s*=\s*([^ ]+)} $props] 1]
           if {[file extension $f] == ".elf" || (([file extension $f] == ".tcl" || [file extension $f] == ".xdc") && $ext == ".con")} {
+            if {[file extension $f] == ".elf" } { dict set reapply_targets $file_obj [dict create ref $ref cell $cell] }
             if {$ref != ""} {
               set_property SCOPED_TO_REF $ref $file_obj
             }
@@ -924,7 +935,7 @@ proc CheckProjVer {repo_path project {sim 0} {ext_path ""}} {
   set ver [GetProjectVersion $project_dir $repo_path $ext_path $sim]
   if {$ver == 0} {
     Msg Info "$project was modified, continuing with the CI..."
-    if {$ci_run == 1 && ![IsQuartus] && ![IsISE]} {
+    if {$ci_run == 1 && $curl_cmd != 0 && ![IsQuartus] && ![IsISE]} {
       Msg Info "Checking if the project has been already built in a previous CI run..."
       lassign [GetRepoVersions $project_dir $repo_path] sha
       if {$sha == [GetSHA $repo_path]} {
@@ -2179,6 +2190,7 @@ proc GenerateQsysSystem {qsysFile commandOpts} {
 proc GenericToSimulatorString {prop_dict target} {
   set prj_generics ""
   dict for {theKey theValue} $prop_dict {
+    set theValue [string trim $theValue]
     set valueHexFull ""
     set valueNumBits ""
     set valueHexFlag ""
@@ -2192,7 +2204,7 @@ proc GenericToSimulatorString {prop_dict target} {
     regexp {(?!^\d+$)^.+$} $theValue valueStrFull ValueStr
     if {[string tolower $target] == "vivado" || [string tolower $target] == "xsim"} {
       if {[string tolower $theValue] == "true" || [string tolower $theValue] == "false"} {
-        set prj_generics "$prj_generics $theKey=$theValue"
+        set prj_generics "$prj_generics $theKey=[string tolower $theValue]"
       } elseif {$valueNumBits != "" && $valueHexFlag != "" && $valueHex != ""} {
         set prj_generics "$prj_generics $theKey=$valueHexFull"
       } elseif {$valueIntFull != "" && $ValueInt != ""} {
@@ -8140,5 +8152,6 @@ proc GetCurl {} {
         }
     }
 
-    error "Cannot find a working curl invocation"
+    Msg Warning "Cannot find a working curl invocation"
+    return 0
 }

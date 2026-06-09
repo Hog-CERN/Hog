@@ -2179,6 +2179,7 @@ proc GenerateQsysSystem {qsysFile commandOpts} {
 proc GenericToSimulatorString {prop_dict target} {
   set prj_generics ""
   dict for {theKey theValue} $prop_dict {
+    set theValue [string trim $theValue]
     set valueHexFull ""
     set valueNumBits ""
     set valueHexFlag ""
@@ -2192,7 +2193,7 @@ proc GenericToSimulatorString {prop_dict target} {
     regexp {(?!^\d+$)^.+$} $theValue valueStrFull ValueStr
     if {[string tolower $target] == "vivado" || [string tolower $target] == "xsim"} {
       if {[string tolower $theValue] == "true" || [string tolower $theValue] == "false"} {
-        set prj_generics "$prj_generics $theKey=$theValue"
+        set prj_generics "$prj_generics $theKey=[string tolower $theValue]"
       } elseif {$valueNumBits != "" && $valueHexFlag != "" && $valueHex != ""} {
         set prj_generics "$prj_generics $theKey=$valueHexFull"
       } elseif {$valueIntFull != "" && $ValueInt != ""} {

@@ -52,51 +52,46 @@ error_fail=0
 failing_en=0
 fwe_fail_trig=0
 
+PROJECT_FOLDER=""
+
+
 HOG_DEBUG_MODE=0
 LOG_INFO_FILE=""
 LOG_WAR_ERR_FILE=""
-TEMP_LOG_INFO_FILE=""
-TEMP_LOG_WAR_ERR_FILE=""
 
 declare -A Hog_Prj_dict
 declare -A Hog_Usr_dict
 
 tempfolder=""
 
-# if [ -n "$tempfolder" ]; then
-  tmptimestamp=$(date +%s)
-  tempfolder="/dev/shm/$USER/hog$tmptimestamp"
-  if mkdir -p $tempfolder 2>/dev/null ; then
+tmptimestamp=$(date +%s)
+tempfolder="/dev/shm/$USER/hog$tmptimestamp"
+if mkdir -p $tempfolder 2>/dev/null ; then
+  temp_g_cnt_file="$tempfolder/hog_g_cnt"
+  temp_i_cnt_file="$tempfolder/hog_i_cnt"
+  temp_d_cnt_file="$tempfolder/hog_d_cnt"
+  temp_w_cnt_file="$tempfolder/hog_w_cnt"
+  temp_c_cnt_file="$tempfolder/hog_c_cnt"
+  temp_e_cnt_file="$tempfolder/hog_e_cnt"
+  TEMP_LOG_INFO_FILE="$tempfolder/hog_log_info"
+  TEMP_LOG_WAR_ERR_FILE="$tempfolder/hog_log_war_err"
+else
+  echo " Warning : Could not create /dev/shm/$USER/hog$tmptimestamp will try /tmp/$USER/hog$tmptimestamp "
+  tempfolder="/tmp/$USER/hog$tmptimestamp"
+  if mkdir -p $tempfolder; then
     temp_g_cnt_file="$tempfolder/hog_g_cnt"
     temp_i_cnt_file="$tempfolder/hog_i_cnt"
     temp_d_cnt_file="$tempfolder/hog_d_cnt"
     temp_w_cnt_file="$tempfolder/hog_w_cnt"
     temp_c_cnt_file="$tempfolder/hog_c_cnt"
     temp_e_cnt_file="$tempfolder/hog_e_cnt"
-    # TEMP_LOG_INFO_FILE="$tempfolder/hog_log_info"
-    # TEMP_LOG_WAR_ERR_FILE="$tempfolder/hog_log_war_err"
-    # touch $TEMP_LOG_INFO_FILE
-    # touch $TEMP_LOG_WAR_ERR_FILE
+    TEMP_LOG_INFO_FILE="$tempfolder/hog_log_info"
+    TEMP_LOG_WAR_ERR_FILE="$tempfolder/hog_log_war_err"
   else
-    echo " Warning : Could not create /dev/shm/$USER/hog$tmptimestamp will try /tmp/$USER/hog$tmptimestamp "
-    tempfolder="/tmp/$USER/hog$tmptimestamp"
-    if mkdir -p $tempfolder; then
-      temp_g_cnt_file="$tempfolder/hog_g_cnt"
-      temp_i_cnt_file="$tempfolder/hog_i_cnt"
-      temp_d_cnt_file="$tempfolder/hog_d_cnt"
-      temp_w_cnt_file="$tempfolder/hog_w_cnt"
-      temp_c_cnt_file="$tempfolder/hog_c_cnt"
-      temp_e_cnt_file="$tempfolder/hog_e_cnt"
-      # TEMP_LOG_INFO_FILE="$tempfolder/hog_log_info"
-      # TEMP_LOG_WAR_ERR_FILE="$tempfolder/hog_log_war_err"
-      # touch $TEMP_LOG_INFO_FILE
-      # touch $TEMP_LOG_WAR_ERR_FILE
-    else
-      echo " *** ERROR Could not create /tmp/$USER/hog$tmptimestamp"
-      exit 0
-    fi
+    echo " *** ERROR Could not create /tmp/$USER/hog$tmptimestamp"
+    exit 0
   fi
-# fi
+fi
 
 function update_cnt () {
   if [[ -e "$temp_g_cnt_file" ]]; then
@@ -176,29 +171,29 @@ txtbln='\e[5m' # Blink
 vldColorSchemes=("dark" "clear")
 
 declare -A darkColorScheme
-darkColorScheme[error]="$txtred   ERROR :$txtrst"
+darkColorScheme[error]="${txtred}ERROR    :$txtrst"
 darkColorScheme[critical]="${txtylw}CRITICAL :$txtrst"
-darkColorScheme[warning]="$txtylw WARNING :$txtrst"
-darkColorScheme[debug]="$txtgrn   DEBUG :$txtrst"
-darkColorScheme[info]="$txtblu    INFO :$txtrst"
-darkColorScheme[vcom]="$txtblu    VCOM :$txtrst"
+darkColorScheme[warning]="${txtylw}WARNING  :$txtrst"
+darkColorScheme[debug]="${txtgrn}DEBUG    :$txtrst"
+darkColorScheme[info]="${txtblu}INFO     :$txtrst"
+darkColorScheme[vcom]="${txtblu}VCOM     :$txtrst"
 declare -A clearColorScheme
-clearColorScheme[error]="$txtred   ERROR :$txtrst"
+clearColorScheme[error]="${txtred}ERROR    :$txtrst"
 clearColorScheme[critical]="${txtylw}CRITICAL :$txtrst"
-clearColorScheme[warning]="$txtylw WARNING :$txtrst"
-clearColorScheme[debug]="$txtgrn   DEBUG :$txtrst"
-clearColorScheme[info]="$txtblu    INFO :$txtrst"
-clearColorScheme[vcom]="$txtblu    VCOM :$txtrst"
+clearColorScheme[warning]="${txtylw}WARNING  :$txtrst"
+clearColorScheme[debug]="${txtgrn}DEBUG    :$txtrst"
+clearColorScheme[info]="${txtblu}INFO     :$txtrst"
+clearColorScheme[vcom]="${txtblu}VCOM     :$txtrst"
 
 clrschselected="dark"
 
 declare -A msgHeadBW
-msgHeadBW[error]="   ERROR :"
+msgHeadBW[error]="ERROR    :"
 msgHeadBW[critical]="CRITICAL :"
-msgHeadBW[warning]=" WARNING :"
-msgHeadBW[debug]="   DEBUG :"
-msgHeadBW[info]="    INFO :"
-msgHeadBW[vcom]="    VCOM :"
+msgHeadBW[warning]="WARNING  :"
+msgHeadBW[debug]="DEBUG    :"
+msgHeadBW[info]="INFO     :"
+msgHeadBW[vcom]="VCOM     :"
 
 declare -A simpleColor
 simpleColor[error]="$txtred"
@@ -226,10 +221,10 @@ msgDbgLvl[vcom]=3
 
 declare -A msgRemove
 msgRemove[error]="*@(ERROR:|Error:)"
-msgRemove[critical]="*@(WARNING: |Warning: |warning: )"
-msgRemove[warning]="*@(WARNING: |Warning: |warning: )"
-msgRemove[debug]="*@(DEBUG: |Debug)"
-msgRemove[info]="*@(INFO: |Info)"
+msgRemove[critical]="*@(WARNING:|Warning:|warning:)"
+msgRemove[warning]="*@(WARNING:|Warning:|warning:)"
+msgRemove[debug]="*@(DEBUG:|Debug)"
+msgRemove[info]="*@(INFO:|Info:)"
 msgRemove[vcom]="INFO: "
 
 declare -A errorOverload
@@ -278,14 +273,14 @@ function log_stdout(){
       fi
       dataLine=$line
       if $buffered; then
-        stderr_ack=" "
+        stderr_ack="*"
       else
         if [ "${1}" == "stdout" ]; then
-          stderr_ack=" "
+          stderr_ack="-"
         elif [ "${1}" == "stderr" ]; then
-          stderr_ack="E"
+          stderr_ack="·"
         else
-          stderr_ack="*"
+          stderr_ack="${1}"
         fi
       fi
       case "$line" in
@@ -326,6 +321,7 @@ function log_stdout(){
       #######################################
       # Overwriting
       #######################################
+      msgTypeOrig=$msgType
       case "$msgType" in
         "error")
           for key in "${!errorOverload[@]}"; do
@@ -397,37 +393,46 @@ function log_stdout(){
         else
           msg_counter w ${msgCounter[$msgType]} >> /dev/null
         fi
+        dataLine=${dataLine#${msgRemove[$msgTypeOrig]}}
+        dataLine=$(echo -e "$dataLine" | sed -E 's/^[[:space:]]+//;s/[[:space:]]+$//')
         if [[ $HOG_COLOR_EN -gt 1 ]]; then
           case "${clrschselected}" in
             "dark")
-              echo -e "${stderr_ack}${darkColorScheme[$msgType]} ${dataLine#${msgRemove[$msgType]}} "
+              echo -e "${stderr_ack}${darkColorScheme[$msgType]} ${dataLine}"
             ;;
             "clear")
-              echo -e "${stderr_ack}${clearColorScheme[$msgType]} ${dataLine#${msgRemove[$msgType]}} "
+              echo -e "${stderr_ack}${clearColorScheme[$msgType]} ${dataLine} "
             ;;
           esac
         elif [[ $HOG_COLOR_EN -gt 0 ]]; then
-          echo -e "${stderr_ack}${simpleColor[$msgType]} $dataLine $txtwht"
+          echo -e "${stderr_ack}${simpleColor[$msgType]} ${dataLine} $txtwht"
         else
           echo -e "${stderr_ack}$dataLine"
         fi
       # else
         # msg_counter w ${msgCounter[$msgType]} >> /dev/null
       fi
-      if [[ $HOG_LOG_EN -gt 0 ]]; then
-        if [[ -n $LOG_WAR_ERR_FILE ]] && [[ 3 -gt ${msgDbgLvl[$msgType]} ]]; then
-          echo "${stderr_ack}${msgHeadBW[$msgType]} ${dataLine#${msgRemove[$msgType]}} "  >> $LOG_WAR_ERR_FILE
-        fi
-        if [[ -n $LOG_INFO_FILE ]]; then
-          echo "${stderr_ack}${msgHeadBW[$msgType]} ${dataLine#${msgRemove[$msgType]}} "  >> $LOG_INFO_FILE;
-        fi
-      else
-        # store in a temporary file
-        if [[ -n $LOG_WAR_ERR_FILE ]] && [[ 3 -gt ${msgDbgLvl[$msgType]} ]]; then
-          echo "${stderr_ack}${msgHeadBW[$msgType]} ${dataLine#${msgRemove[$msgType]}} "  >> $TEMP_LOG_WAR_ERR_FILE
-        fi
-        if [[ -n $LOG_INFO_FILE ]]; then
-          echo "${stderr_ack}${msgHeadBW[$msgType]} ${dataLine#${msgRemove[$msgType]}} "  >> $TEMP_LOG_INFO_FILE;
+      if [[ $VERBOSE_LEVEL -gt ${msgDbgLvl[$msgType]} ]]; then
+        if [[ $HOG_LOG_EN -gt 0 ]]; then
+          # While TEMP still exists, route there (header not yet written); after drain, write directly to LOG files
+          if [[ -z $TEMP_LOG_WAR_ERR_FILE ]] && [[ -n $LOG_WAR_ERR_FILE ]] && [[ 3 -gt ${msgDbgLvl[$msgType]} ]]; then
+            echo "${stderr_ack}${msgHeadBW[$msgType]} ${dataLine#${msgRemove[$msgType]}} " >> $LOG_WAR_ERR_FILE
+          elif [[ -n $TEMP_LOG_WAR_ERR_FILE ]] && [[ 3 -gt ${msgDbgLvl[$msgType]} ]]; then
+            echo "${stderr_ack}${msgHeadBW[$msgType]} ${dataLine#${msgRemove[$msgType]}} " >> $TEMP_LOG_WAR_ERR_FILE
+          fi
+          if [[ -z $TEMP_LOG_INFO_FILE ]] && [[ -n $LOG_INFO_FILE ]]; then
+            echo "${stderr_ack}${msgHeadBW[$msgType]} ${dataLine#${msgRemove[$msgType]}} " >> $LOG_INFO_FILE
+          elif [[ -n $TEMP_LOG_INFO_FILE ]]; then
+            echo "${stderr_ack}${msgHeadBW[$msgType]} ${dataLine#${msgRemove[$msgType]}} " >> $TEMP_LOG_INFO_FILE
+          fi
+        else
+          # store in a temporary file
+          if [[ -n $TEMP_LOG_WAR_ERR_FILE ]] && [[ 3 -gt ${msgDbgLvl[$msgType]} ]]; then
+            echo "${stderr_ack}${msgHeadBW[$msgType]} ${dataLine#${msgRemove[$msgType]}} " >> $TEMP_LOG_WAR_ERR_FILE
+          fi
+          if [[ -n $TEMP_LOG_INFO_FILE ]]; then
+            echo "${stderr_ack}${msgHeadBW[$msgType]} ${dataLine#${msgRemove[$msgType]}} " >> $TEMP_LOG_INFO_FILE
+          fi
         fi
       fi
       if [[ $ENABLE_FWE -eq 1 ]];then
@@ -536,20 +541,6 @@ function Log_capture(){
   sleep 1
 }
 
-# function Log_capture(){
-
-#   Msg Debug "Logger args : $*"
-#   $* > >(log_stdout "stdout") 2> >(log_stdout "stderr" >&2) &
-#   # $* > >(test1 "stdout") 2> >(test2 "stderr") &
-#   tcl_pid=$!
-#   Msg Debug "pid = $tcl_pid"
-#   while kill -0 $tcl_pid 2>/dev/null; do
-#     sleep 1
-#   done
-#   wait
-#   sleep 1
-# }
-
 ## @function Log_capture()
   #
   # @brief creates output files and pipelines stdout and stderr to
@@ -599,7 +590,7 @@ function Msg() {
   if  $BUFFERING; then
     {
       if [[ $VERBOSE_LEVEL -gt ${msgDbgLvl[$msgType]} ]]; then
-        echo " $1[Hog:${FUNCNAME[1]}] $text"
+        echo " $1:[Hog:${FUNCNAME[1]}] $text"
       fi
     } >> "$BUFFER_FILE"
   else
@@ -632,21 +623,29 @@ function Msg() {
       fi
     fi
   fi
-
-  if [[ $HOG_LOG_EN -gt 0 ]]; then
-    if [[ -n $LOG_WAR_ERR_FILE ]] && [[ 3 -gt ${msgDbgLvl[$msgType]} ]]; then
-      echo " ${msgHeadBW[$msgType]} HOG [${FUNCNAME[1]}] : $text " >> $LOG_WAR_ERR_FILE;
-    fi
-    if [[ -n $LOG_INFO_FILE ]]; then
-      echo " ${msgHeadBW[$msgType]} HOG [${FUNCNAME[1]}] : $text " >> $LOG_INFO_FILE;
-    fi
-  else
-    # store in a temporary file
-    if [[ -n $LOG_WAR_ERR_FILE ]] && [[ 3 -gt ${msgDbgLvl[$msgType]} ]]; then
-      echo " ${msgHeadBW[$msgType]} HOG [${FUNCNAME[1]}] : $text " >> $TEMP_LOG_WAR_ERR_FILE;
-    fi
-    if [[ -n $LOG_INFO_FILE ]]; then
-      echo " ${msgHeadBW[$msgType]} HOG [${FUNCNAME[1]}] : $text " >> $TEMP_LOG_INFO_FILE;
+  # echo "-$HOG_LOG_EN"
+  # Only write to log when not buffering (buffered lines are replayed via log_stdout after logo)
+  if ! $BUFFERING && [[ $VERBOSE_LEVEL -gt ${msgDbgLvl[$msgType]} ]]; then
+    if [[ $HOG_LOG_EN -gt 0 ]]; then
+      # While TEMP still exists, route there (header not yet written); after drain, write directly to LOG files
+      if [[ -z $TEMP_LOG_WAR_ERR_FILE ]] && [[ -n $LOG_WAR_ERR_FILE ]] && [[ 3 -gt ${msgDbgLvl[$msgType]} ]]; then
+        echo " ${msgHeadBW[$msgType]} HOG [${FUNCNAME[1]}] : $text " >> $LOG_WAR_ERR_FILE
+      elif [[ -n $TEMP_LOG_WAR_ERR_FILE ]] && [[ 3 -gt ${msgDbgLvl[$msgType]} ]]; then
+        echo " ${msgHeadBW[$msgType]} HOG [${FUNCNAME[1]}] : $text " >> $TEMP_LOG_WAR_ERR_FILE
+      fi
+      if [[ -z $TEMP_LOG_INFO_FILE ]] && [[ -n $LOG_INFO_FILE ]]; then
+        echo " ${msgHeadBW[$msgType]} HOG [${FUNCNAME[1]}] : $text " >> $LOG_INFO_FILE
+      elif [[ -n $TEMP_LOG_INFO_FILE ]]; then
+        echo " ${msgHeadBW[$msgType]} HOG [${FUNCNAME[1]}] : $text " >> $TEMP_LOG_INFO_FILE
+      fi
+    else
+      # store in a temporary file
+      if [[ -n $TEMP_LOG_WAR_ERR_FILE ]] && [[ 3 -gt ${msgDbgLvl[$msgType]} ]]; then
+        echo " ${msgHeadBW[$msgType]} HOG [${FUNCNAME[1]}] : $text " >> $TEMP_LOG_WAR_ERR_FILE
+      fi
+      if [[ -n $TEMP_LOG_INFO_FILE ]]; then
+        echo " ${msgHeadBW[$msgType]} HOG [${FUNCNAME[1]}] : $text " >> $TEMP_LOG_INFO_FILE
+      fi
     fi
   fi
   if [[ $ENABLE_FWE -eq 1 ]];then
@@ -799,17 +798,17 @@ process_HogEnv_config() {
   # @brief prints the logo
   #
 function print_hog_logo () {
-  cd $ROOT_PROJECT_FOLDER/Hog
+  cd $ROOT_REPO_FOLDER/Hog
   HOG_VERSION=$(git describe --always)
-  cd $ROOT_PROJECT_FOLDER
+  cd $ROOT_REPO_FOLDER
   if [[ -v "HOG_COLOR" && "${HOG_COLOR}" =~ ^[0-9]+$ && "${HOG_COLOR}" -gt 0 ]]; then
     if [[ "${HOG_COLOR}" =~ ^[0-9]+$ && "${HOG_COLOR}" -gt 1 ]]; then
-      logo_file=$ROOT_PROJECT_FOLDER/Hog/images/hog_logo_full_color.txt
+      logo_file=$ROOT_REPO_FOLDER/Hog/images/hog_logo_full_color.txt
     else
-      logo_file=$ROOT_PROJECT_FOLDER/Hog/images/hog_logo_color.txt
+      logo_file=$ROOT_REPO_FOLDER/Hog/images/hog_logo_color.txt
     fi
   else
-    logo_file=$ROOT_PROJECT_FOLDER/Hog/images/hog_logo.txt
+    logo_file=$ROOT_REPO_FOLDER/Hog/images/hog_logo.txt
   fi
   if [ -f $logo_file ]; then
     while IFS= read -r line; do
@@ -883,15 +882,38 @@ function Logger_Init() {
   force_verbose=$VERBOSE_LEVEL
   hog_pid=$BASHPID
 
-  ROOT_PROJECT_FOLDER=$(pwd)
-  LOG_INFO_FILE=$ROOT_PROJECT_FOLDER"/hog_info.log"
-  LOG_WAR_ERR_FILE=$ROOT_PROJECT_FOLDER"/hog_warning_errors.log"
-  TEMP_LOG_INFO_FILE="$tempfolder/hog_log_info"
-  TEMP_LOG_WAR_ERR_FILE="$tempfolder/hog_log_war_err"
+  ROOT_REPO_FOLDER=$(pwd)
+
+  # search for a string with the word Top in the multiple arguments passed to the function
+  PROJECT_FOLDER=""
+  for arg in $*; do
+    Msg Debug "Checking argument: $arg"
+    # add Top// to the beginning of the argument if it doesn't have it
+    if [[ "$arg" != Top/* ]]; then
+      arg="Top/$arg"
+    fi
+    if [[ "$arg" == Top/* ]]; then
+      # Check if folder exists and has hog.conf file
+      if [[ -d "$ROOT_REPO_FOLDER/$arg" ]] && [[ -f "$ROOT_REPO_FOLDER/$arg/hog.conf" ]]; then
+        Msg Debug "Found project folder: $ROOT_REPO_FOLDER/$arg"
+      else
+        Msg Debug "Folder $ROOT_REPO_FOLDER/$arg doesn't exist or doesn't contain hog.conf file. Ignoring this argument."
+        continue
+      fi
+      PROJECT_FOLDER="${arg#Top/}"
+      # Remove trailing slash if present
+      PROJECT_FOLDER="${PROJECT_FOLDER%/}"
+      break
+    fi
+  done
+
+
   touch $TEMP_LOG_INFO_FILE
   touch $TEMP_LOG_WAR_ERR_FILE
 
   msg_counter init
+
+  Msg Info "PROJECT_FOLDER $PROJECT_FOLDER"
 
   ############################################
   #    USER CONFIGURATIONS
@@ -1043,6 +1065,47 @@ function Logger_Init() {
   fi
   # debug
 
+  log_prefix=""
+  if [[ -v Hog_Prj_dict["options.name_prefix"] ]]; then
+    if [[ ${Hog_Prj_dict["options.name_prefix"]} == "*project_name*" ]]; then
+      log_prefix="$(basename "$PROJECT_FOLDER")_"
+    else
+      log_prefix="${Hog_Prj_dict["options.name_prefix"]}_"
+    fi
+  fi
+  log_suffix=""
+  if [[ -v Hog_Prj_dict["options.name_suffix"] ]]; then
+    if [[ ${Hog_Prj_dict["options.name_suffix"]} == "*project_name*" ]]; then
+      log_suffix="_$(basename "$PROJECT_FOLDER")"
+    else
+      log_suffix="_${Hog_Prj_dict["options.name_suffix"]}"
+    fi
+  fi
+  if [[ -v Hog_Prj_dict["options.out_folder"] ]]; then
+    # check if the string "*project_folder*" exists and substitute it with the project name
+    if [[ ${Hog_Prj_dict["options.out_folder"]} == *"*project_folder"* ]]; then
+      # project_name=$(basename "$PROJECT_FOLDER")
+      output_folder=${Hog_Prj_dict["options.out_folder"]//\*project_folder\*/$PROJECT_FOLDER}
+    else
+      output_folder=${Hog_Prj_dict["options.out_folder"]}
+    fi
+    # check if the folder exists, if not create it
+    if [[ ! -d $output_folder ]]; then
+      mkdir -p $output_folder
+      Msg Info "Output folder $output_folder created."
+    else
+      Msg Info "Output folder $output_folder already exists."
+    fi
+    LOG_INFO_FILE=$output_folder"/"$log_prefix"hog_info"$log_suffix".log"
+    LOG_WAR_ERR_FILE=$output_folder"/"$log_prefix"hog_warning_errors"$log_suffix".log"
+  else
+    LOG_INFO_FILE=$ROOT_REPO_FOLDER"/"$log_prefix"hog_info"$log_suffix".log"
+    LOG_WAR_ERR_FILE=$ROOT_REPO_FOLDER"/"$log_prefix"hog_warning_errors"$log_suffix".log"
+  fi
+
+  Msg Info "LOG_INFO_FILE $LOG_INFO_FILE"
+  Msg Info "LOG_WAR_ERR_FILE $LOG_WAR_ERR_FILE"
+
   # error fail
   # hog_prj_fwe="${current_user}_fail_when_error_enabled"
   # hog_user_dfwe="${current_user}_fail_when_error_delay"
@@ -1162,7 +1225,8 @@ function Logger_Init() {
         echo "$line" >> $LOG_INFO_FILE
       # fi
     done < $TEMP_LOG_INFO_FILE
-    rm -f $TEMP_LOG_INFO_FILE
+    # rm -f $TEMP_LOG_INFO_FILE
+    TEMP_LOG_INFO_FILE=""
     {
       echo "-----------------------------------------------"
       echo "  HOG WARNINGS AND ERRORS"
@@ -1176,7 +1240,8 @@ function Logger_Init() {
         echo "$line" >> $LOG_WAR_ERR_FILE
       # fi
     done < $TEMP_LOG_WAR_ERR_FILE
-    rm -f $TEMP_LOG_WAR_ERR_FILE
+    # rm -f $TEMP_LOG_WAR_ERR_FILE
+    TEMP_LOG_WAR_ERR_FILE=""
 
     Msg Debug "LogColorVivado : $*"
     log_stdout "stdout" "LogColorVivado : $*"
@@ -1185,6 +1250,5 @@ function Logger_Init() {
 
   Msg Info "Hog configuration setup done!!!"
 }
-
 
 

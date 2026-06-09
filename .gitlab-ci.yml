@@ -65,6 +65,10 @@ test_launch_commands:
     - ./Hog/Do CHECKPROJVER vivado/fifo
     - ./Hog/Do CHECKLIST vivado/fifo
     - ./Hog/Do CHECKLIST vivado/fifo -verbose
+    - ./Hog/Do VERSION vivado/fifo
+    - ./Hog/Do VERSION vivado/fifo -describe
+    - ./Hog/Do VERSION vivado/fifo -verbose
+    - ./Hog/Do VER vivado/fifo
     # - ./Hog/Do CHECKYAML
     # - ./Hog/Do CHECKYAML -verbose
     - ./Hog/Do VIEW vivado/fifo
@@ -81,6 +85,8 @@ test_launch_commands:
     - ./Hog/Do TREE vivado/bd_design -output bd_hierarchy.txt
     - ./Hog/Do SIGASI vivado/fifo
     - ./Hog/Do SIGASI vivado/fifo -verbose
+    - ./Hog/Do VHDL vivado/fifo
+    - ./Hog/Do VHDLLS vivado/fifo
     - ./Hog/Do IPBUS vivado/fifo
     - ./Hog/Do IPBUS vivado/fifo -generate
     - ./Hog/Do IPBUS vivado/fifo -verbose
@@ -102,7 +108,7 @@ test_launch_commands:
 
 launch_github:
   stage: merge_checks
-  image: hogcern/hog:2026.1
+  image: hogcern/hog:develop
   only:
     refs: [merge_requests]
     variables: [$CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /^(master|develop)$/]
@@ -157,7 +163,7 @@ launch_github:
 
 launch_testfirmware:
   stage: merge_checks
-  image: hogcern/hog:2026.1
+  image: hogcern/hog:develop
   only:
     refs: [merge_requests]
     variables: [$CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /^(master|develop)$/]
@@ -227,7 +233,7 @@ launch_testfirmware:
 
 build-doxygen-test:
   stage: merge_checks
-  image: hogcern/hog:2026.1
+  image: hogcern/hog:develop
   only:
     refs: [merge_requests]
     variables: [$CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /^(master|develop)$/]
@@ -247,7 +253,7 @@ build-doxygen-test:
 
 build-doxygen-develop:
   stage: build_doc
-  image: hogcern/hog:2026.1
+  image: hogcern/hog:develop
   only:
     refs: [tags]
     variables: [$CI_COMMIT_TAG =~ /^(v.*)$/]
@@ -260,7 +266,7 @@ build-doxygen-develop:
 
 build-doxygen-official:
   stage: build_doc
-  image: hogcern/hog:2026.1
+  image: hogcern/hog:develop
   only:
     refs: [tags]
     variables: [$CI_COMMIT_TAG =~ /^(Hog.*)$/]
@@ -286,7 +292,7 @@ check_docker:
 
 changelog:
   stage: merge_checks
-  image: hogcern/hog:2026.1
+  image: hogcern/hog:develop
   rules:
     - if: $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "master" && $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME != "develop"
       when: on_success
@@ -317,7 +323,7 @@ changelog:
 
 tagging:
   stage: tag
-  image: hogcern/hog:2026.1
+  image: hogcern/hog:develop
   rules:
     - if: '$CI_COMMIT_REF_NAME == "master"  && $CI_PIPELINE_SOURCE == "push"'
       when: always
@@ -383,7 +389,7 @@ tagging:
 
 shellcheck:
   stage: merge_checks
-  image: hogcern/hog:2026.1
+  image: hogcern/hog:develop
   only:
     refs: [merge_requests]
     variables: [$CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /^(master|develop)$/]
@@ -395,7 +401,7 @@ shellcheck:
 
 yamllint:
   stage: merge_checks
-  image: hogcern/hog:2026.1
+  image: hogcern/hog:develop
   only:
     refs: [merge_requests]
     variables: [$CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /^(master|develop)$/]
@@ -408,7 +414,7 @@ yamllint:
 
 tclint:
   stage: merge_checks
-  image: hogcern/hog:2026.1
+  image: hogcern/hog:develop
   only:
     refs: [merge_requests]
     variables: [$CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /^(master|develop)$/]
@@ -420,7 +426,7 @@ tclint:
 
 update_mirrors:
   stage: mirrors
-  image: hogcern/hog:2026.1
+  image: hogcern/hog:develop
   script:
     - glab auth login -t $HOG_PUSH_TOKEN --hostname $CI_SERVER_HOST
     # Update Mirror
@@ -430,7 +436,7 @@ update_mirrors:
 
 create_release_note:
   stage: tag
-  image: hogcern/hog:2026.1
+  image: hogcern/hog:develop
   only:
     refs: [tags]
     variables: [$CI_COMMIT_TAG =~ /^(v.*)|(Hog.*)$/]
@@ -448,7 +454,7 @@ create_release_note:
       fi
 
 # launch_validation:
-#   image: hogcern/hog:2026.1
+#   image: hogcern/hog:develop
 #   only: [develop]
 #   script:
 #     - 'if [[ $CI_COMMIT_REF_NAME == "develop" ]]; then curl --request POST --header

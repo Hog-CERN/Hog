@@ -37,7 +37,7 @@
     - hog
 
 .tag-sr: &tag-sr
-  image: hogcern/hog:2026.1
+  image: hogcern/hog:develop
 
 .vars: &vars
   GIT_STRATEGY: fetch
@@ -95,11 +95,14 @@
         $(echo $SIM_CMD);
       fi;
   artifacts:
+    when: always
     name: simulation_files
     paths:
       - Projects/$PROJECT_NAME/*.sim
       - Projects/$PROJECT_NAME/ghdl
+      - Projects/$PROJECT_NAME/vitis_unified
       - SkippedProjects/$PROJECT_NAME
+      - DebugProjects
     expire_in: 30 day
   allow_failure: true
   interruptible: true
@@ -261,7 +264,7 @@
           if [ -f "$CI_PROJECT_DIR/Projects/$PROJECT_NAME/versions.txt" ]; then
             cp $CI_PROJECT_DIR/Projects/$PROJECT_NAME/versions.txt $CI_PROJECT_DIR/bin/$PROJECT_NAME*/;
           fi;
-          if ls $CI_PROJECT_DIR/bin/$PROJECT_NAME*/timing_error.txt >/dev/null 2>&1; then
+          if ls $CI_PROJECT_DIR/bin/$PROJECT_NAME*/timing_error.txt $CI_PROJECT_DIR/bin/$PROJECT_NAME*/vitis_hls/*/timing_error.txt $CI_PROJECT_DIR/bin/$PROJECT_NAME*/*/timing_error.txt >/dev/null 2>&1; then
             echo "Hog-CI(info) - Renaming the Projects/ folder into DebugProjects/. This folder is added to job's artifacts for debugging purposes...";
             if [ -e DebugProjects ]; then
               echo "Hog-CI(warning) - Directory DebugProjects/ exists in your project, this is not recommended. Projects won't be added to the artifacts.";
@@ -375,7 +378,7 @@ check-timing:
         PRJ_NAME="${PRJ_DIR%.*}";
         PRJ_NAME="${PRJ_NAME%-*}";
         PRJ_NAME_BASE=$(basename $PRJ_NAME);
-        if [ -f "$PRJ_DIR/timing_error.txt" ]; then
+        if [ -f "$PRJ_DIR/timing_error.txt" ] || ls "$PRJ_DIR"/vitis_hls/*/timing_error.txt "$PRJ_DIR"/*/timing_error.txt >/dev/null 2>&1; then
           FAILED_PRJS="$FAILED_PRJS $PRJ_NAME_BASE";
         fi;
       done;

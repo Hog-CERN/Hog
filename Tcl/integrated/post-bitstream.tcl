@@ -159,10 +159,8 @@ set group_name [GetGroupName $proj_dir "$tcl_path/../.."]
 # Go to repository path
 cd $repo_path
 
-Msg Info "Evaluating Git sha for $proj_name..."
-lassign [GetRepoVersions [file normalize ./Top/$group_name/$proj_name] $repo_path] sha
-
-set describe [GetHogDescribe $sha $repo_path]
+Msg Info "Evaluating Hog describe for $proj_name..."
+set describe [GetHogDescribe [file normalize ./Top/$group_name/$proj_name] $repo_path]
 Msg Info "Hog describe set to: $describe"
 
 set dst_dir [file normalize "$bin_dir/$group_name/$proj_name\-$describe"]
@@ -443,22 +441,65 @@ if {[IsXilinx]} {
       # Determine project type from configuration file
       set conf_file [lindex [GetConfFiles $repo_path/Top/$group_name/$proj_name] 0]
       set is_vitis_classic 0
+      set is_vitis_unified 0
 
       if {[file exists $conf_file]} {
         set ide_name_and_ver [GetIDEFromConf $conf_file]
         set ide_name [string tolower [lindex $ide_name_and_ver 0]]
         if {[string match "*vitis_classic*" $ide_name] || [string match "*vivado_vitis_classic*" $ide_name]} {
           set is_vitis_classic 1
+        } elseif {[string match "*vitis_unified*" $ide_name] || [string match "*vivado_vitis_unified*" $ide_name]} {
+          set is_vitis_unified 1
         }
       }
 
-      if {$is_vitis_classic} {
+      if {$is_vitis_classic || $is_vitis_unified} {
         Msg Info "XSA file written to $dst_xsa"
-        set xsct_cmd "xsct $tcl_path/launch.tcl CW -xsa $dst_xsa -vitis_only $proj_name"
-        Msg Info "Running Vitis Classic to create elf file with cmd: $xsct_cmd"
-        set ret [catch {exec -ignorestderr {*}$xsct_cmd >@ stdout} result]
+
+        set full_proj_name [file join $group_name $proj_name]
+
+        # Determine command based on project type
+        if {$is_vitis_classic} {
+          set vitis_cmd "xsct $tcl_path/launch.tcl CW -xsa $dst_xsa -vitis_only $full_proj_name"
+          set vitis_type "Vitis Classic"
+          set error_prefix "xsct (vitis classic)"
+        } elseif {$is_vitis_unified} {
+          set vitis_cmd "$tcl_path/launch.tcl CW -xsa $dst_xsa -vitis_only $full_proj_name"
+          set vitis_type "Vitis Unified"
+          set error_prefix "vivado (for vitis unified)"
+        } else {
+          Msg Error "No Vitis project type found."
+          return
+        }
+
+        Msg Info "Running $vitis_type to create elf file with cmd: $vitis_cmd"
+        set ret [catch {exec -ignorestderr {*}$vitis_cmd >@ stdout} result]
         if {$ret != 0} {
-          Msg Error "xsct (vitis classic) returned an error state."
+          Msg Error "$error_prefix returned an error state."
+        }
+
+        # Copy ELF files from Vitis build output into bin directory
+        # Extract app names preserving original case from hog.conf,
+        # since Vitis creates directories matching the original case
+        set app_names [list]
+        foreach prop_key [dict keys $properties] {
+          if {[regexp {^app:(.+)$} $prop_key -> raw_app_name]} {
+            lappend app_names [string trim $raw_app_name]
+          }
+        }
+        foreach app_name $app_names {
+          if {$is_vitis_unified} {
+            set elf_src [file normalize "$repo_path/Projects/$full_proj_name/vitis_unified/$app_name/build/$app_name.elf"]
+          } else {
+            set elf_src [file normalize "$repo_path/Projects/$full_proj_name/vitis_classic/$app_name/Release/$app_name.elf"]
+          }
+          set elf_dst [file normalize "$dst_dir/${proj_name}\-${app_name}\-$describe.elf"]
+          if {[file exists $elf_src]} {
+            Msg Info "Copying ELF $elf_src into $elf_dst..."
+            file copy -force $elf_src $elf_dst
+          } else {
+            Msg Warning "ELF file not found: $elf_src"
+          }
         }
 
         # Process ELF files and update bitstream with memory content

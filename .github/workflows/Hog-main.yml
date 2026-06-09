@@ -33,23 +33,23 @@ env:
 jobs:
   tag_official_version:
     runs-on: ubuntu-latest
-    container: hogcern/hog:2026.1
+    container: hogcern/hog:develop
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         name: Checkout Repository
         with:
           fetch-depth: 0
           token: ${{secrets.HOG_PUSH_TOKEN}}
           submodules: 'true'
+      - name: Hog Git Setup
+        shell: bash
+        run: |
+          git config --global --add safe.directory $(pwd)
+          git config --global user.email "$HOG_EMAIL"
+          git config --global user.name "$HOG_USER"
       - name: tag_official_version
         shell: bash
         run: |
-          git config --system --add safe.directory $(pwd)
-          git config --global user.email "$HOG_EMAIL"
-          git config --global user.name "$HOG_USER"
-          git fetch
-          git checkout $GITHUB_HEAD_REF
-          git pull
           commit_message=$(git show --pretty=format:"%B" --no-patch)
           if [[ $commit_message == "Merge pull request"* ]]; then
             echo "Removing merge commit..."

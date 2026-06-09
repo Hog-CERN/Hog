@@ -143,7 +143,7 @@ cons_ver cons_hash ext_names ext_hashes \
 xml_hash xml_ver user_ip_repos user_ip_hashes user_ip_vers
 
 
-set describe [GetHogDescribe $commit $repo_path]
+set describe [GetHogDescribe [file normalize $repo_path/Top/$group/$proj_name] $repo_path]
 set dst_dir [file normalize "bin/$group/$proj_name\-$describe"]
 Msg Info "Creating $dst_dir..."
 file mkdir $dst_dir/reports

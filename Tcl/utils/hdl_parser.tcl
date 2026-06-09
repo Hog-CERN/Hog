@@ -195,11 +195,11 @@ set verilog_keywords {
   casez cell cmos config
   deassign default defparam design disable
   edge else end endcase endconfig endfunction endgenerate
-  endmodule endprimitive endspecify endtable endtask event
+  endmodule endpackage endprimitive endspecify endtable endtask event
   for force forever fork function generate genvar highz0
   highz1 if ifnone incdir include initial inout input instance integer
   join large liblist library localparam macromodule medium module nand negedge
-  nmos nor noshowcancelled not notif0 notif1 or output parameter pmos
+  nmos nor noshowcancelled not notif0 notif1 or output package parameter pmos
   posedge primitive pull0 pull1 pulldown pullup pulsestyle_onevent pulsestyle_ondetect rcmos real
   realtime reg release repeat rnmos rpmos rtran rtranif0 rtranif1 scalared
   showcancelled signed small specify specparam strong0 strong1 supply0 supply1 table
@@ -240,11 +240,72 @@ proc find_verilog_constructs {tokens filename} {
   set state "TOP_LEVEL"
   set current_module ""
   set current_module_insts [list]
+  set current_package ""
+  set current_package_insts [list]
+  set package_start_line 0
+  set sv_pending_imports [list]
 
   for {set i 0} {$i < [llength $tokens]} {incr i} {
     set token [lindex $tokens $i]
     set type  [token_type $token]
     set value [token_value $token]
+
+    # Detect SV package imports: import pkg_name :: ...
+    # "import" is not a Verilog keyword so it is tokenized as IDENTIFIER.
+    if {$type == "IDENTIFIER" && $value == "import"} {
+      if {$i + 2 < [llength $tokens]} {
+        set t1 [lindex $tokens [expr {$i + 1}]]
+        set t2 [lindex $tokens [expr {$i + 2}]]
+        if {[token_type $t1] == "IDENTIFIER" &&
+            [token_type $t2] == "OPERATOR" && [string match "::*" [token_value $t2]]} {
+          set pkg_name [token_value $t1]
+          set import_node [create_instantiation_node $pkg_name "sv_import" "" [token_line $token]]
+          if {$state == "TOP_LEVEL"} {
+            lappend sv_pending_imports $import_node
+          } elseif {$state == "IN_MODULE_HEADER" || $state == "IN_MODULE_BODY"} {
+            lappend current_module_insts $import_node
+          } elseif {$state == "IN_PACKAGE_BODY"} {
+            lappend current_package_insts $import_node
+          }
+          incr i
+          continue
+        }
+      }
+    }
+
+    # Detect `include directives: `include "file.svh" or `include <file.svh>
+    if {$type == "DIRECTIVE" && $value == "`include"} {
+      set include_file ""
+      if {$i + 1 < [llength $tokens]} {
+        set t1 [lindex $tokens [expr {$i + 1}]]
+        if {[token_type $t1] == "STRING"} {
+          set include_file [string trim [token_value $t1] "\""]
+          incr i
+        } elseif {[token_type $t1] == "OPERATOR" && [token_value $t1] == "<"} {
+          incr i
+          while {$i + 1 < [llength $tokens]} {
+            incr i
+            set t [lindex $tokens $i]
+            if {[token_type $t] == "OPERATOR" && [string match ">*" [token_value $t]]} {
+              break
+            }
+            append include_file [token_value $t]
+          }
+        }
+      }
+      if {$include_file ne ""} {
+        set inc_node [create_instantiation_node $include_file "sv_include" "" \
+            [token_line $token]]
+        if {$state == "TOP_LEVEL"} {
+          lappend sv_pending_imports $inc_node
+        } elseif {$state == "IN_MODULE_HEADER" || $state == "IN_MODULE_BODY"} {
+          lappend current_module_insts $inc_node
+        } elseif {$state == "IN_PACKAGE_BODY"} {
+          lappend current_package_insts $inc_node
+        }
+      }
+      continue
+    }
 
     if {$state == "TOP_LEVEL"} {
       if {$type == "KEYWORD" && $value == "module"} {
@@ -253,7 +314,21 @@ proc find_verilog_constructs {tokens filename} {
           if {[token_type $next_token] == "IDENTIFIER"} {
             set current_module [token_value $next_token]
             set state "IN_MODULE_HEADER"
-            set current_module_insts [list];
+            set current_module_insts $sv_pending_imports
+            set sv_pending_imports [list]
+          }
+        }
+      } elseif {$type == "KEYWORD" && $value == "package"} {
+        # Skip "package import" statements — they are import declarations,
+        # not package definitions.
+        if {$i + 1 < [llength $tokens]} {
+          set next_token [lindex $tokens [expr {$i + 1}]]
+          if {[token_type $next_token] == "IDENTIFIER"} {
+            set current_package [token_value $next_token]
+            set package_start_line [token_line $token]
+            set state "IN_PACKAGE_BODY"
+            set current_package_insts $sv_pending_imports
+            set sv_pending_imports [list]
           }
         }
       }
@@ -309,6 +384,15 @@ proc find_verilog_constructs {tokens filename} {
           }
         }
       }
+    } elseif {$state == "IN_PACKAGE_BODY"} {
+      if {$type == "KEYWORD" && $value == "endpackage"} {
+        set decl_node [create_hdl_node "sv_package" $current_package $filename \
+            $package_start_line "" "" $current_package_insts]
+        lappend results $decl_node
+        set state "TOP_LEVEL"
+        set current_package ""
+        set current_package_insts [list]
+      }
     }
   }
   return $results
@@ -354,6 +438,7 @@ proc tokenize_vhdl {code} {
 
 proc parse_vhdl_architecture_header {tokens index} {
   set architecture_components [list]
+  set architecture_pkg_insts [list]
   set i $index
   for {set i $index} {$i < [llength $tokens]} {incr i} {
     set token  [lindex $tokens $i]
@@ -376,8 +461,34 @@ proc parse_vhdl_architecture_header {tokens index} {
         }
       }
     }
+
+    # Generic package instantiation: package NAME is new LIB.PKG ...;
+    if {$type == "KEYWORD" && $value == "package"} {
+      if {$i + 6 < [llength $tokens]} {
+        set name_tok [lindex $tokens [expr {$i + 1}]]
+        set is_tok   [lindex $tokens [expr {$i + 2}]]
+        set new_tok  [lindex $tokens [expr {$i + 3}]]
+        set lib_tok  [lindex $tokens [expr {$i + 4}]]
+        set dot_tok  [lindex $tokens [expr {$i + 5}]]
+        set pkg_tok  [lindex $tokens [expr {$i + 6}]]
+        if {[token_type $name_tok] == "IDENTIFIER" &&
+            [token_value $is_tok] == "is" &&
+            [token_value $new_tok] == "new" &&
+            [token_type $lib_tok] == "IDENTIFIER" &&
+            [token_type $dot_tok] == "OPERATOR" && [token_value $dot_tok] eq "." &&
+            [token_type $pkg_tok] == "IDENTIFIER"} {
+          set ref "[token_value $lib_tok].[token_value $pkg_tok]"
+          lappend architecture_pkg_insts [create_instantiation_node $ref "vhdl_pkg_inst" \
+              [token_value $name_tok] [token_line $name_tok]]
+          # Skip past the semicolon that ends this instantiation
+          while {$i < [llength $tokens] && \
+                 [token_type [lindex $tokens $i]] != "SEMICOLON"} { incr i }
+        }
+      }
+    }
   }
-  return [dict create index $i components $architecture_components]
+  return [dict create index $i components $architecture_components \
+      pkg_insts $architecture_pkg_insts]
 }
 
 proc parse_vhdl_architecture_body {tokens index arch_name} {
@@ -468,13 +579,14 @@ proc parse_vhdl_architecture_content {arch tokens index} {
   set header_info [parse_vhdl_architecture_header $tokens $i]
   set i [dict get $header_info index]
   set architecture_components [dict get $header_info components]
+  set architecture_pkg_insts  [dict get $header_info pkg_insts]
 
   if {$i < [llength $tokens] && [token_value [lindex $tokens $i]] eq "begin"} {
     incr i
   }
   set body_info [parse_vhdl_architecture_body $tokens $i $arch]
   set i [dict get $body_info index]
-  set architecture_insts [dict get $body_info insts]
+  set architecture_insts [concat $architecture_pkg_insts [dict get $body_info insts]]
 
   return [dict create index $i components $architecture_components insts $architecture_insts]
 }
@@ -592,7 +704,35 @@ proc find_vhdl_constructs {tokens filename} {
               set current_tok [lindex $tokens $i]
               set current_val [token_value $current_tok]
               if {[token_type $current_tok] == "KEYWORD" && $current_val eq "is"} {
-                # package declaration
+                # Distinguish: package NAME is new LIB.PKG  vs.  package NAME is ... end package
+                set is_pkg_inst 0
+                if {$i + 1 < [llength $tokens] &&
+                    [token_value [lindex $tokens [expr {$i + 1}]]] eq "new"} {
+                  set is_pkg_inst 1
+                }
+                if {$is_pkg_inst} {
+                  # Generic package instantiation — record dependency on source package
+                  if {$i + 4 < [llength $tokens]} {
+                    set lib_tok [lindex $tokens [expr {$i + 2}]]
+                    set dot_tok [lindex $tokens [expr {$i + 3}]]
+                    set pkg_tok [lindex $tokens [expr {$i + 4}]]
+                    if {[token_type $lib_tok] == "IDENTIFIER" &&
+                        [token_type $dot_tok] == "OPERATOR" && [token_value $dot_tok] eq "." &&
+                        [token_type $pkg_tok] == "IDENTIFIER"} {
+                      set ref_lib [string tolower [token_value $lib_tok]]
+                      set ref_pkg [token_value $pkg_tok]
+                      if {![dict exists $libraries_map $ref_lib]} {
+                        dict set libraries_map $ref_lib [list]
+                      }
+                      dict lappend libraries_map $ref_lib "${ref_lib}.${ref_pkg}.all"
+                    }
+                  }
+                  # Skip to the semicolon ending the instantiation
+                  while {$i < [llength $tokens] && \
+                         [token_type [lindex $tokens $i]] != "SEMICOLON"} { incr i }
+                  continue
+                }
+                # Regular package declaration
                 set i [skip_vhdl_package_spec $tokens $i]
                 set final_libraries [list]
                 dict for {lib_name use_paths} $libraries_map {
@@ -674,7 +814,8 @@ proc parse_hdl_file {filename} {
   switch -- $extension {
     ".v" -
     ".vh" -
-    ".sv" {
+    ".sv" -
+    ".svh" {
       set t_tokenize [time {set tokens [tokenize_verilog $code]} 1]
       set t_constructs [time {set constructs [find_verilog_constructs $tokens $filename]} 1]
     }

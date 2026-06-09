@@ -66,6 +66,7 @@ namespace eval globalSettings {
   variable user_ip_repo
 
   variable vitis_classic
+  variable vitis_unified
   variable pre_synth
   variable post_synth
   variable pre_impl
@@ -76,8 +77,18 @@ namespace eval globalSettings {
 }
 
 ################# FUNCTIONS ################################
-proc InitProject {} {
-  if {[IsXilinx]} {
+proc InitProject {{vitis_only 0}} {
+  if {$vitis_only == 1 && [IsVitisClassic]} {
+    if {[file exists $globalSettings::build_dir/vitis_classic]} {
+      file delete -force $globalSettings::build_dir/vitis_classic
+    }
+    setws $globalSettings::build_dir/vitis_classic
+  } elseif {$vitis_only == 1 && [IsVitisUnified]} {
+    if {[file exists $globalSettings::build_dir/vitis_unified]} {
+      file delete -force $globalSettings::build_dir/vitis_unified
+    }
+    file mkdir $globalSettings::build_dir/vitis_unified
+  } elseif {[IsXilinx]} {
     if {[IsVivado]} {
       # Suppress unnecessary warnings
       # tclint-disable-next-line line-length
@@ -157,11 +168,6 @@ proc InitProject {} {
     prj_project new -name [file tail $globalSettings::DESIGN] -dev $globalSettings::DEVICE -synthesis $globalSettings::SYNTHESIS_TOOL
     cd $old_dir
     ConfigureProperties
-  } elseif {[IsVitisClassic]} {
-    if {[file exists $globalSettings::build_dir/vitis_classic]} {
-      file delete -force $globalSettings::build_dir/vitis_classic
-    }
-    setws $globalSettings::build_dir/vitis_classic
   } else {
     puts "Creating project for $globalSettings::DESIGN part $globalSettings::PART"
     puts "Configuring project settings:"
@@ -813,7 +819,9 @@ proc CreatePlatform {platform_name platform_conf {xsa ""}} {
 
 
   # If hw is not in platform conf, use vivado presynth xsa
-  if {![dict exists $platform_conf hw]} {
+  if {$xsa != ""} {
+    set platform_options "$platform_options -hw $xsa"
+  } elseif {![dict exists $platform_conf hw]} {
     set xsa "$globalSettings::build_dir/$globalSettings::DESIGN-presynth.xsa"
     set platform_options "$platform_options -hw $xsa"
   } else {
@@ -821,39 +829,54 @@ proc CreatePlatform {platform_name platform_conf {xsa ""}} {
   }
 
 
-  Msg Info "Opening hardware design to check if proc to cell mapping needs to be extracted for soft processors..."
-  hsi::open_hw_design $xsa
+  if {[IsVitisClassic]} {
+    Msg Info "Opening hardware design to check if proc to cell mapping needs to be extracted for soft processors..."
+    # Use HSI commands for Vitis Classic
+    hsi::open_hw_design $xsa
+    set proc_cells [hsi::get_cells -filter { IP_TYPE == "PROCESSOR" }]
+    set proc_map_file [open "$globalSettings::build_dir/vitis_classic/$platform_name.PROC_MAP" "w"]
 
-  set proc_cells [hsi::get_cells -filter { IP_TYPE == "PROCESSOR" }]
-  set proc_map_file [open "$globalSettings::build_dir/vitis_classic/$platform_name.PROC_MAP" "w"]
+    foreach proc $proc_cells {
+      # If soft processor, save mapping from proc to cell to be used later when updating mem
+      Msg Debug "Processor found in xsa: $proc"
+      if {[regexp -nocase {microblaze|risc} $proc]} {
+        Msg Info "Extracting processor cells for soft processor: $proc"
+        set proc_hier_name [hsi::get_property HIER_NAME $proc]
+        set proc_address_tag [hsi::get_property ADDRESS_TAG $proc]
 
-  foreach proc $proc_cells {
-    # If soft processor, save mapping from proc to cell to be used later when updating mem
-    Msg Debug "Processor found in xsa: $proc"
-    if {[regexp -nocase {microblaze|risc} $proc]} {
-      Msg Info "Extracting processor cells for soft processor: $proc"
-      set proc_hier_name [hsi::get_property HIER_NAME $proc]
-      set proc_address_tag [hsi::get_property ADDRESS_TAG $proc]
-
-      if {$proc_address_tag eq ""} {
-        Msg Warning "Processor $proc ($proc_hier_name) does not have an ADDRESS_TAG property set. \
-        This may cause issues when configuring the platform."
-      } else {
-        set proc_map_entry "$proc_hier_name $proc_address_tag"
-        puts $proc_map_file "$proc_map_entry\n"
+        if {$proc_address_tag eq ""} {
+          Msg Warning "Processor $proc ($proc_hier_name) does not have an ADDRESS_TAG property set. \
+          This may cause issues when configuring the platform."
+        } else {
+          set proc_map_entry "$proc_hier_name $proc_address_tag"
+          puts $proc_map_file "$proc_map_entry\n"
+        }
       }
     }
-  }
 
-  hsi::close_hw_design [hsi::current_hw_design]
-  close $proc_map_file
+    hsi::close_hw_design [hsi::current_hw_design]
+    close $proc_map_file
+  }
 
 
   Msg Info "Creating platform \[$platform_name\] with options: \{$platform_options\}"
-  set plat_create "platform create $platform_options"
-  eval $plat_create
-  platform active $platform_name
-  platform generate
+  if {[IsVitisClassic]} {
+    set plat_create "platform create $platform_options"
+    eval $plat_create
+    platform active $platform_name
+    platform generate
+  } elseif {[IsVitisUnified]} {
+    # Use Python script to create the platform with new Vitis Unified Python command-line tool
+    set python_script "$globalSettings::repo_path/Hog/Other/Python/VitisUnified/PlatformCommands.py"
+    Msg Info "Running Vitis Unified platform creation script..."
+    set platform_options_str "{ $platform_options }"
+    set error_msg "Failed to create platform $platform_name"
+    if {![ExecuteVitisUnifiedCommand $python_script "create_platform" \
+        [list $platform_options_str "$globalSettings::build_dir/vitis_unified"] \
+        $error_msg]} {
+      return
+    }
+  }
 }
 
 
@@ -870,7 +893,24 @@ proc ConfigureApps {} {
     if {[regexp {^app:(.+)$} $app_key -> app_name]} {
       set app_name [string trim $app_name]
       Msg Info "Configuring app: $app_name"
-      ConfigureApp $app_name $app_config
+      if {[IsVitisClassic]} {
+        ConfigureApp $app_name $app_config
+      } elseif {[IsVitisUnified]} {
+        set python_script "$globalSettings::repo_path/Hog/Other/Python/VitisUnified/AppCommands.py"
+        Msg Info "Running Vitis Unified app configuration script..."
+        # Build app config string from app_config dict
+        set app_config_str "{"
+        dict for {p v} $app_config {
+          append app_config_str " -[string toupper $p] \{$v\}"
+        }
+        append app_config_str " }"
+        set error_msg "Failed to configure app $app_name"
+        if {![ExecuteVitisUnifiedCommand $python_script "configure_app" \
+            [list $app_name $app_config_str "$globalSettings::build_dir/vitis_unified"] \
+            $error_msg]} {
+          continue
+        }
+      }
     } else {
       Msg Warning "Invalid app key format: $app_key. Expected format: app:<name>"
     }
@@ -926,6 +966,7 @@ proc ConfigureApp {app_name app_conf} {
     if {[IsInList [string toupper $p] [VITIS_PATH_PROPERTIES] 1]} {
       if {[IsRelativePath $v] == 1} {
         set v "$globalSettings::repo_path/$v"
+        #"
       }
       if {![file exists $v]} {
         Msg Warning "Impossible to set property $p to $v. File is missing"
@@ -990,6 +1031,77 @@ proc AddAppFiles {} {
   AddHogFiles {*}[GetHogFiles -list_files {.src,.header} -ext_path $globalSettings::HOG_EXTERNAL_PATH $globalSettings::list_path $globalSettings::repo_path ]
 }
 
+## @brief Configure HLS components defined in hog.conf [hls:*] sections
+#
+# For each [hls:<component_name>] section, this proc:
+# 1. Reads the HLS_CONFIG path from hog.conf (mandatory, repo-relative)
+# 2. Validates that the hls_config.cfg file exists and is well-formed
+# 3. Creates a Vitis-compatible workspace so the project can be opened in the GUI
+#
+# The hls_config.cfg is the single source of truth for HLS settings.
+# It is committed to the repo and directly used/edited by Vitis.
+#
+proc ConfigureHlsComponents {} {
+  set hls_components [dict filter $globalSettings::PROPERTIES key {hls:*}]
+
+  if {[dict size $hls_components] == 0} {
+    Msg Info "No HLS components found in the configuration file"
+    return
+  }
+
+  set python_script "$globalSettings::repo_path/Hog/Other/Python/VitisUnified/HlsCommands.py"
+  set ws_dir [file normalize "$globalSettings::build_dir/vitis_unified"]
+
+  dict for {hls_key hls_config} $hls_components {
+    if {[regexp {^hls:(.+)$} $hls_key -> component_name]} {
+      set component_name [string trim $component_name]
+      Msg Info "Configuring HLS component: $component_name"
+
+      # Get HLS_CONFIG path from hog.conf (mandatory)
+      set hls_cfg_rel ""
+      if {[dict exists $hls_config hls_config]} {
+        set hls_cfg_rel [dict get $hls_config hls_config]
+      } elseif {[dict exists $hls_config HLS_CONFIG]} {
+        set hls_cfg_rel [dict get $hls_config HLS_CONFIG]
+      }
+      if {$hls_cfg_rel eq ""} {
+        Msg Error "HLS component '$component_name' missing HLS_CONFIG in hog.conf \[hls:$component_name\] section"
+        continue
+      }
+
+      set hls_cfg_file [file normalize "$globalSettings::repo_path/$hls_cfg_rel"]
+      if {![file exists $hls_cfg_file]} {
+        Msg Error "HLS config file not found: $hls_cfg_file (from HLS_CONFIG=$hls_cfg_rel)"
+        continue
+      }
+
+      Msg Info "  HLS config: $hls_cfg_file"
+
+      # Validate the config file
+      set error_msg "Failed to validate HLS config for $component_name"
+      if {![ExecuteVitisUnifiedCommand $python_script "validate" \
+          [list $hls_cfg_file] \
+          $error_msg]} {
+        Msg Error $error_msg
+        continue
+      }
+
+      # Create Vitis workspace with HLS component for GUI compatibility
+      set hls_work_dir [file normalize "$ws_dir/hls_$component_name"]
+      Msg Info "Creating Vitis HLS workspace component '$component_name' in $ws_dir ..."
+      if {![ExecuteVitisUnifiedCommand $python_script "create_workspace" \
+          [list $ws_dir $component_name $hls_cfg_file $hls_work_dir] \
+          "Failed to create HLS workspace for $component_name"]} {
+        Msg Warning "Could not create Vitis workspace for HLS component '$component_name'"
+      }
+
+      Msg Info "HLS component '$component_name' configured successfully"
+    } else {
+      Msg Warning "Invalid HLS key format: $hls_key. Expected format: hls:<name>"
+    }
+  }
+}
+
 ## @brief upgrade IPs in the project and copy them from HOG_IP_PATH if defined
 #
 proc ManageIPs {} {
@@ -1003,8 +1115,7 @@ proc ManageIPs {} {
 
   Msg Info "Running report_ip_status, before upgrading and handling IPs..."
   report_ip_status
-
-  #Pull ips from repo
+  # Pull ips from repo
   if {$globalSettings::HOG_IP_PATH != ""} {
     set ip_repo_path $globalSettings::HOG_IP_PATH
     Msg Info "HOG_IP_PATH is set, will pull/push synthesised IPs from/to $ip_repo_path."
@@ -1047,6 +1158,7 @@ proc CreateProject {args} {
     {verbose              "If set, launch the script in verbose mode."}
     {xsa.arg           "" "xsa for creating platforms without a defined hw."}
     {vivado_only          "If set, and project is vivado-vitis, vitis project will not be created."}
+    {vitis_only           "If set, and project is vivado-vitis, only vitis project will be created."}
   }
 
   set usage "Create Vivado/Vitis/ISE/Quartus/Libero/Diamond project.\nUsage: CreateProject \[OPTIONS\] <project> <repository path>\n Options:"
@@ -1074,20 +1186,20 @@ proc CreateProject {args} {
       if {[IsRelativePath $options(simlib_path)] == 0} {
         set globalSettings::simlib_path "$options(simlib_path)"
       } else {
-        set globalSettings::simlib_path "$globalSettings::repo_path/$options(simlib_path)"
+        set globalSettings::simlib_path "${globalSettings::repo_path}/$options(simlib_path)"
       }
       Msg Info "Simulation library path set to $options(simlib_path)"
     } else {
-      set globalSettings::simlib_path "$globalSettings::repo_path/SimulationLib"
-      Msg Info "Simulation library path set to default $globalSettings::repo_path/SimulationLib"
+      set globalSettings::simlib_path "${globalSettings::repo_path}/SimulationLib"
+      Msg Info "Simulation library path set to default ${globalSettings::repo_path}/SimulationLib"
     }
   }
 
   # Derived variables from now on...
 
   set build_dir_name "Projects"
-  set globalSettings::group_name [file dirname $globalSettings::DESIGN]
-  set globalSettings::project_name $globalSettings::DESIGN
+  set globalSettings::group_name [file dirname ${globalSettings::DESIGN}]
+  set globalSettings::project_name ${globalSettings::DESIGN}
   set globalSettings::pre_synth_file "pre-synthesis.tcl"
   set globalSettings::post_synth_file "post-synthesis.tcl"
   set globalSettings::pre_impl_file "pre-implementation.tcl"
@@ -1095,27 +1207,27 @@ proc CreateProject {args} {
   set globalSettings::pre_bit_file "pre-bitstream.tcl"
   set globalSettings::post_bit_file "post-bitstream.tcl"
   set globalSettings::quartus_post_module_file "quartus-post-module.tcl"
-  set globalSettings::top_path "$globalSettings::repo_path/Top/$globalSettings::DESIGN"
-  set globalSettings::list_path "$globalSettings::top_path/list"
-  set globalSettings::build_dir "$globalSettings::repo_path/$build_dir_name/$globalSettings::DESIGN"
-  set globalSettings::DESIGN [file tail $globalSettings::DESIGN]
-  set globalSettings::top_name [file tail $globalSettings::DESIGN]
-  set globalSettings::top_name [file rootname $globalSettings::top_name]
-  set globalSettings::synth_top_module "top_$globalSettings::top_name"
+  set globalSettings::top_path "${globalSettings::repo_path}/Top/${globalSettings::DESIGN}"
+  set globalSettings::list_path "${globalSettings::top_path}/list"
+  set globalSettings::build_dir "${globalSettings::repo_path}/${build_dir_name}/${globalSettings::DESIGN}"
+  set globalSettings::DESIGN [file tail ${globalSettings::DESIGN}]
+  set globalSettings::top_name [file tail ${globalSettings::DESIGN}]
+  set globalSettings::top_name [file rootname ${globalSettings::top_name}]
+  set globalSettings::synth_top_module "top_${globalSettings::top_name}"
   set globalSettings::user_ip_repo ""
 
-  set globalSettings::pre_synth [file normalize "$globalSettings::tcl_path/integrated/$globalSettings::pre_synth_file"]
-  set globalSettings::post_synth [file normalize "$globalSettings::tcl_path/integrated/$globalSettings::post_synth_file"]
-  set globalSettings::pre_impl [file normalize "$globalSettings::tcl_path/integrated/$globalSettings::pre_impl_file"]
-  set globalSettings::post_impl [file normalize "$globalSettings::tcl_path/integrated/$globalSettings::post_impl_file"]
-  set globalSettings::pre_bit [file normalize "$globalSettings::tcl_path/integrated/$globalSettings::pre_bit_file"]
-  set globalSettings::post_bit [file normalize "$globalSettings::tcl_path/integrated/$globalSettings::post_bit_file"]
-  set globalSettings::quartus_post_module [file normalize "$globalSettings::tcl_path/integrated/$globalSettings::quartus_post_module_file"]
+  set globalSettings::pre_synth [file normalize "${globalSettings::tcl_path}/integrated/${globalSettings::pre_synth_file}"]
+  set globalSettings::post_synth [file normalize "${globalSettings::tcl_path}/integrated/${globalSettings::post_synth_file}"]
+  set globalSettings::pre_impl [file normalize "${globalSettings::tcl_path}/integrated/${globalSettings::pre_impl_file}"]
+  set globalSettings::post_impl [file normalize "${globalSettings::tcl_path}/integrated/${globalSettings::post_impl_file}"]
+  set globalSettings::pre_bit [file normalize "${globalSettings::tcl_path}/integrated/${globalSettings::pre_bit_file}"]
+  set globalSettings::post_bit [file normalize "${globalSettings::tcl_path}/integrated/${globalSettings::post_bit_file}"]
+  set globalSettings::quartus_post_module [file normalize "${globalSettings::tcl_path}/integrated/${globalSettings::quartus_post_module_file}"]
   set globalSettings::LIBERO_MANDATORY_VARIABLES {"FAMILY" "PACKAGE" "DIE" }
 
-  set proj_dir [file normalize $globalSettings::repo_path/Top/$globalSettings::project_name]
-  Msg Debug "Calling GetConfFiles with proj_dir=$proj_dir (project_name=$globalSettings::project_name)"
-  lassign [GetConfFiles $proj_dir] conf_file sim_file pre_file post_file
+  set proj_dir [file normalize "${globalSettings::repo_path}/Top/${globalSettings::project_name}"]
+  Msg Debug "Calling GetConfFiles with proj_dir=$proj_dir (project_name=${globalSettings::project_name})"
+  lassign [GetConfFiles $proj_dir] conf_file sim_file pre_file post_file pre_rtl_file
 
   set user_repo 0
   if {[file exists $conf_file]} {
@@ -1125,12 +1237,6 @@ proc CreateProject {args} {
     # Checking Vivado/Vitis/Quartus/ISE/Libero version
     set actual_version [GetIDEVersion]
     lassign [GetIDEFromConf $conf_file] ide conf_version
-    if {([string tolower $ide] eq "vivado_vitis_classic") && ($options(vivado_only) != 1)} {
-      puts "Vitis classic detected, setting globalSettings::vitis_classic to 1"
-      set globalSettings::vitis_classic 1
-    } else {
-      set globalSettings::vitis_classic 0
-    }
 
     if {$conf_version != "0.0.0"} {
       set globalSettings::a_v [split $actual_version "."]
@@ -1164,9 +1270,12 @@ proc CreateProject {args} {
 
     if {$globalSettings::vitis_classic == 1} {
       if {[CompareVersions $globalSettings::a_v "2020 2 0"] == -1 || [CompareVersions $globalSettings::c_v "2020 2 0"] == -1} {
-        Msg Error "Vitis flow is not supported for versions < 2020.2. Please use Vitis 2020.2 or newer." }
+        Msg Error "Vitis Classic flow is not supported for versions < 2020.2. Please use Vitis 2020.2 or newer." }
     }
-
+    if {$globalSettings::vitis_unified == 1} {
+      if {[CompareVersions $globalSettings::a_v "2019 2 0"] == -1 || [CompareVersions $globalSettings::c_v "2019 2 0"] == -1} {
+        Msg Error "Vitis Unified flow is not supported for versions < 2019.2. Please use Vitis 2019.2 or newer." }
+    }
 
     if {[dict exists $globalSettings::PROPERTIES main]} {
       set main [dict get $globalSettings::PROPERTIES main]
@@ -1212,7 +1321,7 @@ proc CreateProject {args} {
     set globalSettings::HOG_EXTERNAL_PATH ""
   }
 
-  set user_hog_file "$globalSettings::repo_path/Top/hog.tcl"
+  set user_hog_file "${globalSettings::repo_path}/Top/hog.tcl"
   if {[file exists $user_hog_file]} {
     Msg Info "Sourcing user hog.tcl file..."
     source $user_hog_file
@@ -1229,20 +1338,68 @@ proc CreateProject {args} {
     set globalSettings::HOG_IP_PATH ""
   }
 
-  InitProject
+  InitProject $options(vitis_only)
 
-  if {[IsVitisClassic]} {
-    if {$options(xsa) != ""} {
-      Msg Info "Configuring platforms with xsa: $options(xsa)"
-      ConfigurePlatforms "$options(xsa)"
-    } else {
-      ConfigurePlatforms
+  if {([IsVitisClassic] || [IsVitisUnified]) && $options(vitis_only) == 1} {
+    # Check if this project has HLS components
+    set has_hls [expr {[dict size [dict filter $globalSettings::PROPERTIES key {hls:*}]] > 0}]
+    set has_platforms [expr {[dict size [dict filter $globalSettings::PROPERTIES key {platform:*}]] > 0}]
+    set has_apps [expr {[dict size [dict filter $globalSettings::PROPERTIES key {app:*}]] > 0}]
+
+    if {$has_hls} {
+      Msg Info "Found HLS component(s) in configuration, configuring HLS..."
+      ConfigureHlsComponents
     }
-    ConfigureApps
-    AddAppFiles
-    if {[file exists $post_file]} {
-      Msg Info "Found post-creation Tcl script $post_file, executing it..."
-      source $post_file
+
+    if {!$has_platforms && !$has_apps} {
+      Msg Info "vitis unified HLS-only project, skipping Vivado project setup."
+      return
+    }
+
+    if {$has_platforms || $has_apps} {
+      set xsa_path $options(xsa)
+
+      if {$xsa_path == ""} {
+        if {[string match "vivado_*" [string tolower $ide]]} {
+          # vivado_vitis project: generate pre-synth XSA from existing Vivado project
+          set xpr_file [file normalize "$globalSettings::build_dir/[file tail $globalSettings::DESIGN].xpr"]
+          if {[file exists $xpr_file]} {
+            Msg Info "Opening existing Vivado project to generate pre-synth XSA..."
+            open_project $xpr_file
+            set xsa_path [file normalize "$globalSettings::build_dir/$globalSettings::DESIGN-presynth.xsa"]
+            write_hw_platform -fixed -force -file $xsa_path
+            Msg Info "Pre-synth XSA generated: $xsa_path"
+            close_project
+          } else {
+            # tclint-disable-next-line line-length
+            Msg Error "Vivado project not found at $xpr_file. Please run CREATE without -vitis_only first to create the Vivado project or provide an XSA file via the -xsa option."
+            return 1
+          }
+        } else {
+          # Standalone vitis project: XSA is mandatory for platform/app
+          Msg Error "This is a $ide only project with platform/app sections, an XSA file must be provided via the -xsa option."
+          return 1
+        }
+      }
+
+      Msg Info "Configuring platforms with XSA: $xsa_path"
+      ConfigurePlatforms "$xsa_path"
+      ConfigureApps
+      AddAppFiles
+      if {[file exists $post_file]} {
+        Msg Info "Found post-creation Tcl script $post_file, executing it..."
+        source $post_file
+      }
+    }
+
+    return
+  }
+
+  # If the project is a vitis-only project, skip creating the Vivado project
+  if {([string tolower $ide] eq "vitis_classic" || [string tolower $ide] eq "vitis_unified") && $options(vitis_only) == 1} {
+    if {$options(xsa) == ""} {
+      Msg Error "This is a $ide only project, an XSA file must be provided via -xsa option."
+      return 1
     }
     return
   }
@@ -1260,7 +1417,7 @@ proc CreateProject {args} {
 
   if {[IsQuartus]} {
     set fileName_old [file normalize "./hogTmp/.hogQsys.md5"]
-    set fileDir [file normalize "$globalSettings::build_dir/.hog/"]
+    set fileDir [file normalize "${globalSettings::build_dir}/.hog/"]
     file mkdir $fileDir
     set fileName_new [file normalize "$fileDir/.hogQsys.md5"]
     if {[file exists $fileName_new]} {
@@ -1355,13 +1512,13 @@ proc CreateProject {args} {
   }
 
 
-  if {($globalSettings::vitis_classic == 1)} {
+  if {($globalSettings::vitis_classic == 1 || $globalSettings::vitis_unified == 1)} {
     # Presynth hw platform, let's keep it in the build directory
     write_hw_platform -fixed -force -file [file normalize "$globalSettings::build_dir/$globalSettings::DESIGN-presynth.xsa"]
 
-    # Launch xsct to build the project
     if {$options(xsa) == ""} {
-      set xsa_opt ""
+      set presynth_xsa [file normalize "$globalSettings::build_dir/$globalSettings::DESIGN-presynth.xsa"]
+      set xsa_opt "-xsa $presynth_xsa"
     } else {
       if {[IsRelativePath $options(xsa)] == 0} {
         set xsa_opt "-xsa $options(xsa)"
@@ -1370,11 +1527,24 @@ proc CreateProject {args} {
       }
     }
 
-    set xsct_cmd "xsct $globalSettings::tcl_path/launch.tcl C $xsa_opt -vitis_only $globalSettings::project_name"
-    Msg Info "Running Vitis Classic project creation script with command: $xsct_cmd"
-    set ret [catch {exec -ignorestderr {*}$xsct_cmd >@ stdout} result]
-    if {$ret != 0} {
-      Msg Error "xsct (vitis classic) returned an error state."
+    if {$globalSettings::vitis_classic == 1} {
+      # Launch xsct to build the project
+      set xsct_cmd "xsct $globalSettings::tcl_path/launch.tcl C $xsa_opt -vitis_only $globalSettings::project_name"
+      Msg Info "Running Vitis Classic project creation script with command: $xsct_cmd"
+      set ret [catch {exec -ignorestderr {*}$xsct_cmd >@ stdout} result]
+      if {$ret != 0} {
+        Msg Error "xsct (vitis classic) returned an error state."
+      }
+    } elseif {$globalSettings::vitis_unified == 1} {
+      # Launch vivado in batch mode to build the project
+      set vivado_cmd "vivado -nojournal -nolog -mode batch -notrace \
+        -source $globalSettings::tcl_path/launch.tcl \
+        -tclargs C $xsa_opt -vitis_only $globalSettings::project_name"
+      Msg Info "Running Vitis Unified project creation script with command: $vivado_cmd"
+      set ret [catch {exec -ignorestderr {*}$vivado_cmd >@ stdout} result]
+      if {$ret != 0} {
+        Msg Error "vivado (vitis unified) returned an error state."
+      }
     }
   }
 

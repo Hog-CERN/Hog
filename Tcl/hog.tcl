@@ -85,16 +85,50 @@ proc AddHogFiles {libraries properties filesets} {
     }
 
     # Vitis: Check if defined apps have a corresponding source file
-    if {[IsVitisClassic]} {
-      # TODO: "app list -dict" return wrong configuration parameters for Vitis Classic versions older than 2022.1
-      if {[catch {set ws_apps [app list -dict]}]} { set ws_apps "" }
-      dict for {app_name app_config} $ws_apps {
-        set app_lib [string tolower "app_$app_name\.src"]
-        if {![IsInList $app_lib $libs_in_fileset 0 1]} {
-            Msg Warning "App '$app_name' exists in workspace but no corresponding sourcefile '$app_lib' found. \
-              Make sure you have a list file with the correct naming convention: \[app_<app_name>\.src\]"
+    if {[IsVitisClassic] || [IsVitisUnified]} {
+      # Get the workspace apps
+      if {[IsVitisClassic]} {
+        # TODO: "app list -dict" return wrong configuration parameters for Vitis Classic versions older than 2022.1
+        if {[catch {set ws_apps [app list -dict]}]} { set ws_apps "" }
+      } elseif {[IsVitisUnified]} {
+        # Get app list from Vitis Unified workspace using Python script
+        set vitis_workspace "$globalSettings::build_dir/vitis_unified"
+        set python_script "$globalSettings::repo_path/Hog/Other/Python/VitisUnified/AppCommands.py"
+        set json_output ""
+        if {![ExecuteVitisUnifiedCommand $python_script "app_list" [list $vitis_workspace] "Failed to get app list from Vitis Unified" json_output]} {
+          Msg Warning "Failed to get app list from Vitis Unified"
+          set ws_apps ""
+        } else {
+          if {[catch {package require json}]} {
+            Msg Warning "JSON package not available for parsing Vitis Unified app list"
+            set ws_apps ""
+          } else {
+            set json_output_filtered ""
+            if {[regexp -lineanchor {\{.*\}} $json_output json_output_filtered]} {
+              set ws_apps [json::json2dict $json_output_filtered]
+            } else {
+              set ws_apps [json::json2dict $json_output]
+            }
+          }
         }
       }
+
+      # Check if each app has a corresponding source file
+      if {$ws_apps ne ""} {
+        dict for {app_name app_config} $ws_apps {
+          set app_lib [string tolower "app_$app_name\.src"]
+          if {![IsInList $app_lib $libs_in_fileset 0 1]} {
+            Msg Warning "App '$app_name' exists in workspace but no corresponding sourcefile '$app_lib' found. \
+              Make sure you have a list file with the correct naming convention: \[app_<app_name>\.src\]"
+          }
+        }
+      }
+    }
+
+    # For Vitis Unified, create app_files_dict once before processing libraries
+    # This allows us to collect files from all libraries before importing
+    if {[IsVitisUnified]} {
+      set app_files_dict [dict create]
     }
 
     # Loop over libraries in fileset
@@ -106,8 +140,8 @@ proc AddHogFiles {libraries properties filesets} {
       set ext [file extension $lib]
       Msg Debug "lib: $lib ext: $ext fileset: $fileset"
       # ADD NOW LISTS TO VIVADO PROJECT
-      if {[IsXilinx]} {
-        # Skip Vitis libraries
+      if {[IsXilinx] && !([info exists globalSettings::vitis_only_pass] && $globalSettings::vitis_only_pass == 1)} {
+        # Skip Vitis application libraries
         if {[string match "app_*" [string tolower $lib]]} {
           continue
         }
@@ -169,7 +203,6 @@ proc AddHogFiles {libraries properties filesets} {
             Msg Info "Setting $top as top module for file set $fileset..."
             set globalSettings::synth_top_module $top
           }
-
 
           # Verilog headers
           if {[lsearch -inline -regexp $props "verilog_header"] >= 0} {
@@ -250,7 +283,6 @@ proc AddHogFiles {libraries properties filesets} {
             please remember to commit the (possible) changed file."
             generate_target all [get_files $f]
           }
-
 
           # Tcl
           if {[file extension $f] == ".tcl" && $ext != ".con"} {
@@ -528,30 +560,110 @@ proc AddHogFiles {libraries properties filesets} {
           }
         }
 
+      } elseif {[IsVitisClassic] || [IsVitisUnified]} {
+        if {[IsVitisClassic]} {
+          # Vitis Classic: import files one by one
+          foreach app_name [dict keys $ws_apps] {
+            foreach f $lib_files {
+              if {[string tolower $rootlib] != [string tolower "app_$app_name"]} {
+                continue
+              }
 
-      } elseif {[IsVitisClassic]} {
+              Msg Info "Adding source file $f from lib: $lib to vitis app \[$app_name\]..."
+              set proj_f_path [regsub "^$globalSettings::repo_path" $f ""]
+              set proj_f_path [regsub  "[file tail $f]$" $proj_f_path ""]
+              Msg Debug "Project_f_path is $proj_f_path"
 
-        # Get the workspace apps
-        if {[catch {set ws_apps [app list -dict]}]} { set ws_apps "" }
-
-        foreach app_name [dict keys $ws_apps] {
-          foreach f $lib_files {
-            if {[string tolower $rootlib] != [string tolower "app_$app_name"]} {
-              continue
+              importsources -name $app_name -soft-link -path $f -target $proj_f_path
             }
+          }
+        } elseif {[IsVitisUnified]} {
+          Msg Debug "Vitis Unified: Collecting files for apps from library $rootlib..."
+          # For Vitis Unified, collect files per app from all libraries
+          # Files will be imported after all libraries are processed
 
-            Msg Info "Adding source file $f from lib: $lib to vitis app \[$app_name\]..."
-            set proj_f_path [regsub "^$globalSettings::repo_path" $f ""]
-            set proj_f_path [regsub  "[file tail $f]$" $proj_f_path ""]
-            Msg Debug "Project_f_path is $proj_f_path"
-
-            importsources -name $app_name -soft-link -path $f -target $proj_f_path
+          if {[dict size $ws_apps] == 0} {
+            Msg Debug "No apps found in workspace, skipping file collection"
+          } else {
+            Msg Debug "Found [dict size $ws_apps] app(s) in workspace"
+            Msg Debug "Processing library: $rootlib with [llength $lib_files] file(s)"
+            foreach app_name [dict keys $ws_apps] {
+              set expected_lib [string tolower "app_$app_name"]
+              Msg Debug "Checking files for app: $app_name (looking for lib: $expected_lib, current lib: [string tolower $rootlib])"
+              foreach f $lib_files {
+                if {[string tolower $rootlib] != $expected_lib} {
+                  continue
+                }
+                Msg Debug "File $f matches app $app_name"
+                set proj_f_path [regsub "^$globalSettings::repo_path" $f ""]
+                set proj_f_path [regsub  "[file tail $f]$" $proj_f_path ""]
+                set proj_f_path [string trimleft $proj_f_path "/"]
+                # Store file info for this app
+                if {![dict exists $app_files_dict $app_name]} {
+                  dict set app_files_dict $app_name files [list]
+                  dict set app_files_dict $app_name target $proj_f_path
+                  Msg Debug "Initialized app_files_dict for $app_name with target: $proj_f_path"
+                }
+                # Get current files list, append new file, and set it back
+                set current_files [dict get $app_files_dict $app_name files]
+                lappend current_files $f
+                dict set app_files_dict $app_name files $current_files
+                set current_count [llength [dict get $app_files_dict $app_name files]]
+                Msg Debug "Added file $f to app_files_dict for $app_name, current count: $current_count"
+              }
+            }
           }
         }
       }
-      # Closing library loop
     }
-    # Closing fileset loop
+
+    # For Vitis Unified, import all collected files after processing all libraries
+    if {[IsVitisUnified] && [dict size $app_files_dict] > 0} {
+      set python_script "$globalSettings::repo_path/Hog/Other/Python/VitisUnified/AppCommands.py"
+      set vitis_workspace "$globalSettings::build_dir/vitis_unified"
+
+      # Get Vitis version and set as environment variable for Python script
+      set vitis_version [GetIDEVersion]
+      set env(HOG_VITIS_VER) $vitis_version
+      Msg Debug "Vitis version: $vitis_version (set in HOG_VITIS_VER environment variable)"
+
+      dict for {app_name app_data} $app_files_dict {
+        set files_list [dict get $app_data files]
+        set target_path [dict get $app_data target]
+
+        if {[llength $files_list] > 0} {
+          Msg Info "Adding [llength $files_list] source file(s) to vitis app \[$app_name\]..."
+          Msg Debug "Files: $files_list"
+          Msg Debug "Target path: $target_path"
+
+          # Convert Tcl list to JSON array for Python
+          set files_json "\["
+          set first 1
+          foreach f $files_list {
+            if {!$first} {
+              append files_json ", "
+            }
+            # Escape backslashes and quotes in file paths
+            set escaped_f [string map {\\ \\\\ \" \\\"} $f]
+            append files_json "\"$escaped_f\""
+            set first 0
+          }
+          append files_json "\]"
+
+          Msg Debug "JSON string: $files_json"
+
+          set error_msg "Failed to add files to app $app_name"
+          if {![ExecuteVitisUnifiedCommand $python_script "add_app_files" \
+              [list $app_name $files_json $vitis_workspace $target_path] \
+              $error_msg]} {
+            Msg Error "Failed to add files to Vitis Unified app '$app_name'"
+            exit 1
+          }
+        } else {
+          Msg Warning "No files to add for app '$app_name'"
+        }
+      }
+    }
   }
 
   if {[IsVivado]} {
@@ -589,7 +701,7 @@ proc ALLOWED_PROPS {} {
     ".udo" [list "nosim"] \
     ".xci" [list "nosynth" "noimpl" "nosim" "locked"] \
     ".xdc" [list "nosynth" "noimpl" "scoped_to_ref" "scoped_to_cells"] \
-    ".tcl" [list "nosynth" "noimpl" "nosim" "source" "qsys" "noadd"\
+    ".tcl" [list "nosynth" "noimpl" "nosim" "scoped_to_ref" "scoped_to_cells" "source" "qsys" "noadd"\
         "--block-symbol-file" "--clear-output-directory" "--example-design"\
         "--export-qsys-script" "--family" "--greybox" "--ipxact"\
         "--jvm-max-heap-size" "--parallel" "--part" "--search-path"\
@@ -793,6 +905,8 @@ proc CheckEnv {project_name ide} {
 
 proc CheckProjVer {repo_path project {sim 0} {ext_path ""}} {
   global env
+  set curl_cmd [GetCurl]
+
   if {$sim == 1} {
     Msg Info "Will check also the version of the simulation files..."
   }
@@ -823,7 +937,7 @@ proc CheckProjVer {repo_path project {sim 0} {ext_path ""}} {
         Msg CriticalWarning "Cannot find JSON package equal or higher than 1.0.\n $JsonFound\n Exiting"
         return
       }
-      lassign [ExecuteRet curl --header "PRIVATE-TOKEN: $token" "$api_url/projects/$project_id/pipelines"] ret content
+      lassign [ExecuteRet {*}$curl_cmd --header "PRIVATE-TOKEN: $token" "$api_url/projects/$project_id/pipelines"] ret content
       set pipeline_dict [json::json2dict $content]
       if {[llength $pipeline_dict] > 0} {
         foreach pip $pipeline_dict {
@@ -833,7 +947,7 @@ proc CheckProjVer {repo_path project {sim 0} {ext_path ""}} {
             Msg Info "Found pipeline with sha $pip_sha for project $project"
             set pipeline_id [DictGet $pip id]
             # tclint-disable-next-line line-length
-            lassign [ExecuteRet curl --header "PRIVATE-TOKEN: $token" "$api_url/projects/${project_id}/pipelines/${pipeline_id}/jobs?pagination=keyset&per_page=100"] ret2 content2
+            lassign [ExecuteRet {*}$curl_cmd --header "PRIVATE-TOKEN: $token" "$api_url/projects/${project_id}/pipelines/${pipeline_id}/jobs?pagination=keyset&per_page=100"] ret2 content2
             set jobs_dict [json::json2dict $content2]
             if {[llength $jobs_dict] > 0} {
               foreach job $jobs_dict {
@@ -844,7 +958,7 @@ proc CheckProjVer {repo_path project {sim 0} {ext_path ""}} {
                 set current_job_name $env(CI_JOB_NAME)
                 if {$current_job_name == $job_name && $status == "success"} {
                   # tclint-disable-next-line line-length
-                  lassign [ExecuteRet curl --location --output artifacts.zip --header "PRIVATE-TOKEN: $token" --url "$api_url/projects/$project_id/jobs/$job_id/artifacts"] ret3 content3
+                  lassign [ExecuteRet {*}$curl_cmd --location --output artifacts.zip --header "PRIVATE-TOKEN: $token" --url "$api_url/projects/$project_id/jobs/$job_id/artifacts"] ret3 content3
                   if {$ret3 != 0} {
                     Msg CriticalWarning "Cannot download artifacts for job $job_name with id $job_id"
                     return
@@ -1476,7 +1590,7 @@ proc CopyIPbusXMLs {proj_dir path dst {xml_version "0.0.0"} {xml_sha "00000000"}
 
     if {[file exists $xmlfile]} {
       if {[dict exists $vhdl_dict $xmlfile]} {
-        set vhdl_file [file normalize $path/[dict get $vhdl_dict $xmlfile]]
+        set vhdl_file [file normalize [dict get $vhdl_dict $xmlfile]]
       } else {
         set vhdl_file ""
       }
@@ -1903,6 +2017,27 @@ proc FindNewestVersion {versions} {
   return $new_ver
 }
 
+# Find repo root by walking up from a start dir until we see Top/ and Projects/.
+# For absolute paths we do not normalize, so the path form is preserved and [file exists]
+# sees the same view as the script was loaded from.
+proc FindRepoRoot {start_dir} {
+  if {[file pathtype $start_dir] eq "relative"} {
+    set dir [file normalize [file join [pwd] $start_dir]]
+  } else {
+    set dir $start_dir
+  }
+  while {1} {
+    if {[file exists [file join $dir Top]] && [file exists [file join $dir Projects]]} {
+      return $dir
+    }
+    set parent [file dirname $dir]
+    if {$parent eq $dir} {
+      return ""
+    }
+    set dir $parent
+  }
+}
+
 ## @brief Set VHDL version to 2008 for *.vhd files
 #
 # @param[in] file_name the name of the HDL file
@@ -2095,7 +2230,7 @@ proc GenericToSimulatorString {prop_dict target} {
 #
 #  @param[in] proj_dir: The project directory containing the conf file or the the tcl file
 #
-#  @return[in] a list containing the full path of the hog.conf, sim.conf, pre-creation.tcl, post-creation.tcl and proj.tcl files
+#  @return[in] a list containing the full path of the hog.conf, sim.conf, pre-creation.tcl, post-creation.tcl, pre-rtl.tcl, and post-rtl.tcl files
 proc GetConfFiles {proj_dir} {
   Msg Debug "GetConfFiles called with proj_dir=$proj_dir"
   if {![file isdirectory $proj_dir]} {
@@ -2106,8 +2241,10 @@ proc GetConfFiles {proj_dir} {
   set sim_file [file normalize $proj_dir/sim.conf]
   set pre_tcl [file normalize $proj_dir/pre-creation.tcl]
   set post_tcl [file normalize $proj_dir/post-creation.tcl]
+  set pre_rtl [file normalize $proj_dir/pre-rtl.tcl]
+  set post_rtl [file normalize $proj_dir/post-rtl.tcl]
 
-  return [list $conf_file $sim_file $pre_tcl $post_tcl]
+  return [list $conf_file $sim_file $pre_tcl $post_tcl $pre_rtl $post_rtl]
 }
 
 
@@ -2535,23 +2672,24 @@ proc GetGroupName {proj_dir repo_dir} {
   return $group
 }
 
-## Get custom Hog describe of a specific SHA
+## Get custom Hog describe for the project under investigation
 #
-#  @param[in] sha         the git sha of the commit you want to calculate the describe of
+#  @param[in] proj_dir    the top directory of the project (e.g. repo_path/Top/group/project)
 #  @param[in] repo_path   the main path of the repository
 #
-#  @return            the Hog describe of the sha or the current one if the sha is 0
+#  @return            the Hog describe of the project, with a "-dirty" suffix if the project files are not clean
 #
-proc GetHogDescribe {sha {repo_path .}} {
-  if {$sha == 0} {
+proc GetHogDescribe {proj_dir {repo_path .}} {
+  lassign [GetRepoVersions $proj_dir $repo_path] global_commit global_version
+  if {$global_commit == 0} {
     # in case the repo is dirty, we use the last committed sha and add a -dirty suffix
     set new_sha "[string toupper [GetSHA]]"
     set suffix "-dirty"
   } else {
-    set new_sha [string toupper $sha]
+    set new_sha [string toupper $global_commit]
     set suffix ""
   }
-  set describe "v[HexVersionToString [GetVerFromSHA $new_sha $repo_path]]-$new_sha$suffix"
+  set describe "v[HexVersionToString $global_version]-$new_sha$suffix"
   return $describe
 }
 
@@ -2631,6 +2769,57 @@ proc GetHogFiles {args} {
     set filesets [MergeDict $fs $filesets]
     Msg Debug "Merged filesets $filesets"
   }
+
+  # Auto-discover HLS components from the project's hog.conf (no .src needed).
+  # The list_path argument is conventionally <proj_dir>/list/, so hog.conf sits
+  # one level up. For each [hls:<comp>] section with HLS_CONFIG=<path>, add the
+  # cfg + everything it references to a synthesized "<comp>" library, and -- if
+  # print_log is on -- show the file tree exactly like a .src would
+  set proj_conf [file normalize [file join [file dirname $list_path] hog.conf]]
+  if {[file exists $proj_conf]} {
+    set hls_configs [GetHlsConfigsFromProjConf $proj_conf $repo_path]
+    set already_tracked [dict create]
+    dict for {libname libfiles} $libraries {
+      foreach lf $libfiles { dict set already_tracked [file normalize $lf] 1 }
+    }
+    dict for {comp_name cfg_abs} $hls_configs {
+      if {[dict exists $already_tracked $cfg_abs]} {
+        Msg Debug "HLS component '$comp_name': cfg $cfg_abs already tracked via a .src, skipping conf-based GetHogFiles discovery."
+        continue
+      }
+      set lib_name "${comp_name}.src"
+      dict lappend libraries $lib_name $cfg_abs
+      dict set already_tracked $cfg_abs 1
+      set hls_extras [ExpandHlsConfigFiles $cfg_abs]
+      Msg Info "HLS component '$comp_name' (from hog.conf): tracking [expr {1 + [llength $hls_extras]}] file(s) via $cfg_abs"
+      if {$print_log == 1} {
+        Msg Status "\nhog.conf \[hls:$comp_name\] (auto-discovered)"
+        set rel_cfg [Relative $repo_path $cfg_abs 1]
+        if {$rel_cfg eq ""} { set rel_cfg $cfg_abs }
+        if {[llength $hls_extras] == 0} {
+          Msg Status "└── $rel_cfg"
+        } else {
+          Msg Status "├── $rel_cfg"
+          Msg Status "    Inside [file tail $cfg_abs] (HLS auto-expand):"
+        }
+      }
+      set n_extras [llength $hls_extras]
+      set i 0
+      foreach hls_extra $hls_extras {
+        incr i
+        if {[dict exists $already_tracked $hls_extra]} { continue }
+        dict lappend libraries $lib_name $hls_extra
+        dict set already_tracked $hls_extra 1
+        if {$print_log == 1} {
+          if {$i == $n_extras} { set pad "└──" } else { set pad "├──" }
+          set rel_extra [Relative [file dirname $cfg_abs] $hls_extra 1]
+          if {$rel_extra eq ""} { set rel_extra $hls_extra }
+          Msg Status "      $pad $rel_extra"
+        }
+      }
+    }
+  }
+
   return [list $libraries $properties $filesets]
 }
 
@@ -2649,9 +2838,9 @@ proc GetIDECommand {proj_conf {custom_ver ""}} {
 
   set ide_name [lindex [regexp -all -inline {\S+} $ide_name_and_ver] 0]
 
-  if {$ide_name eq "vivado" || $ide_name eq "vivado_vitis_classic"} {
+  if {$ide_name eq "vivado" || $ide_name eq "vivado_vitis_classic" || $ide_name eq "vivado_vitis_unified" || $ide_name eq "vitis_unified"} {
     set command "vivado"
-    # A space ater the before_tcl_script is important
+    # A space after the before_tcl_script is important
     set before_tcl_script " -nojournal -nolog -mode batch -notrace -source "
     set after_tcl_script " -tclargs "
     set end_marker ""
@@ -2704,7 +2893,7 @@ proc GetIDEFromConf {conf_file} {
   set f [open $conf_file "r"]
   set line [gets $f]
   close $f
-  if {[regexp -all {^\# *(\w*) *(vitis_classic)? *(\d+\.\d+(?:\.\d+)?(?:\.\d+)?)?(_.*)? *$} $line dummy ide vitisflag version patch]} {
+  if {[regexp -all {^\# *(\w*) *(vitis_(?:classic|unified))? *(\d+\.\d+(?:\.\d+)?(?:\.\d+)?)?(_.*)? *$} $line dummy ide vitisflag version patch]} {
     if {[info exists vitisflag] && $vitisflag != ""} {
       set ide "${ide}_${vitisflag}"
     }
@@ -2749,7 +2938,7 @@ proc GetIDEName {} {
 #
 proc GetIDEVersion {} {
   if {[IsXilinx]} {
-    #Vivado or planAhead
+    # Vivado or planAhead
     regexp {\d+\.\d+(\.\d+)?} [version -short] ver
     # This regex will cut away anything after the numbers, useful for patched version 2020.1_AR75210
   } elseif {[IsQuartus]} {
@@ -2760,9 +2949,15 @@ proc GetIDEVersion {} {
     # Libero
     set ver [get_libero_version]
   } elseif {[IsDiamond]} {
+    # Diamond
     regexp {\d+\.\d+(\.\d+)?} [sys_install version] ver
   } elseif {[IsVitisClassic]} {
+    # Vitis Classic
     regexp {\d+\.\d+(\.\d+)?} [version] ver
+  } elseif {[IsVitisUnified]} {
+    # Vitis Unified
+    set vitis_output [exec vitis --version 2>@1]
+    regexp {[Vv]itis\s+v?(\d+\.\d+(?:\.\d+)?)} $vitis_output -> ver
   } else {
     set ver "0.0.0"
   }
@@ -3322,13 +3517,9 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
 
   cd $proj_dir
 
-  if {[Git {status --untracked-files=no  --porcelain}] eq ""} {
-    Msg Info "Git working directory [pwd] clean."
-    set clean 1
-  } else {
-    Msg CriticalWarning "Git working directory [pwd] not clean, commit hash, and version will be set to 0."
-    set clean 0
-  }
+  # Collect all project-relevant files; the clean check will be deferred until all files are known
+  set project_files $conf_files
+  lappend project_files $repo_path/Hog
 
   # Top project directory
   lassign [GetVer [join $conf_files]] top_ver top_hash
@@ -3354,6 +3545,7 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
     lappend vers $ver
     lappend hashes $hash
     lappend SHAs $hash
+    lappend project_files $f {*}$files
   }
 
   # Read constraint list files
@@ -3371,6 +3563,7 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
     lappend cons_hashes $hash
     lappend SHAs $hash
     lappend versions $ver
+    lappend project_files $f {*}$files
   }
 
   # Read simulation list files
@@ -3386,6 +3579,7 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
       lappend sim_hashes $hash
       lappend SHAs $hash
       lappend versions $ver
+      lappend project_files $f {*}$files
     }
   }
 
@@ -3415,6 +3609,7 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
     lappend SHAs $hash
     set ext_ver [GetVerFromSHA $hash $repo_path]
     lappend versions $ext_ver
+    lappend project_files $f
 
     set fp [open $f r]
     set file_data [read $fp]
@@ -3442,9 +3637,11 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
   if {[llength [glob -nocomplain ./list/*.ipb]] > 0} {
     #Msg Info "Found IPbus XML list file, evaluating version and SHA of listed files..."
     lassign [GetHogFiles -list_files "*.ipb" -sha_mode "./list/" $repo_path] xml_files dummy
-    lassign [GetVer [dict get $xml_files "xml.ipb"]] xml_ver xml_hash
+    set xml_source_files [dict get $xml_files "xml.ipb"]
+    lassign [GetVer $xml_source_files] xml_ver xml_hash
     lappend SHAs $xml_hash
     lappend versions $xml_ver
+    lappend project_files {*}[glob ./list/*.ipb] {*}$xml_source_files
 
     #Msg Info "Found IPbus XML SHA: $xml_hash and version: $xml_ver."
   } else {
@@ -3486,6 +3683,7 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
           lappend user_ip_repo_hashes $sha
           lappend user_ip_repo_vers $ver
           lappend versions $ver
+          lappend project_files $repo
         } else {
           Msg Warning "IP_REPO_PATHS property set to $repo in hog.conf but directory is empty."
         }
@@ -3495,6 +3693,15 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
     }
   }
 
+
+  # Check cleanliness only for the files that belong to this project
+  if {[Git "status --untracked-files=no --porcelain" $project_files] eq ""} {
+    Msg Info "Project-relevant files are clean."
+    set clean 1
+  } else {
+    Msg CriticalWarning "Project-relevant files not clean, commit hash and version will be set to 0."
+    set clean 0
+  }
 
   #The global SHA and ver is the most recent among everything
   if {$clean == 1} {
@@ -3638,7 +3845,7 @@ proc GetTopModule {} {
 #
 # @return  a list: the git SHA, the version in hex format
 #
-proc GetVer {path {force_develop 0}} {
+proc GetVer {path {force_develop 0} {verbose 1}} {
   set SHA [GetSHA $path]
   #oldest tag containing SHA
   if {$SHA eq ""} {
@@ -3654,7 +3861,7 @@ proc GetVer {path {force_develop 0}} {
   set repo_path [Git {rev-parse --show-toplevel}]
   cd $old_path
 
-  return [list [GetVerFromSHA $SHA $repo_path $force_develop] $SHA]
+  return [list [GetVerFromSHA $SHA $repo_path $force_develop $verbose] $SHA]
 }
 
 ## @brief Get git version and commit hash of a specific commit give the SHA
@@ -3662,10 +3869,11 @@ proc GetVer {path {force_develop 0}} {
 # @param[in] SHA the git SHA of the commit
 # @param[in] repo_path the path of the repository, this is used to open the Top/repo.conf file
 # @param[in] force_develop Force a tag for the develop branch (increase m)
+# @param[in] verbose Print extra information
 #
 # @return  a list: the git SHA, the version in hex format
 #
-proc GetVerFromSHA {SHA repo_path {force_develop 0}} {
+proc GetVerFromSHA {SHA repo_path {force_develop 0} {verbose 1}} {
   if {$SHA eq ""} {
     Msg CriticalWarning "Empty SHA found"
     set ver "v0.0.0"
@@ -3744,6 +3952,45 @@ proc GetVerFromSHA {SHA repo_path {force_develop 0}} {
                 set major_prefix [dict get $prefixDict MAJOR_VERSION]
               }
               # More properties in [prefixes] here ...
+            }
+          }
+
+          if {[string match "HEAD" $branch_name]} {
+            if {$verbose == 1} {
+              Msg Warning "Detached HEAD detected - attempting to find branch name"
+            }
+            # if the branch_name is HEAD (not a legal branch name btw)
+            # then the branch has been checked out in a detached head state
+            # this is a fallback condition to enable finding the branch name that the commit is linked too
+            set log_refs [Git {show -s --pretty=%D HEAD}]
+            set branch_list [split $log_refs ","]
+            Msg Debug "list of possible branch refs $log_refs"
+
+            # iterate over all possible refs and match against all prefix types
+            # set branch name as matched prefix if and only if one match is found
+
+            set match_count 0
+            set match_prefixes [list $hotfix_prefix $minor_prefix $major_prefix]
+            set prev_branch_name $branch_name
+
+            foreach br $branch_list {
+              foreach pr $match_prefixes {
+                if {[string match "$pr*" [string trim $br]]} {
+                  set branch_name [string trim $br]
+                  incr match_count 1
+                }
+              }
+            }
+
+            if {!$match_count == 1} {
+              set branch_name $prev_branch_name
+              if {$verbose == 1} {
+                Msg Warning "Branch name not found. Using $branch_name"
+              }
+            } else {
+              if {$verbose == 1} {
+                Msg Info "Branch name found: $branch_name"
+              }
             }
           }
 
@@ -4081,15 +4328,46 @@ proc HandleIP {what_to_do xci_file ip_path repo_path {gen_dir "."} {force 0}} {
 
   cd $repo_path
 
+  set on_eos 0
+  set on_rclone 0
 
-  if {[string first "/eos/" $ip_path] == 0} {
+  if {[regexp {^[^/]+:} $ip_path]} {
+    # Rclone path (e.g., dropbox:Project/IPs or eos:user/d/dcieri/...)
+    set on_rclone 1
+    # Check if rclone is available
+    lassign [ExecuteRet rclone --version] rclone_ret rclone_ver
+    if {$rclone_ret != 0} {
+      Msg CriticalWarning "Rclone path specified but rclone not found or failed: $rclone_ver"
+      cd $old_path
+      return -1
+    } else {
+      Msg Info "IP remote directory path, on Rclone, is set to: $ip_path"
+      # Check if RCLONE_CONFIG environment variable is set, if not set it to the default path
+      if {[info exists env(HOG_RCLONE_CONFIG)]} {
+        Msg Info "Using rclone config from environment variable HOG_RCLONE_CONFIG: $env(HOG_RCLONE_CONFIG)"
+        set config_path $env(HOG_RCLONE_CONFIG)
+      } else {
+        set config_path "/dev/null"
+        Msg Info "Environment variable HOG_RCLONE_CONFIG not set, using rclone environmental variables..."
+      }
+
+      set remote_name "[lindex [split $ip_path ":"] 0]:"
+      lassign [ExecuteRet rclone listremotes --config $config_path] rclone_list_ret remotes
+      if {$rclone_list_ret != 0} {
+        Msg CriticalWarning "Could not list rclone remotes: $remotes"
+        cd $old_path
+        return -1
+      } else {
+        if {![IsInList $remote_name $remotes]} {
+          Msg CriticalWarning "Rclone remote $remote_name not found among available remotes: $remotes"
+          cd $old_path
+          return -1
+        }
+      }
+    }
+  } elseif {[string first "/eos/" $ip_path] == 0} {
     # IP Path is on EOS
     set on_eos 1
-  } else {
-    set on_eos 0
-  }
-
-  if {$on_eos == 1} {
     lassign [eos "ls $ip_path"] ret result
     if {$ret != 0} {
       Msg CriticalWarning "Could not run ls for for EOS path: $ip_path (error: $result). \
@@ -4124,7 +4402,20 @@ proc HandleIP {what_to_do xci_file ip_path repo_path {gen_dir "."} {force 0}} {
   if {$what_to_do eq "push"} {
     set will_copy 0
     set will_remove 0
-    if {$on_eos == 1} {
+    if {$on_rclone == 1} {
+      lassign [ExecuteRet rclone ls $ip_path/$file_name.tar --config $config_path] ret result
+      if {$ret != 0} {
+        set will_copy 1
+      } else {
+        if {$force == 0} {
+          Msg Info "IP already in the Rclone repository, will not copy..."
+        } else {
+          Msg Info "IP already in the Rclone repository, will forcefully replace..."
+          set will_copy 1
+          set will_remove 1
+        }
+      }
+    } elseif {$on_eos == 1} {
       lassign [eos "ls $ip_path/$file_name.tar"] ret result
       if {$ret != 0} {
         set will_copy 1
@@ -4162,7 +4453,12 @@ proc HandleIP {what_to_do xci_file ip_path repo_path {gen_dir "."} {force 0}} {
         Msg Info "Found some IP synthesised files matching $xci_ip_name"
         if {$will_remove == 1} {
           Msg Info "Removing old synthesised directory $ip_path/$file_name.tar..."
-          if {$on_eos == 1} {
+          if {$on_rclone == 1} {
+            lassign [ExecuteRet rclone delete $ip_path/$file_name.tar --config $config_path] ret result
+            if {$ret != 0} {
+              Msg CriticalWarning "Could not delete file from Rclone: $result"
+            }
+          } elseif {$on_eos == 1} {
             eos "rm -rf $ip_path/$file_name.tar" 5
           } else {
             file delete -force "$ip_path/$file_name.tar"
@@ -4179,7 +4475,12 @@ proc HandleIP {what_to_do xci_file ip_path repo_path {gen_dir "."} {force 0}} {
         ::tar::create $file_name.tar $tar_files
 
         Msg Info "Copying IP generated files for $xci_name..."
-        if {$on_eos == 1} {
+        if {$on_rclone == 1} {
+          lassign [ExecuteRet rclone copyto $file_name.tar $ip_path/$file_name.tar --config $config_path] ret result
+          if {$ret != 0} {
+            Msg CriticalWarning "Something went wrong when copying the IP files to Rclone. Error message: $result"
+          }
+        } elseif {$on_eos == 1} {
           lassign [ExecuteRet xrdcp -f -s $file_name.tar $::env(EOS_MGM_URL)//$ip_path/] ret msg
           if {$ret != 0} {
             Msg CriticalWarning "Something went wrong when copying the IP files to EOS. Error message: $msg"
@@ -4194,7 +4495,20 @@ proc HandleIP {what_to_do xci_file ip_path repo_path {gen_dir "."} {force 0}} {
       }
     }
   } elseif {$what_to_do eq "pull"} {
-    if {$on_eos == 1} {
+    if {$on_rclone == 1} {
+      lassign [ExecuteRet rclone ls $ip_path/$file_name.tar --config $config_path] ret result
+      if {$ret != 0} {
+        Msg Info "Nothing for $xci_name was found in the Rclone repository, cannot pull."
+        cd $old_path
+        return -1
+      } else {
+        Msg Info "IP $xci_name found in the Rclone repository $ip_path, copying it locally to $repo_path..."
+        lassign [ExecuteRet rclone copyto $ip_path/$file_name.tar $file_name.tar --config $config_path] ret_copy result_copy
+        if {$ret_copy != 0} {
+          Msg CriticalWarning "Something went wrong when copying the IP files from Rclone. Error message: $result_copy"
+        }
+      }
+    } elseif {$on_eos == 1} {
       lassign [eos "ls $ip_path/$file_name.tar"] ret result
       if {$ret != 0} {
         Msg Info "Nothing for $xci_name was found in the EOS repository, cannot pull."
@@ -4321,7 +4635,6 @@ proc InitLauncher {script tcl_path parameters commands argv {custom_commands ""}
   dict for {key value} $common_directive_names {
     set short_usage "$short_usage\n   - $key: [dict get $directive_descriptions $value]"
   }
-  # VSCODE COMMENT"
 
   if {[string length $custom_commands] > 0} {
     Msg Debug "Found custom commands to add to short short_usage."
@@ -4668,7 +4981,7 @@ proc IsSynplify {} {
 
 ## @brief Returns true, if we are in tclsh
 proc IsTclsh {} {
-  return [expr {![IsQuartus] && ![IsXilinx] && ![IsVitisClassic] && ![IsLibero] && ![IsSynplify] && ![IsDiamond]}]
+  return [expr {![IsQuartus] && ![IsXilinx] && ![IsVitisClassic] && ![IsVitisUnified] && ![IsLibero] && ![IsSynplify] && ![IsDiamond]}]
 }
 
 # @brief Find out if the given file is a Verilog or SystemVerilog file
@@ -4684,7 +4997,7 @@ proc IsVerilog {file} {
   }
 }
 
-## @brief Find out if the given Xilinx part is a Vesal chip
+## @brief Find out if the given Xilinx part is a Versal chip
 #
 # @param[out] 1 if it's Versal 0 if it's not
 # @param[in]  part  The FPGA part
@@ -4725,10 +5038,125 @@ proc IsXilinx {} {
 
 ## @brief Returns true, if the IDE is vitis_classic
 proc IsVitisClassic {} {
+  if {[info exists globalSettings::vitis_classic]} {
+    return $globalSettings::vitis_classic
+  }
   return [expr {[info commands platform] != ""}]
 }
 
-## @brief Find out if the given Xilinx part is a Vesal chip
+## @brief Returns true, if the IDE is vitis_unified
+proc IsVitisUnified {} {
+  if {[info exists globalSettings::vitis_unified]} {
+    return $globalSettings::vitis_unified
+  }
+  return 0
+}
+
+## @brief Execute a Python command via Vitis Unified command-line tool and display output in real-time
+#
+# @param[in] python_script Full path to the Python script (e.g., PlatformCommands.py or AppCommands.py)
+# @param[in] command The command to execute (e.g., "create_platform", "configure_app", "app_list")
+# @param[in] args List of arguments to pass to the command
+# @param[in] error_prefix Prefix for error messages (e.g., "Failed to create platform" or "Failed to configure app")
+# @param[in] output_var Optional variable name to store the output (if not provided, output is only printed)
+# @param[out] 1 on success, 0 on failure
+#
+proc ExecuteVitisUnifiedCommand {python_script command args {error_prefix "Failed to execute command"} {output_var ""}} {
+  set cmdlist [list vitis -s $python_script $command]
+  foreach arg $args {
+    lappend cmdlist $arg
+  }
+  lappend cmdlist 2>@1
+
+  Msg Debug "Executing: vitis -s $python_script $command $args"
+
+  # Set PYTHONUNBUFFERED environment variable for real-time output
+  set env(PYTHONUNBUFFERED) "1"
+
+  # Open pipe and configure for line buffering
+  if {[catch {set pipe [open "|$cmdlist" "r"]} err]} {
+    Msg Error "$error_prefix: Failed to open pipe: $err"
+    return 0
+  }
+
+  fconfigure $pipe -buffering line
+  set script_output ""
+  set vitis_version ""
+
+  # Patterns to identify Vitis banner messages, these will be filtered out
+  set vitis_banner_patterns {
+    "*Vitis Development Environment*"
+    "*Vitis v*"
+    "*SW Build*"
+    "*Copyright*Xilinx*"
+    "*Copyright*Advanced Micro Devices*"
+    "*All Rights Reserved*"
+  }
+
+  # Read and display output line by line
+  while {[gets $pipe line] >= 0} {
+    if {$line ne ""} {
+      if {[string match "*Vitis v*" $line]} {
+        if {[regexp {Vitis\s+v([0-9]+)\.([0-9]+)(?:\.[0-9]+)?} $line -> major minor]} {
+          set year_last_two [string range $major end-1 end]
+          set vitis_version "$year_last_two.$minor"
+        }
+      }
+
+      # Filter out Vitis banner messages
+      set is_banner 0
+      foreach pattern $vitis_banner_patterns {
+        if {[string match $pattern $line]} {
+          set is_banner 1
+          break
+        }
+      }
+      if {!$is_banner} {
+        if {![string match "INFO:*" $line] && ![string match "WARNING:*" $line] && ![string match "ERROR:*" $line] && ![string match "DEBUG:*" $line]} {
+          if {$vitis_version ne ""} {
+            set line "INFO: \[Vitis_v$vitis_version\] $line"
+          } else {
+            set line "INFO: $line"
+          }
+        }
+        puts "$line"
+        append script_output "$line\n"
+      }
+    }
+  }
+
+  # Close pipe and check exit code
+  set exit_code 0
+  if {[catch {close $pipe} err]} {
+    if {[regexp {exit (\d+)} $err -> exit_code]} {
+      if {$exit_code != 0} {
+        Msg Error "$error_prefix (exit code: $exit_code)"
+        if {$output_var ne ""} {
+          upvar $output_var output
+          set output $script_output
+        }
+        return 0
+      }
+    } else {
+      Msg Error "$error_prefix: $err"
+      if {$output_var ne ""} {
+        upvar $output_var output
+        set output $script_output
+      }
+      return 0
+    }
+  }
+
+  # Return output if requested
+  if {$output_var ne ""} {
+    upvar $output_var output
+    set output $script_output
+  }
+
+  return 1
+}
+
+## @brief Find out if the given Xilinx part is a Versal chip
 #
 # @param[out] 1 if it's Zynq 0 if it's not
 # @param[in]  part  The FPGA part
@@ -4837,7 +5265,7 @@ proc LaunchGHDL {project_name repo_path simset_name simset_dict {ext_path ""}} {
 proc LaunchImplementation {reset do_create run_folder project_name {repo_path .} {njobs 4} {do_bitstream 0}} {
   Msg Info "Starting implementation flow..."
   if {[IsXilinx]} {
-    if {$reset == 1 && $do_create == 0} {
+    if {$reset == 1} {
       Msg Info "Resetting run before launching implementation..."
       reset_run impl_1
     }
@@ -4958,8 +5386,7 @@ proc LaunchImplementation {reset do_create run_folder project_name {repo_path .}
 
     #Go to repository path
     cd $repo_path
-    lassign [GetRepoVersions [file normalize ./Top/$project_name] $repo_path] sha
-    set describe [GetHogDescribe $sha $repo_path]
+    set describe [GetHogDescribe [file normalize ./Top/$project_name] $repo_path]
     Msg Info "Git describe set to $describe"
 
     set dst_dir [file normalize "$repo_path/bin/$project_name\-$describe"]
@@ -5039,8 +5466,7 @@ proc LaunchImplementation {reset do_create run_folder project_name {repo_path .}
     #Go to repository path
     cd $repo_path
 
-    lassign [GetRepoVersions [file normalize ./Top/$project_name] $repo_path] sha
-    set describe [GetHogDescribe $sha $repo_path]
+    set describe [GetHogDescribe [file normalize ./Top/$project_name] $repo_path]
     Msg Info "Git describe set to $describe"
 
     set dst_dir [file normalize "$repo_path/bin/$project_name\-$describe"]
@@ -5098,8 +5524,24 @@ proc LaunchImplementation {reset do_create run_folder project_name {repo_path .}
 # @param[in] repo_path    The main path of the git repository (Default .)
 proc GenerateBitstreamOnly {project_name {repo_path .}} {
   cd $repo_path
-  lassign [GetRepoVersions [file normalize ./Top/$project_name] $repo_path] sha
-  set describe [GetHogDescribe $sha $repo_path]
+
+  # Open the project first
+  set project_file [file normalize "$repo_path/Projects/$project_name/$project_name.xpr"]
+  if {![file exists $project_file]} {
+    Msg Error "Project file not found: $project_file. Please create the project first."
+    return
+  }
+
+  OpenProject $project_file $repo_path
+
+  # Check if impl_1 run exists
+  set impl_runs [get_runs -quiet impl_1]
+  if {[llength $impl_runs] == 0} {
+    Msg Error "Implementation run 'impl_1' does not exist. Please run implementation first."
+    return
+  }
+
+  set describe [GetHogDescribe [file normalize ./Top/$project_name] $repo_path]
   set dst_dir [file normalize "$repo_path/bin/$project_name\-$describe"]
 
   cd Projects/$project_name/$project_name.runs/impl_1
@@ -5339,15 +5781,22 @@ proc LaunchSimulation {project_name lib_path simsets {repo_path .} {scripts_only
   }
 }
 
-#'"
 # @brief Launch the RTL Analysis, for the current IDE and project
 #
 # @param[in] repo_path    The main path of the git repository (Default .)
-proc LaunchRTLAnalysis {repo_path} {
+proc LaunchRTLAnalysis {repo_path {pre_rtl_file ""} {post_rtl_file ""}} {
   if {[IsVivado]} {
+    if {[file exists $pre_rtl_file]} {
+      Msg Info "Found pre-rtl Tcl script $pre_rtl_file, executing it..."
+      source $pre_rtl_file
+    }
     Msg Info "Starting RTL Analysis..."
     cd $repo_path
     synth_design -rtl -name rtl_1
+    if {[file exists $post_rtl_file]} {
+      Msg Info "Found post-rtl Tcl script $post_rtl_file, executing it..."
+      source $post_rtl_file
+    }
   } else {
     Msg Warning "RTL Analysis is not yet supported for [GetIDEName]."
   }
@@ -5364,7 +5813,7 @@ proc LaunchRTLAnalysis {repo_path} {
 # @param[in] njobs        The number of parallel CPU jobs for the synthesis (Default 4)
 proc LaunchSynthesis {reset do_create run_folder project_name {repo_path .} {ext_path ""} {njobs 4}} {
   if {[IsXilinx]} {
-    if {$reset == 1 && $do_create == 0} {
+    if {$reset == 1} {
       Msg Info "Resetting run before launching synthesis..."
       reset_run synth_1
     }
@@ -5382,8 +5831,7 @@ proc LaunchSynthesis {reset do_create run_folder project_name {repo_path .} {ext
     #go to repository path
     cd $repo_path
 
-    lassign [GetRepoVersions [file normalize ./Top/$project_name] $repo_path $ext_path] sha
-    set describe [GetHogDescribe $sha $repo_path]
+    set describe [GetHogDescribe [file normalize ./Top/$project_name] $repo_path]
     Msg Info "Git describe set to $describe"
 
     foreach ip $ips {
@@ -5408,8 +5856,7 @@ proc LaunchSynthesis {reset do_create run_folder project_name {repo_path .} {ext
 
 
     # keep track of the current revision and of the top level entity name
-    lassign [GetRepoVersions [file normalize $repo_path/Top/$project_name] $repo_path] sha
-    set describe [GetHogDescribe $sha $repo_path]
+    set describe [GetHogDescribe [file normalize $repo_path/Top/$project_name] $repo_path]
     #set top_level_name [ get_global_assignment -name TOP_LEVEL_ENTITY ]
     set revision [get_current_revision]
 
@@ -5488,7 +5935,35 @@ proc LaunchVitisBuild {project_name {repo_path .} {stage "presynth"}} {
 
   cd $repo_path
 
-  if {[catch {set ws_apps [app list -dict]}]} { set ws_apps "" }
+  # Get app list
+  if {[IsVitisUnified]} {
+    set vitis_workspace [file normalize "$repo_path/Projects/$project_name/vitis_unified"]
+    set python_script [file normalize "$repo_path/Hog/Other/Python/VitisUnified/AppCommands.py"]
+    set json_output ""
+    if {![ExecuteVitisUnifiedCommand $python_script "app_list" [list $vitis_workspace] "Failed to get app list from Vitis Unified" json_output]} {
+      Msg Error "Failed to get app list from Vitis Unified"
+      set ws_apps ""
+    } else {
+      if {[catch {package require json}]} {
+        Msg Error "JSON package not available for parsing Vitis Unified app list"
+        set ws_apps ""
+      } else {
+        set json_output_filtered ""
+        if {[regexp -lineanchor {\{.*\}} $json_output json_output_filtered]} {
+          set ws_apps [json::json2dict $json_output_filtered]
+        } else {
+          set ws_apps [json::json2dict $json_output]
+        }
+      }
+    }
+  } elseif {[IsVitisClassic]} {
+    if {[catch {set ws_apps [app list -dict]}]} { set ws_apps "" }
+  } else {
+    Msg Error "Impossible condition. You need to run this in a Vitis Unified or Vitis Classic IDE."
+    exit 1
+  }
+
+  # Get repository versions
   lassign [GetRepoVersions [file normalize $repo_path/Top/$proj_name] $repo_path ] commit version  hog_hash hog_ver  top_hash top_ver \
            libs hashes vers  cons_ver cons_hash  ext_names ext_hashes  xml_hash xml_ver user_ip_repos user_ip_hashes user_ip_vers
   set this_commit [GetSHA]
@@ -5496,23 +5971,41 @@ proc LaunchVitisBuild {project_name {repo_path .} {stage "presynth"}} {
   set flavour [GetProjectFlavour $project_name]
   lassign [GetDateAndTime $commit] date timee
 
-  foreach app_name [dict keys $ws_apps] {
-    app config -name $app_name -set build-config Release
+  # Configure apps only for Vitis Classic, build-config is not supported in Vitis Unified
+  # build directory seems to be the default
+  if {[IsVitisClassic]} {
+    foreach app_name [dict keys $ws_apps] {
+      app config -name $app_name -set build-config Release
+    }
   }
 
   WriteGenerics "vitisbuild" $repo_path $proj_name $date $timee $commit $version $top_hash $top_ver $hog_hash $hog_ver $cons_ver $cons_hash $libs \
                              $vers $hashes $ext_names $ext_hashes $user_ip_repos $user_ip_vers $user_ip_hashes $flavour $xml_ver $xml_hash
-  foreach app_name [dict keys $ws_apps] { app build -name $app_name }
+
+  # Build apps
+  foreach app_name [dict keys $ws_apps] {
+    if {[IsVitisUnified]} {
+      # Build vitis unified app
+      if {![ExecuteVitisUnifiedCommand $python_script "build_app" [list $app_name $vitis_workspace] "Failed to build app $app_name"]} {
+        Msg Error "Failed to build app $app_name"
+        continue
+      }
+    } elseif {[IsVitisClassic]} {
+      app build -name $app_name
+    }
+  }
 
   if {$stage == "presynth"} {
     Msg Info "Done building apps for $project_name..."
-    # return
   }
 
-  Msg Info "Evaluating Git sha for $project_name..."
-  lassign [GetRepoVersions [file normalize ./Top/$project_name] $repo_path] sha
+  if {[info exists ::globalSettings::vitis_only_pass] && $::globalSettings::vitis_only_pass == 1} {
+    Msg Info "Skipping bin directory creation in vitis_only mode (post-bitstream.tcl handles artifacts)."
+    return
+  }
 
-  set describe [GetHogDescribe $sha $repo_path]
+  Msg Info "Evaluating Hog describe for $project_name..."
+  set describe [GetHogDescribe [file normalize ./Top/$project_name] $repo_path]
   Msg Info "Hog describe set to: $describe"
   set dst_dir [file normalize "$bin_dir/$proj_name\-$describe"]
   if {![file exists $dst_dir]} {
@@ -5521,7 +6014,11 @@ proc LaunchVitisBuild {project_name {repo_path .} {stage "presynth"}} {
   }
 
   foreach app_name [dict keys $ws_apps] {
-    set main_file "$repo_path/Projects/$project_name/vitis_classic/$app_name/Release/$app_name.elf"
+    if {[IsVitisUnified]} {
+      set main_file "$repo_path/Projects/$project_name/vitis_unified/$app_name/build/$app_name.elf"
+    } elseif {[IsVitisClassic]} {
+      set main_file "$repo_path/Projects/$project_name/vitis_classic/$app_name/Release/$app_name.elf"
+    }
     set dst_main [file normalize "$dst_dir/[file tail $proj_name]\-$app_name\-$describe.elf"]
 
     if {![file exists $main_file]} {
@@ -5532,6 +6029,394 @@ proc LaunchVitisBuild {project_name {repo_path .} {stage "presynth"}} {
     Msg Info "Copying main binary file $main_file into $dst_main..."
     file copy -force $main_file $dst_main
   }
+}
+
+# @brief Launch the HLS build for all [hls:*] components in the project
+#
+# For each HLS component defined in hog.conf, this proc runs:
+#   - C synthesis
+#   - Implementation
+#   - Collects reports (.rpt, .xml, .log) into bin/ for CI
+# Packaging is controlled by hls_config.cfg (package.output.format, etc.)
+# Simulations (CSIM/COSIM) are handled by LaunchHlsSimulation via the S command.
+#
+# @param[in] project_name The name of the project
+# @param[in] repo_path    The main path of the git repository (Default ".")
+proc LaunchHlsBuild {project_name {repo_path .}} {
+  set proj_name $project_name
+  set bin_dir [file normalize "$repo_path/bin"]
+
+  cd $repo_path
+
+  set conf_file [file normalize "$repo_path/Top/$project_name/hog.conf"]
+  if {![file exists $conf_file]} {
+    Msg Error "Configuration file not found: $conf_file"
+    return
+  }
+  set properties [ReadConf $conf_file]
+  set hls_components [dict filter $properties key {hls:*}]
+
+  if {[dict size $hls_components] == 0} {
+    Msg Info "No HLS components found for project $project_name"
+    return
+  }
+
+  set python_script [file normalize "$repo_path/Hog/Other/Python/VitisUnified/HlsCommands.py"]
+
+  # Determine whether this is a mixed Vivado+Vitis project. In that case HLS
+  # component outputs are grouped under bin/<proj>/vitis_hls/ to keep them
+  # visually separate from Vivado's top-level utilization.txt / timing_*.txt.
+  # For pure vitis_unified projects (no Vivado) HLS outputs sit directly under
+  # bin/<proj>/<component>/ since there's nothing else to collide with.
+  set ide_info [GetIDEFromConf $conf_file]
+  set ide_name [string tolower [lindex $ide_info 0]]
+  if {$ide_name eq "vivado_vitis_unified"} {
+    set is_mixed_project 1
+  } else {
+    set is_mixed_project 0
+  }
+
+  dict for {hls_key hls_props} $hls_components {
+    if {![regexp {^hls:(.+)$} $hls_key -> component_name]} {
+      continue
+    }
+    set component_name [string trim $component_name]
+    Msg Info "Building HLS component: $component_name"
+
+    # Read HLS_CONFIG path from hog.conf (mandatory)
+    set hls_cfg_rel ""
+    if {[dict exists $hls_props hls_config]} {
+      set hls_cfg_rel [dict get $hls_props hls_config]
+    } elseif {[dict exists $hls_props HLS_CONFIG]} {
+      set hls_cfg_rel [dict get $hls_props HLS_CONFIG]
+    }
+    if {$hls_cfg_rel eq ""} {
+      Msg Error "HLS component '$component_name' missing HLS_CONFIG in hog.conf"
+      continue
+    }
+
+    set cfg_file [file normalize "$repo_path/$hls_cfg_rel"]
+    if {![file exists $cfg_file]} {
+      Msg Error "HLS config file not found: $cfg_file (from HLS_CONFIG=$hls_cfg_rel)"
+      continue
+    }
+
+    set hls_work_dir [file normalize "$repo_path/Projects/$project_name/vitis_unified/$component_name"]
+    file mkdir $hls_work_dir
+
+    # C synthesis
+    Msg Info "Running C synthesis for HLS component '$component_name'..."
+    if {![ExecuteVitisUnifiedCommand $python_script "synthesis" \
+        [list $component_name $cfg_file $hls_work_dir] \
+        "Failed to run C synthesis for $component_name"]} {
+      Msg Error "C synthesis failed for HLS component '$component_name'"
+      continue
+    }
+
+    # Implementation
+    Msg Info "Running implementation for HLS component '$component_name'..."
+    if {![ExecuteVitisUnifiedCommand $python_script "impl" \
+        [list $component_name $cfg_file $hls_work_dir] \
+        "Failed to run implementation for $component_name"]} {
+      Msg Error "Implementation failed for HLS component '$component_name'"
+      continue
+    }
+
+    # Export VHDL to source tree if VHDL_OUTPUT is set
+    set vhdl_output ""
+    if {[dict exists $hls_props vhdl_output]} {
+      set vhdl_output [dict get $hls_props vhdl_output]
+    } elseif {[dict exists $hls_props VHDL_OUTPUT]} {
+      set vhdl_output [dict get $hls_props VHDL_OUTPUT]
+    }
+    if {$vhdl_output ne ""} {
+      set vhdl_output_dir [file normalize "$repo_path/$vhdl_output"]
+      Msg Info "Exporting VHDL for '$component_name' to $vhdl_output_dir..."
+      if {![ExecuteVitisUnifiedCommand $python_script "export_rtl" \
+          [list $component_name $hls_work_dir $vhdl_output_dir vhdl] \
+          "Failed to export VHDL for $component_name"]} {
+        Msg Warning "Could not export VHDL for HLS component '$component_name'"
+      }
+    }
+
+    # Export Verilog to source tree if VERILOG_OUTPUT is set
+    set verilog_output ""
+    if {[dict exists $hls_props verilog_output]} {
+      set verilog_output [dict get $hls_props verilog_output]
+    } elseif {[dict exists $hls_props VERILOG_OUTPUT]} {
+      set verilog_output [dict get $hls_props VERILOG_OUTPUT]
+    }
+    if {$verilog_output ne ""} {
+      set verilog_output_dir [file normalize "$repo_path/$verilog_output"]
+      Msg Info "Exporting Verilog for '$component_name' to $verilog_output_dir..."
+      if {![ExecuteVitisUnifiedCommand $python_script "export_rtl" \
+          [list $component_name $hls_work_dir $verilog_output_dir verilog] \
+          "Failed to export Verilog for $component_name"]} {
+        Msg Warning "Could not export Verilog for HLS component '$component_name'"
+      }
+    }
+
+    # Export IP catalog ZIP to source tree if IP_OUTPUT is set
+    set ip_output ""
+    if {[dict exists $hls_props ip_output]} {
+      set ip_output [dict get $hls_props ip_output]
+    } elseif {[dict exists $hls_props IP_OUTPUT]} {
+      set ip_output [dict get $hls_props IP_OUTPUT]
+    }
+    if {$ip_output ne ""} {
+      set ip_output_dir [file normalize "$repo_path/$ip_output"]
+      Msg Info "Exporting IP catalog for '$component_name' to $ip_output_dir..."
+      if {![ExecuteVitisUnifiedCommand $python_script "export_ip" \
+          [list $component_name $hls_work_dir $ip_output_dir] \
+          "Failed to export IP for $component_name"]} {
+        Msg Error "Could not export IP for HLS component '$component_name'. Make sure package.output.format=ip_catalog is set in hls_config.cfg."
+      }
+    }
+
+    # Collect reports into bin/ for CI and release notes
+    Msg Info "Evaluating Hog describe for $project_name..."
+    set describe [GetHogDescribe [file normalize ./Top/$project_name] $repo_path]
+    Msg Info "Hog describe set to: $describe"
+    set dst_dir [file normalize "$bin_dir/$proj_name\-$describe"]
+    if {![file exists $dst_dir]} {
+      Msg Info "Creating $dst_dir..."
+      file mkdir $dst_dir
+    }
+
+    # Mixed projects group HLS components under bin/<proj>/vitis_hls/; pure
+    # vitis_unified projects place them directly under bin/<proj>/
+    if {$is_mixed_project} {
+      set hls_out_dir [file normalize "$dst_dir/vitis_hls"]
+    } else {
+      set hls_out_dir $dst_dir
+    }
+
+    Msg Info "Collecting HLS reports for component '$component_name'..."
+    if {![ExecuteVitisUnifiedCommand $python_script "collect_reports" \
+        [list $component_name $hls_work_dir $hls_out_dir] \
+        "Failed to collect HLS reports for $component_name"]} {
+      Msg Warning "No reports found for HLS component '$component_name'"
+    }
+
+    # Generate markdown summary files (utilization.txt, timing_ok.txt /
+    # timing_error.txt) under <hls_out_dir>/<component>/. File names mirror the
+    # Vivado convention so the existing CI logic (release notes assembly and
+    # timing-failure detection) works for HLS components too
+    Msg Info "Generating HLS release-notes summary for component '$component_name'..."
+    if {![ExecuteVitisUnifiedCommand $python_script "release_notes" \
+        [list $component_name $hls_work_dir $hls_out_dir] \
+        "Failed to generate HLS summary for $component_name"]} {
+      Msg Warning "Could not generate HLS summary for component '$component_name'"
+    }
+
+    Msg Info "HLS component '$component_name' built successfully"
+  }
+
+  # For pure vitis_unified (HLS-only) projects, emit a top-level versions.txt
+  # at the bin project root
+  if {!$is_mixed_project && [info exists dst_dir] && [file isdirectory $dst_dir]} {
+    set versions_file [file normalize "$dst_dir/versions.txt"]
+    Msg Info "Generating top-level versions.txt for pure-HLS project at $versions_file"
+    if {[catch {
+      lassign [GetRepoVersions [file normalize $repo_path/Top/$project_name] $repo_path] \
+        commit version hog_hash hog_ver top_hash top_ver \
+        libs hashes vers cons_ver cons_hash \
+        ext_names ext_hashes xml_hash xml_ver \
+        user_ip_repos user_ip_hashes user_ip_vers
+      if {$commit == 0} { set commit [GetSHA] }
+      set version_str [HexVersionToString $version]
+      set hog_ver_str [HexVersionToString $hog_ver]
+      set top_ver_str [HexVersionToString $top_ver]
+      set fh [open $versions_file "w"]
+      puts $fh "## $proj_name Version Table\n"
+      puts $fh "| **File set** | **Commit SHA** | **Version** |"
+      puts $fh "| --- | --- | --- |"
+      puts $fh "| Global | $commit | $version_str |"
+      puts $fh "| Top Directory | $top_hash | $top_ver_str |"
+      puts $fh "| Hog | $hog_hash | $hog_ver_str |"
+      foreach l $libs v $vers h $hashes {
+        set v_str [HexVersionToString $v]
+        puts $fh "| **Lib:** $l | $h | $v_str |"
+      }
+      puts $fh "\n"
+      close $fh
+    } err]} {
+      Msg Warning "Could not generate top-level versions.txt for pure-HLS project: $err"
+    }
+  }
+
+  Msg Info "Done building HLS components for $project_name"
+}
+
+
+# @brief Launch HLS simulations for [hls:*] components in the project
+#
+# When called without hls_simsets (or with an empty list), runs all enabled
+# HLS simulations (CSIM if CSIM=true, COSIM if COSIM=true in hog.conf).
+# When called with specific targets (e.g. "csim:iir_lp_filter cosim:iir_lp_filter"),
+# runs only the requested simulations.
+# COSIM automatically triggers C synthesis first if not already done.
+# Triggered by the S (SIMULATE) command.
+#
+# @param[in] project_name The name of the project
+# @param[in] repo_path    The main path of the git repository (Default ".")
+# @param[in] hls_simsets   Optional list of specific HLS simsets to run (e.g. "csim:name" "cosim:name")
+proc LaunchHlsSimulation {project_name {repo_path .} {hls_simsets {}}} {
+  cd $repo_path
+
+  set conf_file [file normalize "$repo_path/Top/$project_name/hog.conf"]
+  if {![file exists $conf_file]} {
+    Msg Error "Configuration file not found: $conf_file"
+    return
+  }
+  set properties [ReadConf $conf_file]
+  set hls_components [dict filter $properties key {hls:*}]
+
+  if {[dict size $hls_components] == 0} {
+    Msg Info "No HLS components found for project $project_name"
+    return
+  }
+
+  # Build a lookup of requested targets: component_name -> list of sim types
+  # If hls_simsets is empty, we'll use hog.conf flags for all components
+  set targeted_mode [expr {[llength $hls_simsets] > 0}]
+  set targets [dict create]
+  foreach entry $hls_simsets {
+    if {[regexp {^(csim|cosim):(.+)$} $entry -> sim_type comp_name]} {
+      dict lappend targets $comp_name $sim_type
+    } else {
+      Msg Error "Invalid HLS simset format '$entry'. Expected 'csim:<component>' or 'cosim:<component>'."
+      Msg Info "Available HLS components in hog.conf:"
+      dict for {hls_key hls_props} $hls_components {
+        if {[regexp {^hls:(.+)$} $hls_key -> cname]} {
+          Msg Info "  - csim:[string trim $cname]"
+          Msg Info "  - cosim:[string trim $cname]"
+        }
+      }
+      return
+    }
+  }
+
+  set python_script [file normalize "$repo_path/Hog/Other/Python/VitisUnified/HlsCommands.py"]
+
+  dict for {hls_key hls_props} $hls_components {
+    if {![regexp {^hls:(.+)$} $hls_key -> component_name]} {
+      continue
+    }
+    set component_name [string trim $component_name]
+
+    # In targeted mode, skip components not in the request
+    if {$targeted_mode && ![dict exists $targets $component_name]} {
+      continue
+    }
+
+    # Read HLS_CONFIG path from hog.conf (mandatory)
+    set hls_cfg_rel ""
+    if {[dict exists $hls_props hls_config]} {
+      set hls_cfg_rel [dict get $hls_props hls_config]
+    } elseif {[dict exists $hls_props HLS_CONFIG]} {
+      set hls_cfg_rel [dict get $hls_props HLS_CONFIG]
+    }
+    if {$hls_cfg_rel eq ""} {
+      Msg Error "HLS component '$component_name' missing HLS_CONFIG in hog.conf"
+      continue
+    }
+
+    set cfg_file [file normalize "$repo_path/$hls_cfg_rel"]
+    if {![file exists $cfg_file]} {
+      Msg Error "HLS config file not found: $cfg_file (from HLS_CONFIG=$hls_cfg_rel)"
+      continue
+    }
+
+    set hls_work_dir [file normalize "$repo_path/Projects/$project_name/vitis_unified/$component_name"]
+    file mkdir $hls_work_dir
+
+    # Determine which simulations to run
+    if {$targeted_mode} {
+      # User explicitly requested these sim types via -simset
+      set sim_types [dict get $targets $component_name]
+      set run_csim  [expr {"csim" in $sim_types}]
+      set run_cosim [expr {"cosim" in $sim_types}]
+
+      # Validate: check if the requested sim is enabled in hog.conf
+      foreach st $sim_types {
+        set flag_val ""
+        if {[dict exists $hls_props $st]} {
+          set flag_val [dict get $hls_props $st]
+        } elseif {[dict exists $hls_props [string toupper $st]]} {
+          set flag_val [dict get $hls_props [string toupper $st]]
+        }
+        set is_enabled [expr {[string tolower $flag_val] eq "true" || $flag_val eq "1"}]
+        if {!$is_enabled} {
+          set upper_st [string toupper $st]
+          Msg Warning "HLS simulation '$st' requested for '$component_name' but\
+            $upper_st is not enabled in \[hls:$component_name\] section of\
+            hog.conf. Running it anyway."
+          Msg Info "To enable it permanently, add '$upper_st=true' under\
+            \[hls:$component_name\] in Top/$project_name/hog.conf"
+        }
+      }
+    } else {
+      # Default mode: read flags from hog.conf
+      set run_csim 0
+      set run_cosim 0
+      foreach {key_lower key_upper} {csim CSIM cosim COSIM} {
+        set val ""
+        if {[dict exists $hls_props $key_lower]} {
+          set val [dict get $hls_props $key_lower]
+        } elseif {[dict exists $hls_props $key_upper]} {
+          set val [dict get $hls_props $key_upper]
+        }
+        if {[string tolower $val] eq "true" || $val eq "1"} {
+          set run_$key_lower 1
+        }
+      }
+
+      if {!$run_csim && !$run_cosim} {
+        Msg Info "No HLS simulations enabled for '$component_name' (set CSIM=true and/or COSIM=true in \[hls:$component_name\] in hog.conf)"
+        continue
+      }
+    }
+
+    Msg Info "Running HLS simulations for component: $component_name"
+
+    # CSIM
+    if {$run_csim} {
+      Msg Info "Running C simulation for HLS component '$component_name'..."
+      if {![ExecuteVitisUnifiedCommand $python_script "csim" \
+          [list $component_name $cfg_file $hls_work_dir] \
+          "Failed to run C simulation for $component_name"]} {
+        Msg Error "C simulation failed for HLS component '$component_name'"
+        continue
+      }
+    }
+
+    # COSIM (auto-run synthesis if needed)
+    if {$run_cosim} {
+      set syn_done_marker [file normalize "$hls_work_dir/hls/syn"]
+      if {![file exists $syn_done_marker]} {
+        Msg Info "C synthesis output not found for '$component_name', running synthesis automatically before co-simulation..."
+        if {![ExecuteVitisUnifiedCommand $python_script "synthesis" \
+            [list $component_name $cfg_file $hls_work_dir] \
+            "Failed to run C synthesis for $component_name"]} {
+          Msg Error "C synthesis failed for HLS component '$component_name', cannot proceed with co-simulation"
+          continue
+        }
+      }
+
+      Msg Info "Running C/RTL co-simulation for HLS component '$component_name'..."
+      if {![ExecuteVitisUnifiedCommand $python_script "cosim" \
+          [list $component_name $cfg_file $hls_work_dir] \
+          "Failed to run co-simulation for $component_name"]} {
+        Msg Error "C/RTL co-simulation failed for HLS component '$component_name'"
+        continue
+      }
+    }
+
+    Msg Info "HLS simulations completed for '$component_name'"
+  }
+
+  Msg Info "Done with HLS simulations for $project_name"
 }
 
 # @brief Returns the BIF file path from the properties
@@ -6016,6 +6901,95 @@ proc ReadExtraFileList {extra_file_name} {
 }
 
 
+# @brief Expand a Vitis HLS configuration file (hls_config.cfg) into the list of
+#        repository files it references, so Hog can hash them for dirty/SHA
+#        detection without forcing the user to duplicate the list in a .src
+#
+# @param[in] cfg_file  Absolute or relative path to the hls_config.cfg file.
+# @return    A de-duplicated list of normalized absolute file paths.
+#
+proc ExpandHlsConfigFiles {cfg_file} {
+  set out [list]
+  if {![file exists $cfg_file] || ![file isfile $cfg_file]} {
+    return $out
+  }
+  set cfg_dir [file normalize [file dirname $cfg_file]]
+
+  if {[catch {set fp [open $cfg_file r]} err]} {
+    Msg Warning "ExpandHlsConfigFiles: cannot open $cfg_file: $err"
+    return $out
+  }
+  set lines [split [read $fp] "\n"]
+  close $fp
+
+  foreach line $lines {
+    if {[regexp {^[\t\s]*$} $line]} { continue }
+    if {[regexp {^[\t\s]*\#} $line]} { continue }
+    if {[regexp {^\s*\[.*\]\s*$} $line]} { continue }
+    if {![regexp {^\s*[^=\s]+\s*=\s*(.+?)\s*$} $line -> value]} { continue }
+
+    foreach tok [regexp -all -inline {\S+} $value] {
+      if {[file pathtype $tok] eq "absolute"} {
+        set candidate [file normalize $tok]
+      } else {
+        set candidate [file normalize [file join $cfg_dir $tok]]
+      }
+      if {[file isfile $candidate]} {
+        lappend out $candidate
+      } elseif {[file isdirectory $candidate]} {
+        set stack [list $candidate]
+        while {[llength $stack] > 0} {
+          set d [lindex $stack 0]
+          set stack [lrange $stack 1 end]
+          foreach f [glob -nocomplain -directory $d -types f *] {
+            lappend out [file normalize $f]
+          }
+          foreach sub [glob -nocomplain -directory $d -types d *] {
+            lappend stack $sub
+          }
+        }
+      }
+    }
+  }
+  return [lsort -unique $out]
+}
+
+
+# @brief Discover HLS components declared in a project's hog.conf and return
+#        the absolute path of each component's hls_config.cfg
+#
+# @param[in] conf_file  Absolute path of the project's hog.conf
+# @param[in] repo_path  Repository root (paths in HLS_CONFIG are relative to it)
+# @return    A dict { component_name -> absolute_cfg_path }. Empty if no HLS
+proc GetHlsConfigsFromProjConf {conf_file repo_path} {
+  set out [dict create]
+  if {![file exists $conf_file]} { return $out }
+  if {[catch {set properties [ReadConf $conf_file]} err]} {
+    Msg Debug "GetHlsConfigsFromProjConf: cannot parse $conf_file: $err"
+    return $out
+  }
+  set hls_components [dict filter $properties key {hls:*}]
+  dict for {hls_key hls_props} $hls_components {
+    if {![regexp {^hls:(.+)$} $hls_key -> component_name]} { continue }
+    set component_name [string trim $component_name]
+    set cfg_rel ""
+    if {[dict exists $hls_props hls_config]} {
+      set cfg_rel [dict get $hls_props hls_config]
+    } elseif {[dict exists $hls_props HLS_CONFIG]} {
+      set cfg_rel [dict get $hls_props HLS_CONFIG]
+    }
+    if {$cfg_rel eq ""} { continue }
+    set cfg_abs [file normalize "$repo_path/$cfg_rel"]
+    if {![file exists $cfg_abs]} {
+      Msg CriticalWarning "HLS component '$component_name': HLS_CONFIG=$cfg_rel does not exist on disk."
+      continue
+    }
+    dict set out $component_name $cfg_abs
+  }
+  return $out
+}
+
+
 # @brief Read a list file and return a list of three dictionaries
 #
 # Additional information is provided with text separated from the file name with one or more spaces
@@ -6189,7 +7163,11 @@ proc ReadListFile {args} {
                   set prop_name [string range $p 0 [expr {$pos - 1}]]
                 }
                 if {[IsInList $prop_name [DictGet [ALLOWED_PROPS] $extension]] || [string first "top" $p] == 0 || $list_file_ext eq ".ipb"} {
-                  dict lappend properties $vhdlfile $p
+		  if {$list_file_ext eq ".ipb"} {
+		    dict lappend properties $vhdlfile $path/$p
+		  } else {
+		    dict lappend properties $vhdlfile $p
+		  }
                   Msg Debug "Adding property $p to $vhdlfile..."
                 } elseif {$list_file_ext != ".ipb"} {
                   Msg Warning "Setting Property $p is not supported for file $vhdlfile or it is already its default. \
@@ -6226,6 +7204,36 @@ proc ReadListFile {args} {
               set real_file [GetLinkedFile $vhdlfile]
               dict lappend libraries $lib_name $real_file
               Msg Debug "File $vhdlfile is a soft link, also adding the real file: $real_file"
+            }
+
+            # Auto-expand HLS config files: when a .cfg is referenced from a .src
+            # we treat it as a Vitis HLS hls_config.cfg and add every existing
+            # file/dir it references (syn.file, tb.file, -I include dirs, ...)
+            # to the same library. This avoids forcing the user to duplicate the
+            # HLS file list in both hls_config.cfg and the .src.
+            if {$list_file_ext eq ".src" && $extension eq ".cfg"} {
+              set hls_extras [ExpandHlsConfigFiles $vhdlfile]
+              if {$print_log == 1 && [llength $hls_extras] > 0} {
+                Msg Status "$indent   Inside [file tail $vhdlfile] (HLS auto-expand):"
+              }
+              set n_extras [llength $hls_extras]
+              set i 0
+              foreach hls_extra $hls_extras {
+                incr i
+                if {$hls_extra eq $vhdlfile} { continue }
+                Msg Debug "HLS cfg expansion: adding $hls_extra (from $vhdlfile) to $lib_name"
+                if {$print_log == 1} {
+                  if {$i == $n_extras} { set pad "└──" } else { set pad "├──" }
+                  set rel [Relative [file dirname $vhdlfile] $hls_extra]
+                  Msg Status "$indent     $pad $rel"
+                }
+                dict lappend libraries $lib_name $hls_extra
+                if {$sha_mode != 0 && [file type $hls_extra] eq "link"} {
+                  set real_extra [GetLinkedFile $hls_extra]
+                  dict lappend libraries $lib_name $real_extra
+                  Msg Debug "HLS expanded file $hls_extra is a soft link, also adding $real_extra"
+                }
+              }
             }
 
 
@@ -6438,8 +7446,12 @@ proc SetGenericsSimulation {repo_path proj_dir target} {
       set simset_generics [DictGet $simset_dict "generics"]
       set merged_generics_dict [MergeDict $merged_generics_dict $simset_generics 0]
       set generic_str [GenericToSimulatorString $merged_generics_dict $target]
+
+      Msg Debug "TOP      = [get_property top [get_filesets sources_1]]"
+      Msg Debug "GENERICS  = [get_property generic [get_filesets sources_1]]"
+
       set_property generic $generic_str [get_filesets $simset]
-      Msg Debug "Setting generics $generic_str for simulator $target\
+      Msg Info "Setting generics $generic_str for simulator $target\
       and simulation file-set $simset..."
     }
   }
@@ -6540,7 +7552,8 @@ proc WriteGenerics {mode repo_path design date timee\
     "HOG_SHA=[FormatGeneric $hog_hash]" \
     "HOG_VER=[FormatGeneric $hog_ver]" \
     "CON_VER=[FormatGeneric $cons_ver]" \
-    "CON_SHA=[FormatGeneric $cons_hash]"]
+    "CON_SHA=[FormatGeneric $cons_hash]"
+  ]
   # xml hash
   if {$xml_hash != "" && $xml_ver != ""} {
     lappend generic_string \
@@ -6578,7 +7591,7 @@ proc WriteGenerics {mode repo_path design date timee\
   }
 
   # Dealing with project generics in Vivado
-  if {[IsVivado] || [IsVitisClassic]} {
+  if {[IsVivado] || [IsVitisClassic] || [IsVitisUnified]} {
     set prj_generics [GenericToSimulatorString [GetGenericsFromConf $design] "Vivado"]
     set generic_string "$prj_generics $generic_string"
   }
@@ -6636,7 +7649,7 @@ proc WriteGenerics {mode repo_path design date timee\
   } elseif {[IsDiamond]} {
     Msg Info "Setting Diamond parameters/generics one by one..."
     prj_impl option -impl Implementation0 HDL_PARAM "$generic_string"
-  } elseif {[IsVitisClassic]} {
+  } elseif {[IsVitisClassic] || [IsVitisUnified]} {
     if {[catch {set ws_apps [app list -dict]}]} { set ws_apps "" }
 
     foreach app_name [dict keys $ws_apps] {
@@ -7106,4 +8119,26 @@ proc WriteUtilizationSummary {input output project_name run} {
 # Check Git Version when sourcing hog.tcl
 if {[GitVersion 2.7.2] == 0} {
   Msg Error "Found Git version older than 2.7.2. Hog will not work as expected, exiting now."
+}
+
+## @brief Tries to find the coorrect command to be launched for curl
+#
+# @details If running in vivado shell you may need to unsed LD_LIBRARY_PATH befor running curl to avoid conflicts with vivado libraries.
+# This procedure tests curl if execution is correct returns "curl"
+# If execution fails tries to run env -u LD_LIBRARY_PATH curl --silent --show-error, and returns "env -u LD_LIBRARY_PATH curl --silent --show-error" on success.
+# If both fail returns "curl", this will most probably generate failures later
+proc GetCurl {} {
+    if {![catch {exec curl --silent --show-error --version}]} {
+        if {![catch {exec curl --silent --show-error -I https://gitlab.com}]} {
+            return [list curl --silent --show-error]
+        }
+    }
+
+    if {![catch {exec env -u LD_LIBRARY_PATH curl --silent --show-error --version}]} {
+        if {![catch {exec env -u LD_LIBRARY_PATH curl --silent --show-error -I https://gitlab.com}]} {
+            return [list env -u LD_LIBRARY_PATH curl --silent --show-error]
+        }
+    }
+
+    error "Cannot find a working curl invocation"
 }

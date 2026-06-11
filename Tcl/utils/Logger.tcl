@@ -180,6 +180,10 @@ proc Logo {{repo_path .}} {
       Msg CriticalWarning "Logo file: $logo_file not found"
     }
 
+    Msg Status ""
+    Msg Status "  ★  Like Hog? Star us on GitLab: https://gitlab.com/hog-cern/Hog  |  GitHub: https://github.com/hog-cern/Hog"
+    after 1000
+    Msg Status ""
 
     # Msg Status "Version: $ver"
     cd $old_path

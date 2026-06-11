@@ -823,6 +823,7 @@ function print_hog_logo () {
         echo -e "$line"
       fi
     done < "$logo_file"
+    echo "  ★  Like Hog? Star us on GitLab: https://gitlab.com/hog-cern/Hog  |  GitHub: https://github.com/hog-cern/Hog"
     export HOG_LOGO_PRINTED=1
   else
     Msg Warning "Logo file $logo_file doesn't exist"

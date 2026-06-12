@@ -1618,8 +1618,19 @@ proc CopyIPbusXMLs {proj_dir path dst {xml_version "0.0.0"} {xml_sha "00000000"}
       set xmlfile [file normalize $xmlfile]
       Msg Info "Copying $xmlfile to $dst and replacing place holders..."
       set in [open $xmlfile r]
-      set out [open $dst/[file tail $xmlfile] w]
 
+      if {[regexp \/xml\/+(.*)$   $xmlfile XXX out_with_dir]} {
+	set out_file $dst/$out_with_dir
+	Msg Debug "xml file $xmlfile is contained in a directory called 'xml', so file will be copied to $out_file"
+	set out_dir [file dir $out_file]
+	if {![file exists $out_dir]} {
+	  file mkdir $out_dir
+	}
+      } else {
+	set out_file $dst/[file tail $xmlfile]
+      }
+      
+      set out [open $out_file w]
       while {[gets $in line] != -1} {
         set new_line [regsub {(.*)__VERSION__(.*)} $line "\\1$xml_version\\2"]
         set new_line2 [regsub {(.*)__GIT_SHA__(.*)} $new_line "\\1$xml_sha\\2"]

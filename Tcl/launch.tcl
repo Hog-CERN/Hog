@@ -242,9 +242,13 @@ if {$cmd == -1} {
   if {$do_checkproj_ver == 1} {
     if {$project_name eq ""} {
       set projects [ListProjects $repo_path 1 0 1]
+      set proj_to_do {}
       foreach p $projects {
-	CheckProjVer $repo_path $p $options(simcheck) $options(ext_path)
+	if {[CheckProjVer $repo_path $p $options(simcheck) $options(ext_path)] == 1} {
+	  lappend proj_to_do $p
+	}
       }
+      Msg Info "[llength $proj_to_do] projects were modified: $proj_to_do"
     } else {
       CheckProjVer $repo_path $project_name $options(simcheck) $options(ext_path)
     }

@@ -240,19 +240,27 @@ if {$cmd == -1} {
   }
 
   if {$do_checkproj_ver == 1} {
+    set proj_to_do {}
     if {$project_name eq ""} {
       set projects [ListProjects $repo_path 1 0 1]
-      set proj_to_do {}
       foreach p $projects {
 	if {[CheckProjVer $repo_path $p $options(simcheck) $options(ext_path)] == 0} {
 	  lappend proj_to_do $p
 	}
       }
-      Msg Info "[llength $proj_to_do] projects were modified: $proj_to_do"
     } else {
-      set ret [CheckProjVer $repo_path $project_name $options(simcheck) $options(ext_path)]
-      Msg Info "Returned $ret"
+      if {[CheckProjVer $repo_path $project_name $options(simcheck) $options(ext_path)] == 0} {
+	lappend proj_to_do $project_name
+      }
+    
     }
+
+    set n [llength $proj_to_do]
+    if {$n > 0 } {
+      Msg Info "The following projects were modified: \n [join $proj_to_do \n]"
+     }
+
+    Msg Info "$n projects were modified since last official version."
     exit 0
       
   }

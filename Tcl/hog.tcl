@@ -1002,6 +1002,7 @@ proc CheckProjVer {repo_path project {sim 0} {ext_path ""}} {
     Msg Error "Impossible to check the project version. Most likely the repository is not clean. Please, commit your changes before running this command."
     return 0
   }
+  return 0
 }
 
 # @brief Check the syntax of the source files in the

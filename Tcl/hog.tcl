@@ -4616,6 +4616,10 @@ proc InitLauncher {script tcl_path parameters commands argv {custom_commands ""}
       lappend directives_with_projects $d
     }
 
+    if {[regexp {\\(.*) \{\#} $l minc dd]} {
+      lappend directives_with_optional_projects $dd
+    }    
+
     #gets all the regexes
     if {[regexp {\\(.*) \{} $l minc regular_expression]} {
       lappend directive_regex $regular_expression
@@ -4766,7 +4770,6 @@ proc InitLauncher {script tcl_path parameters commands argv {custom_commands ""}
         }
       }
 
-
       #if custom command, parse custom options instead
       if {$custom_command ne ""} {
         if {[llength $custom_command_options] > 0} {
@@ -4834,13 +4837,19 @@ proc InitLauncher {script tcl_path parameters commands argv {custom_commands ""}
   }
 
   set project [lindex $arg_list 1]
-
+  set optional_project [IsInList $directive $directives_with_optional_projects 1]
+  
   if {$argument_is_no_project == 0} {
     # Remove leading Top/ or ./Top/ if in project_name
     regsub "^(\./)?Top/" $project "" project
     # Remove trailing / and spaces if in project_name
     regsub "/? *\$" $project "" project
-    set proj_conf [ProjectExists $project $repo_path]
+
+    if {$project eq "" && $optional_project == 1} {
+      set proj_conf 0
+    } else {
+      set proj_conf [ProjectExists $project $repo_path]
+    }
   } else {
     set proj_conf 0
   }
@@ -4882,7 +4891,11 @@ proc InitLauncher {script tcl_path parameters commands argv {custom_commands ""}
         set command -3
       } else {
         #Project not found
-        set command -2
+	if {$optional_project == 0} {
+	  set command -2
+	} else {
+	  set command -3
+	}
       }
     }
   } else {
@@ -6682,7 +6695,7 @@ proc ReadProcMap {proc_map_file} {
 # @param[in] repo_path  The main path of the git repository
 # @param[in] print      if 1 print the list of projects in the repository, if 2 does not print test projects
 # @param[in] ret_conf   if 1 returns conf file rather than list of project names
-proc ListProjects {{repo_path .} {print 1} {ret_conf 0}} {
+proc ListProjects {{repo_path .} {print 1} {ret_conf 0} {silent 0}} {
   set top_path [file normalize $repo_path/Top]
   set confs [findFiles [file normalize $top_path] hog.conf]
   set projects ""
@@ -6704,9 +6717,9 @@ proc ListProjects {{repo_path .} {print 1} {ret_conf 0}} {
         set g [file dirname $p]
         # Print a list of the projects with relative IDE and description (second line comment in hog.conf)
         if {$g ne $old_g} {
-          Msg Status ""
+          if {$silent ==0 } {Msg Status ""}
         }
-        Msg Status "$p \([GetIDEFromConf $c]\)$description"
+        if {$silent == 0} {Msg Status "$p \([GetIDEFromConf $c]\)$description"}
       }
     }
     lappend projects $p

@@ -162,7 +162,7 @@ tag_official_version:
     - new_tag=${note[2]}
     - if [ "$new_tag" = "DO_NOT_TAG" ]; then
         echo "No project Hog project was modified in this MR, will not create a tag";
-	exit 0;
+        exit 0;
       fi;  
     - if [ -z "$new_tag" ]; then
         echo "It was impossible to get the tag number from the git note of this commit. Check that your repository settings allows only fast-forward merge, and that the merge_and_tag job in your Merge pipeline succeeded.";

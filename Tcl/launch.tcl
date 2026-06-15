@@ -250,7 +250,8 @@ if {$cmd == -1} {
       }
       Msg Info "[llength $proj_to_do] projects were modified: $proj_to_do"
     } else {
-      CheckProjVer $repo_path $project_name $options(simcheck) $options(ext_path)
+      set ret [CheckProjVer $repo_path $project_name $options(simcheck) $options(ext_path)]
+      Msg Info "Returned $ret"
     }
     exit 0
       

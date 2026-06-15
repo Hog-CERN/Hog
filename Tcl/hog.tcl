@@ -940,13 +940,13 @@ proc CheckProjVer {repo_path project {sim 0} {ext_path ""}} {
       lassign [GetRepoVersions $project_dir $repo_path] sha
       if {$sha == [GetSHA $repo_path]} {
         Msg Info "Project was modified in the current commit, Hog will proceed with the build workflow."
-        return
+        return 0
       }
       Msg Info "Checking if project $project has been built in a previous CI run with sha $sha..."
       set result [catch {package require json} JsonFound]
       if {"$result" != "0"} {
         Msg CriticalWarning "Cannot find JSON package equal or higher than 1.0.\n $JsonFound\n Exiting"
-        return
+        return 0
       }
       lassign [ExecuteRet {*}$curl_cmd --header "PRIVATE-TOKEN: $token" "$api_url/projects/$project_id/pipelines"] ret content
       set pipeline_dict [json::json2dict $content]
@@ -972,7 +972,7 @@ proc CheckProjVer {repo_path project {sim 0} {ext_path ""}} {
                   lassign [ExecuteRet {*}$curl_cmd --location --output artifacts.zip --header "PRIVATE-TOKEN: $token" --url "$api_url/projects/$project_id/jobs/$job_id/artifacts"] ret3 content3
                   if {$ret3 != 0} {
                     Msg CriticalWarning "Cannot download artifacts for job $job_name with id $job_id"
-                    return
+                    return 0
                   } else {
                     lassign [ExecuteRet unzip -o $repo_path/artifacts.zip] ret_zip
                     if {$ret_zip != 0} {
@@ -982,7 +982,7 @@ proc CheckProjVer {repo_path project {sim 0} {ext_path ""}} {
                       file mkdir $repo_path/Projects/$project
                       set fp [open "$repo_path/Projects/$project/skip.me" w+]
                       close $fp
-                      exit 0
+                      return 1
                     }
                   }
                 }
@@ -997,10 +997,10 @@ proc CheckProjVer {repo_path project {sim 0} {ext_path ""}} {
     file mkdir $repo_path/Projects/$project
     set fp [open "$repo_path/Projects/$project/skip.me" w+]
     close $fp
-    exit 0
+    return 1
   } else {
     Msg Error "Impossible to check the project version. Most likely the repository is not clean. Please, commit your changes before running this command."
-    exit 1
+    return 0
   }
 }
 

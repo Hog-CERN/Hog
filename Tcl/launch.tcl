@@ -478,6 +478,20 @@ if {$cmd == -1} {
     exit 0
   }
 
+  ## CHECK PROJECT VERSION
+  if {$do_checkproj_ver == 1} {
+    if {$project_name eq ""} {
+      set projects [ListProjects $repo_path 1]
+      foreach p $projects {
+	CheckProjVer $repo_path $p $options(simcheck) $options(ext_path)
+      }
+    } else {
+      CheckProjVer $repo_path $project_name $options(simcheck) $options(ext_path)
+    }
+    exit 0
+      
+  }
+
   if {$do_check_ci_env == 1} {
     CheckCIEnv
     exit 0
@@ -760,12 +774,6 @@ if {[IsLibero] || [IsDiamond]} {
 if {[catch {package require cmdline} ERROR] || [catch {package require struct::matrix} ERROR]} {
   puts "$ERROR\n Tcllib not found. If you are running this script on tclsh for debuggin purpose ONLY, you can fix this by installing 'tcllib'"
   exit 1
-}
-
-## CHECK PROJECT VERSION
-if {$do_checkproj_ver == 1} {
-  CheckProjVer $repo_path $project_name $options(simcheck) $options(ext_path)
-  exit 0
 }
 
 set run_folder [file normalize "$repo_path/Projects/$project_name/$project.runs/"]

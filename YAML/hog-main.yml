@@ -109,6 +109,11 @@ check_branch_state:
         echo $NEW_TAG;
       fi;
     - echo "New tag is $NEW_TAG"
+    - NUM=$(./Hog/Do CPV | tee /dev/tty | tail -n1 | grep -oP '\d+(?= projects were modified since last official version)')
+    - if [ "$NUM" = "0" ]; then
+       NEW_TAG="DO_NOT_TAG";
+       echo "No project was modified, will not add a new tag to the git notes";
+      fi;
     - "git notes add -fm \"$CI_MERGE_REQUEST_IID $CI_COMMIT_REF_NAME $NEW_TAG\""
     - git push origin refs/notes/*
   interruptible: true
@@ -155,6 +160,10 @@ tag_official_version:
         exit 1;
       }
     - new_tag=${note[2]}
+    - if [ "$new_tag" = "DO_NOT_TAG" ]; then
+        echo "No project Hog project was modified in this MR, will not create a tag";
+	exit 0;
+      fi;  
     - if [ -z "$new_tag" ]; then
         echo "It was impossible to get the tag number from the git note of this commit. Check that your repository settings allows only fast-forward merge, and that the merge_and_tag job in your Merge pipeline succeeded.";
         echo "More info here https://hog.readthedocs.io/en/latest/02-User-Manual/02-Hog-CI/01-GitLab-CI/01-setup-CI.html?highlight=fast%20forward#remove-merge-commit";

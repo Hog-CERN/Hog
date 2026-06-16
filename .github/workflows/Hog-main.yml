@@ -66,6 +66,10 @@ jobs:
             exit 1;
           }
           new_tag=${note[2]}
+          if [ "$new_tag" = "DO_NOT_TAG" ]; then
+            echo "No project was modified in this MR, will not create a tag."
+            exit 0
+          fi
           if [ -z "$new_tag" ]; then
             echo "It was impossible to get the tag number from the git note of this commit. Check that your repository settigns allows only merge commis, and that the merge_and_tag job in your Merge pipeline succeded."
             echo "More info here https://hog.readthedocs.io/en/latest/02-User-Manual/02-Hog-CI/02-GitHub-Actions/01-Setup-Actions.html#merge-commit-handling-on-github-com"

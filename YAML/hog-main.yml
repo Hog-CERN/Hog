@@ -163,7 +163,7 @@ tag_official_version:
     - if [ "$new_tag" = "DO_NOT_TAG" ]; then
         echo "No project Hog project was modified in this MR, will not create a tag";
         exit 0;
-      fi;  
+      fi;
     - if [ -z "$new_tag" ]; then
         echo "It was impossible to get the tag number from the git note of this commit. Check that your repository settings allows only fast-forward merge, and that the merge_and_tag job in your Merge pipeline succeeded.";
         echo "More info here https://hog.readthedocs.io/en/latest/02-User-Manual/02-Hog-CI/01-GitLab-CI/01-setup-CI.html?highlight=fast%20forward#remove-merge-commit";

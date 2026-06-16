@@ -4619,7 +4619,7 @@ proc InitLauncher {script tcl_path parameters commands argv {custom_commands ""}
 
     if {[regexp {\\(.*) \{\#} $l minc dd]} {
       lappend directives_with_optional_projects $dd
-    }    
+    }
 
     #gets all the regexes
     if {[regexp {\\(.*) \{} $l minc regular_expression]} {
@@ -4839,7 +4839,7 @@ proc InitLauncher {script tcl_path parameters commands argv {custom_commands ""}
 
   set project [lindex $arg_list 1]
   set optional_project [IsInList $directive $directives_with_optional_projects 1]
-  
+
   if {$argument_is_no_project == 0} {
     # Remove leading Top/ or ./Top/ if in project_name
     regsub "^(\./)?Top/" $project "" project

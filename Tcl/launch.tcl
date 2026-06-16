@@ -252,7 +252,6 @@ if {$cmd == -1} {
       if {[CheckProjVer $repo_path $project_name $options(simcheck) $options(ext_path)] == 0} {
 	lappend proj_to_do $project_name
       }
-    
     }
 
     set n [llength $proj_to_do]
@@ -262,7 +261,6 @@ if {$cmd == -1} {
 
     Msg Info "$n projects were modified since last official version."
     exit 0
-      
   }
 
   if {$do_check_ci_env == 1} {

@@ -109,9 +109,9 @@ check_branch_state:
         echo $NEW_TAG;
       fi;
     - echo "New potential tag is $NEW_TAG"
-    - cpv=$(./Hog/Do CPV)
-    - echo $cpv
-    - NUM=$(echo $cpv | tail -n1 | grep -oP '\d+(?= projects were modified since last official version)')
+    - cpv=$(HOG_LOGGER=0 HOG_COLOR=0 ./Hog/Do CPV)
+    - echo "$cpv"
+    - NUM=$(echo "$cpv" | tail -n1 | grep -oP '\d+(?= projects were modified since last official version)')
     - if [ "$NUM" = "0" ]; then
        NEW_TAG="DO_NOT_TAG";
        echo "No project was modified, will not add a new tag to the git notes";

@@ -163,7 +163,7 @@ tag_official_version:
       }
     - new_tag=${note[2]}
     - if [ "$new_tag" = "DO_NOT_TAG" ]; then
-        echo "No project Hog project was modified in this MR, will not create a tag";
+        echo "No project was modified in this MR, will not create a tag.";
         exit 0;
       fi;
     - if [ -z "$new_tag" ]; then

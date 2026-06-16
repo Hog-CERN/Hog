@@ -993,7 +993,7 @@ proc CheckProjVer {repo_path project {sim 0} {ext_path ""}} {
       }
     }
   } elseif {$ver != -1} {
-    Msg Info "$project was not modified since version: $ver, disabling the CI..."
+    Msg Info "$project was not modified since version: $ver."
     file mkdir $repo_path/Projects/$project
     set fp [open "$repo_path/Projects/$project/skip.me" w+]
     close $fp
@@ -3473,7 +3473,7 @@ proc GetProjectVersion {proj_dir repo_path {ext_path ""} {sim 0}} {
   set comp [CompareVersions $v_proj $v_last]
   Msg Debug "Project version $v_proj, latest tag $v_last"
   if {$comp == 1} {
-    Msg Info "The specified project was modified since official version."
+    Msg Debug "The specified project was modified since official version."
     set ret 0
   } else {
     set ret v[HexVersionToString $ver]
@@ -3520,7 +3520,7 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
 
   cd "$repo_path/Hog"
   if {[Git {status --untracked-files=no  --porcelain}] eq ""} {
-    Msg Info "Hog submodule [pwd] clean."
+    Msg Debug "Hog submodule [pwd] clean."
     lassign [GetVer ./] hog_ver hog_hash
   } else {
     Msg CriticalWarning "Hog submodule [pwd] not clean, commit hash will be set to 0."
@@ -3658,7 +3658,7 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
 
     #Msg Info "Found IPbus XML SHA: $xml_hash and version: $xml_ver."
   } else {
-    Msg Info "This project does not use IPbus XMLs"
+    Msg Debug "This project does not use IPbus XMLs"
     set xml_ver ""
     set xml_hash ""
   }
@@ -3709,7 +3709,7 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
 
   # Check cleanliness only for the files that belong to this project
   if {[Git "status --untracked-files=no --porcelain" $project_files] eq ""} {
-    Msg Info "Project-relevant files are clean."
+    Msg Debug "Project-relevant files are clean."
     set clean 1
   } else {
     Msg CriticalWarning "Project-relevant files not clean, commit hash and version will be set to 0."
@@ -3858,7 +3858,7 @@ proc GetTopModule {} {
 #
 # @return  a list: the git SHA, the version in hex format
 #
-proc GetVer {path {force_develop 0} {verbose 1}} {
+proc GetVer {path {force_develop 0}} {
   set SHA [GetSHA $path]
   #oldest tag containing SHA
   if {$SHA eq ""} {
@@ -3874,7 +3874,7 @@ proc GetVer {path {force_develop 0} {verbose 1}} {
   set repo_path [Git {rev-parse --show-toplevel}]
   cd $old_path
 
-  return [list [GetVerFromSHA $SHA $repo_path $force_develop $verbose] $SHA]
+  return [list [GetVerFromSHA $SHA $repo_path $force_develop] $SHA]
 }
 
 ## @brief Get git version and commit hash of a specific commit give the SHA
@@ -3882,11 +3882,10 @@ proc GetVer {path {force_develop 0} {verbose 1}} {
 # @param[in] SHA the git SHA of the commit
 # @param[in] repo_path the path of the repository, this is used to open the Top/repo.conf file
 # @param[in] force_develop Force a tag for the develop branch (increase m)
-# @param[in] verbose Print extra information
 #
 # @return  a list: the git SHA, the version in hex format
 #
-proc GetVerFromSHA {SHA repo_path {force_develop 0} {verbose 1}} {
+proc GetVerFromSHA {SHA repo_path {force_develop 0} } {
   if {$SHA eq ""} {
     Msg CriticalWarning "Empty SHA found"
     set ver "v0.0.0"
@@ -3969,9 +3968,8 @@ proc GetVerFromSHA {SHA repo_path {force_develop 0} {verbose 1}} {
           }
 
           if {[string match "HEAD" $branch_name]} {
-            if {$verbose == 1} {
-              Msg Warning "Detached HEAD detected - attempting to find branch name"
-            }
+	    Msg Debug "Detached HEAD detected - attempting to find branch name"
+
             # if the branch_name is HEAD (not a legal branch name btw)
             # then the branch has been checked out in a detached head state
             # this is a fallback condition to enable finding the branch name that the commit is linked too
@@ -3997,13 +3995,9 @@ proc GetVerFromSHA {SHA repo_path {force_develop 0} {verbose 1}} {
 
             if {!$match_count == 1} {
               set branch_name $prev_branch_name
-              if {$verbose == 1} {
-                Msg Warning "Branch name not found. Using $branch_name"
-              }
+	      Msg Debug "Branch name not found. Using $branch_name"
             } else {
-              if {$verbose == 1} {
-                Msg Info "Branch name found: $branch_name"
-              }
+	      Msg Debug "Branch name found: $branch_name"
             }
           }
 

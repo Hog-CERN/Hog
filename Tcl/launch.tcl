@@ -1,4 +1,6 @@
 #!/usr/bin/env tclsh
+# tcl-lsp: disable=W300
+
 # @file
 #   Copyright 2018-2026 The University of Birmingham
 #
@@ -13,13 +15,9 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
-
-
 # Launch Xilinx Vivado or ISE implementation and possibly write bitstream in text mode
-
 # Developers Tip for new commands
 # Add a hashtag sign # after the curly brake (e.g. \^C(REATE)?$ {# ...}) if the command requires a project name as an argument
-
 set tcl_path [file normalize "[file dirname [info script]]"]
 source $tcl_path/hog.tcl
 source $tcl_path/create_project.tcl
@@ -31,7 +29,7 @@ set globalSettings::vitis_classic 0
 
 # Check if we're already running in xsct (Vitis Classic)
 # This must be done early, before InitLauncher, to prevent launching Vivado
-if {[info commands platform] != ""} {
+if {[info commands platform] ne ""} {
   set globalSettings::vitis_classic 1
   set globalSettings::vitis_unified 0
 }
@@ -39,39 +37,34 @@ if {[info commands platform] != ""} {
 # Quartus needs extra packages and treats the argv in a different way
 if {[IsQuartus]} {
   load_package report
+  # noqa: W210
   set argv $quartus(args)
 }
 
-# Msg Debug "s: $::argv0 a: $argv"
 
+# Msg Debug "s: $::argv0 a: $argv"
 ### CUSTOM COMMANDS ###
 set commands_path [file normalize "$tcl_path/../../hog-commands/"]
 set custom_commands [GetCustomCommands $parameters $commands_path ]
 
-lassign [InitLauncher $::argv0 $tcl_path $parameters $default_commands $argv $custom_commands] \
-directive project project_name group_name repo_path old_path bin_dir top_path usage short_usage cmd ide list_of_options
+lassign [InitLauncher $::argv0 $tcl_path $parameters $default_commands $argv $custom_commands] directive project \
+  project_name group_name repo_path old_path bin_dir top_path usage short_usage cmd ide list_of_options
 
 array set options $list_of_options
 
 if {$options(verbose) == 1} {
   setDebugMode 1
 }
-Msg Debug "Returned by InitLauncher: \n\
-  - project: $project \n\
-  - project_name $project_name \n\
-  - group_name $group_name \n\
-  - repo_path $repo_path \n\
-  - old_path $old_path \n\
-  - bin_dir $bin_dir \n\
-  - top_path $top_path \n\
-  - cmd $cmd"
+Msg Debug \
+  "Returned by InitLauncher: \n - project: $project \n - project_name $project_name \n - group_name $group_name \n - \
+  repo_path $repo_path \n - old_path $old_path \n - bin_dir $bin_dir \n - top_path $top_path \n - cmd $cmd"
 
 set ext_path ""
-if {$options(ext_path) != ""} {
+if {$options(ext_path) ne ""} {
   set ext_path $options(ext_path)
 }
 set lib_path ""
-if {$options(lib) != ""} {
+if {$options(lib) ne ""} {
   set lib_path [file normalize $options(lib)]
 } else {
   if {[info exists env(HOG_SIMULATION_LIB_PATH)]} {
@@ -95,7 +88,7 @@ if {$options(verbose) == 1} {
 # printDebugMode
 # Msg Info "Number of jobs set to $options(njobs)."
 set output_path ""
-if {$options(output) != ""} {
+if {$options(output) ne ""} {
   set output_path $options(output)
 }
 
@@ -108,17 +101,28 @@ set include_gen_prods $options(include_gen_prods)
 
 ######## DEFAULTS #########
 set do_rtl 0
-set do_checkproj_env 0; set do_check_ci_env 0; set do_checkproj_ver 0;
-set do_implementation 0; set do_synthesis 0; set do_bitstream 0
-set do_create 0; set do_compile 0; set do_simulation 0; set recreate 0
-set do_reset 1; set do_list_all 2; set do_check_syntax 0; set do_vitis_build 0;
-set scripts_only 0; set compile_only 0
+set do_checkproj_env 0
+set do_check_ci_env 0
+set do_checkproj_ver 0
+set do_implementation 0
+set do_synthesis 0
+set do_bitstream 0
+set do_create 0
+set do_compile 0
+set do_simulation 0
+set recreate 0
+set do_reset 1
+set do_list_all 2
+set do_check_syntax 0
+set do_vitis_build 0
+set scripts_only 0
+set compile_only 0
 set ide_name ""
 set allow_empty_proj 0
+
 ### Hog stand-alone directives ###
 # The following directives are used WITHOUT ever calling the IDE, they are run in tclsh
 # A place holder called new_directive can be followed to add new commands
-
 set do_ipbus_xml 0
 set do_list_file_parse 0
 set do_check_yaml_ref 0
@@ -187,10 +191,10 @@ if {$NO_DIRECTIVE_FOUND == 1} {
       }
     }
   } else {
-      Msg Info "No directive found, pre ide exiting..."
-      Msg Status "ERROR: Unknown directive $directive.\n\n"
-      puts $usage
-      exit
+    Msg Info "No directive found, pre ide exiting..."
+    Msg Status "ERROR: Unknown directive $directive.\n\n"
+    puts $usage
+    exit
   }
 }
 
@@ -202,10 +206,9 @@ if {$options(all) == 1} {
 
 if {$options(dst_dir) == "" && ($do_ipbus_xml == 1 || $do_check_list_files == 1) && $project != ""} {
   # Getting all the versions and SHAs of the repository
-  lassign [GetRepoVersions [file normalize $repo_path/Top/$group_name/$project] \
-    $repo_path $ext_path] commit version hog_hash hog_ver top_hash top_ver libs hashes vers \
-    cons_ver cons_hash ext_names ext_hashes xml_hash xml_ver user_ip_repos \
-    user_ip_hashes user_ip_vers
+  lassign [GetRepoVersions [file normalize $repo_path/Top/$group_name/$project] $repo_path $ext_path] commit version \
+    hog_hash hog_ver top_hash top_ver libs hashes vers cons_ver cons_hash ext_names ext_hashes xml_hash xml_ver \
+    user_ip_repos user_ip_hashes user_ip_vers
   cd $repo_path
 
   set describe [GetHogDescribe [file normalize $repo_path/Top/$group_name/$project] $repo_path]
@@ -244,20 +247,20 @@ if {$cmd == -1} {
     if {$project_name eq ""} {
       set projects [ListProjects $repo_path 1 0 1]
       foreach p $projects {
-	if {[CheckProjVer $repo_path $p $options(simcheck) $options(ext_path)] == 0} {
-	  lappend proj_to_do $p
-	}
+        if {[CheckProjVer $repo_path $p $options(simcheck) $options(ext_path)] == 0} {
+          lappend proj_to_do $p
+        }
       }
     } else {
       if {[CheckProjVer $repo_path $project_name $options(simcheck) $options(ext_path)] == 0} {
-	lappend proj_to_do $project_name
+        lappend proj_to_do $project_name
       }
     }
 
     set n [llength $proj_to_do]
     if {$n > 0 } {
       Msg Info "The following projects were modified: \n [join $proj_to_do \n]"
-     }
+    }
 
     Msg Info "$n projects were modified since last official version."
     exit 0
@@ -288,9 +291,8 @@ if {$cmd == -1} {
       set dst_dir $options(dst_dir)
     } else {
       if {![info exists dst_dir]} {
-	set dst_dir ""
+        set dst_dir ""
       }
-
     }
     set xml_dst "$dst_dir/xml"
 
@@ -328,11 +330,11 @@ if {$cmd == -1} {
     source $tcl_path/utils/hierarchy.tcl
     set proj_dir $repo_path/Top/$project_name
     set proj_list_dir $repo_path/Top/$project_name/list
-    lassign [GetHogFiles -ext_path $ext_path \
-        -list_files ".src,.ext" $proj_list_dir $repo_path]\
-        listLibraries listProperties listSrcSets
-    set hierarchy_result [Hierarchy $listProperties $listLibraries $repo_path $output_path $compile_order \
-    $light_hierarchy $top_module $ignored_hierarchy $include_ieee $include_gen_prods]
+    lassign [GetHogFiles -ext_path $ext_path -list_files ".src,.ext" $proj_list_dir $repo_path] listLibraries \
+      listProperties listSrcSets
+    set hierarchy_result \
+      [Hierarchy $listProperties $listLibraries $repo_path $output_path $compile_order $light_hierarchy $top_module \
+      $ignored_hierarchy $include_ieee $include_gen_prods]
     puts $hierarchy_result
     exit 0
   }
@@ -347,10 +349,27 @@ if {$cmd == -1} {
     foreach lib $libraries {
       set source_files [DictGet $libraries $lib]
       foreach source_file $source_files {
-        if {[file extension $source_file] == ".vhd" ||
-            [file extension $source_file] == ".vhdl" ||
-            [file extension $source_file] == ".sv" ||
-            [file extension $source_file] == ".v" } {
+        if {
+          [file extension $source_file] eq ".vhd"
+          || [file extension $source_file] eq ".vhdl"
+          || [file extension $source_file] eq ".sv"
+          || [file extension $source_file] eq ".v"
+        } {
+          puts $csv_file [ concat  [file rootname $lib] "," $source_file ]
+        }
+      }
+    }
+    lassign [GetHogFiles -list_files ".sim" proj_list_dir $repo_path] \
+          listSimLibraries
+    foreach lib $listSimLibraries {
+      set source_files [DictGet $listSimLibraries $lib]
+      foreach source_file $source_files {
+        if {
+          [file extension $source_file] eq ".vhd"\
+          || [file extension $source_file] eq ".vhdl"\
+          || [file extension $source_file] eq ".sv"
+          || [file extension $source_file] eq ".v"
+        } {
           puts $csv_file [ concat  [file rootname $lib] "," $source_file ]
         }
       }
@@ -358,7 +377,9 @@ if {$cmd == -1} {
     close $csv_file
     Msg Info "Sigasi CSV file created: sigasi_$project.csv"
     Msg Info "You can use the python script provided by Sigasi to convert the generated csv file into a Sigasi project."
-    Msg Info "More info at: https://www.sigasi.com/knowledge/how_tos/generating-sigasi-project-vivado-project/#2-generate-the-sigasi-project-files-from-the-csv-file"
+    Msg Info \
+      "More info at: \
+      https://www.sigasi.com/knowledge/how_tos/generating-sigasi-project-vivado-project/#2-generate-the-sigasi-project-files-from-the-csv-file"
     exit 0
   }
 
@@ -374,18 +395,20 @@ if {$cmd == -1} {
     dict for {lib source_files} $libraries {
       puts $toml_file "[file rootname $lib].files = \["
       foreach source_file $source_files {
-        if {[file extension $source_file] == ".vhd" ||
-            [file extension $source_file] == ".vhdl"
-            } {
-                # puts [Relative $repo_path $source_file ]
-                puts $toml_file "\'[Relative $repo_path $source_file ]\',"
-            }
+        if {
+          [file extension $source_file] == ".vhd"
+          || [file extension $source_file] == ".vhdl"
+        } {
+          # puts [Relative $repo_path $source_file ]
+          puts $toml_file "\'[Relative $repo_path $source_file ]\',"
         }
+      }
       puts $toml_file "\]\n"
     }
     close $toml_file
     Msg Info "VHDL-LS TOML File created: vhdl_ls_$project.toml"
-    Msg Info "You can copy the content of this file into your VHDL-LS configuration vhdl_ls.toml, to import all Hog libraries."
+    Msg Info \
+      "You can copy the content of this file into your VHDL-LS configuration vhdl_ls.toml, to import all Hog libraries."
     exit 0
   }
 
@@ -424,7 +447,9 @@ if {$cmd == -1} {
     }
 
     set ide vivado
-    set cmd "vivado -mode batch -notrace -source $repo_path/Hog/Tcl/utils/compile_simlib.tcl  -tclargs -simulator $simulator -output_dir $output_dir"
+    set cmd \
+      "vivado -mode batch -notrace -source $repo_path/Hog/Tcl/utils/compile_simlib.tcl  -tclargs -simulator $simulator \
+      -output_dir $output_dir"
   }
 
   set simsets ""
@@ -470,34 +495,35 @@ if {$cmd == -1} {
   }
 
   if {$do_version == 1} {
-      cd $repo_path
-      set proj_dir $repo_path/Top/$project_name
-      lassign [GetRepoVersions $proj_dir $repo_path $ext_path] sha ver
-      if {$options(describe) == 1} {
-        puts [GetHogDescribe $proj_dir $repo_path]
-      } else {
-        puts "v[HexVersionToString $ver]"
-      }
-      exit 0
+    cd $repo_path
+    set proj_dir $repo_path/Top/$project_name
+    lassign [GetRepoVersions $proj_dir $repo_path $ext_path] sha ver
+    if {$options(describe) == 1} {
+      puts [GetHogDescribe $proj_dir $repo_path]
+    } else {
+      puts "v[HexVersionToString $ver]"
     }
+    exit 0
+  }
+
   # if {$do_new_directive ==1 } {
   #
   # # Do things here
   #
   # exit 0
   #}
-
   #### END of tclsh commands ####
   Msg Info "Launching command: $cmd..."
 
   # Check if the IDE is actually in the path...
   set ret [catch {exec which $ide}]
   if {$ret != 0} {
-      if {[string match "*vitis_unified*" $ide_name]} {
-        Msg Error "This is a '$ide_name' project: make sure to add both Vivado and Vitis to your PATH environment variable."
-        } else {
-        Msg Error "$ide not found in your system. Make sure to add $ide to your PATH environment variable."
-        }
+    if {[string match "*vitis_unified*" $ide_name]} {
+      Msg Error \
+        "This is a '$ide_name' project: make sure to add both Vivado and Vitis to your PATH environment variable."
+    } else {
+      Msg Error "$ide not found in your system. Make sure to add $ide to your PATH environment variable."
+    }
     exit $ret
   }
 
@@ -527,23 +553,24 @@ if {$cmd == -1} {
   exit $ret
 }
 
+
 #After this line, we are in the IDE
 ##################################################################################
-
-
 # We need to Import tcllib if we are using Libero
 if {[IsLibero] || [IsDiamond]} {
   if {[info exists env(HOG_TCLLIB_PATH)]} {
     lappend auto_path $env(HOG_TCLLIB_PATH)
   } else {
-    puts "ERROR: To run Hog with Microsemi Libero SoC or Lattice Diamond,\
-    you need to define the HOG_TCLLIB_PATH variable."
+    puts \
+      "ERROR: To run Hog with Microsemi Libero SoC or Lattice Diamond, you need to define the HOG_TCLLIB_PATH variable."
     return
   }
 }
 
 if {[catch {package require cmdline} ERROR] || [catch {package require struct::matrix} ERROR]} {
-  puts "$ERROR\n Tcllib not found. If you are running this script on tclsh for debuggin purpose ONLY, you can fix this by installing 'tcllib'"
+  puts \
+    "$ERROR\n Tcllib not found. If you are running this script on tclsh for debuggin purpose ONLY, you can fix this by \
+    installing 'tcllib'"
   exit 1
 }
 
@@ -565,10 +592,14 @@ set ide_name_and_ver [string tolower [GetIDEFromConf $proj_conf]]
 set ide_name [lindex [regexp -all -inline {\S+} $ide_name_and_ver] 0]
 
 # Validate IDE name
-set supported_ides [list vivado vivado_vitis_classic vivado_vitis_unified vitis_classic vitis_unified quartus planahead libero diamond ghdl]
+set supported_ides \
+  [list vivado vivado_vitis_classic vivado_vitis_unified vitis_classic vitis_unified quartus planahead libero diamond \
+  ghdl]
 if {$ide_name ni $supported_ides} {
   if {$ide_name eq "vitis"} {
-    Msg Error "The IDE set in hog.conf ('vitis') is not supported. Did you mean 'vitis_unified' or 'vitis_classic'? Supported IDEs: [join $supported_ides {, }]"
+    Msg Error \
+      "The IDE set in hog.conf ('vitis') is not supported. Did you mean 'vitis_unified' or 'vitis_classic'? Supported \
+      IDEs: [join $supported_ides {, }]"
   } else {
     Msg Error "The IDE set in hog.conf ('$ide_name') is not supported. Supported IDEs: [join $supported_ides {, }]"
   }
@@ -576,14 +607,22 @@ if {$ide_name ni $supported_ides} {
 }
 
 # Vitis IDE detection
-if {([string tolower $ide_name] eq "vivado_vitis_classic" || [string tolower $ide_name] eq "vitis_classic") && ($options(vivado_only) != 1)} {
+if {
+  ([string tolower $ide_name] eq "vivado_vitis_classic" || [string tolower $ide_name] eq "vitis_classic")
+  && ($options(vivado_only) != 1)
+} {
   set globalSettings::vitis_classic 1
   set globalSettings::vitis_unified 0
-} elseif {([string tolower $ide_name] eq "vivado_vitis_unified" || [string tolower $ide_name] eq "vitis_unified") && ($options(vivado_only) != 1)} {
+} elseif {
+  ([string tolower $ide_name] eq "vivado_vitis_unified" || [string tolower $ide_name] eq "vitis_unified")
+  && ($options(vivado_only) != 1)
+} {
   set globalSettings::vitis_classic 0
   set globalSettings::vitis_unified 1
   if {[auto_execok vitis] eq ""} {
-    Msg Error "Vitis Unified IDE is required for project $project_name but 'vitis' was not found in PATH. Please source Vitis settings first."
+    Msg Error \
+      "Vitis Unified IDE is required for project $project_name but 'vitis' was not found in PATH. Please source Vitis \
+      settings first."
   }
 } else {
   set globalSettings::vitis_classic 0
@@ -662,9 +701,6 @@ if {$options(compile_only) == 1} {
 }
 
 
-
-
-
 Msg Info "Number of jobs set to $options(njobs)."
 
 ############## Quartus ########################
@@ -708,6 +744,9 @@ if {$options(vitis_only) == 1 && ($ide_name eq "vitis_unified" || $ide_name eq "
 } elseif {[IsDiamond]} {
   sys_install version
   set project_file [file normalize $repo_path/Projects/$project_name/$project.ldf]
+} else {
+  Msg Error "Unknown IDE, can't set project file path."
+  exit 1
 }
 
 if {[file exists $project_file]} {
@@ -734,7 +773,9 @@ if {[file exists $project_file]} {
         }
       }
       if {$options(vitis_only) == 1 && [string match "*vitis_unified*" $rel]} {
-        Msg Debug "Checking file [list $project_file_alt] exists=[file exists $project_file_alt]; _ide dir [list $ide_dir] exists=[file exists $ide_dir]"
+        Msg Debug \
+          "Checking file [list $project_file_alt] exists=[file exists $project_file_alt]; _ide dir [list $ide_dir] \
+          exists=[file exists $ide_dir]"
       } else {
         Msg Debug "Checking [list $project_file_alt] exists=[file exists $project_file_alt]"
       }
@@ -748,7 +789,7 @@ if {[file exists $project_file]} {
     }
   }
   if {!$proj_found} {
-      Msg Info "Project file not found for $project_name."
+    Msg Info "Project file not found for $project_name."
   }
 }
 
@@ -795,7 +836,6 @@ if {($proj_found == 0 || $recreate == 1)} {
     OpenProject $project_file $repo_path
   }
 }
-
 
 
 ########## CHECK SYNTAX ###########
@@ -892,12 +932,11 @@ if {$do_simulation == 1} {
 if {$do_check_list_files} {
   Msg Info "Running list file checker..."
 
+
   #if {![file exists $dst_dir]} {
   #   Msg Info "$dst_dir directory not found, creating it..."
   #   file mkdir $dst_dir
   # }
-
-
   set argv0 check_list_files
   if {$ext_path ne ""} {
     set argv [list "-ext_path" "$ext_path" "-outDir" "$dst_dir" "-pedantic"]

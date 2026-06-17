@@ -917,7 +917,7 @@ proc CheckEnv {project_name ide} {
 
 proc CheckProjVer {repo_path project {sim 0} {ext_path ""}} {
   global env
-  set curl_cmd [GetCurl]
+
 
   if {$sim == 1} {
     Msg Info "Will check also the version of the simulation files..."
@@ -929,6 +929,12 @@ proc CheckProjVer {repo_path project {sim 0} {ext_path ""}} {
     set api_url $env(CI_API_V4_URL)
     set project_id $env(CI_PROJECT_ID)
     set ci_run 1
+  }
+
+  if {$ci_run == 1} {
+    set curl_cmd [GetCurl CI_API_V4_URL]
+  } else {
+    set curl_cmd [GetCurl]
   }
 
   cd $repo_path
@@ -8156,15 +8162,15 @@ if {[GitVersion 2.7.2] == 0} {
 # This procedure tests curl if execution is correct returns "curl"
 # If execution fails tries to run env -u LD_LIBRARY_PATH curl --silent --show-error, and returns "env -u LD_LIBRARY_PATH curl --silent --show-error" on success.
 # If both fail returns "curl", this will most probably generate failures later
-proc GetCurl {} {
+proc GetCurl {{gitlab_url "https://gitlab.com" }} {
     if {![catch {exec curl --silent --show-error --version}]} {
-        if {![catch {exec curl --silent --show-error -I https://gitlab.com}]} {
+        if {![catch {exec curl --silent --show-error -I $gitlab_url}]} {
             return [list curl --silent --show-error]
         }
     }
 
     if {![catch {exec env -u LD_LIBRARY_PATH curl --silent --show-error --version}]} {
-        if {![catch {exec env -u LD_LIBRARY_PATH curl --silent --show-error -I https://gitlab.com}]} {
+        if {![catch {exec env -u LD_LIBRARY_PATH curl --silent --show-error -I $gitlab_url}]} {
             return [list env -u LD_LIBRARY_PATH curl --silent --show-error]
         }
     }

@@ -202,6 +202,7 @@ jobs:
           if echo "$NEW_TAG" | grep -vq "^v[0-9]\+\.[0-9]\+\.[0-9]\+$"; then
             echo "There was a problem calculating the new tag of the repository. Hog returned the following message:";
             echo $NEW_TAG;
+            exit 1;
           fi
           echo "New potential tag is $NEW_TAG"
           cpv=$(HOG_LOGGER=0 HOG_COLOR=0 ./Hog/Do CPV)

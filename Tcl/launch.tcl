@@ -260,7 +260,7 @@ if {$cmd == -1} {
 
     set n [llength $proj_to_do]
     if {$n > 0 } {
-      Msg Info "The following projects were modified: \n [join $proj_to_do \n]"
+      Msg Info "The following projects were modified: \n[join $proj_to_do \n]"
     }
 
     Msg Info "$n projects were modified since last official version."

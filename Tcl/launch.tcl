@@ -359,7 +359,7 @@ if {$cmd == -1} {
         }
       }
     }
-    lassign [GetHogFiles -list_files ".sim" proj_list_dir $repo_path] \
+    lassign [GetHogFiles -list_files ".sim" $proj_list_dir $repo_path] \
           listSimLibraries
     foreach lib $listSimLibraries {
       set source_files [DictGet $listSimLibraries $lib]

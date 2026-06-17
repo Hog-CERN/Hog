@@ -61,6 +61,7 @@ check_branch_state:
   stage: check
   variables:
     <<: *vars
+    GIT_SUBMODULE_STRATEGY: recursive
   script:
     - ./Hog/Do CIE
     - glab auth login -t $HOG_PUSH_TOKEN --hostname $CI_SERVER_HOST

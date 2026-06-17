@@ -1,4 +1,5 @@
 #   Copyright 2018-2026 The University of Birmingham
+#   Copyright 2018-2026 Max-Planck-Institute for Physics
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -103,10 +104,11 @@ check_branch_state:
         exit 1;
       fi;
     - git fetch origin refs/notes/*:refs/notes/*
-    - "NEW_TAG=`echo \"source Hog/Tcl/hog.tcl; puts v[HexVersionToString [GetVer . 0 0]]\" | tclsh`"
+    - "NEW_TAG=`echo \"source Hog/Tcl/hog.tcl; puts v[HexVersionToString [GetVer . 0]]\" | tclsh`"
     - if echo "$NEW_TAG" | grep -vq "^v[0-9]\+\.[0-9]\+\.[0-9]\+$"; then
         echo "There was a problem calculating the new tag of the repository. Hog returned the following message:";
         echo $NEW_TAG;
+        exit 1;
       fi;
     - echo "New potential tag is $NEW_TAG"
     - cpv=$(HOG_LOGGER=0 HOG_COLOR=0 ./Hog/Do CPV)
@@ -163,7 +165,7 @@ tag_official_version:
       }
     - new_tag=${note[2]}
     - if [ "$new_tag" = "DO_NOT_TAG" ]; then
-        echo "No project Hog project was modified in this MR, will not create a tag";
+        echo "No project was modified in this MR, will not create a tag.";
         exit 0;
       fi;
     - if [ -z "$new_tag" ]; then

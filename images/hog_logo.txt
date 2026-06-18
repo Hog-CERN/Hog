@@ -6,6 +6,7 @@
 *     ~~                  |___/                         *
 *                                                       *
 * Copyright 2018-2026  The University of Birmingham     *
+* Copyright 2018-2026  Max-Planck-Institute for Physics *
 * Documentation: https://cern.ch/hog                    *
 * Register to our newsletter: http://cern.ch/go/nBn8    *
 * Version:                                              *

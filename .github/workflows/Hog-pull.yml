@@ -1,4 +1,5 @@
 #   Copyright 2018-2026 The University of Birmingham
+#   Copyright 2018-2026 Max-Planck-Institute for Physics
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -197,8 +198,20 @@ jobs:
             exit 1
           fi
           git fetch origin refs/notes/*:refs/notes/*
-          NEW_TAG=$(echo "source Hog/Tcl/hog.tcl; puts v[HexVersionToString [GetVer . 0 0]]" | tclsh)
-          echo "New tag is $NEW_TAG"
+          NEW_TAG=$(echo "source Hog/Tcl/hog.tcl; puts v[HexVersionToString [GetVer . 0]]" | tclsh)
+          if echo "$NEW_TAG" | grep -vq "^v[0-9]\+\.[0-9]\+\.[0-9]\+$"; then
+            echo "There was a problem calculating the new tag of the repository. Hog returned the following message:";
+            echo $NEW_TAG;
+            exit 1;
+          fi
+          echo "New potential tag is $NEW_TAG"
+          cpv=$(HOG_LOGGER=0 HOG_COLOR=0 ./Hog/Do CPV)
+          echo "$cpv"
+          NUM=$(echo "$cpv" | tail -n1 | grep -oP '\d+(?= projects were modified since last official version)')
+          if [ "$NUM" = "0" ]; then
+            NEW_TAG="DO_NOT_TAG"
+            echo "No project was modified, will not add a new tag to the git notes"
+          fi
           git notes add -fm "$GITHUB_RUN_ID $GITHUB_HEAD_REF $NEW_TAG"
           git push origin refs/notes/*
   make_doxygen:

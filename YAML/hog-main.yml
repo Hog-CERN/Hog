@@ -1,4 +1,5 @@
 #   Copyright 2018-2026 The University of Birmingham
+#   Copyright 2018-2026 Max-Planck-Institute for Physics
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -60,6 +61,7 @@ check_branch_state:
   stage: check
   variables:
     <<: *vars
+    GIT_SUBMODULE_STRATEGY: recursive
   script:
     - ./Hog/Do CIE
     - glab auth login -t $HOG_PUSH_TOKEN --hostname $CI_SERVER_HOST
@@ -103,12 +105,20 @@ check_branch_state:
         exit 1;
       fi;
     - git fetch origin refs/notes/*:refs/notes/*
-    - "NEW_TAG=`echo \"source Hog/Tcl/hog.tcl; puts v[HexVersionToString [GetVer . 0 0]]\" | tclsh`"
+    - "NEW_TAG=`echo \"source Hog/Tcl/hog.tcl; puts v[HexVersionToString [GetVer . 0]]\" | tclsh`"
     - if echo "$NEW_TAG" | grep -vq "^v[0-9]\+\.[0-9]\+\.[0-9]\+$"; then
         echo "There was a problem calculating the new tag of the repository. Hog returned the following message:";
         echo $NEW_TAG;
+        exit 1;
       fi;
-    - echo "New tag is $NEW_TAG"
+    - echo "New potential tag is $NEW_TAG"
+    - cpv=$(HOG_LOGGER=0 HOG_COLOR=0 ./Hog/Do CPV -ci_run)
+    - echo "$cpv"
+    - NUM=$(echo "$cpv" | tail -n1 | grep -oP '\d+(?= projects were modified since last official version)')
+    - if [ "$NUM" = "0" ]; then
+       NEW_TAG="DO_NOT_TAG";
+       echo "No project was modified, will not add a new tag to the git notes";
+      fi;
     - "git notes add -fm \"$CI_MERGE_REQUEST_IID $CI_COMMIT_REF_NAME $NEW_TAG\""
     - git push origin refs/notes/*
   interruptible: true
@@ -155,6 +165,10 @@ tag_official_version:
         exit 1;
       }
     - new_tag=${note[2]}
+    - if [ "$new_tag" = "DO_NOT_TAG" ]; then
+        echo "No project was modified in this MR, will not create a tag.";
+        exit 0;
+      fi;
     - if [ -z "$new_tag" ]; then
         echo "It was impossible to get the tag number from the git note of this commit. Check that your repository settings allows only fast-forward merge, and that the merge_and_tag job in your Merge pipeline succeeded.";
         echo "More info here https://hog.readthedocs.io/en/latest/02-User-Manual/02-Hog-CI/01-GitLab-CI/01-setup-CI.html?highlight=fast%20forward#remove-merge-commit";

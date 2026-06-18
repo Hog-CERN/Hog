@@ -1,4 +1,5 @@
 #   Copyright 2018-2026 The University of Birmingham
+#   Copyright 2018-2026 Max-Planck-Institute for Physics
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -916,7 +917,7 @@ proc CheckEnv {project_name ide} {
 
 proc CheckProjVer {repo_path project {sim 0} {ext_path ""}} {
   global env
-  set curl_cmd [GetCurl]
+
 
   if {$sim == 1} {
     Msg Info "Will check also the version of the simulation files..."
@@ -928,6 +929,13 @@ proc CheckProjVer {repo_path project {sim 0} {ext_path ""}} {
     set api_url $env(CI_API_V4_URL)
     set project_id $env(CI_PROJECT_ID)
     set ci_run 1
+    set curl_cmd [GetCurl $api_url]
+    if {[info exist env(CI_JOB_NAME)] && $env(CI_JOB_NAME) == "check_branch_state" } {
+      # Do not download artifacts from previous pipelines in check_branch_state job...
+      set ci_run 0
+    }
+  } else {
+    set curl_cmd [GetCurl]
   }
 
   cd $repo_path
@@ -940,13 +948,13 @@ proc CheckProjVer {repo_path project {sim 0} {ext_path ""}} {
       lassign [GetRepoVersions $project_dir $repo_path] sha
       if {$sha == [GetSHA $repo_path]} {
         Msg Info "Project was modified in the current commit, Hog will proceed with the build workflow."
-        return
+        return 0
       }
       Msg Info "Checking if project $project has been built in a previous CI run with sha $sha..."
       set result [catch {package require json} JsonFound]
       if {"$result" != "0"} {
         Msg CriticalWarning "Cannot find JSON package equal or higher than 1.0.\n $JsonFound\n Exiting"
-        return
+        return 0
       }
       lassign [ExecuteRet {*}$curl_cmd --header "PRIVATE-TOKEN: $token" "$api_url/projects/$project_id/pipelines"] ret content
       set pipeline_dict [json::json2dict $content]
@@ -972,7 +980,7 @@ proc CheckProjVer {repo_path project {sim 0} {ext_path ""}} {
                   lassign [ExecuteRet {*}$curl_cmd --location --output artifacts.zip --header "PRIVATE-TOKEN: $token" --url "$api_url/projects/$project_id/jobs/$job_id/artifacts"] ret3 content3
                   if {$ret3 != 0} {
                     Msg CriticalWarning "Cannot download artifacts for job $job_name with id $job_id"
-                    return
+                    return 0
                   } else {
                     lassign [ExecuteRet unzip -o $repo_path/artifacts.zip] ret_zip
                     if {$ret_zip != 0} {
@@ -982,7 +990,7 @@ proc CheckProjVer {repo_path project {sim 0} {ext_path ""}} {
                       file mkdir $repo_path/Projects/$project
                       set fp [open "$repo_path/Projects/$project/skip.me" w+]
                       close $fp
-                      exit 0
+                      return 1
                     }
                   }
                 }
@@ -993,15 +1001,16 @@ proc CheckProjVer {repo_path project {sim 0} {ext_path ""}} {
       }
     }
   } elseif {$ver != -1} {
-    Msg Info "$project was not modified since version: $ver, disabling the CI..."
+    Msg Info "$project was not modified since version: $ver."
     file mkdir $repo_path/Projects/$project
     set fp [open "$repo_path/Projects/$project/skip.me" w+]
     close $fp
-    exit 0
+    return 1
   } else {
     Msg Error "Impossible to check the project version. Most likely the repository is not clean. Please, commit your changes before running this command."
-    exit 1
+    return 0
   }
+  return 0
 }
 
 # @brief Check the syntax of the source files in the
@@ -3485,7 +3494,7 @@ proc GetProjectVersion {proj_dir repo_path {ext_path ""} {sim 0}} {
   set comp [CompareVersions $v_proj $v_last]
   Msg Debug "Project version $v_proj, latest tag $v_last"
   if {$comp == 1} {
-    Msg Info "The specified project was modified since official version."
+    Msg Debug "The specified project was modified since official version."
     set ret 0
   } else {
     set ret v[HexVersionToString $ver]
@@ -3532,7 +3541,7 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
 
   cd "$repo_path/Hog"
   if {[Git {status --untracked-files=no  --porcelain}] eq ""} {
-    Msg Info "Hog submodule [pwd] clean."
+    Msg Debug "Hog submodule [pwd] clean."
     lassign [GetVer ./] hog_ver hog_hash
   } else {
     Msg CriticalWarning "Hog submodule [pwd] not clean, commit hash will be set to 0."
@@ -3670,7 +3679,7 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
 
     #Msg Info "Found IPbus XML SHA: $xml_hash and version: $xml_ver."
   } else {
-    Msg Info "This project does not use IPbus XMLs"
+    Msg Debug "This project does not use IPbus XMLs"
     set xml_ver ""
     set xml_hash ""
   }
@@ -3721,7 +3730,7 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
 
   # Check cleanliness only for the files that belong to this project
   if {[Git "status --untracked-files=no --porcelain" $project_files] eq ""} {
-    Msg Info "Project-relevant files are clean."
+    Msg Debug "Project-relevant files are clean."
     set clean 1
   } else {
     Msg CriticalWarning "Project-relevant files not clean, commit hash and version will be set to 0."
@@ -3870,7 +3879,7 @@ proc GetTopModule {} {
 #
 # @return  a list: the git SHA, the version in hex format
 #
-proc GetVer {path {force_develop 0} {verbose 1}} {
+proc GetVer {path {force_develop 0}} {
   set SHA [GetSHA $path]
   #oldest tag containing SHA
   if {$SHA eq ""} {
@@ -3886,7 +3895,7 @@ proc GetVer {path {force_develop 0} {verbose 1}} {
   set repo_path [Git {rev-parse --show-toplevel}]
   cd $old_path
 
-  return [list [GetVerFromSHA $SHA $repo_path $force_develop $verbose] $SHA]
+  return [list [GetVerFromSHA $SHA $repo_path $force_develop] $SHA]
 }
 
 ## @brief Get git version and commit hash of a specific commit give the SHA
@@ -3894,11 +3903,10 @@ proc GetVer {path {force_develop 0} {verbose 1}} {
 # @param[in] SHA the git SHA of the commit
 # @param[in] repo_path the path of the repository, this is used to open the Top/repo.conf file
 # @param[in] force_develop Force a tag for the develop branch (increase m)
-# @param[in] verbose Print extra information
 #
 # @return  a list: the git SHA, the version in hex format
 #
-proc GetVerFromSHA {SHA repo_path {force_develop 0} {verbose 1}} {
+proc GetVerFromSHA {SHA repo_path {force_develop 0} } {
   if {$SHA eq ""} {
     Msg CriticalWarning "Empty SHA found"
     set ver "v0.0.0"
@@ -3981,9 +3989,8 @@ proc GetVerFromSHA {SHA repo_path {force_develop 0} {verbose 1}} {
           }
 
           if {[string match "HEAD" $branch_name]} {
-            if {$verbose == 1} {
-              Msg Warning "Detached HEAD detected - attempting to find branch name"
-            }
+	    Msg Debug "Detached HEAD detected - attempting to find branch name"
+
             # if the branch_name is HEAD (not a legal branch name btw)
             # then the branch has been checked out in a detached head state
             # this is a fallback condition to enable finding the branch name that the commit is linked too
@@ -4009,13 +4016,9 @@ proc GetVerFromSHA {SHA repo_path {force_develop 0} {verbose 1}} {
 
             if {!$match_count == 1} {
               set branch_name $prev_branch_name
-              if {$verbose == 1} {
-                Msg Warning "Branch name not found. Using $branch_name"
-              }
+	      Msg Debug "Branch name not found. Using $branch_name"
             } else {
-              if {$verbose == 1} {
-                Msg Info "Branch name found: $branch_name"
-              }
+	      Msg Debug "Branch name found: $branch_name"
             }
           }
 
@@ -4629,6 +4632,10 @@ proc InitLauncher {script tcl_path parameters commands argv {custom_commands ""}
       lappend directives_with_projects $d
     }
 
+    if {[regexp {\\(.*) \{\#} $l minc dd]} {
+      lappend directives_with_optional_projects $dd
+    }
+
     #gets all the regexes
     if {[regexp {\\(.*) \{} $l minc regular_expression]} {
       lappend directive_regex $regular_expression
@@ -4779,7 +4786,6 @@ proc InitLauncher {script tcl_path parameters commands argv {custom_commands ""}
         }
       }
 
-
       #if custom command, parse custom options instead
       if {$custom_command ne ""} {
         if {[llength $custom_command_options] > 0} {
@@ -4847,13 +4853,19 @@ proc InitLauncher {script tcl_path parameters commands argv {custom_commands ""}
   }
 
   set project [lindex $arg_list 1]
+  set optional_project [IsInList $directive $directives_with_optional_projects 1]
 
   if {$argument_is_no_project == 0} {
     # Remove leading Top/ or ./Top/ if in project_name
     regsub "^(\./)?Top/" $project "" project
     # Remove trailing / and spaces if in project_name
     regsub "/? *\$" $project "" project
-    set proj_conf [ProjectExists $project $repo_path]
+
+    if {$project eq "" && $optional_project == 1} {
+      set proj_conf 0
+    } else {
+      set proj_conf [ProjectExists $project $repo_path]
+    }
   } else {
     set proj_conf 0
   }
@@ -4895,7 +4907,11 @@ proc InitLauncher {script tcl_path parameters commands argv {custom_commands ""}
         set command -3
       } else {
         #Project not found
-        set command -2
+	if {$optional_project == 0} {
+	  set command -2
+	} else {
+	  set command -3
+	}
       }
     }
   } else {
@@ -6695,7 +6711,7 @@ proc ReadProcMap {proc_map_file} {
 # @param[in] repo_path  The main path of the git repository
 # @param[in] print      if 1 print the list of projects in the repository, if 2 does not print test projects
 # @param[in] ret_conf   if 1 returns conf file rather than list of project names
-proc ListProjects {{repo_path .} {print 1} {ret_conf 0}} {
+proc ListProjects {{repo_path .} {print 1} {ret_conf 0} {silent 0}} {
   set top_path [file normalize $repo_path/Top]
   set confs [findFiles [file normalize $top_path] hog.conf]
   set projects ""
@@ -6717,9 +6733,9 @@ proc ListProjects {{repo_path .} {print 1} {ret_conf 0}} {
         set g [file dirname $p]
         # Print a list of the projects with relative IDE and description (second line comment in hog.conf)
         if {$g ne $old_g} {
-          Msg Status ""
+          if {$silent ==0 } {Msg Status ""}
         }
-        Msg Status "$p \([GetIDEFromConf $c]\)$description"
+        if {$silent == 0} {Msg Status "$p \([GetIDEFromConf $c]\)$description"}
       }
     }
     lappend projects $p
@@ -8160,19 +8176,22 @@ if {[GitVersion 2.7.2] == 0} {
 # This procedure tests curl if execution is correct returns "curl"
 # If execution fails tries to run env -u LD_LIBRARY_PATH curl --silent --show-error, and returns "env -u LD_LIBRARY_PATH curl --silent --show-error" on success.
 # If both fail returns "curl", this will most probably generate failures later
-proc GetCurl {} {
-    if {![catch {exec curl --silent --show-error --version}]} {
-        if {![catch {exec curl --silent --show-error -I https://gitlab.com}]} {
-            return [list curl --silent --show-error]
-        }
-    }
-
-    if {![catch {exec env -u LD_LIBRARY_PATH curl --silent --show-error --version}]} {
-        if {![catch {exec env -u LD_LIBRARY_PATH curl --silent --show-error -I https://gitlab.com}]} {
-            return [list env -u LD_LIBRARY_PATH curl --silent --show-error]
-        }
-    }
-
+proc GetCurl {{gitlab_url "https://gitlab.com" }} {
+  if {[auto_execok curl] == ""} {
     Msg Warning "Cannot find a working curl invocation"
     return 0
+  }
+
+  if {[IsTclsh]} {
+    set cmd [list curl --silent --show-error]
+  } else {
+    set cmd [list env -u LD_LIBRARY_PATH curl --silent --show-error]
+  }
+
+  if {![catch {exec {*}$cmd -I $gitlab_url}]} {
+    return $cmd
+  } else {
+    Msg Warning "Impossible to contact $gitlab_url"
+    return 0
+  }
 }

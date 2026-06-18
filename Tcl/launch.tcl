@@ -1,6 +1,9 @@
 #!/usr/bin/env tclsh
+# tcl-lsp: disable=W300
+
 # @file
 #   Copyright 2018-2026 The University of Birmingham
+#   Copyright 2018-2026 Max-Planck-Institute for Physics
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -13,253 +16,9 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
-
-
 # Launch Xilinx Vivado or ISE implementation and possibly write bitstream in text mode
-
 # Developers Tip for new commands
 # Add a hashtag sign # after the curly brake (e.g. \^C(REATE)?$ {# ...}) if the command requires a project name as an argument
-
-set default_commands {
-
-  \^L(IST)?$ {
-    Msg Status "\n** The projects in this repository are:"
-    ListProjects $repo_path $list_all
-    Msg Status "\n"
-    exit 0
-  # NAME*: LIST or L
-  # DESCRIPTION: List the projects in the repository. To show hidden projects use the -all option
-  # OPTIONS: all, verbose
-  }
-
-  \^H(ELP)?$ {
-    puts "$usage"
-    exit 0
-  # NAME: HELP or H
-  # DESCRIPTION: Display this help message or specific help for each directive
-  # OPTIONS:
-  }
-
-  \^(CHECKCI|CIE)?$ {
-    set do_check_ci_env 1
-    # NAME: CHECKCIENV or CIE
-    # DESCRIPTION: Check that the common environment variables needed for Hog-CI are set
-    # OPTIONS: verbose
-  }
-
-  \^(CHECKPROJENV|CPE)?$ {#
-    set do_checkproj_env 1
-  # NAME: CHECKPROJENV or CPE
-  # DESCRIPTION: Check that the environment variables needed for Hog-CI to run the chosen project are set and point to valid paths
-  # OPTIONS: verbose
-  }
-
-  \^(CHECKPROJVER|CPV)?$ {#
-    set do_checkproj_ver 1
-  # NAME: CHECKPROJVER or CPV
-  # DESCRIPTION: Check the project version just before creating the HDL project in Create_Project stage. \
-  The CI job will SKIP the project pipeline, if it the project has not been modified with respect to the target branch.
-  # OPTIONS: ext_path.arg, simcheck, verbose
-  }
-
-  \^C(REATE)?$ {#
-    set do_create 1
-    set recreate 1
-  # NAME*: CREATE or C
-  # DESCRIPTION: Create the project, replace it if already existing.
-  # OPTIONS: ext_path.arg, lib.arg, vivado_only, vitis_only, verbose
-  }
-
-  \^I(MPL(EMENT(ATION)?)?)?$ {#
-    set do_implementation 1
-    set do_bitstream 1
-    set do_compile 1
-  # NAME: IMPLEMENTATION or I
-  # DESCRIPTION: Runs only the implementation, the project must already exist and be synthesised.
-  # OPTIONS: check_syntax, ext_path.arg, njobs.arg, no_bitstream, no_reset, recreate, verbose
-  }
-
-  \^SYNT(H(ESIS(E)?)?)? {#
-    set do_synthesis 1
-    set do_compile 1
-  # NAME: SYNTH
-  # DESCRIPTION: Run synthesis only, create the project if not existing.
-  # OPTIONS: check_syntax, ext_path.arg, njobs.arg, recreate, verbose
-  }
-
-  \^S(IM(ULAT(ION|E)?)?)?$ {#
-    set do_simulation 1
-    set do_create 1
-  # NAME*: SIMULATION or S
-  # DESCRIPTION: Simulate the project (HDL and/or HLS). Use -simset to select specific sets (e.g. sim_1, csim:mykernel, cosim:mykernel).
-  # OPTIONS: check_syntax, compile_only, ext_path.arg, lib.arg, recreate, scripts_only, simset.arg, verbose
-  }
-
-  \^W(ORK(FLOW)?)?$ {#
-    set do_implementation 1
-    set do_synthesis 1
-    set do_bitstream 1
-    set do_compile 1
-  # NAME*: WORKFLOW or W
-  # DESCRIPTION: Runs the full workflow, creates the project if not existing.
-  # OPTIONS: bitstream_only, check_syntax, ext_path.arg, impl_only, njobs.arg, no_bitstream, recreate, synth_only, verbose, vitis_only, xsa.arg
-  }
-
-  \^(CREATEWORKFLOW|CW)?$ {#
-    set do_implementation 1
-    set do_synthesis 1
-    set do_bitstream 1
-    set do_compile 1
-    set do_create 1
-    set recreate 1
-  # NAME: CREATEWORKFLOW or CW
-  # DESCRIPTION: Creates the project -even if existing- and launches the complete workflow.
-  # OPTIONS: check_syntax, ext_path.arg, njobs.arg, no_bitstream, synth_only, verbose, vivado_only, vitis_only, xsa.arg
-  }
-
-  \^(CHECKSYNTAX|CS)?$ {#proj
-    set do_check_syntax 1
-  # NAME: CHECKSYNTAX or CS
-  # DESCRIPTION: Check the syntax of the project. Only for Vivado, Quartus and Libero projects.
-  # OPTIONS: ext_path.arg, recreate, verbose
-  }
-
-  ^(IPB(US)?)|(X(ML)?)$ {#proj
-    set do_ipbus_xml 1
-  # NAME: IPBUS or IPB
-  # DESCRIPTION: Copy, check or create the IPbus XMLs for the project.
-  # OPTIONS: dst_dir.arg, generate, verbose
-  }
-
-  \^V(IEW)?$ {#proj
-    set do_list_file_parse 1
-  # NAME*: VIEW or V
-  # DESCRIPTION: Print Hog list file contents in a tree-like fashon.
-  # OPTIONS: verbose
-  }
-
-  \^(CHECKYAML|YML)?$ {
-    set min_n_of_args -1
-    set max_n_of_args 1
-    set do_check_yaml_ref 1
-  # NAME: CHECKYML or YML
-  # DESCRIPTION: Check that the ref to Hog repository in the .gitlab-ci.yml file, matches the one in Hog submodule.
-  # OPTIONS: verbose
-  }
-
-  \^B(UTTONS)?$ {
-    set min_n_of_args -1
-    set max_n_of_args 1
-    set do_buttons 1
-  # NAME: BUTTONS or B
-  # DESCRIPTION: Add Hog buttons to the Vivado GUI, to check and recreate Hog list and configuration files.
-  # OPTIONS: verbose
-  }
-
-  \^(CHECKLIST|CL)?$ {#proj
-    set do_check_list_files 1
-  # NAME: CHECKLIST or CL
-  # DESCRIPTION: Check that list and configuration files on disk match what is on the project.
-  # OPTIONS: ext_path.arg, verbose
-  }
-
-  \^COMPSIM(LIB)?$ {
-    set do_compile_lib 1
-    set argument_is_no_project 1
-  # NAME: COMPSIMLIB or COMPSIM
-  # DESCRIPTION: Compiles the simulation library for the chosen simulator with Vivado.
-  # OPTIONS: dst_dir.arg, verbose
-  }
-
-  \^RTL(ANALYSIS)?$ {#
-    set do_rtl 1
-  # NAME: RTL or RTLANALYSIS
-  # DESCRIPTION: Elaborate the RTL analysis report for the chosen project.
-  # OPTIONS: check_syntax, recreate, verbose
-  }
-
-  \^SIG(ASI)?$ {#
-    set do_sigasi 1
-  # NAME: SIGASI or SIG
-  # DESCRIPTION: Create a .csv file to be used in Sigasi.
-  # OPTIONS: verbose
-  }
-
-  \^T(REE)?$ {#
-    set do_hierarchy 1
-  # NAME: TREE or T
-  # DESCRIPTION: Print the design hierarchy for the chosen project.
-  # OPTIONS: compile_order, ext_path.arg, ignore.arg, include_gen_prods, include_ieee, light, output.arg, top.arg, verbose
-  }
-
-  \^VHDL(LS)?$ {#
-    set do_vhdl_ls 1
-  # NAME: VHDL-LS or VHDL
-  # DESCRIPTION: Create a VHDL-LS configuration file for the chosen project.
-  # OPTIONS: verbose
-  }
-
-  \^VER(SION)?$ {#
-    set do_version 1
-  # NAME*: VERSION or VER
-  # DESCRIPTION: Print the version of the chosen Hog project. With -describe, prints the Hog describe string instead.
-  # OPTIONS: describe, verbose
-  }
-
-  default {
-    if {$directive != ""} {
-      set NO_DIRECTIVE_FOUND 1
-    } else {
-      puts "$usage"
-      exit 0
-    }
-  }
-}
-
-# Add this bit above!
-#  \^NEW_DIRECTIVE?$ {
-#    set do_new_directive 1
-#  }
-
-
-#parsing command options
-set parameters {
-  {no_bitstream    "If set, the bitstream file will not be produced."}
-  {recreate        "If set, the project will be re-created if it already exists."}
-  {no_reset        "If set, runs (synthesis and implementation) won't be reset before launching them."}
-  {check_syntax    "If set, the HDL syntax will be checked at the beginning of the workflow."}
-  {njobs.arg 4     "Number of jobs. Default: 4"}
-  {ext_path.arg "" "Sets the absolute path for the external libraries."}
-  {lib.arg      "" "Simulation library path, compiled or to be compiled"}
-  {synth_only      "If set, only the synthesis will be performed."}
-  {impl_only       "If set, only the implementation will be performed. This assumes synthesis was already done."}
-  {scripts_only    "If set, the simulation scripts will be generated, but the simulation will not be run."}
-  {compile_only    "If set, the simulation libraries will be compiled, but not run."}
-  {bitstream_only  "If set, only the bitstream will be produced. This assumes implementation was already done. For a Vivado-Vitis\
-                    project this command can be used to generate the boot artifacts including the ELF file(s) without running the\
-                    full Vivado workflow."}
-  {vivado_only     "If set, and project is vivado-vitis, vitis project will not be created."}
-  {vitis_only      "If set, and project is vivado-vitis create only vitis project. If an xsa is not given, a pre-synth xsa will be created."}
-  {xsa.arg      "" "If set, and project is vivado-vitis, use this xsa for creating platforms without a defined hw."}
-  {simset.arg   "" "Simulation sets to run. HDL sets by name (e.g. sim_1), HLS\
-                    (Vitis Unified) sets as csim:<component> or\
-                    cosim:<component>. If empty, all enabled simulations are\
-                    run."}
-  {all             "List all projects, including test projects. Test projects have #test on the second line of hog.conf."}
-  {generate        "For IPbus XMLs, it will re create the VHDL address decode files."}
-  {dst_dir.arg  "" "For reports, IPbus XMLs, set the destination folder (default is in the ./bin folder)."}
-  {output.arg   "" "For tree hierarchy mode, set the output file (default is console)."}
-  {top.arg      "" "For tree hierarchy mode, set the top module (default is the top module defined in hog.conf)."}
-  {ignore.arg   "" "For tree hierarchy mode, filter's the printed hierarchy to exclude modules that match the given string."}
-  {include_ieee "" "For tree hierarchy mode, include IEEE/STD libraries in the printed hierarchy. (Default 0)"}
-  {include_gen_prods "" "For tree hierarchy mode, include IP generated products in the printed hierarchy. (Default 0)"}
-  {compile_order "" "For tree hierarchy mode, prints compile order instead of hierarchy."}
-  {verbose          "If set, launch the script in verbose mode"}
-  {describe         "If set, the Hog describe string is returned instead of the version."}
-  {light            "For tree hierarchy mode, print a light version of the hierarchy (without file paths)."}
-  {simcheck         "If set, checks also the version of the simulation files."}
-}
-
 set tcl_path [file normalize "[file dirname [info script]]"]
 source $tcl_path/hog.tcl
 source $tcl_path/create_project.tcl
@@ -271,7 +30,7 @@ set globalSettings::vitis_classic 0
 
 # Check if we're already running in xsct (Vitis Classic)
 # This must be done early, before InitLauncher, to prevent launching Vivado
-if {[info commands platform] != ""} {
+if {[info commands platform] ne ""} {
   set globalSettings::vitis_classic 1
   set globalSettings::vitis_unified 0
 }
@@ -279,39 +38,34 @@ if {[info commands platform] != ""} {
 # Quartus needs extra packages and treats the argv in a different way
 if {[IsQuartus]} {
   load_package report
+  # noqa: W210
   set argv $quartus(args)
 }
 
-# Msg Debug "s: $::argv0 a: $argv"
 
+# Msg Debug "s: $::argv0 a: $argv"
 ### CUSTOM COMMANDS ###
 set commands_path [file normalize "$tcl_path/../../hog-commands/"]
-set custom_commands [GetCustomCommands $parameters $commands_path ]
+set custom_commands [GetCustomCommands $parameters $commands_path]
 
-lassign [InitLauncher $::argv0 $tcl_path $parameters $default_commands $argv $custom_commands] \
-directive project project_name group_name repo_path old_path bin_dir top_path usage short_usage cmd ide list_of_options
+lassign [InitLauncher $::argv0 $tcl_path $parameters $default_commands $argv $custom_commands] directive project \
+  project_name group_name repo_path old_path bin_dir top_path usage short_usage cmd ide list_of_options
 
 array set options $list_of_options
 
 if {$options(verbose) == 1} {
   setDebugMode 1
 }
-Msg Debug "Returned by InitLauncher: \n\
-  - project: $project \n\
-  - project_name $project_name \n\
-  - group_name $group_name \n\
-  - repo_path $repo_path \n\
-  - old_path $old_path \n\
-  - bin_dir $bin_dir \n\
-  - top_path $top_path \n\
-  - cmd $cmd"
+Msg Debug \
+  "Returned by InitLauncher: \n - project: $project \n - project_name $project_name \n - group_name $group_name \n - \
+  repo_path $repo_path \n - old_path $old_path \n - bin_dir $bin_dir \n - top_path $top_path \n - cmd $cmd"
 
 set ext_path ""
-if {$options(ext_path) != ""} {
+if {$options(ext_path) ne ""} {
   set ext_path $options(ext_path)
 }
 set lib_path ""
-if {$options(lib) != ""} {
+if {$options(lib) ne ""} {
   set lib_path [file normalize $options(lib)]
 } else {
   if {[info exists env(HOG_SIMULATION_LIB_PATH)]} {
@@ -335,7 +89,7 @@ if {$options(verbose) == 1} {
 # printDebugMode
 # Msg Info "Number of jobs set to $options(njobs)."
 set output_path ""
-if {$options(output) != ""} {
+if {$options(output) ne ""} {
   set output_path $options(output)
 }
 
@@ -348,16 +102,28 @@ set include_gen_prods $options(include_gen_prods)
 
 ######## DEFAULTS #########
 set do_rtl 0
-set do_checkproj_env 0; set do_check_ci_env 0; set do_checkproj_ver 0;
-set do_implementation 0; set do_synthesis 0; set do_bitstream 0
-set do_create 0; set do_compile 0; set do_simulation 0; set recreate 0
-set do_reset 1; set do_list_all 2; set do_check_syntax 0; set do_vitis_build 0;
-set scripts_only 0; set compile_only 0
+set do_checkproj_env 0
+set do_check_ci_env 0
+set do_checkproj_ver 0
+set do_implementation 0
+set do_synthesis 0
+set do_bitstream 0
+set do_create 0
+set do_compile 0
+set do_simulation 0
+set recreate 0
+set do_reset 1
+set do_list_all 2
+set do_check_syntax 0
+set do_vitis_build 0
+set scripts_only 0
+set compile_only 0
 set ide_name ""
+set allow_empty_proj 0
+
 ### Hog stand-alone directives ###
 # The following directives are used WITHOUT ever calling the IDE, they are run in tclsh
 # A place holder called new_directive can be followed to add new commands
-
 set do_ipbus_xml 0
 set do_list_file_parse 0
 set do_check_yaml_ref 0
@@ -426,10 +192,10 @@ if {$NO_DIRECTIVE_FOUND == 1} {
       }
     }
   } else {
-      Msg Info "No directive found, pre ide exiting..."
-      Msg Status "ERROR: Unknown directive $directive.\n\n"
-      puts $usage
-      exit
+    Msg Info "No directive found, pre ide exiting..."
+    Msg Status "ERROR: Unknown directive $directive.\n\n"
+    puts $usage
+    exit
   }
 }
 
@@ -439,12 +205,16 @@ if {$options(all) == 1} {
   set do_list_all 2
 }
 
+set ci_run 0
+if {$options(ci_run) == 1} {
+  set ci_run 1
+}
+
 if {$options(dst_dir) == "" && ($do_ipbus_xml == 1 || $do_check_list_files == 1) && $project != ""} {
   # Getting all the versions and SHAs of the repository
-  lassign [GetRepoVersions [file normalize $repo_path/Top/$group_name/$project] \
-    $repo_path $ext_path] commit version hog_hash hog_ver top_hash top_ver libs hashes vers \
-    cons_ver cons_hash ext_names ext_hashes xml_hash xml_ver user_ip_repos \
-    user_ip_hashes user_ip_vers
+  lassign [GetRepoVersions [file normalize $repo_path/Top/$group_name/$project] $repo_path $ext_path] commit version \
+    hog_hash hog_ver top_hash top_ver libs hashes vers cons_ver cons_hash ext_names ext_hashes xml_hash xml_ver \
+    user_ip_repos user_ip_hashes user_ip_vers
   cd $repo_path
 
   set describe [GetHogDescribe [file normalize $repo_path/Top/$group_name/$project] $repo_path]
@@ -478,6 +248,72 @@ if {$cmd == -1} {
     exit 0
   }
 
+  if {$do_checkproj_ver == 1} {
+    cd $repo_path
+    set ci_config ""
+    if {$ci_run == 1} {
+      # Compile YAML to get list of projects
+      if {[info exists env(GITLAB_CI)] && $env(GITLAB_CI) eq "true" && [auto_execok glab] != ""} {
+        # running in GitLab CI
+        Msg Info "Running in the GitLab CI/CD. I will check only the active projects in the current pipeline..."
+        # Tell glab the host and project explicitly: on SaaS runners the git remote
+        # points to the CI gateway, which glab does not recognise as a GitLab host.
+        if {[info exists env(CI_SERVER_HOST)]} {
+          set env(GITLAB_HOST) $env(CI_SERVER_HOST)
+        }
+        if {[info exists env(CI_PROJECT_PATH)]} {
+          set ci_config [exec glab ci config compile -R $env(CI_PROJECT_PATH)]
+        } else {
+          set ci_config [exec glab ci config compile]
+        }
+        # Check if we are using the dynamic CI and set ci_run to 0 in case, so we check the version of all projects
+        if {[string first "hog-dynamic.yml" $ci_config] != -1} {
+          set ci_run 0
+        }
+      } elseif {[info exists env(GITHUB_ACTIONS)] && $env(GITHUB_ACTIONS) eq "true"} {
+        # running in GitHub Actions
+        set workflow_dir "$repo_path/.github/workflows"
+        set ci_run 0
+        foreach workflow_file [glob -nocomplain -directory $workflow_dir -- *.yml *.yaml] {
+          set fh [open $workflow_file r]
+          set content [read $fh]
+          close $fh
+          if {[string first "Hog-pull.yml" $content] != -1} {
+            set ci_config $content
+            set ci_run 1
+            break
+          }
+        }
+      } else {
+        set ci_run 0
+      }
+    }
+
+    set proj_to_do {}
+    if {$project_name eq ""} {
+      set projects [ListProjects $repo_path 1 0 1]
+      foreach p $projects {
+        if {$ci_run == 0 || ($ci_run == 1 && [string first $p $ci_config] != -1)} {
+          if {[CheckProjVer $repo_path $p $options(simcheck) $options(ext_path)] == 0} {
+            lappend proj_to_do $p
+          }
+        }
+      }
+    } else {
+      if {[CheckProjVer $repo_path $project_name $options(simcheck) $options(ext_path)] == 0} {
+        lappend proj_to_do $project_name
+      }
+    }
+
+    set n [llength $proj_to_do]
+    if {$n > 0} {
+      Msg Info "The following projects were modified: \n[join $proj_to_do \n]"
+    }
+
+    Msg Info "$n projects were modified since last official version."
+    exit 0
+  }
+
   if {$do_check_ci_env == 1} {
     CheckCIEnv
     exit 0
@@ -485,7 +321,7 @@ if {$cmd == -1} {
 
 
   if {$do_ipbus_xml == 1} {
-    if {[llength $project_name]  == 0} {
+    if {[llength $project_name] == 0} {
       Msg Error "XML option needs a project name."
       exit
     }
@@ -503,9 +339,8 @@ if {$cmd == -1} {
       set dst_dir $options(dst_dir)
     } else {
       if {![info exists dst_dir]} {
-	set dst_dir ""
+        set dst_dir ""
       }
-
     }
     set xml_dst "$dst_dir/xml"
 
@@ -543,11 +378,11 @@ if {$cmd == -1} {
     source $tcl_path/utils/hierarchy.tcl
     set proj_dir $repo_path/Top/$project_name
     set proj_list_dir $repo_path/Top/$project_name/list
-    lassign [GetHogFiles -ext_path $ext_path \
-        -list_files ".src,.ext" $proj_list_dir $repo_path]\
-        listLibraries listProperties listSrcSets
-    set hierarchy_result [Hierarchy $listProperties $listLibraries $repo_path $output_path $compile_order \
-    $light_hierarchy $top_module $ignored_hierarchy $include_ieee $include_gen_prods]
+    lassign [GetHogFiles -ext_path $ext_path -list_files ".src,.ext" $proj_list_dir $repo_path] listLibraries \
+      listProperties listSrcSets
+    set hierarchy_result \
+      [Hierarchy $listProperties $listLibraries $repo_path $output_path $compile_order $light_hierarchy $top_module \
+        $ignored_hierarchy $include_ieee $include_gen_prods]
     puts $hierarchy_result
     exit 0
   }
@@ -562,18 +397,37 @@ if {$cmd == -1} {
     foreach lib $libraries {
       set source_files [DictGet $libraries $lib]
       foreach source_file $source_files {
-        if {[file extension $source_file] == ".vhd" ||
-            [file extension $source_file] == ".vhdl" ||
-            [file extension $source_file] == ".sv" ||
-            [file extension $source_file] == ".v" } {
-          puts $csv_file [ concat  [file rootname $lib] "," $source_file ]
+        if {
+          [file extension $source_file] eq ".vhd"
+          || [file extension $source_file] eq ".vhdl"
+          || [file extension $source_file] eq ".sv"
+          || [file extension $source_file] eq ".v"
+        } {
+          puts $csv_file [concat [file rootname $lib] "," $source_file]
+        }
+      }
+    }
+    lassign [GetHogFiles -list_files ".sim" $proj_list_dir $repo_path] \
+      listSimLibraries
+    foreach lib $listSimLibraries {
+      set source_files [DictGet $listSimLibraries $lib]
+      foreach source_file $source_files {
+        if {
+          [file extension $source_file] eq ".vhd"
+          || [file extension $source_file] eq ".vhdl"
+          || [file extension $source_file] eq ".sv"
+          || [file extension $source_file] eq ".v"
+        } {
+          puts $csv_file [concat [file rootname $lib] "," $source_file]
         }
       }
     }
     close $csv_file
     Msg Info "Sigasi CSV file created: sigasi_$project.csv"
     Msg Info "You can use the python script provided by Sigasi to convert the generated csv file into a Sigasi project."
-    Msg Info "More info at: https://www.sigasi.com/knowledge/how_tos/generating-sigasi-project-vivado-project/#2-generate-the-sigasi-project-files-from-the-csv-file"
+    Msg Info \
+      "More info at: \
+      https://www.sigasi.com/knowledge/how_tos/generating-sigasi-project-vivado-project/#2-generate-the-sigasi-project-files-from-the-csv-file"
     exit 0
   }
 
@@ -589,18 +443,20 @@ if {$cmd == -1} {
     dict for {lib source_files} $libraries {
       puts $toml_file "[file rootname $lib].files = \["
       foreach source_file $source_files {
-        if {[file extension $source_file] == ".vhd" ||
-            [file extension $source_file] == ".vhdl"
-            } {
-                # puts [Relative $repo_path $source_file ]
-                puts $toml_file "\'[Relative $repo_path $source_file ]\',"
-            }
+        if {
+          [file extension $source_file] == ".vhd"
+          || [file extension $source_file] == ".vhdl"
+        } {
+          # puts [Relative $repo_path $source_file ]
+          puts $toml_file "\'[Relative $repo_path $source_file]\',"
         }
+      }
       puts $toml_file "\]\n"
     }
     close $toml_file
     Msg Info "VHDL-LS TOML File created: vhdl_ls_$project.toml"
-    Msg Info "You can copy the content of this file into your VHDL-LS configuration vhdl_ls.toml, to import all Hog libraries."
+    Msg Info \
+      "You can copy the content of this file into your VHDL-LS configuration vhdl_ls.toml, to import all Hog libraries."
     exit 0
   }
 
@@ -639,7 +495,9 @@ if {$cmd == -1} {
     }
 
     set ide vivado
-    set cmd "vivado -mode batch -notrace -source $repo_path/Hog/Tcl/utils/compile_simlib.tcl  -tclargs -simulator $simulator -output_dir $output_dir"
+    set cmd \
+      "vivado -mode batch -notrace -source $repo_path/Hog/Tcl/utils/compile_simlib.tcl  -tclargs -simulator $simulator \
+      -output_dir $output_dir"
   }
 
   set simsets ""
@@ -685,34 +543,35 @@ if {$cmd == -1} {
   }
 
   if {$do_version == 1} {
-      cd $repo_path
-      set proj_dir $repo_path/Top/$project_name
-      lassign [GetRepoVersions $proj_dir $repo_path $ext_path] sha ver
-      if {$options(describe) == 1} {
-        puts [GetHogDescribe $proj_dir $repo_path]
-      } else {
-        puts "v[HexVersionToString $ver]"
-      }
-      exit 0
+    cd $repo_path
+    set proj_dir $repo_path/Top/$project_name
+    lassign [GetRepoVersions $proj_dir $repo_path $ext_path] sha ver
+    if {$options(describe) == 1} {
+      puts [GetHogDescribe $proj_dir $repo_path]
+    } else {
+      puts "v[HexVersionToString $ver]"
     }
+    exit 0
+  }
+
   # if {$do_new_directive ==1 } {
   #
   # # Do things here
   #
   # exit 0
   #}
-
   #### END of tclsh commands ####
   Msg Info "Launching command: $cmd..."
 
   # Check if the IDE is actually in the path...
   set ret [catch {exec which $ide}]
   if {$ret != 0} {
-      if {[string match "*vitis_unified*" $ide_name]} {
-        Msg Error "This is a '$ide_name' project: make sure to add both Vivado and Vitis to your PATH environment variable."
-        } else {
-        Msg Error "$ide not found in your system. Make sure to add $ide to your PATH environment variable."
-        }
+    if {[string match "*vitis_unified*" $ide_name]} {
+      Msg Error \
+        "This is a '$ide_name' project: make sure to add both Vivado and Vitis to your PATH environment variable."
+    } else {
+      Msg Error "$ide not found in your system. Make sure to add $ide to your PATH environment variable."
+    }
     exit $ret
   }
 
@@ -742,30 +601,25 @@ if {$cmd == -1} {
   exit $ret
 }
 
+
 #After this line, we are in the IDE
 ##################################################################################
-
-
 # We need to Import tcllib if we are using Libero
 if {[IsLibero] || [IsDiamond]} {
   if {[info exists env(HOG_TCLLIB_PATH)]} {
     lappend auto_path $env(HOG_TCLLIB_PATH)
   } else {
-    puts "ERROR: To run Hog with Microsemi Libero SoC or Lattice Diamond,\
-    you need to define the HOG_TCLLIB_PATH variable."
+    puts \
+      "ERROR: To run Hog with Microsemi Libero SoC or Lattice Diamond, you need to define the HOG_TCLLIB_PATH variable."
     return
   }
 }
 
 if {[catch {package require cmdline} ERROR] || [catch {package require struct::matrix} ERROR]} {
-  puts "$ERROR\n Tcllib not found. If you are running this script on tclsh for debuggin purpose ONLY, you can fix this by installing 'tcllib'"
+  puts \
+    "$ERROR\n Tcllib not found. If you are running this script on tclsh for debuggin purpose ONLY, you can fix this by \
+    installing 'tcllib'"
   exit 1
-}
-
-## CHECK PROJECT VERSION
-if {$do_checkproj_ver == 1} {
-  CheckProjVer $repo_path $project_name $options(simcheck) $options(ext_path)
-  exit 0
 }
 
 set run_folder [file normalize "$repo_path/Projects/$project_name/$project.runs/"]
@@ -777,15 +631,23 @@ if {[IsLibero]} {
 set project_path [file normalize "$repo_path/Projects/$project_name/"]
 
 # Get IDE name from project config file
-set proj_conf [ProjectExists $project_name $repo_path]
+if {$allow_empty_proj == 0 || $project_name ne ""} {
+  set proj_conf [ProjectExists $project_name $repo_path]
+} else {
+  set proj_conf ""
+}
 set ide_name_and_ver [string tolower [GetIDEFromConf $proj_conf]]
 set ide_name [lindex [regexp -all -inline {\S+} $ide_name_and_ver] 0]
 
 # Validate IDE name
-set supported_ides [list vivado vivado_vitis_classic vivado_vitis_unified vitis_classic vitis_unified quartus planahead libero diamond ghdl]
+set supported_ides \
+  [list vivado vivado_vitis_classic vivado_vitis_unified vitis_classic vitis_unified quartus planahead libero diamond \
+    ghdl]
 if {$ide_name ni $supported_ides} {
   if {$ide_name eq "vitis"} {
-    Msg Error "The IDE set in hog.conf ('vitis') is not supported. Did you mean 'vitis_unified' or 'vitis_classic'? Supported IDEs: [join $supported_ides {, }]"
+    Msg Error \
+      "The IDE set in hog.conf ('vitis') is not supported. Did you mean 'vitis_unified' or 'vitis_classic'? Supported \
+      IDEs: [join $supported_ides {, }]"
   } else {
     Msg Error "The IDE set in hog.conf ('$ide_name') is not supported. Supported IDEs: [join $supported_ides {, }]"
   }
@@ -793,14 +655,22 @@ if {$ide_name ni $supported_ides} {
 }
 
 # Vitis IDE detection
-if {([string tolower $ide_name] eq "vivado_vitis_classic" || [string tolower $ide_name] eq "vitis_classic") && ($options(vivado_only) != 1)} {
+if {
+  ([string tolower $ide_name] eq "vivado_vitis_classic" || [string tolower $ide_name] eq "vitis_classic")
+  && ($options(vivado_only) != 1)
+} {
   set globalSettings::vitis_classic 1
   set globalSettings::vitis_unified 0
-} elseif {([string tolower $ide_name] eq "vivado_vitis_unified" || [string tolower $ide_name] eq "vitis_unified") && ($options(vivado_only) != 1)} {
+} elseif {
+  ([string tolower $ide_name] eq "vivado_vitis_unified" || [string tolower $ide_name] eq "vitis_unified")
+  && ($options(vivado_only) != 1)
+} {
   set globalSettings::vitis_classic 0
   set globalSettings::vitis_unified 1
   if {[auto_execok vitis] eq ""} {
-    Msg Error "Vitis Unified IDE is required for project $project_name but 'vitis' was not found in PATH. Please source Vitis settings first."
+    Msg Error \
+      "Vitis Unified IDE is required for project $project_name but 'vitis' was not found in PATH. Please source Vitis \
+      settings first."
   }
 } else {
   set globalSettings::vitis_classic 0
@@ -879,9 +749,6 @@ if {$options(compile_only) == 1} {
 }
 
 
-
-
-
 Msg Info "Number of jobs set to $options(njobs)."
 
 ############## Quartus ########################
@@ -925,6 +792,9 @@ if {$options(vitis_only) == 1 && ($ide_name eq "vitis_unified" || $ide_name eq "
 } elseif {[IsDiamond]} {
   sys_install version
   set project_file [file normalize $repo_path/Projects/$project_name/$project.ldf]
+} else {
+  Msg Error "Unknown IDE, can't set project file path."
+  exit 1
 }
 
 if {[file exists $project_file]} {
@@ -951,7 +821,9 @@ if {[file exists $project_file]} {
         }
       }
       if {$options(vitis_only) == 1 && [string match "*vitis_unified*" $rel]} {
-        Msg Debug "Checking file [list $project_file_alt] exists=[file exists $project_file_alt]; _ide dir [list $ide_dir] exists=[file exists $ide_dir]"
+        Msg Debug \
+          "Checking file [list $project_file_alt] exists=[file exists $project_file_alt]; _ide dir [list $ide_dir] \
+          exists=[file exists $ide_dir]"
       } else {
         Msg Debug "Checking [list $project_file_alt] exists=[file exists $project_file_alt]"
       }
@@ -965,7 +837,7 @@ if {[file exists $project_file]} {
     }
   }
   if {!$proj_found} {
-      Msg Info "Project file not found for $project_name."
+    Msg Info "Project file not found for $project_name."
   }
 }
 
@@ -1012,7 +884,6 @@ if {($proj_found == 0 || $recreate == 1)} {
     OpenProject $project_file $repo_path
   }
 }
-
 
 
 ########## CHECK SYNTAX ###########
@@ -1109,12 +980,11 @@ if {$do_simulation == 1} {
 if {$do_check_list_files} {
   Msg Info "Running list file checker..."
 
+
   #if {![file exists $dst_dir]} {
   #   Msg Info "$dst_dir directory not found, creating it..."
   #   file mkdir $dst_dir
   # }
-
-
   set argv0 check_list_files
   if {$ext_path ne ""} {
     set argv [list "-ext_path" "$ext_path" "-outDir" "$dst_dir" "-pedantic"]

@@ -8168,16 +8168,16 @@ proc GetCurl {{gitlab_url "https://gitlab.com" }} {
     return 0
   }
 
-  if {[IsTclSh]} {
-    set cmd "curl --silent --show-error "
+  if {[IsTclsh]} {
+    set cmd [list curl --silent --show-error]
   } else {
-    set cmd "env -u LD_LIBRARY_PATH curl --silent --show-error"
+    set cmd [list env -u LD_LIBRARY_PATH curl --silent --show-error]
   }
 
-  if {![catch $cmd -I $gitlab_url]} {
-    return [list $cmd]
+  if {![catch {exec {*}$cmd -I $gitlab_url}]} {
+    return $cmd
   } else {
     Msg Warning "Impossible to contact $gitlab_url"
     return 0
-  } 
+  }
 }

@@ -46,7 +46,7 @@ if {[IsQuartus]} {
 # Msg Debug "s: $::argv0 a: $argv"
 ### CUSTOM COMMANDS ###
 set commands_path [file normalize "$tcl_path/../../hog-commands/"]
-set custom_commands [GetCustomCommands $parameters $commands_path ]
+set custom_commands [GetCustomCommands $parameters $commands_path]
 
 lassign [InitLauncher $::argv0 $tcl_path $parameters $default_commands $argv $custom_commands] directive project \
   project_name group_name repo_path old_path bin_dir top_path usage short_usage cmd ide list_of_options
@@ -208,7 +208,7 @@ if {$options(all) == 1} {
 set ci_run 0
 if {$options(ci_run) == 1} {
   set ci_run 1
-} 
+}
 
 if {$options(dst_dir) == "" && ($do_ipbus_xml == 1 || $do_check_list_files == 1) && $project != ""} {
   # Getting all the versions and SHAs of the repository
@@ -250,6 +250,7 @@ if {$cmd == -1} {
 
   if {$do_checkproj_ver == 1} {
     cd $repo_path
+    set ci_config ""
     if {$ci_run == 1} {
       # Compile YAML to get list of projects
       if {[info exists env(GITLAB_CI)] && $env(GITLAB_CI) eq "true" && [auto_execok glab] != ""} {
@@ -277,6 +278,7 @@ if {$cmd == -1} {
     if {$project_name eq ""} {
       set projects [ListProjects $repo_path 1 0 1]
       foreach p $projects {
+        puts "Checking project $p"
         if {$ci_run == 0 || ($ci_run == 1 && [string first $p $ci_config] != -1)} {
           if {[CheckProjVer $repo_path $p $options(simcheck) $options(ext_path)] == 0} {
             lappend proj_to_do $p
@@ -290,7 +292,7 @@ if {$cmd == -1} {
     }
 
     set n [llength $proj_to_do]
-    if {$n > 0 } {
+    if {$n > 0} {
       Msg Info "The following projects were modified: \n[join $proj_to_do \n]"
     }
 
@@ -305,7 +307,7 @@ if {$cmd == -1} {
 
 
   if {$do_ipbus_xml == 1} {
-    if {[llength $project_name]  == 0} {
+    if {[llength $project_name] == 0} {
       Msg Error "XML option needs a project name."
       exit
     }
@@ -366,7 +368,7 @@ if {$cmd == -1} {
       listProperties listSrcSets
     set hierarchy_result \
       [Hierarchy $listProperties $listLibraries $repo_path $output_path $compile_order $light_hierarchy $top_module \
-      $ignored_hierarchy $include_ieee $include_gen_prods]
+        $ignored_hierarchy $include_ieee $include_gen_prods]
     puts $hierarchy_result
     exit 0
   }
@@ -387,22 +389,22 @@ if {$cmd == -1} {
           || [file extension $source_file] eq ".sv"
           || [file extension $source_file] eq ".v"
         } {
-          puts $csv_file [ concat  [file rootname $lib] "," $source_file ]
+          puts $csv_file [concat [file rootname $lib] "," $source_file]
         }
       }
     }
     lassign [GetHogFiles -list_files ".sim" $proj_list_dir $repo_path] \
-          listSimLibraries
+      listSimLibraries
     foreach lib $listSimLibraries {
       set source_files [DictGet $listSimLibraries $lib]
       foreach source_file $source_files {
         if {
-          [file extension $source_file] eq ".vhd"\
-          || [file extension $source_file] eq ".vhdl"\
+          [file extension $source_file] eq ".vhd"
+          || [file extension $source_file] eq ".vhdl"
           || [file extension $source_file] eq ".sv"
           || [file extension $source_file] eq ".v"
         } {
-          puts $csv_file [ concat  [file rootname $lib] "," $source_file ]
+          puts $csv_file [concat [file rootname $lib] "," $source_file]
         }
       }
     }
@@ -432,7 +434,7 @@ if {$cmd == -1} {
           || [file extension $source_file] == ".vhdl"
         } {
           # puts [Relative $repo_path $source_file ]
-          puts $toml_file "\'[Relative $repo_path $source_file ]\',"
+          puts $toml_file "\'[Relative $repo_path $source_file]\',"
         }
       }
       puts $toml_file "\]\n"
@@ -626,7 +628,7 @@ set ide_name [lindex [regexp -all -inline {\S+} $ide_name_and_ver] 0]
 # Validate IDE name
 set supported_ides \
   [list vivado vivado_vitis_classic vivado_vitis_unified vitis_classic vitis_unified quartus planahead libero diamond \
-  ghdl]
+    ghdl]
 if {$ide_name ni $supported_ides} {
   if {$ide_name eq "vitis"} {
     Msg Error \

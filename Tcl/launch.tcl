@@ -205,6 +205,11 @@ if {$options(all) == 1} {
   set do_list_all 2
 }
 
+set ci_run 0
+if {$options(ci_run) == 1} {
+  set ci_run 1
+} 
+
 if {$options(dst_dir) == "" && ($do_ipbus_xml == 1 || $do_check_list_files == 1) && $project != ""} {
   # Getting all the versions and SHAs of the repository
   lassign [GetRepoVersions [file normalize $repo_path/Top/$group_name/$project] $repo_path $ext_path] commit version \
@@ -244,12 +249,25 @@ if {$cmd == -1} {
   }
 
   if {$do_checkproj_ver == 1} {
+    if {$ci_run == 1} {
+      # Compile YAML to get list of projects
+      if {[info exists env(GITLAB_CI)] && $env(GITLAB_CI) eq "true" && [auto_execok glab] != ""} {
+        # running in GitLab CI
+        Msg Info "Running in the GitLab CI/CD. I will check only the active projects in the current pipeline..."
+        set ci_config [exec glab ci config compile]
+      } else {
+        set ci_run 0
+      }
+    }
+
     set proj_to_do {}
     if {$project_name eq ""} {
       set projects [ListProjects $repo_path 1 0 1]
       foreach p $projects {
-        if {[CheckProjVer $repo_path $p $options(simcheck) $options(ext_path)] == 0} {
-          lappend proj_to_do $p
+        if {$ci_run == 0 || ($ci_run == 1 && [string first $p $ci_config] != -1)} {
+          if {[CheckProjVer $repo_path $p $options(simcheck) $options(ext_path)] == 0} {
+            lappend proj_to_do $p
+          }
         }
       }
     } else {

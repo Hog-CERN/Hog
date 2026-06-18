@@ -112,7 +112,7 @@ check_branch_state:
         exit 1;
       fi;
     - echo "New potential tag is $NEW_TAG"
-    - cpv=$(HOG_LOGGER=0 HOG_COLOR=0 ./Hog/Do CPV)
+    - cpv=$(HOG_LOGGER=0 HOG_COLOR=0 ./Hog/Do CPV -ci_run)
     - echo "$cpv"
     - NUM=$(echo "$cpv" | tail -n1 | grep -oP '\d+(?= projects were modified since last official version)')
     - if [ "$NUM" = "0" ]; then

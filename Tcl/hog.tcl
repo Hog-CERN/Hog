@@ -1612,6 +1612,7 @@ proc CopyIPbusXMLs {proj_dir path dst {xml_version "0.0.0"} {xml_sha "00000000"}
 
       if {[regexp \/xml\/+(.*)$   $xmlfile XXX out_with_dir]} {
 	set out_file $dst/$out_with_dir
+	lappend xmls $out_with_dir
 	Msg Debug "xml file $xmlfile is contained in a directory called 'xml', so file will be copied to $out_file"
 	set out_dir [file dir $out_file]
 	if {![file exists $out_dir]} {
@@ -1619,6 +1620,7 @@ proc CopyIPbusXMLs {proj_dir path dst {xml_version "0.0.0"} {xml_sha "00000000"}
 	}
       } else {
 	set out_file $dst/[file tail $xmlfile]
+	lappend xmls [file tail $xmlfile]
       }
       
       set out [open $out_file w]
@@ -1629,7 +1631,7 @@ proc CopyIPbusXMLs {proj_dir path dst {xml_version "0.0.0"} {xml_sha "00000000"}
       }
       close $in
       close $out
-      lappend xmls [file tail $xmlfile]
+
     } else {
       Msg Warning "XML file $xmlfile not found"
     }

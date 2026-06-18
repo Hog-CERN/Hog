@@ -122,6 +122,9 @@ check_branch_state:
     - "git notes add -fm \"$CI_MERGE_REQUEST_IID $CI_COMMIT_REF_NAME $NEW_TAG\""
     - git push origin refs/notes/*
   interruptible: true
+  artifacts: 
+    paths:
+      - ci_config.yml
 
 make_doxygen:
   <<: *only-default-doxygen

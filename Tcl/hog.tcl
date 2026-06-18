@@ -1622,7 +1622,7 @@ proc CopyIPbusXMLs {proj_dir path dst {xml_version "0.0.0"} {xml_sha "00000000"}
 	set out_file $dst/[file tail $xmlfile]
 	lappend xmls [file tail $xmlfile]
       }
-      
+
       set out [open $out_file w]
       while {[gets $in line] != -1} {
         set new_line [regsub {(.*)__VERSION__(.*)} $line "\\1$xml_version\\2"]

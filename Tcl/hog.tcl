@@ -930,6 +930,10 @@ proc CheckProjVer {repo_path project {sim 0} {ext_path ""}} {
     set project_id $env(CI_PROJECT_ID)
     set ci_run 1
     set curl_cmd [GetCurl $api_url]
+    if {[info exist env(CI_JOB_NAME)] && $env(CI_JOB_NAME) == "check_branch_state" } {
+      # Do not download artifacts from previous pipelines in check_branch_state job...
+      set ci_run 0
+    } 
   } else {
     set curl_cmd [GetCurl]
   }

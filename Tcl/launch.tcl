@@ -266,9 +266,10 @@ if {$cmd == -1} {
         } else {
           set ci_config [exec glab ci config compile]
         }
-        set out_file [open "$repo_path/ci_config.yml" w]
-        puts $out_file $ci_config
-        close $out_file
+        # Check if we are using the dynamic CI and set ci_run to 0 in case, so we check the version of all projects
+        if {[string first "hog-dynamic.yml" $ci_config] != -1} {
+          set ci_run 0
+        }
       } else {
         set ci_run 0
       }

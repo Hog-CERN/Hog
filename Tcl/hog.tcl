@@ -929,10 +929,7 @@ proc CheckProjVer {repo_path project {sim 0} {ext_path ""}} {
     set api_url $env(CI_API_V4_URL)
     set project_id $env(CI_PROJECT_ID)
     set ci_run 1
-  }
-
-  if {$ci_run == 1} {
-    set curl_cmd [GetCurl CI_API_V4_URL]
+    set curl_cmd [GetCurl $api_url]
   } else {
     set curl_cmd [GetCurl]
   }

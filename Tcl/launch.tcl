@@ -249,6 +249,7 @@ if {$cmd == -1} {
   }
 
   if {$do_checkproj_ver == 1} {
+    cd $repo_path
     if {$ci_run == 1} {
       # Compile YAML to get list of projects
       if {[info exists env(GITLAB_CI)] && $env(GITLAB_CI) eq "true" && [auto_execok glab] != ""} {
@@ -276,7 +277,6 @@ if {$cmd == -1} {
     if {$project_name eq ""} {
       set projects [ListProjects $repo_path 1 0 1]
       foreach p $projects {
-        puts "Checking project $p"
         if {$ci_run == 0 || ($ci_run == 1 && [string first $p $ci_config] != -1)} {
           if {[CheckProjVer $repo_path $p $options(simcheck) $options(ext_path)] == 0} {
             lappend proj_to_do $p

@@ -8163,18 +8163,21 @@ if {[GitVersion 2.7.2] == 0} {
 # If execution fails tries to run env -u LD_LIBRARY_PATH curl --silent --show-error, and returns "env -u LD_LIBRARY_PATH curl --silent --show-error" on success.
 # If both fail returns "curl", this will most probably generate failures later
 proc GetCurl {{gitlab_url "https://gitlab.com" }} {
-    if {![catch {exec curl --silent --show-error --version}]} {
-        if {![catch {exec curl --silent --show-error -I $gitlab_url}]} {
-            return [list curl --silent --show-error]
-        }
-    }
-
-    if {![catch {exec env -u LD_LIBRARY_PATH curl --silent --show-error --version}]} {
-        if {![catch {exec env -u LD_LIBRARY_PATH curl --silent --show-error -I $gitlab_url}]} {
-            return [list env -u LD_LIBRARY_PATH curl --silent --show-error]
-        }
-    }
-
+  if {[auto_execok curl] == ""} {
     Msg Warning "Cannot find a working curl invocation"
     return 0
+  }
+
+  if {[IsTclSh]} {
+    set cmd "curl --silent --show-error "
+  } else {
+    set cmd "env -u LD_LIBRARY_PATH curl --silent --show-error"
+  }
+
+  if {![catch $cmd -I $gitlab_url]} {
+    return [list $cmd]
+  } else {
+    Msg Warning "Impossible to contact $gitlab_url"
+    return 0
+  } 
 }

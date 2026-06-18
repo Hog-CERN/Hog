@@ -262,5 +262,6 @@ set parameters {
   {describe         "If set, the Hog describe string is returned instead of the version."}
   {light            "For tree hierarchy mode, print a light version of the hierarchy (without file paths)."}
   {simcheck         "If set, checks also the version of the simulation files."}
-  {ci_run           "If set, CheckProjVer will run only on the projects that are active in the CI's pipeline.\n It requires the glab or the gh package installed."}
+  {ci_run           "If set, CheckProjVer will run only on the projects that are active in the CI's pipeline.\n\
+  It requires the glab or the gh package installed."}
 }

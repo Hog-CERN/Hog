@@ -254,7 +254,16 @@ if {$cmd == -1} {
       if {[info exists env(GITLAB_CI)] && $env(GITLAB_CI) eq "true" && [auto_execok glab] != ""} {
         # running in GitLab CI
         Msg Info "Running in the GitLab CI/CD. I will check only the active projects in the current pipeline..."
-        set ci_config [exec glab ci config compile]
+        # Tell glab the host and project explicitly: on SaaS runners the git remote
+        # points to the CI gateway, which glab does not recognise as a GitLab host.
+        if {[info exists env(CI_SERVER_HOST)]} {
+          set env(GITLAB_HOST) $env(CI_SERVER_HOST)
+        }
+        if {[info exists env(CI_PROJECT_PATH)]} {
+          set ci_config [exec glab ci config compile -R $env(CI_PROJECT_PATH)]
+        } else {
+          set ci_config [exec glab ci config compile]
+        }
       } else {
         set ci_run 0
       }

@@ -270,6 +270,20 @@ if {$cmd == -1} {
         if {[string first "hog-dynamic.yml" $ci_config] != -1} {
           set ci_run 0
         }
+      } elseif {[info exists env(GITHUB_ACTIONS)] && $env(GITHUB_ACTIONS) eq "true"} {
+        # running in GitHub Actions
+        set workflow_dir "$repo_path/.github/workflows"
+        set ci_run 0
+        foreach workflow_file [glob -nocomplain -directory $workflow_dir -- *.yml *.yaml] {
+          set fh [open $workflow_file r]
+          set content [read $fh]
+          close $fh
+          if {[string first "Hog-pull.yml" $content] != -1} {
+            set ci_config $content
+            set ci_run 1
+            break
+          }
+        }
       } else {
         set ci_run 0
       }

@@ -933,7 +933,7 @@ proc CheckProjVer {repo_path project {sim 0} {ext_path ""}} {
     if {[info exist env(CI_JOB_NAME)] && $env(CI_JOB_NAME) == "check_branch_state" } {
       # Do not download artifacts from previous pipelines in check_branch_state job...
       set ci_run 0
-    } 
+    }
   } else {
     set curl_cmd [GetCurl]
   }

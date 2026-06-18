@@ -279,7 +279,6 @@ if {$cmd == -1} {
     if {$project_name eq ""} {
       set projects [ListProjects $repo_path 1 0 1]
       foreach p $projects {
-        puts "Checking project $p"
         if {$ci_run == 0 || ($ci_run == 1 && [string first $p $ci_config] != -1)} {
           if {[CheckProjVer $repo_path $p $options(simcheck) $options(ext_path)] == 0} {
             lappend proj_to_do $p

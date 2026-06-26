@@ -116,7 +116,7 @@ launch_github:
   except:
     variables: [$CI_COMMIT_REF_NAME =~ /^test\/.*$/i]
   script:
-    - if git diff origin/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME...HEAD --name-only | grep -qE '^(Do|Tcl|Other|.\/github)/'; then echo "Changes detected in Tcl or Other folder"; else echo "No changes in Tcl or Other folder. Skipping the GitHub job..."; exit 0; fi
+    - if git diff origin/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME...HEAD --name-only | grep -qE '^(Do|Tcl|Other|.\/github)($|/)'; then echo "Changes detected in Tcl or Other folder"; else echo "No changes in Tcl or Other folder. Skipping the GitHub job..."; exit 0; fi
     - glab auth login -t $HOG_PUSH_TOKEN --hostname $CI_SERVER_HOST
     - gh auth status
     - git clone https://hog-user:${GITHUB_TOKEN}@github.com/hog-CERN/TestFirmware.git
@@ -171,7 +171,7 @@ launch_testfirmware:
   except:
     variables: [$CI_COMMIT_REF_NAME =~ /^test\/.*$/i]
   script:
-    - if git diff origin/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME...HEAD --name-only | grep -qE '^(Do|Tcl|Other|YAML)/'; then echo "Changes detected in Tcl or Other folder"; else echo "No changes in Tcl or Other folder. Skipping the GitLab TestFirmware job..."; exit 0; fi
+    - if git diff origin/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME...HEAD --name-only | grep -qE '^(Do|Tcl|Other|YAML)(/|$)'; then echo "Changes detected in Tcl or Other folder"; else echo "No changes in Tcl or Other folder. Skipping the GitLab TestFirmware job..."; exit 0; fi
     - glab auth login -t $HOG_PUSH_TOKEN --hostname $CI_SERVER_HOST
     # Clone TestFirmware
     - git clone --recursive https://hog_user:${HOG_PUSH_TOKEN}@gitlab.com/hog-cern/test/TestFirmware.git

@@ -131,6 +131,7 @@ set do_buttons 0
 set do_check_list_files 0
 set do_compile_lib 0
 set do_sigasi 0
+set do_sigasi_export 0; set do_sigasi_lint 0; set do_sigasi_docs 0; set do_sigasi_format 0;
 set do_vhdl_ls 0
 set do_cocotb 0
 set do_hierarchy 0
@@ -387,6 +388,23 @@ if {$cmd == -1} {
     exit 0
   }
   if {$do_sigasi == 1} {
+    source $tcl_path/utils/sigasi_cli.tcl
+    if {$do_sigasi_export == 1} {
+      sigasi-export
+    }
+
+    if {$do_sigasi_lint == 1} {
+      sigasi-lint
+    }
+
+    if {$do_sigasi_format == 1} {
+      sigasi-format
+    }
+
+    if {$do_sigasi_docs == 1} {
+      sigasi-document
+    }
+  }
     cd $repo_path
     Msg Info "Creating Sigasi CSV files for project $project_name..."
     set proj_dir $repo_path/Top/$project_name

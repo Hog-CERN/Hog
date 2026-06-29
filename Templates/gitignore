@@ -52,6 +52,9 @@ DCPs/
 .library_mapping.xml
 .project
 .settings
+.sigasi/generated
+sigasi_doc/*
+sigasi_lint/*
 
 ## Xilinx Vivado
 **.str

@@ -448,3 +448,81 @@ check-timing:
         echo "All projects met timing. All good!";
       fi;
   allow_failure: true
+
+.sigasi_lint: &sigasi_lint
+  <<: *only-default
+  <<: *tag-hog
+  stage: user_pre
+  variables:
+    <<: *vars
+  script:
+    - if [[ -v HOG_EXTERNAL_PATH ]]; then
+        EXT_CMD="-ext_path \"$HOG_EXTERNAL_PATH\"";
+      else
+        EXT_CMD="";
+      fi;
+    - if [[ -f $HOG_APPTAINER_IMAGE ]]; then
+        echo "[INFO] Hog-CI will run inside Apptainer container $HOG_APPTAINER_IMAGE...";
+        if [[ -n $HOG_APPTAINER_EXTRA_PATH ]]; then
+          EXTRA_PATH="-B $HOG_APPTAINER_EXTRA_PATH";
+        fi;
+        APP_CMD="apptainer exec -H $PWD $EXTRA_PATH $HOG_APPTAINER_IMAGE ";
+      else
+        APP_CMD="";
+      fi;
+    - eval "$APP_CMD ./Hog/Do CPE $PROJECT_NAME"
+    - if [ -f "./Projects/${PROJECT_NAME}/skip.me" ]; then
+        echo "CI disabled for $PROJECT_NAME";
+      else
+        if [ -n "${HOG_DEBUG_MODE}" ] && [ "${HOG_DEBUG_MODE}" == '1' ]; then
+          echo "Hog-CI(info) - Hog sigasi-lint will be run in verbose mode.";
+        fi;
+        SIM_CMD="$APP_CMD ./Hog/Do sigasi-lint $PROJECT_NAME ";
+        echo $SIM_CMD;
+        $(echo $SIM_CMD);
+      fi;
+  artifacts:
+    name: sigasi_lint_report
+    paths:
+      - sigasi_lint/$PROJECT_NAME
+    expire_in: 30 day
+  interruptible: true
+
+.sigasi_doc: &sigasi_doc
+  <<: *only-default
+  <<: *tag-hog
+  stage: user_proj
+  variables:
+    <<: *vars
+  script:
+    - if [[ -v HOG_EXTERNAL_PATH ]]; then
+        EXT_CMD="-ext_path \"$HOG_EXTERNAL_PATH\"";
+      else
+        EXT_CMD="";
+      fi;
+    - if [[ -f $HOG_APPTAINER_IMAGE ]]; then
+        echo "[INFO] Hog-CI will run inside Apptainer container $HOG_APPTAINER_IMAGE...";
+        if [[ -n $HOG_APPTAINER_EXTRA_PATH ]]; then
+          EXTRA_PATH="-B $HOG_APPTAINER_EXTRA_PATH";
+        fi;
+        APP_CMD="apptainer exec -H $PWD $EXTRA_PATH $HOG_APPTAINER_IMAGE ";
+      else
+        APP_CMD="";
+      fi;
+    - eval "$APP_CMD ./Hog/Do CPE $PROJECT_NAME"
+    - if [ -f "./Projects/${PROJECT_NAME}/skip.me" ]; then
+        echo "CI disabled for $PROJECT_NAME";
+      else
+        if [ -n "${HOG_DEBUG_MODE}" ] && [ "${HOG_DEBUG_MODE}" == '1' ]; then
+          echo "Hog-CI(info) - Hog sigasi-doc will be run in verbose mode.";
+        fi;
+        SIM_CMD="$APP_CMD ./Hog/Do sigasi-doc $PROJECT_NAME ";
+        echo $SIM_CMD;
+        $(echo $SIM_CMD);
+      fi;
+  artifacts:
+    name: sigasi_docs
+    paths:
+      - sigasi_doc/$PROJECT_NAME
+    expire_in: 30 day
+  interruptible: true

@@ -183,12 +183,37 @@ set default_commands {
 
   \^SIG(ASI)?$ {#proj
     set do_sigasi 1
+    set do_sigasi_export 1
   # NAME: SIGASI or SIG
   # DESCRIPTION: Create a .csv file to be used in Sigasi.
   # OPTIONS: verbose
   }
 
-  \^T(REE)?$ {#proj
+  \^SIGASI-DOC(S)?$ {#
+    set do_sigasi 1
+    set do_sigasi_docs 1
+  # NAME: SIGASI-DOC or SIGASI-DOCS
+  # DESCRIPTION: Generate documentation for the current project
+  # OPTIONS: verbose
+  }
+
+  \^SIGASI-LINT?$ {#
+    set do_sigasi 1
+    set do_sigasi_lint 1
+  # NAME: SIGASI-LINT
+  # DESCRIPTION: Creates a report detailing linting issues within the codebase
+  # OPTIONS: verbose
+  }
+
+  \^SIGASI-FORMAT?$ {#
+    set do_sigasi 1
+    set do_sigasi_format 1
+  # NAME: SIGASI-FORMAT
+  # DESCRIPTION: Formats all VHDL project files.
+  # OPTIONS: verbose
+  }
+
+  \^T(REE)?$ {#
     set do_hierarchy 1
   # NAME: TREE or T
   # DESCRIPTION: Print the design hierarchy for the chosen project.

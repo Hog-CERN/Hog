@@ -3729,7 +3729,18 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
 
 
   # Check cleanliness only for the files that belong to this project
-  if {[Git "status --untracked-files=no --porcelain" $project_files] eq ""} {
+  set dirty ""
+  if {[OS] == "windows"} {
+    set chunk_size 10
+    for {set i 0} {$i < [llength $project_files]} {incr i $chunk_size} {
+      set chunk [lrange $project_files $i [expr {$i + $chunk_size - 1}]]
+      append dirty [Git "status --untracked-files=no --porcelain" $chunk]
+    }
+  } else {
+    append dirty [Git "status --untracked-files=no --porcelain" $project_files]
+  }
+
+  if {$dirty eq ""} {
     Msg Debug "Project-relevant files are clean."
     set clean 1
   } else {

@@ -3556,7 +3556,7 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
   # set project_files $conf_files
   foreach conf_file $conf_files {
     if {[string match "$repo_path/*" $conf_file]} {
-      set conf_file [string replace $p 0 [string length $repo_root]]
+      set conf_file [string replace $conf_file 0 [string length $repo_root]]
     }
     lappend project_files $conf_file
   }
@@ -3590,7 +3590,7 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
     set relative_files ""
     foreach fil $files {
       if {[string match "$repo_path/*" $fil]} {
-        set fil [string replace $p 0 [string length $repo_root]]
+        set fil [string replace $fil 0 [string length $repo_root]]
       }
       lappend relative_files $fil
     }
@@ -3616,7 +3616,7 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
     set relative_files ""
     foreach fil $files {
       if {[string match "$repo_path/*" $fil]} {
-        set fil [string replace $p 0 [string length $repo_root]]
+        set fil [string replace $fil 0 [string length $repo_root]]
       }
       lappend relative_files $fil
     }
@@ -3639,7 +3639,7 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
       set relative_files ""
       foreach fil $files {
         if {[string match "$repo_path/*" $fil]} {
-          set fil [string replace $p 0 [string length $repo_root]]
+          set fil [string replace $fil 0 [string length $repo_root]]
         }
         lappend relative_files $fil
       }
@@ -3708,7 +3708,7 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
     set relative_files ""
     foreach fil $xml_source_files {
       if {[string match "$repo_path/*" $fil]} {
-        set fil [string replace $p 0 [string length $repo_root]]
+        set fil [string replace $fil 0 [string length $repo_root]]
       }
       lappend relative_files $fil
     }

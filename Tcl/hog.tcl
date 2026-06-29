@@ -3527,6 +3527,7 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
 
   set old_path [pwd]
   set conf_files [GetConfFiles $proj_dir]
+  
 
   # This will be the list of all the SHAs of this project, the most recent will be picked up as GLOBAL SHA
   set SHAs ""
@@ -3552,8 +3553,15 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
   cd $proj_dir
 
   # Collect all project-relevant files; the clean check will be deferred until all files are known
-  set project_files $conf_files
-  lappend project_files $repo_path/Hog
+  # set project_files $conf_files
+  foreach conf_file $conf_files {
+    if {[string match "$repo_path/*" $conf_file]} {
+      set conf_file [string replace $p 0 [string length $repo_root]]
+    }
+    lappend project_files $conf_file
+  }
+
+  lappend project_files Hog
 
   # Top project directory
   lassign [GetVer [join $conf_files]] top_ver top_hash
@@ -3579,7 +3587,15 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
     lappend vers $ver
     lappend hashes $hash
     lappend SHAs $hash
-    lappend project_files $f {*}$files
+    set relative_files ""
+    foreach fil $files {
+      if {[string match "$repo_path/*" $fil]} {
+        set fil [string replace $p 0 [string length $repo_root]]
+      }
+      lappend relative_files $fil
+    }
+
+    lappend project_files $f {*}$relative_files
   }
 
   # Read constraint list files
@@ -3597,7 +3613,14 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
     lappend cons_hashes $hash
     lappend SHAs $hash
     lappend versions $ver
-    lappend project_files $f {*}$files
+    set relative_files ""
+    foreach fil $files {
+      if {[string match "$repo_path/*" $fil]} {
+        set fil [string replace $p 0 [string length $repo_root]]
+      }
+      lappend relative_files $fil
+    }
+    lappend project_files $f {*}$relative_files
   }
 
   # Read simulation list files
@@ -3613,7 +3636,14 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
       lappend sim_hashes $hash
       lappend SHAs $hash
       lappend versions $ver
-      lappend project_files $f {*}$files
+      set relative_files ""
+      foreach fil $files {
+        if {[string match "$repo_path/*" $fil]} {
+          set fil [string replace $p 0 [string length $repo_root]]
+        }
+        lappend relative_files $fil
+      }
+      lappend project_files $f {*}$relative_files
     }
   }
 
@@ -3675,8 +3705,14 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
     lassign [GetVer $xml_source_files] xml_ver xml_hash
     lappend SHAs $xml_hash
     lappend versions $xml_ver
-    lappend project_files {*}[glob ./list/*.ipb] {*}$xml_source_files
-
+    set relative_files ""
+    foreach fil $xml_source_files {
+      if {[string match "$repo_path/*" $fil]} {
+        set fil [string replace $p 0 [string length $repo_root]]
+      }
+      lappend relative_files $fil
+    }
+    lappend project_files {*}[glob ./list/*.ipb] {*}$relative_files
     #Msg Info "Found IPbus XML SHA: $xml_hash and version: $xml_ver."
   } else {
     Msg Debug "This project does not use IPbus XMLs"
@@ -3730,15 +3766,15 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
 
   # Check cleanliness only for the files that belong to this project
   set dirty ""
-  if {[OS] == "windows"} {
-    set chunk_size 10
-    for {set i 0} {$i < [llength $project_files]} {incr i $chunk_size} {
-      set chunk [lrange $project_files $i [expr {$i + $chunk_size - 1}]]
-      append dirty [Git "status --untracked-files=no --porcelain" $chunk]
-    }
-  } else {
-    append dirty [Git "status --untracked-files=no --porcelain" $project_files]
-  }
+  # if {[OS] == "windows"} {
+  #   set chunk_size 10
+  #   for {set i 0} {$i < [llength $project_files]} {incr i $chunk_size} {
+  #     set chunk [lrange $project_files $i [expr {$i + $chunk_size - 1}]]
+  #     append dirty [Git "status --untracked-files=no --porcelain" $chunk]
+  #   }
+  # } else {
+  append dirty [Git "status --untracked-files=no --porcelain" $project_files]
+  # }
 
   if {$dirty eq ""} {
     Msg Debug "Project-relevant files are clean."

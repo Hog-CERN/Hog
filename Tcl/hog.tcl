@@ -3834,6 +3834,7 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
 # @return         the value of the desired SHA
 #
 proc GetSHA {{path ""}} {
+  set old_path [pwd]
   if {$path == ""} {
     lassign [GitRet {log --format=%h --abbrev=7 -1}] status result
     if {$status == 0} {
@@ -3846,12 +3847,13 @@ proc GetSHA {{path ""}} {
 
   # Get repository top level
   set repo_path [lindex [Git {rev-parse --show-toplevel}] 0]
+  cd $repo_path
   set paths {}
   # Retrieve the list of submodules in the repository
   foreach f $path {
     set file_in_module 0
-    if {[file exists $repo_path/.gitmodules]} {
-      lassign [GitRet "config --file $repo_path/.gitmodules --get-regexp path"] status result
+    if {[file exists .gitmodules]} {
+      lassign [GitRet "config --file .gitmodules --get-regexp path"] status result
       if {$status == 0} {
         set submodules [split $result "\n"]
       } else {
@@ -3864,7 +3866,7 @@ proc GetSHA {{path ""}} {
         if {[string first "$repo_path/$module" $f] == 0} {
           # File is in a submodule. Append
           set file_in_module 1
-          lappend paths "$repo_path/$module"
+          lappend paths "$module"
           break
         }
       }
@@ -3882,6 +3884,7 @@ proc GetSHA {{path ""}} {
     Msg Error "Something went wrong while finding the latest SHA. Does the repository have a commit?"
     exit 1
   }
+  cd $old_path
   return [string tolower $result]
 }
 

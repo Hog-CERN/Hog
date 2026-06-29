@@ -3550,7 +3550,7 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
     set hog_ver "00000000"
   }
 
-  cd $proj_dir
+  # cd $proj_dir
 
   # Collect all project-relevant files; the clean check will be deferred until all files are known
   # set project_files $conf_files

@@ -67,6 +67,9 @@ if {[IsXilinx]} {
   set proj_name [file rootname [file tail $proj_file]]
 } elseif {[IsQuartus]} {
   # Quartus
+  # puts stdout "Pre-flow script running..."
+  # puts stderr "This goes to stderr"
+  post_message "This is a post message"
   set proj_name [lindex $quartus(args) 1]
   #set proj_dir [file normalize "$repo_path/Projects/$proj_name"]
   set proj_dir [pwd]

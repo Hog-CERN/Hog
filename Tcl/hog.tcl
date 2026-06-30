@@ -3549,8 +3549,6 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
     set hog_ver "00000000"
   }
 
-  cd $proj_dir
-
   # Collect all project-relevant files; the clean check will be deferred until all files are known
   # set project_files $conf_files
   foreach conf_file $conf_files {
@@ -3572,7 +3570,7 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
   set vers ""
   set hashes ""
   # Specify sha_mode 1 for GetHogFiles to get all the files, including the list-files themselves
-  lassign [GetHogFiles -list_files "*.src" -sha_mode "./list/" $repo_path] src_files dummy
+  lassign [GetHogFiles -list_files "*.src" -sha_mode "$proj_dir/list/" $repo_path] src_files dummy
   dict for {f files} $src_files {
     # library names have a .src extension in values returned by GetHogFiles
     set name [file rootname [file tail $f]]
@@ -3600,7 +3598,7 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
   # Read constraint list files
   set cons_hashes ""
   # Specify sha_mode 1 for GetHogFiles to get all the files, including the list-files themselves
-  lassign [GetHogFiles -list_files "*.con" -sha_mode "./list/" $repo_path] cons_files dummy
+  lassign [GetHogFiles -list_files "*.con" -sha_mode "$proj_dir/list/" $repo_path] cons_files dummy
   dict for {f files} $cons_files {
     #library names have a .con extension in values returned by GetHogFiles
     set name [file rootname [file tail $f]]
@@ -3626,7 +3624,7 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
   if {$sim == 1} {
     set sim_hashes ""
     # Specify sha_mode 1 for GetHogFiles to get all the files, including the list-files themselves
-    lassign [GetHogFiles -list_files "*.sim" -sha_mode "./list/" $repo_path] sim_files dummy
+    lassign [GetHogFiles -list_files "*.sim" -sha_mode "$proj_dir/list/" $repo_path] sim_files dummy
     dict for {f files} $sim_files {
       #library names have a .sim extension in values returned by GetHogFiles
       set name [file rootname [file tail $f]]
@@ -3660,7 +3658,7 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
 
   # Read external library files
   set ext_hashes ""
-  set ext_files [glob -nocomplain "./list/*.ext"]
+  set ext_files [glob -nocomplain "$proj_dir/list/*.ext"]
   set ext_names ""
 
   foreach f $ext_files {
@@ -3697,9 +3695,9 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
   }
 
   # Ipbus XML
-  if {[llength [glob -nocomplain ./list/*.ipb]] > 0} {
+  if {[llength [glob -nocomplain $proj_dir/list/*.ipb]] > 0} {
     #Msg Info "Found IPbus XML list file, evaluating version and SHA of listed files..."
-    lassign [GetHogFiles -list_files "*.ipb" -sha_mode "./list/" $repo_path] xml_files dummy
+    lassign [GetHogFiles -list_files "*.ipb" -sha_mode "$proj_dir/list/" $repo_path] xml_files dummy
     set xml_source_files [dict get $xml_files "xml.ipb"]
     lassign [GetVer $xml_source_files] xml_ver xml_hash
     lappend SHAs $xml_hash
@@ -3711,7 +3709,7 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
       }
       lappend relative_files $fil
     }
-    lappend project_files {*}[glob ./list/*.ipb] {*}$relative_files
+    lappend project_files {*}[glob $proj_dir/list/*.ipb] {*}$relative_files
     #Msg Info "Found IPbus XML SHA: $xml_hash and version: $xml_ver."
   } else {
     Msg Debug "This project does not use IPbus XMLs"
@@ -5977,6 +5975,7 @@ proc LaunchSynthesis {reset do_create run_folder project_name {repo_path .} {ext
       Msg Warning "LOG: $log"
     } else {
       Msg Info "Pre flow script executed!"
+      Msg Info "Pre flow script log: \n$log"
     }
 
     # Re-open project

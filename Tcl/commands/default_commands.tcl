@@ -9,9 +9,9 @@ set ::hog_commands {
     script {
         Msg Status "\n** The projects in this repository are:"
         if {[Launcher::Get options all]} {
-            ListProjects [Repo::Get repo_path] 1
+            ListProjects [Repo::Get repo_path] 2
         } else {
-            ListProjects [Repo::Get repo_path] 0 1
+            ListProjects [Repo::Get repo_path] 1 1
         }
         Msg Status "\n"
         exit 0

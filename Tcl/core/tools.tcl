@@ -303,6 +303,9 @@ namespace eval Tools {
   # let's use use calls like Tools::Vivado::GetManifest and not have to define these for each tool
   proc InjectCommonProcs {tool_ns} {
     namespace eval $tool_ns {
+      # source sigasi tools and add the manifest to the tool flow dict as sigasi-export will work regards of whether license is available
+      source [file join $tcl_path utils sigasi_cli.tcl]
+      Flow::RegisterFlowDict [namespace current] [dict get $SigasiManifest Flows]
 
       proc Supports {feature} {
         variable Manifest
@@ -345,7 +348,7 @@ namespace eval Tools {
 
 
 
-# Namespace wrapper around the current tool, should use this instead 
+# Namespace wrapper around the current tool, should use this instead
 # of tool specific calls in most cases:
 namespace eval ActiveTool {
   variable tool "tclsh"
@@ -388,7 +391,7 @@ namespace eval ActiveTool {
       if {$name in $_skip_procs}   continue
       if {$name in $_fixed_procs} continue
 
-      # we can generate a wrapper around the actual call to add logging or 
+      # we can generate a wrapper around the actual call to add logging or
       # other functionality without modifying the tool's code
       set proc_body [string map [list @_TOOL $tool_ns @_PROC_NAME $name] {
         Msg Debug "Calling @_TOOL::@_PROC_NAME with args: $args"

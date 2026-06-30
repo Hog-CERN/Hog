@@ -26,11 +26,7 @@ variable SigasiManifest {
       sigasi-lint {
         aliases {sigasi-l}
         stages  {sigasi-lint}
-<<<<<<< Updated upstream
       }
-=======
-      }git
->>>>>>> Stashed changes
     }
   }
 
@@ -48,15 +44,9 @@ proc _test_sigasi {} {
 
 proc sigasi-export {} {
   # if using new experimental hog then get key info from Context. Else access the TCL globals
-<<<<<<< Updated upstream
-  if { [namespace exists ::Context] } {
-    set repo_path [Context::Get launch_settings repo_path]
-    set project_name [Context::Get launch_settings project_name]
-=======
   if { [namespace exists ::Repo] } {
     set repo_path [Repo::Get repo_path]
     set project_name [HogProject::Get project_name]
->>>>>>> Stashed changes
   } else {
     global repo_path
     global project_name
@@ -109,15 +99,9 @@ proc sigasi-export {} {
 
 proc sigasi-lint {} {
   _test_sigasi
-<<<<<<< Updated upstream
-  if { [namespace exists ::Context] } {
-    set repo_path [Context::Get launch_settings repo_path]
-    set project_name [Context::Get launch_settings project_name]
-=======
   if { [namespace exists ::Repo] } {
     set repo_path [Repo::Get repo_path]
     set project_name [HogProject::Get project_name]
->>>>>>> Stashed changes
   } else {
     global repo_path
     global project_name
@@ -186,16 +170,9 @@ proc sigasi-lint {} {
 
 proc sigasi-format {} {
   _test_sigasi
-<<<<<<< Updated upstream
-  if { [namespace exists ::Context] } {
-    set repo_path [Context::Get launch_settings repo_path]
-    set project_name [Context::Get launch_settings project_name]
-    puts "context $repo_path $project_name"
-=======
   if { [namespace exists ::Repo] } {
     set repo_path [Repo::Get repo_path]
     set project_name [HogProject::Get project_name]
->>>>>>> Stashed changes
   } else {
     global repo_path
     global project_name
@@ -278,15 +255,9 @@ proc sigasi-format {} {
 
 proc sigasi-document {} {
   _test_sigasi
-<<<<<<< Updated upstream
-  if { [namespace exists ::Context] } {
-    set repo_path [Context::Get launch_settings repo_path]
-    set project_name [Context::Get launch_settings project_name]
-=======
   if { [namespace exists ::Repo] } {
     set repo_path [Repo::Get repo_path]
     set project_name [HogProject::Get project_name]
->>>>>>> Stashed changes
   } else {
     global repo_path
     global project_name

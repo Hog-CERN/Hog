@@ -3527,7 +3527,6 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
 
   set old_path [pwd]
   set conf_files [GetConfFiles $proj_dir]
-  
 
   # This will be the list of all the SHAs of this project, the most recent will be picked up as GLOBAL SHA
   set SHAs ""
@@ -4445,15 +4444,20 @@ proc HandleIP {what_to_do xci_file ip_path repo_path {gen_dir "."} {force 0}} {
     }
   } elseif {[string first "/eos/" $ip_path] == 0} {
     # IP Path is on EOS
-    set on_eos 1
-    lassign [eos "ls $ip_path"] ret result
-    if {$ret != 0} {
-      Msg CriticalWarning "Could not run ls for for EOS path: $ip_path (error: $result). \
-      Either the drectory does not exist or there are (temporary) problem with EOS."
-      cd $old_path
-      return -1
+    # Check if eos is mounted
+    if {[file isdirectory $ip_path]} {
+      Msg Info "Eos is mounted in the current machine. Treating it as a normal directory..."
     } else {
-      Msg Info "IP remote directory path, on EOS, is set to: $ip_path"
+      set on_eos 1
+      lassign [eos "ls $ip_path"] ret result
+      if {$ret != 0} {
+        Msg CriticalWarning "Could not run ls for for EOS path: $ip_path (error: $result). \
+        Either the drectory does not exist or there are (temporary) problem with EOS."
+        cd $old_path
+        return -1
+      } else {
+        Msg Info "IP remote directory path, on EOS, is set to: $ip_path"
+      }
     }
   } else {
     file mkdir $ip_path

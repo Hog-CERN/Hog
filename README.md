@@ -24,7 +24,6 @@ You can report problems with Hog in using the issues in this repository. Please 
 - Feature Proposal label, if you want to propose a new Hog feature
 - Question label, if you want to ask a question about Hog
 
-
 ## License
 
 Hog is distributed under the Apache License, Version 2.0. 

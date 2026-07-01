@@ -1700,6 +1700,186 @@ proc CopyIPbusXMLs {proj_dir path dst {xml_version "0.0.0"} {xml_sha "00000000"}
   }
 }
 
+## @brief Read a systemRDL list file and copy files to destination
+#
+# Additional information is provided with text separated from the file name with one or more spaces
+#
+# @param[in] proj_dir     project path, path containing the ./list directory containing at least a list file with .peakrdl extention
+# @param[in] path         the path the RDL files are referred to in the list file
+# @param[in] dst          the path the RDL files must be copied to
+# @param[in] rdl_version  the M.m.p version to be used to replace the __VERSION__ placeholder in any of the RDL files
+# @param[in] rdl_sha      the Git-SHA to be used to replace the __GIT_SHA__ placeholder in any of the RDL files
+# @param[in] use_peakRDL  if set to 1, use the peakRDL sw to generate or check the vhdl files
+# @param[in] generate     if set to 1, tells the function to generate the VHDL decode address files rather than check them
+proc CopySystemRDLs {proj_dir path dst {rdl_version "0.0.0"} {rdl_sha "00000000"} {use_peakRDL 0} {generate 0}} {
+  puts "entered CopySystemRDLs"
+  if {$use_peakRDL == 1} {
+    lassign [ExecuteRet python3 -c "from __future__ import print_function; from sys import path;print(':'.join(path\[1:\]))"] ret msg
+    if {$ret == 0} {
+      puts "first check success"
+      set ::env(PYTHONPATH) $msg
+      lassign [ExecuteRet peakrdl regblock-vhdl -h] ret msg
+      puts "second check success"
+      if {$ret != 0} {
+        set can_generate 0
+      } else {
+        set can_generate 1
+      }
+    } else {
+      Msg CriticalWarning "Problem while trying to run python: $msg"
+      set can_generate 0
+    }
+    set dst [file normalize $dst]
+    file mkdir $dst
+    if {$can_generate == 0} {
+      if {$generate == 1} {
+        Msg Error "Cannot generate systemRDL address files, peakRDL executable {peakrdl regblock-vhdl} not found or not working: $msg"
+        return -1
+      } else {
+        Msg Warning "peakRDL executable {peakrdl regblock-vhdl} not found or not working, will not verify systemRDL address maps."
+      }
+    }
+  } else {
+    set can_generate 0
+  }
+
+  set rdl_files [glob -nocomplain $proj_dir/list/*.peakrdl]
+  set n_rdl_files [llength $rdl_files]
+  if {$n_rdl_files == 0} {
+    Msg CriticalWarning "No files with .peakrdl extension found in $proj_dir/list."
+    return
+  }
+  set libraries [dict create]
+  set vhdl_dict [dict create]
+
+  foreach rdl_file $rdl_files {
+    lassign [ReadListFile {*}"$rdl_file $path"] l p fs
+    set libraries [MergeDict $l $libraries]
+    set vhdl_dict [MergeDict $p $vhdl_dict]
+  }
+
+  set rdlfiles [dict get $libraries "system.rdl"]
+
+  set rdl_list_error 0
+  foreach rdlfile $rdlfiles {
+    if {[file isdirectory $rdlfile]} {
+      Msg CriticalWarning "Directory $rdlfile listed in rdl list file $list_file. Directories are not supported!"
+      set rdl_list_error 1
+    }
+
+    if {[file exists $rdlfile]} {
+      if {[dict exists $vhdl_dict $rdlfile]} {
+        set vhdl_file [file normalize [dict get $vhdl_dict $rdlfile]]
+      } else {
+        set vhdl_file ""
+      }
+      lappend vhdls $vhdl_file
+      set rdlfile [file normalize $rdlfile]
+      Msg Info "Copying $rdlfile to $dst and replacing place holders..."
+      set in [open $rdlfile r]
+
+      if {[regexp \/rdl\/+(.*)$   $rdlfile XXX out_with_dir]} {
+	set out_file $dst/$out_with_dir
+	lappend rdls $out_with_dir
+	Msg Debug "rdl file $rdlfile is contained in a directory called 'rdl', so file will be copied to $out_file"
+	set out_dir [file dir $out_file]
+	if {![file exists $out_dir]} {
+	  file mkdir $out_dir
+	}
+      } else {
+	set out_file $dst/[file tail $rdlfile]
+	lappend rdls [file tail $rdlfile]
+      }
+
+      set out [open $out_file w]
+      while {[gets $in line] != -1} {
+        set new_line [regsub {(.*)__VERSION__(.*)} $line "\\1$rdl_version\\2"]
+        set new_line2 [regsub {(.*)__GIT_SHA__(.*)} $new_line "\\1$rdl_sha\\2"]
+        puts $out $new_line2
+      }
+      close $in
+      close $out
+
+    } else {
+      Msg Warning "RDL file $rdlfile not found"
+    }
+  }
+  if {${rdl_list_error}} {
+    Msg Error "Invalid files added to $list_file!"
+  }
+
+  set cnt [llength $rdls]
+  Msg Info "$cnt rdl file/s copied"
+
+
+  if {$can_generate == 1} {
+    set old_dir [pwd]
+    set plugin "regblock-vhdl"
+    set cpuif "axi4-lite"
+    cd $dst
+    file mkdir $plugin
+    cd $plugin
+    foreach x $rdls v $vhdls {
+      if {$v ne ""} {
+        set x [file normalize ../$x]
+        if {[file exists $x]} {
+          puts "peakrdl regblock-vhdl -o [file normalize $plugin] --cpuif $cpuif $x"
+          lassign [ExecuteRet peakrdl regblock-vhdl -o [file normalize $plugin] --cpuif $cpuif $x 2>&1] status log
+          if {$status == 0} {
+            # note - generated output can either be a single file or a directory
+            set generated_out [file normalize $plugin]
+            if {$generate == 1} {
+              Msg Info "Copying generated VHDL file $generated_out into $v (replacing if necessary)"
+              file copy -force -- $generated_out $v
+            } else {
+              if {[file exists $v]} {
+                if {[file isdirectory $v]} {
+                  foreach out_file [glob -directory $v -type f *] {
+                    set diff [CompareVHDL $generated_out/[file tail $out_file] $out_file]
+                    set n [llength $diff]
+                    if {$n > 0} {
+                      Msg CriticalWarning "$out_file does not correspond to its RDL $x/[file tail $out_file], [expr {$n / 3}] line/s differ:"
+                      Msg Status [join $diff "\n"]
+                      set diff_file [open ../diff_[file rootname [file tail $x]].txt w]
+                      puts $diff_file $diff
+                      close $diff_file
+                    } else {
+                      Msg Info "[file tail $x] and $v match."
+                    }
+                  }
+                } else {
+                  set diff [CompareVHDL $generated_out $v]
+                  set n [llength $diff]
+                  if {$n > 0} {
+                    Msg CriticalWarning "$v does not correspond to its RDL $x, [expr {$n / 3}] line/s differ:"
+                    Msg Status [join $diff "\n"]
+                    set diff_file [open ../diff_[file rootname [file tail $x]].txt w]
+                    puts $diff_file $diff
+                    close $diff_file
+                  } else {
+                    Msg Info "[file tail $x] and $v match."
+                  }
+                }
+              } else {
+                Msg Warning "VHDL address map file $v not found."
+              }
+            }
+          } else {
+            Msg Warning "Address map generation failed for [file tail $x]: $log"
+          }
+        } else {
+          Msg Warning "Copied RDL file $x not found."
+        }
+      } else {
+        Msg Info "Skipped verification of [file tail $x] as no VHDL file was specified."
+      }
+    }
+    cd ..
+    file delete -force address_decode
+    cd $old_dir
+  }
+}
+
 ## @brief Returns the description from the hog.conf file.
 # The description is the comment in the second line stripped of the hashes
 # If the description contains the word test, Test or TEST, then "test" is simply returned.
@@ -1834,6 +2014,7 @@ proc ExecuteRet {args} {
     set ret -1
     set result ""
   } else {
+    puts "$args"
     set ret [catch {exec -ignorestderr {*}$args} result]
   }
 
@@ -2799,6 +2980,7 @@ proc GetHogFiles {args} {
     set libraries [MergeDict $l $libraries]
     set properties [MergeDict $p $properties]
     Msg Debug "list file $f, filesets: $fs"
+
     set filesets [MergeDict $fs $filesets]
     Msg Debug "Merged filesets $filesets"
   }
@@ -3723,6 +3905,23 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
     set xml_hash ""
   }
 
+  # systemRDL
+  if {[llength [glob -nocomplain ./list/*.peakrdl]] > 0} {
+    #Msg Info "Found systemRDL list file, evaluating version and SHA of listed files..."
+    lassign [GetHogFiles -list_files "*.peakrdl" -sha_mode "./list/" $repo_path] rdl_files dummy
+    set rdl_source_files [dict get $rdl_files "system.rdl"]
+    lassign [GetVer $rdl_source_files] rdl_ver rdl_hash
+    lappend SHAs $rdl_hash
+    lappend versions $rdl_ver
+    lappend project_files {*}[glob ./list/*.peakrdl] {*}$rdl_source_files
+
+    #Msg Info "Found systemRDL SHA: $rdl_hash and version: $rdl_ver."
+  } else {
+    Msg Debug "This project does not use systemRDLs"
+    set rdl_ver ""
+    set rdl_hash ""
+  }
+
   set user_ip_repos ""
   set user_ip_repo_hashes ""
   set user_ip_repo_vers ""
@@ -3826,7 +4025,7 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
   return [list $global_commit $global_version \
                $hog_hash $hog_ver $top_hash $top_ver \
                $libs $hashes $vers $cons_ver $cons_hash \
-               $ext_names $ext_hashes $xml_hash $xml_ver \
+               $ext_names $ext_hashes $xml_hash $xml_ver $rdl_hash $rdl_ver \
                $user_ip_repos $user_ip_repo_hashes $user_ip_repo_vers]
 }
 
@@ -6082,7 +6281,7 @@ proc LaunchVitisBuild {project_name {repo_path .} {stage "presynth"}} {
 
   # Get repository versions
   lassign [GetRepoVersions [file normalize $repo_path/Top/$proj_name] $repo_path ] commit version  hog_hash hog_ver  top_hash top_ver \
-           libs hashes vers  cons_ver cons_hash  ext_names ext_hashes  xml_hash xml_ver user_ip_repos user_ip_hashes user_ip_vers
+           libs hashes vers cons_ver cons_hash ext_names ext_hashes xml_hash xml_ver rdl_hash rdl_ver user_ip_repos user_ip_hashes user_ip_vers
   set this_commit [GetSHA]
   if {$commit == 0 } { set commit $this_commit }
   set flavour [GetProjectFlavour $project_name]
@@ -6097,7 +6296,7 @@ proc LaunchVitisBuild {project_name {repo_path .} {stage "presynth"}} {
   }
 
   WriteGenerics "vitisbuild" $repo_path $proj_name $date $timee $commit $version $top_hash $top_ver $hog_hash $hog_ver $cons_ver $cons_hash $libs \
-                             $vers $hashes $ext_names $ext_hashes $user_ip_repos $user_ip_vers $user_ip_hashes $flavour $xml_ver $xml_hash
+                             $vers $hashes $ext_names $ext_hashes $user_ip_repos $user_ip_vers $user_ip_hashes $flavour $xml_ver $xml_hash $rdl_ver $rdl_hash
 
   # Build apps
   foreach app_name [dict keys $ws_apps] {
@@ -6338,7 +6537,7 @@ proc LaunchHlsBuild {project_name {repo_path .}} {
       lassign [GetRepoVersions [file normalize $repo_path/Top/$project_name] $repo_path] \
         commit version hog_hash hog_ver top_hash top_ver \
         libs hashes vers cons_ver cons_hash \
-        ext_names ext_hashes xml_hash xml_ver \
+        ext_names ext_hashes xml_hash xml_ver rdl_hash rdl_ver \
         user_ip_repos user_ip_hashes user_ip_vers
       if {$commit == 0} { set commit [GetSHA] }
       set version_str [HexVersionToString $version]
@@ -7282,14 +7481,17 @@ proc ReadListFile {args} {
                 } else {
                   set prop_name [string range $p 0 [expr {$pos - 1}]]
                 }
-                if {[IsInList $prop_name [DictGet [ALLOWED_PROPS] $extension]] || [string first "top" $p] == 0 || $list_file_ext eq ".ipb"} {
-		  if {$list_file_ext eq ".ipb"} {
-		    dict lappend properties $vhdlfile $path/$p
-		  } else {
-		    dict lappend properties $vhdlfile $p
-		  }
+                if {[IsInList $prop_name [DictGet [ALLOWED_PROPS] $extension]] || [string first "top" $p] == 0 || \
+                    $list_file_ext eq ".ipb" || $list_file_ext eq ".peakrdl"} {
+                  if {$list_file_ext eq ".ipb"} {
+                    dict lappend properties $vhdlfile $path/$p
+                  } elseif {$list_file_ext eq ".peakrdl"} {
+                    dict lappend properties $vhdlfile $path/$p
+                  } else {
+                    dict lappend properties $vhdlfile $p
+                  }
                   Msg Debug "Adding property $p to $vhdlfile..."
-                } elseif {$list_file_ext != ".ipb"} {
+                } elseif {$list_file_ext != ".ipb" || $list_file_ext != ".peakrdl"} {
                   Msg Warning "Setting Property $p is not supported for file $vhdlfile or it is already its default. \
                   The allowed properties for this file type are \[ [DictGet [ALLOWED_PROPS] $extension]\]"
                 }
@@ -7309,6 +7511,8 @@ proc ReadListFile {args} {
               set lib_name "sources.con"
             } elseif {$list_file_ext == ".ipb"} {
               set lib_name "xml.ipb"
+            } elseif {$list_file_ext == ".peakrdl"} {
+              set lib_name "system.rdl"
             } elseif { [IsInList $list_file_ext {.src}] && [IsInList $extension {.c .cpp .h .hpp}] } {
               # Adding Vitis library
               set lib_name "$library$list_file_ext"
@@ -7383,6 +7587,8 @@ proc ReadListFile {args} {
     #In SHA mode we also need to add the list file to the list
     if {$list_file_ext eq ".ipb"} {
       set sha_lib "xml.ipb"
+    } elseif {$list_file_ext eq ".peakrdl"} {
+      set sha_lib "system.rdl"
     } else {
       set sha_lib $lib$list_file_ext
     }
@@ -7658,7 +7864,7 @@ proc WriteConf {file_name config {comment ""}} {
 proc WriteGenerics {mode repo_path design date timee\
                     commit version top_hash top_ver hog_hash hog_ver \
                     cons_ver cons_hash libs vers hashes ext_names ext_hashes \
-                    user_ip_repos user_ip_vers user_ip_hashes flavour {xml_ver ""} {xml_hash ""}} {
+                    user_ip_repos user_ip_vers user_ip_hashes flavour {xml_ver ""} {xml_hash ""} {rdl_ver ""} {rdl_hash ""}} {
   Msg Info "Passing parameters/generics to project's top module..."
   #####  Passing Hog generic to top file
   # set global generic variables
@@ -7679,6 +7885,11 @@ proc WriteGenerics {mode repo_path design date timee\
     lappend generic_string \
       "XML_VER=[FormatGeneric $xml_ver]" \
       "XML_SHA=[FormatGeneric $xml_hash]"
+  }
+  if {$rdl_hash != "" && $rdl_ver != ""} {
+    lappend generic_string \
+      "RDL_VER=[FormatGeneric $rdl_ver]" \
+      "RDL_SHA=[FormatGeneric $rdl_hash]"
   }
   #set project specific lists
   foreach l $libs v $vers h $hashes {

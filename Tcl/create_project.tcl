@@ -1477,7 +1477,7 @@ proc CreateProject {args} {
       $globalSettings::repo_path \
       $globalSettings::HOG_EXTERNAL_PATH \
     ] commit version hog_hash hog_ver top_hash top_ver libs hashes vers cons_ver cons_hash ext_names ext_hashes \
-      xml_hash xml_ver user_ip_repos user_ip_hashes user_ip_vers
+      xml_hash xml_ver rdl_hash rdl_ver user_ip_repos user_ip_hashes user_ip_vers
 
     set this_commit [GetSHA]
 
@@ -1491,6 +1491,12 @@ proc CreateProject {args} {
       set use_ipbus 0
     }
 
+    if {$rdl_hash != ""} {
+      set use_systemRDL 1
+    } else {
+      set use_systemRDL 0
+    }
+
 
     lassign [GetDateAndTime $commit] date timee
     WriteGenerics "create" \
@@ -1500,7 +1506,7 @@ proc CreateProject {args} {
       $top_hash $top_ver $hog_hash $hog_ver \
       $cons_ver $cons_hash $libs $vers $hashes \
       $ext_names $ext_hashes $user_ip_repos $user_ip_vers \
-      $user_ip_hashes $flavour $xml_ver $xml_hash
+      $user_ip_hashes $flavour $xml_ver $xml_hash $rdl_ver $rdl_hash
     cd $old_path
   }
 

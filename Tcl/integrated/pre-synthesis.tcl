@@ -141,7 +141,7 @@ commit version hog_hash hog_ver \
 top_hash top_ver \
 libs hashes vers \
 cons_ver cons_hash ext_names ext_hashes \
-xml_hash xml_ver user_ip_repos user_ip_hashes user_ip_vers
+xml_hash xml_ver rdl_hash rdl_ver user_ip_repos user_ip_hashes user_ip_vers
 
 
 set describe [GetHogDescribe [file normalize $repo_path/Top/$group/$proj_name] $repo_path]
@@ -260,6 +260,17 @@ if {$xml_hash != ""} {
   set use_ipbus 0
 }
 
+if {$rdl_hash != ""} {
+  set rdl_dst [file normalize $old_path/../rdl]
+  Msg Info "Creating RDL directory $rdl_dst..."
+  file mkdir $rdl_dst
+  Msg Info "Copying RDL files to $rdl_dst and replacing placeholders with RDL version $rdl_ver..."
+  CopySystemRDLs ./Top/$group/$proj_name/ $repo_path $rdl_dst [HexVersionToString $rdl_ver] $rdl_hash
+  set use_systemRDL 1
+} else {
+  set use_systemRDL 0
+}
+
 #number of threads
 if {![IsDiamond]} {
   set maxThreads [GetMaxThreads [file normalize ./Top/$group/$proj_name/]]
@@ -315,7 +326,7 @@ if {[IsXilinx] || [IsSynplify] || [IsDiamond]} {
   $cons_ver $cons_hash $libs $vers \
   $hashes $ext_names $ext_hashes \
   $user_ip_repos $user_ip_vers $user_ip_hashes \
-  $flavour $xml_ver $xml_hash
+  $flavour $xml_ver $xml_hash $rdl_ver $rdl_hash
 
   if {[IsDiamond]} {
     prj_project save
@@ -364,6 +375,13 @@ if {[IsXilinx] || [IsSynplify] || [IsDiamond]} {
     set_parameter -name XML_SHA $bits
   }
 
+  if {$use_systemRDL == 1} {
+    binary scan [binary format H* [string map {{'} {}} $rdl_ver]] B32 bits
+    set_parameter -name RDL_VER $bits
+    binary scan [binary format H* [string map {{'} {}} $rdl_hash]] B32 bits
+    set_parameter -name RDL_SHA $bits
+  }
+
   #set project specific lists
   foreach l $libs v $vers h $hashes {
     binary scan [binary format H* [string map {{'} {}} $v]] B32 bits
@@ -392,8 +410,8 @@ if {[IsXilinx] || [IsSynplify] || [IsDiamond]} {
   puts "Hog:DEBUG GLOBAL_DATE=$date GLOBAL_TIME=$timee"
   puts "Hog:DEBUG GLOBAL_SHA=$commit TOP_SHA=$top_hash"
   puts "Hog:DEBUG CON_VER=$cons_ver CON_SHA=$cons_hash"
-  puts "Hog:DEBUG XML_SHA=$xml_hash GLOBAL_VER=$version TOP_VER=$top_ver"
-  puts "Hog:DEBUG XML_VER=$xml_ver HOG_SHA=$hog_hash HOG_VER=$hog_ver"
+  puts "Hog:DEBUG XML_SHA=$xml_hash RDL_SHA=$rdl_hash GLOBAL_VER=$version TOP_VER=$top_ver"
+  puts "Hog:DEBUG XML_VER=$xml_ver RDL_VER=$rdl_ver HOG_SHA=$hog_hash HOG_VER=$hog_ver"
   puts "Hog:DEBUG LIBS: $libs $vers $hashes"
   puts "Hog:DEBUG EXT: $ext_names $ext_hashes"
   puts "Hog:DEBUG FLAVOUR: $flavour"
@@ -432,6 +450,11 @@ if {$use_ipbus == 1} {
   set xml_ver [HexVersionToString $xml_ver]
   Msg Status " IPbus XML SHA: $xml_hash, VER: $xml_ver"
   m add row "| \"IPbus XML\" | $xml_hash | $xml_ver |"
+}
+if {$use_systemRDL == 1} {
+  set rdl_ver [HexVersionToString $rdl_ver]
+  Msg Status " SystemRDL SHA: $rdl_hash, VER: $rdl_ver"
+  m add row "| \"SystemRDL\" | $rdl_hash | $rdl_ver |"
 }
 set top_ver [HexVersionToString $top_ver]
 Msg Status " Top SHA: $top_hash, VER: $top_ver"

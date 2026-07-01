@@ -124,6 +124,7 @@ set allow_empty_proj 0
 ### Hog stand-alone directives ###
 # The following directives are used WITHOUT ever calling the IDE, they are run in tclsh
 # A place holder called new_directive can be followed to add new commands
+set do_systemRDL 0
 set do_ipbus_xml 0
 set do_list_file_parse 0
 set do_check_yaml_ref 0
@@ -210,11 +211,11 @@ if {$options(ci_run) == 1} {
   set ci_run 1
 }
 
-if {$options(dst_dir) == "" && ($do_ipbus_xml == 1 || $do_check_list_files == 1) && $project != ""} {
+if {$options(dst_dir) == "" && ($do_systemRDL == 1 || $do_ipbus_xml == 1 || $do_check_list_files == 1) && $project != ""} {
   # Getting all the versions and SHAs of the repository
   lassign [GetRepoVersions [file normalize $repo_path/Top/$group_name/$project] $repo_path $ext_path] commit version \
     hog_hash hog_ver top_hash top_ver libs hashes vers cons_ver cons_hash ext_names ext_hashes xml_hash xml_ver \
-    user_ip_repos user_ip_hashes user_ip_vers
+    rdl_hash rdl_ver user_ip_repos user_ip_hashes user_ip_vers
   cd $repo_path
 
   set describe [GetHogDescribe [file normalize $repo_path/Top/$group_name/$project] $repo_path]
@@ -319,6 +320,50 @@ if {$cmd == -1} {
     exit 0
   }
 
+  if {$do_systemRDL == 1} {
+    if {[llength $project_name] == 0} {
+      Msg Error "XML option needs a project name."
+      exit
+    }
+    Msg Info "Handling systemRDL for $project_name..."
+
+    set proj_dir $repo_path/Top/$project_name
+
+    if {$options(generate) == 1} {
+      set rdl_gen 1
+    } else {
+      set rdl_gen 0
+    }
+
+    if {$options(dst_dir) != ""} {
+      set dst_dir $options(dst_dir)
+    } else {
+      if {![info exists dst_dir]} {
+        set dst_dir ""
+      }
+    }
+    set rdl_dst "$dst_dir/peakrdl"
+
+
+    if {[llength [glob -nocomplain $proj_dir/list/*.peakrdl]] > 0} {
+      if {![file exists $rdl_dst]} {
+        Msg Info "$rdl_dst directory not found, creating it..."
+        file mkdir $rdl_dst
+      }
+    } else {
+      Msg Error "No .peakrdl files found in $proj_dir/list/"
+      exit
+    }
+
+    set ret [GetRepoVersions $proj_dir $repo_path ""]
+    set sha [lindex $ret 15]
+    set hex_ver [lindex $ret 16]
+
+    set ver [HexVersionToString $hex_ver]
+    CopySystemRDLs $proj_dir $repo_path $rdl_dst $ver $sha 1 $rdl_gen
+
+    exit 0
+  }
 
   if {$do_ipbus_xml == 1} {
     if {[llength $project_name] == 0} {

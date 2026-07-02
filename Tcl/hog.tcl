@@ -918,7 +918,6 @@ proc CheckEnv {project_name ide} {
 proc CheckProjVer {repo_path project {sim 0} {ext_path ""}} {
   global env
 
-
   if {$sim == 1} {
     Msg Info "Will check also the version of the simulation files..."
   }
@@ -3481,7 +3480,13 @@ proc GetProjectVersion {proj_dir repo_path {ext_path ""} {sim 0}} {
   cd $proj_dir
 
   #The latest version the repository
-  set v_last [ExtractVersionFromTag [Git {describe --abbrev=0 --match "v*"}]]
+  lassign [GitRet {describe --tags --abbrev=0 --match "v*"} ] ret result
+  if {$ret != 0} {
+    Msg CriticalWarning "No Hog versioning tags (v*) in repo"
+    return -1
+  }
+
+  set v_last [ExtractVersionFromTag $result]
   lassign [GetRepoVersions $proj_dir $repo_path $ext_path $sim] sha ver
   if {$sha == 0} {
     Msg Warning "Repository is not clean"
@@ -4676,6 +4681,7 @@ proc InitLauncher {script tcl_path parameters commands argv {custom_commands ""}
   set directive_descriptions [dict create]
   set directive_names [dict create]
   set common_directive_names [dict create]
+  set directives_with_optional_projects ""
   set custom_command ""
   set custom_command_options ""
 
@@ -4683,10 +4689,11 @@ proc InitLauncher {script tcl_path parameters commands argv {custom_commands ""}
     #excludes direcitve with a # just after the \{
     if {[regexp {\\(.*) \{\#} $l minc d]} {
       lappend directives_with_projects $d
+      set current_directive $d
     }
 
-    if {[regexp {\\(.*) \{\#} $l minc dd]} {
-      lappend directives_with_optional_projects $dd
+    if {[regexp {^[^#]* allow_empty_proj} $l minc dd]} {
+      lappend directives_with_optional_projects $current_directive
     }
 
     #gets all the regexes
@@ -4729,7 +4736,6 @@ proc InitLauncher {script tcl_path parameters commands argv {custom_commands ""}
       set short_usage "$short_usage\n   - $key: [dict get $command DESCRIPTION]"
     }
   }
-
 
 
   set short_usage "$short_usage\n\n\
@@ -4805,6 +4811,7 @@ proc InitLauncher {script tcl_path parameters commands argv {custom_commands ""}
 
   set NO_DIRECTIVE_FOUND 0
   switch -regexp -- $directive "$commands"
+
   if {$NO_DIRECTIVE_FOUND == 1} {
     if {[string length $custom_commands] > 0 && [dict exists $custom_commands $directive]} {
       set custom_command $directive
@@ -4960,11 +4967,11 @@ proc InitLauncher {script tcl_path parameters commands argv {custom_commands ""}
         set command -3
       } else {
         #Project not found
-	if {$optional_project == 0} {
-	  set command -2
-	} else {
-	  set command -3
-	}
+        if {$optional_project == 0} {
+          set command -2
+        } else {
+          set command -3
+        }
       }
     }
   } else {
@@ -6940,6 +6947,9 @@ proc ProjectExists {project {repo_path .}} {
     # if project exists we return the relative hog.conf file
     return [lindex [ListProjects $repo_path 0 1] $index]
   } else {
+    Msg Warning "Project not found. Available projects in $repo_path are"
+    ListProjects $repo_path
+    puts ""
     Msg Error "Project $project not found in repository $repo_path"
     return 1
   }

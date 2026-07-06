@@ -4391,7 +4391,8 @@ proc GitVersion {target_version} {
 # @param[in] xci_file: the .xci file of the IP you want to handle
 # @param[in] ip_path: the path of the directory you want the IP to be saved (possibly EOS)
 # @param[in] repo_path: the main path of your repository
-# @param[in] gen_dir: the directory where generated files are placed, by default the files are placed in the same folder as the .xci
+# @param[in] gen_dir: the directory where generated files are placed, \
+#            by default the files are placed in the same folder as the .xci
 # @param[in] force: if not set to 0, will copy the IP to the remote directory even if it is already present
 #
 proc HandleIP {what_to_do xci_file ip_path repo_path {gen_dir "."} {force 0}} {
@@ -4448,6 +4449,12 @@ proc HandleIP {what_to_do xci_file ip_path repo_path {gen_dir "."} {force 0}} {
     }
   } elseif {[string first "/eos/" $ip_path] == 0} {
     # IP Path is on EOS
+    # Check if kinit is done
+    if {!([info exists ::env(ENABLE_EOS)] && [$::env(ENABLE_EOS) == 1])} {
+      Msg Warning "IP remote directory path is on EOS but kinit was not successfull or not done. I will not copy IPs from/to EOS."
+      cd $old_path
+      return -1
+    }
     # Check if eos is mounted
     if {[file isdirectory $ip_path]} {
       Msg Info "Eos is mounted in the current machine. Treating it as a normal directory..."

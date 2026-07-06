@@ -299,16 +299,24 @@ archive_binary_files:
           fi;
         fi;
         if [ $ENABLE_EOS -eq 1 ]; then
-          until echo "$EOS_PASSWORD" | kinit "$EOS_USER@CERN.CH"; do
-            echo Retrying;
-            sleep 2;
-          done;
           echo -n "Variable EOS_MGM_URL is ";
           if [ -z "$EOS_MGM_URL" ]; then
             echo "NOT defined. This variable is essential for EOS to work properly. Hog-CI will use the default value of root://eosuser.cern.ch";
             EOS_MGM_URL="root://eosuser.cern.ch";
           else
             echo "defined.";
+          fi;
+          if command -v kinit &> /dev/null; then
+            KINIT_ATTEMPTS=0; KINIT_MAX_ATTEMPTS=5;
+            until echo "$EOS_PASSWORD" | kinit "$EOS_USER@CERN.CH"; do
+              KINIT_ATTEMPTS=$((KINIT_ATTEMPTS+1));
+              if [ "$KINIT_ATTEMPTS" -ge "$KINIT_MAX_ATTEMPTS" ]; then
+                echo "Hog-CI(warning) - kinit failed after $KINIT_MAX_ATTEMPTS attempts, disabling EOS.";
+                export ENABLE_EOS=0;
+                break;
+              fi;
+              echo "Retrying"; sleep 2;
+            done;
           fi;
         fi;
       else
@@ -334,8 +342,13 @@ archive_binary_files:
     - if [ "${HOG_USE_DOXYGEN}" = "1" ] && [ "${BIN_PATH}" ]; then
         if [ -d Doc/html ]; then
           if [ $ON_EOS -eq 1 ] && [ $ENABLE_EOS -eq 1 ]; then
-            eos mkdir -p ${BIN_PATH}/Doc;
-            xrdcp -rsf Doc/html/* ${EOS_MGM_URL}//${BIN_PATH}/Doc;
+            if ls ${BIN_PATH} &> /dev/null; then
+              mkdir -p ${BIN_PATH}/Doc;
+              cp -r Doc/html/* ${BIN_PATH}/Doc;
+            else
+              eos mkdir -p ${BIN_PATH}/Doc;
+              xrdcp -rsf Doc/html/* ${EOS_MGM_URL}//${BIN_PATH}/Doc;
+            fi;
           elif [ $ON_RCLONE -eq 1 ] && [ $ENABLE_RCLONE -eq 1 ]; then
             rclone mkdir ${BIN_PATH}/Doc --config $RCLONE_CONFIG;
             rclone copy Doc/html ${BIN_PATH}/Doc --config $RCLONE_CONFIG;
@@ -352,8 +365,13 @@ archive_binary_files:
         if [ -d bin ]; then
           echo "Copying binary files to ${BIN_PATH}/${CI_COMMIT_TAG}";
           if [ $ENABLE_EOS -eq 1 ] && [ $ON_EOS -eq 1 ]; then
-            eos mkdir -p $BIN_PATH/$CI_COMMIT_TAG;
-            xrdcp -rfs bin/* ${EOS_MGM_URL}//${BIN_PATH}/${CI_COMMIT_TAG};
+            if ls ${BIN_PATH} &> /dev/null; then
+              mkdir -p $BIN_PATH/$CI_COMMIT_TAG;
+              cp -r bin/* ${BIN_PATH}/${CI_COMMIT_TAG};
+            else
+              eos mkdir -p $BIN_PATH/$CI_COMMIT_TAG;
+              xrdcp -rfs bin/* ${EOS_MGM_URL}//${BIN_PATH}/${CI_COMMIT_TAG};
+            fi;
           elif [ $ON_RCLONE -eq 1 ] && [ $ENABLE_RCLONE -eq 1 ]; then
             rclone mkdir ${BIN_PATH}/${CI_COMMIT_TAG} --config $RCLONE_CONFIG;
             rclone copy bin ${BIN_PATH}/${CI_COMMIT_TAG} --config $RCLONE_CONFIG;

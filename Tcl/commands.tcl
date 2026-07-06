@@ -49,14 +49,14 @@ set default_commands {
     # OPTIONS: verbose
   }
 
-  \^(CHECKPROJENV|CPE)?$ {#
+  \^(CHECKPROJENV|CPE)?$ {#proj
     set do_checkproj_env 1
   # NAME: CHECKPROJENV or CPE
   # DESCRIPTION: Check that the environment variables needed for Hog-CI to run the chosen project are set and point to valid paths
   # OPTIONS: verbose
   }
 
-  \^(CHECKPROJVER|CPV)?$ {##
+  \^(CHECKPROJVER|CPV)?$ {#proj
     set allow_empty_proj 1
     set do_checkproj_ver 1
   # NAME: CHECKPROJVER or CPV
@@ -65,7 +65,7 @@ set default_commands {
   # OPTIONS: ext_path.arg, simcheck, verbose, ci_run
   }
 
-  \^C(REATE)?$ {#
+  \^C(REATE)?$ {#proj
     set do_create 1
     set recreate 1
   # NAME*: CREATE or C
@@ -73,7 +73,7 @@ set default_commands {
   # OPTIONS: ext_path.arg, lib.arg, vivado_only, vitis_only, verbose
   }
 
-  \^I(MPL(EMENT(ATION)?)?)?$ {#
+  \^I(MPL(EMENT(ATION)?)?)?$ {#proj
     set do_implementation 1
     set do_bitstream 1
     set do_compile 1
@@ -82,7 +82,7 @@ set default_commands {
   # OPTIONS: check_syntax, ext_path.arg, njobs.arg, no_bitstream, no_reset, recreate, verbose
   }
 
-  \^SYNT(H(ESIS(E)?)?)? {#
+  \^SYNT(H(ESIS(E)?)?)? {#proj
     set do_synthesis 1
     set do_compile 1
   # NAME: SYNTH
@@ -90,7 +90,7 @@ set default_commands {
   # OPTIONS: check_syntax, ext_path.arg, njobs.arg, recreate, verbose
   }
 
-  \^S(IM(ULAT(ION|E)?)?)?$ {#
+  \^S(IM(ULAT(ION|E)?)?)?$ {#proj
     set do_simulation 1
     set do_create 1
   # NAME*: SIMULATION or S
@@ -98,7 +98,7 @@ set default_commands {
   # OPTIONS: check_syntax, compile_only, ext_path.arg, lib.arg, recreate, scripts_only, simset.arg, verbose
   }
 
-  \^W(ORK(FLOW)?)?$ {#
+  \^W(ORK(FLOW)?)?$ {#proj
     set do_implementation 1
     set do_synthesis 1
     set do_bitstream 1
@@ -108,7 +108,7 @@ set default_commands {
   # OPTIONS: bitstream_only, check_syntax, ext_path.arg, impl_only, njobs.arg, no_bitstream, recreate, synth_only, verbose, vitis_only, xsa.arg
   }
 
-  \^(CREATEWORKFLOW|CW)?$ {#
+  \^(CREATEWORKFLOW|CW)?$ {#proj
     set do_implementation 1
     set do_synthesis 1
     set do_bitstream 1
@@ -174,42 +174,42 @@ set default_commands {
   # OPTIONS: dst_dir.arg, verbose
   }
 
-  \^RTL(ANALYSIS)?$ {#
+  \^RTL(ANALYSIS)?$ {#proj
     set do_rtl 1
   # NAME: RTL or RTLANALYSIS
   # DESCRIPTION: Elaborate the RTL analysis report for the chosen project.
   # OPTIONS: check_syntax, recreate, verbose
   }
 
-  \^SIG(ASI)?$ {#
+  \^SIG(ASI)?$ {#proj
     set do_sigasi 1
   # NAME: SIGASI or SIG
   # DESCRIPTION: Create a .csv file to be used in Sigasi.
   # OPTIONS: verbose
   }
 
-  \^T(REE)?$ {#
+  \^T(REE)?$ {#proj
     set do_hierarchy 1
   # NAME: TREE or T
   # DESCRIPTION: Print the design hierarchy for the chosen project.
   # OPTIONS: compile_order, ext_path.arg, ignore.arg, include_gen_prods, include_ieee, light, output.arg, top.arg, verbose
   }
 
-  \^VHDL(LS)?$ {#
+  \^VHDL(LS)?$ {#proj
     set do_vhdl_ls 1
   # NAME: VHDL-LS or VHDL
   # DESCRIPTION: Create a VHDL-LS configuration file for the chosen project.
   # OPTIONS: verbose
   }
 
-  \^COCOTB$ {#
+  \^COCOTB$ {#proj
     set do_cocotb 1
   # NAME: COCOTB
   # DESCRIPTION: Create a cocotb Python script to build VHDL/Verilog libraries using runner.build().
   # OPTIONS: verbose, lib.arg
   }
 
-  \^VER(SION)?$ {#
+  \^VER(SION)?$ {#proj
     set do_version 1
   # NAME*: VERSION or VER
   # DESCRIPTION: Print the version of the chosen Hog project. With -describe, prints the Hog describe string instead.

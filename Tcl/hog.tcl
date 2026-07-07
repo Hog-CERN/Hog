@@ -4450,7 +4450,7 @@ proc HandleIP {what_to_do xci_file ip_path repo_path {gen_dir "."} {force 0}} {
   } elseif {[string first "/eos/" $ip_path] == 0} {
     # IP Path is on EOS
     # Check if kinit is done
-    if {!([info exists ::env(ENABLE_EOS)] && [$::env(ENABLE_EOS) == 1])} {
+    if {!([info exists ::env(ENABLE_EOS)] && $::env(ENABLE_EOS) == 1)} {
       Msg Warning "IP remote directory path is on EOS but kinit was not successfull or not done. I will not copy IPs from/to EOS."
       cd $old_path
       return -1

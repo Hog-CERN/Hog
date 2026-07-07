@@ -159,6 +159,7 @@ launch_github:
       fi;
     - sleep 10s
     - gh pr checks $PR_NR --watch
+    - gh pr merge $PR_NR --delete-branch --auto
   interruptible: true
   allow_failure: true
 
@@ -228,6 +229,8 @@ launch_testfirmware:
         fi;
         sleep 5;
       done
+    - echo "TestFirmware pipeline finished successfully. Merging...;"
+    - glab mr merge $MR_ID -R hog-cern/test/TestFirmware --remove-source-branch -y -f
   interruptible: true
   allow_failure: true
 

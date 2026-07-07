@@ -159,7 +159,7 @@ launch_github:
       fi;
     - sleep 10s
     - gh pr checks $PR_NR --watch
-    - gh pr merge $PR_NR --delete-branch --auto --rebase
+    - gh pr merge $PR_NR --delete-branch --auto --merge
   interruptible: true
   allow_failure: true
 

@@ -137,7 +137,7 @@ jobs:
     concurrency:
       group: ci-${{ github.ref }}
       cancel-in-progress: true
-    container: hogcern/hog:develop
+    container: hogcern/hog:2026.2
     steps:
       - uses: actions/checkout@v6
         name: Checkout Repository
@@ -535,7 +535,7 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ inputs.BUILD_PROJECTS }}
     needs: [generate_project]
-    container: hogcern/hog:develop
+    container: hogcern/hog:2026.2
     concurrency:
       group: collect-${{ github.ref }}
       cancel-in-progress: true
@@ -616,7 +616,7 @@ jobs:
             bin
   check_timing:
     runs-on: ubuntu-latest
-    container: hogcern/hog:develop
+    container: hogcern/hog:2026.2
     if: ${{ inputs.BUILD_PROJECTS }}
     needs: [generate_project]
     concurrency:

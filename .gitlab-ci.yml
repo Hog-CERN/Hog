@@ -180,9 +180,10 @@ launch_testfirmware:
     - git fetch -p
     # Check if auto-generated Hog branch exists
     - if git branch -r | grep -q "auto/$CI_COMMIT_REF_NAME"; then
-        git push origin --delete auto/$CI_COMMIT_REF_NAME;
+        git checkout auto/$CI_COMMIT_REF_NAME;
+      else
+        git checkout -b auto/$CI_COMMIT_REF_NAME;
       fi
-    - git checkout -b auto/$CI_COMMIT_REF_NAME;
     - cd Hog
     - git checkout $CI_COMMIT_SHA
     - cd ..

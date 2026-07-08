@@ -4538,12 +4538,14 @@ proc HandleIP {what_to_do xci_file ip_path repo_path {gen_dir "."} {force 0}} {
     if {$will_copy == 1} {
       # Check if there are files in the .gen directory first and copy them into the right place
       Msg Info "Looking for generated files in $gen_path..."
-      set ip_gen_files [glob -nocomplain $gen_path/*]
+      set go_back [pwd] 
+      cd $gen_path
+      set ip_gen_files [glob -nocomplain ./*]
 
       #here we should remove the .xci file from the list if it's there
 
       if {[llength $ip_gen_files] > 0} {
-        Msg Info "Found some IP synthesised files matching $xci_ip_name"
+        Msg Info "Found some IP synthesised files matching $xci_ip_name."
         if {$will_remove == 1} {
           Msg Info "Removing old synthesised directory $ip_path/$file_name.tar..."
           if {$on_rclone == 1} {
@@ -4586,6 +4588,7 @@ proc HandleIP {what_to_do xci_file ip_path repo_path {gen_dir "."} {force 0}} {
       } else {
         Msg Warning "Could not find synthesized files matching $gen_path/$file_name*"
       }
+      cd $go_back
     }
   } elseif {$what_to_do eq "pull"} {
     if {$on_rclone == 1} {

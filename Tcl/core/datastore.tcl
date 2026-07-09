@@ -49,16 +49,10 @@ namespace eval DataStore {
         tdict set _ctx {*}$args [tobj Null]
       }
 
-      proc SetObj {args} {
-        if {[llength $args] < 2} { error "@DS@::SetObj: too few args" "" {CTX_INVALID_ARGS} }
-        variable _ctx
-        tdict set _ctx {*}[lrange $args 0 end-1] [lindex $args end]
-      }
-
       proc Set {args} {
         if {[llength $args] < 2} { error "@DS@::Set: too few args" "" {CTX_INVALID_ARGS} }
         variable _ctx
-        tdict set _ctx {*}[lrange $args 0 end-1] [tinf [lindex $args end]]
+        tdict set _ctx {*}[lrange $args 0 end-1] [lindex $args end]
       }
       
       proc Lappend {args} {
@@ -76,8 +70,6 @@ namespace eval DataStore {
         tlist append tl [lindex $args end]
         tdict set _ctx {*}[lrange $args 0 end-1] $tl
       }
-
-
 
       proc GetObj {args} {
         if {[llength $args] < 1} { error "@DS@::GetObj: too few args" "" {CTX_INVALID_ARGS} }
@@ -101,7 +93,10 @@ namespace eval DataStore {
         if {[llength $args] < 1} { error "@DS@::Get: too few args" "" {CTX_INVALID_ARGS} }
         variable _ctx
         if {![tdict exists $_ctx {*}$args]} { error "@DS@::Get: key not found: $args" "" {CTX_NOT_FOUND} }
-        return [tobj value [tdict get $_ctx {*}$args]]
+        set _node [tdict get $_ctx {*}$args]
+        set _type [tobj type $_node]
+        if {$_type eq "Dict" || $_type eq "List"} { return $_node }
+        return [tobj value $_node]
       }
 
       proc GetOr {args} {
@@ -110,7 +105,10 @@ namespace eval DataStore {
         set keys [lrange $args 0 end-1]
         set defaultObj [lindex $args end]
         if {[tdict exists $_ctx {*}$keys]} {
-          return [tobj value [tdict get $_ctx {*}$keys]]
+          set _node [tdict get $_ctx {*}$keys]
+          set _type [tobj type $_node]
+          if {$_type eq "Dict" || $_type eq "List"} { return $_node }
+          return [tobj value $_node]
         }
         return $defaultObj
       }
@@ -125,7 +123,7 @@ namespace eval DataStore {
         if {[llength $args] < 1} { error "@DS@::Remove: too few args" "" {CTX_INVALID_ARGS} }
         variable _ctx
         if {![tdict exists $_ctx {*}$args]} { return 0 }
-        tdict remove _ctx {*}$args
+        set _ctx [tdict remove $_ctx {*}$args]
         return 1
       }
 
@@ -277,7 +275,11 @@ namespace eval DataStore {
     tdict set root _exit $exitInfo
 
     set json [tobj tojson $root -pretty]
-    set filename [file join [Repo::GetOr repo_path . ] .hog_context_exit.json]
+    if {$DataStore::inIDE} {
+      set filename [file join [Repo::GetOr repo_path . ] .hog_context_ide_exit.json]
+    } else {
+      set filename [file join [Repo::GetOr repo_path . ] .hog_context_launcher_exit.json]
+    }
     set fh [open $filename w]
     puts $fh $json
     close $fh

@@ -8,8 +8,10 @@ set repo_path [file normalize [file join $tcl_path .. ..]]
 set top_path [file join $repo_path Top]
 
 source [file join $tcl_path hog.tcl]
-source [file join $tcl_path core context.tcl]
+source [file join $tcl_path core datastore.tcl]
 source [file join $tcl_path create_project.tcl]
+source [file join $tcl_path core listfile.tcl]
+source [file join $tcl_path core project.tcl]
 source [file join $tcl_path core hog.tcl]
 source [file join $tcl_path core tobj.tcl]
 source [file join $tcl_path core commands.tcl]
@@ -21,14 +23,17 @@ source [file join $tcl_path core flow.tcl]
 ## Tool Discovery
 ################################################################################
 Tools::RegisterFromDir [file join $tcl_path tools]
-Tools::RegisterFromDir [file join $repo_path hog-tools]
+Tools::RegisterFromDir [file join $repo_path hog-tools] -custom
 Tools::Init
 
 
 ################################################################################
 ## Flows
 ################################################################################
+# Custom flows must register BEFORE BuildCommandTree so they're projected into
+# the TOOL command tree identically to built-in (Manifest) flows.
 Flow::RegisterCustomFlows $repo_path/hog-flows
+Tools::BuildCommandTree
 ActiveTool::Refresh
 
 
@@ -36,205 +41,158 @@ ActiveTool::Refresh
 ## Command Registration
 ################################################################################
 Commands::RegisterCommandsDir [file join $tcl_path  commands]
-Commands::RegisterCommandsDir [file join $repo_path hog-commands]
+Commands::RegisterCommandsDir [file join $repo_path hog-commands] -custom
+Commands::WarnFlowShadows
 
+
+################################################################################
+## Shared setup: parse argv + populate DataStores
+## Runs in both tclsh and tool passes.
+################################################################################
+Msg Debug "[ActiveTool::CurrentTool] launched with arguments: $::argv"
+#puts stderr "\[launch\] [ActiveTool::CurrentTool] argv: $::argv"
+
+if {[catch {package require cmdline} ERROR]} {
+  Msg Debug "The cmdline Tcl package was not found, sourcing it from Hog..."
+  source $tcl_path/utils/cmdline.tcl
+}
+
+# argv layout: <command-path> [project] [options...]
+set directive    [string toupper [lindex $::argv 0]]
+set request      [Commands::ParseArgv $::argv $top_path]
+set cmd          [dict get $request cmd]
+set full_cmd     [dict get $request full_cmd]
+set project      [dict get $request project]
+set project_name [dict get $request project_name]
+set options      [dict get $request options]
+unset request
+
+DataStore::create Repo
+DataStore::create Launcher
+DataStore::create CurrentProject 
+
+Launcher::Set Name "Experimental"
+Launcher::Set Version "0.1.0"
+Launcher::Set time [clock format [clock seconds] -format "%Y-%m-%d %H:%M:%S"]
+Launcher::Set script [file normalize [info script]]
+Launcher::Set Git  [lindex [Git --version] 2]
+Launcher::Set HogTag [Git describe]
+Launcher::Set directive $directive
+Launcher::Set cmd          $cmd
+Launcher::Set full_cmd     $full_cmd
+Launcher::Set project      $project
+Launcher::Set project_name $project_name
+Launcher::Set options      $options
+
+set _old_dir [pwd]
+cd $repo_path
+Repo::Set Tag [Git describe]
+cd $_old_dir
+unset _old_dir
+
+Repo::Set repo_path             $repo_path
+Repo::Set tcl_path              $tcl_path
+Repo::Set top_path              $top_path
+Repo::Set pre_synth             [file normalize "${tcl_path}/integrated/pre-synthesis.tcl"]
+Repo::Set post_synth            [file normalize "${tcl_path}/integrated/post-synthesis.tcl"]
+Repo::Set pre_impl              [file normalize "${tcl_path}/integrated/pre-implementation.tcl"]
+Repo::Set post_impl             [file normalize "${tcl_path}/integrated/post-implementation.tcl"]
+Repo::Set pre_bit               [file normalize "${tcl_path}/integrated/pre-bitstream.tcl"]
+Repo::Set post_bit              [file normalize "${tcl_path}/integrated/post-bitstream.tcl"]
+Repo::Set quartus_post_module   [file normalize "${tcl_path}/integrated/quartus-post-module.tcl"]
+
+Repo::Set projects_dir [file join $repo_path Projects]
+Repo::Set projects [Projects::GetAll $repo_path]
+
+if {$project_name ne ""} {
+  set hog_project [Projects::GetInfo $project_name $repo_path]
+  if {[file exists [tdict getval $hog_project conf_path]]} {
+    Projects::LoadListFiles hog_project
+  }
+  CurrentProject::Load $hog_project
+}
 
 
 ################################################################################
 ## TCLSH Pass
 ################################################################################
-Msg Debug  "[ActiveTool::CurrentTool] launched with arguments: $::argv"
-
 if {[ActiveTool::CurrentTool] eq "tclsh"} {
+
+  if {$cmd ne "" && [Commands::IsRunnable $cmd] && [tdict getval $cmd api]} {
+    # We probably need a way to suppress output earlier, since dynamic loading of 
+    # commands/tools/flows can produce output before we get here.
+    set ::HOG_API_MODE 1
+  }
+
   Logo $repo_path
-
-  if {[catch {package require cmdline} ERROR]} {
-    Msg Debug "The cmdline Tcl package was not found, sourcing it from Hog..."
-    source $tcl_path/utils/cmdline.tcl
-  }
-
-
-  # argv layout: directive [project] [options...]
-  # if argv[1] starts with '-' it is an option
-  set directive [string toupper [lindex $::argv 0]]
-  set _arg1     [lindex $::argv 1]
-  if {$_arg1 ne "" && ![string match "-*" $_arg1]} {
-    set project  $_arg1
-    set _options [lrange $::argv 2 end]
-  } else {
-    set project  ""
-    set _options [lrange $::argv 1 end]
-  }
+  #TODO: Check for updates; configurable via repo.conf?
 
   if {$directive eq ""} {
     Msg Error "No directive given. Run './Hog/Do HELP' for usage."
     exit 1
   }
 
-  if {$directive ne "HELP" && $project ne ""} {
-    regsub "^(\./)?Top/" $project "" project
-    # Remove trailing / and spaces if in project_name
-    regsub "/? *\$" $project "" project
-    #set proj_conf [ProjectExists $project $repo_path]
-  }
+  Msg Debug "InitLauncher: project_name=$project_name, project=$project"
 
-  set project_group [file dirname $project]
-  set project_name $project
-  set project [file tail $project]
-  set DESIGN $project_name
-  Msg Debug "InitLauncher: project_group=$project_group, project_name=$project_name, project=$project"
-
-  DataStore::create Repo
-  DataStore::create Launcher
-  DataStore::create HogProject
-
-
-  Launcher::Set Name "Experimental"
-  Launcher::Set Version "0.1.0"
-  Launcher::Set time [clock format [clock seconds] -format "%Y-%m-%d %H:%M:%S"]
-  Launcher::Set script [file normalize [info script]]
-  Launcher::Set Git  [lindex [Git --version] 2]
-  Launcher::Set HogTag [Git describe]
-
-  
-  set old_dir [pwd]
-  cd $repo_path
-  Repo::Set Tag [Git describe]
-  cd $old_dir
-
-  Repo::Set repo_path    $repo_path
-  Repo::Set tcl_path     $tcl_path
-  Repo::Set top_path     $top_path
-  Repo::Set  pre_synth                [file normalize "${tcl_path}/integrated/pre-synthesis.tcl"]
-  Repo::Set  post_synth               [file normalize "${tcl_path}/integrated/post-synthesis.tcl"]
-  Repo::Set  pre_impl                 [file normalize "${tcl_path}/integrated/pre-implementation.tcl"]
-  Repo::Set  post_impl                [file normalize "${tcl_path}/integrated/post-implementation.tcl"]
-  Repo::Set  pre_bit                  [file normalize "${tcl_path}/integrated/pre-bitstream.tcl"]
-  Repo::Set  post_bit                 [file normalize "${tcl_path}/integrated/post-bitstream.tcl"]
-  Repo::Set  quartus_post_module      [file normalize "${tcl_path}/integrated/quartus-post-module.tcl"]
-
-  Repo::Set projects_dir [file join $repo_path Projects]
-  Repo::SetObj projects  [tdict create]
-  dict for {proj conf} [GetProjectsConf $repo_path] {
-    if {[file exists $conf]} {
-      set PROPERTIES [ReadConf $conf]
-      Repo::Set projects $proj conf_file $conf
-      Repo::Set projects $proj tool [Tools::GetToolForProject $proj $top_path]
-      dict for {section content} $PROPERTIES {
-        dict for {p v} $content {
-          Msg Debug "Setting property $p to $v for section $section"
-          Repo::Set projects $proj $section $p $v
-        }
-      }
-    }
-  }
-
-  HogProject::Set design       $project_name
-  HogProject::Set project_name $project_name
-  HogProject::Set project      $project
-  HogProject::Set group_name   [file dirname $DESIGN]
-
-
-  HogProject::Set list_path    [file join $repo_path Top $DESIGN list]
-  HogProject::Set build_dir    [file join $repo_path Projects $DESIGN]
-
-
-  HogProject::Set DESIGN [file tail ${DESIGN}]
-  HogProject::Set top_name [file rootname [file tail $DESIGN]]
-  HogProject::Set synth_top_module "top_[HogProject::Get top_name]"
-
-
-  # Check if HogEnv.conf exists and parse it
-  if {[file exists [Hog::LoggerLib::GetUserFilePath "HogEnv.conf"]] } {
+  if {[file exists [Hog::LoggerLib::GetUserFilePath "HogEnv.conf"]]} {
     Msg Debug "HogEnv.conf found"
-    set loggerdict [Hog::LoggerLib::ParseTOML [Hog::LoggerLib::GetUserFilePath "HogEnv.conf" ]]
+    set loggerdict [Hog::LoggerLib::ParseTOML [Hog::LoggerLib::GetUserFilePath "HogEnv.conf"]]
     set HogEnvDict [Hog::LoggerLib::GetTOMLDict]
     Hog::LoggerLib::PrintTOMLDict $HogEnvDict
   }
 
-  if {[Commands::AliasExists $directive] || [Flow::AliasExists $directive]} {
-    if {"--help" in $_options || "-help" in $_options || "-h" in $_options || "-?" in $_options} {
-      set ::argv [list HELP $directive]
-      Commands::Run HELP
-    }
+  # help: render help for whatever was resolved, then exit.
+  if {"--help" in $options || "-help" in $options || "-h" in $options || "-?" in $options} {
+    Help::RenderPath $full_cmd
+    exit 0
   }
 
+  set result [Commands::RunCommand $cmd $full_cmd $project $options]
+  if {$result eq "ran"} { return }
 
-  if {[Commands::AliasExists $directive]} {
-    set cmd [Commands::GetCommand $directive]
-    if {[tdict getval $cmd requires_proj] && $project eq ""} {
-      Msg Error "Directive '$directive' requires a project. Run './Hog/Do HELP' for usage."
-      exit 1
-    }
+  lassign $result _ ide
+  Launcher::Set ide       $ide
+  Tools::Launch $ide
+  return
 
-    set cmd_opts [Commands::GetCommandOptions $directive]
-    if {[catch {array set _parsed [cmdline::getoptions _options $cmd_opts ""]} err]} {
-      Msg Error "Option error for '$directive': $err"
-      exit 1
-    }
-    set _opts_tdict [tdict create]
-    foreach k [array names _parsed] {
-      tdict set _opts_tdict $k [tinf $_parsed($k)]
-    }
-    Launcher::SetObj options $_opts_tdict
-    Commands::Run $directive
-    return
-  }
-
-
-  if {$project eq ""} {
-    Msg Error "No project given. Run './Hog/Do HELP' for usage."
-    exit 1
-  }
-
-  set tool [Tools::GetToolForProject $project $top_path]
-  if {$tool eq ""} {
-    exit 1
-  }
-
-  ################################################################################
-  # Project Flows and Commands
-  ################################################################################
-  Launcher::Set ide $tool
-  HogProject::Set ide $tool
-  if {[Flow::AliasExistsForTool $directive $tool]} {
-    set flow_opts [Flow::GetFlowOptions $tool $directive]
-    if {[catch {array set _parsed [cmdline::getoptions _options $flow_opts ""]} err]} {
-      Msg Error "Option error for '$directive': $err"
-      exit 1
-    }
-    set _opts_tdict [tdict create]
-    foreach k [array names _parsed] {
-      tdict set _opts_tdict $k [tinf $_parsed($k)]
-    }
-    Launcher::SetObj options $_opts_tdict
-    Launcher::Set directive $directive
-
-    Tools::Launch $tool
-    return
-  }
-
-  Msg Error "Unknown directive '$directive' for tool '[namespace tail $tool]'."
-  exit 1
 } else {
 
 ################################################################################
 ## Tool Pass
 ################################################################################
 
-  if {[catch {
-    ActiveTool::Initialize {*}$::argv
-    Flow::Run [Launcher::Get directive]
-  } _tool_err _tool_opts]} {
-    # This catches errors inside the tool, otherwise we would only catch errors about launching the tool
-    # this doesn't catch Msg Error errors tho...
+  set DataStore::inIDE 1
 
-    puts "Error: $_tool_err"
-    #Launcher::Set ERROR MESSAGE  "Failed to run tool '[ActiveTool::CurrentTool]': $_tool_err"
-    #Launcher::Set ERROR TRACE    [dict get $_tool_opts -errorinfo]
-    #Launcher::Set ERROR CODE     [dict get $_tool_opts -errorcode]
-    #Launcher::SaveJsonToFile [file join [Launcher::Get repo_path] hog_[ActiveTool::CurrentTool]_error.json] 1
-    Msg Error "Failed to run tool '[ActiveTool::CurrentTool]': $_tool_err"
+  if {$cmd eq "" || ![Commands::IsExecutable $cmd]} {
+    Msg Error "Nothing to run in tool pass for '[join $full_cmd { }]'."
+    exit 1
+  }
+
+  set ide  [tdict getval $cmd ide]
+  set tool [Tools::ResolveAlias $ide]
+  Launcher::Set ide   $tool
+  CurrentProject::Set ide $tool
+
+  set opt_specs [list]
+  tlist foreach o [tdict get $cmd options] { lappend opt_specs [tobj value $o] }
+  if {[catch {array set parsed_opts [cmdline::getoptions options $opt_specs ""]} err]} {
+    Msg Error "Option error for '[join $full_cmd { }]': $err"
+    exit 1
+  }
+  set opts_tdict [tdict create]
+  foreach k [array names parsed_opts] { tdict set opts_tdict $k [tinf $parsed_opts($k)] }
+  Launcher::Set options   $opts_tdict
+  Launcher::Set directive $directive
+
+  if {[catch {
+    ActiveTool::Initialize
+    if {[Commands::IsFlow $cmd]} {
+      Flow::Run [tobj value [tdict get $cmd flow_ref]]
+    } else {
+      Commands::RunNode $cmd
+    }
+  } run_err run_opts]} {
+    Msg Error "Failed to run '[join $full_cmd { }]': $run_err"
   }
 }
 

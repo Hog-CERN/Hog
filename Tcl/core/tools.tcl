@@ -1,6 +1,42 @@
 
 namespace eval Tools {
 
+
+  # Manifest fields
+  variable _fields {
+    { name        ""  required}
+    { ref_names   ""  required}
+
+    { vendor      ""  optional}
+    { description ""  optional}
+    { version     ""  optional}
+    { features    {}  optional}
+    { flows       {}  optional}
+    { commands    {}  optional}
+    { custom      0   optional}
+    { _source_path "" optional}
+    { _git         {} optional}
+  }
+
+  proc _validate_manifest {tool_name raw_dict} {
+    variable _fields
+    set norm [dict create]
+    dict for {k v} $raw_dict { dict set norm [string tolower $k] $v }
+    set raw_dict $norm
+    set result [dict create]
+    foreach field $_fields {
+      lassign $field fname fdefault frequired
+      if {[dict exists $raw_dict $fname]} {
+        dict set result $fname [dict get $raw_dict $fname]
+      } elseif {$frequired eq "required"} {
+        error "Tool '$tool_name': missing required field '$fname'"
+      } else {
+        dict set result $fname $fdefault
+      }
+    }
+    return $result
+  }
+
   proc detectActiveTool {} {
     foreach ns [namespace children ::Tools] {
       if {[info commands ${ns}::IsActive] eq ""} continue
@@ -29,17 +65,7 @@ namespace eval Tools {
 
 
   proc Launch {tool} {
-    if {[string first "::" $tool] >= 0} {
-      set tool_ns $tool
-    } else {
-      set tool_ns ""
-      foreach ns [namespace children ::Tools] {
-        if {[string tolower [namespace tail $ns]] eq [string tolower $tool]} {
-          set tool_ns $ns
-          break
-        }
-      }
-    }
+    set tool_ns [ResolveAlias $tool]
     if {$tool_ns eq "" || [info commands ${tool_ns}::Launch] eq ""} {
       Msg Error "Tool '$tool' not found or has no Launch proc"
       return
@@ -49,26 +75,96 @@ namespace eval Tools {
     }
   }
 
-  proc RegisterFromDir {dir} {
-    Msg Debug "Loading tools from $dir"
-    if {![file isdirectory $dir]} { return }
-    foreach f [lsort [glob -nocomplain -directory $dir *.tcl]] {
-      if {[catch {namespace eval :: [list source $f]} err]} {
-        Msg Warning "failed to source [file tail $f]: $err"
-        continue
+  proc ResolveAlias {alias} {
+    if {$alias eq ""} { return "" }
+    if {[string first "::" $alias] >= 0} {
+      return [expr {[namespace exists $alias] ? $alias : ""}]
+    }
+    set needle [string tolower $alias]
+    foreach ns [namespace children ::Tools] {
+      if {[string tolower [namespace tail $ns]] eq $needle} { return $ns }
+      if {[catch {set m [${ns}::GetManifest]} err]} { continue }
+      if {[dict exists $m ref_names]} {
+        foreach iname [dict get $m ref_names] {
+          if {[string tolower $iname] eq $needle} { return $ns }
+        }
       }
     }
+    return ""
+  }
+
+  # Register tools from a directory
+  # looks for ./<tool>/<tool>.tcl or  ./<tool>/main.tcl
+  # Pass -custom to mark every tool sourced from this dir as user-defined.
+  proc RegisterFromDir {dir args} {
+    Msg Debug "Loading tools from $dir"
+    if {![file isdirectory $dir]} { return }
+    set is_custom [expr {"-custom" in $args}]
+    foreach sub [lsort [glob -nocomplain -type d -directory $dir *]] {
+      set tool_name [file tail $sub]
+      set entry [file join $sub "$tool_name.tcl"]
+      if {![file exists $entry]} {
+        set entry [file join $sub "main.tcl"]
+      }
+      if {![file exists $entry]} {
+        Msg Warning "Tool directory '$tool_name' has no '$tool_name.tcl' or 'main.tcl', skipping"
+        continue
+      }
+      set _pre [namespace children ::Tools]
+      if {[catch {namespace eval :: [list source $entry]} err]} {
+        Msg Warning "failed to source [file tail $entry] for tool '$tool_name': $err"
+        continue
+      }
+      foreach ns [namespace children ::Tools] {
+        if {$ns in $_pre} continue
+        if {![info exists ${ns}::Manifest]} continue
+        namespace eval $ns [list variable Manifest]
+        namespace eval $ns [list dict set Manifest _source_path $entry]
+        
+        # TODO: replace this with a real git/version lookup.
+        set _git_placeholder [dict create \
+          sha      "########"     \
+          date     "2026-01-01"   \
+          describe "v0.0.0"       \
+        ]
+        namespace eval $ns [list dict set Manifest _git $_git_placeholder]
+        if {$is_custom} {
+          namespace eval $ns [list dict set Manifest custom 1]
+        }
+      }
+    }
+  }
+
+  # Build a raw command-node dict for the flow. Used to add flow to command registry
+  proc _flowCmdDict {tool_ns flow_name flow_tdict} {
+    set aliases [list]
+    tlist foreachval a [tdict get $flow_tdict aliases] { lappend aliases $a }
+    return [dict create \
+      aliases       $aliases \
+      description   [tdict getval $flow_tdict description] \
+      options       [Flow::GetFlowOptions $tool_ns $flow_name] \
+      requires_proj true \
+      ide           [string tolower [namespace tail $tool_ns]] \
+      flow_ref      $flow_name \
+    ]
   }
 
   proc Init {} {
     set _required_procs {IsActive Launch Initialize}
     foreach ns [namespace children ::Tools] {
+      set tool_name [namespace tail $ns]
       if {[catch {set m [namespace eval $ns {variable Manifest; set Manifest}]} err]} {
-        Msg Warning "[namespace tail $ns] does not define a Manifest, skipping"
+        Msg Warning "$tool_name does not define a Manifest, skipping"
         namespace delete $ns
         continue
       }
-      #TODO: if manifest does exist, should probably check for a set of required fields
+      if {[catch {_validate_manifest $tool_name $m} validated]} {
+        Msg Warning "Skipping tool: $validated"
+        namespace delete $ns
+        continue
+      }
+
+      namespace eval $ns [list variable Manifest $validated]
 
       set missing {}
       foreach required $_required_procs {
@@ -77,21 +173,107 @@ namespace eval Tools {
         }
       }
       if {[llength $missing] > 0} {
-        Msg Warning "[namespace tail $ns] is missing required procs: [join $missing {, }], skipping"
+        Msg Warning "$tool_name is missing required procs: [join $missing {, }], skipping"
         namespace delete $ns
         continue
       }
 
       InjectCommonProcs $ns
 
-      if {[dict exists $m Flows]} {
-        Flow::RegisterFlowDict $ns [dict get $m Flows]
+      if {[dict exists $validated flows] && [llength [dict get $validated flows]] > 0} {
+        Flow::RegisterFlowDict $ns [dict get $validated flows]
       }
     }
 
     set active [detectActiveTool]
     if {$active ne ""} {
       ::ActiveTool::Set $active
+    }
+  }
+
+  # Create commands out of Tools
+  # flows and commands are added under the {tool <tool>} tree
+  proc BuildCommandTree {} {
+    set tool_subs [dict create]
+    foreach ns [namespace children ::Tools] {
+      set tool_name [namespace tail $ns]
+      if {[catch {set validated [${ns}::GetManifest]}]} { continue }
+
+      # Register every tool under the TOOL subcommand tree
+      set tool_key [string toupper $tool_name]
+      set ref_aliases [list]
+      if {[dict exists $validated ref_names]} {
+        foreach rn [dict get $validated ref_names] { lappend ref_aliases $rn }
+      }
+
+      # Command subcommands from Manifest.commands.
+      set _subs [dict create]
+      set _cmd_aliases [list]
+      if {[dict exists $validated commands]} {
+        dict for {ck cv} [dict get $validated commands] {
+          dict set _subs [string toupper $ck] $cv
+          lappend _cmd_aliases [string toupper $ck]
+          if {[dict exists $cv aliases]} {
+            foreach a [dict get $cv aliases] { lappend _cmd_aliases [string toupper $a] }
+          }
+        }
+      }
+
+
+      # For flows, we want to register them in two places incase of command collision
+      #  (a) tool <t> <flow>       - for ease of use, commands can override this path
+      #  (b) tool <t> flow <flow>  - command shouldn't collide with this one
+      set _flow_subs [dict create]
+      tdict for {fname fnode} [Flow::GetToolFlows $ns] {
+        set _fkey  [string toupper $fname]
+        set _fcmd  [_flowCmdDict $ns $fname $fnode]
+        dict set _flow_subs $_fkey $_fcmd
+
+        set _collides 0
+        foreach _fa [concat [list $_fkey] [dict get $_fcmd aliases]] {
+          if {[string toupper $_fa] in $_cmd_aliases} { set _collides 1; break }
+        }
+        if {$_collides} {
+          Msg Warning "Tool '$tool_name': flow '$fname' collides with a command; reach it via 'tool $tool_name flow $fname'"
+        } else {
+          dict set _subs $_fkey $_fcmd
+        }
+      }
+      if {[dict size $_flow_subs] > 0} {
+        dict set _subs FLOW [dict create \
+          description "Flows provided by $tool_name. Usage: tool $tool_name flow <flow> <project>" \
+          subcommands $_flow_subs \
+        ]
+      }
+
+      set tool_subs_entry [dict create \
+        description [dict get $validated description] \
+        aliases     $ref_aliases \
+        script      "Help::RenderTool [string tolower $tool_name]" \
+      ]
+      if {[dict size $_subs] > 0} {
+        dict set tool_subs_entry subcommands $_subs
+      }
+      dict set tool_subs $tool_key $tool_subs_entry
+    }
+
+    if {[dict size $tool_subs] > 0} {
+      Commands::RegisterCommand TOOL [dict create \
+        description   "Tool-scoped commands. Usage: ./Hog/Do TOOL <tool> <command> \[project\] \[options\]" \
+        passthrough   true \
+        subcommands   $tool_subs \
+        script {
+          set _alias [lindex $::argv 1]
+          if {$_alias eq ""} {
+            Help::RenderPath {TOOL}
+          } else {
+            set _avail {}
+            foreach ns [lsort [namespace children ::Tools]] { lappend _avail [string tolower [namespace tail $ns]] }
+            Msg Error "Unknown tool '$_alias'. Available tools: [join $_avail {, }]"
+            exit 1
+          }
+        } \
+      ]
     }
   }
 

@@ -25,6 +25,29 @@ namespace eval Flow {
     { options     ""     optional}
   }
 
+  # A top-level command may NOT claim any of these
+  # names/aliases, even if no flow currently uses them — this protects the core
+  # project workflow from being shadowed by a stray command. Editable.
+  variable ReservedFlowNames {
+    CREATE CREATEWORKFLOW WORKFLOW
+    SYNTHESIS SYNTH IMPLEMENTATION IMPL IMPLEMENT
+    SIMULATION SIMULATE BITSTREAM
+  }
+
+  # Core command words a flow may NOT claim as its name/alias (they belong to
+  # the command dispatcher and would be unreachable if shadowed).
+  variable ReservedCommandWords { TOOL HELP FLOW }
+
+  proc IsReservedFlowName {name} {
+    variable ReservedFlowNames
+    return [expr {[string toupper $name] in $ReservedFlowNames}]
+  }
+
+  proc IsReservedCommandWord {name} {
+    variable ReservedCommandWords
+    return [expr {[string toupper $name] in $ReservedCommandWords}]
+  }
+
 
   proc _valid_alias {tool alias} {
     variable _registry
@@ -84,12 +107,12 @@ namespace eval Flow {
           Msg Warning "Could not find tool '$custom_tool' for custom flow in [file tail $f], skipping"
           continue
         }
-        RegisterFlowDict $tool_ns $flows
+        RegisterFlowDict $tool_ns $flows 1
       }
     }
   }
 
-  proc RegisterFlow {tool_ns key raw_dict} {
+  proc RegisterFlow {tool_ns key raw_dict {is_custom 0}} {
     variable _registry
 
     if {[catch {_validate_flow $key $raw_dict} validated]} {
@@ -103,6 +126,11 @@ namespace eval Flow {
 
     set name [string toupper [dict get $validated name]]
 
+    if {[IsReservedCommandWord $name]} {
+      Msg Warning "Flow '$name' in tool '$tool_ns' uses reserved command word '$name', skipping"
+      return
+    }
+
     if {![_valid_alias $tool_ns $name]} {
       Msg Warning "Flow '$name' in tool '$tool_ns' is not valid or already exists as an alias, skipping"
       return
@@ -111,7 +139,9 @@ namespace eval Flow {
     set aliases [list]
     foreach alias [dict get $validated aliases] {
       set alias [string toupper $alias]
-      if {[_valid_alias $tool_ns $alias]} {
+      if {[IsReservedCommandWord $alias]} {
+        Msg Warning "Alias '$alias' for flow '$name' in tool '$tool_ns' is a reserved command word, skipping"
+      } elseif {[_valid_alias $tool_ns $alias]} {
         lappend aliases $alias
       } else {
         Msg Warning "Alias '$alias' for flow '$name' in tool '$tool_ns' is not valid or already exists, skipping"
@@ -125,6 +155,7 @@ namespace eval Flow {
       stages      [tlist create {*}[dict get $validated stages]] \
       description [tstr [dict get $validated description]] \
       options     [tlist create {*}[dict get $validated options]] \
+      custom      [tbool $is_custom] \
     ]
 
     foreach alias "$name $aliases" {
@@ -135,9 +166,9 @@ namespace eval Flow {
     }
   }
 
-  proc RegisterFlowDict {tool_ns flows_dict} {
+  proc RegisterFlowDict {tool_ns flows_dict {is_custom 0}} {
     dict for {name raw} $flows_dict {
-      RegisterFlow $tool_ns $name $raw
+      RegisterFlow $tool_ns $name $raw $is_custom
     }
   }
 

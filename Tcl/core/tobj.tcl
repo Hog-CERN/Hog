@@ -86,7 +86,32 @@ namespace eval tobj {
   proc Bool   {value}  { create Bool   $value }
   proc Null   {}       { create Null   {}     }
 
-  namespace export create type typeIs value isobj tojson String Number Bool Null
+  # Convert any tobj to a plain Tcl string
+  #   String/Number → string
+  #   Bool          → 1 or 0
+  #   Null          → {} (empty string)
+  #   List          → Tcl list
+  #   Dict          → Tcl dict
+  proc native {obj} {
+    if {![isobj $obj]} { error "tobj native: not a tobj" "" {INVALID_TOBJ} }
+    switch [type $obj] {
+      List    {
+        set _r {}
+        foreach item [value $obj] { lappend _r [native $item] }
+        return $_r
+      }
+      Dict    {
+        set result {}
+        dict for {k v} [value $obj] { dict set result $k [native $v] }
+        return $result
+      }
+      Bool    { return [expr {[value $obj] ? 1 : 0}] }
+      Null    { return {} }
+      default { return [value $obj] }
+    }
+  }
+
+  namespace export create type typeIs value isobj tojson native String Number Bool Null
   namespace ensemble create
 }
 
@@ -95,6 +120,8 @@ proc tstr  {v} { tobj create String $v }
 proc tnum  {v} { tobj create Number $v }
 proc tbool {v} { tobj create Bool   $v }
 proc tnull {}  { tobj create Null   {} }
+proc tval    {obj} { tobj value  $obj }
+proc tnative {obj} { tobj native $obj }
 
 proc tinf {value} {
   if {$value eq {} || $value eq {null}}      { return [tobj Null]          }
@@ -136,6 +163,15 @@ namespace eval tlist {
     return [lindex [tobj value $lst] $index]
   }
 
+  proc getval {lst index} {
+    if {![tobj isobj $lst]}         { error "tlist getval: not a tobj"      "" {INVALID_TOBJ}      }
+    if {[tobj type $lst] ne "List"} { error "tlist getval: not a List node" "" {INVALID_TOBJ_LIST} }
+    set item [lindex [tobj value $lst] $index]
+    set t [tobj type $item]
+    if {$t eq "Dict" || $t eq "List"} { return $item }
+    return [tobj value $item]
+  }
+
   proc length {listVar} {
     upvar 1 $listVar lst
     if {![tobj isobj $lst]}         { error "tlist length: not a tobj"      "" {INVALID_TOBJ}      }
@@ -143,8 +179,7 @@ namespace eval tlist {
     return [llength [tobj value $lst]]
   }
 
-  proc remove {listVar index} {
-    upvar 1 $listVar lst
+  proc remove {lst index} {
     if {![tobj isobj $lst]}         { error "tlist remove: not a tobj"      "" {INVALID_TOBJ}      }
     if {[tobj type $lst] ne "List"} { error "tlist remove: not a List node" "" {INVALID_TOBJ_LIST} }
     set current [tobj value $lst]
@@ -181,7 +216,31 @@ namespace eval tlist {
     }
   }
 
-  namespace export create append get length remove pop foreach foreachval
+  proc elemExists {lst value} {
+    if {![tobj isobj $lst]}         { error "tlist elemExists: not a tobj"      "" {INVALID_TOBJ}      }
+    if {[tobj type $lst] ne "List"} { error "tlist elemExists: not a List node" "" {INVALID_TOBJ_LIST} }
+    ::foreach item [tobj value $lst] {
+      set t [tobj type $item]
+      if {$t ne "Dict" && $t ne "List" && [tobj value $item] eq $value} { return 1 }
+    }
+    return 0
+  }
+
+  proc index {lst value} {
+    if {![tobj isobj $lst]}         { error "tlist index: not a tobj"      "" {INVALID_TOBJ}      }
+    if {[tobj type $lst] ne "List"} { error "tlist index: not a List node" "" {INVALID_TOBJ_LIST} }
+    set needle [expr {[tobj isobj $value] ? $value : [tinf $value]}]
+    set i 0
+    ::foreach item [tobj value $lst] {
+      set t [tobj type $item]
+      if {$t eq "Dict" || $t eq "List"} { continue }
+      if {$t eq $needle} { return $i }
+      incr i
+    }
+    return -1
+  }
+
+  namespace export create append get getval length remove pop foreach foreachval elemExists index
   namespace ensemble create
 }
 
@@ -325,11 +384,10 @@ namespace eval tdict {
   }
 
   # tdict remove dictVar key ?key ...?
-  proc remove {dictVar args} {
+  proc remove {d args} {
     if {[llength $args] < 1} {
-      error "tdict remove: usage: tdict remove dictVar key ?key ...?" "" {INVALID_ARGS}
+      error "tdict remove: usage: tdict remove dictr key ?key ...?" "" {INVALID_ARGS}
     }
-    upvar 1 $dictVar d
     if {![tobj isobj $d]}         { error "tdict remove: not a tobj"      "" {INVALID_TOBJ}      }
     if {[tobj type $d] ne "Dict"} { error "tdict remove: not a Dict node" "" {INVALID_TOBJ_DICT} }
     _removePath d $args

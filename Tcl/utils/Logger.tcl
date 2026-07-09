@@ -106,6 +106,13 @@ proc Msg {level fmsg {title ""}} {
       }
     } else {
       # Tcl Shell / Libero
+      if {[info exists ::HOG_API_MODE] && $::HOG_API_MODE} {
+        if {$qlevel == "error"} {
+          puts "\{\"error\": \"$msg\"\}"
+          exit 1
+        }
+        return
+      }
       if {$vlevel != "STATUS"} {
         puts "$vlevel: \[Hog:$title\] $msg"
       } else {

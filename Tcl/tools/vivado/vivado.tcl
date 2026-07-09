@@ -1,9 +1,10 @@
 namespace eval Tools::Vivado {
 
   variable Manifest {
-    name      "Vivado"
-    vendor    "AMD/Xilinx"
-    ref_names {vivado vivado_vitis_classic planahead}
+    name        "Vivado"
+    vendor      "AMD/Xilinx"
+    description "AMD/Xilinx Vivado (and Vivado-Vitis classic + legacy PlanAhead) FPGA design suite."
+    ref_names   {vivado vivado_vitis_classic planahead}
     Flows {
       CREATE {
         aliases {C}
@@ -42,7 +43,7 @@ namespace eval Tools::Vivado {
       }
 
       WORKFLOW {
-        aliases {w work flow cw}
+        aliases {w work cw}
         description "Runs the full workflow, creates the project if not existing."
         options {
           {bitstream_only  "If set, only the bitstream will be produced. This assumes implementation was already done. For a Vivado-Vitis\
@@ -54,7 +55,13 @@ namespace eval Tools::Vivado {
         stages  {@IMPLEMENTATION GenerateBitstream}
       }
     }
+
+
   }
+
+
+  #Add vivado-only commands
+  source [file join [file dirname [info script]] commands.tcl]
 
   proc IsActive {} {
     if {[info commands version] eq ""} { return 0 }
@@ -66,33 +73,16 @@ namespace eval Tools::Vivado {
   }
 
   proc Launch {} {
-    # Each tool should define how it passes context from tclsh to itself
-    # I think most can just pass the entire context dict as a tclarg, but
-    # something like vitis_unified will probably need to manpulate it to
-    # pass to python env. 
-
     set script [Launcher::Get script]
-    exec -ignorestderr vivado -nojournal -nolog -mode batch -notrace -source $script -tclargs "-context" [DataStore::Serialize] >@ stdout
+    puts "Launching vivado: \n    vivado -nojournal -nolog -mode batch -notrace -source $script -tclargs {*}$::argv"
+    exec -ignorestderr vivado -nojournal -nolog -mode batch -notrace -source $script -tclargs {*}$::argv >@ stdout
   }
 
-  proc Initialize {args} {
-    # Again, each tool will need to define how it processes the context passed from tclsh.
-    if {[llength $args] < 1} {
-      puts "Vivado::InitializeTool requires at least 1 argument (the context dict)"
-      return
-    } 
-    if {[lindex $args 0] eq "-context"} {
-      DataStore::Deserialize [lindex $args 1]
-    } else {
-      puts "Vivado::InitializeTool requires -context argument"
-      return
-    }
-
-    set project_name [HogProject::Get project_name]
+  proc Initialize {} {
+    # Tool-specific setup — DataStores are already populated by _ConfigureEnvironment
     set repo_path    [Repo::Get repo_path]
     set top_path     [Repo::Get top_path]
 
-    HogProject::Set project_file [file normalize [file join [HogProject::Get build_dir] [HogProject::Get project].xpr]]
 
     set_msg_config -suppress -regexp -string {".*The IP file '.*' has been moved from its original location, as a result the outputs for this IP will now be generated in '.*'. Alternatively a copy of the IP can be imported into the project using one of the 'import_ip' or 'import_files' commands..*"}
     set_msg_config -suppress -regexp -string {".*File '.*.xci' referenced by design '.*' could not be found..*"}
@@ -105,44 +95,34 @@ namespace eval Tools::Vivado {
 
 
     if {[info exists env(HOG_EXTERNAL_PATH)]} {
-      HogProject::Set HOG_EXTERNAL_PATH $env(HOG_EXTERNAL_PATH)
+      CurrentProject::Set HOG_EXTERNAL_PATH $env(HOG_EXTERNAL_PATH)
     } else {
-      HogProject::Set HOG_EXTERNAL_PATH ""
+      CurrentProject::Set HOG_EXTERNAL_PATH ""
     }
 
+    if {[CurrentProject::Exists project_name] == 0} {
+      FlowControl::Produce VIVADO_INITIALIZED
+      return
+    }
 
-    HogProject::Set LIBERO_MANDATORY_VARIABLES {"FAMILY" "PACKAGE" "DIE" }
+    set project_name [CurrentProject::Get project_name]
+    CurrentProject::Set project_file [file normalize [file join [CurrentProject::Get build_dir] [CurrentProject::Get project].xpr]]
+    CurrentProject::Set LIBERO_MANDATORY_VARIABLES {"FAMILY" "PACKAGE" "DIE" }
     set proj_dir [file normalize "${repo_path}/Top/${project_name}"]
 
 
-    lassign [GetConfFiles $proj_dir] conf_file sim_file pre_file post_file pre_rtl_file
-    set user_repo 0
-    if {[file exists $conf_file]} {
-      Msg Info "Parsing configuration file $conf_file..."
-      set PROPERTIES [ReadConf $conf_file]
-    }
-
-    if {[Launcher::Get options lib] != ""} {
+    if {[Launcher::GetOr options lib ""] != ""} {
       if {[IsRelativePath [Launcher::Get options lib]] == 0} {
-        HogProject::Set simlib_path "[Launcher::Get options lib]"
+        CurrentProject::Set simlib_path "[Launcher::Get options lib]"
       } else {
-        HogProject::Set simlib_path "${repo_path}/[Launcher::Get options lib]"
+        CurrentProject::Set simlib_path "${repo_path}/[Launcher::Get options lib]"
       }
-      Msg Info "Simulation library path set to [HogProject::Get simlib_path]"
+      Msg Info "Simulation library path set to [CurrentProject::Get simlib_path]"
     } else {
-      HogProject::Set simlib_path "${repo_path}/SimulationLib"
-      Msg Info "Simulation library path set to default [HogProject::Get simlib_path]"
+      CurrentProject::Set simlib_path "${repo_path}/simlib"
+      Msg Info "Simulation library path set to default [CurrentProject::Get simlib_path]"
     }
 
-    HogProject::Set config ""
-    if {[dict exists $PROPERTIES main]} {
-      dict for {section content} $PROPERTIES {
-        dict for {p v} $content {
-          Msg Debug "Setting property $p to $v for section $section"
-          HogProject::Set config $section $p $v
-        }
-      }
-    }
 
 
     FlowControl::Produce VIVADO_INITIALIZED
@@ -152,19 +132,20 @@ namespace eval Tools::Vivado {
 
     FlowControl::Require VIVADO_INITIALIZED
 
-    HogProject::SaveJsonToFile [Repo::Get repo_path]/last_run.json 1
+    CurrentProject::SaveJsonToFile [Repo::Get repo_path]/last_run.json 1
 
-    if {[file exists [HogProject::Get project_file]] && [Launcher::Get options recreate] == 0} {
-      Msg Info "Project file found at [HogProject::Get project_file], opening project..."
-      #file mkdir "[HogProject::Get project_file]/[HogProject::Get project_name].gen/sources_1"
-      OpenProject [HogProject::Get project_file] [Repo::Get repo_path]
+    if {[file exists [CurrentProject::Get project_file]] && [Launcher::GetOr options recreate 1] == 0} {
+      Msg Info "Project file found at [CurrentProject::Get project_file], opening project..."
+      #file mkdir "[CurrentProject::Get project_file]/[CurrentProject::Get project_name].gen/sources_1"
+      OpenProject [CurrentProject::Get project_file] [Repo::Get repo_path]
       FlowControl::Produce PROJECT_CREATED
       return
     }
 
 
+    Msg Info "Creating project with part: [CurrentProject::Get config main PART] at [CurrentProject::Get project_file]"
     if {[catch {
-    create_project -force [file tail [HogProject::Get DESIGN]] [HogProject::Get build_dir] -part [HogProject::Get config main PART]
+    create_project -force [file tail [CurrentProject::Get design]] [CurrentProject::Get build_dir] -part [CurrentProject::Get config main PART]
     } _err _opts ]} {
       Msg Error "Failed to create project: $_err with options: $_opts"
       Msg Warning "Failed to Create Project"
@@ -172,56 +153,232 @@ namespace eval Tools::Vivado {
       FlowControl::Produce PROJECT_CREATED
     }
 
+    set obj [get_projects [file tail [CurrentProject::Get design]]]
+    set_property "target_language" "VHDL" $obj
+
+      set_property "simulator_language" "Mixed" $obj
+      foreach simulator [GetSimulators] {
+        set_property "compxlib.${simulator}_compiled_library_dir" [CurrentProject::Get simlib_path] $obj
+      }
+      set_property "default_lib" "xil_defaultlib" $obj
+      ## Enable VHDL 2008
+      set_param project.enableVHDL2008 1
+      set_property "enable_vhdl_2008" 1 $obj
+      ## Enable Automatic compile order mode, otherwise we cannot find the right top module...
+      set_property source_mgmt_mode All [current_project]
+      # Set PART Immediately
+      Msg Info "Setting PART = [CurrentProject::Get config main PART]"
+      set_property PART [CurrentProject::Get config main PART] [current_project]
+
+
+    ConfigureProperties
+    Msg Info "Project created at [CurrentProject::Get project_file]"
     AddProjectFiles
+    Msg Info "Project files added to [CurrentProject::Get project_file]"
     ConfigureSynthesis
     ConfigureImplementation
     ConfigureSimulation
   }
 
 
+  proc ConfigureProperties {} {
+    FlowControl::Require PROJECT_CREATED
+    set user_repo "0"
+    Msg Info "Setting project-wide properties..."
+    set proj_props [CurrentProject::Get config main]
+    dict for {prop_name prop_val} $proj_props {
+      if {[string tolower $prop_name] != "ip_repo_paths"} {
+        if {[string tolower $prop_name] != "part"} {
+          # Part is already set
+          Msg Debug "Setting $prop_name = $prop_val"
+          set_property -name $prop_name -value $prop_val -objects [current_project]
+        }
+      } else {
+        set ip_repo_list [regsub -all {\s+} $prop_val " [Repo::Get repo_path]/"]
+        set ip_repo_list [Repo::Get repo_path]/$ip_repo_list
+        set user_repo "1"
+        Msg Info "Setting $ip_repo_list as user IP repository..."
+        if {[IsISE]} {
+          set_property ip_repo_paths "$ip_repo_list" [current_fileset]
+        } else {
+          set_property ip_repo_paths "$ip_repo_list" [current_project]
+        }
+        update_ip_catalog
+      }
+    }
+  }
+  # Setting Run Properties
+  foreach run [get_runs -quiet] {
+    if {[CurrentProject::Exists config $run]} {
+      Msg Info "Setting properties for run: $run..."
+      set run_props [CurrentProject::Get config $run]
+      set stragety_str "STRATEGY strategy Strategy"
+      Msg Debug "Setting Strategy and Flow for run $run (if specified in hog.conf)"
+      foreach s $stragety_str {
+        if {[tdict exists $run_props $s]} {
+          set prop [tdict getval $run_props $s]
+          set_property -name $s -value $prop -objects $run
+          set run_props [tdict remove $run_props $s]
+          Msg Warning "A strategy for run $run has been defined inside hog.conf. This prevents Hog to compare the project properties. \
+          Please regenerate your hog.conf file using the dedicated Hog button."
+          Msg Info "Setting $s = $prop"
+        }
+      }
+
+      dict for {prop_name prop_val} $run_props {
+        Msg Debug "Setting $prop_name = $prop_val"
+        if {[string trim $prop_val] == ""} {
+          Msg Warning "Property $prop_name has empty value. Skipping..."
+          continue
+        }
+        if {[IsInList [string toupper $prop_name] [VIVADO_PATH_PROPERTIES] 1]} {
+          # Check that the file exists before setting these properties
+          set utility_file [Repo::Get repo_path]/$prop_val
+          if {[file exists $utility_file]} {
+            lassign [GetHogFiles -ext_path [CurrentProject::Get HOG_EXTERNAL_PATH] [CurrentProject::Get list_path] [Repo::Get repo_path]] lib prop dummy
+            foreach {l f} $lib {
+              foreach ff $f {
+                lappend hog_files $ff:
+              }
+            }
+            if {[lsearch $hog_files $utility_file] < 0} {
+              Msg CriticalWarning "The file: $utility_file is set as a property in hog.conf, \
+              but is not added to the project in any list file. Hog cannot track it."
+            } else {
+              #Add file tu utils_1 to avoid warning
+              AddFile [Repo::Get repo_path]/$prop_val [get_filesets -quiet utils_1]
+            }
+            set_property -name $prop_name -value $utility_file -objects $run
+          } else {
+            Msg Warning "Impossible to set property $prop_name to $prop_val. File is missing"
+          }
+        } else {
+          set_property -name $prop_name -value $prop_val -objects $run
+        }
+      }
+    }
+  }
+
+
   proc AddProjectFiles {} {
     FlowControl::RequireOr PROJECT_CREATED {
-      puts "Didn't find a project, creating it first..."
-
-    }
-    if {[string equal [get_filesets -quiet sources_1] ""]} {
-      create_fileset -srcset sources_1
-    }
-    set sources "sources_1"
-
-    ###############
-    # CONSTRAINTS #
-    ###############
-    # Create 'constrs_1' fileset (if not found)
-    if {[string equal [get_filesets -quiet constrs_1] ""]} {
-      create_fileset -constrset constrs_1
+      Msg Info "Project not found; creating it first..."
     }
 
-    # Set 'constrs_1' fileset object
-    set constraints [get_filesets constrs_1]
+    if {[get_filesets -quiet sources_1] eq ""} { create_fileset -srcset    sources_1 }
+    if {[get_filesets -quiet constrs_1] eq ""} { create_fileset -constrset constrs_1 }
 
-    ##############
-    # READ FILES #
-    ##############
-
-    if {[file isdirectory [HogProject::Get list_path]]} {
-      set list_files [glob -directory [HogProject::Get list_path] "*"]
-    } else {
-      Msg Error "No list directory found at  [HogProject::Get list_path]"
+    # Create any non-standard filesets (simulation sets).
+    tlist foreachval fs [CurrentProject::Get filesets] {
+      if {$fs in {sources_1 constrs_1}} { continue }
+      if {[get_filesets -quiet $fs] eq ""} {
+        create_fileset -simset $fs
+        current_fileset -simset [get_filesets $fs]
+        set sim [get_filesets $fs]
+        foreach simulator [GetSimulators] {
+          set_property -name "$simulator.compile.vhdl_syntax" -value 2008 -objects $sim
+        }
+        set_property SOURCE_SET sources_1 $sim
+      }
     }
 
-    if {[IsISE]} {
-      source [HogProject::Get config tcl_path]/utils/cmdline.tcl
+    # Add files fileset by fileset (batch add, then apply per-file properties).
+    # IPs are added last within each fileset to respect tool dependency order.
+    set proj_ds [CurrentProject::GetFullDataStore]
+
+    Msg Info "Modifying Added Files"
+    tlist foreachval fs [CurrentProject::Get filesets] {
+      # Get all files for this fileset, excluding Vitis app libraries.
+      set all_fs [Projects::GetProjectFiles $proj_ds -fileset $fs -as tdict]
+      set all_fs [ListFile::HogFileObj::Filter $all_fs -library {^(?!app_)}]
+
+      if {[llength [tdict keys $all_fs]] == 0} { continue }
+
+      # Batch-add paths: regular sources first, IPs last (tool dependency order).
+      set regular  [ListFile::HogFileObj::Filter $all_fs -library {^(?!ips\.src$)}]
+      set ip_files [ListFile::HogFileObj::Filter $all_fs -library {^ips\.src$}]
+      puts "Adding [llength [tdict keys $all_fs]] files and [llength [tdict keys $ip_files]] IPs to fileset $fs"
+      add_files -norecurse -fileset $fs [concat [tdict keys $regular] [tdict keys $ip_files]]
+
+
+      # Apply per-file properties.
+      tdict for {path fobj} $all_fs {
+        set ext     [tdict getval $fobj ext]
+        set lib     [tlist getval [tdict get $fobj libraries] 0]
+        set rootlib [file rootname [file tail $lib]]
+        set file_obj [get_files -of_objects [get_filesets $fs] [list "*$path"]]
+
+        if {$ext in {.vhd .vhdl}} {
+          set_property -name library -value $rootlib -objects $file_obj
+        }
+
+        if {$ext eq ".bd"} {
+          Msg Info "Generating Target for [file tail $path]"
+          generate_target all [get_files $path]
+        }
+
+        tdict for {key val} [tdict get $fobj props] {
+          set v [tnative $val]
+          switch -- $key {
+            std {
+              if {$ext in {.vhd .vhdl}} {
+                switch -- $v {
+                  93      { Msg Debug "VHDL 93 for $path" }
+                  2019    {
+                    if {[GetIDEVersion] >= 2023.2} {
+                      set_property -name file_type -value "VHDL 2019" -objects $file_obj
+                    } else {
+                      Msg CriticalWarning "VHDL 2019 requires Vivado >= 2023.2; using 2008 for $path"
+                      set_property -name file_type -value "VHDL 2008" -objects $file_obj
+                    }
+                  }
+                  default { set_property -name file_type -value "VHDL 2008" -objects $file_obj }
+                }
+              }
+            }
+            SystemVerilog    { set_property -name file_type -value SystemVerilog       -objects $file_obj }
+            verilog_header   { set_property file_type {Verilog Header}   [get_files $path] }
+            verilog_template { set_property file_type {Verilog Template} [get_files $path] }
+            verilog          { set_property file_type Verilog            [get_files $path] }
+            nosynth          { set_property -name used_in_synthesis      -value false -objects $file_obj }
+            noimpl           { set_property -name used_in_implementation -value false -objects $file_obj }
+            nosim            { set_property -name used_in_simulation     -value false -objects $file_obj }
+            top {
+              Msg Info "Setting $v as top module for fileset $fs"
+              CurrentProject::Set synth_top_module $v
+            }
+            locked {
+              if {$ext eq ".ip"} {
+                Msg Info "Locking IP $path"
+                set_property IS_MANAGED 0 [get_files $path]
+              }
+            }
+            source {
+              if {$ext eq ".tcl"} {
+                Msg Info "Sourcing $path (excluded from synth/impl/sim)"
+                source $path
+                set_property -name used_in_synthesis      -value false -objects $file_obj
+                set_property -name used_in_implementation -value false -objects $file_obj
+                set_property -name used_in_simulation     -value false -objects $file_obj
+              }
+            }
+            scoped_to_ref   { set_property SCOPED_TO_REF   $v $file_obj }
+            scoped_to_cells { set_property SCOPED_TO_CELLS $v $file_obj }
+            topsim   { Msg Warning "topsim is deprecated; use sim.conf top=$v" }
+            runtime  { Msg Warning "runtime is deprecated; use sim.conf <sim>.simulate.runtime=$v" }
+            wavefile { Msg Warning "wavefile is deprecated; use sim.conf <sim>.simulate.custom_wave_do=$v" }
+            dofile   { Msg Warning "dofile is deprecated; use sim.conf <sim>.simulate.custom_do=$v" }
+          }
+        }
+      }
     }
 
-    # Add first .src, .sim, and .ext list files
-    AddHogFiles {*}[GetHogFiles -list_files {.src,.sim,.ext} -ext_path [HogProject::Get HOG_EXTERNAL_PATH] [HogProject::Get list_path] [Repo::Get repo_path]]
+    if {[get_filesets -quiet sim_1] ne "" \
+        && [llength [get_files -quiet -of_objects [get_filesets sim_1]]] == 0} {
+      delete_fileset -quiet [get_filesets sim_1]
+    }
 
-    ## Set synthesis TOP
-    SetTopProperty [HogProject::Get synth_top_module] $sources
-
-    AddHogFiles {*}[GetHogFiles -list_files {.con} -ext_path [HogProject::Get HOG_EXTERNAL_PATH] [HogProject::Get list_path] [Repo::Get repo_path]]
-
+    SetTopProperty [CurrentProject::Get synth_top_module] sources_1
   }
   
   ## @brief configure synthesis.
@@ -232,12 +389,12 @@ namespace eval Tools::Vivado {
   proc ConfigureSynthesis {} {
     ## Create 'synthesis ' run (if not found)
     if {[string equal [get_runs -quiet synth_1] ""]} {
-      puts "create_run -name synth_1 -part [HogProject::Get config main PART] -constrset constrs_1"
-      create_run -name synth_1 -part [HogProject::Get config main PART] -constrset constrs_1
+      puts "create_run -name synth_1 -part [CurrentProject::Get config main PART] -constrset constrs_1"
+      create_run -name synth_1 -part [CurrentProject::Get config main PART] -constrset constrs_1
     } 
 
     set obj [get_runs synth_1]
-    set_property "part" [HogProject::Get config main PART] $obj
+    set_property "part" [CurrentProject::Get config main PART] $obj
 
     ## set pre synthesis script
     if {[Repo::Get pre_synth] ne ""} {
@@ -291,15 +448,15 @@ namespace eval Tools::Vivado {
   proc ConfigureImplementation {} {
     set obj ""
     if {[string equal [get_runs -quiet impl_1] ""]} {
-      puts "create_run -name impl_1 -part [ HogProject::Get config main PART] -constrset constrs_1 -parent_run synth_1"
-      create_run -name impl_1 -part [ HogProject::Get config main PART] -constrset constrs_1 -parent_run synth_1
+      puts "create_run -name impl_1 -part [ CurrentProject::Get config main PART] -constrset constrs_1 -parent_run synth_1"
+      create_run -name impl_1 -part [ CurrentProject::Get config main PART] -constrset constrs_1 -parent_run synth_1
     }
 
     set obj [get_runs impl_1]
-    set_property "part" [ HogProject::Get config main PART] $obj
+    set_property "part" [ CurrentProject::Get config main PART] $obj
 
-    set_property "steps.[BinaryStepName [ HogProject::Get config main PART]].args.readback_file" "0" $obj
-    set_property "steps.[BinaryStepName [ HogProject::Get config main PART]].args.verbose" "0" $obj
+    set_property "steps.[BinaryStepName [ CurrentProject::Get config main PART]].args.readback_file" "0" $obj
+    set_property "steps.[BinaryStepName [ CurrentProject::Get config main PART]].args.verbose" "0" $obj
 
     ## set pre implementation script
     if {[ Repo::Get pre_impl] ne ""} {
@@ -332,7 +489,7 @@ namespace eval Tools::Vivado {
         if {[get_filesets -quiet utils_1] != ""} {
           AddFile [ Repo::Get pre_bit] [get_filesets -quiet utils_1]
         }
-        set_property STEPS.[BinaryStepName [ HogProject::Get config main PART]].TCL.PRE [ Repo::Get pre_bit] $obj
+        set_property STEPS.[BinaryStepName [ CurrentProject::Get config main PART]].TCL.PRE [ Repo::Get pre_bit] $obj
       }
       Msg Debug "Setting [ Repo::Get pre_bit] to be run before bitfile generation"
     }
@@ -343,7 +500,7 @@ namespace eval Tools::Vivado {
         if {[get_filesets -quiet utils_1] != ""} {
           AddFile [ Repo::Get post_bit] [get_filesets -quiet utils_1]
         }
-        set_property STEPS.[BinaryStepName [ HogProject::Get config main PART]].TCL.POST [ Repo::Get post_bit] $obj
+        set_property STEPS.[BinaryStepName [ CurrentProject::Get config main PART]].TCL.POST [ Repo::Get post_bit] $obj
       }
       Msg Debug "Setting [ Repo::Get post_bit] to be run after bitfile generation"
     }
@@ -354,7 +511,7 @@ namespace eval Tools::Vivado {
   ## @brief configure simulation
   #
   proc ConfigureSimulation {} {
-    set simsets_dict [GetSimSets "[HogProject::Get group_name]/[HogProject::Get DESIGN]" [Repo::Get repo_path]]
+    set simsets_dict [GetSimSets "[CurrentProject::Get group_name]/[CurrentProject::Get design]" [Repo::Get repo_path]]
     
     ##############
     # SIMULATION #
@@ -403,10 +560,10 @@ namespace eval Tools::Vivado {
     cd [Repo::Get repo_path]
     set user_repo "0"
     # Setting Main Properties
-    if {[HogProject::Exists PROPERTIES]} {
-      if {[dict exists [ HogProject::Get PROPERTIES] main]} {
+    if {[CurrentProject::Exists PROPERTIES]} {
+      if {[dict exists [ CurrentProject::Get PROPERTIES] main]} {
         Msg Info "Setting project-wide properties..."
-        set proj_props [dict get [ HogProject::Get PROPERTIES] main]
+        set proj_props [dict get [ CurrentProject::Get PROPERTIES] main]
         dict for {prop_name prop_val} $proj_props {
           if {[string tolower $prop_name] != "ip_repo_paths"} {
             if {[string tolower $prop_name] != "part"} {
@@ -430,9 +587,9 @@ namespace eval Tools::Vivado {
       }
       # Setting Run Properties
       foreach run [get_runs -quiet] {
-        if {[HogProject::Exists config $run]} {
+        if {[CurrentProject::Exists config $run]} {
           Msg Info "Setting properties for run: $run..."
-          set run_props [dict get [ HogProject::Get config] $run]
+          set run_props [dict get [ CurrentProject::Get config] $run]
           #set_property -dict $run_props $run
           set stragety_str "STRATEGY strategy Strategy"
           Msg Debug "Setting Strategy and Flow for run $run (if specified in hog.conf)"
@@ -457,7 +614,7 @@ namespace eval Tools::Vivado {
               # Check that the file exists before setting these properties
               set utility_file [Repo::Get repo_path]/$prop_val
               if {[file exists $utility_file]} {
-                lassign [GetHogFiles -ext_path [HogProject::Get config HOG_EXTERNAL_PATH] [Repo::Get list_path] [Repo::Get repo_path]] lib prop dummy
+                lassign [GetHogFiles -ext_path [CurrentProject::Get config HOG_EXTERNAL_PATH] [Repo::Get list_path] [Repo::Get repo_path]] lib prop dummy
                 foreach {l f} $lib {
                   foreach ff $f {
                     lappend hog_files $ff
@@ -490,10 +647,10 @@ namespace eval Tools::Vivado {
     set no_reset     [Launcher::Get options no_reset    ]
     set do_create    [Launcher::Get options recreate    ]
     set njobs        [Launcher::Get options njobs       ]
-    set project      [HogProject::Get project           ]
-    set project_name [HogProject::Get project_name      ]
+    set project      [CurrentProject::Get project           ]
+    set project_name [CurrentProject::Get project_name      ]
     set repo_path    [Repo::Get repo_path               ]
-    set build_dir    [HogProject::Get build_dir               ]
+    set build_dir    [CurrentProject::Get build_dir               ]
     set run_folder   "$build_dir/$project.runs/"
 
     if {$no_reset == 0} {
@@ -511,7 +668,7 @@ namespace eval Tools::Vivado {
     }
 
     if {[IsISE]} {
-      source [HogProject::Get config pre_synth]
+      source [CurrentProject::Get config pre_synth]
     }
 
     launch_runs synth_1 -jobs $njobs -dir $run_folder
@@ -553,10 +710,10 @@ namespace eval Tools::Vivado {
     set do_create    [Launcher::Get options recreate     ]
     set njobs        [Launcher::Get options njobs        ]
     set no_bitstream [Launcher::Get options no_bitstream ]
-    set project      [HogProject::Get project        ]
-    set project_name [HogProject::Get project_name   ]
+    set project      [CurrentProject::Get project        ]
+    set project_name [CurrentProject::Get project_name   ]
     set repo_path    [Repo::Get repo_path            ]
-    set build_dir    [HogProject::Get build_dir      ]
+    set build_dir    [CurrentProject::Get build_dir      ]
     set run_folder   "$build_dir/$project.runs/"
 
 

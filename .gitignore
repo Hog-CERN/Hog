@@ -1,5 +1,8 @@
 site
 vivado*
+!Tcl/tools/vivado/
+!Tcl/tools/vivado/*
+!Tcl/tools/
 *~
 *.pyc
 .cxl.ip/

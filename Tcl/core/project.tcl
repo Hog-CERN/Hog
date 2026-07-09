@@ -223,38 +223,38 @@ namespace eval Projects {
     }
   }
 
-  # Query a loaded HogProjectObj's project_files with optional glob filters.
+  # Query a loaded HogProjectObj's project_files with optional regex filters.
   #
   # Options:
-  #   -library <glob>   match files whose library name matches glob
-  #   -fileset <glob>   match files whose fileset name matches glob
-  #   -file    <glob>   match files whose absolute path matches glob
+  #   -library <regex>  match files whose library name matches regex
+  #   -fileset <regex>  match files whose fileset name matches regex
+  #   -file    <regex>  match files whose absolute path matches regex
   #   -symlinks <bool>  if 1 (default), append symlink_target paths (-as paths only)
   #   -as paths|objects return a list of path strings (default) or HogFileObj tdicts
   proc GetProjectFiles {hog_project args} {
-    set lib_glob  [expr {[dict exists $args -library]  ? [dict get $args -library]  : ""}]
-    set fs_glob   [expr {[dict exists $args -fileset]  ? [dict get $args -fileset]  : ""}]
-    set file_glob [expr {[dict exists $args -file]     ? [dict get $args -file]     : ""}]
-    set symlinks  [expr {[dict exists $args -symlinks] ? [dict get $args -symlinks] : 1}]
-    set as        [expr {[dict exists $args -as]       ? [dict get $args -as]       : "objects"}]
+    set lib_pat  [expr {[dict exists $args -library]  ? [dict get $args -library]  : ""}]
+    set fs_pat   [expr {[dict exists $args -fileset]  ? [dict get $args -fileset]  : ""}]
+    set file_pat [expr {[dict exists $args -file]     ? [dict get $args -file]     : ""}]
+    set symlinks [expr {[dict exists $args -symlinks] ? [dict get $args -symlinks] : 1}]
+    set as       [expr {[dict exists $args -as]       ? [dict get $args -as]       : "objects"}]
 
     set result [expr {$as eq "tdict" ? [tdict create] : {}}]
     tdict for {fp hog_file} [tdict get $hog_project project_files] {
-      if {$lib_glob ne ""} {
+      if {$lib_pat ne ""} {
         set ok 0
         tlist foreach lib [tdict get $hog_file libraries] {
-          if {[string match $lib_glob [tobj value $lib]]} { set ok 1; break }
+          if {[regexp -- $lib_pat [tobj value $lib]]} { set ok 1; break }
         }
         if {!$ok} { continue }
       }
-      if {$fs_glob ne ""} {
+      if {$fs_pat ne ""} {
         set ok 0
         tlist foreach fs [tdict get $hog_file filesets] {
-          if {[string match $fs_glob [tobj value $fs]]} { set ok 1; break }
+          if {[regexp -- $fs_pat [tobj value $fs]]} { set ok 1; break }
         }
         if {!$ok} { continue }
       }
-      if {$file_glob ne "" && ![string match $file_glob $fp]} { continue }
+      if {$file_pat ne "" && ![regexp -- $file_pat $fp]} { continue }
 
       if {$as eq "tdict"} {
         tdict set result $fp $hog_file

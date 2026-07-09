@@ -40,7 +40,6 @@ if {[IsXilinx]} {
     set proj_file $proj_dir/$project.prr
   } else {
     set proj_file [get_property parent.project_path [current_project]]
-    set_param messaging.defaultLimit 1000
   }
   set proj_dir [file normalize [file dirname $proj_file]]
   set proj_name [file rootname [file tail $proj_file]]

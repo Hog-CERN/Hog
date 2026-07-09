@@ -284,12 +284,12 @@ namespace eval Tools::Vivado {
 
     # Add files fileset by fileset (batch add, then apply per-file properties).
     # IPs are added last within each fileset to respect tool dependency order.
-    set proj_ds [CurrentProject::GetFullDataStore]
+    set proj_ds [CurrentProject::GetProjectObj]
 
     Msg Info "Modifying Added Files"
     tlist foreachval fs [CurrentProject::Get filesets] {
       # Get all files for this fileset, excluding Vitis app libraries.
-      set all_fs [Projects::GetProjectFiles $proj_ds -fileset $fs -as tdict]
+      set all_fs [Projects::GetProjectFiles $proj_ds -fileset "^${fs}$" -as tdict]
       set all_fs [ListFile::HogFileObj::Filter $all_fs -library {^(?!app_)}]
 
       if {[llength [tdict keys $all_fs]] == 0} { continue }

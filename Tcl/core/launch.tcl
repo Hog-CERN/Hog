@@ -69,7 +69,10 @@ unset request
 
 DataStore::create Repo
 DataStore::create Launcher
-DataStore::create CurrentProject 
+DataStore::create CurrentProject
+namespace eval CurrentProject {
+  proc GetProjectObj {} { variable _ctx; return $_ctx }
+}
 
 Launcher::Set Name "Experimental"
 Launcher::Set Version "0.1.0"

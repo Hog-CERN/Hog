@@ -17,6 +17,7 @@ namespace eval DataStore {
         return $_ctx
       }
 
+
       proc Load {tDictNode} {
         if {![tobj isobj $tDictNode] || [tobj type $tDictNode] ne "Dict"} {
           error "@DS@::Load: expected Dict tobj" "" {CTX_INVALID_ARGS}

@@ -4561,12 +4561,29 @@ proc HandleIP {what_to_do xci_file ip_path repo_path {gen_dir "."} {force 0}} {
         Msg Info "Creating local archive with IP generated files..."
         set tar_files []
 
+	set at_least_one_long 0
         foreach f $ip_gen_files {
-          lappend tar_files "[Relative [file normalize $repo_path] $f]"
+	  set new_f "[Relative [file normalize $repo_path] $f]"
+	  set len [string length $new_f] 
+	  if { $len > 254} {
+	    Msg Warning "One file in $xci_ip_name is too long ($len chars): $new_f"
+	    set at_least_one_long 1
+	  }
+	  lappend tar_files $new_f
         }
-
-        ::tar::create $file_name.tar $tar_files
-
+	
+        Msg Debug "Tar files: $tar_files"
+	if {$at_least_one_long == 1} {
+	  Msg Warning "Using regular tar, please cross your fingers..."
+	  #lassign [ExecuteRet tar --format=pax -cf $file_name.tar {*}$tar_files] ret_tar result_tar
+	  lassign [ExecuteRet tar -cf $file_name.tar {*}$tar_files] ret_tar result_tar
+	  if {$ret_tar != 0} {
+	    Msg CriticalWarning "Something went wrong when using regular tar. Error message: $result_tar"
+	  } 
+	} else {
+	  ::tar::create $file_name.tar $tar_files
+	}
+	
         Msg Info "Copying IP generated files for $xci_name..."
         if {$on_rclone == 1} {
           lassign [ExecuteRet rclone copyto $file_name.tar $ip_path/$file_name.tar --config $config_path] ret result

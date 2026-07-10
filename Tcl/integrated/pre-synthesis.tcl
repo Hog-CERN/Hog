@@ -335,50 +335,51 @@ if {[IsXilinx] || [IsSynplify] || [IsDiamond]} {
   cd $this_dir
 
   set zero_ttb 00000000
+  set hog_generic_prefix [GetHogGenericPrefix "$group/$proj_name"]
 
   binary scan [binary format H* [string map {{'} {}} $date]] B32 bits
-  set_parameter -name GLOBAL_DATE $bits
+  set_parameter -name [HogGenericName GLOBAL_DATE $hog_generic_prefix] $bits
   binary scan [binary format H* [string map {{'} {}} $timee]] B32 bits
-  set_parameter -name GLOBAL_TIME $bits
+  set_parameter -name [HogGenericName GLOBAL_TIME $hog_generic_prefix] $bits
   binary scan [binary format H* [string map {{'} {}} $version]] B32 bits
-  set_parameter -name GLOBAL_VER $bits
+  set_parameter -name [HogGenericName GLOBAL_VER $hog_generic_prefix] $bits
   binary scan [binary format H* [string map {{'} {}} $commit]] B32 bits
-  set_parameter -name GLOBAL_SHA $bits
+  set_parameter -name [HogGenericName GLOBAL_SHA $hog_generic_prefix] $bits
   binary scan [binary format H* [string map {{'} {}} $top_hash]] B32 bits
-  set_parameter -name TOP_SHA $bits
+  set_parameter -name [HogGenericName TOP_SHA $hog_generic_prefix] $bits
   binary scan [binary format H* [string map {{'} {}} $top_ver]] B32 bits
-  set_parameter -name TOP_VER $bits
+  set_parameter -name [HogGenericName TOP_VER $hog_generic_prefix] $bits
   binary scan [binary format H* [string map {{'} {}} $hog_hash]] B32 bits
-  set_parameter -name HOG_SHA $bits
+  set_parameter -name [HogGenericName HOG_SHA $hog_generic_prefix] $bits
   binary scan [binary format H* [string map {{'} {}} $hog_ver]] B32 bits
-  set_parameter -name HOG_VER $bits
+  set_parameter -name [HogGenericName HOG_VER $hog_generic_prefix] $bits
   binary scan [binary format H* [string map {{'} {}} $cons_ver]] B32 bits
-  set_parameter -name CON_VER $bits
+  set_parameter -name [HogGenericName CON_VER $hog_generic_prefix] $bits
   binary scan [binary format H* [string map {{'} {}} $cons_hash]] B32 bits
-  set_parameter -name CON_SHA $bits
+  set_parameter -name [HogGenericName CON_SHA $hog_generic_prefix] $bits
 
   if {$use_ipbus == 1} {
     binary scan [binary format H* [string map {{'} {}} $xml_ver]] B32 bits
-    set_parameter -name XML_VER $bits
+    set_parameter -name [HogGenericName XML_VER $hog_generic_prefix] $bits
     binary scan [binary format H* [string map {{'} {}} $xml_hash]] B32 bits
-    set_parameter -name XML_SHA $bits
+    set_parameter -name [HogGenericName XML_SHA $hog_generic_prefix] $bits
   }
 
   #set project specific lists
   foreach l $libs v $vers h $hashes {
     binary scan [binary format H* [string map {{'} {}} $v]] B32 bits
-    set_parameter -name "[string toupper $l]_VER" $bits
+    set_parameter -name [HogGenericName "[string toupper $l]_VER" $hog_generic_prefix] $bits
     binary scan [binary format H* [string map {{'} {}} $h]] B32 bits
-    set_parameter -name "[string toupper $l]_SHA" $bits
+    set_parameter -name [HogGenericName "[string toupper $l]_SHA" $hog_generic_prefix] $bits
   }
 
   foreach e $ext_names h $ext_hashes {
     binary scan [binary format H* [string map {{'} {}} $h]] B32 bits
-    set_parameter -name "[string toupper $e]_SHA" $bits
+    set_parameter -name [HogGenericName "[string toupper $e]_SHA" $hog_generic_prefix] $bits
   }
 
   if {$flavour != -1} {
-    set_parameter -name FLAVOUR $flavour
+    set_parameter -name [HogGenericName FLAVOUR $hog_generic_prefix] $flavour
   }
 
   if {![file exists "$old_path/output_files"]} {

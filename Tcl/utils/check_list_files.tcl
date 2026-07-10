@@ -366,9 +366,7 @@ if {[IsXilinx]} {
       RUNTIME \
       SIM_WRAPPER_TOP]
 
-    set HOG_GENERICS [list GLOBAL_DATE \
-      GLOBAL_TIME \
-      FLAVOUR]
+    set hog_generic_prefix [GetHogGenericPrefix "$group_name/$project_name"]
 
     #filling defaultConfDict and projConfDict
     foreach proj_run [list [current_project] [get_runs synth_1] [get_runs impl_1] [current_fileset]] {
@@ -398,7 +396,7 @@ if {[IsXilinx]} {
             foreach generic [get_property $prop [current_fileset]] {
               set generic_prop_value [split $generic {=}]
               if {[llength $generic_prop_value] == 2} {
-                if {[string toupper [lindex $generic_prop_value 0]] in $HOG_GENERICS} {
+                if {[IsHogManagedGeneric [lindex $generic_prop_value 0] $hog_generic_prefix]} {
                   continue
                 }
                 dict set projRunDict [string toupper [lindex $generic_prop_value 0]] [lindex $generic_prop_value 1]
@@ -487,7 +485,8 @@ if {[IsXilinx]} {
           if {[string tolower $hogset] == "false" && $currset == 0} {
             continue
           }
-          if {[regexp {\_VER$} [string toupper $settings]] || [regexp {\_SHA$} [string toupper $settings]]} {
+          if {[regexp {\_VER$} [string toupper $settings]] || [regexp {\_SHA$} [string toupper $settings]] || \
+            [IsHogManagedGeneric $settings $hog_generic_prefix]} {
             continue
           }
 

@@ -2545,6 +2545,76 @@ proc GetFileGenerics {filename {entity ""}} {
   }
 }
 
+## @brief Returns the list of Hog-managed generic base names (without prefix)
+proc HogGenericBaseNames {} {
+  return [list \
+    GLOBAL_DATE GLOBAL_TIME GLOBAL_VER GLOBAL_SHA \
+    TOP_SHA TOP_VER HOG_SHA HOG_VER \
+    CON_VER CON_SHA XML_VER XML_SHA FLAVOUR]
+}
+
+## @brief Returns the optional Hog generic prefix from hog.conf
+#
+# @param[in] proj_dir  Project path relative to Top/ (e.g. group/project)
+# @return              Prefix string, or empty if not set
+proc GetHogGenericPrefix {proj_dir} {
+  set top_dir "Top/$proj_dir"
+  set conf_file "$top_dir/hog.conf"
+
+  if {![file exists $conf_file]} {
+    return ""
+  }
+
+  set properties [ReadConf [lindex [GetConfFiles $top_dir] 0]]
+  set prefix [string trim [DictGet [DictGet $properties hog] HOG_GENERIC_PREFIX ""]]
+
+  if {$prefix ne "" && ![regexp {^[A-Za-z_][A-Za-z0-9_]*$} $prefix]} {
+    Msg Warning "HOG_GENERIC_PREFIX '$prefix' contains invalid characters. Ignoring prefix."
+    return ""
+  }
+
+  return $prefix
+}
+
+## @brief Applies the Hog generic prefix to a base generic name
+#
+# @param[in] base_name  Generic name without prefix
+# @param[in] prefix     Prefix from hog.conf
+# @return               Prefixed generic name
+proc HogGenericName {base_name {prefix ""}} {
+  if {$prefix eq ""} {
+    return $base_name
+  }
+  return "${prefix}${base_name}"
+}
+
+## @brief Checks if a generic is managed by Hog (optionally with prefix)
+#
+# @param[in] name    Generic name as set in the project
+# @param[in] prefix  Optional Hog generic prefix from hog.conf
+# @return            1 if Hog-managed, 0 otherwise
+proc IsHogManagedGeneric {name {prefix ""}} {
+  set upper_name [string toupper $name]
+  set base_name $upper_name
+
+  if {$prefix ne ""} {
+    set prefix_upper [string toupper $prefix]
+    if {[string match "${prefix_upper}*" $upper_name]} {
+      set base_name [string range $upper_name [string length $prefix_upper] end]
+    }
+  }
+
+  if {$base_name in [HogGenericBaseNames]} {
+    return 1
+  }
+
+  if {[regexp {_VER$|_SHA$} $base_name]} {
+    return 1
+  }
+
+  return 0
+}
+
 ## @brief Gets custom generics from hog
 #
 # @param[in] proj_dir:    the top folder of the project
@@ -7660,30 +7730,34 @@ proc WriteGenerics {mode repo_path design date timee\
                     cons_ver cons_hash libs vers hashes ext_names ext_hashes \
                     user_ip_repos user_ip_vers user_ip_hashes flavour {xml_ver ""} {xml_hash ""}} {
   Msg Info "Passing parameters/generics to project's top module..."
+  set hog_prefix [GetHogGenericPrefix $design]
+  if {$hog_prefix ne ""} {
+    Msg Info "Using Hog generic prefix '$hog_prefix'"
+  }
   #####  Passing Hog generic to top file
   # set global generic variables
   set generic_string [concat \
-    "GLOBAL_DATE=[FormatGeneric $date]" \
-    "GLOBAL_TIME=[FormatGeneric $timee]" \
-    "GLOBAL_VER=[FormatGeneric $version]" \
-    "GLOBAL_SHA=[FormatGeneric $commit]" \
-    "TOP_SHA=[FormatGeneric $top_hash]" \
-    "TOP_VER=[FormatGeneric $top_ver]" \
-    "HOG_SHA=[FormatGeneric $hog_hash]" \
-    "HOG_VER=[FormatGeneric $hog_ver]" \
-    "CON_VER=[FormatGeneric $cons_ver]" \
-    "CON_SHA=[FormatGeneric $cons_hash]"
+    "[HogGenericName GLOBAL_DATE $hog_prefix]=[FormatGeneric $date]" \
+    "[HogGenericName GLOBAL_TIME $hog_prefix]=[FormatGeneric $timee]" \
+    "[HogGenericName GLOBAL_VER $hog_prefix]=[FormatGeneric $version]" \
+    "[HogGenericName GLOBAL_SHA $hog_prefix]=[FormatGeneric $commit]" \
+    "[HogGenericName TOP_SHA $hog_prefix]=[FormatGeneric $top_hash]" \
+    "[HogGenericName TOP_VER $hog_prefix]=[FormatGeneric $top_ver]" \
+    "[HogGenericName HOG_SHA $hog_prefix]=[FormatGeneric $hog_hash]" \
+    "[HogGenericName HOG_VER $hog_prefix]=[FormatGeneric $hog_ver]" \
+    "[HogGenericName CON_VER $hog_prefix]=[FormatGeneric $cons_ver]" \
+    "[HogGenericName CON_SHA $hog_prefix]=[FormatGeneric $cons_hash]"
   ]
   # xml hash
   if {$xml_hash != "" && $xml_ver != ""} {
     lappend generic_string \
-      "XML_VER=[FormatGeneric $xml_ver]" \
-      "XML_SHA=[FormatGeneric $xml_hash]"
+      "[HogGenericName XML_VER $hog_prefix]=[FormatGeneric $xml_ver]" \
+      "[HogGenericName XML_SHA $hog_prefix]=[FormatGeneric $xml_hash]"
   }
   #set project specific lists
   foreach l $libs v $vers h $hashes {
-    set ver "[string toupper $l]_VER=[FormatGeneric $v]"
-    set hash "[string toupper $l]_SHA=[FormatGeneric $h]"
+    set ver "[HogGenericName "[string toupper $l]_VER" $hog_prefix]=[FormatGeneric $v]"
+    set hash "[HogGenericName "[string toupper $l]_SHA" $hog_prefix]=[FormatGeneric $h]"
     # Replaces all occurrences of dots (.) and hyphens (-) in the generic name
     # with underscores (_) to make it compatible with VHDL/Verilog syntax
     # Uses regsub with -all flag to replace all matches of the regex pattern [\.-]
@@ -7693,21 +7767,21 @@ proc WriteGenerics {mode repo_path design date timee\
   }
 
   foreach e $ext_names h $ext_hashes {
-    set hash "[string toupper $e]_SHA=[FormatGeneric $h]"
+    set hash "[HogGenericName "[string toupper $e]_SHA" $hog_prefix]=[FormatGeneric $h]"
     lappend generic_string "$hash"
   }
 
   foreach repo $user_ip_repos v $user_ip_vers h $user_ip_hashes {
     set repo_name [file tail $repo]
-    set ver "[string toupper $repo_name]_VER=[FormatGeneric $v]"
-    set hash "[string toupper $repo_name]_SHA=[FormatGeneric $h]"
+    set ver "[HogGenericName "[string toupper $repo_name]_VER" $hog_prefix]=[FormatGeneric $v]"
+    set hash "[HogGenericName "[string toupper $repo_name]_SHA" $hog_prefix]=[FormatGeneric $h]"
     set ver [regsub -all {[\.-]} $ver {_}]
     set hash [regsub -all {[\.-]} $hash {_}]
     lappend generic_string "$ver" "$hash"
   }
 
   if {$flavour != -1} {
-    lappend generic_string "FLAVOUR=$flavour"
+    lappend generic_string "[HogGenericName FLAVOUR $hog_prefix]=$flavour"
   }
 
   # Dealing with project generics in Vivado

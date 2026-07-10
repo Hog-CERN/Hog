@@ -2553,6 +2553,22 @@ proc HogGenericBaseNames {} {
     CON_VER CON_SHA XML_VER XML_SHA FLAVOUR]
 }
 
+## @brief Extracts and validates the Hog generic prefix from an already-parsed
+#         hog.conf properties dictionary
+#
+# @param[in] properties  The dictionary returned by ReadConf
+# @return                Prefix string, or empty if not set/invalid
+proc GetHogGenericPrefixFromDict {properties} {
+  set prefix [string trim [DictGet [DictGet $properties hog] HOG_GENERIC_PREFIX ""]]
+
+  if {$prefix ne "" && ![regexp {^[A-Za-z_][A-Za-z0-9_]*$} $prefix]} {
+    Msg Warning "HOG_GENERIC_PREFIX '$prefix' contains invalid characters. Ignoring prefix."
+    return ""
+  }
+
+  return $prefix
+}
+
 ## @brief Returns the optional Hog generic prefix from hog.conf
 #
 # @param[in] proj_dir  Project path relative to Top/ (e.g. group/project)
@@ -2566,14 +2582,7 @@ proc GetHogGenericPrefix {proj_dir} {
   }
 
   set properties [ReadConf [lindex [GetConfFiles $top_dir] 0]]
-  set prefix [string trim [DictGet [DictGet $properties hog] HOG_GENERIC_PREFIX ""]]
-
-  if {$prefix ne "" && ![regexp {^[A-Za-z_][A-Za-z0-9_]*$} $prefix]} {
-    Msg Warning "HOG_GENERIC_PREFIX '$prefix' contains invalid characters. Ignoring prefix."
-    return ""
-  }
-
-  return $prefix
+  return [GetHogGenericPrefixFromDict $properties]
 }
 
 ## @brief Applies the Hog generic prefix to a base generic name
@@ -7730,7 +7739,16 @@ proc WriteGenerics {mode repo_path design date timee\
                     cons_ver cons_hash libs vers hashes ext_names ext_hashes \
                     user_ip_repos user_ip_vers user_ip_hashes flavour {xml_ver ""} {xml_hash ""}} {
   Msg Info "Passing parameters/generics to project's top module..."
-  set hog_prefix [GetHogGenericPrefix $design]
+  # Read the project hog.conf once and reuse it for both the generic prefix
+  # and the user-defined project generics
+  set conf_file "Top/$design/hog.conf"
+  set hog_properties [dict create]
+  if {[file exists $conf_file]} {
+    set hog_properties [ReadConf [lindex [GetConfFiles "Top/$design"] 0]]
+  } else {
+    Msg Warning "File $conf_file not found."
+  }
+  set hog_prefix [GetHogGenericPrefixFromDict $hog_properties]
   if {$hog_prefix ne ""} {
     Msg Info "Using Hog generic prefix '$hog_prefix'"
   }
@@ -7786,7 +7804,7 @@ proc WriteGenerics {mode repo_path design date timee\
 
   # Dealing with project generics in Vivado
   if {[IsVivado] || [IsVitisClassic] || [IsVitisUnified]} {
-    set prj_generics [GenericToSimulatorString [GetGenericsFromConf $design] "Vivado"]
+    set prj_generics [GenericToSimulatorString [DictGet $hog_properties generics] "Vivado"]
     set generic_string "$prj_generics $generic_string"
   }
 

@@ -335,7 +335,7 @@ if {[IsXilinx] || [IsSynplify] || [IsDiamond]} {
   cd $this_dir
 
   set zero_ttb 00000000
-  set hog_generic_prefix [GetHogGenericPrefix "$group/$proj_name"]
+  set hog_generic_prefix [GetHogGenericPrefix "$group/$proj_name" $repo_path]
 
   binary scan [binary format H* [string map {{'} {}} $date]] B32 bits
   set_parameter -name [HogGenericName GLOBAL_DATE $hog_generic_prefix] $bits

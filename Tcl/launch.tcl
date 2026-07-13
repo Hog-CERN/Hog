@@ -211,7 +211,7 @@ if {$options(ci_run) == 1} {
   set ci_run 1
 }
 
-if {$options(dst_dir) == "" && ($do_systemRDL == 1 || $do_ipbus_xml == 1 || $do_check_list_files == 1) && $project != ""} {
+if { ($do_systemRDL == 1 || $do_ipbus_xml == 1 || $do_check_list_files == 1) && $project != ""} {
   # Getting all the versions and SHAs of the repository
   lassign [GetRepoVersions [file normalize $repo_path/Top/$group_name/$project] $repo_path $ext_path] commit version \
     hog_hash hog_ver top_hash top_ver libs hashes vers cons_ver cons_hash ext_names ext_hashes xml_hash xml_ver \
@@ -219,7 +219,9 @@ if {$options(dst_dir) == "" && ($do_systemRDL == 1 || $do_ipbus_xml == 1 || $do_
   cd $repo_path
 
   set describe [GetHogDescribe [file normalize $repo_path/Top/$group_name/$project] $repo_path]
-  set dst_dir [file normalize "$repo_path/bin/$group_name/$project\-$describe"]
+  if { $options(dst_dir) == "" } {
+    set dst_dir [file normalize "$repo_path/bin/$group_name/$project\-$describe"]
+  }
 }
 
 if {$cmd == -1} {
@@ -355,12 +357,8 @@ if {$cmd == -1} {
       exit
     }
 
-    set ret [GetRepoVersions $proj_dir $repo_path ""]
-    set sha [lindex $ret 15]
-    set hex_ver [lindex $ret 16]
-
-    set ver [HexVersionToString $hex_ver]
-    CopySystemRDLs $proj_dir $repo_path $rdl_dst $ver $sha 1 $rdl_gen
+    set ver [HexVersionToString $rdl_ver]
+    CopySystemRDLs $proj_dir $repo_path $rdl_dst $ver $rdl_hash 1 $rdl_gen
 
     exit 0
   }
@@ -400,12 +398,8 @@ if {$cmd == -1} {
       exit
     }
 
-    set ret [GetRepoVersions $proj_dir $repo_path ""]
-    set sha [lindex $ret 13]
-    set hex_ver [lindex $ret 14]
-
-    set ver [HexVersionToString $hex_ver]
-    CopyIPbusXMLs $proj_dir $repo_path $xml_dst $ver $sha 1 $xml_gen
+    set ver [HexVersionToString $xml_ver]
+    CopyIPbusXMLs $proj_dir $repo_path $xml_dst $ver $xml_hash 1 $xml_gen
 
     exit 0
   }

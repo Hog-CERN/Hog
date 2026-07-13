@@ -134,7 +134,7 @@ set default_commands {
   # OPTIONS: dst_dir.arg, generate, verbose
   }
 
-  ^(SYSTEM(RDL))?$ {#proj
+  \^(SYSTEM(RDL))?$ {#proj
     set do_systemRDL 1
   # NAME: SYSTEMRDL or SYSTEM
   # DESCRIPTION: Copy, check or create the systemRDL files for the project.

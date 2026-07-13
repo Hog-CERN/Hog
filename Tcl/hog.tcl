@@ -1716,10 +1716,11 @@ proc CopySystemRDLs {proj_dir path dst {rdl_version "0.0.0"} {rdl_sha "00000000"
   if {$use_peakRDL == 1} {
     lassign [ExecuteRet python3 -c "from __future__ import print_function; from sys import path;print(':'.join(path\[1:\]))"] ret msg
     if {$ret == 0} {
-      puts "first check success"
+      # puts "first check success"
       set ::env(PYTHONPATH) $msg
-      lassign [ExecuteRet peakrdl regblock-vhdl -h] ret msg
-      puts "second check success"
+      # test that peakrdl is present with the default generator. Other generators can be used, but this is meant as a quick test.
+      lassign [ExecuteRet peakrdl regblock -h] ret msg
+      # puts "second check success"
       if {$ret != 0} {
         set can_generate 0
       } else {
@@ -1733,10 +1734,10 @@ proc CopySystemRDLs {proj_dir path dst {rdl_version "0.0.0"} {rdl_sha "00000000"
     file mkdir $dst
     if {$can_generate == 0} {
       if {$generate == 1} {
-        Msg Error "Cannot generate systemRDL address files, peakRDL executable {peakrdl regblock-vhdl} not found or not working: $msg"
+        Msg Error "Cannot generate systemRDL address files, peakRDL executable {peakrdl regblock} not found or not working: $msg"
         return -1
       } else {
-        Msg Warning "peakRDL executable {peakrdl regblock-vhdl} not found or not working, will not verify systemRDL address maps."
+        Msg Warning "peakRDL executable {peakrdl regblock} not found or not working, will not verify systemRDL address maps."
       }
     }
   } else {
@@ -1779,16 +1780,16 @@ proc CopySystemRDLs {proj_dir path dst {rdl_version "0.0.0"} {rdl_sha "00000000"
       set in [open $rdlfile r]
 
       if {[regexp \/rdl\/+(.*)$   $rdlfile XXX out_with_dir]} {
-	set out_file $dst/$out_with_dir
-	lappend rdls $out_with_dir
-	Msg Debug "rdl file $rdlfile is contained in a directory called 'rdl', so file will be copied to $out_file"
-	set out_dir [file dir $out_file]
-	if {![file exists $out_dir]} {
-	  file mkdir $out_dir
-	}
+        set out_file $dst/$out_with_dir
+        lappend rdls $out_with_dir
+        Msg Debug "rdl file $rdlfile is contained in a directory called 'rdl', so file will be copied to $out_file"
+        set out_dir [file dir $out_file]
+        if {![file exists $out_dir]} {
+          file mkdir $out_dir
+        }
       } else {
-	set out_file $dst/[file tail $rdlfile]
-	lappend rdls [file tail $rdlfile]
+        set out_file $dst/[file tail $rdlfile]
+        lappend rdls [file tail $rdlfile]
       }
 
       set out [open $out_file w]
@@ -1814,20 +1815,23 @@ proc CopySystemRDLs {proj_dir path dst {rdl_version "0.0.0"} {rdl_sha "00000000"
 
   if {$can_generate == 1} {
     set old_dir [pwd]
-    set plugin "regblock-vhdl"
-    set cpuif "axi4-lite"
     cd $dst
-    file mkdir $plugin
-    cd $plugin
     foreach x $rdls v $vhdls {
       if {$v ne ""} {
-        set x [file normalize ../$x]
+        set path_options [split $v]
+        set v [lindex $path_options 0]
+        set plugin [lindex $path_options 1]
+        set options [lrange $path_options 2 end]
+        # file mkdir $plugin
+        # set x [file normalize ../$x]
+        Msg info "Read following settings from .peakrdl for $v: $plugin $options"
+
         if {[file exists $x]} {
-          puts "peakrdl regblock-vhdl -o [file normalize $plugin] --cpuif $cpuif $x"
-          lassign [ExecuteRet peakrdl regblock-vhdl -o [file normalize $plugin] --cpuif $cpuif $x 2>&1] status log
+          set generated_out [file normalize $plugin]
+          puts "peakrdl $plugin -o $generated_out $options $x"
+          lassign [ExecuteRet peakrdl $plugin -o $generated_out {*}$options $x ] status log
           if {$status == 0} {
             # note - generated output can either be a single file or a directory
-            set generated_out [file normalize $plugin]
             if {$generate == 1} {
               Msg Info "Copying generated VHDL file $generated_out into $v (replacing if necessary)"
               file copy -force -- $generated_out $v
@@ -1838,13 +1842,17 @@ proc CopySystemRDLs {proj_dir path dst {rdl_version "0.0.0"} {rdl_sha "00000000"
                     set diff [CompareVHDL $generated_out/[file tail $out_file] $out_file]
                     set n [llength $diff]
                     if {$n > 0} {
-                      Msg CriticalWarning "$out_file does not correspond to its RDL $x/[file tail $out_file], [expr {$n / 3}] line/s differ:"
-                      Msg Status [join $diff "\n"]
-                      set diff_file [open ../diff_[file rootname [file tail $x]].txt w]
-                      puts $diff_file $diff
-                      close $diff_file
+                      Msg CriticalWarning "$out_file does not correspond to its RDL $generated_out/[file tail $out_file], [expr {$n / 3}] line/s differ:"
+                      if {$n > 15} {
+                        Msg info "see [file normalize ../diff_[file rootname [file tail $x]].txt] for differences"
+                      } else {
+                        Msg Status [join $diff "\n"]
+                        set diff_file [open ../diff_[file rootname [file tail $x]].txt w]
+                        puts $diff_file $diff
+                        close $diff_file
+                      }
                     } else {
-                      Msg Info "[file tail $x] and $v match."
+                      Msg Info "$generated_out/[file tail $out_file] and $out_file match."
                     }
                   }
                 } else {
@@ -1852,10 +1860,14 @@ proc CopySystemRDLs {proj_dir path dst {rdl_version "0.0.0"} {rdl_sha "00000000"
                   set n [llength $diff]
                   if {$n > 0} {
                     Msg CriticalWarning "$v does not correspond to its RDL $x, [expr {$n / 3}] line/s differ:"
-                    Msg Status [join $diff "\n"]
-                    set diff_file [open ../diff_[file rootname [file tail $x]].txt w]
-                    puts $diff_file $diff
-                    close $diff_file
+                    if {$n > 15} {
+                      Msg info "see [file normalize ../diff_[file rootname [file tail $x]].txt] for differences"
+                    } else {
+                      Msg Status [join $diff "\n"]
+                      set diff_file [open ../diff_[file rootname [file tail $x]].txt w]
+                      puts $diff_file $diff
+                      close $diff_file
+                    }
                   } else {
                     Msg Info "[file tail $x] and $v match."
                   }
@@ -3906,15 +3918,21 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
   }
 
   # systemRDL
-  if {[llength [glob -nocomplain ./list/*.peakrdl]] > 0} {
+  if {[llength [glob -nocomplain $proj_dir/list/*.peakrdl]] > 0} {
     #Msg Info "Found systemRDL list file, evaluating version and SHA of listed files..."
-    lassign [GetHogFiles -list_files "*.peakrdl" -sha_mode "./list/" $repo_path] rdl_files dummy
+    lassign [GetHogFiles -list_files "*.peakrdl" -sha_mode "$proj_dir/list/" $repo_path] rdl_files dummy
     set rdl_source_files [dict get $rdl_files "system.rdl"]
     lassign [GetVer $rdl_source_files] rdl_ver rdl_hash
     lappend SHAs $rdl_hash
     lappend versions $rdl_ver
-    lappend project_files {*}[glob ./list/*.peakrdl] {*}$rdl_source_files
-
+    set relative_files ""
+    foreach fil $rdl_source_files {
+      if {[string match "$repo_path/*" $fil]} {
+        set fil [string replace $fil 0 [string length $repo_path]]
+      }
+      lappend relative_files $fil
+    }
+    lappend project_files {*}[glob $proj_dir/list/*.peakrdl] {*}$relative_files
     #Msg Info "Found systemRDL SHA: $rdl_hash and version: $rdl_ver."
   } else {
     Msg Debug "This project does not use systemRDLs"
@@ -7486,7 +7504,7 @@ proc ReadListFile {args} {
                   if {$list_file_ext eq ".ipb"} {
                     dict lappend properties $vhdlfile $path/$p
                   } elseif {$list_file_ext eq ".peakrdl"} {
-                    dict lappend properties $vhdlfile $path/$p
+                    dict lappend properties $vhdlfile "$p"
                   } else {
                     dict lappend properties $vhdlfile $p
                   }

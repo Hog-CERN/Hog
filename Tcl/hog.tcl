@@ -2026,7 +2026,6 @@ proc ExecuteRet {args} {
     set ret -1
     set result ""
   } else {
-    puts "$args"
     set ret [catch {exec -ignorestderr {*}$args} result]
   }
 
@@ -2992,7 +2991,6 @@ proc GetHogFiles {args} {
     set libraries [MergeDict $l $libraries]
     set properties [MergeDict $p $properties]
     Msg Debug "list file $f, filesets: $fs"
-
     set filesets [MergeDict $fs $filesets]
     Msg Debug "Merged filesets $filesets"
   }

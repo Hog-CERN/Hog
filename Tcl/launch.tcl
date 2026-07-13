@@ -324,7 +324,7 @@ if {$cmd == -1} {
 
   if {$do_systemRDL == 1} {
     if {[llength $project_name] == 0} {
-      Msg Error "XML option needs a project name."
+      Msg Error "systemRDL option needs a project name."
       exit
     }
     Msg Info "Handling systemRDL for $project_name..."

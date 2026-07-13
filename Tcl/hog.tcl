@@ -2571,17 +2571,21 @@ proc GetHogGenericPrefixFromDict {properties} {
 
 ## @brief Returns the optional Hog generic prefix from hog.conf
 #
-# @param[in] proj_dir  Project path relative to Top/ (e.g. group/project)
-# @return              Prefix string, or empty if not set
-proc GetHogGenericPrefix {proj_dir} {
-  set top_dir "Top/$proj_dir"
-  set conf_file "$top_dir/hog.conf"
+# @param[in] proj_dir   Project path relative to Top/ (e.g. group/project)
+# @param[in] repo_path  Optional repository root path (default: current directory)
+# @return               Prefix string, or empty if not set
+proc GetHogGenericPrefix {proj_dir {repo_path ""}} {
+  if {$repo_path ne ""} {
+    set conf_file [file normalize "$repo_path/Top/$proj_dir/hog.conf"]
+  } else {
+    set conf_file [file normalize "Top/$proj_dir/hog.conf"]
+  }
 
   if {![file exists $conf_file]} {
     return ""
   }
 
-  set properties [ReadConf [lindex [GetConfFiles $top_dir] 0]]
+  set properties [ReadConf $conf_file]
   return [GetHogGenericPrefixFromDict $properties]
 }
 
@@ -7741,10 +7745,10 @@ proc WriteGenerics {mode repo_path design date timee\
   Msg Info "Passing parameters/generics to project's top module..."
   # Read the project hog.conf once and reuse it for both the generic prefix
   # and the user-defined project generics
-  set conf_file "Top/$design/hog.conf"
+  set conf_file [file normalize "$repo_path/Top/$design/hog.conf"]
   set hog_properties [dict create]
   if {[file exists $conf_file]} {
-    set hog_properties [ReadConf [lindex [GetConfFiles "Top/$design"] 0]]
+    set hog_properties [ReadConf $conf_file]
   } else {
     Msg Warning "File $conf_file not found."
   }

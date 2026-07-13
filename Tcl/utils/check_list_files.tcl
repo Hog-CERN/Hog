@@ -366,7 +366,10 @@ if {[IsXilinx]} {
       RUNTIME \
       SIM_WRAPPER_TOP]
 
-    set hog_generic_prefix [GetHogGenericPrefix "$group_name/$project_name"]
+    set hog_generic_prefix [GetHogGenericPrefixFromDict $hogConfDict]
+    if {$hog_generic_prefix eq ""} {
+      set hog_generic_prefix [GetHogGenericPrefix "$group_name/$project_name" $repo_path]
+    }
 
     #filling defaultConfDict and projConfDict
     foreach proj_run [list [current_project] [get_runs synth_1] [get_runs impl_1] [current_fileset]] {
@@ -501,7 +504,9 @@ if {[IsXilinx]} {
             }
           }
         } elseif {[string toupper $currset] == [string toupper $hogset] && [string toupper $hogset] != "" && [string toupper $settings] != "STRATEGY"} {
-          dict set newRunDict $settings $currset
+          if {![IsHogManagedGeneric $settings $hog_generic_prefix]} {
+            dict set newRunDict $settings $currset
+          }
         }
       }
       dict set newConfDict $proj_run $newRunDict

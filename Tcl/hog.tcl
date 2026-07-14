@@ -7791,7 +7791,10 @@ proc ReadListFile {args} {
                 } else {
                   set prop_name [string range $p 0 [expr {$pos - 1}]]
                 }
-                if {[IsInList $prop_name [DictGet [ALLOWED_PROPS] $extension]] || [string first "top" $p] == 0 || $list_file_ext eq ".ipb" || $list_file_ext eq ".chb"} {
+                if {[IsInList $prop_name [DictGet [ALLOWED_PROPS] $extension]]
+                    || [string first "top" $p] == 0
+                    || $list_file_ext eq ".ipb"
+                    || $list_file_ext eq ".chb"} {
                   if {$list_file_ext eq ".ipb"} {
                     dict lappend properties $vhdlfile $path/$p
                   } else {

@@ -302,9 +302,6 @@ namespace eval Tools {
   # let's use use calls like Tools::Vivado::GetManifest and not have to define these for each tool
   proc InjectCommonProcs {tool_ns} {
     namespace eval $tool_ns {
-      # source sigasi tools and add the manifest to the tool flow dict as sigasi-export will work regards of whether license is available
-      source [file join $tcl_path utils sigasi_cli.tcl]
-      Flow::RegisterFlowDict [namespace current] [dict get $SigasiManifest Flows]
 
       proc Supports {feature} {
         variable Manifest

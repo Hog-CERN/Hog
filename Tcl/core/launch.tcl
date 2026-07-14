@@ -79,7 +79,7 @@ Launcher::Set Version "0.1.0"
 Launcher::Set time [clock format [clock seconds] -format "%Y-%m-%d %H:%M:%S"]
 Launcher::Set script [file normalize [info script]]
 Launcher::Set Git  [lindex [Git --version] 2]
-Launcher::Set HogTag [Git describe]
+Launcher::Set HogTag [Git {describe --tags --always}]
 Launcher::Set directive $directive
 Launcher::Set cmd          $cmd
 Launcher::Set full_cmd     $full_cmd
@@ -89,7 +89,7 @@ Launcher::Set options      $options
 
 set _old_dir [pwd]
 cd $repo_path
-Repo::Set Tag [Git describe]
+Repo::Set Tag [Git {describe --tags --always}]
 cd $_old_dir
 unset _old_dir
 
@@ -122,7 +122,7 @@ if {$project_name ne ""} {
 if {[ActiveTool::CurrentTool] eq "tclsh"} {
 
   if {$cmd ne "" && [Commands::IsRunnable $cmd] && [tdict getval $cmd api]} {
-    # We probably need a way to suppress output earlier, since dynamic loading of 
+    # We probably need a way to suppress output earlier, since dynamic loading of
     # commands/tools/flows can produce output before we get here.
     set ::HOG_API_MODE 1
   }
@@ -149,7 +149,6 @@ if {[ActiveTool::CurrentTool] eq "tclsh"} {
     Help::RenderPath $full_cmd
     exit 0
   }
-
   set result [Commands::RunCommand $cmd $full_cmd $project $options]
   if {$result eq "ran"} { return }
 

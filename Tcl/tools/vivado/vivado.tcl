@@ -84,14 +84,16 @@ namespace eval Tools::Vivado {
     set top_path     [Repo::Get top_path]
 
 
-    set_msg_config -suppress -regexp -string {".*The IP file '.*' has been moved from its original location, as a result the outputs for this IP will now be generated in '.*'. Alternatively a copy of the IP can be imported into the project using one of the 'import_ip' or 'import_files' commands..*"}
+    set_msg_config -suppress -regexp -string {".*The IP file '.*' has been moved from its original location, as a result the outputs for this IP will now be \
+    generated in '.*'. Alternatively a copy of the IP can be imported into the project using one of the 'import_ip' or 'import_files' commands..*"}
     set_msg_config -suppress -regexp -string {".*File '.*.xci' referenced by design '.*' could not be found..*"}
 
     # File inside .bd
     set_msg_config -suppress -id {IP_Flow 19-3664}
     # This is due to simulations in project with NoC
     # tclint-disable-next-line line-length
-    set_msg_config -suppress -id {Vivado 12-23660} -string {{ERROR: [Vivado 12-23660] Simulation is not supported for the target language VHDL when design contains NoC (Network-on-Chip) blocks} }
+    set_msg_config -suppress -id {Vivado 12-23660} -string {{ERROR: [Vivado 12-23660] Simulation is not supported for the target language VHDL when design \
+    contains NoC (Network-on-Chip) blocks} }
 
 
     if {[info exists env(HOG_EXTERNAL_PATH)]} {
@@ -206,7 +208,7 @@ namespace eval Tools::Vivado {
         update_ip_catalog
       }
     }
-  }
+
   # Setting Run Properties
   foreach run [get_runs -quiet] {
     if {[CurrentProject::Exists config $run]} {
@@ -257,6 +259,7 @@ namespace eval Tools::Vivado {
         }
       }
     }
+  }
   }
 
 
@@ -380,7 +383,7 @@ namespace eval Tools::Vivado {
 
     SetTopProperty [CurrentProject::Get synth_top_module] sources_1
   }
-  
+
   ## @brief configure synthesis.
   #
   # The method uses the content of globalSettings::SYNTH_FLOW and globalSettings::SYNTH_STRATEGY to set the implementation strategy and flow.
@@ -391,7 +394,7 @@ namespace eval Tools::Vivado {
     if {[string equal [get_runs -quiet synth_1] ""]} {
       puts "create_run -name synth_1 -part [CurrentProject::Get config main PART] -constrset constrs_1"
       create_run -name synth_1 -part [CurrentProject::Get config main PART] -constrset constrs_1
-    } 
+    }
 
     set obj [get_runs synth_1]
     set_property "part" [CurrentProject::Get config main PART] $obj
@@ -512,7 +515,7 @@ namespace eval Tools::Vivado {
   #
   proc ConfigureSimulation {} {
     set simsets_dict [GetSimSets "[CurrentProject::Get group_name]/[CurrentProject::Get design]" [Repo::Get repo_path]]
-    
+
     ##############
     # SIMULATION #
     ##############

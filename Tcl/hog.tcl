@@ -1753,7 +1753,8 @@ proc ParseChebyListFile {chb_file} {
   set line_num 0
   foreach line $lines {
     incr line_num
-    if {[regexp {^[\t\s]*$} $line] || [regexp {^[\t\s]*\#} $line]} {
+    set trimmed [string trim $line]
+    if {$trimmed eq "" || [string index $trimmed 0] eq "#"} {
       continue
     }
     set tokens [regexp -all -inline {\S+} $line]
@@ -1963,12 +1964,12 @@ proc FilesAreSemanticallyEqual {file1 file2 {skip_cheby_header 0}} {
   set lb [list]
   while {[gets $fa line] != -1} {
     set line [string trimright $line]
-    if {[regexp {^[\t\s]*$} $line]} { continue }
+    if {[string trim $line] eq ""} { continue }
     lappend la $line
   }
   while {[gets $fb line] != -1} {
     set line [string trimright $line]
-    if {[regexp {^[\t\s]*$} $line]} { continue }
+    if {[string trim $line] eq ""} { continue }
     lappend lb $line
   }
   close $fa

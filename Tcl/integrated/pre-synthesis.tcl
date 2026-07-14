@@ -136,7 +136,8 @@ if {$flavour != ""} {
 ResetRepoFiles "./Projects/hog_reset_files"
 
 # Getting all the versions and SHAs of the repository
-lassign [GetRepoVersions [file normalize $repo_path/Top/$group/$proj_name] $repo_path $ext_path] \
+set proj_dir [file normalize $repo_path/Top/$group/$proj_name]
+lassign [GetRepoVersions $proj_dir $repo_path $ext_path] \
 commit version hog_hash hog_ver \
 top_hash top_ver \
 libs hashes vers \
@@ -145,7 +146,7 @@ xml_hash xml_ver user_ip_repos user_ip_hashes user_ip_vers \
 cheby_hash cheby_ver
 
 
-set describe [GetHogDescribe $commit $repo_path]
+set describe [GetHogDescribe $proj_dir $repo_path]
 set dst_dir [file normalize "bin/$group/$proj_name\-$describe"]
 Msg Info "Creating $dst_dir..."
 file mkdir $dst_dir/reports

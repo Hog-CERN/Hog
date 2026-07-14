@@ -22,6 +22,7 @@ include:
 #################### example ###########################
 # The PROVIDER variable is used to steer your job to a particular GitLab runner, identified with its tag. If no provider is specified, the default `hog` runner will be used
 # For each item in the matrix, you can define a set of projects to run, and different variables, to configure the workflow as specified in the Hog documentation https://hog.readthedocs.io/en/latest/02-User-Manual/02-Hog-CI/01-GitLab-CI/01-setup-CI.html#environment-variables
+# Set HOG_ADDITIONAL_ARTIFACT_PATH globally or per job to a repository-relative path or glob to add project-specific output to simulation, synthesis, and implementation artifacts.
 # More info here: https://docs.gitlab.com/ee/ci/yaml/#parallel
 
 generate:

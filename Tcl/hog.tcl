@@ -1720,7 +1720,7 @@ proc CopyIPbusXMLs {proj_dir path dst {xml_version "0.0.0"} {xml_sha "00000000"}
       Msg Info "Copying $xmlfile to $dst and replacing place holders..."
       set in [open $xmlfile r]
 
-      if {[regexp \/xml\/+(.*)$ $xmlfile XXX out_with_dir]} {
+      if {[regexp {/xml/+(.*)$} $xmlfile XXX out_with_dir]} {
         set out_file $dst/$out_with_dir
         lappend xmls $out_with_dir
         Msg Debug "xml file $xmlfile is contained in a directory called 'xml', so file will be copied to $out_file"

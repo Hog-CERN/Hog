@@ -30,11 +30,13 @@ namespace eval HogProjectObj {
       design           [tstr $project_name] \
       project_path     [tstr $proj_path] \
       conf_path        [tstr [file normalize [file join $proj_path hog.conf]]] \
+      repo_conf        [tstr [file normalize [file join $top_path repo.conf]]] \
       list_path        [tstr [file normalize [file join $proj_path list]]] \
       build_dir        [tstr [file normalize [file join $repo_path Projects $project_name]]] \
       top_name         [tstr $top_name] \
       synth_top_module [tstr "top_${top_name}"] \
       config           [tdict create] \
+      repo_config      [tdict create] \
       list_files       [tlist create] \
       libraries        [tlist create] \
       filesets         [tlist create] \
@@ -64,6 +66,16 @@ namespace eval Projects {
         }
       }
     }
+    set repo_conf [tdict getval $p repo_conf]
+    if {[file exists $repo_conf]} {
+      set PROPERTIES [ReadConf $repo_conf]
+      dict for {section content} $PROPERTIES {
+        dict for {key val} $content {
+          Msg Debug "Setting property $key to $val for section $section"
+          tdict set p repo_config $section $key $val
+        }
+      }
+    }
     return $p
   }
 
@@ -80,7 +92,7 @@ namespace eval Projects {
 
   # Populate list_files, libraries, filesets, project_files on hog_project.
   # Mutates the project dict in-place via upvar.
-  # This lets us lazy load the files as needed rather than parsing every 
+  # This lets us lazy load the files as needed rather than parsing every
   # projects listfile at once
   proc LoadListFiles {hog_projectVar {ext_path ""} {tool ""}} {
     upvar 1 $hog_projectVar p

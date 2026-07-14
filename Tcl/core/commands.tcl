@@ -170,7 +170,7 @@ namespace eval Commands {
   }
 
   # ::hog_command  — single command dict
-  # ::hog_commands — dict of commands keyed by name 
+  # ::hog_commands — dict of commands keyed by name
   # -custom to mark commands as user-defined.
   proc RegisterCommandsFile {f args} {
     unset -nocomplain ::hog_command ::hog_commands
@@ -303,7 +303,8 @@ namespace eval Commands {
       tdict for {tns _fn} [tdict get $::Flow::_registry aliases $alias] {
         lappend _tools [string tolower [namespace tail $tns]]
       }
-      Msg Warning "Command '$alias' shadows flow '$alias' (tool(s): [join $_tools {, }]). Bare '$alias <proj>' runs the command; use 'tool <tool> flow $alias <proj>' for the flow."
+      Msg Warning "Command '$alias' shadows flow '$alias' (tool(s): [join $_tools {, }]). Bare '$alias <proj>' runs the command; \
+      use 'tool <tool> flow $alias <proj>' for the flow."
     }
   }
 
@@ -347,7 +348,7 @@ namespace eval Commands {
         [string trimright [regsub {^(\./)?Top/} [lindex $argv 1] ""] "/ "]]
     }
 
-    # Allow shorthand commands for flows: 
+    # Allow shorthand commands for flows:
     # `<flow> <proj>` -> `TOOL <tool> FLOW <flow> <proj>`
     set _d [string toupper [lindex $argv 0]]
     if {$_d ne "" && ![AliasExists $_d] && [llength $argv] >= 2} {

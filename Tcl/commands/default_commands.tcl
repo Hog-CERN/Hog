@@ -4,17 +4,17 @@ set ::hog_commands {
     aliases {L LI}
     description "List the projects in the repository. To show hidden projects use the -all option"
     options {
-        {all     "List all projects, including test projects."}
+      {all     "List all projects, including test projects."}
     }
     script {
-        Msg Status "\n** The projects in this repository are:"
-        if {[Launcher::Get options all]} {
-            ListProjects [Repo::Get repo_path] 1
-        } else {
-            ListProjects [Repo::Get repo_path] 0 1
-        }
-        Msg Status "\n"
-        exit 0
+      Msg Status "\n** The projects in this repository are:"
+      if {[Launcher::Get options all]} {
+        ListProjects [Repo::Get repo_path] 1
+      } else {
+        ListProjects [Repo::Get repo_path] 2 1
+      }
+      Msg Status "\n"
+      exit 0
     }
   }
 }

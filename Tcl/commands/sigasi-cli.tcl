@@ -39,55 +39,75 @@ proc _test_sigasi {} {
       exit 1
     }
   }
+  # check that the rest of Hog is existing as expected
+  if { ![namespace exists ::Repo] } {
+    Msg Error " sigasi has been called before Repo namespace has been created "
+  }
+}
+
+# create a default dict. Then we can merge in the repo.conf dict (overwriting) followed by the project dict (overwriting)
+proc _create_sigasi_default_dict {} {
+  dict set sigasi_defaults DIAGRAMS "LINKED"
+  dict set sigasi_defaults DESIGN_UNITS_PER_PAGE 25
+  dict set sigasi_defaults DIAGRAM_NODE_LIMIT 2500
+  dict set sigasi_defaults DOC_DIR "./sigasi-docs"
+  dict set sigasi_defaults REPORT_FORMAT "plain"
+  dict set sigasi_defaults REPORT_OUTFILE "./sigasi_report.txt"
+  dict set sigasi_defaults VHDL_VERSION 2008
+  dict set sigasi_defaults KEYWORDS "lowercase"
+  dict set sigasi_defaults TAB_WIDTH 4
+
+  return $sigasi_defaults
+}
+
+# create default and merge with repo and project dicts from config files
+proc get_sigasi_conf {} {
+  set default_dict [_create_sigasi_default_dict]
+  set out_dict $default_dict
+
+  Msg Info " retrieving the sigasi configuration settings "
+  if { [ ::tdict::exists [ CurrentProject::Get repo_config ] sigasi ] } {
+    set sigasi_dict [ ::tobj::native [ CurrentProject::Get repo_config sigasi ]]
+    Msg Debug "debug merge 1 $sigasi_dict "
+    set out_dict [dict merge $default_dict $sigasi_dict]
+  }
+
+  set config [ CurrentProject::Get config ]
+  if { [ ::tdict::exists [ CurrentProject::Get config ] sigasi ] } {
+    set sigasi_dict [ ::tobj::native [ CurrentProject::Get config sigasi ]]
+    Msg Debug "debug merge 2 $sigasi_dict "
+    set out_dict [dict merge $out_dict $sigasi_dict]
+  }
+
+  return $out_dict
 }
 
 proc sigasi-export {} {
-  # if using new experimental hog then get key info from Context. Else access the TCL globals
-  if { [namespace exists ::Context] } {
-    set repo_path [Context::Get launch_settings repo_path]
-    set project_name [Context::Get launch_settings project_name]
-  } else {
-    global repo_path
-    global project_name
+  _test_sigasi
+
+  set repo_path [Repo::Get repo_path]
+  set project_name [Launcher::Get project_name]
+  Msg Info "Creating Sigasi CSV files for project $project_name..."
+
+  set project_files [ ::tobj::native [ CurrentProject::Get project_files ] ]
+  # puts " debug project_files $project_files"
+
+  set csv_file [open "$repo_path/sigasi_$project_name.csv" w]
+
+  foreach source_file $project_files {
+    if {
+      [file extension $source_file] eq ".vhd"
+      || [file extension $source_file] eq ".vhdl"
+      || [file extension $source_file] eq ".sv"
+      || [file extension $source_file] eq ".v"
+    } {
+      set file_dict [dict get $project_files $source_file]
+      puts $csv_file [concat [file rootname [dict get $file_dict libraries]] "," $source_file]
+    }
   }
 
-  cd $repo_path
-  Msg Info "Creating Sigasi CSV files for project $project_name..."
-  set proj_dir $repo_path/Top/$project_name
-  set proj_list_dir $repo_path/Top/$project_name/list
-  set project [file tail $project_name]
-  lassign [GetHogFiles -list_files {.src} $proj_list_dir $repo_path] libraries
-  set csv_file [open "sigasi_$project.csv" w]
-  foreach lib $libraries {
-    set source_files [DictGet $libraries $lib]
-    foreach source_file $source_files {
-      if {
-        [file extension $source_file] eq ".vhd"
-        || [file extension $source_file] eq ".vhdl"
-        || [file extension $source_file] eq ".sv"
-        || [file extension $source_file] eq ".v"
-      } {
-        puts $csv_file [concat [file rootname $lib] "," $source_file]
-      }
-    }
-  }
-  lassign [GetHogFiles -list_files ".sim" $proj_list_dir $repo_path] \
-    listSimLibraries
-  foreach lib $listSimLibraries {
-    set source_files [DictGet $listSimLibraries $lib]
-    foreach source_file $source_files {
-      if {
-        [file extension $source_file] eq ".vhd"
-        || [file extension $source_file] eq ".vhdl"
-        || [file extension $source_file] eq ".sv"
-        || [file extension $source_file] eq ".v"
-      } {
-        puts $csv_file [concat [file rootname $lib] "," $source_file]
-      }
-    }
-  }
   close $csv_file
-  Msg Info "Sigasi CSV file created: sigasi_$project.csv"
+  Msg Info "Sigasi CSV file created: sigasi_$project_name.csv"
   Msg Info "You can use the python script provided by Sigasi to convert the generated csv file into a Sigasi project."
   Msg Info \
     "More info at: \
@@ -98,61 +118,45 @@ proc sigasi-export {} {
 
 proc sigasi-lint {} {
   _test_sigasi
-  if { [namespace exists ::Context] } {
-    set repo_path [Context::Get launch_settings repo_path]
-    set project_name [Context::Get launch_settings project_name]
-  } else {
-    global repo_path
-    global project_name
-  }
 
-  cd $repo_path
+  set repo_path [Repo::Get repo_path]
+  set project_name [Launcher::Get project_name]
   Msg Info "Generating a code quality report for project $project_name..."
 
-  # set default values then parse repo.conf for any custom set properties
-  set filetype ".txt"
   file mkdir $repo_path/sigasi_lint
   set outfile "$repo_path/sigasi_lint/$project_name"
-  set repo_conf $repo_path/Top/repo.conf
+
   set options_list ""
 
-  if {[file exists $repo_conf]} {
-    set PROPERTIES [ReadConf $repo_conf]
-    if {[dict exists $PROPERTIES sigasi]} {
-      set sigasiDict [dict get $PROPERTIES sigasi]
-      if {[dict exists $sigasiDict LIBRARY_DATABASE]} {
-        set libraries [dict get $sigasiDict LIBRARY_DATABASE]
-        foreach lib [split $libraries ,] {
-          lappend options_list "--library-database=[string trim $lib]"
-        }
-      }
-      if {[dict exists $sigasiDict REPORT_FORMAT]} {
-        set report_format [dict get $sigasiDict REPORT_FORMAT]
-        lappend options_list "--$report_format"
+  set sigasi_conf [get_sigasi_conf]
+  Msg Info "sigasi config dict: $sigasi_conf"
 
-        if { $report_format == "json" || $report_format == "sonarqube" } {
-          set filetype ".json"
-        } elseif { $report_format == "warnings-ng" } {
-          set filetype ".xml"
-        }
-      }
-      # if {[dict exists $sigasiDict REPORT_OUTFILE]} {
-      #   set outdir [dict get $sigasiDict REPORT_OUTFILE]
-      #   set outdir [file rootname [file normalize $outdir]]
-      #   if { [file writable $outdir] } {
-      #     set outfile $outdir
-      #   }
-      # }
-      if {[dict exists $sigasiDict REPORT_ABSOLUTE]} {
-        lappend options_list "--absolute"
-      }
-      if {[dict exists $sigasiDict REPORT_SUPPRESSED]} {
-        lappend options_list "--include-suppressed"
-      }
-      if {[dict exists $sigasiDict FAIL]} {
-        lappend options_list "--fail-on-[dict get $sigasiDict FAIL]"
-      }
+  if {[dict exists $sigasi_conf LIBRARY_DATABASE]} {
+    set libraries [dict get $sigasi_conf LIBRARY_DATABASE]
+    foreach lib [split $libraries ,] {
+      lappend options_list "--library-database=[string trim $lib]"
     }
+  }
+
+  set report_format [dict get $sigasi_conf REPORT_FORMAT]
+  lappend options_list "--$report_format"
+
+  if { $report_format == "json" || $report_format == "sonarqube" } {
+    set filetype ".json"
+  } elseif { $report_format == "warnings-ng" } {
+    set filetype ".xml"
+  } else {
+    set filetype ".txt"
+  }
+
+  if {[dict exists $sigasi_conf REPORT_ABSOLUTE]} {
+    lappend options_list "--absolute"
+  }
+  if {[dict exists $sigasi_conf REPORT_SUPPRESSED]} {
+    lappend options_list "--include-suppressed"
+  }
+  if {[dict exists $sigasi_conf FAIL]} {
+    lappend options_list "--fail-on-[dict get $sigasi_conf FAIL]"
   }
 
   lappend options_list "--out=$outfile$filetype"
@@ -169,84 +173,57 @@ proc sigasi-lint {} {
 
 proc sigasi-format {} {
   _test_sigasi
-  if { [namespace exists ::Context] } {
-    set repo_path [Context::Get launch_settings repo_path]
-    set project_name [Context::Get launch_settings project_name]
-    puts "context $repo_path $project_name"
-  } else {
-    global repo_path
-    global project_name
-    puts "global $repo_path $project_name"
-  }
 
-  cd $repo_path
+  set repo_path [Repo::Get repo_path]
+  set project_name [Launcher::Get project_name]
   Msg Info "Formatting VHDL files for project $project_name ..."
 
-  # set default values then parse repo.conf for any custom set properties
-  set tab_width 4
-  set keywords "lowercase"
-  set repo_conf $repo_path/Top/repo.conf
   set options_list ""
   set ignore_list ""
 
-  if {[file exists $repo_conf]} {
-    set PROPERTIES [ReadConf $repo_conf]
-    if {[dict exists $PROPERTIES sigasi]} {
-      set sigasiDict [dict get $PROPERTIES sigasi]
-      if {[dict exists $sigasiDict TABS]} {
-        lappend options_list ""
-      } else {
-        lappend options_list "--spaces-for-tabs"
-      }
-      if {[dict exists $sigasiDict PRESERVE_NEWLINES]} {
-        lappend options_list "--preserve-newlines"
-      }
-      if {[dict exists $sigasiDict NO_ALIGN]} {
-        lappend options_list "--no-align"
-      }
-      if {[dict exists $sigasiDict VHDL_VERSION]} {
-        lappend options_list "--vhdl-version=[dict get $sigasiDict VHDL_VERSION]"
-      }
-      if {[dict exists $sigasiDict TAB_WIDTH]} {
-        set tab_width [dict get $sigasiDict TAB_WIDTH]
-      }
-      if {[dict exists $sigasiDict KEYWORDS]} {
-        set keywords [dict get $sigasiDict KEYWORDS]
-      }
-      if {[dict exists $sigasiDict IGNORE_DIR]} {
-        set ignore [dict get $sigasiDict IGNORE_DIR]
-        foreach dir [split $ignore ,] {
-          lappend ignore_list "$repo_path/[string trim $dir]"
-        }
-      }
+  set sigasi_conf [get_sigasi_conf]
+  Msg Info "sigasi config dict: $sigasi_conf"
+
+  if {[dict exists $sigasi_conf TABS]} {
+    lappend options_list ""
+  } else {
+    lappend options_list "--spaces-for-tabs"
+  }
+  if {[dict exists $sigasi_conf PRESERVE_NEWLINES]} {
+    lappend options_list "--preserve-newlines"
+  }
+  if {[dict exists $sigasi_conf NO_ALIGN]} {
+    lappend options_list "--no-align"
+  }
+
+  lappend options_list "--vhdl-version=[dict get $sigasi_conf VHDL_VERSION]"
+  set tab_width [dict get $sigasi_conf TAB_WIDTH]
+  set keywords [dict get $sigasi_conf KEYWORDS]
+
+  if {[dict exists $sigasi_conf IGNORE_DIR]} {
+    set ignore [dict get $sigasi_conf IGNORE_DIR]
+    foreach dir [split $ignore ,] {
+      lappend ignore_list "$repo_path/[string trim $dir]"
     }
   }
 
-  set proj_dir $repo_path/Top/$project_name
-  set proj_list_dir $repo_path/Top/$project_name/list
-  set project [file tail $project_name]
+  set project_files [ ::tobj::native [ CurrentProject::Get project_files ] ]
+  # Msg Debug " debug project_files $project_files"
 
-  lassign [GetHogFiles -list_files {.src} $proj_list_dir $repo_path] libraries
-  lappend [GetHogFiles -list_files ".sim" $proj_list_dir $repo_path] libraries
-
-  foreach lib $libraries {
-    set source_files [DictGet $libraries $lib]
-
-    foreach source_file $source_files {
-      set skip 0
-      foreach dir $ignore_list {
-        if { [string match $dir* $source_file] } {
-          set skip 1
-        }
+  foreach source_file $project_files {
+    set skip 0
+    foreach dir $ignore_list {
+      if { [string match $dir* $source_file] } {
+        set skip 1
       }
-      if { $skip == 1 } {
-        puts "skipping $source_file due to IGNORE_DIR setting"
-      } else {
-        if {[file extension $source_file] == ".vhd" ||
-            [file extension $source_file] == ".vhdl" } {
-          puts "sigasi-cli format $options_list --keywords=$keywords --tab-width=$tab_width $source_file"
-          exec -- sigasi-cli format {*}$options_list --keywords=$keywords --tab-width=$tab_width $source_file
-        }
+    }
+    if { $skip == 1 } {
+      puts "skipping $source_file due to IGNORE_DIR setting"
+    } else {
+      if {[file extension $source_file] == ".vhd" ||
+          [file extension $source_file] == ".vhdl" } {
+        puts "sigasi-cli format $options_list --keywords=$keywords --tab-width=$tab_width $source_file"
+        exec -- sigasi-cli format {*}$options_list --keywords=$keywords --tab-width=$tab_width $source_file
       }
     }
   }
@@ -255,64 +232,30 @@ proc sigasi-format {} {
 
 proc sigasi-document {} {
   _test_sigasi
-  if { [namespace exists ::Context] } {
-    set repo_path [Context::Get launch_settings repo_path]
-    set project_name [Context::Get launch_settings project_name]
-  } else {
-    global repo_path
-    global project_name
-  }
 
-  cd $repo_path
+  set repo_path [Repo::Get repo_path]
+  set project_name [Launcher::Get project_name]
   Msg Info "Generating project documentation for $project_name..."
 
   set options_list ""
+
+  set sigasi_conf [get_sigasi_conf]
+  Msg Info "sigasi config dict: $sigasi_conf"
+
+  if {[dict exists $sigasi_conf LIBRARY_DATABASE]} {
+    set libraries [dict get $sigasi_conf LIBRARY_DATABASE]
+    foreach lib [split $libraries ,] {
+      lappend options_list "--library-database=[string trim $lib]"
+    }
+  }
+
+  lappend options_list "--diagram-node-limit=[dict get $sigasi_conf DIAGRAM_NODE_LIMIT]"
+  lappend options_list "--design-units-per-page=[dict get $sigasi_conf DESIGN_UNITS_PER_PAGE]"
+  lappend options_list "--diagrams=[dict get $sigasi_conf DIAGRAMS]"
+  if {[dict exists $sigasi_conf TOP_LEVEL]} {
+    lappend options_list "--top-level=[dict get $sigasi_conf TOP_LEVEL]"
+  }
   set outdir "$repo_path/sigasi_doc/$project_name"
-  set repo_conf $repo_path/Top/repo.conf
-  set project_conf $repo_path/Top/$project_name/hog.conf
-  set proj_top 0
-
-  if {[file exists $project_conf]} {
-    set PROJ_PROPS [ReadConf $project_conf]
-    if {[dict exists $PROJ_PROPS sigasi]} {
-      set sigasiDict [dict get $PROJ_PROPS sigasi]
-      if {[dict exists $sigasiDict TOP_LEVEL]} {
-        lappend options_list "--top-level=[dict get $sigasiDict TOP_LEVEL]"
-        set proj_top 1
-      }
-    }
-  }
-
-  if {[file exists $repo_conf]} {
-    set PROPERTIES [ReadConf $repo_conf]
-    if {[dict exists $PROPERTIES sigasi]} {
-      set sigasiDict [dict get $PROPERTIES sigasi]
-      if {[dict exists $sigasiDict LIBRARY_DATABASE]} {
-        set libraries [dict get $sigasiDict LIBRARY_DATABASE]
-        foreach lib [split $libraries ,] {
-          lappend options_list "--library-database=[string trim $lib]"
-        }
-      }
-      # if {[dict exists $sigasiDict DOC_DIR]} {
-      #   set outdir [dict get $sigasiDict DOC_DIR]
-      #   set outdir [file normalize $outdir]
-      # }
-      if {[dict exists $sigasiDict DIAGRAM_NODE_LIMIT]} {
-        lappend options_list "--diagram-node-limit=[dict get $sigasiDict DIAGRAM_NODE_LIMIT]"
-      }
-      if {[dict exists $sigasiDict DESIGN_UNITS_PER_PAGE]} {
-        lappend options_list "--design-units-per-page=[dict get $sigasiDict DESIGN_UNITS_PER_PAGE]"
-      }
-      if {[dict exists $sigasiDict DIAGRAMS]} {
-        lappend options_list "--diagrams=[dict get $sigasiDict DIAGRAMS]"
-      }
-      if { $proj_top == 0} {
-        if {[dict exists $sigasiDict TOP_LEVEL]} {
-          lappend options_list "--top-level=[dict get $sigasiDict TOP_LEVEL]"
-        }
-      }
-    }
-  }
   lappend options_list "--output-directory=$outdir"
 
   puts "sigasi-cli document $repo_path $options_list "

@@ -4248,14 +4248,14 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
   }
 
   # Cheby register-map sources
-  if {[llength [glob -nocomplain ./list/*.chb]] > 0} {
-    lassign [GetHogFiles -list_files "*.chb" -sha_mode "./list/" $repo_path] cheby_files dummy
+  if {[llength [glob -nocomplain $proj_dir/list/*.chb]] > 0} {
+    lassign [GetHogFiles -list_files "*.chb" -sha_mode "$proj_dir/list/" $repo_path] cheby_files dummy
     if {[dict exists $cheby_files "cheby.chb"]} {
       set cheby_source_files [dict get $cheby_files "cheby.chb"]
       lassign [GetVer $cheby_source_files] cheby_ver cheby_hash
       lappend SHAs $cheby_hash
       lappend versions $cheby_ver
-      lappend project_files {*}[glob ./list/*.chb] {*}$cheby_source_files
+      lappend project_files {*}[glob $proj_dir/list/*.chb] {*}$cheby_source_files
     } else {
       set cheby_ver ""
       set cheby_hash ""

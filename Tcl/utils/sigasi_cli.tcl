@@ -6,30 +6,6 @@
 
 # These proceedures should be available regardless of which synthesis tool is used.
 
-variable SigasiManifest {
-    name      "sigasi-cli"
-    vendor    "Sigasi"
-    ref_names {sigasi sigasi-cli}
-    Flows {
-      sigasi-export {
-        aliases {sigasi sigasi-e}
-        stages  {sigasi-export}
-      }
-      sigasi-format {
-        aliases {sigasi-f}
-        stages  {sigasi-format}
-      }
-      sigasi-document {
-        aliases {sigasi-d sigasi-doc sigasi-docs}
-        stages  {sigasi-document}
-      }
-      sigasi-lint {
-        aliases {sigasi-l}
-        stages  {sigasi-lint}
-      }
-    }
-  }
-
 proc _test_sigasi {} {
   if { [catch {exec which sigasi-cli} ] } {
     puts "sigasi-cli not available -- check sigasi-cli is in PATH"
@@ -43,14 +19,8 @@ proc _test_sigasi {} {
 }
 
 proc sigasi-export {} {
-  # if using new experimental hog then get key info from Context. Else access the TCL globals
-  if { [namespace exists ::Context] } {
-    set repo_path [Context::Get launch_settings repo_path]
-    set project_name [Context::Get launch_settings project_name]
-  } else {
-    global repo_path
-    global project_name
-  }
+  global repo_path
+  global project_name
 
   cd $repo_path
   Msg Info "Creating Sigasi CSV files for project $project_name..."
@@ -99,13 +69,8 @@ proc sigasi-export {} {
 
 proc sigasi-lint {} {
   _test_sigasi
-  if { [namespace exists ::Context] } {
-    set repo_path [Context::Get launch_settings repo_path]
-    set project_name [Context::Get launch_settings project_name]
-  } else {
-    global repo_path
-    global project_name
-  }
+  global repo_path
+  global project_name
 
   cd $repo_path
   Msg Info "Generating a code quality report for project $project_name..."
@@ -170,15 +135,8 @@ proc sigasi-lint {} {
 
 proc sigasi-format {} {
   _test_sigasi
-  if { [namespace exists ::Context] } {
-    set repo_path [Context::Get launch_settings repo_path]
-    set project_name [Context::Get launch_settings project_name]
-    puts "context $repo_path $project_name"
-  } else {
-    global repo_path
-    global project_name
-    puts "global $repo_path $project_name"
-  }
+  global repo_path
+  global project_name
 
   cd $repo_path
   Msg Info "Formatting VHDL files for project $project_name ..."
@@ -256,13 +214,8 @@ proc sigasi-format {} {
 
 proc sigasi-document {} {
   _test_sigasi
-  if { [namespace exists ::Context] } {
-    set repo_path [Context::Get launch_settings repo_path]
-    set project_name [Context::Get launch_settings project_name]
-  } else {
-    global repo_path
-    global project_name
-  }
+  global repo_path
+  global project_name
 
   cd $repo_path
   Msg Info "Generating project documentation for $project_name..."
@@ -327,6 +280,3 @@ proc sigasi-document {} {
   Msg Info "Documentation successfully saved to $outdir"
   exit 0
 }
-
-
-

@@ -2321,11 +2321,15 @@ proc ExecuteRetUserEnv {args} {
   foreach a $run_args {
     lappend quoted [ShellSingleQuote $a]
   }
-  set cmd [join $quoted { }]
+  set inner [join $quoted { }]
 
   if {[OS] eq "windows"} {
-    return [ExecuteRet cmd /c $cmd]
+    return [ExecuteRet cmd /c $inner]
   }
+
+  # Vivado prepends its own Python to PATH and may set PYTHONHOME. Prefer the
+  # system interpreter so cheby gets PyYAML from the user's environment.
+  set cmd "env -u PYTHONHOME PATH=/usr/local/bin:/usr/bin:/bin:\$PATH; $inner"
   return [ExecuteRet /bin/bash -lc $cmd]
 }
 

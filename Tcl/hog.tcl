@@ -2027,7 +2027,7 @@ proc CopyChebyFiles {proj_dir path dst {cheby_version "0.0.0"} {cheby_sha "00000
     return 1
   }
 
-  lassign [ExecuteRet $tool --version] ret tool_msg
+  lassign [ExecuteRetUserEnv $tool --version] ret tool_msg
   if {$ret != 0} {
     if {$generate == 1} {
       Msg Error "Cannot run cheby: '$tool' not found or not working: $tool_msg"
@@ -2128,7 +2128,7 @@ proc CopyChebyFiles {proj_dir path dst {cheby_version "0.0.0"} {cheby_sha "00000
 
       set saved_pwd [pwd]
       cd $cheby_cwd
-      lassign [ExecuteRet {*}$cmd] cret cmsg
+      lassign [ExecuteRetUserEnv {*}$cmd] cret cmsg
       cd $saved_pwd
       if {$cret != 0} {
         Msg $severity "Cheby failed for $input_rel ($chb_tail:$line_num): $cmsg"
@@ -2287,6 +2287,46 @@ proc eos {command {attempt 1}} {
     }
   }
   return [list $ret $result]
+}
+
+## @brief Quote a string for a POSIX shell single-quoted literal.
+proc ShellSingleQuote {s} {
+  return "'[string map {' '\\''} $s]'"
+}
+
+## @brief Run an external command using the user's shell environment.
+#
+# Inside Vivado, Tcl's exec can route Python scripts through Vivado's bundled
+# Python (missing deps such as PyYAML). Re-run via bash -lc and, for .py tools,
+# call python3 explicitly so the shebang does not pick Vivado's interpreter.
+#
+# Optional env HOG_PYTHON overrides the python3 command (full path or name).
+proc ExecuteRetUserEnv {args} {
+  if {![IsVivado]} {
+    return [ExecuteRet {*}$args]
+  }
+
+  set run_args $args
+  set tool [lindex $args 0]
+  if {[regexp {\.py$} $tool]} {
+    if {[info exists env(HOG_PYTHON)] && $env(HOG_PYTHON) ne ""} {
+      set py $env(HOG_PYTHON)
+    } else {
+      set py python3
+    }
+    set run_args [linsert $args 0 $py]
+  }
+
+  set quoted [list]
+  foreach a $run_args {
+    lappend quoted [ShellSingleQuote $a]
+  }
+  set cmd [join $quoted { }]
+
+  if {[OS] eq "windows"} {
+    return [ExecuteRet cmd /c $cmd]
+  }
+  return [ExecuteRet /bin/bash -lc $cmd]
 }
 
 ## @brief Handle shell commands

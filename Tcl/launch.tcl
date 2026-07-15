@@ -388,7 +388,7 @@ if {$cmd == -1} {
     exit 0
   }
   if {$do_sigasi == 1} {
-    source $tcl_path/commands/sigasi-cli.tcl
+    source $tcl_path/utils/sigasi_cli.tcl
     if {$do_sigasi_export == 1} {
       sigasi-export
     }

@@ -16,23 +16,26 @@ namespace eval Tools::Sigasi {
         aliases {sigasi-e e}
         description " exports a CSV file for sigasi project creation "
         requires_proj true
+        options {
+          {new  "Create a new style Sigasi project file"}
+        }
         script  { Tools::Sigasi::sigasi-export}
       }
       format {
         aliases {sigasi-f f}
         requires_proj true
-        description " sigasi-cli wrapper "
+        description " sigasi-cli wrapper to run repo formatting settings across all files in the repo  "
         script  { Tools::Sigasi::sigasi-format }
       }
       document {
         aliases {sigasi-d doc d docs}
-        description " sigasi-cli wrapper "
+        description " sigasi-cli wrapper to create basic documentation of the project "
         requires_proj true
         script  {Tools::Sigasi::sigasi-document}
       }
       lint {
         aliases {sigasi-l l}
-        description " sigasi-cli wrapper "
+        description " sigasi-cli wrapper to generate a code quality report "
         requires_proj true
         script  {Tools::Sigasi::sigasi-lint}
       }
@@ -54,6 +57,16 @@ namespace eval Tools::Sigasi {
     if { ![namespace exists ::Repo] } {
       Msg Error " sigasi has been called before Repo namespace has been created "
     }
+  }
+
+  # tests if sigasi project file exists. If it does not exist it creates a new project.
+  proc _test_sigasi_project {repo_path} {
+    if { ![file exists $repo_path/project.sigasi] } {
+      Msg Info "attempting to create associated sigasi project file"
+      _new_sigasi-export
+      return "yes"
+    }
+    return "no"
   }
 
   # create a default dict. Then we can merge in the repo.conf dict (overwriting) followed by the project dict (overwriting)
@@ -94,7 +107,10 @@ namespace eval Tools::Sigasi {
   }
 
   proc sigasi-export {} {
-
+    if {[Launcher::GetOr options new 0] == 1} {
+      _new_sigasi-export
+      exit 0
+    }
     set repo_path [Repo::Get repo_path]
     set project_name [Launcher::Get project_name]
     Msg Info "Creating Sigasi CSV files for project $project_name..."
@@ -119,17 +135,48 @@ namespace eval Tools::Sigasi {
     close $csv_file
     Msg Info "Sigasi CSV file created: sigasi_$project_name.csv"
     Msg Info "You can use the python script provided by Sigasi to convert the generated csv file into a Sigasi project."
-    Msg Info \
-      "More info at: \
+    Msg Info "More info at: \
       https://www.sigasi.com/knowledge/how_tos/generating-sigasi-project-vivado-project/#2-generate-the-sigasi-project-files-from-the-csv-file"
     exit 0
   }
 
+  proc _new_sigasi-export {} {
+    set repo_path [Repo::Get repo_path]
+    set project_name [Launcher::Get project_name]
+    Msg Info "Creating new style Sigasi project file for project $project_name..."
+
+    set project_files [ ::tobj::native [ CurrentProject::Get project_files ] ]
+
+    DataStore::create Sigasi
+    Sigasi::Set name $project_name
+    Sigasi::Set targets ""
+    Sigasi::Set targets hdl
+    Sigasi::Set targets hdl libraryMapping
+    Sigasi::Set targets hdl libraryMapping [::tobj::create Dict {}]
+
+    foreach source_file $project_files {
+      if {
+        [file extension $source_file] eq ".vhd"
+        || [file extension $source_file] eq ".vhdl"
+        || [file extension $source_file] eq ".sv"
+        || [file extension $source_file] eq ".v"
+      } {
+        set file_dict [dict get $project_files $source_file]
+        set lib [file rootname [dict get $file_dict libraries]]
+        Sigasi::Set targets hdl libraryMapping $source_file $lib
+        # puts " $source_file $lib "
+      }
+    }
+
+    Sigasi::SaveJsonToFile "$repo_path/project.sigasi" 1
+    Msg Info "Sigasi project file created: $repo_path/project.sigasi"
+  }
 
   proc sigasi-lint {} {
 
     set repo_path [Repo::Get repo_path]
     set project_name [Launcher::Get project_name]
+    set remove_project_file [_test_sigasi_project $repo_path]
     Msg Info "Generating a code quality report for project $project_name..."
 
     file mkdir $repo_path/sigasi_lint
@@ -138,7 +185,7 @@ namespace eval Tools::Sigasi {
     set options_list ""
 
     set sigasi_conf [get_sigasi_conf]
-    Msg Info "sigasi config dict: $sigasi_conf"
+    #Msg Info "sigasi config dict: $sigasi_conf"
 
     if {[dict exists $sigasi_conf LIBRARY_DATABASE]} {
       set libraries [dict get $sigasi_conf LIBRARY_DATABASE]
@@ -177,6 +224,9 @@ namespace eval Tools::Sigasi {
     }
 
     Msg Info "Despite passing there maybe minor code violations caught. See $outfile$filetype"
+    if { $remove_project_file == "yes" } {
+      file delete $repo_path/project.sigasi
+    }
     exit 0
   }
 
@@ -205,8 +255,8 @@ namespace eval Tools::Sigasi {
     }
 
     lappend options_list "--vhdl-version=[dict get $sigasi_conf VHDL_VERSION]"
-    set tab_width [dict get $sigasi_conf TAB_WIDTH]
-    set keywords [dict get $sigasi_conf KEYWORDS]
+    lappend options_list "--tab-width=[dict get $sigasi_conf TAB_WIDTH]"
+    lappend options_list "--keywords=[dict get $sigasi_conf KEYWORDS]"
 
     if {[dict exists $sigasi_conf IGNORE_DIR]} {
       set ignore [dict get $sigasi_conf IGNORE_DIR]
@@ -230,8 +280,8 @@ namespace eval Tools::Sigasi {
       } else {
         if {[file extension $source_file] == ".vhd" ||
             [file extension $source_file] == ".vhdl" } {
-          puts "sigasi-cli format $options_list --keywords=$keywords --tab-width=$tab_width $source_file"
-          exec -- sigasi-cli format {*}$options_list --keywords=$keywords --tab-width=$tab_width $source_file
+          puts "sigasi-cli format $options_list $source_file"
+          exec -- sigasi-cli format {*}$options_list $source_file
         }
       }
     }
@@ -242,6 +292,7 @@ namespace eval Tools::Sigasi {
 
     set repo_path [Repo::Get repo_path]
     set project_name [Launcher::Get project_name]
+    set remove_project_file [_test_sigasi_project $repo_path]
     Msg Info "Generating project documentation for $project_name..."
 
     set options_list ""
@@ -274,6 +325,9 @@ namespace eval Tools::Sigasi {
       exit 1
     }
     Msg Info "Documentation successfully saved to $outdir"
+    if { $remove_project_file == "yes" } {
+      file delete $repo_path/project.sigasi
+    }
     exit 0
   }
 }

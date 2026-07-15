@@ -250,10 +250,11 @@ namespace eval Help {
       set _cmd_hdr 0
       tdict for {_sname _snode} [tdict get $_tnode subcommands] {
         if {$_sname eq "FLOW" || [Commands::IsFlow $_snode]} { continue }
-        if {!$_cmd_hdr} { puts "Usage: ./Hog/Do TOOL $_canon <command> \[OPTIONS\]\n\nCommands:"; set _cmd_hdr 1 }
+        if {!$_cmd_hdr} { puts "Usage: ./Hog/Do TOOL $_canon <command> \[OPTIONS\]\n\nCommands: (* - requires project)"; set _cmd_hdr 1 }
         set _als  [_aliases [tdict get $_snode aliases] $_sname]
         set _desc [expr {[tdict exists $_snode description] ? [tdict getval $_snode description] : ""}]
-        puts [format "  %-16s %-12s  %s" $_sname $_als $_desc]
+        set _req  [expr {[tdict getval $_snode requires_proj] ? "*" : ""}]
+        puts [format "  %s%-16s %-12s  %s" $_req $_sname $_als $_desc]
       }
     }
 
@@ -319,17 +320,22 @@ namespace eval Help {
       return
     }
 
-    set _has_subs [expr {![Commands::IsLeaf $_node]}]
-    set _run      [Commands::IsRunnable $_node]
+    set _has_subs  [expr {![Commands::IsLeaf $_node]}]
+    set _run       [Commands::IsRunnable $_node]
+    set _req_proj  [tdict getval $_node requires_proj]
+    set _proj_arg  [expr {$_req_proj ? {<project> } : {}}]
 
     if {$_has_subs && $_run} {
-      puts "Usage: ./Hog/Do $_pretty \[<subcommand>\] \[OPTIONS\]"
+      puts "Usage: ./Hog/Do $_pretty ${_proj_arg}\[<subcommand>\] \[OPTIONS\]"
     } elseif {$_has_subs} {
-      puts "Usage: ./Hog/Do $_pretty <subcommand> \[OPTIONS\]"
+      puts "Usage: ./Hog/Do $_pretty ${_proj_arg}<subcommand> \[OPTIONS\]"
     } else {
-      puts "Usage: ./Hog/Do $_pretty \[OPTIONS\]"
+      puts "Usage: ./Hog/Do $_pretty ${_proj_arg}\[OPTIONS\]"
     }
+    if {$_req_proj} { puts " Requires: project" }
+    puts ""
     puts "$_pretty [_aliases [tdict get $_node aliases] [tdict getval $_node name]]:"
+
     puts " [tdict getval $_node description]"
 
     if {$_run} {
@@ -342,11 +348,12 @@ namespace eval Help {
     }
 
     if {$_has_subs} {
-      puts "\n Subcommands:"
+      puts "\n Subcommands: (* - requires project)"
       tdict for {_sname _snode} [tdict get $_node subcommands] {
         set _als  [_aliases [tdict get $_snode aliases] $_sname]
         set _desc [expr {[tdict exists $_snode description] ? [tdict getval $_snode description] : ""}]
-        puts [format "   %-16s %-12s  %s" $_sname $_als $_desc]
+        set _req  [expr {[tdict getval $_snode requires_proj] ? "*" : ""}]
+        puts [format "   %s%-16s %-12s  %s" $_req $_sname $_als $_desc]
       }
       puts ""
     }

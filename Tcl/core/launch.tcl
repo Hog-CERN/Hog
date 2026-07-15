@@ -153,14 +153,17 @@ if {[ActiveTool::CurrentTool] eq "tclsh"} {
 
   lassign $result _ ide
   Launcher::Set ide       $ide
-  Tools::Launch $ide
-  return
+  if {[Tools::Launch $ide] ne "no_ide"} {
+    return
+  }
 
-} else {
+} 
 
 ################################################################################
 ## Tool Pass
 ################################################################################
+
+if {[ActiveTool::CurrentTool] ne "tclsh"} {
 
   set DataStore::inIDE 1
 

@@ -2297,11 +2297,14 @@ proc ShellSingleQuote {s} {
 ## @brief Run an external command using the user's shell environment.
 #
 # Inside Vivado, Tcl's exec can route Python scripts through Vivado's bundled
-# Python (missing deps such as PyYAML). Re-run via bash -lc and, for .py tools,
-# call python3 explicitly so the shebang does not pick Vivado's interpreter.
+# Python (missing deps such as PyYAML). Re-run via bash with Vivado Python env
+# cleared, and for .py tools call /usr/bin/python3 explicitly.
 #
-# Optional env HOG_PYTHON overrides the python3 command (full path or name).
+# Optional env HOG_PYTHON overrides the python command (full path or name).
+# Important: the bash -c script must be passed as ONE Tcl list element, otherwise
+# Tcl word-splits it and bash only runs the first token (e.g. bare `env`).
 proc ExecuteRetUserEnv {args} {
+  global env
   if {![IsVivado]} {
     return [ExecuteRet {*}$args]
   }
@@ -2312,7 +2315,7 @@ proc ExecuteRetUserEnv {args} {
     if {[info exists env(HOG_PYTHON)] && $env(HOG_PYTHON) ne ""} {
       set py $env(HOG_PYTHON)
     } else {
-      set py python3
+      set py /usr/bin/python3
     }
     set run_args [linsert $args 0 $py]
   }
@@ -2324,13 +2327,14 @@ proc ExecuteRetUserEnv {args} {
   set inner [join $quoted { }]
 
   if {[OS] eq "windows"} {
-    return [ExecuteRet cmd /c $inner]
+    return [ExecuteRet {*}[list cmd /c $inner]]
   }
 
-  # Vivado prepends its own Python to PATH and may set PYTHONHOME. Prefer the
-  # system interpreter so cheby gets PyYAML from the user's environment.
-  set cmd "env -u PYTHONHOME PATH=/usr/local/bin:/usr/bin:/bin:\$PATH; $inner"
-  return [ExecuteRet /bin/bash -lc $cmd]
+  # Vivado sets PYTHON/PYTHONPATH/PYTHONHOME to its bundled 3.8.3. Clear them
+  # and put system bins first so cheby sees system packages (e.g. PyYAML).
+  set cmd "env -u PYTHONHOME -u PYTHONPATH -u PYTHON \
+PATH=/usr/local/bin:/usr/bin:/bin:\$PATH $inner"
+  return [ExecuteRet {*}[list /bin/bash -c $cmd]]
 }
 
 ## @brief Handle shell commands

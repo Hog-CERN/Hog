@@ -233,10 +233,11 @@ namespace eval Help {
     if {[dict get $_m version]     ne ""} { puts "  Version:     [dict get $_m version]" }
     if {[dict get $_m custom]}             { puts "  Origin:      custom (user-defined)" }
     if {[dict get $_m _source_path] ne ""} { puts "  Source:      [dict get $_m _source_path]" }
+    puts "  Version Info:" 
     set _git [dict get $_m _git]
     if {[dict size $_git] > 0} {
       dict for {_gk _gv} $_git {
-        if {$_gv ne ""} { puts [format "  git.%-8s %s" $_gk $_gv] }
+        if {$_gv ne ""} { puts [format "    %-10s %s" $_gk $_gv] }
       }
     }
     if {[llength [dict get $_m features]] > 0} {

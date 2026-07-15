@@ -5,7 +5,7 @@ namespace eval Tools {
   # Manifest fields
   variable _fields {
     { name        ""  required}
-    { ref_names   ""  required}
+    { aliases   ""    optional}
 
     { vendor      ""  optional}
     { description ""  optional}
@@ -84,8 +84,8 @@ namespace eval Tools {
     foreach ns [namespace children ::Tools] {
       if {[string tolower [namespace tail $ns]] eq $needle} { return $ns }
       if {[catch {set m [${ns}::GetManifest]} err]} { continue }
-      if {[dict exists $m ref_names]} {
-        foreach iname [dict get $m ref_names] {
+      if {[dict exists $m aliases]} {
+        foreach iname [dict get $m aliases] {
           if {[string tolower $iname] eq $needle} { return $ns }
         }
       }
@@ -121,13 +121,41 @@ namespace eval Tools {
         namespace eval $ns [list variable Manifest]
         namespace eval $ns [list dict set Manifest _source_path $entry]
 
-        # TODO: replace this with a real git/version lookup.
-        set _git_placeholder [dict create \
-          sha      "########"     \
-          date     "2026-01-01"   \
-          describe "v0.0.0"       \
-        ]
-        namespace eval $ns [list dict set Manifest _git $_git_placeholder]
+        set git_info {
+          commit   "unknown" \
+          date     "unknown" \
+          ver      "unknown" \
+        }
+
+        set cwd [pwd]
+        cd [file dirname $entry]
+        set git_ret [GitRet [list log -n 1 --decorate "--format=commit {%h} tag {%d} date {%ad}" --date=short] .]
+        cd $cwd
+
+        if {[lindex $git_ret 0] == 0  && [llength [lindex $git_ret 1]]> 0} {
+          set git_info [lindex $git_ret 1]
+          set _hog_tag ""
+          set _ver_tag ""
+          foreach t [split [dict get $git_info tag] ","] {
+            set t [string trim $t " \t()"]
+            if {$_hog_tag eq "" && [regexp {^tag:\s+(Hog\d{4}\.\d+(?:\.\d+)*)$} $t -> _found]} {
+              set _hog_tag $_found
+            } elseif {$_ver_tag eq "" && [regexp {^tag:\s+(v\d+(?:\.\d+)+)$} $t -> _found]} {
+              set _ver_tag $_found
+            }
+          }
+
+          if {$_hog_tag ne ""} {
+            dict set git_info ver $_hog_tag
+          } elseif {$_ver_tag ne ""} {
+            dict set git_info ver $_ver_tag
+          } else {
+            dict set git_info ver "unknown"
+          }
+        }
+
+
+        namespace eval $ns [list dict set Manifest _git $git_info]
         if {$is_custom} {
           namespace eval $ns [list dict set Manifest custom 1]
         }
@@ -150,7 +178,9 @@ namespace eval Tools {
   }
 
   proc Init {} {
-    set _required_procs {IsActive Launch Initialize}
+    #set _required_procs {IsActive Launch Initialize}
+    set _required_procs {}
+    
     foreach ns [namespace children ::Tools] {
       set tool_name [namespace tail $ns]
       if {[catch {set m [namespace eval $ns {variable Manifest; set Manifest}]} err]} {
@@ -202,8 +232,8 @@ namespace eval Tools {
       # Register every tool under the TOOL subcommand tree
       set tool_key [string toupper $tool_name]
       set ref_aliases [list]
-      if {[dict exists $validated ref_names]} {
-        foreach rn [dict get $validated ref_names] { lappend ref_aliases $rn }
+      if {[dict exists $validated aliases]} {
+        foreach rn [dict get $validated aliases] { lappend ref_aliases $rn }
       }
 
       # Command subcommands from Manifest.commands.
@@ -287,8 +317,8 @@ namespace eval Tools {
     set ide_name [lindex [regexp -all -inline {\S+} $ide_name_and_ver] 0]
     foreach ns [namespace children ::Tools] {
       if {[catch {set m [${ns}::GetManifest]} err]} { continue }
-      if {![dict exists $m ref_names]} { continue }
-      foreach iname [dict get $m ref_names] {
+      if {![dict exists $m aliases]} { continue }
+      foreach iname [dict get $m aliases] {
         if {[string tolower $iname] eq $ide_name} {
           return $ns
         }
@@ -302,6 +332,19 @@ namespace eval Tools {
   # let's use use calls like Tools::Vivado::GetManifest and not have to define these for each tool
   proc InjectCommonProcs {tool_ns} {
     namespace eval $tool_ns {
+
+      
+      if {[info commands IsActive] eq ""} {
+        proc IsActive {} { return 0 }
+      }
+
+      if {[info commands Launch] eq ""} {
+        proc Launch {} { Msg Warning "[namespace tail [namespace current]] does not implement Launch" }
+      }
+
+      if {[info commands Initialize] eq ""} {
+        proc Initialize {} {}
+      }
 
       proc Supports {feature} {
         variable Manifest

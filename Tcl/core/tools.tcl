@@ -70,9 +70,11 @@ namespace eval Tools {
       Msg Error "Tool '$tool' not found or has no Launch proc"
       return
     }
-    if {[catch {${tool_ns}::Launch} err]} {
-      Msg Error "Failed to launch tool '$tool': $err"
+    if {[catch {${tool_ns}::Launch} result]} {
+      Msg Error "Failed to launch tool '$tool': $result"
+      return
     }
+    return $result
   }
 
   proc ResolveAlias {alias} {
@@ -241,6 +243,9 @@ namespace eval Tools {
       set _cmd_aliases [list]
       if {[dict exists $validated commands]} {
         dict for {ck cv} [dict get $validated commands] {
+          if {![dict exists $cv ide]} {
+            dict set cv ide $tool_name
+          }
           dict set _subs [string toupper $ck] $cv
           lappend _cmd_aliases [string toupper $ck]
           if {[dict exists $cv aliases]} {
@@ -339,7 +344,10 @@ namespace eval Tools {
       }
 
       if {[info commands Launch] eq ""} {
-        proc Launch {} { Msg Warning "[namespace tail [namespace current]] does not implement Launch" }
+        proc Launch {} {
+          ActiveTool::Set [namespace current]
+          return "no_ide"
+        }
       }
 
       if {[info commands Initialize] eq ""} {

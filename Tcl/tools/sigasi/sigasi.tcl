@@ -5,37 +5,42 @@
 
 # These proceedures should be available regardless of which synthesis tool is used.
 
-namespace eval Tools::Sagasi {
+namespace eval Tools::Sigasi {
   variable Manifest {
     name "sigasi-cli"
     vendor "Sigasi"
-    ref_names ""
+    aliases {sigasi}
     description "Sigasi-cli toolchain"
     commands {
       export {
         aliases {sigasi-e e}
         description " exports a CSV file for sigasi project creation "
-        script  {sigasi-export}
+        requires_proj true
+        script  { Tools::Sigasi::sigasi-export}
       }
       format {
         aliases {sigasi-f f}
+        requires_proj true
         description " sigasi-cli wrapper "
-        script  {sigasi-format}
+        script  { Tools::Sigasi::sigasi-format }
       }
       document {
         aliases {sigasi-d doc d docs}
         description " sigasi-cli wrapper "
-        script  {sigasi-document}
+        requires_proj true
+        script  {Tools::Sigasi::sigasi-document}
       }
       lint {
         aliases {sigasi-l l}
         description " sigasi-cli wrapper "
-        script  {sigasi-lint}
+        requires_proj true
+        script  {Tools::Sigasi::sigasi-lint}
       }
     }
   }
 
   proc Initialize {} {
+    puts "Initializing Sigasi tool..."
     if { [catch {exec which sigasi-cli} ] } {
       puts "sigasi-cli not available -- check sigasi-cli is in PATH"
       exit 1

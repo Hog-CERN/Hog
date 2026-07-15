@@ -1938,8 +1938,10 @@ proc StripChebyGeneratedHeader {lines} {
   set last $idx
   incr last
   # Drop the optional timestamp line when present (header=full).
+  # Match anywhere in the line: VHDL uses "-- Generated on ...", C/Markdown
+  # may use other comment prefixes.
   set ts_line [lindex $lines [expr {$idx + 2}]]
-  if {$ts_line ne "" && [string first "Generated on " $ts_line] == 0} {
+  if {$ts_line ne "" && [string first "Generated on " $ts_line] >= 0} {
     incr last
   }
   return [lreplace $lines $idx $last]

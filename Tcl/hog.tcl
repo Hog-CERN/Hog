@@ -1938,7 +1938,8 @@ proc StripChebyGeneratedHeader {lines} {
   set last $idx
   incr last
   # Drop the optional timestamp line when present (header=full).
-  if {[regexp {Generated on .+ by } [lindex $lines [expr {$idx + 2}]]]} {
+  set ts_line [lindex $lines [expr {$idx + 2}]]
+  if {$ts_line ne "" && [string first "Generated on " $ts_line] == 0} {
     incr last
   }
   return [lreplace $lines $idx $last]

@@ -1190,6 +1190,27 @@ proc CheckExtraFiles {libraries constraints simlibraries} {
 #
 # @param[in] repo_path The main path of the git repository
 proc CheckLatestHogRelease {{repo_path .}} {
+
+  if {[info exists ::env(CHECK_FOR_HOG_UPDATES)] && $::env(CHECK_FOR_HOG_UPDATES) eq "0"} {
+    return
+  }
+
+
+  if {[catch {package require inifile 0.2.3} ERROR] == 0} {
+    set repo_conf $repo_path/Top/repo.conf
+    if {[file exists $repo_conf]} {
+      set PROPERTIES [ReadConf $repo_conf]
+      if {[dict exists $PROPERTIES main]} {
+        set mainDict [dict get $PROPERTIES main]
+        if {[dict exists $mainDict CHECK_FOR_HOG_UPDATES]} {
+          if {[dict get $mainDict CHECK_FOR_HOG_UPDATES] == 0} {
+              return
+          }
+        }
+      }
+    }
+  }
+
   set old_path [pwd]
   cd $repo_path/Hog
   set current_ver [Git {describe --always}]
@@ -1209,7 +1230,12 @@ proc CheckLatestHogRelease {{repo_path .}} {
   Msg Debug "Master version: $master_ver"
   set master_sha [Git "log $master_ver -1 --format=format:%H"]
   Msg Debug "Master SHA: $master_sha"
-  set merge_base [Git "merge-base $current_sha $master_sha"]
+  lassign [GitRet "merge-base $current_sha $master_sha"] mb_ret merge_base
+  if {$mb_ret != 0} {
+    Msg Warning "Could not run git merge-base (shallow clone?). Skipping Hog update check."
+    cd $old_path
+    return
+  }
   Msg Debug "merge base: $merge_base"
 
 

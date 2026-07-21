@@ -3791,7 +3791,7 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
   if {$clean == 1} {
     set found 0
     while {$found == 0} {
-      set global_commit [Git "log --format=%h -1 --abbrev=7 $SHAs"]
+      set global_commit [Git "log --topo-order --format=%h -1 --abbrev=7 $SHAs"]
       foreach sha $SHAs {
         set found 1
         if {![IsCommitAncestor $sha $global_commit]} {

@@ -18,6 +18,7 @@
 # The post bitstream script copies binary files, reports and other files to the bin directory in your repository.
 # This script is automatically integrated into the Vivado/Quartus workflow by the Create Project script.
 
+# There is a dependancy issue where [pwd] is used to find information about the project in certain cases
 set old_path [pwd]
 set tcl_path [file normalize "[file dirname [info script]]/.."]
 source $tcl_path/hog.tcl
@@ -161,6 +162,7 @@ if {[IsXilinx]} {
   set drpt_files [glob -nocomplain "$proj_dir/designer/$top_name/*.rpt"]
   set xml_dir [file normalize "$repo_path/xml"]
 } elseif {[IsDiamond]} {
+  # TODO - What should this be? Build from repo_path and proj_name. Don't use [pwd]
   set proj_dir [file normalize "[pwd]/.."]
   set proj_name [file tail $proj_dir]
   set project $proj_name
@@ -184,11 +186,9 @@ if {[IsXilinx]} {
 }
 
 set group_name [GetGroupName $proj_dir "$tcl_path/../.."]
-# Go to repository path
-cd $repo_path
 
 Msg Info "Evaluating Hog describe for $proj_name..."
-set describe [GetHogDescribe [file normalize ./Top/$group_name/$proj_name] $repo_path]
+set describe [GetHogDescribe [file normalize "$repo_path/Top/$group_name/$proj_name"] $repo_path]
 Msg Info "Hog describe set to: $describe"
 
 set dst_dir [file normalize "$bin_dir/$group_name/$proj_name\-$describe"]
@@ -442,7 +442,7 @@ if {[IsXilinx]} {
 
       if {[IsVersal $part]} {
         # Run user pre-platform file
-        set user_pre_platform_file "./Top/$group_name/$proj_name/pre-platform.tcl"
+        set user_pre_platform_file [file normalize "$repo_path/Top/$group_name/$proj_name/pre-platform.tcl"]
         if {[file exists $user_pre_platform_file]} {
           Msg Info "Sourcing user pre-platform file $user_pre_platform_file"
           source $user_pre_platform_file
@@ -541,11 +541,10 @@ if {[IsXilinx]} {
 
 
 # Run user post-bitstream file
-set user_post_bitstream_file "./Top/$group_name/$proj_name/post-bitstream.tcl"
+set user_post_bitstream_file [file normalize "$repo_path/Top/$group_name/$proj_name/post-bitstream.tcl"]
 if {[file exists $user_post_bitstream_file]} {
   Msg Info "Sourcing user post-bitstream file $user_post_bitstream_file"
   source $user_post_bitstream_file
 }
 
-cd $old_path
 Msg Info "All done."

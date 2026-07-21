@@ -937,13 +937,13 @@ if {$do_implementation == 1} {
 }
 
 if {$do_bitstream_only == 1 && [IsXilinx]} {
-  GenerateBitstreamOnly $project_name $repo_path
+  GenerateBitstream $project_name $run_folder $repo_path
 } elseif {$do_bitstream_only == 1 && ![IsXilinx]} {
   Msg Error "Bitstream only option is not supported for this IDE."
 }
 
 if {$do_bitstream == 1 && ![IsXilinx]} {
-  GenerateBitstream $run_folder $repo_path $options(njobs)
+  GenerateBitstream $project_name $run_folder $repo_path
 }
 
 if {$do_simulation == 1} {

@@ -741,11 +741,11 @@ proc ALLOWED_PROPS {} {
 #
 proc BinaryStepName {part} {
   if {[IsVersal $part]} {
-    return "WRITE_DEVICE_IMAGE"
+    return "write_device_image"
   } elseif {[IsISE]} {
     return "Bitgen"
   } else {
-    return "WRITE_BITSTREAM"
+    return "write_bitstream"
   }
 }
 
@@ -2105,15 +2105,45 @@ proc FormatGeneric {generic} {
   }
 }
 
-# @brief Generate the bitstream
+# @brief Generate the bitstream.
+# Should be used to re-generate the bitstream, for the current IDE and project (Vivado only for the moment). \
+# Useful for a Vivado-Vitis project to update the bitstream with a new ELF or to generate a new \
+# bootimage (ZYNQ) without running the full workflow.
 #
 # @param[in] project_name The name of the project
-# @param[in] run_folder   The path where to run the implementation
 # @param[in] repo_path    The main path of the git repository
-# @param[in] njobs        The number of CPU jobs to run in parallel
-proc GenerateBitstream {{run_folder ""} {repo_path .} {njobs 1}} {
+# @param[in] njobs        The number of parallel CPU jobs for the Implementation (Default 4)
+proc GenerateBitstream {project_name run_folder {repo_path .} {njobs 4}} {
   Msg Info "Starting write bitstream flow..."
-  if {[IsQuartus]} {
+  if {[IsXilinx]} {
+
+    # Check if impl_1 run exists
+    set impl_runs [get_runs -quiet impl_1]
+    if {[llength $impl_runs] == 0} {
+      Msg Error "Implementation run 'impl_1' does not exist. Please run implementation first."
+      return
+    }
+
+    if {[IsISE]} {
+      Msg Info "Running pre-bitstream..."
+      source $repo_path/Hog/Tcl/integrated/pre-bitstream.tcl
+    }
+
+    Msg Info "Writing bitstream for $project_name..."
+    open_run impl_1
+    set vivado_step [BinaryStepName [get_property PART [current_project]]]
+
+    # reset step is required in case bitstream has been previously generated
+    reset_run impl_1 -from_step $vivado_step
+    launch_runs impl_1 -to_step $vivado_step -jobs $njobs -dir $run_folder
+    wait_on_run impl_1
+
+    if {[IsISE]} {
+      Msg Info "Running post-bitstream..."
+      source $repo_path/Hog/Tcl/integrated/post-bitstream.tcl
+    }
+
+  } elseif {[IsQuartus]} {
     set revision [get_current_revision]
     if {[catch {execute_module -tool asm} result]} {
       Msg Error "Result: $result\n"
@@ -5407,22 +5437,16 @@ proc LaunchImplementation {reset do_create run_folder project_name {repo_path .}
       source $repo_path/Hog/Tcl/integrated/pre-implementation.tcl
     }
 
-    if {$do_bitstream == 1} {
-      launch_runs impl_1 -to_step [BinaryStepName [get_property PART [current_project]]] -jobs $njobs -dir $run_folder
-    } else {
-      launch_runs impl_1 -jobs $njobs -dir $run_folder
-    }
+    launch_runs impl_1 -jobs $njobs -dir $run_folder
     wait_on_run impl_1
 
     if {[IsISE]} {
       Msg Info "running post-implementation"
       source $repo_path/Hog/Tcl/integrated/post-implementation.tcl
-      if {$do_bitstream == 1} {
-        Msg Info "running pre-bitstream"
-        source $repo_path/Hog/Tcl/integrated/pre-bitstream.tcl
-        Msg Info "running post-bitstream"
-        source $repo_path/Hog/Tcl/integrated/post-bitstream.tcl
-      }
+    }
+
+    if {$do_bitstream == 1} {
+      GenerateBitstream $project_name $run_folder $repo_path $njobs
     }
 
     set prog [get_property PROGRESS [get_runs impl_1]]
@@ -5647,46 +5671,6 @@ proc LaunchImplementation {reset do_create run_folder project_name {repo_path .}
 
     # TODO: Check Timing for Diamond
   }
-}
-
-# @brief Re-generate the bitstream, for the current IDE and project (Vivado only for the moment). \
-# Useful for a Vivado-Vitis project to update the bitstream with a new ELF or to generate a new \
-# bootimage (ZYNQ) without running the full workflow.
-#
-# @param[in] project_name The name of the project
-# @param[in] repo_path    The main path of the git repository (Default .)
-proc GenerateBitstreamOnly {project_name {repo_path .}} {
-  cd $repo_path
-
-  # Open the project first
-  set project_file [file normalize "$repo_path/Projects/$project_name/$project_name.xpr"]
-  if {![file exists $project_file]} {
-    Msg Error "Project file not found: $project_file. Please create the project first."
-    return
-  }
-
-  OpenProject $project_file $repo_path
-
-  # Check if impl_1 run exists
-  set impl_runs [get_runs -quiet impl_1]
-  if {[llength $impl_runs] == 0} {
-    Msg Error "Implementation run 'impl_1' does not exist. Please run implementation first."
-    return
-  }
-
-  set describe [GetHogDescribe [file normalize ./Top/$project_name] $repo_path]
-  set dst_dir [file normalize "$repo_path/bin/$project_name\-$describe"]
-
-  cd Projects/$project_name/$project_name.runs/impl_1
-  Msg Info "Running pre-bitstream..."
-  source $repo_path/Hog/Tcl/integrated/pre-bitstream.tcl
-
-  Msg Info "Writing bitstream for $project_name..."
-  open_run impl_1
-  write_bitstream -force $dst_dir/$project_name-$describe.bit
-
-  Msg Info "Running post-bitstream..."
-  source $repo_path/Hog/Tcl/integrated/post-bitstream.tcl
 }
 
 # @brief Launch the simulation (Vivado only for the moment)

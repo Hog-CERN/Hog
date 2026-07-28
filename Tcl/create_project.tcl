@@ -1368,6 +1368,7 @@ proc CreateProject {args} {
             Msg Info "Opening existing Vivado project to generate pre-synth XSA..."
             open_project $xpr_file
             set xsa_path [file normalize "$globalSettings::build_dir/$globalSettings::DESIGN-presynth.xsa"]
+            GenerateStandaloneXciTargets
             write_hw_platform -fixed -force -file $xsa_path
             Msg Info "Pre-synth XSA generated: $xsa_path"
             close_project
@@ -1515,6 +1516,7 @@ proc CreateProject {args} {
 
   if {($globalSettings::vitis_classic == 1 || $globalSettings::vitis_unified == 1)} {
     # Presynth hw platform, let's keep it in the build directory
+    GenerateStandaloneXciTargets
     write_hw_platform -fixed -force -file [file normalize "$globalSettings::build_dir/$globalSettings::DESIGN-presynth.xsa"]
 
     if {$options(xsa) == ""} {

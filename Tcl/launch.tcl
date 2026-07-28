@@ -168,7 +168,7 @@ if {$NO_DIRECTIVE_FOUND == 1} {
           set cmd "sh launch-libero-hog.sh"
         }
 
-        set ret [catch {exec -ignorestderr {*}$cmd >@ stdout} result]
+        set ret [catch {exec -ignorestderr {*}$cmd >@ stdout 2>@ stderr} result]
 
         if {$ret != 0} {
           Msg Error "IDE returned an error state."
@@ -585,7 +585,7 @@ if {$cmd == -1} {
     set cmd "sh launch-libero-hog.sh"
   }
 
-  set ret [catch {exec -ignorestderr {*}$cmd >@ stdout} result]
+  set ret [catch {exec -ignorestderr {*}$cmd >@ stdout 2>@ stderr} result]
 
   if {$ret != 0} {
     Msg Error "IDE returned an error state."

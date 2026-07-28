@@ -855,7 +855,8 @@ proc CheckEnv {project_name ide} {
     "HOG_IP_PATH" "NOT defined. Hog-CI will NOT use an EOS/LOCAL IP repository to speed up the IP synthesis." \
     "HOG_RESET_FILES" "NOT defined. Hog-CI will NOT reset any files."\
     "HOG_NJOBS" "NOT defined. Hog-CI will build IPs with default number of jobs (4)."\
-    "HOG_SAVE_DCP" "NOT defined. Set this variable to 1, 2 or 3 to make Hog-CI save the run checkpoint DCP files (Vivado only) in the artifacts.\nCheck the official documentation for more details. https://cern.ch/hog"\
+    "HOG_SAVE_DCP" "NOT defined. Set this variable to 1, 2 or 3 to make Hog-CI save the run checkpoint DCP files (Vivado only) in the artifacts.\nCheck \
+    the official documentation for more details. https://cern.ch/hog"\
   ]
   Msg Info "Checking environment to run Hog-CI for project $project_name with IDE $ide..."
 
@@ -1525,7 +1526,6 @@ proc CompareVHDL {file1 file2} {
   return $diff
 }
 
-##
 ## Copy a file or folder into a new path, not throwing an error if the final path is not empty
 ##
 ## @param      i_dirs  The directory or file to copy
@@ -1540,6 +1540,163 @@ proc Copy {i_dirs o_dir} {
     }
 
     file copy -force $i_dir $o_dir
+  }
+}
+
+# get files from a specific type of list file
+# @param[in] proj_dir     project path, path containing the ./list directory
+# @param[in] repo_path    the root path for the list file
+# @param[in] ext          file extension - should include the '.'
+proc GetAddressFiles {proj_dir repo_path ext} {
+  set list_files [glob -nocomplain $proj_dir/list/*$ext]
+  set n_list_files [llength $list_files]
+  if {$n_list_files == 0} {
+    Msg CriticalWarning "No files with $ext extension found in $proj_dir/list."
+    return
+  }
+  set libraries [dict create]
+  set vhdl_dict [dict create]
+
+  foreach list_file $list_files {
+    lassign [ReadListFile {*}"$list_file $repo_path"] l p fs
+    puts "reading list file $list_file"
+    set libraries [MergeDict $l $libraries]
+    set vhdl_dict [MergeDict $p $vhdl_dict]
+  }
+  # puts "dict check $libraries"
+  return [list $libraries $vhdl_dict]
+}
+
+# Copy a file to a new location and replace placeholders
+# @param[in] in_file     file to copy
+# @param[in] out_file    output file - will make any directories needed
+# @param[in] sub_dict    dict containing key value pairs to substitute in the out_file
+proc CopyFilePlaceHolders {in_file out_file sub_dict} {
+  file mkdir [file dirname $out_file]
+  set in [open $in_file r]
+  set out [open $out_file w]
+
+  while {[gets $in line] != -1} {
+    set temp_line $line
+    foreach key [dict keys $sub_dict] value [dict values $sub_dict] {
+      # puts "$key is $value"
+      set temp_line [regsub {(.*)$key(.*)} $temp_line "\\1$value\\2"]
+    }
+    puts $out $temp_line
+  }
+
+  close $in
+  close $out
+}
+
+# Copy a list of files to a new location and replace placeholders
+# @param[in] src_files   a list of sources to copy
+# @param[in] vhdl_dict   vhdl_dict from GetAddressFiles - used to trim returned list of sources
+# @param[in] dst         destination root directory - has to be inside the repo_path
+# @param[in] sub_dict    dict containing key value pairs to substitute in the out_file
+#
+# @param[out] relative_sources      a list of relative sources (to repo_path and dst).
+#     Files are only added to the list if there is a corresponding generated output file/dir in vhdl_dict
+proc CopyFileListPlaceHolders {src_files vhdl_dict dst sub_dict} {
+  puts "Entered CopyFileListPlaceHolders"
+  set repo_path [file normalize [FindRepoRoot $dst]]
+  set relative_sources ""
+
+  foreach src_file $src_files {
+    puts "$src_file"
+    set src_file [file normalize $src_file]
+    set src_relative [string replace $src_file 0 [string length $repo_path]]
+    if {[dict exists $vhdl_dict $src_file]} {
+      lappend relative_sources $src_relative
+    }
+    set outfile $dst/$src_relative
+
+    if {[file isdirectory $src_file]} {
+      Msg CriticalWarning "Directory $src_file listed in list file $list_file. Directories are not supported here!"
+      Msg Error "Invalid files added to $list_file!"
+    }
+    if {![file exists $src_file]} {
+      Msg Error "File $src_file not found"
+    }
+    Msg Info "Copying $src_file to $dst and replacing place holders..."
+    CopyFilePlaceHolders $src_file $outfile $sub_dict
+  }
+
+  return $relative_sources
+}
+
+# Generate RDL files for
+# @param[in] relative_sources  a list of relative sources (to repo_path and dst).
+# @param[in] vhdl_dict         vhdl_dict from GetAddressFiles - contains generation options
+# @param[in] dst               destination root directory
+# @param[in] script            optional generation script - if passed the function will use this script
+# @param[in] run_dir           will use this a relative path to determine [pwd] when running script
+#
+# @param[out] gen_files        a list of generated files. Can be a mix of directories and files
+proc GenerateRDLs {relative_srcs vhdl_dict dst {script ""} {run_dir ""}} {
+  foreach src [dict keys $vhdl_dict] value [dict values $vhdl_dict] rel_src $relative_srcs {
+    if {![file exists $src]} {
+      Msg Error "Provided src list contians non-existant file $src"
+    }
+
+    set file_options [split $value]
+    set v_file [lindex $file_options 0]
+    dict set gen_files $v_file {}
+
+    if {$script eq ""} {
+      set plugin [lindex $file_options 1]
+      set rel_options [lrange $file_options 2 end]
+      set options ""
+
+      foreach option $rel_options {
+        # puts "$option"
+        set new_option "string map {-I= -I=$dst/} $option"
+        lappend options [eval $new_option]
+      }
+
+      Msg info "Read following options from list file for $v_file: $plugin $options"
+      puts "peakrdl $plugin -o $dst/$v_file $options -I=$dst $dst/$rel_src"
+      lassign [ExecuteRet peakrdl $plugin -o $dst/$v_file {*}$options -I=$dst $dst/$rel_src] status log
+      if {$status ne 0} {
+        Msg Error "Address map generation failed for $dst/$rel_src: $log"
+      }
+    }
+  }
+
+  if {$script ne ""} {
+    set old_pwd [pwd]
+    set script_dir [file normalize $dst/$run_dir]
+
+    if {[file exists $script_dir]} {
+      cd [file normalize $dst/$run_dir]
+      eval $script
+      cd $old_pwd
+    } else {
+      Msg Error "Invalid script location $script_dir"
+    }
+  }
+
+  return $gen_files
+}
+
+proc CompareGeneratedFile {committed_file generated_file diff_loc} {
+  # Msg Info "Comparing $committed_file to $generated_file"
+  set diff [CompareVHDL $generated_file $committed_file]
+  set file_name [file rootname [file tail $generated_file]]
+  set n [llength $diff]
+
+  if {$n > 0} {
+    set diff_file [open [file normalize $diff_loc/$file_name.diff] w]
+    Msg CriticalWarning "$committed_file does not correspond to the generated file $generated_file, [expr {$n / 3}] line/s differ:"
+    if {$n > 15} {
+      Msg info "see $diff_file for differences"
+    } else {
+      Msg Status [join $diff "\n"]
+    }
+    puts $diff_file $diff
+    close $diff_file
+  } else {
+    Msg Info "$committed_file and $generated_file match."
   }
 }
 
@@ -1583,83 +1740,36 @@ proc CopyIPbusXMLs {proj_dir path dst {xml_version "0.0.0"} {xml_sha "00000000"}
     set can_generate 0
   }
 
-  set ipb_files [glob -nocomplain $proj_dir/list/*.ipb]
-  set n_ipb_files [llength $ipb_files]
-  if {$n_ipb_files == 0} {
-    Msg CriticalWarning "No files with .ipb extension found in $proj_dir/list."
-    return
-  }
-  set libraries [dict create]
-  set vhdl_dict [dict create]
-
-  foreach ipb_file $ipb_files {
-    lassign [ReadListFile {*}"$ipb_file $path"] l p fs
-    set libraries [MergeDict $l $libraries]
-    set vhdl_dict [MergeDict $p $vhdl_dict]
-  }
+  lassign [GetAddressFiles $proj_dir $path ".ipb"] libraries vhdl_dict
 
   set xmlfiles [dict get $libraries "xml.ipb"]
 
-  set xml_list_error 0
+  dict set sub_dict __VERSION__ $xml_version
+  dict set sub_dict __GIT_SHA__ $xml_sha
+
+  set relative_xmls [CopyFileListPlaceHolders $xmlfiles $vhdl_dict $dst $sub_dict]
+  # out_file ::= $dst/$relative_xmls
+  # xmls     ::= [file tail $relative_xmls]
+
   foreach xmlfile $xmlfiles {
-    if {[file isdirectory $xmlfile]} {
-      Msg CriticalWarning "Directory $xmlfile listed in xml list file $list_file. Directories are not supported!"
-      set xml_list_error 1
-    }
-
-    if {[file exists $xmlfile]} {
-      if {[dict exists $vhdl_dict $xmlfile]} {
-        set vhdl_file [file normalize [dict get $vhdl_dict $xmlfile]]
-      } else {
-        set vhdl_file ""
-      }
-      lappend vhdls $vhdl_file
-      set xmlfile [file normalize $xmlfile]
-      Msg Info "Copying $xmlfile to $dst and replacing place holders..."
-      set in [open $xmlfile r]
-
-      if {[regexp \/xml\/+(.*)$   $xmlfile XXX out_with_dir]} {
-	set out_file $dst/$out_with_dir
-	lappend xmls $out_with_dir
-	Msg Debug "xml file $xmlfile is contained in a directory called 'xml', so file will be copied to $out_file"
-	set out_dir [file dir $out_file]
-	if {![file exists $out_dir]} {
-	  file mkdir $out_dir
-	}
-      } else {
-	set out_file $dst/[file tail $xmlfile]
-	lappend xmls [file tail $xmlfile]
-      }
-
-      set out [open $out_file w]
-      while {[gets $in line] != -1} {
-        set new_line [regsub {(.*)__VERSION__(.*)} $line "\\1$xml_version\\2"]
-        set new_line2 [regsub {(.*)__GIT_SHA__(.*)} $new_line "\\1$xml_sha\\2"]
-        puts $out $new_line2
-      }
-      close $in
-      close $out
-
+    if {[dict exists $vhdl_dict $xmlfile]} {
+      set vhdl_file [file normalize [dict get $vhdl_dict $xmlfile]]
     } else {
-      Msg Warning "XML file $xmlfile not found"
+      set vhdl_file ""
     }
-  }
-  if {${xml_list_error}} {
-    Msg Error "Invalid files added to $list_file!"
+    lappend vhdls $vhdl_file
   }
 
-  set cnt [llength $xmls]
-  Msg Info "$cnt xml file/s copied"
-
+  Msg Info "[llength $xmls] xml file/s copied"
 
   if {$can_generate == 1} {
     set old_dir [pwd]
     cd $dst
     file mkdir "address_decode"
     cd "address_decode"
-    foreach x $xmls v $vhdls {
+    foreach x $relative_xmls v $vhdls {
       if {$v ne ""} {
-        set x [file normalize ../$x]
+        set x $dst/$x
         if {[file exists $x]} {
           lassign [ExecuteRet gen_ipbus_addr_decode --no-timestamp $x 2>&1] status log
           if {$status == 0} {
@@ -1669,17 +1779,7 @@ proc CopyIPbusXMLs {proj_dir path dst {xml_version "0.0.0"} {xml_sha "00000000"}
               file copy -force -- $generated_vhdl $v
             } else {
               if {[file exists $v]} {
-                set diff [CompareVHDL $generated_vhdl $v]
-                set n [llength $diff]
-                if {$n > 0} {
-                  Msg CriticalWarning "$v does not correspond to its XML $x, [expr {$n / 3}] line/s differ:"
-                  Msg Status [join $diff "\n"]
-                  set diff_file [open ../diff_[file rootname [file tail $x]].txt w]
-                  puts $diff_file $diff
-                  close $diff_file
-                } else {
-                  Msg Info "[file tail $x] and $v match."
-                }
+                CompareGeneratedFile $v $generated_vhdl [file normalize $dst/../]
               } else {
                 Msg Warning "VHDL address map file $v not found."
               }
@@ -1705,13 +1805,13 @@ proc CopyIPbusXMLs {proj_dir path dst {xml_version "0.0.0"} {xml_sha "00000000"}
 # Additional information is provided with text separated from the file name with one or more spaces
 #
 # @param[in] proj_dir     project path, path containing the ./list directory containing at least a list file with .peakrdl extention
-# @param[in] path         the path the RDL files are referred to in the list file
+# @param[in] repo_path    the path the RDL files are referred to in the list file
 # @param[in] dst          the path the RDL files must be copied to
 # @param[in] rdl_version  the M.m.p version to be used to replace the __VERSION__ placeholder in any of the RDL files
 # @param[in] rdl_sha      the Git-SHA to be used to replace the __GIT_SHA__ placeholder in any of the RDL files
 # @param[in] use_peakRDL  if set to 1, use the peakRDL sw to generate or check the vhdl files
 # @param[in] generate     if set to 1, tells the function to generate the VHDL decode address files rather than check them
-proc CopySystemRDLs {proj_dir path dst {rdl_version "0.0.0"} {rdl_sha "00000000"} {use_peakRDL 0} {generate 0}} {
+proc CopySystemRDLs {proj_dir repo_path dst {rdl_version "0.0.0"} {rdl_sha "00000000"} {use_peakRDL 0} {generate 0}} {
   puts "entered CopySystemRDLs"
   if {$use_peakRDL == 1} {
     lassign [ExecuteRet python3 -c "from __future__ import print_function; from sys import path;print(':'.join(path\[1:\]))"] ret msg
@@ -1744,151 +1844,43 @@ proc CopySystemRDLs {proj_dir path dst {rdl_version "0.0.0"} {rdl_sha "00000000"
     set can_generate 0
   }
 
-  set rdl_files [glob -nocomplain $proj_dir/list/*.peakrdl]
-  set n_rdl_files [llength $rdl_files]
-  if {$n_rdl_files == 0} {
-    Msg CriticalWarning "No files with .peakrdl extension found in $proj_dir/list."
-    return
-  }
-  set libraries [dict create]
-  set vhdl_dict [dict create]
-
-  foreach rdl_file $rdl_files {
-    lassign [ReadListFile {*}"$rdl_file $path"] l p fs
-    set libraries [MergeDict $l $libraries]
-    set vhdl_dict [MergeDict $p $vhdl_dict]
-  }
+  lassign [GetAddressFiles $proj_dir $repo_path ".peakrdl"] libraries vhdl_dict
 
   set rdlfiles [dict get $libraries "system.rdl"]
+  dict set sub_dict __VERSION__ $rdl_version
+  dict set sub_dict __GIT_SHA__ $rdl_sha
 
-  set rdl_list_error 0
-  foreach rdlfile $rdlfiles {
-    if {[file isdirectory $rdlfile]} {
-      Msg CriticalWarning "Directory $rdlfile listed in rdl list file $list_file. Directories are not supported!"
-      set rdl_list_error 1
-    }
+  set relative_srcs [CopyFileListPlaceHolders $rdlfiles $vhdl_dict $dst $sub_dict]
+  set cnt [llength $relative_srcs]
+  Msg Info "$cnt file/s copied"
 
-    if {[file exists $rdlfile]} {
-      if {[dict exists $vhdl_dict $rdlfile]} {
-        set vhdl_file [file normalize [dict get $vhdl_dict $rdlfile]]
-      } else {
-        set vhdl_file ""
-      }
-      lappend vhdls $vhdl_file
-      set rdlfile [file normalize $rdlfile]
-      Msg Info "Copying $rdlfile to $dst and replacing place holders..."
-      set in [open $rdlfile r]
-
-      if {[regexp \/rdl\/+(.*)$   $rdlfile XXX out_with_dir]} {
-        set out_file $dst/$out_with_dir
-        lappend rdls $out_with_dir
-        Msg Debug "rdl file $rdlfile is contained in a directory called 'rdl', so file will be copied to $out_file"
-        set out_dir [file dir $out_file]
-        if {![file exists $out_dir]} {
-          file mkdir $out_dir
-        }
-      } else {
-        set out_file $dst/[file tail $rdlfile]
-        lappend rdls [file tail $rdlfile]
-      }
-
-      set out [open $out_file w]
-      while {[gets $in line] != -1} {
-        set new_line [regsub {(.*)__VERSION__(.*)} $line "\\1$rdl_version\\2"]
-        set new_line2 [regsub {(.*)__GIT_SHA__(.*)} $new_line "\\1$rdl_sha\\2"]
-        puts $out $new_line2
-      }
-      close $in
-      close $out
-
-    } else {
-      Msg Warning "RDL file $rdlfile not found"
-    }
-  }
-  if {${rdl_list_error}} {
-    Msg Error "Invalid files added to $list_file!"
-  }
-
-  set cnt [llength $rdls]
-  Msg Info "$cnt rdl file/s copied"
-
-
+  ## TODO - check if there is a generate script set for the RDLs
+  # otherwise use fall back option
   if {$can_generate == 1} {
-    set old_dir [pwd]
-    cd $dst
-    foreach x $rdls v $vhdls {
-      if {$v ne ""} {
-        set path_options [split $v]
-        set v [lindex $path_options 0]
-        set plugin [lindex $path_options 1]
-        set options [lrange $path_options 2 end]
-        # file mkdir $plugin
-        # set x [file normalize ../$x]
-        Msg info "Read following settings from .peakrdl for $v: $plugin $options"
+    set gen_files [GenerateRDLs $relative_srcs $vhdl_dict $dst]
 
-        if {[file exists $x]} {
-          set generated_out [file normalize $plugin]
-          puts "peakrdl $plugin -o $generated_out $options $x"
-          lassign [ExecuteRet peakrdl $plugin -o $generated_out {*}$options $x ] status log
-          if {$status == 0} {
-            # note - generated output can either be a single file or a directory
-            if {$generate == 1} {
-              Msg Info "Copying generated VHDL file $generated_out into $v (replacing if necessary)"
-              file copy -force -- $generated_out $v
-            } else {
-              if {[file exists $v]} {
-                if {[file isdirectory $v]} {
-                  foreach out_file [glob -directory $v -type f *] {
-                    set diff [CompareVHDL $generated_out/[file tail $out_file] $out_file]
-                    set n [llength $diff]
-                    if {$n > 0} {
-                      Msg CriticalWarning "$out_file does not correspond to its RDL $generated_out/[file tail $out_file], [expr {$n / 3}] line/s differ:"
-                      if {$n > 15} {
-                        Msg info "see [file normalize ../diff_[file rootname [file tail $x]].txt] for differences"
-                      } else {
-                        Msg Status [join $diff "\n"]
-                        set diff_file [open ../diff_[file rootname [file tail $x]].txt w]
-                        puts $diff_file $diff
-                        close $diff_file
-                      }
-                    } else {
-                      Msg Info "$generated_out/[file tail $out_file] and $out_file match."
-                    }
-                  }
-                } else {
-                  set diff [CompareVHDL $generated_out $v]
-                  set n [llength $diff]
-                  if {$n > 0} {
-                    Msg CriticalWarning "$v does not correspond to its RDL $x, [expr {$n / 3}] line/s differ:"
-                    if {$n > 15} {
-                      Msg info "see [file normalize ../diff_[file rootname [file tail $x]].txt] for differences"
-                    } else {
-                      Msg Status [join $diff "\n"]
-                      set diff_file [open ../diff_[file rootname [file tail $x]].txt w]
-                      puts $diff_file $diff
-                      close $diff_file
-                    }
-                  } else {
-                    Msg Info "[file tail $x] and $v match."
-                  }
-                }
-              } else {
-                Msg Warning "VHDL address map file $v not found."
-              }
+    if {$generate == 1} {
+      foreach gen_file [dict keys $gen_files] {
+        Msg Info "Copying generated VHDL file $dst/$gen_file into $repo_path/$gen_file (replacing if necessary)"
+        mkdir [file dirname $repo_path/$gen_file]
+        file copy -force -- $dst/$gen_file $repo_path/$gen_file
+      }
+    } else {
+      foreach gen_file [dict keys $gen_files] {
+        if {[file exists $repo_path/$gen_file]} {
+          if {[file isdirectory $repo_path/$gen_file]} {
+            foreach out_file [glob -directory $dst/$gen_file -type f *] {
+              CompareGeneratedFile $repo_path/$gen_file/[file tail $out_file] $out_file $dst/diffs
             }
           } else {
-            Msg Warning "Address map generation failed for [file tail $x]: $log"
+            CompareGeneratedFile $generated_out $gen_file $dst/diffs
           }
         } else {
-          Msg Warning "Copied RDL file $x not found."
+          Msg Warning "VHDL address map file $repo_path/$gen_file not found."
         }
-      } else {
-        Msg Info "Skipped verification of [file tail $x] as no VHDL file was specified."
       }
     }
-    cd ..
-    file delete -force address_decode
-    cd $old_dir
+
   }
 }
 

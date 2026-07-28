@@ -1389,8 +1389,13 @@ proc CreateProject {args} {
       ConfigureApps
       AddAppFiles
       if {[file exists $post_file]} {
-        Msg Info "Found post-creation Tcl script $post_file, executing it..."
-        source $post_file
+        if {[string match "vivado_*" [string tolower $ide]]} {
+          Msg Info "Skipping post-creation.tcl in -vitis_only pass for $ide \
+          (already executed during Vivado project creation)."
+        } else {
+          Msg Info "Found post-creation Tcl script $post_file, executing it..."
+          source $post_file
+        }
       }
     }
 

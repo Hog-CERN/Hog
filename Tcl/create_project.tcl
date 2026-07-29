@@ -845,18 +845,33 @@ proc CreatePlatform {platform_name platform_conf {xsa ""}} {
         set proc_hier_name [hsi::get_property HIER_NAME $proc]
         set proc_address_tag [hsi::get_property ADDRESS_TAG $proc]
 
-        if {$proc_address_tag eq ""} {
-          Msg Warning "Processor $proc ($proc_hier_name) does not have an ADDRESS_TAG property set. \
-          This may cause issues when configuring the platform."
+        # updatemem -proc needs the instance path from the MMI (usually HIER_NAME).
+        # ADDRESS_TAG is preferred when present (may be "tag:path"), otherwise fall back
+        set proc_updatemem_path $proc_hier_name
+        if {$proc_address_tag ne ""} {
+          if {[string match "*:*" $proc_address_tag]} {
+            set proc_updatemem_path [lindex [split $proc_address_tag ":"] end]
+          } else {
+            set proc_updatemem_path $proc_address_tag
+          }
         } else {
-          set proc_map_entry "$proc_hier_name $proc_address_tag"
-          puts $proc_map_file "$proc_map_entry\n"
+          Msg Warning "Processor $proc ($proc_hier_name) does not have an ADDRESS_TAG property set. Using HIER_NAME for updatemem."
+        }
+        if {$proc_updatemem_path eq ""} {
+          set proc_updatemem_path $proc
+        }
+
+        # Index by HSI cell name (matches hog.conf proc=) and by hierarchy name
+        puts $proc_map_file "$proc $proc_updatemem_path"
+        if {$proc_hier_name ne "" && $proc_hier_name ne $proc} {
+          puts $proc_map_file "$proc_hier_name $proc_updatemem_path"
         }
       }
     }
 
     hsi::close_hw_design [hsi::current_hw_design]
     close $proc_map_file
+    Msg Info "Wrote soft-processor map to $proc_map_path"
   }
 
 

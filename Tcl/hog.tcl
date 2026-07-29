@@ -6762,15 +6762,23 @@ proc GenerateBootArtifacts {properties repo_path proj_dir bin_dir proj_name desc
     if {[regexp -nocase {microblaze|risc} $app_proc]} {
       Msg Info "Detected soft processor ($app_proc) for $elf_app, updating bitstream memory with ELF file..."
 
-      set proc_map_file [file normalize "$proj_dir/vitis_classic/${plat}.PROC_MAP"]
-      set proc_map [ReadProcMap $proc_map_file]
-      if {[dict size $proc_map] == 0} {
-        Msg Error "Failed to read map from $proc_map_file"
-        continue
+      # updatemem needs the processor instance path as written in the MMI file, which includes
+      # the block design wrapper hierarchy. The platform processor map is only used as a
+      # fallback, since it contains names relative to the block design
+      set proc_cell [GetProcInstPathFromMmi $mmi_file $app_proc]
+      if {$proc_cell eq ""} {
+        set proc_map_file [file normalize "$proj_dir/vitis_classic/${plat}.PROC_MAP"]
+        set proc_map [ReadProcMap $proc_map_file]
+        if {[dict exists $proc_map $app_proc]} {
+          set proc_cell [dict get $proc_map $app_proc]
+          Msg Info "Processor $app_proc not found in $mmi_file, using $proc_map_file instead."
+        } else {
+          Msg Error "Could not determine the instance path of processor '$app_proc' for $elf_app, \
+          neither from $mmi_file nor from $proc_map_file. \
+          Check that proc= in the \[app:$elf_app\] section of hog.conf matches the processor instance name."
+          continue
+        }
       }
-      Msg Info "Found processor map: $proc_map"
-
-      set proc_cell [lindex [split [dict get $proc_map $app_proc] ":"] 1]
       Msg Info "Updating memory at processor cell: $proc_cell"
 
       set update_mem_cmd "updatemem -force -meminfo $mmi_file -data $elf_file -bit $bitfile -proc $proc_cell -out $bitfile"
@@ -6803,6 +6811,50 @@ proc GenerateBootArtifacts {properties repo_path proj_dir bin_dir proj_name desc
       Msg Info "Done generating bootable binary image (.bin) for $plat"
     }
   }
+}
+
+# @brief Returns the processor instance path to be used with updatemem -proc
+#
+# The updatemem -proc option must match the InstPath attribute of one of the Processor entries
+# of the MMI file, which Vivado writes together with the bitstream and which contains the full
+# hierarchical path of the processor.
+#
+# @param[in] mmi_file The path to the MMI file
+# @param[in] app_proc The processor name, as defined with proc= in hog.conf
+# @return The matching instance path, or an empty string if it could not be determined
+proc GetProcInstPathFromMmi {mmi_file app_proc} {
+  if {![file exists $mmi_file]} {
+    Msg Debug "MMI file not found: $mmi_file"
+    return ""
+  }
+
+  set f [open $mmi_file "r"]
+  set mmi_content [read $f]
+  close $f
+
+  set inst_paths [list]
+  foreach {match inst_path} [regexp -all -inline {<Processor[^>]*InstPath\s*=\s*"([^"]+)"} $mmi_content] {
+    if {[lsearch -exact $inst_paths $inst_path] < 0} {
+      lappend inst_paths $inst_path
+    }
+  }
+  Msg Debug "Processor instance paths found in $mmi_file: $inst_paths"
+
+  foreach inst_path $inst_paths {
+    if {[string equal -nocase [file tail $inst_path] $app_proc]} {
+      return $inst_path
+    }
+  }
+
+  # A design with a single processor is unambiguous, even if the names do not match
+  if {[llength $inst_paths] == 1} {
+    set inst_path [lindex $inst_paths 0]
+    Msg Info "Processor $app_proc does not match [file tail $inst_path], \
+    using the only processor found in the MMI file: $inst_path"
+    return $inst_path
+  }
+
+  return ""
 }
 
 # @brief Reads the processor map file

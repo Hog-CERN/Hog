@@ -5694,16 +5694,18 @@ proc GenerateBitstreamOnly {project_name {repo_path .}} {
     return
   }
 
-  set describe [GetHogDescribe [file normalize ./Top/$project_name] $repo_path]
-  set dst_dir [file normalize "$repo_path/bin/$project_name\-$describe"]
+  # The binary file is written in the standard implementation run directory,
+  # the post-bitstream script will then copy it (and all the other artifacts) into the bin directory
+  set run_dir [get_property DIRECTORY [get_runs impl_1]]
+  cd $run_dir
 
-  cd Projects/$project_name/$project_name.runs/impl_1
   Msg Info "Running pre-bitstream..."
   source $repo_path/Hog/Tcl/integrated/pre-bitstream.tcl
 
   Msg Info "Writing bitstream for $project_name..."
   open_run impl_1
-  write_bitstream -force $dst_dir/$project_name-$describe.bit
+  set top_name [GetTopModule]
+  write_bitstream -force [file normalize "$run_dir/$top_name.bit"]
 
   Msg Info "Running post-bitstream..."
   source $repo_path/Hog/Tcl/integrated/post-bitstream.tcl

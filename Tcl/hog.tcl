@@ -2136,32 +2136,56 @@ proc FormatGeneric {generic} {
 proc GenerateBitstream {project_name run_folder {repo_path .} {njobs 4}} {
   Msg Info "Starting write bitstream flow..."
   if {[IsXilinx]} {
+    set run_name "impl_1"
 
     # Check if impl_1 run exists
-    set impl_runs [get_runs -quiet impl_1]
+    set impl_runs [get_runs -quiet $run_name]
     if {[llength $impl_runs] == 0} {
-      Msg Error "Implementation run 'impl_1' does not exist. Please run implementation first."
+      Msg Error "Implementation run '$run_name' does not exist. Please run implementation first."
       return
     }
 
-    if {[IsISE]} {
-      Msg Info "Running pre-bitstream..."
-      source $repo_path/Hog/Tcl/integrated/pre-bitstream.tcl
-    }
+    Msg Info "Running pre-bitstream..."
+    source $repo_path/Hog/Tcl/integrated/pre-bitstream.tcl
 
     Msg Info "Writing bitstream for $project_name..."
-    open_run impl_1
+    open_run $run_name
     set vivado_step [BinaryStepName [get_property PART [current_project]]]
 
+    # would like to use following, but it can trigger a duplicate implementation run due to bug in Vivado
     # reset step is required in case bitstream has been previously generated
-    reset_run impl_1 -from_step $vivado_step
-    launch_runs impl_1 -to_step $vivado_step -jobs $njobs -dir $run_folder
-    wait_on_run impl_1
+    # reset_run $run_name -from_step $vivado_step
+    # launch_runs $run_name -to_step $vivado_step -jobs $njobs -dir $run_folder
+    # wait_on_run $run_name
 
-    if {[IsISE]} {
-      Msg Info "Running post-bitstream..."
-      source $repo_path/Hog/Tcl/integrated/post-bitstream.tcl
+    # instead fetch all settable properties and run correct step:
+    set bitstream_args [get_property {STEPS.WRITE_BITSTREAM.ARGS.MORE OPTIONS} [current_run]]
+    if {[get_property -quiet STEPS.WRITE_BITSTREAM.ARGS.BIN_FILE [current_run]] == 1} {
+      lappend bitstream_args "-bin_file"
     }
+    # following options either break hog flow or output files are skipped
+    # if {[get_property -quiet STEPS.WRITE_BITSTREAM.ARGS.RAW_BITFILE [current_run]] == 1} {
+    #   lappend bitstream_args "-raw_bitfile"
+    # }
+    # if {[get_property -quiet STEPS.WRITE_BITSTREAM.ARGS.MASK_FILE [current_run]] == 1} {
+    #   lappend bitstream_args "-mask_file"
+    # }
+    # if {[get_property -quiet STEPS.WRITE_BITSTREAM.ARGS.NO_BINARY_BITFILE [current_run]] == 1} {
+    #   lappend bitstream_args "-no_binary_bitfile"
+    # }
+    # if {[get_property -quiet STEPS.WRITE_BITSTREAM.ARGS.READBACK_FILE [current_run]] == 1} {
+    #   lappend bitstream_args "-readback_file"
+    # }
+    # if {[get_property -quiet STEPS.WRITE_BITSTREAM.ARGS.LOGIC_LOCATION_FILE [current_run]] == 1} {
+    #   lappend bitstream_args "-logic_location_file"
+    # }
+
+    set bitstream_command "$vivado_step $bitstream_args -force $run_folder/$run_name/$project_name"
+    puts "$bitstream_command"
+    eval $bitstream_command
+
+    Msg Info "Running post-bitstream..."
+    source $repo_path/Hog/Tcl/integrated/post-bitstream.tcl
 
   } elseif {[IsQuartus]} {
     set revision [get_current_revision]

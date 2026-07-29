@@ -18,8 +18,7 @@
 # The post bitstream script copies binary files, reports and other files to the bin directory in your repository.
 # This script is automatically integrated into the Vivado/Quartus workflow by the Create Project script.
 
-# There is a dependancy issue where [pwd] is used to find information about the project in certain cases
-set old_path [pwd]
+# There is a dependancy issue where [pwd] is used to find information about the project if using tcl shell, quartus, or diamond
 set tcl_path [file normalize "[file dirname [info script]]/.."]
 source $tcl_path/hog.tcl
 set repo_path [file normalize "$tcl_path/../../"]
@@ -71,20 +70,13 @@ if {[info exists env(HOG_EXTERNAL_PATH)]} {
 set bin_dir [file normalize "$repo_path/bin"]
 
 if {[IsXilinx]} {
+  set work_path [get_property DIRECTORY [get_runs impl_1]]
   # Binary files are called .bit for ISE and for Vivado unless the chip is a Versal
   set fw_file_ext "bit"
 
-  # Vivado + PlanAhead
-  if {[IsISE]} {
-    # planAhead
-    set work_path [get_property DIRECTORY [get_runs impl_1]]
-  } else {
-    # Vivado
-    set work_path $old_path
-    if {[IsVersal [get_property PART [current_design]]]} {
-      #In Vivado if a Versal chip is used, the main binary file is called .pdi
-      set fw_file_ext "pdi"
-    }
+  if {![IsISE] && [IsVersal [get_property PART [current_design]]]} {
+    #In Vivado if a Versal chip is used, the main binary file is called .pdi
+    set fw_file_ext "pdi"
   }
 
   set main_files [lsort [glob -nocomplain "$work_path/*.$fw_file_ext"]]
@@ -170,7 +162,7 @@ if {[IsXilinx]} {
   set main_file [file normalize "$proj_dir/Implementation0/${proj_name}_Implementation0"]
 } else {
   #tcl shell
-  set work_path $old_path
+  set work_path [pwd]
   set fw_file [file normalize [lindex [glob -nocomplain "$work_path/*.bit"] 0]]
   set proj_name [file tail [file normalize $work_path/../../]]
   set proj_dir [file normalize "$work_path/../.."]

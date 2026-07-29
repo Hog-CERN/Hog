@@ -835,7 +835,8 @@ proc CreatePlatform {platform_name platform_conf {xsa ""}} {
     # Use HSI commands for Vitis Classic
     hsi::open_hw_design $xsa
     set proc_cells [hsi::get_cells -filter { IP_TYPE == "PROCESSOR" }]
-    set proc_map_file [open "$globalSettings::build_dir/vitis_classic/$platform_name.PROC_MAP" "w"]
+    set proc_map_path [file normalize "$globalSettings::build_dir/vitis_classic/$platform_name.PROC_MAP"]
+    set proc_map_file [open $proc_map_path "w"]
 
     foreach proc $proc_cells {
       # If soft processor, save mapping from proc to cell to be used later when updating mem

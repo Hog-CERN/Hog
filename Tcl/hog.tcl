@@ -5685,7 +5685,6 @@ proc GenerateBitstreamOnly {project_name {repo_path .}} {
     return
   }
 
-  OpenProject $project_file $repo_path
 
   # Check if impl_1 run exists
   set impl_runs [get_runs -quiet impl_1]

@@ -6762,6 +6762,7 @@ proc GenerateBootArtifacts {properties repo_path proj_dir bin_dir proj_name desc
     if {[regexp -nocase {microblaze|risc} $app_proc]} {
       Msg Info "Detected soft processor ($app_proc) for $elf_app, updating bitstream memory with ELF file..."
 
+      set proc_map_file [file normalize "$proj_dir/vitis_classic/${plat}.PROC_MAP"]
       set proc_map [ReadProcMap $proc_map_file]
       if {[dict size $proc_map] == 0} {
         Msg Error "Failed to read map from $proc_map_file"

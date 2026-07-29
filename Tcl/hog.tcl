@@ -4596,7 +4596,14 @@ proc HandleIP {what_to_do xci_file ip_path repo_path {gen_dir "."} {force 0}} {
             Msg CriticalWarning "Something went wrong when using regular tar. Error message: $result_tar"
           }
         } else {
-          ::tar::create $file_name.tar $tar_files
+          if {[catch { ::tar::create $file_name.tar $tar_files } err]} {
+            Msg Warning "Tcl built-in tar failed: $err, will try regular tar..."
+            #lassign [ExecuteRet tar --format=pax -cf $file_name.tar {*}$tar_files] ret_tar result_tar
+            lassign [ExecuteRet tar -cf $file_name.tar {*}$tar_files] ret_tar result_tar
+            if {$ret_tar != 0} {
+              Msg CriticalWarning "Something went wrong when using regular tar. Error message: $result_tar"
+            }
+          } 
         }
 
         Msg Info "Copying IP generated files for $xci_name..."

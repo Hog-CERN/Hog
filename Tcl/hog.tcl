@@ -6796,6 +6796,40 @@ proc GenerateBootArtifacts {properties repo_path proj_dir bin_dir proj_name desc
   }
 }
 
+## @brief Generate output products for standalone (non-BD) XCI IPs
+#
+proc GenerateStandaloneXciTargets {} {
+  if {![IsVivado]} {
+    return
+  }
+
+  set xci_files [get_files -quiet *.xci]
+  if {[llength $xci_files] == 0} {
+    return
+  }
+
+  foreach xci $xci_files {
+    # XCIs under a BD are generated together with the block design
+    set norm_xci [string map {\\ /} [file normalize $xci]]
+    if {[string match "*/bd/*" $norm_xci]} {
+      continue
+    }
+
+    # Prefer IS_BD_CONTEXT when available (more reliable than path matching)
+    set ip [lindex [get_ips -quiet -of_objects [get_files -quiet $xci]] 0]
+    if {$ip != "" && [lsearch -exact [list_property [get_ips $ip]] "IS_BD_CONTEXT"] >= 0} {
+      if {[get_property IS_BD_CONTEXT [get_ips $ip]] eq "1"} {
+        continue
+      }
+    }
+
+    Msg Info "Generating targets for standalone IP [file tail $xci]..."
+    if {[catch {generate_target all [get_files $xci]} err]} {
+      Msg CriticalWarning "Failed to generate targets for $xci: $err"
+    }
+  }
+}
+
 # @brief Reads the processor map file
 #
 # @param[in] proc_map_file The path to the processor map file

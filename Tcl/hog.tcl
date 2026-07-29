@@ -90,7 +90,7 @@ proc AddHogFiles {libraries properties filesets} {
       # Get the workspace apps
       if {[IsVitisClassic]} {
         # TODO: "app list -dict" return wrong configuration parameters for Vitis Classic versions older than 2022.1
-        if {[catch {set ws_apps [app list -dict]}]} { set ws_apps "" }
+        if {[catch {set ws_apps [app list -dict]}]} {set ws_apps ""}
       } elseif {[IsVitisUnified]} {
         # Get app list from Vitis Unified workspace using Python script
         set vitis_workspace "$globalSettings::build_dir/vitis_unified"
@@ -311,7 +311,7 @@ proc AddHogFiles {libraries properties filesets} {
           set ref [lindex [regexp -inline {\yscoped_to_ref\s*=\s*([^ ]+)} $props] 1]
           set cell [lindex [regexp -inline {\yscoped_to_cells\s*=\s*([^ ]+)} $props] 1]
           if {[file extension $f] == ".elf" || (([file extension $f] == ".tcl" || [file extension $f] == ".xdc") && $ext == ".con")} {
-            if {[file extension $f] == ".elf" } { dict set reapply_targets $file_obj [dict create ref $ref cell $cell] }
+            if {[file extension $f] == ".elf"} {dict set reapply_targets $file_obj [dict create ref $ref cell $cell]}
             if {$ref != ""} {
               set_property SCOPED_TO_REF $ref $file_obj
             }
@@ -571,7 +571,6 @@ proc AddHogFiles {libraries properties filesets} {
             prj_src add -work $rootlib -simulate_only $f
           }
         }
-
       } elseif {[IsVitisClassic] || [IsVitisUnified]} {
         if {[IsVitisClassic]} {
           # Vitis Classic: import files one by one
@@ -583,7 +582,7 @@ proc AddHogFiles {libraries properties filesets} {
 
               Msg Info "Adding source file $f from lib: $lib to vitis app \[$app_name\]..."
               set proj_f_path [regsub "^$globalSettings::repo_path" $f ""]
-              set proj_f_path [regsub  "[file tail $f]$" $proj_f_path ""]
+              set proj_f_path [regsub "[file tail $f]$" $proj_f_path ""]
               Msg Debug "Project_f_path is $proj_f_path"
 
               importsources -name $app_name -soft-link -path $f -target $proj_f_path
@@ -608,7 +607,7 @@ proc AddHogFiles {libraries properties filesets} {
                 }
                 Msg Debug "File $f matches app $app_name"
                 set proj_f_path [regsub "^$globalSettings::repo_path" $f ""]
-                set proj_f_path [regsub  "[file tail $f]$" $proj_f_path ""]
+                set proj_f_path [regsub "[file tail $f]$" $proj_f_path ""]
                 set proj_f_path [string trimleft $proj_f_path "/"]
                 # Store file info for this app
                 if {![dict exists $app_files_dict $app_name]} {
@@ -665,9 +664,11 @@ proc AddHogFiles {libraries properties filesets} {
           Msg Debug "JSON string: $files_json"
 
           set error_msg "Failed to add files to app $app_name"
-          if {![ExecuteVitisUnifiedCommand $python_script "add_app_files" \
+          if {
+            ![ExecuteVitisUnifiedCommand $python_script "add_app_files" \
               [list $app_name $files_json $vitis_workspace $target_path] \
-              $error_msg]} {
+              $error_msg]
+          } {
             Msg Error "Failed to add files to Vitis Unified app '$app_name'"
             exit 1
           }
@@ -713,18 +714,16 @@ proc ALLOWED_PROPS {} {
     ".udo" [list "nosim"] \
     ".xci" [list "nosynth" "noimpl" "nosim" "locked"] \
     ".xdc" [list "nosynth" "noimpl" "scoped_to_ref" "scoped_to_cells"] \
-    ".tcl" [list "nosynth" "noimpl" "nosim" "scoped_to_ref" "scoped_to_cells" "source" "qsys" "noadd"\
-        "--block-symbol-file" "--clear-output-directory" "--example-design"\
-        "--export-qsys-script" "--family" "--greybox" "--ipxact"\
-        "--jvm-max-heap-size" "--parallel" "--part" "--search-path"\
-        "--simulation" "--synthesis" "--testbench" "--testbench-simulation"\
-        "--upgrade-ip-cores" "--upgrade-variation-file"\
-    ] \
-    ".qsys" [list "nogenerate" "noadd" "--block-symbol-file" "--clear-output-directory" "--example-design"\
-        "--export-qsys-script" "--family" "--greybox" "--ipxact" "--jvm-max-heap-size" "--parallel"\
-        "--part" "--search-path" "--simulation" "--synthesis" "--testbench" "--testbench-simulation"\
-        "--upgrade-ip-cores" "--upgrade-variation-file"\
-    ] \
+    ".tcl" [list "nosynth" "noimpl" "nosim" "scoped_to_ref" "scoped_to_cells" "source" "qsys" "noadd" \
+      "--block-symbol-file" "--clear-output-directory" "--example-design" \
+      "--export-qsys-script" "--family" "--greybox" "--ipxact" \
+      "--jvm-max-heap-size" "--parallel" "--part" "--search-path" \
+      "--simulation" "--synthesis" "--testbench" "--testbench-simulation" \
+      "--upgrade-ip-cores" "--upgrade-variation-file"] \
+    ".qsys" [list "nogenerate" "noadd" "--block-symbol-file" "--clear-output-directory" "--example-design" \
+      "--export-qsys-script" "--family" "--greybox" "--ipxact" "--jvm-max-heap-size" "--parallel" \
+      "--part" "--search-path" "--simulation" "--synthesis" "--testbench" "--testbench-simulation" \
+      "--upgrade-ip-cores" "--upgrade-variation-file"] \
     ".sdc" [list "notiming" "nosynth" "noplace"] \
     ".elf" [list "scoped_to_ref" "scoped_to_cells" "nosim" "noimpl"] \
     ".pdc" [list "nosynth" "noplace"] \
@@ -755,9 +754,8 @@ proc CheckCIEnv {} {
   set essential_vars [dict create \
     "HOG_USER" "NOT defined. This variable is essential for git to work properly. \
     It should be set to the username for your service account (a valid git account)." \
-    "HOG_EMAIL" "NOT defined. This variable is essential for git to work properly. It should be set to your service's account email."\
-    "HOG_PUSH_TOKEN" "NOT defined. This variable is essential for git to work properly. It should be set to a Gitlab/GitHub API token for your service account."
-  ]
+    "HOG_EMAIL" "NOT defined. This variable is essential for git to work properly. It should be set to your service's account email." \
+    "HOG_PUSH_TOKEN" "NOT defined. This variable is essential for git to work properly. It should be set to a Gitlab/GitHub API token for your service account."]
 
   set missing_vars 0
   dict for {var msg} $essential_vars {
@@ -771,15 +769,16 @@ proc CheckCIEnv {} {
 
   set additional_vars [dict create \
     "HOG_CHECK_YAMLREF" "NOT defined. Set this variable to '1' to make CI fail if there is not coherence between the ref and the Hog." \
-    "HOG_TARGET_BRANCH" "NOT defined. Default branch for merge is \"master\""\
+    "HOG_TARGET_BRANCH" "NOT defined. Default branch for merge is \"master\"" \
     "HOG_CREATE_OFFICIAL_RELEASE" "NOT defined. \
-    Set this variable to '1' to make Hog create an official release in GitHub/Gitlab with the binaries generated in the CI."\
+    Set this variable to '1' to make Hog create an official release in GitHub/Gitlab with the binaries generated in the CI." \
     "HOG_USE_DOXYGEN" "NOT defined. \
-    Set this variable to 1 to make Hog-CI run Doxygen and copy the official documentation over when you merge to the official branch."
-  ]
+    Set this variable to 1 to make Hog-CI run Doxygen and copy the official documentation over when you merge to the official branch."]
 
-  if {([info exists env(HOG_OFFICIAL_BIN_EOS_PATH)] && $env(HOG_OFFICIAL_BIN_EOS_PATH) ne "") || \
-  ([info exists env(HOG_OFFICIAL_BIN_PATH)] && [string match "/eos/*" $env(HOG_OFFICIAL_BIN_PATH)])} {
+  if {
+    ([info exists env(HOG_OFFICIAL_BIN_EOS_PATH)] && $env(HOG_OFFICIAL_BIN_EOS_PATH) ne "") ||
+    ([info exists env(HOG_OFFICIAL_BIN_PATH)] && [string match "/eos/*" $env(HOG_OFFICIAL_BIN_PATH)])
+  } {
     Msg Info "Official binary path points to EOS. Checking EOS environment variables for uploads..."
     if {[info exists env(HOG_OFFICIAL_BIN_PATH)]} {
       Msg CriticalWarning "Variable HOG_OFFICIAL_BIN_EOS_PATH is defined. \
@@ -808,13 +807,12 @@ proc CheckCIEnv {} {
     } else {
       Msg Info "EOS_MGM_URL environment variable is defined and will be used as MGM URL for EOS uploads."
     }
-  } elseif {[info exists env(HOG_OFFICIAL_BIN_PATH)] } {
+  } elseif {[info exists env(HOG_OFFICIAL_BIN_PATH)]} {
     Msg Info "Variable HOG_OFFICIAL_BIN_PATH is defined. Hog will copy the official binary files to the path defined in this variable. \
     Please make sure this path is correct and has enough space to store the binaries."
   } else {
     Msg Info "No official binary path defined. Hog will not be able to upload binaries."
   }
-
 
 
   if {$missing_vars} {
@@ -831,32 +829,30 @@ proc CheckEnv {project_name ide} {
   set has_error 0
   set essential_commands [dict create "git" "--version" "$ide" "-version"]
   set additional_commands [dict create \
-    "vsim" "-version"\
-    "eos" ""\
-    "kinit" ""\
-    "rclone" "--version"
-  ]
+    "vsim" "-version" \
+    "eos" "" \
+    "kinit" "" \
+    "rclone" "--version"]
 
   set additional_vars [dict create \
-    "HOG_PATH" "NOT defined. Hog might work as long as all the necessary executable are in the PATH variable."\
+    "HOG_PATH" "NOT defined. Hog might work as long as all the necessary executable are in the PATH variable." \
     "HOG_XIL_LICENSE" "NOT defined. If this variable is not set to the license servers separated by comas, \
-    you need some alternative way of getting your Xilinx license (for example a license file on the machine)."\
+    you need some alternative way of getting your Xilinx license (for example a license file on the machine)." \
     "LM_LICENSE_FILE" "NOT defined. This variable should be set the Quartus/Libero license servers separated by semicolon. \
-    If not, you need an alternative way of getting your Quartus/Libero license."\
-    "HOG_LD_LIBRARY_PATH" "NOT defined. Hog might work as long as all the necessary library are found."\
-    "HOG_SIMULATION_LIB_PATH" "NOT defined. Hog-CI will not be able to run simulations using third-party simulators."\
+    If not, you need an alternative way of getting your Quartus/Libero license." \
+    "HOG_LD_LIBRARY_PATH" "NOT defined. Hog might work as long as all the necessary library are found." \
+    "HOG_SIMULATION_LIB_PATH" "NOT defined. Hog-CI will not be able to run simulations using third-party simulators." \
     "HOG_CHECK_PROJVER" "NOT defined. Hog will NOT check the CI project version. \
     Set this variable to '1' if you want Hog to check the CI project version before creating the HDL project in Create_Project stage. \
     If the project has not been changed with respect to the target branch, the CI will skip this project" \
     "HOG_CHECK_SYNTAX" "NOT defined. Hog will NOT check the syntax. \
     Set this variable to '1' if you want Hog to check the syntax after creating the HDL project in Create_Project stage." \
     "HOG_NO_BITSTREAM" "NOT defined. Hog-CI will run the implementation up to the write_bitstream stage and create bit files." \
-    "HOG_NO_RESET_BD" "NOT defined or not equal to 1. Hog will reset .bd files (if any) before starting synthesis."\
+    "HOG_NO_RESET_BD" "NOT defined or not equal to 1. Hog will reset .bd files (if any) before starting synthesis." \
     "HOG_IP_PATH" "NOT defined. Hog-CI will NOT use an EOS/LOCAL IP repository to speed up the IP synthesis." \
-    "HOG_RESET_FILES" "NOT defined. Hog-CI will NOT reset any files."\
-    "HOG_NJOBS" "NOT defined. Hog-CI will build IPs with default number of jobs (4)."\
-    "HOG_SAVE_DCP" "NOT defined. Set this variable to 1, 2 or 3 to make Hog-CI save the run checkpoint DCP files (Vivado only) in the artifacts.\nCheck the official documentation for more details. https://cern.ch/hog"\
-  ]
+    "HOG_RESET_FILES" "NOT defined. Hog-CI will NOT reset any files." \
+    "HOG_NJOBS" "NOT defined. Hog-CI will build IPs with default number of jobs (4)." \
+    "HOG_SAVE_DCP" "NOT defined. Set this variable to 1, 2 or 3 to make Hog-CI save the run checkpoint DCP files (Vivado only) in the artifacts.\nCheck the official documentation for more details. https://cern.ch/hog"]
   Msg Info "Checking environment to run Hog-CI for project $project_name with IDE $ide..."
 
   Msg Info "Checking essential commands..."
@@ -910,8 +906,6 @@ proc CheckEnv {project_name ide} {
     Msg Error "One or more essential environment variables are missing. Hog-CI cannot run!"
     exit 1
   }
-
-
 }
 
 
@@ -923,13 +917,13 @@ proc CheckProjVer {repo_path project {sim 0} {ext_path ""}} {
   }
 
   set ci_run 0
-  if {[info exists env(HOG_PUSH_TOKEN)] && [info exist env(CI_PROJECT_ID)] && [info exist env(CI_API_V4_URL)] } {
+  if {[info exists env(HOG_PUSH_TOKEN)] && [info exist env(CI_PROJECT_ID)] && [info exist env(CI_API_V4_URL)]} {
     set token $env(HOG_PUSH_TOKEN)
     set api_url $env(CI_API_V4_URL)
     set project_id $env(CI_PROJECT_ID)
     set ci_run 1
     set curl_cmd [GetCurl $api_url]
-    if {[info exist env(CI_JOB_NAME)] && $env(CI_JOB_NAME) == "check_branch_state" } {
+    if {[info exist env(CI_JOB_NAME)] && $env(CI_JOB_NAME) == "check_branch_state"} {
       # Do not download artifacts from previous pipelines in check_branch_state job...
       set ci_run 0
     }
@@ -1190,7 +1184,6 @@ proc CheckExtraFiles {libraries constraints simlibraries} {
 #
 # @param[in] repo_path The main path of the git repository
 proc CheckLatestHogRelease {{repo_path .}} {
-
   if {[info exists ::env(CHECK_FOR_HOG_UPDATES)] && $::env(CHECK_FOR_HOG_UPDATES) eq "0"} {
     return
   }
@@ -1204,7 +1197,7 @@ proc CheckLatestHogRelease {{repo_path .}} {
         set mainDict [dict get $PROPERTIES main]
         if {[dict exists $mainDict CHECK_FOR_HOG_UPDATES]} {
           if {[dict get $mainDict CHECK_FOR_HOG_UPDATES] == 0} {
-              return
+            return
           }
         }
       }
@@ -1301,10 +1294,12 @@ proc CheckYmlRef {repo_path allow_failure} {
     } else {
       dict for {dictKey dictValue} $yamlDict {
         #looking for Hog include in .gitlab-ci.yml
-        if {"$dictKey" == "include" && (
-          [lsearch [split $dictValue " {}"] "/hog.yml"] != "-1" ||
-          [lsearch [split $dictValue " {}"] "/hog-dynamic.yml"] != "-1"
-        )} {
+        if {
+          "$dictKey" == "include" && (
+            [lsearch [split $dictValue " {}"] "/hog.yml"] != "-1" ||
+            [lsearch [split $dictValue " {}"] "/hog-dynamic.yml"] != "-1"
+          )
+        } {
           set YML_REF [lindex [split $dictValue " {}"] [expr {[lsearch -dictionary [split $dictValue " {}"] "ref"] + 1}]]
           set YML_NAME [lindex [split $dictValue " {}"] [expr {[lsearch -dictionary [split $dictValue " {}"] "file"] + 1}]]
         }
@@ -1644,17 +1639,17 @@ proc CopyIPbusXMLs {proj_dir path dst {xml_version "0.0.0"} {xml_sha "00000000"}
       Msg Info "Copying $xmlfile to $dst and replacing place holders..."
       set in [open $xmlfile r]
 
-      if {[regexp \/xml\/+(.*)$   $xmlfile XXX out_with_dir]} {
-	set out_file $dst/$out_with_dir
-	lappend xmls $out_with_dir
-	Msg Debug "xml file $xmlfile is contained in a directory called 'xml', so file will be copied to $out_file"
-	set out_dir [file dir $out_file]
-	if {![file exists $out_dir]} {
-	  file mkdir $out_dir
-	}
+      if {[regexp \/xml\/+(.*)$ $xmlfile XXX out_with_dir]} {
+        set out_file $dst/$out_with_dir
+        lappend xmls $out_with_dir
+        Msg Debug "xml file $xmlfile is contained in a directory called 'xml', so file will be copied to $out_file"
+        set out_dir [file dir $out_file]
+        if {![file exists $out_dir]} {
+          file mkdir $out_dir
+        }
       } else {
-	set out_file $dst/[file tail $xmlfile]
-	lappend xmls [file tail $xmlfile]
+        set out_file $dst/[file tail $xmlfile]
+        lappend xmls [file tail $xmlfile]
       }
 
       set out [open $out_file w]
@@ -1665,7 +1660,6 @@ proc CopyIPbusXMLs {proj_dir path dst {xml_version "0.0.0"} {xml_sha "00000000"}
       }
       close $in
       close $out
-
     } else {
       Msg Warning "XML file $xmlfile not found"
     }
@@ -2203,8 +2197,7 @@ proc GenerateQsysSystem {qsysFile commandOpts} {
     #Add generated IPs to project
     set qsysIPFileList [concat \
       [glob -nocomplain -directory $qsysIPDir -types f *.ip *.qip] \
-      [glob -nocomplain -directory "$qsysIPDir/synthesis" -types f *.ip *.qip *.vhd *.vhdl] \
-    ]
+      [glob -nocomplain -directory "$qsysIPDir/synthesis" -types f *.ip *.qip *.vhd *.vhdl]]
     foreach qsysIPFile $qsysIPFileList {
       if {[file exists $qsysIPFile] != 0} {
         set qsysIPFileType [FindFileType $qsysIPFile]
@@ -2321,7 +2314,6 @@ proc GetCustomCommands {parameters {directory .}} {
   }
 
   foreach file $commands_files {
-
     #Msg Info "do compile libe? $do_compile_lib"
     set custom_cmd [LoadCustomCommandFile $file $parameters]
 
@@ -2341,9 +2333,8 @@ proc GetCustomCommands {parameters {directory .}} {
     }
 
 
-
-    set custom_cmd_name [ string toupper $custom_cmd_name ]
-    dict set commands_dict  $custom_cmd_name $custom_cmd
+    set custom_cmd_name [string toupper $custom_cmd_name]
+    dict set commands_dict $custom_cmd_name $custom_cmd
   }
 
   return $commands_dict
@@ -2392,10 +2383,10 @@ proc SanitizeCustomCommand {cmdDict file parameters} {
   }
 
 
-   set hog_parameters {}
-   foreach p $parameters {
-     lappend hog_parameters [lindex $p 0]
-   }
+  set hog_parameters {}
+  foreach p $parameters {
+    lappend hog_parameters [lindex $p 0]
+  }
 
   # OPTIONS
   set hog_options {}
@@ -2409,21 +2400,20 @@ proc SanitizeCustomCommand {cmdDict file parameters} {
       set found 0
       foreach p $parameters {
         set hog_parameter [lindex $p 0]
-        if { $item eq $hog_parameter } {
-            lappend hog_options $p
-            set found 1
-            break
+        if {$item eq $hog_parameter} {
+          lappend hog_options $p
+          set found 1
+          break
         }
       }
       if {!$found} {
-          Msg Warning "Custom command '$name' in $file: option '$item' not found in Hog parameters. Skipping."
-     }
+        Msg Warning "Custom command '$name' in $file: option '$item' not found in Hog parameters. Skipping."
+      }
     }
     dict set cmdDict OPTIONS $hog_options
   } else {
     dict set cmdDict CUSTOM_OPTIONS {}
   }
-
 
 
   # CUSTOM_OPTIONS
@@ -2434,7 +2424,6 @@ proc SanitizeCustomCommand {cmdDict file parameters} {
       set raw_opts {}
     }
     foreach item $raw_opts {
-
       if {[llength $item] != 2 && [llength $item] != 3} {
         Msg Error "Bad custom option: \[$item\]. Custom command '$name' in $file: \
           each CUSTOM_OPTIONS entry must be {option \"help\"} for flags \
@@ -2449,9 +2438,9 @@ proc SanitizeCustomCommand {cmdDict file parameters} {
         lassign $item opt def help
       }
 
-      if { [IsInList $opt $hog_parameters] == 1 } {
-          Msg Warning "Custom command '$name' in $file: option '$opt' already defined in Hog parameters. Skipping."
-          continue
+      if {[IsInList $opt $hog_parameters] == 1} {
+        Msg Warning "Custom command '$name' in $file: option '$opt' already defined in Hog parameters. Skipping."
+        continue
       }
 
 
@@ -2839,7 +2828,7 @@ proc GetHogFiles {args} {
     set hls_configs [GetHlsConfigsFromProjConf $proj_conf $repo_path]
     set already_tracked [dict create]
     dict for {libname libfiles} $libraries {
-      foreach lf $libfiles { dict set already_tracked [file normalize $lf] 1 }
+      foreach lf $libfiles {dict set already_tracked [file normalize $lf] 1}
     }
     dict for {comp_name cfg_abs} $hls_configs {
       if {[dict exists $already_tracked $cfg_abs]} {
@@ -2854,7 +2843,7 @@ proc GetHogFiles {args} {
       if {$print_log == 1} {
         Msg Status "\nhog.conf \[hls:$comp_name\] (auto-discovered)"
         set rel_cfg [Relative $repo_path $cfg_abs 1]
-        if {$rel_cfg eq ""} { set rel_cfg $cfg_abs }
+        if {$rel_cfg eq ""} {set rel_cfg $cfg_abs}
         if {[llength $hls_extras] == 0} {
           Msg Status "└── $rel_cfg"
         } else {
@@ -2866,13 +2855,13 @@ proc GetHogFiles {args} {
       set i 0
       foreach hls_extra $hls_extras {
         incr i
-        if {[dict exists $already_tracked $hls_extra]} { continue }
+        if {[dict exists $already_tracked $hls_extra]} {continue}
         dict lappend libraries $lib_name $hls_extra
         dict set already_tracked $hls_extra 1
         if {$print_log == 1} {
-          if {$i == $n_extras} { set pad "└──" } else { set pad "├──" }
+          if {$i == $n_extras} {set pad "└──"} else {set pad "├──"}
           set rel_extra [Relative [file dirname $cfg_abs] $hls_extra 1]
-          if {$rel_extra eq ""} { set rel_extra $hls_extra }
+          if {$rel_extra eq ""} {set rel_extra $hls_extra}
           Msg Status "      $pad $rel_extra"
         }
       }
@@ -3121,8 +3110,8 @@ proc GetOptions {argv parameters} {
       set option [string trimleft $arg "-"]
       incr index
       lappend option_list $arg
-      if {[lsearch -regex $param_list "$option\[.arg]?"] >= 0 } {
-        if {[lsearch -regex $param_list "$option\[.arg]"] >= 0 } {
+      if {[lsearch -regex $param_list "$option\[.arg]?"] >= 0} {
+        if {[lsearch -regex $param_list "$option\[.arg]"] >= 0} {
           lappend option_list [lindex $argv $index]
           incr index
         }
@@ -3506,7 +3495,7 @@ proc GetProjectVersion {proj_dir repo_path {ext_path ""} {sim 0}} {
   cd $proj_dir
 
   #The latest version the repository
-  lassign [GitRet {describe --tags --abbrev=0 --match "v*"} ] ret result
+  lassign [GitRet {describe --tags --abbrev=0 --match "v*"}] ret result
   if {$ret != 0} {
     Msg CriticalWarning "No Hog versioning tags (v*) in repo"
     return -1
@@ -3850,10 +3839,10 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
   set top_hash [format %+07s $top_hash]
   set cons_hash [format %+07s $cons_hash]
   return [list $global_commit $global_version \
-               $hog_hash $hog_ver $top_hash $top_ver \
-               $libs $hashes $vers $cons_ver $cons_hash \
-               $ext_names $ext_hashes $xml_hash $xml_ver \
-               $user_ip_repos $user_ip_repo_hashes $user_ip_repo_vers]
+    $hog_hash $hog_ver $top_hash $top_ver \
+    $libs $hashes $vers $cons_ver $cons_hash \
+    $ext_names $ext_hashes $xml_hash $xml_ver \
+    $user_ip_repos $user_ip_repo_hashes $user_ip_repo_vers]
 }
 
 ## @brief Get git SHA of a subset of list file
@@ -3985,7 +3974,7 @@ proc GetVer {path {force_develop 0}} {
 #
 # @return  a list: the git SHA, the version in hex format
 #
-proc GetVerFromSHA {SHA repo_path {force_develop 0} } {
+proc GetVerFromSHA {SHA repo_path {force_develop 0}} {
   if {$SHA eq ""} {
     Msg CriticalWarning "Empty SHA found"
     set ver "v0.0.0"
@@ -4068,7 +4057,7 @@ proc GetVerFromSHA {SHA repo_path {force_develop 0} } {
           }
 
           if {[string match "HEAD" $branch_name]} {
-	    Msg Debug "Detached HEAD detected - attempting to find branch name"
+            Msg Debug "Detached HEAD detected - attempting to find branch name"
 
             # if the branch_name is HEAD (not a legal branch name btw)
             # then the branch has been checked out in a detached head state
@@ -4095,9 +4084,9 @@ proc GetVerFromSHA {SHA repo_path {force_develop 0} } {
 
             if {!$match_count == 1} {
               set branch_name $prev_branch_name
-	      Msg Debug "Branch name not found. Using $branch_name"
+              Msg Debug "Branch name not found. Using $branch_name"
             } else {
-	      Msg Debug "Branch name found: $branch_name"
+              Msg Debug "Branch name found: $branch_name"
             }
           }
 
@@ -4412,8 +4401,8 @@ proc GitVersion {target_version} {
 ## @brief Copy IP generated files from/to a remote o local directory (possibly EOS)
 #
 # @param[in] what_to_do: the action you want to perform, either
-  # "push", if you want to copy the local IP synth result to the remote directory
-  # "pull" if you want to copy the files from thre remote directory to your local repository
+# "push", if you want to copy the local IP synth result to the remote directory
+# "pull" if you want to copy the files from thre remote directory to your local repository
 # @param[in] xci_file: the .xci file of the IP you want to handle
 # @param[in] ip_path: the path of the directory you want the IP to be saved (possibly EOS)
 # @param[in] repo_path: the main path of your repository
@@ -4587,28 +4576,28 @@ proc HandleIP {what_to_do xci_file ip_path repo_path {gen_dir "."} {force 0}} {
         Msg Info "Creating local archive with IP generated files..."
         set tar_files []
 
-	set at_least_one_long 0
+        set at_least_one_long 0
         foreach f $ip_gen_files {
-	  set new_f "[Relative [file normalize $repo_path] $f]"
-	  set len [string length $new_f]
-	  if { $len > 254} {
-	    Msg Warning "One file in $xci_ip_name is too long ($len chars): $new_f"
-	    set at_least_one_long 1
-	  }
-	  lappend tar_files $new_f
+          set new_f "[Relative [file normalize $repo_path] $f]"
+          set len [string length $new_f]
+          if {$len > 254} {
+            Msg Warning "One file in $xci_ip_name is too long ($len chars): $new_f"
+            set at_least_one_long 1
+          }
+          lappend tar_files $new_f
         }
 
         Msg Debug "Tar files: $tar_files"
-	if {$at_least_one_long == 1} {
-	  Msg Warning "Using regular tar, please cross your fingers..."
-	  #lassign [ExecuteRet tar --format=pax -cf $file_name.tar {*}$tar_files] ret_tar result_tar
-	  lassign [ExecuteRet tar -cf $file_name.tar {*}$tar_files] ret_tar result_tar
-	  if {$ret_tar != 0} {
-	    Msg CriticalWarning "Something went wrong when using regular tar. Error message: $result_tar"
-	  }
-	} else {
-	  ::tar::create $file_name.tar $tar_files
-	}
+        if {$at_least_one_long == 1} {
+          Msg Warning "Using regular tar, please cross your fingers..."
+          #lassign [ExecuteRet tar --format=pax -cf $file_name.tar {*}$tar_files] ret_tar result_tar
+          lassign [ExecuteRet tar -cf $file_name.tar {*}$tar_files] ret_tar result_tar
+          if {$ret_tar != 0} {
+            Msg CriticalWarning "Something went wrong when using regular tar. Error message: $result_tar"
+          }
+        } else {
+          ::tar::create $file_name.tar $tar_files
+        }
 
         Msg Info "Copying IP generated files for $xci_name..."
         if {$on_rclone == 1} {
@@ -4819,13 +4808,12 @@ proc InitLauncher {script tcl_path parameters commands argv {custom_commands ""}
   }
 
   # Check if HogEnv.conf exists and parse it
-  if {[file exists [Hog::LoggerLib::GetUserFilePath "HogEnv.conf"]] } {
+  if {[file exists [Hog::LoggerLib::GetUserFilePath "HogEnv.conf"]]} {
     Msg Debug "HogEnv.conf found"
-    set loggerdict [Hog::LoggerLib::ParseTOML [Hog::LoggerLib::GetUserFilePath "HogEnv.conf" ]]
+    set loggerdict [Hog::LoggerLib::ParseTOML [Hog::LoggerLib::GetUserFilePath "HogEnv.conf"]]
     set HogEnvDict [Hog::LoggerLib::GetTOMLDict]
     Hog::LoggerLib::PrintTOMLDict $HogEnvDict
   }
-
 
 
   if {[catch {package require cmdline} ERROR]} {
@@ -4913,7 +4901,7 @@ proc InitLauncher {script tcl_path parameters commands argv {custom_commands ""}
             if {$def ne ""} {
               puts "    $help (default: $def)"
             } else {
-            puts "     $help"
+              puts "     $help"
             }
           } else {
             Msg Warning "Custom option spec has invalid arity (expected 2 or 3): $custom_option"
@@ -4999,7 +4987,7 @@ proc InitLauncher {script tcl_path parameters commands argv {custom_commands ""}
       set command "$cmd $before_tcl_script$script$after_tcl_script$argv$end_marker"
     } else {
       if {$custom_command ne ""} {
-        if { [dict exists $custom_commands $directive IDE] } {
+        if {[dict exists $custom_commands $directive IDE]} {
           lassign [GetIDECommand "" [dict get $custom_commands $directive IDE]] cmd before_tcl_script after_tcl_script end_marker
           Msg Info "Custom command: $custom_command uses $cmd IDE"
           set command "$cmd $before_tcl_script$script$after_tcl_script$argv$end_marker"
@@ -5355,7 +5343,6 @@ proc ImportGHDL {project_name repo_path simset_name simset_dict {ext_path ""}} {
     }
   }
   PrintFileContent $import_log
-
 }
 
 proc LaunchGHDL {project_name repo_path simset_name simset_dict {ext_path ""}} {
@@ -5422,10 +5409,10 @@ proc LaunchImplementation {reset do_create run_folder project_name {repo_path .}
     }
 
     # check for and remove any previous timing results in the folder
-    if { [file exist "$run_folder/timing_ok.txt"] } {
+    if {[file exist "$run_folder/timing_ok.txt"]} {
       file delete "$run_folder/timing_ok.txt"
     }
-    if { [file exist "$run_folder/timing_error.txt"] } {
+    if {[file exist "$run_folder/timing_error.txt"]} {
       file delete "$run_folder/timing_error.txt"
     }
 
@@ -5877,7 +5864,7 @@ proc LaunchSimulation {project_name lib_path simsets {repo_path .} {scripts_only
         if {$compile_only == 1} {
           continue
         }
-        if {[file exists "./elaborate.sh"] } {
+        if {[file exists "./elaborate.sh"]} {
           set cmd ./elaborate.sh
           Msg Info " ************* Elaborating: $s  ************* "
           lassign [ExecuteRet $cmd] ret log
@@ -6117,17 +6104,17 @@ proc LaunchVitisBuild {project_name {repo_path .} {stage "presynth"}} {
       }
     }
   } elseif {[IsVitisClassic]} {
-    if {[catch {set ws_apps [app list -dict]}]} { set ws_apps "" }
+    if {[catch {set ws_apps [app list -dict]}]} {set ws_apps ""}
   } else {
     Msg Error "Impossible condition. You need to run this in a Vitis Unified or Vitis Classic IDE."
     exit 1
   }
 
   # Get repository versions
-  lassign [GetRepoVersions [file normalize $repo_path/Top/$proj_name] $repo_path ] commit version  hog_hash hog_ver  top_hash top_ver \
-           libs hashes vers  cons_ver cons_hash  ext_names ext_hashes  xml_hash xml_ver user_ip_repos user_ip_hashes user_ip_vers
+  lassign [GetRepoVersions [file normalize $repo_path/Top/$proj_name] $repo_path] commit version hog_hash hog_ver top_hash top_ver \
+    libs hashes vers cons_ver cons_hash ext_names ext_hashes xml_hash xml_ver user_ip_repos user_ip_hashes user_ip_vers
   set this_commit [GetSHA]
-  if {$commit == 0 } { set commit $this_commit }
+  if {$commit == 0} {set commit $this_commit}
   set flavour [GetProjectFlavour $project_name]
   lassign [GetDateAndTime $commit] date timee
 
@@ -6140,7 +6127,7 @@ proc LaunchVitisBuild {project_name {repo_path .} {stage "presynth"}} {
   }
 
   WriteGenerics "vitisbuild" $repo_path $proj_name $date $timee $commit $version $top_hash $top_ver $hog_hash $hog_ver $cons_ver $cons_hash $libs \
-                             $vers $hashes $ext_names $ext_hashes $user_ip_repos $user_ip_vers $user_ip_hashes $flavour $xml_ver $xml_hash
+    $vers $hashes $ext_names $ext_hashes $user_ip_repos $user_ip_vers $user_ip_hashes $flavour $xml_ver $xml_hash
 
   # Build apps
   foreach app_name [dict keys $ws_apps] {
@@ -6266,18 +6253,22 @@ proc LaunchHlsBuild {project_name {repo_path .}} {
 
     # C synthesis
     Msg Info "Running C synthesis for HLS component '$component_name'..."
-    if {![ExecuteVitisUnifiedCommand $python_script "synthesis" \
+    if {
+      ![ExecuteVitisUnifiedCommand $python_script "synthesis" \
         [list $component_name $cfg_file $hls_work_dir] \
-        "Failed to run C synthesis for $component_name"]} {
+        "Failed to run C synthesis for $component_name"]
+    } {
       Msg Error "C synthesis failed for HLS component '$component_name'"
       continue
     }
 
     # Implementation
     Msg Info "Running implementation for HLS component '$component_name'..."
-    if {![ExecuteVitisUnifiedCommand $python_script "impl" \
+    if {
+      ![ExecuteVitisUnifiedCommand $python_script "impl" \
         [list $component_name $cfg_file $hls_work_dir] \
-        "Failed to run implementation for $component_name"]} {
+        "Failed to run implementation for $component_name"]
+    } {
       Msg Error "Implementation failed for HLS component '$component_name'"
       continue
     }
@@ -6292,9 +6283,11 @@ proc LaunchHlsBuild {project_name {repo_path .}} {
     if {$vhdl_output ne ""} {
       set vhdl_output_dir [file normalize "$repo_path/$vhdl_output"]
       Msg Info "Exporting VHDL for '$component_name' to $vhdl_output_dir..."
-      if {![ExecuteVitisUnifiedCommand $python_script "export_rtl" \
+      if {
+        ![ExecuteVitisUnifiedCommand $python_script "export_rtl" \
           [list $component_name $hls_work_dir $vhdl_output_dir vhdl] \
-          "Failed to export VHDL for $component_name"]} {
+          "Failed to export VHDL for $component_name"]
+      } {
         Msg Warning "Could not export VHDL for HLS component '$component_name'"
       }
     }
@@ -6309,9 +6302,11 @@ proc LaunchHlsBuild {project_name {repo_path .}} {
     if {$verilog_output ne ""} {
       set verilog_output_dir [file normalize "$repo_path/$verilog_output"]
       Msg Info "Exporting Verilog for '$component_name' to $verilog_output_dir..."
-      if {![ExecuteVitisUnifiedCommand $python_script "export_rtl" \
+      if {
+        ![ExecuteVitisUnifiedCommand $python_script "export_rtl" \
           [list $component_name $hls_work_dir $verilog_output_dir verilog] \
-          "Failed to export Verilog for $component_name"]} {
+          "Failed to export Verilog for $component_name"]
+      } {
         Msg Warning "Could not export Verilog for HLS component '$component_name'"
       }
     }
@@ -6326,9 +6321,11 @@ proc LaunchHlsBuild {project_name {repo_path .}} {
     if {$ip_output ne ""} {
       set ip_output_dir [file normalize "$repo_path/$ip_output"]
       Msg Info "Exporting IP catalog for '$component_name' to $ip_output_dir..."
-      if {![ExecuteVitisUnifiedCommand $python_script "export_ip" \
+      if {
+        ![ExecuteVitisUnifiedCommand $python_script "export_ip" \
           [list $component_name $hls_work_dir $ip_output_dir] \
-          "Failed to export IP for $component_name"]} {
+          "Failed to export IP for $component_name"]
+      } {
         Msg Error "Could not export IP for HLS component '$component_name'. Make sure package.output.format=ip_catalog is set in hls_config.cfg."
       }
     }
@@ -6352,9 +6349,11 @@ proc LaunchHlsBuild {project_name {repo_path .}} {
     }
 
     Msg Info "Collecting HLS reports for component '$component_name'..."
-    if {![ExecuteVitisUnifiedCommand $python_script "collect_reports" \
+    if {
+      ![ExecuteVitisUnifiedCommand $python_script "collect_reports" \
         [list $component_name $hls_work_dir $hls_out_dir] \
-        "Failed to collect HLS reports for $component_name"]} {
+        "Failed to collect HLS reports for $component_name"]
+    } {
       Msg Warning "No reports found for HLS component '$component_name'"
     }
 
@@ -6363,9 +6362,11 @@ proc LaunchHlsBuild {project_name {repo_path .}} {
     # Vivado convention so the existing CI logic (release notes assembly and
     # timing-failure detection) works for HLS components too
     Msg Info "Generating HLS release-notes summary for component '$component_name'..."
-    if {![ExecuteVitisUnifiedCommand $python_script "release_notes" \
+    if {
+      ![ExecuteVitisUnifiedCommand $python_script "release_notes" \
         [list $component_name $hls_work_dir $hls_out_dir] \
-        "Failed to generate HLS summary for $component_name"]} {
+        "Failed to generate HLS summary for $component_name"]
+    } {
       Msg Warning "Could not generate HLS summary for component '$component_name'"
     }
 
@@ -6377,30 +6378,32 @@ proc LaunchHlsBuild {project_name {repo_path .}} {
   if {!$is_mixed_project && [info exists dst_dir] && [file isdirectory $dst_dir]} {
     set versions_file [file normalize "$dst_dir/versions.txt"]
     Msg Info "Generating top-level versions.txt for pure-HLS project at $versions_file"
-    if {[catch {
-      lassign [GetRepoVersions [file normalize $repo_path/Top/$project_name] $repo_path] \
-        commit version hog_hash hog_ver top_hash top_ver \
-        libs hashes vers cons_ver cons_hash \
-        ext_names ext_hashes xml_hash xml_ver \
-        user_ip_repos user_ip_hashes user_ip_vers
-      if {$commit == 0} { set commit [GetSHA] }
-      set version_str [HexVersionToString $version]
-      set hog_ver_str [HexVersionToString $hog_ver]
-      set top_ver_str [HexVersionToString $top_ver]
-      set fh [open $versions_file "w"]
-      puts $fh "## $proj_name Version Table\n"
-      puts $fh "| **File set** | **Commit SHA** | **Version** |"
-      puts $fh "| --- | --- | --- |"
-      puts $fh "| Global | $commit | $version_str |"
-      puts $fh "| Top Directory | $top_hash | $top_ver_str |"
-      puts $fh "| Hog | $hog_hash | $hog_ver_str |"
-      foreach l $libs v $vers h $hashes {
-        set v_str [HexVersionToString $v]
-        puts $fh "| **Lib:** $l | $h | $v_str |"
-      }
-      puts $fh "\n"
-      close $fh
-    } err]} {
+    if {
+      [catch {
+        lassign [GetRepoVersions [file normalize $repo_path/Top/$project_name] $repo_path] \
+          commit version hog_hash hog_ver top_hash top_ver \
+          libs hashes vers cons_ver cons_hash \
+          ext_names ext_hashes xml_hash xml_ver \
+          user_ip_repos user_ip_hashes user_ip_vers
+        if {$commit == 0} {set commit [GetSHA]}
+        set version_str [HexVersionToString $version]
+        set hog_ver_str [HexVersionToString $hog_ver]
+        set top_ver_str [HexVersionToString $top_ver]
+        set fh [open $versions_file "w"]
+        puts $fh "## $proj_name Version Table\n"
+        puts $fh "| **File set** | **Commit SHA** | **Version** |"
+        puts $fh "| --- | --- | --- |"
+        puts $fh "| Global | $commit | $version_str |"
+        puts $fh "| Top Directory | $top_hash | $top_ver_str |"
+        puts $fh "| Hog | $hog_hash | $hog_ver_str |"
+        foreach l $libs v $vers h $hashes {
+          set v_str [HexVersionToString $v]
+          puts $fh "| **Lib:** $l | $h | $v_str |"
+        }
+        puts $fh "\n"
+        close $fh
+      } err]
+    } {
       Msg Warning "Could not generate top-level versions.txt for pure-HLS project: $err"
     }
   }
@@ -6495,7 +6498,7 @@ proc LaunchHlsSimulation {project_name {repo_path .} {hls_simsets {}}} {
     if {$targeted_mode} {
       # User explicitly requested these sim types via -simset
       set sim_types [dict get $targets $component_name]
-      set run_csim  [expr {"csim" in $sim_types}]
+      set run_csim [expr {"csim" in $sim_types}]
       set run_cosim [expr {"cosim" in $sim_types}]
 
       # Validate: check if the requested sim is enabled in hog.conf
@@ -6543,9 +6546,11 @@ proc LaunchHlsSimulation {project_name {repo_path .} {hls_simsets {}}} {
     # CSIM
     if {$run_csim} {
       Msg Info "Running C simulation for HLS component '$component_name'..."
-      if {![ExecuteVitisUnifiedCommand $python_script "csim" \
+      if {
+        ![ExecuteVitisUnifiedCommand $python_script "csim" \
           [list $component_name $cfg_file $hls_work_dir] \
-          "Failed to run C simulation for $component_name"]} {
+          "Failed to run C simulation for $component_name"]
+      } {
         Msg Error "C simulation failed for HLS component '$component_name'"
         continue
       }
@@ -6556,18 +6561,22 @@ proc LaunchHlsSimulation {project_name {repo_path .} {hls_simsets {}}} {
       set syn_done_marker [file normalize "$hls_work_dir/hls/syn"]
       if {![file exists $syn_done_marker]} {
         Msg Info "C synthesis output not found for '$component_name', running synthesis automatically before co-simulation..."
-        if {![ExecuteVitisUnifiedCommand $python_script "synthesis" \
+        if {
+          ![ExecuteVitisUnifiedCommand $python_script "synthesis" \
             [list $component_name $cfg_file $hls_work_dir] \
-            "Failed to run C synthesis for $component_name"]} {
+            "Failed to run C synthesis for $component_name"]
+        } {
           Msg Error "C synthesis failed for HLS component '$component_name', cannot proceed with co-simulation"
           continue
         }
       }
 
       Msg Info "Running C/RTL co-simulation for HLS component '$component_name'..."
-      if {![ExecuteVitisUnifiedCommand $python_script "cosim" \
+      if {
+        ![ExecuteVitisUnifiedCommand $python_script "cosim" \
           [list $component_name $cfg_file $hls_work_dir] \
-          "Failed to run co-simulation for $component_name"]} {
+          "Failed to run co-simulation for $component_name"]
+      } {
         Msg Error "C/RTL co-simulation failed for HLS component '$component_name'"
         continue
       }
@@ -6661,7 +6670,7 @@ proc GetAppsFromProps {props {list_names 0}} {
       # Convert only the keys of the inner dictionary to lowercase
       set app_value_lower [dict create]
       dict for {key value} $app_value {
-          dict set app_value_lower [string tolower $key] $value
+        dict set app_value_lower [string tolower $key] $value
       }
       dict set apps $app_name $app_value_lower
       lappend app_names $app_name
@@ -6770,7 +6779,6 @@ proc GenerateBootArtifacts {properties repo_path proj_dir bin_dir proj_name desc
         Msg Error "Error updating memory for $elf_app: $result"
       }
       Msg Info "Done updating memory for $elf_app"
-
     } else {
       Msg Info "Detected hard processor ($app_proc) for $elf_app. Make sure the .elf file is defined in the platform ($plat)\
                 .bif file to be included in the bootable binary image (.bin) generation."
@@ -6878,7 +6886,7 @@ proc ListProjects {{repo_path .} {print 1} {ret_conf 0} {silent 0}} {
         set g [file dirname $p]
         # Print a list of the projects with relative IDE and description (second line comment in hog.conf)
         if {$g ne $old_g} {
-          if {$silent ==0 } {Msg Status ""}
+          if {$silent == 0} {Msg Status ""}
         }
         if {$silent == 0} {Msg Status "$p \([GetIDEFromConf $c]\)$description"}
       }
@@ -7120,10 +7128,10 @@ proc ExpandHlsConfigFiles {cfg_file} {
   close $fp
 
   foreach line $lines {
-    if {[regexp {^[\t\s]*$} $line]} { continue }
-    if {[regexp {^[\t\s]*\#} $line]} { continue }
-    if {[regexp {^\s*\[.*\]\s*$} $line]} { continue }
-    if {![regexp {^\s*[^=\s]+\s*=\s*(.+?)\s*$} $line -> value]} { continue }
+    if {[regexp {^[\t\s]*$} $line]} {continue}
+    if {[regexp {^[\t\s]*\#} $line]} {continue}
+    if {[regexp {^\s*\[.*\]\s*$} $line]} {continue}
+    if {![regexp {^\s*[^=\s]+\s*=\s*(.+?)\s*$} $line -> value]} {continue}
 
     foreach tok [regexp -all -inline {\S+} $value] {
       if {[file pathtype $tok] eq "absolute"} {
@@ -7160,14 +7168,14 @@ proc ExpandHlsConfigFiles {cfg_file} {
 # @return    A dict { component_name -> absolute_cfg_path }. Empty if no HLS
 proc GetHlsConfigsFromProjConf {conf_file repo_path} {
   set out [dict create]
-  if {![file exists $conf_file]} { return $out }
+  if {![file exists $conf_file]} {return $out}
   if {[catch {set properties [ReadConf $conf_file]} err]} {
     Msg Debug "GetHlsConfigsFromProjConf: cannot parse $conf_file: $err"
     return $out
   }
   set hls_components [dict filter $properties key {hls:*}]
   dict for {hls_key hls_props} $hls_components {
-    if {![regexp {^hls:(.+)$} $hls_key -> component_name]} { continue }
+    if {![regexp {^hls:(.+)$} $hls_key -> component_name]} {continue}
     set component_name [string trim $component_name]
     set cfg_rel ""
     if {[dict exists $hls_props hls_config]} {
@@ -7175,7 +7183,7 @@ proc GetHlsConfigsFromProjConf {conf_file repo_path} {
     } elseif {[dict exists $hls_props HLS_CONFIG]} {
       set cfg_rel [dict get $hls_props HLS_CONFIG]
     }
-    if {$cfg_rel eq ""} { continue }
+    if {$cfg_rel eq ""} {continue}
     set cfg_abs [file normalize "$repo_path/$cfg_rel"]
     if {![file exists $cfg_abs]} {
       Msg CriticalWarning "HLS component '$component_name': HLS_CONFIG=$cfg_rel does not exist on disk."
@@ -7360,11 +7368,11 @@ proc ReadListFile {args} {
                   set prop_name [string range $p 0 [expr {$pos - 1}]]
                 }
                 if {[IsInList $prop_name [DictGet [ALLOWED_PROPS] $extension]] || [string first "top" $p] == 0 || $list_file_ext eq ".ipb"} {
-		  if {$list_file_ext eq ".ipb"} {
-		    dict lappend properties $vhdlfile $path/$p
-		  } else {
-		    dict lappend properties $vhdlfile $p
-		  }
+                  if {$list_file_ext eq ".ipb"} {
+                    dict lappend properties $vhdlfile $path/$p
+                  } else {
+                    dict lappend properties $vhdlfile $p
+                  }
                   Msg Debug "Adding property $p to $vhdlfile..."
                 } elseif {$list_file_ext != ".ipb"} {
                   Msg Warning "Setting Property $p is not supported for file $vhdlfile or it is already its default. \
@@ -7386,7 +7394,7 @@ proc ReadListFile {args} {
               set lib_name "sources.con"
             } elseif {$list_file_ext == ".ipb"} {
               set lib_name "xml.ipb"
-            } elseif { [IsInList $list_file_ext {.src}] && [IsInList $extension {.c .cpp .h .hpp}] } {
+            } elseif {[IsInList $list_file_ext {.src}] && [IsInList $extension {.c .cpp .h .hpp}]} {
               # Adding Vitis library
               set lib_name "$library$list_file_ext"
             } else {
@@ -7417,10 +7425,10 @@ proc ReadListFile {args} {
               set i 0
               foreach hls_extra $hls_extras {
                 incr i
-                if {$hls_extra eq $vhdlfile} { continue }
+                if {$hls_extra eq $vhdlfile} {continue}
                 Msg Debug "HLS cfg expansion: adding $hls_extra (from $vhdlfile) to $lib_name"
                 if {$print_log == 1} {
-                  if {$i == $n_extras} { set pad "└──" } else { set pad "├──" }
+                  if {$i == $n_extras} {set pad "└──"} else {set pad "├──"}
                   set rel [Relative [file dirname $vhdlfile] $hls_extra]
                   Msg Status "$indent     $pad $rel"
                 }
@@ -7732,10 +7740,12 @@ proc WriteConf {file_name config {comment ""}} {
 
 #  @param[in]    list of variables to be written in the generics in the usual order
 
-proc WriteGenerics {mode repo_path design date timee\
-                    commit version top_hash top_ver hog_hash hog_ver \
-                    cons_ver cons_hash libs vers hashes ext_names ext_hashes \
-                    user_ip_repos user_ip_vers user_ip_hashes flavour {xml_ver ""} {xml_hash ""}} {
+proc WriteGenerics {
+  mode repo_path design date timee
+  commit version top_hash top_ver hog_hash hog_ver
+  cons_ver cons_hash libs vers hashes ext_names ext_hashes
+  user_ip_repos user_ip_vers user_ip_hashes flavour {xml_ver ""} {xml_hash ""}
+} {
   Msg Info "Passing parameters/generics to project's top module..."
   #####  Passing Hog generic to top file
   # set global generic variables
@@ -7749,8 +7759,7 @@ proc WriteGenerics {mode repo_path design date timee\
     "HOG_SHA=[FormatGeneric $hog_hash]" \
     "HOG_VER=[FormatGeneric $hog_ver]" \
     "CON_VER=[FormatGeneric $cons_ver]" \
-    "CON_SHA=[FormatGeneric $cons_hash]"
-  ]
+    "CON_SHA=[FormatGeneric $cons_hash]"]
   # xml hash
   if {$xml_hash != "" && $xml_ver != ""} {
     lappend generic_string \
@@ -7847,7 +7856,7 @@ proc WriteGenerics {mode repo_path design date timee\
     Msg Info "Setting Diamond parameters/generics one by one..."
     prj_impl option -impl Implementation0 HDL_PARAM "$generic_string"
   } elseif {[IsVitisClassic] || [IsVitisUnified]} {
-    if {[catch {set ws_apps [app list -dict]}]} { set ws_apps "" }
+    if {[catch {set ws_apps [app list -dict]}]} {set ws_apps ""}
 
     foreach app_name [dict keys $ws_apps] {
       set defined_symbols [app config -name $app_name -get define-compiler-symbols]
@@ -7855,7 +7864,7 @@ proc WriteGenerics {mode repo_path design date timee\
         set key [lindex [split $generic_to_set "="] 0]
         set value [lindex [split $generic_to_set "="] 1]
         if {[string match "32'h*" $value]} {
-            set value [string map {"32'h" "0x"} $value]
+          set value [string map {"32'h" "0x"} $value]
         }
 
         foreach symbol [split $defined_symbols ";"] {
@@ -8324,7 +8333,7 @@ if {[GitVersion 2.7.2] == 0} {
 # This procedure tests curl if execution is correct returns "curl"
 # If execution fails tries to run env -u LD_LIBRARY_PATH curl --silent --show-error, and returns "env -u LD_LIBRARY_PATH curl --silent --show-error" on success.
 # If both fail returns "curl", this will most probably generate failures later
-proc GetCurl {{gitlab_url "https://gitlab.com" }} {
+proc GetCurl {{gitlab_url "https://gitlab.com"}} {
   if {[auto_execok curl] == ""} {
     Msg Warning "Cannot find a working curl invocation"
     return 0

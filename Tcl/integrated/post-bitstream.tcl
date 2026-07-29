@@ -403,10 +403,9 @@ if {[file exists $xml_dir]} {
   file copy -force $xml_dir $dst_xml
 }
 
-# Zynq XSA Export
+# XSA export (Zynq/Versal SoCs, or soft processors such as MicroBlaze/RISC-V)
 if {[IsXilinx]} {
-  # Vivado
-  # automatically export for zynqs (checking via regex)
+  # auto-enable for Zynq/Versal parts, or when an app targets a soft processor
   set export_xsa "NONE"
   set part [get_property part [current_project]]
 
@@ -425,6 +424,21 @@ if {[IsXilinx]} {
       Msg Info "SoC FPGA detected (Zynq or Versal), automatically enabling XSA file creation. \
       To disable it, add 'EXPORT_XSA = false' in the \[hog\] section of hog.conf."
       set export_xsa true
+    } else {
+      # MicroBlaze/RISC-V soft processors are not detectable from the part name.
+      # If an app targets one, export XSA so the ELF can be rebuilt and merged
+      # into the bitstream (same flow as Zynq/Versal software rebuild)
+      set apps [GetAppsFromProps $properties]
+      dict for {app_name app_conf} $apps {
+        if {[dict exists $app_conf "proc"] && \
+            [regexp -nocase {microblaze|risc} [dict get $app_conf "proc"]]} {
+          Msg Info "Soft processor ([dict get $app_conf proc]) detected in app '$app_name', \
+          automatically enabling XSA file creation. \
+          To disable it, add 'EXPORT_XSA = false' in the \[hog\] section of hog.conf."
+          set export_xsa true
+          break
+        }
+      }
     }
   }
 

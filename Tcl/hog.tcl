@@ -742,7 +742,7 @@ proc BinaryStepName {part} {
   if {[IsVersal $part]} {
     return "write_device_image"
   } elseif {[IsISE]} {
-    return "Bitgen"
+    return "bitgen"
   } else {
     return "write_bitstream"
   }
@@ -755,7 +755,8 @@ proc CheckCIEnv {} {
     "HOG_USER" "NOT defined. This variable is essential for git to work properly. \
     It should be set to the username for your service account (a valid git account)." \
     "HOG_EMAIL" "NOT defined. This variable is essential for git to work properly. It should be set to your service's account email." \
-    "HOG_PUSH_TOKEN" "NOT defined. This variable is essential for git to work properly. It should be set to a Gitlab/GitHub API token for your service account."]
+    "HOG_PUSH_TOKEN" "NOT defined. This variable is essential for git to work properly. It should be set to a Gitlab/GitHub API token \
+    for your service account."]
 
   set missing_vars 0
   dict for {var msg} $essential_vars {

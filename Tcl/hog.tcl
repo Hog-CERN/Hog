@@ -4399,6 +4399,40 @@ proc GitVersion {target_version} {
   return [expr {$target <= $current}]
 }
 
+## @brief Generate output products for standalone (non-BD) XCI IPs
+#
+proc GenerateStandaloneXciTargets {} {
+  if {![IsVivado]} {
+    return
+  }
+
+  set xci_files [get_files -quiet *.xci]
+  if {[llength $xci_files] == 0} {
+    return
+  }
+
+  foreach xci $xci_files {
+    # XCIs under a BD are generated together with the block design
+    set norm_xci [string map {\\ /} [file normalize $xci]]
+    if {[string match "*/bd/*" $norm_xci]} {
+      continue
+    }
+
+    # Prefer IS_BD_CONTEXT when available (more reliable than path matching)
+    set ip [lindex [get_ips -quiet -of_objects [get_files -quiet $xci]] 0]
+    if {$ip != "" && [lsearch -exact [list_property [get_ips $ip]] "IS_BD_CONTEXT"] >= 0} {
+      if {[get_property IS_BD_CONTEXT [get_ips $ip]] eq "1"} {
+        continue
+      }
+    }
+
+    Msg Info "Generating targets for standalone IP [file tail $xci]..."
+    if {[catch {generate_target all [get_files $xci]} err]} {
+      Msg CriticalWarning "Failed to generate targets for $xci: $err"
+    }
+  }
+}
+
 ## @brief Copy IP generated files from/to a remote o local directory (possibly EOS)
 #
 # @param[in] what_to_do: the action you want to perform, either
@@ -6649,15 +6683,23 @@ proc GetPartFromProps {props} {
 # @brief Determines the architecture from the part number
 #
 # @param[in] part  The FPGA part number (e.g., xczu4cg-fbvb900-1-e)
-# @return          String with the architecture (zynqmp, zynq, versal, or unknown)
+# @return          String with the architecture (zynqmp, zynq, versal, fpga, or unknown)
 proc GetArchFromPart {part} {
-  # Determine architecture based on part prefix
-  if {[string match "xczu*" $part]} {
+  set part [string tolower $part]
+  # bootgen -arch values: zynq, zynqmp, versal, fpga
+  if {[string match "xczu*" $part] || [string match "xqzu*" $part]} {
     return "zynqmp"
-  } elseif {[string match "xc7z*" $part]} {
+  } elseif {[string match "xc7z*" $part] || [string match "xq7z*" $part]} {
     return "zynq"
-  } elseif {[string match "xck26*" $part]} {
+  } elseif {
+    [string match "xcve*" $part] || [string match "xcvc*" $part] ||
+    [string match "xcvp*" $part] || [string match "xcvm*" $part] ||
+    [string match "xqve*" $part] || [string match "xck26*" $part]
+  } {
     return "versal"
+  } elseif {[string match "xc*" $part] || [string match "xq*" $part]} {
+    # Non-SoC FPGA (e.g. Kintex-7 / Artix-7 / UltraScale) for MicroBlaze/RISC-V
+    return "fpga"
   } else {
     Msg CriticalWarning "Unknown part number: $part"
     return "unknown"
@@ -6772,14 +6814,23 @@ proc GenerateBootArtifacts {properties repo_path proj_dir bin_dir proj_name desc
     if {[regexp -nocase {microblaze|risc} $app_proc]} {
       Msg Info "Detected soft processor ($app_proc) for $elf_app, updating bitstream memory with ELF file..."
 
-      set proc_map [ReadProcMap $proc_map_file]
-      if {[dict size $proc_map] == 0} {
-        Msg Error "Failed to read map from $proc_map_file"
-        continue
+      # updatemem needs the processor instance path as written in the MMI file, which includes
+      # the block design wrapper hierarchy. The platform processor map is only used as a
+      # fallback, since it contains names relative to the block design
+      set proc_cell [GetProcInstPathFromMmi $mmi_file $app_proc]
+      if {$proc_cell eq ""} {
+        set proc_map_file [file normalize "$proj_dir/vitis_classic/${plat}.PROC_MAP"]
+        set proc_map [ReadProcMap $proc_map_file]
+        if {[dict exists $proc_map $app_proc]} {
+          set proc_cell [dict get $proc_map $app_proc]
+          Msg Info "Processor $app_proc not found in $mmi_file, using $proc_map_file instead."
+        } else {
+          Msg Error "Could not determine the instance path of processor '$app_proc' for $elf_app, \
+          neither from $mmi_file nor from $proc_map_file. \
+          Check that proc= in the \[app:$elf_app\] section of hog.conf matches the processor instance name."
+          continue
+        }
       }
-      Msg Info "Found processor map: $proc_map"
-
-      set proc_cell [lindex [split [dict get $proc_map $app_proc] ":"] 1]
       Msg Info "Updating memory at processor cell: $proc_cell"
 
       set update_mem_cmd "updatemem -force -meminfo $mmi_file -data $elf_file -bit $bitfile -proc $proc_cell -out $bitfile"
@@ -6803,10 +6854,15 @@ proc GenerateBootArtifacts {properties repo_path proj_dir bin_dir proj_name desc
       set arch [GetArchFromPart [GetPartFromProps $properties]]
       Msg Info "Architecture: $arch"
       Msg Info "BIF file: $bif_file"
+      if {$arch eq "unknown"} {
+        Msg CriticalWarning "Skipping bootable image (.bin) generation for $plat: \
+        could not determine bootgen architecture from the FPGA part."
+        continue
+      }
       set bootgen_cmd "bootgen -arch $arch -image $bif_file -o i $bin_dir/$proj_name-$plat-$describe.bin -w on"
       set ret [catch {exec -ignorestderr {*}$bootgen_cmd >@ stdout} result]
       if {$ret != 0} {
-        Msg Error "Error generating bootable binary image (.bin) for $elf_app: $result"
+        Msg Error "Error generating bootable binary image (.bin) for $plat: $result"
       }
       Msg Info "Done generating bootable binary image (.bin) for $plat"
     }
@@ -6845,6 +6901,50 @@ proc GenerateStandaloneXciTargets {} {
       Msg CriticalWarning "Failed to generate targets for $xci: $err"
     }
   }
+}
+
+# @brief Returns the processor instance path to be used with updatemem -proc
+#
+# The updatemem -proc option must match the InstPath attribute of one of the Processor entries
+# of the MMI file, which Vivado writes together with the bitstream and which contains the full
+# hierarchical path of the processor.
+#
+# @param[in] mmi_file The path to the MMI file
+# @param[in] app_proc The processor name, as defined with proc= in hog.conf
+# @return The matching instance path, or an empty string if it could not be determined
+proc GetProcInstPathFromMmi {mmi_file app_proc} {
+  if {![file exists $mmi_file]} {
+    Msg Debug "MMI file not found: $mmi_file"
+    return ""
+  }
+
+  set f [open $mmi_file "r"]
+  set mmi_content [read $f]
+  close $f
+
+  set inst_paths [list]
+  foreach {match inst_path} [regexp -all -inline {<Processor[^>]*InstPath\s*=\s*"([^"]+)"} $mmi_content] {
+    if {[lsearch -exact $inst_paths $inst_path] < 0} {
+      lappend inst_paths $inst_path
+    }
+  }
+  Msg Debug "Processor instance paths found in $mmi_file: $inst_paths"
+
+  foreach inst_path $inst_paths {
+    if {[string equal -nocase [file tail $inst_path] $app_proc]} {
+      return $inst_path
+    }
+  }
+
+  # A design with a single processor is unambiguous, even if the names do not match
+  if {[llength $inst_paths] == 1} {
+    set inst_path [lindex $inst_paths 0]
+    Msg Info "Processor $app_proc does not match [file tail $inst_path], \
+    using the only processor found in the MMI file: $inst_path"
+    return $inst_path
+  }
+
+  return ""
 }
 
 # @brief Reads the processor map file

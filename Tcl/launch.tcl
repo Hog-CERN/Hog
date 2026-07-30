@@ -262,14 +262,33 @@ if {$cmd == -1} {
           set env(GITLAB_HOST) $env(CI_SERVER_HOST)
         }
         if {[info exists env(CI_PROJECT_PATH)]} {
-          set ci_config [exec glab ci config compile -R $env(CI_PROJECT_PATH)]
+          lassign [ExecuteRet glab ci get -p $env(CI_PIPELINE_ID)] ret ci_config
         } else {
-          set ci_config [exec glab ci config compile]
+          lassign [ExecuteRet glab ci get] ret ci_config
         }
-        # Check if we are using the dynamic CI and set ci_run to 0 in case, so we check the version of all projects
-        if {[string first "hog-dynamic.yml" $ci_config] != -1} {
+        if {$ret != 0} {
+          Msg Warning "Failed to get CI config from GitLab, checking all projects instead."
           set ci_run 0
         }
+
+        # Check if we are using the dynamic CI and set ci_run to 0 in case, so we check the version of all projects
+        if {[info exists env(CI_CONFIG_PATH)]} {
+          set ci_config_path $env(CI_CONFIG_PATH)
+        } else {
+          set ci_config_path $repo_path/.gitlab-ci.yml
+        }
+
+        if {[file exists $ci_config_path]} {
+          set fh [open $ci_config_path r]
+          set content [read $fh]
+          close $fh
+          if {[string first "hog-dynamic.yml" $content] != -1} {
+            set ci_run 0
+          }
+        } else {
+          Msg Warning "CI config file $ci_config_path not found, checking all projects instead."
+          set ci_run 0
+        }       
       } elseif {[info exists env(GITHUB_ACTIONS)] && $env(GITHUB_ACTIONS) eq "true"} {
         # running in GitHub Actions
         set workflow_dir "$repo_path/.github/workflows"

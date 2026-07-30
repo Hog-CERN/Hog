@@ -6639,15 +6639,23 @@ proc GetPartFromProps {props} {
 # @brief Determines the architecture from the part number
 #
 # @param[in] part  The FPGA part number (e.g., xczu4cg-fbvb900-1-e)
-# @return          String with the architecture (zynqmp, zynq, versal, or unknown)
+# @return          String with the architecture (zynqmp, zynq, versal, fpga, or unknown)
 proc GetArchFromPart {part} {
-  # Determine architecture based on part prefix
-  if {[string match "xczu*" $part]} {
+  set part [string tolower $part]
+  # bootgen -arch values: zynq, zynqmp, versal, fpga
+  if {[string match "xczu*" $part] || [string match "xqzu*" $part]} {
     return "zynqmp"
-  } elseif {[string match "xc7z*" $part]} {
+  } elseif {[string match "xc7z*" $part] || [string match "xq7z*" $part]} {
     return "zynq"
-  } elseif {[string match "xck26*" $part]} {
+  } elseif {
+    [string match "xcve*" $part] || [string match "xcvc*" $part] ||
+    [string match "xcvp*" $part] || [string match "xcvm*" $part] ||
+    [string match "xqve*" $part] || [string match "xck26*" $part]
+  } {
     return "versal"
+  } elseif {[string match "xc*" $part] || [string match "xq*" $part]} {
+    # Non-SoC FPGA (e.g. Kintex-7 / Artix-7 / UltraScale) for MicroBlaze/RISC-V
+    return "fpga"
   } else {
     Msg CriticalWarning "Unknown part number: $part"
     return "unknown"
@@ -6803,10 +6811,15 @@ proc GenerateBootArtifacts {properties repo_path proj_dir bin_dir proj_name desc
       set arch [GetArchFromPart [GetPartFromProps $properties]]
       Msg Info "Architecture: $arch"
       Msg Info "BIF file: $bif_file"
+      if {$arch eq "unknown"} {
+        Msg CriticalWarning "Skipping bootable image (.bin) generation for $plat: \
+        could not determine bootgen architecture from the FPGA part."
+        continue
+      }
       set bootgen_cmd "bootgen -arch $arch -image $bif_file -o i $bin_dir/$proj_name-$plat-$describe.bin -w on"
       set ret [catch {exec -ignorestderr {*}$bootgen_cmd >@ stdout} result]
       if {$ret != 0} {
-        Msg Error "Error generating bootable binary image (.bin) for $elf_app: $result"
+        Msg Error "Error generating bootable binary image (.bin) for $plat: $result"
       }
       Msg Info "Done generating bootable binary image (.bin) for $plat"
     }

@@ -288,7 +288,7 @@ if {$cmd == -1} {
         } else {
           Msg Warning "CI config file $ci_config_path not found, checking all projects instead."
           set ci_run 0
-        }       
+        }
       } elseif {[info exists env(GITHUB_ACTIONS)] && $env(GITHUB_ACTIONS) eq "true"} {
         # running in GitHub Actions
         set workflow_dir "$repo_path/.github/workflows"

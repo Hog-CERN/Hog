@@ -4,7 +4,7 @@ namespace eval Tools::Vivado {
     name        "Vivado"
     vendor      "AMD/Xilinx"
     description "AMD/Xilinx Vivado (and Vivado-Vitis classic + legacy PlanAhead) FPGA design suite."
-    ref_names   {vivado vivado_vitis_classic planahead}
+    aliases     {vivado vivado_vitis_classic planahead}
     Flows {
       CREATE {
         aliases {C}

@@ -1630,10 +1630,10 @@ proc CopyFileListPlaceHolders {src_files vhdl_dict dst sub_dict} {
 # @param[in] vhdl_dict         vhdl_dict from GetAddressFiles - contains generation options
 # @param[in] dst               destination root directory
 # @param[in] script            optional generation script - if passed the function will use this script
-# @param[in] run_dir           will use this a relative path to determine [pwd] when running script
+# @param[in] options           any paramter options for the script
 #
-# @param[out] gen_files        a list of generated files. Can be a mix of directories and files
-proc GenerateRDLs {relative_srcs vhdl_dict dst {script ""} {run_dir ""}} {
+# @param[out] gen_files        a list of generated files from the .peakrdl files. Can be a mix of directories and files
+proc GenerateRDLs {relative_srcs vhdl_dict dst {script ""} {options ""}} {
   foreach src [dict keys $vhdl_dict] value [dict values $vhdl_dict] rel_src $relative_srcs {
     if {![file exists $src]} {
       Msg Error "Provided src list contians non-existant file $src"
@@ -1649,9 +1649,7 @@ proc GenerateRDLs {relative_srcs vhdl_dict dst {script ""} {run_dir ""}} {
       set options ""
 
       foreach option $rel_options {
-        # puts "$option"
-        set new_option "string map {-I= -I=$dst/} $option"
-        lappend options [eval $new_option]
+        lappend options [eval "string map {-I= -I=$dst/} $option"]
       }
 
       Msg info "Read following options from list file for $v_file: $plugin $options"
@@ -1664,12 +1662,13 @@ proc GenerateRDLs {relative_srcs vhdl_dict dst {script ""} {run_dir ""}} {
   }
 
   if {$script ne ""} {
+    Msg Info "Using $script to generate outputs"
     set old_pwd [pwd]
-    set script_dir [file normalize $dst/$run_dir]
+    set script_dir [file normalize [file dirname $dst/$script]]
 
     if {[file exists $script_dir]} {
-      cd [file normalize $dst/$run_dir]
-      eval $script
+      cd [file normalize $script_dir]
+      exec -- python [file tail $script] $options
       cd $old_pwd
     } else {
       Msg Error "Invalid script location $script_dir"
@@ -1686,6 +1685,7 @@ proc CompareGeneratedFile {committed_file generated_file diff_loc} {
   set n [llength $diff]
 
   if {$n > 0} {
+    file mkdir $diff_loc
     set diff_file [open [file normalize $diff_loc/$file_name.diff] w]
     Msg CriticalWarning "$committed_file does not correspond to the generated file $generated_file, [expr {$n / 3}] line/s differ:"
     if {$n > 15} {
@@ -1712,6 +1712,7 @@ proc CompareGeneratedFile {committed_file generated_file diff_loc} {
 # @param[in] use_ipbus_sw if set to 1, use the IPbus sw to generate or check the vhdl files
 # @param[in] generate     if set to 1, tells the function to generate the VHDL decode address files rather than check them
 proc CopyIPbusXMLs {proj_dir path dst {xml_version "0.0.0"} {xml_sha "00000000"} {use_ipbus_sw 0} {generate 0}} {
+  puts "CopyIPbusXMLs"
   if {$use_ipbus_sw == 1} {
     lassign [ExecuteRet python3 -c "from __future__ import print_function; from sys import path;print(':'.join(path\[1:\]))"] ret msg
     if {$ret == 0} {
@@ -1760,7 +1761,7 @@ proc CopyIPbusXMLs {proj_dir path dst {xml_version "0.0.0"} {xml_sha "00000000"}
     lappend vhdls $vhdl_file
   }
 
-  Msg Info "[llength $xmls] xml file/s copied"
+  Msg Info "[llength $xmlfiles] xml file/s copied"
 
   if {$can_generate == 1} {
     set old_dir [pwd]
@@ -1769,7 +1770,7 @@ proc CopyIPbusXMLs {proj_dir path dst {xml_version "0.0.0"} {xml_sha "00000000"}
     cd "address_decode"
     foreach x $relative_xmls v $vhdls {
       if {$v ne ""} {
-        set x $dst/$x
+        set x [file normalize $dst/$x]
         if {[file exists $x]} {
           lassign [ExecuteRet gen_ipbus_addr_decode --no-timestamp $x 2>&1] status log
           if {$status == 0} {
@@ -1854,10 +1855,27 @@ proc CopySystemRDLs {proj_dir repo_path dst {rdl_version "0.0.0"} {rdl_sha "0000
   set cnt [llength $relative_srcs]
   Msg Info "$cnt file/s copied"
 
-  ## TODO - check if there is a generate script set for the RDLs
-  # otherwise use fall back option
   if {$can_generate == 1} {
-    set gen_files [GenerateRDLs $relative_srcs $vhdl_dict $dst]
+    ## Check if there is a generate script set for the RDLs
+    set proj_conf $proj_dir/hog.conf
+    set gen_script ""
+    set gen_options ""
+
+    if {[file exists $proj_conf]} {
+      set PROPERTIES [ReadConf $proj_conf]
+      if {[dict exists $PROPERTIES peakrdl]} {
+        set sigasiDict [dict get $PROPERTIES peakrdl]
+        if {[dict exists $sigasiDict GEN_SCRIPT_PYTHON]} {
+          set gen_script [dict get $sigasiDict GEN_SCRIPT_PYTHON]
+          Copy $repo_path/$gen_script $dst/$gen_script
+        }
+        if {[dict exists $sigasiDict GEN_SCRIPT_OPTIONS]} {
+          set gen_options [dict get $sigasiDict GEN_SCRIPT_OPTIONS]
+        }
+      }
+    }
+
+    set gen_files [GenerateRDLs $relative_srcs $vhdl_dict $dst $gen_script $gen_options]
 
     if {$generate == 1} {
       foreach gen_file [dict keys $gen_files] {
@@ -3715,6 +3733,7 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
   }
 
   set old_path [pwd]
+  puts "debug $proj_dir"
   set conf_files [GetConfFiles $proj_dir]
 
   # This will be the list of all the SHAs of this project, the most recent will be picked up as GLOBAL SHA
@@ -4027,6 +4046,7 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
   }
 
   cd $old_path
+  puts "GetRepoVersions finish"
 
   set top_hash [format %+07s $top_hash]
   set cons_hash [format %+07s $cons_hash]

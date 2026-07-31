@@ -1680,6 +1680,9 @@ proc GenerateRDLs {relative_srcs vhdl_dict dst {script ""} {options ""}} {
 
 proc CompareGeneratedFile {committed_file generated_file diff_loc} {
   # Msg Info "Comparing $committed_file to $generated_file"
+  if {![file exists $committed_file]} {
+    Msg Error "Generated file has no file for comparison. Where is $committed_file?"
+  }
   set diff [CompareVHDL $generated_file $committed_file]
   set file_name [file rootname [file tail $generated_file]]
   set n [llength $diff]
@@ -1880,7 +1883,7 @@ proc CopySystemRDLs {proj_dir repo_path dst {rdl_version "0.0.0"} {rdl_sha "0000
     if {$generate == 1} {
       foreach gen_file [dict keys $gen_files] {
         Msg Info "Copying generated VHDL file $dst/$gen_file into $repo_path/$gen_file (replacing if necessary)"
-        mkdir [file dirname $repo_path/$gen_file]
+        file mkdir [file dirname $repo_path/$gen_file]
         file copy -force -- $dst/$gen_file $repo_path/$gen_file
       }
     } else {

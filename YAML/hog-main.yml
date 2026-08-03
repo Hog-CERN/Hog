@@ -20,9 +20,6 @@
 .tag-sr: &tag-sr
   image: hogcern/hog:2026.2
 
-.vars: &vars
-  GIT_STRATEGY: fetch
-
 .only-default: &only-default
   rules:
     - if: '$CI_COMMIT_REF_NAME =~ /^test\/.*$/i'

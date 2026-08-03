@@ -149,6 +149,7 @@
       - Projects/$PROJECT_NAME/vitis_unified
       - SkippedProjects/$PROJECT_NAME
       - DebugProjects
+      - "${HOG_ADDITIONAL_ARTIFACT_PATH:-.hog-no-additional-artifacts}"
     expire_in: 30 day
   allow_failure: true
   interruptible: true
@@ -345,6 +346,7 @@
       - "*.log"
       - DCPs
       - DebugProjects
+      - "${HOG_ADDITIONAL_ARTIFACT_PATH:-.hog-no-additional-artifacts}"
     expire_in: 30 day
   interruptible: true
 

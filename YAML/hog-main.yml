@@ -57,7 +57,6 @@ check_branch_state:
   <<: *tag-sr
   stage: check
   variables:
-    <<: *vars
     GIT_SUBMODULE_STRATEGY: recursive
   script:
     - ./Hog/Do CIE
@@ -125,7 +124,6 @@ make_doxygen:
   image: hogcern/hog:doxygen
   stage: generation_and_simulation
   variables:
-    <<: *vars
     GIT_SUBMODULE_STRATEGY: recursive
   script:
     - tclsh ./Hog/Tcl/utils/make_doxygen.tcl
@@ -141,7 +139,6 @@ make_doxygen:
 tag_official_version:
   <<: *tag-sr
   variables:
-    <<: *vars
   stage: tag
   rules:
     - if: '$HOG_TARGET_BRANCH != null && $CI_COMMIT_REF_NAME == $HOG_TARGET_BRANCH && $CI_PIPELINE_SOURCE == "push"'
@@ -201,7 +198,6 @@ artifacts_and_release:
       - $CI_COMMIT_TAG =~ /^v.*$/ && ($HOG_OFFICIAL_BIN_EOS_PATH != null || $HOG_OFFICIAL_BIN_PATH != null)
   <<: *tag-sr
   variables:
-    <<: *vars
     GIT_SUBMODULE_STRATEGY: recursive
   stage: release
   script:
@@ -260,7 +256,6 @@ archive_binary_files:
       - $CI_COMMIT_TAG =~ /^v.*$/ && ($HOG_OFFICIAL_BIN_EOS_PATH != null || $HOG_OFFICIAL_BIN_PATH != null)
   <<: *tag-hog
   variables:
-    <<: *vars
   needs:
     - job: artifacts_and_release
       artifacts: true
@@ -399,7 +394,6 @@ create_badge:
       - $CI_COMMIT_TAG =~ /^v.*$/ && $HOG_BADGE_PROJECTS != null
   <<: *tag-sr
   variables:
-    <<: *vars
     GIT_SUBMODULE_STRATEGY: recursive
   stage: badge
   script:

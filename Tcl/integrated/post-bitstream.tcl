@@ -26,28 +26,27 @@ set repo_path [file normalize "$tcl_path/../../"]
 
 # write_hw_platform has weird behavior when run in post-bitstream hook;
 # workaround by launching a separate Vivado instance to run it
-proc WriteHwPlatformWorkaround {hw_platform_args} {
-    global proj_dir proj_name work_path
-    set proj_file [file normalize "$proj_dir/$proj_name.xpr"]
-    set impl_run [file tail $work_path]
-    set tmp_script "$work_path/hog_write_hw_platform_tmp.tcl"
+proc WriteHwPlatformWorkaround {proj_dir proj_name work_path hw_platform_args} {
+  set proj_file [file normalize "$proj_dir/$proj_name.xpr"]
+  set impl_run [file tail $work_path]
+  set tmp_script "$work_path/hog_write_hw_platform_tmp.tcl"
 
-    set fp [open $tmp_script w]
-    puts $fp "open_project {$proj_file}"
-    puts $fp "open_run $impl_run"
-    puts $fp "write_hw_platform $hw_platform_args"
-    puts $fp "close_project"
-    close $fp
+  set fp [open $tmp_script w]
+  puts $fp "open_project {$proj_file}"
+  puts $fp "open_run $impl_run"
+  puts $fp "write_hw_platform $hw_platform_args"
+  puts $fp "close_project"
+  close $fp
 
-    Msg Info "Launching another Vivado instance to run write_hw_platform for $impl_run..."
-    set ret [catch {exec vivado -mode batch -notrace -source $tmp_script >@ stdout 2>@ stderr} result]
+  Msg Info "Launching another Vivado instance to run write_hw_platform for $impl_run..."
+  set ret [catch {exec vivado -mode batch -notrace -source $tmp_script >@ stdout 2>@ stderr} result]
 
-    if {$ret != 0} {
-        Msg Error "write_hw_platform failed in separate Vivado instance:\n$result"
-    } else {
-        Msg Info "write_hw_platform completed successfully in separate Vivado instance for $impl_run."
-    }
-    return $ret
+  if {$ret != 0} {
+    Msg Error "write_hw_platform failed in separate Vivado instance:\n$result"
+  } else {
+    Msg Info "write_hw_platform completed successfully in separate Vivado instance for $impl_run."
+  }
+  return $ret
 }
 
 # Import tcllib
@@ -430,8 +429,10 @@ if {[IsXilinx]} {
       # into the bitstream (same flow as Zynq/Versal software rebuild)
       set apps [GetAppsFromProps $properties]
       dict for {app_name app_conf} $apps {
-        if {[dict exists $app_conf "proc"] && \
-            [regexp -nocase {microblaze|risc} [dict get $app_conf "proc"]]} {
+        if {
+          [dict exists $app_conf "proc"] &&
+          [regexp -nocase {microblaze|risc} [dict get $app_conf "proc"]]
+        } {
           Msg Info "Soft processor ([dict get $app_conf proc]) detected in app '$app_name', \
           automatically enabling XSA file creation. \
           To disable it, add 'EXPORT_XSA = false' in the \[hog\] section of hog.conf."
@@ -467,14 +468,15 @@ if {[IsXilinx]} {
           set pdi_post_imp [file normalize "$work_path/$top_name.pdi"]
           set_property platform.full_pdi_file $pdi_post_imp [current_project]
           Msg Info "XSA file will be generated for Versal with this PDI: $pdi_post_imp"
-          WriteHwPlatformWorkaround "-fixed -force -file {$dst_xsa}"
+          WriteHwPlatformWorkaround $proj_dir $proj_name $work_path "-fixed -force -file {$dst_xsa}"
           set wrote_xsa 1
         }
         Msg Warning "No XSA will be produced in post-bitream for segmented configuration mode. \
         If you're running with the GUI, please type the following on the Tcl console: write_hw_platform -fixed -force -file $dst_xsa."
       } else {
         # We leave include bit also for Versal
-        WriteHwPlatformWorkaround "-include_bit -fixed -force -file {$dst_xsa}"
+        WriteHwPlatformWorkaround $proj_dir $proj_name $work_path \
+          "-include_bit -fixed -force -file {$dst_xsa}"
         set wrote_xsa 1
       }
     }
@@ -549,7 +551,6 @@ if {[IsXilinx]} {
         GenerateBootArtifacts $properties $repo_path $proj_dir $dst_dir $proj_name $describe $dst_main $mmi_file
       }
     }
-
   }
 }
 

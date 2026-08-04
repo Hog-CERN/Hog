@@ -5697,6 +5697,10 @@ proc GenerateBitstreamOnly {project_name {repo_path .}} {
   # The binary file is written in the standard implementation run directory,
   # the post-bitstream script will then copy it (and all the other artifacts) into the bin directory
   set run_dir [get_property DIRECTORY [get_runs impl_1]]
+  if {![file exists $run_dir]} {
+    Msg Error "Implementation run directory not found: $run_dir. Please check your implementation run."
+    return
+  }
   cd $run_dir
 
   Msg Info "Running pre-bitstream..."

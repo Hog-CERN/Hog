@@ -2343,6 +2343,8 @@ proc GetCustomCommands {parameters {directory .}} {
 
 proc SanitizeCustomCommand {cmdDict file parameters} {
   # Normalize all user-provided keys to uppercase so NAME/DESCRIPTION/etc are case-insensitive.
+
+
   set normalized {}
   foreach k [dict keys $cmdDict] {
     set K [string toupper $k]
@@ -2413,7 +2415,7 @@ proc SanitizeCustomCommand {cmdDict file parameters} {
     }
     dict set cmdDict OPTIONS $hog_options
   } else {
-    dict set cmdDict CUSTOM_OPTIONS {}
+    dict set cmdDict OPTIONS {}
   }
 
 
@@ -4861,8 +4863,9 @@ proc InitLauncher {script tcl_path parameters commands argv {custom_commands ""}
   if {$NO_DIRECTIVE_FOUND == 1} {
     if {[string length $custom_commands] > 0 && [dict exists $custom_commands $directive]} {
       set custom_command $directive
-      set custom_command_hog_parameters [dict get $custom_commands $directive OPTIONS]
-      set custom_command_options [dict get $custom_commands $directive CUSTOM_OPTIONS]
+      set custom_command_dict [DictGet $custom_commands $directive]
+      set custom_command_hog_parameters [DictGet $custom_command_dict OPTIONS]
+      set custom_command_options [DictGet $custom_command_dict CUSTOM_OPTIONS]
       set custom_command_options [concat $custom_command_hog_parameters $custom_command_options]
     } else {
       Msg Status "ERROR: Unknown directive $directive.\n\n"
@@ -4943,6 +4946,28 @@ proc InitLauncher {script tcl_path parameters commands argv {custom_commands ""}
     exit 0
   }
 
+  # Gather the options supported by the chosen directive
+  set directive_options ""
+  set directive_found 0
+  if {$custom_command ne ""} {
+    set directive_options $custom_command_options
+    set directive_found 1
+  } else {
+    dict for {dir opts} $command_options {
+      if {[regexp $dir $directive]} {
+        set directive_options $opts
+        set directive_found 1
+        break
+      }
+    }
+  }
+
+  # Get the directive name without `.arg` suffix
+  set directive_option_names {}
+  foreach opt $directive_options {
+    lappend directive_option_names [regsub {\.arg$} [lindex $opt 0] ""]
+  }
+
   if {$custom_command ne ""} {
     set parameters [concat $parameters $custom_command_options]
   }
@@ -4950,6 +4975,21 @@ proc InitLauncher {script tcl_path parameters commands argv {custom_commands ""}
   if {[catch {array set options [cmdline::getoptions option_list $parameters $usage]} err]} {
     Msg Status "\nERROR: Syntax error, probably unknown option.\n\n USAGE: $err"
     exit 1
+  }
+
+  # Ignore the options that are not supported by the chosen directive, restoring their default value
+  if {$directive_found == 1} {
+    set default_option_list {}
+    array set default_options [cmdline::getoptions default_option_list $parameters $usage]
+    foreach {key value} [array get options] {
+      if {[IsInList $key $directive_option_names] || ![info exists default_options($key)]} {
+        continue
+      }
+      if {$value ne $default_options($key)} {
+        Msg Warning "Option -$key is not supported by directive $directive, ignoring it."
+        set options($key) $default_options($key)
+      }
+    }
   }
 
   if {[llength $arg_list] <= $min_n_of_args || [llength $arg_list] > $max_n_of_args} {
@@ -4977,6 +5017,7 @@ proc InitLauncher {script tcl_path parameters commands argv {custom_commands ""}
   }
 
   Msg Debug "Option list:"
+
   foreach {key value} [array get options] {
     Msg Debug "$key => $value"
   }
@@ -5030,7 +5071,9 @@ proc InitLauncher {script tcl_path parameters commands argv {custom_commands ""}
   set project [file tail $project]
   Msg Debug "InitLauncher: project_group=$project_group, project_name=$project_name, project=$project"
 
-  return [list $directive $project $project_name $project_group $repo_path $old_path $bin_path $top_path $usage $short_usage $command $cmd [array get options]]
+  return [list $directive $project $project_name $project_group $repo_path $old_path\
+          $bin_path $top_path $usage $short_usage $command $cmd [array get options]\
+          $directive_options]
 }
 
 # @brief Returns 1 if a commit is an ancestor of another, otherwise 0

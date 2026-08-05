@@ -4508,6 +4508,14 @@ proc HandleIP {what_to_do xci_file ip_path repo_path {gen_dir "."} {force 0}} {
   set hash [Md5Sum $xci_file]
   set file_name $xci_name\_$hash
 
+  # Check if the IP is a subcore of a BD file 
+
+  set scope [get_property -quiet SCOPE [get_ips $xci_ip_name]]
+  if {$scope != ""} {
+    Msg Debug "IP $xci_name is a subcore of a BD file, will not pull/push it from/to the remote directory."
+    return 0
+  }
+
   Msg Info "Preparing to $what_to_do IP: $xci_name..."
 
   if {$what_to_do eq "push"} {

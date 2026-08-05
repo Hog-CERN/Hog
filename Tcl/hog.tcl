@@ -916,7 +916,7 @@ proc CheckEnv {project_name ide} {
 # @return A list with the following elements:
 # 1. on_eos: 1 if the path is on EOS, 0 otherwise
 # 2. on_rclone: 1 if the path is on Rclone, 0 otherwise
-# 3. config_path: The path to the rclone config file if on Rclone 
+# 3. config_path: The path to the rclone config file if on Rclone
 proc CheckRemoteIpPath {repo_path ip_path} {
   global env
   set on_eos 0
@@ -4523,7 +4523,7 @@ proc HandleIP {what_to_do xci_file ip_path repo_path on_eos on_rclone rclone_con
   set hash [Md5Sum $xci_file]
   set file_name $xci_name\_$hash
 
-  # Check if the IP is a subcore of a BD file 
+  # Check if the IP is a subcore of a BD file
 
   set scope [get_property -quiet SCOPE [get_ips $xci_ip_name]]
   if {$scope != ""} {

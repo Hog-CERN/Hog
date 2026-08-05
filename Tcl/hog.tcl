@@ -4588,7 +4588,7 @@ proc HandleIP {what_to_do xci_file ip_path repo_path on_eos on_rclone rclone_con
         if {$will_remove == 1} {
           Msg Info "Removing old synthesised directory $ip_path/$file_name.tar..."
           if {$on_rclone == 1} {
-            lassign [ExecuteRet rclone delete $ip_path/$file_name.tar --config $config_path] ret result
+            lassign [ExecuteRet rclone delete $ip_path/$file_name.tar --config $rclone_config_path] ret result
             if {$ret != 0} {
               Msg CriticalWarning "Could not delete file from Rclone: $result"
             }

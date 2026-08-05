@@ -909,6 +909,86 @@ proc CheckEnv {project_name ide} {
   }
 }
 
+## @brief Check the settings for the remote IP path. It checks if the path is on EOS or Rclone and if the necessary tools are available.
+# @param[in] repo_path The path to the repository
+# @param[in] ip_path The path to the remote IP repository
+#
+# @return A list with the following elements:
+# 1. on_eos: 1 if the path is on EOS, 0 otherwise
+# 2. on_rclone: 1 if the path is on Rclone, 0 otherwise
+# 3. config_path: The path to the rclone config file if on Rclone
+proc CheckRemoteIpPath {repo_path ip_path} {
+  global env
+  set on_eos 0
+  set on_rclone 0
+  set config_path ""
+  set old_path [pwd]
+  cd $repo_path
+
+  if {[regexp {^[^/]+:} $ip_path]} {
+    # Rclone path (e.g., dropbox:Project/IPs or eos:user/d/dcieri/...)
+    set on_rclone 1
+    # Check if rclone is available
+    lassign [ExecuteRet rclone --version] rclone_ret rclone_ver
+    if {$rclone_ret != 0} {
+      Msg Warning "Rclone path specified but rclone not found or failed: $rclone_ver"
+      cd $old_path
+      return 0
+    } else {
+      Msg Info "IP remote directory path, on Rclone, is set to: $ip_path"
+      # Check if RCLONE_CONFIG environment variable is set, if not set it to the default path
+      if {[info exists env(HOG_RCLONE_CONFIG)]} {
+        Msg Info "Using rclone config from environment variable HOG_RCLONE_CONFIG: $env(HOG_RCLONE_CONFIG)"
+        set config_path $env(HOG_RCLONE_CONFIG)
+      } else {
+        set config_path "/dev/null"
+        Msg Info "Environment variable HOG_RCLONE_CONFIG not set, using rclone environmental variables..."
+      }
+
+      set remote_name "[lindex [split $ip_path ":"] 0]:"
+      lassign [ExecuteRet rclone listremotes --config $config_path] rclone_list_ret remotes
+      if {$rclone_list_ret != 0} {
+        Msg Warning "Could not list rclone remotes: $remotes"
+        cd $old_path
+        return 0
+      } else {
+        if {![IsInList $remote_name $remotes]} {
+          Msg Warning "Rclone remote $remote_name not found among available remotes: $remotes"
+          cd $old_path
+          return 0
+        }
+      }
+    }
+  } elseif {[string first "/eos/" $ip_path] == 0} {
+    # IP Path is on EOS
+    # Check if kinit is done
+    if {!([info exists ::env(ENABLE_EOS)] && $::env(ENABLE_EOS) == 1)} {
+      Msg Warning "IP remote directory path is on EOS but kinit was not successfull or not done. I will not copy IPs from/to EOS."
+      cd $old_path
+      return 0
+    }
+    # Check if eos is mounted
+    if {[file isdirectory $ip_path]} {
+      Msg Info "Eos is mounted in the current machine. Treating it as a normal directory..."
+    } else {
+      set on_eos 1
+      lassign [eos "ls $ip_path"] ret result
+      if {$ret != 0} {
+        Msg Warning "Could not run ls for for EOS path: $ip_path (error: $result). \
+        Either the drectory does not exist or there are (temporary) problem with EOS."
+        cd $old_path
+        return 0
+      } else {
+        Msg Info "IP remote directory path, on EOS, is set to: $ip_path"
+      }
+    }
+  } else {
+    file mkdir $ip_path
+  }
+
+  cd $old_path
+  return [list 1 $on_eos $on_rclone $config_path]
+}
 
 proc CheckProjVer {repo_path project {sim 0} {ext_path ""}} {
   global env
@@ -2343,6 +2423,8 @@ proc GetCustomCommands {parameters {directory .}} {
 
 proc SanitizeCustomCommand {cmdDict file parameters} {
   # Normalize all user-provided keys to uppercase so NAME/DESCRIPTION/etc are case-insensitive.
+
+
   set normalized {}
   foreach k [dict keys $cmdDict] {
     set K [string toupper $k]
@@ -2413,7 +2495,7 @@ proc SanitizeCustomCommand {cmdDict file parameters} {
     }
     dict set cmdDict OPTIONS $hog_options
   } else {
-    dict set cmdDict CUSTOM_OPTIONS {}
+    dict set cmdDict OPTIONS {}
   }
 
 
@@ -4399,6 +4481,30 @@ proc GitVersion {target_version} {
   return [expr {$target <= $current}]
 }
 
+## @brief Check if a file is present in an Rclone remote repository
+#
+# The output of rclone is captured rather than printed, so that the error messages that rclone
+# emits when the file (or its parent directory) is not there do not pollute the Hog log.
+# Any other rclone failure (e.g. wrong credentials, unreachable remote) is reported instead.
+#
+# @param[in] remote_file: the full rclone path of the file to look for
+# @param[in] config_path: the rclone configuration file to be used
+#
+# @return 1 if the file exists, 0 if it does not exist or if rclone could not be run
+proc RcloneFileExists {remote_file config_path} {
+  if {[catch {exec rclone ls $remote_file --config $config_path 2>@1} result opt] == 0} {
+    return 1
+  }
+  # rclone exits with 3 (directory not found) or 4 (file not found) when the file is simply not there
+  set rclone_ret [lindex [dict get $opt -errorcode] end]
+  if {$rclone_ret ne "3" && $rclone_ret ne "4"} {
+    Msg CriticalWarning "Could not check if $remote_file is in the Rclone repository: $result"
+  } else {
+    Msg Debug "$remote_file not found in the Rclone repository (rclone exit code $rclone_ret)."
+  }
+  return 0
+}
+
 ## @brief Copy IP generated files from/to a remote o local directory (possibly EOS)
 #
 # @param[in] what_to_do: the action you want to perform, either
@@ -4411,7 +4517,7 @@ proc GitVersion {target_version} {
 #            by default the files are placed in the same folder as the .xci
 # @param[in] force: if not set to 0, will copy the IP to the remote directory even if it is already present
 #
-proc HandleIP {what_to_do xci_file ip_path repo_path {gen_dir "."} {force 0}} {
+proc HandleIP {what_to_do xci_file ip_path repo_path on_eos on_rclone rclone_config_path {gen_dir "."} {force 0}} {
   global env
   if {!($what_to_do eq "push") && !($what_to_do eq "pull")} {
     Msg Error "You must specify push or pull as first argument."
@@ -4423,72 +4529,7 @@ proc HandleIP {what_to_do xci_file ip_path repo_path {gen_dir "."} {force 0}} {
   }
 
   set old_path [pwd]
-
   cd $repo_path
-
-  set on_eos 0
-  set on_rclone 0
-
-  if {[regexp {^[^/]+:} $ip_path]} {
-    # Rclone path (e.g., dropbox:Project/IPs or eos:user/d/dcieri/...)
-    set on_rclone 1
-    # Check if rclone is available
-    lassign [ExecuteRet rclone --version] rclone_ret rclone_ver
-    if {$rclone_ret != 0} {
-      Msg CriticalWarning "Rclone path specified but rclone not found or failed: $rclone_ver"
-      cd $old_path
-      return -1
-    } else {
-      Msg Info "IP remote directory path, on Rclone, is set to: $ip_path"
-      # Check if RCLONE_CONFIG environment variable is set, if not set it to the default path
-      if {[info exists env(HOG_RCLONE_CONFIG)]} {
-        Msg Info "Using rclone config from environment variable HOG_RCLONE_CONFIG: $env(HOG_RCLONE_CONFIG)"
-        set config_path $env(HOG_RCLONE_CONFIG)
-      } else {
-        set config_path "/dev/null"
-        Msg Info "Environment variable HOG_RCLONE_CONFIG not set, using rclone environmental variables..."
-      }
-
-      set remote_name "[lindex [split $ip_path ":"] 0]:"
-      lassign [ExecuteRet rclone listremotes --config $config_path] rclone_list_ret remotes
-      if {$rclone_list_ret != 0} {
-        Msg CriticalWarning "Could not list rclone remotes: $remotes"
-        cd $old_path
-        return -1
-      } else {
-        if {![IsInList $remote_name $remotes]} {
-          Msg CriticalWarning "Rclone remote $remote_name not found among available remotes: $remotes"
-          cd $old_path
-          return -1
-        }
-      }
-    }
-  } elseif {[string first "/eos/" $ip_path] == 0} {
-    # IP Path is on EOS
-    # Check if kinit is done
-    if {!([info exists ::env(ENABLE_EOS)] && $::env(ENABLE_EOS) == 1)} {
-      Msg Warning "IP remote directory path is on EOS but kinit was not successfull or not done. I will not copy IPs from/to EOS."
-      cd $old_path
-      return -1
-    }
-    # Check if eos is mounted
-    if {[file isdirectory $ip_path]} {
-      Msg Info "Eos is mounted in the current machine. Treating it as a normal directory..."
-    } else {
-      set on_eos 1
-      lassign [eos "ls $ip_path"] ret result
-      if {$ret != 0} {
-        Msg CriticalWarning "Could not run ls for for EOS path: $ip_path (error: $result). \
-        Either the drectory does not exist or there are (temporary) problem with EOS."
-        cd $old_path
-        return -1
-      } else {
-        Msg Info "IP remote directory path, on EOS, is set to: $ip_path"
-      }
-    }
-  } else {
-    file mkdir $ip_path
-  }
 
   if {!([file exists $xci_file])} {
     Msg CriticalWarning "Could not find $xci_file."
@@ -4506,14 +4547,22 @@ proc HandleIP {what_to_do xci_file ip_path repo_path {gen_dir "."} {force 0}} {
   set hash [Md5Sum $xci_file]
   set file_name $xci_name\_$hash
 
-  Msg Info "Preparing to $what_to_do IP: $xci_name..."
+  # Check if the IP is a subcore of a BD file
+
+  set scope [get_property -quiet SCOPE [get_ips $xci_ip_name]]
+  if {$scope != ""} {
+    Msg Debug "IP $xci_name is a subcore of a BD file, will not pull/push it from/to the remote directory."
+    return 0
+  }
+
+  Msg Info "Preparing to $what_to_do IP: $xci_name ($file_name)."
 
   if {$what_to_do eq "push"} {
     set will_copy 0
     set will_remove 0
     if {$on_rclone == 1} {
-      lassign [ExecuteRet rclone ls $ip_path/$file_name.tar --config $config_path] ret result
-      if {$ret != 0} {
+      # lassign [ExecuteRet rclone ls $ip_path/$file_name.tar --config $rclone_config_path] ret result
+      if {[RcloneFileExists $ip_path/$file_name.tar $rclone_config_path] == 0} {
         set will_copy 1
       } else {
         if {$force == 0} {
@@ -4563,7 +4612,7 @@ proc HandleIP {what_to_do xci_file ip_path repo_path {gen_dir "."} {force 0}} {
         if {$will_remove == 1} {
           Msg Info "Removing old synthesised directory $ip_path/$file_name.tar..."
           if {$on_rclone == 1} {
-            lassign [ExecuteRet rclone delete $ip_path/$file_name.tar --config $config_path] ret result
+            lassign [ExecuteRet rclone delete $ip_path/$file_name.tar --config $rclone_config_path] ret result
             if {$ret != 0} {
               Msg CriticalWarning "Could not delete file from Rclone: $result"
             }
@@ -4609,7 +4658,7 @@ proc HandleIP {what_to_do xci_file ip_path repo_path {gen_dir "."} {force 0}} {
 
         Msg Info "Copying IP generated files for $xci_name..."
         if {$on_rclone == 1} {
-          lassign [ExecuteRet rclone copyto $file_name.tar $ip_path/$file_name.tar --config $config_path] ret result
+          lassign [ExecuteRet rclone copyto $file_name.tar $ip_path/$file_name.tar --config $rclone_config_path] ret result
           if {$ret != 0} {
             Msg CriticalWarning "Something went wrong when copying the IP files to Rclone. Error message: $result"
           }
@@ -4629,14 +4678,14 @@ proc HandleIP {what_to_do xci_file ip_path repo_path {gen_dir "."} {force 0}} {
     }
   } elseif {$what_to_do eq "pull"} {
     if {$on_rclone == 1} {
-      lassign [ExecuteRet rclone ls $ip_path/$file_name.tar --config $config_path] ret result
-      if {$ret != 0} {
+      # lassign [ExecuteRet rclone ls $ip_path/$file_name.tar --config $rclone_config_path] ret result
+      if {[RcloneFileExists $ip_path/$file_name.tar $rclone_config_path] == 0} {
         Msg Info "Nothing for $xci_name was found in the Rclone repository, cannot pull."
         cd $old_path
         return -1
       } else {
         Msg Info "IP $xci_name found in the Rclone repository $ip_path, copying it locally to $repo_path..."
-        lassign [ExecuteRet rclone copyto $ip_path/$file_name.tar $file_name.tar --config $config_path] ret_copy result_copy
+        lassign [ExecuteRet rclone copyto $ip_path/$file_name.tar $file_name.tar --config $rclone_config_path] ret_copy result_copy
         if {$ret_copy != 0} {
           Msg CriticalWarning "Something went wrong when copying the IP files from Rclone. Error message: $result_copy"
         }
@@ -4861,8 +4910,9 @@ proc InitLauncher {script tcl_path parameters commands argv {custom_commands ""}
   if {$NO_DIRECTIVE_FOUND == 1} {
     if {[string length $custom_commands] > 0 && [dict exists $custom_commands $directive]} {
       set custom_command $directive
-      set custom_command_hog_parameters [dict get $custom_commands $directive OPTIONS]
-      set custom_command_options [dict get $custom_commands $directive CUSTOM_OPTIONS]
+      set custom_command_dict [DictGet $custom_commands $directive]
+      set custom_command_hog_parameters [DictGet $custom_command_dict OPTIONS]
+      set custom_command_options [DictGet $custom_command_dict CUSTOM_OPTIONS]
       set custom_command_options [concat $custom_command_hog_parameters $custom_command_options]
     } else {
       Msg Status "ERROR: Unknown directive $directive.\n\n"
@@ -4943,6 +4993,28 @@ proc InitLauncher {script tcl_path parameters commands argv {custom_commands ""}
     exit 0
   }
 
+  # Gather the options supported by the chosen directive
+  set directive_options ""
+  set directive_found 0
+  if {$custom_command ne ""} {
+    set directive_options $custom_command_options
+    set directive_found 1
+  } else {
+    dict for {dir opts} $command_options {
+      if {[regexp $dir $directive]} {
+        set directive_options $opts
+        set directive_found 1
+        break
+      }
+    }
+  }
+
+  # Get the directive name without `.arg` suffix
+  set directive_option_names {}
+  foreach opt $directive_options {
+    lappend directive_option_names [regsub {\.arg$} [lindex $opt 0] ""]
+  }
+
   if {$custom_command ne ""} {
     set parameters [concat $parameters $custom_command_options]
   }
@@ -4950,6 +5022,21 @@ proc InitLauncher {script tcl_path parameters commands argv {custom_commands ""}
   if {[catch {array set options [cmdline::getoptions option_list $parameters $usage]} err]} {
     Msg Status "\nERROR: Syntax error, probably unknown option.\n\n USAGE: $err"
     exit 1
+  }
+
+  # Ignore the options that are not supported by the chosen directive, restoring their default value
+  if {$directive_found == 1} {
+    set default_option_list {}
+    array set default_options [cmdline::getoptions default_option_list $parameters $usage]
+    foreach {key value} [array get options] {
+      if {[IsInList $key $directive_option_names] || ![info exists default_options($key)]} {
+        continue
+      }
+      if {$value ne $default_options($key)} {
+        Msg Warning "Option -$key is not supported by directive $directive, ignoring it."
+        set options($key) $default_options($key)
+      }
+    }
   }
 
   if {[llength $arg_list] <= $min_n_of_args || [llength $arg_list] > $max_n_of_args} {
@@ -4977,6 +5064,7 @@ proc InitLauncher {script tcl_path parameters commands argv {custom_commands ""}
   }
 
   Msg Debug "Option list:"
+
   foreach {key value} [array get options] {
     Msg Debug "$key => $value"
   }
@@ -5030,7 +5118,9 @@ proc InitLauncher {script tcl_path parameters commands argv {custom_commands ""}
   set project [file tail $project]
   Msg Debug "InitLauncher: project_group=$project_group, project_name=$project_name, project=$project"
 
-  return [list $directive $project $project_name $project_group $repo_path $old_path $bin_path $top_path $usage $short_usage $command $cmd [array get options]]
+  return [list $directive $project $project_name $project_group $repo_path $old_path\
+          $bin_path $top_path $usage $short_usage $command $cmd [array get options]\
+          $directive_options]
 }
 
 # @brief Returns 1 if a commit is an ancestor of another, otherwise 0
@@ -5697,6 +5787,10 @@ proc GenerateBitstreamOnly {project_name {repo_path .}} {
   # The binary file is written in the standard implementation run directory,
   # the post-bitstream script will then copy it (and all the other artifacts) into the bin directory
   set run_dir [get_property DIRECTORY [get_runs impl_1]]
+  if {![file exists $run_dir]} {
+    Msg Error "Implementation run directory not found: $run_dir. Please check your implementation run."
+    return
+  }
   cd $run_dir
 
   Msg Info "Running pre-bitstream..."

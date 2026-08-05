@@ -172,7 +172,9 @@ if {[IsXilinx]} {
           set force 0
         }
         Msg Info "Copying synthesised IP $ip to $ip_repo..."
-        HandleIP push [get_property IP_FILE $ip] $ip_repo $repo_path [get_property IP_OUTPUT_DIR $ip] $force
+        lassign [CheckRemoteIpPath $repo_path $ip_repo] on_eos on_rclone rclone_config_path
+
+        HandleIP push [get_property IP_FILE $ip] $ip_repo $repo_path $on_eos $on_rclone $rclone_config_path [get_property IP_OUTPUT_DIR $ip] $force
       }
     }
 

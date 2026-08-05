@@ -909,6 +909,86 @@ proc CheckEnv {project_name ide} {
   }
 }
 
+## @brief Check the settings for the remote IP path. It checks if the path is on EOS or Rclone and if the necessary tools are available.
+# @param[in] repo_path The path to the repository
+# @param[in] ip_path The path to the remote IP repository
+#
+# @return A list with the following elements:
+# 1. on_eos: 1 if the path is on EOS, 0 otherwise
+# 2. on_rclone: 1 if the path is on Rclone, 0 otherwise
+# 3. config_path: The path to the rclone config file if on Rclone 
+proc CheckRemoteIpPath {repo_path ip_path} {
+  global env
+  set on_eos 0
+  set on_rclone 0
+  set config_path ""
+  set old_path [pwd]
+  cd $repo_path
+
+  if {[regexp {^[^/]+:} $ip_path]} {
+    # Rclone path (e.g., dropbox:Project/IPs or eos:user/d/dcieri/...)
+    set on_rclone 1
+    # Check if rclone is available
+    lassign [ExecuteRet rclone --version] rclone_ret rclone_ver
+    if {$rclone_ret != 0} {
+      Msg CriticalWarning "Rclone path specified but rclone not found or failed: $rclone_ver"
+      cd $old_path
+      return -1
+    } else {
+      Msg Info "IP remote directory path, on Rclone, is set to: $ip_path"
+      # Check if RCLONE_CONFIG environment variable is set, if not set it to the default path
+      if {[info exists env(HOG_RCLONE_CONFIG)]} {
+        Msg Info "Using rclone config from environment variable HOG_RCLONE_CONFIG: $env(HOG_RCLONE_CONFIG)"
+        set config_path $env(HOG_RCLONE_CONFIG)
+      } else {
+        set config_path "/dev/null"
+        Msg Info "Environment variable HOG_RCLONE_CONFIG not set, using rclone environmental variables..."
+      }
+
+      set remote_name "[lindex [split $ip_path ":"] 0]:"
+      lassign [ExecuteRet rclone listremotes --config $config_path] rclone_list_ret remotes
+      if {$rclone_list_ret != 0} {
+        Msg CriticalWarning "Could not list rclone remotes: $remotes"
+        cd $old_path
+        return -1
+      } else {
+        if {![IsInList $remote_name $remotes]} {
+          Msg CriticalWarning "Rclone remote $remote_name not found among available remotes: $remotes"
+          cd $old_path
+          return -1
+        }
+      }
+    }
+  } elseif {[string first "/eos/" $ip_path] == 0} {
+    # IP Path is on EOS
+    # Check if kinit is done
+    if {!([info exists ::env(ENABLE_EOS)] && $::env(ENABLE_EOS) == 1)} {
+      Msg Warning "IP remote directory path is on EOS but kinit was not successfull or not done. I will not copy IPs from/to EOS."
+      cd $old_path
+      return -1
+    }
+    # Check if eos is mounted
+    if {[file isdirectory $ip_path]} {
+      Msg Info "Eos is mounted in the current machine. Treating it as a normal directory..."
+    } else {
+      set on_eos 1
+      lassign [eos "ls $ip_path"] ret result
+      if {$ret != 0} {
+        Msg CriticalWarning "Could not run ls for for EOS path: $ip_path (error: $result). \
+        Either the drectory does not exist or there are (temporary) problem with EOS."
+        cd $old_path
+        return -1
+      } else {
+        Msg Info "IP remote directory path, on EOS, is set to: $ip_path"
+      }
+    }
+  } else {
+    file mkdir $ip_path
+  }
+
+  cd $old_path
+  return [list $on_eos $on_rclone $config_path]
+}
 
 proc CheckProjVer {repo_path project {sim 0} {ext_path ""}} {
   global env
@@ -4413,7 +4493,7 @@ proc GitVersion {target_version} {
 #            by default the files are placed in the same folder as the .xci
 # @param[in] force: if not set to 0, will copy the IP to the remote directory even if it is already present
 #
-proc HandleIP {what_to_do xci_file ip_path repo_path {gen_dir "."} {force 0}} {
+proc HandleIP {what_to_do xci_file ip_path repo_path on_eos on_rclone rclone_config_path {gen_dir "."} {force 0}} {
   global env
   if {!($what_to_do eq "push") && !($what_to_do eq "pull")} {
     Msg Error "You must specify push or pull as first argument."
@@ -4425,72 +4505,7 @@ proc HandleIP {what_to_do xci_file ip_path repo_path {gen_dir "."} {force 0}} {
   }
 
   set old_path [pwd]
-
   cd $repo_path
-
-  set on_eos 0
-  set on_rclone 0
-
-  if {[regexp {^[^/]+:} $ip_path]} {
-    # Rclone path (e.g., dropbox:Project/IPs or eos:user/d/dcieri/...)
-    set on_rclone 1
-    # Check if rclone is available
-    lassign [ExecuteRet rclone --version] rclone_ret rclone_ver
-    if {$rclone_ret != 0} {
-      Msg CriticalWarning "Rclone path specified but rclone not found or failed: $rclone_ver"
-      cd $old_path
-      return -1
-    } else {
-      Msg Info "IP remote directory path, on Rclone, is set to: $ip_path"
-      # Check if RCLONE_CONFIG environment variable is set, if not set it to the default path
-      if {[info exists env(HOG_RCLONE_CONFIG)]} {
-        Msg Info "Using rclone config from environment variable HOG_RCLONE_CONFIG: $env(HOG_RCLONE_CONFIG)"
-        set config_path $env(HOG_RCLONE_CONFIG)
-      } else {
-        set config_path "/dev/null"
-        Msg Info "Environment variable HOG_RCLONE_CONFIG not set, using rclone environmental variables..."
-      }
-
-      set remote_name "[lindex [split $ip_path ":"] 0]:"
-      lassign [ExecuteRet rclone listremotes --config $config_path] rclone_list_ret remotes
-      if {$rclone_list_ret != 0} {
-        Msg CriticalWarning "Could not list rclone remotes: $remotes"
-        cd $old_path
-        return -1
-      } else {
-        if {![IsInList $remote_name $remotes]} {
-          Msg CriticalWarning "Rclone remote $remote_name not found among available remotes: $remotes"
-          cd $old_path
-          return -1
-        }
-      }
-    }
-  } elseif {[string first "/eos/" $ip_path] == 0} {
-    # IP Path is on EOS
-    # Check if kinit is done
-    if {!([info exists ::env(ENABLE_EOS)] && $::env(ENABLE_EOS) == 1)} {
-      Msg Warning "IP remote directory path is on EOS but kinit was not successfull or not done. I will not copy IPs from/to EOS."
-      cd $old_path
-      return -1
-    }
-    # Check if eos is mounted
-    if {[file isdirectory $ip_path]} {
-      Msg Info "Eos is mounted in the current machine. Treating it as a normal directory..."
-    } else {
-      set on_eos 1
-      lassign [eos "ls $ip_path"] ret result
-      if {$ret != 0} {
-        Msg CriticalWarning "Could not run ls for for EOS path: $ip_path (error: $result). \
-        Either the drectory does not exist or there are (temporary) problem with EOS."
-        cd $old_path
-        return -1
-      } else {
-        Msg Info "IP remote directory path, on EOS, is set to: $ip_path"
-      }
-    }
-  } else {
-    file mkdir $ip_path
-  }
 
   if {!([file exists $xci_file])} {
     Msg CriticalWarning "Could not find $xci_file."

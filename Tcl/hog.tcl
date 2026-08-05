@@ -4481,6 +4481,30 @@ proc GitVersion {target_version} {
   return [expr {$target <= $current}]
 }
 
+## @brief Check if a file is present in an Rclone remote repository
+#
+# The output of rclone is captured rather than printed, so that the error messages that rclone
+# emits when the file (or its parent directory) is not there do not pollute the Hog log.
+# Any other rclone failure (e.g. wrong credentials, unreachable remote) is reported instead.
+#
+# @param[in] remote_file: the full rclone path of the file to look for
+# @param[in] config_path: the rclone configuration file to be used
+#
+# @return 1 if the file exists, 0 if it does not exist or if rclone could not be run
+proc RcloneFileExists {remote_file config_path} {
+  if {[catch {exec rclone ls $remote_file --config $config_path 2>@1} result opt] == 0} {
+    return 1
+  }
+  # rclone exits with 3 (directory not found) or 4 (file not found) when the file is simply not there
+  set rclone_ret [lindex [dict get $opt -errorcode] end]
+  if {$rclone_ret ne "3" && $rclone_ret ne "4"} {
+    Msg CriticalWarning "Could not check if $remote_file is in the Rclone repository: $result"
+  } else {
+    Msg Debug "$remote_file not found in the Rclone repository (rclone exit code $rclone_ret)."
+  }
+  return 0
+}
+
 ## @brief Copy IP generated files from/to a remote o local directory (possibly EOS)
 #
 # @param[in] what_to_do: the action you want to perform, either
@@ -4537,8 +4561,8 @@ proc HandleIP {what_to_do xci_file ip_path repo_path on_eos on_rclone rclone_con
     set will_copy 0
     set will_remove 0
     if {$on_rclone == 1} {
-      lassign [ExecuteRet rclone ls $ip_path/$file_name.tar --config $rclone_config_path] ret result
-      if {$ret != 0} {
+      # lassign [ExecuteRet rclone ls $ip_path/$file_name.tar --config $rclone_config_path] ret result
+      if {[RcloneFileExists $ip_path/$file_name.tar $rclone_config_path] == 0} {
         set will_copy 1
       } else {
         if {$force == 0} {
@@ -4654,8 +4678,8 @@ proc HandleIP {what_to_do xci_file ip_path repo_path on_eos on_rclone rclone_con
     }
   } elseif {$what_to_do eq "pull"} {
     if {$on_rclone == 1} {
-      lassign [ExecuteRet rclone ls $ip_path/$file_name.tar --config $rclone_config_path] ret result
-      if {$ret != 0} {
+      # lassign [ExecuteRet rclone ls $ip_path/$file_name.tar --config $rclone_config_path] ret result
+      if {[RcloneFileExists $ip_path/$file_name.tar $rclone_config_path] == 0} {
         Msg Info "Nothing for $xci_name was found in the Rclone repository, cannot pull."
         cd $old_path
         return -1

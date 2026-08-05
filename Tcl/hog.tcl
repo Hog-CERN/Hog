@@ -4654,14 +4654,14 @@ proc HandleIP {what_to_do xci_file ip_path repo_path on_eos on_rclone rclone_con
     }
   } elseif {$what_to_do eq "pull"} {
     if {$on_rclone == 1} {
-      lassign [ExecuteRet rclone ls $ip_path/$file_name.tar --config $config_path] ret result
+      lassign [ExecuteRet rclone ls $ip_path/$file_name.tar --config $rclone_config_path] ret result
       if {$ret != 0} {
         Msg Info "Nothing for $xci_name was found in the Rclone repository, cannot pull."
         cd $old_path
         return -1
       } else {
         Msg Info "IP $xci_name found in the Rclone repository $ip_path, copying it locally to $repo_path..."
-        lassign [ExecuteRet rclone copyto $ip_path/$file_name.tar $file_name.tar --config $config_path] ret_copy result_copy
+        lassign [ExecuteRet rclone copyto $ip_path/$file_name.tar $file_name.tar --config $rclone_config_path] ret_copy result_copy
         if {$ret_copy != 0} {
           Msg CriticalWarning "Something went wrong when copying the IP files from Rclone. Error message: $result_copy"
         }

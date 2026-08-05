@@ -4634,7 +4634,7 @@ proc HandleIP {what_to_do xci_file ip_path repo_path on_eos on_rclone rclone_con
 
         Msg Info "Copying IP generated files for $xci_name..."
         if {$on_rclone == 1} {
-          lassign [ExecuteRet rclone copyto $file_name.tar $ip_path/$file_name.tar --config $config_path] ret result
+          lassign [ExecuteRet rclone copyto $file_name.tar $ip_path/$file_name.tar --config $rclone_config_path] ret result
           if {$ret != 0} {
             Msg CriticalWarning "Something went wrong when copying the IP files to Rclone. Error message: $result"
           }

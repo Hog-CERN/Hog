@@ -1136,7 +1136,7 @@ proc ManageIPs {} {
   if {$globalSettings::HOG_IP_PATH != ""} {
     set ip_repo_path $globalSettings::HOG_IP_PATH
     Msg Info "HOG_IP_PATH is set, will pull/push synthesised IPs from/to $ip_repo_path."
-    
+
     lassign [CheckRemoteIpPath $globalSettings::repo_path $ip_repo_path] on_eos on_rclone rclone_config_path
 
     foreach ip $ips {

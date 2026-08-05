@@ -931,7 +931,7 @@ proc CheckRemoteIpPath {repo_path ip_path} {
     # Check if rclone is available
     lassign [ExecuteRet rclone --version] rclone_ret rclone_ver
     if {$rclone_ret != 0} {
-      Msg CriticalWarning "Rclone path specified but rclone not found or failed: $rclone_ver"
+      Msg Warning "Rclone path specified but rclone not found or failed: $rclone_ver"
       cd $old_path
       return -1
     } else {
@@ -948,12 +948,12 @@ proc CheckRemoteIpPath {repo_path ip_path} {
       set remote_name "[lindex [split $ip_path ":"] 0]:"
       lassign [ExecuteRet rclone listremotes --config $config_path] rclone_list_ret remotes
       if {$rclone_list_ret != 0} {
-        Msg CriticalWarning "Could not list rclone remotes: $remotes"
+        Msg Warning "Could not list rclone remotes: $remotes"
         cd $old_path
         return -1
       } else {
         if {![IsInList $remote_name $remotes]} {
-          Msg CriticalWarning "Rclone remote $remote_name not found among available remotes: $remotes"
+          Msg Warning "Rclone remote $remote_name not found among available remotes: $remotes"
           cd $old_path
           return -1
         }
@@ -974,7 +974,7 @@ proc CheckRemoteIpPath {repo_path ip_path} {
       set on_eos 1
       lassign [eos "ls $ip_path"] ret result
       if {$ret != 0} {
-        Msg CriticalWarning "Could not run ls for for EOS path: $ip_path (error: $result). \
+        Msg Warning "Could not run ls for for EOS path: $ip_path (error: $result). \
         Either the drectory does not exist or there are (temporary) problem with EOS."
         cd $old_path
         return -1

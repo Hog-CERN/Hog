@@ -1140,7 +1140,8 @@ proc ManageIPs {} {
     lassign [CheckRemoteIpPath $globalSettings::repo_path $ip_repo_path] system_ready on_eos on_rclone rclone_config_path
     if {$system_ready == 1} {
       foreach ip $ips {
-        HandleIP pull [get_property IP_FILE $ip] $ip_repo_path $globalSettings::repo_path [get_property IP_OUTPUT_DIR $ip] $on_eos $on_rclone $rclone_config_path
+        HandleIP pull [get_property IP_FILE $ip] $ip_repo_path $globalSettings::repo_path [get_property IP_OUTPUT_DIR $ip]\
+        $on_eos $on_rclone $rclone_config_path
       }
     }
   } else {

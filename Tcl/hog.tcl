@@ -4531,7 +4531,7 @@ proc HandleIP {what_to_do xci_file ip_path repo_path on_eos on_rclone rclone_con
     return 0
   }
 
-  Msg Info "Preparing to $what_to_do IP: $xci_name..."
+  Msg Info "Preparing to $what_to_do IP: $xci_name ($file_name)."
 
   if {$what_to_do eq "push"} {
     set will_copy 0

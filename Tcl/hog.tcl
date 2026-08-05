@@ -4537,7 +4537,7 @@ proc HandleIP {what_to_do xci_file ip_path repo_path on_eos on_rclone rclone_con
     set will_copy 0
     set will_remove 0
     if {$on_rclone == 1} {
-      lassign [ExecuteRet rclone ls $ip_path/$file_name.tar --config $config_path] ret result
+      lassign [ExecuteRet rclone ls $ip_path/$file_name.tar --config $rclone_config_path] ret result
       if {$ret != 0} {
         set will_copy 1
       } else {

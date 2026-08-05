@@ -1137,10 +1137,11 @@ proc ManageIPs {} {
     set ip_repo_path $globalSettings::HOG_IP_PATH
     Msg Info "HOG_IP_PATH is set, will pull/push synthesised IPs from/to $ip_repo_path."
 
-    lassign [CheckRemoteIpPath $globalSettings::repo_path $ip_repo_path] on_eos on_rclone rclone_config_path
-
-    foreach ip $ips {
-      HandleIP pull [get_property IP_FILE $ip] $ip_repo_path $globalSettings::repo_path [get_property IP_OUTPUT_DIR $ip] $on_eos $on_rclone $rclone_config_path
+    lassign [CheckRemoteIpPath $globalSettings::repo_path $ip_repo_path] system_ready on_eos on_rclone rclone_config_path
+    if {$system_ready == 1} {
+      foreach ip $ips {
+        HandleIP pull [get_property IP_FILE $ip] $ip_repo_path $globalSettings::repo_path [get_property IP_OUTPUT_DIR $ip] $on_eos $on_rclone $rclone_config_path
+      }
     }
   } else {
     Msg Info "HOG_IP_PATH not set, will not push/pull synthesised IPs."

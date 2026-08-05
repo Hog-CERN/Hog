@@ -933,7 +933,7 @@ proc CheckRemoteIpPath {repo_path ip_path} {
     if {$rclone_ret != 0} {
       Msg Warning "Rclone path specified but rclone not found or failed: $rclone_ver"
       cd $old_path
-      return -1
+      return 0
     } else {
       Msg Info "IP remote directory path, on Rclone, is set to: $ip_path"
       # Check if RCLONE_CONFIG environment variable is set, if not set it to the default path
@@ -950,12 +950,12 @@ proc CheckRemoteIpPath {repo_path ip_path} {
       if {$rclone_list_ret != 0} {
         Msg Warning "Could not list rclone remotes: $remotes"
         cd $old_path
-        return -1
+        return 0
       } else {
         if {![IsInList $remote_name $remotes]} {
           Msg Warning "Rclone remote $remote_name not found among available remotes: $remotes"
           cd $old_path
-          return -1
+          return 0
         }
       }
     }
@@ -965,7 +965,7 @@ proc CheckRemoteIpPath {repo_path ip_path} {
     if {!([info exists ::env(ENABLE_EOS)] && $::env(ENABLE_EOS) == 1)} {
       Msg Warning "IP remote directory path is on EOS but kinit was not successfull or not done. I will not copy IPs from/to EOS."
       cd $old_path
-      return -1
+      return 0
     }
     # Check if eos is mounted
     if {[file isdirectory $ip_path]} {
@@ -977,7 +977,7 @@ proc CheckRemoteIpPath {repo_path ip_path} {
         Msg Warning "Could not run ls for for EOS path: $ip_path (error: $result). \
         Either the drectory does not exist or there are (temporary) problem with EOS."
         cd $old_path
-        return -1
+        return 0
       } else {
         Msg Info "IP remote directory path, on EOS, is set to: $ip_path"
       }
@@ -987,7 +987,7 @@ proc CheckRemoteIpPath {repo_path ip_path} {
   }
 
   cd $old_path
-  return [list $on_eos $on_rclone $config_path]
+  return [list 1 $on_eos $on_rclone $config_path]
 }
 
 proc CheckProjVer {repo_path project {sim 0} {ext_path ""}} {

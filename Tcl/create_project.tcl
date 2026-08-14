@@ -835,7 +835,8 @@ proc CreatePlatform {platform_name platform_conf {xsa ""}} {
     # Use HSI commands for Vitis Classic
     hsi::open_hw_design $xsa
     set proc_cells [hsi::get_cells -filter { IP_TYPE == "PROCESSOR" }]
-    set proc_map_file [open "$globalSettings::build_dir/vitis_classic/$platform_name.PROC_MAP" "w"]
+    set proc_map_path [file normalize "$globalSettings::build_dir/vitis_classic/$platform_name.PROC_MAP"]
+    set proc_map_file [open $proc_map_path "w"]
 
     foreach proc $proc_cells {
       # If soft processor, save mapping from proc to cell to be used later when updating mem
@@ -845,18 +846,33 @@ proc CreatePlatform {platform_name platform_conf {xsa ""}} {
         set proc_hier_name [hsi::get_property HIER_NAME $proc]
         set proc_address_tag [hsi::get_property ADDRESS_TAG $proc]
 
-        if {$proc_address_tag eq ""} {
-          Msg Warning "Processor $proc ($proc_hier_name) does not have an ADDRESS_TAG property set. \
-          This may cause issues when configuring the platform."
+        # updatemem -proc needs the instance path from the MMI (usually HIER_NAME).
+        # ADDRESS_TAG is preferred when present (may be "tag:path"), otherwise fall back
+        set proc_updatemem_path $proc_hier_name
+        if {$proc_address_tag ne ""} {
+          if {[string match "*:*" $proc_address_tag]} {
+            set proc_updatemem_path [lindex [split $proc_address_tag ":"] end]
+          } else {
+            set proc_updatemem_path $proc_address_tag
+          }
         } else {
-          set proc_map_entry "$proc_hier_name $proc_address_tag"
-          puts $proc_map_file "$proc_map_entry\n"
+          Msg Warning "Processor $proc ($proc_hier_name) does not have an ADDRESS_TAG property set. Using HIER_NAME for updatemem."
+        }
+        if {$proc_updatemem_path eq ""} {
+          set proc_updatemem_path $proc
+        }
+
+        # Index by HSI cell name (matches hog.conf proc=) and by hierarchy name
+        puts $proc_map_file "$proc $proc_updatemem_path"
+        if {$proc_hier_name ne "" && $proc_hier_name ne $proc} {
+          puts $proc_map_file "$proc_hier_name $proc_updatemem_path"
         }
       }
     }
 
     hsi::close_hw_design [hsi::current_hw_design]
     close $proc_map_file
+    Msg Info "Wrote soft-processor map to $proc_map_path"
   }
 
 
@@ -1120,8 +1136,13 @@ proc ManageIPs {} {
   if {$globalSettings::HOG_IP_PATH != ""} {
     set ip_repo_path $globalSettings::HOG_IP_PATH
     Msg Info "HOG_IP_PATH is set, will pull/push synthesised IPs from/to $ip_repo_path."
-    foreach ip $ips {
-      HandleIP pull [get_property IP_FILE $ip] $ip_repo_path $globalSettings::repo_path [get_property IP_OUTPUT_DIR $ip]
+
+    lassign [CheckRemoteIpPath $globalSettings::repo_path $ip_repo_path] system_ready on_eos on_rclone rclone_config_path
+    if {$system_ready == 1} {
+      foreach ip $ips {
+        HandleIP pull [get_property IP_FILE $ip] $ip_repo_path $globalSettings::repo_path [get_property IP_OUTPUT_DIR $ip]\
+        $on_eos $on_rclone $rclone_config_path
+      }
     }
   } else {
     Msg Info "HOG_IP_PATH not set, will not push/pull synthesised IPs."
@@ -1368,6 +1389,7 @@ proc CreateProject {args} {
             Msg Info "Opening existing Vivado project to generate pre-synth XSA..."
             open_project $xpr_file
             set xsa_path [file normalize "$globalSettings::build_dir/$globalSettings::DESIGN-presynth.xsa"]
+            GenerateStandaloneXciTargets
             write_hw_platform -fixed -force -file $xsa_path
             Msg Info "Pre-synth XSA generated: $xsa_path"
             close_project
@@ -1388,8 +1410,13 @@ proc CreateProject {args} {
       ConfigureApps
       AddAppFiles
       if {[file exists $post_file]} {
-        Msg Info "Found post-creation Tcl script $post_file, executing it..."
-        source $post_file
+        if {[string match "vivado_*" [string tolower $ide]]} {
+          Msg Info "Skipping post-creation.tcl in -vitis_only pass for $ide \
+          (already executed during Vivado project creation)."
+        } else {
+          Msg Info "Found post-creation Tcl script $post_file, executing it..."
+          source $post_file
+        }
       }
     }
 
@@ -1515,6 +1542,7 @@ proc CreateProject {args} {
 
   if {($globalSettings::vitis_classic == 1 || $globalSettings::vitis_unified == 1)} {
     # Presynth hw platform, let's keep it in the build directory
+    GenerateStandaloneXciTargets
     write_hw_platform -fixed -force -file [file normalize "$globalSettings::build_dir/$globalSettings::DESIGN-presynth.xsa"]
 
     if {$options(xsa) == ""} {

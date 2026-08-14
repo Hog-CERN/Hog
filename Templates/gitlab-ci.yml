@@ -21,6 +21,8 @@ include:
 
 #################### example ###########################
 ### Change 'example' with your project name
+# Optionally set HOG_ADDITIONAL_ARTIFACT_PATH to a repository-relative path or glob
+# to add project-specific output to simulation, synthesis, and implementation artifacts.
 
 GEN:example:
   extends: .generate_project

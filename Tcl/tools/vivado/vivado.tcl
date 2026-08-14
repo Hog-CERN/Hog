@@ -42,6 +42,19 @@ namespace eval Tools::Vivado {
         }
       }
 
+      SIMULATION {
+        aliases {s sim simulate}
+        description "Simulate the project, creating it if not existing."
+        stages  {@CREATE Simulate}
+        options {
+          {simset.arg   "" "Simulation sets to run. HDL simsets by name (e.g. sim_1), HLS ones as\
+                            csim:<component> or cosim:<component>. If not set, all of them are run."}
+          {scripts_only    "If set, only the simulation scripts are generated, the simulations are not run."}
+          {compile_only    "If set, only the simulation libraries are compiled, the simulations are not run."}
+          {recreate        "If set, the project will be re-created if it already exists."}
+        }
+      }
+
       WORKFLOW {
         aliases {w work cw}
         description "Runs the full workflow, creates the project if not existing."
@@ -113,15 +126,23 @@ namespace eval Tools::Vivado {
     set proj_dir [file normalize "${repo_path}/Top/${project_name}"]
 
 
+    # Resolution order follows the legacy launcher (Tcl/launch.tcl:63-79):
+    # -lib, then $HOG_SIMULATION_LIB_PATH, then <repo>/SimulationLib. Legacy left
+    # the path empty when that last directory was missing; keeping it set instead
+    # only changes which message LaunchSimulation prints before failing.
     if {[Launcher::GetOr options lib ""] != ""} {
-      if {[IsRelativePath [Launcher::Get options lib]] == 0} {
-        CurrentProject::Set simlib_path "[Launcher::Get options lib]"
+      set lib_opt [Launcher::GetOr options lib ""]
+      if {[IsRelativePath $lib_opt] == 0} {
+        CurrentProject::Set simlib_path "$lib_opt"
       } else {
-        CurrentProject::Set simlib_path "${repo_path}/[Launcher::Get options lib]"
+        CurrentProject::Set simlib_path "${repo_path}/$lib_opt"
       }
       Msg Info "Simulation library path set to [CurrentProject::Get simlib_path]"
+    } elseif {[info exists env(HOG_SIMULATION_LIB_PATH)]} {
+      CurrentProject::Set simlib_path [file normalize $env(HOG_SIMULATION_LIB_PATH)]
+      Msg Info "Simulation library path set from HOG_SIMULATION_LIB_PATH to [CurrentProject::Get simlib_path]"
     } else {
-      CurrentProject::Set simlib_path "${repo_path}/simlib"
+      CurrentProject::Set simlib_path "${repo_path}/SimulationLib"
       Msg Info "Simulation library path set to default [CurrentProject::Get simlib_path]"
     }
 
@@ -895,17 +916,80 @@ namespace eval Tools::Vivado {
     puts "[tobj tojson [DataStore::Serialize] -pretty]"
   }
 
-  proc Simulate {} {
+  ## @brief Split the -simset option into HDL and HLS simulation sets.
+  #
+  # HLS simsets are given as csim:<component> or cosim:<component>, everything
+  # else is an HDL simset. Mirrors Tcl/launch.tcl:945-952.
+  #
+  # @return a list of two lists: {hdl_simsets hls_simsets}
+  proc _SplitSimsets {simset_opt} {
+    set hdl_simsets [list]
+    set hls_simsets [list]
+    foreach s $simset_opt {
+      if {[regexp {^(csim|cosim):} $s]} {
+        lappend hls_simsets $s
+      } else {
+        lappend hdl_simsets $s
+      }
+    }
+    return [list $hdl_simsets $hls_simsets]
+  }
 
-    if {[FlowControl::Has SYNTH] && ![FlowControl::Has IMPL]} {
-      Msg Info "Running post-synthesis simulation..."
-    } elseif {[FlowControl::Has IMPL]} {
+  ## @brief Warn about GHDL simulation sets, which this tool cannot run.
+  #
+  # GHDL is driven by the ghdl tool, in tclsh, without ever booting an IDE.
+  # The legacy launcher used to run both in a single invocation because it
+  # dispatched on the #Simulator line of each .sim file, whereas the new
+  # launcher dispatches on the ide of the project's hog.conf.
+  proc _WarnGhdlSimsets {project_name repo_path hdl_simsets} {
+    set ghdl_simsets [GetSimSets $project_name $repo_path $hdl_simsets 1]
+    if {$ghdl_simsets eq "" || [dict size $ghdl_simsets] == 0} {
+      return
+    }
+    Msg CriticalWarning "The following simulation sets use GHDL and cannot be run by Vivado:\
+      [dict keys $ghdl_simsets]. Run them with './Hog/Do TOOL GHDL SIMULATION $project_name'."
+  }
+
+  proc Simulate {} {
+    FlowControl::Require PROJECT_CREATED
+
+    if {[FlowControl::Has IMPLEMENTATION_DONE]} {
       Msg Info "Running post-implementation simulation..."
+    } elseif {[FlowControl::Has SYNTHESIS_DONE]} {
+      Msg Info "Running post-synthesis simulation..."
     } else {
       Msg Info "Running RTL simulation..."
-      FlowControl::Produce PRE_SYNTH_SIM
     }
 
+    set project_name [CurrentProject::Get project_name]
+    set repo_path    [Repo::Get repo_path]
+    set lib_path     [CurrentProject::GetOr simlib_path ""]
+    set scripts_only [Launcher::GetOr options scripts_only 0]
+    set compile_only [Launcher::GetOr options compile_only 0]
+    set simset_opt   [Launcher::GetOr options simset ""]
+
+    lassign [_SplitSimsets $simset_opt] hdl_simsets hls_simsets
+
+    # With no -simset, everything is run; otherwise only what was asked for.
+    set run_hdl [expr {[llength $hdl_simsets] > 0 || $simset_opt eq ""}]
+    set run_hls [expr {[llength $hls_simsets] > 0 || $simset_opt eq ""}]
+
+    if {$run_hdl} {
+      _WarnGhdlSimsets $project_name $repo_path $hdl_simsets
+      # GetSimSets with ghdl=0 skips the GHDL simsets warned about above.
+      set simsets [GetSimSets $project_name $repo_path $hdl_simsets]
+      if {$simsets ne "" && [dict size $simsets] > 0} {
+        LaunchSimulation $project_name $lib_path $simsets $repo_path $scripts_only $compile_only
+      } else {
+        Msg Info "No HDL simulation set to run for $project_name."
+      }
+    }
+
+    if {$run_hls} {
+      LaunchHlsSimulation $project_name $repo_path $hls_simsets
+    }
+
+    FlowControl::Produce SIMULATION_DONE
   }
 
   proc CheckSyntax {} {

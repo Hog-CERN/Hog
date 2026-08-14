@@ -5835,6 +5835,7 @@ proc LaunchSimulation {project_name lib_path simsets {repo_path .} {scripts_only
     set failed []
     set success []
     set sim_dic [dict create]
+    set simpass_dic [dict create]
 
     Msg Info "Retrieving list of simulation sets..."
     foreach s [get_filesets] {
@@ -5861,8 +5862,6 @@ proc LaunchSimulation {project_name lib_path simsets {repo_path .} {scripts_only
           }
           if {[string toupper $prop_name] == "HOG_SILENT_SIM" && $prop_val == 1} {
             set quiet_sim " -quiet"
-          } else {
-            set quiet_sim ""
           }
         }
 
@@ -5873,7 +5872,7 @@ proc LaunchSimulation {project_name lib_path simsets {repo_path .} {scripts_only
         }
         if {[file exists $repo_path/Top/$project_name/pre-$s-simulation.tcl]} {
           Msg Info "Running $repo_path/Top/$project_name/pre-$s-simulation.tcl"
-          source Running $repo_path/Top/$project_name/pre-$s-simulation.tcl
+          source $repo_path/Top/$project_name/pre-$s-simulation.tcl
         }
         current_fileset -simset $s
         set sim_dir $main_sim_folder/$s/behav
@@ -5927,6 +5926,12 @@ proc LaunchSimulation {project_name lib_path simsets {repo_path .} {scripts_only
             Msg Info "Adding simulation script location $sim_script for $s..."
             lappend sim_scripts $sim_script
             dict append sim_dic $sim_script $s
+            # Remember the pass-string settings of THIS simset, the scripts are run
+            # in a separate loop below where $use_simpass_str/$simpass_str would
+            # otherwise hold the values of whichever simset was processed last.
+            if {$use_simpass_str == 1} {
+              dict set simpass_dic $sim_script $simpass_str
+            }
           } else {
             Msg Error "Cannot run $simulator simulations without a valid library path"
             exit -1
@@ -5987,9 +5992,11 @@ proc LaunchSimulation {project_name lib_path simsets {repo_path .} {scripts_only
         lassign [ExecuteRet $cmd] ret log
 
 
-        # If SIMPASS_STR is set, search log for the string
-        if {$use_simpass_str == 1} {
-          if {[string first $simpass_str $log] == -1} {
+        # If SIMPASS_STR is set for this simset, search log for the string
+        if {[dict exists $simpass_dic $s]} {
+          set script_simpass_str [dict get $simpass_dic $s]
+          Msg Info "Searching for simulation pass string: '$script_simpass_str'"
+          if {[string first $script_simpass_str $log] == -1} {
             set ret 1
           }
         } else {

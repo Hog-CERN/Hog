@@ -182,7 +182,6 @@ namespace eval Tools {
   proc Init {} {
     #set _required_procs {IsActive Launch Initialize}
     set _required_procs {}
-    
     foreach ns [namespace children ::Tools] {
       set tool_name [namespace tail $ns]
       if {[catch {set m [namespace eval $ns {variable Manifest; set Manifest}]} err]} {

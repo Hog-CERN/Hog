@@ -508,7 +508,9 @@ if {[IsXilinx]} {
           set vitis_type "Vitis Classic"
           set error_prefix "xsct (vitis classic)"
         } elseif {$is_vitis_unified} {
-          set vitis_cmd "$tcl_path/launch.tcl CW -xsa $dst_xsa -vitis_only $full_proj_name"
+          set vitis_cmd "vivado -nojournal -nolog -mode batch -notrace \
+            -source $tcl_path/launch.tcl \
+            -tclargs CW -xsa $dst_xsa -vitis_only $full_proj_name"
           set vitis_type "Vitis Unified"
           set error_prefix "vivado (for vitis unified)"
         } else {

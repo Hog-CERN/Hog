@@ -780,6 +780,11 @@ proc CreatePlatform {platform_name platform_conf {xsa ""}} {
     "samples" "os" "xpfm" "no-boot-bsp"
   }
 
+  # XSCT/Vitis Classic switches that do not take a value
+  set platform_create_flags {
+    "no-boot-bsp" "prebuilt"
+  }
+
   Msg Info "Creating platform configuration..."
   append platform_options " -name $platform_name"
 
@@ -809,7 +814,13 @@ proc CreatePlatform {platform_name platform_conf {xsa ""}} {
 
     set p_lower [string tolower $p]
     if {[IsInList $p_lower $platform_create_options]} {
-      append platform_options " -$p_lower $v"
+      if {[IsVitisClassic] && [IsInList $p_lower $platform_create_flags]} {
+        if {[string is true -strict $v]} {
+          append platform_options " -$p_lower"
+        }
+      } else {
+        append platform_options " -$p_lower $v"
+      }
     } else {
       if {$p_lower ne "bif"} {
         Msg Warning "Attempting to use unknown platform option: $p_lower"

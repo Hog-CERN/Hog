@@ -6218,9 +6218,9 @@ proc LaunchVitisBuild {project_name {repo_path .} {stage "presynth"}} {
 
   # Get app list
   if {[IsVitisUnified]} {
-    set ws_apps [GetVitisApps \
-      [file normalize "$repo_path/Projects/$project_name/vitis_unified"] \
-      [file normalize "$repo_path/Hog/Other/Python/VitisUnified/AppCommands.py"]]
+    set vitis_workspace [file normalize "$repo_path/Projects/$project_name/vitis_unified"]
+    set python_script [file normalize "$repo_path/Hog/Other/Python/VitisUnified/AppCommands.py"]
+    set ws_apps [GetVitisApps $vitis_workspace $python_script]
   } elseif {[IsVitisClassic]} {
     set ws_apps [GetVitisApps]
   } else {

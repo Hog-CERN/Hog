@@ -172,7 +172,7 @@ if {$NO_DIRECTIVE_FOUND == 1} {
         set ret [catch {exec -ignorestderr {*}$cmd >@ stdout 2>@ stderr} result]
 
         if {$ret != 0} {
-          Msg Error "IDE returned an error state."
+          Msg Error "IDE returned an error state: $result"
         } else {
           Msg Info "All done."
           exit 0
@@ -665,7 +665,7 @@ if {$cmd == -1} {
   set ret [catch {exec -ignorestderr {*}$cmd >@ stdout 2>@ stderr} result]
 
   if {$ret != 0} {
-    Msg Error "IDE returned an error state."
+    Msg Error "IDE returned an error state: $result"
   } else {
     Msg Info "All done."
     exit 0

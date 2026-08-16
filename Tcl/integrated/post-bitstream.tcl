@@ -508,7 +508,11 @@ if {[IsXilinx]} {
           set vitis_type "Vitis Classic"
           set error_prefix "xsct (vitis classic)"
         } elseif {$is_vitis_unified} {
-          set vitis_cmd "vivado -nojournal -nolog -mode batch -notrace \
+          # Keep the log of the spawned process so that a failure in it can be diagnosed
+          set vitis_log [file normalize "$proj_dir/vitis_unified_build.log"]
+          set vitis_jou [file normalize "$proj_dir/vitis_unified_build.jou"]
+          set vitis_cmd "vivado -mode batch -notrace \
+            -log $vitis_log -journal $vitis_jou \
             -source $tcl_path/launch.tcl \
             -tclargs CW -xsa $dst_xsa -vitis_only $full_proj_name"
           set vitis_type "Vitis Unified"
@@ -521,7 +525,7 @@ if {[IsXilinx]} {
         Msg Info "Running $vitis_type to create elf file with cmd: $vitis_cmd"
         set ret [catch {exec -ignorestderr {*}$vitis_cmd >@ stdout} result]
         if {$ret != 0} {
-          Msg Error "$error_prefix returned an error state."
+          Msg Error "$error_prefix returned an error state: $result"
         }
 
         # Copy ELF files from Vitis build output into bin directory

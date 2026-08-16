@@ -1573,17 +1573,22 @@ proc CreateProject {args} {
       Msg Info "Running Vitis Classic project creation script with command: $xsct_cmd"
       set ret [catch {exec -ignorestderr {*}$xsct_cmd >@ stdout} result]
       if {$ret != 0} {
-        Msg Error "xsct (vitis classic) returned an error state."
+        Msg Error "xsct (vitis classic) returned an error state: $result"
       }
     } elseif {$globalSettings::vitis_unified == 1} {
-      # Launch vivado in batch mode to build the project
-      set vivado_cmd "vivado -nojournal -nolog -mode batch -notrace \
+      # Launch vivado in batch mode to build the project, keeping the log of the
+      # spawned process so that a failure in it can be diagnosed
+      set vitis_log [file normalize "$globalSettings::build_dir/vitis_unified_create.log"]
+      set vitis_jou [file normalize "$globalSettings::build_dir/vitis_unified_create.jou"]
+      set vivado_cmd "vivado -mode batch -notrace \
+        -log $vitis_log -journal $vitis_jou \
         -source $globalSettings::tcl_path/launch.tcl \
         -tclargs C $xsa_opt -vitis_only $globalSettings::project_name"
       Msg Info "Running Vitis Unified project creation script with command: $vivado_cmd"
       set ret [catch {exec -ignorestderr {*}$vivado_cmd >@ stdout} result]
       if {$ret != 0} {
-        Msg Error "vivado (vitis unified) returned an error state."
+        Msg Error "vivado (vitis unified) returned an error state: $result\n\
+        Check the log of the failed process: $vitis_log"
       }
     }
   }

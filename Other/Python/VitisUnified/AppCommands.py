@@ -31,6 +31,7 @@ if os.path.exists(_shared_commands_path):
   PrintWarning = shared_commands.PrintWarning
   PrintDebug = shared_commands.PrintDebug
   InitVitisWorkspace = shared_commands.InitVitisWorkspace
+  DisposeVitisClient = shared_commands.DisposeVitisClient
 else:
   print("ERROR: [Hog:Python:AppCommands.py] Failed to import SharedCommands, file not found: %s" % _shared_commands_path)
 
@@ -40,13 +41,14 @@ def AppListDict(workspace_path):
   Args:
     workspace_path: Path to the workspace
   Returns:
-    Dictionary with app names as keys (empty dicts as values)
+    Dictionary with app names as keys (empty dicts as values),
+    or None if the workspace could not be read
   """
   try:
     PrintInfo("Getting app list from workspace: %s" % workspace_path)
     client = InitVitisWorkspace(workspace_path)
     if client is None:
-      return {}
+      return None
 
     # Get all components from the workspace
     try:
@@ -59,8 +61,8 @@ def AppListDict(workspace_path):
       import traceback
       traceback.print_exc()
       sys.stdout.flush()
-      vitis.dispose()
-      return {}
+      DisposeVitisClient()
+      return None
 
     # Filter for application components (component_type == "APPLICATION")
     app_dict = {}
@@ -119,11 +121,8 @@ def AppListDict(workspace_path):
     import traceback
     traceback.print_exc()
     sys.stdout.flush()
-    try:
-      vitis.dispose()
-    except:
-      pass
-    return {}
+    DisposeVitisClient()
+    return None
 
 def ParseAppOptions(app_options_str):
   """
@@ -627,7 +626,10 @@ if __name__ == "__main__":
       sys.exit(1)
     workspace_path = sys.argv[2]
     apps = AppListDict(workspace_path)
+    if apps is None:
+      sys.exit(1)
     print(json.dumps(apps), flush=True)
+    sys.exit(0)
 
   elif command == "add_app_files":
     if len(sys.argv) < 5:

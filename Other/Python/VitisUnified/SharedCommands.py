@@ -17,6 +17,13 @@ import vitis
 import sys
 import inspect
 import os
+import time
+
+# A Vitis workspace can only be opened by one process at a time. Hog runs several
+# "vitis -s" steps back to back on the same workspace, and the previous one may
+# still be releasing the lock when the next one starts, so wait it out.
+WORKSPACE_LOCK_ATTEMPTS = 6
+WORKSPACE_LOCK_DELAY_S = 5
 
 
 def PrintInfo(message):
@@ -89,12 +96,23 @@ def PrintDebug(message):
   print("DEBUG: [Hog:Python:%s] %s" % (function_name, message), flush=True)
 
 
+def DisposeVitisClient():
+  """Close all client connections and terminate the Vitis server, ignoring errors"""
+  try:
+    vitis.dispose()
+  except:
+    pass
+
+
 def InitVitisWorkspace(workspace_path):
   """Initialize a Vitis workspace and return the client.
 
   Creates a Vitis client, sets the workspace (which creates the _ide
   metadata directory), and handles the common "cannot recognize the
   workspace version" error by calling update_workspace first.
+
+  If the workspace is locked by a Vitis process that has not finished shutting
+  down yet, the call is retried before giving up.
 
   Args:
     workspace_path: Absolute path to the workspace directory
@@ -103,13 +121,16 @@ def InitVitisWorkspace(workspace_path):
     Caller is responsible for calling vitis.dispose() when done.
   """
   PrintInfo("Setting Vitis workspace: %s" % workspace_path)
-  client = vitis.create_client()
 
-  try:
-    client.set_workspace(path=workspace_path)
-    return client
-  except Exception as e:
-    error_msg = str(e)
+  for attempt in range(1, WORKSPACE_LOCK_ATTEMPTS + 1):
+    client = vitis.create_client()
+
+    try:
+      client.set_workspace(path=workspace_path)
+      return client
+    except Exception as e:
+      error_msg = str(e)
+
     if "cannot recognize the workspace version" in error_msg or "update_workspace" in error_msg:
       try:
         client.update_workspace(path=workspace_path)
@@ -118,13 +139,27 @@ def InitVitisWorkspace(workspace_path):
         return client
       except Exception as e2:
         PrintError("Failed to set workspace after update: %s" % e2)
-    else:
-      PrintError("Failed to set workspace '%s': %s" % (workspace_path, e))
+      break
 
-  try:
-    vitis.dispose()
-  except:
-    pass
+    if "already in use" not in error_msg:
+      PrintError("Failed to set workspace '%s': %s" % (workspace_path, error_msg))
+      break
+
+    # Tear this client down so that we do not leak a server while waiting for
+    # the process that owns the lock to release it
+    DisposeVitisClient()
+
+    if attempt == WORKSPACE_LOCK_ATTEMPTS:
+      PrintError("Vitis workspace '%s' is still in use after %d attempts: %s"
+                 % (workspace_path, WORKSPACE_LOCK_ATTEMPTS, error_msg))
+      PrintError("Close any Vitis GUI or 'vitis -s' process using this workspace and try again")
+      return None
+
+    PrintWarning("Vitis workspace '%s' is in use, retrying in %d s (attempt %d of %d)"
+                 % (workspace_path, WORKSPACE_LOCK_DELAY_S, attempt, WORKSPACE_LOCK_ATTEMPTS))
+    time.sleep(WORKSPACE_LOCK_DELAY_S)
+
+  DisposeVitisClient()
   return None
 
 
@@ -135,5 +170,6 @@ if __name__ == "__main__":
   print("  - PrintWarning(message)", flush=True)
   print("  - PrintDebug(message)", flush=True)
   print("  - InitVitisWorkspace(workspace_path)", flush=True)
+  print("  - DisposeVitisClient()", flush=True)
   print("\nThis module is imported by PlatformCommands.py, AppCommands.py, and HlsCommands.py", flush=True)
   sys.exit(0)

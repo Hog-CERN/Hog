@@ -62,6 +62,16 @@ proc AddHogFiles {libraries properties filesets} {
     set place_conf 0
   }
 
+  # Vitis: the workspace apps do not change while files are added, and querying
+  # them opens and locks the workspace, so get them once for all the filesets
+  set ws_apps ""
+  if {[IsVitisClassic]} {
+    set ws_apps [GetVitisApps]
+  } elseif {[IsVitisUnified]} {
+    set ws_apps [GetVitisApps "$globalSettings::build_dir/vitis_unified" \
+      "$globalSettings::repo_path/Hog/Other/Python/VitisUnified/AppCommands.py"]
+  }
+
   foreach fileset [dict keys $filesets] {
     Msg Debug "Fileset: $fileset"
     # Create fileset if it doesn't exist yet
@@ -86,42 +96,12 @@ proc AddHogFiles {libraries properties filesets} {
     }
 
     # Vitis: Check if defined apps have a corresponding source file
-    if {[IsVitisClassic] || [IsVitisUnified]} {
-      # Get the workspace apps
-      if {[IsVitisClassic]} {
-        # TODO: "app list -dict" return wrong configuration parameters for Vitis Classic versions older than 2022.1
-        if {[catch {set ws_apps [app list -dict]}]} {set ws_apps ""}
-      } elseif {[IsVitisUnified]} {
-        # Get app list from Vitis Unified workspace using Python script
-        set vitis_workspace "$globalSettings::build_dir/vitis_unified"
-        set python_script "$globalSettings::repo_path/Hog/Other/Python/VitisUnified/AppCommands.py"
-        set json_output ""
-        if {![ExecuteVitisUnifiedCommand $python_script "app_list" [list $vitis_workspace] "Failed to get app list from Vitis Unified" json_output]} {
-          Msg Warning "Failed to get app list from Vitis Unified"
-          set ws_apps ""
-        } else {
-          if {[catch {package require json}]} {
-            Msg Warning "JSON package not available for parsing Vitis Unified app list"
-            set ws_apps ""
-          } else {
-            set json_output_filtered ""
-            if {[regexp -lineanchor {\{.*\}} $json_output json_output_filtered]} {
-              set ws_apps [json::json2dict $json_output_filtered]
-            } else {
-              set ws_apps [json::json2dict $json_output]
-            }
-          }
-        }
-      }
-
-      # Check if each app has a corresponding source file
-      if {$ws_apps ne ""} {
-        dict for {app_name app_config} $ws_apps {
-          set app_lib [string tolower "app_$app_name\.src"]
-          if {![IsInList $app_lib $libs_in_fileset 0 1]} {
-            Msg Warning "App '$app_name' exists in workspace but no corresponding sourcefile '$app_lib' found. \
-              Make sure you have a list file with the correct naming convention: \[app_<app_name>\.src\]"
-          }
+    if {$ws_apps ne ""} {
+      dict for {app_name app_config} $ws_apps {
+        set app_lib [string tolower "app_$app_name\.src"]
+        if {![IsInList $app_lib $libs_in_fileset 0 1]} {
+          Msg Warning "App '$app_name' exists in workspace but no corresponding sourcefile '$app_lib' found. \
+            Make sure you have a list file with the correct naming convention: \[app_<app_name>\.src\]"
         }
       }
     }
@@ -5393,6 +5373,49 @@ proc ExecuteVitisUnifiedCommand {python_script command args {error_prefix "Faile
   return 1
 }
 
+## @brief Get the applications defined in the Vitis workspace
+#
+# In Vitis Unified this spawns an external "vitis -s" process which opens and
+# locks the workspace, so the result must be cached by the caller rather than
+# queried repeatedly.
+#
+# @param[in] vitis_workspace Path of the Vitis Unified workspace (not needed in Vitis Classic)
+# @param[in] python_script   Full path to AppCommands.py (not needed in Vitis Classic)
+# @param[out] A dict with the app names as keys, or an empty string if the list could not be retrieved
+#
+proc GetVitisApps {{vitis_workspace ""} {python_script ""}} {
+  if {[IsVitisClassic]} {
+    # TODO: "app list -dict" return wrong configuration parameters for Vitis Classic versions older than 2022.1
+    if {[catch {set ws_apps [app list -dict]}]} {
+      set ws_apps ""
+    }
+    return $ws_apps
+  }
+
+  if {![IsVitisUnified]} {
+    return ""
+  }
+
+  set json_output ""
+  if {
+    ![ExecuteVitisUnifiedCommand $python_script "app_list" [list $vitis_workspace] \
+      "Failed to get app list from Vitis Unified workspace $vitis_workspace" json_output]
+  } {
+    return ""
+  }
+
+  if {[catch {package require json}]} {
+    Msg Warning "JSON package not available for parsing Vitis Unified app list"
+    return ""
+  }
+
+  set json_output_filtered ""
+  if {[regexp -lineanchor {\{.*\}} $json_output json_output_filtered]} {
+    return [json::json2dict $json_output_filtered]
+  }
+  return [json::json2dict $json_output]
+}
+
 ## @brief Find out if the given Xilinx part is a Versal chip
 #
 # @param[out] 1 if it's Zynq 0 if it's not
@@ -6195,27 +6218,11 @@ proc LaunchVitisBuild {project_name {repo_path .} {stage "presynth"}} {
 
   # Get app list
   if {[IsVitisUnified]} {
-    set vitis_workspace [file normalize "$repo_path/Projects/$project_name/vitis_unified"]
-    set python_script [file normalize "$repo_path/Hog/Other/Python/VitisUnified/AppCommands.py"]
-    set json_output ""
-    if {![ExecuteVitisUnifiedCommand $python_script "app_list" [list $vitis_workspace] "Failed to get app list from Vitis Unified" json_output]} {
-      Msg Error "Failed to get app list from Vitis Unified"
-      set ws_apps ""
-    } else {
-      if {[catch {package require json}]} {
-        Msg Error "JSON package not available for parsing Vitis Unified app list"
-        set ws_apps ""
-      } else {
-        set json_output_filtered ""
-        if {[regexp -lineanchor {\{.*\}} $json_output json_output_filtered]} {
-          set ws_apps [json::json2dict $json_output_filtered]
-        } else {
-          set ws_apps [json::json2dict $json_output]
-        }
-      }
-    }
+    set ws_apps [GetVitisApps \
+      [file normalize "$repo_path/Projects/$project_name/vitis_unified"] \
+      [file normalize "$repo_path/Hog/Other/Python/VitisUnified/AppCommands.py"]]
   } elseif {[IsVitisClassic]} {
-    if {[catch {set ws_apps [app list -dict]}]} {set ws_apps ""}
+    set ws_apps [GetVitisApps]
   } else {
     Msg Error "Impossible condition. You need to run this in a Vitis Unified or Vitis Classic IDE."
     exit 1

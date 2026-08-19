@@ -5664,6 +5664,14 @@ proc LaunchImplementation {reset do_create run_folder project_name {repo_path .}
   } elseif {[IsQuartus]} {
     set revision [get_current_revision]
 
+    set ic [get_global_assignment -name INCREMENTAL_COMPILATION]
+    if {$ic ne "" && [string toupper $ic] ne "OFF"} {
+      Msg Info "Incremental compilation enabled ($ic), running Partition Merge..."
+      if {[catch {execute_module -tool cdb -args "--merge=on"} result]} {
+        Msg Error "Result: $result\nPartition Merge failed. See the report file.\n"
+      }
+    }
+
     if {[catch {execute_module -tool fit} result]} {
       Msg Error "Result: $result\n"
       Msg Error "Place & Route failed. See the report file.\n"

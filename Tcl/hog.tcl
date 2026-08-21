@@ -63,13 +63,17 @@ proc AddHogFiles {libraries properties filesets} {
   }
 
   # Vitis: the workspace apps do not change while files are added, and querying
-  # them opens and locks the workspace, so get them once for all the filesets
+  # them opens and locks the workspace, so get them once for all the filesets.
+  # Only the vitis_only pass adds files to the apps: while Vivado is adding the
+  # HDL sources the workspace is still empty, so do not even open it
   set ws_apps ""
-  if {[IsVitisClassic]} {
-    set ws_apps [GetVitisApps]
-  } elseif {[IsVitisUnified]} {
-    set ws_apps [GetVitisApps "$globalSettings::build_dir/vitis_unified" \
-      "$globalSettings::repo_path/Hog/Other/Python/VitisUnified/AppCommands.py"]
+  if {![IsVivado] || ([info exists globalSettings::vitis_only_pass] && $globalSettings::vitis_only_pass == 1)} {
+    if {[IsVitisClassic]} {
+      set ws_apps [GetVitisApps]
+    } elseif {[IsVitisUnified]} {
+      set ws_apps [GetVitisApps "$globalSettings::build_dir/vitis_unified" \
+        "$globalSettings::repo_path/Hog/Other/Python/VitisUnified/AppCommands.py"]
+    }
   }
 
   foreach fileset [dict keys $filesets] {

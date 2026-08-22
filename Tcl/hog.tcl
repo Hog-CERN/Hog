@@ -619,7 +619,7 @@ proc AddHogFiles {libraries properties filesets} {
 
       # Get Vitis version and set as environment variable for Python script
       set vitis_version [GetIDEVersion]
-      set env(HOG_VITIS_VER) $vitis_version
+      set ::env(HOG_VITIS_VER) $vitis_version
       Msg Debug "Vitis version: $vitis_version (set in HOG_VITIS_VER environment variable)"
 
       dict for {app_name app_data} $app_files_dict {
@@ -647,10 +647,13 @@ proc AddHogFiles {libraries properties filesets} {
 
           Msg Debug "JSON string: $files_json"
 
+          # The file list contains spaces: pass it in the environment, as a command
+          # line argument it would be split by the Windows shell that runs vitis.bat
+          set ::env(HOG_VITIS_APP_FILES) $files_json
           set error_msg "Failed to add files to app $app_name"
           if {
             ![ExecuteVitisUnifiedCommand $python_script "add_app_files" \
-              [list $app_name $files_json $vitis_workspace $target_path] \
+              [list $app_name $vitis_workspace $target_path] \
               $error_msg]
           } {
             Msg Error "Failed to add files to Vitis Unified app '$app_name'"
@@ -5292,7 +5295,7 @@ proc ExecuteVitisUnifiedCommand {python_script command args {error_prefix "Faile
   Msg Debug "Executing: vitis -s $python_script $command $args"
 
   # Set PYTHONUNBUFFERED environment variable for real-time output
-  set env(PYTHONUNBUFFERED) "1"
+  set ::env(PYTHONUNBUFFERED) "1"
 
   # Open pipe and configure for line buffering
   if {[catch {set pipe [open "|$cmdlist" "r"]} err]} {

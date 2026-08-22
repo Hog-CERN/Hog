@@ -366,11 +366,13 @@ def CreatePlatform(platform_options=None, ws_dir=None):
 
 
 if __name__ == "__main__":
-  if len(sys.argv) < 4:
-    PrintError("Both platform options and workspace path are required")
-    print("Usage: vitis -s PlatformCommands.py create_platform '{ -name <platform_name> -hw_design <xsa_file_path> -os <os_type> -cpu <cpu_type> }' <workspace_path>", flush=True)
+  if len(sys.argv) < 3:
+    PrintError("Workspace path is required")
+    print("Usage: HOG_VITIS_PLATFORM_OPTIONS='{ -name <platform_name> -hw <xsa_file_path> -os <os_type> -proc <cpu_type> }' \\", flush=True)
+    print("         vitis -s PlatformCommands.py create_platform <workspace_path>", flush=True)
     print("\nExample:", flush=True)
-    print("  vitis -s PlatformCommands.py create_platform '{ -name TestPlatform1 -hw_design my_project.xsa -cpu psu_cortexa53_0 -os standalone -domain_name standalone_a53 }' my_workspace_path", flush=True)
+    print("  HOG_VITIS_PLATFORM_OPTIONS='{ -name TestPlatform1 -hw my_project.xsa -proc psu_cortexa53_0 -os standalone }' \\", flush=True)
+    print("         vitis -s PlatformCommands.py create_platform my_workspace_path", flush=True)
     sys.exit(1)
 
   command = sys.argv[1]
@@ -379,7 +381,14 @@ if __name__ == "__main__":
     print("Available command: create_platform", file=sys.stderr, flush=True)
     sys.exit(1)
 
-  platform_options = sys.argv[2]
-  ws_dir = sys.argv[3]
+  # The options contain spaces, so they are passed in the environment. As a command
+  # line argument they get split by the Windows shell that runs vitis.bat, and the
+  # braces mean nothing outside Tcl.
+  platform_options = os.environ.get("HOG_VITIS_PLATFORM_OPTIONS")
+  if not platform_options:
+    PrintError("HOG_VITIS_PLATFORM_OPTIONS is not set, it must contain the platform options")
+    sys.exit(1)
+
+  ws_dir = sys.argv[2]
   result = CreatePlatform(platform_options=platform_options, ws_dir=ws_dir)
   sys.exit(0 if result else 1)

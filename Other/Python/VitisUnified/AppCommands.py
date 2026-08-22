@@ -593,29 +593,39 @@ if __name__ == "__main__":
     PrintError("Command is required")
     print("Usage: vitis -s AppCommands.py <command> [arguments...]", flush=True)
     print("\nAvailable commands:", flush=True)
-    print("  configure_app <app_name> <app_config> <workspace_path>", flush=True)
+    print("  configure_app <app_name> <workspace_path>      (options in HOG_VITIS_APP_OPTIONS)", flush=True)
     print("  app_list <workspace_path>", flush=True)
-    print("  add_app_files <app_name> <file_paths_json> <workspace_path> [target_path]", flush=True)
+    print("  add_app_files <app_name> <workspace_path> [target_path]  (files in HOG_VITIS_APP_FILES)", flush=True)
     print("  build_app <app_name> <workspace_path> [target]", flush=True)
     print("\nExamples:", flush=True)
-    print("  vitis -s AppCommands.py configure_app TestApp1 '{ PLATFORM TestPlatform1 PROC psu_cortexa53_0 OS standalone }' my_workspace_path", flush=True)
+    print("  HOG_VITIS_APP_OPTIONS='{ -PLATFORM {TestPlatform1} -PROC {psu_cortexa53_0} -OS {standalone} }' \\", flush=True)
+    print("         vitis -s AppCommands.py configure_app TestApp1 my_workspace_path", flush=True)
     print("  vitis -s AppCommands.py app_list my_workspace_path", flush=True)
-    print("  vitis -s AppCommands.py add_app_files TestApp1 '[\"/path/to/file1.c\", \"/path/to/file2.c\"]' my_workspace_path src", flush=True)
+    print("  HOG_VITIS_APP_FILES='[\"/path/to/file1.c\", \"/path/to/file2.c\"]' \\", flush=True)
+    print("         vitis -s AppCommands.py add_app_files TestApp1 my_workspace_path src", flush=True)
     print("  vitis -s AppCommands.py build_app TestApp1 my_workspace_path [hw|x86sim]", flush=True)
     sys.exit(1)
 
   command = sys.argv[1]
 
   if command == "configure_app":
-    if len(sys.argv) < 5:
-      PrintError("App name, app configuration, and workspace directory are required for configure_app")
-      print("Usage: vitis -s AppCommands.py configure_app <app_name> '{ <app_options> }' <workspace_directory_path>", flush=True)
+    if len(sys.argv) < 4:
+      PrintError("App name and workspace directory are required for configure_app")
+      print("Usage: HOG_VITIS_APP_OPTIONS='{ -PLATFORM {<platform>} -PROC {<cpu>} -OS {<os>} }' \\", flush=True)
+      print("         vitis -s AppCommands.py configure_app <app_name> <workspace_directory_path>", flush=True)
       print("\nExample:", flush=True)
-      print("  vitis -s AppCommands.py configure_app TestApp1 '{ PLATFORM TestPlatform1 PROC psu_cortexa53_0 OS standalone }' my_workspace_path", flush=True)
+      print("  HOG_VITIS_APP_OPTIONS='{ -PLATFORM {TestPlatform1} -PROC {psu_cortexa53_0} -OS {standalone} }' \\", flush=True)
+      print("         vitis -s AppCommands.py configure_app TestApp1 my_workspace_path", flush=True)
+      sys.exit(1)
+    # The options contain spaces, so they are passed in the environment. As a command
+    # line argument they get split by the Windows shell that runs vitis.bat, and the
+    # braces mean nothing outside Tcl.
+    app_conf = os.environ.get("HOG_VITIS_APP_OPTIONS")
+    if not app_conf:
+      PrintError("HOG_VITIS_APP_OPTIONS is not set, it must contain the app options")
       sys.exit(1)
     app_name = sys.argv[2]
-    app_conf = sys.argv[3]
-    ws_dir = sys.argv[4]
+    ws_dir = sys.argv[3]
     result = ConfigureApp(app_name=app_name, app_conf=app_conf, ws_dir=ws_dir)
     sys.exit(0 if result else 1)
 
@@ -632,18 +642,25 @@ if __name__ == "__main__":
     sys.exit(0)
 
   elif command == "add_app_files":
-    if len(sys.argv) < 5:
-      PrintError("App name, file paths, and workspace directory are required for add_app_files")
-      print("Usage: vitis -s AppCommands.py add_app_files <app_name> '<file_paths_json>' <workspace_path> [target_path]", flush=True)
+    if len(sys.argv) < 4:
+      PrintError("App name and workspace directory are required for add_app_files")
+      print("Usage: HOG_VITIS_APP_FILES='<file_paths_json>' \\", flush=True)
+      print("         vitis -s AppCommands.py add_app_files <app_name> <workspace_path> [target_path]", flush=True)
       print("Note: Vitis version is read from HOG_VITIS_VER environment variable (set by Tcl script)", flush=True)
       print("\nExample:", flush=True)
       print("  export HOG_VITIS_VER=2025.2", flush=True)
-      print("  vitis -s AppCommands.py add_app_files TestApp1 '[\"/path/to/file1.c\", \"/path/to/file2.c\"]' my_workspace_path src", flush=True)
+      print("  HOG_VITIS_APP_FILES='[\"/path/to/file1.c\", \"/path/to/file2.c\"]' \\", flush=True)
+      print("         vitis -s AppCommands.py add_app_files TestApp1 my_workspace_path src", flush=True)
+      sys.exit(1)
+    # The file list contains spaces, so it is passed in the environment. As a command
+    # line argument it gets split by the Windows shell that runs vitis.bat.
+    file_paths_json = os.environ.get("HOG_VITIS_APP_FILES")
+    if not file_paths_json:
+      PrintError("HOG_VITIS_APP_FILES is not set, it must contain the JSON list of files")
       sys.exit(1)
     app_name = sys.argv[2]
-    file_paths_json = sys.argv[3]
-    ws_dir = sys.argv[4]
-    target_path = sys.argv[5] if len(sys.argv) > 5 else None
+    ws_dir = sys.argv[3]
+    target_path = sys.argv[4] if len(sys.argv) > 4 else None
     result = AddAppFiles(app_name=app_name, file_paths=file_paths_json, ws_dir=ws_dir, target_path=target_path)
     sys.exit(0 if result else 1)
 

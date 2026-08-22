@@ -897,10 +897,12 @@ proc CreatePlatform {platform_name platform_conf {xsa ""}} {
     # Use Python script to create the platform with new Vitis Unified Python command-line tool
     set python_script "$globalSettings::repo_path/Hog/Other/Python/VitisUnified/PlatformCommands.py"
     Msg Info "Running Vitis Unified platform creation script..."
-    set platform_options_str "{ $platform_options }"
+    # The options contain spaces: pass them in the environment, as a command line
+    # argument they would be split by the Windows shell that runs vitis.bat
+    set ::env(HOG_VITIS_PLATFORM_OPTIONS) "{ $platform_options }"
     set error_msg "Failed to create platform $platform_name"
     if {![ExecuteVitisUnifiedCommand $python_script "create_platform" \
-        [list $platform_options_str "$globalSettings::build_dir/vitis_unified"] \
+        [list "$globalSettings::build_dir/vitis_unified"] \
         $error_msg]} {
       return
     }
@@ -932,9 +934,12 @@ proc ConfigureApps {} {
           append app_config_str " -[string toupper $p] \{$v\}"
         }
         append app_config_str " }"
+        # The options contain spaces: pass them in the environment, as a command line
+        # argument they would be split by the Windows shell that runs vitis.bat
+        set ::env(HOG_VITIS_APP_OPTIONS) $app_config_str
         set error_msg "Failed to configure app $app_name"
         if {![ExecuteVitisUnifiedCommand $python_script "configure_app" \
-            [list $app_name $app_config_str "$globalSettings::build_dir/vitis_unified"] \
+            [list $app_name "$globalSettings::build_dir/vitis_unified"] \
             $error_msg]} {
           continue
         }

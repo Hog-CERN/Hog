@@ -1085,6 +1085,16 @@ proc AddAppFiles {} {
 # @return 0 on success, 1 if no usable XSA could be found
 #
 proc ConfigureVitisComponents {xsa_option ide post_file} {
+
+  if {[IsVitisUnified]} {
+    set vitis_ws [file normalize "$globalSettings::build_dir/vitis_unified"]
+    if {[file exists $vitis_ws]} {
+      Msg Info "Removing existing Vitis Unified workspace $vitis_ws..."
+      file delete -force $vitis_ws
+    }
+    file mkdir $vitis_ws
+  }
+
   set has_hls [expr {[dict size [dict filter $globalSettings::PROPERTIES key {hls:*}]] > 0}]
   set has_platforms [expr {[dict size [dict filter $globalSettings::PROPERTIES key {platform:*}]] > 0}]
   set has_apps [expr {[dict size [dict filter $globalSettings::PROPERTIES key {app:*}]] > 0}]

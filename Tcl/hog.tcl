@@ -5191,11 +5191,10 @@ proc IsQuartus {} {
 #  @param[in]    the path to check
 #
 proc IsRelativePath {path} {
-  if {[string index $path 0] == "/" || [string index $path 0] == "~"} {
+  if {[string index $path 0] == "~"} {
     return 0
-  } else {
-    return 1
   }
+  return [expr {[file pathtype $path] eq "relative"}]
 }
 
 ## @brief Returns true if the Synthesis tool is Synplify

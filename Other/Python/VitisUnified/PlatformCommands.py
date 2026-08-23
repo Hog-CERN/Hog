@@ -32,6 +32,7 @@ if os.path.exists(_shared_commands_path):
   PrintError = shared_commands.PrintError
   PrintWarning = shared_commands.PrintWarning
   InitVitisWorkspace = shared_commands.InitVitisWorkspace
+  CheckBspPathLength = shared_commands.CheckBspPathLength
 else:
   print("ERROR: [Hog:Python:PlatformCommands.py] Failed to import SharedCommands, file not found: %s" % _shared_commands_path)
 
@@ -288,6 +289,9 @@ def CreatePlatform(platform_options=None, ws_dir=None):
       platform_kwargs["generate_dtb"] = generate_dtb
     if advanced_options is not None:
       platform_kwargs["advanced_options"] = advanced_options
+
+    # Warn before the long BSP build starts, not after it has failed
+    CheckBspPathLength(ws_dir, name, cpu)
 
     # Extract processor information from XSA before starting the Vitis client,
     # so HSI does not interfere with the Vitis server session

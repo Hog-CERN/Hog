@@ -332,20 +332,21 @@ def CreatePlatform(platform_options=None, ws_dir=None):
     try:
       platform = client.get_component(name=name)
     except Exception as e:
-      print("Error: Failed to get platform component '%s': %s" % (name, e), flush=True)
+      PrintError("Failed to get platform component '%s': %s" % (name, e))
       vitis.dispose()
       return False
 
     # Build platform
     try:
-      print("Building platform '%s'..." % name, flush=True)
+      PrintInfo("Building platform '%s'..." % name)
       status = platform.build()
       if status:
-        print("Warning: Platform build returned status: %s" % status, flush=True)
-      else:
-        print("Platform '%s' built successfully" % name, flush=True)
+        PrintError("Failed to build platform '%s', build returned status %s" % (name, status))
+        vitis.dispose()
+        return False
+      PrintInfo("Platform '%s' built successfully" % name)
     except Exception as e:
-      print("Error: Failed to build platform: %s" % e, flush=True)
+      PrintError("Failed to build platform '%s': %s" % (name, e))
       vitis.dispose()
       return False
 

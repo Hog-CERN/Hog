@@ -17,13 +17,13 @@ import vitis
 import sys
 import inspect
 import os
-import time
+import hashlib
 
-# A Vitis workspace can only be opened by one process at a time. Hog runs several
-# "vitis -s" steps back to back on the same workspace, and the previous one may
-# still be releasing the lock when the next one starts, so wait it out.
-WORKSPACE_LOCK_ATTEMPTS = 6
-WORKSPACE_LOCK_DELAY_S = 5
+# Range used to derive the Vitis server port from the workspace path. It is kept
+# below the usual ephemeral range so that it does not clash with the ports the
+# operating system hands out for outgoing connections.
+VITIS_PORT_BASE = 42000
+VITIS_PORT_RANGE = 6000
 
 
 def PrintInfo(message):
@@ -104,15 +104,48 @@ def DisposeVitisClient():
     pass
 
 
+def VitisWorkspacePort(workspace_path):
+  """Return the TCP port of the Vitis server to use for a workspace.
+
+  Always asking for the same port makes the next "vitis -s" call reconnect to a
+  server that is already running, instead of starting another one that would then
+  fail to lock a workspace the first server still holds. The port is derived from
+  the workspace path so that unrelated Hog jobs on the same machine do not end up
+  sharing a server. Set HOG_VITIS_PORT to override it.
+
+  Args:
+    workspace_path: Path to the workspace directory
+  Returns:
+    Port number as an int
+  """
+  override = os.environ.get("HOG_VITIS_PORT")
+  if override:
+    return int(override)
+
+  workspace_id = os.path.normcase(os.path.abspath(workspace_path)).encode("utf-8")
+  digest = hashlib.md5(workspace_id).hexdigest()
+  return VITIS_PORT_BASE + int(digest, 16) % VITIS_PORT_RANGE
+
+
+def WorkspaceIsSet(client):
+  """Return True if the client already has its workspace set.
+
+  check_workspace() is not available in every Vitis version: when it is missing,
+  assume the workspace still has to be set.
+  """
+  try:
+    return bool(client.check_workspace())
+  except Exception:
+    return False
+
+
 def InitVitisWorkspace(workspace_path):
   """Initialize a Vitis workspace and return the client.
 
-  Creates a Vitis client, sets the workspace (which creates the _ide
-  metadata directory), and handles the common "cannot recognize the
-  workspace version" error by calling update_workspace first.
-
-  If the workspace is locked by a Vitis process that has not finished shutting
-  down yet, the call is retried before giving up.
+  Connects to (or starts) the Vitis server of this workspace, sets the workspace
+  if it is not set already (which creates the _ide metadata directory), and
+  handles the common "cannot recognize the workspace version" error by calling
+  update_workspace first.
 
   Args:
     workspace_path: Absolute path to the workspace directory
@@ -120,44 +153,41 @@ def InitVitisWorkspace(workspace_path):
     vitis client object on success, None on failure.
     Caller is responsible for calling vitis.dispose() when done.
   """
-  PrintInfo("Setting Vitis workspace: %s" % workspace_path)
+  port = VitisWorkspacePort(workspace_path)
+  PrintInfo("Setting Vitis workspace: %s (Vitis server port %d)" % (workspace_path, port))
 
-  for attempt in range(1, WORKSPACE_LOCK_ATTEMPTS + 1):
-    client = vitis.create_client()
-
+  try:
+    client = vitis.create_client(port=port)
+  except Exception as e:
+    PrintWarning("Could not use the Vitis server port %d (%s), letting Vitis pick one" % (port, e))
     try:
-      client.set_workspace(path=workspace_path)
-      return client
-    except Exception as e:
-      error_msg = str(e)
-
-    if "cannot recognize the workspace version" in error_msg or "update_workspace" in error_msg:
-      try:
-        client.update_workspace(path=workspace_path)
-        client.set_workspace(path=workspace_path)
-        PrintInfo("Vitis workspace initialized after update")
-        return client
-      except Exception as e2:
-        PrintError("Failed to set workspace after update: %s" % e2)
-      break
-
-    if "already in use" not in error_msg:
-      PrintError("Failed to set workspace '%s': %s" % (workspace_path, error_msg))
-      break
-
-    # Tear this client down so that we do not leak a server while waiting for
-    # the process that owns the lock to release it
-    DisposeVitisClient()
-
-    if attempt == WORKSPACE_LOCK_ATTEMPTS:
-      PrintError("Vitis workspace '%s' is still in use after %d attempts: %s"
-                 % (workspace_path, WORKSPACE_LOCK_ATTEMPTS, error_msg))
-      PrintError("Close any Vitis GUI or 'vitis -s' process using this workspace and try again")
+      client = vitis.create_client()
+    except Exception as e2:
+      PrintError("Failed to create the Vitis client: %s" % e2)
       return None
 
-    PrintWarning("Vitis workspace '%s' is in use, retrying in %d s (attempt %d of %d)"
-                 % (workspace_path, WORKSPACE_LOCK_DELAY_S, attempt, WORKSPACE_LOCK_ATTEMPTS))
-    time.sleep(WORKSPACE_LOCK_DELAY_S)
+  try:
+    if WorkspaceIsSet(client):
+      PrintDebug("The Vitis server already has a workspace set")
+    else:
+      client.set_workspace(path=workspace_path)
+    return client
+  except Exception as e:
+    error_msg = str(e)
+
+  if "cannot recognize the workspace version" in error_msg or "update_workspace" in error_msg:
+    try:
+      client.update_workspace(path=workspace_path)
+      client.set_workspace(path=workspace_path)
+      PrintInfo("Vitis workspace initialized after update")
+      return client
+    except Exception as e2:
+      PrintError("Failed to set workspace after update: %s" % e2)
+  elif "already in use" in error_msg:
+    PrintError("Vitis workspace '%s' is already in use: %s" % (workspace_path, error_msg))
+    PrintError("Close any Vitis GUI or 'vitis -s' process using this workspace and try again")
+  else:
+    PrintError("Failed to set workspace '%s': %s" % (workspace_path, error_msg))
 
   DisposeVitisClient()
   return None
@@ -171,5 +201,7 @@ if __name__ == "__main__":
   print("  - PrintDebug(message)", flush=True)
   print("  - InitVitisWorkspace(workspace_path)", flush=True)
   print("  - DisposeVitisClient()", flush=True)
+  print("  - VitisWorkspacePort(workspace_path)", flush=True)
+  print("  - WorkspaceIsSet(client)", flush=True)
   print("\nThis module is imported by PlatformCommands.py, AppCommands.py, and HlsCommands.py", flush=True)
   sys.exit(0)

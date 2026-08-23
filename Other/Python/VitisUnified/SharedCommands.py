@@ -25,6 +25,16 @@ import hashlib
 VITIS_PORT_BASE = 42000
 VITIS_PORT_RANGE = 6000
 
+# Windows refuses to open a path longer than this
+WINDOWS_MAX_PATH = 260
+
+# Longest path Vitis appends below <workspace>/<platform>/<proc>/<platform> when
+# it builds the BSP of a processor domain, measured with Vitis 2025.2:
+#   bsp/libsrc/build_configs/gen_bsp/libsrc/standalone/src/CMakeFiles/xilstandalone.dir/
+#   743a002251c87983b35effde48ecde8c/translation_table.S.obj.d
+# plus the four separators between the workspace, platform and processor names
+VITIS_BSP_PATH_OVERHEAD = 146
+
 
 def PrintInfo(message):
   """
@@ -102,6 +112,45 @@ def DisposeVitisClient():
     vitis.dispose()
   except:
     pass
+
+
+def CheckBspPathLength(workspace_path, platform_name, proc_name):
+  """Warn when the BSP object paths of a platform will not fit in MAX_PATH.
+
+  Only checked on Windows. Vitis builds a BSP deep under
+  <workspace>/<platform>/<proc>/<platform>/bsp/libsrc/build_configs/gen_bsp/...
+  and the GNU cross compilers it drives are not long-path aware, so once the
+  deepest object file crosses MAX_PATH the build dies on a misleading
+  "No such file or directory" for a dependency file. Estimating the depth up
+  front turns that into an actionable message, because the real failure shows up
+  minutes later and thousands of log lines away from its cause.
+
+  This is an estimate: the overhead is Vitis own directory layout, so it may
+  drift between versions. Hence a warning and never a hard error.
+  See AMD support article 000039167.
+
+  Args:
+    workspace_path: Path to the Vitis workspace
+    platform_name: Name of the platform component
+    proc_name: Name of the processor the domain is built for
+  Returns:
+    True if the projected paths fit, False if they are expected to be too long
+  """
+  if os.name != "nt":
+    return True
+
+  projected = len(workspace_path) + 2 * len(platform_name) + len(proc_name or "") \
+      + VITIS_BSP_PATH_OVERHEAD
+  if projected <= WINDOWS_MAX_PATH:
+    return True
+
+  PrintWarning("The BSP build path of platform '%s' is about %d characters long, over the Windows"
+               " limit of %d, so building it will probably fail on a long object file name"
+               % (platform_name, projected, WINDOWS_MAX_PATH))
+  PrintWarning("Shorten the workspace path by at least %d characters, for example by mapping the"
+               " repository to a virtual drive with 'subst', or use shorter platform names"
+               % (projected - WINDOWS_MAX_PATH))
+  return False
 
 
 def VitisWorkspacePort(workspace_path):
@@ -203,5 +252,6 @@ if __name__ == "__main__":
   print("  - DisposeVitisClient()", flush=True)
   print("  - VitisWorkspacePort(workspace_path)", flush=True)
   print("  - WorkspaceIsSet(client)", flush=True)
+  print("  - CheckBspPathLength(workspace_path, platform_name, proc_name)", flush=True)
   print("\nThis module is imported by PlatformCommands.py, AppCommands.py, and HlsCommands.py", flush=True)
   sys.exit(0)

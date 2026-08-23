@@ -832,9 +832,14 @@ proc CreatePlatform {platform_name platform_conf {xsa ""}} {
 
   # If hw is not in platform conf, use vivado presynth xsa
   if {$xsa != ""} {
+    if {[IsRelativePath $xsa] == 1} {
+      set xsa [file normalize "$globalSettings::repo_path/$xsa"]
+    } else {
+      set xsa [file normalize $xsa]
+    }
     set platform_options "$platform_options -hw $xsa"
   } elseif {![dict exists $platform_conf hw]} {
-    set xsa "$globalSettings::build_dir/$globalSettings::DESIGN-presynth.xsa"
+    set xsa [file normalize "$globalSettings::build_dir/$globalSettings::DESIGN-presynth.xsa"]
     set platform_options "$platform_options -hw $xsa"
   } else {
     set platform_options "$platform_options"
@@ -1419,6 +1424,10 @@ proc CreateProject {args} {
           Msg Error "This is a $ide only project with platform/app sections, an XSA file must be provided via the -xsa option."
           return 1
         }
+      } elseif {[IsRelativePath $xsa_path] == 1} {
+        set xsa_path [file normalize "$globalSettings::repo_path/$xsa_path"]
+      } else {
+        set xsa_path [file normalize $xsa_path]
       }
 
       Msg Info "Configuring platforms with XSA: $xsa_path"
@@ -1565,10 +1574,10 @@ proc CreateProject {args} {
       set presynth_xsa [file normalize "$globalSettings::build_dir/$globalSettings::DESIGN-presynth.xsa"]
       set xsa_opt "-xsa $presynth_xsa"
     } else {
-      if {[IsRelativePath $options(xsa)] == 0} {
-        set xsa_opt "-xsa $options(xsa)"
+      if {[IsRelativePath $options(xsa)] == 1} {
+        set xsa_opt "-xsa [file normalize "$globalSettings::repo_path/$options(xsa)"]"
       } else {
-        set xsa_opt "-xsa $globalSettings::repo_path/$options(xsa)"
+        set xsa_opt "-xsa [file normalize $options(xsa)]"
       }
     }
 

@@ -105,6 +105,7 @@ for executable in "${executables[@]}"; do
         done
     fi
     if [ "$found" == 1 ]; then
+        HOG_TOOL_NAME="$exe_name"
         break
     fi
 done
@@ -117,6 +118,18 @@ if [ "$found" == 1 ]; then
     fi
 
     # printDict Hog_Usr_dict
+    if [ "$HOG_TOOL_NAME" == "vivado" ]; then
+        # following should always return 1 but due to bug in Vivado can also return 0
+        echo "exit 1" | vivado -mode tcl
+        RET_VAL=$?
+        if [[ $RET_VAL == 1 ]]; then
+            :
+        else
+            echo "vivado batch mode is masking errors"
+            echo "Enabling HOG_LOGGER to manually count and catch errors"
+            export HOG_LOGGER="ENABLED"
+        fi
+    fi
 
     loadUserConf
     if { [[ "$HOG_LOGGER" == "ENABLED" ]] || [[ "$HOG_COLOR" -gt 0 ]]; } || { [[ $(getConfigValue Hog_Usr_dict terminal logger) -gt 0 ]] || [[ $(getConfigValue Hog_Usr_dict terminal colored) -gt 0 ]]; }; then

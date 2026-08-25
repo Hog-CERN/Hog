@@ -109,6 +109,7 @@ set do_implementation 0
 set do_synthesis 0
 set do_bitstream 0
 set do_create 0
+set do_upgrade_ips 0
 set do_compile 0
 set do_simulation 0
 set recreate 0
@@ -860,7 +861,10 @@ if {[file exists $project_file]} {
   }
 }
 
-if {($proj_found == 0 || $recreate == 1)} {
+if {$proj_found == 0 && $do_upgrade_ips == 1} {
+  Msg Error "Project $project_name not found. UPGRADE_IP requires an existing project."
+  exit 1
+} elseif {($proj_found == 0 || $recreate == 1)} {
   set do_create 1
   Msg Info "Creating (possibly replacing) the project $project_name..."
   Msg Debug "launch.tcl: calling GetConfFiles with $repo_path/Top/$project_name"
@@ -902,6 +906,15 @@ if {($proj_found == 0 || $recreate == 1)} {
   } else {
     OpenProject $project_file $repo_path
   }
+}
+
+if {$do_upgrade_ips == 1} {
+  if {![IsVivado]} {
+    Msg Error "The UPGRADE_IP directive is only supported for Vivado projects."
+    exit 1
+  }
+  UpgradeIPs
+  exit 0
 }
 
 

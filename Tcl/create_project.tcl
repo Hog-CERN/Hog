@@ -1149,6 +1149,27 @@ proc ManageIPs {} {
   }
 }
 
+## @brief Upgrade locked IPs with an available catalog version
+proc UpgradeIPs {} {
+  set upgraded 0
+
+  foreach ip [get_ips] {
+    set locked [get_property -quiet IS_LOCKED $ip]
+    set upgrade_versions [get_property -quiet UPGRADE_VERSIONS $ip]
+    if {$locked && $upgrade_versions ne ""} {
+      Msg Info "Upgrading IP $ip..."
+      upgrade_ip $ip
+      incr upgraded
+    }
+  }
+
+  if {$upgraded == 0} {
+    Msg Info "No locked IPs with available upgrades found."
+  } else {
+    Msg Info "Upgraded $upgraded IP(s)."
+  }
+}
+
 proc SetGlobalVar {var {default_value HOG_NONE}} {
   ##nagelfar ignore
   if {[info exists ::$var]} {

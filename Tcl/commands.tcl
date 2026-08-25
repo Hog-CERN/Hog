@@ -73,6 +73,13 @@ set default_commands {
   # OPTIONS: ext_path.arg, lib.arg, vivado_only, vitis_only, verbose
   }
 
+  \^UPGRADE_IP$ {#proj
+    set do_upgrade_ips 1
+  # NAME: UPGRADE_IP
+    # DESCRIPTION: Upgrade locked IPs in an existing Vivado project.
+  # OPTIONS: verbose
+  }
+
   \^I(MPL(EMENT(ATION)?)?)?$ {#proj
     set do_implementation 1
     set do_bitstream 1

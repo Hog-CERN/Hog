@@ -1,5 +1,27 @@
+#!/usr/bin/env tclsh
+# tcl-lsp: disable=W300
 
-#if {[catch {
+# @file
+#   Copyright 2018-2026 The University of Birmingham
+#   Copyright 2018-2026 Max-Planck-Institute for Physics
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at
+#
+#       http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+
+# Authors: Davide Cieri, Francesco Gonnella, Bryce Natter
+# Creaeted on: Jul 4th, 2023
+# Last Modified on: Aug 18, 2026
+# Changelog:
+
 ################################################################################
 ## Set up hog environment
 ################################################################################
@@ -67,9 +89,9 @@ set project_name [dict get $request project_name]
 set options      [dict get $request options]
 unset request
 
-DataStore::create Repo
-DataStore::create Launcher
-DataStore::create CurrentProject
+DataStore::Create Repo
+DataStore::Create Launcher
+DataStore::Create CurrentProject
 namespace eval CurrentProject {
   proc GetProjectObj {} { variable _ctx; return $_ctx }
 }
@@ -157,14 +179,13 @@ if {[ActiveTool::CurrentTool] eq "tclsh"} {
     return
   }
 
-} 
+}
 
 ################################################################################
 ## Tool Pass
 ################################################################################
 
 if {[ActiveTool::CurrentTool] ne "tclsh"} {
-
   set DataStore::inIDE 1
 
   if {$cmd eq "" || ![Commands::IsExecutable $cmd]} {

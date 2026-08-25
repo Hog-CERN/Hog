@@ -193,11 +193,11 @@ namespace eval DataStore {
 
   variable inIDE 0
   variable _stores [list]
-  proc create {name} {
+  proc Create {name} {
     variable _store_template
 
-    if {[namespace exists $name]} {
-      error "DataStore::create: namespace '$name' already exists" "" {NS_ALREADY_EXISTS}
+    if {[namespace exists ::$name]} {
+      error "DataStore::Create: namespace '$name' already exists" "" {NS_ALREADY_EXISTS}
     }
     variable _stores
     lappend _stores $name
@@ -225,8 +225,6 @@ namespace eval DataStore {
       if {![namespace exists ::${name}]} { create $name }
       ${name}::Load [tdict get $tDictRoot $name]
     }
-    
-
   }
 
   proc _OnError {cmd } {

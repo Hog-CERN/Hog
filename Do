@@ -25,8 +25,8 @@ executables=(
     "vivado, unwrapped/lnx64.o/tclsh8.5:unwrapped/lnx32.o/tclsh8.5:unwrapped/lnx64.o/tclsh8.6:unwrapped/lnx32.o/tclsh8.6, ../lib/lnx64.o/:../lib/lnx32.o/, ../tps/tcl/tcl8.5/:../tps/tcl/tcl8.6/"
     "libero, ../bin64/acttclsh:../bin32/acttclsh, ../lib64/:../lib32/, ../lib64/tcl8.5/:../lib64/tcl8.6/"
     "diamond, ../../tcltk/bin/tclsh, ../../tcltk/lib, ../../tcltk/lib/tcl8.5/:../../tcltk/lib/tcl8.6/:"
+    "quartus, ../../qcore/linux64/tclsh:../linux64/tclsh, ../linux64:../linux32, ../linux64/tcl8.6/ "
     "tclsh, ./tclsh,  .,  "
-    "quartus, ./tclsh, ../linux64:../linux32, "
     "planAhead, lin64/tclsh:lin32/tclsh, ../lib/lin64/:../lib/lin32/, "
 )
 
@@ -56,6 +56,14 @@ normalise_path() {
 
     #an alternative could be realpath -m
 }
+# Returns 0 if the given tclsh starts up without errors or warnings, using only the ambient
+# environment, i.e. without Hog setting LD_LIBRARY_PATH and TCL_LIBRARY for it.
+tclsh_starts_cleanly() {
+    local probe_output
+    probe_output=$(echo "exit 0" | "$1" 2>&1)
+    [ $? -eq 0 ] && [ -z "$probe_output" ]
+}
+
 # if [[ "$HOG_LOGGER" == "ENABLED" ]]; then
 source ${script_dir}/Other/Logger.sh
     # Logger_Init "$*"
@@ -69,7 +77,6 @@ found_lib=0
 for executable in "${executables[@]}"; do
     # Split the executable and additional path
     IFS=', ' read -r exe_name exe_paths lib_paths tcl_libs <<< "$executable"
-
     # Find the directory path of the executable
     executable_dir=""
     if executable_dir=$(find_executable_dir "$exe_name"); then
@@ -77,11 +84,15 @@ for executable in "${executables[@]}"; do
         for exe_path in "${exe_paths[@]}"; do
             executable_path=$(normalise_path "$executable_dir/$exe_path")
             if [ -x "$executable_path" ]; then
+                echo "EX: $executable_path"
+
                 #Setting LD_LIBRARY_PATH now
                 IFS=":" read -ra lib_paths <<< "$lib_paths"
                 for lib_path in "${lib_paths[@]}"; do
                     library_path=$(normalise_path "$executable_dir/$lib_path")
+                    echo "L1 $library_path"
                     if [ -d "$library_path" ]; then
+                        echo "L: $library_path"
                         found_lib=1
                         break
                     fi
@@ -90,8 +101,12 @@ for executable in "${executables[@]}"; do
                 # Optionally we want to set TCL_LIB
                 IFS=":" read -ra tcl_libs <<< "$tcl_libs"
                 for tcl_lib in "${tcl_libs[@]}"; do
+                    
                     tcl_library=$(normalise_path "$executable_dir/$tcl_lib")
+                    echo "T1 $tcl_library"
                     if [ -d "$tcl_library" ]; then
+                        echo "T: $tcl_library"
+
                         found_tcl_lib=1
                         break
                     fi
@@ -110,10 +125,17 @@ for executable in "${executables[@]}"; do
 done
 
 if [ "$found" == 1 ]; then
-    export LD_LIBRARY_PATH=$library_path:$LD_LIBRARY_PATH
-    if [ "$found_tcl_lib" == 1 ]; then
-        #This is where init.tcl is located to avoid the initial warning when running tclsh
-        export TCL_LIBRARY=$tcl_library
+    # Most vendor tclsh binaries need their own libraries and Tcl script library to start up,
+    # but forcing them when they are not needed makes the interpreter pick the vendor libtcl and
+    # init.tcl, which come with an empty tcl_pkgPath. That drops the system directories from
+    # auto_path and hides the packages installed there (tcllib: inifile, cmdline, ...).
+    # So only set them if the interpreter cannot start cleanly on its own.
+    if ! tclsh_starts_cleanly "$executable_path"; then
+        export LD_LIBRARY_PATH=$library_path:$LD_LIBRARY_PATH
+        if [ "$found_tcl_lib" == 1 ]; then
+            #This is where init.tcl is located to avoid the initial warning when running tclsh
+            export TCL_LIBRARY=$tcl_library
+        fi
     fi
 
     # printDict Hog_Usr_dict
@@ -129,7 +151,9 @@ if [ "$found" == 1 ]; then
 	Hog_exit
     else
         if [ "$USE_EXPERIMENTAL" == 1 ]; then
+            echo  $executable_path $hog_dir/Tcl/core/launch.tcl "$@"
             $executable_path $hog_dir/Tcl/core/launch.tcl "$@"
+            echo "fuck"
         else
             $executable_path $hog_dir/Tcl/launch.tcl "$@"
         fi

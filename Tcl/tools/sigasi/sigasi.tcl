@@ -147,7 +147,7 @@ namespace eval Tools::Sigasi {
 
     set project_files [ ::tobj::native [ CurrentProject::Get project_files ] ]
 
-    DataStore::create Sigasi
+    DataStore::Create Sigasi
     Sigasi::Set name $project_name
     Sigasi::Set targets ""
     Sigasi::Set targets hdl

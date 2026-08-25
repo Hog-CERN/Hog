@@ -87,7 +87,7 @@ namespace eval Tools::Vivado {
 
   proc Launch {} {
     set script [Launcher::Get script]
-    puts "Launching vivado: \n    vivado -nojournal -nolog -mode batch -notrace -source $script -tclargs {*}$::argv"
+    Msg Info "Launching vivado: \n    vivado -nojournal -nolog -mode batch -notrace -source $script -tclargs {*}$::argv"
     exec -ignorestderr vivado -nojournal -nolog -mode batch -notrace -source $script -tclargs {*}$::argv >@ stdout
   }
 
@@ -122,7 +122,7 @@ namespace eval Tools::Vivado {
 
     set project_name [CurrentProject::Get project_name]
     CurrentProject::Set project_file [file normalize [file join [CurrentProject::Get build_dir] [CurrentProject::Get project].xpr]]
-    CurrentProject::Set LIBERO_MANDATORY_VARIABLES {"FAMILY" "PACKAGE" "DIE" }
+    # CurrentProject::Set LIBERO_MANDATORY_VARIABLES {"FAMILY" "PACKAGE" "DIE" }
     set proj_dir [file normalize "${repo_path}/Top/${project_name}"]
 
 
@@ -166,7 +166,7 @@ namespace eval Tools::Vivado {
     }
 
 
-    Msg Info "Creating project with part: [CurrentProject::Get config main PART] at [CurrentProject::Get project_file]"
+    Msg Info "Creating Vivado project with part: [CurrentProject::Get config main PART] at [CurrentProject::Get project_file]"
     if {[catch {
     create_project -force [file tail [CurrentProject::Get design]] [CurrentProject::Get build_dir] -part [CurrentProject::Get config main PART]
     } _err _opts ]} {

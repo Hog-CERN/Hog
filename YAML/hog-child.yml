@@ -76,70 +76,70 @@
       fi;
     - if [ -f "./Projects/${PROJECT_NAME}/skip.me" ]; then
         echo "CI disabled for $PROJECT_NAME";
-      else
-        if [ -n "${HOG_DEBUG_MODE}" ] && [ "${HOG_DEBUG_MODE}" == '1' ]; then
-          echo "Hog-CI(info) - The simulation workflow will be run in verbose mode.";
-        fi;
-        if [ -n "$HOG_SIM_ONLY_SCRIPTS" ] && [ "$HOG_SIM_ONLY_SCRIPTS" = '1' ]; then
-          export SIM_ONLY="-scripts_only";
-        fi;
-        if [ -n "$HOG_SIM_COMPILE_ONLY" ] && [ "$HOG_SIM_COMPILE_ONLY" = '1' ]; then
-          export COMPILE_ONLY="-compile_only";
-        fi;
-        if [ -n "$HOG_SIMSETS" ] && [ "$HOG_SIMSETS" != "" ]; then
-          export SIMSETS="-simset $HOG_SIMSETS";
-        else
-          export SIMSETS="";
-        fi;
-        export ENABLE_EOS=1;
-        if [ -z "${EOS_PASSWORD}" ]; then
-          if [ -z "${HOG_PASSWORD}" ]; then
-            export ENABLE_EOS=0;
-          else
-            EOS_PASSWORD=${HOG_PASSWORD};
-          fi;
-        fi;
-        if [ -z "${EOS_USER}" ]; then
-          if [ -z "${HOG_USER}" ]; then
-            export ENABLE_EOS=0;
-          else
-            EOS_USER=${HOG_USER};
-          fi;
-        fi;
-        if [ -z "${HOG_IP_PATH}" ]; then
-          if [ -z "${HOG_IP_EOS_PATH}" ]; then
-            echo "Hog-CI(info) - No EOS/LOCAL path for IPs defined.";
-          else
-            echo "Hog-CI(warning) HOG_IP_EOS_PATH is deprecated, you should use HOG_IP_PATH";
-          fi;
-        else
-          echo "Hog-CI(info) - IPs will be copied to/from $HOG_IP_PATH.";
-          if echo "$HOG_IP_PATH" | grep -q '^/eos/'; then
-            if [ "$ENABLE_EOS" -eq 1 ]; then
-              if command -v kinit &> /dev/null; then
-                KINIT_ATTEMPTS=0; KINIT_MAX_ATTEMPTS=5;
-                until echo "$EOS_PASSWORD" | kinit "$EOS_USER@CERN.CH"; do
-                  KINIT_ATTEMPTS=$((KINIT_ATTEMPTS+1));
-                  if [ "$KINIT_ATTEMPTS" -ge "$KINIT_MAX_ATTEMPTS" ]; then
-                    echo "Hog-CI(warning) - kinit failed after $KINIT_MAX_ATTEMPTS attempts, disabling EOS.";
-                    export ENABLE_EOS=0;
-                    break;
-                  fi;
-                  echo "Retrying"; sleep 2;
-                done;
-              else
-                echo "Hog-CI(warning) - kinit command not found, skipping EOS authentication.";
-                export ENABLE_EOS=0;
-              fi;
-            fi;
-          else
-            export ENABLE_EOS=0;
-          fi;
-        fi;
-        SIM_CMD="$APP_CMD ./Hog/Do SIMULATE $PROJECT_NAME $SIM_ONLY $COMPILE_ONLY $SIMSETS";
-        echo $SIM_CMD;
-        $(echo $SIM_CMD);
+        exit 0;
       fi;
+    - if [ -n "${HOG_DEBUG_MODE}" ] && [ "${HOG_DEBUG_MODE}" == '1' ]; then
+        echo "Hog-CI(info) - The simulation workflow will be run in verbose mode.";
+      fi;
+    - if [ -n "$HOG_SIM_ONLY_SCRIPTS" ] && [ "$HOG_SIM_ONLY_SCRIPTS" = '1' ]; then
+        export SIM_ONLY="-scripts_only";
+      fi;
+    - if [ -n "$HOG_SIM_COMPILE_ONLY" ] && [ "$HOG_SIM_COMPILE_ONLY" = '1' ]; then
+        export COMPILE_ONLY="-compile_only";
+      fi;
+    - if [ -n "$HOG_SIMSETS" ] && [ "$HOG_SIMSETS" != "" ]; then
+        export SIMSETS="-simset $HOG_SIMSETS";
+      else
+        export SIMSETS="";
+      fi;
+      export ENABLE_EOS=1;
+    - if [ -z "${EOS_PASSWORD}" ]; then
+        if [ -z "${HOG_PASSWORD}" ]; then
+          export ENABLE_EOS=0;
+        else
+          EOS_PASSWORD=${HOG_PASSWORD};
+        fi;
+      fi;
+    - if [ -z "${EOS_USER}" ]; then
+        if [ -z "${HOG_USER}" ]; then
+          export ENABLE_EOS=0;
+        else
+          EOS_USER=${HOG_USER};
+        fi;
+      fi;
+    - if [ -z "${HOG_IP_PATH}" ]; then
+        if [ -z "${HOG_IP_EOS_PATH}" ]; then
+          echo "Hog-CI(info) - No EOS/LOCAL path for IPs defined.";
+        else
+          echo "Hog-CI(warning) HOG_IP_EOS_PATH is deprecated, you should use HOG_IP_PATH";
+        fi;
+      else
+        echo "Hog-CI(info) - IPs will be copied to/from $HOG_IP_PATH.";
+        if echo "$HOG_IP_PATH" | grep -q '^/eos/'; then
+          if [ "$ENABLE_EOS" -eq 1 ]; then
+            if command -v kinit &> /dev/null; then
+              KINIT_ATTEMPTS=0; KINIT_MAX_ATTEMPTS=5;
+              until echo "$EOS_PASSWORD" | kinit "$EOS_USER@CERN.CH"; do
+                KINIT_ATTEMPTS=$((KINIT_ATTEMPTS+1));
+                if [ "$KINIT_ATTEMPTS" -ge "$KINIT_MAX_ATTEMPTS" ]; then
+                  echo "Hog-CI(warning) - kinit failed after $KINIT_MAX_ATTEMPTS attempts, disabling EOS.";
+                  export ENABLE_EOS=0;
+                  break;
+                fi;
+                echo "Retrying"; sleep 2;
+              done;
+            else
+              echo "Hog-CI(warning) - kinit command not found, skipping EOS authentication.";
+              export ENABLE_EOS=0;
+            fi;
+          fi;
+        else
+          export ENABLE_EOS=0;
+        fi;
+      fi;
+    - SIM_CMD="$APP_CMD ./Hog/Do SIMULATE $PROJECT_NAME $SIM_ONLY $COMPILE_ONLY $SIMSETS";
+    - echo "$SIM_CMD";
+    - eval "$SIM_CMD";
   artifacts:
     when: always
     name: simulation_files
@@ -188,156 +188,148 @@
       fi;
     - if [ -f "./Projects/$PROJECT_NAME/skip.me" ]; then
         echo "Hog-CI(info) - CI disabled for $PROJECT_NAME";
+        exit 0;
+      fi;
+    - if [ -z "${HOG_NJOBS}" ]; then
+        export HOG_NJOBS=4;
+        echo "Hog-CI(info) - Number of jobs set to $HOG_NJOBS";
+      fi;
+    - export ENABLE_EOS=1;
+    - if [ -z "${EOS_PASSWORD}" ]; then
+        if [ -z "${HOG_PASSWORD}" ]; then
+          export ENABLE_EOS=0;
+        else
+          EOS_PASSWORD=${HOG_PASSWORD};
+        fi;
+      fi;
+    - if [ -z "${EOS_USER}" ]; then
+        if [ -z "${HOG_USER}" ]; then
+          export ENABLE_EOS=0;
+        else
+          EOS_USER=${HOG_USER};
+        fi;
+      fi;
+    - if [ -n "${HOG_DEBUG_MODE}" ] && [ "${HOG_DEBUG_MODE}" = '1' ]; then
+        echo "Hog-CI(info) - The workflow will be run in verbose mode.";
+      fi;
+    - if [ -z "${HOG_IP_PATH}" ]; then
+        if [ -z "${HOG_IP_EOS_PATH}" ]; then
+          echo "Hog-CI(info) - No EOS/LOCAL path for IPs defined.";
+        else
+          echo "Hog-CI(warning) HOG_IP_EOS_PATH is deprecated, you should use HOG_IP_PATH";
+        fi;
       else
-        if [ -z "${HOG_NJOBS}" ]; then
-          export HOG_NJOBS=4;
-          echo "Hog-CI(info) - Number of jobs set to $HOG_NJOBS";
-        fi;
-        export ENABLE_EOS=1;
-        if [ -z "${EOS_PASSWORD}" ]; then
-          if [ -z "${HOG_PASSWORD}" ]; then
-            export ENABLE_EOS=0;
-          else
-            EOS_PASSWORD=${HOG_PASSWORD};
-          fi;
-        fi;
-        if [ -z "${EOS_USER}" ]; then
-          if [ -z "${HOG_USER}" ]; then
-            export ENABLE_EOS=0;
-          else
-            EOS_USER=${HOG_USER};
-          fi;
-        fi;
-      fi;
-    - if [ ! -f "./Projects/$PROJECT_NAME/skip.me" ]; then
-        if [ -n "${HOG_DEBUG_MODE}" ] && [ "${HOG_DEBUG_MODE}" = '1' ]; then
-          echo "Hog-CI(info) - The workflow will be run in verbose mode.";
-        fi;
-        if [ -z "${HOG_IP_PATH}" ]; then
-          if [ -z "${HOG_IP_EOS_PATH}" ]; then
-            echo "Hog-CI(info) - No EOS/LOCAL path for IPs defined.";
-          else
-            echo "Hog-CI(warning) HOG_IP_EOS_PATH is deprecated, you should use HOG_IP_PATH";
-          fi;
-        else
-          echo "Hog-CI(info) - IPs will be copied to/from $HOG_IP_PATH.";
-          if echo "$HOG_IP_PATH" | grep -q '^/eos/'; then
-            if [ "$ENABLE_EOS" -eq 1 ]; then
-              if command -v kinit &> /dev/null; then
-                KINIT_ATTEMPTS=0; KINIT_MAX_ATTEMPTS=5;
-                until echo "$EOS_PASSWORD" | kinit "$EOS_USER@CERN.CH"; do
-                  KINIT_ATTEMPTS=$((KINIT_ATTEMPTS+1));
-                  if [ "$KINIT_ATTEMPTS" -ge "$KINIT_MAX_ATTEMPTS" ]; then
-                    echo "Hog-CI(warning) - kinit failed after $KINIT_MAX_ATTEMPTS attempts, disabling EOS.";
-                    export ENABLE_EOS=0;
-                    break;
-                  fi;
-                  echo "Retrying"; sleep 2;
-                done;
-              else
-                echo "Hog-CI(warning) - kinit command not found, skipping EOS authentication.";
-                export ENABLE_EOS=0;
-              fi;
-            fi;
-          else
-            export ENABLE_EOS=0;
-          fi;
-        fi;
-        if [ -n "$HOG_ONLY_SYNTH" ] && [ "$HOG_ONLY_SYNTH" = '1' ]; then
-          export ONLY_SYNTH=1;
-          echo "Hog-CI(info) - Only the synthesis will be run.";
-        else
-          export ONLY_SYNTH=0;
-          if [ -n "$HOG_NO_BITSTREAM" ] && [ "$HOG_NO_BITSTREAM" = '1' ]; then
-            export NO_BITSTREAM="-no_bitstream";
-            echo "Hog-CI(info) - No binary files will be generated.";
-          else
-            echo "Hog-CI(info) - Binary files will be generated.";
-            export NO_BITSTREAM="";
-          fi;
-        fi;
-      fi;
-    - if [ ! -f "./Projects/$PROJECT_NAME/skip.me" ]; then
-        if [ -n "$HOG_CHECK_SYNTAX" ] && [ "$HOG_CHECK_SYNTAX" = '1' ]; then
-          echo "Hog-CI(info) - HDL syntax will be checked before starting the synthesis";
-          export CHECK_SYNTAX="-check_syntax";
-        else
-          echo "Hog-CI(info) - HDL syntax will not be checked.";
-          export CHECK_SYNTAX="";
-        fi;
-        if [ -n "$HOG_NO_RESET_BD" ] && [ "$HOG_NO_RESET_BD" = '1' ]; then
-          echo "Hog-CI(info) - BD files will NOT be reset at pre synthesis time";
-        else
-          echo "Hog-CI(info) - BD files will be reset at pre-synthesis time";
-          mkdir -p Projects;
-          echo "*.bd" >> Projects/hog_reset_files;
-        fi;
-        if [ -n "$HOG_RESET_FILES" ]; then
-          echo "Hog-CI(info) - found files to be reset before synthesis, before implementation, and before bitstream";
-          echo "$HOG_RESET_FILES";
-          mkdir -p Projects;
-          echo "$HOG_RESET_FILES" >> Projects/hog_reset_files;
-        else
-          echo "Hog-CI(info) - no custom files will be reset.";
-        fi;
-        echo "Hog-CI(info) - Launching workflow now...";
-      fi;
-    - if [ ! -f "./Projects/$PROJECT_NAME/skip.me" ]; then
-        if [ "$ONLY_SYNTH" = '1' ]; then
-          EXEC_CMD="./Hog/Do -njobs $HOG_NJOBS $NO_BITSTREAM $CHECK_SYNTAX SYNTH $PROJECT_NAME";
-        else
-          EXEC_CMD="./Hog/Do -njobs $HOG_NJOBS $NO_BITSTREAM $CHECK_SYNTAX WORKFLOW $PROJECT_NAME";
-        fi;
-        if [ -f "$HOG_APPTAINER_IMAGE" ]; then
-          if [ "$ENABLE_EOS" = "1" ]; then
-            FULL_CMD="echo \"$EOS_PASSWORD\" | kinit $EOS_USER@CERN.CH || echo \"Kinit failed with exit code \$?, but continuing anyway...\"; $EXEC_CMD";
-          else
-            FULL_CMD="$EXEC_CMD";
-          fi;
-          echo "$APP_CMD bash -c '${FULL_CMD}'";
-          eval "$APP_CMD bash -c '${FULL_CMD}'";
-        else
-          echo "$EXEC_CMD";
-          eval "$EXEC_CMD";
-        fi;
-      fi;
-    - if [ ! -f "./Projects/$PROJECT_NAME/skip.me" ]; then
-        if [ -n "$HOG_ONLY_SYNTH" ] && [ "$HOG_ONLY_SYNTH" = '1' ]; then
-          echo "Hog-CI(info) - Adding version and utilization summaries to note...";
-          if [ -d "$CI_PROJECT_DIR/Projects/$PROJECT_NAME/$(basename $PROJECT_NAME).runs/" ]; then
-            cp $CI_PROJECT_DIR/Projects/$PROJECT_NAME/$(basename $PROJECT_NAME).runs/versions* $CI_PROJECT_DIR/bin/$PROJECT_NAME*/;
-          fi;
-          if [ -d "$CI_PROJECT_DIR/Projects/$PROJECT_NAME/output_files/" ]; then
-            cp $CI_PROJECT_DIR/Projects/$PROJECT_NAME/output_files/versions* $CI_PROJECT_DIR/bin/$PROJECT_NAME*/;
-          fi;
-          if [ -f "$CI_PROJECT_DIR/Projects/$PROJECT_NAME/versions.txt" ]; then
-            cp $CI_PROJECT_DIR/Projects/$PROJECT_NAME/versions.txt $CI_PROJECT_DIR/bin/$PROJECT_NAME*/;
-          fi;
-        else
-          echo "Hog-CI(info) - Adding versions, timing and utilization summary to note...";
-          if [ -d "$CI_PROJECT_DIR/Projects/$PROJECT_NAME/output_files/" ]; then
-            cp $CI_PROJECT_DIR/Projects/$PROJECT_NAME/output_files/versions* $CI_PROJECT_DIR/bin/$PROJECT_NAME*/;
-          fi;
-          if [ -f "$CI_PROJECT_DIR/Projects/$PROJECT_NAME/versions.txt" ]; then
-            cp $CI_PROJECT_DIR/Projects/$PROJECT_NAME/versions.txt $CI_PROJECT_DIR/bin/$PROJECT_NAME*/;
-          fi;
-          if ls $CI_PROJECT_DIR/bin/$PROJECT_NAME*/timing_error.txt >/dev/null 2>&1 || ls $CI_PROJECT_DIR/bin/$PROJECT_NAME*/vitis_hls/*/timing_error.txt >/dev/null 2>&1 || ls $CI_PROJECT_DIR/bin/$PROJECT_NAME*/*/timing_error.txt >/dev/null 2>&1; then
-            echo "Hog-CI(info) - Renaming the Projects/ folder into DebugProjects/. This folder is added to job's artifacts for debugging purposes...";
-            if [ -e DebugProjects ]; then
-              echo "Hog-CI(warning) - Directory DebugProjects/ exists in your project, this is not recommended. Projects won't be added to the artifacts.";
+        echo "Hog-CI(info) - IPs will be copied to/from $HOG_IP_PATH.";
+        if echo "$HOG_IP_PATH" | grep -q '^/eos/'; then
+          if [ "$ENABLE_EOS" -eq 1 ]; then
+            if command -v kinit &> /dev/null; then
+              KINIT_ATTEMPTS=0; KINIT_MAX_ATTEMPTS=5;
+              until echo "$EOS_PASSWORD" | kinit "$EOS_USER@CERN.CH"; do
+                KINIT_ATTEMPTS=$((KINIT_ATTEMPTS+1));
+                if [ "$KINIT_ATTEMPTS" -ge "$KINIT_MAX_ATTEMPTS" ]; then
+                  echo "Hog-CI(warning) - kinit failed after $KINIT_MAX_ATTEMPTS attempts, disabling EOS.";
+                  export ENABLE_EOS=0;
+                  break;
+                fi;
+                echo "Retrying"; sleep 2;
+              done;
             else
-              mv $CI_PROJECT_DIR/Projects $CI_PROJECT_DIR/DebugProjects;
-            fi;
-            if [ -n "$HOG_FAIL_TIMING" ] && [ "$HOG_FAIL_TIMING" = '1' ]; then
-              echo "Hog-CI(error) - Project $PROJECT_NAME failed timing constraints. Failing the job as requested.";
-              exit 1;
-            else
-              echo "Hog-CI(critical warning) - Project $PROJECT_NAME failed timing constraints.";
+              echo "Hog-CI(warning) - kinit command not found, skipping EOS authentication.";
+              export ENABLE_EOS=0;
             fi;
           fi;
+        else
+          export ENABLE_EOS=0;
         fi;
-        echo "Hog-CI(info) - All done.";
       fi;
+    - if [ -n "$HOG_ONLY_SYNTH" ] && [ "$HOG_ONLY_SYNTH" = '1' ]; then
+        export ONLY_SYNTH=1;
+        echo "Hog-CI(info) - Only the synthesis will be run.";
+      else
+        export ONLY_SYNTH=0;
+        if [ -n "$HOG_NO_BITSTREAM" ] && [ "$HOG_NO_BITSTREAM" = '1' ]; then
+          export NO_BITSTREAM="-no_bitstream";
+          echo "Hog-CI(info) - No binary files will be generated.";
+        else
+          echo "Hog-CI(info) - Binary files will be generated.";
+          export NO_BITSTREAM="";
+        fi;
+      fi;
+    - if [ -n "$HOG_CHECK_SYNTAX" ] && [ "$HOG_CHECK_SYNTAX" = '1' ]; then
+        echo "Hog-CI(info) - HDL syntax will be checked before starting the synthesis";
+        export CHECK_SYNTAX="-check_syntax";
+      else
+        echo "Hog-CI(info) - HDL syntax will not be checked.";
+        export CHECK_SYNTAX="";
+      fi;
+    - if [ -n "$HOG_NO_RESET_BD" ] && [ "$HOG_NO_RESET_BD" = '1' ]; then
+        echo "Hog-CI(info) - BD files will NOT be reset at pre synthesis time";
+      else
+        echo "Hog-CI(info) - BD files will be reset at pre-synthesis time";
+        mkdir -p Projects;
+        echo "*.bd" >> Projects/hog_reset_files;
+      fi;
+    - if [ -n "$HOG_RESET_FILES" ]; then
+        echo "Hog-CI(info) - found files to be reset before synthesis, before implementation, and before bitstream";
+        echo "$HOG_RESET_FILES";
+        mkdir -p Projects;
+        echo "$HOG_RESET_FILES" >> Projects/hog_reset_files;
+      else
+        echo "Hog-CI(info) - no custom files will be reset.";
+      fi;
+    - echo "Hog-CI(info) - Launching workflow now...";
+    - if [ "$ONLY_SYNTH" = '1' ]; then
+        EXEC_CMD="./Hog/Do -njobs $HOG_NJOBS $CHECK_SYNTAX SYNTH $PROJECT_NAME";
+      else
+        EXEC_CMD="./Hog/Do -njobs $HOG_NJOBS $NO_BITSTREAM $CHECK_SYNTAX WORKFLOW $PROJECT_NAME";
+      fi;
+    - if [ -f "$HOG_APPTAINER_IMAGE" ]; then
+        if [ "$ENABLE_EOS" = "1" ]; then
+          FULL_CMD="echo \"$EOS_PASSWORD\" | kinit $EOS_USER@CERN.CH || echo \"Kinit failed with exit code \$?, but continuing anyway...\"; $EXEC_CMD";
+        else
+          FULL_CMD="$EXEC_CMD";
+        fi;
+        echo "$APP_CMD bash -c '${FULL_CMD}'";
+        eval "$APP_CMD bash -c '${FULL_CMD}'";
+      else
+        echo "$EXEC_CMD";
+        eval "$EXEC_CMD";
+      fi;
+    - if [ "$ONLY_SYNTH" = '1' ]; then
+        echo "Hog-CI(info) - Adding version and utilization summaries to note...";
+        if [ -d "$CI_PROJECT_DIR/Projects/$PROJECT_NAME/$(basename $PROJECT_NAME).runs/" ]; then
+          cp $CI_PROJECT_DIR/Projects/$PROJECT_NAME/$(basename $PROJECT_NAME).runs/versions* $CI_PROJECT_DIR/bin/$PROJECT_NAME*/;
+        fi;
+        if [ -d "$CI_PROJECT_DIR/Projects/$PROJECT_NAME/output_files/" ]; then
+          cp $CI_PROJECT_DIR/Projects/$PROJECT_NAME/output_files/versions* $CI_PROJECT_DIR/bin/$PROJECT_NAME*/;
+        fi;
+        if [ -f "$CI_PROJECT_DIR/Projects/$PROJECT_NAME/versions.txt" ]; then
+          cp $CI_PROJECT_DIR/Projects/$PROJECT_NAME/versions.txt $CI_PROJECT_DIR/bin/$PROJECT_NAME*/;
+        fi;
+      else
+        echo "Hog-CI(info) - Adding versions, timing and utilization summary to note...";
+        if [ -d "$CI_PROJECT_DIR/Projects/$PROJECT_NAME/output_files/" ]; then
+          cp $CI_PROJECT_DIR/Projects/$PROJECT_NAME/output_files/versions* $CI_PROJECT_DIR/bin/$PROJECT_NAME*/;
+        fi;
+        if [ -f "$CI_PROJECT_DIR/Projects/$PROJECT_NAME/versions.txt" ]; then
+          cp $CI_PROJECT_DIR/Projects/$PROJECT_NAME/versions.txt $CI_PROJECT_DIR/bin/$PROJECT_NAME*/;
+        fi;
+        if ls $CI_PROJECT_DIR/bin/$PROJECT_NAME*/timing_error.txt >/dev/null 2>&1 || ls $CI_PROJECT_DIR/bin/$PROJECT_NAME*/vitis_hls/*/timing_error.txt >/dev/null 2>&1 || ls $CI_PROJECT_DIR/bin/$PROJECT_NAME*/*/timing_error.txt >/dev/null 2>&1; then
+          echo "Hog-CI(info) - Renaming the Projects/ folder into DebugProjects/. This folder is added to job's artifacts for debugging purposes...";
+          if [ -e DebugProjects ]; then
+            echo "Hog-CI(warning) - Directory DebugProjects/ exists in your project, this is not recommended. Projects won't be added to the artifacts.";
+          else
+            mv $CI_PROJECT_DIR/Projects $CI_PROJECT_DIR/DebugProjects;
+          fi;
+          if [ -n "$HOG_FAIL_TIMING" ] && [ "$HOG_FAIL_TIMING" = '1' ]; then
+            echo "Hog-CI(error) - Project $PROJECT_NAME failed timing constraints. Failing the job as requested.";
+            exit 1;
+          else
+            echo "Hog-CI(critical warning) - Project $PROJECT_NAME failed timing constraints.";
+          fi;
+        fi;
+      fi;
+    - echo "Hog-CI(info) - All done.";
   artifacts:
     when: always
     name: implementation_and_bitfiles

@@ -36,6 +36,28 @@ WINDOWS_MAX_PATH = 260
 VITIS_BSP_PATH_OVERHEAD = 146
 
 
+def SanitizeMessage(message):
+  """Return a message whose Windows path separators cannot be read as escapes.
+
+  Windows paths reach the Hog log with backslashes, where sequences such as
+  \\t and \\v are expanded into a tab and a vertical tab, so 'T:\\test\\vivado'
+  is printed garbled. Vivado and Vitis report their own paths with forward
+  slashes on Windows, so use those here too and keep the log consistent.
+
+  Only messages are rewritten, never the paths handed to the filesystem or to
+  the Vitis API, and only on Windows: elsewhere a backslash is an ordinary
+  character that must be printed as it is.
+
+  Args:
+    message: The message about to be printed
+  Returns:
+    The message, with backslashes replaced by forward slashes on Windows
+  """
+  if os.name != "nt":
+    return message
+  return str(message).replace("\\", "/")
+
+
 def PrintInfo(message):
   """
   Print an INFO message with function name prefix
@@ -50,7 +72,7 @@ def PrintInfo(message):
     function_name = "unknown"
   finally:
     del frame
-  print("INFO: [Hog:Python:%s] %s" % (function_name, message), flush=True)
+  print("INFO: [Hog:Python:%s] %s" % (function_name, SanitizeMessage(message)), flush=True)
 
 def PrintError(message):
   """
@@ -66,7 +88,7 @@ def PrintError(message):
     function_name = "unknown"
   finally:
     del frame
-  print("ERROR: [Hog:Python:%s] %s" % (function_name, message), flush=True)
+  print("ERROR: [Hog:Python:%s] %s" % (function_name, SanitizeMessage(message)), flush=True)
 
 def PrintWarning(message):
   """
@@ -82,7 +104,7 @@ def PrintWarning(message):
     function_name = "unknown"
   finally:
     del frame
-  print("WARNING: [Hog:Python:%s] %s" % (function_name, message), flush=True)
+  print("WARNING: [Hog:Python:%s] %s" % (function_name, SanitizeMessage(message)), flush=True)
 
 def PrintDebug(message):
   """
@@ -103,7 +125,7 @@ def PrintDebug(message):
     function_name = "unknown"
   finally:
     del frame
-  print("DEBUG: [Hog:Python:%s] %s" % (function_name, message), flush=True)
+  print("DEBUG: [Hog:Python:%s] %s" % (function_name, SanitizeMessage(message)), flush=True)
 
 
 def DisposeVitisClient():
@@ -248,6 +270,7 @@ if __name__ == "__main__":
   print("  - PrintError(message)", flush=True)
   print("  - PrintWarning(message)", flush=True)
   print("  - PrintDebug(message)", flush=True)
+  print("  - SanitizeMessage(message)", flush=True)
   print("  - InitVitisWorkspace(workspace_path)", flush=True)
   print("  - DisposeVitisClient()", flush=True)
   print("  - VitisWorkspacePort(workspace_path)", flush=True)

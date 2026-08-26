@@ -2267,7 +2267,7 @@ proc GenerateQsysSystem {qsysFile commandOpts} {
     if {![catch {"exec $cmd -version"}] || [lindex $::errorCode 0] eq "NONE"} {
       Msg Info "Executing: $cmd $cmd_options"
       Msg Info "Saving logfile in: $qsysLogFile"
-      if {[catch {eval exec -ignorestderr "$cmd $cmd_options >>& $qsysLogFile"} ret opt]} {
+      if {[catch {eval exec -ignorestderr "$cmd $cmd_options >& $qsysLogFile"} ret opt]} {
         set makeRet [lindex [dict get $opt -errorcode] end]
         Msg CriticalWarning "$cmd returned with $makeRet"
       }
@@ -2981,7 +2981,7 @@ proc GetIDECommand {proj_conf {custom_ver ""}} {
     set before_tcl_script " -nojournal -nolog -mode batch -notrace -source "
     set after_tcl_script " -tclargs "
     set end_marker ""
-  } elseif {$ide_name eq "quartus"} {
+  } elseif {$ide_name eq "quartus" || $ide_name eq "quartus_std"} {
     set command "quartus_sh"
     # A space after the before_tcl_script is important
     set before_tcl_script " -t "

@@ -84,15 +84,12 @@ for executable in "${executables[@]}"; do
         for exe_path in "${exe_paths[@]}"; do
             executable_path=$(normalise_path "$executable_dir/$exe_path")
             if [ -x "$executable_path" ]; then
-                echo "EX: $executable_path"
 
                 #Setting LD_LIBRARY_PATH now
                 IFS=":" read -ra lib_paths <<< "$lib_paths"
                 for lib_path in "${lib_paths[@]}"; do
                     library_path=$(normalise_path "$executable_dir/$lib_path")
-                    echo "L1 $library_path"
                     if [ -d "$library_path" ]; then
-                        echo "L: $library_path"
                         found_lib=1
                         break
                     fi
@@ -103,10 +100,7 @@ for executable in "${executables[@]}"; do
                 for tcl_lib in "${tcl_libs[@]}"; do
                     
                     tcl_library=$(normalise_path "$executable_dir/$tcl_lib")
-                    echo "T1 $tcl_library"
                     if [ -d "$tcl_library" ]; then
-                        echo "T: $tcl_library"
-
                         found_tcl_lib=1
                         break
                     fi
@@ -151,9 +145,7 @@ if [ "$found" == 1 ]; then
 	Hog_exit
     else
         if [ "$USE_EXPERIMENTAL" == 1 ]; then
-            echo  $executable_path $hog_dir/Tcl/core/launch.tcl "$@"
             $executable_path $hog_dir/Tcl/core/launch.tcl "$@"
-            echo "fuck"
         else
             $executable_path $hog_dir/Tcl/launch.tcl "$@"
         fi

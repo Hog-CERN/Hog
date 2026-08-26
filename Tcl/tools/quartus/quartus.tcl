@@ -74,6 +74,7 @@ namespace eval Tools::Quartus {
 
     set FAMILY [CurrentProject::Get config main FAMILY]
     set PART [CurrentProject::Get config main PART]
+    file delete -force [CurrentProject::Get build_dir]
     file mkdir [CurrentProject::Get build_dir]
     cd [CurrentProject::Get build_dir]
     project_new -family $FAMILY -part $PART -overwrite [file tail [CurrentProject::Get design]]
@@ -228,7 +229,7 @@ namespace eval Tools::Quartus {
     set cmd [file join [_QsysRootDir] qsys-script]
     Msg Info "Executing: $cmd --script=$script_file"
     Msg Info "Saving logfile in: $log_file"
-    if {[catch {exec -ignorestderr $cmd --script=$script_file >>& $log_file} ret opt]} {
+    if {[catch {exec -ignorestderr $cmd --script=$script_file >& $log_file} ret opt]} {
       Msg CriticalWarning "$cmd returned with [lindex [dict get $opt -errorcode] end]"
     }
 
@@ -250,7 +251,76 @@ namespace eval Tools::Quartus {
       set_global_assignment -name [FindFileType $qsys_file] $qsys_file
     }
     if {![tdict exists $props nogenerate]} {
-      GenerateQsysSystem $qsys_file [_QsysOpts $fobj]
+      _GenerateQsysSystem $qsys_file [_QsysOpts $fobj]
     }
   }
+
+    ## @brief Function used to generate a qsys system from a .qsys file.
+  #  The procedure adds the generated IPs to the project.
+  #
+  #  @param[in] qsysFile the Intel Platform Designed file (.qsys), containing the system to be generated
+  #  @param[in] commandOpts the command options to be used during system generation as they are in qsys-generate options
+  #
+  proc _GenerateQsysSystem {qsysFile commandOpts} {
+    global env
+    if {[file exists $qsysFile] != 0} {
+      set qsysPath [file dirname $qsysFile]
+      set qsysName [file rootname [file tail $qsysFile]]
+      set qsysIPDir "$qsysPath/$qsysName"
+      set qsysLogFile "$qsysPath/$qsysName.qsys-generate.log"
+
+      set qsys_rootdir ""
+      if {![info exists ::env(QSYS_ROOTDIR)]} {
+        if {[info exists ::env(QUARTUS_ROOTDIR)]} {
+          set qsys_rootdir "$::env(QUARTUS_ROOTDIR)/sopc_builder/bin"
+          Msg Warning "The QSYS_ROOTDIR environment variable is not set! I will use $qsys_rootdir"
+        } else {
+          Msg CriticalWarning "The QUARTUS_ROOTDIR environment variable is not set! Assuming all quartus executables are contained in your PATH!"
+        }
+      } else {
+        set qsys_rootdir $::env(QSYS_ROOTDIR)
+      }
+
+      set cmd "$qsys_rootdir/qsys-generate"
+      set cmd_options "$qsysFile --output-directory=$qsysIPDir $commandOpts"
+      if {![catch {"exec $cmd -version"}] || [lindex $::errorCode 0] eq "NONE"} {
+        Msg Info "Executing: $cmd $cmd_options"
+        Msg Info "Saving logfile in: $qsysLogFile"
+        if {[catch {eval exec -ignorestderr "$cmd $cmd_options >& $`"} ret opt]} {
+          set makeRet [lindex [dict get $opt -errorcode] end]
+          Msg CriticalWarning "$cmd returned with $makeRet"
+        }
+      } else {
+        Msg Error " Could not execute command $cmd"
+        exit 1
+      }
+      #Add generated IPs to project
+      set qsysIPFileList [concat \
+        [glob -nocomplain -directory $qsysIPDir -types f *.ip *.qip] \
+        [glob -nocomplain -directory "$qsysIPDir/synthesis" -types f *.ip *.qip *.vhd *.vhdl]]
+      foreach qsysIPFile $qsysIPFileList {
+        if {[file exists $qsysIPFile] != 0} {
+          set qsysIPFileType [FindFileType $qsysIPFile]
+          set_global_assignment -name $qsysIPFileType $qsysIPFile
+          # Write checksum to file
+          set IpMd5Sum [Md5Sum $qsysIPFile]
+          # open file for writing
+          set fileDir [file normalize "./hogTmp"]
+          set fileName "$fileDir/.hogQsys.md5"
+          if {![file exists $fileDir]} {
+            file mkdir $fileDir
+          }
+          set hogQsysFile [open $fileName "a"]
+          set fileEntry "$qsysIPFile\t$IpMd5Sum"
+          puts $hogQsysFile $fileEntry
+          close $hogQsysFile
+        }
+      }
+    } else {
+      Msg ERROR "Error while generating ip variations from qsys: $qsysFile not found!"
+    }
+  }
+
 }
+
+

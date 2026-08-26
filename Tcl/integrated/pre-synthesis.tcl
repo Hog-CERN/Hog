@@ -113,6 +113,8 @@ if {[IsXilinx]} {
   for example Repo/Projects/fpga1/ or Repo/Top/fpga1/"
 }
 
+Notify Info "Starting synthesis of $proj_name."
+
 # Go to repository path
 set repo_path [file normalize "$tcl_path/../.."]
 cd $repo_path

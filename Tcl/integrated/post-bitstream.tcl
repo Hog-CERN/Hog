@@ -562,5 +562,7 @@ if {[file exists $user_post_bitstream_file]} {
   source $user_post_bitstream_file
 }
 
+Notify Info "Completed bitstream of $proj_name."
+
 cd $old_path
 Msg Info "All done."

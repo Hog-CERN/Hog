@@ -316,5 +316,7 @@ if {[file exists $user_post_implementation_file]} {
   source $user_post_implementation_file
 }
 
+Notify Info "Completed implementation of $proj_name."
+
 cd $old_path
 Msg Info "All done."

@@ -1579,4 +1579,5 @@ proc CreateProject {args} {
 
 
   Msg Info "Project $globalSettings::project_name created successfully in [Relative $globalSettings::repo_path $globalSettings::build_dir]."
+  Notify Info "Created project $globalSettings::project_name."
 }

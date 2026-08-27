@@ -65,9 +65,8 @@ declare -A Hog_Usr_dict
 
 tempfolder=""
 
-tmptimestamp=$(date +%s)
-tempfolder="/dev/shm/$USER/hog$tmptimestamp"
-if mkdir -p $tempfolder 2>/dev/null ; then
+tempbase="/dev/shm/$USER"
+if mkdir -p "$tempbase" 2>/dev/null && tempfolder=$(mktemp -d "$tempbase/hog.XXXXXXXXXX"); then
   temp_g_cnt_file="$tempfolder/hog_g_cnt"
   temp_i_cnt_file="$tempfolder/hog_i_cnt"
   temp_d_cnt_file="$tempfolder/hog_d_cnt"
@@ -77,9 +76,9 @@ if mkdir -p $tempfolder 2>/dev/null ; then
   TEMP_LOG_INFO_FILE="$tempfolder/hog_log_info"
   TEMP_LOG_WAR_ERR_FILE="$tempfolder/hog_log_war_err"
 else
-  echo " Warning : Could not create /dev/shm/$USER/hog$tmptimestamp will try /tmp/$USER/hog$tmptimestamp "
-  tempfolder="/tmp/$USER/hog$tmptimestamp"
-  if mkdir -p $tempfolder; then
+  echo " Warning : Could not create a temporary logger directory in $tempbase; trying /tmp/$USER"
+  tempbase="/tmp/$USER"
+  if mkdir -p "$tempbase" && tempfolder=$(mktemp -d "$tempbase/hog.XXXXXXXXXX"); then
     temp_g_cnt_file="$tempfolder/hog_g_cnt"
     temp_i_cnt_file="$tempfolder/hog_i_cnt"
     temp_d_cnt_file="$tempfolder/hog_d_cnt"
@@ -89,8 +88,8 @@ else
     TEMP_LOG_INFO_FILE="$tempfolder/hog_log_info"
     TEMP_LOG_WAR_ERR_FILE="$tempfolder/hog_log_war_err"
   else
-    echo " *** ERROR Could not create /tmp/$USER/hog$tmptimestamp"
-    exit 0
+    echo " *** ERROR Could not create a temporary logger directory in $tempbase"
+    exit 1
   fi
 fi
 

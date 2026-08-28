@@ -242,5 +242,7 @@ if {[file exists $user_post_synthesis_file]} {
   source $user_post_synthesis_file
 }
 
+Notify Info "Completed synthesis of $proj_name."
+
 cd $old_path
 Msg Info "All done."

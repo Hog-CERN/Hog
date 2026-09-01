@@ -3623,6 +3623,7 @@ proc GetProjectVersion {proj_dir repo_path {ext_path ""} {sim 0}} {
 #  @return  a list containing all the versions: global, top (hog.conf, pre and post tcl scripts, etc.), constraints,
 #           libraries, submodules, external, ipbus xml, user ip repos
 proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
+  global NOT_CLEAN_WARNED
   if {[catch {package require cmdline} ERROR]} {
     puts "$ERROR\n If you are running this script on tclsh, you can fix this by installing 'tcllib'"
     return 1
@@ -3881,7 +3882,10 @@ proc GetRepoVersions {proj_dir repo_path {ext_path ""} {sim 0}} {
     Msg Debug "Project-relevant files are clean."
     set clean 1
   } else {
-    Msg CriticalWarning "Project-relevant files not clean, commit hash and version will be set to 0."
+    if {![info exists NOT_CLEAN_WARNED]} {
+      Msg CriticalWarning "Project-relevant files not clean, commit hash and version will be set to 0."
+      set NOT_CLEAN_WARNED 1
+    }
     set clean 0
   }
 

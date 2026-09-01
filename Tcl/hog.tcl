@@ -4058,6 +4058,7 @@ proc GetVer {path {force_develop 0}} {
 # @return  a list: the git SHA, the version in hex format
 #
 proc GetVerFromSHA {SHA repo_path {force_develop 0}} {
+  global NO_HOG_VER_TAG_WARNED
   if {$SHA eq ""} {
     Msg CriticalWarning "Empty SHA found"
     set ver "v0.0.0"
@@ -4092,7 +4093,10 @@ proc GetVerFromSHA {SHA repo_path {force_develop 0}} {
         # Msg Debug "Chosen Tag $tag"
         set pattern {v\d+\.\d+\.\d+}
         if {![regexp $pattern $tag]} {
-          Msg CriticalWarning "No Hog version tags found in this repository."
+          if {![info exists NO_HOG_VER_TAG_WARNED]} {
+            Msg CriticalWarning "No Hog version tags found in this repository."
+            set NO_HOG_VER_TAG_WARNED 1
+          }
           set ver v0.0.0
         } else {
           lassign [ExtractVersionFromTag $tag] M m p mr
